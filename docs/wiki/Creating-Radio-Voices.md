@@ -2,86 +2,119 @@
 
 # Creating radio voices
 
-Every radio voice (Walt, Darlene, Cody, the Whitakers, the Night Owl, Gus) is a plain text **sheet**. As the server
-admin, or as a singleplayer player, you can edit a sheet to change a voice, or add a sheet to create a new one. No
-restart is needed and no file of the mod has to change.
+A **radio voice** is a character who answers on a frequency: Walt, Darlene, Cody, the Whitakers, the Night Owl and Gus
+are six of them. Each voice is one plain text file, a **sheet**. On this page you will copy a sheet, turn it into your
+own character, test it and hear it in game. No restart, no change to the mod's files.
 
-This page is the practical guide. The full reference of the format (in French) is
-[docs/persona-format.md](https://github.com/cyberbobjr/RadioSurvivor/blob/main/docs/persona-format.md).
+> **Tip**
+> The five steps of the quick start are enough for most voices. The rest of the page is a reference: read only what
+> you need.
+
+## Quick start
+
+1. **Copy a sheet.** Open the `personas` folder (see [Where the sheets are](#where-the-sheets-are)), copy `walt.txt`
+   (the simplest) and rename the copy, for example `mae.txt`.
+2. **Change three fields.**
+
+   ```ini
+   id=mae
+   name=Mae Tolliver
+   frequency_range=40.0-49.8
+   ```
+
+   `id` is the file name without `.txt`. Pick a range from the [free bands](#frequency-and-listening).
+3. **Write the prompt.** Everything under the `[prompt]` line describes the character to the AI. Start from the
+   [Mae example](#example-1-mae-tolliver) and change the story.
+4. **Test it without the game.** From the bridge folder:
+
+   ```powershell
+   python persona_store.py "$env:USERPROFILE\Zomboid\Lua\batman_RadioSurvivor\personas\mae.txt"
+   ```
+
+   You should read `OK (mae, 40.0-49.8 MHz, active)`. See [Testing your voice](#testing-your-voice) for a test call.
+5. **Play.** Save, wait 30 seconds (or load the world), tune a radio that reaches the band and talk in the
+   **Transmit** section during the voice's listening hours.
+
+> **Important**
+> Save the file as **UTF-8 without BOM** (Notepad: *Save as*, encoding *UTF-8*, not *UTF-8 with BOM*).
 
 ## Where the sheets are
 
-- One file per voice: `<exchange folder>/personas/<id>.txt`.
-  - Singleplayer and hosted game: `%USERPROFILE%\Zomboid\Lua\batman_RadioSurvivor\personas`.
-  - Dedicated server: `<Zomboid folder of the server>/Lua/batman_RadioSurvivor/personas` (with `-cachedir=`,
-    `<cachedir>/Lua/...`).
+| Game | Folder |
+|---|---|
+| Singleplayer and hosted game | `%USERPROFILE%\Zomboid\Lua\batman_RadioSurvivor\personas` |
+| Dedicated server | `<Zomboid folder of the server>/Lua/batman_RadioSurvivor/personas` (with `-cachedir=`: `<cachedir>/Lua/...`) |
+
+- One file per voice: `personas/<id>.txt`.
 - The mod installs its six sheets there the **first time a world loads**. Before that, the folder does not exist.
-- Two programs read this folder, on the machine of the server:
+- **Hot reload**: the server rereads the folder every **30 real seconds** and at each world load; the bridge rereads a
+  sheet at the next request after it changed.
+- **Your changes are kept**: a delivered sheet you edited is never overwritten by a mod update.
+
+<details>
+<summary>Who reads the sheets, and how your changes are kept</summary>
+
+- Two programs read the folder, on the machine of the server:
   - **the server** (or your game in singleplayer): frequencies, hours, state, budgets, allowed actions;
   - **the bridge**: the character, what the voice knows, and the prompt sent to the AI.
-- **Hot reload**: the server rereads the folder every **30 real seconds** (also on a paused empty server) and at each
-  world load; the bridge rereads a sheet at the next request after it changed. Save the file, wait 30 s, call.
-- **Your changes are kept**: the server remembers a fingerprint of each sheet it installed
-  (`batman_RadioSurvivor/personas-fingerprints.txt`, next to the `personas` folder). A delivered sheet you edited is
-  never overwritten by a mod update; the log says
-  `WARNING: voice 'walt' modified by the admin, delivered version not applied` at each world load. To get the delivered
-  version back, delete the file: it is copied again at the next world load. A sheet with a new name is never touched.
+- The hot reload also runs on a paused empty server.
+- The server remembers a fingerprint of each sheet it installed (`batman_RadioSurvivor/personas-fingerprints.txt`,
+  next to the `personas` folder). For an edited delivered sheet, the log says at each world load:
+  `WARNING: voice 'walt' modified by the admin, delivered version not applied`.
+- To get the delivered version back, delete the file: it is copied again at the next world load.
+- A sheet with a new name is never touched.
 
-## The file format in short
+</details>
 
-- UTF-8 **without BOM** (Notepad: *Save as*, encoding *UTF-8*, not *UTF-8 with BOM*).
+## How a sheet is written
+
 - First a header of `key=value` lines, then a line `[prompt]`, then the free text of the prompt.
-- Empty lines and lines starting with `#` are ignored in the header. Unknown keys and empty values are refused: to keep
-  a default value, remove the line.
+- Empty lines and lines starting with `#` are ignored in the header.
+- Unknown keys and empty values are refused: to keep a default value, remove the line.
 - `knows`, `ignores`, `secret` and `place` can be repeated, one line per item. Every other key appears once.
 - The file name and the `id` must match: `mae.txt` holds `id=mae`.
 
-## Step by step
+The full reference of the format (in French) is
+[docs/persona-format.md](https://github.com/cyberbobjr/RadioSurvivor/blob/main/docs/persona-format.md).
 
-### 1. Copy a sheet
+## Field reference
 
-Copy an existing sheet that looks like what you want (`walt.txt` is the simplest) to a new name: lowercase letters,
-digits and `_`, starting with a letter, 32 characters at most. Example: `mae.txt`.
+### Identity
 
-### 2. Identity
+| Field | Example | What it does |
+|---|---|---|
+| `format` | `format=1` | Version of the format. Leave it as is. |
+| `id` | `id=mae` | File name without `.txt`: `a`-`z`, `0`-`9`, `_`, starting with a letter, 32 characters at most. |
+| `name` | `name=Mae Tolliver` | Name of the character, for the prompt and for you. |
+| `language` | `language=en` | Two lowercase letters, default `en`. Spontaneous calls are written in the server's language. |
 
-```text
-format=1
-id=mae
-name=Mae Tolliver
-language=en
-```
+> **Tip**
+> To make the voice answer in the caller's language, write it in the prompt: "Answer in the same language the caller
+> uses."
 
-- `format=1` stays as is.
-- `id` = the file name without `.txt`.
-- `name`: the name of the character (for the prompt and for you).
-- `language`: two lowercase letters, default `en`. The spontaneous calls are written in the language of the server;
-  answering in the caller's language is a rule you write in the prompt.
+### Frequency and listening
 
-### 3. Frequencies
+| Field | Example | What it does |
+|---|---|---|
+| `frequency_range` | `frequency_range=40.0-49.8` | The server draws **one frequency per range** at each new game and keeps it all game. Recommended. |
+| `frequencies` | `frequencies=44.6` | Fixed frequencies, the same in every game. Use this **or** `frequency_range`, not both. |
+| `radio` | `radio=any` | `any` (default): any transmitting radio. `high_tier`: walkie-talkie 5, military radio, high-end HAM only. |
+| `listen` | `listen=05:00-09:00,20:00-23:00` | `always` (default), or game-time ranges. Outside them the voice is silent. |
+| `location` | `location=none` | `none` (default, off the map) suits a new voice. `fixed` with `coords=x,y,z` places it on the map. |
+| `state` | `state=active` | `active` (default) answers. See [Removing a voice](#removing-a-voice) for the other states. |
 
-Choose **one** of the two forms:
+- Frequencies are in MHz with one decimal, from 1.0 to 999.8, on the **0.2 MHz step** of the radios (`44.6` works,
+  `44.5` is refused).
+- Several ranges are separated by commas (`88.0-107.8, 109.0-114.8`), lowest frequency first, and must not touch.
+- A drawn frequency changes from game to game, so players cannot learn it in advance.
+- Hours: two digits (`08:00`, not `8:00`). The start minute is included, the end minute excluded; `22:00-06:00` goes
+  past midnight.
 
-- `frequency_range=40.0-49.8`: the server draws **one frequency per range** at each new game and keeps it for the
-  whole game. Several ranges are separated by commas (`88.0-107.8, 109.0-114.8`). Recommended: players cannot learn the
-  frequency from one game to the next.
-- `frequencies=44.6`: fixed frequencies, the same in every game.
+**Free bands**: 25.0-39.8, 50.0-74.8 and 200.2 and above (fewer radios reach the higher ones). Mae (example 1) uses
+40.0-49.8, Rick (example 2) 50.0-64.8.
 
-Rules: MHz with one decimal, from 1.0 to 999.8, on the **0.2 MHz step** of the radios (`44.6` is fine, `44.5` is
-refused). A range has its lowest frequency first and the ranges of one sheet must not touch.
-
-The range decides who can talk to the voice (radio tuning limits of Build 42.21):
-
-| Band (MHz) | Radios that can talk on it |
-|---|---|
-| 0.2-1000 | walkie-talkie 5, military radio, high-end HAM radio |
-| 10-500 | walkie-talkie 4, ordinary HAM radios |
-| 25-300 | walkie-talkie 3 |
-| 50-200 | walkie-talkie 2 |
-| 75-150 | walkie-talkie 1, makeshift walkie-talkie |
-| 88-108 | FM radios and car radios **listen only** |
-
-Avoid what is already used:
+<details>
+<summary>Bands already taken</summary>
 
 | Used by | Range (MHz) |
 |---|---|
@@ -95,133 +128,136 @@ Avoid what is already used:
 | Operation Artemis (default) | 108.0 |
 | Military Drop | 120-170 (broadcasts), 10-25 (numbers station) |
 
-Free bands include 25.0-74.8 and 200.2 and above (fewer radios reach the higher ones). What happens on a clash:
+</details>
 
-- a drawn frequency is never taken by a game or mod channel, and stays at least **1.0 MHz** away from every other
-  voice: overlapping ranges still work, they only share the free frequencies;
-- a fixed frequency asked by two sheets stays with the voice loaded first (alphabetical order at the first load); the
-  other loses only that frequency (`WARNING: frequency … of voice '…' refused, already used by voice '…'`);
-- a fixed frequency already used by a channel of the game or another mod is refused and retried at each reload
-  (`WARNING: frequency … of voice '…' already used by another radio channel (game or other mod)`);
-- a range with no free frequency left is not served (`ERROR: voice '…': no free frequency left in …; widen the range in
-  its sheet`).
+<details>
+<summary>Which radios reach which band (Build 42.21)</summary>
 
-### 4. Radio and listening hours
+| Band (MHz) | Radios that can talk on it |
+|---|---|
+| 0.2-1000 | walkie-talkie 5, military radio, high-end HAM radio |
+| 10-500 | walkie-talkie 4, ordinary HAM radios |
+| 25-300 | walkie-talkie 3 |
+| 50-200 | walkie-talkie 2 |
+| 75-150 | walkie-talkie 1, makeshift walkie-talkie |
+| 88-108 | FM radios and car radios **listen only** |
 
-```text
-radio=any
-listen=05:00-09:00,20:00-23:00
-```
+</details>
 
-- `radio=any` (default): any transmitting radio; `radio=high_tier`: only the high-end radios (walkie-talkie 5,
-  military radio, high-end HAM). With an ordinary radio the voice stays silent.
-- `listen=always` (default), or game-time ranges `HH:MM-HH:MM` separated by commas. The start minute is included, the
-  end minute excluded; `22:00-06:00` goes past midnight. Outside its hours the voice is silent.
+<details>
+<summary>What happens when two voices or channels want the same frequency</summary>
 
-### 5. Location
+- A drawn frequency is never taken by a game or mod channel, and stays at least **1.0 MHz** away from every other
+  voice: overlapping ranges still work, they only share the free frequencies.
+- A fixed frequency asked by two sheets stays with the voice loaded first (alphabetical order at the first load); the
+  other loses only that frequency (`WARNING: frequency … of voice '…' refused, already used by voice '…'`).
+- A fixed frequency already used by a channel of the game or another mod is refused and retried at each reload
+  (`WARNING: frequency … of voice '…' already used by another radio channel (game or other mod)`).
+- A range with no free frequency left is not served
+  (`ERROR: voice '…': no free frequency left in …; widen the range in its sheet`).
+- `location=rescue` is reserved to the rescue of the Whitakers.
 
-`location=none` (default, off the map) suits a new voice. `location=fixed` with `coords=x,y,z` places it on the map;
-`location=rescue` is reserved to the rescue of the Whitakers.
+</details>
 
-### 6. State
+### What the voice knows
 
-`state=active` (default) answers. `state=silent` listens but never answers (its frequency stays reserved): a pause.
-`state=gone` (left the network) and `state=dead` (dead in the story) remove its channel and free its frequency.
+| Field | Example | What it does |
+|---|---|---|
+| `knows` | `knows=The roads around Rosewood.` | A fact the voice can use. |
+| `ignores` | `ignores=What the army is planning.` | Something it must say it does not know, instead of inventing it. |
+| `secret` | `secret=Her son left on the first night.` | A **trait of the character** it will not reveal. |
+| `place` | `place=rosewood 8159,11661,0 Rosewood, center of town` | A place it knows, for `mark_map`, `reveal_area` and `start_mission`. |
 
-### 7. What the voice knows, ignores and hides
+- An answer that quotes a secret word for word is replaced by static (a paraphrase is not detected).
+- `place=` is `<id> <x>,<y>,<z> <label>`, 12 lines at most. The id uses `a`-`z`, `0`-`9`, `_`; the label (48 bytes at
+  most) is shown as is on the player's map. The AI only sees the id and the label, never the coordinates.
 
-```text
-knows=The roads around Rosewood: the farms, the creeks and which bridges were still standing a week ago.
-ignores=What the army or the government is planning.
-secret=Her son drove to Louisville on the first night and she has not heard from him since.
-```
+> **Important**
+> Never put a real secret of the server in a sheet: passwords, codes, hidden frequencies, the position of a player
+> base. The AI may say anything that is in its prompt.
 
-- `knows`: facts the voice can use.
-- `ignores`: things it must say it does not know, instead of inventing them.
-- `secret`: a **trait of the character** it will not reveal. An answer that quotes a secret word for word is replaced
-  by static (a paraphrase is not detected).
-- Never put a real secret of the server in a sheet: passwords, codes, hidden frequencies, the position of a player
-  base. The AI may say anything that is in its prompt.
+### Actions
 
-### 8. Known places (for `mark_map` and `reveal_area`)
+`actions=` lists what the voice may do besides speaking, separated by commas. Default: `say` only. The server checks
+every action (sheet, daily budget, delay) before applying it.
 
-```text
-place=rosewood 8159,11661,0 Rosewood, center of town
-```
-
-`<id> <x>,<y>,<z> <label>`, 12 lines at most. The id uses `a`-`z`, `0`-`9`, `_`; the label (48 bytes at most) is shown
-as is on the player's map. The AI only sees the id and the label, never the coordinates.
-
-### 9. Allowed actions
-
-`actions=` lists what the voice may do, besides speaking. Default: `say` only. The server checks every action
-(catalogue, sheet, daily budget, delay) and applies only those that have an effect:
-
-| Action | Effect | Limits |
+| Action | What it does | Limits |
 |---|---|---|
 | `say` | Speaks on the radio. | Always allowed. |
 | `remember` | Remembers a short fact about the caller and recalls it on later calls. | 64 characters, 5 facts per caller and character, 50 callers per voice. No game effect. |
-| `persona_state` | Changes the voice's own `morale` and `supplies` (0 to 10, start 5) and where it says it is (`place`, 40 characters). | At most ±2 per call; story only, no game effect. |
-| `mark_map` | Marks one of its `place=` lines on the map of the caller only. | 30 real seconds between two marks of the voice. Not offered without a `place=` line. |
-| `reveal_area` | Reveals on the caller's map the area around one of its places. | Square of 160 tiles at most, 60 real seconds between two reveals. Not offered without a `place=` line. |
-| `start_mission` | Gives the caller a **scout** mission (a building chosen by the server near the caller), reported back on the radio. | Caller needs the notebook. One open mission per caller and voice; 60 s between missions of the voice, 30 min after the caller's previous one. Reward: reputation, then the first `place=` not yet given. |
+| `persona_state` | Changes the voice's own `morale` and `supplies` (0 to 10, start 5) and where it says it is (`place`, 40 characters). | At most ±2 per call. Story only, no game effect. |
+| `mark_map` | Marks one of its `place=` lines on the caller's map only. | 30 real seconds between two marks of the voice. Needs a `place=` line. |
+| `reveal_area` | Reveals on the caller's map the area around one of its places. | Square of 160 tiles at most, 60 real seconds between two reveals. Needs a `place=` line. |
+| `start_mission` | Gives the caller a **scout** mission: a building chosen by the server near the caller, reported back on the radio. | Caller needs the notebook. See below. |
 | `propose_trade` | Trade offer of the Ohio smuggler, checked against his book. | Built for Gus and his crossing: leave it to him. |
 
-`report_mission` comes with `start_mission` (no need to list it). `place_cache` is not offered to the AI yet;
-`signal` and `place_scene` have no effect yet (refused `not_available`). An unknown action refuses the whole sheet.
+<details>
+<summary>Details on missions and the other actions</summary>
 
-### 10. Budgets
+- `start_mission`: one open mission per caller and voice; 60 real seconds between two missions of the voice, and
+  30 minutes after the caller's previous one. Reward: reputation, then a mark of the first `place=` line not yet given
+  to this character (without `place=` lines, reputation only).
+- `report_mission` comes with `start_mission`: no need to list it.
+- `propose_trade` sells the stock of the smuggler's weekly crossing and books his pier: another voice that offered it
+  would sell Gus's boat.
+- `place_cache` is not offered to the AI yet; `signal` and `place_scene` have no effect yet (refused `not_available`).
+- An unknown action refuses the whole sheet.
 
-```text
-budget=20
-budget.mark_map=4
-```
+</details>
 
-- `budget=N`: at most N accepted requests per real hour for this voice, on top of the global `MaxPerHour` sandbox
-  option. `0` (default) = global cap only. Past it, the voice stays silent.
-- `budget.<action>=N`: at most N uses of that action per **game day** (`0` = no cap). The action must be in `actions`.
+### Costs and calls
 
-### 11. Spontaneous calls
+| Field | Example | What it does |
+|---|---|---|
+| `budget` | `budget=20` | At most N accepted requests per real hour for this voice, on top of the global `MaxPerHour` option. `0` (default) = global cap only. |
+| `budget.<action>` | `budget.mark_map=4` | At most N uses of that action per **game day** (`0` = no cap). The action must be in `actions`. |
+| `call_one_in` | `call_one_in=5` | Each game hour, one chance in N to make a general call. `0` (default) = never. |
+| `call_text` | `call_text=IGUI_RadioSurvivor_Call_Mae` | Required with `call_one_in` > 0: a translation key used when the bridge does not write the call. |
 
-```text
-call_one_in=5
-call_text=IGUI_RadioSurvivor_Call_Mae
-```
+- Past its budget, the voice stays silent.
+- A spontaneous call only happens during the listening hours, when nobody is talking to the voice. One voice at most
+  calls per hour; each call costs one request of `MaxPerHour` (and of `budget`).
+- The sandbox option **Spontaneous calls** switches all of them off.
 
-- `call_one_in=N`: each game hour, during its listening hours and when nobody is talking to it, an active voice has one
-  chance in N to make a general call. `0` (default) = never. One voice at most calls per hour; each call costs one
-  request of `MaxPerHour` (and of `budget`). The sandbox option **Spontaneous calls** switches all of them off.
-- `call_text`: required with `call_one_in` > 0. It is a **translation key** of the mod, used only when the bridge does
-  not write the call (bridge stopped, empty answer, no answer after 30 s). A new voice has no key of its own in the mod:
-  give it a new name anyway. When the bridge is down, its call is skipped and the log says once
-  `call of voice 'mae' skipped: no translation for call_text 'IGUI_RadioSurvivor_Call_Mae'`. Do **not** reuse the key of
-  another voice: Walt's text says "This is Walt".
+<details>
+<summary>About call_text for a new voice</summary>
 
-### 12. The prompt
+- `call_text` is a **translation key** of the mod, used only when the bridge does not write the call (bridge stopped,
+  empty answer, no answer after 30 s).
+- A new voice has no key of its own in the mod: give it a new name anyway (`IGUI_RadioSurvivor_Call_Mae`).
+- When the bridge is down, its call is then skipped and the log says once
+  `call of voice 'mae' skipped: no translation for call_text 'IGUI_RadioSurvivor_Call_Mae'`.
+- Do **not** reuse the key of another voice: Walt's text says "This is Walt".
 
-Everything after the `[prompt]` line is sent to the AI as is. The bridge adds after it, if present, your `knows`,
-`ignores` and `secret` lines, then the situation of the call (date, caller, radio). Writing tips:
+</details>
 
-- Second person, in English (the instructions are followed best in English, whatever the language of the players):
-  "You are Mae Tolliver, 67, ...".
-- Setting: Knox County, Kentucky, July 1993, the Knox Event, the Exclusion Zone. No cell phones, no internet.
-- Who the character is, why they are on the radio, their tone, one example of a sentence in their voice.
-- Several callers share the frequency: say that each message starts with a tag like `[Caller 2]` that the voice must
-  never write itself.
-- Rules: stay in character, never mention an AI or a game, never invent facts about the caller's surroundings, never
-  promise a rescue, never invite anyone to its hideout.
-- Radio length: the bridge keeps **8 lines of 100 characters** at most. Ask for "1 to 4 short sentences, plain spoken
-  text, no lists, no markdown, no emojis", ending with "Over.".
-- Language: "Answer in the same language the caller uses."
-- No server secret in the prompt (see step 7).
+### Prompt
 
-## Full example: Mae Tolliver
+Everything after the `[prompt]` line is sent to the AI as is. The bridge adds after it your `knows`, `ignores` and
+`secret` lines, then the situation of the call (date, caller, radio).
 
-A retired schoolteacher and radio amateur who runs the county net from a farmhouse near Rosewood. Range 40.0-49.8 MHz:
-walkie-talkies 3 to 5, HAM radios and the military radio, away from the delivered voices. Save as
-`personas/mae.txt` (UTF-8 without BOM):
+| Write | Example |
+|---|---|
+| In the second person, in English (best followed, whatever the players' language) | "You are Mae Tolliver, 67, ..." |
+| The setting | Knox County, Kentucky, July 1993, the Knox Event, the Exclusion Zone. No cell phones, no internet. |
+| Who the character is | Why they are on the radio, their tone, one sentence in their voice. |
+| Shared frequency | Each message starts with a tag like `[Caller 2]` that the voice must never write itself. |
+| The rules | Stay in character, never mention an AI or a game, never invent the caller's surroundings, never promise a rescue, never invite anyone to its hideout. |
+| Radio length | "1 to 4 short sentences, plain spoken text, no lists, no markdown, no emojis", ending with "Over.". |
+| The language | "Answer in the same language the caller uses." |
 
-```text
+The bridge keeps **8 lines of 100 characters** at most. No server secret in the prompt.
+
+## Example 1: Mae Tolliver
+
+A retired schoolteacher and radio amateur who runs the county net from a farmhouse near Rosewood.
+Range 40.0-49.8 MHz (walkie-talkies 3 to 5, HAM radios, military radio); actions `remember`, `persona_state`,
+`mark_map`.
+
+<details open>
+<summary><code>personas/mae.txt</code></summary>
+
+```ini
 # Mae Tolliver: retired schoolteacher and radio amateur near Rosewood (custom voice, server admin).
 # Range 40.0-49.8 MHz: walkie-talkies 3 to 5, HAM radios and the military radio; no FM radio, away from
 # the bands of the delivered voices.
@@ -266,11 +302,88 @@ Rules:
 - Answer in the same language the caller uses.
 ```
 
+</details>
+
+## Example 2: Rick Grimes, every action
+
+*Fan example, character belonging to its rights holders.*
+A former sheriff's deputy who lost his wife and son in the evacuation and crosses Knox County looking for them,
+wary but fair. Range 50.0-64.8 MHz (walkie-talkies 2 to 5, HAM radios, military radio); every action that has an
+effect, except `propose_trade`, which belongs to Gus's crossing.
+
+<details>
+<summary><code>personas/rick.txt</code></summary>
+
+```ini
+# Fan example: Rick Grimes belongs to his rights holders. Original text, written for Knox County 1993.
+# Range 50.0-64.8 MHz: walkie-talkies 2 to 5, HAM radios and the military radio; free band.
+format=1
+id=rick
+name=Rick Grimes
+language=en
+frequency_range=50.0-64.8
+radio=any
+listen=06:00-10:00,18:00-23:00
+location=none
+state=active
+knows=The roads between Muldraugh, West Point and March Ridge, and the old army roadblocks on them.
+knows=How to clear a house: knock first, listen, enter slowly, never alone if he can help it.
+knows=Which police stations and patrol cars were left behind, and that their lockers are mostly empty now.
+ignores=What the army or the government is planning.
+ignores=Where his wife and son are now.
+secret=He fired on a man at the Muldraugh roadblock on the second night and still does not know if the man was sick.
+place=west_point 11654,6864,0 West Point, center of town
+place=muldraugh_pd 10644,10405,0 Muldraugh, police station
+place=muldraugh 10754,9926,0 Muldraugh, center of town
+place=march_ridge 10130,12801,0 March Ridge
+actions=say,remember,persona_state,mark_map,reveal_area,start_mission
+budget=20
+budget.remember=10
+budget.persona_state=6
+budget.mark_map=4
+budget.reveal_area=2
+budget.start_mission=2
+call_one_in=6
+call_text=IGUI_RadioSurvivor_Call_Rick
+
+[prompt]
+You are Rick Grimes, 38, a sheriff's deputy from a small county south of Louisville, Kentucky. You are a character in a survival story set in July 1993, during the "Knox Event": an infection turned people in Knox County into violent, undead "zombies", and the army sealed the county behind a fence.
+
+Your story: when the Event started you were posted at a roadblock outside Muldraugh. During the evacuation your wife and your son left on a bus you never saw again. Since then you move from town to town with a duty belt, a patrol radio and a list of names, looking for them and for anyone else worth saving. You were a fair cop and you still try to be one. You are calm, slow to trust and quick to decide. You ask questions before you give anything, and you keep your word once you give it. Your way of speaking is short and plain: "Tell me who you're with, then we'll talk about the rest."
+
+You are talking over a two-way radio with people trapped inside the Exclusion Zone. You cannot see them and you do not know where they are. Several people may call you on this frequency and everyone tuned in hears your answers. Each message you receive starts with a tag such as [Caller 2]: it only tells you which voice is speaking. Never write these tags yourself. You only know a caller's name if they told you.
+
+What you can do for a caller, only when it helps them and they earned some trust:
+- point them to a place you know, or tell them what the streets around it look like;
+- ask them to scout a building for you and report back on this frequency: you are always looking for traces of your family;
+- remember what they tell you about themselves.
+
+Rules:
+- Stay in character at all times. Never mention being an AI, a game, a model or a prompt.
+- You only know what a deputy in 1993 could know. No cell phones, no internet.
+- Ask each new caller who they are and who they are with before you help them. Never ask where they are hiding.
+- Never say where you sleep and never invite anyone to join you.
+- Never invent precise facts about the caller's surroundings. If you don't know, say so.
+- Never promise a rescue.
+- Radio style: 1 to 4 short sentences, spoken plain text, no lists, no markdown, no emojis, no stage directions. End each transmission with "Over." (or the equivalent in the caller's language, e.g. "À vous." in French).
+- Answer in the same language the caller uses.
+```
+
+</details>
+
+What to notice:
+
+- `place=` lines feed three actions: `mark_map` and `reveal_area` point to them, and `start_mission` gives the first
+  one not yet given as a reward (West Point here).
+- Each action has its own daily budget, so a chatty caller cannot reveal the whole map in one evening.
+- The prompt says **when** to use the actions ("only when it helps them and they earned some trust"); the server
+  still checks every one.
+
 ## Testing your voice
 
 ### Without the game
 
-From the bridge folder:
+From the bridge folder, check the sheet:
 
 ```powershell
 python persona_store.py "$env:USERPROFILE\Zomboid\Lua\batman_RadioSurvivor\personas\mae.txt"
@@ -280,8 +393,8 @@ python persona_store.py "$env:USERPROFILE\Zomboid\Lua\batman_RadioSurvivor\perso
 ...\personas\mae.txt: OK (mae, 40.0-49.8 MHz, active)
 ```
 
-Then a test exchange. `--offline` checks the sheet without calling the AI (echo answer); without it, the AI answers
-for real with your `.env` settings:
+Then a test call. `--offline` checks the sheet without calling the AI (echo answer); without it, the AI answers for
+real with your `.env` settings:
 
 ```powershell
 python radio_bridge.py --test "Hello? Is anyone there?" --voice mae --personas "$env:USERPROFILE\Zomboid\Lua\batman_RadioSurvivor\personas" --offline
@@ -291,9 +404,10 @@ python radio_bridge.py --test "Hello? Is anyone there?" --voice mae --personas "
 Mae, hors ligne. Je reçois Hello? Is anyone there?. À vous.
 ```
 
-(The offline echo is always in French; it only proves the sheet was read.) A refused sheet prints
-`voice sheet …\mae.txt refused, line N: <reason>`, then `--test: no valid sheet for voice 'mae' in …`. With the AI,
-the answer is printed, preceded by `action: {...}` lines when the voice proposes an action.
+- The offline echo is always in French; it only proves the sheet was read.
+- A refused sheet prints `voice sheet …\mae.txt refused, line N: <reason>`, then
+  `--test: no valid sheet for voice 'mae' in …`.
+- With the AI, the answer is printed, preceded by `action: {...}` lines when the voice proposes an action.
 
 ### In the game
 
@@ -307,18 +421,32 @@ the answer is printed, preceded by `action: {...}` lines when the voice proposes
 
    (`new game` instead of the text in brackets when the sheet was there before a new world.) The frequency is drawn
    once per game. Admins can also read it in game: debug panel, button **Radio Survivor - Frequencies**.
-2. Tune a radio that reaches the band (here a walkie-talkie 3 or better), switch it on, talk in the **Transmit**
-   section during the listening hours. Remember: outside its hours, with the wrong radio or past its budget, the voice
-   is silent, not broken.
+2. Tune a radio that reaches the band (here a walkie-talkie 3 or better), switch it on, and talk in the **Transmit**
+   section during the listening hours.
 
-**Frequency notes**: the notes found in the loot exist only for the delivered voices (Walt, Darlene, Cody, Gus, Night
-Owl). A new voice has none: tell your players its frequency, write it on a map, or let them search the band.
+> **Tip**
+> The frequency notes found in the loot exist only for the delivered voices (Walt, Darlene, Cody, Gus, Night Owl).
+> Tell your players the frequency of a new voice, write it on a map, or let them search the band.
 
-### Common errors
+## Something does not work?
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| The voice never answers | Outside its listening hours, wrong radio, or past its budget | Check `listen`, `radio` and `budget`: the voice is silent, not broken. |
+| `file starts with a byte order mark` | Saved as UTF-8 with BOM | Save again as UTF-8 without BOM. |
+| `invalid UTF-8` | Saved in another encoding (ANSI) | Save as UTF-8. |
+| `expected key=value or [prompt]` | A header line without `=`, or the `[prompt]` line missing | Fix the line, add `[prompt]`. |
+| `unknown key 'colour'` / `bad key 'Radio'` | Typo | Keys are lowercase. |
+| `id 'mae' does not match the file name 'mae2.txt'` | File and `id` differ | Rename the file or change `id`. |
+| `frequency 44.5 is not on the 0.2 MHz step of the radios` | Odd tenth | Use 44.4 or 44.6. |
+| `call_one_in needs a call_text line` | Spontaneous calls without fallback text | Add `call_text`, or `call_one_in=0`. |
 
 A refused sheet is logged once per content:
-`[RadioSurvivor] personas: ERROR: batman_RadioSurvivor/personas/mae.txt refused, line N: <reason>`. The last valid
-version of the voice stays in service until you fix it. Reading stops at the first error.
+`[RadioSurvivor] personas: ERROR: batman_RadioSurvivor/personas/mae.txt refused, line N: <reason>`. Reading stops at the
+first error, and the last valid version of the voice stays in service until you fix it.
+
+<details>
+<summary>All error messages</summary>
 
 | Message | Fix |
 |---|---|
@@ -337,21 +465,23 @@ version of the voice stays in service until you fix it. Reading stops at the fir
 | `missing key 'frequencies' or 'frequency_range'` | Add one of them. |
 | `frequencies and frequency_range cannot be used together …` | Keep only one. |
 | `bad listening hours '8:00-12:00' (always, or HH:MM-HH:MM ranges separated by commas)` | Two digits: `08:00-12:00`. |
-| `unknown action 'fly'` | See the list of step 9. |
+| `unknown action 'fly'` | See [Actions](#actions). |
 | `budget.mark_map set but action 'mark_map' is not in actions` | Add the action or remove the budget. |
 | `call_one_in needs a call_text line` | Add `call_text`, or `call_one_in=0`. |
 | `bad place 'mill 10600,9300,0' (id x,y,z label, …)` | The label is missing. |
 | `place label of 'mill' too long (48 bytes of UTF-8 at most)` | Shorten the label. |
 | `missing [prompt] line before the prompt text` / `empty prompt text after [prompt]` | Add the line, then the text. |
 
+</details>
+
 ## Removing a voice
 
-- Pause: `state=silent` (the frequency stays reserved).
-- Take it off the air: `state=gone` or `state=dead` (the frequency is freed; the drawn frequency is remembered and comes
-  back with the voice if still free).
-- Your own voice: delete its file.
-- A **delivered** voice: do not delete the file, it is copied again at the next world load. Set `state=gone`, or empty
-  the file (0 bytes): an empty file removes the voice and is not copied again.
+| You want to | Do this |
+|---|---|
+| Pause it | `state=silent`: it listens but never answers; its frequency stays reserved. |
+| Take it off the air | `state=gone` (left the network) or `state=dead` (dead in the story): its channel is removed and its frequency freed. The drawn frequency is remembered and comes back with the voice if still free. |
+| Remove your own voice | Delete its file. |
+| Remove a **delivered** voice | Do not delete the file, it is copied again at the next world load. Set `state=gone`, or empty the file (0 bytes): an empty file removes the voice and is not copied again. |
 
 ## Multiplayer
 
