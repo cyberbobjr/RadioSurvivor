@@ -182,31 +182,97 @@ La référence complète du format est
 
 ### Actions
 
-`actions=` liste ce que la voix peut faire en plus de parler, séparé par des virgules. Par défaut : `say` seulement.
-Le serveur vérifie chaque action (fiche, budget du jour, délai) avant de l'appliquer.
+Par défaut, une voix ne fait que **parler**. Les actions lui permettent d'**agir dans le jeu** pendant la
+conversation : poser un repère sur votre carte, vous révéler un quartier, vous confier une mission…
 
-| Action | Ce qu'elle fait | Limites |
-|---|---|---|
-| `say` | Parle à la radio. | Toujours permise. |
-| `remember` | Retient un fait court sur l'appelant et s'en souvient aux appels suivants. | 64 caractères, 5 faits par appelant et par personnage, 50 appelants par voix. Sans effet de jeu. |
-| `persona_state` | Change le `morale` et les `supplies` de la voix (0 à 10, 5 au départ) et l'endroit où elle dit être (`place`, 40 caractères). | ±2 au plus par appel. Simple récit, sans effet de jeu. |
-| `mark_map` | Marque l'un de ses lieux `place=` sur la carte du seul appelant. | 30 secondes réelles entre deux repères de la voix. Exige une ligne `place=`. |
-| `reveal_area` | Révèle sur la carte de l'appelant le quartier autour de l'un de ses lieux. | Carré de 160 cases au plus, 60 secondes réelles entre deux révélations. Exige une ligne `place=`. |
-| `start_mission` | Confie à l'appelant une mission **de reconnaissance** : un bâtiment choisi par le serveur près de lui, compte rendu à la radio. | L'appelant doit avoir le carnet. Voir ci-dessous. |
-| `propose_trade` | Offre du passeur de l'Ohio, contrôlée contre son livre. | Conçue pour Gus et son passage : laissez-la-lui. |
+**Comment ça marche, en trois points :**
+
+1. Vous donnez à la voix le **droit** d'utiliser une action en l'ajoutant à la ligne `actions=` de sa fiche.
+2. Pendant une conversation, **l'IA décide seule** de l'utiliser quand la situation s'y prête (par exemple quand
+   le joueur demande « où est-ce que je peux trouver des médicaments ? »). Le prompt peut lui dire quand le faire.
+3. **Le serveur vérifie** chaque action avant de l'appliquer : droit dans la fiche, limite du jour, délai entre deux
+   utilisations, conditions propres à l'action. Si elle est refusée, la voix parle quand même : seule l'action
+   n'a pas lieu. Chaque décision est notée dans le journal des actions du serveur
+   (`<dossier d'échange>/actions-<partie>.log`).
+
+```ini
+actions=say,remember,mark_map
+```
+
+Les noms (`mark_map`, `remember`…) sont des mots-clés : écrivez-les exactement ainsi, séparés par des virgules, sans
+espace. Une voix peut utiliser au plus trois actions dans une même réponse.
+
+#### Parler — `say`
+
+Toujours permise, même si vous ne l'écrivez pas. La voix vous répond à la radio.
+
+#### Se souvenir de vous — `remember`
+
+- **En jeu :** la voix retient un détail sur vous (« il cherche sa sœur », « elle a une jambe blessée ») et vous en
+  reparle lors des appels suivants, même plusieurs jours de jeu plus tard.
+- **Conséquences :** aucune sur le jeu, seulement sur la conversation. Les souvenirs sont propres à chaque personnage.
+- **Limites :** 5 souvenirs par personnage et par voix (les plus anciens s'effacent), 64 caractères chacun.
+- **Conseillé** pour toute voix qu'on rappelle souvent.
+
+#### Faire évoluer son humeur et ses réserves — `persona_state`
+
+- **En jeu :** la voix tient compte de ce qui lui arrive. Son **moral** et ses **réserves** (notés de 0 à 10, 5 au
+  départ) montent ou baissent, et elle peut dire qu'elle s'est déplacée (« je suis à la station-service
+  maintenant »). Elle en parle ensuite d'elle-même.
+- **Conséquences :** aucune sur le jeu, c'est du récit. L'état est le même pour tous les joueurs.
+- **Limites :** ±2 au plus par réponse.
+
+#### Poser un repère sur votre carte — `mark_map`
+
+- **En jeu :** la voix dit « je te le marque sur ta carte » et **un symbole apparaît sur votre carte du monde**, à
+  l'un des lieux qu'elle connaît.
+- **Il faut dans la fiche :** au moins une ligne `place=` (les lieux que la voix connaît). La voix ne peut marquer
+  **que** ces lieux, jamais une position inventée.
+- **Conséquences :** le repère n'apparaît que chez le joueur qui parle, pas chez les autres.
+- **Limites :** 30 secondes réelles entre deux repères de la voix ; plafond par jour de jeu avec `budget.mark_map`.
+
+#### Vous révéler un quartier — `reveal_area`
+
+- **En jeu :** la voix décrit un quartier qu'elle connaît et **la zone se dévoile sur votre carte** (comme si vous
+  aviez trouvé une carte locale).
+- **Il faut dans la fiche :** au moins une ligne `place=` ; la zone révélée est centrée sur l'un de ces lieux.
+- **Conséquences :** seulement chez le joueur qui parle.
+- **Limites :** un carré de 160 cases de côté au plus ; 60 secondes réelles entre deux révélations ; plafond par jour
+  avec `budget.reveal_area`.
+
+#### Vous confier une mission — `start_mission`
+
+- **En jeu :** la voix vous demande d'aller **reconnaître un bâtiment** près de vous. La mission apparaît dans
+  l'onglet **Missions** du carnet, avec un cercle sur la carte. Quand vous y êtes allé, **rappelez la voix sur sa
+  fréquence et racontez-lui** ce que vous avez vu : la mission est alors réussie.
+- **Il faut :** que le joueur ait le carnet. Le bâtiment est choisi par le serveur, jamais par l'IA.
+- **Récompense :** votre réputation monte ; si la voix a des lignes `place=`, elle vous marque en plus sur la carte le
+  premier de ses lieux qu'elle ne vous a pas encore donné.
+- **Limites :** une mission en cours à la fois par joueur et par voix ; 30 minutes réelles entre deux missions pour un
+  même joueur ; plafond par jour avec `budget.start_mission`.
+- Le compte rendu à la radio fait partie de cette action : rien d'autre à ajouter.
+
+#### Actions à ne pas ajouter
+
+| Mot-clé | Pourquoi |
+|---|---|
+| `propose_trade` | Le troc du passeur Gus : il vend le stock de **son** bateau et fixe un rendez-vous à **son** ponton. Une autre voix vendrait le bateau de Gus. |
+| `place_cache` | Réservée aux missions de récupération du carnet ; ne se règle pas dans une fiche. |
+| `signal`, `place_scene` | Prévues mais sans effet pour l'instant : toujours refusées. |
+
+> **Important** — Un mot-clé mal écrit ou inconnu fait **refuser toute la fiche** : la voix ne répond plus du tout.
+> Vérifiez votre fiche avec `persona_store.py` (voir [Tester sa voix](#tester-sa-voix)).
 
 <details>
-<summary>Détails sur les missions et les autres actions</summary>
+<summary>Limiter l'usage d'une action par jour de jeu</summary>
 
-- `start_mission` : une mission ouverte à la fois par appelant et par voix ; 60 secondes réelles entre deux missions
-  de la voix, et 30 minutes après la précédente de l'appelant. Récompense : réputation, puis repère du premier lieu
-  `place=` pas encore donné à ce personnage (sans ligne `place=`, la réputation seule).
-- `report_mission` vient avec `start_mission` : inutile de la lister.
-- `propose_trade` vend le stock du passage hebdomadaire du passeur et réserve son ponton : une autre voix qui la
-  proposerait vendrait le bateau de Gus.
-- `place_cache` n'est pas encore proposée à l'IA ; `signal` et `place_scene` n'ont pas encore d'effet (refus
-  `not_available`).
-- Une action inconnue fait refuser toute la fiche.
+Ajoutez une ligne `budget.<action>=N` : la voix ne pourra pas l'utiliser plus de N fois par **jour de jeu**, tous
+joueurs confondus (`0` = sans plafond). L'action doit aussi figurer dans `actions=`.
+
+```ini
+budget.mark_map=4
+budget.start_mission=2
+```
 
 </details>
 

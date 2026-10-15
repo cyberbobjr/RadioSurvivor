@@ -178,30 +178,95 @@ The full reference of the format (in French) is
 
 ### Actions
 
-`actions=` lists what the voice may do besides speaking, separated by commas. Default: `say` only. The server checks
-every action (sheet, daily budget, delay) before applying it.
+By default a voice only **talks**. Actions let it **do something in the game** during the conversation: put a marker on
+your map, reveal a neighbourhood, give you a mission…
 
-| Action | What it does | Limits |
-|---|---|---|
-| `say` | Speaks on the radio. | Always allowed. |
-| `remember` | Remembers a short fact about the caller and recalls it on later calls. | 64 characters, 5 facts per caller and character, 50 callers per voice. No game effect. |
-| `persona_state` | Changes the voice's own `morale` and `supplies` (0 to 10, start 5) and where it says it is (`place`, 40 characters). | At most ±2 per call. Story only, no game effect. |
-| `mark_map` | Marks one of its `place=` lines on the caller's map only. | 30 real seconds between two marks of the voice. Needs a `place=` line. |
-| `reveal_area` | Reveals on the caller's map the area around one of its places. | Square of 160 tiles at most, 60 real seconds between two reveals. Needs a `place=` line. |
-| `start_mission` | Gives the caller a **scout** mission: a building chosen by the server near the caller, reported back on the radio. | Caller needs the notebook. See below. |
-| `propose_trade` | Trade offer of the Ohio smuggler, checked against his book. | Built for Gus and his crossing: leave it to him. |
+**How it works, in three points:**
+
+1. You give the voice the **right** to use an action by adding it to the `actions=` line of its sheet.
+2. During a conversation, **the AI decides on its own** when to use it (for example when the player asks "where can I
+   find medicine?"). Your prompt can tell it when to do so.
+3. **The server checks** every action before applying it: right granted in the sheet, daily limit, delay between two
+   uses, conditions of the action. If it is refused, the voice still speaks: only the action does not happen. Every
+   decision is written to the server's action log (`<exchange folder>/actions-<save>.log`).
+
+```ini
+actions=say,remember,mark_map
+```
+
+The names (`mark_map`, `remember`…) are keywords: write them exactly like this, separated by commas, without spaces.
+A voice can use at most three actions in one reply.
+
+#### Talk — `say`
+
+Always allowed, even if you do not list it. The voice answers you on the radio.
+
+#### Remember you — `remember`
+
+- **In game:** the voice keeps a detail about you ("he is looking for his sister", "she has a wounded leg") and brings
+  it up on later calls, even days of game time later.
+- **Effect:** none on the game, only on the conversation. Memories belong to each character.
+- **Limits:** 5 memories per character and per voice (the oldest is dropped), 64 characters each.
+- **Recommended** for any voice that players call often.
+
+#### Change its mood and supplies — `persona_state`
+
+- **In game:** the voice reacts to what happens to it. Its **morale** and **supplies** (rated 0 to 10, 5 at the start)
+  go up or down, and it can say it has moved ("I'm at the gas station now"). It then talks about it on its own.
+- **Effect:** none on the game, it is storytelling. The state is the same for every player.
+- **Limits:** ±2 at most per reply.
+
+#### Put a marker on your map — `mark_map`
+
+- **In game:** the voice says "I'm marking it on your map" and **a symbol appears on your world map**, at one of the
+  places it knows.
+- **The sheet needs:** at least one `place=` line (the places the voice knows). The voice can mark **only** those
+  places, never an invented position.
+- **Effect:** the marker appears only for the player who is talking, not for the others.
+- **Limits:** 30 real seconds between two markers of the voice; daily cap with `budget.mark_map`.
+
+#### Reveal a neighbourhood — `reveal_area`
+
+- **In game:** the voice describes an area it knows and **that area is uncovered on your map** (as if you had found
+  a local map).
+- **The sheet needs:** at least one `place=` line; the revealed area is centred on one of those places.
+- **Effect:** only for the player who is talking.
+- **Limits:** a square of 160 tiles per side at most; 60 real seconds between two reveals; daily cap with
+  `budget.reveal_area`.
+
+#### Give you a mission — `start_mission`
+
+- **In game:** the voice asks you to go and **scout a building** near you. The mission appears in the **Missions** tab
+  of the notebook, with a circle on the map. Once you have been there, **call the voice back on its frequency and
+  tell it** what you saw: the mission then succeeds.
+- **Requires:** the player has the notebook. The building is picked by the server, never by the AI.
+- **Reward:** your reputation goes up; if the voice has `place=` lines, it also marks on your map the first of its
+  places it has not given you yet.
+- **Limits:** one mission in progress per player and per voice; 30 real minutes between two missions for the same
+  player; daily cap with `budget.start_mission`.
+- The radio report is part of this action: nothing else to add.
+
+#### Actions not to add
+
+| Keyword | Why |
+|---|---|
+| `propose_trade` | Gus the smuggler's trading: it sells the stock of **his** boat and sets a meeting at **his** pier. Another voice would sell Gus's boat. |
+| `place_cache` | Reserved for the notebook's recovery missions; not set in a sheet. |
+| `signal`, `place_scene` | Planned but without effect for now: always refused. |
+
+> **Important** — A misspelled or unknown keyword makes the **whole sheet refused**: the voice stops answering.
+> Check your sheet with `persona_store.py` (see [Testing your voice](#testing-your-voice)).
 
 <details>
-<summary>Details on missions and the other actions</summary>
+<summary>Limit an action per game day</summary>
 
-- `start_mission`: one open mission per caller and voice; 60 real seconds between two missions of the voice, and
-  30 minutes after the caller's previous one. Reward: reputation, then a mark of the first `place=` line not yet given
-  to this character (without `place=` lines, reputation only).
-- `report_mission` comes with `start_mission`: no need to list it.
-- `propose_trade` sells the stock of the smuggler's weekly crossing and books his pier: another voice that offered it
-  would sell Gus's boat.
-- `place_cache` is not offered to the AI yet; `signal` and `place_scene` have no effect yet (refused `not_available`).
-- An unknown action refuses the whole sheet.
+Add a `budget.<action>=N` line: the voice cannot use it more than N times per **game day**, all players combined
+(`0` = no cap). The action must also be listed in `actions=`.
+
+```ini
+budget.mark_map=4
+budget.start_mission=2
+```
 
 </details>
 
