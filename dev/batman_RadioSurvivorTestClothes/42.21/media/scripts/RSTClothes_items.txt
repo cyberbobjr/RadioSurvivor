@@ -1,0 +1,43 @@
+/*
+ * Test clothes (development mod batman_RadioSurvivorTestClothes only, never published). Two clothing items of their
+ * own module that reuse vanilla 42.21 clothing models (media/scripts/generated/items/clothing.txt): enough to change
+ * the list of active mods and of clothing item scripts between the two runs of the suite lk.appearance (LK02-T12).
+ * Never in any loot table nor outfit.
+ */
+module RSTClothes
+{
+    imports
+    {
+        Base
+    }
+
+    item TestTshirt
+    {
+        DisplayCategory = Clothing,
+        ItemType = base:clothing,
+        Icon = TshirtGeneric,
+        BloodLocation = Shirt,
+        BodyLocation = base:tshirt,
+        ClothingItem = Tshirt_DefaultTEXTURE_TINT,
+        FabricType = Cotton,
+        Insulation = 0.2,
+        WindResistance = 0.05,
+        WorldStaticModel = TShirt_Ground,
+        Tags = base:ripclothingcotton,
+    }
+
+    item TestVest
+    {
+        DisplayCategory = Clothing,
+        ItemType = base:clothing,
+        Icon = Vest_White,
+        BloodLocation = ShirtNoSleeves,
+        BodyLocation = base:tanktop,
+        ClothingItem = Vest_DefaultTEXTURE_TINT,
+        FabricType = Cotton,
+        Insulation = 0.4,
+        WindResistance = 0.3,
+        WorldStaticModel = BulletVest_Ground,
+        Tags = base:ripclothingcotton,
+    }
+}

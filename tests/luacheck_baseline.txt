@@ -1,0 +1,4 @@
+# Accepted luacheck warning count per folder (tests/run_all.py). Lower a number when warnings are fixed;
+# never raise it to hide a new warning. Format: <folder relative to RadioSurvivor> <count>
+Contents 15
+dev 0

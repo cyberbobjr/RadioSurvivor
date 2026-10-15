@@ -1,0 +1,20 @@
+module RadioSurvivor
+{
+    /* Journal du dehors (E13-T05) : feuille de nouvelles de la rive de l'Indiana, apportée par le passeur
+       (une édition par passage, RS_OutsideNewsServer.lua). Objet literature sans CanBeWrite : « Inspecter » ouvre
+       la fenêtre vanilla des documents (printMedia). OnCreate pose l'édition de la semaine en cours
+       (RS_OutsideNews.lua). Icône et modèles vanilla du journal (media/scripts/generated/items/literature.txt,
+       Newspaper_Recent) ; base:fastread : lecture en une seconde. Pas de tag base:newspaper (recettes vanilla). */
+    item OutsideNews
+    {
+        DisplayCategory = Literature,
+        Weight = 0.2,
+        ItemType = base:literature,
+        Icon = Newspaper,
+        ReadType = newspaper,
+        StaticModel = Newspaper,
+        WorldStaticModel = Newspaper_Ground,
+        Tags = base:fastread,
+        OnCreate = RadioSurvivorOutsideNews.onCreate,
+    }
+}

@@ -1,0 +1,33 @@
+Thumbs.db
+desktop.ini
+.DS_Store
+__pycache__/
+*.pyc
+*.bak
+*.tmp
+.env
+*.env
+
+# Banc Kahlua (tests/test_kahlua.py) : ECJ et classes compilées, jamais versionnés
+tests/kahlua/*.jar
+tests/kahlua/*.class
+*.class
+
+# Pont LLM : configuration locale (modèle versionné : bridge/.env.example)
+bridge/.env
+
+# Lanceur client automatique (E01-T14) : résultats des exécutions
+tools/autoclient/runs/
+
+# pz-autotest (.claude/tools/pz-autotest) : résultats des exécutions
+runs/
+
+# Zip de test local (tools/make_test_zip.py)
+dist/
+
+# Fichiers locaux jamais publiés : réglages d'agent, journaux, historiques
+.claude/
+*.log
+token_usage.jsonl
+history_*.json
+console.txt

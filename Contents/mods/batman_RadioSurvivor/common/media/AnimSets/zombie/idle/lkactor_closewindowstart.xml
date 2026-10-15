@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<animNode>
+	<m_Name>LKActorCloseWindowStart</m_Name>
+	<m_AnimName>Bob_WindowCloseStart</m_AnimName>
+	<m_ConditionPriority>5</m_ConditionPriority>
+	<m_Looped>false</m_Looped>
+	<m_BlendTime>0.20</m_BlendTime>
+	<m_SpeedScale>0.80</m_SpeedScale>
+	<m_Conditions>
+		<m_Name>LKActor</m_Name>
+		<m_Type>BOOL</m_Type>
+		<m_Value>true</m_Value>
+	</m_Conditions>
+	<m_Conditions>
+		<m_Name>LKGesture</m_Name>
+		<m_Type>STRING</m_Type>
+		<m_Value>closewindow</m_Value>
+	</m_Conditions>
+	<m_Conditions>
+		<m_Name>LKActPhase</m_Name>
+		<m_Type>BOOL</m_Type>
+		<m_Value>false</m_Value>
+	</m_Conditions>
+	<m_Events>
+		<m_EventName>SetVariable</m_EventName>
+		<m_Time>End</m_Time>
+		<m_ParameterValue>LKActPhase=true</m_ParameterValue>
+	</m_Events>
+</animNode>

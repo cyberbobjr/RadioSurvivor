@@ -1,0 +1,5 @@
+name=batman_RadioSurvivor Test Clothes (dev only)
+id=batman_RadioSurvivorTestClothes
+description=Development only, never publish. A tiny clothes mod (two clothing items reusing vanilla models) that the launcher adds between two runs of the in-game suite lk.appearance (LK02-T12: an npc embodied again after a restart with another mod list keeps its clothes).
+versionMin=42.21
+modversion=0.1.0

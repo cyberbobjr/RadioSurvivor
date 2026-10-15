@@ -1,0 +1,409 @@
+VERSION = 1,
+
+option RadioSurvivor.Enabled
+{
+	type = boolean,
+	default = true,
+	page = RadioSurvivor,
+	translation = RadioSurvivor_Enabled,
+}
+
+option RadioSurvivor.PlayerCooldown
+{
+	type = integer,
+	min = 0,
+	max = 600,
+	default = 10,
+	page = RadioSurvivor,
+	translation = RadioSurvivor_PlayerCooldown,
+}
+
+option RadioSurvivor.MaxPerHour
+{
+	type = integer,
+	min = 0,
+	max = 1000,
+	default = 60,
+	page = RadioSurvivor,
+	translation = RadioSurvivor_MaxPerHour,
+}
+
+option RadioSurvivor.SpontaneousCalls
+{
+	type = boolean,
+	default = true,
+	page = RadioSurvivor,
+	translation = RadioSurvivor_SpontaneousCalls,
+}
+
+option RadioSurvivor.CallLanguage
+{
+	type = enum,
+	numValues = 3,
+	default = 1,
+	page = RadioSurvivor,
+	translation = RadioSurvivor_CallLanguage,
+	valueTranslation = RadioSurvivor_CallLanguage,
+}
+
+option RadioSurvivor.NoteRarity
+{
+	type = enum,
+	numValues = 4,
+	default = 3,
+	page = RadioSurvivor,
+	translation = RadioSurvivor_NoteRarity,
+	valueTranslation = RadioSurvivor_NoteRarity,
+}
+
+option RadioSurvivor.ChronicleHour
+{
+	type = integer,
+	min = 0,
+	max = 23,
+	default = 20,
+	page = RadioSurvivor,
+	translation = RadioSurvivor_ChronicleHour,
+}
+
+option RadioSurvivor.LastPages
+{
+	type = boolean,
+	default = true,
+	page = RadioSurvivor,
+	translation = RadioSurvivor_LastPages,
+}
+
+option RadioSurvivor.InitiativeFrequency
+{
+	type = enum,
+	numValues = 4,
+	default = 3,
+	page = RadioSurvivor,
+	translation = RadioSurvivor_InitiativeFrequency,
+	valueTranslation = RadioSurvivor_InitiativeFrequency,
+}
+
+option RadioSurvivor.RescueDays
+{
+	type = integer,
+	min = 1,
+	max = 10,
+	default = 3,
+	page = RadioSurvivor,
+	translation = RadioSurvivor_RescueDays,
+}
+
+option LivingKnox.Enabled
+{
+	type = boolean,
+	default = true,
+	page = LivingKnox,
+	translation = LivingKnox_Enabled,
+}
+
+option LivingKnox.Debug
+{
+	type = boolean,
+	default = false,
+	page = LivingKnox,
+	translation = LivingKnox_Debug,
+}
+
+option LivingKnox.GroupCount
+{
+	type = integer,
+	min = 3,
+	max = 5,
+	default = 4,
+	page = LivingKnox,
+	translation = LivingKnox_GroupCount,
+}
+
+option LivingKnox.WeightSettlers
+{
+	type = integer,
+	min = 0,
+	max = 100,
+	default = 40,
+	page = LivingKnox,
+	translation = LivingKnox_WeightSettlers,
+}
+
+option LivingKnox.WeightRaiders
+{
+	type = integer,
+	min = 0,
+	max = 100,
+	default = 35,
+	page = LivingKnox,
+	translation = LivingKnox_WeightRaiders,
+}
+
+option LivingKnox.WeightNeutrals
+{
+	type = integer,
+	min = 0,
+	max = 100,
+	default = 25,
+	page = LivingKnox,
+	translation = LivingKnox_WeightNeutrals,
+}
+
+option LivingKnox.GroupSizeMin
+{
+	type = integer,
+	min = 4,
+	max = 8,
+	default = 4,
+	page = LivingKnox,
+	translation = LivingKnox_GroupSizeMin,
+}
+
+option LivingKnox.GroupSizeMax
+{
+	type = integer,
+	min = 4,
+	max = 8,
+	default = 8,
+	page = LivingKnox,
+	translation = LivingKnox_GroupSizeMax,
+}
+
+option LivingKnox.ReliefDaysMin
+{
+	type = integer,
+	min = 2,
+	max = 5,
+	default = 2,
+	page = LivingKnox,
+	translation = LivingKnox_ReliefDaysMin,
+}
+
+option LivingKnox.ReliefDaysMax
+{
+	type = integer,
+	min = 2,
+	max = 5,
+	default = 5,
+	page = LivingKnox,
+	translation = LivingKnox_ReliefDaysMax,
+}
+
+option LivingKnox.ZombieAlertDistance
+{
+	type = integer,
+	min = 1,
+	max = 30,
+	default = 10,
+	page = LivingKnox,
+	translation = LivingKnox_ZombieAlertDistance,
+}
+
+option LivingKnox.AlertReach
+{
+	type = integer,
+	min = 5,
+	max = 60,
+	default = 20,
+	page = LivingKnox,
+	translation = LivingKnox_AlertReach,
+}
+
+option LivingKnox.AlertShoutZombie
+{
+	type = integer,
+	min = 1,
+	max = 30,
+	default = 10,
+	page = LivingKnox,
+	translation = LivingKnox_AlertShoutZombie,
+}
+
+option LivingKnox.FleeDistance
+{
+	type = integer,
+	min = 1,
+	max = 20,
+	default = 4,
+	page = LivingKnox,
+	translation = LivingKnox_FleeDistance,
+}
+
+option LivingKnox.FleeDistanceAfraid
+{
+	type = integer,
+	min = 1,
+	max = 30,
+	default = 8,
+	page = LivingKnox,
+	translation = LivingKnox_FleeDistanceAfraid,
+}
+
+option LivingKnox.ZombieEngageDeputy
+{
+	type = integer,
+	min = 1,
+	max = 15,
+	default = 10,
+	page = LivingKnox,
+	translation = LivingKnox_ZombieEngageDeputy,
+}
+
+option LivingKnox.ZombieEngageFighter
+{
+	type = integer,
+	min = 1,
+	max = 15,
+	default = 10,
+	page = LivingKnox,
+	translation = LivingKnox_ZombieEngageFighter,
+}
+
+option LivingKnox.ZombieEngageScout
+{
+	type = integer,
+	min = 1,
+	max = 15,
+	default = 10,
+	page = LivingKnox,
+	translation = LivingKnox_ZombieEngageScout,
+}
+
+option LivingKnox.ZombieEngageMedic
+{
+	type = integer,
+	min = 1,
+	max = 15,
+	default = 10,
+	page = LivingKnox,
+	translation = LivingKnox_ZombieEngageMedic,
+}
+
+option LivingKnox.ZombieEngageWorker
+{
+	type = integer,
+	min = 1,
+	max = 15,
+	default = 10,
+	page = LivingKnox,
+	translation = LivingKnox_ZombieEngageWorker,
+}
+
+option LivingKnox.ZombieEngageBreaker
+{
+	type = integer,
+	min = 1,
+	max = 15,
+	default = 10,
+	page = LivingKnox,
+	translation = LivingKnox_ZombieEngageBreaker,
+}
+
+option LivingKnox.DefenseRadius
+{
+	type = integer,
+	min = 3,
+	max = 30,
+	default = 8,
+	page = LivingKnox,
+	translation = LivingKnox_DefenseRadius,
+}
+
+option LivingKnox.DefenseWithdrawRatio
+{
+	type = integer,
+	min = 2,
+	max = 10,
+	default = 3,
+	page = LivingKnox,
+	translation = LivingKnox_DefenseWithdrawRatio,
+}
+
+option LivingKnox.RetreatDangerDistance
+{
+	type = integer,
+	min = 2,
+	max = 30,
+	default = 8,
+	page = LivingKnox,
+	translation = LivingKnox_RetreatDangerDistance,
+}
+
+option LivingKnox.ReinforcementRadius
+{
+	type = integer,
+	min = 3,
+	max = 50,
+	default = 15,
+	page = LivingKnox,
+	translation = LivingKnox_ReinforcementRadius,
+}
+
+option LivingKnox.WarnHomeRadius
+{
+	type = integer,
+	min = 4,
+	max = 30,
+	default = 14,
+	page = LivingKnox,
+	translation = LivingKnox_WarnHomeRadius,
+}
+
+option LivingKnox.WarnGroupRadius
+{
+	type = integer,
+	min = 2,
+	max = 30,
+	default = 10,
+	page = LivingKnox,
+	translation = LivingKnox_WarnGroupRadius,
+}
+
+option LivingKnox.WoundedHealth
+{
+	type = integer,
+	min = 10,
+	max = 90,
+	default = 50,
+	page = LivingKnox,
+	translation = LivingKnox_WoundedHealth,
+}
+
+option LivingKnox.AfraidFear
+{
+	type = integer,
+	min = 30,
+	max = 100,
+	default = 70,
+	page = LivingKnox,
+	translation = LivingKnox_AfraidFear,
+}
+
+option LivingKnox.RaidsEnabled
+{
+	type = boolean,
+	default = true,
+	page = LivingKnox,
+	translation = LivingKnox_RaidsEnabled,
+}
+
+option LivingKnox.RaidDays
+{
+	type = integer,
+	min = 3,
+	max = 90,
+	default = 14,
+	page = LivingKnox,
+	translation = LivingKnox_RaidDays,
+}
+
+option LivingKnox.RevengeDelayHours
+{
+	type = integer,
+	min = 12,
+	max = 336,
+	default = 72,
+	page = LivingKnox,
+	translation = LivingKnox_RevengeDelayHours,
+}

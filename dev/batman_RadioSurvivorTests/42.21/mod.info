@@ -1,0 +1,6 @@
+name=batman_RadioSurvivor Tests (dev only)
+id=batman_RadioSurvivorTests
+description=In-game test engine (RST) and test suites for batman_RadioSurvivor. Development only, never publish.
+versionMin=42.21
+modversion=0.1.0
+require=\batman_RadioSurvivor

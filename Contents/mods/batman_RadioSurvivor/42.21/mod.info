@@ -1,0 +1,8 @@
+name=batman_Radio Survivor
+id=batman_RadioSurvivor
+description=Voices on the radio and living survivor groups in Knox County. Radio characters played by an AI (Walt, a nurse, a deserter, a besieged family, a pirate station, a smuggler) answer on real frequencies, give missions and trades, and tell the server chronicle. The Living Knox NPC engine adds 3 to 5 groups of human survivors with homes, leaders, needs, routines, fights, fortifications and life off screen. The field notebook lets you meet them, earn their trust, take and report missions, and follow your reputation. Server authoritative, solo and multiplayer. AI dialogue needs the separate Python bridge (see the README); without it the game stays playable and the voices stay silent. Requires Belt Walkie-Talkie (batman_BeltRadio) and Signal Smoke (batman_SignalSmoke). Not compatible with Bandits or Project A-Life.
+versionMin=42.21
+modversion=0.3.0
+require=\batman_BeltRadio,\batman_SignalSmoke
+loadModAfter=\batman_CharacterReputation
+incompatible=\Bandits2,\ProjectALifeNPCs

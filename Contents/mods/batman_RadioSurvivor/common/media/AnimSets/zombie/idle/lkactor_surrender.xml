@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<animNode>
+	<m_Name>LKActorSurrender</m_Name>
+	<m_AnimName>Bob_EmoteSurrender</m_AnimName>
+	<m_ConditionPriority>5</m_ConditionPriority>
+	<m_Looped>true</m_Looped>
+	<m_BlendTime>0.50</m_BlendTime>
+	<m_SpeedScale>0.48</m_SpeedScale>
+	<m_Conditions>
+		<m_Name>LKActor</m_Name>
+		<m_Type>BOOL</m_Type>
+		<m_Value>true</m_Value>
+	</m_Conditions>
+	<m_Conditions>
+		<m_Name>LKGesture</m_Name>
+		<m_Type>STRING</m_Type>
+		<m_Value>surrender</m_Value>
+	</m_Conditions>
+</animNode>

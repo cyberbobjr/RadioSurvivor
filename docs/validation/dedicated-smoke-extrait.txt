@@ -1,0 +1,16 @@
+Source: %TEMP%\rs-dedicated-702f9133fe3e41709cfe4faf2abf2889\server-console.txt
+Essai serveur dédié seul, aucun client interactif.
+Extrait ciblé, pas le journal intégral:
+LOG  : General      f:0 st:40 378 153> version=42.21.0 4a0e9546ec demo=false
+LOG  : Mod          f:0 st:40 382 195> loading Bandits2
+LOG  : Mod          f:0 st:40 382 249> loading batman_CharacterReputation
+LOG  : Mod          f:0 st:40 382 250> loading batman_RadioSurvivor
+LOG  : Lua          f:0 st:40 394 596> [RS_Carnet] authoritative state ready, Bandits2=true
+LOG  : Network      f:0 st:40 397 236> *** SERVER STARTED ****
+LOG  : General      f:0 st:40 397 237> server is listening on port 17381
+LOG  : Lua          f:0 st:40 397 353> [BANDITS] Custom Bandits loaded successfully.
+LOG  : General      f:0 st:40 786 354> Quit
+LOG  : General      f:0 st:40 786 487> Saving finish
+Slots privés à la fin:
+state-4d756c7469706c617965722f72735f736d6f6b65-0.txt: RSSTATE2=78
+state-4d756c7469706c617965722f72735f736d6f6b65-1.txt: RSSTATE2=77

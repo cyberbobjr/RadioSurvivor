@@ -1,0 +1,275 @@
+{
+  "_doc": [
+    "Living Knox (LK02-T05): source table of the animation nodes added to the zombie AnimSets for npc bodies.",
+    "Read by tools/gen_animsets.py, which writes Contents/mods/batman_RadioSurvivor/common/media/AnimSets/zombie/<state>/<file>.",
+    "Every node requires actorVariable = true (BOOL): a zombie without this variable never passes it",
+    "(AnimCondition.java: a missing BOOL variable equals false). conditionPriority puts the nodes before every vanilla node",
+    "of priority 0 in these states (AnimNode.compareSelectionConditions: priority, then condition count).",
+    "clip: Bob_ clip already played by the vanilla player node named in proof; media/anims_X/Bob/<clip>.x must exist.",
+    "Conditions: [name, type, value]; stateConditions adds conditions in one state only (pathfind: bMoving).",
+    "events (LK04-T11): [name, time, value], name SetVariable or PlaySound, time Start, End or a fraction of the clip.",
+    "progress: [Started, Finished] variables of a climb state; each node of the state must set the next one",
+    "(ClimbThroughWindowState, ClimbOverFenceState; zombie actiongroups climbwindow/to_idle.xml, climbfence/to_idle.xml).",
+    "Climb nodes: human clips of the player nodes, no OnFloor (no fall on landing, no fence damage); the outcomes fall,",
+    "falling, obstacle and lunge stay with the vanilla zombie nodes.",
+    "Window gestures (LK04-T13): openwindow and closewindow play the two clips of the player node in turn; the first",
+    "node sets phaseVariable at its End (LK_Anim clears it at every gesture change). Same clips, speeds and PlaySound",
+    "as the player nodes (AnimSets/player/openwindow, closewindow); the window itself is toggled by the authority",
+    "(LK_Obstacles) at the time of the vanilla WindowOpenSuccess / WindowCloseSuccess event. No door gesture: the",
+    "vanilla player opens a door without any animation (ISOpenCloseDoor, duration 0)."
+  ],
+  "actorVariable": "LKActor",
+  "gestureVariable": "LKGesture",
+  "phaseVariable": "LKActPhase",
+  "conditionPriority": 5,
+  "gestures": ["idle", "walk", "run", "crouch", "aim", "guard", "strike", "sit", "kneel", "rummage", "hammer",
+    "smoke", "warmhands", "openwindow", "closewindow", "shoot", "reload", "strikefloor", "stomp", "surrender"],
+  "states": ["idle", "walktoward", "walktoward-network", "pathfind", "climbwindow", "climbfence"],
+  "progress": {
+    "climbwindow": ["ClimbWindowStarted", "ClimbWindowFinished"],
+    "climbfence": ["ClimbFenceStarted", "ClimbFenceFinished"]
+  },
+  "nodes": [
+    {
+      "file": "lkactor_idle.xml", "name": "LKActorIdle", "states": ["idle"],
+      "clip": "Bob_Idle", "proof": "AnimSets/player/idle/Idle.xml",
+      "conditions": [], "looped": true, "speedScale": "0.48", "blendTime": "0.30",
+      "covers": "idle, walk and run while standing; any unknown gesture"
+    },
+    {
+      "file": "lkactor_crouch.xml", "name": "LKActorCrouchIdle", "states": ["idle"],
+      "clip": "Bob_IdleSneak", "proof": "AnimSets/player/idle/sneakidle.xml",
+      "conditions": [["LKGesture", "STRING", "crouch"]], "looped": true, "speedScale": "0.48", "blendTime": "0.30",
+      "covers": "crouch while standing"
+    },
+    {
+      "file": "lkactor_aim.xml", "name": "LKActorAimHandgun", "states": ["idle"],
+      "clip": "Bob_IdleAimHandgun", "proof": "AnimSets/player/aim/aim_handgun.xml",
+      "conditions": [["LKGesture", "STRING", "aim"]], "looped": true, "speedScale": "1.00", "blendTime": "0.30",
+      "covers": "aim with a handgun or no weapon"
+    },
+    {
+      "file": "lkactor_aimrifle.xml", "name": "LKActorAimRifle", "states": ["idle"],
+      "clip": "Bob_IdleAimRifle", "proof": "AnimSets/player/aim/aim_rifle.xml",
+      "conditions": [["LKGesture", "STRING", "aim"], ["Weapon", "STRING", "firearm"]],
+      "looped": true, "speedScale": "1.00", "blendTime": "0.30",
+      "covers": "aim with a long gun (Weapon = firearm, set by setPrimaryHandItem)"
+    },
+    {
+      "file": "lkactor_guard.xml", "name": "LKActorGuard2H", "states": ["idle"],
+      "clip": "Bob_IdleAimBat", "proof": "AnimSets/player/aim/aim_2handed.xml",
+      "conditions": [["LKGesture", "STRING", "guard"]], "looped": true, "speedScale": "1.00", "blendTime": "0.30",
+      "covers": "melee guard, two-handed or no weapon"
+    },
+    {
+      "file": "lkactor_guard1h.xml", "name": "LKActorGuard1H", "states": ["idle"],
+      "clip": "Bob_IdleAim1Hand", "proof": "AnimSets/player/aim/aim.xml",
+      "conditions": [["LKGesture", "STRING", "guard"], ["Weapon", "STRING", "1handed"]],
+      "looped": true, "speedScale": "1.00", "blendTime": "0.30",
+      "covers": "melee guard with a one-handed weapon"
+    },
+    {
+      "file": "lkactor_strike.xml", "name": "LKActorStrike2H", "states": ["idle"],
+      "clip": "Bob_AttackBat01_Hit", "proof": "AnimSets/player/melee/2handed/2HDefault.xml",
+      "conditions": [["LKGesture", "STRING", "strike"]], "looped": true, "speedScale": "0.80", "blendTime": "0.15",
+      "covers": "melee strike, two-handed or no weapon; repeated while the gesture stays strike"
+    },
+    {
+      "file": "lkactor_strike1h.xml", "name": "LKActorStrike1H", "states": ["idle"],
+      "clip": "Bob_Attack1Hand01_Hit", "proof": "AnimSets/player/melee/1handed/1HDefault.xml",
+      "conditions": [["LKGesture", "STRING", "strike"], ["Weapon", "STRING", "1handed"]],
+      "looped": true, "speedScale": "0.80", "blendTime": "0.15",
+      "covers": "melee strike with a one-handed weapon"
+    },
+    {
+      "file": "lkactor_strikefloor.xml", "name": "LKActorStrikeFloor2H", "states": ["idle"],
+      "clip": "Bob_AttackFloorBat", "proof": "AnimSets/player/melee/2handed/2HOnFloor.xml",
+      "conditions": [["LKGesture", "STRING", "strikefloor"]], "looped": true, "speedScale": "0.80", "blendTime": "0.15",
+      "covers": "melee strike at a zombie on the floor (LK06-T09), two-handed or any weapon but one-handed; 1.0 s clip at 0.80 like strike"
+    },
+    {
+      "file": "lkactor_strikefloor1h.xml", "name": "LKActorStrikeFloor1H", "states": ["idle"],
+      "clip": "Bob_AttackFloor1Hand", "proof": "AnimSets/player/melee/1handed/1HOnFloor.xml",
+      "conditions": [["LKGesture", "STRING", "strikefloor"], ["Weapon", "STRING", "1handed"]],
+      "looped": true, "speedScale": "0.80", "blendTime": "0.15",
+      "covers": "melee strike at a zombie on the floor with a one-handed weapon (LK06-T09)"
+    },
+    {
+      "file": "lkactor_stomp.xml", "name": "LKActorStomp", "states": ["idle"],
+      "clip": "Bob_AttackFloorStamp", "proof": "AnimSets/player/stomp/StompDefault.xml",
+      "conditions": [["LKGesture", "STRING", "stomp"]], "looped": true, "speedScale": "0.99", "blendTime": "0.15",
+      "covers": "bare-handed stomp on a zombie on the floor (LK06-T09); 1.233 s clip at 0.99: one stomp per 1.25 s"
+    },
+    {
+      "file": "lkactor_shoot.xml", "name": "LKActorShootHandgun", "states": ["idle"],
+      "clip": "Bob_AttackHandgun", "proof": "AnimSets/player/ranged/handgun/HandgunDefault.xml",
+      "conditions": [["LKGesture", "STRING", "shoot"]], "looped": true, "speedScale": "0.667", "blendTime": "0.10",
+      "covers": "firearm shot (LK06-T03), handgun or no weapon; one shot per loop (0.667 s clip: 1.0 s per shot)"
+    },
+    {
+      "file": "lkactor_shootrifle.xml", "name": "LKActorShootRifle", "states": ["idle"],
+      "clip": "Bob_AttackRifle", "proof": "AnimSets/player/ranged/firearm/FirearmDefault.xml",
+      "conditions": [["LKGesture", "STRING", "shoot"], ["Weapon", "STRING", "firearm"]],
+      "looped": true, "speedScale": "0.50", "blendTime": "0.10",
+      "covers": "firearm shot with a long gun (Weapon = firearm); one shot per loop (0.5 s clip: 1.0 s per shot)"
+    },
+    {
+      "file": "lkactor_reload.xml", "name": "LKActorReloadHandgun", "states": ["idle"],
+      "clip": "Bob_Reload_Handgun_Load", "proof": "AnimSets/player/actions/LoadHandgun.xml",
+      "conditions": [["LKGesture", "STRING", "reload"]], "looped": true, "speedScale": "0.80", "blendTime": "0.20",
+      "covers": "firearm reload (LK06-T03), handgun or no weapon; 1.5 s clip at the vanilla base reload speed 0.80"
+    },
+    {
+      "file": "lkactor_reloadrifle.xml", "name": "LKActorReloadRifle", "states": ["idle"],
+      "clip": "Bob_Reload_Rifle_Load", "proof": "AnimSets/player/actions/LoadRifle.xml",
+      "conditions": [["LKGesture", "STRING", "reload"], ["Weapon", "STRING", "firearm"]],
+      "looped": true, "speedScale": "0.80", "blendTime": "0.20",
+      "covers": "firearm reload with a long gun (Weapon = firearm); 1.733 s clip at 0.80"
+    },
+    {
+      "file": "lkactor_sit.xml", "name": "LKActorSit", "states": ["idle"],
+      "clip": "Bob_SitGround_Idle", "proof": "AnimSets/player/sitonground-sitting/sit_loop.xml",
+      "conditions": [["LKGesture", "STRING", "sit"]], "looped": true, "speedScale": "0.50", "blendTime": "0.30",
+      "covers": "sitting on the floor (rest and sleep of the routines, LK05-T03)"
+    },
+    {
+      "file": "lkactor_kneel.xml", "name": "LKActorKneel", "states": ["idle"],
+      "clip": "Bob_IdleLooting_Low", "proof": "AnimSets/player/actions/LootLow.xml",
+      "conditions": [["LKGesture", "STRING", "kneel"]], "looped": true, "speedScale": "0.80", "blendTime": "0.40",
+      "covers": "kneeling, hands forward: tending a fire or a stove, caring for a wounded member (chores, LK05-T04)"
+    },
+    {
+      "file": "lkactor_surrender.xml", "name": "LKActorSurrender", "states": ["idle"],
+      "clip": "Bob_EmoteSurrender", "proof": "AnimSets/player/emote/looped.xml",
+      "conditions": [["LKGesture", "STRING", "surrender"]], "looped": true, "speedScale": "0.48", "blendTime": "0.50",
+      "covers": "standing, both hands raised: surrender (LK06-T12), vanilla surrender emote, whole body (speed of surrender.xml)"
+    },
+    {
+      "file": "lkactor_rummage.xml", "name": "LKActorRummage", "states": ["idle"],
+      "clip": "Bob_IdleLooting_Mid", "proof": "AnimSets/player/actions/Loot.xml",
+      "conditions": [["LKGesture", "STRING", "rummage"]], "looped": true, "speedScale": "0.80", "blendTime": "0.40",
+      "covers": "rummaging at waist height: tidying a piece of furniture, no container opened (chores, LK05-T04)"
+    },
+    {
+      "file": "lkactor_hammer.xml", "name": "LKActorHammer", "states": ["idle"],
+      "clip": "Bob_IdleHammering", "proof": "AnimSets/player/actions/Build.xml",
+      "conditions": [["LKGesture", "STRING", "hammer"]], "looped": true, "speedScale": "0.80", "blendTime": "0.40",
+      "covers": "hammering standing, no sound, no tool: repairing a door or a window frame (chores, LK05-T04)"
+    },
+    {
+      "file": "lkactor_smoke.xml", "name": "LKActorSmoke", "states": ["idle"],
+      "clip": "Bob_IdleSmoke", "proof": "AnimSets/player/actions/Smoke.xml",
+      "conditions": [["LKGesture", "STRING", "smoke"]], "looped": true, "speedScale": "0.80", "blendTime": "0.35",
+      "covers": "smoking standing, no cigarette item, no sound (smoker trait, chores, LK05-T04)"
+    },
+    {
+      "file": "lkactor_warmhands.xml", "name": "LKActorWarmHands", "states": ["idle"],
+      "clip": "Bob_SitGround_WarmHands", "proof": "AnimSets/player/sitonground-sitting-warmhands/sit_warmhands.xml",
+      "conditions": [["LKGesture", "STRING", "warmhands"]], "looped": true, "speedScale": "0.38", "blendTime": "0.40",
+      "covers": "sitting on the floor, hands towards a fire or a stove (chores, LK05-T04)"
+    },
+    {
+      "file": "lkactor_openwindowstart.xml", "name": "LKActorOpenWindowStart", "states": ["idle", "pathfind"],
+      "clip": "Bob_WindowStruggle_Start", "proof": "AnimSets/player/openwindow/start.xml",
+      "conditions": [["LKGesture", "STRING", "openwindow"], ["LKActPhase", "BOOL", "false"]],
+      "stateConditions": {"pathfind": [["bMoving", "BOOL", "false"]]},
+      "looped": false, "speedScale": "0.80", "blendTime": "0.20",
+      "events": [["SetVariable", "End", "LKActPhase=true"]],
+      "covers": "opening a closed window, hands to the sash (LK04-T13); 0.42 s at this speed"
+    },
+    {
+      "file": "lkactor_openwindow.xml", "name": "LKActorOpenWindow", "states": ["idle", "pathfind"],
+      "clip": "Bob_WindowStruggleSuccess", "proof": "AnimSets/player/openwindow/success.xml",
+      "conditions": [["LKGesture", "STRING", "openwindow"], ["LKActPhase", "BOOL", "true"]],
+      "stateConditions": {"pathfind": [["bMoving", "BOOL", "false"]]},
+      "looped": false, "speedScale": "0.80", "blendTime": "0.20",
+      "events": [["PlaySound", "Start", "OpenWindow"]],
+      "covers": "opening a closed window, pushing it up (LK04-T13); 1.33 s, the authority opens it at 45 %"
+    },
+    {
+      "file": "lkactor_closewindowstart.xml", "name": "LKActorCloseWindowStart", "states": ["idle", "pathfind"],
+      "clip": "Bob_WindowCloseStart", "proof": "AnimSets/player/closewindow/start.xml",
+      "conditions": [["LKGesture", "STRING", "closewindow"], ["LKActPhase", "BOOL", "false"]],
+      "stateConditions": {"pathfind": [["bMoving", "BOOL", "false"]]},
+      "looped": false, "speedScale": "0.80", "blendTime": "0.20",
+      "events": [["SetVariable", "End", "LKActPhase=true"]],
+      "covers": "closing an open window behind the body, hands to the sash (LK04-T13); 0.54 s at this speed"
+    },
+    {
+      "file": "lkactor_closewindow.xml", "name": "LKActorCloseWindow", "states": ["idle", "pathfind"],
+      "clip": "Bob_WindowCloseSuccess", "proof": "AnimSets/player/closewindow/success.xml",
+      "conditions": [["LKGesture", "STRING", "closewindow"], ["LKActPhase", "BOOL", "true"]],
+      "stateConditions": {"pathfind": [["bMoving", "BOOL", "false"]]},
+      "looped": false, "speedScale": "0.80", "blendTime": "0.20",
+      "events": [["PlaySound", "Start", "CloseWindow"]],
+      "covers": "closing an open window, pulling it down (LK04-T13); 1.54 s, the authority closes it at 35 %"
+    },
+    {
+      "file": "lkactor_walk.xml", "name": "LKActorWalk", "states": ["walktoward", "walktoward-network", "pathfind"],
+      "clip": "Bob_Walk", "proof": "AnimSets/player/movement/defaultWalk.xml",
+      "conditions": [], "stateConditions": {"pathfind": [["bMoving", "BOOL", "true"]]},
+      "looped": true, "speedScale": "1.04", "blendTime": "0.20",
+      "covers": "moving with any gesture but run and crouch"
+    },
+    {
+      "file": "lkactor_run.xml", "name": "LKActorRun", "states": ["walktoward", "walktoward-network", "pathfind"],
+      "clip": "Bob_Run", "proof": "AnimSets/player/run/defaultRun.xml",
+      "conditions": [["LKGesture", "STRING", "run"]], "stateConditions": {"pathfind": [["bMoving", "BOOL", "true"]]},
+      "looped": true, "speedScale": "1.04", "blendTime": "0.35",
+      "covers": "moving with the run gesture"
+    },
+    {
+      "file": "lkactor_crouchwalk.xml", "name": "LKActorCrouchWalk", "states": ["walktoward", "walktoward-network", "pathfind"],
+      "clip": "Bob_WalkSneak", "proof": "AnimSets/player/movement/sneakWalk.xml",
+      "conditions": [["LKGesture", "STRING", "crouch"]], "stateConditions": {"pathfind": [["bMoving", "BOOL", "true"]]},
+      "looped": true, "speedScale": "1.00", "blendTime": "0.50",
+      "covers": "moving with the crouch gesture"
+    },
+    {
+      "file": "lkactor_wait.xml", "name": "LKActorPathWaitIdle", "states": ["pathfind"],
+      "clip": "Bob_Idle", "proof": "AnimSets/player/idle/Idle.xml",
+      "conditions": [["bMoving", "BOOL", "false"]], "looped": true, "speedScale": "0.48", "blendTime": "0.20",
+      "covers": "pathfind state while waiting for a path (vanilla pathfindWait)"
+    },
+    {
+      "file": "lkactor_waitcrouch.xml", "name": "LKActorPathWaitCrouch", "states": ["pathfind"],
+      "clip": "Bob_IdleSneak", "proof": "AnimSets/player/idle/sneakidle.xml",
+      "conditions": [["LKGesture", "STRING", "crouch"], ["bMoving", "BOOL", "false"]],
+      "looped": true, "speedScale": "0.48", "blendTime": "0.20",
+      "covers": "pathfind state while waiting, crouch gesture"
+    },
+    {
+      "file": "lkactor_climbwindowstart.xml", "name": "LKActorClimbWindowStart", "states": ["climbwindow"],
+      "clip": "Bob_ClimbWindowStart", "proof": "AnimSets/player/climbwindow/start.xml",
+      "conditions": [["ClimbWindowStarted", "BOOL", "false"]], "looped": false, "speedScale": "0.96", "blendTime": "0.20",
+      "events": [["SetVariable", "End", "ClimbWindowStarted=true"], ["SetVariable", "0.5", "BlockWindow=true"],
+                 ["PlaySound", "Start", "ClimbThroughWindow"]],
+      "covers": "window climb, first half (any outcome): the Java slides the body to the opening"
+    },
+    {
+      "file": "lkactor_climbwindowend.xml", "name": "LKActorClimbWindowEnd", "states": ["climbwindow"],
+      "clip": "Bob_ClimbWindowEnd", "proof": "AnimSets/player/climbwindow/end.xml",
+      "conditions": [["ClimbWindowStarted", "BOOL", "true"], ["ClimbWindowOutcome", "STRING", "success"]],
+      "looped": false, "speedScale": "0.96", "blendTime": "0.40",
+      "events": [["SetVariable", "0.1", "BlockWindow=false"], ["PlaySound", "0.1", "LandLight"],
+                 ["SetVariable", "0.6", "ClimbWindowFinished=true"]],
+      "covers": "window climb, landing on its feet (outcome success); the Java slides the body through"
+    },
+    {
+      "file": "lkactor_climbfencestart.xml", "name": "LKActorClimbFenceStart", "states": ["climbfence"],
+      "clip": "Bob_VaultOver_Start", "proof": "AnimSets/player/climbfence/climbFenceStart.xml",
+      "conditions": [["ClimbFenceStarted", "BOOL", "false"]], "looped": false, "speedScale": "1.04", "blendTime": "0.20",
+      "events": [["SetVariable", "End", "ClimbFenceStarted=true"], ["PlaySound", "Start", "ClimbOverFenceLow"]],
+      "covers": "low fence vault, first half (any outcome)"
+    },
+    {
+      "file": "lkactor_climbfenceend.xml", "name": "LKActorClimbFenceEnd", "states": ["climbfence"],
+      "clip": "Bob_VaultOver_End", "proof": "AnimSets/player/climbfence/climbFenceEnd.xml",
+      "conditions": [["ClimbFenceStarted", "BOOL", "true"], ["ClimbFenceOutcome", "STRING", "success"],
+                     ["ClimbFenceFinished", "BOOL", "false"]],
+      "looped": false, "speedScale": "1.04", "blendTime": "0.20",
+      "events": [["PlaySound", "0.28", "LandLight"], ["SetVariable", "0.7", "ClimbFenceFinished=true"]],
+      "covers": "low fence vault, landing on its feet (outcome success); the Java slides the body over"
+    }
+  ]
+}

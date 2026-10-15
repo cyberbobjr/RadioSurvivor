@@ -1,0 +1,66 @@
+[h1]Radio Survivor[/h1]
+
+[b]Build 42.21 · Solo et multijoueur · VERSION DE TEST 0.3.0[/b]
+
+Comté de Knox, juillet 1993. Vous n'êtes plus seul : des voix répondent à la radio, et des groupes de survivants vivent, se battent et se fortifient dans le comté. Les personnages de la radio sont joués par une IA, grâce à un petit programme que vous lancez vous-même, [b]le pont[/b] (voir plus bas). Sans lui, le jeu reste entièrement jouable ; les voix et les PNJ restent simplement muets.
+
+[b]Ceci est une version de test.[/b] Attendez-vous à des bugs et à des changements d'équilibre. Commencez une nouvelle partie, gardez une copie des sauvegardes qui comptent, et signalez les problèmes en commentaire avec votre [i]console.txt[/i] et la sortie du pont.
+
+[h2]Ce que le mod ajoute[/h2]
+
+[list]
+[*][b]Des voix à la radio :[/b] Walt, une infirmière, un déserteur, une famille assiégée, une station pirate et un passeur, chacun sur une vraie fréquence tirée à chaque partie. Trouvez leur fréquence sur des notes dans le butin, puis parlez avec n'importe quelle radio émettrice tenue en main ou portée sur le dos (section [b]Émettre[/b] de la fenêtre de la radio). Ils se souviennent de vous, donnent des conseils, des nouvelles et des missions.
+[*][b]Carnet de terrain[/b] (bouton [b]Carnet[/b]) : contacts, historique radio par fréquence, missions, récompenses et réputation.
+[*][b]Groupes de survivants Living Knox :[/b] 3 à 5 groupes de PNJ humains avec un foyer, un chef, de vraies réserves, des besoins et des routines (garde, sommeil, repas, fouille, potager). Ils défendent et fortifient leur foyer, combattent les zombies et continuent de vivre hors écran. Colons, neutres et pillards : les pillards peuvent sommer, attaquer votre base ou se venger.
+[*][b]Les rencontrer :[/b] appuyez sur [b]Ctrl+G[/b] près d'un PNJ, puis parlez dans le chat local. Gagnez leur confiance, échangez, négociez trêves et alliances avec le chef.
+[*][b]Missions :[/b] livrer, reconnaître, retrouver un disparu, nettoyer un lieu, récupérer une cache, faire un signal. Le serveur vérifie chaque objectif ; revenez rendre compte.
+[*][b]Secours :[/b] une famille assiégée appelle à l'aide avec des indices. Arrivez à temps, ou découvrez ce qu'il en reste.
+[*][b]Le passeur de l'Ohio :[/b] troc négocié à la radio, une traversée par semaine de jeu, échange sans contact sur la berge.
+[*][b]Chronique du soir :[/b] la station pirate lit les nouvelles confirmées du serveur et le nom des morts.
+[*][b]Dernières pages :[/b] à la mort d'un personnage, un journal manuscrit de sa vie est laissé sur le corps.
+[*][b]Réputation :[/b] mauvaise, neutre ou bonne, gagnée par les missions et tenue par le serveur.
+[/list]
+
+Le serveur décide de tout : l'IA n'écrit que des paroles et choisit dans des listes fermées. Elle ne crée ni objet, ni position, ni règle.
+
+[h2]Mods requis[/h2]
+
+[list]
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3817018338]Belt Walkie-Talkie[/url] (batman_BeltRadio), qui requiert lui-même [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3694097672]TooltipLib[/url].
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3811010882]Signal Smoke[/url] (batman_SignalSmoke).
+[/list]
+Ordre de chargement : TooltipLib, Belt Walkie-Talkie, Signal Smoke, Radio Survivor.
+
+[b]Incompatible[/b] avec Bandits! et Project A-Life (un seul moteur de PNJ par partie).
+
+[h2]Le pont : installer et lancer[/h2]
+
+Le Lua de Project Zomboid n'a aucun accès réseau : le jeu et le pont s'échangent des fichiers texte dans un dossier commun, et le pont appelle l'IA. Un mod du Workshop ne peut pas lancer de programme : [b]lancez le pont vous-même, sur la machine qui exécute le serveur[/b] (votre PC en solo). Les joueurs qui rejoignent un serveur n'installent que les mods.
+
+[b]Il faut :[/b] Python 3.10 ou plus récent (aucun paquet à installer), les cinq fichiers du pont gardés ensemble (radio_bridge.py, npc_protocol.py, persona_store.py, bulletin.py, last_pages.py ; pendant la phase de test, ils sont fournis avec la version de test) et une clé d'API d'un fournisseur compatible avec l'API OpenAI (/chat/completions).
+
+[b]1. Clé.[/b] Copiez [i].env.example[/i] en [i].env[/i] à côté de radio_bridge.py et remplissez OPENAI_KEY, OPENAI_BASE_URL (par exemple https://api.openai.com/v1) et OPENAI_MODEL. Ne partagez jamais ce fichier.
+
+[b]2. Vérifier.[/b] [i]python radio_bridge.py --test "Allô ?"[/i] affiche quelques lignes de Walt : clé, adresse et modèle sont bons. Ajoutez [i]--offline[/i] pour vérifier sans clé.
+
+[b]3. Lancer.[/b] [i]python radio_bridge.py[/i] et laissez la fenêtre ouverte pendant la partie. Attendez [i]Bridge ready[/i]. L'ordre de démarrage (jeu ou pont d'abord) est indifférent.
+
+[list]
+[*][b]Solo et partie hébergée depuis le menu :[/b] rien d'autre ; le dossier d'échange par défaut est %USERPROFILE%\Zomboid\Lua\batman_RadioSurvivor.
+[*][b]Serveur dédié (Windows ou Linux) :[/b] lancez le pont sous le compte du serveur. Avec -cachedir=X, ajoutez [i]--exchange X/Lua/batman_RadioSurvivor[/i]. Démarrez-le avec le serveur (Planificateur de tâches, service systemd, ou second conteneur qui partage le volume du serveur). Après le premier chargement du monde, ce dossier contient un sous-dossier [i]personas[/i] : sinon, ce n'est pas le bon dossier.
+[*][b]Un seul pont par dossier :[/b] un second refuse de démarrer (réponses et coût en double).
+[*][i]--offline[/i] : sans IA ni coût, les voix répètent votre phrase (pour tester l'installation). [i]--debug[/i] : journal complet (il contient les dialogues, ne pas le partager tel quel).
+[/list]
+
+[b]Coût :[/b] chaque message est un appel à l'IA. L'option sandbox [b]MaxPerHour[/b] (60 par défaut, tous joueurs confondus) plafonne la radio ; ne la mettez jamais à 0 (illimité) sur un serveur public. Fixez aussi une limite de dépense mensuelle chez votre fournisseur. La consommation est notée dans token_usage.jsonl, dans le dossier d'échange.
+
+[b]Sans le pont :[/b] la radio ne répond que « Rien que des parasites... », le bulletin du soir et les dernières pages passent à de courts textes fixes, et les PNJ restent muets. Tout le reste fonctionne.
+
+[h2]Options sandbox[/h2]
+
+Pages [b]Radio Survivor[/b] (plafond et délai des messages, appels spontanés et leur langue, notes de fréquences dans le butin, heure du bulletin, dernières pages, initiatives des PNJ, délai des secours) et [b]Living Knox[/b] (nombre et type de groupes, taille des groupes, raids, délai de vengeance, distances de combat).
+
+[h2]Soutenir le projet[/h2]
+
+Le mod vous plaît ? Un café aide à financer de nouvelles fonctionnalités et traductions.
+[url=https://ko-fi.com/Z8Z8QJV31][img]https://storage.ko-fi.com/cdn/kofi6.png?v=6[/img][/url]

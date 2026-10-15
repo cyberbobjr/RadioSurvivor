@@ -1,0 +1,69 @@
+// pz-autotest configuration of RadioSurvivor (.claude/tools/pz-autotest/README.md). Same usage as
+// tools/autoclient/autoclient.py (E01-T14) and tests/run_dedicated_smoke.ps1, through the generic launcher:
+//   python .claude/tools/pz-autotest/pz_autotest.py sp RadioSurvivor -P suite=rs.env
+//   python .claude/tools/pz-autotest/pz_autotest.py sp RadioSurvivor -P campaign=solo-rs --timeout 1800
+//   python .claude/tools/pz-autotest/pz_autotest.py sp RadioSurvivor -P suite=rs.npctalk -P tags=world
+//   python .claude/tools/pz-autotest/pz_autotest.py server RadioSurvivor -P suite=rst,rs.codec
+//   python .claude/tools/pz-autotest/pz_autotest.py mp RadioSurvivor -P suite=rs.identity,rs.facts
+{
+  "name": "RadioSurvivor",
+  "gameVersion": "42.21",
+  // Load order: requirements first. TooltipLib is only READ from the Steam Workshop folder and copied.
+  "mods": [
+    {"workshop": "3694097672", "id": "TooltipLib"},
+    {"path": "../BeltRadio/Contents/mods/batman_BeltRadio"},
+    {"path": "../CharacterReputation/Contents/mods/batman_CharacterReputation"},
+    {"path": "../SignalSmoke/Contents/mods/batman_SignalSmoke"},
+    {"path": "Contents/mods/batman_RadioSurvivor"},
+    {"path": "dev/batman_RadioSurvivorTests"}
+  ],
+  // RST: client hooks call RST.run / RST.campaign, server hooks RST.Server.runSuites.
+  "hooks": "autotest/rst_hooks.lua",
+  "params": {},
+  // RST reports, autoclient-style results and the token counters of the bridge (no text, no key).
+  "collect": ["batman_RadioSurvivor/tests/*.txt", "batman_RadioSurvivor/token_usage.jsonl"],
+  "redactEnv": ["OPENAI_KEY", "DEEPSEEK_API_KEY"],
+  "sp": {
+    // Test saves are named rstest* (RST world suites refuse other saves); the most recent one is copied.
+    "save": "rstest*",
+    "gameMode": "Sandbox",
+    "saveMods": "replace",
+    "timeoutSec": 900,
+    "startDelaySec": 5
+  },
+  "server": {
+    // The world name starts with rstest: RST world suites are allowed there.
+    "serverName": "rstest_pzat",
+    "port": 17381,
+    "timeoutSec": 600,
+    "xmx": "3072m",
+    "ini": {"Map": "Muldraugh, KY", "MaxPlayers": 4, "ChatStreams": "s,r,a,w,y,sh,f,all"}
+  },
+  "mp": {
+    "serverName": "rstest_pzat_mp",
+    "port": 17391,
+    // Medium house of Muldraugh (media/maps/Muldraugh, KY/spawnpoints.lua): fixed spawn, no spawn choice screen.
+    "spawn": "10656,10137,0",
+    "clients": 1,
+    "clientXmx": "4096m",
+    "serverRun": true,
+    "clientRun": false,
+    "timeoutSec": 3600,
+    "joinTimeoutSec": 600
+  },
+  // Python bridge on the exchange folder of the cache (client cache in sp, server cache in server/mp). It reads its
+  // own configuration (bridge/.env or the environment): pz-autotest never opens it.
+  "bridge": {
+    "command": ["{python}", "-u", "radio_bridge.py", "--exchange", "{exchange}"],
+    "cwd": "bridge",
+    "ready": "Bridge ready",
+    "readyTimeoutSec": 60,
+    "exchange": "batman_RadioSurvivor",
+    "offlineArgs": ["--offline"],
+    "default": "auto",
+    "auto": {
+      "suite": ["rs.npctalk", "rs.radiomodule", "rs.relation", "rs.conversations", "rs.initiatives", "rs.groupradio"],
+      "campaign": ["solo", "solo-rs", "solo-retry"]
+    }
+  }
+}

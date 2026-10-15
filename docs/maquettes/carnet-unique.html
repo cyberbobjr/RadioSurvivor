@@ -1,0 +1,201 @@
+<div id="rs-carnet-variants" class="viz-carousel viz-dotted-background" aria-label="Trois maquettes du carnet RadioSurvivor" data-previous-label="Précédente" data-next-label="Suivante">
+  <section data-variant="A · Carnet classique" aria-label="Carnet classique à onglets">
+    <div class="rs-book rs-classic" data-design="A" aria-label="Maquette A — Carnet classique"></div>
+  </section>
+  <section data-variant="B · Dossiers visuels" aria-label="Carnet à dossiers visuels" hidden>
+    <div class="rs-book rs-dossiers" data-design="B" aria-label="Maquette B — Dossiers visuels"></div>
+  </section>
+  <section data-variant="C · Carnet compact" aria-label="Carnet compact à lignes dépliables" hidden>
+    <div class="rs-book rs-compact" data-design="C" aria-label="Maquette C — Carnet compact"></div>
+  </section>
+</div>
+<style>
+#rs-carnet-variants > section { min-height: 920px; padding: 16px 0; box-sizing: border-box; }
+#rs-carnet-variants .rs-book {
+  --rs-paper: light-dark(#f5f3e9, #252923);
+  --rs-panel: light-dark(#eeece1, #30352d);
+  --rs-ink: light-dark(#232b25, #edf0e6);
+  --rs-muted: light-dark(#556157, #b8c2b4);
+  --rs-line: light-dark(#c5cabb, #535d4d);
+  --rs-accent: light-dark(#854512, #f0ba80);
+  --rs-selected: light-dark(#ded9c4, #444b3b);
+  --rs-gap: 16px;
+  color: var(--rs-ink); background: var(--rs-paper); font-family: "Segoe UI", sans-serif;
+  border: 1px solid var(--rs-line); border-radius: 5px; overflow: hidden;
+  box-shadow: 0 8px 24px light-dark(#20251c18, #00000040); min-height: 690px;
+}
+#rs-carnet-variants .rs-book * { box-sizing: border-box; }
+#rs-carnet-variants .rs-book [hidden] { display: none; }
+#rs-carnet-variants .rs-top { padding: 18px 20px; border-bottom: 1px solid var(--rs-line); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; background: var(--rs-panel); }
+#rs-carnet-variants .rs-title { margin: 0; font-size: 18px; font-weight: 500; letter-spacing: .06em; }
+#rs-carnet-variants .rs-meta { font-size: 12px; color: var(--rs-muted); margin-top: 5px; }
+#rs-carnet-variants .rs-stamp { font-size: 12px; color: var(--rs-muted); }
+#rs-carnet-variants .rs-nav { display: flex; flex-wrap: wrap; gap: 6px; padding: 12px 20px; border-bottom: 1px solid var(--rs-line); }
+#rs-carnet-variants .rs-book button { font: inherit; color: var(--rs-ink); background: var(--rs-paper); border: 1px solid var(--rs-line); border-radius: 3px; padding: 9px 13px; text-align: left; }
+#rs-carnet-variants .rs-book button[aria-pressed="true"], #rs-carnet-variants .rs-book button[aria-selected="true"] { background: var(--rs-selected); border-color: var(--rs-muted); }
+#rs-carnet-variants .rs-book button:hover { background: var(--rs-selected); }
+#rs-carnet-variants .rs-book button:focus-visible, #rs-carnet-variants .rs-book textarea:focus-visible { outline: 2px solid var(--rs-accent); outline-offset: 3px; }
+#rs-carnet-variants .rs-content { padding: 20px; }
+#rs-carnet-variants .rs-split { display: grid; grid-template-columns: 170px minmax(0, 1fr); gap: 22px; }
+#rs-carnet-variants .rs-list { display: flex; flex-direction: column; gap: 9px; }
+#rs-carnet-variants .rs-list button { width: 100%; }
+#rs-carnet-variants .rs-list small { display: block; color: var(--rs-muted); margin-top: 5px; }
+#rs-carnet-variants .rs-book h3 { font-size: 17px; font-weight: 500; margin: 0 0 6px; }
+#rs-carnet-variants .rs-book h4 { font-size: 13px; font-weight: 500; text-transform: uppercase; letter-spacing: .06em; margin: 20px 0 10px; color: var(--rs-muted); }
+#rs-carnet-variants .rs-book p { margin: 6px 0 12px; line-height: 1.55; }
+#rs-carnet-variants .rs-sub { color: var(--rs-muted); font-size: 12px; }
+#rs-carnet-variants .rs-chips { display: flex; gap: 7px; flex-wrap: wrap; margin: 15px 0; }
+#rs-carnet-variants .rs-chip { padding: 5px 8px; background: var(--rs-panel); border-radius: 3px; font-size: 12px; }
+#rs-carnet-variants .rs-status { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: var(--rs-gap); border-bottom: 1px solid var(--rs-line); padding-bottom: 16px; }
+#rs-carnet-variants .rs-label { display: block; font-size: 12px; color: var(--rs-muted); margin-bottom: 5px; }
+#rs-carnet-variants .rs-value { font-weight: 500; }
+#rs-carnet-variants .rs-message { border-left: 2px solid var(--rs-line); padding: 0 0 0 12px; margin: 12px 0; }
+#rs-carnet-variants .rs-message p { margin: 4px 0; }
+#rs-carnet-variants .rs-book textarea { width: 100%; min-height: 72px; resize: vertical; font: inherit; background: var(--rs-paper); color: var(--rs-ink); border: 1px solid var(--rs-line); padding: 10px; border-radius: 3px; }
+#rs-carnet-variants .rs-note-status { font-size: 12px; color: var(--rs-muted); min-height: 18px; margin-top: 5px; }
+#rs-carnet-variants .rs-supplies { width: 100%; border-collapse: collapse; margin: 12px 0; }
+#rs-carnet-variants .rs-supplies th, #rs-carnet-variants .rs-supplies td { text-align: left; font-weight: 400; padding: 10px 5px; border-bottom: 1px solid var(--rs-line); overflow-wrap: anywhere; }
+#rs-carnet-variants .rs-supplies th { color: var(--rs-muted); font-size: 12px; }
+#rs-carnet-variants .rs-meter { height: 6px; background: var(--rs-panel); border-radius: 3px; margin: 10px 0; }
+#rs-carnet-variants .rs-meter span { height: 100%; display: block; background: var(--rs-accent); border-radius: 3px; }
+#rs-carnet-variants .rs-history { list-style: none; padding: 0; margin: 12px 0; }
+#rs-carnet-variants .rs-history li { padding: 13px 0; border-bottom: 1px solid var(--rs-line); }
+#rs-carnet-variants .rs-history small { display: block; margin-top: 5px; color: var(--rs-muted); }
+#rs-carnet-variants .rs-reputation { display: flex; flex-wrap: wrap; gap: 8px; padding: 16px 0; }
+#rs-carnet-variants .rs-reputation span { padding: 9px 16px; border: 1px solid var(--rs-line); border-radius: 3px; }
+#rs-carnet-variants .rs-reputation .rs-current { background: var(--rs-selected); font-weight: 500; }
+#rs-carnet-variants .rs-dossiers .rs-frame { display: grid; grid-template-columns: 130px minmax(0,1fr); }
+#rs-carnet-variants .rs-dossiers .rs-nav { display: flex; flex-direction: column; align-items: stretch; padding: 18px 10px; border-bottom: 0; border-right: 1px solid var(--rs-line); background: var(--rs-panel); }
+#rs-carnet-variants .rs-dossiers .rs-content { padding: 20px; }
+#rs-carnet-variants .rs-dossiers .rs-split { display: block; }
+#rs-carnet-variants .rs-dossiers .rs-list { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); margin-bottom: 22px; }
+#rs-carnet-variants .rs-dossiers .rs-list button { padding: 12px 10px; }
+#rs-carnet-variants .rs-monogram { display: block; width: 34px; height: 34px; padding: 8px 0; text-align: center; background: var(--rs-panel); margin-bottom: 9px; border-radius: 50%; font-weight: 500; }
+#rs-carnet-variants .rs-dossiers .rs-details { background: var(--rs-panel); padding: 18px; border-radius: 4px; }
+#rs-carnet-variants .rs-compact { min-height: 620px; }
+#rs-carnet-variants .rs-compact .rs-top { padding: 12px 16px; }
+#rs-carnet-variants .rs-compact .rs-nav { padding: 9px 16px; }
+#rs-carnet-variants .rs-compact .rs-content { padding: 14px 16px; }
+#rs-carnet-variants .rs-compact .rs-split { display: block; }
+#rs-carnet-variants .rs-compact .rs-list { gap: 0; margin-bottom: 15px; }
+#rs-carnet-variants .rs-compact .rs-list button { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; border-radius: 0; padding: 10px; }
+#rs-carnet-variants .rs-compact .rs-list small { margin: 0; }
+#rs-carnet-variants .rs-compact .rs-details { padding: 8px 10px; }
+#rs-carnet-variants .rs-compact .rs-status { padding-bottom: 10px; }
+#rs-carnet-variants .rs-compact .rs-book h4 { margin-top: 14px; }
+#rs-carnet-variants .rs-book .rs-foot { border-top: 1px solid var(--rs-line); padding: 10px 20px; color: var(--rs-muted); font-size: 12px; }
+@media(max-width: 540px) {
+  #rs-carnet-variants > section { min-height: 1280px; }
+  #rs-carnet-variants .rs-split { grid-template-columns: minmax(0,1fr); }
+  #rs-carnet-variants .rs-list { flex-direction: row; flex-wrap: wrap; }
+  #rs-carnet-variants .rs-list button { width: auto; flex: 1; }
+  #rs-carnet-variants .rs-dossiers .rs-frame { display: block; }
+  #rs-carnet-variants .rs-dossiers .rs-nav { flex-direction: row; flex-wrap: wrap; border-right: 0; border-bottom: 1px solid var(--rs-line); }
+  #rs-carnet-variants .rs-dossiers .rs-list { grid-template-columns: minmax(0,1fr); }
+  #rs-carnet-variants .rs-dossiers .rs-list button { display: flex; align-items: center; gap: 10px; }
+  #rs-carnet-variants .rs-monogram { margin: 0; flex-shrink: 0; }
+  #rs-carnet-variants .rs-compact .rs-list { flex-direction: column; }
+  #rs-carnet-variants .rs-content, #rs-carnet-variants .rs-dossiers .rs-content { padding: 15px; }
+}
+@media(pointer:coarse) { #rs-carnet-variants .rs-book button { min-height: 44px; } #rs-carnet-variants .rs-book textarea { font-size:16px; } }
+</style>
+<script>
+(() => {
+  const root = document.getElementById('rs-carnet-variants');
+  const contacts = [
+    { name: 'Paul Mercer', group: 'Les Veilleurs', trust: 'Confiant', trend: 'En hausse', pact: 'Trêve active', scope: 'Avec votre faction', alliance: 'Aucune', reason: 'Vous avez tenu votre engagement de livraison.', time: 'Aujourd’hui · 14 h 20', quote: 'Vous avez rapporté les médicaments. Je savais que je pouvais compter sur vous.', note: 'Demander s’il a encore besoin de nourriture.' },
+    { name: 'Nora Hayes', group: 'Indépendante', trust: 'Réservée', trend: 'Stable', pact: 'Aucune trêve', scope: 'Aucun accord collectif', alliance: 'Aucune', reason: 'Première rencontre ; aucun engagement commun.', time: 'Aujourd’hui · 12 h 10', quote: 'Je ne vous connais pas encore. On verra ce que valent vos promesses.', note: 'Préfère discuter à proximité.' },
+    { name: 'Elias Ward', group: 'Les Veilleurs', trust: 'Méfiant', trend: 'En baisse', pact: 'Trêve active', scope: 'Avec votre faction', alliance: 'Aucune', reason: 'Votre dernière mission auprès de lui a échoué.', time: 'Hier · 18 h 05', quote: 'La livraison n’est jamais arrivée. Il faudra faire mieux la prochaine fois.', note: 'Proposer un service simple pour regagner sa confiance.' }
+  ];
+  const missions = [
+    { title: 'Des soins pour les Veilleurs', npc: 'Paul Mercer', left: '1 h 42 min', people: 'Alex Morgan · Sam Rivera', items: [['Bandages', 3, 5], ['Désinfectant', 0, 1]], progress: 50 },
+    { title: 'Provisions pour la route', npc: 'Nora Hayes', left: '3 h 15 min', people: 'Alex Morgan', items: [['Conserves', 2, 4], ['Eau en bouteille', 1, 2]], progress: 50 }
+  ];
+  let notes = contacts.map(c => c.note);
+  const states = {};
+  const escape = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const saved = window.openai?.widgetState;
+  if (Array.isArray(saved?.privateContent?.notes) && saved.privateContent.notes.length === 3) notes = saved.privateContent.notes.map(String);
+  const persist = () => {
+    if (window.openai?.setWidgetState) window.openai.setWidgetState({modelContent:{maquettes:'A Carnet classique; B Dossiers visuels; C Carnet compact'},privateContent:{notes,states}}).catch(() => {});
+  };
+  function contactDetail(i, design) {
+    const c = contacts[i];
+    return `<h3>${c.name}</h3><div class="rs-sub">${c.group} · Dernier échange : ${c.time}</div>
+      <div class="rs-chips"><span class="rs-chip">${c.trust} · ${c.trend}</span><span class="rs-chip">${c.pact}</span></div>
+      <div class="rs-status"><div><span class="rs-label">Accord</span><span class="rs-value">${c.scope}</span></div><div><span class="rs-label">Alliance</span><span class="rs-value">${c.alliance}</span></div></div>
+      <h4>Dernier changement connu</h4><p>${c.reason}</p><h4>Dernière conversation entendue</h4>
+      <div class="rs-message"><span class="rs-sub">${c.name} · ${c.time}</span><p>« ${c.quote} »</p></div>
+      <label for="rs-note-${design}"><h4>Notes personnelles</h4></label><textarea id="rs-note-${design}" data-note="${i}" aria-label="Notes personnelles sur ${c.name}">${escape(notes[i])}</textarea><div class="rs-note-status" aria-live="polite">Notes privées · Exemple modifiable</div>`;
+  }
+  function missionDetail(i) {
+    const m = missions[i];
+    return `<h3>${m.title}</h3><div class="rs-sub">Demande de ${m.npc}</div>
+      <div class="rs-chips"><span class="rs-chip">En cours</span><span class="rs-chip">Temps restant : ${m.left}</span></div>
+      <div class="rs-meter" role="progressbar" aria-label="Fournitures livrées" aria-valuenow="${m.progress}" aria-valuemin="0" aria-valuemax="100"><span style="width:${m.progress}%"></span></div>
+      <table class="rs-supplies"><thead><tr><th>Fourniture</th><th>Livré</th><th>Restant</th></tr></thead><tbody>${m.items.map(x=>`<tr><td>${x[0]}</td><td>${x[1]} / ${x[2]}</td><td>${x[2]-x[1]}</td></tr>`).join('')}</tbody></table>
+      <h4>Participants engagés</h4><p>${m.people}</p><h4>Conditions acceptées</h4><p>Remises partielles autorisées. Livraison complète avant expiration.</p>
+      <div class="rs-status"><div><span class="rs-label">Réussite</span><span class="rs-value">Gain identique pour chacun</span></div><div><span class="rs-label">Échec ou abandon collectif</span><span class="rs-value">Malus identique pour chacun</span></div></div>
+      <p class="rs-sub">Le délai continue hors connexion. Pause uniquement serveur arrêté.</p>`;
+  }
+  function reputationDetail() {
+    return `<h3>Ma réputation</h3><div class="rs-sub">Alex Morgan · Réputation globale du personnage</div>
+      <div class="rs-reputation" aria-label="Niveau actuel : bonne"><span>Mauvaise</span><span>Neutre</span><span class="rs-current">Bonne · actuelle</span></div>
+      <p>Vos actes et missions font évoluer votre réputation. La confiance de chaque PNJ apparaît dans Contacts.</p><h4>Derniers changements</h4>
+      <ul class="rs-history"><li>↑ Gain · Livraison accomplie<small>Aujourd’hui · Médicaments pour Paul Mercer</small></li><li>↓ Malus · Mission échouée<small>Hier · Fournitures pour Elias Ward</small></li><li>↑ Gain · Livraison accomplie<small>Il y a deux jours · Nourriture pour les Veilleurs</small></li></ul>
+      <p class="rs-sub">Aucun score numérique affiché. Aucune amélioration automatique avec le temps.</p>`;
+  }
+  function render(book) {
+    const id = book.dataset.design, s = states[id];
+    const frame = book.querySelector('.rs-frame');
+    const nav = book.querySelector('.rs-nav');
+    nav.innerHTML = ['Contacts','Missions','Réputation'].map((name,i)=>`<button class="cursor-interaction" type="button" data-tab="${i}" aria-pressed="${s.tab===i}">${name}${i===0?' · 3':i===1?' · 2':''}</button>`).join('');
+    let content;
+    if (s.tab === 2) content = reputationDetail();
+    else {
+      const data = s.tab === 0 ? contacts : missions;
+      const sel = s.tab === 0 ? s.contact : s.mission;
+      const list = data.map((d,i)=>`<button class="cursor-interaction" type="button" data-select="${i}" aria-pressed="${sel===i}">${id==='B'?`<span class="rs-monogram" aria-hidden="true">${s.tab===0?d.name.split(' ').map(x=>x[0]).join(''):'0'+(i+1)}</span>`:''}<span>${s.tab===0?d.name:d.title}</span><small>${s.tab===0?d.trust:d.left}</small></button>`).join('');
+      content = `<div class="rs-split"><div class="rs-list" aria-label="${s.tab===0?'Contacts connus':'Missions en cours'}">${list}</div><div class="rs-details">${s.tab===0?contactDetail(sel,id):missionDetail(sel)}</div></div>`;
+    }
+    frame.querySelector('.rs-content').innerHTML = content;
+  }
+  root.querySelectorAll('.rs-book').forEach(book => {
+    const id = book.dataset.design;
+    const restored = saved?.privateContent?.states?.[id];
+    states[id] = {tab:[0,1,2].includes(restored?.tab)?restored.tab:0,contact:[0,1,2].includes(restored?.contact)?restored.contact:0,mission:[0,1].includes(restored?.mission)?restored.mission:0};
+    book.innerHTML = `<header class="rs-top"><div><h2 class="rs-title">RADIOSURVIVOR / CARNET</h2><div class="rs-meta">Alex Morgan · Contacts, engagements et réputation</div></div><span class="rs-stamp">Maquette ${id} · Exemples fictifs</span></header><div class="rs-frame"><nav class="rs-nav" aria-label="Sections du carnet"></nav><main class="rs-content"></main></div><footer class="rs-foot">Carnet personnel · Les notes restent privées</footer>`;
+    render(book);
+    book.addEventListener('click', e => {
+      const target = e.target.closest('button'); if (!target) return;
+      const s = states[id];
+      if (target.hasAttribute('data-tab')) s.tab = Number(target.dataset.tab);
+      else if (target.hasAttribute('data-select')) { if(s.tab===0) s.contact=Number(target.dataset.select); else s.mission=Number(target.dataset.select); }
+      else return;
+      render(book); persist();
+    });
+    book.addEventListener('input', e => {
+      if (!e.target.matches('textarea[data-note]')) return;
+      notes[Number(e.target.dataset.note)] = e.target.value;
+      book.querySelector('.rs-note-status').textContent = 'Note conservée dans cette maquette';
+      persist();
+    });
+    if (globalThis.Tweak) {
+      const design = {spacing:16};
+      const tweak = new Tweak({container:book,onChange:()=>book.style.setProperty('--rs-gap',`${design.spacing}px`)});
+      tweak.addSlider(design,'spacing',{label:'Espacement des informations',min:10,max:24,step:2,unit:'px'});
+    }
+  });
+  window.addEventListener('openai:set_globals', e => {
+    const value = e.detail?.globals?.widgetState?.privateContent;
+    if (!value) return;
+    let changed = false;
+    if (Array.isArray(value.notes) && value.notes.length===3 && JSON.stringify(value.notes)!==JSON.stringify(notes)) { notes = value.notes.map(String); changed = true; }
+    root.querySelectorAll('.rs-book').forEach(book => {
+      const incoming = value.states?.[book.dataset.design];
+      if (incoming && [0,1,2].includes(incoming.tab) && [0,1,2].includes(incoming.contact) && [0,1].includes(incoming.mission) && JSON.stringify(incoming)!==JSON.stringify(states[book.dataset.design])) { states[book.dataset.design] = {...incoming}; render(book); }
+      else if (changed) render(book);
+    });
+  });
+})();
+</script>

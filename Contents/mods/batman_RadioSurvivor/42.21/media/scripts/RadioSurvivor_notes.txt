@@ -1,0 +1,78 @@
+module RadioSurvivor
+{
+    /* Notes de fréquences (E05-T09) : une par voix qui parle, trouvées dans le butin (RS_NotesServer.lua).
+       Objets literature sans CanBeWrite : « Inspecter » ouvre la fenêtre vanilla des documents (printMedia).
+       OnCreate pose les clés du document, la voix et, sur l'autorité, la fréquence de la partie (RS_Notes.lua).
+       Icônes et modèles vanilla (media/scripts/generated/items/literature.txt, models_items.txt) ; base:fastread :
+       lecture en une seconde ; base:picture : lisible aussi par un personnage Illettré. */
+
+    /* Walt : page arrachée d'un journal de station de radioamateur. */
+    item NoteWalt
+    {
+        DisplayCategory = Literature,
+        Weight = 0.1,
+        ItemType = base:literature,
+        Icon = Paperwork1,
+        ReadType = photo,
+        StaticModel = Paperwork1,
+        WorldStaticModel = Paperwork1,
+        Tags = base:fastread;base:picture,
+        OnCreate = RadioSurvivorNotes.onCreate,
+    }
+
+    /* Darlene : fiche de consignes aux patients, annotée à la main. */
+    item NoteDarlene
+    {
+        DisplayCategory = Literature,
+        Weight = 0.05,
+        ItemType = base:literature,
+        Icon = IndexCard,
+        ReadType = photo,
+        StaticModel = IndexCard,
+        WorldStaticModel = IndexCard,
+        Tags = base:fastread;base:picture,
+        OnCreate = RadioSurvivorNotes.onCreate,
+    }
+
+    /* Cody : avis de recherche dactylographié de la Garde nationale. */
+    item NoteCody
+    {
+        DisplayCategory = Literature,
+        Weight = 0.1,
+        ItemType = base:literature,
+        Icon = PaperReport1,
+        ReadType = photo,
+        StaticModel = SheetOfPaper,
+        WorldStaticModel = SheetOfPaper,
+        Tags = base:fastread;base:picture,
+        OnCreate = RadioSurvivorNotes.onCreate,
+    }
+
+    /* Gus : bout de papier griffonné. */
+    item NoteGus
+    {
+        DisplayCategory = Literature,
+        Weight = 0.05,
+        ItemType = base:literature,
+        Icon = Note2,
+        ReadType = photo,
+        StaticModel = Note2,
+        WorldStaticModel = Note2,
+        Tags = base:fastread;base:picture,
+        OnCreate = RadioSurvivorNotes.onCreate,
+    }
+
+    /* Night Owl : prospectus photocopié de l'émission. */
+    item NoteNightOwl
+    {
+        DisplayCategory = Literature,
+        Weight = 0.05,
+        ItemType = base:literature,
+        Icon = Flier,
+        ReadType = photo,
+        StaticModel = Flier1,
+        WorldStaticModel = Flier1,
+        Tags = base:fastread;base:picture,
+        OnCreate = RadioSurvivorNotes.onCreate,
+    }
+}
