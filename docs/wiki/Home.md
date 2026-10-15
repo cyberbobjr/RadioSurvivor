@@ -33,6 +33,9 @@ server (your PC in singleplayer). Without it the game stays playable, and the vo
 
 ## Pages
 
+- [[Presentation]]: the mod in pictures.
+- [[Installation and configuration|Installation-and-Configuration]]: from the Workshop to a game where everyone speaks.
+- [[Usage]]: step-by-step player guide (radio, Ctrl+G, missions, notebook, admin tools).
 - [[Installation]]: required mods, load order, first game.
 - [[The bridge in singleplayer|Bridge-in-Singleplayer]]
 - [[The bridge on a dedicated server|Bridge-on-a-Dedicated-Server]]

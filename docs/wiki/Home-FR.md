@@ -34,6 +34,9 @@ L'IA passe par **le pont**, un petit programme Python que vous lancez vous-même
 
 ## Pages
 
+- [[Présentation|Presentation-FR]] : le mod en images.
+- [[Installation et configuration|Installation-and-Configuration-FR]] : du Workshop à une partie où tout le monde parle.
+- [[Utilisation|Usage-FR]] : guide du joueur pas à pas (radio, Ctrl+G, missions, carnet, outils d'admin).
 - [[Installation|Installation-FR]] : mods requis, ordre de chargement, première partie.
 - [[Le pont en solo|Bridge-in-Singleplayer-FR]]
 - [[Le pont sur un serveur dédié|Bridge-on-a-Dedicated-Server-FR]]
