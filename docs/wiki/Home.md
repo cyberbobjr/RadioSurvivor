@@ -41,5 +41,6 @@ server (your PC in singleplayer). Without it the game stays playable, and the vo
 - [[The bridge on a dedicated server|Bridge-on-a-Dedicated-Server]]
 - [[AI provider configuration|AI-Provider-Configuration]]
 - [[Sandbox options|Sandbox-Options]]
+- [[Creating radio voices|Creating-Radio-Voices]]: edit a voice or add your own.
 - [[Troubleshooting]]
 - [[FAQ]]

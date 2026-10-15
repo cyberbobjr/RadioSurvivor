@@ -46,3 +46,8 @@ Une fois dans le monde :
 ![Section Émettre et réponse de Walt](images/fr-radio-transmit.png)
 
 Rien ne répond ? Voir [[Dépannage|Troubleshooting-FR]]. Ensuite : le guide du joueur, [[Utilisation|Usage-FR]].
+
+## Aller plus loin : vos propres voix
+
+Chaque voix est une fiche texte sur la machine du serveur, que vous pouvez modifier, ou copier pour créer une nouvelle
+voix, sans redémarrer : [[Créer une voix radio|Creating-Radio-Voices-FR]].

@@ -317,7 +317,7 @@ Full list with default values: [docs/wiki/Sandbox-Options.md](docs/wiki/Sandbox-
 Each voice has a text sheet in `<exchange folder>/personas/<voice>.txt` (frequencies, hours, required radio, allowed
 actions, what it knows, ignores or hides, and its prompt after `[prompt]`). The server installs it the first time the
 world loads and rereads it every 30 s: editing it changes the voice without a restart. A sheet edited by the admin is
-never overwritten by a mod update. Format: [docs/persona-format.md](docs/persona-format.md) (in French).
+never overwritten by a mod update. Guide: [docs/wiki/Creating-Radio-Voices.md](docs/wiki/Creating-Radio-Voices.md).
 
 ## Playing
 

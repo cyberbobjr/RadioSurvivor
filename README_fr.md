@@ -320,7 +320,7 @@ Liste complète avec les valeurs par défaut : [docs/wiki/Sandbox-Options-FR.md]
 Chaque voix a une fiche texte dans `<dossier d'échange>/personas/<voix>.txt` (fréquences, horaires, radio exigée,
 actions permises, ce qu'elle sait, ignore ou cache, et son prompt après `[prompt]`). Le serveur l'installe au premier
 chargement du monde et la relit toutes les 30 s : la modifier change la voix sans redémarrer. Une fiche modifiée par
-l'admin n'est jamais écrasée par une mise à jour du mod. Format : [docs/persona-format.md](docs/persona-format.md).
+l'admin n'est jamais écrasée par une mise à jour du mod. Guide : [docs/wiki/Creating-Radio-Voices-FR.md](docs/wiki/Creating-Radio-Voices-FR.md).
 
 ## Jouer
 

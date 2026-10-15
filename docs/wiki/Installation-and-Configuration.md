@@ -48,3 +48,8 @@ Once in the world:
 ![Transmit section and the answer of Walt](images/en-radio-transmit.png)
 
 Nothing answers? See [[Troubleshooting]]. Next: the player guide, [[Usage]].
+
+## Going further: your own voices
+
+Every voice is a text sheet on the server machine that you can edit, or copy to create a new voice, without a
+restart: [[Creating radio voices|Creating-Radio-Voices]].

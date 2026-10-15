@@ -42,5 +42,6 @@ L'IA passe par **le pont**, un petit programme Python que vous lancez vous-même
 - [[Le pont sur un serveur dédié|Bridge-on-a-Dedicated-Server-FR]]
 - [[Configurer le fournisseur d'IA|AI-Provider-Configuration-FR]]
 - [[Options sandbox|Sandbox-Options-FR]]
+- [[Créer une voix radio|Creating-Radio-Voices-FR]] : modifier une voix ou ajouter la vôtre.
 - [[Dépannage|Troubleshooting-FR]]
 - [[FAQ|FAQ-FR]]

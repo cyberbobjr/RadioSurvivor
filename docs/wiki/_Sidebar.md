@@ -9,6 +9,7 @@
 - [[Bridge on a dedicated server|Bridge-on-a-Dedicated-Server]]
 - [[AI provider configuration|AI-Provider-Configuration]]
 - [[Sandbox options|Sandbox-Options]]
+- [[Creating radio voices|Creating-Radio-Voices]]
 - [[Troubleshooting]]
 - [[FAQ]]
 
@@ -23,5 +24,6 @@
 - [[Le pont sur un serveur dédié|Bridge-on-a-Dedicated-Server-FR]]
 - [[Fournisseur d'IA|AI-Provider-Configuration-FR]]
 - [[Options sandbox|Sandbox-Options-FR]]
+- [[Créer une voix radio|Creating-Radio-Voices-FR]]
 - [[Dépannage|Troubleshooting-FR]]
 - [[FAQ|FAQ-FR]]
