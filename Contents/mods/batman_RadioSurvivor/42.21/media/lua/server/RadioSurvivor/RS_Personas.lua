@@ -68,8 +68,8 @@ Personas.FINGERPRINTS_HEADER = "RSFP1"
 -- d'une fiche ajoute ici son empreinte (tests/test_personas_server.py le vérifie).
 Personas.KNOWN_DELIVERED = {
     walt = { "2105682694", "2759756800", "213942039" },
-    darlene = { "611497886", "1134557996", "2120896689", "3998911546" },   -- E11-T13 : start_mission
-    cody = { "3131466986", "673421833", "4032160620", "318842949" },   -- E11-T13 : start_mission
+    darlene = { "611497886", "1134557996", "2120896689", "3998911546", "3957645400" },   -- E11-T13 : start_mission
+    cody = { "3131466986", "673421833", "4032160620", "318842949", "1196981398" },   -- E11-T13 : start_mission
     whitaker = { "4044533006", "3352221633", "2075828338" },   -- E12-T04 : règle du secours réussi
     nightowl = { "4175146858", "225312038" },
     gus = { "2508366732", "2733824589", "2930912175", "1078646290" },   -- E13-T03 : propose_trade

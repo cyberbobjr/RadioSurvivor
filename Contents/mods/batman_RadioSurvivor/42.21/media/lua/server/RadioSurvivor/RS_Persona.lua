@@ -17,13 +17,18 @@ local BOM = "\239\187\191"          -- U+FEFF
 local REPLACEMENT = "\239\191\189"  -- U+FFFD : octets UTF-8 invalides décodés par InputStreamReader
 
 local ACTION_LIST = { "say", "mark_map", "reveal_area", "signal", "place_cache", "place_scene", "start_mission",
-    "persona_state", "remember", "propose_trade", "report_mission" }
+    "persona_state", "remember", "propose_trade", "report_mission", "share_frequency" }
 local RADIO_LIST = { "any", "high_tier" }
 local LOCATION_LIST = { "none", "fixed", "rescue" }
+local CACHE_TABLES = { "medical", "ammo", "tools", "food", "radio" }
+local MISSION_TEMPLATES = { "scout", "deliver", "retrieve", "clear", "signal" }
+local REWARDS = { "cache", "frequency", "stashmap", "lesson" }
+local TEACHES = { "Doctor", "Aiming", "Reloading", "Woodwork", "Mechanics", "Electricity", "MetalWelding",
+    "Cooking", "Farming", "Fishing", "Trapping", "PlantScavenging" }
 local STATE_LIST = { "active", "silent", "gone", "dead" }
 local KEY_LIST = { "format", "id", "name", "language", "frequencies", "frequency_range", "radio", "listen",
     "location", "coords", "knows", "ignores", "secret", "place", "actions", "budget", "call_one_in", "call_text",
-    "state" }
+    "state", "cache_table", "shares", "teaches", "missions", "rewards" }
 -- Puis frequencies ou frequency_range (l'une des deux, pas les deux : E05-T07).
 local REQUIRED = { "format", "id", "name" }
 local MIN_KHZ, MAX_KHZ, STEP_KHZ = 1000, 999800, 200
@@ -225,6 +230,19 @@ local function actions(value, line)
     return result
 end
 
+local function closedList(value, key, allowed, line)
+    local result = {}
+    for _, part in ipairs(splitList(value)) do
+        if (allowed and not contains(allowed, part)) or (not allowed
+                and (not string.match(part, "^[a-z][a-z0-9_]*$") or string.len(part) > 32)) then
+            fail(line, "bad " .. key .. " entry '" .. part .. "'")
+        end
+        if contains(result, part) then fail(line, "duplicate " .. key .. " entry '" .. part .. "'") end
+        result[#result + 1] = part
+    end
+    return result
+end
+
 local function choice(value, key, list, line)
     if not contains(list, value) then
         fail(line, "bad " .. key .. " '" .. value .. "' (expected " .. table.concat(list, ", ") .. ")")
@@ -304,6 +322,11 @@ local function parse(lines, expectedId)
                 values.location = choice(value, key, LOCATION_LIST, number)
             elseif key == "coords" then
                 values.coords = coords(value, number)
+            elseif key == "cache_table" or key == "teaches" then
+                values[key] = choice(value, key, key == "cache_table" and CACHE_TABLES or TEACHES, number)
+            elseif key == "shares" or key == "missions" or key == "rewards" then
+                local entries = key == "missions" and MISSION_TEMPLATES or (key == "rewards" and REWARDS or nil)
+                values[key] = closedList(value, key, entries, number)
             elseif key == "actions" then
                 values.actions = actions(value, number)
             elseif key == "budget" then
@@ -378,6 +401,8 @@ local function parse(lines, expectedId)
         ignores = values.ignores, secrets = values.secret, places = values.places, actions = allowed, budget = values.budget or 0,
         budgets = values.budgets, call_one_in = values.call_one_in or 0, call_text = values.call_text or "",
         state = values.state or "active",
+        cache_table = values.cache_table or "", shares = values.shares or {}, teaches = values.teaches or "",
+        missions = values.missions or { "scout" }, rewards = values.rewards or {},
     }
 end
 

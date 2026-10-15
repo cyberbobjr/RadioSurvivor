@@ -109,11 +109,11 @@ class SignalMissionTests(unittest.TestCase):
         clues = [offer['clues'][i] for i in sorted(offer['clues'])]
         self.assertFalse(any(ch.isdigit() for line in clues for ch in line), 'a clue carries a number')
         self.assertEqual(self.catalog(sim, npc, record)['signal_v1'], offer, 'the kept place changed')
-        # A radio voice donor never offers it; the voice template list stays closed.
+        # An untyped donor is refused; declared radio voices may offer this template.
         c = sim.server.rt.eval("require('RadioSurvivor/RS_Config').Missions.signal")
         donor = sim.server.rt.table_from({'id': 'voice:walt:c1', 'missionCount': 0})
         self.assertIsNone(signal.offer(c, donor, None, g.PLAYERS.alice))
-        self.assertIsNone(sim.server.rt.eval("require('RadioSurvivor/RS_MissionVoice')").TEMPLATES['signal'])
+        self.assertTrue(sim.server.rt.eval("require('RadioSurvivor/RS_MissionVoice')").TEMPLATES['signal'])
         # Window across midnight.
         self.assertEqual([signal.inWindow(23, 2, h) for h in (22, 23, 0, 1)], [False, True, True, False])
 

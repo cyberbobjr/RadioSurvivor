@@ -43,8 +43,8 @@ local GLOBALS = {
     { "getGameTime", "server", "server/RadioSurvivor_Server.lua:79" },
     { "getClimateManager", "server", "server/RadioSurvivor/RS_ObservationTriggers.lua:243" },
     { "getZomboidRadio", "server", "server/RadioSurvivor/RS_Personas.lua:720" },
-    { "sendRemoveItemFromContainer", "server", "server/RadioSurvivor/RS_Missions.lua:457" },
-    { "sendAddItemToContainer", "server", "server/RadioSurvivor/RS_Missions.lua:284" },
+    { "sendRemoveItemFromContainer", "server", "server/RadioSurvivor/RS_Missions.lua:470" },
+    { "sendAddItemToContainer", "server", "server/RadioSurvivor/RS_Missions.lua:289" },
     { "DynamicRadioChannel.new", "server", "server/RadioSurvivor/RS_Personas.lua:676" },
     { "ChannelCategory.Amateur", "server", "server/RadioSurvivor/RS_Personas.lua:676" },
     { "RadioBroadCast.new", "server", "server/RadioSurvivor_Server.lua:110" },
@@ -53,7 +53,7 @@ local GLOBALS = {
     { "listFilesInModDirectory", "server", "server/RadioSurvivor/RS_Personas.lua:265" },
     { "getModFileReader", "server", "server/RadioSurvivor/RS_Personas.lua:281" },
     { "listFilesInZomboidLuaDirectory", "server", "server/RadioSurvivor/RS_Personas.lua:369" },
-    { "instanceItem", "server", "server/RadioSurvivor/RS_Missions.lua:268" },
+    { "instanceItem", "server", "server/RadioSurvivor/RS_Missions.lua:273" },
     { "ItemPickerJava.Parse", "server", "server/RadioSurvivor/RS_NotesServer.lua:109" },
     { "getSpecificPlayer", "client", "client/RadioSurvivor/RS_Client.lua:11" },
     { "sendClientCommand", "client", "client/RadioSurvivor/RS_Client.lua:15" },
@@ -62,14 +62,14 @@ local GLOBALS = {
     { "getText", "any", "client/RadioSurvivor/RS_Client.lua:176" },
     { "getTextOrNull", "server", "server/RadioSurvivor_Server.lua:505" },
     { "Translator.loadFiles", "server", "server/RadioSurvivor_Server.lua:507" },
-    { "getCore", "client", "client/RadioSurvivor/RS_Notebook.lua:406" },
-    { "getTextManager", "client", "client/RadioSurvivor/RS_Notebook.lua:208" },
+    { "getCore", "client", "client/RadioSurvivor/RS_Notebook.lua:407" },
+    { "getTextManager", "client", "client/RadioSurvivor/RS_Notebook.lua:209" },
     { "getTexture", "client", "client/RadioSurvivor/RS_Notebook.lua:31" },
-    { "getScriptManager", "client", "client/RadioSurvivor/RS_Notebook.lua:67" },
-    { "instanceof", "client", "client/RadioSurvivor/RS_Notebook.lua:1189" },
+    { "getScriptManager", "client", "client/RadioSurvivor/RS_Notebook.lua:68" },
+    { "instanceof", "client", "client/RadioSurvivor/RS_Notebook.lua:1196" },
     { "Translator.getLanguage", "any", "client/RadioSurvivor/RS_Client.lua:35" },
     { "UIFont.Medium", "client", "shared/RadioSurvivor/RS_NPCProvider.lua:271" },
-    { "Keyboard.KEY_G", "client", "client/RadioSurvivor/RS_Notebook.lua:1309" },
+    { "Keyboard.KEY_G", "client", "client/RadioSurvivor/RS_Notebook.lua:1316" },
     { "ISTimedActionQueue.add", "client", "client/RadioSurvivor/RS_RadioHistory.lua:204" },
     { "ISRadioAction.new", "client", "client/RadioSurvivor/RS_RadioHistory.lua:204" },
     -- Map marks of a voice (E07-T04): hidden UIWorldMap on the world map symbols.
@@ -82,12 +82,12 @@ local GLOBALS = {
 
 -- Methods of an ItemContainer used by the server files (missions, radio carried on the belt).
 local CONTAINER_METHODS = {
-    { "getItemWithIDRecursiv", "server/RadioSurvivor/RS_Missions.lua:405" },
+    { "getItemWithIDRecursiv", "server/RadioSurvivor/RS_Missions.lua:410" },
     { "getItemWithID", "server/RadioSurvivor_Server.lua:220" },
-    { "getCapacityWeight", "server/RadioSurvivor/RS_Missions.lua:274" },
-    { "getEffectiveCapacity", "server/RadioSurvivor/RS_Missions.lua:274" },
-    { "AddItem", "server/RadioSurvivor/RS_Missions.lua:283" },
-    { "Remove", "server/RadioSurvivor/RS_Missions.lua:456" },
+    { "getCapacityWeight", "server/RadioSurvivor/RS_Missions.lua:279" },
+    { "getEffectiveCapacity", "server/RadioSurvivor/RS_Missions.lua:279" },
+    { "AddItem", "server/RadioSurvivor/RS_Missions.lua:288" },
+    { "Remove", "server/RadioSurvivor/RS_Missions.lua:469" },
 }
 
 local function side()

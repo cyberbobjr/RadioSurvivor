@@ -825,5 +825,15 @@
     "IGUI_RS_RelFact_assault_seen": "on vous a vu attaquer quelqu'un",
     "IGUI_RS_RelFact_good": "quelque chose que vous avez fait pour eux",
     "IGUI_RS_RelFact_bad": "quelque chose que vous avez fait contre eux",
-    "IGUI_RS_RelFact_neutral": "quelque chose qu'on a remarqué"
+    "IGUI_RS_RelFact_neutral": "quelque chose qu'on a remarqué",
+    "IGUI_RS_DeadDropApproach": "Approchez d’abord de la zone indiquée et attendez la confirmation du point de dépôt dans le carnet avant de laisser des objets.",
+    "IGUI_RS_DeadDropBox": "Déposez la livraison complète dans le conteneur désigné au point indiqué sur la carte. Le conteneur restera sur place.",
+    "IGUI_RS_DeadDropBag": "Laissez un sac au sol au point indiqué. Mettez-y seulement la quantité exacte demandée : le sac entier sera emporté.",
+    "IGUI_RS_DeadDropLeave": "Le destinataire reste caché. Tout le monde doit s’éloigner d’au moins 40 cases pendant 10 secondes. Avant la collecte, vous pouvez reprendre le dépôt.",
+    "IGUI_RS_DeadDropCollected": "La livraison a été emportée. Faites votre compte rendu au demandeur à la radio.",
+    "IGUI_RS_Radio_reward": "%1 %2",
+    "IGUI_RS_Reward_cache": "J’ai laissé du matériel pour toi à l’endroit indiqué.",
+    "IGUI_RS_Reward_frequency": "Un contact radio a été ajouté à ton carnet.",
+    "IGUI_RS_Reward_stashmap": "Tu as reçu une carte annotée menant à une planque.",
+    "IGUI_RS_Reward_lesson": "Tu as reçu une leçon pratique."
 }

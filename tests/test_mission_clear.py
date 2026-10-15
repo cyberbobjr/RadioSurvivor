@@ -157,7 +157,7 @@ class ClearMissionTests(unittest.TestCase):
         clear.resetForTests()
         donor = sim.server.rt.table_from({'id': 'voice:walt:c1', 'missionCount': 0})
         self.assertIsNone(clear.offer(c, donor, None, g.PLAYERS.alice))
-        self.assertIsNone(sim.server.rt.eval("require('RadioSurvivor/RS_MissionVoice')").TEMPLATES['clear'])
+        self.assertTrue(sim.server.rt.eval("require('RadioSurvivor/RS_MissionVoice')").TEMPLATES['clear'])
         g.SCOUT_GRID.getChunkDataFromTile = None
         self.assertNotIn('clear_v1', self.catalog(sim, npc, record))
 

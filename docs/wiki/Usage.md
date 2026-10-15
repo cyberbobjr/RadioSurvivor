@@ -69,6 +69,22 @@ notebook").
   use **Report** next to them. For a radio voice, call it back on its frequency. The mission succeeds only then, and
   the deadline still runs.
 
+### What you earn
+
+After success and reporting, voice missions improve reputation and may grant **one** material cache, another voice's frequency, a vanilla stash map or a skill lesson. Darlene offers medical rewards and first-aid lessons; Cody offers ammunition and aiming lessons. The server rotates permitted rewards; you do not choose their contents. Frequencies enter only your notebook; voice caches get a marker only on your map. Physical supplies remain real world items.
+
+Depending on their sheet, voices can request scouting, a delivery drop, missing papers, clearing or a Signal Smoke signal. NPCs can also offer recovery and group supplies. Always report an NPC mission **in person** to its requester.
+
+### Radio deliveries: discreet collection
+
+The server alternates an agreed drop box and a hidden bag on the ground at one of the voice's `place=` locations. A suitable existing box is marked precisely on your map; without a suitable box, the server requests a bag. Leave the complete batch and move away: **all players must remain at least 40 tiles away horizontally for 10 continuous real seconds**, even on another floor. Returning or restarting resets the wait; the exact square must be loaded before removal.
+
+From a box, only requested items disappear; the box and other items remain. For a bag, the bag and contents disappear; a bag containing unrelated items is refused to prevent their loss. Until collection, you can take the drop back and nothing is validated. **Only after collection, report over the radio**. Solo and MP in-game validation of this collection is **pending**.
+
+Living Knox material rewards first use real household surplus, preserving required reserves and rationed stock; otherwise, a cache near home uses a closed table for the group type. A favorable or trusting personal relationship, without bad reputation, opens stash maps and role-based lessons. A dead requester cannot grant rewards. Group missions have **one shared withdrawal** by a participant, following the previous common-lot rule. Trusted contacts can share their group's radio when available, otherwise an active radio voice. Existing supply contracts retain a reward lot already paid from group reserves, preventing a second withdrawal.
+
+The sandbox lesson multiplier disables XP at 0. The new rewards are implemented; solo and MP in-game validation is **pending**.
+
 ![Missions tab with a mission in progress](images/en-notebook-missions.png)
 
 ![A mission to report](images/en-notebook-report.png)

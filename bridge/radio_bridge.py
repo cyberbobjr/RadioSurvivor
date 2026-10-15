@@ -1037,12 +1037,12 @@ def mission_context(req: dict[str, str], sheet: persona_store.Persona) -> dict |
         if len(raw) > MISSION_FIELD_CHARS or not re.fullmatch(r"(?:[0-9a-f]{2})+", raw):
             raise ValueError("mission hex")
         value = npc.decode(bytes.fromhex(raw))
-        if not isinstance(value, dict) or value.get("kind") != "scout":
+        if not isinstance(value, dict) or value.get("kind") not in ("scout", "deliver", "retrieve_id", "clear", "signal"):
             raise ValueError("mission kind")
         if value.get("state") not in MISSION_STATES or value.get("turn") not in MISSION_TURNS:
             raise ValueError("mission state")
         place = npc.safe_text(value.get("place"), MISSION_TEXT_BYTES)
-        if re.search(r"\d", place):
+        if re.search(r"\d", place) or leaks_secret(place, sheet.secrets):
             raise ValueError("mission place")
     except ValueError as err:
         log(f"request {req.get('id', '?')}: mission context ignored ({err})")
@@ -1065,10 +1065,38 @@ def mission_context(req: dict[str, str], sheet: persona_store.Persona) -> dict |
         remaining, bool) and remaining > 0 else 0
     reward = value.get("reward")
     labels = {p.label for p in sheet.places}
-    return {"state": value["state"], "turn": value["turn"], "place": place, "clues": clues,
+    out = {"kind": value["kind"], "state": value["state"], "turn": value["turn"], "place": place, "clues": clues,
             "to_report": value.get("toReport") is True,   # E11-T13: objective met (server fact)
             "reached": value.get("zoneReached") is True, "minutes": minutes,
             "reward": reward if isinstance(reward, str) and reward in labels else None}
+
+    def count(key: str, maximum: int = 10000) -> int:
+        number = value.get(key)
+        return int(number) if (isinstance(number, (int, float)) and not isinstance(number, bool)
+                               and math.isfinite(number) and 0 <= number <= maximum and int(number) == number) else 0
+
+    kind = out["kind"]
+    if kind == "deliver":
+        accepted = value.get("accepted")
+        out.update(quantity=count("quantity"), delivered=count("delivered"),
+                   deposit_mode=value.get("depositMode") if value.get("depositMode") in ("box", "bag") else "box",
+                   collected=value.get("depositCollected") is True,
+                   accepted=sorted(k for k, v in accepted.items() if v is True and isinstance(k, str)
+                                   and re.fullmatch(r"[A-Za-z][A-Za-z0-9_]*\.[A-Za-z][A-Za-z0-9_]*", k)
+                                   and not leaks_secret(k, sheet.secrets))[:32] if isinstance(accepted, dict) else [])
+        # A caller's claim or a premature turn is never enough to report an uncollected drop.
+        if not out["collected"] and out["state"] != "success":
+            out["to_report"] = False
+            if out["turn"] == "report_due": out["turn"] = "not_yet"
+    elif kind == "retrieve_id":
+        out.update(found=value.get("found") is True, placed=value.get("placed") is True)
+    elif kind == "clear":
+        out.update(kills=count("kills"), target=count("target"))
+    elif kind == "signal":
+        color = value.get("color")
+        out.update(color=color if color in ("green", "red", "yellow", "purple") else "unknown",
+                   hour=count("hour", 23), window_hours=count("windowHours", 24), lit=value.get("lit") is True)
+    return out
 
 
 def mission_prompt(mission: dict | None, tag: str) -> str:
@@ -1076,8 +1104,33 @@ def mission_prompt(mission: dict | None, tag: str) -> str:
     (visite, compte rendu accepté), jamais ce que l'appelant affirme ; aucune coordonnée."""
     if not mission:
         return ""
+    kind = mission.get("kind", "scout")
     lines = [f"- The job: go and look at a building (kind: {mission['place']}), then call you back on this frequency "
              "to report."]
+    if kind == "deliver":
+        mode = "the agreed box" if mission["deposit_mode"] == "box" else "a bag hidden on the ground"
+        lines = [f"- The job: leave {mission['quantity']} requested items in {mode} at {mission['place']}, "
+                 "then report to you on this frequency after collection.",
+                 "- Accepted item types (closed server list): " + ", ".join(mission["accepted"]),
+                 "- Collection rule: leave the complete requested goods; for a bag include only the requested goods. "
+                 "Everyone must move at least forty tiles away for ten seconds. The goods disappear only when "
+                 "collected; a hidden bag also disappears. Never claim collection before the server confirms it.",
+                 f"- Collected by the server: {mission['delivered']} of {mission['quantity']}; "
+                 f"collection complete: {'yes' if mission['collected'] else 'no'}."]
+    elif kind == "retrieve_id":
+        lines = [f"- The job: find the missing person's body at a {mission['place']}, take their ID card, "
+                 "and report to you on this frequency while still holding the real card. The server takes that "
+                 "specific card when accepting the report; another ID card never counts.",
+                 f"- The server has observed the card in a participant's inventory: {'yes' if mission['found'] else 'no'}."]
+    elif kind == "clear":
+        lines = [f"- The job: kill {mission['target']} zombies inside the circled area around a {mission['place']}, "
+                 "then report to you on this frequency. Only participant-attributed kills in the area count.",
+                 f"- Verified kills: {mission['kills']} of {mission['target']}."]
+    elif kind == "signal":
+        lines = [f"- The job: start a {mission['color']} Signal Smoke signal inside the circled area around a "
+                 f"{mission['place']}, in the daily window starting at {mission['hour']}:00 for "
+                 f"{mission['window_hours']} game hours, then report to you on this frequency.",
+                 f"- A matching participant signal was verified: {'yes' if mission['lit'] else 'no'}."]
     lines += [f"- What you know of the place: {clue}" for clue in mission["clues"]]
     if mission["state"] != "success":
         lines.append(f"- An approximate area around the place (not its exact spot) is circled on {tag}'s map; you may tell them to check their map.")
@@ -1085,7 +1138,8 @@ def mission_prompt(mission: dict | None, tag: str) -> str:
         # E11-T09 : la mission vient d'être créée ; la réponse qui l'a proposée ne connaissait pas encore le lieu.
         lines.append(f"- You have just given {tag} this job and they are waiting for the details. Tell them NOW where "
                      "to go: say the kind of building and every clue above, in your own words, so that they can find "
-                     "it. Add nothing that is not in the clues. Keep the language you have been using with them.")
+                     "it. Explain the objective and collection or report rules above. Add nothing that is not in these facts. "
+                     "Keep the language you have been using with them.")
     elif mission["state"] != "success" and mission["clues"]:
         lines.append(f"- If {tag} asks where the place is, or seems lost, tell them the clues again.")
     if mission["state"] == "success":
@@ -1096,13 +1150,16 @@ def mission_prompt(mission: dict | None, tag: str) -> str:
         pass  # consigne ci-dessus ; la visite n'a pas encore pu avoir lieu
     elif mission["turn"] == "report_due":
         # E11-T13 : objectif constaté par le serveur ; le modèle reconnaît le compte rendu (aucune liste de mots).
-        lines.append(f"- {tag} has been there (checked): you only wait for their report. If this call, in whatever "
+        lines.append(f"- {tag} has completed the objective (checked): you only wait for their report. If this call, in whatever "
                      "language, tells you about the place or that the job is done, accept it as their report: add "
                      'the action {"type": "report_mission"} and thank them. Otherwise do not add it; the report '
                      "stays expected.")
         if mission["reward"]:
             lines.append(f"- With their report you share a place you know: {mission['reward']}. It gets marked on "
                          "their map once the other side records the report.")
+    elif kind != "scout" and not mission["to_report"]:
+        lines.append(f"- {tag} has NOT completed the objective, whatever they say. Never accept a claimed completion; "
+                     "never add report_mission. Repeat the verified objective and rules if asked.")
     elif mission["turn"] == "not_yet" or not mission["reached"]:
         lines.append(f"- {tag} has NOT been there yet, whatever they say: the job is not done. Say so if they claim it; "
                      "never add report_mission.")
@@ -1370,12 +1427,18 @@ EXECUTABLE_ACTIONS: dict[str, tuple[str, dict]] = {
         'them. Parameter "place": the id of one place of the list below, nothing else.',
         {"type": "reveal_area", "place": "<place id>"},
     ),
+    "share_frequency": (
+        "Offer to introduce the caller to another radio voice. No parameter; the server chooses an authorized "
+        "living voice and privately supplies its frequency. Never invent or state a frequency yourself.",
+        {"type": "share_frequency"},
+    ),
     # E11-T08 : gabarit en liste fermée (MISSION_TEMPLATES) ; le serveur choisit le lieu, une mission par appelant.
     "start_mission": (
-        "give the caller a scouting job when they ask for work or you need eyes somewhere: they go and look at a "
-        "building, then call you back on this frequency to report. Parameter \"template\": \"scout\" (the only kind). "
-        "You do not choose the building: it is picked for you near the caller and described to you right after this "
-        "reply, when you give them the details; never invent where it is now. One job at a time per caller.",
+        "give the caller a job from the allowed mission templates below when they ask for work. Parameter "
+        "\"template\": scout (visit), deliver (dead drop), retrieve (missing person papers), clear (zombies), "
+        "or signal (Signal Smoke). They always report to you on this frequency. "
+        "The server chooses the place and objective, which are described to you right after this reply; "
+        "never invent them now. One job at a time per caller. You never choose the reward or its contents.",
         {"type": "start_mission", "template": "scout"},
     ),
     # E11-T13 : compte rendu à la radio d'une mission de cette voix dont l'objectif est rempli (sans paramètre) ;
@@ -1421,10 +1484,10 @@ def sheet_actions(sheet: persona_store.Persona) -> list[str]:
 
 
 # Gabarits admis par start_mission (RS_MissionVoice.TEMPLATES).
-MISSION_TEMPLATES = ("scout",)
+MISSION_TEMPLATES = ("scout", "deliver", "retrieve", "clear", "signal")
 
 # Tables de cache admises par place_cache (RS_Config.Caches.order, vérifiées par tests/test_protocol.py).
-CACHE_TABLES = ("food", "medical", "ammo", "tools")
+CACHE_TABLES = ("food", "medical", "ammo", "tools", "radio")
 
 # Actions dont le paramètre unique place est l'identifiant d'un lieu place= de la fiche (E07-T04, E07-T05) : proposées
 # seulement si la fiche a des lieux.
@@ -1469,6 +1532,8 @@ def actions_prompt(sheet: persona_store.Persona) -> str:
     def example(name: str) -> dict:
         if name in PLACE_ACTIONS:
             return {"type": name, "place": sheet.places[0].id}
+        if name == "start_mission":
+            return {"type": name, "template": (getattr(sheet, "missions", ()) or ("scout",))[0]}
         return EXECUTABLE_ACTIONS[name][1]
 
     # Liste des lieux une seule fois, sous la première action à lieu proposée.
@@ -1486,6 +1551,8 @@ def actions_prompt(sheet: persona_store.Persona) -> str:
         'decides whether it happens, so never promise it in "say". Never put a secret, a code, a frequency or exact '
         "coordinates in an action."
         + described
+        + ("\nAllowed mission templates: " + ", ".join(getattr(sheet, "missions", ()) or ("scout",)) + "."
+           if "start_mission" in offered else "")
     )
 
 
@@ -1557,12 +1624,13 @@ def bounded_actions(sheet: persona_store.Persona, raw) -> list[dict]:
                 f"({str(clean.get('place'))[:32]!r})")
             continue
         # start_mission (E11-T08) : un seul paramètre, gabarit de la liste fermée.
-        if kind == "start_mission" and (set(clean) != {"template"} or clean["template"] not in MISSION_TEMPLATES):
+        if kind == "start_mission" and (set(clean) != {"template"} or clean["template"] not in MISSION_TEMPLATES
+                or clean["template"] not in (getattr(sheet, "missions", ()) or ("scout",))):
             log(f"voice '{sheet.id}': action {index} 'start_mission' dropped, unknown template "
                 f"({str(clean.get('template'))[:32]!r})")
             continue
         # report_mission (E11-T13) : aucun paramètre.
-        if kind == "report_mission" and clean:
+        if kind in {"report_mission", "share_frequency"} and clean:
             log(f"voice '{sheet.id}': action {index} 'report_mission' dropped, it takes no parameter")
             continue
         # place_cache (E11-T06) : un seul paramètre, table de la liste fermée du serveur.

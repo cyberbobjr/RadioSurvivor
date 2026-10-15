@@ -160,7 +160,7 @@ end
 
 function Clear.offer(c, npc, record, body)
     -- A radio voice donor has no fiche (npc.incarnation): this template is for NPC fiches only.
-    if not npc or npc.incarnation == nil then return nil end
+    if not npc or (npc.incarnation == nil and not npc.voice) then return nil end
     local site = Clear.site(npc, body, c)
     if not site then return nil end
     return {kind = 'clear', place = site.label, clues = copyList(site.clues), kills = site.kills, report = 'in_person',

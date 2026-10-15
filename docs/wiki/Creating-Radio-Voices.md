@@ -234,17 +234,36 @@ Always allowed, even if you do not list it. The voice answers you on the radio.
 - **Limits:** a square of 160 tiles per side at most; 60 real seconds between two reveals; daily cap with
   `budget.reveal_area`.
 
-#### Give you a mission — `start_mission`
+#### Missions and rewards — `start_mission`
 
-- **In game:** the voice asks you to go and **scout a building** near you. The mission appears in the **Missions** tab
-  of the notebook, with a circle on the map. Once you have been there, **call the voice back on its frequency and
-  tell it** what you saw: the mission then succeeds.
-- **Requires:** the player has the notebook. The building is picked by the server, never by the AI.
-- **Reward:** your reputation goes up; if the voice has `place=` lines, it also marks on your map the first of its
-  places it has not given you yet.
-- **Limits:** one mission in progress per player and per voice; 30 real minutes between two missions for the same
-  player; daily cap with `budget.start_mission`.
-- The radio report is part of this action: nothing else to add.
+- `missions=scout,deliver,retrieve,clear,signal` allows scouting, a delivery drop, missing papers, clearing zombies and a Signal Smoke signal. The server checks each objective; one mission per player and voice. The notebook is required.
+- **Report by radio**, on the voice's frequency (`report_mission` is implicit). Successful missions improve reputation.
+- `rewards=cache,frequency,stashmap,lesson` allows one extra reward. The server rotates through that order per player and voice, skipping unavailable effects and saving its choice. The AI never chooses the reward.
+- A cache contains real items from `cache_table`, at the first `place=`: one per mission, deferred placement when unloaded, with a private map marker. `shares` limits other active voices whose frequency may enter the beneficiary's radio notebook. A vanilla stash map leads to an unexplored stash (one map per player and voice). `teaches` fixes the lesson's skill.
+- Lessons grant 25 base XP, capped at 100 per game day before the multiplier. The sandbox **Lesson multiplier** ranges from 0 to 5; 0 disables lessons. The server grants XP.
+- Missing `missions` keeps `scout` only; missing `rewards` keeps the previous map marker reward. Existing cooldowns and `budget.start_mission` still apply.
+
+#### Share a frequency — `share_frequency`
+
+`actions=...,share_frequency` allows a trust gesture outside mission rewards. `shares=gus,cody` limits the candidates: the server chooses another active voice and adds the exact frequency, without exposing it to the model or sending a directory to other players.
+
+#### Reward sheet keys
+
+| Key | Allowed values |
+|---|---|
+| `cache_table` | `medical`, `ammo`, `tools`, `food`, `radio` |
+| `shares` | Comma-separated voice IDs |
+| `teaches` | `Doctor`, `Aiming`, `Reloading`, `Woodwork`, `Mechanics`, `Electricity`, `MetalWelding`, `Cooking`, `Farming`, `Fishing`, `Trapping`, `PlantScavenging` |
+| `missions` | `scout`, `deliver`, `retrieve`, `clear`, `signal` |
+| `rewards` | `cache`, `frequency`, `stashmap`, `lesson` |
+
+Keys cannot repeat; lists cannot contain duplicates or empty entries; spelling is case-sensitive. In-game solo and MP validation of the new rewards is **pending**.
+
+#### Radio deliveries: discreet collection
+
+The server alternates an agreed drop box and a hidden bag on the ground at one of the voice's `place=` locations. A suitable existing box is marked precisely on your map; without a suitable box, the server requests a bag. Leave the complete batch and move away: **all players must remain at least 40 tiles away horizontally for 10 continuous real seconds**, even on another floor. Returning or restarting resets the wait; the exact square must be loaded before removal.
+
+From a box, only requested items disappear; the box and other items remain. For a bag, the bag and contents disappear; a bag containing unrelated items is refused to prevent their loss. Until collection, you can take the drop back and nothing is validated. **Only after collection, report over the radio**. Solo and MP in-game validation of this collection is **pending**.
 
 #### Actions not to add
 
@@ -342,7 +361,12 @@ ignores=Anything that happened outside Knox County.
 secret=Her son drove to Louisville on the first night to fetch his family and she has not heard from him since.
 place=rosewood 8159,11661,0 Rosewood, center of town
 place=fallas_lake 7253,8279,0 Fallas Lake
-actions=say,remember,persona_state,mark_map
+actions=say,remember,persona_state,mark_map,start_mission,share_frequency
+cache_table=radio
+shares=gus,darlene
+teaches=Electricity
+missions=scout,deliver,retrieve,clear,signal
+rewards=cache,frequency,stashmap,lesson
 budget=20
 budget.mark_map=4
 call_one_in=5
@@ -401,7 +425,12 @@ place=west_point 11654,6864,0 West Point, center of town
 place=muldraugh_pd 10644,10405,0 Muldraugh, police station
 place=muldraugh 10754,9926,0 Muldraugh, center of town
 place=march_ridge 10130,12801,0 March Ridge
-actions=say,remember,persona_state,mark_map,reveal_area,start_mission
+actions=say,remember,persona_state,mark_map,reveal_area,start_mission,share_frequency
+cache_table=ammo
+shares=cody,gus
+teaches=Aiming
+missions=scout,deliver,retrieve,clear,signal
+rewards=cache,frequency,stashmap,lesson
 budget=20
 budget.remember=10
 budget.persona_state=6
@@ -438,8 +467,7 @@ Rules:
 
 What to notice:
 
-- `place=` lines feed three actions: `mark_map` and `reveal_area` point to them, and `start_mission` gives the first
-  one not yet given as a reward (West Point here).
+- `place=` lines supply map actions, mission locations and the material reward drop. The server selects rewards from the closed permissions above.
 - Each action has its own daily budget, so a chatty caller cannot reveal the whole map in one evening.
 - The prompt says **when** to use the actions ("only when it helps them and they earned some trust"); the server
   still checks every one.

@@ -258,6 +258,11 @@ end
 
 -- Common reward lot of a successful mission, claimed once for the whole group.
 function M.claim(store, m, player, character, token)
+    local npc = store.data.npcs and store.data.npcs[m.npc]
+    if npc and npc.incarnation ~= nil then
+        local handled, reason = require('RadioSurvivor/RS_NPCRewards').claim(store, m, player, character, token)
+        if handled ~= nil then return handled, reason end
+    end
     if m.transaction or m.state ~= 'success' or not m.participants[character] or m.claimedBy ~= ''
             or (m.rewardCount or 0) < 1 then
         return false, 'State'
@@ -304,7 +309,7 @@ function M.projection(m, character)
     local t = M.template(m)
     if t then t.project(m, p) end
     -- E11-T13: objective met, the report to the requester is still expected (templates with a report only).
-    if t and t.reportBySpeech then p.toReport = M.reportReady(m) end
+    if t and (t.reportBySpeech or m.donor == 'voice') then p.toReport = M.reportReady(m) end
     for _, member in pairs(m.participants) do p.participants[#p.participants + 1] = member.name end
     table.sort(p.participants)
     return p
@@ -316,7 +321,7 @@ function M.context(m)
     local t = M.template(m)
     if t then t.context(m, ctx) end
     -- E11-T13: objective met (server fact), the report is expected (templates with a report only).
-    if t and t.reportBySpeech then ctx.toReport = M.reportReady(m) end
+    if t and (t.reportBySpeech or m.donor == 'voice') then ctx.toReport = M.reportReady(m) end
     return ctx
 end
 
@@ -422,7 +427,13 @@ function Deliver.value(m, items)
     return total, smallest or 0, counts
 end
 
+function Deliver.voiceReportReady(m) return m.delivered >= m.quantity end
+
 function Deliver.check(m, player, ids)
+    if m.donor == 'voice' and ids == 'speech' then
+        if not Deliver.voiceReportReady(m) then return nil, 'Items' end
+        return {report = true}
+    end
     local items = Deliver.checkItems(player, m, ids)
     if not items then return nil, 'Items' end
     local types = {}
@@ -439,10 +450,12 @@ function Deliver.check(m, player, ids)
 end
 
 function Deliver.prepare(m, e)
+    if e.report then return {kind = "voice_delivery_report"} end
     return {kind = 'delivery', ids = e.ids, types = e.types, before = m.delivered, count = #e.items, value = e.value}
 end
 
 function Deliver.apply(m, e)
+    if e.report then return end
     if e.counts then
         local tx = m.transaction
         local result = P.supplyDeliver(m.supply.ref, m.supply.offer, e.counts, tx.token, tx.character)
@@ -461,6 +474,7 @@ function Deliver.apply(m, e)
 end
 
 function Deliver.progress(m, e)
+    if e.report then return 0, true end
     -- Completed supplies belong to the requester, stored as a server receipt/escrow.
     -- Do not append to the NPC engine inventory: its own AI could materialize/overwrite it.
     m.supplies = m.supplies or {}
@@ -480,13 +494,20 @@ function Deliver.progress(m, e)
         return counted, e.result.completed == true or m.delivered >= m.quantity
     end
     m.delivered = m.delivered + #e.items
-    return #e.items, m.delivered == m.quantity
+    return #e.items, m.donor ~= "voice" and m.delivered == m.quantity
 end
 
 -- The supplies are already escrowed by each delivery; the reward lot is the engine's.
 function Deliver.complete() end
 
 function Deliver.project(m, p)
+    if m.donor == 'voice' then
+        p.report, p.place = 'radio', m.place
+        p.depositMode = m.deposit and m.deposit.mode
+        p.depositReady = m.deposit and m.deposit.ready == true
+        p.depositCollected = m.delivered >= m.quantity
+        if p.engaged and m.mapZone then p.mapZone = copyMap(m.mapZone) end
+    end
     p.quantity, p.delivered, p.accepted = m.quantity, m.delivered, {}
     for k, v in pairs(m.accepted) do p.accepted[k] = v end
     if m.unit == 'value' then
@@ -496,11 +517,24 @@ function Deliver.project(m, p)
 end
 
 function Deliver.context(m, ctx)
+    if m.donor == 'voice' then
+        ctx.kind, ctx.place, ctx.report = 'deliver', m.place, 'radio'
+        ctx.depositMode = m.deposit and m.deposit.mode or 'box'
+        ctx.depositCollected = m.delivered >= m.quantity
+        ctx.collectionRule = 'Leave the complete requested goods in the designated box, or a bag containing only '
+            .. 'the requested goods on the ground. Everyone must move at least forty tiles away for ten seconds '
+            .. 'before collection. Then report by radio.'
+    end
     ctx.quantity, ctx.delivered, ctx.accepted = m.quantity, m.delivered, m.accepted
     if m.unit == 'value' then
         ctx.unit, ctx.values = 'value', m.values
         ctx.need = m.supply and m.supply.need or nil
     end
+end
+
+-- Deferred, unseen collection of the complete dead drop; never consume goods in front of a player.
+function Deliver.observe(m, player, memberName, state, store)
+    return require('RadioSurvivor/RS_VoiceDelivery').observe(m, player, memberName, state, store)
 end
 
 M.register('deliver', Deliver)
@@ -534,6 +568,7 @@ end
 -- still expected; false otherwise (template without report, objective not met, mission closed).
 function M.reportReady(m)
     local t = type(m) == 'table' and m.state == 'active' and M.template(m)
+    if t and m.donor == 'voice' and t.voiceReportReady then return t.voiceReportReady(m) == true end
     return t and t.reportBySpeech == true and type(t.reportReady) == 'function' and t.reportReady(m) == true or false
 end
 
@@ -544,7 +579,8 @@ end
 -- report closes the mission, so the receipt token is per character (a refused report leaves no receipt).
 function M.spoken(store, m, player, character)
     local t = m and M.template(m)
-    if not t or not t.reportBySpeech or m.state ~= 'active' or not m.participants[character] then
+    if not t or not (t.reportBySpeech or (m.donor == 'voice' and t.voiceReportReady))
+            or m.state ~= 'active' or not m.participants[character] then
         return false, 'State'
     end
     return M.report(store, m, player, character, 'speech', 'speech-' .. character)

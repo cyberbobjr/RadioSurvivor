@@ -3318,7 +3318,7 @@ def scenario_voice_mission_bridge(tmp: Path) -> None:
     system = rb.actions_prompt(giver)
     assert "Allowed action types: start_mission, report_mission." in system, system
     assert '{"type": "start_mission", "template": "scout"}' in system and '{"type": "report_mission"}' in system
-    assert "You do not choose the building" in system and "10600" not in system, system
+    assert "The server chooses the place and objective" in system and "10600" not in system, system
     assert rb.bounded_actions(giver, [{"type": "start_mission"}, {"type": "start_mission", "template": "deliver"},
                                       {"type": "start_mission", "template": "scout", "place": "depot"},
                                       {"type": "start_mission", "template": "scout"}]) == [
@@ -3354,7 +3354,7 @@ def scenario_voice_mission_bridge(tmp: Path) -> None:
     sent = parsed[1][0]
     assert sent["mission"] == field, sent
     mission = rb.mission_context(sent, giver)
-    assert mission == {"state": "active", "turn": "not_yet", "place": "house", "minutes": 90, "reached": False,
+    assert mission == {"kind": "scout", "state": "active", "turn": "not_yet", "place": "house", "minutes": 90, "reached": False,
                        "clues": ["The place is a large single-storey house.",
                                  "There is a gas station a short walk to the north."], "reward": None,
                        "to_report": False}, mission
@@ -3420,7 +3420,7 @@ def scenario_voice_mission_bridge(tmp: Path) -> None:
     assert not re.search(r"\d", prompt.replace("[Caller 1]", "")), prompt
     # Récompense absente de la fiche, gabarit ou tour inconnus, chiffre dans le lieu, champ illisible : écartés.
     assert rb.mission_context({"mission": encoded(dict(success, reward="Secret bunker"))}, giver)["reward"] is None
-    for bad in (dict(success, kind="deliver"), dict(success, turn="done"), dict(success, state="failed"),
+    for bad in (dict(success, kind="invented"), dict(success, turn="done"), dict(success, state="failed"),
                 dict(success, place="house 12")):
         assert rb.mission_context({"mission": encoded(bad)}, giver) is None, bad
     assert rb.mission_context({"mission": "zz"}, giver) is None

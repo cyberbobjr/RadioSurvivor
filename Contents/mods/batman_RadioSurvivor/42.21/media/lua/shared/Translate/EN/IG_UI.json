@@ -825,5 +825,15 @@
     "IGUI_RS_RelFact_assault_seen": "they saw you attack someone",
     "IGUI_RS_RelFact_good": "something you did for them",
     "IGUI_RS_RelFact_bad": "something you did against them",
-    "IGUI_RS_RelFact_neutral": "something they noticed"
+    "IGUI_RS_RelFact_neutral": "something they noticed",
+    "IGUI_RS_DeadDropApproach": "Approach the marked area first and wait for the notebook to confirm the drop point before leaving any goods.",
+    "IGUI_RS_DeadDropBox": "Leave the complete delivery in the designated container at the marked drop point. The container stays there.",
+    "IGUI_RS_DeadDropBag": "Leave a bag on the ground at the marked drop point. Put only the exact requested delivery inside: the whole bag will be collected.",
+    "IGUI_RS_DeadDropLeave": "The collector will stay hidden. Everyone must move at least 40 tiles away for 10 seconds. Until collection, you may take the delivery back.",
+    "IGUI_RS_DeadDropCollected": "The delivery has been collected. Report back to the requester on the radio.",
+    "IGUI_RS_Radio_reward": "%1 %2",
+    "IGUI_RS_Reward_cache": "I left supplies for you at the marked place.",
+    "IGUI_RS_Reward_frequency": "A radio contact has been added to your notebook.",
+    "IGUI_RS_Reward_stashmap": "You received an annotated map to a stash.",
+    "IGUI_RS_Reward_lesson": "You received a practical lesson."
 }

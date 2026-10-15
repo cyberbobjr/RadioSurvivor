@@ -27,11 +27,11 @@ Once only, even after a restart:
 Only caches of missions still 'active' (or 'success': reward cache of a voice mission) are placed; a failed, expired
 or cancelled mission places nothing more.
 
-Voice action place_cache { table } (RS_Actions executor; sheet actions=, budget.place_cache per game day, COOLDOWN_MS
-per voice): the cache of the caller's last mission given by this voice (open, or its latest success: reward on the
-spot, decision E11-T08), placed at that mission's place (scout: the building bounds, m.zone less the scout margin).
-Refusals: storage, no_character, no_mission, cache_exists, no_place. The voice never gives a coordinate; the bridge
-offers this action only once bridge/radio_bridge.py lists it in EXECUTABLE_ACTIONS.
+Voice action place_cache { table } is a compatibility retry only: the mission must already have succeeded and
+RS_Rewards must have selected and reserved its cache. The parameter must match that server-selected table; it never
+selects contents, creates an active-mission reward, or replaces the reward rotation. New reward sites come from the
+voice's allowed places. Refusals include not_done, no_reward and bad_table.
+
 ]]
 local Config = require 'RadioSurvivor/RS_Config'
 local Const = require 'RadioSurvivor/RadioSurvivor_Const'
@@ -290,16 +290,13 @@ local function execute(params, ctx)
     if not record or record.retired then return false, 'no_character' end
     local m = Caches.voiceMission(state, ctx.voice, cid)
     if not m then return false, 'no_mission' end
-    if m.cache ~= nil then return false, 'cache_exists' end
-    local spot, bounds = Caches.siteOf(m)
-    local rec, why = Caches.attach(m, params.table, spot, bounds)
-    if not rec then return false, why end
-    m.revision = m.revision + 1
-    if not S.save() then
-        m.cache = nil
-        return false, 'storage'
+    if m.state ~= 'success' then return false, 'not_done' end
+    -- Legacy action is only a retry for the server-selected mission reward, never an item selector.
+    if not m.extendedReward or m.extendedReward.kind ~= 'cache' or not m.cache then
+        return false, 'no_reward'
     end
-    Const.log('cache of ' .. tostring(m.id) .. ' requested by voice ' .. tostring(ctx.voice) .. ' (' .. params.table .. ')')
+    if params.table ~= m.cache.table then return false, 'bad_table' end
+    Caches.place(S, m.cache)
     return true
 end
 

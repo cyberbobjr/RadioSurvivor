@@ -95,5 +95,7 @@
     "Sandbox_LivingKnox_RaidDays": "Days between two raids",
     "Sandbox_LivingKnox_RaidDays_tooltip": "Minimum number of in-game days between two raids (departures of the scouts), and before the first one. Can be changed during the game.",
     "Sandbox_LivingKnox_RevengeDelayHours": "Hours before a revenge",
-    "Sandbox_LivingKnox_RevengeDelayHours_tooltip": "In-game hours (12 to 336) between the moment a group swears revenge for a member you killed and the departure of its first team. A change applies to the next oath, not to a revenge already sworn."
+    "Sandbox_LivingKnox_RevengeDelayHours_tooltip": "In-game hours (12 to 336) between the moment a group swears revenge for a member you killed and the departure of its first team. A change applies to the next oath, not to a revenge already sworn.",
+    "Sandbox_RadioSurvivor_LessonMultiplier": "Mission lesson XP multiplier",
+    "Sandbox_RadioSurvivor_LessonMultiplier_tooltip": "Experience from mission lessons. Zero disables lessons; vanilla XP multipliers also apply."
 }

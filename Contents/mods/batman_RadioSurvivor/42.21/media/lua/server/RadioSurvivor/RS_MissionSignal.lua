@@ -146,7 +146,7 @@ end
 
 function Signal.offer(c, npc, record, body)
     -- A radio voice donor has no fiche (npc.incarnation): this template is for NPC fiches only.
-    if not npc or npc.incarnation == nil then return nil end
+    if not npc or (npc.incarnation == nil and not npc.voice) then return nil end
     local mod = Signal.library()
     if not mod then return nil end
     Signal.install()

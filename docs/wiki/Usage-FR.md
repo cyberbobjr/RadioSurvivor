@@ -69,6 +69,22 @@ offre dans le carnet »).
   (**Parler**), ou utilisez **Rendre compte** près de lui. Pour une voix radio, rappelez-la sur sa fréquence. La
   mission ne réussit qu'à ce moment, et le délai continue de courir.
 
+### Ce que vous gagnez
+
+Après réussite et compte rendu, les missions de voix améliorent la réputation et peuvent donner **une** cache de matériel, une fréquence d'une autre voix, une carte-cachette vanilla ou une leçon. Darlene propose du matériel médical et enseigne les soins ; Cody propose des munitions et enseigne le tir. Le serveur fait tourner les récompenses autorisées ; vous ne choisissez pas leur contenu. Les fréquences rejoignent votre seul carnet ; les caches de voix ont un repère sur votre seule carte. Le matériel posé reste un objet réel du monde.
+
+Les voix peuvent demander reconnaissance, dépôt, papiers à retrouver, nettoyage ou signal Signal Smoke selon leur fiche. Les PNJ peuvent aussi proposer récupération et ravitaillement du groupe. Rapportez toujours une mission de PNJ **en personne** au demandeur.
+
+### Livraisons radio : collecte discrète
+
+Le serveur alterne boîte de dépôt convenue et sac caché au sol, à un lieu `place=` de la voix. Une boîte existante adaptée est désignée précisément sur votre carte ; sans boîte adaptée, le serveur demande un sac. Déposez le lot complet puis éloignez-vous : **tous les joueurs doivent rester à au moins 40 cases horizontalement pendant 10 secondes réelles continues**, même à un autre étage. Un retour ou un redémarrage relance le délai ; la case exacte doit être chargée avant le retrait.
+
+Dans une boîte, seuls les objets demandés disparaissent : boîte et autres objets restent. Pour un sac, sac et contenu disparaissent ; un sac contenant des objets étrangers au lot demandé est refusé pour éviter leur perte. Avant la collecte, vous pouvez reprendre le dépôt et rien n'est validé. **Après la collecte seulement, rendez compte à la radio**. Validation en jeu solo et MP de cette collecte : **en attente**.
+
+Pour Living Knox, le matériel provient d'abord du surplus réel du foyer, sans toucher aux réserves nécessaires ni au stock rationné ; à défaut, une cache près du foyer utilise une table fermée selon le groupe. Une relation favorable ou confiante, sans mauvaise réputation, ouvre cartes et leçons adaptées au rôle. Un demandeur mort ne remet plus de récompense. Une mission de groupe a **un seul retrait partagé**, effectué par un participant, comme l'ancien lot commun. Un contact de confiance peut partager la radio de son groupe si elle existe, sinon une voix active. Les contrats de ravitaillement déjà dotés d’un lot payé sur les réserves conservent ce lot, pour éviter un second prélèvement.
+
+L'option sandbox du multiplicateur de leçon désactive l'expérience à 0. Les nouvelles récompenses sont écrites ; leur validation solo et MP est **en attente**.
+
 ![Onglet Missions avec une mission en cours](images/fr-notebook-missions.png)
 
 ![Une mission à rapporter](images/fr-notebook-report.png)

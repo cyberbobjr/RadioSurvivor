@@ -90,7 +90,7 @@ end
 
 function Retrieve.offer(c, npc, record, body)
     -- A radio voice donor has no fiche (npc.incarnation): this template is for NPC fiches only.
-    if not Retrieve.available() or not npc or npc.incarnation == nil then return nil end
+    if not Retrieve.available() or not npc or (npc.incarnation == nil and not npc.voice) then return nil end
     local site = Retrieve.site(npc, body, c)
     if not site then return nil end
     return {kind = 'retrieve_id', item = 'ID card', place = site.label, clues = copyList(site.clues),
@@ -212,7 +212,10 @@ function Retrieve.observe(m, player, name)
 end
 
 -- Only the card of this mission, by item id, still in the server inventory of the player.
+function Retrieve.voiceReportReady(m) return m.found == true end
+
 function Retrieve.check(m, player, ids)
+    if m.donor == 'voice' and ids == 'speech' then ids = {m.cardId} end
     if type(ids) ~= 'table' or #ids ~= 1 or not m.cardId then return nil, 'WrongCard' end
     local id = ids[1]
     if id ~= m.cardId then return nil, 'WrongCard' end

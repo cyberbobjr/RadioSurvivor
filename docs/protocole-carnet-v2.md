@@ -191,7 +191,7 @@ valide la forme, le serveur le fond ; le serveur seul exécute. Implémentation 
   | `persona_state` | au moins un de : `morale`, `supplies` (vivres, eau, munitions) : entiers de 0 à `PERSONA_LEVEL_MAX` (10), au plus `PERSONA_LEVEL_STEP` (2) d'écart par appel ; `place` : texte d'au plus `PERSONA_PLACE_CHARS` (40) caractères, où la voix dit être |
   | `mark_map` | `place` : identifiant d'un lieu de la fiche ; suivi de la liste `id: libellé` des lieux (`place=`), jamais de coordonnées ; exemple au premier identifiant. Proposée seulement si la fiche a au moins un lieu (sinon journal anglais une fois par voix : `mark_map not offered to the LLM, the sheet has no place= line`) |
   | `reveal_area` | `place` : identifiant d'un lieu de la fiche, comme `mark_map` (E07-T05) ; mêmes conditions (au moins un lieu, sinon `reveal_area not offered to the LLM, the sheet has no place= line`) ; la liste `id: libellé` n'est écrite qu'une fois, sous la première de ces deux actions proposée ; aucune taille de zone demandée au LLM (le serveur la fixe) |
-  | `start_mission` | `template` : `scout` seul (liste fermée, E11-T08) ; la voix ne choisit pas le bâtiment, décrit juste après par une demande de consigne (`turn = briefing`, E11-T09), puis à chaque appel par le champ `mission=` (« Mission donnée par une voix ») |
+  | `start_mission` | `template` : `scout`, `deliver`, `retrieve`, `clear` ou `signal`, restreint à `missions=` de la fiche (défaut `scout`) ; la voix ne choisit pas le bâtiment, décrit juste après par une demande de consigne (`turn = briefing`, E11-T09), puis à chaque appel par le champ `mission=` (« Mission donnée par une voix ») |
   | `report_mission` | aucun paramètre (E11-T13) : compte rendu, à la radio, de la mission de cette voix dont l'objectif est rempli (tour `report_due`) ; permise avec `start_mission` sans être listée ; refusée `no_mission` (pas de mission ouverte de cette voix pour l'appelant) ou `not_done` (objectif non rempli) |
   | `propose_trade` | `items` : texte d'au plus 64 caractères, « `Nom:quantité` » séparés par des virgules, noms du livre du passeur ; `margin` : nombre facultatif dans la fourchette du livre ; le serveur calcule le prix et fige l'offre (E13-T02, « Livre du passeur ») ; refuser = ne rien proposer |
 
@@ -564,6 +564,50 @@ client partagent la carte de ce client (comportement vanilla).
 `map_reveal` (la zone reste inscrite sur le serveur en MP et apparaît à la reconnexion).
 
 ### Mission donnée par une voix (E11-T08)
+
+**Extension du 2026-10-15 — contrat courant.** `start_mission {template}` accepte `scout`, `deliver`,
+`retrieve`, `clear`, `signal`, seulement si la fiche l'autorise par `missions=` (absence : `scout`).
+`retrieve` est l'alias public de `retrieve_id` dans le moteur. Aucun lieu, type d'objet, nombre, position ou
+récompense ne vient du modèle. Le serveur conserve une mission ouverte par personnage et par voix,
+les délais et budgets existants, ainsi que les restrictions de réputation. Le compte rendu reste radio
+pour ces cinq gabarits ; pour un PNJ, il reste en personne.
+
+- `scout` garde la visite vérifiée de la zone.
+- `deliver` choisit un `place=` de la fiche, en rotation déterministe. La boîte convenue est un vrai
+  conteneur du monde identifié par le serveur, dont les objets préexistants sont exclus. Le mode sac
+  exige un sac déposé au sol contenant exactement les biens demandés. Tous les joueurs doivent
+  s'éloigner d'au moins quarante cases pendant dix secondes : le serveur retire les objets, et le sac
+  en mode sac, avant d'autoriser le rapport. Une affirmation du joueur ne suffit jamais.
+- `retrieve` garde le corps, la carte physique et son identité serveur. Le rapport radio exige encore
+  la carte exacte dans l'inventaire du participant ; la transaction la retire à la réussite.
+- `clear` garde le cercle et l'attribution réelle des morts aux participants.
+- `signal` garde les contrôles Signal Smoke de couleur, de cercle, de participant et d'heure de jeu.
+
+Le champ privé `mission=` reste hexadécimal RSV2, avec `kind`, `state`, `turn`, `place`, `clues`,
+`remainingMs`, `toReport`. Le pont filtre chaque gabarit vers ses seuls faits :
+
+| `kind` | Faits supplémentaires admis au prompt |
+| --- | --- |
+| `scout` | `zoneReached` |
+| `deliver` | `quantity`, `delivered`, `accepted` (types fermés), `depositMode` (`box` ou `bag`), `depositCollected` |
+| `retrieve_id` | `placed`, `found` ; jamais l'identifiant de carte ni les coordonnées du corps |
+| `clear` | `kills`, `target` |
+| `signal` | `color` (`green`, `red`, `yellow`, `purple`), `hour` (0..23), `windowHours` (0..24), `lit` |
+
+Les coordonnées, identifiants d'objets, fréquences et champs arbitraires sont omis. Le pont compose
+lui-même la consigne de collecte (quarante cases, dix secondes), sans recopier `collectionRule`.
+Un dépôt non collecté ne devient jamais un `report_due` dans le prompt. Le modèle reconnaît seulement
+le compte rendu, et `report_mission {}` reste revérifié par le serveur.
+
+Nouvelle action `share_frequency {}` : aucun paramètre admis. Le serveur choisit une autre voix vivante
+et non silencieuse parmi `shares=`, ajoute la fréquence réelle à la réponse et au répertoire du seul
+bénéficiaire. Aucune fréquence exacte n'est donnée au modèle. Les quotas existants restent applicables.
+Le faux modèle accepte les marqueurs de test `[mission:<gabarit>]` et `[share_frequency]`, vérifie
+les actions et gabarits du prompt et produit les actions de manière déterministe, sans appel supplémentaire.
+
+Les paragraphes ci-dessous décrivent l'origine du mécanisme scout ; les restrictions « scout seul »
+ou « PNJ seulement » qui y figurent sont remplacées par le présent contrat pour les voix autorisées.
+
 
 Action `start_mission` : une voix radio confie une mission « reconnaître » (gabarit `scout` d'E11-T03) à son
 appelant ; le compte rendu se fait **à la radio**, sur la fréquence de la voix. La voix n'a ni fiche de PNJ du carnet
@@ -1439,3 +1483,19 @@ Le retrait d'une demande en cours invalide sa réponse tardive ; un rejet reçu 
 génération empêche sa proposition d'être réenregistrée ensuite. Un arrêt du bridge laisse
 les fichiers persistants et libère le verrou après arrêt des travailleurs. Aucun effet de jeu
 n'est réexécuté par Python lors de sa reprise.
+
+## Dépôt discret des livraisons radio — E11-T19
+
+Cette extension remplace les anciennes restrictions de reconnaissance seule pour `deliver` donné par une voix ; la remise en personne des missions de PNJ est inchangée. Aucun nouvel appel LLM ni choix du dépôt par le modèle.
+
+Le serveur alterne boîte de dépôt convenue et sac caché au sol, à un lieu `place=` de la voix. Une boîte existante adaptée est désignée précisément sur votre carte ; sans boîte adaptée, le serveur demande un sac. Déposez le lot complet puis éloignez-vous : **tous les joueurs doivent rester à au moins 40 cases horizontalement pendant 10 secondes réelles continues**, même à un autre étage. Un retour ou un redémarrage relance le délai ; la case exacte doit être chargée avant le retrait.
+
+Dans une boîte, seuls les objets demandés disparaissent : boîte et autres objets restent. Pour un sac, sac et contenu disparaissent ; un sac contenant des objets étrangers au lot demandé est refusé pour éviter leur perte. Avant la collecte, vous pouvez reprendre le dépôt et rien n'est validé. **Après la collecte seulement, rendez compte à la radio**. Validation en jeu solo et MP de cette collecte : **en attente**.
+
+La collecte constatée par le serveur rend l'objectif rapportable ; `report_mission` reste obligatoire sur la fréquence du donneur. Une affirmation avant collecte ne valide rien. Le repère exact est projeté au seul participant ; aucune coordonnée secrète ni fréquence n'est ajoutée au prompt. Le serveur effectue le retrait une seule fois.
+
+### Récompenses de mission (E11)
+
+`share_frequency {}` ne reçoit aucun paramètre : seul le serveur choisit une voix active autorisée par `shares`. Le carnet reçoit uniquement la fréquence accordée au personnage bénéficiaire (`HISTORY_ADD` privé), avec son nom et sa fréquence exacts composés par le serveur. Aucune fréquence exacte ne figure dans le contexte du modèle.
+
+Une mission réussie utilise une rotation serveur `cache,frequency,stashmap,lesson` filtrée par la fiche et les effets réalisables. Le contexte `mission.reward` décrit uniquement un effet appliqué ; une réservation interrompue ne constitue pas une promesse. Une ligne radio privée `kind=reward`, `text=cache|frequency|stashmap|lesson` est traduite côté client. Les anciennes fiches sans `rewards` conservent leur repère historique.

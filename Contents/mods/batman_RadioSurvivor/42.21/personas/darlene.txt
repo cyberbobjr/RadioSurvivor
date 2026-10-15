@@ -8,7 +8,7 @@
 #   lui interdit d'inviter à venir ou de promettre d'y être ;
 # - appel général (E05-T05) : une chance sur six par heure de jeu pendant ses gardes, texte écrit par le pont ou,
 #   à défaut, texte fixe IGUI_RadioSurvivor_Call_Darlene (%1 = fréquence), jamais d'invitation à la clinique ;
-# - actions say et start_mission (E11-T13 : gabarit scout, un bâtiment à reconnaître pour elle ; compte rendu à la
+# - actions say et start_mission (E11-T13 : gabarits scout/deliver/retrieve/clear/signal, un bâtiment à reconnaître pour elle ; compte rendu à la
 #   radio sur sa fréquence, action report_mission implicite) ; cibles futures : mark_map, persona_state ; aucun
 #   budget propre.
 format=1
@@ -26,7 +26,13 @@ knows=A bite kills in one to three days; nothing she has tried has ever stopped 
 ignores=What the army is doing.
 ignores=Whether a cure exists anywhere.
 secret=On the second night she locked the clinic door on patients who were begging to come in.
-actions=say,start_mission
+actions=say,start_mission,share_frequency
+cache_table=medical
+shares=gus,cody
+teaches=Doctor
+missions=scout,deliver,retrieve,clear,signal
+rewards=cache,frequency,stashmap,lesson
+place=clinic 11880,6878,0 West Point clinic
 call_one_in=6
 call_text=IGUI_RadioSurvivor_Call_Darlene
 state=active

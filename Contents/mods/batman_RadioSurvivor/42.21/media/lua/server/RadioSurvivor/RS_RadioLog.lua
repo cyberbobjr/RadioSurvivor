@@ -34,7 +34,7 @@ Log.AIRED_MS = 300000
 Log.REPORTS_MAX = 40
 Log.REPORT_FREQUENCIES = 4
 Log.REPORT_WINDOW_MS = 600000
-Log.KINDS = { said = true, reply = true, heard = true, mark = true, reveal = true, mission = true }
+Log.KINDS = { said = true, reply = true, heard = true, mark = true, reveal = true, mission = true, reward = true }
 -- Bornes de fréquence admises (kHz) : celles des radios vanilla (200 kHz à 1 GHz, plus large que toute radio).
 Log.MIN_KHZ = 100
 Log.MAX_KHZ = 1000000

@@ -8,6 +8,12 @@
 
 ## Décisions
 
+- 2026-10-15 — **E11-T19 — choix utilisateur** : livraisons radio en boîte convenue ou sac caché, objets retirés seulement après éloignement pour simuler un contact discret. **Confirmé par défaut** : modes alternés par mission ; point `place=` de la voix ; boîte existante exacte près du point et repère individuel, sinon sac au sol ; tous les joueurs à au moins 40 cases horizontalement, toute hauteur, durant 10 secondes réelles continues ; retour ou redémarrage relance le délai ; case exacte chargée avant retrait. Boîte conservée, seuls objets demandés retirés ; sac entier retiré, contenu étranger refusé. Reprise libre avant collecte, compte rendu radio après collecte.
+
+- 2026-10-15 — **Récompenses étendues — confirmé par défaut** : rotation serveur `cache,frequency,stashmap,lesson` parmi les effets autorisés et disponibles, persistée par donneur et bénéficiaire, sans choix du modèle. Fiches sans `rewards` : ancien repère conservé. Cache de récompense seulement après réussite, lieu issu de la fiche. Leçon : 25 XP par mission, 100 XP par jour de jeu et personnage avant multiplicateurs vanilla ; multiplicateur sandbox 0..5 (0 désactive). Carte : une par personnage/voix ou personnage/groupe, prise dans les cachettes vanilla encore possibles et bâtiments non visités.
+- 2026-10-15 — **PNJ — confirmé par défaut** : un retrait partagé par mission (règle du lot commun), réservé au premier participant réclamant ; stock réel rationné en priorité, puis table fermée selon groupe, puis lot commun historique. Réputation et relation personnelle conditionnent les gestes de confiance. Demandeur mort ou groupe décimé : aucun nouveau retrait.
+- 2026-10-15 — **Missions de voix — confirmé par défaut** : `missions` absent conserve `scout` ; alias de fiche `retrieve` vers gabarit moteur `retrieve_id`. Dépôt de livraison à un lieu de la voix, vérification serveur, puis compte rendu radio. Aucun nouvel appel LLM hors quotas.
+
 - Acquises : gabarits fermés vérifiables ; une mission à la fois par appelant pour les voix radio ; Signal Smoke prérequis (`require=` dans `mod.info`, décision du 2026-10-15 ; remplace « facultatif, sans dépendance ») ; récompenses : informations, caches, confiance.
 - 2026-10-08 — **E11-T01 (1)** : premier gabarit après M01 : **reconnaître**.
 - 2026-10-08 — **E11-T01 (2)** : délai par défaut = même règle que M01 (temps réel de fonctionnement du serveur).
@@ -175,3 +181,59 @@
   - Tests : banc `tests/test_mission_signal.py`.
   - Preuve : abonnement par module gardé pour la session (`subscribedTo`), `resetForTests` ne l'efface plus ; banc `test_mission_signal.py` 14 OK dont `test_reset_does_not_subscribe_the_listener_twice` (3 abonnés avant la correction, 1 après, signal jugé une fois) ; luacheck 15/0 ; commit `f1b0d6c`
   - Reste : —
+
+- [x] **E11-T15** — Fiches et contrat fermé des missions et récompenses
+  - État : `testé hors jeu`
+  - Cible : `hors jeu`
+  - Dépend de : E11-T08
+  - Fichiers : modules RadioSurvivor, bridge, tests, dev/batman_RadioSurvivorTests, docs
+  - Faire : Lecteurs Python/Lua strictement identiques, fiches livrées et empreintes ; protocole, faux modèle déterministe.
+  - Accepté si : mécanismes et isolation bénéficiaire vérifiés, sans récompense doublée ni secret dans le prompt.
+  - Tests : tests/test_personas.py ; tests/test_protocol.py
+  - Preuve : `tests/run_all.py --keep-going` : 140 étapes vertes le 2026-10-15 ; 15 avertissements Contents et 0 dev (références inchangées) ; suites en jeu ajoutées, pas encore exécutées.
+  - Reste : campagnes solo/MP pour les tâches de cible MP. Les contrats supply dont le lot a déjà été prélevé conservent ce lot ; pas de second prélèvement.
+
+- [ ] **E11-T16** — Récompenses serveur des voix : cache, fréquence, carte et leçon
+  - État : `testé hors jeu`
+  - Cible : `MP`
+  - Dépend de : E11-T15
+  - Fichiers : modules RadioSurvivor, bridge, tests, dev/batman_RadioSurvivorTests, docs
+  - Faire : Registre privé anti-doublon, rotation, cache différée au lieu de fiche, répertoire individuel, carte vanilla et XP serveur plafonnée.
+  - Accepté si : mécanismes et isolation bénéficiaire vérifiés, sans récompense doublée ni secret dans le prompt.
+  - Tests : banc récompenses ; suites solo/MP et client 2
+  - Preuve : `tests/run_all.py --keep-going` : 140 étapes vertes le 2026-10-15 ; 15 avertissements Contents et 0 dev (références inchangées) ; suites en jeu ajoutées, pas encore exécutées.
+  - Reste : campagnes solo/MP pour les tâches de cible MP. Les contrats supply dont le lot a déjà été prélevé conservent ce lot ; pas de second prélèvement.
+
+- [ ] **E11-T17** — Gabarits de missions des voix avec compte rendu radio
+  - État : `testé hors jeu`
+  - Cible : `MP`
+  - Dépend de : E11-T15
+  - Fichiers : modules RadioSurvivor, bridge, tests, dev/batman_RadioSurvivorTests, docs
+  - Faire : scout, deliver, retrieve, clear, signal selon fiche ; objectifs vérifiés côté serveur, règles des gabarits préservées.
+  - Accepté si : mécanismes et isolation bénéficiaire vérifiés, sans récompense doublée ni secret dans le prompt.
+  - Tests : banc missions ; campagnes solo/MP ; voix vrai modèle
+  - Preuve : `tests/run_all.py --keep-going` : 140 étapes vertes le 2026-10-15 ; 15 avertissements Contents et 0 dev (références inchangées) ; suites en jeu ajoutées, pas encore exécutées.
+  - Reste : campagnes solo/MP pour les tâches de cible MP. Les contrats supply dont le lot a déjà été prélevé conservent ce lot ; pas de second prélèvement.
+
+- [ ] **E11-T18** — Récompenses et offres des PNJ Living Knox
+  - État : `testé hors jeu`
+  - Cible : `MP`
+  - Dépend de : E11-T16
+  - Fichiers : modules RadioSurvivor, bridge, tests, dev/batman_RadioSurvivorTests, docs
+  - Faire : Stock réel rationné, tables selon groupe, fréquence, carte, leçon par rôle ; retrait partagé, contrôle décès et relations.
+  - Accepté si : mécanismes et isolation bénéficiaire vérifiés, sans récompense doublée ni secret dans le prompt.
+  - Tests : banc PNJ ; campagnes solo/MP ; confidentialité client 2
+  - Preuve : `tests/run_all.py --keep-going` : 140 étapes vertes le 2026-10-15 ; 15 avertissements Contents et 0 dev (références inchangées) ; suites en jeu ajoutées, pas encore exécutées.
+  - Reste : campagnes solo/MP pour les tâches de cible MP. Les contrats supply dont le lot a déjà été prélevé conservent ce lot ; pas de second prélèvement.
+
+
+- [ ] **E11-T19** — Livraison radio discrète après éloignement
+  - État : `testé hors jeu`
+  - Cible : `MP`
+  - Dépend de : E11-T17
+  - Fichiers : module serveur de dépôt, `RS_MissionVoice.lua`, configuration, carnet, traductions EN/FR, bancs et suites ; protocole et wiki EN/FR
+  - Faire : alterner boîte convenue et sac caché près d'un `place=` avec repère exact individuel et repli sac ; constater le lot complet, attendre 10 secondes réelles sans joueur à moins de 40 cases horizontalement, puis retirer une seule fois avec la case exacte chargée. Refuser le contenu étranger du sac, permettre la reprise avant collecte, relancer le délai au redémarrage ; rendre ensuite l'objectif rapportable à la radio.
+  - Accepté si : aucun retrait devant un joueur, même à un autre étage ; lot incomplet ou repris non validé ; boîte et autres objets préservés ; sac admissible retiré entièrement une seule fois ; compte rendu prématuré refusé ; client 2 voit le retrait physique sans données privées du participant.
+  - Tests : banc `lupa` (distance, délai, reprise, redémarrage, case déchargée, contenu étranger, anti-doublon) ; suites solo et MP à deux clients
+  - Preuve : `tests/test_voice_delivery.py` 22/22 ; suite `rs.voicedelivery` ajoutée aux campagnes solo et MP ; aucune preuve en jeu à ce stade
+  - Reste : campagnes solo/MP ; reprise ambiguë après interruption bloquée sans crédit automatique.

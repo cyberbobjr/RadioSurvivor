@@ -95,5 +95,7 @@
     "Sandbox_LivingKnox_RaidDays": "Jours entre deux raids",
     "Sandbox_LivingKnox_RaidDays_tooltip": "Nombre minimal de jours de jeu entre deux raids (départs des éclaireurs), et avant le premier. Modifiable en cours de partie.",
     "Sandbox_LivingKnox_RevengeDelayHours": "Heures avant une vengeance",
-    "Sandbox_LivingKnox_RevengeDelayHours_tooltip": "Heures de jeu (12 à 336) entre le moment où un groupe jure vengeance pour un membre que vous avez tué et le départ de sa première équipe. Un changement s'applique au serment suivant, pas à une vengeance déjà jurée."
+    "Sandbox_LivingKnox_RevengeDelayHours_tooltip": "Heures de jeu (12 à 336) entre le moment où un groupe jure vengeance pour un membre que vous avez tué et le départ de sa première équipe. Un changement s'applique au serment suivant, pas à une vengeance déjà jurée.",
+    "Sandbox_RadioSurvivor_LessonMultiplier": "Multiplicateur XP des leçons de mission",
+    "Sandbox_RadioSurvivor_LessonMultiplier_tooltip": "Expérience des leçons de mission. Zéro désactive les leçons ; les multiplicateurs vanilla s’appliquent aussi."
 }

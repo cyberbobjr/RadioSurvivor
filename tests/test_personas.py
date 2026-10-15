@@ -70,6 +70,19 @@ FULL = ('# fiche complète\n'
 # (nom, contenu, ligne et raison attendues ; None = fiche valide). Le fichier s'appelle case.txt.
 CASES: list[tuple[str, str | bytes, tuple[int, str] | None]] = [
     ('minimal', HEAD + PROMPT, None),
+    ('mission reward permissions', HEAD + 'cache_table=medical\nshares=gus,cody\nteaches=Doctor\nmissions=scout,deliver,retrieve,clear,signal\nrewards=cache,frequency,stashmap,lesson\nactions=say,share_frequency\n' + PROMPT, None),
+    ('bad cache_table', HEAD + 'cache_table=weapon\n' + PROMPT, (5, "bad cache_table 'weapon' (expected medical, ammo, tools, food, radio)")),
+    ('bad teaches', HEAD + 'teaches=Carpentry\n' + PROMPT, (5, "bad teaches 'Carpentry' (expected Doctor, Aiming, Reloading, Woodwork, Mechanics, Electricity, MetalWelding, Cooking, Farming, Fishing, Trapping, PlantScavenging)")),
+    ('bad shares', HEAD + 'shares=Gus\n' + PROMPT, (5, "bad shares entry 'Gus'")),
+    ('duplicate shares', HEAD + 'shares=gus,gus\n' + PROMPT, (5, "duplicate shares entry 'gus'")),
+    ('empty shares entry', HEAD + 'shares=gus,\n' + PROMPT, (5, "bad shares entry ''")),
+    ('bad missions', HEAD + 'missions=recover\n' + PROMPT, (5, "bad missions entry 'recover'")),
+    ('duplicate missions', HEAD + 'missions=scout,scout\n' + PROMPT, (5, "duplicate missions entry 'scout'")),
+    ('empty missions entry', HEAD + 'missions=scout,\n' + PROMPT, (5, "bad missions entry ''")),
+    ('bad rewards', HEAD + 'rewards=gold\n' + PROMPT, (5, "bad rewards entry 'gold'")),
+    ('duplicate rewards', HEAD + 'rewards=cache,cache\n' + PROMPT, (5, "duplicate rewards entry 'cache'")),
+    ('empty rewards entry', HEAD + 'rewards=cache,\n' + PROMPT, (5, "bad rewards entry ''")),
+
     ('full', FULL, None),
     ('crlf', (HEAD + PROMPT).replace('\n', '\r\n'), None),
     ('lone cr', (HEAD + PROMPT).replace('\n', '\r'), None),
@@ -223,7 +236,8 @@ return function(p)
         join(p.knows, ";"), join(p.ignores, ";"), join(p.secrets, ";"),
         join(p.places, ";", function(l) return l.id .. "@" .. tostring(l.x) .. "," .. tostring(l.y) .. ","
             .. tostring(l.z) .. "@" .. l.label end), join(p.actions, ","), tostring(p.budget),
-        table.concat(budgets, ","), tostring(p.call_one_in), p.call_text, p.state, p.prompt }, "|")
+        table.concat(budgets, ","), tostring(p.call_one_in), p.call_text, p.state, p.prompt, p.cache_table, join(p.shares, ","), p.teaches,
+        join(p.missions, ","), join(p.rewards, ",") }, "|")
 end
 '''
 
@@ -237,7 +251,8 @@ def canonical(p: store.Persona) -> str:
                      ';'.join(f'{q.id}@{q.x},{q.y},{q.z}@{q.label}' for q in p.places), ','.join(p.actions),
                      str(p.budget),
                      ','.join(f'{k}={v}' for k, v in sorted(p.budgets.items())), str(p.call_one_in), p.call_text,
-                     p.state, p.prompt])
+                     p.state, p.prompt, p.cache_table, ','.join(p.shares), p.teaches,
+                     ','.join(p.missions), ','.join(p.rewards)])
 
 
 def raw_bytes(content: str | bytes) -> bytes:
@@ -554,10 +569,16 @@ class DeliveredVoicesTests(unittest.TestCase):
                 # Appels spontanés par voix : E05-T05 (CALLS) ; actions autres que say : E07 ; pas de budget propre.
                 # E13-T03 : Gus propose des offres (propose_trade). E11-T13 : Darlene et Cody donnent des missions
                 # de reconnaissance (start_mission ; report_mission implicite), pas Night Owl ni les Whitaker.
-                actions = {'gus': ['say', 'propose_trade'], 'darlene': ['say', 'start_mission'],
-                           'cody': ['say', 'start_mission']}.get(vid, ['say'])
+                actions = {'gus': ['say', 'propose_trade'], 'darlene': ['say', 'start_mission', 'share_frequency'],
+                           'cody': ['say', 'start_mission', 'share_frequency']}.get(vid, ['say'])
                 self.assertEqual((s.language, s.radio, s.actions, s.call_one_in, s.budget, s.budgets),
                                  ('en', 'any', actions, self.CALLS[vid], 0, {}))
+                if vid in ('darlene', 'cody'):
+                    self.assertEqual(s.cache_table, 'medical' if vid == 'darlene' else 'ammo')
+                    self.assertEqual(s.teaches, 'Doctor' if vid == 'darlene' else 'Aiming')
+                    self.assertEqual(s.missions, list(store.MISSION_TEMPLATES))
+                    self.assertEqual(s.rewards, list(store.REWARDS))
+                    self.assertTrue(s.places and s.shares)
                 self.assertTrue(s.knows and s.ignores and s.secrets)
                 self.assertIn('Answer in the same language the caller uses.', s.prompt)
 

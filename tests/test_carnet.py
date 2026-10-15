@@ -3246,7 +3246,7 @@ class VoiceMissionTests(unittest.TestCase):
         self.assertEqual(self.decide(sim, 'alice', start, player=False), [('start_mission', 'no_player')])
         self.assertEqual(self.decide(sim, 'alice', start, cid=False), [('start_mission', 'no_character')])
         self.assertEqual(self.decide(sim, 'alice', [{'type': 'start_mission', 'template': 'deliver'}]),
-                         [('start_mission', 'bad_params')])
+                         [('start_mission', 'bad_template')])
         self.assertEqual(self.decide(sim, 'alice', [{'type': 'start_mission'}]), [('start_mission', 'bad_params')])
         self.assertEqual(self.decide(sim, 'alice', [{'type': 'start_mission', 'template': 'scout', 'x': 1}]),
                          [('start_mission', 'bad_params')])

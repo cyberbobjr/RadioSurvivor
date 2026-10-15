@@ -278,7 +278,9 @@ def allowed_actions(system: str) -> list[str]:
 def briefing_say(system: str) -> str:
     place = re.search(r"\(kind: ([^)]+)\)", system)
     clues = re.findall(r"^- What you know of the place: (.+)$", system, re.M)
-    words = [f"Here is the job: go and look at a {place.group(1) if place else 'building'}."]
+    objective = re.search(r"^- The job: (.+)$", system, re.M)
+    words = ["Here is the job: " + objective.group(1) if objective else
+             f"Here is the job: go and look at a {place.group(1) if place else 'building'}."]
     words += clues
     words.append("Check your map, then call me back. Over.")
     return " ".join(words)
@@ -311,6 +313,16 @@ def radio_json(system: str, last: str) -> dict:
         return {"say": briefing_say(system), "actions": []}
     if REPORT_DUE in system and "report_mission" in allowed:
         return {"say": "Report received, thank you. Well done. Over.", "actions": [{"type": "report_mission"}]}
+    # Explicit machine-readable test requests, independent of the caller's language.
+    # They still pass through the prompt's sheet whitelist and the real server executor.
+    requested = re.search(r"\[mission:(scout|deliver|retrieve|clear|signal)\]", last)
+    templates = re.search(r"Allowed mission templates: ([a-z_, ]+)\.", system)
+    permitted = [v.strip() for v in templates.group(1).split(",")] if templates else ["scout"]
+    if requested and "start_mission" in allowed and requested.group(1) in permitted:
+        return {"say": "I may have a job for you. Over.",
+                "actions": [{"type": "start_mission", "template": requested.group(1)}]}
+    if "[share_frequency]" in last and "share_frequency" in allowed:
+        return {"say": "I can try to introduce you to someone. Over.", "actions": [{"type": "share_frequency"}]}
     if "propose_trade" in allowed:
         action = trade_action(system)
         if action:

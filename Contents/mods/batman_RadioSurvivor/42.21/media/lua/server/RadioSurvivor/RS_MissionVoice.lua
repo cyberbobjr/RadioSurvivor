@@ -13,7 +13,8 @@ One open mission at a time per caller and per voice; after its closure, the next
 (same rule as an NPC, M01). start_mission also has the RS_Actions controls: sheet actions=, budget.start_mission per
 game day, START_MISSION_COOLDOWN_MS per voice.
 
-start_mission { template }: closed list V.TEMPLATES (scout only). The server draws the place with the template's
+start_mission { template }: closed list V.TEMPLATES, further restricted by the sheet's missions list.
+The server draws the place with the template's
 offer (RS_MissionScout: habitable building at 60-250 tiles of the caller's server position, same rules as E11-T03),
 creates and accepts the mission for the caller, writes the history line "mission" (kind of place, no coordinate) on
 the frequency of the reply. Refusals (reason): no_player (caller not connected: no server position), storage
@@ -53,6 +54,8 @@ local Codec = require "RadioSurvivor/RS_Codec"
 local M = require "RadioSurvivor/RS_Missions"
 local Rep = require "RadioSurvivor/RS_Reputation"
 require "RadioSurvivor/RS_MissionScout" -- registers the scout template
+require "RadioSurvivor/RS_MissionClear"
+require "RadioSurvivor/RS_MissionRetrieve"
 local S = require "RadioSurvivor/RS_State"
 local Actions = require "RadioSurvivor/RS_Actions"
 local Log = require "RadioSurvivor/RS_RadioLog"
@@ -61,7 +64,8 @@ local MapMarks = require "RadioSurvivor/RS_MapMarks"
 local V = {}
 
 -- Closed list of the start_mission parameter `template` (names of RS_Missions templates and RS_Config.Missions).
-V.TEMPLATES = { scout = true }
+V.TEMPLATES = { scout = true, deliver = true, retrieve = true, clear = true, signal = true }
+local TEMPLATE_NAMES = {retrieve = "retrieve_id"}
 V.COOLDOWN_MS = Const.START_MISSION_COOLDOWN_MS
 
 function V.donorId(voice, cid)
@@ -108,16 +112,35 @@ function V.start(store, sheet, cid, player, khz, template)
     if V.open(state, sheet.id, cid) then return nil, "mission_open" end
     local d = V.donor(state, sheet.id, cid, true)
     if d.nextOfferAt and getTimestampMs() < d.nextOfferAt then return nil, "recent_mission" end
-    local c = Config.Missions[template]
+    local allowed = sheet.missions or {"scout"}
+    local permitted = false
+    for _, name in ipairs(allowed) do if name == template then permitted = true end end
+    if not V.TEMPLATES[template] or not permitted then return nil, "bad_template" end
+    local name = TEMPLATE_NAMES[template] or template
+    if name == "signal" then require "RadioSurvivor/RS_MissionSignal" end
+    local c = Config.Missions[name]
     -- E04-T05 (Q11): a sensitive template is never started for a bad reputation (V.TEMPLATES holds simple ones only).
-    if not Rep.offerAllowed(Rep.level(cid, state), template) then return nil, "reputation" end
-    local t = V.TEMPLATES[template] and c and M.template({ template = template })
+    if not Rep.offerAllowed(Rep.level(cid, state), name) then return nil, "reputation" end
+    local t = V.TEMPLATES[template] and c and M.template({ template = name })
     -- The template's offer draws the place around the caller (server copy of the player: never a client claim).
-    if not t or not t.offer(c, d, nil, player) then return nil, "no_place" end
-    local m = M.create(state, d, cid, c.id)
+    local terms = t and t.offer(c, d, nil, player, cid)
+    if not terms then return nil, "no_place" end
+    if template == "deliver" and (type(sheet.places) ~= "table" or #sheet.places == 0) then
+        return nil, "no_place"
+    end
+    local m = M.create(state, d, cid, c.id, terms)
     if not m then return nil, "no_place" end
     m.donor, m.voice, m.requesterName, m.khz, m.report = "voice", sheet.id, tostring(sheet.name or sheet.id), khz, "radio"
     m.rewardType, m.rewardCount = "", 0
+    if template == "deliver" then
+        local place = sheet.places[(d.missionCount - 1) % #sheet.places + 1]
+        m.deposit = {x = place.x, y = place.y, z = place.z or 0,
+            mode = d.missionCount % 2 == 1 and 'box' or 'bag'}
+        m.place, m.placeKind = place.label, "dead drop"
+        -- Saved atomically with acceptance below; do not persist a half-created mission.
+        require("RadioSurvivor/RS_VoiceDelivery").prepare(m, {save = function() return true end})
+        m.mapZone = m.mapZone or {x = place.x, y = place.y, r = 3}
+    end
     M.accept(state, m, cid, record.name or "")
     if type(record.knownMissions) == "table" then record.knownMissions[m.id] = true end
     if not store.save() then
@@ -128,9 +151,15 @@ function V.start(store, sheet, cid, player, khz, template)
     return m
 end
 
--- Reward of a successful mission: the first place of the sheet not yet given to this character by this voice, as a
--- map mark (MapMarks.give). Returns the place, or nil (no place left: reputation only).
+-- Successful missions use RS_Rewards when explicitly enabled by the sheet; legacy sheets retain map marks.
 function V.reward(store, sheet, m, player, cid, khz)
+    if type(sheet.rewards) == 'table' and #sheet.rewards > 0 then
+        local R = require 'RadioSurvivor/RS_Rewards'
+        local rec, why = R.grant(store, sheet, m, player, cid, khz)
+        if rec then m.rewardLabel = rec.status == 'applied' and R.context(rec) or nil end
+        if why then Const.log('voice mission reward ' .. tostring(m.id) .. ': ' .. why) end
+        return rec
+    end
     local d = M.donorOf(store.data, m)
     local given = d and type(d.given) == "table" and d.given or {}
     local place = nil
@@ -156,6 +185,10 @@ end
 
 -- Place of the sheet the next success would give (first not yet given to this character by this voice), or nil.
 function V.nextPlace(state, sheet, m)
+    if type(sheet.rewards) == 'table' and #sheet.rewards > 0 then
+        -- No irreversible promise before the server has actually applied the effect.
+        return nil
+    end
     local d = M.donorOf(state, m)
     local given = d and type(d.given) == "table" and d.given or {}
     for _, p in ipairs(type(sheet) == "table" and type(sheet.places) == "table" and sheet.places or {}) do
@@ -253,11 +286,28 @@ local function executeReport(_, ctx)
     return true
 end
 
+local function executeShare(_, ctx)
+    if type(ctx) ~= 'table' or type(ctx.sheet) ~= 'table' or not ctx.player or not ctx.cid then
+        return false, 'no_player'
+    end
+    if S.blocked or not S.data or not S.data.characters[ctx.cid] then return false, 'storage' end
+    local detail = require('RadioSurvivor/RS_Rewards').frequency(ctx.sheet)
+    if not detail then return false, 'unavailable' end
+    local label = (detail.name or detail.voice) .. ' (' .. string.format('%.1f MHz', detail.khz / 1000) .. ')'
+    if not Log.add(ctx.cid, detail.khz, 'reply', label) then
+        return false, 'storage'
+    end
+    if not S.save() then return false, 'storage' end
+    return true
+end
+
 function V.register()
     local started = Actions.register("start_mission", { validate = validate, cooldownMs = V.COOLDOWN_MS,
         execute = execute })
     local report = Actions.register("report_mission", { validate = validateReport, execute = executeReport })
-    return started and report
+    local share = Actions.register("share_frequency", {validate = validateReport,
+        cooldownMs = V.COOLDOWN_MS, execute = executeShare})
+    return started and report and share
 end
 
 V.register()

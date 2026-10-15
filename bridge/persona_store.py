@@ -22,13 +22,19 @@ BOM = '\ufeff'
 REPLACEMENT = '\ufffd'
 # Actions of the closed catalogue (note de travail, section 02). Only `say` is executed before E07.
 ACTIONS = ('say', 'mark_map', 'reveal_area', 'signal', 'place_cache', 'place_scene', 'start_mission',
-           'persona_state', 'remember', 'propose_trade', 'report_mission')
+           'persona_state', 'remember', 'propose_trade', 'report_mission', 'share_frequency')
 RADIOS = ('any', 'high_tier')
 LOCATIONS = ('none', 'fixed', 'rescue')
+CACHE_TABLES = ('medical', 'ammo', 'tools', 'food', 'radio')
+MISSION_TEMPLATES = ('scout', 'deliver', 'retrieve', 'clear', 'signal')
+REWARDS = ('cache', 'frequency', 'stashmap', 'lesson')
+TEACHES = ('Doctor', 'Aiming', 'Reloading', 'Woodwork', 'Mechanics', 'Electricity', 'MetalWelding',
+           'Cooking', 'Farming', 'Fishing', 'Trapping', 'PlantScavenging')
 STATES = ('active', 'silent', 'gone', 'dead')
 REPEATABLE = ('knows', 'ignores', 'secret', 'place')
 KEYS = ('format', 'id', 'name', 'language', 'frequencies', 'frequency_range', 'radio', 'listen', 'location',
-        'coords', 'knows', 'ignores', 'secret', 'place', 'actions', 'budget', 'call_one_in', 'call_text', 'state')
+        'coords', 'knows', 'ignores', 'secret', 'place', 'actions', 'budget', 'call_one_in', 'call_text', 'state',
+        'cache_table', 'shares', 'teaches', 'missions', 'rewards')
 REQUIRED = ('format', 'id', 'name')   # then frequencies or frequency_range (one of them, not both: E05-T07)
 MIN_KHZ, MAX_KHZ, STEP_KHZ = 1000, 999800, 200
 MAX_COUNT = 999999
@@ -91,6 +97,11 @@ class Persona:
     budgets: dict[str, int] = field(default_factory=dict)          # action -> uses per game day, 0 = no cap
     call_one_in: int = 0                       # spontaneous call: one chance in N per game hour, 0 = never
     call_text: str = ''                        # translation key of the fixed call, %1 = frequency label
+    cache_table: str = ''
+    shares: list[str] = field(default_factory=list)
+    teaches: str = ''
+    missions: list[str] = field(default_factory=lambda: ['scout'])
+    rewards: list[str] = field(default_factory=list)
     state: str = 'active'
 
 
@@ -213,6 +224,17 @@ def _actions(value: str, line: int) -> list[str]:
     return result
 
 
+def _closed_list(value: str, key: str, allowed: tuple[str, ...] | None, line: int) -> list[str]:
+    result = []
+    for part in _list(value):
+        if (allowed is not None and part not in allowed) or (allowed is None and not ID_RE.fullmatch(part)):
+            raise PersonaError(line, f"bad {key} entry '{part}'")
+        if part in result:
+            raise PersonaError(line, f"duplicate {key} entry '{part}'")
+        result.append(part)
+    return result
+
+
 def _choice(value: str, key: str, allowed: tuple[str, ...], line: int) -> str:
     if value not in allowed:
         raise PersonaError(line, f"bad {key} '{value}' (expected {', '.join(allowed)})")
@@ -233,6 +255,7 @@ def parse_lines(lines: list[str], expected_id: str | None = None) -> Persona:
     location: str | None = None
     coords: tuple[int, int, int] | None = None
     actions: list[str] | None = None
+    reward_fields: dict = {}
     budget: int | None = None
     call_one_in: int | None = None
     call_text: str | None = None
@@ -304,6 +327,11 @@ def parse_lines(lines: list[str], expected_id: str | None = None) -> Persona:
             location = _choice(value, key, LOCATIONS, number)
         elif key == 'coords':
             coords = _coords(value, number)
+        elif key in ('cache_table', 'teaches'):
+            reward_fields[key] = _choice(value, key, CACHE_TABLES if key == 'cache_table' else TEACHES, number)
+        elif key in ('shares', 'missions', 'rewards'):
+            allowed_entries = {'shares': None, 'missions': MISSION_TEMPLATES, 'rewards': REWARDS}
+            reward_fields[key] = _closed_list(value, key, allowed_entries[key], number)
         elif key == 'actions':
             actions = _actions(value, number)
         elif key == 'budget':
@@ -366,7 +394,7 @@ def parse_lines(lines: list[str], expected_id: str | None = None) -> Persona:
         prompt='\n'.join(body), language=language or 'en', radio=radio or 'any', listen=listen or [],
         location=location, coords=coords, knows=repeated['knows'], ignores=repeated['ignores'],
         secrets=repeated['secret'], places=places, actions=actions, budget=budget or 0, budgets=budgets,
-        call_one_in=call_one_in or 0, call_text=call_text or '', state=state or 'active')
+        call_one_in=call_one_in or 0, call_text=call_text or '', state=state or 'active', **reward_fields)
 
 
 def parse_bytes(raw: bytes, expected_id: str | None = None) -> Persona:

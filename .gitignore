@@ -31,3 +31,6 @@ dist/
 token_usage.jsonl
 history_*.json
 console.txt
+
+# Agent contracts, working copies and local verification logs
+scratchpad/

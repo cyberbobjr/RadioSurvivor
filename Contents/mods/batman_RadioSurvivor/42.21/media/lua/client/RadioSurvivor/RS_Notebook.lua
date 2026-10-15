@@ -54,6 +54,7 @@ local INK_TAG = '<RGB:0.17,0.16,0.15> '
 local RADIO_COLORS = {said = '0.12,0.23,0.37', reply = '0.17,0.16,0.15', heard = '0.40,0.37,0.32', mark = '0.70,0.18,0.08'}
 RADIO_COLORS.reveal = RADIO_COLORS.mark
 RADIO_COLORS.mission = RADIO_COLORS.mark
+RADIO_COLORS.reward = RADIO_COLORS.mark
 local BINDING_W, RING, DOT, TAB_PAD, SCROLL_W = 26, 18, 9, 10, 3
 local KEY_ESCAPE = 1
 local DEVICE_CACHE_MS = 250
@@ -683,6 +684,11 @@ function Notebook:showDetail()
             line(tr('SupplyValues'))
         else
             line(tr('Progress', row.delivered, row.quantity))
+            if voice then
+                if not row.depositReady then line(tr('DeadDropApproach')) end
+                line(tr(row.depositMode == 'bag' and 'DeadDropBag' or 'DeadDropBox'))
+                line(tr(row.depositCollected and 'DeadDropCollected' or 'DeadDropLeave'))
+            end
             local accepted = {}
             for fullType in pairs(row.accepted) do accepted[#accepted + 1] = itemName(fullType) end
             table.sort(accepted)
@@ -767,6 +773,7 @@ function Notebook:showRadio(row, text)
         local kind = RADIO_COLORS[l.kind] and l.kind or 'heard'
         -- Mission received (E11-T08): the line holds the kind of place, translated here.
         local said = kind == 'mission' and placeName(l.text) or l.text
+        if kind == 'reward' then said = tr('Reward_' .. l.text) end
         parts[#parts + 1] = '<RGB:' .. RADIO_COLORS[kind] .. '> ' .. clean(tr('Radio_' .. kind, l.when, said))
     end
     if #lines == 0 then parts[#parts + 1] = INK_TAG .. clean(tr('Empty_Radio')) end

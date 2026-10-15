@@ -240,17 +240,38 @@ Toujours permise, même si vous ne l'écrivez pas. La voix vous répond à la ra
 - **Limites :** un carré de 160 cases de côté au plus ; 60 secondes réelles entre deux révélations ; plafond par jour
   avec `budget.reveal_area`.
 
-#### Vous confier une mission — `start_mission`
+#### Missions et récompenses — `start_mission`
 
-- **En jeu :** la voix vous demande d'aller **reconnaître un bâtiment** près de vous. La mission apparaît dans
-  l'onglet **Missions** du carnet, avec un cercle sur la carte. Quand vous y êtes allé, **rappelez la voix sur sa
-  fréquence et racontez-lui** ce que vous avez vu : la mission est alors réussie.
+- `missions=scout,deliver,retrieve,clear,signal` autorise reconnaissance, dépôt, recherche de papiers, nettoyage et signal Signal Smoke. Le serveur vérifie chaque objectif ; une mission par joueur et voix.
 - **Il faut :** que le joueur ait le carnet. Le bâtiment est choisi par le serveur, jamais par l'IA.
-- **Récompense :** votre réputation monte ; si la voix a des lignes `place=`, elle vous marque en plus sur la carte le
-  premier de ses lieux qu'elle ne vous a pas encore donné.
+- **Récompense :** réputation et une récompense autorisée par `rewards=cache,frequency,stashmap,lesson`. Le serveur suit cet ordre cyclique par joueur et voix, saute les effets indisponibles et mémorise son choix. L'IA ne choisit ni récompense ni contenu. Sans `rewards`, l'ancien repère reste disponible ; sans `missions`, seul `scout` est permis.
+- Une cache contient des objets réels de `cache_table`, au premier `place=` ; une seule par mission, pose différée si le lieu est déchargé et repère privé. `shares` limite les autres voix actives dont la fréquence peut entrer dans le carnet du bénéficiaire. Une carte-cachette vanilla mène à une planque inexplorée : une par joueur et voix. `teaches` fixe la compétence enseignée.
+- Une leçon donne 25 XP de base, avec plafond de 100 par jour avant multiplicateur ; l'option sandbox du multiplicateur va de 0 à 5, 0 la désactive. L'expérience est donnée par le serveur.
 - **Limites :** une mission en cours à la fois par joueur et par voix ; 30 minutes réelles entre deux missions pour un
   même joueur ; plafond par jour avec `budget.start_mission`.
 - Le compte rendu à la radio fait partie de cette action : rien d'autre à ajouter.
+
+#### Partager une fréquence — `share_frequency`
+
+`actions=...,share_frequency` autorise un geste de confiance hors récompense de mission. `shares=gus,cody` limite les candidats : le serveur choisit une autre voix active et ajoute sa fréquence exacte, sans la donner au modèle ni envoyer de répertoire aux autres joueurs.
+
+#### Livraisons radio : collecte discrète
+
+Le serveur alterne boîte de dépôt convenue et sac caché au sol, à un lieu `place=` de la voix. Une boîte existante adaptée est désignée précisément sur votre carte ; sans boîte adaptée, le serveur demande un sac. Déposez le lot complet puis éloignez-vous : **tous les joueurs doivent rester à au moins 40 cases horizontalement pendant 10 secondes réelles continues**, même à un autre étage. Un retour ou un redémarrage relance le délai ; la case exacte doit être chargée avant le retrait.
+
+Dans une boîte, seuls les objets demandés disparaissent : boîte et autres objets restent. Pour un sac, sac et contenu disparaissent ; un sac contenant des objets étrangers au lot demandé est refusé pour éviter leur perte. Avant la collecte, vous pouvez reprendre le dépôt et rien n'est validé. **Après la collecte seulement, rendez compte à la radio**. Validation en jeu solo et MP de cette collecte : **en attente**.
+
+#### Clés des récompenses
+
+| Clé | Valeurs autorisées |
+|---|---|
+| `cache_table` | `medical`, `ammo`, `tools`, `food`, `radio` |
+| `shares` | IDs de voix séparés par des virgules |
+| `teaches` | `Doctor`, `Aiming`, `Reloading`, `Woodwork`, `Mechanics`, `Electricity`, `MetalWelding`, `Cooking`, `Farming`, `Fishing`, `Trapping`, `PlantScavenging` |
+| `missions` | `scout`, `deliver`, `retrieve`, `clear`, `signal` |
+| `rewards` | `cache`, `frequency`, `stashmap`, `lesson` |
+
+Clés non répétables, listes sans doublon ni entrée vide, casse exacte. Validation solo et MP des nouvelles récompenses **en attente**.
 
 #### Actions à ne pas ajouter
 
@@ -348,7 +369,12 @@ ignores=Anything that happened outside Knox County.
 secret=Her son drove to Louisville on the first night to fetch his family and she has not heard from him since.
 place=rosewood 8159,11661,0 Rosewood, center of town
 place=fallas_lake 7253,8279,0 Fallas Lake
-actions=say,remember,persona_state,mark_map
+actions=say,remember,persona_state,mark_map,start_mission,share_frequency
+cache_table=radio
+shares=gus,darlene
+teaches=Electricity
+missions=scout,deliver,retrieve,clear,signal
+rewards=cache,frequency,stashmap,lesson
 budget=20
 budget.mark_map=4
 call_one_in=5
@@ -407,7 +433,12 @@ place=west_point 11654,6864,0 West Point, center of town
 place=muldraugh_pd 10644,10405,0 Muldraugh, police station
 place=muldraugh 10754,9926,0 Muldraugh, center of town
 place=march_ridge 10130,12801,0 March Ridge
-actions=say,remember,persona_state,mark_map,reveal_area,start_mission
+actions=say,remember,persona_state,mark_map,reveal_area,start_mission,share_frequency
+cache_table=ammo
+shares=cody,gus
+teaches=Aiming
+missions=scout,deliver,retrieve,clear,signal
+rewards=cache,frequency,stashmap,lesson
 budget=20
 budget.remember=10
 budget.persona_state=6
@@ -444,8 +475,7 @@ Rules:
 
 À remarquer :
 
-- Les lignes `place=` servent à trois actions : `mark_map` et `reveal_area` les désignent, et `start_mission` donne en
-  récompense la première pas encore donnée (ici West Point).
+- Les lignes `place=` servent aux actions de carte, aux lieux de mission et au dépôt de matériel. Le serveur choisit les récompenses dans les permissions fermées ci-dessus.
 - Chaque action a son propre budget du jour : un appelant bavard ne peut pas révéler toute la carte en une soirée.
 - Le prompt dit **quand** utiliser les actions (« only when it helps them and they earned some trust ») ; le serveur
   les vérifie quand même toutes.

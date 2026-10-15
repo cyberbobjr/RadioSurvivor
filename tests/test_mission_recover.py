@@ -443,11 +443,19 @@ class RecoverMissionTests(unittest.TestCase):
         self.assertEqual(decide({'type': 'place_cache', 'table': 'food', 'x': 3}), [('place_cache', False, 'bad_params')])
         m = voice.start(store, sheet, char, g.PLAYERS.alice, 91200, 'scout')
         self.assertIsNotNone(m)
+        self.assertEqual(decide({'type': 'place_cache', 'table': 'food'}), [('place_cache', False, 'not_done')])
+        m.state = 'success'
+        self.assertEqual(decide({'type': 'place_cache', 'table': 'food'}), [('place_cache', False, 'no_reward')])
+        # The action can only retry an already selected server reward, never choose its table or location.
+        caches = rt.eval("require('RadioSurvivor/RS_Caches')")
+        spot, bounds = caches.siteOf(m)
+        caches.attach(m, 'food', spot, bounds)
+        m.extendedReward = rt.table_from({'kind': 'cache', 'status': 'applied'})
         self.assertEqual(decide({'type': 'place_cache', 'table': 'food'}), [('place_cache', True, 'ok')])
         self.assertEqual(convert(m.cache)['table'], 'food')
         self.assertEqual(convert(m.cache)['spot'], {'x': 105, 'y': 15, 'z': 0})
         sim.clock.offset += 61000
-        self.assertEqual(decide({'type': 'place_cache', 'table': 'ammo'}), [('place_cache', False, 'cache_exists')])
+        self.assertEqual(decide({'type': 'place_cache', 'table': 'ammo'}), [('place_cache', False, 'bad_table')])
         # Placed by the notebook loop once its building is loaded, once.
         g.loadArea(90, 0, 130, 40)
         for _ in range(3):
