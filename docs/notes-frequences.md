@@ -87,10 +87,12 @@ le facteur de rareté, les réglages de butin du sandbox (catégorie littératur
 
 | Voix | Liste (tirages) | Poids | Salles qui la tirent (distmatrix) |
 |---|---|---|---|
-| Walt | `OfficeDeskHome` (4) | 1,5 | `bedroom.desk` (100/101) |
-| Walt | `GarageTools` (4) | 1,5 | `garagestorage.locker` (100/121), `.counter` (20/320), `.metal_shelves` (20/325), `shed.metal_shelves` et `shed.shelves` (100/400) |
-| Walt | `CrateElectronics` (4) | 1 | 18 conteneurs : `closet.crate` (100/800), `closet.other` (100/2665), `garagestorage.crate` (80/1475), `shed.other` (100/1060), greniers, chambres, `pawnshop`… |
-| Walt | `ElectronicStoreHAMRadio` (1) | 10 | `electronicstore.shelves` (10/341) |
+| Walt | `OfficeDeskHome` (4) | 4 | `bedroom.desk` (100/101) |
+| Walt | `GarageTools` (4) | 4 | `garagestorage.locker` (100/121), `.counter` (20/320), `.metal_shelves` (20/325), `shed.metal_shelves` et `shed.shelves` (100/400) |
+| Walt | `CrateElectronics` (4) | 4 | 18 conteneurs : `closet.crate` (100/800), `closet.other` (100/2665), `garagestorage.crate` (80/1475), `shed.other` (100/1060), greniers, chambres, `pawnshop`… |
+| Walt | `ElectronicStoreHAMRadio` (1) | 15 | `electronicstore.shelves` (10/341) |
+| Walt | `OfficeDeskHomeClassy` (4) | 4 | bureaux de chambre en zone riche |
+| Walt | `OfficeDesk`, `OfficeDeskSecretary`, `OfficeDeskStressed` (4 chacun) | 4 | bureaux généraux et variantes de secrétariat |
 | Darlene | `MedicalClinicDrugs` (4) | 3 | `medical.counter` (100/220), `pharmacy.counter` (100/111), `pharmacystorage.other` (100/140), `medicalstorage`, `dentist.counter`, `kennels` |
 | Darlene | `MedicalOfficeDesk` (4) | 4 | `medicaloffice.desk`, `medical.desk`, `hospitalroom.desk`, `hospitalhallway.desk`, `pharmacystorage.desk`, `morgue.desk`… (1/1) |
 | Darlene | `HospitalRoomCounter` (4) | 2 | `hospitalroom.counter` (100/101) |
@@ -121,8 +123,8 @@ Contrôle automatique : `tests/test_notes.py` vérifie que chaque liste existe e
 | **Normales** (défaut) | 1 |
 | Fréquentes | 2,5 |
 
-Ordre de grandeur en **Normales** (sans les réglages de butin du sandbox) : environ 6 % par bureau de chambre ou casier
-de garage pour Walt, 12 à 16 % par comptoir ou bureau médical pour Darlene, 10 à 12 % par bureau ou classeur de police
+Ordre de grandeur en **Normales** (sans les réglages de butin du sandbox) : environ 15 % par bureau de chambre ou bureau général (variantes comprises), casier
+de garage ou caisse utilisant `CrateElectronics`, et 15 % sur la liste radioamateur pour Walt, 12 à 16 % par comptoir ou bureau médical pour Darlene, 10 à 12 % par bureau ou classeur de police
 pour Cody, 16 % par meuble de magasin de pêche pour Gus, 4 % par table de salon et 8 % par présentoir de magazines pour
 le Night Owl. Une fouille de quelques heures dans une ville (maisons, commissariat, pharmacie, supérette) devrait donner
 plusieurs notes ; le magasin de pêche (Gus) est plus rare : ⚠ à régler en jeu.
@@ -140,3 +142,17 @@ plusieurs notes ; le magasin de pêche (Gus) est plus rare : ⚠ à régler en j
   chaîne seul lance 0 test, exclusions par défaut) : scripts chargés, fréquence écrite par l'autorité, entrées de butin
   selon l'option, texte composé (solo).
 - Protocole solo : `docs/tests-en-jeu.md` § 13, « Notes de fréquences (E05-T09) ».
+
+## Notes sur les cadavres équipés d’un talkie-walkie
+
+Sur l’autorité, `OnFillContainer` examine le butin déjà généré : si un objet `Radio`
+possède un appareil émetteur (`getIsTwoWay`), une note supplémentaire a 35 % de
+chance d’apparaître (14 % en rare, 87,5 % en fréquent, aucune si désactivé).
+Une seule note est tirée parmi les cinq voix actives ayant une fréquence. Les
+poids des meubles et véhicules restent ceux définis plus haut.
+
+Le résultat est mémorisé dans les ModData du cadavre : un nouveau remplissage
+ne relance pas le tirage et ne duplique pas la note ; si le moteur reconstruit
+l’inventaire, la même note est rétablie. Le bonus concerne les cadavres dont le
+butin est rempli après activation. Validation automatisée sur doublures Lua ; contrôle du butin réel en solo
+et sur serveur après redémarrage restant à effectuer.

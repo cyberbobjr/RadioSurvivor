@@ -331,6 +331,75 @@ class LootTests(NotesHarness):
         self.assertEqual(len(self.logs_with('loot list PoliceDesk not found')), 1)
 
 
+class CorpseNotesTests(NotesHarness):
+    def corpse(self, radio=True, two_way=True, roll=0):
+        self.rt.execute("""
+CORPSE_ITEMS, CORPSE_MD, ROLLS = {}, {}, 0
+CORPSE_LIST = { size = function() return #CORPSE_ITEMS end,
+    get = function(_, i) return CORPSE_ITEMS[i + 1] end }
+CORPSE_INV = { getItems = function() return CORPSE_LIST end,
+    AddItem = function(_, t)
+        local it = newItem(string.match(t, '%.(.+)'))
+        function it:getFullType() return t end
+        RadioSurvivorNotes.onCreate(it)
+        table.insert(CORPSE_ITEMS, it)
+        return it
+    end }
+CORPSE_INV.getParent = function() return CORPSE end
+CORPSE = { getInventory = function() return CORPSE_INV end,
+    getModData = function() return CORPSE_MD end }
+instanceof = function(it, cls) return (it.radio == true and cls == 'Radio') or (it == CORPSE and cls == 'IsoDeadBody') end
+ZombRand = function(n) ROLLS = ROLLS + 1 if n == 10000 then return TEST_ROLL else return 0 end end
+""")
+        self.g.TEST_ROLL = roll
+        if radio:
+            self.rt.execute('table.insert(CORPSE_ITEMS, { radio = true, '
+                            'getDeviceData = function() return { getIsTwoWay = function() return '
+                            + str(two_way).lower() + ' end } end, '
+                            'getFullType = function() return "Base.WalkieTalkie1" end })')
+
+    def test_note_has_world_frequency_and_is_not_duplicated(self):
+        self.corpse()
+        self.NS.onFillContainer("Zombie", "Generic", self.g.CORPSE_INV)
+        self.assertEqual(len(self.g.CORPSE_ITEMS), 2)
+        note = self.g.CORPSE_ITEMS[2]
+        self.assertEqual(note.getModData(note).RadioSurvivorNote.khz, self.NS.frequencyOf('walt'))
+        self.NS.onFillContainer("Zombie", "Generic", self.g.CORPSE_INV)
+        self.assertEqual(len(self.g.CORPSE_ITEMS), 2)
+        self.rt.execute('table.remove(CORPSE_ITEMS, 2)')
+        self.NS.onFillContainer("Zombie", "Generic", self.g.CORPSE_INV)
+        self.assertEqual(len(self.g.CORPSE_ITEMS), 2)
+        self.assertEqual(self.g.ROLLS, 2)
+
+    def test_no_radio_or_receiver_only(self):
+        for radio, two_way in ((False, False), (True, False)):
+            self.corpse(radio, two_way)
+            self.NS.onFillContainer("Zombie", "Generic", self.g.CORPSE_INV)
+            self.assertEqual(len(self.g.CORPSE_ITEMS), int(radio))
+            self.assertEqual(self.g.ROLLS, 0)
+
+    def test_rarity_threshold_and_failed_roll_not_repeated(self):
+        for rarity, threshold in ((1, 0), (2, 1400), (3, 3500), (4, 8750)):
+            self.g.SandboxVars.RadioSurvivor.NoteRarity = rarity
+            for roll in (max(0, threshold - 1), threshold):
+                self.corpse(roll=roll)
+                self.NS.onFillContainer("Zombie", "Generic", self.g.CORPSE_INV)
+                self.assertEqual(len(self.g.CORPSE_ITEMS), 2 if roll < threshold else 1)
+                count = self.g.ROLLS
+                self.NS.onFillContainer("Zombie", "Generic", self.g.CORPSE_INV)
+                self.assertEqual(self.g.ROLLS, count)
+
+    def test_disabled_and_no_active_frequency(self):
+        self.corpse()
+        self.g.ENABLED = False
+        self.NS.onFillContainer("Zombie", "Generic", self.g.CORPSE_INV)
+        self.assertEqual(self.g.ROLLS, 0)
+        self.g.ENABLED = True
+        self.rt.execute('require("RadioSurvivor/RS_NotesServer").frequencyOf = function() return nil end')
+        self.NS.onFillContainer("Zombie", "Generic", self.g.CORPSE_INV)
+        self.assertEqual(len(self.g.CORPSE_ITEMS), 1)
+
+
 class StaticTests(unittest.TestCase):
 
     def entries(self) -> list[tuple[str, str, bool]]:
@@ -424,7 +493,7 @@ class StaticTests(unittest.TestCase):
         proc_text = proc.read_text(encoding='utf-8', errors='replace')
         veh_text = veh.read_text(encoding='utf-8', errors='replace')
         entries = self.entries()
-        self.assertEqual(len(entries), 20)
+        self.assertEqual(len(entries), 24)
         for voice, name, vehicle in entries:
             with self.subTest(name):
                 if vehicle:

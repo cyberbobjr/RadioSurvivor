@@ -26,11 +26,16 @@ local NotesServer = {}
 -- (VehicleDistributions). Poids : environ poids % par tirage (rolls de la liste, 1 à 4), avant le facteur de rareté
 -- et les réglages de butin du sandbox (base loot-distributions.md, « Chance d'un objet »).
 NotesServer.ENTRIES = {
-    -- Walt : maisons (bureau de la chambre), garages et remises, cartons d'électronique, rayon radioamateur.
-    { voice = "walt", list = "OfficeDeskHome", weight = 1.5 },
-    { voice = "walt", list = "GarageTools", weight = 1.5 },
-    { voice = "walt", list = "CrateElectronics", weight = 1 },
-    { voice = "walt", list = "ElectronicStoreHAMRadio", weight = 10 },
+    -- Walt: home and general office desks (including their variants), garages, electronics and HAM radio shelves.
+    -- Four rolls at weight 4 give about 15% before sandbox loot modifiers; HAM shelves have one roll.
+    { voice = "walt", list = "OfficeDeskHome", weight = 4 },
+    { voice = "walt", list = "OfficeDeskHomeClassy", weight = 4 },
+    { voice = "walt", list = "OfficeDesk", weight = 4 },
+    { voice = "walt", list = "OfficeDeskSecretary", weight = 4 },
+    { voice = "walt", list = "OfficeDeskStressed", weight = 4 },
+    { voice = "walt", list = "GarageTools", weight = 4 },
+    { voice = "walt", list = "CrateElectronics", weight = 4 },
+    { voice = "walt", list = "ElectronicStoreHAMRadio", weight = 15 },
     -- Darlene : cliniques, cabinets médicaux, pharmacies, hôpitaux, rayon santé des épiceries.
     { voice = "darlene", list = "MedicalClinicDrugs", weight = 3 },
     { voice = "darlene", list = "MedicalOfficeDesk", weight = 4 },
@@ -112,7 +117,53 @@ function NotesServer.addToLoot()
     return added
 end
 
+-- Roll after vanilla fills corpse loot (ItemPickerJava.java:587-622, 42.21.0).
+-- Remember the result on the corpse; repeated fills never roll again or duplicate the note.
+NotesServer.CORPSE_NOTE_CHANCE = 35
+local CORPSE_KEY = "RadioSurvivorCorpseNote"
+local CORPSE_VOICES = { "walt", "darlene", "cody", "gus", "nightowl" }
+
+function NotesServer.onFillContainer(roomName, containerType, inv)
+    if roomName ~= "Zombie" then return end
+    local corpse = inv:getParent()
+    if not corpse or not instanceof(corpse, "IsoDeadBody") then return end
+    if not Const.isEnabled() or Const.noteRarityFactor() <= 0 then return end
+    local md = corpse:getModData()
+    local chosen = md[CORPSE_KEY]
+    if chosen == nil then
+        local items = inv:getItems()
+        local hasWalkie = false
+        for i = 0, items:size() - 1 do
+            local item = items:get(i)
+            if instanceof(item, "Radio") then
+                local data = item:getDeviceData()
+                if data and data:getIsTwoWay() then hasWalkie = true break end
+            end
+        end
+        if not hasWalkie then return end
+        md[CORPSE_KEY] = false
+        local chance = math.min(100, NotesServer.CORPSE_NOTE_CHANCE * Const.noteRarityFactor())
+        if ZombRand(10000) >= chance * 100 then return end
+        local candidates = {}
+        for _, voice in ipairs(CORPSE_VOICES) do
+            if NotesServer.frequencyOf(voice) ~= nil then
+                candidates[#candidates + 1] = Notes.forVoice(voice).fullType
+            end
+        end
+        if #candidates == 0 then return end
+        chosen = candidates[ZombRand(#candidates) + 1]
+        md[CORPSE_KEY] = chosen
+    end
+    if not chosen then return end
+    local items = inv:getItems()
+    for i = 0, items:size() - 1 do
+        if items:get(i):getFullType() == chosen then return end
+    end
+    inv:AddItem(chosen)
+end
+
 Notes.frequencyProvider = NotesServer.frequencyOf
 Events.OnInitGlobalModData.Add(NotesServer.addToLoot)
+Events.OnFillContainer.Add(NotesServer.onFillContainer)
 
 return NotesServer
