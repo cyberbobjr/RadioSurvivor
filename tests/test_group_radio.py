@@ -179,7 +179,12 @@ class GroupRadioTests(unittest.TestCase):
         self.talk('alice', 'Hello?')
         self.assertEqual(len(self.radio_requests()), 1)
         before = len(self.broadcasts())
+        caller = self.g.PLAYERS['alice'].stats
+        caller['values']['Boredom'], caller['values']['Unhappiness'] = 40, 40
         self.respond(req, 'We hear you. Our camp is at 10637, 9412, come by.')
+        # E05-T15: the group's answer on the air eases the caller's boredom and unhappiness (-3 / -1, synced).
+        self.assertEqual((caller['values']['Boredom'], caller['values']['Unhappiness']), (37, 39))
+        self.assertTrue(self.commands('alice', 'comfort'), 'caller never told of the comfort')
         aired = self.broadcasts()[before:]
         self.assertEqual(len(aired), 1, aired)
         self.assertEqual(aired[0][0], '<bzzt>')

@@ -49,6 +49,7 @@ local I = require 'RadioSurvivor/RS_Initiatives'
 local T = require 'RadioSurvivor/RS_Transport'
 local Codec = require 'RadioSurvivor/RS_Codec'
 local TextCut = require 'RadioSurvivor/RS_TextCut'
+local Comfort = require 'RadioSurvivor/RS_Comfort'
 
 local V = {}
 V.KIND = 'npc_converse'
@@ -422,6 +423,7 @@ function V.reply(server, req, result, npc)
         finish(conv, 'nobody hears')
         return false, 'conversation line stale: ' .. tostring(reason)
     end
+    conv.comforted = conv.comforted or {}
     for _, p in ipairs(out.heard or {}) do
         local cid = server.bound[p]
         local record = cid and S.data.characters[cid]
@@ -430,6 +432,8 @@ function V.reply(server, req, result, npc)
             known.history[#known.history + 1] = {id = req.id, author = npc.name, text = result.text}
             while #known.history > C.MAX_HISTORY do table.remove(known.history, 1) end
         end
+        -- E05-T15 : entendre deux PNJ discuter apaise un peu l'ennui, une fois par conversation et par personnage.
+        Comfort.overheard(p, cid, conv.comforted)
     end
     count('said')
     addLine(conv, npc.name, result.text, {[conv.a] = true, [conv.b] = true})

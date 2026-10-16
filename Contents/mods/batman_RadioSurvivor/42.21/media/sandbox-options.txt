@@ -94,6 +94,46 @@ option RadioSurvivor.RescueDays
 	translation = RadioSurvivor_RescueDays,
 }
 
+option RadioSurvivor.ComfortBoredom
+{
+	type = integer,
+	min = 0,
+	max = 20,
+	default = 3,
+	page = RadioSurvivor,
+	translation = RadioSurvivor_ComfortBoredom,
+}
+
+option RadioSurvivor.ComfortSadness
+{
+	type = integer,
+	min = 0,
+	max = 20,
+	default = 1,
+	page = RadioSurvivor,
+	translation = RadioSurvivor_ComfortSadness,
+}
+
+option RadioSurvivor.ComfortListen
+{
+	type = integer,
+	min = 0,
+	max = 20,
+	default = 1,
+	page = RadioSurvivor,
+	translation = RadioSurvivor_ComfortListen,
+}
+
+option RadioSurvivor.ComfortPerHour
+{
+	type = integer,
+	min = 0,
+	max = 20,
+	default = 5,
+	page = RadioSurvivor,
+	translation = RadioSurvivor_ComfortPerHour,
+}
+
 option LivingKnox.Enabled
 {
 	type = boolean,

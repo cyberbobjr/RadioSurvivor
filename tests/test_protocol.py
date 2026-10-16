@@ -140,6 +140,10 @@ function makePlayer(username)
         return nil
     end
     local p = { username = username, radio = radio, inHand = true, said = {}, halos = {}, inventory = inventory }
+    -- Stats (E05-T15, zombie/characters/Stats.java:80-93) : valeurs bornées 0..100, set/add/remove rendent vrai si la
+    -- valeur a changé ; ennui et tristesse à 0 par défaut (CharacterStat.java:15, 34).
+    p.stats = makeStats()
+    function p:getStats() return self.stats end
     -- Radio équipée (main ou dos) : getEquipedRadio ; hors de la main (inHand = false), elle n'est plus équipée.
     function p:getEquipedRadio() if self.inHand then return self.radio end return nil end
     function p:getInventory() return self.inventory end
@@ -157,13 +161,33 @@ function makePlayer(username)
     PLAYERS[username] = p
     return p
 end
+CharacterStat = { BOREDOM = "Boredom", UNHAPPINESS = "Unhappiness" }
+function makeStats()
+    local s = { values = {} }
+    function s:get(stat) return self.values[stat] or 0 end
+    function s:set(stat, v)
+        local old = self:get(stat)
+        v = math.max(0, math.min(100, v))
+        self.values[stat] = v
+        return v ~= old
+    end
+    function s:add(stat, n) return self:set(stat, self:get(stat) + n) end
+    function s:remove(stat, n) return self:add(stat, -n) end
+    return s
+end
+-- syncPlayerStats (LuaManager.java:9339) : serveur MP seulement ; appels relevés { joueur, masque }.
+SYNCED = {}
+syncPlayerStats = function(p, mask) SYNCED[#SYNCED + 1] = { player = p, mask = mask } end
 getOnlinePlayers = function()
     local list = {}
     for _, p in pairs(PLAYERS) do list[#list + 1] = p end
     return { size = function() return #list end, get = function(_, i) return list[i + 1] end }
 end
 instanceof = function(o, c) return type(o) == "table" and o.isRadio == true and (c == "Radio" or c == "InventoryItem") end
-HaloTextHelper = { addBadText = function(p, t) table.insert(p.halos, t) end }
+HaloTextHelper = { addBadText = function(p, t) table.insert(p.halos, t) end,
+    -- E05-T15 : halo à flèche des émissions (ISRadioInteractions.addHalo) : « texte:up » ou « texte:down ».
+    addTextWithArrow = function(p, t, _sep, up) table.insert(p.halos, t .. (up and ":up" or ":down")) end,
+    getGoodColor = function() return "good" end }
 ISInventoryPaneContextMenu = { addToolTip = function() return {} end }
 SAID_CHAT = {}
 processSayMessage = function(t) table.insert(SAID_CHAT, t) end

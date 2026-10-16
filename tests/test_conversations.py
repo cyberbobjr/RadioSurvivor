@@ -129,6 +129,8 @@ class ConversationTests(unittest.TestCase):
         sim.command('alice', 'select', incarnation=self.g.LK_MATE)  # alice knows the mate (contact)
         self.away('bob')
         key = self.record(self.leader)
+        listener = self.g.PLAYERS['alice'].stats
+        listener['values']['Boredom'], listener['values']['Unhappiness'] = 40, 40
         self.step()
         reqs = self.requests()
         self.assertEqual(len(reqs), 1)
@@ -154,6 +156,8 @@ class ConversationTests(unittest.TestCase):
                         'conversation never ended')
         lines = self.said()
         self.assertEqual(len(lines), 4, lines)
+        # E05-T15: four lines overheard, boredom eased once for the conversation (-1), unhappiness unchanged.
+        self.assertEqual((listener['values']['Boredom'], listener['values']['Unhappiness']), (39, 40))
         self.assertEqual({s['to'] for s in lines}, {'alice'}, 'a player out of range heard the conversation')
         self.assertEqual([s['npc'] for s in lines], [self.g.LK_LEADER, self.g.LK_MATE] * 2)
         for s in lines:

@@ -30,6 +30,7 @@ local VoiceMissions = require "RadioSurvivor/RS_MissionVoice"; require "RadioSur
 -- Livre du passeur (E13-T02) : exécuteur propose_trade enregistré au chargement ; contexte joint (trade=).
 local Trade = require "RadioSurvivor/RS_Trade"; local GroupRadio = require "RadioSurvivor/RS_GroupRadio" -- E08-T06
 local Rep = require "RadioSurvivor/RS_Reputation" -- E04-T10: reputation of the caller in the voice request
+local Comfort = require "RadioSurvivor/RS_Comfort" -- E05-T15: an answer on the air eases boredom and unhappiness
 
 -- Demandes transmises au pont, dans l'ordre d'arrivée.
 local pending = {}
@@ -41,8 +42,8 @@ local talkTimes = {}
 local acceptedTimes = {}
 -- Identifiant de voix -> instants de ses demandes acceptées pendant la dernière heure (budget= de la fiche).
 local voiceTimes = {}
--- Diffusions en attente { khz, lines, cid } : une réponse ne coupe jamais celle en cours (cid : personnage du carnet
--- de l'appelant, nil pour un appel spontané).
+-- Diffusions en attente { khz, lines, cid, onAir } : une réponse ne coupe jamais celle en cours (cid : personnage du
+-- carnet de l'appelant, nil pour un appel spontané ; onAir : appelé quand la diffusion commence, E05-T15).
 local airQueue = {}
 local nextPollMs = 0
 local sequence = 0
@@ -115,15 +116,16 @@ local function airNext()
             end
             channel:setAiringBroadcast(bc)
             Log.broadcast(head.khz, head.lines, head.cid)
+            if head.onAir then head.onAir() end
             return
         end
         table.remove(airQueue, 1)
     end
 end
 
-local function queueAir(khz, lines, cid)
+local function queueAir(khz, lines, cid, onAir)
     if not khz then return end
-    airQueue[#airQueue + 1] = { khz = khz, lines = lines, cid = cid }
+    airQueue[#airQueue + 1] = { khz = khz, lines = lines, cid = cid, onAir = onAir }
     airNext()
 end
 
@@ -198,6 +200,15 @@ local function readResponses()
     reader:close()
     if not complete then return nil end
     return responses, actions
+end
+
+-- Réconfort social (E05-T15) : quand la réponse d'une voix à l'appelant passe à l'antenne, son personnage (s'il est
+-- toujours connecté et le même) perd un peu d'ennui et de tristesse (RS_Comfort). Partagé avec RS_GroupRadio.
+local function comfortOnAir(caller, cid)
+    return function()
+        local player = findPlayer(caller)
+        if player then Comfort.answered(player, cid, Log.characterOf(player)) end
+    end
 end
 
 -- Demandes des joueurs ------------------------------------------------------------------------
@@ -681,7 +692,8 @@ local function onTick()
         elseif lines then
             changed = true
             table.insert(lines, 1, "<bzzt>")
-            queueAir(req.khz, lines, req.cid)
+            -- E05-T15 : une consigne (E11-T09) ne réconforte pas ; une réponse à la phrase du joueur, si.
+            queueAir(req.khz, lines, req.cid, (not req.briefing) and comfortOnAir(req.caller, req.cid) or nil)
             -- A briefing (E11-T09) is not an answer the caller waits for.
             if not req.briefing then notify(req.caller, Const.CMD.DONE) end
             -- Actions proposées (E07-T01) : jugées après la mise en file de la diffusion, contre la fiche actuelle.
@@ -750,7 +762,7 @@ RS_RadioServer = {
     language = callLanguage,
 }
 
-GroupRadio.bind(queueAir, notify) -- E08-T06: replies of the group voices on the air, caller told
+GroupRadio.bind(queueAir, notify, comfortOnAir) -- E08-T06: group replies on the air, caller told (E05-T15: comforted)
 Events.OnLoadRadioScripts.Add(onLoadRadioScripts)
 Events.OnClientCommand.Add(onClientCommand)
 Events.OnTick.Add(onTick)

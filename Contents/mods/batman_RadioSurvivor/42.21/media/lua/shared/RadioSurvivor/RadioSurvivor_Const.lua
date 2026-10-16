@@ -64,6 +64,9 @@ Const.CMD = {
     -- Action reveal_area (E07-T05) : serveur → client appelant seul, { x1, y1, x2, y2 } rectangle de cases (x2, y2
     -- exclus) aligné sur des blocs de 32 et plafonné, rendu « connu » sur la carte du monde (RS_MapActions.reveal).
     MAP_REVEAL = "map_reveal",
+    -- Réconfort social (E05-T15, server/RadioSurvivor/RS_Comfort.lua) : serveur → client du personnage réconforté,
+    -- { boredom, sadness } baisses réellement appliquées (0 = inchangée), affichées en halo par RS_RadioTalk.
+    COMFORT = "comfort",
 }
 
 -- Délai réel d'abandon d'une demande radio (ms) : suit l'état du pont (E17-T16, « Battement du pont » en fin de fichier).
@@ -117,6 +120,10 @@ local DEFAULTS = {
     CallLanguage = 1,
     LastPages = true,
     RescueDays = 3,
+    ComfortBoredom = 3,
+    ComfortSadness = 1,
+    ComfortListen = 1,
+    ComfortPerHour = 5,
 }
 -- Langue des appels spontanés (E05-T12) : option CallLanguage (enum 1 à 3) -> code de langue du jeu envoyé au pont ;
 -- 1 = langue de l'autorité (aucun code ici), puis une entrée par langue livrée par le mod (Translate/EN, FR).
@@ -206,6 +213,20 @@ function Const.rescueDays()
     end
     return value
 end
+
+-- Réconfort social (E05-T15, server/RadioSurvivor/RS_Comfort.lua) : baisse d'ennui et de tristesse par réponse d'un
+-- PNJ, baisse d'ennui par conversation entre PNJ entendue, effets au plus par personnage et par heure de jeu. Entiers
+-- positifs ou nuls (0 = désactivé) ; valeur absente, non numérique ou négative -> défaut. Lus à chaque effet.
+local function readCount(name)
+    local value = tonumber(readOption(name))
+    if value == nil or value ~= value or value < 0 then return DEFAULTS[name] end
+    return math.floor(value)
+end
+
+function Const.comfortBoredom() return readCount("ComfortBoredom") end
+function Const.comfortSadness() return readCount("ComfortSadness") end
+function Const.comfortListen() return readCount("ComfortListen") end
+function Const.comfortPerHour() return readCount("ComfortPerHour") end
 
 -- 0 = illimité.
 function Const.maxPerHour()

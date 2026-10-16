@@ -87,6 +87,10 @@ MapItem = { getSingleton = function() end }
 UIWorldMap = { new = function() end }
 WorldMapVisited = { getInstance = function() end }
 WorldMapVisitedServer = { getInstance = function() end }
+CharacterStat = { BOREDOM = "Boredom", UNHAPPINESS = "Unhappiness" }
+SyncPlayerStatsPacket = { getBitMaskForStat = fn() }
+syncPlayerStats = fn()
+HaloTextHelper = { addTextWithArrow = fn(), getGoodColor = fn() }
 CONTAINERS = 0
 function newContainer(label)
     CONTAINERS = CONTAINERS + 1

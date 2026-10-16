@@ -778,6 +778,7 @@ HOUR = 21
 getGameTime = function() return {
     getYear = function() return 1993 end, getMonth = function() return 6 end, getDay = function() return 11 end,
     getHour = function() return HOUR end, getMinutes = function() return 5 end,
+    getWorldAgeHours = function() return WORLD_AGE_HOURS or 0 end,
     getModData = function() return GT_MODDATA end } end
 getWorld = function() return { getWorld = function() return "rstest" end,
     getGameMode = function() return "Multiplayer" end } end
@@ -802,6 +803,12 @@ PLAYER = { getPrimaryHandItem = function() return RADIO end, getSecondaryHandIte
     getClothingItem_Back = function() return nil end, getUsername = function() return "alice" end,
     getInventory = function() return nil end,
     getHoursSurvived = function() return 10 end,
+    -- Stats (E05-T15, Stats.java:80-93) : bornées 0..100, remove rend vrai si la valeur a changé.
+    stats = { values = {},
+        get = function(s, k) return s.values[k] or 0 end,
+        remove = function(s, k, n) local old = s.values[k] or 0
+            s.values[k] = math.max(0, old - n) return s.values[k] ~= old end },
+    getStats = function(self) return self.stats end,
     getDescriptor = function() return { getForename = function() return "A" end,
         getSurname = function() return "B" end } end }
 getOnlinePlayers = function() return { size = function() return 1 end, get = function() return PLAYER end } end
@@ -812,6 +819,9 @@ function say(channel)
     end
     return SENT
 end
+CharacterStat = { BOREDOM = "Boredom", UNHAPPINESS = "Unhappiness" }
+SYNCED = {}
+syncPlayerStats = function(p, mask) SYNCED[#SYNCED + 1] = { player = p, mask = mask } end
 Events = setmetatable({}, { __index = function(t, k)
     local e = { list = {} }
     e.Add = function(f) table.insert(e.list, f) end

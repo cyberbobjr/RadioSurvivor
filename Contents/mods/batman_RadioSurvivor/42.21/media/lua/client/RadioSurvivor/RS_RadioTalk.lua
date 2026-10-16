@@ -171,6 +171,18 @@ function Talk.handle(command, args)
         if player and args.reason then
             HaloTextHelper.addBadText(player, getText("IGUI_RadioSurvivor_Reject_" .. tostring(args.reason)))
         end
+    elseif command == Const.CMD.COMFORT then
+        -- E05-T15 : stats déjà changées par l'autorité ; halo vanilla des émissions (ISRadioInteractions.addHalo :
+        -- flèche vers le bas, couleur « bonne »), une ligne par stat réellement baissée.
+        if not player then return end
+        if (tonumber(args.boredom) or 0) > 0 then
+            HaloTextHelper.addTextWithArrow(player, getText("IGUI_HaloNote_Boredom"), "[br/]", false,
+                HaloTextHelper.getGoodColor())
+        end
+        if (tonumber(args.sadness) or 0) > 0 then
+            HaloTextHelper.addTextWithArrow(player, getText("IGUI_HaloNote_Unhappiness"), "[br/]", false,
+                HaloTextHelper.getGoodColor())
+        end
     end
 end
 

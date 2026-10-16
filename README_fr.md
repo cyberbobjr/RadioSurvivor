@@ -42,6 +42,8 @@ rencontrer, à gagner leur confiance et à accepter leurs missions.
   autoradio d'un véhicule. Une section **Émettre** s'ajoute à la fenêtre radio du jeu.
 - **Elles agissent**, mais seul le serveur décide : repère sur votre carte, quartier révélé, mission de
   reconnaissance (Darlene, Cody), troc avec le passeur. L'IA propose dans une liste fermée, le serveur vérifie.
+- **Parler fait du bien** : chaque réponse d'un survivant à votre personnage par radio apaise un peu l'ennui et la
+  tristesse ; entendre deux survivants discuter apaise un peu l'ennui (quelques fois par heure de jeu au plus).
 - **Appels spontanés**, **bulletin du soir** de la station pirate (faits du serveur, mémorial des morts du jour) et
   **dernières pages** : à la mort d'un personnage, son journal manuscrit est écrit et laissé sur le corps.
 - **Survivants à secourir** : une famille appelle à l'aide depuis un vrai bâtiment, avec des indices ; secourue à temps
@@ -307,7 +309,9 @@ Deux pages dans les réglages sandbox (sur un serveur dédié : `<Zomboid>/Serve
 **Radio Survivor** : `Enabled` (voix radio), `PlayerCooldown` (10 s entre deux messages d'un joueur), `MaxPerHour`
 (60), `SpontaneousCalls`, `CallLanguage` (langue des appels spontanés), `NoteRarity` (notes de fréquences dans le
 butin), `ChronicleHour` (heure du bulletin, 20 h), `LastPages`, `InitiativeFrequency` (paroles spontanées des PNJ),
-`RescueDays` (temps pour secourir une famille).
+`RescueDays` (temps pour secourir une famille), `ComfortBoredom` / `ComfortSadness` (3 / 1 retirés par une réponse radio),
+`ComfortListen` (1 d'ennui retiré par une conversation entendue), `ComfortPerHour` (5 réconforts par heure de jeu ; 0
+désactive une valeur).
 
 **Living Knox** : `Enabled` (groupes de survivants), `Debug`, `GroupCount` (3 à 5, **à régler avant de créer le monde**),
 proportions colons / pillards / neutres, taille des groupes, délai de relève d'un groupe décimé, `RaidsEnabled` et

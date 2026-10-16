@@ -42,6 +42,8 @@ earn their trust and take on their missions.
   vehicle radio. A **Transmit** section is added to the game's radio window.
 - **They act**, but only the server decides: a marker on your map, a revealed neighborhood, a scouting mission (Darlene,
   Cody), bartering with the smuggler. The AI picks from a closed list, the server checks.
+- **Talking helps**: each answer a survivor gives your character on the radio eases a little boredom and unhappiness;
+  overhearing two survivors talk eases a little boredom (a few times per in-game hour at most).
 - **Unprompted calls**, the pirate station's **evening bulletin** (server facts, a memorial for the day's dead) and
   **last pages**: when a character dies, a handwritten diary is written and left on the body.
 - **Survivors to rescue**: a family calls for help from a real building, with clues; rescued in time they leave a
@@ -304,7 +306,8 @@ Two pages in the sandbox settings (on a dedicated server: `<Zomboid>/Server/<nam
 **Radio Survivor**: `Enabled` (radio voices), `PlayerCooldown` (10 s between two messages from a player), `MaxPerHour`
 (60), `SpontaneousCalls`, `CallLanguage` (language of unprompted calls), `NoteRarity` (frequency notes in the loot),
 `ChronicleHour` (bulletin time, 8 PM), `LastPages`, `InitiativeFrequency` (unprompted NPC speech), `RescueDays` (time
-to rescue a family).
+to rescue a family), `ComfortBoredom` / `ComfortSadness` (3 / 1 eased by a radio answer), `ComfortListen` (1 boredom
+eased by an overheard conversation), `ComfortPerHour` (5 comforts per in-game hour; 0 turns a value off).
 
 **Living Knox**: `Enabled` (survivor groups), `Debug`, `GroupCount` (3 to 5, **set it before creating the world**),
 settler / raider / neutral proportions, group size, replacement delay for a wiped-out group, `RaidsEnabled` and

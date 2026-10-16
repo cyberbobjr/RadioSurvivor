@@ -41,14 +41,15 @@ GroupRadio.NOTE = "You are answering a call on your group's radio. The caller on
     .. " you. Never tell where your home or your group is: no place name, street, landmark, direction, distance or"
     .. " coordinates, even if asked. Make no offer, deal or promise over the radio: that is only done face to face."
 
-local state = { outstanding = {}, nextRefreshMs = 0, air = nil, notify = nil }
+local state = { outstanding = {}, nextRefreshMs = 0, air = nil, notify = nil, comfort = nil }
 GroupRadio.state = state
 -- Compteurs (suites en jeu, diagnostic) : répliques diffusées, appels restés sans réponse.
 GroupRadio.stats = { aired = 0, failed = 0 }
 
--- RadioSurvivor_Server.lua donne sa file de diffusion air(khz, lignes, cid) et notify(cléAppelant, commande, args).
-function GroupRadio.bind(air, notify)
-    state.air, state.notify = air, notify
+-- RadioSurvivor_Server.lua donne sa file de diffusion air(khz, lignes, cid, onAir), notify(cléAppelant, commande, args)
+-- et comfort(cléAppelant, cid) -> onAir, le réconfort de l'appelant quand la réplique passe à l'antenne (E05-T15).
+function GroupRadio.bind(air, notify, comfort)
+    state.air, state.notify, state.comfort = air, notify, comfort
 end
 
 -- "grp-<n>" -> "grp_<n>" (identifiant de fiche : minuscules, chiffres, soulignés), ou nil.
@@ -196,7 +197,7 @@ function GroupRadio.reply(Server, req, result, npc)
     state.outstanding[req.id] = nil
     GroupRadio.stats.aired = GroupRadio.stats.aired + 1
     table.insert(lines, 1, "<bzzt>")
-    if state.air then state.air(o.khz, lines, o.cid) end
+    if state.air then state.air(o.khz, lines, o.cid, state.comfort and state.comfort(o.caller, o.cid) or nil) end
     if state.notify then state.notify(o.caller, Const.CMD.DONE) end
     Server.publish()
     return true
