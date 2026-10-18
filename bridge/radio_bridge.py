@@ -1428,8 +1428,10 @@ EXECUTABLE_ACTIONS: dict[str, tuple[str, dict]] = {
         {"type": "reveal_area", "place": "<place id>"},
     ),
     "share_frequency": (
-        "Offer to introduce the caller to another radio voice. No parameter; the server chooses an authorized "
-        "living voice and privately supplies its frequency. Never invent or state a frequency yourself.",
+        "Offer to introduce the caller to another radio voice. EXCEPTIONAL: only when the caller has truly earned it, "
+        "by strong trust built over several conversations, a fair deal negotiated with you, or a real persuasion; "
+        "never on a first or simple request. No parameter; the server chooses an authorized living voice, checks "
+        "that the moment is right and privately supplies its frequency. Never invent or state a frequency yourself.",
         {"type": "share_frequency"},
     ),
     # E11-T08 : gabarit en liste fermée (MISSION_TEMPLATES) ; le serveur choisit le lieu, une mission par appelant.

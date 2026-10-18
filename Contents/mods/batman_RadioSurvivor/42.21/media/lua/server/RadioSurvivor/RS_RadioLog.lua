@@ -278,6 +278,15 @@ function Log.sendAll(player)
     return true
 end
 
+-- Ce personnage connaît-il déjà la voix (E06-T07 : f.voice d'une de ses fréquences) ? (E07-T10 : share_frequency.)
+function Log.knowsVoice(cid, voice)
+    local record = S.data and not S.blocked and S.data.characters[cid] or nil
+    for _, f in ipairs(record and record.radio and record.radio.frequencies or {}) do
+        if f.voice == voice then return true end
+    end
+    return false
+end
+
 -- Commande note_read { itemId } (E06-T07) : le client a ouvert une note de fréquence. Admise si l'objet est dans
 -- l'inventaire de ce joueur (sacs compris) et porte la note d'une voix qui tient toujours cette fréquence (ModData
 -- écrite par l'autorité à la création, RS_Notes) ; une fréquence déjà connue de cette voix n'ajoute rien. Rend la

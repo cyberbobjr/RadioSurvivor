@@ -8,7 +8,8 @@
 # - répond à toute heure, avec n'importe quelle radio émettrice tenue en main ou portée sur le dos ;
 # - appel général : une chance sur trois par heure de jeu quand personne ne parle (option SpontaneousCalls),
 #   texte fixe IGUI_RadioSurvivor_Call (%1 = fréquence) ;
-# - seule action : say ; aucun budget propre, seul le plafond global MaxPerHour s'applique.
+# - actions : say, et share_frequency (E07-T10, exceptionnel : peut présenter Darlene ou le Night Owl) ; aucun budget
+#   propre, seul le plafond global MaxPerHour s'applique.
 # Son caractère, ce qu'il sait et ce qu'il tait sont dans le texte du prompt (inchangé depuis E05-T03) : aucune
 # ligne knows, ignores ou secret, pour ne pas les répéter.
 format=1
@@ -19,7 +20,8 @@ frequency_range=130.0-149.8
 radio=any
 listen=always
 location=none
-actions=say
+actions=say,share_frequency
+shares=darlene,nightowl
 budget=0
 call_one_in=3
 call_text=IGUI_RadioSurvivor_Call

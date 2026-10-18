@@ -8,6 +8,8 @@
 
 ## Décisions
 
+- 2026-10-18 — **E07-T10** (demande de l'utilisateur : « quelquefois un Radio Survivor peut donner des fréquences d'autres Radio Survivor, mais exceptionnel, sur négociation, confiance forte ou persuasion ») : confirmé par défaut : lien = 4 réponses sur 2 jours de jeu ou bonne réputation ; 7 jours par voix et personnage, 3 jours par personnage ; seulement une voix inconnue du carnet ; consigne « exceptionnel » au modèle ; Walt (Darlene, Night Owl) et Gus (Cody, Walt) s'ajoutent à Darlene et Cody ; Night Owl (chroniqueur) et les Whitaker ne partagent pas.
+
 - Acquises : le LLM propose, le serveur décide ; liste d'actions autorisées par fiche ; aucun secret dans le prompt (le serveur complète les valeurs exactes) ; actions tracées ; sans pont, rien ne se passe.
 
 ## Hors périmètre
@@ -114,3 +116,14 @@
   - Tests : `test_protocol.py`
   - Preuve : `bridge/radio_bridge.py` : mode JSON de l'API en mode structuré (`response_format` `json_object`, repli sans lui sur refus HTTP 400, mémorisé par fournisseur et modèle), rappel de format en fin du message de l'appelant (`format_reminder`, historique non pollué), extraction tolérante du premier objet JSON avec `say` ou `actions` (entouré de texte, bloc de code, saut de ligne brut ; réparation des guillemets typographiques et de la virgule finale en dernier recours), réponse brute illisible journalisée en DEBUG (300 caractères, jamais un secret) ; mode texte inchangé ; `test_protocol.py` 31/31 (`scenario_structured_robust` : 10 formes lues, bout en bout après 34 messages d'historique) ; luacheck 17/0 ; `docs/protocole-carnet-v2.md` ; commit `19904bb` (fait par l'utilisateur, avec une partie d'E17-T06)
   - Reste : essai en jeu avec le vrai LLM : la demande à Walt de « montrer le coin autour de la clinique » doit produire `reveal_area` ; le constat du 2026-10-11 (aucune accolade dans la réponse) n’est couvert que par le rappel et le mode JSON
+
+- [ ] **E07-T10** — Fréquence d'une autre voix donnée exceptionnellement
+  - État : `testé hors jeu`
+  - Cible : `MP`
+  - Dépend de : E07-T01, E06-T07
+  - Fichiers : `server/RadioSurvivor/RS_VoiceBonds.lua` (nouveau), `RS_MissionVoice.lua`, `RS_RadioLog.lua`, `RadioSurvivor_Server.lua`, `RS_Personas.lua`, `bridge/radio_bridge.py`, fiches `walt.txt` et `gus.txt`, `docs/persona-format.md`
+  - Faire : décision du 2026-10-18. `share_frequency` n'aboutit que si le personnage a un lien avec la voix (réponses diffusées comptées par l'autorité, jours de jeu distincts, ou bonne réputation) et si le dernier partage est assez ancien ; la voix donnée est la première de `shares` active, servie et inconnue du carnet, inscrite avec sa voix (E06-T07). La consigne du modèle rend l'action exceptionnelle. Walt et Gus reçoivent l'action et leurs listes `shares` (empreintes des fiches livrées ajoutées).
+  - Accepté si : au banc, refus sans lien, accord avec lien ou bonne réputation, délais de 7 et 3 jours, aucune voix déjà connue ; en jeu, une voix finit par présenter une autre voix après plusieurs échanges, et pas avant.
+  - Tests : `tests/test_voice_bonds.py`, `tests/test_personas.py`, `tests/test_personas_server.py`.
+  - Preuve : `test_voice_bonds.py` 5 OK, `test_personas.py` 20 OK, `test_personas_server.py` 106 OK ; `test_fake_llm.py`, `test_rs_trade_run.py` et `rs.env` ajustés (Walt et Gus en mode structuré) ; run_all du 2026-10-18 vert hors ces trois bancs, corrigés et relancés ; luacheck 15/0
+  - Reste : essai en jeu par l'utilisateur ; ⚠ la fiche `walt.txt` installée de la partie de l'utilisateur est modifiée par l'admin : elle n'est pas remplacée (ajouter `share_frequency` et `shares=` à la main pour Walt)

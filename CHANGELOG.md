@@ -4,6 +4,7 @@
 
 ### Gameplay
 
+- Rarely, a radio voice may introduce you to another voice and give you its frequency: only after several conversations over different days (or with a good reputation), when you have negotiated, earned its trust or truly convinced it, and never often. Walt and Gus can now do it too, as Darlene and Cody already could.
 - The notebook's Radio tab now shows who speaks on a frequency and when they listen, as soon as they have answered you, you have heard them, or you have read their frequency note. Reading a frequency note adds it to the notebook.
 - The Night Owl's evening memorial no longer reads a dead animal as "None None", and the Night Owl no longer says he won't give the names right before they are read.
 - Talking helps: each time a survivor answers your character on the radio, their boredom and unhappiness go down a little (shown above the character). Overhearing two survivors talk to each other eases a little boredom too. At most 5 comforts per in-game hour; four new sandbox options set the amounts and the limit (0 turns one off).

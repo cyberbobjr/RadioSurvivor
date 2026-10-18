@@ -9,7 +9,8 @@
 #   et le signal viennent du livre, donnés seulement à l'équipe qui a réservé ; ils ne sont pas dans la fiche ;
 # - appel général (E05-T05) : une chance sur huit par heure de jeu pendant ses heures d'écoute, texte écrit par
 #   le pont ou, à défaut, texte fixe IGUI_RadioSurvivor_Call_Gus (%1 = fréquence) ; la réservation se fait à la
-#   radio (E13-T03) ; actions say et propose_trade (signal : plus tard) ; aucun budget propre.
+#   radio (E13-T03) ; actions say, propose_trade et share_frequency (E07-T10, exceptionnel : peut présenter Cody ou
+#   Walt) ; aucun budget propre.
 format=1
 id=gus
 name=Gus Lacombe
@@ -23,7 +24,8 @@ knows=Patrol boats and helicopters watch the river; the Clark Memorial bridge cu
 knows=What people outside want from the zone: news and pictures.
 ignores=What is happening inland, away from the river.
 secret=He also sells the names found on the papers of the dead to the television people.
-actions=say,propose_trade
+actions=say,propose_trade,share_frequency
+shares=cody,walt
 call_one_in=8
 call_text=IGUI_RadioSurvivor_Call_Gus
 state=active

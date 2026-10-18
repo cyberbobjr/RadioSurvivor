@@ -541,7 +541,12 @@ Les listes sont séparées par des virgules, sans doublons ni entrée vide ; la 
 
 `actions=...,share_frequency` autorise aussi le partage direct d'une fréquence comme geste de confiance.
 Le modèle propose uniquement cette action : le serveur choisit une voix active autorisée par `shares`, puis ajoute
-la fréquence exacte ; le modèle ne reçoit jamais cette fréquence. Les lieux `place=` servent aux caches et aux
+la fréquence exacte ; le modèle ne reçoit jamais cette fréquence. Ce partage est **exceptionnel** (E07-T10) : la
+consigne demande au modèle de ne le proposer qu'après une négociation, une confiance forte ou une vraie persuasion ;
+le serveur exige en plus un lien (au moins 4 réponses de cette voix à ce personnage sur au moins 2 jours de jeu, ou
+une bonne réputation), au plus un partage tous les 7 jours de jeu par voix et par personnage et tous les 3 jours par
+personnage, et seulement une voix que le carnet de ce personnage ne connaît pas encore (`RS_VoiceBonds.lua`).
+Refus journalisés : `not_trusted`, `voice_too_soon`, `too_soon`, `nothing_new`. Les lieux `place=` servent aux caches et aux
 objectifs ; leurs coordonnées restent côté serveur. Les tables de matériel sont fermées côté serveur.
 
 À la réussite, le serveur conserve la réputation et choisit une seule récompense réalisable dans l'ordre cyclique

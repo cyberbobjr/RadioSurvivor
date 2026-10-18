@@ -477,7 +477,7 @@ class StaticTests(unittest.TestCase):
     def test_gus_sheet_trades(self):
         sheet = persona_store.load_file(MOD / 'personas/gus.txt')
         self.assertIn('propose_trade', sheet.actions)
-        self.assertEqual(rb.offered_actions(sheet), ['propose_trade'])
+        self.assertEqual(rb.offered_actions(sheet), ['propose_trade', 'share_frequency'])  # E07-T10
         self.assertIn('trade book', sheet.prompt)
         self.assertNotIn('Never give a meeting place', sheet.prompt)
 

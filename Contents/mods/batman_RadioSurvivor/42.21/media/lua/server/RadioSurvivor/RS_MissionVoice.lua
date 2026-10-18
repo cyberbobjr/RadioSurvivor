@@ -59,6 +59,7 @@ require "RadioSurvivor/RS_MissionRetrieve"
 local S = require "RadioSurvivor/RS_State"
 local Actions = require "RadioSurvivor/RS_Actions"
 local Log = require "RadioSurvivor/RS_RadioLog"
+local Bonds = require "RadioSurvivor/RS_VoiceBonds" -- E07-T10: exceptional share_frequency
 local MapMarks = require "RadioSurvivor/RS_MapMarks"
 
 local V = {}
@@ -286,17 +287,37 @@ local function executeReport(_, ctx)
     return true
 end
 
+-- E07-T10: voice of the sheet's shares list, active, served and not yet known by this character (notebook, E06-T07),
+-- in the order of the list; nil when the character already knows them all.
+local function shareTarget(sheet, cid)
+    local Personas = require('RadioSurvivor/RS_Personas')
+    for _, id in ipairs(sheet.shares or {}) do
+        local target = Personas.get(id)
+        local khz = Personas.served(id)[1]
+        if id ~= sheet.id and target and target.state == 'active' and khz and not Log.knowsVoice(cid, id) then
+            return {voice = id, khz = khz, name = target.name}
+        end
+    end
+    return nil
+end
+
+-- share_frequency, exceptional (E07-T10): proposed by the model when the caller negotiated, earned strong trust or
+-- truly persuaded the voice; the server requires a bond and a rare enough share (RS_VoiceBonds), then gives a voice
+-- the character does not know yet.
 local function executeShare(_, ctx)
     if type(ctx) ~= 'table' or type(ctx.sheet) ~= 'table' or not ctx.player or not ctx.cid then
         return false, 'no_player'
     end
     if S.blocked or not S.data or not S.data.characters[ctx.cid] then return false, 'storage' end
-    local detail = require('RadioSurvivor/RS_Rewards').frequency(ctx.sheet)
-    if not detail then return false, 'unavailable' end
+    local allowed, why = Bonds.allowed(ctx.cid, ctx.sheet.id)
+    if not allowed then return false, why end
+    local detail = shareTarget(ctx.sheet, ctx.cid)
+    if not detail then return false, 'nothing_new' end
     local label = (detail.name or detail.voice) .. ' (' .. string.format('%.1f MHz', detail.khz / 1000) .. ')'
     if not Log.add(ctx.cid, detail.khz, 'reply', label, detail.voice) then
         return false, 'storage'
     end
+    Bonds.shared(ctx.cid, ctx.sheet.id)
     if not S.save() then return false, 'storage' end
     return true
 end

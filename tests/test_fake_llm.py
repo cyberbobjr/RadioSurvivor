@@ -297,7 +297,8 @@ class FakeLLMTests(unittest.TestCase):
         self.assertNotIn("sk-fakekey", text)
         self.assertNotIn("Authorization", text)
         kinds = {json.loads(line)["kind"] for line in text.splitlines() if line.strip()}
-        self.assertTrue({"radio", "npc_talk"} <= kinds, kinds)
+        # E07-T10: Walt has share_frequency, so his calls are structured (radio_json), no longer plain text.
+        self.assertTrue({"radio_json", "npc_talk"} <= kinds, kinds)
 
     def test_failure_modes(self):
         saved = rb.LLM_BUDGET_S

@@ -31,6 +31,7 @@ local VoiceMissions = require "RadioSurvivor/RS_MissionVoice"; require "RadioSur
 local Trade = require "RadioSurvivor/RS_Trade"; local GroupRadio = require "RadioSurvivor/RS_GroupRadio" -- E08-T06
 local Rep = require "RadioSurvivor/RS_Reputation" -- E04-T10: reputation of the caller in the voice request
 local Comfort = require "RadioSurvivor/RS_Comfort" -- E05-T15: an answer on the air eases boredom and unhappiness
+local Bonds = require "RadioSurvivor/RS_VoiceBonds" -- E07-T10: answers counted for an exceptional share_frequency
 
 -- Demandes transmises au pont, dans l'ordre d'arrivée.
 local pending = {}
@@ -696,6 +697,7 @@ local function onTick()
             table.insert(lines, 1, "<bzzt>")
             -- E05-T15 : une consigne (E11-T09) ne réconforte pas ; une réponse à la phrase du joueur, si.
             queueAir(req.khz, lines, req.cid, (not req.briefing) and comfortOnAir(req.caller, req.cid) or nil)
+            if not req.briefing then Bonds.answered(req.cid, req.voice) end
             -- A briefing (E11-T09) is not an answer the caller waits for.
             if not req.briefing then notify(req.caller, Const.CMD.DONE) end
             -- Actions proposées (E07-T01) : jugées après la mise en file de la diffusion, contre la fiche actuelle.

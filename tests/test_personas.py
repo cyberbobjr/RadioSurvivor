@@ -391,7 +391,7 @@ class WaltSheetTests(unittest.TestCase):
         w = self.walt
         self.assertEqual((w.id, w.name, w.language, w.radio, w.listen, w.location, w.coords, w.state),
                          ('walt', 'Walt Hensley', 'en', 'any', [], 'none', None, 'active'))
-        self.assertEqual((w.actions, w.budget, w.budgets), (['say'], 0, {}))
+        self.assertEqual((w.actions, w.budget, w.budgets), (['say', 'share_frequency'], 0, {}))  # E07-T10
         self.assertEqual((w.knows, w.ignores, w.secrets), ([], [], []))
 
     def test_frequency_comes_from_the_sheet(self):
@@ -569,7 +569,9 @@ class DeliveredVoicesTests(unittest.TestCase):
                 # Appels spontanés par voix : E05-T05 (CALLS) ; actions autres que say : E07 ; pas de budget propre.
                 # E13-T03 : Gus propose des offres (propose_trade). E11-T13 : Darlene et Cody donnent des missions
                 # de reconnaissance (start_mission ; report_mission implicite), pas Night Owl ni les Whitaker.
-                actions = {'gus': ['say', 'propose_trade'], 'darlene': ['say', 'start_mission', 'share_frequency'],
+                # E07-T10 : Walt et Gus peuvent aussi présenter une autre voix (share_frequency, exceptionnel).
+                actions = {'gus': ['say', 'propose_trade', 'share_frequency'], 'walt': ['say', 'share_frequency'],
+                           'darlene': ['say', 'start_mission', 'share_frequency'],
                            'cody': ['say', 'start_mission', 'share_frequency']}.get(vid, ['say'])
                 self.assertEqual((s.language, s.radio, s.actions, s.call_one_in, s.budget, s.budgets),
                                  ('en', 'any', actions, self.CALLS[vid], 0, {}))
