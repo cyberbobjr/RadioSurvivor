@@ -53,7 +53,7 @@ rencontrer, à gagner leur confiance et à accepter leurs missions.
 
 ### Le carnet et les PNJ
 
-- **Carnet de terrain** (bouton **Carnet** de la barre latérale) : contacts, onglet Radio (historique par fréquence),
+- **Carnet de terrain** (bouton **Carnet** de la barre latérale) : contacts, onglet Radio (historique par fréquence, avec qui y parle et ses heures d'écoute dès le premier contact ou la note lue),
   missions, réputation, notes.
 - **Parler à un PNJ** : s'en approcher, **Ctrl+G** pour le sélectionner, puis parler dans le chat local (`/say`). Il
   répond en bulles et se souvient de vous.

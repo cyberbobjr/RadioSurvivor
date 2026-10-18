@@ -72,6 +72,17 @@ local function copyLine(line)
         seq = tonumber(line.seq) or 0 }
 end
 
+-- Voix connue d'une fréquence (E06-T07) : copie bornée de { id, name, hours = { { from, to } } }, ou nil.
+local function copyVoice(voice)
+    if type(voice) ~= "table" or type(voice.id) ~= "string" or type(voice.name) ~= "string" then return nil end
+    local hours = {}
+    for _, range in ipairs(type(voice.hours) == "table" and voice.hours or {}) do
+        local from, to = tonumber(range.from), tonumber(range.to)
+        if from and to and #hours < 8 then hours[#hours + 1] = { from = from, to = to } end
+    end
+    return { id = voice.id, name = voice.name, hours = hours }
+end
+
 -- Données d'un autre personnage (mort, autre partie) : effacées.
 local function owner(character)
     if History.character ~= nil and character ~= History.character then
@@ -99,6 +110,7 @@ function History.receive(command, args)
             if khz then
                 local f = find(khz, false) or { khz = khz, lines = {} }
                 f.last = tonumber(item.last) or 0
+                f.voice = copyVoice(item.voice)
                 kept[#kept + 1] = f
             end
         end
@@ -112,6 +124,7 @@ function History.receive(command, args)
         if not khz then return true end
         local f = find(khz, true)
         f.last = tonumber(args.last) or f.last
+        f.voice = copyVoice(args.voice)
         f.lines = {}
         for _, line in ipairs(args.lines or {}) do
             local copy = copyLine(line)
@@ -128,6 +141,7 @@ function History.receive(command, args)
         if not khz or not line then return true end
         local f = find(khz, true)
         f.last = tonumber(args.last) or f.last
+        f.voice = copyVoice(args.voice) or f.voice
         local previous = f.lines[#f.lines]
         if not previous or previous.seq ~= line.seq then
             f.lines[#f.lines + 1] = line
@@ -148,7 +162,7 @@ function History.sorted()
     for _, f in ipairs(History.frequencies) do
         local last = f.lines[#f.lines]
         out[#out + 1] = { id = f.khz, khz = f.khz, last = f.last, when = last and last.when or "", count = #f.lines,
-            unread = f.unread == true }
+            unread = f.unread == true, voice = f.voice }
     end
     table.sort(out, function(a, b) return a.last > b.last end)
     return out
@@ -158,6 +172,25 @@ end
 function History.lines(khz)
     local f = find(tonumber(khz) or -1, false)
     return f and f.lines or {}
+end
+
+-- Nom affiché d'une voix (E06-T07) : nom de scène traduit s'il existe (IGUI_RS_Voice_<id>), sinon nom de la fiche.
+function History.voiceName(voice)
+    if type(voice) ~= "table" then return nil end
+    return getTextOrNull("IGUI_RS_Voice_" .. tostring(voice.id)) or voice.name
+end
+
+local function clock(minute)
+    minute = math.floor(tonumber(minute) or 0) % 1440
+    return string.format("%02d:%02d", math.floor(minute / 60), minute % 60)
+end
+
+-- Heures d'écoute d'une voix en texte (« 19:00-22:00, 03:00-06:00 »), ou nil : à toute heure.
+function History.hoursText(voice)
+    if type(voice) ~= "table" or type(voice.hours) ~= "table" or #voice.hours == 0 then return nil end
+    local parts = {}
+    for i, range in ipairs(voice.hours) do parts[i] = clock(range.from) .. "-" .. clock(range.to) end
+    return table.concat(parts, ", ")
 end
 
 function History.markRead()

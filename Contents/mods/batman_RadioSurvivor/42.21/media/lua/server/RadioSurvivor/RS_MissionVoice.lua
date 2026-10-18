@@ -294,7 +294,7 @@ local function executeShare(_, ctx)
     local detail = require('RadioSurvivor/RS_Rewards').frequency(ctx.sheet)
     if not detail then return false, 'unavailable' end
     local label = (detail.name or detail.voice) .. ' (' .. string.format('%.1f MHz', detail.khz / 1000) .. ')'
-    if not Log.add(ctx.cid, detail.khz, 'reply', label) then
+    if not Log.add(ctx.cid, detail.khz, 'reply', label, detail.voice) then
         return false, 'storage'
     end
     if not S.save() then return false, 'storage' end

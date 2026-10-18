@@ -498,6 +498,8 @@ local function onClientCommand(module, command, player, args)
         Log.heard(player, args)
     elseif command == Const.CMD.HISTORY then
         Log.sendAll(player)
+    elseif command == Const.CMD.NOTE_READ then
+        Log.noteRead(player, args)
     end
 end
 

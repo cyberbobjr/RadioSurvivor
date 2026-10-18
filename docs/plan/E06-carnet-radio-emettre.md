@@ -8,6 +8,8 @@
 
 ## Décisions
 
+- 2026-10-18 — **E06-T07** (proposition de l'utilisateur après un appel resté sans réponse hors des heures d'écoute) : le carnet indique, pour une fréquence, qui y parle et ses heures d'écoute, révélés **au premier contact ou à la lecture de sa note** (choix de l'utilisateur). Confirmé par défaut : contact = réponse de la voix à ce personnage ou ligne de la voix entendue (une phrase de joueur ne compte pas) ; fréquence donnée par une voix (récompense, `share_frequency`) comprise ; une note lue ajoute la fréquence au carnet même jamais réglée (exception décidée à E05-T08) ; nom de scène traduit s'il existe (Night Owl), sinon nom de la fiche ; heures relues dans la fiche à chaque envoi.
+
 - Acquises : carnet radio ouvert depuis la radio et depuis le module, sans touche dédiée ; module ajouté par `ISRadioWindow:addModule` sans remplacer la fenêtre ; module visible seulement pour une radio émettrice ; talkies, radio posée (HAM) et autoradio.
 - Note : la note de travail disait « pas de touche dédiée » pour le carnet radio ; le carnet unique (0.2) a depuis reçu un bouton latéral et Ctrl+G. E06-T01 confirme l'articulation.
 - 2026-10-08 — **E06-T01 (1)** : historique radio gardé **côté serveur**, dans l'état privé, par personnage, borné à 40 lignes par fréquence.
@@ -82,3 +84,14 @@
   - Tests : banc `lupa` (`test_carnet.py`, `test_radio_history.py`) ; protocole visuel solo.
   - Preuve : 2026-10-09 : interface du carnet réécrite d'après la maquette A (papier, reliure à anneaux, marque-pages à droite, boutons tampons) ; onglet Radio : fréquences entendues avec « Régler ma radio » dessous, point non lu par fréquence, conversation colorée, saisie « Dire : » par `Talk.send` ; textures générées par `tools/gen_notebook_textures.py` (facultatives) ; tests carnet, historique, module à jour ; `tests/run_all.py` 27/27 ; serveur dédié de test 50 PASS / 3 SKIP. ; **en jeu solo le 2026-10-10** (partie `rstest-1010`, retour de l’utilisateur) : correctif `8eddfc3` vérifié (aucun ascenseur vanilla au milieu des panneaux, message PNJ seulement dans Contacts)
   - Reste : validation visuelle en jeu par l'utilisateur (`docs/tests-en-jeu.md`, « Carnet papier (E06-T06) ») ; ⚠ étiquette « Réponse » au lieu du nom de la voix, fenêtre de livraison restée vanilla.
+
+- [ ] **E06-T07** — Carnet : voix et heures d'écoute d'une fréquence connue
+  - État : `testé hors jeu`
+  - Cible : `MP`
+  - Dépend de : E06-T04, E05-T09
+  - Fichiers : `RS_RadioLog.lua`, `RadioSurvivor_Server.lua`, `RS_Rewards.lua`, `RS_MissionVoice.lua`, `RadioSurvivor_Const.lua`, `client/RadioSurvivor/RS_RadioHistory.lua`, `RS_Notebook.lua`, `RS_NotesReader.lua`, traductions `IG_UI` EN/FR
+  - Faire : décision du 2026-10-18. L'autorité garde l'id de la voix d'une fréquence (`f.voice`) dès un contact (réponse, ligne de la voix entendue), une note lue (commande `note_read` vérifiée : objet dans l'inventaire, ModData de l'autorité, voix toujours sur cette fréquence) ou une fréquence donnée ; l'historique envoyé porte `voice = { id, name, hours }`. L'onglet Radio affiche le nom de la voix en seconde ligne de la fréquence et, en tête de la page, « nom - à l'écoute 19:00-22:00 » (ou « à toute heure ») ; ligne « Note lue : fréquence de … ».
+  - Accepté si : au banc, voix connue après une réponse, une ligne de voix entendue ou une note lue, jamais après une phrase sans réponse ni une phrase d'un autre joueur ; note hors inventaire, d'une autre voix ou relue : refusée ou sans doublon ; heures formatées ; en jeu, l'onglet affiche voix et heures.
+  - Tests : `tests/test_radio_history.py` (VoiceKnownTests) ; essai en jeu par l'utilisateur.
+  - Preuve : `tests/test_radio_history.py` 36 OK dont VoiceKnownTests 6 (voix connue après réponse, ligne de voix entendue, note lue vérifiée ; jamais après un silence ni une phrase de joueur ; note hors inventaire, d'une autre voix ou relue : rien ; heures « 19:00-22:00, 23:00-03:00 » ; page et seconde ligne de l'onglet Radio ; le lecteur envoie `note_read` seulement pour une note lisible) ; `test_notes.py` 27 OK ; `test_mission_recover.py` corrigé (table `radio` d'E11 tirée une fois sur cinq) ; run_all du 2026-10-18 vert hors ces deux bancs, corrigés et relancés ; luacheck 15/0
+  - Reste : essai en jeu par l'utilisateur (contact, note lue, heures affichées ; MP : carnet de chaque client)

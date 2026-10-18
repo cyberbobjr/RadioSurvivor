@@ -172,7 +172,7 @@ function R.grant(store, source, m, player, cid, khz)
         end
     elseif kind == 'frequency' then
         require('RadioSurvivor/RS_RadioLog').add(cid, rec.khz, 'reply',
-            (rec.name or rec.voice) .. ' (' .. string.format('%.1f MHz', rec.khz / 1000) .. ')')
+            (rec.name or rec.voice) .. ' (' .. string.format('%.1f MHz', rec.khz / 1000) .. ')', rec.voice)
     elseif kind == 'stashmap' then
         StashSystem.doStashItem(detail, map)
         if not giveItem(player, map) then return rec, 'recovery' end

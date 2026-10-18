@@ -12,8 +12,17 @@
 
 require "TimedActions/ISReadABook"
 
+local Const = require "RadioSurvivor/RadioSurvivor_Const"
 local Notes = require "RadioSurvivor/RS_Notes"
 local News = require "RadioSurvivor/RS_OutsideNews"
+
+-- E06-T07 : une note de fréquence lisible inscrit la voix et ses heures dans le carnet ; le serveur vérifie l'objet
+-- (inventaire du joueur, ModData de l'autorité) avant de l'inscrire.
+local function tellNoteRead(action, modData)
+    local note = modData[Notes.MODDATA_KEY]
+    if type(note) ~= "table" or not tonumber(note.khz) or not action.character or not action.item then return end
+    sendClientCommand(action.character, Const.MODULE, Const.CMD.NOTE_READ, { itemId = action.item:getID() })
+end
 
 -- Fonctions d'origine conservées sur la table vanilla : un rechargement du fichier n'empile pas une seconde
 -- enveloppe. D'autres mods peuvent envelopper les mêmes fonctions : chacun garde la sienne sous un autre nom.
@@ -54,5 +63,6 @@ function ISReadABook:displayPrintMedia()
     local ok, result = pcall(ISReadABook.batmanRadioSurvivorDisplayPrintMedia, self)
     printMedia.info, printMedia.text, printMedia.title = info, text, title
     if not ok then error(result) end
+    if compose == Notes.compose then tellNoteRead(self, modData) end
     return result
 end

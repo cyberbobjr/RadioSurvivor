@@ -52,7 +52,9 @@ Choix : **écrite par l'autorité dans la ModData de l'objet à sa création** (
    **sans fournisseur** (les fichiers `server` rendent tout de suite sur un client) : il ne pose que les clés et une
    note sans fréquence, puis la ModData du serveur remplace la sienne (`InventoryItem.load`, base
    `loot-distributions.md`). Aucune commande réseau ne porte de fréquence (`tests/test_notes.py` vérifie qu'aucun
-   module des notes n'appelle `sendServerCommand`, `sendClientCommand` ou une ModData globale).
+   module des notes n'appelle `sendServerCommand`, `sendClientCommand` ou une ModData globale ; seule exception,
+   E06-T07 : à l'ouverture d'une note lisible, le lecteur envoie `note_read { itemId }`, sans fréquence ; le serveur
+   vérifie l'objet dans l'inventaire et sa ModData, puis inscrit la voix et ses heures dans le carnet).
 3. **Lecture** (`client/RadioSurvivor/RS_NotesReader.lua`) : l'enveloppe de `ISReadABook:displayPrintMedia` place, le
    temps de l'appel, le texte composé par `getText(clé, fréquence)` dans la **langue du lecteur**, puis remet les
    clés ; celle de `startLoadingPrintMediaTextures` évite l'avertissement « Missing arguments » (aucune image à

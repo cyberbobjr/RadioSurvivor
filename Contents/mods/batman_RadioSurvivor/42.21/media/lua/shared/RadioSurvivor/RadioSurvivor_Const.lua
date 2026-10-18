@@ -57,6 +57,9 @@ Const.CMD = {
     HISTORY = "history",             -- client → serveur : demande ; serveur → client : { character, frequencies }
     HISTORY_LINES = "history_lines", -- serveur → client : { character, khz, last, lines } une fréquence entière
     HISTORY_ADD = "history_add",     -- serveur → client : { character, khz, last, line } une ligne nouvelle
+    -- E06-T07 : HISTORY (chaque fréquence), HISTORY_LINES et HISTORY_ADD portent aussi voice = { id, name, hours }
+    -- quand le personnage connaît la voix de la fréquence (RS_RadioLog.voiceInfo).
+    NOTE_READ = "note_read",         -- client → serveur : { itemId } note de fréquence ouverte (E06-T07)
     -- Plus de commande « frequencies » (E05-T08) : aucun client ne reçoit les fréquences des voix.
     -- Action mark_map (E07-T04) : serveur → client appelant seul, { x, y, z, label } un lieu de la fiche de la voix,
     -- ajouté par client/RadioSurvivor/RS_MapActions.lua comme symbole de la carte du monde du joueur.

@@ -829,6 +829,124 @@ end
 '''
 
 
+
+class VoiceKnownTests(unittest.TestCase):
+    """E06-T07 : le carnet connaît la voix d'une fréquence (nom, heures d'écoute) après un contact, une note lue ou une
+    fréquence donnée, jamais après une phrase restée sans réponse. Vrai RadioSurvivor_Server (Walt, 145.0, à toute
+    heure) et vrai client RS_RadioHistory."""
+
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp(prefix='rs_voice_known_'))
+        self.it = IntegrationTests()
+        self.sim = self.it.simulation(self.tmp / 'mp')
+        self.alice = self.it.client(self.sim, 'alice')
+        self.bob = self.it.client(self.sim, 'bob')
+        self.walt = self.sim.server.rt.eval("require('RadioSurvivor/RS_Personas').get('walt')")
+
+    def tearDown(self):
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+    def voice(self, c, khz=145000):
+        rows = [convert(r) for r in lua_list(c.rt.eval('History.sorted()'))]
+        row = [r for r in rows if r['khz'] == khz]
+        return row[0].get('voice') if row else 'absent'
+
+    def test_reply_makes_the_voice_known_with_its_hours(self):
+        self.assertTrue(self.alice.rt.eval("Talk.send(getPlayer(), getPlayer().radio, 'Walt?')"))
+        self.assertIsNone(self.voice(self.alice), 'voice told before any answer')
+        self.it.answer(self.sim, 'Walt here.')
+        self.assertEqual(self.voice(self.alice), {'id': 'walt', 'name': self.walt.name, 'hours': {}})
+        self.assertIsNone(self.alice.rt.eval("History.hoursText(History.sorted()[1].voice)"))
+        # Hours from the sheet, sent again with the whole history (re-read on opening).
+        self.sim.server.rt.execute("require('RadioSurvivor/RS_Personas').get('walt').listen = "
+                                   "{ { from = 1140, to = 1320 }, { from = 1380, to = 180 } }")
+        self.alice.rt.execute('History.request()')
+        self.assertEqual(self.alice.rt.eval("History.hoursText(History.sorted()[1].voice)"),
+                         '19:00-22:00, 23:00-03:00')
+        # Kept by the private state (restart).
+        cid = self.sim.character('alice')
+        self.assertEqual(self.sim.state().characters[cid].radio.frequencies[1].voice, 'walt')
+
+    def test_heard_voice_line_tells_the_voice_a_player_line_does_not(self):
+        self.assertTrue(self.alice.rt.eval("Talk.send(getPlayer(), getPlayer().radio, 'Anyone here?')"))
+        self.bob.rt.execute("Talk.onDeviceText('g', '', -1, -1, -1, 'Anyone here?', getPlayer().radio)")
+        self.assertIsNone(self.voice(self.bob), 'a player phrase told the voice')
+        self.it.answer(self.sim, 'Walt here, I hear you.')
+        self.bob.rt.execute("Talk.onDeviceText('g', '', -1, -1, -1, 'Walt here, I hear you.', getPlayer().radio)")
+        self.assertEqual(self.voice(self.bob)['id'], 'walt')
+
+    def test_silence_never_tells_a_voice(self):
+        self.alice.rt.execute('getPlayer().radio.device.channel = 151200')
+        self.sim.server.g.PLAYERS['alice'].radio.device.channel = 151200
+        self.assertTrue(self.alice.rt.eval("Talk.send(getPlayer(), getPlayer().radio, 'Hello?')"))
+        self.assertIsNone(self.voice(self.alice, 151200))
+
+    def note(self, khz=145000, voice='walt', item_id=7001):
+        """A frequency note in alice's inventory on the server (ModData written by the authority)."""
+        self.sim.server.rt.execute(f"""
+            local it = item('RadioSurvivor.NoteWalt', {item_id})
+            it.md = {{ RadioSurvivorNote = {{ voice = '{voice}', khz = {khz} }} }}
+            it.hasModData = function(self) return true end
+            it.getModData = function(self) return self.md end
+            PLAYERS.alice:getInventory():AddItem(it)""")
+
+    def read(self, item_id=7001):
+        self.alice.rt.execute(f"sendClientCommand(getPlayer(), 'RadioSurvivor', 'note_read', {{ itemId = {item_id} }})")
+
+    def test_note_read_writes_the_voice_once_and_is_checked(self):
+        self.read()
+        self.assertEqual(self.voice(self.alice), 'absent', 'note outside the inventory accepted')
+        self.note(voice='darlene')
+        self.read()
+        self.assertEqual(self.voice(self.alice), 'absent', 'note of another voice accepted')
+        self.note(item_id=7002)
+        self.read(7002)
+        self.assertEqual(self.voice(self.alice)['id'], 'walt')
+        self.assertEqual(self.it.texts(self.alice), ['note:walt'])
+        self.read(7002)
+        self.assertEqual(self.it.texts(self.alice), ['note:walt'], 'note line written twice')
+        self.assertEqual(self.voice(self.bob), 'absent')
+
+    def test_reader_tells_the_server_when_a_note_opens(self):
+        sent = []
+        self.alice.g.sendClientCommand = lambda p, module, command, args: sent.append((module, command,
+                                                                                       convert(args)))
+        self.alice.rt.execute("""
+            ISReadABook = { displayPrintMedia = function(self) SHOWN = self.item.md.printMedia.text end,
+                startLoadingPrintMediaTextures = function() end }
+            package.loaded['TimedActions/ISReadABook'] = true
+            require 'RadioSurvivor/RS_NotesReader'
+            local function note(khz)
+                local md = { printMedia = { id = 'RadioSurvivor_NoteWalt', title = 't', info = 'i', text = 'x' },
+                    RadioSurvivorNote = { voice = 'walt', khz = khz } }
+                return { md = md, hasModData = function() return true end, getModData = function(s) return s.md end,
+                    getID = function() return 4242 end }
+            end
+            ISReadABook.displayPrintMedia({ item = note(145000), character = getPlayer() })
+            ISReadABook.displayPrintMedia({ item = note(nil), character = getPlayer() })""")
+        self.assertEqual(sent, [('RadioSurvivor', 'note_read', {'itemId': 4242})])
+
+    def test_notebook_shows_the_voice_and_its_hours(self):
+        self.sim.server.rt.execute("require('RadioSurvivor/RS_Personas').get('walt').listen = "
+                                   "{ { from = 1140, to = 1320 } }")
+        alice = self.it.notebook(self.sim, 'carol')
+        # getTextOrNull of the game: nil for a missing key (the shared stub returns the key).
+        alice.rt.execute("getTextOrNull = function(k) if k == 'IGUI_RS_Voice_walt' then return 'Walt' end end")
+        self.assertTrue(alice.rt.eval("Talk.send(getPlayer(), getPlayer().radio, 'Walt?')"))
+        self.it.answer(self.sim, 'Walt here.')
+        alice.g.RS_UI_Notebook.toggle()
+        window = alice.g.RS_CarnetClient.window
+        window.changeTab(window, 'Radio')
+        self.assertEqual(window.row.khz, 145000)
+        self.assertIn('IGUI_RS_RadioVoice|Walt|IGUI_RS_RadioHours|19:00-22:00', window.detail.text)
+        self.assertEqual(alice.g.RS_UI_Notebook.rowSecondLine(window.row), 'Walt')
+        # A frequency without a known voice keeps its last line, and no voice line on its page.
+        self.it.heard_on(self.sim, 'carol', 146400, 'Anyone?')
+        window.changeTab(window, 'Radio')
+        self.assertEqual(window.row.khz, 146400)
+        self.assertNotIn('IGUI_RS_RadioVoice', window.detail.text)
+        self.assertEqual(alice.g.RS_UI_Notebook.rowSecondLine(window.row), 'IGUI_RS_RadioLast|' + window.row.when)
+
 class SoloScenarioTests(unittest.TestCase):
     """Real solo session (reported 2026-10-09, save rstest-solo): no NPC provider, notebook never opened, talk with
     Walt, spontaneous call, then notebook opened, then reload. The Radio tab must show the conversation."""

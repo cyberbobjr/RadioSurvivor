@@ -55,6 +55,7 @@ local RADIO_COLORS = {said = '0.12,0.23,0.37', reply = '0.17,0.16,0.15', heard =
 RADIO_COLORS.reveal = RADIO_COLORS.mark
 RADIO_COLORS.mission = RADIO_COLORS.mark
 RADIO_COLORS.reward = RADIO_COLORS.mark
+RADIO_COLORS.note = RADIO_COLORS.mark
 local BINDING_W, RING, DOT, TAB_PAD, SCROLL_W = 26, 18, 9, 10, 3
 local KEY_ESCAPE = 1
 local DEVICE_CACHE_MS = 250
@@ -768,12 +769,19 @@ end
 function Notebook:showRadio(row, text)
     local parts = {}
     for _, s in ipairs(text) do parts[#parts + 1] = INK_TAG .. s end
+    -- E06-T07: who speaks on this frequency and when they listen, once the character knows the voice.
+    if row.voice then
+        local hours = History.hoursText(row.voice)
+        parts[#parts + 1] = INK_TAG .. clean(tr('RadioVoice', History.voiceName(row.voice),
+            hours and tr('RadioHours', hours) or tr('RadioAlways')))
+    end
     local lines = History.lines(row.khz)
     for _, l in ipairs(lines) do
         local kind = RADIO_COLORS[l.kind] and l.kind or 'heard'
         -- Mission received (E11-T08): the line holds the kind of place, translated here.
         local said = kind == 'mission' and placeName(l.text) or l.text
         if kind == 'reward' then said = tr('Reward_' .. l.text) end
+        if kind == 'note' then said = History.voiceName(row.voice) or tr('None') end
         parts[#parts + 1] = '<RGB:' .. RADIO_COLORS[kind] .. '> ' .. clean(tr('Radio_' .. kind, l.when, said))
     end
     if #lines == 0 then parts[#parts + 1] = INK_TAG .. clean(tr('Empty_Radio')) end
@@ -1031,6 +1039,8 @@ end
 -- Second line of a row: last line heard (Radio), role (Team, E09-T03), state of a mission in a short word when the
 -- full sentence is long (E03-T02: the sentence stays on the page), contact alive or dead.
 function Notebook.rowSecondLine(row)
+    -- E06-T07: the voice of the frequency once known (contact, note read, frequency given), else the last line.
+    if row.khz and row.voice then return History.voiceName(row.voice) end
     if row.khz then return tr('RadioLast', row.when ~= '' and row.when or '-') end
     if row.role then return tr('Role_' .. row.role) end
     -- E11-T13: an active mission whose objective is met waits for its report.

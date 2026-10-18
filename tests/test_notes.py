@@ -187,6 +187,9 @@ class ClientTests(unittest.TestCase):
         for path in NOTES_LUA:
             code = re.sub(r'--[^\n]*', '', path.read_text(encoding='utf-8'))
             with self.subTest(path.name):
+                # E06-T07: the reader only tells the server which note opened (item id, never a frequency).
+                code = code.replace('sendClientCommand(action.character, Const.MODULE, Const.CMD.NOTE_READ, '
+                                    '{ itemId = action.item:getID() })', '')
                 self.assertIsNone(re.search(r'send(Server|Client)Command|ModData\.(add|transmit|request)', code))
 
 

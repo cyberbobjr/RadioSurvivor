@@ -199,7 +199,8 @@ class RecoverMissionTests(unittest.TestCase):
                                       'rewardCount'})
         self.assertEqual((offer['kind'], offer['item'], offer['place'], offer['report']),
                          ('recover', 'bag', 'house', 'in_person'))
-        self.assertIn(offer['cache'], ('food', 'medical', 'ammo', 'tools'))
+        # Tables of RS_Config.Caches.order ('radio' added by E11: drawn one time in five).
+        self.assertIn(offer['cache'], ('food', 'medical', 'ammo', 'tools', 'radio'))
         self.assertEqual((offer['durationMs'], offer['rewardType'], offer['rewardCount']), (7200000, 'Base.Bullets9mm', 20))
         clues = [offer['clues'][i] for i in sorted(offer['clues'])]
         self.assertTrue(clues and clues[0].startswith('The place is '), clues)

@@ -53,7 +53,7 @@ earn their trust and take on their missions.
 
 ### The notebook and the NPCs
 
-- **Field notebook** (**Notebook** button on the sidebar): contacts, Radio tab (history per frequency), missions,
+- **Field notebook** (**Notebook** button on the sidebar): contacts, Radio tab (history per frequency, with who speaks there and when they listen once you have reached them or read their note), missions,
   reputation, notes.
 - **Talking to an NPC**: walk up to them, press **Ctrl+G** to select them, then speak in local chat (`/say`). They
   answer in speech bubbles and remember you.
