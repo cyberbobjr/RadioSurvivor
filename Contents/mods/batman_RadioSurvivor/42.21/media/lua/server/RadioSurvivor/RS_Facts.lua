@@ -338,9 +338,11 @@ end
 
 -- ------------------------------------------------------------------------------------------------ sources
 
--- OnCharacterDeath: players only (zombies and Living Knox bodies also raise it).
+-- OnCharacterDeath: players only (zombies and Living Knox bodies also raise it). E14-T04: an animal is an IsoPlayer
+-- too (IsoAnimal extends IsoPlayer, IsoAnimal.java:136) and raises the event at its death (IsoAnimal.java:1077); its
+-- descriptor keeps the default names "None" "None" (SurvivorDesc.java:50, 54): never a survivor of the memorial.
 function Facts.characterDeath(character)
-    if not instanceof(character, 'IsoPlayer') then return end
+    if not instanceof(character, 'IsoPlayer') or character:isAnimal() then return end
     local d = character:getDescriptor()
     if not d then return end
     local name = Const.oneLine((d:getForename() or '') .. ' ' .. (d:getSurname() or ''))
@@ -507,8 +509,11 @@ end
 function Facts.deathsText(count)
     if type(count) ~= 'number' or count < 1 then return nil end
     local who = count == 1 and 'One survivor' or (tostring(count) .. ' survivors')
-    return who .. ' died since the last bulletin. Their names are read at the very end, after your sign-off: '
-        .. 'do not name them and do not say how or where they died.'
+    -- E14-T04: never a bare "do not name them": the model said on the air that it would not give the names, just
+    -- before the memorial read them. The station reads them itself; the voice may announce them.
+    return who .. ' died since the last bulletin. Right after your sign-off, the station reads their names in a short'
+        .. ' memorial segment: you may tell your listeners that the names follow. Never say that you will not read'
+        .. ' or give the names, never name anyone yourself, and do not say how or where they died.'
 end
 
 local function nameList(names)

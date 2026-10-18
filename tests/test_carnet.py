@@ -90,6 +90,8 @@ function enhance(p)
     p.hasTrait = function(self) return self.deaf or false end
     p.CanSee = function(self) return self.visible ~= false end
     p.getRole = function() return {hasCapability = function() return false end} end
+    -- IsoGameCharacter.isAnimal: false for a player (IsoAnimal extends IsoPlayer and answers true).
+    p.isAnimal = function(self) return self.animal or false end
     return p
 end
 -- Fake NPC engine conforming to RS_NPCProvider (registered by Simulation unless provider=False).

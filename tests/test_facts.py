@@ -161,6 +161,11 @@ class FactsTests(unittest.TestCase):
         alice.x, alice.y = MULDRAUGH
         self.g.fire('OnCharacterDeath', self.sim.zombie)  # zombies also raise OnCharacterDeath
         self.assertEqual(self.listed(), [])
+        # E14-T04: an animal is an IsoPlayer named "None None" (IsoAnimal extends IsoPlayer): never a death fact.
+        animal = self.g.enhance(self.g.makePlayer('None'))
+        animal.isPlayer, animal.animal = True, True
+        self.g.fire('OnCharacterDeath', animal)
+        self.assertEqual(self.listed(), [])
         alice.dead = True
         self.g.fire('OnCharacterDeath', alice)
         self.g.fire('OnCharacterDeath', alice)
