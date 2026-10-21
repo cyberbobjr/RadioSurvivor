@@ -1283,6 +1283,7 @@ function Directives.onClientCommand(module, command, player, args)
     elseif command == Directives.CMD_CLAIM then
         Directives.onClaim(player, args)
     elseif command == Guard().CMD_HELLO then
+        if not Guard().helloAllowed(player, "Directives") then return end
         Directives.onHello(player)   -- gestes et poses : LivingKnox.Relay.onHello (LK03-T05)
     end
 end

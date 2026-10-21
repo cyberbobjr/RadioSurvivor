@@ -63,7 +63,11 @@ function Log.validKhz(khz)
 end
 
 -- Texte d'une ligne : une ligne, sans balises de texte riche, coupé à MAX_TEXT ; "" pour des parasites seuls.
+-- C22 : texte brut d'un client coupé à quatre fois la borne avant tout motif (les blancs de tête peuvent encore
+-- tomber, la coupe finale à MAX_TEXT reste la même pour une ligne normale).
 function Log.cleanText(text)
+    text = tostring(text or "")
+    if string.len(text) > 4 * Log.MAX_TEXT then text = string.sub(text, 1, 4 * Log.MAX_TEXT) end
     text = Const.oneLine(text)
     if string.match(text, "^<%a+>$") then return "" end
     text = Const.oneLine(string.gsub(text, "[<>%[%]]", " "))

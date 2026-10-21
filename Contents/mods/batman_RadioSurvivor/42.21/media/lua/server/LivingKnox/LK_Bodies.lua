@@ -37,6 +37,13 @@ Bodies.MAX_EMBODIED = 50    -- corps de PNJ simultanés au plus (le jalon 1 n'en
 Bodies.MOVE_EPSILON = 1     -- déplacement (cases) au-delà duquel la dernière position vue est rafraîchie
 
 Bodies.bound = Bodies.bound or {}
+-- C30 : résultat du test de présence de Bodies.find, par PNJ, valable une image (même getWorld():getFrameNo() et
+-- même getTimestampMs()) : { z, frame, ms }. getZombieList():contains parcourt toute la liste des zombies de la
+-- cellule et find est appelé plusieurs fois par image pour un même PNJ. Le numéro d'image avance à chaque mise à jour
+-- du monde (IsoWorld.updateInternal, J/iso/IsoWorld.java:2771), où les corps sont mis de côté ou retirés ; l'heure
+-- couvre le serveur en pause (aucune mise à jour du monde) et les paquets traités en tête d'image. Vidé par
+-- removeBody (despawn compris) ; un autre corps relié au PNJ (rawequal) ou un corps mort refait le test.
+Bodies.foundCache = {}
 Bodies.scanState = Bodies.scanState or { cursor = 0, ticks = 0, sweeps = 0 }
 
 local function Identity() return LivingKnox.Identity end
@@ -128,6 +135,7 @@ function Bodies.removeBody(z, why)
     for id, b in pairs(Bodies.bound) do
         if b == z then Bodies.bound[id] = nil end
     end
+    Bodies.foundCache = {} -- C30
     if not ok then
         log().error("body at %s not removed (%s): %s", where, tostring(why), tostring(err))
         return false
@@ -441,12 +449,36 @@ end
 
 -- Corps courant d'un PNJ s'il est dans le monde. Rend le zombie et "bound", ou nil et l'état
 -- ("virtual", "dead", "embodied" = corps attendu mais hors zone chargée ou pas encore relié, "unknown").
+-- Numéro d'image du monde, ou nil sans monde (bancs de test sans getFrameNo : aucun cache).
+local function frameNo()
+    local w = getWorld ~= nil and getWorld() or nil
+    if w == nil or w.getFrameNo == nil then return nil end
+    return w:getFrameNo()
+end
+
+-- Bodies.inWorld(z) pour le corps relié à npcId, mis en cache pour l'image (C30).
+local function boundInWorld(npcId, z)
+    if z:isDead() then return false end
+    local frame = frameNo()
+    if frame == nil then return Bodies.inWorld(z) end
+    local ms = getTimestampMs()
+    local c = Bodies.foundCache[npcId]
+    if c ~= nil and rawequal(c.z, z) and c.frame == frame and c.ms == ms then return c.ok end
+    local ok = Bodies.inWorld(z)
+    if c == nil then
+        Bodies.foundCache[npcId] = { z = z, frame = frame, ms = ms, ok = ok }
+    else
+        c.z, c.frame, c.ms, c.ok = z, frame, ms, ok
+    end
+    return ok
+end
+
 function Bodies.find(npcId)
     local registry = Store().data()
     local npc = registry and Identity().get(registry, npcId)
     if not npc then return nil, "unknown" end
     local z = Bodies.bound[npcId]
-    if z ~= nil and getCell() ~= nil and Bodies.inWorld(z) then return z, "bound" end
+    if z ~= nil and getCell() ~= nil and boundInWorld(npcId, z) then return z, "bound" end
     return nil, npc.state
 end
 

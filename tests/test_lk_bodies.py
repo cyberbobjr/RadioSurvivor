@@ -1246,6 +1246,49 @@ class ScanCostTests(Base):
         self.assertGreaterEqual(self.ev('LivingKnox.Bodies.scanState.sweeps'), 1)
 
 
+class FindCacheTests(Base):
+    """C30 : le test de présence de Bodies.find (getZombieList():contains) est fait une fois par PNJ et par image."""
+
+    def setUp(self):
+        super().setUp()
+        self.run_lua('''FRAME = 1; CONTAINS = 0
+local w = getWorld()
+getWorld = function() return { getWorld = w.getWorld, getGameMode = w.getGameMode,
+    getFrameNo = function() return FRAME end } end
+local list = getCell():getZombieList()
+local contains = list.contains
+list.contains = function(self, z) CONTAINS = CONTAINS + 1; return contains(self, z) end''')
+
+    def test_one_contains_per_frame(self):
+        self.init()
+        self.spawn()
+        self.run_lua('CONTAINS = 0')
+        for _ in range(5):
+            self.assertIsNotNone(self.ev('(LivingKnox.Bodies.find("lk-1"))'))
+        self.assertEqual(self.ev('CONTAINS'), 1)
+        self.run_lua('FRAME = FRAME + 1')
+        self.ev('(LivingKnox.Bodies.find("lk-1"))')
+        self.assertEqual(self.ev('CONTAINS'), 2)
+        self.h.advance_ms(100)                       # serveur en pause : même image, autre heure
+        self.ev('(LivingKnox.Bodies.find("lk-1"))')
+        self.assertEqual(self.ev('CONTAINS'), 3)
+
+    def test_body_put_aside_is_seen_at_the_next_frame(self):
+        self.init()
+        self.spawn()
+        self.assertIsNotNone(self.ev('(LivingKnox.Bodies.find("lk-1"))'))
+        self.run_lua('UNLOAD(96, 200, 96, 200); FRAME = FRAME + 1')
+        self.assertIsNone(self.ev('(LivingKnox.Bodies.find("lk-1"))'))
+
+    def test_despawn_in_the_same_frame_is_not_cached(self):
+        self.init()
+        self.spawn()
+        self.assertIsNotNone(self.ev('(LivingKnox.Bodies.find("lk-1"))'))
+        self.assertEqual(self.run_lua('return LivingKnox.Bodies.despawn("lk-1")'), (True, 1))
+        self.assertIsNone(self.ev('(LivingKnox.Bodies.find("lk-1"))'))
+        self.assertEqual(self.run_lua('local n = 0; for _ in pairs(LivingKnox.Bodies.foundCache) do n = n + 1 end; return n'), 0)
+
+
 class SoloTests(Base):
     mode = 'solo'
 

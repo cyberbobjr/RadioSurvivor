@@ -423,6 +423,7 @@ function Relay.onClientCommand(module, command, player, args)
     if module ~= Relay.MODULE or command ~= LivingKnox.ZombieGuard.CMD_HELLO or not isServer() or player == nil then
         return
     end
+    if not LivingKnox.ZombieGuard.helloAllowed(player, "Relay") then return end
     Relay.onHello(player)
 end
 

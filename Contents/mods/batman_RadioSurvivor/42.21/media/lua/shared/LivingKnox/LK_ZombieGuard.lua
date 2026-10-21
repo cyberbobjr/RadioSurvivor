@@ -46,6 +46,7 @@
 require "LivingKnox/LK_Core"
 require "LivingKnox/LK_Config"
 require "LivingKnox/LK_Log"
+require "RadioSurvivor/RS_RateLimit" -- C31: per-account limit of "guardHello"
 
 local Guard = LivingKnox.ZombieGuard or {}
 LivingKnox.ZombieGuard = Guard
@@ -66,6 +67,7 @@ Guard.APPLY_EVERY = 3        -- images entre deux passages sur les corps connus
 Guard.SLOW_EVERY = 15        -- images entre deux passages lents (liste du serveur, tranche client, dangers)
 Guard.SCAN_BUDGET = 64       -- zombies examinés par tranche côté client
 Guard.HELLO_RETRY = 600      -- images avant de redemander la liste tant qu'aucune n'est reçue
+Guard.HELLO_LIMIT = { 3, 0.5 } -- serveur (C31) : guardHello par compte et par module, 3 d'un coup puis 1 toutes les 2 s
 Guard.FRESH_MS = 3000        -- client : copie confirmée repassée à chaque image pendant ce délai (habillage)
 Guard.SEEN_MS = 10000        -- client : zombies nés récemment gardés pour une liste reçue après eux
 Guard.SEEN_MAX = 1024        -- client : au-delà, un zombie né n'est retrouvé que par le sondage borné
@@ -349,8 +351,19 @@ function Guard.bodyBound(npcId, z)
 end
 
 -- Serveur : un client entré en partie demande la liste courante (réponse à lui seul).
+-- C31 : vrai si ce "guardHello" du joueur peut être traité par le module who (seau par compte et par module de
+-- RS_RateLimit, serveur MP seulement). Chaque module qui répond à guardHello a son propre seau : tous voient les mêmes
+-- arrivées, donc prennent la même décision. Le client le répète toutes les HELLO_RETRY images au plus, et une
+-- reconnexion trouve un seau plein. Un guardHello refusé reste sans réponse.
+function Guard.helloAllowed(player, who)
+    local RL = RS_RateLimit
+    if RL == nil then return true end
+    return RL.allow(player, "lk.hello." .. tostring(who), Guard.HELLO_LIMIT[1], Guard.HELLO_LIMIT[2])
+end
+
 function Guard.onClientCommand(module, command, player, args)
     if module ~= Guard.MODULE or command ~= Guard.CMD_HELLO or not isServer() or player == nil then return end
+    if not Guard.helloAllowed(player, "ZombieGuard") then return end
     local list = Guard.buildRoster()
     sendServerCommand(player, Guard.MODULE, Guard.CMD_ROSTER, Guard.rosterArgs(list))
 end

@@ -380,6 +380,7 @@ end
 function Equipment.onClientCommand(module, command, player, args)
     local G = LivingKnox.ZombieGuard
     if module ~= Equipment.MODULE or command ~= G.CMD_HELLO or not isServer() or player == nil then return end
+    if not G.helloAllowed(player, "Equipment") then return end
     local w = Equipment.buildTable()
     sendServerCommand(player, Equipment.MODULE, Equipment.CMD_STATE, Equipment.stateArgs(w))
 end

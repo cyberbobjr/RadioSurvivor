@@ -15,6 +15,7 @@ local Transport = require "RadioSurvivor/RS_Transport"
 local Personas = require "RadioSurvivor/RS_Personas"
 -- Historique radio par personnage du carnet (E06-T04) : phrases dites, réponses, lignes entendues.
 local Log = require "RadioSurvivor/RS_RadioLog"
+local RateLimit = require "RadioSurvivor/RS_RateLimit" -- C21: per-account limit of the radio commands
 -- Réponse radio structurée (E07-T01) : RSV2 comme les PNJ, actions jugées par RS_Actions.
 local Codec = require "RadioSurvivor/RS_Codec"
 local Actions = require "RadioSurvivor/RS_Actions"
@@ -397,7 +398,11 @@ local function onTalk(player, args)
         Const.toClient(player, Const.CMD.REJECTED, { reason = reason })
     end
     if not Const.isEnabled() then return reject("Disabled") end
-    local text = Const.oneLine(type(args) == "table" and args.text or "")
+    -- C22 : un texte reçu plus long que quatre fois la borne est ignoré (aucun client normal ne l'envoie : le module
+    -- Émettre coupe à MAX_INPUT_CHARS), avant tout motif sur le texte brut.
+    local raw = type(args) == "table" and args.text or ""
+    if type(raw) ~= "string" or string.len(raw) > 4 * Const.MAX_INPUT_CHARS then return end
+    local text = Const.oneLine(raw)
     if text == "" then return end
     if string.len(text) > Const.MAX_INPUT_CHARS then
         text = string.sub(text, 1, Const.MAX_INPUT_CHARS)
@@ -490,8 +495,19 @@ local function onTalk(player, args)
     Const.toClient(player, Const.CMD.ACCEPTED, { text = text })
 end
 
+-- C21: per-account token buckets {capacity, per second} (RS_RateLimit, MP server only). history sends up to one
+-- packet per frequency and is asked when the history window opens; heard is one report per line a radio of the
+-- client receives. A dropped command gets no reply.
+local RATE_HISTORY = { 3, 0.2 }
+local RATE_OTHER = { 30, 6 }
+
 local function onClientCommand(module, command, player, args)
     if module ~= Const.MODULE then return end
+    if command == Const.CMD.HISTORY then
+        if not RateLimit.allow(player, "radio.history", RATE_HISTORY[1], RATE_HISTORY[2]) then return end
+    elseif not RateLimit.allow(player, "radio", RATE_OTHER[1], RATE_OTHER[2]) then
+        return
+    end
     -- Toute autre commande est ignorée (dont « frequencies » d'un client antérieur à E05-T08 : plus de liste).
     if command == Const.CMD.TALK then
         onTalk(player, args)

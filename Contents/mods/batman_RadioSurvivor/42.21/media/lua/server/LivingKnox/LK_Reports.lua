@@ -334,7 +334,7 @@ function Reports.onClientCommand(module, command, player, args)
     if command == Reports.CMD_REPORT then
         Reports.onReport(player, args)
     elseif command == LivingKnox.ZombieGuard.CMD_HELLO then
-        Reports.onHello(player)
+        if LivingKnox.ZombieGuard.helloAllowed(player, "Reports") then Reports.onHello(player) end
     end
 end
 

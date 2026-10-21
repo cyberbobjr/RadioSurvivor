@@ -1226,7 +1226,7 @@ if isServer() then
         if command == Combat.CMD_HIT then
             LivingKnox.Combat.onHit(player, args)
         elseif command == LivingKnox.ZombieGuard.CMD_HELLO then
-            LivingKnox.Combat.onHello(player)
+            if LivingKnox.ZombieGuard.helloAllowed(player, "Combat") then LivingKnox.Combat.onHello(player) end
         end
     end
     LivingKnox.subscribe("OnClientCommand", "Combat.onClientCommand", onClientCommand)

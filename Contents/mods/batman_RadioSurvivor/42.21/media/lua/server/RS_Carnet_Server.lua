@@ -12,6 +12,7 @@ local Obs = require 'RadioSurvivor/RS_Observations'
 local Triggers = require 'RadioSurvivor/RS_ObservationTriggers' -- E08-T07: observation triggers
 local Factions = require 'RadioSurvivor/RS_Factions' -- E09-T03: team ids and negotiation mandates
 local Relations = require 'RadioSurvivor/RS_Relations' -- E09-T04: personal relation of an NPC toward a character
+local RateLimit = require 'RadioSurvivor/RS_RateLimit' -- C21: per-account limit of the notebook commands
 local Server = {store = S, bound = {}, selected = {}, objects = {}, quotes = {}, pending = {}, times = {}, enrichTimes = {}, enrichAttempts = {}, lastTalk = {}, collectives = {}, reactions = {}, reactionQueue = {}, relations = {}, refusals = {}, MAX_REFUSALS = 16} -- E09-T04: relation bindings -- E17-T15: last refused requests (see poll) -- E10-T03: reactions, reaction queue
 -- Export only on the authority, also used by the real-Lua simulation tests.
 RS_CarnetServer = Server
@@ -930,8 +931,18 @@ local MANDATE_ERRORS = {not_owner = 'MandateOwner', not_member = 'MandateMember'
 -- An empty argument table arrives as nil (SinglePlayerClient.java:126, GameClient.java:1760: args sent only when not
 -- empty): the first hello of a new character ({character = nil}) used to be dropped here, so no notebook character
 -- was ever created and the radio history (RS_RadioLog) stayed empty. nil is read as {}.
+-- C21: per-account token buckets {capacity, per second} (RS_RateLimit, MP server only). hello and snapshot rebuild
+-- and send the whole projection, rep_admin logs its refusals; every other command shares one bucket. The client polls
+-- every 3 s with the notebook open: far below these limits. A dropped command gets no reply.
+Server.RATE_LIMITS = {hello = {4, 0.5}, snapshot = {6, 1}, rep_admin = {3, 0.2}}
+Server.RATE_LIMIT_OTHER = {20, 4}
+
 function Server.command(module, command, player, args)
     if module ~= C.MODULE or not player then return end
+    local limit = Server.RATE_LIMITS[command]
+    local bucket = limit and ('carnet.' .. command) or 'carnet'
+    limit = limit or Server.RATE_LIMIT_OTHER
+    if not RateLimit.allow(player, bucket, limit[1], limit[2]) then return end
     if type(args) ~= 'table' then args = {} end
     if not S.data or S.blocked then return reject(player, 'Storage') end
     if player:isDead() then return reject(player, 'State') end

@@ -726,7 +726,8 @@ LivingKnox.subscribe("OnWeaponHitCharacter", "Health.onWeaponHit", onWeaponHitCh
 
 if isServer() then
     local function onClientCommand(module, command, player, args)
-        if module == Health.MODULE and command == LivingKnox.ZombieGuard.CMD_HELLO and player ~= nil then
+        if module == Health.MODULE and command == LivingKnox.ZombieGuard.CMD_HELLO and player ~= nil
+            and LivingKnox.ZombieGuard.helloAllowed(player, "Health") then
             LivingKnox.Health.onHello(player)
         end
     end
