@@ -37,9 +37,9 @@ local GLOBALS = {
     { "detectBadWords", "server", "server/RS_Carnet_Server.lua:275" },
     { "addSound", "server", "server/RS_Carnet_Server.lua:804" },
     { "getFileReader", "server", "server/RadioSurvivor/RS_State.lua:46" },
-    { "getFileWriter", "server", "server/RadioSurvivor/RS_State.lua:59" },
-    { "getWorld", "server", "server/RadioSurvivor/RS_State.lua:27" },
-    { "ZombRand", "server", "server/RadioSurvivor/RS_State.lua:9" },
+    { "getFileWriter", "server", "server/RadioSurvivor/RS_State.lua:141" },
+    { "getWorld", "server", "server/RadioSurvivor/RS_State.lua:63" },
+    { "ZombRand", "server", "server/RadioSurvivor/RS_State.lua:26" },
     { "getGameTime", "server", "server/RadioSurvivor_Server.lua:82" },
     { "getClimateManager", "server", "server/RadioSurvivor/RS_ObservationTriggers.lua:243" },
     { "getZomboidRadio", "server", "server/RadioSurvivor/RS_Personas.lua:720" },
@@ -229,11 +229,11 @@ RST.suite("rs.env", { tags = { "shared" } }, function(s)
         end
         local world = getWorld()
         t:ok(world ~= nil, "getWorld() returned nil")
-        -- server/RadioSurvivor/RS_State.lua:28 builds the state path from these two strings.
+        -- server/RadioSurvivor/RS_State.lua:64 builds the state path from these two strings.
         t:eq("string", type(world:getGameMode()), "IsoWorld:getGameMode() (used by " .. PREFIX
-            .. "server/RadioSurvivor/RS_State.lua:28)")
+            .. "server/RadioSurvivor/RS_State.lua:64)")
         t:eq("string", type(world:getWorld()), "IsoWorld:getWorld() (used by " .. PREFIX
-            .. "server/RadioSurvivor/RS_State.lua:28)")
+            .. "server/RadioSurvivor/RS_State.lua:64)")
         if runSide == "server" then
             -- server/RS_Carnet_Server.lua:257 and :344 only read the options on a server.
             local options = getServerOptions()
