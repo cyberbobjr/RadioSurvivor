@@ -264,6 +264,16 @@ RST.suite("rs.missions", { tags = { "server" } }, function(s)
         t:eq(locked, state.missions[locked.id], "mission under transaction kept")
         t:eq(noStamp, state.missions[noStamp.id], "recently stamped mission kept")
 
+        -- 2026-10-21: an unclaimed lot is kept 7 game days (unclaimedUntilHour, world age). This one, stamped in real
+        -- time only (saved before that decision), got once a game deadline capped to 7 game days.
+        local Clock = require "RadioSurvivor/RS_GameClock"
+        local h = Clock.hours()
+        t:ok(h ~= nil and unclaimed.unclaimedUntilHour > h
+            and unclaimed.unclaimedUntilHour <= h + Config.UNCLAIMED_RETENTION_HOURS + 1e-6,
+            "real-time lot converted to a game deadline of at most 7 game days")
+        M.prune(state, 1001 + Config.UNCLAIMED_RETENTION_MS)
+        t:eq(unclaimed, state.missions[unclaimed.id], "real time alone never drops the lot")
+        unclaimed.unclaimedUntilHour = h   -- 7 game days spent
         t:eq(true, M.prune(state, 1001 + Config.UNCLAIMED_RETENTION_MS))
         t:eq(nil, state.missions[unclaimed.id], "unclaimed success dropped after its retention")
     end)
