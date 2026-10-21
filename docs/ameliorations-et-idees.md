@@ -208,6 +208,7 @@ Chemins relatifs à `Contents/mods/batman_RadioSurvivor/42.21/media/lua/`.
 - **Risque** : MP et autorité. Un client modifié peut geler le serveur ou inonder ses journaux.
 - **Correction** : seau à jetons par compte à l'entrée de `Server.command` et de `onClientCommand` (même répartiteur que C31) ; snapshot en cache s'il n'a pas changé ; refus journalisés une fois par fenêtre.
 - **Priorité** haute · **Effort** S · confirmé statiquement.
+- **Statut : corrigé (commit 2d8cae5), à vérifier en jeu** — Seaux par compte (`RS_RateLimit`, serveur MP seulement) : `hello` 4 puis 1/2 s, `snapshot` 6 puis 1/s, `rep_admin` 3 puis 1/5 s, autres commandes du carnet 20 puis 4/s ; `history` 3 puis 1/5 s, autres commandes radio 30 puis 6/s ; commande refusée sans réponse, refus journalisés une fois par minute. Snapshot en cache non fait.
 
 #### C22 — Nettoyage de texte quadratique appliqué avant la troncature
 - **Problème** : `Const.oneLine` utilise `^%s*(.-)%s*$`, dont le retour arrière est en O(n²) sur une longue suite d'espaces suivie d'un caractère. `onTalk` et `Log.heard` l'appliquent au texte brut du client, avant de le couper à `MAX_INPUT_CHARS`.
@@ -215,6 +216,7 @@ Chemins relatifs à `Contents/mods/batman_RadioSurvivor/42.21/media/lua/`.
 - **Risque** : sécurité et perf. Un paquet `talk` de quelques dizaines de kilo-octets d'espaces bloque le fil serveur.
 - **Correction** : refuser un `args.text` plus long que quatre fois la borne, tronquer avant tout `gsub`, rogner par `find("%S")` et `find("%S%s*$")`.
 - **Priorité** haute · **Effort** S · coût confirmé statiquement, effet à mesurer en jeu.
+- **Statut : corrigé (commit 2d8cae5), à vérifier en jeu** — `Const.oneLine` linéaire (deux `find`) ; `onTalk` ignore un texte de plus de 4 × `MAX_INPUT_CHARS` ; `Log.cleanText` coupe à 4 × `MAX_TEXT` avant tout motif.
 
 #### C23 — La radio ignore les contrôles de chat de la parole de proximité
 - **Problème** : `chatAllowed` (mort, sommeil, `isAllChatMuted`, `ChatStreams`, `detectBadWords`) ne s'applique qu'à la parole de proximité. Un joueur muet ou endormi, ou un texte filtré, atteint le LLM par la radio d'une voix ou d'un groupe. `GroupRadio.talk` ignore aussi `ChatMessageSlowModeTime`.
@@ -275,6 +277,7 @@ Chemins relatifs à `Contents/mods/batman_RadioSurvivor/42.21/media/lua/`.
 - **Risque** : perf Kahlua et Java. Coût de PNJ incarnés × appels × zombies chargés. Avec une population élevée (plusieurs milliers de zombies autour de joueurs dispersés), cela crée des pointes. Le test lui-même est juste (base `zombies-as-npc-bodies.md` : `isDead` reste faux une fois le corps mis de côté).
 - **Correction** : cache par image (`id → résultat`, invalidé au changement d'image ou à `bodyBound`/`despawn`), ou test `contains` limité au premier `find` de l'image pour chaque PNJ. Mesurer avant et après avec `LK_Load` (LK13-T02).
 - **Priorité** moyenne · **Effort** S · confirmé statiquement, coût à mesurer en jeu.
+- **Statut : corrigé (commit 2d8cae5), à vérifier en jeu** — Cache par PNJ du test `contains`, valable pour un même `getWorld():getFrameNo()` et un même `getTimestampMs()`, vidé par `removeBody` ; gain à mesurer avec `LK_Load`.
 
 #### C31 — Commandes réseau : environ 30 abonnés qui filtrent chacun le module, sans limite de débit
 - **Problème** :
@@ -285,6 +288,7 @@ Chemins relatifs à `Contents/mods/batman_RadioSurvivor/42.21/media/lua/`.
 - **Risque** : MP et perf. Un client modifié qui répète `guardHello` à chaque image force des parcours complets et des renvois d'état. Chaque commande traverse aussi une trentaine de fonctions Lua.
 - **Correction** : un répartiteur unique `module → command → handler` par machine (un seul abonnement), avec un compteur par compte et par commande (par exemple `hello` au plus une fois par seconde). Les gestionnaires existants restent inchangés.
 - **Priorité** moyenne · **Effort** M · confirmé statiquement (l'effet d'une répétition abusive reste à mesurer).
+- **Statut : corrigé (commit 2d8cae5), à vérifier en jeu** — `guardHello` limité par compte et par module (`ZombieGuard.helloAllowed` : 3 puis 1/2 s) ; répartiteur unique non fait (les abonnés restent séparés).
 
 #### C32 — Joueurs déconnectés gardés dans `Relay.players` et `Relay.sent`
 - **Problème** : `Relay.players[name]` garde le dernier `IsoPlayer` connu et `Relay.sent[name]` n'est jamais purgé. Aucun abonné de déconnexion dans le moteur. `publish` envoie à `Relay.players[name]` tant que le compte figure dans `Relay.near`.
