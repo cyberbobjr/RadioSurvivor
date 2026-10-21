@@ -32,6 +32,11 @@ Layers:
 ]]
 local C = {}
 C.MAX_BYTES = 4194304 -- private state; exchange envelopes have a stricter 256 KiB limit
+-- Decoder bounds, also enforced by the encoder (C18): encodeBytes never returns bytes that decodeBytes refuses.
+C.MAX_NODES = 200000    -- values read, keys included
+C.MAX_DEPTH = 12
+C.MAX_ENTRIES = 10000   -- entries of one table
+C.lastNodes = 0         -- nodes of the last successful encodeBytes (size warnings of the callers)
 
 local UTF16 = (#"\195\169" == 1)
 local NONASCII = '[^\1-\127]'
@@ -139,9 +144,22 @@ function C.hexBytes(s)
     return (s:gsub('.', function(c) return string.format('%02x', string.byte(c)) end))
 end
 
+-- Fast hex of a byte string (codes 0-255, output of encodeBytes): same digits as hexBytes, by a gsub replacement
+-- table (no Lua call per byte; same technique as LK_Store, LK13-T06). A unit above 255 would be kept as is: use
+-- hexBytes for Lua strings (historical file name).
+local HEX, UNHEX = {}, {}
+for i = 0, 255 do
+    HEX[string.char(i)] = string.format('%02x', i)
+    UNHEX[string.format('%02x', i)] = string.char(i)
+end
+function C.hexOfBytes(s)
+    return (string.gsub(s, '.', HEX))
+end
+
+-- Same refusals and same bytes as before (even length, digits 0-9a-f only), by a replacement table (C20).
 function C.unhexBytes(s)
     if type(s) ~= 'string' or #s > C.MAX_BYTES * 2 or #s % 2 ~= 0 or s:find('[^0-9a-f]') then return nil end
-    return (s:gsub('..', function(c) return string.char(tonumber(c, 16)) end))
+    return (string.gsub(s, '..', UNHEX))
 end
 
 -- Keys of a table in RSV2 order: by type name then text (type(k) .. tostring(k)), the order of the historical
@@ -165,7 +183,10 @@ local INSERTION = 12    -- tables up to this many keys are sorted by insertion
 -- Encodes value at depth into out (from index n + 1); cache = { keyText, keyEnc, str } of this call. Returns the
 -- new last index.
 local function packInto(out, n, value, depth, cache)
-    assert(depth <= 12, 'RSV2 depth')
+    assert(depth <= C.MAX_DEPTH, 'RSV2 depth')
+    local nodes = cache.nodes + 1
+    assert(nodes <= C.MAX_NODES, 'RSV2 complexity')
+    cache.nodes = nodes
     local kind = type(value)
     if kind == 'string' then
         local e = cache.str[value]
@@ -178,6 +199,7 @@ local function packInto(out, n, value, depth, cache)
         return n + 1
     end
     if kind == 'number' then
+        assert(value == value and math.abs(value) < math.huge, 'RSV2 number')   -- the decoder refuses nan and inf
         local s = tostring(value)
         out[n + 1] = 'n' .. #s .. ':' .. s
         return n + 1
@@ -210,6 +232,7 @@ local function packInto(out, n, value, depth, cache)
         texts[count] = text
         byText[text] = k
     end
+    assert(count <= C.MAX_ENTRIES, 'RSV2 entries')
     n = n + 1
     out[n] = 't' .. count .. ':'
     local keys
@@ -240,6 +263,9 @@ local function packInto(out, n, value, depth, cache)
         if e == nil then   -- key 0, or not seen in this call
             n = packInto(out, n, k, depth + 1, cache)
         else
+            local keyNodes = cache.nodes + 1   -- a cached key is one node of the decoder too
+            assert(keyNodes <= C.MAX_NODES, 'RSV2 complexity')
+            cache.nodes = keyNodes
             n = n + 1
             out[n] = e
         end
@@ -250,9 +276,11 @@ end
 
 function C.encodeBytes(value)
     local out = {}
-    packInto(out, 0, value, 0, { keyText = {}, keyEnc = {}, str = {} })
+    local cache = { keyText = {}, keyEnc = {}, str = {}, nodes = 0 }
+    packInto(out, 0, value, 0, cache)
     local result = table.concat(out)
     assert(#result <= C.MAX_BYTES, 'RSV2 size')
+    C.lastNodes = cache.nodes
     return result
 end
 
@@ -261,7 +289,7 @@ function C.decodeBytes(s)
     local pos, nodes = 1, 0
     local function read(depth)
         nodes = nodes + 1
-        assert(depth <= 12 and nodes <= 200000, 'RSV2 complexity')
+        assert(depth <= C.MAX_DEPTH and nodes <= C.MAX_NODES, 'RSV2 complexity')
         local kind = s:sub(pos, pos)
         pos = pos + 1
         if kind == 'b' then
@@ -279,7 +307,7 @@ function C.decodeBytes(s)
         assert(len <= C.MAX_BYTES, 'RSV2 length limit')
         pos = colon + 1
         if kind == 't' then
-            assert(len <= 10000, 'RSV2 entries')
+            assert(len <= C.MAX_ENTRIES, 'RSV2 entries')
             local t = {}
             for _ = 1, len do
                 local k = read(depth + 1)
@@ -305,9 +333,31 @@ function C.decodeBytes(s)
     return nil
 end
 
+-- Adler-32 in decimal. Same value as the historical one-modulo-per-byte loop, the modulo taken every BLOCK bytes and
+-- sixteen bytes read per string.byte call (LK_Store, LK13-T06; C20). Exact integers in doubles: a < 65521 + 65535 x
+-- BLOCK, b < 65521 + BLOCK x a, below 2^53 even for UTF-16 units.
+local BLOCK = 4000
 function C.checksumBytes(s)
-    local a, b = 1, 0
-    for i = 1, #s do a = (a + s:byte(i)) % 65521; b = (b + a) % 65521 end
+    local a, b, n, i = 1, 0, #s, 1
+    local byte = string.byte
+    while i <= n do
+        local j = i + BLOCK - 1
+        if j > n then j = n end
+        local k = i
+        while k + 15 <= j do
+            local c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16 = byte(s, k, k + 15)
+            b = b + 16 * a + 16 * c1 + 15 * c2 + 14 * c3 + 13 * c4 + 12 * c5 + 11 * c6 + 10 * c7 + 9 * c8 + 8 * c9
+                + 7 * c10 + 6 * c11 + 5 * c12 + 4 * c13 + 3 * c14 + 2 * c15 + c16
+            a = a + c1 + c2 + c3 + c4 + c5 + c6 + c7 + c8 + c9 + c10 + c11 + c12 + c13 + c14 + c15 + c16
+            k = k + 16
+        end
+        for q = k, j do
+            a = a + byte(s, q)
+            b = b + a
+        end
+        a, b = a % 65521, b % 65521
+        i = j + 1
+    end
     return string.format('%.0f', b * 65536 + a)
 end
 

@@ -15,6 +15,8 @@
 
 - Radio voices can no longer be steered by a character or radio name written as an order, nor tricked by a message that pretends to come from another caller on the same frequency.
 - The AI bridge caps the cost of every request: each attempt is limited in length, an answer cut by that limit is not retried, and an oversized prompt is never sent (the voice answers with static).
+- A notebook save that fails once (disk busy, file locked) no longer switches the notebook off until the next restart: the save is retried and nothing is lost.
+- A very large notebook state on a long-running server can no longer produce a save file that the next session cannot read; dead characters' old notebook data is cleared after a few in-game weeks to keep the save small.
 - Corpse notes only select active voices with an available frequency. Repeated loot generation preserves the original roll and avoids duplicate notes already in the corpse.
 
 ### Validation
