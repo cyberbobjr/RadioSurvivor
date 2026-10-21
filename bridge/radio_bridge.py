@@ -233,6 +233,8 @@ def startup_header(args: argparse.Namespace, config: dict[str, str]) -> None:
     log(f"Personas directory: {(args.personas if args.test else args.exchange / 'personas').resolve()}")
     log(f"Poll interval: {max(0.02, args.poll):g}s | Workers: {WORKERS} | Request max age: {MAX_AGE_S}s"
         f" | LLM budget: {LLM_BUDGET_S}s")
+    max_tokens, max_chars = llm_limits(config)
+    log(f"LLM caps: {max_tokens} tokens per attempt, {max_chars} prompt characters")
     log(f"History limit: {MAX_HISTORY} messages | Radio limit: {MAX_LINES} lines, {MAX_LINE_CHARS} characters/line")
     if args.test:
         log(f"Test voice: {args.voice}")
@@ -261,7 +263,38 @@ def load_config(env_path: Path) -> dict[str, str]:
     missing = [k for k, v in config.items() if not v]
     if missing:
         sys.exit(f"Missing configuration: {', '.join(missing)} (file {env_path} or environment variables)")
+    # Optional caps of every LLM call (C03, C10), same sources and priority as the three settings above.
+    for key in LIMIT_SETTINGS:
+        config[key] = limit_setting(key, os.environ.get(key) or values.get(key))
     return config
+
+
+# Optional settings of the .env file (or environment): (default, minimum, maximum). Out of bounds or not a whole
+# number: default kept and a warning logged (user decision 2026-10-21).
+LIMIT_SETTINGS = {
+    "LLM_MAX_TOKENS": (16000, 256, 131072),           # C03: token cap of every attempt (max_tokens / max_completion_tokens)
+    "LLM_MAX_PROMPT_CHARS": (128000, 16000, 2000000),  # C10: characters of a whole prompt, beyond: prompt_too_large
+}
+
+
+def limit_setting(key: str, raw) -> int:
+    """Value of an optional cap of LIMIT_SETTINGS read from `raw` (text of the .env or environment): a whole positive
+    number within its bounds, otherwise its default (empty or missing: default without warning)."""
+    default, low, high = LIMIT_SETTINGS[key]
+    text = raw.strip() if isinstance(raw, str) else ""
+    if not text:
+        return default
+    if re.fullmatch(r"[0-9]{1,9}", text) and low <= int(text) <= high:
+        return int(text)
+    log(f"Invalid {key}={text[:40]!r}: whole number from {low} to {high} expected, default {default} kept")
+    return default
+
+
+def llm_limits(config: dict) -> tuple[int, int]:
+    """(token cap, prompt character cap) of a call: the validated settings of the configuration, else the defaults."""
+    tokens = config.get("LLM_MAX_TOKENS")
+    chars = config.get("LLM_MAX_PROMPT_CHARS")
+    return (tokens if isinstance(tokens, int) else MAX_TOKENS, chars if isinstance(chars, int) else MAX_PROMPT_CHARS)
 
 
 # --- fichiers d'échange ----------------------------------------------------------------------
@@ -644,11 +677,13 @@ _json_mode_refused: set[tuple[str, str]] = set()
 _json_mode_lock = threading.Lock()
 
 
-MAX_TOKENS = 16000   # E07-T09: cap of an answer, reasoning included (user decision 2026-10-13), every attempt (C03)
+# E07-T09: cap of an answer, reasoning included (user decision 2026-10-13), every attempt (C03). Defaults of the
+# optional settings LLM_MAX_TOKENS and LLM_MAX_PROMPT_CHARS (LIMIT_SETTINGS, user decision 2026-10-21).
+MAX_TOKENS = LIMIT_SETTINGS["LLM_MAX_TOKENS"][0]
 # C10: cap of a whole prompt (all message contents), about 32 000 tokens. Legitimate prompts stay far below it: a voice
 # sheet of about 5 KB, 40 history messages of at most 800 / 1600 bytes (RS_Config.MAX_TEXT_BYTES / MAX_REPLY_BYTES),
 # the server-bounded context; a request envelope may reach 256 KiB (npc_protocol.MAX_BYTES).
-MAX_PROMPT_CHARS = 128000
+MAX_PROMPT_CHARS = LIMIT_SETTINGS["LLM_MAX_PROMPT_CHARS"][0]
 
 
 def prompt_chars(messages: list[dict[str, str]]) -> int:
@@ -711,13 +746,14 @@ def call_llm(config: dict[str, str], messages: list[dict[str, str]], speaker: st
     # sur 800 le 2026-10-13) : plafond porté à MAX_TOKENS (décision de l'utilisateur du 2026-10-13).
     # C10: prompt bounded before any call (a server bug or a growing context would otherwise cost tens of thousands
     # of tokens per request): refused with the code prompt_too_large, never sent.
+    max_tokens, max_chars = llm_limits(config)   # LLM_MAX_TOKENS, LLM_MAX_PROMPT_CHARS of the .env (2026-10-21)
     size = prompt_chars(messages)
-    if size > MAX_PROMPT_CHARS:
-        log(f"LLM call refused: prompt_too_large ({size} characters, limit {MAX_PROMPT_CHARS})")
-        raise ProviderError('prompt_too_large', f"prompt of {size} characters, limit {MAX_PROMPT_CHARS}")
-    full = {"model": config["OPENAI_MODEL"], "messages": messages, "temperature": 0.8, "max_tokens": MAX_TOKENS}
+    if size > max_chars:
+        log(f"LLM call refused: prompt_too_large ({size} characters, limit {max_chars})")
+        raise ProviderError('prompt_too_large', f"prompt of {size} characters, limit {max_chars}")
+    full = {"model": config["OPENAI_MODEL"], "messages": messages, "temperature": 0.8, "max_tokens": max_tokens}
     # C03: the fallback keeps a cap, under the newer name accepted by the models that refuse max_tokens.
-    minimal = {"model": config["OPENAI_MODEL"], "messages": messages, "max_completion_tokens": MAX_TOKENS}
+    minimal = {"model": config["OPENAI_MODEL"], "messages": messages, "max_completion_tokens": max_tokens}
     provider = (config["OPENAI_BASE_URL"], config["OPENAI_MODEL"])
     bodies = [full, minimal]
     with _json_mode_lock:

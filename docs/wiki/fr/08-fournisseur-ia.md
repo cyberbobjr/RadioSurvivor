@@ -25,6 +25,26 @@ OPENAI_BASE_URL=https://api.openai.com/v1
 OPENAI_MODEL=<nom du modèle>
 ```
 
+## Plafonds facultatifs
+
+Deux autres réglages, lus de la même façon (variable d'environnement d'abord, puis fichier `.env`), plafonnent le coût
+de chaque appel à l'IA. Sans eux, les valeurs par défaut s'appliquent.
+
+| Réglage | Défaut | Accepté | Sens |
+|---|---|---|---|
+| `LLM_MAX_TOKENS` | `16000` | nombre entier de 256 à 131072 | Plafond de jetons de chaque tentative (`max_tokens`, ou `max_completion_tokens` au nouvel essai), raisonnement compris. |
+| `LLM_MAX_PROMPT_CHARS` | `128000` | nombre entier de 16000 à 2000000 | Caractères d'un prompt entier ; au-delà, l'appel est refusé (`prompt_too_large`). |
+
+Une valeur qui n'est pas un nombre entier, ou hors bornes, est ignorée : le pont journalise `Invalid LLM_...` et garde
+la valeur par défaut. Les plafonds appliqués s'affichent au démarrage (`LLM caps: ...`). Un plafond de jetons trop bas
+vide les réponses d'un modèle qui raisonne avant de répondre ; un plafond de prompt trop bas fait taire les voix dont
+l'historique est long.
+
+```
+LLM_MAX_TOKENS=8000
+LLM_MAX_PROMPT_CHARS=128000
+```
+
 ## Choisir un fournisseur
 
 Tout fournisseur ou serveur local qui expose un point `/chat/completions` compatible OpenAI peut être essayé :
@@ -36,10 +56,10 @@ Conseils :
 
 - Certaines voix répondent dans une structure JSON (actions comme un repère sur la carte ou une mission). Le pont
   demande le mode JSON de l'API et réessaie sans lui, ou sans `temperature` et avec `max_completion_tokens` au lieu
-  de `max_tokens`, si le fournisseur refuse un paramètre. Chaque tentative est plafonnée à 16 000 jetons, et une
+  de `max_tokens`, si le fournisseur refuse un paramètre. Chaque tentative est plafonnée à 16 000 jetons (`LLM_MAX_TOKENS`), et une
   réponse vidée par ce plafond n'est pas relancée. Les petits modèles locaux suivent moins bien le format ; leurs réponses sont alors réduites à la parole
   seule.
-- Un prompt de plus de 128 000 caractères n'est jamais envoyé : le pont journalise `prompt_too_large` et la voix
+- Un prompt de plus de 128 000 caractères (`LLM_MAX_PROMPT_CHARS`) n'est jamais envoyé : le pont journalise `prompt_too_large` et la voix
   répond par des parasites.
 - Un appel doit se terminer en **60 s** (nouvelles tentatives comprises). Un modèle lent ou un fournisseur surchargé
   donne « Rien que des parasites... » et `bridge error timeout`.

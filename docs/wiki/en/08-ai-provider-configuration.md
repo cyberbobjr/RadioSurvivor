@@ -25,6 +25,25 @@ OPENAI_BASE_URL=https://api.openai.com/v1
 OPENAI_MODEL=<model name>
 ```
 
+## Optional caps
+
+Two more settings, read the same way (environment variable first, then the `.env` file), cap the cost of every AI
+call. Leave them out to keep the defaults.
+
+| Setting | Default | Accepted | Meaning |
+|---|---|---|---|
+| `LLM_MAX_TOKENS` | `16000` | whole number from 256 to 131072 | Token cap of every attempt (`max_tokens`, or `max_completion_tokens` on the retry), reasoning included. |
+| `LLM_MAX_PROMPT_CHARS` | `128000` | whole number from 16000 to 2000000 | Characters of a whole prompt; beyond, the call is refused (`prompt_too_large`). |
+
+A value that is not a whole number, or is out of bounds, is ignored: the bridge logs `Invalid LLM_...` and keeps the
+default. The effective caps are shown at startup (`LLM caps: ...`). Too low a token cap empties the answers of a
+model that reasons before answering; too low a prompt cap silences voices with a long history.
+
+```
+LLM_MAX_TOKENS=8000
+LLM_MAX_PROMPT_CHARS=128000
+```
+
 ## Choosing a provider
 
 Any provider or local server exposing an OpenAI-compatible `/chat/completions` endpoint can be tried: OpenAI,
@@ -35,9 +54,9 @@ Tips:
 
 - Some voices answer in a JSON structure (actions such as a map mark or a mission). The bridge asks for the JSON mode
   of the API and retries without it, or without `temperature` and with `max_completion_tokens` instead of
-  `max_tokens`, if the provider refuses a parameter. Every attempt is capped at 16 000 tokens, and an answer emptied
+  `max_tokens`, if the provider refuses a parameter. Every attempt is capped at 16 000 tokens (`LLM_MAX_TOKENS`), and an answer emptied
   by that cap is not retried.
-- A prompt longer than 128 000 characters is never sent: the bridge logs `prompt_too_large` and the voice answers
+- A prompt longer than 128 000 characters (`LLM_MAX_PROMPT_CHARS`) is never sent: the bridge logs `prompt_too_large` and the voice answers
   with static.
   Small local models follow the format less reliably; their answers are then reduced to plain speech.
 - One call must finish within **60 s** (all retries included). A slow model or an overloaded provider gives
