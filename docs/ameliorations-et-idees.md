@@ -240,7 +240,9 @@ Chemins relatifs à `Contents/mods/batman_RadioSurvivor/42.21/media/lua/`.
 - **Problème** : `tick` est abonné à `OnTickEvenPaused` et `remainingMs` diminue du temps réel écoulé. Une mission de 2 h (`RS_Config.lua:223`) continue de s'écouler en pause solo (Échap) et sur un serveur vide en pause (`PauseEmpty`).
 - **Preuve** : `server/RS_Carnet_Server.lua:1139`, `:1293` ; `server/RadioSurvivor/RS_Missions.lua:180-182`.
 - **Risque** : bug probable ou choix non documenté. Le chrono est bien arrêté pendant l'arrêt du serveur (preuve E00-T01), mais pas pendant une pause.
-- **Correction** : ne pas décompter si le jeu est en pause (vitesse 0 en solo, serveur sans joueur), ou passer aux minutes de jeu. **Décision à poser** à l'utilisateur.
+- **Correction** : ne pas décompter si le jeu est en pause (vitesse 0 en solo, serveur sans joueur), ou passer aux minutes de jeu. ~~Décision à poser~~ à l'utilisateur.
+- **Décision (2026-10-21, confirmée par l'utilisateur)** : les délais des missions suivent le temps de jeu (arrêt en pause, accélération en x2/x3), comme les délais vanilla.
+- **Statut** : décidé, tâche `E11-T20` (temps restant et délai entre deux offres comptés en temps de jeu à vitesse normale, `RS_GameClock`) ; codé et testé hors jeu, à vérifier en jeu.
 - **Priorité** moyenne · **Effort** S · à vérifier en jeu.
 
 #### C28 — Chaque zombie compté republie tous les snapshots

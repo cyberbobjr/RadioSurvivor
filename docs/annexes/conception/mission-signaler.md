@@ -28,7 +28,7 @@ mod requis** (`require=\batman_SignalSmoke`, objet requis sur Steam) ; le point 
 4. **Couleur** tirée parmi vert, rouge, jaune et violet (couleurs des fumigènes de Signal Smoke) que le module connaît.
    **Tout signal de la couleur compte** : fumigène lancé, fusée de détresse (toujours rouge), bâton lumineux posé.
 5. **Heure** : début d'une fenêtre de 2 heures de jeu, tiré 2 à 4 heures de jeu après l'heure du tirage, **valable
-   n'importe quel jour** tant que la mission est active (le délai reste la règle M01 en temps réel, 2 h). Heure lue
+   n'importe quel jour** tant que la mission est active (le délai reste la règle M01 : 2 h de jeu à vitesse normale depuis E11-T20). Heure lue
    par `GameTime:getHour()` au moment de l'événement.
 6. ~~**Réussite automatique**~~ : le premier signal valable (participant, couleur, cercle, fenêtre) remplit
    l'objectif ; les suivants ne sont plus jugés. Remplacé le 2026-10-14 (décision de l'utilisateur, E11-T13) : l'objectif rempli met la mission « à rapporter » ; elle ne réussit que quand un participant le dit au PNJ demandeur (intention `report_done` du modèle revérifiée par le serveur, ou bouton « Rendre compte » près de lui) ; demandeur mort avant : `cancelled_dead`. Voir `docs/specifications-techniques/protocole-carnet-v2.md`, « Compte rendu au demandeur ». Le lot commun se réclame près du demandeur (comme

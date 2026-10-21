@@ -44,6 +44,10 @@ getTimestampMs = function() return CLOCK end
 SIDE = "solo"
 isServer = function() return SIDE == "server" end
 isClient = function() return SIDE == "client" end
+-- GameTime double (GameTime.java:830, 867) read by RS_GameClock (E11-T20): fixed world age, vanilla day of 90 minutes.
+getGameTime = function()
+    return { getWorldAgeHours = function() return 100 end, getMinutesPerDay = function() return 90 end }
+end
 """
 
 # Doublures de l'API Java pour rs.env : présentes avec la forme que le mod et la suite utilisent.

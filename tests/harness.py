@@ -459,6 +459,8 @@ function GameTimeClass:getHour() return H.clock.hour end
 function GameTimeClass:getMinutes() return H.clock.minute end
 function GameTimeClass:getTimeOfDay() return H.clock.hour + H.clock.minute / 60 end
 function GameTimeClass:getWorldAgeHours() return H.clock.ageHours end
+-- GameTime.java:867: real minutes of one game day (DayLength, vanilla default 90), read by RS_GameClock (E11-T20).
+function GameTimeClass:getMinutesPerDay() return H.clock.minutesPerDay or 90 end
 function GameTimeClass:getMultiplier() return H.clock.multiplier end
 getGameTime = function() return gameTime end
 GameTime = {

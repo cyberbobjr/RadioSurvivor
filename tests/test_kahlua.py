@@ -55,6 +55,7 @@ LUA_FILES = [
     ('RadioSurvivor/RS_Codec', MOD_LUA / 'shared' / 'RadioSurvivor' / 'RS_Codec.lua'),
     ('RadioSurvivor/RS_Reputation', MOD_LUA / 'server' / 'RadioSurvivor' / 'RS_Reputation.lua'),
     ('RadioSurvivor/RS_NPCProvider', MOD_LUA / 'shared' / 'RadioSurvivor' / 'RS_NPCProvider.lua'),  # RS_Missions
+    ('RadioSurvivor/RS_GameClock', MOD_LUA / 'shared' / 'RadioSurvivor' / 'RS_GameClock.lua'),  # RS_Missions (E11-T20)
     ('RadioSurvivor/RS_Missions', MOD_LUA / 'server' / 'RadioSurvivor' / 'RS_Missions.lua'),
     ('RadioSurvivor/RS_Persona', MOD_LUA / 'server' / 'RadioSurvivor' / 'RS_Persona.lua'),
     ('RadioSurvivor/RadioSurvivor_Const', MOD_LUA / 'shared' / 'RadioSurvivor' / 'RadioSurvivor_Const.lua'),

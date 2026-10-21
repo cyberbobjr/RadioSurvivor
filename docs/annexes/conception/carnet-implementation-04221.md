@@ -412,16 +412,23 @@ commun que M01. Choix de conception : `docs/annexes/conception/mission-signaler.
 **Missions répétables (`E00-T03`, `RS_Missions.lua`).** Un PNJ n'a qu'une mission ouverte (offre ou
 active) à la fois ; chaque mission a un identifiant unique `<fiche>-deliveryN`. À la clôture
 (réussite, échec, abandon, mort du demandeur, expiration), `release` libère le PNJ et fixe la
-prochaine offre possible 30 minutes réelles plus tard (`OFFER_COOLDOWN_MS`, horloge `getTimestampMs`).
-Une offre que personne n'accepte expire après 1 heure de **fonctionnement du serveur**
+prochaine offre possible 30 minutes **de jeu à vitesse normale** plus tard (`OFFER_COOLDOWN_MS`, âge du monde
+`nextOfferHour` depuis `E11-T20` ; un ancien `nextOfferAt` en ms réelles est converti à la lecture par
+`M.offerWait`). Une offre que personne n'accepte expire après 1 heure de jeu à vitesse normale
 (`OFFER_TTL_MS`, décomptée comme le chrono ci-dessous) et passe à l'état `expired`
 (« Offre expirée : personne ne l'a acceptée »). Une offre d'un PNJ mort n'est plus acceptable et
 expire de même.
 
-Première acceptation : activation du chrono commun de 7 200 000 ms. `OnTickEvenPaused` décompte
-les deltas `getTimestampMs()` sur le serveur, même vide / `PauseEmpty=true` ; les commandes et
-`OnSave` le font avancer aussi. Au démarrage, la référence repart de l'instant présent : redémarrer
-n'ajoute pas la durée d'arrêt. Les joueurs tardifs confirment individuellement sans remettre le chrono
+Première acceptation : activation du chrono commun de 7 200 000 ms **de jeu à vitesse normale**
+(`E11-T20`, décision de l'utilisateur du 2026-10-21, point C27 ; remplace le décompte en temps réel de
+fonctionnement du serveur). `OnTickEvenPaused`, les commandes et `OnSave` font avancer un même compteur
+(`RS_GameClock.meter`) : écart d'âge du monde (`getWorldAgeHours`) × durée réelle d'une heure de jeu
+(`getMinutesPerDay() × 60000 / 24`). Le chrono s'arrête donc en pause (Échap en solo, serveur vide en
+`PauseEmpty`), va trois fois plus vite en vitesse x3 ou pendant le sommeil, et dure 2 h réelles à x1
+quelle que soit la durée du jour du sandbox. Au démarrage, le compteur repart de l'âge du monde chargé :
+redémarrer n'ajoute pas la durée d'arrêt. Un âge du monde qui recule (`setTimeOfDay`) ne compte rien.
+Les missions sauvegardées gardent leur `remainingMs` (même unité à vitesse normale). Les rétentions
+(`MISSION_RETENTION_MS`, `UNCLAIMED_RETENTION_MS`, `closedAt`) restent en temps réel. Les joueurs tardifs confirment individuellement sans remettre le chrono
 à zéro, même après une remise partielle. L'abandon confirmé clôt la mission commune pour tous ; le
 libellé l'annonce.
 

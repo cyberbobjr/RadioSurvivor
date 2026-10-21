@@ -15,7 +15,10 @@ local Relations = require 'RadioSurvivor/RS_Relations' -- E09-T04: personal rela
 local Server = {store = S, bound = {}, selected = {}, objects = {}, quotes = {}, pending = {}, times = {}, enrichTimes = {}, enrichAttempts = {}, lastTalk = {}, collectives = {}, reactions = {}, reactionQueue = {}, relations = {}, refusals = {}, MAX_REFUSALS = 16} -- E09-T04: relation bindings -- E17-T15: last refused requests (see poll) -- E10-T03: reactions, reaction queue
 -- Export only on the authority, also used by the real-Lua simulation tests.
 RS_CarnetServer = Server
-local tickAt, saveAt, checkAt, enrichAt, pruneAt = 0, 0, 0, 0, 0
+local saveAt, checkAt, enrichAt, pruneAt = 0, 0, 0, 0
+-- E11-T20 (C27): mission and offer delays count play time (RS_GameClock: stopped while paused, faster at x2/x3),
+-- not the real time of OnTickEvenPaused; one meter for every caller of M.advance.
+local playMeter = require('RadioSurvivor/RS_GameClock').meter()
 
 local function send(player, command, args)
     args = args or {}
@@ -932,9 +935,7 @@ function Server.command(module, command, player, args)
     if type(args) ~= 'table' then args = {} end
     if not S.data or S.blocked then return reject(player, 'Storage') end
     if player:isDead() then return reject(player, 'State') end
-    local now = getTimestampMs()
-    M.advance(S.data, math.max(0, now - tickAt))
-    tickAt = now
+    M.advance(S.data, playMeter())
     if command == 'hello' then
         identity(player, args.character)
         scan(); projection(player)
@@ -1136,7 +1137,7 @@ require 'RadioSurvivor/RS_MissionSignal' -- E11-T07: template signal (required m
 local function tick()
     if not S.data or S.blocked then return end
     local now = getTimestampMs()
-    local changed = M.advance(S.data, math.max(0, now - tickAt)); tickAt = now
+    local changed = M.advance(S.data, playMeter())
     if now >= checkAt then
         local present = {}
         for _, p in ipairs(players()) do present[p] = true end
@@ -1238,7 +1239,8 @@ local function init(newWorld) -- OnInitGlobalModData arg: always true on a dedic
     if S.init(newWorld == true and WorldStart.isNewWorld(true)) then
         T.acks = S.data.acks or {}
         local now = getTimestampMs()
-        tickAt, saveAt = now, now + C.SAVE_INTERVAL_MS
+        saveAt = now + C.SAVE_INTERVAL_MS
+        playMeter() -- start of the play clock: nothing counted for the time before the world loaded
         for _, npc in pairs(S.data.npcs) do if npc.enrichState == 'pending' then npc.enrichState = 'needed' end end
         scan(); syncTransport()
         print('[RS_Carnet] authoritative state ready, NPC provider=' .. tostring(P.active().name)

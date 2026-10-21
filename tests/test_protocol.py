@@ -72,7 +72,15 @@ GT_MODDATA = {}
 getGameTime = function() return {
     getYear = function() return 1993 end, getMonth = function() return 6 end, getDay = function() return 11 end,
     getHour = function() return HOUR end, getMinutes = function() return 5 end,
-    getWorldAgeHours = function() return WORLD_AGE_HOURS or 0 end,
+    -- E11-T20: without WORLD_AGE_HOURS, the world age follows the play clock of the bench Clock (PLAY_MS: real ms
+    -- minus the simulated downtime and pauses) over a day of MINUTES_PER_DAY real minutes. The default day of 1000
+    -- real days keeps the world age near 0 (the other game-hour rules see no time pass) while RS_GameClock still
+    -- counts one play ms per bench ms.
+    getWorldAgeHours = function()
+        if WORLD_AGE_HOURS then return WORLD_AGE_HOURS end
+        return PLAY_MS and PLAY_MS() * 24 / ((MINUTES_PER_DAY or 1440000) * 60000) or 0
+    end,
+    getMinutesPerDay = function() return MINUTES_PER_DAY or 1440000 end,
     getModData = function() return GT_MODDATA end } end
 getWorld = function() return { getWorld = function() return "TestWorld" end,
     getGameMode = function() return "Multiplayer" end } end
@@ -222,6 +230,8 @@ class Game:
         g.next = None  # absent de Kahlua
         self.rt.execute(STUBS, mode)
         g.getTimestampMs = clock
+        if hasattr(clock, 'play_ms'):
+            g.PLAY_MS = clock.play_ms
         # Zomboid/Lua/batman_RadioSurvivor/<x> -> exchange/<x> (fichiers d'échange et dossier des fiches).
         lua_path = lambda name: exchange / Path(name).relative_to("batman_RadioSurvivor")
         g.getFileWriter = lambda name, create, append: file_writer(lua_path(name), name, append)
@@ -317,11 +327,24 @@ def TextReader(text: str):
 
 
 class Clock:
+    """Real clock of the bench (getTimestampMs). play_ms (E11-T20): game time in real ms at normal speed, which stops
+    while the server is down or the world is paused (stop)."""
+
     def __init__(self):
         self.offset = 0.0
+        self.down = 0.0
+        self.start = time.time() * 1000
 
     def __call__(self):
         return time.time() * 1000 + self.offset
+
+    def play_ms(self):
+        return self() - self.start - self.down
+
+    def stop(self, ms):
+        """ms of real time without game time: server stopped, or world paused (PauseEmpty, solo pause)."""
+        self.offset += ms
+        self.down += ms
 
 
 def start_bridge(exchange: Path, intent: str = "") -> subprocess.Popen:

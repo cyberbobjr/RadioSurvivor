@@ -12,7 +12,8 @@ Suites (tag "server": RS_Carnet_Server.lua starts with "if isClient() then retur
                                 Zomboid/Lua/batman_RadioSurvivor/tests/identity-snapshot.txt of the server (a test
                                 file, not the notebook state). Run it again before each manual action.
     rs.identity.after-reconnect same session: same identity (server modData and binding), notes, engagements; the
-                                mission clock ran during the disconnection.
+                                mission clock ran with the game time during the disconnection (E11-T20: play
+                                time of RS_GameClock, stopped while the world is paused).
     rs.identity.after-restart   new session of the same world: same identity, notes, engagements; the mission
                                 clock excludes the downtime (rs.identity.before run just before "quit").
     rs.identity.after-death     an account whose identity changed died: old identity retired and unused, new
@@ -273,6 +274,14 @@ local function ms(v)
     return string.format("%.0f", v) .. " ms"
 end
 
+-- E11-T20: the mission clock counts play time (RS_GameClock: world age x real ms of a game hour at normal speed), not
+-- real time: nothing while the world is paused (empty dedicated server with PauseEmpty), faster at x2/x3.
+local function playNow()
+    local Clock = require "RadioSurvivor/RS_GameClock"
+    local h = Clock.hours()
+    return h and math.floor(h * Clock.msPerHour() + 0.5) or nil
+end
+
 -- A test NPC of Living Knox (RST.Fixtures.spawnNpc, removed after the test), its notebook fiche
 -- (RS_CarnetServer.ensure) and an ACTIVE mission it requests with every character of members engaged
 -- (RST.Fixtures.engagedMission, removed after the test unless keep); then after(t, m). SKIP outside a world run or
@@ -406,9 +415,10 @@ RST.suite("rs.identity", { tags = { "server" } }, function(s)
             local view = describe(store.data, a.owner, a.slot, a.character)
             t2:ok(view.engaged[m.id] ~= nil and view.engaged[m.id].state == "active",
                 keys[1] .. " does not see " .. m.id .. " as an active engaged mission")
-            local before, at = m.remainingMs, RST.now()
+            local before, at = m.remainingMs, playNow()
             t2:sleep(I.CLOCK_WAIT_MS, function(t3)
-                local used, elapsed = before - m.remainingMs, RST.now() - at
+                local now = playNow()
+                local used, elapsed = before - m.remainingMs, (now and at) and now - at or 0
                 t3:note(m.id .. ": " .. ms(used) .. " used for " .. ms(elapsed) .. " elapsed")
                 t3:eq("active", m.state, "state of " .. m.id)
                 t3:ok(math.abs(used - elapsed) <= I.LIVE_TOLERANCE_MS, m.id .. " used " .. ms(used) .. " for "
@@ -459,7 +469,7 @@ RST.suite("rs.identity.before", { tags = { "server", "manual" } }, function(s)
                 .. count(a.engaged) .. " engaged, " .. count(a.invited) .. " invited")
         end
         local snapshot = { version = 1, world = store.data.world, run = store.run, savedAt = RST.now(),
-            bootMs = RST_IdentityBootMs, accounts = found }
+            savedPlayMs = playNow(), bootMs = RST_IdentityBootMs, accounts = found }
         local ok, why = writeSnapshot(snapshot)
         t:ok(ok, why)
         local back, reason = readSnapshot()
@@ -503,7 +513,10 @@ RST.suite("rs.identity.after-reconnect", { tags = { "server", "manual" } }, func
         local found = pairUp(server, snapshot)
         local clocks = activeClocks(store.data, found)
         if #clocks == 0 then t:skip("no active engaged mission in the snapshot (needs an NPC provider, E17-T03)") end
-        local elapsed = RST.now() - snapshot.savedAt
+        -- Play time since the snapshot (E11-T20); real time for a snapshot written before E11-T20.
+        local now = playNow()
+        local elapsed = (type(snapshot.savedPlayMs) == "number" and now) and now - snapshot.savedPlayMs
+            or RST.now() - snapshot.savedAt
         local problems = {}
         for _, c in ipairs(clocks) do
             if c.m and c.m.state == "active" then

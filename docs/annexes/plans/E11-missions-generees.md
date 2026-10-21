@@ -8,6 +8,8 @@
 
 ## Décisions
 
+- 2026-10-21 — **E11-T20 — confirmé par l'utilisateur 2026-10-21** (point C27 de `docs/ameliorations-et-idees.md`) : les délais des missions suivent le **temps de jeu** comme les délais vanilla : arrêt en pause, accélération avec la vitesse x2/x3 (et le sommeil), plus de décompte sur un serveur vide en pause (`PauseEmpty`). Remplace E11-T01 (2) et la décision du 2026-10-02 « pause uniquement serveur arrêté » (`docs/annexes/recherches/bandits-llm-specifications.md`). **Confirmé par défaut** : durées inchangées à vitesse normale (2 h de mission = 2 h réelles à x1, quelle que soit la durée du jour du sandbox) : temps de jeu mesuré par l'âge du monde (`getWorldAgeHours`) converti par la durée du jour (`getMinutesPerDay`) ; parties en cours sans saut (temps restant déjà compté dans la même unité ; délai entre deux offres en ms réelles converti une fois à la lecture) ; rétentions du carnet, purges et délais techniques (pont, quotas, cadences, essais de pose, 10 s du dépôt discret E11-T19) laissés en temps réel.
+
 - 2026-10-15 — **E11-T19 — choix utilisateur** : livraisons radio en boîte convenue ou sac caché, objets retirés seulement après éloignement pour simuler un contact discret. **Confirmé par défaut** : modes alternés par mission ; point `place=` de la voix ; boîte existante exacte près du point et repère individuel, sinon sac au sol ; tous les joueurs à au moins 40 cases horizontalement, toute hauteur, durant 10 secondes réelles continues ; retour ou redémarrage relance le délai ; case exacte chargée avant retrait. Boîte conservée, seuls objets demandés retirés ; sac entier retiré, contenu étranger refusé. Reprise libre avant collecte, compte rendu radio après collecte.
 
 - 2026-10-15 — **Récompenses étendues — confirmé par défaut** : rotation serveur `cache,frequency,stashmap,lesson` parmi les effets autorisés et disponibles, persistée par donneur et bénéficiaire, sans choix du modèle. Fiches sans `rewards` : ancien repère conservé. Cache de récompense seulement après réussite, lieu issu de la fiche. Leçon : 25 XP par mission, 100 XP par jour de jeu et personnage avant multiplicateurs vanilla ; multiplicateur sandbox 0..5 (0 désactive). Carte : une par personnage/voix ou personnage/groupe, prise dans les cachettes vanilla encore possibles et bâtiments non visités.
@@ -16,7 +18,7 @@
 
 - Acquises : gabarits fermés vérifiables ; une mission à la fois par appelant pour les voix radio ; Signal Smoke prérequis (`require=` dans `mod.info`, décision du 2026-10-15 ; remplace « facultatif, sans dépendance ») ; récompenses : informations, caches, confiance.
 - 2026-10-08 — **E11-T01 (1)** : premier gabarit après M01 : **reconnaître**.
-- 2026-10-08 — **E11-T01 (2)** : délai par défaut = même règle que M01 (temps réel de fonctionnement du serveur).
+- 2026-10-08 — **E11-T01 (2)** : délai par défaut = même règle que M01 (temps réel de fonctionnement du serveur). Remplacé le 2026-10-21 par E11-T20 (temps de jeu).
 - 2026-10-08 — **E11-T01 (3)** : réputation : même barème que M01 pour tous les gabarits.
 - 2026-10-10 — **E11-T08** : pour la première publication (Living Knox désactivé par défaut), une **voix radio peut donner une mission** : action `start_mission`, compte rendu **à la radio** sur sa fréquence, donneur sans corps ; récompense en réputation et information (repère), cache sur place quand `E11-T06` existe.
 - 2026-10-11 — **E11-T10** : pour aider à trouver le lieu d'une mission de reconnaissance, **seulement une zone approximative tracée sur la carte** du joueur (pas le point exact) ; pas de direction depuis la position du joueur ni de guidage au rappel ; les cibles **ne doivent pas être rapprochées** (une cible lointaine reste souhaitable).
@@ -237,3 +239,14 @@
   - Tests : banc `lupa` (distance, délai, reprise, redémarrage, case déchargée, contenu étranger, anti-doublon) ; suites solo et MP à deux clients
   - Preuve : `tests/test_voice_delivery.py` 22/22 ; suite `rs.voicedelivery` ajoutée aux campagnes solo et MP ; aucune preuve en jeu à ce stade
   - Reste : campagnes solo/MP ; reprise ambiguë après interruption bloquée sans crédit automatique.
+
+- [ ] **E11-T20** — Délais des missions en temps de jeu (pause, vitesse)
+  - État : `testé hors jeu`
+  - Cible : `solo`
+  - Dépend de : E00-T03
+  - Fichiers : `shared/RadioSurvivor/RS_GameClock.lua` (nouveau), `RS_Missions.lua` (`offers`, `release`, `offerWait`), `RS_MissionVoice.lua`, `RS_Carnet_Server.lua` (`tick`, `command`, `init`), `RS_Config.lua` (commentaires), traductions EN/FR `IGUI_RS_Time` ; suites en jeu `RS_Missions`, `RS_MissionRadio`, `RS_Identity`, `RST_Fixtures` ; bancs ; `docs/specifications-techniques/protocole-carnet-v2.md`, `docs/annexes/conception/carnet-implementation-04221.md`, `docs/ameliorations-et-idees.md` (C27)
+  - Faire : décision C27 du 2026-10-21. Décompter le temps restant d'une mission (`remainingMs`) et d'une offre (`offerRemainingMs`) avec le temps de jeu écoulé (écart d'âge du monde × ms réelles d'une heure de jeu à vitesse normale) au lieu de `getTimestampMs` ; délai entre deux offres d'un PNJ ou d'une voix en âge du monde (`nextOfferHour`), ancien `nextOfferAt` (ms réelles) converti à la lecture ; âge du monde qui recule (`setTimeOfDay`) sans gain ni perte.
+  - Accepté si : pause (âge du monde figé) = aucun décompte même si le temps réel passe ; vitesse x3 = décompte x3 ; durée du jour 3 h = mêmes ms à vitesse normale ; serveur vide en pause = rien ; redémarrage sans saut ; ancienne valeur `nextOfferAt` ni bloquante ni perdue ; délais techniques inchangés.
+  - Tests : `tests/test_carnet.py` (`GameClockTests`, chrono existant) ; suites en jeu `rs.missions`, `rs.identity` dans les bancs ; `tests/run_all.py`
+  - Preuve : bancs du 2026-10-21 : `tests/test_carnet.py` 92 OK (`GameClockTests` 5 tests : unité et compteur, pause, vitesse x3, durée du jour 3 h, délai entre deux offres et conversion de l'ancien `nextOfferAt`, redémarrage ; chrono et reconnexion adaptés : serveur arrêté ou en pause = aucun décompte), `test_rs_suites.py`, `test_kahlua.py` (vrai Kahlua) ; `tests/run_all.py --keep-going` 142/142 ; luacheck 15/0 (base inchangée), dev 0/0
+  - Reste : en jeu solo : chrono arrêté pendant la pause (Échap) et accéléré en x3 ; campagne MP : `rs.identity.after-reconnect` avec le serveur vide en `PauseEmpty`

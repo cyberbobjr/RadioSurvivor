@@ -5,7 +5,7 @@ Required by RadioSurvivor_Server (executor registered at load, context joined to
 
 Requester ("donor"): no notebook NPC fiche and no body. One donor record per voice and per notebook character, in
 the private state (RS_State: data.voiceDonors['voice:<voice>:<character>'] = { id, voice, character, mission,
-missionCount, nextOfferAt, given }), never in global ModData. The common engine (RS_Missions) runs the mission as any
+missionCount, nextOfferHour, given }), never in global ModData. The common engine (RS_Missions) runs the mission as any
 other: clock and delay, collective result, reputation scale of M01 (RS_Config.Reputation), purge; the mission keeps
 m.npc = donor id and m.donor = 'voice', m.voice, m.requesterName (name of the sheet), m.khz (frequency of the reply),
 m.report = 'radio', and no reward lot (rewardType '', rewardCount 0).
@@ -112,7 +112,7 @@ function V.start(store, sheet, cid, player, khz, template)
     if not record or record.retired then return nil, "no_character" end
     if V.open(state, sheet.id, cid) then return nil, "mission_open" end
     local d = V.donor(state, sheet.id, cid, true)
-    if d.nextOfferAt and getTimestampMs() < d.nextOfferAt then return nil, "recent_mission" end
+    if M.offerWait(d) then return nil, "recent_mission" end -- E11-T20: play time (pause, speed)
     local allowed = sheet.missions or {"scout"}
     local permitted = false
     for _, name in ipairs(allowed) do if name == template then permitted = true end end

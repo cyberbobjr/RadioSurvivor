@@ -241,7 +241,7 @@ RST.suite("rs.missionreport.llm", { tags = { "server", "world" }, testTimeoutMs 
         local d = V.donor(S.data, VOICE, cid, true)
         local old = V.open(S.data, VOICE, cid)
         if old then dropMission(S, old, cid) end
-        d.nextOfferAt = nil
+        d.nextOfferAt, d.nextOfferHour = nil, nil
         local radio = R.radioInHand(t, p, "Base.WalkieTalkie5", khz)
         local heard = R.hear(t)
         local cooldown = Const.playerCooldownMs() + 500

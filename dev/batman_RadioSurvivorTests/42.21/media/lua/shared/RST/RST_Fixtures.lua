@@ -567,7 +567,7 @@ function F.removeTestMission(store, m)
         if record.knownMissions then record.knownMissions[m.id] = nil end
     end
     local npc = store.data.npcs and store.data.npcs[m.npc]
-    if npc and npc.mission == m.id then npc.mission, npc.nextOfferAt = nil, nil end
+    if npc and npc.mission == m.id then npc.mission, npc.nextOfferAt, npc.nextOfferHour = nil, nil, nil end
     store.dirty = true
     if type(store.save) == "function" then pcall(store.save) end
     return true

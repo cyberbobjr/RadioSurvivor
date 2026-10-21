@@ -233,7 +233,7 @@
     "IGUI_RS_SupplyProgress": "Shared progress: %1 / %2 value points delivered",
     "IGUI_RS_SupplyValues": "Each item counts for its value (in brackets); types may be mixed. Only the last item may exceed what is still needed. Favourite or equipped items excluded.",
     "IGUI_RS_RewardGoodwill": "No item offered in return: the group will remember your help.",
-    "IGUI_RS_Time": "Shared time: %1 min. Paused only while the server is stopped.",
+    "IGUI_RS_Time": "Game time left: %1 min at normal speed. Stops while the game is paused.",
     "IGUI_RS_Reward": "Fixed shared reward: %1 × %2. One claim, free sharing.",
     "IGUI_RS_RewardInformation": "Reward: information from the voice (a place marked on your map, if it still has one to share).",
     "IGUI_RS_Participants": "Committed participants: %1",

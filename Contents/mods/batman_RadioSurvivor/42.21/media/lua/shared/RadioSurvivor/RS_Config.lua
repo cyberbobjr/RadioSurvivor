@@ -161,8 +161,10 @@ local C = {
     SNAPSHOT_OPEN_MS = 3000,
     SNAPSHOT_CLOSED_MS = 30000,
     -- Lifecycle of missions and NPC fiches; keeps the private state bounded on long servers.
-    OFFER_TTL_MS = 3600000,            -- server runtime before an unaccepted offer expires
-    OFFER_COOLDOWN_MS = 1800000,       -- real time before the same NPC can offer again
+    -- E11-T20: OFFER_TTL_MS, OFFER_COOLDOWN_MS and the durationMs of the missions are play ms (RS_GameClock: real ms
+    -- at normal speed, stopped while the game is paused, faster at x2/x3); the retentions below stay real time.
+    OFFER_TTL_MS = 3600000,            -- play time before an unaccepted offer expires
+    OFFER_COOLDOWN_MS = 1800000,       -- play time before the same NPC or voice can offer again
     -- E11-T06: offers sent to the bridge in one npc_talk request, at most (RS_Missions.offers keeps the first ones in
     -- template registration order and does not ask the templates after the cap: no place drawn for an offer that is
     -- not sent). Same value as MAX_OFFERS in bridge/npc_protocol.py, which rejects a larger catalog.
@@ -213,7 +215,8 @@ local C = {
         margin = {good = 0.10, neutral = 0.25, bad = 0.40},
     },
     -- Mission catalogue, one entry per template of RS_Missions (E11-T02). `id` is the offer id seen by the bridge;
-    -- durationMs, rewardType and rewardCount are read by the engine, the other fields by the template.
+    -- durationMs (play ms, E11-T20), rewardType and rewardCount are read by the engine, the other fields by the
+    -- template.
     Missions = {
         -- M01: first-aid delivery.
         deliver = {

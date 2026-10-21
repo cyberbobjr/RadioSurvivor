@@ -233,7 +233,7 @@
     "IGUI_RS_SupplyProgress": "Progression commune : %1 / %2 points de valeur remis",
     "IGUI_RS_SupplyValues": "Chaque objet compte pour sa valeur (entre parenthèses) ; mélange possible. Seul le dernier objet peut dépasser ce qui manque. Objets favoris ou équipés exclus.",
     "IGUI_RS_RewardGoodwill": "Aucun objet en échange : le groupe se souviendra de votre aide.",
-    "IGUI_RS_Time": "Temps commun : %1 min. Pause uniquement serveur arrêté.",
+    "IGUI_RS_Time": "Temps de jeu restant : %1 min à vitesse normale. S'arrête quand le jeu est en pause.",
     "IGUI_RS_Reward": "Lot commun fixe : %1 × %2. Un seul retrait, partage libre.",
     "IGUI_RS_RewardInformation": "Récompense : une information de la voix (un lieu marqué sur votre carte, s’il lui en reste un à partager).",
     "IGUI_RS_Participants": "Participants engagés : %1",

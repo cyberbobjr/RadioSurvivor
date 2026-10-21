@@ -38,7 +38,12 @@ refuses a mission whose objective is not met (no claim ever validates anything).
 (same rule as scout since E11-T03); a requester who dies first closes it as 'cancelled_dead' (no reputation change).
 Requester ("donor"): an NPC fiche of the notebook (state.npcs[m.npc]) or, since E11-T08, a radio voice
 (RS_MissionVoice.lua: state.voiceDonors[m.npc], id 'voice:<voice>:<character>', m.donor = 'voice'). Both carry the
-fields the engine reads and writes: id, mission, missionCount, nextOfferAt.
+fields the engine reads and writes: id, mission, missionCount, nextOfferHour (nextOfferAt before E11-T20).
+Game time (E11-T20, user decision of 2026-10-21): remainingMs and offerRemainingMs are play ms (RS_GameClock: real
+ms at normal speed, stopped while the game is paused, faster at x2/x3), decreased by M.advance with the play time
+measured by the caller; the delay before the next offer is a world age (nextOfferHour, game hours). Saved missions
+keep their remainingMs (same unit at normal speed); a saved nextOfferAt (real ms) is converted once by M.offerWait.
+closedAt stays real time (notebook retention and ordering, housekeeping only).
 Engine supplies (E17-T03): for an NPC of a provider that defines supplies (RS_NPCProvider.hasSupplies, Living Knox),
 `deliver` offers come only from Provider.supplies (real needs of its group); the mission counts value points V
 (m.unit = 'value', m.values), each delivery goes through Provider.supplyDeliver with the transaction token as receipt,
@@ -48,6 +53,7 @@ and an offer closed by the engine closes the mission as 'cancelled_closed' (no r
 local Config = require 'RadioSurvivor/RS_Config'
 local Rep = require 'RadioSurvivor/RS_Reputation'
 local P = require 'RadioSurvivor/RS_NPCProvider'
+local Clock = require 'RadioSurvivor/RS_GameClock'
 local M = {}
 
 local DEFAULT = 'deliver'
@@ -71,13 +77,40 @@ local function templateForOffer(offerId)
     end
 end
 
+-- E11-T20: true while the requester record (NPC fiche or voice donor) waits before its next offer. The wait is a world
+-- age (nextOfferHour), never longer than OFFER_COOLDOWN_MS of play from now (world age set back by an admin). A saved
+-- nextOfferAt (real ms of getTimestampMs, before E11-T20) is converted once: the real time it had left becomes play
+-- time at normal speed (no offer unblocked early, none blocked for good).
+function M.offerWait(record)
+    if type(record) ~= 'table' then return false end
+    local h = Clock.hours()
+    if h == nil then return record.nextOfferHour ~= nil or record.nextOfferAt ~= nil end
+    if record.nextOfferAt ~= nil then
+        local left = (tonumber(record.nextOfferAt) or 0) - getTimestampMs()
+        record.nextOfferAt = nil
+        record.nextOfferHour = left > 0 and Clock.after(math.min(left, Config.OFFER_COOLDOWN_MS)) or nil
+    end
+    local wait = record.nextOfferHour
+    if type(wait) ~= 'number' then
+        record.nextOfferHour = nil
+        return false
+    end
+    if wait <= h then
+        record.nextOfferHour = nil
+        return false
+    end
+    local cap = Clock.after(Config.OFFER_COOLDOWN_MS)
+    if wait > cap then record.nextOfferHour = cap end
+    return true
+end
+
 -- Server-configured allocations an NPC may offer now, never fabricated by the model or the client (E11-T06: MAX_OFFERS).
 -- E04-T05 (Q11, Q12): a character of bad reputation gets the simple missions only (RS_Reputation.offerAllowed); the
 -- level is read on the server, the bridge only sees the offers left (and the level in context.reputation, E04-T10).
 -- M.create revalidates an accepted offer against this same catalog (RS_Carnet_Server.reply).
 function M.offers(npc, record, body, character)
     if npc.mission or not record or record.hostile ~= false then return {} end
-    if npc.nextOfferAt and getTimestampMs() < npc.nextOfferAt then return {} end
+    if M.offerWait(npc) then return {} end
     local level = type(character) == 'string' and Rep.level(character) or nil
     local catalog, n = {}, 0
     for _, name in ipairs(order) do
@@ -111,13 +144,14 @@ function M.donorOf(state, mission)
     return state.npcs[mission.npc] or (state.voiceDonors and state.voiceDonors[mission.npc]) or nil
 end
 
--- A closed mission frees its requester for a later offer, after a cooldown.
+-- A closed mission frees its requester for a later offer, after a cooldown of play time (E11-T20). closedAt (real
+-- time) only dates the closure for the notebook retention.
 local function release(state, mission)
     mission.closedAt = getTimestampMs()
     local npc = M.donorOf(state, mission)
     if npc and npc.mission == mission.id then
         npc.mission = nil
-        npc.nextOfferAt = mission.closedAt + Config.OFFER_COOLDOWN_MS
+        npc.nextOfferAt, npc.nextOfferHour = nil, Clock.after(Config.OFFER_COOLDOWN_MS)
     end
 end
 
@@ -165,6 +199,7 @@ local function supplyClosed(m)
     return P.supplyOpen(m.supply.ref, m.supply.offer) == false
 end
 
+-- elapsedMs: play ms since the previous call (RS_GameClock.meter, E11-T20); negative values are ignored.
 function M.advance(state, elapsedMs)
     local changed = false
     elapsedMs = math.max(0, elapsedMs)

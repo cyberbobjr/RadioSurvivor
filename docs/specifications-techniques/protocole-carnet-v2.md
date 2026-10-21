@@ -627,10 +627,10 @@ voix, tous appelants confondus) :
 - refus motivés (raison de l'exécuteur, aucun usage compté) : `no_player` (appelant déconnecté : pas de position
   serveur), `storage` (état privé non chargé ou bloqué), `no_character` (aucun personnage du carnet lié),
   `mission_open` (cet appelant a déjà une mission ouverte de cette voix), `recent_mission` (moins de
-  `OFFER_COOLDOWN_MS`, 30 min réelles, depuis la clôture de sa précédente mission de cette voix : délai de M01),
+  `OFFER_COOLDOWN_MS`, 30 min de jeu à vitesse normale (E11-T20), depuis la clôture de sa précédente mission de cette voix : délai de M01),
   `no_place` (aucun bâtiment admissible) ;
 - accepté : mission créée **et acceptée** pour l'appelant (`active`), délai de M01 (`durationMs` du catalogue
-  `scout`, 7 200 000 ms de fonctionnement du serveur) ; ligne `mission` de l'historique radio du personnage sur la
+  `scout`, 7 200 000 ms de jeu à vitesse normale, E11-T20) ; ligne `mission` de l'historique radio du personnage sur la
   fréquence de la réponse (type du lieu seul, `RS_Rescue.KINDS` : `house`, `church`..., traduit par le carnet :
   « Mission reçue : maison ») ; projection du carnet publiée ;
 - **consigne (E11-T09)** : la réponse qui propose `start_mission` est diffusée avant que l'action soit jugée et ne
@@ -644,7 +644,8 @@ voix, tous appelants confondus) :
   montre les indices.
 
 **Donneur « voix »** : un enregistrement par voix et par personnage du carnet dans l'état privé (`RS_State` :
-`data.voiceDonors['voice:<voix>:<personnage>'] = { id, voice, character, mission, missionCount, nextOfferAt, given }`),
+`data.voiceDonors['voice:<voix>:<personnage>'] = { id, voice, character, mission, missionCount, nextOfferHour, given }`, `nextOfferHour` = âge du monde de la prochaine offre ; ancien
+`nextOfferAt` en ms réelles converti à la lecture),
 jamais en ModData globale. La mission garde `npc` = cet identifiant (distinct de tout identifiant de fiche de PNJ),
 `donor = 'voice'`, `voice`, `requesterName` (nom de la fiche), `khz`, `report = 'radio'`, et aucun lot
 (`rewardType = ''`, `rewardCount = 0`). Le moteur commun la traite comme les autres (chrono, abandon, échec, purge,
@@ -684,7 +685,7 @@ part après la sauvegarde de la réussite : un arrêt entre les deux perd le rep
 | `clues` | liste de phrases anglaises sans aucun chiffre (`RS_Rescue.clues`) |
 | `zoneReached` | booléen constaté par le serveur |
 | `report` | `radio` |
-| `remainingMs` | temps restant (ms de fonctionnement du serveur) |
+| `remainingMs` | temps restant (ms de jeu à vitesse normale : arrêté en pause, plus rapide en x2/x3, E11-T20) |
 | `reward` | libellé du lieu donné en récompense, ou qui le sera au compte rendu (tour `report_due`) ; absent sinon |
 
 Jamais de coordonnée, de zone ni d'identifiant de bâtiment. **Pont** (`mission_context`) : champ absent = aucune

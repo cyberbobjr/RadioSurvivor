@@ -560,7 +560,7 @@ def native_table(game, value):
 class Simulation:
     def __init__(self, path: Path, clock=None, world='test', boot_cell=True, new_world=False, saved_players=None,
                  radio_new_world=None,
-                 provider=True, living_knox=False):
+                 provider=True, living_knox=False, server_globals=None):
         """living_knox=True (E17-T03): no fake provider; the real Living Knox engine (registries, API, bodies) and its
         notebook provider RS_LivingKnox.lua are loaded on the server, the provider and a roster double of
         LK_ZombieGuard on each client (see LK_SERVER_STUBS / LK_CLIENT_STUBS)."""
@@ -575,6 +575,8 @@ class Simulation:
         self.server = Game('server', path, self.clock)
         self.server.g.getTimestampMs = lambda: int(self.clock())
         self.server.rt.execute(STUBS)
+        for key, value in (server_globals or {}).items():  # e.g. WORLD_AGE_HOURS before the state loads (E11-T20)
+            setattr(self.server.g, key, value)
         if provider:
             self.server.g.registerFakeProvider()
         self.server.g.NO_CELL = not boot_cell
@@ -885,7 +887,7 @@ class CarnetTests(unittest.TestCase):
         sim.clock.offset += 20000; sim.tick()
         remaining = sim.mission().remainingMs
         npc_id = next(iter(sim.state().npcs))
-        sim.clock.offset += 3600000 # simulated server stopped, not runtime
+        sim.clock.stop(3600000) # simulated server stopped: no game time (world age saved with the world)
         restart = Simulation(sim.path, sim.clock, saved_players=sim.saved())
         restart.add_client('alice') # no client claim: the identity comes from the server player file
         self.assertEqual(restart.state().world, world)
@@ -893,9 +895,12 @@ class CarnetTests(unittest.TestCase):
         self.assertEqual(restart.character('alice'), old_char)
         self.assertEqual(next(iter(restart.state().npcs)), npc_id)
         self.assertAlmostEqual(restart.mission().remainingMs, remaining, delta=200)
-        # OnTickEvenPaused continues without any clients and independent of game-world time.
+        # E11-T20 (C27): the clock counts game time. Without clients, a server in PauseEmpty keeps OnTickEvenPaused but
+        # its world age stands still: nothing counted; a running world counts its play time.
         actual = restart.server.g.PLAYERS.alice # unbound when it disconnects: death then uses its modData
         restart.server.g.PLAYERS = restart.server.rt.table()
+        restart.clock.stop(5000); restart.tick()
+        self.assertAlmostEqual(restart.mission().remainingMs, remaining, delta=200)
         restart.clock.offset += 5000; restart.tick()
         self.assertAlmostEqual(restart.mission().remainingMs, remaining - 5000, delta=200)
         unrelated = restart.server.g.enhance(restart.server.g.makePlayer('mallory'))
@@ -2708,12 +2713,12 @@ class ScoutMissionTests(unittest.TestCase):
         sim.request_mission('alice', 'accept')
         self.assertEqual(len(self.symbols(alice)), 2)
         # The mission expires while alice's client hears nothing (disconnected): her next snapshot removes the area.
-        deliver = sim.server.g.sendServerCommand
         sim.server.g.sendServerCommand = lambda *call: None
         sim.clock.offset += 7200001; sim.tick()
         self.assertEqual(m.state, 'failed')
         self.assertEqual(len(self.symbols(alice)), 2)
-        sim.server.g.sendServerCommand = deliver
+        # The bound method itself, not the value read back from Lua: lupa may hand back a stale wrapper.
+        sim.server.g.sendServerCommand = sim.deliver_to_client
         # Reconnection: the hello sent at game start brings the snapshot that removes the area.
         alice.g.RS_CarnetClient.hello()
         self.assertEqual(self.symbols(alice), [])
@@ -2833,7 +2838,7 @@ class ScoutMissionTests(unittest.TestCase):
         self.assertTrue(alice.g.RS_CarnetClient.seen[req.id])
         # A new offer that expires between the sentence and the reply: refused without effect.
         sim.request_mission('alice', 'abandon')
-        npc.nextOfferAt = None
+        npc.nextOfferAt = npc.nextOfferHour = None
         m2 = self.npc_offer(sim, 'alice')
         self.assertNotEqual(m2.id, m.id)
         self.assertEqual(lua_list(alice.g.getPlayer().halos).count('IGUI_RS_NewOffer'), 2)
@@ -3458,6 +3463,16 @@ class IdentitySuiteTests(unittest.TestCase):
             'same world and session': 'PASS', 'same identity for each account': 'PASS',
             'notes and engagements kept': 'PASS', 'mission clock ran during the disconnection': 'PASS'})
 
+    def test_reconnect_clock_follows_game_time_while_the_server_is_paused(self):
+        # E11-T20: every account disconnected, the server pauses (PauseEmpty): no game time, no mission time.
+        sim = self.engaged('paused')
+        self.disconnect(sim, 'alice')
+        sim.clock.stop(30000); sim.tick()
+        sim.clock.offset += 4000; sim.tick()
+        sim.add_client('alice')
+        self.assertEqual(self.run_suite(sim, 'rs.identity.after-reconnect')['mission clock ran during the disconnection'][0],
+                         'PASS')
+
     def test_reconnect_detects_a_lost_server_identity(self):
         sim = self.engaged('lost')
         self.disconnect(sim, 'alice')
@@ -3469,7 +3484,7 @@ class IdentitySuiteTests(unittest.TestCase):
         self.assertEqual(results['notes and engagements kept'][0], 'PASS', 'old record keeps its notes')
 
     def restarted(self, sim, downtime=600000):
-        sim.clock.offset += downtime
+        sim.clock.stop(downtime)  # server stopped: no game time
         restart = Simulation(sim.path, sim.clock, saved_players=sim.saved())
         restart.add_client('alice'); restart.add_client('bob')
         self.load_suite(restart)
@@ -3999,6 +4014,152 @@ class CollectiveLeaderTests(unittest.TestCase):
                                                          context={'collective': {'speaker': 'leader'}})), '')
         member = dict(base, context={'collective': {'speaker': 'member', 'leaderName': 'Ann'}})
         self.assertIn('never propose or accept one yourself', protocol.prompt(member, [])[0]['content'])
+
+
+
+class GameClockTests(unittest.TestCase):
+    """E11-T20 (C27, user decision of 2026-10-21): mission and offer delays count game time. The world age and the day
+    length are set by hand here (WORLD_AGE_HOURS, MINUTES_PER_DAY: doubles of GameTime.getWorldAgeHours and
+    getMinutesPerDay, GameTime.java:830, 867); the real clock moves freely and must not count."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory(prefix='rs-clock-')
+        self.path = Path(self.tmp.name)
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def sim(self, name, minutes=90):
+        sim = Simulation(self.path / name, server_globals={'MINUTES_PER_DAY': minutes, 'WORLD_AGE_HOURS': 100})
+        sim.add_client('alice'); sim.select('alice')
+        npc = next(iter(sim.state().npcs.values()))
+        missions = sim.server.rt.eval("require('RadioSurvivor/RS_Missions')")
+        return sim, npc, missions
+
+    @staticmethod
+    def advance(sim, hours, real_ms=0):
+        sim.server.g.WORLD_AGE_HOURS = sim.server.g.WORLD_AGE_HOURS + hours
+        sim.clock.offset += real_ms
+        sim.tick()
+
+    def test_clock_unit_and_meter(self):
+        sim = Simulation(self.path / 'unit')
+        g = sim.server.g
+        clock = sim.server.rt.eval("require('RadioSurvivor/RS_GameClock')")
+        g.MINUTES_PER_DAY, g.WORLD_AGE_HOURS = 90, 10
+        self.assertEqual(clock.msPerHour(), 225000)  # 90 real minutes per game day: 3.75 min per game hour
+        self.assertEqual(clock.after(7200000), 10 + 32)  # 2 h at normal speed = 32 game hours
+        self.assertEqual(clock.leftMs(42), 7200000)
+        g.MINUTES_PER_DAY = 180  # DayLength 6: the same play delay is 16 game hours
+        self.assertEqual(clock.after(7200000), 10 + 16)
+        g.MINUTES_PER_DAY = 0  # unreadable value: vanilla default day of 90 minutes
+        self.assertEqual(clock.msPerHour(), 225000)
+        g.MINUTES_PER_DAY = 90
+        meter = clock.meter()
+        self.assertEqual(meter(), 0, 'first reading only starts the meter')
+        g.WORLD_AGE_HOURS = 10.5
+        self.assertEqual(meter(), 112500)
+        sim.clock.offset += 3600000
+        self.assertEqual(meter(), 0, 'real time alone (pause) counts nothing')
+        g.WORLD_AGE_HOURS = 8  # world age set back (setTimeOfDay): no gain, no loss
+        self.assertEqual(meter(), 0)
+        g.WORLD_AGE_HOURS = 8.5
+        self.assertEqual(meter(), 112500)
+        # Fractions are carried: whole ms on each call, nothing lost over many small steps.
+        total = 0
+        for _ in range(1000):
+            g.WORLD_AGE_HOURS = g.WORLD_AGE_HOURS + 0.0000013
+            step = meter()
+            self.assertEqual(step, int(step))
+            total += step
+        self.assertAlmostEqual(total, 1000 * 0.0000013 * 225000, delta=1)
+        sim.server.rt.execute('getGameTime = function() return nil end')
+        self.assertEqual(meter(), 0)
+        self.assertIsNone(clock.hours())
+        self.assertIsNone(clock.after(1000))
+
+    def test_mission_stops_while_paused_and_runs_faster_at_speed_x3(self):
+        sim, npc, missions = self.sim('speed')
+        m = missions.create(sim.state(), npc, sim.character('alice'))
+        sim.request_mission('alice', 'accept')
+        self.assertEqual(m.state, 'active')
+        start = m.remainingMs
+        # Paused (solo Esc, empty server in PauseEmpty): OnTickEvenPaused runs, the world age does not move.
+        self.advance(sim, 0, real_ms=3 * 3600000)
+        self.assertEqual(m.remainingMs, start)
+        # Normal speed: 15 real minutes = 4 game hours of 3.75 minutes.
+        self.advance(sim, 4, real_ms=900000)
+        self.assertEqual(m.remainingMs, start - 900000)
+        # Speed x3: the same 15 real minutes move the world age three times as far.
+        self.advance(sim, 12, real_ms=900000)
+        self.assertEqual(m.remainingMs, start - 3600000)
+        # A player command advances the same meter (no double count with the next tick).
+        sim.server.g.WORLD_AGE_HOURS = sim.server.g.WORLD_AGE_HOURS + 1
+        sim.command('alice', 'snapshot', world=sim.clients['alice'].g.RS_CarnetClient.world,
+                    run=sim.clients['alice'].g.RS_CarnetClient.run)
+        self.assertEqual(m.remainingMs, start - 3600000 - 225000)
+        sim.tick()
+        self.assertEqual(m.remainingMs, start - 3600000 - 225000)
+        # Sleeping or speed: the rest of the delay passes in game time and the mission fails once.
+        self.advance(sim, m.remainingMs / 225000 + 0.01)
+        self.assertEqual(m.state, 'failed')
+
+    def test_day_length_keeps_the_play_delay(self):
+        sim, npc, missions = self.sim('daylength', minutes=180)
+        m = missions.create(sim.state(), npc, sim.character('alice'))
+        self.advance(sim, 7.9)  # 7.9 game hours of 7.5 real minutes: just under the hour of the offer
+        self.assertEqual(m.state, 'offer')
+        self.advance(sim, 0.2)
+        self.assertEqual(m.state, 'expired')
+
+    def test_offer_cooldown_in_game_time_and_saved_real_time_converted(self):
+        sim, npc, missions = self.sim('cooldown')
+        first = missions.create(sim.state(), npc, sim.character('alice'))
+        self.advance(sim, 16.01)  # OFFER_TTL_MS: 1 h of play = 16 game hours of 3.75 minutes
+        self.assertEqual(first.state, 'expired')
+        self.assertIsNone(npc.nextOfferAt)
+        self.assertAlmostEqual(npc.nextOfferHour, sim.server.g.WORLD_AGE_HOURS + 8, delta=1e-6)
+        self.assertTrue(missions.offerWait(npc))
+        sim.clock.offset += 10 * 3600000  # real time alone: still waiting
+        self.assertTrue(missions.offerWait(npc))
+        self.advance(sim, 8)
+        self.assertFalse(missions.offerWait(npc))
+        self.assertIsNone(npc.nextOfferHour)
+        # World age set back by an admin: the wait never exceeds one cooldown of play from now.
+        npc.nextOfferHour = sim.server.g.WORLD_AGE_HOURS + 1000
+        self.assertTrue(missions.offerWait(npc))
+        self.assertAlmostEqual(npc.nextOfferHour, sim.server.g.WORLD_AGE_HOURS + 8, delta=1e-6)
+        # A fiche saved before E11-T20 (nextOfferAt in real ms): the real time left becomes play time, once.
+        now = sim.server.g.getTimestampMs()
+        npc.nextOfferHour, npc.nextOfferAt = None, now + 450000
+        self.assertTrue(missions.offerWait(npc))
+        self.assertIsNone(npc.nextOfferAt)
+        self.assertAlmostEqual(npc.nextOfferHour, sim.server.g.WORLD_AGE_HOURS + 2, delta=0.01)
+        npc.nextOfferHour, npc.nextOfferAt = None, now - 1000  # already over: free at once
+        self.assertFalse(missions.offerWait(npc))
+        self.assertIsNone(npc.nextOfferAt)
+        self.assertIsNone(npc.nextOfferHour)
+        npc.nextOfferAt = now + 10 * 86400000  # far future (clock change): capped to one cooldown
+        self.assertTrue(missions.offerWait(npc))
+        self.assertAlmostEqual(npc.nextOfferHour, sim.server.g.WORLD_AGE_HOURS + 8, delta=0.01)
+
+    def test_saved_mission_keeps_its_remaining_time_after_restart(self):
+        sim, npc, missions = self.sim('restart')
+        m = missions.create(sim.state(), npc, sim.character('alice'))
+        sim.request_mission('alice', 'accept')
+        self.advance(sim, 4)  # 15 minutes of play
+        remaining = sim.mission().remainingMs
+        self.assertEqual(remaining, m.durationMs - 900000)
+        self.assertTrue(sim.server.g.RS_CarnetServer.store.save())
+        age = sim.server.g.WORLD_AGE_HOURS
+        sim.clock.stop(3600000)  # server stopped: neither world age nor play time
+        restart = Simulation(sim.path, sim.clock, saved_players=sim.saved(),
+                             server_globals={'MINUTES_PER_DAY': 90, 'WORLD_AGE_HOURS': age})
+        restart.tick()
+        self.assertEqual(restart.mission().remainingMs, remaining)
+        restart.server.g.WORLD_AGE_HOURS = age + 1
+        restart.tick()
+        self.assertEqual(restart.mission().remainingMs, remaining - 225000)
 
 
 if __name__ == '__main__':
