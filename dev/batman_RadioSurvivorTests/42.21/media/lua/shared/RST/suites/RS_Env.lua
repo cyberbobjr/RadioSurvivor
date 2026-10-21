@@ -36,7 +36,7 @@ local GLOBALS = {
     { "getServerOptions", "server", "server/RS_Carnet_Server.lua:270" },
     { "detectBadWords", "server", "server/RS_Carnet_Server.lua:275" },
     { "addSound", "server", "server/RS_Carnet_Server.lua:804" },
-    { "getFileReader", "server", "server/RadioSurvivor/RS_State.lua:13" },
+    { "getFileReader", "server", "server/RadioSurvivor/RS_State.lua:46" },
     { "getFileWriter", "server", "server/RadioSurvivor/RS_State.lua:59" },
     { "getWorld", "server", "server/RadioSurvivor/RS_State.lua:27" },
     { "ZombRand", "server", "server/RadioSurvivor/RS_State.lua:9" },
