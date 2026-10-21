@@ -38,7 +38,7 @@ dialogue par le chat local vanilla dans le mod.
 
 **Fonctionnalité demandée : réputation des personnages.** Elle influence la confiance des PNJ, sans mécanisme de rumeur. L’utilisateur propose désormais de la centrer sur les missions et le comportement envers les PNJ ; les détecteurs PvP, de vols et de destructions sont mis de côté pour le périmètre initial. Les règles détaillées de malus restent à discuter.
 
-**Décision acceptée : réputation par personnage, dans un mod autonome avec API publique.** Un nouveau personnage possède une réputation indépendante, permettant au joueur de changer de rôle RP. RadioSurvivor consulte ce mod et lui soumet les événements de ses missions ; d’autres mods peuvent lire la réputation et y contribuer selon leurs propres mécaniques. Voir le [document de conception de l’API](../../reputation-api-specifications.md).
+**Décision acceptée : réputation par personnage, dans un mod autonome avec API publique.** Un nouveau personnage possède une réputation indépendante, permettant au joueur de changer de rôle RP. RadioSurvivor consulte ce mod et lui soumet les événements de ses missions ; d’autres mods peuvent lire la réputation et y contribuer selon leurs propres mécaniques. Voir le document de conception de l’API (spécification non rédigée).
 
 **Décision acceptée : une réputation globale unique.** Chaque mod contributeur peut la faire augmenter ou diminuer avec un motif ; aucun système de réputation à plusieurs axes n’est prévu.
 
@@ -94,7 +94,7 @@ dialogue par le chat local vanilla dans le mod.
 
 **Décision acceptée : fournitures équivalentes.** Chaque besoin affiche une liste d’objets acceptés ; une pièce remise vaut une unité, sans conversion de poids, calories ou puissance. Le serveur contrôle l’admissibilité.
 
-**Orientation demandée : factoriser la gestion de réputation avec MilitaryDrop.** Le mod commun doit servir les deux projets. MilitaryDrop possède actuellement une confiance par station, dont les règles diffèrent de la réputation individuelle RadioSurvivor. Le partage du moteur et la fusion éventuelle des valeurs sont distingués dans [ADR R04](../../reputation-api-specifications.md) ; aucun refactoring Lua n’est réalisé par cette mise à jour documentaire.
+**Orientation demandée : factoriser la gestion de réputation avec MilitaryDrop.** Le mod commun doit servir les deux projets. MilitaryDrop possède actuellement une confiance par station, dont les règles diffèrent de la réputation individuelle RadioSurvivor. Le partage du moteur et la fusion éventuelle des valeurs sont distingués dans ADR R04 (spécification non rédigée) ; aucun refactoring Lua n’est réalisé par cette mise à jour documentaire.
 
 **Décision acceptée : un chef décide, les membres peuvent contester ou refuser.** Les décisions collectives d’une bande viennent de son chef ; chaque membre conserve des réactions individuelles liées à sa personnalité, sa loyauté et ses relations.
 
@@ -489,7 +489,7 @@ Si le pont manque, si le budget est épuisé ou si une réponse arrive trop tard
 
 **Malus d’échec accepté.** Une mission échouée entraîne le même malus qu’une mission abandonnée, sans évaluation des efforts du personnage. Le montant reste à définir ; le LLM ne peut pas accorder une indulgence sur la base d’un récit de tentative.
 
-**Autres modalités proposées.** Refuser une offre avant de s’engager ne pénalise pas le personnage. Une mission encore en cours ou une déconnexion ne constituent pas seules un échec ; une échéance annoncée dépassée peut clore la mission. Le LLM peut qualifier une insulte adressée à un PNJ, mais ne fixe pas librement la variation globale ; le serveur applique une règle commune avec un motif visible, au plus une fois par incident. Voir [ADR R03](../../reputation-api-specifications.md). Ces modalités restent proposées.
+**Autres modalités proposées.** Refuser une offre avant de s’engager ne pénalise pas le personnage. Une mission encore en cours ou une déconnexion ne constituent pas seules un échec ; une échéance annoncée dépassée peut clore la mission. Le LLM peut qualifier une insulte adressée à un PNJ, mais ne fixe pas librement la variation globale ; le serveur applique une règle commune avec un motif visible, au plus une fois par incident. Voir ADR R03 (spécification non rédigée). Ces modalités restent proposées.
 
 **Amélioration acceptée, missions proposées.** Une mauvaise réputation s’améliore par des actes positifs et des missions validés, sans récupération automatique avec le temps. Prévoir des missions issues de modèles validés : livraison de fournitures, secours ou autre service vérifiable. Le serveur fixe les conditions, la récompense de réputation et le bénéficiaire ; le LLM choisit une mission admissible et en formule la demande. Borner les gains et éviter qu’une même livraison, une mission rejouée ou des actes arrangés entre joueurs ne produisent des gains illimités. Une série de petites missions ne doit pas effacer instantanément des actes graves ; la pondération reste à définir.
 
@@ -499,7 +499,7 @@ Si le pont manque, si le budget est épuisé ou si une réponse arrive trop tard
 
 **Identité acceptée.** La réputation suit le personnage, pas le compte joueur. Elle persiste lors des reconnexions et redémarrages pour le même personnage ; la création d’un nouveau personnage démarre une réputation indépendante et neutre, sans hériter des actes de son prédécesseur. Le mécanisme d’identification persistante reste à établir pour 42.21 ; un identifiant réseau temporaire ne suffit pas. Le joueur peut ainsi interpréter un personnage mauvais sans pénaliser tous ses futurs rôles.
 
-**Séparation acceptée.** Le mod autonome détient la réputation et expose une API de consultation et de contribution aux autres mods. RadioSurvivor conserve les personnalités, la confiance individuelle, les dialogues et les missions ; il consulte la réputation et soumet les accomplissements validés de ses missions à l’API. Le service de réputation fonctionne sans Bandits!, RadioSurvivor ni LLM. Les mécaniques spécifiques des autres mods restent dans leurs adaptateurs. Le nom du mod, sa dépendance obligatoire ou optionnelle pour RadioSurvivor et le contrat exact restent à définir dans le [document dédié](../../reputation-api-specifications.md).
+**Séparation acceptée.** Le mod autonome détient la réputation et expose une API de consultation et de contribution aux autres mods. RadioSurvivor conserve les personnalités, la confiance individuelle, les dialogues et les missions ; il consulte la réputation et soumet les accomplissements validés de ses missions à l’API. Le service de réputation fonctionne sans Bandits!, RadioSurvivor ni LLM. Les mécaniques spécifiques des autres mods restent dans leurs adaptateurs. Le nom du mod, sa dépendance obligatoire ou optionnelle pour RadioSurvivor et le contrat exact restent à définir dans le document dédié (spécification non rédigée).
 
 **Visibilité encore à choisir.** La réputation consultable par les PNJ peut être commune au serveur ou dépendre des factions, sans système de propagation de rumeurs. Ne pas confondre cette donnée de jeu avec les secrets personnels transmis en dialogue.
 
@@ -698,7 +698,7 @@ La proposition de protection provisoire et de clarification obligatoire est aban
 
 **Point 18 tranché : réputation propre à chaque personnage, pour préserver la liberté de RP.** La recommandation de réputation liée au compte est rejetée par l’utilisateur.
 
-**Point 19 tranché : réputation dans un mod autonome avec API pour les autres moddeurs.** RadioSurvivor devient un consommateur et un contributeur de ce service, selon le [document dédié](../../reputation-api-specifications.md).
+**Point 19 tranché : réputation dans un mod autonome avec API pour les autres moddeurs.** RadioSurvivor devient un consommateur et un contributeur de ce service, selon le document dédié (spécification non rédigée).
 
 **Point 20 tranché : une réputation globale unique par personnage.** Les autres mods contribuent à cette même réputation avec leurs propres événements ; la proposition de plusieurs axes est abandonnée.
 
@@ -714,7 +714,7 @@ La proposition de protection provisoire et de clarification obligatoire est aban
 
 **Point 26 rouvert : accès à « Ma réputation ».** Le clic droit précédemment accepté est remis en discussion à la suite de la préférence de l’utilisateur pour éviter l’accumulation de menus contextuels. La fiche elle-même reste acceptée.
 
-**Point 27 mis de côté : consentement PvP et malus.** Le périmètre initial de réputation est recentré sur les missions et les PNJ. L’analyse statique PvP reste conservée dans l’[investigation dédiée](../../reputation-api-specifications.md), sans règle acceptée ni développement.
+**Point 27 mis de côté : consentement PvP et malus.** Le périmètre initial de réputation est recentré sur les missions et les PNJ. L’analyse statique PvP reste conservée dans l’investigation dédiée (spécification non rédigée), sans règle acceptée ni développement.
 
 **Point 28 tranché pour l’échec : même malus pour une mission échouée et une mission abandonnée.** L’utilisateur rejette une distinction selon les efforts ou une tentative. Les montants et modalités des incidents de dialogue restent à définir.
 
@@ -763,7 +763,7 @@ Ouvrir dans un navigateur : [trois variantes du carnet](../maquettes/carnet-prev
 
 **Point 39 tranché : un seul bouton « Carnet » dans la barre latérale.** Accès visible à l’interface validée ; point d’extension UI 42.21 à vérifier avant implémentation.
 
-**Point 40 : architecture commune retenue comme base pour préparer une coquille.** L’utilisateur autorise un sous-agent à préparer le projet du service autonome. Identités persistantes, profils déclarés, API versionnée, événements dédupliqués et adaptateurs restent le contrat de conception dans [ADR R05](../../reputation-api-specifications.md). La réputation globale de personnage reste unique ; la confiance de station MilitaryDrop utilise le même moteur avec ses règles préservées. Préparer la structure du nouveau mod n’implémente pas ces services ni leur migration.
+**Point 40 : architecture commune retenue comme base pour préparer une coquille.** L’utilisateur autorise un sous-agent à préparer le projet du service autonome. Identités persistantes, profils déclarés, API versionnée, événements dédupliqués et adaptateurs restent le contrat de conception dans ADR R05 (spécification non rédigée). La réputation globale de personnage reste unique ; la confiance de station MilitaryDrop utilise le même moteur avec ses règles préservées. Préparer la structure du nouveau mod n’implémente pas ces services ni leur migration.
 
 **Point 41 tranché : bouton « Livrer » dans l’onglet Missions, près du PNJ demandeur.** Sélection des objets et quantités puis confirmation, depuis le carnet ; validation serveur de la proximité et du transfert à développer.
 
