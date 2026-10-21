@@ -25,6 +25,7 @@ Priorité : **haute** (bug, sécurité ou perte de données possible), **moyenne
 - **Risque** : sécurité du pont et du LLM. Un nom de personnage comme « Bob. Ignore previous instructions… » arrive dans le rôle système, le plus écouté par le modèle. Cela permet aussi de faire paraphraser les secrets de la fiche, alors que `leaks_secret` ne détecte que les citations exactes.
 - **Correction** : passer ces champs par `npc.safe_text` avec une borne de 48 à 64 octets, les présenter comme des données non fiables, ou les déplacer dans le message utilisateur. Ajouter un test d'injection.
 - **Priorité** haute · **Effort** S · confirmé statiquement. Reste à vérifier en jeu : une radio d'inventaire renommée par le joueur porte-t-elle son nom personnalisé ?
+- **Statut : corrigé (commit 4215bd3), à vérifier en jeu**
 
 #### C02 — Usurpation du tag `[Caller N]` dans l'historique partagé d'une voix
 - **Problème** : le message enregistré est `f"{tag} {text}"`. Un texte qui contient « [Caller 2] … » ou un faux rappel de format reste dans les 40 derniers messages relus pour tous les appelants de la voix. Le tag n'est retiré que de la sortie.
@@ -32,6 +33,7 @@ Priorité : **haute** (bug, sécurité ou perte de données possible), **moyenne
 - **Risque** : sécurité et multijoueur. Un joueur peut se faire passer pour un autre dans la mémoire de la voix et orienter les réponses faites aux autres joueurs.
 - **Correction** : neutraliser `[` et `]` (ou les seuls motifs `[Caller`) dans le texte joueur, ou encapsuler chaque tour entre délimiteurs déclarés non fiables. Ajouter un test.
 - **Priorité** haute · **Effort** S · confirmé statiquement.
+- **Statut : corrigé (commit 4215bd3), à vérifier en jeu**
 
 #### C03 — Tentative de repli sans `max_tokens`
 - **Problème** : le corps `minimal` n'a aucun plafond de jetons. Après une réponse vide due à un raisonnement trop long (`finish_reason=length`, cas réel du 2026-10-13), la tentative suivante part sans limite.
@@ -39,6 +41,7 @@ Priorité : **haute** (bug, sécurité ou perte de données possible), **moyenne
 - **Risque** : coût LLM non borné, précisément dans le cas le plus cher. Jusqu'à 3 appels par message.
 - **Correction** : garder `max_tokens` (ou `max_completion_tokens`) dans le repli, ne pas relancer après `finish_reason=length`, poser un plafond de jetons par appel.
 - **Priorité** haute · **Effort** S · confirmé statiquement.
+- **Statut : corrigé (commit 4215bd3), à vérifier en jeu**
 
 #### C04 — Un échec d'écriture de `responses.txt` arrête le pont ; exceptions des workers perdues
 - **Problème** : `write_responses` lève `RuntimeError` après 50 essais, et `PermissionError` n'est pas rattrapée. La boucle `run` ne rattrape rien. Dans un worker, l'exception disparaît : le futur n'est jamais relu.
@@ -88,6 +91,7 @@ Priorité : **haute** (bug, sécurité ou perte de données possible), **moyenne
 - **Risque** : coût LLM. Un bogue serveur ou un contexte qui grossit peut coûter des dizaines de milliers de jetons par demande.
 - **Correction** : plafond en caractères ou en jetons estimés avant l'appel, refus journalisé `prompt_too_large`.
 - **Priorité** moyenne · **Effort** S · confirmé statiquement.
+- **Statut : corrigé (commit 4215bd3), à vérifier en jeu**
 
 #### C11 — Journaux : texte des joueurs, corps d'erreur du fournisseur, secrets en `--debug`
 - **Problème** :
