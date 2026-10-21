@@ -154,7 +154,7 @@ Priorité : **haute** (bug, sécurité ou perte de données possible), **moyenne
 Chemins relatifs à `Contents/mods/batman_RadioSurvivor/42.21/media/lua/`.
 
 #### C17 — Personnages morts jamais purgés de l'état
-- **Statut : corrigé (commit 3760771), à vérifier en jeu** — `server/RadioSurvivor/RS_StatePurge.lua` : mort datée (`retiredDay`), contacts, missions connues et historique radio vidés après 7 jours de jeu, fiche supprimée après 30 jours si aucune mission, dernières pages (journal gelé) ni réputation ne la citent ; 50 fiches par passe (`EveryHours`).
+- **Statut : corrigé (commit 3760771), à vérifier en jeu** — `server/RadioSurvivor/RS_StatePurge.lua` : mort datée (`retiredDay`), contacts, missions connues et historique radio vidés après 7 jours de jeu, fiche supprimée après 30 jours si aucune mission, dernières pages (journal gelé) ni réputation ne la citent ; 50 fiches par passe, une passe par jour de jeu à la sauvegarde (commit 99dc0bc).
 - **Problème** : à la mort, seuls `retired = true` et `record.radio = nil` sont posés. `S.data.characters[id]` et ses `contacts` (jusqu'à 40 lignes d'historique par PNJ) ne sont jamais supprimés : aucun `characters[...] = nil` dans le code. `prune` garde en plus toute fiche PNJ citée par un contact, même d'un mort.
 - **Preuve** : `server/RS_Carnet_Server.lua:1300-1314`, `:1110` ; `server/RadioSurvivor/RS_Reputation.lua:371-380` (la réputation, elle, a son `prune`).
 - **Risque** : persistance. Sur un serveur durable, chaque mort ajoute des données pour toujours, jusqu'au seuil de C18.
