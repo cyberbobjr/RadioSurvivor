@@ -35,9 +35,12 @@ quelconque, non vide, dans `OPENAI_KEY`.
 Conseils :
 
 - Certaines voix répondent dans une structure JSON (actions comme un repère sur la carte ou une mission). Le pont
-  demande le mode JSON de l'API et réessaie sans lui, ou sans `temperature`/`max_tokens`, si le fournisseur refuse un
-  paramètre. Les petits modèles locaux suivent moins bien le format ; leurs réponses sont alors réduites à la parole
+  demande le mode JSON de l'API et réessaie sans lui, ou sans `temperature` et avec `max_completion_tokens` au lieu
+  de `max_tokens`, si le fournisseur refuse un paramètre. Chaque tentative est plafonnée à 16 000 jetons, et une
+  réponse vidée par ce plafond n'est pas relancée. Les petits modèles locaux suivent moins bien le format ; leurs réponses sont alors réduites à la parole
   seule.
+- Un prompt de plus de 128 000 caractères n'est jamais envoyé : le pont journalise `prompt_too_large` et la voix
+  répond par des parasites.
 - Un appel doit se terminer en **60 s** (nouvelles tentatives comprises). Un modèle lent ou un fournisseur surchargé
   donne « Rien que des parasites... » et `bridge error timeout`.
 - Vérifiez l'installation par `python radio_bridge.py --test "Allô ?"` avant de jouer.

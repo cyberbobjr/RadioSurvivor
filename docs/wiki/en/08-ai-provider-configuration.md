@@ -34,7 +34,11 @@ from your provider's documentation. A local server usually needs no key: put any
 Tips:
 
 - Some voices answer in a JSON structure (actions such as a map mark or a mission). The bridge asks for the JSON mode
-  of the API and retries without it, or without `temperature`/`max_tokens`, if the provider refuses a parameter.
+  of the API and retries without it, or without `temperature` and with `max_completion_tokens` instead of
+  `max_tokens`, if the provider refuses a parameter. Every attempt is capped at 16 000 tokens, and an answer emptied
+  by that cap is not retried.
+- A prompt longer than 128 000 characters is never sent: the bridge logs `prompt_too_large` and the voice answers
+  with static.
   Small local models follow the format less reliably; their answers are then reduced to plain speech.
 - One call must finish within **60 s** (all retries included). A slow model or an overloaded provider gives
   "Only static..." and `bridge error timeout`.
