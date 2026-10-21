@@ -154,6 +154,7 @@ Priorité : **haute** (bug, sécurité ou perte de données possible), **moyenne
 Chemins relatifs à `Contents/mods/batman_RadioSurvivor/42.21/media/lua/`.
 
 #### C17 — Personnages morts jamais purgés de l'état
+- **Statut : corrigé (commit 3760771), à vérifier en jeu** — `server/RadioSurvivor/RS_StatePurge.lua` : mort datée (`retiredDay`), contacts, missions connues et historique radio vidés après 7 jours de jeu, fiche supprimée après 30 jours si aucune mission, dernières pages (journal gelé) ni réputation ne la citent ; 50 fiches par passe (`EveryHours`).
 - **Problème** : à la mort, seuls `retired = true` et `record.radio = nil` sont posés. `S.data.characters[id]` et ses `contacts` (jusqu'à 40 lignes d'historique par PNJ) ne sont jamais supprimés : aucun `characters[...] = nil` dans le code. `prune` garde en plus toute fiche PNJ citée par un contact, même d'un mort.
 - **Preuve** : `server/RS_Carnet_Server.lua:1300-1314`, `:1110` ; `server/RadioSurvivor/RS_Reputation.lua:371-380` (la réputation, elle, a son `prune`).
 - **Risque** : persistance. Sur un serveur durable, chaque mort ajoute des données pour toujours, jusqu'au seuil de C18.
@@ -161,6 +162,7 @@ Chemins relatifs à `Contents/mods/batman_RadioSurvivor/42.21/media/lua/`.
 - **Priorité** haute · **Effort** M · confirmé statiquement.
 
 #### C18 — L'encodeur accepte un état que le décodeur refuse ; aucune migration de schéma
+- **Statut : corrigé (commit 3760771), à vérifier en jeu** — `encodeBytes` contrôle les mêmes limites que le décodeur (nœuds, profondeur, entrées, nombres finis) ; au-delà, purge forcée des morts puis refus sans écrire (aucun fichier illisible) ; alerte console à 70 % ; `RS_State.upgrade`/`MIGRATIONS` (aucune migration encore, schéma 2) ; un emplacement d'un schéma plus récent bloque au lieu de relire l'ancien. Alerte aux admins connectés non faite (texte joueur à traduire).
 - **Problème** :
   - `encodeBytes` ne contrôle que la taille (4 Mio) ;
   - `decodeBytes` refuse au-delà de 200 000 nœuds, d'une profondeur de 12 ou de 10 000 entrées par table ;
@@ -173,6 +175,7 @@ Chemins relatifs à `Contents/mods/batman_RadioSurvivor/42.21/media/lua/`.
 - **Priorité** haute · **Effort** S (limites) + M (migration) · confirmé statiquement.
 
 #### C19 — Une erreur d'écriture passagère coupe le carnet jusqu'au redémarrage
+- **Statut : corrigé (commit 3760771), à vérifier en jeu** — écriture ratée : plus de blocage, `S.dirty` gardé, nouvel essai à la sauvegarde suivante sur le même emplacement (l'autre garde le dernier bon fichier), journal au 1er échec puis tous les 20. Blocage réservé à l'état corrompu. Prévenir les admins connectés : non fait.
 - **Problème** : un `getFileWriter` nul, une relecture ratée ou un encodage refusé posent `S.blocked = true` pour toute la session, avec un simple `print`. Seul `S.init` remet l'indicateur à faux. Toutes les commandes répondent ensuite `Storage`.
 - **Preuve** : `server/RadioSurvivor/RS_State.lua:45`, `:52-55`, `:60`, `:63-67`.
 - **Risque** : persistance. Toutes les modifications de la session sont perdues sans que l'admin le sache.
@@ -180,6 +183,7 @@ Chemins relatifs à `Contents/mods/batman_RadioSurvivor/42.21/media/lua/`.
 - **Priorité** moyenne · **Effort** S · confirmé statiquement.
 
 #### C20 — Sauvegarde synchrone complète, lente et très fréquente
+- **Statut : corrigé en partie (commit 3760771), à vérifier en jeu** — hex par table de remplacement, `unhexBytes` et somme de contrôle par blocs dans `RS_Codec` (mêmes octets, testé) ; relecture de contrôle à la première écriture et après un échec. Reste : écriture regroupée en fin d'image (`markChanged`), qui touche les 38 appels de `RS_Carnet_Server.lua`.
 - **Problème** : chaque `S.save` fait :
   - un encodage complet ;
   - une conversion hexadécimale par `gsub` avec un appel de fonction Lua par octet ;
