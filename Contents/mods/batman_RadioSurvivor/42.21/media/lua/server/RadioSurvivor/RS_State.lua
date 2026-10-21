@@ -132,6 +132,7 @@ end
 
 function S.save()
     if S.blocked or not S.data then return false end
+    if S.maintenance then pcall(S.maintenance, S.data) end   -- C17: daily bounded purge of dead characters
     local body, why = encode()
     if not body then return failed('state exceeds serialization bounds: ' .. tostring(why)) end
     warnSize(body)

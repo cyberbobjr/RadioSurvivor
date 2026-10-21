@@ -6,7 +6,7 @@ its known missions and the fiches they cite, for ever.
 
     local Purge = require 'RadioSurvivor/RS_StatePurge'
     Purge.run(data, today, force)  -- one bounded pass; true when the state changed
-    Purge.attach(S)                -- done by RS_State: reducer over the codec bounds, pass every game hour
+    Purge.attach(S)                -- done by RS_State: reducer over the codec bounds, pass once per game day
 
 - First pass that sees a retired record without a date: retiredDay = today (deaths before this code included).
 - STRIP_DAYS game days after the death: contacts, known missions and radio history emptied (record kept: id, owner,
@@ -14,8 +14,8 @@ its known missions and the fiches they cite, for ever.
 - DROP_DAYS game days after the death, when nothing refers to it any more: the record itself is removed. Still in
   use: a mission it takes part in, is invited to, claimed or has a transaction on; a frozen life log (last pages,
   E15); a reputation entry (dropped by Rep.prune, E04-T12). The memorial (E14) keeps its own names in the facts.
-- At most BATCH records per pass (EveryHours); force (the state is over the codec bounds, RS_State reducers): every
-  retired record stripped at once, dropped if not in use, no batch limit.
+- At most BATCH records per pass (first save of each game day); force (the state is over the codec bounds,
+  RS_State reducers): every retired record stripped at once, dropped if not in use, no batch limit.
 Living characters are never touched.
 ]]
 local Purge = {}
@@ -79,10 +79,13 @@ end
 -- Called once by RS_State (no require cycle).
 function Purge.attach(S)
     S.reducers[#S.reducers + 1] = function(data, force) return Purge.run(data, nil, force) end
-    if Events and Events.EveryHours then
-        Events.EveryHours.Add(function()
-            if S.data and not S.blocked and Purge.run(S.data) then S.dirty = true end
-        end)
+    -- One bounded pass per game day, from S.save (no event subscription of its own).
+    local lastDay = nil
+    S.maintenance = function(data)
+        local day = today()
+        if type(day) ~= 'number' or day == lastDay then return false end
+        lastDay = day
+        return Purge.run(data, day)
     end
 end
 

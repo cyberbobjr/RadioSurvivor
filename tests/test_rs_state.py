@@ -253,6 +253,22 @@ class PurgeTests(unittest.TestCase):
         P.run(d, 100)
         self.assertIsNone(d.characters.dead)
 
+    def test_daily_pass_from_save(self):
+        self.rt.execute('''
+            local S = require('RadioSurvivor/RS_State')
+            assert(S.init(false))
+            S.data.characters.dead = {id = 'dead', retired = true, retiredDay = 1, contacts = {x = {}}, knownMissions = {}}
+        ''')
+        S = self.rt.eval("require('RadioSurvivor/RS_State')")
+        self.assertTrue(S.save())
+        self.assertIsNone(S.data.characters.dead.stripped, 'second pass on the same game day')
+        self.rt.globals().DAY = 11
+        self.assertTrue(S.save())
+        self.assertTrue(S.data.characters.dead.stripped)   # 10 days after the death
+        self.rt.globals().DAY = 50
+        self.assertTrue(S.save())
+        self.assertIsNone(S.data.characters.dead)
+
     def test_batch_limit(self):
         P = self.P
         d = self.rt.execute('''
