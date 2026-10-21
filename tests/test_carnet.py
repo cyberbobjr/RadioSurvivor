@@ -4161,6 +4161,63 @@ class GameClockTests(unittest.TestCase):
         restart.tick()
         self.assertEqual(restart.mission().remainingMs, remaining - 225000)
 
+    def won_lot(self, name):
+        sim, npc, missions = self.sim(name)
+        m = missions.create(sim.state(), npc, sim.character('alice'))
+        sim.request_mission('alice', 'accept')
+        sim.confirm('alice', sim.quote('alice', sim.items('alice', *(['Base.Bandage'] * 6))))
+        self.assertEqual((m.state, m.claimedBy), ('success', ''))
+        return sim, m, missions
+
+    def test_unclaimed_lot_kept_seven_game_days(self):
+        """User decision of 2026-10-21: an unclaimed lot is kept 7 game days (168 hours of world age), paused time and
+        real time alone never count."""
+        sim, m, missions = self.won_lot('unclaimed')
+        self.assertAlmostEqual(m.unclaimedUntilHour, sim.server.g.WORLD_AGE_HOURS + 168, delta=1e-6)
+        sim.clock.offset += 30 * 86400000   # 30 real days paused (solo Esc, empty server): nothing counts
+        sim.tick()
+        self.assertIsNotNone(sim.state().missions[m.id])
+        self.advance(sim, 167.9, real_ms=60001)
+        self.assertIsNotNone(sim.state().missions[m.id])
+        self.advance(sim, 0.2, real_ms=60001)
+        self.assertIsNone(sim.state().missions[m.id], 'lot kept beyond 7 game days')
+        # A claimed lot keeps the former retention of closed missions (24 real hours after the success).
+        sim2, m2, missions2 = self.won_lot('claimed')
+        m2.claimedBy = sim2.character('alice')
+        now = sim2.server.g.getTimestampMs()
+        missions2.prune(sim2.state(), now + 86400000 - 1000)
+        self.assertIsNotNone(sim2.state().missions[m2.id])
+        missions2.prune(sim2.state(), now + 86400001)
+        self.assertIsNone(sim2.state().missions[m2.id])
+
+    def test_unclaimed_lot_saved_in_real_time_is_converted(self):
+        sim, m, missions = self.won_lot('migration')
+        state, h = sim.state(), sim.server.g.WORLD_AGE_HOURS
+        now = sim.server.g.getTimestampMs()
+        day = 86400000
+        # Saved before the decision: closedAt only, 2 real hours left of the former 7 real days = 32 game hours.
+        m.unclaimedUntilHour, m.closedAt = None, now - (7 * day - 7200000)
+        self.assertFalse(missions.prune(state, now))
+        self.assertAlmostEqual(m.unclaimedUntilHour, h + 32, delta=1e-6)
+        m.closedAt = now - 8 * day   # converted only once: the saved deadline now counts
+        self.assertFalse(missions.prune(state, now))
+        self.assertAlmostEqual(m.unclaimedUntilHour, h + 32, delta=1e-6)
+        # Six real days left: capped to 7 game days, never weeks of game time.
+        m.unclaimedUntilHour, m.closedAt = None, now - day
+        self.assertFalse(missions.prune(state, now))
+        self.assertAlmostEqual(m.unclaimedUntilHour, h + 168, delta=1e-6)
+        # World age set back by an admin: never more than 7 game days from now.
+        m.unclaimedUntilHour = h + 5000
+        self.assertFalse(missions.prune(state, now))
+        self.assertAlmostEqual(m.unclaimedUntilHour, h + 168, delta=1e-6)
+        # Without game time the lot is kept; a lot already past the former real deadline is dropped once converted.
+        sim.server.rt.execute('RS_TEST_GT = getGameTime; getGameTime = function() return nil end')
+        m.unclaimedUntilHour, m.closedAt = None, now - 8 * day
+        self.assertFalse(missions.prune(state, now))
+        sim.server.rt.execute('getGameTime = RS_TEST_GT')
+        self.assertTrue(missions.prune(state, now))
+        self.assertIsNone(state.missions[m.id])
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

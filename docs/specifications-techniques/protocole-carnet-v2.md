@@ -1051,6 +1051,17 @@ L'objectif est rempli quand le serveur trouve le sac, par son identifiant, dans 
 réussit au compte rendu (E11-T13). Une mission `signal` (E11-T07) : objectif rempli au premier bon signal, réussite au
 compte rendu.
 
+**Conservation des missions closes** (`RS_Missions.prune`, passe de `RS_Carnet_Server` toutes les
+`PRUNE_INTERVAL_MS`) : une mission close est retirée de l'état 24 h réelles après sa clôture (`MISSION_RETENTION_MS`,
+`closedAt` en temps réel, simple ménage). Un **lot réussi non réclamé** (`state = success`, `claimedBy = ''`,
+`rewardCount > 0`) est gardé **7 jours de jeu** (décision de l'utilisateur du 2026-10-21, tâche E16-T10) : échéance
+`unclaimedUntilHour` = âge du monde (`RS_GameClock.hours`, `getWorldAgeHours`) à la réussite + `UNCLAIMED_RETENTION_HOURS`
+(168 h de jeu), arrêtée en pause solo et sur un serveur vide en `PauseEmpty`, jamais plus de 168 h au-delà de l'âge
+actuel (âge reculé par un admin). Migration : un lot enregistré avant cette décision (`closedAt` seul, ancienne
+rétention de 7 jours réels `UNCLAIMED_RETENTION_MS`) reçoit une fois une échéance de jeu égale au temps réel qui lui
+restait, converti en heures de jeu à vitesse normale et plafonné à 168 h ; un lot déjà échu selon l'ancienne règle est
+retiré. Sans horloge de jeu, le lot est gardé.
+
 ### Contexte du groupe (E17-T03)
 
 `context.group` est rempli par le fournisseur de PNJ (`RS_NPCProvider.context`, fournisseur Living Knox

@@ -170,7 +170,10 @@ local C = {
     -- not sent). Same value as MAX_OFFERS in bridge/npc_protocol.py, which rejects a larger catalog.
     MAX_OFFERS = 6,
     MISSION_RETENTION_MS = 86400000,   -- closed missions kept 24 h for the notebook
-    UNCLAIMED_RETENTION_MS = 604800000, -- successful but unclaimed lot kept 7 days
+    -- Successful but unclaimed lot kept 7 game days (168 game hours of world age, stopped while paused: user decision
+    -- of 2026-10-21). UNCLAIMED_RETENTION_MS (7 real days) only converts a lot saved before that decision.
+    UNCLAIMED_RETENTION_HOURS = 168,
+    UNCLAIMED_RETENTION_MS = 604800000,
     NPC_UNSEEN_MS = 3600000,           -- uncontacted fiche dropped after 1 h without a loaded body
     PRUNE_INTERVAL_MS = 60000,
     -- Personal observations of contacted NPCs (E08-T02, server/RadioSurvivor/RS_Observations.lua). `facts` is the

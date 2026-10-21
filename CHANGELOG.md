@@ -11,11 +11,13 @@
 - Corpses carrying a walkie-talkie now have a 35% chance to also contain a frequency note when their loot is generated. The existing note rarity setting adjusts this chance (14% on Rare, 87.5% on Frequent, disabled on None).
 - Increased the availability of Walt's frequency note in home and office desks, garages, electronics crates and amateur radio shelves.
 
+- A successful mission's unclaimed shared reward is now kept for 7 in-game days instead of 7 real days: the wait stops while the game is paused or the server is empty. Rewards already waiting keep the time they had left (at most 7 in-game days).
+
 ### Reliability
 
 - A misbehaving client can no longer freeze the server by flooding notebook, radio or NPC requests, or by sending a radio message made of tens of thousands of spaces; normal play and reconnections are not affected.
 - Radio voices can no longer be steered by a character or radio name written as an order, nor tricked by a message that pretends to come from another caller on the same frequency.
-- The AI bridge caps the cost of every request: each attempt is limited in length, an answer cut by that limit is not retried, and an oversized prompt is never sent (the voice answers with static).
+- The AI bridge caps the cost of every request: each attempt is limited in length, an answer cut by that limit is not retried, and an oversized prompt is never sent (the voice answers with static). Server admins can tune both limits in the bridge settings (`LLM_MAX_TOKENS`, `LLM_MAX_PROMPT_CHARS`).
 - A notebook save that fails once (disk busy, file locked) no longer switches the notebook off until the next restart: the save is retried and nothing is lost.
 - A very large notebook state on a long-running server can no longer produce a save file that the next session cannot read; dead characters' old notebook data is cleared after a few in-game weeks to keep the save small.
 - Corpse notes only select active voices with an available frequency. Repeated loot generation preserves the original roll and avoids duplicate notes already in the corpse.

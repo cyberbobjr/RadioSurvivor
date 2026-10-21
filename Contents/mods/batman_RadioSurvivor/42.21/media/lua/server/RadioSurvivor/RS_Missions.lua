@@ -43,7 +43,9 @@ Game time (E11-T20, user decision of 2026-10-21): remainingMs and offerRemaining
 ms at normal speed, stopped while the game is paused, faster at x2/x3), decreased by M.advance with the play time
 measured by the caller; the delay before the next offer is a world age (nextOfferHour, game hours). Saved missions
 keep their remainingMs (same unit at normal speed); a saved nextOfferAt (real ms) is converted once by M.offerWait.
-closedAt stays real time (notebook retention and ordering, housekeeping only).
+closedAt stays real time (notebook retention and ordering, housekeeping only). An unclaimed lot is kept until a world age
+(unclaimedUntilHour, UNCLAIMED_RETENTION_HOURS = 7 game days after the success, user decision of 2026-10-21): see
+M.prune.
 Engine supplies (E17-T03): for an NPC of a provider that defines supplies (RS_NPCProvider.hasSupplies, Living Knox),
 `deliver` offers come only from Provider.supplies (real needs of its group); the mission counts value points V
 (m.unit = 'value', m.values), each delivery goes through Provider.supplyDeliver with the transaction token as receipt,
@@ -148,6 +150,10 @@ end
 -- time) only dates the closure for the notebook retention.
 local function release(state, mission)
     mission.closedAt = getTimestampMs()
+    if mission.state == 'success' then
+        local h = Clock.hours()
+        mission.unclaimedUntilHour = h and h + Config.UNCLAIMED_RETENTION_HOURS or nil
+    end
     local npc = M.donorOf(state, mission)
     if npc and npc.mission == mission.id then
         npc.mission = nil
@@ -228,7 +234,27 @@ function M.advance(state, elapsedMs)
     return changed
 end
 
--- Closed missions are kept for the notebook, then dropped; an unclaimed lot stays longer.
+-- True while an unclaimed lot is still kept: until the world age unclaimedUntilHour (7 game days after the success,
+-- user decision of 2026-10-21), never further than UNCLAIMED_RETENTION_HOURS from now (world age set back by an
+-- admin). A lot saved before that decision (closedAt only, real ms) is converted once: the real time it had left of
+-- the former 7 real days becomes game hours at normal speed, capped to 7 game days (no lot dropped early by the
+-- change, none kept for weeks). Without game time the lot is kept.
+local function keepUnclaimed(m, now)
+    local h = Clock.hours()
+    if h == nil then return true end
+    local cap = h + Config.UNCLAIMED_RETENTION_HOURS
+    local due = m.unclaimedUntilHour
+    if type(due) ~= 'number' or due ~= due then
+        local left = Config.UNCLAIMED_RETENTION_MS - (now - (tonumber(m.closedAt) or now))
+        due = h + math.max(0, left) / Clock.msPerHour()
+    end
+    if due > cap then due = cap end
+    m.unclaimedUntilHour = due
+    return due > h
+end
+
+-- Closed missions are kept for the notebook, then dropped (MISSION_RETENTION_MS, real time); an unclaimed lot stays
+-- 7 game days (keepUnclaimed).
 function M.prune(state, now)
     local removed = false
     for id, m in pairs(state.missions) do
@@ -236,8 +262,15 @@ function M.prune(state, now)
         if closed and not m.closedAt then m.closedAt = now end
         -- A mission without a reward lot (radio voice, E11-T08) has nothing left to claim.
         local unclaimed = m.state == 'success' and m.claimedBy == '' and (m.rewardCount or 0) > 0
-        local keep = unclaimed and Config.UNCLAIMED_RETENTION_MS or Config.MISSION_RETENTION_MS
-        if closed and now - m.closedAt > keep then
+        local drop
+        if not closed then
+            drop = false
+        elseif unclaimed then
+            drop = not keepUnclaimed(m, now)
+        else
+            drop = now - m.closedAt > Config.MISSION_RETENTION_MS
+        end
+        if drop then
             state.missions[id] = nil
             for _, record in pairs(state.characters) do record.knownMissions[id] = nil end
             local npc = M.donorOf(state, m)

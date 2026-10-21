@@ -42,6 +42,7 @@ Priorité : **haute** (bug, sécurité ou perte de données possible), **moyenne
 - **Correction** : garder `max_tokens` (ou `max_completion_tokens`) dans le repli, ne pas relancer après `finish_reason=length`, poser un plafond de jetons par appel.
 - **Priorité** haute · **Effort** S · confirmé statiquement.
 - **Statut : corrigé (commit 4215bd3), à vérifier en jeu**
+- **Suite (2026-10-21, confirmée par l'utilisateur)** : plafond réglable dans la configuration du pont (`LLM_MAX_TOKENS`, `LLM_MAX_PROMPT_CHARS`, mêmes défauts, valeur invalide remplacée par le défaut) ; tâche `E16-T07`.
 
 #### C04 — Un échec d'écriture de `responses.txt` arrête le pont ; exceptions des workers perdues
 - **Problème** : `write_responses` lève `RuntimeError` après 50 essais, et `PermissionError` n'est pas rattrapée. La boucle `run` ne rattrape rien. Dans un worker, l'exception disparaît : le futur n'est jamais relu.
@@ -92,6 +93,7 @@ Priorité : **haute** (bug, sécurité ou perte de données possible), **moyenne
 - **Correction** : plafond en caractères ou en jetons estimés avant l'appel, refus journalisé `prompt_too_large`.
 - **Priorité** moyenne · **Effort** S · confirmé statiquement.
 - **Statut : corrigé (commit 4215bd3), à vérifier en jeu**
+- **Suite (2026-10-21, confirmée par l'utilisateur)** : plafond réglable dans la configuration du pont (`LLM_MAX_TOKENS`, `LLM_MAX_PROMPT_CHARS`, mêmes défauts, valeur invalide remplacée par le défaut) ; tâche `E16-T07`.
 
 #### C11 — Journaux : texte des joueurs, corps d'erreur du fournisseur, secrets en `--debug`
 - **Problème** :
@@ -253,6 +255,7 @@ Chemins relatifs à `Contents/mods/batman_RadioSurvivor/42.21/media/lua/`.
 - **Correction** : ne pas décompter si le jeu est en pause (vitesse 0 en solo, serveur sans joueur), ou passer aux minutes de jeu. ~~Décision à poser~~ à l'utilisateur.
 - **Décision (2026-10-21, confirmée par l'utilisateur)** : les délais des missions suivent le temps de jeu (arrêt en pause, accélération en x2/x3), comme les délais vanilla.
 - **Statut** : décidé, tâche `E11-T20` (temps restant et délai entre deux offres comptés en temps de jeu à vitesse normale, `RS_GameClock`) ; codé et testé hors jeu, à vérifier en jeu.
+- **Suite (2026-10-21, confirmée par l'utilisateur)** : la conservation d'un lot réussi non réclamé (`UNCLAIMED_RETENTION_MS`, 7 jours réels) devient 7 jours **de jeu** (`UNCLAIMED_RETENTION_HOURS`, âge du monde), avec conversion des lots déjà enregistrés ; tâche `E16-T10`.
 - **Priorité** moyenne · **Effort** S · à vérifier en jeu.
 
 #### C28 — Chaque zombie compté republie tous les snapshots
