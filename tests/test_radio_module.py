@@ -9,7 +9,7 @@ micro à portée et même étage, joueur assis dans le véhicule, champs envoyé
 5 s, réponses du serveur), deux dernières lignes par fréquence (bornes, doublons, portée d'écoute, ChatMessage),
 module ajouté une fois à la fenêtre, visibilité relue à chaque image, focus clavier rendu (envoi, Échap, fermeture,
 module masqué, clavier à l'écran), manette. Ne prouve ni l'API Java ni le rendu : suite en jeu rs.radiomodule et
-protocole docs/tests-en-jeu.md.
+protocole docs/annexes/tests/tests-en-jeu.md.
 """
 from __future__ import annotations
 

@@ -1,7 +1,7 @@
 if isClient() then return end
 --[[
 Last pages of a dead notebook character (E15-T03). Authority only (dedicated server or solo). Design notes:
-docs/conception/dernieres-pages.md; where the document goes: docs/derniers-pages-cadavre.md (E15-T02).
+docs/annexes/conception/dernieres-pages.md; where the document goes: docs/annexes/recherches/derniers-pages-cadavre.md (E15-T02).
 
     local LastPages = require "RadioSurvivor/RS_LastPages"
     LastPages.poll()             -- one pass (answers of the bridge, delays, placement); OnTickEvenPaused every POLL_MS

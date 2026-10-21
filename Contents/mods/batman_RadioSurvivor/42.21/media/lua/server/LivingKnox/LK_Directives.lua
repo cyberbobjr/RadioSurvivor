@@ -1,4 +1,5 @@
--- Living Knox : consignes de déplacement des corps de PNJ, côté autorité (LK02-T07). Fiche : docs/conception/consignes.md.
+-- Living Knox : consignes de déplacement des corps de PNJ, côté autorité (LK02-T07). Fiche :
+-- docs/annexes/conception/consignes.md.
 -- Java 42.21.0 cité en abrégé (J = zombie/...). Un client MP charge aussi ce fichier (media/lua/server) : il n'y
 -- trouve que des constantes et des fonctions qui refusent d'agir ; l'exécution est dans client/LivingKnox/LK_Executor.lua
 -- et l'affichage chez les autres clients dans client/LivingKnox/LK_Presentation.lua.
@@ -395,7 +396,7 @@ local function boundBody(id)
     return z
 end
 
--- Plantes cultivées et feux de camp (LK04-T06, fiche docs/conception/consignes.md) : une case visée qui porte une
+-- Plantes cultivées et feux de camp (LK04-T06, fiche docs/annexes/conception/consignes.md) : une case visée qui porte une
 -- plante ou un feu de camp, ou dont une voisine en porte (Bodies.HAZARD_AVOID), est décalée vers la case praticable la
 -- plus proche sans danger à HAZARD_AVOID + 1 cases, à SHIFT_RADIUS cases au plus ; sinon la consigne est refusée.
 -- Le trajet lui-même peut traverser ces cases (la recherche de chemin d'un zombie ne les évite pas) : les cases
@@ -580,7 +581,7 @@ function Directives.planDetour(x0, y0, tx, ty, z)
     return out
 end
 
--- Porte d'abord (LK04-T09, fiche docs/conception/deplacement.md, section « Porte d'abord ») : quand la ligne droite
+-- Porte d'abord (LK04-T09, fiche docs/annexes/conception/deplacement.md, section « Porte d'abord ») : quand la ligne droite
 -- n'a pas de détour de potager (planDetour rend une liste vide), les points de passage par une porte ou un portail
 -- calculés par l'autorité (LivingKnox.Obstacles.planDoorRoute, absent sur un client MP) remplacent une fenêtre ou une
 -- clôture basse franchie par le chemin vanilla. Un itinéraire dont un segment passe SUR la case d'une plante ou d'un
@@ -967,7 +968,7 @@ end
 
 -- ---------------------------------------------------------------- corps simulé par le serveur (LK03-T04)
 -- Aucune consigne n'est exécutée par le serveur : la consigne ouverte d'un corps sans client propriétaire est
--- suspendue, le corps mis au repos (état neutre). Voir l'en-tête et docs/conception/consignes.md, « Corps simulé par
+-- suspendue, le corps mis au repos (état neutre). Voir l'en-tête et docs/annexes/conception/consignes.md, « Corps simulé par
 -- le serveur ».
 
 -- Suspend la consigne ouverte e du corps z (serveur, aucun client propriétaire) : elle reste ouverte et publiée (bail

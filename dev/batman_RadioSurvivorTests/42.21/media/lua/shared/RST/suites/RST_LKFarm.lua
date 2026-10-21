@@ -14,7 +14,7 @@ checked here:
     - body at rest with a plant put next to it: within a few seconds a short "move" takes it away (no plant on its
       square or next to it), the plant still alive 60 s later;
     - measure only (never fails on the result): a trip whose straight line crosses a plant; whether the vanilla path
-      crossed it and the plant survived is printed (residual risk documented in docs/conception/consignes.md);
+      crossed it and the plant survived is printed (residual risk documented in docs/annexes/conception/consignes.md);
       since LK05-T12 the authority splits such a trip into waypoints, the measure shows their effect;
     - waypoints (LK05-T12): a trip to the other side of a garden row (5 plants aligned across the straight line) is
       split into steps around it; the body arrives, is never seen on a plant square, and every plant is alive at

@@ -1,5 +1,5 @@
 -- Living Knox : type de groupe « solitaires » (E10-T04), données seules. Format : LK_GroupTypes.lua ; valeurs et
--- raisons : docs/conception/depart.md.
+-- raisons : docs/annexes/conception/depart.md.
 -- Groupe d'un seul membre formé par un PNJ incarné qui quitte son groupe (intention leave_group du carnet, décision Q3
 -- du 2026-10-10 : solitaire durable, avec son abri, simulé hors écran). Jamais tiré par la population : aucune option
 -- de poids (LK_Config.TYPE_WEIGHT_OPTIONS) ne le nomme, et un solitaire disparu n'appelle aucune relève. Taille 1 :

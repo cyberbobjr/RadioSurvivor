@@ -13,7 +13,7 @@ The test groups get homes about 300 squares away from the player: never loaded d
 Cleanup (t:defer): the test groups and the relief group are removed from the registry.
 E01-T16: refusal of a REAL client with the access level "user" (second client of the MP campaign, set to "user" by
 the requester for the test, RST.PeerChecks.refusedForUser; SKIP in solo). Not checked here: the window itself
-(docs/tests-en-jeu.md protocol of LK13-T01). Outside the game: tests/test_lk_admin.py.
+(docs/annexes/tests/tests-en-jeu.md protocol of LK13-T01). Outside the game: tests/test_lk_admin.py.
 Solo window (2026-10-15, solo client only, skipped elsewhere): the button "Living Knox - Admin" of the vanilla debug
 menu (wrapper of ISDebugMenu.setupButtons, LK_DebugView.lua) opens the window client/LivingKnox/LK_AdminView.lua; the
 list shows the test group, its detail shows members, story and log; screenshot lk_admin_window_*.png (Zomboid/

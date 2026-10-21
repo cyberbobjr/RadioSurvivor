@@ -362,7 +362,7 @@ class TradeTests(unittest.TestCase):
         self.assertEqual(tv.sellValue('Base.Battery'), 2)
         self.assertEqual(tv.sellValue('RadioSurvivor.NoteWalt'), 0)
         self.assertEqual(tv.SELL_ONLY['RadioSurvivor.OutsideNews'].cap, 1)
-        doc = (ROOT / 'docs/passeur-table.md').read_text(encoding='utf-8')
+        doc = (ROOT / 'docs/specifications-techniques/passeur-table.md').read_text(encoding='utf-8')
         self.assertRegex(doc, r'\| Journal du dehors \(`RadioSurvivor\.OutsideNews`[^|]*\| [^|]+\| 2 \| 1 ')
 
 

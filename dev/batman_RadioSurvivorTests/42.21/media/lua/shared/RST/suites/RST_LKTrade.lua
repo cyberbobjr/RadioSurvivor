@@ -10,7 +10,7 @@ tags = "world" }). Dedicated server: RST.server({ suite = "lk.trade", tags = "wo
 in a house.
 The trade is made with a test player key ("rst-trade-<ms>"; settlers start "favorable") and three batteries created
 in the player's inventory: no npc body, no window (the context menu, the window and the reply bubble are a manual
-check, docs/conception/troc.md).
+check, docs/annexes/conception/troc.md).
 Cleanup (t:defer): items still in the player's inventory from the test are removed, the stock reference erased,
 everything placed removed (LivingKnox.Homes.clear, crate content included) and the group removed.
 

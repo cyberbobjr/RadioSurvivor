@@ -1,6 +1,6 @@
 --[[
 rs.reputation - internal reputation of RadioSurvivor in game (E04-T14; server/RadioSurvivor/RS_Reputation.lua, design
-docs/conception/reputation-interne.md). Tags "server" and "world": the authority only (solo, or RST.server from an
+docs/annexes/conception/reputation-interne.md). Tags "server" and "world": the authority only (solo, or RST.server from an
 admin client), save rstest* in debug mode (the test baseline RS_Reputation.testSetLevel refuses anything else).
 Solo campaign solo-rs and MP campaign mp; persistence base of mp-persist (rs.reputation.before / .after-restart).
 

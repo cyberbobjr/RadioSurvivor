@@ -1,4 +1,4 @@
--- Living Knox : registre des types de groupes et des profils de membres (LK08-T02). Fiche : docs/conception/groupes.md,
+-- Living Knox : registre des types de groupes et des profils de membres (LK08-T02). Fiche : docs/annexes/conception/groupes.md,
 -- section « Types et profils ».
 --
 -- Un type se déclare dans un fichier de données Lua, sans code : le fichier appelle LivingKnox.GroupTypes.register{...}

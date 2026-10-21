@@ -1,6 +1,6 @@
 if isClient() then return end
 --[==[
-Internal reputation of RadioSurvivor (E04-T08, E04-T09, E04-T12; design docs/conception/reputation-interne.md).
+Internal reputation of RadioSurvivor (E04-T08, E04-T09, E04-T12; design docs/annexes/conception/reputation-interne.md).
 Authority only (dedicated server or solo): this file is never loaded by an MP client.
 
 One global reputation per notebook character (E00-T01 identity, Q2), kept in the private state of the notebook

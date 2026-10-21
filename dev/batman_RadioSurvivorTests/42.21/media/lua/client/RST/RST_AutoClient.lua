@@ -37,7 +37,7 @@ Command file (written by the launcher in the temporary cache folder, read only h
                                the steps it answered: "RST-RESULT ok=... total=<steps> pass= fail= error= skip=
                                empty=0 durationMs=0 [report=<stamp>-steps.txt]" (ok=true with total=0: nothing asked).
 
-Sequence (vanilla paths, see docs/tests-en-jeu.md, section "Lanceur client automatique"):
+Sequence (vanilla paths, see docs/annexes/tests/tests-en-jeu.md, section "Lanceur client automatique"):
     main menu  OnMainMenuEnter: "Break On Error" off; OnFETick waits until MainScreen.instance exists and 3 s have
                passed, then MainScreen.continueLatestSave(mode, save) (what LoadGameScreen:clickPlay calls). The
                loading screen then waits for a left click (GameLoadingState.update reads Mouse.isButtonDown(0)):

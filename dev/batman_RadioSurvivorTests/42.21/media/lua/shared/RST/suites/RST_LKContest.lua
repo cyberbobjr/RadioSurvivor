@@ -15,7 +15,7 @@ What is done (stay next to the three members, in their sight):
     - the hourly scoring of the group (Decisions.scorePass) never gives the watch to m-3 while the refusal holds; the
       registry keeps m-3 alive in the group.
 No bridge, no LLM: an engine order is judged by fixed rules. The member reactions to a decision born of a conversation
-(npc_member, bridge on) are checked by hand (protocol in docs/conception/contestation.md).
+(npc_member, bridge on) are checked by hand (protocol in docs/annexes/conception/contestation.md).
 Every phase prints "[LKC] measure ..." lines. Cleanup (t:defer): bodies removed, test group removed.
 ]]
 

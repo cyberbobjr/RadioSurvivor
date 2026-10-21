@@ -487,7 +487,7 @@ end
 -- loaded here (provider objects), the leader excluded, in id order, up to MEMBER_REACTIONS per decision and within the
 -- bridge quotas (MAX_PENDING, MAX_PER_HOUR): one npc_member request carrying the decision fact (English, composed by
 -- the server). The model playing the member chooses accept, contest or refuse (memberReply). The request is bound to
--- the group (Server.reactions[id] = { ref, about }), never sent to the bridge. Fiche docs/conception/contestation.md.
+-- the group (Server.reactions[id] = { ref, about }), never sent to the bridge. Fiche docs/annexes/conception/contestation.md.
 Server.MEMBER_REACTIONS = 2
 Server.MEMBER_REPLY_BYTES = 200 -- LivingKnox.Speech.MAX_TEXT: the line is spoken by the engine's proximity speech
 local NEED_WORDS = {food = 'food', medical = 'medical supplies', ammo = 'ammunition'}

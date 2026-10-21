@@ -2,7 +2,7 @@ if isClient() then return end
 --[[
 Mission template `signal` (E11-T07): light a signal of the asked colour inside a circle drawn around a place chosen by
 the server, within a window of game hours. Authority only. Catalogue: RS_Config.Missions.signal (offer id signal_v1).
-Registered in RS_Missions (M.register); required by RS_Carnet_Server. Design choices: docs/conception/mission-signaler.md.
+Registered in RS_Missions (M.register); required by RS_Carnet_Server. Design choices: docs/annexes/conception/mission-signaler.md.
 
 Required mod Signal Smoke (mod.info require=\batman_SignalSmoke): its public module require('SignalSmoke/SignalSmoke')
 returns a table with onSignal and COLORS. Its shared file is run at boot, before any server file, so the require is

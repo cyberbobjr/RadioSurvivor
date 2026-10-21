@@ -1,5 +1,5 @@
 -- Living Knox : neutralisation des comportements de zombie des corps de PNJ (LK02-T04).
--- Fiche : docs/conception/neutralisation.md. Java 42.21.0 cité en abrégé (J = zombie/...).
+-- Fiche : docs/annexes/conception/neutralisation.md. Java 42.21.0 cité en abrégé (J = zombie/...).
 --
 -- Seuls les corps de PNJ sont touchés, jamais un zombie sans étiquette :
 --   autorité (serveur, solo) : corps reliés par LivingKnox.Bodies.bound (étiquette relue par le sondage borné de

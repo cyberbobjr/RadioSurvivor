@@ -6,7 +6,7 @@ serveur radio complet (RadioSurvivor_Server.lua, doublures de tests/test_protoco
 Vrai Lua du mod (Lua 5.1, `next` retiré comme dans Kahlua) : RS_Trade, RS_Actions, RS_Persona, RS_Codec,
 RS_TradeValues, RS_OutsideNews, RadioSurvivor_Const ; doublures : GameTime (âge du monde), ZombRand, état privé
 RS_State (table en mémoire), journal admin RS_ActionLog. Couvre : catalogue d'apport conforme à la table validée
-(docs/passeur-table.md, section 3 ; poids relus dans les scripts vanilla 42.21), tirage du stock reproductible et dans
+(docs/specifications-techniques/passeur-table.md, section 3 ; poids relus dans les scripts vanilla 42.21), tirage du stock reproductible et dans
 les fourchettes, prix ligne par ligne (exemples de la table), offre figée avec révision, réserve et remplacement,
 refus hors table (stock, marge, poids, plafond, forme), stocks jamais négatifs sur un tirage aléatoire de
 propositions, mémoire des affaires (marge la plus basse, tricherie, issue, expiration au passage suivant),
@@ -33,7 +33,7 @@ ROOT = Path(__file__).resolve().parents[1]
 MOD = ROOT / 'Contents/mods/batman_RadioSurvivor/42.21'
 LUA = MOD / 'media/lua'
 TRADE_LUA = LUA / 'server/RadioSurvivor/RS_Trade.lua'
-DOC = ROOT / 'docs/passeur-table.md'
+DOC = ROOT / 'docs/specifications-techniques/passeur-table.md'
 VANILLA_ITEMS = pz_paths.media_dir() / 'scripts/generated/items'
 sys.path.insert(0, str(ROOT / 'bridge'))
 sys.path.insert(0, str(ROOT / 'tests'))

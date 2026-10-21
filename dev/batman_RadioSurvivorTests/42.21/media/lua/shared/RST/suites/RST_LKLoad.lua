@@ -11,7 +11,7 @@ client (moderator or admin role); RST_LK_LOAD_MS = 60000 on the server Lua state
 the default length applies there.
 A measure already running (started by an administrator) is left alone: the measure test is then skipped.
 Not checked here: the measure on an MP client (debug console LivingKnox.Load.start() / .print() / .stop()), the 5
-groups and 4 players protocol of docs/validation/charge-protocole.md. Outside the game: tests/test_lk_load.py.
+groups and 4 players protocol of docs/annexes/tests/validation/charge-protocole.md. Outside the game: tests/test_lk_load.py.
 Solo window (2026-10-15, solo client only, skipped elsewhere): the measure is started, read and stopped with the
 buttons of the admin window (client/LivingKnox/LK_AdminView.lua, op "load"); the report shown in the window gives the
 cost per tick, one line per module and the budget verdict; screenshot lk_load_window_*.png (Zomboid/Screenshots).

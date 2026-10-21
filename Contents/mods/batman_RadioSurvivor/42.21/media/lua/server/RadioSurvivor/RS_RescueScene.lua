@@ -1,7 +1,7 @@
 if isClient() then return end
 --[[
 Outcome scene of a rescue (E12-T04: "saved"; the "missed" scene is E12-T05). Authority only (dedicated server or
-solo). Design choices: docs/conception/secours-issue.md.
+solo). Design choices: docs/annexes/conception/secours-issue.md.
 
 Outcome "saved" (decided by RS_RescueVisit: a real delivery was made, then no member of the team is near any more).
 RS_Rescue.finish calls Scene.prepare(rec, result) through Rescue.sceneHook, in the same call, on the real record of

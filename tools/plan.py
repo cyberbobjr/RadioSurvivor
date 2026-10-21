@@ -1,11 +1,11 @@
 """Suivi du plan d'implémentation RadioSurvivor.
 
     python RadioSurvivor/tools/plan.py check    # contrôle les fichiers d'étape (CI locale)
-    python RadioSurvivor/tools/plan.py suivi    # régénère docs/plan/SUIVI.md
+    python RadioSurvivor/tools/plan.py suivi    # régénère docs/annexes/plans/SUIVI.md
     python RadioSurvivor/tools/plan.py next     # prochaine tâche à traiter
     python RadioSurvivor/tools/plan.py show E01-T02
 
-Les fichiers d'étape (docs/plan/<préfixe><NN>-*.md : préfixe E pour la radio et le carnet, LK pour le moteur de PNJ Living Knox) sont la seule source des états ; SUIVI.md en est une vue générée.
+Les fichiers d'étape (docs/annexes/plans/<préfixe><NN>-*.md : préfixe E pour la radio et le carnet, LK pour le moteur de PNJ Living Knox) sont la seule source des états ; SUIVI.md en est une vue générée.
 """
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-PLAN = ROOT / 'docs' / 'plan'
+PLAN = ROOT / 'docs' / 'annexes' / 'plans'
 SUIVI = PLAN / 'SUIVI.md'
 
 # Rang de progression. "à décider" bloque tant que l'utilisateur n'a pas tranché.

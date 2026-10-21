@@ -1,5 +1,5 @@
--- Living Knox : attitude d'un groupe envers un personnage joueur (LK11-T03). Fiche : docs/conception/attitude.md.
--- Choix de cible fondé sur l'attitude (LK06-T01, fin du fichier). Fiche : docs/conception/cibles.md.
+-- Living Knox : attitude d'un groupe envers un personnage joueur (LK11-T03). Fiche : docs/annexes/conception/attitude.md.
+-- Choix de cible fondé sur l'attitude (LK06-T01, fin du fichier). Fiche : docs/annexes/conception/cibles.md.
 -- Autorité seulement (serveur dédié ou hébergé, solo) : un client MP charge aussi media/lua/server, il s'arrête ici.
 --
 -- Clé d'une attitude : groupe (grp-<n> du registre des groupes) + clé de joueur. La clé de joueur est l'identité de

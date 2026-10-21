@@ -33,7 +33,7 @@ LANGUAGE_CODE = re.compile(r"^[A-Z][A-Z_]{1,7}$")
 # tokens: 6 offers add about 800 tokens at most to each request of an acquainted NPC, none to the others.
 MAX_OFFERS = 6
 
-# Personal NPC observations (E08-T02, RS_Observations.lua, docs/protocole-carnet-v2.md "Observations des PNJ"):
+# Personal NPC observations (E08-T02, RS_Observations.lua, docs/specifications-techniques/protocole-carnet-v2.md "Observations des PNJ"):
 # same closed list and bounds as RS_Config.Observations.
 OBS_FACTS = {
     "player_return": "a known player came back",

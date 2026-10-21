@@ -13,7 +13,7 @@ Bancs tests/harness.py :
   l'équipe créés seulement à SPAWN_MIN cases au moins de tout joueur, jamais au foyer, comportement « revenge » et
   marche vers la zone, attente si seules des cases proches des joueurs sont chargées.
 Les doublures NE PROUVENT PAS l'API réelle (SafeHouse, addZombiesInOutfit, chemins) : seulement la logique. Le rendu,
-la marche réelle et l'engagement se vérifient en jeu (suite lk.revenge, protocole de docs/conception/vengeance.md).
+la marche réelle et l'engagement se vérifient en jeu (suite lk.revenge, protocole de docs/annexes/conception/vengeance.md).
 """
 from __future__ import annotations
 

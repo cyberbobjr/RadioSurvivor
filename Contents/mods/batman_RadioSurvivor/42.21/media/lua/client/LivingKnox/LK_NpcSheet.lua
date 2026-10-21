@@ -1,4 +1,4 @@
--- Living Knox : fiche d'un PNJ par clic droit (LK13-T13). Fiche : docs/conception/administration.md, section
+-- Living Knox : fiche d'un PNJ par clic droit (LK13-T13). Fiche : docs/annexes/conception/administration.md, section
 -- « Fiche d'un PNJ ». M = media/lua vanilla 42.21.
 --
 -- Option « Détails (Living Knox) » du menu contextuel du monde (OnFillWorldObjectContextMenu,

@@ -1,4 +1,4 @@
-"""Textures of the paper notebook (E06-T06, mock-up docs/maquettes/carnet-papier.dc.html), generated, no external image.
+"""Textures of the paper notebook (E06-T06, mock-up docs/annexes/maquettes/carnet-papier.dc.html), generated, no external image.
 
     python RadioSurvivor/tools/gen_notebook_textures.py                 # writes the PNG files of the mod
     python RadioSurvivor/tools/gen_notebook_textures.py --preview OUT.png   # plus an offline composed preview

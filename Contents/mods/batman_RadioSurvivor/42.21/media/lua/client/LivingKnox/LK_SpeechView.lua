@@ -1,4 +1,4 @@
--- Living Knox : affichage de la parole des PNJ (LK11-T04). Fiche : docs/conception/parole.md. Java 42.21.0 cité en
+-- Living Knox : affichage de la parole des PNJ (LK11-T04). Fiche : docs/annexes/conception/parole.md. Java 42.21.0 cité en
 -- abrégé (J = zombie/...).
 --
 -- Client MP et solo. Reçoit les répliques choisies par l'autorité (server/LivingKnox/LK_Speech.lua) : en MP par la

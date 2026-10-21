@@ -3,7 +3,7 @@ if isClient() then return end
 Mission template `scout` (E11-T03): reach a place chosen by the server, then report to the requester in person.
 Authority only. Catalogue: RS_Config.Missions.scout. Registered in RS_Missions (M.register); required by
 RS_Carnet_Server, which polls the zones (M.observe) and turns a phrase said to the requester into the report
-(M.spoken). Details: docs/carnet-implementation-04221.md, "Gabarit reconnaitre".
+(M.spoken). Details: docs/annexes/conception/carnet-implementation-04221.md, "Gabarit reconnaitre".
 
 Place: a habitable building of the metagrid (RS_Rescue.check: no player-built building, no basement-only one, no
 water, inside the map), between minDistance and maxDistance tiles of the requester's body, and at least minDistance

@@ -1,5 +1,5 @@
 -- Living Knox : PNJ contre zombies vanilla, dans les deux sens, côté autorité (LK06-T04). Fiche :
--- docs/conception/zombies.md. Java 42.21.0 cité en abrégé (J = zombie/...). Un client MP charge aussi ce fichier
+-- docs/annexes/conception/zombies.md. Java 42.21.0 cité en abrégé (J = zombie/...). Un client MP charge aussi ce fichier
 -- (media/lua/server) : il n'y trouve que les constantes et les réglages ; la part du client propriétaire d'un zombie
 -- est client/LivingKnox/LK_ZombiesClient.lua.
 --

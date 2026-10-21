@@ -585,7 +585,8 @@ end
 -- fréquence servie et sans conversation en cours, tire une chance sur call_one_in. Une seule voix appelle par heure
 -- (tirée au sort parmi les gagnantes) : un appel consomme une place du plafond global MaxPerHour, commun avec les
 -- réponses, et du budget de la voix ; plafond ou budget atteints : pas d'appel. Le texte est demandé au pont
--- (kind=radio_call, docs/protocole-carnet-v2.md) ; pont absent ou muet après CALL_TIMEOUT_MS : texte fixe call_text.
+-- (kind=radio_call, docs/specifications-techniques/protocole-carnet-v2.md) ; pont absent ou muet après CALL_TIMEOUT_MS : texte
+-- fixe call_text.
 local function onEveryHours()
     if not Const.isEnabled() or not Const.spontaneousCalls() then return end
     local minute = minuteOfDay()

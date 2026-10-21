@@ -1,0 +1,717 @@
+<title>Carnet Radio Survivor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Big+Shoulders+Display:wght@700;800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Mise en page : carnet de poste radio. Index des sections en rail à gauche (bureau),
+   colonne de lecture d'environ 70 caractères, chaque section ouverte par une ligne de journal en chasse fixe. */
+:root {
+  --bg: #e9ece2;
+  --surface: #f6f7f1;
+  --ink: #1b2119;
+  --muted: #586253;
+  --line: #c6cdbb;
+  --accent: #a85a06;
+  --accent-soft: #f0dfc4;
+  --ok: #2c7339;
+  --ok-soft: #d7ead6;
+  --no: #9c3426;
+  --no-soft: #f1d9d3;
+  --later: #44627f;
+  --later-soft: #d8e2ec;
+  --open: #a85a06;
+  --open-soft: #f0dfc4;
+  --panel: #232a22;
+  --panel-ink: #e6ebdf;
+  --panel-line: #48523f;
+  --f-display: "Big Shoulders Display", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --f-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", "Cascadia Mono", Consolas, monospace;
+  --step--1: 0.84rem;
+  --step-0: 1rem;
+  --step-1: 1.2rem;
+  --step-2: 1.6rem;
+  --step-3: 2.4rem;
+  --step-4: 3.4rem;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f130e; --surface: #161c15; --ink: #e2e8da; --muted: #98a38f; --line: #2b3428;
+    --accent: #f0a23a; --accent-soft: #3a2b15;
+    --ok: #74c381; --ok-soft: #1c3320; --no: #e57c6c; --no-soft: #3a1d18;
+    --later: #8eabca; --later-soft: #1c2735; --open: #f0a23a; --open-soft: #3a2b15;
+    --panel: #0a0d09; --panel-ink: #e6ebdf; --panel-line: #3a4433;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f130e; --surface: #161c15; --ink: #e2e8da; --muted: #98a38f; --line: #2b3428;
+  --accent: #f0a23a; --accent-soft: #3a2b15;
+  --ok: #74c381; --ok-soft: #1c3320; --no: #e57c6c; --no-soft: #3a1d18;
+  --later: #8eabca; --later-soft: #1c2735; --open: #f0a23a; --open-soft: #3a2b15;
+  --panel: #0a0d09; --panel-ink: #e6ebdf; --panel-line: #3a4433;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--f-body);
+  font-size: var(--step-0);
+  line-height: 1.6;
+  padding-inline: 16px;
+  padding-block: 0 64px;
+}
+a { color: var(--accent); }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+code, .mono { font-family: var(--f-mono); font-size: 0.88em; }
+code { background: var(--accent-soft); padding: 0.05em 0.3em; border-radius: 3px; }
+
+.wrap { max-width: 1120px; margin-inline: auto; display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 48px; }
+@media (max-width: 860px) { .wrap { grid-template-columns: minmax(0, 1fr); gap: 0; } .rail { display: none; } }
+
+/* En-tête */
+header.top { max-width: 1120px; margin-inline: auto; padding-block: 40px 28px; border-bottom: 2px solid var(--ink); margin-bottom: 32px; }
+.eyebrow { font-family: var(--f-mono); font-size: var(--step--1); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--f-display); font-weight: 800; font-size: var(--step-4); line-height: 0.95; letter-spacing: 0.01em; margin: 10px 0 14px; text-transform: uppercase; text-wrap: balance; }
+h1 .freq { color: var(--accent); }
+.lede { max-width: 68ch; font-size: var(--step-1); line-height: 1.5; margin: 0; }
+.meta-row { display: flex; flex-wrap: wrap; gap: 8px 22px; margin-top: 18px; font-family: var(--f-mono); font-size: var(--step--1); color: var(--muted); }
+.meta-row b { color: var(--ink); font-weight: 600; }
+
+/* Rail */
+.rail { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 20px); align-self: start; font-family: var(--f-mono); font-size: var(--step--1); }
+.rail ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.rail a { display: grid; grid-template-columns: 3.2em 1fr; gap: 6px; padding: 5px 8px; color: var(--muted); text-decoration: none; border-left: 2px solid transparent; }
+.rail a:hover { color: var(--ink); border-left-color: var(--accent); background: var(--surface); }
+.rail .ch { color: var(--accent); }
+
+main { min-width: 0; }
+section { padding-block: 8px 36px; border-bottom: 1px solid var(--line); margin-bottom: 30px; }
+section:last-of-type { border-bottom: 0; }
+.logline { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; font-family: var(--f-mono); font-size: var(--step--1); color: var(--muted); letter-spacing: 0.04em; text-transform: uppercase; }
+.logline .ch { color: var(--accent); font-weight: 600; }
+h2 { font-family: var(--f-display); font-weight: 800; font-size: var(--step-3); line-height: 1; text-transform: uppercase; letter-spacing: 0.01em; margin: 8px 0 14px; text-wrap: balance; }
+h3 { font-family: var(--f-display); font-weight: 700; font-size: var(--step-2); line-height: 1.05; text-transform: uppercase; letter-spacing: 0.015em; margin: 26px 0 8px; text-wrap: balance; }
+h4 { font-size: var(--step-0); margin: 18px 0 4px; }
+p, li { max-width: 70ch; }
+ul, ol { padding-left: 1.25em; }
+li + li { margin-top: 4px; }
+.small { font-size: var(--step--1); color: var(--muted); }
+
+/* Statuts */
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 2px 9px; border-radius: 999px; font-family: var(--f-mono); font-size: 0.74rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; white-space: nowrap; }
+.chip::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.chip.ok { color: var(--ok); background: var(--ok-soft); }
+.chip.no { color: var(--no); background: var(--no-soft); }
+.chip.later { color: var(--later); background: var(--later-soft); }
+.chip.open { color: var(--open); background: var(--open-soft); }
+
+/* Bouton commenter */
+.comment-btn { margin-left: auto; font-family: var(--f-mono); font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); background: transparent; border: 1px solid var(--line); border-radius: 4px; padding: 3px 9px; cursor: pointer; }
+.comment-btn:hover { color: var(--accent); border-color: var(--accent); }
+.comment-btn[hidden] { display: none !important; }
+
+/* Tableaux */
+.table-wrap { overflow-x: auto; margin: 14px 0; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 0.93rem; }
+th, td { text-align: left; vertical-align: top; padding: 9px 12px; border-bottom: 1px solid var(--line); }
+th { font-family: var(--f-mono); font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 600; background: var(--bg); }
+tr:last-child td { border-bottom: 0; }
+td:first-child { font-weight: 700; }
+
+/* Options d'interface */
+.options { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; margin: 16px 0; }
+.opt { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 16px; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.opt h4 { margin: 0; display: flex; gap: 10px; align-items: baseline; font-size: 1.05rem; }
+.opt .letter { font-family: var(--f-display); font-size: 1.6rem; color: var(--accent); line-height: 1; }
+.opt p { margin: 0; }
+.pc { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.88rem; }
+.pc ul { margin: 2px 0 0; padding-left: 1.05em; }
+.pc .lab { font-family: var(--f-mono); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+@media (max-width: 480px) { .pc { grid-template-columns: 1fr; } }
+
+/* Maquettes façon interface du jeu */
+.mock { background: var(--panel); color: var(--panel-ink); border: 1px solid var(--panel-line); border-radius: 4px; font-family: var(--f-mono); font-size: 0.78rem; padding: 10px; }
+.mock .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.mock .tag { color: #f0a23a; }
+.mock .dim { color: #9aa591; }
+.mock .field { flex: 1 1 140px; border: 1px solid var(--panel-line); padding: 4px 6px; color: #e6ebdf; min-width: 0; }
+.mock .field::after { content: "▍"; color: #f0a23a; }
+.mock .key { border: 1px solid #9aa591; border-radius: 3px; padding: 0 5px; color: #e6ebdf; }
+.mock .log { display: grid; gap: 4px; margin-bottom: 8px; }
+.mock .in { color: #f6c27a; }
+.mock .out { color: #cfd8c4; }
+.mock .sugg { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.mock .sugg span { border: 1px solid #f0a23a; color: #f0a23a; padding: 1px 7px; border-radius: 3px; }
+
+/* Encadrés */
+.callout { border-left: 3px solid var(--accent); background: var(--accent-soft); padding: 12px 16px; border-radius: 0 6px 6px 0; margin: 16px 0; max-width: 76ch; }
+.callout p { margin: 0; }
+.callout p + p { margin-top: 8px; }
+.callout strong { color: var(--ink); }
+
+.two { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin: 14px 0; }
+.box { border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; background: var(--surface); min-width: 0; }
+.box h4 { margin-top: 0; }
+.box ul { margin: 6px 0 0; }
+
+.idea { border-top: 1px dashed var(--line); padding-top: 14px; margin-top: 18px; }
+.idea-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; }
+.idea-head h4 { margin: 0; font-size: 1.08rem; }
+.idea p { margin: 6px 0; }
+.compat { font-size: 0.9rem; color: var(--muted); }
+
+.qlist { counter-reset: q; list-style: none; padding: 0; display: grid; gap: 10px; }
+.qlist li { counter-increment: q; display: grid; grid-template-columns: 2.6em 1fr; gap: 8px; max-width: 76ch; }
+.qlist li::before { content: "Q" counter(q); font-family: var(--f-mono); font-weight: 600; color: var(--accent); }
+
+.journal { list-style: none; padding: 0; display: grid; gap: 10px; font-size: 0.95rem; }
+.journal li { display: grid; grid-template-columns: 7.5em 1fr; gap: 10px; max-width: 80ch; }
+.journal time { font-family: var(--f-mono); color: var(--muted); font-size: 0.85rem; }
+@media (max-width: 480px) { .journal li, .qlist li { grid-template-columns: 1fr; } }
+
+.vision { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin: 16px 0; }
+.vision .box p { margin: 6px 0 0; }
+.vision .box h4 { font-family: var(--f-display); font-size: var(--step-2); text-transform: uppercase; letter-spacing: 0.015em; line-height: 1; margin: 0 0 6px; }
+td .step { font-family: var(--f-mono); font-size: 0.8rem; color: var(--muted); white-space: nowrap; font-weight: 400; }
+.devlog { list-style: none; padding: 0; margin: 0; display: grid; gap: 22px; }
+.devlog > li { display: grid; grid-template-columns: 7.5em minmax(0, 1fr); gap: 12px; }
+.devlog > li > time { font-family: var(--f-mono); color: var(--accent); font-size: 0.85rem; font-weight: 600; padding-top: 2px; }
+.devlog h4 { margin: 0 0 4px; }
+.devlog ul { margin: 0; }
+@media (max-width: 480px) { .devlog > li { grid-template-columns: 1fr; gap: 2px; } }
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+</style>
+
+<header class="top">
+  <div class="eyebrow">batman_RadioSurvivor · Project Zomboid 42.21 · note de travail</div>
+  <h1>Carnet <span class="freq">???.?</span> Radio Survivor</h1>
+  <p class="lede">Ce qu'on construit autour des voix de la radio : uniquement ce qui est décidé et encore d'actualité. Claude tient cette note à jour, et les commentaires sur chaque section servent à en discuter.</p>
+  <div class="meta-row">
+    <span>Mise à jour <b>2026-10-09</b></span>
+    <span>Réseau de six voix <b>testé hors jeu</b></span>
+    <span>Cible <b>serveur multijoueur</b></span>
+    <span>Plan <b>docs/annexes/plans · SUIVI.md</b></span>
+    <span>Budget par défaut <b>60 appels / h</b></span>
+  </div>
+</header>
+
+<div class="wrap">
+  <nav class="rail" aria-label="Sections">
+    <ol>
+      <li><a href="#objectif"><span class="ch">A</span><span>Objectif</span></a></li>
+      <li><a href="#fonctions"><span class="ch">B</span><span>Fonctionnalités</span></a></li>
+      <li><a href="#devlog"><span class="ch">C</span><span>Journal de dév.</span></a></li>
+      <li><a href="#etat"><span class="ch">00</span><span>État</span></a></li>
+      <li><a href="#decisions"><span class="ch">01</span><span>Décisions</span></a></li>
+      <li><a href="#socle"><span class="ch">02</span><span>Actions</span></a></li>
+      <li><a href="#interface"><span class="ch">03</span><span>Interface</span></a></li>
+      <li><a href="#voix"><span class="ch">04</span><span>Voix</span></a></li>
+      <li><a href="#secours"><span class="ch">05</span><span>Secours</span></a></li>
+      <li><a href="#chronique"><span class="ch">06</span><span>Chronique</span></a></li>
+      <li><a href="#pages"><span class="ch">07</span><span>Dernières pages</span></a></li>
+      <li><a href="#missions"><span class="ch">08</span><span>Missions</span></a></li>
+      <li><a href="#troc"><span class="ch">09</span><span>Troc</span></a></li>
+      <li><a href="#verifier"><span class="ch">10</span><span>À vérifier</span></a></li>
+      <li><a href="#reporte"><span class="ch">11</span><span>Reporté</span></a></li>
+    </ol>
+  </nav>
+
+  <main>
+
+<section id="objectif">
+  <div class="logline"><span class="ch">A</span><span>Vision</span><button class="comment-btn" type="button" hidden>Commenter</button></div>
+  <h2>L'objectif du mod</h2>
+  <p>Knox County, juillet 1993. La zone est bouclée et les survivants sont seuls. <code>batman_RadioSurvivor</code> veut leur donner deux choses que le jeu de base n'a pas : <strong>des voix</strong>, de l'autre côté de la radio, et <strong>d'autres survivants</strong>, en chair et en os, qui vivent dans la zone. Les deux moitiés tiennent dans un seul mod depuis le 2026-10-08.</p>
+  <div class="vision">
+    <div class="box">
+      <h4>La radio</h4>
+      <p>Des personnages joués par un LLM parlent sur de vraies fréquences : un confident hors de la zone, une infirmière, un déserteur, une famille assiégée, une station pirate, un passeur. On les trouve en fouillant, on leur parle avec n'importe quelle radio émettrice, ils se souviennent de nous.</p>
+      <p>Ils donnent des conseils, des nouvelles, des missions et du troc, et racontent la vie du serveur : la chronique du soir, le mémorial des morts, les dernières pages d'un personnage.</p>
+    </div>
+    <div class="box">
+      <h4>Living Knox</h4>
+      <p>Un moteur de PNJ écrit pour ce mod. Des groupes de survivants ont un foyer, un chef, des besoins et des routines. Ils se déplacent, se battent, se fortifient et continuent de vivre quand aucun joueur n'est là.</p>
+      <p>Le carnet de terrain sert à les rencontrer : leur parler, gagner leur confiance, accepter leurs missions. Living Knox remplace Bandits! et ne tourne pas avec Bandits! ni avec Project A-Life.</p>
+    </div>
+  </div>
+  <h3>Principes</h3>
+  <ul>
+    <li><strong>Le serveur décide.</strong> Tout est pensé pour le multijoueur : le client propose, le serveur vérifie puis exécute. Le solo passe par le même chemin.</li>
+    <li><strong>Le LLM propose, le jeu dispose.</strong> Le LLM écrit les paroles et choisit dans des listes fermées ; il n'invente ni objet, ni position, ni règle. Sans pont, le jeu reste normal.</li>
+    <li><strong>Mécaniques du jeu de base.</strong> Vraies chaînes radio, vrais objets, vrais documents, vrais corps : chaque effet a une cause visible dans le monde.</li>
+    <li><strong>Écriture indépendante.</strong> Aucun code repris de Bandits! ni de Project A-Life ; ils ne servent que de retour d'expérience.</li>
+  </ul>
+</section>
+
+<section id="fonctions">
+  <div class="logline"><span class="ch">B</span><span>Feuille de route</span><button class="comment-btn" type="button" hidden>Commenter</button></div>
+  <h2>Les fonctionnalités prévues</h2>
+  <p class="small">Chaque ligne correspond à une étape du plan (<code>docs/annexes/plans</code>). « Testé hors jeu » : écrit et vérifié par les bancs et le serveur de test, pas encore joué. Le multijoueur sera validé en une séance à la fin.</p>
+  <h3>La radio</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Fonctionnalité</th><th>Ce qu'elle apporte au joueur</th><th>État</th></tr></thead>
+      <tbody>
+        <tr><td>Walt et le pont LLM<br><span class="step">prototype</span></td><td>Un survivant hors de la zone répond à la radio, joué par un LLM. Sans pont, le jeu reste normal.</td><td><span class="chip ok">Fait</span></td></tr>
+        <tr><td>Réseau de six voix<br><span class="step">E05</span></td><td>Walt, Darlene, Cody, Whitaker, le Night Owl et Gus, chacun avec sa fréquence tirée par partie, ses horaires, sa radio requise et ses appels spontanés. Fréquences à découvrir sur des notes du butin.</td><td><span class="chip open">Testé hors jeu</span></td></tr>
+        <tr><td>Émettre et carnet radio<br><span class="step">E06</span></td><td>Parler depuis la fenêtre radio (talkie, radio posée, autoradio) ; onglet Radio du carnet avec l'historique par fréquence et un voyant de réception.</td><td><span class="chip open">Testé hors jeu</span></td></tr>
+        <tr><td>Actions des voix<br><span class="step">E07</span></td><td>Une voix peut agir : poser un repère sur la carte, révéler un quartier, lancer une fumée, déposer une cache, ouvrir une mission. Le serveur vérifie chaque action.</td><td><span class="chip later">À faire</span></td></tr>
+        <tr><td>Missions générées<br><span class="step">E11</span></td><td>Livrer, signaler, retrouver, reconnaître, nettoyer, récupérer : gabarits que le serveur sait vérifier, racontés par le LLM. La livraison M01 existe déjà.</td><td><span class="chip open">En cours</span></td></tr>
+        <tr><td>Survivants à secourir<br><span class="step">E12</span></td><td>Une famille assiégée dans un vrai bâtiment appelle à l'aide avec des indices ; secourue à temps, elle laisse une cache, sinon on trouve la scène.</td><td><span class="chip later">À faire</span></td></tr>
+        <tr><td>Le passeur de l'Ohio<br><span class="step">E13</span></td><td>Troc négocié à la radio, une traversée par semaine de jeu, échange sans contact sur une berge.</td><td><span class="chip no">Décision à prendre</span></td></tr>
+        <tr><td>Chronique et mémorial<br><span class="step">E14</span></td><td>Chaque soir, la station pirate raconte les faits du serveur et lit les noms des morts du jour.</td><td><span class="chip later">À faire</span></td></tr>
+        <tr><td>Dernières pages<br><span class="step">E15</span></td><td>À la mort d'un personnage, son journal manuscrit est écrit par le LLM et laissé sur le corps.</td><td><span class="chip later">À faire</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <h3>Le carnet et les PNJ</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Fonctionnalité</th><th>Ce qu'elle apporte au joueur</th><th>État</th></tr></thead>
+      <tbody>
+        <tr><td>Carnet de terrain<br><span class="step">E00, E03</span></td><td>Le carnet unique : contacts, dialogue de proximité avec un PNJ (Ctrl+G), missions et récompenses. Corrigé et validé en partie en jeu solo.</td><td><span class="chip open">En cours</span></td></tr>
+        <tr><td>Réputation<br><span class="step">E04</span></td><td>Gains et pertes de réputation réels selon les missions, affichés dans le carnet.</td><td><span class="chip open">En cours</span></td></tr>
+        <tr><td>Initiatives et échanges des PNJ<br><span class="step">E08</span></td><td>Les PNJ prennent la parole sur des événements et se transmettent ce qu'ils ont vu.</td><td><span class="chip no">Décision à prendre</span></td></tr>
+        <tr><td>Relations et accords<br><span class="step">E09</span></td><td>Relations qui évoluent dans les deux sens, trêves et alliances négociées avec une faction de joueurs.</td><td><span class="chip no">Décision à prendre</span></td></tr>
+        <tr><td>Chef, contestation, départ<br><span class="step">E10</span></td><td>Le chef décide pour la bande ; un membre peut contester, refuser ou partir en gardant sa mémoire.</td><td><span class="chip later">À faire</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <h3>Living Knox, le moteur de PNJ</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Fonctionnalité</th><th>Ce qu'elle apporte au joueur</th><th>État</th></tr></thead>
+      <tbody>
+        <tr><td>Corps et gestes<br><span class="step">LK02</span></td><td>Des PNJ qui ont l'air humains (vêtements, peau, cheveux, arme), ne se comportent pas en zombies, marchent où le serveur décide et montrent leurs gestes. Jalon validé en solo.</td><td><span class="chip open">En cours</span></td></tr>
+        <tr><td>Exécution multijoueur<br><span class="step">LK03</span></td><td>Consignes du serveur, transfert du PNJ entre joueurs, gestes relayés aux joueurs proches.</td><td><span class="chip open">En cours</span></td></tr>
+        <tr><td>Déplacement<br><span class="step">LK04</span></td><td>Portes, fenêtres, clôtures, escaliers, barricades ; sortir d'un blocage ; éviter potagers et feux de camp.</td><td><span class="chip open">En cours</span></td></tr>
+        <tr><td>Perception et routines<br><span class="step">LK05</span></td><td>Des sens simples, des besoins (faim, soif, fatigue, peur), des objectifs de groupe, et des routines : sommeil, garde, patrouille, corvées, expéditions.</td><td><span class="chip later">À faire</span></td></tr>
+        <tr><td>Combat<br><span class="step">LK06</span></td><td>Mêlée et tir crédibles, munitions et dégâts comptés par le serveur, zombies qui attaquent les PNJ et inversement.</td><td><span class="chip open">En cours</span></td></tr>
+        <tr><td>Santé, mort et butin<br><span class="step">LK07</span></td><td>Blessures, soins, une seule mort, et un vrai butin sur le corps.</td><td><span class="chip later">À faire</span></td></tr>
+        <tr><td>Groupes<br><span class="step">LK08</span></td><td>Trois à cinq groupes par serveur, avec type, histoire, chef, membres, foyer, besoins et moral.</td><td><span class="chip later">À faire</span></td></tr>
+        <tr><td>Vie hors écran et relève<br><span class="step">LK09</span></td><td>Les groupes vivent loin des joueurs et se reconstituent après une décimation.</td><td><span class="chip later">À faire</span></td></tr>
+        <tr><td>Récits<br><span class="step">LK10</span></td><td>Une histoire et un journal par groupe, enrichis par le LLM quand la radio est là.</td><td><span class="chip later">À faire</span></td></tr>
+        <tr><td>Interactions avec les joueurs<br><span class="step">LK11</span></td><td>Avertissements, attitude par groupe et par joueur, parole de proximité, missions.</td><td><span class="chip open">En cours</span></td></tr>
+        <tr><td>API pour RadioSurvivor<br><span class="step">LK12</span></td><td>Événements et lecture des groupes pour que la radio et les missions s'appuient sur les PNJ.</td><td><span class="chip later">À faire</span></td></tr>
+        <tr><td>Fortification<br><span class="step">LK14</span></td><td>Les foyers se renforcent avec de vrais matériaux, s'entretiennent et se réparent après une attaque.</td><td><span class="chip later">À faire</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <h3>Outillage et publication</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Fonctionnalité</th><th>Ce qu'elle apporte au joueur</th><th>État</th></tr></thead>
+      <tbody>
+        <tr><td>Tests en jeu<br><span class="step">E01</span></td><td>Suites lancées depuis la console du jeu (<code>RST.run</code>, <code>RST.server</code>) et serveur dédié de test automatique.</td><td><span class="chip open">En cours</span></td></tr>
+        <tr><td>Outils et performance<br><span class="step">LK13</span></td><td>Outils d'administration, mesures de charge, contrôle de la casse des chemins pour un serveur Linux.</td><td><span class="chip open">En cours</span></td></tr>
+        <tr><td>Publication<br><span class="step">E16</span></td><td>Une version jouable sur le Workshop, avec le guide d'installation du pont et une validation multijoueur complète.</td><td><span class="chip no">Décision à prendre</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="devlog">
+  <div class="logline"><span class="ch">C</span><span>Historique</span><button class="comment-btn" type="button" hidden>Commenter</button></div>
+  <h2>Journal de développement</h2>
+  <ol class="devlog" reversed>
+    <li><time datetime="2026-10-09">2026-10-09</time><div>
+      <h4>Le réseau de voix et le carnet radio</h4>
+      <ul>
+        <li>Format de fiche commun au pont et au serveur ; fiches relues à chaud ; routage par voix avec historique et budget par voix.</li>
+        <li>Cinq nouvelles voix écrites (Darlene, Cody, Whitaker, Night Owl, Gus).</li>
+        <li>Fréquences tirées au hasard à chaque partie, sans conflit ; plus aucune liste chez les clients, le serveur trie ; notes de fréquences dans le butin.</li>
+        <li>Fiches livrées une seule fois, dans le mod, et mises à jour tant que l'admin ne les a pas modifiées ; appels spontanés par voix.</li>
+        <li>Module « Émettre » dans la fenêtre radio, émission depuis une radio posée ou une autoradio, onglet Radio du carnet avec historique côté serveur.</li>
+        <li>Suite <code>rs.voices</code> et protocole de validation du réseau ; suite <code>rs.identity</code> (reconnexion, redémarrage, mort) ; tueur d'un PNJ connu du serveur.</li>
+      </ul>
+    </div></li>
+    <li><time datetime="2026-10-09">2026-10-09</time><div>
+      <h4>Living Knox : premier jalon, corps et gestes</h4>
+      <ul>
+        <li>Essai comparatif de deux bases de corps ; retenu : le « joueur réanimé », un vrai corps humain sauvegardé par le jeu.</li>
+        <li>Corps créés par le serveur avec un registre persistant, apparence humaine stable, comportements de zombie neutralisés (ni morsure, ni cri, ni grognement), animations humaines, arme accrochée au repos et en main pour les gestes, consigne « aller à ».</li>
+        <li>Jalon mesuré en solo, décision : continuer le moteur propre, multijoueur à la fin.</li>
+        <li>Suites du jalon : potagers et feux de camp évités, plus de cri quand un PNJ est frappé, copie cliente muette dès son apparition, contrôle de la casse des chemins pour un serveur Linux.</li>
+        <li>Carnet : texte accentué de bout en bout (codec en UTF-8), récompense de mission créée par <code>instanceItem</code>, dernières mentions de Bandits! retirées.</li>
+      </ul>
+    </div></li>
+    <li><time datetime="2026-10-08">2026-10-08</time><div>
+      <h4>Un seul mod, un moteur de tests en jeu</h4>
+      <ul>
+        <li>Living Knox fusionné dans RadioSurvivor : un seul mod, un seul plan ; Bandits! abandonné, incompatibilité déclarée avec Bandits! et Project A-Life.</li>
+        <li>Comportements autonomes prévus pour les groupes : besoins, stock, défense, fortification.</li>
+        <li>Moteur de tests RST : suites lancées depuis la console, côté client et serveur, garde « partie de test », attente par étapes, exécution automatique sur un serveur dédié de test.</li>
+        <li>Interface « fournisseur de PNJ » : le carnet ne dépend plus d'un moteur précis.</li>
+        <li>Fondations de Living Knox : banc de tests (serveur et deux clients simulés), squelette, configuration, journal, contrôles automatiques du dépôt.</li>
+        <li>Validé en jeu solo : le carnet s'ouvre par la barre latérale, texte lisible en encre sombre.</li>
+      </ul>
+    </div></li>
+    <li><time datetime="2026-10-03">2026-10-03</time><div>
+      <h4>Le dépôt, le plan et le choix d'un moteur propre</h4>
+      <ul>
+        <li>Import du mod dans un dépôt ; correctifs de la relecture du carnet 0.2 (identité à la reconnexion, mort sur serveur dédié, plusieurs missions par PNJ, charge bornée).</li>
+        <li>Plan d'implémentation par étapes et outil de suivi.</li>
+        <li>Analyse de Bandits! et de Project A-Life, estimation d'un moteur propre ; décision : Living Knox, plan LK01 à LK13.</li>
+      </ul>
+    </div></li>
+    <li><time datetime="2026-10-01">2026-10-01</time><div>
+      <h4>Le prototype et les décisions de départ</h4>
+      <ul>
+        <li>Walt répond à la radio par un pont Python, multijoueur dès le départ ; testé en jeu en solo, réponses en 1 à 2 s.</li>
+        <li>Onze questions tranchées : carnet radio et module de la fenêtre radio, fiches de personnages en fichiers, six voix, un secours par faction, chronique quotidienne, dernières pages obligatoires, un passeur hebdomadaire, budget de 60 appels par heure.</li>
+      </ul>
+    </div></li>
+  </ol>
+</section>
+
+<section id="etat">
+  <div class="logline"><span class="ch">00</span><span>Situation</span><span class="chip ok">Fait</span><button class="comment-btn" type="button" hidden>Commenter</button></div>
+  <h2>Où en est le projet</h2>
+  <ul>
+    <li><strong>Pont par fichiers.</strong> Le Lua du jeu n'a aucun accès réseau. Le serveur écrit les demandes dans <code>Zomboid\Lua\batman_RadioSurvivor\requests.txt</code>. Un programme Python appelle le LLM et écrit <code>responses.txt</code>. Le serveur relit ce fichier toutes les 0,5 s. Chaque demande porte la voix visée (<code>voice=</code>), jamais la fréquence.</li>
+    <li><strong>Multijoueur dès le départ.</strong> Le client envoie, le serveur valide puis met en file, et la réponse est diffusée sur une vraie chaîne radio. Tous les joueurs réglés sur la fréquence entendent la conversation. Le solo passe par le même chemin.</li>
+    <li><strong>Six voix, fréquences à découvrir.</strong> Chaque voix tire sa fréquence au hasard à chaque nouvelle partie. Les clients ne reçoivent aucune liste : on trouve les fréquences sur des notes dans le butin, et le serveur ne répond que si une voix tient la fréquence réglée (§04).</li>
+    <li><strong>Garde-fous.</strong> Une demande en attente par joueur, une phrase toutes les 5 s, 15 phrases par minute au plus, un plafond de 60 appels par heure commun aux réponses et aux appels spontanés, un budget par voix. Les options se règlent dans le sandbox.</li>
+    <li><strong>Un seul mod depuis le 2026-10-08.</strong> Le moteur de PNJ Living Knox est fusionné dans <code>batman_RadioSurvivor</code> : les PNJ du carnet sont des corps de « joueurs réanimés » pilotés par le serveur. Bandits! n'est plus utilisé.</li>
+    <li><strong>Tests.</strong> 26 bancs hors jeu (<code>tests/run_all.py</code>), un moteur de tests lancé depuis la console du jeu (<code>RST.run</code>, <code>RST.server</code>) et un serveur dédié de test automatique. Le carnet et les PNJ sont validés en partie en jeu solo ; les voix, le module « Émettre » et l'onglet Radio sont testés hors jeu seulement. Le multijoueur sera validé en une séance à la fin.</li>
+  </ul>
+</section>
+
+<section id="decisions">
+  <div class="logline"><span class="ch">01</span><span>Tableau de bord</span><button class="comment-btn" type="button" hidden>Commenter</button></div>
+  <h2>Décisions</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Sujet</th><th>Décision</th></tr></thead>
+      <tbody>
+        <tr><td>Actions en liste fermée</td><td>Le LLM propose, le serveur décide (§02).</td></tr>
+        <tr><td>Interface de dialogue</td><td>Module « Émettre » dans la fenêtre radio vanilla, et onglet « Radio » du carnet unique (bouton latéral, Ctrl+G). Le menu « Parler sur … » disparaîtra une fois le module validé en jeu (§03).</td></tr>
+        <tr><td>Historique radio</td><td>Côté serveur, par personnage, 40 lignes par fréquence, 8 fréquences au plus (§03).</td></tr>
+        <tr><td>Édition des personnages</td><td>Une fiche par voix, livrée par le mod et installée côté serveur, relue à chaud. Une fiche que l'admin n'a pas modifiée suit les mises à jour du mod ; une fiche modifiée n'est jamais écrasée (§04).</td></tr>
+        <tr><td>Distribution de départ</td><td>Walt, Darlene, Cody, Whitaker, le Night Owl et Gus (§04).</td></tr>
+        <tr><td>Fréquences</td><td>Tirées au hasard dans une plage propre à chaque voix, à chaque nouvelle partie, sans conflit. Aucune liste chez les clients ; découverte par des notes trouvées dans le butin, rareté réglable (§04).</td></tr>
+        <tr><td>Appels spontanés</td><td>Chaque voix peut lancer un appel général dans ses horaires, une voix au plus par heure (§04).</td></tr>
+        <tr><td>PNJ</td><td>Moteur Living Knox intégré au mod ; corps de « joueur réanimé », autorité serveur.</td></tr>
+        <tr><td>Survivants à secourir</td><td>Un groupe par équipe, une équipe étant une faction vanilla ; les réserves ne baissent que si au moins un joueur est connecté (§05).</td></tr>
+        <tr><td>Chronique du serveur</td><td>Un bulletin chaque soir de jeu ; tout le monde peut être nommé, vivants comme morts (§06).</td></tr>
+        <tr><td>Dernières pages</td><td>Toujours écrites ; seul l'admin peut les couper (§07).</td></tr>
+        <tr><td>Missions générées</td><td>Gabarits vérifiés par le serveur, avec Signal Smoke en option (§08).</td></tr>
+        <tr><td>Troc</td><td>Un passeur pour tout le serveur, un passage par semaine de jeu, quatre catégories de marchandises (§09).</td></tr>
+        <tr><td>Coût</td><td>60 appels par heure par défaut (<code>MaxPerHour</code>).</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="socle">
+  <div class="logline"><span class="ch">02</span><span>Socle</span><span class="chip ok">Retenu</span><button class="comment-btn" type="button" hidden>Commenter</button></div>
+  <h2>Actions en liste fermée</h2>
+  <p>Le pont ne renvoie plus seulement du texte, mais une réponse structurée : ce que dit le personnage, plus les actions qu'il propose. Le serveur vérifie chaque action et l'exécute ou la refuse. Il n'exécute jamais rien qui ne soit pas dans le catalogue.</p>
+  <div class="mock" aria-label="Exemple de réponse structurée">
+    <div class="dim">// réponse du pont pour une demande</div>
+    <div>{ "say": ["On est dans l'église, côté sacristie. Je lance une fumée verte."],</div>
+    <div>&nbsp;&nbsp;"actions": [ { "type": "signal", "color": "green", "minutes": 20 } ] }</div>
+  </div>
+  <h3>Règles</h3>
+  <ul>
+    <li><strong>Le LLM propose, le serveur dispose.</strong> Il vérifie le type, les paramètres, les distances, le budget du jour et le délai propre à chaque action.</li>
+    <li><strong>Chaque personnage a sa liste d'actions autorisées</strong>, dans sa fiche (§04).</li>
+    <li><strong>Pas de secret dans le prompt.</strong> Codes, graines, fréquences cachées et positions exactes des bases des joueurs n'y figurent jamais. Le serveur ajoute les valeurs exactes après coup, si besoin.</li>
+    <li><strong>Les actions sont tracées.</strong> Un journal admin note qui a demandé quoi, ce qui a été accepté ou refusé, et pourquoi.</li>
+    <li><strong>Sans pont,</strong> rien ne se passe et le jeu reste normal.</li>
+  </ul>
+  <h3>Catalogue de départ</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Action</th><th>Effet</th><th>Garde-fous</th><th>Dépend de</th></tr></thead>
+      <tbody>
+        <tr><td><code>say</code></td><td>Diffuser des lignes sur la fréquence du personnage</td><td>8 lignes, 140 caractères, balises filtrées</td><td>Fait</td></tr>
+        <tr><td><code>mark_map</code></td><td>Poser un repère sur la carte de l'appelant</td><td>Lieux connus du personnage seulement, nombre par jour</td><td>Vanilla (symboles de carte)</td></tr>
+        <tr><td><code>reveal_area</code></td><td>Révéler un quartier sur la carte</td><td>Surface plafonnée</td><td>Vanilla (<code>setKnownInSquares</code>)</td></tr>
+        <tr><td><code>signal</code></td><td>Fumée ou fusée colorée au lieu du personnage</td><td>Uniquement à son propre lieu, durée bornée</td><td>Signal Smoke (facultatif)</td></tr>
+        <tr><td><code>place_cache</code></td><td>Déposer une cache tirée d'une table du serveur</td><td>Table fermée, une par mission</td><td>Vanilla</td></tr>
+        <tr><td><code>place_scene</code></td><td>Mettre en scène un lieu : cadavres, zombies en tenue, note</td><td>Gabarits, au chargement de la zone</td><td>Vanilla</td></tr>
+        <tr><td><code>start_mission</code></td><td>Ouvrir une mission à partir d'un gabarit</td><td>Gabarits fermés, une à la fois par appelant</td><td>À écrire (§08)</td></tr>
+        <tr><td><code>persona_state</code></td><td>Mettre à jour moral, réserves, lieu</td><td>Bornes par champ</td><td>À écrire</td></tr>
+        <tr><td><code>remember</code></td><td>Retenir un fait sur un appelant</td><td>Taille de la mémoire bornée</td><td>À écrire</td></tr>
+        <tr><td><code>propose_trade</code></td><td>Proposer un échange</td><td>Prix et stocks dans une table du serveur</td><td>À écrire (§09)</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="interface">
+  <div class="logline"><span class="ch">03</span><span>Ergonomie</span><span class="chip ok">Testé hors jeu</span><button class="comment-btn" type="button" hidden>Commenter</button></div>
+  <h2>Le carnet radio</h2>
+  <p>On remplace le parcours en cinq gestes (clic droit, « Parler », clic dans le champ, saisie, « Envoyer ») par deux éléments : un module dans la fenêtre radio, et un onglet « Radio » dans le carnet unique, qui garde la conversation. Les deux sont écrits et testés hors jeu ; la validation en jeu est à faire.</p>
+
+  <div class="two">
+    <article class="opt">
+      <h4><span class="letter">B</span>Onglet « Radio » du carnet</h4>
+      <p>Une fenêtre que l'on peut réduire et qui garde la conversation par fréquence : ce que j'ai dit, ce qu'on m'a répondu, ce que j'ai entendu. Le champ de saisie est en bas et Entrée émet. Un voyant indique la réception, et il y a un onglet par contact découvert.</p>
+      <div class="mock">
+        <div class="log">
+          <div class="out">&gt; Ici Wes, à Muldraugh.</div>
+          <div class="in">WALT · Muldraugh, alors. Restez à l'intérieur…</div>
+          <div class="dim">… réception</div>
+        </div>
+        <div class="row"><span class="field"></span><span class="key">Émettre</span></div>
+      </div>
+      <ul class="small">
+        <li>Quatrième onglet du carnet unique, ouvert par le bouton latéral, Ctrl+G ou le bouton Carnet du module C.</li>
+        <li>Un point orange sur le bouton Carnet signale une ligne arrivée hors de l'onglet ; l'historique est relu à l'ouverture.</li>
+        <li>Répertoire des fréquences entendues ; « Régler ma radio » règle la radio en main ou sur le dos.</li>
+        <li>L'historique est gardé par le serveur. Une ligne « Entendu » n'est admise que si le serveur l'a vraiment diffusée sur une fréquence que le joueur a réglée.</li>
+        <li>On peut relire les réponses, qui ne disparaissent plus avec le texte au-dessus de la radio.</li>
+      </ul>
+    </article>
+
+    <article class="opt">
+      <h4><span class="letter">C</span>Module « Émettre » dans la fenêtre radio</h4>
+      <p>Un module ajouté à la fenêtre vanilla de la radio, celle qui sert déjà au volume, au canal et au micro. Elle est construite en modules (<code>ISRadioWindow:addModule</code>), donc on l'enrichit sans la remplacer.</p>
+      <ul class="small">
+        <li>Une ligne de saisie, les deux dernières lignes reçues, et un bouton qui ouvre le carnet.</li>
+        <li>Marche pour les talkies, la radio sur le dos, une radio HAM posée (joueur à portée du micro, même étage) et l'autoradio émettrice (joueur assis dans le véhicule). Le serveur vérifie lui-même ces radios ; seul le micro dépend du client.</li>
+        <li>N'apparaît que pour une radio émettrice.</li>
+      </ul>
+    </article>
+  </div>
+  <p class="small">Contrôles et protocoles de test : <code>docs/annexes/tests/tests-en-jeu.md</code> § 13.</p>
+</section>
+
+<section id="voix">
+  <div class="logline"><span class="ch">04</span><span>Personnages</span><span class="chip ok">Retenu</span><button class="comment-btn" type="button" hidden>Commenter</button></div>
+  <h2>Les voix de la zone</h2>
+  <p>Plusieurs personnages, chacun sur sa fréquence, avec son caractère, ce qu'il sait et ce qu'il veut. Un admin les modifie, en crée et en retire sans redémarrer.</p>
+
+  <div class="two">
+    <div class="box">
+      <h4>Fiche d'un personnage</h4>
+      <ul>
+        <li>Identité, histoire, ton, langue par défaut</li>
+        <li>Plage de fréquences (tirage par partie) ou fréquence fixe, et radio nécessaire : les ondes courtes demandent un poste haut de gamme</li>
+        <li>Horaires d'écoute : par exemple la nuit seulement</li>
+        <li>Lieu : aucun (hors carte), fixe, ou point de carte pour un secours</li>
+        <li>Ce qu'il sait, ce qu'il ignore, ce qu'il cache</li>
+        <li>Actions autorisées, budget, fréquence des appels spontanés (§02)</li>
+        <li>État : actif, silencieux, disparu, mort</li>
+        <li>Mémoire : faits retenus sur les appelants</li>
+      </ul>
+    </div>
+    <div class="box">
+      <h4>Édition : des fichiers d'abord</h4>
+      <ul>
+        <li><strong>Les fiches sont livrées par le mod</strong> et installées par le serveur sous <code>Zomboid\Lua\batman_RadioSurvivor\personas\</code>. Jamais en ModData globale : n'importe quel client peut la lire.</li>
+        <li><strong>L'admin les modifie avec un éditeur de texte</strong> sur la machine du serveur ; le serveur les relit toutes les 30 s, sans redémarrage.</li>
+        <li><strong>Mise à jour :</strong> une fiche que l'admin n'a pas modifiée est remplacée par la nouvelle version du mod ; une fiche modifiée est gardée, avec un avertissement dans le journal.</li>
+        <li><strong>Dupliquer une fiche</strong> crée un nouveau personnage ; changer son état le met en silence ou le retire.</li>
+        <li>Un panneau admin en jeu viendra plus tard, sur les mêmes fichiers.</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>Distribution de départ</h3>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Voix</th><th>Rôle</th><th>Plage (MHz)</th><th>Radios qui la joignent</th><th>Appels</th></tr></thead>
+      <tbody>
+        <tr><td>Walt</td><td>Le confident, hors carte, bois de l'Indiana</td><td class="mono">130,0 – 149,8</td><td>Tous les talkies, radios HAM</td><td>1 h sur 3</td></tr>
+        <tr><td>Darlene</td><td>Infirmière, clinique de West Point ; n'invite jamais à venir</td><td class="mono">115,0 – 129,8</td><td>Tous les talkies, radios HAM</td><td>1 h sur 6</td></tr>
+        <tr><td>Cody</td><td>Déserteur de la Garde nationale, en fuite</td><td class="mono">10,0 – 24,8</td><td>Ondes courtes : postes haut de gamme</td><td>1 h sur 6</td></tr>
+        <tr><td>Whitaker</td><td>Famille assiégée, le premier secours (§05)</td><td class="mono">75,0 – 87,8</td><td>Tous les talkies</td><td>Silencieuse jusqu'à E12</td></tr>
+        <tr><td>Night Owl</td><td>Station pirate, la chronique (§06)</td><td class="mono">88,0 – 107,8 et 109,0 – 114,8</td><td>Radios FM et talkies</td><td>Bulletins en E14</td></tr>
+        <tr><td>Gus</td><td>Passeur de l'Ohio, le troc (§09)</td><td class="mono">150,2 – 199,8</td><td>Talkies 2 à 5, radios HAM</td><td>1 h sur 8</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <h3>Trouver une voix</h3>
+  <ul>
+    <li><strong>Notes dans le butin.</strong> Cinq documents (page de journal radio, fiche de patient, avis de recherche, note griffonnée, prospectus) donnent la fréquence de la partie en cours et, le cas échéant, les horaires. Ils se lisent par « Inspecter », en français ou en anglais. Whitaker n'a pas de note tant qu'elle est silencieuse.</li>
+    <li><strong>Lieux cohérents.</strong> Bureaux et garages pour Walt, cliniques et pharmacies pour Darlene, police et armée pour Cody, pêche et boîtes à gants pour Gus, salons, kiosques et voitures pour le Night Owl. Rareté réglable (<code>NoteRarity</code>).</li>
+    <li><strong>Le serveur trie.</strong> Toute phrase dite dans une radio part avec sa fréquence. Si aucune voix ne la tient, c'est le silence, sans indice. Limite du jeu de base : en multijoueur, chaque émission part chez tous les clients avec sa fréquence, et un client modifié peut la lire.</li>
+  </ul>
+</section>
+
+<section id="secours">
+  <div class="logline"><span class="ch">05</span><span>Gameplay</span><span class="chip ok">Retenu</span><button class="comment-btn" type="button" hidden>Commenter</button></div>
+  <h2>Survivants à secourir</h2>
+  <p>Un personnage est rattaché à un vrai bâtiment de la carte. Le serveur le choisit sans charger la zone (métagrille : <code>getBuildingAt</code>). Ses réserves baissent avec le temps de jeu, et il appelle à l'aide avec des indices plutôt que des coordonnées : « l'église en briques, en face de la station-service ».</p>
+  <h3>Règles décidées</h3>
+  <ul>
+    <li><strong>Un groupe à secourir par équipe.</strong> Une équipe, c'est une faction vanilla : son propriétaire et ses membres. Un joueur sans faction forme une équipe à lui seul.</li>
+    <li><strong>Les réserves ne baissent que si au moins un joueur est connecté.</strong> Un serveur vide ne fait mourir personne.</li>
+  </ul>
+  <h3>Déroulé</h3>
+  <ol>
+    <li><strong>Appel :</strong> une voix appelle à l'aide, avec un délai en jours de jeu.</li>
+    <li><strong>Pendant le trajet :</strong> on peut lui parler, la rassurer, lui demander de quoi elle a besoin.</li>
+    <li><strong>À l'approche :</strong> elle lance une fumée colorée pour se faire voir (action <code>signal</code>, avec Signal Smoke), ou décrit ce qu'elle voit.</li>
+    <li><strong>Livrer :</strong> déposer des vivres ou des médicaments dans un conteneur sur place fait remonter ses réserves.</li>
+    <li><strong>Issue :</strong> la scène est mise en place quand la zone se charge.</li>
+  </ol>
+  <div class="two">
+    <div class="box"><h4><span class="chip ok">À temps</span></h4><p>Les survivants laissent une cache et une note, puis partent. Ils restent une voix du réseau, depuis un nouvel endroit, et se souviennent de qui les a aidés.</p></div>
+    <div class="box"><h4><span class="chip no">Trop tard</span></h4><p>Cadavres ou zombies portant les vêtements qu'ils avaient décrits (le jeu sait reconnaître une tenue), et leurs dernières pages (§07).</p></div>
+  </div>
+  <p class="small">Contrainte : la Build 42 n'a pas de survivants humains contrôlés par le jeu. Les survivants n'existent qu'à la radio, puis en décor, en cadavres ou en zombies.</p>
+</section>
+
+<section id="chronique">
+  <div class="logline"><span class="ch">06</span><span>Mémoire du serveur</span><span class="chip ok">Retenu</span><button class="comment-btn" type="button" hidden>Commenter</button></div>
+  <h2>La chronique du serveur</h2>
+  <p>Chaque soir de jeu, le chroniqueur fait son bulletin sur sa station pirate, à partir de ce qui s'est passé sur le serveur.</p>
+  <ul>
+    <li><strong>Rythme :</strong> un bulletin par soirée de jeu, à une heure réglable dans le sandbox.</li>
+    <li><strong>Tout le monde peut être nommé :</strong> exploits, sauvetages et morts, par le nom des personnages.</li>
+    <li><strong>Sources côté serveur :</strong>
+      <ul>
+        <li>morts (<code>OnCharacterDeath</code>) ;</li>
+        <li>sauvetages et missions ;</li>
+        <li>passages du passeur ;</li>
+        <li>coupures d'électricité et d'eau, météo.</li>
+      </ul>
+    </li>
+    <li><strong>Le mémorial :</strong> les noms des morts du jour, lus à la fin du bulletin.</li>
+    <li><strong>Jamais de position exacte</strong> d'une base de joueur, seulement des quartiers ou des villes.</li>
+  </ul>
+</section>
+
+<section id="pages">
+  <div class="logline"><span class="ch">07</span><span>Mémoire du serveur</span><span class="chip ok">Retenu</span><button class="comment-btn" type="button" hidden>Commenter</button></div>
+  <h2>Les dernières pages</h2>
+  <p>À la mort d'un personnage, le LLM écrit son journal, et un document manuscrit en lecture seule est placé sur le corps. Les autres joueurs le trouvent.</p>
+  <ul>
+    <li><strong>Toujours écrites.</strong> C'est une règle du serveur : un joueur ne peut pas refuser. L'admin peut couper la fonction par une option sandbox.</li>
+    <li><strong>Matière première :</strong> heures de survie, zombies tués, villes traversées (position relevée de temps en temps), métier, dernières phrases dites à la radio, sauvetages faits ou manqués.</li>
+    <li><strong>Rendu :</strong> écriture manuscrite et page verrouillée (<code>setLockedBy</code>). Ces mécanismes sont déjà connus.</li>
+  </ul>
+</section>
+
+<section id="missions">
+  <div class="logline"><span class="ch">08</span><span>Gameplay</span><span class="chip ok">Retenu</span><button class="comment-btn" type="button" hidden>Commenter</button></div>
+  <h2>Missions générées</h2>
+  <p>Les mécanismes sont des <strong>gabarits</strong> que le serveur sait vérifier. Le LLM choisit le gabarit, le lieu, le prétexte et la récompense dans les limites, puis raconte.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Gabarit</th><th>Le joueur doit</th><th>Le serveur vérifie</th></tr></thead>
+      <tbody>
+        <tr><td>Livrer</td><td>Déposer N objets d'une catégorie dans un conteneur sur place</td><td>Contenu du conteneur</td></tr>
+        <tr><td>Signaler</td><td>Lancer une fumée de la couleur demandée, ou allumer une fusée, à un lieu et une heure</td><td>Signal Smoke : grenade par <code>OnThrowableExplode</code>, fusée par l'action d'allumage</td></tr>
+        <tr><td>Retrouver</td><td>Retrouver un corps et rapporter sa carte d'identité nominative</td><td>Objet dans l'inventaire</td></tr>
+        <tr><td>Reconnaître</td><td>Atteindre un lieu puis en rendre compte à la radio</td><td>Position du joueur</td></tr>
+        <tr><td>Nettoyer</td><td>Tuer N zombies autour d'un lieu</td><td><code>OnZombieDead</code>, tueur connu du serveur</td></tr>
+        <tr><td>Récupérer</td><td>Ramasser une cache et la porter à un dépôt</td><td>Objet déplacé</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <h3>Avec Signal Smoke</h3>
+  <ul>
+    <li><strong>Dans les deux sens.</strong> Les joueurs signalent pour remplir une mission. Les personnages signalent pour se faire trouver : un survivant, le passeur sur la berge. L'API serveur <code>SignalSmoke.start{x, y, color, kind, minutes}</code> accepte toutes les couleurs.</li>
+    <li><strong>Limites actuelles :</strong>
+      <ul>
+        <li>les fusées des joueurs sont <strong>toujours rouges</strong> ;</li>
+        <li>une grenade qui éclate ne dit pas qui l'a lancée : le serveur ne connaît que la case et la couleur.</li>
+      </ul>
+    </li>
+    <li><strong>Petit ajout prévu dans Signal Smoke :</strong> un événement facultatif <code>batman_OnSignalLit(joueur, x, y, z, couleur, type)</code>. Sans RadioSurvivor, personne ne l'écoute, et rien ne change.</li>
+    <li><strong>Intégration facultative :</strong> détection du mod actif puis <code>require</code> protégé, sans dépendance dans <code>mod.info</code>.</li>
+  </ul>
+  <p><strong>Récompenses possibles :</strong> informations (repères, quartier révélé), caches, confiance des personnages.</p>
+</section>
+
+<section id="troc">
+  <div class="logline"><span class="ch">09</span><span>Économie</span><span class="chip ok">Retenu</span><button class="comment-btn" type="button" hidden>Commenter</button></div>
+  <h2>Le troc : le passeur de l'Ohio</h2>
+  <p>Le marchand <strong>ne vient pas</strong> dans la zone. C'est un contrebandier de la rive de l'Indiana. Il traverse de nuit en barque et n'accoste jamais longtemps.</p>
+  <h3>Règles décidées</h3>
+  <ul>
+    <li><strong>Un seul passeur pour tout le serveur.</strong></li>
+    <li><strong>Un passage par semaine de jeu.</strong> On réserve sa place en lui parlant à la radio. La rareté oblige les joueurs à s'organiser entre eux.</li>
+    <li><strong>Quatre catégories de marchandises acceptées</strong> (ci-dessous).</li>
+  </ul>
+  <div class="two">
+    <div class="box">
+      <h4>Ce qu'il prend dans la zone</h4>
+      <ul>
+        <li><strong>L'argent et les bijoux abandonnés.</strong> Caisses enregistreuses, coffres, bijouteries : tout a gardé sa valeur dehors.</li>
+        <li><strong>Les images.</strong> Pellicules, appareils photo, cassettes vidéo. Les télévisions paient cher des images de l'intérieur.</li>
+        <li><strong>Les papiers des morts.</strong> Cartes d'identité, portefeuilles : des familles paient pour savoir.</li>
+        <li><strong>Le matériel militaire abandonné,</strong> pour des collectionneurs et des milices.</li>
+      </ul>
+    </div>
+    <div class="box">
+      <h4>Ce qu'il apporte</h4>
+      <ul>
+        <li>Piles, antibiotiques, munitions de chasse, graines</li>
+        <li>Cigarettes, alcool, café</li>
+        <li>Pièces radio</li>
+        <li>Des journaux récents : les nouvelles du dehors</li>
+      </ul>
+    </div>
+  </div>
+  <h3>Comment l'échange a lieu</h3>
+  <ol>
+    <li><strong>On négocie à la radio.</strong> Le LLM tient le rôle du passeur, se souvient des affaires passées et peut refuser. Les prix et les stocks sont dans une table du serveur ; le LLM ne propose qu'à l'intérieur de ces fourchettes (<code>propose_trade</code>).</li>
+    <li><strong>Rendez-vous de nuit sur une berge du bassin ouest.</strong> Les pontons de Riverside (vers 6041, 5215) et de Brandenburg (vers 1631, 5576) sont relevés dans la base. Le pont Clark Memorial coupe l'Ohio en deux bassins.</li>
+    <li><strong>Signal convenu</strong> pour faire approcher la barque : une fusée rouge (Signal Smoke) ou une lampe.</li>
+    <li><strong>Échange sans contact.</strong> On dépose sa marchandise dans un sac sur la berge, on s'éloigne, et la contrepartie apparaît au même endroit.</li>
+    <li><strong>Risques :</strong> patrouille ou hélicoptère, et le rendez-vous est annulé ; orage ; retard. La réputation baisse en cas de tricherie. Les prix montent quand l'armée serre le cordon.</li>
+  </ol>
+</section>
+
+<section id="verifier">
+  <div class="logline"><span class="ch">10</span><span>Points techniques</span><span class="chip open">À vérifier</span><button class="comment-btn" type="button" hidden>Commenter</button></div>
+  <h2>À vérifier pendant la conception</h2>
+  <p class="small">Points techniques à établir dans le code du jeu ou à confirmer en jeu. Décisions encore ouvertes dans le plan : table de troc (E13-T01), initiatives des PNJ (E08-T01), relations et accords (E09-T01), publication (E16-T01).</p>
+  <ol class="qlist">
+    <li><span><strong>Factions :</strong> une faction vanilla n'a pas d'identifiant stable (nom et propriétaire modifiables). Il faudra un identifiant propre au mod, retrouvé par le propriétaire ou par la majorité des membres.</span></li>
+    <li><span><strong>Dernières pages :</strong> à quel moment le conteneur du cadavre existe côté serveur. Sinon, poser le carnet au sol à côté du corps.</span></li>
+    <li><span><strong>Radio posée ou autoradio :</strong> un changement de canal suivi d'une phrase immédiate peut être jugé sur l'ancien canal, le temps que le serveur reçoive le nouveau.</span></li>
+    <li><span><strong>Langue des appels spontanés :</strong> en multijoueur, ils sortent dans la langue du serveur ; à confirmer lors de la séance multijoueur.</span></li>
+    <li><span><strong>Troc :</strong> la valeur de chaque catégorie de marchandise, les objets concernés, et l'endroit où apparaît la contrepartie.</span></li>
+  </ol>
+</section>
+
+<section id="reporte">
+  <div class="logline"><span class="ch">11</span><span>Plus tard</span><span class="chip later">Reporté</span><button class="comment-btn" type="button" hidden>Commenter</button></div>
+  <h2>Reporté</h2>
+  <ul>
+    <li><strong>Military Drop :</strong> intégration avec le LLM, à reprendre plus tard.</li>
+    <li><strong>Opération Artemis :</strong> à reprendre plus tard.</li>
+    <li><strong>L'écosystème radio et l'assistant admin :</strong> les voix qui s'écoutent entre elles et entre mods, et des commandes admin en langage naturel.</li>
+  </ul>
+</section>
+
+
+
+  </main>
+</div>
+
+<script>
+(async function () {
+  const buttons = Array.from(document.querySelectorAll(".comment-btn"));
+  let comments = null;
+  try {
+    comments = window.claude && typeof window.claude.use === "function" ? await window.claude.use("comments") : null;
+  } catch (e) {
+    comments = null;
+  }
+  if (!comments) return;
+  buttons.forEach(function (btn) {
+    btn.hidden = false;
+    btn.addEventListener("click", async function () {
+      const section = btn.closest("section");
+      try {
+        await comments.openComposer({ element: section });
+      } catch (err) {
+        if (err && (err.code === "unavailable" || err.code === "not_granted" || err.code === "capability_disabled" || err.code === "capability_removed")) {
+          buttons.forEach(function (b) { b.hidden = true; });
+        }
+      }
+    });
+  });
+})();
+</script>

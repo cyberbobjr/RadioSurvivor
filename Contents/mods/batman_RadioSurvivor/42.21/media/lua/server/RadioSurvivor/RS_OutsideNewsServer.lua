@@ -1,5 +1,5 @@
 -- Radio Survivor : journal du dehors côté autorité (E13-T05) : création d'une édition et commande de test.
--- Serveur MP ou solo. Fiche : docs/conception/journal-du-dehors.md ; module partagé : RS_OutsideNews.lua.
+-- Serveur MP ou solo. Fiche : docs/annexes/conception/journal-du-dehors.md ; module partagé : RS_OutsideNews.lua.
 --
 -- Point d'appel de l'échange sur la berge (E13-T04, à venir) :
 --     local NewsServer = require "RadioSurvivor/RS_OutsideNewsServer"

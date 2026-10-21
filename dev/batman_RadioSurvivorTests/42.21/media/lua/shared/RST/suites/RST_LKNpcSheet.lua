@@ -17,7 +17,7 @@ Solo (debug mode): RST.run({ suite = "lk.npcsheet", tags = "world" }). Dedicated
 "lk.npcsheet", tags = "world" }) from an admin client. Asynchronous run (about 30 s).
 Cleanup (t:defer): decision tap removed, bodies removed, test group removed.
 E01-T16: refusal of a real client with the access level "user" (second client of the MP campaign; SKIP in solo).
-Not checked here: the right-click option and the window (docs/tests-en-jeu.md, section of LK13-T13).
+Not checked here: the right-click option and the window (docs/annexes/tests/tests-en-jeu.md, section of LK13-T13).
 Outside the game: tests/test_lk_npcsheet.py.
 Solo window (2026-10-15, solo client only, skipped elsewhere): the real world context menu
 (ISWorldObjectContextMenu.createMenu on the objects of the square of a materialized member) offers the sheet option,

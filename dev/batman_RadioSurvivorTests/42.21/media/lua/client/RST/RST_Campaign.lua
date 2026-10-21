@@ -220,7 +220,7 @@ RST.CAMPAIGNS["mp"] = {
 
 -- E01-T19: robustness with the vanilla population of Muldraugh and mortal players, on the dedicated server only.
 -- The list does not change the world settings: the launcher does (autoclient.py --mp --server-campaign mp-ambient
--- --ambient-zombies --no-godmode, docs/tests-en-jeu.md). Short suites whose outcome depends on zombies around:
+-- --ambient-zombies --no-godmode, docs/annexes/tests/tests-en-jeu.md). Short suites whose outcome depends on zombies around:
 -- registry load, zombie fights, alert and defence of a group, identity and facts of the players.
 RST.CAMPAIGNS["mp-ambient"] = {
     "rs.identity",      -- E00-T01, E03-T04
@@ -233,7 +233,7 @@ RST.CAMPAIGNS["mp-ambient"] = {
 
 -- LK13-T02 (2026-10-15): load measure with 5 groups and 4 players, on the dedicated server only (autoclient.py --mp
 -- --load: new world with LivingKnox.GroupCount = 5, clients rs_mp1..rs_mp4). lk.load first (short measure, 20 s),
--- then lk.loadmp (players placed around the homes as in docs/validation/charge-protocole.md, three phases of 5 min,
+-- then lk.loadmp (players placed around the homes as in docs/annexes/tests/validation/charge-protocole.md, three phases of 5 min,
 -- server and two client measures checked against the budgets; RST_LK_LOADMP_PHASE_MS on the server overrides 5 min).
 RST.CAMPAIGNS["mp-load"] = {
     "lk.load",          -- LK13-T02 (short measure of the authority)

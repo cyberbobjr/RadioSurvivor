@@ -50,7 +50,8 @@ failing undo is reported as "cleanup <label>: ..." on the test and does not stop
                                          active in RS_NPCProvider, and it is Living Knox with its test API).
     F.spawnNpc(t, player[, suite])       a test NPC (no group) appears near the player (F.NPC_OFFSET squares east,
                                          nearest free loaded square) through the public Living Knox API on the
-                                         authority (LivingKnox.API.testSpawnNpc, docs/api.md); returns its
+                                         authority (LivingKnox.API.testSpawnNpc,
+                                         docs/specifications-techniques/api-living-knox.md); returns its
                                          provider id "lk-<n>" and its body as RS_NPCProvider sees it (nil when not
                                          seen yet). With suite, waits (t:waitQuiet, F.NPC_TIMEOUT_MS) until
                                          RS_NPCProvider.objects()[id] is a body whose RS_NPCProvider.id is id,

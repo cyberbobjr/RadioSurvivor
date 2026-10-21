@@ -4,7 +4,8 @@ Caches (E11-T06): a marked bag filled from one closed table of the server, place
 action place_cache. Authority only. Configuration: RS_Config.Caches (bag type, closed list `order` of the tables and
 their contents). Required by RadioSurvivor_Server (executor of place_cache) and RS_MissionRecover (cache of a
 `recover` mission); RS_Carnet_Server polls the pending caches once a second (Caches.poll) while a player is connected.
-Details: docs/carnet-implementation-04221.md, "Caches et gabarit recuperer"; design: docs/conception/mission-recuperer.md.
+Details: docs/annexes/conception/carnet-implementation-04221.md, "Caches et gabarit recuperer"; design:
+docs/annexes/conception/mission-recuperer.md.
 
 One cache per mission: the record is the field m.cache of the mission (private state RS_State, never global ModData):
     { key = mission id, table = name of RS_Config.Caches.order, spot = { x, y, z }, bounds = { x1, y1, x2, y2 }

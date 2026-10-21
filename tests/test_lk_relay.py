@@ -6,7 +6,7 @@ LK_Presentation.lua (clients).
 Banc tests/harness.py et doublures de test_lk_bodies.py, test_lk_guard.py, test_lk_anim.py et test_lk_directives.py.
 Images du serveur de 100 ms comme un serveur dédié (J/network/GameServer.java:261, 835-836). Simulation : le banc
 compte les appels sendServerCommand du serveur ; seule une séance MP mesure le réseau réel (protocole de
-docs/conception/corps-et-animations.md, « Relais des gestes »).
+docs/annexes/conception/corps-et-animations.md, « Relais des gestes »).
 """
 from __future__ import annotations
 

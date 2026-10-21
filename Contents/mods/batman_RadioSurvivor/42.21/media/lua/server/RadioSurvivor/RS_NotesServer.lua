@@ -1,13 +1,13 @@
 -- Radio Survivor : notes de fréquences côté autorité (E05-T09) : fréquence écrite sur la note à sa création, et
--- butin. Serveur MP ou solo. Détails : docs/notes-frequences.md.
+-- butin. Serveur MP ou solo. Détails : docs/specifications-techniques/notes-frequences.md.
 --
 -- Fréquence : fournisseur de RS_Notes. Première fréquence servie de la voix (RS_Personas.served, ordre des plages de
 -- la fiche), si la voix est active ; sinon nil (note sans fréquence). Les fiches sont lues à OnLoadRadioScripts
 -- (IsoWorld.java:1905, 42.21.0), avant que le monde charge ses premiers conteneurs (WorldStreamer, l.2067).
 --
 -- Butin : notes ajoutées à des listes procédurales vanilla 42.21 citées par des salles (relevé distmatrix.py :
--- docs/notes-frequences.md) et à la boîte à gants des voitures, à OnInitGlobalModData (options sandbox de la partie
--- connues, y compris en solo, base loot-distributions.md), sans doublon, puis ItemPickerJava.Parse(). Poids de base
+-- docs/specifications-techniques/notes-frequences.md) et à la boîte à gants des voitures, à OnInitGlobalModData (options sandbox
+-- de la partie connues, y compris en solo, base loot-distributions.md), sans doublon, puis ItemPickerJava.Parse(). Poids de base
 -- multipliés par l'option NoteRarity (0 : aucune note). Un changement de l'option en cours de partie n'est repris
 -- qu'au prochain chargement du monde. Mod désactivé (Enabled) : aucune note dans le butin.
 -- Seul l'ASCII est utilisé dans le code (littéraux non ASCII changés en U+FFFD par le lexeur Kahlua).

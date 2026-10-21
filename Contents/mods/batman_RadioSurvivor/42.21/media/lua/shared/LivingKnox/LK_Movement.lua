@@ -1,4 +1,4 @@
--- Living Knox : détection de blocage et déblocage d'un "move" (LK04-T05). Fiche : docs/conception/deplacement.md,
+-- Living Knox : détection de blocage et déblocage d'un "move" (LK04-T05). Fiche : docs/annexes/conception/deplacement.md,
 -- section « Blocage et déblocage (LK04-T05) ». Java 42.21.0 cité en abrégé (J = zombie/...).
 --
 -- Deux moitiés, chargées partout (media/lua/shared) :

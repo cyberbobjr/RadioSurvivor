@@ -20,7 +20,7 @@ Automated (real Java objects, on the authority):
 Figures are printed as "[LKR] measure ..." lines. The npc is forgotten and the god mode restored with t:defer.
 Look at the npc while the suite runs: reload gesture, aim, one shot per second with the pistol sound and a flash.
 
-Manual MP protocol (two clients, docs/conception/combat.md, "Tir", "Protocole en jeu"): not automated.
+Manual MP protocol (two clients, docs/annexes/conception/combat.md, "Tir", "Protocole en jeu"): not automated.
 ]]
 
 require "RST/RST"

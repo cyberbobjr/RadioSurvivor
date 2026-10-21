@@ -2,7 +2,7 @@
 
     python bridge/persona_store.py FILE.txt [...]     validate sheets, one line per file, exit code 1 on error
 
-Format: docs/persona-format.md. The server reads the same files with
+Format: docs/specifications-techniques/persona-format.md. The server reads the same files with
 Contents/mods/batman_RadioSurvivor/42.21/media/lua/server/RadioSurvivor/RS_Persona.lua: same rules, same messages
 ("line N: reason"), checked by tests/test_personas.py. Lines are split like Java's BufferedReader.readLine (the game's
 getFileReader): "\\r\\n", "\\r" or "\\n". Invalid UTF-8 is decoded as U+FFFD, as Java's InputStreamReader does, then

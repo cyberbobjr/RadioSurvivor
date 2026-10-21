@@ -1,5 +1,5 @@
 -- Living Knox : fenêtre de troc avec un groupe (LK11-T08), côté joueur local (client MP, solo).
--- Fiche : docs/conception/troc.md. M = media/lua vanilla.
+-- Fiche : docs/annexes/conception/troc.md. M = media/lua vanilla.
 --
 -- Menu contextuel « Troquer » sur un PNJ (OnFillWorldObjectContextMenu, même repérage du corps que « Demander de
 -- l'aide » : LivingKnox.RelationsView.bodyNear) : ouvre la fenêtre et demande l'offre du groupe. Le client ne connaît

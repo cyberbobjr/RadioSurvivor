@@ -1,5 +1,5 @@
 -- Radio Survivor : découpe d'une réplique en morceaux affichés l'un après l'autre (E17-T12). Fiche :
--- docs/conception/radio-groupes.md, « Découpe des répliques ».
+-- docs/annexes/conception/radio-groupes.md, « Découpe des répliques ».
 --
 -- TextCut.pieces(texte, max) -> { morceau, ... } : espaces regroupés, chaque morceau de max unités au plus
 -- (string.len : unités UTF-16 en Kahlua, octets sous Lua 5.1), coupé, du plus au moins souhaitable :

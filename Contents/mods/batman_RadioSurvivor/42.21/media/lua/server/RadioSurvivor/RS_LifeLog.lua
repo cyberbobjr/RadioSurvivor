@@ -1,7 +1,7 @@
 if isClient() then return end
 --[[
 Life log of a notebook character (E15-T01), material of its last pages (E15-T03). Authority only (dedicated server or
-solo). Design notes: docs/conception/releve-de-vie.md.
+solo). Design notes: docs/annexes/conception/releve-de-vie.md.
 
     local LifeLog = require "RadioSurvivor/RS_LifeLog"
     LifeLog.get(cid)              -- log of this character (live or frozen), or nil

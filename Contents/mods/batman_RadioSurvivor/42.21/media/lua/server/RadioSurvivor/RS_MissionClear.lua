@@ -2,8 +2,8 @@ if isClient() then return end
 --[[
 Mission template `clear` (E11-T04): kill N zombies inside a circle drawn around a place chosen by the server.
 Authority only. Catalogue: RS_Config.Missions.clear (offer id clear_v1). Registered in RS_Missions (M.register);
-required by RS_Carnet_Server. Details: docs/carnet-implementation-04221.md, "Gabarit nettoyer"; design choices:
-docs/conception/mission-nettoyer.md.
+required by RS_Carnet_Server. Details: docs/annexes/conception/carnet-implementation-04221.md, "Gabarit nettoyer"; design choices:
+docs/annexes/conception/mission-nettoyer.md.
 
 Requester: an NPC fiche of the notebook only (a radio voice does not offer it: RS_MissionVoice.TEMPLATES).
 Place: drawn exactly as the scout template (RS_MissionScout.pick: habitable building of the metagrid at 60-250 tiles

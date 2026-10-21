@@ -9,7 +9,7 @@
 -- dans une table en mémoire, perdue au redémarrage du serveur, comme les compteurs de RS_Actions.
 -- À chaque demande radio suivante à cette voix, RadioSurvivor_Server joint l'état (champ persona=, hexadécimal RSV2
 -- d'une table, PersonaState.field) dès qu'il a été modifié une fois ; le pont l'injecte dans le prompt système
--- (docs/protocole-carnet-v2.md, « État dynamique des voix »).
+-- (docs/specifications-techniques/protocole-carnet-v2.md, « État dynamique des voix »).
 -- Bornes (RadioSurvivor_Const) : morale et supplies entiers de 0 à PERSONA_LEVEL_MAX, PERSONA_LEVEL_DEFAULT avant tout
 -- changement ; au plus PERSONA_LEVEL_STEP d'écart par appel avec la valeur courante (une demande au-delà, ou hors
 -- bornes, est ramenée, pas refusée) ; place nettoyé comme un souvenir (RS_Memory.clean), PERSONA_PLACE_CHARS

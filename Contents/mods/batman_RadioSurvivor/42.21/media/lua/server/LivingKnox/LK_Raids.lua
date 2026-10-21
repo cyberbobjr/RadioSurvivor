@@ -1,8 +1,8 @@
--- Living Knox : raids des groupes pillards sur les bases des joueurs (LK11-T07). Fiche : docs/conception/raids.md.
+-- Living Knox : raids des groupes pillards sur les bases des joueurs (LK11-T07). Fiche : docs/annexes/conception/raids.md.
 -- Java 42.21.0 cité en abrégé (J = zombie/...). Autorité seulement (serveur dédié ou hébergé, solo) : un client MP
 -- charge aussi media/lua/server, il s'arrête ici.
 --
--- Décision du 2026-10-08 (docs/plan/LK11-interactions-joueurs.md) : raids rares et annoncés ; base repérée par ses
+-- Décision du 2026-10-08 (docs/annexes/plans/LK11-interactions-joueurs.md) : raids rares et annoncés ; base repérée par ses
 -- signes d'occupation ; éclaireurs qu'on peut éliminer pour annuler le raid ; attaque par l'effectif réel parti du
 -- foyer pillard ; fréquence réglable et désactivable (options sandbox LivingKnox.RaidsEnabled, LivingKnox.RaidDays).
 --

@@ -36,11 +36,11 @@ if isClient() then return end
 -- Application: the hook LivingKnox.Hooks.covered (LK_Hostility.chooseTarget, LK_Decisions.helpTarget) is F.covered,
 -- the only implementation; a concluded agreement is 'pending' until F.pollApplications sees, at the next decision of
 -- every embodied member of the group (LivingKnox.Decisions.aims), that none of them aims at a covered player; it is
--- then 'applicable' and only then announced (RS_Carnet_Server). Fiche: docs/conception/accords.md.
+-- then 'applicable' and only then announced (RS_Carnet_Server). Fiche: docs/annexes/conception/accords.md.
 -- E10-T04: an NPC who leaves its group keeps the truces of that group as personal truces (F.keepTruces, read by
--- F.covered with the npcId of the hook). Fiche: docs/conception/depart.md.
+-- F.covered with the npcId of the hook). Fiche: docs/annexes/conception/depart.md.
 -- E09-T06: incidents of an agreement (aggression of a covered player), targeted defence and decision of the leader:
--- end of the file. Fiche: docs/conception/incidents.md.
+-- end of the file. Fiche: docs/annexes/conception/incidents.md.
 local S = require 'RadioSurvivor/RS_State'
 
 local F = {
@@ -618,7 +618,7 @@ function F.cancelAgreement(gid, team)
 end
 
 -- ---------------------------------------------------------------- incidents (E09-T06)
--- Fiche: docs/conception/incidents.md (ADR B10). A hit, a shot or a kill of a member of group gid attributed to a
+-- Fiche: docs/annexes/conception/incidents.md (ADR B10). A hit, a shot or a kill of a member of group gid attributed to a
 -- player covered by an agreement of its team with gid (truce or alliance, pending or applicable) opens an INCIDENT,
 -- one per agreement (key '<group>|<team>'): { id = 'inc-<n>', group, team, agreement, state = 'open', revision (+1
 -- per new fact), authors = { [notebook character] = account }, accounts = { [account] = true }, victims = { [npc] =

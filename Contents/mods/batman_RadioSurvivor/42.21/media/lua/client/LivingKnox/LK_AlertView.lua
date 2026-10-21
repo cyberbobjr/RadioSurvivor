@@ -1,4 +1,4 @@
--- Living Knox : cri d'alerte d'un PNJ joué par chaque joueur proche (LK05-T08). Fiche : docs/conception/alerte.md.
+-- Living Knox : cri d'alerte d'un PNJ joué par chaque joueur proche (LK05-T08). Fiche : docs/annexes/conception/alerte.md.
 -- Java 42.21.0 cité en abrégé (J = zombie/...).
 --
 -- L'autorité (server/LivingKnox/LK_Alert.lua) décide de l'alerte et du cri ; ce fichier ne fait que JOUER la voix

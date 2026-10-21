@@ -1,7 +1,7 @@
 if isClient() then return end
 --[[
 Survivants à secourir (E12-T01) : choix du bâtiment par la métagrille, sans charger aucune case, et indices
-descriptifs sans coordonnées. Autorité seulement (serveur dédié ou solo). Détails : docs/rescue.md.
+descriptifs sans coordonnées. Autorité seulement (serveur dédié ou solo). Détails : docs/specifications-techniques/rescue.md.
 
     local Rescue = require "RadioSurvivor/RS_Rescue"
     local site, reason = Rescue.pick({ seed = 42, minDistance = 600, avoid = { { x = 100, y = 200 } } })

@@ -1,4 +1,4 @@
--- Living Knox : choix du site d'un foyer de groupe sans charger la zone (LK08-T03). Fiche : docs/conception/sites.md.
+-- Living Knox : choix du site d'un foyer de groupe sans charger la zone (LK08-T03). Fiche : docs/annexes/conception/sites.md.
 -- Autorité seulement (serveur dédié ou hébergé, solo) : un client MP charge aussi media/lua/server, il s'arrête ici.
 --
 --   local site, reason = LivingKnox.Sites.pick("raiders", { seed = 42 })

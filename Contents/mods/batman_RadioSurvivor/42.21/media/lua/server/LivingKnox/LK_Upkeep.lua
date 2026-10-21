@@ -1,4 +1,4 @@
--- Living Knox : entretien du foyer par ses membres (LK05-T10). Fiche : docs/conception/entretien.md.
+-- Living Knox : entretien du foyer par ses membres (LK05-T10). Fiche : docs/annexes/conception/entretien.md.
 -- Java 42.21.0 cité en abrégé (J = zombie/...) ; M = media/lua vanilla.
 -- Autorité seulement (serveur dédié ou hébergé, solo) : un client MP charge aussi media/lua/server, il s'arrête ici.
 --
@@ -17,7 +17,7 @@
 --            REPAIR_BELOW, avec une pièce REPAIR_PART (Base.ElectronicsScrap) au foyer : une pièce retirée, état +
 --            REPAIR_STEP (ISFixGenerator:complete, :62-77 : +4 + Électricité/2, compétence 0 ici), setCondition
 --            synchronisé (:503-511).
---   water  : (LK05-T11, fiche docs/conception/nourriture.md) plante cultivée de la zone (système vanilla SFarmingSystem,
+--   water  : (LK05-T11, fiche docs/annexes/conception/nourriture.md) plante cultivée de la zone (système vanilla SFarmingSystem,
 --            serveur et solo seulement) vivante dont le niveau d'eau est sous le besoin de son stade, hors pluie
 --            (I4.5), avec de l'eau dans un récipient du foyer (eau croupie d'abord, eau potable si le stock n'en
 --            manque pas). Effet comme la commande vanilla « water » (plant:water(nil, doses), +10 par dose,

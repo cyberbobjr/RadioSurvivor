@@ -1,4 +1,4 @@
--- Living Knox : corps de PNJ debout dès son apparition (LK02-T14). Fiche : docs/conception/corps-et-animations.md,
+-- Living Knox : corps de PNJ debout dès son apparition (LK02-T14). Fiche : docs/annexes/conception/corps-et-animations.md,
 -- section « Apparition debout ». Java 42.21.0 cité en abrégé (J = zombie/...).
 --
 -- Pourquoi le corps naît couché : IsoDeadBody.reanimate pose setOnFloor(true), reprend fallOnFront du cadavre, puis

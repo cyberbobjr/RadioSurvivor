@@ -1,5 +1,5 @@
 -- Living Knox : contrôle du cadavre d'un PNJ demandé par le serveur MP (LK07-T10). Client MP seulement.
--- Fiche : docs/conception/sante.md, « Cadavre renvoyé à un client sans copie (LK07-T10) » ; autorité :
+-- Fiche : docs/annexes/conception/sante.md, « Cadavre renvoyé à un client sans copie (LK07-T10) » ; autorité :
 -- server/LivingKnox/LK_Death.lua.
 -- Commande "corpseCheck" { id, o = identifiant d'objet "DeadBody-<n>" ou nil, n = objets statiques de la case sur le
 -- serveur, x, y, z } : case non chargée ici -> rien (le cadavre viendra avec le chunk) ; cadavre de même identifiant

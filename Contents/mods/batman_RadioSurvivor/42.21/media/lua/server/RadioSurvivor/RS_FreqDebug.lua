@@ -1,4 +1,5 @@
--- Radio Survivor : fréquences de la partie pour le panneau de debug (E05-T14). Doc : docs/persona-format.md, section
+-- Radio Survivor : fréquences de la partie pour le panneau de debug (E05-T14). Doc :
+-- docs/specifications-techniques/persona-format.md, section
 -- « Panneau de debug des fréquences (E05-T14) ». Fenêtre : client/RadioSurvivor/RS_FreqDebugView.lua.
 --
 -- Les fréquences des voix sont tirées au hasard par partie (E05-T07, RS_Personas.lua) et restent un secret de partie :

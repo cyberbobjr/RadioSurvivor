@@ -2,7 +2,7 @@
 -- une chaîne radio dynamique par fréquence servie, conflits de fréquences.
 --
 -- Dossier de travail : Zomboid/Lua/batman_RadioSurvivor/personas/<id>.txt sur la machine qui exécute le serveur
--- (ou la partie solo). Format : docs/persona-format.md, lecteur RS_Persona.lua.
+-- (ou la partie solo). Format : docs/specifications-techniques/persona-format.md, lecteur RS_Persona.lua.
 --
 -- Fiches livrées : dossier « personas » de la variante du mod (42.21/personas/, hors de media/), lu par
 -- getModFileReader / listFilesInModDirectory (LuaManager.java:4931-4998, 42.21.0). Seul exemplaire du dépôt
@@ -30,7 +30,7 @@
 -- Fréquences tirées au hasard (E05-T07) : une fiche à plages (frequency_range) reçoit une fréquence par plage,
 -- tirée à la première installation d'une partie neuve, puis mémorisée dans un fichier serveur propre à la partie
 -- (jamais en ModData globale, lisible par les clients). Détails : section « Tirage » ci-dessous et
--- docs/persona-format.md.
+-- docs/specifications-techniques/persona-format.md.
 -- Seul l'ASCII est utilisé dans le code (littéraux non ASCII changés en U+FFFD par le lexeur Kahlua).
 if isClient() then return end
 

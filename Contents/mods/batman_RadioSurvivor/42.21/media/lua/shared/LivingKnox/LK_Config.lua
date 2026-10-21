@@ -9,7 +9,7 @@ Config.NAMESPACE = "LivingKnox"
 Config.DEFAULTS = {
     Enabled = true,
     Debug = false,
-    -- Population (LK08-T05, docs/conception/groupes.md, section « Population ») : = default de sandbox-options.txt.
+    -- Population (LK08-T05, docs/annexes/conception/groupes.md, section « Population ») : = default de sandbox-options.txt.
     GroupCount = 4,
     WeightSettlers = 40,
     WeightRaiders = 35,
@@ -18,10 +18,10 @@ Config.DEFAULTS = {
     GroupSizeMax = 8,
     ReliefDaysMin = 2,
     ReliefDaysMax = 5,
-    -- Raids des pillards (LK11-T07, docs/conception/raids.md) : = default de sandbox-options.txt.
+    -- Raids des pillards (LK11-T07, docs/annexes/conception/raids.md) : = default de sandbox-options.txt.
     RaidsEnabled = true,
     RaidDays = 14,
-    -- Vengeance (LK11-T10, docs/conception/vengeance.md) : = default de sandbox-options.txt.
+    -- Vengeance (LK11-T10, docs/annexes/conception/vengeance.md) : = default de sandbox-options.txt.
     RevengeDelayHours = 72,
 }
 
@@ -111,7 +111,7 @@ function Config.population()
     return out
 end
 
--- Seuils de danger réglables (LK05-T14, fiche docs/conception/decisions.md, section « Seuils de danger réglables ») :
+-- Seuils de danger réglables (LK05-T14, fiche docs/annexes/conception/decisions.md, section « Seuils de danger réglables ») :
 -- options sandbox entières LivingKnox.<nom>, en cases (DefenseWithdrawRatio : rapport sans unité). Chaque entrée :
 -- { min, max, défaut } = min / max / default de sandbox-options.txt (vérifié par tests/test_lk_thresholds.py).
 -- Lues à chaque appel (sondage : aucun événement ne suit un changement d'option et SandboxVars reste périmé en solo,
@@ -141,7 +141,7 @@ Config.DANGER = {
 }
 Config.dangerWarned = Config.dangerWarned or {}
 
--- Seuils « blessé » et « apeuré » réglables (LK05-T16, fiche docs/conception/decisions.md, section « Seuils blessé et
+-- Seuils « blessé » et « apeuré » réglables (LK05-T16, fiche docs/annexes/conception/decisions.md, section « Seuils blessé et
 -- apeuré réglables ») : options sandbox entières LivingKnox.<nom>, lues comme Config.DANGER (Config.danger, même
 -- repli). { min, max, défaut } = min / max / default de sandbox-options.txt (vérifié par tests/test_lk_fitness.py).
 -- Une seule notion par option, partout où le moteur l'emploie (LK_Decisions : Decisions.woundRatio, Decisions.fearHigh).
@@ -183,7 +183,7 @@ function Config.zombieAlertDistance()
     return Config.danger("ZombieAlertDistance", nil)
 end
 
--- Groupes (LK08-T01, fiche docs/conception/groupes.md) : liste fermée lue par LK_Groups et LK_GroupTypes à chaque appel.
+-- Groupes (LK08-T01, fiche docs/annexes/conception/groupes.md) : liste fermée lue par LK_Groups et LK_GroupTypes à chaque appel.
 -- Les types de groupes ne sont plus listés ici : registre LivingKnox.GroupTypes, rempli par des fichiers de données
 -- (LK08-T02, media/lua/shared/LivingKnox/Data/).
 -- GROUP_ROLES : rôles des membres, dans l'ordre de priorité de la succession du chef (le premier d'abord). Un rôle
@@ -191,7 +191,7 @@ end
 -- un rôle retiré rendrait invalides les groupes qui l'emploient. breaker (casseur de barricades, I6.9) : LK08-T02.
 Config.GROUP_ROLES = Config.GROUP_ROLES or { "deputy", "fighter", "scout", "medic", "worker", "breaker" }
 
--- Simulation abstraite hors écran (LK09-T01, fiche docs/conception/simulation.md) : taux par heure de jeu, seuils
+-- Simulation abstraite hors écran (LK09-T01, fiche docs/annexes/conception/simulation.md) : taux par heure de jeu, seuils
 -- sur 0..100. Valeurs de départ propres au mod (raisons dans la fiche), à recalibrer en jeu. Lues à chaque pas.
 Config.SIMULATION = Config.SIMULATION or {
     MAX_CATCHUP_HOURS = 72,      -- rattrapage au plus (heures manquantes au-delà : ignorées et journalisées)
@@ -303,7 +303,7 @@ Config.SIMULATION = Config.SIMULATION or {
     },
 }
 
--- Attitude d'un groupe envers un personnage joueur (LK11-T03, fiche docs/conception/attitude.md, LK_Hostility.lua).
+-- Attitude d'un groupe envers un personnage joueur (LK11-T03, fiche docs/annexes/conception/attitude.md, LK_Hostility.lua).
 -- Valeur interne -100..100, jamais affichée ni rendue par l'API ; seuls le niveau et la tendance sortent. Valeurs de
 -- départ propres au mod, à recalibrer en jeu ; lues à chaque appel et bornées à la lecture (valeur non numérique :
 -- valeur de repli du module ; seuils non croissants : seuils de repli).
@@ -331,13 +331,13 @@ Config.ATTITUDE = Config.ATTITUDE or {
     MURDER_CAP = -15,
 }
 
--- Rapports d'état d'un corps (LK03-T02, fiche docs/conception/rapports.md, LK_Reports.lua et LK_Executor.lua) :
+-- Rapports d'état d'un corps (LK03-T02, fiche docs/annexes/conception/rapports.md, LK_Reports.lua et LK_Executor.lua) :
 -- seuils de plausibilité côté autorité et cadence d'envoi côté exécutant. Lus à chaque appel. MAX_SPEED, SLACK et
 -- MAX_GAP servent aussi aux rapports d'exécution des consignes (LK_Directives.lua).
 Config.REPORTS = Config.REPORTS or {
     -- Déplacement horizontal entre deux rapports acceptés : au plus SLACK + MAX_SPEED x durée (s). Course mesurée à
-    -- 4,78 cases/s (lk.milestone1, docs/validation/jalon1-2026-10-09.md, section 5), marche à 2,3 ; le moteur refuse
-    -- un joueur à pied au-delà de 20 cases/s mesurées sur 1 s (J/network/anticheats/AntiCheatSpeed.java:16, 33 ;
+    -- 4,78 cases/s (lk.milestone1, docs/annexes/tests/validation/jalon1-2026-10-09.md, section 5), marche à 2,3 ; le moteur
+    -- refuse un joueur à pied au-delà de 20 cases/s mesurées sur 1 s (J/network/anticheats/AntiCheatSpeed.java:16, 33 ;
     -- J/characters/NetworkCharacterAI.java:339-376). 8 = 1,7 fois la course mesurée.
     MAX_SPEED = 8,
     SLACK = 3,                 -- cases : gigue réseau (livraison regroupée), poussée, premier rapport
@@ -359,7 +359,7 @@ Config.REPORTS = Config.REPORTS or {
     FALL_ACCEL = 6,
     FALL_SLACK = 1,
     -- Bornes des valeurs : niveaux -32..31 (base map-files.md) ; santé 0..32,767 (short x 1000 du paquet zombie,
-    -- docs/conception/sante.md, J/network/packets/character/ZombiePacket.java:58, 112) ; coordonnées 0..COORD_MAX.
+    -- docs/annexes/conception/sante.md, J/network/packets/character/ZombiePacket.java:58, 112) ; coordonnées 0..COORD_MAX.
     Z_MIN = -32,
     Z_MAX = 31,
     HP_MAX = 32.767,
@@ -377,7 +377,7 @@ Config.REPORTS = Config.REPORTS or {
     MOVED = 0.1,
 }
 
--- Retrait des corps loin des joueurs (LK03-T04, fiche docs/conception/corps-registre.md, « Retrait loin des
+-- Retrait des corps loin des joueurs (LK03-T04, fiche docs/annexes/conception/corps-registre.md, « Retrait loin des
 -- joueurs », LK_Bodies.lua : Bodies.releasePass). Lus à chaque passage. Un corps de PNJ dont aucun joueur vivant n'est
 -- à RELEASE_RADIUS cases ou moins (écart en x et en y, niveaux ignorés, comme la portée réseau du moteur) pendant
 -- RELEASE_DELAY_MS d'affilée est retiré ; le PNJ repasse en simulation abstraite (LK09).
@@ -394,7 +394,7 @@ Config.BODIES = Config.BODIES or {
     RELEASE_GAP_MS = 10000,
 }
 
--- Matérialisation des groupes à l'approche d'un joueur (LK09-T03, fiche docs/conception/corps-registre.md,
+-- Matérialisation des groupes à l'approche d'un joueur (LK09-T03, fiche docs/annexes/conception/corps-registre.md,
 -- « Matérialisation », server/LivingKnox/LK_Materialize.lua). Lus à chaque passage.
 --   RADIUS : un joueur vivant à RADIUS cases ou moins du foyer (écart en x et en y, niveaux ignorés) déclenche la
 --   matérialisation des membres présents ; PLACE_RADIUS : cases autour du foyer où les corps sont posés. Hystérésis
@@ -406,7 +406,7 @@ Config.BODIES = Config.BODIES or {
 --   reste la borne de tous les PNJ) ; PER_PASS : corps créés au plus par passage (une tranche de balayage, 15 images :
 --   0,25 s en solo à 60 images/s, 1,5 s sur un serveur dédié à 10 images/s).
 --   FULL_HEALTH : santé de référence d'un corps dont la santé de naissance est inconnue (corps créé avant LK09-T03) ;
---   1,8 = robustesse « normale » vanilla (docs/conception/sante.md).
+--   1,8 = robustesse « normale » vanilla (docs/annexes/conception/sante.md).
 Config.MATERIALIZE = Config.MATERIALIZE or {
     RADIUS = 80,
     PLACE_RADIUS = 8,
@@ -417,7 +417,7 @@ Config.MATERIALIZE = Config.MATERIALIZE or {
 }
 
 -- Relais des gestes et des poses vers les clients (LK03-T05, server/LivingKnox/LK_Relay.lua, fiche
--- docs/conception/corps-et-animations.md, « Relais des gestes »). Lus à chaque image du serveur.
+-- docs/annexes/conception/corps-et-animations.md, « Relais des gestes »). Lus à chaque image du serveur.
 --   Destinataires : ceux des consignes (Directives.targets : joueurs à NEAR_RADIUS = 100 cases, et le propriétaire).
 --   WINDOW_MS : un état publié par PNJ au plus par fenêtre (cadence <= 1000 / WINDOW_MS par PNJ) ; les changements
 --   d'une même fenêtre sont regroupés (dernier état gagnant). Un serveur dédié tourne à 10 images par seconde
@@ -436,7 +436,7 @@ Config.RELAY = Config.RELAY or {
     MAX_KEPT = 4,
 }
 
--- Foyer d'un membre parti (E10-T05, fiche docs/conception/depart.md, « Foyer du solitaire ») : RS_LivingKnox.leave tire
+-- Foyer d'un membre parti (E10-T05, fiche docs/annexes/conception/depart.md, « Foyer du solitaire ») : RS_LivingKnox.leave tire
 -- le foyer dans l'anneau HOME_MIN..HOME_MAX cases (distance euclidienne) autour de l'ancien foyer, élargi par paliers
 -- (LivingKnox.Sites.CONFIG.NEAR_WIDEN : x 2, puis x 4) avant la carte entière. Lus à chaque départ.
 --   HOME_MIN = Sites.CONFIG.GROUP_DISTANCE (400) : l'ancien foyer reste soumis à la règle commune des foyers.
@@ -447,7 +447,7 @@ Config.LEAVE = Config.LEAVE or {
     HOME_MAX = 1200,
 }
 
--- Raids des pillards (LK11-T07, fiche docs/conception/raids.md) : { enabled, days } lus à chaque appel ; days = jours
+-- Raids des pillards (LK11-T07, fiche docs/annexes/conception/raids.md) : { enabled, days } lus à chaque appel ; days = jours
 -- de jeu au moins entre deux raids (départs des éclaireurs) et avant le premier. Lu à chaque heure simulée de chaque
 -- groupe : option absente (banc, page non chargée) = valeur par défaut sans avertissement ; invalide = valeur par
 -- défaut, un avertissement par valeur.

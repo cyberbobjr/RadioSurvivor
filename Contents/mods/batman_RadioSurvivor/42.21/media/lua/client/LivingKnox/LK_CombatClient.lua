@@ -1,4 +1,4 @@
--- Living Knox : mêlée des PNJ, côté machine qui simule le corps (LK06-T02). Fiche : docs/conception/combat.md.
+-- Living Knox : mêlée des PNJ, côté machine qui simule le corps (LK06-T02). Fiche : docs/annexes/conception/combat.md.
 -- Tourne sur un client MP et en solo (un serveur dédié n'exécute pas media/lua/client).
 --
 -- Ordres lus : solo = LivingKnox.Combat.orders (même machine) ; client MP = "combatState" reçus du serveur, PNJ par PNJ

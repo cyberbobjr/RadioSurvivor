@@ -4,7 +4,7 @@
 -- E12). Objet `literature` sans CanBeWrite (media/scripts/RadioSurvivor_notes.txt) : « Inspecter » l'ouvre dans la
 -- fenêtre vanilla des documents (ISReadABook:displayPrintMedia, moteur printMedia).
 --
--- Transport de la fréquence (docs/notes-frequences.md) :
+-- Transport de la fréquence (docs/specifications-techniques/notes-frequences.md) :
 --   - l'autorité (solo, serveur MP) écrit dans la ModData de l'objet, à sa création (OnCreate, appelé par
 --     Item.InstanceItem quand le butin remplit un conteneur), la voix et la fréquence servie de la partie en kHz :
 --     modData.RadioSurvivorNote = { voice = "walt", khz = 134200 } ; elle vient de RS_Personas, côté autorité

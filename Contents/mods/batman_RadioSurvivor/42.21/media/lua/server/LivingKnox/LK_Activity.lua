@@ -1,5 +1,5 @@
 -- Living Knox : journal d'activité fin des groupes et activité en direct de leurs PNJ (LK13-T14), côté autorité.
--- Fiche : docs/conception/administration.md, section « Panneau de debug des PNJ ».
+-- Fiche : docs/annexes/conception/administration.md, section « Panneau de debug des PNJ ».
 --
 -- Journal d'activité : EN MÉMOIRE seulement (jamais sauvegardé, aucune écriture de registre), MAX lignes par groupe
 -- (anneau : la plus ancienne est remplacée), effacé au redémarrage. Chaque ligne : { s = numéro croissant (toutes

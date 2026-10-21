@@ -13,7 +13,7 @@ Shortened delays for the test (restored afterwards, DELAY_HOURS back to nil = th
 RETRY_HOURS 0, HUNT_HOURS 1, SPEED 100000 (one hour of travel). The hours are driven by the suite
 (Relations.offscreenHour and Relations.revengeReturn on the test group, as LK_Simulation does each game hour): no real
 time passes. The kill is recorded with a test player key ("rst-rev-<ms>") and the player's account; no bubble is
-checked here (the oath line needs a group body near the death: manual check, docs/conception/vengeance.md).
+checked here (the oath line needs a group body near the death: manual check, docs/annexes/conception/vengeance.md).
 Cleanup (t:defer): bodies and npcs of the test group removed (Bodies.despawn), group removed, settings restored.
 
 What is checked (nominal path):

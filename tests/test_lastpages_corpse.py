@@ -4,7 +4,7 @@
 
 Charge le vrai moteur RST (`RST.lua`, `RST_Fixtures.lua`) et la vraie suite
 `dev/.../shared/RST/suites/RS_LastPagesCorpse.lua` sous lupa (Lua 5.1, `next` retiré comme dans Kahlua), avec des
-doublures minimales de l'API Java qui reproduisent l'ordre établi dans le Java 42.21.0 (docs/derniers-pages-cadavre.md) :
+doublures minimales de l'API Java qui reproduisent l'ordre établi dans le Java 42.21.0 (docs/annexes/recherches/derniers-pages-cadavre.md) :
 `OnCharacterDeath` d'abord, puis le cadavre qui reprend le conteneur du mort (`IsoDeadBody` : `setContainer(died
 .getInventory())`, puis un inventaire neuf pour le mort).
 

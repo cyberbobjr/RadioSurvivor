@@ -1,4 +1,4 @@
--- Living Knox : troc direct d'un joueur avec un groupe ami (LK11-T08). Fiche : docs/conception/troc.md.
+-- Living Knox : troc direct d'un joueur avec un groupe ami (LK11-T08). Fiche : docs/annexes/conception/troc.md.
 -- Java 42.21.0 cité en abrégé (J = zombie/...) ; M = media/lua vanilla.
 -- Autorité seulement (serveur dédié ou hébergé, solo) : un client MP charge aussi media/lua/server, il s'arrête ici.
 --
@@ -8,7 +8,8 @@
 -- Le serveur réévalue tout au moment de la proposition (Trade.evaluate, lecture seule) puis l'applique (Trade.apply)
 -- dans le même appel Lua, sans rien attendre : aucun paquet ni aucun autre code du jeu ne passe entre la vérification
 -- de présence des objets et leur déplacement.
--- Barème commun avec le passeur de l'Ohio : shared/RadioSurvivor/RS_TradeValues.lua (docs/passeur-table.md, section 5).
+-- Barème commun avec le passeur de l'Ohio : shared/RadioSurvivor/RS_TradeValues.lua
+-- (docs/specifications-techniques/passeur-table.md, section 5).
 --   - marge du groupe selon l'attitude envers le joueur (LivingKnox.Hostility.get) : CFG.MARGIN ; autres niveaux :
 --     refus "attitude" ;
 --   - ce que le joueur donne vaut V x multiplicateur de besoin (Trade.buyFactor, réserves de LK_Stock relues

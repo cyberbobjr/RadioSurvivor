@@ -1,5 +1,5 @@
--- Radio Survivor : journal admin des actions des voix radio (E07-T02). Format : docs/protocole-carnet-v2.md,
--- « Journal admin des actions ».
+-- Radio Survivor : journal admin des actions des voix radio (E07-T02). Format :
+-- docs/specifications-techniques/protocole-carnet-v2.md, « Journal admin des actions ».
 -- Une ligne par action proposée, champs séparés par une tabulation, dans Zomboid/Lua/batman_RadioSurvivor/
 -- actions-<partie>.log (<partie> : même dérivation hexadécimale que RS_State). N'écrit que le nom d'action filtré,
 -- les paramètres déjà filtrés par RS_Actions (paramsOf) et la décision : jamais de fiche ni de texte `say`.

@@ -1,5 +1,5 @@
 -- Living Knox : routines des PNJ au foyer, côté autorité (LK05-T03) : guet aux postes, rondes, relèves, sommeil sur
--- un couchage. Fiche : docs/conception/routines.md. Java 42.21.0 cité en abrégé (J = zombie/...).
+-- un couchage. Fiche : docs/annexes/conception/routines.md. Java 42.21.0 cité en abrégé (J = zombie/...).
 -- Autorité seulement (serveur dédié ou hébergé, solo) : un client MP charge aussi media/lua/server, il s'arrête ici.
 --
 -- 1. Relevé du foyer (Routines.survey, une fois par foyer, au premier passage d'un membre incarné quand la zone du

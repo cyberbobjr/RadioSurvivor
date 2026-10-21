@@ -18,7 +18,7 @@ bulle. Toutes deux déclenchent OnDeviceText. DISPLAYED = bulles à l'écran (av
   prédicat partagé Const.isCarriedRadio aussi côté serveur).
 - ServerTests : serveur MP (RadioSurvivor_Server.lua) : phrase d'un talkie à la ceinture refusée (NoRadio), en main
   acceptée ; lignes des voix diffusées avec le code Const.LINE_CODE et Const.LINE_COLOR.
-Simulation, PAS validation en jeu : protocole dans docs/tests-en-jeu.md.
+Simulation, PAS validation en jeu : protocole dans docs/annexes/tests/tests-en-jeu.md.
 """
 from __future__ import annotations
 

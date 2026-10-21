@@ -20,8 +20,8 @@ Suites (tag "server": RS_Carnet_Server.lua starts with "if isClient() then retur
                                 keep their identity and missions.
 The death of an account is also automated without these snapshots by rs.death (RS_Death.lua: the second client of the
 MP campaign really dies and respawns).
-The "manual" suites only run when named exactly: RST.server("rs.identity.before"). Protocol: docs/tests-en-jeu.md, section 11
-(two accounts: reconnection, restart, death).
+The "manual" suites only run when named exactly: RST.server("rs.identity.before"). Protocol: docs/annexes/tests/tests-en-jeu.md,
+section 11 (two accounts: reconnection, restart, death).
 
 Missions: on a world run (save rstest*, debug) with Living Knox, rs.identity.before first engages every online
 account in one ACTIVE mission requested by a real test NPC (RST.Fixtures.spawnNpc + RS_CarnetServer.ensure +

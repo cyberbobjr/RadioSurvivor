@@ -1,4 +1,4 @@
--- Living Knox : défense coordonnée du foyer, côté autorité (LK05-T09). Fiche : docs/conception/defense.md.
+-- Living Knox : défense coordonnée du foyer, côté autorité (LK05-T09). Fiche : docs/annexes/conception/defense.md.
 -- Autorité seulement (serveur dédié ou hébergé, solo) : un client MP charge aussi media/lua/server, il s'arrête ici.
 -- Aucune décision côté client : les clients ne reçoivent que les consignes LK03, les gestes et les ordres de combat.
 --

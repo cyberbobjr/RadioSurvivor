@@ -261,7 +261,7 @@ Comme en solo, sur le PC de l'hôte : le serveur lancé par le jeu utilise le m�
    `journalctl -u radiosurvivor-bridge -f`). Sous Windows : une tâche planifiée « Au démarrage » qui lance
    `python radio_bridge.py --env … --exchange …`. Avec Docker : un second conteneur `python:3.12-slim` qui monte **le
    même volume** que les données du serveur, sous le même utilisateur. Détails, Windows et Docker :
-   [docs/installation-pont.md](docs/installation-pont.md) ([English](docs/bridge-setup.md)).
+   [docs/wiki/fr/07-installation-du-pont.md](docs/wiki/fr/07-installation-du-pont.md) ([English](docs/wiki/en/07-bridge-server-setup.md)).
 5. **Règles** :
    - **un seul pont par dossier d'échange** : un second refuse de démarrer (`bridge.lock`) ; deux serveurs sur la même
      machine ont chacun leur `-cachedir` et leur pont ;
@@ -317,14 +317,14 @@ désactive une valeur).
 proportions colons / pillards / neutres, taille des groupes, délai de relève d'un groupe décimé, `RaidsEnabled` et
 `RaidDays` (raids des pillards), `RevengeDelayHours`, et les distances d'alerte, de fuite, de défense et de sommation.
 
-Liste complète avec les valeurs par défaut : [docs/wiki/Sandbox-Options-FR.md](docs/wiki/Sandbox-Options-FR.md).
+Liste complète avec les valeurs par défaut : [docs/wiki/fr/09-options-sandbox.md](docs/wiki/fr/09-options-sandbox.md).
 
 ### Caractère des voix
 
 Chaque voix a une fiche texte dans `<dossier d'échange>/personas/<voix>.txt` (fréquences, horaires, radio exigée,
 actions permises, ce qu'elle sait, ignore ou cache, et son prompt après `[prompt]`). Le serveur l'installe au premier
 chargement du monde et la relit toutes les 30 s : la modifier change la voix sans redémarrer. Une fiche modifiée par
-l'admin n'est jamais écrasée par une mise à jour du mod. Guide : [docs/wiki/Creating-Radio-Voices-FR.md](docs/wiki/Creating-Radio-Voices-FR.md).
+l'admin n'est jamais écrasée par une mise à jour du mod. Guide : [docs/wiki/fr/10-creer-une-voix-radio.md](docs/wiki/fr/10-creer-une-voix-radio.md).
 
 ## Jouer
 
@@ -353,7 +353,7 @@ Admins et mode debug : fenêtre d'administration des groupes, fiche d'un PNJ par
 | Radio Survivor absent du jeu | Un mod requis manque (Belt Walkie-Talkie, TooltipLib, Signal Smoke) ou n'est pas dans `WorkshopItems=`. |
 
 Journaux : sortie du pont (`bridge.log` si redirigée), `token_usage.jsonl`, `%USERPROFILE%\Zomboid\console.txt` (solo),
-`server-console.txt` du serveur. Plus de cas : [docs/wiki/Troubleshooting-FR.md](docs/wiki/Troubleshooting-FR.md).
+`server-console.txt` du serveur. Plus de cas : [docs/wiki/fr/11-depannage.md](docs/wiki/fr/11-depannage.md).
 
 ## État du projet
 
@@ -362,7 +362,7 @@ Version de test, non publiée sur le Workshop.
 - Toutes les fonctions de la radio, du carnet et de Living Knox sont vérifiées **en jeu solo** par des campagnes de
   tests automatiques (vrai jeu 42.21 piloté par script), et une grande partie l'est aussi **en multijoueur** (serveur
   dédié et deux clients pilotés). État détaillé et journal de développement :
-  [docs/fonctionnalites.html](docs/fonctionnalites.html) ; plan : [docs/plan/SUIVI.md](docs/plan/SUIVI.md).
+  [docs/annexes/maquettes/fonctionnalites.html](docs/annexes/maquettes/fonctionnalites.html) ; plan : [docs/annexes/plans/SUIVI.md](docs/annexes/plans/SUIVI.md).
 - Les tests tournent dans une partie de test calme ; une longue partie avec la densité de zombies normale reste à
   éprouver.
 - Limites connues : offensive des PNJ par une fenêtre encore irrégulière en multijoueur ; pêche des PNJ non vérifiée ;
@@ -376,17 +376,18 @@ bridge/                                     le pont Python
 dev/batman_RadioSurvivorTests/              mod de tests en jeu (RST), jamais publié
 tests/                                      bancs hors jeu (lupa, VM Kahlua)
 tools/                                      plan, campagnes en jeu (autoclient), zip de test
-docs/                                       conception, protocole, plan, wiki, guides
+docs/                                       index de la documentation : docs/README.md (architecture, spécifications, wiki, annexes)
 workshop/                                   descriptions Workshop (EN, FR)
 ```
 
+- Index de la documentation : [docs/README.md](docs/README.md).
 - Tous les tests hors jeu : `python tests/run_all.py` (nécessite `lupa` ; aucun appel d'IA payant).
 - Campagnes en jeu automatiques : `tools/autoclient/autoclient.py` (solo, serveur dédié avec deux clients, tranches
-  parallèles, faux modèle d'IA) ; méthode : [docs/tests-en-jeu.md](docs/tests-en-jeu.md).
-- Contrat Lua ↔ Python : [docs/protocole-carnet-v2.md](docs/protocole-carnet-v2.md) ; API de Living Knox :
-  [docs/api.md](docs/api.md) ; conception : [docs/conception/README.md](docs/conception/README.md).
+  parallèles, faux modèle d'IA) ; méthode : [docs/annexes/tests/tests-en-jeu.md](docs/annexes/tests/tests-en-jeu.md).
+- Contrat Lua ↔ Python : [docs/specifications-techniques/protocole-carnet-v2.md](docs/specifications-techniques/protocole-carnet-v2.md) ; API de Living Knox :
+  [docs/specifications-techniques/api-living-knox.md](docs/specifications-techniques/api-living-knox.md) ; conception : [docs/annexes/conception/README.md](docs/annexes/conception/README.md).
 - Zip de test local sans le Workshop : `python tools/make_test_zip.py` (écrit `dist/`).
-- Pages wiki prêtes à publier : [docs/wiki/](docs/wiki/Home-FR.md).
+- Pages wiki prêtes à publier : [docs/wiki/fr/](docs/wiki/fr/Home.md) ([anglais](docs/wiki/en/Home.md)).
 - Living Knox est écrit indépendamment : aucun code de Bandits! ni de Project A-Life n'est repris.
 
 ## Licence

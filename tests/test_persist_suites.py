@@ -5,7 +5,7 @@ lk.rejoin (before / after-reconnect2), leur fichier d'instantané (RST_Persist.l
     python RadioSurvivor/tests/test_persist_suites.py
 
 Doublures seulement : la reconnexion et le redémarrage réels ne se prouvent que par la campagne MP automatique
-(docs/tests-en-jeu.md, « Reconnexion et redémarrage du serveur »). rs.mission.recover.before / .after-restart sont
+(docs/annexes/tests/tests-en-jeu.md, « Reconnexion et redémarrage du serveur »). rs.mission.recover.before / .after-restart sont
 joués par le vrai moteur RST sur le banc de tests/test_mission_recover.py (redémarrage simulé : mémoire de RS_Caches
 remise à zéro, sacs au sol gardés), y compris un sac en double injecté qui doit faire échouer l'étape after-restart.
 """

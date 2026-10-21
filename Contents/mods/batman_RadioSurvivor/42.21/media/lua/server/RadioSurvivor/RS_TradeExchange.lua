@@ -1,6 +1,6 @@
--- Radio Survivor : échange sans contact sur la berge (E13-T04). Fiche : docs/conception/passeur-echange.md ; barème
--- docs/passeur-table.md (sections 1 et 2), code shared/RadioSurvivor/RS_TradeValues.lua. Autorité seulement (serveur
--- MP, jeu local en solo).
+-- Radio Survivor : échange sans contact sur la berge (E13-T04). Fiche : docs/annexes/conception/passeur-echange.md ; barème
+-- docs/specifications-techniques/passeur-table.md (sections 1 et 2), code shared/RadioSurvivor/RS_TradeValues.lua. Autorité
+-- seulement (serveur MP, jeu local en solo).
 --
 -- Après le signal (RS_TradeRun : state arrived), le joueur dépose un sac au ponton (DROP_RADIUS cases autour de
 -- Trade.PIER) et s'éloigne. Sondage à chaque minute de jeu (EveryOneMinute) tant que la barque attend :

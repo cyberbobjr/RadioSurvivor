@@ -5,7 +5,7 @@ player (t.ctx.player). Solo: RST.run({ suite = "lk.essai", tags = "world" }) or 
 tags = "world" }); dedicated server: RST.server({ suite = "lk.essai", tags = "world" }) from an admin client.
 Asynchronous run only (waits in steps). About 6 minutes; do not pause the game.
 
-Each test asserts the hypothesis of docs/conception/corps-et-animations.md: a FAIL is a measure that refutes it,
+Each test asserts the hypothesis of docs/annexes/conception/corps-et-animations.md: a FAIL is a measure that refutes it,
 not a broken test. Figures are logged as "[LKE] measure ..." lines (console and lke-essai.log of the authority).
 Visual measures (appearance on two clients, voices, hand item) stay in the manual protocol.
 Every test removes its bodies with t:defer (LKE.Server.clear), even when it fails.
@@ -29,7 +29,7 @@ local FAR = 300             -- squares: beyond the loaded area (13 to 19 chunks 
 -- client forces the floor state of a reanimated corpse, NetworkZombieSimulator; the trial body has no LK_Stand).
 local STAND_MS_MP = 60000
 local COPY_SYNC_MS = 5000
--- Base A (ordinary zombie) was abandoned on 2026-10-09 (docs/plan/LK02, base B retained): its walk measures stay a
+-- Base A (ordinary zombie) was abandoned on 2026-10-09 (docs/annexes/plans/LK02, base B retained): its walk measures stay a
 -- solo trial. On a dedicated server they cannot refute anything: the copy read here is late, so a still body passes
 -- the "useless" measure and a walking one fails the others (2026-10-15: moved 0 / 0.03 squares).
 local A_SOLO_ONLY = "base A abandoned on 2026-10-09 (LK02, base B retained): its walk trial is solo only (on a "
@@ -264,7 +264,7 @@ RST.suite("lk.essai", { tags = { "world", "server" }, testTimeoutMs = 90000, tim
     end)
 end)
 
--- Base A (ordinary zombie, abandoned on 2026-10-09: docs/plan/LK02, base B retained) in a suite of its own, out of
+-- Base A (ordinary zombie, abandoned on 2026-10-09: docs/annexes/plans/LK02, base B retained) in a suite of its own, out of
 -- the MP campaign (decision confirmed by default, 2026-10-15): "lk.essai" does not select "lk.essai_a" (prefix rule
 -- "<entry>." of RST.select). Solo: RST.run({ suite = "lk.essai_a", tags = "world" }).
 RST.suite("lk.essai_a", { tags = { "world", "server" }, testTimeoutMs = 90000, timeoutMs = 600000 }, function(s)

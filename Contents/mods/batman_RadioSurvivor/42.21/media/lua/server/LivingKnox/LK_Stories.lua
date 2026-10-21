@@ -1,4 +1,4 @@
--- Living Knox : histoires des groupes composées par le serveur (LK10-T01). Fiche : docs/conception/recits.md.
+-- Living Knox : histoires des groupes composées par le serveur (LK10-T01). Fiche : docs/annexes/conception/recits.md.
 -- Autorité seulement (serveur dédié ou hébergé, solo) : un client MP charge aussi media/lua/server, il s'arrête ici.
 --
 -- Stories.compose(groupType, seed, opts) -> story, ou nil et une raison. Déterministe : même type, même graine, mêmes

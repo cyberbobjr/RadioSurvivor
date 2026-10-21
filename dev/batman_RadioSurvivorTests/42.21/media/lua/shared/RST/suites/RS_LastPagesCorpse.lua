@@ -1,7 +1,7 @@
 --[[
 rs.lastpages.corpse - where the "last pages" document of a dead character can go (E15-T02, investigation; written
-conclusion: docs/derniers-pages-cadavre.md). Tags "world" and "server": the authority only (solo or server), on a
-save named rstest*, with a target player (t.ctx.player).
+conclusion: docs/annexes/recherches/derniers-pages-cadavre.md). Tags "world" and "server": the authority only (solo or server), on
+a save named rstest*, with a target player (t.ctx.player).
 
 Method retained (Java 42.21.0): on the authority, OnCharacterDeath fires BEFORE the corpse exists, while the dead
 player still holds his inventory; the corpse then takes that very container (IsoDeadBody constructor) and the

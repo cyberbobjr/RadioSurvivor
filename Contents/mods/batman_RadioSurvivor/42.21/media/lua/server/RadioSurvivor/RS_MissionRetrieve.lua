@@ -3,8 +3,8 @@ if isClient() then return end
 Mission template `retrieve_id` (E11-T05): find the body of a missing person in a place chosen by the server and bring
 their ID card back to the requester. Authority only. Catalogue: RS_Config.Missions.retrieve_id (offer id
 retrieve_id_v1). Registered in RS_Missions (M.register); required by RS_Carnet_Server, whose once-a-second poll of the
-participants (M.observe) also places the body. Details: docs/carnet-implementation-04221.md, "Gabarit retrouver";
-design choices: docs/conception/mission-retrouver.md.
+participants (M.observe) also places the body. Details: docs/annexes/conception/carnet-implementation-04221.md, "Gabarit
+retrouver"; design choices: docs/annexes/conception/mission-retrouver.md.
 
 Requester: an NPC fiche of the notebook only (a radio voice does not offer it: RS_MissionVoice.TEMPLATES). Offered only
 where the game can make a corpse (exposed class RandomizedWorldBase; a bench without it offers nothing).

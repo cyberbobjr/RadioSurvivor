@@ -82,7 +82,7 @@ end
 -- (LK_Encounters), "aidDecided", "revengeSworn", "revengeStarted", "revengeEnded" (LK_Relations), "raidScouting",
 -- "raidAnnounced", "raidLaunched", "raidEnded" (LK_Raids, LK11-T07), "memberHit" (LK_Bodies, E09-T06) ; LK12-T02 relaie
 -- les sept premiers en événements Lua publics (LK_API). Champs dans
--- docs/api.md, section « Faits publiés ».
+-- docs/specifications-techniques/api-living-knox.md, section « Faits publiés ».
 LK.listeners = LK.listeners or {}
 
 function LK.listen(name, key, fn)

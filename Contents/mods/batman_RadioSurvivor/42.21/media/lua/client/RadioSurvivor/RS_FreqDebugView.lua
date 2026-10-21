@@ -1,4 +1,5 @@
--- Radio Survivor : fenêtre de debug des fréquences de la partie (E05-T14). Doc : docs/persona-format.md, section
+-- Radio Survivor : fenêtre de debug des fréquences de la partie (E05-T14). Doc :
+-- docs/specifications-techniques/persona-format.md, section
 -- « Panneau de debug des fréquences (E05-T14) ». M = media/lua vanilla 42.21.
 --
 -- Affiche ce que l'autorité répond (server/RadioSurvivor/RS_FreqDebug.lua, FreqDebug.view), sans rien décider, en

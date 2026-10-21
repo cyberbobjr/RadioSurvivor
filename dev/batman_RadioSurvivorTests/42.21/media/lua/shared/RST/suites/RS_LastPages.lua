@@ -14,7 +14,7 @@ Tags "world" and "server": authority only (solo or server), save named rstest*, 
 object made by the suite is removed at the end. Solo: RST.run({ suite = "rs.lastpages", tags = "world" });
 dedicated server, from an admin client: RST.server({ suite = "rs.lastpages", tags = "world" }). Outside the game:
 tests/test_last_pages.py. A real death (request to the bridge, fallback journal) follows the manual protocol of
-docs/conception/dernieres-pages.md.
+docs/annexes/conception/dernieres-pages.md.
 ]]
 
 require "RST/RST"

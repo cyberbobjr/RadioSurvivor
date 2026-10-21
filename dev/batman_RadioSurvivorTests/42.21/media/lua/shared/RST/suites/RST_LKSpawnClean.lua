@@ -17,7 +17,7 @@ its voice prefix and the zombie voices played by its emitter (LivingKnox.ZombieG
                   the clients watch the body square again, everybody comes back: same checks once the body is bound
                   again.
 Not automated: reconnection of a client (the launcher keeps both clients connected; protocol in
-docs/conception/neutralisation.md). Figures: "[LKA] measure ..." lines. The npc is forgotten with t:defer.
+docs/annexes/conception/neutralisation.md). Figures: "[LKA] measure ..." lines. The npc is forgotten with t:defer.
 ]]
 
 require "RST/RST"

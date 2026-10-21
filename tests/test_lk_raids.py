@@ -18,7 +18,7 @@ Bancs tests/harness.py :
   créés seulement à SPAWN_MIN cases au moins de tout joueur, jamais au foyer, marche vers la base.
 Les doublures NE PROUVENT PAS l'API réelle (SafeHouse, IsoGenerator, barricades, addZombiesInOutfit, chemins) :
 seulement la logique. Le rendu, la marche réelle, le forçage et l'engagement se vérifient en jeu (suite lk.raid,
-protocole de docs/conception/raids.md).
+protocole de docs/annexes/conception/raids.md).
 """
 from __future__ import annotations
 

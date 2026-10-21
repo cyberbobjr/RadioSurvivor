@@ -1,7 +1,7 @@
 --[[
 lk.loadmp - load measure of Living Knox in multiplayer with 5 groups and 4 players (LK13-T02, protocol
-docs/validation/charge-protocole.md, sections 2 to 5, automated). Tags "world" and "server": dedicated server only, on
-a world named rstest*, run from the admin client 1 (RST.server) with three other clients connected
+docs/annexes/tests/validation/charge-protocole.md, sections 2 to 5, automated). Tags "world" and "server": dedicated server only,
+on a world named rstest*, run from the admin client 1 (RST.server) with three other clients connected
 (autoclient.py --mp --load: clients rs_mp1..rs_mp4, LivingKnox.GroupCount = 5; campaign "mp-load" of
 RST_Campaign.lua). Solo, or fewer than 4 players online: SKIP (the short measure lk.load covers solo). Asynchronous
 run only (about 3 x PHASE_MS plus the placement: 17 minutes by default).

@@ -1,4 +1,4 @@
--- Living Knox : mêlée des PNJ, côté autorité (LK06-T02). Fiche : docs/conception/combat.md.
+-- Living Knox : mêlée des PNJ, côté autorité (LK06-T02). Fiche : docs/annexes/conception/combat.md.
 -- Java 42.21.0 cité en abrégé (J = zombie/...). Un client MP charge aussi ce fichier (media/lua/server) : il n'y trouve
 -- que les constantes et les réglages ; le geste de frappe est minuté chez le propriétaire du corps par
 -- client/LivingKnox/LK_CombatClient.lua.

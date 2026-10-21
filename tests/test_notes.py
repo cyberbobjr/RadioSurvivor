@@ -10,7 +10,7 @@ whitaker sans note), voix silencieuse ou disparue (note sans fréquence), OnCrea
 fréquence, aucun fournisseur), aucune commande réseau dans les modules des notes, texte composé FR/EN (traductions
 réelles, %1 remplacé comme Translator), ouverture du document (clés remises, autres documents intacts), butin selon
 NoteRarity (facteurs, idempotence, mod désactivé), listes citées par des salles ou des véhicules de la 42.21.
-Ne prouve pas l'API Java réelle : suite en jeu rs.notes et protocole docs/tests-en-jeu.md § 13.
+Ne prouve pas l'API Java réelle : suite en jeu rs.notes et protocole docs/annexes/tests/tests-en-jeu.md § 13.
 """
 from __future__ import annotations
 

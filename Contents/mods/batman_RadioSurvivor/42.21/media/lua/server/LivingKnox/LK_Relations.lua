@@ -1,5 +1,5 @@
 -- Living Knox : relations d'un groupe avec les joueurs, au-delà de l'attitude (LK11-T06 : demandes d'aide).
--- Fiche : docs/conception/aide.md. Java 42.21.0 cité en abrégé (J = zombie/...) ; M = media/lua vanilla.
+-- Fiche : docs/annexes/conception/aide.md. Java 42.21.0 cité en abrégé (J = zombie/...) ; M = media/lua vanilla.
 -- Autorité seulement (serveur dédié ou hébergé, solo) : un client MP charge aussi media/lua/server, il s'arrête ici.
 --
 -- Demande d'aide (Relations.requestAid(gid, playerKey, kind, opts)) : un joueur demande de la nourriture ("food"), de
@@ -28,7 +28,7 @@
 -- Réplique : le PNJ qui a reçu la demande (opts.npc) répond par LivingKnox.Speech.say avec une clé traduite par chaque
 -- client (IGUI_LK_Aid_Given_<genre>, IGUI_LK_Aid_Refuse_<raison>).
 --
--- Vengeance différée (LK11-T05, fiche docs/conception/vengeance.md), fin du fichier : fait "npcDied" d'un membre tué
+-- Vengeance différée (LK11-T05, fiche docs/annexes/conception/vengeance.md), fin du fichier : fait "npcDied" d'un membre tué
 -- par un joueur identifié par le serveur -> fait d'attitude "kill" (attribuable) ; serment si l'attitude qui en
 -- résulte est dans REVENGE.LEVELS (hostile), si le groupe n'a aucune vengeance en cours et compte assez de
 -- combattants ; champ facultatif revenge du groupe (registre privé, persistant) ; délai, départ d'une équipe réelle
@@ -38,7 +38,7 @@
 -- LivingKnox.Materialize.embodyMember), comportement "revenge" du cadre de décision (Relations.memberHunt,
 -- Relations.applyHunt), engagement par Hostility.chooseTarget (raison "revenge") ; fin : cible morte, rancune éteinte
 -- (attitude sortie de REVENGE.LEVELS par le déclin ou des actes), ou MAX_FAILS traques manquées.
--- Raids (LK11-T07, LK_Raids.lua, fiche docs/conception/raids.md) : même trajet abstrait, mêmes corps à distance et même
+-- Raids (LK11-T07, LK_Raids.lua, fiche docs/annexes/conception/raids.md) : même trajet abstrait, mêmes corps à distance et même
 -- marche, par les fonctions partagées travelHours, livingTeam, turnBack, delayReturn, embodyTeam, say et le repli de
 -- memberHunt vers LivingKnox.Raids.memberHunt.
 if isClient() then return end

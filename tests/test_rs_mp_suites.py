@@ -370,7 +370,7 @@ package.loaded["RadioSurvivor/RS_Personas"] = {
     channel = function(k) if k == WALT then return { walt = true } end end }
 RS_RadioServer = { bench = true }
 
--- Living Knox reduced to its test API, groups, hostility fact and bodies (public API of docs/api.md).
+-- Living Knox reduced to its test API, groups, hostility fact and bodies (public API of docs/specifications-techniques/api-living-knox.md).
 require "LivingKnox/LK_Core"
 local LK = LivingKnox
 BODIES, LKNPCS, GROUPS, BLIND = {}, {}, {}, {}

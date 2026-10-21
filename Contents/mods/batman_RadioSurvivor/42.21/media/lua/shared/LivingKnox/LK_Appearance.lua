@@ -1,4 +1,4 @@
--- Living Knox : apparence humaine des PNJ (LK02-T03). Fiche : docs/conception/apparence.md.
+-- Living Knox : apparence humaine des PNJ (LK02-T03). Fiche : docs/annexes/conception/apparence.md.
 --
 -- Deux parties :
 -- * logique pure (aucun appel au moteur) : profils d'apparence en données (Appearance.LOOKS), tirage déterministe

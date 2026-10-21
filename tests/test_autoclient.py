@@ -4,7 +4,7 @@
 
 Le pilote Lua est chargÃ© dans lupa.lua51 avec le vrai moteur RST, des doublures d'Ã©vÃ©nements, de fichiers et du menu
 (MainScreen.continueLatestSave, quitToDesktop, takeScreenshot). Simulation seulement : le chargement rÃ©el de la partie,
-le clic postÃ© Ã  la fenÃªtre et la sortie du jeu se valident par une exÃ©cution rÃ©elle (docs/tests-en-jeu.md).
+le clic postÃ© Ã  la fenÃªtre et la sortie du jeu se valident par une exÃ©cution rÃ©elle (docs/annexes/tests/tests-en-jeu.md).
 """
 from __future__ import annotations
 

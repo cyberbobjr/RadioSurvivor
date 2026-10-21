@@ -1,5 +1,5 @@
 -- Living Knox : menu « Demander de l'aide » sur un PNJ (LK11-T06), côté joueur local (client MP, solo).
--- Fiche : docs/conception/aide.md. M = media/lua vanilla.
+-- Fiche : docs/annexes/conception/aide.md. M = media/lua vanilla.
 --
 -- OnFillWorldObjectContextMenu(playerNum, context, worldObjects, test) (M/client/ISUI/ISWorldObjectContextMenu.lua:213) :
 -- si un corps de PNJ connu ici (LivingKnox.Anim.knownBodies) se tient à CLICK case(s) au plus d'une case cliquée et

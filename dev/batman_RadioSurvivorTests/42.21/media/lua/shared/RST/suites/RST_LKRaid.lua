@@ -12,7 +12,7 @@ Shortened for the test (restored afterwards): RaidDays 0 (Raids.settings), SCOUT
 ATTACK_HOURS 1, SPEED 100000 (one hour of travel). The hours are driven by the suite (Raids.offscreenHour and
 Raids.raidReturn on the test group, as LK_Simulation does each game hour): no real time passes. The sightings are
 noted directly (Raids.note, two days) with a test player key ("rst-raid-<ms>"); the real signs of the base are only
-noted (t:note), not required. No speech bubble is checked here (manual check, docs/conception/raids.md).
+noted (t:note), not required. No speech bubble is checked here (manual check, docs/annexes/conception/raids.md).
 Cleanup (t:defer): bodies and npcs of the test groups removed (Bodies.despawn), groups removed, settings restored.
 
 What is checked (nominal path):

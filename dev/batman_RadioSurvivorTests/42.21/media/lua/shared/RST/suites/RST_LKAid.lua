@@ -8,7 +8,7 @@ INSIDE a house (the test group gets its home on the player's square). Solo: RST.
 tags = "world" }). Dedicated server: RST.server({ suite = "lk.aid", tags = "world" }) from an admin client standing
 in a house.
 The request is made with a test player key ("rst-aid-<ms>"; settlers start "favorable") and the player passed as the
-recipient: no npc body, no reply line (the context menu and the reply bubble are a manual check, docs/conception/
+recipient: no npc body, no reply line (the context menu and the reply bubble are a manual check, docs/annexes/conception/
 aide.md).
 Cleanup (t:defer): the given item is removed from the player's inventory, the supply targets restored, the stock
 reference erased, everything placed removed (LivingKnox.Homes.clear) and the group removed.

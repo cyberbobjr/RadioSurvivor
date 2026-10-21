@@ -13,7 +13,7 @@ Bancs :
 - suite lk.load jouée par le vrai moteur RST (mod de développement) sur le banc solo ;
 - banc de charge tools/load_bench.py sur 2 minutes de jeu (5 groupes, 4 joueurs) : sans erreur, chiffres cohérents.
 Les doublures NE PROUVENT PAS l'API réelle ni les coûts du jeu (lupa n'est pas Kahlua) : voir
-docs/validation/charge-hors-jeu-2026-10-12.md et docs/validation/charge-protocole.md.
+docs/annexes/tests/validation/charge-hors-jeu-2026-10-12.md et docs/annexes/tests/validation/charge-protocole.md.
 """
 from __future__ import annotations
 

@@ -1,5 +1,6 @@
 -- Living Knox : matérialisation des groupes à l'approche d'un joueur et mise à jour de l'état simulé au retrait
--- (LK09-T03). Fiche : docs/conception/corps-registre.md, section « Matérialisation » ; docs/conception/simulation.md.
+-- (LK09-T03). Fiche : docs/annexes/conception/corps-registre.md, section « Matérialisation » ;
+-- docs/annexes/conception/simulation.md.
 -- Autorité seulement (serveur dédié ou hébergé, solo) : un client MP charge aussi media/lua/server, il s'arrête ici.
 --
 -- Passage (LivingKnox.Bodies.tick, une fois par tranche de balayage) : pour chaque groupe dont le foyer (home) est

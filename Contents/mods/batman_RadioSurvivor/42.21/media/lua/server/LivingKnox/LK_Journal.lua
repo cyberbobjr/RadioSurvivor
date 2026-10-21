@@ -1,4 +1,5 @@
--- Living Knox : journal de récit des groupes (LK10-T02). Fiche : docs/conception/journal.md ; API : docs/api.md.
+-- Living Knox : journal de récit des groupes (LK10-T02). Fiche : docs/annexes/conception/journal.md ; API :
+-- docs/specifications-techniques/api-living-knox.md.
 -- Autorité seulement (serveur dédié ou hébergé, solo) : un client MP charge aussi media/lua/server, il s'arrête ici.
 --
 -- Deux journaux par groupe :

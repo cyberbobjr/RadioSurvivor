@@ -1,8 +1,8 @@
 -- Living Knox : type de groupe « pillards » (LK08-T02), données seules. Format : LK_GroupTypes.lua ; valeurs et
--- raisons : docs/conception/groupes.md, section « Types et profils ».
+-- raisons : docs/annexes/conception/groupes.md, section « Types et profils ».
 -- Pillards hostiles installés dans un camp en forêt (décision LK00 du 2026-10-03) : armés, peu de soins.
 -- Format 2 (E08-T10, décision de l'utilisateur du 2026-10-14) : un poste émetteur au camp (homeRadio), comme les
--- colons : le groupe est une voix du réseau radio tant qu'un membre vivant y est présent (docs/conception/
+-- colons : le groupe est une voix du réseau radio tant qu'un membre vivant y est présent (docs/annexes/conception/
 -- radio-groupes.md).
 require "LivingKnox/LK_GroupTypes"
 

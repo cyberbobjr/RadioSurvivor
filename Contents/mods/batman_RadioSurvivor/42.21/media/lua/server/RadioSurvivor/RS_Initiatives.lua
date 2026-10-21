@@ -1,6 +1,6 @@
 -- Radio Survivor : initiative de parole d'un PNJ à proximité (E08-T03, ADR B04 « Initiative acceptée »).
--- Autorité seulement (serveur MP ou solo). Fiche : docs/conception/initiatives.md ; contrat : docs/protocole-carnet-v2.md
--- « Initiative d'un PNJ (E08-T03) ».
+-- Autorité seulement (serveur MP ou solo). Fiche : docs/annexes/conception/initiatives.md ; contrat :
+-- docs/specifications-techniques/protocole-carnet-v2.md « Initiative d'un PNJ (E08-T03) ».
 --
 -- Un PNJ du carnet prend la parole de lui-même quand, à un passage (toutes les EVERY_MS) :
 --   - sa fiche est vivante et son corps chargé (Server.objects), aucune demande de ce PNJ n'attend le pont ;

@@ -1,4 +1,4 @@
--- Living Knox : registre serveur des groupes (LK08-T01). Fiche : docs/conception/groupes.md.
+-- Living Knox : registre serveur des groupes (LK08-T01). Fiche : docs/annexes/conception/groupes.md.
 -- Autorité seulement (serveur dédié ou hébergé, solo) : un client MP charge aussi media/lua/server, il s'arrête ici.
 --
 -- Registre (schéma 1), privé, jamais en ModData globale :
@@ -33,10 +33,12 @@
 --              noms ; forme seulement contrôlée ici : un trait ou un profil retiré des données ne fait rien écarter).
 -- Champ facultatif des offres de ressources (LK12-T03, LK_API.lua ; schéma 1 inchangé, non contrôlé ici : LK_API le
 -- contrôle et le remet à neuf s'il est malformé) :
---   group    : supply = { next, offers = { [need] = offre ouverte }, receipts = { reçu, ... } } (docs/api.md).
+--   group    : supply = { next, offers = { [need] = offre ouverte }, receipts = { reçu, ... } }
+--   (docs/specifications-techniques/api-living-knox.md).
 -- Champ facultatif des histoires enrichies (LK10-T03, LK_API.lua ; schéma 1 inchangé, non contrôlé ici : LK_API le
 -- contrôle, ignore une entrée invalide ou périmée et la retire à l'écriture suivante) :
---   group    : enrich = { ["<group|m-<k>>:<en|fr>"] = { text, mode, version, day } } (docs/api.md).
+--   group    : enrich = { ["<group|m-<k>>:<en|fr>"] = { text, mode, version, day } }
+--   (docs/specifications-techniques/api-living-knox.md).
 -- Champs facultatifs du cadre de décision (LK05-T02, LK_Decisions.lua ; schéma 1 inchangé, forme d'un kind seulement
 -- contrôlée ici : une valeur hors des listes fermées de LK_Decisions est ignorée par lui et remplacée à la notation) :
 --   group    : objective = dernier objectif choisi (LivingKnox.Decisions.OBJECTIVES) ;

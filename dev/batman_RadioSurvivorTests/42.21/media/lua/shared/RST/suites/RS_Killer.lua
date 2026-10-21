@@ -20,7 +20,7 @@ Every test forgets its npc and removes its corpse with t:defer. Figures are prin
 Manual protocol (not automated): real melee kill and real gunshot by a player (solo, then a client of a dedicated
 server), Molotov cocktail, pipe bomb, run over by a car (driver, then a passenger driving with another player at
 the wheel): spawn with LKB.spawn(), kill, then read the "[LivingKnox] INFO npc lk-<n> died ... cause ..." line of the
-authority log (solo console.txt, or the server log). docs/tests-en-jeu.md, section 12.
+authority log (solo console.txt, or the server log). docs/annexes/tests/tests-en-jeu.md, section 12.
 ]]
 
 require "RST/RST"

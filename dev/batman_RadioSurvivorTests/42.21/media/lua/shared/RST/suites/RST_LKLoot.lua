@@ -28,7 +28,7 @@ E01-T16 (LK07-T05): every client sees the same corpse content and the same items
 corpse and floor); on a dedicated server the second client then grabs the corpse, drags it a moment and lets it go
 (RST.Steps "corpse.drag", RST_PeerChecksLK2.lua: vanilla grab and let go): one tagged corpse again, same content on
 the authority, no second loot build, and the same corpse and floor on every client.
-Manual protocol (docs/conception/sante.md, "Butin reel du cadavre (LK07-T05)"): loot a materialized group member,
+Manual protocol (docs/annexes/conception/sante.md, "Butin reel du cadavre (LK07-T05)"): loot a materialized group member,
 check the weapon, the ammo and the pocket items of its role; MP: two clients see the same items, nothing duplicated.
 ]]
 

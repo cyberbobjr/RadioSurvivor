@@ -1,5 +1,5 @@
 -- Living Knox : rapports d'état des corps de PNJ, reçus et contrôlés par l'autorité (LK03-T02).
--- Fiche : docs/conception/rapports.md. Java 42.21.0 cité en abrégé (J = zombie/...).
+-- Fiche : docs/annexes/conception/rapports.md. Java 42.21.0 cité en abrégé (J = zombie/...).
 --
 -- Le propriétaire réel d'un corps (le client qui le simule ; en solo, la seule machine) rapporte son état : position,
 -- orientation, activité (phase de l'exécution en cours), santé du zombie et pose (debout, au sol, rampant). Envoi

@@ -12,7 +12,7 @@ Deux bancs :
   OnServerStarted / OnGameStart, EveryHours), sans métagrille (getMetaGrid rend nil : groupes sans foyer).
 Options sandbox : getSandboxOptions():getOptionByName(nom) rend nil pour une option inconnue (SandboxOptions.java),
 sinon un objet dont getValue() rend la valeur (nombre pour une option integer). Ne prouve pas l'API Java réelle ni le
-moment réel des événements (voir docs/conception/groupes.md, section « Population »).
+moment réel des événements (voir docs/annexes/conception/groupes.md, section « Population »).
 """
 from __future__ import annotations
 

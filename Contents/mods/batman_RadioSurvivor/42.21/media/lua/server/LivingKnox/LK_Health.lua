@@ -1,4 +1,4 @@
--- Living Knox : santé de référence des PNJ, tenue par l'autorité (LK07-T02). Fiche : docs/conception/sante.md,
+-- Living Knox : santé de référence des PNJ, tenue par l'autorité (LK07-T02). Fiche : docs/annexes/conception/sante.md,
 -- section « Santé de référence (LK07-T02) ». Java 42.21.0 cité en abrégé (J = zombie/...).
 --
 -- La santé vanilla d'un corps (zombie) est rendue inerte : setInvulnerable(true) sur la copie de l'autorité (ici) et
@@ -60,7 +60,7 @@ LivingKnox.Health = Health
 Health.MODULE = "LivingKnox"
 Health.CMD = "npcHealth"   -- serveur -> clients proches : { d = { [npcId] = { r, hp, mx, w } } }
 
--- Réglages (lus à chaque appel ; bornes de docs/conception/sante.md, « Santé de référence (LK07-T02) »).
+-- Réglages (lus à chaque appel ; bornes de docs/annexes/conception/sante.md, « Santé de référence (LK07-T02) »).
 LivingKnox.Config.HEALTH = LivingKnox.Config.HEALTH or {
     APPLY_EVERY = 3,          -- images entre deux passages d'invulnérabilité sur les corps connus
     SEND_MS = 500,            -- serveur : envoi de la santé aux destinataires au plus toutes les SEND_MS

@@ -13,7 +13,7 @@ création), Zone (getType, getX, getY, getWidth, getHeight), RoomDef:isExplored.
 que pour les cellules « approchées » de la carte de test (comme ZoneGenerator.genForaging au premier chargement d'un
 chunk de la cellule) ; les routes (Nav) existent partout.
 Toute lecture de case (getCell, getGridSquare) pendant un choix est comptée et doit rester à zéro.
-Ne prouve pas l'API Java réelle : suite en jeu lk.sites (docs/conception/sites.md).
+Ne prouve pas l'API Java réelle : suite en jeu lk.sites (docs/annexes/conception/sites.md).
 """
 from __future__ import annotations
 

@@ -6,7 +6,7 @@ option Enabled on. Solo: RST.run({ suite = "lk.senses", tags = "world" }). Async
 The suite makes the player visible (invisible and ghost mode restored at the end) and, when no room around him offers
 both sites, moves him into a nearby house where it finds one (RST.Places, solo).
 
-What is checked (docs/conception/perception.md):
+What is checked (docs/annexes/conception/perception.md):
     - open ground: an npc put 3 to 6 squares from the player, with a clear line of sight (LosUtil.lineClear =
       Clear) and facing the player, reports the player as seen within SEE_MS;
     - behind a wall: an npc put 2 to 8 squares from the player where the line of sight is Blocked (wall or closed

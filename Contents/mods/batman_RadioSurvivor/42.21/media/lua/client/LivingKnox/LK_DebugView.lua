@@ -1,4 +1,4 @@
--- Living Knox : panneau de debug des PNJ (LK13-T14). Fiche : docs/conception/administration.md, section « Panneau de
+-- Living Knox : panneau de debug des PNJ (LK13-T14). Fiche : docs/annexes/conception/administration.md, section « Panneau de
 -- debug des PNJ ». M = media/lua vanilla 42.21.
 --
 -- Affiche ce que l'autorité répond à l'opération "activity" de LK_Admin.lua, sans rien décider : liste de tous les

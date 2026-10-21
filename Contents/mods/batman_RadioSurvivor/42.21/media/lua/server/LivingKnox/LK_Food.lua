@@ -1,5 +1,5 @@
 -- Living Knox : production de nourriture par la cueillette et la pêche, tirées des tables vanilla (LK05-T11).
--- Fiche : docs/conception/nourriture.md. Java 42.21.0 cité en abrégé (J = zombie/...) ; M = media/lua vanilla.
+-- Fiche : docs/annexes/conception/nourriture.md. Java 42.21.0 cité en abrégé (J = zombie/...) ; M = media/lua vanilla.
 -- Autorité seulement (serveur dédié ou hébergé, solo) : un client MP charge aussi media/lua/server, il s'arrête ici.
 --
 -- Ce module ne mène aucun corps : une cueillette est une expédition de LK_Expeditions de genre « forage » (même

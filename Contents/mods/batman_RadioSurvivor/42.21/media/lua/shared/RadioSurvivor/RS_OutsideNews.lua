@@ -3,7 +3,7 @@
 -- Feuille ronéotypée de la rive de l'Indiana : nouvelles du dehors datées du jour de sa création (donc après
 -- l'épidémie), une édition par passage du passeur. Objet `literature` sans CanBeWrite
 -- (media/scripts/RadioSurvivor_outsidenews.txt) : « Inspecter » l'ouvre dans la fenêtre vanilla des documents
--- (ISReadABook:displayPrintMedia). Fiche : docs/conception/journal-du-dehors.md.
+-- (ISReadABook:displayPrintMedia). Fiche : docs/annexes/conception/journal-du-dehors.md.
 --
 -- Contenu : gabarits FR/EN fixes (Print_Text.json), aucun secret ni fréquence. Une édition choisit, de façon
 -- reproductible d'après son numéro : un article de une parmi LEADS (deux éditions qui se suivent n'ont jamais la

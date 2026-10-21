@@ -1,5 +1,5 @@
 --[[
-wiki.shots - screenshots of the player wiki (docs/wiki/images), staged in a solo test game. Development mod only.
+wiki.shots - screenshots of the player wiki (docs/images/screenshots), staged in a solo test game. Development mod only.
 Not part of any campaign: run it on purpose, solo, on a save named rstest*, with the bridge program and its real model:
     python tools/autoclient/autoclient.py --suite wiki.shots --tags world --bridge on --timeout 2400
 The screenshots land in Zomboid/Screenshots of the cache (copied to the run folder by the launcher):

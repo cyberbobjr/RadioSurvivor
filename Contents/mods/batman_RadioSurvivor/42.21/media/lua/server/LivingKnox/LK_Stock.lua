@@ -1,4 +1,4 @@
--- Living Knox : stock réel du groupe dans les conteneurs de son foyer (LK08-T06). Fiche : docs/conception/stock.md.
+-- Living Knox : stock réel du groupe dans les conteneurs de son foyer (LK08-T06). Fiche : docs/annexes/conception/stock.md.
 -- Java 42.21.0 cité en abrégé (J = zombie/...) ; M = media/lua vanilla.
 -- Autorité seulement (serveur dédié ou hébergé, solo) : un client MP charge aussi media/lua/server, il s'arrête ici.
 --
@@ -45,7 +45,7 @@
 -- Les prélèvements du groupe lui-même (repas, dons, troc : LK05-T07, LK11-T06, LK11-T08) passent par ce module pour
 -- mettre la référence à jour dans le même pas ; la mise à jour des conteneurs réels d'après la référence (simulation
 -- hors écran) est LK09-T06.
--- Repas réels (LK05-T07, fiche docs/conception/besoins.md, « Repas réels ») : Stock.findMeal cherche le premier objet
+-- Repas réels (LK05-T07, fiche docs/annexes/conception/besoins.md, « Repas réels ») : Stock.findMeal cherche le premier objet
 --   consommable (Stock.consumable : nourriture ni pourrie, ni gelée, ni crue dangereuse ; eau = récipient dont le fluide
 --   principal est Fluid.Water, eau croupie écartée) dans l'ordre des conteneurs du foyer ; Stock.takeMeal retire UN
 --   objet d'un conteneur relu au moment de la prise (DoRemoveItem, une seule surcharge ; sendRemoveItemFromContainer
@@ -54,7 +54,7 @@
 --   consommable : Stock.reportShortage écrit au journal du groupe (kind « shortage », au plus une fois par
 --   SHORTAGE_HOURS et par catégorie) ; le rationnement et les besoins du groupe suivent la référence (LK08-T07).
 --
--- Seuils, rationnement et besoins du groupe (LK08-T07, fiche docs/conception/stock.md, section « Seuils ») :
+-- Seuils, rationnement et besoins du groupe (LK08-T07, fiche docs/annexes/conception/stock.md, section « Seuils ») :
 --   - réserve visée par catégorie selon le nombre de membres vivants n (SUPPLY) : nourriture et eau = DAILY x n x
 --     TARGET_DAYS (portions abstraites : un objet = une portion de la journée d'un membre), soins, munitions,
 --     matériaux = PER_MEMBER x n (arrondi au-dessus) ; niveau 0..100 = réserve / visée ;
@@ -71,7 +71,7 @@
 --   .needs (premier = ce qui manque le plus) ; fortification (LK14) = entrée « materials » ; repas réels (LK05-T07) et
 --   stock hors écran (LK09-T06) = Stock.portion(gid) (part d'une ration normale).
 --
--- Stock hors écran (LK09-T06, fiche docs/conception/stock.md, section « Hors écran ») :
+-- Stock hors écran (LK09-T06, fiche docs/annexes/conception/stock.md, section « Hors écran ») :
 --   - pendant la simulation (LK_Simulation.advance, dans son écriture du registre, logique pure sans accès au monde) :
 --     repas abstrait quotidien à l'heure du jour OFFSCREEN.MEAL_HOUR (Stock.offscreenHour : membres vivants au foyer,
 --     hors expédition et hors membres incarnés, DAILY x part de ration Stock.portion, arrondi au plus proche) et
@@ -943,7 +943,7 @@ function Stock.reportShortage(gid, cat, who)
 end
 
 -- ================================================================ matériaux d'entretien (LK05-T10)
--- Entretien du foyer (LK_Upkeep.lua, fiche docs/conception/entretien.md) : carburant, pièces et produits pris dans les
+-- Entretien du foyer (LK_Upkeep.lua, fiche docs/annexes/conception/entretien.md) : carburant, pièces et produits pris dans les
 -- conteneurs du foyer, relus au moment de la prise, jamais créés. Un récipient (fluide) est vidé de la quantité exacte
 -- utilisée comme le vanilla (FluidContainer.adjustAmount(quantité - prise), ISAddFuel.lua:56-61, ISCleanBlood.lua) ;
 -- sur un serveur, l'objet resté dans son meuble part aux clients proches par sendItemStats (copie du fluide :

@@ -1,5 +1,5 @@
 -- Radio Survivor : fiches des voix radio (E05-T01), lecture et validation stricte côté serveur.
--- Format : docs/persona-format.md. Mêmes règles et mêmes messages (« line N: raison », en anglais) que
+-- Format : docs/specifications-techniques/persona-format.md. Mêmes règles et mêmes messages (« line N: raison », en anglais) que
 -- bridge/persona_store.py ; tests/test_personas.py compare les deux lecteurs sur les mêmes fichiers.
 -- Aucun loadstring : chaque ligne est découpée et contrôlée à la main.
 -- Utilisé par RS_Personas.lua (chargement et relecture à chaud des fiches, E05-T02 ; tirage des fréquences dans

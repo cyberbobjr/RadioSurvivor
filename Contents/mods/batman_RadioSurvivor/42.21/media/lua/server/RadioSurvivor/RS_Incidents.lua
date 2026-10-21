@@ -1,7 +1,7 @@
 if isClient() then return end
 -- E09-T06: decision of a group leader on an incident of a faction agreement (ADR B10). Registry, targeted defence and
 -- validation: RS_Factions.lua (incidents). Here: the request to the model (npc_incident) and its reply, for the
--- notebook (RS_Carnet_Server tick and reply). Fiche: docs/conception/incidents.md.
+-- notebook (RS_Carnet_Server tick and reply). Fiche: docs/annexes/conception/incidents.md.
 --
 -- Once the facts of an open incident settled (RS_Factions.INCIDENT.SETTLE_MS), one request per pass, within the bridge
 -- quotas (RS_Config.MAX_PENDING, MAX_PER_HOUR) and not while the bridge is considered stopped (RS_Initiatives): an

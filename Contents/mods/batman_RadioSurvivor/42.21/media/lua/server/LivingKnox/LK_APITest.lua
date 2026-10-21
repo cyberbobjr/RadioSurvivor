@@ -1,5 +1,5 @@
 -- Living Knox : fonctions de test de l'API publique (E01-T10, ajout compatible de la version 1). Documentation :
--- docs/api.md, section « Fonctions de test (E01-T10) ».
+-- docs/specifications-techniques/api-living-knox.md, section « Fonctions de test (E01-T10) ».
 -- Réservées aux parties de test : elles refusent d'agir hors de l'autorité (serveur dédié ou hébergé, solo), hors du
 -- mode debug de la machine qui les exécute (isDebugEnabled() = Core.debug : client lancé avec -debug, serveur dédié
 -- lancé avec la propriété Java -Ddebug ; E01-T18) et hors d'une partie dont le nom commence par API.TEST_SAVE_PREFIX

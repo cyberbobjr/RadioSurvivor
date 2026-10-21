@@ -1,4 +1,4 @@
--- Living Knox : portes sur le trajet des corps de PNJ (LK04-T02). Fiche : docs/conception/deplacement.md, section
+-- Living Knox : portes sur le trajet des corps de PNJ (LK04-T02). Fiche : docs/annexes/conception/deplacement.md, section
 -- « Portes ». Java 42.21.0 cité en abrégé (J = zombie/...). Autorité seulement (serveur dédié ou hébergé, solo) : un
 -- client MP charge aussi media/lua/server, il s'arrête ici ; l'attente devant une porte est dans LK_Executor.lua.
 --

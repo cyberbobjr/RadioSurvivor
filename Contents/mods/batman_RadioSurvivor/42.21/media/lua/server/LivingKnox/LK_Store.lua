@@ -1,5 +1,5 @@
 -- Living Knox : persistance du registre des PNJ dans un fichier de la machine qui fait autorité (serveur ou solo).
--- Jamais de ModData globale (lisible par tous les clients). Fiche : docs/conception/corps-registre.md.
+-- Jamais de ModData globale (lisible par tous les clients). Fiche : docs/annexes/conception/corps-registre.md.
 --
 -- Fichiers : Zomboid/Lua/batman_RadioSurvivor/livingknox/registry-<partie>-<0|1>.txt (getFileWriter), <partie> =
 -- hex du « mode/nom » de la partie. Deux emplacements écrits en alternance ; chaque fichier :

@@ -1,4 +1,4 @@
--- Living Knox : perception des PNJ (vue, ouïe, lumière), LK05-T01. Fiche : docs/conception/perception.md.
+-- Living Knox : perception des PNJ (vue, ouïe, lumière), LK05-T01. Fiche : docs/annexes/conception/perception.md.
 -- Java 42.21.0 cité en abrégé (J = zombie/...).
 --
 -- Deux moitiés dans un seul fichier partagé (media/lua/shared : chargé par le solo, le client MP et le serveur) :

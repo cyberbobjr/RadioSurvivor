@@ -1,5 +1,5 @@
 -- Living Knox : coup de PNJ sur un zombie vanilla, côté client MP qui simule ce zombie (LK06-T04). Fiche :
--- docs/conception/zombies.md. Un serveur dédié n'exécute pas media/lua/client ; en solo, l'autorité applique tout
+-- docs/annexes/conception/zombies.md. Un serveur dédié n'exécute pas media/lua/client ; en solo, l'autorité applique tout
 -- (server/LivingKnox/LK_Zombies.lua) et ce module ne reçoit rien.
 --
 -- "zombieHurt" { o = onlineId, d = dégâts } : coup non mortel décidé par le serveur. Le client qui simule le zombie

@@ -13,7 +13,7 @@ What is read here (public Java API, IsoGameCharacter.java 42.21.0):
     "State: zombie/<state>", one "Node: <m_Name>" line per live node and "Anim: <clip> Weight: w" per track of the
     root layer. RST.LKAnims.info(z) parses it.
 Figures are printed as "[LKA] measure ..." lines. The visual check (does the body look like the gesture) stays in the
-protocol of docs/conception/corps-et-animations.md. Every test removes its npc and its vanilla zombie with t:defer.
+protocol of docs/annexes/conception/corps-et-animations.md. Every test removes its npc and its vanilla zombie with t:defer.
 ]]
 
 require "RST/RST"

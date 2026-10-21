@@ -1,4 +1,4 @@
-"""Recalcule les colonnes « Solo » et « MP » des tableaux de docs/fonctionnalites.html depuis le plan (docs/plan).
+"""Recalcule les colonnes « Solo » et « MP » des tableaux de docs/annexes/maquettes/fonctionnalites.html depuis le plan (docs/annexes/plans).
 
 Chaque ligne de tableau porte ses étapes dans <span class="step">E00, E03</span>. Pour l'ensemble de ces étapes
 (tâches abandonnées exclues) :
@@ -24,8 +24,8 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-PAGE = ROOT / "docs" / "fonctionnalites.html"
-PLAN = ROOT / "docs" / "plan"
+PAGE = ROOT / "docs" / "annexes" / "maquettes" / "fonctionnalites.html"
+PLAN = ROOT / "docs" / "annexes" / "plans"
 
 TASK = re.compile(r"^- \[([ x])\] \*\*(([A-Z]+[0-9]+)-T[0-9]+)\*\*(.*?)(?=^- \[[ x]\] \*\*|^#|\Z)", re.S | re.M)
 ROW = re.compile(r'(<tr><td>[^<]*<br><span class="step">)([^<]+)(</span></td><td>(?:(?!</td>).)*</td>)(.*?)(</tr>)',

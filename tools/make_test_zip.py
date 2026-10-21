@@ -4,12 +4,12 @@
     python RadioSurvivor/tools/make_test_zip.py --list     # affiche le contenu sans rien écrire
 
 Contenu (fichiers suivis par Git seulement, jamais de résultat de test ni de configuration locale) :
-    LISEZMOI.md                        docs/LISEZMOI-test-local.md
+    LISEZMOI.md                        docs/annexes/tests/lisezmoi-test-local.md
     mods/batman_RadioSurvivor/         Contents/mods/batman_RadioSurvivor
     mods/batman_BeltRadio/             ../BeltRadio/Contents/mods/batman_BeltRadio      (mod requis)
     mods/batman_SignalSmoke/           ../SignalSmoke/Contents/mods/batman_SignalSmoke  (mod requis)
     bridge/                            bridge/*.py et bridge/.env.example (jamais bridge/.env)
-    docs/installation-pont.md, docs/bridge-setup.md
+    docs/wiki/fr/07-installation-du-pont.md, docs/wiki/en/07-bridge-server-setup.md
 TooltipLib (requis par Belt Walkie-Talkie) est un mod tiers : il n'est pas fourni, le testeur s'y abonne sur le Workshop.
 Refus (code 1) si un fichier .env, un dossier runs/ ou un mod de développement entrerait dans le zip.
 Bibliothèque standard seulement.
@@ -34,9 +34,9 @@ SOURCES = [
     (WORKSHOP / 'SignalSmoke', 'Contents/mods/batman_SignalSmoke', 'mods/batman_SignalSmoke'),
 ]
 SINGLE = [
-    ('docs/LISEZMOI-test-local.md', 'LISEZMOI.md'),
-    ('docs/installation-pont.md', 'docs/installation-pont.md'),
-    ('docs/bridge-setup.md', 'docs/bridge-setup.md'),
+    ('docs/annexes/tests/lisezmoi-test-local.md', 'LISEZMOI.md'),
+    ('docs/wiki/fr/07-installation-du-pont.md', 'docs/wiki/fr/07-installation-du-pont.md'),
+    ('docs/wiki/en/07-bridge-server-setup.md', 'docs/wiki/en/07-bridge-server-setup.md'),
     ('bridge/.env.example', 'bridge/.env.example'),
 ]
 FORBIDDEN = re.compile(r'(^|/)(\.env|runs|dev|tests|__pycache__)(/|$)|\.pyc$')

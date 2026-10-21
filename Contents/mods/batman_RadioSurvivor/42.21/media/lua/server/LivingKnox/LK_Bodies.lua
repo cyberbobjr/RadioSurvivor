@@ -1,4 +1,4 @@
--- Living Knox : corps des PNJ côté autorité (serveur dédié ou hébergé, solo). Fiche : docs/conception/corps-registre.md.
+-- Living Knox : corps des PNJ côté autorité (serveur dédié ou hébergé, solo). Fiche : docs/annexes/conception/corps-registre.md.
 -- Un client MP charge aussi ce fichier (media/lua/server) : chaque fonction y refuse d'agir.
 --
 -- Corps = « joueur réanimé » (décision LK02 du 2026-10-09, base B) : addZombiesInOutfit (zombie habillé), étiquette
@@ -277,7 +277,7 @@ end
 Bodies.ring = ring
 
 -- ---------------------------------------------------------------- plantes cultivées et feux de camp (LK04-T06)
--- Fiche : docs/conception/neutralisation.md, « Plantes cultivées et feux de camp ». Le moteur fait, à chaque mise à
+-- Fiche : docs/annexes/conception/neutralisation.md, « Plantes cultivées et feux de camp ». Le moteur fait, à chaque mise à
 -- jour d'un zombie (J/characters/IsoZombie.java:2837-2847, toute machine qui met le zombie à jour) : plante cultivée
 -- sur SA case détruite avec une chance de 1 / (100 / TrueMultiplier), en marche ou non ; feu de camp allumé sur sa
 -- case éteint (SCampfireGlobalObject:putOut) avec une chance de 1 / (10000 / TrueMultiplier), en marche seulement.
@@ -493,7 +493,7 @@ function Bodies.list()
 end
 
 -- ---------------------------------------------------------------- cadavre d'un PNJ mort (LK07-T04)
--- Fiche : docs/conception/sante.md, « Mort unique et cadavre (LK07-T04) ». Le cadavre copie les ModData du corps,
+-- Fiche : docs/annexes/conception/sante.md, « Mort unique et cadavre (LK07-T04) ». Le cadavre copie les ModData du corps,
 -- étiquette comprise (J/iso/objects/IsoDeadBody.java:378) : elle reste, pour retrouver le PNJ sur son cadavre
 -- (LK07-T05). Deux chemins vanilla refont un zombie de ce cadavre (IsoDeadBody.reanimate copie les ModData,
 -- J/iso/objects/IsoDeadBody.java:1832-1946) :
@@ -704,7 +704,7 @@ function Bodies.hazardPass()
 end
 
 -- ---------------------------------------------------------------- retrait loin des joueurs (LK03-T04)
--- Fiche : docs/conception/corps-registre.md, « Retrait loin des joueurs ». Réglages : LivingKnox.Config.BODIES.
+-- Fiche : docs/annexes/conception/corps-registre.md, « Retrait loin des joueurs ». Réglages : LivingKnox.Config.BODIES.
 -- Un PNJ incarné dont aucun joueur vivant n'est à RELEASE_RADIUS cases ou moins (écart en x et en y, niveaux ignorés)
 -- pendant RELEASE_DELAY_MS d'affilée est rendu à la simulation abstraite (Bodies.release) : corps retiré s'il est
 -- dans le monde, PNJ virtuel, état gardé au registre. Position mesurée : corps dans le monde, sinon dernière position
@@ -889,7 +889,7 @@ function Bodies.tick()
 end
 
 -- ---------------------------------------------------------------- mort et tueur (E04-T06)
--- Fiche : docs/conception/corps-registre.md, « Mort et tueur ». Java 42.21.0 (J/ = java/zombie/) :
+-- Fiche : docs/annexes/conception/corps-registre.md, « Mort et tueur ». Java 42.21.0 (J/ = java/zombie/) :
 -- - Coup d'un joueur en MP (mêlée, arme à feu) : paquet PlayerHitZombie traité par le serveur ; le joueur est celui
 --   de la CONNEXION (J/network/fields/character/PlayerID.java:43), l'arme est relue dans SON inventaire serveur par
 --   identifiant (J/network/fields/hit/Weapon.java:30-49), puis target.Hit(...) (J/network/fields/hit/
@@ -1047,7 +1047,8 @@ function Bodies.onZombieDead(z)
         end
     end
     -- LK07-T04 : fait "npcDied" pour tout PNJ dont le corps meurt (membre de groupe ou non), après le registre des
-    -- groupes : point d'appel des événements publics de LK12-T02 (docs/api.md, « Faits publiés »).
+    -- groupes : point d'appel des événements publics de LK12-T02 (docs/specifications-techniques/api-living-knox.md, « Faits
+    -- publiés »).
     local p = npc.last
     LivingKnox.publish("npcDied", { npc = id, generation = generation, cause = cause.cause, killer = cause.killer,
         weapon = cause.weapon, burning = cause.burning, group = gid, member = mid, x = p.x, y = p.y, z = p.z,

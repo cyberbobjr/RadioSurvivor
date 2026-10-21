@@ -22,7 +22,7 @@ Figures are printed as "[LKD] measure ..." lines. Every test forgets its npc and
 
 E01-T16 (MP campaign with a second client): after the lethal hits the other clients see the same corpses on the
 square of the corpse, with the same worn clothes and content (RST.PeerChecks.checkSquares; nothing asked in solo).
-Manual protocol (docs/conception/sante.md, "Mort unique et cadavre (LK07-T04)"): drag the corpse (B42 grapple), drop
+Manual protocol (docs/annexes/conception/sante.md, "Mort unique et cadavre (LK07-T04)"): drag the corpse (B42 grapple), drop
 it, check it is still there with its clothes and items.
 ]]
 

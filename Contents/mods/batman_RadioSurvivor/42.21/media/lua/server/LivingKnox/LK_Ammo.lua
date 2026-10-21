@@ -1,4 +1,4 @@
--- Living Knox : munitions des PNJ armés d'une arme à feu, côté autorité (LK06-T03). Fiche : docs/conception/combat.md,
+-- Living Knox : munitions des PNJ armés d'une arme à feu, côté autorité (LK06-T03). Fiche : docs/annexes/conception/combat.md,
 -- section « Tir ». Java 42.21.0 cité en abrégé (J = zombie/...).
 -- Autorité seulement (serveur, solo) : un client MP charge aussi media/lua/server, il s'arrête ici.
 --

@@ -1,9 +1,9 @@
--- Living Knox : cadre de décision des PNJ, côté autorité (LK05-T02). Fiche : docs/conception/decisions.md.
+-- Living Knox : cadre de décision des PNJ, côté autorité (LK05-T02). Fiche : docs/annexes/conception/decisions.md.
 -- Autorité seulement (serveur dédié ou hébergé, solo) : un client MP charge aussi media/lua/server, il s'arrête ici.
 -- Aucune décision n'est prise par un client : le client propriétaire d'un corps n'exécute que des consignes LK03
 -- (LK_Directives) et ne fait que rapporter ce que son PNJ perçoit (LK_Senses).
 --
--- Modèle hybride (décision du 2026-10-08, docs/plan/LK05-perception-decisions-routines.md) :
+-- Modèle hybride (décision du 2026-10-08, docs/annexes/plans/LK05-perception-decisions-routines.md) :
 --   1. Groupe, long terme (Decisions.scoreGroup, pur) : à chaque heure de jeu, chaque groupe matérialisé (au moins un
 --      membre incarné) note les objectifs de la liste fermée OBJECTIVES par utilité (0..100) d'après ses réserves
 --      (stock réel du foyer, LivingKnox.Stock.assessGroup, LK08-T07 ; sinon besoins abstraits du registre), ses
@@ -43,7 +43,7 @@
 -- LK06-T02 : un combattant dont le groupe a une cible d'attaque parmi les joueurs vus (LivingKnox.Combat.targetFor,
 -- Hostility.chooseTarget) prend le comportement « fight » (règle threat, avant regard et fuite) ; la mêlée elle-même
 -- est menée par LivingKnox.Combat (LK_Combat.lua), qui s'arrête dès que le membre change de comportement.
--- LK06-T05 (fiche docs/conception/fuite-reddition.md) : en tête de la règle threat, dans l'ordre :
+-- LK06-T05 (fiche docs/annexes/conception/fuite-reddition.md) : en tête de la règle threat, dans l'ordre :
 --   - reddition (« surrender ») d'un non-combattant d'un groupe qui ne tire pas le premier, frappé par un joueur et
 --     blessé, ou acculé par un joueur hostile : arrêt, regard vers le joueur, mains levées (geste « surrender »,
 --     LK06-T12) et une réplique de reddition dite une fois à l'entrée (Decisions.announceSurrender) ; tant qu'elle
@@ -56,10 +56,10 @@
 --   - appel à l'aide : un coup accepté sur un membre (LK_Health -> Decisions.noteHit) alerte le groupe (LK_Alert, cri)
 --     et pose une demande d'aide ; les combattants à HELP.RADIUS cases prennent l'agresseur pour cible (défense) ;
 --     un combattant qui se retire passe sa cible aux autres de la même façon.
--- LK11-T02 (fiche docs/conception/sommations.md) : un combattant qui voit un joueur averti (Hostility.chooseTarget,
+-- LK11-T02 (fiche docs/annexes/conception/sommations.md) : un combattant qui voit un joueur averti (Hostility.chooseTarget,
 -- action "warn") près du foyer ou du groupe mène sa sommation (comportement « warn », LivingKnox.Encounters), après
 -- la retraite et avant la défense, sans cible d'attaque.
--- LK05-T09 (fiche docs/conception/defense.md) : pendant une défense du foyer (LivingKnox.Defense.contextFor, alerte et
+-- LK05-T09 (fiche docs/annexes/conception/defense.md) : pendant une défense du foyer (LivingKnox.Defense.contextFor, alerte et
 -- menace recensée près du foyer), règle threat après la retraite : comportement « defend » (place au poste ou à l'abri,
 -- cible prise seulement depuis la place), mené par LivingKnox.Defense.apply.
 -- LK06-T07 (décision du 2026-10-12, « tout le monde se bat », fiche decisions.md) : la fuite, l'abri et la retraite ne
@@ -69,7 +69,7 @@
 -- débordé (Decisions.overwhelmedOf : menaces perçues > rapport DefenseWithdrawRatio x membres valides proches) se
 -- replie (« retreat », clé « overwhelmed », hystérésis à rapport - 1). Les rôles gardent le poste, la sommation, la
 -- reddition et la montée de peur (LK_Needs).
--- LK05-T05 (fiche docs/conception/expeditions.md) : membre de l'équipe d'une expédition en cours (ctx.trip,
+-- LK05-T05 (fiche docs/annexes/conception/expeditions.md) : membre de l'équipe d'une expédition en cours (ctx.trip,
 -- LivingKnox.Expeditions.memberTrip) : règle duty -> comportement « expedition » (trajet, fouille, retour menés par
 -- LivingKnox.Expeditions.apply) ; faim, soif et fatigue attendent le retour, menace, peur et blessure passent avant.
 --
@@ -1418,7 +1418,7 @@ local function afterDecision(gid, g, mid, m, body, st, prev, ctx, fresh, minute)
     end
 end
 
--- LK06-T12 (fiche docs/conception/fuite-reddition.md, « Reddition visible ») : réplique de gabarit du PNJ id, traduite
+-- LK06-T12 (fiche docs/annexes/conception/fuite-reddition.md, « Reddition visible ») : réplique de gabarit du PNJ id, traduite
 -- par chaque client (LivingKnox.Speech.say, clé IGUI_LK_Surrender_<n> à l'entrée en reddition, appelée une fois par
 -- afterDecision à la création de la reddition ; IGUI_LK_Surrender_Betrayed_<n> quand le joueur la rompt, noteHit).
 -- Variante tirée de (PNJ, minute) : reproductible, sans LLM. Personne à portée : journal debug seul, rien n'est redit.
@@ -2022,7 +2022,7 @@ function Decisions.reset()
     Decisions.evals.at = {}   -- E09-T05 : numéros oubliés, compteur gardé (jamais réutilisé)
 end
 
--- E09-T05 (accords de faction, RS_Factions ; fiche docs/conception/accords.md) : point de lecture du passage de
+-- E09-T05 (accords de faction, RS_Factions ; fiche docs/annexes/conception/accords.md) : point de lecture du passage de
 -- décision. Chaque évaluation d'un membre reçoit un numéro croissant (mémoire seulement, jamais réutilisé).
 Decisions.evals = Decisions.evals or { seq = 0, at = {} }
 
@@ -2072,7 +2072,7 @@ function Decisions.aims(gid)
 end
 
 -- ================================================================ E10-T03 : refus d'un ordre du moteur
--- Fiche docs/conception/contestation.md. Un membre INCARNÉ peut refuser un ordre du moteur : le guet (poste sentry,
+-- Fiche docs/annexes/conception/contestation.md. Un membre INCARNÉ peut refuser un ordre du moteur : le guet (poste sentry,
 -- Decisions.scoreGroup), le départ en expédition (LK_Expeditions.teamOf) ou sa place de combat dans la défense du
 -- foyer (rôle "post" de LK_Defense, Decisions.evaluate). Règles simples et déterministes, sans LLM, dans cet ordre :
 -- chef (ne refuse jamais), blessure, moral (loyauté chancelante), attitude (défense contre un joueur que le groupe

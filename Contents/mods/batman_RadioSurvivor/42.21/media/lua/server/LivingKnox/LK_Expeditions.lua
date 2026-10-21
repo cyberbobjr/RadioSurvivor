@@ -1,5 +1,5 @@
 -- Living Knox : expéditions physiques des fourrageurs et retour au foyer (LK05-T05). Fiche :
--- docs/conception/expeditions.md. Java 42.21.0 cité en abrégé (J = zombie/...) ; M = media/lua vanilla.
+-- docs/annexes/conception/expeditions.md. Java 42.21.0 cité en abrégé (J = zombie/...) ; M = media/lua vanilla.
 -- Autorité seulement (serveur dédié ou hébergé, solo) : un client MP charge aussi media/lua/server, il s'arrête ici.
 --
 -- 1. Départ (Expeditions.minutePass, chaque minute de jeu, chaque groupe au plus toutes les CHECK_MINUTES) : groupe
@@ -50,7 +50,7 @@
 --    reproductible de la simulation (ABSTRACT_FIND par membre et par manque, objets ABSTRACT_ITEMS), puis phase
 --    deliver : le dépôt (objets abstraits créés à ce moment, seul cas de création) attend que le foyer soit lisible ;
 --    les membres, de nouveau présents, sont matérialisés au foyer si un joueur est proche (reprise de l'état).
--- 5. Cueillette (LK05-T11, fiche docs/conception/nourriture.md, tirages de LivingKnox.Food) : quand la nourriture est
+-- 5. Cueillette (LK05-T11, fiche docs/annexes/conception/nourriture.md, tirages de LivingKnox.Food) : quand la nourriture est
 --    le premier manque et qu'une zone de cueillette vanilla proche rapporte assez de nourriture à cette saison
 --    (Food.pickTarget), l'expédition est de genre « forage » : seulement la nourriture (want, charge), lieu = case
 --    libre hors bâtiment de la zone ; en fouille, chaque membre arrivé cueille (geste FORAGE_GESTURE) et fait un

@@ -1,4 +1,4 @@
--- Radio Survivor : suivi du passage réservé du passeur (E13-T03). Fiche : docs/conception/passeur-rendezvous.md.
+-- Radio Survivor : suivi du passage réservé du passeur (E13-T03). Fiche : docs/annexes/conception/passeur-rendezvous.md.
 -- La réservation et le rendez-vous sont tenus par RS_Trade (S.data.trade.run) ; ce fichier applique les règles du
 -- serveur pendant la semaine et la nuit du rendez-vous. Autorité seulement (serveur MP, jeu local en solo).
 --

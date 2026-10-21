@@ -1,6 +1,6 @@
 -- Radio Survivor : conversation entre deux PNJ proches (E08-T04, ADR B11 « Conversations et transmissions entre PNJ »).
--- Autorité seulement (serveur MP ou solo). Fiche : docs/conception/conversations.md ; contrat : docs/protocole-carnet-v2.md
--- « Conversation entre deux PNJ (E08-T04) ».
+-- Autorité seulement (serveur MP ou solo). Fiche : docs/annexes/conception/conversations.md ; contrat :
+-- docs/specifications-techniques/protocole-carnet-v2.md « Conversation entre deux PNJ (E08-T04) ».
 --
 -- Ouverture (un passage toutes les EVERY_MS, une conversation ouverte au plus par passage) : un PNJ « conteur » dont la
 -- fiche est vivante et le corps chargé, non occupé (Provider.engaged), sans demande en file ni conversation en cours, a

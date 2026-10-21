@@ -1,4 +1,4 @@
--- Living Knox : identité des PNJ, logique pure (aucun appel au moteur). Fiche : docs/conception/corps-registre.md.
+-- Living Knox : identité des PNJ, logique pure (aucun appel au moteur). Fiche : docs/annexes/conception/corps-registre.md.
 --
 -- Registre (schéma 2), persisté par LK_Store (fichier serveur) :
 --   { schema = 2, nextId = <prochain numéro>, npcs = { ["lk-<n>"] = npc } }
@@ -117,7 +117,7 @@ function Identity.validDeath(d)
 end
 
 -- Santé d'un corps gardée au registre (champ npc.hp) : nombre fini de 0 à HP_MAX (= LivingKnox.Config.REPORTS.HP_MAX,
--- short x 1000 du paquet zombie, docs/conception/sante.md).
+-- short x 1000 du paquet zombie, docs/annexes/conception/sante.md).
 Identity.HP_MAX = 32.767
 
 function Identity.validHealth(v)

@@ -2,7 +2,7 @@
 
 Les règles de `../AGENTS.md` et de `CLAUDE.md` s’appliquent.
 
-Architecture existante validée par la décision utilisateur LK00-T02 du 2026-10-03 (docs/plan/LK00-cadrage.md), fusion confirmée le 2026-10-08 : serveur autoritaire, adaptateurs d’exécution, fournisseur de PNJ.
+Architecture existante validée par la décision utilisateur LK00-T02 du 2026-10-03 (docs/annexes/plans/LK00-cadrage.md), fusion confirmée le 2026-10-08 : serveur autoritaire, adaptateurs d’exécution, fournisseur de PNJ.
 
 - Domaine et décisions serveur : missions, récompenses, groupes et état privé ; seules ces fonctions décident des effets persistants.
 - Adaptateurs moteur : inventaire, monde, XP et réseau ; exécutent uniquement les décisions validées par le serveur.

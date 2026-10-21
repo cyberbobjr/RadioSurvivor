@@ -1,4 +1,4 @@
--- Living Knox : plan de fortification du foyer d'un groupe (LK14-T02). Fiches : docs/conception/fortification.md
+-- Living Knox : plan de fortification du foyer d'un groupe (LK14-T02). Fiches : docs/annexes/conception/fortification.md
 -- (règles vanilla 42.21, LK14-T01 ; section « Plan de fortification » pour ce module). Java 42.21.0 cité en abrégé
 -- (J = zombie/...) ; M = media/scripts/generated vanilla.
 -- Autorité seulement (serveur dédié ou hébergé, solo) : un client MP charge aussi media/lua/server, il s'arrête ici.
@@ -961,7 +961,7 @@ function Fortify.invalidate(gid)
 end
 
 -- ================================================================ pose des barricades (LK14-T03)
--- Fiche docs/conception/fortification.md §7. Autorité seulement (module absent d'un client MP).
+-- Fiche docs/annexes/conception/fortification.md §7. Autorité seulement (module absent d'un client MP).
 
 local function R() return LivingKnox.Routines end
 local function Stock() return LivingKnox.Stock end
@@ -1096,7 +1096,7 @@ function Fortify.nailPlank(site, gid, who)
 end
 
 -- ================================================================ murs et palissade du pourtour (LK14-T04)
--- Fiche docs/conception/fortification.md §8. Une étape par appel (cadre, mur sur le cadre, palissade), posée par
+-- Fiche docs/annexes/conception/fortification.md §8. Une étape par appel (cadre, mur sur le cadre, palissade), posée par
 -- l'autorité comme ISBuildIsoEntity:setInfo (M/lua/server/BuildingObjects/ISBuildIsoEntity.lua:595-763) sans
 -- personnage : IsoThumpable aux drapeaux tirés du sprite, buildUtil.setInfo, santé du script, composants de l'entité,
 -- étape précédente retirée (transmitRemoveItemFromSquare), AddSpecialObject, poteau d'angle, setExplored,
@@ -1361,7 +1361,7 @@ function Fortify.buildStep(site, gid, who)
 end
 
 -- ================================================================ réparations (LK14-T06)
--- Fiche docs/conception/fortification.md §9. Autorité seulement ; une réparation par appel ; tout est relu AVANT toute
+-- Fiche docs/annexes/conception/fortification.md §9. Autorité seulement ; une réparation par appel ; tout est relu AVANT toute
 -- prise ; matériaux retirés une seule fois par Stock.takeItem (remis si une prise échoue).
 
 -- Objets pris un à un dans le stock (items : { it, ctr }) ; une prise qui échoue remet les objets déjà pris. Rend vrai,
@@ -1685,7 +1685,7 @@ function Fortify.run(id, st, ctx, g)
 end
 
 -- ================================================================ rattrapage hors écran (LK14-T05)
--- Fiche docs/conception/fortification.md §10. Autorité seulement. Le monde n'existe pas hors de la zone chargée
+-- Fiche docs/annexes/conception/fortification.md §10. Autorité seulement. Le monde n'existe pas hors de la zone chargée
 -- (aucune case, aucun objet : fortification.md §3) : la simulation avance un relevé gardé au registre privé des
 -- groupes, puis le résultat est posé par les fonctions de pose existantes quand la zone du foyer est chargée.
 --   Relevé (champ facultatif fort du groupe, schéma 1 des groupes inchangé, contrôlé ici et ignoré par LK_Groups).

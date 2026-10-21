@@ -14,8 +14,8 @@ death.corpse, death.after) and RST_PeerChecks2.lua (carnet.claim).
                     seen for B, B's identity retired, unbound and gone from the server ModData (E00-T02), the
                     requester's identity untouched (another account retires nothing), the witness paper added at
                     OnCharacterDeath is in the container of B's corpse (E15-T02, method retained in
-                    docs/derniers-pages-cadavre.md); the requester's client claims B's old identity and gets its own
-                    (carnet.claim) and finds the paper in the corpse as ITS client received it (death.corpse).
+                    docs/annexes/recherches/derniers-pages-cadavre.md); the requester's client claims B's old identity and gets
+                    its own (carnet.claim) and finds the paper in the corpse as ITS client received it (death.corpse).
     2. new character  B's driver (RST_AutoClient.lua) presses Respawn on the post-death screen and NEXT twice on the
                     in-game character creation; the server then sees a living character of account B bound to a NEW
                     identity of the same account, the old one retired and bound to nobody, without the old marked

@@ -4,7 +4,7 @@
 
 Banc tests/harness.py (serveur dédié + deux clients), doublures du banc des corps (tests/test_lk_bodies.py). Une
 image du banc = OnTickEvenPaused puis OnTick (IngameState.java:1380, 1681). Règles vérifiées (fiche
-docs/conception/corps-registre.md, « Persistance ») :
+docs/annexes/conception/corps-registre.md, « Persistance ») :
 - les créations et retraits d'une même image sont écrits une fois, à la fin de l'image ; rien avant ;
 - serveur en pause (OnTick absent) : écrit au début de l'image suivante ; OnSave et relecture (init) écrivent ce qui
   attend ;

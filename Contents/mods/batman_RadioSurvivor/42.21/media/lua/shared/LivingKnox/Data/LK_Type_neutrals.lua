@@ -1,5 +1,5 @@
 -- Living Knox : type de groupe « neutres » (LK08-T02), données seules. Format : LK_GroupTypes.lua ; valeurs et
--- raisons : docs/conception/groupes.md, section « Types et profils ».
+-- raisons : docs/annexes/conception/groupes.md, section « Types et profils ».
 -- Groupe neutre méfiant installé dans un vrai bâtiment (décision LK00 du 2026-10-03) : petit, prudent.
 require "LivingKnox/LK_GroupTypes"
 

@@ -1,6 +1,6 @@
 -- Living Knox : cadavre d'un PNJ renvoyé aux clients MP qui ne l'ont pas reçu (LK07-T10). Serveur MP seulement ;
 -- un client MP charge aussi ce fichier (media/lua/server) et un solo n'en a pas besoin : rien n'y est suivi.
--- Fiche : docs/conception/sante.md, « Cadavre renvoyé à un client sans copie (LK07-T10) ».
+-- Fiche : docs/annexes/conception/sante.md, « Cadavre renvoyé à un client sans copie (LK07-T10) ».
 --
 -- Cause (Java 42.21.0, J = zombie/..., base zombies-as-npc-bodies.md, « Copie cliente d'un zombie ») : un client crée
 -- le cadavre d'un zombie seulement par le paquet de mort (DeadZombiePacket), qu'il IGNORE s'il n'a pas la copie de ce

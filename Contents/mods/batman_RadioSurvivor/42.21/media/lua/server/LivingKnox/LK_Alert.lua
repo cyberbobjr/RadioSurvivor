@@ -1,5 +1,5 @@
 -- Living Knox : alerte de proximité d'un groupe (zombies et intrus), côté autorité (LK05-T08).
--- Fiche : docs/conception/alerte.md. Java 42.21.0 cité en abrégé (J = zombie/...).
+-- Fiche : docs/annexes/conception/alerte.md. Java 42.21.0 cité en abrégé (J = zombie/...).
 -- Autorité seulement (serveur dédié ou hébergé, solo) : un client MP charge aussi media/lua/server, il s'arrête ici.
 -- Le client ne fait que jouer le cri reçu (client/LivingKnox/LK_AlertView.lua) : aucune décision côté client.
 --

@@ -14,8 +14,8 @@ Tags "world" and "server": the authority only, on a save named rstest*, with a t
 Solo (debug mode): RST.run({ suite = "lk.debugview", tags = "world" }). Dedicated server: RST.server({ suite =
 "lk.debugview", tags = "world" }) from an admin client. Asynchronous run (about 30 s).
 Cleanup (t:defer): bodies removed, test group removed (its activity lines forgotten).
-Not checked here: the debug menu button and the window (docs/tests-en-jeu.md, section of LK13-T14), refusal of a real
-MP client without the capability. Outside the game: tests/test_lk_debugview.py.
+Not checked here: the debug menu button and the window (docs/annexes/tests/tests-en-jeu.md, section of LK13-T14), refusal of a
+real MP client without the capability. Outside the game: tests/test_lk_debugview.py.
 Solo window (2026-10-15, solo client only, skipped elsewhere): the button "Living Knox - NPCs" of the vanilla debug
 menu (wrapper of ISDebugMenu.setupButtons) opens the panel; its tables show the test group, its two members (live
 activity) and the activity log, which receives the hunger change by the panel's own refresh (every 2 s); screenshot

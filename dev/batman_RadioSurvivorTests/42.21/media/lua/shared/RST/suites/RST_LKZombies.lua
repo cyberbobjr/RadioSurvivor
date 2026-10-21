@@ -20,7 +20,7 @@ t:defer. Look at the npc while the suite runs: it should swing at the zombies, w
 
 E01-T16 (LK06-T04): once the fight is over, every connected client holds the same zombie corpses (clothes and
 content) around the death squares as the authority (world.keys, union of the 3 x 3 squares, RST_PeerChecks.lua).
-Manual MP protocol (two clients, docs/conception/zombies.md, "Protocole en jeu"): the rest is not automated.
+Manual MP protocol (two clients, docs/annexes/conception/zombies.md, "Protocole en jeu"): the rest is not automated.
 ]]
 
 require "RST/RST"

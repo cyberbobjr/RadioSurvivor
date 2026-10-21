@@ -1,6 +1,6 @@
 --[[
 lk.milestone1 - Living Knox milestone 1 (LK02-T08): bodies and gestures chained on the same npc, then on two npcs,
-with the measures of the milestone report (docs/validation/jalon1-<date>.md). Tags "world" and "server": the
+with the measures of the milestone report (docs/annexes/tests/validation/jalon1-<date>.md). Tags "world" and "server": the
 authority only, on a save named rstest*, with a target player (t.ctx.player); the Living Knox option Enabled on.
 Solo: RST.run({ suite = "lk.milestone1", tags = "world" }); dedicated server: RST.server({ suite = "lk.milestone1",
 tags = "world" }) from an admin client standing still (the bodies are then simulated by a client: the checks that

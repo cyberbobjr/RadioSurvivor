@@ -9,7 +9,7 @@ Asynchronous run only (about 3 to 5 minutes). Multiplayer: final session.
 What is done:
     - a test group "settlers" (two fighters, one worker) is created with its home on the player's square; its members
       get bodies near the player (LK_Materialize) and the home is surveyed at their first decision;
-    - the clock is moved to 23:00 (GameTime.setTimeOfDay; the world age follows, see docs/conception/routines.md),
+    - the clock is moved to 23:00 (GameTime.setTimeOfDay; the world age follows, see docs/annexes/conception/routines.md),
       the group is scored again: one sentry walks to a guard post and faces out, the two others sleep (a bed, or
       sitting inside the house);
     - a fake zombie is reported to a sleeper (LivingKnox.Senses.perceived replaced for the test): it gets up and

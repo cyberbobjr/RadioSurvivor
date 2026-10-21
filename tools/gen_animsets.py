@@ -7,7 +7,7 @@
 Output: Contents/mods/batman_RadioSurvivor/common/media/AnimSets/zombie/<state>/lkactor_*.xml. The generator owns every
 lkactor_*.xml file of that tree: a file absent from the table is removed (write) or reported (check).
 
-Rules (Java 42.21.0, see docs/conception/corps-et-animations.md, section Animations):
+Rules (Java 42.21.0, see docs/annexes/conception/corps-et-animations.md, section Animations):
 - complete files, no x_extends (a relative x_extends is lost on a Linux dedicated server, base file-path-case.md);
 - lower-case file names; state folders spelled exactly as the vanilla folders (AnimSets/zombie/<state>, case-sensitive
   on Linux: ZomboidFileSystem.walkGameAndModFilesInternal uses new File(root, relPath));

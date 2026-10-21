@@ -1,6 +1,6 @@
 -- Radio Survivor : actions en liste fermée des voix radio (E07-T01, note de travail §02).
--- Le pont propose (réponse radio structurée, docs/protocole-carnet-v2.md « Réponse radio structurée »), le serveur
--- décide : chaque action est contrôlée contre le catalogue, la fiche de la voix, son exécuteur, ses paramètres, la
+-- Le pont propose (réponse radio structurée, docs/specifications-techniques/protocole-carnet-v2.md « Réponse radio structurée »),
+-- le serveur décide : chaque action est contrôlée contre le catalogue, la fiche de la voix, son exécuteur, ses paramètres, la
 -- distance, le budget du jour de jeu et le délai propre à l'action, puis exécutée ou refusée avec une raison courte.
 -- `say` n'y passe jamais : le texte est diffusé par RadioSurvivor_Server (airQueue).
 -- Aucun exécuteur réel n'est enregistré ici : les tâches E07-T03..T06, E11, E12 et E13 branchent les leurs par

@@ -83,7 +83,7 @@ Lancements parallèles (2026-10-15) : plusieurs commandes de cet outil peuvent t
     python RadioSurvivor/tools/autoclient/campaign_parallel.py --shards 3 -- --mp --clients 2 --server-campaign mp \\
         --bridge on --llm fake --timeout 5400 --wait-idle 3600
 
-Campagne de charge (LK13-T02, docs/validation/charge-protocole.md) : --mp --load
+Campagne de charge (LK13-T02, docs/annexes/tests/validation/charge-protocole.md) : --mp --load
     python RadioSurvivor/tools/autoclient/autoclient.py --mp --load --bridge off --timeout 3600 --wait-idle 3600
   = 4 clients, LivingKnox.GroupCount = 5, campagne serveur mp-load si RST_Campaign.lua la déclare, sinon
   --server-suite lk.load --server-tags server ; les options explicites (--clients, --group-count, --server-*) priment.
@@ -192,7 +192,7 @@ MAX_CLIENTS = 4  # LK13-T02: 4 players (MaxPlayers of the test server)
 # Memory estimate of an MP run (LK13-T02): -Xmx of each JVM plus what it uses outside the Java heap (game client:
 # native buffers, textures, LWJGL; server: much less). Rough figures, only used for the warning.
 CLIENT_NATIVE_MB, SERVER_NATIVE_MB = 1536, 768
-# Load measure (LK13-T02, docs/validation/charge-protocole.md): 4 clients, 5 groups (LivingKnox.GroupCount), server
+# Load measure (LK13-T02, docs/annexes/tests/validation/charge-protocole.md): 4 clients, 5 groups (LivingKnox.GroupCount), server
 # campaign mp-load when RST_Campaign.lua declares it, else the suite lk.load alone.
 LOAD_CLIENTS, LOAD_GROUPS, LOAD_CAMPAIGN, LOAD_SUITE = 4, 5, 'mp-load', 'lk.load'
 DEFAULT_TIMEOUT, LOAD_TIMEOUT = 900, 3600   # --timeout when not given (mp-load: about 20 min of server run)

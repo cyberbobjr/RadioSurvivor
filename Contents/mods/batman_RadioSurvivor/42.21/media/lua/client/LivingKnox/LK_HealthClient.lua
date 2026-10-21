@@ -1,4 +1,4 @@
--- Living Knox : santé des PNJ côté client MP (LK07-T02). Fiche : docs/conception/sante.md, « Santé de référence
+-- Living Knox : santé des PNJ côté client MP (LK07-T02). Fiche : docs/annexes/conception/sante.md, « Santé de référence
 -- (LK07-T02) ». Serveur dédié : rien (garde). Solo : seule la lecture HealthView.get existe (elle lit l'autorité).
 --
 -- Client MP :

@@ -13,7 +13,7 @@ world; windows built with ISRadioWindow:new + instantiate, never added to the UI
     - world radio (IsoObject) and car radio (VehiclePart): the module reads only the DeviceData of the device, so a
       HAM DeviceData shows it and a receiver does not; a device that is neither a Radio, an IsoWaveSignal nor a
       VehiclePart is refused with the server's "NoRadio" text. Sending from a real placed radio or car radio
-      (microphone range, seat, server checks: E06-T03) is the visual protocol (docs/tests-en-jeu.md);
+      (microphone range, seat, server checks: E06-T03) is the visual protocol (docs/annexes/tests/tests-en-jeu.md);
     - the text field gives the keyboard back when the window closes.
 
 rs.radiomodule.world (tags "client" and "world": solo on a save named rstest*; skipped on an MP client, where items

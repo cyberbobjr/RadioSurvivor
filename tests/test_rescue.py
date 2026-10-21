@@ -13,7 +13,7 @@ aucune. Couvre : bâtiment habitable par ses pièces, refus (joueur, refuge, poi
 sous-sol, trop petit, eau, hors carte, déjà pris), essais bornés, graine reproductible, indices sans chiffres
 (type, taille, étages, sous-sol, repères et directions, rue habitée ou isolée, ville seulement sur la carte vanilla),
 client MP sans module, et la suite rs.rescue.pick (succès, puis détection d'un choix trop proche ou qui charge).
-Ne prouve pas l'API Java réelle : suite en jeu rs.rescue.pick (docs/rescue.md).
+Ne prouve pas l'API Java réelle : suite en jeu rs.rescue.pick (docs/specifications-techniques/rescue.md).
 """
 from __future__ import annotations
 

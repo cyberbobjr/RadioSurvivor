@@ -1,4 +1,4 @@
--- Living Knox : butin réel du cadavre d'un PNJ (LK07-T05). Fiche : docs/conception/sante.md, section « Butin réel du
+-- Living Knox : butin réel du cadavre d'un PNJ (LK07-T05). Fiche : docs/annexes/conception/sante.md, section « Butin réel du
 -- cadavre (LK07-T05) ». Java 42.21.0 cité en abrégé (J = zombie/...).
 -- Autorité seulement (serveur dédié ou hébergé, solo) : un client MP charge aussi media/lua/server, il s'arrête ici.
 --
@@ -53,7 +53,7 @@ Loot.MD_BUILT = "LKLoot"        -- ModData du corps : version du butin construit
 Loot.MD_DEAD = "LKLootDead"     -- ModData du corps : butin de mort posé (arme, cartouches de l'arme)
 Loot.VERSION = 1
 
--- Réglages (lus à chaque appel ; valeurs et raisons : docs/conception/sante.md, « Butin réel du cadavre »).
+-- Réglages (lus à chaque appel ; valeurs et raisons : docs/annexes/conception/sante.md, « Butin réel du cadavre »).
 -- POCKETS : objets de poche par rôle (Config.GROUP_ROLES), types vanilla 42.21 relevés dans
 -- media/scripts/generated/items (literature.txt Notepad ; weapon.txt Pencil, Screwdriver ; drainable.txt Lighter,
 -- AlcoholWipes, HandTorch, DuctTape, Matches ; normal.txt Bandage, Tweezers, Nails ; food.txt GranolaBar, Chocolate ;

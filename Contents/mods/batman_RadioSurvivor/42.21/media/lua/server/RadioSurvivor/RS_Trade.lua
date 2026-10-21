@@ -1,6 +1,6 @@
 -- Radio Survivor : livre du passeur de l'Ohio (E13-T02) : stock du passage, offre figée et action `propose_trade`.
--- Fiche : docs/conception/passeur-offre.md ; barème validé : docs/passeur-table.md (sections 1 et 3), code
--- shared/RadioSurvivor/RS_TradeValues.lua (valeur V de chaque objet).
+-- Fiche : docs/annexes/conception/passeur-offre.md ; barème validé : docs/specifications-techniques/passeur-table.md (sections 1
+-- et 3), code shared/RadioSurvivor/RS_TradeValues.lua (valeur V de chaque objet).
 --
 -- Le LLM du passeur négocie à la radio et propose une offre par l'action `propose_trade` :
 --     { type = "propose_trade", items = "Antibiotics:2, Battery:4", margin = 0.25 }
@@ -31,7 +31,7 @@
 -- chargé ou bloqué) table en mémoire, perdue au redémarrage, comme les compteurs de RS_Actions.
 -- Code ASCII seulement (littéraux non ASCII changés en U+FFFD par le lexeur Kahlua).
 --
--- E13-T03 : passage réservé et rendez-vous (fiche docs/conception/passeur-rendezvous.md). Un seul passage par semaine
+-- E13-T03 : passage réservé et rendez-vous (fiche docs/annexes/conception/passeur-rendezvous.md). Un seul passage par semaine
 -- de jeu pour tout le serveur (S.data.trade.run, le passage en cours seulement). La réservation se fait à la radio :
 -- la première offre figée du passage par l'exécuteur (propose_trade jugé par RS_Actions) le réserve pour l'équipe de
 -- l'appelant (RS_Factions.idOf : faction vanilla ou équipe personnelle ; sans état ni joueur : « caller:<compte> »).

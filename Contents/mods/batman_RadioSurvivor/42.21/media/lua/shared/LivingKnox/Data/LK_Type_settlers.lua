@@ -1,8 +1,8 @@
 -- Living Knox : type de groupe « colons » (LK08-T02), données seules. Format : LK_GroupTypes.lua ; valeurs et
--- raisons : docs/conception/groupes.md, section « Types et profils ».
+-- raisons : docs/annexes/conception/groupes.md, section « Types et profils ».
 -- Colons amicaux installés dans un vrai bâtiment (décision LK00 du 2026-10-03) : peu hostiles, bien pourvus.
 -- Format 2 (E08-T06) : un poste émetteur au foyer (homeRadio) : le groupe est une voix du réseau radio tant qu'un
--- membre vivant y est présent (docs/conception/radio-groupes.md).
+-- membre vivant y est présent (docs/annexes/conception/radio-groupes.md).
 require "LivingKnox/LK_GroupTypes"
 
 LivingKnox.GroupTypes.register({

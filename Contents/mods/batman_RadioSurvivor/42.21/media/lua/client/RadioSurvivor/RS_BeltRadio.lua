@@ -1,6 +1,7 @@
 -- Radio Survivor : inscription auprès du récepteur commun Belt Walkie-Talkie (mod requis batman_BeltRadio, API
--- documentée dans son dépôt, docs/API.md). Le mod commun gère le talkie à la ceinture : réglage, écoute en solo,
--- bulle MP d'une radio non tenue, pile. Une radio rangée (inventaire, sac) n'entend rien en solo (décision 3).
+-- documentée dans son dépôt, docs/specifications-techniques/api-publique.md). Le mod commun gère le talkie à la ceinture :
+-- réglage, écoute en solo, bulle MP d'une radio non tenue, pile. Une radio rangée (inventaire, sac) n'entend rien en solo
+-- (décision 3).
 -- - channels : chaînes des voix (GUID préfixé Const.VOICE_CHANNEL_PREFIX), en solo et sur un serveur hôte ; sur un
 --   client MP le gestionnaire de chaînes vaut nil : liste vide. Elles sont aussi dans le registre vanilla
 --   (AddChannel) : la déclaration les rend explicites, le récepteur les dédoublonne.

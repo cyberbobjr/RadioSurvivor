@@ -2,7 +2,7 @@ if isClient() then return end
 --[[
 Delivery on site and approach of a rescue (E12-T03). Authority only (dedicated server or solo). Reads squares and
 inventories, which RS_Rescue.lua never does (its choice of building must load nothing). Design choices:
-docs/conception/secours-livraison.md.
+docs/annexes/conception/secours-livraison.md.
 
 Poll (Visit.CONFIG.POLL_MS real time, OnTickEvenPaused): every connected player (getOnlinePlayers on a server, local
 players in solo), alive, whose team (RS_Factions.idOf, faction or lone player) has an active rescue
@@ -32,7 +32,7 @@ English text when the mod translations cannot be read) and aired on the first se
 RS_RadioServer.frequency / air) when it has one. Visit.onApproach(rescue, info, text) and Visit.onDelivery(id, hours,
 counts) are optional single listeners.
 
-Outcome "saved" (E12-T04, docs/conception/secours-issue.md): once a real delivery was counted, the near members of
+Outcome "saved" (E12-T04, docs/annexes/conception/secours-issue.md): once a real delivery was counted, the near members of
 the team (at that poll and at every later poll while they stay near) are noted as helpers in the rescue
 (RS_Rescue.noteHelpers: character name, radio caller key = account name on a server or "solo", notebook character
 of RS_RadioLog.characterOf or nil). At the first poll where no living connected member of the team is near the

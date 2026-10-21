@@ -1,8 +1,8 @@
 -- Radio Survivor : barème de troc commun (valeur V par objet, en points entiers), partagé par le passeur de l'Ohio
 -- (E13) et le troc direct avec un groupe Living Knox (LK11-T08, server/LivingKnox/LK_Trade.lua).
--- Source : docs/passeur-table.md, validée le 2026-10-10 (décision E13-T01 (4)) ; identifiants vanilla 42.21 relevés
--- dans media/scripts/generated/items (fichier:ligne dans la table du document). Aucun objet de ce mod n'y figure : tout
--- objet hors module Base vaut 0 (refusé).
+-- Source : docs/specifications-techniques/passeur-table.md, validée le 2026-10-10 (décision E13-T01 (4)) ; identifiants vanilla
+-- 42.21 relevés dans media/scripts/generated/items (fichier:ligne dans la table du document). Aucun objet de ce mod n'y
+-- figure : tout objet hors module Base vaut 0 (refusé).
 --
 -- Entrée : VALUES["Base.X"] = { v = points, k = classe, cond = état minimal (facultatif, 0..1 de getConditionMax),
 -- cap = nombre au plus par passage du passeur (facultatif, E13), lot = objets par point (facultatif : billets) }.
@@ -13,7 +13,7 @@
 --   food, medical, ammo  objets qui alimentent les réserves d'un groupe (section 5)
 -- Les objets de ravitaillement non listés (catégories du stock réel d'un groupe, tirées des données de script :
 -- DisplayCategory, fluide) prennent la valeur de repli FALLBACK de leur catégorie (choix LK11-T08, fiche
--- docs/conception/troc.md) ; les munitions non listées (cartouches en vrac) n'en ont pas.
+-- docs/annexes/conception/troc.md) ; les munitions non listées (cartouches en vrac) n'en ont pas.
 --
 -- Prix (section 1 du document) : ce que l'on reçoit coûte, ligne par ligne (un type d'objet x quantité),
 -- ceil(V x quantité x k) avec k = (1 + marge) x multiplicateur ; ce que l'on donne compte pour floor(somme des V x

@@ -1,5 +1,5 @@
 -- Living Knox : aménagement des foyers des groupes au premier chargement réel de leurs cases (LK08-T04).
--- Fiche : docs/conception/foyers.md. Java 42.21.0 cité en abrégé (J = zombie/...) ; M = media/lua vanilla.
+-- Fiche : docs/annexes/conception/foyers.md. Java 42.21.0 cité en abrégé (J = zombie/...) ; M = media/lua vanilla.
 -- Autorité seulement (serveur dédié ou hébergé, solo) : un client MP charge aussi media/lua/server, il s'arrête ici.
 --
 -- Quand : un groupe qui a un foyer (LivingKnox.Groups, champ home) et aucune marque d'aménagement pour ce foyer est

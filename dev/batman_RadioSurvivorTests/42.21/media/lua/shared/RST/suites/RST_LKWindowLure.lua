@@ -19,7 +19,7 @@ server (setInvisible on the server copy is not sent): the zombie may also see hi
 Figures are printed as "[LKW] measure ..." lines. The npc is forgotten and the zombie removed with t:defer; the glass
 may stay broken (rstest save only).
 
-Manual checks (docs/conception/zombies.md, "Protocole en jeu"): closed curtain or barricade of 3 planks: the zombie
+Manual checks (docs/annexes/conception/zombies.md, "Protocole en jeu"): closed curtain or barricade of 3 planks: the zombie
 does not come; npc walking outside: zombies around come to its footsteps.
 ]]
 

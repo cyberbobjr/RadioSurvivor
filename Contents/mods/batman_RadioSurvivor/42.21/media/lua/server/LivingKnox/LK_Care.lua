@@ -1,4 +1,4 @@
--- Living Knox : soins des membres blessés au foyer, côté autorité (LK07-T03). Fiche : docs/conception/sante.md,
+-- Living Knox : soins des membres blessés au foyer, côté autorité (LK07-T03). Fiche : docs/annexes/conception/sante.md,
 -- section « Saignement et soins ». Java 42.21.0 cité en abrégé (J = zombie/...) ; M = media/lua vanilla.
 -- Autorité seulement (serveur dédié ou hébergé, solo) : un client MP charge aussi media/lua/server, il s'arrête ici.
 --

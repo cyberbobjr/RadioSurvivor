@@ -1,5 +1,5 @@
 -- Living Knox : pose relayée des corps de PNJ chez les clients qui ne les simulent pas (LK02-T07).
--- Fiche : docs/conception/consignes.md. Java 42.21.0 cité en abrégé (J = zombie/...).
+-- Fiche : docs/annexes/conception/consignes.md. Java 42.21.0 cité en abrégé (J = zombie/...).
 --
 -- Client MP seulement (en solo, la seule copie est simulée ici et n'a rien à recevoir). Le serveur relaie la pose du
 -- dernier rapport accepté du propriétaire avec le geste, aux seuls clients proches, regroupée et bornée (LK03-T05,

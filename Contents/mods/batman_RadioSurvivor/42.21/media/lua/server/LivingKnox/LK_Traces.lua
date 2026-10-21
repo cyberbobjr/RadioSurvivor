@@ -1,5 +1,5 @@
 -- Living Knox : traces lisibles en jeu (LK10-T04) : carnet du foyer d'un groupe disparu, notes sur le chef mort.
--- Fiche : docs/conception/traces.md. Java 42.21.0 cité en abrégé (J = zombie/...) ; M = media/lua vanilla.
+-- Fiche : docs/annexes/conception/traces.md. Java 42.21.0 cité en abrégé (J = zombie/...) ; M = media/lua vanilla.
 -- Autorité seulement (serveur dédié ou hébergé, solo) : un client MP charge aussi media/lua/server, il s'arrête ici.
 --
 -- Deux documents vanilla en lecture seule (objet literature CanBeWrite, pages écrites par addPage puis verrouillées

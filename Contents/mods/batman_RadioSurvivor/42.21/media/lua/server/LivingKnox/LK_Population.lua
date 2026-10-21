@@ -1,5 +1,5 @@
 -- Living Knox : population initiale de 3 à 5 groupes, une seule fois par monde (LK08-T05) ; relève (LK09-T04). Fiche :
--- docs/conception/groupes.md, section « Population ».
+-- docs/annexes/conception/groupes.md, section « Population ».
 -- Autorité seulement (serveur dédié ou hébergé, solo) : un client MP charge aussi media/lua/server, il s'arrête ici.
 --
 -- Condition : registre des groupes prêt, jamais peuplé (populated ~= true) et dans lequel aucun groupe n'a jamais
@@ -337,7 +337,7 @@ function Population.onEveryHours()
 end
 
 -- Décimation et relève (LK09-T04) ------------------------------------------------------------------------------------
--- Fiche : docs/conception/groupes.md, section « Décimation et relève ».
+-- Fiche : docs/annexes/conception/groupes.md, section « Décimation et relève ».
 -- Constat à chaque heure de jeu (Population.onEveryHours), groupes dans l'ordre de leur numéro, une seule sauvegarde :
 --   - plus aucun membre vivant, dans un groupe qui en a eu (nextMember > 1) -> disparu, cause "wiped" ;
 --   - dispersion : au plus RELIEF.DISPERSE_AT vivant(s) dans un groupe qui en a compté davantage, hors écran (aucun

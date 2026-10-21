@@ -552,7 +552,7 @@ class DeliveredVoicesTests(unittest.TestCase):
                         self.assertNotRegex(texts[lang][s.call_text].lower(), 'clinic|clinique|come|venez')
 
     def test_decided_values(self):
-        # Décision E05-T04 du 2026-10-09 (docs/plan/E05-voix-reseau-radio.md), fréquences : E05-T07.
+        # Décision E05-T04 du 2026-10-09 (docs/annexes/plans/E05-voix-reseau-radio.md), fréquences : E05-T07.
         expected = {
             'darlene': ([(420, 600), (960, 1140)], 'fixed', (11880, 6878, 0), 'active'),
             'cody': ([(1320, 180)], 'none', None, 'active'),

@@ -15,7 +15,7 @@ Figures are printed as "[LKH] measure ..." lines. Every test forgets its npc and
 
 E01-T16 (LK07-T02): after the hit, every connected client reads the same reference health through
 LivingKnox.HealthView.get (step lk.health.view, RST_PeerChecksH.lua, target "all"; solo: the local player).
-Manual MP protocol (two clients, docs/conception/sante.md, "Protocole en jeu"): the rest is not automated.
+Manual MP protocol (two clients, docs/annexes/conception/sante.md, "Protocole en jeu"): the rest is not automated.
 ]]
 
 require "RST/RST"

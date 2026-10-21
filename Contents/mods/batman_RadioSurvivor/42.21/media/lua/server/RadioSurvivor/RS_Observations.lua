@@ -1,8 +1,8 @@
 -- Radio Survivor : observations personnelles des PNJ contactés (E08-T02, ADR B11).
 -- Journal borné par fiche de PNJ (S.data.npcs, créée au contact seulement : RS_Carnet_Server.ensure) : ce que le PNJ
 -- a vu lui-même ou entendu d'un autre PNJ. Une observation n'est jamais une preuve d'action : elle est jointe aux
--- demandes PNJ (champ observations=, docs/protocole-carnet-v2.md « Observations des PNJ ») et le pont la présente
--- comme un souvenir non vérifié, comme les propos des joueurs. Aucun système de rumeurs.
+-- demandes PNJ (champ observations=, docs/specifications-techniques/protocole-carnet-v2.md « Observations des PNJ ») et le pont
+-- la présente comme un souvenir non vérifié, comme les propos des joueurs. Aucun système de rumeurs.
 --
 -- Entrée : { fact = <type de C.Observations.facts>, subject = <identifiant court [A-Za-z0-9_-]>, day = <jour de jeu,
 -- entier >= 0>, place = <libellé court ou maille Observations.area, sans coordonnée exacte>, source = 'seen' |

@@ -1,4 +1,4 @@
--- Radio Survivor : radio des groupes équipés (E08-T06). Fiche : docs/conception/radio-groupes.md.
+-- Radio Survivor : radio des groupes équipés (E08-T06). Fiche : docs/annexes/conception/radio-groupes.md.
 --
 -- Un groupe de Living Knox qui tient un poste émetteur (type au format 2 : homeRadio au foyer, radio dans un profil ;
 -- Provider.radios) devient une voix du réseau radio, comme les voix d'E05 :

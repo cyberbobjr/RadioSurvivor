@@ -1,4 +1,4 @@
--- Living Knox : gestes des corps de PNJ (LK02-T05). Fiche : docs/conception/corps-et-animations.md, « Animations ».
+-- Living Knox : gestes des corps de PNJ (LK02-T05). Fiche : docs/annexes/conception/corps-et-animations.md, « Animations ».
 -- Java 42.21.0 cité en abrégé (J = zombie/...).
 --
 -- Les nœuds ajoutés aux AnimSets des zombies (common/media/AnimSets/zombie/<état>/lkactor_*.xml, générés par

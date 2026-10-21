@@ -1,4 +1,4 @@
--- Living Knox : outils d'administration (LK13-T01). Fiche : docs/conception/administration.md.
+-- Living Knox : outils d'administration (LK13-T01). Fiche : docs/annexes/conception/administration.md.
 -- Java 42.21.0 cité en abrégé (J = zombie/...) ; M = media/lua vanilla.
 --
 -- Commandes réservées aux administrateurs, toutes passées par Admin.request(player, args) sur l'autorité :

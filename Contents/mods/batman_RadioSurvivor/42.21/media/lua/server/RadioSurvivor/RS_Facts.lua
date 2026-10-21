@@ -1,7 +1,7 @@
 if isClient() then return end
 --[[
 Server fact log of the day (E14-T01), read by the evening bulletin (E14-T02) and the memorial (E14-T03). Authority
-only (dedicated server or solo). Design: docs/conception/chronique.md.
+only (dedicated server or solo). Design: docs/annexes/conception/chronique.md.
 
 Stored in the private state of the notebook (RS_State: S.data.facts, server file, never a global ModData):
     { next = <number of the next fact>, list = { fact, ... }, seen = { [key] = n }, world = { grid, water, weather } }

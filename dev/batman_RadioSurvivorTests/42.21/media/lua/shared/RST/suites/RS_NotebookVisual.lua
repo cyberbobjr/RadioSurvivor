@@ -24,7 +24,7 @@ Tests:
 Tags "client" and "ui". RST.run({ suite = "rs.notebook.visual" }) (any save, solo or MP client, debug mode).
 Cleanup: test windows and dialogs removed, display mode, snapshot, history, receive hooks and the player's own
 notebook window (hidden during the run) restored; a real snapshot and the real history are asked again.
-Left to the eye on the captures: docs/carnet-validation-04221.md ("E03-T02").
+Left to the eye on the captures: docs/annexes/tests/carnet-validation-04221.md ("E03-T02").
 ]]
 
 require "RST/RST"

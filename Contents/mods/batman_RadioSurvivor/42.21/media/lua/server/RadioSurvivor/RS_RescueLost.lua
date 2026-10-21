@@ -1,7 +1,7 @@
 if isClient() then return end
 --[[
 Outcome "too late" of a rescue (E12-T05, zombies since E12-T07; "saved" is RS_RescueScene, E12-T04).
-Authority only (dedicated server or solo). Design choices: docs/conception/secours-trop-tard.md.
+Authority only (dedicated server or solo). Design choices: docs/annexes/conception/secours-trop-tard.md.
 
 Survivors: RS_Rescue draws them at the start (rec.survivors = { { outfit, look, requester } }, 2 or 3 distinct vanilla
 outfits of RS_Rescue.OUTFITS, the first one is the requester, the voice) and keeps the English descriptions the voice

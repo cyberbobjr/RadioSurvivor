@@ -1,5 +1,5 @@
 -- Living Knox : simulation abstraite des groupes hors écran, par heure de jeu (LK09-T01).
--- Fiche : docs/conception/simulation.md. Autorité seulement (serveur dédié ou hébergé, solo) : un client MP charge
+-- Fiche : docs/annexes/conception/simulation.md. Autorité seulement (serveur dédié ou hébergé, solo) : un client MP charge
 -- aussi media/lua/server, il s'arrête ici.
 --
 -- Pour chaque heure de jeu écoulée et chaque groupe du registre (LK_Groups) ayant au moins un membre vivant :
@@ -1209,7 +1209,7 @@ function Simulation.onStart()
 end
 
 -- ================================================================ pas horaire étalé (LK13-T09)
--- Fiche : docs/conception/charge.md, « Pas horaire étalé ». Abonnés EveryHours de LK_Server, dans l'ordre de
+-- Fiche : docs/annexes/conception/charge.md, « Pas horaire étalé ». Abonnés EveryHours de LK_Server, dans l'ordre de
 -- l'événement :
 --   - population, simulation, besoins : dans l'image de l'EveryHours (Simulation.runNow). Ils avancent les jauges des
 --     membres (LK_Needs) que les comportements des membres incarnés modifient en place à chaque image (peur montée,

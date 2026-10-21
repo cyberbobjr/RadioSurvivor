@@ -7,7 +7,7 @@ Files
     server/RST/RST_LKEssaiServer.lua    authority (server, or solo): registry, spawn, set, walk, clear, list
     client/RST/RST_LKEssaiClient.lua    console commands LKE.* and the per-client application loop
     shared/RST/suites/RST_LKEssaiSuite.lua   suite "lk.essai" (tags world, server)
-Protocol and result table: docs/conception/corps-et-animations.md, section "Essai comparatif - protocole".
+Protocol and result table: docs/annexes/conception/corps-et-animations.md, section "Essai comparatif - protocole".
 
 Options (LKE.set(id, option, value)); where each one is applied (see LKE.Core.applyLocal):
     useless      bool   setUseless, on every machine (the owner's value wins, NetworkZombieVariables)

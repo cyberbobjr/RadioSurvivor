@@ -9,7 +9,7 @@ the agreement is unchanged. Then the decision: with the bridge running, the lead
 to 120 s for the incident to close and notes the decision); without it, the incident stays open (no automatic break) and the test
 applies a "maintain" decision itself (RS_Factions.decideIncident): agreement revision + 1, player covered again.
 Two players (MP): the second member of the faction stays covered during the incident (check by hand with the
-debug view of the group, see docs/conception/incidents.md).
+debug view of the group, see docs/annexes/conception/incidents.md).
 Tags "server" (authority only: solo, or RST.server from an admin client of a dedicated server) and "world" (the
 private notebook state is written: test saves "rstest*" only). Asynchronous run (RST.start / RST.server). No group near
 the player: a fixture group is created and removed (RST.LKGroup); notebook character bound when missing ("hello").

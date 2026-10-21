@@ -3,8 +3,9 @@ if isClient() then return end
 Mission template `recover` (E11-T06): pick up a cache (marked bag) left in a place chosen by the server and carry it
 to the depot of the requester's group. Authority only. Catalogue: RS_Config.Missions.recover (offer id recover_v1).
 Registered in RS_Missions (M.register); required by RS_Carnet_Server, whose once-a-second poll of the participants
-(M.observe) also places the cache (RS_Caches) and checks the depot. Details: docs/carnet-implementation-04221.md,
-"Caches et gabarit recuperer"; design choices: docs/conception/mission-recuperer.md.
+(M.observe) also places the cache (RS_Caches) and checks the depot. Details:
+docs/annexes/conception/carnet-implementation-04221.md, "Caches et gabarit recuperer"; design choices:
+docs/annexes/conception/mission-recuperer.md.
 
 Requester: an NPC fiche of the notebook only (a radio voice has no depot: RS_MissionVoice.TEMPLATES stays scout),
 whose provider tells where its group lives (RS_NPCProvider.presence(id).x, y; Living Knox: home of the group). An NPC

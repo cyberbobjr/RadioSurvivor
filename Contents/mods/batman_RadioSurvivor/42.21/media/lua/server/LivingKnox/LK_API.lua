@@ -1,4 +1,5 @@
--- Living Knox : API publique en lecture, versionnée (LK12-T01). Documentation : docs/api.md.
+-- Living Knox : API publique en lecture, versionnée (LK12-T01). Documentation :
+-- docs/specifications-techniques/api-living-knox.md.
 -- Autorité seulement (serveur dédié ou hébergé, solo) : un client MP charge aussi media/lua/server, il s'arrête ici
 -- (LivingKnox.API n'existe donc pas chez un client MP).
 --
@@ -9,7 +10,7 @@
 -- Toutes les fonctions rendent des COPIES neuves (tables Lua simples : chaînes, nombres, booléens), sans référence
 -- au registre ni objet Java ; modifier un résultat ne change rien au moteur.
 -- Aucune donnée secrète : ni secrets d'histoire (le champ story du registre ne contient que le résumé public,
--- docs/conception/recits.md), ni coordonnées exactes du foyer (maille de API.AREA_SIZE cases), ni journal technique du
+-- docs/annexes/conception/recits.md), ni coordonnées exactes du foyer (maille de API.AREA_SIZE cases), ni journal technique du
 -- groupe (g.log) ; le journal de récit public (LK_Journal, LK10-T02) se lit par API.journal.
 -- Serveur seulement : tout envoi à un client passe par une projection explicite (API.publicGroup, ou une projection
 -- propre au consommateur qui ne rajoute rien de privé).
@@ -199,7 +200,8 @@ function API.composition(gid)
         members = living, key = (leader or "-") .. "|" .. table.concat(living, ",") }
 end
 
--- Journal de récit d'un groupe (LK10-T02, ajout compatible de la version 1 ; LK_Journal, docs/api.md) :
+-- Journal de récit d'un groupe (LK10-T02, ajout compatible de la version 1 ; LK_Journal,
+-- docs/specifications-techniques/api-living-knox.md) :
 -- { group, next, entries = { { n, day, hour, kind, key, args = { { text, key }, ... }, member, npc, text }, ... } },
 -- entrées de numéro > since (défaut 0), la plus ancienne d'abord ; next = numéro de la prochaine entrée (passer
 -- next - 1 en since pour ne lire que les nouvelles). text = texte composé sur cette machine, ou nil quand les
@@ -217,7 +219,8 @@ function API.journal(gid, since)
     return { group = gid, next = nextN, entries = entries }
 end
 
--- Enrichissement des histoires (LK10-T03, ajout compatible de la version 1 ; docs/api.md, conception recits.md) ------
+-- Enrichissement des histoires (LK10-T03, ajout compatible de la version 1 ; docs/specifications-techniques/api-living-knox.md,
+-- conception recits.md) ------
 -- Un autre mod (le carnet de RadioSurvivor, par son LLM) remplace ou complète le résumé public composé par LK_Stories,
 -- pour un groupe ou pour un membre, dans une langue (en, fr). Le texte est contrôlé ici (longueur, lignes,
 -- caractères), gardé au registre privé des groupes avec la VERSION du gabarit qu'il remplace (empreinte du type, de
@@ -531,9 +534,9 @@ function API.publicGroup(g)
 end
 
 -- Offres de ressources pour les missions (LK12-T03) -----------------------------------------------------------------
--- Barème : docs/passeur-table.md, section 5 (même valeur V que le passeur ; 1 point de réserve = 4 V, arrondi au plus
--- proche ; un groupe ne cède pas ce qui lui manque). Seuils des réserves : LivingKnox.Config.SIMULATION (NEED_LOW,
--- NEED_OK, NEED_TARGET), repli sur les valeurs ci-dessous. Heures = heures de jeu entières (âge du monde).
+-- Barème : docs/specifications-techniques/passeur-table.md, section 5 (même valeur V que le passeur ; 1 point de réserve = 4 V,
+-- arrondi au plus proche ; un groupe ne cède pas ce qui lui manque). Seuils des réserves : LivingKnox.Config.SIMULATION
+-- (NEED_LOW, NEED_OK, NEED_TARGET), repli sur les valeurs ci-dessous. Heures = heures de jeu entières (âge du monde).
 
 API.SUPPLY = {
     V_PER_POINT = 4,         -- 1 point de réserve = 4 points V (barème, section 5)
@@ -883,7 +886,8 @@ end
 -- (membres d'un groupe tout juste peuplé, membre bien marqué mort) et un fait d'une transaction non écrite (registre
 -- bloqué) est abandonné. Une seule fois par fait (clé de fait gardée pour la session). Besoin critique : sondage
 -- EveryTenMinutes. Charge utile = table neuve de valeurs simples, jamais de foyer exact, de journal ni de secret ; elle
--- est partagée par les abonnés d'un même déclenchement (ne pas la modifier). Documentation : docs/api.md.
+-- est partagée par les abonnés d'un même déclenchement (ne pas la modifier). Documentation :
+-- docs/specifications-techniques/api-living-knox.md.
 
 API.EVENTS = {
     groupCreated = "OnLivingKnoxGroupCreated",
@@ -1089,9 +1093,9 @@ function API.checkNeeds()
 end
 
 -- E08-T03 (ajout compatible de la version 1) : vrai si le PNJ npcId est OCCUPÉ à l'instant (prédicat provisoire
--- jusqu'à LK05-T08 et LK06-T01, docs/api.md « API.engaged ») ; rend true et la raison, ou false. Raisons, dans cet
--- ordre : "hit" (coup d'un joueur reçu depuis moins de ENGAGED_MS : Bodies.lastHits), "combat" (ordre de combat de
--- LK_Combat en cours : couvre les coups portés pendant l'engagement ; un ordre clos est oublié), "warning"
+-- jusqu'à LK05-T08 et LK06-T01, docs/specifications-techniques/api-living-knox.md « API.engaged ») ; rend true et la raison, ou
+-- false. Raisons, dans cet ordre : "hit" (coup d'un joueur reçu depuis moins de ENGAGED_MS : Bodies.lastHits), "combat"
+-- (ordre de combat de LK_Combat en cours : couvre les coups portés pendant l'engagement ; un ordre clos est oublié), "warning"
 -- (sommation de LK11-T02 en cours menée par ce PNJ : rencontre à une étape >= 1), "alert" (alerte de LK05-T08
 -- active pour son groupe). Modules absents (suites isolées) : la raison correspondante ne compte pas. Mémoire
 -- seulement : rien n'est lu dans une sauvegarde.

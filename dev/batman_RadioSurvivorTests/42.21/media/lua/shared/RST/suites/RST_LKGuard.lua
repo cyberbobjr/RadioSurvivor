@@ -10,7 +10,7 @@ What is measured here, on the authority:
     - 60 s at contact with the npc: no target, no attack or lunge state, no eating, player health unchanged;
     - after a round trip out of the loaded area the guard flags are back on the bound body.
 On a dedicated server the voice is not checked (voices are played and cut by each client): the voice of the
-other clients and the owner-side flags are checked by hand (protocol in docs/conception/neutralisation.md).
+other clients and the owner-side flags are checked by hand (protocol in docs/annexes/conception/neutralisation.md).
 E01-T16 (LK02-T04): on a dedicated server with a second client, that client is moved 2 squares from a standing npc
 and samples, on its own machine and for 60 s, the copy of the npc and its own player (RST.Steps "lk.contact",
 RST_PeerChecksLK2.lua): no target on it, no attack or lunge state, no eating, its health unchanged, contact kept.

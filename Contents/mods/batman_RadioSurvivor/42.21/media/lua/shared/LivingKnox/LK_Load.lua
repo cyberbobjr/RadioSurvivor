@@ -1,5 +1,5 @@
 -- Living Knox : mesure de charge du moteur sur la machine qui le fait tourner (LK13-T02).
--- Fiche : docs/conception/charge.md ; résultats et protocole : docs/validation/charge-*.md.
+-- Fiche : docs/annexes/conception/charge.md ; résultats et protocole : docs/annexes/tests/validation/charge-*.md.
 --
 -- Mesure, jamais d'effet sur le jeu. Sur l'autorité (serveur MP, solo), démarrée par un administrateur
 -- (LK_Admin.lua, requête { op = "load", action = "start" | "report" | "stop" }) ; sur un client MP, depuis la console
@@ -55,7 +55,7 @@ Load.CFG = Load.CFG or {
     MAX_LINE = 300,           -- longueur d'une ligne du rapport
 }
 
--- Budgets proposés (docs/validation/charge-hors-jeu-2026-10-12.md, à confirmer par la mesure en jeu). Moyennes par
+-- Budgets proposés (docs/annexes/tests/validation/charge-hors-jeu-2026-10-12.md, à confirmer par la mesure en jeu). Moyennes par
 -- image ; serveur dédié à 10 images par seconde (100 ms par image, base multiplayer.md), client à 30-60.
 Load.BUDGET = Load.BUDGET or {
     authority = { tickMs = 2.0, tickMaxMs = 25, moduleMs = 0.5, sentPerSec = 40, sentBytesPerSec = 8192,

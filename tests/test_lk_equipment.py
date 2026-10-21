@@ -239,7 +239,7 @@ end
 VANILLA_HANDLE = Fishing.Handler.handleFishing
 '''
 
-# Abonnés OnEquipPrimary / OnEquipSecondary relevés en LK02-T13 (docs/conception/equipement.md, « Abonnés d'autres
+# Abonnés OnEquipPrimary / OnEquipSecondary relevés en LK02-T13 (docs/annexes/conception/equipement.md, « Abonnés d'autres
 # mods »). Doublures de COMPORTEMENT, pas des copies :
 # - cadre d'armes à feu de la liste de l'utilisateur (fichiers shared, deux abonnés inscrits sur les deux événements) :
 #   le personnage n'est testé que contre nil ; seule l'arme est lue et modifiée (ModData, statistiques, sprite) si

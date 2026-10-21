@@ -1,4 +1,4 @@
--- Living Knox : parole de proximité des PNJ (LK11-T04). Fiche : docs/conception/parole.md. Java 42.21.0 cité en
+-- Living Knox : parole de proximité des PNJ (LK11-T04). Fiche : docs/annexes/conception/parole.md. Java 42.21.0 cité en
 -- abrégé (J = zombie/...).
 --
 -- Autorité seulement (serveur MP ou solo) ; un client MP charge aussi media/lua/server et s'arrête à la première ligne.

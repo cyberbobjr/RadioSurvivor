@@ -15,7 +15,7 @@ weapon is removed and nothing is left on the body.
 OnEquipPrimary: a temporary subscriber counts the events raised for the npc body, and
 LivingKnox.Equipment.stats.skipped counts the calls of the vanilla fishing handler skipped for a non player. An error
 of another subscriber is not visible from Lua: count the "handleFishing" lines of console.txt before and after the
-run (protocol in docs/conception/equipement.md). Figures are printed as "[LKW] measure ..." lines. Every test
+run (protocol in docs/annexes/conception/equipement.md). Figures are printed as "[LKW] measure ..." lines. Every test
 removes its npc with t:defer.
 ]]
 

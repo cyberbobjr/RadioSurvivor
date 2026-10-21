@@ -1,4 +1,4 @@
--- Living Knox : catalogue des répliques courtes des PNJ (« barks », LK11-T04). Fiche : docs/conception/parole.md.
+-- Living Knox : catalogue des répliques courtes des PNJ (« barks », LK11-T04). Fiche : docs/annexes/conception/parole.md.
 -- Données seules : le serveur choisit une réplique (media/lua/server/LivingKnox/LK_Speech.lua) et n'envoie que sa clé ;
 -- chaque client la traduit dans SA langue (getText). Les textes sont dans Translate/EN|FR/IG_UI.json, clé
 -- "IGUI_LK_Speech_<id>" : le serveur MP ne traduit pas (base api-42-21.md), et un .json garde les accents en clair.

@@ -1,6 +1,6 @@
 if isClient() then return end
 -- E09-T04: personal relation of an NPC (notebook fiche) toward a notebook character (authority only).
--- Fiche: docs/conception/relations.md. Decision of 2026-10-13: personal gap bounded to one level above or below the
+-- Fiche: docs/annexes/conception/relations.md. Decision of 2026-10-13: personal gap bounded to one level above or below the
 -- attitude of the NPC's group.
 --
 -- Key: fiche id of the NPC (S.data.npcs) + notebook character id (the player key of LK_Hostility.keyOf).
@@ -226,7 +226,7 @@ end
 
 -- ---------------------------------------------------------------- notebook panel (E09-T07)
 -- Relation panel of a contact, for ONE character (the one who reads the notebook) and its team. Fiche:
--- docs/conception/relations.md, "Panneau du carnet". Identifiers and game days only, translated by the client; no gap,
+-- docs/annexes/conception/relations.md, "Panneau du carnet". Identifiers and game days only, translated by the client; no gap,
 -- no attitude value, no fact key, nothing about another character:
 --   { level = one of LEVELS or nil (nothing known: no group basis and no personal change), trend, group = level of the
 --     group (nil without group basis), today = game day,

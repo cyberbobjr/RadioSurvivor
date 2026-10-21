@@ -192,7 +192,7 @@ local C = {
         helicopterGapHours = 2,     -- game hours without a helicopter sound before the next sound is a new passage
         helicopterEveryMs = 5000,   -- helicopter sounds handled at most once per this real time (ms)
     },
-    -- Internal reputation (E04-T08/T09, server/RadioSurvivor/RS_Reputation.lua, docs/conception/reputation-interne.md
+    -- Internal reputation (E04-T08/T09, server/RadioSurvivor/RS_Reputation.lua, docs/annexes/conception/reputation-interne.md
     -- section 9, values confirmed by default 2026-10-15). Amounts per act; the score stays on the server.
     Reputation = {
         success = 5, failure = -5,       -- mission.success; mission.failed, mission.abandoned, trade.cheated

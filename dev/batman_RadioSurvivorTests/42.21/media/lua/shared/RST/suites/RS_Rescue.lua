@@ -16,7 +16,7 @@ Probe of "no chunk loaded" (the engine has no Lua counter of loaded chunks):
     - BuildingDef:isFullyStreamedIn() of each picked building false.
 getGridSquare never loads a chunk (it reads the chunk map, or the loaded server cells on a dedicated server): the
 probes read, the picks are what is measured. Each site is printed as a note "site ..." with its coordinates, kind
-and clues so that the tester can teleport there and judge the clues (docs/rescue.md).
+and clues so that the tester can teleport there and judge the clues (docs/specifications-techniques/rescue.md).
 ]]
 
 require "RST/RST"

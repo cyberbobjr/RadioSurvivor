@@ -15,7 +15,7 @@ sendServerCommand (tables recopiées par Python, comme le réseau) :
 - cellules du tableau, bouton du panneau debug vanilla (doublure ISDebugMenu), constantes et traductions EN/FR ;
 - suite en jeu rs.freqdebug jouée par le vrai moteur RST sur le serveur simulé.
 Doublures de droits : checkPermissions et getRole():hasCapability lisent une table ADMINS. Elles ne prouvent pas l'API
-réelle (suite en jeu rs.freqdebug, protocole de docs/tests-en-jeu.md).
+réelle (suite en jeu rs.freqdebug, protocole de docs/annexes/tests/tests-en-jeu.md).
 """
 from __future__ import annotations
 

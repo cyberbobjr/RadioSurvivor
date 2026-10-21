@@ -1,5 +1,5 @@
 -- Living Knox : exécution des consignes de déplacement par la machine qui simule le corps (LK02-T07).
--- Fiche : docs/conception/consignes.md. Java 42.21.0 cité en abrégé (J = zombie/...).
+-- Fiche : docs/annexes/conception/consignes.md. Java 42.21.0 cité en abrégé (J = zombie/...).
 --
 -- Tourne sur un client MP et en solo (un serveur dédié n'exécute pas media/lua/client). Consignes lues :
 --   solo : LivingKnox.Directives.entries (même machine) ; rapports remis par appel direct à Directives.onReport ;
@@ -32,16 +32,16 @@
 -- Plantes cultivées et feux de camp (LK04-T06) : la case visée en est déjà écartée par l'autorité
 -- (Directives.moveTo) ; le chemin vanilla peut les traverser (la recherche de chemin d'un zombie n'évite pas les
 -- plantes, J/pathfind/nativeCode/PathFindRequest.java:61-81, et le chemin trouvé n'est pas lisible en Lua) : limite
--- documentée dans docs/conception/consignes.md. Depuis LK05-T12, une consigne dont la ligne droite traverse leur zone
+-- documentée dans docs/annexes/conception/consignes.md. Depuis LK05-T12, une consigne dont la ligne droite traverse leur zone
 -- porte des points de passage (w, étape k publiée par l'autorité) : chemin cherché vers le point courant, étape
 -- suivante à l'arrivée sur ce point (Directives.ARRIVE), annoncée dans le rapport (k) ; un nouveau propriétaire reprend
 -- à l'étape publiée.
--- Rapports d'état (LK03-T02, fiche docs/conception/rapports.md) : position, orientation, activité, santé et pose de
+-- Rapports d'état (LK03-T02, fiche docs/annexes/conception/rapports.md) : position, orientation, activité, santé et pose de
 -- chaque corps simulé ici, envoyés par le seul propriétaire réel (exécutant désigné du bail courant s'il y a une
 -- consigne) à cadence bornée ("bodyReport", appel direct en solo) ; contrôles dans server/LivingKnox/LK_Reports.lua.
--- Perception (LK05-T01, fiche docs/conception/perception.md) : LivingKnox.Senses.scan à chaque passage, résumé
+-- Perception (LK05-T01, fiche docs/annexes/conception/perception.md) : LivingKnox.Senses.scan à chaque passage, résumé
 -- porté par le rapport d'état (champ sen) ; un changement de ce que voit ou entend le PNJ avance le rapport (MIN_MS).
--- Transfert de propriété (LK03-T03, fiche docs/conception/consignes.md) : sur un client MP, l'état utile tenu par le
+-- Transfert de propriété (LK03-T03, fiche docs/annexes/conception/consignes.md) : sur un client MP, l'état utile tenu par le
 -- serveur arrive par la remise "npcHand" (bail, santé acceptée, arme ; champs réservés étape de routine, cible,
 -- munitions). Le nouveau propriétaire l'applique à sa copie dès qu'elle est locale (santé abaissée à la valeur
 -- acceptée, jamais relevée ; arme reprise si sa table est plus ancienne) et n'envoie ses rapports d'état qu'après ;
@@ -686,7 +686,7 @@ end
 -- ---------------------------------------------------------------- remise d'état (LK03-T03, client MP)
 
 -- Applique la remise h à la copie locale z : santé abaissée à la santé acceptée par le serveur (jamais relevée :
--- pas de soin ; bornée à 0..HP_MAX, la santé voyageant en short x 1000, docs/conception/sante.md) ; arme voulue
+-- pas de soin ; bornée à 0..HP_MAX, la santé voyageant en short x 1000, docs/annexes/conception/sante.md) ; arme voulue
 -- reprise si la table des armes reçue est plus ancienne que celle de la remise (er). Rend vrai.
 function Executor.applyHand(id, z, h)
     local c = LivingKnox.Config.REPORTS

@@ -1,5 +1,5 @@
 -- Living Knox : avertissements et sommations à l'approche d'un foyer ou d'un groupe, côté autorité (LK11-T02).
--- Fiche : docs/conception/sommations.md. Autorité seulement (serveur dédié ou hébergé, solo) : un client MP charge aussi
+-- Fiche : docs/annexes/conception/sommations.md. Autorité seulement (serveur dédié ou hébergé, solo) : un client MP charge aussi
 -- media/lua/server, il s'arrête ici. Aucune décision côté client : les clients ne reçoivent que les répliques
 -- (LK_Speech), les consignes LK03 (regard, arrêt), les gestes (LK_Anim) et les effets d'un coup de semonce (LK_Combat),
 -- tous décidés et diffusés par l'autorité : deux observateurs voient la même séquence.

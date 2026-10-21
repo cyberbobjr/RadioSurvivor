@@ -200,7 +200,7 @@ class ValueTests(unittest.TestCase):
         cls.tv = cls.rt.execute((LUA / VALUES).read_text(encoding='utf-8'))
 
     def test_values_match_the_validated_table(self):
-        doc = (ROOT / 'docs' / 'passeur-table.md').read_text(encoding='utf-8')
+        doc = (ROOT / 'docs' / 'specifications-techniques' / 'passeur-table.md').read_text(encoding='utf-8')
         self.assertIn('Table validée telle quelle', doc)
         cases = {'Antibiotics': 8, 'AntibioticsBox': 90, 'CigaretteCarton': 25, 'AssaultRifle': 20, '556Box': 8,
                  'Battery': 2, 'TinnedBeans': 2, 'Bullets9mmBox': 10, '308Box': 14, 'GoldBar': 40,

@@ -1,5 +1,5 @@
 -- Living Knox : relais des gestes et des poses vers les clients proches, filtré et borné (LK03-T05).
--- Fiche : docs/conception/corps-et-animations.md, « Relais des gestes ». Java 42.21.0 cité en abrégé (J = zombie/...).
+-- Fiche : docs/annexes/conception/corps-et-animations.md, « Relais des gestes ». Java 42.21.0 cité en abrégé (J = zombie/...).
 --
 -- Serveur MP seulement. Solo : rien (la seule machine lit LivingKnox.Anim et Directives.poses directement). Un client
 -- MP charge aussi media/lua/server : il s'arrête à la première ligne.

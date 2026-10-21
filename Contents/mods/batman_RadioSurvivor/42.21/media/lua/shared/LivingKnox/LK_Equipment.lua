@@ -1,4 +1,4 @@
--- Living Knox : arme visible des corps de PNJ (LK02-T06). Fiche : docs/conception/equipement.md.
+-- Living Knox : arme visible des corps de PNJ (LK02-T06). Fiche : docs/annexes/conception/equipement.md.
 -- Java 42.21.0 cité en abrégé (J = zombie/...) ; Lua vanilla sous media/lua.
 --
 -- Décision du 2026-10-09 : arme ACCROCHÉE (dos, hanche ou ceinture) au repos et en marche ; mise EN MAIN par chaque

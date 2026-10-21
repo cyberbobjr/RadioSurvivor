@@ -1,4 +1,4 @@
--- Living Knox : gabarits d'histoire des groupes (LK10-T01), en anglais et en français. Fiche : docs/conception/recits.md.
+-- Living Knox : gabarits d'histoire des groupes (LK10-T01), en anglais et en français. Fiche : docs/annexes/conception/recits.md.
 -- Données seules, combinées par le serveur (media/lua/server/LivingKnox/LK_Stories.lua). Le jeu exécute aussi ce
 -- fichier sur les clients : il ne contient que des gabarits, jamais l'histoire tirée pour un groupe ni ses secrets.
 --

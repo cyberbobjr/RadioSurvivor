@@ -1,4 +1,4 @@
--- Living Knox : fenêtre d'administration des groupes (LK13-T01). Fiche : docs/conception/administration.md.
+-- Living Knox : fenêtre d'administration des groupes (LK13-T01). Fiche : docs/annexes/conception/administration.md.
 -- M = media/lua vanilla 42.21.
 --
 -- Affiche ce que l'autorité (server/LivingKnox/LK_Admin.lua) répond, sans rien décider : liste des groupes (état,

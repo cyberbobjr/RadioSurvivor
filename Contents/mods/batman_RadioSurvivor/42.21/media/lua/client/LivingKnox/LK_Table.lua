@@ -1,4 +1,4 @@
--- Living Knox : tableau à colonnes des outils de debug (LK13-T15). Fiche : docs/conception/administration.md, section
+-- Living Knox : tableau à colonnes des outils de debug (LK13-T15). Fiche : docs/annexes/conception/administration.md, section
 -- « Panneau de debug des PNJ ». M = media/lua vanilla 42.21.
 --
 -- Fonctions pures (testées hors du jeu) : Table.layout (largeur des colonnes : minimum + part du reste selon le

@@ -19,7 +19,7 @@ Probe of "no chunk loaded" (the engine has no Lua counter of loaded chunks), as 
       site (0 before the wait, 0 after);
     - BuildingDef:isFullyStreamedIn() of each picked building false.
 Every site is printed as a note "site type=... seed=..." with its coordinates, kind and source so that the tester can
-teleport there (forest clearing: trees and slope are not checked by the choice, see docs/conception/sites.md).
+teleport there (forest clearing: trees and slope are not checked by the choice, see docs/annexes/conception/sites.md).
 ]]
 
 require "RST/RST"

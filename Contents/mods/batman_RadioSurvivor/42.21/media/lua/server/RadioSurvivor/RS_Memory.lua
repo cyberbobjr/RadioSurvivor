@@ -7,7 +7,7 @@
 -- solo (une seule clé d'appelant, « solo ») n'hérite pas des souvenirs du précédent.
 -- À chaque demande radio suivante du même appelant à la même voix, RadioSurvivor_Server joint les faits à la demande
 -- (champ memory=, hexadécimal RSV2 d'une liste de chaînes, Memory.field) ; le pont les place dans le prompt comme
--- souvenirs non vérifiés, jamais comme preuve (docs/protocole-carnet-v2.md, « Mémoire des voix »).
+-- souvenirs non vérifiés, jamais comme preuve (docs/specifications-techniques/protocole-carnet-v2.md, « Mémoire des voix »).
 -- Bornes (RadioSurvivor_Const) : MEMORY_MAX_FACTS faits par (voix, appelant, personnage), le plus ancien évincé ; un
 -- fait identique après normalisation (casse, espaces) est rafraîchi, pas dupliqué ; MEMORY_MAX_CALLERS appelants par
 -- voix, le moins récemment servi évincé ; MEMORY_FACT_CHARS caractères par fait.

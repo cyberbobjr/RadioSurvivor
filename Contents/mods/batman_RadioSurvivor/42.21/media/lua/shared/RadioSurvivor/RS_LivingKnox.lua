@@ -316,7 +316,7 @@ function LK.dissent(id, d)
 end
 
 -- ---------------------------------------------------------------- individual departure (E10-T04, authority)
--- Fiche docs/conception/depart.md. LK.leave(id, expect): the NPC leaves its group for good and lives alone. Checked
+-- Fiche docs/annexes/conception/depart.md. LK.leave(id, expect): the NPC leaves its group for good and lives alone. Checked
 -- again now: same group (expect.ref), same composition fingerprint (expect.key, LivingKnox.API.composition), the NPC
 -- may leave (LK.canLeave: alive member of a group of at least 2 living members, not a loner group, not on an
 -- expedition). Home of the loner first (LivingKnox.Sites.pick, type loners: in a ring around the old home, E10-T05,
@@ -486,7 +486,7 @@ function LK.bark(id, situation, opts)
 end
 
 -- ---------------------------------------------------------------- group radios (E08-T06, authority)
--- Fiche docs/conception/radio-groupes.md. A group is a voice of the radio network while it holds a transmitter that a
+-- Fiche docs/annexes/conception/radio-groupes.md. A group is a voice of the radio network while it holds a transmitter that a
 -- living member can use now (group type format 2, LK_GroupTypes): homeRadio = a station at its home, used by a living
 -- member who is not away (expedition team, physical trip); radio = true in a profile = each member of this profile
 -- carries a walkie-talkie, even away. A gone group (wiped, dispersed) or a group without a living member has no radio.
