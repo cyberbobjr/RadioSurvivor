@@ -70,13 +70,13 @@ Une dépendance est **utilisable** dès qu'elle est `testé hors jeu`. Les valid
    Le nombre d'avertissements luacheck ne doit pas augmenter. Si la tâche a des suites en jeu, les écrire aussi (moteur E01) et les lancer dans le banc `lupa` quand elles le permettent.
 6. Mettre à jour la tâche : état, preuve (tests, puis commit), reste. Régénérer `SUIVI.md` (`plan.py suivi`). Mettre à jour la documentation touchée (README du mod, `docs/annexes/conception/carnet-implementation-04221.md` ou son successeur).
 7. Commit **par tâche** sur une branche de travail, message `E01-T02: titre` suivi des lignes d'attribution. Pousser seulement si l'utilisateur l'a demandé.
-8. Base de connaissances : journaliser toute découverte générique sur le moteur (`CLAUDE.md`, section obligatoire), sans nom de mod.
+8. Base de connaissances : journaliser toute découverte générique sur le moteur (`AGENTS.md` du dossier de développement parent, section obligatoire), sans nom de mod.
 9. Si la cible est `solo` ou `MP` : écrire la suite en jeu, lancer la campagne automatique correspondante et consigner le rapport comme preuve. Ne **jamais** annoncer un test en jeu non effectué ; un échec se rapporte avec sa sortie.
 10. S'arrêter après une tâche, ou enchaîner si l'utilisateur l'a demandé. Le compte rendu cite les identifiants traités, les tests lancés et ce qui reste à valider en jeu.
 
 ## Règles permanentes
 
-- Cible **Project Zomboid 42.21**, priorité serveur dédié. `CLAUDE.md` du dossier Workshop s'applique : jamais de modification du Workshop Steam `108600`, correctifs de mods tiers par wrappers dans ce mod ou mod local `batman_…`.
+- Cible **Project Zomboid 42.21**, priorité serveur dédié. `AGENTS.md` du dossier Workshop s'applique : jamais de modification du Workshop Steam `108600`, correctifs de mods tiers par wrappers dans ce mod ou mod local `batman_…`.
 - **Autorité serveur** : un client ne décide jamais d'un effet (inventaire, relation, réputation, mission). Le LLM propose dans une liste fermée, le serveur valide.
 - **Aucun secret** dans une ModData globale ni dans un prompt ; état privé dans les fichiers serveur (`RS_State`).
 - **Coût LLM borné** : toute nouvelle source d'appel passe par les quotas existants (`MAX_PER_HOUR`, budget d'enrichissement) et dispose d'un secours sans pont.

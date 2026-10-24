@@ -28,7 +28,7 @@ dans les pages liées ; ce document ne les répète pas.
 ```
 
 Principes validés par la décision LK00-T02 du 2026-10-03 et la fusion du 2026-10-08 (voir
-[decisions/](decisions/README.md) et [AGENTS.md](../../AGENTS.md)) :
+[decisions/](decisions/README.md) et [developpement.md](../developpement.md)) :
 
 - **Serveur autoritaire** : seules les fonctions serveur décident des effets persistants (récompenses, stocks,
   objectifs, réputation, fréquences). Le client présente et demande.

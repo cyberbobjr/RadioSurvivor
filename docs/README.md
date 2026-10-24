@@ -9,6 +9,7 @@ anglais et en français.
 
 | Document | Rôle |
 |---|---|
+| [developpement.md](developpement.md) | Contraintes de développement du projet : périmètre, architecture à préserver, méthode du plan, écriture indépendante, dépôt |
 | [architecture/](architecture/README.md) | Architecture logicielle : modules par côté, flux réseau, persistance, extensions, outillage |
 | [architecture/ia-multijoueur.md](architecture/ia-multijoueur.md) | Analyse comparative de l'IA des PNJ en multijoueur (décision LK00-T02) |
 | [architecture/decisions/](architecture/decisions/README.md) | Journal des décisions d'architecture et ADR |
@@ -24,8 +25,9 @@ anglais et en français.
 | [annexes/maquettes/](annexes/maquettes/) | Maquettes HTML (carnet, échanges, présentation), [fonctionnalites.html](annexes/maquettes/fonctionnalites.html) (page d'état publiée en artifact), [simulateur-pnj.html](annexes/maquettes/simulateur-pnj.html), [note-de-travail.html](annexes/maquettes/note-de-travail.html) |
 
 À la racine du projet : [README.md](../README.md) (GitHub, anglais), [README_fr.md](../README_fr.md),
-[CHANGELOG.md](../CHANGELOG.md), [CLAUDE.md](../CLAUDE.md) et [AGENTS.md](../AGENTS.md), descriptions Workshop dans
-`workshop/`.
+[CHANGELOG.md](../CHANGELOG.md), descriptions Workshop dans `workshop/`. Aucun fichier d'instructions d'agent dans
+ce dépôt : les règles communes sont dans le dossier de développement parent, les contraintes du projet dans
+[developpement.md](developpement.md).
 
 ## Anciens chemins
 
