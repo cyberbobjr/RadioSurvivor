@@ -50,9 +50,9 @@ l'utilisateur, nos propres essais. Les analyses
 
 ## Dépôt
 
-Dépôt GitHub **public** (MIT, créé le 2026-10-15 sans historique) : branches `main` et `dev`. **Le travail se fait sur
-`main`**, qui porte toujours le dernier état du mod (décision du 2026-10-24, alignée sur les autres dépôts de mods de
-l'utilisateur ; `dev` était la branche de travail jusque-là et a été fusionnée dans `main` par avance rapide). N'y
+Dépôt GitHub **public** (MIT, créé le 2026-10-15 sans historique) : une seule branche, **`main`**, qui porte
+toujours le dernier état du mod (décision du 2026-10-24, alignée sur les autres dépôts de mods de l'utilisateur :
+l'ancienne branche de travail `dev` a été fusionnée par avance rapide puis supprimée, ici et sur `origin`). N'y
 mettre aucune donnée personnelle : chemins absolus du poste de l'utilisateur, adresses, noms de dépôts privés, clés —
 les clés du pont restent dans `bridge/.env`, jamais versionné. Un remote local `archive` pointe vers l'archive privée
 de l'ancien dépôt (branches locales `archive-dev` et `archive-main`) : **ne jamais pousser une branche `archive-*`
