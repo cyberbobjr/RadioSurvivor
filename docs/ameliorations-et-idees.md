@@ -1,7 +1,7 @@
 # Radio Survivor — améliorations de code et idées de fonctionnalités
 
 - **Mod** : Radio Survivor (`name=batman_Radio Survivor`), `id=batman_RadioSurvivor`, `modversion=0.3.0` (build de test), variante `42.21` (`versionMin=42.21`).
-- **Dépôt** : `cyberbobjr/RadioSurvivor` (public, MIT), branche `dev`, dernier commit relu `dcd71ed` (2026-10-18, E07-T10).
+- **Dépôt** : `cyberbobjr/RadioSurvivor` (public, MIT), branche de travail `main` depuis le 2026-10-24 (`dev` avant cette date), dernier commit relu `dcd71ed` (2026-10-18, E07-T10).
 - **Date** : 2026-10-21 ; **avancement mis à jour le 2026-10-23** (aucune version publiée sur le Workshop : `0.3.0` est un build de test et la publication, tâche E16-T05, reste à faire ; corrections sur `dev` jusqu'au commit `dc6a1b8`).
 - **Périmètre** : relecture statique du code Lua (`Contents/mods/batman_RadioSurvivor/42.21/media/lua`, 146 fichiers, environ 70 700 lignes : radio et carnet `RS_*`, moteur de PNJ Living Knox `LK_*`), du pont Python (`bridge/`, environ 3 900 lignes), des outils (`tools/`), des tests (`tests/`, environ 140 étapes dans `run_all.py`, environ 3 180 fonctions de test) et du plan (`docs/annexes/plans/`, état lu par `tools/plan.py` en lecture seule). Base moteur : `.claude/pz-knowledge`. Aucun essai en jeu n'a été fait pour ce document.
 - **Statuts** : « confirmé statiquement » = vu dans le code aux lignes citées ; « à vérifier en jeu » = déduit du code, effet réel ou coût à mesurer. Les lignes sont celles du commit `dcd71ed`.
@@ -15,7 +15,7 @@ Ce qui est déjà planifié n'est pas reproposé. Les tâches encore ouvertes au
 
 ## Tableau de bord — ce qui est fait et ce qui reste
 
-**Légende** : ✅ fait · 🟡 fait en partie · ⬜ pas commencé. « Publié » = présent dans une version du Workshop ; « non publié » = sur une branche (ici `dev`, poussée sur `origin/dev`) mais pas encore publié. Le mod n'a encore **aucune version sur le Workshop** (E16-T05 à faire) ; les corrections ci-dessous sont absentes de `main` et décrites dans la section `Unreleased` du `CHANGELOG.md`. « Testé » : « hors jeu » = bancs Python/lupa cités dans le plan ; aucun point n'est encore vérifié en jeu. Détail de chaque point dans les parties 1 et 2, suivi fin dans `docs/annexes/plans/SUIVI.md` (tâches E11-T20 et E16-T06 à E16-T10).
+**Légende** : ✅ fait · 🟡 fait en partie · ⬜ pas commencé. « Publié » = présent dans une version du Workshop ; « non publié » = poussé sur `origin` mais pas encore publié. Le mod n'a encore **aucune version sur le Workshop** (E16-T05 à faire) ; les corrections ci-dessous sont sur `main` depuis la fusion du 2026-10-24 et décrites dans la section `Unreleased` du `CHANGELOG.md`. « Testé » : « hors jeu » = bancs Python/lupa cités dans le plan ; aucun point n'est encore vérifié en jeu. Détail de chaque point dans les parties 1 et 2, suivi fin dans `docs/annexes/plans/SUIVI.md` (tâches E11-T20 et E16-T06 à E16-T10).
 
 **Bilan** : améliorations de code **11 faites, 3 en partie, 26 à faire** (sur 40) ; les 8 points de priorité haute sont faits, sauf C20 en partie. Idées de fonctionnalités **0 faite, 0 en partie, 25 à faire** (sur 25).
 
