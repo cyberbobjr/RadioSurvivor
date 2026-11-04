@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import re
+import shutil
 import sys
 import tempfile
 import time
@@ -216,6 +217,24 @@ class DriverTests(unittest.TestCase):
         self.assertEqual(d.lua('return tostring(C.tags) .. tostring(C.exclude)'), 'nilnil')
         d.lua('C, W = RST.AutoClient.parse({ "token=a", "save=s", "campaign=solo-rs", "tags=world" })')
         self.assertEqual(d.lua('return W'), 'tags= and exclude= need suite=')
+
+    def test_solo_god_mode_set_before_the_run(self):
+        for line, want in (('godmode=true\n', True), ('', None)):
+            shutil.rmtree(self.tests, ignore_errors=True)   # new launch: no status of the previous one
+            self.write_command('token=abc\nsave=rstest-auto\nsuite=rst.selftest\nstartDelaySec=0\nscreenshot=false\n'
+                               + line)
+            d = Driver(self.root)
+            d.lua('P0 = { setGodMod = function(self, v) GOD = v end, isGodMod = function(self) return GOD == true end } '
+                  'getPlayer = function() return P0 end')
+            d.fire('OnMainMenuEnter')
+            d.lua('MainScreen.instance = {}')
+            d.fire('OnFETick', 10)
+            d.fire('OnGameStart')
+            d.fire('OnTick', 2)
+            self.assertEqual(d.lua('return RST.running()'), True)
+            self.assertEqual(d.lua('return GOD'), want, line)
+            if want:
+                self.assertTrue(any('god mode on' in str(v) for v in d.lua('return LOGS').values()))
 
     def test_world_suite_runs_with_tags(self):
         self.write_command('token=abc\nsave=rstest-auto\nsuite=rst.selftest\ntags=nosuchtag\nstartDelaySec=0\n'
@@ -472,6 +491,29 @@ class LauncherTests(unittest.TestCase):
         self.assertNotIn('tags=', autoclient.command_text('ab12', 's', 'Sandbox', None, ['x'], 5, True, True))
         with self.assertRaises(ValueError):
             autoclient.command_text('ab12', 's', 'Sandbox', 'solo-rs', None, 5, True, True, 'world')
+
+    def test_solo_command_asks_god_mode_unless_no_godmode(self):
+        # Campagne solo du 2026-11-04 : joueur tué par les zombies de la nouvelle partie rstest-solo, suites suivantes
+        # en échec (lk.melee « player ... is dead »).
+        self.assertNotIn('godmode=', autoclient.command_text('ab12', 's', 'Sandbox', 'solo', None, 5, True, True))
+        self.assertIn('godmode=true\n', autoclient.command_text('ab12', 's', 'Sandbox', 'solo', None, 5, True, True,
+                                                                godmode=True))
+        captured = {}
+
+        def fake_command_text(*a, **kw):
+            captured.update(kw)
+            raise SystemExit(0)
+        old = autoclient.command_text
+        autoclient.command_text = fake_command_text
+        try:
+            for argv, want in ((['--campaign', 'solo', '--save', 'rstest-x'], True),
+                               (['--campaign', 'solo', '--save', 'rstest-x', '--no-godmode'], False)):
+                captured.clear()
+                with self.assertRaises(SystemExit):
+                    autoclient.main(argv + ['--dry-run'])
+                self.assertEqual(captured.get('godmode'), want, argv)
+        finally:
+            autoclient.command_text = old
 
     def test_last_state_and_result(self):
         status = 'abc menu x\nzzz load y\nabc load Sandbox/s\n'

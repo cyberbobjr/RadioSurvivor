@@ -15,6 +15,8 @@ Command file (written by the launcher in the temporary cache folder, read only h
         startDelaySec=<n>      optional (default 5): real seconds between OnGameStart and the run
         quit=true|false        optional (default true): quit to desktop at the end (the game saves first)
         screenshot=true|false  optional (default true): takeScreenshot("autoclient-<token>.png") before quitting
+        godmode=true|false     optional, solo only (default false): setGodMod(true) on the local player before the
+                               run (zombies of the test save killed the idle player, solo campaign of 2026-11-04)
     Multiplayer client (E01-T15, autoclient.py --mp): connect= replaces save=/mode=
         connect=<host>:<port>  join this dedicated server (no save= needed)
         user=<account>         required with connect=; password=<text> (may be empty)
@@ -180,7 +182,7 @@ function A.parse(lines)
         startDelayMs = (tonumber(cmd.startDelaySec or "5") or 5) * 1000,
         quit = isTrue(cmd.quit, true), screenshot = isTrue(cmd.screenshot, true),
         mp = mp, control = isTrue(cmd.control, false), user = cmd.user, password = cmd.password or "",
-        peer = isTrue(cmd.peer, false),
+        peer = isTrue(cmd.peer, false), godmode = not mp and isTrue(cmd.godmode, false),
         serverCampaign = cmd.serverCampaign,
         serverTimeoutMs = (tonumber(cmd.serverTimeoutSec or "3600") or 3600) * 1000 }
     if mp then
@@ -672,6 +674,13 @@ local function begin(g)
         return
     end
     g.phase = "run"
+    if cmd.godmode then
+        local p = getPlayer()
+        if p ~= nil then
+            p:setGodMod(true)
+            log("god mode on for the run")
+        end
+    end
     local what = cmd.campaign and ("campaign " .. cmd.campaign) or ("suites " .. table.concat(cmd.suites, ","))
     local ok, started, reason = pcall(startRun, cmd)
     if not ok or not started then

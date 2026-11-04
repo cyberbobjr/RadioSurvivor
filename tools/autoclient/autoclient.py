@@ -25,6 +25,8 @@ copie modifiée de options.ini. Rien n'est écrit dans le jeu, dans `%USERPROFIL
   4. le pilote Lua RST_AutoClient.lua charge la partie au menu ; l'écran de chargement attend un clic gauche
      (GameLoadingState.update lit Mouse.isButtonDown(0)) : le lanceur envoie WM_LBUTTONDOWN/UP à la fenêtre du
      processus (PostMessage, sans prendre le focus ni bouger la souris) tant que le dernier état est « load » ;
+     mode dieu du joueur avant le passage (godmode=true, sauf --no-godmode : les zombies de la partie tuaient le
+     joueur immobile, campagne solo du 2026-11-04) ;
   5. fin : autoclient-result.txt complet (dernière ligne RST-END), le jeu se ferme (quitToDesktop, sauvegarde de la
      copie) ; sinon arrêt forcé du seul processus lancé, après --timeout ou --quit-timeout.
 Résultats copiés dans tools/autoclient/runs/<date>-<jeton>/ : autoclient-result.txt, autoclient-status.txt,
@@ -246,7 +248,7 @@ def patch_options(text: str, values: dict[str, str] = WINDOW) -> str:
 
 def command_text(token: str, save: str, mode: str, campaign: str | None, suites: list[str] | None,
                  start_delay: int, quit_game: bool, screenshot: bool, tags: str | None = None,
-                 exclude: str | None = None) -> str:
+                 exclude: str | None = None, godmode: bool = False) -> str:
     if (campaign is None) == (not suites):
         raise ValueError('exactly one of campaign and suites')
     if campaign and (tags is not None or exclude is not None):
@@ -262,6 +264,8 @@ def command_text(token: str, save: str, mode: str, campaign: str | None, suites:
         lines.append('exclude=' + exclude)
     lines += [f'startDelaySec={start_delay}', f'quit={str(quit_game).lower()}',
               f'screenshot={str(screenshot).lower()}']
+    if godmode:
+        lines.append('godmode=true')
     return '\n'.join(lines) + '\n'
 
 
@@ -1293,7 +1297,7 @@ def _main(argv=None) -> int:
     mp.add_argument('--no-godmode', dest='godmode', action='store_false',
                     help='leave the test players mortal (default: "godmodeplayer <account> -true" on the server '
                          'console once each client is in game: ambient zombies otherwise kill the idle players and '
-                         'every later suite fails)')
+                         'every later suite fails; solo too: "godmode=true" in the command, setGodMod before the run)')
     mp.add_argument('--ambient-zombies', action='store_true',
                     help='keep the vanilla zombie population of the test server (default: start and peak population '
                          'multipliers at 0, a calm site like the solo test saves; the suites create their own zombies)')
@@ -1344,7 +1348,7 @@ def _main(argv=None) -> int:
             return 2
         suites = [s.strip() for s in args.suite.split(',') if s.strip()]
     command = command_text(token, save, args.mode, args.campaign, suites, args.start_delay,
-                           not args.no_quit, not args.no_screenshot, args.tags, args.exclude)
+                           not args.no_quit, not args.no_screenshot, args.tags, args.exclude, godmode=args.godmode)
 
     if not args.dry_run:
         slot, why = wait_for_slot(args.max_parallel, args.wait_idle, SLOTS_DIR)
