@@ -2160,6 +2160,9 @@ class FixtureTests(AsyncHarness):
         self.lua(FAKE_ITEMS)
         self.lua(f'dofile([[{FIXTURES_FILE.as_posix()}]])')
         self.lua('F = RST.Fixtures; CTX = { side = "solo", player = PLAYER }')
+        # Zone de départ chargée (retour solo : F.areaBack lit le centre et les coins de la boîte F.BACK_RADIUS).
+        self.lua('local r = F.BACK_RADIUS or 10 '
+                 'for _, d in ipairs({ { -r, -r }, { r, -r }, { -r, r }, { r, r } }) do loadSquare(100 + d[1], 200 + d[2], 0) end')
 
     def run_async(self, code, flt='"f"', ctx='CTX'):
         self.lua(code)
@@ -2594,6 +2597,75 @@ class FixtureTests(AsyncHarness):
         cmds = lua_list(self.g.SERVER_CMDS)
         self.assertEqual(len(cmds), 1)
         self.assertEqual(self.lua('return SERVER_CMDS[1].p == OTHER and SERVER_CMDS[1].args.x'), 90.5)
+
+    # ------------------------------------------------------------- retour solo (campagne solo 2026-10-15)
+
+    # Campagne solo du 2026-10-15 (runs/20261015-114001-parallel-2-54087fb0f84f) : le joueur remis à sa place par le
+    # nettoyage, la suite suivante démarrait aussitôt, zone pas encore rechargée : « npc spawn refused: square
+    # 11316,6942,0 is not loaded » (12 tests). Le retour solo attend donc le rechargement (borné, puis une note).
+    UNLOAD_ORIGIN = r'''
+        UNLOAD_UNTIL = nil
+        local getSq = CELL.getGridSquare
+        CELL.getGridSquare = function(self, x, y, z)
+            if UNLOAD_UNTIL ~= nil and CLOCK < UNLOAD_UNTIL and math.abs(x - 100) <= 30 and math.abs(y - 200) <= 30 then
+                return nil
+            end
+            return getSq(self, x, y, z)
+        end
+        loadSquare(102, 200, 0)
+        for _, d in ipairs({ { -10, -10 }, { 10, -10 }, { -10, 10 }, { 10, 10 } }) do loadSquare(100 + d[1], 200 + d[2], 0) end
+        '''
+
+    def test_solo_way_back_of_move_player_waits_for_the_area(self):
+        self.lua(self.UNLOAD_ORIGIN)
+        self.run_async(r'''
+        RST.suite("f", { tags = "world" }, function(s)
+            s.test("away", function(t)
+                F.movePlayer(t, PLAYER, 400.5, 400.5, 0)
+                UNLOAD_UNTIL = CLOCK + 2000          -- zone de départ rechargée 2 s après le retour
+                t:ok(true)
+            end)
+            s.test("next", function(t)
+                t:ok(CELL:getGridSquare(102, 200, 0) ~= nil, "square next to the start place not loaded")
+            end)
+        end)''')
+        self.assertEqual(self.status('f', 'away')[0], 'PASS')
+        self.assertEqual(self.status('f', 'next')[0], 'PASS')
+        self.assertEqual(self.notes('f', 'away'), [])
+        self.assertTrue(self.lua('return logged("area around 100,200,0 loaded again after")'))
+
+    def test_solo_way_back_never_loaded_ends_with_a_note(self):
+        self.lua(self.UNLOAD_ORIGIN)
+        self.run_async(r'''
+        RST.suite("f", { tags = "world" }, function(s)
+            s.test("away", function(t)
+                F.movePlayer(t, PLAYER, 400.5, 400.5, 0)
+                UNLOAD_UNTIL = CLOCK + 10 ^ 9
+                t:ok(true)
+            end)
+            s.test("next", function(t) t:ok(CELL:getGridSquare(102, 200, 0) ~= nil, "not loaded") end)
+        end)''')
+        self.assertEqual(self.status('f', 'away')[0], 'PASS')
+        self.assertEqual(self.notes('f', 'away'),
+                         ['area around the start place 100,200,0 not loaded 15000 ms after the way back'])
+        self.assertEqual(self.status('f', 'next')[0], 'FAIL')
+
+    def test_solo_position_guard_waits_for_the_area(self):
+        self.lua(self.UNLOAD_ORIGIN)
+        self.run_async(r'''
+        RST.suite("f", { tags = "world" }, function(s)
+            s.test("leaves", function(t)
+                PLAYER.x, PLAYER.y = 400.5, 400.5
+                UNLOAD_UNTIL = CLOCK + 2000
+                t:ok(true)
+            end)
+            s.test("next", function(t)
+                t:ok(CELL:getGridSquare(102, 200, 0) ~= nil, "square next to the start place not loaded")
+            end)
+        end)''')
+        self.assertEqual(self.status('f', 'next')[0], 'PASS')
+        self.assertEqual(self.notes('f', 'leaves'),
+                         ['position guard: player player0 left at 400,400,0 by the test, moved back to 100,200,0'])
 
     def test_move_player_on_server_needs_async(self):
         self.lua('isServer = function() return true end')

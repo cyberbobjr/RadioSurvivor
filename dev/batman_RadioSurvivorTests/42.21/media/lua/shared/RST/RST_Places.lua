@@ -25,7 +25,8 @@ only. Load with: require "RST/RST_Places". No side effect at load time (definiti
         spec.loadRadius, default LOAD_RADIUS, of the place), and spec.spot is asked again. The first square found is
         where the player is put (centre of the square). A "[RSTP] place ..." line is printed. Cleanup (t:defer,
         registered at the first move): the player goes back to where he stood, and (solo) the cleanup waits until he
-        stands there and the squares within Pl.BACK_RADIUS are loaded again (Pl.areaBack, at most Pl.BACK_LOAD_MS).
+        stands there and the squares within F.BACK_RADIUS are loaded again (Pl.areaBack -> RST.Fixtures.areaBack, at
+        most F.BACK_LOAD_MS).
         No place found: the test is SKIP with spec.name and the number of places tried.
         Candidates come from the metagrid around the place where the player stood when the test started: from the same
         start place (spawn of a test save, spawn house of the MP campaign) the same places are tried in the same order,
@@ -100,28 +101,10 @@ local function placeLocal(p, x, y, z)
     p:setLastZ(z)
 end
 
--- After a way back (solo): waits until the player stands on his square again and every square of the box of
--- Pl.BACK_RADIUS around it is loaded, at most Pl.BACK_LOAD_MS (then a note, no failure: the next suite says what it
--- misses). Returns nothing; the wait is the last step of the calling cleanup.
-Pl.BACK_RADIUS = 10        -- squares around the start place loaded before the next test (npcs spawned 2 to 5 away)
-Pl.BACK_LOAD_MS = 15000
+-- After a way back (solo): RST.Fixtures.areaBack (area around the start place loaded again, bounded, then a note).
+-- Returns nothing; the wait is the last step of the calling cleanup.
 function Pl.areaBack(t, p, origin)
-    local x, y, z = math.floor(origin.x), math.floor(origin.y), math.floor(origin.z)
-    local since = getTimestampMs()
-    local function ready()
-        local sq = p:getCurrentSquare()
-        return sq ~= nil and sq:getX() == x and sq:getY() == y and sq:getZ() == z and loadedBox(x, y, z, Pl.BACK_RADIUS)
-    end
-    t:waitQuiet(function()
-        return ready() or getTimestampMs() - since >= Pl.BACK_LOAD_MS
-    end, Pl.BACK_LOAD_MS + 5000, function(t2)
-        if ready() then
-            log(string.format("area around %d,%d,%d loaded again after %d ms", x, y, z, getTimestampMs() - since))
-        else
-            t2:note(string.format("area around the start place %d,%d,%d not loaded %d ms after the way back", x, y, z,
-                Pl.BACK_LOAD_MS))
-        end
-    end, "area of the start place not loaded")
+    return RST.Fixtures.areaBack(t, p, origin.x, origin.y, origin.z)
 end
 
 local function target(t)

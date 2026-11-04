@@ -145,11 +145,8 @@ end
 
 -- New armed npc next to the player, with the medic pockets (test seam on Loot.contextOf, restored by t:defer).
 -- waitCopies: MP, wait until the other clients hold their copy of the body (a death is checked there).
-local function armedNpc(t, cont, waitCopies)
-    t:ok(B() ~= nil and L() ~= nil and H() ~= nil and A() ~= nil,
-        "LivingKnox.Loot (LK07-T05) is not loaded on this side")
+local function armedNpcLoaded(t, cont, waitCopies)
     local p = RST.Fixtures.player(t)
-    t:ok(p ~= nil, "no target player (t.ctx.player)")
     local x, y, z = math.floor(p:getX()) + 2, math.floor(p:getY()), math.floor(p:getZ())
     local original = L().contextOf
     L().contextOf = function() return { role = ROLE, level = LEVEL } end
@@ -171,6 +168,15 @@ local function armedNpc(t, cont, waitCopies)
             cont(t3, { id = id, p = p, x = x, y = y, z = z, body = zb })
         end)
     end, "npc still on the floor")
+end
+
+-- The squares around the player loaded first (K.whenLoaded), then armedNpcLoaded.
+local function armedNpc(t, cont, waitCopies)
+    t:ok(B() ~= nil and L() ~= nil and H() ~= nil and A() ~= nil,
+        "LivingKnox.Loot (LK07-T05) is not loaded on this side")
+    local p = RST.Fixtures.player(t)
+    t:ok(p ~= nil, "no target player (t.ctx.player)")
+    K.whenLoaded(t, p, function(t1) armedNpcLoaded(t1, cont, waitCopies) end)
 end
 
 -- Swap switches of a firearm overhaul that replaces vanilla guns, magazines and ammo through creation hooks (read in

@@ -3,7 +3,7 @@
 Campagne solo du 2026-10-15 (commit 54087fb, runs/20261015-114001-parallel-2-54087fb0f84f) : après lk.traversal, le
 joueur était remis à sa place par le nettoyage du test, mais la suite suivante démarrait aussitôt, zone pas encore
 rechargée : « npc spawn refused: square 11316,6942,0 is not loaded » (11 tests). Pl.areaBack fait attendre le
-nettoyage jusqu'au chargement des cases autour de la place de départ (au plus Pl.BACK_LOAD_MS, puis une note).
+nettoyage jusqu'au chargement des cases autour de la place de départ (RST.Fixtures.areaBack, au plus F.BACK_LOAD_MS, puis une note).
 
 Lancer : python RadioSurvivor/tests/test_lk_places.py
 """

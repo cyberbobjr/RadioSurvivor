@@ -34,6 +34,7 @@ RST.CAMPAIGNS["solo-lk"] = {
     "lk.executor",      -- LK03-T07
     "lk.ownerreports", -- LK03-T02 (owner part; the non-owner part is noted in solo)
     "lk.spawnclean",   -- LK03-T06
+    "rst.fixtures.npc", -- E01-T10, E01-T18 (test API of Living Knox, debug mode)
     "lk.deathswing",   -- LK06-T13
     "lk.windowlure",    -- LK06-T10
     "lk.revenge",       -- LK11-T05 (E01-T19)
@@ -170,6 +171,7 @@ RST.CAMPAIGNS["mp"] = {
     "lk.handover",     -- LK03-T03
     "lk.relay",        -- LK03-T05
     "lk.spawnclean",   -- LK03-T06
+    "rst.fixtures.npc", -- E01-T10, E01-T18 (test API on the server started in debug mode)
     "lk.health",        -- LK07-T02, LK07-T06
     "lk.death",         -- LK07-T04
     "lk.loot",          -- LK07-T05

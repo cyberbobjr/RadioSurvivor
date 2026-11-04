@@ -215,8 +215,7 @@ local function runCasesRemote(t, cases, id)
 end
 
 -- One npc, every case in turn, then the weapon removed; OnEquipPrimary events and skipped fishing calls compared.
-local function runCases(t, cases, dx, dy)
-    needSolo(t)
+local function runCasesLoaded(t, cases, dx, dy)
     local id = spawnNpc(t, dx, dy)
     if onServer() then
         t:waitUntil(standing(id), STAND_MS, function(t2) runCasesRemote(t2, cases, id) end, "npc still on the floor")
@@ -293,6 +292,14 @@ local function runCases(t, cases, dx, dy)
     end
 
     t:waitUntil(standing(id), STAND_MS, function(t2) caseStep(t2, 1) end, "npc still on the floor")
+end
+
+-- The squares around the player loaded first (RST.LKHelpers.whenLoaded), then runCasesLoaded.
+local function runCases(t, cases, dx, dy)
+    needSolo(t)
+    local anchor = RST.Fixtures.player(t)
+    t:ok(anchor ~= nil, "no target player (t.ctx.player)")
+    RST.LKHelpers.whenLoaded(t, anchor, function(t1) runCasesLoaded(t1, cases, dx, dy) end)
 end
 
 -- LK02-T13: first firearm of an installed weapons mod (script module other than Base, ranged, with a known attachment

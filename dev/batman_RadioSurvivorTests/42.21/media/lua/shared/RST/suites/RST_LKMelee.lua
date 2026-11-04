@@ -56,8 +56,17 @@ local function soundCounts()
         sent = st.meleeSounds or 0 }
 end
 
+-- Test body run once the squares around the target player are loaded (K.whenLoaded: an npc is spawned 3 squares away).
+local function whenLoaded(body)
+    return function(t)
+        local p = RST.Fixtures.player(t)
+        t:ok(p ~= nil, "no target player (t.ctx.player)")
+        K.whenLoaded(t, p, body)
+    end
+end
+
 RST.suite("lk.melee", { tags = { "world", "server" }, testTimeoutMs = 60000, timeoutMs = 120000 }, function(s)
-    s.test("npc runs to the player and strikes him, each hit applied once", function(t)
+    s.test("npc runs to the player and strikes him, each hit applied once", whenLoaded(function(t)
         t:ok(B() ~= nil and C() ~= nil and C().engage ~= nil, "LivingKnox.Combat (LK06-T02) is not loaded on this side")
         local p = RST.Fixtures.player(t)
         t:ok(p ~= nil, "no target player (t.ctx.player)")
@@ -120,10 +129,10 @@ RST.suite("lk.melee", { tags = { "world", "server" }, testTimeoutMs = 60000, tim
                 end
             end, "fewer than " .. (MIN_HITS + 1) .. " hits applied in " .. WAIT_MS .. " ms")
         end, "npc still on the floor")
-    end)
+    end))
 
     -- LK06-T13: npc killed in the middle of a swing.
-    s.test("npc killed during a swing: the swing stops and no melee sound follows", function(t)
+    s.test("npc killed during a swing: the swing stops and no melee sound follows", whenLoaded(function(t)
         t:ok(B() ~= nil and C() ~= nil and H() ~= nil and H().kill ~= nil, "LivingKnox.Combat or Health not loaded")
         if V() == nil or V().stats.bodySoundsStopped == nil then
             -- Dedicated server: the melee sounds are played by the clients; the second client listens to its copy of
@@ -182,5 +191,5 @@ RST.suite("lk.melee", { tags = { "world", "server" }, testTimeoutMs = 60000, tim
                 end)
             end, "no swing played in " .. WAIT_MS .. " ms")
         end, "npc still on the floor")
-    end, { timeoutMs = 100000 })
+    end), { timeoutMs = 100000 })
 end)

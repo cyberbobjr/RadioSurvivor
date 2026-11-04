@@ -15,6 +15,8 @@ only. Load with: require "RST/RST_LKHelpers". At load time: definitions, and the
                                          and a function removing it at once (idempotent)
     K.diedOf(z)                          true once a zombie of K.spawnVanilla died (kept past the reuse of the
                                          Java object, 5 s after it leaves the world)
+    K.whenLoaded(t, anchor, cont)        next step cont(t2) once the squares within K.SPAWN_RADIUS of the anchor are
+                                         loaded (FAIL after K.SPAWN_LOAD_MS): call before spawning an npc near it
     K.target(z, dx, dy)                  free square near (body + dx, dy) (LivingKnox.Bodies.findFreeSquare), or nil
     K.hideOtherPlayersFrom(t, gid, user) players other than the account user hidden from group gid (test only)
     K.unlockDoorsNear(t, anchor, r)      locked doors and windows within r squares unlocked for the test (locked
@@ -279,6 +281,28 @@ function K.unlockDoorsNear(t, anchor, r)
         end, #doors .. " door(s) or window(s) locked again")
     end
     return #doors
+end
+
+-- Next step cont(t2) once every square within K.SPAWN_RADIUS of the anchor's square is loaded (t:waitQuiet, at most
+-- K.SPAWN_LOAD_MS, then FAIL naming the area). Campaign solo of 2026-10-15 (commit 54087fb): suites spawning an npc
+-- 2 or 3 squares from the player right after the way back of a former suite got "npc spawn refused: square ... is
+-- not loaded" (12 tests).
+K.SPAWN_RADIUS = 5
+K.SPAWN_LOAD_MS = 15000
+
+function K.whenLoaded(t, anchor, cont)
+    local x, y, z = math.floor(anchor:getX()), math.floor(anchor:getY()), math.floor(anchor:getZ())
+    local r = K.SPAWN_RADIUS
+    t:waitQuiet(function()
+        local cell = getCell()
+        if cell == nil then return false end
+        for dy = -r, r do
+            for dx = -r, r do
+                if cell:getGridSquare(x + dx, y + dy, z) == nil then return false end
+            end
+        end
+        return true
+    end, K.SPAWN_LOAD_MS, cont, "squares within " .. r .. " of " .. x .. "," .. y .. "," .. z .. " not loaded")
 end
 
 -- Free target square near (body + dx, dy), or nil.

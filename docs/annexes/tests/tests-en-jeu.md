@@ -332,6 +332,12 @@ Déplacements du joueur par le serveur (`RST.Fixtures.movePlayer`) : l'attente s
 trouvait « square … is not loaded »). `F.movePlayers` déplace aussi tous les autres joueurs connectés du même décalage
 (et les ramène) : suites qui doivent décharger la zone (`lk.bodies`, `lk.guard`) avec deux clients.
 
+En solo, tout retour du joueur (nettoyage de `movePlayer`, garde de position, `RST.Places`) attend que le joueur soit
+sur sa case et que les cases à `F.BACK_RADIUS` (10) soient rechargées (`RST.Fixtures.areaBack`, au plus 15 s, puis une
+note). Les suites `lk.equipment`, `lk.melee`, `lk.ownerreports`, `lk.health` et `lk.loot` attendent aussi les cases à
+`K.SPAWN_RADIUS` (5) autour du joueur avant de faire apparaître leur PNJ (`RST.LKHelpers.whenLoaded`). Les autres
+suites qui font apparaître un PNJ n'en bénéficient pas encore.
+
 Limites : clients sur la même machine (latence nulle : pas de mesure réseau réaliste) ; un serveur ne téléporte pas un
 client, les suites qui cherchent un autre lieu (`RST.Places`) passent en SKIP ; personnage neuf à chaque passage (monde
 neuf, aucune reconnexion ni redémarrage du serveur dans la même commande) ; Windows seulement.

@@ -63,12 +63,16 @@ local function spawnNpc(t)
 end
 
 local function standingNpc(t, cont)
-    local id, p = spawnNpc(t)
-    t:waitUntil(K.standing(id), K.STAND_MS, function(t2)
-        local z = B().find(id)
-        t2:ok(z ~= nil, "npc body lost")
-        cont(t2, id, z, p)
-    end, "npc still on the floor")
+    local anchor = RST.Fixtures.player(t)
+    t:ok(anchor ~= nil, "no target player (t.ctx.player)")
+    K.whenLoaded(t, anchor, function(t1)
+        local id, p = spawnNpc(t1)
+        t1:waitUntil(K.standing(id), K.STAND_MS, function(t2)
+            local z = B().find(id)
+            t2:ok(z ~= nil, "npc body lost")
+            cont(t2, id, z, p)
+        end, "npc still on the floor")
+    end)
 end
 
 local function bat(t)

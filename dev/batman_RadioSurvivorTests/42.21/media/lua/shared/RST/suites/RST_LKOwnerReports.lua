@@ -86,15 +86,19 @@ local function why(reason) return R().stats.why[reason] or 0 end
 
 -- Waits for the body standing and one accepted state report; then suite(t, id, player, state, owner account).
 local function ready(t, suite)
-    local id, p = spawnNpc(t)
-    t:waitUntil(K.standing(id), K.STAND_MS, function(t2)
-        t2:waitUntil(function() return R().get(id) end, STATE_MS, function(t3, s)
-            local z = B().find(id)
-            t3:ok(z ~= nil, "npc body lost")
-            local owner = isServer() and D().ownerName(z) or PL.accountOf(p)
-            suite(t3, id, p, s, owner, z)
-        end, "no state report accepted for the new body")
-    end, "npc still on the floor")
+    local anchor = RST.Fixtures.player(t)
+    t:ok(anchor ~= nil, "no target player (t.ctx.player)")
+    K.whenLoaded(t, anchor, function(t1)
+        local id, p = spawnNpc(t1)
+        t1:waitUntil(K.standing(id), K.STAND_MS, function(t2)
+            t2:waitUntil(function() return R().get(id) end, STATE_MS, function(t3, s)
+                local z = B().find(id)
+                t3:ok(z ~= nil, "npc body lost")
+                local owner = isServer() and D().ownerName(z) or PL.accountOf(p)
+                suite(t3, id, p, s, owner, z)
+            end, "no state report accepted for the new body")
+        end, "npc still on the floor")
+    end)
 end
 
 -- Sends report from account (target of the step), waits for one more refusal of reason, checks state and body.

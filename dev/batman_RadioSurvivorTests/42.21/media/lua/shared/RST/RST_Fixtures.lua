@@ -31,7 +31,12 @@ failing undo is reported as "cleanup <label>: ..." on the test and does not stop
                                          on; on a server or an MP client the move is a wait that ENDS the phase
                                          when reached (assertions after it in the same step are an ERROR: pass a
                                          suite). Undo: back to the origin (same float coordinates), waiting the
-                                         same way in MP. A vehicle is left (not re-entered by the undo).
+                                         same way in MP; in solo (asynchronous run) the undo waits for the area
+                                         around the origin (F.areaBack). A vehicle is left (not re-entered by the
+                                         undo).
+    F.areaBack(t, player, x, y, z)       solo way back: waits (t:waitQuiet) until the player stands on the square
+                                         of x, y and the squares within F.BACK_RADIUS are loaded, at most
+                                         F.BACK_LOAD_MS, then a note on the test (no failure).
     F.movePlayers(t, player, x, y, z[, suite])
                                          as movePlayer, and on a server every other online player is moved by the
                                          same offset (each from its own position; undo: each back to its own
@@ -327,8 +332,45 @@ local function waitNear(t, moves, what, suite)
         what .. ": player did not reach " .. coords(first.x, first.y, first.z) .. " (or its squares not loaded)")
 end
 
--- Moves the players (moves: list of { p, x, y, z }, see the header); suite(t) is the next step, or nil.
-local function place(t, moves, what, suite)
+-- Every square at the centre and the corners of the box of radius r around x, y, z is loaded.
+local function loadedBox(x, y, z, r)
+    local cell = type(getCell) == "function" and getCell() or nil
+    if cell == nil then return false end
+    for _, d in ipairs({ { 0, 0 }, { -r, -r }, { r, -r }, { -r, r }, { r, r } }) do
+        if cell:getGridSquare(x + d[1], y + d[2], z) == nil then return false end
+    end
+    return true
+end
+
+-- Solo way back (cleanup of a move, position guard, RST.Places): waits until the player stands on the square of x, y
+-- again and the box of F.BACK_RADIUS around it is loaded, at most F.BACK_LOAD_MS, then a note (no failure: the next
+-- suite says what it misses). Campaign solo of 2026-10-15 (commit 54087fb): player put back by a cleanup and the next
+-- suites at once "npc spawn refused: square ... is not loaded" (12 tests). The wait is the last step of the cleanup.
+F.BACK_RADIUS = 10          -- npcs are spawned 2 to 5 squares away from the player
+F.BACK_LOAD_MS = 15000
+function F.areaBack(t, p, x, y, z)
+    x, y, z = math.floor(x), math.floor(y), math.floor(z)
+    local since = getTimestampMs()
+    local function ready()
+        local sq = p:getCurrentSquare()
+        return sq ~= nil and sq:getX() == x and sq:getY() == y and math.floor(p:getZ()) == z
+            and loadedBox(x, y, z, F.BACK_RADIUS)
+    end
+    t:waitQuiet(function()
+        return ready() or getTimestampMs() - since >= F.BACK_LOAD_MS
+    end, F.BACK_LOAD_MS + 5000, function(t2)
+        if ready() then
+            log(string.format("area around %d,%d,%d loaded again after %d ms", x, y, z, getTimestampMs() - since))
+        else
+            t2:note(string.format("area around the start place %d,%d,%d not loaded %d ms after the way back", x, y, z,
+                F.BACK_LOAD_MS))
+        end
+    end, "area of the start place not loaded")
+end
+
+-- Moves the players (moves: list of { p, x, y, z }, see the header); suite(t) is the next step, or nil. back: a way
+-- back (solo: F.areaBack when the run is asynchronous).
+local function place(t, moves, what, suite, back)
     if isServerSide() then
         for _, m in ipairs(moves) do
             sendServerCommand(m.p, "RST", F.COMMAND, { x = m.x, y = m.y, z = m.z })
@@ -340,7 +382,11 @@ local function place(t, moves, what, suite)
         waitNear(t, { m }, what, suite)
     else
         for _, m in ipairs(moves) do placeLocal(m.p, m.x, m.y, m.z) end
-        if suite then waitNear(t, moves, what, suite) end
+        if suite then
+            waitNear(t, moves, what, suite)
+        elseif back and t._async then
+            F.areaBack(t, moves[1].p, moves[1].x, moves[1].y, moves[1].z)
+        end
     end
 end
 
@@ -375,7 +421,7 @@ local function move(t, player, x, y, z, suite, all, what)
             back[#back + 1] = { p = o, x = ox, y = oy, z = oz }
         end
     end
-    t:defer(function(tt) place(tt, back, what .. " cleanup") end,
+    t:defer(function(tt) place(tt, back, what .. " cleanup", nil, true) end,
         what .. " back to " .. coords(origin.x, origin.y, origin.z))
     local continuation = nil
     if suite then
@@ -452,7 +498,7 @@ function F.guardPositions(t)
         end
         if #moves == 0 then return end
         if not tt._async and (isServerSide() or isClientSide()) then return end
-        place(tt, moves, "position guard")
+        place(tt, moves, "position guard", nil, true)
     end, "position guard: players back where the test found them")
 end
 
