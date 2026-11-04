@@ -248,7 +248,7 @@ def patch_options(text: str, values: dict[str, str] = WINDOW) -> str:
 
 def command_text(token: str, save: str, mode: str, campaign: str | None, suites: list[str] | None,
                  start_delay: int, quit_game: bool, screenshot: bool, tags: str | None = None,
-                 exclude: str | None = None, godmode: bool = False) -> str:
+                 exclude: str | None = None, godmode: bool = False, calm: bool = False) -> str:
     if (campaign is None) == (not suites):
         raise ValueError('exactly one of campaign and suites')
     if campaign and (tags is not None or exclude is not None):
@@ -266,6 +266,8 @@ def command_text(token: str, save: str, mode: str, campaign: str | None, suites:
               f'screenshot={str(screenshot).lower()}']
     if godmode:
         lines.append('godmode=true')
+    if calm:
+        lines.append('calm=true')
     return '\n'.join(lines) + '\n'
 
 
@@ -1123,12 +1125,19 @@ def kill_tree(pid: int) -> None:
 
 # ---------------------------------------------------------------- cache
 
-def build_cache(cache: Path, save: str, mode: str, command: str, mods: list[tuple[str, Path]] = MODS) -> None:
+def build_cache(cache: Path, save: str, mode: str, command: str, mods: list[tuple[str, Path]] = MODS,
+                calm: bool = False) -> None:
+    """calm (solo, default unless --ambient-zombies): the zombie population of the COPY is dropped (zpop/, virtual
+    zombies of the save) and calm=true asks RST_AutoClient.lua for population multipliers at 0, read by the native
+    population manager at the world load (IsoWorld.java:1948 OnLoadMapZones, then :2052 ZombiePopulationManager.init):
+    a calm site like the MP test server (mp_server_sandbox). The real save is never changed."""
     source_save = ZOMBOID / 'Saves' / mode / save
     if not (source_save / 'map_ver.bin').exists():
         raise SystemExit(f'ERROR: save not found: {source_save}')
     target_save = cache / 'Saves' / mode / save
     shutil.copytree(source_save, target_save)
+    if calm and (target_save / 'zpop').is_dir():
+        shutil.rmtree(target_save / 'zpop')
     ids = [m for m, _ in mods]
     (target_save / 'mods.txt').write_text(mods_txt(ids), encoding='utf-8')
     build_client_files(cache, command, mods)
@@ -1299,8 +1308,9 @@ def _main(argv=None) -> int:
                          'console once each client is in game: ambient zombies otherwise kill the idle players and '
                          'every later suite fails; solo too: "godmode=true" in the command, setGodMod before the run)')
     mp.add_argument('--ambient-zombies', action='store_true',
-                    help='keep the vanilla zombie population of the test server (default: start and peak population '
-                         'multipliers at 0, a calm site like the solo test saves; the suites create their own zombies)')
+                    help='keep the vanilla zombie population of the test server or of the solo save copy (default: '
+                         'start and peak population multipliers at 0, and in solo the zombies of the save copy dropped: '
+                         'a calm site; the suites create their own zombies)')
     mp.add_argument('--phases', help='E01-T17: comma-separated actions between steps, "reconnect" (every client '
                                      'quits then joins again), "reconnect2" (client 2 alone quits and joins again, '
                                      'client 1 stays connected) and/or "restart" (clients quit, "quit" on the server '
@@ -1348,7 +1358,8 @@ def _main(argv=None) -> int:
             return 2
         suites = [s.strip() for s in args.suite.split(',') if s.strip()]
     command = command_text(token, save, args.mode, args.campaign, suites, args.start_delay,
-                           not args.no_quit, not args.no_screenshot, args.tags, args.exclude, godmode=args.godmode)
+                           not args.no_quit, not args.no_screenshot, args.tags, args.exclude, godmode=args.godmode,
+                           calm=not args.ambient_zombies)
 
     if not args.dry_run:
         slot, why = wait_for_slot(args.max_parallel, args.wait_idle, SLOTS_DIR)
@@ -1367,7 +1378,7 @@ def _main(argv=None) -> int:
     if missing:
         log('ERROR: mod source folder(s) missing: ' + ', '.join(missing) + ' (RS_WORKSHOP_DIR from a frozen copy)')
         return 2
-    build_cache(cache, save, args.mode, command, mods)
+    build_cache(cache, save, args.mode, command, mods, calm=not args.ambient_zombies)
     cmd = java_command(GAME, cache)
     use_bridge = args.bridge in ('on', 'offline') or (args.bridge == 'auto' and needs_bridge(
         args.campaign, suites, read_text(CAMPAIGN_FILE) if args.campaign else ''))

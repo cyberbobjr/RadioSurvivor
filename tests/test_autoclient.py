@@ -492,6 +492,32 @@ class LauncherTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             autoclient.command_text('ab12', 's', 'Sandbox', 'solo-rs', None, 5, True, True, 'world')
 
+    def test_solo_command_asks_a_calm_site_unless_ambient_zombies(self):
+        # Campagne solo du 2026-11-04 : partie rstest-solo recréée avec la population normale, lk.meals et
+        # lk.expedition passés à se défendre contre les zombies de la partie.
+        self.assertNotIn('calm=', autoclient.command_text('ab12', 's', 'Sandbox', 'solo', None, 5, True, True))
+        self.assertIn('calm=true\n', autoclient.command_text('ab12', 's', 'Sandbox', 'solo', None, 5, True, True,
+                                                             calm=True))
+
+    def test_calm_cache_drops_the_zombie_population_of_the_copy_only(self):
+        import tempfile
+        from unittest import mock
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            zomboid = root / 'Zomboid'
+            src = zomboid / 'Saves' / 'Sandbox' / 'rstest-calm'
+            (src / 'zpop').mkdir(parents=True)
+            (src / 'zpop' / 'zpop_0_0.bin').write_bytes(b'x')
+            (src / 'map_ver.bin').write_bytes(b'v')
+            cache = root / 'cache'
+            with mock.patch.object(autoclient, 'ZOMBOID', zomboid), \
+                    mock.patch.object(autoclient, 'build_client_files'):
+                autoclient.build_cache(cache, 'rstest-calm', 'Sandbox', 'token=x\n', mods=[], calm=True)
+            copy = cache / 'Saves' / 'Sandbox' / 'rstest-calm'
+            self.assertFalse((copy / 'zpop').exists())
+            self.assertTrue((copy / 'map_ver.bin').exists())
+            self.assertTrue((src / 'zpop' / 'zpop_0_0.bin').exists(), 'the real save is never changed')
+
     def test_solo_command_asks_god_mode_unless_no_godmode(self):
         # Campagne solo du 2026-11-04 : joueur tué par les zombies de la nouvelle partie rstest-solo, suites suivantes
         # en échec (lk.melee « player ... is dead »).

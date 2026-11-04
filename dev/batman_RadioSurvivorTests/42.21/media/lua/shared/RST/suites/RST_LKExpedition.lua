@@ -31,6 +31,7 @@ require "RST/RST_Fixtures"
 require "RST/RST_LKHelpers"
 
 local K = RST.LKHelpers
+local EXPEDITION_CLEAR_RADIUS = 45   -- squares around the home cleared of vanilla zombies before the trip
 local measure = K.measurer("[LKX]")
 
 local BODIES_MS = 60000     -- materialization of the four members
@@ -128,6 +129,9 @@ RST.suite("lk.expedition", { tags = { "world", "server" }, testTimeoutMs = 90000
         -- Dedicated server: the players leave the house (solid; campaign MP 2026-10-15: npcs stuck against them).
         K.clearHome(t, home, function(tc)
         tc:waitUntil(function() return bodyCount(gid) == 4 end, BODIES_MS, function(t2)
+            -- Zombies of the save around the home and on the way (solo campaign of 2026-11-04: home defense against
+            -- 4 zombies, the team never left): removed before the objective is set; the target is 20-35 squares away.
+            K.clearZombiesNear(t2, home.x, home.y, home.z, EXPEDITION_CLEAR_RADIUS)
             local r, why = S().check(gid, { force = true })
             t2:ok(type(r) == "table", "stock not checked: " .. tostring(why))
             t2:ok(G.update(function(d)

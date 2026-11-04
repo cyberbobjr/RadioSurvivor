@@ -17,6 +17,9 @@ Command file (written by the launcher in the temporary cache folder, read only h
         screenshot=true|false  optional (default true): takeScreenshot("autoclient-<token>.png") before quitting
         godmode=true|false     optional, solo only (default false): setGodMod(true) on the local player before the
                                run (zombies of the test save killed the idle player, solo campaign of 2026-11-04)
+        calm=true|false        optional, solo only (default false): zombie population multipliers (start, peak) at 0
+                               at OnLoadMapZones, before the native population manager reads them; autoclient.py also
+                               drops zpop/ of its save copy (a calm site like the MP test server, --ambient-zombies off)
     Multiplayer client (E01-T15, autoclient.py --mp): connect= replaces save=/mode=
         connect=<host>:<port>  join this dedicated server (no save= needed)
         user=<account>         required with connect=; password=<text> (may be empty)
@@ -183,6 +186,7 @@ function A.parse(lines)
         quit = isTrue(cmd.quit, true), screenshot = isTrue(cmd.screenshot, true),
         mp = mp, control = isTrue(cmd.control, false), user = cmd.user, password = cmd.password or "",
         peer = isTrue(cmd.peer, false), godmode = not mp and isTrue(cmd.godmode, false),
+        calm = not mp and isTrue(cmd.calm, false),
         serverCampaign = cmd.serverCampaign,
         serverTimeoutMs = (tonumber(cmd.serverTimeoutSec or "3600") or 3600) * 1000 }
     if mp then
@@ -875,11 +879,30 @@ local function onGameStart()
     Events.OnTick.Add(gameTick)
 end
 
+-- Calm site (calm=true, solo): population multipliers at 0 in memory, read by ZombiePopulationManager.init after this
+-- event (IsoWorld.java:1948, :2052); the save copy has no zombie population left (autoclient.py drops zpop/).
+function A.onLoadMapZones()
+    local cmd = A.command()
+    if not cmd or not cmd.calm or cmd.mp or not A.hasStatus("load") then return false end
+    local opts = getSandboxOptions()
+    local set = 0
+    for _, name in ipairs({ "ZombieConfig.PopulationStartMultiplier", "ZombieConfig.PopulationPeakMultiplier" }) do
+        local o = opts and opts:getOptionByName(name)
+        if o then
+            o:setValue(0.0)
+            set = set + 1
+        end
+    end
+    log("calm site: " .. set .. " zombie population multiplier(s) set to 0 for this run")
+    return set == 2
+end
+
 -- ---------------------------------------------------------------- subscriptions (once per Lua state)
 
 if not A._subscribed and type(Events) == "table" then
     if Events.OnMainMenuEnter then Events.OnMainMenuEnter.Add(onMainMenuEnter) end
     if Events.OnGameStart then Events.OnGameStart.Add(onGameStart) end
+    if Events.OnLoadMapZones then Events.OnLoadMapZones.Add(function() RST.AutoClient.onLoadMapZones() end) end
     if Events.OnConnectFailed then Events.OnConnectFailed.Add(onConnectFailed) end
     if Events.OnConnected then Events.OnConnected.Add(onConnected) end
     if Events.OnPlayerDeath then
