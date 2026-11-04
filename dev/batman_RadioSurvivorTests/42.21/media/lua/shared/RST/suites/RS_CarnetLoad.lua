@@ -21,6 +21,7 @@ Outside the game: tests/test_rs_mp_suites.py.
 ]]
 
 require "RST/RST"
+require "RST/RST_RSHelpers"
 require "RST/RST_Fixtures"
 require "RST/RST_Steps"
 require "RST/RST_PeerChecksRadio"
@@ -224,7 +225,13 @@ RST.suite("rs.carnet.load", { tags = { "server", "world" }, testTimeoutMs = 1500
         end
         t:ok(type(cid) == "string", "no notebook character bound to the requester")
         local x, y, z = math.floor(c.p:getX()), math.floor(c.p:getY()), math.floor(c.p:getZ())
-        local kept, dropped = API.testSpawnNpc(x + 2, y, z), API.testSpawnNpc(x - 2, y, z)
+        -- The kept npc stands in sight of the requester (select needs Provider.near: CanSee; MP campaign of 2026-11-04:
+        -- x + 2 behind the glass wall of the start house, "the select command made no contact"); the dropped one on
+        -- the other side of the requester.
+        local spot = RST.RSHelpers.talkSquare(c.p, 2)
+        local kx, ky = x + 2, y
+        if spot ~= nil then kx, ky = spot:getX(), spot:getY() else t:note("no square in sight: kept npc 2 east") end
+        local kept, dropped = API.testSpawnNpc(kx, ky, z), API.testSpawnNpc(2 * x - kx, 2 * y - ky, z)
         t:ok(kept ~= nil and dropped ~= nil, "test npcs not spawned")
         local removed = {}
         local function remove(id)

@@ -236,7 +236,7 @@ function R.talkSquare(p, dx, r)
     local Bodies = LivingKnox and LivingKnox.Bodies
     local cell = getCell()
     local ps = p:getSquare()
-    if Bodies == nil or cell == nil or ps == nil then return nil end
+    if Bodies == nil or Bodies.freeSquare == nil or cell == nil or ps == nil then return nil end
     local function fits(sq)
         return sq ~= nil and not blocked(ps, sq) and not blocked(sq, ps)
     end
