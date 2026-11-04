@@ -22,6 +22,7 @@
 - 2026-10-14 — **LK05-T11** : cueillette si la nourriture est le premier manque, rendement ≥ 25 %, 40 cases ; 3 tirages par membre toutes les 15 min, cueilleur niveau 3 ; objets empoisonnés jetés, graines rangées non suivies ; eau croupie d'abord pour arroser (confirmé par défaut, valeurs techniques).
 - 2026-10-14 — **LK05-T14** : défauts plus courts (alerte zombie 10, portée 20, cri 10, fuite 4/8, engagement 4, défense 8, retraite 8, renforts 15) ; une seule option de rapport de défense (retour au rapport − 1) ; sommations inchangées ; limite zombie mesurée depuis le membre qui perçoit ; renforts de défense = `AlertReach` (confirmé par défaut, valeurs techniques).
 - 2026-10-14 — **LK05-T16** : une option règle toutes les règles qui utilisaient la constante (pas seulement l'inaptitude au combat) (confirmé par défaut, valeurs techniques).
+- 2026-11-04 — **LK05-T20** (demande de l'utilisateur) : chaque PNJ porte 2 vrais aliments non périssables (tables vanilla), remplacés sur le stock du foyer à son passage ; une vraie bouteille ou gourde d'eau qui ne se vide jamais (choix assumé de l'utilisateur) ; faim ≥ 90 en combat sans ennemi à 3 cases ou moins : décroche d'environ 8 cases (hors de vue si possible), mange assis une provision, reprend le combat ; ennemi au contact : la menace d'abord ; hors combat et loin du foyer, mange une provision sur place. Réalisée après E01-T18 (choix de l'utilisateur).
 
 - 2026-10-14 — **Correctifs MP de la campagne automatique confirmés** (utilisateur) : tolérance de position des rapports `REPORTS.MAX_GAP` = 22 cases (LK03, `rapports.md`) ; alerte levée aussi par le zombie qu'un membre combat, décidée par le serveur (LK05-T08, commit `778b940`) ; entretien qui garde la première tâche de chaque sorte sous le plafond `MAX_JOBS` (LK05-T10, `entretien.md`) ; zombie devant la vitre traité comme s'il la frappait jusqu'au rapport de la fenêtre frappée par le propriétaire (LK06-T11, décision 1).
 - 2026-10-15 — **Blessé du campement au contact d'un zombie** : on garde le comportement actuel (un blessé à l'abri frappe au contact un zombie qui a franchi la couronne) ; confirmé par défaut (2026-10-15, l'utilisateur ne souhaite pas être interrogé sur le détail).
@@ -249,3 +250,12 @@
   - Tests : banc ; suite `lk.upkeep` dans la campagne MP automatique.
   - Preuve : générateur du groupe = marque ModData `LKGenerator` posée à l'aménagement du foyer (`Homes.adoptGenerators`), relue au relevé et à l'effet ; bancs `test_lk_upkeep.py` 20 OK et `test_lk_homes.py` 21 OK (générateurs d'un joueur dans la maison et au jardin intacts, générateur remplacé avant l'effet intact) ; suite `lk.upkeep` avec un générateur non marqué qui doit rester intact ; luacheck 15/0 ; base `power-and-lights.md` ; commit `83aefe5`; campagne MP complète du 2026-10-15 (client 2 actif, règle « les tests font foi ») : lk.upkeep 2/2 (générateur non marqué ni rempli ni réparé) (`tools/autoclient/runs/20261015-024734-mp-348bee78d4b7/server/20261015-004928-server.txt`)
   - Reste : foyer aménagé avant la tâche : aucun générateur marqué (entretien du générateur inactif)
+
+- [ ] **LK05-T20** — Provisions sur soi et gourde inépuisable
+  - État : `à faire`
+  - Cible : `MP`
+  - Dépend de : LK05-T07, LK07-T05
+  - Fichiers : `LK_Loot.lua`, `LK_Needs.lua`, `LK_Decisions.lua`, `LK_Routines.lua`, `LK_Combat.lua`
+  - Faire : décision de l'utilisateur du 2026-11-04 (ci-dessus) : provisions réelles dans l'inventaire du corps (2 aliments non périssables, remplacés au foyer), boisson d'une bouteille ou gourde jamais vidée, repas d'une provision loin du foyer, décrochage du combat à faim ≥ 90 sans ennemi à 3 cases ou moins puis reprise.
+  - Accepté si : au banc : PNJ affamé loin du foyer mange une provision (un objet en moins, faim soulagée) ; soif soulagée sans baisse du contenu de la bouteille ; en combat, faim ≥ 90 et ennemi au-delà de 3 cases : décrochage, repas, reprise ; ennemi au contact : combat d'abord ; provisions remplacées au foyer sur le stock ; cadavre avec ses provisions restantes. En jeu : suite dédiée solo et MP.
+  - Tests : banc ; nouvelle suite en jeu dans les campagnes solo et MP.
