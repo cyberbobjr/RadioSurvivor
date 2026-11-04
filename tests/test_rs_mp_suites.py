@@ -1071,7 +1071,7 @@ class ObservationTests(Bench):
 
     def test_blind_witness_expected_nothing(self):
         net = self.net()
-        net.server.lua('BLIND["1002,1001"] = true')   # B (2, 1 from the requester) sees nothing
+        net.server.lua('BLIND["1002,1002"] = true')   # B (2, 2 from the requester) sees nothing
         rep = net.run('rs.observations')
         self.assert_status(rep, 'group_death: the members that see', 'PASS')
         notes = ' '.join(rep.notes[next(k for k in rep.notes if k.startswith('group_death: the members'))])

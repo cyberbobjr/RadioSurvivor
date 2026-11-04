@@ -3,7 +3,8 @@ rs.observations - notebook and Living Knox triggers of the NPC observations (E08
 server/RadioSurvivor/RS_ObservationTriggers.lua) on the running engine: each fact once per admissible witness, never
 for an NPC that could not see it, no coordinate, no fiche created by a trigger.
 Scene (every test): Living Knox test npcs around the requester (LivingKnox.API.testSpawnNpc): A and B (2 squares),
-C (3 squares, NOT in the group), D (3 squares, in the group, NO fiche) and F (FAR_DX squares, when that square is
+C (4 squares, NOT in the group), D (4 squares, in the group, NO fiche), each 2 squares at least from the others,
+and F (FAR_DX squares, when that square is
 loaded); a test group (LivingKnox.Groups.create, home at the requester, furnishing skipped, players hidden from its
 members) with A, B, D, F and one member without body; fiches of A, B, C, F (RS_CarnetServer.ensure).
     assault_seen  LivingKnox.Hostility.record(group, character, "hit", witnessed, witnesses A and D): A remembers it
@@ -47,7 +48,11 @@ local function LK() return LivingKnox end
 
 -- ---------------------------------------------------------------- group_death: squares with a line of sight
 
-local DEFAULT_SPOTS = { A = { 2, 0 }, B = { 2, 1 }, C = { 3, -1 }, D = { 3, 1 }, F = { FAR_DX, 0 } }
+-- Every body at least 2 squares (Chebyshev) from the others and from the requester: a spawn next to a standing
+-- character is moved by Living Knox (Bodies.clearAround; solo of 2026-11-04: D wanted at 10909,10036 embodied at
+-- 10910,10035, its line of sight lost).
+local DEFAULT_SPOTS = { A = { 2, 0 }, B = { 2, 2 }, C = { 4, -2 }, D = { 4, 1 }, F = { FAR_DX, 0 } }
+local SPACING = 2
 local SEARCH_RADIUS = 10
 
 -- Line of sight from square (x0, y0) to (x1, y1) as CanSee computes it (perception.md: lineClear ~= Blocked); nil
@@ -92,12 +97,21 @@ local function robustSight(ox, oy, tx, ty, z)
     return true
 end
 
--- A at a, B at a + (0, 1), D at a + (1, 1) (offsets of the default layout): every square free, distinct from the
--- requester's square, A and B both seeing D robustly within range.
+local function cheb(a, b) return math.max(math.abs(a[1] - b[1]), math.abs(a[2] - b[2])) end
+
+-- A at a, B at a + (0, 2), D at a + (2, 1) (offsets of the default layout): every square free, SPACING squares at
+-- least from the requester, from C and from each other, A and B both seeing D robustly within range.
 local function layoutAt(ax, ay, z, px, py, range)
-    local A, B, D = { ax, ay }, { ax, ay + 1 }, { ax + 1, ay + 1 }
+    local A, B, D = { ax, ay }, { ax, ay + 2 }, { ax + 2, ay + 1 }
+    local others = { { px, py }, { px + DEFAULT_SPOTS.C[1], py + DEFAULT_SPOTS.C[2] } }
+    local Bodies = LivingKnox and LivingKnox.Bodies
     for _, s in ipairs({ A, B, D }) do
-        if (s[1] == px and s[2] == py) or not freeSquare(s[1], s[2], z) then return nil end
+        local sq = freeSquare(s[1], s[2], z)
+        if not sq or (Bodies ~= nil and Bodies.freeSquare ~= nil and not Bodies.freeSquare(sq)) then return nil end
+        for _, o in ipairs(others) do
+            if cheb(s, o) < SPACING then return nil end
+        end
+        others[#others + 1] = s
     end
     for _, s in ipairs({ A, B }) do
         local dx, dy = s[1] - D[1], s[2] - D[2]
@@ -350,6 +364,28 @@ RST.suite("rs.observations", { tags = { "server", "world" }, testTimeoutMs = 900
             local before = count(sc.c.S.data.npcs)
             local vx, vy, vz = math.floor(victim:getX()), math.floor(victim:getY()), math.floor(victim:getZ())
             t2:defer(function() removeCorpses(E, sc.ids.D, vx, vy, vz) end, "remove the corpse of D")
+            -- Witnesses read again when "memberDied" is published, the instant the trigger decides (solo campaign of
+            -- 2026-11-04: B next to D, near a wall corner, did not see D before the kill and saw it at the death).
+            local atDeath
+            LivingKnox.listen("memberDied", "RST.observations.witnesses", function(info)
+                if info.offscreen or info.npc ~= sc.ids.D or info.body == nil then return end
+                atDeath = {}
+                local names = {}
+                for _, name in ipairs({ "A", "B", "F" }) do
+                    local body = sc.ids[name] and B.find(sc.ids[name])
+                    if body ~= nil and math.floor(body:getZ()) == math.floor(info.body:getZ()) then
+                        local dx, dy = body:getX() - info.body:getX(), body:getY() - info.body:getY()
+                        if dx * dx + dy * dy <= range * range and body:CanSee(info.body) then
+                            atDeath[name] = true
+                            names[#names + 1] = name
+                        end
+                    end
+                end
+                t2:note("witnesses at the death: " .. table.concat(names, ", "))
+            end)
+            t2:defer(function()
+                LivingKnox.listen("memberDied", "RST.observations.witnesses", function() end)
+            end, "stop reading the witnesses of D")
             if E.Health ~= nil and E.Health.setBirth ~= nil then E.Health.setBirth(sc.ids.D, 0.01) end
             victim:Kill(nil)
             t2:waitUntil(function()
@@ -357,7 +393,10 @@ RST.suite("rs.observations", { tags = { "server", "world" }, testTimeoutMs = 900
                 return npc ~= nil and npc.state == "dead"
             end, DEAD_MS, function(t3)
                 t3:sleep(SETTLE_MS, function(t4)
-                    onlyFor(t4, sc, "group_death", want, sc.gid .. "-" .. tostring(sc.mid.D))
+                    t4:ok(atDeath ~= nil, "memberDied of D not published with its body")
+                    local seenAt = atDeath or {}
+                    t4:ok(seenAt.A or seenAt.B, "neither A nor B sees D at the death (CanSee)")
+                    onlyFor(t4, sc, "group_death", seenAt, sc.gid .. "-" .. tostring(sc.mid.D))
                     checkCommon(t4, sc, before, "group_death")
                 end)
             end, "D not dead after Kill")
