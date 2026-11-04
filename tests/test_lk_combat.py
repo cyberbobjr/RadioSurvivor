@@ -379,6 +379,42 @@ class MultiplayerCombatTests(CombatBase):
         self.h.load('A', 'LivingKnox.CombatView.tick = function() end')   # touches forgées seules (aucun minutage)
         return zid
 
+    def block(self, x, y, z=0, m='server'):
+        self.h.eval(m, f'(function() getCell():getGridSquare({x}, {y}, {z}).blocked = true return true end)()')
+
+    def test_approach_shifts_to_a_walkable_square_when_the_player_square_is_not(self):
+        # Campagne solo du 2026-11-04 : case du joueur impraticable pour moveTo (construction d'une suite
+        # précédente) : aucune consigne, aucun coup. Le PNJ vise la case praticable la plus proche du joueur.
+        zid = self.ready('A')
+        self.block(106, 102)
+        self.assertEqual(self.c('engage("lk-1", "A")'), 1)
+        e = self.ev('LivingKnox.Directives.get("lk-1")')
+        self.assertEqual(e.op, 'move')
+        self.assertNotEqual((e.x, e.y), (106, 102))
+        self.assertLessEqual(max(abs(e.x - 106), abs(e.y - 102)), 1)
+        shifted = [line for line in self.lk() if 'approach target 106,102,0 shifted to' in line]
+        self.assertEqual(len(shifted), 1, self.lk())
+        self.h.pump()
+        self.assertTrue(self.steps(400, until=lambda: self.c('orders["lk-1"].phase') == 'strike'))
+        self.relayed()
+        for _ in range(int(3000 / self.h.tick_ms)):
+            self.h.tick(1)
+            self.h.pump()
+        self.assertGreaterEqual(self.c('stats.applied'), 1)
+
+    def test_refused_combat_directive_is_logged_visibly_once_per_reason(self):
+        zid = self.ready('A')
+        for dx in range(-3, 4):
+            for dy in range(-3, 4):
+                self.block(106 + dx, 102 + dy)
+        self.assertEqual(self.c('engage("lk-1", "A")'), 1)
+        for _ in range(int(10000 / self.h.tick_ms)):
+            self.h.tick(1)
+        refused = [line for line in self.lk() if 'combat directive refused' in line]
+        self.assertEqual(len(refused), 1, self.lk())
+        self.assertIn('WARN', refused[0])
+        self.assertIn('not walkable', refused[0])
+
     def test_approach_then_strikes_reported_by_the_owner_and_applied_once_each(self):
         zid = self.ready('A')
         self.assertEqual(self.c('engage("lk-1", "A")'), 1)

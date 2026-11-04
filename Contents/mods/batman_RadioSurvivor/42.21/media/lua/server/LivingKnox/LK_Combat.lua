@@ -116,6 +116,8 @@ LivingKnox.Config.COMBAT = LivingKnox.Config.COMBAT or {
     REACH_SLACK = 1.0,      -- cases tolérées en plus par le serveur (positions des copies du serveur en retard)
     FACE_DELTA = 30,        -- degrés : nouvelle consigne "face" si le joueur a tourné d'au moins autant
     REPATH = 2,             -- cases : nouvelle consigne "move" si le joueur s'est éloigné d'autant de la case visée
+    APPROACH_SHIFT = 3,     -- cases : case du joueur impraticable (meuble, construction) : case praticable la plus
+                            -- proche à autant au plus (campagne solo du 2026-11-04, aucune consigne ni coup)
     MOVE_MS = 1000,         -- au plus une consigne "move" par PNJ dans ce délai
     RETRY_MS = 3000,        -- consigne "move" close sans être à portée : nouvel essai après ce délai
     GIVE_UP = 30,           -- cases : au-delà, l'engagement prend fin
@@ -304,9 +306,16 @@ local function touch(o)
 end
 
 -- Les consignes du combat comptent comme celles du cadre de décision (jamais "externes" pour lui).
+-- Refus journalisé en WARN, une ligne par (PNJ, raison sans nombres) au plus par WARN_EVERY_MS : un PNJ engagé qui
+-- ne reçoit aucune consigne ne frappe jamais (campagne solo du 2026-11-04, refus invisible hors debug).
 local function noteIssued(id, v, why)
     if v == nil then
-        log().debug("npc %s: combat directive refused: %s", id, tostring(why))
+        local key = "refused|" .. tostring(id) .. "|" .. string.gsub(tostring(why), "[%d%.,%-]+", "#")
+        local last = Combat.warned[key]
+        if last == nil or now() - last >= cfg().WARN_EVERY_MS then
+            Combat.warned[key] = now()
+            log().warn("npc %s: combat directive refused: %s", id, tostring(why))
+        end
         return nil
     end
     local De = LivingKnox.Decisions
@@ -497,6 +506,19 @@ local function approach(id, o, p, t)
     if g == "shoot" or g == "reload" then A.setGesture(id, "aim") end
     local tx, ty, tz = math.floor(p:getX()), math.floor(p:getY()), math.floor(p:getZ())
     if o.moveMs ~= nil and t - o.moveMs < c.MOVE_MS then return end
+    local sq = getCell():getGridSquare(tx, ty, tz)
+    if sq ~= nil and not sq:isFree(false) then
+        local alt = Bodies().safeSquare(tx, ty, tz, c.APPROACH_SHIFT, 0)
+        if alt ~= nil then
+            local from = tx .. "," .. ty .. "," .. tz
+            tx, ty = alt:getX(), alt:getY()
+            if o.shiftFrom ~= from then
+                o.shiftFrom = from
+                log().info("npc %s: approach target %s shifted to %d,%d (player square not walkable)", id, from, tx,
+                    ty)
+            end
+        end
+    end
     local open = openMove(id, o)
     local need
     if open ~= nil then
