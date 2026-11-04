@@ -86,10 +86,13 @@ RST.suite("rs.factions.incident", { tags = { "server", "world" }, testTimeoutMs 
         local cid = RST.RSHelpers.character(t0, p)
         RST.LKGroup.ensure(t0, p, function(t)
             local gid, npc = loadedGroup(t, E)
-            local team = F.idOf(p)
-            if F.agreementOf(gid, team) then t:skip("an agreement of this team with " .. gid .. " already exists") end
+            -- Team of the offer (RS_Factions.negotiation reads the vanilla factions again, as conclude does); F.idOf
+            -- may still give the team of the last poll (MP campaign of 2026-11-04: player put in a faction by an
+            -- earlier suite, "team changed").
             local neg, why = F.negotiation(p, gid)
             t:ok(neg ~= nil, "offer of the server: " .. tostring(why))
+            local team = neg.team
+            if F.agreementOf(gid, team) then t:skip("an agreement of this team with " .. gid .. " already exists") end
             local ok, reason = F.conclude(p, gid, "truce", { team = team, revision = neg.revision }, { character = cid })
             t:ok(ok, "concluded: " .. tostring(reason))
             t:defer(function() F.cancelAgreement(gid, team) end, "agreement removed")
@@ -157,9 +160,9 @@ RST.suite("rs.factions.incident", { tags = { "server", "world" }, testTimeoutMs 
         local cid = R.character(t0, p)
         local account = (type(isServer) == "function" and isServer()) and p:getUsername() or "solo"
         E9.fixture(t0, p, function(t, gid, leaderNpc, mateNpc)
-            local team = F.idOf(p)
             local neg, why = F.negotiation(p, gid)
             t:ok(neg ~= nil, "offer of the server: " .. tostring(why))
+            local team = neg.team   -- team of the offer, read again like conclude (see the first test)
             local okC, whyC = F.conclude(p, gid, "truce", { team = team, revision = neg.revision }, { character = cid })
             t:ok(okC, "concluded: " .. tostring(whyC))
             t:defer(function() F.cancelAgreement(gid, team) end, "agreement removed")
