@@ -139,6 +139,17 @@ class CascadeTests(PureBase):
         self.assertEqual(a[:2], b[:2])
         self.assertTrue(620 <= a[2] <= 640 and 621 <= b[2] <= 641)
 
+    def test_forager_and_builder_sleep_at_night_without_a_trip(self):
+        # lk.routines MP du 2026-11-04 : objectif « supply » la nuit (médicaments à 0), cueilleur debout au foyer
+        # toute la nuit alors qu'aucun départ n'est permis avant 7 h.
+        for duty in ('forager', 'builder'):
+            rule, b, why = self.decide(f'duty = "{duty}", objective = "supply", night = true')
+            self.assertEqual(b, 'sleep', (duty, rule, why))
+            rule, b, why = self.decide(f'duty = "{duty}", objective = "supply", night = false, chores = true')
+            self.assertEqual(b, 'chore', (duty, rule, why))
+        rule, b, _ = self.decide('duty = "forager", night = true, trip = { n = 3, phase = "out" }')
+        self.assertEqual(b, 'expedition')
+
     def test_fixed_priorities_threat_first_routine_last(self):
         everything = ('threat = ZOMBIE(9), needs = { fear = 90, hunger = 90, thirst = 90, fatigue = 90 }, '
                       'health = 0.2, duty = "rest"')

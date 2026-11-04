@@ -170,6 +170,10 @@ RST.suite("lk.routines", { tags = { "world", "server" }, testTimeoutMs = 600000,
             getGameTime():setTimeOfDay(6.98)
             measure(string.format("time of day %.2f: clock set to 6:59 first", tod))
         end
+        -- Players hidden from the members (a player in the home is an intruder whose alert comes before the night
+        -- duties; MP of 2026-11-04: rs_mp2 seen as an intruder twice, sentry never at its post). Before the copy below:
+        -- the fake zombie of the threat step wraps this perception, the defers put both back in order.
+        K.hidePlayersFrom(t, gid)
         local perceived = E.Senses.perceived
         t:defer(function()
             E.Senses.perceived = perceived

@@ -754,6 +754,10 @@ function RULES.duty(ctx)
     -- (expéditions LK05-T05, fortification LK14).
     -- Comme « home » : loin du foyer, la corvée commence par le retour (Decisions.apply), sans interrompre l'état.
     if ctx.chores and not ctx.night then return "chore", why, d end
+    -- Cueilleur et bâtisseur la nuit sans expédition : aucun départ ni chantier avant le jour (départs de
+    -- DEPART_FROM à DEPART_TO, pêche à l'aube et au crépuscule par une expédition, qui passe avant) : sommeil au
+    -- foyer (lk.routines MP du 2026-11-04 : objectif « supply » la nuit, cueilleur debout toute la nuit).
+    if ctx.night and (d == "forager" or d == "builder") then return atHomeOr(ctx, "sleep"), why, d end
     return "home", why, d
 end
 
