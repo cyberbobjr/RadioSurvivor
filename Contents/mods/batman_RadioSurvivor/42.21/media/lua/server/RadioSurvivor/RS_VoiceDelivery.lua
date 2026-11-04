@@ -261,6 +261,23 @@ function D.observe(m, player, _name, _state, store)
     end
     if m.delivered >= m.quantity then return false end
     if m.pickup and m.pickup.error then return false end
+    -- Deposit square unloaded: the game unloads an area only far from every player, so nobody watches it (solo
+    -- campaign of 2026-11-04: at 65 squares the square unloads before the delay and nothing was ever collected).
+    -- Goods seen before the departure are prepared once the delay has passed, then collected at the first pass where
+    -- the square is loaded again and still unwatched (the player comes back beyond the witness distance first).
+    local cell = getCell()
+    if m.deposit.ready and m.depositCandidate and not m.pickup
+            and (not cell or not cell:getGridSquare(m.deposit.x, m.deposit.y, m.deposit.z)) then
+        local now = getTimestampMs()
+        if not unseen[m.id] then unseen[m.id] = now; return false end
+        if now - unseen[m.id] < cfg().unseenMs then return false end
+        local tx = {}
+        for k, v in pairs(m.depositCandidate) do tx[k] = v end
+        tx.before, tx.status, tx.away = m.delivered, 'prepared', true
+        m.pickup = tx
+        if not store.save() then m.pickup = nil end
+        return false
+    end
     local prepared = not m.deposit.ready
     if not D.prepare(m, store) then return false end
     local found
@@ -272,8 +289,13 @@ function D.observe(m, player, _name, _state, store)
             if not store.save() then m.depositCandidate = nil; return false end
         end
     end
-    if D.witness(m, player) then unseen[m.id] = nil; return prepared end
+    if D.witness(m, player) then
+        unseen[m.id] = nil
+        if m.pickup and m.pickup.away then m.pickup.away = nil; store.save() end   -- full delay again
+        return prepared
+    end
     if m.pickup then
+        if m.pickup.away then return collect(m, store) end
         local now = getTimestampMs()
         if not unseen[m.id] then unseen[m.id] = now; return false end
         if now - unseen[m.id] < cfg().unseenMs then return false end

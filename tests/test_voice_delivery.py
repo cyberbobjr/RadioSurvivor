@@ -1,4 +1,4 @@
-﻿"""Hidden radio handovers, real Lua with isolated Lua 5.1 engine doubles.
+"""Hidden radio handovers, real Lua with isolated Lua 5.1 engine doubles.
 
 These tests prove server logic, not Java API compatibility or network delivery.
 """
@@ -177,6 +177,36 @@ class VoiceDeliveryTests(unittest.TestCase):
             add_goods(); observe(); depart(); LOADED=false; elapsed()
             assert(m.delivered==0 and #inv.items==2)
             LOADED=true; observe(); elapsed(); assert(m.delivered==2)
+        """)
+
+    def test_square_unloaded_before_the_delay_is_collected_when_loaded_again(self):
+        """Solo du 2026-11-04 : à 65 cases la case du dépôt n'est plus chargée avant les 10 s : jamais ramassé."""
+        self.setup_delivery()
+        self.run_lua("""
+            add_goods(); observe()
+            PLAYERS[1].x=170; LOADED=false; observe(); elapsed()
+            assert(m.delivered==0 and #inv.items==2,'nothing removed from an unloaded square')
+            assert(m.pickup and m.pickup.status=='prepared','pickup prepared while nobody can watch')
+            LOADED=true; observe()
+            assert(m.delivered==2 and #inv.items==0,'collected at the first unwatched pass once loaded')
+        """)
+
+    def test_unloaded_pickup_waits_while_a_witness_is_back(self):
+        self.setup_delivery()
+        self.run_lua("""
+            add_goods(); observe()
+            PLAYERS[1].x=170; LOADED=false; observe(); elapsed()
+            LOADED=true; PLAYERS[1].x=110; observe()
+            assert(m.delivered==0 and #inv.items==2,'never collected in front of a player')
+            PLAYERS[1].x=150; observe(); assert(m.delivered==0,'the full delay restarts after a witness')
+            elapsed(); assert(m.delivered==2)
+        """)
+
+    def test_unloaded_square_without_candidate_prepares_nothing(self):
+        self.setup_delivery()
+        self.run_lua("""
+            observe(); PLAYERS[1].x=170; LOADED=false; observe(); elapsed()
+            assert(m.pickup==nil,'no goods seen before the departure: nothing to collect')
         """)
 
     def test_failed_save_does_not_consume(self):
