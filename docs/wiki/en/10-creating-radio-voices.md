@@ -240,7 +240,7 @@ Always allowed, even if you do not list it. The voice answers you on the radio.
 - **Report by radio**, on the voice's frequency (`report_mission` is implicit). Successful missions improve reputation.
 - `rewards=cache,frequency,stashmap,lesson` allows one extra reward. The server rotates through that order per player and voice, skipping unavailable effects and saving its choice. The AI never chooses the reward.
 - A cache contains real items from `cache_table`, at the first `place=`: one per mission, deferred placement when unloaded, with a private map marker. `shares` limits other active voices whose frequency may enter the beneficiary's radio notebook. A vanilla stash map leads to an unexplored stash (one map per player and voice). `teaches` fixes the lesson's skill.
-- Lessons grant 25 base XP, capped at 100 per game day before the multiplier. The sandbox **Lesson multiplier** ranges from 0 to 5; 0 disables lessons. The server grants XP.
+- Lessons grant 25 base XP, capped at 100 per game day before the multiplier. The sandbox **Lesson multiplier** ranges from 0 to 5; 0 disables lessons. The server grants XP under the game's learning rules: a character without a profession or trait bonus in the skill receives a quarter of it, a gifted one more.
 - Missing `missions` keeps `scout` only; missing `rewards` keeps the previous map marker reward. Existing cooldowns and `budget.start_mission` still apply.
 
 #### Share a frequency — `share_frequency`

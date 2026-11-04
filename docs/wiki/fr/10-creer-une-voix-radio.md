@@ -246,7 +246,7 @@ Toujours permise, même si vous ne l'écrivez pas. La voix vous répond à la ra
 - **Il faut :** que le joueur ait le carnet. Le bâtiment est choisi par le serveur, jamais par l'IA.
 - **Récompense :** réputation et une récompense autorisée par `rewards=cache,frequency,stashmap,lesson`. Le serveur suit cet ordre cyclique par joueur et voix, saute les effets indisponibles et mémorise son choix. L'IA ne choisit ni récompense ni contenu. Sans `rewards`, l'ancien repère reste disponible ; sans `missions`, seul `scout` est permis.
 - Une cache contient des objets réels de `cache_table`, au premier `place=` ; une seule par mission, pose différée si le lieu est déchargé et repère privé. `shares` limite les autres voix actives dont la fréquence peut entrer dans le carnet du bénéficiaire. Une carte-cachette vanilla mène à une planque inexplorée : une par joueur et voix. `teaches` fixe la compétence enseignée.
-- Une leçon donne 25 XP de base, avec plafond de 100 par jour avant multiplicateur ; l'option sandbox du multiplicateur va de 0 à 5, 0 la désactive. L'expérience est donnée par le serveur.
+- Une leçon donne 25 XP de base, avec plafond de 100 par jour avant multiplicateur ; l'option sandbox du multiplicateur va de 0 à 5, 0 la désactive. L'expérience est donnée par le serveur, avec les règles d'apprentissage du jeu : un personnage sans bonus de métier ou de trait dans la compétence n'en reçoit qu'un quart, un personnage doué davantage.
 - **Limites :** une mission en cours à la fois par joueur et par voix ; 30 minutes réelles entre deux missions pour un
   même joueur ; plafond par jour avec `budget.start_mission`.
 - Le compte rendu à la radio fait partie de cette action : rien d'autre à ajouter.

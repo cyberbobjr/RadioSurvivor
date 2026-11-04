@@ -70,10 +70,14 @@ RST.suite("rs.missionrewards", {tags={"server","world"},testTimeoutMs=45000}, fu
             local rec,why = R.grant(S,source,m,p,cid)
             t2:ok(rec and rec.status=='applied', 'lesson grant failed: ' .. tostring(why))
             t2:eq('lesson',rec.kind,'reward kind')
-            Steps.ask(t2,'rewards.xp',{skill='Doctor',minimum=before+rec.xp},
+            -- Vanilla AddXP multipliers apply (IsoGameCharacter.java:15616-15643: x0.25 without a profession or trait boost):
+            -- the recipient gains XP, at most 1.66 times the lesson.
+            Steps.ask(t2,'rewards.xp',{skill='Doctor',minimum=before+rec.xp*0.25},
                 {target='requester',timeoutMs=15000},function(t3,res)
                     local d=res.list[1].data
-                    t3:ok(d.xp>=before+rec.xp,'recipient did not receive server XP')
+                    t3:ok(d.xp>=before+rec.xp*0.25-0.001 and d.xp<=before+rec.xp*1.66+0.001,
+                        'recipient did not receive server XP: ' .. tostring(d.xp - before)
+                        .. ' for a lesson of ' .. tostring(rec.xp))
                     local same=R.grant(S,source,m,p,cid)
                     t3:eq(rec,same,'duplicate reward record')
                     if mate then
