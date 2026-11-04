@@ -165,6 +165,12 @@ RST.suite("lk.meals", { tags = { "world", "server" }, testTimeoutMs = 600000, ti
             -- Zombies of the save around the home (solo campaign of 2026-11-04: m-2 raised an alert and defended the
             -- home for 120 s instead of eating, the right priority): removed before hunger is set.
             K.clearZombiesNear(t2, home.x, home.y, home.z, MEAL_CLEAR_RADIUS)
+            -- A trip may have left before the hunger is set (MP campaign of 2026-11-04: objective "supply", m-2 sent
+            -- to the next building, never at the home stock); a hungry member is not sent again (Ex.needBlocker).
+            local Ex = E.Expeditions
+            if Ex ~= nil and Ex.cancel ~= nil and Ex.cancel(gid, "suite lk.meals: meal scene") then
+                t2:note("expedition of " .. gid .. " cancelled before the meal scene")
+            end
             local hour = E.Needs.currentHour() or 0
             t2:ok(G.update(function(d)
                 local m = d.groups[gid].members["m-2"]
