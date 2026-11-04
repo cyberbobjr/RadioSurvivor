@@ -506,7 +506,9 @@ local function approach(id, o, p, t)
     if g == "shoot" or g == "reload" then A.setGesture(id, "aim") end
     local tx, ty, tz = math.floor(p:getX()), math.floor(p:getY()), math.floor(p:getZ())
     if o.moveMs ~= nil and t - o.moveMs < c.MOVE_MS then return end
-    local sq = getCell():getGridSquare(tx, ty, tz)
+    -- Cible joueur seulement : un zombie sur une case impraticable reste visé tel quel (refus, PNJ à son poste ;
+    -- lk.defense du 2026-11-04 : défenseurs partis loin de leur poste avec le décalage).
+    local sq = o.k ~= Combat.KIND_ZOMBIE and getCell():getGridSquare(tx, ty, tz) or nil
     if sq ~= nil and not sq:isFree(false) then
         local alt = Bodies().safeSquare(tx, ty, tz, c.APPROACH_SHIFT, 0)
         if alt ~= nil then

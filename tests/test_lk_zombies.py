@@ -140,6 +140,20 @@ class MultiplayerZombieTests(ZombieBase):
         self.npc_zid = zid
         return zid
 
+    def test_zombie_target_on_an_unwalkable_square_is_not_shifted(self):
+        # lk.defense du 2026-11-04 : le décalage de l'approche (cible joueur seulement) éloignait les défenseurs de
+        # leur poste ; contre un zombie, la consigne est refusée et le PNJ reste sur place.
+        self.ready('A')
+        zid = self.vanilla(5003, 6.0, 0, owner='B')
+        x, y = self.body_xy()
+        zx, zy = int(x + 6.0), int(y)
+        self.h.eval('server', f'(function() getCell():getGridSquare({zx}, {zy}, 0).blocked = true return true end)()')
+        self.assertEqual(self.c(f'engage("lk-1", HARNESS.zombies[{zid}])'), 1)
+        self.assertEqual(self.c('get("lk-1")').phase, 'approach')
+        self.assertIsNone(self.ev('LivingKnox.Directives.get("lk-1")'))
+        self.assertEqual([line for line in self.lk() if 'approach target' in line], [])
+        self.assertEqual(len([line for line in self.lk() if 'combat directive refused' in line]), 1)
+
     def test_npc_kills_a_zombie_simulated_by_another_client_once(self):
         self.ready('A')                                              # corps du PNJ simulé par A
         self.assertIs(self.ev('LivingKnox.Equipment.setWeapon("lk-1", "Base.BaseballBat")'), True)
