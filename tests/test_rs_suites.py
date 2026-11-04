@@ -725,5 +725,27 @@ class SpotsTests(SuiteHarness):
         self.assertLessEqual(calls, 13 * 13 * 9 * 9 * 2)
 
 
+    def talk(self, dx=2):
+        v = self.lua(f'local sq = R.talkSquare(PLAYER, {dx}) return sq and {{ sq:getX(), sq:getY() }} or false')
+        return tuple(v.values()) if v else None
+
+    def test_talk_square_east_when_in_sight(self):
+        self.assertEqual(self.talk(2), (102, 100))
+
+    def test_talk_square_never_behind_a_wall(self):
+        """Campagne MP du 2026-11-04 : PNJ derrière une cloison vitrée (« sight Blocked »), jamais choisi par le carnet."""
+        self.lua('WALL_X, WALL_Y0, WALL_Y1 = 102, 0, 200')
+        x, y = self.talk(2)
+        self.assertLess(x, 102)
+        self.assertGreaterEqual(max(abs(x - 100), abs(y - 100)), 2)
+
+    def test_talk_square_one_way_sight_refused(self):
+        self.lua('ONE_WAY["102,100>100,100"] = true')
+        self.assertNotEqual(self.talk(2), (102, 100))
+
+    def test_talk_square_none_when_everything_is_walled(self):
+        self.lua('for x = 90, 110 do for y = 90, 110 do if x ~= 100 or y ~= 100 then BUSY[x .. "," .. y] = true end end end')
+        self.assertIsNone(self.talk(2))
+
 if __name__ == '__main__':
     unittest.main(verbosity=1)

@@ -92,8 +92,16 @@ function R.npcWithFiche(t, p, dx, after)
     local ready, why = RST.Fixtures.npcReady()
     if not ready then t:skip("no Living Knox test npc: " .. tostring(why)) end
     local x, y, z = math.floor(p:getX()) + dx, math.floor(p:getY()), math.floor(p:getZ())
-    local saved = RST.Fixtures.NPC_OFFSET
-    RST.Fixtures.NPC_OFFSET = dx
+    local dy = 0
+    local spot = R.talkSquare(p, dx)
+    if spot ~= nil then
+        dx, dy = spot:getX() - math.floor(p:getX()), spot:getY() - math.floor(p:getY())
+        x, y = spot:getX(), spot:getY()
+    else
+        t:note("no free square in sight of the player within " .. R.SPOT_RADIUS .. ": npc " .. dx .. " squares east")
+    end
+    local saved, savedDy = RST.Fixtures.NPC_OFFSET, RST.Fixtures.NPC_DY
+    RST.Fixtures.NPC_OFFSET, RST.Fixtures.NPC_DY = dx, dy
     local ok, err = pcall(function()
         RST.Fixtures.spawnNpc(t, p, function(t2, id, body)
             local fiche = Server.ensure(id)
@@ -108,7 +116,7 @@ function R.npcWithFiche(t, p, dx, after)
                 "body of " .. id .. " never mapped by the notebook (near " .. x .. "," .. y .. "," .. z .. ")")
         end)
     end)
-    RST.Fixtures.NPC_OFFSET = saved
+    RST.Fixtures.NPC_OFFSET, RST.Fixtures.NPC_DY = saved, savedDy
     if not ok then error(err, 0) end
 end
 
@@ -219,6 +227,29 @@ function R.pairSquares(p, range, max, r)
         end
     end
     return out
+end
+
+-- Square for a test npc the player p talks to: dx squares east when it is free, heard and in sight both ways,
+-- otherwise the nearest R.heardSquares square in sight both ways (MP campaign of 2026-11-04: rs.npctalk npc moved
+-- behind a glass wall of the start house, "sight Blocked", never selected). Rend la case, ou nil.
+function R.talkSquare(p, dx, r)
+    local Bodies = LivingKnox and LivingKnox.Bodies
+    local cell = getCell()
+    local ps = p:getSquare()
+    if Bodies == nil or cell == nil or ps == nil then return nil end
+    local function fits(sq)
+        return sq ~= nil and not blocked(ps, sq) and not blocked(sq, ps)
+    end
+    local P = require "RadioSurvivor/RS_NPCProvider"
+    local C = require "RadioSurvivor/RS_Config"
+    local east = cell:getGridSquare(ps:getX() + dx, ps:getY(), ps:getZ())
+    if east ~= nil and Bodies.freeSquare(east) and P.hears(standIn(east), p, C.HEARING_RANGE) and fits(east) then
+        return east
+    end
+    for _, sq in ipairs(R.heardSquares(p, r)) do
+        if fits(sq) then return sq end
+    end
+    return nil
 end
 
 -- "x,y" of a square or a body, and why two bodies (or a body and the player) fail the rules above, for the reports.

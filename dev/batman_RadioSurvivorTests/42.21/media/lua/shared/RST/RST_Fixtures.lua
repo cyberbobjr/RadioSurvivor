@@ -103,6 +103,7 @@ F.SQUARE_TIMEOUT_MS = 10000
 F.COMMAND = "fx.move"
 F.NPC_TIMEOUT_MS = 10000
 F.NPC_OFFSET = 2
+F.NPC_DY = 0         -- squares south of the player (RST.RSHelpers.npcWithFiche: square in sight of the player)
 F.NPC_PROVIDER = "livingknox"
 
 local function log(msg)
@@ -567,7 +568,7 @@ function F.spawnNpc(t, player, suite)
     local ready, why = F.npcReady()
     if not ready then error("spawnNpc: " .. why, 0) end
     local P, API = provider(), testApi()
-    local x, y, z = math.floor(p:getX()) + F.NPC_OFFSET, math.floor(p:getY()), math.floor(p:getZ())
+    local x, y, z = math.floor(p:getX()) + F.NPC_OFFSET, math.floor(p:getY()) + (F.NPC_DY or 0), math.floor(p:getZ())
     -- The square may not be loaded yet right after a player move (solo cleanup of a former test puts the player
     -- back at once; in-game run of 2026-10-14: "square ... is not loaded"): with a continuation, wait for it first.
     local cell = type(getCell) == "function" and getCell() or nil
