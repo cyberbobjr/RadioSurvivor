@@ -359,6 +359,12 @@ clients prend environ 11 Go ; viser 3 lancements).
 attend, puis écrit `summary.txt` : totaux (premières lignes `RST-RESULT` de chaque client), lignes FAIL/ERROR des
 rapports RST, code et journal de chaque tranche. Code de sortie : le pire des tranches.
 
+> **Mémoire en MP multi-tranches** : chaque tranche MP lance un serveur et ses clients, donc `--shards 2 --clients 2`
+> = 6 jeux simultanés. Le 2026-11-04, les deux tranches ont échoué au chargement du client 2 (`java.io.IOException:
+> bad allocation` dans `media/anims_X/Zombie/*.x`, aucun rapport RST) : une campagne MP se lance en **une seule**
+> tranche, ou avec `--clients 1` par tranche. Le contrôle de mémoire du lanceur (ligne `--client-xmx` ci-dessus) ne
+> compte que les jeux d'une tranche, pas celles des autres. Confirmé en jeu le 2026-11-04.
+
 ```powershell
 python RadioSurvivor/tools/autoclient/campaign_parallel.py --shards 3 -- --mp --clients 2 --server-campaign mp --bridge on --llm fake --timeout 5400 --wait-idle 3600
 python RadioSurvivor/tools/autoclient/campaign_parallel.py --shards 2 -- --campaign solo-rs --timeout 1800 --wait-idle 3600
