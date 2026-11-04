@@ -129,6 +129,8 @@ function Bodies.removeBody(z, why)
         local H = LivingKnox.Health
         if H ~= nil and H.makeMortal ~= nil then H.makeMortal(z) end
         if z:isReanimatedPlayer() then z:setHealth(0) end
+        -- Objet recyclé par le moteur, useless non remis par resetForReuse (LK_ZombieGuard.releaseForReuse).
+        if z:isUseless() then z:setUseless(false) end
         z:removeFromWorld()
         z:removeFromSquare()
     end)

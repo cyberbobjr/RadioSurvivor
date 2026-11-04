@@ -297,7 +297,10 @@ RST.suite("lk.executor", { tags = { "world", "server" }, testTimeoutMs = 90000, 
                         measure("useless after the arrival not checked here: simulated by " .. owner(z4))
                     end
                     -- LK02-T07 (E01-T16): every client saw its copy walk to the target.
-                    viewStep(t4, "lk.track", { phase = "end", key = key, target = goal, tol = 1.5 }, 10000,
+                    -- Centre of the target square, as Directives.distToTarget and lk.traversal (MP campaign of
+                    -- 2026-11-04: copy 0.9 from the centre, 1.5 from the corner the check used).
+                    local centre = { x = goal.x + 0.5, y = goal.y + 0.5, z = goal.z }
+                    viewStep(t4, "lk.track", { phase = "end", key = key, target = centre, tol = 1.5 }, 10000,
                         function() end)
                 end)
             end, "move not finished")

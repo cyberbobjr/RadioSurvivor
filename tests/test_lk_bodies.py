@@ -1139,6 +1139,16 @@ class DespawnTests(Base):
         listed = lua_list(self.ev('LivingKnox.Bodies.list()'))
         self.assertEqual([(e.id, e.generation, e.state, e.inWorld) for e in listed], [('lk-2', 1, 'embodied', True)])
 
+    def test_removed_or_dead_body_leaves_no_useless_flag_for_reuse(self):
+        # IsoZombie.resetForReuse (J/characters/IsoZombie.java:3600-3640) remet noTeeth mais pas useless : un ancien
+        # corps de PNJ recyclé en zombie vanilla restait inoffensif (lk.guard, campagne MP du 2026-11-04).
+        self.init()
+        self.spawn()
+        self.run_lua('KEPT = LivingKnox.Bodies.find("lk-1")')
+        self.assertIs(self.ev('KEPT:isUseless()'), True)
+        self.assertEqual(self.run_lua('return LivingKnox.Bodies.despawn("lk-1")'), (True, 1))
+        self.assertIs(self.ev('KEPT:isUseless()'), False)
+
     def test_despawn_of_a_body_out_of_the_loaded_area(self):
         self.init()
         self.spawn()

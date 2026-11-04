@@ -292,6 +292,18 @@ class MultiplayerTests(GuardBase):
         self.assertEqual(self.state('server', zid),
                          'useless=true noTeeth=true target=false eat=false thump=false voice=default')
 
+    def test_any_death_gives_useless_back_on_every_machine(self):
+        # IsoZombie.resetForReuse ne remet pas useless (J/characters/IsoZombie.java:3600-3640) : le corps d'un PNJ
+        # mort, recyclé en zombie vanilla, restait inoffensif (lk.guard, campagne MP du 2026-11-04).
+        zid = self.npc()
+        srv = self.h.zombie('server', zid)
+        for cl in ('A', 'B'):
+            self.h.eval(cl, f'MIRROR({zid}, {srv.x}, {srv.y}, {srv.z}, "A")')
+        for m in ('server', 'A', 'B'):
+            self.h.load(m, f'HARNESS.zombies[{zid}].useless = true')
+            self.h.fire(m, 'OnZombieDead', self.h.eval(m, f'HARNESS.zombies[{zid}]'))
+            self.assertIs(self.h.eval(m, f'HARNESS.zombies[{zid}]:isUseless()'), False, m)
+
     def test_travel_flag_never_lifts_useless(self):
         # LK06-T10 : un corps non useless réagit aux bruits (IsoZombie.RespondToSound, IsoZombie.java:1309) ; le
         # drapeau de trajet reste publié (champ t) mais le simulateur garde useless pendant tout le trajet.

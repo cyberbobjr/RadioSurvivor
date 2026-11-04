@@ -86,6 +86,7 @@ function View.onGone(args)
         count("goneFar")
         return false
     end
+    if LivingKnox.ZombieGuard ~= nil then LivingKnox.ZombieGuard.releaseForReuse(z) end   -- copie recyclée ensuite
     z:removeFromWorld()
     z:removeFromSquare()
     count("goneRemoved")

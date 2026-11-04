@@ -216,6 +216,18 @@ function Guard.unsilence(z)
     return done
 end
 
+-- Drapeau useless rendu avant que le moteur ne recycle l'objet : IsoZombie.resetForReuse remet noTeeth, l'invulnérabilité
+-- et les ModData mais pas useless (J/characters/IsoZombie.java:3600-3640) ; un ancien corps de PNJ réutilisé 5 s plus
+-- tard en zombie vanilla restait inoffensif (lk.guard, campagne MP du 2026-11-04). Le vanilla ne pose useless que pour
+-- une tenue de debug (IsoZombie.java:2662-2664) : sans effet ailleurs. Appelé au retrait d'un corps et à toute mort.
+function Guard.releaseForReuse(z)
+    if z == nil then return false end
+    local ok, was = pcall(function() return z:isUseless() end)
+    if not ok or not was then return false end
+    pcall(function() z:setUseless(false) end)
+    return true
+end
+
 -- Applique la garde à un corps de PNJ. travelling : drapeau de trajet (sans effet depuis LK06-T10, voir
 -- Guard.setTravelling) ; simulated : cette machine le simule ; voice : cette machine joue les voix ; sweep : chercher
 -- aussi une voix vanilla encore jouée (passage lent). Rend le nombre de changements faits (0 quand tout était déjà en
@@ -660,6 +672,11 @@ elseif isClient() then
         LivingKnox.ZombieGuard.onZombieCreate(z)
     end
     LivingKnox.subscribe("OnZombieCreate", "ZombieGuard.onZombieCreate", onZombieCreate)
+end
+
+-- Toute mort, sur chaque machine (copies clientes comprises) : drapeau rendu avant le recyclage de l'objet.
+if Events ~= nil and LivingKnox.subscribe ~= nil then
+    LivingKnox.subscribe("OnZombieDead", "Guard.releaseForReuse", function(z) Guard.releaseForReuse(z) end)
 end
 
 return Guard

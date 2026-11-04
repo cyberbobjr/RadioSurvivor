@@ -209,7 +209,11 @@ class SourceTests(unittest.TestCase):
         code = GUARD.read_text(encoding='utf-8')
         self.assertFalse('not travelling' in code, 'useless still follows the travel flag')
         self.assertTrue('z:setUseless(true)' in code)
-        self.assertFalse('setUseless(false)' in code)
+        # Seule exception : Guard.releaseForReuse, au retrait ou à la mort du corps (objet recyclé par le moteur).
+        self.assertEqual(code.count('setUseless(false)'), 1)
+        start = code.index('function Guard.releaseForReuse')
+        self.assertLess(start, code.index('setUseless(false)'))
+        self.assertLess(code.index('setUseless(false)'), code.index('\nend', start))
 
     def test_anims_suite_walks_like_the_executor_and_checks_alerts(self):
         code = SUITE.read_text(encoding='utf-8')
