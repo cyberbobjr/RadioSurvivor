@@ -138,7 +138,8 @@ RST.suite("rs.missions.solo", { tags = { "server", "world" }, testTimeoutMs = 90
             t2:eq(true, c.M.advance(only, 1000), "offer not expired after OFFER_TTL_MS")
             t2:eq("expired", m.state)
             t2:eq(nil, c.fiche.mission, "npc not released by the expiry")
-            t2:ok(c.fiche.nextOfferAt ~= nil, "no delay before the next offer")
+            -- E11-T20: the delay is kept in game hours (nextOfferHour; nextOfferAt is the former real-time field).
+            t2:ok(c.fiche.nextOfferHour ~= nil, "no delay before the next offer")
             c.Server.store.data.characters[c.cid].knownMissions[m.id] = true
             c.Server.publish()
             local row = shown(m.id)
