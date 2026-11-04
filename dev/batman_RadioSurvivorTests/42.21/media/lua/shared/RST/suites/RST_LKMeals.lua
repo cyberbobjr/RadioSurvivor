@@ -29,6 +29,7 @@ require "RST/RST_Fixtures"
 require "RST/RST_LKHelpers"
 
 local K = RST.LKHelpers
+local MEAL_CLEAR_RADIUS = 30   -- squares around the home cleared of vanilla zombies before the meal
 local measure = K.measurer("[LKM]")
 
 local BODIES_MS = 60000     -- materialization of the three members
@@ -161,6 +162,9 @@ RST.suite("lk.meals", { tags = { "world", "server" }, testTimeoutMs = 600000, ti
             local now = getGameTime():getTimeOfDay()
             return bodyCount(gid) == 3 and allStanding(gid) and now >= 7 and now < 21.5
         end, BODIES_MS, function(t2)
+            -- Zombies of the save around the home (solo campaign of 2026-11-04: m-2 raised an alert and defended the
+            -- home for 120 s instead of eating, the right priority): removed before hunger is set.
+            K.clearZombiesNear(t2, home.x, home.y, home.z, MEAL_CLEAR_RADIUS)
             local hour = E.Needs.currentHour() or 0
             t2:ok(G.update(function(d)
                 local m = d.groups[gid].members["m-2"]

@@ -126,6 +126,16 @@ end
 -- Vanilla zombies (not npc bodies) within r squares of x, y on level z removed before a scene, as K.spawnVanilla's
 -- remover does (client copy told on a server): MP pass of 2026-10-15 12:15, two zombies left by the previous suite
 -- killed the npc of lk.windowlure through the glass. Returns their number (noted on the test).
+-- Vanilla zombie (not an npc body): LivingKnox.Zombies.isVanilla, else no Living Knox identity tag on it (suites run
+-- without LK_Zombies, test benches: an npc body is never removed).
+function K.vanillaZombie(zb)
+    local Zm = LivingKnox and LivingKnox.Zombies
+    if Zm ~= nil and Zm.isVanilla ~= nil then return Zm.isVanilla(zb) end
+    local I = LivingKnox and LivingKnox.Identity
+    if I == nil or I.readTag == nil then return false end
+    return not zb:hasModData() or I.readTag(zb:getModData()) == nil
+end
+
 function K.clearZombiesNear(t, x, y, z, r)
     local Zm = LivingKnox and LivingKnox.Zombies
     local list = getCell():getZombieList()
@@ -133,7 +143,7 @@ function K.clearZombiesNear(t, x, y, z, r)
     for i = 0, list:size() - 1 do
         local zb = list:get(i)
         if zb ~= nil and not zb:isDead() and math.floor(zb:getZ()) == z and math.abs(zb:getX() - x) <= r
-            and math.abs(zb:getY() - y) <= r and (Zm == nil or Zm.isVanilla(zb)) then
+            and math.abs(zb:getY() - y) <= r and K.vanillaZombie(zb) then
             gone[#gone + 1] = zb
         end
     end
