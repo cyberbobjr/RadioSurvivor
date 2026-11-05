@@ -1,9 +1,11 @@
 # Contrat RadioSurvivor Lua ↔ Python v2
 
-Cible 42.21.0. Implémentation : `RC_Codec.lua`, `RS_Transport.lua`, `RS_Carnet_Server.lua`,
+Cible 42.21.0. Implémentation : `RC_Codec.lua`, `RC_Transport.lua` (mod commun) et `RS_BridgeLanes.lua`, `RS_Carnet_Server.lua`,
 `bridge/npc_protocol.py`, `bridge/radio_bridge.py`. Le bridge unique garde le verrou `bridge.lock`,
 sa configuration et le transport par fichiers dans `<cachedir>/Lua/batman_RadioSurvivor`.
 Python ne modifie aucun inventaire, état du moteur de PNJ, accord ou score de réputation.
+
+**File commune (E18-T04, décision du 2026-11-05).** Un seul fichier de demandes et un seul fichier de réponses pour tous les mods : chaque mod inscrit ses sortes de demandes comme **voies** de la file du mod commun (`RC_Transport.register(nom, { order, format })`) ; le fichier écrit les voies par ordre croissant (RadioSurvivor : `radio` 10, `npc` 20, `acks` 30, `lastPages` 40, `RS_BridgeLanes`), puis par ordre d'inscription ; format par défaut `kind=` et `payload=` (RSV2), la voie `radio` garde ses lignes `clé=valeur`. Les réponses de toutes les voies sont lues par `RC_Transport.readResponses`. Chaque mod garde ses plafonds (`MAX_PENDING`, plafond horaire). Fichiers et signal de vie : `RC_Bridge` (dossier `batman_RadioSurvivor/` inchangé jusqu'à `E18-T12`). Octets du fichier de demandes inchangés (banc `tests/test_core_bridge.py`).
 
 ## Enveloppe et compatibilité
 
@@ -241,7 +243,7 @@ Chaque action est une table `{ type = "signal", color = "green", ... }` : `type`
 
 **Lecture par le serveur** : `readResponses` accepte `line=` (inchangé) et `payload=` pour un identifiant radio :
 corps décodé par `RC_Codec`, `version == 2`, `kind == "radio_reply"` et `id` égal à celui de `resp=`, sinon ignoré
-(les réponses `npc_reply` et `ack_reply` du même fichier restent à `RS_Transport.readNpc`, qui ignore à son tour les
+(les réponses `npc_reply` et `ack_reply` du même fichier restent à `RC_Transport.readResponses` (mod commun), qui ignore à son tour les
 réponses radio). Les lignes `say` repassent par le filtrage de `line=` (balises, 140 caractères, 8 lignes), puis la
 diffusion est mise en file comme une réponse texte ; ensuite seulement, `RS_Actions.decide` juge les actions contre la
 fiche **actuelle** de la voix.
@@ -328,7 +330,7 @@ deux fichiers, soit environ deux fois les seuils sur le disque.
 Action `remember` : la voix retient un fait court sur l'appelant (nom de personnage, lieu déclaré, service rendu). Le
 pont la propose, le serveur l'accepte et range le fait ; la mémoire vit **côté autorité**, jamais dans le pont ni en
 ModData globale. Implémentation : `server/RadioSurvivor/RS_Memory.lua` (exécuteur, bornes, champ de demande),
-`RadioSurvivor_Server.lua` (champ joint à la demande), `RS_Transport.lua`, `bridge/radio_bridge.py`
+`RadioSurvivor_Server.lua` (champ joint à la demande), `RC_Transport.lua` (mod commun) et `RS_BridgeLanes.lua`, `bridge/radio_bridge.py`
 (`memory_facts`, `memory_prompt`).
 
 **Exécuteur** (jugé par `RS_Actions.decide` comme toute action : catalogue, `actions=` de la fiche, paramètres,
@@ -357,7 +359,7 @@ pire 50 × 5 × 64 caractères par voix. Aucun souvenir entre voix, aucun pour l
 `RS_Memory.forgetCharacter` : ses souvenirs sont effacés de toutes les voix. Un personnage marqué `retired` n'est de
 toute façon jamais relu.
 
-**Champ de demande** `memory=` (demande radio sans `kind`, après `text`/`language` dans l'ordre de `RS_Transport`) :
+**Champ de demande** `memory=` (demande radio sans `kind`, après `text`/`language` dans l'ordre de la voie radio (`RS_BridgeLanes`)) :
 hexadécimal minuscule RSV2 (« Codec structuré RSV2 ») de la **liste** des faits de cet appelant pour cette voix, du
 plus ancien au plus récent ; une ligne, réversible. Champ **absent** = aucun souvenir. Taille bornée par les bornes
 ci-dessus (5 faits de 64 caractères, environ 2 Kio d'hexadécimal au pire) ; le pont ignore un champ de plus de 4096
@@ -389,7 +391,7 @@ et refuse `remember` `not_available`.
 Action `persona_state` : la voix fait évoluer **son propre** état au fil du récit (moral, réserves, lieu dit). Le
 pont la propose, le serveur l'accepte et range l'état ; il vit **côté autorité**, dans l'état privé, jamais dans le
 fichier de fiche édité par l'admin ni en ModData globale. Implémentation : `server/RadioSurvivor/RS_PersonaState.lua`
-(exécuteur, bornes, champ de demande), `RadioSurvivor_Server.lua` (champ joint à la demande), `RS_Transport.lua`,
+(exécuteur, bornes, champ de demande), `RadioSurvivor_Server.lua` (champ joint à la demande), `RC_Transport.lua` (mod commun) et `RS_BridgeLanes.lua`,
 `bridge/radio_bridge.py` (`persona_state`, `persona_prompt`).
 
 **Exécuteur** (jugé par `RS_Actions.decide` comme toute action : catalogue, `actions=` de la fiche, paramètres,
@@ -416,7 +418,7 @@ moins un ; tout autre paramètre, ou aucun : `bad_params` (l'action entière est
 sans état chargé (pas encore initialisé ou bloqué), table en mémoire perdue au redémarrage du serveur, comme les
 compteurs d'actions. Réinitialisation : supprimer l'entrée de l'état privé (aucune commande dédiée).
 
-**Champ de demande** `persona=` (demande radio sans `kind`, après `memory` dans l'ordre de `RS_Transport`) :
+**Champ de demande** `persona=` (demande radio sans `kind`, après `memory` dans l'ordre de la voie radio (`RS_BridgeLanes`)) :
 hexadécimal minuscule RSV2 de la table `{ morale = n, supplies = n, place = "..." }` (`place` omis s'il est vide).
 Champ **absent** tant que la voix n'a jamais changé son état (aucun `persona_state` accepté) ; ensuite joint à chaque
 demande radio à cette voix. Jamais joint aux appels spontanés (`kind=radio_call`). Le pont ignore un champ de plus de
@@ -672,7 +674,7 @@ sans lieu, ou tous déjà donnés : réputation seule (journal anglais `no place
 part après la sauvegarde de la réussite : un arrêt entre les deux perd le repère, jamais la réussite. Pas de cache
 (E11-T06).
 
-**Champ `mission=` de la demande radio** (hexadécimal RSV2, `RS_MissionVoice.field`, écrit par `RS_Transport` après
+**Champ `mission=` de la demande radio** (hexadécimal RSV2, `RS_MissionVoice.field`, écrit par `RS_BridgeLanes` (file `RC_Transport` du mod commun) après
 `persona=`) : présent seulement quand cet appelant a une mission ouverte de cette voix.
 
 | Clé | Contenu |
@@ -776,7 +778,7 @@ interne de chaque personnage du carnet ; le pont n'en reçoit que le **niveau** 
   E04-T10). Le pont la borne (`npc_protocol.reputation_context` : niveau ou acte hors liste, nom trop long = retiré ;
   ancien mot `unavailable` = champ retiré) et ajoute la consigne `npc_protocol.reputation_prompt`.
 - **Voix radio** (demande sans `kind`) : champ `reputation=` (hexadécimal RSV2 de la même table, écrit par
-  `RS_Transport` après `trade=`, 1 024 caractères au plus ; `radio_bridge.reputation_field`, `reputation_prompt`).
+  `RS_BridgeLanes` (file `RC_Transport` du mod commun) après `trade=`, 1 024 caractères au plus ; `radio_bridge.reputation_field`, `reputation_prompt`).
 
 **Consigne** (`npc_protocol.reputation_sentence`, partagée) : le PNJ ou la voix peut en tenir compte et en parler, sans
 jamais inventer d'autres actes, annoncer un autre niveau, prétendre la changer ni donner de nombre. Aucune réponse du
@@ -803,7 +805,7 @@ Côté Lua, `RC_Codec` distingue chaîne Lua et chaîne d'octets (un caractère 
 en Kahlua (jeu), une chaîne est une `String` Java en unités UTF-16, convertie par `C.toUtf8` /
 `C.fromUtf8` (paires de substitution regroupées en un point de code de 4 octets, substitution isolée
 remplacée par U+FFFD) ; sous Lua 5.1 (bancs `lupa`), la conversion est l'identité. Le transport
-(`RS_Transport`) et l'état privé (`RS_State`) passent par la couche octets (`encodeBytes`,
+(`RS_BridgeLanes` (file `RC_Transport` du mod commun)) et l'état privé (`RS_State`) passent par la couche octets (`encodeBytes`,
 `hexBytes`, `unhexBytes`, `decodeBytes`, `checksumBytes`) ; les limites (256 Kio d'échange, 4 Mio
 d'état) comptent ces octets. À la lecture, un octet qui n'ouvre pas une séquence UTF-8 valide est
 gardé comme caractère de même code (U+0000-U+00FF) : un état privé écrit avant cette conversion

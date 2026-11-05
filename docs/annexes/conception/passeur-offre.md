@@ -1,7 +1,7 @@
 # Livre du passeur : stock, offre figée et action `propose_trade`
 
 - Tâche : E13-T02 (table serveur et action `propose_trade`) ; s'appuie sur E13-T01 (table validée [passeur-table.md](../../specifications-techniques/passeur-table.md), décisions du 2026-10-08 et du 2026-10-10), E07-T01 (actions en liste fermée), E13-T05 (journal du dehors, numéro de passage)
-- Code : `media/lua/server/RadioSurvivor/RS_Trade.lua` (autorité) ; barème `media/lua/shared/RadioSurvivorCore/RC_TradeValues.lua` (inchangé) ; contexte joint par `RadioSurvivor_Server.lua` (champ `trade=`, écrit par `RS_Transport.lua`) ; pont `bridge/radio_bridge.py` (`trade_context`, `trade_prompt`, `EXECUTABLE_ACTIONS["propose_trade"]`, contrôle de forme dans `bounded_actions`) ; banc `tests/test_rs_trade.py`
+- Code : `media/lua/server/RadioSurvivor/RS_Trade.lua` (autorité) ; barème `media/lua/shared/RadioSurvivorCore/RC_TradeValues.lua` (inchangé) ; contexte joint par `RadioSurvivor_Server.lua` (champ `trade=`, écrit par `RC_Transport.lua` (mod commun) et `RS_BridgeLanes.lua`) ; pont `bridge/radio_bridge.py` (`trade_context`, `trade_prompt`, `EXECUTABLE_ACTIONS["propose_trade"]`, contrôle de forme dans `bounded_actions`) ; banc `tests/test_rs_trade.py`
 - Build : 42.21.0 (Java décompilé **J/** = `<decompiled>\42.21.0\java\zombie\`) — Date : 2026-10-13 — Statut : brouillon, testé hors jeu seulement
 
 ## Problème
@@ -13,7 +13,7 @@ Le passeur (voix radio jouée par le LLM) négocie à la radio. Il ne doit propo
 | Fait | Preuve | Statut |
 |---|---|---|
 | Une action proposée par le LLM n'a que des paramètres scalaires : au plus 8, chaînes de 64 caractères au plus. | `RS_Actions.lua` (`paramsOf`), `radio_bridge.py` (`bounded_actions`, `MAX_PARAM_BYTES`) | confirmé (banc) |
-| Le serveur joint du contexte à la demande suivante en hexadécimal RSV2 (comme `memory=`, `persona=`, `mission=`). | `RS_Transport.lua`, `radio_bridge.py` (`HEX_FIELDS`) | confirmé (banc) |
+| Le serveur joint du contexte à la demande suivante en hexadécimal RSV2 (comme `memory=`, `persona=`, `mission=`). | `RC_Transport.lua` (mod commun) et `RS_BridgeLanes.lua`, `radio_bridge.py` (`HEX_FIELDS`) | confirmé (banc) |
 | Poids d'un objet à fluide = poids du script + litres de fluide (`getUnequippedWeight = getActualWeight + getContentsWeight`, `getContentsWeight` = `getFluidContainer():getAmount()`). Une bouteille de whiskey pleine pèse 0,7 + 1,0 kg. | `J/inventory/InventoryItem.java:3135-3147, 3160-3162` | confirmé statiquement |
 | Kahlua : pas d'opérateurs binaires ; Park-Miller (48271, 2^31 − 1) exact en `double`. | base `kahlua-lua.md` | confirmé statiquement |
 

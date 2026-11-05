@@ -184,7 +184,7 @@ class GroupRadioLinesTests(unittest.TestCase):
         rt.globals().package.path = (str(CORE_LUA / 'shared') + '/?.lua;' + str(LUA / 'shared') + '/?.lua;' + str(LUA / 'server') + '/?.lua;'
                                      + rt.globals().package.path)
         rt.execute('for _, m in ipairs({"RadioSurvivor/RS_Personas", "RadioSurvivor/RS_NPCProvider", '
-                   '"RadioSurvivor/RS_Config", "RadioSurvivorCore/RC_Codec", "RadioSurvivor/RS_Transport"}) do '
+                   '"RadioSurvivor/RS_Config", "RadioSurvivorCore/RC_Codec", "RadioSurvivor/RS_BridgeLanes"}) do '
                    'package.preload[m] = function() return {} end end')
         cls.const = rt.eval('require("RadioSurvivor/RadioSurvivor_Const")')
         cls.radio = rt.eval('require("RadioSurvivor/RS_GroupRadio")')

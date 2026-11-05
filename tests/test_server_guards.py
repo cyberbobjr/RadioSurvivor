@@ -23,6 +23,7 @@ CORE_LUA = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivorCore' / '42.21' / '
 def runtime(server=True):
     rt = lupa.LuaRuntime(unpack_returned_tuples=True)
     rt.execute('NOW = 0; LOGS = {}; SERVER = ' + ('true' if server else 'false'))
+    rt.execute(f'package.path = [[{(CORE_LUA / "shared").as_posix()}/?.lua;]] .. package.path')  # mod commun (E18)
     rt.execute('isServer = function() return SERVER end\n'
                'getTimestampMs = function() return NOW end\n'
                'print = function(s) LOGS[#LOGS + 1] = s end\n'

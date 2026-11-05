@@ -9,7 +9,7 @@
 | ☑ | E18-T01 | Mod commun `batman_RadioSurvivorCore` : dossier et métadonnées | `testé solo` | solo | — |
 | ☑ | E18-T02 | Outils partagés déplacés dans le commun | `testé hors jeu` | hors jeu | E18-T01 |
 | ☐ | E18-T03 | Identité des personnages dans le commun | `testé hors jeu` | MP | E18-T02 |
-| ☐ | E18-T04 | Lien avec le pont dans le commun | `à faire` | MP | E18-T02 |
+| ☐ | E18-T04 | Lien avec le pont dans le commun | `testé hors jeu` | MP | E18-T02 |
 | ☐ | E18-T05 | Moteur de missions dans le commun, donneurs voix et PNJ | `à faire` | MP | E18-T03, E18-T04 |
 | ☐ | E18-T06 | Journal commun des missions | `à faire` | MP | E18-T05 |
 | ☐ | E18-T07 | Mod `batman_LivingKnox` : code déplacé | `à faire` | solo | E18-T02 |
@@ -63,6 +63,7 @@ donnent des missions ; le pont Python LLM est la base de leur intelligence, avec
 - 2026-11-05 — **Historique des échanges** (utilisateur, `E18-T11`) : gardé par le **mod commun**, toujours présent :
   Living Knox y écrit les échanges avec ses PNJ, le carnet de RadioSurvivor le lit pour l'afficher ; il sert de mémoire
   au LLM pour chaque nouvelle phrase. Confirmé par défaut : les échanges avec les voix radio y sont gardés aussi.
+- 2026-11-05 — **Quotas du pont** (utilisateur, `E18-T04`) : **une seule file d'échange, plafonds séparés** : le mod commun porte la file des demandes et des réponses (un fichier de demandes, un fichier de réponses, signal de vie), chaque mod compte ses demandes à part comme aujourd'hui (plafond horaire de la radio par l'option sandbox, `MAX_PER_HOUR` et budget d'enrichissement des PNJ, `MAX_PENDING` de chacun) ; aucun changement de jeu.
 - 2026-11-05 — Confirmé par défaut (valeurs techniques, modifiables) :
   - identifiants `batman_RadioSurvivorCore` (mod commun, nom affiché « Radio Survivor Core », code sous
     `media/lua/*/RadioSurvivorCore/`, fichiers `RC_`) et `batman_LivingKnox` (nom affiché « Living Knox ») ;
@@ -133,15 +134,15 @@ Deuxième article Workshop, dépôt séparé, nouvelles règles de jeu des missi
   - Reste : cible MP pour les trois montages : Living Knox seul et RadioSurvivor seul n'existent pas encore comme mods séparés (E18-T07, outillage E18-T14) ; Living Knox seul n'est prouvé que par le banc ; à valider en jeu avec E18-T15
 
 - [ ] **E18-T04** — Lien avec le pont dans le commun
-  - État : `à faire`
+  - État : `testé hors jeu`
   - Cible : `MP`
   - Dépend de : E18-T02
   - Fichiers : `RS_Transport`, `RS_BridgeAlive`, constantes du pont (`RadioSurvivor_Const`), quotas (`MAX_PENDING`, `MAX_PER_HOUR`, budget d'enrichissement) → commun ; `docs/specifications-techniques/protocole-carnet-v2.md`
   - Faire : file unique des demandes LLM et des réponses, quotas communs, signal de vie, dossier d'échange unique ; chaque mod enregistre ses sortes de demandes et le traitement de leurs réponses ; secours sans pont conservé.
   - Accepté si : une demande de voix et une demande de PNJ passent par la même file, avec les mêmes quotas ; pont arrêté : secours de chaque mod comme aujourd'hui.
   - Tests : `test_protocol.py`, bancs du transport ; suites du pont (`BRIDGE_SUITES`).
-  - Preuve : —
-  - Reste : —
+  - Preuve : décision du 2026-11-05 (une file, plafonds séparés) ; mod commun : `RC_Transport` (file unique : voies inscrites par chaque mod, `register(nom, { order, format })`, écriture du fichier de demandes, lecture des réponses de toutes les voies `readResponses`) et `RC_Bridge` (fichiers d'échange, battement du pont, `alive`, `waitMs`) ; RadioSurvivor : `RS_Transport.lua` retiré, voies `radio`, `npc`, `acks`, `lastPages` inscrites par `server/RadioSurvivor/RS_BridgeLanes.lua` (même ordre, lignes `clé=valeur` de la radio), `RadioSurvivor_Const` lit fichiers, délais et battement dans le commun ; plafonds inchangés dans chaque mod ; `protocole-carnet-v2.md` (section « File commune ») ; banc `python tests/test_core_bridge.py` (rouge d'abord : 2 FAIL, 6 ERROR ; puis « Ran 8 tests … OK ») : une seule copie, plus aucun `require` de l'ancien transport, fichier de demandes identique octet pour octet à celui de l'ancien code (`tests/fixtures/e18-t04`), voie d'un autre mod dans le même fichier relue par `radio_bridge.parse_requests`, lecteur unique des réponses, battement lu par le commun ; `python tests/run_all.py --keep-going` : « 150 passed, 0 failed », luacheck `Contents` 15 (référence 15), `dev` 0 ; campagne MP automatique du 2026-11-05 (`--mp --clients 2 --server-campaign mp --bridge on --llm fake`, code 1) : « RST-RESULT ok=false total=375 pass=358 fail=1 skip=16 » ; suites du pont vertes (rs.npctalk 4, rs.conversations 4, rs.initiatives 4 dont le pont arrêté, rs.groupradio 5, rs.relation 3, rs.lastpages 5) ; seul échec `lk.barricade` « builder nails planks from the stock » (instabilité antérieure, déjà vue dans les campagnes du 2026-10-14, `tools/autoclient/runs/20261014-140622-mp-770bdff9653f`) (`tools/autoclient/runs/20261105-193132-mp-0c76bf3df7a3`)
+  - Reste : dossier d'échange encore `batman_RadioSurvivor/` (passage au commun et transition du pont : E18-T12) ; voies de Living Knox (parole des PNJ) : E18-T11 ; instabilité `lk.barricade` (chantier non fini dans le délai) sans tâche de suivi : à ouvrir ; validation des trois montages : E18-T15
 
 - [ ] **E18-T05** — Moteur de missions dans le commun, donneurs voix et PNJ
   - État : `à faire`

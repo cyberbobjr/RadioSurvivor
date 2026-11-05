@@ -1,6 +1,6 @@
 # Dernières pages d'un personnage (E15-T03)
 
-À la mort d'un personnage du carnet, son journal est écrit d'après son relevé de vie (E15-T01) et posé, en document manuscrit en lecture seule, dans son cadavre ou à côté (méthode établie en E15-T02, `docs/annexes/recherches/derniers-pages-cadavre.md`). Code : `media/lua/server/RadioSurvivor/RS_LastPages.lua` ; pont : `bridge/last_pages.py` (branchements dans `bridge/radio_bridge.py`), liste `RS_Transport.lastPages` ; banc : `tests/test_last_pages.py` ; suite en jeu : `rs.lastpages` (`dev/batman_RadioSurvivorTests/.../suites/RS_LastPages.lua`).
+À la mort d'un personnage du carnet, son journal est écrit d'après son relevé de vie (E15-T01) et posé, en document manuscrit en lecture seule, dans son cadavre ou à côté (méthode établie en E15-T02, `docs/annexes/recherches/derniers-pages-cadavre.md`). Code : `media/lua/server/RadioSurvivor/RS_LastPages.lua` ; pont : `bridge/last_pages.py` (branchements dans `bridge/radio_bridge.py`), voie `lastPages` de la file du mod commun (`RC_Transport`, inscrite par `RS_BridgeLanes`) ; banc : `tests/test_last_pages.py` ; suite en jeu : `rs.lastpages` (`dev/batman_RadioSurvivorTests/.../suites/RS_LastPages.lua`).
 
 ## Déroulement
 

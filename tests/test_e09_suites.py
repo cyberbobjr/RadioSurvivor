@@ -10,7 +10,7 @@ Réels ici : RS_State, RS_Config, RC_Codec, RS_Relations, RS_Observations, RS_Fa
 de Faction de tests/test_factions.py), RS_Incidents, LK_Core. Doublures : moteur Living Knox réduit (groupes, corps,
 attitude et faits, choix de cible réduit aux règles incident / couvert), serveur du carnet réduit à ce que lisent les
 tests (hello, select, talk avec contexte relation / collectif / accord, file de requêtes, lecture du fichier de
-réponses par RS_Transport.readNpc, application des réponses : change_relation, negotiate avec revalidation du chef et
+réponses par RS_Transport.readResponses, application des réponses : change_relation, negotiate avec revalidation du chef et
 de la composition, décision d'incident par RS_Incidents.reply), client du carnet réduit (send, talk, attente).
 Les réponses du modèle sont celles que les tests déposent eux-mêmes (E9.intercept) : aucun pont.
 Chaque test passe sur les doublures et échoue sur un défaut injecté (DEFECT) qui contredit son critère. Ce banc ne
@@ -212,7 +212,7 @@ P = {
     hears = function(a, b, range) return a ~= nil and b ~= nil and dist(a, b) <= range end,
 }
 package.loaded["RadioSurvivor/RS_NPCProvider"] = P
-package.loaded["RadioSurvivor/RS_Transport"] = { readNpc = function() return BRIDGE end }
+package.loaded["RadioSurvivor/RS_BridgeLanes"] = { readResponses = function() return BRIDGE end }
 BRIDGE = nil
 
 F = require "RadioSurvivor/RS_Factions"
@@ -391,8 +391,8 @@ local nextIncident = 0
 Events.OnTickEvenPaused.Add(function()
     scan()
     if DEFECT.bridgeAlwaysUp then Server.initiatives.bridge.down = false end
-    local T = require "RadioSurvivor/RS_Transport"
-    local responses = T.readNpc() or {}
+    local T = require "RadioSurvivor/RS_BridgeLanes"
+    local responses = T.readResponses() or {}
     local kept, used = {}, {}
     for _, req in ipairs(Server.pending) do
         local result = nil
@@ -587,7 +587,7 @@ class RelationTests(Bench):
     def test_bridge_reader_restored(self):
         net, rep = self.play('rs.relation', self.T, solo=True)
         self.assert_pass(rep, self.T)
-        self.assertTrue(net.server.lua('local T = require "RadioSurvivor/RS_Transport"; return T.readNpc() == BRIDGE'))
+        self.assertTrue(net.server.lua('local T = require "RadioSurvivor/RS_BridgeLanes"; return T.readResponses() == BRIDGE'))
 
 
 class AccordTests(Bench):
@@ -705,7 +705,7 @@ class InterceptTests(Bench):
         s = net.server
         out = s.lua(r'''
             local E9 = RST.PeerChecksE09
-            local T = require "RadioSurvivor/RS_Transport"
+            local T = require "RadioSurvivor/RS_BridgeLanes"
             BRIDGE = { ["r1"] = { id = "r1", text = "bridge" }, ["r2"] = { id = "r2", text = "bridge" } }
             Server.pending = { { id = "r1", npc = "n1", kind = "npc_talk", world = "w", run = "x", order = 1,
                 revision = 1 }, { id = "r2", npc = "n2", kind = "npc_talk" } }
@@ -717,16 +717,16 @@ class InterceptTests(Bench):
                 if hold then return nil end
                 return E9.reply(r, { intent = "accept" })
             end)
-            local a = T.readNpc()
+            local a = T.readResponses()
             local held = a.r1 == nil and a.r2 ~= nil and a.r2.text == "bridge"
             hold = false
-            local b = T.readNpc()
+            local b = T.readResponses()
             local built = b.r1 ~= nil and b.r1.intent == "accept" and b.r1.text == E9.TEXT and b.r1.order == 1
             ctl.blackout = true
-            local c = T.readNpc()
+            local c = T.readResponses()
             local silent = c.r1 == nil and c.r2 == nil
             deferred[1]()
-            local restored = T.readNpc() == BRIDGE
+            local restored = T.readResponses() == BRIDGE
             return held, built, silent, restored
         ''')
         self.assertEqual(tuple(out), (True, True, True, True))

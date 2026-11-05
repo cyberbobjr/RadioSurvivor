@@ -33,7 +33,7 @@ local P = require 'RadioSurvivor/RS_NPCProvider'
 local S = require 'RadioSurvivor/RS_State'
 local Obs = require 'RadioSurvivor/RS_Observations'
 local Radio = require 'RadioSurvivor/RadioSurvivor_Const'
-local T = require 'RadioSurvivor/RS_Transport'
+local T = require 'RadioSurvivor/RS_BridgeLanes'
 
 local I = {}
 I.KIND = 'npc_initiative'

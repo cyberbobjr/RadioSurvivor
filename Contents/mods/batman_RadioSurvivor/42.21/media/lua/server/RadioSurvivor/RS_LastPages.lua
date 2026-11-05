@@ -33,7 +33,7 @@ bridge file and releases the frozen logs without placing anything, even a text a
 ]]
 local S = require "RadioSurvivor/RS_State"
 local Const = require "RadioSurvivor/RadioSurvivor_Const"
-local Transport = require "RadioSurvivor/RS_Transport"
+local Transport = require "RadioSurvivor/RS_BridgeLanes"
 local LifeLog = require "RadioSurvivor/RS_LifeLog"
 
 local P = {}
@@ -288,7 +288,7 @@ function P.onFrozen(cid, log, character)
     S.save()
 end
 
--- Answers of the bridge by request id (RS_Transport.readNpc), read once per poll.
+-- Answers of the bridge by request id (RS_Transport.readResponses), read once per poll.
 local function answerOf(answers, pg)
     local a = answers and answers[pg.req]
     if type(a) ~= "table" or a.kind ~= P.REPLY_KIND then return nil end
@@ -371,7 +371,7 @@ function P.poll()
         local log = LifeLog.get(cid)
         local pg = log and log.pages
         if type(pg) == "table" and pg.state == "asked" then
-            if not read then answers, read = Transport.readNpc(), true end
+            if not read then answers, read = Transport.readResponses(), true end
             local a = answerOf(answers, pg)
             if a ~= nil then
                 finish(cid, log, P.cleanText(a.text))

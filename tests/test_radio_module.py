@@ -26,6 +26,7 @@ import beltradio_lib  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 LUA = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivor' / '42.21' / 'media' / 'lua'
+CORE_LUA = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivorCore' / '42.21' / 'media' / 'lua'  # mod commun (E18)
 TALK = LUA / 'client' / 'RadioSurvivor' / 'RS_RadioTalk.lua'
 MODULE = LUA / 'client' / 'RadioSurvivor' / 'RS_RadioModule.lua'
 MENU = LUA / 'client' / 'RadioSurvivor_Client.lua'
@@ -262,7 +263,7 @@ class Bench(unittest.TestCase):
         self.rt = lupa.LuaRuntime(unpack_returned_tuples=True)
         self.g = self.rt.globals()
         self.g.next = None  # absent de Kahlua
-        self.rt.execute(f'package.path = [[{(LUA / "shared").as_posix()}/?.lua;{(LUA / "client").as_posix()}/?.lua;]]'
+        self.rt.execute(f'package.path = [[{(CORE_LUA / "shared").as_posix()}/?.lua;{(LUA / "shared").as_posix()}/?.lua;{(LUA / "client").as_posix()}/?.lua;]]'
                         ' .. package.path')
         self.rt.execute(STUBS)
         # Mod requis Belt Walkie-Talkie : vrai prédicat d'émission (BatmanRadioSupport.canTransmitWith).

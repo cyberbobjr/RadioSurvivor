@@ -7,7 +7,7 @@ local S = require 'RadioSurvivor/RS_State'; require 'RadioSurvivor/RS_MissionCle
 local Identity = require 'RadioSurvivorCore/RC_Identity' -- E18-T03: identity of the characters (core mod)
 local M = require 'RadioSurvivor/RS_Missions'; require 'RadioSurvivor/RS_MissionScout'; require 'RadioSurvivor/RS_MissionRetrieve'
 local Rep = require 'RadioSurvivor/RS_Reputation'
-local T = require 'RadioSurvivor/RS_Transport'
+local T = require 'RadioSurvivor/RS_BridgeLanes'
 local Radio = require 'RadioSurvivor/RadioSurvivor_Const'
 local Obs = require 'RadioSurvivor/RS_Observations'
 local Triggers = require 'RadioSurvivor/RS_ObservationTriggers' -- E08-T07: observation triggers
@@ -807,7 +807,7 @@ local function reply(req, result)
 end
 
 local function poll()
-    local responses = T.readNpc() or {}
+    local responses = T.readResponses() or {}
     local kept, changed, used = {}, false, {}
     for _, req in ipairs(Server.pending) do
         if not used[req.npc] then

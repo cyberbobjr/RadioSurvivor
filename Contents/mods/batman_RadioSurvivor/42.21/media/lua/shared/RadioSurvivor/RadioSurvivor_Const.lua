@@ -12,8 +12,10 @@ Const.CHANNEL_UUID = "batman_RadioSurvivor-channel-0001"
 -- Belt Walkie-Talkie (client/RadioSurvivor/RS_BeltRadio.lua).
 Const.VOICE_CHANNEL_PREFIX = "batman_RadioSurvivor-voice-"
 
-Const.REQUESTS_FILE = "batman_RadioSurvivor/requests.txt"
-Const.RESPONSES_FILE = "batman_RadioSurvivor/responses.txt"
+-- Fichiers d'échange et battement du pont : mod commun (E18-T04, RadioSurvivorCore/RC_Bridge), lus ici par référence.
+local Bridge = require "RadioSurvivorCore/RC_Bridge"
+Const.REQUESTS_FILE = Bridge.REQUESTS_FILE
+Const.RESPONSES_FILE = Bridge.RESPONSES_FILE
 -- Journal admin des actions (E07-T02, server/RadioSurvivor/RS_ActionLog.lua) : au-delà de ces seuils, le fichier
 -- courant devient actions-<partie>.1.log (l'ancien écrasé) et repart vide. Taille en caractères (unités Kahlua).
 Const.ACTION_LOG_MAX_LINES = 2000
@@ -312,52 +314,22 @@ end
 -- absent ou muet depuis ALIVE_STALE_MS (ou pont antérieur sans battement) : les secours partent après le délai court de
 -- chaque demande, comme avant. Const.TIMEOUT_MS (radio de Walt) est tenu à jour par Const.refreshTimeout(), appelé à
 -- chaque OnTickEvenPaused de l'autorité par server/RadioSurvivor/RS_BridgeAlive.lua.
-Const.BRIDGE_ALIVE_FILE = "batman_RadioSurvivor/bridge-alive.txt"
-Const.BRIDGE_REPLY_MS = 135000
-Const.BRIDGE_TIMEOUT_MS = 150000      -- = RS_Config.REQUEST_TIMEOUT_MS (carnet)
-Const.NO_BRIDGE_TIMEOUT_MS = 90000    -- radio de Walt sans pont : « <fzzt> » et refus NoAnswer
-Const.ALIVE_STALE_MS = 20000
-Const.ALIVE_READ_MS = 5000            -- relecture du battement au plus toutes les 5 s
-Const.bridgeSeenMs = nil   -- dernier battement lu (getTimestampMs du pont), nil = jamais vu
-local aliveReadAt = nil
+Const.BRIDGE_ALIVE_FILE = Bridge.BRIDGE_ALIVE_FILE
+Const.BRIDGE_REPLY_MS = Bridge.BRIDGE_REPLY_MS
+Const.BRIDGE_TIMEOUT_MS = Bridge.BRIDGE_TIMEOUT_MS        -- = RS_Config.REQUEST_TIMEOUT_MS (carnet)
+Const.NO_BRIDGE_TIMEOUT_MS = Bridge.NO_BRIDGE_TIMEOUT_MS  -- radio de Walt sans pont : « <fzzt> » et refus NoAnswer
+Const.ALIVE_STALE_MS = Bridge.ALIVE_STALE_MS
+Const.ALIVE_READ_MS = Bridge.ALIVE_READ_MS
 
-local function nowMs(now)
-    if now then return now end
-    -- nil checks, not type() == "function": a Java function or a bench double (lupa userdata)
-    return getTimestampMs and getTimestampMs() or 0
-end
-
-local function readAlive()
-    if not getFileReader then return nil end
-    local reader = getFileReader(Const.BRIDGE_ALIVE_FILE, false)
-    if not reader then return nil end
-    local stamp = nil
-    local line = reader:readLine()
-    while line do
-        local v = tonumber(string.match(line, "^alive=(%d+)"))
-        if v then stamp = v end
-        line = reader:readLine()
-    end
-    reader:close()
-    return stamp
-end
-
--- Vrai si le pont a écrit son battement depuis moins de ALIVE_STALE_MS (fichier relu au plus toutes les
--- ALIVE_READ_MS ; force = relire tout de suite).
+-- Vrai si le pont a écrit son battement depuis moins de ALIVE_STALE_MS (mod commun, RC_Bridge.alive ; force = relire
+-- tout de suite).
 function Const.bridgeAlive(now, force)
-    now = nowMs(now)
-    if force or aliveReadAt == nil or now - aliveReadAt >= Const.ALIVE_READ_MS or now < aliveReadAt then
-        aliveReadAt = now
-        Const.bridgeSeenMs = readAlive()
-    end
-    local seen = Const.bridgeSeenMs
-    return seen ~= nil and now - seen <= Const.ALIVE_STALE_MS and seen - now <= Const.ALIVE_STALE_MS
+    return Bridge.alive(now, force)
 end
 
 -- Attente d'une demande au pont : shortMs (secours sans pont) ou, pont vivant, au moins BRIDGE_TIMEOUT_MS.
 function Const.waitMs(shortMs, now)
-    if Const.bridgeAlive(now) then return math.max(shortMs, Const.BRIDGE_TIMEOUT_MS) end
-    return shortMs
+    return Bridge.waitMs(shortMs, now)
 end
 
 -- Const.TIMEOUT_MS (radio de Walt, RadioSurvivor_Server.lua) suit l'état du pont : appelé à chaque OnTickEvenPaused

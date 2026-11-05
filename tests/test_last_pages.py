@@ -211,7 +211,7 @@ class Bench(unittest.TestCase):
         self.h.load('server', DOUBLES)
         self.h.load('server', text_doubles(self.lang, self.loaded))
         self.h.load('server', "LastPages = require 'RadioSurvivor/RS_LastPages'; "
-                              "Transport = require 'RadioSurvivor/RS_Transport'")
+                              "Transport = require 'RadioSurvivor/RS_BridgeLanes'")
         self.exchange = self.h.file_root('server') / 'batman_RadioSurvivor'
 
     def tearDown(self):

@@ -635,7 +635,7 @@ class StaticTests(unittest.TestCase):
     def test_server_joins_the_book_and_transport_writes_it(self):
         server = (LUA / 'server/RadioSurvivor_Server.lua').read_text(encoding='utf-8')
         self.assertEqual(server.count('Trade.field('), 2)
-        transport = (LUA / 'server/RadioSurvivor/RS_Transport.lua').read_text(encoding='utf-8')
+        transport = (LUA / 'server/RadioSurvivor/RS_BridgeLanes.lua').read_text(encoding='utf-8')
         self.assertRegex(transport, r"'facts', 'trade'[,}]")
 
 

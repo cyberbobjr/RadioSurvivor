@@ -11,7 +11,7 @@ Factions.conclude, collectiveCheck, RS_Incidents.reply). The bridge, real or fak
 taken by a rule is dropped. Works without any bridge.
 
     local E9 = RST.PeerChecksE09
-    E9.intercept(t) -> ctl    wraps RS_Transport.readNpc (restored by t:defer) with rules, first match wins:
+    E9.intercept(t) -> ctl    wraps RS_Transport.readResponses (restored by t:defer) with rules, first match wins:
         ctl.rule(match, build) -> rule   match(req) -> bool for a pending request of the notebook; build(req) -> the
                                          reply (E9.reply) or nil to HOLD it (no reply now, the bridge answer dropped)
         rule.off = true                  the rule stops matching (requests go back to the bridge)
@@ -80,10 +80,10 @@ function E9.reply(req, fields)
 end
 
 function E9.intercept(t)
-    local T = require "RadioSurvivor/RS_Transport"
+    local T = require "RadioSurvivor/RS_BridgeLanes"
     local Server = RS_CarnetServer
     local ctl = { rules = {}, seenAll = {} }
-    local original = T.readNpc
+    local original = T.readResponses
     local function wrapped()
         if ctl.blackout then return {} end
         local answers = original()
@@ -106,10 +106,10 @@ function E9.intercept(t)
         end
         return out
     end
-    T.readNpc = wrapped
+    T.readResponses = wrapped
     E9.active = ctl
     t:defer(function()
-        if T.readNpc == wrapped then T.readNpc = original end
+        if T.readResponses == wrapped then T.readResponses = original end
         if E9.active == ctl then E9.active = nil end
     end, "bridge reply file read as usual")
     function ctl.rule(match, build)

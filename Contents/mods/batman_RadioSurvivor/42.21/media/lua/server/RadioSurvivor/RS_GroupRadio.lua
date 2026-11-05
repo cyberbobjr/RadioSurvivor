@@ -24,7 +24,7 @@ local Personas = require "RadioSurvivor/RS_Personas"
 local P = require "RadioSurvivor/RS_NPCProvider"
 local C = require "RadioSurvivor/RS_Config"
 local Codec = require "RadioSurvivorCore/RC_Codec"
-local T = require "RadioSurvivor/RS_Transport"
+local T = require "RadioSurvivor/RS_BridgeLanes"
 local TextCut = require "RadioSurvivorCore/RC_TextCut"
 local Rep = require "RadioSurvivor/RS_Reputation"
 

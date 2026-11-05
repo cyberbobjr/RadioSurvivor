@@ -11,7 +11,7 @@
 if isClient() then return end
 
 local Const = require "RadioSurvivor/RadioSurvivor_Const"
-local Transport = require "RadioSurvivor/RS_Transport"
+local Transport = require "RadioSurvivor/RS_BridgeLanes"
 local Personas = require "RadioSurvivor/RS_Personas"
 -- Historique radio par personnage du carnet (E06-T04) : phrases dites, réponses, lignes entendues.
 local Log = require "RadioSurvivor/RS_RadioLog"
@@ -134,7 +134,8 @@ end
 -- Fichiers d'échange avec le pont -------------------------------------------------------------
 
 local function writeRequests()
-    return Transport.setRadio(pending, sessionKey())
+    Transport.radio, Transport.session = pending, sessionKey()
+    return Transport.write()
 end
 
 -- Ligne de réponse filtrée (balises, longueur) ; "" si rien ne reste. Le jeu interprète les balises <...> : seuls les
@@ -153,7 +154,7 @@ end
 -- Réponse radio structurée (E07-T01) : payload= RSV2 { version = 2, kind = "radio_reply", id, say = { lignes },
 -- actions = { ... } } du même identifiant que resp=. Les lignes say repassent par le filtrage de line= ; nil si la
 -- charge n'est pas une réponse radio de cet identifiant (une réponse PNJ npc_reply ou ack_reply, lue par
--- RS_Transport.readNpc dans le même fichier, est ignorée ici).
+-- RS_Transport.readResponses dans le même fichier, est ignorée ici).
 local function structuredReply(id, hex)
     local raw = Codec.unhexBytes(hex)
     local value = raw and Codec.decodeBytes(raw)

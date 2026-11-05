@@ -184,7 +184,7 @@ Banc : `tests/test_reputation.py`.
   garde dans `RS_MissionVoice.start` (refus `reputation`). L'acceptation revalide le même catalogue.
 - **Contexte LLM (E04-T10, Q10)** : `R.publicContext` = `{level, last = {act, about}}` dans `context.reputation` du
   PNJ en face (`RS_Carnet_Server.talk`) et des groupes à la radio (`RS_GroupRadio.talk`), et champ `reputation=` des
-  voix (`RadioSurvivor_Server`, écrit par `RS_Transport`) ; consigne `npc_protocol.reputation_sentence` (peut en
+  voix (`RadioSurvivor_Server`, écrit par `RS_BridgeLanes` (file `RC_Transport` du mod commun)) ; consigne `npc_protocol.reputation_sentence` (peut en
   parler, ne l'invente ni ne la change). Protocole : [protocole-carnet-v2.md](../../specifications-techniques/protocole-carnet-v2.md).
 - **Marge du passeur (E04-T11, Q13)** : `RS_Trade` (`marginFloor`) : base du niveau (0,10 / 0,25 / 0,40), rabais
   d'historique, tricherie 0,50 ([passeur-table.md](../../specifications-techniques/passeur-table.md)).

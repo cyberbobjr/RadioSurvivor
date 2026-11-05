@@ -1131,7 +1131,7 @@ def npc_exchange(exchange: Path, utf16: bool) -> None:
     codec = rt.eval(b'require("RadioSurvivorCore/RC_Codec")')
     codec[b"_utf16"] = True if utf16 else None
     try:
-        transport = rt.eval(b'require("RadioSurvivor/RS_Transport")')
+        transport = rt.eval(b'require("RadioSurvivor/RS_BridgeLanes")')
         text = "Ça va ? Où êtes-vous, près de l'église ? Réponse « vite »." if utf16 else \
             "L’abri coûte 5 €, œuvre d’été \U0001F4FB, ça va ?"
         req = {"version": 2, "kind": "npc_talk", "id": "run-a-npc-a-1", "world": "world-a", "run": "run-a",
@@ -1162,7 +1162,7 @@ def npc_exchange(exchange: Path, utf16: bool) -> None:
             bridge.terminate()
             bridge.communicate(timeout=10)
         # Python -> Lua: the reply is read back as game text.
-        answers = transport.readNpc()
+        answers = transport.readResponses()
         assert answers is not None, "réponses illisibles"
         reply = answers[req["id"].encode()]
         assert reply is not None and reply[b"error"] is None, "réponse refusée"
@@ -1195,7 +1195,7 @@ def scenario_npc_observations(tmp: Path) -> None:
     paths = ";".join((LUA / side).as_posix() + "/?.lua" for side in ("shared", "server"))
     paths = (CORE_LUA / "shared").as_posix() + "/?.lua;" + paths  # mod commun (E18)
     rt.execute(f"package.path = [[{paths};]] .. package.path")
-    transport = rt.eval('require("RadioSurvivor/RS_Transport")')
+    transport = rt.eval('require("RadioSurvivor/RS_BridgeLanes")')
     observations = [
         {"fact": "assault_seen", "subject": "character-a", "day": 3, "place": "près de l'église", "source": "heard",
          "hops": 2, "who": "Alice Doe", "teller": "Paul"},
@@ -1269,7 +1269,7 @@ def scenario_relation_change(tmp: Path) -> None:
     paths = ";".join((LUA / side).as_posix() + "/?.lua" for side in ("shared", "server"))
     paths = (CORE_LUA / "shared").as_posix() + "/?.lua;" + paths  # mod commun (E18)
     rt.execute(f"package.path = [[{paths};]] .. package.path")
-    transport = rt.eval('require("RadioSurvivor/RS_Transport")')
+    transport = rt.eval('require("RadioSurvivor/RS_BridgeLanes")')
     relation = {"level": "favorable", "trend": "up", "group": "cautious",
                 "facts": [{"id": "f1", "fact": "gift", "nature": "good", "source": "group", "day": 3},
                           {"id": "f2", "fact": "assault_seen", "nature": "bad", "source": "seen", "day": 4}]}
@@ -1376,7 +1376,7 @@ def scenario_scout_offer(tmp: Path) -> None:
     paths = ";".join((LUA / side).as_posix() + "/?.lua" for side in ("shared", "server"))
     paths = (CORE_LUA / "shared").as_posix() + "/?.lua;" + paths  # mod commun (E18)
     rt.execute(f"package.path = [[{paths};]] .. package.path")
-    transport = rt.eval('require("RadioSurvivor/RS_Transport")')
+    transport = rt.eval('require("RadioSurvivor/RS_BridgeLanes")')
     clues = {1: "The place is a single-storey house.", 2: "There is a gas station a short walk to the north."}
     scout = {"kind": "scout", "place": "house", "clues": clues, "report": "in_person", "durationMs": 7200000,
              "rewardType": "Base.Bullets9mm", "rewardCount": 20}
@@ -1434,7 +1434,7 @@ def scenario_supply_offer(tmp: Path) -> None:
     paths = ";".join((LUA / side).as_posix() + "/?.lua" for side in ("shared", "server"))
     paths = (CORE_LUA / "shared").as_posix() + "/?.lua;" + paths  # mod commun (E18)
     rt.execute(f"package.path = [[{paths};]] .. package.path")
-    transport = rt.eval('require("RadioSurvivor/RS_Transport")')
+    transport = rt.eval('require("RadioSurvivor/RS_BridgeLanes")')
     supply = {"kind": "supply", "unit": "value", "need": "food", "level": 20, "quantity": 60, "durationMs": 7200000,
               "accepted": {"Base.TinnedBeans": True, "Base.Rice": True},
               "values": {"Base.TinnedBeans": 2, "Base.Rice": 2}, "rewardType": "Base.Antibiotics", "rewardCount": 2,
@@ -1791,7 +1791,7 @@ def scenario_structured_server(tmp: Path) -> None:
                                         "say": ["Green <b>smoke</b> soon.", "Over."], "actions": actions}),
              "resp=npc-1", payload(npc_reply)])
     # Lecteur PNJ du même fichier : sa réponse est intacte (la réponse radio y est une entrée de plus, ignorée).
-    npc_answers = g.require("RadioSurvivor/RS_Transport").readNpc()
+    npc_answers = g.require("RadioSurvivor/RS_BridgeLanes").readResponses()
     assert npc_answers["npc-1"]["kind"] == "npc_reply" and npc_answers["npc-1"]["text"] == "Hi"
     assert pump(lambda: len(g.BROADCASTS) == 1, [tick]), "structured reply not aired"
     assert lua_list(g.BROADCASTS[1]) == ["<bzzt>", "Green bsmoke/b soon.", "Over."], lua_list(g.BROADCASTS[1])
@@ -3399,7 +3399,7 @@ def scenario_voice_mission_bridge(tmp: Path) -> None:
     paths = (CORE_LUA / "shared").as_posix() + "/?.lua;" + paths  # mod commun (E18)
     rt.execute(f"package.path = [[{paths};]] .. package.path")
     codec = rt.eval('require("RadioSurvivorCore/RC_Codec")')
-    transport = rt.eval('require("RadioSurvivor/RS_Transport")')
+    transport = rt.eval('require("RadioSurvivor/RS_BridgeLanes")')
     context = rt.eval("""{ state = "active", remainingMs = 5400000, kind = "scout", place = "house",
         clues = { "The place is a large single-storey house.", "There is a gas station a short walk to the north." },
         zoneReached = false, report = "radio", turn = "not_yet" }""")

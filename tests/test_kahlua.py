@@ -56,6 +56,7 @@ LUA_FILES = [
     ('RST/RST_LKHelpers', TESTS_LUA / 'shared' / 'RST' / 'RST_LKHelpers.lua'),
     ('RST/RST_LKProbe', TESTS_LUA / 'shared' / 'RST' / 'RST_LKProbe.lua'),
     ('RadioSurvivor/RS_Config', MOD_LUA / 'shared' / 'RadioSurvivor' / 'RS_Config.lua'),
+    ('RadioSurvivorCore/RC_Bridge', CORE_LUA / 'shared' / 'RadioSurvivorCore' / 'RC_Bridge.lua'),  # E18-T04 : RadioSurvivor_Const
     ('RadioSurvivorCore/RC_Codec', CORE_LUA / 'shared' / 'RadioSurvivorCore' / 'RC_Codec.lua'),
     ('RadioSurvivor/RS_Reputation', MOD_LUA / 'server' / 'RadioSurvivor' / 'RS_Reputation.lua'),
     ('RadioSurvivor/RS_NPCProvider', MOD_LUA / 'shared' / 'RadioSurvivor' / 'RS_NPCProvider.lua'),  # RS_Missions
