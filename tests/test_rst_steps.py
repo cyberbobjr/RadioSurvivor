@@ -959,6 +959,10 @@ class HStepTests(unittest.TestCase):
         a = self.tick(2000)
         self.assertEqual(a.status, 'FAIL')
         self.assertIn('lk-1 180 deg', a.message)
+        # Campagne MP du 2026-11-05 (lk.alert) : un corps posé sur le point n'a aucune direction à prendre.
+        a = self.start('lk.facing', '{ bodies = { { npc = "lk-1", x = 9, y = 10 } }, maxDeg = 30 }')  # behind, 1 square
+        self.assertEqual(a.status, 'PASS', a.message)
+        self.assertIn('lk-1 on the point', a.message)
         a = self.start('lk.positions', '{ bodies = { { npc = "lk-1", x = 11, y = 11, z = 0 } }, tol = 2 }')
         self.assertEqual(a.status, 'PASS', a.message)
         self.assertIsNone(self.start('lk.positions', '{ bodies = { { npc = "lk-3", x = 11, y = 11, z = 0 } }, '

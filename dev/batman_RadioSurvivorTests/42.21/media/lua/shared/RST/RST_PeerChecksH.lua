@@ -114,6 +114,15 @@ local function angleGap(z, x, y)
     return d
 end
 
+-- A body standing on the point (closer than FACING_NEAR to its centre) has no direction to face: counted as facing
+-- (MP campaign of 2026-11-05, lk.alert: the defender ran onto the last known position of the zombie it shot).
+local FACING_NEAR = 1.5
+
+local function onPoint(z, x, y)
+    local dx, dy = x + 0.5 - z:getX(), y + 0.5 - z:getY()
+    return dx * dx + dy * dy < FACING_NEAR * FACING_NEAR
+end
+
 Steps.on("lk.facing", function(args)
     local bodies, maxDeg = args.bodies or {}, tonumber(args.maxDeg) or 45
     local last = "no body checked"
@@ -121,9 +130,13 @@ Steps.on("lk.facing", function(args)
         local parts, ok = {}, true
         for _, b in ipairs(bodies) do
             local z = bodyOf(b.npc)
-            local d = z ~= nil and angleGap(z, b.x, b.y) or nil
-            parts[#parts + 1] = tostring(b.npc) .. " " .. (d ~= nil and (math.floor(d + 0.5) .. " deg") or "no copy")
-            if d == nil or d > maxDeg then ok = false end
+            if z ~= nil and onPoint(z, b.x, b.y) then
+                parts[#parts + 1] = tostring(b.npc) .. " on the point"
+            else
+                local d = z ~= nil and angleGap(z, b.x, b.y) or nil
+                parts[#parts + 1] = tostring(b.npc) .. " " .. (d ~= nil and (math.floor(d + 0.5) .. " deg") or "no copy")
+                if d == nil or d > maxDeg then ok = false end
+            end
         end
         last = "angle to the point: " .. table.concat(parts, ", ") .. " (max " .. maxDeg .. ")"
         if ok then return Steps.pass(last) end
