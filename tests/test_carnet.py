@@ -194,7 +194,7 @@ doKeyPress = function() end
 # player sees of e; FRAME(window) runs one Java update and one render pass (prerender, children, render).
 NOTEBOOK_UI = r'''
 for _, name in ipairs({'ISCollapsableWindow', 'ISButton', 'ISScrollingListBox', 'ISRichTextPanel', 'ISTextEntryBox',
-        'ISModalDialog', 'ISComboBox', 'ISEquippedItem'}) do
+        'ISModalDialog', 'ISComboBox', 'ISEquippedItem', 'ISDPadWheels'}) do
     package.preload['ISUI/' .. name] = function() return true end
 end
 UIFont.Small = 'Small'
@@ -446,6 +446,8 @@ function ISModalDialog:new(x, y, w, h, text, yesno, target, onclick)
     local o = Element.new(self, x, y, w, h); o.text, o.onclick = text, onclick; return o
 end
 ISEquippedItem = Element:derive('ISEquippedItem')
+-- Controller wheel of the D-pad right (ISDPadWheels.lua:63), wrapped by the mission journal of the core mod (E18-T06).
+ISDPadWheels = ISDPadWheels or {onDisplayRight = function() end}
 '''
 
 

@@ -11,7 +11,7 @@
 | ☐ | E18-T03 | Identité des personnages dans le commun | `testé hors jeu` | MP | E18-T02 |
 | ☐ | E18-T04 | Lien avec le pont dans le commun | `testé hors jeu` | MP | E18-T02 |
 | ☐ | E18-T05 | Moteur de missions dans le commun, donneurs voix et PNJ | `testé hors jeu` | MP | E18-T03, E18-T04 |
-| ☐ | E18-T06 | Journal commun des missions | `à faire` | MP | E18-T05 |
+| ☐ | E18-T06 | Journal commun des missions | `testé hors jeu` | MP | E18-T05 |
 | ☐ | E18-T07 | Mod `batman_LivingKnox` : code déplacé | `à faire` | solo | E18-T02 |
 | ☐ | E18-T08 | Bases connues et sites sans RadioSurvivor | `à faire` | solo | E18-T07 |
 | ☐ | E18-T09 | Adaptateur fournisseur porté par Living Knox | `à faire` | MP | E18-T07 |
@@ -165,15 +165,15 @@ Deuxième article Workshop, dépôt séparé, nouvelles règles de jeu des missi
   - Reste : campagne MP automatique (`autoclient.py --mp --clients 2 --server-campaign mp --bridge on --llm fake`) à lancer quand l'utilisateur aura fini sa partie (consigne du 2026-11-05 : pas de jeu lancé) ; Living Knox seul (un PNJ propose une mission acceptée par la parole) : donneur et tic des missions de Living Knox avec E18-T07 et E18-T11 (initialisation du magasin commun sans RadioSurvivor comprise) ; titres des missions (`IGUI_RS_*`) et page sandbox dans RadioSurvivor jusqu'à E18-T13 ; Living Knox lit encore la géométrie des lieux par `RS_Rescue` (désormais `RC_Sites`) : E18-T08
 
 - [ ] **E18-T06** — Journal commun des missions
-  - État : `à faire`
+  - État : `testé hors jeu`
   - Cible : `MP`
   - Dépend de : E18-T05
   - Fichiers : fenêtre du journal dans le commun (client) ; onglet missions du carnet (`RS_Notebook`) ; traductions `IGUI_RC_`
   - Faire : bouton et fenêtre qui listent offres, missions en cours et à rendre (même ordre et mêmes états que le carnet) ; avec RadioSurvivor, le carnet affiche la même liste dans son onglet missions et le bouton du journal s'efface ; manette et toutes les langues livrées.
   - Accepté si : Living Knox seul : la mission d'un PNJ apparaît dans le journal, puis disparaît une fois rendue ; ensemble : missions des voix et des PNJ dans une seule liste du carnet.
   - Tests : banc de l'interface (doublures ISUI) ; suite en jeu du journal dans les trois montages.
-  - Preuve : —
-  - Reste : —
+  - Preuve : mod commun : `shared/RadioSurvivorCore/RC_MissionList` (qui voit une mission, ordre, état affiché, missions ouvertes), `server/RadioSurvivorCore/RC_MissionJournal` (commande `missions` du module `RadioSurvivorCore`, limitée par `RC_RateLimit`, lignes = projections du moteur plus le demandeur `RC_Missions.requester`, personnage par `RC_Missions.binding`, missions connues par le crochet `setKnownMissions`), `client/RadioSurvivorCore/RC_MissionJournalView` (bouton de la barre latérale, tranche de la roue droite de la manette `ISDPadWheels.onDisplayRight`, fenêtre liste et détail, rafraîchie toutes les 3 s tant qu'elle est ouverte, haut, bas et B à la manette ; hôte `setHost` : bouton retiré, le carnet s'ouvre à la place) ; textes `IGUI_RC_` en EN et FR (`shared/Translate/<LANGUE>/IG_UI.json` du commun) ; RadioSurvivor : le carnet est l'hôte du journal (onglet Missions), sa liste passe par `RC_MissionList` et `RC_Missions.requester` (même ordre, mêmes états) ; suite en jeu `rc.journal` (campagne `mp`) ; banc `python tests/test_core_journal.py` (rouge d'abord : 7 ERROR, modules absents ; puis « Ran 8 tests … OK ») : commun seul sur un serveur dédié et deux clients (doublures ISUI du banc du carnet), offres et missions à rapporter du seul personnage du joueur dans l'ordre et les états du carnet, mission rendue retirée au rafraîchissement suivant, bouton puis hôte, roue, haut, bas et B, demandes limitées, aucun module de RadioSurvivor chargé ; avec RadioSurvivor, mêmes lignes dans le carnet et le journal, bouton absent, le journal ouvre le carnet sur Missions ; clés de toutes les langues livrées ; `test_kahlua.py` (40, suite `rc.journal` chargée dans la VM réelle) ; `python tests/run_all.py --keep-going` : 151 passés, 1 échec (`rs_suites` : renvois `fichier:ligne` de `RS_Env.lua` décalés, corrigés, banc relancé : OK), luacheck `Contents` 15 (référence 15), `dev` 0
+  - Reste : campagne MP automatique (suite `rc.journal` et passage visuel du journal) quand l'utilisateur aura fini sa partie ; rendu réel de la fenêtre, du bouton et de la roue de la manette non vus en jeu ; Living Knox seul (mission d'un PNJ dans le journal puis retirée) : E18-T07 et E18-T11 ; titres des missions encore en `IGUI_RS_*` dans RadioSurvivor : E18-T13
 
 - [ ] **E18-T07** — Mod `batman_LivingKnox` : code déplacé
   - État : `à faire`

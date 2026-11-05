@@ -770,7 +770,7 @@ class Machine:
         g.FILE_ROOT = self.root.as_posix()
         g.mkdirs = lambda full: Path(full).parent.mkdir(parents=True, exist_ok=True)
         sides = ['shared'] + (['client'] if role != 'server' else []) + (['server'] if role != 'client' else [])
-        paths = [DEV / 'shared', CORE_LUA / 'shared', CORE_LUA / 'server'] + [MOD / s for s in sides]
+        paths = [DEV / 'shared', CORE_LUA / 'shared', CORE_LUA / 'server', CORE_LUA / 'client'] + [MOD / s for s in sides]
         self.rt.execute('package.path = [[' + ''.join(f'{p.as_posix()}/?.lua;' for p in paths) + ']] .. package.path')
         self.rt.execute(JAVA)
         self.rt.execute(FACTION_DOUBLE)

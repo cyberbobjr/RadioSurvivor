@@ -6,6 +6,7 @@ local P = require 'RadioSurvivor/RS_NPCProvider'; local WorldStart = require 'Ra
 local S = require 'RadioSurvivor/RS_State'; require 'RadioSurvivorCore/RC_MissionClear' -- E11-T04: template clear
 local Identity = require 'RadioSurvivorCore/RC_Identity' -- E18-T03: identity of the characters (core mod)
 local M = require 'RadioSurvivorCore/RC_Missions'
+local MissionList = require 'RadioSurvivorCore/RC_MissionList' -- E18-T06
 require 'RadioSurvivorCore/RC_MissionScout'; require 'RadioSurvivorCore/RC_MissionRetrieve'
 local Rep = require 'RadioSurvivor/RS_Reputation'
 local T = require 'RadioSurvivor/RS_BridgeLanes'
@@ -213,12 +214,12 @@ local function projection(player, pushed)
                 relation = Relations.panel(npc, character, team)}
         end
     end
-    for id, m in pairs(S.data.missions) do
-        if m.participants[character] or m.invited[character] or record.knownMissions[id] then
+    -- E18-T06: the same list as the mission journal of the core mod (RC_MissionList: who sees it, order, state).
+    for _, m in pairs(S.data.missions) do
+        if MissionList.visible(m, character, record.knownMissions) then
             local p = M.projection(m, character)
             -- E11-T08: a radio voice requester has no fiche nor body (name of its sheet, never near).
-            local requester = S.data.npcs[m.npc]
-            p.requester = requester and requester.name or m.requesterName or ''
+            p.requester = M.requester(S.data, m)
             p.near = P.near(player, Server.objects[m.npc], C.DELIVERY_RANGE)
             missions[#missions + 1] = p
         end
@@ -230,7 +231,7 @@ local function projection(player, pushed)
         end
     end
     table.sort(contacts, function(a, b) return a.name < b.name end)
-    table.sort(missions, function(a, b) return a.id < b.id end)
+    MissionList.sort(missions)
     local snapshot = {world = S.data.world, run = S.run, contacts = contacts, missions = missions, selected = Server.selected[character] or '',
         -- E04-T12: reputation of this character only (level, trend, reasons), never a number.
         reputation = Rep.projection(character, S.data), inviteTargets = inviteTargets,

@@ -130,6 +130,7 @@ RST.CAMPAIGNS["mp"] = {
     "rst.rights",       -- E01-T05 (E01-T16: a real user client refused RST.server, an admin told busy)
     "rs.voices",        -- E05-T06
     "rs.missions",      -- E11-T03, E11-T08 (prefix: radio, scout, solo; NOT the templates rs.mission.*)
+    "rc.journal",       -- E18-T06 (rows of the mission journal of the core mod)
     "rs.mission",       -- E11-T04..T07, E01-T19 (prefix: clear, retrieve, recover, signal)
     "rs.carnet.lk",     -- E10-T02, E17-T03 (prefix: supply; fixture group, E01-T19)
     "rs.carnet.leader", -- E10-T02 (non-leader member, reply after a death or a succession)

@@ -10,6 +10,7 @@ RadioSurvivor's givers and hooks of the common mission engine (E18-T05, RC_Missi
 - result of a mission: trust of the notebook contact and one reputation fact per participant (E04-T08);
 - dropped mission: forgotten by every notebook character (knownMissions);
 - offers: E04-T05 (Q11, Q12) a character of bad reputation gets the simple missions only (RS_Reputation.offerAllowed);
+- missions still listed for a character: its notebook record (knownMissions, E18-T06: same list in the journal);
 - character of a server player: the notebook binding (RS_CarnetServer.bound); a change from a world event publishes
   the notebook (RS_CarnetServer.publish).
 Requires of modules that require RS_State are made at call time (RS_State requires this file).
@@ -76,6 +77,11 @@ local function characterName(state, character)
     return record and record.name or nil
 end
 
+local function knownMissions(state, character)
+    local record = state.characters and state.characters[character]
+    return record and record.knownMissions or nil
+end
+
 local function binding()
     return RS_CarnetServer and RS_CarnetServer.bound or nil
 end
@@ -95,6 +101,7 @@ function H.attach(S)
     M.setOfferFilter(offerAllowed)
     M.setCharacterName(characterName)
     M.setBinding(binding)
+    M.setKnownMissions(knownMissions)
 end
 
 return H

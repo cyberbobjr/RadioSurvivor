@@ -171,7 +171,7 @@ class ClientTests(unittest.TestCase):
                         'print = function() end')
         self.rt.execute(NOTE_STUBS)
         paths = ';'.join((LUA / side).as_posix() + '/?.lua' for side in ('shared', 'server', 'client'))
-        paths = (CORE_LUA / 'shared').as_posix() + '/?.lua;' + (CORE_LUA / 'server').as_posix() + '/?.lua;' + paths  # mod commun (E18)
+        paths = (CORE_LUA / 'shared').as_posix() + '/?.lua;' + (CORE_LUA / 'server').as_posix() + '/?.lua;' + (CORE_LUA / 'client').as_posix() + '/?.lua;' + paths  # mod commun (E18)
         self.rt.execute(f'package.path = [[{paths};]] .. package.path')
 
     def test_client_writes_no_frequency(self):

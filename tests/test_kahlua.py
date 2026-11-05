@@ -49,7 +49,7 @@ STDLIB = PZ_DIR / 'stdlib.lua'
 EVENTS_AT_LOAD = {'LivingKnox/LK_Decisions'}
 # E18-T03 : modules du mod commun qui s'abonnent par Events.X.Add au chargement : charges avec une table Events dont
 # chaque evenement accepte Add sans rien inscrire.
-EVENTS_ADD_AT_LOAD = {'RadioSurvivorCore/RC_WorldStart', 'RadioSurvivorCore/RC_Identity'}
+EVENTS_ADD_AT_LOAD = {'RadioSurvivorCore/RC_WorldStart', 'RadioSurvivorCore/RC_Identity', 'RadioSurvivorCore/RC_MissionJournal'}
 LUA_FILES = [
     ('driver', BENCH / 'driver.lua'),
     ('RST/RST', TESTS_LUA / 'shared' / 'RST' / 'RST.lua'),
@@ -118,6 +118,10 @@ LUA_FILES = [
     ('suite/failures', TESTS_LUA / 'shared' / 'RST' / 'suites' / 'RST_Failures.lua'),
     ('suite/codec', TESTS_LUA / 'shared' / 'RST' / 'suites' / 'RC_Codec.lua'),
     ('suite/missions', TESTS_LUA / 'shared' / 'RST' / 'suites' / 'RS_Missions.lua'),
+    # E18-T06 : journal des missions du mod commun (lignes envoyees au joueur).
+    ('RadioSurvivorCore/RC_MissionList', CORE_LUA / 'shared' / 'RadioSurvivorCore' / 'RC_MissionList.lua'),
+    ('RadioSurvivorCore/RC_MissionJournal', CORE_LUA / 'server' / 'RadioSurvivorCore' / 'RC_MissionJournal.lua'),
+    ('suite/journal', TESTS_LUA / 'shared' / 'RST' / 'suites' / 'RC_Journal.lua'),
     # E05-T06 : déclaration seule (compilée et déclarée dans la VM réelle ; exécutée en jeu et sous lupa).
     ('suite/voices', TESTS_LUA / 'shared' / 'RST' / 'suites' / 'RS_Voices.lua'),
     # E06-T02 : déclaration seule (interface du client : exécutée en jeu et sous lupa, tests/test_rs_suites.py).
@@ -125,7 +129,7 @@ LUA_FILES = [
     # E03-T02 : déclaration seule (interface du client : exécutée en jeu et sous lupa, tests/test_notebook_visual.py).
     ('suite/notebookvisual', TESTS_LUA / 'shared' / 'RST' / 'suites' / 'RS_NotebookVisual.lua'),
 ]
-RUNS = ['rst', 'rst.failures', 'rs.codec', 'rs.missions']
+RUNS = ['rst', 'rst.failures', 'rs.codec', 'rs.missions', 'rc.journal']
 MAX_TICKS = 5000
 sys.path.insert(0, str(ROOT / 'bridge'))
 sys.path.insert(0, str(ROOT / 'tests'))
@@ -1004,6 +1008,12 @@ class KahluaBench(unittest.TestCase):
         self.assertEqual(len(res), 14)
         bad = {k: v for k, v in res.items() if v[0] != 'PASS'}
         self.assertEqual(bad, {})
+
+    def test_journal_suite_runs_in_kahlua(self):
+        # E18-T06: no online player bound in the bench (SKIP), but the suite and the journal load in the real VM.
+        res = self.statuses('rc.journal')
+        self.assertEqual(len(res), 1)
+        self.assertTrue(all(v[0] in ('PASS', 'SKIP') for v in res.values()), res)
 
 
 class ParseTests(unittest.TestCase):

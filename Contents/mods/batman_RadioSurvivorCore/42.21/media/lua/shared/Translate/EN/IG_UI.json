@@ -1,0 +1,21 @@
+{
+    "IGUI_RC_Journal": "Missions journal",
+    "IGUI_RC_JournalButton": "Missions",
+    "IGUI_RC_JournalHint": "Open the missions journal: offers, missions under way and missions to report.",
+    "IGUI_RC_JournalEmpty": "No mission offered or under way.",
+    "IGUI_RC_Mission": "Mission",
+    "IGUI_RC_Requester": "Requester: %1",
+    "IGUI_RC_TimeLeft": "Game time left: %1 min at normal speed.",
+    "IGUI_RC_Reward": "Shared reward: %1 × %2",
+    "IGUI_RC_Participants": "Committed participants: %1",
+    "IGUI_RC_ReportHint": "Objective met: report to the requester to complete the mission.",
+    "IGUI_RC_State_offer": "Offer awaiting acceptance",
+    "IGUI_RC_State_active": "Active",
+    "IGUI_RC_State_toReport": "Objective met — to report to the requester",
+    "IGUI_RC_State_success": "Succeeded",
+    "IGUI_RC_State_failed": "Failed: deadline expired",
+    "IGUI_RC_State_abandoned": "Abandoned",
+    "IGUI_RC_State_cancelled_dead": "Cancelled — requester died",
+    "IGUI_RC_State_expired": "Offer expired",
+    "IGUI_RC_State_cancelled_closed": "Closed: no longer needed"
+}

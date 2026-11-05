@@ -21,6 +21,7 @@ Hooks (all optional; none registered: a mission changes no reputation and no not
     M.setOfferFilter(fn(character, name, offer) -> boolean)   an admissible offer may be shown to this character
     M.setCharacterName(fn(state, character) -> name)          name kept with a claimed lot
     M.setBinding(fn() -> { [server player] = character })     default: identities of the core mod (RC_Identity)
+    M.setKnownMissions(fn(state, character) -> { [id] = true })  missions still listed for a character (E18-T06)
     M.setProvider(provider)                     NPC engine (ids, presence, supplies), default: no NPC engine
     M.useStore(store)                           store { data, save, blocked, dirty } of the templates that save on
                                                 their own; default: the private mission state RC_MissionStore
@@ -79,7 +80,7 @@ local M = {}
 
 local donors, donorOrder = {}, {}
 local resultListeners, pruneListeners, changeListeners = {}, {}, {}
-local offerFilter, characterName, binding, hostStore = nil, nil, nil, nil
+local offerFilter, characterName, binding, hostStore, knownMissions = nil, nil, nil, nil, nil
 
 -- Engine of NPC bodies seen through the notebook interface (RS_NPCProvider, E17), or no engine at all.
 local NO_ENGINE = {
@@ -117,6 +118,7 @@ function M.addChangeListener(fn) return addOnce(changeListeners, fn) end
 function M.setOfferFilter(fn) offerFilter = fn end
 function M.setCharacterName(fn) characterName = fn end
 function M.setBinding(fn) binding = fn end
+function M.setKnownMissions(fn) knownMissions = fn end
 function M.setProvider(p) provider = p or NO_ENGINE end
 function M.provider() return provider end
 function M.useStore(s) hostStore = s end
@@ -129,6 +131,19 @@ end
 function M.binding()
     if binding then return binding() or {} end
     return require('RadioSurvivorCore/RC_Identity').bound or {}
+end
+
+-- Missions a character still knows besides its own and its invitations (RadioSurvivor's notebook: set of ids), or nil.
+function M.knownMissions(state, character)
+    if knownMissions then return knownMissions(state, character) end
+    return nil
+end
+
+-- Name of the requester shown in the lists (E18-T06): the name kept on the mission (radio voice), else the giver's.
+function M.requester(state, m)
+    if type(m.requesterName) == 'string' then return m.requesterName end
+    local donor = M.donorOf(state, m)
+    return donor and type(donor.name) == 'string' and donor.name or ''
 end
 
 -- A template changed a mission from a world event: the listeners publish it (RadioSurvivor's notebook).
