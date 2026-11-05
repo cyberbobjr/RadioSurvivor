@@ -25,6 +25,8 @@ test group):
       the zombie on the floor inside the house, the zombie killed with at least one floor hit
       (LivingKnox.Zombies.stats.floorHits) before it got up, the offensive over and the window closed again by a
       member (LK06-T11: closewindow gesture, Defense.stats.windowsClosed);
+    - second accepted outcome (2026-11-05): the zombie killed by the members (LivingKnox.Zombies.stats.kills) before
+      the offensive or before the window is opened: the home was defended another way, the test ends with a note;
     - LK06-T11, measured when the zombie is killed: one impact sound entry sent per applied melee hit
       (LivingKnox.Combat.stats.meleeSounds) and, in solo (sounds played on this machine, LivingKnox.CombatView), as
       many impacts played (BaseballBatHit with the bat) and at least as many swings (BaseballBatSwing).
@@ -291,9 +293,22 @@ RST.suite("lk.windowkill", { tags = { "world", "server" }, testTimeoutMs = 36000
                     lastLure = now
                     addSound(nil, o.inside:getX(), o.inside:getY(), o.inside:getZ(), LURE_RADIUS, LURE_RADIUS)
                 end
+                -- Second accepted outcome (decision of 2026-11-05): the members saw the zombie through the glass, went
+                -- out and killed it before any window scene (home defense, LK06-T14); MP campaigns of 2026-11-04/05,
+                -- about one run in two. The test then ends there, with a note: the window scene was not played.
+                local function defended()
+                    return K.diedOf(z) and (E.Zombies.stats.kills or 0) > st0.kills
+                end
+                local function defendedEnd(tx, stage)
+                    measure(string.format("zombie killed by the members %s after %d ms (kills %d): window scene not "
+                        .. "played; %s", stage, getTimestampMs() - t0, (E.Zombies.stats.kills or 0) - st0.kills,
+                        describe(gid)))
+                    tx:note("zombie killed by the members " .. stage .. ": defense outcome accepted, window scene "
+                        .. "not played")
+                end
                 local nextDiag = t0 + 10000
                 t3:waitUntil(function()
-                    if off() ~= nil then return true end
+                    if off() ~= nil or defended() then return true end
                     lure()
                     if getTimestampMs() >= nextDiag then   -- what happened at the window, in the failure case too
                         nextDiag = nextDiag + 10000
@@ -315,6 +330,7 @@ RST.suite("lk.windowkill", { tags = { "world", "server" }, testTimeoutMs = 36000
                     return false
                 end, OFFENSE_MS, function(t4)
                     local f = off()
+                    if f == nil then return defendedEnd(t4, "before any window offensive") end
                     local plan = Df().get(gid)
                     measure(string.format("offensive %s by %s (%s) after %d ms; defense %s %s; thump seen %s; %s",
                         f.key, f.mid, f.state, getTimestampMs() - t0, plan.id, plan.phase,
@@ -325,7 +341,8 @@ RST.suite("lk.windowkill", { tags = { "world", "server" }, testTimeoutMs = 36000
                     local ow = kx ~= nil and E.Senses.windowAt(tonumber(kx), tonumber(ky), tonumber(kz), kk) or nil
                     t4:ok(ow ~= nil, "window of the offensive " .. tostring(f.key) .. " not found")
                     if not rawequal(ow, o.w) then measure("offensive at another window than the lured one: " .. f.key) end
-                    t4:waitUntil(function() return ow:IsOpen() end, OPEN_MS, function(t5)
+                    t4:waitUntil(function() return ow:IsOpen() or defended() end, OPEN_MS, function(t5)
+                        if not ow:IsOpen() then return defendedEnd(t5, "before the window was opened") end
                         measure(string.format("window opened after %d ms (windows opened %d); %s",
                             getTimestampMs() - t0, (E.Defense.stats.windowsOpened or 0) - st0.opened, describe(gid)))
                         t5:ok((E.Defense.stats.windowsOpened or 0) > st0.opened, "the window was not opened by an npc")
