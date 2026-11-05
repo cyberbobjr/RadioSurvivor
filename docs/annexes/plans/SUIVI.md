@@ -25,7 +25,7 @@
 | [E15](E15-dernieres-pages.md) | Les dernières pages | terminée | 4 / 4 |
 | [E16](E16-publication.md) | Publication sur le Workshop | en cours | 2 / 10 |
 | [E17](E17-fournisseur-pnj-living-knox.md) | Fournisseur de PNJ et passage à Living Knox | terminée | 15 / 16 |
-| [E18](E18-separation-living-knox.md) | Séparer RadioSurvivor et Living Knox autour d'un mod commun | décisions à prendre | 0 / 16 |
+| [E18](E18-separation-living-knox.md) | Séparer RadioSurvivor et Living Knox autour d'un mod commun | à faire | 0 / 16 |
 | [LK00](LK00-cadrage.md) | Cadrage : décisions de conception et architecture | terminée | 2 / 2 |
 | [LK01](LK01-fondations.md) | Fondations du projet | terminée | 6 / 6 |
 | [LK02](LK02-jalon-corps-gestes.md) | Jalon 1 : corps et gestes prouvés (décision de continuer) | en cours | 11 / 15 |
@@ -229,22 +229,22 @@
 | ☑ | [E17-T14](E17-fournisseur-pnj-living-knox.md#L166) | Réponse d'un PNJ non affichée en MP avant la découverte du canal « dire » | `testé MP` | MP | cause : `ChatType` est une énumération Java non exposée à Lua, `getType():getValue()` levait « attempted index: getValue of non-table: say » à chaque message (journal client `tools/autoclient/runs/20261015-012607-mp-c75ba6661b1c/client1/console.txt`) : en MP le canal « dire » n'était jamais reconnu ; canal reconnu par `tostring(chat:getType()) == 'say'` (`RS_Client`, `LK_SpeechView`), bulle affichée aussitôt, ligne de chat seule en attente du canal ; doublures fidèles (méthode qui lève comme le Java) ; `test_answer_bubble_before_say_chat_is_known` (échoue sur l'ancien code) ; base `ui-windows.md` corrigée ; commit `a397ea6` ; campagne MP automatique du 2026-10-15 (copie figée du commit `54087fb`, serveur dédié + 2 clients, pont avec faux modèle) : rs.npctalk 4/4, dont le test E17-T13 (bulles) (`tools/autoclient/runs/20261015-110446-parallel-2-54087fb0f84f/shard2/server/20261015-090708-server.txt`) ; aucune ligne `getValue of non-table` dans les quatre consoles clientes de la campagne |
 | ☑ | [E17-T15](E17-fournisseur-pnj-living-knox.md#L177) | Délais du serveur alignés sur le pont, erreur du fournisseur remontée | `testé MP` | MP | cause (pont de la campagne MP du 2026-10-15) : `timeout=60` d'`urlopen` ne borne qu'une lecture (tentatives de 120 à 420 s), âge de la demande vérifié seulement au dépôt, serveur qui abandonne à 90 s, toute erreur rendue `invalid_or_unavailable` ; correctif : `MAX_AGE_S` 75 vérifié aussi à la prise par un travailleur (`expired`), `LLM_BUDGET_S` 60 pour toutes les tentatives (corps lu avec échéance), codes `timeout`/`http_<statut>`/`unreachable`/`bad_response` transmis au jeu, serveur `REQUEST_TIMEOUT_MS` 150 000, refus journalisés avec la cause (`Server.refusals`), suites qui nomment la cause (`R.bridgeCause`) ; bancs `test_protocol` 37 OK (`scenario_provider_errors`), `test_carnet` 85/85 ; contrat `protocole-carnet-v2.md` ; commit `589263a` ; campagne MP automatique du 2026-10-15 (copie figée du commit `54087fb`, serveur dédié + 2 clients, pont avec faux modèle) : suites qui passent par le pont vertes (rs.npctalk 4/4, rs.initiatives 4/4, rs.conversations 4/4, rs.groupradio 5/5) (`tools/autoclient/runs/20261015-110446-parallel-2-54087fb0f84f/shard1/server/20261015-090647-server.txt`, `tools/autoclient/runs/20261015-110446-parallel-2-54087fb0f84f/shard2/server/20261015-090708-server.txt`) |
 | ☑ | [E17-T16](E17-fournisseur-pnj-living-knox.md#L188) | Délais de la radio de Walt, des dernières pages et du bulletin alignés sur le pont | `testé hors jeu` | hors jeu | commit `888b1b0` (attentes alignées sur le battement du pont) ; bancs du 2026-10-15 : `tests/test_protocol.py` OK, `tests/test_bulletin.py` 14 OK, `tests/test_last_pages.py` 27 OK |
-| ☐ | [E18-T01](E18-separation-living-knox.md#L70) | Mod commun `batman_RadioSurvivorCore` : dossier et métadonnées | `à faire` | solo | — |
-| ☐ | [E18-T02](E18-separation-living-knox.md#L81) | Outils partagés déplacés dans le commun | `à faire` | hors jeu | — |
-| ☐ | [E18-T03](E18-separation-living-knox.md#L92) | Identité des personnages dans le commun | `à faire` | MP | — |
-| ☐ | [E18-T04](E18-separation-living-knox.md#L103) | Lien avec le pont dans le commun | `à faire` | MP | — |
-| ☐ | [E18-T05](E18-separation-living-knox.md#L114) | Moteur de missions dans le commun, donneurs voix et PNJ | `à faire` | MP | — |
-| ☐ | [E18-T06](E18-separation-living-knox.md#L125) | Journal commun des missions | `à faire` | MP | — |
-| ☐ | [E18-T07](E18-separation-living-knox.md#L136) | Mod `batman_LivingKnox` : code déplacé | `à faire` | solo | — |
-| ☐ | [E18-T08](E18-separation-living-knox.md#L147) | Bases connues et sites sans RadioSurvivor | `à faire` | solo | — |
-| ☐ | [E18-T09](E18-separation-living-knox.md#L158) | Adaptateur fournisseur porté par Living Knox | `à faire` | MP | — |
-| ☐ | [E18-T10](E18-separation-living-knox.md#L169) | Dossier de données de Living Knox et reprise des parties existantes | `à faire` | MP | — |
-| ☐ | [E18-T11](E18-separation-living-knox.md#L180) | Parole des PNJ émise par Living Knox, enrichie par RadioSurvivor | `à décider` | MP | — |
-| ☐ | [E18-T12](E18-separation-living-knox.md#L192) | Pont : un dossier d'échange pour les deux mods | `à faire` | MP | — |
-| ☐ | [E18-T13](E18-separation-living-knox.md#L203) | Traductions et options sandbox des trois mods | `à faire` | hors jeu | — |
-| ☐ | [E18-T14](E18-separation-living-knox.md#L214) | Outillage des tests pour trois montages | `à faire` | hors jeu | — |
-| ☐ | [E18-T15](E18-separation-living-knox.md#L225) | Validation des trois montages | `à faire` | MP | — |
-| ☐ | [E18-T16](E18-separation-living-knox.md#L236) | Documentation et page Workshop des trois mods | `à faire` | hors jeu | — |
+| ☐ | [E18-T01](E18-separation-living-knox.md#L73) | Mod commun `batman_RadioSurvivorCore` : dossier et métadonnées | `à faire` | solo | — |
+| ☐ | [E18-T02](E18-separation-living-knox.md#L84) | Outils partagés déplacés dans le commun | `à faire` | hors jeu | — |
+| ☐ | [E18-T03](E18-separation-living-knox.md#L95) | Identité des personnages dans le commun | `à faire` | MP | — |
+| ☐ | [E18-T04](E18-separation-living-knox.md#L106) | Lien avec le pont dans le commun | `à faire` | MP | — |
+| ☐ | [E18-T05](E18-separation-living-knox.md#L117) | Moteur de missions dans le commun, donneurs voix et PNJ | `à faire` | MP | — |
+| ☐ | [E18-T06](E18-separation-living-knox.md#L128) | Journal commun des missions | `à faire` | MP | — |
+| ☐ | [E18-T07](E18-separation-living-knox.md#L139) | Mod `batman_LivingKnox` : code déplacé | `à faire` | solo | — |
+| ☐ | [E18-T08](E18-separation-living-knox.md#L150) | Bases connues et sites sans RadioSurvivor | `à faire` | solo | — |
+| ☐ | [E18-T09](E18-separation-living-knox.md#L161) | Adaptateur fournisseur porté par Living Knox | `à faire` | MP | — |
+| ☐ | [E18-T10](E18-separation-living-knox.md#L172) | Dossier de données de Living Knox et reprise des parties existantes | `à faire` | MP | — |
+| ☐ | [E18-T11](E18-separation-living-knox.md#L183) | Parole des PNJ émise par Living Knox, enrichie par RadioSurvivor | `à faire` | MP | — |
+| ☐ | [E18-T12](E18-separation-living-knox.md#L195) | Pont : un dossier d'échange pour les deux mods | `à faire` | MP | — |
+| ☐ | [E18-T13](E18-separation-living-knox.md#L206) | Traductions et options sandbox des trois mods | `à faire` | hors jeu | — |
+| ☐ | [E18-T14](E18-separation-living-knox.md#L217) | Outillage des tests pour trois montages | `à faire` | hors jeu | — |
+| ☐ | [E18-T15](E18-separation-living-knox.md#L228) | Validation des trois montages | `à faire` | MP | — |
+| ☐ | [E18-T16](E18-separation-living-knox.md#L239) | Documentation et page Workshop des trois mods | `à faire` | hors jeu | — |
 | ☑ | [LK00-T01](LK00-cadrage.md#L27) | Analyse comparative des architectures d'exécution de l'IA en multijoueur | `testé hors jeu` | hors jeu | analyse v2 et estimation, commits `9441d40` et `534803f` ; faits porteurs revérifiés à la main (accroche `IsRagdoll`, `sendClientCommand` réservé au joueur local, `NetworkZombieAI.parse`, `isRemote`, `isOwner` d'A-Life, `sendDamage`) |
 | ☑ | [LK00-T02](LK00-cadrage.md#L38) | Choisir la base des PNJ et l'architecture d'exécution | `testé hors jeu` | hors jeu | décision « moteur propre avec jalon » et nom « Living Knox » du 2026-10-03 (section Décisions) ; étapes LK01 à LK13 écrites |
 | ☑ | [LK01-T01](LK01-fondations.md#L16) | Banc de tests hors jeu : serveur et deux clients simulés | `testé hors jeu` | hors jeu | `tests/test_harness.py` 24/24 (machines séparées, relais copié et non ordonné, propriétaire de zombie transférable, horloges, fichiers par machine, mode solo), `test_protocol.py`, `test_carnet.py` 19, `test_rst.py` 151, `test_rs_suites.py` 20, luacheck 21, `plan.py check` du 2026-10-08 ; LK01-T04 : commit `6d5ff74` |

@@ -31,6 +31,9 @@ donnent des missions ; le pont Python LLM est la base de leur intelligence, avec
 - 2026-11-05 — **Journal des missions** (utilisateur) : le mod commun apporte un petit journal des missions (offres,
   missions en cours, compte rendu) ouvert par un bouton ; avec RadioSurvivor, le carnet l'intègre dans son onglet
   missions : une seule liste pour les missions des voix et des PNJ.
+- 2026-11-05 — **Historique des échanges** (utilisateur, `E18-T11`) : gardé par le **mod commun**, toujours présent :
+  Living Knox y écrit les échanges avec ses PNJ, le carnet de RadioSurvivor le lit pour l'afficher ; il sert de mémoire
+  au LLM pour chaque nouvelle phrase. Confirmé par défaut : les échanges avec les voix radio y sont gardés aussi.
 - 2026-11-05 — Confirmé par défaut (valeurs techniques, modifiables) :
   - identifiants `batman_RadioSurvivorCore` (mod commun, nom affiché « Radio Survivor Core », code sous
     `media/lua/*/RadioSurvivorCore/`, fichiers `RC_`) et `batman_LivingKnox` (nom affiché « Living Knox ») ;
@@ -178,13 +181,13 @@ Deuxième article Workshop, dépôt séparé, nouvelles règles de jeu des missi
   - Reste : —
 
 - [ ] **E18-T11** — Parole des PNJ émise par Living Knox, enrichie par RadioSurvivor
-  - État : `à décider`
+  - État : `à faire`
   - Cible : `MP`
   - Dépend de : E18-T04, E18-T09
-  - Fichiers : parole de proximité (`RS_Carnet_Server.lua` talk, `RS_Conversations`, `RS_Initiatives`, `RS_Incidents`) → Living Knox (`LK_Talk`) sur le lien commun ; `bridge/npc_protocol.py` ; `docs/specifications-techniques/protocole-carnet-v2.md`
+  - Fichiers : historique des échanges (aujourd'hui `contacts[...].history` de l'état du carnet) → commun ; parole de proximité (`RS_Carnet_Server.lua` talk, `RS_Conversations`, `RS_Initiatives`, `RS_Incidents`) → Living Knox (`LK_Talk`) sur le lien commun ; `bridge/npc_protocol.py` ; `docs/specifications-techniques/protocole-carnet-v2.md`
   - Faire : Living Knox émet `npc_talk`, `npc_converse`, `npc_initiative` et `npc_enrich` par le lien commun ; offres et acceptations de missions des PNJ par le moteur commun ; RadioSurvivor ajoute au contexte ses éléments (relation, réputation, accords) et traite ses actions de la réponse par des crochets de l'API ; le carnet reste un affichage de RadioSurvivor.
-  - Questions : Quand les deux mods sont actifs, qui garde l'historique des échanges avec un PNJ ? Options : Living Knox, RadioSurvivor le lit pour le carnet [recommandé] / RadioSurvivor, comme aujourd'hui / chacun le sien.
-  - Accepté si : Living Knox seul : une phrase dite près d'un PNJ reçoit une réponse du LLM en bulle, et un PNJ propose une mission ; ensemble : mêmes offres, acceptations et relations qu'aujourd'hui (suites rs.npctalk, rs.conversations, rs.initiatives).
+  - Faire aussi : historique des échanges (PNJ et voix radio) dans le mod commun, par personnage et par interlocuteur, borné comme aujourd'hui (`MAX_HISTORY`) ; historiques d'une partie existante repris depuis l'état du carnet ; le carnet le lit pour l'affichage (décision du 2026-11-05).
+  - Accepté si : Living Knox seul : une phrase dite près d'un PNJ reçoit une réponse du LLM en bulle, le PNJ se souvient des échanges précédents, et un PNJ propose une mission ; ensemble : mêmes offres, acceptations et relations qu'aujourd'hui (suites rs.npctalk, rs.conversations, rs.initiatives).
   - Tests : `test_protocol.py`, bancs de la parole ; suites de parole dans les trois montages.
   - Preuve : —
   - Reste : —
