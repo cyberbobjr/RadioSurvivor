@@ -12,6 +12,8 @@
 - 2026-10-10 — **E16-T01 (2)** : visibilité **privée** pour la première mise en ligne (vérifier la page et le téléchargement avant tout partage).
 - 2026-10-21 — **Durcissement avant publication** (confirmé par l'utilisateur 2026-10-21) : les corrections de la revue `docs/ameliorations-et-idees.md` déjà faites sont suivies ici, une tâche par chantier (E16-T06 à E16-T10). Plafonds du pont (jetons 16 000, prompt 128 000 caractères) réglables dans sa configuration, mêmes défauts ; lot non réclamé gardé 7 jours **de jeu** (168 h d'âge du monde), avec conversion des lots déjà enregistrés en temps réel.
 
+- 2026-11-05 — **Séparation** (utilisateur, `E18`) : l'article publie **deux mods** à cocher séparément, `batman_RadioSurvivor` et `batman_LivingKnox`, chacun utilisable seul ; le pont sert l'un, l'autre ou les deux. Nettoyage, guide du pont et validation finale portent sur les deux mods et les trois montages.
+
 ## Tâches
 
 - [x] **E16-T01** — Périmètre de la première publication
@@ -29,7 +31,7 @@
 - [ ] **E16-T02** — Nettoyage et métadonnées
   - État : `à faire`
   - Cible : `hors jeu`
-  - Dépend de : E16-T01
+  - Dépend de : E16-T01, E18-T12
   - Fichiers : `mod.info` (nom sans « expérimental » si validé, version), `workshop.txt`, `preview.png`, `poster.png`, `icon.png`
   - Faire : suivre les skills `pz-workshop` et `pz-workshop-art` ; ne pas publier `dev/`, `docs/`, `tests/`, `bridge/` hors de l'archive prévue pour le pont.
   - Accepté si : structure validée par la skill ; aucun fichier de développement dans `Contents`.
@@ -40,7 +42,7 @@
 - [ ] **E16-T03** — Guide d'installation du pont pour un serveur
   - État : `codé`
   - Cible : `hors jeu`
-  - Dépend de : E16-T01
+  - Dépend de : E16-T01, E18-T08
   - Fichiers : `README.md` ; description Workshop FR et EN
   - Faire : le pont ne peut pas être fourni par le Workshop : expliquer l'installation sur la machine du serveur, le dossier d'échange (`-cachedir`), la clé, le coût, le mode `--offline`, un seul pont par dossier.
   - Accepté si : un admin tiers lance le pont en suivant le guide.
@@ -51,7 +53,7 @@
 - [ ] **E16-T04** — Validation multijoueur finale
   - État : `à faire`
   - Cible : `MP`
-  - Dépend de : E16-T02
+  - Dépend de : E16-T02, E18-T11
   - Fichiers : `docs/annexes/tests/validation/`
   - Faire : toutes les suites en jeu du périmètre + protocole nominal sur le serveur dédié de test avec deux clients, mods exacts de la publication.
   - Accepté si : aucune erreur `f:0` liée au mod ; suites au vert.

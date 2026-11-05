@@ -2,9 +2,9 @@
 
 Ce dossier découpe le projet en **étapes** successives. Chaque étape a son fichier et contient des **tâches** numérotées, chacune avec un état vérifiable. Claude Code suit ces fichiers dans l'ordre pour mener le projet à bien, une tâche à la fois.
 
-Deux familles d'étapes cohabitent dans ce plan unique depuis la fusion du 2026-10-08 (un seul mod `batman_RadioSurvivor`) :
+Deux familles d'étapes cohabitent dans ce plan unique depuis la fusion du 2026-10-08. Le 2026-11-05, l'utilisateur a décidé de séparer à nouveau les deux moteurs en **deux mods autonomes livrés dans le même article Workshop**, `batman_RadioSurvivor` et `batman_LivingKnox`, chacun utilisable seul, le pont Python servant l'un, l'autre ou les deux (étape [`E18`](E18-separation-living-knox.md)) ; le plan reste unique :
 
-- `E00` à `E17` : radio, carnet, missions, voix, publication ;
+- `E00` à `E18` : radio, carnet, missions, voix, publication, séparation des deux mods ;
 - `LK00` à `LK14` : moteur de PNJ **Living Knox** (ancien projet séparé `LivingKnox`, identifiants conservés). Ses règles propres sont plus bas, section « Règles propres à Living Knox ».
 
 - Vue d'ensemble générée : [SUIVI.md](SUIVI.md)
@@ -90,7 +90,7 @@ Une dépendance est **utilisable** dès qu'elle est `testé hors jeu`. Les valid
 - **Autorité serveur** pour toute décision persistante (groupes, consignes, besoins, combat, morts, relève). Exécution des corps par le seul client propriétaire. Aucune donnée secrète dans une ModData globale.
 - **Jalon de décision** : l'étape LK02 (corps et gestes prouvés en solo et à deux clients) se termine par un choix explicite de continuer ou de se replier (A-Life ou Bandits!, voir l'analyse d'architecture).
 - **Un seul moteur de PNJ actif par partie** : le moteur Living Knox ne tourne pas en même temps que Bandits! ou Project A-Life. Depuis la fusion, la façon de l'imposer dépend du sort de l'adaptateur Bandits! du carnet (`E17-T01`, `LK01-T04`).
-- Code sous `media/lua/{shared,server,client}/LivingKnox/`, fichiers préfixés `LK_`, dans le mod `batman_RadioSurvivor`.
+- Code sous `media/lua/{shared,server,client}/LivingKnox/`, fichiers préfixés `LK_`, dans le mod `batman_RadioSurvivor` jusqu'à `E18-T01`, puis dans son propre mod `batman_LivingKnox` (même projet, même dépôt). Après la séparation, aucun `require` de Living Knox vers RadioSurvivor : les liens passent par l'API publique (`LK12`) et l'interface `RS_NPCProvider`.
 
 ## Méthode de validation en jeu
 

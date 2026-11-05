@@ -23,6 +23,8 @@
 - 2026-10-14 — **LK13-T15** : fenêtres non redimensionnables, taille fixée à l'ouverture (panneau au plus 1760 × 980, fiche au plus 1000 px) (confirmé par défaut, valeurs techniques).
 - 2026-10-14 — **LK13-T16** : hors zone chargée, arrivée sur la case même du foyer (meuble ou mur possible) ; chaque « Aller au foyer » écrit une entrée admin au journal du groupe (confirmé par défaut, valeurs techniques).
 
+- 2026-11-05 — **Séparation** (utilisateur, `E18`) : Living Knox redevient un mod à part, `batman_LivingKnox`, livré dans le même article Workshop que RadioSurvivor et utilisable seul ; sa validation finale couvre Living Knox seul et avec RadioSurvivor.
+
 ## Tâches
 
 - [x] **LK13-T01** — Outils d'administration
@@ -62,7 +64,7 @@
 - [ ] **LK13-T04** — Validation multijoueur finale et publication
   - État : `à faire`
   - Cible : `MP`
-  - Dépend de : E16-T01
+  - Dépend de : E16-T01, E18-T11
   - Fichiers : `workshop.txt`, `preview.png`, `CHANGELOG.md`
   - Faire : toutes les suites du périmètre sur serveur dédié avec deux clients, puis publication selon la skill `pz-workshop` après accord explicite.
   - Accepté si : aucune erreur au démarrage liée au mod ; page publiée avec la visibilité décidée.

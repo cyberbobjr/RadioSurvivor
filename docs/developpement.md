@@ -10,6 +10,13 @@ Un seul mod, **`batman_RadioSurvivor`** : la radio de Walt, le carnet et, depuis
 PNJ **Living Knox** (ancien projet `LivingKnox`, préfixe de plan `LK`, code sous `media/lua/*/LivingKnox/`).
 `require=batman_BeltRadio`, `batman_SignalSmoke`.
 
+**Séparation décidée le 2026-11-05** (étape [`E18`](annexes/plans/E18-separation-living-knox.md)) : deux mods
+autonomes dans le même projet, le même dépôt et le même article Workshop, `batman_RadioSurvivor` (radio, voix,
+carnet, missions, factions) et `batman_LivingKnox` (moteur de PNJ et parole de proximité). Chacun fonctionne seul ;
+ensemble, RadioSurvivor enrichit les PNJ. Le pont Python sert l'un, l'autre ou les deux. Tant que `E18` n'est pas
+faite, le code reste dans un seul mod ; tout nouveau lien de Living Knox vers RadioSurvivor est à éviter (passer par
+l'API publique ou `RS_NPCProvider`).
+
 ## Architecture validée — à préserver
 
 Architecture validée par la décision utilisateur LK00-T02 du 2026-10-03
