@@ -38,7 +38,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SUITE_FILE = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua' / 'shared' / 'RST' / 'suites' \
     / 'RST_LKRevenge.lua'
 KEY_A, KEY_B = 'c-alpha', 'c-bravo'
-CANON = ('require("RadioSurvivor/RS_Codec").hexBytes(require("RadioSurvivor/RS_Codec").encodeBytes('
+CANON = ('require("RadioSurvivorCore/RC_Codec").hexBytes(require("RadioSurvivorCore/RC_Codec").encodeBytes('
          'LivingKnox.Groups.state.data))')
 
 # Type de test : combattants (fight, defend) et ouvriers ; hostilité 60 -> départ prudent (-12), meurtre -> hostile.

@@ -101,7 +101,7 @@ RST.suite("rs.lifelog", { tags = { "server" } }, function(s)
         t:ok(math.abs(log.hours - p:getHoursSurvived()) < 0.2, "hours")
         local okClean, why = clean(log)
         t:ok(okClean, "log carries a frequency or a coordinate: " .. tostring(why))
-        local size = #require("RadioSurvivor/RS_Codec").encodeBytes(log)
+        local size = #require("RadioSurvivorCore/RC_Codec").encodeBytes(log)
         t:ok(size <= L.MAX_BYTES, "log of " .. size .. " bytes")
         t:note(cid .. ": " .. log.kills .. " kills, " .. log.hours .. " h, " .. #log.towns .. " town(s), "
             .. #log.phrases .. " phrase(s), " .. #log.missions .. " mission(s), " .. size .. " bytes")

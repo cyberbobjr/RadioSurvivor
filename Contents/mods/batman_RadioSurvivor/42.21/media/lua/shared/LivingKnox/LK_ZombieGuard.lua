@@ -46,7 +46,7 @@
 require "LivingKnox/LK_Core"
 require "LivingKnox/LK_Config"
 require "LivingKnox/LK_Log"
-require "RadioSurvivor/RS_RateLimit" -- C31: per-account limit of "guardHello"
+require "RadioSurvivorCore/RC_RateLimit" -- C31: per-account limit of "guardHello"
 
 local Guard = LivingKnox.ZombieGuard or {}
 LivingKnox.ZombieGuard = Guard
@@ -364,11 +364,11 @@ end
 
 -- Serveur : un client entré en partie demande la liste courante (réponse à lui seul).
 -- C31 : vrai si ce "guardHello" du joueur peut être traité par le module who (seau par compte et par module de
--- RS_RateLimit, serveur MP seulement). Chaque module qui répond à guardHello a son propre seau : tous voient les mêmes
+-- RC_RateLimit, serveur MP seulement). Chaque module qui répond à guardHello a son propre seau : tous voient les mêmes
 -- arrivées, donc prennent la même décision. Le client le répète toutes les HELLO_RETRY images au plus, et une
 -- reconnexion trouve un seau plein. Un guardHello refusé reste sans réponse.
 function Guard.helloAllowed(player, who)
-    local RL = RS_RateLimit
+    local RL = RC_RateLimit
     if RL == nil then return true end
     return RL.allow(player, "lk.hello." .. tostring(who), Guard.HELLO_LIMIT[1], Guard.HELLO_LIMIT[2])
 end

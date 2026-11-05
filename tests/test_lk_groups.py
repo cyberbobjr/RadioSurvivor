@@ -32,7 +32,7 @@ end
 '''
 
 # Registre canonique (RSV2 trié par clé : deux registres égaux donnent les mêmes octets).
-CANON = 'require("RadioSurvivor/RS_Codec").hexBytes(require("RadioSurvivor/RS_Codec").encodeBytes(LivingKnox.Groups.state.data))'
+CANON = 'require("RadioSurvivorCore/RC_Codec").hexBytes(require("RadioSurvivorCore/RC_Codec").encodeBytes(LivingKnox.Groups.state.data))'
 
 
 class Base(unittest.TestCase):
@@ -560,7 +560,7 @@ class DeferredWriteTests(Base):
 
     def test_fast_hex_and_checksum_equal_the_codec(self):
         same = self.run_lua(
-            'local C = require("RadioSurvivor/RS_Codec") local St = LivingKnox.Store math.randomseed(3) '
+            'local C = require("RadioSurvivorCore/RC_Codec") local St = LivingKnox.Store math.randomseed(3) '
             'local ok = St.hexOfBytes("") == "" and St.checksumOfBytes("") == C.checksumBytes("") '
             'for n = 1, 30 do local t = {} for i = 1, n * 700 do t[i] = string.char(math.random(0, 255)) end '
             'local s = table.concat(t) ok = ok and St.hexOfBytes(s) == C.hexBytes(s) '

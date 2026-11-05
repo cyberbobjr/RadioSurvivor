@@ -1,6 +1,6 @@
 """Case check of every path of the RadioSurvivor mods for a Linux (case-sensitive) dedicated server (LK13-T05).
 
-    python RadioSurvivor/tools/check_case.py                       # published mod, then the development mod
+    python RadioSurvivor/tools/check_case.py                       # core mod, published mod, then the development mod
     python RadioSurvivor/tools/check_case.py --vanilla D:/.../ProjectZomboid/media
     python RadioSurvivor/tools/check_case.py --mod PATH [--dep PATH ...]   # any mod folder (tests)
 
@@ -45,6 +45,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 MAIN_MOD = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivor'
+# Shared core mod (E18), required by RadioSurvivor: checked alone, then as a dependency.
+CORE_MOD = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivorCore'
 DEV_MOD = ROOT / 'dev' / 'batman_RadioSurvivorTests'
 # Required mod (require=batman_BeltRadio), from the sibling repository: dependency of both checked mods.
 BELT_MOD = ROOT.parent / 'BeltRadio' / 'Contents' / 'mods' / 'batman_BeltRadio'
@@ -589,8 +591,10 @@ def main(argv: list[str] | None = None) -> int:
     if not args.vanilla.is_dir():
         print(f'vanilla media folder not found: {args.vanilla} (use --vanilla)')
         return 2
-    targets = [(p, args.dep) for p in args.mod] if args.mod else [(MAIN_MOD, [BELT_MOD, SIGNAL_MOD]),
-                                                                  (DEV_MOD, [MAIN_MOD, BELT_MOD, SIGNAL_MOD])]
+    targets = [(p, args.dep) for p in args.mod] if args.mod else [
+        (CORE_MOD, []),
+        (MAIN_MOD, [CORE_MOD, BELT_MOD, SIGNAL_MOD]),
+        (DEV_MOD, [MAIN_MOD, CORE_MOD, BELT_MOD, SIGNAL_MOD])]
     for path, deps in targets:
         for p in [path] + deps:
             if not p.is_dir():

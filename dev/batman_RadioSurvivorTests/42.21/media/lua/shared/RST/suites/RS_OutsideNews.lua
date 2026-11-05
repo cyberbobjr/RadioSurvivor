@@ -69,7 +69,7 @@ RST.suite("rs.outside_news", { tags = { "world" } }, function(s)
 
     s.test("never bought back by the smuggler", function(t)
         local _, News = authority(t)
-        local TV = require "RadioSurvivor/RS_TradeValues"
+        local TV = require "RadioSurvivorCore/RC_TradeValues"
         t:eq(0, (TV.value(News.FULL_TYPE)), "the sheet has a buying value")
         t:eq(2, TV.sellValue(News.FULL_TYPE), "selling value of the sheet")
     end)

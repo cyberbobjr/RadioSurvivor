@@ -3,8 +3,8 @@ serveur radio complet (RadioSurvivor_Server.lua, doublures de tests/test_protoco
 
     python RadioSurvivor/tests/test_rs_trade.py
 
-Vrai Lua du mod (Lua 5.1, `next` retiré comme dans Kahlua) : RS_Trade, RS_Actions, RS_Persona, RS_Codec,
-RS_TradeValues, RS_OutsideNews, RadioSurvivor_Const ; doublures : GameTime (âge du monde), ZombRand, état privé
+Vrai Lua du mod (Lua 5.1, `next` retiré comme dans Kahlua) : RS_Trade, RS_Actions, RS_Persona, RC_Codec,
+RC_TradeValues, RS_OutsideNews, RadioSurvivor_Const ; doublures : GameTime (âge du monde), ZombRand, état privé
 RS_State (table en mémoire), journal admin RS_ActionLog. Couvre : catalogue d'apport conforme à la table validée
 (docs/specifications-techniques/passeur-table.md, section 3 ; poids relus dans les scripts vanilla 42.21), tirage du stock reproductible et dans
 les fourchettes, prix ligne par ligne (exemples de la table), offre figée avec révision, réserve et remplacement,
@@ -32,6 +32,7 @@ import lupa.lua51 as lupa
 ROOT = Path(__file__).resolve().parents[1]
 MOD = ROOT / 'Contents/mods/batman_RadioSurvivor/42.21'
 LUA = MOD / 'media/lua'
+CORE_LUA = Path(__file__).resolve().parents[1] / 'Contents' / 'mods' / 'batman_RadioSurvivorCore' / '42.21' / 'media' / 'lua'  # mod commun (E18)
 TRADE_LUA = LUA / 'server/RadioSurvivor/RS_Trade.lua'
 DOC = ROOT / 'docs/specifications-techniques/passeur-table.md'
 VANILLA_ITEMS = pz_paths.media_dir() / 'scripts/generated/items'
@@ -78,11 +79,12 @@ class TradeHarness(unittest.TestCase):
         self.g.next = None
         self.rt.execute(STUBS)
         paths = ';'.join((LUA / side).as_posix() + '/?.lua' for side in ('shared', 'server'))
+        paths = (CORE_LUA / 'shared').as_posix() + '/?.lua;' + paths  # mod commun (E18)
         self.rt.execute(f'package.path = [[{paths};]] .. package.path')
         self.T = self.rt.eval('require("RadioSurvivor/RS_Trade")')
         self.Actions = self.rt.eval('require("RadioSurvivor/RS_Actions")')
-        self.Codec = self.rt.eval('require("RadioSurvivor/RS_Codec")')
-        self.TV = self.rt.eval('require("RadioSurvivor/RS_TradeValues")')
+        self.Codec = self.rt.eval('require("RadioSurvivorCore/RC_Codec")')
+        self.TV = self.rt.eval('require("RadioSurvivorCore/RC_TradeValues")')
         self.g.STATE.data = self.rt.table_from({'schema': 2})
         self.T.resetForTests()
         # E13-T03 : cordon tiré par passage ; les exemples de la table supposent une semaine calme au passage 1.

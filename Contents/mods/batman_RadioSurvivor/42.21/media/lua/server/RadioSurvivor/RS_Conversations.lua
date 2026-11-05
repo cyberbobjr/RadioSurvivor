@@ -47,8 +47,8 @@ local S = require 'RadioSurvivor/RS_State'
 local Obs = require 'RadioSurvivor/RS_Observations'
 local I = require 'RadioSurvivor/RS_Initiatives'
 local T = require 'RadioSurvivor/RS_Transport'
-local Codec = require 'RadioSurvivor/RS_Codec'
-local TextCut = require 'RadioSurvivor/RS_TextCut'
+local Codec = require 'RadioSurvivorCore/RC_Codec'
+local TextCut = require 'RadioSurvivorCore/RC_TextCut'
 local Comfort = require 'RadioSurvivor/RS_Comfort'
 
 local V = {}
@@ -228,7 +228,7 @@ local function speakerOf(conv)
 end
 
 -- Texte borné à max octets UTF-8 (Kahlua : caractères UTF-16, Codec.toUtf8 compte les octets), coupé comme une bulle
--- (E17-T13, RS_TextCut.pieces : fin de phrase, sinon virgule, sinon entre deux mots ; jamais dans un mot quand une
+-- (E17-T13, RC_TextCut.pieces : fin de phrase, sinon virgule, sinon entre deux mots ; jamais dans un mot quand une
 -- coupe entre deux mots est possible) : une réponse au joueur (jusqu'à C.MAX_REPLY_BYTES) jointe au contexte d'un
 -- tour n'arrive plus au modèle coupée au milieu d'un mot.
 local function cut(text, max)

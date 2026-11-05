@@ -1,5 +1,5 @@
 -- Radio Survivor : échange sans contact sur la berge (E13-T04). Fiche : docs/annexes/conception/passeur-echange.md ; barème
--- docs/specifications-techniques/passeur-table.md (sections 1 et 2), code shared/RadioSurvivor/RS_TradeValues.lua. Autorité
+-- docs/specifications-techniques/passeur-table.md (sections 1 et 2), code shared/RadioSurvivorCore/RC_TradeValues.lua. Autorité
 -- seulement (serveur MP, jeu local en solo).
 --
 -- Après le signal (RS_TradeRun : state arrived), le joueur dépose un sac au ponton (DROP_RADIUS cases autour de
@@ -31,7 +31,7 @@ local Config = require "RadioSurvivor/RS_Config"
 local S = require "RadioSurvivor/RS_State"
 local Trade = require "RadioSurvivor/RS_Trade"
 local Run = require "RadioSurvivor/RS_TradeRun"
-local TV = require "RadioSurvivor/RS_TradeValues"
+local TV = require "RadioSurvivorCore/RC_TradeValues"
 local News = require "RadioSurvivor/RS_OutsideNews"
 local NewsServer = require "RadioSurvivor/RS_OutsideNewsServer"
 local Rep = require "RadioSurvivor/RS_Reputation"

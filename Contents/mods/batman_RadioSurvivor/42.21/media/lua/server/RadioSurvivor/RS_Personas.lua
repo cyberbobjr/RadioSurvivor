@@ -36,7 +36,7 @@ if isClient() then return end
 
 local Const = require "RadioSurvivor/RadioSurvivor_Const"
 local Persona = require "RadioSurvivor/RS_Persona"
-local Codec = require "RadioSurvivor/RS_Codec"
+local Codec = require "RadioSurvivorCore/RC_Codec"
 
 local Personas = {}
 
@@ -192,7 +192,7 @@ end
 
 -- Installation des fiches livrées --------------------------------------------------------------
 
--- Empreintes (E05-T11). Empreinte d'une fiche : Adler-32 (RS_Codec.checksum, décimal) de ses octets UTF-8, lignes
+-- Empreintes (E05-T11). Empreinte d'une fiche : Adler-32 (RC_Codec.checksum, décimal) de ses octets UTF-8, lignes
 -- rejointes par "\n" telles que readLine les rend : indépendante des fins de ligne, égale pour la fiche livrée et
 -- pour sa copie (écrite ligne par ligne). Fichier FINGERPRINTS : en-tête FINGERPRINTS_HEADER puis une ligne
 -- « nom.txt empreinte » par fiche livrée installée, l'empreinte du texte écrit par le serveur.

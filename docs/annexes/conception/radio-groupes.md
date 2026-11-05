@@ -28,7 +28,7 @@ vanilla selon la longueur : `RadioChannel.java:229-237`, longueur / 10 s bornée
 La bulle de proximité d'un PNJ (`LK_SpeechView.show`) n'est jamais découpée : une réplique = une bulle, ses lignes
 de 60 caractères affichées ensemble.
 
-Règle (`shared/RadioSurvivor/RS_TextCut.lua` `pieces`, miroir Python `radio_bridge.cut_pieces`) : chaque morceau, au plus
+Règle (`shared/RadioSurvivorCore/RC_TextCut.lua` `pieces`, miroir Python `radio_bridge.cut_pieces`) : chaque morceau, au plus
 la longueur actuelle (140 en jeu, 100 au pont), le plus long possible, coupé :
 
 1. après une fin de phrase : `.` `!` `?` ou `…` (U+2026), éventuellement suivis de `"` `'` `)` `»`, puis d'un espace

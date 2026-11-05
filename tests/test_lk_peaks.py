@@ -34,7 +34,7 @@ F.scan = function(reason)
 end
 '''
 
-STATE = ('(function() local C = require "RadioSurvivor/RS_Codec" local LK = LivingKnox '
+STATE = ('(function() local C = require "RadioSurvivorCore/RC_Codec" local LK = LivingKnox '
          'local H = LK.Hostility.state.data local S = LK.Store.data() '
          'return C.hexBytes(C.encodeBytes(LK.Groups.state.data)) .. "|" .. C.hexBytes(C.encodeBytes(H)) .. "|" .. '
          'C.hexBytes(C.encodeBytes(S)) end)()')

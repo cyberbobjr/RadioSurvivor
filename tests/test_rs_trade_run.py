@@ -3,8 +3,8 @@
 
     python RadioSurvivor/tests/test_rs_trade_run.py
 
-Vrai Lua du mod (Lua 5.1, `next` retiré comme dans Kahlua) : RS_Trade, RS_TradeRun, RS_Actions, RS_Persona, RS_Codec,
-RS_TradeValues, RS_OutsideNews, RadioSurvivor_Const ; doublures : GameTime (âge du monde), joueurs en ligne (serveur
+Vrai Lua du mod (Lua 5.1, `next` retiré comme dans Kahlua) : RS_Trade, RS_TradeRun, RS_Actions, RS_Persona, RC_Codec,
+RC_TradeValues, RS_OutsideNews, RadioSurvivor_Const ; doublures : GameTime (âge du monde), joueurs en ligne (serveur
 MP), équipes (RS_Factions.idOf), repère sur la carte (RS_MapMarks.give), serveur radio (RS_RadioServer.frequency/air),
 traducteur fidèle (table anglaise du mod, nil pour une clé inconnue), ClimateManager, Signal Smoke (module public du
 mod requis), état privé RS_State en mémoire, journal admin. Couvre : nuit du rendez-vous (01:00 à 03:00,
@@ -28,6 +28,7 @@ import lupa.lua51 as lupa
 ROOT = Path(__file__).resolve().parents[1]
 MOD = ROOT / 'Contents/mods/batman_RadioSurvivor/42.21'
 LUA = MOD / 'media/lua'
+CORE_LUA = Path(__file__).resolve().parents[1] / 'Contents' / 'mods' / 'batman_RadioSurvivorCore' / '42.21' / 'media' / 'lua'  # mod commun (E18)
 RUN_LUA = LUA / 'server/RadioSurvivor/RS_TradeRun.lua'
 TRADE_LUA = LUA / 'server/RadioSurvivor/RS_Trade.lua'
 TRANSLATE = LUA / 'shared/Translate'
@@ -128,6 +129,7 @@ class RunHarness(unittest.TestCase):
         self.rt.execute(STUBS)
         self.rt.execute(TRANSLATOR, self.rt.table_from(EN))
         paths = ';'.join((LUA / side).as_posix() + '/?.lua' for side in ('shared', 'server'))
+        paths = (CORE_LUA / 'shared').as_posix() + '/?.lua;' + paths  # mod commun (E18)
         self.rt.execute(f'package.path = [[{paths};]] .. package.path')
         self.T = self.rt.eval('require("RadioSurvivor/RS_Trade")')
         self.Run = self.rt.eval('require("RadioSurvivor/RS_TradeRun")')

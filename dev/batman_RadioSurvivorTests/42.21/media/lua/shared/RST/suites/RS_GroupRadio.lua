@@ -85,7 +85,7 @@ RST.suite("rs.groupradio", { tags = { "world", "server" }, testTimeoutMs = 15000
         function(t)
         if isClient() then t:skip("authority only (solo, or RST.server in MP)") end
         local R = require "RadioSurvivor/RS_GroupRadio"
-        local TextCut = require "RadioSurvivor/RS_TextCut"
+        local TextCut = require "RadioSurvivorCore/RC_TextCut"
         local Const = require "RadioSurvivor/RadioSurvivor_Const"
         -- Accents et points de suspension en échappements d'octets UTF-8 (lexeur Kahlua, base kahlua-lua.md).
         local text = "Oui, j'ai du travail pour toi. Il s'agit d'aller rep\195\169rer une maison \195\160 West Point,"
@@ -222,7 +222,7 @@ RST.suite("rs.groupradio", { tags = { "world", "server" }, testTimeoutMs = 15000
                 local spoken = {}
                 for i = 2, #heard do spoken[#spoken + 1] = heard[i] end   -- la première ligne est un parasite
                 local Const = require "RadioSurvivor/RadioSurvivor_Const"
-                t2:eq(nil, badCut(spoken, Const.MAX_LINE_CHARS, require "RadioSurvivor/RS_TextCut"), "bad cut")
+                t2:eq(nil, badCut(spoken, Const.MAX_LINE_CHARS, require "RadioSurvivorCore/RC_TextCut"), "bad cut")
                 for i, line in ipairs(spoken) do t2:note("line " .. i .. " (" .. string.len(line) .. "): " .. line) end
             end, function() return "no reply within 60 s: " .. RST.RSHelpers.bridgeCause(Server, since) end)
         end)

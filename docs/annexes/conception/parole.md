@@ -60,7 +60,7 @@ Situations : `greet` (salut), `warn` (avertissement : trop près), `alert` (dang
 - Durée en **temps réel** : 5 s + 60 ms par caractère, 15 s au plus ; fondu sur le dernier quart (comme `ChatElement`). Bulle oubliée à l'échéance, ou quand le corps meurt ou quitte le monde (plus de case). Aucune règle d'audition refaite : le serveur a choisi les auditeurs.
 - Une erreur de dessin vide les bulles et n'écrit qu'un avertissement (pas une erreur par image).
 - Morceaux (E17-T13, 2026-10-14) : un texte de plus de `PIECE` (180) caractères est découpé par
-  `RS_TextCut.pieces` (fin de phrase, sinon virgule, point-virgule ou deux-points, sinon entre deux mots, jamais dans un
+  `RC_TextCut.pieces` (fin de phrase, sinon virgule, point-virgule ou deux-points, sinon entre deux mots, jamais dans un
   mot ; même règle que la radio, `radio-groupes.md`, « Découpe des répliques ») et ses morceaux s'affichent l'un après
   l'autre sur le même corps, chacun pendant sa propre durée (5 s + 60 ms par caractère, 15 s au plus). Avant E17-T13,
   une réponse au joueur (jusqu'à 1600 octets) tenait dans une seule bulle de 15 s au plus, quelle que soit sa longueur.
@@ -128,7 +128,7 @@ Situations : `greet` (salut), `warn` (avertissement : trop près), `alert` (dang
   dans la limite d'octets, consigne en caractères) et `tests/test_conversations.py`
   (`test_long_line_joined_in_whole_sentences`). En jeu : `RST.run({ suite = "rs.npctalk", tags = "world" })`, test
   E17-T13 (réponse longue demandée au modèle, morceaux mesurés et ordre vérifié par `pieceLog`).
-- VM Kahlua : non couvert (aucune chaîne non ASCII dans le Lua de la tâche ; `RS_TextCut` est vérifié en Kahlua réelle
+- VM Kahlua : non couvert (aucune chaîne non ASCII dans le Lua de la tâche ; `RC_TextCut` est vérifié en Kahlua réelle
   par `tests/test_kahlua.py`).
 - En jeu, solo : `RST.run({ suite = "lk.speech", tags = "world" })` (bulle posée sur un PNJ créé et **dessinée** au moins une fois à un point de l'écran, doublon ignoré, délai, texte rédigé, PNJ à 30 cases inaudible). MP à la séance finale.
 - Phrase du joueur : `tests/test_carnet.py`, `PlayerSpeechTests` (Radio : solo `Say`, MP `processSayMessage`, jamais sur refus ; Contacts : une fois à `queued`, jamais sur `error`, pas de redite d'une phrase du chat).

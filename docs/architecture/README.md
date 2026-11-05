@@ -64,7 +64,8 @@ n'est jamais publié.
 
 | Côté | Dossier | Responsabilités |
 |---|---|---|
-| shared | `RadioSurvivor/` | constantes et noms de commandes (`RadioSurvivor_Const.lua`), codec RSV2 (`RS_Codec`), interface `RS_NPCProvider` et son implémentation Living Knox (`RS_LivingKnox`), notes, valeurs de troc, coupe des textes |
+| shared (mod commun `batman_RadioSurvivorCore`) | `RadioSurvivorCore/` | outils partagés depuis `E18-T02` : codec RSV2 (`RC_Codec`), limite de débit des commandes (`RC_RateLimit`), coupe des textes (`RC_TextCut`), valeurs de troc (`RC_TradeValues`), monde neuf ou relancé (`RC_WorldStart`), horloge de jeu des délais (`RC_GameClock`) |
+| shared | `RadioSurvivor/` | constantes et noms de commandes (`RadioSurvivor_Const.lua`), interface `RS_NPCProvider` et son implémentation Living Knox (`RS_LivingKnox`), notes |
 | shared | `LivingKnox/` | cœur (`LK_Core`, `LK_Config`), identité et apparence, équipement, sens, mouvement, garde des corps (`LK_ZombieGuard`), types de groupes et textes (`Data/`) |
 | server | `RadioSurvivor_Server.lua`, `RS_Carnet_Server.lua` | points d'entrée : commandes client, carnet, livraisons |
 | server | `RadioSurvivor/` (47 fichiers) | état privé (`RS_State`), transport vers le pont (`RS_Transport`), voix (`RS_Persona*`), actions et missions (`RS_Actions`, `RS_Mission*`), secours (`RS_Rescue*`), troc (`RS_Trade*`), chronique et faits, dernières pages, réputation, équipes (`RS_Factions`) |

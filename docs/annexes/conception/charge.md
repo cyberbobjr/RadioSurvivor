@@ -29,7 +29,7 @@ protocole en jeu : [charge-protocole.md](../tests/validation/charge-protocole.md
 | Envelopper une globale Java surchargée (`sendServerCommand` avec ou sans joueur) : transmettre `...` tel quel | base `kahlua-lua.md` | confirmé statiquement |
 | Kahlua est environ 3,6 fois plus lent que lupa (Lua 5.1 en C) sur le chemin d'écriture d'un registre (encodage RSV2, hex, somme, relecture) | `tools/load_bench.py --kahlua` (VM de `projectzomboid.jar`, 2026-10-12 : 99-100 ms contre 27-28 ms) | mesuré hors jeu |
 | Écriture du registre des groupes regroupée (LK13-T06) : encodage, hex par table, somme par blocs, sans relecture ; le rapport dépend du code (environ 3 ici) | `tools/load_bench.py --kahlua`, seconde ligne (2026-10-12 : 31,9-32,6 ms Kahlua contre 10,8-11,3 ms lupa) ; [charge-groupes-2026-10-12.md](../tests/validation/charge-groupes-2026-10-12.md) | mesuré hors jeu |
-| `table.sort` de Kahlua est un tri rapide écrit en Lua (`stdlib.lua`) : un comparateur Lua coûte un appel par comparaison ; trier des textes calculés une fois (LK13-T10, `RS_Codec`) donne les mêmes octets, encodage environ 17 % plus rapide en Kahlua | base `kahlua-lua.md` ; [charge-registre-pnj-2026-10-12.md](../tests/validation/charge-registre-pnj-2026-10-12.md) | mesuré hors jeu |
+| `table.sort` de Kahlua est un tri rapide écrit en Lua (`stdlib.lua`) : un comparateur Lua coûte un appel par comparaison ; trier des textes calculés une fois (LK13-T10, `RC_Codec`) donne les mêmes octets, encodage environ 17 % plus rapide en Kahlua | base `kahlua-lua.md` ; [charge-registre-pnj-2026-10-12.md](../tests/validation/charge-registre-pnj-2026-10-12.md) | mesuré hors jeu |
 
 ## Choix
 

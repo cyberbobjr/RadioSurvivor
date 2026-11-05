@@ -399,7 +399,7 @@ end
 -- logEntries, journalEntries, stockItems } en octets de fichier (hex = 2 x RSV2), ou nil et la raison.
 function Load.stateSize()
     if isClient() then return nil, "not the authority" end
-    local ok, Codec = pcall(require, "RadioSurvivor/RS_Codec")
+    local ok, Codec = pcall(require, "RadioSurvivorCore/RC_Codec")
     if not ok or type(Codec) ~= "table" or type(Codec.encodeBytes) ~= "function" then return nil, "no codec" end
     local function bytes(v)
         if v == nil then return 0 end

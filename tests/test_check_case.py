@@ -241,16 +241,16 @@ class RepositoryTest(unittest.TestCase):
         for dep in (cc.BELT_MOD, cc.SIGNAL_MOD):
             if not dep.is_dir():
                 self.skipTest(f'required mod absent: {dep}')
-        deps = [cc.BELT_MOD, cc.SIGNAL_MOD]
+        deps = [cc.CORE_MOD, cc.BELT_MOD, cc.SIGNAL_MOD]   # mod commun exigé (E18)
         vanilla = cc.load_vanilla(cc.DEFAULT_VANILLA)
         self.assertEqual([str(p) for p in cc.check_mod(cc.MAIN_MOD, deps, vanilla)], [])
         self.assertEqual([str(p) for p in cc.check_mod(cc.DEV_MOD, [cc.MAIN_MOD] + deps, vanilla)], [])
         # Sans Belt Walkie-Talkie, le require du récepteur commun n'est pas résolu.
-        problems = [str(p) for p in cc.check_mod(cc.MAIN_MOD, [cc.SIGNAL_MOD], vanilla)]
+        problems = [str(p) for p in cc.check_mod(cc.MAIN_MOD, [cc.CORE_MOD, cc.SIGNAL_MOD], vanilla)]
         self.assertEqual(len(problems), 1, problems)
         self.assertIn('require "BatmanRadio/BatmanRadio_Core" not found', problems[0])
         # Sans Signal Smoke, ses trois require (mission signal, secours, passeur) ne sont pas résolus.
-        problems = [str(p) for p in cc.check_mod(cc.MAIN_MOD, [cc.BELT_MOD], vanilla)]
+        problems = [str(p) for p in cc.check_mod(cc.MAIN_MOD, [cc.CORE_MOD, cc.BELT_MOD], vanilla)]
         self.assertEqual(len(problems), 3, problems)
         self.assertTrue(all('require "SignalSmoke/SignalSmoke" not found' in p for p in problems), problems)
 

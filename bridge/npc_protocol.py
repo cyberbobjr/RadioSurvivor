@@ -344,7 +344,7 @@ def cut_pieces(text: str, max_chars: int) -> list[str]:
     sa catégorie : coupe après une fin de phrase (. ! ? …, puis guillemets ou parenthèses fermants, puis un espace ;
     « 9.5 » n'en est pas une), sinon après , ; ou :, sinon entre deux mots (devant une ponctuation détachée seulement
     à défaut d'autre espace), sinon dans un mot plus long que max_chars. Ponctuation lue caractère par caractère,
-    aucune liste de mots. Miroir de RS_TextCut.pieces (Lua) ; égalité vérifiée dans la VM Kahlua (test_kahlua.py). Défini ici
+    aucune liste de mots. Miroir de RC_TextCut.pieces (Lua) ; égalité vérifiée dans la VM Kahlua (test_kahlua.py). Défini ici
     (E17-T13) pour clean_speech ; radio_bridge.cut_pieces en est un alias."""
     text = " ".join(text.split())
     out: list[str] = []

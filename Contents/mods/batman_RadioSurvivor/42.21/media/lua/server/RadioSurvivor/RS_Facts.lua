@@ -57,7 +57,7 @@ local M = require 'RadioSurvivor/RS_Missions'
 local Rescue = require 'RadioSurvivor/RS_Rescue'
 local Triggers = require 'RadioSurvivor/RS_ObservationTriggers'
 local Const = require 'RadioSurvivor/RadioSurvivor_Const'
-local Codec = require 'RadioSurvivor/RS_Codec'
+local Codec = require 'RadioSurvivorCore/RC_Codec'
 
 local Facts = {pending = {}}
 

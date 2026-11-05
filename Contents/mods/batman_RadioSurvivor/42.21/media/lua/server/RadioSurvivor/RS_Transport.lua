@@ -1,6 +1,6 @@
 if isClient() then return end
 local Const = require 'RadioSurvivor/RadioSurvivor_Const'
-local Codec = require 'RadioSurvivor/RS_Codec'
+local Codec = require 'RadioSurvivorCore/RC_Codec'
 local T = {radio = {}, npc = {}, acks = {}, session = 'initializing', generation = 0}
 -- lastPages (E15-T03): kind=last_pages requests of RS_LastPages (RSV2 payload, same lines as the NPC kinds).
 T.lastPages = {}

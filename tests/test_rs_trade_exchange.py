@@ -3,7 +3,7 @@
     python RadioSurvivor/tests/test_rs_trade_exchange.py
 
 Vrai Lua du mod (Lua 5.1, `next` retiré comme dans Kahlua) : RS_TradeExchange, RS_Trade, RS_TradeRun, RS_Actions,
-RS_TradeValues, RS_Reputation, RS_OutsideNews ; doublures (celles de test_rs_trade_run.py, plus) : objets
+RC_TradeValues, RS_Reputation, RS_OutsideNews ; doublures (celles de test_rs_trade_run.py, plus) : objets
 d'inventaire (type, nom affiché et nom du script, état, utilisations, poids, ModData, contenu), sacs au sol et cellule
 (cases chargées ou non), instanceItem, envois sendAddItemToContainer / sendRemoveItemFromContainer, création du
 journal du dehors. Couvre : barème et conditions de la table (état, filtre, sac vide, papiers nominatifs, nom d'un

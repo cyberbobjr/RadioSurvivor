@@ -39,7 +39,7 @@ refuses a mission whose objective is not met (no claim ever validates anything).
 Requester ("donor"): an NPC fiche of the notebook (state.npcs[m.npc]) or, since E11-T08, a radio voice
 (RS_MissionVoice.lua: state.voiceDonors[m.npc], id 'voice:<voice>:<character>', m.donor = 'voice'). Both carry the
 fields the engine reads and writes: id, mission, missionCount, nextOfferHour (nextOfferAt before E11-T20).
-Game time (E11-T20, user decision of 2026-10-21): remainingMs and offerRemainingMs are play ms (RS_GameClock: real
+Game time (E11-T20, user decision of 2026-10-21): remainingMs and offerRemainingMs are play ms (RC_GameClock: real
 ms at normal speed, stopped while the game is paused, faster at x2/x3), decreased by M.advance with the play time
 measured by the caller; the delay before the next offer is a world age (nextOfferHour, game hours). Saved missions
 keep their remainingMs (same unit at normal speed); a saved nextOfferAt (real ms) is converted once by M.offerWait.
@@ -55,7 +55,7 @@ and an offer closed by the engine closes the mission as 'cancelled_closed' (no r
 local Config = require 'RadioSurvivor/RS_Config'
 local Rep = require 'RadioSurvivor/RS_Reputation'
 local P = require 'RadioSurvivor/RS_NPCProvider'
-local Clock = require 'RadioSurvivor/RS_GameClock'
+local Clock = require 'RadioSurvivorCore/RC_GameClock'
 local M = {}
 
 local DEFAULT = 'deliver'
@@ -205,7 +205,7 @@ local function supplyClosed(m)
     return P.supplyOpen(m.supply.ref, m.supply.offer) == false
 end
 
--- elapsedMs: play ms since the previous call (RS_GameClock.meter, E11-T20); negative values are ignored.
+-- elapsedMs: play ms since the previous call (RC_GameClock.meter, E11-T20); negative values are ignored.
 function M.advance(state, elapsedMs)
     local changed = false
     elapsedMs = math.max(0, elapsedMs)

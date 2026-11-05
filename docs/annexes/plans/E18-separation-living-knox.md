@@ -2,12 +2,12 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 1 / 16 tâche(s) terminée(s).
+**Avancement.** en cours — 2 / 16 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
 | ☑ | E18-T01 | Mod commun `batman_RadioSurvivorCore` : dossier et métadonnées | `testé solo` | solo | — |
-| ☐ | E18-T02 | Outils partagés déplacés dans le commun | `à faire` | hors jeu | E18-T01 |
+| ☑ | E18-T02 | Outils partagés déplacés dans le commun | `testé hors jeu` | hors jeu | E18-T01 |
 | ☐ | E18-T03 | Identité des personnages dans le commun | `à faire` | MP | E18-T02 |
 | ☐ | E18-T04 | Lien avec le pont dans le commun | `à faire` | MP | E18-T02 |
 | ☐ | E18-T05 | Moteur de missions dans le commun, donneurs voix et PNJ | `à faire` | MP | E18-T03, E18-T04 |
@@ -110,15 +110,15 @@ Deuxième article Workshop, dépôt séparé, nouvelles règles de jeu des missi
   - Preuve : `Contents/mods/batman_RadioSurvivorCore` (`common/.keep`, `42.21/mod.info` id `batman_RadioSurvivorCore` sans `require=`, module `RadioSurvivorCore/RC_Core.lua`) ; `batman_RadioSurvivor` : `require=\batman_RadioSurvivorCore,\batman_BeltRadio,\batman_SignalSmoke` ; mod commun ajouté avant RadioSurvivor dans `tools/autoclient/autoclient.py`, `autotest.json`, `tests/run_dedicated_smoke.ps1` ; banc `python tests/test_core_mod.py` : « Ran 4 tests … OK » (rouge d'abord : 2 FAIL, 2 ERROR) ; `python tests/test_autoclient.py` : « Ran 91 tests … OK » ; `python tests/run_all.py --keep-going` : 146 PASS, 1 FAIL (autoclient, ligne `require=` attendue, corrigée puis banc vert) ; passage solo du 2026-11-05 (`autoclient.py --suite rs.env,rst`, code 0) : « RST-RESULT ok=true total=13 pass=13 fail=0 », journal « loading batman_RadioSurvivorCore », mods actifs `…;batman_RadioSurvivorCore;batman_RadioSurvivor;…`, aucune erreur Lua de nos mods hors des échecs volontaires des auto-tests `rst` (`tools/autoclient/runs/20261105-161109-435c6ef1b6c0`)
   - Reste : RadioSurvivor coché seul : activation automatique du commun par `require=` non rejouée hors lanceur (le lanceur liste les mods) ; à voir avec E18-T15
 
-- [ ] **E18-T02** — Outils partagés déplacés dans le commun
-  - État : `à faire`
+- [x] **E18-T02** — Outils partagés déplacés dans le commun
+  - État : `testé hors jeu`
   - Cible : `hors jeu`
   - Dépend de : E18-T01
   - Fichiers : `RS_Codec`, `RS_RateLimit`, `RS_TextCut`, `RS_TradeValues`, `RS_WorldStart`, `RS_GameClock` → `RC_*` du commun ; leurs appelants dans RadioSurvivor et Living Knox
   - Faire : une seule copie de chaque outil, dans le commun ; plus aucun `require "RadioSurvivor/..."` dans Living Knox pour ces outils ; format des registres (RSV2) inchangé.
   - Accepté si : recherche des anciens noms vide ; anciens registres et anciens états relus octet pour octet.
   - Tests : bancs `test_carnet.py`, `test_kahlua.py`, `test_lk_*` ; banc de relecture d'un registre écrit par l'ancien code.
-  - Preuve : —
+  - Preuve : six modules `RC_Codec`, `RC_RateLimit`, `RC_TextCut`, `RC_TradeValues`, `RC_WorldStart` (passé de `server/` à `shared/`), `RC_GameClock` sous `batman_RadioSurvivorCore/42.21/media/lua/shared/RadioSurvivorCore/` (déplacés par `git mv`, code identique hors noms, commentaires en anglais ASCII) ; appelants de RadioSurvivor, de Living Knox (`LK_Store`, `LK_Server`, `LK_ZombieGuard`, `LK_Trade`, `LK_TradeView`, `LK_SpeechView`), des suites en jeu (suite `RC_Codec`) et des bancs mis à jour ; banc `python tests/test_core_tools.py` (rouge d'abord : 3 FAIL, 4 ERROR ; puis « Ran 7 tests … OK ») : une seule copie de chaque outil, recherche des anciens noms vide dans `Contents`, `dev`, `tests`, `tools`, `bridge`, aucun `require "RadioSurvivor/..."` de ces outils dans Living Knox, fichiers `tests/fixtures/e18-t02` (état RS `RSSTATE2` et registre `LKREG1` écrits par l'ancien codec) relus par `RC_Codec`, `RS_State._read` et `LK_Store.readSlotFile` puis réécrits octet pour octet ; `python tests/run_all.py --keep-going` : « 148 passed, 0 failed » (`carnet` 94 tests OK, `kahlua` 39 OK dans la VM réelle, 79 bancs `lk_*` verts, `check_case` avec le mod commun en dépendance), luacheck `Contents` 15 avertissements (référence 15), `dev` 0
   - Reste : —
 
 - [ ] **E18-T03** — Identité des personnages dans le commun

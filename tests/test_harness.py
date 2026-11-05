@@ -66,9 +66,9 @@ class MachinesTests(Base):
         self.assertTrue(self.h.eval('B', 'getPlayerByOnlineID(0):isDead()'))
 
     def test_load_mod_file_and_require(self):
-        codec = self.h.load('server', 'shared/RadioSurvivor/RS_Codec.lua')
+        codec = self.h.load('server', 'shared/RadioSurvivorCore/RC_Codec.lua')
         self.assertIsNotNone(codec)
-        self.assertEqual(self.h.eval('A', 'type(require("RadioSurvivor/RS_Codec"))'), 'table')
+        self.assertEqual(self.h.eval('A', 'type(require("RadioSurvivorCore/RC_Codec"))'), 'table')
         # Le client MP charge aussi media/lua/server (GameLoadingState.java:153) ; le dédié n'exécute pas client/.
         self.assertTrue(self.h.eval('A', '(pcall(require, "RadioSurvivor/RS_State"))'))
         self.assertFalse(self.h.eval('server', '(pcall(require, "RadioSurvivor/RS_Notebook"))'))

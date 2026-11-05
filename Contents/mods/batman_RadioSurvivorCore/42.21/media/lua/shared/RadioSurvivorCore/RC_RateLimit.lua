@@ -1,5 +1,5 @@
 --[[
-Radio Survivor: per-account rate limit of client commands on a multiplayer server (review points C21, C31).
+RadioSurvivorCore: per-account rate limit of client commands on a multiplayer server (review points C21, C31).
 
 A modified client can repeat a command every frame; several commands rebuild large state (notebook snapshot, radio
 history, list of the bodies of the NPCs in range). Each guarded handler owns a token bucket per account: `capacity`
@@ -62,5 +62,5 @@ function RL.reset()
     RL.buckets = {}
 end
 
-RS_RateLimit = RL
+RC_RateLimit = RL
 return RL

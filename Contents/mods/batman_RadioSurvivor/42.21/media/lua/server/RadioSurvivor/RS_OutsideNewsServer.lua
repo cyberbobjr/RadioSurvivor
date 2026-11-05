@@ -7,8 +7,8 @@
 -- rend un objet neuf, hors de tout conteneur, avec l'édition du passage datée du jour de jeu ; l'appelant le pose
 -- avec la contrepartie (sol ou conteneur, envoi aux clients compris). Deux passages différents donnent deux
 -- éditions différentes (une, brèves, prix, titre et marque « lu »). Sans numéro : édition de la semaine en cours.
--- Le journal ne se revend pas : hors module Base, il vaut 0 dans le barème (RS_TradeValues.value) ; sa valeur de
--- vente est RS_TradeValues.sellValue("RadioSurvivor.OutsideNews").
+-- Le journal ne se revend pas : hors module Base, il vaut 0 dans le barème (RC_TradeValues.value) ; sa valeur de
+-- vente est RC_TradeValues.sellValue("RadioSurvivor.OutsideNews").
 --
 -- Commande de test (console Lua de debug, solo) :
 --     RadioSurvivorOutsideNews.give()          -- édition de la semaine en cours, dans l'inventaire du joueur

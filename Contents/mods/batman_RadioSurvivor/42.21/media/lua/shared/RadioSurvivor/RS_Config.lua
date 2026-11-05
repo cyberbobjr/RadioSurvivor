@@ -161,7 +161,7 @@ local C = {
     SNAPSHOT_OPEN_MS = 3000,
     SNAPSHOT_CLOSED_MS = 30000,
     -- Lifecycle of missions and NPC fiches; keeps the private state bounded on long servers.
-    -- E11-T20: OFFER_TTL_MS, OFFER_COOLDOWN_MS and the durationMs of the missions are play ms (RS_GameClock: real ms
+    -- E11-T20: OFFER_TTL_MS, OFFER_COOLDOWN_MS and the durationMs of the missions are play ms (RC_GameClock: real ms
     -- at normal speed, stopped while the game is paused, faster at x2/x3); the retentions below stay real time.
     OFFER_TTL_MS = 3600000,            -- play time before an unaccepted offer expires
     OFFER_COOLDOWN_MS = 1800000,       -- play time before the same NPC or voice can offer again

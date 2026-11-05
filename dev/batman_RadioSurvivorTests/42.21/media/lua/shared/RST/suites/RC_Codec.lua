@@ -1,10 +1,10 @@
 --[[
-rs.codec — pure logic of RadioSurvivor/RS_Codec (RSV2 format): round trip, types, depth, sorted keys, hex/unhex,
+rs.codec — pure logic of RadioSurvivorCore/RC_Codec (RSV2 format): round trip, types, depth, sorted keys, hex/unhex,
 invalid input, limits. Tag "shared": no game API is used; runs in game (RST.run("rs.codec"), RST.server, dedicated
 server autorun) and outside the game (lupa, tests/test_rs_suites.py) on the real module of batman_RadioSurvivor.
 
 Strings: in Kahlua a string is a Java String (#s, string.byte count UTF-16 units); under lupa (Lua 5.1) they count
-UTF-8 bytes. RS_Codec converts Lua strings to UTF-8 bytes (C.toUtf8 / C.fromUtf8, E00-T08), so hex forms, length
+UTF-8 bytes. RC_Codec converts Lua strings to UTF-8 bytes (C.toUtf8 / C.fromUtf8, E00-T08), so hex forms, length
 prefixes and checksums of non-ASCII text are the same in both machines and are asserted as constants (UTF-8 bytes).
 Non-ASCII literals are written as decimal escapes of their UTF-8 bytes ("caf\195\169" = "café"): the Kahlua lexer
 keeps only the low byte of each source character, then decodes the literal as UTF-8 (org.luaj.kahluafork.compiler.
@@ -17,7 +17,7 @@ are only asserted on numbers that both print exactly (integers below 1e14, binar
 require "RST/RST"
 
 local function codec()
-    return require "RadioSurvivor/RS_Codec"
+    return require "RadioSurvivorCore/RC_Codec"
 end
 
 -- n nested one-element tables around the string "x".
@@ -33,7 +33,7 @@ RST.suite("rs.codec", { tags = { "shared" } }, function(s)
         t:eq("table", type(C))
         for _, name in ipairs({ "hex", "unhex", "encode", "decode", "checksum", "toUtf8", "fromUtf8", "hexBytes",
             "unhexBytes", "encodeBytes", "decodeBytes", "checksumBytes" }) do
-            t:eq("function", type(C[name]), "RS_Codec." .. name)
+            t:eq("function", type(C[name]), "RC_Codec." .. name)
         end
         t:eq(4194304, C.MAX_BYTES)
     end)
@@ -142,7 +142,7 @@ RST.suite("rs.codec", { tags = { "shared" } }, function(s)
 
     s.test("hex round trip of characters above U+00FF", function(t)
         -- Kahlua: string.byte gives the UTF-16 unit (8217 for U+2019) and %02x prints 4 digits, so unhex cannot
-        -- rebuild it. lupa sees 3 UTF-8 bytes. A failure here in game is a bug of RS_Codec.hex, not of the suite.
+        -- rebuild it. lupa sees 3 UTF-8 bytes. A failure here in game is a bug of RC_Codec.hex, not of the suite.
         local C = codec()
         -- "l’abri € œuvre": U+2019, U+20AC, U+0153.
         local text = "l\226\128\153abri \226\130\172 \197\147uvre"

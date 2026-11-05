@@ -1,25 +1,25 @@
--- Radio Survivor : découpe d'une réplique en morceaux affichés l'un après l'autre (E17-T12). Fiche :
--- docs/annexes/conception/radio-groupes.md, « Découpe des répliques ».
+-- RadioSurvivorCore: cuts a line of speech into pieces shown one after the other (E17-T12; moved to the core mod by
+-- E18-T02). Design note: docs/annexes/conception/radio-groupes.md, section on cutting the lines.
 --
--- TextCut.pieces(texte, max) -> { morceau, ... } : espaces regroupés, chaque morceau de max unités au plus
--- (string.len : unités UTF-16 en Kahlua, octets sous Lua 5.1), coupé, du plus au moins souhaitable :
---   1. après une fin de phrase : . ! ? ou points de suspension (U+2026), éventuellement suivis de " ' ) ou », puis
---      d'un espace (« 9.5 » n'est pas une fin de phrase : le point n'est pas suivi d'un espace) ;
---   2. après une virgule, un point-virgule ou deux-points suivis d'un espace ;
---   3. entre deux mots (devant une ponctuation détachée à la française, ? ! : ; » …, seulement à défaut d'autre
---      espace) ;
---   4. un mot seul plus long que max : coupé à max, jamais au milieu d'un caractère (octet de continuation UTF-8 sous
---      Lua 5.1, paire de substitution en Kahlua).
--- Chaque morceau est le plus long possible dans sa catégorie. Ponctuation lue caractère par caractère : aucune liste
--- de mots, aucune règle de langue. Miroir Python : bridge/radio_bridge.py cut_pieces (mêmes règles, longueur en
--- caractères ; égalité vérifiée dans la VM Kahlua réelle par tests/test_kahlua.py).
+-- TextCut.pieces(text, max) -> { piece, ... }: blanks collapsed, each piece at most max units long
+-- (string.len: UTF-16 units in Kahlua, bytes under Lua 5.1), cut, from the most to the least wanted:
+--   1. after the end of a sentence: . ! ? or an ellipsis (U+2026), optionally followed by " ' ) or a closing
+--      guillemet (U+00BB), then a space ("9.5" is not the end of a sentence: no space follows the dot);
+--   2. after a comma, a semicolon or a colon followed by a space;
+--   3. between two words (before a French detached punctuation, ? ! : ; U+00BB U+2026, only when no other space
+--      fits);
+--   4. a single word longer than max: cut at max, never inside a character (UTF-8 continuation byte under Lua 5.1,
+--      surrogate pair in Kahlua).
+-- Each piece is the longest possible in its class. Punctuation read character by character: no word list, no
+-- language rule. Python mirror: bridge/radio_bridge.py cut_pieces (same rules, length in characters; equality
+-- checked in the real Kahlua VM by tests/test_kahlua.py).
 local TextCut = {}
 
--- Kahlua décode l'échappement en un seul caractère (base kahlua-lua.md) ; Lua 5.1 garde les octets.
+-- Kahlua decodes the escape into a single character (knowledge base kahlua-lua.md); Lua 5.1 keeps the bytes.
 local KAHLUA = #"\195\169" == 1
 TextCut.ELLIPSIS = "\226\128\166"
-local CLOSERS = { '"', "'", ")", "\194\187" }                       -- » en dernier : 2 octets sous Lua 5.1
-local DETACHED = { "?", "!", ":", ";", "\194\187", TextCut.ELLIPSIS } -- ponctuation précédée d'un espace
+local CLOSERS = { '"', "'", ")", "\194\187" }                       -- U+00BB last: 2 bytes under Lua 5.1
+local DETACHED = { "?", "!", ":", ";", "\194\187", TextCut.ELLIPSIS } -- punctuation preceded by a space
 
 local function endsWith(text, e, s)
     local n = string.len(s)
@@ -30,7 +30,7 @@ local function startsWith(text, i, s)
     return string.sub(text, i, i + string.len(s) - 1) == s
 end
 
--- Fin du texte utile avant les guillemets ou parenthèses fermants qui terminent text[1..e].
+-- End of the useful text before the closing quotes or parentheses that end text[1..e].
 local function beforeClosers(text, e)
     local moved = true
     while moved and e > 0 do
@@ -46,7 +46,7 @@ local function beforeClosers(text, e)
     return e
 end
 
--- Catégorie d'une coupe après text[1..e] (l'espace suit) : 3 fin de phrase, 2 pause, 1 entre deux mots.
+-- Class of a cut after text[1..e] (the space follows): 3 end of sentence, 2 pause, 1 between two words.
 local function classAt(text, e)
     local k = beforeClosers(text, e)
     if k < 1 then return 1 end
@@ -63,16 +63,16 @@ local function detachedAt(text, i)
     return false
 end
 
--- Blancs : espace et caractères de contrôle (tabulation, sauts de ligne). Pas %s, qui dépend de la locale du C sous
--- Lua 5.1 (l'octet 0xA0 de « à » y est pris pour un blanc).
+-- Blanks: space and control characters (tab, line breaks). Not %s, which depends on the C locale under Lua 5.1
+-- (the byte 0xA0 of a UTF-8 "a grave" is taken there for a blank).
 local BLANK = "[ %c]"
 
 local function trim(text)
     return (string.gsub(string.gsub(text, "^" .. BLANK .. "+", ""), BLANK .. "+$", ""))
 end
 
--- Dernière position d'une coupe forcée dans un mot : jamais avant un octet de continuation (Lua 5.1) ni entre les
--- deux unités d'une paire de substitution (Kahlua).
+-- Last position of a forced cut inside a word: never before a continuation byte (Lua 5.1) nor between the two
+-- units of a surrogate pair (Kahlua).
 local function hardCut(text, max)
     local e = max
     if KAHLUA then
@@ -88,14 +88,14 @@ local function hardCut(text, max)
     return e
 end
 
--- Fin du premier morceau d'un texte plus long que max, et début du reste.
+-- End of the first piece of a text longer than max, and start of the rest.
 local function firstCut(text, max)
     local best, bestClass = nil, 0
     for s = max + 1, 2, -1 do
         if string.sub(text, s, s) == " " then
             local c = classAt(text, s - 1)
-            if c == 1 and detachedAt(text, s + 1) then c = 0.5 end   -- admis seulement à défaut d'autre espace
-            if c > bestClass then best, bestClass = s, c end   -- de droite à gauche : le premier est le plus long
+            if c == 1 and detachedAt(text, s + 1) then c = 0.5 end   -- allowed only when no other space fits
+            if c > bestClass then best, bestClass = s, c end   -- right to left: the first one is the longest
             if bestClass == 3 then break end
         end
     end
@@ -122,7 +122,7 @@ function TextCut.pieces(text, max)
     return out
 end
 
--- Vrai si le morceau se termine par une fin de phrase (contrôle des suites en jeu et des bancs).
+-- True when the piece ends a sentence (checks of the in-game suites and of the benches).
 function TextCut.endsSentence(piece)
     return classAt(piece, string.len(piece)) == 3
 end

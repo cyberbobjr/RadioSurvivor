@@ -641,7 +641,7 @@ ce test est `SKIP`.
 
 `mp-persist` n'utilise pas `--restart-pause` : `rs.identity` y reste sans mission (chrono `SKIP`).
 
-Instantanés : `RST_Persist.lua` (`RST.Persist.write/read/consume`, octets `RS_Codec` en hexadécimal avec somme de
+Instantanés : `RST_Persist.lua` (`RST.Persist.write/read/consume`, octets `RC_Codec` en hexadécimal avec somme de
 contrôle, dans `Zomboid/Lua/batman_RadioSurvivor/tests/<nom>` du serveur, consommé par l'étape `after-restart`).
 Quand le test travaille sur un état en mémoire (magasin de travail des secours, fiche de cache), l'instantané tient
 lieu de l'état privé du carnet (`RS_State`), dont la persistance elle-même est prouvée par `rs.identity` ; le vrai

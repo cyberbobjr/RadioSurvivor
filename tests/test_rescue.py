@@ -25,6 +25,7 @@ import lupa.lua51 as lupa
 
 ROOT = Path(__file__).resolve().parents[1]
 MOD_LUA = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivor' / '42.21' / 'media' / 'lua'
+CORE_LUA = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivorCore' / '42.21' / 'media' / 'lua'  # mod commun (E18)
 TESTS_LUA = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua'
 MODULE = MOD_LUA / 'server' / 'RadioSurvivor' / 'RS_Rescue.lua'
 SUITE = TESTS_LUA / 'shared' / 'RST' / 'suites' / 'RS_Rescue.lua'
@@ -270,7 +271,7 @@ class RescueHarness(unittest.TestCase):
         self.g = self.rt.globals()
         self.g.next = None  # absent de Kahlua
         self.rt.execute(DOUBLES)
-        paths = [TESTS_LUA / 'shared', MOD_LUA / 'shared', MOD_LUA / 'server']
+        paths = [TESTS_LUA / 'shared', CORE_LUA / 'shared', MOD_LUA / 'shared', MOD_LUA / 'server']
         self.rt.execute('package.path = [[' + ''.join(f'{p.as_posix()}/?.lua;' for p in paths) + ']] .. package.path')
 
     def world(self, extra: str = ''):

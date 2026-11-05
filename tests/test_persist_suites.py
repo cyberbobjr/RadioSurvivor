@@ -26,6 +26,7 @@ import autoclient  # noqa: E402
 LUA = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua'
 SUITES = LUA / 'shared' / 'RST' / 'suites'
 MOD_SHARED = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivor' / '42.21' / 'media' / 'lua' / 'shared'
+CORE_SHARED = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivorCore' / '42.21' / 'media' / 'lua' / 'shared'  # mod commun (E18)
 FILES = {
     'RS_MissionRecoverPersist.lua': {'rs.mission.recover.before': 'restart', 'rs.mission.recover.after-restart': None},
     'RS_RescuePersist.lua': {'rs.rescue.missed.before': None, 'rs.rescue.missed.after-restart': None},
@@ -58,7 +59,7 @@ end
 def engine() -> lupa.LuaRuntime:
     rt = lupa.LuaRuntime(unpack_returned_tuples=True)
     rt.globals().next = None
-    rt.execute(f'package.path = [[{(LUA / "shared").as_posix()}/?.lua;{MOD_SHARED.as_posix()}/?.lua;]] .. package.path')
+    rt.execute(f'package.path = [[{(LUA / "shared").as_posix()}/?.lua;{MOD_SHARED.as_posix()}/?.lua;{CORE_SHARED.as_posix()}/?.lua;]] .. package.path')
     rt.execute('print = function() end')
     rt.execute(FILE_DOUBLES)
     rt.execute('require "RST/RST"')
@@ -114,7 +115,7 @@ class ListingTests(unittest.TestCase):
 
 
 class PersistFileTests(unittest.TestCase):
-    """RST_Persist: snapshot written with RS_Codec, read back, refused when absent, corrupt, foreign or consumed."""
+    """RST_Persist: snapshot written with RC_Codec, read back, refused when absent, corrupt, foreign or consumed."""
 
     def setUp(self):
         self.rt = engine()

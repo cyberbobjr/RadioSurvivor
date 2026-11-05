@@ -1,7 +1,7 @@
 # Troc direct avec un groupe ami
 
 - Tâche : LK11-T08 (création) ; s'appuie sur LK11-T03 (attitude, [attitude.md](attitude.md)), LK08-T06 et LK08-T07 (stock réel et seuils, [stock.md](stock.md)), LK11-T06 (modèle de demande et de remise, [aide.md](aide.md)) ; barème commun avec le passeur de l'Ohio (E13, [passeur-table.md](../../specifications-techniques/passeur-table.md), validé le 2026-10-10)
-- Code : `media/lua/server/LivingKnox/LK_Trade.lua` (`LivingKnox.Trade`, autorité), fenêtre et menu `media/lua/client/LivingKnox/LK_TradeView.lua` (`LivingKnox.TradeView`, client MP et solo), barème partagé `media/lua/shared/RadioSurvivor/RS_TradeValues.lua` (rendu par `require "RadioSurvivor/RS_TradeValues"`), conteneurs du foyer par `Stock.homeContainers` (`LK_Stock.lua`), textes `Translate/EN|FR/IG_UI.json` (`IGUI_LK_Trade_*`) ; banc `tests/test_lk_trade.py` ; suite en jeu `lk.trade` (`dev/batman_RadioSurvivorTests/42.21/media/lua/shared/RST/suites/RST_LKTrade.lua`)
+- Code : `media/lua/server/LivingKnox/LK_Trade.lua` (`LivingKnox.Trade`, autorité), fenêtre et menu `media/lua/client/LivingKnox/LK_TradeView.lua` (`LivingKnox.TradeView`, client MP et solo), barème partagé `media/lua/shared/RadioSurvivorCore/RC_TradeValues.lua` (rendu par `require "RadioSurvivorCore/RC_TradeValues"`), conteneurs du foyer par `Stock.homeContainers` (`LK_Stock.lua`), textes `Translate/EN|FR/IG_UI.json` (`IGUI_LK_Trade_*`) ; banc `tests/test_lk_trade.py` ; suite en jeu `lk.trade` (`dev/batman_RadioSurvivorTests/42.21/media/lua/shared/RST/suites/RST_LKTrade.lua`)
 - Build : 42.21.0 (Java décompilé **J/** = `<decompiled>\42.21.0\java\zombie\`, Lua vanilla **M/** = `media/lua`) — Date : 2026-10-12 — Statut : brouillon, testé hors jeu seulement
 
 Décision du 2026-10-08 (LK11-T01) : avec un groupe ami, un joueur troque directement contre des objets de son stock réel. Aucune ligne de Bandits! ni de Project A-Life n'a été lue.
@@ -25,7 +25,7 @@ Un joueur propose des objets de son inventaire contre des objets du stock réel 
 
 ### Barème (partagé avec E13)
 
-`RS_TradeValues.lua` reprend la table validée (`docs/specifications-techniques/passeur-table.md`) : `VALUES["Base.X"] = { v, k, cond, cap, lot }`, classes `valuables`, `images`, `papers`, `military`, `supply`, `food`, `medical`, `ammo`. Fonctions : `entry`, `isBase`, `value(type, catégorie)`, `linePrice(v, n, k)` = ⌈V × n × k⌉ (tolérance 1e-9 : 10 × 1,1 n'arrondit pas à 12), `askTotal(lignes, k)` (groupé par type), `giveTotal(valeurs)` = ⌊Σ⌋. Le même fichier est chargé par le serveur et par la fenêtre : les totaux affichés sont ceux du serveur.
+`RC_TradeValues.lua` reprend la table validée (`docs/specifications-techniques/passeur-table.md`) : `VALUES["Base.X"] = { v, k, cond, cap, lot }`, classes `valuables`, `images`, `papers`, `military`, `supply`, `food`, `medical`, `ammo`. Fonctions : `entry`, `isBase`, `value(type, catégorie)`, `linePrice(v, n, k)` = ⌈V × n × k⌉ (tolérance 1e-9 : 10 × 1,1 n'arrondit pas à 12), `askTotal(lignes, k)` (groupé par type), `giveTotal(valeurs)` = ⌊Σ⌋. Le même fichier est chargé par le serveur et par la fenêtre : les totaux affichés sont ceux du serveur.
 
 **Valeur de repli (décision à confirmer)** : un objet des catégories du stock réel absent du barème (biscuits, bouteille d'eau, matériaux) prend `FALLBACK` de sa catégorie (données de script : `DisplayCategory`, fluide) : nourriture 2, eau 2, soins 1, matériaux 1 ; munitions en vrac : 0. Le barème ne couvrait ni l'eau ni les matériaux, que les kits des groupes contiennent.
 

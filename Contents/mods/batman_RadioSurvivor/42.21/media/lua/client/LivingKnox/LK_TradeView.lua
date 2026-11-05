@@ -6,7 +6,7 @@
 -- ni l'attitude ni le stock : l'option est offerte sur tout PNJ, le serveur répond par une offre ou un refus motivé
 -- (réplique du PNJ). La fenêtre n'affiche que ce que le serveur a répondu : à gauche les objets du joueur que le groupe
 -- prendrait (valeur pour lui), à droite les objets cédés (valeur V) ; un clic coche ou décoche. Totaux calculés avec le
--- barème partagé (shared/RadioSurvivor/RS_TradeValues.lua, coefficient k de l'offre) ; le serveur recalcule tout.
+-- barème partagé (shared/RadioSurvivorCore/RC_TradeValues.lua, coefficient k de l'offre) ; le serveur recalcule tout.
 -- Transport : MP, sendClientCommand "tradeRequest" { op = "open" | "propose", n, npc, give, take } -> OnServerCommand
 -- "tradeReply" ; solo, LivingKnox.Trade.request appelé directement (réponse rendue pendant l'appel : l'attente est
 -- posée avant, base multiplayer.md). Aucun texte du joueur n'est lu.
@@ -16,7 +16,7 @@ require "LivingKnox/LK_Core"
 require "LivingKnox/LK_Config"
 require "LivingKnox/LK_Log"
 require "LivingKnox/LK_RelationsView"
-local TV = require "RadioSurvivor/RS_TradeValues"
+local TV = require "RadioSurvivorCore/RC_TradeValues"
 
 local View = LivingKnox.TradeView or {}
 LivingKnox.TradeView = View

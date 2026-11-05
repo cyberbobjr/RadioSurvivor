@@ -121,7 +121,7 @@ LEAVE = {"en": "I am leaving. I will go my own way.", "fr": "Je pars. Je ferai m
 BACKGROUND = {"en": "I fixed engines before all this. Now I keep my head down and my knife sharp.",
               "fr": "Je réparais des moteurs avant tout ça. Maintenant je fais profil bas."}
 # E17-T13: first answer to a stranger, longer than one bubble piece (LK_SpeechView.PIECE = 180); whole sentences, each
-# well under 180 characters, so RS_TextCut cuts between sentences.
+# well under 180 characters, so RC_TextCut cuts between sentences.
 LONG_MIN = 181
 LONG_TALK = {
     "en": ("Easy there, stranger, I am listening. I have been on my own for a while now, so forgive me if I do not trust "

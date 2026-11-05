@@ -13,7 +13,7 @@ Suites (tag "server": RS_Carnet_Server.lua starts with "if isClient() then retur
                                 file, not the notebook state). Run it again before each manual action.
     rs.identity.after-reconnect same session: same identity (server modData and binding), notes, engagements; the
                                 mission clock ran with the game time during the disconnection (E11-T20: play
-                                time of RS_GameClock, stopped while the world is paused).
+                                time of RC_GameClock, stopped while the world is paused).
     rs.identity.after-restart   new session of the same world: same identity, notes, engagements; the mission
                                 clock excludes the downtime (rs.identity.before run just before "quit").
     rs.identity.after-death     an account whose identity changed died: old identity retired and unused, new
@@ -153,7 +153,7 @@ local function accounts(server, data)
 end
 
 local function writeSnapshot(snapshot)
-    local Codec = require "RadioSurvivor/RS_Codec"
+    local Codec = require "RadioSurvivorCore/RC_Codec"
     local body = Codec.encodeBytes(snapshot)
     local ok, writer = pcall(getFileWriter, I.FILE, true, false)
     if not ok or not writer then return false, "getFileWriter refused " .. I.FILE end
@@ -167,7 +167,7 @@ end
 
 -- Returns the snapshot, or nil and a reason.
 local function readSnapshot()
-    local Codec = require "RadioSurvivor/RS_Codec"
+    local Codec = require "RadioSurvivorCore/RC_Codec"
     local ok, reader = pcall(getFileReader, I.FILE, false)
     if not ok or not reader then return nil, "no snapshot " .. I.FILE .. ": run RST.server('rs.identity.before') first" end
     local header, raw, checksum, finish = reader:readLine(), reader:readLine(), reader:readLine(), reader:readLine()
@@ -274,10 +274,10 @@ local function ms(v)
     return string.format("%.0f", v) .. " ms"
 end
 
--- E11-T20: the mission clock counts play time (RS_GameClock: world age x real ms of a game hour at normal speed), not
+-- E11-T20: the mission clock counts play time (RC_GameClock: world age x real ms of a game hour at normal speed), not
 -- real time: nothing while the world is paused (empty dedicated server with PauseEmpty), faster at x2/x3.
 local function playNow()
-    local Clock = require "RadioSurvivor/RS_GameClock"
+    local Clock = require "RadioSurvivorCore/RC_GameClock"
     local h = Clock.hours()
     return h and math.floor(h * Clock.msPerHour() + 0.5) or nil
 end

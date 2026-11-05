@@ -33,7 +33,7 @@ ZombRand = function(a, b) return a end
 SandboxVars = { RadioSurvivor = { Enabled = true } }
 S = require 'RadioSurvivor/RS_State'
 Log = require 'RadioSurvivor/RS_RadioLog'
-Codec = require 'RadioSurvivor/RS_Codec'
+Codec = require 'RadioSurvivorCore/RC_Codec'
 assert(S.init(NEW_WORLD ~= false))
 RS_CarnetServer = { bound = {} }
 -- getLotDirectories (LuaManager) : ArrayList<String> des dossiers de carte chargés.

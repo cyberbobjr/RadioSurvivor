@@ -353,12 +353,12 @@ FACTOR_BUILD = (
     'npc = "lk-" .. m } end '
     'for f = 1, 120 do grp.fort[f] = { x = 1000 + f, y = 2000 + f, z = 0, kind = "wall", tier = 2, have = 3, '
     'steps = { "a", "b" } } end t[#t + 1] = grp end DATA = { groups = t } return "built"')
-FACTOR_LOOP = ('local C = require "RadioSurvivor/RS_Codec" for i = 1, {n} do local b = C.encodeBytes(DATA) '
+FACTOR_LOOP = ('local C = require "RadioSurvivorCore/RC_Codec" for i = 1, {n} do local b = C.encodeBytes(DATA) '
                'local x = C.hexBytes(b) local c = C.checksumBytes(b) local d = C.decodeBytes(C.unhexBytes(x)) end '
                'return "KF done"')
 # LK13-T06 : chemin d'écriture du registre des groupes après regroupement : encodage, hex par table de remplacement
 # (LK_Store.hexOfBytes), somme de contrôle par blocs (LK_Store.checksumOfBytes), sans relecture.
-FACTOR_LOOP_T06 = ('local C = require "RadioSurvivor/RS_Codec" local HX = {{}} for i = 0, 255 do '
+FACTOR_LOOP_T06 = ('local C = require "RadioSurvivorCore/RC_Codec" local HX = {{}} for i = 0, 255 do '
                    'HX[string.char(i)] = string.format("%02x", i) end local function ck(s) local a, b, n, i = 1, 0, '
                    '#s, 1 while i <= n do local j = i + 3999 if j > n then j = n end for k = i, j do '
                    'a = a + string.byte(s, k) b = b + a end a, b = a % 65521, b % 65521 i = j + 1 end '
@@ -367,7 +367,7 @@ FACTOR_LOOP_T06 = ('local C = require "RadioSurvivor/RS_Codec" local HX = {{}} f
 
 
 # LK13-T07 : registre réel du banc (--dump-groups : RSV2 en hex) décodé avant la mesure, à la place de FACTOR_BUILD.
-REGISTRY_BUILD = ('local C = require "RadioSurvivor/RS_Codec" DATA = assert(C.decodeBytes(C.unhexBytes(REGISTRY_HEX))) '
+REGISTRY_BUILD = ('local C = require "RadioSurvivorCore/RC_Codec" DATA = assert(C.decodeBytes(C.unhexBytes(REGISTRY_HEX))) '
                   'return "built"')
 
 
@@ -401,7 +401,7 @@ def kahlua_factor(rounds: int = 40, loop: str = FACTOR_LOOP, registry: Path | No
         def jvm(n):
             args = [str(tk.JAVA), '-cp', os.pathsep.join([str(tk.JAR), str(work)]), 'KRun',
                     'load:driver=' + str(tk.BENCH / 'driver.lua'),
-                    'load:RadioSurvivor/RS_Codec=' + str(tk.MOD_LUA / 'shared' / 'RadioSurvivor' / 'RS_Codec.lua'),
+                    'load:RadioSurvivorCore/RC_Codec=' + str(tk.CORE_LUA / 'shared' / 'RadioSurvivorCore' / 'RC_Codec.lua'),
                     *pre, 'eval:' + build, 'eval:' + loop.format(n=n)]
             t = time.perf_counter()
             p = subprocess.run(args, cwd=work, capture_output=True, text=True, timeout=600)
@@ -451,7 +451,7 @@ def run(minutes: int, seed: int = 7, warmup: int = 1, window_ms: int = 60000, st
             # LK13-T09 : passes de la dernière heure et relectures encore en file faites avant (comparaison avant/après)
             bench.h.load('server', 'local S, St = LivingKnox.Simulation, LivingKnox.Stock '
                                    'if S.finishHour then S.finishHour() end if St.finishQueue then St.finishQueue() end')
-            dump.write_text(bench.h.eval('server', '(function() local C = require "RadioSurvivor/RS_Codec" '
+            dump.write_text(bench.h.eval('server', '(function() local C = require "RadioSurvivorCore/RC_Codec" '
                                          'return C.hexBytes(C.encodeBytes(LivingKnox.Groups.state.data)) end)()'),
                             encoding='ascii')
         info = {'minutes': minutes, 'warmup': warmup, 'seed': seed, 'ticks': bench.ticks,
@@ -476,7 +476,7 @@ Store.writeSlotFile = function(path, header, ...)
     return write(path, header, ...)
 end
 '''
-STATE_HEX = ('(function() local C = require "RadioSurvivor/RS_Codec" local LK = LivingKnox local out = {} '
+STATE_HEX = ('(function() local C = require "RadioSurvivorCore/RC_Codec" local LK = LivingKnox local out = {} '
              'for name, st in pairs({ registry = LK.Store.state, groups = LK.Groups.state, '
              'attitudes = LK.Hostility.state }) do out[name] = C.hexBytes(C.encodeBytes({ st.data })) end '
              'return out end)()')

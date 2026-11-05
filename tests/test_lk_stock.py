@@ -992,7 +992,7 @@ class OffscreenTests(Base):
     def test_simulation_drives_the_stock_reproducibly(self):
         gid = self.filled()
         out = self.run_lua(f'''
-            local C = require("RadioSurvivor/RS_Codec")
+            local C = require("RadioSurvivorCore/RC_Codec")
             local S = LivingKnox.Simulation
             LivingKnox.Config.SIMULATION.EXPEDITIONS.DEPART_CHANCE = 1
             local d = LivingKnox.Groups.state.data

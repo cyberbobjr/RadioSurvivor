@@ -1,5 +1,5 @@
 """Tests hors jeu du troc direct avec un groupe Living Knox (LK11-T08) : server/LivingKnox/LK_Trade.lua, le barème
-partagé shared/RadioSurvivor/RS_TradeValues.lua, la fenêtre client/LivingKnox/LK_TradeView.lua et la suite en jeu
+partagé shared/RadioSurvivorCore/RC_TradeValues.lua, la fenêtre client/LivingKnox/LK_TradeView.lua et la suite en jeu
 lk.trade (dev/.../RST_LKTrade.lua) dans le banc.
 
     python RadioSurvivor/tests/test_lk_trade.py
@@ -26,7 +26,7 @@ sys.path.append(str(Path(__file__).resolve().parents[1] / 'tools'))
 import pz_paths  # noqa: E402  (vanilla folders: PZ_STEAM_LIBRARY, PZ_MEDIA or Steam detection)
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from harness import LUA  # noqa: E402
+from harness import LUA, CORE_LUA  # noqa: E402
 from test_lk_stock import Base as StockBase, KITCHEN, OFFSCREEN_DOUBLES  # noqa: E402
 from test_lk_homes import HOUSE  # noqa: E402
 from test_lk_aid import AID_DOUBLES, ENGINE_STUBS, MENU_DOUBLES  # noqa: E402
@@ -34,7 +34,7 @@ from test_lk_aid import AID_DOUBLES, ENGINE_STUBS, MENU_DOUBLES  # noqa: E402
 T = 'LivingKnox.Trade'
 ST = 'LivingKnox.Stock'
 TRADE = 'server/LivingKnox/LK_Trade.lua'
-VALUES = 'shared/RadioSurvivor/RS_TradeValues.lua'
+VALUES = 'shared/RadioSurvivorCore/RC_TradeValues.lua'
 VIEW = 'client/LivingKnox/LK_TradeView.lua'
 RVIEW = 'client/LivingKnox/LK_RelationsView.lua'
 KEY_A, KEY_B = 'c-alpha', 'c-bravo'
@@ -197,7 +197,7 @@ class ValueTests(unittest.TestCase):
     def setUpClass(cls):
         import lupa
         cls.rt = lupa.LuaRuntime(unpack_returned_tuples=True)
-        cls.tv = cls.rt.execute((LUA / VALUES).read_text(encoding='utf-8'))
+        cls.tv = cls.rt.execute((CORE_LUA / VALUES).read_text(encoding='utf-8'))
 
     def test_values_match_the_validated_table(self):
         doc = (ROOT / 'docs' / 'specifications-techniques' / 'passeur-table.md').read_text(encoding='utf-8')
@@ -612,7 +612,7 @@ class TranslationTests(unittest.TestCase):
 
     def test_sources_have_ascii_code_only(self):
         for path in (TRADE, VIEW, VALUES):
-            text = (LUA / path).read_text(encoding='utf-8')
+            text = ((CORE_LUA if path == VALUES else LUA) / path).read_text(encoding='utf-8')
             for n, line in enumerate(text.splitlines(), 1):
                 code = line.split('--', 1)[0]
                 with self.subTest(path=path, line=n):

@@ -58,6 +58,7 @@ import lupa.lua51 as lupa
 
 ROOT = Path(__file__).resolve().parents[1]
 LUA = ROOT / 'Contents/mods/batman_RadioSurvivor/42.21/media/lua'
+CORE_LUA = ROOT / 'Contents/mods/batman_RadioSurvivorCore/42.21/media/lua'  # mod commun exigé (E18)
 LuaError = lupa.LuaError
 
 # zombie/Lua/LuaEventManager.java:634-895 (42.21.0), AddEvent(...) du moteur.
@@ -459,7 +460,7 @@ function GameTimeClass:getHour() return H.clock.hour end
 function GameTimeClass:getMinutes() return H.clock.minute end
 function GameTimeClass:getTimeOfDay() return H.clock.hour + H.clock.minute / 60 end
 function GameTimeClass:getWorldAgeHours() return H.clock.ageHours end
--- GameTime.java:867: real minutes of one game day (DayLength, vanilla default 90), read by RS_GameClock (E11-T20).
+-- GameTime.java:867: real minutes of one game day (DayLength, vanilla default 90), read by RC_GameClock (E11-T20).
 function GameTimeClass:getMinutesPerDay() return H.clock.minutesPerDay or 90 end
 function GameTimeClass:getMultiplier() return H.clock.multiplier end
 getGameTime = function() return gameTime end
@@ -614,7 +615,7 @@ class Machine:
 
     def __init__(self, harness: 'Harness', name: str, mode: str, files: Path):
         self.harness, self.name, self.mode = harness, name, mode
-        self.roots = [LUA] + [Path(r) for r in harness.lua_roots]
+        self.roots = [CORE_LUA, LUA] + [Path(r) for r in harness.lua_roots]
         self.files = files
         files.mkdir(parents=True, exist_ok=True)
         self.log_lines: list[str] = []

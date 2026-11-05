@@ -6,7 +6,7 @@ rs.factions.incident, rs.carnet.leader) et de leurs aides d'autorité (RST_PeerC
 Chaque suite est jouée par le VRAI moteur RST (RST.lua, RST_Steps.lua, RST_Fixtures.lua, RST_PeerChecks.lua,
 RST_RSHelpers.lua, RST_LKGroupFixture.lua) en solo et sur un serveur dédié simulé avec deux clients (machines lupa,
 `next` retiré comme dans Kahlua, réseau en file livré au tick suivant ; doublures Java de tests/test_rs_mp_suites.py).
-Réels ici : RS_State, RS_Config, RS_Codec, RS_Relations, RS_Observations, RS_Factions (accords et incidents, doublure
+Réels ici : RS_State, RS_Config, RC_Codec, RS_Relations, RS_Observations, RS_Factions (accords et incidents, doublure
 de Faction de tests/test_factions.py), RS_Incidents, LK_Core. Doublures : moteur Living Knox réduit (groupes, corps,
 attitude et faits, choix de cible réduit aux règles incident / couvert), serveur du carnet réduit à ce que lisent les
 tests (hello, select, talk avec contexte relation / collectif / accord, file de requêtes, lecture du fichier de

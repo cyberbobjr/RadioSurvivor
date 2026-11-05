@@ -4,11 +4,11 @@ routage réel de RadioSurvivor_Server.lua), rs.radiomodule (E06-T02, interface s
 
     python RadioSurvivor/tests/test_rs_suites.py
 
-Charge le vrai `RST.lua`, les vrais fichiers de suites et les vrais modules du mod principal (`RS_Codec`,
+Charge le vrai `RST.lua`, les vrais fichiers de suites et les vrais modules du mod principal (`RC_Codec`,
 `RS_Config`, `RS_Missions`, `RS_Reputation`) dans `lupa.lua51` (`next` retiré comme dans Kahlua), avec des doublures
 minimales de l'API Java, puis exécute les suites par le moteur RST (`RST.runSync`). Ne prouve pas l'API Java du jeu :
 l'exécution en jeu (serveur dédié de test, solo) reste nécessaire. Sous lupa les chaînes sont des octets UTF-8, en
-Kahlua des unités UTF-16 : voir l'en-tête de `RS_Codec.lua` (suite).
+Kahlua des unités UTF-16 : voir l'en-tête de `RC_Codec.lua` (suite).
 """
 from __future__ import annotations
 
@@ -23,8 +23,9 @@ import lupa.lua51 as lupa
 ROOT = Path(__file__).resolve().parents[1]
 TESTS_LUA = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua'
 MOD_LUA = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivor' / '42.21' / 'media' / 'lua'
+CORE_LUA = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivorCore' / '42.21' / 'media' / 'lua'  # mod commun (E18)
 SUITES = TESTS_LUA / 'shared' / 'RST' / 'suites'
-SUITE_FILES = {name: SUITES / f'{name}.lua' for name in ('RS_Env', 'RS_Codec', 'RS_Missions', 'RS_Identity',
+SUITE_FILES = {name: SUITES / f'{name}.lua' for name in ('RS_Env', 'RC_Codec', 'RS_Missions', 'RS_Identity',
                                                        'RS_Voices', 'RS_RadioModule')}
 
 
@@ -44,7 +45,7 @@ getTimestampMs = function() return CLOCK end
 SIDE = "solo"
 isServer = function() return SIDE == "server" end
 isClient = function() return SIDE == "client" end
--- GameTime double (GameTime.java:830, 867) read by RS_GameClock (E11-T20): fixed world age, vanilla day of 90 minutes.
+-- GameTime double (GameTime.java:830, 867) read by RC_GameClock (E11-T20): fixed world age, vanilla day of 90 minutes.
 getGameTime = function()
     return { getWorldAgeHours = function() return 100 end, getMinutesPerDay = function() return 90 end }
 end
@@ -119,7 +120,7 @@ class SuiteHarness(unittest.TestCase):
         self.g = self.rt.globals()
         self.g.next = None  # absent de Kahlua
         self.lua(PRELUDE)
-        paths = [TESTS_LUA / 'shared', MOD_LUA / 'shared', MOD_LUA / 'server']
+        paths = [TESTS_LUA / 'shared', CORE_LUA / 'shared', MOD_LUA / 'shared', MOD_LUA / 'server']
         self.lua('package.path = [[' + ''.join(f'{p.as_posix()}/?.lua;' for p in paths) + ']] .. package.path')
         self.lua('require "RST/RST"')
 
@@ -144,17 +145,17 @@ class SuiteHarness(unittest.TestCase):
 class CodecSuiteTests(SuiteHarness):
 
     def test_all_pass_on_real_module(self):
-        self.load_suite('RS_Codec')
+        self.load_suite('RC_Codec')
         rep = self.run_filter('"rs.codec"')
         self.assert_all('PASS', rep)
         self.assertTrue(rep.ok)
         self.assertEqual(rep.total, 15)
         # La limite modifiée par la suite est restaurée.
-        self.assertEqual(self.lua('return require("RadioSurvivor/RS_Codec").MAX_BYTES'), 4194304)
+        self.assertEqual(self.lua('return require("RadioSurvivorCore/RC_Codec").MAX_BYTES'), 4194304)
 
     def test_suite_detects_a_broken_codec(self):
-        self.load_suite('RS_Codec')
-        self.lua('local C = require "RadioSurvivor/RS_Codec"; C.hex = function(s) return "zz" end')
+        self.load_suite('RC_Codec')
+        self.lua('local C = require "RadioSurvivorCore/RC_Codec"; C.hex = function(s) return "zz" end')
         self.run_filter('"rs.codec"')
         st, msg = self.results()['hex and unhex on ASCII']
         self.assertEqual(st, 'FAIL')

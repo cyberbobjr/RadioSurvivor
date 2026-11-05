@@ -15,7 +15,7 @@ on a leader without body; given back at the end), selected and spoken to with th
              tried (noted).
     E17-T09  "maybe later?" after an offer: the offer stays an offer; the notebook Accept button still accepts it.
     E17-T13  a long answer asked for: its speech bubble (LK_SpeechView) is cut in pieces of whole sentences
-             (RS_TextCut.pieces, PIECE characters at most, never inside a word), shown one after another, each one
+             (RC_TextCut.pieces, PIECE characters at most, never inside a word), shown one after another, each one
              only after the previous one had its reading time (View.pieceLog). Pieces noted in the report.
 Results that depend on the model (offer made, acceptance understood) are FAIL with an explicit "model" message: read
 them with the answers noted in the report.
@@ -293,10 +293,10 @@ RST.suite("rs.npctalk", { tags = { "world", "server" }, testTimeoutMs = 400000, 
     end)
 
     -- The bubble is read on the requester client (RST.Steps "lk.speech.pieces": View.lastPieces and View.pieceLog of
-    -- its LK_SpeechView); the cut is judged here with the same RS_TextCut.
+    -- its LK_SpeechView); the cut is judged here with the same RC_TextCut.
     s.test("a long answer is shown in bubble pieces of whole sentences, one after another (E17-T13)", function(t)
         setup(t, function(t2, c)
-            local TextCut = require "RadioSurvivor/RS_TextCut"
+            local TextCut = require "RadioSurvivorCore/RC_TextCut"
             say(t2, c, c.words.long, function() end, function(t3, _, answer)
                 RST.Steps.ask(t3, "lk.speech.pieces", { answer = answer }, { target = "requester", timeoutMs = 240000,
                     assert = false }, function(t4, res)

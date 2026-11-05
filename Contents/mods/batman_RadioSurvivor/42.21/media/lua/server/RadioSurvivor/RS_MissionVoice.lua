@@ -50,7 +50,7 @@ its frequency. The clues are also shown, translated, by the notebook (RS_Mission
 ]]
 local Const = require "RadioSurvivor/RadioSurvivor_Const"
 local Config = require "RadioSurvivor/RS_Config"
-local Codec = require "RadioSurvivor/RS_Codec"
+local Codec = require "RadioSurvivorCore/RC_Codec"
 local M = require "RadioSurvivor/RS_Missions"
 local Rep = require "RadioSurvivor/RS_Reputation"
 require "RadioSurvivor/RS_MissionScout" -- registers the scout template

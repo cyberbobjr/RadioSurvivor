@@ -1,6 +1,6 @@
 # Contrat RadioSurvivor Lua ↔ Python v2
 
-Cible 42.21.0. Implémentation : `RS_Codec.lua`, `RS_Transport.lua`, `RS_Carnet_Server.lua`,
+Cible 42.21.0. Implémentation : `RC_Codec.lua`, `RS_Transport.lua`, `RS_Carnet_Server.lua`,
 `bridge/npc_protocol.py`, `bridge/radio_bridge.py`. Le bridge unique garde le verrou `bridge.lock`,
 sa configuration et le transport par fichiers dans `<cachedir>/Lua/batman_RadioSurvivor`.
 Python ne modifie aucun inventaire, état du moteur de PNJ, accord ou score de réputation.
@@ -240,7 +240,7 @@ payload=<RSV2 hexadécimal de { version = 2, kind = "radio_reply", id = <id>, sa
 Chaque action est une table `{ type = "signal", color = "green", ... }` : `type` puis les paramètres à plat.
 
 **Lecture par le serveur** : `readResponses` accepte `line=` (inchangé) et `payload=` pour un identifiant radio :
-corps décodé par `RS_Codec`, `version == 2`, `kind == "radio_reply"` et `id` égal à celui de `resp=`, sinon ignoré
+corps décodé par `RC_Codec`, `version == 2`, `kind == "radio_reply"` et `id` égal à celui de `resp=`, sinon ignoré
 (les réponses `npc_reply` et `ack_reply` du même fichier restent à `RS_Transport.readNpc`, qui ignore à son tour les
 réponses radio). Les lignes `say` repassent par le filtrage de `line=` (balises, 140 caractères, 8 lignes), puis la
 diffusion est mise en file comme une réponse texte ; ensuite seulement, `RS_Actions.decide` juge les actions contre la
@@ -799,7 +799,7 @@ ni parseur JSON Lua inventé. Longueurs en **octets UTF-8** :
 
 Chaînes : le contenu est l'encodage **UTF-8** du texte et la taille compte ses **octets**, jamais
 des caractères ni des unités UTF-16 ; le Python décode en UTF-8 strict et refuse une séquence invalide.
-Côté Lua, `RS_Codec` distingue chaîne Lua et chaîne d'octets (un caractère par octet, codes 0-255) :
+Côté Lua, `RC_Codec` distingue chaîne Lua et chaîne d'octets (un caractère par octet, codes 0-255) :
 en Kahlua (jeu), une chaîne est une `String` Java en unités UTF-16, convertie par `C.toUtf8` /
 `C.fromUtf8` (paires de substitution regroupées en un point de code de 4 octets, substitution isolée
 remplacée par U+FFFD) ; sous Lua 5.1 (bancs `lupa`), la conversion est l'identité. Le transport
@@ -1055,7 +1055,7 @@ compte rendu.
 `PRUNE_INTERVAL_MS`) : une mission close est retirée de l'état 24 h réelles après sa clôture (`MISSION_RETENTION_MS`,
 `closedAt` en temps réel, simple ménage). Un **lot réussi non réclamé** (`state = success`, `claimedBy = ''`,
 `rewardCount > 0`) est gardé **7 jours de jeu** (décision de l'utilisateur du 2026-10-21, tâche E16-T10) : échéance
-`unclaimedUntilHour` = âge du monde (`RS_GameClock.hours`, `getWorldAgeHours`) à la réussite + `UNCLAIMED_RETENTION_HOURS`
+`unclaimedUntilHour` = âge du monde (`RC_GameClock.hours`, `getWorldAgeHours`) à la réussite + `UNCLAIMED_RETENTION_HOURS`
 (168 h de jeu), arrêtée en pause solo et sur un serveur vide en `PauseEmpty`, jamais plus de 168 h au-delà de l'âge
 actuel (âge reculé par un admin). Migration : un lot enregistré avant cette décision (`closedAt` seul, ancienne
 rétention de 7 jours réels `UNCLAIMED_RETENTION_MS`) reçoit une fois une échéance de jeu égale au temps réel qui lui

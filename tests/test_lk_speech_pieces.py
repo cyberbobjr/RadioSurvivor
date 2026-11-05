@@ -1,5 +1,5 @@
 """Réplique longue d'un PNJ en bulle lue en phrases entières (E17-T13) : LK_SpeechView.lua (bulle découpée en morceaux
-successifs par RS_TextCut.pieces) et bridge/npc_protocol.py (clean_speech : coupe d'une réplique trop longue, consigne
+successifs par RC_TextCut.pieces) et bridge/npc_protocol.py (clean_speech : coupe d'une réplique trop longue, consigne
 de longueur au modèle).
 
     python RadioSurvivor/tests/test_lk_speech_pieces.py

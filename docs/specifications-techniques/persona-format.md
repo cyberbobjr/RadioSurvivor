@@ -118,7 +118,7 @@ Module `media/lua/server/RadioSurvivor/RS_Personas.lua`, côté autorité (serve
     the admin, delivered version not applied` à chaque chargement du monde. Pour revenir à la version livrée, supprimer
     le fichier : il est recopié au chargement suivant.
 
-  Une fiche est non modifiée quand son **empreinte** (Adler-32 de `RS_Codec.checksum` sur les octets UTF-8, lignes
+  Une fiche est non modifiée quand son **empreinte** (Adler-32 de `RC_Codec.checksum` sur les octets UTF-8, lignes
   rejointes par `\n` : indépendante des fins de ligne) est celle que le serveur a mémorisée en l'écrivant, dans
   `Zomboid/Lua/batman_RadioSurvivor/personas-fingerprints.txt` (hors du dossier des fiches ; en-tête `RSFP1`, puis
   `nom.txt empreinte`). Sans empreinte mémorisée (installation antérieure à E05-T11, fichier absent ou vidé), elle

@@ -7,8 +7,8 @@ RST_Persist - snapshot files of the persistence suites (E01-T17: <base>.before, 
     RST.Persist.consume(name)              -> the file is replaced by the single line "consumed" (read refuses it)
 
 File: Zomboid/Lua/batman_RadioSurvivor/tests/<name> of the machine running the suite (the server in MP; it survives a
-restart of the dedicated server: same cache). Format (four lines): header, RS_Codec bytes of data in hexadecimal,
-checksum of the bytes, "end". data: plain table (strings, numbers, booleans, nested tables), RS_Codec rules.
+restart of the dedicated server: same cache). Format (four lines): header, RC_Codec bytes of data in hexadecimal,
+checksum of the bytes, "end". data: plain table (strings, numbers, booleans, nested tables), RC_Codec rules.
 The snapshot stands in for what the mod keeps in its private state when a test works on an in-memory state (a work
 store): it is written by the test, never by the mod, and never read by the mod.
 ]]
@@ -19,7 +19,7 @@ RST.Persist = RST.Persist or {}
 local P = RST.Persist
 
 local function codec()
-    return require "RadioSurvivor/RS_Codec"
+    return require "RadioSurvivorCore/RC_Codec"
 end
 
 local function path(name)

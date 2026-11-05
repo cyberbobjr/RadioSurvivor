@@ -39,6 +39,7 @@ import beltradio_lib  # noqa: E402
 ROOT = Path(__file__).resolve().parents[1]
 MOD = ROOT / 'Contents/mods/batman_RadioSurvivor/42.21'
 LUA = MOD / 'media/lua'
+CORE_LUA = Path(__file__).resolve().parents[1] / 'Contents' / 'mods' / 'batman_RadioSurvivorCore' / '42.21' / 'media' / 'lua'  # mod commun (E18)
 BUNDLED = MOD / 'personas'
 BOM_BYTES = bytes([0xEF, 0xBB, 0xBF])
 PERSONAS_LUA = LUA / 'server/RadioSurvivor/RS_Personas.lua'
@@ -187,6 +188,7 @@ class Harness(unittest.TestCase):
         g.getModFileReader = lambda mod, name, create: (
             self.reader(self.mod_dir / name) if mod == 'batman_RadioSurvivor' else None)
         paths = ';'.join((LUA / side).as_posix() + '/?.lua' for side in ('shared', 'server'))
+        paths = (CORE_LUA / 'shared').as_posix() + '/?.lua;' + paths  # mod commun (E18)
         self.rt.execute(f'package.path = [[{paths};]] .. package.path')
         # Mod requis Belt Walkie-Talkie (batman_BeltRadio) : vraie partie partagée, chargée aussi par un serveur dédié
         # (BatmanRadioSupport.canTransmitWith, contrôle de la radio d'une phrase). SKIP si le dépôt est absent.

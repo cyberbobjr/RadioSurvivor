@@ -36,6 +36,7 @@ ROOT = Path(__file__).resolve().parents[1]
 BENCH = ROOT / 'tests' / 'kahlua'
 TESTS_LUA = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua'
 MOD_LUA = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivor' / '42.21' / 'media' / 'lua'
+CORE_LUA = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivorCore' / '42.21' / 'media' / 'lua'  # mod commun (E18)
 PZ_DIR = pz_paths.game_dir()
 ECJ = Path(os.environ['RS_ECJ_JAR']) if os.environ.get('RS_ECJ_JAR') else BENCH / 'ecj.jar'
 JAR = PZ_DIR / 'projectzomboid.jar'
@@ -52,10 +53,10 @@ LUA_FILES = [
     ('RST/RST_LKHelpers', TESTS_LUA / 'shared' / 'RST' / 'RST_LKHelpers.lua'),
     ('RST/RST_LKProbe', TESTS_LUA / 'shared' / 'RST' / 'RST_LKProbe.lua'),
     ('RadioSurvivor/RS_Config', MOD_LUA / 'shared' / 'RadioSurvivor' / 'RS_Config.lua'),
-    ('RadioSurvivor/RS_Codec', MOD_LUA / 'shared' / 'RadioSurvivor' / 'RS_Codec.lua'),
+    ('RadioSurvivorCore/RC_Codec', CORE_LUA / 'shared' / 'RadioSurvivorCore' / 'RC_Codec.lua'),
     ('RadioSurvivor/RS_Reputation', MOD_LUA / 'server' / 'RadioSurvivor' / 'RS_Reputation.lua'),
     ('RadioSurvivor/RS_NPCProvider', MOD_LUA / 'shared' / 'RadioSurvivor' / 'RS_NPCProvider.lua'),  # RS_Missions
-    ('RadioSurvivor/RS_GameClock', MOD_LUA / 'shared' / 'RadioSurvivor' / 'RS_GameClock.lua'),  # RS_Missions (E11-T20)
+    ('RadioSurvivorCore/RC_GameClock', CORE_LUA / 'shared' / 'RadioSurvivorCore' / 'RC_GameClock.lua'),  # RS_Missions (E11-T20)
     ('RadioSurvivor/RS_Missions', MOD_LUA / 'server' / 'RadioSurvivor' / 'RS_Missions.lua'),
     ('RadioSurvivor/RS_Persona', MOD_LUA / 'server' / 'RadioSurvivor' / 'RS_Persona.lua'),
     ('RadioSurvivor/RadioSurvivor_Const', MOD_LUA / 'shared' / 'RadioSurvivor' / 'RadioSurvivor_Const.lua'),
@@ -99,7 +100,7 @@ LUA_FILES = [
     ('LivingKnox/LK_Load', MOD_LUA / 'shared' / 'LivingKnox' / 'LK_Load.lua'),
     ('suite/selftest', TESTS_LUA / 'shared' / 'RST' / 'suites' / 'RST_SelfTest.lua'),
     ('suite/failures', TESTS_LUA / 'shared' / 'RST' / 'suites' / 'RST_Failures.lua'),
-    ('suite/codec', TESTS_LUA / 'shared' / 'RST' / 'suites' / 'RS_Codec.lua'),
+    ('suite/codec', TESTS_LUA / 'shared' / 'RST' / 'suites' / 'RC_Codec.lua'),
     ('suite/missions', TESTS_LUA / 'shared' / 'RST' / 'suites' / 'RS_Missions.lua'),
     # E05-T06 : déclaration seule (compilée et déclarée dans la VM réelle ; exécutée en jeu et sous lupa).
     ('suite/voices', TESTS_LUA / 'shared' / 'RST' / 'suites' / 'RS_Voices.lua'),
@@ -167,18 +168,18 @@ EXCHANGE_EVALS = [
     # Runtime detected by the codec, UTF-16 string length of the sample.
     r'eval:return "KR-CODEC utf16=" .. tostring(#"\195\169" == 1) .. " len=" .. #' + lua_literal(ACCENTED),
     # Lua -> Python: request payload exactly as RS_Transport writes it.
-    'eval:local C = require("RadioSurvivor/RS_Codec"); return "KR-PAYLOAD " .. C.hexBytes(C.encodeBytes({version = 2, '
+    'eval:local C = require("RadioSurvivorCore/RC_Codec"); return "KR-PAYLOAD " .. C.hexBytes(C.encodeBytes({version = 2, '
     'kind = "npc_talk", text = ' + lua_literal(ACCENTED) + '}))',
     # Python -> Lua: reply payload read as RS_Transport reads it.
-    'eval:local C = require("RadioSurvivor/RS_Codec"); local v = C.decodeBytes(C.unhexBytes("'
+    'eval:local C = require("RadioSurvivorCore/RC_Codec"); local v = C.decodeBytes(C.unhexBytes("'
     + protocol.encode(REPLY).hex() + '")); return "KR-REPLY " .. tostring(v ~= nil and v.text == '
     + lua_literal(ACCENTED) + ') .. " " .. C.hex(v and v.text or "")',
     # Old Latin-1 state (U+00E9 written as the byte e9 before E00-T08): same checksum, decoded as U+00E9.
-    'eval:local C = require("RadioSurvivor/RS_Codec"); local b = C.unhexBytes("74313a73343a6e616d6573343a636166e9"); '
+    'eval:local C = require("RadioSurvivorCore/RC_Codec"); local b = C.unhexBytes("74313a73343a6e616d6573343a636166e9"); '
     'local v = C.decodeBytes(b); return "KR-LEGACY " .. C.checksumBytes(b) .. " " .. tostring(v ~= nil and v.name == '
     + lua_literal('café') + ')',
     # LK02-T02 : identité des PNJ (logique pure) dans la VM réelle : identifiants, classement, registre relu en RSV2.
-    'eval:local I = LivingKnox.Identity; local C = require("RadioSurvivor/RS_Codec"); local r = I.newRegistry(); '
+    'eval:local I = LivingKnox.Identity; local C = require("RadioSurvivorCore/RC_Codec"); local r = I.newRegistry(); '
     'local a = I.create(r, {}, 10, 20, 0); local b = I.create(r, { female = true, outfit = "Generic02" }, 1.5, 2, 0); '
     'I.markEmbodied(a, I.nextGeneration(a)); I.markEmbodied(a, I.nextGeneration(a)); '
     'local md = {}; I.writeTag(md, a.id, 2); local id, gen = I.readTag(md); '
@@ -204,7 +205,7 @@ EXCHANGE_EVALS = [
     'return "KR-APPEARANCE " .. table.concat(out, " ")',
     # LK02-T12 : vêtements concrets dans le registre (champ facultatif npc.clothes) : contrôle, aller-retour RSV2 d'un
     # décalage de teinte flottant (float32 vu en double), refus d'une entrée fausse par Identity.validate.
-    'eval:local A = LivingKnox.Appearance; local I = LivingKnox.Identity; local C = require("RadioSurvivor/RS_Codec"); '
+    'eval:local A = LivingKnox.Appearance; local I = LivingKnox.Identity; local C = require("RadioSurvivorCore/RC_Codec"); '
     'local r = I.newRegistry(); local npc = I.create(r, { look = "womanTanBob" }, 1, 2, 0); '
     'npc.clothes = { { type = "Base.Tshirt_DefaultTEXTURE_TINT", item = "Tshirt_DefaultTEXTURE_TINT", '
     'tint = { r = 31, g = 166, b = 127 }, hue = -0.3799999952316284, base = 0, choice = 2, decal = "TShirtDecal" }, '
@@ -231,7 +232,7 @@ EXCHANGE_EVALS = [
     # LK08-T01 : registre des groupes dans la VM réelle (API sur un registre en mémoire, écriture de fichier
     # neutralisée : getFileWriter n'existe pas hors du jeu) : succession, bornes, journal, aller-retour RSV2 validé,
     # groupe invalide écarté, schéma futur refusé.
-    'eval:local G = LivingKnox.Groups; local C = require("RadioSurvivor/RS_Codec"); '
+    'eval:local G = LivingKnox.Groups; local C = require("RadioSurvivorCore/RC_Codec"); '
     'G.state.data, G.state.blocked = G.newRegistry(), false; G.save = function() return true end; '
     'local g = G.create({ type = "settlers", name = "Mill", home = { x = 10600, y = 9400, z = -1 }, day = 2 }); '
     'local m1 = G.addMember(g.id, { role = "worker", npc = "lk-3" }); local m2 = G.addMember(g.id, { role = "fighter" }); '
@@ -248,7 +249,7 @@ EXCHANGE_EVALS = [
     # LK09-T01 : simulation hors écran dans la VM réelle : 24 pas d'une heure = un rattrapage de 24 h (mêmes octets),
     # valeurs identiques à celles de lupa (tirages Park-Miller, arrondi aléatoire, blessures, succession) ;
     # LK09-T02 : une expédition partie et revenue pendant les 24 h (dernier nombre : entrées « return »).
-    'eval:local G = LivingKnox.Groups; local S = LivingKnox.Simulation; local C = require("RadioSurvivor/RS_Codec"); '
+    'eval:local G = LivingKnox.Groups; local S = LivingKnox.Simulation; local C = require("RadioSurvivorCore/RC_Codec"); '
     'LivingKnox.Config.SIMULATION.SEED = 4242; G.state.data, G.state.blocked = G.newRegistry(), false; '
     'G.save = function() return true end; local g = G.create({ type = "settlers", name = "Mill", day = 1 }); '
     'for _ = 1, 5 do G.addMember(g.id, { role = "worker" }) end; G.setLeader(g.id, "m-2", 1); local d = G.state.data; '
@@ -263,7 +264,7 @@ EXCHANGE_EVALS = [
     '.. " " .. s .. " " .. rets',
     # LK09-T05 : événements de groupe (combat compris) dans la VM réelle : 240 pas d'une heure = rattrapages de 72 h
     # (mêmes octets), nombre d'événements et valeurs identiques à lupa (tests/test_lk_simulation.py, CrossVmTests).
-    'eval:local G = LivingKnox.Groups; local S = LivingKnox.Simulation; local C = require("RadioSurvivor/RS_Codec"); '
+    'eval:local G = LivingKnox.Groups; local S = LivingKnox.Simulation; local C = require("RadioSurvivorCore/RC_Codec"); '
     'local E = LivingKnox.Config.SIMULATION.EVENTS; LivingKnox.Config.SIMULATION.SEED = 777; E.MAX_DAILY = 1; '
     'E.CLASH.CHANCE = 0.8; G.state.data, G.state.blocked = G.newRegistry(), false; G.save = function() return true end; '
     'local a = G.create({ type = "settlers", name = "Mill", day = 1, home = { x = 1000, y = 1000, z = 0 } }); '
@@ -294,7 +295,7 @@ EXCHANGE_EVALS = [
     '.. " " .. tostring(near[1].inWorld) .. " " .. p.area.x .. " " .. tostring(p.home) .. " " .. p.members[1].role',
     # LK11-T03 : attitudes dans la VM reelle (ecriture neutralisee) : deux joueurs distincts, tendance, declin borne,
     # plafond apres un meurtre, aller-retour RSV2 valide ; memes valeurs que sous lupa (tests/test_lk_hostility.py).
-    'eval:local G, H = LivingKnox.Groups, LivingKnox.Hostility; local C = require("RadioSurvivor/RS_Codec"); '
+    'eval:local G, H = LivingKnox.Groups, LivingKnox.Hostility; local C = require("RadioSurvivorCore/RC_Codec"); '
     'G.state.data, G.state.blocked = G.newRegistry(), false; G.save = function() return true end; '
     'H.state.data, H.state.blocked = H.newRegistry(), false; H.save = function() return true end; '
     'local g = G.create({ type = "settlers", name = "Mill", day = 1 }).id; local o = { witnessed = true, day = 1 }; '
@@ -307,7 +308,7 @@ EXCHANGE_EVALS = [
     '.. " " .. #H.forGroup(g)',
     # LK12-T03 : offres et livraison idempotente dans la VM reelle (ecriture et horloge neutralisees) ; memes valeurs
     # que sous lupa (tests/test_lk_api.py, SupplyTests) : food 20 -> +5 -> rejeu sans effet -> +10, recompense.
-    'eval:local G, A = LivingKnox.Groups, LivingKnox.API; local C = require("RadioSurvivor/RS_Codec"); '
+    'eval:local G, A = LivingKnox.Groups, LivingKnox.API; local C = require("RadioSurvivorCore/RC_Codec"); '
     'G.state.data, G.state.blocked = G.newRegistry(), false; G.save = function() return true end; '
     'A.currentHour = function() return 10 end; '
     'local g = G.create({ type = "settlers", name = "Mill", day = 1, needs = { food = 20, medical = 35, ammo = 60 } }).id; '
@@ -413,7 +414,7 @@ def persona_expected(raw: bytes, expected_id: str) -> str:
 def persona_eval(name: str, raw: bytes, expected_id: str) -> str:
     lines = ', '.join(lua_literal(line) for line in persona_lines(raw))
     canon = ' '.join(test_personas.LUA_CANONICAL.split())
-    return ('eval:local P = require("RadioSurvivor/RS_Persona"); local C = require("RadioSurvivor/RS_Codec"); '
+    return ('eval:local P = require("RadioSurvivor/RS_Persona"); local C = require("RadioSurvivorCore/RC_Codec"); '
             f'local canon = (function() {canon} end)(); local p, why = P.parseLines({{ {lines} }}, "{expected_id}"); '
             f'return "KR-PERSONA-{name} " .. (p and ("OK " .. C.hex(canon(p))) or ("ERR " .. C.hex(why)))')
 
@@ -574,7 +575,7 @@ EXCHANGE_EVALS.append(LOAD_EVAL)
 # rapide (St.unhexOfBytes), dans la VM reelle ; ecriture differee du registre des groupes (writeSlotFile de test) : rien ecrit avant
 # la fin de l'image, une ecriture pour trois changements, premiere ecriture relue, flush sans changement sans effet.
 GFLUSH_EVAL = (
-    'eval:local C = require("RadioSurvivor/RS_Codec"); local St = LivingKnox.Store; local G = LivingKnox.Groups; '
+    'eval:local C = require("RadioSurvivorCore/RC_Codec"); local St = LivingKnox.Store; local G = LivingKnox.Groups; '
     'local all = {} for i = 0, 255 do all[#all + 1] = string.char(i) end local bytes = table.concat(all); '
     'local s = C.encodeBytes({ t = "\\195\\169t\\195\\169 \\226\\128\\153", n = 1.5, b = true }); '
     'local long = string.rep(bytes, 40) .. s; local same = St.hexOfBytes(bytes) == C.hexBytes(bytes) and '
@@ -618,12 +619,12 @@ FORT_EVAL = (
 )
 EXCHANGE_EVALS.append(FORT_EVAL)
 
-# LK13-T10 : tri des cles de RS_Codec (textes de tri calcules une fois) = comparateur historique, octet pour octet, sur
+# LK13-T10 : tri des cles de RC_Codec (textes de tri calcules une fois) = comparateur historique, octet pour octet, sur
 # 300 tables tirees (cles chaines, entieres, flottantes, negatives, non ASCII, tables imbriquees) dans la VM reelle
 # (table.sort de stdlib.lua) ; ecriture differee du registre des PNJ (writeSlotFile de test) : rien ecrit avant la fin
 # de l'image, une ecriture pour trois changements, premiere ecriture relue, flush sans changement sans effet.
 RFLUSH_EVAL = (
-    'eval:local C = require("RadioSurvivor/RS_Codec"); local St = LivingKnox.Store; local pack; pack = '
+    'eval:local C = require("RadioSurvivorCore/RC_Codec"); local St = LivingKnox.Store; local pack; pack = '
     'function(v) local kind = type(v) if kind == "boolean" then return v and "b1" or "b0" end if kind == "string" '
     'then local s = C.toUtf8(v) return "s" .. #s .. ":" .. s end if kind == "number" then local s = tostring(v) '
     'return "n" .. #s .. ":" .. s end local keys = {} for k in pairs(v) do keys[#keys + 1] = k end '
@@ -648,15 +649,15 @@ RFLUSH_EVAL = (
 )
 EXCHANGE_EVALS.append(RFLUSH_EVAL)
 
-# E17-T12 : découpe d'une réplique (RS_TextCut.pieces) dans la VM réelle, longueurs en unités UTF-16 : mêmes morceaux
+# E17-T12 : découpe d'une réplique (RC_TextCut.pieces) dans la VM réelle, longueurs en unités UTF-16 : mêmes morceaux
 # que radio_bridge.cut_pieces (caractères) sur un texte accentué avec points de suspension (U+2026) et un décimal.
 TEXTCUT_TEXT = ("Oui, j'ai du travail pour toi. Il s'agit d'aller repérer une maison à West Point, une expédition de "
                 "deux heures, avec 9.5 litres d'essence et un sac bien rempli… Le rapport se fait en personne ; "
                 "la récompense : vingt cartouches de 9 mm. Est-ce que ça t'intéresse ?")
 TEXTCUT_LIMITS = (20, 30, 60, 100, 140)
 EXCHANGE_EVALS += [
-    'load:RadioSurvivor/RS_TextCut=' + str(MOD_LUA / 'shared' / 'RadioSurvivor' / 'RS_TextCut.lua'),
-    'eval:local C = require("RadioSurvivor/RS_Codec"); local T = require("RadioSurvivor/RS_TextCut"); local out = {} '
+    'load:RadioSurvivorCore/RC_TextCut=' + str(CORE_LUA / 'shared' / 'RadioSurvivorCore' / 'RC_TextCut.lua'),
+    'eval:local C = require("RadioSurvivorCore/RC_Codec"); local T = require("RadioSurvivorCore/RC_TextCut"); local out = {} '
     'for _, n in ipairs({' + ', '.join(str(n) for n in TEXTCUT_LIMITS) + '}) do out[#out + 1] = '
     'table.concat(T.pieces(' + lua_literal(TEXTCUT_TEXT) + ', n), "|") end return "KR-TEXTCUT " .. '
     'C.hex(table.concat(out, "#"))',

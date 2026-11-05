@@ -7,7 +7,7 @@ clients).
 Couvre : barème (+5, −5, −50, −10), bornes −100..+100, seuils ±20 (quatre réussites de neutre à bonne, quatre
 échecs à mauvaise), plafond de gain de +10 par jour de jeu (surplus noté sans effet), pertes jamais plafonnées, acte
 grave non effacé le même jour, tendance sur trois actes, liste fermée d'actions, personnage inconnu ou mort sans
-effet, idempotence par eventId (rejeu, rechargement de l'état par RS_Codec, redémarrage du serveur simulé, double
+effet, idempotence par eventId (rejeu, rechargement de l'état par RC_Codec, redémarrage du serveur simulé, double
 événement de mort), mission de groupe (même montant pour chaque participant, joueur hors ligne compris), sanction du
 seul tueur participant (E04-T07), membre de groupe tué par un non-participant (npc.memberKilled), aucune commande
 client qui écrit, projection sans chiffre et réservée au personnage, purge (30 jours, personnage mort après 7 jours).
@@ -30,6 +30,7 @@ import lupa.lua51 as lupa
 
 ROOT = Path(__file__).resolve().parents[1]
 LUA = ROOT / 'Contents/mods/batman_RadioSurvivor/42.21/media/lua'
+CORE_LUA = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivorCore' / '42.21' / 'media' / 'lua'  # mod commun (E18)
 
 UNIT_STUBS = r'''
 next = nil
@@ -57,13 +58,13 @@ def py(value):
 
 
 class Unit(unittest.TestCase):
-    """RS_Reputation alone, real RS_Config, RS_State and RS_Codec."""
+    """RS_Reputation alone, real RS_Config, RS_State and RC_Codec."""
 
     def setUp(self):
         self.rt = lupa.LuaRuntime(unpack_returned_tuples=True)
         self.g = self.rt.globals()
         self.rt.execute(UNIT_STUBS)
-        roots = ';'.join(f'{(LUA / side).as_posix()}/?.lua' for side in ('server', 'shared'))
+        roots = ';'.join(f'{(LUA / side).as_posix()}/?.lua' for side in ('server', 'shared')) + f';{(CORE_LUA / "shared").as_posix()}/?.lua'
         self.rt.execute(f'package.path = [[{roots};]] .. package.path')
         self.R = self.rt.eval("require('RadioSurvivor/RS_Reputation')")
         self.S = self.rt.eval("require('RadioSurvivor/RS_State')")
@@ -157,7 +158,7 @@ class Unit(unittest.TestCase):
         self.assertTrue(self.rt.eval('rawequal')(again, o))
         self.assertEqual((self.score(), self.state.reputation['alice'].revision), (5, 1))
         # Restart: the private state goes through the real codec of RS_State.save / read.
-        codec = self.rt.eval("require('RadioSurvivor/RS_Codec')")
+        codec = self.rt.eval("require('RadioSurvivorCore/RC_Codec')")
         reloaded = codec.decodeBytes(codec.encodeBytes(self.state))
         self.S.data = reloaded
         _, dup = self.R.record(reloaded, 'm1-alice-result', 'alice', 'mission.success', 5, None, None)

@@ -9,10 +9,10 @@ Private notebook state (authority only), two slots written in turn: batman_Radio
   memory with S.dirty, the slot of the failed generation is written again at the next save (the other slot keeps the
   last good file), S.failures counts the streak. Over the bounds (C18), S.reducers (registered by the server, e.g.
   the purge of dead characters) are run once with force, then the save is refused: never a file the decoder refuses.
-- Verification read: at the first write of the session and after a failure (C20); fast hex and checksum (RS_Codec).
+- Verification read: at the first write of the session and after a failure (C20); fast hex and checksum (RC_Codec).
 - Schema: S.SCHEMA; S.MIGRATIONS[n](data) turns schema n into n + 1 (S.upgrade). None yet: schema 2 is current.
 ]]
-local Codec = require 'RadioSurvivor/RS_Codec'
+local Codec = require 'RadioSurvivorCore/RC_Codec'
 local S = {data = nil, generation = 0, blocked = false, dirty = false, failures = 0, verified = false}
 S.SCHEMA = 2
 S.MIGRATIONS = {}

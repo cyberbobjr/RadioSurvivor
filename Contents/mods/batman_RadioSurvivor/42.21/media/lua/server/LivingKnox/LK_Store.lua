@@ -4,7 +4,7 @@
 -- Fichiers : Zomboid/Lua/batman_RadioSurvivor/livingknox/registry-<partie>-<0|1>.txt (getFileWriter), <partie> =
 -- hex du « mode/nom » de la partie. Deux emplacements écrits en alternance ; chaque fichier :
 --     LKREG1=<numéro d'écriture>
---     <octets RSV2 en hex (RS_Codec, couche octets)>
+--     <octets RSV2 en hex (RC_Codec, couche octets)>
 --     <somme de contrôle>
 --     end
 -- Relecture : le fichier valide de plus grand numéro ; un registre d'un schéma antérieur est migré
@@ -24,7 +24,7 @@
 require "LivingKnox/LK_Core"
 require "LivingKnox/LK_Log"
 require "LivingKnox/LK_Identity"
-local Codec = require "RadioSurvivor/RS_Codec"
+local Codec = require "RadioSurvivorCore/RC_Codec"
 
 local Store = LivingKnox.Store or {}
 LivingKnox.Store = Store

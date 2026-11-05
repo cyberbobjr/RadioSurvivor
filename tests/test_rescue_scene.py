@@ -4,7 +4,7 @@ RS_RescueScene (cache, note, nouvel endroit de la voix, mémoire) dans lupa.
     python RadioSurvivor/tests/test_rescue_scene.py
 
 Vrai Lua du mod (RS_Rescue, RS_RescueVisit, RS_RescueScene, RS_Caches, RS_Memory, RS_PersonaState, RS_RadioLog,
-RS_Config, RS_Codec, RS_State ; `next` retiré comme dans Kahlua) sur la métagrille et les doublures de
+RS_Config, RC_Codec, RS_State ; `next` retiré comme dans Kahlua) sur la métagrille et les doublures de
 tests/test_rescue.py et tests/test_rescue_visit.py, plus : cases de sol pour la pose (isFree, HasStairs,
 getWorldObjects, AddWorldInventoryItem), instanceItem (sac à ModData et conteneur, feuille de papier Literature :
 addPage, setLockedBy, setName, setCustomName), descripteurs de joueurs, RS_CarnetServer.bound ; RS_Actions,

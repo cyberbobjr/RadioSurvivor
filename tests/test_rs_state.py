@@ -1,4 +1,4 @@
-"""RS_State / RS_Codec / RS_StatePurge under Lua 5.1 (lupa): codec bounds (C18), write retry (C19), purge of dead
+"""RS_State / RC_Codec / RS_StatePurge under Lua 5.1 (lupa): codec bounds (C18), write retry (C19), purge of dead
 characters (C17), fast hex and checksum (C20). Simulated file API, NOT an in-game validation.
 
     python RadioSurvivor/tests/test_rs_state.py
@@ -11,6 +11,7 @@ from pathlib import Path
 import lupa.lua51 as lua
 
 LUA = Path(__file__).resolve().parents[1] / 'Contents' / 'mods' / 'batman_RadioSurvivor' / '42.21' / 'media' / 'lua'
+CORE_LUA = Path(__file__).resolve().parents[1] / 'Contents' / 'mods' / 'batman_RadioSurvivorCore' / '42.21' / 'media' / 'lua'  # mod commun (E18)
 
 BOOT = r'''
 FILES, WRITE_FAIL, CORRUPT_WRITE, PRINTS, DAY = {}, false, false, {}, 10
@@ -45,7 +46,7 @@ end
 def runtime():
     rt = lua.LuaRuntime(unpack_returned_tuples=True)
     loaders = rt.table_from({
-        'RadioSurvivor/RS_Codec': (LUA / 'shared/RadioSurvivor/RS_Codec.lua').read_text(encoding='utf-8'),
+        'RadioSurvivorCore/RC_Codec': (CORE_LUA / 'shared/RadioSurvivorCore/RC_Codec.lua').read_text(encoding='utf-8'),
         'RadioSurvivor/RS_State': (LUA / 'server/RadioSurvivor/RS_State.lua').read_text(encoding='utf-8'),
         'RadioSurvivor/RS_StatePurge': (LUA / 'server/RadioSurvivor/RS_StatePurge.lua').read_text(encoding='utf-8'),
     })
@@ -56,11 +57,11 @@ def runtime():
 class CodecBoundsTests(unittest.TestCase):
     def setUp(self):
         self.rt = runtime()
-        self.C = self.rt.eval("require('RadioSurvivor/RS_Codec')")
+        self.C = self.rt.eval("require('RadioSurvivorCore/RC_Codec')")
 
     def test_encoder_refuses_what_the_decoder_refuses(self):
         ok, why = self.rt.execute('''
-            local C = require('RadioSurvivor/RS_Codec')
+            local C = require('RadioSurvivorCore/RC_Codec')
             C.MAX_NODES = 50
             local t = {}
             for i = 1, 30 do t[i] = i end           -- 1 + 60 nodes
@@ -71,7 +72,7 @@ class CodecBoundsTests(unittest.TestCase):
         self.assertIn('complexity', why)
         # Exactly at the limit: encoded and decoded.
         self.assertTrue(self.rt.execute('''
-            local C = require('RadioSurvivor/RS_Codec')
+            local C = require('RadioSurvivorCore/RC_Codec')
             C.MAX_NODES = 61
             local t = {}
             for i = 1, 30 do t[i] = i end
@@ -79,7 +80,7 @@ class CodecBoundsTests(unittest.TestCase):
         '''))
         # Same counting with cached keys (the same key in several tables) and with the decoder.
         self.assertTrue(self.rt.execute('''
-            local C = require('RadioSurvivor/RS_Codec')
+            local C = require('RadioSurvivorCore/RC_Codec')
             C.MAX_NODES = 200000
             local t = {}
             for i = 1, 20 do t['k' .. i] = {name = 'x', id = i} end
@@ -94,12 +95,12 @@ class CodecBoundsTests(unittest.TestCase):
                         'return {x = 0/0}', 'return {x = 1/0}',
                         'local t = {} local c = t for i = 1, 13 do c[1] = {} c = c[1] end return t'):
             value = self.rt.execute(snippet)
-            ok = self.rt.eval('function(v) return (pcall(require("RadioSurvivor/RS_Codec").encodeBytes, v)) end')(value)
+            ok = self.rt.eval('function(v) return (pcall(require("RadioSurvivorCore/RC_Codec").encodeBytes, v)) end')(value)
             self.assertFalse(ok, snippet)
 
     def test_fast_hex_and_checksum_match_the_historical_ones(self):
         same = self.rt.execute(r'''
-            local C = require('RadioSurvivor/RS_Codec')
+            local C = require('RadioSurvivorCore/RC_Codec')
             local function oldSum(s)
                 local a, b = 1, 0
                 for i = 1, #s do a = (a + s:byte(i)) % 65521; b = (b + a) % 65521 end
@@ -164,7 +165,7 @@ class StateTests(unittest.TestCase):
         S = self.S
         self.assertTrue(S.init(False))
         good = self.files()
-        C = self.rt.eval("require('RadioSurvivor/RS_Codec')")
+        C = self.rt.eval("require('RadioSurvivorCore/RC_Codec')")
         C.MAX_NODES = 200
         self.rt.execute('''
             local S = require('RadioSurvivor/RS_State')

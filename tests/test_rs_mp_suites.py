@@ -8,7 +8,7 @@ Chaque suite est jouée par le VRAI moteur RST (RST.lua, RST_Steps.lua, RST_Fixt
 et deux clients (une machine lupa chacun, `next` retiré comme dans Kahlua ; réseau en file, tables copiées comme le
 réseau, livrées au tick suivant), puis en solo (une seule machine, sendClientCommand traité au tick suivant comme le
 jeu, réponses de l'autorité remises directement aux modules client). Ce qui est réel ici : RadioSurvivor_Const,
-RS_State, RS_Codec, RS_Config, RS_RadioLog (historique radio, côté serveur), RS_RadioHistory (copie client),
+RS_State, RC_Codec, RS_Config, RS_RadioLog (historique radio, côté serveur), RS_RadioHistory (copie client),
 RS_Factions (avec la doublure de zombie.characters.Faction de tests/test_factions.py), RS_Observations et
 RS_ObservationTriggers, LK_Core (listen / publish). Doublures : monde Java (cases, IsoRadio sans sprite, DeviceData,
 inventaire, véhicule et sièges, paquets VehicleEnter et Faction*), juge de la commande talk (même ordre de contrôles
@@ -35,6 +35,7 @@ from test_factions import FACTION_DOUBLE  # noqa: E402
 ROOT = Path(__file__).resolve().parents[1]
 DEV = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua'
 MOD = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivor' / '42.21' / 'media' / 'lua'
+CORE_LUA = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivorCore' / '42.21' / 'media' / 'lua'  # mod commun (E18)
 SUITES = DEV / 'shared' / 'RST' / 'suites'
 STEPS_FILES = [DEV / 'shared' / 'RST' / name for name in ('RST_Steps.lua', 'RST_Fixtures.lua', 'RST_PeerChecksRadio.lua')]
 SUITE_FILES = {name: SUITES / f'{name}.lua' for name in ('RS_WorldRadio', 'RS_RadioMP', 'RS_CarnetLoad',
@@ -769,7 +770,7 @@ class Machine:
         g.FILE_ROOT = self.root.as_posix()
         g.mkdirs = lambda full: Path(full).parent.mkdir(parents=True, exist_ok=True)
         sides = ['shared'] + (['client'] if role != 'server' else []) + (['server'] if role != 'client' else [])
-        paths = [DEV / 'shared'] + [MOD / s for s in sides]
+        paths = [DEV / 'shared', CORE_LUA / 'shared'] + [MOD / s for s in sides]
         self.rt.execute('package.path = [[' + ''.join(f'{p.as_posix()}/?.lua;' for p in paths) + ']] .. package.path')
         self.rt.execute(JAVA)
         self.rt.execute(FACTION_DOUBLE)

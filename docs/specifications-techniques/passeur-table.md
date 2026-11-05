@@ -210,7 +210,7 @@ cette table ne fixe que sa valeur.
 **Réalisé en E13-T05** (fiche `docs/annexes/conception/journal-du-dehors.md`) : objet `RadioSurvivor.OutsideNews`, nouvelles
 du dehors tirées de gabarits FR/EN (une, trois brèves, prix de la semaine), datées du jour du passage ; une édition par
 passage (`RS_OutsideNewsServer.create(passage)`, point d'appel de l'échange E13-T04). Valeur de vente 2
-(`RS_TradeValues.SELL_ONLY`) ; hors module `Base`, il vaut 0 quand on le rend au passeur (section 1, « Ce qui est
+(`RC_TradeValues.SELL_ONLY`) ; hors module `Base`, il vaut 0 quand on le rend au passeur (section 1, « Ce qui est
 toujours refusé »).
 
 ## 4. Exemples d'échanges complets (passeur)

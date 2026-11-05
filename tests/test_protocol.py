@@ -38,6 +38,7 @@ from signalsmoke_double import SIGNAL_SMOKE  # noqa: E402
 ROOT = Path(__file__).resolve().parents[1]
 MOD = ROOT / "Contents/mods/batman_RadioSurvivor/42.21"
 LUA = MOD / "media/lua"
+CORE_LUA = Path(__file__).resolve().parents[1] / 'Contents' / 'mods' / 'batman_RadioSurvivorCore' / '42.21' / 'media' / 'lua'  # mod commun (E18)
 BRIDGE = ROOT / "bridge/radio_bridge.py"
 # Fiche livrée de Walt, sa plage de tirage remplacée par la fréquence d'exemple 145.0 (E05-T07) : ces scénarios
 # raisonnent sur une fréquence connue ; le tirage est couvert par scenario_drawn_frequency et
@@ -74,7 +75,7 @@ getGameTime = function() return {
     getHour = function() return HOUR end, getMinutes = function() return 5 end,
     -- E11-T20: without WORLD_AGE_HOURS, the world age follows the play clock of the bench Clock (PLAY_MS: real ms
     -- minus the simulated downtime and pauses) over a day of MINUTES_PER_DAY real minutes. The default day of 1000
-    -- real days keeps the world age near 0 (the other game-hour rules see no time pass) while RS_GameClock still
+    -- real days keeps the world age near 0 (the other game-hour rules see no time pass) while RC_GameClock still
     -- counts one play ms per bench ms.
     getWorldAgeHours = function()
         if WORLD_AGE_HOURS then return WORLD_AGE_HOURS end
@@ -247,6 +248,7 @@ class Game:
         g.getModFileReader = lambda mod, name, create: (
             TextReader(WALT_FIXED) if name == "personas/walt.txt" and not drawn else Reader(MOD / name))
         paths = ';'.join((LUA / side).as_posix() + '/?.lua' for side in ('shared', 'server', 'client'))
+        paths = (CORE_LUA / 'shared').as_posix() + '/?.lua;' + paths  # mod commun (E18)
         self.rt.execute(f'package.path = [[{paths};]] .. package.path')
         # Mod requis Belt Walkie-Talkie : vraie partie partagée (BatmanRadioSupport.canTransmitWith), chargée en solo,
         # sur un client et sur un serveur. Absente : SKIP (unittest.SkipTest, rapporté par main()).
@@ -1105,7 +1107,7 @@ def byte_reader(path: Path, encoding: str):
 def npc_exchange(exchange: Path, utf16: bool) -> None:
     """Accented player text: RS_Transport (Lua) -> bridge --offline -> RS_Transport, without refusal or mojibake.
 
-    utf16=False: lupa as is (Lua strings = UTF-8 bytes). utf16=True: RS_Codec forced into its Kahlua branch, where a
+    utf16=False: lupa as is (Lua strings = UTF-8 bytes). utf16=True: RC_Codec forced into its Kahlua branch, where a
     Lua string holds one character per UTF-16 unit; under lupa only U+0000-U+00FF exist, so the game text is given
     in Latin-1 (one byte per character) and must come back in Latin-1. Units above U+00FF: tests/test_kahlua.py.
     """
@@ -1119,8 +1121,9 @@ def npc_exchange(exchange: Path, utf16: bool) -> None:
     g.getFileWriter = lambda name, create, append: ByteWriter(exchange / Path(name.decode()).name)
     g.getFileReader = lambda name, create: byte_reader(exchange / Path(name.decode()).name, game_encoding)
     paths = ";".join((LUA / side).as_posix() + "/?.lua" for side in ("shared", "server"))
+    paths = (CORE_LUA / "shared").as_posix() + "/?.lua;" + paths  # mod commun (E18)
     rt.execute(f"package.path = [[{paths};]] .. package.path".encode())
-    codec = rt.eval(b'require("RadioSurvivor/RS_Codec")')
+    codec = rt.eval(b'require("RadioSurvivorCore/RC_Codec")')
     codec[b"_utf16"] = True if utf16 else None
     try:
         transport = rt.eval(b'require("RadioSurvivor/RS_Transport")')
@@ -1185,6 +1188,7 @@ def scenario_npc_observations(tmp: Path) -> None:
     g.getFileWriter = lambda name, create, append: file_writer(exchange / Path(name).name, name, append)
     g.getFileReader = lambda name, create: Reader(exchange / Path(name).name)
     paths = ";".join((LUA / side).as_posix() + "/?.lua" for side in ("shared", "server"))
+    paths = (CORE_LUA / "shared").as_posix() + "/?.lua;" + paths  # mod commun (E18)
     rt.execute(f"package.path = [[{paths};]] .. package.path")
     transport = rt.eval('require("RadioSurvivor/RS_Transport")')
     observations = [
@@ -1258,6 +1262,7 @@ def scenario_relation_change(tmp: Path) -> None:
     g.getFileWriter = lambda name, create, append: file_writer(exchange / Path(name).name, name, append)
     g.getFileReader = lambda name, create: Reader(exchange / Path(name).name)
     paths = ";".join((LUA / side).as_posix() + "/?.lua" for side in ("shared", "server"))
+    paths = (CORE_LUA / "shared").as_posix() + "/?.lua;" + paths  # mod commun (E18)
     rt.execute(f"package.path = [[{paths};]] .. package.path")
     transport = rt.eval('require("RadioSurvivor/RS_Transport")')
     relation = {"level": "favorable", "trend": "up", "group": "cautious",
@@ -1364,6 +1369,7 @@ def scenario_scout_offer(tmp: Path) -> None:
     g.getFileWriter = lambda name, create, append: file_writer(exchange / Path(name).name, name, append)
     g.getFileReader = lambda name, create: Reader(exchange / Path(name).name)
     paths = ";".join((LUA / side).as_posix() + "/?.lua" for side in ("shared", "server"))
+    paths = (CORE_LUA / "shared").as_posix() + "/?.lua;" + paths  # mod commun (E18)
     rt.execute(f"package.path = [[{paths};]] .. package.path")
     transport = rt.eval('require("RadioSurvivor/RS_Transport")')
     clues = {1: "The place is a single-storey house.", 2: "There is a gas station a short walk to the north."}
@@ -1421,6 +1427,7 @@ def scenario_supply_offer(tmp: Path) -> None:
     g.getFileWriter = lambda name, create, append: file_writer(exchange / Path(name).name, name, append)
     g.getFileReader = lambda name, create: Reader(exchange / Path(name).name)
     paths = ";".join((LUA / side).as_posix() + "/?.lua" for side in ("shared", "server"))
+    paths = (CORE_LUA / "shared").as_posix() + "/?.lua;" + paths  # mod commun (E18)
     rt.execute(f"package.path = [[{paths};]] .. package.path")
     transport = rt.eval('require("RadioSurvivor/RS_Transport")')
     supply = {"kind": "supply", "unit": "value", "need": "food", "level": 20, "quantity": 60, "durationMs": 7200000,
@@ -3384,8 +3391,9 @@ def scenario_voice_mission_bridge(tmp: Path) -> None:
     rt.execute("isClient = function() return false end")
     g.getFileWriter = lambda name, create, append: file_writer(exchange / Path(name).name, name, append)
     paths = ";".join((LUA / side).as_posix() + "/?.lua" for side in ("shared", "server"))
+    paths = (CORE_LUA / "shared").as_posix() + "/?.lua;" + paths  # mod commun (E18)
     rt.execute(f"package.path = [[{paths};]] .. package.path")
-    codec = rt.eval('require("RadioSurvivor/RS_Codec")')
+    codec = rt.eval('require("RadioSurvivorCore/RC_Codec")')
     transport = rt.eval('require("RadioSurvivor/RS_Transport")')
     context = rt.eval("""{ state = "active", remainingMs = 5400000, kind = "scout", place = "house",
         clues = { "The place is a large single-storey house.", "There is a gas station a short walk to the north." },

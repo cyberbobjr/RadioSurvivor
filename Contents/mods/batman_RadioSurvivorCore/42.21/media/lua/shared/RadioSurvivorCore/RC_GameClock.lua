@@ -1,5 +1,5 @@
 --[[
-Radio Survivor: game clock of the gameplay delays (E11-T20, review point C27, user decision of 2026-10-21).
+RadioSurvivorCore: game clock of the gameplay delays (E11-T20, review point C27, user decision of 2026-10-21).
 Mission delays follow game time like vanilla delays: they stop while the game is paused (solo Esc, dedicated server
 empty with PauseEmpty: GameTime.update is not called), run faster at speed x2/x3 and while sleeping, and do not run
 while the server is stopped (the world age is saved with the world).

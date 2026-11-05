@@ -47,7 +47,7 @@ MEDIA = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivor' / '42.21' / 'media'
 SUITE_FILE = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua' / 'shared' / 'RST' / 'suites' \
     / 'RST_LKRaid.lua'
 KEY_A, KEY_B = 'c-alpha', 'c-bravo'
-CANON = ('require("RadioSurvivor/RS_Codec").hexBytes(require("RadioSurvivor/RS_Codec").encodeBytes('
+CANON = ('require("RadioSurvivorCore/RC_Codec").hexBytes(require("RadioSurvivorCore/RC_Codec").encodeBytes('
          'LivingKnox.Groups.state.data))')
 
 # Type de test : rôles "raid" (combattants, éclaireurs) et ouvriers ; hostilité 90 -> pillards hostiles (-50).

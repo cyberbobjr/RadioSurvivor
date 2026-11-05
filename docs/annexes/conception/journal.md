@@ -66,7 +66,7 @@ Une entrée ne stocke pas de texte : clé `IGUI_LK_Journal_<kind>` et arguments 
 
 ### Bornes et coût
 
-40 entrées par groupe et 64 groupes au plus : environ 2 560 petites entrées dans le registre (moins de 300 Kio en RSV2, sous la borne de 4 Mio de `RS_Codec`). Une entrée par fait ; aucune lecture du monde. File des rencontres bornée à 64 faits.
+40 entrées par groupe et 64 groupes au plus : environ 2 560 petites entrées dans le registre (moins de 300 Kio en RSV2, sous la borne de 4 Mio de `RC_Codec`). Une entrée par fait ; aucune lecture du monde. File des rencontres bornée à 64 faits.
 
 ## Limites et reste
 

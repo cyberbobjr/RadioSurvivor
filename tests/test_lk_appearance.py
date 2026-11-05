@@ -103,7 +103,7 @@ class AppearanceBase(Base):
 
     def write_slot(self, slot, seq, data_lua):
         self.run_lua(f'''
-            local Codec = require "RadioSurvivor/RS_Codec"
+            local Codec = require "RadioSurvivorCore/RC_Codec"
             local body = Codec.encodeBytes({data_lua})
             local w = getFileWriter(LivingKnox.Store.state.path .. "-{slot}.txt", true, false)
             w:write("LKREG1={seq}\\n" .. Codec.hexBytes(body) .. "\\n" .. Codec.checksumBytes(body) .. "\\nend\\n")

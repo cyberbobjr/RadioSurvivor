@@ -33,6 +33,7 @@ from test_rescue import DOUBLES, WORLD  # noqa: E402
 ROOT = Path(__file__).resolve().parents[1]
 MEDIA = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivor' / '42.21' / 'media'
 MOD_LUA = MEDIA / 'lua'
+CORE_LUA = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivorCore' / '42.21' / 'media' / 'lua'  # mod commun (E18)
 MODULE = MOD_LUA / 'server' / 'LivingKnox' / 'LK_Population.lua'
 SANDBOX_FILE = MEDIA / 'sandbox-options.txt'
 SHARED = ['LivingKnox/LK_Core', 'LivingKnox/LK_Config', 'LivingKnox/LK_Log', 'LivingKnox/LK_GroupTypes',
@@ -52,7 +53,7 @@ end
 getSandboxOptions = function() return stub end
 '''
 
-CANON = ('return require("RadioSurvivor/RS_Codec").hexBytes(require("RadioSurvivor/RS_Codec").encodeBytes('
+CANON = ('return require("RadioSurvivorCore/RC_Codec").hexBytes(require("RadioSurvivorCore/RC_Codec").encodeBytes('
          'LivingKnox.Groups.state.data))')
 POP = 'LivingKnox.Population'
 
@@ -82,7 +83,7 @@ class Bench(unittest.TestCase):
         self.rt.execute(DOUBLES)
         self.rt.execute(EXTRA)
         self.rt.execute(SANDBOX + option_defaults())
-        paths = [MOD_LUA / 'shared', MOD_LUA / 'server']
+        paths = [CORE_LUA / 'shared', MOD_LUA / 'shared', MOD_LUA / 'server']
         self.rt.execute('package.path = [[' + ''.join(f'{p.as_posix()}/?.lua;' for p in paths) + ']] .. package.path')
         self.rt.execute(WORLD + (FORESTS if forests else ''))
         for path, text in self.files.items():
@@ -418,7 +419,7 @@ class ClientTests(unittest.TestCase):
         rt.execute(DOUBLES)
         rt.execute(SANDBOX + option_defaults())
         rt.execute('SIDE = "client"')
-        paths = [MOD_LUA / 'shared', MOD_LUA / 'server']
+        paths = [CORE_LUA / 'shared', MOD_LUA / 'shared', MOD_LUA / 'server']
         rt.execute('package.path = [[' + ''.join(f'{p.as_posix()}/?.lua;' for p in paths) + ']] .. package.path')
         for name in SHARED:
             rt.execute(f'require "{name}"')

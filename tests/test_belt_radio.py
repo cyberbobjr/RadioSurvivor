@@ -34,6 +34,7 @@ import test_personas_server as tps  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 LUA = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivor' / '42.21' / 'media' / 'lua'
+CORE_LUA = Path(__file__).resolve().parents[1] / 'Contents' / 'mods' / 'batman_RadioSurvivorCore' / '42.21' / 'media' / 'lua'  # mod commun (E18)
 LINE_COLOR = (1.0, 0.82, 0.55)
 
 STUBS = r'''
@@ -231,6 +232,7 @@ class Bench(unittest.TestCase):
             self.skipTest(beltradio_lib.missing())
         self.rt = lupa.LuaRuntime(unpack_returned_tuples=True)
         paths = ';'.join((LUA / side).as_posix() + '/?.lua' for side in ('shared', 'client'))
+        paths = (CORE_LUA / 'shared').as_posix() + '/?.lua;' + paths  # mod commun (E18)
         self.rt.execute(f'package.path = [[{paths};{beltradio_lib.lua_path()};]] .. package.path')
         self.rt.execute(STUBS)
         self.rt.execute("Const = require('RadioSurvivor/RadioSurvivor_Const'); "

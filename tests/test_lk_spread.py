@@ -56,7 +56,7 @@ if LivingKnox.Stock ~= nil then
 end
 '''
 
-STATE = ('(function() local C = require "RadioSurvivor/RS_Codec" '
+STATE = ('(function() local C = require "RadioSurvivorCore/RC_Codec" '
          'local H = LivingKnox.Hostility and LivingKnox.Hostility.state and LivingKnox.Hostility.state.data '
          'return C.hexBytes(C.encodeBytes(LivingKnox.Groups.state.data)) .. "|" .. '
          '(H and C.hexBytes(C.encodeBytes(H)) or "") end)()')

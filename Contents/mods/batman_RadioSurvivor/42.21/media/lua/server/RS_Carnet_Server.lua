@@ -1,8 +1,8 @@
 if isClient() then return end
 if RS_CarnetServer then return RS_CarnetServer end
 local C = require 'RadioSurvivor/RS_Config'
-local Codec = require 'RadioSurvivor/RS_Codec'
-local P = require 'RadioSurvivor/RS_NPCProvider'; local WorldStart = require 'RadioSurvivor/RS_WorldStart'
+local Codec = require 'RadioSurvivorCore/RC_Codec'
+local P = require 'RadioSurvivor/RS_NPCProvider'; local WorldStart = require 'RadioSurvivorCore/RC_WorldStart'
 local S = require 'RadioSurvivor/RS_State'; require 'RadioSurvivor/RS_MissionClear' -- E11-T04: template clear
 local M = require 'RadioSurvivor/RS_Missions'; require 'RadioSurvivor/RS_MissionScout'; require 'RadioSurvivor/RS_MissionRetrieve'
 local Rep = require 'RadioSurvivor/RS_Reputation'
@@ -12,14 +12,14 @@ local Obs = require 'RadioSurvivor/RS_Observations'
 local Triggers = require 'RadioSurvivor/RS_ObservationTriggers' -- E08-T07: observation triggers
 local Factions = require 'RadioSurvivor/RS_Factions' -- E09-T03: team ids and negotiation mandates
 local Relations = require 'RadioSurvivor/RS_Relations' -- E09-T04: personal relation of an NPC toward a character
-local RateLimit = require 'RadioSurvivor/RS_RateLimit' -- C21: per-account limit of the notebook commands
+local RateLimit = require 'RadioSurvivorCore/RC_RateLimit' -- C21: per-account limit of the notebook commands
 local Server = {store = S, bound = {}, selected = {}, objects = {}, quotes = {}, pending = {}, times = {}, enrichTimes = {}, enrichAttempts = {}, lastTalk = {}, collectives = {}, reactions = {}, reactionQueue = {}, relations = {}, refusals = {}, MAX_REFUSALS = 16} -- E09-T04: relation bindings -- E17-T15: last refused requests (see poll) -- E10-T03: reactions, reaction queue
 -- Export only on the authority, also used by the real-Lua simulation tests.
 RS_CarnetServer = Server
 local saveAt, checkAt, enrichAt, pruneAt = 0, 0, 0, 0
--- E11-T20 (C27): mission and offer delays count play time (RS_GameClock: stopped while paused, faster at x2/x3),
+-- E11-T20 (C27): mission and offer delays count play time (RC_GameClock: stopped while paused, faster at x2/x3),
 -- not the real time of OnTickEvenPaused; one meter for every caller of M.advance.
-local playMeter = require('RadioSurvivor/RS_GameClock').meter()
+local playMeter = require('RadioSurvivorCore/RC_GameClock').meter()
 
 local function send(player, command, args)
     args = args or {}
@@ -931,7 +931,7 @@ local MANDATE_ERRORS = {not_owner = 'MandateOwner', not_member = 'MandateMember'
 -- An empty argument table arrives as nil (SinglePlayerClient.java:126, GameClient.java:1760: args sent only when not
 -- empty): the first hello of a new character ({character = nil}) used to be dropped here, so no notebook character
 -- was ever created and the radio history (RS_RadioLog) stayed empty. nil is read as {}.
--- C21: per-account token buckets {capacity, per second} (RS_RateLimit, MP server only). hello and snapshot rebuild
+-- C21: per-account token buckets {capacity, per second} (RC_RateLimit, MP server only). hello and snapshot rebuild
 -- and send the whole projection, rep_admin logs its refusals; every other command shares one bucket. The client polls
 -- every 3 s with the notebook open: far below these limits. A dropped command gets no reply.
 Server.RATE_LIMITS = {hello = {4, 0.5}, snapshot = {6, 1}, rep_admin = {3, 0.2}}
@@ -1245,7 +1245,7 @@ local function tick()
     end
 end
 
-local function init(newWorld) -- OnInitGlobalModData arg: always true on a dedicated server (RS_WorldStart)
+local function init(newWorld) -- OnInitGlobalModData arg: always true on a dedicated server (RC_WorldStart)
     if S.data then return end
     if S.init(newWorld == true and WorldStart.isNewWorld(true)) then
         T.acks = S.data.acks or {}

@@ -8,7 +8,7 @@
 -- Le serveur réévalue tout au moment de la proposition (Trade.evaluate, lecture seule) puis l'applique (Trade.apply)
 -- dans le même appel Lua, sans rien attendre : aucun paquet ni aucun autre code du jeu ne passe entre la vérification
 -- de présence des objets et leur déplacement.
--- Barème commun avec le passeur de l'Ohio : shared/RadioSurvivor/RS_TradeValues.lua
+-- Barème commun avec le passeur de l'Ohio : shared/RadioSurvivorCore/RC_TradeValues.lua
 -- (docs/specifications-techniques/passeur-table.md, section 5).
 --   - marge du groupe selon l'attitude envers le joueur (LivingKnox.Hostility.get) : CFG.MARGIN ; autres niveaux :
 --     refus "attitude" ;
@@ -37,7 +37,7 @@ require "LivingKnox/LK_Log"
 require "LivingKnox/LK_Groups"
 require "LivingKnox/LK_Hostility"
 require "LivingKnox/LK_Stock"
-local TV = require "RadioSurvivor/RS_TradeValues"
+local TV = require "RadioSurvivorCore/RC_TradeValues"
 
 local Trade = LivingKnox.Trade or {}
 LivingKnox.Trade = Trade

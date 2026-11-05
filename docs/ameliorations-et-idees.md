@@ -272,7 +272,7 @@ Chemins relatifs à `Contents/mods/batman_RadioSurvivor/42.21/media/lua/`.
   - la relecture de contrôle de `S.save` échoue alors et bloque le stockage ; au redémarrage, c'est l'emplacement précédent qui est relu ;
   - par ailleurs, `read` refuse tout `data.schema ~= 2` : `RS_State` n'a aucune migration (contrairement à `LK_Store`, qui migre par `Identity.upgrade`). Le premier changement de schéma bloquera les mondes existants.
 - **Ordre de grandeur** : un historique radio complet fait environ 2 900 nœuds. Le seuil est atteint vers 70 personnages actifs, ou vers 700 contacts pleins.
-- **Preuve** : `shared/RadioSurvivor/RS_Codec.lua:251-256` contre `:259-264`, `:282` ; `server/RadioSurvivor/RS_State.lua:22`, `:36-39`, `:63-67` ; `server/LivingKnox/LK_Store.lua:10-13`.
+- **Preuve** : `shared/RadioSurvivorCore/RC_Codec.lua:251-256` contre `:259-264`, `:282` ; `server/RadioSurvivor/RS_State.lua:22`, `:36-39`, `:63-67` ; `server/LivingKnox/LK_Store.lua:10-13`.
 - **Risque** : persistance, perte des données de la session.
 - **Correction** : mêmes limites contrôlées à l'encodage, avec une alerte d'administration à 70 % du seuil ; borner les registres (C17) ; `RS_State.upgrade(data)` par numéro de schéma, avec un test lupa d'un état v2 relu après passage en v3.
 - **Priorité** haute · **Effort** S (limites) + M (migration) · confirmé statiquement.
@@ -287,7 +287,7 @@ Chemins relatifs à `Contents/mods/batman_RadioSurvivor/42.21/media/lua/`.
 - **Priorité** moyenne · **Effort** S · confirmé statiquement.
 
 #### C20 — Sauvegarde synchrone complète, lente et très fréquente
-- **Statut : corrigé en partie (commit 3760771), à vérifier en jeu** — hex par table de remplacement, `unhexBytes` et somme de contrôle par blocs dans `RS_Codec` (mêmes octets, testé) ; relecture de contrôle à la première écriture et après un échec. Reste : écriture regroupée en fin d'image (`markChanged`), qui touche les 38 appels de `RS_Carnet_Server.lua`.
+- **Statut : corrigé en partie (commit 3760771), à vérifier en jeu** — hex par table de remplacement, `unhexBytes` et somme de contrôle par blocs dans `RC_Codec` (mêmes octets, testé) ; relecture de contrôle à la première écriture et après un échec. Reste : écriture regroupée en fin d'image (`markChanged`), qui touche les 38 appels de `RS_Carnet_Server.lua`.
 - **Avancement : 🟡 en partie, non publié (commit 3760771), testé hors jeu (`tests/test_rs_state.py`)** — tâche E16-T08 ; reste l'écriture regroupée en fin d'image (`markChanged`) ; gain à mesurer en jeu.
 - **Problème** : chaque `S.save` fait :
   - un encodage complet ;
@@ -296,10 +296,10 @@ Chemins relatifs à `Contents/mods/batman_RadioSurvivor/42.21/media/lua/`.
   - l'écriture, puis une relecture complète (hex et décodage).
 
   On compte 38 appels `S.save()` dans le serveur : toutes les 5 s dès qu'une mission tourne, à chaque `note` ou `select`, deux fois par `talk`, quatre fois par livraison. `LK_Store` a déjà résolu ce problème : tables de remplacement `gsub`, somme par blocs de 16 octets, une écriture par image, relecture une fois par session (LK13-T06/T10).
-- **Preuve** : `server/RadioSurvivor/RS_State.lua:49-71` ; `shared/RadioSurvivor/RS_Codec.lua:138-145`, `:308-312` ; `server/RS_Carnet_Server.lua:1207-1209` ; `server/RadioSurvivor/RS_Missions.lua:239-255` ; à comparer avec `server/LivingKnox/LK_Store.lua:69-120`.
+- **Preuve** : `server/RadioSurvivor/RS_State.lua:49-71` ; `shared/RadioSurvivorCore/RC_Codec.lua:138-145`, `:308-312` ; `server/RS_Carnet_Server.lua:1207-1209` ; `server/RadioSurvivor/RS_Missions.lua:239-255` ; à comparer avec `server/LivingKnox/LK_Store.lua:69-120`.
 - **Risque** : perf Kahlua (3 à 6 fois plus lent que Lua 5.1 sur ce code, base `kahlua-lua.md`), saccades du serveur qui grandissent avec l'état (C17).
 - **Correction** :
-  - déplacer `hexOfBytes`, `unhexOfBytes` et `checksumOfBytes` de `LK_Store` dans `RS_Codec` (mêmes octets, testé) ;
+  - déplacer `hexOfBytes`, `unhexOfBytes` et `checksumOfBytes` de `LK_Store` dans `RC_Codec` (mêmes octets, testé) ;
   - `S.markChanged()` plus une écriture en fin d'image, avec une écriture immédiate gardée pour les transactions de livraison et de récompense ;
   - relecture de contrôle à la première écriture seulement.
 - **Priorité** haute · **Effort** M · confirmé statiquement, gain à mesurer en jeu.
@@ -313,7 +313,7 @@ Chemins relatifs à `Contents/mods/batman_RadioSurvivor/42.21/media/lua/`.
 - **Risque** : MP et autorité. Un client modifié peut geler le serveur ou inonder ses journaux.
 - **Correction** : seau à jetons par compte à l'entrée de `Server.command` et de `onClientCommand` (même répartiteur que C31) ; snapshot en cache s'il n'a pas changé ; refus journalisés une fois par fenêtre.
 - **Priorité** haute · **Effort** S · confirmé statiquement.
-- **Statut : corrigé (commit 2d8cae5), à vérifier en jeu** — Seaux par compte (`RS_RateLimit`, serveur MP seulement) : `hello` 4 puis 1/2 s, `snapshot` 6 puis 1/s, `rep_admin` 3 puis 1/5 s, autres commandes du carnet 20 puis 4/s ; `history` 3 puis 1/5 s, autres commandes radio 30 puis 6/s ; commande refusée sans réponse, refus journalisés une fois par minute. Snapshot en cache non fait.
+- **Statut : corrigé (commit 2d8cae5), à vérifier en jeu** — Seaux par compte (`RC_RateLimit`, serveur MP seulement) : `hello` 4 puis 1/2 s, `snapshot` 6 puis 1/s, `rep_admin` 3 puis 1/5 s, autres commandes du carnet 20 puis 4/s ; `history` 3 puis 1/5 s, autres commandes radio 30 puis 6/s ; commande refusée sans réponse, refus journalisés une fois par minute. Snapshot en cache non fait.
 - **Avancement : ✅ corrigé, non publié (commit 2d8cae5), testé hors jeu (`tests/test_server_guards.py`), à vérifier en MP** — tâche E16-T09 ; snapshot en cache non fait.
 
 #### C22 — Nettoyage de texte quadratique appliqué avant la troncature
@@ -363,7 +363,7 @@ Chemins relatifs à `Contents/mods/batman_RadioSurvivor/42.21/media/lua/`.
 - **Risque** : bug probable ou choix non documenté. Le chrono est bien arrêté pendant l'arrêt du serveur (preuve E00-T01), mais pas pendant une pause.
 - **Correction** : ne pas décompter si le jeu est en pause (vitesse 0 en solo, serveur sans joueur), ou passer aux minutes de jeu. ~~Décision à poser~~ à l'utilisateur.
 - **Décision (2026-10-21, confirmée par l'utilisateur)** : les délais des missions suivent le temps de jeu (arrêt en pause, accélération en x2/x3), comme les délais vanilla.
-- **Statut** : décidé, tâche `E11-T20` (temps restant et délai entre deux offres comptés en temps de jeu à vitesse normale, `RS_GameClock`) ; codé et testé hors jeu, à vérifier en jeu.
+- **Statut** : décidé, tâche `E11-T20` (temps restant et délai entre deux offres comptés en temps de jeu à vitesse normale, `RC_GameClock`) ; codé et testé hors jeu, à vérifier en jeu.
 - **Avancement : ✅ corrigé, non publié (commits 24d6cab, a2a81b3), testé hors jeu (`tests/test_carnet.py`, `tests/test_kahlua.py`), à vérifier en jeu** — tâches E11-T20 (délais) et E16-T10 (lot non réclamé).
 - **Suite (2026-10-21, confirmée par l'utilisateur)** : la conservation d'un lot réussi non réclamé (`UNCLAIMED_RETENTION_MS`, 7 jours réels) devient 7 jours **de jeu** (`UNCLAIMED_RETENTION_HOURS`, âge du monde), avec conversion des lots déjà enregistrés ; tâche `E16-T10`.
 - **Priorité** moyenne · **Effort** S · à vérifier en jeu.

@@ -422,7 +422,7 @@ expire de même.
 Première acceptation : activation du chrono commun de 7 200 000 ms **de jeu à vitesse normale**
 (`E11-T20`, décision de l'utilisateur du 2026-10-21, point C27 ; remplace le décompte en temps réel de
 fonctionnement du serveur). `OnTickEvenPaused`, les commandes et `OnSave` font avancer un même compteur
-(`RS_GameClock.meter`) : écart d'âge du monde (`getWorldAgeHours`) × durée réelle d'une heure de jeu
+(`RC_GameClock.meter`) : écart d'âge du monde (`getWorldAgeHours`) × durée réelle d'une heure de jeu
 (`getMinutesPerDay() × 60000 / 24`). Le chrono s'arrête donc en pause (Échap en solo, serveur vide en
 `PauseEmpty`), va trois fois plus vite en vitesse x3 ou pendant le sommeil, et dure 2 h réelles à x1
 quelle que soit la durée du jour du sandbox. Au démarrage, le compteur repart de l'âge du monde chargé :
@@ -462,7 +462,7 @@ toutes les 5 secondes (`SAVE_INTERVAL_MS`), `tick` ne réécrit l'état que s'il
 Un crash peut perdre au plus 5 secondes de chrono. Un serveur sans mission ouverte ni changement
 n'écrit plus rien.
 
-**Défaut connu (`E00-T08`).** `RS_Codec.hex` traite chaque unité UTF-16 de la chaîne Kahlua comme un
+**Défaut connu (`E00-T08`).** `RC_Codec.hex` traite chaque unité UTF-16 de la chaîne Kahlua comme un
 octet : au-delà de U+00FF (« ’ », « € », « œ ») il produit plus de deux chiffres et `unhex` ne relit plus
 le texte ; un état contenant un tel caractère (note, nom, réponse) échouerait au contrôle de somme et
 bloquerait le stockage. Le pont attend par ailleurs de l'UTF-8 alors que le mod envoie du Latin-1

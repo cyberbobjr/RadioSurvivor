@@ -1,4 +1,4 @@
-"""Tests hors jeu de l'écriture regroupée du registre des PNJ (LK13-T10, LK_Store) et du tri des clés de RS_Codec.
+"""Tests hors jeu de l'écriture regroupée du registre des PNJ (LK13-T10, LK_Store) et du tri des clés de RC_Codec.
 
     python RadioSurvivor/tests/test_lk_store.py
 
@@ -10,7 +10,7 @@ docs/annexes/conception/corps-registre.md, « Persistance ») :
   attend ;
 - la mort d'un corps est écrite tout de suite (mort unique LK07-T04) ;
 - relecture de contrôle à la première écriture de la session et sur demande seulement ;
-- tri des clés de RS_Codec : mêmes octets que le comparateur historique (tables aléatoires, clés mêlées).
+- tri des clés de RC_Codec : mêmes octets que le comparateur historique (tables aléatoires, clés mêlées).
 """
 from __future__ import annotations
 
@@ -169,9 +169,9 @@ class DeferredWriteTests(Bench):
         self.assertTrue(self.ev('(LivingKnox.Store.isBlocked())'))
 
 
-# Tri des clés de RS_Codec (LK13-T10) : comparateur historique reproduit ici, comparé octet pour octet.
+# Tri des clés de RC_Codec (LK13-T10) : comparateur historique reproduit ici, comparé octet pour octet.
 LEGACY = r'''
-local C = require "RadioSurvivor/RS_Codec"
+local C = require "RadioSurvivorCore/RC_Codec"
 local function pack(value, depth)
     local kind = type(value)
     if kind == 'boolean' then return value and 'b1' or 'b0' end
@@ -220,7 +220,7 @@ class CodecSortTests(Bench):
         rng = random.Random(1310)
         for i in range(200):
             src = self.gen(rng)
-            same = self.ev(f'(function() local C = require "RadioSurvivor/RS_Codec" local t = {src} '
+            same = self.ev(f'(function() local C = require "RadioSurvivorCore/RC_Codec" local t = {src} '
                            f'return C.encodeBytes(t) == LEGACY_PACK(t) end)()')
             self.assertTrue(same, f'case {i}: {src}')
 
@@ -228,7 +228,7 @@ class CodecSortTests(Bench):
         self.run_lua(LEGACY)
         # Deux nombres distincts écrits pareil par tostring : possible sous Lua 5.1 (%.14g), jamais en Kahlua
         # (Double.toString, exact) ; simulé par un tostring qui arrondit. Repli sur le comparateur historique.
-        same = self.ev('(function() local C = require "RadioSurvivor/RS_Codec" local orig = tostring '
+        same = self.ev('(function() local C = require "RadioSurvivorCore/RC_Codec" local orig = tostring '
                        'tostring = function(v) if type(v) == "number" and v > 0 and v < 1 then return "0.1" end '
                        'return orig(v) end '
                        'local t = { [0.1] = "a", [0.25] = "b", [0.5] = "c", x = 1, [2] = true } '
@@ -240,7 +240,7 @@ class CodecSortTests(Bench):
         self.init()
         for i in range(4):
             self.raw_spawn(102 + 2 * i, 102)
-        self.assertTrue(self.ev('(function() local C = require "RadioSurvivor/RS_Codec" local d = '
+        self.assertTrue(self.ev('(function() local C = require "RadioSurvivorCore/RC_Codec" local d = '
                                 'LivingKnox.Store.data() return C.encodeBytes(d) == LEGACY_PACK(d) end)()'))
 
 
@@ -260,20 +260,20 @@ class CodecSortTests(Bench):
                     fields.append(f'[{k}] = {v}')
                 members.append('{ ' + ', '.join(fields) + ' }')
             src = '{ ' + ', '.join(f'[{rng.choice([j + 1, j * 7 - 20])}] = {m}' for j, m in enumerate(members)) + ' }'
-            same = self.ev(f'(function() local C = require "RadioSurvivor/RS_Codec" local t = {src} '
+            same = self.ev(f'(function() local C = require "RadioSurvivorCore/RC_Codec" local t = {src} '
                            f'return C.encodeBytes(t) == LEGACY_PACK(t) end)()')
             self.assertTrue(same, f'case {i}')
 
     def test_flat_encoder_forced_utf16_and_depth_limit(self):
         self.run_lua(LEGACY)
-        same = self.ev('(function() local C = require "RadioSurvivor/RS_Codec" '
+        same = self.ev('(function() local C = require "RadioSurvivorCore/RC_Codec" '
                        'local t = { a = "\\195\\169", b = { a = "\\195\\169", ["\\195\\169"] = 1 } } '
                        'local plain = C.encodeBytes(t) C._utf16 = true local forced = C.encodeBytes(t) '
                        'local ok = forced == LEGACY_PACK(t) C._utf16 = nil '
                        'return ok and plain == LEGACY_PACK(t) and plain ~= forced end)()')
         self.assertTrue(same)
         # Profondeur : une feuille à la profondeur 12 passe, une table non vide à la profondeur 12 échoue (comme avant).
-        depth = self.ev('(function() local C = require "RadioSurvivor/RS_Codec" '
+        depth = self.ev('(function() local C = require "RadioSurvivorCore/RC_Codec" '
                         'local function nest(n, leaf) local t = leaf for _ = 1, n do t = { t } end return t end '
                         'local ok1 = pcall(C.encodeBytes, nest(12, 1)) local ok2 = pcall(C.encodeBytes, nest(12, {})) '
                         'local ok3 = pcall(C.encodeBytes, nest(12, { 1 })) local ok4 = pcall(C.encodeBytes, { f = print }) '
@@ -284,7 +284,7 @@ class CodecSortTests(Bench):
     def test_fast_unhex_and_checksum_equal_the_codec(self):
         # LK13-T06 : relecture par table de remplacement et somme par seize octets : mêmes octets, mêmes refus.
         self.init()
-        ok = self.ev('(function() local C = require "RadioSurvivor/RS_Codec" local St = LivingKnox.Store '
+        ok = self.ev('(function() local C = require "RadioSurvivorCore/RC_Codec" local St = LivingKnox.Store '
                      'math.randomseed(11) local ok = true '
                      'for n = 0, 80 do local t = {} for i = 1, n * 53 + (n % 17) do '
                      't[i] = string.char(math.random(0, 255)) end local s = table.concat(t) local h = C.hexBytes(s) '

@@ -22,7 +22,7 @@ import pz_paths  # noqa: E402  (vanilla folders: PZ_STEAM_LIBRARY, PZ_MEDIA or S
 from unittest import mock
 from unittest.mock import patch
 
-from test_protocol import Game, Clock, LUA, ROOT, start_bridge, pump, lua_list
+from test_protocol import Game, Clock, LUA, ROOT, start_bridge, pump, lua_list, CORE_LUA
 
 sys.path.insert(0, str(ROOT / 'bridge'))
 import radio_bridge as bridge_module
@@ -3605,7 +3605,7 @@ class ProtocolTests(unittest.TestCase):
     def test_codec_lua_python_and_incomplete_files(self):
         import lupa.lua51 as lua
         runtime = lua.LuaRuntime(unpack_returned_tuples=True)
-        codec = runtime.execute((LUA / 'shared/RadioSurvivor/RS_Codec.lua').read_text(encoding='utf-8'))
+        codec = runtime.execute((CORE_LUA / 'shared/RadioSurvivorCore/RC_Codec.lua').read_text(encoding='utf-8'))
         value = {'nested': {1: 'é=漢字\nend', 'false': False}, 'number': 1790959902158, 'empty': {}}
         raw = protocol.encode(value)
         self.assertEqual(convert(codec.decode(raw.decode('utf-8'))), value)
@@ -3683,7 +3683,7 @@ class ProtocolTests(unittest.TestCase):
                 released.set(); worker.pool.shutdown(wait=True)
 
 
-# Writer side of RS_Codec before E00-T08 (hex per string unit, lengths and checksum per unit), kept verbatim to
+# Writer side of RC_Codec before E00-T08 (hex per string unit, lengths and checksum per unit), kept verbatim to
 # prove that the states it wrote are still read.
 LEGACY_CODEC = rb'''
 local C = {}
@@ -3734,7 +3734,7 @@ class CodecUtf8Tests(unittest.TestCase):
     def setUp(self):
         import lupa.lua51 as lua
         self.lua = lua
-        self.source = (LUA / 'shared/RadioSurvivor/RS_Codec.lua').read_bytes()
+        self.source = (CORE_LUA / 'shared/RadioSurvivorCore/RC_Codec.lua').read_bytes()
 
     def byte_runtime(self, utf16=None):
         """Runtime without string conversion (Lua strings <-> bytes), optionally forcing the UTF-16 branch."""
@@ -4045,7 +4045,7 @@ class GameClockTests(unittest.TestCase):
     def test_clock_unit_and_meter(self):
         sim = Simulation(self.path / 'unit')
         g = sim.server.g
-        clock = sim.server.rt.eval("require('RadioSurvivor/RS_GameClock')")
+        clock = sim.server.rt.eval("require('RadioSurvivorCore/RC_GameClock')")
         g.MINUTES_PER_DAY, g.WORLD_AGE_HOURS = 90, 10
         self.assertEqual(clock.msPerHour(), 225000)  # 90 real minutes per game day: 3.75 min per game hour
         self.assertEqual(clock.after(7200000), 10 + 32)  # 2 h at normal speed = 32 game hours

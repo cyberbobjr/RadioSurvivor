@@ -1,7 +1,7 @@
 --[[
 lk.trade - direct trade with a friendly Living Knox group (LK11-T08, server/LivingKnox/LK_Trade.lua): a player gives
 items of his inventory for items of the group's real stock; the server values both sides with the shared table
-(shared/RadioSurvivor/RS_TradeValues.lua), the group's needs and its attitude, then moves every item once (player's
+(shared/RadioSurvivorCore/RC_TradeValues.lua), the group's needs and its attitude, then moves every item once (player's
 items into the group's crate, the group's items into the player's inventory) and brings the stock reference up to
 date.
 Tags "world" and "server": the authority only, on a save named rstest*, with a target player (t.ctx.player) standing

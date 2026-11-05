@@ -17,7 +17,7 @@ end
 CLOCK = 1000000
 TICK_MS = 100
 getTimestampMs = function() return CLOCK end
--- GameTime double (GameTime.java:830, 867): world age and day length read by RS_GameClock (E11-T20). Only the methods
+-- GameTime double (GameTime.java:830, 867): world age and day length read by RC_GameClock (E11-T20). Only the methods
 -- the mod reads; world age 0 (first hour of the world, as the modules read it without a game time before).
 WORLD_AGE_HOURS = 0
 local benchGameTime = {}

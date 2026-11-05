@@ -141,7 +141,7 @@ RST.suite("rs.missions", { tags = { "server" } }, function(s)
         t:eq(nil, npc.mission, "NPC freed")
         t:ok(m.closedAt >= before and m.closedAt <= getTimestampMs(), "closedAt from getTimestampMs")
         -- E11-T20: the cooldown is a world age, OFFER_COOLDOWN_MS of play time (normal speed) after the closure.
-        local Clock = require "RadioSurvivor/RS_GameClock"
+        local Clock = require "RadioSurvivorCore/RC_GameClock"
         t:eq(nil, npc.nextOfferAt, "no real-time cooldown any more")
         t:ok(math.abs(npc.nextOfferHour - Clock.after(Config.OFFER_COOLDOWN_MS)) < 0.01,
             "cooldown of " .. tostring(npc.nextOfferHour) .. " world hours")
@@ -266,7 +266,7 @@ RST.suite("rs.missions", { tags = { "server" } }, function(s)
 
         -- 2026-10-21: an unclaimed lot is kept 7 game days (unclaimedUntilHour, world age). This one, stamped in real
         -- time only (saved before that decision), got once a game deadline capped to 7 game days.
-        local Clock = require "RadioSurvivor/RS_GameClock"
+        local Clock = require "RadioSurvivorCore/RC_GameClock"
         local h = Clock.hours()
         t:ok(h ~= nil and unclaimed.unclaimedUntilHour > h
             and unclaimed.unclaimedUntilHour <= h + Config.UNCLAIMED_RETENTION_HOURS + 1e-6,

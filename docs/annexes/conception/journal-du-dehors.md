@@ -55,9 +55,9 @@ Document du mod que le passeur de l'Ohio apporte à chaque passage : « journaux
 
 ## Barème
 
-- Valeur de vente **2** (`RS_TradeValues.SELL_ONLY`, `RS_TradeValues.sellValue`), une édition par passage
+- Valeur de vente **2** (`RC_TradeValues.SELL_ONLY`, `RC_TradeValues.sellValue`), une édition par passage
   (`cap = 1`).
-- **Jamais repris** : hors module `Base`, `RS_TradeValues.value` le laisse à 0 (passeur comme groupes Living Knox,
+- **Jamais repris** : hors module `Base`, `RC_TradeValues.value` le laisse à 0 (passeur comme groupes Living Knox,
   `docs/specifications-techniques/passeur-table.md`, « Ce qui est toujours refusé »).
 
 ## Décisions à confirmer

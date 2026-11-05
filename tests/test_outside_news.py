@@ -30,6 +30,7 @@ import lupa.lua51 as lupa
 ROOT = Path(__file__).resolve().parents[1]
 MOD = ROOT / 'Contents/mods/batman_RadioSurvivor/42.21'
 LUA = MOD / 'media/lua'
+CORE_LUA = Path(__file__).resolve().parents[1] / 'Contents' / 'mods' / 'batman_RadioSurvivorCore' / '42.21' / 'media' / 'lua'  # mod commun (E18)
 TRANSLATE = LUA / 'shared/Translate'
 SCRIPT = MOD / 'media/scripts/RadioSurvivor_outsidenews.txt'
 NEWS_LUA = [LUA / 'shared/RadioSurvivor/RS_OutsideNews.lua', LUA / 'server/RadioSurvivor/RS_OutsideNewsServer.lua',
@@ -120,6 +121,7 @@ class NewsHarness(unittest.TestCase):
         self.g.SIDE = self.side
         self.rt.execute(STUBS)
         paths = ';'.join((LUA / side).as_posix() + '/?.lua' for side in ('shared', 'server', 'client'))
+        paths = (CORE_LUA / 'shared').as_posix() + '/?.lua;' + paths  # mod commun (E18)
         self.rt.execute(f'package.path = [[{paths};]] .. package.path')
         self.News = self.rt.eval('require("RadioSurvivor/RS_OutsideNews")')
         self.NS = self.rt.eval('require("RadioSurvivor/RS_OutsideNewsServer")')
@@ -354,7 +356,7 @@ class TradeTests(unittest.TestCase):
 
     def test_sold_by_the_smuggler_never_bought_back(self):
         rt = lupa.LuaRuntime(unpack_returned_tuples=True)
-        tv = rt.execute((LUA / 'shared/RadioSurvivor/RS_TradeValues.lua').read_text(encoding='utf-8'))
+        tv = rt.execute((CORE_LUA / 'shared/RadioSurvivorCore/RC_TradeValues.lua').read_text(encoding='utf-8'))
         self.assertEqual(tv.value('RadioSurvivor.OutsideNews')[0], 0)
         self.assertFalse(tv.isBase('RadioSurvivor.OutsideNews'))
         self.assertIsNone(tv.entry('RadioSurvivor.OutsideNews'))

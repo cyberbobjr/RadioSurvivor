@@ -1,6 +1,6 @@
 -- Radio Survivor : livre du passeur de l'Ohio (E13-T02) : stock du passage, offre figée et action `propose_trade`.
 -- Fiche : docs/annexes/conception/passeur-offre.md ; barème validé : docs/specifications-techniques/passeur-table.md (sections 1
--- et 3), code shared/RadioSurvivor/RS_TradeValues.lua (valeur V de chaque objet).
+-- et 3), code shared/RadioSurvivorCore/RC_TradeValues.lua (valeur V de chaque objet).
 --
 -- Le LLM du passeur négocie à la radio et propose une offre par l'action `propose_trade` :
 --     { type = "propose_trade", items = "Antibiotics:2, Battery:4", margin = 0.25 }
@@ -49,10 +49,10 @@
 if isClient() then return end
 
 local Const = require "RadioSurvivor/RadioSurvivor_Const"
-local Codec = require "RadioSurvivor/RS_Codec"
+local Codec = require "RadioSurvivorCore/RC_Codec"
 local S = require "RadioSurvivor/RS_State"
 local Actions = require "RadioSurvivor/RS_Actions"
-local TV = require "RadioSurvivor/RS_TradeValues"
+local TV = require "RadioSurvivorCore/RC_TradeValues"
 local News = require "RadioSurvivor/RS_OutsideNews"
 local Factions = require "RadioSurvivor/RS_Factions"
 local Rep = require "RadioSurvivor/RS_Reputation"
@@ -96,7 +96,7 @@ Trade.TAKES = {
 -- Ce que le passeur apporte (section 3) : nom du stock, type complet, poids en kg (Weight du script vanilla 42.21,
 -- plus le contenu d'un récipient plein : InventoryItem.getContentsWeight = litres de fluide,
 -- J/inventory/InventoryItem.java:3135-3147), fourchette du stock par passage. Graines (gr = "seeds") : 3 à 8 sachets
--- au total, 4 sortes au plus ; alcools (gr = "alcohol") : 1 à 4 bouteilles au total. V : RS_TradeValues.sellValue.
+-- au total, 4 sortes au plus ; alcools (gr = "alcohol") : 1 à 4 bouteilles au total. V : RC_TradeValues.sellValue.
 Trade.SUPPLY = {
     { n = "Battery", t = "Base.Battery", w = 0.1, min = 4, max = 12 },
     { n = "Antibiotics", t = "Base.Antibiotics", w = 0.1, min = 2, max = 6 },
@@ -782,7 +782,7 @@ local function allowsTrade(sheet)
     return false
 end
 
--- Ce que le passeur prend, par classe : texte « Nom V, Nom V » trié par nom (barème RS_TradeValues).
+-- Ce que le passeur prend, par classe : texte « Nom V, Nom V » trié par nom (barème RC_TradeValues).
 local takesCache = nil
 local function takes()
     if takesCache then return takesCache end
