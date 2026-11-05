@@ -1,5 +1,30 @@
 # E04 — Réputation interne (CharacterReputation facultatif)
 
+<!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
+
+**Avancement.** terminée — 12 / 12 tâche(s) terminée(s), 2 abandonnée(s).
+
+| | Tâche | Titre | État | Cible | Dépend de |
+|---|---|---|---|---|---|
+| ☑ | E04-T01 | Décisions d'intégration de la réputation | `testé hors jeu` | hors jeu | — |
+| ☑ | E04-T02 | Contrat RadioSurvivor ↔ CharacterReputation versionné | `testé hors jeu` | hors jeu | E04-T01, E17-T03 |
+| ✕ | E04-T03 | Adaptateur `RS_Reputation` sur l'API réelle | `abandonné` | MP | E04-T02 |
+| ☑ | E04-T04 | Onglet Réputation du carnet avec niveau et motifs | `testé solo` | solo | E04-T09 |
+| ☑ | E04-T05 | Offres selon la réputation et missions de rachat | `testé hors jeu` | hors jeu | E04-T09 |
+| ☑ | E04-T06 | Preuve serveur du tueur du demandeur | `testé MP` | MP | E01-T05 |
+| ☑ | E04-T07 | Sanction personnelle du tueur du demandeur | `testé MP` | MP | E04-T06, E04-T09 |
+| ☑ | E04-T08 | Modèle de réputation interne côté serveur | `testé hors jeu` | hors jeu | E04-T01, E04-T06 |
+| ☑ | E04-T09 | Règles de calcul : barème, plafond, usure | `testé hors jeu` | hors jeu | E04-T08 |
+| ☑ | E04-T10 | Réputation lue par les PNJ et les voix (contexte LLM) | `testé hors jeu` | hors jeu | E04-T09 |
+| ☑ | E04-T11 | Effets en jeu : marge du passeur et accueil des groupes | `testé MP` | MP | E04-T09, E13-T04, LK11-T03 |
+| ☑ | E04-T12 | Persistance et multijoueur de la réputation | `testé MP` | MP | E04-T08 |
+| ✕ | E04-T13 | Adaptateur facultatif vers CharacterReputation (RSREP-2) | `abandonné` | MP | E04-T02, E04-T09 |
+| ☑ | E04-T14 | Suites en jeu de la réputation et outil d'administration | `testé MP` | MP | E04-T04, E04-T05, E04-T07, E04-T10, E04-T11, E04-T12 |
+
+<!-- fin du tableau de bord -->
+
+**Mod (après la séparation).** RadioSurvivor.
+
 **Objectif.** Donner à chaque personnage une **réputation tenue par le serveur de RadioSurvivor**, bâtie sur les faits déjà confirmés par le serveur (fins de mission, tricherie au passeur, mort d'un PNJ attribuée ; mêmes points de capture que la chronique `rs.facts`), lue par le carnet, les PNJ et les voix (niveau seulement), et qui a des effets en jeu (offres de missions, missions de rachat, marge du passeur, accueil des groupes, sanction du tueur d'un demandeur). Si l'API de CharacterReputation arrive, un adaptateur facultatif lui transmet les mêmes faits (contrat RSREP-1).
 
 **Dépend de.** Rien d'extérieur : l'étape ne dépend plus de l'API métier de CharacterReputation (`Zomboid\Workshop\CharacterReputation`, toujours une coquille : `getDescriptor()`, capacités toutes fausses), sauf l'adaptateur `E04-T13`.

@@ -1,5 +1,22 @@
 # LK09 — Vie hors écran et relève
 
+<!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
+
+**Avancement.** terminée — 6 / 6 tâche(s) terminée(s).
+
+| | Tâche | Titre | État | Cible | Dépend de |
+|---|---|---|---|---|---|
+| ☑ | LK09-T01 | Simulation abstraite par heure de jeu | `testé hors jeu` | hors jeu | LK08-T01 |
+| ☑ | LK09-T02 | Expéditions abstraites | `testé hors jeu` | hors jeu | LK09-T01 |
+| ☑ | LK09-T03 | Matérialisation et retrait cohérents | `testé MP` | MP | LK09-T01, LK03-T04 |
+| ☑ | LK09-T04 | Décimation et relève | `testé MP` | MP | LK09-T01, LK07-T04 |
+| ☑ | LK09-T05 | Événements de groupe | `testé hors jeu` | hors jeu | LK09-T01 |
+| ☑ | LK09-T06 | Stock abstrait cohérent avec les conteneurs | `testé MP` | MP | LK09-T01, LK08-T06 |
+
+<!-- fin du tableau de bord -->
+
+**Mod (après la séparation).** Living Knox (`batman_LivingKnox` après `E18-T07`).
+
 **Objectif.** Faire vivre les groupes loin des joueurs et assurer la relève après une décimation.
 
 **Dépend de.** LK08-T01, LK03-T04.

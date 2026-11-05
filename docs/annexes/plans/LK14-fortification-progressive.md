@@ -1,5 +1,22 @@
 # LK14 — Fortification progressive
 
+<!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
+
+**Avancement.** en cours — 5 / 6 tâche(s) terminée(s).
+
+| | Tâche | Titre | État | Cible | Dépend de |
+|---|---|---|---|---|---|
+| ☑ | LK14-T01 | Investigation : barricades et constructions vanilla posées par script | `testé hors jeu` | hors jeu | — |
+| ☑ | LK14-T02 | Plan de fortification du foyer | `testé hors jeu` | hors jeu | LK14-T01, LK08-T04 |
+| ☑ | LK14-T03 | Barricader portes et fenêtres | `testé MP` | MP | LK14-T02, LK08-T06 |
+| ☑ | LK14-T04 | Défenses plus lourdes | `testé MP` | MP | LK14-T03 |
+| ☑ | LK14-T05 | Rattrapage hors écran de la fortification | `testé MP` | MP | LK14-T03, LK09-T06 |
+| ☐ | LK14-T06 | Entretien et réparation après une attaque | `testé solo` | MP | LK14-T03, LK05-T09 |
+
+<!-- fin du tableau de bord -->
+
+**Mod (après la séparation).** Living Knox (`batman_LivingKnox` après `E18-T07`).
+
 **Objectif.** Les groupes renforcent leur foyer au fil du temps avec des matériaux réels : barricades des ouvertures, puis défenses plus lourdes, entretien et réparation après une attaque. Le travail est visible quand un joueur est proche et rattrapé hors écran sinon.
 
 **Dépend de.** LK08-T06 (stock réel), LK05-T02 (objectifs du groupe), LK04-T04 (barricades et passage bloqué).

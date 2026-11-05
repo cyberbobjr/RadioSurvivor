@@ -1,5 +1,23 @@
 # LK03 — Exécution multijoueur complète
 
+<!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
+
+**Avancement.** en cours — 6 / 7 tâche(s) terminée(s).
+
+| | Tâche | Titre | État | Cible | Dépend de |
+|---|---|---|---|---|---|
+| ☐ | LK03-T01 | Consignes serveur versionnées et réémission | `testé solo` | MP | LK02-T09 |
+| ☑ | LK03-T02 | Rapports du propriétaire contrôlés | `testé MP` | MP | LK03-T01 |
+| ☑ | LK03-T03 | Transfert de propriété sans perte d'état | `testé MP` | MP | LK03-T01 |
+| ☑ | LK03-T04 | Corps sans propriétaire et retrait | `testé MP` | MP | LK03-T02 |
+| ☑ | LK03-T05 | Relais des gestes filtré et borné | `testé MP` | MP | LK02-T07 |
+| ☑ | LK03-T06 | Apparition propre chez les clients MP (N1) | `testé MP` | MP | LK02-T02, LK02-T04 |
+| ☑ | LK03-T07 | Pas de rapport d’état pour un corps déchargé | `testé solo` | solo | LK03-T02 |
+
+<!-- fin du tableau de bord -->
+
+**Mod (après la séparation).** Living Knox (`batman_LivingKnox` après `E18-T07`).
+
 **Objectif.** Rendre l'exécution des PNJ robuste à plusieurs joueurs : consignes serveur versionnées, rapports contrôlés, transferts de propriété, corps sans propriétaire, relais des gestes filtré par distance.
 
 **Dépend de.** LK02-T09 (décision « continuer »).

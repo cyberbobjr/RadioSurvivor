@@ -1,5 +1,21 @@
 # E10 — Chef de bande, contestation et départ individuel
 
+<!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
+
+**Avancement.** terminée — 4 / 4 tâche(s) terminée(s), 1 abandonnée(s).
+
+| | Tâche | Titre | État | Cible | Dépend de |
+|---|---|---|---|---|---|
+| ✕ | E10-T01 | Investigation : structure d'un clan Bandits! et changement d'appartenance | `abandonné` | hors jeu | — |
+| ☑ | E10-T02 | Chef du groupe et intentions collectives | `testé MP` | MP | E17-T03 |
+| ☑ | E10-T03 | Contestation et refus d'un membre incarné | `testé MP` | MP | E10-T02, LK05-T02 |
+| ☑ | E10-T04 | Départ individuel (`leave_group`) d'un PNJ incarné | `testé MP` | MP | E10-T03, E09-T05 |
+| ☑ | E10-T05 | Foyer d'un membre parti, à distance cohérente de son ancien foyer | `testé MP` | MP | E10-T04 |
+
+<!-- fin du tableau de bord -->
+
+**Mod (après la séparation).** Living Knox (groupes, chef, départ) ; affichage dans le carnet de RadioSurvivor.
+
 **Objectif.** Les décisions collectives d'un groupe Living Knox viennent de son chef (registre `LK_Groups`) ; chaque membre incarné peut contester ou refuser selon sa personnalité et sa loyauté ; un PNJ peut quitter son groupe sur décision du LLM en gardant identité, souvenirs, relations et trêves.
 
 **Dépend de.** E17-T03 ; E09-T05 pour T04 (trêves conservées).

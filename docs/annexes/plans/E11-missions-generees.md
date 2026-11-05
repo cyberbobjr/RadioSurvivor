@@ -1,5 +1,36 @@
 # E11 — Missions générées à partir de gabarits
 
+<!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
+
+**Avancement.** en cours — 14 / 20 tâche(s) terminée(s).
+
+| | Tâche | Titre | État | Cible | Dépend de |
+|---|---|---|---|---|---|
+| ☑ | E11-T01 | Ordre des gabarits et barèmes | `testé hors jeu` | hors jeu | — |
+| ☑ | E11-T02 | Moteur de gabarits commun (M01 réécrit dessus) | `testé hors jeu` | hors jeu | E11-T01 |
+| ☑ | E11-T03 | Gabarit « reconnaître » | `testé MP` | MP | E11-T02 |
+| ☑ | E11-T04 | Gabarit « nettoyer » | `testé MP` | MP | E11-T02, E04-T06 |
+| ☑ | E11-T05 | Gabarit « retrouver » | `testé MP` | MP | E11-T02 |
+| ☑ | E11-T06 | Gabarit « récupérer » et action `place_cache` | `testé MP` | MP | E11-T02 |
+| ☐ | E11-T07 | Gabarit « signaler » et événement Signal Smoke | `testé solo` | MP | E11-T02 |
+| ☑ | E11-T08 | Voix radio donneuse de missions (« reconnaître » par radio) | `testé MP` | MP | E11-T03, E07-T04 |
+| ☑ | E11-T09 | Mission de reconnaissance : indices transmis et fiche correcte | `testé solo` | solo | E11-T08 |
+| ☑ | E11-T10 | Zone approximative du lieu sur la carte | `testé solo` | solo | E11-T09 |
+| ☑ | E11-T11 | Zone sur la carte pour une mission de reconnaissance donnée par un PNJ | `testé solo` | solo | E11-T10 |
+| ☑ | E11-T12 | Avertissements « Missing arguments » des indices du carnet | `testé hors jeu` | hors jeu | E11-T09 |
+| ☐ | E11-T13 | Compte rendu au demandeur : la mission se valide en le disant au PNJ ou à la radio | `testé solo` | MP | E11-T04, E11-T06, E11-T07 |
+| ☑ | E11-T14 | Écouteur Signal Smoke abonné deux fois après `Signal.resetForTests` | `testé hors jeu` | hors jeu | E11-T07 |
+| ☑ | E11-T15 | Fiches et contrat fermé des missions et récompenses | `testé hors jeu` | hors jeu | E11-T08 |
+| ☐ | E11-T16 | Récompenses serveur des voix : cache, fréquence, carte et leçon | `testé hors jeu` | MP | E11-T15 |
+| ☐ | E11-T17 | Gabarits de missions des voix avec compte rendu radio | `testé hors jeu` | MP | E11-T15 |
+| ☐ | E11-T18 | Récompenses et offres des PNJ Living Knox | `testé hors jeu` | MP | E11-T16 |
+| ☑ | E11-T19 | Livraison radio discrète après éloignement | `testé MP` | MP | E11-T17 |
+| ☐ | E11-T20 | Délais des missions en temps de jeu (pause, vitesse) | `testé hors jeu` | solo | E00-T03 |
+
+<!-- fin du tableau de bord -->
+
+**Mod (après la séparation).** mod commun (moteur de missions, `E18-T05`) ; donneurs : voix radio (RadioSurvivor) et PNJ (Living Knox).
+
 **Objectif.** Au-delà de la livraison M01, le LLM choisit un gabarit que le serveur sait vérifier (signaler, retrouver, reconnaître, nettoyer, récupérer), le lieu, le prétexte et la récompense dans des bornes, puis raconte. Valable pour les voix radio et pour les PNJ Bandits!.
 
 **Dépend de.** E00-T03 (missions répétables), E07-T01 (actions structurées) ; E04-T05 pour le filtrage par réputation.
@@ -28,6 +59,7 @@
 - 2026-10-14 — **E11-T06** : sac de sport et 4 tables ; identifiant seul ; PNJ seulement ; `place_cache` sur la dernière mission de la voix ; plafond de 6 offres (environ 800 jetons de plus au plus par requête) (confirmé par défaut, valeurs techniques) ; cercle « Dépôt » au foyer du groupe, qui révèle sa position au participant (confirmé par l'utilisateur) ; changement (décision de l'utilisateur) : plus de réussite automatique, l'objectif rempli se rapporte au demandeur : tâche E11-T13.
 - 2026-10-14 — **E11-T07** : API `onSignal` existante au lieu de l'événement `batman_OnSignalLit` prévu (Signal Smoke non modifié) ; cercle de 20 cases ; 4 couleurs, tout type de signal ; fenêtre de 2 h valable chaque jour ; PNJ seulement (confirmé par défaut, valeurs techniques) ; changement (décision de l'utilisateur) : plus de réussite automatique sans compte rendu, le participant revient le dire au PNJ (ou l'annonce à la radio pour une voix) : tâche E11-T13.
 - 2026-10-15 — **Signal Smoke est un mod prérequis** (décision de l'utilisateur, remplace « mod facultatif, aucune dépendance dans mod.info ») : `require=` dans `mod.info`, objet requis sur Steam et mention dans les descriptions ; plus aucun chemin « sans Signal Smoke » dans le code ni dans les tests (suite `rs.mission.nosignal` retirée).
+- 2026-11-05 — **Séparation** (utilisateur, [`E18`](../plans/E18-separation-living-knox.md)) : le moteur de missions, les gabarits, les récompenses et les délais passent dans le mod commun (`E18-T05`), avec un journal commun des missions (`E18-T06`) ; donneurs : voix radio (RadioSurvivor) et PNJ (Living Knox).
 
 ## Tâches
 
@@ -64,15 +96,15 @@
   - Preuve : `RS_MissionScout.lua` : gabarit `scout` (`scout_v1`) du moteur E11-T02 ; lieu = bâtiment habitable de la métagrille (`RS_Rescue.check`) à 60–250 cases du demandeur et à 60 cases au moins de toute base, sans charger, gardé 10 min pour que l'offre racontée et la mission désignent le même bâtiment ; zone = emprise élargie de 2 cases, dans l'état privé ; sondage serveur chaque seconde de la position des joueurs identifiés (jamais une position venue du client) → `zoneReached` ; compte rendu de vive voix au PNJ demandeur après la visite seulement, puis réussite, réputation et lot par le moteur commun ; offre au pont avec type de lieu et indices sans chiffre ; carnet : page Missions pour `scout` ; `test_carnet.py` 44/44 (`ScoutMissionTests` : commandes forgées refusées, compte rendu sans visite refusé, expiration, redémarrage ; assertions M01 inchangées), `scenario_scout_offer` ; suite en jeu `rs.missions.scout` ; `tests/run_all.py` 38/38 le 2026-10-10, luacheck 17/0 et 0 ; `docs/annexes/conception/carnet-implementation-04221.md`, `docs/specifications-techniques/protocole-carnet-v2.md` ; campagne MP automatique du 2026-10-14 (E01-T15, serveur dédié + 2 clients, client 2 seulement présent) : rs.missions 14 PASS, rs.missions.scout (`tools/autoclient/runs/20261014-144930-mp-045a8627ec16/server/20261014-125125-server.txt`) ; campagne MP automatique du 2026-10-14 soir (règle « les tests font foi ») : rs.missions.scout 1/1, rs.missions 14/14 (`tools/autoclient/runs/20261014-184508-mp-1b6224aba9e1/server/20261014-164709-server.txt`)
   - Reste : bout en bout avec un PNJ Living Knox abandonné (règle du 2026-10-14 : chemin serveur couvert par `rs.missions.scout`) ; ⚠ mission rattachée à un PNJ du carnet : pas encore proposable par une voix radio (demandeur sans corps : à décider pour la publication) ; ⚠ compte rendu de vive voix et non à la radio comme dans la note de travail (à arbitrer)
 
-- [ ] **E11-T04** — Gabarit « nettoyer »
-  - État : `testé solo`
+- [x] **E11-T04** — Gabarit « nettoyer »
+  - État : `testé MP`
   - Cible : `MP`
   - Dépend de : E11-T02, E04-T06
   - Fichiers : gabarit `clear`
   - Faire : tuer N zombies autour d'un lieu ; décompte à `OnZombieDead` côté serveur avec attribution établie en E04-T06 ; morts par le feu non comptées si non attribuées.
   - Accepté si : décompte cohérent entre deux participants ; aucun double compte.
   - Tests : suite en jeu.
-  - Preuve : banc `tests/test_mission_clear.py` du 2026-10-12 (9 tests OK, contrôlés par mutation : cercle de comptage sur la carte, N tiré de la densité des en-têtes de lot (6 à 25), décompte à `OnZombieDead` côté serveur avec l'attribution d'E04-T06 (feu, piège sans lanceur, chute, PNJ, hors cercle, non-participant et doublon exclus), réussite automatique et récompense par le moteur commun) ; carnet 79/79 et `mission_retrieve` inchangés ; run_all 86/86 ; luacheck 16/0 ; conception `docs/annexes/conception/mission-nettoyer.md` ; campagne MP automatique du 2026-10-14 (E01-T15, serveur dédié + 2 clients, client 2 seulement présent) : rs.missions 14 PASS (`tools/autoclient/runs/20261014-144930-mp-045a8627ec16/server/20261014-125125-server.txt`) ; campagne MP automatique du 2026-10-15 (copie figée du commit `54087fb`, serveur dédié + 2 clients, pont avec faux modèle) : rs.mission.clear 1/1 et rs.mission.clearcount 1/1 (deux participants, un seul décompte k / N, zombie hors du cercle non compté) (`tools/autoclient/runs/20261015-110446-parallel-2-54087fb0f84f/shard2/server/20261015-090708-server.txt`) ; solo : `rs.mission.clear` 2 PASS deux fois (`tools/autoclient/runs/20261015-133822-8f444d87d714/20261015-113910-solo.txt`, `tools/autoclient/runs/20261015-133930-90bb14f64203/20261015-114015-solo.txt`) : mêlée, tir et voiture du joueur comptés, zombie brûlé non compté, carnet « À rapporter », compte rendu, réussite et « Réclamer »
+  - Preuve : banc `tests/test_mission_clear.py` du 2026-10-12 (9 tests OK, contrôlés par mutation : cercle de comptage sur la carte, N tiré de la densité des en-têtes de lot (6 à 25), décompte à `OnZombieDead` côté serveur avec l'attribution d'E04-T06 (feu, piège sans lanceur, chute, PNJ, hors cercle, non-participant et doublon exclus), réussite automatique et récompense par le moteur commun) ; carnet 79/79 et `mission_retrieve` inchangés ; run_all 86/86 ; luacheck 16/0 ; conception `docs/annexes/conception/mission-nettoyer.md` ; campagne MP automatique du 2026-10-14 (E01-T15, serveur dédié + 2 clients, client 2 seulement présent) : rs.missions 14 PASS (`tools/autoclient/runs/20261014-144930-mp-045a8627ec16/server/20261014-125125-server.txt`) ; campagne MP automatique du 2026-10-15 (copie figée du commit `54087fb`, serveur dédié + 2 clients, pont avec faux modèle) : rs.mission.clear 1/1 et rs.mission.clearcount 1/1 (deux participants, un seul décompte k / N, zombie hors du cercle non compté) (`tools/autoclient/runs/20261015-110446-parallel-2-54087fb0f84f/shard2/server/20261015-090708-server.txt`) ; solo : `rs.mission.clear` 2 PASS deux fois (`tools/autoclient/runs/20261015-133822-8f444d87d714/20261015-113910-solo.txt`, `tools/autoclient/runs/20261015-133930-90bb14f64203/20261015-114015-solo.txt`) : mêlée, tir et voiture du joueur comptés, zombie brûlé non compté, carnet « À rapporter », compte rendu, réussite et « Réclamer » ; campagne MP complète du 2026-11-05 (copie figée du commit `efa5558`, serveur dédié + 2 clients, pont avec faux modèle, 520/537, seul échec lk.windowkill) : rs.mission.clear 1 PASS + 1 SKIP solo, rs.mission.clearcount 1 PASS, rs.missions 14 PASS (`tools/autoclient/runs/20261105-122206-run-efa5558e207a/run/server/20261105-112357-server.txt`)
   - Reste : MP : mêlée, tir et voiture d'un client distant, réussite et « Réclamer » vus côté client ; choc de voiture par la physique réelle non couvert (`Hit` du véhicule par script) ; N = ordre de grandeur ; derniers comptes perdus sur arrêt brutal
 
 - [x] **E11-T05** — Gabarit « retrouver »
@@ -230,15 +262,15 @@
   - Reste : campagnes solo/MP pour les tâches de cible MP. Les contrats supply dont le lot a déjà été prélevé conservent ce lot ; pas de second prélèvement.
 
 
-- [ ] **E11-T19** — Livraison radio discrète après éloignement
-  - État : `testé hors jeu`
+- [x] **E11-T19** — Livraison radio discrète après éloignement
+  - État : `testé MP`
   - Cible : `MP`
   - Dépend de : E11-T17
   - Fichiers : module serveur de dépôt, `RS_MissionVoice.lua`, configuration, carnet, traductions EN/FR, bancs et suites ; protocole et wiki EN/FR
   - Faire : alterner boîte convenue et sac caché près d'un `place=` avec repère exact individuel et repli sac ; constater le lot complet, attendre 10 secondes réelles sans joueur à moins de 40 cases horizontalement, puis retirer une seule fois avec la case exacte chargée. Refuser le contenu étranger du sac, permettre la reprise avant collecte, relancer le délai au redémarrage ; rendre ensuite l'objectif rapportable à la radio.
   - Accepté si : aucun retrait devant un joueur, même à un autre étage ; lot incomplet ou repris non validé ; boîte et autres objets préservés ; sac admissible retiré entièrement une seule fois ; compte rendu prématuré refusé ; client 2 voit le retrait physique sans données privées du participant.
   - Tests : banc `lupa` (distance, délai, reprise, redémarrage, case déchargée, contenu étranger, anti-doublon) ; suites solo et MP à deux clients
-  - Preuve : `tests/test_voice_delivery.py` 22/22 ; suite `rs.voicedelivery` ajoutée aux campagnes solo et MP ; aucune preuve en jeu à ce stade
+  - Preuve : `tests/test_voice_delivery.py` 22/22 ; suite `rs.voicedelivery` ajoutée aux campagnes solo et MP ; aucune preuve en jeu à ce stade ; campagne MP complète du 2026-11-05 (copie figée du commit `efa5558`, serveur dédié + 2 clients, pont avec faux modèle, 520/537, seul échec lk.windowkill) : rs.voicedelivery 2 PASS (`tools/autoclient/runs/20261105-122206-run-efa5558e207a/run/server/20261105-112357-server.txt`)
   - Reste : campagnes solo/MP ; reprise ambiguë après interruption bloquée sans crédit automatique.
 
 - [ ] **E11-T20** — Délais des missions en temps de jeu (pause, vitesse)

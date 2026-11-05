@@ -1,5 +1,21 @@
 # E13 — Le passeur de l'Ohio (troc)
 
+<!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
+
+**Avancement.** terminée — 5 / 5 tâche(s) terminée(s).
+
+| | Tâche | Titre | État | Cible | Dépend de |
+|---|---|---|---|---|---|
+| ☑ | E13-T01 | Valeurs, objets et lieu de l'échange | `testé hors jeu` | hors jeu | — |
+| ☑ | E13-T02 | Table serveur et action `propose_trade` | `testé hors jeu` | hors jeu | E13-T01 |
+| ☑ | E13-T03 | Réservation hebdomadaire et rendez-vous | `testé MP` | MP | E13-T02 |
+| ☑ | E13-T04 | Échange sans contact sur la berge | `testé MP` | MP | E13-T03 |
+| ☑ | E13-T05 | Journal du dehors : document du mod apporté par le passeur | `testé solo` | solo | E13-T01 |
+
+<!-- fin du tableau de bord -->
+
+**Mod (après la séparation).** RadioSurvivor.
+
 **Objectif.** Un contrebandier de la rive de l'Indiana, joué par le LLM, négocie à la radio dans les bornes d'une table serveur, traverse une fois par semaine de jeu et échange sans contact sur une berge (note de travail §09).
 
 **Dépend de.** E05 (voix), E07-T01 (actions) ; E11-T07 pour le signal (facultatif).

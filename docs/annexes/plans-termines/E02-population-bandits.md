@@ -1,5 +1,21 @@
 # E02 — Limiter la population de PNJ Bandits!
 
+<!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
+
+**Avancement.** vide — 0 / 0 tâche(s) terminée(s), 5 abandonnée(s).
+
+| | Tâche | Titre | État | Cible | Dépend de |
+|---|---|---|---|---|---|
+| ✕ | E02-T01 | Guide des réglages natifs de population Bandits! | `abandonné` | hors jeu | — |
+| ✕ | E02-T02 | Décider d'un plafond appliqué par RadioSurvivor | `abandonné` | hors jeu | E02-T01 |
+| ✕ | E02-T03 | Mesure de la population Bandits! côté serveur | `abandonné` | MP | E01-T05 |
+| ✕ | E02-T04 | Plafond optionnel par multiplicateur temporaire | `abandonné` | MP | E02-T02, E02-T03 |
+| ✕ | E02-T05 | Validation de la population sur serveur dédié | `abandonné` | MP | E02-T04 |
+
+<!-- fin du tableau de bord -->
+
+**Mod (après la séparation).** RadioSurvivor (étape close : Bandits! abandonné).
+
 **Objectif.** Éviter des centaines de PNJ Bandits! sur un serveur : d'abord par les réglages natifs de Bandits!, puis, si l'utilisateur le décide, par un plafond optionnel appliqué par RadioSurvivor sans modifier les fichiers de Bandits!.
 
 **Dépend de.** E00-T04 (RadioSurvivor ne coûte déjà plus rien pour les bandits jamais contactés).

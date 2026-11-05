@@ -1,10 +1,39 @@
 # E18 — Séparer RadioSurvivor et Living Knox autour d'un mod commun
 
+<!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
+
+**Avancement.** à faire — 0 / 16 tâche(s) terminée(s).
+
+| | Tâche | Titre | État | Cible | Dépend de |
+|---|---|---|---|---|---|
+| ☐ | E18-T01 | Mod commun `batman_RadioSurvivorCore` : dossier et métadonnées | `à faire` | solo | — |
+| ☐ | E18-T02 | Outils partagés déplacés dans le commun | `à faire` | hors jeu | E18-T01 |
+| ☐ | E18-T03 | Identité des personnages dans le commun | `à faire` | MP | E18-T02 |
+| ☐ | E18-T04 | Lien avec le pont dans le commun | `à faire` | MP | E18-T02 |
+| ☐ | E18-T05 | Moteur de missions dans le commun, donneurs voix et PNJ | `à faire` | MP | E18-T03, E18-T04 |
+| ☐ | E18-T06 | Journal commun des missions | `à faire` | MP | E18-T05 |
+| ☐ | E18-T07 | Mod `batman_LivingKnox` : code déplacé | `à faire` | solo | E18-T02 |
+| ☐ | E18-T08 | Bases connues et sites sans RadioSurvivor | `à faire` | solo | E18-T07 |
+| ☐ | E18-T09 | Adaptateur fournisseur porté par Living Knox | `à faire` | MP | E18-T07 |
+| ☐ | E18-T10 | Dossier de données de Living Knox et reprise des parties existantes | `à faire` | MP | E18-T07 |
+| ☐ | E18-T11 | Parole des PNJ émise par Living Knox, enrichie par RadioSurvivor | `à faire` | MP | E18-T04, E18-T09 |
+| ☐ | E18-T12 | Pont : un dossier d'échange pour les deux mods | `à faire` | MP | E18-T04, E18-T11 |
+| ☐ | E18-T13 | Traductions et options sandbox des trois mods | `à faire` | hors jeu | E18-T06, E18-T07 |
+| ☐ | E18-T14 | Outillage des tests pour trois montages | `à faire` | hors jeu | E18-T07 |
+| ☐ | E18-T15 | Validation des trois montages | `à faire` | MP | E18-T05, E18-T06, E18-T08, E18-T10, E18-T12, E18-T13, E18-T14 |
+| ☐ | E18-T16 | Documentation et page Workshop des trois mods | `à faire` | hors jeu | E18-T15 |
+
+<!-- fin du tableau de bord -->
+
+**Mod (après la séparation).** les trois mods de l'article.
+
 **Objectif.** Livrer, dans un seul article Workshop, deux mods qui fonctionnent chacun sans l'autre et mieux
 ensemble — `batman_RadioSurvivor` (radio, voix, carnet, factions, troc des voix) et `batman_LivingKnox` (moteur de
 PNJ : corps, gestes, groupes, routines, combat, parole de proximité) — bâtis sur un **mod commun** qui porte le code
 partagé : moteur de missions, lien avec le pont LLM, identité des personnages, outils. Les voix radio comme les PNJ
 donnent des missions ; le pont Python LLM est la base de leur intelligence, avec l'un, l'autre ou les deux mods.
+
+**ADR.** [Trois mods dans un article](../../architecture/decisions/adr-separation-mods.md) (accepté le 2026-11-05) ; ce plan en est l'ordre de livraison et porte le suivi des tâches.
 
 **Dépend de.** `E17` (interface `RS_NPCProvider`, neutre vis-à-vis du moteur) ; `LK12` (API publique de Living Knox) ;
 `E11` (missions générées).

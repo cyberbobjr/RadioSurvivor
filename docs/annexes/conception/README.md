@@ -1,6 +1,6 @@
 # Conception de Living Knox : règles et journal
 
-Ce dossier rassemble les **fiches de conception** du moteur de PNJ Living Knox (étapes `LK` du plan), une par sous-système. Il applique la règle « Écriture indépendante » de [docs/annexes/plans/README.md](../plans/README.md) (section « Règles propres à Living Knox ») et la décision du 2026-10-03 consignée dans [LK00](../plans/LK00-cadrage.md) : aucun code de Bandits! ni de Project A-Life repris, traduit ou paraphrasé.
+Ce dossier rassemble les **fiches de conception** du moteur de PNJ Living Knox (étapes `LK` du plan), une par sous-système. Il applique la règle « Écriture indépendante » de [docs/annexes/plans/README.md](../plans/README.md) (section « Règles propres à Living Knox ») et la décision du 2026-10-03 consignée dans [LK00](../plans-termines/LK00-cadrage.md) : aucun code de Bandits! ni de Project A-Life repris, traduit ou paraphrasé.
 
 ## 1. Règle d'écriture indépendante
 

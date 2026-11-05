@@ -1,5 +1,26 @@
 # E07 — Actions en liste fermée pour les voix radio
 
+<!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
+
+**Avancement.** en cours — 8 / 10 tâche(s) terminée(s).
+
+| | Tâche | Titre | État | Cible | Dépend de |
+|---|---|---|---|---|---|
+| ☑ | E07-T01 | Réponse structurée des voix et validation des actions | `testé hors jeu` | hors jeu | — |
+| ☑ | E07-T02 | Journal admin des actions | `testé hors jeu` | hors jeu | E07-T01 |
+| ☑ | E07-T03 | Action `remember` : mémoire bornée par appelant | `testé hors jeu` | hors jeu | E07-T01 |
+| ☐ | E07-T04 | Action `mark_map` : repère sur la carte de l'appelant | `testé solo` | MP | E07-T01, E01-T05 |
+| ☑ | E07-T05 | Action `reveal_area` : révéler un quartier | `testé MP` | MP | E07-T04 |
+| ☑ | E07-T06 | Action `persona_state` : moral, réserves, lieu | `testé hors jeu` | hors jeu | E07-T01 |
+| ☑ | E07-T07 | Paramètres des actions décrits dans le prompt | `testé hors jeu` | hors jeu | E07-T03, E07-T06 |
+| ☑ | E07-T08 | Repère reçu noté dans le carnet au lieu d'un texte flottant | `testé solo` | solo | E07-T04 |
+| ☑ | E07-T09 | Réponse structurée du LLM robuste | `testé hors jeu` | hors jeu | E07-T01 |
+| ☐ | E07-T10 | Fréquence d'une autre voix donnée exceptionnellement | `testé hors jeu` | MP | E07-T01, E06-T07 |
+
+<!-- fin du tableau de bord -->
+
+**Mod (après la séparation).** RadioSurvivor.
+
 **Objectif.** Les voix radio ne renvoient plus seulement du texte : le pont rend une réponse structurée (`say` + `actions`), le serveur vérifie chaque action contre la fiche du personnage et le catalogue, puis l'exécute ou la refuse, avec un journal admin (note de travail §02).
 
 **Dépend de.** E05-T03 (fiches et routage par voix).

@@ -1,5 +1,26 @@
 # LK11 — Interactions avec les joueurs
 
+<!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
+
+**Avancement.** terminée — 10 / 10 tâche(s) terminée(s).
+
+| | Tâche | Titre | État | Cible | Dépend de |
+|---|---|---|---|---|---|
+| ☑ | LK11-T01 | Décisions d'interaction | `testé hors jeu` | hors jeu | — |
+| ☑ | LK11-T02 | Avertissements et sommations | `testé MP` | MP | LK11-T01, LK06-T01 |
+| ☑ | LK11-T03 | Attitude par groupe et par joueur | `testé hors jeu` | hors jeu | LK11-T01 |
+| ☑ | LK11-T04 | Parole de proximité et bulles | `testé MP` | MP | LK11-T01 |
+| ☑ | LK11-T05 | Vengeance différée après la perte d'un membre | `testé MP` | MP | LK11-T03, LK09-T01 |
+| ☑ | LK11-T06 | Demandes d'aide : dons tirés du stock | `testé MP` | MP | LK11-T03, LK08-T06 |
+| ☑ | LK11-T07 | Raids des groupes pillards | `testé MP` | MP | LK11-T03, LK05-T05 |
+| ☑ | LK11-T08 | Troc direct avec un groupe ami | `testé MP` | MP | LK11-T03, LK08-T07 |
+| ☑ | LK11-T09 | Bulles visibles : PNJ et phrase du joueur | `testé solo` | solo | LK11-T04 |
+| ☑ | LK11-T10 | Délai de la vengeance réglable par une option sandbox | `testé solo` | solo | LK11-T05 |
+
+<!-- fin du tableau de bord -->
+
+**Mod (après la séparation).** Living Knox (`batman_LivingKnox` après `E18-T07`).
+
 **Objectif.** Rendre les rencontres intéressantes : avertissements, attitude par groupe et par joueur, parole de proximité, et points d'entrée pour les missions de RadioSurvivor.
 
 **Dépend de.** LK06-T01.

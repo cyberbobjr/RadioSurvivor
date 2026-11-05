@@ -1,5 +1,20 @@
 # E14 — La chronique du serveur et le mémorial
 
+<!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
+
+**Avancement.** en cours — 3 / 4 tâche(s) terminée(s).
+
+| | Tâche | Titre | État | Cible | Dépend de |
+|---|---|---|---|---|---|
+| ☑ | E14-T01 | Journal des faits du serveur | `testé MP` | MP | — |
+| ☑ | E14-T02 | Bulletin du soir | `testé MP` | MP | E14-T01, E07-T01 |
+| ☑ | E14-T03 | Mémorial | `testé MP` | MP | E14-T02 |
+| ☐ | E14-T04 | Mémorial : animaux exclus, consigne des noms sans contradiction | `testé hors jeu` | solo | E14-T03 |
+
+<!-- fin du tableau de bord -->
+
+**Mod (après la séparation).** RadioSurvivor.
+
 **Objectif.** Chaque soir de jeu, le chroniqueur diffuse sur sa station pirate un bulletin fondé sur les faits confirmés du serveur, et termine par les noms des morts du jour (note de travail §06).
 
 **Dépend de.** E05 (voix du chroniqueur).

@@ -1,5 +1,21 @@
 # LK10 — Récits
 
+<!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
+
+**Avancement.** terminée — 5 / 5 tâche(s) terminée(s).
+
+| | Tâche | Titre | État | Cible | Dépend de |
+|---|---|---|---|---|---|
+| ☑ | LK10-T01 | Gabarits d'histoire FR/EN | `testé hors jeu` | hors jeu | LK08-T01 |
+| ☑ | LK10-T02 | Journal de groupe | `testé hors jeu` | hors jeu | LK10-T01, LK09-T02 |
+| ☑ | LK10-T03 | Point d'enrichissement par un LLM | `testé hors jeu` | hors jeu | LK10-T01 |
+| ☑ | LK10-T04 | Traces lisibles en jeu | `testé solo` | solo | LK10-T02 |
+| ☑ | LK10-T05 | Plus d'origines d'histoire | `testé hors jeu` | hors jeu | LK10-T01 |
+
+<!-- fin du tableau de bord -->
+
+**Mod (après la séparation).** Living Knox (`batman_LivingKnox` après `E18-T07`).
+
 **Objectif.** Donner à chaque groupe une histoire et un journal, à partir de gabarits écrits, enrichis par le LLM quand RadioSurvivor est présent.
 
 **Dépend de.** LK08-T01.

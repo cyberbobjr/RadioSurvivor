@@ -1,5 +1,22 @@
 # LK01 — Fondations du projet
 
+<!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
+
+**Avancement.** terminée — 6 / 6 tâche(s) terminée(s).
+
+| | Tâche | Titre | État | Cible | Dépend de |
+|---|---|---|---|---|---|
+| ☑ | LK01-T01 | Banc de tests hors jeu : serveur et deux clients simulés | `testé hors jeu` | hors jeu | — |
+| ☑ | LK01-T02 | Squelette Lua, configuration et journal | `testé hors jeu` | hors jeu | LK01-T01 |
+| ☑ | LK01-T03 | Règles et journal de conception indépendante | `testé hors jeu` | hors jeu | — |
+| ☑ | LK01-T04 | Déclarer l'incompatibilité avec les autres mods de PNJ | `testé hors jeu` | hors jeu | E17-T02 |
+| ☑ | LK01-T05 | Contrôles automatiques du dépôt | `testé hors jeu` | hors jeu | LK01-T02 |
+| ☑ | LK01-T06 | Banc : `isRemoteZombie()` fidèle au Java côté serveur et en solo | `testé hors jeu` | hors jeu | LK01-T01 |
+
+<!-- fin du tableau de bord -->
+
+**Mod (après la séparation).** Living Knox (`batman_LivingKnox` après `E18-T07`).
+
 **Objectif.** Poser ce dont toutes les étapes ont besoin : banc de tests hors jeu, squelette Lua, configuration, journal, règles d'écriture indépendante, et déclaration des incompatibilités.
 
 **Dépend de.** LK00.

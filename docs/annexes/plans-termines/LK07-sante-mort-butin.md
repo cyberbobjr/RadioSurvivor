@@ -1,5 +1,26 @@
 # LK07 — Santé, mort et butin
 
+<!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
+
+**Avancement.** terminée — 10 / 10 tâche(s) terminée(s).
+
+| | Tâche | Titre | État | Cible | Dépend de |
+|---|---|---|---|---|---|
+| ☑ | LK07-T01 | Investigation : dégâts subis par un corps et synchronisation de la santé | `testé hors jeu` | hors jeu | — |
+| ☑ | LK07-T02 | Santé de référence sur le serveur | `testé MP` | MP | LK07-T01 |
+| ☑ | LK07-T03 | Saignement et soins | `testé solo` | solo | LK07-T02 |
+| ☑ | LK07-T04 | Mort unique et cadavre | `testé MP` | MP | LK07-T02 |
+| ☑ | LK07-T05 | Butin réel du cadavre | `testé MP` | MP | LK07-T04 |
+| ☑ | LK07-T06 | Coups au-delà du plafond de l'arme laissés passer | `testé solo` | solo | LK07-T02 |
+| ☑ | LK07-T07 | Butin de mort absent du cadavre en jeu | `testé solo` | solo | LK07-T05 |
+| ☑ | LK07-T08 | Arme d'un PNJ vivant remplacée par un mod d'armes : rien de perdu | `testé solo` | solo | LK07-T07 |
+| ☑ | LK07-T09 | Cadavre d'un PNJ absent chez les clients MP | `testé MP` | MP | LK07-T04, E01-T16 |
+| ☑ | LK07-T10 | Cadavre d'un PNJ tué loin d'un client sans copie | `testé MP` | MP | LK07-T09 |
+
+<!-- fin du tableau de bord -->
+
+**Mod (après la séparation).** Living Knox (`batman_LivingKnox` après `E18-T07`).
+
 **Objectif.** Santé des PNJ cohérente en MP, blessures, soins, mort unique et butin réel.
 
 **Dépend de.** LK06-T02.

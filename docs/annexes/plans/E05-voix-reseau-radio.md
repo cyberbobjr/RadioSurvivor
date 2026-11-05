@@ -1,5 +1,31 @@
 # E05 — Les voix du réseau radio
 
+<!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
+
+**Avancement.** en cours — 14 / 15 tâche(s) terminée(s).
+
+| | Tâche | Titre | État | Cible | Dépend de |
+|---|---|---|---|---|---|
+| ☑ | E05-T01 | Format de fiche personnage lisible par le pont et le serveur | `testé hors jeu` | hors jeu | — |
+| ☑ | E05-T02 | Chargement et rechargement à chaud des fiches côté serveur | `testé solo` | solo | E05-T01 |
+| ☑ | E05-T03 | Routage par voix, mémoire par voix et quotas | `testé hors jeu` | hors jeu | E05-T02 |
+| ☑ | E05-T04 | Noms, lieux et fréquences des cinq nouvelles voix | `testé hors jeu` | hors jeu | E05-T01 |
+| ☑ | E05-T05 | Appels spontanés par voix | `testé solo` | solo | E05-T03 |
+| ☑ | E05-T06 | Validation du réseau en solo puis en multijoueur | `testé MP` | MP | E05-T04, E05-T05 |
+| ☑ | E05-T07 | Fréquence de chaque voix tirée au hasard par partie, sans conflit | `testé solo` | solo | E05-T04 |
+| ☑ | E05-T08 | Plus de liste de fréquences chez les clients : le serveur trie | `testé solo` | solo | E05-T03 |
+| ☑ | E05-T09 | Notes de fréquences : documents lisibles dans le butin | `testé solo` | solo | E05-T07 |
+| ☑ | E05-T10 | Fiches livrées en un seul exemplaire (dans le mod) | `testé hors jeu` | hors jeu | E05-T07 |
+| ☑ | E05-T11 | Mise à jour des fiches installées non modifiées | `testé solo` | solo | E05-T10 |
+| ☑ | E05-T12 | Langue des appels spontanés d’une voix | `testé hors jeu` | hors jeu | E05-T05 |
+| ☑ | E05-T13 | Journal complet du pont en mode debug | `testé hors jeu` | hors jeu | E05-T12 |
+| ☑ | E05-T14 | Bouton de debug : fréquences de toutes les voix de la partie | `testé MP` | MP | E05-T07 |
+| ☐ | E05-T15 | Réconfort social : une réponse radio baisse l'ennui et la tristesse | `testé hors jeu` | MP | E05-T03, E08-T04, E08-T06 |
+
+<!-- fin du tableau de bord -->
+
+**Mod (après la séparation).** RadioSurvivor (voix radio) ; lien avec le pont vers le mod commun (`E18-T04`).
+
 **Objectif.** Passer d'une seule voix (Walt, 145,0 MHz) à un réseau de personnages radio hors carte, chacun avec sa fiche, sa fréquence, ses horaires et ses actions autorisées, éditables par l'admin sans redémarrage (note de travail §04).
 
 **Dépend de.** E01 pour la validation en jeu. Indépendant des étapes Bandits!.
@@ -18,6 +44,7 @@
 - 2026-10-09 — **Mise à jour des fiches installées** (choix de l'utilisateur) : le serveur mémorise l'empreinte de chaque fiche qu'il copie ; une fiche installée **non modifiée** par l'admin est remplacée par la nouvelle version livrée ; une fiche modifiée est gardée, avec un avertissement dans le journal.
 - 2026-10-14 — **E05-T14** : canal séparé et règle de droits recopiée ; ni bouton ni contenu sans droit ; pas de rafraîchissement automatique, bouton « Actualiser » (confirmé par l'utilisateur).
 - 2026-10-17 — **E05-T15, réconfort social** (proposition de l'utilisateur, points tranchés un par un) : une réponse d'un PNJ à la radio du personnage baisse l'ennui et la tristesse ; **toutes les voix** comptent, hostiles comprises ; **écouter** une conversation entre deux PNJ donne un **petit effet** (ennui seulement) ; dosage **−3 ennui / −1 tristesse par réponse, au plus 5 effets par heure de jeu**. Confirmé par défaut (valeurs techniques) : écoute = −1 ennui une fois par conversation et par personnage, sous le même plafond ; rien pour une consigne de mission, une réponse jamais arrivée (`NoAnswer`) ni un appel spontané ; effet appliqué quand la réponse passe à l'antenne ; halo vanilla « Ennui ↓ » / « Dépression ↓ » ; options sandbox des trois valeurs et du plafond (0 = désactivé) ; autorité serveur et `syncPlayerStats`.
+- 2026-11-05 — **Séparation** (utilisateur, [`E18`](../plans/E18-separation-living-knox.md)) : le lien avec le pont (file des demandes, quotas, signal de vie, dossier d'échange) passe dans le mod commun (`E18-T04`) ; les voix, leurs personnages et leurs fréquences restent dans RadioSurvivor.
 
 ## Hors périmètre
 

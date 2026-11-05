@@ -22,7 +22,7 @@ est à éviter (passer par l'API publique ou `RS_NPCProvider`).
 ## Architecture validée — à préserver
 
 Architecture validée par la décision utilisateur LK00-T02 du 2026-10-03
-([`annexes/plans/LK00-cadrage.md`](annexes/plans/LK00-cadrage.md)), fusion confirmée le 2026-10-08 : serveur
+([`annexes/plans-termines/LK00-cadrage.md`](annexes/plans-termines/LK00-cadrage.md)), fusion confirmée le 2026-10-08 : serveur
 autoritaire, adaptateurs d'exécution, fournisseur de PNJ. Vue détaillée :
 [`architecture/README.md`](architecture/README.md). **Aucun changement de pattern ni migration** sans décision.
 

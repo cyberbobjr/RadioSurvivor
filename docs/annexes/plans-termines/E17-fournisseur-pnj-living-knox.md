@@ -1,5 +1,32 @@
 # E17 — Fournisseur de PNJ et passage à Living Knox
 
+<!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
+
+**Avancement.** terminée — 15 / 15 tâche(s) terminée(s), 1 abandonnée(s).
+
+| | Tâche | Titre | État | Cible | Dépend de |
+|---|---|---|---|---|---|
+| ☑ | E17-T01 | Sort de l'intégration Bandits! dans RadioSurvivor | `testé hors jeu` | hors jeu | — |
+| ☑ | E17-T02 | Interface « fournisseur de PNJ » | `testé hors jeu` | hors jeu | E17-T01 |
+| ☑ | E17-T03 | Fournisseur Living Knox | `testé MP` | MP | E17-T02, LK12-T03 |
+| ✕ | E17-T04 | Choix du fournisseur au démarrage | `abandonné` | solo | E17-T03 |
+| ☑ | E17-T05 | Dernières mentions de Bandits! dans le pont et le protocole | `testé hors jeu` | hors jeu | E17-T02 |
+| ☑ | E17-T06 | Parler à un PNJ en solo depuis le carnet | `testé solo` | solo | E17-T03 |
+| ☑ | E17-T07 | Réponse d'un PNJ refusée en silence (« Bridge missing, invalid or expired reply ») | `testé solo` | solo | E17-T06 |
+| ☑ | E17-T08 | Faire connaissance avant de se dévoiler et de proposer une mission | `testé solo` | solo | E17-T07 |
+| ☑ | E17-T09 | Accepter une mission en répondant oui au PNJ, offre signalée à l'écran | `testé solo` | solo | E17-T08 |
+| ☑ | E17-T10 | Retirer les heuristiques par mots (acceptation, demande d'aide, langue) | `testé hors jeu` | hors jeu | E17-T09 |
+| ☑ | E17-T11 | Vraie langue du jeu transmise au PNJ | `testé hors jeu` | hors jeu | E17-T10 |
+| ☑ | E17-T12 | Réplique d'un PNJ découpée en bulles au milieu d'une phrase | `testé solo` | solo | E17-T06, LK11-T04 |
+| ☑ | E17-T13 | Bulle de PNJ coupée au milieu d'une phrase | `testé solo` | solo | E17-T12, LK11-T04 |
+| ☑ | E17-T14 | Réponse d'un PNJ non affichée en MP avant la découverte du canal « dire » | `testé MP` | MP | E17-T13, E01-T16 |
+| ☑ | E17-T15 | Délais du serveur alignés sur le pont, erreur du fournisseur remontée | `testé MP` | MP | E17-T08 |
+| ☑ | E17-T16 | Délais de la radio de Walt, des dernières pages et du bulletin alignés sur le pont | `testé hors jeu` | hors jeu | E17-T15 |
+
+<!-- fin du tableau de bord -->
+
+**Mod (après la séparation).** RadioSurvivor (interface `RS_NPCProvider`) ; adaptateur Living Knox dans Living Knox (`E18-T09`).
+
 **Objectif.** Rendre le carnet indépendant du moteur de PNJ : aujourd'hui il vise Bandits! (`RS_Bandits.lua` : sélection Ctrl+G, signature, fiches, mort, audition). Le 2026-10-03, l'utilisateur a décidé que les PNJ viendront d'un moteur propre, **Living Knox**, et qu'un seul moteur de PNJ tourne par serveur. Depuis la fusion du 2026-10-08, Living Knox fait partie de ce mod (étapes `LK00` à `LK13`).
 
 **Dépend de.** `LK12-T01` à `LK12-T03` (API publique) pour le fournisseur Living Knox ; rien pour l'interface du fournisseur.

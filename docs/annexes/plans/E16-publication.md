@@ -1,5 +1,26 @@
 # E16 — Publication sur le Workshop
 
+<!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
+
+**Avancement.** en cours — 2 / 10 tâche(s) terminée(s).
+
+| | Tâche | Titre | État | Cible | Dépend de |
+|---|---|---|---|---|---|
+| ☑ | E16-T01 | Périmètre de la première publication | `testé hors jeu` | hors jeu | — |
+| ☐ | E16-T02 | Nettoyage et métadonnées | `à faire` | hors jeu | E16-T01, E18-T16 |
+| ☐ | E16-T03 | Guide d'installation du pont pour un serveur | `codé` | hors jeu | E16-T01, E18-T12 |
+| ☐ | E16-T04 | Validation multijoueur finale | `à faire` | MP | E16-T02, E18-T15 |
+| ☐ | E16-T05 | Publication | `à faire` | hors jeu | E16-T04 |
+| ☐ | E16-T06 | Pont LLM : injections et coût des appels (C01, C02, C03, C10) | `testé hors jeu` | solo | — |
+| ☑ | E16-T07 | Plafonds du pont réglables | `testé hors jeu` | hors jeu | E16-T06 |
+| ☐ | E16-T08 | Carnet : état privé borné et écritures fiables (C17 à C20) | `testé hors jeu` | MP | — |
+| ☐ | E16-T09 | Limites de débit et coût côté serveur (C21, C22, C30, C31) | `testé hors jeu` | MP | — |
+| ☐ | E16-T10 | Lot non réclamé gardé 7 jours de jeu | `testé hors jeu` | solo | — |
+
+<!-- fin du tableau de bord -->
+
+**Mod (après la séparation).** les trois mods de l'article (RadioSurvivor, Living Knox, mod commun).
+
 **Objectif.** Publier une version jouable de RadioSurvivor : contenu stabilisé, page Workshop, guide d'installation du pont, validation multijoueur complète.
 
 **Dépend de.** Le périmètre de la première publication, décidé en E16-T01.

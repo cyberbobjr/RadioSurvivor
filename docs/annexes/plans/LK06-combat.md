@@ -1,5 +1,31 @@
 # LK06 — Combat
 
+<!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
+
+**Avancement.** en cours — 13 / 15 tâche(s) terminée(s).
+
+| | Tâche | Titre | État | Cible | Dépend de |
+|---|---|---|---|---|---|
+| ☑ | LK06-T01 | Hostilité et choix de cible | `testé hors jeu` | hors jeu | LK05-T02 |
+| ☑ | LK06-T02 | Mêlée | `testé MP` | MP | LK06-T01 |
+| ☑ | LK06-T03 | Tir, munitions et rechargement | `testé MP` | MP | LK06-T01 |
+| ☑ | LK06-T04 | PNJ contre zombies, dans les deux sens | `testé MP` | MP | LK06-T02 |
+| ☑ | LK06-T05 | Fuite, reddition, appel à l'aide | `testé solo` | solo | LK06-T02 |
+| ☑ | LK06-T06 | Cri de douleur des PNJ (N4) | `testé solo` | solo | LK02-T04 |
+| ☑ | LK06-T07 | Tout le monde se bat : fuite réservée aux constantes mauvaises et au débordement | `testé solo` | solo | LK06-T05 |
+| ☑ | LK06-T08 | Zombies attirés par les PNJ : bruit et vue à travers une fenêtre, coups à la fenêtre | `testé solo` | solo | LK06-T04 |
+| ☑ | LK06-T09 | Offensive à la fenêtre : ouvrir, laisser tomber le zombie, l'achever au sol | `testé solo` | solo | LK06-T07, LK06-T08 |
+| ☑ | LK06-T10 | Corps de PNJ qui réagit aux bruits d'attrait (état `turnalerted`) | `testé solo` | solo | LK06-T08 |
+| ☐ | LK06-T11 | Son des coups de mêlée d'un PNJ | `testé solo` | MP | LK06-T02 |
+| ☑ | LK06-T12 | Reddition visible : le PNJ le dit et lève les mains | `testé MP` | MP | LK06-T05, LK02-T05 |
+| ☑ | LK06-T13 | Son de mêlée répété en boucle quand le PNJ meurt pendant son coup | `testé MP` | MP | LK06-T11 |
+| ☑ | LK06-T14 | Les PNJ attaquent les zombies jusqu'à 10 cases, sans attendre le corps à corps | `testé MP` | MP | LK06-T07, LK06-T09 |
+| ☐ | LK06-T15 | Fenêtre refermée après l'offensive à la fenêtre | `testé solo` | MP | LK06-T11 |
+
+<!-- fin du tableau de bord -->
+
+**Mod (après la séparation).** Living Knox (`batman_LivingKnox` après `E18-T07`).
+
 **Objectif.** Combat crédible et juste en MP : choix de cible et hostilité décidés par le serveur, mêlée et tir exécutés par le propriétaire, munitions et dégâts aux joueurs comptés par le serveur, interactions avec les zombies dans les deux sens.
 
 **Dépend de.** LK05-T02.
@@ -60,8 +86,8 @@
   - Preuve : banc `tests/test_lk_combat.py` du 2026-10-12 (25 tests OK dont 12 de tir : aucun tir sans cartouche côté serveur, cartouche retirée avant tout effet, ligne de tir, cadence, son et éclair une seule fois par client, rechargement par chargeur ou cartouches sans création d'objet) ; `gen_animsets --check` 41 nœuds ; run_all 54/54 ; luacheck 16/0 ; conception `docs/annexes/conception/combat.md` (Tir) ; essai en jeu du 2026-10-13 (Lua/batman_RadioSurvivor/tests/) : lk.ranged 1/1 (`20261013-084450-solo.txt` : 3 cartouches = 3 tirs, 2 touches, rechargement, puis mains nues) ; campagne MP automatique du 2026-10-15 (copie figée du commit `54087fb`, serveur dédié + 2 clients, pont avec faux modèle) : lk.ranged 1/1 avec l'étape lk.combat.view verte chez les deux clients (un son et un éclair par tir, aucun doublon) (`tools/autoclient/runs/20261015-110446-parallel-2-54087fb0f84f/shard2/server/20261015-090708-server.txt`, `tools/autoclient/runs/20261015-110446-parallel-2-54087fb0f84f/shard2/client2/20261015-090729-steps.txt`)
   - Reste : Limites : aucun PNJ ne reçoit encore de munitions hors `Ammo.give` ; boîtes non ouvertes ; pas de son de rechargement ni de flamme 3D ; rendu des clips en boucle non jugé par la suite
 
-- [ ] **LK06-T04** — PNJ contre zombies, dans les deux sens
-  - État : `testé solo`
+- [x] **LK06-T04** — PNJ contre zombies, dans les deux sens
+  - État : `testé MP`
   - Cible : `MP`
   - Dépend de : LK06-T02
   - Fichiers : `LK_Zombies.lua`
@@ -69,7 +95,7 @@
   - Idées : I6.10 (morsure, infection, transformation) (voir `docs/annexes/recherches/idees-bandits-alife.md`)
   - Accepté si : un groupe assailli par une horde peut perdre des membres de façon cohérente chez tous les clients.
   - Tests : suite en jeu.
-  - Preuve : banc `tests/test_lk_zombies.py` du 2026-10-12 (14 tests OK : cible zombie d'un combattant, dégâts vanilla reproductibles appliqués une seule fois, mort décidée par l'autorité, coup non mortel écrit en valeur absolue chez le simulateur, attaque d'un zombie sur un PNJ à issue déterministe identique pour tous, mort par `Health.kill`) ; `lk_combat` 25 OK ; run_all 56/56 ; luacheck 16/0 ; conception `docs/annexes/conception/zombies.md` ; campagne MP automatique du 2026-10-14 soir (serveur dédié + 2 clients, après les correctifs MP commits `826288c`, `ae252e5`, `7ff6143`, `778b940`, `862a942`) : lk.zombies PASS (`tools/autoclient/runs/20261014-184508-mp-1b6224aba9e1/server/20261014-164709-server.txt`) ; campagne MP automatique du 2026-10-15 (copie figée du commit `54087fb`, serveur dédié + 2 clients, pont avec faux modèle) : lk.zombies 1/1 (`tools/autoclient/runs/20261015-110446-parallel-2-54087fb0f84f/shard2/server/20261015-090708-server.txt`) ; campagne solo-lk (`tools/autoclient/runs/20261015-135627-parallel-2-c6a500a78137`) : lk.zombies « npc fights vanilla zombies, every death counted once » PASS
+  - Preuve : banc `tests/test_lk_zombies.py` du 2026-10-12 (14 tests OK : cible zombie d'un combattant, dégâts vanilla reproductibles appliqués une seule fois, mort décidée par l'autorité, coup non mortel écrit en valeur absolue chez le simulateur, attaque d'un zombie sur un PNJ à issue déterministe identique pour tous, mort par `Health.kill`) ; `lk_combat` 25 OK ; run_all 56/56 ; luacheck 16/0 ; conception `docs/annexes/conception/zombies.md` ; campagne MP automatique du 2026-10-14 soir (serveur dédié + 2 clients, après les correctifs MP commits `826288c`, `ae252e5`, `7ff6143`, `778b940`, `862a942`) : lk.zombies PASS (`tools/autoclient/runs/20261014-184508-mp-1b6224aba9e1/server/20261014-164709-server.txt`) ; campagne MP automatique du 2026-10-15 (copie figée du commit `54087fb`, serveur dédié + 2 clients, pont avec faux modèle) : lk.zombies 1/1 (`tools/autoclient/runs/20261015-110446-parallel-2-54087fb0f84f/shard2/server/20261015-090708-server.txt`) ; campagne solo-lk (`tools/autoclient/runs/20261015-135627-parallel-2-c6a500a78137`) : lk.zombies « npc fights vanilla zombies, every death counted once » PASS ; campagne MP complète du 2026-11-05 (copie figée du commit `efa5558`, serveur dédié + 2 clients, pont avec faux modèle, 520/537, seul échec lk.windowkill) : lk.zombies 1 PASS (`tools/autoclient/runs/20261105-122206-run-efa5558e207a/run/server/20261105-112357-server.txt`)
   - Reste : MP : lk.zombies FAIL en `mp-ambient` (zombies vanilla, sans mode dieu) ; pas d'animation d'attaque du zombie ni de recul
 
 - [x] **LK06-T05** — Fuite, reddition, appel à l'aide

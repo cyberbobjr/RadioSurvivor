@@ -1,5 +1,24 @@
 # LK08 — Socle des groupes
 
+<!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
+
+**Avancement.** en cours — 7 / 8 tâche(s) terminée(s).
+
+| | Tâche | Titre | État | Cible | Dépend de |
+|---|---|---|---|---|---|
+| ☑ | LK08-T01 | Registre des groupes et persistance | `testé hors jeu` | hors jeu | LK01-T02 |
+| ☑ | LK08-T02 | Profils et types de groupes en données | `testé hors jeu` | hors jeu | LK08-T01 |
+| ☑ | LK08-T03 | Choix des sites sans charger la zone | `testé solo` | solo | LK08-T01 |
+| ☐ | LK08-T04 | Aménagement des foyers | `testé solo` | MP | LK08-T03 |
+| ☑ | LK08-T05 | Population : 3 à 5 groupes et réglages | `testé hors jeu` | hors jeu | LK08-T03 |
+| ☑ | LK08-T06 | Stock réel dans les conteneurs du foyer | `testé MP` | MP | LK08-T04 |
+| ☑ | LK08-T07 | Gestion du stock : seuils, rationnement, besoins du groupe | `testé hors jeu` | hors jeu | LK08-T06 |
+| ☑ | LK08-T08 | Repli des pillards trop strict : groupes sans foyer | `testé solo` | solo | LK08-T03 |
+
+<!-- fin du tableau de bord -->
+
+**Mod (après la séparation).** Living Knox (`batman_LivingKnox` après `E18-T07`).
+
 **Objectif.** Registre serveur des groupes : type, histoire, chef, membres, foyer, besoins, moral ; création de 3 à 5 groupes ; choix et aménagement des foyers.
 
 **Dépend de.** LK01-T02 (peut avancer en parallèle du jalon pour la partie hors jeu).

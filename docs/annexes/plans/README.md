@@ -7,9 +7,12 @@ Deux familles d'étapes cohabitent dans ce plan unique depuis la fusion du 2026-
 - `E00` à `E18` : radio, carnet, missions, voix, publication, séparation des deux mods ;
 - `LK00` à `LK14` : moteur de PNJ **Living Knox** (ancien projet séparé `LivingKnox`, identifiants conservés). Ses règles propres sont plus bas, section « Règles propres à Living Knox ».
 
+- **Ordre de travail** (utilisateur, 2026-11-05) : `E18-T01 E18-T02 E18-T03 E18-T04 E18-T05 E18-T06 E E18 LK` — d'abord le mod commun (`E18-T01` à `E18-T06`), puis RadioSurvivor (étapes `E`), puis la fin de la séparation (`E18`), puis Living Knox (étapes `LK`). `plan.py next` suit cet ordre (jetons : tâche, étape, ou famille `E`/`LK` sans les étapes nommées ailleurs dans la liste), dans le respect des dépendances.
+- **Suivi** : chaque plan porte en tête son tableau de bord (avancement et état de chaque tâche), généré par `plan.py suivi` ; les étapes en cours vivent ici, les étapes terminées (toutes les tâches à leur cible ou abandonnées) dans [`../plans-termines/`](../plans-termines/), où `plan.py suivi` les range et d'où il les ressort si une tâche se rouvre, liens corrigés dans tout le dépôt.
+- **Décisions d'architecture** : un ADR (`docs/architecture/decisions/`) et son plan d'étape associé, cité en tête du plan ; le suivi des tâches vit dans le plan.
 - Vue d'ensemble générée : [SUIVI.md](SUIVI.md)
 - Outil : `python RadioSurvivor/tools/plan.py check | suivi | next | show E01-T02` (depuis `%USERPROFILE%\Zomboid\Workshop`)
-- Sources de conception Living Knox : [analyse d'architecture](../../architecture/ia-multijoueur.md), études [Bandits!](../recherches/bandits-analyse.md) et [Project A-Life](../recherches/alife-analyse.md), décisions [LK00](LK00-cadrage.md).
+- Sources de conception Living Knox : [analyse d'architecture](../../architecture/ia-multijoueur.md), études [Bandits!](../recherches/bandits-analyse.md) et [Project A-Life](../recherches/alife-analyse.md), décisions [LK00](../plans-termines/LK00-cadrage.md).
 - Sources de conception : [spécifications Bandits/LLM](../recherches/bandits-llm-specifications.md), [note de travail du carnet radio](../maquettes/note-de-travail.html), [contrat Lua ↔ Python v2](../../specifications-techniques/protocole-carnet-v2.md), [ADR B17](../../architecture/decisions/adr-b17-chat-proximite-pnj.md), [implémentation 0.2](../conception/carnet-implementation-04221.md), [validation 0.2](../tests/carnet-validation-04221.md).
 
 ## Format d'une tâche

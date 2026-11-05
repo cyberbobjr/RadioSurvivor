@@ -9,7 +9,7 @@ plan dans `Zomboid\Workshop\CharacterReputation` (proposition `docs/proposition-
 fonctions ci-dessous sont ceux que l'adaptateur `RS_Reputation.lua` (`E04-T03`) appellera ; si CharacterReputation
 retient d'autres noms, seul cet adaptateur change.
 
-Sources : décisions `E04-T01` ([plan E04](../annexes/plans/E04-reputation.md)) ; ADR B15 de la
+Sources : décisions `E04-T01` ([plan E04](../annexes/plans-termines/E04-reputation.md)) ; ADR B15 de la
 [spécification](../annexes/recherches/bandits-llm-specifications.md) ; identité du carnet `E00-T01` et mort `E00-T02`
 ([carnet-implementation-04221.md](../annexes/conception/carnet-implementation-04221.md), « Identité de personnage », « Mort d'un joueur ») ;
 missions `RS_Missions.lua` (`M.finish`) ; état actuel `RS_Reputation.lua` ; coquille installée

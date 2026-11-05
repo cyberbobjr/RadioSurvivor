@@ -66,5 +66,5 @@ Guides joueur et administrateur pas à pas : [wiki](../wiki/fr/Home.md). Contrat
   par la campagne automatique (règle « les tests font foi » du 2026-10-14).
 - Une nouvelle partie est recommandée ; les états `RS_State` et les registres Living Knox d'un autre schéma bloquent
   l'écriture plutôt que d'être écrasés.
-- Les PNJ n'utilisent pas de véhicules (reporté, [LK00](../annexes/plans/LK00-cadrage.md)).
+- Les PNJ n'utilisent pas de véhicules (reporté, [LK00](../annexes/plans-termines/LK00-cadrage.md)).
 - Incompatible avec Bandits! et Project A-Life.

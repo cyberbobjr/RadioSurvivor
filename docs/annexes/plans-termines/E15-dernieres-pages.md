@@ -1,5 +1,20 @@
 # E15 — Les dernières pages
 
+<!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
+
+**Avancement.** terminée — 4 / 4 tâche(s) terminée(s).
+
+| | Tâche | Titre | État | Cible | Dépend de |
+|---|---|---|---|---|---|
+| ☑ | E15-T01 | Relevé de vie du personnage | `testé MP` | MP | — |
+| ☑ | E15-T02 | Investigation : conteneur du cadavre côté serveur | `testé MP` | MP | — |
+| ☑ | E15-T03 | Génération et document manuscrit verrouillé | `testé MP` | MP | E15-T01, E15-T02 |
+| ☑ | E15-T04 | Option sandbox pour couper la fonction | `testé solo` | solo | E15-T03 |
+
+<!-- fin du tableau de bord -->
+
+**Mod (après la séparation).** RadioSurvivor.
+
 **Objectif.** À la mort d'un personnage, le LLM écrit son journal à partir de sa vie enregistrée, et un document manuscrit en lecture seule est placé sur le corps ou à côté (note de travail §07).
 
 **Dépend de.** E00-T02 (mort sur serveur dédié), E05-T03 (pont).

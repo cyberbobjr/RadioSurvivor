@@ -1,5 +1,24 @@
 # E03 — Valider en jeu le carnet 0.2 et les correctifs E00
 
+<!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
+
+**Avancement.** terminée — 3 / 3 tâche(s) terminée(s), 5 abandonnée(s).
+
+| | Tâche | Titre | État | Cible | Dépend de |
+|---|---|---|---|---|---|
+| ✕ | E03-T01 | Suite en jeu « carnet » en solo, parcours nominal | `abandonné` | solo | E01-T06 |
+| ☑ | E03-T02 | Protocole visuel du carnet (rendu ISUI) | `testé solo` | solo | E17-T02, E01-T04, E17-T03 |
+| ✕ | E03-T03 | Parcours deux joueurs sur serveur dédié | `abandonné` | MP | E03-T01, E01-T05 |
+| ☑ | E03-T04 | Reconnexion, redémarrage et mort réels (E00-T01, E00-T02) | `testé MP` | MP | E01-T05 |
+| ✕ | E03-T05 | Mesures de charge avec une population réaliste | `abandonné` | MP | E03-T03, E02-T03 |
+| ✕ | E03-T06 | Passage avec le LLM réel | `abandonné` | MP | E03-T03 |
+| ☑ | E03-T07 | Fenêtre de livraison : position et noms d'objets coupés | `testé solo` | solo | E03-T02 |
+| ✕ | E03-T08 | Supprimer la clé de traduction inutilisée `IGUI_RS_None` | `abandonné` | hors jeu | E03-T02 |
+
+<!-- fin du tableau de bord -->
+
+**Mod (après la séparation).** RadioSurvivor (carnet).
+
 **Objectif.** Faire passer le carnet existant (dialogue de proximité, livraison M01, récompense) et les correctifs E00 de « testé hors jeu » à « testé solo » puis « testé MP », avec le moteur E01 et un protocole manuel pour ce qui demande un œil humain.
 
 **Dépend de.** E00, E01-T04 à E01-T06.

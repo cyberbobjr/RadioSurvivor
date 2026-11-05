@@ -1,5 +1,29 @@
 # E00 — Correctifs de la revue du carnet 0.2
 
+<!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
+
+**Avancement.** terminée — 12 / 12 tâche(s) terminée(s), 1 abandonnée(s).
+
+| | Tâche | Titre | État | Cible | Dépend de |
+|---|---|---|---|---|---|
+| ☑ | E00-T01 | Identité de personnage écrite dans la ModData du joueur côté serveur | `testé MP` | MP | — |
+| ☑ | E00-T02 | Retrait de l'identité à la mort par `OnCharacterDeath` | `testé MP` | MP | E00-T01 |
+| ☑ | E00-T03 | Plusieurs missions par PNJ, expiration des offres et délai entre deux offres | `testé solo` | solo | — |
+| ☑ | E00-T04 | Charge bornée : fiches au contact, purge, publication sur changement, sauvegarde conditionnelle | `testé MP` | MP | — |
+| ☑ | E00-T05 | Personnalité déterministe dès l'apparition | `testé hors jeu` | hors jeu | E00-T04 |
+| ✕ | E00-T06 | Confirmer l'écart à ADR B06 (fiche persistée au contact, enrichissement au contact) | `abandonné` | hors jeu | E00-T05 |
+| ☑ | E00-T07 | Documentation du carnet à jour après les correctifs | `testé hors jeu` | hors jeu | E17-T02 |
+| ☑ | E00-T08 | `RS_Codec.hex` réversible pour tout texte (unités UTF-16 au-delà de U+00FF) | `testé hors jeu` | hors jeu | — |
+| ☑ | E00-T09 | Texte accentué envoyé au pont Python en UTF-8 | `testé hors jeu` | hors jeu | E00-T08 |
+| ☑ | E00-T10 | Récompense de mission créée par `instanceItem` (`InventoryItemFactory` non exposé) | `testé solo` | solo | — |
+| ☑ | E00-T11 | Carnet qui ne s'ouvre pas : `setMaxTextLength` appelé avant `addChild` | `testé solo` | solo | — |
+| ☑ | E00-T12 | Texte du carnet blanc et illisible (`ISRichTextPanel` ignore `textR/G/B`) | `testé solo` | solo | E00-T11 |
+| ☑ | E00-T13 | État du mod effacé à chaque redémarrage d'un serveur dédié | `testé MP` | MP | E01-T17 |
+
+<!-- fin du tableau de bord -->
+
+**Mod (après la séparation).** RadioSurvivor (carnet) ; identité des personnages vers le mod commun (`E18-T03`).
+
 **Objectif.** Corriger les défauts trouvés à la relecture du carnet 0.2 (2026-10-03) avant de construire la suite : identité perdue à la reconnexion, mort de joueur ignorée sur serveur dédié, une seule mission par PNJ, charge proportionnelle à la population Bandits.
 
 **Dépend de.** Rien. La validation en jeu de ces corrections est regroupée dans E03.

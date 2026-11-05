@@ -1,5 +1,31 @@
 # LK02 — Jalon 1 : corps et gestes prouvés (décision de continuer)
 
+<!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
+
+**Avancement.** en cours — 12 / 15 tâche(s) terminée(s).
+
+| | Tâche | Titre | État | Cible | Dépend de |
+|---|---|---|---|---|---|
+| ☑ | LK02-T01 | Investigation vanilla : corps, apparence, états et animations des zombies | `testé hors jeu` | hors jeu | — |
+| ☑ | LK02-T02 | Création d'un corps de PNJ côté serveur avec identité | `testé solo` | solo | LK02-T01, LK01-T02, LK02-T10 |
+| ☑ | LK02-T03 | Apparence humaine visible par tous les clients | `testé MP` | MP | LK02-T02, LK02-T10 |
+| ☑ | LK02-T04 | Neutralisation des comportements de zombie | `testé MP` | MP | LK02-T02, LK02-T10 |
+| ☑ | LK02-T05 | Animations de base générées | `testé solo` | solo | LK02-T01 |
+| ☐ | LK02-T06 | Arme en main visible par tous | `testé solo` | MP | LK02-T03, LK02-T05 |
+| ☐ | LK02-T07 | Exécution par le propriétaire : consigne « aller à » et relais de pose | `testé solo` | MP | LK02-T04, LK02-T05 |
+| ☐ | LK02-T08 | Suite de jalon et mesures | `testé solo` | MP | LK02-T06, LK02-T07 |
+| ☑ | LK02-T09 | Décision de jalon : continuer ou se replier | `testé hors jeu` | hors jeu | LK02-T08 |
+| ☑ | LK02-T10 | Essai comparatif : zombie ordinaire (A) ou joueur réanimé (B) | `testé MP` | MP | LK02-T01, E01-T05 |
+| ☑ | LK02-T11 | Corps créé sur une case libre (sinon il ne se relève jamais) | `testé solo` | solo | LK02-T02 |
+| ☑ | LK02-T12 | Apparence stable si la liste des tenues change (N2) | `testé solo` | solo | LK02-T03 |
+| ☑ | LK02-T13 | Abonnés `OnEquipPrimary` des autres mods (N6) | `testé solo` | solo | LK02-T06 |
+| ☑ | LK02-T14 | PNJ qui apparaît déjà debout | `testé solo` | solo | LK02-T10, LK04-T12 |
+| ☑ | LK02-T15 | Apparence humaine des PNJ non répliquée aux clients MP | `testé MP` | MP | LK02-T03, E01-T16 |
+
+<!-- fin du tableau de bord -->
+
+**Mod (après la séparation).** Living Knox (`batman_LivingKnox` après `E18-T07`).
+
 **Objectif.** Démontrer, en solo puis sur serveur dédié avec deux clients, qu'un PNJ de Living Knox **a l'air humain** (vêtements, cheveux, peau, arme en main), **ne se comporte pas en zombie**, **marche vers une destination décidée par le serveur** et **montre ses gestes** (viser, frapper, s'accroupir) à l'autre joueur. Durée visée : 2 à 3 semaines. Se termine par une décision explicite (LK02-T09).
 
 **Dépend de.** LK01-T01, LK01-T02 ; moteur de tests en jeu `E01-T04` (lancement console) et `E01-T05` (suites serveur).
@@ -124,15 +150,15 @@
   - Preuve : décision du 2026-10-09 (section Décisions), rapport `docs/annexes/tests/validation/jalon1-2026-10-09.md`
   - Reste : décision à revoir si la séance MP finale échoue
 
-- [ ] **LK02-T10** — Essai comparatif : zombie ordinaire (A) ou joueur réanimé (B)
-  - État : `testé solo`
+- [x] **LK02-T10** — Essai comparatif : zombie ordinaire (A) ou joueur réanimé (B)
+  - État : `testé MP`
   - Cible : `MP`
   - Dépend de : LK02-T01, E01-T05
   - Fichiers : mod de dev `dev/batman_RadioSurvivorTests/42.21/media/lua/{shared,server,client}/RST/…` (code d'essai jamais publié) ; `docs/annexes/conception/corps-et-animations.md` (résultats)
   - Faire : commandes de console et suite `lk.essai` (suites `world`, partie `rstest*`) qui créent côté serveur un PNJ de chaque sorte près du joueur, puis mesurent : apparence (peau, cheveux, vêtements, sang) chez deux clients et après une reconnexion ; persistance après sortie de zone, déchargement et redémarrage (identité retrouvée, doublons) ; neutralisation (`useless`, `noTeeth`, cible effacée : un joueur au contact une minute) ; marche vers une case (sans `useless`, avec `useless` + `pathfind`, cible effacée) ; moyen de couper les voix ; objet en main posé côté client et `sendAttachedItem`. Nettoyage complet en `after`.
   - Accepté si : rapport comparatif A/B consigné dans la fiche, chaque mesure prouvée par un fichier de résultat RST ou une capture ; recommandation argumentée pour LK02-T02 à T07 présentée à l'utilisateur.
   - Tests : banc `lupa` des commandes et du nettoyage ; suite `lk.essai` en solo puis sur le serveur dédié de test avec deux clients.
-  - Preuve : code d'essai dans le mod de dev (`RST_LKEssai.lua`, `RST_LKEssaiServer.lua`, `RST_LKEssaiClient.lua`, suite `lk.essai`) : commandes `LKE.spawn/list/here/set/walk/clear` ; chemin B réel `addZombiesInOutfit` → `DoZombieInventory` → `createCorpse(zombie)` → `reanimate()` ; `tests/test_lk_essai.py` 19/19 (routage, refus hors debug, hors `rstest*` et sans capacité, autorité, nettoyage), `tests/run_all.py` 11/11 le 2026-10-09 ; serveur dédié de test `-Filters "rst"` : 6/6, mod de dev chargé sans erreur Lua ; protocole et tableau A/B dans `docs/annexes/conception/corps-et-animations.md` ; LK02-T01 : commit `cb9aa64` ; **solo le 2026-10-09** (`rstest-solo`) : suite `lk.essai` 11/12 (`20261009-090207-solo.txt` ; l'échec est la mesure « A perdu après sortie de zone », B retrouvé), observations manuelles dans le tableau A/B de la fiche (B `clean` le plus humain, voix coupées par préfixe, marteau en main et pistolet accroché visibles, `clear` complet) ; campagne MP automatique du 2026-10-15 (copie figée du commit `54087fb`, serveur dédié + 2 clients, pont avec faux modèle) : lk.essai 7/7 (`tools/autoclient/runs/20261015-110446-parallel-2-54087fb0f84f/shard1/server/20261015-090647-server.txt`)
+  - Preuve : code d'essai dans le mod de dev (`RST_LKEssai.lua`, `RST_LKEssaiServer.lua`, `RST_LKEssaiClient.lua`, suite `lk.essai`) : commandes `LKE.spawn/list/here/set/walk/clear` ; chemin B réel `addZombiesInOutfit` → `DoZombieInventory` → `createCorpse(zombie)` → `reanimate()` ; `tests/test_lk_essai.py` 19/19 (routage, refus hors debug, hors `rstest*` et sans capacité, autorité, nettoyage), `tests/run_all.py` 11/11 le 2026-10-09 ; serveur dédié de test `-Filters "rst"` : 6/6, mod de dev chargé sans erreur Lua ; protocole et tableau A/B dans `docs/annexes/conception/corps-et-animations.md` ; LK02-T01 : commit `cb9aa64` ; **solo le 2026-10-09** (`rstest-solo`) : suite `lk.essai` 11/12 (`20261009-090207-solo.txt` ; l'échec est la mesure « A perdu après sortie de zone », B retrouvé), observations manuelles dans le tableau A/B de la fiche (B `clean` le plus humain, voix coupées par préfixe, marteau en main et pistolet accroché visibles, `clear` complet) ; campagne MP automatique du 2026-10-15 (copie figée du commit `54087fb`, serveur dédié + 2 clients, pont avec faux modèle) : lk.essai 7/7 (`tools/autoclient/runs/20261015-110446-parallel-2-54087fb0f84f/shard1/server/20261015-090647-server.txt`) ; campagne MP complète du 2026-11-05 (copie figée du commit `efa5558`, serveur dédié + 2 clients, pont avec faux modèle, 520/537, seul échec lk.windowkill) : lk.essai 7 PASS, lk.handover 1 PASS (`tools/autoclient/runs/20261105-122206-run-efa5558e207a/run/server/20261105-112357-server.txt`)
   - Reste : volet MP : changement de propriétaire non prouvé (lk.handover FAIL, `tools/autoclient/runs/20261015-110446-parallel-2-54087fb0f84f/shard2/server/20261015-090708-server.txt`) et `sendAttachedItem` pour un client arrivé après non automatisé ; apparence chez l'autre client couverte par lk.look (LK02-T03), reconnexion et redémarrage par `mp-persist` ; recommandation présentée et base B retenue le 2026-10-09
 
 - [x] **LK02-T11** — Corps créé sur une case libre (sinon il ne se relève jamais)

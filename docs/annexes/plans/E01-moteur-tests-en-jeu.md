@@ -1,5 +1,36 @@
 # E01 — Moteur de tests Lua lancé depuis la console du jeu
 
+<!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
+
+**Avancement.** en cours — 16 / 19 tâche(s) terminée(s), 1 abandonnée(s).
+
+| | Tâche | Titre | État | Cible | Dépend de |
+|---|---|---|---|---|---|
+| ☑ | E01-T01 | Choisir l'emplacement du code de test | `testé hors jeu` | hors jeu | — |
+| ☑ | E01-T02 | Noyau RST : registre, suites, assertions, filtres, rapport texte | `testé hors jeu` | hors jeu | E01-T01 |
+| ✕ | E01-T03 | Tests asynchrones pilotés par les ticks | `abandonné` | solo | E01-T02 |
+| ☑ | E01-T04 | Lanceur console client et fichier de résultats | `testé solo` | solo | E01-T03 |
+| ☑ | E01-T05 | Lancement des suites serveur depuis un client | `testé MP` | MP | E01-T04 |
+| ☑ | E01-T06 | Garde « partie de test » et fixtures du monde | `testé solo` | solo | E01-T04 |
+| ☑ | E01-T07 | Exécution automatique sur le serveur dédié de test | `testé MP` | MP | E01-T05 |
+| ☑ | E01-T08 | Suites de base : environnement, codec, état, missions | `testé solo` | solo | E01-T04, E01-T11 |
+| ☑ | E01-T09 | Mode d'emploi et entrée de la base de connaissances | `testé hors jeu` | hors jeu | E01-T08 |
+| ☑ | E01-T10 | Fixture PNJ par le fournisseur de PNJ | `testé solo` | solo | E01-T06, E17-T02, LK12-T03 |
+| ☑ | E01-T11 | Attente par étapes, sans coroutine | `testé solo` | solo | E01-T03 |
+| ☑ | E01-T12 | `quit` envoyé sans BOM au serveur dédié de test | `testé hors jeu` | hors jeu | E01-T07 |
+| ☑ | E01-T13 | Filtre d'erreurs du script de fumée : ignorer les signaux d'assertion volontaires | `testé hors jeu` | hors jeu | E01-T12 |
+| ☑ | E01-T14 | Lanceur client automatique : campagne en jeu sans geste | `testé solo` | solo | E01-T11, E01-T12 |
+| ☑ | E01-T15 | Multijoueur automatique : serveur dédié de test et clients pilotés | `testé MP` | MP | E01-T14, E01-T12 |
+| ☐ | E01-T16 | Client 2 actif dans la campagne MP | `codé` | MP | E01-T15 |
+| ☑ | E01-T17 | Reconnexion et redémarrage du serveur dans la campagne MP | `testé MP` | MP | E01-T16 |
+| ☑ | E01-T18 | API de test réservée au mode debug | `testé solo` | solo | E01-T10 |
+| ☐ | E01-T19 | Campagne `mp-ambient` et suites de gabarits dans la campagne `mp` | `codé` | MP | E01-T15 |
+| ☐ | E01-T20 | lk.windowkill indépendant de l'IA vanilla du zombie | `à faire` | MP | E01-T18 |
+
+<!-- fin du tableau de bord -->
+
+**Mod (après la séparation).** outillage de test des trois mods (mod de test de développement, lanceurs).
+
 **Objectif.** Exécuter des suites de tests **dans le jeu réel** (API Java, Bandits!, réseau) depuis la console Lua du mode debug, côté client comme côté serveur, avec un rapport écrit dans un fichier qui sert de preuve. Les mêmes suites, quand elles ne dépendent que de la logique, tournent aussi dans le banc `lupa` hors jeu.
 
 **Dépend de.** Rien. Toutes les étapes suivantes s'en servent pour leurs cibles `solo` et `MP`.

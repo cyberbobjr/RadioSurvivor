@@ -1,5 +1,23 @@
 # E12 — Survivants à secourir
 
+<!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
+
+**Avancement.** terminée — 7 / 7 tâche(s) terminée(s).
+
+| | Tâche | Titre | État | Cible | Dépend de |
+|---|---|---|---|---|---|
+| ☑ | E12-T01 | Choix du bâtiment sans charger la zone et indices | `testé solo` | solo | — |
+| ☑ | E12-T02 | Réserves, délai et équipe | `testé MP` | MP | E12-T01, E09-T03 |
+| ☑ | E12-T03 | Livraison sur place et approche | `testé MP` | MP | E12-T02, E11-T07 |
+| ☑ | E12-T04 | Issue « à temps » | `testé MP` | MP | E12-T03 |
+| ☑ | E12-T05 | Issue « trop tard » | `testé MP` | MP | E12-T02, E15-T03 |
+| ☑ | E12-T06 | Délai du secours réglable par une option sandbox | `testé solo` | solo | E12-T02 |
+| ☑ | E12-T07 | Issue « trop tard » : survivants transformés en zombies | `testé MP` | MP | E12-T05 |
+
+<!-- fin du tableau de bord -->
+
+**Mod (après la séparation).** RadioSurvivor ; bases des joueurs partagées avec Living Knox (`E18-T08`).
+
 **Objectif.** Une voix radio rattachée à un vrai bâtiment appelle à l'aide avec des indices ; ses réserves baissent ; l'équipe qui la secourt à temps reçoit une cache et une note, sinon elle trouve une scène et les dernières pages (note de travail §05).
 
 **Dépend de.** E05 (voix), E07-T01 (actions), E11-T06 (`place_cache`) ; E09-T03 (identifiant d'équipe) ; E15 pour l'issue « trop tard ».
@@ -14,6 +32,7 @@
 - 2026-10-14 — **E12-T04** : déclencheur (dépôt réel puis départ de tous) ; aidants (8 au plus) ; contenu de la cache tiré dans la liste existante ; note fixe traduite ; nouvel endroit porté par le lieu dit, moral +2 ; textes des deux souvenirs ; libellé de `RS_LifeLog.rescue` = nom du demandeur (confirmé par défaut, valeurs techniques).
 - 2026-10-14 — **E12-T05** : survivants tirés au départ (2 ou 3) ; liste des 10 tenues ; dernières pages en texte fixe traduit ; `LastPages` coupée = pas de cahier ; nouveau fichier `RS_RescueLost.lua` (confirmé par défaut, valeurs techniques) ; changement (décision de l'utilisateur) : survivants « trop tard » en **zombies** dans les tenues décrites (au lieu de cadavres), cahier des dernières pages dans l'inventaire de l'un d'eux : tâche E12-T07.
 - 2026-10-15 — **Scène de secours « trop tard » près d'un groupe** : les PNJ voisins peuvent tuer les zombies de la scène (comportement actuel gardé) ; confirmé par défaut (2026-10-15, l'utilisateur ne souhaite pas être interrogé sur le détail).
+- 2026-11-05 — **Séparation** (utilisateur, [`E18`](../plans/E18-separation-living-knox.md)) : la géométrie des bases des joueurs, lue aussi par les sites et raids de Living Knox, passe dans le mod commun ou un crochet optionnel (`E18-T08`) ; les survivants à secourir restent dans RadioSurvivor.
 
 ## Tâches
 

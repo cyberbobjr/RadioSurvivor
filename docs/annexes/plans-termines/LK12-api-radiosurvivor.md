@@ -1,5 +1,20 @@
 # LK12 — API publique et intégration RadioSurvivor
 
+<!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
+
+**Avancement.** terminée — 3 / 3 tâche(s) terminée(s), 1 abandonnée(s).
+
+| | Tâche | Titre | État | Cible | Dépend de |
+|---|---|---|---|---|---|
+| ☑ | LK12-T01 | API versionnée en lecture | `testé hors jeu` | hors jeu | LK08-T01 |
+| ☑ | LK12-T02 | Événements publics | `testé hors jeu` | hors jeu | LK12-T01 |
+| ☑ | LK12-T03 | Demandes de ressources pour les missions | `testé hors jeu` | hors jeu | LK12-T01, LK09-T01 |
+| ✕ | LK12-T04 | Fournisseur Living Knox côté RadioSurvivor | `abandonné` | MP | LK12-T03, E17-T02 |
+
+<!-- fin du tableau de bord -->
+
+**Mod (après la séparation).** Living Knox (`batman_LivingKnox` après `E18-T07`) ; consommée par RadioSurvivor.
+
 **Objectif.** Exposer une API stable et des événements pour que RadioSurvivor (et d'autres mods) lisent les groupes et PNJ, réagissent aux faits et proposent des missions.
 
 **Dépend de.** LK08-T01, LK07-T04.
@@ -11,6 +26,7 @@
 ## Décisions
 
 - 2026-10-14 — **LK12-T02** : déclenchement différé au pas suivant ; besoin critique fondé sur les réserves publiques (sous 25, sortie à 40) ; « membre mort » limité aux membres d'un groupe ; « groupe disparu » = plus aucun vivant ou retrait ; « rencontre » = début d'une sommation ; `reason` vide pour les départs hors écran (LK09-T05), `"leave_group"` pour E10-T04 (confirmé par défaut, valeurs techniques).
+- 2026-11-05 — **Séparation** (utilisateur, [`E18`](../plans/E18-separation-living-knox.md)) : l'API publique gagne les crochets de la séparation : donneur de missions des PNJ (`E18-T05`), contexte et actions ajoutés par RadioSurvivor à la parole des PNJ (`E18-T11`), bases connues (`E18-T08`) ; l'adaptateur `RS_LivingKnox.lua` passe dans Living Knox (`E18-T09`).
 
 ## Tâches
 

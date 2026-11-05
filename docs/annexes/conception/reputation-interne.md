@@ -1,6 +1,6 @@
 # Réputation interne de RadioSurvivor
 
-- Tâches : E04-T08 à E04-T14 (et E04-T04, T05, T07 adaptées) — plan [E04](../plans/E04-reputation.md)
+- Tâches : E04-T08 à E04-T14 (et E04-T04, T05, T07 adaptées) — plan [E04](../plans-termines/E04-reputation.md)
 - Build : 42.21.0 — Date : 2026-10-14, mise à jour 2026-10-15 — Statut : **cœur serveur codé** (E04-T07, T08, T09,
   T12 ; Q1 à Q17 réponse (a), confirmées par défaut le 2026-10-15 ; section 10) ; onglet, offres, contexte LLM, marge et
   suite en jeu à venir (E04-T04, T05, T10, T11, T14)

@@ -1,8 +1,21 @@
 # LK00 — Cadrage : décisions de conception et architecture
 
+<!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
+
+**Avancement.** terminée — 2 / 2 tâche(s) terminée(s).
+
+| | Tâche | Titre | État | Cible | Dépend de |
+|---|---|---|---|---|---|
+| ☑ | LK00-T01 | Analyse comparative des architectures d'exécution de l'IA en multijoueur | `testé hors jeu` | hors jeu | — |
+| ☑ | LK00-T02 | Choisir la base des PNJ et l'architecture d'exécution | `testé hors jeu` | hors jeu | LK00-T01 |
+
+<!-- fin du tableau de bord -->
+
+**Mod (après la séparation).** Living Knox (`batman_LivingKnox` après `E18-T07`).
+
 **Objectif.** Fixer la conception de Living Knox et choisir, sur une analyse complète, la base des PNJ et l'architecture d'exécution en multijoueur, avant d'écrire du code de jeu.
 
-**Sources.** [Analyse d'architecture](../../architecture/ia-multijoueur.md) (version 2 et estimation du moteur propre) ; [Bandits!](../recherches/bandits-analyse.md) ; [Project A-Life](../recherches/alife-analyse.md) ; méthode : [README](README.md).
+**Sources.** [Analyse d'architecture](../../architecture/ia-multijoueur.md) (version 2 et estimation du moteur propre) ; [Bandits!](../recherches/bandits-analyse.md) ; [Project A-Life](../recherches/alife-analyse.md) ; méthode : [README](../plans/README.md).
 
 ## Décisions
 

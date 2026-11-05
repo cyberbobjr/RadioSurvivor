@@ -1,5 +1,23 @@
 # E06 — Carnet radio et module « Émettre »
 
+<!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
+
+**Avancement.** en cours — 6 / 7 tâche(s) terminée(s).
+
+| | Tâche | Titre | État | Cible | Dépend de |
+|---|---|---|---|---|---|
+| ☑ | E06-T01 | Historique radio et articulation avec le carnet unique | `testé hors jeu` | hors jeu | — |
+| ☑ | E06-T02 | Module « Émettre » dans la fenêtre radio | `testé solo` | solo | E06-T01 |
+| ☑ | E06-T03 | Validation serveur d'une émission depuis radio posée ou autoradio | `testé MP` | MP | E06-T02 |
+| ☑ | E06-T04 | Onglet Radio du carnet : historique par fréquence et voyant | `testé solo` | solo | E06-T01 |
+| ☑ | E06-T05 | Validation multijoueur du carnet radio | `testé MP` | MP | E06-T03, E06-T04 |
+| ☑ | E06-T06 | Refonte visuelle du carnet (maquette A « carnet papier ») | `testé solo` | solo | E06-T04 |
+| ☐ | E06-T07 | Carnet : voix et heures d'écoute d'une fréquence connue | `testé hors jeu` | MP | E06-T04, E05-T09 |
+
+<!-- fin du tableau de bord -->
+
+**Mod (après la séparation).** RadioSurvivor.
+
 **Objectif.** Remplacer le parcours en cinq gestes (clic droit, « Parler », champ, saisie, envoi) par un module « Émettre » dans la fenêtre radio vanilla et un onglet Radio dans le carnet qui garde les conversations par fréquence (note de travail §03).
 
 **Dépend de.** E05-T03 (routage par voix).

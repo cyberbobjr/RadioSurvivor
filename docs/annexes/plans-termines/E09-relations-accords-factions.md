@@ -1,5 +1,25 @@
 # E09 — Relations évolutives et accords de faction
 
+<!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
+
+**Avancement.** terminée — 8 / 8 tâche(s) terminée(s), 1 abandonnée(s).
+
+| | Tâche | Titre | État | Cible | Dépend de |
+|---|---|---|---|---|---|
+| ☑ | E09-T01 | Libellés, seuils et tendance de la confiance | `testé hors jeu` | hors jeu | — |
+| ✕ | E09-T02 | Investigation : hostilité Bandits! envers un joueur ou une faction | `abandonné` | hors jeu | — |
+| ☑ | E09-T03 | Identifiant de faction propre au mod et mandats de négociation | `testé MP` | MP | — |
+| ☑ | E09-T04 | Relation personnelle d'un PNJ envers un personnage (`change_relation`) | `testé MP` | MP | E09-T01, LK11-T03, E17-T03 |
+| ☑ | E09-T05 | Accords de faction avec un groupe Living Knox : trêve et alliance (`negotiate`) | `testé MP` | MP | E09-T03, E10-T02, LK06-T01 |
+| ☑ | E09-T06 | Défense ciblée et décision sur la trêve | `testé MP` | MP | E09-T05, E04-T06, LK06-T01 |
+| ☑ | E09-T07 | Panneau de relation dans le carnet | `testé solo` | solo | E09-T04 |
+| ☑ | E09-T08 | Réplique gardée quand un changement de relation est refusé | `testé solo` | solo | E09-T04 |
+| ☑ | E09-T09 | Effet refusé par le serveur : la réponse du PNJ est gardée, sans l'effet | `testé MP` | MP | E09-T04, E09-T05, E10-T02 |
+
+<!-- fin du tableau de bord -->
+
+**Mod (après la séparation).** RadioSurvivor (relations, accords, factions), appliqué aux PNJ de Living Knox par l'API.
+
 **Objectif.** Les relations PNJ ↔ personnage évoluent dans les deux sens selon les faits vécus ; des trêves et alliances explicites se négocient avec une faction de joueurs par ses représentants ; une agression pendant une trêve entraîne une défense ciblée puis une décision du LLM validée par le serveur ; un panneau de relation l'explique au joueur.
 
 **Dépend de.** E17-T03 ; E08-T02 (observations) recommandé ; LK11-T03 (attitude), LK06-T01 (choix de cible) pour T05 et T06.

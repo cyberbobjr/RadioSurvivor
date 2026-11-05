@@ -1,5 +1,32 @@
 # LK13 — Outils, performance, validation et publication
 
+<!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
+
+**Avancement.** en cours — 13 / 15 tâche(s) terminée(s), 1 abandonnée(s).
+
+| | Tâche | Titre | État | Cible | Dépend de |
+|---|---|---|---|---|---|
+| ☑ | LK13-T01 | Outils d'administration | `testé MP` | MP | LK08-T01 |
+| ☑ | LK13-T02 | Mesures de charge | `testé MP` | MP | LK09-T03 |
+| ✕ | LK13-T03 | Périmètre de la première publication | `abandonné` | hors jeu | — |
+| ☐ | LK13-T04 | Validation multijoueur finale et publication | `à faire` | MP | E16-T01, E18-T15 |
+| ☐ | LK13-T05 | Essai sur serveur dédié Linux (N5) | `codé` | MP | LK02-T05 |
+| ☑ | LK13-T06 | Écriture incrémentale du registre des groupes | `testé hors jeu` | hors jeu | LK13-T02 |
+| ☑ | LK13-T07 | Alléger les plans de fortification gardés au registre | `testé hors jeu` | hors jeu | LK13-T02 |
+| ☑ | LK13-T08 | Lecture sans copie profonde pour les modules chauds | `testé hors jeu` | hors jeu | LK13-T02 |
+| ☑ | LK13-T09 | Étaler les pas horaires et le relevé du stock | `testé hors jeu` | hors jeu | LK13-T02 |
+| ☑ | LK13-T10 | Écriture regroupée du registre des PNJ et encodage plus rapide | `testé hors jeu` | hors jeu | LK13-T06 |
+| ☑ | LK13-T11 | Pointes de `Decisions.tick` et de `Fortify.onEveryOneMinute` | `testé hors jeu` | hors jeu | LK13-T09 |
+| ☑ | LK13-T12 | L'outil de mesure ne doit pas réordonner les abonnés | `testé hors jeu` | hors jeu | LK13-T02 |
+| ☑ | LK13-T13 | Fiche d'un PNJ par clic droit, besoins et santé modifiables | `testé MP` | MP | LK13-T01 |
+| ☑ | LK13-T14 | Panneau de debug des PNJ : groupes, activité en direct, journal d'activité | `testé MP` | MP | LK13-T13 |
+| ☑ | LK13-T15 | Panneaux de debug en tableaux, actions : rôle, téléportation, nom | `testé MP` | MP | LK13-T14 |
+| ☑ | LK13-T16 | Coordonnées des PNJ dans le panneau de debug, téléportation hors écran | `testé solo` | solo | LK13-T15 |
+
+<!-- fin du tableau de bord -->
+
+**Mod (après la séparation).** Living Knox (`batman_LivingKnox` après `E18-T07`).
+
 **Objectif.** Outils d'administration, mesures de charge, validation multijoueur complète et publication.
 
 **Dépend de.** Étapes LK03 à LK12 selon le périmètre de publication.
@@ -38,8 +65,8 @@
   - Preuve : banc `tests/test_lk_admin.py` du 2026-10-12 (22 tests OK : chaque opération refusée à un non-admin sans donnée ni écriture, droit `PopmanManage` vérifié par `checkPermissions` et le rôle, MP deux clients (admin A reçoit liste et détail, B 4 refus), relève forcée, contrôles du déplacement de foyer, solo direct ; suite `lk.admin` jouée sur le vrai moteur RST) ; run_all 70/70 ; luacheck 16/0 ; conception `docs/annexes/conception/administration.md` ; **en jeu solo le 2026-10-12** : `RST.run({ suite = "lk.admin", tags = "world" })` OK (`Lua/batman_RadioSurvivor/tests/20261012-181425-solo.txt`) ; fenêtre `LivingKnox.AdminView.open()` ouverte et vue par l'utilisateur ; campagne MP automatique du 2026-10-14 (E01-T15, serveur dédié + 2 clients, client 2 seulement présent) : lk.admin 3/3 (`tools/autoclient/runs/20261014-144930-mp-045a8627ec16/server/20261014-125125-server.txt`) ; campagne MP automatique du 2026-10-14 soir (règle « les tests font foi ») : lk.admin 3/3 (`tools/autoclient/runs/20261014-184508-mp-1b6224aba9e1/server/20261014-164709-server.txt`)
   - Reste : à automatiser par le client 2 (E01-T16) : bouton du panneau d'admin pour l'admin, refus d'un client `user` ; fenêtre (liste, détail, déplacer le foyer, forcer la relève) abandonné (règle du 2026-10-14 : jugée à l'œil, opérations couvertes par `lk.admin`). Carte = liste de coordonnées (pas de symboles) ; nouvelle case non vérifiée contre l'eau ; `LK_Admin.lua` hors VM Kahlua du banc ; identifiants internes non traduits.
 
-- [ ] **LK13-T02** — Mesures de charge
-  - État : `testé solo`
+- [x] **LK13-T02** — Mesures de charge
+  - État : `testé MP`
   - Cible : `MP`
   - Dépend de : LK09-T03
   - Fichiers : `docs/annexes/tests/validation/charge-*.md`
@@ -47,7 +74,7 @@
   - Idées : I1.5 (budget de réflexion selon la distance) (voir `docs/annexes/recherches/idees-bandits-alife.md`)
   - Accepté si : budgets respectés ; points chauds traités en nouvelles tâches.
   - Tests : suites + compteurs.
-  - Preuve : outil de mesure `LK_Load.lua` (coût par image, module et abonné ; commandes réseau par type ; écritures des registres ; taille de l'état ; verdict de budget ; opération admin `load`) et banc `tools/load_bench.py` (serveur dédié + 4 clients, 5 groupes, 15 corps, une journée de jeu ; facteur Kahlua mesuré ≈ 3,6) le 2026-10-12 ; résultats `docs/annexes/tests/validation/charge-hors-jeu-2026-10-12.md` (serveur 0,60 ms/image lupa ≈ 2,1 ms Kahlua, pire image 110 ms, 10 msg/s envoyés, registre des groupes 117 Ko) ; `tests/test_lk_load.py` 24 OK, `kahlua` 34 OK ; suite `lk.load` 3 PASS sur le banc ; protocole `docs/annexes/tests/validation/charge-protocole.md` ; **en jeu solo le 2026-10-12** : `RST.run({ suite = "lk.load", tags = "world" })` OK (`Lua/batman_RadioSurvivor/tests/20261012-180221-solo.txt`) ; mesure solo : moteur 0,12 ms par image, pire image 2 ms (résolution 1 ms), registre des groupes 20 Ko, « budget: ok » ; campagne MP automatique du 2026-10-14 (E01-T15, serveur dédié + 2 clients, client 2 seulement présent) : lk.load 3/3 (`tools/autoclient/runs/20261014-144930-mp-045a8627ec16/server/20261014-125125-server.txt`) ; campagne MP automatique du 2026-10-15 (copie figée du commit `54087fb`, serveur dédié + 2 clients, pont avec faux modèle) : lk.load 3/3 (`tools/autoclient/runs/20261015-110446-parallel-2-54087fb0f84f/shard1/server/20261015-090647-server.txt`) ; campagne `mp-ambient` du 2026-10-15 (copie figée du commit `54087fb`, zombies vanilla, sans mode dieu) : lk.load 3/3 (`tools/autoclient/runs/20261015-120139-run-54087fb0f84f/run/server/20261015-100346-server.txt`)
+  - Preuve : outil de mesure `LK_Load.lua` (coût par image, module et abonné ; commandes réseau par type ; écritures des registres ; taille de l'état ; verdict de budget ; opération admin `load`) et banc `tools/load_bench.py` (serveur dédié + 4 clients, 5 groupes, 15 corps, une journée de jeu ; facteur Kahlua mesuré ≈ 3,6) le 2026-10-12 ; résultats `docs/annexes/tests/validation/charge-hors-jeu-2026-10-12.md` (serveur 0,60 ms/image lupa ≈ 2,1 ms Kahlua, pire image 110 ms, 10 msg/s envoyés, registre des groupes 117 Ko) ; `tests/test_lk_load.py` 24 OK, `kahlua` 34 OK ; suite `lk.load` 3 PASS sur le banc ; protocole `docs/annexes/tests/validation/charge-protocole.md` ; **en jeu solo le 2026-10-12** : `RST.run({ suite = "lk.load", tags = "world" })` OK (`Lua/batman_RadioSurvivor/tests/20261012-180221-solo.txt`) ; mesure solo : moteur 0,12 ms par image, pire image 2 ms (résolution 1 ms), registre des groupes 20 Ko, « budget: ok » ; campagne MP automatique du 2026-10-14 (E01-T15, serveur dédié + 2 clients, client 2 seulement présent) : lk.load 3/3 (`tools/autoclient/runs/20261014-144930-mp-045a8627ec16/server/20261014-125125-server.txt`) ; campagne MP automatique du 2026-10-15 (copie figée du commit `54087fb`, serveur dédié + 2 clients, pont avec faux modèle) : lk.load 3/3 (`tools/autoclient/runs/20261015-110446-parallel-2-54087fb0f84f/shard1/server/20261015-090647-server.txt`) ; campagne `mp-ambient` du 2026-10-15 (copie figée du commit `54087fb`, zombies vanilla, sans mode dieu) : lk.load 3/3 (`tools/autoclient/runs/20261015-120139-run-54087fb0f84f/run/server/20261015-100346-server.txt`) ; campagne MP complète du 2026-11-05 (copie figée du commit `efa5558`, serveur dédié + 2 clients, pont avec faux modèle, 520/537, seul échec lk.windowkill) : lk.load 3 PASS + 1 SKIP solo (`tools/autoclient/runs/20261105-122206-run-efa5558e207a/run/server/20261105-112357-server.txt`)
   - Reste : campagnes à 2 clients seulement : mesure de charge en MP à 4 joueurs et 5 groupes à automatiser (campagne à 4 clients, `docs/annexes/tests/validation/charge-protocole.md`) ; critère « budgets respectés » non atteint hors jeu (pire image) ; points chauds reportés en tâches LK13-T06 à LK13-T09
 
 - [ ] **LK13-T03** — Périmètre de la première publication
