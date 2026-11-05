@@ -205,6 +205,41 @@ function Movement.unblockPoint(z, tx, ty)
     return best
 end
 
+-- What stands around a stuck body z (journal of the executor, MP campaign of 2026-11-05: two npcs stuck one behind
+-- the other at the same place, cause not in the log): the moving objects of the squares at 1 square (players by
+-- account, zombies by online id, with their position) and the squares that are not walkable there. Text, bounded.
+Movement.AROUND_MAX = 8
+function Movement.around(z)
+    local cell = getCell()
+    if cell == nil then return "no cell" end
+    local x0, y0, lv = math.floor(z:getX()), math.floor(z:getY()), math.floor(z:getZ())
+    local out, closed = {}, {}
+    for dx = -1, 1 do
+        for dy = -1, 1 do
+            local sq = cell:getGridSquare(x0 + dx, y0 + dy, lv)
+            if sq == nil then
+                closed[#closed + 1] = (x0 + dx) .. "," .. (y0 + dy) .. " unloaded"
+            else
+                if not sq:isFree(false) then closed[#closed + 1] = (x0 + dx) .. "," .. (y0 + dy) end
+                local list = sq.getMovingObjects ~= nil and sq:getMovingObjects() or nil
+                for i = 0, (list and list:size() or 0) - 1 do
+                    local o = list:get(i)
+                    if o ~= z and #out < Movement.AROUND_MAX then
+                        local what = "object"
+                        if instanceof(o, "IsoPlayer") then
+                            what = "player " .. tostring(o:getUsername())
+                        elseif instanceof(o, "IsoZombie") then
+                            what = "zombie " .. tostring(o:getOnlineID())
+                        end
+                        out[#out + 1] = string.format("%s at %.1f,%.1f", what, o:getX(), o:getY())
+                    end
+                end
+            end
+        end
+    end
+    return string.format("around: [%s]; not walkable: [%s]", table.concat(out, "; "), table.concat(closed, " "))
+end
+
 -- Prochaine réponse à un blocage de l'exécution run : "repath" (nouvelle requête, seulement pour une absence de
 -- progrès, les nouveaux essais de l'exécutant en ayant déjà fait), "unblock" (et le point), ou "fail" (et le
 -- détail). cause : "no approach" (aucun progrès), "no progress" (immobile, essais épuisés), "no path" (recherche

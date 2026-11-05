@@ -184,6 +184,10 @@ RST.suite("lk.barricade", { tags = { "world", "server" }, testTimeoutMs = 600000
         local base = {}
         for k, v in pairs(F().stats) do base[k] = v end
 
+        -- MP: the players stand in the home of the group, on the spawn square of a one-square corridor; players are
+        -- solid and both npcs stood behind them 28 s, then gave up (MP campaign of 2026-11-05: "around: player
+        -- rs_mp1, player rs_mp2"). They wait outside (K.clearHome; nothing in solo).
+        K.clearHome(t, home, function(t1)
         assert(G.addMember(gid, { role = "fighter", profile = "guard", female = false, day = G.today() }))
         assert(G.addMember(gid, { role = "worker", profile = "handyman", female = false, day = G.today() }))
         assert(G.setLeader(gid, "m-1", G.today()))
@@ -192,8 +196,8 @@ RST.suite("lk.barricade", { tags = { "world", "server" }, testTimeoutMs = 600000
             getGameTime():setTimeOfDay(6.98)
             measure(string.format("time of day %.2f: clock set to 6:59 first", tod))
         end
-        t:note("group " .. gid .. " home " .. home.x .. "," .. home.y .. "," .. home.z)
-        t:waitUntil(function()
+        t1:note("group " .. gid .. " home " .. home.x .. "," .. home.y .. "," .. home.z)
+        t1:waitUntil(function()
             local now = getGameTime():getTimeOfDay()
             return bodyCount(gid) == 2 and allStanding(gid) and now >= 7 and now < 21.5
         end, BODIES_MS, function(t2)
@@ -228,5 +232,6 @@ RST.suite("lk.barricade", { tags = { "world", "server" }, testTimeoutMs = 600000
                 RST.PeerChecks.checkSquares(t3, around, { barricade = true })
             end, "the builder did not finish the first site")
         end, "group members not materialized and standing")
+        end)
     end)
 end)

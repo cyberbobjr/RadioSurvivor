@@ -389,6 +389,12 @@ local function escalate(id, e, z, run, cause)
     local tx, ty = D().stepTarget(e, run.k)
     count("stuckSeen")
     local act, arg = M.respond(run, z, tx, ty, cause, t)
+    if act ~= "repath" and M.around ~= nil then
+        -- Diagnostic only: what stands around the body (never a reason to stop the move).
+        local ok, around = pcall(M.around, z)
+        log().info("npc %s: move #%d stuck at %.1f,%.1f, %s", id, run.v, z:getX(), z:getY(),
+            ok and around or ("around not read: " .. tostring(around)))
+    end
     if act == "repath" then
         log().info("npc %s: move #%d no progress for %d ms at %.1f,%.1f (%s), new path request", id, run.v,
             M.stillMs(run, t), z:getX(), z:getY(), cause)

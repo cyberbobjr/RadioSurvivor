@@ -275,6 +275,21 @@ class SoloStuckTests(MovementBase):
         self.assertIsNone(p)
         self.assertIn('no free square in a clear line', why)
 
+    def test_around_names_what_stands_next_to_a_stuck_body(self):
+        """Campagne MP du 2026-11-05 (lk.barricade, lk.windowkill) : deux PNJ bloqués sans cause dans le journal ; le
+        relevé nomme les cases non praticables et les objets mobiles voisins, sans compter le corps lui-même."""
+        self.solo_ready()
+        self.run_lua('BLOCK(106, 102)')
+        self.run_lua('local sq = getCell():getGridSquare(105, 103, 0) '
+                     'local other = { getX = function() return 105.5 end, getY = function() return 103.5 end } '
+                     'sq.getMovingObjects = function() return { size = function() return 1 end, '
+                     'get = function() return other end } end')
+        text = self.run_lua('local z = LivingKnox.Bodies.find("lk-1") HARNESS.place(z, 105.5, 102.5, 0) '
+                            'return LivingKnox.Movement.around(z)')
+        self.assertIn('not walkable: [106,102]', text)
+        self.assertIn('object at 105.5,103.5', text)
+        self.assertNotIn('105.5,102.5', text)
+
     def test_clear_line_rejects_walls_and_cut_corners(self):
         self.solo_ready()
         self.run_lua('WALL = {} function HARNESS.classes.IsoGridSquare:isBlockedTo(o) '
