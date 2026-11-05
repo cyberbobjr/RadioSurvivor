@@ -530,7 +530,7 @@ function M.finish(state, m, result)
     if M.onFinished then M.onFinished(state, m, result) end
     return true
 end
-package.loaded["RadioSurvivor/RS_Missions"] = M
+package.loaded["RadioSurvivorCore/RC_Missions"] = M
 
 -- Notebook server reduced to what the suites read (RS_Carnet_Server.lua: hello, snapshot, select, mandate, scan,
 -- prune, conditional save, enrichment of a contacted fiche).
@@ -770,7 +770,7 @@ class Machine:
         g.FILE_ROOT = self.root.as_posix()
         g.mkdirs = lambda full: Path(full).parent.mkdir(parents=True, exist_ok=True)
         sides = ['shared'] + (['client'] if role != 'server' else []) + (['server'] if role != 'client' else [])
-        paths = [DEV / 'shared', CORE_LUA / 'shared'] + [MOD / s for s in sides]
+        paths = [DEV / 'shared', CORE_LUA / 'shared', CORE_LUA / 'server'] + [MOD / s for s in sides]
         self.rt.execute('package.path = [[' + ''.join(f'{p.as_posix()}/?.lua;' for p in paths) + ']] .. package.path')
         self.rt.execute(JAVA)
         self.rt.execute(FACTION_DOUBLE)

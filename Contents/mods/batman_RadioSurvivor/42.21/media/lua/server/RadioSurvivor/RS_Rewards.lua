@@ -117,7 +117,7 @@ local function giveItem(player, item)
 end
 
 -- Reserve before irreversible effects. An interrupted effect is kept as 'reserved', never silently reissued.
--- For caches the persistent record itself is the deferred outbox, handled by RS_Caches.poll.
+-- For caches the persistent record itself is the deferred outbox, handled by RC_Caches.poll.
 function R.grant(store, source, m, player, cid, khz)
     if store.blocked or type(store.data) ~= 'table' then return nil, 'storage' end
     if not player or m.state ~= 'success' or not m.participants[cid] then return nil, 'state' end
@@ -145,7 +145,7 @@ function R.grant(store, source, m, player, cid, khz)
         local p = source.places[1]
         rec.place = {id = p.id, x = p.x, y = p.y, z = p.z or 0, label = p.label}
         if not source.material then
-            local caches = require 'RadioSurvivor/RS_Caches'
+            local caches = require 'RadioSurvivor/RS_CacheAction'
             caches.attach(m, source.cache_table, p, {x1 = p.x - 3, y1 = p.y - 3, x2 = p.x + 4, y2 = p.y + 4})
         end
     end
@@ -161,7 +161,7 @@ function R.grant(store, source, m, player, cid, khz)
             if not giveItem(player, item) then return rec, 'recovery' end
             rec.inHand = true
         else
-            local caches = require 'RadioSurvivor/RS_Caches'
+            local caches = require 'RadioSurvivor/RS_CacheAction'
             if not m.cache then
                 local p = rec.place
                 caches.attach(m, source.cache_table, p, {x1 = p.x - 3, y1 = p.y - 3, x2 = p.x + 4, y2 = p.y + 4})

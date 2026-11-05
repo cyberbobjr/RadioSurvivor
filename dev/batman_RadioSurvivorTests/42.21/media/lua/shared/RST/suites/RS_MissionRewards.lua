@@ -97,7 +97,7 @@ RST.suite("rs.missionrewards", {tags={"server","world"},testTimeoutMs=45000}, fu
         local rec,why=R.grant(S,source,m,p,cid)
         t:ok(rec and rec.status=='applied','cache grant failed: '..tostring(why))
         t:ok(m.cache~=nil,'persistent cache outbox absent')
-        local C=require 'RadioSurvivor/RS_Caches'
+        local C=require 'RadioSurvivor/RS_CacheAction'
         C.place(S,m.cache)
         t:eq(true,m.cache.placed,'real cache was not placed')
         local itemId=m.cache.itemId

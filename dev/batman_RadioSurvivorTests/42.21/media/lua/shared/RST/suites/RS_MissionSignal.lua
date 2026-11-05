@@ -1,5 +1,5 @@
 --[[
-rs.mission.signal - mission template "signal" (E11-T07, server/RadioSurvivor/RS_MissionSignal.lua) with the real
+rs.mission.signal - mission template "signal" (E11-T07, server/RadioSurvivorCore/RC_MissionSignal.lua) with the real
 required mod Signal Smoke: a building drawn around the player on the real metagrid, a colour and an hour, a circle
 centred on the building; real signals started through the public Signal Smoke API (SignalSmoke.start, as a thrown
 grenade of the player: source "grenade", player = the target player) at the centre of the circle: a signal of another
@@ -25,8 +25,8 @@ local function modules(t)
     if type(isClient) == "function" and isClient() then
         t:skip("RS_MissionSignal is not loaded on an MP client (authority only)")
     end
-    local M = require "RadioSurvivor/RS_Missions"
-    local Signal = require "RadioSurvivor/RS_MissionSignal"
+    local M = require "RadioSurvivorCore/RC_Missions"
+    local Signal = require "RadioSurvivorCore/RC_MissionSignal"
     if type(M) ~= "table" or type(Signal) ~= "table" then
         t:skip("mission modules did not return their table here")
     end

@@ -592,7 +592,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f'vanilla media folder not found: {args.vanilla} (use --vanilla)')
         return 2
     targets = [(p, args.dep) for p in args.mod] if args.mod else [
-        (CORE_MOD, []),
+        (CORE_MOD, [SIGNAL_MOD]),   # E18-T05: the mission template "signal" requires Signal Smoke
         (MAIN_MOD, [CORE_MOD, BELT_MOD, SIGNAL_MOD]),
         (DEV_MOD, [MAIN_MOD, CORE_MOD, BELT_MOD, SIGNAL_MOD])]
     for path, deps in targets:

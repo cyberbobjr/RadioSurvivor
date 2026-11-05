@@ -11,7 +11,7 @@ applied (Q1). The score is never sent to a client nor to the bridge: readers get
 reasons only.
 
 Sources (closed list R.ACTIONS, captured at the same points as the chronicle rs.facts, never read from it):
-    mission.success / mission.failed / mission.abandoned   RS_Missions.finish, one fact per registered participant
+    mission.success / mission.failed / mission.abandoned   RC_Missions.finish, one fact per registered participant
                                                            (same amount for everyone; cancellations change nothing)
     trade.cheated          RS_TradeExchange finish('cheated'), the caller of the passage
     npc.requesterKilled    RS_Carnet_Server.dead (E04-T07): attributed killer who takes part in an active mission of
@@ -67,7 +67,7 @@ local Config = require 'RadioSurvivor/RS_Config'
 local R = {}
 
 -- Private state of the notebook, required only when a reader passes no state (RS_State is loaded on the authority
--- before any reader runs; kept out of the load-time requires so that RS_Missions loads without it).
+-- before any reader runs; kept out of the load-time requires so that RC_Missions loads without it).
 local function stateData()
     return require('RadioSurvivor/RS_State').data
 end

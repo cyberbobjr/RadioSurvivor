@@ -192,7 +192,7 @@ class RecoverPersistTests(unittest.TestCase):
         before = self.run_suite(sim, alice, 'rs.mission.recover.before')
         self.assertEqual(list(before.values()), [('PASS', None)], before)
         self.assertEqual(self.bags(sim), 1)
-        sim.server.rt.eval("require('RadioSurvivor/RS_Caches')").resetForTests()   # restart: memory lost
+        sim.server.rt.eval("require('RadioSurvivor/RS_CacheAction')").resetForTests()   # restart: memory lost
         after = self.run_suite(sim, alice, 'rs.mission.recover.after-restart')
         self.assertEqual(list(after.values()), [('PASS', None)], after)
         self.assertEqual(self.bags(sim), 1)   # nothing placed by the restart, the adoption or the checks
@@ -204,7 +204,7 @@ class RecoverPersistTests(unittest.TestCase):
         self.run_suite(sim, alice, 'rs.mission.recover.before')
         sim.server.rt.execute("""
             local snap = RST.Persist.read(RST.RecoverPersist.FILE, RST.RecoverPersist.HEADER)
-            local Caches = require 'RadioSurvivor/RS_Caches'
+            local Caches = require 'RadioSurvivor/RS_CacheAction'
             local twin = Caches.make(snap.rec)
             getCell():getGridSquare(snap.rec.at.x, snap.rec.at.y, snap.rec.at.z):AddWorldInventoryItem(twin, 0.5, 0.5, 0, true)
         """)

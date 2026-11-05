@@ -1,18 +1,18 @@
 if isClient() then return end
 --[[
 Mission template `retrieve_id` (E11-T05): find the body of a missing person in a place chosen by the server and bring
-their ID card back to the requester. Authority only. Catalogue: RS_Config.Missions.retrieve_id (offer id
-retrieve_id_v1). Registered in RS_Missions (M.register); required by RS_Carnet_Server, whose once-a-second poll of the
+their ID card back to the requester. Authority only. Catalogue: RC_MissionConfig.Missions.retrieve_id (offer id
+retrieve_id_v1). Registered in RC_Missions (M.register); required by RS_Carnet_Server, whose once-a-second poll of the
 participants (M.observe) also places the body. Details: docs/annexes/conception/carnet-implementation-04221.md, "Gabarit
 retrouver"; design choices: docs/annexes/conception/mission-retrouver.md.
 
 Requester: an NPC fiche of the notebook only (a radio voice does not offer it: RS_MissionVoice.TEMPLATES). Offered only
 where the game can make a corpse (exposed class RandomizedWorldBase; a bench without it offers nothing).
-Place: drawn exactly as the scout template (RS_MissionScout.pick: habitable building of the metagrid at 60-250 tiles
+Place: drawn exactly as the scout template (RC_MissionScout.pick: habitable building of the metagrid at 60-250 tiles
 of the requester's body, 60 tiles at least from any known base, nothing loaded), kept per requester for siteTtlMs in
 a memory of this file so that the offer told by the bridge and the created mission name the same building. The
 mission keeps the site point (centre of the main room, m.spot) and the building bounds in the private state.
-Map area: the same approximate circle as the scout template (RS_MissionScout.mapZone, m.mapZone, projected to an
+Map area: the same approximate circle as the scout template (RC_MissionScout.mapZone, m.mapZone, projected to an
 engaged participant of an active mission only; client/RadioSurvivor/RS_MapActions.lua draws and removes it).
 Deferred placement: the body is placed by the server poll of a participant (Retrieve.observe), at most every
 placeRetryMs, once the site square is loaded (getCell():getGridSquare of the point itself, never a neighbour chunk)
@@ -33,10 +33,12 @@ effect. The card is removed (write-ahead transaction of the engine), then succes
 by the engine (same values as M01). The bridge sees only the kind of place, clues without digits, whether the body
 was placed or the card found, and the name of the dead person; never a coordinate, the zone nor the item id.
 ]]
-local M = require 'RadioSurvivor/RS_Missions'
-local Scout = require 'RadioSurvivor/RS_MissionScout'
-local Const = require 'RadioSurvivor/RadioSurvivor_Const'
-local Config = require 'RadioSurvivor/RS_Config'
+local M = require 'RadioSurvivorCore/RC_Missions'
+local Scout = require 'RadioSurvivorCore/RC_MissionScout'
+local Config = require 'RadioSurvivorCore/RC_MissionConfig'
+local function log(msg)
+    print('[RadioSurvivorCore] ' .. tostring(msg))
+end
 
 local Retrieve = {idPrefix = 'retrieve'}
 Retrieve.MARK = 'RS_RetrieveMission'
@@ -78,7 +80,7 @@ function Retrieve.site(npc, body, c)
         site, why = Scout.pick(body:getX(), body:getY(), c, 'retrieve:' .. tostring(npc.id) .. ':'
             .. tostring(npc.missionCount or 0) .. ':' .. tostring(now))
     end
-    if not site then Const.log('retrieve: no place for ' .. tostring(npc.id) .. ' (' .. tostring(why) .. ')') end
+    if not site then log('retrieve: no place for ' .. tostring(npc.id) .. ' (' .. tostring(why) .. ')') end
     sites[npc.id] = {site = site, at = now}
     return site
 end
@@ -169,17 +171,17 @@ function Retrieve.place(m, c)
     tried[m.id] = now
     local sq = bodySquare(cell, m, centre)
     if not sq then
-        Const.log('retrieve: no free square for the body of ' .. tostring(m.id))
+        log('retrieve: no free square for the body of ' .. tostring(m.id))
         return false
     end
     local card = instanceItem(c.cardType)
     if not card then
-        Const.log('retrieve: unknown card item ' .. tostring(c.cardType))
+        log('retrieve: unknown card item ' .. tostring(c.cardType))
         return false
     end
     local body = RandomizedWorldBase.createRandomDeadBody(sq, IsoDirections.getRandom(), c.blood, 0, nil)
     if not body then
-        Const.log('retrieve: the game made no body for ' .. tostring(m.id))
+        log('retrieve: the game made no body for ' .. tostring(m.id))
         return false
     end
     -- createRandomDeadBody makes a fake dead body one time in 20 (RandomizedWorldBase.java:498-503).
@@ -196,7 +198,7 @@ function Retrieve.place(m, c)
     m.cardId, m.placed = card:getID(), true
     m.bodyAt = {x = sq:getX(), y = sq:getY(), z = sq:getZ()}
     tried[m.id] = nil
-    Const.log('retrieve: body of ' .. tostring(m.id) .. ' placed with its card')
+    log('retrieve: body of ' .. tostring(m.id) .. ' placed with its card')
     return true
 end
 

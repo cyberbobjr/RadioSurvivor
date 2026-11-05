@@ -67,7 +67,7 @@ local function setup(t)
     local p = RST.Fixtures.player(t)
     t:ok(p ~= nil, "no target player (t.ctx.player)")
     local cid = R.character(t, p)
-    return { Server = Server, S = S, Rep = Rep, p = p, cid = cid, M = require "RadioSurvivor/RS_Missions" }
+    return { Server = Server, S = S, Rep = Rep, p = p, cid = cid, M = require "RadioSurvivorCore/RC_Missions" }
 end
 
 -- The reputation entry of cid is restored at the end; outcomes created during the test are dropped.

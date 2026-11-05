@@ -1,21 +1,21 @@
 if isClient() then return end
 --[[
 Mission template `recover` (E11-T06): pick up a cache (marked bag) left in a place chosen by the server and carry it
-to the depot of the requester's group. Authority only. Catalogue: RS_Config.Missions.recover (offer id recover_v1).
-Registered in RS_Missions (M.register); required by RS_Carnet_Server, whose once-a-second poll of the participants
-(M.observe) also places the cache (RS_Caches) and checks the depot. Details:
+to the depot of the requester's group. Authority only. Catalogue: RC_MissionConfig.Missions.recover (offer id recover_v1).
+Registered in RC_Missions (M.register); required by RS_Carnet_Server, whose once-a-second poll of the participants
+(M.observe) also places the cache (RC_Caches) and checks the depot. Details:
 docs/annexes/conception/carnet-implementation-04221.md, "Caches et gabarit recuperer"; design choices:
 docs/annexes/conception/mission-recuperer.md.
 
 Requester: an NPC fiche of the notebook only (a radio voice has no depot: RS_MissionVoice.TEMPLATES stays scout),
 whose provider tells where its group lives (RS_NPCProvider.presence(id).x, y; Living Knox: home of the group). An NPC
 without a known home offers nothing.
-Place: drawn exactly as the scout template (RS_MissionScout.pick: habitable building of the metagrid at 60-250 tiles
+Place: drawn exactly as the scout template (RC_MissionScout.pick: habitable building of the metagrid at 60-250 tiles
 of the requester's body, 60 tiles at least from any known base, nothing loaded), with the cache table drawn from the
-closed list RS_Config.Caches.order (same seed), kept per requester for siteTtlMs in a memory of this file so that the
+closed list RC_MissionConfig.Caches.order (same seed), kept per requester for siteTtlMs in a memory of this file so that the
 offer told by the bridge and the created mission name the same building and the same contents.
-Cache: m.cache (RS_Caches.attach, one per mission) at the centre of the main room (m.spot) inside the building bounds
-(m.bounds), placed once when the site is loaded (RS_Caches.place: marked bag on the floor, once even after a restart).
+Cache: m.cache (RC_Caches.attach, one per mission) at the centre of the main room (m.spot) inside the building bounds
+(m.bounds), placed once when the site is loaded (RC_Caches.place: marked bag on the floor, once even after a restart).
 Map: the same approximate circle as the scout template around the building (m.mapZone), and the depot circle
 (m.depot = { x, y, z, r }: home point, r = depotRadius), both projected to an engaged participant of an active mission
 only (p.mapZone, p.depotZone; client/RadioSurvivor/RS_MapActions.lua draws and removes them).
@@ -27,20 +27,20 @@ container of an object there (getItemWithIDRecursiv: in a crate, a shelf, anothe
 same type and contents, is not the cache. Found there: the bag is taken out of the world (it now belongs to the
 group: transmitRemoveItemFromSquare, or container Remove + sendRemoveItemFromContainer) and the objective is met
 (E11-T13): the mission waits "to report" (Recover.reportReady, no more depot scan) and succeeds only when a
-participant reports to the requester in person (RS_Missions.spoken: intent report_done of the model on a notebook
+participant reports to the requester in person (RC_Missions.spoken: intent report_done of the model on a notebook
 talk, or the notebook button "Report" near the requester); then reputation and common reward lot by the engine (same
 values as M01, claimed near the requester). The contents are not checked (decision to confirm). No delivery by the
 notebook buttons (no Deliver).
 The bridge sees the kind of place, clues without digits, the kind of cache (table name), whether the cache was placed
 or found; never a coordinate, the area, the depot nor the item id.
 ]]
-local M = require 'RadioSurvivor/RS_Missions'
-local Scout = require 'RadioSurvivor/RS_MissionScout'
-local Caches = require 'RadioSurvivor/RS_Caches'
-local Rescue = require 'RadioSurvivor/RS_Rescue'
-local Const = require 'RadioSurvivor/RadioSurvivor_Const'
-local P = require 'RadioSurvivor/RS_NPCProvider'
-local S = require 'RadioSurvivor/RS_State'
+local M = require 'RadioSurvivorCore/RC_Missions'
+local Scout = require 'RadioSurvivorCore/RC_MissionScout'
+local Caches = require 'RadioSurvivorCore/RC_Caches'
+local Sites = require 'RadioSurvivorCore/RC_Sites'
+local function log(msg)
+    print('[RadioSurvivorCore] ' .. tostring(msg))
+end
 
 local Recover = {idPrefix = 'recover', reportBySpeech = true} -- E11-T13: report in person
 -- Requester fiche id -> {site = ..., at = ms} (memory only); mission id -> last depot scan (ms).
@@ -67,7 +67,7 @@ end
 
 -- Home point of the requester's group ({ x, y, z } integer tiles), or nil when the provider cannot tell.
 function Recover.home(npc)
-    local presence = npc and npc.incarnation ~= nil and P.presence(npc.incarnation) or nil
+    local presence = npc and npc.incarnation ~= nil and M.provider().presence(npc.incarnation) or nil
     if type(presence) ~= 'table' or type(presence.x) ~= 'number' or type(presence.y) ~= 'number' then return nil end
     return {x = math.floor(presence.x), y = math.floor(presence.y), z = math.floor(tonumber(presence.z) or 0)}
 end
@@ -81,9 +81,9 @@ function Recover.site(npc, body, c)
     if body then
         local seed = 'recover:' .. tostring(npc.id) .. ':' .. tostring(npc.missionCount or 0) .. ':' .. tostring(now)
         site, why = Scout.pick(body:getX(), body:getY(), c, seed)
-        if site then site.cacheTable = Caches.drawTable(Rescue.drawer(seed .. ':table')) end
+        if site then site.cacheTable = Caches.drawTable(Sites.drawer(seed .. ':table')) end
     end
-    if not site then Const.log('recover: no place for ' .. tostring(npc.id) .. ' (' .. tostring(why) .. ')') end
+    if not site then log('recover: no place for ' .. tostring(npc.id) .. ' (' .. tostring(why) .. ')') end
     sites[npc.id] = {site = site, at = now}
     return site
 end
@@ -164,7 +164,7 @@ end
 -- left at the depot (objective met, E11-T13: the report is then expected; nothing more is polled).
 function Recover.observe(m, player, name, state, store)
     if m.state ~= 'active' or m.deposited then return false end
-    local changed = Caches.place(store or S, m.cache)
+    local changed = Caches.place(store or M.store(), m.cache)
     local id = m.cache and m.cache.placed and m.cache.itemId
     if id and not m.found and not player:isDead() and player:getInventory():getItemWithIDRecursiv(id) ~= nil then
         m.found, m.foundBy = true, name or ''
@@ -178,12 +178,12 @@ function Recover.observe(m, player, name, state, store)
     if cell then kind, where, what = Recover.atDepot(m, cell) end
     if not kind then return changed end
     if not takeOut(kind, where, what) then
-        Const.log('recover: the bag of ' .. tostring(m.id) .. ' could not be taken out of the depot')
+        log('recover: the bag of ' .. tostring(m.id) .. ' could not be taken out of the depot')
         return changed
     end
     m.deposited, m.delivered = true, 1
     scanned[m.id] = nil
-    Const.log('recover: bag of ' .. tostring(m.id) .. ' left at the depot (' .. kind .. '), report expected')
+    log('recover: bag of ' .. tostring(m.id) .. ' left at the depot (' .. kind .. '), report expected')
     return true
 end
 
@@ -193,7 +193,7 @@ function Recover.reportReady(m)
 end
 
 -- The bag is checked by the depot poll, never by a contribution of the player; the only contribution is the report
--- to the requester (payload 'speech', RS_Missions.spoken), once the bag is at the depot.
+-- to the requester (payload 'speech', RC_Missions.spoken), once the bag is at the depot.
 function Recover.check(m, player, payload)
     if payload ~= 'speech' then return nil, 'State' end
     if not Recover.reportReady(m) then return nil, 'Zone' end

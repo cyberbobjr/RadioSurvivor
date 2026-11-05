@@ -5,7 +5,7 @@
 -- `say` n'y passe jamais : le texte est diffusé par RadioSurvivor_Server (airQueue).
 -- Aucun exécuteur réel n'est enregistré ici : les tâches E07-T03..T06, E11, E12 et E13 branchent les leurs par
 -- Actions.register. Sans exécuteur, une action du catalogue est refusée `not_available`. place_cache (E11-T06) :
--- exécuteur dans RS_Caches.lua (cache de la dernière mission de la voix pour l'appelant, une par mission).
+-- exécuteur dans RS_CacheAction.lua (cache de la dernière mission de la voix pour l'appelant, une par mission).
 --
 -- Compteurs (budget du jour, dernier usage) : état privé du serveur, jamais en ModData globale. Rangés dans l'état
 -- privé RS_State (S.data.actionCounters, fichier state-<partie>-<0|1>.txt, sauvegardé par la boucle du carnet quand

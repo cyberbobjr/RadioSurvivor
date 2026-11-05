@@ -64,7 +64,7 @@ class Unit(unittest.TestCase):
         self.rt = lupa.LuaRuntime(unpack_returned_tuples=True)
         self.g = self.rt.globals()
         self.rt.execute(UNIT_STUBS)
-        roots = ';'.join(f'{(LUA / side).as_posix()}/?.lua' for side in ('server', 'shared')) + f';{(CORE_LUA / "shared").as_posix()}/?.lua'
+        roots = ';'.join(f'{(LUA / side).as_posix()}/?.lua' for side in ('server', 'shared')) + f';{(CORE_LUA / "shared").as_posix()}/?.lua;{(CORE_LUA / "server").as_posix()}/?.lua'
         self.rt.execute(f'package.path = [[{roots};]] .. package.path')
         self.R = self.rt.eval("require('RadioSurvivor/RS_Reputation')")
         self.S = self.rt.eval("require('RadioSurvivor/RS_State')")
@@ -278,7 +278,7 @@ class Server(unittest.TestCase):
         sim.select(clients[0])
         self.sim, self.g, self.rt = sim, sim.server.g, sim.server.rt
         self.R = self.rt.eval("require('RadioSurvivor/RS_Reputation')")
-        self.M = self.rt.eval("require('RadioSurvivor/RS_Missions')")
+        self.M = self.rt.eval("require('RadioSurvivorCore/RC_Missions')")
         self.npc = next(iter(sim.state().npcs.values()))
         return sim
 
@@ -424,7 +424,7 @@ class Effects(unittest.TestCase):
     def test_bad_reputation_keeps_simple_offers_only(self):
         sim = self.world('offers')
         self.rt.execute("""
-            local M = require 'RadioSurvivor/RS_Missions'
+            local M = require 'RadioSurvivorCore/RC_Missions'
             local function fake(kind)
                 return {idPrefix = 'f', offer = function() return {kind = kind} end, create = function() end}
             end

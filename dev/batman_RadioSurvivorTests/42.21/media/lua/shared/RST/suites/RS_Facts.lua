@@ -127,7 +127,7 @@ RST.suite("rs.facts", { tags = { "server" } }, function(s)
 
     s.test("live log: chained listener and no coordinate", function(t)
         local F = module(t)
-        local M = require "RadioSurvivor/RS_Missions"
+        local M = require "RadioSurvivorCore/RC_Missions"
         local Triggers = require "RadioSurvivor/RS_ObservationTriggers"
         F.chain()
         t:eq("function", type(M.onFinished))

@@ -2,7 +2,7 @@
 
 Code : `media/lua/server/RadioSurvivor/RS_RescueScene.lua` (nouveau : scène, cache, note, nouvel endroit de la voix,
 mémoire) ; points d'appel ajoutés à `RS_Rescue.lua` (`noteHelpers`, `helpedActive`, `isWorkStore`, `sceneHook`,
-participants par défaut) et à `RS_RescueVisit.lua` (aidants, départ) ; note de cache générique dans `RS_Caches.lua`
+participants par défaut) et à `RS_RescueVisit.lua` (aidants, départ) ; note de cache générique dans `RC_Caches.lua`
 (`makeNote`) ; fiche `personas/whitaker.txt` (règle du secours réussi). Banc : `tests/test_rescue_scene.py` ; suite
 en jeu : `rs.rescue.saved`. Décisions acquises : celles d'E12, d'E12-T02 ([secours.md](secours.md)) et d'E12-T03
 ([secours-livraison.md](secours-livraison.md)) ; note de travail §05 (« À temps : les survivants laissent une cache
@@ -20,7 +20,7 @@ aidés »).
 2. **Aidants** : les membres près du bâtiment au moment du dépôt et à chaque sondage suivant tant qu'ils restent
    près (nom du personnage, clé d'appelant de la radio : compte sur un serveur, `solo` en solo, personnage du carnet
    s'il est lié), 8 au plus, gardés dans le secours (état privé). Ils sont les participants du fait du jour.
-3. **Cache** : le sac marqué d'E11-T06 (`RS_Caches`, pose différée, une seule fois même après redémarrage), table
+3. **Cache** : le sac marqué d'E11-T06 (`RC_Caches`, pose différée, une seule fois même après redémarrage), table
    tirée dans la liste fermée `RS_Config.Caches.order` par l'identifiant du secours, posée au point du site dès que
    sa case est chargée et que le bâtiment a passé ses histoires vanilla. Aucun choix de contenu propre au secours.
 4. **Note** : une feuille de papier vanilla (`Base.SheetPaper2`) écrite (`addPage`) et verrouillée (`setLockedBy`),

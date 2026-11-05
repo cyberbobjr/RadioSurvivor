@@ -1,22 +1,23 @@
 if isClient() then return end
 --[[
-Caches (E11-T06): a marked bag filled from one closed table of the server, placed once in the world, and the voice
-action place_cache. Authority only. Configuration: RS_Config.Caches (bag type, closed list `order` of the tables and
-their contents). Required by RadioSurvivor_Server (executor of place_cache) and RS_MissionRecover (cache of a
-`recover` mission); RS_Carnet_Server polls the pending caches once a second (Caches.poll) while a player is connected.
-Details: docs/annexes/conception/carnet-implementation-04221.md, "Caches et gabarit recuperer"; design:
-docs/annexes/conception/mission-recuperer.md.
+RadioSurvivorCore: caches (E11-T06, moved to the core mod by E18-T05): a marked bag filled from one closed table of
+the server, placed once in the world. Authority only. Configuration: RC_MissionConfig.Caches (bag type, closed list
+`order` of the tables and their contents). Used by the template `recover` (RC_MissionRecover) and by RadioSurvivor
+(reward caches of the voices, its voice action place_cache in RS_CacheAction, poll of the pending caches once a second
+while a player is connected, Caches.poll). Details: docs/annexes/conception/carnet-implementation-04221.md, "Caches et
+gabarit recuperer"; design: docs/annexes/conception/mission-recuperer.md.
 
-One cache per mission: the record is the field m.cache of the mission (private state RS_State, never global ModData):
-    { key = mission id, table = name of RS_Config.Caches.order, spot = { x, y, z }, bounds = { x1, y1, x2, y2 }
+One cache per mission: the record is the field m.cache of the mission (private mission state, never global ModData):
+    { key = mission id, table = name of RC_MissionConfig.Caches.order, spot = { x, y, z }, bounds = { x1, y1, x2, y2 }
       (x2, y2 exclusive), placing, placed, itemId, at = { x, y, z } }
 A mission that already has a cache never gets a second one (Caches.attach refuses: 'cache_exists').
 Deferred placement (Caches.place, at most every placeRetryMs per cache): once the site square itself is loaded
 (getCell():getGridSquare of the point, never a neighbour chunk) and its building has passed its vanilla stories
 (BuildingDef:isFullyStreamedIn, or one of its rooms explored), on the nearest free square of the same building around
 the point (no stairs, isFree), else of the bounds at that floor. The bag (instanceItem(bagType)) gets ModData
-RS_Cache = key and its contents (instanceItem of each line of the table, in its container) BEFORE it is put on the
-floor by square:AddWorldInventoryItem(bag, 0.5, 0.5, 0, true), which sends the complete item to the clients.
+RS_Cache = key (historical key, kept for the bags already in saved worlds) and its contents (instanceItem of each line
+of the table, in its container) BEFORE it is put on the floor by square:AddWorldInventoryItem(bag, 0.5, 0.5, 0, true),
+which sends the complete item to the clients.
 Once only, even after a restart:
     1. rec.placing = true is saved (store.save) before anything is created; a failed save places nothing;
     2. the bag is created, marked and put on the floor; rec.placed, rec.itemId (InventoryItem:getID, saved with the
@@ -27,18 +28,13 @@ Once only, even after a restart:
        the bag (never duplicate it).
 Only caches of missions still 'active' (or 'success': reward cache of a voice mission) are placed; a failed, expired
 or cancelled mission places nothing more.
-
-Voice action place_cache { table } is a compatibility retry only: the mission must already have succeeded and
-RS_Rewards must have selected and reserved its cache. The parameter must match that server-selected table; it never
-selects contents, creates an active-mission reward, or replaces the reward rotation. New reward sites come from the
-voice's allowed places. Refusals include not_done, no_reward and bad_table.
-
 ]]
-local Config = require 'RadioSurvivor/RS_Config'
-local Const = require 'RadioSurvivor/RadioSurvivor_Const'
-local S = require 'RadioSurvivor/RS_State'
-local Actions = require 'RadioSurvivor/RS_Actions'
-local V = require 'RadioSurvivor/RS_MissionVoice'
+local Config = require 'RadioSurvivorCore/RC_MissionConfig'
+local M = require 'RadioSurvivorCore/RC_Missions'
+
+local function log(msg)
+    print('[RadioSurvivorCore] ' .. tostring(msg))
+end
 
 local Caches = {}
 Caches.MARK = 'RS_Cache'
@@ -58,7 +54,7 @@ function Caches.isTable(name)
     return false
 end
 
--- Table drawn with draw(n) -> 0..n-1 (RS_Rescue.drawer), in the closed order.
+-- Table drawn with draw(n) -> 0..n-1 (RC_Sites.drawer), in the closed order.
 function Caches.drawTable(draw)
     local order = Config.Caches.order
     return order[draw(#order) + 1]
@@ -185,12 +181,12 @@ function Caches.make(rec)
     for _, line in ipairs(Config.Caches.tables[rec.table] or {}) do
         for _ = 1, line[2] do
             local it = instanceItem(line[1])
-            if it then inside:AddItem(it) else Const.log('cache: unknown item ' .. tostring(line[1])) end
+            if it then inside:AddItem(it) else log('cache: unknown item ' .. tostring(line[1])) end
         end
     end
     if rec.note ~= nil then
         local note = Caches.makeNote(rec.note)
-        if note then inside:AddItem(note) else Const.log('cache: note of ' .. tostring(rec.key) .. ' not made') end
+        if note then inside:AddItem(note) else log('cache: note of ' .. tostring(rec.key) .. ' not made') end
     end
     return bag
 end
@@ -201,7 +197,7 @@ local function settle(rec, item, sq)
     tried[rec.key] = nil
 end
 
--- Deferred placement of one cache (see the header). store: RS_State or a double { save }. Returns true when the
+-- Deferred placement of one cache (see the header). store: the mission store or a double { save }. Returns true when the
 -- record changed (placed or adopted).
 function Caches.place(store, rec)
     if type(rec) ~= 'table' or rec.placed then return false end
@@ -218,35 +214,35 @@ function Caches.place(store, rec)
         if item then
             settle(rec, item, at)
             store.save()
-            Const.log('cache: ' .. tostring(rec.key) .. ' found again on the floor, adopted')
+            log('cache: ' .. tostring(rec.key) .. ' found again on the floor, adopted')
             return true
         end
     end
     local sq = siteSquare(cell, rec, centre)
     if not sq then
-        Const.log('cache: no free square for ' .. tostring(rec.key))
+        log('cache: no free square for ' .. tostring(rec.key))
         return false
     end
     rec.placing = true
     if not store.save() then
-        Const.log('cache: state not saved, ' .. tostring(rec.key) .. ' not placed')
+        log('cache: state not saved, ' .. tostring(rec.key) .. ' not placed')
         return false
     end
     local bag = Caches.make(rec)
     if not bag then
-        Const.log('cache: unknown bag item ' .. tostring(c.bagType))
+        log('cache: unknown bag item ' .. tostring(c.bagType))
         return false
     end
     sq:AddWorldInventoryItem(bag, 0.5, 0.5, 0, true)
     settle(rec, bag, sq)
     store.save()
-    Const.log('cache: ' .. tostring(rec.key) .. ' placed (' .. tostring(rec.table) .. ')')
+    log('cache: ' .. tostring(rec.key) .. ' placed (' .. tostring(rec.table) .. ')')
     return true
 end
 
 -- Pending caches of the missions still active (or successful) of state. Returns true when one changed.
 function Caches.poll(state, store)
-    store = store or S
+    store = store or M.store()
     local changed = false
     for _, m in pairs(type(state) == 'table' and state.missions or {}) do
         local rec = m.cache
@@ -258,53 +254,5 @@ function Caches.poll(state, store)
     end
     return changed
 end
-
--- ---------------------------------------------------------------- voice action place_cache
-
--- Last mission given by this voice to this character: the open one, else its latest success. nil without any.
-function Caches.voiceMission(state, voice, cid)
-    local open = V.open(state, voice, cid)
-    if open then return open end
-    local d = V.donor(state, voice, cid, false)
-    if not d then return nil end
-    local best
-    for _, m in pairs(state.missions) do
-        if m.npc == d.id and m.state == 'success' and (not best or (m.closedAt or 0) > (best.closedAt or 0)) then
-            best = m
-        end
-    end
-    return best
-end
-
-local function validate(params)
-    for key in pairs(params) do
-        if key ~= 'table' then return false end
-    end
-    return Caches.isTable(params.table)
-end
-
-local function execute(params, ctx)
-    local state = S.data
-    if type(state) ~= 'table' or S.blocked then return false, 'storage' end
-    local cid = type(ctx) == 'table' and ctx.cid or nil
-    local record = type(cid) == 'string' and state.characters[cid] or nil
-    if not record or record.retired then return false, 'no_character' end
-    local m = Caches.voiceMission(state, ctx.voice, cid)
-    if not m then return false, 'no_mission' end
-    if m.state ~= 'success' then return false, 'not_done' end
-    -- Legacy action is only a retry for the server-selected mission reward, never an item selector.
-    if not m.extendedReward or m.extendedReward.kind ~= 'cache' or not m.cache then
-        return false, 'no_reward'
-    end
-    if params.table ~= m.cache.table then return false, 'bad_table' end
-    Caches.place(S, m.cache)
-    return true
-end
-
-function Caches.register()
-    return Actions.register('place_cache', {validate = validate, cooldownMs = Caches.COOLDOWN_MS, execute = execute})
-end
-
-Caches.register()
 
 return Caches

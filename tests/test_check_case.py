@@ -249,10 +249,16 @@ class RepositoryTest(unittest.TestCase):
         problems = [str(p) for p in cc.check_mod(cc.MAIN_MOD, [cc.CORE_MOD, cc.SIGNAL_MOD], vanilla)]
         self.assertEqual(len(problems), 1, problems)
         self.assertIn('require "BatmanRadio/BatmanRadio_Core" not found', problems[0])
-        # Sans Signal Smoke, ses trois require (mission signal, secours, passeur) ne sont pas résolus.
+        # Sans Signal Smoke, ses deux require de RadioSurvivor (secours, passeur) ne sont pas résolus.
         problems = [str(p) for p in cc.check_mod(cc.MAIN_MOD, [cc.CORE_MOD, cc.BELT_MOD], vanilla)]
-        self.assertEqual(len(problems), 3, problems)
+        self.assertEqual(len(problems), 2, problems)
         self.assertTrue(all('require "SignalSmoke/SignalSmoke" not found' in p for p in problems), problems)
+        # E18-T05 : le mod commun exige Signal Smoke (gabarit signaler) et rien d'autre.
+        self.assertEqual([str(p) for p in cc.check_mod(cc.CORE_MOD, [cc.SIGNAL_MOD], vanilla)], [])
+        problems = [str(p) for p in cc.check_mod(cc.CORE_MOD, [], vanilla)]
+        self.assertEqual(len(problems), 1, problems)
+        self.assertIn('RC_MissionSignal.lua', problems[0])
+        self.assertIn('require "SignalSmoke/SignalSmoke" not found', problems[0])
 
 
 if __name__ == '__main__':

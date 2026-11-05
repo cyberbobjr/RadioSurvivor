@@ -1,4 +1,4 @@
-"""Gabarit « signaler » (E11-T07, RS_MissionSignal.lua) sur le banc du carnet : vrai Lua serveur et client, pont
+"""Gabarit « signaler » (E11-T07, RC_MissionSignal.lua) sur le banc du carnet : vrai Lua serveur et client, pont
 absent, mod requis Signal Smoke (installation cassée : erreur au journal, aucune offre).
 
 Doublures seulement (aucune API Java prouvée ici) : le module public 'SignalSmoke/SignalSmoke' est la doublure de
@@ -37,7 +37,7 @@ class SignalMissionTests(unittest.TestCase):
         sim.server.rt.execute(SCOUT_GRID)
         sim.server.g.scoutHouse(5001, 20, 12, 8, 8)    # too close to the requester
         sim.server.g.scoutHouse(5002, 100, 10, 10, 10)  # reachable
-        signal = sim.server.rt.eval("require('RadioSurvivor/RS_MissionSignal')")
+        signal = sim.server.rt.eval("require('RadioSurvivorCore/RC_MissionSignal')")
         signal.resetForTests()
         signal.install()
         sim.select('alice')
@@ -51,7 +51,7 @@ class SignalMissionTests(unittest.TestCase):
     def active(self, name, bob=False):
         sim, npc, record, signal = self.sim(name)
         self.assertIn('signal_v1', self.catalog(sim, npc, record))
-        missions = sim.server.rt.eval("require('RadioSurvivor/RS_Missions')")
+        missions = sim.server.rt.eval("require('RadioSurvivorCore/RC_Missions')")
         m = missions.create(sim.state(), npc, sim.character('alice'), 'signal_v1')
         sim.request_mission('alice', 'accept')
         self.assertEqual(m.state, 'active')
@@ -82,7 +82,7 @@ class SignalMissionTests(unittest.TestCase):
         signal.resetForTests()
         sim.server.rt.execute("LOGGED = {}; print = function(s) LOGGED[#LOGGED + 1] = tostring(s) end")
         self.assertIsNone(signal.library())
-        self.assertIn('[RadioSurvivor] ERROR signal: required mod batman_SignalSmoke is broken: module '
+        self.assertIn('[RadioSurvivorCore] ERROR signal: required mod batman_SignalSmoke is broken: module '
                       'SignalSmoke/SignalSmoke has no onSignal or COLORS (template signal disabled)',
                       list(lua_list(sim.server.g.LOGGED)))
         self.assertFalse(signal.install())
@@ -189,14 +189,14 @@ class SignalMissionTests(unittest.TestCase):
         g, rt = sim.server.g, sim.server.rt
         self.assertEqual(len(list(lua_list(g.SS_LISTENERS))), 1)
         rt.execute("function SS_FAKE.onSignal(fn) SS_LISTENERS[#SS_LISTENERS + 1] = fn; return true end")
-        signal = rt.eval("require('RadioSurvivor/RS_MissionSignal')")
+        signal = rt.eval("require('RadioSurvivorCore/RC_MissionSignal')")
         for _ in range(2):
             signal.resetForTests()
             self.assertTrue(signal.install())
             self.assertTrue(signal.install())
         self.assertEqual(len(list(lua_list(g.SS_LISTENERS))), 1, 'listener subscribed again after a reset')
         rt.execute("""
-            local Signal = require('RadioSurvivor/RS_MissionSignal')
+            local Signal = require('RadioSurvivorCore/RC_MissionSignal')
             local count = Signal.count
             SIGNAL_COUNTED = 0
             Signal.count = function(...) SIGNAL_COUNTED = SIGNAL_COUNTED + 1; return count(...) end

@@ -1,7 +1,7 @@
 --[[
-rs.missions — pure logic of RadioSurvivor/RS_Missions (server/RadioSurvivor/RS_Missions.lua): creation, offer expiry,
+rs.missions — pure logic of RadioSurvivorCore/RC_Missions (server/RadioSurvivorCore/RC_Missions.lua): creation, offer expiry,
 delay before the next offer, closing (success, failure, death), pruning, projection, item checks.
-Tag "server": RS_Missions starts with "if isClient() then return end" (authority only: dedicated server or solo).
+Tag "server": RC_Missions starts with "if isClient() then return end" (authority only: dedicated server or solo).
 Run it with RST.server("rs.missions") or the dedicated server autorun; outside the game: tests/test_rs_suites.py.
 
 Everything works on an in-memory state built by each test ({ missions, npcs, characters, outcomes }): no persistent
@@ -16,10 +16,12 @@ require "RST/RST"
 
 local function modules(t)
     if type(isClient) == "function" and isClient() then
-        t:skip("RS_Missions is not loaded on an MP client (authority only)")
+        t:skip("RC_Missions is not loaded on an MP client (authority only)")
     end
-    local M = require "RadioSurvivor/RS_Missions"
-    if type(M) ~= "table" then t:skip("RS_Missions did not return its table here") end
+    local M = require "RadioSurvivorCore/RC_Missions"
+    if type(M) ~= "table" then t:skip("RC_Missions did not return its table here") end
+    -- E18-T05: RadioSurvivor's givers and hooks of the core engine (reputation, notebook trust), attached by RS_State.
+    require "RadioSurvivor/RS_State"
     return M, require "RadioSurvivor/RS_Config"
 end
 

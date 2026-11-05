@@ -35,7 +35,8 @@ class CoreModTests(unittest.TestCase):
         self.assertEqual(info.get('id'), CORE_ID)
         self.assertTrue(info.get('name', '').startswith('batman_'))
         self.assertEqual(info.get('versionMin'), '42.21')
-        self.assertNotIn('require', info, 'the core mod requires no other mod (E18 decisions)')
+        # E18-T05 (user decision of 2026-11-05): the mission template "signal" needs Signal Smoke, nothing else.
+        self.assertEqual(listed(info.get('require', '')), ['batman_SignalSmoke'])
         self.assertTrue(re.fullmatch(r'\d+\.\d+\.\d+', info.get('modversion', '')))
 
     def test_radiosurvivor_requires_the_core_mod(self):

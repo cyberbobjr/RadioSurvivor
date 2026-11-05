@@ -49,6 +49,14 @@ def runtime():
         'RadioSurvivorCore/RC_Codec': (CORE_LUA / 'shared/RadioSurvivorCore/RC_Codec.lua').read_text(encoding='utf-8'),
         'RadioSurvivor/RS_State': (LUA / 'server/RadioSurvivor/RS_State.lua').read_text(encoding='utf-8'),
         'RadioSurvivor/RS_StatePurge': (LUA / 'server/RadioSurvivor/RS_StatePurge.lua').read_text(encoding='utf-8'),
+        # E18-T05 : etat prive des missions du mod commun et crochets du moteur de missions (requis par RS_State).
+        'RadioSurvivorCore/RC_SlotFile': (CORE_LUA / 'shared/RadioSurvivorCore/RC_SlotFile.lua').read_text(encoding='utf-8'),
+        'RadioSurvivorCore/RC_MissionStore': (CORE_LUA / 'server/RadioSurvivorCore/RC_MissionStore.lua').read_text(encoding='utf-8'),
+        'RadioSurvivorCore/RC_MissionConfig': (CORE_LUA / 'shared/RadioSurvivorCore/RC_MissionConfig.lua').read_text(encoding='utf-8'),
+        'RadioSurvivorCore/RC_GameClock': (CORE_LUA / 'shared/RadioSurvivorCore/RC_GameClock.lua').read_text(encoding='utf-8'),
+        'RadioSurvivorCore/RC_Missions': (CORE_LUA / 'server/RadioSurvivorCore/RC_Missions.lua').read_text(encoding='utf-8'),
+        'RadioSurvivor/RS_MissionHooks': (LUA / 'server/RadioSurvivor/RS_MissionHooks.lua').read_text(encoding='utf-8'),
+        'RadioSurvivor/RS_NPCProvider': (LUA / 'shared/RadioSurvivor/RS_NPCProvider.lua').read_text(encoding='utf-8'),
     })
     rt.execute(BOOT, loaders)
     return rt

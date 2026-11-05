@@ -11,8 +11,13 @@ Private notebook state (authority only), two slots written in turn: batman_Radio
   the purge of dead characters) are run once with force, then the save is refused: never a file the decoder refuses.
 - Verification read: at the first write of the session and after a failure (C20); fast hex and checksum (RC_Codec).
 - Schema: S.SCHEMA; S.MIGRATIONS[n](data) turns schema n into n + 1 (S.upgrade). None yet: schema 2 is current.
+- Missions (E18-T05): S.data.missions is the mission table of the core mod (RC_MissionStore, its own private file),
+  shared in memory. A game saved before the split is taken over once (RC_MissionStore.init with the missions read
+  here), then this file no longer holds them (S.data.missionsInCore). S.save encodes this file, writes the mission
+  file, then this file.
 ]]
 local Codec = require 'RadioSurvivorCore/RC_Codec'
+local MissionStore = require 'RadioSurvivorCore/RC_MissionStore'
 local S = {data = nil, generation = 0, blocked = false, dirty = false, failures = 0, verified = false}
 S.SCHEMA = 2
 S.MIGRATIONS = {}
@@ -84,6 +89,14 @@ function S.init(newWorld)
             outcomes = {}}
         S.generation = best and best.generation or 0
     end
+    -- E18-T05: missions in the core mod's private state; the ones read here are handed over once (first start after
+    -- the split), never again once the mission file exists.
+    if not MissionStore.init(newWorld, (not newWorld) and S.data.missions or nil) then
+        S.blocked = true
+        print('[RS_Carnet] STORAGE BLOCKED: mission state of the core mod unreadable; preserve files for recovery')
+        return false
+    end
+    S.data.missions, S.data.missionsInCore = MissionStore.data.missions, true
     S.run = S.uid('run')
     S.blocked = false
     return S.save()
@@ -100,8 +113,17 @@ local function failed(reason)
     return false
 end
 
-local function encode()
+-- The notebook file never holds the missions (core mod file, E18-T05): encoded without them.
+local function encodeState()
+    local missions = S.data.missions
+    S.data.missions = nil
     local ok, body = pcall(Codec.encodeBytes, S.data)
+    S.data.missions = missions
+    return ok, body
+end
+
+local function encode()
+    local ok, body = encodeState()
     if ok then return body end
     -- Over the codec bounds: reducers once (forced purge of what the players no longer see), then refused.
     local reduced = false
@@ -110,7 +132,7 @@ local function encode()
         if okR and changed then reduced = true end
     end
     if reduced then
-        ok, body = pcall(Codec.encodeBytes, S.data)
+        ok, body = encodeState()
         if ok then
             print('[RS_Carnet] state reduced to fit the serialization bounds')
             return body
@@ -135,6 +157,11 @@ function S.save()
     if S.maintenance then pcall(S.maintenance, S.data) end   -- C17: daily bounded purge of dead characters
     local body, why = encode()
     if not body then return failed('state exceeds serialization bounds: ' .. tostring(why)) end
+    -- E18-T05: the mission file of the core mod first (write-ahead markers of the missions), then this file.
+    if S.data.missions ~= nil then
+        MissionStore.attach(S.data.missions)
+        if not MissionStore.save() then return failed('mission state of the core mod not written') end
+    end
     warnSize(body)
     local gen = S.generation + 1
     local path = S.path .. '-' .. (gen % 2) .. '.txt'
@@ -155,5 +182,6 @@ function S.save()
 end
 
 require('RadioSurvivor/RS_StatePurge').attach(S) -- C17: dead characters purged, reducer over the codec bounds
+require('RadioSurvivor/RS_MissionHooks').attach(S) -- E18-T05: givers and hooks of the core mission engine
 
 return S

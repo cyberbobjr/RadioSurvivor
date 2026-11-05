@@ -1,5 +1,5 @@
 --[[
-rs.mission.retrieve - mission template "retrieve_id" (E11-T05, server/RadioSurvivor/RS_MissionRetrieve.lua) on the
+rs.mission.retrieve - mission template "retrieve_id" (E11-T05, server/RadioSurvivorCore/RC_MissionRetrieve.lua) on the
 real metagrid and the real world: a building drawn around the player, the body placed by the server poll once its
 square is loaded (RandomizedWorldBase.createRandomDeadBody), an ID card named after the body in its container, another
 ID card refused, the card of the body accepted by its item id and removed, success by the common engine.
@@ -24,8 +24,8 @@ local function modules(t)
     if type(isClient) == "function" and isClient() then
         t:skip("RS_MissionRetrieve is not loaded on an MP client (authority only)")
     end
-    local M = require "RadioSurvivor/RS_Missions"
-    local Retrieve = require "RadioSurvivor/RS_MissionRetrieve"
+    local M = require "RadioSurvivorCore/RC_Missions"
+    local Retrieve = require "RadioSurvivorCore/RC_MissionRetrieve"
     if type(M) ~= "table" or type(Retrieve) ~= "table" then
         t:skip("mission modules did not return their table here")
     end

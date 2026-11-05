@@ -613,8 +613,8 @@ ou « PNJ seulement » qui y figurent sont remplacées par le présent contrat p
 
 Action `start_mission` : une voix radio confie une mission « reconnaître » (gabarit `scout` d'E11-T03) à son
 appelant ; le compte rendu se fait **à la radio**, sur la fréquence de la voix. La voix n'a ni fiche de PNJ du carnet
-ni corps. Implémentation : `server/RadioSurvivor/RS_MissionVoice.lua` (exécuteur, donneur « voix », contexte),
-`RS_Missions.lua` (moteur commun, `M.donorOf`), `RS_MissionScout.lua` (lieu, sondage), `RadioSurvivor_Server.lua`
+ni corps. Implémentation : `server/RadioSurvivorCore/RC_MissionVoice.lua (mod commun)` (exécuteur, donneur « voix », contexte),
+`RC_Missions.lua` (moteur commun, `M.donorOf`), `RC_MissionScout.lua` (lieu, sondage), `RadioSurvivor_Server.lua`
 (compte rendu et champ `mission=`), `bridge/radio_bridge.py` (`EXECUTABLE_ACTIONS`, `mission_context`,
 `mission_prompt`).
 
@@ -624,7 +624,7 @@ voix, tous appelants confondus) :
 
 - paramètre unique `template`, liste fermée `RS_MissionVoice.TEMPLATES` (seulement `scout`) ; autre valeur, paramètre
   absent ou en trop : `bad_params` ;
-- le serveur choisit le lieu avec l'offre du gabarit (`RS_MissionScout` : bâtiment habitable de la métagrille à 60–250
+- le serveur choisit le lieu avec l'offre du gabarit (`RC_MissionScout` : bâtiment habitable de la métagrille à 60–250
   cases de la **copie serveur** de l'appelant, à 60 cases au moins de toute base connue, mêmes règles qu'E11-T03) ;
 - refus motivés (raison de l'exécuteur, aucun usage compté) : `no_player` (appelant déconnecté : pas de position
   serveur), `storage` (état privé non chargé ou bloqué), `no_character` (aucun personnage du carnet lié),
@@ -658,7 +658,7 @@ barème de réputation de M01) ; une seule mission ouverte par appelant et par v
 **Compte rendu (E11-T13, décision de l'utilisateur du 2026-10-14)** : à chaque phrase admise de l'appelant pour
 cette voix (commande `talk`, voix choisie par la fréquence, demande transmise au pont), `RS_MissionVoice.heard` ne juge
 rien et dit seulement à la voix où en est la mission : avant la visite `turn = not_yet` ; après la visite (objectif
-rempli, `RS_Missions.reportReady`) `turn = report_due`. C'est le **modèle** qui reconnaît le compte rendu (dans
+rempli, `RC_Missions.reportReady`) `turn = report_due`. C'est le **modèle** qui reconnaît le compte rendu (dans
 n'importe quelle langue, aucune liste de mots) et rend l'action `report_mission` (sans paramètre) ; elle est permise à
 toute voix dont la fiche autorise `start_mission` sans être listée (`RS_Actions.IMPLIED`, `radio_bridge.IMPLIED_ACTIONS`).
 Son exécuteur (`RS_MissionVoice.report`) revérifie les faits : mission ouverte de **cette** voix pour **cet** appelant
@@ -907,7 +907,7 @@ lieu en maille `area-<x>-<y>` (ou `unknown place`), jour = jour de jeu de l'âge
 | Fait | Source | Témoins | Sujet | Lieu |
 |---|---|---|---|---|
 | `player_return` | sondage du carnet (1 s, après `scan`) : contact existant, joueur à portée d'audition du corps (`Provider.hears`, le PNJ écoute) après au moins `returnHours` = 24 h de jeu hors de portée ; dernière heure à portée gardée dans le contact (`nearHour`) ; la première rencontre n'est pas un retour | la fiche qui connaît le personnage | personnage | corps du PNJ |
-| `mission_done` | `RS_Missions.onFinished`, mission **réussie** (échec, abandon, mort du demandeur : rien) | fiche demandeuse (une voix radio n'a pas de fiche) | chaque participant | corps du demandeur s'il est chargé |
+| `mission_done` | `RC_Missions.onFinished`, mission **réussie** (échec, abandon, mort du demandeur : rien) | fiche demandeuse (une voix radio n'a pas de fiche) | chaque participant | corps du demandeur s'il est chargé |
 | `group_death` | fait `memberDied` de Living Knox (`LK_Core.publish`) | corps présent : fiches du même groupe (`Provider.npc(...).group`) dont le corps voit le mort (règle de `Provider.near` sans le refus d'une cible morte : même étage, `witnessRange` = 20 cases, `CanSee`) ; mort hors écran : fiches des membres présents au foyer (liste du moteur) | fiche du mort, sinon `<groupe>-<membre>` | corps du mort ; foyer pour une mort hors écran |
 | `assault_seen` | fait `assaultSeen` de Living Knox (`LK_Hostility.record` avec `witnessed = true`, faits `hit`, `shot`, `kill`) | fiches des témoins nommés par l'appelant (`opts.witnesses`) | personnage (clé de joueur) | scène (`opts.x`, `opts.y`), sinon premier témoin chargé ; un seul lieu pour tous |
 
@@ -1019,7 +1019,7 @@ PNJ (mémoire du pont : jamais un texte de joueur). Une intervention refusée ou
 ### Offres de missions et contexte `mission` (E11-T02, E11-T03)
 
 `offers` associe à chaque identifiant d'offre admissible ses conditions, calculées par le gabarit côté serveur
-(`RS_Missions`, catalogue `RS_Config.Missions`) ; le pont ne les modifie jamais et ne les valide que comme table.
+(`RC_Missions`, catalogue `RS_Config.Missions`) ; le pont ne les modifie jamais et ne les valide que comme table.
 
 | Offre | Gabarit | Conditions |
 | --- | --- | --- |
@@ -1053,7 +1053,7 @@ L'objectif est rempli quand le serveur trouve le sac, par son identifiant, dans 
 réussit au compte rendu (E11-T13). Une mission `signal` (E11-T07) : objectif rempli au premier bon signal, réussite au
 compte rendu.
 
-**Conservation des missions closes** (`RS_Missions.prune`, passe de `RS_Carnet_Server` toutes les
+**Conservation des missions closes** (`RC_Missions.prune`, passe de `RS_Carnet_Server` toutes les
 `PRUNE_INTERVAL_MS`) : une mission close est retirée de l'état 24 h réelles après sa clôture (`MISSION_RETENTION_MS`,
 `closedAt` en temps réel, simple ménage). Un **lot réussi non réclamé** (`state = success`, `claimedBy = ''`,
 `rewardCount > 0`) est gardé **7 jours de jeu** (décision de l'utilisateur du 2026-10-21, tâche E16-T10) : échéance
@@ -1164,7 +1164,7 @@ carte (E11-T10, E11-T11), comme après le bouton.
 ### Compte rendu au demandeur (E11-T13)
 
 Décision de l'utilisateur du 2026-10-14 : les gabarits `scout`, `clear`, `recover` et `signal` ne réussissent plus
-d'eux-mêmes. L'objectif rempli (lieu visité, décompte atteint, sac déposé, signal vu ; `RS_Missions.reportReady`, fait
+d'eux-mêmes. L'objectif rempli (lieu visité, décompte atteint, sac déposé, signal vu ; `RC_Missions.reportReady`, fait
 du serveur) laisse la mission `active` « à rapporter » (`toReport = true` dans la projection du carnet et le contexte
 `mission`) ; elle ne réussit que lorsqu'un participant revient le dire au PNJ demandeur. Le délai continue de courir
 (même règle que `scout` depuis E11-T03) ; un demandeur mort avant le compte rendu clôt la mission en `cancelled_dead`

@@ -1,5 +1,5 @@
 --[[
-rs.mission.clear - mission template "clear" (E11-T04, server/RadioSurvivor/RS_MissionClear.lua) on the real metagrid
+rs.mission.clear - mission template "clear" (E11-T04, server/RadioSurvivorCore/RC_MissionClear.lua) on the real metagrid
 and the real world: a building drawn around the player, a number of kills from the zombie density of the lot headers,
 a counting circle centred on the building; three real zombies spawned in the circle next to the player: a lethal bat
 hit of the player counts once (a second count of the same zombie changes nothing), a death without an attributed
@@ -51,8 +51,8 @@ local function modules(t)
     if type(isClient) == "function" and isClient() then
         t:skip("RS_MissionClear is not loaded on an MP client (authority only)")
     end
-    local M = require "RadioSurvivor/RS_Missions"
-    local Clear = require "RadioSurvivor/RS_MissionClear"
+    local M = require "RadioSurvivorCore/RC_Missions"
+    local Clear = require "RadioSurvivorCore/RC_MissionClear"
     if type(M) ~= "table" or type(Clear) ~= "table" then
         t:skip("mission modules did not return their table here")
     end

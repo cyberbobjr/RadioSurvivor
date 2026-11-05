@@ -41,7 +41,7 @@ A live log whose character is gone or retired without a freeze (death missed) is
 Bounds: MAX_TOWNS towns, MAX_PHRASES phrases of RS_RadioLog.MAX_TEXT characters, MAX_MISSIONS closed missions,
 MAX_OPEN missions open at the death and MAX_RESCUES rescues (oldest dropped, totals kept as counters), labels of
 MAX_LABEL characters: one log stays under MAX_BYTES bytes of the RSV2 encoding. The set `noted` (ids of the closed
-missions already noted) only holds ids still present in S.data.missions (engine retention, RS_Missions.prune) and is
+missions already noted) only holds ids still present in S.data.missions (engine retention, RC_Missions.prune) and is
 emptied at the freeze. ASCII only in this file (Kahlua lexer).
 
 Sandbox option RadioSurvivor.LastPages (E15-T04, on by default, Const.lastPages, read at every pass): off = no log at

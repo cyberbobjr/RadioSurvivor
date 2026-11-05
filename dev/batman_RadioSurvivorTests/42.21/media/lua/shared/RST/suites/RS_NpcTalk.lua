@@ -203,8 +203,8 @@ end
 
 -- Scout offer of the fiche made by the suite (the model made none); nil when no building fits around.
 local function directOffer(c)
-    local M = require "RadioSurvivor/RS_Missions"
-    local Scout = require "RadioSurvivor/RS_MissionScout"
+    local M = require "RadioSurvivorCore/RC_Missions"
+    local Scout = require "RadioSurvivorCore/RC_MissionScout"
     local cfg = c.C.Missions.scout
     Scout.resetForTests()
     c.fiche.nextOfferAt = nil
@@ -218,7 +218,7 @@ end
 -- Scout offer possible around the player (probe npc, nothing created), for R.place.
 local function scoutFits(pl)
     local C = require "RadioSurvivor/RS_Config"
-    local Scout = require "RadioSurvivor/RS_MissionScout"
+    local Scout = require "RadioSurvivorCore/RC_MissionScout"
     local x, y = pl:getX(), pl:getY()
     Scout.resetForTests()
     return Scout.offer(C.Missions.scout, { id = "rst-npctalk-probe" }, nil,

@@ -5,7 +5,7 @@ Required by RadioSurvivor_Server (executor registered at load, context joined to
 
 Requester ("donor"): no notebook NPC fiche and no body. One donor record per voice and per notebook character, in
 the private state (RS_State: data.voiceDonors['voice:<voice>:<character>'] = { id, voice, character, mission,
-missionCount, nextOfferHour, given }), never in global ModData. The common engine (RS_Missions) runs the mission as any
+missionCount, nextOfferHour, given }), never in global ModData. The common engine (RC_Missions) runs the mission as any
 other: clock and delay, collective result, reputation scale of M01 (RS_Config.Reputation), purge; the mission keeps
 m.npc = donor id and m.donor = 'voice', m.voice, m.requesterName (name of the sheet), m.khz (frequency of the reply),
 m.report = 'radio', and no reward lot (rewardType '', rewardCount 0).
@@ -15,20 +15,20 @@ game day, START_MISSION_COOLDOWN_MS per voice.
 
 start_mission { template }: closed list V.TEMPLATES, further restricted by the sheet's missions list.
 The server draws the place with the template's
-offer (RS_MissionScout: habitable building at 60-250 tiles of the caller's server position, same rules as E11-T03),
+offer (RC_MissionScout: habitable building at 60-250 tiles of the caller's server position, same rules as E11-T03),
 creates and accepts the mission for the caller, writes the history line "mission" (kind of place, no coordinate) on
 the frequency of the reply. Refusals (reason): no_player (caller not connected: no server position), storage
 (private state not loaded or blocked), no_character (no notebook character bound), mission_open (this caller already
 has an open mission from this voice), recent_mission (OFFER_COOLDOWN_MS after the previous one), no_place, reputation
 (E04-T05: sensitive template refused to a bad reputation; scout is a simple mission, always allowed).
 
-Visit: the same server poll as E11-T03 (RS_Missions.observe from the notebook loop, server copy of the player).
-Report (E11-T13, user decision of 2026-10-14): once the objective is met (RS_Missions.reportReady: zone reached), the
+Visit: the same server poll as E11-T03 (RC_Missions.observe from the notebook loop, server copy of the player).
+Report (E11-T13, user decision of 2026-10-14): once the objective is met (RC_Missions.reportReady: zone reached), the
 mission waits "to report". The participant announces it to this voice on its frequency (command talk, voice routed
 by the frequency, request sent to the bridge with turn 'report_due'); the model playing the voice judges whether the
 call is that report (any language, no word list) and then returns the action report_mission (no parameter), allowed
 to every voice whose sheet allows start_mission (RS_Actions.IMPLIED). Its executor checks the facts again: an open
-mission of this voice for this caller, objective met, caller a participant (RS_Missions.spoken: template check,
+mission of this voice for this caller, objective met, caller a participant (RC_Missions.spoken: template check,
 write-ahead transaction), then success. Before the objective, a call is never a report (turn 'not_yet') and the
 action is refused (not_done). Another frequency reaches another voice (or none): never this mission. Reward
 (V.reward): reputation by the engine, plus a mark_map of the first place of the voice sheet not yet given to this
@@ -46,16 +46,16 @@ coordinate nor the zone.
 Briefing (E11-T09): the reply that proposes start_mission is aired before the action is judged, so it cannot know the
 place. Once the mission is created, V.onStarted(m, ctx) (set by RadioSurvivor_Server) queues one more request to the
 bridge for this caller and this voice, with turn = 'briefing': the voice then says the kind of place and its clues on
-its frequency. The clues are also shown, translated, by the notebook (RS_MissionScout, p.clues).
+its frequency. The clues are also shown, translated, by the notebook (RC_MissionScout, p.clues).
 ]]
 local Const = require "RadioSurvivor/RadioSurvivor_Const"
 local Config = require "RadioSurvivor/RS_Config"
 local Codec = require "RadioSurvivorCore/RC_Codec"
-local M = require "RadioSurvivor/RS_Missions"
+local M = require "RadioSurvivorCore/RC_Missions"
 local Rep = require "RadioSurvivor/RS_Reputation"
-require "RadioSurvivor/RS_MissionScout" -- registers the scout template
-require "RadioSurvivor/RS_MissionClear"
-require "RadioSurvivor/RS_MissionRetrieve"
+require "RadioSurvivorCore/RC_MissionScout" -- registers the scout template
+require "RadioSurvivorCore/RC_MissionClear"
+require "RadioSurvivorCore/RC_MissionRetrieve"
 local S = require "RadioSurvivor/RS_State"
 local Actions = require "RadioSurvivor/RS_Actions"
 local Log = require "RadioSurvivor/RS_RadioLog"
@@ -64,7 +64,7 @@ local MapMarks = require "RadioSurvivor/RS_MapMarks"
 
 local V = {}
 
--- Closed list of the start_mission parameter `template` (names of RS_Missions templates and RS_Config.Missions).
+-- Closed list of the start_mission parameter `template` (names of RC_Missions templates and RS_Config.Missions).
 V.TEMPLATES = { scout = true, deliver = true, retrieve = true, clear = true, signal = true }
 local TEMPLATE_NAMES = {retrieve = "retrieve_id"}
 V.COOLDOWN_MS = Const.START_MISSION_COOLDOWN_MS
@@ -118,7 +118,7 @@ function V.start(store, sheet, cid, player, khz, template)
     for _, name in ipairs(allowed) do if name == template then permitted = true end end
     if not V.TEMPLATES[template] or not permitted then return nil, "bad_template" end
     local name = TEMPLATE_NAMES[template] or template
-    if name == "signal" then require "RadioSurvivor/RS_MissionSignal" end
+    if name == "signal" then require "RadioSurvivorCore/RC_MissionSignal" end
     local c = Config.Missions[name]
     -- E04-T05 (Q11): a sensitive template is never started for a bad reputation (V.TEMPLATES holds simple ones only).
     if not Rep.offerAllowed(Rep.level(cid, state), name) then return nil, "reputation" end

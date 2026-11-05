@@ -6,9 +6,9 @@ solo). Design choices: docs/annexes/conception/secours-issue.md.
 Outcome "saved" (decided by RS_RescueVisit: a real delivery was made, then no member of the team is near any more).
 RS_Rescue.finish calls Scene.prepare(rec, result) through Rescue.sceneHook, in the same call, on the real record of
 the rescue (private state RS_State, or the work store of the in-game suites):
-  - cache: a cache record attached to the rescue (RS_Caches.attach: key = rescue id, table drawn from the closed list
+  - cache: a cache record attached to the rescue (RC_Caches.attach: key = rescue id, table drawn from the closed list
     RS_Config.Caches.order by RS_Rescue.drawer(rescue id), spot = site point, bounds = building bounds) with a note
-    (rec.cache.note = { name, text }, RS_Caches.makeNote: vanilla sheet of paper, locked) composed now in the language
+    (rec.cache.note = { name, text }, RC_Caches.makeNote: vanilla sheet of paper, locked) composed now in the language
     of the authority (IGUI_RS_RescueNote_*, English text when the mod translations cannot be read): names of the
     helpers, signature of the requester. Never a coordinate nor a frequency;
   - new place of the voice: a building drawn by RS_Rescue.pick (metagrid only, nothing loaded, far from the known
@@ -23,14 +23,14 @@ the rescue (private state RS_State, or the work store of the in-game suites):
     store, like the fact of the day).
 A rescue without voice (rec.voice nil) gets the cache and the note only.
 Placement (Scene.poll every CONFIG.POLL_MS real time, OnTickEvenPaused): the cache of every "saved" rescue whose
-scene is pending is placed by RS_Caches.place once the site square is loaded and its building has passed its
+scene is pending is placed by RC_Caches.place once the site square is loaded and its building has passed its
 vanilla stories, once only even after a restart (placing / placed saved with the private state, bag adopted when
 found again); then RS_Rescue.scenePlaced closes the scene. Scene.onPlaced(rescue id, cache record) is an optional
 single listener.
 ASCII only in the code (Kahlua lexer).
 ]]
 local Rescue = require "RadioSurvivor/RS_Rescue"
-local Caches = require "RadioSurvivor/RS_Caches"
+local Caches = require "RadioSurvivor/RS_CacheAction"
 local Memory = require "RadioSurvivor/RS_Memory"
 local PersonaState = require "RadioSurvivor/RS_PersonaState"
 local LifeLog = require "RadioSurvivor/RS_LifeLog"

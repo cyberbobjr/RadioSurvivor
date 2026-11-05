@@ -37,7 +37,7 @@ class RewardsTests(unittest.TestCase):
           ['RadioSurvivor/RS_RadioLog']={add=function(cid,khz,kind,text)
              logged[#logged+1]={cid=cid,khz=khz,kind=kind,text=text};return true end},
           ['RadioSurvivor/RS_MapMarks']={give=function() end},
-          ['RadioSurvivor/RS_Caches']={attach=function(m,t,p,b) m.cache={table=t,spot=p};return m.cache end,
+          ['RadioSurvivor/RS_CacheAction']={attach=function(m,t,p,b) m.cache={table=t,spot=p};return m.cache end,
              place=function() placed=placed+1;return true end}}
         function require(n) assert(modules[n],n);return modules[n] end
         store={data={},save=function() saves=saves+1;return saveOK end}

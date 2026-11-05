@@ -3,9 +3,10 @@ if RS_CarnetServer then return RS_CarnetServer end
 local C = require 'RadioSurvivor/RS_Config'
 local Codec = require 'RadioSurvivorCore/RC_Codec'
 local P = require 'RadioSurvivor/RS_NPCProvider'; local WorldStart = require 'RadioSurvivorCore/RC_WorldStart'
-local S = require 'RadioSurvivor/RS_State'; require 'RadioSurvivor/RS_MissionClear' -- E11-T04: template clear
+local S = require 'RadioSurvivor/RS_State'; require 'RadioSurvivorCore/RC_MissionClear' -- E11-T04: template clear
 local Identity = require 'RadioSurvivorCore/RC_Identity' -- E18-T03: identity of the characters (core mod)
-local M = require 'RadioSurvivor/RS_Missions'; require 'RadioSurvivor/RS_MissionScout'; require 'RadioSurvivor/RS_MissionRetrieve'
+local M = require 'RadioSurvivorCore/RC_Missions'
+require 'RadioSurvivorCore/RC_MissionScout'; require 'RadioSurvivorCore/RC_MissionRetrieve'
 local Rep = require 'RadioSurvivor/RS_Reputation'
 local T = require 'RadioSurvivor/RS_BridgeLanes'
 local Radio = require 'RadioSurvivor/RadioSurvivor_Const'
@@ -304,7 +305,7 @@ local function syncTransport()
     return T.write()
 end
 
--- Server-configured mission allocations (RS_Missions templates), not fabricated by the model or the client.
+-- Server-configured mission allocations (RC_Missions templates), not fabricated by the model or the client.
 -- character: notebook character the offers are computed for (engine supplies depend on its attitude, E17-T03).
 local function offerCatalog(npc, record, character)
     return M.offers(npc, record, Server.objects[npc.id], character) -- body: where a scout place is drawn around
@@ -550,7 +551,7 @@ local MEMBER_INTENTS = {none = true, accept = true, contest = true, refuse = tru
 -- E11-T13: report spoken to the requester. The talk request carried context.reportable (the mission of this NPC whose
 -- objective was met, the speaker a participant). Applied only when the model returned intent report_done and, at the
 -- reply, the same mission is still this NPC's open mission, its objective still met and the speaker still one of its
--- participants (RS_Missions.spoken checks again and runs the common write-ahead report). The revision may have moved
+-- participants (RC_Missions.spoken checks again and runs the common write-ahead report). The revision may have moved
 -- since (another participant joined): the facts are checked, not the revision. Returns the mission once succeeded.
 function Server.spokenReport(req, result, npc)
     local r = type(req.context) == 'table' and req.context.reportable
@@ -1140,8 +1141,9 @@ local function clockRunning()
     return false
 end
 
-local Caches = require 'RadioSurvivor/RS_Caches'; require 'RadioSurvivor/RS_MissionRecover' -- E11-T06: caches, template recover
-require 'RadioSurvivor/RS_MissionSignal' -- E11-T07: template signal (required mod Signal Smoke)
+local Caches = require 'RadioSurvivor/RS_CacheAction' -- E11-T06: caches (core RC_Caches with the voice action)
+require 'RadioSurvivorCore/RC_MissionRecover' -- E11-T06: template recover
+require 'RadioSurvivorCore/RC_MissionSignal' -- E11-T07: template signal (required mod Signal Smoke)
 local function tick()
     if not S.data or S.blocked then return end
     local now = getTimestampMs()

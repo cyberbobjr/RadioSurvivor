@@ -36,7 +36,7 @@
 --
 -- Zone approximative d'une mission de reconnaissance (E11-T10, MapActions.zones, plus bas) : le serveur ne l'envoie
 -- que dans l'instantané du carnet (champ mapZone { x, y, r } d'une mission active dont le joueur est participant,
--- RS_MissionScout) ; jamais la position du bâtiment. Dessin : symbole vanilla « Circle » (map_o.png, cercle tracé à la
+-- RC_MissionScout) ; jamais la position du bâtiment. Dessin : symbole vanilla « Circle » (map_o.png, cercle tracé à la
 -- main) centré sur (x, y), agrandi pour que son anneau ait un rayon de r cases : avec applyZoom (vrai par défaut), la
 -- taille affichée vaut largeur x échelle x worldScale pixels, worldScale = pixels par case
 -- (WorldMapBaseSymbol.getDisplayScale, WorldMapRenderer.getWorldScale : 1 / metersPerPixel) ; la largeur d'une icône

@@ -232,7 +232,7 @@ class Bench(unittest.TestCase):
             self.skipTest(beltradio_lib.missing())
         self.rt = lupa.LuaRuntime(unpack_returned_tuples=True)
         paths = ';'.join((LUA / side).as_posix() + '/?.lua' for side in ('shared', 'client'))
-        paths = (CORE_LUA / 'shared').as_posix() + '/?.lua;' + paths  # mod commun (E18)
+        paths = (CORE_LUA / 'shared').as_posix() + '/?.lua;' + (CORE_LUA / 'server').as_posix() + '/?.lua;' + paths  # mod commun (E18)
         self.rt.execute(f'package.path = [[{paths};{beltradio_lib.lua_path()};]] .. package.path')
         self.rt.execute(STUBS)
         self.rt.execute("Const = require('RadioSurvivor/RadioSurvivor_Const'); "

@@ -12,7 +12,7 @@ RS_Rescue.town (vanilla map only; otherwise no place). No conversation text is r
 Sources (closed list, Facts.KINDS):
     death        OnCharacterDeath of an IsoPlayer (fires on the dedicated server, OnPlayerDeath does not): name of the
                  character (descriptor), place of the body.
-    mission      RS_Missions.onFinished (chained after RS_ObservationTriggers): success, failed, abandoned (no
+    mission      RC_Missions.onFinished (chained after RS_ObservationTriggers): success, failed, abandoned (no
                  cancellation): template, requester name, participant names, place of the requester body if loaded.
     rescue       reserved for E12-T04/T05: Facts.record('rescue', { result, requester, participants, place }).
     passage      reserved for E13 (smuggler): Facts.record('passage', { event, name, place }).
@@ -53,7 +53,7 @@ since), Facts.drop(book, through), Facts.expireBook(book, today).
 Console messages in English.
 ]]
 local S = require 'RadioSurvivor/RS_State'
-local M = require 'RadioSurvivor/RS_Missions'
+local M = require 'RadioSurvivorCore/RC_Missions'
 local Rescue = require 'RadioSurvivor/RS_Rescue'
 local Triggers = require 'RadioSurvivor/RS_ObservationTriggers'
 local Const = require 'RadioSurvivor/RadioSurvivor_Const'
@@ -352,7 +352,7 @@ function Facts.characterDeath(character)
         'death|' .. tostring(owner) .. '|' .. name .. '|' .. tostring(day))
 end
 
--- RS_Missions.onFinished (chained).
+-- RC_Missions.onFinished (chained).
 function Facts.missionFinished(state, mission, result)
     if type(mission) ~= 'table' or not Facts.MISSION_RESULTS[result] then return end
     local donor = type(state) == 'table' and M.donorOf(state, mission) or nil
@@ -369,7 +369,7 @@ function Facts.missionFinished(state, mission, result)
 end
 
 local chained
--- Installs Facts.missionFinished after the current listener of RS_Missions (RS_ObservationTriggers.attach sets it
+-- Installs Facts.missionFinished after the current listener of RC_Missions (RS_ObservationTriggers.attach sets it
 -- when the notebook server loads, after this file). Called again at each poll: a listener set later is wrapped too.
 function Facts.chain()
     if chained and M.onFinished == chained then return end

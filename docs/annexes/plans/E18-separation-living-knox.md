@@ -10,7 +10,7 @@
 | ☑ | E18-T02 | Outils partagés déplacés dans le commun | `testé hors jeu` | hors jeu | E18-T01 |
 | ☐ | E18-T03 | Identité des personnages dans le commun | `testé hors jeu` | MP | E18-T02 |
 | ☐ | E18-T04 | Lien avec le pont dans le commun | `testé hors jeu` | MP | E18-T02 |
-| ☐ | E18-T05 | Moteur de missions dans le commun, donneurs voix et PNJ | `à faire` | MP | E18-T03, E18-T04 |
+| ☐ | E18-T05 | Moteur de missions dans le commun, donneurs voix et PNJ | `testé hors jeu` | MP | E18-T03, E18-T04 |
 | ☐ | E18-T06 | Journal commun des missions | `à faire` | MP | E18-T05 |
 | ☐ | E18-T07 | Mod `batman_LivingKnox` : code déplacé | `à faire` | solo | E18-T02 |
 | ☐ | E18-T08 | Bases connues et sites sans RadioSurvivor | `à faire` | solo | E18-T07 |
@@ -64,6 +64,15 @@ donnent des missions ; le pont Python LLM est la base de leur intelligence, avec
   Living Knox y écrit les échanges avec ses PNJ, le carnet de RadioSurvivor le lit pour l'afficher ; il sert de mémoire
   au LLM pour chaque nouvelle phrase. Confirmé par défaut : les échanges avec les voix radio y sont gardés aussi.
 - 2026-11-05 — **Quotas du pont** (utilisateur, `E18-T04`) : **une seule file d'échange, plafonds séparés** : le mod commun porte la file des demandes et des réponses (un fichier de demandes, un fichier de réponses, signal de vie), chaque mod compte ses demandes à part comme aujourd'hui (plafond horaire de la radio par l'option sandbox, `MAX_PER_HOUR` et budget d'enrichissement des PNJ, `MAX_PENDING` de chacun) ; aucun changement de jeu.
+- 2026-11-05 — **Gabarits des missions** (utilisateur, `E18-T05`) : **tous les gabarits passent dans le mod commun**
+  (livrer, repérer, nettoyer, récupérer, rapporter, signaler), avec ce dont ils ont besoin dans le monde (choix des
+  lieux loin des bases, caches) ; le mod commun **exige Signal Smoke** (`require=\batman_SignalSmoke`) pour le gabarit
+  « signaler », donc Living Knox seul l'exige aussi. Remplace, pour ce point, « le mod commun n'exige aucun autre mod ».
+- 2026-11-05 — **API des donneurs** (utilisateur, `E18-T05`) : **inscription et crochets** : chaque mod inscrit sa
+  sorte de donneur (`RC_Missions.registerDonor(kind, { find, … })`) ; le moteur garde ses champs (mission en cours,
+  compteur, attente avant la prochaine offre) sur la fiche du donneur, tenue par le mod ; fin de mission, réputation,
+  tri des offres, oubli d'une mission par les personnages : crochets facultatifs (RadioSurvivor y branche réputation et
+  carnet).
 - 2026-11-05 — Confirmé par défaut (valeurs techniques, modifiables) :
   - identifiants `batman_RadioSurvivorCore` (mod commun, nom affiché « Radio Survivor Core », code sous
     `media/lua/*/RadioSurvivorCore/`, fichiers `RC_`) et `batman_LivingKnox` (nom affiché « Living Knox ») ;
@@ -145,15 +154,15 @@ Deuxième article Workshop, dépôt séparé, nouvelles règles de jeu des missi
   - Reste : dossier d'échange encore `batman_RadioSurvivor/` (passage au commun et transition du pont : E18-T12) ; voies de Living Knox (parole des PNJ) : E18-T11 ; instabilité `lk.barricade` (chantier non fini dans le délai) sans tâche de suivi : à ouvrir ; validation des trois montages : E18-T15
 
 - [ ] **E18-T05** — Moteur de missions dans le commun, donneurs voix et PNJ
-  - État : `à faire`
+  - État : `testé hors jeu`
   - Cible : `MP`
   - Dépend de : E18-T03, E18-T04
   - Fichiers : `RS_Missions`, gabarits `RS_Mission*`, `RS_NPCRewards`, récompenses des voix, délais en temps de jeu → commun ; donneurs `RS_MissionVoice` (RadioSurvivor) et offres des PNJ (Living Knox, `LK12-T03`)
   - Faire : un moteur de missions, des gabarits et des récompenses communs ; un donneur s'enregistre (voix radio, PNJ) avec ce qu'il peut offrir ; état des missions dans un état privé du commun, missions en cours d'une partie existante reprises ; dépendance éventuelle d'un gabarit à un autre mod (Signal Smoke pour « signaler ») tranchée ici.
   - Accepté si : Living Knox seul : un PNJ propose une mission, acceptée par la parole, rendue et récompensée ; RadioSurvivor seul : missions des voix comme aujourd'hui ; ensemble : mêmes missions qu'avant la séparation.
   - Tests : bancs des missions (`test_mission_*`, `test_e11*`) ; suites rs.mission*, rs.missions.solo dans les trois montages.
-  - Preuve : —
-  - Reste : —
+  - Preuve : décisions du 2026-11-05 (tous les gabarits au commun, Signal Smoke exigé ; inscription et crochets) ; mod commun : `server/RadioSurvivorCore/RC_Missions` (moteur et gabarit livrer, déplacés par `git mv` ; donneurs `registerDonor(kind, { find, claim, observeDeliver })`, crochets de résultat, d'oubli, de changement, filtre des offres, nom du personnage, liaison des joueurs, fournisseur de PNJ et magasin injectés), gabarits `RC_MissionScout`, `RC_MissionClear`, `RC_MissionRecover`, `RC_MissionRetrieve`, `RC_MissionSignal`, tirage des lieux `RC_Sites` (partie géométrie de `RS_Rescue`, qui la reprend sous ses noms), placement des caches `RC_Caches`, catalogue et délais `shared/RC_MissionConfig` (même table vue par `RS_Config`), état privé `RC_MissionStore` (`Zomboid/Lua/batman_RadioSurvivorCore/missions-*.txt`, en-tête `RCMISSIONS1`, `RC_SlotFile`) ; `mod.info` du commun : `require=atman_SignalSmoke` ; RadioSurvivor : `RS_MissionHooks` (donneurs `npc` et `voice`, réputation et confiance du carnet, oubli des missions, filtre de réputation, liaison du carnet, publication), attaché par `RS_State`, qui écrit le fichier des missions puis le sien (sans les missions, `missionsInCore`) ; action radio `place_cache` dans `RS_CacheAction` ; banc `python tests/test_core_missions.py` (rouge d'abord : 5 FAIL, 2 ERROR ; puis « Ran 11 tests … OK ») : une seule copie, anciens noms absents de `Contents`, `dev`, `tests`, `tools`, `bridge`, aucun `require` de missions de RadioSurvivor dans Living Knox, ASCII du commun, Signal Smoke exigé, état écrit par l'ancien code (`tests/fixtures/e18-t05`) repris octet pour octet puis plus écrit dans le carnet, redémarrage sans nouvelle reprise, monde neuf vide, donneur inscrit sans aucun module de RadioSurvivor (offre, acceptation, compte rendu, attente avant la prochaine offre, crochet de résultat) ; `python tests/run_all.py --keep-going` : « 151 passed, 0 failed » (`carnet` 94, `kahlua` 39 dans la VM réelle, `mission_*`, `lk_*`, `check_case` avec le commun dépendant de Signal Smoke), luacheck `Contents` 15 (référence 15), `dev` 0, `plan.py check` 0 erreur
+  - Reste : campagne MP automatique (`autoclient.py --mp --clients 2 --server-campaign mp --bridge on --llm fake`) à lancer quand l'utilisateur aura fini sa partie (consigne du 2026-11-05 : pas de jeu lancé) ; Living Knox seul (un PNJ propose une mission acceptée par la parole) : donneur et tic des missions de Living Knox avec E18-T07 et E18-T11 (initialisation du magasin commun sans RadioSurvivor comprise) ; titres des missions (`IGUI_RS_*`) et page sandbox dans RadioSurvivor jusqu'à E18-T13 ; Living Knox lit encore la géométrie des lieux par `RS_Rescue` (désormais `RC_Sites`) : E18-T08
 
 - [ ] **E18-T06** — Journal commun des missions
   - État : `à faire`

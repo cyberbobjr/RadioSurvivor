@@ -1,5 +1,5 @@
 --[[
-rs.mission.recover - mission template "recover" and its cache (E11-T06, server/RadioSurvivor/RS_MissionRecover.lua,
+rs.mission.recover - mission template "recover" and its cache (E11-T06, server/RadioSurvivorCore/RC_MissionRecover.lua,
 RS_Caches.lua) on the real metagrid and the real world: a building drawn around the player, the cache (marked bag)
 placed once by the server poll when its square is loaded, picked up by the player, another bag with the same mark
 left at the depot and ignored, the cache left at the depot recognised by its item id, taken out of the world: the
@@ -24,9 +24,9 @@ local function modules(t)
     if type(isClient) == "function" and isClient() then
         t:skip("RS_MissionRecover is not loaded on an MP client (authority only)")
     end
-    local M = require "RadioSurvivor/RS_Missions"
-    local Recover = require "RadioSurvivor/RS_MissionRecover"
-    local Caches = require "RadioSurvivor/RS_Caches"
+    local M = require "RadioSurvivorCore/RC_Missions"
+    local Recover = require "RadioSurvivorCore/RC_MissionRecover"
+    local Caches = require "RadioSurvivor/RS_CacheAction"
     if type(M) ~= "table" or type(Recover) ~= "table" or type(Caches) ~= "table" then
         t:skip("mission modules did not return their table here")
     end

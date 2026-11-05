@@ -17,7 +17,7 @@ Les numéros de ligne ci-dessous sont ceux de la branche `dev` au 2026-10-14 (ch
 |---|---|---|
 | Adaptateur | `RS_Reputation.lua` n'a que `descriptor`, `projection` (toujours « indisponible ») et `record`, qui écrit un fait `applied=false`, `status='api_unavailable'` dans `state.outcomes[eventId]`, une seule fois par `eventId` | `server/RadioSurvivor/RS_Reputation.lua:4-22` |
 | Montants | `Reputation = {success = 5, failure = -5, requesterKilled = -50}`, « provisoires » | `shared/RadioSurvivor/RS_Config.lua:59-60` |
-| Résultats de mission | `M.finish` : un `Rep.record` par participant, identifiant `<mission>-<personnage>-result`, actions `mission.success`/`mission.failed`/`mission.abandoned` ; annulations (`cancelled_*`) sans effet | `server/RadioSurvivor/RS_Missions.lua:120-145` (appel ligne 140, filtre 130-131) |
+| Résultats de mission | `M.finish` : un `Rep.record` par participant, identifiant `<mission>-<personnage>-result`, actions `mission.success`/`mission.failed`/`mission.abandoned` ; annulations (`cancelled_*`) sans effet | `server/RadioSurvivorCore/RC_Missions.lua (mod commun):120-145` (appel ligne 140, filtre 130-131) |
 | Tricherie au passeur | `Rep.record(..., "trade-<rév>-cheated", who, "trade.cheated", failure)` | `server/RadioSurvivor/RS_TradeExchange.lua:291-302` (appel ligne 297) |
 | Mort du demandeur | `Server.dead` annule les missions (`cancelled_dead`) et pose `deathAttribution = 'unavailable_server_evidence'` ; commentaire « attribution bloquée » devenu faux depuis E04-T06 | `server/RS_Carnet_Server.lua:963-977` (commentaire 972-974) |
 | Cause de la mort d'un PNJ | `Bodies.deathCause` (dernier coup d'un joueur ≤ 5 s, conducteur, feu jamais attribué) passée à `Bodies.onDied`, relayée en événement fournisseur `'death' (id, object, cause)` | `server/LivingKnox/LK_Bodies.lua:941-974`, `1013-1014` ; `shared/RadioSurvivor/RS_LivingKnox.lua:618` ; `shared/RadioSurvivor/RS_NPCProvider.lua:88` |
@@ -44,7 +44,7 @@ du carnet, action, montant, preuve). La chronique reste le récit public ; la r�
 
 | Action | Quand | Qui | Montant proposé | Source |
 |---|---|---|---|---|
-| `mission.success` | `M.finish(..., 'success')` | chaque participant inscrit | +5 | `RS_Missions.lua:140` (existant) |
+| `mission.success` | `M.finish(..., 'success')` | chaque participant inscrit | +5 | `RC_Missions.lua:140` (existant) |
 | `mission.failed` / `mission.abandoned` | `M.finish` | chaque participant inscrit | −5 | idem (existant) |
 | `trade.cheated` | sac insuffisant au ponton | l'appelant du passage | −5 | `RS_TradeExchange.lua:297` (existant) |
 | `npc.requesterKilled` | mort d'un PNJ dont une mission est ouverte, `cause.killer` attribué **et** participant de cette mission | ce seul personnage | −50 | `RS_Carnet_Server.lua:963` + cause de `'death'` (E04-T07) |
@@ -82,7 +82,7 @@ mort non attribuée : aucun effet (règle d'E04-T06).
 | PNJ en face (carnet, proximité) | `reputation = 'bad' / 'neutral' / 'good'` (+ dernier motif public si décidé) | `RS_Carnet_Server.lua:356` |
 | Radio de groupe | idem | `RS_GroupRadio.lua:144` |
 | Voix radio (Walt…) | idem, nouveau champ de la requête | `RadioSurvivor_Server.lua:445-463` ; contrat `docs/specifications-techniques/protocole-carnet-v2.md` à mettre à jour |
-| Offres de missions | filtre serveur par niveau (simples / sensibles) | `M.offers`, `RS_Missions.lua:75-85` (E04-T05) |
+| Offres de missions | filtre serveur par niveau (simples / sensibles) | `M.offers`, `RC_Missions.lua:75-85` (E04-T05) |
 | Passeur | plancher de marge par niveau | `RS_Trade.lua:340-356` (E04-T11) |
 | Groupes Living Knox | éventuel décalage du départ de l'attitude (question Q14, E04-T11) | `LK_Hostility` (départ, [attitude.md](attitude.md)) |
 
@@ -136,7 +136,7 @@ existant).
 ## 10. Mise en œuvre (2026-10-15)
 
 Code : `server/RadioSurvivor/RS_Reputation.lua` (en-tête : API publique), `shared/RadioSurvivor/RS_Config.lua`
-(`Reputation`, valeurs de la section 9), points de capture `RS_Missions.finish`, `RS_TradeExchange` (`finish`),
+(`Reputation`, valeurs de la section 9), points de capture `RC_Missions.finish`, `RS_TradeExchange` (`finish`),
 `RS_Carnet_Server.lua` (`Server.dead`, `Server.npcDied`, `killerCharacter`, instantané, `prune`, `characterDeath`).
 Banc : `tests/test_reputation.py`.
 
@@ -178,7 +178,7 @@ Banc : `tests/test_reputation.py`.
   seulement : `R.change` garde `{from, to, day, n}` ; le client (enveloppe de `RS_CarnetClient.receive` dans
   `RS_Notebook.lua`) affiche « Réputation : bonne » au-dessus du personnage une fois par `n` ; le premier instantané
   après le chargement ne fait que noter la référence. L'ancienne liste `events` « non appliqués » est retirée.
-- **Offres (E04-T05, Q11, Q12)** : `RS_Missions.offers` filtre par `R.offerAllowed(level, template, offer)` :
+- **Offres (E04-T05, Q11, Q12)** : `RC_Missions.offers` filtre par `R.offerAllowed(level, template, offer)` :
   mauvaise réputation = `deliver`, `signal`, `scout`, `clear` seulement ; `retrieve_id`, `recover` et les missions de
   groupe (offre `kind = supply`) fermées (`RS_Config.Reputation.sensitive`) ; neutre et bonne gardent tout. Même
   garde dans `RS_MissionVoice.start` (refus `reputation`). L'acceptation revalide le même catalogue.

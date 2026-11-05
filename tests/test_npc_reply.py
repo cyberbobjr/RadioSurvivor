@@ -169,7 +169,7 @@ class ServerTests(unittest.TestCase):
         sim.select('alice')
         sim.acquaint('alice')
         npc = next(iter(sim.state().npcs.values()))
-        m = sim.server.rt.eval("require('RadioSurvivor/RS_Missions')").create(sim.state(), npc, sim.character('alice'))
+        m = sim.server.rt.eval("require('RadioSurvivorCore/RC_Missions')").create(sim.state(), npc, sim.character('alice'))
         self.assertEqual(m.state, 'offer')
         req = self.talk(sim, "D'accord, je m'en occupe.")
         self.assertEqual(req['context']['acceptable'], {'mission': m.id, 'revision': m.revision})

@@ -83,7 +83,7 @@ class Bench(unittest.TestCase):
         self.rt.execute(DOUBLES)
         self.rt.execute(EXTRA)
         self.rt.execute(SANDBOX + option_defaults())
-        paths = [CORE_LUA / 'shared', MOD_LUA / 'shared', MOD_LUA / 'server']
+        paths = [CORE_LUA / 'shared', CORE_LUA / 'server', MOD_LUA / 'shared', MOD_LUA / 'server']
         self.rt.execute('package.path = [[' + ''.join(f'{p.as_posix()}/?.lua;' for p in paths) + ']] .. package.path')
         self.rt.execute(WORLD + (FORESTS if forests else ''))
         for path, text in self.files.items():
@@ -419,7 +419,7 @@ class ClientTests(unittest.TestCase):
         rt.execute(DOUBLES)
         rt.execute(SANDBOX + option_defaults())
         rt.execute('SIDE = "client"')
-        paths = [CORE_LUA / 'shared', MOD_LUA / 'shared', MOD_LUA / 'server']
+        paths = [CORE_LUA / 'shared', CORE_LUA / 'server', MOD_LUA / 'shared', MOD_LUA / 'server']
         rt.execute('package.path = [[' + ''.join(f'{p.as_posix()}/?.lua;' for p in paths) + ']] .. package.path')
         for name in SHARED:
             rt.execute(f'require "{name}"')

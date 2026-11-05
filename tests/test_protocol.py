@@ -253,7 +253,7 @@ class Game:
         g.getModFileReader = lambda mod, name, create: (
             TextReader(WALT_FIXED) if name == "personas/walt.txt" and not drawn else Reader(MOD / name))
         paths = ';'.join((LUA / side).as_posix() + '/?.lua' for side in ('shared', 'server', 'client'))
-        paths = (CORE_LUA / 'shared').as_posix() + '/?.lua;' + paths  # mod commun (E18)
+        paths = (CORE_LUA / 'shared').as_posix() + '/?.lua;' + (CORE_LUA / 'server').as_posix() + '/?.lua;' + paths  # mod commun (E18)
         self.rt.execute(f'package.path = [[{paths};]] .. package.path')
         # Mod requis Belt Walkie-Talkie : vraie partie partagée (BatmanRadioSupport.canTransmitWith), chargée en solo,
         # sur un client et sur un serveur. Absente : SKIP (unittest.SkipTest, rapporté par main()).
@@ -1126,7 +1126,7 @@ def npc_exchange(exchange: Path, utf16: bool) -> None:
     g.getFileWriter = lambda name, create, append: ByteWriter(exchange / Path(name.decode()).name)
     g.getFileReader = lambda name, create: byte_reader(exchange / Path(name.decode()).name, game_encoding)
     paths = ";".join((LUA / side).as_posix() + "/?.lua" for side in ("shared", "server"))
-    paths = (CORE_LUA / "shared").as_posix() + "/?.lua;" + paths  # mod commun (E18)
+    paths = (CORE_LUA / "shared").as_posix() + "/?.lua;" + (CORE_LUA / "server").as_posix() + "/?.lua;" + paths  # mod commun (E18)
     rt.execute(f"package.path = [[{paths};]] .. package.path".encode())
     codec = rt.eval(b'require("RadioSurvivorCore/RC_Codec")')
     codec[b"_utf16"] = True if utf16 else None
@@ -1193,7 +1193,7 @@ def scenario_npc_observations(tmp: Path) -> None:
     g.getFileWriter = lambda name, create, append: file_writer(exchange / Path(name).name, name, append)
     g.getFileReader = lambda name, create: Reader(exchange / Path(name).name)
     paths = ";".join((LUA / side).as_posix() + "/?.lua" for side in ("shared", "server"))
-    paths = (CORE_LUA / "shared").as_posix() + "/?.lua;" + paths  # mod commun (E18)
+    paths = (CORE_LUA / "shared").as_posix() + "/?.lua;" + (CORE_LUA / "server").as_posix() + "/?.lua;" + paths  # mod commun (E18)
     rt.execute(f"package.path = [[{paths};]] .. package.path")
     transport = rt.eval('require("RadioSurvivor/RS_BridgeLanes")')
     observations = [
@@ -1267,7 +1267,7 @@ def scenario_relation_change(tmp: Path) -> None:
     g.getFileWriter = lambda name, create, append: file_writer(exchange / Path(name).name, name, append)
     g.getFileReader = lambda name, create: Reader(exchange / Path(name).name)
     paths = ";".join((LUA / side).as_posix() + "/?.lua" for side in ("shared", "server"))
-    paths = (CORE_LUA / "shared").as_posix() + "/?.lua;" + paths  # mod commun (E18)
+    paths = (CORE_LUA / "shared").as_posix() + "/?.lua;" + (CORE_LUA / "server").as_posix() + "/?.lua;" + paths  # mod commun (E18)
     rt.execute(f"package.path = [[{paths};]] .. package.path")
     transport = rt.eval('require("RadioSurvivor/RS_BridgeLanes")')
     relation = {"level": "favorable", "trend": "up", "group": "cautious",
@@ -1374,7 +1374,7 @@ def scenario_scout_offer(tmp: Path) -> None:
     g.getFileWriter = lambda name, create, append: file_writer(exchange / Path(name).name, name, append)
     g.getFileReader = lambda name, create: Reader(exchange / Path(name).name)
     paths = ";".join((LUA / side).as_posix() + "/?.lua" for side in ("shared", "server"))
-    paths = (CORE_LUA / "shared").as_posix() + "/?.lua;" + paths  # mod commun (E18)
+    paths = (CORE_LUA / "shared").as_posix() + "/?.lua;" + (CORE_LUA / "server").as_posix() + "/?.lua;" + paths  # mod commun (E18)
     rt.execute(f"package.path = [[{paths};]] .. package.path")
     transport = rt.eval('require("RadioSurvivor/RS_BridgeLanes")')
     clues = {1: "The place is a single-storey house.", 2: "There is a gas station a short walk to the north."}
@@ -1432,7 +1432,7 @@ def scenario_supply_offer(tmp: Path) -> None:
     g.getFileWriter = lambda name, create, append: file_writer(exchange / Path(name).name, name, append)
     g.getFileReader = lambda name, create: Reader(exchange / Path(name).name)
     paths = ";".join((LUA / side).as_posix() + "/?.lua" for side in ("shared", "server"))
-    paths = (CORE_LUA / "shared").as_posix() + "/?.lua;" + paths  # mod commun (E18)
+    paths = (CORE_LUA / "shared").as_posix() + "/?.lua;" + (CORE_LUA / "server").as_posix() + "/?.lua;" + paths  # mod commun (E18)
     rt.execute(f"package.path = [[{paths};]] .. package.path")
     transport = rt.eval('require("RadioSurvivor/RS_BridgeLanes")')
     supply = {"kind": "supply", "unit": "value", "need": "food", "level": 20, "quantity": 60, "durationMs": 7200000,
@@ -3396,7 +3396,7 @@ def scenario_voice_mission_bridge(tmp: Path) -> None:
     rt.execute("isClient = function() return false end")
     g.getFileWriter = lambda name, create, append: file_writer(exchange / Path(name).name, name, append)
     paths = ";".join((LUA / side).as_posix() + "/?.lua" for side in ("shared", "server"))
-    paths = (CORE_LUA / "shared").as_posix() + "/?.lua;" + paths  # mod commun (E18)
+    paths = (CORE_LUA / "shared").as_posix() + "/?.lua;" + (CORE_LUA / "server").as_posix() + "/?.lua;" + paths  # mod commun (E18)
     rt.execute(f"package.path = [[{paths};]] .. package.path")
     codec = rt.eval('require("RadioSurvivorCore/RC_Codec")')
     transport = rt.eval('require("RadioSurvivor/RS_BridgeLanes")')

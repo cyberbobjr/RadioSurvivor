@@ -108,7 +108,7 @@ end
 Scene = require("RadioSurvivor/RS_RescueScene")
 Memory = require("RadioSurvivor/RS_Memory")
 PersonaState = require("RadioSurvivor/RS_PersonaState")
-Caches = require("RadioSurvivor/RS_Caches")
+Caches = require("RadioSurvivor/RS_CacheAction")
 """
 
 
@@ -235,7 +235,7 @@ class PrepareTests(SceneHarness):
         self.assertIsNone(re.search(r'\d', text))
         self.assertNotIn('IGUI_', text)
         # Same table for the same rescue id (drawn from the id).
-        self.assertEqual(self.ev('return require("RadioSurvivor/RS_Caches").drawTable(R.drawer("rsc-1"))'),
+        self.assertEqual(self.ev('return require("RadioSurvivor/RS_CacheAction").drawTable(R.drawer("rsc-1"))'),
                          raw.cache.table)
 
     def test_note_in_the_language_of_the_authority(self):

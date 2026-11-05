@@ -218,7 +218,7 @@ LivingKnox = { API = {
 package.loaded["RadioSurvivor/RS_NPCProvider"] = { active = function() return { name = "livingknox" } end,
     available = function() return true end, objects = function() return NPCS end, id = function(b) return b.id end }
 -- RS_Missions.accept with the rules of RS_Missions.lua.
-package.loaded["RadioSurvivor/RS_Missions"] = { accept = function(state, m, character, name)
+package.loaded["RadioSurvivorCore/RC_Missions"] = { accept = function(state, m, character, name)
     if not m or not m.invited[character] or m.transaction or (m.state ~= "offer" and m.state ~= "active") then
         return false end
     if m.participants[character] then return true end

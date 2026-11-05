@@ -180,7 +180,7 @@ fournisseur déclare le PNJ non hostile (`hostile == false` ; inconnu = pas d'of
 aucune mission ouverte et si son délai entre deux offres est écoulé (`offerCatalog`). Le LLM choisit
 une offre admissible, le serveur la revérifie, le carnet l'accepte par bouton.
 
-**Moteur de gabarits (`E11-T02`, `RS_Missions.lua`).** Le moteur porte ce qui est commun à toute
+**Moteur de gabarits (`E11-T02`, `RC_Missions.lua`).** Le moteur porte ce qui est commun à toute
 mission : offres admissibles (`M.offers`, appelé par `offerCatalog`), création, acceptation, chrono et
 expiration des offres, résultat collectif et réputation, transaction de progression à journal
 préalable (`M.report`), lot de récompense commun (`M.claim`), purge et projection. Chaque gabarit est
@@ -215,7 +215,7 @@ revalidé à la réponse ; les conditions revalidées (`terms`) sont passées à
 - *Délai* : celui de M01 (7 200 000 ms de fonctionnement) ; l'offre du moteur a son propre délai de 48 heures de jeu,
   qui peut tomber avant (pause, vitesse de jeu) : la mission se ferme alors comme ci-dessus.
 
-**Gabarit reconnaître (`E11-T03`, `RS_MissionScout.lua`, offre `scout_v1`).** Atteindre un lieu choisi par le
+**Gabarit reconnaître (`E11-T03`, `RC_MissionScout.lua`, offre `scout_v1`).** Atteindre un lieu choisi par le
 serveur, puis en rendre compte au demandeur **de vive voix**. Mêmes délai (7 200 000 ms de fonctionnement du
 serveur), barème de réputation, résultat collectif et lot commun (20 cartouches de 9 mm) que M01 ; le moteur commun
 gère acceptation, chrono, abandon, mort du demandeur, purge et récompense.
@@ -237,7 +237,7 @@ gère acceptation, chrono, abandon, mort du demandeur, purge et récompense.
   `zoneReached` (avec `reachedBy`, `reachedAt`), la révision monte, l'état est sauvegardé et la projection publiée.
   Une offre non acceptée n'est pas surveillée ; liste vide : rien n'est décidé.
 - *Compte rendu* (`E11-T13`, commun à `scout`, `clear`, `recover`, `signal`) : de proximité pour un PNJ (à la radio
-  pour une voix, ci-dessous). L'objectif rempli (`RS_Missions.reportReady` ; ici la visite) laisse la mission
+  pour une voix, ci-dessous). L'objectif rempli (`RC_Missions.reportReady` ; ici la visite) laisse la mission
   `active` « à rapporter » (`toReport`). Une phrase d'un participant admise par `talk` (demandeur sélectionné à
   `SELECT_RANGE`, chat local autorisé, délai respecté) porte alors `context.reportable` ; le modèle rend
   `report_done` s'il y voit le compte rendu (aucune liste de mots) et `Server.spokenReport` revérifie (même mission
@@ -285,12 +285,12 @@ gère acceptation, chrono, abandon, mort du demandeur, purge et récompense.
   Missions ajoute « Une zone approximative est entourée sur votre carte » tant que le lieu n'est pas atteint. Missions
   créées avant `E11-T10` : pas de zone.
 
-**Gabarit retrouver (`E11-T05`, `RS_MissionRetrieve.lua`, offre `retrieve_id_v1`).** Retrouver le corps d'un
+**Gabarit retrouver (`E11-T05`, `RC_MissionRetrieve.lua`, offre `retrieve_id_v1`).** Retrouver le corps d'un
 disparu dans un bâtiment choisi par le serveur et rapporter sa carte d'identité au demandeur. Mêmes délai, barème,
 résultat collectif et lot commun que M01 et `scout` (moteur commun). Choix de conception : `docs/annexes/conception/mission-retrouver.md`.
 - *Offre* : fiche de PNJ du carnet seulement (une voix radio ne la propose pas : `RS_MissionVoice.TEMPLATES` et la
   liste fermée du pont restent `scout`) ; seulement si la classe vanilla `RandomizedWorldBase` est exposée (un banc
-  sans elle n'offre rien). Lieu tiré comme `scout` (`RS_MissionScout.pick` : 60 à 250 cases du corps du demandeur, 60
+  sans elle n'offre rien). Lieu tiré comme `scout` (`RC_MissionScout.pick` : 60 à 250 cases du corps du demandeur, 60
   cases au moins des bases connues, rien de chargé), gardé 10 min par demandeur dans la mémoire du gabarit ; offre au
   pont : `kind = retrieve_id`, `item = ID card`, type de lieu, indices sans chiffre.
 - *Création* : point du site (centre de la pièce principale, `m.spot`) et emprise (`m.bounds`) dans l'état privé ;
@@ -320,11 +320,11 @@ résultat collectif et lot commun que M01 et `scout` (moteur commun). Choix de c
   refusée) ; un corps retiré par `HoursForCorpseRemoval` ou détruit perd la carte (la mission expire) ; corps
   seulement (pas de zombie porteur) ; aucune vérification en jeu ni en MP à ce jour.
 
-**Gabarit nettoyer (`E11-T04`, `RS_MissionClear.lua`, offre `clear_v1`).** Tuer N zombies dans un cercle tracé autour
+**Gabarit nettoyer (`E11-T04`, `RC_MissionClear.lua`, offre `clear_v1`).** Tuer N zombies dans un cercle tracé autour
 d'un lieu choisi par le serveur. Mêmes délai, barème, résultat collectif et lot commun que M01 et `scout` (moteur
 commun). Choix de conception : `docs/annexes/conception/mission-nettoyer.md`.
 - *Offre* : fiche de PNJ du carnet seulement (`RS_MissionVoice.TEMPLATES` reste `scout`). Lieu tiré comme `scout`
-  (`RS_MissionScout.pick`), gardé 10 min par demandeur. Cercle de comptage centré sur le bâtiment (30 cases, plus pour
+  (`RC_MissionScout.pick`), gardé 10 min par demandeur. Cercle de comptage centré sur le bâtiment (30 cases, plus pour
   un grand bâtiment). N d'après la densité des en-têtes de lot dans le cercle (`getChunkDataFromTile` →
   `getUnadjustedZombieIntensity`, `Distribution` uniforme = 128, × `ZombieConfig.PopulationMultiplier`) :
   `N = 6 + 19 × min(1, densité / 0,5)`, borné à 6..25 ; densité < 0,04, `Zombies` = 6 ou métagrille sans densité :
@@ -348,11 +348,11 @@ commun). Choix de conception : `docs/annexes/conception/mission-nettoyer.md`.
   (intervalle de sauvegarde) : un arrêt brutal peut perdre les derniers comptes ; relevé des coups en mémoire (un
   redémarrage entre le coup et la mort la laisse non attribuée) ; aucune vérification en jeu ni en MP à ce jour.
 
-**Caches et gabarit récupérer (`E11-T06`, `RS_Caches.lua`, `RS_MissionRecover.lua`, offre `recover_v1`).** Ramasser
+**Caches et gabarit récupérer (`E11-T06`, `RC_Caches.lua`, `RC_MissionRecover.lua`, offre `recover_v1`).** Ramasser
 une cache (sac marqué) posée dans un lieu choisi par le serveur et la porter au dépôt du groupe du demandeur. Mêmes
 délai, barème, résultat collectif et lot commun que M01 et `scout` (moteur commun). Choix de conception :
 `docs/annexes/conception/mission-recuperer.md`.
-- *Cache* (`RS_Caches`) : champ `m.cache` de la mission (une par mission, état privé) = `{ key, table, spot, bounds,
+- *Cache* (`RC_Caches`) : champ `m.cache` de la mission (une par mission, état privé) = `{ key, table, spot, bounds,
   placing, placed, itemId, at }` ; tables fermées `RS_Config.Caches` (`food`, `medical`, `ammo`, `tools`) ; sac
   `Base.Bag_DuffelBag`, ModData `RS_Cache = <mission>`, rempli avant d'être posé au sol par
   `AddWorldInventoryItem(sac, 0.5, 0.5, 0, true)` sur la case libre la plus proche du point dans le même bâtiment.
@@ -388,7 +388,7 @@ délai, barème, résultat collectif et lot commun que M01 et `scout` (moteur co
   liste de retrait ; foyer révélé au participant par le cercle du dépôt ; cache d'une voix absente du carnet ; aucune
   vérification en jeu ni en MP à ce jour.
 
-**Gabarit signaler (`E11-T07`, `RS_MissionSignal.lua`, offre `signal_v1`).** Allumer un signal de la couleur demandée
+**Gabarit signaler (`E11-T07`, `RC_MissionSignal.lua`, offre `signal_v1`).** Allumer un signal de la couleur demandée
 dans un cercle tracé autour d'un bâtiment tiré par le serveur, pendant une fenêtre d'heures de jeu. Mod requis
 Signal Smoke (`batman_SignalSmoke`, `require=` du `mod.info` depuis le 2026-10-15). Mêmes délai, barème, résultat collectif et lot
 commun que M01. Choix de conception : `docs/annexes/conception/mission-signaler.md`.
@@ -409,7 +409,7 @@ commun que M01. Choix de conception : `docs/annexes/conception/mission-signaler.
   grenade sans lanceur connu non comptée ; journée de jeu très longue : fenêtre peut-être hors délai ; aucun essai en
   jeu ni MP à ce jour.
 
-**Missions répétables (`E00-T03`, `RS_Missions.lua`).** Un PNJ n'a qu'une mission ouverte (offre ou
+**Missions répétables (`E00-T03`, `RC_Missions.lua`).** Un PNJ n'a qu'une mission ouverte (offre ou
 active) à la fois ; chaque mission a un identifiant unique `<fiche>-deliveryN`. À la clôture
 (réussite, échec, abandon, mort du demandeur, expiration), `release` libère le PNJ et fixe la
 prochaine offre possible 30 minutes **de jeu à vitesse normale** plus tard (`OFFER_COOLDOWN_MS`, âge du monde

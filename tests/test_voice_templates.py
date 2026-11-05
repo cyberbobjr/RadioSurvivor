@@ -34,7 +34,7 @@ class VoiceTemplateTests(unittest.TestCase):
                 self.assertFalse(isinstance(m, tuple), str(m))
                 self.assertEqual(m.report, 'radio')
                 self.assertEqual(m.template, 'retrieve_id' if template == 'retrieve' else template)
-                engine = sim.server.rt.eval("require('RadioSurvivor/RS_Missions')")
+                engine = sim.server.rt.eval("require('RadioSurvivorCore/RC_Missions')")
                 self.assertFalse(engine.reportReady(m))
                 refused = voice.report(sim.server.rt.eval("require('RadioSurvivor/RS_State')"), sheet,
                                        sim.character('alice'), sim.server.g.PLAYERS.alice, 160000)
@@ -48,7 +48,7 @@ class VoiceTemplateTests(unittest.TestCase):
         sim, voice, sheet = self.setup_voice('deliver')
         m = self.start(sim, voice, sheet, 'deliver')
         self.assertEqual((m.deposit.x, m.deposit.y, m.deposit.z), (100, 10, 0))
-        engine = sim.server.rt.eval("require('RadioSurvivor/RS_Missions')")
+        engine = sim.server.rt.eval("require('RadioSurvivorCore/RC_Missions')")
         self.assertFalse(engine.reportReady(m))
         self.assertEqual(m.state, 'active')
         self.assertIn(m.deposit.mode, ('box', 'bag'))

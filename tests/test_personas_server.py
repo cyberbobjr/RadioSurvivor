@@ -188,7 +188,7 @@ class Harness(unittest.TestCase):
         g.getModFileReader = lambda mod, name, create: (
             self.reader(self.mod_dir / name) if mod == 'batman_RadioSurvivor' else None)
         paths = ';'.join((LUA / side).as_posix() + '/?.lua' for side in ('shared', 'server'))
-        paths = (CORE_LUA / 'shared').as_posix() + '/?.lua;' + paths  # mod commun (E18)
+        paths = (CORE_LUA / 'shared').as_posix() + '/?.lua;' + (CORE_LUA / 'server').as_posix() + '/?.lua;' + paths  # mod commun (E18)
         self.rt.execute(f'package.path = [[{paths};]] .. package.path')
         # Mod requis Belt Walkie-Talkie (batman_BeltRadio) : vraie partie partagée, chargée aussi par un serveur dédié
         # (BatmanRadioSupport.canTransmitWith, contrôle de la radio d'une phrase). SKIP si le dépôt est absent.

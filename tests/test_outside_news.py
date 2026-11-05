@@ -121,7 +121,7 @@ class NewsHarness(unittest.TestCase):
         self.g.SIDE = self.side
         self.rt.execute(STUBS)
         paths = ';'.join((LUA / side).as_posix() + '/?.lua' for side in ('shared', 'server', 'client'))
-        paths = (CORE_LUA / 'shared').as_posix() + '/?.lua;' + paths  # mod commun (E18)
+        paths = (CORE_LUA / 'shared').as_posix() + '/?.lua;' + (CORE_LUA / 'server').as_posix() + '/?.lua;' + paths  # mod commun (E18)
         self.rt.execute(f'package.path = [[{paths};]] .. package.path')
         self.News = self.rt.eval('require("RadioSurvivor/RS_OutsideNews")')
         self.NS = self.rt.eval('require("RadioSurvivor/RS_OutsideNewsServer")')

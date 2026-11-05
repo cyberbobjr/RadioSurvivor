@@ -1,10 +1,29 @@
 if isClient() then return end
 --[[
-Mission engine (authority only) and its templates (E11-T02; E11-T03 `scout` in RS_MissionScout.lua). The engine owns
-what every mission shares: admissible offers, creation, acceptance, clock and offer expiry, collective result and
-reputation, write-ahead progress transactions, the common reward lot, pruning, projection, polling of templates that
-watch the participants (M.observe) and reports by speech (M.spoken). Catalogue: RS_Config.Missions[name] (`entry`;
-`entry.id` is the offer id seen by the bridge). A saved mission without `template` is `deliver` (before E11-T02).
+RadioSurvivorCore: common mission engine (authority only) and its template `deliver` (E11-T02, moved to the core mod
+by E18-T05; the other templates are RC_MissionScout, RC_MissionClear, RC_MissionRecover, RC_MissionRetrieve and
+RC_MissionSignal). The engine owns what every mission shares: admissible offers, creation, acceptance, clock and offer
+expiry, collective result, write-ahead progress transactions, the common reward lot, pruning, projection, polling of
+templates that watch the participants (M.observe) and reports by speech (M.spoken). Catalogue:
+RC_MissionConfig.Missions[name] (`entry`; `entry.id` is the offer id seen by the bridge). A saved mission without
+`template` is `deliver` (before E11-T02).
+
+Givers (E18-T05, user decision of 2026-11-05: registration and hooks). A mod registers its kind of giver:
+    M.registerDonor(kind, { find(state, id) -> record | nil,          giver record of a mission (m.donor, default 'npc')
+                            claim(store, m, player, character, token) -> handled, reason | nil   optional reward path
+                            observeDeliver(m, player, name, state, store) -> changed }       optional, `deliver` poll
+The engine keeps its fields on the giver record, owned by that mod: id, name, mission, missionCount, nextOfferHour.
+Hooks (all optional; none registered: a mission changes no reputation and no notebook):
+    M.addResultListener(fn(state, m, result, character, requesterName))   once per participant of a closed mission
+                                                                         (not for the cancelled_* results)
+    M.addPruneListener(fn(state, id, m))        a closed mission is dropped
+    M.addChangeListener(fn())                   a template changed a mission outside a request (kill, signal seen)
+    M.setOfferFilter(fn(character, name, offer) -> boolean)   an admissible offer may be shown to this character
+    M.setCharacterName(fn(state, character) -> name)          name kept with a claimed lot
+    M.setBinding(fn() -> { [server player] = character })     default: identities of the core mod (RC_Identity)
+    M.setProvider(provider)                     NPC engine (ids, presence, supplies), default: no NPC engine
+    M.useStore(store)                           store { data, save, blocked, dirty } of the templates that save on
+                                                their own; default: the private mission state RC_MissionStore
 Template interface (M.register(name, template)); observe and reportBySpeech are optional:
     idPrefix                                    mission ids are <npc>-<idPrefix><n>, n counted per NPC
     offer(entry, npc, record, body, character) -> offer | nil
@@ -52,11 +71,70 @@ Engine supplies (E17-T03): for an NPC of a provider that defines supplies (RS_NP
 and an offer closed by the engine closes the mission as 'cancelled_closed' (no reputation change, like
 'cancelled_dead'). Details at the `deliver` template.
 ]]
-local Config = require 'RadioSurvivor/RS_Config'
-local Rep = require 'RadioSurvivor/RS_Reputation'
-local P = require 'RadioSurvivor/RS_NPCProvider'
+local Config = require 'RadioSurvivorCore/RC_MissionConfig'
 local Clock = require 'RadioSurvivorCore/RC_GameClock'
 local M = {}
+
+-- ---------------------------------------------------------------- givers and hooks (E18-T05)
+
+local donors, donorOrder = {}, {}
+local resultListeners, pruneListeners, changeListeners = {}, {}, {}
+local offerFilter, characterName, binding, hostStore = nil, nil, nil, nil
+
+-- Engine of NPC bodies seen through the notebook interface (RS_NPCProvider, E17), or no engine at all.
+local NO_ENGINE = {
+    id = function() return nil end,
+    presence = function() return nil end,
+    hasSupplies = function() return false end,
+    supplies = function() return {} end,
+    supplyOpen = function() return nil end,
+    supplyDeliver = function() return nil, 'no engine' end,
+}
+local provider = NO_ENGINE
+
+-- Registering a kind again replaces its giver and keeps its place.
+function M.registerDonor(kind, donor)
+    if not donors[kind] then donorOrder[#donorOrder + 1] = kind end
+    donors[kind] = donor
+    return donor
+end
+
+function M.donor(kind) return donors[kind] end
+
+local function kindOf(m) return m.donor or 'npc' end
+
+local function addOnce(list, fn)
+    for _, f in ipairs(list) do
+        if f == fn then return fn end
+    end
+    list[#list + 1] = fn
+    return fn
+end
+
+function M.addResultListener(fn) return addOnce(resultListeners, fn) end
+function M.addPruneListener(fn) return addOnce(pruneListeners, fn) end
+function M.addChangeListener(fn) return addOnce(changeListeners, fn) end
+function M.setOfferFilter(fn) offerFilter = fn end
+function M.setCharacterName(fn) characterName = fn end
+function M.setBinding(fn) binding = fn end
+function M.setProvider(p) provider = p or NO_ENGINE end
+function M.provider() return provider end
+function M.useStore(s) hostStore = s end
+
+function M.store()
+    return hostStore or require('RadioSurvivorCore/RC_MissionStore')
+end
+
+-- Character of each server player, for the templates that count world events (clear, signal).
+function M.binding()
+    if binding then return binding() or {} end
+    return require('RadioSurvivorCore/RC_Identity').bound or {}
+end
+
+-- A template changed a mission from a world event: the listeners publish it (RadioSurvivor's notebook).
+function M.changed()
+    for _, fn in ipairs(changeListeners) do fn() end
+end
 
 local DEFAULT = 'deliver'
 local templates, order = {}, {}
@@ -106,19 +184,19 @@ function M.offerWait(record)
     return true
 end
 
--- Server-configured allocations an NPC may offer now, never fabricated by the model or the client (E11-T06: MAX_OFFERS).
--- E04-T05 (Q11, Q12): a character of bad reputation gets the simple missions only (RS_Reputation.offerAllowed); the
--- level is read on the server, the bridge only sees the offers left (and the level in context.reputation, E04-T10).
--- M.create revalidates an accepted offer against this same catalog (RS_Carnet_Server.reply).
+-- Server-configured allocations a giver may offer now, never fabricated by the model or the client (E11-T06:
+-- MAX_OFFERS). The offer filter (hook, RadioSurvivor: E04-T05 reputation, Q11, Q12) may keep an offer from a
+-- character; the bridge only sees the offers left. M.create revalidates an accepted offer against this same catalog.
 function M.offers(npc, record, body, character)
     if npc.mission or not record or record.hostile ~= false then return {} end
     if M.offerWait(npc) then return {} end
-    local level = type(character) == 'string' and Rep.level(character) or nil
     local catalog, n = {}, 0
     for _, name in ipairs(order) do
         local entry = n < (Config.MAX_OFFERS or 4) and Config.Missions[name]
         local offer = entry and templates[name].offer(entry, npc, record, body, character)
-        if offer and Rep.offerAllowed(level, name, offer) then catalog[entry.id], n = offer, n + 1 end
+        if offer and (not offerFilter or offerFilter(character, name, offer)) then
+            catalog[entry.id], n = offer, n + 1
+        end
     end
     return catalog
 end
@@ -141,9 +219,19 @@ function M.create(state, npc, character, offerId, terms)
     return m
 end
 
--- Requester record of a mission: NPC fiche, or radio voice donor (E11-T08); nil when it is gone.
+-- Requester record of a mission (giver of its kind first, then the other kinds); nil when it is gone.
 function M.donorOf(state, mission)
-    return state.npcs[mission.npc] or (state.voiceDonors and state.voiceDonors[mission.npc]) or nil
+    local own = donors[kindOf(mission)]
+    local record = own and own.find(state, mission.npc)
+    if record then return record end
+    for _, kind in ipairs(donorOrder) do
+        local d = donors[kind]
+        if d ~= own then
+            record = d.find(state, mission.npc)
+            if record then return record end
+        end
+    end
+    return nil
 end
 
 -- A closed mission frees its requester for a later offer, after a cooldown of play time (E11-T20). closedAt (real
@@ -171,23 +259,14 @@ function M.finish(state, mission, result)
     end
     -- E08-T07: optional listener of closed missions (RS_Carnet_Server: observation mission_done of the requester).
     if M.onFinished then M.onFinished(state, mission, result) end
-    -- Cancellations (requester dead, engine offer closed) change no reputation. Otherwise one reputation fact per
-    -- registered participant, connected or not, same act and same amount for everyone (E04-T08); the public reason
-    -- argument is the requester's name (fiche or radio voice).
+    -- Cancellations (requester dead, engine offer closed) tell no listener. Otherwise the result listeners hear once
+    -- per registered participant, connected or not (RadioSurvivor: reputation fact and notebook trust, E04-T08); the
+    -- requester's name (giver record, else the name kept on the mission) is handed to them.
     if string.sub(result, 1, 10) ~= 'cancelled_' then
-        local delta = result == 'success' and Config.Reputation.success or Config.Reputation.failure
         local donor = M.donorOf(state, mission)
         local requester = donor and donor.name or mission.requesterName
         for character in pairs(mission.participants) do
-            local record = state.characters[character]
-            local known = record and record.contacts[mission.npc]
-            if known then
-                known.trust = result == 'success' and 'Favourable' or 'Cautious'
-                known.trend = result == 'success' and 'Rising' or 'Falling'
-            end
-            Rep.record(state, mission.id .. '-' .. character .. '-result', character,
-                'mission.' .. result, delta, {mission = mission.id, result = result},
-                type(requester) == 'string' and {requester} or nil)
+            for _, fn in ipairs(resultListeners) do fn(state, mission, result, character, requester) end
         end
     end
     return true
@@ -202,7 +281,7 @@ local function supplyClosed(m)
     local now = getTimestampMs()
     if supplyPolled[m.id] and now - supplyPolled[m.id] < SUPPLY_POLL_MS then return false end
     supplyPolled[m.id] = now
-    return P.supplyOpen(m.supply.ref, m.supply.offer) == false
+    return provider.supplyOpen(m.supply.ref, m.supply.offer) == false
 end
 
 -- elapsedMs: play ms since the previous call (RC_GameClock.meter, E11-T20); negative values are ignored.
@@ -272,7 +351,7 @@ function M.prune(state, now)
         end
         if drop then
             state.missions[id] = nil
-            for _, record in pairs(state.characters) do record.knownMissions[id] = nil end
+            for _, fn in ipairs(pruneListeners) do fn(state, id, m) end
             local npc = M.donorOf(state, m)
             if npc and npc.mission == id then npc.mission = nil end
             removed = true
@@ -326,9 +405,10 @@ end
 
 -- Common reward lot of a successful mission, claimed once for the whole group.
 function M.claim(store, m, player, character, token)
-    local npc = store.data.npcs and store.data.npcs[m.npc]
-    if npc and npc.incarnation ~= nil then
-        local handled, reason = require('RadioSurvivor/RS_NPCRewards').claim(store, m, player, character, token)
+    -- Reward path of the giver (RadioSurvivor: household surplus of a Living Knox NPC); nil keeps the common lot.
+    local giver = donors[kindOf(m)]
+    if giver and giver.claim then
+        local handled, reason = giver.claim(store, m, player, character, token)
         if handled ~= nil then return handled, reason end
     end
     if m.transaction or m.state ~= 'success' or not m.participants[character] or m.claimedBy ~= ''
@@ -349,7 +429,7 @@ function M.claim(store, m, player, character, token)
     if not store.save() then return false, 'Storage' end
     -- Reserve the unique lot before sending any items, never once per participant.
     m.claimedBy = character
-    m.claimedName = store.data.characters[character].name
+    m.claimedName = characterName and characterName(store.data, character) or m.participants[character].name
     m.revision = m.revision + 1
     for _, item in ipairs(items) do
         local ok = pcall(function()
@@ -394,14 +474,14 @@ function M.context(m)
 end
 
 -- Template `deliver` (M01): bring `quantity` accepted items to the requester, in one or several deliveries.
--- Engine supplies (E17-T03): when the provider defines supplies (RS_NPCProvider.hasSupplies), the offer of an NPC fiche
+-- Engine supplies (E17-T03): when the provider defines supplies (provider.hasSupplies), the offer of an NPC fiche
 -- is the open supply offer of its group with the lowest reserve (Provider.supplies for the notebook character; none:
 -- no `deliver` offer, the static catalogue is never offered for these NPCs). Adaptation V <-> items: the mission counts
 -- value points V instead of items (m.unit = 'value'): quantity = V still requested when the offer is accepted,
 -- delivered = V counted by the engine, m.values = V of one accepted item. Only the last item may exceed the rest (an
 -- item more than needed is refused, 'TooMany', checked before any effect and again by the engine). A delivery is
 -- checked against the engine offer (still open: 'SupplyClosed'), the write-ahead marker is saved, then
--- Provider.supplyDeliver(ref, offer, { [type] = count }, token, character) raises the reserve ONCE (receipt key =
+-- provider.supplyDeliver(ref, offer, { [type] = count }, token, character) raises the reserve ONCE (receipt key =
 -- transaction token: a replay is a duplicate); an engine refusal at that point removes the marker (refusal before any
 -- effect), then the items are removed. Reward lot = engine reward item at completion (none, or withdrawn by the
 -- engine: rewardCount 0), claimed by the common lot mechanism (M.claim).
@@ -419,7 +499,7 @@ end
 local function supplyOffer(c, npc, character)
     if type(character) ~= 'string' then return nil end
     local best
-    for _, o in ipairs(P.supplies(npc.incarnation, character)) do
+    for _, o in ipairs(provider.supplies(npc.incarnation, character)) do
         local valid = type(o) == 'table' and type(o.ref) == 'string' and type(o.offer) == 'string'
             and type(o.need) == 'string' and type(o.remaining) == 'number' and o.remaining >= 1
             and type(o.items) == 'table' and #o.items > 0
@@ -441,7 +521,7 @@ end
 
 function Deliver.offer(c, npc, record, body, character)
     -- npc.incarnation: an NPC fiche of the notebook (a radio voice donor has none).
-    if npc and npc.incarnation ~= nil and P.hasSupplies() then return supplyOffer(c, npc, character) end
+    if npc and npc.incarnation ~= nil and provider.hasSupplies() then return supplyOffer(c, npc, character) end
     return {quantity = c.quantity, durationMs = c.durationMs, accepted = c.accepted,
         rewardType = c.rewardType, rewardCount = c.rewardCount, noRefund = true}
 end
@@ -457,7 +537,7 @@ function Deliver.create(m, c, npc, terms)
         return
     end
     -- Engine supplies: no mission outside its offers for its NPC fiches.
-    if npc and npc.incarnation ~= nil and P.hasSupplies() then return false end
+    if npc and npc.incarnation ~= nil and provider.hasSupplies() then return false end
     m.quantity, m.delivered, m.accepted = c.quantity, 0, {}
     for k, v in pairs(c.accepted) do m.accepted[k] = v end
 end
@@ -511,7 +591,7 @@ function Deliver.check(m, player, ids)
         local total, smallest, counts = Deliver.value(m, items)
         local rest = m.quantity - m.delivered
         if total > rest and total - smallest >= rest then return nil, 'TooMany' end
-        if P.supplyOpen(m.supply.ref, m.supply.offer) ~= true then return nil, 'SupplyClosed' end
+        if provider.supplyOpen(m.supply.ref, m.supply.offer) ~= true then return nil, 'SupplyClosed' end
         e.value, e.counts = total, counts
     end
     return e
@@ -526,7 +606,7 @@ function Deliver.apply(m, e)
     if e.report then return end
     if e.counts then
         local tx = m.transaction
-        local result = P.supplyDeliver(m.supply.ref, m.supply.offer, e.counts, tx.token, tx.character)
+        local result = provider.supplyDeliver(m.supply.ref, m.supply.offer, e.counts, tx.token, tx.character)
         if type(result) ~= 'table' then return 'SupplyRefused', true end
         e.result = result
         tx.counted = result.value
@@ -600,9 +680,12 @@ function Deliver.context(m, ctx)
     end
 end
 
--- Deferred, unseen collection of the complete dead drop; never consume goods in front of a player.
+-- Poll of the giver (RadioSurvivor's radio voice: deferred, unseen collection of the complete dead drop; never
+-- consume goods in front of a player).
 function Deliver.observe(m, player, memberName, state, store)
-    return require('RadioSurvivor/RS_VoiceDelivery').observe(m, player, memberName, state, store)
+    local giver = donors[kindOf(m)]
+    if giver and giver.observeDeliver then return giver.observeDeliver(m, player, memberName, state, store) end
+    return false
 end
 
 M.register('deliver', Deliver)

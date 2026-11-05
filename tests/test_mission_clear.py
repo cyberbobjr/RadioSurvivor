@@ -1,4 +1,4 @@
-"""Gabarit « nettoyer » (E11-T04, RS_MissionClear.lua) sur le banc du carnet : vrai Lua serveur et client, pont
+"""Gabarit « nettoyer » (E11-T04, RC_MissionClear.lua) sur le banc du carnet : vrai Lua serveur et client, pont
 absent, doublures de la métagrille (densité des en-têtes de lot), des zombies et des joueurs.
 
 Doublures seulement (aucune API Java prouvée ici) : IsoMetaGrid.getChunkDataFromTile rend un métachunk dont
@@ -70,7 +70,7 @@ class ClearMissionTests(unittest.TestCase):
         sim.server.g.scoutHouse(5001, 20, 12, 8, 8)    # too close to the requester
         sim.server.g.scoutHouse(5002, 100, 10, 10, 10)  # reachable
         sim.server.rt.execute(CLEAR_WORLD)
-        sim.server.rt.eval("require('RadioSurvivor/RS_MissionClear')").resetForTests()
+        sim.server.rt.eval("require('RadioSurvivorCore/RC_MissionClear')").resetForTests()
 
     def clear_sim(self, name='clear'):
         sim = Simulation(self.path / name)
@@ -79,7 +79,7 @@ class ClearMissionTests(unittest.TestCase):
         sim.select('alice')
         npc = next(iter(sim.state().npcs.values()))
         record = sim.server.rt.eval("require('RadioSurvivor/RS_NPCProvider')").npc(2001)
-        missions = sim.server.rt.eval("require('RadioSurvivor/RS_Missions')")
+        missions = sim.server.rt.eval("require('RadioSurvivorCore/RC_Missions')")
         return sim, npc, record, missions
 
     def catalog(self, sim, npc, record):
@@ -131,7 +131,7 @@ class ClearMissionTests(unittest.TestCase):
         self.assertTrue(clues and clues[0].startswith('The place is '), clues)
         self.assertFalse(any(ch.isdigit() for line in clues for ch in line), 'a clue carries a number')
         self.assertEqual(self.catalog(sim, npc, record)['clear_v1'], offer, 'the kept place changed')
-        clear = sim.server.rt.eval("require('RadioSurvivor/RS_MissionClear')")
+        clear = sim.server.rt.eval("require('RadioSurvivorCore/RC_MissionClear')")
         c = sim.server.rt.eval("require('RadioSurvivor/RS_Config').Missions.clear")
         # Target from the density: bounds, sandbox multiplier, uniform distribution, no zombie at all.
         self.assertEqual([clear.target(c, d) for d in (0.04, 0.25, 0.5, 3.0)], [8, 16, 25, 25])

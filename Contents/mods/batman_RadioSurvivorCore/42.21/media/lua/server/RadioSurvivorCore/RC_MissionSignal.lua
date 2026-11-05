@@ -1,8 +1,8 @@
 if isClient() then return end
 --[[
 Mission template `signal` (E11-T07): light a signal of the asked colour inside a circle drawn around a place chosen by
-the server, within a window of game hours. Authority only. Catalogue: RS_Config.Missions.signal (offer id signal_v1).
-Registered in RS_Missions (M.register); required by RS_Carnet_Server. Design choices: docs/annexes/conception/mission-signaler.md.
+the server, within a window of game hours. Authority only. Catalogue: RC_MissionConfig.Missions.signal (offer id signal_v1).
+Registered in RC_Missions (M.register); required by RS_Carnet_Server. Design choices: docs/annexes/conception/mission-signaler.md.
 
 Required mod Signal Smoke (mod.info require=\batman_SignalSmoke): its public module require('SignalSmoke/SignalSmoke')
 returns a table with onSignal and COLORS. Its shared file is run at boot, before any server file, so the require is
@@ -14,7 +14,7 @@ registry entry decided by the server (x, y, z, colour { r, g, b }, kind, source)
 event.player (IsoPlayer at the origin, when known: thrown grenade, lit flare, chemlight dropped near a player) or
 event.username. The colour name is found back by comparing the entry colour to SignalSmoke.COLORS.
 Requester: an NPC fiche of the notebook only (a radio voice does not offer it: RS_MissionVoice.TEMPLATES).
-Place: drawn as the scout template (RS_MissionScout.pick: habitable building at 60-250 tiles of the requester's body,
+Place: drawn as the scout template (RC_MissionScout.pick: habitable building at 60-250 tiles of the requester's body,
 60 tiles at least from any known base, nothing loaded), kept per requester for siteTtlMs in a memory of this file so
 that the offer told by the bridge and the created mission name the same building, colour and hour.
 Zone: a circle centred on the building (m.mapZone = { x, y, r }, like the clear template: the signal must be lit
@@ -24,20 +24,21 @@ Colour: drawn among c.colors that Signal Smoke knows. Hour: start of a window of
 between leadHours and leadHours + spreadHours after the game hour of the draw, valid on any day while the mission
 is active (the delay stays the M01 real-time rule).
 Success: the first "started" signal whose player is a participant of an active signal mission (notebook character
-bound on the server, RS_CarnetServer.bound), whose colour is the asked one, whose position lies in the circle and
+bound on the server, RC_Missions.binding), whose colour is the asked one, whose position lies in the circle and
 whose game hour (GameTime:getHour at the event) is inside the window meets the objective (m.lit, E11-T13): the
 mission waits "to report" (Signal.reportReady, no other signal judged) and succeeds only when a participant reports
-to the requester in person (RS_Missions.spoken: intent report_done of the model on a notebook talk, or the notebook
+to the requester in person (RC_Missions.spoken: intent report_done of the model on a notebook talk, or the notebook
 button "Report" near the requester); then reputation and common reward lot as M01, claimed near the requester. Any
 other signal changes nothing. The bridge sees the kind of place, clues without digits, colour, hour and window; never
 a coordinate.
 ]]
-local M = require 'RadioSurvivor/RS_Missions'
-local Scout = require 'RadioSurvivor/RS_MissionScout'
-local Clear = require 'RadioSurvivor/RS_MissionClear'
-local Const = require 'RadioSurvivor/RadioSurvivor_Const'
-local Rescue = require 'RadioSurvivor/RS_Rescue'
-local S = require 'RadioSurvivor/RS_State'
+local M = require 'RadioSurvivorCore/RC_Missions'
+local Scout = require 'RadioSurvivorCore/RC_MissionScout'
+local Clear = require 'RadioSurvivorCore/RC_MissionClear'
+local Sites = require 'RadioSurvivorCore/RC_Sites'
+local function log(msg)
+    print('[RadioSurvivorCore] ' .. tostring(msg))
+end
 
 local Signal = {idPrefix = 'signal', reportBySpeech = true} -- E11-T13: report in person
 local COLOR_TOLERANCE = 0.02
@@ -71,7 +72,7 @@ function Signal.library()
             lib = mod
         else
             lib = false
-            Const.log('ERROR signal: required mod batman_SignalSmoke is broken: module SignalSmoke/SignalSmoke '
+            log('ERROR signal: required mod batman_SignalSmoke is broken: module SignalSmoke/SignalSmoke '
                 .. 'has no onSignal or COLORS (template signal disabled)')
         end
     end
@@ -133,13 +134,13 @@ function Signal.site(npc, body, c, mod)
     elseif body then
         site, why = Scout.pick(body:getX(), body:getY(), c, seed)
         if site then
-            local draw = Rescue.drawer(seed .. ':terms')
+            local draw = Sites.drawer(seed .. ':terms')
             site.zone = Clear.zone(site.bounds, c)
             site.color = names[draw(#names) + 1]
             site.hour = (hour + c.leadHours + draw(c.spreadHours + 1)) % 24
         end
     end
-    if not site then Const.log('signal: no place for ' .. tostring(npc.id) .. ' (' .. tostring(why) .. ')') end
+    if not site then log('signal: no place for ' .. tostring(npc.id) .. ' (' .. tostring(why) .. ')') end
     sites[npc.id] = {site = site, at = now}
     return site
 end
@@ -232,7 +233,7 @@ function Signal.count(state, event, resolve, players, hour)
         if member and color == m.color and inside(m, e.x, e.y) and Signal.inWindow(m.hour, m.windowHours, hour) then
             m.lit, m.litBy = true, member.name or ''
             m.revision = m.revision + 1
-            Const.log('signal: ' .. tostring(m.id) .. ' seen (' .. tostring(color) .. ' ' .. tostring(e.kind)
+            log('signal: ' .. tostring(m.id) .. ' seen (' .. tostring(color) .. ' ' .. tostring(e.kind)
                 .. '), report expected')
             return m
         end
@@ -240,20 +241,19 @@ function Signal.count(state, event, resolve, players, hour)
     return nil
 end
 
--- Notebook character of a server player (RS_Carnet_Server binding), or nil.
+-- Character of a server player (RC_Missions.binding: RadioSurvivor's notebook binding, else the core identity), or nil.
 local function bound(player)
-    local server = RS_CarnetServer
-    return server and server.bound and server.bound[player] or nil
+    return M.binding()[player]
 end
 
 function Signal.onSignal(event)
+    local S = M.store()
     if not S.data or S.blocked then return end
-    local server = RS_CarnetServer
-    local m = Signal.count(S.data, event, bound, server and server.bound or nil)
+    local m = Signal.count(S.data, event, bound, M.binding())
     if not m then return end
     S.dirty = true
     S.save()
-    if server and server.publish then server.publish() end
+    M.changed()
 end
 
 -- ---------------------------------------------------------------- engine interface
@@ -264,7 +264,7 @@ function Signal.reportReady(m)
 end
 
 -- The signal is judged by the listener above, never by a contribution of the player; the only contribution is the
--- report to the requester (payload 'speech', RS_Missions.spoken), once the signal was seen.
+-- report to the requester (payload 'speech', RC_Missions.spoken), once the signal was seen.
 function Signal.check(m, player, payload)
     if payload ~= 'speech' then return nil, 'State' end
     if not Signal.reportReady(m) then return nil, 'Zone' end

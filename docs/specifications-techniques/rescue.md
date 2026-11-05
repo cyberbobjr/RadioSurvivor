@@ -134,11 +134,11 @@ Rescue.pendingScenes(); Rescue.scenePlaced(id)                              -- s
 - **Déclenchement** (`RS_RescueVisit`) : après un dépôt réel, les membres proches sont notés comme aidants
   (`Rescue.noteHelpers(id, { { name, caller, cid } })`, `rec.helped`, `rec.helpers`) ; au premier sondage où plus
   aucun membre vivant et connecté n'est à moins de 40 cases, `Rescue.finish(id, "saved")` (participants = aidants).
-- **À l'issue** (`Rescue.sceneHook` → `Scene.prepare`, sur le secours réel) : cache `RS_Caches` (table tirée par
+- **À l'issue** (`Rescue.sceneHook` → `Scene.prepare`, sur le secours réel) : cache `RC_Caches` (table tirée par
   l'identifiant) avec une note verrouillée (`Base.SheetPaper2`, `IGUI_RS_RescueNote_*`) ; nouvel endroit tiré par
   `Rescue.pick` (`rec.moved`) devenu le lieu dit de la voix (`RS_PersonaState`, moral +2) ; souvenirs de la voix sur
   chaque aidant (`RS_Memory`) ; relevé de vie `RS_LifeLog.rescue` hors magasin de travail.
-- **Scène** (`Scene.poll`, 2 s réelles) : le sac est posé quand la case du site est chargée (`RS_Caches.place`, une
+- **Scène** (`Scene.poll`, 2 s réelles) : le sac est posé quand la case du site est chargée (`RC_Caches.place`, une
   seule fois même après redémarrage), puis `Rescue.scenePlaced`.
 
 ## Issue « trop tard » (E12-T05)

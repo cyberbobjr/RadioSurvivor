@@ -1,12 +1,12 @@
 if isClient() then return end
 --[[
 Mission template `clear` (E11-T04): kill N zombies inside a circle drawn around a place chosen by the server.
-Authority only. Catalogue: RS_Config.Missions.clear (offer id clear_v1). Registered in RS_Missions (M.register);
+Authority only. Catalogue: RC_MissionConfig.Missions.clear (offer id clear_v1). Registered in RC_Missions (M.register);
 required by RS_Carnet_Server. Details: docs/annexes/conception/carnet-implementation-04221.md, "Gabarit nettoyer"; design choices:
 docs/annexes/conception/mission-nettoyer.md.
 
 Requester: an NPC fiche of the notebook only (a radio voice does not offer it: RS_MissionVoice.TEMPLATES).
-Place: drawn exactly as the scout template (RS_MissionScout.pick: habitable building of the metagrid at 60-250 tiles
+Place: drawn exactly as the scout template (RC_MissionScout.pick: habitable building of the metagrid at 60-250 tiles
 of the requester's body, 60 tiles at least from any known base, nothing loaded), kept per requester for siteTtlMs in
 a memory of this file so that the offer told by the bridge and the created mission name the same building.
 Zone: a circle centred on the building (m.mapZone = { x, y, r }, r = zoneRadius tiles, larger for a big building so
@@ -31,20 +31,20 @@ OnZombieDead from the death packet and loads nothing of this file), the zombie c
     - getAttackedBy() is a player (not an animal) and either its last recorded hit on this zombie is at most
       HIT_WINDOW_MS old, or it drives a vehicle at that instant (vehicle hits have no OnHitZombie). Fire (attacker
       reset to nil at each burn, Molotov), timed traps without a thrower, falls and Kill(nil): never counted;
-    - the killer is the server player bound to a notebook character (RS_CarnetServer.bound) who takes part in an
+    - the killer is the server player bound to a notebook character (RC_Missions.binding) who takes part in an
       active clear mission whose circle holds the zombie position at death (server copy of the zombie).
 One kill counts for one mission only (the first of these missions by id). m.kills and m.tally[character] rise, the
 revision too; at N the objective is met (E11-T13): the mission waits "to report" (Clear.reportReady, no more counting)
-and succeeds only when a participant reports to the requester in person (RS_Missions.spoken: intent report_done of the
+and succeeds only when a participant reports to the requester in person (RC_Missions.spoken: intent report_done of the
 model on a notebook talk, or the notebook button "Report" near the requester); then reputation and common reward lot
 as M01, claimed near the requester. The notebook state is marked dirty and published at once, saved at N.
 The bridge sees the kind of place, clues without digits, N and the count; never a coordinate nor the circle.
 ]]
-local M = require 'RadioSurvivor/RS_Missions'
-local Scout = require 'RadioSurvivor/RS_MissionScout'
-local Const = require 'RadioSurvivor/RadioSurvivor_Const'
-local P = require 'RadioSurvivor/RS_NPCProvider'
-local S = require 'RadioSurvivor/RS_State'
+local M = require 'RadioSurvivorCore/RC_Missions'
+local Scout = require 'RadioSurvivorCore/RC_MissionScout'
+local function log(msg)
+    print('[RadioSurvivorCore] ' .. tostring(msg))
+end
 
 local Clear = {idPrefix = 'clear', reportBySpeech = true} -- E11-T13: report in person
 Clear.MARK = 'RS_ClearCounted'
@@ -148,7 +148,7 @@ function Clear.site(npc, body, c)
     elseif body then
         why = 'no metagrid'
     end
-    if not site then Const.log('clear: no place for ' .. tostring(npc.id) .. ' (' .. tostring(why) .. ')') end
+    if not site then log('clear: no place for ' .. tostring(npc.id) .. ' (' .. tostring(why) .. ')') end
     sites[npc.id] = {site = site, at = now}
     return site
 end
@@ -218,7 +218,7 @@ end
 
 -- Body of an NPC (provider id, or a Living Knox tag of any generation): never a zombie to clear.
 local function npcBody(z, md)
-    if P.id(z) ~= nil then return true end
+    if M.provider().id(z) ~= nil then return true end
     local I = LivingKnox and LivingKnox.Identity
     return md ~= nil and I ~= nil and I.readTag ~= nil and I.readTag(md) ~= nil
 end
@@ -270,23 +270,24 @@ function Clear.count(state, z, resolve)
     return nil
 end
 
--- Notebook character of a server player (RS_Carnet_Server binding), or nil.
+-- Character of a server player (RC_Missions.binding: RadioSurvivor's notebook binding, else the core identity), or nil.
 local function bound(player)
-    local server = RS_CarnetServer
-    return server and server.bound and server.bound[player] or nil
+    return M.binding()[player]
 end
 
 function Clear.onHitZombie(z, wielder, bodyPart, weapon)
-    if #openMissions(S.data) > 0 then Clear.noteHit(z, wielder, weapon) end
+    local S = M.store()
+    if S.data and #openMissions(S.data) > 0 then Clear.noteHit(z, wielder, weapon) end
 end
 
 function Clear.onZombieDead(z)
+    local S = M.store()
     if not S.data or S.blocked then return end
     local m = Clear.count(S.data, z, bound)
     if not m then return end
     S.dirty = true
     if Clear.reportReady(m) then S.save() end -- E11-T13: objective met, saved at once
-    if RS_CarnetServer and RS_CarnetServer.publish then RS_CarnetServer.publish() end
+    M.changed()
 end
 
 -- ---------------------------------------------------------------- engine interface
@@ -297,7 +298,7 @@ function Clear.reportReady(m)
 end
 
 -- Kills are counted by the events above, never by a contribution of the player; the only contribution is the report
--- to the requester (payload 'speech', RS_Missions.spoken), once the target is reached.
+-- to the requester (payload 'speech', RC_Missions.spoken), once the target is reached.
 function Clear.check(m, player, payload)
     if payload ~= 'speech' then return nil, 'State' end
     if not Clear.reportReady(m) then return nil, 'Zone' end

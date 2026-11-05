@@ -1,4 +1,4 @@
-"""Gabarit « récupérer » et caches (E11-T06, RS_MissionRecover.lua, RS_Caches.lua) sur le banc du carnet : vrai Lua
+"""Gabarit « récupérer » et caches (E11-T06, RC_MissionRecover.lua, RC_Caches.lua) sur le banc du carnet : vrai Lua
 serveur et client, pont absent, doublures de la métagrille, des cases chargées, des objets au sol et des conteneurs.
 
 Doublures seulement (aucune API Java prouvée ici) : IsoGridSquare.AddWorldInventoryItem(item, x, y, z, true) pose
@@ -158,8 +158,8 @@ class RecoverMissionTests(unittest.TestCase):
         sim.server.g.scoutHouse(5001, 20, 12, 8, 8)    # too close to the requester
         sim.server.g.scoutHouse(5002, 100, 10, 10, 10)  # reachable
         sim.server.rt.execute(RECOVER_WORLD)
-        sim.server.rt.eval("require('RadioSurvivor/RS_MissionRecover')").resetForTests()
-        sim.server.rt.eval("require('RadioSurvivor/RS_Caches')").resetForTests()
+        sim.server.rt.eval("require('RadioSurvivorCore/RC_MissionRecover')").resetForTests()
+        sim.server.rt.eval("require('RadioSurvivor/RS_CacheAction')").resetForTests()
 
     def recover_sim(self, name='recover'):
         sim = Simulation(self.path / name)
@@ -167,7 +167,7 @@ class RecoverMissionTests(unittest.TestCase):
         sim.add_client('alice'); sim.add_client('bob'); sim.select('alice')
         npc = next(iter(sim.state().npcs.values()))
         record = sim.server.rt.eval("require('RadioSurvivor/RS_NPCProvider')").npc(2001)
-        missions = sim.server.rt.eval("require('RadioSurvivor/RS_Missions')")
+        missions = sim.server.rt.eval("require('RadioSurvivorCore/RC_Missions')")
         return sim, npc, record, missions
 
     def catalog(self, sim, npc, record):
@@ -207,7 +207,7 @@ class RecoverMissionTests(unittest.TestCase):
         self.assertFalse(any(ch.isdigit() for line in clues for ch in line), 'a clue carries a number')
         self.assertEqual(self.catalog(sim, npc, record)['recover_v1'], offer, 'the kept place changed')
         # A radio voice donor (no fiche), and an NPC whose provider knows no home, get no recover offer.
-        recover = sim.server.rt.eval("require('RadioSurvivor/RS_MissionRecover')")
+        recover = sim.server.rt.eval("require('RadioSurvivorCore/RC_MissionRecover')")
         c = sim.server.rt.eval("require('RadioSurvivor/RS_Config').Missions.recover")
         donor = sim.server.rt.table_from({'id': 'voice:walt:c1', 'missionCount': 0})
         self.assertIsNone(recover.offer(c, donor, None, sim.server.g.PLAYERS.alice))
@@ -401,7 +401,8 @@ class RecoverMissionTests(unittest.TestCase):
 
     def test_offer_cap_shared_by_the_server_and_the_bridge(self):
         sim, npc, record, missions = self.recover_sim('cap')
-        config = sim.server.rt.eval("require('RadioSurvivor/RS_Config')")
+        # E18-T05: the cap lives in the mission catalogue of the core mod (RS_Config holds a copy of the number).
+        config = sim.server.rt.eval("require('RadioSurvivorCore/RC_MissionConfig')")
         self.assertEqual(config.MAX_OFFERS, protocol.MAX_OFFERS)
         config.MAX_OFFERS = 2
         try:
@@ -448,7 +449,7 @@ class RecoverMissionTests(unittest.TestCase):
         m.state = 'success'
         self.assertEqual(decide({'type': 'place_cache', 'table': 'food'}), [('place_cache', False, 'no_reward')])
         # The action can only retry an already selected server reward, never choose its table or location.
-        caches = rt.eval("require('RadioSurvivor/RS_Caches')")
+        caches = rt.eval("require('RadioSurvivor/RS_CacheAction')")
         spot, bounds = caches.siteOf(m)
         caches.attach(m, 'food', spot, bounds)
         m.extendedReward = rt.table_from({'kind': 'cache', 'status': 'applied'})

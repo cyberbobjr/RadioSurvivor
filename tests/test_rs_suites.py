@@ -120,7 +120,7 @@ class SuiteHarness(unittest.TestCase):
         self.g = self.rt.globals()
         self.g.next = None  # absent de Kahlua
         self.lua(PRELUDE)
-        paths = [TESTS_LUA / 'shared', CORE_LUA / 'shared', MOD_LUA / 'shared', MOD_LUA / 'server']
+        paths = [TESTS_LUA / 'shared', CORE_LUA / 'shared', CORE_LUA / 'server', MOD_LUA / 'shared', MOD_LUA / 'server']
         self.lua('package.path = [[' + ''.join(f'{p.as_posix()}/?.lua;' for p in paths) + ']] .. package.path')
         self.lua('require "RST/RST"')
 
@@ -186,7 +186,7 @@ class MissionsSuiteTests(SuiteHarness):
 
     def test_suite_detects_a_broken_expiry(self):
         self.load_suite('RS_Missions')
-        self.lua('local M = require "RadioSurvivor/RS_Missions"; local old = M.advance;'
+        self.lua('local M = require "RadioSurvivorCore/RC_Missions"; local old = M.advance;'
                  'M.advance = function(state, ms) return old(state, ms * 2) end')
         self.run_filter('"rs.missions"')
         self.assertEqual(self.results()['offer expires after OFFER_TTL_MS and starts the cooldown'][0], 'FAIL')
@@ -221,7 +221,7 @@ class EnvSuiteTests(SuiteHarness):
         self.assertIn('missing Java global RadioLine.new '
                       f'(used by {env_ref("RadioLine.new", "RadioSurvivor_Server.lua")})', msg)
         self.assertIn('missing Java global instanceItem '
-                      f'(used by {env_ref("instanceItem", "RS_Missions.lua")})', msg)
+                      f'(used by {env_ref("instanceItem", "RC_Missions.lua")})', msg)
 
     def test_missing_client_global(self):
         self.lua('checkPlayerCanUseChat = nil')
@@ -262,7 +262,7 @@ class EnvSuiteTests(SuiteHarness):
         st, msg = self.results()['ItemContainer methods used by the missions']
         self.assertEqual(st, 'FAIL')
         self.assertIn('missing method ItemContainer:AddItem (used by '
-                      f'{env_ref("AddItem", "RS_Missions.lua")})',
+                      f'{env_ref("AddItem", "RC_Missions.lua")})',
                       msg)
 
     def test_no_container_at_all_is_skip(self):
@@ -590,7 +590,8 @@ class SourceTests(unittest.TestCase):
         refs = re.findall(r'\{ "([\w.]+)", (?:"\w+", )?"((?:client|server|shared)/[\w/]+\.lua):(\d+)" \}', src)
         self.assertGreater(len(refs), 35)
         for name, rel, line in refs:
-            path = MOD_LUA / rel
+            # E18-T05: modules of the core mod (missions) are cited under their own media/lua.
+            path = MOD_LUA / rel if (MOD_LUA / rel).is_file() else CORE_LUA / rel
             self.assertTrue(path.is_file(), rel)
             self.assertNotEqual(path.name, 'RS_Bandits.lua')
             text = path.read_text(encoding='utf-8').splitlines()[int(line) - 1]

@@ -175,7 +175,7 @@ local function setup(t)
     t:ok(type(cid) == "string", "no notebook character bound to the requester")
     return { Server = Server, S = Server.store, C = C, E = E, API = E.API, p = p, cid = cid,
         Obs = require "RadioSurvivor/RS_Observations", P = require "RadioSurvivor/RS_NPCProvider",
-        M = require "RadioSurvivor/RS_Missions" }
+        M = require "RadioSurvivorCore/RC_Missions" }
 end
 
 local function count(tbl)

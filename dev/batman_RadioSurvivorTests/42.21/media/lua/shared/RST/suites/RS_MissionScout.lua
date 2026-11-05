@@ -1,5 +1,5 @@
 --[[
-rs.missions.scout - mission template "scout" (E11-T03, server/RadioSurvivor/RS_MissionScout.lua) on the real
+rs.missions.scout - mission template "scout" (E11-T03, server/RadioSurvivorCore/RC_MissionScout.lua) on the real
 metagrid: a place drawn around the requester, the zone reached only through the server poll (RS_Missions.observe on
 the server copy of the player), a report refused before the visit and accepted after it.
 Tags "server" (authority only: solo, or RST.server from an admin client of a dedicated server) and "world" (the
@@ -18,8 +18,8 @@ local function modules(t)
     if type(isClient) == "function" and isClient() then
         t:skip("RS_MissionScout is not loaded on an MP client (authority only)")
     end
-    local M = require "RadioSurvivor/RS_Missions"
-    local Scout = require "RadioSurvivor/RS_MissionScout"
+    local M = require "RadioSurvivorCore/RC_Missions"
+    local Scout = require "RadioSurvivorCore/RC_MissionScout"
     if type(M) ~= "table" or type(Scout) ~= "table" then t:skip("mission modules did not return their table here") end
     return M, Scout, require "RadioSurvivor/RS_Config"
 end

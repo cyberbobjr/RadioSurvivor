@@ -181,7 +181,7 @@ class GroupRadioLinesTests(unittest.TestCase):
     def setUpClass(cls):
         rt = lupa.LuaRuntime(unpack_returned_tuples=True)
         rt.execute('function isClient() return false end; function isServer() return false end')
-        rt.globals().package.path = (str(CORE_LUA / 'shared') + '/?.lua;' + str(LUA / 'shared') + '/?.lua;' + str(LUA / 'server') + '/?.lua;'
+        rt.globals().package.path = (str(CORE_LUA / 'shared') + '/?.lua;' + str(CORE_LUA / 'server') + '/?.lua;' + str(LUA / 'shared') + '/?.lua;' + str(LUA / 'server') + '/?.lua;'
                                      + rt.globals().package.path)
         rt.execute('for _, m in ipairs({"RadioSurvivor/RS_Personas", "RadioSurvivor/RS_NPCProvider", '
                    '"RadioSurvivor/RS_Config", "RadioSurvivorCore/RC_Codec", "RadioSurvivor/RS_BridgeLanes"}) do '

@@ -255,7 +255,7 @@ class SitesHarness(unittest.TestCase):
         self.g.next = None  # absent de Kahlua
         self.rt.execute(DOUBLES)
         self.rt.execute(EXTRA)
-        paths = [TESTS_LUA / 'shared', CORE_LUA / 'shared', MOD_LUA / 'shared', MOD_LUA / 'server']
+        paths = [TESTS_LUA / 'shared', CORE_LUA / 'shared', CORE_LUA / 'server', MOD_LUA / 'shared', MOD_LUA / 'server']
         self.rt.execute('package.path = [[' + ''.join(f'{p.as_posix()}/?.lua;' for p in paths) + ']] .. package.path')
 
     def world(self, forests: bool = True, realistic: bool = False, town_only: bool = False):

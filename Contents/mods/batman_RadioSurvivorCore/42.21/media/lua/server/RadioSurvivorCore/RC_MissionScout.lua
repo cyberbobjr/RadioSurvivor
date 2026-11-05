@@ -1,13 +1,13 @@
 if isClient() then return end
 --[[
 Mission template `scout` (E11-T03): reach a place chosen by the server, then report to the requester in person.
-Authority only. Catalogue: RS_Config.Missions.scout. Registered in RS_Missions (M.register); required by
+Authority only. Catalogue: RC_MissionConfig.Missions.scout. Registered in RC_Missions (M.register); required by
 RS_Carnet_Server, which polls the zones (M.observe) and turns a phrase said to the requester into the report
 (M.spoken). Details: docs/annexes/conception/carnet-implementation-04221.md, "Gabarit reconnaitre".
 
-Place: a habitable building of the metagrid (RS_Rescue.check: no player-built building, no basement-only one, no
+Place: a habitable building of the metagrid (RC_Sites.check: no player-built building, no basement-only one, no
 water, inside the map), between minDistance and maxDistance tiles of the requester's body, and at least minDistance
-tiles away from every known base (vanilla safehouses, connected players: RS_Rescue.knownBases). Only the cells around
+tiles away from every known base (vanilla safehouses, connected players: RC_Sites.knownBases). Only the cells around
 the requester are read (IsoMetaCell:getBuildingsIntersecting); no square is read or loaded. The place is drawn when
 an offer is computed and kept in memory per requester for siteTtlMs (a restart draws again), so that the offer told
 by the bridge and the created mission name the same building.
@@ -23,22 +23,24 @@ collective result and reward lot: the common engine (same values as M01).
 Radio voice requester (E11-T08, RS_MissionVoice.lua): the same template, drawn around the caller's server position
 (the "body" given to Scout.site), m.report = 'radio'; the report is announced to the voice on its frequency (action
 report_mission of its reply, E11-T13).
-The bridge sees the place only as clues without digits (RS_Rescue.clues) and its kind; the coordinates stay here.
-Notebook (E11-T09): the same clues as translatable data (RS_Rescue.clueData: m.clueData = list of { key, args } with
+The bridge sees the place only as clues without digits (RC_Sites.clues) and its kind; the coordinates stay here.
+Notebook (E11-T09): the same clues as translatable data (RC_Sites.clueData: m.clueData = list of { key, args } with
 codes and town names only, never a coordinate), projected as p.clues and rendered by the client in its own language
 (IGUI_RS_Clue_<key>); no translated text is composed on the server.
 Map area (E11-T10): at creation (any requester: NPC fiche or radio voice), Scout.mapZone draws a circle of about one
 block (radius c.mapZoneRadius, 30 tiles; larger for a building whose half diagonal leaves too little room) that holds
 the whole building footprint, its centre moved away from the building centre by a random offset (between half and all
-the room left: radius - half diagonal - 1 tile), direction and length drawn by RS_Rescue.drawer from the mission id and
+the room left: radius - half diagonal - 1 tile), direction and length drawn by RC_Sites.drawer from the mission id and
 the place key (same draw for the same mission). Kept as m.mapZone = { x, y, r } (integer tiles) in the private state.
 The client gets it only in the notebook projection (p.mapZone) of a participant of an active mission, never the
 building bounds nor m.zone; it draws the area on the player's world map and removes it once the mission is no longer
 active (client/RadioSurvivor/RS_MapActions.lua, MapActions.zones). Missions created before E11-T10 have no area.
 ]]
-local M = require 'RadioSurvivor/RS_Missions'
-local Rescue = require 'RadioSurvivor/RS_Rescue'
-local Const = require 'RadioSurvivor/RadioSurvivor_Const'
+local M = require 'RadioSurvivorCore/RC_Missions'
+local Sites = require 'RadioSurvivorCore/RC_Sites'
+local function log(msg)
+    print('[RadioSurvivorCore] ' .. tostring(msg))
+end
 
 local Scout = {idPrefix = 'scout', reportBySpeech = true}
 local CELL = 256
@@ -62,7 +64,7 @@ end
 -- their translatable data (notebook, E11-T09), same order.
 local function clues(b, grid)
     local out = {}
-    local lines, data = Rescue.clueData(b, grid)
+    local lines, data = Sites.clueData(b, grid)
     for i, line in ipairs(lines) do
         out[i] = (string.gsub(line, '^The shelter is ', 'The place is '))
     end
@@ -100,13 +102,13 @@ function Scout.pick(x, y, c, seed)
     local n = found:size()
     if n == 0 then return nil, 'no building around the requester' end
     local here = {x1 = math.floor(x), y1 = math.floor(y), x2 = math.floor(x) + 1, y2 = math.floor(y) + 1}
-    local bases = Rescue.knownBases({avoid = {{x = x, y = y, source = 'requester'}}})
+    local bases = Sites.knownBases({avoid = {{x = x, y = y, source = 'requester'}}})
     -- Random start, then consecutive buildings: each one examined at most once, maxAttempts at most.
-    local start = Rescue.drawer(seed)(n)
+    local start = Sites.drawer(seed)(n)
     for i = 0, math.min(c.maxAttempts, n) - 1 do
         local b = found:get((start + i) % n)
-        local site = Rescue.check(b, bases, {minDistance = c.minDistance}, grid)
-        if site and Rescue.gap(site.bounds, here) <= c.maxDistance then
+        local site = Sites.check(b, bases, {minDistance = c.minDistance}, grid)
+        if site and Sites.gap(site.bounds, here) <= c.maxDistance then
             site.clues, site.clueData = clues(b, grid)
             return site
         end
@@ -124,7 +126,7 @@ function Scout.site(npc, body, c)
         site, why = Scout.pick(body:getX(), body:getY(), c, tostring(npc.id) .. ':' .. tostring(npc.missionCount or 0)
             .. ':' .. tostring(now))
     end
-    if not site then Const.log('scout: no place for ' .. tostring(npc.id) .. ' (' .. tostring(why) .. ')') end
+    if not site then log('scout: no place for ' .. tostring(npc.id) .. ' (' .. tostring(why) .. ')') end
     sites[npc.id] = {site = site, at = now}
     return site
 end
@@ -150,7 +152,7 @@ function Scout.mapZone(bounds, c, seed)
     local r = math.max(c.mapZoneRadius or 30, math.ceil((half + 1) / 0.6))
     -- Integer rounding of the centre moves it by less than 1 tile: keep that tile out of the room.
     local room = r - half - 1
-    local draw = Rescue.drawer(seed)
+    local draw = Sites.drawer(seed)
     local d = room * (500 + draw(501)) / 1000
     local a = draw(360) * math.pi / 180
     local x = math.floor((bounds.x1 + bounds.x2) / 2 + d * math.cos(a) + 0.5)
@@ -168,7 +170,7 @@ function Scout.create(m, c, npc)
     m.zone = {x1 = b.x1 - r, y1 = b.y1 - r, x2 = b.x2 + r, y2 = b.y2 + r}
     m.siteKey, m.place, m.clues = site.key, site.label, copyList(site.clues)
     m.clueData = copyClueData(site.clueData) -- E11-T09: clues shown by the notebook, translated by the client
-    m.placeKind = site.kind -- RS_Rescue.KINDS kind (house, church...), translated by the notebook
+    m.placeKind = site.kind -- RC_Sites.KINDS kind (house, church...), translated by the notebook
     m.zoneReached, m.reachedBy = false, ''
     m.mapZone = Scout.mapZone(b, c, tostring(m.id) .. ':' .. tostring(site.key)) -- E11-T10
 end

@@ -9,7 +9,7 @@
 --                  returnHours heures de jeu hors de portée. Témoin : cette fiche. Sujet : le personnage. Dernière
 --                  heure de jeu à portée gardée dans le contact (nearHour, état privé RS_State) ; le premier passage
 --                  à portée n'est pas un retour.
---   mission_done   RS_Missions.onFinished, mission réussie : chez le PNJ demandeur (fiche ; une voix radio n'a pas
+--   mission_done   RC_Missions.onFinished, mission réussie : chez le PNJ demandeur (fiche ; une voix radio n'a pas
 --                  de fiche, rien n'est enregistré). Un fait par participant (sujet = personnage) ; lieu = corps du
 --                  demandeur s'il est chargé.
 --   group_death    fait "memberDied" de Living Knox (LK_Core.publish). Corps présent (offscreen = false) : fiches des
@@ -45,7 +45,7 @@ if isClient() then return end
 local C = require 'RadioSurvivor/RS_Config'
 local P = require 'RadioSurvivor/RS_NPCProvider'
 local S = require 'RadioSurvivor/RS_State'
-local M = require 'RadioSurvivor/RS_Missions'
+local M = require 'RadioSurvivorCore/RC_Missions'
 local Obs = require 'RadioSurvivor/RS_Observations'
 
 local Triggers = {linked = false}
@@ -125,7 +125,7 @@ function Triggers.returns(server)
     return changed
 end
 
--- mission_done : RS_Missions.onFinished.
+-- mission_done : RC_Missions.onFinished.
 function Triggers.missionFinished(state, mission, result)
     if result ~= 'success' or type(state) ~= 'table' or type(state.npcs) ~= 'table' then return end
     local fiche = state.npcs[mission.npc]

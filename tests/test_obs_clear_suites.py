@@ -87,7 +87,7 @@ RST.Fixtures.WAIT_LOADED = false
 CLEAR_DEFECTS = {
     # A kill outside the circle is counted (inside ignored).
     'outside': r'''
-        local C = require 'RadioSurvivor/RS_MissionClear'
+        local C = require 'RadioSurvivorCore/RC_MissionClear'
         local count = C.count
         C.count = function(state, z, resolve)
             local saved = {}
@@ -98,14 +98,14 @@ CLEAR_DEFECTS = {
         end''',
     # Kills of the second participant credited to the first one.
     'oneTally': r'''
-        local C = require 'RadioSurvivor/RS_MissionClear'
+        local C = require 'RadioSurvivorCore/RC_MissionClear'
         local count = C.count
         C.count = function(state, z, resolve)
             return count(state, z, function(p) local c = resolve(p); if c == 'char2' then return 'char1' end; return c end)
         end''',
     # A kill after the target is still counted.
     'afterTarget': r'''
-        local C = require 'RadioSurvivor/RS_MissionClear'
+        local C = require 'RadioSurvivorCore/RC_MissionClear'
         C.reportReady = function() return false end''',
 }
 
@@ -169,7 +169,7 @@ class ClearSuiteTests(unittest.TestCase):
 
     def test_clear_without_building_fails(self):
         _, results, _ = self.run_suite(
-            'rs.mission.clear', "require('RadioSurvivor/RS_MissionClear').site = function() return nil end")
+            'rs.mission.clear', "require('RadioSurvivorCore/RC_MissionClear').site = function() return nil end")
         status, message = self.status(results)
         self.assertEqual(status, 'FAIL')
         self.assertIn('no building at all', message)

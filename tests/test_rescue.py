@@ -271,7 +271,7 @@ class RescueHarness(unittest.TestCase):
         self.g = self.rt.globals()
         self.g.next = None  # absent de Kahlua
         self.rt.execute(DOUBLES)
-        paths = [TESTS_LUA / 'shared', CORE_LUA / 'shared', MOD_LUA / 'shared', MOD_LUA / 'server']
+        paths = [TESTS_LUA / 'shared', CORE_LUA / 'shared', CORE_LUA / 'server', MOD_LUA / 'shared', MOD_LUA / 'server']
         self.rt.execute('package.path = [[' + ''.join(f'{p.as_posix()}/?.lua;' for p in paths) + ']] .. package.path')
 
     def world(self, extra: str = ''):
@@ -359,7 +359,7 @@ class ChoiceTests(RescueHarness):
         self.g.COUNT.get = 0
         site, why = self.pick('{ seed = 3, maxAttempts = 5, minDistance = 1000000 }')
         self.assertEqual(self.g.COUNT.get, 5)
-        self.assertIn('[RadioSurvivor] rescue: no suitable building after 5 draw(s)', lua_list(self.g.LOGS)[-1])
+        self.assertIn('[RadioSurvivorCore] sites: no suitable building after 5 draw(s)', lua_list(self.g.LOGS)[-1])
 
     def test_seed_is_reproducible(self):
         keys = [self.pick(f'{{ seed = {s}, noClues = true }}')[0].key for s in range(1, 31)]

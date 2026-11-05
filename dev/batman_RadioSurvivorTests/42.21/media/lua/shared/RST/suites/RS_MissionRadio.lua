@@ -56,7 +56,7 @@ local function modules(t)
     if type(isClient) == "function" and isClient() then
         t:skip("RS_MissionVoice is not loaded on an MP client (authority only)")
     end
-    local M = require "RadioSurvivor/RS_Missions"
+    local M = require "RadioSurvivorCore/RC_Missions"
     local V = require "RadioSurvivor/RS_MissionVoice"
     local Actions = require "RadioSurvivor/RS_Actions"
     if type(M) ~= "table" or type(V) ~= "table" or type(Actions) ~= "table" then
@@ -78,7 +78,7 @@ RST.suite("rs.missions.radio", { tags = { "server", "world" }, testTimeoutMs = 6
         local state = { missions = {}, npcs = {}, characters = {}, outcomes = {} }
         state.characters.char1 = { name = "Tester", contacts = {}, knownMissions = {} }
         local store = { data = state, save = function() return true end }
-        require("RadioSurvivor/RS_MissionScout").resetForTests()
+        require("RadioSurvivorCore/RC_MissionScout").resetForTests()
         local m, why = V.start(store, sheet, "char1", p, 199800, "scout")
         if not m and why == "no_place" then
             t:skip("no building fits around the player (60-250 tiles): move to a town and run again")
@@ -305,7 +305,7 @@ RST.suite("rs.missionreport.llm", { tags = { "server", "world" }, testTimeoutMs 
         local cid = R.character(t, p)
         R.god(t, p)
         local Config = require "RadioSurvivor/RS_Config"
-        local Scout = require "RadioSurvivor/RS_MissionScout"
+        local Scout = require "RadioSurvivorCore/RC_MissionScout"
         R.npcWithFiche(t, p, 2, function(t2, id, fiche)
             local c = { Server = Server, cid = cid, fiche = fiche, id = id, p = p, C = Config }
             local old = fiche.mission and S.data.missions[fiche.mission]

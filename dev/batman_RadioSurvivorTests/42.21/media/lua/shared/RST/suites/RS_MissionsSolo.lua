@@ -28,7 +28,7 @@ local function ids(inv, fullType)
 end
 
 local function modules()
-    return require "RadioSurvivor/RS_Missions", require "RadioSurvivor/RS_Config", require "RadioSurvivor/RS_MissionScout"
+    return require "RadioSurvivorCore/RC_Missions", require "RadioSurvivor/RS_Config", require "RadioSurvivorCore/RC_MissionScout"
 end
 
 -- Projection of mission id in the client snapshot, or nil.

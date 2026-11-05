@@ -146,7 +146,7 @@ class ClientMachine:
         self.rt.execute(CLIENT_STUBS)
         self.g.SIDE = side
         paths = ';'.join((LUA / s).as_posix() + '/?.lua' for s in ('shared', 'client'))
-        paths = (tps.CORE_LUA / 'shared').as_posix() + '/?.lua;' + paths  # mod commun (E18)
+        paths = (tps.CORE_LUA / 'shared').as_posix() + '/?.lua;' + (tps.CORE_LUA / 'server').as_posix() + '/?.lua;' + paths  # mod commun (E18)
         self.rt.execute(f'package.path = [[{paths};]] .. package.path')
         self.load_view()
 

@@ -32,7 +32,7 @@ local function modules(t)
     if type(isClient) == "function" and isClient() then
         t:skip("RS_Caches is not loaded on an MP client (authority only)")
     end
-    local Caches = require "RadioSurvivor/RS_Caches"
+    local Caches = require "RadioSurvivor/RS_CacheAction"
     if type(Caches) ~= "table" or type(Caches.place) ~= "function" then t:skip("RS_Caches did not return its table") end
     return Caches, require "RadioSurvivor/RS_Config"
 end
