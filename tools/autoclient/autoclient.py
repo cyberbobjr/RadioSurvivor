@@ -157,6 +157,8 @@ MODS = [
      WORKSHOP_DEV / 'CharacterReputation' / 'Contents' / 'mods' / 'batman_CharacterReputation'),
     # Required by RadioSurvivor (mod.info require=, 2026-10-15): always copied; its local repository is only read.
     ('batman_SignalSmoke', WORKSHOP_DEV / 'SignalSmoke' / 'Contents' / 'mods' / 'batman_SignalSmoke'),
+    # Shared core of RadioSurvivor and Living Knox (E18-T01): required by RadioSurvivor, loaded before it.
+    ('batman_RadioSurvivorCore', ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivorCore'),
     ('batman_RadioSurvivor', ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivor'),
     ('batman_RadioSurvivorTests', ROOT / 'dev' / 'batman_RadioSurvivorTests'),
 ]

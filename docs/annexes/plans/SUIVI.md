@@ -8,18 +8,18 @@
 
 | # | Tâche | Titre | État |
 |---|---|---|---|
-| 1 | [E18-T01](E18-separation-living-knox.md#L102) | Mod commun `batman_RadioSurvivorCore` : dossier et métadonnées | `à faire` |
-| 2 | [E18-T02](E18-separation-living-knox.md#L113) | Outils partagés déplacés dans le commun | `à faire` |
-| 3 | [E18-T03](E18-separation-living-knox.md#L124) | Identité des personnages dans le commun | `à faire` |
-| 4 | [E18-T04](E18-separation-living-knox.md#L135) | Lien avec le pont dans le commun | `à faire` |
-| 5 | [E18-T05](E18-separation-living-knox.md#L146) | Moteur de missions dans le commun, donneurs voix et PNJ | `à faire` |
-| 6 | [E18-T06](E18-separation-living-knox.md#L157) | Journal commun des missions | `à faire` |
-| 7 | [E01-T16](E01-moteur-tests-en-jeu.md#L245) | Client 2 actif dans la campagne MP | `codé` |
-| 8 | [E01-T19](E01-moteur-tests-en-jeu.md#L278) | Campagne `mp-ambient` et suites de gabarits dans la campagne `mp` | `codé` |
-| 9 | [E01-T20](E01-moteur-tests-en-jeu.md#L289) | lk.windowkill indépendant de l'IA vanilla du zombie | `à faire` |
-| 10 | [E05-T15](E05-voix-reseau-radio.md#L211) | Réconfort social : une réponse radio baisse l'ennui et la tristesse | `testé hors jeu` |
-| 11 | [E06-T07](E06-carnet-radio-emettre.md#L106) | Carnet : voix et heures d'écoute d'une fréquence connue | `testé hors jeu` |
-| 12 | [E07-T04](E07-actions-liste-fermee.md#L75) | Action `mark_map` : repère sur la carte de l'appelant | `testé solo` |
+| 1 | [E18-T02](E18-separation-living-knox.md#L113) | Outils partagés déplacés dans le commun | `à faire` |
+| 2 | [E18-T03](E18-separation-living-knox.md#L124) | Identité des personnages dans le commun | `à faire` |
+| 3 | [E18-T04](E18-separation-living-knox.md#L135) | Lien avec le pont dans le commun | `à faire` |
+| 4 | [E18-T05](E18-separation-living-knox.md#L146) | Moteur de missions dans le commun, donneurs voix et PNJ | `à faire` |
+| 5 | [E18-T06](E18-separation-living-knox.md#L157) | Journal commun des missions | `à faire` |
+| 6 | [E01-T16](E01-moteur-tests-en-jeu.md#L245) | Client 2 actif dans la campagne MP | `codé` |
+| 7 | [E01-T19](E01-moteur-tests-en-jeu.md#L278) | Campagne `mp-ambient` et suites de gabarits dans la campagne `mp` | `codé` |
+| 8 | [E01-T20](E01-moteur-tests-en-jeu.md#L289) | lk.windowkill indépendant de l'IA vanilla du zombie | `à faire` |
+| 9 | [E05-T15](E05-voix-reseau-radio.md#L211) | Réconfort social : une réponse radio baisse l'ennui et la tristesse | `testé hors jeu` |
+| 10 | [E06-T07](E06-carnet-radio-emettre.md#L106) | Carnet : voix et heures d'écoute d'une fréquence connue | `testé hors jeu` |
+| 11 | [E07-T04](E07-actions-liste-fermee.md#L75) | Action `mark_map` : repère sur la carte de l'appelant | `testé solo` |
+| 12 | [E07-T10](E07-actions-liste-fermee.md#L141) | Fréquence d'une autre voix donnée exceptionnellement | `testé hors jeu` |
 
 ## Étapes
 
@@ -43,7 +43,7 @@
 | [E15](../plans-termines/E15-dernieres-pages.md) | Les dernières pages | terminée | 4 / 4 |
 | [E16](E16-publication.md) | Publication sur le Workshop | en cours | 2 / 10 |
 | [E17](../plans-termines/E17-fournisseur-pnj-living-knox.md) | Fournisseur de PNJ et passage à Living Knox | terminée | 15 / 16 |
-| [E18](E18-separation-living-knox.md) | Séparer RadioSurvivor et Living Knox autour d'un mod commun | à faire | 0 / 16 |
+| [E18](E18-separation-living-knox.md) | Séparer RadioSurvivor et Living Knox autour d'un mod commun | en cours | 1 / 16 |
 | [LK00](../plans-termines/LK00-cadrage.md) | Cadrage : décisions de conception et architecture | terminée | 2 / 2 |
 | [LK01](../plans-termines/LK01-fondations.md) | Fondations du projet | terminée | 6 / 6 |
 | [LK02](LK02-jalon-corps-gestes.md) | Jalon 1 : corps et gestes prouvés (décision de continuer) | en cours | 12 / 15 |
@@ -247,7 +247,7 @@
 | ☑ | [E17-T14](../plans-termines/E17-fournisseur-pnj-living-knox.md#L193) | Réponse d'un PNJ non affichée en MP avant la découverte du canal « dire » | `testé MP` | MP | cause : `ChatType` est une énumération Java non exposée à Lua, `getType():getValue()` levait « attempted index: getValue of non-table: say » à chaque message (journal client `tools/autoclient/runs/20261015-012607-mp-c75ba6661b1c/client1/console.txt`) : en MP le canal « dire » n'était jamais reconnu ; canal reconnu par `tostring(chat:getType()) == 'say'` (`RS_Client`, `LK_SpeechView`), bulle affichée aussitôt, ligne de chat seule en attente du canal ; doublures fidèles (méthode qui lève comme le Java) ; `test_answer_bubble_before_say_chat_is_known` (échoue sur l'ancien code) ; base `ui-windows.md` corrigée ; commit `a397ea6` ; campagne MP automatique du 2026-10-15 (copie figée du commit `54087fb`, serveur dédié + 2 clients, pont avec faux modèle) : rs.npctalk 4/4, dont le test E17-T13 (bulles) (`tools/autoclient/runs/20261015-110446-parallel-2-54087fb0f84f/shard2/server/20261015-090708-server.txt`) ; aucune ligne `getValue of non-table` dans les quatre consoles clientes de la campagne |
 | ☑ | [E17-T15](../plans-termines/E17-fournisseur-pnj-living-knox.md#L204) | Délais du serveur alignés sur le pont, erreur du fournisseur remontée | `testé MP` | MP | cause (pont de la campagne MP du 2026-10-15) : `timeout=60` d'`urlopen` ne borne qu'une lecture (tentatives de 120 à 420 s), âge de la demande vérifié seulement au dépôt, serveur qui abandonne à 90 s, toute erreur rendue `invalid_or_unavailable` ; correctif : `MAX_AGE_S` 75 vérifié aussi à la prise par un travailleur (`expired`), `LLM_BUDGET_S` 60 pour toutes les tentatives (corps lu avec échéance), codes `timeout`/`http_<statut>`/`unreachable`/`bad_response` transmis au jeu, serveur `REQUEST_TIMEOUT_MS` 150 000, refus journalisés avec la cause (`Server.refusals`), suites qui nomment la cause (`R.bridgeCause`) ; bancs `test_protocol` 37 OK (`scenario_provider_errors`), `test_carnet` 85/85 ; contrat `protocole-carnet-v2.md` ; commit `589263a` ; campagne MP automatique du 2026-10-15 (copie figée du commit `54087fb`, serveur dédié + 2 clients, pont avec faux modèle) : suites qui passent par le pont vertes (rs.npctalk 4/4, rs.initiatives 4/4, rs.conversations 4/4, rs.groupradio 5/5) (`tools/autoclient/runs/20261015-110446-parallel-2-54087fb0f84f/shard1/server/20261015-090647-server.txt`, `tools/autoclient/runs/20261015-110446-parallel-2-54087fb0f84f/shard2/server/20261015-090708-server.txt`) |
 | ☑ | [E17-T16](../plans-termines/E17-fournisseur-pnj-living-knox.md#L215) | Délais de la radio de Walt, des dernières pages et du bulletin alignés sur le pont | `testé hors jeu` | hors jeu | commit `888b1b0` (attentes alignées sur le battement du pont) ; bancs du 2026-10-15 : `tests/test_protocol.py` OK, `tests/test_bulletin.py` 14 OK, `tests/test_last_pages.py` 27 OK |
-| ☐ | [E18-T01](E18-separation-living-knox.md#L102) | Mod commun `batman_RadioSurvivorCore` : dossier et métadonnées | `à faire` | solo | — |
+| ☑ | [E18-T01](E18-separation-living-knox.md#L102) | Mod commun `batman_RadioSurvivorCore` : dossier et métadonnées | `testé solo` | solo | `Contents/mods/batman_RadioSurvivorCore` (`common/.keep`, `42.21/mod.info` id `batman_RadioSurvivorCore` sans `require=`, module `RadioSurvivorCore/RC_Core.lua`) ; `batman_RadioSurvivor` : `require=\batman_RadioSurvivorCore,\batman_BeltRadio,\batman_SignalSmoke` ; mod commun ajouté avant RadioSurvivor dans `tools/autoclient/autoclient.py`, `autotest.json`, `tests/run_dedicated_smoke.ps1` ; banc `python tests/test_core_mod.py` : « Ran 4 tests … OK » (rouge d'abord : 2 FAIL, 2 ERROR) ; `python tests/test_autoclient.py` : « Ran 91 tests … OK » ; `python tests/run_all.py --keep-going` : 146 PASS, 1 FAIL (autoclient, ligne `require=` attendue, corrigée puis banc vert) ; passage solo du 2026-11-05 (`autoclient.py --suite rs.env,rst`, code 0) : « RST-RESULT ok=true total=13 pass=13 fail=0 », journal « loading batman_RadioSurvivorCore », mods actifs `…;batman_RadioSurvivorCore;batman_RadioSurvivor;…`, aucune erreur Lua de nos mods hors des échecs volontaires des auto-tests `rst` (`tools/autoclient/runs/20261105-161109-435c6ef1b6c0`) |
 | ☐ | [E18-T02](E18-separation-living-knox.md#L113) | Outils partagés déplacés dans le commun | `à faire` | hors jeu | — |
 | ☐ | [E18-T03](E18-separation-living-knox.md#L124) | Identité des personnages dans le commun | `à faire` | MP | — |
 | ☐ | [E18-T04](E18-separation-living-knox.md#L135) | Lien avec le pont dans le commun | `à faire` | MP | — |

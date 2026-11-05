@@ -80,6 +80,7 @@ $cacheRoot = Join-Path ([IO.Path]::GetTempPath()) ('rs-dedicated-' + [guid]::New
 New-Item -ItemType Directory -Path $cacheRoot | Out-Null
 $modsDir = Join-Path $cacheRoot 'mods'
 New-Item -ItemType Directory -Path $modsDir, (Join-Path $cacheRoot 'Server') | Out-Null
+Copy-Item -LiteralPath (Join-Path $projectRoot 'Contents/mods/batman_RadioSurvivorCore') -Destination $modsDir -Recurse
 Copy-Item -LiteralPath (Join-Path $projectRoot 'Contents/mods/batman_RadioSurvivor') -Destination $modsDir -Recurse
 $reputationRoot = Join-Path (Split-Path $projectRoot -Parent) 'CharacterReputation/Contents/mods/batman_CharacterReputation'
 Copy-Item -LiteralPath $reputationRoot -Destination $modsDir -Recurse
@@ -108,7 +109,7 @@ PauseEmpty=true
 DefaultPort=17381
 UDPPort=17382
 MaxPlayers=2
-Mods=\TooltipLib;\batman_BeltRadio;\batman_CharacterReputation;\batman_RadioSurvivor;\batman_RadioSurvivorTests
+Mods=\TooltipLib;\batman_BeltRadio;\batman_CharacterReputation;\batman_RadioSurvivorCore;\batman_RadioSurvivor;\batman_RadioSurvivorTests
 WorkshopItems=
 Map=Muldraugh, KY
 ChatStreams=s,r,a,w,y,sh,f,all

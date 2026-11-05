@@ -1475,7 +1475,9 @@ class LoadAndSignalSmokeTests(unittest.TestCase):
         self.assertIn('id=batman_SignalSmoke', info.splitlines())
         rs_info = (ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivor' / '42.21' / 'mod.info').read_text(
             encoding='utf-8')
-        self.assertIn('require=\\batman_BeltRadio,\\batman_SignalSmoke', rs_info.splitlines())
+        require = [l for l in rs_info.splitlines() if l.startswith('require=')][0]
+        self.assertEqual([r.lstrip('\\') for r in require[len('require='):].split(',')],
+                         ['batman_RadioSurvivorCore', 'batman_BeltRadio', 'batman_SignalSmoke'])   # E18-T01
         import contextlib
         import io
         with self.assertRaises(SystemExit), contextlib.redirect_stderr(io.StringIO()):   # option removed

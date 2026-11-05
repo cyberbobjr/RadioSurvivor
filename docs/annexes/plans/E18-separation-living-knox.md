@@ -2,11 +2,11 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** à faire — 0 / 16 tâche(s) terminée(s).
+**Avancement.** en cours — 1 / 16 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
-| ☐ | E18-T01 | Mod commun `batman_RadioSurvivorCore` : dossier et métadonnées | `à faire` | solo | — |
+| ☑ | E18-T01 | Mod commun `batman_RadioSurvivorCore` : dossier et métadonnées | `testé solo` | solo | — |
 | ☐ | E18-T02 | Outils partagés déplacés dans le commun | `à faire` | hors jeu | E18-T01 |
 | ☐ | E18-T03 | Identité des personnages dans le commun | `à faire` | MP | E18-T02 |
 | ☐ | E18-T04 | Lien avec le pont dans le commun | `à faire` | MP | E18-T02 |
@@ -99,16 +99,16 @@ Deuxième article Workshop, dépôt séparé, nouvelles règles de jeu des missi
 
 ## Tâches
 
-- [ ] **E18-T01** — Mod commun `batman_RadioSurvivorCore` : dossier et métadonnées
-  - État : `à faire`
+- [x] **E18-T01** — Mod commun `batman_RadioSurvivorCore` : dossier et métadonnées
+  - État : `testé solo`
   - Cible : `solo`
   - Dépend de : —
   - Fichiers : `Contents/mods/batman_RadioSurvivorCore/` (`common/`, `42.21/mod.info`) ; `mod.info` de `batman_RadioSurvivor` (`require=` du commun)
   - Faire : créer le mod commun vide de jeu ; RadioSurvivor l'exige ; le jeu l'active quand seul RadioSurvivor est coché.
   - Accepté si : RadioSurvivor seul coché démarre avec le commun actif, sans erreur Lua.
   - Tests : `run_all.py` ; démarrage solo.
-  - Preuve : —
-  - Reste : —
+  - Preuve : `Contents/mods/batman_RadioSurvivorCore` (`common/.keep`, `42.21/mod.info` id `batman_RadioSurvivorCore` sans `require=`, module `RadioSurvivorCore/RC_Core.lua`) ; `batman_RadioSurvivor` : `require=\batman_RadioSurvivorCore,\batman_BeltRadio,\batman_SignalSmoke` ; mod commun ajouté avant RadioSurvivor dans `tools/autoclient/autoclient.py`, `autotest.json`, `tests/run_dedicated_smoke.ps1` ; banc `python tests/test_core_mod.py` : « Ran 4 tests … OK » (rouge d'abord : 2 FAIL, 2 ERROR) ; `python tests/test_autoclient.py` : « Ran 91 tests … OK » ; `python tests/run_all.py --keep-going` : 146 PASS, 1 FAIL (autoclient, ligne `require=` attendue, corrigée puis banc vert) ; passage solo du 2026-11-05 (`autoclient.py --suite rs.env,rst`, code 0) : « RST-RESULT ok=true total=13 pass=13 fail=0 », journal « loading batman_RadioSurvivorCore », mods actifs `…;batman_RadioSurvivorCore;batman_RadioSurvivor;…`, aucune erreur Lua de nos mods hors des échecs volontaires des auto-tests `rst` (`tools/autoclient/runs/20261105-161109-435c6ef1b6c0`)
+  - Reste : RadioSurvivor coché seul : activation automatique du commun par `require=` non rejouée hors lanceur (le lanceur liste les mods) ; à voir avec E18-T15
 
 - [ ] **E18-T02** — Outils partagés déplacés dans le commun
   - État : `à faire`

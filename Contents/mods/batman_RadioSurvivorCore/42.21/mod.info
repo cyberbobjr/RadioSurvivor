@@ -1,0 +1,5 @@
+name=batman_Radio Survivor Core
+id=batman_RadioSurvivorCore
+description=Shared core of Radio Survivor and Living Knox: missions, link with the AI bridge, character identity and common tools. Enabled automatically by Radio Survivor or Living Knox; nothing to enable by hand.
+versionMin=42.21
+modversion=0.1.0
