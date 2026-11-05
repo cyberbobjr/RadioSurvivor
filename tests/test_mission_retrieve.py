@@ -390,6 +390,12 @@ class RetrieveMissionTests(unittest.TestCase):
         # (body with the card, then without it), recorded and answered at once.
         sim.server.rt.execute("""
             PEER_ASKS = {}
+            LOADED_ASKS = {}
+            -- MP campaign of 2026-11-05: every client holds the area of the spot before the body is placed.
+            RST.PeerChecks.waitLoaded = function(t, squares, after)
+                LOADED_ASKS[#LOADED_ASKS + 1] = { n = #squares, placed = RETRIEVE.bodies[1] ~= nil }
+                if after then return after(t) end
+            end
             RST.PeerChecks.checkSquares = function(t, squares, kinds, after, union)
                 PEER_ASKS[#PEER_ASKS + 1] = { n = #squares, corpse = kinds and kinds.corpse, union = union }
                 if after then return after(t) end
@@ -421,6 +427,9 @@ class RetrieveMissionTests(unittest.TestCase):
         self.assertEqual((alice.x, alice.y), (10, 10), 'the fixture did not move the player back')
         self.assertEqual(sim.server.rt.eval('#PEER_ASKS'), 2, 'world.keys asks of the suite')
         self.assertTrue(sim.server.rt.eval('PEER_ASKS[1].corpse and PEER_ASKS[1].union and PEER_ASKS[1].n == 9'))
+        self.assertEqual(sim.server.rt.eval('#LOADED_ASKS'), 1, 'world.loaded asks of the suite')
+        self.assertTrue(sim.server.rt.eval('LOADED_ASKS[1].n == 5 and not LOADED_ASKS[1].placed'),
+                        'clients asked to hold the area after the body was placed')
         bodies = sim.server.g.RETRIEVE.bodies[1].square.bodies
         self.assertEqual(len(lua_list(bodies)), 0, 'body not removed by the cleanup')
 

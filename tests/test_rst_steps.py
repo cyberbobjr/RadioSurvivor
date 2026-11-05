@@ -330,6 +330,29 @@ class PeerCheckTests(unittest.TestCase):
         self.assertEqual(key, 'Base.A,Base.B*2')
         self.assertEqual(self.m.lua('return RST.PeerChecks.itemsKey(nil)'), '')
 
+    def test_world_loaded_waits_for_every_square_then_the_settle_time(self):
+        """Campagne MP du 2026-11-05 (rs.mission.retrieve) : un client attend d'avoir chargé la zone, puis d'y rester
+        settleMs, avant que le serveur y pose un cadavre ; une case perdue remet le compte à zéro."""
+        self.m.lua('NOW = 0; getTimestampMs = function() return NOW end; LOADED = {}'
+                   'getCell = function() return { getGridSquare = function(_, x, y, z) '
+                   'return LOADED[x .. "," .. y] and {} or nil end } end')
+        self.m.lua('ANSWER = nil; RST.Steps.start(1, "world.loaded", { squares = { { x = 1, y = 1, z = 0 }, '
+                   '{ x = 5, y = 5, z = 0 } }, settleMs = 2000 }, 600000, function(r) ANSWER = r end)')
+        a = self.m.g.ANSWER
+        self.assertIsNone(a)
+        self.m.lua('LOADED["1,1"] = true; NOW = 500; RST.Steps.tick()')
+        self.assertIsNone(self.m.g.ANSWER)
+        self.m.lua('LOADED["5,5"] = true; NOW = 1000; RST.Steps.tick()')
+        self.m.lua('NOW = 2500; RST.Steps.tick()')
+        self.assertIsNone(self.m.g.ANSWER, 'passed before the settle time')
+        self.m.lua('LOADED["5,5"] = nil; NOW = 2600; RST.Steps.tick(); LOADED["5,5"] = true; NOW = 3000; RST.Steps.tick()')
+        self.m.lua('NOW = 4000; RST.Steps.tick()')
+        self.assertIsNone(self.m.g.ANSWER, 'a lost square did not reset the settle time')
+        self.m.lua('NOW = 5000; RST.Steps.tick()')
+        a = self.m.g.ANSWER
+        self.assertEqual(a.status, 'PASS')
+        self.assertIn('2 square(s) loaded', a.message)
+
     def test_access_level_only_for_test_accounts_and_never_itself(self):
         a = self.start('rst.access', '{ user = "rs_mp2", level = "user" }')
         self.assertEqual(a.status, 'PASS')

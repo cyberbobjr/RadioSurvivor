@@ -357,14 +357,46 @@ function R.select(t, c, after)
         end)
 end
 
+-- The pending list is watched from before the step is asked (OnTick): the talk command and the answer of the step
+-- are two client commands, delivered unordered (MP campaign of 2026-11-05, rs.npctalk: the request was queued, sent
+-- to the bridge and answered before the step answer reached the server; "no npc_talk request").
+function R.watchRequest(t, c, text)
+    local seen = {}
+    local function watch()
+        if seen.req ~= nil then return end
+        for _, r in ipairs(c.Server.pending) do
+            if r.npc == c.fiche.id and r.kind == "npc_talk" and r.text == text and not seen.before[r.id] then
+                seen.req = r
+                return
+            end
+        end
+    end
+    seen.before = {}
+    for _, r in ipairs(c.Server.pending) do seen.before[r.id] = true end
+    Events.OnTick.Add(watch)
+    t:defer(function() Events.OnTick.Remove(watch) end, "stop watching the npc_talk requests")
+    -- The request is saved right after it joins the pending list (RS_Carnet_Server enqueue: S.save()): seen there
+    -- even when the bridge answers before the next tick.
+    local store = c.Server.store
+    local save = store and store.save
+    if type(save) == "function" then
+        store.save = function(...)
+            watch()
+            return save(...)
+        end
+        t:defer(function() if store.save ~= save then store.save = save end end, "restore the notebook state save")
+    end
+    return seen, watch
+end
+
 function R.talk(t, c, text, after)
+    local seen, watch = R.watchRequest(t, c, text)
     RST.Steps.ask(t, "carnet.talk", { text = text, cooldownMs = c.C.COOLDOWN_MS + 500 },
         { target = "requester", none = "skip", timeoutMs = R.TALK_WAIT_MS }, function(t1)
             local deadline = RST.now() + R.TALK_REQUEST_MS
             t1:waitQuiet(function()
-                for _, r in ipairs(c.Server.pending) do
-                    if r.npc == c.fiche.id and r.kind == "npc_talk" and r.text == text then return r end
-                end
+                watch()
+                if seen.req ~= nil then return seen.req end
                 if RST.now() >= deadline then return { missing = true } end
                 return nil
             end, nil, function(t2, req)

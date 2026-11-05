@@ -18,6 +18,7 @@ require "RST/RST_Fixtures"
 require "RST/RST_PeerChecks"
 
 local F = RST.Fixtures
+local AREA_RADIUS = 10 -- squares around the spot every client holds loaded before the body is placed
 
 local function modules(t)
     if type(isClient) == "function" and isClient() then
@@ -78,7 +79,12 @@ RST.suite("rs.mission.retrieve", { tags = { "server", "world" }, testTimeoutMs =
         t:note("place " .. m.place .. " " .. m.siteKey .. " point " .. m.spot.x .. "," .. m.spot.y .. "," .. m.spot.z)
         -- E11-T05: every connected player is moved by the same offset (F.movePlayers), so that the second client
         -- loads the body's square and checks it.
-        F.movePlayers(t, p, m.spot.x + 0.5, m.spot.y + 0.5, m.spot.z, function(t2)
+        -- The clients hold the area of the spot first (RST.PeerChecks.waitLoaded): the body is sent only to the
+        -- connections whose reported area covers its square.
+        local sx, sy, sz, r = m.spot.x, m.spot.y, m.spot.z, AREA_RADIUS
+        local area = { { x = sx, y = sy, z = sz }, { x = sx - r, y = sy - r, z = sz }, { x = sx + r, y = sy - r, z = sz },
+            { x = sx - r, y = sy + r, z = sz }, { x = sx + r, y = sy + r, z = sz } }
+        F.movePlayers(t, p, sx + 0.5, sy + 0.5, sz, function(t1) RST.PeerChecks.waitLoaded(t1, area, function(t2)
             t2:waitUntil(function()
                 M.observe(state, watched)
                 return m.placed
@@ -124,6 +130,6 @@ RST.suite("rs.mission.retrieve", { tags = { "server", "world" }, testTimeoutMs =
                     RST.PeerChecks.checkSquares(t3b, squares, { corpse = true }, nil, true)
                 end, true)
             end, "body not placed")
-        end)
+        end) end)
     end)
 end)

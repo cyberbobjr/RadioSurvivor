@@ -6,6 +6,7 @@ expected value with the same code as the client that checks it).
 Client handlers (RST.Steps.on)
     world.keys        { squares = { { x, y, z }, ... }, kinds, expect = { { key, ... }, ... } }: the keys of each square
                       (PC.squareKeys) equal the expected ones; polled until equal (replication delay) or the deadline.
+    world.loaded      { squares, settleMs }: every square loaded on this client for settleMs in a row, polled.
     lk.present        { bodies = { { o, p }, ... } }: a local copy of each body exists (zombieOf), polled.
     lk.look           { bodies = { { o = onlineId, sig = signature }, ... } }: the local copy of each zombie body
                       (found by its online id) has the same signature (PC.look: skin, hair, beard, colour, clothes);
@@ -24,6 +25,8 @@ Client handlers (RST.Steps.on)
     carnet.state      { mission }: notebook client state: lastError, waiting, offer shown, snapshot row of the mission.
 Authority helpers (suite code, through RST.Steps.ask)
     PC.checkSquares(t, squares, kinds, after)  expected keys built here, asked to the other clients ("others").
+    PC.waitLoaded(t, squares, after)           every client holds the squares loaded (world.loaded) before the
+                                               authority creates something there (sendCorpse: reported area only).
     PC.checkLooks(t, bodies, after)            signatures of the zombie bodies built here, asked to the others.
     PC.waitCopies(t, bodies, after)            the others hold a local copy of each body (lk.present) before a
                                                death is checked: a zombie killed before its copy reached a client
@@ -363,6 +366,32 @@ Steps.on("world.keys", function(args)
     end
 end)
 
+-- Every square is loaded on this client and the player has stood there for args.settleMs (its position packets
+-- reached the server: GameServer.sendCorpse only writes to the connections whose reported area covers the square).
+Steps.on("world.loaded", function(args)
+    local since = nil
+    return function(ctx)
+        local cell = getCell()
+        local missing = nil
+        for _, s in ipairs(args.squares or {}) do
+            if cell == nil or cell:getGridSquare(s.x, s.y, s.z) == nil then
+                missing = s.x .. "," .. s.y .. "," .. s.z
+                break
+            end
+        end
+        if missing == nil then
+            since = since or getTimestampMs()
+            if getTimestampMs() - since >= (tonumber(args.settleMs) or 0) then
+                return Steps.pass(#(args.squares or {}) .. " square(s) loaded here")
+            end
+        else
+            since = nil
+        end
+        if ctx.final then return Steps.fail("square " .. tostring(missing) .. " not loaded on this client") end
+        return nil
+    end
+end)
+
 Steps.on("lk.look", function(args)
     local bodies = args.bodies or {}
     local last = "nothing read"
@@ -604,6 +633,16 @@ function PC.checkSquares(t, squares, kinds, after, union)
     end
     Steps.ask(t, "world.keys", { squares = squares, kinds = kinds, expect = expect, union = union, counts = counts },
         { target = "all", timeoutMs = PC.SQUARE_MS }, after)
+end
+
+-- Every client (target "all") holds the squares loaded for PC.SETTLE_MS before after(t): a corpse created by the
+-- server right after a teleport did not reach a client still counted at its former place (MP campaign of
+-- 2026-11-05, rs.mission.retrieve: "0 corpse(s) within 10" on rs_mp2, square loaded there).
+PC.LOADED_MS = 30000
+PC.SETTLE_MS = 2000
+function PC.waitLoaded(t, squares, after)
+    Steps.ask(t, "world.loaded", { squares = squares, settleMs = PC.SETTLE_MS },
+        { target = "all", timeoutMs = PC.LOADED_MS }, after)
 end
 
 -- Squares of the rectangle x-r..x+r, y-r..y+r on level z (a corpse of a client copy may lie a square away).

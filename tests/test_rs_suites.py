@@ -747,5 +747,27 @@ class SpotsTests(SuiteHarness):
         self.lua('for x = 90, 110 do for y = 90, 110 do if x ~= 100 or y ~= 100 then BUSY[x .. "," .. y] = true end end end')
         self.assertIsNone(self.talk(2))
 
+    def test_talk_request_seen_even_when_answered_before_the_step_answer(self):
+        """Campagne MP du 2026-11-05 : la commande talk et la réponse de l'étape arrivent dans le désordre ; la requête
+        mise en file puis répondue avant la réponse de l'étape est quand même vue (sauvegarde qui suit la mise en file),
+        une requête déjà en file avant la phrase n'est pas prise."""
+        v = self.lua(r"""
+            local ticks, defers = {}, {}
+            Events = { OnTick = { Add = function(f) ticks[#ticks + 1] = f end,
+                Remove = function(f) for i, g in ipairs(ticks) do if g == f then table.remove(ticks, i) end end end } }
+            local t = { defer = function(_, f) defers[#defers + 1] = f end }
+            local saves = 0
+            local store = { save = function() saves = saves + 1 return true end }
+            local c = { Server = { store = store, pending = {
+                { id = "old", npc = "n1", kind = "npc_talk", text = "help" } } }, fiche = { id = "n1" } }
+            local seen = R.watchRequest(t, c, "help")
+            c.Server.pending[#c.Server.pending + 1] = { id = "new", npc = "n1", kind = "npc_talk", text = "help" }
+            store.save()
+            c.Server.pending = {}
+            for i = #defers, 1, -1 do defers[i]() end
+            return { seen.req and seen.req.id or false, saves, #ticks, store.save ~= nil }
+        """)
+        self.assertEqual(list(v.values()), ['new', 1, 0, True])
+
 if __name__ == '__main__':
     unittest.main(verbosity=1)
