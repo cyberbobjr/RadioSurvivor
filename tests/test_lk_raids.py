@@ -73,8 +73,8 @@ end
 SURVEY = r'''
 local H = HARNESS
 local C = H.classes
-RS_CarnetServer = RS_CarnetServer or { bound = {} }
-function BIND(name, key) RS_CarnetServer.bound[HARNESS.players[name]] = key end
+RC_Identity = RC_Identity or { bound = {} }   -- identité du mod commun (E18-T03)
+function BIND(name, key) RC_Identity.bound[HARNESS.players[name]] = key end
 RAID_FACTS = {}
 for _, n in ipairs({ "raidScouting", "raidAnnounced", "raidLaunched", "raidEnded" }) do
     LivingKnox.listen(n, "test", function(info) RAID_FACTS[#RAID_FACTS + 1] = { name = n, info = info } end)

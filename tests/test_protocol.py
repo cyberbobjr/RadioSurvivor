@@ -233,8 +233,13 @@ class Game:
         g.getTimestampMs = clock
         if hasattr(clock, 'play_ms'):
             g.PLAY_MS = clock.play_ms
-        # Zomboid/Lua/batman_RadioSurvivor/<x> -> exchange/<x> (fichiers d'échange et dossier des fiches).
-        lua_path = lambda name: exchange / Path(name).relative_to("batman_RadioSurvivor")
+        # Zomboid/Lua/batman_RadioSurvivor/<x> -> exchange/<x> (fichiers d'échange et dossier des fiches) ;
+        # Zomboid/Lua/batman_RadioSurvivorCore/<x> -> exchange/_core/<x> (registres du mod commun, E18-T03).
+        def lua_path(name):
+            rel = Path(name)
+            if rel.parts and rel.parts[0] == "batman_RadioSurvivorCore":
+                return exchange / "_core" / rel.relative_to("batman_RadioSurvivorCore")
+            return exchange / rel.relative_to("batman_RadioSurvivor")
         g.getFileWriter = lambda name, create, append: file_writer(lua_path(name), name, append)
         g.getFileReader = lambda name, create: Reader(lua_path(name))
         g.listFilesInZomboidLuaDirectory = lambda d: g.JLIST(self.rt.table_from(

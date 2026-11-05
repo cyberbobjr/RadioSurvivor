@@ -450,6 +450,12 @@ triggerEvent = function(name, ...) H.trigger(name, ...) end
 H.clock = { realMs = 0, serverMs = 0, synced = true, year = 1993, month = 6, day = 8, hour = 9, minute = 0,
     ageHours = 2, multiplier = 1 }
 getTimestampMs = function() return H.clock.realMs end
+-- Rand.java (42.21.0) : ZombRand(max) dans [0, max[, ZombRand(min, max) dans [min, max[ ; tirage du banc (math.random).
+ZombRand = function(a, b)
+    if b == nil then return a <= 0 and 0 or math.random(0, a - 1) end
+    if b <= a then return a end
+    return math.random(a, b - 1)
+end
 local GameTimeClass = class('GameTime')
 local gameTime = setmetatable({}, GameTimeClass)
 function GameTimeClass:getYear() return H.clock.year end

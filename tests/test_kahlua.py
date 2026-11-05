@@ -47,6 +47,9 @@ STDLIB = PZ_DIR / 'stdlib.lua'
 # Modules qui s'abonnent a des evenements au chargement (LivingKnox.subscribe lit Events) : charges avec une table
 # Events vide (aucun abonne inscrit), comme LK_Fortify plus bas.
 EVENTS_AT_LOAD = {'LivingKnox/LK_Decisions'}
+# E18-T03 : modules du mod commun qui s'abonnent par Events.X.Add au chargement : charges avec une table Events dont
+# chaque evenement accepte Add sans rien inscrire.
+EVENTS_ADD_AT_LOAD = {'RadioSurvivorCore/RC_WorldStart', 'RadioSurvivorCore/RC_Identity'}
 LUA_FILES = [
     ('driver', BENCH / 'driver.lua'),
     ('RST/RST', TESTS_LUA / 'shared' / 'RST' / 'RST.lua'),
@@ -57,6 +60,11 @@ LUA_FILES = [
     ('RadioSurvivor/RS_Reputation', MOD_LUA / 'server' / 'RadioSurvivor' / 'RS_Reputation.lua'),
     ('RadioSurvivor/RS_NPCProvider', MOD_LUA / 'shared' / 'RadioSurvivor' / 'RS_NPCProvider.lua'),  # RS_Missions
     ('RadioSurvivorCore/RC_GameClock', CORE_LUA / 'shared' / 'RadioSurvivorCore' / 'RC_GameClock.lua'),  # RS_Missions (E11-T20)
+    # E18-T03 : identité des personnages du mod commun (LK_Hostility.keyOf) et ses dépendances.
+    ('RadioSurvivorCore/RC_RateLimit', CORE_LUA / 'shared' / 'RadioSurvivorCore' / 'RC_RateLimit.lua'),
+    ('RadioSurvivorCore/RC_WorldStart', CORE_LUA / 'shared' / 'RadioSurvivorCore' / 'RC_WorldStart.lua'),
+    ('RadioSurvivorCore/RC_SlotFile', CORE_LUA / 'shared' / 'RadioSurvivorCore' / 'RC_SlotFile.lua'),
+    ('RadioSurvivorCore/RC_Identity', CORE_LUA / 'shared' / 'RadioSurvivorCore' / 'RC_Identity.lua'),
     ('RadioSurvivor/RS_Missions', MOD_LUA / 'server' / 'RadioSurvivor' / 'RS_Missions.lua'),
     ('RadioSurvivor/RS_Persona', MOD_LUA / 'server' / 'RadioSurvivor' / 'RS_Persona.lua'),
     ('RadioSurvivor/RadioSurvivor_Const', MOD_LUA / 'shared' / 'RadioSurvivor' / 'RadioSurvivor_Const.lua'),
@@ -750,6 +758,9 @@ class KahluaBench(unittest.TestCase):
         for name, path in LUA_FILES:
             if name in EVENTS_AT_LOAD:   # abonnes inscrits au chargement : table Events vide le temps du chargement
                 args += ['eval:Events = {} return nil', f'load:{name}={path}', 'eval:Events = nil return nil']
+            elif name in EVENTS_ADD_AT_LOAD:
+                args += ['eval:Events = setmetatable({}, { __index = function() return { Add = function() end } end }) '
+                         'return nil', f'load:{name}={path}', 'eval:Events = nil return nil']
             else:
                 args.append(f'load:{name}={path}')
         for flt in RUNS:

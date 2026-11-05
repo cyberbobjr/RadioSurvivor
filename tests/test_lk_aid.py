@@ -262,7 +262,7 @@ class AidTests(Base):
         self.run_lua('HARNESS.place(HARNESS.players.A, 110, 104, 0)')
         self.assertEqual(self.run_lua(ask.replace('return ', 'return select(2, ') + ')'), 'too far')
         self.run_lua('HARNESS.place(HARNESS.players.A, 103, 104, 0)')
-        self.run_lua('RS_CarnetServer.bound[HARNESS.players.A] = nil')
+        self.run_lua('RC_Identity.bound[HARNESS.players.A] = nil')
         out = self.run_lua(ask)
         self.assertEqual((out.reason, out.decided), ('stranger', False))
         self.assertEqual(self.said(), [('lk-1', 'IGUI_LK_Aid_Refuse_stranger', None)])

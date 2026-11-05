@@ -16,7 +16,7 @@ aménagement des foyers (LK_Homes, doublures de tests/test_lk_homes.py) et le vr
   isEmpty, getPrimaryFluid ; bouteille d'eau créée avec un fluide tiré au hasard (PickRandomFluid) ;
 - instanceItem (LuaManager.java:4669) : nil pour un type inconnu ; sendAddItemToContainer (:9700) compté sur le
   serveur seulement ;
-- inventaire du joueur (IsoPlayer.getInventory) ; clé de joueur de LK_Hostility = RS_CarnetServer.bound[joueur].
+- inventaire du joueur (IsoPlayer.getInventory) ; clé de joueur de LK_Hostility = RC_Identity.bound[joueur].
 Elles NE PROUVENT PAS l'API réelle, seulement la logique : suite en jeu lk.stock.
 """
 from __future__ import annotations
@@ -174,8 +174,8 @@ function C.IsoPlayer:getInventory()
     if not inv then inv = NEW_CONTAINER('none') self.inv = inv end
     return inv
 end
-RS_CarnetServer = { bound = {} }
-function BIND(name, key) RS_CarnetServer.bound[HARNESS.players[name]] = key end
+RC_Identity = RC_Identity or { bound = {} }   -- identité du mod commun (E18-T03)
+function BIND(name, key) RC_Identity.bound[HARNESS.players[name]] = key end
 
 -- Aides ---------------------------------------------------------------------------------------------------------------
 function OWNED(gid)
@@ -461,7 +461,7 @@ class BuildingTests(Base):
         r = self.check(gid)
         self.assertEqual(r.thefts[1].result, 'no key')
         self.assertFalse(self.ev(f'LivingKnox.Hostility.isKnown("{gid}", "c-alpha")'))
-        self.assertTrue(any('not reported: no notebook character bound' in line for line in self.lk()))
+        self.assertTrue(any('not reported: no character identity bound' in line for line in self.lk()))
 
     def test_item_gone_without_holder_is_a_loss(self):
         gid = self.filled()

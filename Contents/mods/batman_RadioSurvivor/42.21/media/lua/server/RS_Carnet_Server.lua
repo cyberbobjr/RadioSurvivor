@@ -4,6 +4,7 @@ local C = require 'RadioSurvivor/RS_Config'
 local Codec = require 'RadioSurvivorCore/RC_Codec'
 local P = require 'RadioSurvivor/RS_NPCProvider'; local WorldStart = require 'RadioSurvivorCore/RC_WorldStart'
 local S = require 'RadioSurvivor/RS_State'; require 'RadioSurvivor/RS_MissionClear' -- E11-T04: template clear
+local Identity = require 'RadioSurvivorCore/RC_Identity' -- E18-T03: identity of the characters (core mod)
 local M = require 'RadioSurvivor/RS_Missions'; require 'RadioSurvivor/RS_MissionScout'; require 'RadioSurvivor/RS_MissionRetrieve'
 local Rep = require 'RadioSurvivor/RS_Reputation'
 local T = require 'RadioSurvivor/RS_Transport'
@@ -46,40 +47,36 @@ local function displayName(player)
     return Radio.oneLine(d:getForename() .. ' ' .. d:getSurname())
 end
 
-local IDENTITY_KEY = 'RS_CarnetCharacter'
+local IDENTITY_KEY = Identity.KEY -- 'RS_CarnetCharacter'
 
 local function ownerOf(player)
-    return isServer() and player:getUsername() or 'solo'
+    return Identity.ownerOf(player)
 end
 
-local function usable(id, owner, slot)
-    local record = type(id) == 'string' and S.data.characters[id] or nil
-    return record and record.owner == owner and record.slot == slot and not record.retired
-end
-
--- In MP only the server IsoPlayer is saved: a value written by the client into its own modData
--- is lost at reconnection. The server writes the identity into its copy; the client claim is
--- only a fallback for states created before this rule, and must match the authenticated owner.
+-- E18-T03: the identity of the character is decided by the core mod (RC_Identity: server modData copy, client claim
+-- as a checked fallback, new identity, retirement at death; rules of E00-T01/E00-T02). The notebook keeps its own
+-- record of the character (name, contacts, missions) under the same id, created at the first hello.
 local function identity(player, claimed)
     if Server.bound[player] then
         claimed = Server.bound[player]
         send(player, 'identity', {character = claimed, world = S.data.world, run = S.run})
         return claimed
     end
-    local owner, slot = ownerOf(player), player:getPlayerNum()
-    local md = player:getModData()
-    local stored = md[IDENTITY_KEY]
-    if usable(stored, owner, slot) then claimed = stored
-    elseif not usable(claimed, owner, slot) then
-        claimed = S.uid('character')
-        S.data.characters[claimed] = {id = claimed, owner = owner, slot = slot, name = displayName(player),
-            contacts = {}, knownMissions = {}}
-        if not S.save() then return nil end
+    local id = Identity.bind(player, claimed)
+    if not id then return nil end
+    local record = S.data.characters[id]
+    if record and record.retired then return nil end -- retired by the notebook (death seen before the core registry)
+    if not record then
+        S.data.characters[id] = {id = id, owner = ownerOf(player), slot = player:getPlayerNum(),
+            name = displayName(player), contacts = {}, knownMissions = {}}
+        if not S.save() then
+            S.data.characters[id] = nil
+            return nil
+        end
     end
-    md[IDENTITY_KEY] = claimed
-    Server.bound[player] = claimed
-    send(player, 'identity', {character = claimed, world = S.data.world, run = S.run})
-    return claimed
+    Server.bound[player] = id
+    send(player, 'identity', {character = id, world = S.data.world, run = S.run})
+    return id
 end
 
 -- Existing fiche of the provider NPC with this id, without creating one.
@@ -1248,6 +1245,8 @@ end
 local function init(newWorld) -- OnInitGlobalModData arg: always true on a dedicated server (RC_WorldStart)
     if S.data then return end
     if S.init(newWorld == true and WorldStart.isNewWorld(true)) then
+        Identity.init(newWorld) -- E18-T03: core registry first (same OnInitGlobalModData argument)
+        Identity.adopt(S.data.characters) -- notebook records of a game made before the split, retirements included
         T.acks = S.data.acks or {}
         local now = getTimestampMs()
         saveAt = now + C.SAVE_INTERVAL_MS
@@ -1313,7 +1312,8 @@ Events.OnSave.Add(function() if S.data then tick(); S.save() end end)
 function Server.characterDeath(character)
     if not S.data or not instanceof(character, 'IsoPlayer') then return end
     local md = character:getModData()
-    local id = Server.bound[character] or md[IDENTITY_KEY]
+    -- E18-T03: the core mod may have retired the identity first (its OnCharacterDeath subscriber): idOf keeps it.
+    local id = Server.bound[character] or md[IDENTITY_KEY] or Identity.idOf(character)
     local record = type(id) == 'string' and S.data.characters[id] or nil
     if not record or record.owner ~= ownerOf(character) or record.retired then return end
     record.retired = true

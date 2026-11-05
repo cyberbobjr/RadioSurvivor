@@ -3,8 +3,8 @@
 -- Autorité seulement (serveur dédié ou hébergé, solo) : un client MP charge aussi media/lua/server, il s'arrête ici.
 --
 -- Clé d'une attitude : groupe (grp-<n> du registre des groupes) + clé de joueur. La clé de joueur est l'identité de
--- personnage du carnet (RS_CarnetCharacter, RS_Carnet_Server : liée au compte en MP, nouvelle pour chaque personnage,
--- retirée à sa mort) : deux personnages d'un même compte ont deux attitudes distinctes. Hostility.keyOf(player) la
+-- personnage du mod commun (RC_Identity, clé de ModData RS_CarnetCharacter : liée au compte en MP, nouvelle pour chaque
+-- personnage, retirée à sa mort) : deux personnages d'un même compte ont deux attitudes distinctes. Hostility.keyOf(player) la
 -- retrouve ; le module accepte toute clé bien formée (PLAYER_KEY_MAX caractères de [%w_.:-]).
 --
 -- Registre (schéma 1), privé, jamais en ModData globale :
@@ -27,6 +27,7 @@
 -- générale fausse ou deux fichiers illisibles -> registre BLOQUÉ (aucune écriture, fichiers conservés) ; une paire
 -- ou un groupe invalide est écarté et journalisé. Sauvegarde à chaque fait et à chaque déclin effectif.
 if isClient() then return end
+local Identity = require "RadioSurvivorCore/RC_Identity"   -- E18-T03 : identité des personnages (mod commun)
 
 require "LivingKnox/LK_Core"
 require "LivingKnox/LK_Config"
@@ -583,12 +584,11 @@ function Hostility.onEveryHours()
     Hostility.decay()
 end
 
--- Clé de joueur d'un IsoPlayer : identité de personnage du carnet liée à ce joueur (RS_Carnet_Server, commande
--- hello à l'entrée en jeu), ou nil et une raison s'il n'en a pas encore.
+-- Clé de joueur d'un IsoPlayer : identité de personnage du mod commun liée à ce joueur (RC_Identity, E18-T03 :
+-- commande hello à l'entrée en jeu, avec ou sans RadioSurvivor), ou nil et une raison s'il n'en a pas encore.
 function Hostility.keyOf(player)
-    local server = RS_CarnetServer
-    local cid = server and player and server.bound and server.bound[player] or nil
-    if not Hostility.validPlayerKey(cid) then return nil, "no notebook character bound" end
+    local cid = Identity.of(player)
+    if not Hostility.validPlayerKey(cid) then return nil, "no character identity bound" end
     return cid
 end
 

@@ -59,8 +59,8 @@ end
 
 # Identité du carnet (RS_Carnet_Server.bound) et faits publiés relevés.
 CARNET = r'''
-RS_CarnetServer = RS_CarnetServer or { bound = {} }
-function BIND(name, key) RS_CarnetServer.bound[HARNESS.players[name]] = key end
+RC_Identity = RC_Identity or { bound = {} }   -- identité du mod commun (E18-T03)
+function BIND(name, key) RC_Identity.bound[HARNESS.players[name]] = key end
 REV_FACTS = {}
 for _, n in ipairs({ "revengeSworn", "revengeStarted", "revengeEnded" }) do
     LivingKnox.listen(n, "test", function(info) REV_FACTS[#REV_FACTS + 1] = { name = n, info = info } end)

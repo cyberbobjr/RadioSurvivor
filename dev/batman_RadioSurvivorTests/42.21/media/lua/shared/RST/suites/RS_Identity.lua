@@ -359,6 +359,38 @@ RST.suite("rs.identity", { tags = { "server" } }, function(s)
         report(t, problems, "identity problems")
     end)
 
+    -- E18-T03: the identity is decided by the core mod (RC_Identity); the notebook keeps its record under the same id.
+    s.test("core identity registry agrees with the notebook", function(t)
+        local server, store = carnet(t)
+        local Identity = RC_Identity
+        t:ok(type(Identity) == "table" and type(Identity.record) == "function", "RC_Identity (core mod) is not loaded")
+        local players = onlinePlayers()
+        if #players == 0 then t:skip("no online player") end
+        local problems, checked = {}, 0
+        for _, player in ipairs(players) do
+            local key = accountKey(ownerOf(player), player:getPlayerNum())
+            local b = server.bound[player]
+            local core = Identity.of(player)
+            if b then
+                checked = checked + 1
+                local rc = Identity.record(b)
+                if core ~= b then problems[#problems + 1] = key .. " core binding " .. tostring(core) .. " ~= " .. b end
+                if not rc then problems[#problems + 1] = key .. " identity " .. b .. " unknown to the core registry"
+                else
+                    if rc.retired then problems[#problems + 1] = key .. " identity " .. b .. " retired in the core" end
+                    if rc.owner ~= ownerOf(player) then problems[#problems + 1] = key .. " core owner " .. tostring(rc.owner) end
+                end
+            end
+        end
+        for id, r in pairs(store.data.characters) do
+            local rc = Identity.record(id)
+            if not rc then problems[#problems + 1] = "notebook record " .. id .. " missing from the core registry"
+            elseif r.retired and not rc.retired then problems[#problems + 1] = id .. " retired in the notebook only" end
+        end
+        t:note(checked .. " bound player(s) checked against the core registry")
+        report(t, problems, "core identity problems")
+    end)
+
     s.test("no identity shared by two online players", function(t)
         local server = carnet(t)
         local players = onlinePlayers()

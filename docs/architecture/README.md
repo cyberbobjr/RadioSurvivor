@@ -64,7 +64,7 @@ n'est jamais publié.
 
 | Côté | Dossier | Responsabilités |
 |---|---|---|
-| shared (mod commun `batman_RadioSurvivorCore`) | `RadioSurvivorCore/` | outils partagés depuis `E18-T02` : codec RSV2 (`RC_Codec`), limite de débit des commandes (`RC_RateLimit`), coupe des textes (`RC_TextCut`), valeurs de troc (`RC_TradeValues`), monde neuf ou relancé (`RC_WorldStart`), horloge de jeu des délais (`RC_GameClock`) |
+| shared (mod commun `batman_RadioSurvivorCore`) | `RadioSurvivorCore/` | outils partagés depuis `E18-T02` : codec RSV2 (`RC_Codec`), limite de débit des commandes (`RC_RateLimit`), coupe des textes (`RC_TextCut`), valeurs de troc (`RC_TradeValues`), monde neuf ou relancé (`RC_WorldStart`), horloge de jeu des délais (`RC_GameClock`) ; depuis `E18-T03`, identité des personnages (`RC_Identity` : identité décidée par l'autorité, écrite dans sa copie de la ModData du joueur sous la clé `RS_CarnetCharacter`, retirée à la mort, registre privé `Zomboid/Lua/batman_RadioSurvivorCore/identity-*.txt` ; lue par le carnet et par `LK_Hostility.keyOf`) et fichiers privés à deux emplacements (`RC_SlotFile`) |
 | shared | `RadioSurvivor/` | constantes et noms de commandes (`RadioSurvivor_Const.lua`), interface `RS_NPCProvider` et son implémentation Living Knox (`RS_LivingKnox`), notes |
 | shared | `LivingKnox/` | cœur (`LK_Core`, `LK_Config`), identité et apparence, équipement, sens, mouvement, garde des corps (`LK_ZombieGuard`), types de groupes et textes (`Data/`) |
 | server | `RadioSurvivor_Server.lua`, `RS_Carnet_Server.lua` | points d'entrée : commandes client, carnet, livraisons |

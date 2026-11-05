@@ -453,7 +453,7 @@ class TradeTests(Base):
         self.run_lua('HARNESS.place(HARNESS.players.A, 110, 104, 0)')
         self.assertEqual(self.run_lua(f'return select(2, {req})'), 'too far')
         self.run_lua('HARNESS.place(HARNESS.players.A, 103, 104, 0)')
-        self.run_lua('RS_CarnetServer.bound[HARNESS.players.A] = nil')
+        self.run_lua('RC_Identity.bound[HARNESS.players.A] = nil')
         out = self.ev(req)
         self.assertEqual((out.ok, out.reason, out.line), (False, 'stranger', 'IGUI_LK_Trade_Refuse_stranger'))
         for bad in ('{ op = "steal", n = 1, npc = "lk-1" }', '{ op = "open", npc = "lk-1" }',

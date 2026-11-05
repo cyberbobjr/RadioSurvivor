@@ -324,9 +324,10 @@ class AgreementDecisionTests(test_lk_combat.DecisionCombatTests):
     def test_covered_player_dropped_at_the_next_decision_and_seen_by_aims(self):
         gid = self.mk()
         fighter = self.ev(f'MEMBER_NPC("{gid}", "m-1")')
-        # Notebook identity of the players (LK_Hostility.keyOf) and a covered hook driven by the bench.
-        self.run_lua('RS_CarnetServer = { bound = setmetatable({}, { __index = function(_, p) '
-                     'return "char-" .. p:getUsername() end }) } '
+        # Identity of the players (core mod RC_Identity, read by LK_Hostility.keyOf) and a covered hook driven by the
+        # bench.
+        self.run_lua('require("RadioSurvivorCore/RC_Identity").bound = setmetatable({}, { __index = function(_, p) '
+                     'return "char-" .. p:getUsername() end }) '
                      'COVER = false; LivingKnox.Hooks = { covered = function() return COVER end }')
         x, y = self.run_lua(f'local z = LivingKnox.Bodies.find("{fighter}") return z:getX(), z:getY()')
         self.h.move_player('A', x + 4, y)

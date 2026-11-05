@@ -8,7 +8,7 @@
 |---|---|---|---|---|---|
 | ☑ | E18-T01 | Mod commun `batman_RadioSurvivorCore` : dossier et métadonnées | `testé solo` | solo | — |
 | ☑ | E18-T02 | Outils partagés déplacés dans le commun | `testé hors jeu` | hors jeu | E18-T01 |
-| ☐ | E18-T03 | Identité des personnages dans le commun | `à faire` | MP | E18-T02 |
+| ☐ | E18-T03 | Identité des personnages dans le commun | `testé hors jeu` | MP | E18-T02 |
 | ☐ | E18-T04 | Lien avec le pont dans le commun | `à faire` | MP | E18-T02 |
 | ☐ | E18-T05 | Moteur de missions dans le commun, donneurs voix et PNJ | `à faire` | MP | E18-T03, E18-T04 |
 | ☐ | E18-T06 | Journal commun des missions | `à faire` | MP | E18-T05 |
@@ -122,15 +122,15 @@ Deuxième article Workshop, dépôt séparé, nouvelles règles de jeu des missi
   - Reste : —
 
 - [ ] **E18-T03** — Identité des personnages dans le commun
-  - État : `à faire`
+  - État : `testé hors jeu`
   - Cible : `MP`
   - Dépend de : E18-T02
   - Fichiers : identité du personnage aujourd'hui dans le carnet (`RS_Carnet_Server`, `RS_Client`, ModData `RS_CarnetCharacter`) → commun ; `LK_Hostility`, `LK_Alert`, `LK_Decisions`
   - Faire : un personnage a une identité unique, écrite par le serveur, retirée à la mort (règles de `E00-T01`/`E00-T02`), lue par les deux mods ; Living Knox y clé ses attitudes et ses faits ; identités et attitudes déjà enregistrées reprises.
   - Accepté si : Living Knox seul garde ses relations avec chaque joueur après reconnexion et redémarrage ; RadioSurvivor seul garde ses identités ; ensemble, mêmes identités qu'avant.
   - Tests : bancs de l'identité et `test_lk_hostility*` ; suites rs.identity, rs.death dans les trois montages, phases reconnexion et redémarrage.
-  - Preuve : —
-  - Reste : —
+  - Preuve : module commun `shared/RadioSurvivorCore/RC_Identity.lua` (identité décidée par l'autorité, écrite dans sa copie de la ModData sous la clé gardée `RS_CarnetCharacter`, revendication du client acceptée seulement pour le même compte et le même emplacement et jamais retirée, retrait par `OnCharacterDeath` des seuls `IsoPlayer`, registre privé `Zomboid/Lua/batman_RadioSurvivorCore/identity-*.txt` à deux emplacements par `RC_SlotFile`, commande `hello`/`identity` du module `RadioSurvivorCore`) ; reprise des parties d'avant la séparation : fiches du carnet reprises au démarrage avec leurs retraits (`Identity.adopt`), identité trouvée dans la ModData serveur reprise ; carnet (`RS_Carnet_Server` : `Identity.bind`, fiche du carnet sous le même identifiant) et `LK_Hostility.keyOf` (`Identity.of`, plus de lecture de `RS_CarnetServer`) branchés dessus ; banc `python tests/test_core_identity.py` (rouge d'abord : 11 erreurs, module absent ; puis « Ran 11 tests … OK » : nouveau personnage, reconnexion sans ModData client, revendication d'un autre compte refusée, mort, mort d'un zombie sans effet, redémarrage, monde neuf, reprise d'une partie d'avant la séparation, reprise des fiches du carnet, clé d'attitude de Living Knox sans RadioSurvivor, solo) ; bancs Living Knox passés de `RS_CarnetServer.bound` à `RC_Identity.bound` ; `python tests/run_all.py --keep-going` : « 149 passed, 0 failed », luacheck `Contents` 15 (référence 15), `dev` 0 ; suite en jeu `rs.identity` complétée (« core identity registry agrees with the notebook ») ; passages MP automatiques du 2026-11-05 (serveur dédié + 2 clients, RadioSurvivor et le commun ensemble), code 0 chacun : `--server-suite rs.identity,rs.death --server-tags server,world` « RST-RESULT ok=true total=10 pass=10 fail=0 » (vraie mort du client 2, journal « [RadioSurvivorCore] identity: retired … (death) ») (`tools/autoclient/runs/20261105-185924-mp-74c7f20b9167`) ; `--server-suite rs.identity --phases reconnect,restart` : après reconnexion « total=6 pass=6 », après redémarrage « total=4 pass=4 » (même identité, notes et engagements gardés ; journal « registry read, 2 character(s) ») (`tools/autoclient/runs/20261105-190152-mp-18973cc91492`) ; premier passage `rs.identity` « total=8 pass=8 » (`tools/autoclient/runs/20261105-185516-mp-62cdbf47d0f8`)
+  - Reste : cible MP pour les trois montages : Living Knox seul et RadioSurvivor seul n'existent pas encore comme mods séparés (E18-T07, outillage E18-T14) ; Living Knox seul n'est prouvé que par le banc ; à valider en jeu avec E18-T15
 
 - [ ] **E18-T04** — Lien avec le pont dans le commun
   - État : `à faire`
