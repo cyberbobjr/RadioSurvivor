@@ -1,0 +1,2 @@
+# Byte-exact fixtures of the benches (RSV2 files, requests files): never converted to CRLF on checkout.
+tests/fixtures/** -text
