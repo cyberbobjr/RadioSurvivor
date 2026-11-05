@@ -12,10 +12,12 @@ PNJ **Living Knox** (ancien projet `LivingKnox`, préfixe de plan `LK`, code sou
 
 **Séparation décidée le 2026-11-05** (étape [`E18`](annexes/plans/E18-separation-living-knox.md)) : deux mods
 autonomes dans le même projet, le même dépôt et le même article Workshop, `batman_RadioSurvivor` (radio, voix,
-carnet, missions, factions) et `batman_LivingKnox` (moteur de PNJ et parole de proximité). Chacun fonctionne seul ;
-ensemble, RadioSurvivor enrichit les PNJ. Le pont Python sert l'un, l'autre ou les deux. Tant que `E18` n'est pas
-faite, le code reste dans un seul mod ; tout nouveau lien de Living Knox vers RadioSurvivor est à éviter (passer par
-l'API publique ou `RS_NPCProvider`).
+carnet, factions) et `batman_LivingKnox` (moteur de PNJ et parole de proximité), bâtis sur un mod commun
+`batman_RadioSurvivorCore` qu'ils exigent : moteur de missions (donneurs : voix radio et PNJ), lien avec le pont
+Python LLM (base de leur intelligence), identité des personnages, outils partagés, journal des missions. Chacun
+fonctionne seul ; ensemble, RadioSurvivor enrichit les PNJ. Le code commun n'existe qu'une fois, dans le mod commun.
+Tant que `E18` n'est pas faite, le code reste dans un seul mod ; tout nouveau lien de Living Knox vers RadioSurvivor
+est à éviter (passer par l'API publique ou `RS_NPCProvider`).
 
 ## Architecture validée — à préserver
 

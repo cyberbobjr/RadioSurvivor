@@ -15,7 +15,7 @@
 - 2026-10-11 — **E17-T09** : une mission proposée par un PNJ s'accepte **des deux façons** : en répondant oui au PNJ dans la conversation (acceptation d'office, comme une mission de voix radio) ou par le bouton « Accepter » du carnet ; à chaque offre, message à l'écran « Nouvelle offre dans le carnet ».
 - 2026-10-11 — **E17-T10** : **aucune heuristique par mots** pour comprendre le joueur (oui/non, demande d'aide, langue) : le mod vise plus de 10 langues ; le LLM juge l'intention et la langue de réponse, le serveur ne vérifie que des faits (offre ouverte, PNJ, personnage, révision, stade de connaissance).
 - 2026-10-14 — **E17-T13** : un nouveau texte attend la fin de la bulle en cours du même corps (un cri urgent peut attendre) ; une réplique de plus de 200 octets perd sa fin (arrêt sur une phrase entière) ; limite de 150 caractères pensée pour l'alphabet latin, « 。 » non reconnu ; temps de lecture qui s'écoule pendant la pause (confirmé par défaut, valeurs techniques).
-- 2026-11-05 — **Séparation** (utilisateur) : la fusion du 2026-10-08 est défaite ; Living Knox redevient un mod à part (`batman_LivingKnox`, même article Workshop), le fournisseur `RS_LivingKnox.lua` passe dans ce mod et RadioSurvivor tourne seul avec « aucun moteur de PNJ ». Suite dans `E18`.
+- 2026-11-05 — **Séparation** (utilisateur) : la fusion du 2026-10-08 est défaite ; Living Knox redevient un mod à part (`batman_LivingKnox`, même article Workshop, mod commun `batman_RadioSurvivorCore` pour les missions et le pont), le fournisseur `RS_LivingKnox.lua` passe dans ce mod et RadioSurvivor tourne seul avec « aucun moteur de PNJ ». Suite dans `E18`.
 
 ## Tâches
 
