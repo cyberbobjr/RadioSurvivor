@@ -295,7 +295,7 @@ Config.SIMULATION = Config.SIMULATION or {
             MEDICAL_PER_SICK = 3, MORALE = -3 },
         -- Combat abstrait (I9.1) d'un groupe d'un type ATTACKERS contre un groupe d'un autre type : deux foyers
         -- connus à MAX_DISTANCE cases au plus, chacun à PLAYER_DISTANCE cases au moins de toute base connue
-        -- (RS_Rescue.knownBases : refuges, joueurs connectés ou locaux). Issue selon les effectifs au foyer.
+        -- (RC_Sites.knownBases : refuges, joueurs connectés ou locaux). Issue selon les effectifs au foyer.
         CLASH = { CHANCE = 0.05, CHANCE_NEEDY = 0.05, ATTACKERS = { "raiders" }, MAX_DISTANCE = 2000,
             PLAYER_DISTANCE = 300, MIN_FORCE = 2, DEFENSE_BONUS = 1.25, LOSS_WIN = 0.05, LOSS_LOSE = 0.2,
             WOUND_WIN = 0.2, WOUND_LOSE = 0.4, MAX_DEATHS = 3, WOUND_MIN = 15, WOUND_MAX = 40, LOOT_SHARE = 0.25,

@@ -595,8 +595,8 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     targets = [(p, args.dep) for p in args.mod] if args.mod else [
         (CORE_MOD, [SIGNAL_MOD]),   # E18-T05: the mission template "signal" requires Signal Smoke
-        # E18-T07: LK_Sites and LK_Simulation still require RadioSurvivor/RS_Rescue until E18-T08.
-        (LK_MOD, [CORE_MOD, SIGNAL_MOD, MAIN_MOD]),
+        # E18-T08: Living Knox alone (core mod and Signal Smoke): no RadioSurvivor module required.
+        (LK_MOD, [CORE_MOD, SIGNAL_MOD]),
         (MAIN_MOD, [CORE_MOD, LK_MOD, BELT_MOD, SIGNAL_MOD]),
         (DEV_MOD, [MAIN_MOD, LK_MOD, CORE_MOD, BELT_MOD, SIGNAL_MOD])]
     for path, deps in targets:

@@ -10,7 +10,8 @@
 --
 -- Style de foyer : réglage home du type de groupe (LivingKnox.GroupTypes, LK08-T02) : "building" (colons, neutres)
 -- ou "forest" (pillards) ; opts.home le remplace.
--- Bâtiment : tirage et classement de RadioSurvivor/RS_Rescue (getBuildings de la métagrille, RS_Rescue.check :
+-- Bâtiment : tirage et classement du mod commun (RadioSurvivorCore/RC_Sites, E18-T08 ; getBuildings de la métagrille,
+-- RC_Sites.check :
 -- habitable, ni construction de joueur ni sous-sol seul, assez grand, loin des bases, pas sur l'eau connue), types
 -- admis par type de groupe (Sites.KINDS_BY_TYPE, sinon tous), loin des foyers des autres groupes, aucune pièce
 -- explorée (I8.2, RoomDef:isExplored, voir la fiche : « déjà vu », pas « récemment »).
@@ -27,7 +28,7 @@
 -- rendu dès qu'il atteint le palier en cours, sinon à la fin des tirages quel que soit son isolement (isolationTier =
 -- 0). Échec seulement si aucun bâtiment tiré ne respecte les règles. La clairière elle-même (arbres) n'est pas
 -- vérifiée : à faire à l'aménagement, zone chargée.
--- Bases des joueurs : RS_Rescue.knownBases (refuges, joueurs connectés ou locaux, opts.avoid).
+-- Bases des joueurs : RC_Sites.knownBases (refuges, joueurs connectés ou locaux, opts.avoid).
 -- Foyers des autres groupes : LivingKnox.Groups (list, get(id).home) sauf opts.ignoreGroup, plus opts.homes.
 -- Aucune lecture de case : seulement la métagrille (getBuildings, getCellData, getZonesIntersecting des cellules,
 -- isValidSquare, getBuildingsIntersecting des cellules), BuildingDef et RoomDef. Rien n'est écrit (ni ModData, ni
@@ -47,7 +48,8 @@ require "LivingKnox/LK_Core"
 require "LivingKnox/LK_Log"
 require "LivingKnox/LK_GroupTypes"
 require "LivingKnox/LK_Groups"
-local Rescue = require "RadioSurvivor/RS_Rescue"
+-- E18-T08 : tirage, classement et bases connues du mod commun (RC_Sites, mêmes fonctions que RS_Rescue).
+local Rescue = require "RadioSurvivorCore/RC_Sites"
 
 local Sites = LivingKnox.Sites or {}
 LivingKnox.Sites = Sites
@@ -68,7 +70,7 @@ Sites.CONFIG = {
 }
 
 -- Repaires (LK08-T08) : bâtiments non habitables admis au repli des types de Sites.LAIR_TYPES, après les types
--- habitables de RS_Rescue.KINDS (même format : any = au moins une de ces pièces ; main = pièce du point du site).
+-- habitables de RC_Sites.KINDS (même format : any = au moins une de ces pièces ; main = pièce du point du site).
 -- Noms de pièces vanilla (clés de media/lua/server/Items/Distributions.lua, 42.21).
 Sites.LAIR_KINDS = {
     { kind = "warehouse", label = "warehouse",
@@ -94,7 +96,7 @@ Sites.FOREST_ZONES = {
 local DEFAULT_BIOME_ZONES = { "Water", "Forest", "ForagingNav", "DeepForest", "TrailerPark", "TownZone", "Farm",
     "FarmLand", "PHForest", "PRForest", "FarmMixForest", "FarmForest", "BirchForest", "BirchMixForest", "OrganicForest" }
 
--- Types de bâtiment (RS_Rescue.KINDS) admis par type de groupe ; un type absent admet tous les types habitables.
+-- Types de bâtiment (RC_Sites.KINDS) admis par type de groupe ; un type absent admet tous les types habitables.
 Sites.KINDS_BY_TYPE = {
     settlers = { "farmhouse", "house_garage", "house", "church", "school", "motel", "firestation", "apartments" },
     neutrals = { "house", "house_garage", "farmhouse", "motel", "apartments", "clinic", "church" },
@@ -211,7 +213,7 @@ local function buildingsAround(grid, rect, r, skipId)
     return #buildingsNear(grid, rect, r, skipId)
 end
 
--- Isolement d'un bâtiment : écart (RS_Rescue.gap) au plus proche autre bâtiment, plafonné à ISOLATION_RADIUS (aucun
+-- Isolement d'un bâtiment : écart (RC_Sites.gap) au plus proche autre bâtiment, plafonné à ISOLATION_RADIUS (aucun
 -- voisin dans le carré relevé = plafond). Entier.
 local function isolationOf(grid, rect, skipId)
     local r = Sites.CONFIG.ISOLATION_RADIUS
@@ -247,7 +249,7 @@ local function lairRule(kind)
     return nil
 end
 
--- Types habitables puis repaires (copie : RS_Rescue.KINDS n'est pas modifié).
+-- Types habitables puis repaires (copie : RC_Sites.KINDS n'est pas modifié).
 local function lairRules()
     local out = {}
     for _, rule in ipairs(Rescue.KINDS) do out[#out + 1] = rule end

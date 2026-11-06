@@ -24,7 +24,7 @@
 -- au plus un événement par groupe et par jour (la cible d'un combat compte). Chances par jour et effets bornés en
 -- données (Config.SIMULATION.EVENTS) ; flux séparé (EVENT_SALT). Combat abstrait (I9.1) entre un groupe d'un type
 -- ATTACKERS et un groupe d'un autre type, foyers connus proches l'un de l'autre et loin des bases connues des
--- joueurs (RS_Rescue.knownBases, lue une fois par pas) ; morts consignés avec un lieu approximatif (entrée remains),
+-- joueurs (RC_Sites.knownBases, lue une fois par pas) ; morts consignés avec un lieu approximatif (entrée remains),
 -- aucun cadavre posé dans le monde.
 -- Membres incarnés (LK09-T03 : PNJ lié à l'état "embodied" au registre des corps, LK_Materialize) : présents au foyer
 -- et comptés dans la consommation, mais leur santé est celle de leur corps : ni blessure, ni guérison, ni mort
@@ -775,7 +775,7 @@ function Simulation.recruitRoom(g)
     return living < def.size.max and total < Groups().MAX_MEMBERS
 end
 
--- Écart entre le foyer (case) et une base (rectangle à fin exclusive), même mesure que RS_Rescue.gap.
+-- Écart entre le foyer (case) et une base (rectangle à fin exclusive), même mesure que RC_Sites.gap.
 local function baseGap(home, b)
     local gx = math.max(0, b.x1 - (home.x + 1), home.x - b.x2)
     local gy = math.max(0, b.y1 - (home.y + 1), home.y - b.y2)
@@ -1095,11 +1095,12 @@ function Simulation.runEvents(data, ids, hour, base, s, bases)
     return out
 end
 
--- Bases connues pour les combats (RS_Rescue.knownBases : refuges, joueurs connectés ou locaux), lues une fois par pas.
+-- Bases connues pour les combats (RC_Sites.knownBases du mod commun, E18-T08 : refuges, joueurs connectés ou locaux),
+-- lues une fois par pas.
 function Simulation.knownBases()
-    local Rescue = require "RadioSurvivor/RS_Rescue"
-    if type(Rescue) ~= "table" or not Rescue.knownBases then return nil end
-    return Rescue.knownBases({})
+    local Sites = require "RadioSurvivorCore/RC_Sites"
+    if type(Sites) ~= "table" or not Sites.knownBases then return nil end
+    return Sites.knownBases({})
 end
 
 -- Avance un registre (logique pure, sans sauvegarde) jusqu'à l'heure now. Rend changed, nombre d'heures simulées.

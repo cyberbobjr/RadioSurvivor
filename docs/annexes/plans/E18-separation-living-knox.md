@@ -13,7 +13,7 @@
 | ☐ | E18-T05 | Moteur de missions dans le commun, donneurs voix et PNJ | `testé hors jeu` | MP | E18-T03, E18-T04 |
 | ☐ | E18-T06 | Journal commun des missions | `testé hors jeu` | MP | E18-T05 |
 | ☐ | E18-T07 | Mod `batman_LivingKnox` : code déplacé | `testé hors jeu` | solo | E18-T02 |
-| ☐ | E18-T08 | Bases connues et sites sans RadioSurvivor | `à faire` | solo | E18-T07 |
+| ☐ | E18-T08 | Bases connues et sites sans RadioSurvivor | `testé hors jeu` | solo | E18-T07 |
 | ☐ | E18-T09 | Adaptateur fournisseur porté par Living Knox | `à faire` | MP | E18-T07 |
 | ☐ | E18-T10 | Dossier de données de Living Knox et reprise des parties existantes | `à faire` | MP | E18-T07 |
 | ☐ | E18-T11 | Parole des PNJ émise par Living Knox, enrichie par RadioSurvivor | `à faire` | MP | E18-T04, E18-T09 |
@@ -187,15 +187,15 @@ Deuxième article Workshop, dépôt séparé, nouvelles règles de jeu des missi
   - Reste : Living Knox seul coché : `LK_Sites` et `LK_Simulation` requièrent encore `RadioSurvivor/RS_Rescue` (`E18-T08`) ; démarrage en jeu de Living Knox seul avec le montage de `E18-T14` ; données encore sous `Zomboid/Lua/batman_RadioSurvivor/livingknox/` (`E18-T10`)
 
 - [ ] **E18-T08** — Bases connues et sites sans RadioSurvivor
-  - État : `à faire`
+  - État : `testé hors jeu`
   - Cible : `solo`
   - Dépend de : E18-T07
   - Fichiers : `LK_Sites`, `LK_Simulation` (`knownBases`), `RS_Rescue`
   - Faire : Living Knox ne requiert plus `RS_Rescue` ; la géométrie des bases des joueurs passe dans le commun (servie aux missions et aux PNJ) ou arrive par un crochet optionnel ; seul, Living Knox repère les bases par ses propres moyens ou s'en passe.
   - Accepté si : sites et raids tournent sans RadioSurvivor ; avec lui, mêmes bases qu'aujourd'hui.
   - Tests : bancs `test_lk_sites*`, `test_lk_raids` ; suites lk.sites et lk.raids dans les trois montages.
-  - Preuve : —
-  - Reste : —
+  - Preuve : `LK_Sites` (tirage, classement, bases) et `LK_Simulation.knownBases` lisent `RadioSurvivorCore/RC_Sites` du mod commun (mêmes fonctions et mêmes bases que `RS_Rescue`, qui les recopie) ; plus aucun module de RadioSurvivor requis par Living Knox (`tests/test_lk_mod.py`) ; suite en jeu `lk.sites` sur `RC_Sites` ; `tools/check_case.py` : Living Knox vérifié avec le mod commun et Signal Smoke seuls, PASS ; bancs `test_lk_sites.py` (classe `WithoutRadioSurvivorTests` : sites et bases sans aucun module de RadioSurvivor sur le chemin, rouge avant le changement puis vert), `test_lk_simulation.py`, `test_lk_raids.py` OK ; `run_all.py` 153 PASS ; luacheck Contents 15, dev 0 ; passage solo automatique du 2026-11-06 (trois mods, lk.sites et lk.raid, faux modèle, code 0) : 8/8 (`tools/autoclient/runs/20261106-095205-72e9139224c8`)
+  - Reste : suites lk.sites et lk.raid dans le montage Living Knox seul (outillage `E18-T14`, validation `E18-T15`)
 
 - [ ] **E18-T09** — Adaptateur fournisseur porté par Living Knox
   - État : `à faire`

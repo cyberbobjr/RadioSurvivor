@@ -253,8 +253,8 @@ class RepositoryTest(unittest.TestCase):
         problems = [str(p) for p in cc.check_mod(cc.MAIN_MOD, [cc.CORE_MOD, cc.LK_MOD, cc.BELT_MOD], vanilla)]
         self.assertEqual(len(problems), 2, problems)
         self.assertTrue(all('require "SignalSmoke/SignalSmoke" not found' in p for p in problems), problems)
-        # E18-T07 : Living Knox requiert encore RS_Rescue de RadioSurvivor jusqu'à E18-T08.
-        self.assertEqual([str(p) for p in cc.check_mod(cc.LK_MOD, [cc.CORE_MOD, cc.SIGNAL_MOD, cc.MAIN_MOD], vanilla)], [])
+        # E18-T08 : Living Knox seul (mod commun, Signal Smoke) ne requiert aucun module de RadioSurvivor.
+        self.assertEqual([str(p) for p in cc.check_mod(cc.LK_MOD, [cc.CORE_MOD, cc.SIGNAL_MOD], vanilla)], [])
         # E18-T05 : le mod commun exige Signal Smoke (gabarit signaler) et rien d'autre.
         self.assertEqual([str(p) for p in cc.check_mod(cc.CORE_MOD, [cc.SIGNAL_MOD], vanilla)], [])
         problems = [str(p) for p in cc.check_mod(cc.CORE_MOD, [], vanilla)]

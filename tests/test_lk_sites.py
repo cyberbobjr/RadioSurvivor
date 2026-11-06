@@ -393,6 +393,31 @@ class BuildingTests(SitesHarness):
         self.assertEqual(self.pick('settlers'), (None, 'no metagrid'))
 
 
+class WithoutRadioSurvivorTests(SitesHarness):
+    """E18-T08: Living Knox alone (core mod and Living Knox on the package path, no RadioSurvivor module): sites and
+    known bases come from the core mod (RC_Sites), with the same bases as RS_Rescue when RadioSurvivor is there."""
+
+    def setUp(self):
+        super().setUp()
+        paths = [TESTS_LUA / 'shared', CORE_LUA / 'shared', CORE_LUA / 'server', LK_LUA / 'shared', LK_LUA / 'server']
+        self.rt.execute('package.path = [[' + ''.join(f'{p.as_posix()}/?.lua;' for p in paths) + ']]')
+        self.world()
+
+    def test_sites_drawn_without_radiosurvivor(self):
+        for gtype in ('settlers', 'raiders'):
+            site, why = self.pick(gtype, '{ seed = 3 }')
+            self.assertIsNotNone(site, why)
+        loaded = self.ev('local out = {} for k in pairs(package.loaded) do '
+                         'if string.find(k, "^RadioSurvivor/") then out[#out + 1] = k end end '
+                         'return table.concat(out, ",")')
+        self.assertEqual(loaded, '')
+
+    def test_known_bases_for_raids_without_radiosurvivor(self):
+        self.rt.execute('require "LivingKnox/LK_Simulation"')
+        n = self.ev('local b = LivingKnox.Simulation.knownBases() return b and #b or -1')
+        self.assertGreaterEqual(n, 1)   # the local player of the doubles
+
+
 class ClearingTests(SitesHarness):
 
     def setUp(self):

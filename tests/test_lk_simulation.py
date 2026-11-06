@@ -1126,7 +1126,7 @@ class EventTests(Base):
         self.assertIsNone(self.ev(f'{SIM}.eventSettings()'))
 
     def test_step_reads_the_known_bases(self):
-        self.run_lua(f'_KB = 0 local R = require("RadioSurvivor/RS_Rescue") local kb = R.knownBases '
+        self.run_lua(f'_KB = 0 local R = require("RadioSurvivorCore/RC_Sites") local kb = R.knownBases '
                      'R.knownBases = function(o) _KB = _KB + 1 return kb(o) end')
         self.setup_world()
         self.h.advance(3 * 60)

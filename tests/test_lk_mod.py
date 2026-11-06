@@ -5,7 +5,7 @@
 Offline bench: Build 42 metadata (requires the core mod, incompatible with Bandits and Project A-Life), the NPC
 engine (Lua, lkactor_* AnimSets, LivingKnox sandbox page, IGUI_LK_ / Sandbox_LivingKnox_ keys) lives only in
 batman_LivingKnox, every test launcher loads core, Living Knox then RadioSurvivor, and the Living Knox Lua files
-require no RadioSurvivor module but RS_Rescue (site geometry, removed by E18-T08).
+require no RadioSurvivor module (E18-T08 removed the last one, RS_Rescue).
 """
 from __future__ import annotations
 
@@ -103,8 +103,7 @@ class LivingKnoxModTests(unittest.TestCase):
         for path in (LK / '42.21' / 'media' / 'lua').rglob('*.lua'):
             for m in re.finditer(r'require\s*\(?\s*["\'](RadioSurvivor/[\w/]+)', path.read_text(encoding='utf-8')):
                 bad.append(f'{path.name}: {m.group(1)}')
-        # E18-T07: only RS_Rescue is left (site geometry), removed by E18-T08.
-        self.assertEqual(sorted(set(b.split(': ')[1] for b in bad)), ['RadioSurvivor/RS_Rescue'])
+        self.assertEqual(bad, [])   # E18-T08: sites and known bases from the core mod (RC_Sites)
 
     def test_no_non_ascii_literal(self):
         # Kahlua lexer: no non-ASCII byte inside a string literal (comments may hold French text).

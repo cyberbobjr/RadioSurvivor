@@ -147,7 +147,7 @@ local function checkSite(t, S, g, gtype, site, seed)
         local again, why = S.checkClearing(site.x, site.y, ctx)
         t:ok(again ~= nil, label .. ": clearing no longer accepted: " .. tostring(why))
     end
-    local Rescue = require "RadioSurvivor/RS_Rescue"
+    local Rescue = require "RadioSurvivorCore/RC_Sites"
     for _, base in ipairs(ctx.bases) do
         t:ok(Rescue.gap(bounds(site), base) >= S.CONFIG.BASE_DISTANCE,
             label .. ": site closer than BASE_DISTANCE to a " .. base.source)
@@ -271,7 +271,7 @@ RST.suite("lk.sites", { tags = { "server" }, testTimeoutMs = 90000 }, function(s
 
     s.test("the home of another group keeps the site away", function(t)
         local S = module(t)
-        local Rescue = require "RadioSurvivor/RS_Rescue"
+        local Rescue = require "RadioSurvivorCore/RC_Sites"
         for _, gtype in ipairs(types()) do
             local first = S.pick(gtype, { seed = SEEDS[1] })
             t:ok(first ~= nil, gtype .. ": no site for the reference seed")
