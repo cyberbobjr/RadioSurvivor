@@ -15,7 +15,7 @@
 | ☐ | E18-T07 | Mod `batman_LivingKnox` : code déplacé | `testé hors jeu` | solo | E18-T02 |
 | ☐ | E18-T08 | Bases connues et sites sans RadioSurvivor | `testé hors jeu` | solo | E18-T07 |
 | ☐ | E18-T09 | Adaptateur fournisseur porté par Living Knox | `testé hors jeu` | MP | E18-T07 |
-| ☐ | E18-T10 | Dossier de données de Living Knox et reprise des parties existantes | `à faire` | MP | E18-T07 |
+| ☐ | E18-T10 | Dossier de données de Living Knox et reprise des parties existantes | `testé hors jeu` | MP | E18-T07 |
 | ☐ | E18-T11 | Parole des PNJ émise par Living Knox, enrichie par RadioSurvivor | `à faire` | MP | E18-T04, E18-T09 |
 | ☐ | E18-T12 | Pont : un dossier d'échange pour les deux mods | `à faire` | MP | E18-T04, E18-T11 |
 | ☐ | E18-T13 | Traductions et options sandbox des trois mods | `à faire` | hors jeu | E18-T06, E18-T07 |
@@ -209,15 +209,15 @@ Deuxième article Workshop, dépôt séparé, nouvelles règles de jeu des missi
   - Reste : RadioSurvivor seul démarré en jeu (montage de `E18-T14`, validation `E18-T15`) ; campagne MP des deux mods ensemble
 
 - [ ] **E18-T10** — Dossier de données de Living Knox et reprise des parties existantes
-  - État : `à faire`
+  - État : `testé hors jeu`
   - Cible : `MP`
   - Dépend de : E18-T07
   - Fichiers : `LK_Store` (`DIR`), `LK_Groups`, `LK_Hostility`
   - Faire : registres sous `Zomboid\Lua\batman_LivingKnox\` ; au premier lancement, reprise une seule fois de `batman_RadioSurvivor\livingknox\` (copie, ancien dossier laissé en place, ligne de journal en anglais).
   - Accepté si : une partie créée avant la séparation garde ses groupes, foyers et attitudes ; la reprise ne se refait pas.
   - Tests : banc de reprise ; phase `after-restart` sur une partie d'avant la séparation.
-  - Preuve : —
-  - Reste : —
+  - Preuve : registres de Living Knox (PNJ `registry`, groupes `groups`, attitudes `attitudes`) sous `Zomboid/Lua/batman_LivingKnox/` (`LK_Store.DIR`) ; `Store.takeOver` appelé par `Store.init`, `Groups.init` et `Hostility.init` hors monde neuf : les deux emplacements de l'ancien dossier `batman_RadioSurvivor/livingknox/` copiés tels quels si aucun n'existe dans le nouveau, ancien dossier laissé, ligne « taken over » en anglais ; banc `tests/test_lk_takeover.py` (3 tests : partie de l'ancien format écrite par le même code avec l'ancien dossier, reprise octet pour octet des trois registres, PNJ relu, aucune seconde reprise après une écriture dans le nouveau dossier, rien pour un monde neuf ; rouge avant le changement puis vert) ; `run_all.py` 154 PASS ; luacheck Contents 15
+  - Reste : phase `after-restart` en jeu sur une partie créée par l'ancienne version (campagne MP de `E18-T15`) ; groupes et attitudes relus après redémarrage dans le nouveau dossier (suites `lk.*persist` de la campagne MP)
 
 - [ ] **E18-T11** — Parole des PNJ émise par Living Knox, enrichie par RadioSurvivor
   - État : `à faire`

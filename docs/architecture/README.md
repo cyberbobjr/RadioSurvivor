@@ -110,7 +110,7 @@ serveur se gardent par `isClient()` ; les fiches de conception de chaque sous-sy
 | Donnée | Support | Écrit par |
 |---|---|---|
 | État RadioSurvivor (voix, missions, fréquences, réputation interne, équipes…) | `Zomboid/Lua/batman_RadioSurvivor/state-<partie>-<0\|1>.txt` (en-tête `RSSTATE2`, RSV2 en hex, somme de contrôle, double emplacement) | `RS_State` |
-| Registre des PNJ et des groupes | `Zomboid/Lua/batman_RadioSurvivor/livingknox/registry-<partie>-<0\|1>.txt` (`LKREG1`), une écriture par image au plus | `LK_Store` ([corps-registre.md](../annexes/conception/corps-registre.md)) |
+| Registre des PNJ et des groupes | `Zomboid/Lua/batman_LivingKnox/registry-<partie>-<0\|1>.txt` (`LKREG1`), une écriture par image au plus | `LK_Store` ([corps-registre.md](../annexes/conception/corps-registre.md)) |
 | Échange avec le pont | `requests.txt`, `responses.txt`, `bridge-alive.txt`, `bridge.lock`, `personas/` | serveur / pont |
 | Données d'objets et de PNJ | ModData d'objet et de corps (marques d'idempotence, identité) | serveur |
 

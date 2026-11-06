@@ -75,7 +75,7 @@ Attendre que les corps soient visibles chez P1, P2 et P3 (créés deux par passa
 ## 4. Relevés
 
 - Serveur : lignes `load:` de `console.txt` (rapports et une ligne `window …` par minute), heure de jeu au début et à
-  la fin, taille des fichiers `Zomboid/Lua/batman_RadioSurvivor/livingknox/groups-*.txt` et `registry-*.txt`.
+  la fin, taille des fichiers `Zomboid/Lua/batman_LivingKnox/groups-*.txt` et `registry-*.txt`.
 - P1, P2 : lignes `load:` de leur `console.txt` ; ressenti (saccades, corps figés, gestes en retard).
 - Tous : erreurs Lua de nos mods (aucune attendue).
 

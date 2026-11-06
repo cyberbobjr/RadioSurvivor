@@ -1,7 +1,7 @@
 -- Living Knox : persistance du registre des PNJ dans un fichier de la machine qui fait autorité (serveur ou solo).
 -- Jamais de ModData globale (lisible par tous les clients). Fiche : docs/annexes/conception/corps-registre.md.
 --
--- Fichiers : Zomboid/Lua/batman_RadioSurvivor/livingknox/registry-<partie>-<0|1>.txt (getFileWriter), <partie> =
+-- Fichiers : Zomboid/Lua/batman_LivingKnox/registry-<partie>-<0|1>.txt (getFileWriter), <partie> =
 -- hex du « mode/nom » de la partie. Deux emplacements écrits en alternance ; chaque fichier :
 --     LKREG1=<numéro d'écriture>
 --     <octets RSV2 en hex (RC_Codec, couche octets)>
@@ -29,7 +29,8 @@ local Codec = require "RadioSurvivorCore/RC_Codec"
 local Store = LivingKnox.Store or {}
 LivingKnox.Store = Store
 
-Store.DIR = "batman_RadioSurvivor/livingknox/"
+Store.DIR = "batman_LivingKnox/"                          -- E18-T10 : dossier propre du mod
+Store.LEGACY_DIR = "batman_RadioSurvivor/livingknox/"     -- parties d'avant la séparation (Store.takeOver)
 Store.HEADER = "LKREG1"
 
 Store.state = Store.state or { data = nil, seq = 0, blocked = false, reason = nil, dirty = false, path = nil }
@@ -138,6 +139,54 @@ function Store.worldFileBase(name)
     return Store.DIR .. name .. "-" .. Codec.hexBytes(Store.worldKey())
 end
 
+-- Lignes d'un fichier (nil s'il n'existe pas ou s'il est vide : jamais écrit).
+local function fileLines(path)
+    local r = getFileReader(path, false)
+    if not r then return nil end
+    local lines = {}
+    local line = r:readLine()
+    while line ~= nil do
+        lines[#lines + 1] = line
+        line = r:readLine()
+    end
+    r:close()
+    if #lines == 0 then return nil end
+    return lines
+end
+
+-- E18-T10 : reprise unique d'une partie d'avant la séparation des mods. Si aucun des deux emplacements du registre
+-- name n'existe sous Store.DIR et que l'ancien dossier (Store.LEGACY_DIR) en a, ils sont copiés tels quels (mêmes
+-- lignes, ancien dossier laissé en place) avant la relecture ; une ligne de journal en anglais. Ne refait rien dès
+-- qu'un fichier existe dans le nouveau dossier. L'appelant ne l'appelle pas pour un monde neuf. Rend le nombre de
+-- fichiers copiés.
+function Store.takeOver(name)
+    local base = Store.worldFileBase(name)
+    local old = Store.LEGACY_DIR .. name .. "-" .. Codec.hexBytes(Store.worldKey())
+    for slot = 0, 1 do
+        if fileLines(base .. "-" .. slot .. ".txt") then return 0 end
+    end
+    local copied = 0
+    for slot = 0, 1 do
+        local lines = fileLines(old .. "-" .. slot .. ".txt")
+        if lines then
+            local w = getFileWriter(base .. "-" .. slot .. ".txt", true, false)
+            if not w then
+                log().error("%s: cannot write %s-%s.txt, data of the game before the split left in Zomboid/Lua/%s",
+                    name, base, tostring(slot), Store.LEGACY_DIR)
+                return copied
+            end
+            w:write(table.concat(lines, "\n") .. "\n")
+            w:close()
+            copied = copied + 1
+        end
+    end
+    if copied > 0 then
+        log().info("%s: data of a game from before the split taken over from Zomboid/Lua/%s (%s file(s) copied to "
+            .. "Zomboid/Lua/%s, old folder kept)", name, Store.LEGACY_DIR, tostring(copied), Store.DIR)
+    end
+    return copied
+end
+
 local function readSlot(path)
     return Store.readSlotFile(path, Store.HEADER)
 end
@@ -159,6 +208,7 @@ function Store.init(newWorld)
     st.data, st.seq, st.blocked, st.reason, st.dirty = nil, 0, false, nil, false
     st.queued, st.age, st.verified = false, 0, false
     st.path = Store.worldFileBase("registry")
+    if not newWorld then Store.takeOver("registry") end
     local a, existsA = readSlot(Store.slotPath(0))
     local b, existsB = readSlot(Store.slotPath(1))
     local best = a

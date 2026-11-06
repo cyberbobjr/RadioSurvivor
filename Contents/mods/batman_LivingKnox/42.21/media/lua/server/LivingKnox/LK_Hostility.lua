@@ -22,7 +22,7 @@
 -- groupe (opts.witnessed) ou s'il lui est attribuable (opts.attributable) ; seul le joueur désigné est visé, jamais
 -- son équipe. Aucune détection dans le monde ici : les points d'entrée viendront avec le combat et les interactions.
 --
--- Fichiers (mécanisme de LK_Store) : Zomboid/Lua/batman_RadioSurvivor/livingknox/attitudes-<partie>-<0|1>.txt,
+-- Fichiers (mécanisme de LK_Store) : Zomboid/Lua/batman_LivingKnox/attitudes-<partie>-<0|1>.txt,
 -- entête LKATT1, deux emplacements en alternance, relus pour vérification. Relecture : schéma inconnu, structure
 -- générale fausse ou deux fichiers illisibles -> registre BLOQUÉ (aucune écriture, fichiers conservés) ; une paire
 -- ou un groupe invalide est écarté et journalisé. Sauvegarde à chaque fait et à chaque déclin effectif.
@@ -321,6 +321,7 @@ function Hostility.init(newWorld)
     local st = Hostility.state
     st.data, st.seq, st.blocked, st.reason, st.dropped = nil, 0, false, nil, 0
     st.path = Store().worldFileBase(Hostility.FILE)
+    if not newWorld then Store().takeOver(Hostility.FILE) end
     local a, existsA = Store().readSlotFile(slotPath(0), Hostility.HEADER)
     local b, existsB = Store().readSlotFile(slotPath(1), Hostility.HEADER)
     local best = a

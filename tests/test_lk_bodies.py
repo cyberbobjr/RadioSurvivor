@@ -570,7 +570,7 @@ class Base(unittest.TestCase):
         return [line for line in self.h.logs(m or self.srv) if line.startswith('[LivingKnox]')]
 
     def registry_files(self, h=None):
-        folder = (h or self.h).file_root(self.srv) / 'batman_RadioSurvivor' / 'livingknox'
+        folder = (h or self.h).file_root(self.srv) / 'batman_LivingKnox'
         return sorted(folder.glob('registry-*.txt')) if folder.exists() else []
 
     def same(self, a, b):

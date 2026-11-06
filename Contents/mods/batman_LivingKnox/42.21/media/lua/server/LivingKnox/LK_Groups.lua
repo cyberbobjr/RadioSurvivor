@@ -65,7 +65,7 @@
 -- Ancienneté d'un membre = son numéro (plus petit = plus ancien).
 -- Jour = jours depuis le début du monde (getWorldAgeHours / 24, arrondi en dessous), 1 = premier jour.
 --
--- Fichiers (mécanisme de LK_Store) : Zomboid/Lua/batman_RadioSurvivor/livingknox/groups-<partie>-<0|1>.txt, entête
+-- Fichiers (mécanisme de LK_Store) : Zomboid/Lua/batman_LivingKnox/groups-<partie>-<0|1>.txt, entête
 -- LKGRP1, deux emplacements en alternance.
 -- Relecture : schéma inconnu ou plus récent, structure générale fausse ou deux fichiers illisibles -> registre BLOQUÉ
 -- (aucune écriture, fichiers conservés) ; un groupe invalide est écarté et journalisé, les autres gardés.
@@ -497,6 +497,7 @@ function Groups.init(newWorld)
     st.dirty, st.pending, st.age, st.verified = false, nil, 0, false
     if Groups.peekState ~= nil then Groups.peekState.byGid = {} end   -- LK13-T08 : vues du registre précédent oubliées
     st.path = Store().worldFileBase(Groups.FILE)
+    if not newWorld then Store().takeOver(Groups.FILE) end
     local a, existsA = Store().readSlotFile(slotPath(0), Groups.HEADER)
     local b, existsB = Store().readSlotFile(slotPath(1), Groups.HEADER)
     local best = a

@@ -94,7 +94,7 @@ pair = { value, start, facts = { { fact, sign, day, n }, ... } (3 au plus, le pl
 
 Bornes : 64 groupes (= `Groups.MAX_GROUPS`), **64 joueurs par groupe**, **3 faits par paire**. Groupe plein : la paire la plus ancienne (dernier fait) **sans meurtre** est oubliée, sinon la plus ancienne ; journal `INFO`.
 
-Fichiers : `Zomboid/Lua/batman_RadioSurvivor/livingknox/attitudes-<hex du mode/nom de partie>-<0|1>.txt`, mécanisme de `LK_Store` (entête `LKATT1=<numéro>`, octets RSV2 en hex, somme de contrôle, `end`), deux emplacements en alternance, relus après chaque écriture. Sauvegarde à chaque fait et à chaque déclin effectif (rares). Relecture à `OnInitGlobalModData` ; rattrapage paresseux (`ensure`) au premier usage ; monde neuf : registre vide, numéros d'écriture poursuivis.
+Fichiers : `Zomboid/Lua/batman_LivingKnox/attitudes-<hex du mode/nom de partie>-<0|1>.txt`, mécanisme de `LK_Store` (entête `LKATT1=<numéro>`, octets RSV2 en hex, somme de contrôle, `end`), deux emplacements en alternance, relus après chaque écriture. Sauvegarde à chaque fait et à chaque déclin effectif (rares). Relecture à `OnInitGlobalModData` ; rattrapage paresseux (`ensure`) au premier usage ; monde neuf : registre vide, numéros d'écriture poursuivis.
 
 Contrôle au chargement : schéma différent de 1, structure générale fausse, plus de 64 groupes ou deux emplacements illisibles → registre **bloqué** (`ERROR`, aucune écriture, fichiers conservés, faits refusés) ; sinon chaque groupe et chaque paire sont vérifiés (identifiant de groupe, clé, bornes, faits de la liste, sens, jours) et une entrée invalide est **écartée** et journalisée (`ERROR attitude <grp>/<clé> dropped at load (file #<n>): <raison>`).
 
