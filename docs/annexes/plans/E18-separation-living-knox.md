@@ -14,7 +14,7 @@
 | ☐ | E18-T06 | Journal commun des missions | `testé hors jeu` | MP | E18-T05 |
 | ☐ | E18-T07 | Mod `batman_LivingKnox` : code déplacé | `testé hors jeu` | solo | E18-T02 |
 | ☐ | E18-T08 | Bases connues et sites sans RadioSurvivor | `testé hors jeu` | solo | E18-T07 |
-| ☐ | E18-T09 | Adaptateur fournisseur porté par Living Knox | `à faire` | MP | E18-T07 |
+| ☐ | E18-T09 | Adaptateur fournisseur porté par Living Knox | `testé hors jeu` | MP | E18-T07 |
 | ☐ | E18-T10 | Dossier de données de Living Knox et reprise des parties existantes | `à faire` | MP | E18-T07 |
 | ☐ | E18-T11 | Parole des PNJ émise par Living Knox, enrichie par RadioSurvivor | `à faire` | MP | E18-T04, E18-T09 |
 | ☐ | E18-T12 | Pont : un dossier d'échange pour les deux mods | `à faire` | MP | E18-T04, E18-T11 |
@@ -198,15 +198,15 @@ Deuxième article Workshop, dépôt séparé, nouvelles règles de jeu des missi
   - Reste : suites lk.sites et lk.raid dans le montage Living Knox seul (outillage `E18-T14`, validation `E18-T15`)
 
 - [ ] **E18-T09** — Adaptateur fournisseur porté par Living Knox
-  - État : `à faire`
+  - État : `testé hors jeu`
   - Cible : `MP`
   - Dépend de : E18-T07
   - Fichiers : `RS_LivingKnox.lua` (déplacé dans `batman_LivingKnox`, chargé seulement si RadioSurvivor est actif) ; `RS_NPCProvider.lua` (reste dans RadioSurvivor)
   - Faire : le fournisseur s'enregistre auprès de `RS_NPCProvider` quand les deux mods sont actifs ; sans Living Knox, RadioSurvivor tourne avec « aucun moteur de PNJ » (cas déjà prévu par E17).
   - Accepté si : RadioSurvivor seul démarre sans erreur et sans fiche de PNJ ; ensemble, comportement d'aujourd'hui.
   - Tests : bancs `test_carnet.py`, `test_lk_api*` ; campagnes des trois montages.
-  - Preuve : —
-  - Reste : —
+  - Preuve : adaptateur `shared/RadioSurvivor/RS_LivingKnox.lua` déplacé par `git mv` dans `batman_LivingKnox` (même chemin relatif, même nom global), inactif si `batman_RadioSurvivor` n'est pas dans `getActivatedMods()` (aucun module de RadioSurvivor requis, `RS_LivingKnox` reste nil) ; `require=` de RadioSurvivor sans Living Knox (description du mod mise à jour) ; tableau des outils de debug déplacé dans le commun (`client/RadioSurvivorCore/RC_Table`, anglais, ASCII ; `LK_Table` en garde le nom `LivingKnox.Table`) pour la vue de debug des fréquences de RadioSurvivor ; bancs `test_carnet.py` (`test_radiosurvivor_alone_without_living_knox` : tous les fichiers shared de RadioSurvivor, carnet et vue de debug sans Living Knox sur le chemin, fournisseur « none », rouge avant le déplacement puis vert), `test_lk_mod.py` (adaptateur muet sans RadioSurvivor, actif avec), `test_check_case.py` et `tools/check_case.py` (RadioSurvivor vérifié sans Living Knox) ; `run_all.py` 153 PASS ; luacheck Contents 15, dev 0 ; passage solo automatique du 2026-11-06 (trois mods, rs.env, rs.carnet.lk, rs.carnet.lk.supply, lk.debugview, faux modèle, code 0) : 17 PASS + 1 SKIP (MP), « [RS_NPCProvider] provider livingknox registered » dans la console (`tools/autoclient/runs/20261106-100705-bd2132575b40`)
+  - Reste : RadioSurvivor seul démarré en jeu (montage de `E18-T14`, validation `E18-T15`) ; campagne MP des deux mods ensemble
 
 - [ ] **E18-T10** — Dossier de données de Living Knox et reprise des parties existantes
   - État : `à faire`

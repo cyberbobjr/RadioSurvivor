@@ -64,8 +64,8 @@ class LivingKnoxModTests(unittest.TestCase):
     def test_radiosurvivor_metadata(self):
         info = mod_info(RS / '42.21' / 'mod.info')
         self.assertNotIn('incompatible', info, 'taken over by Living Knox')
-        # Transition until E18-T09 (provider adapter carried by Living Knox): RadioSurvivor still needs the engine.
-        self.assertIn(LK_ID, listed(info.get('require', '')))
+        # E18-T09: RadioSurvivor works without Living Knox (no NPC engine), Living Knox without RadioSurvivor.
+        self.assertNotIn(LK_ID, listed(info.get('require', '')))
 
     def test_engine_files_only_in_living_knox(self):
         for side in ('client', 'server', 'shared'):
@@ -101,9 +101,28 @@ class LivingKnoxModTests(unittest.TestCase):
     def test_no_radiosurvivor_module_required(self):
         bad = []
         for path in (LK / '42.21' / 'media' / 'lua').rglob('*.lua'):
+            if path.name == 'RS_LivingKnox.lua':
+                continue   # notebook adapter: requires RadioSurvivor only when it is active (E18-T09)
             for m in re.finditer(r'require\s*\(?\s*["\'](RadioSurvivor/[\w/]+)', path.read_text(encoding='utf-8')):
                 bad.append(f'{path.name}: {m.group(1)}')
         self.assertEqual(bad, [])   # E18-T08: sites and known bases from the core mod (RC_Sites)
+
+    def test_notebook_adapter_only_with_radiosurvivor(self):
+        # E18-T09: the provider adapter ships with Living Knox and stays silent unless RadioSurvivor is an active mod.
+        from lupa.lua51 import LuaRuntime, LuaError
+        src = (LK / '42.21' / 'media' / 'lua' / 'shared' / 'RadioSurvivor' / 'RS_LivingKnox.lua').read_text(
+            encoding='utf-8')
+        self.assertFalse((RS / '42.21' / 'media' / 'lua' / 'shared' / 'RadioSurvivor' / 'RS_LivingKnox.lua').exists())
+        mods = (r'getActivatedMods = function() local l = {%s} return {size = function() return #l end, '
+                r'get = function(_, i) return l[i + 1] end} end ')
+        lua = LuaRuntime(unpack_returned_tuples=True)
+        lua.execute('package.path = ""; package.cpath = ""; ' + mods % r'"\\batman_RadioSurvivorCore", "batman_LivingKnox"')
+        self.assertIsNone(lua.execute(src))
+        self.assertIsNone(lua.eval('RS_LivingKnox'))
+        lua = LuaRuntime(unpack_returned_tuples=True)
+        lua.execute('package.path = ""; package.cpath = ""; ' + mods % r'"batman_LivingKnox", "\\batman_RadioSurvivor"')
+        with self.assertRaisesRegex(LuaError, 'LivingKnox/LK_Core'):
+            lua.execute(src)
 
     def test_no_non_ascii_literal(self):
         # Kahlua lexer: no non-ASCII byte inside a string literal (comments may hold French text).

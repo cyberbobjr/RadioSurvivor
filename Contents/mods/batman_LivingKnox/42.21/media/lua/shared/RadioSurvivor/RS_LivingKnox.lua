@@ -41,7 +41,23 @@ Relation basis (E09-T04, authority): Provider.relation = attitude of the NPC's g
 its last attitude facts (LivingKnox.API.attitude, API.attitudeFacts), keys 'att:<group>:<n>'.
 Group radios (E08-T06, authority): Provider.radios = groups holding a transmitter a living member can use now (group
 type format 2: homeRadio, profile radio), with the NPC who answers; never a home nor a position.
+
+Shipped by Living Knox (E18-T09): this file lives in batman_LivingKnox and does nothing unless RadioSurvivor
+(batman_RadioSurvivor) is an active mod; without it no RadioSurvivor module is required and RS_LivingKnox stays nil.
 ]]
+-- getActivatedMods (LuaManager.java:6065): Java list of the loaded mod ids, unchanged during a game; a leading "\" is
+-- dropped before comparing. Absent outside the game (offline benches): RadioSurvivor is taken as present.
+local function radioSurvivorActive()
+    if type(getActivatedMods) ~= 'function' then return true end
+    local mods = getActivatedMods()
+    for i = 0, (mods and mods:size() or 0) - 1 do
+        local id = string.gsub(tostring(mods:get(i)), '^\\', '')
+        if id == 'batman_RadioSurvivor' then return true end
+    end
+    return false
+end
+if not radioSurvivorActive() then return nil end
+
 require 'LivingKnox/LK_Core'
 require 'LivingKnox/LK_Config'
 

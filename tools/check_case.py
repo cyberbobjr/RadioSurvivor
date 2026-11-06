@@ -47,7 +47,7 @@ ROOT = Path(__file__).resolve().parents[1]
 MAIN_MOD = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivor'
 # Shared core mod (E18), required by RadioSurvivor: checked alone, then as a dependency.
 CORE_MOD = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivorCore'
-# NPC engine (E18-T07), requires the core mod; required by RadioSurvivor until E18-T09.
+# NPC engine (E18-T07), requires the core mod; RadioSurvivor works with or without it (E18-T09).
 LK_MOD = ROOT / 'Contents' / 'mods' / 'batman_LivingKnox'
 DEV_MOD = ROOT / 'dev' / 'batman_RadioSurvivorTests'
 # Required mod (require=batman_BeltRadio), from the sibling repository: dependency of both checked mods.
@@ -595,9 +595,10 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     targets = [(p, args.dep) for p in args.mod] if args.mod else [
         (CORE_MOD, [SIGNAL_MOD]),   # E18-T05: the mission template "signal" requires Signal Smoke
-        # E18-T08: Living Knox alone (core mod and Signal Smoke): no RadioSurvivor module required.
-        (LK_MOD, [CORE_MOD, SIGNAL_MOD]),
-        (MAIN_MOD, [CORE_MOD, LK_MOD, BELT_MOD, SIGNAL_MOD]),
+        # E18-T08: Living Knox needs the core mod and Signal Smoke; RadioSurvivor is optional (E18-T09: only the notebook
+        # adapter RS_LivingKnox requires it, when it is active; tests/test_lk_mod.py checks that no other file does).
+        (LK_MOD, [CORE_MOD, SIGNAL_MOD, MAIN_MOD]),
+        (MAIN_MOD, [CORE_MOD, BELT_MOD, SIGNAL_MOD]),   # E18-T09: RadioSurvivor alone
         (DEV_MOD, [MAIN_MOD, LK_MOD, CORE_MOD, BELT_MOD, SIGNAL_MOD])]
     for path, deps in targets:
         for p in [path] + deps:

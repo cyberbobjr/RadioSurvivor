@@ -1910,6 +1910,34 @@ class LivingKnoxCarnetTests(unittest.TestCase):
         self.assertEqual(missions.deliver(server.store, m, sim.server.g.PLAYERS.alice, alice,
                                           self.rt.table_from(sim.items('alice', 'Base.Rice')), 'tok-1'), (False, 'State'))
 
+    def test_radiosurvivor_alone_without_living_knox(self):
+        # E18-T09: Living Knox absent (not on the module path): the notebook starts with no NPC engine, no Living Knox
+        # module is loaded and the notebook still answers a player.
+        Game.WITH_LK = False
+        try:
+            sim = Simulation(self.path / 'alone', provider=False)
+            sim.add_client('alice')
+        finally:
+            Game.WITH_LK = True
+        # Every shared file of the mod, as the game loads them (server: RS_Carnet_Server and its requires; client: the
+        # client of the bench and the frequency debug view).
+        for side in ('shared',):
+            for path in sorted((LUA / side / 'RadioSurvivor').rglob('*.lua')):
+                module = path.relative_to(LUA / side).with_suffix('').as_posix()
+                sim.server.rt.execute(f'require "{module}"')
+        client = sim.clients['alice']
+        client.rt.execute(NOTEBOOK_UI)
+        client.rt.execute('require "RadioSurvivor/RS_FreqDebugView"')   # debug window: table of the core mod
+        self.assertIsNotNone(client.g.RS_FreqDebugView.Window if client.g.RS_FreqDebugView else None)
+        provider = sim.server.rt.eval("require('RadioSurvivor/RS_NPCProvider')")
+        self.assertEqual((provider.active().name, provider.available()), ('none', False))
+        for machine in [sim.server] + list(sim.clients.values()):
+            loaded = machine.rt.eval('(function() local out = {} for k in pairs(package.loaded) do '
+                                     'if string.find(k, "LivingKnox") then out[#out + 1] = k end end '
+                                     'return table.concat(out, ",") end)()')
+            self.assertEqual(loaded, '')
+            self.assertIsNone(machine.g.RS_LivingKnox)
+
     def test_one_npc_engine_disabled_or_other_provider(self):
         # Disabled in the sandbox: nothing registered, the notebook keeps "No NPC engine active".
         game = Game('server', self.path / 'off2', Clock())
