@@ -96,8 +96,10 @@ relation.
 
 ## Panneau du carnet (E09-T07)
 
-Code : `RS_Relations.panel` (serveur), `RS_Carnet_Server` (`projection` : `contacts[i].relation`), `RS_Notebook.lua`
-(`relationLines`, fiche de l'onglet Contacts, section « Ce qu'on pense de vous »), clés `IGUI_RS_Rel*` (EN, FR).
+Code : `RS_Relations.panel` (serveur), `RS_Carnet_Server` (`projection` : `contacts[i].relation`) ; depuis `E18-T26`,
+le panneau est dessiné par Living Knox (`client/LivingKnox/LK_NotebookPages.lua` : `Notebook.relationLines`, fiche de
+l'onglet Contacts du carnet commun, section « Ce qu'on pense de vous »), clés `IGUI_LK_Rel*` (EN, FR) ; avec Living Knox
+seul, ses PNJ connus arrivent par la source `lk` du commun (`LK_Contacts`, `LK_PersonalRelation.panel`).
 
 - **Projection par personnage** : chaque instantané n'est construit que pour le personnage lié au joueur qui le
   reçoit (`Server.bound[player]`) ; la relation lue est la paire (fiche du PNJ, ce personnage) et les accords sont

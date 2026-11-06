@@ -115,7 +115,7 @@ local function show(t, c, w, fiche, expected, after)
         t2:eq(0, light, "light (white or grey) lines on the page")
         local lines = c.Notebook.relationLines(row.relation)
         t2:eq(expected, row.relation.level, "level sent for " .. fiche.id)
-        t2:ok(string.find(lines[1], getText("IGUI_RS_RelLevel_" .. expected), 1, true) ~= nil,
+        t2:ok(string.find(lines[1], getText("IGUI_LK_RelLevel_" .. expected), 1, true) ~= nil,
             "translated level label absent: " .. lines[1])
         for _, s in ipairs(lines) do
             t2:ok(string.find(text, s, 1, true) ~= nil, "panel line not on the page: " .. s)

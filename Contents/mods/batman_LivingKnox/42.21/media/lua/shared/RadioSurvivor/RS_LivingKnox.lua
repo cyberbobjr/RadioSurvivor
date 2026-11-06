@@ -133,39 +133,9 @@ local function npcRegistry()
     return S.data()
 end
 
-local function groupOf(id)
-    local G = engine().Groups
-    if not G or not G.ensure() then return nil end
-    local gid, mid = G.findNpc(id)
-    if not gid then return nil end
-    local g = G.state.data.groups[gid]
-    return g, gid, mid
-end
-
--- Composed story of a group (server memory only: it holds the secrets, never sent as is), cached by type and seed.
-local stories = {}
-local function storyOf(g)
-    local St = engine().Stories
-    if not St or g.storySeed == nil then return nil end
-    local key = tostring(g.type) .. ':' .. tostring(g.storySeed)
-    if stories[key] == nil then stories[key] = St.compose(g.type, g.storySeed) or false end
-    return stories[key] or nil
-end
-
--- Name drawn from the story name lists, seeded by the NPC number (Park-Miller, no bitwise operator).
-local function drawnName(id, female)
-    local D = engine().StoryData
-    local n = tonumber(string.match(id, '%d+')) or 1
-    if type(D) ~= 'table' or type(D.surnames) ~= 'table' then return 'Survivor ' .. n end
-    local firsts = female and D.firstNamesFemale or D.firstNamesMale
-    local m = 2147483647
-    local x = (n * 7919 + 104729) % m
-    local function draw(k)
-        x = (x * 48271) % m
-        return 1 + math.floor(x / m * k)
-    end
-    return firsts[draw(#firsts)] .. ' ' .. D.surnames[draw(#D.surnames)]
-end
+-- E18-T26: group of an NPC, story and drawn name are Living Knox's (LivingKnox.Names, same rules).
+local Names = require 'LivingKnox/LK_Names'
+local groupOf, storyOf = Names.groupOf, Names.storyOf
 
 local function hostileType(groupType)
     local H = engine().Hostility
@@ -178,15 +148,14 @@ function LK.npc(id)
     local registry = npcRegistry()
     local n = registry and registry.npcs[id]
     if not n then return nil end
-    local female = type(n.profile) == 'table' and n.profile.female == true
-    local record = {signature = 'lk:' .. id, group = '', hostile = nil}
-    local g, gid, mid = groupOf(id)
+    local named = Names.of(id)
+    local record = {signature = 'lk:' .. id, group = '', hostile = nil, name = named and named.name}
+    local g, gid, mid = named and named.g, named and named.group, named and named.mid
     local member = g and g.members[mid]
     if member then
         record.group = gid
         record.groupName = g.name -- E17-T06: readable name shown in the notebook (never the raw id)
         record.hostile = hostileType(g.type)
-        if type(member.female) == 'boolean' then female = member.female end
         if type(member.traits) == 'table' then
             local traits = {}
             for _, t in ipairs(member.traits) do
@@ -194,12 +163,7 @@ function LK.npc(id)
             end
             record.traits = traits
         end
-        local story = g.leader == mid and storyOf(g)
-        if story then record.name = story.leader.name end
-        -- E10-T04: a loner group is named after the NPC who left (its name kept from its former group).
-        if g.type == LK.LONER_TYPE and type(g.name) == 'string' and g.name ~= '' then record.name = g.name end
     end
-    record.name = record.name or drawnName(id, female)
     return record
 end
 

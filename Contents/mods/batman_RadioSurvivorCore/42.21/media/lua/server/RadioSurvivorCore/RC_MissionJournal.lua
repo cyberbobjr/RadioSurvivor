@@ -10,6 +10,8 @@ requester's name, in the notebook order (RC_MissionList); missions of a giver wh
 RadioSurvivor's notebook binding, else the core identity); without one, an empty list.
 E18-T25: "reputation" (same limit) answers "reputation" { reputation = RC_Reputation.projection(character) }: level,
 trend, last acts by action and game day, never a number nor a text (each mod translates the acts it knows).
+E18-T26: "contacts" (same limit) answers "contacts" { contacts = RC_Contacts.rows(character, player) }: the
+interlocutors given by each active mod.
 Solo: same Lua, the answers are handed to the notebook of the core mod directly.
 ]]
 local M = require "RadioSurvivorCore/RC_Missions"
@@ -57,11 +59,13 @@ end
 
 function Journal.onClientCommand(module, command, player, args)
     if module ~= Journal.MODULE or player == nil then return end
-    if command ~= "missions" and command ~= "reputation" then return end
+    if command ~= "missions" and command ~= "reputation" and command ~= "contacts" then return end
     if isServer() and not RateLimit.allow(player, "core.missions", Journal.LIMIT[1], Journal.LIMIT[2]) then return end
     local character = M.binding()[player]
     if command == "missions" then
         reply(player, command, { missions = Journal.rows(character) })
+    elseif command == "contacts" then
+        reply(player, command, { contacts = require("RadioSurvivorCore/RC_Contacts").rows(character, player) })
     else
         reply(player, command, { reputation = Journal.reputation(character) })
     end

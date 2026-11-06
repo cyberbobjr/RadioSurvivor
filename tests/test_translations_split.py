@@ -55,6 +55,10 @@ RENAMED.update({f'IGUI_RS_{n}': f'IGUI_RC_{n}' for n in (
     'RelWhen_earlier', 'RepReason_MissionSuccess', 'RepReason_MissionFailed', 'RepReason_MissionAbandoned')})
 RENAMED['IGUI_RS_RepReason_MemberKilled'] = 'IGUI_LK_RepReason_MemberKilled'
 REMOVED.add('IGUI_RC_Empty_Reputation')  # E18-T25: the core page shows the reputation (or that it is unavailable)
+# E18-T26: the relation panel of an NPC is drawn by Living Knox; the core Contacts page has its own words.
+RENAMED.update({k: 'IGUI_LK_' + k[len('IGUI_RS_'):] for k in json.loads(FIXTURE.read_text(encoding='utf-8'))['keys']['EN']
+                ['IG_UI'] if k.startswith('IGUI_RS_Rel') and not k.startswith('IGUI_RS_RelWhen_')})
+NOTEBOOK |= {'IGUI_RC_Group', 'IGUI_RC_KnownConversations', 'IGUI_RC_Contact', 'IGUI_RC_Dead'}
 JOURNAL = {
     'IGUI_RC_Journal', 'IGUI_RC_JournalButton', 'IGUI_RC_JournalEmpty', 'IGUI_RC_JournalHint', 'IGUI_RC_Mission',
     'IGUI_RC_Participants', 'IGUI_RC_ReportHint', 'IGUI_RC_Requester', 'IGUI_RC_Reward', 'IGUI_RC_TimeLeft',

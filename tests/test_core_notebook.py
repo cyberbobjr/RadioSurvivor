@@ -270,6 +270,32 @@ class NotebookCoreOnlyTests(unittest.TestCase):
         self.h.pump(); self.h.pump()
         self.assertIn('Ruth', lua_rows(self.h.machine('A')))
 
+    def test_contacts_given_by_a_mod_with_its_page_and_history(self):
+        """E18-T26: Contacts lists what the registered sources give (command "contacts"), with the exchanges of the
+        core history; the page of the source (Living Knox: relation panel) is drawn by that mod's notebook part."""
+        self.sev('local H = require("RadioSurvivorCore/RC_History") H.data = {schema = 1, characters = {}} '
+                 'H.append("cA", "lk:lk-1", {id = "h1", author = "Ann", text = "Hi"}) '
+                 'require("RadioSurvivorCore/RC_Contacts").registerSource("lk", {list = function(c) '
+                 'if c ~= "cA" then return {} end '
+                 'return {{id = "lk:lk-1", name = "Ruth", alive = true, groupName = "Farm", '
+                 'relation = {level = "favorable", trend = "up", group = "cautious", today = 3, facts = {}}}} end})')
+        self.cev('A', 'local w = RC_UI_Notebook.toggle(0, false) w:changeTab("Contacts")')
+        self.h.pump(); self.h.pump()
+        self.assertEqual(lua_rows(self.h.machine('A')), 'Ruth (IGUI_RC_Contact)')
+        text = self.cev('A', 'return RadioSurvivorCore.notebook.window.detail.text')
+        self.assertIn('IGUI_RC_Group|Farm', text)
+        self.assertIn('Ann : Hi', text)
+        self.assertNotIn('IGUI_LK_', text)  # Living Knox's page not loaded: no relation section
+        self.cev('A', 'require("LivingKnox/LK_NotebookPages") RadioSurvivorCore.notebook.window:refresh()')
+        text = self.cev('A', 'return RadioSurvivorCore.notebook.window.detail.text')
+        self.assertIn('IGUI_LK_RelTitle', text)
+        self.assertIn('IGUI_LK_RelLevel|IGUI_LK_RelLevel_favorable|IGUI_LK_RelTrend_up', text)
+        self.assertIn('IGUI_LK_RelGroup|IGUI_LK_RelLevel_cautious', text)
+        self.assertEqual(self.cev('B', 'local w = RC_UI_Notebook.toggle(0, false) w:changeTab("Contacts") '
+                                       'return #RadioSurvivorCore.notebook.contactRows'), 0)
+        self.h.pump(); self.h.pump()
+        self.assertEqual(lua_rows(self.h.machine('B')), '')
+
     def test_requests_are_rate_limited_on_the_server(self):
         for _ in range(12):
             self.cev('A', 'RadioSurvivorCore.notebook.journal.request()')

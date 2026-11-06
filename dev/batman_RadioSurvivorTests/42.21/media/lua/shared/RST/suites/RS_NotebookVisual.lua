@@ -34,7 +34,8 @@ RST.NotebookVisual = V -- read by tests/test_notebook_visual.py
 
 V.MOD_ID = "batman_RadioSurvivor"
 -- E18-T13: the notebook also shows keys of the core mod (mission titles, journal); its table is read first.
-V.MOD_IDS = { "batman_RadioSurvivorCore", V.MOD_ID }
+-- E18-T26: and of Living Knox when it is active (relation panel of a contact): absent table skipped.
+V.MOD_IDS = { "batman_RadioSurvivorCore", "batman_LivingKnox", V.MOD_ID }
 V.LANGS = { "EN", "FR" }
 V.SHOW_MS = 450
 V.AFTER_MS = 150

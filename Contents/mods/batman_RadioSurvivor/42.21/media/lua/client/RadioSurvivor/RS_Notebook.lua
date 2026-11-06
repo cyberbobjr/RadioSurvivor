@@ -71,44 +71,14 @@ local function clueText(clue)
 end
 -- Relation panel of a contact (E09-T07): the server sends identifiers and game days only (RS_Relations.panel), every
 -- word is translated here; an unknown identifier (newer server) falls back to a generic word, never a raw key.
-local REL_LEVELS = {hostile = true, wary = true, cautious = true, favorable = true, trusting = true}
-local REL_TRENDS = {up = true, down = true, stable = true}
-local REL_NATURES = {good = true, bad = true, neutral = true}
-local function relWord(prefix, id, fallback)
-    return getTextOrNull('IGUI_RS_' .. prefix .. tostring(id)) or getText('IGUI_RS_' .. prefix .. fallback)
-end
 -- When a fact happened, in words (no number), and the words of the reputation: the core mod's (E18-T25).
 local Rep = Notebook.rep
 local relWhen, repLevel, repTrend, repReason = Rep.when, Rep.level, Rep.trend, Rep.reason
+-- E18-T26: the relation panel of an NPC is drawn by Living Knox's page of the notebook (the relation is Living Knox's,
+-- E18-T21); without Living Knox there is no relation to show.
 local function relationLines(rel)
-    local out = {}
-    if type(rel) ~= 'table' or not REL_LEVELS[rel.level] then
-        out[1] = tr('RelUnknown')
-        return out
-    end
-    out[#out + 1] = tr('RelLevel', tr('RelLevel_' .. rel.level),
-        tr('RelTrend_' .. (REL_TRENDS[rel.trend] and rel.trend or 'stable')))
-    if REL_LEVELS[rel.group] and rel.group ~= rel.level then out[#out + 1] = tr('RelGroup', tr('RelLevel_' .. rel.group)) end
-    local agreements = type(rel.agreements) == 'table' and rel.agreements or {}
-    for _, a in ipairs(agreements) do
-        local scope = type(a.scope) == 'table' and a.scope or {}
-        out[#out + 1] = tr('RelAgreement', relWord('RelKind_', a.kind, 'other'), relWord('RelState_', a.state, 'other'),
-            relWord('RelScopeGroup_', scope.group, 'other'), relWord('RelScopeTeam_', scope.team, 'other'))
-    end
-    if #agreements == 0 then out[#out + 1] = tr('RelNoAgreement') end
-    if rel.suspended == true then out[#out + 1] = tr('RelSuspended') end
-    local facts = type(rel.facts) == 'table' and rel.facts or {}
-    if #facts == 0 then out[#out + 1] = tr('RelNoFacts')
-    else
-        out[#out + 1] = tr('RelFacts')
-        for _, f in ipairs(facts) do
-            local nature = REL_NATURES[f.nature] and f.nature or 'neutral'
-            local what = getTextOrNull('IGUI_RS_RelFact_' .. tostring(f.fact)) or tr('RelFact_' .. nature)
-            out[#out + 1] = '- ' .. tr(f.source == 'personal' and 'RelFactPersonal' or 'RelFactGroup', relWhen(rel.today, f.day),
-                what)
-        end
-    end
-    return out
+    if Notebook.relationLines then return Notebook.relationLines(rel) end
+    return {}
 end
 
 -- Reputation tab (E04-T04): the core mod draws the reputation of the reader's character (RC_Notebook.reputationLines,
@@ -124,8 +94,10 @@ local function reputationLines(rep, contacts)
     local any = false
     for _, c in ipairs(type(contacts) == 'table' and contacts or {}) do
         local rel = type(c.relation) == 'table' and c.relation or nil
-        if rel and REL_LEVELS[rel.level] and c.alive ~= false then
-            out[#out + 1] = '- ' .. tr('RepTrust', c.name, tr('RelLevel_' .. rel.level))
+        -- Word of the level: Living Knox's (E18-T26); no relation without it.
+        local word = rel and Notebook.relationLevel and Notebook.relationLevel(rel.level)
+        if word and c.alive ~= false then
+            out[#out + 1] = '- ' .. tr('RepTrust', c.name, word)
             any = true
         end
     end
@@ -426,9 +398,11 @@ local function contactsDetail(w, row, line)
     line(tr('Style_' .. row.personality.style))
     line(tr('Traits', row.personality.courage, row.personality.sociability, row.personality.generosity))
     if row.background ~= '' then line(row.background) end
-    -- E09-T07: relation of this NPC toward the reader's character, translated here.
-    line(tr('RelTitle'))
-    for _, s in ipairs(relationLines(row.relation)) do line(s) end
+    -- E09-T07: relation of this NPC toward the reader's character (Living Knox's words, E18-T26).
+    if Notebook.relationLines then
+        line(Notebook.relationTitle())
+        for _, s in ipairs(relationLines(row.relation)) do line(s) end
+    end
     line(row.alive and (row.near and tr('UseChat') or tr('JoinRequester')) or tr('Dead'))
     line(tr('KnownConversations'))
     for _, speech in ipairs(row.history or {}) do line(speech.author .. ' : ' .. speech.text) end

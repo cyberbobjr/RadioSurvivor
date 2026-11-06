@@ -274,6 +274,10 @@ class Game:
     def load(self, *files: str) -> None:
         for rel in files:
             self.rt.execute(lua_src(rel).read_text(encoding="utf-8"))
+            # E18-T26 : le jeu charge aussi les fichiers client de Living Knox actif, dont sa page du carnet commun
+            # (panneau de relation, textes de ses actes) : chargée avec le carnet de RadioSurvivor.
+            if rel == 'client/RS_Carnet_Client.lua' and self.WITH_LK:
+                self.rt.execute('require "LivingKnox/LK_NotebookPages"')
 
     def table(self, value):
         """Copie (récursive) d'une table d'une autre machine Lua, comme le réseau."""

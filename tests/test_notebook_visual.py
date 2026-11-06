@@ -31,6 +31,8 @@ MOD = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivor' / '42.21'
 TABLES = {lang: MOD / 'media' / 'lua' / 'shared' / 'Translate' / lang / 'IG_UI.json' for lang in ('EN', 'FR')}
 CORE = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivorCore' / '42.21'
 CORE_TABLES = {lang: CORE / 'media' / 'lua' / 'shared' / 'Translate' / lang / 'IG_UI.json' for lang in ('EN', 'FR')}
+LK = ROOT / 'Contents' / 'mods' / 'batman_LivingKnox' / '42.21'
+LK_TABLES = {lang: LK / 'media' / 'lua' / 'shared' / 'Translate' / lang / 'IG_UI.json' for lang in ('EN', 'FR')}
 
 
 class Font:
@@ -283,9 +285,12 @@ class NotebookVisualTests(unittest.TestCase):
                   for lang, path in TABLES.items()}
         tables.update({('batman_RadioSurvivorCore', lang): path.read_text(encoding='utf-8').splitlines()
                        for lang, path in CORE_TABLES.items()})
+        tables.update({('batman_LivingKnox', lang): path.read_text(encoding='utf-8').splitlines()
+                       for lang, path in LK_TABLES.items()})
         c.rt.execute(NOTEBOOK_UI)
         import json
         c.g.EN_TEXTS = c.rt.table_from({**json.loads(CORE_TABLES['EN'].read_text(encoding='utf-8')),
+                                        **json.loads(LK_TABLES['EN'].read_text(encoding='utf-8')),
                                         **json.loads(TABLES['EN'].read_text(encoding='utf-8'))})
         c.rt.execute(EXTRA_UI)
 

@@ -29,7 +29,9 @@ Missions and Reputation read the data of the core mod (E18-T25), asked to the au
 the open missions of the player's character (missions of a giver whose mod is not active are hidden by the server),
 its reputation (level, trend, last acts). The text of an act belongs to the mod that knows it
 (Notebook.reputationReasons[action] = translation key; an act of a mod not active reads "a good / bad deed").
-Contacts says that nothing is known yet until a mod fills it.
+Contacts (E18-T26) lists the interlocutors every active mod gives (RC_Contacts, command "contacts"): name, group,
+the page of the mod that gave the contact (Notebook.contactPages[source](win, row, line)), then the exchanges kept by
+the core mod (RC_History).
 Texts: IGUI_RC_* (Translate/<LANG>/IG_UI.json of the core mod); a mod labels its own tabs.
 ]]
 RadioSurvivorCore = RadioSurvivorCore or {}
@@ -886,6 +888,14 @@ end
 -- Answers of the authority to the core commands (OnServerCommand, or directly in solo).
 function Notebook.receive(command, args)
     if command == 'missions' then Journal.receive(args)
+    elseif command == 'contacts' and type(args) == 'table' then
+        local rows = {}
+        for _, row in ipairs(type(args.contacts) == 'table' and args.contacts or {}) do
+            if type(row) == 'table' and type(row.id) == 'string' then rows[#rows + 1] = row end
+        end
+        Notebook.contactRows = rows
+        local w = Notebook.window
+        if w and w.tab == 'Contacts' and w:spec().rows == Notebook.coreContacts then w:refresh() end
     elseif command == 'reputation' and type(args) == 'table' then
         Notebook.reputationData = type(args.reputation) == 'table' and args.reputation or nil
         local w = Notebook.window
@@ -893,7 +903,32 @@ function Notebook.receive(command, args)
     end
 end
 
-Notebook.registerTab({name = 'Contacts', order = 20, color = {0.498, 0.435, 0.271}})
+-- Contacts given by the active mods (RC_Contacts): rows sent by the authority, page of each source.
+Notebook.contactPages = {}
+Notebook.contactRows = {}
+
+local function contactsDetail(w, row, line)
+    if not row then line(tr('Empty_Contacts')); return false end
+    line(row.name)
+    if type(row.groupName) == 'string' and row.groupName ~= '' then line(tr('Group', row.groupName)) end
+    local page = Notebook.contactPages[row.source]
+    if page then page(w, row, line) end
+    line(tr('KnownConversations'))
+    for _, speech in ipairs(type(row.history) == 'table' and row.history or {}) do
+        line(tostring(speech.author) .. ' : ' .. tostring(speech.text))
+    end
+    return false
+end
+
+function Notebook.coreContacts() return Notebook.contactRows end
+
+Notebook.registerTab({name = 'Contacts', order = 20, color = {0.498, 0.435, 0.271},
+    rows = Notebook.coreContacts,
+    rowLabel = function(row) return tostring(row.name or row.id) end,
+    secondLine = function(row) return row.alive == false and tr('Dead') or tr('Contact') end,
+    detail = contactsDetail,
+    onOpen = function() Notebook.request('contacts') end,
+    update = function() poll('contacts') end})
 Notebook.registerTab({name = 'Missions', order = 30, color = {0.369, 0.478, 0.31},
     rows = Journal.tabRows,
     rowLabel = function(row)

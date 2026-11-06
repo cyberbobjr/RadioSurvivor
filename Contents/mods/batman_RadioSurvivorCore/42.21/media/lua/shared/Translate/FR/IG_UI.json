@@ -54,5 +54,9 @@
     "IGUI_RC_RelWhen_earlier": "Il y a un moment",
     "IGUI_RC_RepReason_MissionSuccess": "Mission réussie pour %1",
     "IGUI_RC_RepReason_MissionFailed": "Mission échouée pour %1",
-    "IGUI_RC_RepReason_MissionAbandoned": "Mission abandonnée pour %1"
+    "IGUI_RC_RepReason_MissionAbandoned": "Mission abandonnée pour %1",
+    "IGUI_RC_Group": "Groupe : %1",
+    "IGUI_RC_KnownConversations": "Conversations entendues par ce personnage",
+    "IGUI_RC_Contact": "Contact rencontré",
+    "IGUI_RC_Dead": "Décédé"
 }

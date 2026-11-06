@@ -24,6 +24,8 @@ LEVELS = ['hostile', 'wary', 'cautious', 'favorable', 'trusting']
 EN = ROOT / 'Contents/mods/batman_RadioSurvivor/42.21/media/lua/shared/Translate/EN/IG_UI.json'
 FR = ROOT / 'Contents/mods/batman_RadioSurvivor/42.21/media/lua/shared/Translate/FR/IG_UI.json'
 CORE_EN = ROOT / 'Contents/mods/batman_RadioSurvivorCore/42.21/media/lua/shared/Translate/EN/IG_UI.json'
+LK_EN = ROOT / 'Contents/mods/batman_LivingKnox/42.21/media/lua/shared/Translate/EN/IG_UI.json'
+LK_FR = ROOT / 'Contents/mods/batman_LivingKnox/42.21/media/lua/shared/Translate/FR/IG_UI.json'
 
 # Translator double faithful to Translator.getText / getTextOrNull (42.21, base load-warnings.md): the English table of
 # the mod, nil for an unknown key (getTextOrNull only), the raw key for getText; a %N read with fewer arguments logged.
@@ -126,6 +128,7 @@ class RelationPanelTests(unittest.TestCase):
             # E18-T25: the words of the days are the core mod's (RC_Notebook): both tables, as the game merges them.
             texts = json.loads(EN.read_text(encoding='utf-8-sig'))
             texts.update(json.loads(CORE_EN.read_text(encoding='utf-8-sig')))
+            texts.update(json.loads(LK_EN.read_text(encoding='utf-8-sig')))  # E18-T26: words of the relation panel
             c.g.EN_TEXTS = c.rt.table_from(texts)
             c.rt.execute(TRANSLATOR)
             c.load('client/RS_Carnet_Client.lua')
@@ -286,11 +289,11 @@ class RelationPanelTests(unittest.TestCase):
         self.assertIn('- Some time ago, something you did for them.', lines)
 
     def test_french_table_has_every_key(self):
-        en = json.loads(EN.read_text(encoding='utf-8-sig'))
-        fr = json.loads(FR.read_text(encoding='utf-8-sig'))
-        keys = [k for k in en if k.startswith('IGUI_RS_Rel')]
+        en = json.loads(LK_EN.read_text(encoding='utf-8-sig'))
+        fr = json.loads(LK_FR.read_text(encoding='utf-8-sig'))
+        keys = [k for k in en if k.startswith('IGUI_LK_Rel')]  # E18-T26: the relation panel is Living Knox's
         self.assertGreater(len(keys), 40)
-        self.assertEqual(sorted(keys), sorted(k for k in fr if k.startswith('IGUI_RS_Rel')))
+        self.assertEqual(sorted(keys), sorted(k for k in fr if k.startswith('IGUI_LK_Rel')))
         for k in keys:
             self.assertEqual(re.findall(r'%\d', en[k]), re.findall(r'%\d', fr[k]), k)
         for obsolete in ('IGUI_RS_TrustScope', 'IGUI_RS_TrustUnassessed', 'IGUI_RS_NoAgreements'):

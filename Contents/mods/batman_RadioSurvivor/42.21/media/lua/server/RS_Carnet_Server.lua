@@ -10,6 +10,7 @@ local MissionList = require 'RadioSurvivorCore/RC_MissionList' -- E18-T06
 local History = require 'RadioSurvivorCore/RC_History' -- E18-T11: exchange history of the core mod
 require 'RadioSurvivorCore/RC_MissionScout'; require 'RadioSurvivorCore/RC_MissionRetrieve'
 local Rep = require 'RadioSurvivorCore/RC_Reputation' -- E18-T22: reputation kept by the core mod
+local Contacts = require 'RadioSurvivorCore/RC_Contacts' -- E18-T26: contacts given to the core notebook
 -- Reputation of the snapshot: the core projection as it is (E18-T25: actions only, each notebook page translates the
 -- acts its mod knows).
 local function repProjection(character) return Rep.projection(character) end
@@ -201,15 +202,21 @@ end
 -- idle player no longer receives the same snapshot again (rs.carnet.load, E00-T04).
 Server.lastSnapshot = {} -- player -> {key, body}; entries of absent players dropped by tick (no weak table in Kahlua)
 
-local function projection(player, pushed)
-    local character = Server.bound[player]
+-- E18-T26: the fiche of an engine NPC (Living Knox: incarnation) belongs to its engine: without it the fiche is
+-- hidden from the notebook and kept (never pruned), found again as it was when the engine comes back.
+local function engineMissing(npc)
+    return npc ~= nil and npc.incarnation ~= nil and P.available() ~= true
+end
+Server.engineMissing = engineMissing
+
+-- Contacts of a character as the notebook shows them (snapshot, and source 'rs' of the core contacts, E18-T26).
+local function contactRows(player, character, team)
     local record = character and S.data.characters[character]
-    if not record then return end
-    local contacts, missions, inviteTargets = {}, {}, {}
-    local team = Factions.projection(player) -- E09-T03: own team and mandates (Team tab)
+    local contacts = {}
+    if not record then return contacts end
     for id, known in pairs(record.contacts) do
         local npc = S.data.npcs[id]
-        if npc then
+        if npc and not engineMissing(npc) then
             contacts[#contacts + 1] = {id = id, name = npc.name, alive = npc.alive,
                 groupName = groupName(npc), personality = npc.personality, background = npc.background,
                 revision = npc.revision, near = P.near(player, Server.objects[id], C.SELECT_RANGE),
@@ -219,6 +226,20 @@ local function projection(player, pushed)
                 relation = Relations.panel(npc, character, team)}
         end
     end
+    table.sort(contacts, function(a, b) return a.name < b.name end)
+    return contacts
+end
+Contacts.registerSource('rs', {list = function(character, player)
+    return contactRows(player, character, Factions.projection(player))
+end})
+
+local function projection(player, pushed)
+    local character = Server.bound[player]
+    local record = character and S.data.characters[character]
+    if not record then return end
+    local missions, inviteTargets = {}, {}
+    local team = Factions.projection(player) -- E09-T03: own team and mandates (Team tab)
+    local contacts = contactRows(player, character, team)
     -- E18-T06: the same list as the mission journal of the core mod (RC_MissionList: who sees it, order, state).
     for _, m in pairs(S.data.missions) do
         if M.present(m) and MissionList.visible(m, character, record.knownMissions) then
@@ -235,7 +256,6 @@ local function projection(player, pushed)
             inviteTargets[#inviteTargets + 1] = {id = id, name = S.data.characters[id].name}
         end
     end
-    table.sort(contacts, function(a, b) return a.name < b.name end)
     MissionList.sort(missions)
     local snapshot = {world = S.data.world, run = S.run, contacts = contacts, missions = missions, selected = Server.selected[character] or '',
         -- E04-T12: reputation of this character only (level, trend, reasons), never a number.
@@ -1095,7 +1115,9 @@ local function prune(now)
     for _, record in pairs(S.data.characters) do for id in pairs(record.contacts) do kept[id] = true end end
     for _, r in ipairs(Server.pending) do kept[r.npc] = true end
     for id, npc in pairs(S.data.npcs) do
-        if not kept[id] and not Server.objects[id] and (not npc.alive or now - (npc.seenAt or 0) > C.NPC_UNSEEN_MS) then
+        -- E18-T26: a fiche of an engine NPC is never dropped because its engine is not active (kept for its return).
+        if not kept[id] and not Server.objects[id] and not engineMissing(npc)
+                and (not npc.alive or now - (npc.seenAt or 0) > C.NPC_UNSEEN_MS) then
             S.data.npcs[id] = nil
             removed = true
         end
