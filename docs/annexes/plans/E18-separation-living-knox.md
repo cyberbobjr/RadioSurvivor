@@ -2,7 +2,7 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 4 / 19 tâche(s) terminée(s).
+**Avancement.** en cours — 4 / 22 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
@@ -22,9 +22,12 @@
 | ☑ | E18-T14 | Outillage des tests pour trois montages | `testé hors jeu` | hors jeu | E18-T07 |
 | ☐ | E18-T15 | Validation des trois montages | `à faire` | MP | E18-T05, E18-T06, E18-T08, E18-T10, E18-T12, E18-T13, E18-T14, E18-T18, E18-T19 |
 | ☐ | E18-T16 | Documentation et page Workshop des trois mods | `à faire` | hors jeu | E18-T15 |
-| ☐ | E18-T17 | File des demandes de parole des PNJ portée par Living Knox | `à faire` | MP | E18-T11 |
+| ☐ | E18-T17 | File des demandes de parole des PNJ portée par Living Knox | `à faire` | MP | E18-T11, E18-T20, E18-T21, E18-T22 |
 | ☐ | E18-T18 | Parole de proximité avec Living Knox seul | `à faire` | MP | E18-T17 |
 | ☐ | E18-T19 | Historique des voix radio dans le commun | `à faire` | MP | E18-T11 |
+| ☐ | E18-T20 | Accords dans Living Knox, identifiants d'équipe dans le commun | `à faire` | MP | E18-T09 |
+| ☐ | E18-T21 | Relation personnelle des PNJ dans Living Knox | `à faire` | MP | E18-T09 |
+| ☐ | E18-T22 | Réputation dans le commun | `à faire` | MP | E18-T05 |
 
 <!-- fin du tableau de bord -->
 
@@ -76,6 +79,21 @@ donnent des missions ; le pont Python LLM est la base de leur intelligence, avec
   compteur, attente avant la prochaine offre) sur la fiche du donneur, tenue par le mod ; fin de mission, réputation,
   tri des offres, oubli d'une mission par les personnages : crochets facultatifs (RadioSurvivor y branche réputation et
   carnet).
+- 2026-11-06 — **Origine des échanges** (utilisateur, `E18-T17`) : une voix entendue au talkie-walkie (missions,
+  dialogues) a pour origine RadioSurvivor ; un PNJ du monde (voix, comportement, dialogues, missions) a pour origine
+  Living Knox. Le mod commun, prérequis obligatoire, ne fait que recevoir, transmettre et renvoyer : chaque réponse
+  revient au mod qui a émis la demande, à lui de l'écouter et de la traiter.
+- 2026-11-06 — **Règle d'or** (utilisateur) : RadioSurvivor et Living Knox vivent absolument l'un sans l'autre ; le
+  contexte d'un échange (relation, réputation, accords) est toujours fourni, par le mod à qui il appartient.
+- 2026-11-06 — **Accords** (utilisateur, `E18-T20`) : trêves et alliances entre un groupe de PNJ et une équipe de
+  joueurs (`RS_Factions`, incidents `RS_Incidents`, E09) passent dans **Living Knox** ; Living Knox seul les garde.
+- 2026-11-06 — **Réputation** (utilisateur, `E18-T22`) : une seule réputation par personnage, tenue par le **mod
+  commun** (`RS_Reputation`), nourrie par les missions communes ; chaque mod y signale ses faits (troc triché par
+  RadioSurvivor, meurtre d'un PNJ ou d'un donneur par Living Knox) ; voix et PNJ lisent la même.
+- 2026-11-06 — Confirmé par défaut : la **relation personnelle d'un PNJ** (`RS_Relations`, écart d'un niveau autour de
+  l'attitude de son groupe, E09-T04) passe dans **Living Knox** (`E18-T21`), comme les accords ; les **identifiants
+  d'équipe** (`fac-<n>`, mandats de négociation) lus par les accords (Living Knox) et par les équipes de la radio
+  (E12) passent dans le **mod commun** (`E18-T20`).
 - 2026-11-05 — Confirmé par défaut (valeurs techniques, modifiables) :
   - identifiants `batman_RadioSurvivorCore` (mod commun, nom affiché « Radio Survivor Core », code sous
     `media/lua/*/RadioSurvivorCore/`, fichiers `RC_`) et `batman_LivingKnox` (nom affiché « Living Knox ») ;
@@ -291,7 +309,7 @@ Deuxième article Workshop, dépôt séparé, nouvelles règles de jeu des missi
 - [ ] **E18-T17** — File des demandes de parole des PNJ portée par Living Knox
   - État : `à faire`
   - Cible : `MP`
-  - Dépend de : E18-T11
+  - Dépend de : E18-T11, E18-T20, E18-T21, E18-T22
   - Fichiers : `LK_Talk` (Living Knox : file, voie `npc` de `RC_Transport`, numéros d'ordre et révisions par PNJ, délais, refus) ; `RS_Carnet_Server.lua` (`enqueue`, `syncTransport`, `poll`, `reply`), `RS_Conversations`, `RS_Initiatives`, `RS_BridgeLanes` ; `docs/specifications-techniques/protocole-carnet-v2.md`
   - Faire : Living Knox émet `npc_talk`, `npc_converse`, `npc_initiative` et `npc_enrich` par le lien commun ; RadioSurvivor ajoute au contexte ses éléments (relation, réputation, accords, missions du carnet) et traite ses actions de la réponse par des crochets de l'API ; demandes en attente d'une partie existante reprises.
   - Accepté si : ensemble : mêmes demandes, mêmes offres, acceptations et relations qu'aujourd'hui (suites rs.npctalk, rs.conversations, rs.initiatives).
@@ -318,5 +336,38 @@ Deuxième article Workshop, dépôt séparé, nouvelles règles de jeu des missi
   - Faire : les échanges avec les voix radio gardés par le mod commun comme ceux des PNJ (confirmé par défaut le 2026-11-05), mêmes règles (lignes typées, fréquences entendues vérifiées, bornes) ; historiques d'une partie existante repris une fois.
   - Accepté si : une partie existante garde l'historique radio du carnet ; mêmes lignes qu'avant.
   - Tests : `test_radio_log*` ; suites rs.radiolog.
+  - Preuve : —
+  - Reste : —
+
+- [ ] **E18-T20** — Accords dans Living Knox, identifiants d'équipe dans le commun
+  - État : `à faire`
+  - Cible : `MP`
+  - Dépend de : E18-T09
+  - Fichiers : `RS_Factions` (identifiants d'équipe et mandats → commun ; accords → Living Knox), `RS_Incidents`, `RS_Carnet_Server` (offre, conclusion, `collectiveCheck`, annonce), crochet `LivingKnox.Hooks.covered` ; `bridge/npc_protocol.py` (termes de la négociation) ; `docs/annexes/conception/accords.md`
+  - Faire : décision du 2026-11-06 : trêves, alliances et incidents tenus par Living Knox (état privé de Living Knox), négociés par la parole des PNJ ; identifiants `fac-<n>` et mandats dans le commun ; accords d'une partie existante repris une seule fois ; RadioSurvivor n'a plus aucun code d'accord (le carnet affiche ceux que Living Knox publie, s'il est présent).
+  - Accepté si : Living Knox seul : une trêve conclue avec un chef de groupe rend le groupe non agressif, gardée après redémarrage ; RadioSurvivor seul démarre sans code d'accord ; ensemble : mêmes accords qu'avant.
+  - Tests : bancs des accords et des incidents (fixture écrite par l'ancien code) ; suites des accords dans les montages Living Knox seul et les deux.
+  - Preuve : —
+  - Reste : —
+
+- [ ] **E18-T21** — Relation personnelle des PNJ dans Living Knox
+  - État : `à faire`
+  - Cible : `MP`
+  - Dépend de : E18-T09
+  - Fichiers : `RS_Relations` → Living Knox ; `RS_Carnet_Server` (intention `change_relation`, affichage) ; `docs/annexes/conception/relations.md`
+  - Faire : confirmé par défaut le 2026-11-06 : la relation d'un PNJ envers un personnage (écart d'un niveau autour de l'attitude du groupe, faits citables) tenue par Living Knox ; relations d'une partie existante reprises une seule fois ; le carnet la lit par l'API de Living Knox s'il est présent.
+  - Accepté si : Living Knox seul : la relation change par un fait réel cité dans la réponse et reste après redémarrage ; ensemble : mêmes niveaux et mêmes tendances qu'avant.
+  - Tests : bancs des relations (fixture écrite par l'ancien code) ; suite rs.relation dans les deux montages concernés.
+  - Preuve : —
+  - Reste : —
+
+- [ ] **E18-T22** — Réputation dans le commun
+  - État : `à faire`
+  - Cible : `MP`
+  - Dépend de : E18-T05
+  - Fichiers : `RS_Reputation` → `RC_Reputation` (commun, état privé du commun) ; sources des faits (`RC_Missions.finish`, troc `RS_TradeExchange`, morts de PNJ et de donneurs côté Living Knox) ; filtre des offres (`RS_MissionHooks`) ; `docs/annexes/conception/reputation-interne.md`
+  - Faire : décision du 2026-11-06 : une réputation par personnage dans le commun, mêmes règles et mêmes bornes ; chaque mod signale ses faits par l'API du commun (liste fermée des sortes de faits, aucun fait venu d'un client ni d'une phrase) ; réputations d'une partie existante reprises une seule fois ; voix et PNJ lisent le même niveau.
+  - Accepté si : chaque mod seul : missions réussies ou ratées changent la réputation ; Living Knox seul : le meurtre d'un membre d'un groupe la baisse ; ensemble : mêmes scores qu'avant.
+  - Tests : bancs de la réputation (fixture écrite par l'ancien code) ; suites rs.reputation dans les trois montages.
   - Preuve : —
   - Reste : —
