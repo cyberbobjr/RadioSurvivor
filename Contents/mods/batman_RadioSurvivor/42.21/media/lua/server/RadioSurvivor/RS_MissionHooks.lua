@@ -7,9 +7,9 @@ RadioSurvivor's givers and hooks of the common mission engine (E18-T05, RC_Missi
 - NPC engine: RS_NPCProvider (Living Knox through its adapter, or no engine);
 - givers: 'npc' = NPC fiche of the notebook (S.data.npcs; reward path RS_NPCRewards for a Living Knox NPC),
   'voice' = radio voice (S.data.voiceDonors, E11-T08; its dead drop polled by RS_VoiceDelivery);
-- result of a mission: trust of the notebook contact and one reputation fact per participant (E04-T08);
+- result of a mission: trust of the notebook contact (the reputation fact of each participant and the offers closed
+  to a bad reputation are the core engine's, E18-T22);
 - dropped mission: forgotten by every notebook character (knownMissions);
-- offers: E04-T05 (Q11, Q12) a character of bad reputation gets the simple missions only (RS_Reputation.offerAllowed);
 - missions still listed for a character: its notebook record (knownMissions, E18-T06: same list in the journal);
 - character of a server player: the notebook binding (RS_CarnetServer.bound); a change from a world event publishes
   the notebook (RS_CarnetServer.publish).
@@ -48,28 +48,17 @@ local function voiceGiver()
     }
 end
 
-local function onResult(state, m, result, character, requester)
-    local Config = require 'RadioSurvivor/RS_Config'
-    local Rep = require 'RadioSurvivor/RS_Reputation'
+local function onResult(state, m, result, character)
     local record = state.characters and state.characters[character]
     local known = record and record.contacts[m.npc]
     if known then
         known.trust = result == 'success' and 'Favourable' or 'Cautious'
         known.trend = result == 'success' and 'Rising' or 'Falling'
     end
-    local delta = result == 'success' and Config.Reputation.success or Config.Reputation.failure
-    Rep.record(state, m.id .. '-' .. character .. '-result', character, 'mission.' .. result, delta,
-        {mission = m.id, result = result}, type(requester) == 'string' and {requester} or nil)
 end
 
 local function onPruned(state, id)
     for _, record in pairs(state.characters or {}) do record.knownMissions[id] = nil end
-end
-
-local function offerAllowed(character, name, offer)
-    local Rep = require 'RadioSurvivor/RS_Reputation'
-    local level = type(character) == 'string' and Rep.level(character) or nil
-    return Rep.offerAllowed(level, name, offer)
 end
 
 local function characterName(state, character)
@@ -98,7 +87,6 @@ function H.attach(S)
     M.addResultListener(onResult)
     M.addPruneListener(onPruned)
     M.addChangeListener(publish)
-    M.setOfferFilter(offerAllowed)
     M.setCharacterName(characterName)
     M.setBinding(binding)
     M.setKnownMissions(knownMissions)

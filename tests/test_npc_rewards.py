@@ -23,7 +23,7 @@ class NPCRewardsTests(unittest.TestCase):
         modules={['RadioSurvivor/RS_NPCProvider']={npc=function() return {group='grp-1'} end},
           ['RadioSurvivor/RS_Config']=cfg,
           ['RadioSurvivor/RS_Relations']={view=function() return {level=relation} end},
-          ['RadioSurvivor/RS_Reputation']={level=function() return reputation end},
+          ['RadioSurvivorCore/RC_Reputation']={level=function() return reputation end},
           ['RadioSurvivor/RS_Rewards']={grant=function() granted=granted+1;return {kind='lesson'} end}}
         function require(n) return modules[n] end
         store={data={npcs={n=npc},characters={p={name='Player'}}},save=function() return true end}

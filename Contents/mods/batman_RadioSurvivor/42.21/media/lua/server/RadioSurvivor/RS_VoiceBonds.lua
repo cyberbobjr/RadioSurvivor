@@ -12,7 +12,7 @@
 if isClient() then return end
 
 local S = require "RadioSurvivor/RS_State"
-local Rep = require "RadioSurvivor/RS_Reputation"
+local Rep = require "RadioSurvivorCore/RC_Reputation"
 
 local B = {}
 B.MIN_ANSWERS = 4
@@ -62,7 +62,7 @@ function B.allowed(cid, voice)
     local day = Rep.today()
     if not rec or type(voice) ~= "string" or not day then return false, "no_character" end
     local bond = bondOf(rec, voice, false) or { answers = 0, days = 0 }
-    local trusted = (bond.answers >= B.MIN_ANSWERS and bond.days >= B.MIN_DAYS) or Rep.level(cid, S.data) == "good"
+    local trusted = (bond.answers >= B.MIN_ANSWERS and bond.days >= B.MIN_DAYS) or Rep.level(cid) == "good"
     if not trusted then return false, "not_trusted" end
     if type(bond.sharedDay) == "number" and day - bond.sharedDay < B.VOICE_DAYS then return false, "voice_too_soon" end
     if type(rec.lastShareDay) == "number" and day - rec.lastShareDay < B.CHARACTER_DAYS then return false, "too_soon" end

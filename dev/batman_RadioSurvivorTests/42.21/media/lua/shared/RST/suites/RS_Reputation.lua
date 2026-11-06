@@ -1,5 +1,5 @@
 --[[
-rs.reputation - internal reputation of RadioSurvivor in game (E04-T14; server/RadioSurvivor/RS_Reputation.lua, design
+rs.reputation - internal reputation of RadioSurvivor in game (E04-T14; server/RadioSurvivorCore/RC_Reputation.lua, design
 docs/annexes/conception/reputation-interne.md). Tags "server" and "world": the authority only (solo, or RST.server from an
 admin client), save rstest* in debug mode (the test baseline RS_Reputation.testSetLevel refuses anything else).
 Solo campaign solo-rs and MP campaign mp; persistence base of mp-persist (rs.reputation.before / .after-restart).
@@ -62,8 +62,9 @@ local function setup(t)
     local Server = R.notebook(t)
     local S = Server.store
     if S.blocked then t:skip("notebook storage blocked") end
-    local Rep = require "RadioSurvivor/RS_Reputation"
-    t:ok(type(Rep) == "table" and type(Rep.testSetLevel) == "function", "RS_Reputation (E04) not loaded")
+    local Rep = require "RadioSurvivorCore/RC_Reputation"
+    t:ok(type(Rep) == "table" and type(Rep.testSetLevel) == "function", "RC_Reputation (E04, core mod) not loaded")
+    t:ok(Rep.ensure(), "reputation state of the core mod not loaded")
     local p = RST.Fixtures.player(t)
     t:ok(p ~= nil, "no target player (t.ctx.player)")
     local cid = R.character(t, p)
@@ -72,7 +73,7 @@ end
 
 -- The reputation entry of cid is restored at the end; outcomes created during the test are dropped.
 local function guard(t, c, cid)
-    local data = c.S.data
+    local data = c.Rep.data -- E18-T22: reputation kept by the core mod
     local saved = copy(type(data.reputation) == "table" and data.reputation[cid] or nil)
     local known = {}
     for id in pairs(data.outcomes or {}) do known[id] = true end
@@ -82,13 +83,13 @@ local function guard(t, c, cid)
         local drop = {}
         for id in pairs(data.outcomes or {}) do if not known[id] then drop[#drop + 1] = id end end
         for _, id in ipairs(drop) do data.outcomes[id] = nil end
-        c.S.dirty = true
+        c.Rep.save()
         c.Server.publish()
     end, "reputation of " .. cid .. " restored")
 end
 
 local function baseline(t, c, cid, level)
-    local ok, why = c.Rep.testSetLevel(c.S.data, cid, level)
+    local ok, why = c.Rep.testSetLevel(nil, cid, level)
     if not ok then t:skip("test baseline refused: " .. tostring(why)) end
 end
 
@@ -123,7 +124,7 @@ end
 
 local function revisions(c, except)
     local out = {}
-    for cid, e in pairs(c.S.data.reputation or {}) do
+    for cid, e in pairs(c.Rep.data.reputation or {}) do
         if cid ~= except then out[cid] = e.revision end
     end
     return out
@@ -152,10 +153,11 @@ RST.suite("rs.reputation", { mods = { "rs", "lk" },
         t:eq("neutral", c.Rep.level(c.cid), "level after one success")
         t:eq("up", c.Rep.trend(c.cid), "trend after one success")
         local reason = c.Rep.reasons(c.cid, 1)[1]
-        t:eq("IGUI_RS_RepReason_MissionSuccess", reason and reason.reasonKey, "newest reason")
+        t:eq("mission.success", reason and reason.action, "newest reason")
         t:eq(RP.REQUESTER, reason and reason.reasonArgs[1], "public argument of the reason")
         for cid, rev in pairs(others) do
-            t:eq(rev, c.S.data.reputation[cid] and c.S.data.reputation[cid].revision, "reputation of " .. cid .. " changed")
+            local entry = c.Rep.data.reputation[cid]
+            t:eq(rev, entry and entry.revision, "reputation of " .. cid .. " changed")
         end
         c.Server.publish()
         readBy(t, "requester", { refresh = true, wait = { reasonKey = "IGUI_RS_RepReason_MissionSuccess" } },
@@ -207,7 +209,7 @@ RST.suite("rs.reputation", { mods = { "rs", "lk" },
                     t4:eq("player", fiche.deathAttribution, "death attribution")
                     t4:eq("bad", c.Rep.level(c.cid), "level of the killer")
                     local reason = c.Rep.reasons(c.cid, 1)[1]
-                    t4:eq("IGUI_RS_RepReason_RequesterKilled", reason and reason.reasonKey, "reason of the killer")
+                    t4:eq("npc.requesterKilled", reason and reason.action, "reason of the killer")
                     t4:eq(fiche.name, reason and reason.reasonArgs[1], "name of the requester in the reason")
                     if mate ~= nil then
                         t4:eq(mateScore, c.Rep.scoreOf(mate), "score of the team mate")
@@ -293,10 +295,10 @@ RST.suite("rs.reputation.before", { mods = { "rs", "lk" },
         local c = setup(t)
         baseline(t, c, c.cid, "neutral")
         local eventId = "rst-rep-persist-" .. string.format("%.0f", RST.now())
-        local o = c.Rep.record(c.S.data, eventId, c.cid, "mission.success", nil, { test = true }, { RP.REQUESTER })
+        local o = c.Rep.record(nil, eventId, c.cid, "mission.success", nil, { test = true }, { RP.REQUESTER })
         t:ok(o ~= nil and o.rep == "applied", "fact not applied: " .. tostring(o and o.rep))
         t:ok(c.S.save(), "notebook state not saved")
-        local e = c.S.data.reputation[c.cid]
+        local e = c.Rep.data.reputation[c.cid]
         local ok, why = RST.Persist.write(RP.FILE, RP.HEADER, { cid = c.cid, eventId = eventId, score = e.score,
             revision = e.revision, level = c.Rep.level(c.cid) })
         t:ok(ok, "snapshot not written: " .. tostring(why))
@@ -310,19 +312,19 @@ RST.suite("rs.reputation.after-restart", { tags = { "server", "world", "manual" 
         local snap, why = RST.Persist.read(RP.FILE, RP.HEADER)
         t:ok(snap ~= nil, why or "no snapshot")
         t:defer(function()
-            c.S.data.outcomes[snap.eventId] = nil
-            c.Rep.testSetLevel(c.S.data, snap.cid, "neutral")
+            c.Rep.data.outcomes[snap.eventId] = nil
+            c.Rep.testSetLevel(nil, snap.cid, "neutral")
             c.S.dirty = true
             RST.Persist.consume(RP.FILE)
         end, "test fact dropped, baseline restored")
         t:eq(snap.cid, c.cid, "character of the requester")
-        local e = c.S.data.reputation and c.S.data.reputation[snap.cid]
+        local e = c.Rep.data.reputation and c.Rep.data.reputation[snap.cid]
         t:ok(e ~= nil, "reputation entry lost by the restart")
         t:eq(snap.score, e.score, "score after the restart")
         t:eq(snap.revision, e.revision, "revision after the restart")
         t:eq(snap.level, c.Rep.level(snap.cid), "level after the restart")
-        t:ok(c.S.data.outcomes[snap.eventId] ~= nil, "outcome of the fact lost by the restart")
-        local _, dup = c.Rep.record(c.S.data, snap.eventId, snap.cid, "mission.success", nil, nil, nil)
+        t:ok(c.Rep.data.outcomes[snap.eventId] ~= nil, "outcome of the fact lost by the restart")
+        local _, dup = c.Rep.record(nil, snap.eventId, snap.cid, "mission.success", nil, nil, nil)
         t:eq("duplicate", dup, "the same event counted again")
         t:eq(snap.score, e.score, "score after the replay")
     end)

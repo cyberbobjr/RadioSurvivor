@@ -261,7 +261,7 @@ class ClearMissionTests(unittest.TestCase):
         report_turn(restart, 'alice', 'The place is clear.', 'report_done')
         self.assertEqual(old.state, 'success')
         char = restart.character('alice')
-        outcome = restart.state().outcomes[old.id + '-' + char + '-result']
+        outcome = restart.reputation().outcomes[old.id + '-' + char + '-result']
         self.assertEqual((outcome.action, outcome.proposedDelta), ('mission.success', 5))
         self.assertIsNone(restart.state().npcs[old.npc].mission)
         row = convert(restart.clients['alice'].g.RS_CarnetClient.snapshot.missions[1])

@@ -27,7 +27,7 @@
 | ☐ | E18-T19 | Historique des voix radio dans le commun | `à faire` | MP | E18-T11 |
 | ☐ | E18-T20 | Accords dans Living Knox, identifiants d'équipe dans le commun | `à faire` | MP | E18-T09 |
 | ☐ | E18-T21 | Relation personnelle des PNJ dans Living Knox | `à faire` | MP | E18-T09 |
-| ☐ | E18-T22 | Réputation dans le commun | `à faire` | MP | E18-T05 |
+| ☐ | E18-T22 | Réputation dans le commun | `testé hors jeu` | MP | E18-T05 |
 
 <!-- fin du tableau de bord -->
 
@@ -362,12 +362,12 @@ Deuxième article Workshop, dépôt séparé, nouvelles règles de jeu des missi
   - Reste : —
 
 - [ ] **E18-T22** — Réputation dans le commun
-  - État : `à faire`
+  - État : `testé hors jeu`
   - Cible : `MP`
   - Dépend de : E18-T05
   - Fichiers : `RS_Reputation` → `RC_Reputation` (commun, état privé du commun) ; sources des faits (`RC_Missions.finish`, troc `RS_TradeExchange`, morts de PNJ et de donneurs côté Living Knox) ; filtre des offres (`RS_MissionHooks`) ; `docs/annexes/conception/reputation-interne.md`
   - Faire : décision du 2026-11-06 : une réputation par personnage dans le commun, mêmes règles et mêmes bornes ; chaque mod signale ses faits par l'API du commun (liste fermée des sortes de faits, aucun fait venu d'un client ni d'une phrase) ; réputations d'une partie existante reprises une seule fois ; voix et PNJ lisent le même niveau.
   - Accepté si : chaque mod seul : missions réussies ou ratées changent la réputation ; Living Knox seul : le meurtre d'un membre d'un groupe la baisse ; ensemble : mêmes scores qu'avant.
   - Tests : bancs de la réputation (fixture écrite par l'ancien code) ; suites rs.reputation dans les trois montages.
-  - Preuve : —
-  - Reste : —
+  - Preuve : décision du 2026-11-06 ; mod commun : `server/RadioSurvivorCore/RC_Reputation` (déplacé de `RS_Reputation` par `git mv`, mêmes règles ; état privé `Zomboid/Lua/batman_RadioSurvivorCore/reputation-*.txt`, en-tête `RCREP1`, `RC_SlotFile` ; personnage vivant = identité non retirée de `RC_Identity` ; motifs sans texte, l'action seule ; `chargedFor` ; `testAllowed` propre au commun), barème `shared/RadioSurvivorCore/RC_ReputationConfig` (`RS_Config.Reputation` = même table), abonnements `RC_ReputationEvents` (chargement, mort par `RC_Identity.onRetire`, purge chaque jour de jeu) ; moteur des missions : fait de chaque participant d'une mission close et refus des offres sensibles à une mauvaise réputation pour tous les donneurs (`RC_Missions`, sans RadioSurvivor) ; Living Knox : `LK_Reputation` (`npc.memberKilled` sur le fait `npcDied`, sauf mort déjà comptée en `npc.requesterKilled`), `LK_Hostility.reputationOf` lit le commun ; RadioSurvivor : plus de `npcDied` ni de crochet `Hooks.reputation`, textes `IGUI_RS_RepReason_*` ajoutés à la projection du carnet, marge du passeur `RS_Config.TradeMargin` ; `RS_State` remet une fois `reputation` et `outcomes` d'une partie d'avant la séparation au commun (`RC_Reputation.adopt`, une entrée déjà présente l'emporte) et ne les écrit plus ; `reputation-interne.md` mis à jour ; banc `tests/test_core_reputation.py` (9 tests ; rouge sur le commit `2dee3b9` : 9 ERROR ; puis OK) : une seule copie ASCII, aucune référence à l'ancien module, Living Knox ne requiert que le commun, écriture puis relecture après redémarrage sans double compte, mort puis purge 7 jours après, résultat de mission et offres par niveau sans aucun module de RadioSurvivor, Living Knox seul (membre tué compté une fois, mort déjà comptée ignorée), partie d'avant la séparation (`tests/fixtures/e18-t22`, écrite par l'ancien code du commit `2dee3b9`) reprise une fois, monde neuf vide ; bancs adaptés (`test_reputation.py` 25, `test_carnet.py`, `test_rs_trade*.py`, `test_voice_bonds.py`, bancs des missions, `test_kahlua.py` 40 dans la VM réelle, suites `rs.reputation`, `rs.missions.solo`, `rs.missions.radio`, `rs.missions.clear`) ; `run_all.py` 158 PASS, luacheck `Contents` 15 (référence 15), `dev` 0, `plan.py check` 0 erreur ; passages solo automatiques du 2026-11-06 (faux modèle, code 0) : trois mods, rs.env, rs.reputation, rs.missions, rs.missions.solo, rs.missions.radio 24/24 (`tools/autoclient/runs/20261106-134226-c4b45a012723`) ; Living Knox seul (`--mods lk`) 6/6, aucune erreur Lua au chargement (`tools/autoclient/runs/20261106-134334-a0f4db6d24fd`)
+  - Reste : cible MP : suites rs.reputation et missions dans la campagne MP, et dans les trois montages (`E18-T15`) ; Living Knox seul : réputation lue par la parole des PNJ et missions des PNJ avec E18-T17 et E18-T18 ; `npc.requesterKilled` reste compté par RadioSurvivor (donneur PNJ du carnet) : avec Living Knox seul, le donneur des missions des PNJ (E18-T18) devra le signaler ; `tests/test_rs_state.py` déjà en échec avant cette tâche (4 erreurs, hors `run_all.py`)

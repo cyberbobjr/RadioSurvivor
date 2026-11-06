@@ -34,7 +34,7 @@ local Run = require "RadioSurvivor/RS_TradeRun"
 local TV = require "RadioSurvivorCore/RC_TradeValues"
 local News = require "RadioSurvivor/RS_OutsideNews"
 local NewsServer = require "RadioSurvivor/RS_OutsideNewsServer"
-local Rep = require "RadioSurvivor/RS_Reputation"
+local Rep = require "RadioSurvivorCore/RC_Reputation"
 
 local Ex = {}
 
@@ -293,9 +293,9 @@ end
 local function finish(outcome, reason, detail, say)
     local run = Trade.finishRun(outcome, reason, detail)
     if run == nil then return nil end
-    if outcome == "cheated" and type(S.data) == "table" and type(S.data.outcomes) == "table" then
+    if outcome == "cheated" and type(S.data) == "table" then
         local who = run.cid or run.caller
-        Rep.record(S.data, "trade-" .. tostring(run.rev) .. "-cheated", who, "trade.cheated",
+        Rep.record(nil, "trade-" .. tostring(run.rev) .. "-cheated", who, "trade.cheated",
             Config.Reputation and Config.Reputation.failure or -5,
             { run = run.passage, rev = run.rev, value = detail and detail.value, price = detail and detail.price })
         -- Rejeu impossible : finishRun ne rend le passage qu'une fois, et l'eventId « trade-<rév>-cheated » est unique.

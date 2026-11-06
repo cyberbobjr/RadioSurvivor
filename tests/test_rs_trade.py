@@ -337,6 +337,8 @@ class MemoryTests(TradeHarness):
                                    'dead': {'id': 'dead', 'retired': True}})
         state.reputation = self.t({'cg': {'score': 40}, 'cb': {'score': -40}, 'cn': {'score': 0},
                                    'dead': {'score': -40}})
+        # E18-T22: reputation of the core mod on this table (characters living by its records).
+        self.rt.eval("require('RadioSurvivorCore/RC_Reputation')").useData(state)
         self.assertAlmostEqual(self.T.marginRange('kate', 'cg')[0], 0.10)
         self.assertAlmostEqual(self.T.marginRange('kate', 'cn')[0], 0.25)
         self.assertAlmostEqual(self.T.marginRange('kate', 'cb')[0], 0.40)

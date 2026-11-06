@@ -1,4 +1,4 @@
-"""Réputation interne côté serveur (E04-T07, E04-T08, E04-T09, E04-T12) : RS_Reputation.lua seul (lupa, Lua 5.1,
+"""Réputation interne côté serveur (E04-T07, E04-T08, E04-T09, E04-T12 ; mod commun depuis E18-T22) : RC_Reputation.lua seul (lupa, Lua 5.1,
 `next` retiré comme dans Kahlua), puis dans le vrai serveur du carnet (doublures de tests/test_carnet.py, deux
 clients).
 
@@ -31,6 +31,15 @@ import lupa.lua51 as lupa
 ROOT = Path(__file__).resolve().parents[1]
 LUA = ROOT / 'Contents/mods/batman_RadioSurvivor/42.21/media/lua'
 CORE_LUA = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivorCore' / '42.21' / 'media' / 'lua'  # mod commun (E18)
+LK_SERVER = ROOT / 'Contents' / 'mods' / 'batman_LivingKnox' / '42.21' / 'media' / 'lua' / 'server' / 'LivingKnox'
+LK_STUBS = r"""
+LivingKnox = LivingKnox or {}
+LivingKnox.Bodies = {livingPlayers = function()
+    local out = {}
+    for _, p in pairs(PLAYERS) do out[#out + 1] = p end
+    return out
+end}
+"""
 
 UNIT_STUBS = r'''
 next = nil
@@ -43,6 +52,16 @@ ZombRand = function(a, b) return a end
 LOGS = {}
 print = function(...) local t = {} for i = 1, select('#', ...) do t[#t + 1] = tostring(select(i, ...)) end
     LOGS[#LOGS + 1] = table.concat(t, ' ') end
+'''
+
+
+# E18-T22: a character lives while the record of the table says so (benches of the rules, no RC_Identity).
+LIVENESS_BY_RECORDS = r'''
+require('RadioSurvivorCore/RC_Reputation').setLiveness(function(c, st)
+    local r = type(st.characters) == 'table' and st.characters[c] or nil
+    if type(r) ~= 'table' then return 'no_character' end
+    if r.retired then return 'retired' end
+end)
 '''
 
 
@@ -66,11 +85,14 @@ class Unit(unittest.TestCase):
         self.rt.execute(UNIT_STUBS)
         roots = ';'.join(f'{(LUA / side).as_posix()}/?.lua' for side in ('server', 'shared')) + f';{(CORE_LUA / "shared").as_posix()}/?.lua;{(CORE_LUA / "server").as_posix()}/?.lua'
         self.rt.execute(f'package.path = [[{roots};]] .. package.path')
-        self.R = self.rt.eval("require('RadioSurvivor/RS_Reputation')")
+        self.R = self.rt.eval("require('RadioSurvivorCore/RC_Reputation')")
         self.S = self.rt.eval("require('RadioSurvivor/RS_State')")
         self.state = self.rt.eval("{characters = {alice = {id = 'alice'}, bob = {id = 'bob'}, "
                                   "dead = {id = 'dead', retired = true}}, outcomes = {}}")
         self.S.data = self.state
+        # E18-T22: reputation of the core mod on this table, characters living by the notebook records of the table.
+        self.rt.execute(LIVENESS_BY_RECORDS)
+        self.R.useData(self.state)
         self.n = 0
 
     def day(self, day):
@@ -133,7 +155,8 @@ class Unit(unittest.TestCase):
         self.assertEqual(self.R.trend('alice'), 'down')  # +, -, -
         reasons = [py(r) for r in lua_list(self.R.reasons('alice'))]
         self.assertEqual(len(reasons), 5)
-        self.assertEqual(reasons[0]['reasonKey'], 'IGUI_RS_RepReason_MissionFailed')
+        self.assertEqual(reasons[0]['action'], 'mission.failed')
+        self.assertNotIn('reasonKey', reasons[0], 'the text of a reason belongs to the mod that shows it')
         self.assertEqual(reasons[0]['sign'], -1)
         self.assertEqual(len(lua_list(self.R.reasons('alice', 2))), 2)
 
@@ -161,6 +184,7 @@ class Unit(unittest.TestCase):
         codec = self.rt.eval("require('RadioSurvivorCore/RC_Codec')")
         reloaded = codec.decodeBytes(codec.encodeBytes(self.state))
         self.S.data = reloaded
+        self.R.useData(reloaded)
         _, dup = self.R.record(reloaded, 'm1-alice-result', 'alice', 'mission.success', 5, None, None)
         self.assertEqual(dup, 'duplicate')
         self.assertEqual(self.R.scoreOf('alice', reloaded), 5)
@@ -174,7 +198,7 @@ class Unit(unittest.TestCase):
         self.assertEqual((p['available'], p['level'], p['trend']), (True, 'bad', 'down'))
         self.assertNotIn('score', p)
         reason = p['reasons'][1]
-        self.assertEqual(set(reason), {'action', 'reasonKey', 'reasonArgs', 'sign', 'day'})
+        self.assertEqual(set(reason), {'action', 'reasonArgs', 'sign', 'day'})
         self.assertEqual((reason['day'], p['today']), (1, 1))
         self.assertEqual(p['change'], {'from': 'neutral', 'to': 'bad', 'day': 1, 'n': 1})
         self.assertEqual(reason['reasonArgs'], {1: 'Real Bandit', 2: 'x' * 48})
@@ -219,16 +243,17 @@ class Unit(unittest.TestCase):
         supply = self.rt.table_from({'kind': 'supply'})
         self.assertFalse(allowed('bad', 'deliver', supply), 'group supply mission')
         self.assertTrue(allowed('neutral', 'deliver', supply))
-        self.assertEqual([self.R.margin(lv) for lv in ('good', 'neutral', 'bad', None)], [0.10, 0.25, 0.40, 0.25])
 
     def test_test_setter_needs_a_test_save_in_debug_mode(self):
         self.day(1)
-        self.assertEqual(self.R.testSetLevel(self.state, 'alice', 'bad'), (False, 'test API unavailable'))
-        self.rt.execute('LivingKnox = {API = {testAllowed = function() return TEST_OK, "save is not a test save" end}}')
-        self.g.TEST_OK = False
-        self.assertEqual(self.R.testSetLevel(self.state, 'alice', 'bad'), (False, 'save is not a test save'))
+        self.assertEqual(self.R.testSetLevel(self.state, 'alice', 'bad'),
+                         (False, 'debug mode off (isDebugEnabled() is false on this machine)'))
+        self.rt.execute('DEBUG = true; SAVE = "playthrough"; isDebugEnabled = function() return DEBUG end; '
+                        'getWorld = function() return {getWorld = function() return SAVE end} end')
+        self.assertEqual(self.R.testSetLevel(self.state, 'alice', 'bad'),
+                         (False, "save 'playthrough' is not a test save (rstest*)"))
         self.assertEqual(self.R.level('alice'), 'neutral')
-        self.g.TEST_OK = True
+        self.g.SAVE = 'rstest-rep'
         self.assertTrue(self.R.testSetLevel(self.state, 'alice', 'bad'))
         self.assertEqual(self.R.level('alice'), 'bad')
         self.assertEqual(self.R.testSetLevel(self.state, 'alice', 'great'), (False, 'unknown level'))
@@ -277,7 +302,7 @@ class Server(unittest.TestCase):
             sim.add_client(c)
         sim.select(clients[0])
         self.sim, self.g, self.rt = sim, sim.server.g, sim.server.rt
-        self.R = self.rt.eval("require('RadioSurvivor/RS_Reputation')")
+        self.R = self.rt.eval("require('RadioSurvivorCore/RC_Reputation')")
         self.M = self.rt.eval("require('RadioSurvivorCore/RC_Missions')")
         self.npc = next(iter(sim.state().npcs.values()))
         return sim
@@ -296,6 +321,13 @@ class Server(unittest.TestCase):
         args = self.rt.table_from({'cause': cause, 'killer': killer}) if killer else None
         P.emit('death', 2001, self.sim.zombie, args)
 
+    def lk_reputation(self):
+        """LK_Reputation of Living Knox on this notebook server (E18-T22): killer by account (connected players of the
+        bench), then its bound identity of the core mod."""
+        self.rt.execute(LK_STUBS)
+        path = (LK_SERVER / 'LK_Reputation.lua').as_posix()
+        return self.rt.eval(f'dofile([[{path}]])')
+
     def rep(self, name):
         return self.R.scoreOf(self.sim.character(name)), self.R.level(self.sim.character(name))
 
@@ -310,17 +342,17 @@ class Server(unittest.TestCase):
         sim.server.g.RS_CarnetServer.store.save()
         self.assertEqual(self.rep('alice'), (5, 'neutral'))
         self.assertEqual(self.R.scoreOf(bob), 5)
-        alice_o = sim.state().outcomes[m.id + '-' + sim.character('alice') + '-result']
-        bob_o = sim.state().outcomes[m.id + '-' + bob + '-result']
+        alice_o = self.R.data.outcomes[m.id + '-' + sim.character('alice') + '-result']
+        bob_o = self.R.data.outcomes[m.id + '-' + bob + '-result']
         self.assertEqual((alice_o.appliedDelta, bob_o.appliedDelta), (5, 5))
         self.assertEqual(self.R.reasons(bob)[1].reasonArgs[1], 'Real Bandit')
         self.assertFalse(self.M.finish(sim.state(), m, 'success'), 'second finish')
         # Restart of the server: same scores, a replayed fact is a duplicate.
         restart = self.Simulation(sim.path, sim.clock, saved_players=sim.saved())
-        R2 = restart.server.rt.eval("require('RadioSurvivor/RS_Reputation')")
+        R2 = restart.server.rt.eval("require('RadioSurvivorCore/RC_Reputation')")
         self.assertEqual((R2.scoreOf(sim.character('alice')), R2.scoreOf(bob)), (5, 5))
         state = restart.state()
-        _, dup = R2.record(state, m.id + '-' + bob + '-result', bob, 'mission.success', 5, None, None)
+        _, dup = R2.record(None, m.id + '-' + bob + '-result', bob, 'mission.success', 5, None, None)
         self.assertEqual(dup, 'duplicate')
         self.assertEqual(R2.scoreOf(bob), 5)
 
@@ -331,16 +363,18 @@ class Server(unittest.TestCase):
         self.assertEqual(m.state, 'cancelled_dead')
         self.assertEqual(self.rep('alice'), (-50, 'bad'))
         self.assertEqual(self.rep('bob'), (0, 'neutral'), 'team mate punished')
-        o = sim.state().outcomes[self.npc.id + '-killed-' + sim.character('alice')]
+        o = self.R.data.outcomes[self.npc.id + '-killed-' + sim.character('alice')]
         self.assertEqual((o.action, o.appliedDelta, o.proof.mission), ('npc.requesterKilled', -50, m.id))
         self.assertEqual(self.npc.deathAttribution, 'player')
         # Double death event (second OnZombieDead, replay): no second sanction, and the Living Knox fact of the
-        # same death does not add npc.memberKilled.
+        # same death does not add npc.memberKilled (LK_Reputation, E18-T22).
         self.kill('alice')
-        sim.server.g.RS_CarnetServer.npcDied(self.rt.table_from(
+        lk = self.lk_reputation()
+        lk.onNpcDied(self.rt.table_from(
             {'npc': 2001, 'generation': 1, 'group': 'g1', 'killer': 'alice', 'cause': 'melee'}))
+        self.assertTrue(self.R.chargedFor(2001, sim.character('alice')))
         self.assertEqual(self.rep('alice'), (-50, 'bad'))
-        self.assertEqual(len([o for o in sim.state().outcomes.values() if o.character == sim.character('alice')]), 1)
+        self.assertEqual(len([o for o in self.R.data.outcomes.values() if o.character == sim.character('alice')]), 1)
 
     def test_non_participant_killer_is_a_member_kill(self):
         sim = self.world('member', clients=('alice', 'bob', 'carol'))
@@ -348,15 +382,15 @@ class Server(unittest.TestCase):
         self.kill('carol')
         self.assertEqual(self.rep('carol'), (0, 'neutral'), 'requester rule applied to a non-participant')
         info = self.rt.table_from({'npc': 2001, 'generation': 1, 'group': 'g1', 'killer': 'carol', 'cause': 'melee'})
-        server = sim.server.g.RS_CarnetServer
-        server.npcDied(info)
-        server.npcDied(info)
+        server = self.lk_reputation()
+        server.onNpcDied(info)
+        server.onNpcDied(info)
         self.assertEqual(self.rep('carol'), (-10, 'neutral'))
         self.assertEqual((self.rep('alice'), self.rep('bob')), ((0, 'neutral'), (0, 'neutral')))
         # Not a group member, or no attributed killer: nothing.
-        server.npcDied(self.rt.table_from({'npc': 2001, 'generation': 2, 'killer': 'carol'}))
-        server.npcDied(self.rt.table_from({'npc': 2001, 'generation': 3, 'group': 'g1'}))
-        server.npcDied(self.rt.table_from({'npc': 2001, 'generation': 4, 'group': 'g1', 'killer': 'mallory'}))
+        server.onNpcDied(self.rt.table_from({'npc': 2001, 'generation': 2, 'killer': 'carol'}))
+        server.onNpcDied(self.rt.table_from({'npc': 2001, 'generation': 3, 'group': 'g1'}))
+        server.onNpcDied(self.rt.table_from({'npc': 2001, 'generation': 4, 'group': 'g1', 'killer': 'mallory'}))
         self.assertEqual(self.rep('carol'), (-10, 'neutral'))
 
     def test_unattributed_death_no_sanction(self):
@@ -365,20 +399,20 @@ class Server(unittest.TestCase):
         self.kill(None)
         self.assertEqual(self.rep('alice'), (0, 'neutral'))
         self.assertEqual(self.npc.deathAttribution, 'unavailable_server_evidence')
-        self.assertEqual(len(list(sim.state().outcomes.values())), 0)
+        self.assertEqual(len(list(self.R.data.outcomes.values())), 0)
 
     def test_no_client_can_write_and_projection_is_private(self):
         sim = self.world('clients')
         self.active_mission('alice')
         m = next(iter(sim.state().missions.values()))
         self.M.finish(sim.state(), m, 'failed')
-        before = py(sim.state().reputation)
-        outcomes = len(list(sim.state().outcomes.values()))
+        before = py(self.R.data.reputation)
+        outcomes = len(list(self.R.data.outcomes.values()))
         for command in ('reputation', 'record', 'rep_record', 'set_reputation'):
             sim.command('bob', command, character=sim.character('bob'), action='mission.success', delta=100,
                         reasonKey='IGUI_RS_RepReason_MissionSuccess', eventId='forged')
-        self.assertEqual(py(sim.state().reputation), before)
-        self.assertEqual(len(list(sim.state().outcomes.values())), outcomes)
+        self.assertEqual(py(self.R.data.reputation), before)
+        self.assertEqual(len(list(self.R.data.outcomes.values())), outcomes)
         sim.command('alice', 'snapshot'); sim.command('bob', 'snapshot')
         a = py(sim.clients['alice'].g.RS_CarnetClient.snapshot.reputation)
         b = py(sim.clients['bob'].g.RS_CarnetClient.snapshot.reputation)
@@ -398,16 +432,15 @@ class Server(unittest.TestCase):
         sim.add_client('alice')
         sim.clock.offset += 1001; sim.tick()
         rt = sim.server.rt
-        self.assertTrue(sim.server.g.RS_CarnetServer.reputationLinked)
         info = rt.table_from({'npc': 'lk-npc-9', 'generation': 1, 'group': sim.server.g.LK_GROUP, 'killer': 'alice',
                               'cause': 'melee'})
         publish = rt.eval('LivingKnox.publish')
         publish('npcDied', info)
         publish('npcDied', info)
-        R = rt.eval("require('RadioSurvivor/RS_Reputation')")
+        R = rt.eval("require('RadioSurvivorCore/RC_Reputation')")
         alice = sim.character('alice')
         self.assertEqual((R.scoreOf(alice), R.level(alice), R.trend(alice)), (-10, 'neutral', 'down'))
-        self.assertEqual(R.reasons(alice)[1].reasonKey, 'IGUI_RS_RepReason_MemberKilled')
+        self.assertEqual(R.reasons(alice)[1].action, 'npc.memberKilled')
 
 
 class Effects(unittest.TestCase):
@@ -417,7 +450,7 @@ class Effects(unittest.TestCase):
     def bad(self, name):
         sim = self.sim
         for i in range(4):
-            self.R.record(sim.state(), f'bad-{name}-{i}', sim.character(name), 'mission.failed', None, None,
+            self.R.record(None, f'bad-{name}-{i}', sim.character(name), 'mission.failed', None, None,
                           self.rt.table_from(['Real Bandit']))
         self.assertEqual(self.R.level(sim.character(name)), 'bad')
 
@@ -509,14 +542,14 @@ class Effects(unittest.TestCase):
         self.assertEqual({k: answers[-1][k] for k in ('ok', 'err')}, {'ok': False, 'err': 'denied'})
         self.assertNotIn('characters', answers[-1])
         self.g.ADMIN_OK = True
-        before = py(sim.state().reputation)
+        before = py(sim.reputation().reputation)
         sim.command('bob', 'rep_admin')
         view = answers[-1]
         self.assertTrue(view['ok'])
         names = {c['name']: c for c in view['characters'].values()}
         self.assertEqual(names['alice Doe']['level'], 'bad')
         self.assertNotIn('score', str(view))
-        self.assertEqual(py(sim.state().reputation), before, 'the admin view wrote something')
+        self.assertEqual(py(sim.reputation().reputation), before, 'the admin view wrote something')
 
     def test_notebook_tab_and_warning_on_level_change(self):
         from test_carnet import NOTEBOOK_UI  # noqa: PLC0415

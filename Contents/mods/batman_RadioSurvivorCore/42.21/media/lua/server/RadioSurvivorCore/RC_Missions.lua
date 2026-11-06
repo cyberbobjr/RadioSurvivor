@@ -13,12 +13,18 @@ Givers (E18-T05, user decision of 2026-11-05: registration and hooks). A mod reg
                             claim(store, m, player, character, token) -> handled, reason | nil   optional reward path
                             observeDeliver(m, player, name, state, store) -> changed }       optional, `deliver` poll
 The engine keeps its fields on the giver record, owned by that mod: id, name, mission, missionCount, nextOfferHour.
-Hooks (all optional; none registered: a mission changes no reputation and no notebook):
+Reputation (E18-T22): the engine records the fact of each participant of a closed mission in the reputation of the
+core mod (RC_Reputation: mission.success, mission.failed, mission.abandoned; not for the cancelled_* results) and
+keeps the sensitive offers from a character of bad reputation (RC_Reputation.offerAllowed, E04-T05), for every giver.
+A mission world that carries its own `outcomes` table (isolated world of the in-game test fixtures) keeps the facts of
+its missions in that table; the state of a game never does (the core mod's file holds them).
+Hooks (all optional; none registered: a mission changes no notebook):
     M.addResultListener(fn(state, m, result, character, requesterName))   once per participant of a closed mission
                                                                          (not for the cancelled_* results)
     M.addPruneListener(fn(state, id, m))        a closed mission is dropped
     M.addChangeListener(fn())                   a template changed a mission outside a request (kill, signal seen)
     M.setOfferFilter(fn(character, name, offer) -> boolean)   an admissible offer may be shown to this character
+                                                              (after the reputation rule above)
     M.setCharacterName(fn(state, character) -> name)          name kept with a claimed lot
     M.setBinding(fn() -> { [server player] = character })     default: identities of the core mod (RC_Identity)
     M.setKnownMissions(fn(state, character) -> { [id] = true })  missions still listed for a character (E18-T06)
@@ -200,16 +206,20 @@ function M.offerWait(record)
 end
 
 -- Server-configured allocations a giver may offer now, never fabricated by the model or the client (E11-T06:
--- MAX_OFFERS). The offer filter (hook, RadioSurvivor: E04-T05 reputation, Q11, Q12) may keep an offer from a
--- character; the bridge only sees the offers left. M.create revalidates an accepted offer against this same catalog.
+-- MAX_OFFERS). A bad reputation keeps the sensitive offers from a character (E04-T05, Q11, Q12), then the offer filter
+-- (hook) may keep one too; the bridge only sees the offers left. M.create revalidates an accepted offer against this
+-- same catalog.
 function M.offers(npc, record, body, character)
     if npc.mission or not record or record.hostile ~= false then return {} end
     if M.offerWait(npc) then return {} end
     local catalog, n = {}, 0
+    local Rep = require('RadioSurvivorCore/RC_Reputation')
+    local level = type(character) == 'string' and Rep.level(character) or nil
     for _, name in ipairs(order) do
         local entry = n < (Config.MAX_OFFERS or 4) and Config.Missions[name]
         local offer = entry and templates[name].offer(entry, npc, record, body, character)
-        if offer and (not offerFilter or offerFilter(character, name, offer)) then
+        local shown = offer and Rep.offerAllowed(level, name, offer)
+        if shown and (not offerFilter or offerFilter(character, name, offer)) then
             catalog[entry.id], n = offer, n + 1
         end
     end
@@ -276,11 +286,16 @@ function M.finish(state, mission, result)
     if M.onFinished then M.onFinished(state, mission, result) end
     -- Cancellations (requester dead, engine offer closed) tell no listener. Otherwise the result listeners hear once
     -- per registered participant, connected or not (RadioSurvivor: reputation fact and notebook trust, E04-T08); the
-    -- requester's name (giver record, else the name kept on the mission) is handed to them.
+    -- requester's name (giver record, else the name kept on the mission) is handed to them and to the reputation.
     if string.sub(result, 1, 10) ~= 'cancelled_' then
         local donor = M.donorOf(state, mission)
         local requester = donor and donor.name or mission.requesterName
+        local Rep = require('RadioSurvivorCore/RC_Reputation')
+        local facts = type(state.outcomes) == 'table' and state or nil
         for character in pairs(mission.participants) do
+            -- E04-T08: same amount for every registered participant, connected or not; once per mission (eventId).
+            Rep.record(facts, mission.id .. '-' .. character .. '-result', character, 'mission.' .. result, nil,
+                {mission = mission.id, result = result}, type(requester) == 'string' and {requester} or nil)
             for _, fn in ipairs(resultListeners) do fn(state, mission, result, character, requester) end
         end
     end

@@ -165,7 +165,7 @@ class SignalMissionTests(unittest.TestCase):
         report_turn(sim, 'bob', 'Your signal is lit.', 'report_done')
         self.assertEqual(m.state, 'success')
         char = sim.character('bob')
-        outcome = sim.state().outcomes[m.id + '-' + char + '-result']
+        outcome = sim.reputation().outcomes[m.id + '-' + char + '-result']
         self.assertEqual((outcome.action, outcome.proposedDelta), ('mission.success', 5))
         self.assertIsNone(sim.state().npcs[m.npc].mission)
         self.assertEqual(sim.state().missions[m.id].state, 'success')

@@ -8,6 +8,23 @@
   bâtie sur les faits déjà journalisés (`rs.facts`), avec un adaptateur optionnel vers CharacterReputation si son API
   arrive ».
 
+> **Depuis E18-T22 (2026-11-06, décision de l'utilisateur : une seule réputation par personnage, dans le mod commun).**
+> Les règles ci-dessous sont inchangées, mais le code et l'état ont changé de place :
+> - module `server/RadioSurvivorCore/RC_Reputation.lua` du mod `batman_RadioSurvivorCore` (API publique en tête),
+>   barème `shared/RadioSurvivorCore/RC_ReputationConfig.lua` (`RS_Config.Reputation` est la même table), abonnements
+>   `server/RadioSurvivorCore/RC_ReputationEvents.lua` (chargement, mort d'un personnage par `RC_Identity`, purge
+>   chaque jour de jeu) ;
+> - état privé à lui, `Zomboid/Lua/batman_RadioSurvivorCore/reputation-<monde>-<0|1>.txt` (`RC_SlotFile`, en-tête
+>   `RCREP1`) : `{ schema, reputation, outcomes }` ; l'état du carnet (`RS_State`) ne les porte plus ; ceux d'une partie
+>   d'avant la séparation sont repris une fois (`RC_Reputation.adopt`, une entrée déjà présente l'emporte) ;
+> - personnage vivant : identité non retirée de `RC_Identity` (plus la fiche du carnet) ;
+> - faits : résultats des missions et refus des offres sensibles par le moteur commun (`RC_Missions`, quel que soit le
+>   donneur, avec ou sans RadioSurvivor) ; `npc.memberKilled` par Living Knox (`LK_Reputation`, fait `npcDied`, sauf si
+>   `npc.requesterKilled` a déjà compté la même mort : `RC_Reputation.chargedFor`) ; `trade.cheated` et
+>   `npc.requesterKilled` par RadioSurvivor ; Living Knox lit le niveau directement (`LK_Hostility.reputationOf`) ;
+> - un motif garde l'action, pas le texte : le carnet de RadioSurvivor ajoute la clé `IGUI_RS_RepReason_*` à la
+>   projection ; la marge du passeur par niveau est `RS_Config.TradeMargin` (`RS_Trade`).
+
 Les numéros de ligne ci-dessous sont ceux de la branche `dev` au 2026-10-14 (chemins relatifs à
 `Contents/mods/batman_RadioSurvivor/42.21/media/lua/`).
 

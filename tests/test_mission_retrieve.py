@@ -277,7 +277,7 @@ class RetrieveMissionTests(unittest.TestCase):
         self.assertEqual(list(lua_list(g.REMOVALS)), [card.id])
         self.assertIsNone(g.PLAYERS.alice.inv.getItemWithIDRecursiv(g.PLAYERS.alice.inv, card.id))
         self.assertIsNotNone(g.PLAYERS.alice.inv.getItemWithIDRecursiv(g.PLAYERS.alice.inv, other), 'other card taken')
-        outcome = sim.state().outcomes[m.id + '-' + char + '-result']
+        outcome = sim.reputation().outcomes[m.id + '-' + char + '-result']
         self.assertEqual((outcome.action, outcome.proposedDelta), ('mission.success', 5))
         self.assertIsNone(npc.mission)
         sim.request_mission('alice', 'claim')

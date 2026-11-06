@@ -32,7 +32,10 @@ local function inUse(data, cid)
             end
         end
     end
-    if type(data.reputation) == 'table' and data.reputation[cid] ~= nil then return true end
+    -- E18-T22: reputation kept by the core mod.
+    local okRep, Rep = pcall(require, 'RadioSurvivorCore/RC_Reputation')
+    local rep = okRep and type(Rep) == 'table' and type(Rep.data) == 'table' and Rep.data.reputation or nil
+    if type(rep) == 'table' and rep[cid] ~= nil then return true end
     local okL, LifeLog = pcall(require, 'RadioSurvivor/RS_LifeLog')
     if okL and type(LifeLog) == 'table' and LifeLog.get then
         local log = LifeLog.get(cid)
@@ -43,7 +46,7 @@ end
 Purge.inUse = inUse
 
 local function today()
-    local okR, Rep = pcall(require, 'RadioSurvivor/RS_Reputation')
+    local okR, Rep = pcall(require, 'RadioSurvivorCore/RC_Reputation')
     return okR and type(Rep) == 'table' and Rep.today and Rep.today() or nil
 end
 

@@ -24,6 +24,13 @@ require "RST/RST_Fixtures"
 local F = RST.Fixtures
 
 -- E11-T10: client map module beside the authority (solo), or nil (dedicated server).
+-- E18-T22: facts of the missions in the reputation of the core mod.
+local function repOutcomes()
+    local Rep = require "RadioSurvivorCore/RC_Reputation"
+    Rep.ensure()
+    return Rep.data and Rep.data.outcomes or {}
+end
+
 local function mapActions()
     if type(isServer) == "function" and isServer() then return nil end
     local ok, MapActions = pcall(require, "RadioSurvivor/RS_MapActions")
@@ -276,7 +283,7 @@ RST.suite("rs.missionreport.llm", { tags = { "server", "world" }, testTimeoutMs 
                         talk("Darlene, it's me again. I went to that " .. kind .. " you sent me to and looked it over, "
                             .. "inside and out. That's my report: the job is done. Over.")
                         t4:waitUntil(function() return mission.state == "success" end, LLM_WAIT_MS, function(t5)
-                            t5:eq("mission.success", S.data.outcomes[mission.id .. "-" .. cid .. "-result"].action)
+                            t5:eq("mission.success", repOutcomes()[mission.id .. "-" .. cid .. "-result"].action)
                             t5:eq(nil, V.open(S.data, VOICE, cid), "mission still open after the report")
                             -- The answer is aired line by line after the action: let it end before noting it.
                             aired(t5, heard, khz, function(t6)
@@ -332,7 +339,7 @@ RST.suite("rs.missionreport.llm", { tags = { "server", "world" }, testTimeoutMs 
                     t4:ok(type(req.context) == "table" and type(req.context.reportable) == "table",
                         "talk request without context.reportable")
                     t4:waitUntil(function() return m.state == "success" end, LLM_WAIT_MS, function(t5)
-                        t5:eq("mission.success", S.data.outcomes[m.id .. "-" .. cid .. "-result"].action)
+                        t5:eq("mission.success", repOutcomes()[m.id .. "-" .. cid .. "-result"].action)
                         local k = S.data.characters[cid].contacts[fiche.id]
                         local answer = nil
                         for _, h in ipairs(k and k.history or {}) do

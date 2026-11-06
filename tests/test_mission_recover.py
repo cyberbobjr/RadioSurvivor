@@ -355,7 +355,7 @@ class RecoverMissionTests(unittest.TestCase):
         self.assertIn(bag.id, list(lua_list(g.REMOVALS)))
         self.assertIsNone(crate.getItemWithIDRecursiv(crate, bag.id))
         self.assertEqual(len(lua_list(sim.server.g.RECOVER.floorRemovals)), 0)
-        outcome = sim.state().outcomes[m.id + '-' + char + '-result']
+        outcome = sim.reputation().outcomes[m.id + '-' + char + '-result']
         self.assertEqual((outcome.action, outcome.proposedDelta), ('mission.success', 5))
         self.assertIsNone(npc.mission)
         row = convert(sim.clients['alice'].g.RS_CarnetClient.snapshot.missions[1])

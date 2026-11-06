@@ -26,7 +26,7 @@ local C = require "RadioSurvivor/RS_Config"
 local Codec = require "RadioSurvivorCore/RC_Codec"
 local T = require "RadioSurvivor/RS_BridgeLanes"
 local TextCut = require "RadioSurvivorCore/RC_TextCut"
-local Rep = require "RadioSurvivor/RS_Reputation"
+local Rep = require "RadioSurvivorCore/RC_Reputation"
 
 local GroupRadio = {}
 
@@ -144,7 +144,7 @@ function GroupRadio.talk(player, key, sheet, khz, text, language, cid)
     end
     local known = Server.contact(character, npc)
     -- E04-T10 (Q10) : niveau de réputation du demandeur et dernier acte public (jamais de score).
-    local context = { name = npc.name, background = npc.background, reputation = Rep.publicContext(character, S.data),
+    local context = { name = npc.name, background = npc.background, reputation = Rep.publicContext(character),
         agreements = npc.agreements, trust = known.trust or "Unassessed", caller = record.name,
         group = P.context(npc.incarnation, character, language), radio = { note = GroupRadio.NOTE } }
     -- E17-T08 inchangé : un inconnu n'apprend ni le groupe, ni son chef, ni son histoire.

@@ -57,11 +57,11 @@ class VoiceBondsTests(unittest.TestCase):
         return d.accepted, d.reason
 
     def good(self):
-        """Good reputation of alice (RS_Config.Reputation.goodAt = 20), written in the private state."""
-        self.rt.execute(f"local S = require('RadioSurvivor/RS_State'); S.data.reputation = S.data.reputation or {{}}; "
-                        f"S.data.reputation['{self.cid}'] = {{ score = 30, revision = 1, trend = 'stable', signs = {{}}, "
+        """Good reputation of alice (RC_ReputationConfig.goodAt = 20), written in the core mod's state (E18-T22)."""
+        self.rt.execute(f"local R = require('RadioSurvivorCore/RC_Reputation'); R.ensure(); "
+                        f"R.data.reputation['{self.cid}'] = {{ score = 30, revision = 1, trend = 'stable', signs = {{}}, "
                         f"reasons = {{}}, gainDay = -1, gainSum = 0 }}")
-        self.assertEqual(self.rt.eval(f"require('RadioSurvivor/RS_Reputation').level('{self.cid}')"), 'good')
+        self.assertEqual(self.rt.eval(f"require('RadioSurvivorCore/RC_Reputation').level('{self.cid}')"), 'good')
 
     def answers(self, n, voice='walt'):
         for _ in range(n):

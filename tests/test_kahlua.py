@@ -57,11 +57,11 @@ LUA_FILES = [
     ('RST/RST_LKHelpers', TESTS_LUA / 'shared' / 'RST' / 'RST_LKHelpers.lua'),
     ('RST/RST_LKProbe', TESTS_LUA / 'shared' / 'RST' / 'RST_LKProbe.lua'),
     # E18-T05 : catalogue des missions du mod commun (requis par RS_Config et RC_Missions).
+    ('RadioSurvivorCore/RC_ReputationConfig', CORE_LUA / 'shared' / 'RadioSurvivorCore' / 'RC_ReputationConfig.lua'),  # E18-T22
     ('RadioSurvivorCore/RC_MissionConfig', CORE_LUA / 'shared' / 'RadioSurvivorCore' / 'RC_MissionConfig.lua'),
     ('RadioSurvivor/RS_Config', MOD_LUA / 'shared' / 'RadioSurvivor' / 'RS_Config.lua'),
     ('RadioSurvivorCore/RC_Bridge', CORE_LUA / 'shared' / 'RadioSurvivorCore' / 'RC_Bridge.lua'),  # E18-T04 : RadioSurvivor_Const
     ('RadioSurvivorCore/RC_Codec', CORE_LUA / 'shared' / 'RadioSurvivorCore' / 'RC_Codec.lua'),
-    ('RadioSurvivor/RS_Reputation', MOD_LUA / 'server' / 'RadioSurvivor' / 'RS_Reputation.lua'),
     ('RadioSurvivor/RS_NPCProvider', MOD_LUA / 'shared' / 'RadioSurvivor' / 'RS_NPCProvider.lua'),  # RS_MissionHooks
     ('RadioSurvivorCore/RC_GameClock', CORE_LUA / 'shared' / 'RadioSurvivorCore' / 'RC_GameClock.lua'),  # RC_Missions (E11-T20)
     # E18-T03 : identité des personnages du mod commun (LK_Hostility.keyOf) et ses dépendances.
@@ -73,6 +73,7 @@ LUA_FILES = [
     # E18-T05 : etat prive des missions du mod commun et crochets de RadioSurvivor (attaches par RS_State).
     ('RadioSurvivorCore/RC_MissionStore', CORE_LUA / 'server' / 'RadioSurvivorCore' / 'RC_MissionStore.lua'),
     ('RadioSurvivorCore/RC_History', CORE_LUA / 'server' / 'RadioSurvivorCore' / 'RC_History.lua'),  # E18-T11 : RS_State
+    ('RadioSurvivorCore/RC_Reputation', CORE_LUA / 'server' / 'RadioSurvivorCore' / 'RC_Reputation.lua'),  # E18-T22 : RS_State
     ('RadioSurvivor/RS_MissionHooks', MOD_LUA / 'server' / 'RadioSurvivor' / 'RS_MissionHooks.lua'),
     ('RadioSurvivor/RS_StatePurge', MOD_LUA / 'server' / 'RadioSurvivor' / 'RS_StatePurge.lua'),
     ('RadioSurvivor/RS_State', MOD_LUA / 'server' / 'RadioSurvivor' / 'RS_State.lua'),

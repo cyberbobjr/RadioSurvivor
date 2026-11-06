@@ -52,7 +52,7 @@ local Const = require "RadioSurvivor/RadioSurvivor_Const"
 local Config = require "RadioSurvivor/RS_Config"
 local Codec = require "RadioSurvivorCore/RC_Codec"
 local M = require "RadioSurvivorCore/RC_Missions"
-local Rep = require "RadioSurvivor/RS_Reputation"
+local Rep = require "RadioSurvivorCore/RC_Reputation"
 require "RadioSurvivorCore/RC_MissionScout" -- registers the scout template
 require "RadioSurvivorCore/RC_MissionClear"
 require "RadioSurvivorCore/RC_MissionRetrieve"
@@ -121,7 +121,7 @@ function V.start(store, sheet, cid, player, khz, template)
     if name == "signal" then require "RadioSurvivorCore/RC_MissionSignal" end
     local c = Config.Missions[name]
     -- E04-T05 (Q11): a sensitive template is never started for a bad reputation (V.TEMPLATES holds simple ones only).
-    if not Rep.offerAllowed(Rep.level(cid, state), name) then return nil, "reputation" end
+    if not Rep.offerAllowed(Rep.level(cid), name) then return nil, "reputation" end
     local t = V.TEMPLATES[template] and c and M.template({ template = name })
     -- The template's offer draws the place around the caller (server copy of the player: never a client claim).
     local terms = t and t.offer(c, d, nil, player, cid)

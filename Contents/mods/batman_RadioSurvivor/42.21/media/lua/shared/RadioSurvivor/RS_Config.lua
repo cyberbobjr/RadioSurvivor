@@ -185,32 +185,17 @@ local C = {
         helicopterGapHours = 2,     -- game hours without a helicopter sound before the next sound is a new passage
         helicopterEveryMs = 5000,   -- helicopter sounds handled at most once per this real time (ms)
     },
-    -- Internal reputation (E04-T08/T09, server/RadioSurvivor/RS_Reputation.lua, docs/annexes/conception/reputation-interne.md
-    -- section 9, values confirmed by default 2026-10-15). Amounts per act; the score stays on the server.
-    Reputation = {
-        success = 5, failure = -5,       -- mission.success; mission.failed, mission.abandoned, trade.cheated
-        requesterKilled = -50,           -- npc.requesterKilled (E04-T07, Q7: back to bad)
-        memberKilled = -10,              -- npc.memberKilled (Q5)
-        rescue = 5,                      -- rescue.success (reserved, E12)
-        min = -100, max = 100, start = 0, -- bounds and start of every new character (Q1)
-        badAt = -20, goodAt = 20,        -- bad <= badAt < neutral < goodAt <= good (Q3: four successes)
-        dailyGainCap = 10,               -- gains per character and game day (Q6); losses never capped; no decay (Q4)
-        reasons = 5, trendFacts = 3,     -- reasons kept and shown (Q8), acts read by the trend
-        keepOutcomeDays = 30,            -- game days an outcome (deduplication record) is kept
-        retiredPurgeDays = 7,            -- game days before a dead character's reputation and outcomes are dropped
-        -- E04-T05 (Q11, Q12): templates (and offer kinds) closed to a bad reputation; simple missions (deliver,
-        -- signal, scout, clear) stay open to every level.
-        sensitive = {retrieve_id = true, recover = true, supply = true},
-        -- E04-T11 (Q13): lowest margin of the smuggler by level; a done deal lowers it by RS_Trade.MARGIN_STEP down to
-        -- RS_Trade.MARGIN_MIN, a cheat sets RS_Trade.MARGIN_MAX.
-        margin = {good = 0.10, neutral = 0.25, bad = 0.40},
-    },
+    -- E04-T11 (Q13): lowest margin of the smuggler by reputation level; a done deal lowers it by RS_Trade.MARGIN_STEP
+    -- down to RS_Trade.MARGIN_MIN, a cheat sets RS_Trade.MARGIN_MAX.
+    TradeMargin = {good = 0.10, neutral = 0.25, bad = 0.40},
 }
 -- E18-T05: mission catalogue, caches and mission delays live in the core mod (RC_MissionConfig); same tables.
 for _, key in ipairs({'OFFER_TTL_MS', 'OFFER_COOLDOWN_MS', 'MAX_OFFERS', 'MISSION_RETENTION_MS',
         'UNCLAIMED_RETENTION_HOURS', 'UNCLAIMED_RETENTION_MS', 'Missions', 'Caches'}) do
     C[key] = MissionConfig[key]
 end
+-- E18-T22: rules of the reputation live in the core mod (RC_ReputationConfig); same table.
+C.Reputation = require 'RadioSurvivorCore/RC_ReputationConfig'
 -- Historical name of the M01 entry (same table).
 C.Delivery = C.Missions.deliver
 

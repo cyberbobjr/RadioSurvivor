@@ -30,7 +30,7 @@ class RewardsTests(unittest.TestCase):
         function getWorld() return {getMetaGrid=function() return {getRoomAt=function() return {
           getBuilding=function() return {isHasBeenVisited=function() return visited end} end} end} end} end
         voices={silent={state='silent'},dead={state='dead'},cody={state='active',name='Cody'}}
-        modules={['RadioSurvivor/RS_Config']=cfg,['RadioSurvivor/RS_Reputation']={today=function() return day end},
+        modules={['RadioSurvivor/RS_Config']=cfg,['RadioSurvivorCore/RC_Reputation']={today=function() return day end},
           ['RadioSurvivor/RS_Personas']={get=function(id) return voices[id] end,served=function(id) return {88000} end,
             ids=function() return {'silent','cody'} end},
           ['RadioSurvivor/RS_GroupRadio']={voiceId=function() return 'grp_1' end},

@@ -182,13 +182,13 @@ function Hostility.startFor(groupType)
 end
 
 -- E04-T11 (Q14, confirmé par défaut le 2026-10-15) : niveau de réputation interne d'un personnage (« good », « neutral »,
--- « bad ») rendu par le crochet facultatif LivingKnox.Hooks.reputation(playerKey) (RadioSurvivor : réputation interne
--- du carnet, RS_Reputation). Crochet absent, en erreur ou valeur inconnue : nil (aucun effet).
+-- « bad ») de la réputation du mod commun (RC_Reputation, E18-T22), ou du crochet facultatif
+-- LivingKnox.Hooks.reputation(playerKey) s'il est posé (bancs). En erreur ou valeur inconnue : nil (aucun effet).
 local REPUTATION_LEVELS = { good = true, neutral = true, bad = true }
 
 function Hostility.reputationOf(playerKey)
     local hooks = LivingKnox.Hooks
-    local fn = type(hooks) == "table" and hooks.reputation or nil
+    local fn = type(hooks) == "table" and hooks.reputation or require("RadioSurvivorCore/RC_Reputation").level
     if type(fn) ~= "function" or not Hostility.validPlayerKey(playerKey) then return nil end
     local ok, level = pcall(fn, playerKey)
     if not ok then

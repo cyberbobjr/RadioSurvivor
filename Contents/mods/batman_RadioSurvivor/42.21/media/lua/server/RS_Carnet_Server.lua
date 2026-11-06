@@ -9,7 +9,23 @@ local M = require 'RadioSurvivorCore/RC_Missions'
 local MissionList = require 'RadioSurvivorCore/RC_MissionList' -- E18-T06
 local History = require 'RadioSurvivorCore/RC_History' -- E18-T11: exchange history of the core mod
 require 'RadioSurvivorCore/RC_MissionScout'; require 'RadioSurvivorCore/RC_MissionRetrieve'
-local Rep = require 'RadioSurvivor/RS_Reputation'
+local Rep = require 'RadioSurvivorCore/RC_Reputation' -- E18-T22: reputation kept by the core mod
+-- Text of each reason of the reputation tab (the core mod keeps the action only).
+local REP_REASON_KEYS = {
+    ['mission.success'] = 'IGUI_RS_RepReason_MissionSuccess',
+    ['mission.failed'] = 'IGUI_RS_RepReason_MissionFailed',
+    ['mission.abandoned'] = 'IGUI_RS_RepReason_MissionAbandoned',
+    ['trade.cheated'] = 'IGUI_RS_RepReason_TradeCheated',
+    ['npc.requesterKilled'] = 'IGUI_RS_RepReason_RequesterKilled',
+    ['npc.memberKilled'] = 'IGUI_RS_RepReason_MemberKilled',
+    ['rescue.success'] = 'IGUI_RS_RepReason_RescueSuccess',
+}
+local function repProjection(character)
+    local p = Rep.projection(character)
+    for _, r in ipairs(type(p.reasons) == 'table' and p.reasons or {}) do r.reasonKey = REP_REASON_KEYS[r.action] end
+    if not p.available then p.reason = 'IGUI_RS_ReputationUnavailable' end
+    return p
+end
 local T = require 'RadioSurvivor/RS_BridgeLanes'
 local Radio = require 'RadioSurvivor/RadioSurvivor_Const'
 local Obs = require 'RadioSurvivor/RS_Observations'
@@ -236,7 +252,7 @@ local function projection(player, pushed)
     MissionList.sort(missions)
     local snapshot = {world = S.data.world, run = S.run, contacts = contacts, missions = missions, selected = Server.selected[character] or '',
         -- E04-T12: reputation of this character only (level, trend, reasons), never a number.
-        reputation = Rep.projection(character, S.data), inviteTargets = inviteTargets,
+        reputation = repProjection(character), inviteTargets = inviteTargets,
         team = team,
         npcProvider = P.available() == true, storage = not S.blocked}
     local ok, body = pcall(Codec.encodeBytes, snapshot)
@@ -372,7 +388,7 @@ local function talk(player, character, args)
     local relation, relationBinding = Relations.offer(npc, character)
     -- E04-T10 (Q10): reputation of the speaker as the NPC knows it (level and last public act, RS_Reputation
     -- publicContext); never a score. The model may speak about it, never change it.
-    local context = {name = npc.name, background = npc.background, reputation = Rep.publicContext(character, S.data),
+    local context = {name = npc.name, background = npc.background, reputation = Rep.publicContext(character),
         agreements = npc.agreements, relation = relation, caller = S.data.characters[character].name}
     local open = npc.mission and S.data.missions[npc.mission]
     if open then context.mission = M.context(open) end
@@ -1016,7 +1032,7 @@ end
 -- trap without thrower, unseen death: no killer). E04-T07: a killer who takes part in an active mission of this
 -- requester loses Reputation.requesterKilled (Q7), this character only, once per death (eventId
 -- <npc>-killed-<character>); team mates are spared; a killer who does not take part is left to npc.memberKilled
--- (Server.npcDied). No penalty by proximity, never an accusation relayed from a client.
+-- (Living Knox, LK_Reputation). No penalty by proximity, never an accusation relayed from a client.
 function Server.dead(id, object, cause)
     if not S.data or id == nil or not object then return end
     local npc = Server.find(id)
@@ -1035,7 +1051,7 @@ function Server.dead(id, object, cause)
     end
     for _, m in pairs(S.data.missions) do if m.npc == npc.id then M.finish(S.data, m, 'cancelled_dead') end end
     if sanctioned then
-        Rep.record(S.data, npc.id .. '-killed-' .. killer, killer, 'npc.requesterKilled', nil,
+        Rep.record(nil, npc.id .. '-killed-' .. killer, killer, 'npc.requesterKilled', nil,
             {npc = npc.id, mission = sanctioned.id, body = id, cause = cause.cause}, {npc.name})
     end
     -- 'player': attributed to a notebook character; 'unbound': a player account without a notebook character;
@@ -1045,40 +1061,8 @@ function Server.dead(id, object, cause)
     S.save(); publish()
 end
 
--- Living Knox fact npcDied (LK_Bodies.onZombieDead, published right after the provider 'death' event of the same
--- call): a group member killed by an attributed player costs Reputation.memberKilled (Q5) to this character only,
--- once per death (eventId lk-<npc>-g<generation>-memberKilled-<character>), unless the requester rule of
--- Server.dead already applied to this death.
-function Server.npcDied(info)
-    if not S.data or S.blocked or type(info) ~= 'table' or info.group == nil or info.npc == nil then return end
-    local killer = Server.killerCharacter(info.killer)
-    if not killer then return end
-    for _, npc in pairs(S.data.npcs) do
-        if npc.incarnation == info.npc and S.data.outcomes[npc.id .. '-killed-' .. killer] then return end
-    end
-    local eventId = 'lk-' .. tostring(info.npc) .. '-g' .. tostring(info.generation) .. '-memberKilled-' .. killer
-    local o, dup = Rep.record(S.data, eventId, killer, 'npc.memberKilled', nil,
-        {npc = info.npc, group = info.group, cause = info.cause})
-    if o and not dup then S.save(); publish() end
-end
-
--- E04-T11 (Q14): reputation level of a notebook character, read by Living Knox (LivingKnox.Hooks.reputation) for the
--- first welcome of a group that never met it (LK_Hostility.startForPlayer); nil for an unknown or dead character.
-function Server.reputationLevel(character)
-    if not S.data or S.blocked then return nil end
-    return Rep.level(character, S.data)
-end
-
--- Subscription to the Living Knox facts once its namespace exists (idempotent, keyed listener).
-local function linkReputation()
-    if Server.reputationLinked then return end
-    local LK = LivingKnox
-    if type(LK) ~= 'table' or type(LK.listen) ~= 'function' then return end
-    LK.listen('npcDied', 'RS_Reputation.memberKilled', function(info) Server.npcDied(info) end)
-    if type(LK.Hooks) ~= 'table' then LK.Hooks = {} end
-    LK.Hooks.reputation = function(character) return RS_CarnetServer.reputationLevel(character) end
-    Server.reputationLinked = true
-end
+-- E18-T22: npc.memberKilled is reported by Living Knox itself (LK_Reputation), which reads the reputation of the core
+-- mod directly (first welcome of a group, LK_Hostility.reputationOf).
 
 -- E04-T14 (Q17): read-only view of every live character's reputation for an administrator: name, level, trend, last
 -- acts (no score, no proof, no account). Access checked at each request on the authority, same rule as the Living
@@ -1108,7 +1092,7 @@ function Server.reputationAdmin(player)
     local list = {}
     for i = 1, math.min(#ids, Server.REP_ADMIN_MAX) do
         local id = ids[i]
-        local p = Rep.projection(id, S.data)
+        local p = repProjection(id)
         list[#list + 1] = {name = tostring(S.data.characters[id].name or '?'), level = p.level, trend = p.trend,
             reasons = p.reasons}
     end
@@ -1135,7 +1119,6 @@ local function prune(now)
     -- Observation logs of removed or dead fiches (E08-T02).
     removed = Obs.prune() or removed
     removed = Relations.prune() or removed -- E09-T04: relations of removed fiches and retired characters
-    removed = Rep.prune(S.data) or removed -- E04-T12: outcomes after 30 game days, retired characters after 7
     return removed
 end
 
@@ -1163,7 +1146,6 @@ local function tick()
         scan()
         -- E08-T07: Living Knox facts (subscribed once its namespace exists) and comebacks of known characters.
         Triggers.link()
-        linkReputation() -- E04-T09: npc.memberKilled from the Living Knox fact npcDied
         Triggers.returns(Server)
         Server.initiatives.tick(Server, now) -- E08-T03: at most one NPC initiative per pass
         Server.conversations.tick(Server, now) -- E08-T04: turns of the NPC conversations, at most one opened per pass
@@ -1322,7 +1304,6 @@ function Server.characterDeath(character)
     local record = type(id) == 'string' and S.data.characters[id] or nil
     if not record or record.owner ~= ownerOf(character) or record.retired then return end
     record.retired = true
-    Rep.retire(S.data, id) -- E04-T12: reputation no longer read, purged with its outcomes after 7 game days
     record.radio = nil -- radio history of a dead character (E06-T04): never shown again, frees the private state
     -- What the voices remembered about this character (E07-T03, action remember): forgotten with it.
     require('RadioSurvivor/RS_Memory').forgetCharacter(id)

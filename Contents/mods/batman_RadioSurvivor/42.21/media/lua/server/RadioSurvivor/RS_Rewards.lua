@@ -1,7 +1,7 @@
 -- Mission rewards: closed server policy, no model-selected item, frequency, location or XP.
 if isClient() then return end
 local Config = require 'RadioSurvivor/RS_Config'
-local Rep = require 'RadioSurvivor/RS_Reputation'
+local Rep = require 'RadioSurvivorCore/RC_Reputation'
 local R = {}
 
 local function contains(list, value)

@@ -47,6 +47,13 @@ local LETHAL = 100.0
 local SITE_DRAWS = 12
 local DEATH_MS = 5000
 
+-- E18-T22: facts of the missions in the reputation of the core mod.
+local function repOutcomes()
+    local Rep = require "RadioSurvivorCore/RC_Reputation"
+    Rep.ensure()
+    return Rep.data and Rep.data.outcomes or {}
+end
+
 local function modules(t)
     if type(isClient) == "function" and isClient() then
         t:skip("RS_MissionClear is not loaded on an MP client (authority only)")
@@ -234,7 +241,7 @@ local function soloPlay(t)
         local rewardBefore = countOf(inv, m.rewardType)
         t2:defer(function()
             data.missions[m.id] = nil
-            data.outcomes[m.id .. "-" .. cid .. "-result"] = nil
+            repOutcomes()[m.id .. "-" .. cid .. "-result"] = nil
             for _, rec in pairs(data.characters) do rec.knownMissions[m.id] = nil end
             if not hadContact then record.contacts[fiche.id] = nil end
             if fiche.mission == m.id then fiche.mission = nil end
@@ -326,8 +333,8 @@ local function soloPlay(t)
                                             t11:ok(string.find(w.detail.text or "", success, 1, true) ~= nil,
                                                 "Missions page without '" .. success .. "'")
                                             t11:eq(true, w.claim:isVisible(), "Claim button after the success")
-                                            t11:eq("mission.success", data.outcomes[m.id .. "-" .. cid .. "-result"]
-                                                and data.outcomes[m.id .. "-" .. cid .. "-result"].action)
+                                            t11:eq("mission.success", repOutcomes()[m.id .. "-" .. cid .. "-result"]
+                                                and repOutcomes()[m.id .. "-" .. cid .. "-result"].action)
                                             RS_CarnetClient.send("claim",
                                                 { mission = m.id, revision = shownRow(m.id).revision })
                                             t11:waitUntil(function()

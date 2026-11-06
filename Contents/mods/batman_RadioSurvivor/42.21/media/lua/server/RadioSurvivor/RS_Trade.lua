@@ -55,7 +55,8 @@ local Actions = require "RadioSurvivor/RS_Actions"
 local TV = require "RadioSurvivorCore/RC_TradeValues"
 local News = require "RadioSurvivor/RS_OutsideNews"
 local Factions = require "RadioSurvivor/RS_Factions"
-local Rep = require "RadioSurvivor/RS_Reputation"
+local Rep = require "RadioSurvivorCore/RC_Reputation"
+local Config = require "RadioSurvivor/RS_Config"
 
 local Trade = {}
 
@@ -343,11 +344,11 @@ local function round2(x) return math.floor(x * 100 + 0.5) / 100 end
 -- carnet ou sans état chargé.
 function Trade.levelOf(cid)
     if type(cid) ~= "string" or cid == "" or not S.data or S.blocked then return "neutral" end
-    return Rep.level(cid, S.data) or "neutral"
+    return Rep.level(cid) or "neutral"
 end
 
 -- Marge la plus basse permise (E04-T11, Q13) : tricherie = MARGIN_MAX ; sinon base du niveau de réputation de
--- l'appelant (RS_Reputation.margin : bonne 0,10, neutre 0,25 = MARGIN_DEFAULT, mauvaise 0,40) moins MARGIN_STEP par
+-- l'appelant (RS_Config.TradeMargin : bonne 0,10, neutre 0,25 = MARGIN_DEFAULT, mauvaise 0,40) moins MARGIN_STEP par
 -- affaire conclue (rabais d'historique), jamais sous MARGIN_MIN.
 local function marginFloor(book, cid)
     local done = 0
@@ -355,7 +356,8 @@ local function marginFloor(book, cid)
         if d.state == "cheated" then return Trade.MARGIN_MAX end
         if d.state == "done" then done = done + 1 end
     end
-    local base = Rep.margin(Trade.levelOf(cid))
+    local margins = type(Config.TradeMargin) == "table" and Config.TradeMargin or {}
+    local base = margins[Trade.levelOf(cid)] or margins.neutral or Trade.MARGIN_DEFAULT
     local m = round2(base - Trade.MARGIN_STEP * done)
     if m < Trade.MARGIN_MIN then m = Trade.MARGIN_MIN end
     if m > Trade.MARGIN_MAX then m = Trade.MARGIN_MAX end

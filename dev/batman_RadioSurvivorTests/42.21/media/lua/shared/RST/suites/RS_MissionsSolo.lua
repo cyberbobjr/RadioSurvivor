@@ -20,6 +20,13 @@ require "RST/RST_RSHelpers"
 local F, R = RST.Fixtures, RST.RSHelpers
 local REWARD, COUNT = "Base.Antibiotics", 2
 
+-- E18-T22: facts of the missions in the reputation of the core mod.
+local function repOutcomes()
+    local Rep = require "RadioSurvivorCore/RC_Reputation"
+    Rep.ensure()
+    return Rep.data and Rep.data.outcomes or {}
+end
+
 local function ids(inv, fullType)
     local out = {}
     local list = inv:getItemsFromFullType(fullType)
@@ -88,7 +95,7 @@ local function scoutOffer(t, after)
             t3:defer(function()
                 local data = Server.store.data
                 data.missions[m.id] = nil
-                data.outcomes[m.id .. "-" .. cid .. "-result"] = nil
+                repOutcomes()[m.id .. "-" .. cid .. "-result"] = nil
                 for _, record in pairs(data.characters) do record.knownMissions[m.id] = nil end
                 if fiche.mission == m.id then fiche.mission = nil end
                 Server.publish()
@@ -133,7 +140,7 @@ RST.suite("rs.missions.solo", { tags = { "server", "world" }, testTimeoutMs = 90
             local m = c.m
             -- Only this mission ages: the other missions of the save keep their clocks.
             local only = { missions = { [m.id] = m }, npcs = c.Server.store.data.npcs,
-                characters = c.Server.store.data.characters, outcomes = c.Server.store.data.outcomes }
+                characters = c.Server.store.data.characters }
             t2:eq(false, c.M.advance(only, c.Config.OFFER_TTL_MS - 1000), "offer expired too early")
             t2:eq(true, c.M.advance(only, 1000), "offer not expired after OFFER_TTL_MS")
             t2:eq("expired", m.state)

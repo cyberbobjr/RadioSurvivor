@@ -19,6 +19,7 @@ Private notebook state (authority only), two slots written in turn: batman_Radio
 local Codec = require 'RadioSurvivorCore/RC_Codec'
 local MissionStore = require 'RadioSurvivorCore/RC_MissionStore'
 local History = require 'RadioSurvivorCore/RC_History'
+local Reputation = require 'RadioSurvivorCore/RC_Reputation'
 local S = {data = nil, generation = 0, blocked = false, dirty = false, failures = 0, verified = false}
 S.SCHEMA = 2
 S.MIGRATIONS = {}
@@ -86,8 +87,7 @@ function S.init(newWorld)
         print('[RS_Carnet] STORAGE BLOCKED: both state slots invalid; preserve files for recovery')
         return false
     else
-        S.data = {schema = S.SCHEMA, world = S.uid('world'), npcs = {}, bindings = {}, characters = {}, missions = {},
-            outcomes = {}}
+        S.data = {schema = S.SCHEMA, world = S.uid('world'), npcs = {}, bindings = {}, characters = {}, missions = {}}
         S.generation = best and best.generation or 0
     end
     -- E18-T05: missions in the core mod's private state; the ones read here are handed over once (first start after
@@ -123,6 +123,16 @@ function S.init(newWorld)
         end
     end
     S.data.historyInCore = true
+    -- E18-T22: reputation and its outcomes in the core mod's private state (RC_Reputation), handed over once from this
+    -- file (entries already in the core file win); this file no longer holds them.
+    if not newWorld and (type(S.data.reputation) == 'table' or type(S.data.outcomes) == 'table') then
+        if Reputation.adopt({reputation = S.data.reputation, outcomes = S.data.outcomes}) == nil then
+            S.blocked = true
+            print('[RS_Carnet] STORAGE BLOCKED: reputation of the core mod unreadable; preserve files for recovery')
+            return false
+        end
+    end
+    S.data.reputation, S.data.outcomes = nil, nil
     S.run = S.uid('run')
     S.blocked = false
     return S.save()

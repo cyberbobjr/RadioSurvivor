@@ -504,7 +504,8 @@ LK_SERVER_LOAD = r'''
 for _, m in ipairs({'LivingKnox/LK_Core', 'LivingKnox/LK_Config', 'LivingKnox/LK_Log', 'LivingKnox/LK_Appearance',
         'LivingKnox/LK_Identity', 'LivingKnox/LK_GroupTypes', 'LivingKnox/Data/LK_Type_neutrals',
         'LivingKnox/Data/LK_Type_raiders', 'LivingKnox/Data/LK_Type_settlers', 'LivingKnox/Data/Stories',
-        'RadioSurvivor/RS_LivingKnox', 'LivingKnox/LK_Server', 'LivingKnox/LK_Stories', 'LivingKnox/LK_API'}) do
+        'RadioSurvivor/RS_LivingKnox', 'LivingKnox/LK_Server', 'LivingKnox/LK_Stories', 'LivingKnox/LK_API',
+        'LivingKnox/LK_Reputation'}) do
     require(m)
 end
 '''
@@ -669,6 +670,10 @@ class Simulation:
     def state(self):
         return self.server.g.RS_CarnetServer.store.data
 
+    def reputation(self):
+        """Private state of the reputation of the core mod (E18-T22): { reputation, outcomes }."""
+        return self.server.rt.eval("require('RadioSurvivorCore/RC_Reputation').data")
+
     def character(self, name):
         return self.clients[name].g.RS_CarnetClient.character
 
@@ -761,7 +766,7 @@ class CarnetTests(unittest.TestCase):
         qa, qb = sim.quote('alice', a_ids), sim.quote('bob', b_ids)
         sim.confirm('alice', qa)
         self.assertEqual(sim.mission().delivered, 3)
-        self.assertEqual(count(sim.state().outcomes), 0, 'partial delivery must not apply reputation')
+        self.assertEqual(count(sim.reputation().outcomes), 0, 'partial delivery must not apply reputation')
         sim.confirm('bob', qb)
         self.assertEqual(sim.mission().delivered, 3)
         self.assertEqual(len(sim.server.g.PLAYERS.bob.inv['items']), 3, 'stale quote removed objects')
@@ -769,8 +774,8 @@ class CarnetTests(unittest.TestCase):
         sim.confirm('bob', qb)
         self.assertEqual(sim.mission().state, 'success')
         self.assertEqual(sim.mission().delivered, 6)
-        self.assertEqual(count(sim.state().outcomes), 2)
-        self.assertTrue(all(not o.applied for o in sim.state().outcomes.values()))
+        self.assertEqual(count(sim.reputation().outcomes), 2)
+        self.assertTrue(all(not o.applied for o in sim.reputation().outcomes.values()))
         self.assertEqual(len(sim.server.g.REMOVALS), 6)
         revision = sim.mission().revision
         for name in ('alice', 'bob'):
@@ -880,7 +885,7 @@ class CarnetTests(unittest.TestCase):
         sim.zombie.dead = True
         sim.server.g.fire('OnZombieDead', sim.zombie)
         self.assertEqual(m.state, 'cancelled_dead')
-        self.assertEqual(count(sim.state().outcomes), 0, 'requester death penalized participants')
+        self.assertEqual(count(sim.reputation().outcomes), 0, 'requester death penalized participants')
         self.assertEqual(npc.deathAttribution, 'unavailable_server_evidence')
 
     def test_persistence_clock_reconnect_and_new_character(self):
@@ -1033,7 +1038,7 @@ class CarnetTests(unittest.TestCase):
         sim2.request_mission('alice', 'accept')
         sim2.clock.offset += 7200001; sim2.tick(); sim2.tick()
         self.assertEqual(m2.state, 'failed')
-        self.assertEqual(count(sim2.state().outcomes), 1)
+        self.assertEqual(count(sim2.reputation().outcomes), 1)
 
     def test_corrupt_state_and_reward_capacity(self):
         sim = Simulation(self.path / 'corrupt'); sim.add_client('alice')
@@ -1350,7 +1355,7 @@ class ReportCases:
         req = report_turn(sim, 'alice', 'Done, as you asked.', 'report_done')
         self.assertEqual(m.state, 'success')
         self.assertEqual(convert(m.receipts), {'speech-' + char: {'character': char, 'count': 1}})
-        outcome = sim.state().outcomes[m.id + '-' + char + '-result']
+        outcome = sim.reputation().outcomes[m.id + '-' + char + '-result']
         self.assertEqual((outcome.action, outcome.proposedDelta), ('mission.success', 5))
         self.assertEqual(last_ack(sim, req)['applied'], {'report': m.id})
         self.assertIsNone(npc.mission)
@@ -1369,7 +1374,7 @@ class ReportCases:
         self.assertEqual(m.state, 'active', 'reported by a non-participant')
         sim.request_mission('alice', 'report')
         self.assertEqual(m.state, 'success')
-        self.assertEqual(sim.state().outcomes[m.id + '-' + sim.character('alice') + '-result'].action,
+        self.assertEqual(sim.reputation().outcomes[m.id + '-' + sim.character('alice') + '-result'].action,
                          'mission.success')
 
     def test_requester_death_cancels_a_mission_to_report(self):
@@ -1380,7 +1385,7 @@ class ReportCases:
         sim.server.g.fire('OnZombieDead', sim.zombie)
         self.assertEqual(m.state, 'cancelled_dead')
         self.assertFalse(missions.reportReady(m))
-        self.assertIsNone(sim.state().outcomes[m.id + '-' + sim.character('alice') + '-result'],
+        self.assertIsNone(sim.reputation().outcomes[m.id + '-' + sim.character('alice') + '-result'],
                           'requester death penalized or rewarded the participant')
 
 
@@ -1754,14 +1759,14 @@ class LivingKnoxCarnetTests(unittest.TestCase):
         self.assertEqual((m.delivered, self.food(), len(sim.server.g.REMOVALS)), (20, 25, 10), 'notebook replay')
         sim.confirm('alice', quote)  # quote already consumed
         self.assertEqual(client.g.RS_CarnetClient.lastError, 'State')
-        self.assertEqual(count(sim.state().outcomes), 0, 'partial delivery must not apply reputation')
+        self.assertEqual(count(sim.reputation().outcomes), 0, 'partial delivery must not apply reputation')
         # Last delivery: 20 cans = 40 V completes the offer: food 35, reward lot of the engine, reputation, attitude.
         before = self.api.attitude(self.g.LK_GROUP, alice).level
         sim.confirm('alice', sim.quote('alice', beans[10:30]))
         self.assertEqual((m.state, m.delivered, self.food()), ('success', 60, 35))
         self.assertEqual(self.api.getGroup(self.g.LK_GROUP).needs.medical, 76, 'reward taken from the medical reserve')
         self.assertEqual((m.rewardType, m.rewardCount), ('Base.Antibiotics', 2))
-        self.assertEqual(count(sim.state().outcomes), 1)
+        self.assertEqual(count(sim.reputation().outcomes), 1)
         attitude = self.api.attitude(self.g.LK_GROUP, alice)
         self.assertEqual(attitude.trend, 'up', 'delivery fact recorded for the delivering character')
         self.assertGreaterEqual(['hostile', 'wary', 'cautious', 'favorable', 'trusting'].index(attitude.level),
@@ -1904,7 +1909,7 @@ class LivingKnoxCarnetTests(unittest.TestCase):
         sim.clock.offset += 10001
         self.tick()
         self.assertEqual(m.state, 'cancelled_closed')
-        self.assertEqual(count(sim.state().outcomes), 0, 'closed engine offer penalized participants')
+        self.assertEqual(count(sim.reputation().outcomes), 0, 'closed engine offer penalized participants')
         self.assertIsNone(fiche.mission)
         # A delivery on a closed offer is refused before any effect.
         self.assertEqual(missions.deliver(server.store, m, sim.server.g.PLAYERS.alice, alice,
@@ -2331,7 +2336,7 @@ class MissionTemplateTests(unittest.TestCase):
         self.assertEqual((m.done, m.state), (2, 'success'))
         self.assertEqual(lua_list(sim.server.g.PROBE_CALLS), ['apply:prepared', 'apply:prepared', 'complete:success'])
         self.assertEqual(convert(m.receipts), {'t1': {'character': char, 'count': 1}, 't2': {'character': char, 'count': 1}})
-        outcome = state.outcomes[m.id + '-' + char + '-result']
+        outcome = sim.reputation().outcomes[m.id + '-' + char + '-result']
         self.assertEqual((outcome.action, outcome.proposedDelta), ('mission.success', 5))
         self.assertIsNone(npc.mission)
         projection = convert(missions.projection(m, char))
@@ -2540,7 +2545,7 @@ class ScoutMissionTests(unittest.TestCase):
         req = report_turn(sim, 'alice', 'I have seen the place', 'report_done')
         self.assertEqual(m.state, 'success')
         self.assertEqual(convert(m.receipts), {'speech-' + char: {'character': char, 'count': 1}})
-        outcome = sim.state().outcomes[m.id + '-' + char + '-result']
+        outcome = sim.reputation().outcomes[m.id + '-' + char + '-result']
         self.assertEqual((outcome.action, outcome.proposedDelta), ('mission.success', 5))
         self.assertIsNone(npc.mission)
         self.assertEqual(last_ack(sim, req)['applied'], {'report': m.id}, 'the bridge learns the applied report')
@@ -2570,7 +2575,7 @@ class ScoutMissionTests(unittest.TestCase):
         self.assertTrue(m.zoneReached)
         sim.clock.offset += 7200001; sim.tick()
         self.assertEqual(m.state, 'failed')
-        outcome = sim.state().outcomes[m.id + '-' + sim.character('alice') + '-result']
+        outcome = sim.reputation().outcomes[m.id + '-' + sim.character('alice') + '-result']
         self.assertEqual((outcome.action, outcome.proposedDelta), ('mission.failed', -5))
         alice.x, alice.y = 10, 10
         report_turn(sim, 'alice', 'I was there', 'report_done')
@@ -3256,7 +3261,7 @@ class VoiceMissionTests(unittest.TestCase):
         logs = [line for line in lua_list(sim.server.g.LOGS) if line.startswith('[RadioSurvivor] action ')]
         self.assertEqual(logs[-1], '[RadioSurvivor] action report_mission voice=scouter caller=alice accepted reason=ok')
         self.assertEqual(convert(m.receipts), {'speech-' + char: {'character': char, 'count': 1}})
-        outcome = sim.state().outcomes[m.id + '-' + char + '-result']
+        outcome = sim.reputation().outcomes[m.id + '-' + char + '-result']
         self.assertEqual((outcome.action, outcome.proposedDelta), ('mission.success', 5))
         marks = [convert(c[3]) for c in self.sent if c[1] == 'RadioSurvivor' and c[2] == 'map_mark']
         self.assertEqual([(c[0].username) for c in self.sent if c[2] == 'map_mark'], ['alice'])
@@ -3299,7 +3304,7 @@ class VoiceMissionTests(unittest.TestCase):
         m = next(x for x in self.voice_missions(sim) if x.participants[sim.character('alice')])
         sim.command('alice', 'abandon', mission=m.id, revision=m.revision)
         self.assertEqual(m.state, 'abandoned')
-        self.assertEqual(sim.state().outcomes[m.id + '-' + sim.character('alice') + '-result'].proposedDelta, -5)
+        self.assertEqual(sim.reputation().outcomes[m.id + '-' + sim.character('alice') + '-result'].proposedDelta, -5)
         sim.command('alice', 'claim', mission=m.id, revision=m.revision)
         self.assertEqual(m.claimedBy, '')
         # budget.start_mission=3 per game day and per voice: alice's third start of the day, then bob is refused.

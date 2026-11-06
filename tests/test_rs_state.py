@@ -35,7 +35,7 @@ getFileReader = function(path)
     local i = 0
     return {readLine = function() i = i + 1; return lines[i] end, close = function() end}
 end
-package.preload['RadioSurvivor/RS_Reputation'] = function() return {today = function() return DAY end} end
+package.preload['RadioSurvivorCore/RC_Reputation'] = function() return {today = function() return DAY end} end
 package.preload['RadioSurvivor/RS_LifeLog'] = function() return {get = function(cid) return LIFELOG and LIFELOG[cid] end} end
 for name, src in pairs(loaders) do
     package.preload[name] = function() return assert(loadstring(src, name))() end

@@ -104,6 +104,8 @@ class ExchangeHarness(RunHarness):
         self.rt.execute(WORLD)
         self.Ex = self.rt.eval('require("RadioSurvivor/RS_TradeExchange")')
         self.g.STATE.data.outcomes = self.rt.table_from({})
+        # E18-T22: reputation of the core mod on this table (its facts read below).
+        self.rt.eval('require("RadioSurvivorCore/RC_Reputation")').useData(self.g.STATE.data)
         self.item = self.g.makeItem
 
     def it(self, full, **o):

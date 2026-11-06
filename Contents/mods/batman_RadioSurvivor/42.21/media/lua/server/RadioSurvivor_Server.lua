@@ -30,7 +30,7 @@ require "RadioSurvivor/RS_MapMarks"
 local VoiceMissions = require "RadioSurvivor/RS_MissionVoice"; require "RadioSurvivor/RS_CacheAction" -- E11-T06: place_cache
 -- Livre du passeur (E13-T02) : exécuteur propose_trade enregistré au chargement ; contexte joint (trade=).
 local Trade = require "RadioSurvivor/RS_Trade"; local GroupRadio = require "RadioSurvivor/RS_GroupRadio" -- E08-T06
-local Rep = require "RadioSurvivor/RS_Reputation" -- E04-T10: reputation of the caller in the voice request
+local Rep = require "RadioSurvivorCore/RC_Reputation" -- E04-T10: reputation of the caller in the voice request
 local Comfort = require "RadioSurvivor/RS_Comfort" -- E05-T15: an answer on the air eases boredom and unhappiness
 local Bonds = require "RadioSurvivor/RS_VoiceBonds" -- E07-T10: answers counted for an exceptional share_frequency
 

@@ -3,7 +3,7 @@ if isClient() then return end
 local P = require 'RadioSurvivor/RS_NPCProvider'
 local Config = require 'RadioSurvivor/RS_Config'
 local Relations = require 'RadioSurvivor/RS_Relations'
-local Reputation = require 'RadioSurvivor/RS_Reputation'
+local Reputation = require 'RadioSurvivorCore/RC_Reputation'
 local N = {}
 
 -- Never infer a living member from a cached notebook fiche or a loaded body.
