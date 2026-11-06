@@ -17,5 +17,15 @@
     "IGUI_RC_State_abandoned": "Abandoned",
     "IGUI_RC_State_cancelled_dead": "Cancelled — requester died",
     "IGUI_RC_State_expired": "Offer expired",
-    "IGUI_RC_State_cancelled_closed": "Closed: no longer needed"
+    "IGUI_RC_State_cancelled_closed": "Closed: no longer needed",
+    "IGUI_RC_Mission_FirstAid": "First aid for a survivor",
+    "IGUI_RC_Mission_Scout": "Scouting for a survivor",
+    "IGUI_RC_Mission_Supply": "Supplies for a group",
+    "IGUI_RC_Mission_Supply_food": "Food for a group",
+    "IGUI_RC_Mission_Supply_medical": "Medical supplies for a group",
+    "IGUI_RC_Mission_Supply_ammo": "Ammunition for a group",
+    "IGUI_RC_Mission_Retrieve": "A missing person’s ID card",
+    "IGUI_RC_Mission_Clear": "Clearing the surroundings of a place",
+    "IGUI_RC_Mission_Recover": "Bringing back a cache",
+    "IGUI_RC_Mission_Signal": "Signalling at a place"
 }

@@ -33,6 +33,8 @@ local V = {}
 RST.NotebookVisual = V -- read by tests/test_notebook_visual.py
 
 V.MOD_ID = "batman_RadioSurvivor"
+-- E18-T13: the notebook also shows keys of the core mod (mission titles, journal); its table is read first.
+V.MOD_IDS = { "batman_RadioSurvivorCore", V.MOD_ID }
 V.LANGS = { "EN", "FR" }
 V.SHOW_MS = 450
 V.AFTER_MS = 150
@@ -114,18 +116,27 @@ local function unescape(s)
     end))
 end
 
--- Translation table of the mod for lang (flat JSON, one "key": "value" per line): table, count; nil when unreadable.
+-- Translation table of the notebook for lang (flat JSON, one "key": "value" per line), merged over V.MOD_IDS like the
+-- game merges the tables of the active mods: table, count; nil when the table of RadioSurvivor is unreadable.
 function V.readTable(lang)
-    local reader = getModFileReader(V.MOD_ID, "media/lua/shared/Translate/" .. lang .. "/IG_UI.json", false)
-    if not reader then return nil, 0 end
-    local T, n = {}, 0
-    local line = reader:readLine()
-    while line do
-        local k, v = string.match(line, '^%s*"([^"]+)"%s*:%s*"(.*)"%s*,?%s*$')
-        if k then T[k] = unescape(v); n = n + 1 end
-        line = reader:readLine()
+    local T, n, found = {}, 0, false
+    for _, modId in ipairs(V.MOD_IDS) do
+        local reader = getModFileReader(modId, "media/lua/shared/Translate/" .. lang .. "/IG_UI.json", false)
+        if reader then
+            if modId == V.MOD_ID then found = true end
+            local line = reader:readLine()
+            while line do
+                local k, v = string.match(line, '^%s*"([^"]+)"%s*:%s*"(.*)"%s*,?%s*$')
+                if k then
+                    if T[k] == nil then n = n + 1 end
+                    T[k] = unescape(v)
+                end
+                line = reader:readLine()
+            end
+            reader:close()
+        end
     end
-    reader:close()
+    if not found then return nil, 0 end
     return T, n
 end
 
@@ -178,11 +189,11 @@ function V.fixture(Client, player)
             revision = 1, history = history, note = i == 1 and "Asked for bandages twice." or "", relation = relation() }
     end
     local missions = {
-        { id = "rsv_m1", npc = "rsv_c01", titleKey = "IGUI_RS_FirstAid", state = "active", revision = 3,
+        { id = "rsv_m1", npc = "rsv_c01", titleKey = "IGUI_RC_Mission_FirstAid", state = "active", revision = 3,
             remainingMs = 5400000, durationMs = 7200000, rewardType = "Base.Bullets9mm", rewardCount = 20,
             claimedName = "", engaged = true, invited = true, recovery = false, participants = { "Alice", "Bartholomew" },
             requester = NAMES[1], near = true, quantity = 10, delivered = 3, accepted = ownTypes(player) },
-        { id = "rsv_m2", npc = "rsv_c02", titleKey = "IGUI_RS_FirstAid", state = "offer", revision = 1,
+        { id = "rsv_m2", npc = "rsv_c02", titleKey = "IGUI_RC_Mission_FirstAid", state = "offer", revision = 1,
             remainingMs = 3600000, durationMs = 3600000, rewardType = "", rewardCount = 0, claimedName = "",
             engaged = false, invited = true, recovery = false, participants = {}, requester = NAMES[2], near = false,
             quantity = 40, delivered = 12, unit = "value",

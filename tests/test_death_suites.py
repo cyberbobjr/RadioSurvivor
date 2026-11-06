@@ -205,7 +205,7 @@ end
 
 -- Notebook server double: identity(), hello and characterDeath with the rules of RS_Carnet_Server.lua.
 package.loaded["RadioSurvivor/RS_Config"] = { VERSION = 2, MODULE = "RS_Carnet", OFFER_TTL_MS = 3600000,
-    Missions = { deliver = { id = "first_aid_v1", titleKey = "IGUI_RS_FirstAid", quantity = 6, durationMs = 7200000,
+    Missions = { deliver = { id = "first_aid_v1", titleKey = "IGUI_RC_Mission_FirstAid", quantity = 6, durationMs = 7200000,
         accepted = { ["Base.Bandage"] = true }, rewardType = "Base.Bullets9mm", rewardCount = 20 } } }
 KEY = "RS_CarnetCharacter"
 DATA = { world = "w1", characters = {}, missions = {}, npcs = {} }

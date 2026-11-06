@@ -43,7 +43,7 @@ local GLOBALS = {
     { "getGameTime", "server", "server/RadioSurvivor_Server.lua:82" },
     { "getClimateManager", "server", "server/RadioSurvivor/RS_ObservationTriggers.lua:243" },
     { "getZomboidRadio", "server", "server/RadioSurvivor/RS_Personas.lua:720" },
-    { "sendRemoveItemFromContainer", "server", "server/RadioSurvivorCore/RC_Missions.lua:633" },
+    { "sendRemoveItemFromContainer", "server", "server/RadioSurvivorCore/RC_Missions.lua:634" },
     { "sendAddItemToContainer", "server", "server/RadioSurvivorCore/RC_Missions.lua:452" },
     { "DynamicRadioChannel.new", "server", "server/RadioSurvivor/RS_Personas.lua:676" },
     { "ChannelCategory.Amateur", "server", "server/RadioSurvivor/RS_Personas.lua:676" },
@@ -88,12 +88,12 @@ local GLOBALS = {
 
 -- Methods of an ItemContainer used by the server files (missions, radio carried on the belt).
 local CONTAINER_METHODS = {
-    { "getItemWithIDRecursiv", "server/RadioSurvivorCore/RC_Missions.lua:573" },
+    { "getItemWithIDRecursiv", "server/RadioSurvivorCore/RC_Missions.lua:574" },
     { "getItemWithID", "server/RadioSurvivor_Server.lua:234" },
     { "getCapacityWeight", "server/RadioSurvivorCore/RC_Missions.lua:442" },
     { "getEffectiveCapacity", "server/RadioSurvivorCore/RC_Missions.lua:442" },
     { "AddItem", "server/RadioSurvivorCore/RC_Missions.lua:451" },
-    { "Remove", "server/RadioSurvivorCore/RC_Missions.lua:632" },
+    { "Remove", "server/RadioSurvivorCore/RC_Missions.lua:633" },
 }
 
 local function side()

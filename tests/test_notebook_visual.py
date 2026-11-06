@@ -29,6 +29,8 @@ TESTS_LUA = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lu
 SUITE = TESTS_LUA / 'shared' / 'RST' / 'suites' / 'RS_NotebookVisual.lua'
 MOD = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivor' / '42.21'
 TABLES = {lang: MOD / 'media' / 'lua' / 'shared' / 'Translate' / lang / 'IG_UI.json' for lang in ('EN', 'FR')}
+CORE = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivorCore' / '42.21'
+CORE_TABLES = {lang: CORE / 'media' / 'lua' / 'shared' / 'Translate' / lang / 'IG_UI.json' for lang in ('EN', 'FR')}
 
 
 class Font:
@@ -277,17 +279,21 @@ class NotebookVisualTests(unittest.TestCase):
         fonts = {name: Font(FONTS / f'zomboid{name}.fnt') for name in ('Small', 'Medium', 'Large')}
         c.g.PY_WIDTH = lambda font, *octets: fonts[str(font)].width(bytes(octets).decode('utf-8', errors='replace'))
         c.g.PY_HEIGHT = lambda font: fonts[str(font)].line_height
-        tables = {lang: path.read_text(encoding='utf-8').splitlines() for lang, path in TABLES.items()}
+        tables = {('batman_RadioSurvivor', lang): path.read_text(encoding='utf-8').splitlines()
+                  for lang, path in TABLES.items()}
+        tables.update({('batman_RadioSurvivorCore', lang): path.read_text(encoding='utf-8').splitlines()
+                       for lang, path in CORE_TABLES.items()})
         c.rt.execute(NOTEBOOK_UI)
         import json
-        c.g.EN_TEXTS = c.rt.table_from(json.loads(TABLES['EN'].read_text(encoding='utf-8')))
+        c.g.EN_TEXTS = c.rt.table_from({**json.loads(CORE_TABLES['EN'].read_text(encoding='utf-8')),
+                                        **json.loads(TABLES['EN'].read_text(encoding='utf-8'))})
         c.rt.execute(EXTRA_UI)
 
         def reader(mod, path, create):
             m = re.match(r'media/lua/shared/Translate/(\w+)/IG_UI\.json$', str(path))
-            if str(mod) != 'batman_RadioSurvivor' or not m or m.group(1) not in tables:
+            if not m or (str(mod), m.group(1)) not in tables:
                 return None
-            lines = list(tables[m.group(1)])
+            lines = list(tables[(str(mod), m.group(1))])
             return c.rt.eval('function(lines) local i = 0; return {readLine = function() i = i + 1; return lines[i] end,'
                              ' close = function() end} end')(c.rt.table_from(lines))
         c.g.getModFileReader = reader

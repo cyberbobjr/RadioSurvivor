@@ -292,7 +292,7 @@ class ClearMissionTests(unittest.TestCase):
         window = c.g.RS_CarnetClient.window
         window.changeTab(window, 'Missions')
         label = c.rt.eval('RS_CarnetClient.window.list.items[1].text')
-        self.assertTrue(label.startswith('IGUI_RS_Clear - '), label)
+        self.assertTrue(label.startswith('IGUI_RC_Mission_Clear - '), label)
         for key in ('IGUI_RS_ScoutPlace', 'IGUI_RS_ScoutClues', 'IGUI_RS_ClearMapZone', 'IGUI_RS_ClearProgress|1',
                     'IGUI_RS_ClearBy|alice Doe', 'IGUI_RS_ClearRule', 'IGUI_RS_ClearReport'):
             self.assertIn(key, window.detail.text)

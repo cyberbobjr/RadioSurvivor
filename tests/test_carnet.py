@@ -1729,7 +1729,7 @@ class LivingKnoxCarnetTests(unittest.TestCase):
         self.assertIn('manque de nourriture', speech[0], 'offline bridge text of a supply offer')
         m = sim.mission()
         self.assertEqual((m.template, m.unit, m.quantity, m.delivered, m.titleKey),
-                         ('deliver', 'value', 60, 0, 'IGUI_RS_Supply_food'))
+                         ('deliver', 'value', 60, 0, 'IGUI_RC_Mission_Supply_food'))
         self.assertEqual((m.supply.ref, m.supply.offer, m.rewardType, m.rewardCount),
                          (self.g.LK_GROUP, self.g.LK_GROUP + '-food-1', 'Base.Antibiotics', 2))
         sim.request_mission('alice', 'accept')
@@ -2590,7 +2590,7 @@ class ScoutMissionTests(unittest.TestCase):
         self.assertNotIn('IGUI_RS_Progress', window.detail.text)
         # E11-T09: title of the template (list and sheet), clues translated by the client, no technical line.
         label = c.rt.eval('RS_CarnetClient.window.list.items[1].text')
-        self.assertTrue(label.startswith('IGUI_RS_Scout - '), label)
+        self.assertTrue(label.startswith('IGUI_RC_Mission_Scout - '), label)
         self.assertIn('IGUI_RS_ScoutClues', window.detail.text)
         self.assertIn('- IGUI_RS_Clue_Kind|IGUI_RS_Place_house', window.detail.text)  # stub: first argument only
         self.assertIn('IGUI_RS_Clue_FewHouses', window.detail.text)
@@ -3172,7 +3172,7 @@ class VoiceMissionTests(unittest.TestCase):
         self.assertFalse([r for r in parsed[1] if r['id'].endswith('-brief')], 'briefing still pending')
         # Notebook row: clues as translatable data, title of the template.
         row = sim.clients['alice'].g.RS_CarnetClient.snapshot.missions[1]
-        self.assertEqual(row.titleKey, 'IGUI_RS_Scout')
+        self.assertEqual(row.titleKey, 'IGUI_RC_Mission_Scout')
         self.assertEqual(row.clues[1].key, 'Kind')
         # History line "Mission received" (kind of place only) on the voice's frequency, for alice only.
         texts = lua_list(sim.clients['alice'].rt.eval('texts(160000)'))
@@ -3341,7 +3341,7 @@ class VoiceMissionTests(unittest.TestCase):
                     '- IGUI_RS_Clue_FewHouses'):
             self.assertIn(key, text)
         self.assertNotIn('ReputationUnavailable', text)
-        self.assertEqual(c.rt.eval('RS_CarnetClient.window.list.items[1].text'), 'IGUI_RS_Scout - Scout Voice')
+        self.assertEqual(c.rt.eval('RS_CarnetClient.window.list.items[1].text'), 'IGUI_RC_Mission_Scout - Scout Voice')
         self.assertTrue(window.abandon.isVisible(window.abandon))
         for button in (window.deliver, window.claim, window.invite, window.accept):
             self.assertFalse(button.isVisible(button))

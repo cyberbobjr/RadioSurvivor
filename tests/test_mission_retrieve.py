@@ -329,7 +329,7 @@ class RetrieveMissionTests(unittest.TestCase):
         window = c.g.RS_CarnetClient.window
         window.changeTab(window, 'Missions')
         label = c.rt.eval('RS_CarnetClient.window.list.items[1].text')
-        self.assertTrue(label.startswith('IGUI_RS_Retrieve - '), label)
+        self.assertTrue(label.startswith('IGUI_RC_Mission_Retrieve - '), label)
         for key in ('IGUI_RS_ScoutPlace', 'IGUI_RS_ScoutClues', 'IGUI_RS_RetrieveMapZone', 'IGUI_RS_RetrieveNotFound',
                     'IGUI_RS_RetrieveReport'):
             self.assertIn(key, window.detail.text)

@@ -286,13 +286,13 @@ function W.fixture(Client, p, lang, zone)
             background = c.bg, revision = 1, history = history, note = c.note, relation = relationOf(i) }
     end
     local missions = {
-        { id = "wiki_m1", npc = "wiki_c1", titleKey = "IGUI_RS_Scout", state = "active", revision = 2,
+        { id = "wiki_m1", npc = "wiki_c1", titleKey = "IGUI_RC_Mission_Scout", state = "active", revision = 2,
             template = "scout", placeKind = "church", mapZone = zone, zoneReached = false,
             clues = { { key = "Kind", args = { "church", "medium", "1" } } },
             remainingMs = 5400000, durationMs = 7200000, rewardType = "Base.Bullets9mm", rewardCount = 12,
             claimedName = "", engaged = true, invited = true, recovery = false, participants = { me },
             requester = T.contacts[1].name, near = true },
-        { id = "wiki_m2", npc = "wiki_c3", titleKey = "IGUI_RS_Scout", state = "active", revision = 3,
+        { id = "wiki_m2", npc = "wiki_c3", titleKey = "IGUI_RC_Mission_Scout", state = "active", revision = 3,
             template = "scout", placeKind = "school", zoneReached = true, reachedBy = me, toReport = true,
             remainingMs = 2400000, durationMs = 7200000, rewardType = "Base.Battery", rewardCount = 4,
             claimedName = "", engaged = true, invited = true, recovery = false, participants = { me },

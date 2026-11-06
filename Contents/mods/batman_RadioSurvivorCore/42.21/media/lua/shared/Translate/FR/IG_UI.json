@@ -17,5 +17,15 @@
     "IGUI_RC_State_abandoned": "Abandonnée",
     "IGUI_RC_State_cancelled_dead": "Annulée — demandeur décédé",
     "IGUI_RC_State_expired": "Offre expirée",
-    "IGUI_RC_State_cancelled_closed": "Fermée : plus nécessaire"
+    "IGUI_RC_State_cancelled_closed": "Fermée : plus nécessaire",
+    "IGUI_RC_Mission_FirstAid": "Premiers soins pour un survivant",
+    "IGUI_RC_Mission_Scout": "Reconnaissance pour un survivant",
+    "IGUI_RC_Mission_Supply": "Ravitaillement pour un groupe",
+    "IGUI_RC_Mission_Supply_food": "Nourriture pour un groupe",
+    "IGUI_RC_Mission_Supply_medical": "Soins pour un groupe",
+    "IGUI_RC_Mission_Supply_ammo": "Munitions pour un groupe",
+    "IGUI_RC_Mission_Retrieve": "Les papiers d’un disparu",
+    "IGUI_RC_Mission_Clear": "Nettoyer les abords d’un lieu",
+    "IGUI_RC_Mission_Recover": "Rapporter une cache",
+    "IGUI_RC_Mission_Signal": "Faire un signal sur un lieu"
 }

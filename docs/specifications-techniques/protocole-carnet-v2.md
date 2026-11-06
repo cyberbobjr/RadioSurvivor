@@ -727,8 +727,11 @@ traduit par le serveur. Le client compose le texte dans sa langue :
 | `TownIn`, `TownOutskirts`, `TownCountry` | nom de la ville (nom propre, non traduit) | |
 
 Clé inconnue (serveur plus récent) : indice omis. Mission enregistrée avant E11-T09 : aucun indice affiché. Le titre de
-la liste et de la fiche est celui du gabarit (`titleKey` : `IGUI_RS_Scout` pour `scout`, `IGUI_RS_FirstAid` pour M01,
-`IGUI_RS_Supply_*` pour un ravitaillement) ; la fiche n'affiche aucune ligne de réputation (onglet Réputation, E04-T04).
+la liste et de la fiche est celui du gabarit (`titleKey` : `IGUI_RC_Mission_Scout` pour `scout`,
+`IGUI_RC_Mission_FirstAid` pour M01, `IGUI_RC_Mission_Supply_*` pour un ravitaillement ; clés du mod commun depuis
+E18-T13, une mission enregistrée avant sous `IGUI_RS_<nom>` est projetée avec la nouvelle clé par
+`RC_MissionConfig.titleKey`, sans réécrire l'état) ; la fiche n'affiche aucune ligne de réputation (onglet Réputation,
+E04-T04).
 
 **Instantané du carnet, champ `reputation`** (E04-T04, E04-T12) : `{ available = true, level, trend, reasons = {
 { action, reasonKey, reasonArgs, sign, capped?, day } } (5 au plus, le plus récent d'abord), change? = { from, to, day,

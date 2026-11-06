@@ -96,7 +96,7 @@ RST.suite("rs.missions.radio", { tags = { "server", "world" }, testTimeoutMs = 6
         for _, clue in ipairs(before.clues) do t:ok(not string.find(clue, "%d"), "clue with a digit: " .. clue) end
         -- E11-T09: title of the template; clues projected to the notebook as keys (one per English clue).
         local row = M.projection(m, "char1")
-        t:eq("IGUI_RS_Scout", row.titleKey)
+        t:eq("IGUI_RC_Mission_Scout", row.titleKey)
         t:eq(#before.clues, #row.clues, "notebook clues out of step with the bridge clues")
         t:eq("Kind", row.clues[1] and row.clues[1].key)
         t:eq("briefing", V.context(m, "briefing").turn)

@@ -111,7 +111,7 @@ end
 -- Active test mission of `npcId` with participants { [cid] = name }, inserted in the state (removed at the end).
 local function testMission(t, c, npcId, participants)
     local id = "rst-rep-" .. string.format("%.0f", RST.now())
-    local m = { id = id, npc = npcId, template = "deliver", offer = "first_aid_v1", titleKey = "IGUI_RS_FirstAid",
+    local m = { id = id, npc = npcId, template = "deliver", offer = "first_aid_v1", titleKey = "IGUI_RC_Mission_FirstAid",
         state = "active", revision = 1, durationMs = 3600000, remainingMs = 3600000, participants = {}, invited = {},
         rewardType = "", rewardCount = 0, claimedBy = "", receipts = {}, quantity = 1, delivered = 0, accepted = {},
         requesterName = RP.REQUESTER }

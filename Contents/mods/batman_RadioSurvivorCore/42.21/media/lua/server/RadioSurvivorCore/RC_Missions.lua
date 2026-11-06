@@ -462,7 +462,7 @@ end
 
 function M.projection(m, character)
     -- Clone; never leak server receipts, inventory item IDs or another player's private data.
-    local p = {id = m.id, npc = m.npc, titleKey = m.titleKey, state = m.state, revision = m.revision,
+    local p = {id = m.id, npc = m.npc, titleKey = Config.titleKey(m.titleKey), state = m.state, revision = m.revision,
         remainingMs = m.remainingMs, durationMs = m.durationMs,
         rewardType = m.rewardType, rewardCount = m.rewardCount, claimedName = m.claimedName or '',
         engaged = m.participants[character] ~= nil, invited = m.invited[character] == true,
@@ -502,7 +502,8 @@ end
 -- engine: rewardCount 0), claimed by the common lot mechanism (M.claim).
 local Deliver = {idPrefix = 'delivery'}
 
-local SUPPLY_TITLES = {food = 'IGUI_RS_Supply_food', medical = 'IGUI_RS_Supply_medical', ammo = 'IGUI_RS_Supply_ammo'}
+local SUPPLY_TITLES = {food = 'IGUI_RC_Mission_Supply_food', medical = 'IGUI_RC_Mission_Supply_medical',
+    ammo = 'IGUI_RC_Mission_Supply_ammo'}
 
 local function copyMap(t)
     local out = {}
@@ -546,7 +547,7 @@ function Deliver.create(m, c, npc, terms)
         m.quantity, m.delivered, m.unit = terms.quantity, 0, 'value'
         m.accepted, m.values = copyMap(terms.accepted), copyMap(terms.values)
         m.supply = {ref = terms.supplier, offer = terms.supply, need = terms.need}
-        m.titleKey = SUPPLY_TITLES[terms.need] or 'IGUI_RS_Supply'
+        m.titleKey = SUPPLY_TITLES[terms.need] or 'IGUI_RC_Mission_Supply'
         m.rewardCount = terms.rewardCount or 0
         m.rewardType = m.rewardCount > 0 and terms.rewardType or c.rewardType
         return

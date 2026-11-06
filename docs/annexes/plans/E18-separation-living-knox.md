@@ -2,7 +2,7 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 3 / 19 tâche(s) terminée(s).
+**Avancement.** en cours — 4 / 19 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
@@ -18,7 +18,7 @@
 | ☐ | E18-T10 | Dossier de données de Living Knox et reprise des parties existantes | `testé hors jeu` | MP | E18-T07 |
 | ☐ | E18-T11 | Historique des échanges avec les PNJ dans le commun | `testé hors jeu` | MP | E18-T04, E18-T09 |
 | ☐ | E18-T12 | Pont : un dossier d'échange pour les deux mods | `à faire` | MP | E18-T04, E18-T17 |
-| ☐ | E18-T13 | Traductions et options sandbox des trois mods | `à faire` | hors jeu | E18-T06, E18-T07 |
+| ☑ | E18-T13 | Traductions et options sandbox des trois mods | `testé hors jeu` | hors jeu | E18-T06, E18-T07 |
 | ☑ | E18-T14 | Outillage des tests pour trois montages | `testé hors jeu` | hors jeu | E18-T07 |
 | ☐ | E18-T15 | Validation des trois montages | `à faire` | MP | E18-T05, E18-T06, E18-T08, E18-T10, E18-T12, E18-T13, E18-T14, E18-T18, E18-T19 |
 | ☐ | E18-T16 | Documentation et page Workshop des trois mods | `à faire` | hors jeu | E18-T15 |
@@ -243,15 +243,15 @@ Deuxième article Workshop, dépôt séparé, nouvelles règles de jeu des missi
   - Preuve : —
   - Reste : —
 
-- [ ] **E18-T13** — Traductions et options sandbox des trois mods
-  - État : `à faire`
+- [x] **E18-T13** — Traductions et options sandbox des trois mods
+  - État : `testé hors jeu`
   - Cible : `hors jeu`
   - Dépend de : E18-T06, E18-T07
   - Fichiers : `media/lua/shared/Translate/*/` et `media/sandbox-options.txt` des trois mods
   - Faire : chaque mod porte ses clés et sa page d'options (missions et pont dans le commun) ; aucune clé ni option perdue, dans toutes les langues livrées ; réglages d'une partie existante relus.
   - Accepté si : union des clés égale aux clés d'avant plus celles du journal ; aucune clé d'un mod dans un autre.
   - Tests : banc de comparaison des clés ; `check_case`.
-  - Preuve : —
+  - Preuve : confirmé par défaut le 2026-11-06 : aucune option sandbox ne porte sur les missions ou le pont (les 15 options de la page `RadioSurvivor` règlent la radio, ses plafonds, les secours et le confort, plafonds séparés décidés le 2026-11-05) : le mod commun n'a pas de page d'options ; titres des missions passés au commun sous `IGUI_RC_Mission_<nom>` (10 clés EN et FR : FirstAid, Scout, Supply, Supply_food, Supply_medical, Supply_ammo, Retrieve, Clear, Recover, Signal, retirées de RadioSurvivor ; `RC_MissionConfig`, `RC_Missions`, repli du carnet `IGUI_RC_Mission`) ; mission enregistrée avant la séparation (`IGUI_RS_<nom>`) projetée avec la nouvelle clé par `RC_MissionConfig.titleKey`, état sur disque inchangé ; `protocole-carnet-v2.md` mis à jour ; banc `tests/test_translations_split.py` (7 tests, rouge d'abord : 3 FAIL, 1 ERROR ; puis OK) : clés d'avant la séparation figées depuis le commit `4ab5c75` (`tests/fixtures/e18-t13/keys-before.json`, 6 fichiers par langue, 47 options), union des trois mods = clés d'avant + 19 clés du journal + titres renommés, dans chaque langue et chaque fichier ; aucune clé livrée par deux mods ; préfixes séparés (`IGUI_RC_` commun, `IGUI_LK_` et `Sandbox_LivingKnox` Living Knox) ; mêmes clés EN et FR dans chaque mod ; toute clé littérale du Lua d'un mod livrée par lui, un mod qu'il exige ou le jeu ; 47 options gardées sous leur nom (réglages d'une partie existante relus), chacune sur la page de son mod avec son libellé dans ce mod ; banc visuel du carnet (`test_notebook_visual.py`, suite `rs.notebook.visual`) : tables du commun et de RadioSurvivor fusionnées comme le jeu ; `run_all.py` 157 PASS (dont `case` PASS), luacheck `Contents` 15 (référence 15), `dev` 0, `plan.py check` 0 erreur
   - Reste : —
 
 - [x] **E18-T14** — Outillage des tests pour trois montages

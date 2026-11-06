@@ -24,7 +24,7 @@ local MC = {
         -- M01: first-aid delivery.
         deliver = {
             id = 'first_aid_v1',
-            titleKey = 'IGUI_RS_FirstAid',
+            titleKey = 'IGUI_RC_Mission_FirstAid',
             quantity = 6,
             durationMs = 7200000,
             accepted = {['Base.Bandage'] = true, ['Base.RippedSheets'] = true},
@@ -35,7 +35,7 @@ local MC = {
         -- (server/RadioSurvivorCore/RC_MissionScout.lua). Delay and reward of M01 (decisions E11-T01).
         scout = {
             id = 'scout_v1',
-            titleKey = 'IGUI_RS_Scout',
+            titleKey = 'IGUI_RC_Mission_Scout',
             durationMs = 7200000,
             rewardType = 'Base.Bullets9mm',
             rewardCount = 20,
@@ -51,7 +51,7 @@ local MC = {
         -- (server/RadioSurvivorCore/RC_MissionRetrieve.lua). Place, area, delay and reward as `scout`.
         retrieve_id = {
             id = 'retrieve_id_v1',
-            titleKey = 'IGUI_RS_Retrieve',
+            titleKey = 'IGUI_RC_Mission_Retrieve',
             durationMs = 7200000,
             rewardType = 'Base.Bullets9mm',
             rewardCount = 20,
@@ -72,7 +72,7 @@ local MC = {
         -- (server/RadioSurvivorCore/RC_MissionClear.lua). Place, delay and reward as `scout`; N from the zone density.
         clear = {
             id = 'clear_v1',
-            titleKey = 'IGUI_RS_Clear',
+            titleKey = 'IGUI_RC_Mission_Clear',
             durationMs = 7200000,
             rewardType = 'Base.Bullets9mm',
             rewardCount = 20,
@@ -92,7 +92,7 @@ local MC = {
         -- the requester's group (server/RadioSurvivorCore/RC_MissionRecover.lua). Place, area, delay and reward as `scout`.
         recover = {
             id = 'recover_v1',
-            titleKey = 'IGUI_RS_Recover',
+            titleKey = 'IGUI_RC_Mission_Recover',
             durationMs = 7200000,
             rewardType = 'Base.Bullets9mm',
             rewardCount = 20,
@@ -109,7 +109,7 @@ local MC = {
         -- Place, delay and reward as `scout`.
         signal = {
             id = 'signal_v1',
-            titleKey = 'IGUI_RS_Signal',
+            titleKey = 'IGUI_RC_Mission_Signal',
             durationMs = 7200000,
             rewardType = 'Base.Bullets9mm',
             rewardCount = 20,
@@ -141,5 +141,18 @@ local MC = {
         },
     },
 }
+
+-- E18-T13: mission titles shipped by the core mod (IGUI_RC_Mission_<name>). A mission saved before the split keeps
+-- the RadioSurvivor key it was created with (IGUI_RS_<name>); the engine shows it with the new key and never rewrites
+-- the saved mission (state files taken over byte for byte).
+MC.LEGACY_TITLES = {}
+for _, name in ipairs({'FirstAid', 'Scout', 'Supply', 'Supply_food', 'Supply_medical', 'Supply_ammo', 'Retrieve',
+        'Clear', 'Recover', 'Signal'}) do
+    MC.LEGACY_TITLES['IGUI_RS_' .. name] = 'IGUI_RC_Mission_' .. name
+end
+
+function MC.titleKey(key)
+    return MC.LEGACY_TITLES[key] or key
+end
 
 return MC

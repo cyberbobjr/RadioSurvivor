@@ -576,7 +576,7 @@ function Notebook:refresh()
     for i, row in ipairs(rows or {}) do
         local label = (self.tab == 'Contacts' or self.tab == 'Team') and row.name
             or self.tab == 'Radio' and tr('RadioFrequency', Const.frequencyLabel(row.khz))
-            or getText(row.titleKey or 'IGUI_RS_FirstAid') .. ' - ' .. row.requester
+            or getText(row.titleKey or 'IGUI_RC_Mission') .. ' - ' .. row.requester
         self.list:addItem(label, row)
         if row.id == old then self.list.selected = i end
     end

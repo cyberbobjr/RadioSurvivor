@@ -234,7 +234,7 @@ class SignalMissionTests(unittest.TestCase):
         window = c.g.RS_CarnetClient.window
         window.changeTab(window, 'Missions')
         label = c.rt.eval('RS_CarnetClient.window.list.items[1].text')
-        self.assertTrue(label.startswith('IGUI_RS_Signal - '), label)
+        self.assertTrue(label.startswith('IGUI_RC_Mission_Signal - '), label)
         end = (m.hour + 2) % 24
         for key in ('IGUI_RS_ScoutPlace', 'IGUI_RS_ScoutClues', 'IGUI_RS_SignalMapZone',
                     'IGUI_RS_SignalColor|IGUI_RS_SignalColor_' + m.color, f'IGUI_RS_SignalHour|{m.hour}|{end}',

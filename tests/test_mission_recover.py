@@ -487,7 +487,7 @@ class RecoverMissionTests(unittest.TestCase):
         window = c.g.RS_CarnetClient.window
         window.changeTab(window, 'Missions')
         label = c.rt.eval('RS_CarnetClient.window.list.items[1].text')
-        self.assertTrue(label.startswith('IGUI_RS_Recover - '), label)
+        self.assertTrue(label.startswith('IGUI_RC_Mission_Recover - '), label)
         for key in ('IGUI_RS_ScoutPlace', 'IGUI_RS_ScoutClues', 'IGUI_RS_RecoverMapZone', 'IGUI_RS_RecoverCache',
                     'IGUI_RS_Cache_' + m.cache.table, 'IGUI_RS_RecoverNotFound', 'IGUI_RS_RecoverDepotZone',
                     'IGUI_RS_RecoverReport'):
