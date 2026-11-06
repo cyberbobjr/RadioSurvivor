@@ -30,6 +30,8 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from harness import LK_LUA  # noqa: E402  (E18-T07)
+from harness import lua_src  # noqa: E402  (E18-T07)
 from harness import LUA  # noqa: E402
 from test_lk_bodies import lua_list  # noqa: E402
 from test_lk_decisions import DECIDERS, DUMP  # noqa: E402
@@ -43,7 +45,7 @@ D = 'LivingKnox.Decisions'
 RELATIONS = 'server/LivingKnox/LK_Relations.lua'
 RAIDS = 'server/LivingKnox/LK_Raids.lua'
 ROOT = Path(__file__).resolve().parents[1]
-MEDIA = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivor' / '42.21' / 'media'
+MEDIA = ROOT / 'Contents' / 'mods' / 'batman_LivingKnox' / '42.21' / 'media'
 SUITE_FILE = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua' / 'shared' / 'RST' / 'suites' \
     / 'RST_LKRaid.lua'
 KEY_A, KEY_B = 'c-alpha', 'c-bravo'
@@ -675,12 +677,12 @@ class SourceTests(unittest.TestCase):
         self.assertRegex(opts, r'option LivingKnox\.RaidDays\n\{\n\ttype = integer,\n\tmin = 3,\n\tmax = 90,\n'
                                r'\tdefault = 14,')
         for lang in ('EN', 'FR'):
-            ui = json.loads((LUA / 'shared' / 'Translate' / lang / 'IG_UI.json').read_text(encoding='utf-8'))
+            ui = json.loads((LK_LUA / 'shared' / 'Translate' / lang / 'IG_UI.json').read_text(encoding='utf-8'))
             ui['IGUI_LK_Raid_Scouted'].encode('latin-1')
-            sb = json.loads((LUA / 'shared' / 'Translate' / lang / 'Sandbox.json').read_text(encoding='utf-8'))
+            sb = json.loads((LK_LUA / 'shared' / 'Translate' / lang / 'Sandbox.json').read_text(encoding='utf-8'))
             for k in ('RaidsEnabled', 'RaidsEnabled_tooltip', 'RaidDays', 'RaidDays_tooltip'):
                 sb['Sandbox_LivingKnox_' + k].encode('latin-1')
-        src = (LUA / RAIDS).read_text(encoding='utf-8')
+        src = (lua_src(RAIDS)).read_text(encoding='utf-8')
         for n, line in enumerate(src.splitlines(), 1):
             with self.subTest(line=n):
                 self.assertTrue(line.split('--', 1)[0].isascii(), line)

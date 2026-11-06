@@ -26,7 +26,9 @@ sys.path.append(str(Path(__file__).resolve().parents[1] / 'tools'))
 import pz_paths  # noqa: E402  (vanilla folders: PZ_STEAM_LIBRARY, PZ_MEDIA or Steam detection)
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from harness import LK_LUA  # noqa: E402  (E18-T07)
 from harness import LUA, CORE_LUA  # noqa: E402
+from harness import lua_src  # noqa: E402  (E18-T07)
 from test_lk_stock import Base as StockBase, KITCHEN, OFFSCREEN_DOUBLES  # noqa: E402
 from test_lk_homes import HOUSE  # noqa: E402
 from test_lk_aid import AID_DOUBLES, ENGINE_STUBS, MENU_DOUBLES  # noqa: E402
@@ -594,13 +596,13 @@ class MultiplayerTests(Base):
 
 class TranslationTests(unittest.TestCase):
     def test_every_key_is_translated(self):
-        tr = LUA / 'shared' / 'Translate'
-        src = (LUA / TRADE).read_text(encoding='utf-8')
+        tr = LK_LUA / 'shared' / 'Translate'
+        src = lua_src(TRADE).read_text(encoding='utf-8')
         m = re.search(r'Trade\.REASONS = \{([^}]*)\}', src)
         reasons = re.findall(r'"(\w+)"', m.group(1))
         self.assertEqual(len(reasons), 9)
         keys = {f'IGUI_LK_Trade_Refuse_{r}' for r in reasons} | {'IGUI_LK_Trade_Done'}
-        view = (LUA / VIEW).read_text(encoding='utf-8')
+        view = lua_src(VIEW).read_text(encoding='utf-8')
         keys |= {f'IGUI_LK_Trade_{k}' for k in re.findall(r'tr\("(\w+)"', view)}
         self.assertGreater(len(keys), 15)
         for lang in ('EN', 'FR'):
@@ -612,7 +614,7 @@ class TranslationTests(unittest.TestCase):
 
     def test_sources_have_ascii_code_only(self):
         for path in (TRADE, VIEW, VALUES):
-            text = ((CORE_LUA if path == VALUES else LUA) / path).read_text(encoding='utf-8')
+            text = (lua_src(path)).read_text(encoding='utf-8')
             for n, line in enumerate(text.splitlines(), 1):
                 code = line.split('--', 1)[0]
                 with self.subTest(path=path, line=n):

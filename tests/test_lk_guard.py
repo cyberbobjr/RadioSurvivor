@@ -29,10 +29,11 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from harness import lua_src  # noqa: E402  (E18-T07)
 from test_lk_bodies import Base, lua_list, LUA, DEV_LUA  # noqa: E402
 
 GUARD = 'shared/LivingKnox/LK_ZombieGuard.lua'
-MOD_FILES = [LUA / GUARD]
+MOD_FILES = [lua_src(GUARD)]
 DEV_FILES = [DEV_LUA / 'shared' / 'RST' / 'suites' / 'RST_LKGuard.lua',
              DEV_LUA / 'shared' / 'RST' / 'suites' / 'RST_LKPain.lua']
 
@@ -715,7 +716,7 @@ class SourceTests(unittest.TestCase):
             self.assertTrue(all(b < 128 for b in path.read_bytes()), f'{path.name}: non ASCII byte')
 
     def test_guard_never_reads_a_zombie_without_the_engine_marker(self):
-        code = (LUA / GUARD).read_text(encoding='utf-8')
+        code = lua_src(GUARD).read_text(encoding='utf-8')
         self.assertIn('isReanimatedPlayer()', code)
         self.assertNotIn('getModData', code)  # l'autorité passe par Bodies.bound, le client par la liste du serveur
 

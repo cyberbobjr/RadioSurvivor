@@ -36,6 +36,7 @@ sys.path.append(str(Path(__file__).resolve().parents[1] / 'tools'))
 import pz_paths  # noqa: E402  (vanilla folders: PZ_STEAM_LIBRARY, PZ_MEDIA or Steam detection)
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from harness import lua_src  # noqa: E402  (E18-T07)
 from test_lk_bodies import lua_list  # noqa: E402
 from test_lk_expeditions import ExpeditionStack  # noqa: E402
 from test_lk_upkeep import UpkeepStack  # noqa: E402
@@ -48,7 +49,7 @@ U = 'LivingKnox.Upkeep'
 R = 'LivingKnox.Routines'
 ROOT = Path(__file__).resolve().parents[1]
 MODULE = 'server/LivingKnox/LK_Food.lua'
-MODULE_FILE = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivor' / '42.21' / 'media' / 'lua' / MODULE
+MODULE_FILE = lua_src(MODULE)
 SUITE = 'shared/RST/suites/RST_LKForage.lua'
 SUITE_FILE = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua' / SUITE
 VANILLA_FORAGE = pz_paths.media_dir() / \

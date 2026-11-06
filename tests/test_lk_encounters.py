@@ -27,6 +27,8 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from harness import LK_LUA  # noqa: E402  (E18-T07)
+from harness import lua_src  # noqa: E402  (E18-T07)
 from test_lk_bodies import LUA, DEV_LUA, lua_list  # noqa: E402
 from test_lk_decisions import PureBase  # noqa: E402
 from test_lk_defense import DefenseStack  # noqa: E402
@@ -34,7 +36,7 @@ from test_lk_defense import DefenseStack  # noqa: E402
 ENC = 'server/LivingKnox/LK_Encounters.lua'
 SUITE = 'shared/RST/suites/RST_LKWarn.lua'
 SUITE_FILE = DEV_LUA / 'shared' / 'RST' / 'suites' / 'RST_LKWarn.lua'
-TRANSLATE = LUA / 'shared' / 'Translate'
+TRANSLATE = LK_LUA / 'shared' / 'Translate'
 E = 'LivingKnox.Encounters'
 D = 'LivingKnox.Decisions'
 C = 'LivingKnox.Combat'
@@ -553,7 +555,7 @@ class SuiteTests(EncounterStack):
         self.assertEqual(self.h.errors('solo'), [])
 
     def test_sources_are_ascii_kahlua_safe_with_english_logs(self):
-        for path in (SUITE_FILE, LUA / ENC):
+        for path in (SUITE_FILE, lua_src(ENC)):
             raw = path.read_bytes()
             code = re.sub(r'--[^\n]*', '', re.sub(r'--\[\[.*?\]\]', '', raw.decode('utf-8'), flags=re.S))
             self.assertTrue(all(ord(ch) < 128 for ch in code), f'non ASCII code in {path.name}')

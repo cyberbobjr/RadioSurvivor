@@ -14,6 +14,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from harness import lua_src  # noqa: E402  (E18-T07)
 from test_lk_bodies import LUA  # noqa: E402
 from test_lk_directives import DirectiveBase, TARGET  # noqa: E402
 from test_lk_milestone import MilestoneBase  # noqa: E402
@@ -841,13 +842,13 @@ class ExecutorSuiteReportTests(MilestoneBase):
 class SourceTests(unittest.TestCase):
     def test_kahlua_safe_sources_no_body_moved(self):
         for rel in (REPORTS, EXECUTOR):
-            text = (LUA / rel).read_text(encoding='utf-8')
+            text = lua_src(rel).read_text(encoding='utf-8')
             code = re.sub(r'--\[\[.*?\]\]', '', text, flags=re.S)
             code = re.sub(r'--[^\n]*', '', code)
             self.assertTrue(all(ord(ch) < 128 for ch in code), f'{rel}: non ASCII character in code')
             for pattern in (r'\bnext\s*\(', r'\bgoto\b', r'\bcoroutine\.', r'\bbit32\b', r'\bunpack\b'):
                 self.assertIsNone(re.search(pattern, code, flags=re.M), f'{rel}: {pattern}')
-        code = re.sub(r'--[^\n]*', '', (LUA / REPORTS).read_text(encoding='utf-8'))
+        code = re.sub(r'--[^\n]*', '', lua_src(REPORTS).read_text(encoding='utf-8'))
         for call in ('pathToLocation', 'setX', 'setY', 'setZ', 'teleportTo', 'setHealth', 'setMoving'):
             self.assertNotIn(call, code)
         self.assertIn('if isClient() then return Reports end', code)

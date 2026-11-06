@@ -21,12 +21,13 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from harness import lua_src  # noqa: E402  (E18-T07)
 from test_lk_bodies import lua_list, LUA, DEV_LUA  # noqa: E402
 import test_lk_directives as TD  # noqa: E402
 import test_lk_decisions as TDEC  # noqa: E402
 
 MOVEMENT = 'shared/LivingKnox/LK_Movement.lua'
-MOD_FILE = LUA / MOVEMENT
+MOD_FILE = lua_src(MOVEMENT)
 SUITE = DEV_LUA / 'shared' / 'RST' / 'suites' / 'RST_LKStuck.lua'
 TARGET = TD.TARGET   # (111, 102, 0) ; corps créé en 102, 102
 

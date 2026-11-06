@@ -2,7 +2,7 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 16 / 19 tâche(s) terminée(s), 1 abandonnée(s).
+**Avancement.** en cours — 16 / 21 tâche(s) terminée(s), 1 abandonnée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
@@ -26,6 +26,8 @@
 | ☑ | E01-T18 | API de test réservée au mode debug | `testé solo` | solo | E01-T10 |
 | ☐ | E01-T19 | Campagne `mp-ambient` et suites de gabarits dans la campagne `mp` | `codé` | MP | E01-T15 |
 | ☐ | E01-T20 | lk.windowkill indépendant de l'IA vanilla du zombie | `à faire` | MP | E01-T18 |
+| ☐ | E01-T21 | lk.barricade stable en campagne MP | `à faire` | MP | E01-T18 |
+| ☐ | E01-T22 | lk.traversal stable en campagne MP | `à faire` | MP | E01-T18 |
 
 <!-- fin du tableau de bord -->
 
@@ -297,3 +299,25 @@ Interface graphique du moteur (la console suffit), intégration continue distant
   - Preuve : —
   - Reste : —
 
+
+- [ ] **E01-T21** — lk.barricade stable en campagne MP
+  - État : `à faire`
+  - Cible : `MP`
+  - Dépend de : E01-T18
+  - Fichiers : `dev/batman_RadioSurvivorTests/42.21/media/lua/shared/RST/suites/RST_LKBarricade.lua`, `tests/test_lk_barricade.py`
+  - Faire : échec revenu dans la campagne MP du 2026-11-06 (« builder nails planks from the stock … sites finished: expected 1, got 0 », `tools/autoclient/runs/20261106-002923-mp-2889c9f2103f/server/20261105-233208-server.txt`) après les passages verts du 2026-11-05 ; trouver pourquoi le chantier ne se termine pas dans le délai (hypothèse : joueurs ou PNJ sur le chemin de l'ouvrier, comme le 2026-11-05).
+  - Accepté si : lk.barricade vert dans trois campagnes MP de suite.
+  - Tests : banc `test_lk_barricade.py` ; campagnes MP.
+  - Preuve : —
+  - Reste : —
+
+- [ ] **E01-T22** — lk.traversal stable en campagne MP
+  - État : `à faire`
+  - Cible : `MP`
+  - Dépend de : E01-T18
+  - Fichiers : `dev/batman_RadioSurvivorTests/42.21/media/lua/shared/RST/suites/RST_LKTraversal.lua`, `tests/test_lk_obstacles.py`
+  - Faire : trois cas différents en échec sur deux passages MP du 2026-11-06 (campagne : « open window: climbed through » (étape client `lk.track`, copie à 0,9 case du but) et « window of a house, destination behind a locked door elsewhere » (corps jamais passé par la porte), `tools/autoclient/runs/20261106-002923-mp-2889c9f2103f` ; passage ciblé : « locked interior home door … relocked » (portes verrouillées par l'autorité : 10 au lieu de 8), `tools/autoclient/runs/20261106-011253-mp-398bd3fa693f`) ; verts dans les 15 campagnes MP précédentes ; code du moteur des PNJ inchangé par E18-T05 et E18-T06 (hypothèse : délais et course entre deux scènes de la suite).
+  - Accepté si : lk.traversal vert dans trois campagnes MP de suite.
+  - Tests : bancs `test_lk_obstacles.py`, `test_lk_movement.py` ; campagnes MP.
+  - Preuve : —
+  - Reste : —

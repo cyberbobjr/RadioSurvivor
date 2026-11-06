@@ -3,7 +3,7 @@
 - Tâches : LK12-T01 ; LK10-T03 (histoires enrichies, ajout compatible dans la version 1, 2026-10-12) ; LK11-T03 (attitude par joueur, ajout compatible dans la version 1) ; LK12-T03 (offres de ressources et livraisons, ajout compatible dans la version 1) ; LK12-T02 (événements publics, ajout compatible dans la version 1, 2026-10-12) ; servira E17-T03 (fournisseur du carnet)
 - Build : 42.21.0 — Date : 2026-10-10 (événements : 2026-10-12) — Statut : testé hors jeu (banc lupa et VM Kahlua)
 
-Code : `Contents/mods/batman_RadioSurvivor/42.21/media/lua/server/LivingKnox/LK_API.lua` (`LivingKnox.API`). Tests : `tests/test_lk_api.py`, `tests/test_kahlua.py` (`test_api_in_kahlua`, `test_attitude_in_kahlua`, `test_events_in_kahlua`).
+Code : `Contents/mods/batman_LivingKnox/42.21/media/lua/server/LivingKnox/LK_API.lua` (`LivingKnox.API`). Tests : `tests/test_lk_api.py`, `tests/test_kahlua.py` (`test_api_in_kahlua`, `test_attitude_in_kahlua`, `test_events_in_kahlua`).
 
 ## Portée
 

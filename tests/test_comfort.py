@@ -28,6 +28,7 @@ import test_personas_server as tps  # noqa: E402
 
 LUA = tps.LUA
 CORE_LUA = Path(__file__).resolve().parents[1] / 'Contents' / 'mods' / 'batman_RadioSurvivorCore' / '42.21' / 'media' / 'lua'  # mod commun (E18)
+LK_LUA = Path(__file__).resolve().parents[1] / 'Contents' / 'mods' / 'batman_LivingKnox' / '42.21' / 'media' / 'lua'  # moteur des PNJ (E18-T07)
 lua_list = tps.lua_list
 
 MODULE_STUBS = r'''
@@ -75,7 +76,7 @@ class ComfortModuleTests(unittest.TestCase):
         self.g.next = None
         self.rt.execute(MODULE_STUBS)
         paths = ';'.join((LUA / side).as_posix() + '/?.lua' for side in ('shared', 'server'))
-        paths = (CORE_LUA / 'shared').as_posix() + '/?.lua;' + (CORE_LUA / 'server').as_posix() + '/?.lua;' + (CORE_LUA / 'client').as_posix() + '/?.lua;' + paths  # mod commun (E18)
+        paths = (CORE_LUA / 'shared').as_posix() + '/?.lua;' + (CORE_LUA / 'server').as_posix() + '/?.lua;' + (CORE_LUA / 'client').as_posix() + '/?.lua;' + (LK_LUA / 'shared').as_posix() + '/?.lua;' + (LK_LUA / 'server').as_posix() + '/?.lua;' + (LK_LUA / 'client').as_posix() + '/?.lua;' + paths  # mod commun (E18)
         self.rt.execute(f'package.path = [[{paths};]] .. package.path')
         self.C = self.rt.eval('require("RadioSurvivor/RS_Comfort")')
         self.alice = self.g.makePlayer('alice')

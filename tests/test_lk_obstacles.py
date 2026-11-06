@@ -40,6 +40,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from test_lk_bodies import LUA, DEV_LUA, lua_list  # noqa: E402
+from harness import LK_LUA  # noqa: E402  (E18-T07)
+from harness import lua_src  # noqa: E402  (E18-T07)
 from test_lk_directives import DirectiveBase  # noqa: E402
 
 OBSTACLES = 'server/LivingKnox/LK_Obstacles.lua'
@@ -3148,13 +3150,13 @@ class MultiplayerTrappedTests(ObstacleBase):
 
 class SourceTests(unittest.TestCase):
     def test_kahlua_safe_sources_and_english_logs(self):
-        for path in (LUA / OBSTACLES, LUA / 'client/LivingKnox/LK_Executor.lua',
-                     LUA / 'server/LivingKnox/LK_Directives.lua', TRAVERSAL_SUITE):
+        for path in (lua_src(OBSTACLES), LK_LUA / 'client/LivingKnox/LK_Executor.lua',
+                     LK_LUA / 'server/LivingKnox/LK_Directives.lua', TRAVERSAL_SUITE):
             src = path.read_text(encoding='utf-8')
             code = '\n'.join(line.split('--', 1)[0] for line in src.splitlines())
             self.assertTrue(code.isascii(), path)
             self.assertNotRegex(code, r'\bnext\s*\(|\bgoto\b|\bcoroutine\.|\bbit32\b', path)
-        src = (LUA / OBSTACLES).read_text(encoding='utf-8')
+        src = lua_src(OBSTACLES).read_text(encoding='utf-8')
         for msg in re.findall(r'log\(\)\.\w+\("([^"]*)"', src):
             self.assertTrue(msg.isascii() and re.match(r'^[a-z%]', msg), msg)
 

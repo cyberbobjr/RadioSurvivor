@@ -486,7 +486,7 @@ class SuiteTests(unittest.TestCase):
 
     def test_module_sources_are_kahlua_safe(self):
         for rel in (FORTIFY, SIM, 'server/LivingKnox/LK_Stock.lua'):
-            path = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivor' / '42.21' / 'media' / 'lua' / rel
+            path = ROOT / 'Contents' / 'mods' / 'batman_LivingKnox' / '42.21' / 'media' / 'lua' / rel
             raw = path.read_text(encoding='utf-8')
             code = '\n'.join(line.split('--', 1)[0] for line in raw.splitlines())
             self.assertTrue(all(ord(ch) < 128 for ch in code), f'non ASCII character in the code of {rel}')

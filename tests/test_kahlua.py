@@ -37,6 +37,7 @@ BENCH = ROOT / 'tests' / 'kahlua'
 TESTS_LUA = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua'
 MOD_LUA = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivor' / '42.21' / 'media' / 'lua'
 CORE_LUA = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivorCore' / '42.21' / 'media' / 'lua'  # mod commun (E18)
+LK_LUA = ROOT / 'Contents' / 'mods' / 'batman_LivingKnox' / '42.21' / 'media' / 'lua'  # moteur des PNJ (E18-T07)
 PZ_DIR = pz_paths.game_dir()
 ECJ = Path(os.environ['RS_ECJ_JAR']) if os.environ.get('RS_ECJ_JAR') else BENCH / 'ecj.jar'
 JAR = PZ_DIR / 'projectzomboid.jar'
@@ -80,40 +81,40 @@ LUA_FILES = [
     ('RadioSurvivor/RS_RadioHistory', MOD_LUA / 'client' / 'RadioSurvivor' / 'RS_RadioHistory.lua'),
     ('RadioSurvivor/RS_MapActions', MOD_LUA / 'client' / 'RadioSurvivor' / 'RS_MapActions.lua'),
     ('RadioSurvivor/RS_RadioTalk', MOD_LUA / 'client' / 'RadioSurvivor' / 'RS_RadioTalk.lua'),
-    ('LivingKnox/LK_Core', MOD_LUA / 'shared' / 'LivingKnox' / 'LK_Core.lua'),
-    ('LivingKnox/LK_Config', MOD_LUA / 'shared' / 'LivingKnox' / 'LK_Config.lua'),
-    ('LivingKnox/LK_Log', MOD_LUA / 'shared' / 'LivingKnox' / 'LK_Log.lua'),
-    ('LivingKnox/LK_Appearance', MOD_LUA / 'shared' / 'LivingKnox' / 'LK_Appearance.lua'),
-    ('LivingKnox/LK_Identity', MOD_LUA / 'shared' / 'LivingKnox' / 'LK_Identity.lua'),
+    ('LivingKnox/LK_Core', LK_LUA / 'shared' / 'LivingKnox' / 'LK_Core.lua'),
+    ('LivingKnox/LK_Config', LK_LUA / 'shared' / 'LivingKnox' / 'LK_Config.lua'),
+    ('LivingKnox/LK_Log', LK_LUA / 'shared' / 'LivingKnox' / 'LK_Log.lua'),
+    ('LivingKnox/LK_Appearance', LK_LUA / 'shared' / 'LivingKnox' / 'LK_Appearance.lua'),
+    ('LivingKnox/LK_Identity', LK_LUA / 'shared' / 'LivingKnox' / 'LK_Identity.lua'),
     # LK08-T02 : registre des types de groupes, puis les fichiers de données comme le balayage du jeu les exécute.
-    ('LivingKnox/LK_GroupTypes', MOD_LUA / 'shared' / 'LivingKnox' / 'LK_GroupTypes.lua'),
-    ('LivingKnox/Data/LK_Type_neutrals', MOD_LUA / 'shared' / 'LivingKnox' / 'Data' / 'LK_Type_neutrals.lua'),
-    ('LivingKnox/Data/LK_Type_raiders', MOD_LUA / 'shared' / 'LivingKnox' / 'Data' / 'LK_Type_raiders.lua'),
-    ('LivingKnox/Data/LK_Type_settlers', MOD_LUA / 'shared' / 'LivingKnox' / 'Data' / 'LK_Type_settlers.lua'),
-    ('LivingKnox/LK_Store', MOD_LUA / 'server' / 'LivingKnox' / 'LK_Store.lua'),
-    ('LivingKnox/LK_Groups', MOD_LUA / 'server' / 'LivingKnox' / 'LK_Groups.lua'),
+    ('LivingKnox/LK_GroupTypes', LK_LUA / 'shared' / 'LivingKnox' / 'LK_GroupTypes.lua'),
+    ('LivingKnox/Data/LK_Type_neutrals', LK_LUA / 'shared' / 'LivingKnox' / 'Data' / 'LK_Type_neutrals.lua'),
+    ('LivingKnox/Data/LK_Type_raiders', LK_LUA / 'shared' / 'LivingKnox' / 'Data' / 'LK_Type_raiders.lua'),
+    ('LivingKnox/Data/LK_Type_settlers', LK_LUA / 'shared' / 'LivingKnox' / 'Data' / 'LK_Type_settlers.lua'),
+    ('LivingKnox/LK_Store', LK_LUA / 'server' / 'LivingKnox' / 'LK_Store.lua'),
+    ('LivingKnox/LK_Groups', LK_LUA / 'server' / 'LivingKnox' / 'LK_Groups.lua'),
     # LK09-T01 : simulation hors écran (logique pure sur un registre en mémoire).
-    ('LivingKnox/LK_Simulation', MOD_LUA / 'server' / 'LivingKnox' / 'LK_Simulation.lua'),
+    ('LivingKnox/LK_Simulation', LK_LUA / 'server' / 'LivingKnox' / 'LK_Simulation.lua'),
     # LK02-T14 : remise debout des corps (requis par LK_Bodies ; abonne OnZombieCreate seulement ici).
-    ('LivingKnox/LK_Stand', MOD_LUA / 'shared' / 'LivingKnox' / 'LK_Stand.lua'),
+    ('LivingKnox/LK_Stand', LK_LUA / 'shared' / 'LivingKnox' / 'LK_Stand.lua'),
     # LK07-T10 : renvoi d'un cadavre manqué par un client (requis par LK_Bodies).
-    ('LivingKnox/LK_Death', MOD_LUA / 'server' / 'LivingKnox' / 'LK_Death.lua'),
+    ('LivingKnox/LK_Death', LK_LUA / 'server' / 'LivingKnox' / 'LK_Death.lua'),
     # LK12-T01 : API publique en lecture (registres en memoire ; LK_Bodies pour les corps lies, aucun ici).
-    ('LivingKnox/LK_Bodies', MOD_LUA / 'server' / 'LivingKnox' / 'LK_Bodies.lua'),
+    ('LivingKnox/LK_Bodies', LK_LUA / 'server' / 'LivingKnox' / 'LK_Bodies.lua'),
     # LK11-T03 : attitudes des groupes envers les joueurs (registre en memoire ; requis par LK_API).
-    ('LivingKnox/LK_Hostility', MOD_LUA / 'server' / 'LivingKnox' / 'LK_Hostility.lua'),
+    ('LivingKnox/LK_Hostility', LK_LUA / 'server' / 'LivingKnox' / 'LK_Hostility.lua'),
     # LK10-T02 : journal de recit (requis par LK_API ; alimente par LK_Groups.appendLog).
-    ('LivingKnox/LK_Journal', MOD_LUA / 'server' / 'LivingKnox' / 'LK_Journal.lua'),
-    ('LivingKnox/LK_API', MOD_LUA / 'server' / 'LivingKnox' / 'LK_API.lua'),
+    ('LivingKnox/LK_Journal', LK_LUA / 'server' / 'LivingKnox' / 'LK_Journal.lua'),
+    ('LivingKnox/LK_API', LK_LUA / 'server' / 'LivingKnox' / 'LK_API.lua'),
     # LK05-T01 : modele de perception (fonctions pures ; le passage sur le monde est teste sous lupa).
-    ('LivingKnox/LK_Senses', MOD_LUA / 'shared' / 'LivingKnox' / 'LK_Senses.lua'),
+    ('LivingKnox/LK_Senses', LK_LUA / 'shared' / 'LivingKnox' / 'LK_Senses.lua'),
     # LK05-T02 : cadre de decision (fonctions pures ; les passages sur les corps sont testes sous lupa). LK13-T11 :
     # file de notation horaire inscrite a OnTick au chargement (EVENTS_AT_LOAD).
-    ('LivingKnox/LK_Decisions', MOD_LUA / 'server' / 'LivingKnox' / 'LK_Decisions.lua'),
+    ('LivingKnox/LK_Decisions', LK_LUA / 'server' / 'LivingKnox' / 'LK_Decisions.lua'),
     # LK05-T08 : alerte de groupe (fonctions pures ; les passages sur les corps sont testes sous lupa).
-    ('LivingKnox/LK_Alert', MOD_LUA / 'server' / 'LivingKnox' / 'LK_Alert.lua'),
+    ('LivingKnox/LK_Alert', LK_LUA / 'server' / 'LivingKnox' / 'LK_Alert.lua'),
     # LK13-T02 : mesure de charge (enveloppes d'abonnes et reseau ; Events absent au chargement : aucun abonne).
-    ('LivingKnox/LK_Load', MOD_LUA / 'shared' / 'LivingKnox' / 'LK_Load.lua'),
+    ('LivingKnox/LK_Load', LK_LUA / 'shared' / 'LivingKnox' / 'LK_Load.lua'),
     ('suite/selftest', TESTS_LUA / 'shared' / 'RST' / 'suites' / 'RST_SelfTest.lua'),
     ('suite/failures', TESTS_LUA / 'shared' / 'RST' / 'suites' / 'RST_Failures.lua'),
     ('suite/codec', TESTS_LUA / 'shared' / 'RST' / 'suites' / 'RC_Codec.lua'),
@@ -618,8 +619,8 @@ EXCHANGE_EVALS.append(GFLUSH_EVAL)
 # charges ici, apres les autres echanges, avec une table Events vide le temps du chargement (aucun abonne inscrit).
 EXCHANGE_EVALS += [
     'eval:Events = {} return nil',
-    'load:LivingKnox/LK_Homes=' + str(MOD_LUA / 'server' / 'LivingKnox' / 'LK_Homes.lua'),
-    'load:LivingKnox/LK_Fortify=' + str(MOD_LUA / 'server' / 'LivingKnox' / 'LK_Fortify.lua'),
+    'load:LivingKnox/LK_Homes=' + str(LK_LUA / 'server' / 'LivingKnox' / 'LK_Homes.lua'),
+    'load:LivingKnox/LK_Fortify=' + str(LK_LUA / 'server' / 'LivingKnox' / 'LK_Fortify.lua'),
     'eval:Events = nil return nil',
 ]
 FORT_EVAL = (

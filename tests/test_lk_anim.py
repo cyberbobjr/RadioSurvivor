@@ -19,12 +19,13 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from harness import lua_src  # noqa: E402  (E18-T07)
 from test_lk_bodies import lua_list, LUA, DEV_LUA, ROOT  # noqa: E402
 from test_lk_guard import GuardBase  # noqa: E402
 
 ANIM = 'shared/LivingKnox/LK_Anim.lua'
 RELAY = 'server/LivingKnox/LK_Relay.lua'
-MOD_FILES = [LUA / ANIM, LUA / RELAY]
+MOD_FILES = [lua_src(ANIM), lua_src(RELAY)]
 DEV_FILES = [DEV_LUA / 'shared' / 'RST' / 'suites' / 'RST_LKAnims.lua',
              DEV_LUA / 'client' / 'RST' / 'RST_LKBodiesClient.lua',
              DEV_LUA / 'server' / 'RST' / 'RST_LKBodiesServer.lua']
@@ -273,7 +274,7 @@ class SourceTests(unittest.TestCase):
             self.assertTrue(all(b < 128 for b in path.read_bytes()), f'{path.name}: non ASCII byte')
 
     def test_variables_only_on_engine_bodies(self):
-        code = (LUA / ANIM).read_text(encoding='utf-8')
+        code = lua_src(ANIM).read_text(encoding='utf-8')
         self.assertNotIn('getModData', code)  # solo : Bodies.bound ; client : copies retrouvées par la garde
         self.assertIn('isReanimatedPlayer()', code)
         # Mêmes noms que les conditions des nœuds générés.

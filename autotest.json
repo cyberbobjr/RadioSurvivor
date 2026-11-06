@@ -15,6 +15,7 @@
     {"path": "../CharacterReputation/Contents/mods/batman_CharacterReputation"},
     {"path": "../SignalSmoke/Contents/mods/batman_SignalSmoke"},
     {"path": "Contents/mods/batman_RadioSurvivorCore"},
+    {"path": "Contents/mods/batman_LivingKnox"},
     {"path": "Contents/mods/batman_RadioSurvivor"},
     {"path": "dev/batman_RadioSurvivorTests"}
   ],

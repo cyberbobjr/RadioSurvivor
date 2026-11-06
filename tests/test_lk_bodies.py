@@ -28,12 +28,14 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from harness import Harness, LUA  # noqa: E402
+from harness import lua_src  # noqa: E402  (E18-T07)
+from harness import LK_LUA  # noqa: E402  (E18-T07)
 
 ROOT = Path(__file__).resolve().parents[1]
 DEV_LUA = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua'
 SHARED = ('shared/LivingKnox/LK_Core.lua', 'shared/LivingKnox/LK_Config.lua', 'shared/LivingKnox/LK_Log.lua',
           'shared/LivingKnox/LK_Appearance.lua', 'shared/LivingKnox/LK_Identity.lua')
-MOD_FILES = [LUA / p for p in SHARED[3:]] + [LUA / 'server' / 'LivingKnox' / n
+MOD_FILES = [lua_src(p) for p in SHARED[3:]] + [LK_LUA / 'server' / 'LivingKnox' / n
                                               for n in ('LK_Store.lua', 'LK_Bodies.lua', 'LK_Server.lua')]
 DEV_FILES = [DEV_LUA / 'server' / 'RST' / 'RST_LKBodiesServer.lua', DEV_LUA / 'client' / 'RST' / 'RST_LKBodiesClient.lua',
              DEV_LUA / 'shared' / 'RST' / 'suites' / 'RST_LKBodies.lua', DEV_LUA / 'shared' / 'RST' / 'suites' / 'RS_Killer.lua']

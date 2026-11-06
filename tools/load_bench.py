@@ -39,7 +39,7 @@ ROOT = Path(__file__).resolve().parents[1]
 TESTS = ROOT / 'tests'
 sys.path.insert(0, str(TESTS))
 
-from harness import Harness, LUA  # noqa: E402
+from harness import Harness, LUA, LK_LUA  # noqa: E402
 from test_lk_materialize import MatBase  # noqa: E402
 from test_lk_health import HEALTH_DOUBLES  # noqa: E402
 from test_lk_senses import SENSES_DOUBLES  # noqa: E402
@@ -153,8 +153,8 @@ class _Stack(MatBase):
 def lua_modules():
     out = []
     for side in ('shared', 'server', 'client'):
-        for p in sorted((LUA / side / 'LivingKnox').rglob('*.lua'), key=lambda p: p.as_posix().lower()):
-            out.append((side, p.relative_to(LUA / side).with_suffix('').as_posix()))
+        for p in sorted((LK_LUA / side / 'LivingKnox').rglob('*.lua'), key=lambda p: p.as_posix().lower()):
+            out.append((side, p.relative_to(LK_LUA / side).with_suffix('').as_posix()))
     return out
 
 
@@ -413,7 +413,8 @@ def kahlua_factor(rounds: int = 40, loop: str = FACTOR_LOOP, registry: Path | No
         full = jvm(1 + rounds)
         k_ms = (full - base) / rounds * 1000
         rt = lupa.LuaRuntime()
-        rt.execute('package.path = [[' + (tk.MOD_LUA / 'shared').as_posix() + '/?.lua;]] .. package.path')
+        rt.execute('package.path = [[' + (tk.LK_LUA / 'shared').as_posix() + '/?.lua;' + (tk.MOD_LUA / 'shared').as_posix()
+                   + '/?.lua;]] .. package.path')
         if registry is not None:
             rt.execute((work / 'registry.lua').read_text(encoding='ascii'))
     finally:

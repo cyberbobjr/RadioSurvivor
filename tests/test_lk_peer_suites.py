@@ -26,6 +26,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from test_rst import CLIENT_GAME, LUA as DEV_LUA, ROOT, SERVER_GAME, Machine, to_py  # noqa: E402
 
 MOD_LUA = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivor' / '42.21' / 'media' / 'lua'
+LK_LUA = ROOT / 'Contents' / 'mods' / 'batman_LivingKnox' / '42.21' / 'media' / 'lua'  # moteur des PNJ (E18-T07)
 STEPS_FILE = DEV_LUA / 'shared' / 'RST' / 'RST_Steps.lua'
 PEER_FILE = DEV_LUA / 'shared' / 'RST' / 'RST_PeerChecksLK.lua'
 SUITES = DEV_LUA / 'shared' / 'RST' / 'suites'
@@ -337,7 +338,7 @@ class Base(unittest.TestCase):
 # ------------------------------------------------------------------------------------------------ lk.ownerreports
 
 REPORTS_SERVER = r"""
-package.path = [[{mod}/shared/?.lua;{mod}/server/?.lua;]] .. package.path
+package.path = [[{lk}/shared/?.lua;{lk}/server/?.lua;{mod}/shared/?.lua;{mod}/server/?.lua;]] .. package.path
 LivingKnox = nil
 package.loaded["LivingKnox/LK_Bodies"] = true
 package.loaded["LivingKnox/LK_Directives"] = true
@@ -365,7 +366,7 @@ class OwnerReportsSuiteTests(Base):
     SUITE = 'lk.ownerreports'
 
     def make(self, solo=False, defect=''):
-        code = REPORTS_SERVER.replace('{mod}', MOD_LUA.as_posix()).replace('{owner}', '' if solo else REQUESTER)
+        code = REPORTS_SERVER.replace('{mod}', MOD_LUA.as_posix()).replace('{lk}', LK_LUA.as_posix()).replace('{owner}', '' if solo else REQUESTER)
         if solo:
             code = code.replace('OWNER = ""', 'OWNER = nil')
         return self.net(solo=solo, server_code=code, after_load=defect)
@@ -419,7 +420,7 @@ class OwnerReportsSuiteTests(Base):
         self.assertIn('two clients', msg)
 
     def test_single_client_skips_the_non_owner_part(self):
-        code = REPORTS_SERVER.replace('{mod}', MOD_LUA.as_posix()).replace('{owner}', REQUESTER)
+        code = REPORTS_SERVER.replace('{mod}', MOD_LUA.as_posix()).replace('{lk}', LK_LUA.as_posix()).replace('{owner}', REQUESTER)
         net = self.net(clients=(REQUESTER,), server_code=code)
         rep = net.run('{ suite = "lk.ownerreports", tags = "world", test = "does not simulate" }')
         self.assertEqual(list(results(rep).values())[0][0], 'SKIP')

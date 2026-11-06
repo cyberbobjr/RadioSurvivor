@@ -29,6 +29,7 @@ ROOT = Path(__file__).resolve().parents[1]
 MOD = ROOT / 'Contents/mods/batman_RadioSurvivor/42.21'
 LUA = MOD / 'media/lua'
 CORE_LUA = Path(__file__).resolve().parents[1] / 'Contents' / 'mods' / 'batman_RadioSurvivorCore' / '42.21' / 'media' / 'lua'  # mod commun (E18)
+LK_LUA = Path(__file__).resolve().parents[1] / 'Contents' / 'mods' / 'batman_LivingKnox' / '42.21' / 'media' / 'lua'  # moteur des PNJ (E18-T07)
 RUN_LUA = LUA / 'server/RadioSurvivor/RS_TradeRun.lua'
 TRADE_LUA = LUA / 'server/RadioSurvivor/RS_Trade.lua'
 TRANSLATE = LUA / 'shared/Translate'
@@ -129,7 +130,7 @@ class RunHarness(unittest.TestCase):
         self.rt.execute(STUBS)
         self.rt.execute(TRANSLATOR, self.rt.table_from(EN))
         paths = ';'.join((LUA / side).as_posix() + '/?.lua' for side in ('shared', 'server'))
-        paths = (CORE_LUA / 'shared').as_posix() + '/?.lua;' + (CORE_LUA / 'server').as_posix() + '/?.lua;' + (CORE_LUA / 'client').as_posix() + '/?.lua;' + paths  # mod commun (E18)
+        paths = (CORE_LUA / 'shared').as_posix() + '/?.lua;' + (CORE_LUA / 'server').as_posix() + '/?.lua;' + (CORE_LUA / 'client').as_posix() + '/?.lua;' + (LK_LUA / 'shared').as_posix() + '/?.lua;' + (LK_LUA / 'server').as_posix() + '/?.lua;' + (LK_LUA / 'client').as_posix() + '/?.lua;' + paths  # mod commun (E18)
         self.rt.execute(f'package.path = [[{paths};]] .. package.path')
         self.T = self.rt.eval('require("RadioSurvivor/RS_Trade")')
         self.Run = self.rt.eval('require("RadioSurvivor/RS_TradeRun")')

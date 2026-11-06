@@ -31,7 +31,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'bridge'))
 import npc_protocol as protocol  # noqa: E402
 
-TRANSLATE = ROOT / 'Contents/mods/batman_RadioSurvivor/42.21/media/lua/shared/Translate'
+TRANSLATE = ROOT / 'Contents/mods/batman_LivingKnox/42.21/media/lua/shared/Translate'
 
 # Doublure de la parole de proximité (LK11-T04) : chaque réplique est notée, un auditeur fictif l'entend.
 SPEECH_DOUBLE = r'''

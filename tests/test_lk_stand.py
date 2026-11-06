@@ -195,7 +195,7 @@ class ClientCopyTests(StandBase):
 
 class SourceTests(unittest.TestCase):
     def test_kahlua_safe_source(self):
-        path = Path(__file__).resolve().parents[1] / ('Contents/mods/batman_RadioSurvivor/42.21/media/lua/shared/'
+        path = Path(__file__).resolve().parents[1] / ('Contents/mods/batman_LivingKnox/42.21/media/lua/shared/'
                                                       'LivingKnox/LK_Stand.lua')
         text = path.read_text(encoding='utf-8')
         code = re.sub(r'--[^\n]*', '', text)

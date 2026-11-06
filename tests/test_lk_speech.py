@@ -28,6 +28,8 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from harness import LK_LUA  # noqa: E402  (E18-T07)
+from harness import lua_src  # noqa: E402  (E18-T07)
 from test_lk_bodies import lua_list, LUA, DEV_LUA, DOUBLES, SHARED  # noqa: E402
 from test_lk_guard import GUARD, GUARD_DOUBLES  # noqa: E402
 from test_lk_anim import ANIM, ANIM_DOUBLES  # noqa: E402
@@ -37,9 +39,9 @@ SPEECH = 'server/LivingKnox/LK_Speech.lua'
 VIEW = 'client/LivingKnox/LK_SpeechView.lua'
 DATA = 'shared/LivingKnox/Data/Speech.lua'
 SUITE = 'shared/RST/suites/RST_LKSpeech.lua'
-MOD_FILES = [LUA / SPEECH, LUA / VIEW, LUA / DATA]
+MOD_FILES = [lua_src(SPEECH), lua_src(VIEW), lua_src(DATA)]
 DEV_FILES = [DEV_LUA / SUITE]
-TRANSLATE = LUA / 'shared' / 'Translate'
+TRANSLATE = LK_LUA / 'shared' / 'Translate'
 PREFIX = 'IGUI_LK_Speech_'
 
 

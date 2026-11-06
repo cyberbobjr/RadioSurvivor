@@ -26,6 +26,7 @@ sys.path.append(str(Path(__file__).resolve().parents[1] / 'tools'))
 import pz_paths  # noqa: E402  (vanilla folders: PZ_STEAM_LIBRARY, PZ_MEDIA or Steam detection)
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from harness import lua_src  # noqa: E402  (E18-T07)
 from test_lk_bodies import LUA, DEV_LUA, lua_list  # noqa: E402
 from test_lk_reports import ReleaseBase  # noqa: E402
 from test_lk_health import HEALTH, HEALTH_CLIENT, HEALTH_DOUBLES  # noqa: E402
@@ -474,7 +475,7 @@ class SourceTests(unittest.TestCase):
 
     def test_mod_sources_are_kahlua_safe(self):
         for rel in (LOOT, AMMO, 'server/LivingKnox/LK_Bodies.lua'):
-            raw = (LUA / rel).read_bytes()
+            raw = lua_src(rel).read_bytes()
             code = re.sub(r'--[^\n]*', '', re.sub(r'--\[\[.*?\]\]', '', raw.decode('utf-8'), flags=re.S))
             self.assertTrue(all(ord(ch) < 128 for ch in code), rel)
             for pattern in (r'\bnext\s*\(', r'\bgoto\b', r'\bcoroutine\.'):
@@ -486,7 +487,7 @@ class SourceTests(unittest.TestCase):
         if not scripts.exists():
             self.skipTest('vanilla scripts not installed')
         text = '\n'.join(p.read_text(encoding='utf-8', errors='replace') for p in scripts.glob('*.txt'))
-        code = (LUA / LOOT).read_text(encoding='utf-8')
+        code = lua_src(LOOT).read_text(encoding='utf-8')
         types = set(re.findall(r't = "Base\.(\w+)"', code))
         self.assertGreater(len(types), 10)
         for t in sorted(types):

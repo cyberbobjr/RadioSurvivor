@@ -31,12 +31,14 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from test_lk_bodies import DEV_LUA, LUA, lua_list  # noqa: E402
+from harness import LK_LUA  # noqa: E402  (E18-T07)
+from harness import lua_src  # noqa: E402  (E18-T07)
 from test_lk_combat import PISTOL, RangedBase  # noqa: E402
 from test_lk_zombies import ZombieBase  # noqa: E402
 
 Z = 'LivingKnox.Zombies'
 SUITE = DEV_LUA / 'shared' / 'RST' / 'suites' / 'RST_LKWindowLure.lua'
-MOD_FILES = [LUA / 'server/LivingKnox/LK_Zombies.lua', LUA / 'server/LivingKnox/LK_Combat.lua']
+MOD_FILES = [LK_LUA / 'server/LivingKnox/LK_Zombies.lua', LK_LUA / 'server/LivingKnox/LK_Combat.lua']
 
 WINDOW_DOUBLES = r'''
 local H = HARNESS
@@ -520,7 +522,7 @@ class SourceTests(unittest.TestCase):
         # Un bruit dont la source est un zombie (corps de PNJ) n'attire aucun zombie (WorldSoundManager.java:259-261).
         for rel in ('server/LivingKnox/LK_Zombies.lua', 'server/LivingKnox/LK_Combat.lua',
                     'server/LivingKnox/LK_Alert.lua'):
-            text = (LUA / rel).read_text(encoding='utf-8')
+            text = lua_src(rel).read_text(encoding='utf-8')
             code = '\n'.join(line.split('--', 1)[0] for line in text.splitlines())
             for line in code.splitlines():
                 if 'addSound(' in line and 'addSound(nil' not in line:

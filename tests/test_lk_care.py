@@ -22,6 +22,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from harness import lua_src  # noqa: E402  (E18-T07)
 from test_lk_bodies import lua_list  # noqa: E402
 from test_lk_meals import MealStack  # noqa: E402
 
@@ -374,7 +375,7 @@ class SuiteTests(CareStack):
 
     def test_mod_sources_are_ascii_safe_for_kahlua(self):
         for path in (CARE,):
-            raw = (LUA_ROOT / path).read_bytes()
+            raw = lua_src(path, LUA_ROOT).read_bytes()
             code = re.sub(r'--[^\n]*', '', re.sub(r'--\[\[.*?\]\]', '', raw.decode('utf-8'), flags=re.S))
             self.assertTrue(all(ord(ch) < 128 for ch in code), path)
             for pattern in (r'\bnext\s*\(', r'\bgoto\b', r'\bcoroutine\.'):

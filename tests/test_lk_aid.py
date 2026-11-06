@@ -24,7 +24,9 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from harness import LK_LUA  # noqa: E402  (E18-T07)
 from harness import LUA  # noqa: E402
+from harness import lua_src  # noqa: E402  (E18-T07)
 from test_lk_stock import Base as StockBase, KITCHEN, OFFSCREEN_DOUBLES  # noqa: E402
 from test_lk_homes import HOUSE  # noqa: E402
 
@@ -360,11 +362,11 @@ class MultiplayerTests(Base):
 
 class TranslationTests(unittest.TestCase):
     def test_every_line_and_menu_key_is_translated(self):
-        tr = LUA / 'shared' / 'Translate'
+        tr = LK_LUA / 'shared' / 'Translate'
         keys = {'IGUI_LK_Aid_Menu'} | {f'IGUI_LK_Aid_Menu_{k}' for k in ('food', 'water', 'care')} \
             | {f'IGUI_LK_Aid_Given_{k}' for k in ('food', 'water', 'care')} \
             | {f'IGUI_LK_Aid_Refuse_{r}' for r in ('attitude', 'short', 'again', 'away', 'stranger')}
-        src = (LUA / RELATIONS).read_text(encoding='utf-8')
+        src = lua_src(RELATIONS).read_text(encoding='utf-8')
         self.assertIn('Relations.REASONS = { "attitude", "short", "again", "away", "stranger" }', src)
         for lang in ('EN', 'FR'):
             data = json.loads((tr / lang / 'IG_UI.json').read_text(encoding='utf-8'))
@@ -375,11 +377,11 @@ class TranslationTests(unittest.TestCase):
 
     def test_sources_have_ascii_code_only(self):
         for path in (RELATIONS, VIEW):
-            for n, line in enumerate((LUA / path).read_text(encoding='utf-8').splitlines(), 1):
+            for n, line in enumerate(lua_src(path).read_text(encoding='utf-8').splitlines(), 1):
                 code = line.split('--', 1)[0]
                 with self.subTest(path=path, line=n):
                     self.assertTrue(code.isascii(), line)
-        self.assertIsNone(re.search(r'\bgoto\b|\bnext\(', (LUA / RELATIONS).read_text(encoding='utf-8')))
+        self.assertIsNone(re.search(r'\bgoto\b|\bnext\(', lua_src(RELATIONS).read_text(encoding='utf-8')))
 
 
 SUITE = 'aid given once from the stock, period and shortage respected'

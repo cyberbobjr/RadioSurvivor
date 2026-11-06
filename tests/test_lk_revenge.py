@@ -25,6 +25,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from harness import LUA  # noqa: E402
+from harness import lua_src  # noqa: E402  (E18-T07)
+from harness import LK_LUA  # noqa: E402  (E18-T07)
 from test_lk_bodies import lua_list  # noqa: E402
 from test_lk_decisions import DECIDERS, DUMP  # noqa: E402
 from test_lk_materialize import MatBase  # noqa: E402
@@ -707,9 +709,9 @@ class SourceTests(unittest.TestCase):
     def test_translations_and_ascii_code(self):
         import json
         for lang in ('EN', 'FR'):
-            data = json.loads((LUA / 'shared' / 'Translate' / lang / 'IG_UI.json').read_text(encoding='utf-8'))
+            data = json.loads((LK_LUA / 'shared' / 'Translate' / lang / 'IG_UI.json').read_text(encoding='utf-8'))
             data['IGUI_LK_Revenge_Sworn'].encode('latin-1')
-        src = (LUA / RELATIONS).read_text(encoding='utf-8')
+        src = (lua_src(RELATIONS)).read_text(encoding='utf-8')
         for n, line in enumerate(src.splitlines(), 1):
             with self.subTest(line=n):
                 self.assertTrue(line.split('--', 1)[0].isascii(), line)
@@ -719,15 +721,15 @@ class SourceTests(unittest.TestCase):
     def test_delay_option_and_translations(self):
         # LK11-T10 : entier 12..336, défaut 72, page LivingKnox ; = Config.DEFAULTS / Config.INT_BOUNDS.
         import json
-        opts = (LUA.parent / 'sandbox-options.txt').read_text(encoding='utf-8')
+        opts = (LK_LUA.parent / 'sandbox-options.txt').read_text(encoding='utf-8')
         self.assertRegex(opts, r'option LivingKnox\.RevengeDelayHours\n\{\n\ttype = integer,\n\tmin = 12,\n'
                                r'\tmax = 336,\n\tdefault = 72,\n\tpage = LivingKnox,\n'
                                r'\ttranslation = LivingKnox_RevengeDelayHours,\n\}')
-        config = (LUA / 'shared' / 'LivingKnox' / 'LK_Config.lua').read_text(encoding='utf-8')
+        config = (LK_LUA / 'shared' / 'LivingKnox' / 'LK_Config.lua').read_text(encoding='utf-8')
         self.assertIn('RevengeDelayHours = 72,', config)
         self.assertIn('RevengeDelayHours = { 12, 336 },', config)
         for lang in ('EN', 'FR'):
-            sb = json.loads((LUA / 'shared' / 'Translate' / lang / 'Sandbox.json').read_text(encoding='utf-8'))
+            sb = json.loads((LK_LUA / 'shared' / 'Translate' / lang / 'Sandbox.json').read_text(encoding='utf-8'))
             for k in ('RevengeDelayHours', 'RevengeDelayHours_tooltip'):
                 with self.subTest(lang=lang, key=k):
                     self.assertTrue(sb['Sandbox_LivingKnox_' + k].strip())

@@ -1,7 +1,7 @@
 {
   "_doc": [
     "Living Knox (LK02-T05): source table of the animation nodes added to the zombie AnimSets for npc bodies.",
-    "Read by tools/gen_animsets.py, which writes Contents/mods/batman_RadioSurvivor/common/media/AnimSets/zombie/<state>/<file>.",
+    "Read by tools/gen_animsets.py, which writes Contents/mods/batman_LivingKnox/common/media/AnimSets/zombie/<state>/<file>.",
     "Every node requires actorVariable = true (BOOL): a zombie without this variable never passes it",
     "(AnimCondition.java: a missing BOOL variable equals false). conditionPriority puts the nodes before every vanilla node",
     "of priority 0 in these states (AnimNode.compareSelectionConditions: priority, then condition count).",

@@ -25,6 +25,7 @@ import pz_paths  # noqa: E402  (vanilla folders: PZ_STEAM_LIBRARY, PZ_MEDIA or S
 import lupa.lua51 as lupa
 
 from test_personas_server import LUA, MOD, Harness, lua_list, CORE_LUA
+from harness import LK_LUA  # noqa: E402  (E18-T07)
 
 ROOT = Path(__file__).resolve().parents[1]
 TRANSLATE = LUA / 'shared/Translate'
@@ -171,7 +172,7 @@ class ClientTests(unittest.TestCase):
                         'print = function() end')
         self.rt.execute(NOTE_STUBS)
         paths = ';'.join((LUA / side).as_posix() + '/?.lua' for side in ('shared', 'server', 'client'))
-        paths = (CORE_LUA / 'shared').as_posix() + '/?.lua;' + (CORE_LUA / 'server').as_posix() + '/?.lua;' + (CORE_LUA / 'client').as_posix() + '/?.lua;' + paths  # mod commun (E18)
+        paths = (CORE_LUA / 'shared').as_posix() + '/?.lua;' + (CORE_LUA / 'server').as_posix() + '/?.lua;' + (CORE_LUA / 'client').as_posix() + '/?.lua;' + (LK_LUA / 'shared').as_posix() + '/?.lua;' + (LK_LUA / 'server').as_posix() + '/?.lua;' + (LK_LUA / 'client').as_posix() + '/?.lua;' + paths  # mod commun (E18)
         self.rt.execute(f'package.path = [[{paths};]] .. package.path')
 
     def test_client_writes_no_frequency(self):

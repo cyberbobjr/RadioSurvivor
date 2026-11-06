@@ -21,13 +21,14 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from harness import Harness, LUA  # noqa: E402
+from harness import LK_LUA  # noqa: E402  (E18-T07)
 from test_lk_api import POPULATE, SERVER as API_SERVER, SHARED as API_SHARED, WORLD as API_WORLD  # noqa: E402
 from test_lk_population import lua_list  # noqa: E402
 from test_lk_relief import ReliefBench, TESTS_LUA  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
-ADMIN_FILE = LUA / 'server' / 'LivingKnox' / 'LK_Admin.lua'
-VIEW_FILE = LUA / 'client' / 'LivingKnox' / 'LK_AdminView.lua'
+ADMIN_FILE = LK_LUA / 'server' / 'LivingKnox' / 'LK_Admin.lua'
+VIEW_FILE = LK_LUA / 'client' / 'LivingKnox' / 'LK_AdminView.lua'
 SUITE = TESTS_LUA / 'shared' / 'RST' / 'suites' / 'RST_LKAdmin.lua'
 GROUPS = 'LivingKnox.Groups'
 ADMIN = 'LivingKnox.Admin'

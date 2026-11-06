@@ -1,7 +1,7 @@
 # Traces lisibles en jeu : carnet du foyer, notes sur le chef
 
 - Tâche : LK10-T04 (idée I8.6, « foyer qui se raconte par son décor ») ; s'appuie sur LK10-T02 ([journal.md](journal.md)), LK10-T01 ([recits.md](recits.md)), LK08-T04 ([foyers.md](foyers.md)), LK09-T04 (groupe disparu) et LK07-T05 (butin du cadavre, [sante.md](sante.md))
-- Code : `Contents/mods/batman_RadioSurvivor/42.21/media/lua/server/LivingKnox/LK_Traces.lua` (`LivingKnox.Traces`, autorité seulement) ; banc `tests/test_lk_traces.py` ; suite en jeu `lk.traces` (`dev/batman_RadioSurvivorTests/42.21/media/lua/shared/RST/suites/RST_LKTraces.lua`, tags `world`, `server`)
+- Code : `Contents/mods/batman_LivingKnox/42.21/media/lua/server/LivingKnox/LK_Traces.lua` (`LivingKnox.Traces`, autorité seulement) ; banc `tests/test_lk_traces.py` ; suite en jeu `lk.traces` (`dev/batman_RadioSurvivorTests/42.21/media/lua/shared/RST/suites/RST_LKTraces.lua`, tags `world`, `server`)
 - Build : 42.21.0 (Java décompilé **J/** = `<decompiled>\42.21.0\java\zombie\` ; Lua vanilla **M/** = `ProjectZomboid\media\lua\`) — Date : 2026-10-12 — Statut : brouillon, testé hors jeu seulement
 
 Base de connaissances : [quest-building-blocks.md](../../../../.claude/pz-knowledge/quest-building-blocks.md) (document en lecture seule `addPage` + `setLockedBy`, 15 lignes par page), [api-42-21.md](../../../../.claude/pz-knowledge/api-42-21.md) (note écrite vide si non remplie, traductions absentes sur un serveur MP), [multiplayer.md](../../../../.claude/pz-knowledge/multiplayer.md) (objet ajouté à un conteneur par le serveur), [world-placement.md](../../../../.claude/pz-knowledge/world-placement.md) (quand poser). Aucune ligne de Bandits! ni de Project A-Life n'a été lue.

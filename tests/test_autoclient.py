@@ -1477,7 +1477,8 @@ class LoadAndSignalSmokeTests(unittest.TestCase):
             encoding='utf-8')
         require = [l for l in rs_info.splitlines() if l.startswith('require=')][0]
         self.assertEqual([r.lstrip('\\') for r in require[len('require='):].split(',')],
-                         ['batman_RadioSurvivorCore', 'batman_BeltRadio', 'batman_SignalSmoke'])   # E18-T01
+                         ['batman_RadioSurvivorCore', 'batman_LivingKnox', 'batman_BeltRadio',
+                          'batman_SignalSmoke'])   # E18-T01, E18-T07 (Living Knox until E18-T09)
         import contextlib
         import io
         with self.assertRaises(SystemExit), contextlib.redirect_stderr(io.StringIO()):   # option removed
@@ -1509,7 +1510,7 @@ class LoadAndSignalSmokeTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 autoclient.mp_server_sandbox(group_count=bad)
         # The option exists with these bounds in the mod (sandbox-options.txt).
-        opts = (ROOT / 'Contents/mods/batman_RadioSurvivor/42.21/media/sandbox-options.txt').read_text(encoding='utf-8')
+        opts = (ROOT / 'Contents/mods/batman_LivingKnox/42.21/media/sandbox-options.txt').read_text(encoding='utf-8')
         block = opts.split('option LivingKnox.GroupCount', 1)[1].split('}', 1)[0]
         self.assertIn('min = 3,', block)
         self.assertIn('max = 5,', block)

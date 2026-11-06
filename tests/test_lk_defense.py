@@ -26,6 +26,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from harness import lua_src  # noqa: E402  (E18-T07)
 from test_lk_bodies import LUA, DEV_LUA, lua_list  # noqa: E402
 from test_lk_decisions import PureBase  # noqa: E402
 from test_lk_alert import AlertStack  # noqa: E402
@@ -877,7 +878,7 @@ class SuiteTests(DefenseStack):
         self.assertEqual(self.h.errors('solo'), [])
 
     def test_suite_source_is_ascii_and_kahlua_safe(self):
-        for path in (SUITE_FILE, LUA / DEFENSE):
+        for path in (SUITE_FILE, lua_src(DEFENSE)):
             raw = path.read_bytes()
             code = re.sub(r'--[^\n]*', '', re.sub(r'--\[\[.*?\]\]', '', raw.decode('utf-8'), flags=re.S))
             self.assertTrue(all(ord(ch) < 128 for ch in code), f'non ASCII code in {path.name}')

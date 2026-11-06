@@ -30,8 +30,9 @@ from test_rescue import DOUBLES, WORLD  # noqa: E402  (doublures fidèles de la 
 ROOT = Path(__file__).resolve().parents[1]
 MOD_LUA = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivor' / '42.21' / 'media' / 'lua'
 CORE_LUA = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivorCore' / '42.21' / 'media' / 'lua'  # mod commun (E18)
+LK_LUA = ROOT / 'Contents' / 'mods' / 'batman_LivingKnox' / '42.21' / 'media' / 'lua'  # moteur des PNJ (E18-T07)
 TESTS_LUA = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua'
-MODULE = MOD_LUA / 'server' / 'LivingKnox' / 'LK_Sites.lua'
+MODULE = LK_LUA / 'server' / 'LivingKnox' / 'LK_Sites.lua'
 SUITE = TESTS_LUA / 'shared' / 'RST' / 'suites' / 'RST_LKSites.lua'
 SHARED = ['LivingKnox/LK_Core', 'LivingKnox/LK_Config', 'LivingKnox/LK_Log', 'LivingKnox/LK_GroupTypes',
           'LivingKnox/Data/LK_Type_neutrals', 'LivingKnox/Data/LK_Type_raiders', 'LivingKnox/Data/LK_Type_settlers']
@@ -255,7 +256,7 @@ class SitesHarness(unittest.TestCase):
         self.g.next = None  # absent de Kahlua
         self.rt.execute(DOUBLES)
         self.rt.execute(EXTRA)
-        paths = [TESTS_LUA / 'shared', CORE_LUA / 'shared', CORE_LUA / 'server', MOD_LUA / 'shared', MOD_LUA / 'server']
+        paths = [TESTS_LUA / 'shared', CORE_LUA / 'shared', CORE_LUA / 'server', LK_LUA / 'shared', LK_LUA / 'server', MOD_LUA / 'shared', MOD_LUA / 'server']
         self.rt.execute('package.path = [[' + ''.join(f'{p.as_posix()}/?.lua;' for p in paths) + ']] .. package.path')
 
     def world(self, forests: bool = True, realistic: bool = False, town_only: bool = False):

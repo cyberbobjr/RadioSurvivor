@@ -19,10 +19,11 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import test_lk_combat as tlc  # noqa: E402  (module importé : ses classes ne sont pas rejouées ici)
 from test_lk_bodies import LUA, DEV_LUA, lua_list  # noqa: E402
+from harness import LK_LUA  # noqa: E402  (E18-T07)
 from test_lk_contest import SPEECH_DOUBLE, TRANSLATE  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
-DECISIONS = LUA / 'server' / 'LivingKnox' / 'LK_Decisions.lua'
+DECISIONS = LK_LUA / 'server' / 'LivingKnox' / 'LK_Decisions.lua'
 SUITE = DEV_LUA / 'shared' / 'RST' / 'suites' / 'RST_LKRetreat.lua'
 
 

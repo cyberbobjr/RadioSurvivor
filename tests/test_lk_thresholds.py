@@ -32,7 +32,7 @@ import test_lk_alert as tla  # noqa: E402
 from test_lk_bodies import lua_list  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
-MEDIA = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivor' / '42.21' / 'media'
+MEDIA = ROOT / 'Contents' / 'mods' / 'batman_LivingKnox' / '42.21' / 'media'
 SANDBOX_FILE = MEDIA / 'sandbox-options.txt'
 TRANSLATE = MEDIA / 'lua' / 'shared' / 'Translate'
 CONFIG = MEDIA / 'lua' / 'shared' / 'LivingKnox' / 'LK_Config.lua'

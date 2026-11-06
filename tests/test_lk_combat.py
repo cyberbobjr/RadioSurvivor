@@ -21,6 +21,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from test_lk_bodies import LUA, DEV_LUA, lua_list  # noqa: E402
+from harness import LK_LUA  # noqa: E402  (E18-T07)
+from harness import lua_src  # noqa: E402  (E18-T07)
 from test_lk_reports import ReleaseBase  # noqa: E402
 from test_lk_materialize import MatBase  # noqa: E402
 from test_lk_decisions import DECIDERS  # noqa: E402
@@ -28,7 +30,7 @@ from test_lk_decisions import DECIDERS  # noqa: E402
 COMBAT = 'server/LivingKnox/LK_Combat.lua'
 COMBAT_CLIENT = 'client/LivingKnox/LK_CombatClient.lua'
 AMMO = 'server/LivingKnox/LK_Ammo.lua'
-MOD_FILES = [LUA / COMBAT, LUA / COMBAT_CLIENT, LUA / AMMO]
+MOD_FILES = [lua_src(COMBAT), lua_src(COMBAT_CLIENT), lua_src(AMMO)]
 SUITE = DEV_LUA / 'shared' / 'RST' / 'suites' / 'RST_LKMelee.lua'
 RANGED_SUITE = DEV_LUA / 'shared' / 'RST' / 'suites' / 'RST_LKRanged.lua'
 C = 'LivingKnox.Combat'
@@ -1367,7 +1369,7 @@ class DeathSoundMultiplayerTests(DeathSoundBase):
 
 class SourceTests(unittest.TestCase):
     def test_kahlua_safe_sources_and_english_logs(self):
-        files = MOD_FILES + [SUITE, RANGED_SUITE, LUA / 'server' / 'LivingKnox' / 'LK_Decisions.lua']
+        files = MOD_FILES + [SUITE, RANGED_SUITE, LK_LUA / 'server' / 'LivingKnox' / 'LK_Decisions.lua']
         for path in files:
             text = path.read_text(encoding='utf-8')
             code = re.sub(r'--\[\[.*?\]\]', '', text, flags=re.S)
@@ -1534,7 +1536,7 @@ class DefenceStackTests(DecisionCombatTests):
         self.assertEqual(self.h.errors(self.srv), [])
 
     def test_health_hook_and_sources(self):
-        health = (LUA / 'server' / 'LivingKnox' / 'LK_Health.lua').read_text(encoding='utf-8')
+        health = (LK_LUA / 'server' / 'LivingKnox' / 'LK_Health.lua').read_text(encoding='utf-8')
         self.assertIn('De.noteHit(id, z, wielder)', health)
         # Un client MP n'a pas de cadre de décision : aucun coup noté chez lui.
         self.assertIsNone(self.h.eval('A', 'LivingKnox.Decisions'))

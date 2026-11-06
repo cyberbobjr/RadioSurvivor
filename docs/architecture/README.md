@@ -45,20 +45,29 @@ Principes validés par la décision LK00-T02 du 2026-10-03 et la fusion du 2026-
 
 ```text
 Contents/mods/batman_RadioSurvivor/
-├── common/                     requis en B42 ; media/AnimSets (nœuds d'animation des corps de PNJ, générés par tools/gen_animsets.py)
+├── common/                     requis en B42 (vide)
 └── 42.21/                      seule variante
     ├── mod.info                id=batman_RadioSurvivor, versionMin=42.21, modversion=0.3.0
     ├── personas/               fiches des six voix livrées (walt, darlene, cody, whitaker, nightowl, gus)
     └── media/
-        ├── sandbox-options.txt pages RadioSurvivor et LivingKnox
+        ├── sandbox-options.txt page RadioSurvivor
         ├── scripts/            objets du module RadioSurvivor (notes de fréquence, journal du dehors)
         ├── textures/RadioSurvivor/
-        └── lua/{client,server,shared}/{RadioSurvivor,LivingKnox}/ + Translate/{EN,FR}
+        └── lua/{client,server,shared}/RadioSurvivor/ + Translate/{EN,FR}
+Contents/mods/batman_LivingKnox/   moteur des PNJ depuis E18-T07
+├── common/                     media/AnimSets (nœuds d'animation des corps de PNJ, générés par tools/gen_animsets.py)
+└── 42.21/
+    ├── mod.info                id=batman_LivingKnox, require=\batman_RadioSurvivorCore
+    └── media/
+        ├── sandbox-options.txt page LivingKnox
+        └── lua/{client,server,shared}/LivingKnox/ + Translate/{EN,FR} (IGUI_LK_, Sandbox_LivingKnox_)
+Contents/mods/batman_RadioSurvivorCore/   mod commun (E18-T01 à T06)
 ```
 
-`mod.info` : `require=\batman_BeltRadio,\batman_SignalSmoke` (prérequis), `loadModAfter=\batman_CharacterReputation`
-(intégration facultative), `incompatible=\Bandits2,\ProjectALifeNPCs`. Le mod de tests `dev/batman_RadioSurvivorTests`
-n'est jamais publié.
+`mod.info` de RadioSurvivor : `require=\batman_RadioSurvivorCore,\batman_LivingKnox,\batman_BeltRadio,\batman_SignalSmoke`
+(Living Knox exigé jusqu'à `E18-T09`, qui porte l'adaptateur dans Living Knox), `loadModAfter=\batman_CharacterReputation`
+(intégration facultative). Living Knox : `incompatible=\Bandits2,\ProjectALifeNPCs`. Le mod de tests
+`dev/batman_RadioSurvivorTests` n'est jamais publié.
 
 ## 3. Modules Lua
 
@@ -66,14 +75,14 @@ n'est jamais publié.
 |---|---|---|
 | shared (mod commun `batman_RadioSurvivorCore`) | `RadioSurvivorCore/` | outils partagés depuis `E18-T02` : codec RSV2 (`RC_Codec`), limite de débit des commandes (`RC_RateLimit`), coupe des textes (`RC_TextCut`), valeurs de troc (`RC_TradeValues`), monde neuf ou relancé (`RC_WorldStart`), horloge de jeu des délais (`RC_GameClock`) ; depuis `E18-T03`, identité des personnages (`RC_Identity` : identité décidée par l'autorité, écrite dans sa copie de la ModData du joueur sous la clé `RS_CarnetCharacter`, retirée à la mort, registre privé `Zomboid/Lua/batman_RadioSurvivorCore/identity-*.txt` ; lue par le carnet et par `LK_Hostility.keyOf`) et fichiers privés à deux emplacements (`RC_SlotFile`) |
 | shared | `RadioSurvivor/` | constantes et noms de commandes (`RadioSurvivor_Const.lua`), interface `RS_NPCProvider` et son implémentation Living Knox (`RS_LivingKnox`), notes |
-| shared | `LivingKnox/` | cœur (`LK_Core`, `LK_Config`), identité et apparence, équipement, sens, mouvement, garde des corps (`LK_ZombieGuard`), types de groupes et textes (`Data/`) |
+| shared (mod `batman_LivingKnox`) | `LivingKnox/` | cœur (`LK_Core`, `LK_Config`), identité et apparence, équipement, sens, mouvement, garde des corps (`LK_ZombieGuard`), types de groupes et textes (`Data/`) |
 | server (mod commun `batman_RadioSurvivorCore`) | `RadioSurvivorCore/` | depuis `E18-T05`, moteur de missions commun (`RC_Missions` : offres, acceptation, délais, compte rendu, lot de récompense ; donneurs inscrits par `registerDonor` et crochets de résultat, d'oubli, de filtre des offres), gabarits `RC_MissionScout`, `RC_MissionClear`, `RC_MissionRecover`, `RC_MissionRetrieve`, `RC_MissionSignal` (exige Signal Smoke), tirage des lieux (`RC_Sites`), caches (`RC_Caches`), catalogue (`shared/RC_MissionConfig`), état privé des missions (`RC_MissionStore`, `Zomboid/Lua/batman_RadioSurvivorCore/missions-*.txt` ; missions d'une partie d'avant la séparation reprises une fois depuis `RS_State`) ; RadioSurvivor y inscrit ses donneurs (fiches PNJ, voix) et ses crochets dans `RS_MissionHooks` ; depuis `E18-T06`, lignes du journal des missions (`RC_MissionJournal`, commande `missions` du module `RadioSurvivorCore`, même liste que le carnet par `shared/RC_MissionList`) |
 | server | `RadioSurvivor_Server.lua`, `RS_Carnet_Server.lua` | points d'entrée : commandes client, carnet, livraisons |
 | server | `RadioSurvivor/` (47 fichiers) | état privé (`RS_State`), transport vers le pont (`RS_BridgeLanes` (file `RC_Transport` du mod commun)), voix (`RS_Persona*`), actions et missions des voix (`RS_Actions`, `RS_MissionVoice`, `RS_MissionHooks`, `RS_CacheAction`), secours (`RS_Rescue*`), troc (`RS_Trade*`), chronique et faits, dernières pages, réputation, équipes (`RS_Factions`) |
-| server | `LivingKnox/` (43 fichiers) | groupes et foyers, population, décisions, routines, alerte, défense, combat, santé, mort et butin, stock, fortification, simulation hors écran, récits, relations, raids, API publique (`LK_API`), registre (`LK_Store`) |
+| server (mod `batman_LivingKnox`) | `LivingKnox/` (43 fichiers) | groupes et foyers, population, décisions, routines, alerte, défense, combat, santé, mort et butin, stock, fortification, simulation hors écran, récits, relations, raids, API publique (`LK_API`), registre (`LK_Store`) |
 | client (mod commun `batman_RadioSurvivorCore`) | `RadioSurvivorCore/` | depuis `E18-T06`, journal des missions (`RC_MissionJournalView` : bouton de la barre latérale, tranche de la roue droite de la manette, fenêtre des offres, missions en cours et à rapporter) ; avec RadioSurvivor, le carnet en est l'hôte (onglet Missions) et le bouton s'efface ; textes `IGUI_RC_` (EN, FR) |
 | client | `RadioSurvivor_Client.lua`, `RS_Carnet_Client.lua`, `RadioSurvivor/` | module « Émettre » de la fenêtre radio, carnet, historique radio, lecture des notes, actions de carte, vue de debug des fréquences |
-| client | `LivingKnox/` | exécuteur des consignes sur le client propriétaire (`LK_Executor`), relais combat, santé, zombies, mort ; vues : fiche PNJ, administration, relations, troc, bulles |
+| client (mod `batman_LivingKnox`) | `LivingKnox/` | exécuteur des consignes sur le client propriétaire (`LK_Executor`), relais combat, santé, zombies, mort ; vues : fiche PNJ, administration, relations, troc, bulles |
 
 Les dépendances suivent le sens présentation/pont → contrat → décisions serveur → adaptateurs moteur. Les fichiers
 serveur se gardent par `isClient()` ; les fiches de conception de chaque sous-système sont dans

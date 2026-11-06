@@ -21,12 +21,13 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from harness import lua_src  # noqa: E402  (E18-T07)
 from test_lk_bodies import LUA, DEV_LUA, lua_list  # noqa: E402
 from test_lk_reports import ReportBase  # noqa: E402
 
 HEALTH = 'server/LivingKnox/LK_Health.lua'
 HEALTH_CLIENT = 'client/LivingKnox/LK_HealthClient.lua'
-MOD_FILES = [LUA / HEALTH, LUA / HEALTH_CLIENT]
+MOD_FILES = [lua_src(HEALTH), lua_src(HEALTH_CLIENT)]
 DEV_FILES = [DEV_LUA / 'shared' / 'RST' / 'suites' / 'RST_LKHealth.lua',
              DEV_LUA / 'shared' / 'RST' / 'suites' / 'RS_Killer.lua']
 
@@ -406,7 +407,7 @@ class SourceTests(unittest.TestCase):
             self.assertTrue(all(b < 128 for b in path.read_bytes()), f'{path.name}: non ASCII byte')
 
     def test_no_global_moddata_and_no_broadcast(self):
-        code = (LUA / HEALTH).read_text(encoding='utf-8')
+        code = lua_src(HEALTH).read_text(encoding='utf-8')
         self.assertNotIn('ModData.', code)
         # Envoi ciblé seulement (sendServerCommand(joueur, ...)), jamais à tous.
         for m in re.finditer(r'sendServerCommand\(([^,]+),', code):

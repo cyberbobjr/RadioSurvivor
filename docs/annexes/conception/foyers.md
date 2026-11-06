@@ -1,7 +1,7 @@
 # Aménagement des foyers : objets vanilla posés au premier chargement
 
 - Tâche : LK08-T04 (création) ; sert LK08-T06 (stock réel dans les conteneurs du foyer), LK05-T03 (couchages relevés par les routines), LK14 (fortification progressive)
-- Code : `Contents/mods/batman_RadioSurvivor/42.21/media/lua/server/LivingKnox/LK_Homes.lua` ; banc `tests/test_lk_homes.py` ; suite en jeu `lk.homes` (`dev/batman_RadioSurvivorTests/42.21/media/lua/shared/RST/suites/RST_LKHomes.lua`)
+- Code : `Contents/mods/batman_LivingKnox/42.21/media/lua/server/LivingKnox/LK_Homes.lua` ; banc `tests/test_lk_homes.py` ; suite en jeu `lk.homes` (`dev/batman_RadioSurvivorTests/42.21/media/lua/shared/RST/suites/RST_LKHomes.lua`)
 - Build : 42.21.0 (Java décompilé **J/** = `<decompiled>\42.21.0\java\zombie\` ; Lua vanilla **M/** = `ProjectZomboid\media\lua\`) — Date : 2026-10-12 — Statut : brouillon, testé hors jeu seulement
 
 Base de connaissances : [world-placement.md](../../../../.claude/pz-knowledge/world-placement.md) (quand poser, placement différé), [barricades-and-constructions.md](../../../../.claude/pz-knowledge/barricades-and-constructions.md) (barricade posée par script), [power-and-lights.md](../../../../.claude/pz-knowledge/power-and-lights.md) (lampe sur pile), [custom-tiles-entities.md](../../../../.claude/pz-knowledge/custom-tiles-entities.md) (meuble vanilla posé par script, tentes et sacs de couchage). Aucune ligne de Bandits! ni de Project A-Life n'a été lue ; l'idée de jeu vient de I8.3 (foyer lisible de l'extérieur).

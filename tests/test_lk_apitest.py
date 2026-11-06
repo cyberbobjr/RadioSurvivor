@@ -17,9 +17,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from harness import Harness, LUA  # noqa: E402
+from harness import LK_LUA  # noqa: E402  (E18-T07)
 import test_lk_bodies as tb  # noqa: E402
 
-API_TEST_FILE = LUA / 'server' / 'LivingKnox' / 'LK_APITest.lua'
+API_TEST_FILE = LK_LUA / 'server' / 'LivingKnox' / 'LK_APITest.lua'
 
 LOAD = r'''
 for _, m in ipairs({ 'LivingKnox/LK_APITest', 'RadioSurvivor/RS_NPCProvider', 'RadioSurvivor/RS_LivingKnox' }) do

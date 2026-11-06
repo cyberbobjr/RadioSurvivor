@@ -24,6 +24,7 @@ ROOT = Path(__file__).resolve().parents[1]
 TESTS_LUA = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua'
 MOD_LUA = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivor' / '42.21' / 'media' / 'lua'
 CORE_LUA = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivorCore' / '42.21' / 'media' / 'lua'  # mod commun (E18)
+LK_LUA = ROOT / 'Contents' / 'mods' / 'batman_LivingKnox' / '42.21' / 'media' / 'lua'  # moteur des PNJ (E18-T07)
 SUITES = TESTS_LUA / 'shared' / 'RST' / 'suites'
 SUITE_FILES = {name: SUITES / f'{name}.lua' for name in ('RS_Env', 'RC_Codec', 'RS_Missions', 'RS_Identity',
                                                        'RS_Voices', 'RS_RadioModule')}
@@ -120,7 +121,7 @@ class SuiteHarness(unittest.TestCase):
         self.g = self.rt.globals()
         self.g.next = None  # absent de Kahlua
         self.lua(PRELUDE)
-        paths = [TESTS_LUA / 'shared', CORE_LUA / 'shared', CORE_LUA / 'server', MOD_LUA / 'shared', MOD_LUA / 'server']
+        paths = [TESTS_LUA / 'shared', CORE_LUA / 'shared', CORE_LUA / 'server', LK_LUA / 'shared', LK_LUA / 'server', MOD_LUA / 'shared', MOD_LUA / 'server']
         self.lua('package.path = [[' + ''.join(f'{p.as_posix()}/?.lua;' for p in paths) + ']] .. package.path')
         self.lua('require "RST/RST"')
 

@@ -19,9 +19,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from test_lk_bodies import LUA, lua_list  # noqa: E402
+from harness import LK_LUA  # noqa: E402  (E18-T07)
 from test_lk_reports import ReleaseBase  # noqa: E402
 
-MATERIALIZE = LUA / 'server' / 'LivingKnox' / 'LK_Materialize.lua'
+MATERIALIZE = LK_LUA / 'server' / 'LivingKnox' / 'LK_Materialize.lua'
 SUITE = (Path(__file__).resolve().parents[1] / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua'
          / 'shared' / 'RST' / 'suites' / 'RST_LKMaterialize.lua')
 HOME = (110, 110, 0)

@@ -27,11 +27,13 @@ import pz_paths  # noqa: E402  (vanilla folders: PZ_STEAM_LIBRARY, PZ_MEDIA or S
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from harness import Harness  # noqa: E402
+from harness import lua_src  # noqa: E402  (E18-T07)
+from harness import LK_LUA  # noqa: E402  (E18-T07)
 from test_lk_homes import DOUBLES, HOUSE, SHARED, DEV_LUA  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 LUA = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivor' / '42.21' / 'media' / 'lua'
-TRANSLATE = LUA / 'shared' / 'Translate'
+TRANSLATE = LK_LUA / 'shared' / 'Translate'
 MODULE = 'server/LivingKnox/LK_Traces.lua'
 SUITE = 'shared/RST/suites/RST_LKTraces.lua'
 SUITE_FILE = DEV_LUA / SUITE
@@ -443,7 +445,7 @@ class ChiefTests(Base):
     def test_real_death_order_puts_the_note_in_the_body_before_the_registry_death(self):
         """LK_Bodies publie memberDied (corps présent) avant Materialize.onBodyDied (mort au registre) : le chef est
         encore chef quand la note est composée (ordre vérifié dans le source)."""
-        src = (LUA / 'server/LivingKnox/LK_Bodies.lua').read_text(encoding='utf-8')
+        src = (LK_LUA / 'server/LivingKnox/LK_Bodies.lua').read_text(encoding='utf-8')
         start = src.index('function Bodies.onZombieDead')
         body = src[start:]
         self.assertLess(body.index('LivingKnox.publish("memberDied"'), body.index('M.onBodyDied'))
@@ -541,16 +543,16 @@ class SourceTests(unittest.TestCase):
             self.assertIsNone(re.search(pattern, code), pattern)
 
     def test_mod_source_is_kahlua_safe(self):
-        raw = (LUA / MODULE).read_bytes()
+        raw = (lua_src(MODULE)).read_bytes()
         code = re.sub(r'--[^\n]*', '', re.sub(r'--\[\[.*?\]\]', '', raw.decode('utf-8'), flags=re.S))
         self.assertTrue(all(ord(ch) < 128 for ch in code))
         for pattern in (r'\bnext\s*\(', r'\bgoto\b', r'\bcoroutine\.', r'[^=~<>]=[^=]*\s(&|\||<<|>>)\s'):
             self.assertIsNone(re.search(pattern, code), pattern)
 
     def test_translations_exist_in_english_and_french(self):
-        keys = set(re.findall(r'"(IGUI_LK_Traces_\w+)"', (LUA / MODULE).read_text(encoding='utf-8')))
+        keys = set(re.findall(r'"(IGUI_LK_Traces_\w+)"', (lua_src(MODULE)).read_text(encoding='utf-8')))
         keys |= {'IGUI_LK_Traces_' + k for k in re.findall(r'Traces\.KEY \.\. "(\w+)"',
-                                                             (LUA / MODULE).read_text(encoding='utf-8'))}
+                                                             (lua_src(MODULE)).read_text(encoding='utf-8'))}
         self.assertGreaterEqual(len(keys), 5)
         for lang in ('EN', 'FR'):
             table = json.loads((TRANSLATE / lang / 'IG_UI.json').read_text(encoding='utf-8'))

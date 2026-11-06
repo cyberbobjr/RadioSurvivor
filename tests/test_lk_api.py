@@ -17,8 +17,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from harness import Harness, LUA  # noqa: E402
+from harness import LK_LUA  # noqa: E402  (E18-T07)
 
-API_FILE = LUA / 'server' / 'LivingKnox' / 'LK_API.lua'
+API_FILE = LK_LUA / 'server' / 'LivingKnox' / 'LK_API.lua'
 SHARED = ('shared/LivingKnox/LK_Core.lua', 'shared/LivingKnox/LK_Config.lua', 'shared/LivingKnox/LK_Log.lua',
           'shared/LivingKnox/LK_Appearance.lua', 'shared/LivingKnox/LK_Identity.lua',
           'shared/LivingKnox/Data/LK_Type_neutrals.lua', 'shared/LivingKnox/Data/LK_Type_raiders.lua',
@@ -769,7 +770,7 @@ class EventTests(Base):
         self.assertTrue(any('fact(s) dropped' in line for line in self.h.logs(self.srv)))
 
     def test_engine_publish_points_in_source(self):
-        server = LUA / 'server' / 'LivingKnox'
+        server = LK_LUA / 'server' / 'LivingKnox'
         enc = (server / 'LK_Encounters.lua').read_text(encoding='utf-8')
         self.assertRegex(enc, r'if ev == "start" then\s+LivingKnox\.publish\("encounterStarted"')
         grp = (server / 'LK_Groups.lua').read_text(encoding='utf-8')

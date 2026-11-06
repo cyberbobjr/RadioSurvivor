@@ -22,13 +22,15 @@ import pz_paths  # noqa: E402  (vanilla folders: PZ_STEAM_LIBRARY, PZ_MEDIA or S
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from harness import LUA, Harness  # noqa: E402
+from harness import lua_src  # noqa: E402  (E18-T07)
+from harness import LK_LUA  # noqa: E402  (E18-T07)
 
 SHARED = ('shared/LivingKnox/LK_Core.lua', 'shared/LivingKnox/LK_Config.lua', 'shared/LivingKnox/LK_Log.lua')
 DATA = ('shared/LivingKnox/Data/LK_Type_neutrals.lua', 'shared/LivingKnox/Data/LK_Type_raiders.lua',
         'shared/LivingKnox/Data/LK_Type_settlers.lua')
 SERVER = 'server/LivingKnox/LK_Server.lua'
 VANILLA_SCRIPTS = pz_paths.media_dir() / 'scripts'
-TRANSLATE = LUA / 'shared' / 'Translate'
+TRANSLATE = LK_LUA / 'shared' / 'Translate'
 
 WORLD = r'''
 getWorld = function()
@@ -306,7 +308,7 @@ class SoloTypes(Base):
 
 class StaticChecks(unittest.TestCase):
     def registry_text(self):
-        return (LUA / 'shared' / 'LivingKnox' / 'LK_GroupTypes.lua').read_text(encoding='utf-8')
+        return (LK_LUA / 'shared' / 'LivingKnox' / 'LK_GroupTypes.lua').read_text(encoding='utf-8')
 
     def test_vanilla_weapons_exist_with_a_known_attachment(self):
         if not VANILLA_SCRIPTS.is_dir():
@@ -314,7 +316,7 @@ class StaticChecks(unittest.TestCase):
         block = re.search(r'GroupTypes\.VANILLA_WEAPONS = \{(.*?)\n\}', self.registry_text(), re.S).group(1)
         weapons = re.findall(r'\["Base\.(\w+)"\] = true', block)
         self.assertGreaterEqual(len(weapons), 20)
-        equipment = (LUA / 'shared' / 'LivingKnox' / 'LK_Equipment.lua').read_text(encoding='utf-8')
+        equipment = (LK_LUA / 'shared' / 'LivingKnox' / 'LK_Equipment.lua').read_text(encoding='utf-8')
         locations = re.search(r'Equipment\.LOCATIONS = \{(.*?)\n\}', equipment, re.S).group(1)
         known = set(re.findall(r'(\w+) = "', locations))
         items = {}
@@ -331,19 +333,19 @@ class StaticChecks(unittest.TestCase):
             self.assertIn(attach.group(1), known, f'Base.{name}: AttachmentType {attach.group(1)}')
         # Les fichiers livrés n'emploient que des armes admises (contrôlé aussi par register).
         for rel in DATA:
-            for w in re.findall(r'"(Base\.\w+)"', (LUA / rel).read_text(encoding='utf-8')):
+            for w in re.findall(r'"(Base\.\w+)"', lua_src(rel).read_text(encoding='utf-8')):
                 self.assertIn(w.split('.', 1)[1], weapons, f'{rel}: {w}')
 
     def test_name_keys_translated_in_english_and_french(self):
         for rel in DATA:
-            key = re.search(r'nameKey = "(\w+)"', (LUA / rel).read_text(encoding='utf-8')).group(1)
+            key = re.search(r'nameKey = "(\w+)"', lua_src(rel).read_text(encoding='utf-8')).group(1)
             for lang in ('EN', 'FR'):
                 table = json.loads((TRANSLATE / lang / 'IG_UI.json').read_text(encoding='utf-8'))
                 self.assertIn(key, table, f'{lang}: {key}')
                 self.assertTrue(table[key].strip())
 
     def test_code_and_data_are_ascii(self):
-        files = [LUA / 'shared' / 'LivingKnox' / 'LK_GroupTypes.lua'] + [LUA / rel for rel in DATA]
+        files = [LK_LUA / 'shared' / 'LivingKnox' / 'LK_GroupTypes.lua'] + [lua_src(rel) for rel in DATA]
         bad = [line for f in files for line in lua_files_ascii(f)]
         self.assertEqual(bad, [])
 

@@ -26,8 +26,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from test_lk_bodies import Base, lua_list, LUA, DEV_LUA  # noqa: E402
+from harness import LK_LUA  # noqa: E402  (E18-T07)
 
-MOD_FILES = [LUA / 'shared' / 'LivingKnox' / 'LK_Appearance.lua']
+MOD_FILES = [LK_LUA / 'shared' / 'LivingKnox' / 'LK_Appearance.lua']
 DEV_FILES = [DEV_LUA / 'shared' / 'RST' / 'suites' / 'RST_LKAppearance.lua']
 LOOKS = ['manFairBeard', 'manDarkGoatee', 'manBlondShaven', 'manOliveChops', 'manElderMoustache',
          'womanFairBun', 'womanTanBob', 'womanDarkPonytail', 'womanBlondLong', 'womanBrownKate']

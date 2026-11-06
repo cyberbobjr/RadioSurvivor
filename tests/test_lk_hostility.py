@@ -17,8 +17,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from harness import Harness, LUA  # noqa: E402
+from harness import LK_LUA  # noqa: E402  (E18-T07)
 
-HOSTILITY_FILE = LUA / 'server' / 'LivingKnox' / 'LK_Hostility.lua'
+HOSTILITY_FILE = LK_LUA / 'server' / 'LivingKnox' / 'LK_Hostility.lua'
 SHARED = ('shared/LivingKnox/LK_Core.lua', 'shared/LivingKnox/LK_Config.lua', 'shared/LivingKnox/LK_Log.lua',
           'shared/LivingKnox/Data/LK_Type_neutrals.lua', 'shared/LivingKnox/Data/LK_Type_raiders.lua',
           'shared/LivingKnox/Data/LK_Type_settlers.lua')

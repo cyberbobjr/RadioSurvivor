@@ -37,15 +37,16 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from test_lk_bodies import DEV_LUA, LUA, lua_list  # noqa: E402
+from harness import LK_LUA  # noqa: E402  (E18-T07)
 from test_lk_defense import DefenseStack, PureDefenseBase  # noqa: E402
 from test_lk_zombies import ZombieBase  # noqa: E402
 
 Df = 'LivingKnox.Defense'
 Z = 'LivingKnox.Zombies'
 SUITE_FILE = DEV_LUA / 'shared' / 'RST' / 'suites' / 'RST_LKWindowKill.lua'
-MOD_FILES = [LUA / 'server/LivingKnox/LK_Defense.lua', LUA / 'server/LivingKnox/LK_Combat.lua',
-             LUA / 'server/LivingKnox/LK_Zombies.lua', LUA / 'client/LivingKnox/LK_CombatClient.lua',
-             LUA / 'client/LivingKnox/LK_ZombiesClient.lua']
+MOD_FILES = [LK_LUA / 'server/LivingKnox/LK_Defense.lua', LK_LUA / 'server/LivingKnox/LK_Combat.lua',
+             LK_LUA / 'server/LivingKnox/LK_Zombies.lua', LK_LUA / 'client/LivingKnox/LK_CombatClient.lua',
+             LK_LUA / 'client/LivingKnox/LK_ZombiesClient.lua']
 
 # Réaction et multiplicateur critique (pile de combat).
 FLOOR_DOUBLES = r'''

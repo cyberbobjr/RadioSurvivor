@@ -15,6 +15,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from harness import lua_src  # noqa: E402  (E18-T07)
 from test_lk_bodies import LUA  # noqa: E402
 from test_lk_directives import DirectiveBase, TARGET  # noqa: E402
 
@@ -289,7 +290,7 @@ class SoloRelayTests(RelayBase):
 class SourceTests(unittest.TestCase):
     def test_kahlua_safe_source(self):
         import re
-        text = (LUA / RELAY).read_text(encoding='utf-8')
+        text = lua_src(RELAY).read_text(encoding='utf-8')
         code = re.sub(r'--[^\n]*', '', text)
         self.assertTrue(all(ord(ch) < 128 for ch in code))
         for pattern in (r'\bnext\s*\(', r'\bgoto\b', r'\bcoroutine\.', r'\bbit32\b', r'\bunpack\b'):

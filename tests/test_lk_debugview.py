@@ -26,13 +26,14 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from harness import LUA  # noqa: E402
+from harness import LK_LUA  # noqa: E402  (E18-T07)
 from test_lk_bodies import lua_list  # noqa: E402
 from test_lk_npcsheet import SheetBase  # noqa: E402
 
-ADMIN_FILE = LUA / 'server' / 'LivingKnox' / 'LK_Admin.lua'
-ACTIVITY_FILE = LUA / 'server' / 'LivingKnox' / 'LK_Activity.lua'
-VIEW_FILE = LUA / 'client' / 'LivingKnox' / 'LK_DebugView.lua'
-TRANSLATE = LUA / 'shared' / 'Translate'
+ADMIN_FILE = LK_LUA / 'server' / 'LivingKnox' / 'LK_Admin.lua'
+ACTIVITY_FILE = LK_LUA / 'server' / 'LivingKnox' / 'LK_Activity.lua'
+VIEW_FILE = LK_LUA / 'client' / 'LivingKnox' / 'LK_DebugView.lua'
+TRANSLATE = LK_LUA / 'shared' / 'Translate'
 SUITE = 'shared/RST/suites/RST_LKDebugView.lua'
 SUITE_FILE = Path(__file__).resolve().parents[1] / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua' / SUITE
 A = 'LivingKnox.Admin'

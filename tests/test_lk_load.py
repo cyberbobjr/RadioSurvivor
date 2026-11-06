@@ -24,11 +24,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from harness import Harness, LUA  # noqa: E402
+from harness import LK_LUA  # noqa: E402  (E18-T07)
 from test_lk_admin import API_SERVER, API_SHARED, API_WORLD, NO_GRID, PERMISSIONS, POPULATE, role_for  # noqa: E402
 from test_lk_bodies import DEV_LUA, lua_list  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
-LOAD_FILE = LUA / 'shared' / 'LivingKnox' / 'LK_Load.lua'
+LOAD_FILE = LK_LUA / 'shared' / 'LivingKnox' / 'LK_Load.lua'
 SUITE = 'shared/RST/suites/RST_LKLoad.lua'
 CORE = ('shared/LivingKnox/LK_Core.lua', 'shared/LivingKnox/LK_Config.lua', 'shared/LivingKnox/LK_Log.lua',
         'shared/LivingKnox/LK_Load.lua')
@@ -482,7 +483,7 @@ class SourceTests(unittest.TestCase):
         self.assertNotIn('coroutine', text)
 
     def test_admin_constants_match(self):
-        admin = (LUA / 'server' / 'LivingKnox' / 'LK_Admin.lua').read_text(encoding='utf-8')
+        admin = (LK_LUA / 'server' / 'LivingKnox' / 'LK_Admin.lua').read_text(encoding='utf-8')
         text = LOAD_FILE.read_text(encoding='utf-8')
         for name in ('MODULE', 'CMD_REQUEST', 'CMD_REPLY'):
             a = re.search(rf'^Admin\.{name} = "([^"]+)"', admin, re.M).group(1)

@@ -35,6 +35,7 @@ from test_factions import FACTION_DOUBLE  # noqa: E402
 ROOT = Path(__file__).resolve().parents[1]
 DEV = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua'
 MOD = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivor' / '42.21' / 'media' / 'lua'
+LK_LUA = ROOT / 'Contents' / 'mods' / 'batman_LivingKnox' / '42.21' / 'media' / 'lua'  # moteur des PNJ (E18-T07)
 CORE_LUA = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivorCore' / '42.21' / 'media' / 'lua'  # mod commun (E18)
 SUITES = DEV / 'shared' / 'RST' / 'suites'
 STEPS_FILES = [DEV / 'shared' / 'RST' / name for name in ('RST_Steps.lua', 'RST_Fixtures.lua', 'RST_PeerChecksRadio.lua')]
@@ -770,7 +771,7 @@ class Machine:
         g.FILE_ROOT = self.root.as_posix()
         g.mkdirs = lambda full: Path(full).parent.mkdir(parents=True, exist_ok=True)
         sides = ['shared'] + (['client'] if role != 'server' else []) + (['server'] if role != 'client' else [])
-        paths = [DEV / 'shared', CORE_LUA / 'shared', CORE_LUA / 'server', CORE_LUA / 'client'] + [MOD / s for s in sides]
+        paths = [DEV / 'shared', CORE_LUA / 'shared', CORE_LUA / 'server', CORE_LUA / 'client'] + [LK_LUA / s for s in sides] + [MOD / s for s in sides]
         self.rt.execute('package.path = [[' + ''.join(f'{p.as_posix()}/?.lua;' for p in paths) + ']] .. package.path')
         self.rt.execute(JAVA)
         self.rt.execute(FACTION_DOUBLE)

@@ -289,7 +289,7 @@ class SuiteTests(ReliefBench):
 
 class HomesTests(ReliefBench):
     def test_abandoned_home_is_never_furnished_later(self):
-        src = (ROOT / 'Contents/mods/batman_RadioSurvivor/42.21/media/lua/server/LivingKnox/LK_Homes.lua').read_text(
+        src = (ROOT / 'Contents/mods/batman_LivingKnox/42.21/media/lua/server/LivingKnox/LK_Homes.lua').read_text(
             encoding='utf-8')
         self.assertIn('g.gone == nil and not Homes.validMark(g.furnish, home)', src)
         self.rt.execute('require "LivingKnox/LK_Homes"')

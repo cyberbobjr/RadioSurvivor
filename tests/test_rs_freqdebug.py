@@ -32,9 +32,10 @@ import test_personas_server as tps  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 LUA = tps.LUA
+LK_LUA = tps.LK_LUA  # E18-T07
 SERVER_FILE = LUA / 'server' / 'RadioSurvivor' / 'RS_FreqDebug.lua'
 VIEW_FILE = LUA / 'client' / 'RadioSurvivor' / 'RS_FreqDebugView.lua'
-LK_ADMIN_FILE = LUA / 'server' / 'LivingKnox' / 'LK_Admin.lua'
+LK_ADMIN_FILE = LK_LUA / 'server' / 'LivingKnox' / 'LK_Admin.lua'
 TRANSLATE = LUA / 'shared' / 'Translate'
 TESTS_LUA = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua'
 SUITE_FILE = TESTS_LUA / 'shared' / 'RST' / 'suites' / 'RS_FreqDebug.lua'
@@ -146,7 +147,7 @@ class ClientMachine:
         self.rt.execute(CLIENT_STUBS)
         self.g.SIDE = side
         paths = ';'.join((LUA / s).as_posix() + '/?.lua' for s in ('shared', 'client'))
-        paths = (tps.CORE_LUA / 'shared').as_posix() + '/?.lua;' + (tps.CORE_LUA / 'server').as_posix() + '/?.lua;' + (tps.CORE_LUA / 'client').as_posix() + '/?.lua;' + paths  # mod commun (E18)
+        paths = (tps.CORE_LUA / 'shared').as_posix() + '/?.lua;' + (tps.CORE_LUA / 'server').as_posix() + '/?.lua;' + (tps.CORE_LUA / 'client').as_posix() + '/?.lua;' + (tps.LK_LUA / 'shared').as_posix() + '/?.lua;' + (tps.LK_LUA / 'server').as_posix() + '/?.lua;' + (tps.LK_LUA / 'client').as_posix() + '/?.lua;' + paths  # mod commun (E18)
         self.rt.execute(f'package.path = [[{paths};]] .. package.path')
         self.load_view()
 

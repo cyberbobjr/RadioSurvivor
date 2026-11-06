@@ -22,6 +22,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from harness import lua_src  # noqa: E402  (E18-T07)
 import test_lk_health as th  # noqa: E402
 from test_lk_bodies import LUA, DEV_LUA, lua_list  # noqa: E402
 
@@ -588,7 +589,7 @@ class SourceTests(unittest.TestCase):
         for rel in ('server/LivingKnox/LK_Health.lua', 'server/LivingKnox/LK_Bodies.lua',
                     'server/LivingKnox/LK_Death.lua', 'client/LivingKnox/LK_DeathClient.lua',
                     'shared/LivingKnox/LK_Identity.lua'):
-            raw = (LUA / rel).read_bytes()
+            raw = lua_src(rel).read_bytes()
             code = re.sub(r'--[^\n]*', '', re.sub(r'--\[\[.*?\]\]', '', raw.decode('utf-8'), flags=re.S))
             self.assertTrue(all(ord(ch) < 128 for ch in code), rel)
             for pattern in (r'\bnext\s*\(', r'\bgoto\b', r'\bcoroutine\.'):

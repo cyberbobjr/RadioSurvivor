@@ -159,6 +159,8 @@ MODS = [
     ('batman_SignalSmoke', WORKSHOP_DEV / 'SignalSmoke' / 'Contents' / 'mods' / 'batman_SignalSmoke'),
     # Shared core of RadioSurvivor and Living Knox (E18-T01): required by RadioSurvivor, loaded before it.
     ('batman_RadioSurvivorCore', ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivorCore'),
+    # NPC engine (E18-T07): requires the core mod; required by RadioSurvivor until E18-T09, loaded before it.
+    ('batman_LivingKnox', ROOT / 'Contents' / 'mods' / 'batman_LivingKnox'),
     ('batman_RadioSurvivor', ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivor'),
     ('batman_RadioSurvivorTests', ROOT / 'dev' / 'batman_RadioSurvivorTests'),
 ]

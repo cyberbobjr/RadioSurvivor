@@ -31,10 +31,11 @@ from test_lk_sites import EXTRA, FORESTS  # noqa: E402
 from test_rescue import DOUBLES, WORLD  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
-MEDIA = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivor' / '42.21' / 'media'
-MOD_LUA = MEDIA / 'lua'
+MEDIA = ROOT / 'Contents' / 'mods' / 'batman_LivingKnox' / '42.21' / 'media'
+MOD_LUA = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivor' / '42.21' / 'media' / 'lua'
 CORE_LUA = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivorCore' / '42.21' / 'media' / 'lua'  # mod commun (E18)
-MODULE = MOD_LUA / 'server' / 'LivingKnox' / 'LK_Population.lua'
+LK_LUA = ROOT / 'Contents' / 'mods' / 'batman_LivingKnox' / '42.21' / 'media' / 'lua'  # moteur des PNJ (E18-T07)
+MODULE = LK_LUA / 'server' / 'LivingKnox' / 'LK_Population.lua'
 SANDBOX_FILE = MEDIA / 'sandbox-options.txt'
 SHARED = ['LivingKnox/LK_Core', 'LivingKnox/LK_Config', 'LivingKnox/LK_Log', 'LivingKnox/LK_GroupTypes',
           'LivingKnox/Data/LK_Type_neutrals', 'LivingKnox/Data/LK_Type_raiders', 'LivingKnox/Data/LK_Type_settlers']
@@ -83,7 +84,7 @@ class Bench(unittest.TestCase):
         self.rt.execute(DOUBLES)
         self.rt.execute(EXTRA)
         self.rt.execute(SANDBOX + option_defaults())
-        paths = [CORE_LUA / 'shared', CORE_LUA / 'server', MOD_LUA / 'shared', MOD_LUA / 'server']
+        paths = [CORE_LUA / 'shared', CORE_LUA / 'server', LK_LUA / 'shared', LK_LUA / 'server', MOD_LUA / 'shared', MOD_LUA / 'server']
         self.rt.execute('package.path = [[' + ''.join(f'{p.as_posix()}/?.lua;' for p in paths) + ']] .. package.path')
         self.rt.execute(WORLD + (FORESTS if forests else ''))
         for path, text in self.files.items():
@@ -419,7 +420,7 @@ class ClientTests(unittest.TestCase):
         rt.execute(DOUBLES)
         rt.execute(SANDBOX + option_defaults())
         rt.execute('SIDE = "client"')
-        paths = [CORE_LUA / 'shared', CORE_LUA / 'server', MOD_LUA / 'shared', MOD_LUA / 'server']
+        paths = [CORE_LUA / 'shared', CORE_LUA / 'server', LK_LUA / 'shared', LK_LUA / 'server', MOD_LUA / 'shared', MOD_LUA / 'server']
         rt.execute('package.path = [[' + ''.join(f'{p.as_posix()}/?.lua;' for p in paths) + ']] .. package.path')
         for name in SHARED:
             rt.execute(f'require "{name}"')
@@ -553,9 +554,9 @@ class FileTests(unittest.TestCase):
         text = SANDBOX_FILE.read_text(encoding='utf-8')
         self.assertTrue(text.startswith('VERSION = 1,'))
         options = parse_options(text)
-        en = json.loads((MOD_LUA / 'shared/Translate/EN/Sandbox.json').read_text(encoding='utf-8'))
-        fr = json.loads((MOD_LUA / 'shared/Translate/FR/Sandbox.json').read_text(encoding='utf-8'))
-        config = (MOD_LUA / 'shared/LivingKnox/LK_Config.lua').read_text(encoding='utf-8')
+        en = json.loads((LK_LUA / 'shared/Translate/EN/Sandbox.json').read_text(encoding='utf-8'))
+        fr = json.loads((LK_LUA / 'shared/Translate/FR/Sandbox.json').read_text(encoding='utf-8'))
+        config = (LK_LUA / 'shared/LivingKnox/LK_Config.lua').read_text(encoding='utf-8')
         for name, (lo, hi, default) in OPTIONS.items():
             with self.subTest(option=name):
                 o = options[f'LivingKnox.{name}']

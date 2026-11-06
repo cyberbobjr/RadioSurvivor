@@ -115,7 +115,7 @@ class PureChoreTests(PureBase):
         import re
         root = Path(__file__).resolve().parents[1]
         table = json.loads((root / 'tools' / 'anim_table.json').read_text(encoding='utf-8'))
-        anim = (root / 'Contents' / 'mods' / 'batman_RadioSurvivor' / '42.21' / 'media' / 'lua' / 'shared' / 'LivingKnox'
+        anim = (root / 'Contents' / 'mods' / 'batman_LivingKnox' / '42.21' / 'media' / 'lua' / 'shared' / 'LivingKnox'
                 / 'LK_Anim.lua').read_text(encoding='utf-8')
         known = set(re.findall(r'(\w+) = true', anim.split('Anim.GESTURES = {')[1].split('}')[0]))
         self.assertEqual(lua_list(self.ev(f'{R}.CHORES')), CHORES)

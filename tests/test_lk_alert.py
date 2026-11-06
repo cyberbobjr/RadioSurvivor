@@ -27,6 +27,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from test_lk_bodies import LUA, DEV_LUA, lua_list  # noqa: E402
+from harness import LK_LUA  # noqa: E402  (E18-T07)
 from test_lk_decisions import PureBase  # noqa: E402
 from test_lk_routines import RoutineStack  # noqa: E402
 
@@ -610,7 +611,7 @@ class ViewTests(unittest.TestCase):
 
 class SourceTests(unittest.TestCase):
     def test_sources_are_kahlua_safe_and_messages_english(self):
-        for path in (LUA / 'server' / 'LivingKnox' / 'LK_Alert.lua', LUA / 'client' / 'LivingKnox' / 'LK_AlertView.lua'):
+        for path in (LK_LUA / 'server' / 'LivingKnox' / 'LK_Alert.lua', LK_LUA / 'client' / 'LivingKnox' / 'LK_AlertView.lua'):
             raw = path.read_text(encoding='utf-8')
             code = re.sub(r'--[^\n]*', '', re.sub(r'--\[\[.*?\]\]', '', raw, flags=re.S))
             self.assertTrue(all(ord(ch) < 128 for ch in code), f'{path.name}: non ASCII character in the code')

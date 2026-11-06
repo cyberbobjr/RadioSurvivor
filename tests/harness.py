@@ -59,6 +59,7 @@ import lupa.lua51 as lupa
 ROOT = Path(__file__).resolve().parents[1]
 LUA = ROOT / 'Contents/mods/batman_RadioSurvivor/42.21/media/lua'
 CORE_LUA = ROOT / 'Contents/mods/batman_RadioSurvivorCore/42.21/media/lua'  # mod commun exigé (E18)
+LK_LUA = ROOT / 'Contents/mods/batman_LivingKnox/42.21/media/lua'  # moteur des PNJ (E18-T07)
 LuaError = lupa.LuaError
 
 # zombie/Lua/LuaEventManager.java:634-895 (42.21.0), AddEvent(...) du moteur.
@@ -584,6 +585,16 @@ end
 '''
 
 
+def lua_src(rel, base=None):
+    """Source file of a Lua path relative to .../media/lua ('server/LivingKnox/LK_Homes.lua'): first mod that holds
+    it among the core mod, Living Knox and RadioSurvivor (E18-T07), else base (RadioSurvivor by default) / rel."""
+    base = LUA if base is None else base
+    for root in (CORE_LUA, LK_LUA, base):
+        if (root / rel).exists():
+            return root / rel
+    return base / rel
+
+
 class HarnessError(AssertionError):
     pass
 
@@ -621,7 +632,7 @@ class Machine:
 
     def __init__(self, harness: 'Harness', name: str, mode: str, files: Path):
         self.harness, self.name, self.mode = harness, name, mode
-        self.roots = [CORE_LUA, LUA] + [Path(r) for r in harness.lua_roots]
+        self.roots = [CORE_LUA, LK_LUA, LUA] + [Path(r) for r in harness.lua_roots]
         self.files = files
         files.mkdir(parents=True, exist_ok=True)
         self.log_lines: list[str] = []

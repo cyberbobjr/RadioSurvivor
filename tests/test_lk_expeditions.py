@@ -27,6 +27,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from harness import lua_src  # noqa: E402  (E18-T07)
 from test_lk_bodies import lua_list  # noqa: E402
 from test_lk_decisions import PureBase  # noqa: E402
 from test_lk_meals import MEAL_DOUBLES, PANTRY  # noqa: E402
@@ -37,7 +38,7 @@ D = 'LivingKnox.Decisions'
 ST = 'LivingKnox.Stock'
 ROOT = Path(__file__).resolve().parents[1]
 MODULE = 'server/LivingKnox/LK_Expeditions.lua'
-MODULE_FILE = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivor' / '42.21' / 'media' / 'lua' / MODULE
+MODULE_FILE = lua_src(MODULE)
 SUITE = 'shared/RST/suites/RST_LKExpedition.lua'
 SUITE_FILE = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua' / SUITE
 

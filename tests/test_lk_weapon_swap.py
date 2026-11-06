@@ -20,6 +20,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from harness import lua_src  # noqa: E402  (E18-T07)
 from test_lk_bodies import LUA, DEV_LUA, lua_list  # noqa: E402
 from test_lk_loot import LootBase  # noqa: E402
 from test_lk_combat import (COMBAT_DOUBLES, COMBAT, COMBAT_CLIENT, AMMO,  # noqa: E402
@@ -331,7 +332,7 @@ class SoloSwapTests(SwapBase):
 
 class SourceTests(unittest.TestCase):
     def test_sources_are_kahlua_safe(self):
-        for path in (LUA / EQUIPMENT, LUA / AMMO, LUA / COMBAT, DEV_LUA / SUITE):
+        for path in (lua_src(EQUIPMENT), lua_src(AMMO), lua_src(COMBAT), DEV_LUA / SUITE):
             raw = path.read_bytes()
             code = re.sub(r'--[^\n]*', '', re.sub(r'--\[\[.*?\]\]', '', raw.decode('utf-8'), flags=re.S))
             self.assertTrue(all(ord(ch) < 128 for ch in code), path)

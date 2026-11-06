@@ -24,6 +24,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from harness import lua_src  # noqa: E402  (E18-T07)
 from test_lk_bodies import LUA, DEV_LUA, lua_list  # noqa: E402
 from test_lk_combat import CombatBase  # noqa: E402
 
@@ -31,7 +32,7 @@ ZOMBIES = 'server/LivingKnox/LK_Zombies.lua'
 ZOMBIES_CLIENT = 'client/LivingKnox/LK_ZombiesClient.lua'
 HEALTH = 'server/LivingKnox/LK_Health.lua'
 HEALTH_CLIENT = 'client/LivingKnox/LK_HealthClient.lua'
-MOD_FILES = [LUA / ZOMBIES, LUA / ZOMBIES_CLIENT]
+MOD_FILES = [lua_src(ZOMBIES), lua_src(ZOMBIES_CLIENT)]
 SUITE = DEV_LUA / 'shared' / 'RST' / 'suites' / 'RST_LKZombies.lua'
 Z = 'LivingKnox.Zombies'
 

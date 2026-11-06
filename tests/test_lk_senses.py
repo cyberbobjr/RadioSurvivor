@@ -18,6 +18,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from harness import Harness  # noqa: E402
+from harness import lua_src  # noqa: E402  (E18-T07)
 from test_lk_bodies import LUA, DEV_LUA, lua_list  # noqa: E402
 from test_lk_reports import ReportBase, REPORT_DOUBLES, REPORTS, EXECUTOR  # noqa: E402
 from test_lk_milestone import MilestoneBase  # noqa: E402
@@ -891,7 +892,7 @@ class SuiteWallSiteTests(MilestoneBase):
 
 class SourceTests(unittest.TestCase):
     def test_kahlua_safe_sources_and_english_logs(self):
-        files = [LUA / SENSES, LUA / REPORTS, LUA / EXECUTOR, DEV_LUA / SUITE]
+        files = [lua_src(SENSES), lua_src(REPORTS), lua_src(EXECUTOR), DEV_LUA / SUITE]
         for path in files:
             text = path.read_text(encoding='utf-8')
             code = re.sub(r'--\[\[.*?\]\]', '', text, flags=re.S)
@@ -901,7 +902,7 @@ class SourceTests(unittest.TestCase):
                             r'\bmath\.random\b', r'\bRand\.'):
                 self.assertIsNone(re.search(pattern, code, flags=re.M), f'{path.name}: {pattern}')
         self.assertTrue(all(b < 128 for b in (DEV_LUA / SUITE).read_bytes()))
-        code = re.sub(r'--[^\n]*', '', (LUA / SENSES).read_text(encoding='utf-8'))
+        code = re.sub(r'--[^\n]*', '', lua_src(SENSES).read_text(encoding='utf-8'))
         # Aucune décision ni effet sur le monde : aucun déplacement, consigne, santé ou commande réseau.
         for call in ('pathToLocation', 'setHealth', 'moveTo', 'sendServerCommand', 'sendClientCommand', 'setTarget',
                      'ModData'):

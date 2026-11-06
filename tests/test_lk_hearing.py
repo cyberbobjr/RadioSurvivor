@@ -28,9 +28,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from test_lk_bodies import LUA, DEV_LUA, lua_list  # noqa: E402
+from harness import LK_LUA  # noqa: E402  (E18-T07)
 from test_lk_zombies import ZombieBase  # noqa: E402
 
-GUARD = LUA / 'shared' / 'LivingKnox' / 'LK_ZombieGuard.lua'
+GUARD = LK_LUA / 'shared' / 'LivingKnox' / 'LK_ZombieGuard.lua'
 SUITE = DEV_LUA / 'shared' / 'RST' / 'suites' / 'RST_LKAnims.lua'
 
 HEARING_DOUBLES = r'''

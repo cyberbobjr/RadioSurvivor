@@ -25,13 +25,14 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from harness import lua_src  # noqa: E402  (E18-T07)
 from test_lk_bodies import lua_list, LUA, DEV_LUA  # noqa: E402
 from test_lk_anim import AnimBase  # noqa: E402
 
 DIRECTIVES = 'server/LivingKnox/LK_Directives.lua'
 EXECUTOR = 'client/LivingKnox/LK_Executor.lua'
 PRESENTATION = 'client/LivingKnox/LK_Presentation.lua'
-MOD_FILES = [LUA / DIRECTIVES, LUA / EXECUTOR, LUA / PRESENTATION]
+MOD_FILES = [lua_src(DIRECTIVES), lua_src(EXECUTOR), lua_src(PRESENTATION)]
 DEV_FILES = [DEV_LUA / 'shared' / 'RST' / 'suites' / 'RST_LKExecutor.lua',
              DEV_LUA / 'shared' / 'RST' / 'suites' / 'RST_LKFarm.lua',
              DEV_LUA / 'client' / 'RST' / 'RST_LKBodiesClient.lua',
@@ -1205,7 +1206,7 @@ class SourceTests(unittest.TestCase):
             self.assertTrue(all(b < 128 for b in path.read_bytes()), f'{path.name}: non ASCII byte')
 
     def test_presentation_never_moves_a_copy(self):
-        code = (LUA / PRESENTATION).read_text(encoding='utf-8')
+        code = lua_src(PRESENTATION).read_text(encoding='utf-8')
         code = re.sub(r'--[^\n]*', '', code)
         for call in ('pathToLocation', 'setX', 'setY', 'teleportTo', 'setMoving', 'setVariable'):
             self.assertNotIn(call, code)

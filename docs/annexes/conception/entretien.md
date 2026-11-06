@@ -1,7 +1,7 @@
 # Entretien du foyer : générateur, lumières, sang, verre brisé, morts
 
 - Tâche : LK05-T10 (idées I3.5, I3.6 de `docs/annexes/recherches/idees-bandits-alife.md`)
-- Code : `Contents/mods/batman_RadioSurvivor/42.21/media/lua/server/LivingKnox/LK_Upkeep.lua` ; points d'accroche dans `LK_Routines.lua` (comportement `chore`, `Routines.exec`, `leave`/`forget`) ; matériaux par `LK_Stock.lua` (`findItem`, `findFluid`, `drawFluid`, `takeItem`) ; banc `tests/test_lk_upkeep.py` ; suite en jeu `lk.upkeep` (`dev/batman_RadioSurvivorTests/42.21/media/lua/shared/RST/suites/RST_LKUpkeep.lua`)
+- Code : `Contents/mods/batman_LivingKnox/42.21/media/lua/server/LivingKnox/LK_Upkeep.lua` ; points d'accroche dans `LK_Routines.lua` (comportement `chore`, `Routines.exec`, `leave`/`forget`) ; matériaux par `LK_Stock.lua` (`findItem`, `findFluid`, `drawFluid`, `takeItem`) ; banc `tests/test_lk_upkeep.py` ; suite en jeu `lk.upkeep` (`dev/batman_RadioSurvivorTests/42.21/media/lua/shared/RST/suites/RST_LKUpkeep.lua`)
 - Build : 42.21.0 (Java décompilé **J/** = `<decompiled>\42.21.0\java\zombie\` ; Lua vanilla **M/** = `media/lua`) — Date : 2026-10-12 — Statut : brouillon, testé hors jeu seulement
 
 Base de connaissances : [power-and-lights.md](../../../../.claude/pz-knowledge/power-and-lights.md) (générateurs, carburant, interrupteurs), [api-42-21.md](../../../../.claude/pz-knowledge/api-42-21.md) (`FluidContainer:adjustAmount`), [multiplayer.md](../../../../.claude/pz-knowledge/multiplayer.md) (synchronisation d'un objet dans un meuble). Aucune ligne de Bandits! ni de Project A-Life n'a été lue : seules les idées I3.5 et I3.6 sont reprises.

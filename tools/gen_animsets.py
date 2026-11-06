@@ -4,7 +4,7 @@
     python RadioSurvivor/tools/gen_animsets.py --check    # exit 1 when a committed file is missing, stale or edited
     python RadioSurvivor/tools/gen_animsets.py --vanilla D:/.../ProjectZomboid/media   # vanilla media folder
 
-Output: Contents/mods/batman_RadioSurvivor/common/media/AnimSets/zombie/<state>/lkactor_*.xml. The generator owns every
+Output: Contents/mods/batman_LivingKnox/common/media/AnimSets/zombie/<state>/lkactor_*.xml. The generator owns every
 lkactor_*.xml file of that tree: a file absent from the table is removed (write) or reported (check).
 
 Rules (Java 42.21.0, see docs/annexes/conception/corps-et-animations.md, section Animations):
@@ -34,7 +34,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 TABLE = ROOT / 'tools' / 'anim_table.json'
-MOD = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivor'
+MOD = ROOT / 'Contents' / 'mods' / 'batman_LivingKnox'   # E18-T07: Living Knox only
 OUT = MOD / 'common' / 'media' / 'AnimSets' / 'zombie'
 sys.path.append(str(Path(__file__).resolve().parent))
 import pz_paths  # noqa: E402  (vanilla folders: PZ_STEAM_LIBRARY, PZ_MEDIA or Steam detection)

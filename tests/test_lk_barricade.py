@@ -31,6 +31,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from harness import lua_src  # noqa: E402  (E18-T07)
 from test_lk_bodies import lua_list  # noqa: E402
 from test_lk_meals import MealStack  # noqa: E402
 
@@ -449,7 +450,7 @@ class SuiteTests(unittest.TestCase):
         self.assertIn('Homes.skip(', code)
 
     def test_module_source_is_kahlua_safe(self):
-        path = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivor' / '42.21' / 'media' / 'lua' / FORTIFY
+        path = lua_src(FORTIFY)
         raw = path.read_text(encoding='utf-8')
         code = '\n'.join(line.split('--', 1)[0] for line in raw.splitlines())
         self.assertTrue(all(ord(ch) < 128 for ch in code), 'non ASCII character in the code')

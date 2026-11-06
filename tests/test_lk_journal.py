@@ -19,10 +19,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from harness import Harness  # noqa: E402
+from harness import LK_LUA  # noqa: E402  (E18-T07)
 
 ROOT = Path(__file__).resolve().parents[1]
 LUA = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivor' / '42.21' / 'media' / 'lua'
-TRANSLATE = LUA / 'shared' / 'Translate'
+TRANSLATE = LK_LUA / 'shared' / 'Translate'
 SHARED = ('shared/LivingKnox/LK_Core.lua', 'shared/LivingKnox/LK_Config.lua', 'shared/LivingKnox/LK_Log.lua',
           'shared/LivingKnox/LK_Appearance.lua', 'shared/LivingKnox/LK_Identity.lua',
           'shared/LivingKnox/Data/LK_Type_neutrals.lua', 'shared/LivingKnox/Data/LK_Type_raiders.lua',
@@ -284,9 +285,9 @@ class StructureTests(Base):
                          [('trip', [2]), ('returned', [2]), ('trip', [2]), ('noneBack', []), ('returned', [1]),
                           ('moved', [])])
         # Formes lues dans le texte technique : présentes dans le code qui les écrit (couplage vérifié).
-        ex = (LUA / 'server/LivingKnox/LK_Expeditions.lua').read_text(encoding='utf-8')
-        sim = (LUA / 'server/LivingKnox/LK_Simulation.lua').read_text(encoding='utf-8')
-        adm = (LUA / 'server/LivingKnox/LK_Admin.lua').read_text(encoding='utf-8')
+        ex = (LK_LUA / 'server/LivingKnox/LK_Expeditions.lua').read_text(encoding='utf-8')
+        sim = (LK_LUA / 'server/LivingKnox/LK_Simulation.lua').read_text(encoding='utf-8')
+        adm = (LK_LUA / 'server/LivingKnox/LK_Admin.lua').read_text(encoding='utf-8')
         self.assertIn('"trip %d to %s (%d squares)', ex)
         self.assertIn('%d back, %s%s%s', ex)
         self.assertIn('no one came back from %s', ex)
@@ -534,7 +535,7 @@ class ReadingTests(Base):
                 self.assertIn(key, table, lang)
 
     def test_lua_code_is_ascii(self):
-        code = (LUA / 'server/LivingKnox/LK_Journal.lua').read_text(encoding='utf-8')
+        code = (LK_LUA / 'server/LivingKnox/LK_Journal.lua').read_text(encoding='utf-8')
         for line in code.splitlines():
             stripped = line.split('--', 1)[0]
             self.assertTrue(all(ord(ch) < 128 for ch in stripped), line)

@@ -37,11 +37,13 @@ import pz_paths  # noqa: E402  (vanilla folders: PZ_STEAM_LIBRARY, PZ_MEDIA or S
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from test_lk_bodies import lua_list, LUA, DEV_LUA, ROOT  # noqa: E402
+from harness import LK_LUA  # noqa: E402  (E18-T07)
+from harness import lua_src  # noqa: E402  (E18-T07)
 from test_lk_anim import AnimBase  # noqa: E402
 from harness import HarnessError  # noqa: E402
 
 EQUIPMENT = 'shared/LivingKnox/LK_Equipment.lua'
-MOD_FILES = [LUA / EQUIPMENT, LUA / 'shared' / 'LivingKnox' / 'LK_Identity.lua']
+MOD_FILES = [lua_src(EQUIPMENT), LK_LUA / 'shared' / 'LivingKnox' / 'LK_Identity.lua']
 DEV_FILES = [DEV_LUA / 'shared' / 'RST' / 'suites' / 'RST_LKEquipment.lua',
              DEV_LUA / 'client' / 'RST' / 'RST_LKBodiesClient.lua',
              DEV_LUA / 'server' / 'RST' / 'RST_LKBodiesServer.lua']
@@ -778,7 +780,7 @@ class SourceTests(unittest.TestCase):
             self.assertTrue(all(b < 128 for b in path.read_bytes()), f'{path.name}: non ASCII byte')
 
     def test_hand_items_never_set_by_the_server_and_only_the_fishing_handler_wrapped(self):
-        code = (LUA / EQUIPMENT).read_text(encoding='utf-8')
+        code = lua_src(EQUIPMENT).read_text(encoding='utf-8')
         code = re.sub(r'--[^\n]*', '', code)
         # setPrimaryHandItem seulement dans equip / unequip, appelés par la passe d'affichage (jamais sur le serveur).
         self.assertEqual(len(re.findall(r'setPrimaryHandItem', code)), 2)
@@ -788,7 +790,7 @@ class SourceTests(unittest.TestCase):
 
     def test_slots_are_vanilla_human_locations(self):
         locations = pz_paths.media_dir() / 'lua/shared/NPCs/AttachedLocations.lua'
-        code = (LUA / EQUIPMENT).read_text(encoding='utf-8')
+        code = lua_src(EQUIPMENT).read_text(encoding='utf-8')
         block = re.search(r'Equipment\.LOCATIONS = \{(.*?)\n\}', code, flags=re.S).group(1)
         slots = set(re.findall(r'= "([^"]+)"', block))
         self.assertTrue(slots)

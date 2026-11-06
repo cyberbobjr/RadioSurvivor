@@ -16,9 +16,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from harness import Harness, LUA  # noqa: E402
+from harness import LK_LUA  # noqa: E402  (E18-T07)
 
-DATA_FILE = LUA / 'shared' / 'LivingKnox' / 'Data' / 'Stories.lua'
-SERVER_FILE = LUA / 'server' / 'LivingKnox' / 'LK_Stories.lua'
+DATA_FILE = LK_LUA / 'shared' / 'LivingKnox' / 'Data' / 'Stories.lua'
+SERVER_FILE = LK_LUA / 'server' / 'LivingKnox' / 'LK_Stories.lua'
 SHARED = ('shared/LivingKnox/LK_Core.lua', 'shared/LivingKnox/LK_Config.lua', 'shared/LivingKnox/LK_Log.lua')
 STORIES = 'server/LivingKnox/LK_Stories.lua'
 CATEGORIES = ('origins', 'motivations', 'tones', 'leaderPasts', 'secrets')
@@ -99,7 +100,7 @@ class DataTests(Base):
         try:
             for path in SHARED + ('shared/LivingKnox/LK_GroupTypes.lua',):
                 h.load('solo', path)
-            for path in sorted((LUA / 'shared' / 'LivingKnox' / 'Data').glob('LK_Type_*.lua')):
+            for path in sorted((LK_LUA / 'shared' / 'LivingKnox' / 'Data').glob('LK_Type_*.lua')):
                 h.load('solo', 'shared/LivingKnox/Data/' + path.name)
             h.load('solo', STORIES)
             ids = py(h.eval('solo', 'LivingKnox.GroupTypes.ids()'))
