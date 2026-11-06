@@ -2,7 +2,7 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 2 / 16 tâche(s) terminée(s).
+**Avancement.** en cours — 2 / 19 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
@@ -16,12 +16,15 @@
 | ☐ | E18-T08 | Bases connues et sites sans RadioSurvivor | `testé hors jeu` | solo | E18-T07 |
 | ☐ | E18-T09 | Adaptateur fournisseur porté par Living Knox | `testé hors jeu` | MP | E18-T07 |
 | ☐ | E18-T10 | Dossier de données de Living Knox et reprise des parties existantes | `testé hors jeu` | MP | E18-T07 |
-| ☐ | E18-T11 | Parole des PNJ émise par Living Knox, enrichie par RadioSurvivor | `à faire` | MP | E18-T04, E18-T09 |
-| ☐ | E18-T12 | Pont : un dossier d'échange pour les deux mods | `à faire` | MP | E18-T04, E18-T11 |
+| ☐ | E18-T11 | Historique des échanges avec les PNJ dans le commun | `testé hors jeu` | MP | E18-T04, E18-T09 |
+| ☐ | E18-T12 | Pont : un dossier d'échange pour les deux mods | `à faire` | MP | E18-T04, E18-T17 |
 | ☐ | E18-T13 | Traductions et options sandbox des trois mods | `à faire` | hors jeu | E18-T06, E18-T07 |
 | ☐ | E18-T14 | Outillage des tests pour trois montages | `à faire` | hors jeu | E18-T07 |
-| ☐ | E18-T15 | Validation des trois montages | `à faire` | MP | E18-T05, E18-T06, E18-T08, E18-T10, E18-T12, E18-T13, E18-T14 |
+| ☐ | E18-T15 | Validation des trois montages | `à faire` | MP | E18-T05, E18-T06, E18-T08, E18-T10, E18-T12, E18-T13, E18-T14, E18-T18, E18-T19 |
 | ☐ | E18-T16 | Documentation et page Workshop des trois mods | `à faire` | hors jeu | E18-T15 |
+| ☐ | E18-T17 | File des demandes de parole des PNJ portée par Living Knox | `à faire` | MP | E18-T11 |
+| ☐ | E18-T18 | Parole de proximité avec Living Knox seul | `à faire` | MP | E18-T17 |
+| ☐ | E18-T19 | Historique des voix radio dans le commun | `à faire` | MP | E18-T11 |
 
 <!-- fin du tableau de bord -->
 
@@ -183,7 +186,7 @@ Deuxième article Workshop, dépôt séparé, nouvelles règles de jeu des missi
   - Faire : déplacer le moteur dans son mod ; `incompatible=` Bandits! et Project A-Life repris par Living Knox ; plus aucun fichier du moteur dans `batman_RadioSurvivor`.
   - Accepté si : Living Knox seul coché démarre (commun actif) sans erreur Lua ; les trois mods ensemble se chargent comme aujourd'hui.
   - Tests : `run_all.py` (bancs adaptés aux trois dossiers) ; démarrage solo de chaque montage.
-  - Preuve : mod `batman_LivingKnox` (`common/` avec les 45 AnimSets `lkactor_*`, `42.21/mod.info` `require=\batman_RadioSurvivorCore`, `incompatible=\Bandits2,\ProjectALifeNPCs` repris de RadioSurvivor) ; code `media/lua/{client,server,shared}/LivingKnox/` déplacé par `git mv` (78 fichiers) ; page `LivingKnox` des options (32 options) et clés `IGUI_LK_` (339) et `Sandbox_LivingKnox_` (65) déplacées en EN et FR ; RadioSurvivor exige Living Knox jusqu'à `E18-T09` (son adaptateur `RS_LivingKnox` requiert `LK_Core`) ; lanceurs (autoclient, `autotest.json`, `run_dedicated_smoke.ps1`) : commun, Living Knox puis RadioSurvivor ; `tools/gen_animsets.py --check` OK ; `tools/check_case.py` PASS (quatre mods) ; banc `tests/test_lk_mod.py` (7 tests, rouge avant le déplacement puis vert) ; bancs adaptés aux trois dossiers (`harness.lua_src`, `LK_LUA`) ; `run_all.py` 152 PASS ; luacheck Contents 15, dev 0 ; `plan.py check` 0 erreur ; passage solo automatique du 2026-11-06 (trois mods chargés dans l'ordre commun, Living Knox, RadioSurvivor ; rs.env et rst, faux modèle, code 0) : 13/13 (`tools/autoclient/runs/20261106-093910-85b09873beb7`)
+  - Preuve : mod `batman_LivingKnox` (`common/` avec les 45 AnimSets `lkactor_*`, `42.21/mod.info` `require=\batman_RadioSurvivorCore`, `incompatible=\Bandits2,\ProjectALifeNPCs` repris de RadioSurvivor) ; code `media/lua/{client,server,shared}/LivingKnox/` déplacé par `git mv` (78 fichiers) ; page `LivingKnox` des options (32 options) et clés `IGUI_LK_` (339) et `Sandbox_LivingKnox_` (65) déplacées en EN et FR ; RadioSurvivor exige Living Knox jusqu'à `E18-T09` (son adaptateur `RS_LivingKnox` requiert `LK_Core`) ; lanceurs (autoclient, `autotest.json`, `run_dedicated_smoke.ps1`) : commun, Living Knox puis RadioSurvivor ; `tools/gen_animsets.py --check` OK ; `tools/check_case.py` PASS (quatre mods) ; banc `tests/test_lk_mod.py` (7 tests, rouge avant le déplacement puis vert) ; bancs adaptés aux trois dossiers (`harness.lua_src`, `LK_LUA`) ; `run_all.py` 152 PASS ; luacheck Contents 15, dev 0 ; `plan.py check` 0 erreur ; passage solo automatique du 2026-11-06 (trois mods chargés dans l'ordre commun, Living Knox, RadioSurvivor ; rs.env et rst, faux modèle, code 0) : 13/13 (`tools/autoclient/runs/20261106-093910-85b09873beb7`) ; campagne MP automatique du 2026-11-06 (copie figée du commit `df05e83`, trois mods, serveur dédié + 2 clients, faux modèle, code 1) : client 1 total=376 pass=359 fail=1 skip=16, client 2 153/153 ; seul échec lk.zombies (instable, sans lien) ; lk.traversal et lk.barricade verts (`tools/autoclient/runs/20261106-102744-mp-922acdb1a395/server/20261106-092949-server.txt`)
   - Reste : Living Knox seul coché : `LK_Sites` et `LK_Simulation` requièrent encore `RadioSurvivor/RS_Rescue` (`E18-T08`) ; démarrage en jeu de Living Knox seul avec le montage de `E18-T14` ; données encore sous `Zomboid/Lua/batman_RadioSurvivor/livingknox/` (`E18-T10`)
 
 - [ ] **E18-T08** — Bases connues et sites sans RadioSurvivor
@@ -194,7 +197,7 @@ Deuxième article Workshop, dépôt séparé, nouvelles règles de jeu des missi
   - Faire : Living Knox ne requiert plus `RS_Rescue` ; la géométrie des bases des joueurs passe dans le commun (servie aux missions et aux PNJ) ou arrive par un crochet optionnel ; seul, Living Knox repère les bases par ses propres moyens ou s'en passe.
   - Accepté si : sites et raids tournent sans RadioSurvivor ; avec lui, mêmes bases qu'aujourd'hui.
   - Tests : bancs `test_lk_sites*`, `test_lk_raids` ; suites lk.sites et lk.raids dans les trois montages.
-  - Preuve : `LK_Sites` (tirage, classement, bases) et `LK_Simulation.knownBases` lisent `RadioSurvivorCore/RC_Sites` du mod commun (mêmes fonctions et mêmes bases que `RS_Rescue`, qui les recopie) ; plus aucun module de RadioSurvivor requis par Living Knox (`tests/test_lk_mod.py`) ; suite en jeu `lk.sites` sur `RC_Sites` ; `tools/check_case.py` : Living Knox vérifié avec le mod commun et Signal Smoke seuls, PASS ; bancs `test_lk_sites.py` (classe `WithoutRadioSurvivorTests` : sites et bases sans aucun module de RadioSurvivor sur le chemin, rouge avant le changement puis vert), `test_lk_simulation.py`, `test_lk_raids.py` OK ; `run_all.py` 153 PASS ; luacheck Contents 15, dev 0 ; passage solo automatique du 2026-11-06 (trois mods, lk.sites et lk.raid, faux modèle, code 0) : 8/8 (`tools/autoclient/runs/20261106-095205-72e9139224c8`)
+  - Preuve : `LK_Sites` (tirage, classement, bases) et `LK_Simulation.knownBases` lisent `RadioSurvivorCore/RC_Sites` du mod commun (mêmes fonctions et mêmes bases que `RS_Rescue`, qui les recopie) ; plus aucun module de RadioSurvivor requis par Living Knox (`tests/test_lk_mod.py`) ; suite en jeu `lk.sites` sur `RC_Sites` ; `tools/check_case.py` : Living Knox vérifié avec le mod commun et Signal Smoke seuls, PASS ; bancs `test_lk_sites.py` (classe `WithoutRadioSurvivorTests` : sites et bases sans aucun module de RadioSurvivor sur le chemin, rouge avant le changement puis vert), `test_lk_simulation.py`, `test_lk_raids.py` OK ; `run_all.py` 153 PASS ; luacheck Contents 15, dev 0 ; passage solo automatique du 2026-11-06 (trois mods, lk.sites et lk.raid, faux modèle, code 0) : 8/8 (`tools/autoclient/runs/20261106-095205-72e9139224c8`) ; campagne MP automatique du 2026-11-06 (copie figée du commit `df05e83`, trois mods, serveur dédié + 2 clients, faux modèle, code 1) : client 1 total=376 pass=359 fail=1 skip=16, client 2 153/153 ; seul échec lk.zombies (instable, sans lien) ; lk.traversal et lk.barricade verts (`tools/autoclient/runs/20261106-102744-mp-922acdb1a395/server/20261106-092949-server.txt`)
   - Reste : suites lk.sites et lk.raid dans le montage Living Knox seul (outillage `E18-T14`, validation `E18-T15`)
 
 - [ ] **E18-T09** — Adaptateur fournisseur porté par Living Knox
@@ -205,7 +208,7 @@ Deuxième article Workshop, dépôt séparé, nouvelles règles de jeu des missi
   - Faire : le fournisseur s'enregistre auprès de `RS_NPCProvider` quand les deux mods sont actifs ; sans Living Knox, RadioSurvivor tourne avec « aucun moteur de PNJ » (cas déjà prévu par E17).
   - Accepté si : RadioSurvivor seul démarre sans erreur et sans fiche de PNJ ; ensemble, comportement d'aujourd'hui.
   - Tests : bancs `test_carnet.py`, `test_lk_api*` ; campagnes des trois montages.
-  - Preuve : adaptateur `shared/RadioSurvivor/RS_LivingKnox.lua` déplacé par `git mv` dans `batman_LivingKnox` (même chemin relatif, même nom global), inactif si `batman_RadioSurvivor` n'est pas dans `getActivatedMods()` (aucun module de RadioSurvivor requis, `RS_LivingKnox` reste nil) ; `require=` de RadioSurvivor sans Living Knox (description du mod mise à jour) ; tableau des outils de debug déplacé dans le commun (`client/RadioSurvivorCore/RC_Table`, anglais, ASCII ; `LK_Table` en garde le nom `LivingKnox.Table`) pour la vue de debug des fréquences de RadioSurvivor ; bancs `test_carnet.py` (`test_radiosurvivor_alone_without_living_knox` : tous les fichiers shared de RadioSurvivor, carnet et vue de debug sans Living Knox sur le chemin, fournisseur « none », rouge avant le déplacement puis vert), `test_lk_mod.py` (adaptateur muet sans RadioSurvivor, actif avec), `test_check_case.py` et `tools/check_case.py` (RadioSurvivor vérifié sans Living Knox) ; `run_all.py` 153 PASS ; luacheck Contents 15, dev 0 ; passage solo automatique du 2026-11-06 (trois mods, rs.env, rs.carnet.lk, rs.carnet.lk.supply, lk.debugview, faux modèle, code 0) : 17 PASS + 1 SKIP (MP), « [RS_NPCProvider] provider livingknox registered » dans la console (`tools/autoclient/runs/20261106-100705-bd2132575b40`)
+  - Preuve : adaptateur `shared/RadioSurvivor/RS_LivingKnox.lua` déplacé par `git mv` dans `batman_LivingKnox` (même chemin relatif, même nom global), inactif si `batman_RadioSurvivor` n'est pas dans `getActivatedMods()` (aucun module de RadioSurvivor requis, `RS_LivingKnox` reste nil) ; `require=` de RadioSurvivor sans Living Knox (description du mod mise à jour) ; tableau des outils de debug déplacé dans le commun (`client/RadioSurvivorCore/RC_Table`, anglais, ASCII ; `LK_Table` en garde le nom `LivingKnox.Table`) pour la vue de debug des fréquences de RadioSurvivor ; bancs `test_carnet.py` (`test_radiosurvivor_alone_without_living_knox` : tous les fichiers shared de RadioSurvivor, carnet et vue de debug sans Living Knox sur le chemin, fournisseur « none », rouge avant le déplacement puis vert), `test_lk_mod.py` (adaptateur muet sans RadioSurvivor, actif avec), `test_check_case.py` et `tools/check_case.py` (RadioSurvivor vérifié sans Living Knox) ; `run_all.py` 153 PASS ; luacheck Contents 15, dev 0 ; passage solo automatique du 2026-11-06 (trois mods, rs.env, rs.carnet.lk, rs.carnet.lk.supply, lk.debugview, faux modèle, code 0) : 17 PASS + 1 SKIP (MP), « [RS_NPCProvider] provider livingknox registered » dans la console (`tools/autoclient/runs/20261106-100705-bd2132575b40`) ; campagne MP automatique du 2026-11-06 (copie figée du commit `df05e83`, trois mods, serveur dédié + 2 clients, faux modèle, code 1) : client 1 total=376 pass=359 fail=1 skip=16, client 2 153/153 ; seul échec lk.zombies (instable, sans lien) ; lk.traversal et lk.barricade verts (`tools/autoclient/runs/20261106-102744-mp-922acdb1a395/server/20261106-092949-server.txt`)
   - Reste : RadioSurvivor seul démarré en jeu (montage de `E18-T14`, validation `E18-T15`) ; campagne MP des deux mods ensemble
 
 - [ ] **E18-T10** — Dossier de données de Living Knox et reprise des parties existantes
@@ -216,25 +219,23 @@ Deuxième article Workshop, dépôt séparé, nouvelles règles de jeu des missi
   - Faire : registres sous `Zomboid\Lua\batman_LivingKnox\` ; au premier lancement, reprise une seule fois de `batman_RadioSurvivor\livingknox\` (copie, ancien dossier laissé en place, ligne de journal en anglais).
   - Accepté si : une partie créée avant la séparation garde ses groupes, foyers et attitudes ; la reprise ne se refait pas.
   - Tests : banc de reprise ; phase `after-restart` sur une partie d'avant la séparation.
-  - Preuve : registres de Living Knox (PNJ `registry`, groupes `groups`, attitudes `attitudes`) sous `Zomboid/Lua/batman_LivingKnox/` (`LK_Store.DIR`) ; `Store.takeOver` appelé par `Store.init`, `Groups.init` et `Hostility.init` hors monde neuf : les deux emplacements de l'ancien dossier `batman_RadioSurvivor/livingknox/` copiés tels quels si aucun n'existe dans le nouveau, ancien dossier laissé, ligne « taken over » en anglais ; banc `tests/test_lk_takeover.py` (3 tests : partie de l'ancien format écrite par le même code avec l'ancien dossier, reprise octet pour octet des trois registres, PNJ relu, aucune seconde reprise après une écriture dans le nouveau dossier, rien pour un monde neuf ; rouge avant le changement puis vert) ; `run_all.py` 154 PASS ; luacheck Contents 15
+  - Preuve : registres de Living Knox (PNJ `registry`, groupes `groups`, attitudes `attitudes`) sous `Zomboid/Lua/batman_LivingKnox/` (`LK_Store.DIR`) ; `Store.takeOver` appelé par `Store.init`, `Groups.init` et `Hostility.init` hors monde neuf : les deux emplacements de l'ancien dossier `batman_RadioSurvivor/livingknox/` copiés tels quels si aucun n'existe dans le nouveau, ancien dossier laissé, ligne « taken over » en anglais ; banc `tests/test_lk_takeover.py` (3 tests : partie de l'ancien format écrite par le même code avec l'ancien dossier, reprise octet pour octet des trois registres, PNJ relu, aucune seconde reprise après une écriture dans le nouveau dossier, rien pour un monde neuf ; rouge avant le changement puis vert) ; `run_all.py` 154 PASS ; luacheck Contents 15 ; campagne MP automatique du 2026-11-06 (copie figée du commit `df05e83`, trois mods, serveur dédié + 2 clients, faux modèle, code 1) : client 1 total=376 pass=359 fail=1 skip=16, client 2 153/153 ; seul échec lk.zombies (instable, sans lien) ; lk.traversal et lk.barricade verts (`tools/autoclient/runs/20261106-102744-mp-922acdb1a395/server/20261106-092949-server.txt`)
   - Reste : phase `after-restart` en jeu sur une partie créée par l'ancienne version (campagne MP de `E18-T15`) ; groupes et attitudes relus après redémarrage dans le nouveau dossier (suites `lk.*persist` de la campagne MP)
 
-- [ ] **E18-T11** — Parole des PNJ émise par Living Knox, enrichie par RadioSurvivor
-  - État : `à faire`
+- [ ] **E18-T11** — Historique des échanges avec les PNJ dans le commun
+  - État : `testé hors jeu`
   - Cible : `MP`
   - Dépend de : E18-T04, E18-T09
-  - Fichiers : historique des échanges (aujourd'hui `contacts[...].history` de l'état du carnet) → commun ; parole de proximité (`RS_Carnet_Server.lua` talk, `RS_Conversations`, `RS_Initiatives`, `RS_Incidents`) → Living Knox (`LK_Talk`) sur le lien commun ; `bridge/npc_protocol.py` ; `docs/specifications-techniques/protocole-carnet-v2.md`
-  - Faire : Living Knox émet `npc_talk`, `npc_converse`, `npc_initiative` et `npc_enrich` par le lien commun ; offres et acceptations de missions des PNJ par le moteur commun ; RadioSurvivor ajoute au contexte ses éléments (relation, réputation, accords) et traite ses actions de la réponse par des crochets de l'API ; le carnet reste un affichage de RadioSurvivor.
-  - Faire aussi : historique des échanges (PNJ et voix radio) dans le mod commun, par personnage et par interlocuteur, borné comme aujourd'hui (`MAX_HISTORY`) ; historiques d'une partie existante repris depuis l'état du carnet ; le carnet le lit pour l'affichage (décision du 2026-11-05).
-  - Accepté si : Living Knox seul : une phrase dite près d'un PNJ reçoit une réponse du LLM en bulle, le PNJ se souvient des échanges précédents, et un PNJ propose une mission ; ensemble : mêmes offres, acceptations et relations qu'aujourd'hui (suites rs.npctalk, rs.conversations, rs.initiatives).
-  - Tests : `test_protocol.py`, bancs de la parole ; suites de parole dans les trois montages.
-  - Preuve : —
-  - Reste : —
-
+  - Fichiers : `RC_History` (commun, état privé `Zomboid/Lua/batman_RadioSurvivorCore/history-*.txt`) ; `RS_Carnet_Server.lua` (`contacts[...].history`), `RS_Conversations`, `RS_Initiatives`, `RS_GroupRadio`, `RS_State` (reprise), `RS_StatePurge`
+  - Faire : historique des échanges avec les PNJ dans le mod commun, par personnage et par interlocuteur, borné comme aujourd'hui (`MAX_HISTORY`) ; historiques d'une partie existante repris une seule fois depuis l'état du carnet ; le carnet le lit pour l'affichage (décision du 2026-11-05). Découpage du 2026-11-06 : la file des demandes de parole passe à `E18-T17`, la parole avec Living Knox seul à `E18-T18`, l'historique des voix radio à `E18-T19`.
+  - Accepté si : une partie existante garde l'historique affiché par le carnet ; mêmes lignes et mêmes bornes qu'avant ; un personnage mort oublié comme aujourd'hui.
+  - Tests : banc de reprise (fixture écrite par l'ancien code) ; `test_carnet.py`, `test_conversations.py`, `test_initiatives.py`, `test_group_radio.py` ; suites rs.npctalk, rs.conversations, rs.initiatives.
+  - Preuve : `server/RadioSurvivorCore/RC_History` (mod commun, ASCII, anglais : lignes par personnage et par interlocuteur, `MAX` 40, fichier privé `batman_RadioSurvivorCore/history-*` en-tête RCHISTORY1 par `RC_SlotFile`) ; `RS_State` : historiques d'une partie d'avant la séparation repris une fois, chaque `contacts[...].history` devient la table du commun (écrivains du carnet, des conversations, des initiatives et de la radio de groupe inchangés), fichier du carnet écrit sans les historiques, contacts et personnages disparus oubliés à l'écriture (`History.retain`) ; banc `tests/test_core_history.py` (5 tests, fixture `tests/fixtures/e18-t11` écrite par l'ancien `RS_State`, rouge avant puis vert) ; `run_all.py` 156 PASS ; luacheck Contents 15, dev 0
+  - Reste : suites rs.npctalk, rs.conversations, rs.initiatives en campagne MP avec l'historique dans le commun ; redémarrage d'une partie existante en jeu (`E18-T15`)
 - [ ] **E18-T12** — Pont : un dossier d'échange pour les deux mods
   - État : `à faire`
   - Cible : `MP`
-  - Dépend de : E18-T04, E18-T11
+  - Dépend de : E18-T04, E18-T17
   - Fichiers : `bridge/radio_bridge.py`, `bridge/npc_protocol.py`, `bridge/README*`
   - Faire : dossier d'échange par défaut du commun, ancien dossier lu en transition ; personnages des voix lus seulement quand RadioSurvivor les installe ; limites de texte de la parole lues dans un seul endroit ; aucune demande ni dossier créé pour un mod absent.
   - Accepté si : le même pont, sans option, sert RadioSurvivor seul, Living Knox seul et les deux.
@@ -267,7 +268,7 @@ Deuxième article Workshop, dépôt séparé, nouvelles règles de jeu des missi
 - [ ] **E18-T15** — Validation des trois montages
   - État : `à faire`
   - Cible : `MP`
-  - Dépend de : E18-T05, E18-T06, E18-T08, E18-T10, E18-T12, E18-T13, E18-T14
+  - Dépend de : E18-T05, E18-T06, E18-T08, E18-T10, E18-T12, E18-T13, E18-T14, E18-T18, E18-T19
   - Fichiers : ce fichier
   - Faire : campagnes solo et MP automatiques avec RadioSurvivor seul, Living Knox seul et les deux, pont avec faux modèle ; reconnexion et redémarrage pour les deux ensemble ; une partie d'avant la séparation rechargée.
   - Accepté si : six campagnes vertes (hors instabilités suivies par leur propre tâche, citées dans la preuve).
@@ -283,5 +284,39 @@ Deuxième article Workshop, dépôt séparé, nouvelles règles de jeu des missi
   - Faire : expliquer au joueur quoi cocher et ce que chaque mod apporte, le mod commun activé seul, le pont ; architecture et décisions à jour ; page Steam qui présente les mods de l'article.
   - Accepté si : aucune page ne décrit encore un mod unique ; descriptions Steam dans toutes les langues sous la limite de 8 000 octets.
   - Tests : `plan.py check` ; contrôle de taille des descriptions.
+  - Preuve : —
+  - Reste : —
+
+
+- [ ] **E18-T17** — File des demandes de parole des PNJ portée par Living Knox
+  - État : `à faire`
+  - Cible : `MP`
+  - Dépend de : E18-T11
+  - Fichiers : `LK_Talk` (Living Knox : file, voie `npc` de `RC_Transport`, numéros d'ordre et révisions par PNJ, délais, refus) ; `RS_Carnet_Server.lua` (`enqueue`, `syncTransport`, `poll`, `reply`), `RS_Conversations`, `RS_Initiatives`, `RS_BridgeLanes` ; `docs/specifications-techniques/protocole-carnet-v2.md`
+  - Faire : Living Knox émet `npc_talk`, `npc_converse`, `npc_initiative` et `npc_enrich` par le lien commun ; RadioSurvivor ajoute au contexte ses éléments (relation, réputation, accords, missions du carnet) et traite ses actions de la réponse par des crochets de l'API ; demandes en attente d'une partie existante reprises.
+  - Accepté si : ensemble : mêmes demandes, mêmes offres, acceptations et relations qu'aujourd'hui (suites rs.npctalk, rs.conversations, rs.initiatives).
+  - Tests : `test_protocol.py`, `test_carnet.py`, `test_conversations.py`, `test_initiatives.py`, `test_npc_reply.py` ; campagne MP.
+  - Preuve : —
+  - Reste : —
+
+- [ ] **E18-T18** — Parole de proximité avec Living Knox seul
+  - État : `à faire`
+  - Cible : `MP`
+  - Dépend de : E18-T17
+  - Fichiers : `LK_Talk` (commande de parole près d'un PNJ, contexte du PNJ seul), donneur de missions des PNJ (`RC_Missions.registerDonor`), magasin des missions du commun sans RadioSurvivor ; `bridge/npc_protocol.py`
+  - Faire : sans RadioSurvivor, une phrase dite près d'un PNJ part au pont avec le contexte du PNJ (groupe, rôle, besoins, historique du commun) et revient en bulle ; offres et acceptations de missions des PNJ par le moteur commun (journal des missions du commun).
+  - Accepté si : Living Knox seul : une phrase dite près d'un PNJ reçoit une réponse du LLM en bulle, le PNJ se souvient des échanges précédents, et un PNJ propose une mission.
+  - Tests : banc de la parole sans RadioSurvivor ; suites de parole dans le montage Living Knox seul.
+  - Preuve : —
+  - Reste : —
+
+- [ ] **E18-T19** — Historique des voix radio dans le commun
+  - État : `à faire`
+  - Cible : `MP`
+  - Dépend de : E18-T11
+  - Fichiers : `RS_RadioLog` (aujourd'hui `characters[...].radio` de l'état du carnet), `RC_History`
+  - Faire : les échanges avec les voix radio gardés par le mod commun comme ceux des PNJ (confirmé par défaut le 2026-11-05), mêmes règles (lignes typées, fréquences entendues vérifiées, bornes) ; historiques d'une partie existante repris une fois.
+  - Accepté si : une partie existante garde l'historique radio du carnet ; mêmes lignes qu'avant.
+  - Tests : `test_radio_log*` ; suites rs.radiolog.
   - Preuve : —
   - Reste : —

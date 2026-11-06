@@ -18,6 +18,7 @@ Private notebook state (authority only), two slots written in turn: batman_Radio
 ]]
 local Codec = require 'RadioSurvivorCore/RC_Codec'
 local MissionStore = require 'RadioSurvivorCore/RC_MissionStore'
+local History = require 'RadioSurvivorCore/RC_History'
 local S = {data = nil, generation = 0, blocked = false, dirty = false, failures = 0, verified = false}
 S.SCHEMA = 2
 S.MIGRATIONS = {}
@@ -97,6 +98,31 @@ function S.init(newWorld)
         return false
     end
     S.data.missions, S.data.missionsInCore = MissionStore.data.missions, true
+    -- E18-T11: exchange histories with the NPCs in the core mod's private state (RC_History), taken over once from
+    -- this file like the missions; each contact's history becomes the core table (same table: writers unchanged).
+    local legacy = nil
+    if not newWorld then
+        legacy = {}
+        for c, record in pairs(S.data.characters or {}) do
+            for id, k in pairs(type(record) == 'table' and record.contacts or {}) do
+                if type(k) == 'table' and type(k.history) == 'table' then
+                    legacy[c] = legacy[c] or {}
+                    legacy[c][id] = k.history
+                end
+            end
+        end
+    end
+    if not History.init(newWorld, legacy) then
+        S.blocked = true
+        print('[RS_Carnet] STORAGE BLOCKED: exchange history of the core mod unreadable; preserve files for recovery')
+        return false
+    end
+    for c, record in pairs(S.data.characters or {}) do
+        for id, k in pairs(type(record) == 'table' and record.contacts or {}) do
+            if type(k) == 'table' then k.history = History.lines(c, id) end
+        end
+    end
+    S.data.historyInCore = true
     S.run = S.uid('run')
     S.blocked = false
     return S.save()
@@ -113,13 +139,30 @@ local function failed(reason)
     return false
 end
 
--- The notebook file never holds the missions (core mod file, E18-T05): encoded without them.
+-- The notebook file never holds the missions (core mod file, E18-T05) nor the exchange histories (E18-T11):
+-- encoded without them, put back right after.
 local function encodeState()
     local missions = S.data.missions
     S.data.missions = nil
+    local histories = {}
+    for _, record in pairs(S.data.characters or {}) do
+        for _, k in pairs(type(record) == 'table' and record.contacts or {}) do
+            if type(k) == 'table' and k.history ~= nil then
+                histories[#histories + 1] = {k, k.history}
+                k.history = nil
+            end
+        end
+    end
     local ok, body = pcall(Codec.encodeBytes, S.data)
     S.data.missions = missions
+    for _, h in ipairs(histories) do h[1].history = h[2] end
     return ok, body
+end
+
+-- E18-T11: the core history keeps only the contacts the notebook still holds (dropped contact or character).
+local function keepContact(c, id)
+    local record = S.data.characters and S.data.characters[c]
+    return type(record) == 'table' and type(record.contacts) == 'table' and record.contacts[id] ~= nil
 end
 
 local function encode()
@@ -161,6 +204,10 @@ function S.save()
     if S.data.missions ~= nil then
         MissionStore.attach(S.data.missions)
         if not MissionStore.save() then return failed('mission state of the core mod not written') end
+    end
+    if S.data.historyInCore then
+        History.retain(keepContact)
+        if not History.save() then return failed('exchange history of the core mod not written') end
     end
     warnSize(body)
     local gen = S.generation + 1

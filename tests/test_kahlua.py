@@ -72,6 +72,7 @@ LUA_FILES = [
     ('RadioSurvivorCore/RC_Missions', CORE_LUA / 'server' / 'RadioSurvivorCore' / 'RC_Missions.lua'),
     # E18-T05 : etat prive des missions du mod commun et crochets de RadioSurvivor (attaches par RS_State).
     ('RadioSurvivorCore/RC_MissionStore', CORE_LUA / 'server' / 'RadioSurvivorCore' / 'RC_MissionStore.lua'),
+    ('RadioSurvivorCore/RC_History', CORE_LUA / 'server' / 'RadioSurvivorCore' / 'RC_History.lua'),  # E18-T11 : RS_State
     ('RadioSurvivor/RS_MissionHooks', MOD_LUA / 'server' / 'RadioSurvivor' / 'RS_MissionHooks.lua'),
     ('RadioSurvivor/RS_StatePurge', MOD_LUA / 'server' / 'RadioSurvivor' / 'RS_StatePurge.lua'),
     ('RadioSurvivor/RS_State', MOD_LUA / 'server' / 'RadioSurvivor' / 'RS_State.lua'),

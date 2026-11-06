@@ -7,6 +7,7 @@ local S = require 'RadioSurvivor/RS_State'; require 'RadioSurvivorCore/RC_Missio
 local Identity = require 'RadioSurvivorCore/RC_Identity' -- E18-T03: identity of the characters (core mod)
 local M = require 'RadioSurvivorCore/RC_Missions'
 local MissionList = require 'RadioSurvivorCore/RC_MissionList' -- E18-T06
+local History = require 'RadioSurvivorCore/RC_History' -- E18-T11: exchange history of the core mod
 require 'RadioSurvivorCore/RC_MissionScout'; require 'RadioSurvivorCore/RC_MissionRetrieve'
 local Rep = require 'RadioSurvivor/RS_Reputation'
 local T = require 'RadioSurvivor/RS_BridgeLanes'
@@ -148,7 +149,8 @@ local function contact(character, npc)
     if not record.contacts[npc.id] then
         local data = P.npc(npc.incarnation)
         local trust = data and (data.hostile == true and 'Hostile' or data.hostile == false and 'Cautious') or 'Unassessed'
-        record.contacts[npc.id] = {history = {}, note = '', trust = trust, trend = 'Stable', stage = 'stranger', exchanges = 0}
+        record.contacts[npc.id] = {history = History.lines(character, npc.id), note = '', trust = trust,
+            trend = 'Stable', stage = 'stranger', exchanges = 0}
         if npc.enrichState == 'idle' then npc.enrichState = 'needed' end
     end
     return record.contacts[npc.id]
