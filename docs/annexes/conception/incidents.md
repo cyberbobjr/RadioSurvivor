@@ -1,6 +1,6 @@
 # Défense ciblée et décision sur la trêve (E09-T06)
 
-Brouillon du 2026-10-13. Code : `server/RadioSurvivor/RS_Factions.lua` (fin du fichier : registre des incidents,
+Brouillon du 2026-10-13. Code : `server/LivingKnox/LK_Agreements.lua` (Living Knox depuis E18-T20 ; identifiants d'équipe et mandats : `server/RadioSurvivorCore/RC_Teams.lua` du mod commun ; avant : `LivingKnox.Agreements.lua` de RadioSurvivor) (fin du fichier : registre des incidents,
 crochets, `decideIncident`), `server/RadioSurvivor/RS_Incidents.lua` (demande au modèle et réponse),
 `server/RS_Carnet_Server.lua` (passage du `tick`, aiguillage de `reply`, annonce), `server/LivingKnox/LK_Bodies.lua`
 (fait `memberHit`), `client/RadioSurvivor/RS_Client.lua` (annonce), `bridge/npc_protocol.py` (genre `npc_incident`).
@@ -16,7 +16,7 @@ par le serveur et appliquée une seule fois.
 
 ## Choix (le plus simple, à confirmer)
 
-1. **Faits** (abonnés `LivingKnox.listen`, posés par `RS_Factions.installHook`) :
+1. **Faits** (abonnés `LivingKnox.listen`, posés par `LivingKnox.Agreements.installHook`) :
    - `memberHit` (nouveau fait publié par `LK_Bodies.onHitZombie`, coup d'un joueur avec une arme sur le corps courant
      d'un membre) : fait `shot` pour une arme à feu (`Bodies.weaponCategory` = `firearm`), sinon `hit` ;
    - `npcDied` avec `killer` (tueur retenu par `Bodies.deathCause`, règle d'E04-T06) : fait `kill` ;

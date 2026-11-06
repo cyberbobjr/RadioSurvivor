@@ -34,7 +34,7 @@
 -- E13-T03 : passage réservé et rendez-vous (fiche docs/annexes/conception/passeur-rendezvous.md). Un seul passage par semaine
 -- de jeu pour tout le serveur (S.data.trade.run, le passage en cours seulement). La réservation se fait à la radio :
 -- la première offre figée du passage par l'exécuteur (propose_trade jugé par RS_Actions) le réserve pour l'équipe de
--- l'appelant (RS_Factions.idOf : faction vanilla ou équipe personnelle ; sans état ni joueur : « caller:<compte> »).
+-- l'appelant (RC_Teams.idOf : faction vanilla ou équipe personnelle ; sans état ni joueur : « caller:<compte> »).
 -- Ensuite, une offre d'une autre équipe est refusée (booked), et une fois le passage annulé, fait ou trop tard dans la
 -- semaine pour une nuit (run_over), plus aucune offre. Une nouvelle offre de la même équipe remplace celle du passage
 -- (même d'un autre membre). Rendez-vous : toujours le même ponton (PIER, Riverside, base knox-geography.md), de nuit,
@@ -54,7 +54,7 @@ local S = require "RadioSurvivor/RS_State"
 local Actions = require "RadioSurvivor/RS_Actions"
 local TV = require "RadioSurvivorCore/RC_TradeValues"
 local News = require "RadioSurvivor/RS_OutsideNews"
-local Factions = require "RadioSurvivor/RS_Factions"
+local Factions = require "RadioSurvivorCore/RC_Teams" -- E18-T20: team ids kept by the core mod
 local Rep = require "RadioSurvivorCore/RC_Reputation"
 local Config = require "RadioSurvivor/RS_Config"
 
@@ -430,7 +430,7 @@ local function playerOf(caller)
     return nil
 end
 
--- Équipe d'un appelant : identifiant RS_Factions (faction vanilla ou équipe personnelle) de son joueur ; sans joueur
+-- Équipe d'un appelant : identifiant RC_Teams (mod commun) (faction vanilla ou équipe personnelle) de son joueur ; sans joueur
 -- en ligne ni état privé, « caller:<compte> ». nil sans appelant.
 function Trade.teamOf(caller, player)
     if type(caller) ~= "string" or caller == "" then return nil end

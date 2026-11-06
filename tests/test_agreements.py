@@ -19,8 +19,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from test_carnet import Simulation, LK_WORLD, convert, count, talk_requests, protocol
-from test_factions import FACTION_DOUBLE
+from test_carnet import Simulation, LK_WORLD, convert, count, talk_requests, protocol, native_table
+from test_factions import FACTION_DOUBLE, AGREEMENTS_FACADE
 from test_protocol import start_bridge, pump, lua_list
 import test_lk_combat
 
@@ -45,7 +45,7 @@ class AgreementCarnetTests(unittest.TestCase):
             sim.add_client(c)
         self.sim, self.g, self.rt = sim, sim.server.g, sim.server.rt
         self.server = self.g.RS_CarnetServer
-        self.F = self.rt.eval("require('RadioSurvivor/RS_Factions')")
+        self.F = self.rt.eval(AGREEMENTS_FACADE)
         self.H = self.rt.eval('LivingKnox.Hostility')
         self.D = self.rt.eval('LivingKnox.Decisions')
         for npc in (self.g.LK_LEADER, self.g.LK_MATE):
@@ -157,7 +157,7 @@ class AgreementCarnetTests(unittest.TestCase):
                          ('alice', 'owner', self.cid('alice')))
         # Inscribed in the registry consulted by the target choice: bob is covered at once (never a target).
         self.assertTrue(self.F.covered(gid, self.cid('bob')))
-        self.assertTrue(self.rt.eval("rawequal(LivingKnox.Hooks.covered, require('RadioSurvivor/RS_Factions').covered)"))
+        self.assertTrue(self.rt.eval("rawequal(LivingKnox.Hooks.covered, require('LivingKnox/LK_Agreements').covered)"))
         self.assertIsNone(self.target(mate, 'bob'))
         # ... but nothing is announced while a member still fights bob or has not decided again.
         for _ in range(3):
@@ -185,9 +185,16 @@ class AgreementCarnetTests(unittest.TestCase):
         self.assertTrue(any('agreement agr-1 (truce) between ' + gid in line and 'applicable' in line
                             for line in self.logs()))
         # Private state only: saved in the notebook state, never in a global ModData.
-        saved = self.server.store.data.factions.agreements[gid + '|' + self.team()]
+        saved = self.rt.eval("require('LivingKnox/LK_Agreements')").data.agreements[gid + '|' + self.team()]
         self.assertEqual(saved.state, 'applicable')
         self.assertEqual(count(self.sim.state().npcs[self.server.find(self.g.LK_LEADER).id].agreements), 0)
+
+    def mandate(self, name, action, member):
+        """E18-T20: the owner designates or withdraws a negotiator by the command of the core mod (RC_Teams)."""
+        c = self.sim.clients[name]
+        self.sim.clock.offset += 1000
+        c.g.sendClientCommand(c.g.getPlayer(), 'RadioSurvivorCore', 'mandate',
+                              native_table(c, {'action': action, 'member': member}))
 
     def test_member_without_mandate_or_ordinary_npc_do_not_conclude(self):
         self.world('mandate')
@@ -205,10 +212,10 @@ class AgreementCarnetTests(unittest.TestCase):
         self.assertEqual(req['context']['collective']['speaker'], 'member')
         self.assertIsNone(self.agreement())
         # bob designated, then the mandate withdrawn while the model answers: refused at the conclusion.
-        self.sim.command('alice', 'mandate', action='grant', member='bob')
+        self.mandate('alice', 'grant', 'bob')
         before = len(self.spoken('bob'))
         req = self.say('bob', self.g.LK_LEADER, 'Trêve ?',
-                       lambda: self.sim.command('alice', 'mandate', action='revoke', member='bob'))
+                       lambda: self.mandate('alice', 'revoke', 'bob'))
         self.assertEqual(req['context']['negotiation']['role'], 'negotiator')
         self.assertIsNone(self.agreement())
         # E09-T09: the reply of the leader is kept and said, without the agreement.
@@ -223,7 +230,7 @@ class AgreementCarnetTests(unittest.TestCase):
         # A negotiator still designated concludes for the faction.
         leader = self.G().findNpc(self.g.LK_LEADER)[1]
         self.rt.execute(f'assert(LivingKnox.Groups.setLeader("{gid}", "{leader}"))')
-        self.sim.command('alice', 'mandate', action='grant', member='bob')
+        self.mandate('alice', 'grant', 'bob')
         self.say('bob', self.g.LK_LEADER, 'Trêve ?')
         a = self.agreement()
         self.assertEqual((a['kind'], a['signed']['account'], a['signed']['role']), ('truce', 'bob', 'negotiator'))
@@ -233,7 +240,7 @@ class AgreementCarnetTests(unittest.TestCase):
 
     def test_two_incompatible_conclusions_only_one_applied(self):
         self.world('race', 'negotiate:alliance')
-        self.sim.command('alice', 'mandate', action='grant', member='bob')
+        self.mandate('alice', 'grant', 'bob')
         # Both requests are built on revision 0 before any reply (the bridge answers one NPC turn at a time).
         self.request('alice', self.g.LK_LEADER, 'Alliance ?')
         self.request('bob', self.g.LK_LEADER, 'Alliance ?')
@@ -273,18 +280,21 @@ class AgreementCarnetTests(unittest.TestCase):
         sim.server.g.isServer = lambda: False
         sim.server.rt.execute(LK_WORLD)
         self.sim, self.g, self.rt = sim, sim.server.g, sim.server.rt
-        self.F = self.rt.eval("require('RadioSurvivor/RS_Factions')")
+        self.F = self.rt.eval(AGREEMENTS_FACADE)
         self.rt.execute('PLAYERS.solo = enhance(makePlayer("solo")); PLAYERS.solo.isPlayer = true')
         p = self.g.PLAYERS['solo']
         self.rt.execute('RS_CarnetServer.store.data.characters["char-s"] = {id = "char-s", owner = "solo", slot = 0, '
-                        'name = "S", contacts = {}, knownMissions = {}}')
+                        'name = "S", contacts = {}, knownMissions = {}} '
+                        # E18-T20: Living Knox reads the owner of a character in the identity of the core mod.
+                        'local I = require("RadioSurvivorCore/RC_Identity") I.ensure() '
+                        'I.state.data.characters["char-s"] = {owner = "solo", slot = 0}')
         neg = self.F.negotiation(p, self.g.LK_GROUP)
         self.assertEqual((neg.role, neg.personal, neg.revision), ('owner', True, 0))
         ok, why, a = self.F.conclude(p, self.g.LK_GROUP, 'truce', self.rt.table_from({'team': neg.team, 'revision': 0}))
         self.assertTrue(ok, why)
         self.assertTrue(self.F.covered(self.g.LK_GROUP, 'char-s'))
         # A solo target is named by the player's username: still the solo team.
-        self.assertEqual(self.rt.eval(f'(function() local d = RS_CarnetServer.store.data.factions '
+        self.assertEqual(self.rt.eval(f'(function() local d = require("RadioSurvivorCore/RC_Teams").data '
                                       f'return d.personal.solo end)()'), neg.team)
 
     def test_bridge_contract_for_negotiate(self):

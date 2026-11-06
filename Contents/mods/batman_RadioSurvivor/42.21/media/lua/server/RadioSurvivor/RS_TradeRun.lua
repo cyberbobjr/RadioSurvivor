@@ -25,7 +25,7 @@ if isClient() then return end
 local Const = require "RadioSurvivor/RadioSurvivor_Const"
 local Trade = require "RadioSurvivor/RS_Trade"
 local MapMarks = require "RadioSurvivor/RS_MapMarks"
-local Factions = require "RadioSurvivor/RS_Factions"
+local Factions = require "RadioSurvivorCore/RC_Teams" -- E18-T20: team ids kept by the core mod
 
 local Run = {}
 

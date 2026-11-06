@@ -25,7 +25,7 @@ Client handlers (RST.Steps.on)
                    this file loaded (sorted), frequencies }.
     rs.faction     { op = "create" | "rename" | "disband", name }: vanilla faction packets of the faction panel
                    (sendFactionCreate, sendFactionChangeTitle, sendFactionDisband), MP only.
-    carnet.mandate { member, action = "grant" | "revoke", waitMs }: notebook command "mandate" (Team tab buttons);
+    carnet.mandate { member, action = "grant" | "revoke", waitMs }: command "mandate" of the core mod (Team tab buttons);
                    data { lastError } after waitMs, or as soon as the server refused.
     carnet.count   { ms }: during ms, snapshots received from the notebook server and snapshot or hello requests sent by
                    this client (RS_CarnetClient.send, wrapped for the window): data { snapshots, pulls, other }.
@@ -257,12 +257,20 @@ Steps.on("rs.faction", function(args)
     end
 end)
 
+-- E18-T20: answers of the core mod to the command "mandate" (RC_Teams): its "error" reason, read by carnet.mandate.
+local CoreAnswer = { lastError = nil }
+if Events ~= nil and Events.OnServerCommand ~= nil then
+    Events.OnServerCommand.Add(function(module, command, a)
+        if module == "RadioSurvivorCore" and command == "error" and type(a) == "table" then CoreAnswer.lastError = a.reason end
+    end)
+end
+
 Steps.on("carnet.mandate", function(args)
-    local C = RS_CarnetClient
-    if C == nil then return Steps.fail("notebook client (RS_CarnetClient) not loaded") end
+    -- E18-T20: command "mandate" of the core mod (RC_Teams).
+    local C = CoreAnswer
     if args.action ~= "grant" and args.action ~= "revoke" then return Steps.fail("refused: action " .. tostring(args.action)) end
     C.lastError = nil
-    C.send("mandate", { member = tostring(args.member), action = args.action })
+    sendClientCommand(getPlayer(), "RadioSurvivorCore", "mandate", { member = tostring(args.member), action = args.action })
     local waitMs = tonumber(args.waitMs) or PR.MANDATE_MS
     local started = RST.now()
     return function(ctx)

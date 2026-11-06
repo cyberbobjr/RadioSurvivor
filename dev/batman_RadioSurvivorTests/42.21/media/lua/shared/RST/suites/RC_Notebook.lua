@@ -1,7 +1,7 @@
 --[[
 rc.notebook - notebook of the core mod (E18-T24): the real notebook window (RadioSurvivorCore/RC_Notebook) is opened
 without any item, like the sidebar button, and shows one bookmark per tab of an active mod: Contacts, Missions and
-Reputation always (core mod), Radio with RadioSurvivor, Team with RadioSurvivor and Living Knox. Every page is laid out
+Reputation always (core mod), Radio with RadioSurvivor, Team with Living Knox (E18-T20). Every page is laid out
 without a Lua error. The notebook is left open on its Missions page for the final screenshot of the run.
 Tags "client" and "world" (solo or MP client; nothing is changed in the world). Needs the core mod only, so it runs in
 the three set-ups (autoclient.py --mods rs | lk | both). Outside the game: tests/test_core_notebook.py.
@@ -28,7 +28,7 @@ RST.suite("rc.notebook", { tags = { "client", "world" }, testTimeoutMs = 30000 }
         expected[#expected + 1] = "Contacts"
         expected[#expected + 1] = "Missions"
         expected[#expected + 1] = "Reputation"
-        if rs and lk then expected[#expected + 1] = "Team" end
+        if lk then expected[#expected + 1] = "Team" end -- E18-T20: Living Knox's tab
         local w = Notebook.window
         if not (w and w:isVisible()) then w = Notebook.toggle(0, false) end
         local names = {}

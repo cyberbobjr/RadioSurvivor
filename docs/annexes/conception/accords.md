@@ -1,6 +1,6 @@
 # Accords de faction avec un groupe Living Knox : trêve et alliance (E09-T05)
 
-Brouillon du 2026-10-12. Code : `server/RadioSurvivor/RS_Factions.lua` (registre des accords, `negotiation`,
+Brouillon du 2026-10-12. Code : `server/LivingKnox/LK_Agreements.lua` (Living Knox depuis E18-T20 ; identifiants d'équipe et mandats : `server/RadioSurvivorCore/RC_Teams.lua` du mod commun ; avant : `LivingKnox.Agreements.lua` de RadioSurvivor) (registre des accords, `negotiation`,
 `conclude`, `covered`, `pollApplications`), `server/RS_Carnet_Server.lua` (`talk`, `reply`, `tick`),
 `client/RadioSurvivor/RS_Client.lua` (annonce), `server/LivingKnox/LK_Decisions.lua` (point de lecture
 `Decisions.markEvaluated`, `Decisions.aims`), `bridge/npc_protocol.py` (intention `negotiate`). Contrat :

@@ -18,7 +18,7 @@ import unittest
 from pathlib import Path
 
 from test_carnet import Simulation, LK_WORLD, convert, protocol
-from test_factions import FACTION_DOUBLE
+from test_factions import FACTION_DOUBLE, AGREEMENTS_FACADE
 from test_protocol import start_bridge, pump, lua_list
 
 SETTLE = 1100   # F.INCIDENT.SETTLE_MS shortened to 1000 by the bench
@@ -45,13 +45,13 @@ class IncidentTests(unittest.TestCase):
             sim.add_client(c)
         self.sim, self.g, self.rt = sim, sim.server.g, sim.server.rt
         self.server = self.g.RS_CarnetServer
-        self.F = self.rt.eval("require('RadioSurvivor/RS_Factions')")
+        self.F = self.rt.eval(AGREEMENTS_FACADE)
         self.H = self.rt.eval('LivingKnox.Hostility')
         self.D = self.rt.eval('LivingKnox.Decisions')
         self.gid = self.g.LK_GROUP
         # Short delays: the offline bridge ignores a request sent more than 10 s ahead of its own clock, and the bench
         # clock only moves forward.
-        self.rt.execute("local F = require('RadioSurvivor/RS_Factions') F.INCIDENT.SETTLE_MS = 1000 "
+        self.rt.execute("local F = require('LivingKnox/LK_Agreements') F.INCIDENT.SETTLE_MS = 1000 "
                         "F.INCIDENT.RETRY_MS = 1000")
         # Faction "North": alice owner, bob and carol members; dave is a third player without faction.
         self.rt.execute('NORTH = FACTION_CREATE("North", "alice", {"bob", "carol"})')

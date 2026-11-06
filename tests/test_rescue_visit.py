@@ -34,6 +34,7 @@ AGE = 100.0
 getGameTime = function() return { getWorldAgeHours = function() return AGE end } end
 STATE = require("RadioSurvivor/RS_State")
 STATE.data = { schema = 2, world = "w" }
+require("RadioSurvivorCore/RC_Teams").useData({ schema = 1, counter = 0, records = {}, personal = {} }) -- E18-T20
 R = require("RadioSurvivor/RS_Rescue")
 Fluid = { Water = "FWater", Petrol = "FPetrol", TaintedWater = "FTainted" }
 instanceof = function(o, cls)
@@ -281,7 +282,7 @@ class TeamTests(VisitHarness):
             isOwner = function(_, n) return n == "alice" end,
             isMember = function(_, n) return n == "alice" or n == "bob" end }
         Faction = { getFactions = function() return JList({ f }) end }
-        require("RadioSurvivor/RS_Factions").reset()
+        require("RadioSurvivorCore/RC_Teams").reset()
         """)
         self.start('A')
         self.rt.execute('CB = C.inv:add(Item("food")); BB = B.inv:add(Item("food")); FR = Furniture(5004, 5004, 0, {})')
@@ -375,7 +376,7 @@ class ApproachTests(VisitHarness):
             isOwner = function(_, n) return n == "alice" end,
             isMember = function(_, n) return n == "alice" or n == "bob" end }
         Faction = { getFactions = function() return JList({ f }) end }
-        require("RadioSurvivor/RS_Factions").reset()
+        require("RadioSurvivorCore/RC_Teams").reset()
         """)
         self.start('A', 'days = 1')
         self.ev('poll()')

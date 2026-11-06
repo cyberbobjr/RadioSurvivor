@@ -388,5 +388,20 @@
     "IGUI_LK_RelFact_assault_seen": "on vous a vu attaquer quelqu'un",
     "IGUI_LK_RelFact_good": "quelque chose que vous avez fait pour eux",
     "IGUI_LK_RelFact_bad": "quelque chose que vous avez fait contre eux",
-    "IGUI_LK_RelFact_neutral": "quelque chose qu'on a remarqué"
+    "IGUI_LK_RelFact_neutral": "quelque chose qu'on a remarqué",
+    "IGUI_LK_Team": "Équipe",
+    "IGUI_LK_Empty_Team": "Équipe pas encore connue. Patientez, le serveur répond.",
+    "IGUI_LK_TeamFaction": "Faction : %1",
+    "IGUI_LK_TeamPersonal": "Sans faction : vous formez une équipe à vous seul et parlez en son nom.",
+    "IGUI_LK_TeamYou_owner": "Vous dirigez cette équipe : vous concluez ses accords et désignez ses négociateurs.",
+    "IGUI_LK_TeamYou_negotiator": "Vous êtes négociateur désigné : vous pouvez conclure des accords pour la faction.",
+    "IGUI_LK_TeamYou_member": "Vous êtes membre sans mandat : vous ne pouvez pas conclure d'accord.",
+    "IGUI_LK_TeamRule": "Les accords avec d'autres groupes sont conclus par le propriétaire de la faction ou par un négociateur qu'il a désigné. Les droits sont vérifiés de nouveau au moment de conclure. Renommer la faction conserve ses accords.",
+    "IGUI_LK_TeamMandates": "Négociateurs : %1 / %2",
+    "IGUI_LK_TeamMember": "%1 : %2",
+    "IGUI_LK_Role_owner": "Propriétaire",
+    "IGUI_LK_Role_negotiator": "Négociateur",
+    "IGUI_LK_Role_member": "Membre",
+    "IGUI_LK_MandateGrant": "Désigner négociateur",
+    "IGUI_LK_MandateRevoke": "Retirer le mandat"
 }

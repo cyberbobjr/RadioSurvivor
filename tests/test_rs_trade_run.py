@@ -68,8 +68,8 @@ ACTION_LOG = {}
 package.preload["RadioSurvivor/RS_ActionLog"] = function() return {
     format = function(d, voice, caller, name) return name .. ":" .. tostring(d.reason) end,
     append = function(lines) for _, l in ipairs(lines) do ACTION_LOG[#ACTION_LOG + 1] = l end end } end
--- Équipes : champ team du joueur (doublure de RS_Factions.idOf) ; compte = name.
-package.preload["RadioSurvivor/RS_Factions"] = function() return {
+-- Équipes : champ team du joueur (doublure de RC_Teams.idOf, E18-T20) ; compte = name.
+package.preload["RadioSurvivorCore/RC_Teams"] = function() return {
     idOf = function(p) return p.team end, keyOf = function(p) return p.name end } end
 MARKS = {}
 package.preload["RadioSurvivor/RS_MapMarks"] = function() return {

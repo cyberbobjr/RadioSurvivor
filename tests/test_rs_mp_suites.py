@@ -533,10 +533,9 @@ function M.finish(state, m, result)
 end
 package.loaded["RadioSurvivorCore/RC_Missions"] = M
 
--- Notebook server reduced to what the suites read (RS_Carnet_Server.lua: hello, snapshot, select, mandate, scan,
+-- Notebook server reduced to what the suites read (RS_Carnet_Server.lua: hello, snapshot, select, scan,
 -- prune, conditional save, enrichment of a contacted fiche).
-F = require "RadioSurvivor/RS_Factions"
-local MANDATE_ERRORS = { not_owner = "MandateOwner", not_member = "MandateMember", full = "MandateFull" }
+F = (function() local A, T = require("LivingKnox/LK_Agreements"), require("RadioSurvivorCore/RC_Teams") return setmetatable({}, {__index = function(_, k) if A[k] ~= nil then return A[k] end return T[k] end}) end)()
 Server = { store = S, bound = {}, selected = {}, objects = {}, pending = {}, enrichTimes = {}, times = {} }
 RS_CarnetServer = Server
 local function players()
@@ -599,14 +598,11 @@ function Server.command(module, command, player, args)
             S.save()
             send(player, "snapshot", {})
         else send(player, "error", { reason = "Range" }) end
-    elseif command == "mandate" then
-        local ok, reason = F.designate(player, args.member, args.action == "grant")
-        if not ok then return send(player, "error", { reason = MANDATE_ERRORS[reason] or "State" }) end
-        S.save()
-        publish()
     end
 end
 Events.OnClientCommand.Add(Server.command)
+-- E18-T20: commands "team" and "mandate" of the core mod (RC_Teams), loaded with every server file in the game.
+require "RadioSurvivorCore/RC_TeamsEvents"
 local function prune(now)
     local kept = {}
     if not DEFECT.pruneContacts then
@@ -1086,23 +1082,25 @@ class ObservationTests(Bench):
 FACTION_DEFECTS = {
     # A member without mandate allowed to conclude (mandate ignored).
     'mandateIgnored': r'''
-        local orig = F.canConclude
-        F.canConclude = function(p)
+        local T = require "RadioSurvivorCore/RC_Teams" -- E18-T20: mandates of the core mod
+        local orig = T.canConclude
+        T.canConclude = function(p)
             local ok, r, team = orig(p)
             if not ok and r == "no_mandate" then return true, "negotiator", team end
             return ok, r, team
         end''',
     # Agreements looked up by the name of the team at their conclusion (lost by a rename).
     'agreementByName': r'''
-        local orig, names = F.agreementOf, {}
-        local conclude = F.conclude
-        F.conclude = function(p, gid, kind, expect, signer)
+        local A, T = require "LivingKnox/LK_Agreements", require "RadioSurvivorCore/RC_Teams" -- E18-T20
+        local orig, names = A.agreementOf, {}
+        local conclude = A.conclude
+        A.conclude = function(p, gid, kind, expect, signer)
             local ok, why, a = conclude(p, gid, kind, expect, signer)
-            if ok then for _, r in ipairs(F.list()) do if r.id == a.team then names[gid .. a.team] = r.name end end end
+            if ok then for _, r in ipairs(T.list()) do if r.id == a.team then names[gid .. a.team] = r.name end end end
             return ok, why, a
         end
-        F.agreementOf = function(gid, team)
-            for _, r in ipairs(F.list()) do
+        A.agreementOf = function(gid, team)
+            for _, r in ipairs(T.list()) do
                 if r.id == team and names[gid .. team] and r.name ~= names[gid .. team] then return nil end
             end
             return orig(gid, team)

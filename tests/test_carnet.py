@@ -505,6 +505,7 @@ for _, m in ipairs({'LivingKnox/LK_Core', 'LivingKnox/LK_Config', 'LivingKnox/LK
         'LivingKnox/LK_Identity', 'LivingKnox/LK_GroupTypes', 'LivingKnox/Data/LK_Type_neutrals',
         'LivingKnox/Data/LK_Type_raiders', 'LivingKnox/Data/LK_Type_settlers', 'LivingKnox/Data/Stories',
         'RadioSurvivor/RS_LivingKnox', 'LivingKnox/LK_Server', 'LivingKnox/LK_Stories', 'LivingKnox/LK_API',
+        'LivingKnox/LK_Agreements', -- E18-T20: agreements of Living Knox (loaded with every server file in the game)
         'LivingKnox/LK_Reputation', 'LivingKnox/LK_PersonalRelation'}) do
     require(m)
 end
@@ -588,6 +589,9 @@ class Simulation:
             self.server.rt.execute(LK_SERVER_STUBS)
             self.server.rt.execute(LK_SERVER_LOAD)
         self.server.load('server/RS_Carnet_Server.lua')
+        # E18-T20: the game loads every server file of the core mod, among them the events of the team ids (RC_Teams:
+        # state read at the world start, commands "team" and "mandate").
+        self.server.load('server/RadioSurvivorCore/RC_TeamsEvents.lua')
         if radio_new_world is not None:   # real order of IsoWorld.init: ZomboidRadio.Init, then GlobalModData.init
             self.server.g.fire('OnLoadRadioScripts', None, radio_new_world)
         self.server.g.fire('OnInitGlobalModData', new_world)

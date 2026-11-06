@@ -37,7 +37,7 @@ sondage (POLL_MS réelles, OnTickEvenPaused, et chaque EveryHours),
 l'écart de getWorldAgeHours depuis le sondage précédent est retiré des réserves actives seulement si au moins un
 joueur est connecté (getOnlinePlayers sur un serveur, joueurs locaux en solo) ; sinon le temps passe sans rien
 retirer et n'est jamais rattrapé (serveur vide sans PauseEmpty). Le premier sondage d'une session ne retire rien.
-Équipe : RS_Factions.idOf (faction vanilla ou joueur seul, E09-T03) ; un seul secours actif par équipe (refus
+Équipe : RC_Teams.idOf (faction vanilla ou joueur seul, E09-T03) ; un seul secours actif par équipe (refus
 « team_busy »), bâtiments distincts entre les secours actifs ou dont la scène reste à poser.
     local id, why = Rescue.start(player, { days = 3, requester = "Darlene" })   -- ou startForTeam(teamId, opts)
     Rescue.activeFor(teamId) / Rescue.get(id) / Rescue.list()  -> copies (daysLeft, hoursLeft)
@@ -62,7 +62,7 @@ demandeur porte les dernières pages.
 ]]
 local Const = require "RadioSurvivor/RadioSurvivor_Const"
 local S = require "RadioSurvivor/RS_State"
-local Factions = require "RadioSurvivor/RS_Factions"
+local Factions = require "RadioSurvivorCore/RC_Teams" -- E18-T20: team ids kept by the core mod
 
 local Sites = require "RadioSurvivorCore/RC_Sites"
 
@@ -215,7 +215,7 @@ function Rescue.looks(survivors)
     return out
 end
 
--- Démarre le secours d'une équipe (identifiant 'fac-<n>' de RS_Factions). opts (facultatifs) : days, requester
+-- Démarre le secours d'une équipe (identifiant 'fac-<n>' de RC_Teams, mod commun). opts (facultatifs) : days, requester
 -- (nom de la voix), voice (identifiant), seed, minDistance, avoid, maxAttempts. Rend id et la copie du secours, ou
 -- nil, la raison ('state', 'bad_team', 'team_busy' + id du secours actif, 'no_site' + raison du tirage).
 function Rescue.startForTeam(team, opts)
@@ -268,7 +268,7 @@ function Rescue.start(player, opts)
     return Rescue.startForTeam(team, opts)
 end
 
--- Identifiant d'équipe d'un joueur (RS_Factions), pour les appelants.
+-- Identifiant d'équipe d'un joueur (RC_Teams, mod commun), pour les appelants.
 function Rescue.teamOf(player)
     return player and Factions.idOf(player) or nil
 end

@@ -15,6 +15,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from test_factions import AGREEMENTS_FACADE  # noqa: E402
 from test_carnet import Simulation, LK_WORLD, convert, count, talk_requests, protocol
 from test_protocol import start_bridge, pump, lua_list
 from test_lk_materialize import MatBase
@@ -59,7 +60,7 @@ class LeaveGroupTests(unittest.TestCase):
         self.server = self.g.RS_CarnetServer
         self.G = self.rt.eval('LivingKnox.Groups')
         self.api = self.rt.eval('LivingKnox.API')
-        self.F = self.rt.eval("require('RadioSurvivor/RS_Factions')")
+        self.F = self.rt.eval(AGREEMENTS_FACADE)
         for npc in (self.g.LK_LEADER, self.g.LK_MATE):
             self.g.LivingKnox.Bodies.bound[npc].x = 12
         self.process = start_bridge(sim.path, intent)

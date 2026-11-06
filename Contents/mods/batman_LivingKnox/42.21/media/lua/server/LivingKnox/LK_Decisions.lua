@@ -2026,7 +2026,8 @@ function Decisions.reset()
     Decisions.evals.at = {}   -- E09-T05 : numéros oubliés, compteur gardé (jamais réutilisé)
 end
 
--- E09-T05 (accords de faction, RS_Factions ; fiche docs/annexes/conception/accords.md) : point de lecture du passage de
+-- E09-T05 (accords de faction, LK_Agreements depuis E18-T20 ; fiche docs/annexes/conception/accords.md) : point de
+-- lecture du passage de
 -- décision. Chaque évaluation d'un membre reçoit un numéro croissant (mémoire seulement, jamais réutilisé).
 Decisions.evals = Decisions.evals or { seq = 0, at = {} }
 

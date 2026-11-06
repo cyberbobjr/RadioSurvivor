@@ -5,7 +5,7 @@ inventories, which RS_Rescue.lua never does (its choice of building must load no
 docs/annexes/conception/secours-livraison.md.
 
 Poll (Visit.CONFIG.POLL_MS real time, OnTickEvenPaused): every connected player (getOnlinePlayers on a server, local
-players in solo), alive, whose team (RS_Factions.idOf, faction or lone player) has an active rescue
+players in solo), alive, whose team (RC_Teams.idOf, faction or lone player) has an active rescue
 (RS_Rescue.activeFor) and who stands within CONFIG.APPROACH tiles of the building bounds (RS_Rescue.gap, exclusive
 ends) is "near" that rescue.
 
@@ -40,7 +40,7 @@ building any more, the survivors leave: RS_Rescue.finish(id, "saved") (helpers a
 note, new place of the voice, memory) is prepared by RS_RescueScene. A visit without a real delivery saves nobody.
 ]]
 local Rescue = require "RadioSurvivor/RS_Rescue"
-local Factions = require "RadioSurvivor/RS_Factions"
+local Factions = require "RadioSurvivorCore/RC_Teams" -- E18-T20: team ids kept by the core mod
 local Const = require "RadioSurvivor/RadioSurvivor_Const"
 local RadioLog = require "RadioSurvivor/RS_RadioLog"
 

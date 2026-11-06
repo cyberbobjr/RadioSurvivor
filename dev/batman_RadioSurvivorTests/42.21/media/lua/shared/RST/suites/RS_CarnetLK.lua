@@ -194,7 +194,7 @@ RST.suite("rs.carnet.leader", { mods = { "rs", "lk" }, tags = { "server", "world
         local R, E9 = RST.RSHelpers, RST.PeerChecksE09
         local Server = R.notebook(t0)
         local C = require "RadioSurvivor/RS_Config"
-        local F = require "RadioSurvivor/RS_Factions"
+        local F = RST.factions() -- E18-T20: LK_Agreements and RC_Teams
         local p = RST.Fixtures.player(t0)
         t0:ok(p ~= nil, "no target player")
         R.god(t0, p)

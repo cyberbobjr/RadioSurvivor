@@ -237,7 +237,7 @@ end
 local PR = require "LivingKnox/LK_PersonalRelation"
 LK.API.relation, LK.API.relationPanel = PR.view, PR.panel
 LK.API.relationOffer, LK.API.relationApply = PR.offer, PR.apply
-F = require "RadioSurvivor/RS_Factions"
+F = (function() local A, T = require("LivingKnox/LK_Agreements"), require("RadioSurvivorCore/RC_Teams") return setmetatable({}, {__index = function(_, k) if A[k] ~= nil then return A[k] end return T[k] end}) end)()
 Rel = require "RadioSurvivor/RS_Relations"
 F.installHook()
 

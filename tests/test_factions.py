@@ -18,7 +18,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from test_carnet import Simulation, NOTEBOOK_UI, convert
+from test_carnet import Simulation, NOTEBOOK_UI, convert, native_table
 from test_protocol import lua_list
 
 FACTION_DOUBLE = r'''
@@ -94,6 +94,11 @@ def lua_set(t):
     return sorted(k for k in t.keys()) if t is not None else []
 
 
+# E18-T20: agreements are Living Knox's (LK_Agreements), team ids the core mod's (RC_Teams): one view of both for
+# the benches written against the former RS_Factions.
+AGREEMENTS_FACADE = "(function() local A, T = require('LivingKnox/LK_Agreements'), require('RadioSurvivorCore/RC_Teams') return setmetatable({}, {__index = function(_, k) if A[k] ~= nil then return A[k] end return T[k] end}) end)()"
+
+
 class FactionTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory(prefix='rs-factions-')
@@ -110,7 +115,7 @@ class FactionTests(unittest.TestCase):
         for name in clients:
             sim.add_client(name)
         self.sim, self.g = sim, sim.server.g
-        self.F = sim.server.rt.eval("require('RadioSurvivor/RS_Factions')")
+        self.F = sim.server.rt.eval("require('RadioSurvivorCore/RC_Teams')")
         return sim
 
     def restart(self, rebuild):
@@ -136,10 +141,25 @@ class FactionTests(unittest.TestCase):
         self.sim.tick()
 
     def record(self, rid):
-        return self.sim.state().factions.records[rid]
+        return self.F.data.records[rid]
+
+    def core(self, name, command, **args):
+        """E18-T20: command of the core mod (team ids and mandates, RC_Teams), answered to the notebook of the core
+        mod (RC_Notebook: team, lastError)."""
+        c = self.sim.clients[name]
+        if c.g.RadioSurvivorCore is None or c.g.RadioSurvivorCore.notebook is None:
+            c.rt.execute(NOTEBOOK_UI)
+            c.rt.execute('require "RadioSurvivorCore/RC_Notebook"')
+        c.g.RadioSurvivorCore.notebook.lastError = None
+        self.sim.clock.offset += 1000  # a player clicks: within the limit of the core commands (RC_RateLimit)
+        c.g.sendClientCommand(c.g.getPlayer(), 'RadioSurvivorCore', command, native_table(c, args))
+        return c.g.RadioSurvivorCore.notebook
+
+    def last_error(self, name):
+        return self.sim.clients[name].g.RadioSurvivorCore.notebook.lastError
 
     def team(self, name):
-        return self.sim.clients[name].g.RS_CarnetClient.snapshot.team
+        return self.core(name, 'team').team
 
     def test_rename_keeps_the_id_in_session_and_after_a_restart(self):
         self.world()
@@ -152,9 +172,8 @@ class FactionTests(unittest.TestCase):
         self.poll()
         self.assertEqual(self.id_of('alice'), rid, 'rename lost the id')
         self.assertEqual(self.record(rid).name, 'Beta')
-        # Private state only: RS_State file, never a global ModData.
-        self.assertIsNotNone(self.sim.state().factions)
-        self.sim.server.g.RS_CarnetServer.store.save()
+        # Private state only: the file of the core mod (RC_Teams), never a global ModData; written at each change.
+        self.assertTrue(self.F.save())
         # Restart: new Java objects, renamed again while the server was down (only the owner identifies it).
 
         def rebuild(g):
@@ -245,8 +264,8 @@ class FactionTests(unittest.TestCase):
         team = self.team('bob')
         self.assertEqual((team.kind, team.role, team.isOwner), ('personal', 'owner', True))
         # Nobody to designate in a team alone.
-        self.sim.command('bob', 'mandate', member='carol', action='grant')
-        self.assertEqual(self.sim.clients['bob'].g.RS_CarnetClient.lastError, 'MandateOwner')
+        self.core('bob', 'mandate', member='carol', action='grant')
+        self.assertEqual(self.last_error('bob'), 'MandateOwner')
 
     def test_solo_player_owns_a_personal_team(self):
         self.world(clients=('alice',))
@@ -266,18 +285,18 @@ class FactionTests(unittest.TestCase):
         self.assertEqual(self.conclude('alice'), (True, 'owner', rid))
         self.assertEqual(self.conclude('bob'), (False, 'no_mandate', rid), 'member without mandate concluded')
         # A member cannot designate, even himself.
-        self.sim.command('carol', 'mandate', member='bob', action='grant')
-        self.assertEqual(self.sim.clients['carol'].g.RS_CarnetClient.lastError, 'MandateOwner')
-        self.sim.command('bob', 'mandate', member='bob', action='grant')
+        self.core('carol', 'mandate', member='bob', action='grant')
+        self.assertEqual(self.last_error('carol'), 'MandateOwner')
+        self.core('bob', 'mandate', member='bob', action='grant')
         self.assertEqual(self.conclude('bob')[0], False)
         # Unknown action, non-member, the owner himself.
-        self.sim.command('alice', 'mandate', member='bob', action='promote')
-        self.assertEqual(self.sim.clients['alice'].g.RS_CarnetClient.lastError, 'State')
-        self.sim.command('alice', 'mandate', member='dave', action='grant')
-        self.assertEqual(self.sim.clients['alice'].g.RS_CarnetClient.lastError, 'MandateMember')
-        self.sim.command('alice', 'mandate', member='alice', action='grant')
-        self.assertEqual(self.sim.clients['alice'].g.RS_CarnetClient.lastError, 'MandateMember')
-        self.sim.command('alice', 'mandate', member='bob', action='grant')
+        self.core('alice', 'mandate', member='bob', action='promote')
+        self.assertEqual(self.last_error('alice'), 'State')
+        self.core('alice', 'mandate', member='dave', action='grant')
+        self.assertEqual(self.last_error('alice'), 'MandateMember')
+        self.core('alice', 'mandate', member='alice', action='grant')
+        self.assertEqual(self.last_error('alice'), 'MandateMember')
+        self.core('alice', 'mandate', member='bob', action='grant')
         self.assertEqual(self.conclude('bob'), (True, 'negotiator', rid))
         self.assertEqual(lua_set(self.record(rid).negotiators), ['bob'])
         # Pushed to every member: bob sees his mandate.
@@ -287,10 +306,10 @@ class FactionTests(unittest.TestCase):
                           {'id': 'bob', 'name': 'bob', 'role': 'negotiator'},
                           {'id': 'carol', 'name': 'carol', 'role': 'member'}])
         # Withdrawn: refused at once, without waiting for a poll.
-        self.sim.command('alice', 'mandate', member='bob', action='revoke')
+        self.core('alice', 'mandate', member='bob', action='revoke')
         self.assertEqual(self.conclude('bob'), (False, 'no_mandate', rid))
         # Left the faction: refused at once, and the mandate does not come back with him.
-        self.sim.command('alice', 'mandate', member='bob', action='grant')
+        self.core('alice', 'mandate', member='bob', action='grant')
         self.g.FACTION_REMOVE(f, 'bob')
         ok, reason, team = self.conclude('bob')
         # Alone again: bob speaks for his own personal team only, never for the faction.
@@ -299,15 +318,15 @@ class FactionTests(unittest.TestCase):
         f.addPlayer(f, 'bob')
         self.assertEqual(self.conclude('bob'), (False, 'no_mandate', rid))
         # Owner change: the mandates of the previous owner end; the new owner concludes, the old one no longer.
-        self.sim.command('alice', 'mandate', member='bob', action='grant')
+        self.core('alice', 'mandate', member='bob', action='grant')
         self.assertEqual(self.conclude('bob')[1], 'negotiator')
         self.g.FACTION_OWNER(f, 'carol')
         self.assertEqual(self.conclude('bob'), (False, 'no_mandate', rid))
         self.assertEqual(self.conclude('alice'), (False, 'no_mandate', rid))
         self.assertEqual(self.conclude('carol'), (True, 'owner', rid))
-        self.sim.command('alice', 'mandate', member='bob', action='grant')
-        self.assertEqual(self.sim.clients['alice'].g.RS_CarnetClient.lastError, 'MandateOwner')
-        self.sim.command('carol', 'mandate', member='alice', action='grant')
+        self.core('alice', 'mandate', member='bob', action='grant')
+        self.assertEqual(self.last_error('alice'), 'MandateOwner')
+        self.core('carol', 'mandate', member='alice', action='grant')
         self.assertEqual(self.conclude('alice'), (True, 'negotiator', rid))
 
     def test_bounded_list_and_persistence(self):
@@ -318,9 +337,9 @@ class FactionTests(unittest.TestCase):
         rid = self.id_of('alice')
         limit = self.F.MAX_NEGOTIATORS
         for name in names[1:limit + 1]:
-            self.sim.command('alice', 'mandate', member=name, action='grant')
-        self.sim.command('alice', 'mandate', member=names[limit + 1], action='grant')
-        self.assertEqual(self.sim.clients['alice'].g.RS_CarnetClient.lastError, 'MandateFull')
+            self.core('alice', 'mandate', member=name, action='grant')
+        self.core('alice', 'mandate', member=names[limit + 1], action='grant')
+        self.assertEqual(self.last_error('alice'), 'MandateFull')
         self.assertEqual(len(lua_set(self.record(rid).negotiators)), limit)
         self.assertEqual((self.team('alice').negotiators, self.team('alice').maxNegotiators), (limit, limit))
 
@@ -341,10 +360,9 @@ class FactionTests(unittest.TestCase):
         c.load('client/RS_Carnet_Client.lua')
         c.g.RS_Notebook.toggle()
         window = c.g.RS_CarnetClient.window
-        self.sim.command('alice', 'snapshot')
         window.changeTab(window, 'Team')
         self.assertEqual([i.item.id for i in window.list['items'].values()], ['alice', 'bob'])
-        self.assertIn('IGUI_RS_TeamFaction', window.detail.text)
+        self.assertIn('IGUI_LK_TeamFaction', window.detail.text)
         self.assertFalse(window.grant.isVisible(window.grant), 'owner row: nothing to designate')
         window.selectedId = 'bob'
         window.showDetail(window)
@@ -364,7 +382,7 @@ class FactionTests(unittest.TestCase):
         bw.changeTab(bw, 'Team')
         bw.selectedId = 'alice'
         bw.showDetail(bw)
-        self.assertIn('IGUI_RS_TeamYou_member', bw.detail.text)
+        self.assertIn('IGUI_LK_TeamYou_member', bw.detail.text)
         self.assertFalse(bw.grant.isVisible(bw.grant) or bw.revoke.isVisible(bw.revoke))
 
 

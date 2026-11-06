@@ -887,6 +887,19 @@ end
 
 -- Answers of the authority to the core commands (OnServerCommand, or directly in solo).
 function Notebook.receive(command, args)
+    if command == 'team' and type(args) == 'table' then
+        -- E18-T20: team of the player (RC_Teams.projection), for the Team tab of Living Knox.
+        Notebook.team = type(args.team) == 'table' and args.team or nil
+        local w = Notebook.window
+        if w and w.tab == 'Team' then w:refresh() end
+        return
+    elseif command == 'error' and type(args) == 'table' then
+        local p = getSpecificPlayer(0)
+        local text = getTextOrNull('IGUI_RC_Error_' .. tostring(args.reason)) or tr('Error_State')
+        if p then HaloTextHelper.addBadText(p, text) end
+        Notebook.lastError = args.reason
+        return
+    end
     if command == 'missions' then Journal.receive(args)
     elseif command == 'contacts' and type(args) == 'table' then
         local rows = {}

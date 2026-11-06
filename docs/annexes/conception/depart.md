@@ -4,7 +4,7 @@ Brouillon du 2026-10-13. Code : `shared/RadioSurvivor/RS_LivingKnox.lua` (sectio
 `LK.canLeave`, `LK.leave`, marche de départ ; `LK.composition` donne `canLeave` ; `LK.npc` nomme un solitaire d'après
 son groupe), `shared/RadioSurvivor/RS_NPCProvider.lua` (opération facultative `Provider.leave`),
 `server/RS_Carnet_Server.lua` (`context.leave` dans `talk`, intention `leave_group` dans `reply`),
-`server/RadioSurvivor/RS_Factions.lua` (`keepTruces`, `trucesOf`, `dropTruces`, `covered` avec `npcId`),
+`server/LivingKnox/LK_Agreements.lua` (Living Knox depuis E18-T20 ; identifiants d'équipe et mandats : `server/RadioSurvivorCore/RC_Teams.lua` du mod commun ; avant : `LivingKnox.Agreements.lua` de RadioSurvivor) (`keepTruces`, `trucesOf`, `dropTruces`, `covered` avec `npcId`),
 `shared/LivingKnox/Data/LK_Type_loners.lua` (type `loners`), `server/LivingKnox/LK_Population.lua` (`dueReliefs` : aucune
 relève d'un type jamais tiré), `bridge/npc_protocol.py` (`leavable`, `leave_prompt`, mode hors ligne). Contrat :
 [protocole-carnet-v2.md](../../specifications-techniques/protocole-carnet-v2.md), « Départ individuel (E10-T04) ». Banc : `tests/test_lk_leave.py` ;
@@ -38,9 +38,9 @@ suite en jeu `lk.leave`.
    de son groupe ; entrée `separated` (ancien groupe) ; départ de l'ancien membre (`Groups.applyLeave`, entrée `left`,
    fait `memberLeft` de raison `leave_group`) ; succession immédiate si c'était le chef (`Groups.pickSuccessor`, comme
    `Groups.succeed`, entrée `leader`).
-5. **Trêves** : `RS_Factions.keepTruces(npcId, ancien groupe)` copie chaque accord de l'ancien groupe (trêve ou
+5. **Trêves** : `LivingKnox.Agreements.keepTruces(npcId, ancien groupe)` copie chaque accord de l'ancien groupe (trêve ou
    alliance, `pending` ou `applicable` : la portée couvre tous les membres) dans `S.data.factions.truces[npcId][équipe]`
-   (le plus fort par équipe). Le crochet `LivingKnox.Hooks.covered(gid, playerKey, npcId)` (`RS_Factions.covered`)
+   (le plus fort par équipe). Le crochet `LivingKnox.Hooks.covered(gid, playerKey, npcId)` (`LivingKnox.Agreements.covered`)
    les lit pour ce PNJ, quel que soit son groupe. Un accord conclu avec l'ancien groupe après le départ ne le couvre
    pas ; un accord retiré ensuite à l'ancien groupe ne lui retire pas sa trêve personnelle.
 6. **Départ physique** : mémoire du moteur oubliée pour ce PNJ (`Decisions.forget` : décision, combat, défense,

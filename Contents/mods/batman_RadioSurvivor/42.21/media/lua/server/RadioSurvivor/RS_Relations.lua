@@ -11,11 +11,11 @@ if isClient() then return end
 --   mission   closed missions of this NPC the character took part in: success (+1), failed or abandoned (-1):
 --             'mis:<mission id>'.
 -- The panel adds what belongs to the notebook: agreements of the group with the reader's team and the incident
--- suspension (RS_Factions, until E18-T20).
+-- suspension (Living Knox's LK_Agreements since E18-T20, read through LivingKnox.Agreements).
 local S = require 'RadioSurvivor/RS_State'
 local P = require 'RadioSurvivor/RS_NPCProvider'
 local Obs = require 'RadioSurvivor/RS_Observations'
-local Factions = require 'RadioSurvivor/RS_Factions'
+local function Factions() return type(LivingKnox) == 'table' and LivingKnox.Agreements or nil end
 
 local R = {}
 
@@ -102,11 +102,13 @@ local function panelAgreements(npc, gid, team, personalTeam)
     local out = {}
     if type(team) ~= 'string' then return out end
     local teamScope = personalTeam and 'you' or 'current_members'
-    local a = gid and Factions.agreementOf(gid, team) or nil
+    local A = Factions()
+    if not A then return nil end
+    local a = gid and A.agreementOf(gid, team) or nil
     if a and (a.state == 'pending' or a.state == 'applicable' or a.state == 'broken') then
         out[#out + 1] = {kind = a.kind, state = a.state, scope = {group = 'all_members', team = teamScope}}
     end
-    for _, t in ipairs(Factions.trucesOf(npc.incarnation)) do
+    for _, t in ipairs(A.trucesOf(npc.incarnation)) do
         if t.team == team and t.group ~= gid then
             out[#out + 1] = {kind = t.kind, state = 'kept', scope = {group = 'this_npc', team = teamScope}}
         end
@@ -114,14 +116,14 @@ local function panelAgreements(npc, gid, team, personalTeam)
     return out
 end
 
--- team: team of the reader (RS_Factions.projection of its player: { id, kind }); nil: no agreement listed.
+-- team: team of the reader (RC_Teams.projection of its player: { id, kind }); nil: no agreement listed.
 function R.panel(npc, character, team)
     local API, id = api(), npcOf(npc)
     local out = API and id and API.relationPanel(id, character) or {today = Obs.today(), facts = {}}
     local gid = groupOf(npc)
     out.agreements = panelAgreements(npc, gid, type(team) == 'table' and team.id or nil,
         type(team) == 'table' and team.kind == 'personal')
-    out.suspended = gid ~= nil and Factions.isIncidentAuthor(gid, character) or nil
+    out.suspended = gid ~= nil and Factions() ~= nil and Factions().isIncidentAuthor(gid, character) or nil
     return out
 end
 

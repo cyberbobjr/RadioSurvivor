@@ -1,369 +1,122 @@
 if isClient() then return end
--- E09-T03: stable team identifiers of the mod and negotiation mandates (authority only).
---
--- A vanilla Faction has only a name and an owner, both mutable, plus its members (Faction.java:24-28, 255-277): no
--- durable id. getPlayers() excludes the owner (members = owner + getPlayers()); two factions may share a name; no
--- server Lua event announces a change (base multiplayer.md). Each team therefore gets an id of the mod, 'fac-<n>',
--- never reused (persistent counter), kept in the private RS_State (never a global ModData), and found again by a
--- bounded poll of Faction.getFactions():
---   1. same session: the Java Faction object already bound to a record (rename, owner change, any membership change
---      keep the id: the server mutates the same object, FactionChangeTitlePacket / FactionChangeOwnerPacket);
---   2. after a restart (record loaded from the state, not yet bound in this session): same owner;
---   3. otherwise the majority of the record's known members (more than half are in the faction): an owner change
---      keeps the previous owner as a member (Faction.setOwner, FactionChangeOwnerPacket), so the id survives both
---      a rename and an owner change across a restart;
---   4. otherwise a new id.
--- A record bound in this session whose object left the list is dissolved for good: a faction disbanded then created
--- again (even with the same owner, name or members) gets a new id. Names are never used to match (duplicates).
--- A player without faction forms a team alone, with a personal id ('fac-<n>', kind 'personal'), kept when that
--- player joins a faction and used again if the player leaves it; it never becomes the id of a faction.
--- In solo there is no faction (the faction panel is MP only): the player is the owner of a personal team.
---
--- Mandates: the current owner of a vanilla faction designates negotiators among its members (bounded list). They
--- are cleared when the owner changes, and a negotiator who leaves the faction loses the mandate. canConclude reads
--- the vanilla faction again at call time: the current owner, or a designated negotiator still a member.
--- API for E09-T05 (agreements) and E12 (teams): Factions.idOf, Factions.canConclude, Factions.list.
---
--- E09-T05: agreements between a Living Knox group ('grp-<n>') and a team ('fac-<n>'), private state only
--- (S.data.factions.agreements, key '<group>|<team>'). Kinds, from the weakest: truce, alliance; both impose
--- non-aggression in their scope (ADR B08), neither changes the attitude of LK_Hostility. Scope (explicit, same for
--- every agreement): every member of the group, every CURRENT member of the team (vanilla faction read again by the
--- bounded poll; a player who joins is covered, one who leaves is not) or the owner of a personal team.
--- Offer issued by the server (F.negotiation: fixed terms, kinds above the current one, only for a player who may
--- conclude now), conclusion by F.conclude (mandate read again, same team, same revision of the agreement: two
--- conclusions built on the same revision, only the first one is applied). The group side (leader, composition) is
--- checked by the notebook (RS_Carnet_Server.collectiveCheck) before F.conclude.
--- Application: the hook LivingKnox.Hooks.covered (LK_Hostility.chooseTarget, LK_Decisions.helpTarget) is F.covered,
--- the only implementation; a concluded agreement is 'pending' until F.pollApplications sees, at the next decision of
--- every embodied member of the group (LivingKnox.Decisions.aims), that none of them aims at a covered player; it is
--- then 'applicable' and only then announced (RS_Carnet_Server). Fiche: docs/annexes/conception/accords.md.
--- E10-T04: an NPC who leaves its group keeps the truces of that group as personal truces (F.keepTruces, read by
--- F.covered with the npcId of the hook). Fiche: docs/annexes/conception/depart.md.
--- E09-T06: incidents of an agreement (aggression of a covered player), targeted defence and decision of the leader:
--- end of the file. Fiche: docs/annexes/conception/incidents.md.
-local S = require 'RadioSurvivor/RS_State'
+--[==[
+Living Knox: agreements between one of its groups ('grp-<n>') and a team of players ('fac-<n>', RC_Teams of the core
+mod), personal truces kept by an NPC who left its group, and incidents of an agreement (E09-T05, E09-T06, E10-T04;
+kept by Living Knox since E18-T20, user decision of 2026-11-06, moved from RadioSurvivor's RS_Factions, rules
+unchanged). Authority only. Fiches: docs/annexes/conception/accords.md, incidents.md, depart.md.
 
-local F = {
-    MAX_NEGOTIATORS = 5, -- per faction
-    POLL_MS = 2000, -- bounded poll of the vanilla factions (tick); idOf / canConclude / designate force a read
-    MAX_DISSOLVED = 64, -- dissolved records kept (agreements may still name them); ids are never reused
-    AGREEMENT_KINDS = {'truce', 'alliance'}, -- E09-T05, from the weakest
-    -- Explicit scope of every agreement (E09-T05): both sides as written in the record and sent to the model.
-    SCOPE = {group = 'all_members', team = 'current_members'},
-}
+Kinds, from the weakest: truce, alliance; both impose non-aggression in their scope (ADR B08), neither changes the
+attitude of LK_Hostility. Scope (explicit, same for every agreement): every member of the group, every CURRENT member
+of the team (vanilla faction read again by RC_Teams; a player who joins is covered, one who leaves is not) or the owner
+of a personal team. Offer issued by the server (A.negotiation: fixed terms, kinds above the current one, only for a
+player who may conclude now: owner or negotiator, RC_Teams.canConclude), conclusion by A.conclude (mandate read again,
+same team, same revision of the agreement: two conclusions built on the same revision, only the first one is applied).
+The group side (leader, composition) is checked by the caller before A.conclude.
+Application: the hook LivingKnox.Hooks.covered (LK_Hostility.chooseTarget, LK_Decisions.helpTarget) is A.covered, the
+only implementation; a concluded agreement is 'pending' until A.pollApplications sees, at the next decision of every
+embodied member of the group (LivingKnox.Decisions.aims), that none of them aims at a covered player; it is then
+'applicable' and only then announced (by the caller).
+Until E18-T17 the speech of the NPCs (offer in the context, intent of the model, incident decision asked to the leader)
+is still carried by RadioSurvivor's notebook, which calls this module through LivingKnox.Agreements.
+
+Private state, two slot files written in turn (RC_SlotFile): Zomboid/Lua/batman_LivingKnox/agreements-<hex of
+"mode/world">-<0|1>.txt, header LKAGR1, data = { schema = 1, agreementCounter, agreements = { ['<group>|<team>'] =
+agreement }, truces = { [npc] = { [team] = truce } }, incidents = { counter, open, closed } }, written within a game
+minute of a change. Never in a global ModData nor sent to a client. A team record dropped for good by the core mod
+takes its agreements away (RC_Teams.onDrop). No hand-over of games saved before the split (user decision of
+2026-11-06). Console messages in English.
+]==]
+require 'LivingKnox/LK_Core'
+local SlotFile = require 'RadioSurvivorCore/RC_SlotFile'
+local Identity = require 'RadioSurvivorCore/RC_Identity'
+local Teams = require 'RadioSurvivorCore/RC_Teams'
+
+local F = LivingKnox.Agreements or {}
+LivingKnox.Agreements = F
+F.AGREEMENT_KINDS = {'truce', 'alliance'} -- from the weakest
+-- Explicit scope of every agreement: both sides as written in the record and sent to the model.
+F.SCOPE = {group = 'all_members', team = 'current_members'}
+F.DIR, F.HEADER, F.SCHEMA = 'batman_LivingKnox/', 'LKAGR1', 1
+F.dirty = F.dirty or false
 local KIND_RANK = {none = 0, truce = 1, alliance = 2}
+local store_ = {seq = 0, base = nil, blocked = false}
 
--- Runtime only (never saved): Java Faction object -> record id, id -> object, member account -> faction record id;
--- marks: agreement key -> evaluation number of LivingKnox.Decisions when it was concluded (or first seen pending).
-local session = {byObject = {}, byId = {}, memberOf = {}, synced = false, nextPoll = 0, marks = {}}
+-- Runtime only (never saved): agreement key -> evaluation number of LivingKnox.Decisions when it was concluded (or
+-- first seen pending); incidents being asked and their next try.
+local session = {marks = {}, asking = {}, retryAt = {}}
 
-local function keyOf(player)
-    -- Account name on a server (stable across reconnections, used by the factions themselves); 'solo' otherwise,
-    -- as the notebook identity (the solo username changes with each character, base multiplayer.md).
-    if isServer() then return player:getUsername() end
-    return 'solo'
+local function log(msg) print('[LivingKnox] agreements: ' .. tostring(msg)) end
+local function fresh()
+    return {schema = F.SCHEMA, agreementCounter = 0, agreements = {}, truces = {},
+        incidents = {counter = 0, open = {}, closed = {}}}
 end
-F.keyOf = keyOf
+
+function F.init(newWorld)
+    if F.data ~= nil or store_.blocked then return F.data ~= nil end
+    store_.base = SlotFile.worldBase(F.DIR, 'agreements')
+    if require('RadioSurvivorCore/RC_WorldStart').isNewWorld(newWorld == true) then
+        F.data, store_.seq = fresh(), 0
+        return F.save()
+    end
+    local best, broken = SlotFile.read(store_.base, F.HEADER)
+    store_.seq = best and best.seq or 0
+    if best then
+        local data = best.data
+        if type(data.schema) ~= 'number' or data.schema > F.SCHEMA then
+            store_.blocked = true
+            log('STORAGE BLOCKED: agreements written by a newer schema; preserve files for recovery')
+            return false
+        end
+        if type(data.agreements) ~= 'table' then data.agreements = {} end
+        if type(data.truces) ~= 'table' then data.truces = {} end
+        F.data = data
+    elseif broken then
+        store_.blocked = true
+        log('STORAGE BLOCKED: both agreement slots invalid; preserve files for recovery')
+        return false
+    else
+        F.data = fresh()
+    end
+    return true
+end
+
+function F.ensure()
+    if F.data ~= nil then return true end
+    if store_.blocked or getWorld == nil or getWorld() == nil then return false end
+    return F.init(false)
+end
+
+function F.save()
+    if store_.blocked or not F.data then return false end
+    F.dirty = false
+    if store_.base == nil then return true end -- data handed by a test (F.useData): nothing to write
+    local ok, why = SlotFile.write(store_.base, F.HEADER, store_.seq + 1, F.data)
+    if not ok then
+        F.dirty = true
+        log('STORAGE WRITE FAILED (' .. tostring(why) .. '); kept in memory, retried at the next game minute')
+        return false
+    end
+    store_.seq = store_.seq + 1
+    return true
+end
+
+-- Tests: work on this data table, never on a file.
+function F.useData(data)
+    F.data, store_ = data, {seq = 0, base = nil, blocked = false}
+    session = {marks = {}, asking = {}, retryAt = {}}
+end
 
 local function store()
-    if not S.data then return nil end
-    local d = S.data.factions
-    if type(d) ~= 'table' then
-        d = {counter = 0, records = {}, personal = {}}
-        S.data.factions = d
-    end
+    if not F.ensure() then return nil end
+    local d = F.data
     if type(d.agreements) ~= 'table' then d.agreements, d.agreementCounter = {}, d.agreementCounter or 0 end
     return d
-end
-
-local function newId(d)
-    d.counter = (d.counter or 0) + 1
-    return 'fac-' .. string.format('%.0f', d.counter)
-end
-
-local function idNumber(id)
-    return tonumber(tostring(id):match('^fac%-(%d+)$')) or 0
-end
-
--- Vanilla factions, in list order (empty in solo or without the class).
-local function vanilla()
-    local out = {}
-    if not isServer() or not Faction or not Faction.getFactions then return out end
-    local list = Faction.getFactions()
-    if not list then return out end
-    for i = 0, list:size() - 1 do
-        local f = list:get(i)
-        if f then out[#out + 1] = f end
-    end
-    return out
-end
-
--- Owner and members of a vanilla faction (owner + getPlayers, Faction.java:226-228, 263-265).
-local function readFaction(f)
-    local owner = f:getOwner()
-    local members, count = {}, 0
-    if type(owner) == 'string' and owner ~= '' then members[owner], count = true, 1 end
-    local players = f:getPlayers()
-    for i = 0, players:size() - 1 do
-        local name = players:get(i)
-        if type(name) == 'string' and not members[name] then members[name], count = true, count + 1 end
-    end
-    return {name = tostring(f:getName() or ''), owner = owner, members = members, count = count}
 end
 
 local function size(set)
     local n = 0
     for _ in pairs(set or {}) do n = n + 1 end
     return n
-end
-
-local function shared(a, b)
-    local n = 0
-    for name in pairs(a) do if b[name] then n = n + 1 end end
-    return n
-end
-
-local function sameSet(a, b)
-    for k in pairs(a) do if not b[k] then return false end end
-    for k in pairs(b) do if not a[k] then return false end end
-    return true
-end
-
--- Applies the current vanilla state to a record; true when something changed.
-local function apply(rec, info, now)
-    local changed = false
-    if rec.name ~= info.name then rec.name, changed = info.name, true end
-    if rec.owner ~= info.owner then
-        -- Mandates are given by an owner: a new owner starts without negotiators and designates its own.
-        rec.owner, rec.negotiators, changed = info.owner, {}, true
-    end
-    if not sameSet(rec.members or {}, info.members) then
-        local copy = {}
-        for k in pairs(info.members) do copy[k] = true end
-        rec.members, changed = copy, true
-    end
-    rec.negotiators = rec.negotiators or {}
-    for name in pairs(rec.negotiators) do
-        -- Left the faction or became its owner: the mandate ends now.
-        if not info.members[name] or name == info.owner then rec.negotiators[name], changed = nil, true end
-    end
-    rec.seenAt = now
-    return changed
-end
-
-local function dissolve(rec, now)
-    rec.state, rec.dissolvedAt, rec.negotiators = 'dissolved', now, {}
-end
-
-local function pruneDissolved(d)
-    local dead = {}
-    for id, rec in pairs(d.records) do if rec.state == 'dissolved' then dead[#dead + 1] = id end end
-    if #dead <= F.MAX_DISSOLVED then return end
-    table.sort(dead, function(a, b)
-        local ra, rb = d.records[a], d.records[b]
-        if (ra.dissolvedAt or 0) ~= (rb.dissolvedAt or 0) then return (ra.dissolvedAt or 0) < (rb.dissolvedAt or 0) end
-        return idNumber(a) < idNumber(b)
-    end)
-    for i = 1, #dead - F.MAX_DISSOLVED do d.records[dead[i]] = nil end
-    -- E09-T05: agreements of a team record dropped for good (nobody can be covered by them any more).
-    local gone = {}
-    for key, a in pairs(d.agreements) do if not d.records[a.team] then gone[#gone + 1] = key end end
-    for _, key in ipairs(gone) do
-        d.agreements[key], session.marks[key] = nil, nil
-        F.closeIncident(key, 'void') -- E09-T06
-    end
-end
-
--- Reads the vanilla factions and binds each one to a record. Bounded (POLL_MS) unless forced. Returns true when the
--- private state changed (save and publish).
-function F.sync(force)
-    local d = store()
-    if not d then return false end
-    local now = getTimestampMs()
-    if not force and session.synced and now < session.nextPoll then return false end
-    session.synced, session.nextPoll = true, now + F.POLL_MS
-    local changed = false
-    local claimed, pairsFound, pending = {}, {}, {}
-    -- 1. Same Java object as an earlier poll of this session.
-    for _, f in ipairs(vanilla()) do
-        local info = readFaction(f)
-        local id = session.byObject[f]
-        local rec = id and d.records[id]
-        if rec and rec.state == 'active' and not claimed[id] then
-            claimed[id] = true
-            pairsFound[#pairsFound + 1] = {f = f, info = info, rec = rec}
-        else pending[#pending + 1] = {f = f, info = info} end
-    end
-    -- Records loaded from the state and not bound yet in this session (dormant): matchable by owner or majority.
-    local dormant = {}
-    for id, rec in pairs(d.records) do
-        if rec.kind == 'faction' and rec.state == 'active' and not session.byId[id] and not claimed[id] then
-            dormant[#dormant + 1] = rec
-        end
-    end
-    table.sort(dormant, function(a, b) return idNumber(a.id) < idNumber(b.id) end)
-    -- 2. Same owner.
-    local rest = {}
-    for _, p in ipairs(pending) do
-        local found
-        for _, rec in ipairs(dormant) do
-            if not claimed[rec.id] and rec.owner ~= nil and rec.owner == p.info.owner then found = rec; break end
-        end
-        if found then
-            claimed[found.id] = true
-            pairsFound[#pairsFound + 1] = {f = p.f, info = p.info, rec = found}
-        else rest[#rest + 1] = p end
-    end
-    -- 3. Majority of the record's known members.
-    local unknown = {}
-    for _, p in ipairs(rest) do
-        local best, bestShared
-        for _, rec in ipairs(dormant) do
-            if not claimed[rec.id] then
-                local n = shared(rec.members or {}, p.info.members)
-                if n * 2 > size(rec.members) and (not best or n > bestShared
-                        or (n == bestShared and (rec.seenAt or 0) > (best.seenAt or 0))) then
-                    best, bestShared = rec, n
-                end
-            end
-        end
-        if best then
-            claimed[best.id] = true
-            pairsFound[#pairsFound + 1] = {f = p.f, info = p.info, rec = best}
-        else unknown[#unknown + 1] = p end
-    end
-    -- 4. New faction.
-    for _, p in ipairs(unknown) do
-        local id = newId(d)
-        local rec = {id = id, kind = 'faction', state = 'active', name = '', members = {}, negotiators = {},
-            createdAt = now}
-        d.records[id] = rec
-        claimed[id] = true
-        pairsFound[#pairsFound + 1] = {f = p.f, info = p.info, rec = rec}
-        changed = true
-    end
-    -- Records bound in this session whose object is gone: disbanded.
-    for id, f in pairs(session.byId) do
-        local rec = d.records[id]
-        if not claimed[id] then
-            if rec and rec.state == 'active' then dissolve(rec, now); changed = true end
-            session.byId[id], session.byObject[f] = nil, nil
-        end
-    end
-    local memberOf = {}
-    for _, p in ipairs(pairsFound) do
-        session.byObject[p.f], session.byId[p.rec.id] = p.rec.id, p.f
-        if apply(p.rec, p.info, now) then changed = true end
-        for name in pairs(p.info.members) do memberOf[name] = p.rec.id end
-    end
-    session.memberOf = memberOf
-    pruneDissolved(d)
-    if changed then S.dirty = true end
-    return changed
-end
-
-local function personal(d, key)
-    local id = d.personal[key]
-    local rec = id and d.records[id]
-    if not rec then
-        id = newId(d)
-        rec = {id = id, kind = 'personal', state = 'active', name = '', owner = key, members = {[key] = true},
-            negotiators = {}, createdAt = getTimestampMs()}
-        d.records[id], d.personal[key] = rec, id
-        S.dirty = true
-    end
-    return rec
-end
-
--- Team record of a player: its vanilla faction, else its personal team (created on first use).
-local function teamOf(player, force)
-    local d = store()
-    if not d or not player then return nil end
-    if force or not session.synced then F.sync(true) else F.sync(false) end
-    local key = keyOf(player)
-    local id = session.memberOf[key]
-    local rec = id and d.records[id]
-    if rec and rec.state == 'active' then return rec, key, session.byId[id] end
-    return personal(d, key), key, nil
-end
-
--- Stable team id of a player ('fac-<n>'), or nil before the private state is ready.
-function F.idOf(player)
-    local rec = teamOf(player, false)
-    return rec and rec.id or nil
-end
-
--- May this player conclude an agreement for its team right now? Reads the vanilla faction again (forced poll):
--- ok, reason, teamId. reason: 'owner' / 'negotiator' when allowed; 'state' (no private state), 'no_mandate'.
-function F.canConclude(player)
-    local rec, key, f = teamOf(player, true)
-    if not rec then return false, 'state', nil end
-    if rec.kind == 'personal' then return true, 'owner', rec.id end
-    -- Direct read of the vanilla object, not only of the record (Faction.isOwner / isMember, Faction.java:145-155).
-    if f and f:isOwner(key) then return true, 'owner', rec.id end
-    if f and f:isMember(key) and rec.negotiators[key] then return true, 'negotiator', rec.id end
-    return false, 'no_mandate', rec.id
-end
-
--- Designates (grant = true) or withdraws a negotiator. Only the current owner of a vanilla faction, for one of its
--- members; at most MAX_NEGOTIATORS. ok, reason: 'not_owner', 'not_member', 'full', 'bad_args'.
-function F.designate(player, member, grant)
-    if type(member) ~= 'string' or member == '' or #member > 128 then return false, 'bad_args' end
-    local rec, key, f = teamOf(player, true)
-    if not rec then return false, 'state' end
-    if rec.kind ~= 'faction' or not f or not f:isOwner(key) then return false, 'not_owner' end
-    if grant then
-        if not f:isMember(member) then return false, 'not_member' end
-        if rec.negotiators[member] then return true, 'unchanged' end
-        if size(rec.negotiators) >= F.MAX_NEGOTIATORS then return false, 'full' end
-        rec.negotiators[member] = true
-    else
-        if not rec.negotiators[member] then return true, 'unchanged' end
-        rec.negotiators[member] = nil
-    end
-    S.dirty = true
-    return true, 'ok'
-end
-
-local function sortedKeys(set)
-    local out = {}
-    for k in pairs(set or {}) do out[#out + 1] = k end
-    table.sort(out)
-    return out
-end
-
--- Copy of every record (active and dissolved), sorted by id: {id, kind, state, name, owner, members, negotiators}.
-function F.list()
-    local d = store()
-    local out = {}
-    if not d then return out end
-    F.sync(false)
-    for _, rec in pairs(d.records) do
-        out[#out + 1] = {id = rec.id, kind = rec.kind, state = rec.state, name = rec.name, owner = rec.owner,
-            members = sortedKeys(rec.members), negotiators = sortedKeys(rec.negotiators)}
-    end
-    table.sort(out, function(a, b) return idNumber(a.id) < idNumber(b.id) end)
-    return out
-end
-
--- Notebook view of the player's own team (Team tab). Account names only, as the vanilla faction panel shows them.
-function F.projection(player)
-    local rec, key, f = teamOf(player, false)
-    if not rec then return nil end
-    local isOwner = rec.kind == 'personal' or (f ~= nil and f:isOwner(key))
-    local role = isOwner and 'owner' or (rec.negotiators[key] and 'negotiator' or 'member')
-    local rank = {owner = 1, negotiator = 2, member = 3}
-    local members = {}
-    for name in pairs(rec.members or {}) do
-        local r = name == rec.owner and 'owner' or (rec.negotiators[name] and 'negotiator' or 'member')
-        members[#members + 1] = {id = name, name = name, role = r}
-    end
-    table.sort(members, function(a, b)
-        if rank[a.role] ~= rank[b.role] then return rank[a.role] < rank[b.role] end
-        return a.name < b.name
-    end)
-    return {id = rec.id, kind = rec.kind, name = rec.name or '', role = role, isOwner = isOwner, members = members,
-        negotiators = size(rec.negotiators), maxNegotiators = F.MAX_NEGOTIATORS}
 end
 
 -- ---------------------------------------------------------------- agreements (E09-T05)
@@ -379,16 +132,8 @@ local function agreementKey(gid, team) return gid .. '|' .. team end
 
 local function validGroup(gid) return type(gid) == 'string' and gid:match('^grp%-%d+$') ~= nil end
 
--- Team id of an account without creating anything: its active vanilla faction (last poll), else its personal team,
--- else nil. In solo every player is the personal team 'solo' (Combat and the perception name players by username).
-local function teamOfAccount(d, account)
-    if type(account) ~= 'string' then return nil end
-    if not isServer() then account = 'solo' end
-    local id = session.memberOf[account]
-    local rec = id and d.records[id]
-    if rec and rec.state == 'active' then return id end
-    return d.personal[account]
-end
+-- Team id of an account without creating anything (core mod, RC_Teams).
+local function teamOfAccount(_, account) return Teams.teamOfAccount(account) end
 
 -- Evaluation number reached by the decision frame of Living Knox (nil without the engine part).
 local function decisionsView(gid)
@@ -404,10 +149,9 @@ end
 function F.covered(gid, playerKey, npcId)
     local d = store()
     if not d or not validGroup(gid) or type(playerKey) ~= 'string' then return false end
-    local characters = S.data.characters
-    local character = type(characters) == 'table' and characters[playerKey] or nil
+    local character = Identity.record(playerKey) -- identity of the core mod: owner account of the character
     if type(character) ~= 'table' or type(character.owner) ~= 'string' then return false end
-    F.sync(false)
+    Teams.sync(false)
     local team = teamOfAccount(d, character.owner)
     -- E09-T06: the author of an open incident with this group loses the protection of its team (targeted defence).
     if F.isIncidentAuthor(gid, playerKey) then return false end
@@ -420,7 +164,7 @@ end
 
 -- E10-T04: personal truces of an NPC who left its group (ADR B13: kept without renegotiation). Every agreement of the
 -- old group gid that covers its members now (truce or alliance, pending or applicable: the scope is every member of
--- the group) is copied once, at the departure, into S.data.factions.truces[npcId][team] = { kind, agreement, group,
+-- the group) is copied once, at the departure, into the private state truces[npcId][team] = { kind, agreement, group,
 -- revision, keptAt } (the strongest kind is kept per team). F.covered reads them for this NPC whatever its group; an
 -- agreement concluded with the old group after the departure does not cover it. Returns the number of teams copied.
 local MAX_TRUCES_PER_NPC = 64
@@ -443,7 +187,7 @@ function F.keepTruces(npcId, gid)
     end
     if n > 0 then
         d.truces[npcId] = mine
-        S.dirty = true
+        F.dirty = true
     end
     return n
 end
@@ -467,7 +211,7 @@ function F.dropTruces(npcId)
     local d = store()
     if not d or type(d.truces) ~= 'table' or d.truces[npcId] == nil then return false end
     d.truces[npcId] = nil
-    S.dirty = true
+    F.dirty = true
     return true
 end
 
@@ -504,10 +248,10 @@ end
 -- { [kind] = { kind, scope } } }; revision = revision of the agreement (0 without one), checked again by F.conclude.
 function F.negotiation(player, gid)
     if not validGroup(gid) then return nil, 'bad_group' end
-    local ok, role, team = F.canConclude(player)
+    local ok, role, team = Teams.canConclude(player)
     if not ok then return nil, role end
     local d = store()
-    local rec = d.records[team]
+    local rec = Teams.info(team)
     local a = d.agreements[agreementKey(gid, team)]
     local current = a and a.kind or 'none'
     local terms, any = {}, false
@@ -532,7 +276,7 @@ function F.conclude(player, gid, kind, expect, signer)
     if not validGroup(gid) or KIND_RANK[kind] == nil or kind == 'none' or type(expect) ~= 'table' then
         return false, 'bad arguments'
     end
-    local ok, role, team = F.canConclude(player)
+    local ok, role, team = Teams.canConclude(player)
     if not ok then return false, 'no mandate' end
     if team ~= expect.team then return false, 'team changed' end
     local key = agreementKey(gid, team)
@@ -548,11 +292,11 @@ function F.conclude(player, gid, kind, expect, signer)
     signer = type(signer) == 'table' and signer or {}
     a = {id = id, group = gid, team = team, kind = kind, state = 'pending', revision = revision + 1,
         scope = copyTable(F.SCOPE), concludedAt = getTimestampMs(),
-        signed = {account = keyOf(player), role = role, character = signer.character, npc = signer.npc}}
+        signed = {account = Teams.keyOf(player), role = role, character = signer.character, npc = signer.npc}}
     d.agreements[key] = a
     local view = decisionsView(gid)
     session.marks[key] = view and view.seq or nil
-    S.dirty = true
+    F.dirty = true
     return true, 'ok', copyTable(a)
 end
 
@@ -589,7 +333,7 @@ function F.pollApplications()
             a.state, a.appliedAt = 'applicable', getTimestampMs()
             session.marks[key] = nil
             out[#out + 1] = copyTable(a)
-            S.dirty = true
+            F.dirty = true
         end
     end
     table.sort(out, function(a, b) return agreementKey(a.group, a.team) < agreementKey(b.group, b.team) end)
@@ -600,7 +344,7 @@ end
 function F.membersOnline(team, players)
     local out = {}
     for _, p in ipairs(players or {}) do
-        if F.idOf(p) == team then out[#out + 1] = p end
+        if Teams.idOf(p) == team then out[#out + 1] = p end
     end
     return out
 end
@@ -613,7 +357,7 @@ function F.cancelAgreement(gid, team)
     if not d.agreements[key] then return false end
     d.agreements[key], session.marks[key] = nil, nil
     F.closeIncident(key, 'void')
-    S.dirty = true
+    F.dirty = true
     return true
 end
 
@@ -637,7 +381,7 @@ end
 -- decision once (maintain, repair in a stock category allowed by the server, break): the agreement revision goes up
 -- by one, the incident is closed. A reply built on an older revision (new aggression meanwhile) is refused and the
 -- decision asked again. Without bridge: the incident stays open (defence kept), no automatic break; asked again after
--- RETRY_MS. Private state only (S.data.factions.incidents), never a global ModData nor sent to a client.
+-- RETRY_MS. Private state only (incidents), never a global ModData nor sent to a client.
 F.INCIDENT = {
     SETTLE_MS = 5000, -- quiet delay after the last fact before the decision is asked
     RETRY_MS = 120000, -- decision asked again after a refused or unanswered request
@@ -678,10 +422,9 @@ end
 -- Agreement of the team of a notebook character with gid that covers it (truce or alliance, pending or applicable),
 -- whatever the incidents: key, agreement, account; or nil.
 local function coveringAgreement(d, gid, playerKey)
-    local characters = S.data.characters
-    local character = type(characters) == 'table' and characters[playerKey] or nil
+    local character = Identity.record(playerKey) -- identity of the core mod: owner account of the character
     if type(character) ~= 'table' or type(character.owner) ~= 'string' then return nil end
-    F.sync(false)
+    Teams.sync(false)
     local team = teamOfAccount(d, character.owner)
     local key = team and agreementKey(gid, team)
     local a = key and d.agreements[key]
@@ -748,7 +491,7 @@ function F.incidentFact(gid, playerKey, fact, opts)
     for _, f in ipairs(inc.facts) do
         if f.fact == fact and f.author == playerKey and (f.npc == nil or npc == nil)
                 and math.abs(now - f.ms) <= F.INCIDENT.MERGE_MS then
-            if f.npc == nil and npc ~= nil then f.npc, inc.victims[npc] = npc, true; S.dirty = true end
+            if f.npc == nil and npc ~= nil then f.npc, inc.victims[npc] = npc, true; F.dirty = true end
             return copyTable(inc), 'merged'
         end
     end
@@ -757,8 +500,8 @@ function F.incidentFact(gid, playerKey, fact, opts)
     inc.facts[#inc.facts + 1] = {fact = fact, author = playerKey, npc = npc, ms = now}
     while #inc.facts > F.INCIDENT.MAX_FACTS do table.remove(inc.facts, 1) end
     inc.count, inc.revision, inc.lastAt = (inc.count or 0) + 1, inc.revision + 1, now
-    S.dirty = true
-    print('[RS_Factions] incident ' .. inc.id .. ' ' .. how .. ': ' .. fact .. ' by ' .. playerKey .. ' (' .. account
+    F.dirty = true
+    print('[LivingKnox] agreements: incident ' .. inc.id .. ' ' .. how .. ': ' .. fact .. ' by ' .. playerKey .. ' (' .. account
         .. ') on ' .. tostring(npc) .. ', agreement ' .. a.id .. ' (' .. gid .. '|' .. a.team .. '), revision '
         .. inc.revision)
     return copyTable(inc), how
@@ -798,9 +541,9 @@ end
 function F.linkIncidents()
     local E = LivingKnox
     if type(E) ~= 'table' or type(E.listen) ~= 'function' then return false end
-    E.listen('memberHit', 'RS_Factions.incidents', F.onMemberHit)
-    E.listen('npcDied', 'RS_Factions.incidents', F.onNpcDied)
-    E.listen('assaultSeen', 'RS_Factions.incidents', F.onAssaultSeen)
+    E.listen('memberHit', 'LK_Agreements.incidents', F.onMemberHit)
+    E.listen('npcDied', 'LK_Agreements.incidents', F.onNpcDied)
+    E.listen('assaultSeen', 'LK_Agreements.incidents', F.onAssaultSeen)
     return true
 end
 
@@ -811,7 +554,7 @@ local function closeOpen(book, key, inc, decision, now)
     while #book.closed > F.INCIDENT.MAX_CLOSED do table.remove(book.closed, 1) end
     local ask, retry = asking()
     ask[inc.id], retry[inc.id] = nil, nil
-    S.dirty = true
+    F.dirty = true
 end
 
 -- Closes the open incident of an agreement key without decision (agreement removed): decision 'void'.
@@ -868,7 +611,7 @@ function F.incidentsToAsk(now)
             closeOpen(book, key, inc, 'void', now)
         elseif not ask[inc.id] and now - inc.lastAt >= F.INCIDENT.SETTLE_MS and now >= (retry[inc.id] or 0) then
             local c = copyTable(inc)
-            local rec = d.records[a.team]
+            local rec = Teams.info(a.team)
             c.agreementKind, c.agreementRevision, c.teamName = a.kind, a.revision, rec and rec.name or ''
             c.agreementState = a.state
             out[#out + 1] = c
@@ -943,8 +686,9 @@ function F.decideIncident(incId, expect, choice, category, signer)
     end
     inc.agreementRevision = a.revision
     closeOpen(book, key, inc, choice, now)
-    print('[RS_Factions] incident ' .. inc.id .. ' decided: ' .. choice .. (category and category ~= '' and (' ' .. category)
-        or '') .. ', agreement ' .. a.id .. ' revision ' .. a.revision .. ' (' .. a.kind .. ', ' .. a.state .. ')')
+    print('[LivingKnox] agreements: incident ' .. inc.id .. ' decided: ' .. choice
+        .. (category and category ~= '' and (' ' .. category) or '') .. ', agreement ' .. a.id .. ' revision '
+        .. a.revision .. ' (' .. a.kind .. ', ' .. a.state .. ')')
     return true, 'ok', copyTable(a), copyTable(inc)
 end
 
@@ -952,8 +696,48 @@ F.installHook()
 
 -- Tests and restarts of the state: forget the session bindings (Java objects).
 function F.reset()
-    session = {byObject = {}, byId = {}, memberOf = {}, synced = false, nextPoll = 0, marks = {}, asking = {},
-        retryAt = {}}
+    session = {marks = {}, asking = {}, retryAt = {}}
+end
+
+
+-- A team record dropped for good by the core mod: nobody can be covered by its agreements any more.
+Teams.onDrop(function(team)
+    local d = F.data
+    if type(d) ~= 'table' or type(d.agreements) ~= 'table' then return end
+    local gone = {}
+    for key, a in pairs(d.agreements) do if a.team == team then gone[#gone + 1] = key end end
+    for _, key in ipairs(gone) do
+        d.agreements[key], session.marks[key] = nil, nil
+        F.closeIncident(key, 'void')
+    end
+    if #gone > 0 then F.dirty = true end
+end)
+
+-- Application poll of Living Knox itself (E18-T20: with or without RadioSurvivor), once a second: every agreement
+-- that became applicable is handed to the listeners (F.onApplied(fn): fn(agreement copy)), e.g. RadioSurvivor's
+-- notebook that announces it to the online players of the team.
+F.appliedListeners = F.appliedListeners or {}
+function F.onApplied(fn)
+    for _, f in ipairs(F.appliedListeners) do if f == fn then return end end
+    table.insert(F.appliedListeners, fn)
+end
+local nextPoll = 0
+function F.tick()
+    local now = getTimestampMs()
+    if now < nextPoll or not F.data then return end
+    nextPoll = now + 1000
+    for _, a in ipairs(F.pollApplications()) do
+        log('agreement ' .. a.id .. ' (' .. a.kind .. ') between ' .. a.group .. ' and ' .. a.team .. ' applicable')
+        for _, fn in ipairs(F.appliedListeners) do fn(a) end
+    end
+    if F.dirty then F.save() end
+end
+
+if not F.subscribed then
+    F.subscribed = true
+    Events.OnInitGlobalModData.Add(function(newWorld) F.init(newWorld) end)
+    Events.EveryOneMinute.Add(function() if F.dirty then F.save() end end)
+    Events.OnTickEvenPaused.Add(F.tick) -- same clock as the former poll of the notebook (RS_Carnet_Server)
 end
 
 return F

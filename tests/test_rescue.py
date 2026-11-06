@@ -531,6 +531,7 @@ class RunTests(RescueHarness):
     OUTCOMES = {}
     STATE = require("RadioSurvivor/RS_State")
     STATE.data = { schema = 2, world = "w" }
+    require("RadioSurvivorCore/RC_Teams").useData({ schema = 1, counter = 0, records = {}, personal = {} }) -- E18-T20
     R = require("RadioSurvivor/RS_Rescue")
     R.onOutcome = function(rescue, result) OUTCOMES[#OUTCOMES + 1] = { id = rescue.id, result = result } end
     function poll() return R.poll(true) end
@@ -643,7 +644,7 @@ class RunTests(RescueHarness):
             isOwner = function(_, n) return n == "alice" end,
             isMember = function(_, n) return n == "alice" or n == "bob" end }
         Faction = { getFactions = function() return JList({ f }) end }
-        require("RadioSurvivor/RS_Factions").reset()
+        require("RadioSurvivorCore/RC_Teams").reset()
         """)
         ida = self.rt.execute('local id = R.start(A, { seed = 4 }) return id')
         self.assertIsNotNone(ida)

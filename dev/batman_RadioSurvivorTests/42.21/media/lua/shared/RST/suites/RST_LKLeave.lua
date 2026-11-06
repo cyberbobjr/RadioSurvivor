@@ -1,6 +1,7 @@
 --[[
 lk.leave - individual departure of an embodied Living Knox member (E10-T04, shared/RadioSurvivor/RS_LivingKnox.lua:
-LK.leave, LK.canLeave; server/RadioSurvivor/RS_Factions.lua: keepTruces, covered). Tags "world" and "server": the
+LK.leave, LK.canLeave; LK_Agreements.lua (Living Knox) and RC_Teams.lua (core mod): keepTruces, covered). Tags "world" and
+"server": the
 authority only, on a save named rstest*, with a target player (t.ctx.player), the Living Knox option Enabled on.
 Solo: RST.run({ suite = "lk.leave", tags = "world" }); dedicated server: RST.server({ suite = "lk.leave",
 tags = "world" }) from an admin client. Asynchronous run only (about 1 minute).
@@ -9,7 +10,7 @@ What is done (stay next to the two members, in their sight):
     - a test group "settlers" (worker leader m-1, fighter m-2) gets its home on the player's square; its members get
       bodies near the player;
     - when the player has a notebook character (Ctrl+G once on any NPC), a truce is concluded between the group and
-      the player's team (RS_Factions.conclude, as the leader would);
+      the player's team (LK_Agreements.conclude, as the leader would);
     - m-2 leaves its group (RS_LivingKnox.leave with the composition read now, as the notebook does after a model
       reply leave_group): one group "loners" of one member linked to the same NPC, home in the ring around the old
       one (E10-T05: real LivingKnox.Sites.pick with LivingKnox.Config.LEAVE HOME_MIN..HOME_MAX squares, or a widened
@@ -105,7 +106,7 @@ RST.suite("lk.leave", { mods = { "rs", "lk" },
         t:ok(P ~= nil and P.leave ~= nil, "RS_LivingKnox.leave (E10-T04) is not loaded")
         t:ok(E.GroupTypes.isKnown(P.LONER_TYPE), "group type loners not registered")
         t:ok(E.Groups.ensure(), "group registry not ready")
-        local F = require "RadioSurvivor/RS_Factions"
+        local F = RST.factions() -- E18-T20: LK_Agreements and RC_Teams
         local p = RST.Fixtures.player(t)
         t:ok(p ~= nil, "no target player (t.ctx.player)")
         local sq = p:getCurrentSquare()

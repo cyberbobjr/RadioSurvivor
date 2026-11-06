@@ -18,7 +18,7 @@ import unittest
 from pathlib import Path
 
 from test_carnet import Simulation, LK_WORLD, NOTEBOOK_UI, ROOT, convert
-from test_factions import FACTION_DOUBLE
+from test_factions import FACTION_DOUBLE, AGREEMENTS_FACADE
 
 LEVELS = ['hostile', 'wary', 'cautious', 'favorable', 'trusting']
 EN = ROOT / 'Contents/mods/batman_RadioSurvivor/42.21/media/lua/shared/Translate/EN/IG_UI.json'
@@ -68,7 +68,7 @@ class RelationPanelTests(unittest.TestCase):
             sim.add_client(c)
         self.server = self.g.RS_CarnetServer
         self.R = self.rt.eval("require('RadioSurvivor/RS_Relations')")
-        self.F = self.rt.eval("require('RadioSurvivor/RS_Factions')")
+        self.F = self.rt.eval(AGREEMENTS_FACADE)
         self.H = self.rt.eval('LivingKnox.Hostility')
         for npc in (self.g.LK_LEADER, self.g.LK_MATE, self.g.LK_LONER):
             self.g.LivingKnox.Bodies.bound[npc].x = 12

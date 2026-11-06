@@ -1,20 +1,21 @@
 --[[
-rs.factions.incident - targeted defence and decision on a truce (E09-T06, server/RadioSurvivor/RS_Factions.lua and
+rs.factions.incident - targeted defence and decision on a truce (E09-T06, LK_Agreements.lua (Living Knox) and RC_Teams.lua (core
+mod) and
 RS_Incidents.lua) on the running engine: a truce of the player's team with a group whose body is loaded near the player
-is concluded (directly by RS_Factions.conclude), then a member of that group is HIT by the player (E01-T19: simulated on
+is concluded (directly by LK_Agreements.conclude), then a member of that group is HIT by the player (E01-T19: simulated on
 the authority, LivingKnox.Bodies.onHitZombie called with the member's body, the player and a Base.BaseballBat, as the
 OnHitZombie event of a real swing does; the test waits up to 10 s): the hit (fact "memberHit") opens an incident whose
 author is the player, the player is no longer covered and becomes a target of rule "incident" of the target choice,
 the agreement is unchanged. Then the decision: with the bridge running, the leader's model decides (the test waits up
 to 120 s for the incident to close and notes the decision); without it, the incident stays open (no automatic break) and the test
-applies a "maintain" decision itself (RS_Factions.decideIncident): agreement revision + 1, player covered again.
+applies a "maintain" decision itself (LK_Agreements.decideIncident): agreement revision + 1, player covered again.
 Two players (MP): the second member of the faction stays covered during the incident (check by hand with the
 debug view of the group, see docs/annexes/conception/incidents.md).
 Tags "server" (authority only: solo, or RST.server from an admin client of a dedicated server) and "world" (the
 private notebook state is written: test saves "rstest*" only). Asynchronous run (RST.start / RST.server). No group near
 the player: a fixture group is created and removed (RST.LKGroup); notebook character bound when missing ("hello").
 The real swing (OnHitZombie raised by the game on the owner of the body, then the authority) stays a manual check.
-Cleanup: the agreement is removed (RS_Factions.cancelAgreement, which also closes the incident); an agreement already
+Cleanup: the agreement is removed (LK_Agreements.cancelAgreement, which also closes the incident); an agreement already
 there makes the test skip.
 Tests 2 and 3 (ADR B10 criteria, RST_PeerChecksE09.lua): two close aggressions = one incident, bridge stopped = no
 break, late reply of the leader refused through the real reply path, one change per valid decision (all modes); with
@@ -33,7 +34,7 @@ local Fx = RST.Fixtures
 
 local function modules(t)
     if type(isClient) == "function" and isClient() then
-        t:skip("RS_Factions is authority only (solo or dedicated server)")
+        t:skip("agreements are authority only (solo or dedicated server)")
     end
     local E = LivingKnox
     if type(E) ~= "table" or type(E.Config) ~= "table" or not E.Config.isEnabled() then
@@ -42,7 +43,7 @@ local function modules(t)
     if type(E.Hostility) ~= "table" or type(E.Decisions) ~= "table" or type(E.Decisions.aims) ~= "function" then
         t:skip("Living Knox server part not loaded here")
     end
-    local F = require "RadioSurvivor/RS_Factions"
+    local F = RST.factions() -- E18-T20: LK_Agreements and RC_Teams
     local Server = RS_CarnetServer
     if type(F) ~= "table" or type(F.incidentFact) ~= "function" or type(Server) ~= "table" or not Server.store
             or not Server.store.data then
@@ -87,7 +88,7 @@ RST.suite("rs.factions.incident", { mods = { "rs", "lk" },
         local cid = RST.RSHelpers.character(t0, p)
         RST.LKGroup.ensure(t0, p, function(t)
             local gid, npc = loadedGroup(t, E)
-            -- Team of the offer (RS_Factions.negotiation reads the vanilla factions again, as conclude does); F.idOf
+            -- Team of the offer (LK_Agreements.negotiation reads the vanilla factions again, as conclude does); F.idOf
             -- may still give the team of the last poll (MP campaign of 2026-11-04: player put in a faction by an
             -- earlier suite, "team changed").
             local neg, why = F.negotiation(p, gid)

@@ -2,6 +2,9 @@
 Living Knox's part of the notebook of the core mod (RadioSurvivorCore/RC_Notebook). Client only, presentation only.
 
 - E18-T25: the text of the acts of the reputation that Living Knox reports (LK_Reputation: a member of a group killed).
+- E18-T20: the Team tab (E09-T03): the player's team (vanilla faction or alone, ids and mandates of the core mod,
+  command "team" of the module RadioSurvivorCore), the owner designates or withdraws a negotiator (command "mandate",
+  checked again by the server). Shown with Living Knox only: it is the tab of the agreements.
 - E18-T26: the relation panel of one of its NPCs toward the reader's character (LK_PersonalRelation.panel, kept by
   Living Knox since E18-T21): the server sends identifiers and game days only, every word is translated here
   (IGUI_LK_Rel*); an unknown identifier (newer server) falls back to a generic word, never a raw key. Used by the
@@ -67,5 +70,51 @@ Notebook.contactPages.lk = function(_, row, line)
     line(tr('RelTitle'))
     for _, s in ipairs(Notebook.relationLines(row.relation)) do line(s) end
 end
+
+-- ---------------------------------------------------------------- Team tab (E18-T20)
+
+local UI = Notebook.ui
+local function teamRequest(command, args)
+    local p = getSpecificPlayer(0)
+    if p ~= nil then sendClientCommand(p, 'RadioSurvivorCore', command, args or {}) end
+end
+
+local function showTeam(w, row, line)
+    local team = Notebook.team
+    if not team then line(tr('Empty_Team')); return end
+    line(team.kind == 'faction' and tr('TeamFaction', team.name) or tr('TeamPersonal'))
+    line(tr('TeamYou_' .. tostring(team.role)))
+    line(tr('TeamRule'))
+    if team.kind ~= 'faction' then return end
+    line(tr('TeamMandates', team.negotiators, team.maxNegotiators))
+    if not row then return end
+    line(tr('TeamMember', row.name, tr('Role_' .. tostring(row.role))))
+    if team.isOwner and row.role ~= 'owner' then
+        local negotiator = row.role == 'negotiator'
+        w.grant:setVisible(not negotiator); w.revoke:setVisible(negotiator)
+        UI.enable(w.grant, team.negotiators < team.maxNegotiators)
+    end
+end
+Notebook.showTeam = showTeam
+
+Notebook.registerTab({name = 'Team', mods = {'batman_LivingKnox'}, order = 50, color = {0.478, 0.31, 0.369},
+    label = function() return tr('Team') end,
+    rows = function() local team = Notebook.team return team and team.members or {} end,
+    rowLabel = function(row) return row.name end,
+    secondLine = function(row) return tr('Role_' .. tostring(row.role)) end,
+    create = function(w)
+        w.grant = w:addAction(UI.stamp(w, tr('MandateGrant'), function(win)
+            if win.row then teamRequest('mandate', {member = win.row.id, action = 'grant'}) end
+        end))
+        w.revoke = w:addAction(UI.stamp(w, tr('MandateRevoke'), function(win)
+            if win.row then teamRequest('mandate', {member = win.row.id, action = 'revoke'}) end
+        end))
+    end,
+    detail = function(w, row, line) showTeam(w, row, line); return false end,
+    onOpen = function() teamRequest('team') end,
+    update = function(w)
+        local now = getTimestampMs()
+        if now - (w.lkTeamAsked or 0) >= 3000 then w.lkTeamAsked = now; teamRequest('team') end
+    end})
 
 return Notebook

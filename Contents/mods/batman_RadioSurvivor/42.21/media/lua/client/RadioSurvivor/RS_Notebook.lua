@@ -6,9 +6,8 @@ require 'ISUI/ISComboBox'
 --[[
 RadioSurvivor's pages of the notebook (E18-T24, user decision of 2026-11-06). The notebook itself (frame, bookmarks,
 sidebar button, registry of tabs) belongs to the core mod (RadioSurvivorCore/RC_Notebook); this file registers the
-Radio tab, fills the common Contacts, Missions and Reputation tabs with RadioSurvivor's notebook data (snapshot of
-RS_CarnetServer), and registers the Team tab when Living Knox is active too (its agreements move to Living Knox with
-E18-T20).
+Radio tab and fills the common Contacts, Missions and Reputation tabs with RadioSurvivor's notebook data (snapshot of
+RS_CarnetServer). The Team tab is Living Knox's since E18-T20 (LK_NotebookPages).
 ]]
 local Client = require 'RadioSurvivor/RS_Client'
 if Client.notebookInstalled then return RS_Notebook end
@@ -22,7 +21,7 @@ local History = require 'RadioSurvivor/RS_RadioHistory'
 local Talk = require 'RadioSurvivor/RS_RadioTalk'
 local MissionList = require 'RadioSurvivorCore/RC_MissionList' -- E18-T06: state shown, as in the core mod
 
-local RS_MOD, LK_MOD = 'batman_RadioSurvivor', 'batman_LivingKnox'
+local RS_MOD = 'batman_RadioSurvivor'
 local COLOR, INK_TAG, DOT = UI.COLOR, UI.INK_TAG, UI.DOT
 local fontHeight, width, fit = UI.fontHeight, UI.width, UI.fit
 local stamp, enable, paperEntry, button = UI.stamp, UI.enable, UI.paperEntry, UI.button
@@ -195,13 +194,12 @@ function Client.receive(command, args)
     end
 end
 
--- Second line of a row: last line heard (Radio), role (Team, E09-T03), state of a mission in a short word when the
+-- Second line of a row: last line heard (Radio), state of a mission in a short word when the
 -- full sentence is long (E03-T02: the sentence stays on the page), contact alive or dead.
 function RSN.rowSecondLine(row)
     -- E06-T07: the voice of the frequency once known (contact, note read, frequency given), else the last line.
     if row.khz and row.voice then return History.voiceName(row.voice) end
     if row.khz then return tr('RadioLast', row.when ~= '' and row.when or '-') end
-    if row.role then return tr('Role_' .. row.role) end
     -- E11-T13: an active mission whose objective is met waits for its report.
     local state = row.state and (row.state == 'active' and row.toReport and 'toReport' or row.state)
     if state then return getTextOrNull('IGUI_RS_StateShort_' .. tostring(state)) or tr('State_' .. state) end
@@ -621,43 +619,6 @@ Notebook.extendTab('Reputation', {
         end
         return false
     end})
-
--- ---------------------------------------------------------------- Team tab
-
--- Team tab (E09-T03): faction or lone team, own role, mandates; the owner designates or withdraws a negotiator. Shown
--- only with Living Knox (decision of 2026-11-06: the tab of the agreements, which move to Living Knox with E18-T20).
-function Notebook:showTeam(row, line)
-    local team = Client.snapshot.team
-    if not team then line(tr('Empty_Team')); return end
-    line(team.kind == 'faction' and tr('TeamFaction', team.name) or tr('TeamPersonal'))
-    line(tr('TeamYou_' .. tostring(team.role)))
-    line(tr('TeamRule'))
-    if team.kind ~= 'faction' then return end
-    line(tr('TeamMandates', team.negotiators, team.maxNegotiators))
-    if not row then return end
-    line(tr('TeamMember', row.name, tr('Role_' .. tostring(row.role))))
-    if team.isOwner and row.role ~= 'owner' then
-        local negotiator = row.role == 'negotiator'
-        self.grant:setVisible(not negotiator); self.revoke:setVisible(negotiator)
-        enable(self.grant, team.negotiators < team.maxNegotiators)
-    end
-end
-
-Notebook.registerTab({name = 'Team', mods = {RS_MOD, LK_MOD}, order = 50, color = {0.478, 0.31, 0.369},
-    label = function() return tr('Team') end,
-    rows = function() local team = Client.snapshot.team return team and team.members or {} end,
-    rowLabel = function(row) return row.name end,
-    secondLine = RSN.rowSecondLine,
-    create = function(w)
-        -- The server checks again that the sender is the current owner of the faction.
-        w.grant = w:addAction(stamp(w, tr('MandateGrant'), function(win)
-            if win.row then Client.send('mandate', {member = win.row.id, action = 'grant'}) end
-        end))
-        w.revoke = w:addAction(stamp(w, tr('MandateRevoke'), function(win)
-            if win.row then Client.send('mandate', {member = win.row.id, action = 'revoke'}) end
-        end))
-    end,
-    detail = function(w, row, line) w:showTeam(row, line); return false end})
 
 -- ---------------------------------------------------------------- frame hooks
 

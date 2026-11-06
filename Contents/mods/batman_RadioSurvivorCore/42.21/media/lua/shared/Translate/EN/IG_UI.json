@@ -58,5 +58,9 @@
     "IGUI_RC_Group": "Group: %1",
     "IGUI_RC_KnownConversations": "Conversations heard by this character",
     "IGUI_RC_Contact": "Met contact",
-    "IGUI_RC_Dead": "Deceased"
+    "IGUI_RC_Dead": "Deceased",
+    "IGUI_RC_Error_MandateOwner": "Only the current faction owner can designate or withdraw negotiators.",
+    "IGUI_RC_Error_MandateMember": "This player is no longer a member of your faction.",
+    "IGUI_RC_Error_MandateFull": "Negotiator limit reached: withdraw a mandate first.",
+    "IGUI_RC_Error_State": "State changed or action unavailable. Refresh the notebook and confirm again."
 }

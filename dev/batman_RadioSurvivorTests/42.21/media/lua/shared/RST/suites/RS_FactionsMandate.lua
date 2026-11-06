@@ -1,6 +1,6 @@
 --[[
 rs.factions.mandate - team identifier of the mod and negotiation mandates (E09-T03, server/RadioSurvivor/
-RS_Factions.lua) with real clients of a dedicated server:
+RC_Teams.lua) with real clients of a dedicated server:
     MP  the requester client creates a vanilla faction through the faction panel packet (RST.Steps "rs.faction":
         sendFactionCreate), the server adds the second client as a member (Faction:addPlayer, what an accepted
         invitation does on the server; the invitation dialog itself is not driven). Both players share one team id.
@@ -13,7 +13,7 @@ RS_Factions.lua) with real clients of a dedicated server:
     solo the player forms a personal team and may conclude as its owner (no vanilla faction in solo).
 Tags "server" and "world": the authority (solo, or RST.server from an admin client), save rstest*. MP with two clients:
 autoclient.py --mp --clients 2 --server-suite rs.factions.mandate --server-tags world.
-Cleanup: the agreement is removed (RS_Factions.cancelAgreement), the faction disbanded by its owner (sendFactionDisband;
+Cleanup: the agreement is removed (LK_Agreements.cancelAgreement), the faction disbanded by its owner (sendFactionDisband;
 removed from Faction.getFactions() by the server if still there). Outside the game: tests/test_rs_mp_suites.py.
 ]]
 
@@ -24,12 +24,12 @@ require "RST/RST_PeerChecksRadio"
 
 local PR = RST.PeerRadio
 local Steps = RST.Steps
-local GID = "grp-990001"   -- test group id: RS_Factions checks its form only; never a group of the engine
+local GID = "grp-990001"   -- test group id: LK_Agreements checks its form only; never a group of the engine
 
 local function modules(t)
-    if type(isClient) == "function" and isClient() then t:skip("RS_Factions is authority only (solo or server)") end
-    local okF, F = pcall(require, "RadioSurvivor/RS_Factions")
-    t:ok(okF and type(F) == "table" and type(F.canConclude) == "function", "RadioSurvivor/RS_Factions not loaded")
+    if type(isClient) == "function" and isClient() then t:skip("agreements are authority only (solo or server)") end
+    local F = RST.factions() -- E18-T20: RC_Teams (ids, mandates) and LK_Agreements
+    t:ok(type(F.canConclude) == "function", "RadioSurvivorCore/RC_Teams not loaded")
     local Server = RS_CarnetServer
     if type(Server) ~= "table" or type(Server.store) ~= "table" or Server.store.data == nil then
         t:skip("notebook server state not ready (RS_CarnetServer)")

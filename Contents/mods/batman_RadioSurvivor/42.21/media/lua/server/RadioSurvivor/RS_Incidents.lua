@@ -1,9 +1,10 @@
 if isClient() then return end
 -- E09-T06: decision of a group leader on an incident of a faction agreement (ADR B10). Registry, targeted defence and
--- validation: RS_Factions.lua (incidents). Here: the request to the model (npc_incident) and its reply, for the
--- notebook (RS_Carnet_Server tick and reply). Fiche: docs/annexes/conception/incidents.md.
+-- validation: Living Knox (LK_Agreements, since E18-T20; read through LivingKnox.Agreements, nothing without it).
+-- Here: the request to the model (npc_incident) and its reply, for the notebook (RS_Carnet_Server tick and reply). Fiche:
+-- docs/annexes/conception/incidents.md.
 --
--- Once the facts of an open incident settled (RS_Factions.INCIDENT.SETTLE_MS), one request per pass, within the bridge
+-- Once the facts of an open incident settled (LivingKnox.Agreements.INCIDENT.SETTLE_MS), one request per pass, within the bridge
 -- quotas (RS_Config.MAX_PENDING, MAX_PER_HOUR) and not while the bridge is considered stopped (RS_Initiatives): an
 -- npc_incident request in the queue of the leader's fiche (LivingKnox.API.composition(group).leaderNpc), character
 -- 'group', text = the established facts composed here in English, context.incident = facts, agreement, earlier
@@ -11,12 +12,14 @@ if isClient() then return end
 -- quantity, break). The request is bound in memory (I.bindings[request id] = { incident, revision,
 -- agreementRevision, group }), never sent to the bridge. Reply: intent maintain / repair (offer = category) / break,
 -- revalidated (same leader, same incident revision, same agreement revision) then applied once by
--- RS_Factions.decideIncident. A refused or unanswered request leaves the incident open (defence kept, no automatic
--- break): asked again after RS_Factions.INCIDENT.RETRY_MS.
+-- LivingKnox.Agreements.decideIncident. A refused or unanswered request leaves the incident open (defence kept, no automatic
+-- break): asked again after LivingKnox.Agreements.INCIDENT.RETRY_MS.
 local C = require 'RadioSurvivor/RS_Config'
 local P = require 'RadioSurvivor/RS_NPCProvider'
 local S = require 'RadioSurvivor/RS_State'
-local F = require 'RadioSurvivor/RS_Factions'
+-- E18-T20: the agreements and their incidents are Living Knox's (until the speech of the NPCs moves there, E18-T17).
+local F = {}
+local function agreements() return type(LivingKnox) == 'table' and LivingKnox.Agreements or nil end
 local Radio = require 'RadioSurvivor/RadioSurvivor_Const'
 
 local I = {KIND = 'npc_incident', CHARACTER = 'group', MAX_REPLY = 400, bindings = {}}
@@ -90,6 +93,8 @@ end
 
 -- One pass of the notebook tick (once a second). Returns the number of requests sent (0 or 1).
 function I.tick(server, now)
+    F = agreements()
+    if not F then return end
     F.installHook()
     -- Requests no longer pending (answered, refused or timed out): the incident, if still open, is asked again later.
     local live = {}
@@ -136,8 +141,10 @@ end
 -- Reply of the model (common checks already made by the notebook). Returns true, the agreement and the incident
 -- (copies), or false and the reason.
 function I.reply(_, req, result, npc)
+    F = agreements() or F
     local b = I.bindings[req.id]
     if type(b) ~= 'table' then return false, 'incident request without binding' end
+    if not F.decideIncident then return false, 'no Living Knox agreements' end
     if not I.DECISIONS[result.intent] then return false, 'no incident decision (' .. tostring(result.intent) .. ')' end
     local category = ''
     if result.intent == 'repair' then category = result.offer

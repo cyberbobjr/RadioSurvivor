@@ -59,6 +59,11 @@ REMOVED.add('IGUI_RC_Empty_Reputation')  # E18-T25: the core page shows the repu
 RENAMED.update({k: 'IGUI_LK_' + k[len('IGUI_RS_'):] for k in json.loads(FIXTURE.read_text(encoding='utf-8'))['keys']['EN']
                 ['IG_UI'] if k.startswith('IGUI_RS_Rel') and not k.startswith('IGUI_RS_RelWhen_')})
 NOTEBOOK |= {'IGUI_RC_Group', 'IGUI_RC_KnownConversations', 'IGUI_RC_Contact', 'IGUI_RC_Dead'}
+# E18-T20: the Team tab is Living Knox's; the errors of the mandates come from the core mod (RC_Teams).
+RENAMED.update({k: 'IGUI_LK_' + k[len('IGUI_RS_'):] for k in json.loads(FIXTURE.read_text(encoding='utf-8'))['keys']['EN']
+                ['IG_UI'] if any(k.startswith('IGUI_RS_' + p) for p in ('Team', 'Role_', 'Mandate', 'Empty_Team'))})
+RENAMED.update({f'IGUI_RS_Error_{n}': f'IGUI_RC_Error_{n}' for n in ('MandateOwner', 'MandateMember', 'MandateFull')})
+NOTEBOOK |= {'IGUI_RC_Error_State'}
 JOURNAL = {
     'IGUI_RC_Journal', 'IGUI_RC_JournalButton', 'IGUI_RC_JournalEmpty', 'IGUI_RC_JournalHint', 'IGUI_RC_Mission',
     'IGUI_RC_Participants', 'IGUI_RC_ReportHint', 'IGUI_RC_Requester', 'IGUI_RC_Reward', 'IGUI_RC_TimeLeft',

@@ -1,8 +1,9 @@
 --[[
-rs.factions.accord - faction agreements with a Living Knox group (E09-T05, server/RadioSurvivor/RS_Factions.lua) on
+rs.factions.accord - faction agreements with a Living Knox group (E09-T05, LK_Agreements.lua (Living Knox) and RC_Teams.lua
+(core mod)) on
 the running engine: the server offers fixed terms to a player who may conclude for its team (here the player's own
 team: owner of its faction, or of its personal team in solo), a truce is concluded with a group whose body is loaded
-near the player (directly by RS_Factions.conclude: the model's decision is the bridge's part, proven outside the
+near the player (directly by LK_Agreements.conclude: the model's decision is the bridge's part, proven outside the
 game), the target choice consults the hook at once (the player is covered, never a target), the agreement stays
 "pending" until the next decisions of the group members (LivingKnox.Decisions.aims), then becomes "applicable"
 (the notebook announces it on screen: "Truce with <group> now in force"); the attitude of the group toward the
@@ -12,7 +13,7 @@ private notebook state is written: test saves "rstest*" only). Asynchronous run 
 group of the initial population (LK08-T05) that group is used; otherwise a fixture group is created near the player and
 removed at the end (RST.LKGroup, RST_LKGroupFixture.lua, E01-T19). The notebook character is bound when missing
 ("hello" asked directly, RST.RSHelpers.character).
-Cleanup: the agreement is removed (RS_Factions.cancelAgreement); an agreement already there makes the test skip.
+Cleanup: the agreement is removed (LK_Agreements.cancelAgreement); an agreement already there makes the test skip.
 Test 2 (all modes): two conclusions built on one revision, only the first applied. Test 3 (dedicated server, two
 clients; SKIP in solo or with one client): a member without mandate gets no offer and concludes nothing, then two
 negotiators of one faction speak to the leader at once: one agreement (RST_PeerChecksE09.lua, replies of the test
@@ -30,7 +31,7 @@ local Fx = RST.Fixtures
 
 local function modules(t)
     if type(isClient) == "function" and isClient() then
-        t:skip("RS_Factions is authority only (solo or dedicated server)")
+        t:skip("agreements are authority only (solo or dedicated server)")
     end
     local E = LivingKnox
     if type(E) ~= "table" or type(E.Config) ~= "table" or not E.Config.isEnabled() then
@@ -39,7 +40,7 @@ local function modules(t)
     if type(E.Hostility) ~= "table" or type(E.Decisions) ~= "table" or type(E.Decisions.aims) ~= "function" then
         t:skip("Living Knox server part not loaded here")
     end
-    local F = require "RadioSurvivor/RS_Factions"
+    local F = RST.factions() -- E18-T20: LK_Agreements and RC_Teams
     local Server = RS_CarnetServer
     if type(F) ~= "table" or type(Server) ~= "table" or not Server.store or not Server.store.data then
         t:skip("notebook server state not ready")
@@ -103,7 +104,7 @@ RST.suite("rs.factions.accord", { mods = { "rs", "lk" },
     end)
 
     -- E09-T05: two conclusions built on one revision of the agreement (two offers read at the same time): only the first
-    -- is applied, the second is refused on its revision. Test group id: RS_Factions checks its form only.
+    -- is applied, the second is refused on its revision. Test group id: LK_Agreements checks its form only.
     s.test("two conclusions on one revision: only the first is applied (E09-T05)", function(t)
         local F = modules(t)
         local p = Fx.player(t)

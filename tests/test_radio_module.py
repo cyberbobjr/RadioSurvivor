@@ -584,7 +584,7 @@ class SourceTests(unittest.TestCase):
 
     def test_notebook_keys_exist_in_en_and_fr(self):
         keys = {'IGUI_RS_' + k for k in re.findall(r"\btr\('(\w+)'\s*[,)]", NOTEBOOK.read_text(encoding='utf-8'))}
-        keys |= {'IGUI_RS_' + k for k in ('Radio', 'Team')}
+        keys |= {'IGUI_RS_' + k for k in ('Radio',)}  # E18-T20: the Team tab is Living Knox's
         keys |= {'IGUI_RS_Radio_' + k for k in ('said', 'reply', 'heard')}
         keys |= set(re.findall(r"getText\('(IGUI_\w+)'\s*[,)]", NOTEBOOK.read_text(encoding='utf-8')))
         keys = {k for k in keys if not k.startswith('IGUI_RC_')}  # E18-T25: words of the core notebook, its own bench

@@ -58,5 +58,9 @@
     "IGUI_RC_Group": "Groupe : %1",
     "IGUI_RC_KnownConversations": "Conversations entendues par ce personnage",
     "IGUI_RC_Contact": "Contact rencontré",
-    "IGUI_RC_Dead": "Décédé"
+    "IGUI_RC_Dead": "Décédé",
+    "IGUI_RC_Error_MandateOwner": "Seul le propriétaire actuel de la faction peut désigner ou retirer un négociateur.",
+    "IGUI_RC_Error_MandateMember": "Ce joueur n'est plus membre de votre faction.",
+    "IGUI_RC_Error_MandateFull": "Nombre maximal de négociateurs atteint : retirez d'abord un mandat.",
+    "IGUI_RC_Error_State": "État modifié ou action impossible. Actualisez le carnet et confirmez à nouveau."
 }

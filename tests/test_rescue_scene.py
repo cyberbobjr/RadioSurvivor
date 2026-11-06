@@ -181,7 +181,7 @@ class OutcomeTests(SceneHarness):
         self.g.SIDE = 'server'
         self.rt.execute('ME.getUsername = function() return "kate" end; RS_CarnetServer.bound[ME] = "c1"'
                         '; BOB = Member(5003, 4995, "bob")')
-        self.rt.execute('R.teamOf = function() return "fac-1" end; package.loaded["RadioSurvivor/RS_Factions"].idOf'
+        self.rt.execute('R.teamOf = function() return "fac-1" end; package.loaded["RadioSurvivorCore/RC_Teams"].idOf'
                         ' = function() return "fac-1" end')
         self.start()
         self.deliver()

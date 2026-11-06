@@ -1461,4 +1461,16 @@ function RST.copyFilter(filter)
     return out
 end
 
+
+-- E18-T20: agreements, truces and incidents are Living Knox's (LK_Agreements), team ids and mandates the core mod's
+-- (RC_Teams): one table over both for the suites (authority only; nil fields when Living Knox is not active).
+function RST.factions()
+    local Teams = require "RadioSurvivorCore/RC_Teams"
+    return setmetatable({}, { __index = function(_, k)
+        local A = type(LivingKnox) == "table" and LivingKnox.Agreements or nil
+        if A ~= nil and A[k] ~= nil then return A[k] end
+        return Teams[k]
+    end })
+end
+
 return RST

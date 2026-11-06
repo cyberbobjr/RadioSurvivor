@@ -341,7 +341,7 @@ class TabsByModTests(unittest.TestCase):
         labels = sim.clients['alice'].rt.eval('(function() local out = {} for _, b in ipairs(RadioSurvivorCore.notebook'
                                               '.window.tabs) do out[#out + 1] = b.rsLabel end '
                                               'return table.concat(out, ",") end)()')
-        self.assertEqual(labels, 'IGUI_RS_Radio,IGUI_RC_Contacts,IGUI_RC_Missions,IGUI_RC_Reputation,IGUI_RS_Team')
+        self.assertEqual(labels, 'IGUI_RS_Radio,IGUI_RC_Contacts,IGUI_RC_Missions,IGUI_RC_Reputation,IGUI_LK_Team')  # E18-T20: Living Knox's tab
         self.assertEqual(window.tab, 'Contacts')
         self.assertTrue(sim.clients['alice'].rt.eval('RS_CarnetClient.window == RadioSurvivorCore.notebook.window'))
 

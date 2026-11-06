@@ -388,5 +388,20 @@
     "IGUI_LK_RelFact_assault_seen": "they saw you attack someone",
     "IGUI_LK_RelFact_good": "something you did for them",
     "IGUI_LK_RelFact_bad": "something you did against them",
-    "IGUI_LK_RelFact_neutral": "something they noticed"
+    "IGUI_LK_RelFact_neutral": "something they noticed",
+    "IGUI_LK_Team": "Team",
+    "IGUI_LK_Empty_Team": "Team not known yet. Wait for the server.",
+    "IGUI_LK_TeamFaction": "Faction: %1",
+    "IGUI_LK_TeamPersonal": "No faction: you form a team on your own and speak for it yourself.",
+    "IGUI_LK_TeamYou_owner": "You lead this team: you conclude its agreements and designate its negotiators.",
+    "IGUI_LK_TeamYou_negotiator": "You are a designated negotiator: you may conclude agreements for the faction.",
+    "IGUI_LK_TeamYou_member": "You are a member without a mandate: you cannot conclude agreements.",
+    "IGUI_LK_TeamRule": "Agreements with other groups are concluded by the faction owner or by a negotiator the owner designated. Rights are checked again at the moment of concluding. Renaming the faction keeps its agreements.",
+    "IGUI_LK_TeamMandates": "Negotiators: %1 / %2",
+    "IGUI_LK_TeamMember": "%1: %2",
+    "IGUI_LK_Role_owner": "Owner",
+    "IGUI_LK_Role_negotiator": "Negotiator",
+    "IGUI_LK_Role_member": "Member",
+    "IGUI_LK_MandateGrant": "Designate as negotiator",
+    "IGUI_LK_MandateRevoke": "Withdraw the mandate"
 }

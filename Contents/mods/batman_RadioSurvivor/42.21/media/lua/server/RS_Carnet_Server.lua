@@ -18,7 +18,10 @@ local T = require 'RadioSurvivor/RS_BridgeLanes'
 local Radio = require 'RadioSurvivor/RadioSurvivor_Const'
 local Obs = require 'RadioSurvivor/RS_Observations'
 local Triggers = require 'RadioSurvivor/RS_ObservationTriggers' -- E08-T07: observation triggers
-local Factions = require 'RadioSurvivor/RS_Factions' -- E09-T03: team ids and negotiation mandates
+local Teams = require 'RadioSurvivorCore/RC_Teams' -- E09-T03, E18-T20: team ids and mandates of the core mod
+-- E18-T20: agreements, personal truces and incidents are Living Knox's (LK_Agreements), read through its global; nil
+-- without Living Knox (no agreement offered, none applied). The speech that carries them moves there with E18-T17.
+local function Agreements() return type(LivingKnox) == 'table' and LivingKnox.Agreements or nil end
 local Relations = require 'RadioSurvivor/RS_Relations' -- E09-T04, E18-T21: relation kept by Living Knox, read by its API
 local RateLimit = require 'RadioSurvivorCore/RC_RateLimit' -- C21: per-account limit of the notebook commands
 local Server = {store = S, bound = {}, selected = {}, objects = {}, quotes = {}, pending = {}, times = {}, enrichTimes = {}, enrichAttempts = {}, lastTalk = {}, collectives = {}, reactions = {}, reactionQueue = {}, relations = {}, refusals = {}, MAX_REFUSALS = 16} -- E09-T04: relation bindings -- E17-T15: last refused requests (see poll) -- E10-T03: reactions, reaction queue
@@ -230,7 +233,7 @@ local function contactRows(player, character, team)
     return contacts
 end
 Contacts.registerSource('rs', {list = function(character, player)
-    return contactRows(player, character, Factions.projection(player))
+    return contactRows(player, character, Teams.projection(player))
 end})
 
 local function projection(player, pushed)
@@ -238,7 +241,7 @@ local function projection(player, pushed)
     local record = character and S.data.characters[character]
     if not record then return end
     local missions, inviteTargets = {}, {}
-    local team = Factions.projection(player) -- E09-T03: own team and mandates (Team tab)
+    local team = Teams.projection(player) -- E09-T03: own team (agreements of the relation panel)
     local contacts = contactRows(player, character, team)
     -- E18-T06: the same list as the mission journal of the core mod (RC_MissionList: who sees it, order, state).
     for _, m in pairs(S.data.missions) do
@@ -444,7 +447,7 @@ local function talk(player, character, args)
     -- may conclude for its team now (owner or designated negotiator); bound to the team and the agreement revision.
     local negotiation = nil
     if group and group.leader and context.stage == 'acquainted' then
-        negotiation = Factions.negotiation(player, group.ref)
+        negotiation = Agreements() and Agreements().negotiation(player, group.ref) or nil
         if negotiation then
             context.negotiation = {role = negotiation.role, teamName = negotiation.teamName,
                 personal = negotiation.personal, current = negotiation.current, terms = negotiation.terms}
@@ -706,8 +709,9 @@ local function reply(req, result)
                 if not speaker then ok, why = false, 'negotiator not connected' end
             end
             local a
+            if ok and not Agreements() then ok, why = false, 'no Living Knox agreements' end
             if ok then
-                ok, why, a = Factions.conclude(speaker, binding.ref, result.offer,
+                ok, why, a = Agreements().conclude(speaker, binding.ref, result.offer,
                     {team = binding.team, revision = binding.revision}, {character = req.character, npc = npc.id})
             end
             if ok then
@@ -721,7 +725,7 @@ local function reply(req, result)
         -- E10-T04: individual departure (intent leave_group), offered by context.leave. Same group and same composition
         -- as when the request was built (a late reply on an older composition is refused before any effect), then ONE
         -- transition by the provider (Provider.leave checks again and applies it); the truces of the old group that
-        -- covered the NPC become its personal truces (RS_Factions.keepTruces). Fiche, memories, contacts: unchanged.
+        -- covered the NPC become its personal truces (LivingKnox.Agreements.keepTruces). Fiche, memories, contacts: unchanged.
         if result.intent == 'leave_group' then
             if type(req.context) ~= 'table' or type(req.context.leave) ~= 'table' then return false, 'leave not offered' end
             local now = Server.collectiveBinding(npc)
@@ -729,7 +733,7 @@ local function reply(req, result)
             if now.key ~= binding.key then return false, 'group composition changed' end
             local left, why = P.leave(npc.incarnation, {ref = binding.ref, key = binding.key})
             if not left then return false, why end
-            local kept = Factions.keepTruces(npc.incarnation, binding.ref)
+            local kept = Agreements() and Agreements().keepTruces(npc.incarnation, binding.ref) or 0
             npc.clan, npc.groupName = tostring(left.ref or ''), Radio.oneLine(left.groupName or '')
             print('[RS_Carnet] ' .. npc.id .. ' left group ' .. binding.ref .. ' for ' .. tostring(left.ref) .. ', '
                 .. kept .. ' truce(s) kept, walk away ' .. (left.walk and 'issued' or ('failed: ' .. tostring(left.walkWhy))))
@@ -951,7 +955,6 @@ local function transact(player, character, command, args)
     publish()
 end
 
-local MANDATE_ERRORS = {not_owner = 'MandateOwner', not_member = 'MandateMember', full = 'MandateFull'}
 
 -- An empty argument table arrives as nil (SinglePlayerClient.java:126, GameClient.java:1760: args sent only when not
 -- empty): the first hello of a new character ({character = nil}) used to be dropped here, so no notebook character
@@ -1007,12 +1010,6 @@ function Server.command(module, command, player, args)
         local note = args.text:gsub('\r\n?', '\n'):gsub('[%c]', function(c) return c == '\n' and c or ' ' end)
         known.note = note
         S.save(); projection(player)
-    elseif command == 'mandate' then
-        -- E09-T03: only the current owner designates or withdraws a negotiator (revalidated by RS_Factions).
-        if args.action ~= 'grant' and args.action ~= 'revoke' then return reject(player, 'State') end
-        local ok, reason = Factions.designate(player, args.member, args.action == 'grant')
-        if not ok then return reject(player, MANDATE_ERRORS[reason] or 'State') end
-        S.save(); publish()
     else transact(player, character, command, args) end
 end
 
@@ -1183,25 +1180,10 @@ local function tick()
         end
         poll()
         -- E09-T03: bounded poll of the vanilla factions (no server event): renames, owners, members, disbands.
-        if Factions.sync(false) then changed = true end
-        -- E09-T05: agreements confirmed by the next decisions of the group (nobody aims at a covered player any more):
-        -- announced now, never before, to the online players of the team.
-        local applied = Factions.pollApplications()
-        if #applied > 0 then
-            S.save()
-            changed = true
-            local online = players()
-            for _, a in ipairs(applied) do
-                local signer = a.signed and S.data.npcs[a.signed.npc]
-                local name = signer and signer.groupName or ''
-                print('[RS_Carnet] agreement ' .. a.id .. ' (' .. a.kind .. ') between ' .. a.group .. ' and ' .. a.team
-                    .. ' applicable')
-                for _, p in ipairs(Factions.membersOnline(a.team, online)) do
-                    send(p, 'agreement', {id = a.id, revision = a.revision, kind = a.kind, state = a.state,
-                        groupName = name})
-                end
-            end
-        end
+        if Teams.sync(false) then changed = true end
+        -- E09-T05: agreements confirmed by the next decisions of the group (polled by Living Knox, E18-T20): announced
+        -- when they become applicable, never before, to the online players of the team (listener Server.announce).
+        if Agreements() then Agreements().onApplied(Server.announce) end
         checkAt = now + 1000
     end
     if now >= pruneAt then
@@ -1280,7 +1262,20 @@ function Server.conversationReply(req, result, npc)
     publish()
     return true
 end
--- E09-T06: decision of the group leader on an incident of an agreement (RS_Incidents, RS_Factions): applied once, then
+-- E09-T05: an agreement that became applicable (LivingKnox.Agreements.onApplied), announced on screen to the online
+-- players of its team with the name of the signer's group.
+function Server.announce(a)
+    local signer = a.signed and S.data and S.data.npcs[a.signed.npc]
+    local name = signer and signer.groupName or ''
+    print('[RS_Carnet] agreement ' .. a.id .. ' (' .. a.kind .. ') between ' .. a.group .. ' and ' .. a.team
+        .. ' applicable')
+    for _, p in ipairs(Agreements().membersOnline(a.team, players())) do
+        send(p, 'agreement', {id = a.id, revision = a.revision, kind = a.kind, state = a.state, groupName = name})
+    end
+    publish()
+end
+
+-- E09-T06: decision of the group leader on an incident of an agreement (RS_Incidents, LK_Agreements): applied once, then
 -- announced on screen to the online players of the team (decision, reparation category, group name).
 Server.incidents = require 'RadioSurvivor/RS_Incidents'
 function Server.incidentReply(req, result, npc)
@@ -1288,7 +1283,7 @@ function Server.incidentReply(req, result, npc)
     if not ok then return false, a end
     acknowledge(req, true, {})
     if not S.save() then return false, 'state not saved' end
-    for _, p in ipairs(Factions.membersOnline(a.team, players())) do
+    for _, p in ipairs(Agreements().membersOnline(a.team, players())) do
         send(p, 'incident', {id = inc.id, decision = inc.decision, category = inc.category or '',
             revision = a.revision, groupName = npc.groupName or ''})
     end
