@@ -483,7 +483,7 @@ class RecoverMissionTests(unittest.TestCase):
         self.assertEqual(texts, ['IGUI_RS_MapZoneCache|Real Bandit', 'IGUI_RS_MapZoneDepot|Real Bandit'])
         rings = sorted((s['x'], s['y']) for s in drawn if s['kind'] == 'texture')
         self.assertIn((14, 10), rings)
-        c.g.RS_UI_Notebook.toggle()
+        c.g.RS_Notebook.toggle()
         window = c.g.RS_CarnetClient.window
         window.changeTab(window, 'Missions')
         label = c.rt.eval('RS_CarnetClient.window.list.items[1].text')

@@ -339,7 +339,7 @@ class FactionTests(unittest.TestCase):
         c = self.sim.clients['alice']
         c.rt.execute(NOTEBOOK_UI)
         c.load('client/RS_Carnet_Client.lua')
-        c.g.RS_UI_Notebook.toggle()
+        c.g.RS_Notebook.toggle()
         window = c.g.RS_CarnetClient.window
         self.sim.command('alice', 'snapshot')
         window.changeTab(window, 'Team')
@@ -359,7 +359,7 @@ class FactionTests(unittest.TestCase):
         b = self.sim.clients['bob']
         b.rt.execute(NOTEBOOK_UI)
         b.load('client/RS_Carnet_Client.lua')
-        b.g.RS_UI_Notebook.toggle()
+        b.g.RS_Notebook.toggle()
         bw = b.g.RS_CarnetClient.window
         bw.changeTab(bw, 'Team')
         bw.selectedId = 'alice'

@@ -563,7 +563,7 @@ et n'affiche aucune ligne de groupe pour un PNJ sans groupe. Textes FR/EN dynami
 écrit à l'encre sombre (balise `<RGB:0.16,0.17,0.14>`, `E00-T12`). Cache `getTexture` et repli par
 couleurs si texture absente. Namespace `RS_UI_*`, `RS_Carnet`, `RS_*`.
 
-Les textures du carnet papier (`RS_Notebook_*.png`) sont générées par `tools/gen_notebook_textures.py` ;
+Les textures du carnet papier (`RC_Notebook_*.png`, mod commun depuis E18-T24) sont générées par `tools/gen_notebook_textures.py` ;
 les anciennes copies papier et couverture de cette première version ont été retirées. Aucune capture d'un autre mod, icône vanilla ni donnée fictive de la maquette n'est copiée dans
 l'interface de jeu. Cette provenance locale n'annonce aucune publication de ressources. Ouverture du
 carnet vérifiée en solo le 2026-10-08 (sans PNJ) ; rendu avec contenu, grandes polices, petites

@@ -7,9 +7,9 @@ Steps (RST.Steps.on; solo: the local player answers in the same Lua state)
     rep.read   { refresh = bool, wait = { level?, reasonKey? } }: the reputation of the notebook snapshot of this
                client (RS_CarnetClient.snapshot.reputation), after a 'snapshot' request when refresh is true, waited
                until it matches `wait` (or the client deadline). data { available, level, trend, reasons (count),
-               reasonKey (newest act), reasonArg, changeTo, lines (Reputation tab, RS_UI_Notebook.reputationLines,
+               reasonKey (newest act), reasonArg, changeTo, lines (Reputation tab, RS_Notebook.reputationLines,
                translated and joined by " / "), digit (true when a digit is shown), warned (last warning text over
-               the character, RS_UI_Notebook.reputationWarning) }.
+               the character, RS_Notebook.reputationWarning) }.
     rep.admin  {}: the notebook command 'rep_admin' (administrator view, Q17), answer read from
                RS_CarnetClient.repAdmin: data { ok, err, count, names = "a, b", score (true when a field 'score' was
                received) }.
@@ -44,7 +44,7 @@ function PRp.describe(C)
         data.reasonArg = type(reasons[1].reasonArgs) == "table" and reasons[1].reasonArgs[1] or nil
     end
     data.changeTo = type(rep.change) == "table" and rep.change.to or nil
-    local N = RS_UI_Notebook
+    local N = RS_Notebook
     if N ~= nil and type(N.reputationLines) == "function" then
         local lines = N.reputationLines(rep, snap.contacts)
         local text = table.concat(lines, " / ")

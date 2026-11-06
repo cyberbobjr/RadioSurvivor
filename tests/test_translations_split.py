@@ -7,7 +7,8 @@ and mission titles; no sandbox option, none of the existing options is about the
 (IGUI_LK_, Sandbox_LivingKnox_, page LivingKnox) and RadioSurvivor (the rest, page RadioSurvivor). Checks:
 
 - union of the keys of the three mods = keys before the split (fixture tests/fixtures/e18-t13/keys-before.json, written
-  from commit 4ab5c75, the last one with a single mod) + keys of the journal (E18-T06), mission titles renamed;
+  from commit 4ab5c75, the last one with a single mod) + keys of the journal (E18-T06) and of the notebook frame of the
+  core mod (E18-T24, journal window removed), mission titles and common tab labels renamed;
 - no key shipped by two mods, prefixes of each mod kept apart, every shipped language has the same keys;
 - every literal key used by the Lua of a mod is shipped by that mod, by a mod it requires or by the game;
 - every sandbox option kept with the same name (settings of an existing game read again), on its mod's page, with its
@@ -41,6 +42,11 @@ FIXTURE = ROOT / 'tests' / 'fixtures' / 'e18-t13' / 'keys-before.json'
 RENAMED = {f'IGUI_RS_{n}': f'IGUI_RC_Mission_{n}' for n in (
     'FirstAid', 'Scout', 'Supply', 'Supply_food', 'Supply_medical', 'Supply_ammo',
     'Retrieve', 'Clear', 'Recover', 'Signal')}
+# E18-T24: labels of the common tabs of the notebook, now in the core mod.
+RENAMED.update({f'IGUI_RS_{n}': f'IGUI_RC_{n}' for n in ('Contacts', 'Missions', 'Reputation', 'Empty_Reputation')})
+# E18-T24: frame of the notebook in the core mod; the journal window and its button are gone.
+NOTEBOOK = {'IGUI_RC_Notebook', 'IGUI_RC_NotebookHint', 'IGUI_RC_Empty_Contacts'}
+REMOVED = {'IGUI_RC_Journal', 'IGUI_RC_JournalButton', 'IGUI_RC_JournalHint'}
 JOURNAL = {
     'IGUI_RC_Journal', 'IGUI_RC_JournalButton', 'IGUI_RC_JournalEmpty', 'IGUI_RC_JournalHint', 'IGUI_RC_Mission',
     'IGUI_RC_Participants', 'IGUI_RC_ReportHint', 'IGUI_RC_Requester', 'IGUI_RC_Reward', 'IGUI_RC_TimeLeft',
@@ -101,7 +107,7 @@ class TranslationSplitTests(unittest.TestCase):
             for name, before in self.before['keys'][lang].items():
                 expected = set(before)
                 if name == 'IG_UI':
-                    expected = (expected - set(RENAMED)) | set(RENAMED.values()) | JOURNAL
+                    expected = (expected - set(RENAMED)) | set(RENAMED.values()) | ((JOURNAL | NOTEBOOK) - REMOVED)
                 union = set()
                 for mod in MODS:
                     union |= self.keys[mod].get(lang, {}).get(name, set())
@@ -164,7 +170,7 @@ class TranslationSplitTests(unittest.TestCase):
         lua = LuaRuntime(unpack_returned_tuples=True)
         path = media('core') / 'lua' / 'shared' / 'RadioSurvivorCore' / 'RC_MissionConfig.lua'
         mc = lua.execute(path.read_text(encoding='utf-8'))
-        for old, new in RENAMED.items():
+        for old, new in ((o, n) for o, n in RENAMED.items() if n.startswith('IGUI_RC_Mission_')):
             self.assertEqual(mc.titleKey(old), new)
             self.assertEqual(mc.titleKey(new), new)
         self.assertEqual(mc.titleKey('IGUI_RC_Probe'), 'IGUI_RC_Probe')

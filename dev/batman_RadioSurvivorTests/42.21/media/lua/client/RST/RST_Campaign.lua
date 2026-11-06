@@ -22,6 +22,7 @@ require "RST/RST_Client"
 RST.CAMPAIGNS = RST.CAMPAIGNS or {}
 
 RST.CAMPAIGNS["solo-lk"] = {
+    "rc.notebook",      -- E18-T24 (bookmarks of the active mods)
     "lk.fitness",       -- LK05-T16
     "lk.teamneeds",     -- LK05-T15
     "lk.health",        -- LK07-T06
@@ -65,6 +66,7 @@ RST.CAMPAIGNS["solo-rs"] = {
     "rs.env",           -- E01-T08
     "rs.codec",         -- E01-T08
     "rs.missions",      -- E01-T08, E00-T03, E00-T10, E11-T11 (prefix: radio, scout, solo)
+    "rc.notebook",      -- E18-T24 (bookmarks of the active mods)
     "rs.notebook.ink",  -- E00-T12
     "rs.notebook.relation", -- E09-T07
     "rs.notebook.visual", -- E03-T02 (changes the display mode for a while, restored after)

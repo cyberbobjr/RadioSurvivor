@@ -584,7 +584,7 @@ class SourceTests(unittest.TestCase):
 
     def test_notebook_keys_exist_in_en_and_fr(self):
         keys = {'IGUI_RS_' + k for k in re.findall(r"\btr\('(\w+)'\s*[,)]", NOTEBOOK.read_text(encoding='utf-8'))}
-        keys |= {'IGUI_RS_' + k for k in ('Radio', 'Contacts', 'Missions', 'Reputation')}
+        keys |= {'IGUI_RS_' + k for k in ('Radio', 'Team')}
         keys |= {'IGUI_RS_Radio_' + k for k in ('said', 'reply', 'heard')}
         keys |= set(re.findall(r"getText\('(IGUI_\w+)'\s*[,)]", NOTEBOOK.read_text(encoding='utf-8')))
         for lang in ('EN', 'FR'):

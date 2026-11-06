@@ -1,7 +1,4 @@
 {
-    "IGUI_RC_Journal": "Missions journal",
-    "IGUI_RC_JournalButton": "Missions",
-    "IGUI_RC_JournalHint": "Open the missions journal: offers, missions under way and missions to report.",
     "IGUI_RC_JournalEmpty": "No mission offered or under way.",
     "IGUI_RC_Mission": "Mission",
     "IGUI_RC_Requester": "Requester: %1",
@@ -27,5 +24,12 @@
     "IGUI_RC_Mission_Retrieve": "A missing person’s ID card",
     "IGUI_RC_Mission_Clear": "Clearing the surroundings of a place",
     "IGUI_RC_Mission_Recover": "Bringing back a cache",
-    "IGUI_RC_Mission_Signal": "Signalling at a place"
+    "IGUI_RC_Mission_Signal": "Signalling at a place",
+    "IGUI_RC_Notebook": "Notebook",
+    "IGUI_RC_NotebookHint": "Open the notebook: contacts, missions, reputation and the pages of your mods.",
+    "IGUI_RC_Contacts": "Contacts",
+    "IGUI_RC_Missions": "Missions",
+    "IGUI_RC_Reputation": "Reputation",
+    "IGUI_RC_Empty_Contacts": "No contacts yet.",
+    "IGUI_RC_Empty_Reputation": "Reputation unknown."
 }

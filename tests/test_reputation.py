@@ -564,7 +564,7 @@ class Effects(unittest.TestCase):
                      "HaloTextHelper.addGoodText = function(p, t) HALOS[#HALOS + 1] = 'good:' .. t end\n"
                      "HaloTextHelper.addBadText = function(p, t) HALOS[#HALOS + 1] = 'bad:' .. t end")
         c.load('client/RS_Carnet_Client.lua')
-        c.g.RS_UI_Notebook.toggle()
+        c.g.RS_Notebook.toggle()
         window = c.g.RS_CarnetClient.window
         sim.command('alice', 'snapshot')
         window.changeTab(window, 'Reputation')

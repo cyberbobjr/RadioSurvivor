@@ -1213,7 +1213,7 @@ Walkie Talkies actif en MP (aucune bulle ajoutée, ⚠ non vérifié).
 
 Refonte visuelle du carnet selon la maquette A (`docs/annexes/maquettes/carnet-papier.dc.html`) : papier crème, reliure à
 anneaux, marque-pages colorés à droite, onglet Radio en deux colonnes avec la ligne « Dire : ». Textures du mod
-`media/textures/RadioSurvivor/RS_Notebook_*.png`, produites par `python RadioSurvivor/tools/gen_notebook_textures.py`
+`media/textures/RadioSurvivorCore/RC_Notebook_*.png` (mod commun), produites par `python RadioSurvivor/tools/gen_notebook_textures.py`
 (`--preview FICHIER.png` : aperçu composé hors jeu, polices Windows et non celles du jeu). Hors jeu :
 `tests/test_radio_history.py` (`IntegrationTests` : sélection, point par fréquence, saisie par `Talk.send`, grisé,
 focus, dessin avec et sans texture, aucun texte hors de sa page à la taille minimale), `tests/test_carnet.py`

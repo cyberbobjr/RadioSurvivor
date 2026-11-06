@@ -396,8 +396,8 @@ class NotebookVisualTests(unittest.TestCase):
 
     def test_detects_a_button_outside_the_window(self):
         self.c.rt.execute('''
-            local layout = RS_UI_Notebook.layout
-            RS_UI_Notebook.layout = function(self) layout(self); if self.saveNote then self.saveNote:setX(self.width) end end
+            local layout = RC_UI_Notebook.layout
+            RC_UI_Notebook.layout = function(self) layout(self); if self.saveNote then self.saveNote:setX(self.width) end end
         ''')
         status, message, notes = self.only(self.run_async('views'))
         self.assertEqual(status, 'FAIL')
@@ -407,8 +407,8 @@ class NotebookVisualTests(unittest.TestCase):
 
     def test_detects_a_text_wider_than_its_button(self):
         self.c.rt.execute('''
-            local layout = RS_UI_Notebook.layout
-            RS_UI_Notebook.layout = function(self) layout(self); if self.talk then self.talk:setWidth(20) end end
+            local layout = RC_UI_Notebook.layout
+            RC_UI_Notebook.layout = function(self) layout(self); if self.talk then self.talk:setWidth(20) end end
         ''')
         status, _, notes = self.only(self.run_sync('translation tables'))
         self.assertEqual(status, 'FAIL')
@@ -431,8 +431,8 @@ class NotebookVisualTests(unittest.TestCase):
     def test_detects_controls_pushed_out_by_a_larger_font_at_the_former_minimum(self):
         # Minimum size before E03-T02 (660 x 480 whatever the font): the Contacts buttons leave the window.
         self.c.rt.execute('''
-            local new = RS_UI_Notebook.new
-            RS_UI_Notebook.new = function(self)
+            local new = RC_UI_Notebook.new
+            RC_UI_Notebook.new = function(self)
                 local o = new(self); o.minimumWidth, o.minimumHeight = 660, 480; return o
             end
         ''')
@@ -496,7 +496,7 @@ class NotebookVisualTests(unittest.TestCase):
         self.assertEqual(len(lua_list(inv['items'])), before, 'long named test item left in the inventory')
 
     def test_delivery_window_over_the_notebook_and_on_screen(self):
-        self.c.rt.execute('RS_UI_Notebook.toggle()')
+        self.c.rt.execute('RS_Notebook.toggle()')
         geo = self.c.rt.eval('''function()
             local Notebook, w = require "RadioSurvivor/RS_Notebook", RS_CarnetClient.window
             local mission = RST.NotebookVisual.fixture(RS_CarnetClient, getSpecificPlayer(0)).missions[1]
@@ -521,8 +521,8 @@ class NotebookVisualTests(unittest.TestCase):
     def test_detects_a_delivery_window_in_the_top_left_corner(self):
         # Placement before E03-T07: Delivery:new(0, 0, ...), under the sidebar.
         self.c.rt.execute('''
-            local new = RS_UI_Notebook.newDelivery
-            RS_UI_Notebook.newDelivery = function(mission)
+            local new = RS_Notebook.newDelivery
+            RS_Notebook.newDelivery = function(mission)
                 local dw = new(mission); dw:setX(0); dw:setY(0); return dw
             end
         ''')
@@ -534,8 +534,8 @@ class NotebookVisualTests(unittest.TestCase):
     def test_detects_an_item_name_not_cut(self):
         # Rows before E03-T07: the name drawn whole.
         self.c.rt.execute('''
-            local new = RS_UI_Notebook.newDelivery
-            RS_UI_Notebook.newDelivery = function(...)
+            local new = RS_Notebook.newDelivery
+            RS_Notebook.newDelivery = function(...)
                 local dw = new(...)
                 local create = dw.createChildren
                 dw.createChildren = function(self)
@@ -554,8 +554,8 @@ class NotebookVisualTests(unittest.TestCase):
 
     def test_detects_a_detail_that_jumps_on_refresh(self):
         self.c.rt.execute('''
-            local refresh = RS_UI_Notebook.refresh
-            RS_UI_Notebook.refresh = function(self) refresh(self); self.detail:setYScroll(0) end
+            local refresh = RC_UI_Notebook.refresh
+            RC_UI_Notebook.refresh = function(self) refresh(self); self.detail:setYScroll(0) end
         ''')
         status, _, notes = self.only(self.run_async('scroll'))
         self.assertEqual(status, 'FAIL')

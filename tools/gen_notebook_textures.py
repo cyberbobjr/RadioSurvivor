@@ -3,13 +3,13 @@
     python RadioSurvivor/tools/gen_notebook_textures.py                 # writes the PNG files of the mod
     python RadioSurvivor/tools/gen_notebook_textures.py --preview OUT.png   # plus an offline composed preview
 
-Files (media/textures/RadioSurvivor/, prefixed names: getTexture looks a base name up in the vanilla packs first,
+Files (media/textures/RadioSurvivorCore/, prefixed names: getTexture looks a base name up in the vanilla packs first,
 base ui-windows.md), sizes in powers of two:
-  RS_Notebook_Paper.png   256x256 cream paper, seamless (tiled by drawTextureTiled)
-  RS_Notebook_Binding.png  32x256 brown leather strip, seamless vertically (tiled)
-  RS_Notebook_Ring.png     32x32  metal ring through a punched hole (alpha)
-  RS_Notebook_Tab.png      64x32  white bookmark, rounded on the left (tinted by the draw colour)
-  RS_Notebook_Dot.png      16x16  white disc (tinted: unread indicator)
+  RC_Notebook_Paper.png   256x256 cream paper, seamless (tiled by drawTextureTiled)
+  RC_Notebook_Binding.png  32x256 brown leather strip, seamless vertically (tiled)
+  RC_Notebook_Ring.png     32x32  metal ring through a punched hole (alpha)
+  RC_Notebook_Tab.png      64x32  white bookmark, rounded on the left (tinted by the draw colour)
+  RC_Notebook_Dot.png      16x16  white disc (tinted: unread indicator)
 Deterministic (fixed seed): running it twice gives identical files. Requires Pillow.
 """
 from __future__ import annotations
@@ -21,7 +21,7 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 ROOT = Path(__file__).resolve().parents[1]
-OUT = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivor' / '42.21' / 'media' / 'textures' / 'RadioSurvivor'
+OUT = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivorCore' / '42.21' / 'media' / 'textures' / 'RadioSurvivorCore'
 
 PAPER = (0xef, 0xe6, 0xcf)
 BINDING = (0x6b, 0x4a, 0x2b)
@@ -111,11 +111,11 @@ def dot() -> Image.Image:
 
 
 TEXTURES = {
-    'RS_Notebook_Paper.png': paper,
-    'RS_Notebook_Binding.png': binding,
-    'RS_Notebook_Ring.png': ring,
-    'RS_Notebook_Tab.png': tab,
-    'RS_Notebook_Dot.png': dot,
+    'RC_Notebook_Paper.png': paper,
+    'RC_Notebook_Binding.png': binding,
+    'RC_Notebook_Ring.png': ring,
+    'RC_Notebook_Tab.png': tab,
+    'RC_Notebook_Dot.png': dot,
 }
 
 
@@ -129,7 +129,7 @@ def colorize(img: Image.Image, color: tuple[int, int, int]) -> Image.Image:
 
 
 def preview(images: dict[str, Image.Image], path: Path) -> None:
-    """Offline composition of the Radio tab (layout of RS_Notebook.lua at 1x, fonts are NOT the game fonts)."""
+    """Offline composition of the Radio tab (layout of RC_Notebook.lua at 1x, fonts are NOT the game fonts)."""
     W, H, TH = 880, 560, 20
     tab_w = 96
     img = Image.new('RGBA', (W, H), (0x20, 0x1f, 0x1c, 255))
@@ -143,14 +143,14 @@ def preview(images: dict[str, Image.Image], path: Path) -> None:
     paper_right = W - tab_w
     d.rectangle((0, 0, W, TH), fill=(0x2b, 0x2a, 0x26, 255))
     d.text((W // 2 - 30, 3), 'Carnet', fill=PAPER, font=font_s)
-    tile = images['RS_Notebook_Paper.png']
+    tile = images['RC_Notebook_Paper.png']
     for y in range(TH, H, 256):
         for x in range(0, paper_right, 256):
             img.paste(tile.crop((0, 0, min(256, paper_right - x), min(256, H - y))), (x, y))
-    strip = images['RS_Notebook_Binding.png']
+    strip = images['RC_Notebook_Binding.png']
     for y in range(TH, H, 256):
         img.paste(strip.crop((0, 0, 26, min(256, H - y))), (0, y))
-    ring_img = images['RS_Notebook_Ring.png']
+    ring_img = images['RC_Notebook_Ring.png']
     for i in range(6):
         y = TH + 30 + i * ((H - TH - 60) // 5)
         img.alpha_composite(ring_img.resize((20, 20)), (3, y - 10))
@@ -170,7 +170,7 @@ def preview(images: dict[str, Image.Image], path: Path) -> None:
             d.rectangle((col_x, y, col_x + col_w, y + 46), fill=(0xf8, 0xf1, 0xdc), outline=(0xb8, 0x9d, 0x62))
         d.text((col_x + 8, y + 4), label, fill=(0x1e, 0x3a, 0x5f) if selected else (0x3b, 0x34, 0x27), font=font_m)
         if unread:
-            dot_img = colorize(images['RS_Notebook_Dot.png'], (0xb5, 0x53, 0x1c)).resize((9, 9))
+            dot_img = colorize(images['RC_Notebook_Dot.png'], (0xb5, 0x53, 0x1c)).resize((9, 9))
             img.alpha_composite(dot_img, (col_x + 8 + int(d.textlength(label, font=font_m)) + 6, y + 10))
         d.text((col_x + 8, y + 26), last, fill=(0x6b, 0x5a, 0x3a), font=font_s)
         y += 50
@@ -190,7 +190,7 @@ def preview(images: dict[str, Image.Image], path: Path) -> None:
     d.text((right_x + 50, base + 6), 'Parler sur 140.8 MHz', fill=(0x9a, 0x90, 0x7a), font=font_m)
     d.rectangle((paper_right - 116, base, paper_right - 16, base + 32), fill=(0x7a, 0x3b, 0x12))
     d.text((paper_right - 98, base + 8), 'Émettre', fill=PAPER, font=font_s)
-    tab_img = images['RS_Notebook_Tab.png']
+    tab_img = images['RC_Notebook_Tab.png']
     tabs = [('Radio', (0xb5, 0x53, 0x1c)), ('Contacts', (0x7f, 0x6f, 0x45)), ('Missions', (0x5e, 0x7a, 0x4f)),
             ('Réputation', (0x4f, 0x5e, 0x7a))]
     y = TH + 30

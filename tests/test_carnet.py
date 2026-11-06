@@ -1182,7 +1182,7 @@ class CarnetTests(unittest.TestCase):
         with self.assertRaisesRegex(Exception, 'setMaxTextLength of non-table'):
             c.rt.execute("local b = ISTextEntryBox:new('', 0, 0, 10, 10); b:initialise(); b:setMaxTextLength(5)")
         c.load('client/RS_Carnet_Client.lua')
-        notebook = c.g.RS_UI_Notebook
+        notebook = c.g.RS_Notebook
         notebook.toggle()  # Notebook:new, initialise, addToUIManager -> instantiate -> createChildren
         window = c.g.RS_CarnetClient.window
         self.assertIsNotNone(window)
@@ -1255,7 +1255,7 @@ def solo_game(path: Path, clock):
 def open_notebook(game):
     game.rt.execute(NOTEBOOK_UI)
     game.load('client/RS_Carnet_Client.lua')
-    game.g.RS_UI_Notebook.toggle()
+    game.g.RS_Notebook.toggle()
     return game.g.RS_CarnetClient.window
 
 
@@ -1311,7 +1311,7 @@ class ReportCases:
             c.rt.execute(NOTEBOOK_UI)
             c.rt.execute("getScriptManager = function() return {FindItem = function() return nil end} end")
             c.load('client/RS_Carnet_Client.lua')
-            c.g.RS_UI_Notebook.toggle()
+            c.g.RS_Notebook.toggle()
         sim.command('alice', 'snapshot', world=c.g.RS_CarnetClient.world, run=c.g.RS_CarnetClient.run)
         window = c.g.RS_CarnetClient.window
         window.changeTab(window, 'Missions')
@@ -1336,7 +1336,7 @@ class ReportCases:
         self.assertEqual((row['state'], row['toReport']), ('active', True))
         self.assertIn('IGUI_RS_State_toReport', window.detail.text)
         self.assertIn('IGUI_RS_ReportInPerson|' + row['requester'], window.detail.text)
-        self.assertEqual(c.g.RS_UI_Notebook.rowSecondLine(c.g.RS_CarnetClient.snapshot.missions[1]),
+        self.assertEqual(c.g.RS_Notebook.rowSecondLine(c.g.RS_CarnetClient.snapshot.missions[1]),
                          'IGUI_RS_StateShort_toReport')
         self.assertTrue(window.report.isVisible(window.report), 'no Report button')
         # Said to another NPC: nothing reportable, a report_done there changes nothing.
@@ -2587,7 +2587,7 @@ class ScoutMissionTests(unittest.TestCase):
         c.rt.execute(NOTEBOOK_UI)
         c.rt.execute("getScriptManager = function() return {FindItem = function() return nil end} end")
         c.load('client/RS_Carnet_Client.lua')
-        c.g.RS_UI_Notebook.toggle()
+        c.g.RS_Notebook.toggle()
         window = c.g.RS_CarnetClient.window
         window.changeTab(window, 'Missions')
         self.assertIn('IGUI_RS_ScoutNotReached', window.detail.text)
@@ -2929,7 +2929,7 @@ class ScoutMissionTests(unittest.TestCase):
             getText = function(key, ...) return format(key, EN_TEXTS[key] or key, select('#', ...), ...) end
         """)
         c.load('client/RS_Carnet_Client.lua')
-        c.g.RS_UI_Notebook.toggle()
+        c.g.RS_Notebook.toggle()
         window = c.g.RS_CarnetClient.window
         window.changeTab(window, 'Missions')
         text = window.detail.text
@@ -3331,7 +3331,7 @@ class VoiceMissionTests(unittest.TestCase):
         c.rt.execute(NOTEBOOK_UI)
         c.rt.execute("getScriptManager = function() return {FindItem = function() return nil end} end")
         c.load('client/RS_Carnet_Client.lua')
-        c.g.RS_UI_Notebook.toggle()
+        c.g.RS_Notebook.toggle()
         window = c.g.RS_CarnetClient.window
         window.changeTab(window, 'Missions')
         text = window.detail.text

@@ -127,10 +127,10 @@ class RelationPanelTests(unittest.TestCase):
             c.load('client/RS_Carnet_Client.lua')
             c.rel_ui = True
         if rel is None:
-            out = c.g.RS_UI_Notebook.relationLines(None)
+            out = c.g.RS_Notebook.relationLines(None)
         else:
             [row] = [r for r in c.g.RS_CarnetClient.snapshot.contacts.values() if r.id == rel]
-            out = c.g.RS_UI_Notebook.relationLines(row.relation)
+            out = c.g.RS_Notebook.relationLines(row.relation)
         self.assertEqual(list(c.g.MISSING_ARGS.values()), [], 'a text read without its arguments')
         return [out[i] for i in range(1, len(out) + 1)]
 
@@ -212,7 +212,7 @@ class RelationPanelTests(unittest.TestCase):
         self.sim.command('alice', 'select', incarnation=self.g.LK_LEADER)
         self.lines('alice', None)  # loads the notebook client with the English table
         c = self.sim.clients['alice']
-        c.g.RS_UI_Notebook.toggle()
+        c.g.RS_Notebook.toggle()
         window = c.g.RS_CarnetClient.window
         window.selectedId = self.fiche(self.g.LK_LEADER).id
         window.showDetail(window)
@@ -274,7 +274,7 @@ class RelationPanelTests(unittest.TestCase):
             'agreements': c.rt.table_from([c.rt.table_from({'kind': 'pact', 'state': 'odd',
                                                             'scope': c.rt.table_from({'group': 'x', 'team': 'y'})})]),
         })
-        out = c.g.RS_UI_Notebook.relationLines(rel)
+        out = c.g.RS_Notebook.relationLines(rel)
         lines = [out[i] for i in range(1, len(out) + 1)]
         self.assert_clean(lines)
         self.assertEqual(lines[0], 'Attitude toward you: cautious (steady).')

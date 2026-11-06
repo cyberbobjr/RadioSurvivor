@@ -41,8 +41,8 @@ local function reply(player, rows)
     if isServer() then
         sendServerCommand(player, Journal.MODULE, "missions", args)
     else
-        -- solo: same Lua, the client side of the journal (RC_MissionJournalView) gets the answer directly
-        local view = RadioSurvivorCore and RadioSurvivorCore.missionJournal
+        -- solo: same Lua, the notebook of the core mod (RC_Notebook, Missions tab) gets the answer directly
+        local view = RadioSurvivorCore and RadioSurvivorCore.notebook and RadioSurvivorCore.notebook.journal
         if view and view.receive then view.receive(args) end
     end
 end

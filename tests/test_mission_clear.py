@@ -288,7 +288,7 @@ class ClearMissionTests(unittest.TestCase):
         sim.command('alice', 'snapshot', world=c.g.RS_CarnetClient.world, run=c.g.RS_CarnetClient.run)
         texts = [convert(s)['text'] for s in lua_list(c.rt.eval('mapSymbols()')) if convert(s)['kind'] == 'text']
         self.assertEqual(texts, ['IGUI_RS_MapZoneClear|Real Bandit'])
-        c.g.RS_UI_Notebook.toggle()
+        c.g.RS_Notebook.toggle()
         window = c.g.RS_CarnetClient.window
         window.changeTab(window, 'Missions')
         label = c.rt.eval('RS_CarnetClient.window.list.items[1].text')

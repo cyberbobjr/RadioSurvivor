@@ -504,7 +504,7 @@ class IntegrationTests(unittest.TestCase):
         alice.rt.execute("ISTimedActionQueue = { add = function(a) QUEUED = a end }; "
                          "ISRadioAction = { new = function(self, mode, p, radio, khz) return { mode = mode, khz = khz } end }")
         alice.load('client/RS_Carnet_Client.lua')
-        notebook = alice.g.RS_UI_Notebook
+        notebook = alice.g.RS_Notebook
         # Answer received with the notebook never opened: indicator on, lines read again at opening.
         alice.rt.eval("Talk.send(getPlayer(), getPlayer().radio, 'Walt?')")
         self.answer(sim, 'Still here.')
@@ -587,7 +587,7 @@ class IntegrationTests(unittest.TestCase):
         self.answer(sim, 'Still here.')
         self.heard_on(sim, 'alice', 146400, 'Anyone on 146.4?')
         self.assertEqual(self.unread(alice), {145000: True, 146400: True}, 'lines nobody read: dots')
-        alice.g.RS_UI_Notebook.toggle()
+        alice.g.RS_Notebook.toggle()
         window = alice.g.RS_CarnetClient.window
         window.changeTab(window, 'Radio')
         # Most recent frequency first and selected: read; the other one keeps its dot (orange, next to its label).
@@ -661,14 +661,14 @@ class IntegrationTests(unittest.TestCase):
         self.assertFalse(window.say.isVisible(window.say))
         window.changeTab(window, 'Radio')
         window.say.focus(window.say)
-        alice.g.RS_UI_Notebook.toggle()
+        alice.g.RS_Notebook.toggle()
         self.assertFalse(window.say.isFocused(window.say))
 
     def test_radio_without_a_radio_sends_nothing_and_says_why(self):
         sim = self.simulation(self.tmp / 'noradio')
         alice = self.notebook(sim)
         alice.rt.execute("getPlayer().inHand = false")
-        alice.g.RS_UI_Notebook.toggle()
+        alice.g.RS_Notebook.toggle()
         window = alice.g.RS_CarnetClient.window
         window.changeTab(window, 'Radio')
         window.update(window)
@@ -686,7 +686,7 @@ class IntegrationTests(unittest.TestCase):
             alice.rt.eval("Talk.send(getPlayer(), getPlayer().radio, 'Walt?')")
             self.answer(sim, 'Still here.')
             self.heard_on(sim, 'alice', 146400, 'Anyone?')
-            alice.g.RS_UI_Notebook.toggle()
+            alice.g.RS_Notebook.toggle()
             window = alice.g.RS_CarnetClient.window
             # Smallest window: every label measured (7 px per character in the double) stays on its page.
             window.setWidth(window, window.minimumWidth)
@@ -724,7 +724,7 @@ class IntegrationTests(unittest.TestCase):
                 self.assertEqual(len(tiled), 2 if textures else 0, 'paper and binding tiled only when present')
             mine = [a for a in alice.g.TEXTURES_ASKED.values() if 'RadioSurvivor' in a]
             self.assertEqual(len(mine), 5)
-            self.assertTrue(all('/RS_Notebook_' in a for a in mine), mine)
+            self.assertTrue(all('/RC_Notebook_' in a for a in mine), mine)
 
     def check_scrolling_and_widths(self, c, window, label):
         """One frame (Java update, then render), then: no vanilla scroll bar, texts inside what the player sees, the
@@ -771,7 +771,7 @@ class IntegrationTests(unittest.TestCase):
             self.heard_on(sim, 'alice', 140800 + i * 200, f'Line {i} on this frequency, long enough to wrap on paper.')
         for i in range(30):
             self.heard_on(sim, 'alice', 140800, f'Conversation line {i}: anyone hearing this, please answer me now.')
-        alice.g.RS_UI_Notebook.toggle()
+        alice.g.RS_Notebook.toggle()
         window = alice.g.RS_CarnetClient.window
         window.setHeight(window, window.minimumHeight)
         window.changeTab(window, 'Radio')
@@ -934,18 +934,18 @@ class VoiceKnownTests(unittest.TestCase):
         alice.rt.execute("getTextOrNull = function(k) if k == 'IGUI_RS_Voice_walt' then return 'Walt' end end")
         self.assertTrue(alice.rt.eval("Talk.send(getPlayer(), getPlayer().radio, 'Walt?')"))
         self.it.answer(self.sim, 'Walt here.')
-        alice.g.RS_UI_Notebook.toggle()
+        alice.g.RS_Notebook.toggle()
         window = alice.g.RS_CarnetClient.window
         window.changeTab(window, 'Radio')
         self.assertEqual(window.row.khz, 145000)
         self.assertIn('IGUI_RS_RadioVoice|Walt|IGUI_RS_RadioHours|19:00-22:00', window.detail.text)
-        self.assertEqual(alice.g.RS_UI_Notebook.rowSecondLine(window.row), 'Walt')
+        self.assertEqual(alice.g.RS_Notebook.rowSecondLine(window.row), 'Walt')
         # A frequency without a known voice keeps its last line, and no voice line on its page.
         self.it.heard_on(self.sim, 'carol', 146400, 'Anyone?')
         window.changeTab(window, 'Radio')
         self.assertEqual(window.row.khz, 146400)
         self.assertNotIn('IGUI_RS_RadioVoice', window.detail.text)
-        self.assertEqual(alice.g.RS_UI_Notebook.rowSecondLine(window.row), 'IGUI_RS_RadioLast|' + window.row.when)
+        self.assertEqual(alice.g.RS_Notebook.rowSecondLine(window.row), 'IGUI_RS_RadioLast|' + window.row.when)
 
 class SoloScenarioTests(unittest.TestCase):
     """Real solo session (reported 2026-10-09, save rstest-solo): no NPC provider, notebook never opened, talk with
@@ -1041,7 +1041,7 @@ class SoloScenarioTests(unittest.TestCase):
         # Notebook opened afterwards: Radio tab shows the conversation, indicator cleared when read.
         self.game.rt.execute(NOTEBOOK_UI)
         self.game.load('client/RS_Carnet_Client.lua')
-        self.g.RS_UI_Notebook.toggle()
+        self.g.RS_Notebook.toggle()
         self.frame()
         window = self.g.RS_CarnetClient.window
         window.changeTab(window, 'Radio')

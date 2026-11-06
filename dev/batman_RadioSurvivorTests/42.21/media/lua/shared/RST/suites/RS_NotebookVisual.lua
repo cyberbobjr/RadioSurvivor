@@ -1,5 +1,5 @@
 --[[
-rs.notebook.visual - visual protocol of the notebook, scripted (E03-T02, client/RadioSurvivor/RS_Notebook.lua).
+rs.notebook.visual - visual protocol of the notebook, scripted (E03-T02; frame RC_Notebook.lua, pages RS_Notebook.lua).
 No gesture needed: the suite fills the REAL notebook with a fixed client snapshot and radio history (no server data
 changed: the server snapshots and history answers are ignored while it runs, then asked again), opens it, shows
 every page and dialog, checks by script what can be checked and takes one screenshot per view
@@ -632,7 +632,7 @@ end
 -- One language and font: off-screen notebook at its minimum size, every page, the delivery window, the four
 -- confirmations and every string. Returns the count of strings measured.
 function V.auditLanguage(Notebook, Client, T, label, out)
-    local w = V.offscreen(Notebook)
+    local w = V.offscreen(require "RadioSurvivorCore/RC_Notebook")
     for _, page in ipairs(V.PAGES) do
         V.showPage(w, page)
         V.auditNotebook(w, label .. " " .. page.name, out, false)
@@ -744,6 +744,7 @@ local function install(t)
     end
     if saved.window then saved.window:close() end
     Client.window, Client.deliveryWindow = nil, nil
+    RC_UI_Notebook.window = nil -- the core mod's notebook (E18-T24) creates a fresh one at the next toggle
     t:defer(function()
         for _, e in ipairs(ctx.dialogs or {}) do e:setVisible(false); e:removeFromUIManager() end
         if Client.deliveryWindow then Client.deliveryWindow:setVisible(false); Client.deliveryWindow:removeFromUIManager() end
@@ -754,6 +755,7 @@ local function install(t)
         end
         Client.receive, History.receive, History.request = saved.receive, saved.hreceive, saved.hrequest
         Client.snapshot, Client.window, Client.deliveryWindow = saved.snapshot, saved.window, saved.delivery
+        RC_UI_Notebook.window = saved.window
         History.frequencies, History.unread = saved.frequencies, saved.unread
         if saved.window and saved.open then
             saved.window:setVisible(true)
@@ -774,6 +776,7 @@ local function freshWindow(ctx)
         Client.window:removeFromUIManager()
         Client.window = nil
     end
+    RC_UI_Notebook.window = nil
     ctx.Notebook.toggle()
     return Client.window
 end

@@ -341,6 +341,7 @@ local function installNotebook(t, p, lang, khz, zone)
     History.frequencies, History.unread = W.radioHistory(lang, khz), false
     if saved.window then saved.window:close() end
     Client.window = nil
+    RC_UI_Notebook.window = nil -- core notebook (E18-T24): a fresh one at the next toggle
     t:defer(function()
         if Client.window and Client.window ~= saved.window then
             Client.window:releaseFocus()
@@ -349,6 +350,7 @@ local function installNotebook(t, p, lang, khz, zone)
         end
         Client.receive, History.receive, History.request = saved.receive, saved.hreceive, saved.hrequest
         Client.snapshot, Client.window = saved.snapshot, saved.window
+        RC_UI_Notebook.window = saved.window
         History.frequencies, History.unread = saved.frequencies, saved.unread
         if saved.window and saved.open then
             saved.window:setVisible(true)

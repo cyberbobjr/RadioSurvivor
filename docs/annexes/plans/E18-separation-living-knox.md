@@ -29,7 +29,7 @@
 | ☐ | E18-T21 | Relation personnelle des PNJ dans Living Knox | `testé hors jeu` | MP | E18-T09 |
 | ☐ | E18-T22 | Réputation dans le commun | `testé hors jeu` | MP | E18-T05 |
 | ☐ | E18-T23 | Retirer les reprises des parties d'avant la séparation | `à faire` | hors jeu | E18-T21 |
-| ☐ | E18-T24 | Carnet dans le mod commun, onglets par mod | `à faire` | MP | E18-T09 |
+| ☐ | E18-T24 | Carnet dans le mod commun, onglets par mod | `testé hors jeu` | MP | E18-T09 |
 | ☐ | E18-T25 | Onglets Missions et Réputation tenus par le commun | `à faire` | MP | E18-T24 |
 | ☐ | E18-T26 | Onglet Contacts commun, contacts versés par chaque mod | `à faire` | MP | E18-T24 |
 
@@ -398,15 +398,15 @@ Deuxième article Workshop, dépôt séparé, nouvelles règles de jeu des missi
   - Reste : —
 
 - [ ] **E18-T24** — Carnet dans le mod commun, onglets par mod
-  - État : `à faire`
+  - État : `testé hors jeu`
   - Cible : `MP`
   - Dépend de : E18-T09
   - Fichiers : `client/RadioSurvivor/RS_Notebook.lua` → commun (`client/RadioSurvivorCore/RC_Notebook.lua` : cadre, marque-pages, bouton de la barre latérale, touche, registre d'onglets) ; onglet Radio inscrit par RadioSurvivor ; `RC_MissionJournalView` retiré ; traductions `IGUI_RC_` du cadre
   - Faire : décision du 2026-11-06 : carnet commun ouvert sans objet par le bouton et la touche ; chaque mod inscrit ses onglets (`registerTab`, propriétaire, ordre, couleur, dessin) ; un onglet n'existe que si son mod est activé ; mêmes onglets, mêmes textes et même comportement qu'aujourd'hui avec les deux mods.
   - Accepté si : RadioSurvivor seul : carnet sans onglet Équipe ; Living Knox seul : carnet sans onglet Radio, aucun module de RadioSurvivor chargé ; les deux : les cinq onglets d'aujourd'hui.
   - Tests : banc du carnet dans les trois montages ; suites du carnet (`rs.notebook.*`) ; capture du carnet en jeu dans chaque montage.
-  - Preuve : —
-  - Reste : —
+  - Preuve : mod commun : `client/RadioSurvivorCore/RC_Notebook.lua` (fenêtre `RC_UI_Notebook` : cadre papier, marque-pages, liste, page, tampons, barres de défilement, bouton de la barre latérale `rcNotebook`, tranche de la roue droite de la manette, haut, bas et B ; registre `registerTab` / `extendTab` : nom, mods exigés, ordre, couleur, libellé, lignes, page, mise en page propre, état, mise à jour, non-lu ; onglet montré seulement si ses mods sont dans `getActivatedMods()` ; Contacts, Missions et Réputation communs, Missions sans autre mod = missions ouvertes du personnage par la commande `missions` du commun, rafraîchies toutes les 3 s) ; textures `RC_Notebook_*.png` déplacées dans le commun (`tools/gen_notebook_textures.py`) ; `RC_MissionJournalView` retiré (réponse solo de `RC_MissionJournal` vers le carnet) ; RadioSurvivor : `RS_Notebook.lua` n'inscrit plus que ses pages (onglet Radio, contenu de Contacts, Missions et Réputation, onglet Équipe inscrit avec `mods = { RadioSurvivor, Living Knox }` jusqu'à `E18-T20`, avis, pied « Interlocuteur », largeur de colonne, `Client.window` = carnet commun) ; clés `IGUI_RC_Notebook`, `NotebookHint`, `Contacts`, `Missions`, `Reputation`, `Empty_Contacts`, `Empty_Reputation` (EN, FR), `IGUI_RS_Contacts`, `Missions`, `Reputation`, `Empty_Reputation` et `IGUI_RC_Journal*` retirées ; banc `tests/test_core_notebook.py` (remplace `test_core_journal.py`, module absent avant la tâche ; 12 tests OK) : commun seul (Living Knox seul) onglets Contacts, Missions, Réputation, aucun module de RadioSurvivor chargé, missions ouvertes dans l'ordre et les états de `RC_MissionList`, mission rendue retirée au rafraîchissement, bouton, roue, haut, bas, B, demandes limitées ; RadioSurvivor seul : Radio, Contacts, Missions, Réputation ; les deux : les cinq onglets d'avant avec leurs libellés, un seul bouton ; Missions de RadioSurvivor = lignes du commun ; bancs adaptés (`test_carnet.py` 95, `test_notebook_visual.py`, `test_radio_history.py`, `test_radio_module.py`, `test_rs_suites.py`, `test_translations_split.py`, `test_suite_mods.py`) ; `run_all.py` : 159 PASS, 1 FAIL `agreements` (lecture de fichier, vert relancé seul : 7 tests OK) ; luacheck `Contents` 14 (référence 15), `dev` 0 ; suite en jeu `rc.notebook` (campagnes `solo-lk` et `solo-rs`) ; passages solo automatiques du 2026-11-06 (`--suite rc.notebook --tags client`, code 0 chacun, aucune erreur Lua de nos mods, carnet ouvert sur Missions dans la capture finale) : Living Knox seul, onglets Contacts, Missions, Réputation (`tools/autoclient/runs/20261106-182445-56ccd3bd8e7a`) ; RadioSurvivor seul (`tools/autoclient/runs/20261106-182529-49b79c8d5ab3`) ; les deux, cinq onglets (`tools/autoclient/runs/20261106-182618-f52de8116f38`) ; premier passage en erreur (la suite lisait `package.loaded`, absent de Kahlua, corrigé ; base `kahlua-lua.md`)
+  - Reste : cible MP : campagne MP des trois montages (`E18-T15`) ; contenu de Missions et Réputation sans RadioSurvivor : `E18-T25` ; Contacts : `E18-T26` ; onglet Équipe à Living Knox : `E18-T20` ; la touche Ctrl+G reste celle de RadioSurvivor (choisir le PNJ le plus proche), elle n'ouvre pas le carnet (comme avant)
 
 - [ ] **E18-T25** — Onglets Missions et Réputation tenus par le commun
   - État : `à faire`

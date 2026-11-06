@@ -1,33 +1,35 @@
-"""Mission journal of the core mod batman_RadioSurvivorCore (E18-T06).
+"""Notebook of the core mod batman_RadioSurvivorCore (E18-T24; missions journal of E18-T06 merged into it).
 
-    python RadioSurvivor/tests/test_core_journal.py
+    python RadioSurvivor/tests/test_core_notebook.py
 
-Bench of the interface (ISUI doubles of the notebook bench) on a dedicated server and two clients (harness.py), the
-core mod alone (no RadioSurvivor module loaded): the journal lists the open missions of the player's character (offer,
-active, to report) in the notebook order and states, refreshes while it is open, a mission done leaves it; the sidebar
-button opens it, a host (RadioSurvivor's notebook) removes the button and is opened instead; controller: wheel
-slice, up / down, B closes. With RadioSurvivor (notebook bench): the notebook registers itself as host and its
-Missions tab lists the same rows. Every IGUI_RC_ key used exists in every shipped language.
+Bench of the interface (ISUI doubles of the notebook bench) on a dedicated server and two clients (harness.py).
+Core mod alone (no RadioSurvivor module loaded, as with Living Knox alone): the notebook opens without any item from
+the sidebar button and the controller wheel; its Missions tab lists the open missions of the player's character (offer,
+active, to report) in the RC_MissionList order and states, refreshes while it is shown, a mission done leaves it;
+up / down move the selection, B closes. Tabs by mod: a tab exists only when its mods are active (getActivatedMods):
+RadioSurvivor alone has no Team tab, Living Knox alone no Radio tab and loads no RadioSurvivor module, both show the five
+tabs of before. With RadioSurvivor (notebook bench): its Missions tab lists the same missions as the core list. Every
+IGUI_RC_ key used exists in every shipped language.
 """
 from __future__ import annotations
 
 import json
 import re
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from harness import Harness  # noqa: E402
 from signalsmoke_double import SIGNAL_SMOKE  # noqa: E402
-import tempfile  # noqa: E402
 from test_carnet import NOTEBOOK_UI, Simulation, open_notebook, convert  # noqa: E402
 from test_protocol import lua_list  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 CORE_LUA = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivorCore' / '42.21' / 'media' / 'lua'
 RS_LUA = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivor' / '42.21' / 'media' / 'lua'
-VIEW = CORE_LUA / 'client' / 'RadioSurvivorCore' / 'RC_MissionJournalView.lua'
+NOTEBOOK = CORE_LUA / 'client' / 'RadioSurvivorCore' / 'RC_Notebook.lua'
 TRANSLATE = CORE_LUA / 'shared' / 'Translate'
 
 CLIENT_UI = r"""
@@ -49,7 +51,6 @@ RADIAL = {javaObject = {}}
 function RADIAL:addSlice(text, tex, fn, a1, a2) SLICES[#SLICES + 1] = {text = text, fn = fn, a1 = a1, a2 = a2} end
 getPlayerRadialMenu = function() return RADIAL end
 ISDPadWheels = {onDisplayRight = function(joypadData) WHEEL_SHOWN = joypadData.player end}
-package.preload["ISUI/ISDPadWheels"] = function() return true end
 """
 
 SIDEBAR = r"""
@@ -90,14 +91,28 @@ require('RadioSurvivorCore/RC_MissionJournal')
 """
 
 
+def active_mods(*ids):
+    """getActivatedMods double (Java list of the loaded ids, LuaManager.java:6065)."""
+    body = ', '.join(f'"{i}"' for i in ids)
+    return ('getActivatedMods = function() local l = {%s} return {size = function() return #l end, '
+            'get = function(_, i) return l[i + 1] end} end' % body)
+
+
+def tab_names(machine):
+    return machine.rt.eval('(function() local out = {} for _, b in ipairs(RadioSurvivorCore.notebook.window.tabs) do '
+                           'out[#out + 1] = b.rsTab.name end return table.concat(out, ",") end)()')
+
+
 def lua_rows(machine):
-    rt = machine.rt
-    return rt.eval('(function() local out = {} local w = RadioSurvivorCore.missionJournal.window '
-                   'for _, it in ipairs(w and w.list.items or {}) do out[#out + 1] = it.text end '
-                   'return table.concat(out, "|") end)()')
+    return machine.rt.eval('(function() local out = {} local w = RadioSurvivorCore.notebook.window '
+                           'for _, it in ipairs(w and w.list.items or {}) do '
+                           'out[#out + 1] = it.text .. " (" .. RC_UI_Notebook.rowSecondLine(it.item, w:spec()) .. ")" end '
+                           'return table.concat(out, "|") end)()')
 
 
-class JournalCoreOnlyTests(unittest.TestCase):
+class NotebookCoreOnlyTests(unittest.TestCase):
+    """The core mod alone on the clients (Living Knox alone ships no notebook page of its own yet)."""
+
     def setUp(self):
         self.h = Harness(mode='mp')
         s = self.h.machine('server')
@@ -110,7 +125,8 @@ class JournalCoreOnlyTests(unittest.TestCase):
             c.rt.execute(CLIENT_UI)
             c.rt.execute(NOTEBOOK_UI)
             c.rt.execute(SIDEBAR)
-            c.load(VIEW.read_text(encoding='utf-8'))
+            c.rt.execute(active_mods('batman_SignalSmoke', 'batman_RadioSurvivorCore', 'batman_LivingKnox'))
+            c.load(NOTEBOOK.read_text(encoding='utf-8'))
 
     def tearDown(self):
         self.h.close()
@@ -122,10 +138,20 @@ class JournalCoreOnlyTests(unittest.TestCase):
         return self.h.eval(name, '(function() ' + code + ' end)()')
 
     def open(self, name='A'):
-        self.cev(name, 'RadioSurvivorCore.missionJournal.toggle(0, false)')
+        self.cev(name, 'local w = RC_UI_Notebook.toggle(0, false) w:changeTab("Missions") w:update()')
         self.h.pump(); self.h.pump()
 
-    def test_open_missions_listed_in_notebook_order_and_states(self):
+    def test_tabs_without_radiosurvivor(self):
+        self.open('A')
+        self.assertEqual(tab_names(self.h.machine('A')), 'Contacts,Missions,Reputation')
+        self.cev('A', 'RadioSurvivorCore.notebook.window:changeTab("Reputation")')
+        self.assertIn('IGUI_RC_Empty_Reputation', self.cev('A', 'return RadioSurvivorCore.notebook.window.detail.text'))
+        self.cev('A', 'RadioSurvivorCore.notebook.window:changeTab("Contacts")')
+        self.assertIn('IGUI_RC_Empty_Contacts', self.cev('A', 'return RadioSurvivorCore.notebook.window.detail.text'))
+        self.assertIsNone(self.cev('A', 'return RadioSurvivorCore.notebook.window:changeTab("Radio")'))
+        self.assertEqual(self.cev('A', 'return RadioSurvivorCore.notebook.window.tab'), 'Contacts')
+
+    def test_open_missions_listed_in_list_order_and_states(self):
         self.sev('local M = require("RadioSurvivorCore/RC_Missions") '
                  'local a = newMission("lk:1", "cA") '                       # offer to A
                  'local b = newMission("lk:2", "cA") M.accept(STATE, b, "cA", "Alice") '   # active
@@ -136,8 +162,10 @@ class JournalCoreOnlyTests(unittest.TestCase):
                          'IGUI_RC_TestProbe - Ruth (IGUI_RC_State_offer)|IGUI_RC_TestProbe - Abe (IGUI_RC_State_toReport)')
         self.open('B')   # only its own offer, never A's missions
         self.assertEqual(lua_rows(self.h.machine('B')), 'IGUI_RC_TestProbe - Cy (IGUI_RC_State_offer)')
+        detail = self.cev('A', 'return RadioSurvivorCore.notebook.window.detail.text')
+        self.assertIn('IGUI_RC_Requester', detail)
 
-    def test_mission_done_leaves_the_journal_at_the_next_refresh(self):
+    def test_mission_done_leaves_the_list_at_the_next_refresh(self):
         self.sev('local M = require("RadioSurvivorCore/RC_Missions") '
                  'local b = newMission("lk:2", "cA") M.accept(STATE, b, "cA", "Alice") b.ready = true MID = b.id')
         self.open('A')
@@ -146,30 +174,29 @@ class JournalCoreOnlyTests(unittest.TestCase):
                       'return tostring(M.spoken(STORE, STATE.missions[MID], nil, "cA"))')
         self.assertEqual(ok, 'true')
         self.h.advance_ms(3500)
-        self.cev('A', 'RadioSurvivorCore.missionJournal.window:update()')
+        self.cev('A', 'RadioSurvivorCore.notebook.window:update()')
         self.h.pump(); self.h.pump()
         self.assertEqual(lua_rows(self.h.machine('A')), '')
-        detail = self.cev('A', 'return RadioSurvivorCore.missionJournal.window.text.text')
+        detail = self.cev('A', 'return RadioSurvivorCore.notebook.window.detail.text')
         self.assertIn('IGUI_RC_JournalEmpty', detail)
 
-    def test_sidebar_button_and_host(self):
+    def test_sidebar_button_opens_the_notebook(self):
         out = self.cev('A', 'local p = ISEquippedItem:new() p:initialise() ISEquippedItem.instance = p '
-                            'local had = p.rcJournal ~= nil '
-                            'p.rcJournal.onclick(p) local opened = RadioSurvivorCore.missionJournal.window:isVisible() '
-                            'OPENED = nil RadioSurvivorCore.missionJournal.setHost(function(n) OPENED = n end) '
-                            'local gone = p.rcJournal == nil '
-                            'RadioSurvivorCore.missionJournal.toggle(0, false) '
-                            'return tostring(had) .. tostring(opened) .. tostring(gone) .. tostring(OPENED)')
-        self.assertEqual(out, 'truetruetrue0')
+                            'local had = p.rcNotebook ~= nil '
+                            'p.rcNotebook.onclick(p) local opened = RadioSurvivorCore.notebook.window:isVisible() '
+                            'p.rcNotebook.onclick(p) local closed = not RadioSurvivorCore.notebook.window:isVisible() '
+                            'return tostring(had) .. tostring(opened) .. tostring(closed) .. "|" .. p.rcNotebook.tooltip')
+        self.assertEqual(out, 'truetruetrue|IGUI_RC_NotebookHint')
 
     def test_controller_wheel_selection_and_close(self):
         self.sev('local M = require("RadioSurvivorCore/RC_Missions") newMission("lk:1", "cA") newMission("lk:2", "cA")')
         out = self.cev('A', 'ISDPadWheels.onDisplayRight({player = 0}) local s = SLICES[1] '
                             's.fn(s.a1, s.a2) return tostring(WHEEL_SHOWN) .. "|" .. s.text .. "|" '
-                            '.. tostring(JOYPAD_FOCUS[0] == RadioSurvivorCore.missionJournal.window)')
-        self.assertEqual(out, '0|IGUI_RC_JournalButton|true')
+                            '.. tostring(JOYPAD_FOCUS[0] == RadioSurvivorCore.notebook.window)')
+        self.assertEqual(out, '0|IGUI_RC_Notebook|true')
+        self.cev('A', 'local w = RadioSurvivorCore.notebook.window w:changeTab("Missions") w:update()')
         self.h.pump(); self.h.pump()
-        out = self.cev('A', 'local w = RadioSurvivorCore.missionJournal.window local a = w.selectedId '
+        out = self.cev('A', 'local w = RadioSurvivorCore.notebook.window local a = w.selectedId '
                             'w:onJoypadDirDown() local b = w.selectedId w:onJoypadDirUp() local c = w.selectedId '
                             'w:onJoypadDown(Joypad.BButton) '
                             'return table.concat({a, b, c, tostring(w:isVisible()), tostring(JOYPAD_FOCUS[0])}, "|")')
@@ -177,12 +204,13 @@ class JournalCoreOnlyTests(unittest.TestCase):
 
     def test_requests_are_rate_limited_on_the_server(self):
         for _ in range(12):
-            self.cev('A', 'RadioSurvivorCore.missionJournal.request()')
+            self.cev('A', 'RadioSurvivorCore.notebook.journal.request()')
         self.h.pump()
         sent = [m for m in self.h.pending() if m.get('command') == 'missions']
         self.assertLessEqual(len(sent), 4)
 
     def test_no_radiosurvivor_module(self):
+        self.open('A')
         for name in ('server', 'A'):
             loaded = self.h.eval(name, '(function() local out = {} for k in pairs(package.loaded) do '
                                        'if string.find(k, "^RadioSurvivor/") or string.find(k, "^LivingKnox/") then '
@@ -190,51 +218,78 @@ class JournalCoreOnlyTests(unittest.TestCase):
             self.assertEqual(loaded, '', name)
 
 
-class JournalWithRadioSurvivorTests(unittest.TestCase):
-    """Notebook bench (RadioSurvivor and the core mod): the notebook hosts the journal, same rows in both."""
+class TabsByModTests(unittest.TestCase):
+    """RadioSurvivor's pages loaded (notebook bench), tabs shown by the active mods."""
 
     def setUp(self):
-        self.tmp = tempfile.TemporaryDirectory(prefix='rc-journal-')
+        self.tmp = tempfile.TemporaryDirectory(prefix='rc-notebook-')
 
     def tearDown(self):
         self.tmp.cleanup()
 
-    def test_notebook_hosts_the_journal_with_the_same_rows(self):
-        sim = Simulation(Path(self.tmp.name) / 'journal')
+    def notebook(self, *mods):
+        sim = Simulation(Path(self.tmp.name) / 'nb')
         sim.add_client('alice'); sim.select('alice')
+        c = sim.clients['alice']
+        if mods:
+            c.rt.execute(active_mods(*mods))
+        return sim, open_notebook(c)
+
+    def test_radiosurvivor_alone_has_no_team_tab(self):
+        sim, _ = self.notebook('batman_SignalSmoke', 'batman_BeltRadio', 'batman_RadioSurvivorCore',
+                               'batman_RadioSurvivor')
+        self.assertEqual(tab_names(sim.clients['alice']), 'Radio,Contacts,Missions,Reputation')
+
+    def test_both_mods_show_the_five_tabs(self):
+        sim, window = self.notebook('batman_SignalSmoke', 'batman_BeltRadio', 'batman_RadioSurvivorCore',
+                                    'batman_LivingKnox', 'batman_RadioSurvivor')
+        self.assertEqual(tab_names(sim.clients['alice']), 'Radio,Contacts,Missions,Reputation,Team')
+        labels = sim.clients['alice'].rt.eval('(function() local out = {} for _, b in ipairs(RadioSurvivorCore.notebook'
+                                              '.window.tabs) do out[#out + 1] = b.rsLabel end '
+                                              'return table.concat(out, ",") end)()')
+        self.assertEqual(labels, 'IGUI_RS_Radio,IGUI_RC_Contacts,IGUI_RC_Missions,IGUI_RC_Reputation,IGUI_RS_Team')
+        self.assertEqual(window.tab, 'Contacts')
+        self.assertTrue(sim.clients['alice'].rt.eval('RS_CarnetClient.window == RadioSurvivorCore.notebook.window'))
+
+    def test_one_sidebar_button(self):
+        sim, _ = self.notebook()
+        c = sim.clients['alice']
+        panel = c.rt.eval("(function() local p = ISEquippedItem:new(0, 0, 48, 300) p.playerNum = 0 "
+                          "p.shrinkWrap = function() end ISEquippedItem.initialise(p) return p end)()")
+        self.assertIsNotNone(panel.rcNotebook)
+        self.assertIsNone(panel.rsCarnet)
+        self.assertIsNone(panel.rcJournal)
+        self.assertEqual(panel.rcNotebook.tooltip, 'IGUI_RC_NotebookHint <LINE> IGUI_RS_SelectHint')
+
+    def test_missions_tab_lists_the_core_rows(self):
+        sim, window = self.notebook()
         npc = next(iter(sim.state().npcs.values()))
         cid = sim.character('alice')
         missions = sim.server.rt.eval("require('RadioSurvivorCore/RC_Missions')")
         missions.create(sim.state(), npc, cid, 'first_aid_v1')
         journal = sim.server.rt.eval("require('RadioSurvivorCore/RC_MissionJournal')")
         c = sim.clients['alice']
-        window = open_notebook(c)
         c.rt.execute("getScriptManager = function() return {FindItem = function(_, t) "
                      "return {getDisplayName = function() return t end} end} end")
         sim.command('alice', 'snapshot')
+        window.changeTab(window, 'Missions')
         notebook_rows = [convert(r) for r in lua_list(c.g.RS_CarnetClient.snapshot.missions)]
         rows = [convert(r) for r in lua_list(journal.rows(cid))]
         self.assertEqual([(r['id'], r['state'], r['requester']) for r in rows],
                          [(r['id'], r['state'], r['requester']) for r in notebook_rows])
         self.assertEqual(len(rows), 1)
-        view = c.g.RadioSurvivorCore.missionJournal
-        self.assertIsNotNone(view.host, 'the notebook is the host of the journal')
-        # the journal (button or wheel) opens the notebook on its Missions tab
-        window.changeTab(window, 'Contacts')
-        view.toggle(0, True)
-        self.assertEqual((window.tab, window.isVisible(window)), ('Missions', True))
-        panel = c.rt.eval("(function() local p = ISEquippedItem:new(0, 0, 48, 300) p.playerNum = 0 p.shrinkWrap = function() end "
-                          "ISEquippedItem.initialise(p) return p end)()")
-        self.assertIsNone(panel.rcJournal, 'no journal button next to the notebook')
+        self.assertEqual(len(lua_list(window.list['items'])), 1)
 
 
 class TranslationTests(unittest.TestCase):
     def test_every_key_in_every_shipped_language(self):
         used = set()
         for path in (CORE_LUA / 'client').rglob('*.lua'):
-            used |= {'IGUI_RC_' + k for k in re.findall(r'tr\("([A-Za-z_]+)', path.read_text(encoding='utf-8'))
+            used |= {'IGUI_RC_' + k for k in re.findall(r"tr\(['\"]([A-Za-z_]+)", path.read_text(encoding='utf-8'))
                      if not k.endswith('_')}
         used |= {f'IGUI_RC_State_{s}' for s in ('offer', 'active', 'toReport')}
+        used |= {f'IGUI_RC_{t}' for t in ('Contacts', 'Missions', 'Reputation')}
+        used |= {f'IGUI_RC_Empty_{t}' for t in ('Contacts', 'Reputation')}
         langs = sorted(p.name for p in (RS_LUA / 'shared' / 'Translate').iterdir() if p.is_dir())
         keys = {}
         for lang in langs:

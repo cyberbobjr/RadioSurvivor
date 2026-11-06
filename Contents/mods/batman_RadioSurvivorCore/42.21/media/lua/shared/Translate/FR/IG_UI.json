@@ -1,7 +1,4 @@
 {
-    "IGUI_RC_Journal": "Journal des missions",
-    "IGUI_RC_JournalButton": "Missions",
-    "IGUI_RC_JournalHint": "Ouvrir le journal des missions : offres, missions en cours et missions à rapporter.",
     "IGUI_RC_JournalEmpty": "Aucune mission proposée ni en cours.",
     "IGUI_RC_Mission": "Mission",
     "IGUI_RC_Requester": "Demandeur : %1",
@@ -27,5 +24,12 @@
     "IGUI_RC_Mission_Retrieve": "Les papiers d’un disparu",
     "IGUI_RC_Mission_Clear": "Nettoyer les abords d’un lieu",
     "IGUI_RC_Mission_Recover": "Rapporter une cache",
-    "IGUI_RC_Mission_Signal": "Faire un signal sur un lieu"
+    "IGUI_RC_Mission_Signal": "Faire un signal sur un lieu",
+    "IGUI_RC_Notebook": "Carnet",
+    "IGUI_RC_NotebookHint": "Ouvrir le carnet : contacts, missions, réputation et les pages de vos mods.",
+    "IGUI_RC_Contacts": "Contacts",
+    "IGUI_RC_Missions": "Missions",
+    "IGUI_RC_Reputation": "Réputation",
+    "IGUI_RC_Empty_Contacts": "Aucun contact pour l’instant.",
+    "IGUI_RC_Empty_Reputation": "Réputation inconnue."
 }
