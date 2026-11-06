@@ -97,7 +97,8 @@ local function nameOf(player)
     return "?"
 end
 
-RST.suite("rs.carnet.load", { tags = { "server", "world" }, testTimeoutMs = 150000, timeoutMs = 400000 }, function(s)
+RST.suite("rs.carnet.load", { mods = { "rs", "lk" },
+    tags = { "server", "world" }, testTimeoutMs = 150000, timeoutMs = 400000 }, function(s)
     s.test("loaded npcs without contact get no fiche and no LLM request (E00-T04)", function(t)
         local c = notebook(t)
         local API = testApi(t)

@@ -130,7 +130,8 @@ local function show(t, c, w, fiche, expected, after)
     end)
 end
 
-RST.suite("rs.notebook.relation", { tags = { "world" }, testTimeoutMs = 120000, timeoutMs = 150000 }, function(s)
+RST.suite("rs.notebook.relation", { mods = { "rs", "lk" },
+    tags = { "world" }, testTimeoutMs = 120000, timeoutMs = 150000 }, function(s)
     s.test("two members of a group, different relations, shown translated in the notebook (E09-T07)", function(t)
         R.solo(t)
         local Server = R.notebook(t)

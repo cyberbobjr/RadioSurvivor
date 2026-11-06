@@ -129,7 +129,8 @@ local function lethalHit(label, fullType, category)
     end
 end
 
-RST.suite("rs.killer", { tags = { "world", "server" }, testTimeoutMs = 60000, timeoutMs = 300000 }, function(s)
+RST.suite("rs.killer", { mods = { "rs", "lk" },
+    tags = { "world", "server" }, testTimeoutMs = 60000, timeoutMs = 300000 }, function(s)
     s.test("melee: lethal bat hit attributed to the player", lethalHit("melee", BAT, "melee"))
 
     s.test("firearm: lethal pistol hit attributed to the player", lethalHit("firearm", PISTOL, "firearm"))

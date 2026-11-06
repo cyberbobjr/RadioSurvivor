@@ -25,7 +25,7 @@ local function inList(list, value)
     return false
 end
 
-RST.suite("rst.fixtures.npc", { tags = { "world", "shared" } }, function(s)
+RST.suite("rst.fixtures.npc", { mods = { "rs", "lk" }, tags = { "world", "shared" } }, function(s)
     local F = RST.Fixtures
     local state = {}
 

@@ -2,7 +2,7 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 2 / 19 tâche(s) terminée(s).
+**Avancement.** en cours — 3 / 19 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
@@ -19,7 +19,7 @@
 | ☐ | E18-T11 | Historique des échanges avec les PNJ dans le commun | `testé hors jeu` | MP | E18-T04, E18-T09 |
 | ☐ | E18-T12 | Pont : un dossier d'échange pour les deux mods | `à faire` | MP | E18-T04, E18-T17 |
 | ☐ | E18-T13 | Traductions et options sandbox des trois mods | `à faire` | hors jeu | E18-T06, E18-T07 |
-| ☐ | E18-T14 | Outillage des tests pour trois montages | `à faire` | hors jeu | E18-T07 |
+| ☑ | E18-T14 | Outillage des tests pour trois montages | `testé hors jeu` | hors jeu | E18-T07 |
 | ☐ | E18-T15 | Validation des trois montages | `à faire` | MP | E18-T05, E18-T06, E18-T08, E18-T10, E18-T12, E18-T13, E18-T14, E18-T18, E18-T19 |
 | ☐ | E18-T16 | Documentation et page Workshop des trois mods | `à faire` | hors jeu | E18-T15 |
 | ☐ | E18-T17 | File des demandes de parole des PNJ portée par Living Knox | `à faire` | MP | E18-T11 |
@@ -254,16 +254,16 @@ Deuxième article Workshop, dépôt séparé, nouvelles règles de jeu des missi
   - Preuve : —
   - Reste : —
 
-- [ ] **E18-T14** — Outillage des tests pour trois montages
-  - État : `à faire`
+- [x] **E18-T14** — Outillage des tests pour trois montages
+  - État : `testé hors jeu`
   - Cible : `hors jeu`
   - Dépend de : E18-T07
   - Fichiers : `dev/batman_RadioSurvivorTests/42.21/mod.info` (exige le commun seul, détecte les autres) ; `tests/harness.py`, `tests/run_all.py` ; `tools/autoclient/autoclient.py` (`--mods rs|lk|both`, dossiers de résultats et d'échange) ; `tests/run_dedicated_smoke.ps1` ; listes des campagnes
   - Faire : chaque suite déclare les mods qu'elle exige (SKIP sinon) ; suites mixtes (carnet et PNJ) seulement avec les deux ; campagnes `solo` et `mp` lançables dans chaque montage.
   - Accepté si : `run_all.py` vert ; un passage de chaque montage démarre et rend un rapport.
   - Tests : bancs `test_autoclient.py`, `test_rst.py`.
-  - Preuve : —
-  - Reste : —
+  - Preuve : moteur RST : chaque suite exige ses mods (`opts.mods`, sinon `lk.*` Living Knox, `rs.*` RadioSurvivor, autres : le commun seul), suite d'un mod absent SKIP « needs mod(s) … (not active) » (`RST.suiteMods`, `RST.modsRefusal`, `getActivatedMods`) ; 23 suites mixtes déclarées (`mods = { "rs", "lk" }`), `rst.rights` `{ "rs" }` ; banc `tests/test_suite_mods.py` (ce que chaque suite utilise est couvert par ses mods déclarés) ; mod de test : `require=\batman_RadioSurvivorCore` seul ; `autoclient.py --mods rs|lk|both` (lk : Signal Smoke, commun, Living Knox, mod de test) ; bancs `test_rst.py` (`ModsGuardTests`, rouge puis vert), `test_autoclient.py` (trois montages), `run_all.py` 156 PASS, luacheck dev 0 ; passages solo automatiques du 2026-11-06 : RadioSurvivor seul (`--mods rs`, rs.env et rst, code 0) 13/13, aucune erreur Lua au chargement (`tools/autoclient/runs/20261106-111224-6371ee6c5612`) ; Living Knox seul (`--mods lk`, lk.sites, lk.raid, rst, rs.env, code 1) 21 PASS, 1 FAIL rst.guard (auto-test qui ne connaissait pas le refus par mod, corrigé) (`tools/autoclient/runs/20261106-111314-7fc92fd30d78`), relancé code 0 : 22 PASS + 11 SKIP (rs.env, rst.rights, rst.fixtures.npc : RadioSurvivor absent), aucune erreur Lua au chargement (`tools/autoclient/runs/20261106-111504-a322ac1c347b`)
+  - Reste : campagnes `solo` et `mp` complètes dans chaque montage (`E18-T15`) ; `run_dedicated_smoke.ps1` reste sur les deux mods ensemble
 
 - [ ] **E18-T15** — Validation des trois montages
   - État : `à faire`

@@ -722,6 +722,47 @@ function RST.worldGuard()
     return false, "world suite refused: save '" .. name .. "' is not a test save (" .. RST.TEST_SAVE_PREFIX .. "*)"
 end
 
+-- ---------------------------------------------------------------- mods guard (E18-T14)
+
+-- Short names of the mods of the Workshop item and their ids. A suite needs opts.mods (list of short names) when
+-- given, else the mod of its name: "lk.*" Living Knox, "rs.*" RadioSurvivor, any other name the core mod only.
+-- A suite whose mods are not all active is SKIP without running (same as a refused world suite), so the same
+-- campaigns run with RadioSurvivor alone, Living Knox alone or both (tests/test_suite_mods.py checks declarations).
+RST.MOD_IDS = { core = "batman_RadioSurvivorCore", lk = "batman_LivingKnox", rs = "batman_RadioSurvivor" }
+
+function RST.suiteMods(suite)
+    local declared = suite.opts and toList(suite.opts.mods)
+    if declared then return declared end
+    if startsWith(suite.name, "lk.") then return { "lk" } end
+    if startsWith(suite.name, "rs.") then return { "rs" } end
+    return {}
+end
+
+-- Active mod ids (getActivatedMods, a leading "\" dropped), or nil outside the game (every mod counts as active).
+local function activeModIds()
+    if type(getActivatedMods) ~= "function" then return nil end
+    local list = getActivatedMods()
+    if list == nil then return nil end
+    local out = {}
+    for i = 0, list:size() - 1 do
+        local id = string.gsub(tostring(list:get(i)), "^\\", "")
+        out[id] = true
+    end
+    return out
+end
+
+-- nil when every mod the suite needs is active, else the SKIP reason naming the missing ones.
+function RST.modsRefusal(suite, active)
+    if active == nil then return nil end
+    local missing = {}
+    for _, short in ipairs(RST.suiteMods(suite)) do
+        local id = RST.MOD_IDS[short] or short
+        if not active[id] then missing[#missing + 1] = id end
+    end
+    if #missing == 0 then return nil end
+    return "needs mod(s) " .. table.concat(missing, ", ") .. " (not active)"
+end
+
 -- ---------------------------------------------------------------- running
 
 -- Maps a raised error to a status ("FAIL", "SKIP", "ERROR") and a message. pcall returns the raised object
@@ -746,12 +787,13 @@ end
 function RST.plan(filter)
     local jobs = {}
     local guardDone, refusal = false, nil
+    local active = activeModIds()
     for _, item in ipairs(RST.select(filter)) do
         if item.suite.declError then
             jobs[#jobs + 1] = { suite = item.suite, declError = item.suite.declError }
         else
-            local refused = nil
-            if hasAnyTag(item.suite.tags, { RST.WORLD_TAG }) then
+            local refused = RST.modsRefusal(item.suite, active)
+            if refused == nil and hasAnyTag(item.suite.tags, { RST.WORLD_TAG }) then
                 if not guardDone then
                     guardDone = true
                     local allowed, why = RST.worldGuard()

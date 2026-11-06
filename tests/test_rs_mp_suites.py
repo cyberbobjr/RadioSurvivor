@@ -59,7 +59,7 @@ WORLD_NAME = "rstest_bench"
 getWorld = function() return { getWorld = function() return WORLD_NAME end,
     getGameMode = function() return ROLE == "solo" and "Sandbox" or "Multiplayer" end } end
 getCore = function() return { getVersion = function() return "42.21.0 bench" end } end
-getActivatedMods = function() return JList({ "batman_RadioSurvivor", "batman_RadioSurvivorTests" }) end
+getActivatedMods = function() return JList({ "batman_RadioSurvivorCore", "batman_LivingKnox", "batman_RadioSurvivor", "batman_RadioSurvivorTests" }) end
 local seed = 0
 ZombRand = function(a, b) seed = seed + 1 if b then return a + (seed % (b - a)) end return seed % a end
 Events = setmetatable({}, { __index = function(t, k)
@@ -1169,7 +1169,7 @@ class SourceTests(unittest.TestCase):
     def test_suites_tagged_for_the_mp_campaign(self):
         for name, path in SUITE_FILES.items():
             code = path.read_text(encoding='ascii')
-            self.assertRegex(code, r'RST\.suite\("[\w.]+", \{ tags = \{ "server", "world" \}', name)
+            self.assertRegex(code, r'RST\.suite\("[\w.]+", \{ (mods = \{[^}]*\},\s*)?tags = \{ "server", "world" \}', name)
 
     def test_steps_file_loaded_by_every_suite_that_asks_its_steps(self):
         for name, path in SUITE_FILES.items():

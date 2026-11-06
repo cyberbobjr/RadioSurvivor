@@ -328,7 +328,8 @@ local function onlyFor(t, sc, fact, want, subject)
     end
 end
 
-RST.suite("rs.observations", { tags = { "server", "world" }, testTimeoutMs = 90000, timeoutMs = 600000 }, function(s)
+RST.suite("rs.observations", { mods = { "rs", "lk" },
+    tags = { "server", "world" }, testTimeoutMs = 90000, timeoutMs = 600000 }, function(s)
     s.test("assault_seen: only the named witnesses with a fiche, once (E08-T07)", function(t)
         scene(t, function(t2, sc)
             local before = count(sc.c.S.data.npcs)

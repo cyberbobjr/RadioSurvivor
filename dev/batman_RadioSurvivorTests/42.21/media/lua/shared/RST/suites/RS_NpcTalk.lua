@@ -240,7 +240,8 @@ local function badCut(pieces, max, TextCut)
     return nil
 end
 
-RST.suite("rs.npctalk", { tags = { "world", "server" }, testTimeoutMs = 400000, timeoutMs = 1200000 }, function(s)
+RST.suite("rs.npctalk", { mods = { "rs", "lk" },
+    tags = { "world", "server" }, testTimeoutMs = 400000, timeoutMs = 1200000 }, function(s)
     s.test("stranger: hello and help asked, no group, no home, no offer (E17-T08)", function(t)
         setup(t, function(t2, c)
             say(t2, c, c.words.hello, strangerRequest, function(t3, _, answer)

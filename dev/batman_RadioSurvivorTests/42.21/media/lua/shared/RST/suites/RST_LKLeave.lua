@@ -96,7 +96,8 @@ local function memberNpc(gid, mid)
     return m and m.npc or nil
 end
 
-RST.suite("lk.leave", { tags = { "world", "server" }, testTimeoutMs = 120000, timeoutMs = 300000 }, function(s)
+RST.suite("lk.leave", { mods = { "rs", "lk" },
+    tags = { "world", "server" }, testTimeoutMs = 120000, timeoutMs = 300000 }, function(s)
     s.test("a member leaves its group: one loner group, home far away, walk away, truce kept", function(t)
         local E = LK()
         local P = RS_LivingKnox

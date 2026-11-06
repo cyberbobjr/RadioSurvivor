@@ -165,7 +165,8 @@ local function waitJoined(t, c, V, Server, conv, joined0)
     end, "player line wait never ended")
 end
 
-RST.suite("rs.conversations", { tags = { "world", "server" }, testTimeoutMs = 120000, timeoutMs = 300000 }, function(s)
+RST.suite("rs.conversations", { mods = { "rs", "lk" },
+    tags = { "world", "server" }, testTimeoutMs = 120000, timeoutMs = 300000 }, function(s)
     s.test("a heard conversation passes the story after the first line", function(t)
         local Server, V, Obs = setup(t)
         local said = RST.PeerChecks.recordSpeech(t)

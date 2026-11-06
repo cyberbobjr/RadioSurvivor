@@ -1381,7 +1381,9 @@ def declared_suites() -> dict[str, set[str]]:
     out = {}
     for path in SUITES_DIR.glob('*.lua'):
         text = path.read_text(encoding='utf-8')
-        for m in re.finditer(r'RST\.suite\(\s*"([^"]+)"\s*,\s*\{\s*tags\s*=\s*\{([^}]*)\}', text):
+        # E18-T14: an optional "mods = { ... }," before the tags.
+        for m in re.finditer(r'RST\.suite\(\s*"([^"]+)"\s*,\s*\{\s*(?:mods\s*=\s*\{[^}]*\}\s*,\s*)?tags\s*=\s*\{([^}]*)\}',
+                             text):
             out[m.group(1)] = set(re.findall(r'"([^"]+)"', m.group(2))) | (
                 {'manual'} if 'EXPLICIT_TAG' in m.group(2) else set())
     return out
@@ -1461,6 +1463,19 @@ class CampaignContentTests(unittest.TestCase):
 
 class LoadAndSignalSmokeTests(unittest.TestCase):
     """LK13-T02 (up to 4 clients, load campaign) and E11-T07 / E11-T13 (Signal Smoke in the campaign mods)."""
+
+    def test_three_setups_of_the_workshop_item(self):
+        # E18-T14: --mods rs|lk|both picks the mods of the run (core mod and the test mod always there).
+        ids = {s: [m for m, _ in autoclient.selected_mods(s)] for s in ('rs', 'lk', 'both')}
+        self.assertEqual(ids['both'], [m for m, _ in autoclient.MODS])
+        self.assertNotIn('batman_LivingKnox', ids['rs'])
+        self.assertIn('batman_RadioSurvivor', ids['rs'])
+        self.assertEqual(ids['lk'], ['batman_SignalSmoke', 'batman_RadioSurvivorCore', 'batman_LivingKnox',
+                                     'batman_RadioSurvivorTests'])
+        self.assertEqual(autoclient.selected_mods(), autoclient.selected_mods('both'))
+        args = autoclient.parse_args(['--mods', 'lk', '--suite', 'lk.sites'])
+        self.assertEqual(args.mods, 'lk')
+        self.assertEqual(autoclient.parse_args(['--suite', 'lk.sites']).mods, 'both')
 
     def test_signal_smoke_always_in_the_mods_before_radio_survivor(self):
         ids = [m for m, _ in autoclient.selected_mods()]

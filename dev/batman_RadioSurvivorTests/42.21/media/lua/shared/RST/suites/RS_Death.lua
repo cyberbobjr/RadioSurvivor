@@ -159,7 +159,8 @@ local function sharedGoesOn(t, data, requesterId, when)
         .. " ms left")
 end
 
-RST.suite("rs.death", { tags = { "server", "world" }, testTimeoutMs = 180000, timeoutMs = 420000 }, function(s)
+RST.suite("rs.death", { mods = { "rs", "lk" },
+    tags = { "server", "world" }, testTimeoutMs = 180000, timeoutMs = 420000 }, function(s)
     s.test("client 2 dies on the server: OnCharacterDeath, identity retired, last-pages paper in its corpse seen "
         .. "by the requester (E00-T02, E15-T02)", function(t)
         D.died, D.skipped = false, nil

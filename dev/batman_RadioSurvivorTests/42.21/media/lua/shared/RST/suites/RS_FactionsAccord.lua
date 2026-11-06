@@ -61,7 +61,8 @@ local function loadedGroup(t, E)
     t:skip("no body of a Living Knox group loaded near the player: go next to a group and run again")
 end
 
-RST.suite("rs.factions.accord", { tags = { "server", "world" }, testTimeoutMs = 300000, timeoutMs = 600000 },
+RST.suite("rs.factions.accord", { mods = { "rs", "lk" },
+    tags = { "server", "world" }, testTimeoutMs = 300000, timeoutMs = 600000 },
     function(s)
     s.test("truce concluded: covered at once, applicable after the next decisions, attitude unchanged", function(t0)
         local F, E = modules(t0)

@@ -76,7 +76,8 @@ end
 
 -- Suite limit above the test one: the decision wait alone is 120 s (suite default 120 s: timeout in the MP campaign
 -- of 2026-10-15 while the bridge got no answer from the model).
-RST.suite("rs.factions.incident", { tags = { "server", "world" }, testTimeoutMs = 300000, timeoutMs = 900000 },
+RST.suite("rs.factions.incident", { mods = { "rs", "lk" },
+    tags = { "server", "world" }, testTimeoutMs = 300000, timeoutMs = 900000 },
     function(s)
     s.test("hit under a truce: incident, defence against the author only, one decision", function(t0)
         local F, E = modules(t0)

@@ -82,7 +82,8 @@ local function pendingOf(Server, fiche)
     return nil
 end
 
-RST.suite("rs.initiatives", { tags = { "world", "server" }, testTimeoutMs = 90000, timeoutMs = 240000 }, function(s)
+RST.suite("rs.initiatives", { mods = { "rs", "lk" },
+    tags = { "world", "server" }, testTimeoutMs = 90000, timeoutMs = 240000 }, function(s)
     s.test("a fresh observation of a heard npc opens one initiative, never twice", function(t)
         local Server, I, Obs = setup(t)
         npcWithFiche(t, Server, 1, function(t2, _, fiche)

@@ -52,7 +52,7 @@ local function askRun(t, user, after)
         end)
 end
 
-RST.suite("rst.rights", { tags = { "server" } }, function(s)
+RST.suite("rst.rights", { mods = { "rs" }, tags = { "server" } }, function(s)
     s.test("a user client is refused RST.server (E01-T05)", function(t)
         serverOnly(t)
         RST.PeerChecks.asUser(t, function(t2, user)

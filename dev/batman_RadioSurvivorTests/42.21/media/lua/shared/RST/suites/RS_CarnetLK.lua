@@ -69,7 +69,7 @@ local function flatten(v, out)
     return out
 end
 
-RST.suite("rs.carnet.lk", { tags = { "server" }, testTimeoutMs = 90000, timeoutMs = 300000 }, function(s)
+RST.suite("rs.carnet.lk", { mods = { "rs", "lk" }, tags = { "server" }, testTimeoutMs = 90000, timeoutMs = 300000 }, function(s)
     s.test("Living Knox is the notebook NPC provider", function(t)
         local P = provider(t)
         t:eq("livingknox", P.active().name)
@@ -146,7 +146,7 @@ RST.suite("rs.carnet.lk", { tags = { "server" }, testTimeoutMs = 90000, timeoutM
     end)
 end)
 
-RST.suite("rs.carnet.lk.supply", { tags = { "server", "world" }, testTimeoutMs = 90000 }, function(s)
+RST.suite("rs.carnet.lk.supply", { mods = { "rs", "lk" }, tags = { "server", "world" }, testTimeoutMs = 90000 }, function(s)
     s.test("supply offers of the loaded groups use real items", function(t0)
         local P, E = provider(t0)
         withGroup(t0, function(t)
@@ -187,7 +187,7 @@ end)
 --              leader), line kept, no agreement.
 -- Tags "server" and "world" (fixture group, notebook state written: test saves rstest*). Cleanup: group removed,
 -- agreement removed if any.
-RST.suite("rs.carnet.leader", { tags = { "server", "world" }, testTimeoutMs = 240000, timeoutMs = 300000 },
+RST.suite("rs.carnet.leader", { mods = { "rs", "lk" }, tags = { "server", "world" }, testTimeoutMs = 240000, timeoutMs = 300000 },
     function(s)
     s.test("a member never concludes; a reply after a death or a succession concludes nothing (E10-T02)", function(t0)
         local _, E = provider(t0)

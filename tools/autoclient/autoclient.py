@@ -217,9 +217,17 @@ def log(message: str) -> None:
 
 # ---------------------------------------------------------------- pure helpers (tests/test_autoclient.py)
 
-def selected_mods() -> list[tuple[str, Path]]:
-    """MODS in load order (every requirement of RadioSurvivor, Signal Smoke included, is always copied)."""
-    return list(MODS)
+# E18-T14: mods left out of each setup of the Workshop item (--mods); the core mod, its requirement Signal Smoke and
+# the test mod are always in the run. Belt Walkie-Talkie (and its TooltipLib) and Character Reputation are needed by
+# RadioSurvivor only.
+SETUP_DROPS = {'both': (), 'rs': ('batman_LivingKnox',),
+               'lk': ('batman_RadioSurvivor', 'batman_BeltRadio', 'TooltipLib', 'batman_CharacterReputation')}
+
+
+def selected_mods(setup: str = 'both') -> list[tuple[str, Path]]:
+    """MODS of a setup (rs, lk, both) in load order (Signal Smoke, required by the core mod, always copied)."""
+    drop = SETUP_DROPS[setup]
+    return [(m, src) for m, src in MODS if m not in drop]
 
 
 def missing_mod_sources(mods: list[tuple[str, Path]]) -> list[str]:
@@ -1248,8 +1256,11 @@ def main(argv=None) -> int:
         release_slot()
 
 
-def _main(argv=None) -> int:
+def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    p.add_argument('--mods', choices=('rs', 'lk', 'both'), default='both',
+                   help='E18-T14: mods of the Workshop item in the run: rs = RadioSurvivor alone, lk = Living Knox alone,'
+                        ' both (default); the core mod and the test mod always (suites of an absent mod are SKIP)')
     what = p.add_mutually_exclusive_group()
     what.add_argument('--campaign', help='RST.campaign(name), e.g. solo-rs')
     what.add_argument('--suite', help='RST.run({ suite = {...} }): comma-separated suite names or prefixes')
@@ -1331,6 +1342,15 @@ def _main(argv=None) -> int:
                          f'global {LOAD_PHASE_GLOBAL} written into the caches of the run')
     mp.add_argument('--client-xmx', default='4096m', help='-Xmx of each client (default 4096m)')
     mp.add_argument('--server-xmx', default='3072m', help='-Xmx of the server (default 3072m)')
+    return p
+
+
+def parse_args(argv=None) -> argparse.Namespace:
+    return build_parser().parse_args(argv)
+
+
+def _main(argv=None) -> int:
+    p = build_parser()
     args = p.parse_args(argv)
     if args.timeout is None:
         args.timeout = LOAD_TIMEOUT if args.load else DEFAULT_TIMEOUT
@@ -1376,7 +1396,7 @@ def _main(argv=None) -> int:
     out = args.out or RUNS / f'{datetime.now().strftime("%Y%m%d-%H%M%S")}-{token}'
     log(f'RS_AUTOCLIENT_CACHE={cache}')
     log(f'save {args.mode}/{save}, ' + (f'campaign {args.campaign}' if args.campaign else 'suites ' + ','.join(suites)))
-    mods = selected_mods()
+    mods = selected_mods(getattr(args, 'mods', 'both'))
     log('mods: ' + ', '.join(m for m, _ in mods))
     missing = missing_mod_sources(mods)
     if missing:
@@ -1751,7 +1771,7 @@ def main_mp(args) -> int:
     token = secrets.token_hex(6)
     password = secrets.token_hex(8)  # local test server only, new each run
     out = args.out or RUNS / f'{datetime.now().strftime("%Y%m%d-%H%M%S")}-mp-{token}'
-    mods = selected_mods()
+    mods = selected_mods(getattr(args, 'mods', 'both'))
     ids = [m for m, _ in mods]
     log('mods: ' + ', '.join(ids))
     missing = missing_mod_sources(mods + ([MODSWAP_MOD] if 'modswap' in phases else []))

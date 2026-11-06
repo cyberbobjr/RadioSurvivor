@@ -734,7 +734,7 @@ local function sandboxTest(lang)
     end
 end
 
-RST.suite("wiki.shots", { tags = { "world" }, testTimeoutMs = 420000, timeoutMs = 2700000 }, function(s)
+RST.suite("wiki.shots", { mods = { "rs", "lk" }, tags = { "world" }, testTimeoutMs = 420000, timeoutMs = 2700000 }, function(s)
     s.test("display: windowed at the largest mode, debug windows hidden", function(t)
         solo(t)
         local core = getCore()

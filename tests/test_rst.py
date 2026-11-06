@@ -848,7 +848,7 @@ FAKE_GAME = r"""
 DEBUG = true
 isDebugEnabled = function() return DEBUG end
 getCore = function() return { getVersion = function(self) return "42.21.0 abcdef1234" end } end
-MODS = { "batman_RadioSurvivor", "batman_RadioSurvivorTests" }
+MODS = { "batman_RadioSurvivorCore", "batman_LivingKnox", "batman_RadioSurvivor", "batman_RadioSurvivorTests" }
 getActivatedMods = function()
     return { size = function(self) return #MODS end, get = function(self, i) return MODS[i + 1] end }
 end
@@ -993,7 +993,8 @@ class ClientTests(LuaHarness):
         self.assertIn('side: solo', text)
         self.assertIn('save: rstest-solo', text)
         self.assertIn('filter: "rst" -> {exclude={"server", "world"}, suite="rst"}', text)
-        self.assertIn('active mods (2): batman_RadioSurvivor;batman_RadioSurvivorTests', text)
+        self.assertIn('active mods (4): batman_RadioSurvivorCore;batman_LivingKnox;batman_RadioSurvivor;'
+                      'batman_RadioSurvivorTests', text)
         self.assertTrue(any(re.match(r'^date \(UTC\): \d{8}-\d{6}$', line) for line in text))
         self.assertTrue(any(line.startswith('PASS   rst.selftest :: sleep 2 s measured by RST.now') for line in text))
         self.assertTrue(text[-1].startswith('OK - 6 test(s): 6 pass, 0 fail'))
@@ -1817,7 +1818,7 @@ class ModInfoTests(unittest.TestCase):
         info = dict(line.split('=', 1) for line in (MOD / '42.21' / 'mod.info').read_text(encoding='utf-8').splitlines()
                     if '=' in line)
         self.assertEqual(info['id'], 'batman_RadioSurvivorTests')
-        self.assertEqual(info['require'], '\\batman_RadioSurvivor')
+        self.assertEqual(info['require'], '\\batman_RadioSurvivorCore')   # E18-T14: the other mods are detected
         self.assertEqual(info['versionMin'], '42.21')
         self.assertIn('never publish', info['description'])
         self.assertTrue((MOD / 'common').is_dir())
@@ -3040,6 +3041,50 @@ class NpcFixtureTests(AsyncHarness):
         for _, _, status, msg in self.results():
             self.assertEqual((status, msg), ('SKIP', "world suite refused: save 'Survie 1' is not a test save (rstest*)"))
         self.assertIsNone(self.g.NPC.last)
+
+
+class ModsGuardTests(AsyncHarness):
+    """E18-T14: each suite needs mods (opts.mods, else by its name: lk.* Living Knox, rs.* RadioSurvivor); a suite
+    whose mods are not all active is SKIP without running, with the missing mods in the reason."""
+
+    SUITES = r'''
+    RAN = {}
+    RST.suite("lk.x", { tags = { "shared" } }, function(s) s.test("a", function(t) RAN.lk = true; t:ok(true) end) end)
+    RST.suite("rs.x", { tags = { "shared" } }, function(s) s.test("a", function(t) RAN.rs = true; t:ok(true) end) end)
+    RST.suite("rs.mixed", { tags = { "shared" }, mods = { "rs", "lk" } }, function(s)
+        s.test("a", function(t) RAN.mixed = true; t:ok(true) end)
+    end)
+    RST.suite("rc.x", { tags = { "shared" } }, function(s) s.test("a", function(t) RAN.rc = true; t:ok(true) end) end)
+    '''
+
+    def mods(self, *ids):
+        items = ', '.join('"' + i.replace('\\', '\\\\') + '"' for i in ids)
+        self.lua('getActivatedMods = function() local l = {' + items + '} '
+                 'return { size = function() return #l end, get = function(_, i) return l[i + 1] end } end')
+
+    def test_suites_of_an_absent_mod_are_skipped(self):
+        self.lua(self.SUITES)
+        self.mods('batman_RadioSurvivorCore', '\\batman_LivingKnox')   # leading "\" of some B42 lists
+        self.lua('RAN = {}; REPORT = RST.runSync()')
+        self.assertEqual(self.status('lk.x', 'a')[0], 'PASS')
+        self.assertEqual(self.status('rc.x', 'a')[0], 'PASS')
+        self.assertEqual(self.status('rs.x', 'a'), ('SKIP', 'needs mod(s) batman_RadioSurvivor (not active)'))
+        self.assertEqual(self.status('rs.mixed', 'a'), ('SKIP', 'needs mod(s) batman_RadioSurvivor (not active)'))
+        self.assertIsNone(self.g.RAN.rs)
+        self.assertIsNone(self.g.RAN.mixed)
+        self.assertTrue(self.g.REPORT.ok)
+
+    def test_both_mods_run_everything(self):
+        self.lua(self.SUITES)
+        self.mods('batman_RadioSurvivorCore', 'batman_LivingKnox', 'batman_RadioSurvivor')
+        self.lua('RAN = {}; REPORT = RST.runSync()')
+        self.assertEqual({self.status(s, 'a')[0] for s in ('lk.x', 'rs.x', 'rs.mixed', 'rc.x')}, {'PASS'})
+        self.assertEqual(lua_list(self.lua('return RST.suiteMods(RST._suites[3])')), ['rs', 'lk'])
+
+    def test_outside_the_game_every_mod_counts_as_active(self):
+        self.lua(self.SUITES)
+        self.lua('getActivatedMods = nil; RAN = {}; REPORT = RST.runSync()')
+        self.assertEqual(self.status('rs.mixed', 'a')[0], 'PASS')
 
 
 if __name__ == '__main__':

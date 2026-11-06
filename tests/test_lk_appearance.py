@@ -70,7 +70,7 @@ function C.IsoZombie:DoZombieInventory()
     self.worn = H.list(kept)
 end
 -- Mods actifs (getActivatedMods, liste Java) : MODS modifiable entre deux passes.
-MODS = { 'batman_RadioSurvivor', 'batman_RadioSurvivorTests' }
+MODS = { 'batman_RadioSurvivorCore', 'batman_LivingKnox', 'batman_RadioSurvivor', 'batman_RadioSurvivorTests' }
 getActivatedMods = function() return H.list(MODS) end
 function C.IsoZombie:getWornItems()  -- WornItems.addItemsToItemContainer : état = max - 3 x trous
     local out = H.list()

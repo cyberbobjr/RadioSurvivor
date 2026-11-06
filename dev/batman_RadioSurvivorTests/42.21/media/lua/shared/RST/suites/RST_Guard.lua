@@ -26,7 +26,9 @@ RST.suite("rst.guard", { tags = { "world", "shared" } }, function(s)
         t:ok(ok, "RST.plan raised: " .. tostring(jobs))
         t:ok(#jobs > 0, "rst.fixtures not selected")
         for _, job in ipairs(jobs) do
-            t:ok(type(job.refused) == "string" and string.find(job.refused, "not a test save", 1, true) ~= nil,
+            -- E18-T14: a suite of an absent mod is refused first by RST.modsRefusal ("needs mod(s) ...").
+            local why = type(job.refused) == "string" and job.refused or ""
+            t:ok(string.find(why, "not a test save", 1, true) ~= nil or string.find(why, "needs mod(s)", 1, true) ~= nil,
                 "job " .. tostring(job.test and job.test.name) .. " not refused: " .. tostring(job.refused))
         end
         local report = RST.newReport()

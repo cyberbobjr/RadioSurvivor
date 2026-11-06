@@ -80,7 +80,8 @@ local function badCut(lines, max, TextCut)
     return nil
 end
 
-RST.suite("rs.groupradio", { tags = { "world", "server" }, testTimeoutMs = 150000, timeoutMs = 480000 }, function(s)
+RST.suite("rs.groupradio", { mods = { "rs", "lk" },
+    tags = { "world", "server" }, testTimeoutMs = 150000, timeoutMs = 480000 }, function(s)
     s.test("a long reply is aired in lines cut at sentence ends, then commas, never inside a word (E17-T12)",
         function(t)
         if isClient() then t:skip("authority only (solo, or RST.server in MP)") end

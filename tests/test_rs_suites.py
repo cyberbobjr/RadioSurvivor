@@ -59,7 +59,7 @@ local function javaList(items)
     return { size = function() return #items end, get = function(_, i) return items[i + 1] end }
 end
 VERSION = "42.21.0 abcdef"
-MOD_IDS = { "batman_CharacterReputation", "batman_RadioSurvivor", "batman_RadioSurvivorTests" }
+MOD_IDS = { "batman_CharacterReputation", "batman_RadioSurvivorCore", "batman_LivingKnox", "batman_RadioSurvivor", "batman_RadioSurvivorTests" }
 getCore = function() return { getVersion = function() return VERSION end } end
 getActivatedMods = function() return javaList(MOD_IDS) end
 for _, name in ipairs({ "getSandboxOptions", "getPlayer", "sendServerCommand", "getOnlinePlayers", "addSound",
@@ -285,8 +285,8 @@ class EnvSuiteTests(SuiteHarness):
         self.lua('MOD_IDS = { "batman_RadioSurvivorTests", "batman_RadioSurvivor_old" }')
         self.run_filter('"rs.env"')
         st, msg = self.results()['batman_RadioSurvivor is active']
-        self.assertEqual(st, 'FAIL')
-        self.assertIn('batman_RadioSurvivorTests;batman_RadioSurvivor_old', msg)
+        # E18-T14: without RadioSurvivor, every rs.* suite is SKIP (RST.modsRefusal) instead of failing.
+        self.assertEqual((st, msg), ('SKIP', 'needs mod(s) batman_RadioSurvivor (not active)'))
 
 
 # Serveur simulé des fiches (E05-T02 à E05-T11) : réutilisé tel quel pour rs.voices.

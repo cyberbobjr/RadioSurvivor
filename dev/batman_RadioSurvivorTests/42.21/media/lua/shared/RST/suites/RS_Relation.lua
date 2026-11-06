@@ -137,7 +137,8 @@ local function say(t, c, text, onRequest, onDone)
     end)
 end
 
-RST.suite("rs.relation", { tags = { "world", "server" }, testTimeoutMs = 300000, timeoutMs = 900000 }, function(s)
+RST.suite("rs.relation", { mods = { "rs", "lk" },
+    tags = { "world", "server" }, testTimeoutMs = 300000, timeoutMs = 900000 }, function(s)
     s.test("a real gift is offered as a fact; the change (or none) is checked by the server (E09-T04)", function(t)
         setup(t, function(t2, c)
             local res, why = LivingKnox.Hostility.record(c.gid, c.cid, "gift", { witnessed = true })

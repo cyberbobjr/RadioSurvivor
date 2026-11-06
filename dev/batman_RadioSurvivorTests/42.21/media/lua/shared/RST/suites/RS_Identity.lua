@@ -310,7 +310,7 @@ end
 
 -- ------------------------------------------------------------------------------------------------ live invariants
 
-RST.suite("rs.identity", { tags = { "server" } }, function(s)
+RST.suite("rs.identity", { mods = { "rs", "lk" }, tags = { "server" } }, function(s)
     s.test("notebook state ready", function(t)
         local _, store = carnet(t)
         t:ok(type(store.data.world) == "string" and type(store.run) == "string", "world or session id missing")
@@ -462,7 +462,7 @@ end)
 
 -- ------------------------------------------------------------------------------------------------ manual steps
 
-RST.suite("rs.identity.before", { tags = { "server", "manual" } }, function(s)
+RST.suite("rs.identity.before", { mods = { "rs", "lk" }, tags = { "server", "manual" } }, function(s)
     -- E00-T01 / E03-T04: the mission clock checks of the after-* steps need an active mission where the accounts
     -- are engaged. Kept for those steps (removed by rs.identity.after-restart and .after-death); reused when the
     -- step runs again before the next action.

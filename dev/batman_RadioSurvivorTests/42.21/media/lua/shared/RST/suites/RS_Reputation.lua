@@ -138,7 +138,8 @@ local function firstData(res)
     return e and e.data or {}
 end
 
-RST.suite("rs.reputation", { tags = { "server", "world" }, testTimeoutMs = 90000, timeoutMs = 400000 }, function(s)
+RST.suite("rs.reputation", { mods = { "rs", "lk" },
+    tags = { "server", "world" }, testTimeoutMs = 90000, timeoutMs = 400000 }, function(s)
     s.test("a mission success raises its participant only (E04-T04, E04-T08)", function(t)
         local c = setup(t)
         guard(t, c, c.cid)
@@ -286,7 +287,8 @@ end)
 
 -- ---------------------------------------------------------------- persistence (mp-persist base rs.reputation)
 
-RST.suite("rs.reputation.before", { tags = { "server", "world", "manual" }, testTimeoutMs = 60000 }, function(s)
+RST.suite("rs.reputation.before", { mods = { "rs", "lk" },
+    tags = { "server", "world", "manual" }, testTimeoutMs = 60000 }, function(s)
     s.test("one fact of a fixed event id recorded and saved", function(t)
         local c = setup(t)
         baseline(t, c, c.cid, "neutral")
