@@ -2,7 +2,7 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 4 / 23 tâche(s) terminée(s).
+**Avancement.** en cours — 4 / 26 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
@@ -25,10 +25,13 @@
 | ☐ | E18-T17 | File des demandes de parole des PNJ portée par Living Knox | `à faire` | MP | E18-T11, E18-T20, E18-T21, E18-T22 |
 | ☐ | E18-T18 | Parole de proximité avec Living Knox seul | `à faire` | MP | E18-T17 |
 | ☐ | E18-T19 | Historique des voix radio dans le commun | `à faire` | MP | E18-T11 |
-| ☐ | E18-T20 | Accords dans Living Knox, identifiants d'équipe dans le commun | `à faire` | MP | E18-T09 |
+| ☐ | E18-T20 | Accords dans Living Knox, identifiants d'équipe dans le commun | `à faire` | MP | E18-T09, E18-T24 |
 | ☐ | E18-T21 | Relation personnelle des PNJ dans Living Knox | `testé hors jeu` | MP | E18-T09 |
 | ☐ | E18-T22 | Réputation dans le commun | `testé hors jeu` | MP | E18-T05 |
 | ☐ | E18-T23 | Retirer les reprises des parties d'avant la séparation | `à faire` | hors jeu | E18-T21 |
+| ☐ | E18-T24 | Carnet dans le mod commun, onglets par mod | `à faire` | MP | E18-T09 |
+| ☐ | E18-T25 | Onglets Missions et Réputation tenus par le commun | `à faire` | MP | E18-T24 |
+| ☐ | E18-T26 | Onglet Contacts commun, contacts versés par chaque mod | `à faire` | MP | E18-T24 |
 
 <!-- fin du tableau de bord -->
 
@@ -99,6 +102,12 @@ donnent des missions ; le pont Python LLM est la base de leur intelligence, avec
   publié ; aucun code de rétrocompatibilité, de reprise d'une partie d'avant la séparation ni de version de format de
   sauvegarde ; toute partie repart de zéro. Remplace, pour les tâches à venir, « reprise une seule fois des données
   d'une partie d'avant la séparation » ; les reprises déjà écrites sont retirées par `E18-T23`.
+- 2026-11-06 — **Carnet commun, onglets par mod** (utilisateur) : un seul carnet, dans le **mod commun**, ouvert
+  comme aujourd'hui par le bouton de la barre latérale et la touche, donc toujours présent (le commun est exigé par
+  chacun des deux mods). Chaque onglet appartient à un mod et ne s'affiche que si ce mod est activé : Radio
+  (RadioSurvivor), Équipe (Living Knox, accords de `E18-T20`) ; Contacts, Missions et Réputation sont communs et ne
+  montrent que les données des mods activés. Les données d'un mod décoché ne sont ni affichées ni effacées : elles
+  reviennent quand il est recoché. Le carnet remplace le petit journal des missions du commun (décision du 2026-11-05).
 - 2026-11-05 — Confirmé par défaut (valeurs techniques, modifiables) :
   - identifiants `batman_RadioSurvivorCore` (mod commun, nom affiché « Radio Survivor Core », code sous
     `media/lua/*/RadioSurvivorCore/`, fichiers `RC_`) et `batman_LivingKnox` (nom affiché « Living Knox ») ;
@@ -347,9 +356,9 @@ Deuxième article Workshop, dépôt séparé, nouvelles règles de jeu des missi
 - [ ] **E18-T20** — Accords dans Living Knox, identifiants d'équipe dans le commun
   - État : `à faire`
   - Cible : `MP`
-  - Dépend de : E18-T09
+  - Dépend de : E18-T09, E18-T24
   - Fichiers : `RS_Factions` (identifiants d'équipe et mandats → commun ; accords → Living Knox), `RS_Incidents`, `RS_Carnet_Server` (offre, conclusion, `collectiveCheck`, annonce), crochet `LivingKnox.Hooks.covered` ; `bridge/npc_protocol.py` (termes de la négociation) ; `docs/annexes/conception/accords.md`
-  - Faire : décision du 2026-11-06 : trêves, alliances et incidents tenus par Living Knox (état privé de Living Knox), négociés par la parole des PNJ ; identifiants `fac-<n>` et mandats dans le commun ; aucune reprise d'une partie existante (décision du 2026-11-06) ; RadioSurvivor n'a plus aucun code d'accord (le carnet affiche ceux que Living Knox publie, s'il est présent).
+  - Faire : décision du 2026-11-06 : trêves, alliances et incidents tenus par Living Knox (état privé de Living Knox), négociés par la parole des PNJ ; identifiants `fac-<n>` et mandats dans le commun ; aucune reprise d'une partie existante (décision du 2026-11-06) ; RadioSurvivor n'a plus aucun code d'accord ; l'onglet Équipe du carnet commun est inscrit par Living Knox (décision du 2026-11-06).
   - Accepté si : Living Knox seul : une trêve conclue avec un chef de groupe rend le groupe non agressif, gardée après redémarrage ; RadioSurvivor seul démarre sans code d'accord ; ensemble : mêmes accords qu'avant.
   - Tests : bancs des accords et des incidents ; suites des accords dans les montages Living Knox seul et les deux.
   - Preuve : —
@@ -385,5 +394,38 @@ Deuxième article Workshop, dépôt séparé, nouvelles règles de jeu des missi
   - Faire : décision de l'utilisateur du 2026-11-06 (mod jamais publié, toute partie repart de zéro) : retirer le code de reprise des données d'une partie d'avant la séparation et les numéros de schéma qui ne servent qu'à des formats anciens, avec les bancs et fixtures qui les prouvaient.
   - Accepté si : aucun code ni journal « taken over » ; une partie neuve et une partie relue après redémarrage gardent leurs données dans chaque mod ; bancs verts.
   - Tests : `run_all.py`, luacheck.
+  - Preuve : —
+  - Reste : —
+
+- [ ] **E18-T24** — Carnet dans le mod commun, onglets par mod
+  - État : `à faire`
+  - Cible : `MP`
+  - Dépend de : E18-T09
+  - Fichiers : `client/RadioSurvivor/RS_Notebook.lua` → commun (`client/RadioSurvivorCore/RC_Notebook.lua` : cadre, marque-pages, bouton de la barre latérale, touche, registre d'onglets) ; onglet Radio inscrit par RadioSurvivor ; `RC_MissionJournalView` retiré ; traductions `IGUI_RC_` du cadre
+  - Faire : décision du 2026-11-06 : carnet commun ouvert sans objet par le bouton et la touche ; chaque mod inscrit ses onglets (`registerTab`, propriétaire, ordre, couleur, dessin) ; un onglet n'existe que si son mod est activé ; mêmes onglets, mêmes textes et même comportement qu'aujourd'hui avec les deux mods.
+  - Accepté si : RadioSurvivor seul : carnet sans onglet Équipe ; Living Knox seul : carnet sans onglet Radio, aucun module de RadioSurvivor chargé ; les deux : les cinq onglets d'aujourd'hui.
+  - Tests : banc du carnet dans les trois montages ; suites du carnet (`rs.notebook.*`) ; capture du carnet en jeu dans chaque montage.
+  - Preuve : —
+  - Reste : —
+
+- [ ] **E18-T25** — Onglets Missions et Réputation tenus par le commun
+  - État : `à faire`
+  - Cible : `MP`
+  - Dépend de : E18-T24
+  - Fichiers : onglets Missions (`RC_MissionList`, commande `missions` de `RC_MissionJournal`) et Réputation (`RC_Reputation.projection`) dans `RC_Notebook` ; textes des motifs propres à chaque mod
+  - Faire : les deux onglets lisent les données du commun, sans RadioSurvivor ; missions d'un donneur dont le mod est décoché masquées, jamais effacées ni échouées par son absence.
+  - Accepté si : Living Knox seul : missions des PNJ et réputation dans le carnet ; RadioSurvivor seul : missions des voix ; partie rouverte sans un mod : ses missions masquées puis retrouvées quand il est recoché.
+  - Tests : bancs du carnet et des missions dans les trois montages ; `test_lk_removed.py` étendu.
+  - Preuve : —
+  - Reste : —
+
+- [ ] **E18-T26** — Onglet Contacts commun, contacts versés par chaque mod
+  - État : `à faire`
+  - Cible : `MP`
+  - Dépend de : E18-T24
+  - Fichiers : onglet Contacts de `RC_Notebook` ; sources de contacts de RadioSurvivor (voix radio) et de Living Knox (PNJ, relation `E18-T21`) ; historique `RC_History` ; purge des fiches de RadioSurvivor (ne plus purger un PNJ parce que Living Knox est absent)
+  - Faire : chaque mod verse ses interlocuteurs et leur panneau (historique, relation, accords) ; un contact d'un mod décoché n'est ni affiché ni purgé.
+  - Accepté si : Living Knox seul : les PNJ rencontrés, leur historique et leur relation dans le carnet ; partie rouverte sans Living Knox : ses PNJ masqués, retrouvés intacts quand il est recoché.
+  - Tests : bancs des contacts, de la relation et `test_lk_removed.py` dans les trois montages.
   - Preuve : —
   - Reste : —
