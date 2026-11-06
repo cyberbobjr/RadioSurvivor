@@ -255,19 +255,19 @@ RST.suite("rs.actions.map", { tags = { "world", "server" }, testTimeoutMs = 6000
             local Log = require "RadioSurvivor/RS_RadioLog"
             local S = require "RadioSurvivor/RS_State"
             RST.RSHelpers.character(t, player)
-            local cid, record = Log.characterOf(player)
+            local cid = Log.characterOf(player)
             t:ok(cid ~= nil, "no notebook character bound to the player")
             local x, y = spot(player, -3, -4)
-            local saved = deepCopy(record.radio)
+            local saved = deepCopy(RST.radioOf(cid))
             t:defer(function()
-                record.radio = saved
+                RST.setRadio(cid, saved)
                 S.dirty = true
                 Log.sendAll(player)
             end, "radio history of " .. tostring(cid))
             local sheet = testSheet(t, x, y, LABEL)
             t:eq("ok", decide(Actions, sheet, PLACE_ID, player, TEST_KHZ, cid), "mark_map decision")
             local stored = {}
-            for _, f in ipairs(record.radio and record.radio.frequencies or {}) do
+            for _, f in ipairs(RST.radioOf(cid) and RST.radioOf(cid).frequencies or {}) do
                 if f.khz == TEST_KHZ then stored = markLines(f.lines) end
             end
             t:eq(1, #stored, "mark lines on " .. TEST_KHZ .. " kHz (server)")
@@ -281,15 +281,15 @@ RST.suite("rs.actions.map", { tags = { "world", "server" }, testTimeoutMs = 6000
         local Log = require "RadioSurvivor/RS_RadioLog"
         local History = require "RadioSurvivor/RS_RadioHistory"
         local S = require "RadioSurvivor/RS_State"
-        local cid, record = Log.characterOf(player)
+        local cid = Log.characterOf(player)
         if not cid then t:skip("no notebook character bound to the player: open the notebook once, then run again") end
         local x, y = spot(player, -3, -4)
         local icons, texts = symbolsAt(MapActions, x, y)
         t:eq(0, #icons + #texts, "symbols already at the test square " .. x .. "," .. y)
         t:defer(function() removeAt(MapActions, x, y) end, "symbols of the test")
-        local saved = deepCopy(record.radio)
+        local saved = deepCopy(RST.radioOf(cid))
         t:defer(function()
-            record.radio = saved
+            RST.setRadio(cid, saved)
             S.dirty = true
             History.request()
         end, "radio history of " .. tostring(cid))
@@ -307,7 +307,7 @@ RST.suite("rs.actions.map", { tags = { "world", "server" }, testTimeoutMs = 6000
             "notebook line not translated: " .. tostring(shown))
         -- Private state of the server.
         local stored = {}
-        for _, f in ipairs(record.radio and record.radio.frequencies or {}) do
+        for _, f in ipairs(RST.radioOf(cid) and RST.radioOf(cid).frequencies or {}) do
             if f.khz == TEST_KHZ then stored = markLines(f.lines) end
         end
         t:eq(1, #stored, "mark lines on " .. TEST_KHZ .. " kHz (server)")
@@ -516,7 +516,7 @@ RST.suite("rs.actions.reveal", { tags = { "world", "server" }, testTimeoutMs = 6
             local Log = require "RadioSurvivor/RS_RadioLog"
             local S = require "RadioSurvivor/RS_State"
             RST.RSHelpers.character(t, player)
-            local cid, record = Log.characterOf(player)
+            local cid = Log.characterOf(player)
             t:ok(cid ~= nil, "no notebook character bound to the player")
             local x, y, rect = chooseArea(player, MapMarks, nil)
             if x == nil then t:skip(y) end
@@ -530,9 +530,9 @@ RST.suite("rs.actions.reveal", { tags = { "world", "server" }, testTimeoutMs = 6
                     if string.find(string.sub(known, 1, #inside), "1", 1, true) then
                         t2:skip("part of the test area is already known on the client (new rstest* world advised)")
                     end
-                    local saved = deepCopy(record.radio)
+                    local saved = deepCopy(RST.radioOf(cid))
                     t2:defer(function()
-                        record.radio = saved
+                        RST.setRadio(cid, saved)
                         S.dirty = true
                         Log.sendAll(player)
                     end, "radio history of " .. tostring(cid))
@@ -544,7 +544,7 @@ RST.suite("rs.actions.reveal", { tags = { "world", "server" }, testTimeoutMs = 6
                     t2:ok(rect.x2 - rect.x1 <= maxSide and rect.y2 - rect.y1 <= maxSide, "rectangle capped")
                     t2:eq("cooldown", revealDecide(Actions, sheet, PLACE_ID, player), "second decision within the delay")
                     local stored = {}
-                    for _, f in ipairs(record.radio and record.radio.frequencies or {}) do
+                    for _, f in ipairs(RST.radioOf(cid) and RST.radioOf(cid).frequencies or {}) do
                         if f.khz == TEST_KHZ then stored = revealLines(f.lines) end
                     end
                     t2:eq(1, #stored, "reveal lines on " .. TEST_KHZ .. " kHz (server)")
@@ -574,11 +574,11 @@ RST.suite("rs.actions.reveal", { tags = { "world", "server" }, testTimeoutMs = 6
         local Log = require "RadioSurvivor/RS_RadioLog"
         local History = require "RadioSurvivor/RS_RadioHistory"
         local S = require "RadioSurvivor/RS_State"
-        local cid, record = Log.characterOf(player)
+        local cid = Log.characterOf(player)
         if cid then
-            local saved = deepCopy(record.radio)
+            local saved = deepCopy(RST.radioOf(cid))
             t:defer(function()
-                record.radio = saved
+                RST.setRadio(cid, saved)
                 S.dirty = true
                 History.request()
             end, "radio history of " .. tostring(cid))
@@ -604,7 +604,7 @@ RST.suite("rs.actions.reveal", { tags = { "world", "server" }, testTimeoutMs = 6
             t:ok(shown ~= "IGUI_RS_Radio_reveal" and string.find(shown, REVEAL_LABEL, 1, true) ~= nil,
                 "notebook line not translated: " .. tostring(shown))
             local stored = {}
-            for _, f in ipairs(record.radio and record.radio.frequencies or {}) do
+            for _, f in ipairs(RST.radioOf(cid) and RST.radioOf(cid).frequencies or {}) do
                 if f.khz == TEST_KHZ then stored = revealLines(f.lines) end
             end
             t:eq(1, #stored, "reveal lines on " .. TEST_KHZ .. " kHz (server)")

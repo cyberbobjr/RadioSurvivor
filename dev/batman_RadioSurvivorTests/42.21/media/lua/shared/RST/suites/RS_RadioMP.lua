@@ -79,17 +79,15 @@ local function carriesTransmitter(player)
 end
 
 local function lineCount(S, cid)
-    local record = cid and S.data.characters[cid]
     local total = 0
-    for _, f in ipairs(record and record.radio and record.radio.frequencies or {}) do total = total + #(f.lines or {}) end
+    for _, f in ipairs(RST.radioOf(cid) and RST.radioOf(cid).frequencies or {}) do total = total + #(f.lines or {}) end
     return total
 end
 
 -- Kinds of the lines of text in the private history of a character: { "khz:kind", ... }.
 local function serverLines(S, cid, text)
     local out = {}
-    local record = cid and S.data.characters[cid]
-    for _, f in ipairs(record and record.radio and record.radio.frequencies or {}) do
+    for _, f in ipairs(RST.radioOf(cid) and RST.radioOf(cid).frequencies or {}) do
         for _, line in ipairs(f.lines or {}) do
             if line.text == text then out[#out + 1] = tostring(f.khz) .. ":" .. tostring(line.kind) end
         end

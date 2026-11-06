@@ -86,7 +86,8 @@ class VoiceBondsTests(unittest.TestCase):
         self.assertTrue(self.knows('darlene'))
         khz = self.P.served('darlene')[1]
         record = self.sim.state().characters[self.cid]
-        f = [f for f in lua_list(record.radio.frequencies) if f.khz == khz][0]
+        radio = self.sim.server.rt.eval("require('RadioSurvivorCore/RC_History')").radio(self.cid)  # E18-T19
+        f = [f for f in lua_list(radio.frequencies) if f.khz == khz][0]
         self.assertEqual((f.voice, lua_list(f.lines)[-1].kind), ('darlene', 'reply'))
         self.assertIn('Darlene', lua_list(f.lines)[-1].text)
         # Same voice: once in 7 game days; any voice: once in 3 game days.

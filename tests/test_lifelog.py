@@ -377,7 +377,7 @@ class DeathTests(Bench):
         RS_CarnetServer.bound[p] = nil
         p:getModData().RS_CarnetCharacter = nil
         S.data.characters['char-a'].retired = true
-        S.data.characters['char-a'].radio = nil
+        require('RadioSurvivorCore/RC_History').data.radio['char-a'] = nil
         p.kills = 5
         p.dead = true
         LifeLog.characterDeath(p)
@@ -472,7 +472,7 @@ class CarnetIntegrationTests(unittest.TestCase):
         g.fire('OnCharacterDeath', g.PLAYERS.alice)
         state = sim.state()
         self.assertTrue(state.characters[cid].retired)
-        self.assertIsNone(state.characters[cid].radio)
+        self.assertIsNone(sim.server.rt.eval("require('RadioSurvivorCore/RC_History')").radio(cid))
         log = LifeLog.get(cid)
         self.assertTrue(log.dead)
         self.assertEqual(log.phrases[1].text, 'Alice to anyone.')

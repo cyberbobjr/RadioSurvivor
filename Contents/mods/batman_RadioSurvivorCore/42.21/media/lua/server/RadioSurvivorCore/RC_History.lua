@@ -15,6 +15,9 @@ global ModData.
     History.find(c, peer)            -- the line table, or nil
     History.append(c, peer, line, max)
     History.retain(keep)             -- drops every (c, peer) for which keep(c, peer) is false
+    History.radio(c, create)         -- E18-T19: radio history of a character { seq, frequencies } (RadioSurvivor's
+                                     -- typed lines per frequency, RS_RadioLog rules), created when asked, or nil
+    History.retainRadio(keep)        -- drops the radio history of every character for which keep(c) is false
     History.save()                   -- true when written
 
 Take-over: when no history file exists yet and the caller hands the histories of a game saved before the split
@@ -35,7 +38,7 @@ local function log(msg)
 end
 
 local function fresh()
-    return { schema = History.SCHEMA, characters = {} }
+    return { schema = History.SCHEMA, characters = {}, radio = {} }
 end
 
 local function adopt(legacy)
@@ -69,6 +72,7 @@ function History.init(newWorld, legacy)
             return false
         end
         if type(data.characters) ~= "table" then data.characters = {} end
+        if type(data.radio) ~= "table" then data.radio = {} end
         History.data = data
     elseif broken then
         History.blocked, History.data = true, nil
@@ -127,6 +131,27 @@ function History.retain(keep)
     end
     for _, d in ipairs(drop) do History.data.characters[d[1]][d[2]] = nil end
     for _, c in ipairs(empty) do History.data.characters[c] = nil end
+    return #drop
+end
+
+-- E18-T19: radio history of a character (the voices heard and answered on the radio), kept with the exchanges.
+function History.radio(c, create)
+    if not History.data or type(c) ~= "string" then return nil end
+    if type(History.data.radio) ~= "table" then History.data.radio = {} end
+    local r = History.data.radio[c]
+    if r == nil and create then
+        r = { seq = 0, frequencies = {} }
+        History.data.radio[c] = r
+        History.dirty = true
+    end
+    return r
+end
+
+function History.retainRadio(keep)
+    if not History.data or type(History.data.radio) ~= "table" then return 0 end
+    local drop = {}
+    for c in pairs(History.data.radio) do if not keep(c) then drop[#drop + 1] = c end end
+    for _, c in ipairs(drop) do History.data.radio[c] = nil end
     return #drop
 end
 

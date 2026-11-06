@@ -27,6 +27,7 @@ LUA = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua'
 SUITES = LUA / 'shared' / 'RST' / 'suites'
 MOD_SHARED = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivor' / '42.21' / 'media' / 'lua' / 'shared'
 CORE_SHARED = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivorCore' / '42.21' / 'media' / 'lua' / 'shared'  # mod commun (E18)
+CORE_SERVER = CORE_SHARED.parent / 'server'
 FILES = {
     'RS_MissionRecoverPersist.lua': {'rs.mission.recover.before': 'restart', 'rs.mission.recover.after-restart': None},
     'RS_RescuePersist.lua': {'rs.rescue.missed.before': None, 'rs.rescue.missed.after-restart': None},
@@ -59,7 +60,8 @@ end
 def engine() -> lupa.LuaRuntime:
     rt = lupa.LuaRuntime(unpack_returned_tuples=True)
     rt.globals().next = None
-    rt.execute(f'package.path = [[{(LUA / "shared").as_posix()}/?.lua;{MOD_SHARED.as_posix()}/?.lua;{CORE_SHARED.as_posix()}/?.lua;]] .. package.path')
+    rt.execute(f'package.path = [[{(LUA / "shared").as_posix()}/?.lua;{MOD_SHARED.as_posix()}/?.lua;{CORE_SHARED.as_posix()}/?.lua;'
+               f'{CORE_SERVER.as_posix()}/?.lua;]] .. package.path')  # E18-T19: RC_History of the core mod
     rt.execute('print = function() end')
     rt.execute(FILE_DOUBLES)
     rt.execute('require "RST/RST"')
@@ -272,12 +274,14 @@ RST.Fixtures.giveItem = function(t, p, ft)
     return { item }
 end
 -- Radio history kept by the server double: the speaker says, every other player tuned there hears.
+-- E18-T19: the radio history is kept by the core mod (RC_History.radio).
 local function addLine(cid, khz, kind, text)
-    local rec = STORE.data.characters[cid]
-    rec.radio = rec.radio or { frequencies = {} }
+    local H = require("RadioSurvivorCore/RC_History")
+    H.data = H.data or { schema = 1, characters = {}, radio = {} }
+    local radio = H.radio(cid, true)
     local f
-    for _, x in ipairs(rec.radio.frequencies) do if x.khz == khz then f = x end end
-    if f == nil then f = { khz = khz, lines = {} }; rec.radio.frequencies[#rec.radio.frequencies + 1] = f end
+    for _, x in ipairs(radio.frequencies) do if x.khz == khz then f = x end end
+    if f == nil then f = { khz = khz, lines = {} }; radio.frequencies[#radio.frequencies + 1] = f end
     f.lines[#f.lines + 1] = { kind = kind, text = text }
 end
 local function byName(n) for _, p in ipairs(ONLINE) do if p.name == n then return p end end end
@@ -299,8 +303,8 @@ RST.Steps.ask = function(t, step, args, opts, after)
         elseif step == "rs.history" then
             local found = {}
             for _, text in ipairs(args.texts or {}) do found[text] = {} end
-            local rec = STORE.data.characters[cid] or {}
-            for _, f in ipairs(rec.radio and rec.radio.frequencies or {}) do
+            local radio = require("RadioSurvivorCore/RC_History").radio(cid, false)
+            for _, f in ipairs(radio and radio.frequencies or {}) do
                 for _, l in ipairs(f.lines) do
                     if found[l.text] then table.insert(found[l.text], f.khz .. ":" .. l.kind) end
                 end
@@ -335,7 +339,7 @@ class RadioTabPersistTests(unittest.TestCase):
         return list((r.status, r.message) for r in report.results.values())
 
     def lines(self, cid):
-        return self.rt.eval(f'(function() local out = {{}} local r = STORE.data.characters["{cid}"].radio '
+        return self.rt.eval(f'(function() local out = {{}} local r = require("RadioSurvivorCore/RC_History").radio("{cid}", false) '
                             'for _, f in ipairs(r and r.frequencies or {}) do for _, l in ipairs(f.lines) do '
                             'out[#out + 1] = f.khz .. ":" .. l.kind end end table.sort(out) '
                             'return table.concat(out, ",") end)()')
@@ -351,7 +355,7 @@ class RadioTabPersistTests(unittest.TestCase):
 
     def test_a_line_lost_by_the_reconnection_fails(self):
         self.run_named('rs.radiotab.before')
-        self.rt.execute('table.remove(STORE.data.characters["c-b"].radio.frequencies[2].lines, 1)')
+        self.rt.execute('table.remove(require("RadioSurvivorCore/RC_History").radio("c-b").frequencies[2].lines, 1)')
         (status, message), = self.run_named('rs.radiotab.after-reconnect')
         self.assertEqual(status, 'FAIL')
         self.assertIn('after the reconnection', message)

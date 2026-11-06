@@ -24,7 +24,7 @@
 | ☐ | E18-T16 | Documentation et page Workshop des trois mods | `à faire` | hors jeu | E18-T15 |
 | ☐ | E18-T17 | File des demandes de parole des PNJ portée par Living Knox | `à faire` | MP | E18-T11, E18-T20, E18-T21, E18-T22 |
 | ☐ | E18-T18 | Parole de proximité avec Living Knox seul | `à faire` | MP | E18-T17 |
-| ☐ | E18-T19 | Historique des voix radio dans le commun | `à faire` | MP | E18-T11 |
+| ☐ | E18-T19 | Historique des voix radio dans le commun | `testé hors jeu` | MP | E18-T11 |
 | ☐ | E18-T20 | Accords dans Living Knox, identifiants d'équipe dans le commun | `testé hors jeu` | MP | E18-T09, E18-T24 |
 | ☐ | E18-T21 | Relation personnelle des PNJ dans Living Knox | `testé hors jeu` | MP | E18-T09 |
 | ☐ | E18-T22 | Réputation dans le commun | `testé hors jeu` | MP | E18-T05 |
@@ -343,15 +343,15 @@ Deuxième article Workshop, dépôt séparé, nouvelles règles de jeu des missi
   - Reste : —
 
 - [ ] **E18-T19** — Historique des voix radio dans le commun
-  - État : `à faire`
+  - État : `testé hors jeu`
   - Cible : `MP`
   - Dépend de : E18-T11
   - Fichiers : `RS_RadioLog` (aujourd'hui `characters[...].radio` de l'état du carnet), `RC_History`
   - Faire : les échanges avec les voix radio gardés par le mod commun comme ceux des PNJ (confirmé par défaut le 2026-11-05), mêmes règles (lignes typées, fréquences entendues vérifiées, bornes) ; historiques d'une partie existante repris une fois.
   - Accepté si : une partie existante garde l'historique radio du carnet ; mêmes lignes qu'avant.
   - Tests : `test_radio_log*` ; suites rs.radiolog.
-  - Preuve : —
-  - Reste : —
+  - Preuve : mod commun : `RC_History.radio(personnage, créer)` et `retainRadio(garder)` (historique radio d'un personnage `{ seq, frequencies }` dans le fichier privé `history-*` du commun, à côté des échanges avec les PNJ) ; RadioSurvivor : `RS_RadioLog` écrit et lit l'historique radio dans le commun (mêmes lignes typées, mêmes vérifications des lignes entendues, mêmes bornes : 40 lignes par fréquence, 8 fréquences, textes de 200 caractères ; `Log.radioOf`), `RS_LifeLog` le lit par `RS_RadioLog.radioOf`, `RS_State` ne garde que l'historique radio des personnages du carnet (`retainRadio`), mort d'un personnage : son historique radio retiré du commun ; plus de `characters[...].radio` dans l'état du carnet ; aucune reprise d'une partie d'avant la séparation (décision du 2026-11-06, la reprise prévue par la tâche n'est pas faite) ; suites en jeu sur l'historique du commun (`RST.radioOf`, `RST.setRadio` : `rs.actions.map`, `rs.radio`, `rs.radiotab.*`, `rs.missionrewards`, étape `strip` des pairs) ; bancs adaptés (`test_radio_history.py` 36 dont l'historique relu après redémarrage et effacé à la mort, `test_lifelog.py`, `test_voice_bonds.py`, `test_persist_suites.py`, `test_rs_mp_suites.py`) ; `run_all.py` 161 passés, 1 échec (`rs_suites`, renvoi `fichier:ligne` de `RS_Env.lua` décalé, corrigé, banc relancé : OK) ; luacheck `Contents` 14 (référence 15), `dev` 0 ; passage solo automatique du 2026-11-06 (deux mods, `rs.actions.map`, `rc.notebook`, `rs.radiotab.before`, code 0) : 4 PASS + 1 SKIP (phase de reconnexion MP), dont « repère noté dans l'historique radio de l'appelant » (`tools/autoclient/runs/20261106-200454-7f72df82cd8d`)
+  - Reste : cible MP : suites `rs.radio` et `rs.radiotab.*` (reconnexion) dans la campagne MP (`E18-T15`) ; l'historique radio reste écrit et lu par RadioSurvivor seul (les voix radio n'existent pas sans lui)
 
 - [ ] **E18-T20** — Accords dans Living Knox, identifiants d'équipe dans le commun
   - État : `testé hors jeu`

@@ -217,6 +217,8 @@ function S.save()
     end
     if S.data.historyInCore then
         History.retain(keepContact)
+        -- E18-T19: radio history of the characters the notebook still holds.
+        History.retainRadio(function(c) return S.data.characters and S.data.characters[c] ~= nil end)
         if not History.save() then return failed('exchange history of the core mod not written') end
     end
     warnSize(body)

@@ -1,6 +1,6 @@
--- Radio Survivor : historique radio par personnage (E06-T04), gardé par l'autorité dans l'état privé du carnet
--- (RS_State : S.data.characters[<personnage>].radio), persistant (redémarrage, reconnexion), jamais envoyé qu'à son
--- personnage. Lignes typées par fréquence (kHz) :
+-- Radio Survivor : historique radio par personnage (E06-T04), gardé par l'autorité dans l'historique des échanges du
+-- mod commun depuis E18-T19 (RC_History.radio(<personnage>), fichier privé history-*), persistant (redémarrage,
+-- reconnexion), jamais envoyé qu'à son personnage. Lignes typées par fréquence (kHz) :
 --   said  : phrase acceptée de ce joueur (commande talk, réponse de voix ou silence) ;
 --   reply : réponse d'une voix à ce joueur, inscrite quand elle passe à l'antenne ;
 --   heard : ligne entendue par ce joueur, signalée par son client (OnDeviceText) et vérifiée ici : seule une ligne
@@ -30,6 +30,7 @@ local S = require "RadioSurvivor/RS_State"
 local Const = require "RadioSurvivor/RadioSurvivor_Const"
 local Personas = require "RadioSurvivor/RS_Personas"
 local Notes = require "RadioSurvivor/RS_Notes"
+local History = require "RadioSurvivorCore/RC_History" -- E18-T19: radio history kept by the core mod
 
 local Log = {}
 Log.MAX_LINES = 40
@@ -101,13 +102,13 @@ local function playerOf(cid)
     return nil
 end
 
-local function frequency(record, khz, create)
-    local radio = record.radio
-    if not radio then
-        if not create then return nil end
-        radio = { seq = 0, frequencies = {} }
-        record.radio = radio
-    end
+-- Radio history of a character (core mod), created when asked.
+local function radioOf(cid, create) return History.radio(cid, create) end
+Log.radioOf = radioOf
+
+local function frequency(cid, khz, create)
+    local radio = radioOf(cid, create)
+    if not radio then return nil end
     for _, f in ipairs(radio.frequencies) do
         if f.khz == khz then return f end
     end
@@ -143,15 +144,16 @@ function Log.add(cid, khz, kind, text, voice)
     if not record or record.retired then return nil end
     text = Log.cleanText(text)
     if text == "" then return nil end
-    local f = frequency(record, khz, true)
+    local f = frequency(cid, khz, true)
+    if not f then return nil end
     if type(voice) == "string" and Personas.voiceAt(khz) == voice then f.voice = voice end
-    local radio = record.radio
+    local radio = radioOf(cid, true)
     radio.seq = radio.seq + 1
     f.last = radio.seq
     local line = { kind = kind, text = text, when = Log.when(), seq = radio.seq }
     f.lines[#f.lines + 1] = line
     while #f.lines > Log.MAX_LINES do table.remove(f.lines, 1) end
-    S.dirty = true
+    S.dirty, History.dirty = true, true
     local player = playerOf(cid)
     if player then
         Const.toClient(player, Const.CMD.HISTORY_ADD, { character = cid, khz = khz, last = f.last, line = line,
@@ -269,10 +271,11 @@ end
 -- Commande history : tout l'historique de ce personnage, et de lui seul. Un en-tête (liste des fréquences), puis une
 -- commande par fréquence (taille de chaque paquet bornée par MAX_LINES lignes).
 function Log.sendAll(player)
-    local cid, record = Log.characterOf(player)
+    local cid = Log.characterOf(player)
     if not cid then return false end
     local list = {}
-    local frequencies = record.radio and record.radio.frequencies or {}
+    local radio = radioOf(cid, false)
+    local frequencies = radio and radio.frequencies or {}
     for i, f in ipairs(frequencies) do list[i] = { khz = f.khz, last = f.last, voice = Log.voiceInfo(f) } end
     Const.toClient(player, Const.CMD.HISTORY, { character = cid, frequencies = list })
     for _, f in ipairs(frequencies) do
@@ -284,8 +287,8 @@ end
 
 -- Ce personnage connaît-il déjà la voix (E06-T07 : f.voice d'une de ses fréquences) ? (E07-T10 : share_frequency.)
 function Log.knowsVoice(cid, voice)
-    local record = S.data and not S.blocked and S.data.characters[cid] or nil
-    for _, f in ipairs(record and record.radio and record.radio.frequencies or {}) do
+    local radio = S.data and not S.blocked and radioOf(cid, false) or nil
+    for _, f in ipairs(radio and radio.frequencies or {}) do
         if f.voice == voice then return true end
     end
     return false
@@ -296,7 +299,7 @@ end
 -- écrite par l'autorité à la création, RS_Notes) ; une fréquence déjà connue de cette voix n'ajoute rien. Rend la
 -- ligne inscrite, ou nil.
 function Log.noteRead(player, args)
-    local cid, record = Log.characterOf(player)
+    local cid = Log.characterOf(player)
     local id = type(args) == "table" and tonumber(args.itemId) or nil
     if not cid or not id then return nil end
     local inventory = player:getInventory()
@@ -306,7 +309,7 @@ function Log.noteRead(player, args)
     local khz = type(note) == "table" and tonumber(note.khz) or nil
     local voice = type(note) == "table" and note.voice or nil
     if not Log.validKhz(khz) or type(voice) ~= "string" or Personas.voiceAt(khz) ~= voice then return nil end
-    local f = frequency(record, khz, false)
+    local f = frequency(cid, khz, false)
     if f and f.voice == voice then return nil end
     return Log.add(cid, khz, "note", voice, voice)
 end

@@ -151,9 +151,9 @@ local function sampleTown(log, player)
     return true
 end
 
--- Last lines said by this character on the radio (RS_RadioLog), most recent last.
-local function samplePhrases(log, record)
-    local radio = record and record.radio
+-- Last lines said by this character on the radio (RS_RadioLog, history of the core mod since E18-T19), most recent last.
+local function samplePhrases(log, cid)
+    local radio = RadioLog.radioOf(cid, false)
     if type(radio) ~= "table" or type(radio.frequencies) ~= "table" then return false end
     local said = {}
     for _, f in ipairs(radio.frequencies) do
@@ -221,7 +221,7 @@ local function sample(log, cid, player, record)
     local profession = prof and clean(prof:getName(), L.MAX_LABEL) or ""
     if profession ~= log.profession then log.profession, changed = profession, true end
     changed = sampleTown(log, player) or changed
-    changed = samplePhrases(log, record) or changed
+    changed = samplePhrases(log, cid) or changed
     changed = sampleMissions(log, cid) or changed
     return changed
 end

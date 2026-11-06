@@ -123,13 +123,13 @@ RST.suite("rs.missionrewards", {tags={"server","world"},testTimeoutMs=45000}, fu
         local other=Steps.others(t)[1]
         local mate=other and Steps.playerOf(other)
         local mid=mate and Helpers.character(t,mate)
-        local radio=mid and S.data.characters[mid].radio
+        local radio=mid and RST.radioOf(mid)
         local sequence=radio and radio.seq
         local rec,why=R.grant(S,source,m,p,cid)
         t:ok(rec and rec.status=='applied','frequency grant failed: '..tostring(why))
-        t:ok(S.data.characters[cid].radio~=nil,'recipient radio log absent')
+        t:ok(RST.radioOf(cid)~=nil,'recipient radio log absent')
         if mid then
-            local after=S.data.characters[mid].radio
+            local after=RST.radioOf(mid)
             t:eq(sequence,after and after.seq,'peer private radio log sequence changed')
             local expected=after and #after.frequencies or 0
             Steps.ask(t,'rewards.radio',{count=expected}, {target={other},timeoutMs=5000},function(t2,res)

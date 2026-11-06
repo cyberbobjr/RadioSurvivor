@@ -1309,7 +1309,11 @@ function Server.characterDeath(character)
     local record = type(id) == 'string' and S.data.characters[id] or nil
     if not record or record.owner ~= ownerOf(character) or record.retired then return end
     record.retired = true
-    record.radio = nil -- radio history of a dead character (E06-T04): never shown again, frees the private state
+    -- radio history of a dead character (E06-T04): never shown again, frees the private state (core mod, E18-T19)
+    local H = require 'RadioSurvivorCore/RC_History'
+    if H.data and type(H.data.radio) == 'table' and H.data.radio[id] ~= nil then
+        H.data.radio[id], H.dirty = nil, true
+    end
     -- What the voices remembered about this character (E07-T03, action remember): forgotten with it.
     require('RadioSurvivor/RS_Memory').forgetCharacter(id)
     md[IDENTITY_KEY] = nil

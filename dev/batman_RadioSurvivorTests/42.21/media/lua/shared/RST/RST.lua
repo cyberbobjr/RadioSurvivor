@@ -1473,4 +1473,15 @@ function RST.factions()
     end })
 end
 
+-- E18-T19: radio history of a character, kept by the core mod (RC_History.radio), read and put back by the suites.
+function RST.radioOf(cid)
+    return require("RadioSurvivorCore/RC_History").radio(cid, false)
+end
+function RST.setRadio(cid, radio)
+    local H = require "RadioSurvivorCore/RC_History"
+    if type(H.data) ~= "table" or type(cid) ~= "string" then return end
+    if type(H.data.radio) ~= "table" then H.data.radio = {} end
+    H.data.radio[cid], H.dirty = radio, true
+end
+
 return RST

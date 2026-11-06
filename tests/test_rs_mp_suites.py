@@ -944,8 +944,8 @@ class WorldRadioTests(Bench):
         self.assertIsNone(net.server.g.PLAYERS['rs_mp1'].vehicle)
         self.assertEqual(net.server.lua('local n = 0 for _ in pairs(VEHICLES) do n = n + 1 end return n'), 0)
         self.assertEqual(net.server.lua('return CELL:getGridSquare(1001, 1000, 0):getObjects():size()'), 0)
-        self.assertFalse(net.server.lua('for _, r in pairs(S.data.characters) do for _, f in ipairs(r.radio and '
-                                        'r.radio.frequencies or {}) do if #f.lines > 0 then return true end end end '
+        self.assertFalse(net.server.lua('for _, r in pairs(require("RadioSurvivorCore/RC_History").data.radio or {}) do for _, f in ipairs('
+                                        'r.frequencies or {}) do if #f.lines > 0 then return true end end end '
                                         'return false'))
 
     def test_second_client_in_range_is_accepted_as_the_rule_says(self):

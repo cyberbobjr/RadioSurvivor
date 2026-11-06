@@ -326,8 +326,8 @@ function PR.stripHistory(prefix)
     local S = safe(require, "RadioSurvivor/RS_State")
     if type(S) ~= "table" or type(S.data) ~= "table" or type(S.data.characters) ~= "table" then return 0 end
     local n = 0
-    for _, record in pairs(S.data.characters) do
-        local radio = type(record) == "table" and record.radio or nil
+    local H = require "RadioSurvivorCore/RC_History" -- E18-T19: radio history kept by the core mod
+    for _, radio in pairs(H.data and H.data.radio or {}) do
         for _, f in ipairs(radio and radio.frequencies or {}) do
             local kept = {}
             for _, line in ipairs(f.lines or {}) do
