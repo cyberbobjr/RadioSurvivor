@@ -4,10 +4,10 @@ require "RST/RST_PeerChecksRep" (shared: the suite requires it, so every machine
 steps; the handlers read the notebook client of THIS machine).
 
 Steps (RST.Steps.on; solo: the local player answers in the same Lua state)
-    rep.read   { refresh = bool, wait = { level?, reasonKey? } }: the reputation of the notebook snapshot of this
+    rep.read   { refresh = bool, wait = { level?, action? } }: the reputation of the notebook snapshot of this
                client (RS_CarnetClient.snapshot.reputation), after a 'snapshot' request when refresh is true, waited
                until it matches `wait` (or the client deadline). data { available, level, trend, reasons (count),
-               reasonKey (newest act), reasonArg, changeTo, lines (Reputation tab, RS_Notebook.reputationLines,
+               action (newest act), reasonArg, changeTo, lines (Reputation tab, RS_Notebook.reputationLines,
                translated and joined by " / "), digit (true when a digit is shown), warned (last warning text over
                the character, RS_Notebook.reputationWarning) }.
     rep.admin  {}: the notebook command 'rep_admin' (administrator view, Q17), answer read from
@@ -40,7 +40,7 @@ function PRp.describe(C)
     local reasons = type(rep.reasons) == "table" and rep.reasons or {}
     data.reasons = #reasons
     if reasons[1] then
-        data.reasonKey = reasons[1].reasonKey
+        data.action = reasons[1].action
         data.reasonArg = type(reasons[1].reasonArgs) == "table" and reasons[1].reasonArgs[1] or nil
     end
     data.changeTo = type(rep.change) == "table" and rep.change.to or nil
@@ -58,7 +58,7 @@ end
 local function matches(data, wait)
     if type(wait) ~= "table" then return true end
     if wait.level ~= nil and data.level ~= wait.level then return false end
-    if wait.reasonKey ~= nil and data.reasonKey ~= wait.reasonKey then return false end
+    if wait.action ~= nil and data.action ~= wait.action then return false end
     return true
 end
 
@@ -70,7 +70,7 @@ Steps.on("rep.read", function(args)
         local data = PRp.describe(C)
         if matches(data, args.wait) or ctx.final then
             return Steps.pass("reputation " .. tostring(data.level) .. " (" .. tostring(data.trend) .. "), "
-                .. tostring(data.reasons) .. " act(s), newest " .. tostring(data.reasonKey), data)
+                .. tostring(data.reasons) .. " act(s), newest " .. tostring(data.action), data)
         end
         return nil
     end

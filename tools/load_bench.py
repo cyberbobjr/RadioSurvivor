@@ -154,6 +154,8 @@ def lua_modules():
     out = []
     for side in ('shared', 'server', 'client'):
         for p in sorted((LK_LUA / side / 'LivingKnox').rglob('*.lua'), key=lambda p: p.as_posix().lower()):
+            if p.stem == 'LK_NotebookPages':  # page of the core notebook (window UI, no ISUI double here): no load
+                continue
             out.append((side, p.relative_to(LK_LUA / side).with_suffix('').as_posix()))
     return out
 

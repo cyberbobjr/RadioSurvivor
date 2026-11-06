@@ -587,6 +587,7 @@ class SourceTests(unittest.TestCase):
         keys |= {'IGUI_RS_' + k for k in ('Radio', 'Team')}
         keys |= {'IGUI_RS_Radio_' + k for k in ('said', 'reply', 'heard')}
         keys |= set(re.findall(r"getText\('(IGUI_\w+)'\s*[,)]", NOTEBOOK.read_text(encoding='utf-8')))
+        keys = {k for k in keys if not k.startswith('IGUI_RC_')}  # E18-T25: words of the core notebook, its own bench
         for lang in ('EN', 'FR'):
             data = json.loads((LUA / 'shared' / 'Translate' / lang / 'IG_UI.json').read_text(encoding='utf-8-sig'))
             self.assertEqual(sorted(k for k in keys if k not in data), [], lang)

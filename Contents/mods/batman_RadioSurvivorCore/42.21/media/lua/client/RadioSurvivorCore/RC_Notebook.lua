@@ -24,9 +24,12 @@ fields). Fields of a tab (all optional except name):
   listH); status(win) -> text, problem (two lines above a say line); update(win) (each frame on that tab); onOpen(win);
   unread() (dot on the bookmark, the title bar and the sidebar button); font (right page font); titleColor;
   showList (false: the right page takes the whole width); header(win) (left column header).
-Without any mod filling them, Contacts and Reputation say that nothing is known yet and Missions lists the open
-missions of the player's character sent by the authority (RC_MissionJournal: command "missions" of the module
-RadioSurvivorCore), refreshed every REFRESH_MS while the tab is shown.
+Missions and Reputation read the data of the core mod (E18-T25), asked to the authority (RC_MissionJournal, commands
+"missions" and "reputation" of the module RadioSurvivorCore) and asked again every REFRESH_MS while the tab is shown:
+the open missions of the player's character (missions of a giver whose mod is not active are hidden by the server),
+its reputation (level, trend, last acts). The text of an act belongs to the mod that knows it
+(Notebook.reputationReasons[action] = translation key; an act of a mod not active reads "a good / bad deed").
+Contacts says that nothing is known yet until a mod fills it.
 Texts: IGUI_RC_* (Translate/<LANG>/IG_UI.json of the core mod); a mod labels its own tabs.
 ]]
 RadioSurvivorCore = RadioSurvivorCore or {}
@@ -775,16 +778,21 @@ end
 
 -- ---------------------------------------------------------------- common tabs
 
--- Missions known to the core mod alone (no mod fills the tab): open missions of the player's character sent by the
--- authority (RC_MissionJournal), in the list order and states of RC_MissionList.
-local Journal = {rows = {}, asked = 0}
-Notebook.journal = Journal
-
-function Journal.request()
-    Journal.asked = getTimestampMs()
+-- Data of the core mod asked to the authority (RC_MissionJournal): command -> time of the last request.
+local asked = {}
+function Notebook.request(command)
+    asked[command] = getTimestampMs()
     local p = getSpecificPlayer(0)
-    if p ~= nil then sendClientCommand(p, MODULE, 'missions', {}) end
+    if p ~= nil then sendClientCommand(p, MODULE, command, {}) end
 end
+local function poll(command)
+    if getTimestampMs() - (asked[command] or 0) >= REFRESH_MS then Notebook.request(command) end
+end
+
+-- Open missions of the player's character, in the list order and states of RC_MissionList.
+local Journal = {rows = {}}
+Notebook.journal = Journal
+function Journal.request() Notebook.request('missions') end
 
 function Journal.receive(args)
     if type(args) ~= 'table' or type(args.missions) ~= 'table' then return end
@@ -801,7 +809,7 @@ function Journal.tabRows() return Journal.rows end
 
 local function missionState(row) return tr('State_' .. tostring(MissionList.stateKey(row))) end
 
-function Journal.detail(w, row, line)
+function Journal.detail(_, row, line)
     if not row then line(tr('JournalEmpty')); return false end
     line(missionState(row))
     line(tr('Requester', tostring(row.requester or '')))
@@ -817,17 +825,94 @@ function Journal.detail(w, row, line)
     return false
 end
 
+-- Reputation of the player's character (RC_Reputation.projection): level, trend, last acts with their game day, last
+-- change of level; no number is shown (days become words). Text of an act: key given by the mod that knows the action.
+local REP_LEVELS = {bad = true, neutral = true, good = true}
+local TRENDS = {up = true, down = true, stable = true}
+Notebook.reputationReasons = {
+    ['mission.success'] = 'IGUI_RC_RepReason_MissionSuccess',
+    ['mission.failed'] = 'IGUI_RC_RepReason_MissionFailed',
+    ['mission.abandoned'] = 'IGUI_RC_RepReason_MissionAbandoned',
+}
+Notebook.reputationData = nil
+
+-- When a fact happened, in words (no number): today, yesterday, this week, earlier.
+local function when(today, day)
+    local ago = (type(today) == 'number' and type(day) == 'number') and today - day or nil
+    if ago == nil then return tr('RelWhen_earlier') end
+    if ago <= 0 then return tr('RelWhen_today') end
+    if ago == 1 then return tr('RelWhen_yesterday') end
+    if ago < 7 then return tr('RelWhen_week') end
+    return tr('RelWhen_earlier')
+end
+local function repLevel(level) return tr('RepLevel_' .. (REP_LEVELS[level] and level or 'neutral')) end
+local function repTrend(trend) return tr('RepTrend_' .. (TRENDS[trend] and trend or 'stable')) end
+-- One act: its translated text (public argument: a name), or a generic word for an act of a mod not active.
+local function repReason(r)
+    local key = type(r.action) == 'string' and Notebook.reputationReasons[r.action] or nil
+    local args = type(r.reasonArgs) == 'table' and r.reasonArgs or {}
+    local name = clean(args[1] or '') -- one value: gsub also returns a count
+    local text = key and getTextOrNull(key, name)
+    if text then return text end
+    return tr(r.sign == 1 and 'RepReason_good' or 'RepReason_bad')
+end
+Notebook.rep = {when = when, level = repLevel, trend = repTrend, reason = repReason, LEVELS = REP_LEVELS,
+    TRENDS = TRENDS}
+
+function Notebook.reputationLines(rep)
+    local out = {tr('GlobalReputation')}
+    if type(rep) ~= 'table' or rep.available ~= true then
+        out[#out + 1] = tr('ReputationUnavailable')
+        return out
+    end
+    out[#out + 1] = tr('RepLevelLine', repLevel(rep.level)); out[#out + 1] = tr('RepTrendLine', repTrend(rep.trend))
+    local change = type(rep.change) == 'table' and rep.change or nil
+    if change and REP_LEVELS[change.from] and REP_LEVELS[change.to] then
+        out[#out + 1] = tr('RepChanged', when(rep.today, change.day), repLevel(change.from), repLevel(change.to))
+    end
+    local reasons = type(rep.reasons) == 'table' and rep.reasons or {}
+    if #reasons == 0 then out[#out + 1] = tr('RepNoActs')
+    else
+        out[#out + 1] = tr('RepLastActs')
+        for _, r in ipairs(reasons) do
+            local text = tr('RepAct', when(rep.today, r.day), repReason(r))
+            if r.capped then text = text .. ' ' .. tr('RepCapped') end
+            out[#out + 1] = '- ' .. text
+        end
+    end
+    return out
+end
+
+-- Answers of the authority to the core commands (OnServerCommand, or directly in solo).
+function Notebook.receive(command, args)
+    if command == 'missions' then Journal.receive(args)
+    elseif command == 'reputation' and type(args) == 'table' then
+        Notebook.reputationData = type(args.reputation) == 'table' and args.reputation or nil
+        local w = Notebook.window
+        if w and w.tab == 'Reputation' and w:spec().reputation == 'core' then w:refresh() end
+    end
+end
+
 Notebook.registerTab({name = 'Contacts', order = 20, color = {0.498, 0.435, 0.271}})
 Notebook.registerTab({name = 'Missions', order = 30, color = {0.369, 0.478, 0.31},
     rows = Journal.tabRows,
     rowLabel = function(row)
         return getText(row.titleKey or 'IGUI_RC_Mission') .. ' - ' .. tostring(row.requester or '')
     end,
-    secondLine = missionState,
+    secondLine = function(row)
+        return missionState(row)
+    end,
     detail = Journal.detail,
-    onOpen = function() Journal.request() end,
-    update = function() if getTimestampMs() - Journal.asked >= REFRESH_MS then Journal.request() end end})
-Notebook.registerTab({name = 'Reputation', order = 40, color = {0.31, 0.369, 0.478}, showList = false})
+    onOpen = function() Notebook.request('missions') end,
+    update = function() poll('missions') end})
+Notebook.registerTab({name = 'Reputation', order = 40, color = {0.31, 0.369, 0.478}, showList = false,
+    reputation = 'core',
+    detail = function(_, _, line)
+        for _, s in ipairs(Notebook.reputationLines(Notebook.reputationData)) do line(s) end
+        return false
+    end,
+    onOpen = function() Notebook.request('reputation') end,
+    update = function() poll('reputation') end})
 
 -- ---------------------------------------------------------------- opening
 
@@ -867,7 +952,7 @@ function ISDPadWheels.onDisplayRight(joypadData, ...)
 end
 
 Events.OnServerCommand.Add(function(module, command, args)
-    if module == MODULE and command == 'missions' then Journal.receive(args) end
+    if module == MODULE then Notebook.receive(command, args) end
 end)
 Events.OnGameStart.Add(function()
     if ISEquippedItem.instance then sidebar(ISEquippedItem.instance) end

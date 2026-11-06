@@ -160,7 +160,7 @@ RST.suite("rs.reputation", { mods = { "rs", "lk" },
             t:eq(rev, entry and entry.revision, "reputation of " .. cid .. " changed")
         end
         c.Server.publish()
-        readBy(t, "requester", { refresh = true, wait = { reasonKey = "IGUI_RS_RepReason_MissionSuccess" } },
+        readBy(t, "requester", { refresh = true, wait = { action = "mission.success" } },
             function(t2, res)
                 local d = firstData(res)
                 t2:eq(true, d.available, "reputation available in the requester snapshot")
@@ -172,7 +172,7 @@ RST.suite("rs.reputation", { mods = { "rs", "lk" },
                 if second(t2) == nil then return end
                 readBy(t2, "others", { refresh = true }, function(t3, res2)
                     local d2 = firstData(res2)
-                    t3:ok(d2.reasonArg ~= RP.REQUESTER or d2.reasonKey ~= "IGUI_RS_RepReason_MissionSuccess",
+                    t3:ok(d2.reasonArg ~= RP.REQUESTER or d2.action ~= "mission.success",
                         "the second player received the act of the requester")
                 end)
             end)

@@ -300,9 +300,9 @@ function W.fixture(Client, p, lang, zone)
     }
     local reputation = { available = true, level = "good", trend = "up", today = 12,
         change = { day = 9, from = "neutral", to = "good" },
-        reasons = { { reasonKey = "IGUI_RS_RepReason_MissionSuccess", reasonArgs = { T.contacts[1].name }, day = 11, sign = 1 },
-            { reasonKey = "IGUI_RS_RepReason_RescueSuccess", reasonArgs = {}, day = 9, sign = 1 },
-            { reasonKey = "IGUI_RS_RepReason_MissionAbandoned", reasonArgs = { T.contacts[2].name }, day = 4, sign = -1 } } }
+        reasons = { { action = "mission.success", reasonArgs = { T.contacts[1].name }, day = 11, sign = 1 },
+            { action = "rescue.success", reasonArgs = {}, day = 9, sign = 1 },
+            { action = "mission.abandoned", reasonArgs = { T.contacts[2].name }, day = 4, sign = -1 } } }
     return { world = Client.world, run = Client.run, selected = "wiki_c1", npcProvider = true, storage = true,
         contacts = contacts, missions = missions, reputation = reputation,
         inviteTargets = { { id = "wiki_p2", name = "Alice Brennan" } }, events = {}, team = nil }

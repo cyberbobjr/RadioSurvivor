@@ -337,5 +337,6 @@
     "IGUI_LK_Trade_Refuse_price": "Pas assez. Ajoute quelque chose.",
     "IGUI_LK_Trade_Refuse_stranger": "Tu es qui, au juste ?",
     "IGUI_LK_Revenge_Sworn": "Tu as tué l'un des nôtres. On te retrouvera, et tu paieras.",
-    "IGUI_LK_Raid_Scouted": "Jolie planque que vous avez là. On reviendra la prendre."
+    "IGUI_LK_Raid_Scouted": "Jolie planque que vous avez là. On reviendra la prendre.",
+    "IGUI_LK_RepReason_MemberKilled": "A tué un membre d'un groupe"
 }

@@ -77,15 +77,9 @@ local REL_NATURES = {good = true, bad = true, neutral = true}
 local function relWord(prefix, id, fallback)
     return getTextOrNull('IGUI_RS_' .. prefix .. tostring(id)) or getText('IGUI_RS_' .. prefix .. fallback)
 end
--- When a fact happened, in words (no number): today, yesterday, this week, earlier.
-local function relWhen(today, day)
-    local ago = (type(today) == 'number' and type(day) == 'number') and today - day or nil
-    if ago == nil then return getText('IGUI_RS_RelWhen_earlier') end
-    if ago <= 0 then return getText('IGUI_RS_RelWhen_today') end
-    if ago == 1 then return getText('IGUI_RS_RelWhen_yesterday') end
-    if ago < 7 then return getText('IGUI_RS_RelWhen_week') end
-    return getText('IGUI_RS_RelWhen_earlier')
-end
+-- When a fact happened, in words (no number), and the words of the reputation: the core mod's (E18-T25).
+local Rep = Notebook.rep
+local relWhen, repLevel, repTrend, repReason = Rep.when, Rep.level, Rep.trend, Rep.reason
 local function relationLines(rel)
     local out = {}
     if type(rel) ~= 'table' or not REL_LEVELS[rel.level] then
@@ -117,42 +111,15 @@ local function relationLines(rel)
     return out
 end
 
--- Reputation tab (E04-T04): internal reputation of the reader's character sent by the server (RS_Reputation
--- projection: level, trend, last acts with their game day, last change of level), translated here; no number is shown
--- (days become words). The personal relation of each known NPC is listed apart: it is not the reputation.
-local REP_LEVELS = {bad = true, neutral = true, good = true}
-local function repLevel(level) return tr('RepLevel_' .. (REP_LEVELS[level] and level or 'neutral')) end
-local function repTrend(trend) return tr('RepTrend_' .. (REL_TRENDS[trend] and trend or 'stable')) end
--- One act: its translated reason (IGUI_RS_RepReason_*, public argument: a name), or a generic word for an unknown key.
-local function repReason(r)
-    local key = type(r.reasonKey) == 'string' and r.reasonKey:match('^IGUI_RS_RepReason_%a+$') and r.reasonKey or nil
-    local args = type(r.reasonArgs) == 'table' and r.reasonArgs or {}
-    local name = clean(args[1] or '')
-    local text = key and getTextOrNull(key, name)
-    if text then return text end
-    return tr(r.sign == 1 and 'RepReason_good' or 'RepReason_bad')
-end
+-- Reputation tab (E04-T04): the core mod draws the reputation of the reader's character (RC_Notebook.reputationLines,
+-- E18-T25); RadioSurvivor adds the texts of its own acts and, apart, the personal relation of each known NPC: it is not
+-- the reputation.
+local REP_LEVELS = Rep.LEVELS
+Notebook.reputationReasons['trade.cheated'] = 'IGUI_RS_RepReason_TradeCheated'
+Notebook.reputationReasons['npc.requesterKilled'] = 'IGUI_RS_RepReason_RequesterKilled'
+Notebook.reputationReasons['rescue.success'] = 'IGUI_RS_RepReason_RescueSuccess'
 local function reputationLines(rep, contacts)
-    local out = {tr('GlobalReputation')}
-    if type(rep) ~= 'table' or rep.available ~= true then
-        out[#out + 1] = tr('ReputationUnavailable')
-    else
-        out[#out + 1] = tr('RepLevelLine', repLevel(rep.level)); out[#out + 1] = tr('RepTrendLine', repTrend(rep.trend))
-        local change = type(rep.change) == 'table' and rep.change or nil
-        if change and REP_LEVELS[change.from] and REP_LEVELS[change.to] then
-            out[#out + 1] = tr('RepChanged', relWhen(rep.today, change.day), repLevel(change.from), repLevel(change.to))
-        end
-        local reasons = type(rep.reasons) == 'table' and rep.reasons or {}
-        if #reasons == 0 then out[#out + 1] = tr('RepNoActs')
-        else
-            out[#out + 1] = tr('RepLastActs')
-            for _, r in ipairs(reasons) do
-                local text = tr('RepAct', relWhen(rep.today, r.day), repReason(r))
-                if r.capped then text = text .. ' ' .. tr('RepCapped') end
-                out[#out + 1] = '- ' .. text
-            end
-        end
-    end
+    local out = Notebook.reputationLines(rep)
     out[#out + 1] = tr('PersonalTrustSeparate')
     local any = false
     for _, c in ipairs(type(contacts) == 'table' and contacts or {}) do
@@ -175,7 +142,7 @@ local function reputationAdminLines(view)
     for _, c in ipairs(type(view.characters) == 'table' and view.characters or {}) do
         out[#out + 1] = tr('RepAdminLine', clean(c.name), repLevel(c.level), repTrend(c.trend))
         for _, r in ipairs(type(c.reasons) == 'table' and c.reasons or {}) do
-            out[#out + 1] = '   - ' .. tr('RepAct', relWhen(view.today, r.day), repReason(r))
+            out[#out + 1] = '   - ' .. getText('IGUI_RC_RepAct', relWhen(view.today, r.day), repReason(r))
         end
     end
     return out
@@ -670,6 +637,8 @@ Notebook.extendTab('Reputation', {
         -- E04-T14 (Q17): read-only view of every character's reputation, administrators only (checked by the server).
         w.repAdmin = w:addAction(stamp(w, tr('RepAdminButton'), function() Client.send('rep_admin') end))
     end,
+    -- The snapshot carries the same projection of the core mod (RC_Reputation.projection), pushed on change.
+    reputation = 'rs', onOpen = false, update = false,
     detail = function(w, _, line)
         for _, s in ipairs(RSN.reputationLines(Client.snapshot.reputation, Client.snapshot.contacts)) do line(s) end
         if RSN.canSeeAllReputations() then

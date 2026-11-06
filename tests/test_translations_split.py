@@ -47,6 +47,14 @@ RENAMED.update({f'IGUI_RS_{n}': f'IGUI_RC_{n}' for n in ('Contacts', 'Missions',
 # E18-T24: frame of the notebook in the core mod; the journal window and its button are gone.
 NOTEBOOK = {'IGUI_RC_Notebook', 'IGUI_RC_NotebookHint', 'IGUI_RC_Empty_Contacts'}
 REMOVED = {'IGUI_RC_Journal', 'IGUI_RC_JournalButton', 'IGUI_RC_JournalHint'}
+# E18-T25: the reputation page is drawn by the core mod; the act of a killed group member is Living Knox's text.
+RENAMED.update({f'IGUI_RS_{n}': f'IGUI_RC_{n}' for n in (
+    'GlobalReputation', 'ReputationUnavailable', 'RepLevelLine', 'RepTrendLine', 'RepLevel_bad', 'RepLevel_neutral',
+    'RepLevel_good', 'RepTrend_up', 'RepTrend_down', 'RepTrend_stable', 'RepChanged', 'RepNoActs', 'RepLastActs',
+    'RepAct', 'RepCapped', 'RepReason_good', 'RepReason_bad', 'RelWhen_today', 'RelWhen_yesterday', 'RelWhen_week',
+    'RelWhen_earlier', 'RepReason_MissionSuccess', 'RepReason_MissionFailed', 'RepReason_MissionAbandoned')})
+RENAMED['IGUI_RS_RepReason_MemberKilled'] = 'IGUI_LK_RepReason_MemberKilled'
+REMOVED.add('IGUI_RC_Empty_Reputation')  # E18-T25: the core page shows the reputation (or that it is unavailable)
 JOURNAL = {
     'IGUI_RC_Journal', 'IGUI_RC_JournalButton', 'IGUI_RC_JournalEmpty', 'IGUI_RC_JournalHint', 'IGUI_RC_Mission',
     'IGUI_RC_Participants', 'IGUI_RC_ReportHint', 'IGUI_RC_Requester', 'IGUI_RC_Reward', 'IGUI_RC_TimeLeft',
@@ -107,7 +115,7 @@ class TranslationSplitTests(unittest.TestCase):
             for name, before in self.before['keys'][lang].items():
                 expected = set(before)
                 if name == 'IG_UI':
-                    expected = (expected - set(RENAMED)) | set(RENAMED.values()) | ((JOURNAL | NOTEBOOK) - REMOVED)
+                    expected = ((expected - set(RENAMED)) | set(RENAMED.values()) | JOURNAL | NOTEBOOK) - REMOVED
                 union = set()
                 for mod in MODS:
                     union |= self.keys[mod].get(lang, {}).get(name, set())

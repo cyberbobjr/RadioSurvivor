@@ -6,7 +6,8 @@ Real notebook server and client (RS_Carnet_Server, RS_Client), real Living Knox 
 API, LK_PersonalRelation, provider RS_LivingKnox.lua), same save folder for every session. Second session: Living Knox
 is not on the module path (as when the player unticks it): the notebook must start, keep its character, show its
 contacts (the fiche of a Living Knox NPC stays, without relation level), refuse to talk to an NPC that no longer
-exists, and run its ticks and daily purge without a Lua error. Third session: Living Knox ticked again, its relation
+exists, and run its ticks and daily purge without a Lua error. E18-T25: the mission of a Living Knox NPC is hidden
+(snapshot and core list), frozen and never failed while Living Knox is unticked, and listed again as it was after. Third session: Living Knox ticked again, its relation
 is still there (its own file was never touched). Doubles only: proves neither the Java API nor the network.
 """
 from __future__ import annotations
@@ -109,12 +110,16 @@ class LivingKnoxRemovedTests(unittest.TestCase):
         srv.g.fire('EveryHours')
         srv.g.fire('EveryDays')
         alone.say('alice', 'Bonjour')
-        # The mission of the vanished NPC: still listed, a new delivery refused cleanly (no effect), nothing breaks.
+        # E18-T25: the mission of a Living Knox NPC is hidden while Living Knox is unticked, never failed nor erased:
+        # no row in the notebook nor in the core list, its delay frozen, delivery and abandon refused without effect.
         m = alone.state().missions[self.mission_id]
         self.assertIsNotNone(m)
+        remaining, revision = m.remainingMs, m.revision
         alone.command('alice', 'snapshot')
-        self.assertTrue(any(v.id == self.mission_id for v in
-                            alone.clients['alice'].g.RS_CarnetClient.snapshot.missions.values()))
+        self.assertFalse(any(v.id == self.mission_id for v in
+                             alone.clients['alice'].g.RS_CarnetClient.snapshot.missions.values()))
+        journal = srv.rt.eval("require('RadioSurvivorCore/RC_MissionJournal')")
+        self.assertEqual(len(list(journal.rows(cid).values())), 0)
         quote = alone.quote('alice', alone.items('alice', *(['Base.TinnedBeans'] * 5)))
         if quote:
             alone.confirm('alice', quote)
@@ -124,6 +129,8 @@ class LivingKnoxRemovedTests(unittest.TestCase):
         for _ in range(30):
             alone.tick()
         srv.g.fire('EveryDays')
+        self.assertEqual((m.state, m.remainingMs, m.revision), ('active', remaining, revision),
+                         'mission failed, abandoned or timed while Living Knox was unticked')
         self.assertEqual(self.errors(alone), [])
         srv.rt.execute("require('RadioSurvivor/RS_State').dirty = true require('RadioSurvivor/RS_State').save()")
         # Third session: Living Knox ticked again, its relation is still there.
@@ -134,6 +141,11 @@ class LivingKnoxRemovedTests(unittest.TestCase):
         self.assertIsNotNone(fiche)
         view = back.server.rt.eval("require('RadioSurvivor/RS_Relations')").view(fiche, cid)
         self.assertEqual(view.level, level, 'relation kept by Living Knox while it was removed')
+        # E18-T25: the mission is listed again as it was.
+        back.command('alice', 'snapshot')
+        rows = [v for v in back.clients['alice'].g.RS_CarnetClient.snapshot.missions.values() if v.id == self.mission_id]
+        self.assertEqual(len(rows), 1, 'mission of the Living Knox NPC found again')
+        self.assertEqual((rows[0].state, rows[0].delivered), ('active', 10))
         self.assertEqual(self.errors(back), [])
 
 

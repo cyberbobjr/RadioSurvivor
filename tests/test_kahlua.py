@@ -822,6 +822,7 @@ class KahluaBench(unittest.TestCase):
         res = self.statuses('rst')
         self.assertEqual(len(res), 6, res)
         bad = {k: v for k, v in res.items() if v[0] != 'PASS'}
+        self.maxDiff = None
         self.assertEqual(bad, {})
         self.assertTrue(all(suite == 'rst.selftest' for suite, _ in res))  # rst.failures exclue par défaut
         self.assertTrue(self.run_of('rst')['lines'][-1].startswith('OK - 6 test(s): 6 pass'))
@@ -1015,7 +1016,7 @@ class KahluaBench(unittest.TestCase):
     def test_journal_suite_runs_in_kahlua(self):
         # E18-T06: no online player bound in the bench (SKIP), but the suite and the journal load in the real VM.
         res = self.statuses('rc.journal')
-        self.assertEqual(len(res), 1)
+        self.assertEqual(len(res), 2)  # E18-T25: + hidden mission of a giver whose mod is not active
         self.assertTrue(all(v[0] in ('PASS', 'SKIP') for v in res.values()), res)
 
 

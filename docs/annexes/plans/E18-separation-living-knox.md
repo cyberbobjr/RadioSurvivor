@@ -30,7 +30,7 @@
 | ☐ | E18-T22 | Réputation dans le commun | `testé hors jeu` | MP | E18-T05 |
 | ☐ | E18-T23 | Retirer les reprises des parties d'avant la séparation | `à faire` | hors jeu | E18-T21 |
 | ☐ | E18-T24 | Carnet dans le mod commun, onglets par mod | `testé hors jeu` | MP | E18-T09 |
-| ☐ | E18-T25 | Onglets Missions et Réputation tenus par le commun | `à faire` | MP | E18-T24 |
+| ☐ | E18-T25 | Onglets Missions et Réputation tenus par le commun | `testé hors jeu` | MP | E18-T24 |
 | ☐ | E18-T26 | Onglet Contacts commun, contacts versés par chaque mod | `à faire` | MP | E18-T24 |
 
 <!-- fin du tableau de bord -->
@@ -409,15 +409,15 @@ Deuxième article Workshop, dépôt séparé, nouvelles règles de jeu des missi
   - Reste : cible MP : campagne MP des trois montages (`E18-T15`) ; contenu de Missions et Réputation sans RadioSurvivor : `E18-T25` ; Contacts : `E18-T26` ; onglet Équipe à Living Knox : `E18-T20` ; la touche Ctrl+G reste celle de RadioSurvivor (choisir le PNJ le plus proche), elle n'ouvre pas le carnet (comme avant)
 
 - [ ] **E18-T25** — Onglets Missions et Réputation tenus par le commun
-  - État : `à faire`
+  - État : `testé hors jeu`
   - Cible : `MP`
   - Dépend de : E18-T24
   - Fichiers : onglets Missions (`RC_MissionList`, commande `missions` de `RC_MissionJournal`) et Réputation (`RC_Reputation.projection`) dans `RC_Notebook` ; textes des motifs propres à chaque mod
   - Faire : les deux onglets lisent les données du commun, sans RadioSurvivor ; missions d'un donneur dont le mod est décoché masquées, jamais effacées ni échouées par son absence.
   - Accepté si : Living Knox seul : missions des PNJ et réputation dans le carnet ; RadioSurvivor seul : missions des voix ; partie rouverte sans un mod : ses missions masquées puis retrouvées quand il est recoché.
   - Tests : bancs du carnet et des missions dans les trois montages ; `test_lk_removed.py` étendu.
-  - Preuve : —
-  - Reste : —
+  - Preuve : moteur des missions du commun : `RC_Missions.present(m)` (sorte de donneur inscrite et crochet `present(m, state)` du donneur) ; une mission absente est sautée par `advance` (aucun délai, aucune expiration, aucun sondage d'offre), `observe` et `prune` (jamais effacée) ; listes : `RC_MissionJournal.rows` et instantané de RadioSurvivor (`RS_Carnet_Server`) sans les missions absentes, commandes de mission refusées (`missionFor`) ; donneur `npc` de RadioSurvivor : la fiche d'un PNJ d'un moteur (`incarnation`) exige un moteur (`RS_NPCProvider.available`) ; commande `reputation` du module `RadioSurvivorCore` (`RC_Reputation.projection`, même limite que `missions`) ; carnet commun (`RC_Notebook`) : Missions et Réputation lisent les données du commun (`Notebook.request`, redemandées toutes les 3 s tant que l'onglet est montré), page Réputation dessinée par le commun (`Notebook.reputationLines`, mots des jours, niveaux et tendances), texte de chaque acte inscrit par le mod qui le connaît (`Notebook.reputationReasons` : missions par le commun, troc, donneur tué et sauvetage par RadioSurvivor, membre d'un groupe tué par Living Knox dans `client/LivingKnox/LK_NotebookPages.lua`), acte d'un mod décoché lu « bonne / mauvaise action » ; instantané de RadioSurvivor sans `reasonKey` (même projection que le commun) ; 25 clés `IGUI_RS_` de la réputation et des jours passées en `IGUI_RC_`, `IGUI_RS_RepReason_MemberKilled` devenue `IGUI_LK_RepReason_MemberKilled`, `IGUI_RC_Empty_Reputation` retirée (EN, FR) ; avec RadioSurvivor, ses onglets gardent la même liste et la même projection, poussées par son instantané ; bancs : `tests/test_core_notebook.py` (14 tests : Living Knox seul, page Réputation du commun avec le texte de l'acte de Living Knox seulement une fois sa page chargée et sans aucune clé `IGUI_RS_`, mission d'un donneur absent masquée, gelée, jamais échouée ni purgée puis retrouvée), `tests/test_lk_removed.py` étendu (partie rouverte sans Living Knox : mission du PNJ absente de l'instantané et de la liste du commun, livraison et abandon refusés, état, délai et révision inchangés après les tics et la purge du jour ; Living Knox recoché : mission listée de nouveau, active, livraisons gardées), bancs adaptés (`test_reputation.py`, `test_relation_panel.py`, `test_radio_module.py`, `test_translations_split.py`, `test_rs_suites.py`, `test_kahlua.py` 40 dans la VM réelle, `tools/load_bench.py`) ; suite en jeu `rc.journal` (+ mission d'un donneur absent masquée et gelée) ; `run_all.py` : 160 passés, 0 échec ; luacheck `Contents` 14 (référence 15), `dev` 0 ; passages solo automatiques du 2026-11-06 : Living Knox seul, `rc.notebook` et `rc.journal` 3/3, code 0 (`tools/autoclient/runs/20261106-184628-9a81022e14a1`) ; les deux mods, `rc.notebook`, `rc.journal`, `rs.reputation` 8/8, code 0 (`tools/autoclient/runs/20261106-184526-810fbf5b31ba`) ; premier passage Living Knox seul : `rc.journal` en échec (mission de test sans donneur actif, donc masquée comme voulu ; suite corrigée) (`tools/autoclient/runs/20261106-184437-66eb7c61f619`)
+  - Reste : cible MP : campagne MP des trois montages (`E18-T15`) ; avec Living Knox seul, aucun PNJ ne propose encore de mission (donneur des PNJ : `E18-T18`) : la liste n'a été vue en jeu que vide ; boutons des missions (accepter, livrer, réclamer) seulement avec RadioSurvivor ; avertissement de changement de niveau au-dessus du personnage seulement avec RadioSurvivor (`RS_Notebook.reputationWarning`)
 
 - [ ] **E18-T26** — Onglet Contacts commun, contacts versés par chaque mod
   - État : `à faire`

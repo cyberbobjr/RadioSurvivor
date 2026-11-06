@@ -110,6 +110,21 @@ function M.donor(kind) return donors[kind] end
 
 local function kindOf(m) return m.donor or 'npc' end
 
+-- E18-T25 (decision of 2026-11-06): a mission is present while the mod of its giver is active: its kind is registered
+-- and the giver's optional present(m, state) does not say false (RadioSurvivor: the fiche of an engine NPC needs its
+-- engine; state = the engine's store when not given). A mission that
+-- is not present is hidden from every list and frozen (no delay counted, no expiry, no poll, never pruned): never
+-- erased nor failed by the absence of its mod, found again as it was when the mod is ticked again.
+function M.present(m)
+    local d = donors[kindOf(m)]
+    if d == nil then return false end
+    if d.present then
+        local store = M.store()
+        return d.present(m, type(store) == "table" and store.data or nil) ~= false
+    end
+    return true
+end
+
 local function addOnce(list, fn)
     for _, f in ipairs(list) do
         if f == fn then return fn end
@@ -319,7 +334,8 @@ function M.advance(state, elapsedMs)
     local changed = false
     elapsedMs = math.max(0, elapsedMs)
     for _, m in pairs(state.missions) do
-        if (m.state == 'active' or m.state == 'offer') and supplyClosed(m) then
+        if not M.present(m) then -- luacheck: ignore 542 (frozen while the mod of its giver is not active)
+        elseif (m.state == 'active' or m.state == 'offer') and supplyClosed(m) then
             if m.state == 'active' then
                 changed = M.finish(state, m, 'cancelled_closed') or changed
             else
@@ -372,7 +388,7 @@ function M.prune(state, now)
         -- A mission without a reward lot (radio voice, E11-T08) has nothing left to claim.
         local unclaimed = m.state == 'success' and m.claimedBy == '' and (m.rewardCount or 0) > 0
         local drop
-        if not closed then
+        if not closed or not M.present(m) then
             drop = false
         elseif unclaimed then
             drop = not keepUnclaimed(m, now)
@@ -732,7 +748,7 @@ M.deliver = M.report
 function M.observe(state, present, store)
     local changed = false
     for _, m in pairs(state.missions) do
-        local t = m.state == 'active' and not m.transaction and M.template(m)
+        local t = m.state == 'active' and not m.transaction and M.present(m) and M.template(m)
         if t and t.observe then
             for _, entry in ipairs(present) do
                 local member = m.participants[entry.character]

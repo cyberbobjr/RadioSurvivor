@@ -1,5 +1,5 @@
 --[[
-rc.journal - mission journal of the core mod (E18-T06): rows the authority sends to a player's journal.
+rc.journal - mission list of the core mod (E18-T06, E18-T25): rows the authority sends to the notebook of a player.
 Tag "server": RC_MissionJournal starts with "if isClient() then return end" (authority only: dedicated server or solo).
 Run it with RST.server("rc.journal") or the MP campaign; outside the game: tests/test_core_journal.py.
 
@@ -43,17 +43,49 @@ RST.suite("rc.journal", { tags = { "server" } }, function(s)
     s.test("open missions of the player's character, requester and state", function(t)
         local M, J = modules(t)
         local character = boundCharacter(t, M)
+        -- A giver of the test (E18-T25: a mission is listed only while the mod of its giver is active).
+        if not M.donor("rcj-test") then
+            M.registerDonor("rcj-test", { find = function(state, id) return state.npcs and state.npcs[id] or nil end })
+        end
         withStore(M, function(state)
             local npc = { id = "rcj-npc", name = "Ruth" }
             state.npcs[npc.id] = npc
             local m = M.create(state, npc, character, "first_aid_v1")
             t:ok(m ~= nil, "offer created")
+            m.donor = "rcj-test"
             local rows = J.rows(character)
             t:eq(1, #rows, "one row")
             t:eq({ m.id, "offer", "Ruth" }, { rows[1].id, rows[1].state, rows[1].requester }, "row of the offer")
             t:eq(0, #J.rows("rcj-someone-else"), "never another character's mission")
             m.state = "success"
             t:eq(0, #J.rows(character), "a closed mission leaves the journal")
+        end)
+    end)
+    s.test("mission of a giver whose mod is not active: hidden and frozen (E18-T25)", function(t)
+        local M, J = modules(t)
+        local character = boundCharacter(t, M)
+        local present = true
+        local previous = M.donor("rcj-gone")
+        M.registerDonor("rcj-gone", { find = function(state, id) return state.npcs[id] end,
+            present = function() return present end })
+        t:defer(function()
+            if previous then M.registerDonor("rcj-gone", previous)
+            else M.registerDonor("rcj-gone", { find = function() return nil end, present = function() return false end }) end
+        end, "test giver made inert")
+        withStore(M, function(state)
+            local npc = { id = "rcj-npc2", name = "Abe" }
+            state.npcs[npc.id] = npc
+            local m = M.create(state, npc, character, "first_aid_v1")
+            m.donor = "rcj-gone"
+            t:ok(M.accept(state, m, character, "Tester") ~= false, "mission accepted")
+            t:eq(1, #J.rows(character), "listed while its mod is active")
+            present = false
+            local before = m.remainingMs
+            M.advance(state, 10 * 3600000)
+            t:eq(0, #J.rows(character), "hidden while its mod is not active")
+            t:eq({ "active", before }, { m.state, m.remainingMs }, "never failed nor timed while hidden")
+            present = true
+            t:eq(1, #J.rows(character), "listed again")
         end)
     end)
 end)

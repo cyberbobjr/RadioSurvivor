@@ -22,8 +22,11 @@
 >   donneur, avec ou sans RadioSurvivor) ; `npc.memberKilled` par Living Knox (`LK_Reputation`, fait `npcDied`, sauf si
 >   `npc.requesterKilled` a déjà compté la même mort : `RC_Reputation.chargedFor`) ; `trade.cheated` et
 >   `npc.requesterKilled` par RadioSurvivor ; Living Knox lit le niveau directement (`LK_Hostility.reputationOf`) ;
-> - un motif garde l'action, pas le texte : le carnet de RadioSurvivor ajoute la clé `IGUI_RS_RepReason_*` à la
->   projection ; la marge du passeur par niveau est `RS_Config.TradeMargin` (`RS_Trade`).
+> - un motif garde l'action, pas le texte : depuis `E18-T25`, l'onglet Réputation est dessiné par le carnet du mod
+>   commun (`RC_Notebook.reputationLines`, données par la commande `reputation` du module `RadioSurvivorCore`) et chaque
+>   mod y inscrit le texte des actes qu'il connaît (`Notebook.reputationReasons[action]` : missions `IGUI_RC_`, troc,
+>   donneur tué et sauvetage `IGUI_RS_`, membre d'un groupe tué `IGUI_LK_`) ; un acte d'un mod décoché se lit « une
+>   bonne / mauvaise action » ; la marge du passeur par niveau est `RS_Config.TradeMargin` (`RS_Trade`).
 
 Les numéros de ligne ci-dessous sont ceux de la branche `dev` au 2026-10-14 (chemins relatifs à
 `Contents/mods/batman_RadioSurvivor/42.21/media/lua/`).

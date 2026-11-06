@@ -410,14 +410,15 @@ class Server(unittest.TestCase):
         outcomes = len(list(self.R.data.outcomes.values()))
         for command in ('reputation', 'record', 'rep_record', 'set_reputation'):
             sim.command('bob', command, character=sim.character('bob'), action='mission.success', delta=100,
-                        reasonKey='IGUI_RS_RepReason_MissionSuccess', eventId='forged')
+                        reasonKey='IGUI_RC_RepReason_MissionSuccess', eventId='forged')
         self.assertEqual(py(self.R.data.reputation), before)
         self.assertEqual(len(list(self.R.data.outcomes.values())), outcomes)
         sim.command('alice', 'snapshot'); sim.command('bob', 'snapshot')
         a = py(sim.clients['alice'].g.RS_CarnetClient.snapshot.reputation)
         b = py(sim.clients['bob'].g.RS_CarnetClient.snapshot.reputation)
         self.assertEqual((a['available'], a['level'], a['trend']), (True, 'neutral', 'down'))
-        self.assertEqual(a['reasons'][1]['reasonKey'], 'IGUI_RS_RepReason_MissionFailed')
+        self.assertEqual(a['reasons'][1]['action'], 'mission.failed')
+        self.assertNotIn('reasonKey', a['reasons'][1], 'E18-T25: the text of a reason is chosen by the client')
         self.assertNotIn('score', a)
         self.assertEqual((b['available'], b['level'], b['trend']), (True, 'neutral', 'stable'))
         self.assertIn(b.get('reasons'), (None, {}), 'reasons of another character leaked')
@@ -569,8 +570,8 @@ class Effects(unittest.TestCase):
         sim.command('alice', 'snapshot')
         window.changeTab(window, 'Reputation')
         text = window.detail.text
-        self.assertIn('IGUI_RS_RepLevelLine|IGUI_RS_RepLevel_neutral <LINE> <LINE> IGUI_RS_RepTrendLine|IGUI_RS_RepTrend_stable', text)
-        self.assertIn('IGUI_RS_RepNoActs', text)
+        self.assertIn('IGUI_RC_RepLevelLine|IGUI_RC_RepLevel_neutral <LINE> <LINE> IGUI_RC_RepTrendLine|IGUI_RC_RepTrend_stable', text)
+        self.assertIn('IGUI_RC_RepNoActs', text)
         self.assertIn('IGUI_RS_PersonalTrustSeparate', text)
         for gone in ('NotApplied', 'Event_', 'ReputationUnavailable'):
             self.assertNotIn(gone, text)
@@ -578,11 +579,11 @@ class Effects(unittest.TestCase):
         self.bad('alice')
         sim.server.g.RS_CarnetServer.publish()
         text = window.detail.text
-        self.assertIn('IGUI_RS_RepLevelLine|IGUI_RS_RepLevel_bad <LINE> <LINE> IGUI_RS_RepTrendLine|IGUI_RS_RepTrend_down', text)
-        self.assertIn('IGUI_RS_RepChanged|IGUI_RS_RelWhen_today|IGUI_RS_RepLevel_neutral|IGUI_RS_RepLevel_bad', text)
-        self.assertIn('- IGUI_RS_RepAct|IGUI_RS_RelWhen_today|IGUI_RS_RepReason_MissionFailed|Real Bandit', text)
+        self.assertIn('IGUI_RC_RepLevelLine|IGUI_RC_RepLevel_bad <LINE> <LINE> IGUI_RC_RepTrendLine|IGUI_RC_RepTrend_down', text)
+        self.assertIn('IGUI_RC_RepChanged|IGUI_RC_RelWhen_today|IGUI_RC_RepLevel_neutral|IGUI_RC_RepLevel_bad', text)
+        self.assertIn('- IGUI_RC_RepAct|IGUI_RC_RelWhen_today|IGUI_RC_RepReason_MissionFailed|Real Bandit', text)
         self.assertIsNone(re.search(r'\d', re.sub(r'<[^>]*>', '', text)), 'a number is shown: ' + text)
-        self.assertEqual(lua_list(c.g.HALOS), ['bad:IGUI_RS_RepWarn|IGUI_RS_RepLevel_bad'])
+        self.assertEqual(lua_list(c.g.HALOS), ['bad:IGUI_RS_RepWarn|IGUI_RC_RepLevel_bad'])
         # Same change seen again (poll): no second warning.
         sim.command('alice', 'snapshot')
         self.assertEqual(len(lua_list(c.g.HALOS)), 1)

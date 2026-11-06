@@ -337,5 +337,6 @@
     "IGUI_LK_Trade_Refuse_price": "Not enough. Add something.",
     "IGUI_LK_Trade_Refuse_stranger": "Who are you, exactly?",
     "IGUI_LK_Revenge_Sworn": "You killed one of ours. We will find you, and you will pay.",
-    "IGUI_LK_Raid_Scouted": "Nice place you have here. We'll be back for it."
+    "IGUI_LK_Raid_Scouted": "Nice place you have here. We'll be back for it.",
+    "IGUI_LK_RepReason_MemberKilled": "Killed a member of a group"
 }

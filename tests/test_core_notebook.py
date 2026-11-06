@@ -36,11 +36,18 @@ CLIENT_UI = r"""
 UIFont = UIFont or {}
 TEXTS = {}
 getText = function(key, ...)
-    local s = TEXTS[key] or key
     local args = {...}
+    if not TEXTS[key] then  -- untranslated: the key, then its arguments
+        for i = 1, #args do key = key .. '|' .. tostring(args[i]) end
+        return key
+    end
+    local s = TEXTS[key]
     for i = 1, #args do s = string.gsub(s, '%%' .. i, tostring(args[i])) end
     return s
 end
+-- Keys shipped by the core mod and Living Knox (SHIPPED, set by the bench): getTextOrNull is nil for any other key.
+SHIPPED = SHIPPED or {}
+getTextOrNull = function(key, ...) if SHIPPED[key] then return getText(key, ...) end return nil end
 getScriptManager = function() return {FindItem = function(_, t) return {getDisplayName = function() return 'item ' .. t end} end} end
 Joypad = {BButton = 1, AButton = 0, DPadRight = 13}
 JOYPAD_FOCUS = {}
@@ -91,6 +98,14 @@ require('RadioSurvivorCore/RC_MissionJournal')
 """
 
 
+def shipped_keys():
+    keys = set()
+    for mod in ('batman_RadioSurvivorCore', 'batman_LivingKnox'):
+        path = ROOT / 'Contents' / 'mods' / mod / '42.21' / 'media' / 'lua' / 'shared' / 'Translate' / 'EN' / 'IG_UI.json'
+        keys |= set(json.loads(path.read_text(encoding='utf-8')))
+    return sorted(keys)
+
+
 def active_mods(*ids):
     """getActivatedMods double (Java list of the loaded ids, LuaManager.java:6065)."""
     body = ', '.join(f'"{i}"' for i in ids)
@@ -122,11 +137,12 @@ class NotebookCoreOnlyTests(unittest.TestCase):
         s.g.BOUND[self.h.player('server', 'B')] = 'cB'
         for name in ('A', 'B'):
             c = self.h.machine(name)
+            c.rt.execute('SHIPPED = {' + ', '.join(f'["{k}"] = true' for k in shipped_keys()) + '}')
             c.rt.execute(CLIENT_UI)
             c.rt.execute(NOTEBOOK_UI)
             c.rt.execute(SIDEBAR)
             c.rt.execute(active_mods('batman_SignalSmoke', 'batman_RadioSurvivorCore', 'batman_LivingKnox'))
-            c.load(NOTEBOOK.read_text(encoding='utf-8'))
+            c.rt.execute('require("RadioSurvivorCore/RC_Notebook")')
 
     def tearDown(self):
         self.h.close()
@@ -145,7 +161,7 @@ class NotebookCoreOnlyTests(unittest.TestCase):
         self.open('A')
         self.assertEqual(tab_names(self.h.machine('A')), 'Contacts,Missions,Reputation')
         self.cev('A', 'RadioSurvivorCore.notebook.window:changeTab("Reputation")')
-        self.assertIn('IGUI_RC_Empty_Reputation', self.cev('A', 'return RadioSurvivorCore.notebook.window.detail.text'))
+        self.assertIn('IGUI_RC_ReputationUnavailable', self.cev('A', 'return RadioSurvivorCore.notebook.window.detail.text'))
         self.cev('A', 'RadioSurvivorCore.notebook.window:changeTab("Contacts")')
         self.assertIn('IGUI_RC_Empty_Contacts', self.cev('A', 'return RadioSurvivorCore.notebook.window.detail.text'))
         self.assertIsNone(self.cev('A', 'return RadioSurvivorCore.notebook.window:changeTab("Radio")'))
@@ -201,6 +217,58 @@ class NotebookCoreOnlyTests(unittest.TestCase):
                             'w:onJoypadDown(Joypad.BButton) '
                             'return table.concat({a, b, c, tostring(w:isVisible()), tostring(JOYPAD_FOCUS[0])}, "|")')
         self.assertEqual(out, 'lk:1-probe1|lk:2-probe1|lk:1-probe1|false|nil')
+
+    def test_reputation_page_reads_the_core_reputation(self):
+        """E18-T25: Living Knox alone, the Reputation page shows the core reputation and the acts in words; the act of
+        Living Knox has its text once its notebook part is loaded, the act of RadioSurvivor (absent) a generic word."""
+        self.sev('local R = require("RadioSurvivorCore/RC_Reputation") R.useData({reputation = {}, outcomes = {}}) '
+                 'R.setLiveness(function() return nil end) '
+                 'R.record(nil, "e1", "cA", "mission.success", nil, {}, {"Ruth"}) '
+                 'R.record(nil, "e2", "cA", "npc.memberKilled", nil, {}) '
+                 'R.record(nil, "e3", "cA", "trade.cheated", nil, {})')
+        self.cev('A', 'local w = RC_UI_Notebook.toggle(0, false) w:changeTab("Reputation")')
+        self.h.pump(); self.h.pump()
+        text = self.cev('A', 'return RadioSurvivorCore.notebook.window.detail.text')
+        self.assertIn('IGUI_RC_RepLevelLine', text)
+        self.assertIn('IGUI_RC_RepReason_MissionSuccess', text)
+        self.assertIn('IGUI_RC_RepReason_bad', text)  # Living Knox and RadioSurvivor acts: not their texts yet
+        self.assertNotIn('IGUI_LK_RepReason_MemberKilled', text)
+        self.assertNotIn('IGUI_RS_', text)
+        self.h.machine('A').load((ROOT / 'Contents' / 'mods' / 'batman_LivingKnox' / '42.21' / 'media' / 'lua' / 'client'
+                                  / 'LivingKnox' / 'LK_NotebookPages.lua').read_text(encoding='utf-8'))
+        self.h.advance_ms(3500)
+        self.cev('A', 'RadioSurvivorCore.notebook.window:update()')
+        self.h.pump(); self.h.pump()
+        text = self.cev('A', 'return RadioSurvivorCore.notebook.window.detail.text')
+        self.assertIn('IGUI_LK_RepReason_MemberKilled', text)
+        self.assertNotIn('IGUI_RS_', text)
+        self.assertIsNone(re.search(r'\d', re.sub(r'<[^>]*>', '', text)), text)
+        self.sev('require("RadioSurvivorCore/RC_Reputation").setLiveness(nil)')
+
+    def test_mission_of_a_giver_not_active_is_hidden_and_frozen(self):
+        """E18-T25: a mission whose giver's mod is not active is hidden from the list, keeps its delay, is never failed
+        nor pruned, and comes back as it was when the mod is active again."""
+        self.sev('local M = require("RadioSurvivorCore/RC_Missions") PRESENT = true '
+                 'M.registerDonor("gone", {find = function(state, id) return GIVERS[id] end, '
+                 'present = function() return PRESENT end}) '
+                 'local m = newMission("lk:1", "cA") m.donor = "gone" M.accept(STATE, m, "cA", "Alice") MID = m.id')
+        self.open('A')
+        self.assertIn('Ruth', lua_rows(self.h.machine('A')))
+        out = self.sev('local M = require("RadioSurvivorCore/RC_Missions") PRESENT = false '
+                       'local m = STATE.missions[MID] local before = m.remainingMs '
+                       'M.advance(STATE, 10 * 600000) M.prune(STATE, getTimestampMs() + 10 * 86400000) '
+                       'return table.concat({m.state, tostring(m.remainingMs == before), '
+                       'tostring(STATE.missions[MID] ~= nil), tostring(M.present(m))}, "|")')
+        self.assertEqual(out, 'active|true|true|false')
+        self.h.advance_ms(3500)
+        self.cev('A', 'RadioSurvivorCore.notebook.window:update()')
+        self.h.pump(); self.h.pump()
+        self.assertEqual(lua_rows(self.h.machine('A')), '')
+        self.sev('PRESENT = true')
+        self.h.advance_ms(3500)
+        self.cev('A', 'RadioSurvivorCore.notebook.window:update()')
+        self.h.pump(); self.h.pump()
+        self.assertIn('Ruth', lua_rows(self.h.machine('A')))
 
     def test_requests_are_rate_limited_on_the_server(self):
         for _ in range(12):
@@ -289,7 +357,7 @@ class TranslationTests(unittest.TestCase):
                      if not k.endswith('_')}
         used |= {f'IGUI_RC_State_{s}' for s in ('offer', 'active', 'toReport')}
         used |= {f'IGUI_RC_{t}' for t in ('Contacts', 'Missions', 'Reputation')}
-        used |= {f'IGUI_RC_Empty_{t}' for t in ('Contacts', 'Reputation')}
+        used |= {'IGUI_RC_Empty_Contacts'}
         langs = sorted(p.name for p in (RS_LUA / 'shared' / 'Translate').iterdir() if p.is_dir())
         keys = {}
         for lang in langs:

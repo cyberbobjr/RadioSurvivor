@@ -734,8 +734,12 @@ E18-T13, une mission enregistrée avant sous `IGUI_RS_<nom>` est projetée avec 
 E04-T04).
 
 **Instantané du carnet, champ `reputation`** (E04-T04, E04-T12) : `{ available = true, level, trend, reasons = {
-{ action, reasonKey, reasonArgs, sign, capped?, day } } (5 au plus, le plus récent d'abord), change? = { from, to, day,
-n }, today }` du seul personnage du lecteur, ou `{ available = false, reason }` ; jamais de score. L'ancienne liste
+{ action, reasonArgs, sign, capped?, day } } (5 au plus, le plus récent d'abord), change? = { from, to, day,
+n }, today }` du seul personnage du lecteur, ou `{ available = false }` ; jamais de score ni de texte (E18-T25 : le
+client traduit chaque action par le mod qui la connaît). Le mod commun répond la même projection à sa commande
+`reputation` (module `RadioSurvivorCore`, même limite que `missions`) ; ses listes de missions (`missions` et cet
+instantané) laissent de côté les missions d'un donneur dont le mod n'est pas actif (`RC_Missions.present`), gelées
+jusqu'à son retour. L'ancienne liste
 `events` (faits « non appliqués ») est retirée. Un instantané **poussé** (publication après un changement) n'est envoyé à
 un joueur que si son contenu a changé depuis le dernier qu'il a reçu ; une réponse à sa propre commande part toujours
 (E00-T04). Commande `rep_admin` (E04-T14, Q17) : vue en lecture seule des réputations de tous les personnages vivants

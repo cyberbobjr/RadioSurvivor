@@ -10,22 +10,9 @@ local MissionList = require 'RadioSurvivorCore/RC_MissionList' -- E18-T06
 local History = require 'RadioSurvivorCore/RC_History' -- E18-T11: exchange history of the core mod
 require 'RadioSurvivorCore/RC_MissionScout'; require 'RadioSurvivorCore/RC_MissionRetrieve'
 local Rep = require 'RadioSurvivorCore/RC_Reputation' -- E18-T22: reputation kept by the core mod
--- Text of each reason of the reputation tab (the core mod keeps the action only).
-local REP_REASON_KEYS = {
-    ['mission.success'] = 'IGUI_RS_RepReason_MissionSuccess',
-    ['mission.failed'] = 'IGUI_RS_RepReason_MissionFailed',
-    ['mission.abandoned'] = 'IGUI_RS_RepReason_MissionAbandoned',
-    ['trade.cheated'] = 'IGUI_RS_RepReason_TradeCheated',
-    ['npc.requesterKilled'] = 'IGUI_RS_RepReason_RequesterKilled',
-    ['npc.memberKilled'] = 'IGUI_RS_RepReason_MemberKilled',
-    ['rescue.success'] = 'IGUI_RS_RepReason_RescueSuccess',
-}
-local function repProjection(character)
-    local p = Rep.projection(character)
-    for _, r in ipairs(type(p.reasons) == 'table' and p.reasons or {}) do r.reasonKey = REP_REASON_KEYS[r.action] end
-    if not p.available then p.reason = 'IGUI_RS_ReputationUnavailable' end
-    return p
-end
+-- Reputation of the snapshot: the core projection as it is (E18-T25: actions only, each notebook page translates the
+-- acts its mod knows).
+local function repProjection(character) return Rep.projection(character) end
 local T = require 'RadioSurvivor/RS_BridgeLanes'
 local Radio = require 'RadioSurvivor/RadioSurvivor_Const'
 local Obs = require 'RadioSurvivor/RS_Observations'
@@ -234,7 +221,7 @@ local function projection(player, pushed)
     end
     -- E18-T06: the same list as the mission journal of the core mod (RC_MissionList: who sees it, order, state).
     for _, m in pairs(S.data.missions) do
-        if MissionList.visible(m, character, record.knownMissions) then
+        if M.present(m) and MissionList.visible(m, character, record.knownMissions) then
             local p = M.projection(m, character)
             -- E11-T08: a radio voice requester has no fiche nor body (name of its sheet, never near).
             p.requester = M.requester(S.data, m)
@@ -882,6 +869,7 @@ end
 local function missionFor(player, character, args, range)
     local m = type(args.mission) == 'string' and S.data.missions[args.mission]
     if not m or (not m.invited[character] and not m.participants[character]) then return nil end
+    if not M.present(m) then return nil end -- E18-T25: giver of a mod not active, mission hidden
     -- E11-T08: a radio voice mission has no body to join: only accept and abandon (no range), never invite or claim.
     if m.donor == 'voice' then
         if range or m.transaction then return nil end

@@ -26,6 +26,14 @@ local function npcGiver()
             local npcs = type(state) == 'table' and state.npcs or nil
             return npcs and npcs[id] or nil
         end,
+        -- E18-T25: the fiche of an engine NPC (Living Knox: incarnation) needs its engine; without it its missions are
+        -- hidden and frozen. A fiche of no engine (test fixtures) is always present.
+        present = function(m, state)
+            local npcs = type(state) == 'table' and state.npcs or nil
+            local npc = npcs and npcs[m.npc]
+            if npc and npc.incarnation ~= nil then return P.available() == true end
+            return true
+        end,
         claim = function(store, m, player, character, token)
             local npc = store.data.npcs and store.data.npcs[m.npc]
             if npc and npc.incarnation ~= nil then
