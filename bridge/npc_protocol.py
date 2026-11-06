@@ -537,7 +537,7 @@ def negotiable(req: dict) -> list[str]:
     return [kind for kind in AGREEMENT_KINDS if isinstance(terms.get(kind), dict)]
 
 
-# E09-T04: personal relation of the NPC toward the speaking character (context.relation, RS_Relations.lua).
+# E09-T04: personal relation of the NPC toward the speaking character (context.relation, LK_PersonalRelation.lua of Living Knox).
 RELATION_LEVELS = ("hostile", "wary", "cautious", "favorable", "trusting")
 RELATION_DIRS = {"good": "up", "bad": "down"}
 RELATION_ID = re.compile(r"^f[0-9]{1,2}$")

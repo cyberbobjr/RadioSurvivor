@@ -156,6 +156,23 @@ function API.attitudeFacts(gid, playerKey)
     return H.facts(gid, playerKey)
 end
 
+-- Relation personnelle d'un PNJ envers un personnage (E18-T21, ajout compatible de la version 1 ; règles E09-T04,
+-- LivingKnox.PersonalRelation). npcId = identifiant Living Knox ('lk-<n>'), playerKey = identité de personnage.
+-- extra (facultatif) : faits citables que l'appelant connaît en plus des faits du groupe, la même liste à l'offre et
+-- à l'application ({ key, fact, sign, day, source, kind }). Aucune valeur numérique hors du jour de jeu.
+--   API.relation(npcId, playerKey) -> { level, trend, group }
+--   API.relationPanel(npcId, playerKey) -> { level, trend, group, today, facts }
+--   API.relationOffer(npcId, playerKey, extra) -> context, binding (binding : serveur seulement, jamais envoyé)
+--   API.relationApply(npcId, playerKey, binding, dir, factId, extra) -> vue, clé du fait | nil, raison
+function API.relation(npcId, playerKey) return LivingKnox.PersonalRelation.view(npcId, playerKey) end
+function API.relationPanel(npcId, playerKey) return LivingKnox.PersonalRelation.panel(npcId, playerKey) end
+function API.relationOffer(npcId, playerKey, extra)
+    return LivingKnox.PersonalRelation.offer(npcId, playerKey, extra)
+end
+function API.relationApply(npcId, playerKey, binding, dir, factId, extra)
+    return LivingKnox.PersonalRelation.apply(npcId, playerKey, binding, dir, factId, extra)
+end
+
 -- Liste des groupes, triée par numéro : { { id, type, typeNameKey, name, summary, founded, alive, total, leader,
 -- area, needs, morale, task, attitude }, ... }. Table vide si le registre n'est pas prêt (voir API.isReady).
 -- playerKey facultatif : attitude de chaque groupe envers ce joueur (sinon attitude = nil).

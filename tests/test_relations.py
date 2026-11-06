@@ -2,8 +2,8 @@
 
     python tests/test_relations.py
 
-Banc lupa (Lua 5.1, `next` retiré comme dans Kahlua) : vrai serveur du carnet (`RS_Carnet_Server.lua`), vrai
-`RS_Relations.lua`, moteur Living Knox réel (registres, `LK_Hostility`, API, fournisseur `RS_LivingKnox.lua`) et vrai
+Banc lupa (Lua 5.1, `next` retiré comme dans Kahlua) : vrai serveur du carnet (`RS_Carnet_Server.lua`), relation
+tenue par Living Knox (`LK_PersonalRelation.lua`, E18-T21) et lue par `RS_Relations.lua`, moteur Living Knox réel (registres, `LK_Hostility`, API, fournisseur `RS_LivingKnox.lua`) et vrai
 pont hors ligne (`RS_OFFLINE_INTENT=relation[...]`, drapeau du banc qui tient lieu d'un modèle qui cite un fait, jamais
 tiré des mots du joueur). Doublures seulement : ne prouve ni l'API Java ni le réseau.
 """
@@ -143,8 +143,10 @@ class RelationTests(unittest.TestCase):
         self.assertEqual(self.view('alice', leader)[1], 'down', 'trend of the last three facts (gift, up, hit, down)')
         # The group attitude itself is never recalculated by the notebook: same as LK_Hostility alone.
         self.assertEqual(convert(self.H.debugPair(self.g.LK_GROUP, self.cid('alice')))['value'], 50 + 8 - 15)
-        # Private state only (RS_State), shown to its character in the snapshot as labels (no gap, no number).
-        self.assertIsNotNone(self.sim.state().relations[self.fiche(leader).id][self.cid('alice')])
+        # E18-T21: private state of Living Knox (keyed by its NPC id), never in the notebook file; shown to its
+        # character in the snapshot as labels (no gap, no number).
+        self.assertIsNone(self.sim.state().relations)
+        self.assertIsNotNone(self.rt.eval('LivingKnox.PersonalRelation.data').relations[leader][self.cid('alice')])
         self.sim.command('alice', 'snapshot')
         [row] = [c for c in self.sim.clients['alice'].g.RS_CarnetClient.snapshot.contacts.values()
                  if c.id == self.fiche(leader).id]
@@ -386,16 +388,26 @@ class RelationTests(unittest.TestCase):
         self.assertEqual(self.apply('alice', leader, binding, 'down', 'f1'),
                          (None, 'relation fact unknown to this NPC'))
 
-    def test_prune_with_the_fiche_and_the_character(self):
+    def test_prune_with_the_npc_and_the_character(self):
         self.world('prune', intent=None)
         leader = self.g.LK_LEADER
         self.fact('alice', 'gift')
         _, binding = self.offer('alice', leader)
         self.apply('alice', leader, binding, 'up', 'f1')
-        self.assertTrue(self.R.prune() is False)
+        prune = self.rt.eval('LivingKnox.PersonalRelation.prune')
+        self.assertTrue(prune() is False)
+        # E18-T21: Living Knox drops the relations of a dead character at its death (identity retired).
+        # Death event: the core mod retires the identity (RC_Identity, OnCharacterDeath), then the notebook.
+        self.rt.eval("require('RadioSurvivorCore/RC_Identity')").characterDeath(self.g.PLAYERS['alice'])
         self.g.RS_CarnetServer.characterDeath(self.g.PLAYERS['alice'])
-        self.assertTrue(self.R.prune())
-        self.assertIsNone(self.pair('alice', leader))
+        self.assertIsNone(self.rt.eval('LivingKnox.PersonalRelation.debugPair')(leader, self.cid('alice')))
+        # An NPC gone from the Living Knox registry: its relations dropped at the next purge.
+        self.fact('bob', 'gift')
+        _, binding = self.offer('bob', leader)
+        self.apply('bob', leader, binding, 'up', 'f1')
+        self.rt.eval('LivingKnox.Store.data()').npcs[leader] = None
+        self.assertTrue(prune())
+        self.assertIsNone(self.rt.eval('LivingKnox.PersonalRelation.debugPair')(leader, self.cid('bob')))
 
 
 if __name__ == '__main__':

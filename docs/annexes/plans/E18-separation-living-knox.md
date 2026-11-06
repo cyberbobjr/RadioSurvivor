@@ -2,7 +2,7 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 4 / 22 tâche(s) terminée(s).
+**Avancement.** en cours — 4 / 23 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
@@ -26,8 +26,9 @@
 | ☐ | E18-T18 | Parole de proximité avec Living Knox seul | `à faire` | MP | E18-T17 |
 | ☐ | E18-T19 | Historique des voix radio dans le commun | `à faire` | MP | E18-T11 |
 | ☐ | E18-T20 | Accords dans Living Knox, identifiants d'équipe dans le commun | `à faire` | MP | E18-T09 |
-| ☐ | E18-T21 | Relation personnelle des PNJ dans Living Knox | `à faire` | MP | E18-T09 |
+| ☐ | E18-T21 | Relation personnelle des PNJ dans Living Knox | `testé hors jeu` | MP | E18-T09 |
 | ☐ | E18-T22 | Réputation dans le commun | `testé hors jeu` | MP | E18-T05 |
+| ☐ | E18-T23 | Retirer les reprises des parties d'avant la séparation | `à faire` | hors jeu | E18-T21 |
 
 <!-- fin du tableau de bord -->
 
@@ -94,6 +95,10 @@ donnent des missions ; le pont Python LLM est la base de leur intelligence, avec
   l'attitude de son groupe, E09-T04) passe dans **Living Knox** (`E18-T21`), comme les accords ; les **identifiants
   d'équipe** (`fac-<n>`, mandats de négociation) lus par les accords (Living Knox) et par les équipes de la radio
   (E12) passent dans le **mod commun** (`E18-T20`).
+- 2026-11-06 — **Aucune reprise des anciennes parties** (utilisateur, pendant `E18-T21`) : le mod n'a jamais été
+  publié ; aucun code de rétrocompatibilité, de reprise d'une partie d'avant la séparation ni de version de format de
+  sauvegarde ; toute partie repart de zéro. Remplace, pour les tâches à venir, « reprise une seule fois des données
+  d'une partie d'avant la séparation » ; les reprises déjà écrites sont retirées par `E18-T23`.
 - 2026-11-05 — Confirmé par défaut (valeurs techniques, modifiables) :
   - identifiants `batman_RadioSurvivorCore` (mod commun, nom affiché « Radio Survivor Core », code sous
     `media/lua/*/RadioSurvivorCore/`, fichiers `RC_`) et `batman_LivingKnox` (nom affiché « Living Knox ») ;
@@ -344,22 +349,22 @@ Deuxième article Workshop, dépôt séparé, nouvelles règles de jeu des missi
   - Cible : `MP`
   - Dépend de : E18-T09
   - Fichiers : `RS_Factions` (identifiants d'équipe et mandats → commun ; accords → Living Knox), `RS_Incidents`, `RS_Carnet_Server` (offre, conclusion, `collectiveCheck`, annonce), crochet `LivingKnox.Hooks.covered` ; `bridge/npc_protocol.py` (termes de la négociation) ; `docs/annexes/conception/accords.md`
-  - Faire : décision du 2026-11-06 : trêves, alliances et incidents tenus par Living Knox (état privé de Living Knox), négociés par la parole des PNJ ; identifiants `fac-<n>` et mandats dans le commun ; accords d'une partie existante repris une seule fois ; RadioSurvivor n'a plus aucun code d'accord (le carnet affiche ceux que Living Knox publie, s'il est présent).
+  - Faire : décision du 2026-11-06 : trêves, alliances et incidents tenus par Living Knox (état privé de Living Knox), négociés par la parole des PNJ ; identifiants `fac-<n>` et mandats dans le commun ; aucune reprise d'une partie existante (décision du 2026-11-06) ; RadioSurvivor n'a plus aucun code d'accord (le carnet affiche ceux que Living Knox publie, s'il est présent).
   - Accepté si : Living Knox seul : une trêve conclue avec un chef de groupe rend le groupe non agressif, gardée après redémarrage ; RadioSurvivor seul démarre sans code d'accord ; ensemble : mêmes accords qu'avant.
-  - Tests : bancs des accords et des incidents (fixture écrite par l'ancien code) ; suites des accords dans les montages Living Knox seul et les deux.
+  - Tests : bancs des accords et des incidents ; suites des accords dans les montages Living Knox seul et les deux.
   - Preuve : —
   - Reste : —
 
 - [ ] **E18-T21** — Relation personnelle des PNJ dans Living Knox
-  - État : `à faire`
+  - État : `testé hors jeu`
   - Cible : `MP`
   - Dépend de : E18-T09
   - Fichiers : `RS_Relations` → Living Knox ; `RS_Carnet_Server` (intention `change_relation`, affichage) ; `docs/annexes/conception/relations.md`
-  - Faire : confirmé par défaut le 2026-11-06 : la relation d'un PNJ envers un personnage (écart d'un niveau autour de l'attitude du groupe, faits citables) tenue par Living Knox ; relations d'une partie existante reprises une seule fois ; le carnet la lit par l'API de Living Knox s'il est présent.
+  - Faire : confirmé par défaut le 2026-11-06 : la relation d'un PNJ envers un personnage (écart d'un niveau autour de l'attitude du groupe, faits citables) tenue par Living Knox ; aucune reprise d'une partie existante (décision du 2026-11-06) ; le carnet la lit par l'API de Living Knox s'il est présent.
   - Accepté si : Living Knox seul : la relation change par un fait réel cité dans la réponse et reste après redémarrage ; ensemble : mêmes niveaux et mêmes tendances qu'avant.
-  - Tests : bancs des relations (fixture écrite par l'ancien code) ; suite rs.relation dans les deux montages concernés.
-  - Preuve : —
-  - Reste : —
+  - Tests : bancs des relations ; suite rs.relation dans les deux montages concernés.
+  - Preuve : Living Knox : `server/LivingKnox/LK_PersonalRelation` (logique de `RS_Relations` déplacée par `git mv`, mêmes règles ; clé PNJ Living Knox `lk-<n>` + identité du commun ; état privé `Zomboid/Lua/batman_LivingKnox/personal-relations-*.txt`, en-tête `LKPREL1`, `RC_SlotFile`, écrit à chaque changement ; purge au démarrage, chaque jour de jeu et à la mort d'un personnage : PNJ disparu du registre, identité retirée ; `forget` pour les suites en jeu ; faits du groupe tirés de `LK_Hostility`, faits de l'appelant passés en `extra`) ; API publique `API.relation`, `relationPanel`, `relationOffer`, `relationApply` (ajout compatible de la version 1, `api-living-knox.md`) ; RadioSurvivor : `RS_Relations` ne garde que la lecture par `LivingKnox.API` (aucun `require` de Living Knox), ses faits citables (observations `obs:`, missions `mis:`) et les accords du panneau ; plus de `relations` dans l'état du carnet ni de purge par le carnet ; aucune reprise d'une ancienne partie (décision du 2026-11-06) ; `relations.md` mis à jour ; banc `tests/test_lk_personal_relation.py` (6 tests : module ASCII qui ne requiert que le commun et Living Knox, aucun texte `IGUI_RS_`, le carnet ne garde aucune règle ; Living Knox seul sans aucun module de RadioSurvivor chargé : phrase seule refusée, fait réel cité qui monte d'un niveau, sens contraire refusé, relation relue après redémarrage, fait utilisé plus offert ; faits de l'appelant et panneau ; purge personnage mort et PNJ disparu ; monde neuf vide) ; bancs adaptés `test_relations.py` 10, `test_e09_suites.py` 24 (vrai `LK_PersonalRelation` sur les doublures du banc), `test_relation_panel.py` 6, `test_npc_rewards.py` 6 ; `run_all.py` 159 PASS, luacheck `Contents` 15 (référence 15), `dev` 0, `plan.py check` 0 erreur ; passages solo automatiques du 2026-11-06 (faux modèle, code 0) : trois mods, rs.relation et rs.notebook.relation 4/4, « [RS_Carnet] relation … up (att:grp-5:1): trusting » dans la console (`tools/autoclient/runs/20261106-164723-cabfc1844b10`) ; Living Knox seul (`--mods lk`, lk.sites, rst) 6/6, aucune erreur Lua des mods au chargement (`tools/autoclient/runs/20261106-164919-505d57dc873f`)
+  - Reste : cible MP : suites rs.relation et rs.notebook.relation dans la campagne MP (`E18-T15`) ; Living Knox seul : relation changée par la parole des PNJ sans RadioSurvivor avec `E18-T18` (seuls les faits du groupe y sont citables) ; retrait des reprises déjà écrites : `E18-T23`
 
 - [ ] **E18-T22** — Réputation dans le commun
   - État : `testé hors jeu`
@@ -371,3 +376,14 @@ Deuxième article Workshop, dépôt séparé, nouvelles règles de jeu des missi
   - Tests : bancs de la réputation (fixture écrite par l'ancien code) ; suites rs.reputation dans les trois montages.
   - Preuve : décision du 2026-11-06 ; mod commun : `server/RadioSurvivorCore/RC_Reputation` (déplacé de `RS_Reputation` par `git mv`, mêmes règles ; état privé `Zomboid/Lua/batman_RadioSurvivorCore/reputation-*.txt`, en-tête `RCREP1`, `RC_SlotFile` ; personnage vivant = identité non retirée de `RC_Identity` ; motifs sans texte, l'action seule ; `chargedFor` ; `testAllowed` propre au commun), barème `shared/RadioSurvivorCore/RC_ReputationConfig` (`RS_Config.Reputation` = même table), abonnements `RC_ReputationEvents` (chargement, mort par `RC_Identity.onRetire`, purge chaque jour de jeu) ; moteur des missions : fait de chaque participant d'une mission close et refus des offres sensibles à une mauvaise réputation pour tous les donneurs (`RC_Missions`, sans RadioSurvivor) ; Living Knox : `LK_Reputation` (`npc.memberKilled` sur le fait `npcDied`, sauf mort déjà comptée en `npc.requesterKilled`), `LK_Hostility.reputationOf` lit le commun ; RadioSurvivor : plus de `npcDied` ni de crochet `Hooks.reputation`, textes `IGUI_RS_RepReason_*` ajoutés à la projection du carnet, marge du passeur `RS_Config.TradeMargin` ; `RS_State` remet une fois `reputation` et `outcomes` d'une partie d'avant la séparation au commun (`RC_Reputation.adopt`, une entrée déjà présente l'emporte) et ne les écrit plus ; `reputation-interne.md` mis à jour ; banc `tests/test_core_reputation.py` (9 tests ; rouge sur le commit `2dee3b9` : 9 ERROR ; puis OK) : une seule copie ASCII, aucune référence à l'ancien module, Living Knox ne requiert que le commun, écriture puis relecture après redémarrage sans double compte, mort puis purge 7 jours après, résultat de mission et offres par niveau sans aucun module de RadioSurvivor, Living Knox seul (membre tué compté une fois, mort déjà comptée ignorée), partie d'avant la séparation (`tests/fixtures/e18-t22`, écrite par l'ancien code du commit `2dee3b9`) reprise une fois, monde neuf vide ; bancs adaptés (`test_reputation.py` 25, `test_carnet.py`, `test_rs_trade*.py`, `test_voice_bonds.py`, bancs des missions, `test_kahlua.py` 40 dans la VM réelle, suites `rs.reputation`, `rs.missions.solo`, `rs.missions.radio`, `rs.missions.clear`) ; `run_all.py` 158 PASS, luacheck `Contents` 15 (référence 15), `dev` 0, `plan.py check` 0 erreur ; passages solo automatiques du 2026-11-06 (faux modèle, code 0) : trois mods, rs.env, rs.reputation, rs.missions, rs.missions.solo, rs.missions.radio 24/24 (`tools/autoclient/runs/20261106-134226-c4b45a012723`) ; Living Knox seul (`--mods lk`) 6/6, aucune erreur Lua au chargement (`tools/autoclient/runs/20261106-134334-a0f4db6d24fd`)
   - Reste : cible MP : suites rs.reputation et missions dans la campagne MP, et dans les trois montages (`E18-T15`) ; Living Knox seul : réputation lue par la parole des PNJ et missions des PNJ avec E18-T17 et E18-T18 ; `npc.requesterKilled` reste compté par RadioSurvivor (donneur PNJ du carnet) : avec Living Knox seul, le donneur des missions des PNJ (E18-T18) devra le signaler ; `tests/test_rs_state.py` déjà en échec avant cette tâche (4 erreurs, hors `run_all.py`)
+
+- [ ] **E18-T23** — Retirer les reprises des parties d'avant la séparation
+  - État : `à faire`
+  - Cible : `hors jeu`
+  - Dépend de : E18-T21
+  - Fichiers : `LK_Store` (`takeOver`, `LEGACY_DIR`), `LK_Groups`, `LK_Hostility`, `RS_State` (missions, historiques, réputation remis au commun), `RC_MissionStore`, `RC_History`, `RC_Reputation` (`adopt`), `RC_Identity` (`adopt`, à vérifier : lien carnet → identité ou seule reprise), bancs `test_lk_takeover.py`, `test_core_reputation.py`, `test_core_history.py`, fixtures `tests/fixtures/e18-*`
+  - Faire : décision de l'utilisateur du 2026-11-06 (mod jamais publié, toute partie repart de zéro) : retirer le code de reprise des données d'une partie d'avant la séparation et les numéros de schéma qui ne servent qu'à des formats anciens, avec les bancs et fixtures qui les prouvaient.
+  - Accepté si : aucun code ni journal « taken over » ; une partie neuve et une partie relue après redémarrage gardent leurs données dans chaque mod ; bancs verts.
+  - Tests : `run_all.py`, luacheck.
+  - Preuve : —
+  - Reste : —

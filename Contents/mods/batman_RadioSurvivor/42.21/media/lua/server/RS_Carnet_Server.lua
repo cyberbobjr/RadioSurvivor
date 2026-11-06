@@ -31,7 +31,7 @@ local Radio = require 'RadioSurvivor/RadioSurvivor_Const'
 local Obs = require 'RadioSurvivor/RS_Observations'
 local Triggers = require 'RadioSurvivor/RS_ObservationTriggers' -- E08-T07: observation triggers
 local Factions = require 'RadioSurvivor/RS_Factions' -- E09-T03: team ids and negotiation mandates
-local Relations = require 'RadioSurvivor/RS_Relations' -- E09-T04: personal relation of an NPC toward a character
+local Relations = require 'RadioSurvivor/RS_Relations' -- E09-T04, E18-T21: relation kept by Living Knox, read by its API
 local RateLimit = require 'RadioSurvivorCore/RC_RateLimit' -- C21: per-account limit of the notebook commands
 local Server = {store = S, bound = {}, selected = {}, objects = {}, quotes = {}, pending = {}, times = {}, enrichTimes = {}, enrichAttempts = {}, lastTalk = {}, collectives = {}, reactions = {}, reactionQueue = {}, relations = {}, refusals = {}, MAX_REFUSALS = 16} -- E09-T04: relation bindings -- E17-T15: last refused requests (see poll) -- E10-T03: reactions, reaction queue
 -- Export only on the authority, also used by the real-Lua simulation tests.
@@ -1118,7 +1118,7 @@ local function prune(now)
     end
     -- Observation logs of removed or dead fiches (E08-T02).
     removed = Obs.prune() or removed
-    removed = Relations.prune() or removed -- E09-T04: relations of removed fiches and retired characters
+    -- E18-T21: personal relations are kept and purged by Living Knox (LivingKnox.PersonalRelation.prune).
     return removed
 end
 

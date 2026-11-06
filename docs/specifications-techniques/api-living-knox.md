@@ -118,6 +118,19 @@ Cette projection est propre au joueur concerné : l'attitude d'un groupe envers 
 
 Ajout E09-T04 ([relations.md](../annexes/conception/relations.md)), compatible avec la version 1. Derniers faits de relation du groupe envers ce personnage (les trois de la tendance au plus, le plus ancien d'abord), chacun vu par un membre ou attribuable : `n` = numéro du fait dans la paire (stable, jamais réutilisé : `LK_Hostility` le pose à l'enregistrement, champ `count` de la paire), `fact` (liste fermée de `LivingKnox.Hostility.FACTS`), `sign` (−1, 0, 1), `day`. Les faits enregistrés avant cet ajout n'ont pas de numéro et ne sont pas rendus. Liste vide sans fait ; mêmes raisons qu'`API.attitude`. Jamais la valeur interne ; lecture seule ; serveur seulement (la liste est propre à un joueur).
 
+### Relation personnelle : `API.relation`, `API.relationPanel`, `API.relationOffer`, `API.relationApply`
+
+Ajout E18-T21 ([relations.md](../annexes/conception/relations.md)), compatible avec la version 1. Relation d'un PNJ (`npcId` = `lk-<n>`) envers un personnage (`playerKey`), tenue par Living Knox (`LivingKnox.PersonalRelation`, état privé du serveur) : niveau du groupe décalé d'un écart personnel de −1 à +1, changé seulement par un fait réel cité. Serveur seulement ; jamais l'écart ni une clé de fait.
+
+| Fonction | Rendu |
+|---|---|
+| `API.relation(npcId, playerKey)` | `{ level, trend, group }` |
+| `API.relationPanel(npcId, playerKey)` | `{ level, trend, group, today, facts = { { fact, nature, source = 'group' \| 'personal', day } } }` ; `level` nil si rien n'est connu |
+| `API.relationOffer(npcId, playerKey, extra)` | contexte `{ level, trend, group, facts = { { id = 'f<i>', fact, nature, source, day, kind } } }`, puis la liaison serveur (nil sans fait citable), à garder côté serveur et à rendre à `relationApply` |
+| `API.relationApply(npcId, playerKey, binding, dir, factId, extra)` | nouvelle vue et clé du fait, ou nil et la raison (anglais) |
+
+`extra` (facultatif) : faits citables connus de l'appelant, `{ key, fact, sign = 1 | -1, day, source, kind }`, la même liste à l'offre et à l'application (le carnet de RadioSurvivor y met ses observations et ses missions) ; une source `group` y est ignorée.
+
 ### `API.npcsNear(player, radius)` ou `API.npcsNear(x, y, z, radius)` -> `{ near, ... } | nil, reason`
 
 PNJ **incarnés** (état `embodied` du registre des corps) à portée horizontale d'un joueur (tout objet à `getX/getY/getZ`) ou d'un point. `radius` facultatif (20), plafonné à 50. Position : celle du corps lié s'il est dans le monde, sinon la dernière position vue du registre (`last`, rafraîchie au balayage et écrite à `OnSave`) ; un PNJ virtuel, mort ou sans position connue est exclu. Coût : un passage sur le registre des PNJ et un sur celui des groupes ; aucune case, aucun chunk, aucun parcours de carte.

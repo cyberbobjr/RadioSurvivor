@@ -215,6 +215,28 @@ package.loaded["RadioSurvivor/RS_NPCProvider"] = P
 package.loaded["RadioSurvivor/RS_BridgeLanes"] = { readResponses = function() return BRIDGE end }
 BRIDGE = nil
 
+-- E18-T21: the personal relation is kept by Living Knox (real LK_PersonalRelation) and read by the notebook through
+-- LivingKnox.API; its engine reads are the reduced groups and attitudes above (same facts as P.relation).
+LK.Groups.findNpc = function(npc) return groupOf(npc) end
+LK.Groups.state = { data = { groups = GROUPS } }
+LK.Hostility = LK.Hostility or {}
+LK.Hostility.validPlayerKey = function(key) return type(key) == "string" and key ~= "" end
+LK.Hostility.levelOf = function() return "cautious" end
+LK.Hostility.startFor = function() return 0 end
+LK.API = LK.API or {}
+LK.API.attitude = function(gid) if GROUPS[gid] then return { level = "cautious", trend = "stable" } end end
+LK.API.attitudeFacts = function(gid, character)
+    local pair = PAIRS[gid] and PAIRS[gid][character]
+    local out = {}
+    for _, f in ipairs(pair and pair.facts or {}) do out[#out + 1] = { n = f.n, fact = f.fact, sign = f.sign, day = f.day } end
+    return out
+end
+for _, m in ipairs({ "LivingKnox/LK_Store", "LivingKnox/LK_Groups", "LivingKnox/LK_Hostility" }) do
+    package.loaded[m] = package.loaded[m] or true
+end
+local PR = require "LivingKnox/LK_PersonalRelation"
+LK.API.relation, LK.API.relationPanel = PR.view, PR.panel
+LK.API.relationOffer, LK.API.relationApply = PR.offer, PR.apply
 F = require "RadioSurvivor/RS_Factions"
 Rel = require "RadioSurvivor/RS_Relations"
 F.installHook()
@@ -290,6 +312,9 @@ function Server.command(module, command, player, args)
         S.data.characters[cid] = S.data.characters[cid] or { id = cid, contacts = {}, knownMissions = {},
             owner = F.keyOf(player), name = player:getUsername() }
         Server.bound[player] = cid
+        -- E18-T21: a living identity of the core mod (read by Living Knox's relation).
+        local I = require "RadioSurvivorCore/RC_Identity"
+        if I.ensure() then I.state.data.characters[cid] = { owner = F.keyOf(player), slot = 1 } end
         send(player, "identity", { character = cid })
         return
     end

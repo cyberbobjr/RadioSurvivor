@@ -3,11 +3,13 @@
 - Tâche : E09-T04 ; panneau de relation du carnet : E09-T07 ; réplique gardée quand le changement est refusé : E09-T08
 - Build : 42.21.0 — Date : 2026-10-13 — Statut : brouillon
 
-Code : `server/RadioSurvivor/RS_Relations.lua` (registre, faits citables, vérification), `server/RS_Carnet_Server.lua`
-(`talk` : contexte `relation` et liaison `Server.relations` ; `reply` : intention `change_relation` ; `projection` ;
-`prune`), `shared/RadioSurvivor/RS_NPCProvider.lua` (`Provider.relation`, facultatif), `shared/RadioSurvivor/RS_LivingKnox.lua`
-(`LK.relation`), `server/LivingKnox/LK_Hostility.lua` (numéro `n` des faits, `Hostility.facts`), `server/LivingKnox/LK_API.lua`
-(`API.attitudeFacts`), `bridge/npc_protocol.py` (`relation_facts`, `relation_prompt`, `bounded_reply`). Contrat :
+Code (depuis E18-T21) : `server/LivingKnox/LK_PersonalRelation.lua` du mod `batman_LivingKnox` (registre, faits du
+groupe, vérification, panneau, purge ; état privé de Living Knox), `server/LivingKnox/LK_API.lua` (`API.relation`,
+`API.relationPanel`, `API.relationOffer`, `API.relationApply`, `API.attitudeFacts`), `server/LivingKnox/LK_Hostility.lua`
+(numéro `n` des faits, `Hostility.facts`) ; côté RadioSurvivor, `server/RadioSurvivor/RS_Relations.lua` (lecture par
+l'API de Living Knox, faits citables propres au carnet, accords du panneau) et `server/RS_Carnet_Server.lua` (`talk` :
+contexte `relation` et liaison `Server.relations` ; `reply` : intention `change_relation` ; `projection`),
+`bridge/npc_protocol.py` (`relation_facts`, `relation_prompt`, `bounded_reply`). Contrat :
 [protocole-carnet-v2.md](../../specifications-techniques/protocole-carnet-v2.md), « Relation personnelle (E09-T04) ». Socle collectif :
 [attitude.md](attitude.md). ADR B07, B08, B11, B15 de [bandits-llm-specifications.md](../recherches/bandits-llm-specifications.md).
 
@@ -22,7 +24,7 @@ soit, et sans désaccorder l'attitude collective du groupe (`LK_Hostility`), qui
 | Fait | Preuve | Statut |
 |---|---|---|
 | Aucune ModData globale pour un état privé (lisible par tout client). | base `multiplayer.md` | confirmé statiquement |
-| L'état privé du carnet (`RS_State`) est un fichier du serveur, sauvegardé à deux emplacements. | `RS_State.lua` | confirmé (bancs) |
+| L'état privé (Living Knox depuis E18-T21) est un fichier du serveur, sauvegardé à deux emplacements. | `RC_SlotFile.lua` | confirmé (bancs) |
 | Clé de personnage : identité du carnet, la même que `LK_Hostility.keyOf`. | [attitude.md](attitude.md) | confirmé (bancs) |
 | Un client MP charge `media/lua/server` : garde `isClient()` en tête. | base `mod-loading.md` | confirmé statiquement |
 
@@ -33,15 +35,24 @@ du groupe** (option recommandée).
 
 ### Registre
 
-`S.data.relations[<fiche du PNJ>][<personnage>] = { gap = -1..1, revision, changes = { { sign, day, fact } } (3
-derniers), used = { clé de fait, ... } (64 derniers) }`, état privé du carnet ; créé au premier changement seulement.
-Purgé avec la fiche (`prune` du carnet) et quand le personnage est retiré (mort).
+État privé de **Living Knox** (E18-T21, décision confirmée par défaut le 2026-11-06 : la relation appartient au moteur
+des PNJ, règle d'or « RadioSurvivor et Living Knox vivent l'un sans l'autre ») :
+`Zomboid/Lua/batman_LivingKnox/personal-relations-<partie>-<0|1>.txt` (deux emplacements `RC_SlotFile`, en-tête
+`LKPREL1`), `relations[<PNJ Living Knox lk-n>][<personnage>] = { gap = -1..1, revision, changes = { { sign, day, fact,
+what } } (3 derniers), used = { clé de fait, ... } (64 derniers) }` ; créé au premier changement seulement, écrit à
+chaque changement. Purgé au démarrage, chaque jour de jeu et à la mort d'un personnage (identité retirée du mod
+commun) : PNJ disparu du registre de Living Knox, personnage retiré. Aucune reprise d'une partie d'avant la séparation
+(décision de l'utilisateur du 2026-11-06 : mod jamais publié, toute partie repart de zéro).
+
+Faits citables : ceux du groupe viennent de Living Knox ; l'appelant ajoute les siens dans `extra`, la même liste à
+l'offre et à la réponse. Le carnet de RadioSurvivor y met les observations vues par ce PNJ (`obs:`) et les missions
+closes de ce PNJ avec le personnage (`mis:`) ; avec Living Knox seul, seuls les faits du groupe sont citables tant que
+la parole des PNJ sans RadioSurvivor (E18-T18) n'existe pas.
 
 ### Niveau et tendance affichés
 
-- Niveau = niveau de l'attitude du groupe (`Provider.relation`, Living Knox : `API.attitude`) décalé de l'écart,
-  borné à `hostile`..`trusting` (5 niveaux d'E09-T01). Sans groupe : `hostile` si le fournisseur dit le PNJ hostile,
-  sinon `cautious`.
+- Niveau = niveau de l'attitude du groupe (`API.attitude`) décalé de l'écart, borné à `hostile`..`trusting`
+  (5 niveaux d'E09-T01). Sans attitude de groupe : `hostile` si le type du groupe part hostile, sinon `cautious`.
 - Tendance (règle d'E09-T01) : signe de la somme des sens des trois derniers faits, faits du groupe et changements
   personnels mêlés par jour de jeu (faits du groupe d'abord le même jour) ; sans changement personnel, tendance du
   groupe.

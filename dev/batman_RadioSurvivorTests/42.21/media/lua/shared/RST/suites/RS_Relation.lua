@@ -1,6 +1,6 @@
 --[[
 rs.relation - personal relation of a Living Knox npc toward the player's character (E09-T04, intent change_relation,
-server/RadioSurvivor/RS_Relations.lua), with the bridge and its model.
+server/RadioSurvivor/RS_Relations.lua, kept by Living Knox: LK_PersonalRelation.lua), with the bridge and its model.
 A test npc is created next to the player, made the leader of a living group of the save (same setup as rs.npctalk),
 selected by the notebook and treated as acquainted. A REAL fact is recorded through the engine (LivingKnox.Hostility
 .record: a gift seen by the group), then the player speaks of it with the notebook Say line:
@@ -97,11 +97,7 @@ local function setup(t, after)
         local ok, why = LivingKnox.Groups.setNpc(gid, mid, id)
         t2:ok(ok, "npc not bound to the leader of " .. gid .. ": " .. tostring(why))
         t2:defer(function() LivingKnox.Groups.setNpc(gid, mid, nil) end, "unbind the leader of " .. gid)
-        t2:defer(function()
-            local rel = Server.store.data.relations
-            if type(rel) == "table" then rel[fiche.id] = nil end
-            Server.store.dirty = true
-        end, "relation of the test npc removed")
+        t2:defer(function() LivingKnox.PersonalRelation.forget(id) end, "relation of the test npc removed")
         local c = { Server = Server, C = C, Rel = Rel, p = p, cid = cid, id = id, fiche = fiche, gid = gid,
             words = SENTENCES[R.language()] }
         -- The spawned body may stand behind a wall of the house (MP campaign of 2026-10-15: "near false, sight
@@ -205,9 +201,8 @@ RST.suite("rs.relation", { mods = { "rs", "lk" },
             E9.fiche(t, Server, leaderNpc, function(t1, fa)
                 E9.fiche(t1, Server, mateNpc, function(t2, fb)
                     t2:defer(function()
-                        local rel = Server.store.data.relations
-                        if type(rel) == "table" then rel[fa.id], rel[fb.id] = nil, nil end
-                        Server.store.dirty = true
+                        LivingKnox.PersonalRelation.forget(leaderNpc)
+                        LivingKnox.PersonalRelation.forget(mateNpc)
                     end, "relations of the fixture npcs removed")
                     local ctl = E9.intercept(t2)
                     ctl.quiet({ [fa.id] = true, [fb.id] = true })

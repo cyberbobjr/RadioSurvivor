@@ -1,6 +1,7 @@
 --[[
 rs.notebook.relation - relation panel of a contact in the notebook (E09-T07, client/RadioSurvivor/RS_Notebook.lua,
-server/RadioSurvivor/RS_Relations.lua panel). Two test npcs are created next to the player and bound to two living
+server/RadioSurvivor/RS_Relations.lua panel,
+LivingKnox.API.relationPanel). Two test npcs are created next to the player and bound to two living
 members of the same Living Knox group of the save (the leader and another member without body), each with its
 notebook fiche, selected by the notebook. Two REAL facts are recorded through the engine (LivingKnox.Hostility.record,
 seen by the group: a gift and a theft), then the personal relations are changed through the API of E09-T04
@@ -72,11 +73,7 @@ local function boundNpc(t, c, dx, mid, after)
         local ok, why = LivingKnox.Groups.setNpc(c.gid, mid, id)
         t2:ok(ok, "npc not bound to " .. mid .. " of " .. c.gid .. ": " .. tostring(why))
         t2:defer(function() LivingKnox.Groups.setNpc(c.gid, mid, nil) end, "unbind " .. mid .. " of " .. c.gid)
-        t2:defer(function()
-            local rel = c.Server.store.data.relations
-            if type(rel) == "table" then rel[fiche.id] = nil end
-            c.Server.store.dirty = true
-        end, "relation of the test npc " .. id .. " removed")
+        t2:defer(function() LivingKnox.PersonalRelation.forget(id) end, "relation of the test npc " .. id .. " removed")
         RS_CarnetClient.send("select", { incarnation = id })
         t2:waitUntil(function() return c.Server.selected[c.cid] == fiche.id end, 5000, function(t3)
             return after(t3, id, fiche)

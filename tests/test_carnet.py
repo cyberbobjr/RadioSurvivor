@@ -505,7 +505,7 @@ for _, m in ipairs({'LivingKnox/LK_Core', 'LivingKnox/LK_Config', 'LivingKnox/LK
         'LivingKnox/LK_Identity', 'LivingKnox/LK_GroupTypes', 'LivingKnox/Data/LK_Type_neutrals',
         'LivingKnox/Data/LK_Type_raiders', 'LivingKnox/Data/LK_Type_settlers', 'LivingKnox/Data/Stories',
         'RadioSurvivor/RS_LivingKnox', 'LivingKnox/LK_Server', 'LivingKnox/LK_Stories', 'LivingKnox/LK_API',
-        'LivingKnox/LK_Reputation'}) do
+        'LivingKnox/LK_Reputation', 'LivingKnox/LK_PersonalRelation'}) do
     require(m)
 end
 '''
