@@ -388,7 +388,7 @@ class MultiplayerTests(GuardBase):
                 got = re.search(r'(\w+)\s*=\s*\w+:getOnlineID\(\)', line)
                 if got:
                     near = lines[i:i + 25]
-                    found += [(path.name, i, n) for n in near if re.search(r'%s\s*(<|>=)\s*0' % got.group(1), n)]
+                    found += [(path.name, i, n) for n in near if re.search(r'\b' + got.group(1) + r'\s*(<|>=)\s*0', n)]
         self.assertEqual(found, [])
 
     def test_hello_answered_to_the_requester_only_and_older_rosters_ignored(self):

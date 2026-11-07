@@ -60,6 +60,7 @@ LUA_FILES = [
     ('RadioSurvivorCore/RC_ReputationConfig', CORE_LUA / 'shared' / 'RadioSurvivorCore' / 'RC_ReputationConfig.lua'),  # E18-T22
     ('RadioSurvivorCore/RC_MissionConfig', CORE_LUA / 'shared' / 'RadioSurvivorCore' / 'RC_MissionConfig.lua'),
     ('RadioSurvivorCore/RC_SpeechConfig', CORE_LUA / 'shared' / 'RadioSurvivorCore' / 'RC_SpeechConfig.lua'),  # E18-T17
+    ('RadioSurvivorCore/RC_Hearing', CORE_LUA / 'shared' / 'RadioSurvivorCore' / 'RC_Hearing.lua'),  # E18-T18
     ('RadioSurvivor/RS_Config', MOD_LUA / 'shared' / 'RadioSurvivor' / 'RS_Config.lua'),
     ('RadioSurvivorCore/RC_Bridge', CORE_LUA / 'shared' / 'RadioSurvivorCore' / 'RC_Bridge.lua'),  # E18-T04 : RadioSurvivor_Const
     ('RadioSurvivorCore/RC_Codec', CORE_LUA / 'shared' / 'RadioSurvivorCore' / 'RC_Codec.lua'),

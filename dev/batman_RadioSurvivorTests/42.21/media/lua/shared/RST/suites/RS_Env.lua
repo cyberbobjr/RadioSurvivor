@@ -32,7 +32,7 @@ local GLOBALS = {
     { "BatmanRadioSupport.canTransmitWith", "any", "shared/RadioSurvivor/RadioSurvivor_Const.lua:271" },
     { "getPlayer", "any", "server/RadioSurvivor_Server.lua:61" },
     -- E18-T17: getServerOptions, detectBadWords and addSound are read by LK_Talk (Living Knox), run by rs.npctalk.
-    { "sendServerCommand", "server", "server/RS_Carnet_Server.lua:38" },
+    { "sendServerCommand", "server", "server/RS_Carnet_Server.lua:39" },
     { "getOnlinePlayers", "server", "server/RadioSurvivor_Server.lua:62" },
     { "getFileReader", "server", "server/RadioSurvivor/RS_State.lua:53" },
     { "getFileWriter", "server", "server/RadioSurvivor/RS_State.lua:227" },
@@ -66,7 +66,7 @@ local GLOBALS = {
     { "getScriptManager", "client", "client/RadioSurvivor/RS_Notebook.lua:42" },
     { "instanceof", "client", "client/RadioSurvivor/RS_Notebook.lua:668" },
     { "Translator.getLanguage", "any", "client/RadioSurvivor/RS_Client.lua:35" },
-    { "UIFont.Medium", "client", "shared/RadioSurvivor/RS_NPCProvider.lua:271" },
+    { "UIFont.Medium", "client", "shared/RadioSurvivor/RS_NPCProvider.lua:273" },
     { "Keyboard.KEY_G", "client", "client/RadioSurvivor/RS_Notebook.lua:752" },
     { "ISTimedActionQueue.add", "client", "client/RadioSurvivor/RS_RadioHistory.lua:237" },
     { "ISRadioAction.new", "client", "client/RadioSurvivor/RS_RadioHistory.lua:237" },

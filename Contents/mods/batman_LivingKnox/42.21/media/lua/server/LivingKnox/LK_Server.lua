@@ -18,6 +18,7 @@ require "LivingKnox/LK_Alert"         -- LK05-T08 : alerte de groupe (appelée p
 require "LivingKnox/LK_Decisions"     -- LK05-T02 : cadre de décision (objectifs par heure, cascade par membre)
 require "LivingKnox/LK_Routines"      -- LK05-T03 : postes, rondes, relèves et sommeil (appelé par LK_Decisions)
 require "LivingKnox/LK_Talk"          -- E18-T17 : file des demandes de parole des PNJ
+require "LivingKnox/LK_TalkAlone"     -- E18-T18 : hôte de la parole sans RadioSurvivor
 local WorldStart = require "RadioSurvivorCore/RC_WorldStart"   -- monde neuf : signal de la radio (serveur dédié)
 
 local Server = LivingKnox.Server or {}

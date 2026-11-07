@@ -115,13 +115,22 @@ class LivingKnoxModTests(unittest.TestCase):
         self.assertFalse((RS / '42.21' / 'media' / 'lua' / 'shared' / 'RadioSurvivor' / 'RS_LivingKnox.lua').exists())
         mods = (r'getActivatedMods = function() local l = {%s} return {size = function() return #l end, '
                 r'get = function(_, i) return l[i + 1] end} end ')
+        # E18-T18: alone the file only gives Living Knox its provider (LivingKnox.NpcProvider, LK_TalkAlone).
+        core = (LK / '42.21' / 'media' / 'lua' / 'shared' / 'LivingKnox' / 'LK_Core.lua').read_text(encoding='utf-8')
+        active = re.search(r'function LivingKnox\.radioSurvivorActive\(\).*?\nend\n', core, re.S).group(0)
+        base = ('package.path = ""; package.cpath = ""; LivingKnox = {}; package.preload["LivingKnox/LK_Core"] = '
+                'function() ' + active + ' end; package.preload["LivingKnox/LK_Config"] = function() end; '
+                'package.preload["LivingKnox/LK_Names"] = function() return {} end; '
+                'Events = setmetatable({}, {__index = function() return {Add = function() end} end}); ')
         lua = LuaRuntime(unpack_returned_tuples=True)
-        lua.execute('package.path = ""; package.cpath = ""; ' + mods % r'"\\batman_RadioSurvivorCore", "batman_LivingKnox"')
-        self.assertIsNone(lua.execute(src))
+        lua.execute(base + mods % r'"\\batman_RadioSurvivorCore", "batman_LivingKnox"')
+        lua.execute(src)
         self.assertIsNone(lua.eval('RS_LivingKnox'))
+        self.assertEqual(lua.eval('LivingKnox.NpcProvider.name'), 'livingknox')
+        self.assertIs(lua.eval('LivingKnox.NpcProvider.install()'), False)
         lua = LuaRuntime(unpack_returned_tuples=True)
-        lua.execute('package.path = ""; package.cpath = ""; ' + mods % r'"batman_LivingKnox", "\\batman_RadioSurvivor"')
-        with self.assertRaisesRegex(LuaError, 'LivingKnox/LK_Core'):
+        lua.execute(base + mods % r'"batman_LivingKnox", "\\batman_RadioSurvivor"')
+        with self.assertRaisesRegex(LuaError, 'RadioSurvivor/RS_NPCProvider'):
             lua.execute(src)
 
     def test_no_non_ascii_literal(self):

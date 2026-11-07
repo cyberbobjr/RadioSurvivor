@@ -171,7 +171,7 @@ BRIDGE_SCRIPT = ROOT / 'bridge' / 'radio_bridge.py'
 EXCHANGE_DIR = 'Lua/batman_RadioSurvivor'
 BRIDGE_READY = 'Bridge ready'
 BRIDGE_SUITES = ('rs.npctalk', 'rs.radiomodule', 'rs.relation', 'rs.conversations', 'rs.initiatives',
-                 'rs.groupradio')
+                 'rs.groupradio', 'lk.talk.alone')
 CAMPAIGN_FILE = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua' / 'client' / 'RST' / \
     'RST_Campaign.lua'
 # Credential shapes searched in the stored bridge journal (the key itself is never read by this tool).

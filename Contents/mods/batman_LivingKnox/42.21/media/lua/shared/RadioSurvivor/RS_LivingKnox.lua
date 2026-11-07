@@ -42,29 +42,19 @@ its last attitude facts (LivingKnox.API.attitude, API.attitudeFacts), keys 'att:
 Group radios (E08-T06, authority): Provider.radios = groups holding a transmitter a living member can use now (group
 type format 2: homeRadio, profile radio), with the NPC who answers; never a home nor a position.
 
-Shipped by Living Knox (E18-T09): this file lives in batman_LivingKnox and does nothing unless RadioSurvivor
-(batman_RadioSurvivor) is an active mod; without it no RadioSurvivor module is required and RS_LivingKnox stays nil.
+Shipped by Living Knox (E18-T09): this file lives in batman_LivingKnox and registers in the notebook only when
+RadioSurvivor (batman_RadioSurvivor) is an active mod; without it no RadioSurvivor module is required, RS_LivingKnox
+stays nil and the same functions serve the speech of Living Knox alone (LivingKnox.NpcProvider, LK_TalkAlone, E18-T18).
 ]]
--- getActivatedMods (LuaManager.java:6065): Java list of the loaded mod ids, unchanged during a game; a leading "\" is
--- dropped before comparing. Absent outside the game (offline benches): RadioSurvivor is taken as present.
-local function radioSurvivorActive()
-    if type(getActivatedMods) ~= 'function' then return true end
-    local mods = getActivatedMods()
-    for i = 0, (mods and mods:size() or 0) - 1 do
-        local id = string.gsub(tostring(mods:get(i)), '^\\', '')
-        if id == 'batman_RadioSurvivor' then return true end
-    end
-    return false
-end
-if not radioSurvivorActive() then return nil end
-
 require 'LivingKnox/LK_Core'
 require 'LivingKnox/LK_Config'
 
-local P = require 'RadioSurvivor/RS_NPCProvider'
+-- Without RadioSurvivor: no RadioSurvivor module is required, RS_LivingKnox stays nil and nothing is registered.
+local P = LivingKnox.radioSurvivorActive() and require('RadioSurvivor/RS_NPCProvider') or nil
 
 local LK = {name = 'livingknox'}
-RS_LivingKnox = LK
+LivingKnox.NpcProvider = LK -- E18-T18: provider of the speech of Living Knox alone
+if P then RS_LivingKnox = LK end
 
 local TAG = '[RS_LivingKnox] '
 LK.LONER_TYPE = 'loners' -- E10-T04: group type of an NPC who left its group (Data/LK_Type_loners.lua)
@@ -580,6 +570,7 @@ LK.state = state
 
 -- Registers the provider once Living Knox is enabled. Returns true when Living Knox is the active provider.
 function LK.install()
+    if not P then return false end
     if state.installed then return P.active() == LK end
     local E = engine()
     if type(E) ~= 'table' or type(E.Config) ~= 'table' or not E.Config.isEnabled() then return false end

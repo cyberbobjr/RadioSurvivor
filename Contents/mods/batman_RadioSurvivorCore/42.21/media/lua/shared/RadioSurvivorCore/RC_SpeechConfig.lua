@@ -5,6 +5,10 @@ RadioSurvivor (RS_Config: same values, client checks of the notebook, group radi
 local Speech = {
     HEARING_RANGE = 30, -- inspected SayChat default; our policy, not a claim of exact vanilla hearing
     NOISE_RANGE = 15,
+    SELECT_RANGE = 8, -- a player talks to an NPC at most this far
+    MAX_HISTORY = 40, -- lines kept per character and interlocutor
+    ACQUAINT_HOURS = 1, -- game hours after the first answered exchange
+    ACQUAINT_EXCHANGES = 4, -- answered exchanges
     REQUEST_TIMEOUT_MS = 150000,
     COOLDOWN_MS = 10000,
     MAX_PENDING = 8,

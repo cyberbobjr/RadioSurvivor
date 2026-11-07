@@ -522,5 +522,9 @@ départ d'un groupe et les réactions des membres sont à Living Knox. Un mod qu
 par `Talk.attach(host)` : `host` donne les fiches et ajoute son contexte et ses actions (liste des crochets en tête de
 `LK_TalkHost.lua`). `Talk.speak(player, character, npc, args)` admet une phrase (rend la demande, ou `nil` et la
 raison `Text`, `Chat`, `Cooldown`, `Busy`, `Bridge`) ; `Talk.turns`, `Talk.poll`, `Talk.enrich` sont appelés par le tic
-de l'hôte. État privé : `Zomboid/Lua/batman_LivingKnox/talk-*.txt` (en-tête `LKTALK1`). RadioSurvivor est aujourd'hui le
-seul hôte ; sans hôte, rien n'est émis (`E18-T18` en ajoute un pour Living Knox seul).
+de l'hôte. État privé : `Zomboid/Lua/batman_LivingKnox/talk-*.txt` (en-tête `LKTALK1`). Avec RadioSurvivor, le carnet
+est l'hôte. Sans RadioSurvivor, Living Knox est son propre hôte (`LK_TalkAlone.lua`, `E18-T18`) : interlocuteurs et
+connaissance des personnages dans le fichier privé, historique dans `RC_History` (pair `lk:<id>`), missions par le moteur
+du commun (`RC_MissionTalk`, `RC_MissionStore`). Côté client (`LK_TalkView.lua`) : une phrase dite dans le chat près d'un
+PNJ va au plus proche, le menu « Parler » du monde sert aussi en solo, sans chat. Les observations, les initiatives et
+les conversations n'y tournent pas encore (`E18-T27`).

@@ -2,7 +2,7 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 6 / 28 tâche(s) terminée(s).
+**Avancement.** en cours — 7 / 30 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
@@ -23,7 +23,7 @@
 | ☐ | E18-T15 | Validation des trois montages | `à faire` | MP | E18-T05, E18-T06, E18-T08, E18-T10, E18-T12, E18-T13, E18-T14, E18-T18, E18-T19 |
 | ☐ | E18-T16 | Documentation et page Workshop des trois mods | `à faire` | hors jeu | E18-T15 |
 | ☑ | E18-T17 | File des demandes de parole des PNJ portée par Living Knox | `testé MP` | MP | E18-T11, E18-T20, E18-T21, E18-T22 |
-| ☐ | E18-T18 | Parole de proximité avec Living Knox seul | `à faire` | MP | E18-T17 |
+| ☑ | E18-T18 | Parole de proximité avec Living Knox seul | `testé MP` | MP | E18-T17 |
 | ☐ | E18-T19 | Historique des voix radio dans le commun | `testé hors jeu` | MP | E18-T11 |
 | ☐ | E18-T20 | Accords dans Living Knox, identifiants d'équipe dans le commun | `testé hors jeu` | MP | E18-T09, E18-T24 |
 | ☐ | E18-T21 | Relation personnelle des PNJ dans Living Knox | `testé hors jeu` | MP | E18-T09 |
@@ -34,6 +34,8 @@
 | ☐ | E18-T26 | Onglet Contacts commun, contacts versés par chaque mod | `testé hors jeu` | MP | E18-T24 |
 | ☐ | E18-T27 | Observations des PNJ et fréquence des initiatives dans Living Knox | `à faire` | MP | E18-T18 |
 | ☑ | E18-T28 | Corps de PNJ inconnus des clients quand l'identifiant réseau devient négatif | `testé MP` | MP | — |
+| ☐ | E18-T29 | Livrer et réclamer une mission de PNJ sans RadioSurvivor | `à faire` | MP | E18-T18 |
+| ☐ | E18-T30 | Offensive à la fenêtre instable en MP | `à faire` | MP | — |
 
 <!-- fin du tableau de bord -->
 
@@ -333,16 +335,16 @@ Deuxième article Workshop, dépôt séparé, nouvelles règles de jeu des missi
   - Preuve : Living Knox : `LK_Talk` (file, voies `npc` 20 et `acks` 30, ordre et révisions, délais, refus, acquittements, liaisons de groupe, réactions, enrichissement, état privé `Zomboid/Lua/batman_LivingKnox/talk-*.txt`), `LK_TalkHost` (liste documentée des crochets de l'hôte), `LK_Conversations`, `LK_Initiatives`, `LK_Incidents` déplacés par `git mv` ; commun : `RC_SpeechConfig` ; carnet : table `HOST` (`talkContext`, `talkQueued`, `talkActions`, `heard`, `remember`, `contactedGroups`) et `attachTalk`, sans `require` de RadioSurvivor vers Living Knox. Reprise des demandes d'une partie existante écartée : consigne du 2026-11-07 (aucune reprise). `tests/test_lk_talk.py` 7 tests OK ; `run_all.py --keep-going` : 162 réussis, 0 échec ; luacheck `Contents` 8, `dev` 0. Campagne complète `runs/20261107-030546-mp-2f49ffa1d5f4` : `RST-RESULT ok=false total=377 pass=358 fail=1 error=2 skip=16` (code 1) ; rs.npctalk 4, rs.conversations 4, rs.groupradio 5, rs.relation 3, rs.factions.accord 3, rs.factions.incident 3 verts ; 2 erreurs rs.initiatives dans le diagnostic de la suite (`I.listeners(Server, ...)`) ; 1 échec lk.windowkill (`zombie not on the floor inside` après 20 s). Rejeu MP après correction de la suite : `--server-suite rs.initiatives,rs.conversations,lk.windowkill` : code 0, `OK - 9 test(s): 9 pass, 0 fail, 0 error, 0 skip, 0 empty`, `runs/20261107-034634-mp-5a91c6d07e28`.
   - Reste : les 377 tests n'ont pas été rejoués d'un seul tenant après la dernière correction de suite (seules les suites touchées l'ont été) ; lk.windowkill a échoué une fois et réussi une fois : aléa non expliqué. Fiches, observations et option `InitiativeFrequency` restent chez RadioSurvivor (`E18-T27`) ; Living Knox seul n'a pas encore d'hôte, donc ni parole ni initiative seul (`E18-T18`).
 
-- [ ] **E18-T18** — Parole de proximité avec Living Knox seul
-  - État : `à faire`
+- [x] **E18-T18** — Parole de proximité avec Living Knox seul
+  - État : `testé MP`
   - Cible : `MP`
   - Dépend de : E18-T17
   - Fichiers : `LK_Talk` (commande de parole près d'un PNJ, contexte du PNJ seul), donneur de missions des PNJ (`RC_Missions.registerDonor`), magasin des missions du commun sans RadioSurvivor ; `bridge/npc_protocol.py`
   - Faire : sans RadioSurvivor, une phrase dite près d'un PNJ part au pont avec le contexte du PNJ (groupe, rôle, besoins, historique du commun) et revient en bulle ; offres et acceptations de missions des PNJ par le moteur commun (journal des missions du commun).
   - Accepté si : Living Knox seul : une phrase dite près d'un PNJ reçoit une réponse du LLM en bulle, le PNJ se souvient des échanges précédents, et un PNJ propose une mission.
   - Tests : banc de la parole sans RadioSurvivor ; suites de parole dans le montage Living Knox seul.
-  - Preuve : —
-  - Reste : —
+  - Preuve : confirmé par défaut le 2026-11-07 : phrase dite dans le chat près d'un PNJ (au plus proche, silence si personne), menu « Parler » du monde pour le solo. Living Knox : `LK_TalkAlone` (hôte, interlocuteurs et connaissance dans le fichier privé `talk-*`, historique `RC_History` pair `lk:<id>`, donneur `npc`, `RC_MissionStore`), `LK_TalkView` (chat, menu, bulle), `LivingKnox.NpcProvider` (mêmes fonctions que le fournisseur du carnet) ; commun : `RC_Hearing`, `RC_MissionTalk` (déplacés du carnet, mêmes règles). `tests/test_lk_talk_alone.py` 7 tests OK. Suite `lk.talk.alone` avec Living Knox seul : solo code 0 `pass=2` `runs/20261107-042303-1207d0afb397`, MP un client par le vrai chat code 0 `pass=2` `runs/20261107-042132-mp-9f95f89b7983`. Ensemble : campagne `runs/20261107-043057-mp-05cbafebf449` code 1, `total=379 pass=356 fail=5 skip=18` ; suites rs vertes ; lk.spawnclean (2) dû à `E18-T28`, lk.windowkill suivi par `E18-T30`, lk.expedition et lk.tradeview rejoués verts `runs/20261107-051943-mp-e7be111215bc` (code 1 par lk.windowkill seul).
+  - Reste : mémoire du pont sur un deuxième échange non vérifiée en jeu avec Living Knox seul (même code que le montage complet) ; ni ligne de chat de la réponse (bulle seule), ni livraison ni réclamation (`E18-T29`) ; observations, initiatives, conversations (`E18-T27`) ; la suite passe par un groupe créé pour le test ; le code de capture diffère de celui du carnet (message du joueur observé, sans enveloppe de `processSayMessage`).
 
 - [ ] **E18-T19** — Historique des voix radio dans le commun
   - État : `testé hors jeu`
@@ -452,4 +454,26 @@ Deuxième article Workshop, dépôt séparé, nouvelles règles de jeu des missi
   - Accepté si : un corps d'identifiant négatif reste dans la liste, un corps à `-1` en sort ; campagne MP complète sans trajet expiré.
   - Tests : `test_lk_guard.py` ; campagne MP.
   - Preuve : `IsoObjectID` (`network/IsoObjectID.java:14, 21, 51-57`) : compteur `short` tiré au hasard, négatif après `32767`, `-1` seul réservé. Campagne en défaut `runs/20261107-005102-mp-aedd4dca7b9b` (code 2, aucun résultat en 7200 s, compteur parti de 32485 : 29 trajets expirés, plus aucune arrivée après 00:55:24, `removing stale zombie 5000 id=-32767` chez les clients). 16 contrôles passés à `~= -1` / `== -1` dans `LK_ZombieGuard`, `LK_Senses`, `LK_Zombies`, `LK_Alert`, `LK_Decisions`, `LK_Equipment`, `LK_CombatClient`, plus 2 dans `RST_LKEssai` et `RST_LKEssaiServer`. `test_lk_guard.py` 26 tests OK (corps à -32767 gardé, corps à -1 écarté). Campagne `autoclient.py --mp --clients 2 --server-campaign mp --bridge on --llm fake` : code 1, `RST-RESULT ok=false total=377 pass=358 fail=1 error=2 skip=16`, `runs/20261107-030546-mp-2f49ffa1d5f4`, 2289 s, 168 arrivées, aucun trajet expiré (`timeout`) ; les 3 défauts sont sans lien et rejoués verts (voir E18-T17).
-  - Reste : le compteur de cette campagne (30581 à 31426) n'a pas franchi le débordement : le passage en négatif n'est prouvé en jeu que par le constat de panne, la correction par le banc (confirmé statiquement). Une campagne qui le franchit reste à obtenir au hasard du tirage.
+  - Reste : deuxième correction : `Guard.bornPass` (`id >= 0`) passé à `id ~= -1`, et `test_lk_guard.py` refuse tout test de signe sur un identifiant réseau. Campagne `runs/20261107-043057-mp-05cbafebf449` : le compteur y a réellement débordé (32357 à -32346, 128 copies négatives) sans aucun trajet expiré, mais `lk.spawnclean` échouait à cause de `bornPass`, vu avant cette correction. Rejeu après correction `runs/20261107-051943-mp-e7be111215bc` : lk.spawnclean, lk.expedition et lk.tradeview verts, mais compteur à 17895-17922, donc sans débordement : la deuxième correction n'est prouvée que par le banc.
+
+- [ ] **E18-T29** — Livrer et réclamer une mission de PNJ sans RadioSurvivor
+  - État : `à faire`
+  - Cible : `MP`
+  - Dépend de : E18-T18
+  - Fichiers : `RC_MissionJournal`, carnet commun `RC_Notebook`, `LK_TalkAlone` ; `RS_NPCRewards` (lot d'un PNJ de Living Knox, resté dans RadioSurvivor)
+  - Faire : relevé pendant `E18-T18` : avec Living Knox seul, une mission se propose, s'accepte et se rapporte par la parole, mais le journal du commun n'a ni bouton de livraison ni bouton de réclamation, et le lot d'un PNJ passe aujourd'hui par `RS_NPCRewards`. Ajouter ces gestes au journal et donner au donneur `npc` de Living Knox son chemin de récompense.
+  - Accepté si : Living Knox seul : une mission de PNJ se termine et sa récompense arrive dans l'inventaire.
+  - Tests : banc du journal ; suite des missions dans le montage Living Knox seul.
+  - Preuve : —
+  - Reste : —
+
+- [ ] **E18-T30** — Offensive à la fenêtre instable en MP
+  - État : `à faire`
+  - Cible : `MP`
+  - Dépend de : —
+  - Fichiers : suite `lk.windowkill`, `LK_Defense`
+  - Faire : relevé pendant `E18-T17` et `E18-T18` : lk.windowkill réussit le 2026-11-06, puis le 2026-11-07 échoue 3 fois sur 4 (`no window offensive` ou `zombie not on the floor inside`), compteur réseau positif. Une mesure à 90 s montre le zombie à l'arrêt à l'intérieur, fenêtre fermée. Trouver si c'est le placement du test ou un effet d'une tâche E18.
+  - Accepté si : lk.windowkill vert sur trois campagnes MP de suite.
+  - Tests : campagne MP.
+  - Preuve : —
+  - Reste : —

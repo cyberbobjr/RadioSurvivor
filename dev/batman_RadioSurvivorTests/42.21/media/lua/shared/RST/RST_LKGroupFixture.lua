@@ -38,6 +38,8 @@ LG.NAME = "RST fixture group"
 LG.MEMBERS = { "m-1", "m-2" }
 
 local function provider()
+    local L = LivingKnox
+    if L and L.radioSurvivorActive and not L.radioSurvivorActive() then return L.NpcProvider end -- E18-T18: alone
     local ok, P = pcall(require, "RadioSurvivor/RS_NPCProvider")
     if ok and type(P) == "table" then return P end
     return nil

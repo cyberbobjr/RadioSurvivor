@@ -19,17 +19,6 @@ local Contacts = require "RadioSurvivorCore/RC_Contacts"
 local LKC = {}
 LivingKnox.Contacts = LKC
 
--- getActivatedMods (LuaManager.java:6065): Java list of the loaded mod ids, a leading "\" dropped. Absent outside the
--- game (offline benches): RadioSurvivor counts as present, as in RS_LivingKnox.
-local function radioSurvivorActive()
-    if type(getActivatedMods) ~= "function" then return true end
-    local mods = getActivatedMods()
-    for i = 0, (mods and mods:size() or 0) - 1 do
-        if string.gsub(tostring(mods:get(i)), "^\\", "") == "batman_RadioSurvivor" then return true end
-    end
-    return false
-end
-
 -- Living Knox NPC ids known to a character (set).
 function LKC.known(character)
     local ids = {}
@@ -62,7 +51,7 @@ end
 
 LKC.registered = false
 function LKC.register()
-    if LKC.registered or radioSurvivorActive() then return false end
+    if LKC.registered or LivingKnox.radioSurvivorActive() then return false end
     Contacts.registerSource("lk", { list = function(character) return LKC.list(character) end })
     LKC.registered = true
     return true

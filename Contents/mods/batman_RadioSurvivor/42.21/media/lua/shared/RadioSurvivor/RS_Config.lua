@@ -135,17 +135,13 @@ local C = {
         breaker = 'Maintenance', deputy = 'Aiming'},
     NPC_REWARD_TABLES = {settlers = 'tools', neutrals = 'food', raiders = 'ammo'},
     VERSION = 2,
-    SELECT_RANGE = 8,
     DELIVERY_RANGE = 3,
     -- E17-T15: longer than the longest answer of the bridge (bridge/radio_bridge.py: start at most MAX_AGE_S = 75 s
     -- after `sent`, then one model call of at most LLM_BUDGET_S = 60 s, attempts included: 135 s). An error of the
     -- provider comes back sooner as a reply with `error` (timeout, http_503...), refused with that cause.
     SAVE_INTERVAL_MS = 5000, -- only while a mission clock runs or the state changed
-    MAX_HISTORY = 40,
     -- E17-T08: acquaintance of a character with an NPC (RS_Carnet_Server, contact.stage). 'stranger' until a talk at
     -- least ACQUAINT_HOURS game hours after the first answered exchange, or after ACQUAINT_EXCHANGES answered exchanges.
-    ACQUAINT_HOURS = 1,
-    ACQUAINT_EXCHANGES = 4,
     -- Snapshot polling by the client: open notebook vs. closed (identity/session keep-alive).
     SNAPSHOT_OPEN_MS = 3000,
     SNAPSHOT_CLOSED_MS = 30000,
@@ -191,7 +187,8 @@ C.Delivery = C.Missions.deliver
 local Speech = require 'RadioSurvivorCore/RC_SpeechConfig'
 for _, key in ipairs({'HEARING_RANGE', 'NOISE_RANGE', 'REQUEST_TIMEOUT_MS', 'COOLDOWN_MS', 'MAX_PENDING', 'MAX_PER_HOUR',
         'ENRICH_PER_HOUR', 'ENRICH_RETRY_MS', 'ENRICH_MAX_ATTEMPTS', 'NARRATIVE_LANGUAGE', 'MAX_TEXT_BYTES',
-        'MAX_REPLY_BYTES', 'languageCode'}) do
+        'MAX_REPLY_BYTES', 'languageCode', 'SELECT_RANGE', 'MAX_HISTORY', 'ACQUAINT_HOURS',
+        'ACQUAINT_EXCHANGES'}) do
     C[key] = Speech[key]
 end
 return C

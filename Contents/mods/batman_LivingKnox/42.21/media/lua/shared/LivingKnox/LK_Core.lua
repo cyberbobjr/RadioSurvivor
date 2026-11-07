@@ -2,6 +2,17 @@
 -- Chaque module range ses fonctions dans sa table (LivingKnox.Config, LivingKnox.Log...) et les appelle par
 -- cette table : un autre mod peut ainsi les envelopper. Aucun effet de bord au chargement hors définitions.
 LivingKnox = LivingKnox or {}
+
+-- getActivatedMods (LuaManager.java:6065): Java list of the loaded mod ids, unchanged during a game; a leading "\" is
+-- dropped before comparing. Absent outside the game (offline benches): RadioSurvivor is taken as present.
+function LivingKnox.radioSurvivorActive()
+    if type(getActivatedMods) ~= "function" then return true end
+    local mods = getActivatedMods()
+    for i = 0, (mods and mods:size() or 0) - 1 do
+        if string.gsub(tostring(mods:get(i)), "^\\", "") == "batman_RadioSurvivor" then return true end
+    end
+    return false
+end
 local LK = LivingKnox
 
 LK.VERSION = "0.1.0"

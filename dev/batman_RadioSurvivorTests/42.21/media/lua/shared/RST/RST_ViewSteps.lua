@@ -167,6 +167,27 @@ Steps.on("lk.weapon.count", function(args)
     return Steps.pass(text, data)
 end)
 
+-- ---------------------------------------------------------------- lk.talk.say, lk.talk.bubble (E18-T18)
+
+-- The real say chat of this client: the sentence reaches the server through LK_TalkView (OnAddMessage).
+Steps.on("lk.talk.say", function(args)
+    if LivingKnox == nil or LivingKnox.TalkView == nil then return Steps.fail("LivingKnox.TalkView is not loaded here") end
+    if type(processSayMessage) ~= "function" then return Steps.fail("no say chat here") end
+    processSayMessage(tostring(args.text))
+    return Steps.pass("said")
+end)
+
+Steps.on("lk.talk.bubble", function(args)
+    local V = LivingKnox and LivingKnox.SpeechView
+    if V == nil then return Steps.fail("LivingKnox.SpeechView is not loaded on this client") end
+    return function(ctx)
+        local last = V.lastPieces
+        if last ~= nil and last.text == args.text then return Steps.pass("bubble of " .. tostring(last.npc)) end
+        if ctx.final then return Steps.fail("no bubble with '" .. tostring(args.text) .. "' here") end
+        return nil
+    end
+end)
+
 -- ---------------------------------------------------------------- lk.speech.bubble
 
 Steps.on("lk.speech.bubble", function(args)

@@ -110,6 +110,11 @@ def options(mod: str) -> list[tuple[str, str, str]]:
     return out
 
 
+# E18-T18: speech of Living Knox alone.
+TALK = {'IGUI_LK_Talk_' + k for k in ('Menu', 'Prompt', 'Offer', 'Range', 'Text', 'Chat', 'Cooldown', 'Busy',
+                                           'Bridge', 'NoAnswer')}
+
+
 class TranslationSplitTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -124,7 +129,7 @@ class TranslationSplitTests(unittest.TestCase):
             for name, before in self.before['keys'][lang].items():
                 expected = set(before)
                 if name == 'IG_UI':
-                    expected = ((expected - set(RENAMED)) | set(RENAMED.values()) | JOURNAL | NOTEBOOK) - REMOVED
+                    expected = ((expected - set(RENAMED)) | set(RENAMED.values()) | JOURNAL | NOTEBOOK | TALK) - REMOVED
                 union = set()
                 for mod in MODS:
                     union |= self.keys[mod].get(lang, {}).get(name, set())

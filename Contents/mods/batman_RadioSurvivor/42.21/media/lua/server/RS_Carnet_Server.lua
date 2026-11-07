@@ -21,6 +21,7 @@ local Teams = require 'RadioSurvivorCore/RC_Teams' -- E09-T03, E18-T20: team ids
 -- E18-T20: agreements, personal truces and incidents are Living Knox's (LK_Agreements), read through its global; nil
 -- without Living Knox (no agreement offered, none applied). E18-T17: so is the speech of the NPCs (LK_Talk).
 local function Agreements() return type(LivingKnox) == 'table' and LivingKnox.Agreements or nil end
+local MissionTalk = require 'RadioSurvivorCore/RC_MissionTalk'
 local Relations = require 'RadioSurvivor/RS_Relations' -- E09-T04, E18-T21: relation kept by Living Knox, read by its API
 local RateLimit = require 'RadioSurvivorCore/RC_RateLimit' -- C21: per-account limit of the notebook commands
 -- E18-T17: Server.talk = the speech of the NPCs (LivingKnox.Talk), set when the world starts; nil without Living Knox.
@@ -163,31 +164,9 @@ local function contact(character, npc)
     return record.contacts[npc.id]
 end
 
--- E17-T08: acquaintance of a character with an NPC, kept on its contact (stage, exchanges, firstHour). A stranger
--- becomes acquainted, for good, when it talks again at least C.ACQUAINT_HOURS game hours after the first answered
--- exchange, after C.ACQUAINT_EXCHANGES answered exchanges, or when it took part in a mission of this NPC (contacts saved
--- before this rule, missions already accepted). Contacts without the fields are strangers with no exchange.
+-- E17-T08: acquaintance of a character with an NPC, kept on its contact (stage, exchanges, firstHour; RC_MissionTalk).
 local function acquaintance(character, npc, known)
-    if known.stage ~= 'acquainted' then
-        local met = (known.exchanges or 0) >= C.ACQUAINT_EXCHANGES
-            or (type(known.firstHour) == 'number' and getGameTime():getWorldAgeHours() - known.firstHour >= C.ACQUAINT_HOURS)
-        if not met then
-            for _, m in pairs(S.data.missions) do
-                if m.npc == npc.id and m.participants[character] then met = true end
-            end
-        end
-        known.stage = met and 'acquainted' or 'stranger'
-    end
-    return known.stage
-end
-
--- E17-T09: offer of this NPC still open for this character (state offer, invited, not engaged): the next sentence
--- of the character may accept it. nil otherwise.
-local function openOffer(npc, character)
-    local m = npc.mission and S.data.missions[npc.mission]
-    if not m or m.npc ~= npc.id or m.state ~= 'offer' or m.transaction or not m.invited[character]
-            or m.participants[character] then return nil end
-    return m
+    return MissionTalk.acquaintance(S.data.missions, character, npc, known)
 end
 
 -- Readable group name of an NPC (E17-T06): live provider record, else the name kept on the fiche; never the raw
@@ -298,13 +277,6 @@ end
 
 Server.offerCatalogFor = offerCatalog
 
--- E10-T02: a collective intention commits the whole group of the NPC: today a group mission (offer of kind 'supply',
--- real need of the group, E17-T03 / LK12-T03) and its acceptance by speaking. Only the leader of the registry
--- (Provider.composition, LK_Groups leader and succession) is offered one; another member may talk about the group's
--- needs and refers the character to the leader (context.collective). Binding and check: LK_Talk.
-local function isCollective(terms) return type(terms) == 'table' and terms.kind == 'supply' end
-local function collectiveMission(m) return type(m) == 'table' and type(m.supply) == 'table' end
-
 local function talk(player, character, args)
     local id = Server.selected[character]
     local npc = activeNpc(player, character, id, C.SELECT_RANGE)
@@ -318,41 +290,17 @@ local function talk(player, character, args)
     send(player, 'queued', {id = req.id})
 end
 
--- E17-T09: acceptance spoken to the NPC. The talk request carried context.acceptable (an offer of this NPC open for
--- the speaking character, with its revision). E17-T10: accepted only when the model returned intent accept (the model
--- judges the player's intent in any language; no word list), and only if the same mission is still an open offer of
--- this NPC for this character at the same revision. Same path as the notebook button (M.accept), once: the state
--- becomes active, so a replay or a second yes finds no open offer. Returns the mission.
+-- E17-T09, E17-T10: acceptance spoken to the NPC (RC_MissionTalk), for a character of the notebook still alive.
 local function spokenAcceptance(req, result, npc)
-    local context = type(req.context) == 'table' and req.context or {}
-    local a = context.acceptable
-    if type(a) ~= 'table' or result.intent ~= 'accept' then return nil end
     local record = S.data.characters[req.character]
-    local m = type(a.mission) == 'string' and S.data.missions[a.mission]
-    if not record or record.retired or not m or m.revision ~= a.revision or openOffer(npc, req.character) ~= m then return nil end
-    if not M.accept(S.data, m, req.character, record.name) then return nil end
-    record.knownMissions[m.id] = true
+    if not record or record.retired then return nil end
+    local m = MissionTalk.acceptance(S.data, req, result, npc, record.name)
+    if m then record.knownMissions[m.id] = true end
     return m
 end
 
--- E11-T13: report spoken to the requester. The talk request carried context.reportable (the mission of this NPC whose
--- objective was met, the speaker a participant). Applied only when the model returned intent report_done and, at the
--- reply, the same mission is still this NPC's open mission, its objective still met and the speaker still one of its
--- participants (RC_Missions.spoken checks again and runs the common write-ahead report). The revision may have moved
--- since (another participant joined): the facts are checked, not the revision. Returns the mission once succeeded.
-function Server.spokenReport(req, result, npc)
-    local r = type(req.context) == 'table' and req.context.reportable
-    if type(r) ~= 'table' or result.intent ~= 'report_done' then return nil, 'no report' end
-    local m = type(r.mission) == 'string' and S.data.missions[r.mission]
-    if not m or npc.mission ~= m.id or m.npc ~= npc.id then return nil, 'mission no longer open with this NPC' end
-    if not M.reportReady(m) then return nil, 'objective no longer met' end
-    if not m.participants[req.character] then return nil, 'speaker not a participant' end
-    local speaker = nil
-    for p, cid in pairs(Server.bound) do if cid == req.character then speaker = p end end
-    local ok, why = M.spoken(S, m, speaker, req.character)
-    if not ok or m.state ~= 'success' then return nil, 'report refused: ' .. tostring(why) end
-    return m
-end
+-- E11-T13: report spoken to the requester (RC_MissionTalk).
+function Server.spokenReport(req, result, npc) return MissionTalk.report(S, req, result, npc, Server.bound) end
 
 local function missionFor(player, character, args, range)
     local m = type(args.mission) == 'string' and S.data.missions[args.mission]
@@ -690,47 +638,13 @@ local function talkContext(context, npc, character, _, _, group)
     -- change it (short ids; the keys stay on the server). Replaces the former trust.
     local relation, relationBinding = Relations.offer(npc, character)
     context.relation = relation
-    local open = npc.mission and S.data.missions[npc.mission]
-    if open then context.mission = M.context(open) end
-    -- E11-T13: the objective of this NPC's mission is met (server fact) and the speaker takes part in it: this sentence
-    -- may be the report. The model alone judges whether it is one (intent report_done, any language, no word list);
-    -- the reply is checked again by Server.spokenReport.
-    if open and M.reportReady(open) and open.participants[character] then
-        context.reportable = {mission = open.id, revision = open.revision}
-    end
-    -- E17-T08: a stranger never learns the group nor its home (name, story, leader, needs withheld from the prompt)
-    -- and gets no offer. E17-T10: an acquainted NPC receives its offer catalog with every sentence; the model alone
-    -- judges whether the player asks for help or work (no word list: any language).
+    -- E17-T08: a stranger never learns the group nor its home (name, story, leader, needs withheld from the prompt).
     context.stage = acquaintance(character, npc, known)
     local g = context.group
     if g and context.stage == 'stranger' then context.group = {member = g.member, role = g.role, attitude = g.attitude} end
-    -- E17-T09: an offer of this NPC open for this character may be accepted by this sentence (checked again by reply).
-    local offered = openOffer(npc, character)
-    local offers = {}
-    if context.stage == 'acquainted' then
-        offers = offerCatalog(npc, P.npc(npc.incarnation), character)
-    end
-    -- E10-T02: a member that is not the leader gets no collective intention (no group mission, no acceptance of one);
-    -- an acquainted character learns from context.collective who decides for the group.
-    local bound = false
-    if group and not group.leader then
-        local kept = {}
-        for key, terms in pairs(offers) do
-            if not isCollective(terms) then kept[key] = terms end
-        end
-        offers = kept
-        if collectiveMission(offered) then offered = nil end
-    end
-    if offered then
-        context.acceptable = {mission = offered.id, revision = offered.revision}
-        bound = collectiveMission(offered)
-    end
-    for _, terms in pairs(offers) do
-        if isCollective(terms) then bound = true end
-    end
-    if group and context.stage == 'acquainted' then
-        context.collective = group.leader and {speaker = 'leader'} or {speaker = 'member', leaderName = group.leaderName}
-    end
+    local offers, bound = MissionTalk.context(context, S.data, npc, character, group, function()
+        return offerCatalog(npc, P.npc(npc.incarnation), character)
+    end)
     return offers, bound, relationBinding
 end
 
@@ -747,47 +661,11 @@ local function talkQueued(req, player, npc, character, text)
     S.save()
 end
 
--- Missions of a reply: new offer, spoken acceptance, spoken report. Returns { applied, decided, offer }, or false and
--- the reason when the whole reply is refused.
+-- Missions of a reply (RC_MissionTalk).
 local function talkActions(req, result, npc, binding, ignored)
-    local applied, m = {}, nil
-    local acceptable = type(req.context) == 'table' and req.context.acceptable
-    local acceptance = result.intent == 'accept'
-    if acceptance and type(acceptable) == 'table' and type(acceptable.mission) == 'string'
-            and collectiveMission(S.data.missions[acceptable.mission]) then
-        local ok, why = Server.talk.collectiveCheck(binding, npc)
-        if not ok then acceptance = false; ignored('collective acceptance', why) end
-    end
-    if result.intent == 'offer' then
-        local terms = offerCatalog(npc, P.npc(npc.incarnation), req.character)[result.offer]
-        if not req.offers[result.offer] or not terms then return false, 'offer no longer admissible' end
-        local ok, why = true, nil
-        if isCollective(terms) or isCollective(req.offers[result.offer]) then
-            ok, why = Server.talk.collectiveCheck(binding, npc)
-        end
-        if ok then
-            m = M.create(S.data, npc, req.character, result.offer, terms)
-            applied.offer = result.offer
-        else
-            ignored('collective offer', why) -- E09-T09: no mission, the line is still said
-        end
-    end
-    local taken = acceptance and spokenAcceptance(req, result, npc) or nil
-    if taken then applied.accept = taken.id end
-    -- E11-T13: report of the met objective to this requester; a refused report is only ignored (E09-T09).
-    if result.intent == 'report_done' then
-        local reported, why = Server.spokenReport(req, result, npc)
-        if reported then
-            applied.report = reported.id
-            print('[RS_Carnet] mission ' .. reported.id .. ' reported to ' .. npc.id .. ' by '
-                .. tostring(req.character) .. ': success')
-        else
-            ignored('mission report', why)
-        end
-    end
-    local decided = (collectiveMission(m) and {kind = 'offer', need = m.supply.need})
-        or (collectiveMission(taken) and {kind = 'accept', need = taken.supply.need}) or nil
-    return {applied = applied, decided = decided, offer = m}
+    return MissionTalk.actions({state = S.data, store = S, bound = function() return Server.bound end,
+        catalog = function(n, character) return offerCatalog(n, P.npc(n.incarnation), character) end,
+        collectiveCheck = Server.talk.collectiveCheck, accept = spokenAcceptance}, req, result, npc, binding, ignored)
 end
 
 -- Listeners of a reply: the line goes to their history; E17-T08: one more answered exchange of the speaking character,
