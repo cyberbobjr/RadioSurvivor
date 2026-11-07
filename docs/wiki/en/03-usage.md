@@ -50,7 +50,8 @@ no **Talk** button in the notebook: say a sentence in the local chat (`/say`) wh
 right click them and choose **Talk**; the nearest survivor answers in a speech bubble, and the missions it offers
 appear in the Missions tab of the notebook. Next to the survivor who gave the mission, the **Deliver** button of that
 tab hands over the items asked for, and **Claim the reward** collects the reward once the mission has succeeded: an item
-the group has to spare, or the reward announced with the mission.*
+the group has to spare, else the reward announced with the mission, else a lot that depends on the group (tools from
+settlers, food from neutrals, ammunition from raiders), shown in the notebook.*
 
 1. Near a survivor you can see, press **Ctrl+G**: the nearest visible NPC is selected (key **Select a RadioSurvivor
    NPC** in the game options). The **Talk** button of a contact in the notebook does the same.

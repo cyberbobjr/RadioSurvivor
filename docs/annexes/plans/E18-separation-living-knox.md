@@ -2,7 +2,7 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 13 / 33 tâche(s) terminée(s).
+**Avancement.** en cours — 14 / 33 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
@@ -38,7 +38,7 @@
 | ☐ | E18-T30 | Offensive à la fenêtre instable en MP | `à faire` | MP | — |
 | ☐ | E18-T31 | Suites instables des campagnes de validation | `à faire` | MP | — |
 | ☐ | E18-T32 | Bavardages entre membres d'un groupe | `à faire` | MP | E18-T27 |
-| ☐ | E18-T33 | Récompense d'une mission de PNJ créée à la volée | `à faire` | MP | E18-T29 |
+| ☑ | E18-T33 | Récompense d'une mission de PNJ créée à la volée | `testé MP` | MP | E18-T29 |
 
 <!-- fin du tableau de bord -->
 
@@ -513,13 +513,13 @@ Deuxième article Workshop, dépôt séparé, nouvelles règles de jeu des missi
   - Tests : banc des bavardages (ouverture, rythme par groupe, sujet, longueur, sans pont, intervention) ; suite en jeu dans les montages Living Knox seul et les deux.
   - Preuve : —
   - Reste : —
-- [ ] **E18-T33** — Récompense d'une mission de PNJ créée à la volée
-  - État : `à faire`
+- [x] **E18-T33** — Récompense d'une mission de PNJ créée à la volée
+  - État : `testé MP`
   - Cible : `MP`
   - Dépend de : E18-T29
   - Fichiers : `LK_MissionRewards`, `RC_MissionConfig` (table type de groupe → lot, lue aussi par `RS_Config.NPC_REWARD_TABLES`), `RC_Notebook` (ligne de récompense), traductions du commun
   - Faire : demande de l'utilisateur du 2026-11-07 : le lot pris dans les surplus du foyer est trop rare ; sans surplus et sans lot annoncé (mission de ravitaillement sans récompense), rien n'est donné. Après le surplus et le lot annoncé, créer un lot selon le type du groupe du demandeur ; le carnet l'annonce.
   - Accepté si : Living Knox seul : une mission de PNJ réussie sans surplus ni lot annoncé donne un lot créé du type du groupe dans l'inventaire ; une seule fois pour le groupe de joueurs.
   - Tests : `test_npc_rewards.py`, `test_lk_talk_alone.py` ; suite `lk.missions.alone`.
-  - Preuve : —
-  - Reste : —
+  - Preuve : 2026-11-07 : ordre du lot d'un PNJ de Living Knox seul : objet en surplus du foyer, sinon lot annoncé avec la mission, sinon lot créé selon le type du groupe (`RC_MissionConfig.NPC_REWARD_TABLES` : colons → `tools`, neutres → `food`, pillards → `ammo`, type inconnu → `food`, tables `Caches.tables`) ; `RS_Config.NPC_REWARD_TABLES` lit la table du commun. `LK_MissionRewards` : `R.lot(m)` (aucun lot si un lot est annoncé ou si le demandeur est mort), lot créé entier avant tout don, poids vérifié (`Capacity`), même marqueur écrit avant le don, `m.createdLot` ; `RC_Missions` : fonction facultative `lot(m)` d'un donneur, projetée en `rewardTable` ; donneur `npc` de `LK_TalkAlone` ; carnet : ligne `IGUI_RC_RewardLot` (« Lot du groupe : 1 × Marteau, … », EN/FR, `Journal.lotText`). Bancs : `test_npc_rewards.py` 13 OK (lot créé du type, une fois pour le groupe, type inconnu → vivres, trop lourd refusé sans rien donner, lot annoncé gardé, demandeur mort sans lot), `test_lk_talk_alone.py` 13 OK (livraison, ligne `rewardTable`, lot créé dans l'inventaire, deuxième réclamation refusée), `test_core_notebook.py` 17 OK (ligne du carnet) ; `run_all.py` 159 passés, 2 échecs (`translations_split` : clé `IGUI_RC_RewardLot` absente de la liste attendue du banc ; `rs_suites` : renvois `fichier:ligne` de `RS_Env.lua` vers `RC_Missions.lua` décalés de 2 à 4 lignes), corrigés, les deux bancs relancés : OK ; luacheck `Contents` 8, `dev` 0. En jeu, suite `lk.missions.alone` (nouveau test : mission sans lot annoncé, lot du type du groupe dans l'inventaire, aucun objet du foyer) : Living Knox seul solo code 0 `RST-RESULT ok=true total=2 pass=2` `runs/20261107-201359-c0df822803e6`, MP code 0 `RST-RESULT ok=true total=2 pass=2 fail=0 error=0 skip=0` `runs/20261107-201448-mp-f46858854f1f` ; RadioSurvivor (table lue du commun) : `rs.missionrewards` solo les deux mods code 0 `RST-RESULT ok=true total=5 pass=5` `runs/20261107-201656-fbce2979fa6a`.
+  - Reste : le groupe de test n'a pas de stock : l'ordre « surplus d'abord » n'est prouvé que par les bancs ; le pont n'est pas informé du lot créé (le PNJ ne le cite pas en parlant).

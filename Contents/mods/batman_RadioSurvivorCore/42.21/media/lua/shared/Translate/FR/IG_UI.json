@@ -4,6 +4,7 @@
     "IGUI_RC_Requester": "Demandeur : %1",
     "IGUI_RC_TimeLeft": "Temps de jeu restant : %1 min à vitesse normale.",
     "IGUI_RC_Reward": "Lot commun : %1 × %2",
+    "IGUI_RC_RewardLot": "Lot du groupe : %1",
     "IGUI_RC_Participants": "Participants engagés : %1",
     "IGUI_RC_ReportHint": "Objectif rempli : rendez compte au demandeur pour terminer la mission.",
     "IGUI_RC_State_offer": "Offre à accepter",

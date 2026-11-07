@@ -11,6 +11,8 @@ RC_MissionConfig.Missions[name] (`entry`; `entry.id` is the offer id seen by the
 Givers (E18-T05, user decision of 2026-11-05: registration and hooks). A mod registers its kind of giver:
     M.registerDonor(kind, { find(state, id) -> record | nil,          giver record of a mission (m.donor, default 'npc')
                             claim(store, m, player, character, token) -> handled, reason | nil   optional reward path
+                            lot(m) -> name of a Caches table | nil   optional: lot the giver creates when the mission
+                                      announces none (E18-T33), projected as rewardTable
                             observeDeliver(m, player, name, state, store) -> changed }       optional, `deliver` poll
 The engine keeps its fields on the giver record, owned by that mod: id, name, mission, missionCount, nextOfferHour.
 Reputation (E18-T22): the engine records the fact of each participant of a closed mission in the reputation of the
@@ -500,6 +502,8 @@ function M.projection(m, character)
         recovery = m.transaction ~= nil, participants = {}}
     -- Radio voice requester (E11-T08): no body to join, nothing to claim; the notebook adapts its page.
     if m.donor == 'voice' then p.donor = 'voice' end
+    local giver = donors[kindOf(m)]
+    if giver and giver.lot then p.rewardTable = giver.lot(m) end
     local t = M.template(m)
     if t then t.project(m, p) end
     -- E11-T13: objective met, the report to the requester is still expected (templates with a report only).

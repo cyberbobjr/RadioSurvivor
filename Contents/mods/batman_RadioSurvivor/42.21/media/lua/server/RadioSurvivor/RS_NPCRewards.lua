@@ -29,7 +29,7 @@ end
 function N.describe(npc, character)
     local r, why = N.resolve(npc)
     if not r then return nil, why end
-    local cfg = Config.NPC_REWARD_TABLES or {settlers='tools', neutrals='food', raiders='ammo'}
+    local cfg = Config.NPC_REWARD_TABLES
     local lessons = Config.NPC_REWARD_TEACHES or {}
     local relation = Relations.view(npc, character)
     local trusted = relation and (relation.level == 'favorable' or relation.level == 'trusting')

@@ -793,6 +793,7 @@ end
 
 -- Open missions of the player's character, in the list order and states of RC_MissionList.
 local Journal = {rows = {}}
+Notebook.Journal = Journal -- missions tab helpers (tests, E18-T33)
 Notebook.journal = Journal
 function Journal.request() Notebook.request('missions') end
 
@@ -938,6 +939,17 @@ end
 
 local function missionState(row) return tr('State_' .. tostring(MissionList.stateKey(row))) end
 
+-- E18-T33: items of a lot created by the requester's group (table of RC_MissionConfig.Caches), "2 x Name, ...".
+function Journal.lotText(name)
+    local entries = (require 'RadioSurvivorCore/RC_MissionConfig').Caches.tables[name] or {}
+    local parts = {}
+    for _, entry in ipairs(entries) do
+        local item = getScriptManager and getScriptManager():FindItem(entry[1])
+        parts[#parts + 1] = tostring(entry[2]) .. ' \195\151 ' .. (item and item:getDisplayName() or entry[1])
+    end
+    return table.concat(parts, ', ')
+end
+
 function Journal.detail(w, row, line)
     if not row then line(tr('JournalEmpty')); return false end
     line(missionState(row))
@@ -946,6 +958,8 @@ function Journal.detail(w, row, line)
     if type(row.rewardCount) == 'number' and row.rewardCount > 0 and type(row.rewardType) == 'string' then
         local item = getScriptManager and getScriptManager():FindItem(row.rewardType)
         line(tr('Reward', row.rewardCount, item and item:getDisplayName() or row.rewardType))
+    elseif type(row.rewardTable) == 'string' then
+        line(tr('RewardLot', Journal.lotText(row.rewardTable)))
     end
     if type(row.participants) == 'table' and #row.participants > 0 then
         line(tr('Participants', table.concat(row.participants, ', ')))

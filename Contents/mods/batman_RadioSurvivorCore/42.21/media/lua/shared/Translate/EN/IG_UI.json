@@ -4,6 +4,7 @@
     "IGUI_RC_Requester": "Requester: %1",
     "IGUI_RC_TimeLeft": "Game time left: %1 min at normal speed.",
     "IGUI_RC_Reward": "Shared reward: %1 × %2",
+    "IGUI_RC_RewardLot": "Lot of the group: %1",
     "IGUI_RC_Participants": "Committed participants: %1",
     "IGUI_RC_ReportHint": "Objective met: report to the requester to complete the mission.",
     "IGUI_RC_State_offer": "Offer awaiting acceptance",

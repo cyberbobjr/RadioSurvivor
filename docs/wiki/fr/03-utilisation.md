@@ -49,7 +49,8 @@ bouton **Parler** dans le carnet : dites une phrase dans le chat local (`/say`) 
 droit sur lui et choisissez **Parler** ; le survivant le plus proche répond dans une bulle, et les missions qu'il
 propose apparaissent dans l'onglet Missions du carnet. À côté du survivant qui a donné la mission, le bouton **Livrer**
 de cet onglet remet les objets demandés, et **Récupérer la récompense** prend la récompense une fois la mission
-réussie : un objet que le groupe a en trop, ou la récompense annoncée avec la mission.*
+réussie : un objet que le groupe a en trop, sinon la récompense annoncée avec la mission, sinon un lot selon le groupe
+(outils chez les colons, vivres chez les neutres, munitions chez les pillards), annoncé dans le carnet.*
 
 1. Près d'un survivant que vous voyez, appuyez sur **Ctrl+G** : le PNJ visible le plus proche est sélectionné (touche
    **Sélectionner un PNJ RadioSurvivor** dans les options du jeu). Le bouton **Parler** d'un contact du carnet fait

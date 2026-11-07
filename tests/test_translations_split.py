@@ -122,7 +122,8 @@ SANDBOX_RENAMED = ({k: 'Sandbox_LivingKnox_' + k[len('Sandbox_RadioSurvivor_'):]
 
 # E18-T29: hand-over and claim from the journal of the core mod.
 JOURNAL_GESTURES = {'IGUI_RC_' + k for k in ('Deliver', 'Claim', 'Delivery', 'DeliverSend', 'DeliverEmpty',
-                                             'State_toClaim', 'ClaimHint', 'DeliverHint', 'Delivered')} | {
+                                             'State_toClaim', 'ClaimHint', 'DeliverHint', 'Delivered',
+                                             'RewardLot')} | {
     'IGUI_RC_Error_' + k for k in ('Range', 'Items', 'Storage', 'Recovery', 'Capacity', 'TooMany', 'SupplyClosed',
                                    'SupplyRefused', 'WrongCard')}
 

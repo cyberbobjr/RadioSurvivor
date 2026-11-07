@@ -143,6 +143,10 @@ local MC = {
             tools = {{'Base.Hammer', 1}, {'Base.Screwdriver', 1}, {'Base.Nails', 10}},
         },
     },
+    -- E18-T33: lot of a mission given by an NPC, by type of its group: a table of Caches.tables. Read by Living Knox
+    -- (LK_MissionRewards: lot created when the household has no surplus and the mission announces none) and by
+    -- RadioSurvivor (RS_Config.NPC_REWARD_TABLES: cache of an NPC). Unknown type: food.
+    NPC_REWARD_TABLES = {settlers = 'tools', neutrals = 'food', raiders = 'ammo'},
 }
 
 return MC

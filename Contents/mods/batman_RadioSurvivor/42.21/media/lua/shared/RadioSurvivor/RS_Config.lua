@@ -133,7 +133,7 @@ local C = {
         }},
     NPC_REWARD_TEACHES = {medic = 'Doctor', fighter = 'Aiming', scout = 'Aiming', worker = 'Woodwork',
         breaker = 'Maintenance', deputy = 'Aiming'},
-    NPC_REWARD_TABLES = {settlers = 'tools', neutrals = 'food', raiders = 'ammo'},
+    NPC_REWARD_TABLES = MissionConfig.NPC_REWARD_TABLES, -- E18-T33: the core's table
     VERSION = 2,
     DELIVERY_RANGE = MissionConfig.DELIVERY_RANGE,
     -- E17-T15: longer than the longest answer of the bridge (bridge/radio_bridge.py: start at most MAX_AGE_S = 75 s

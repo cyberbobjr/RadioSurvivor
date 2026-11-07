@@ -216,6 +216,19 @@ class NotebookCoreOnlyTests(unittest.TestCase):
         self.assertEqual(self.sev('return table.concat(CLAIMS, ",")'), 'cA')
         self.assertEqual(lua_rows(self.h.machine('A')), '')
 
+    def test_created_lot_announced_by_the_notebook(self):
+        """E18-T33: a mission that announces no lot shows the lot its giver creates (projected rewardTable)."""
+        self.sev('local M = require("RadioSurvivorCore/RC_Missions") '
+                 'M.registerDonor("lknpc", {find = function(state, id) return GIVERS[id] end, '
+                 'lot = function(m) return "tools" end}) '
+                 'local b = newMission("lk:2", "cA") b.rewardCount = 0')
+        self.open('A')
+        detail = self.cev('A', 'return RadioSurvivorCore.notebook.window.detail.text')
+        self.assertIn('IGUI_RC_RewardLot', detail)
+        self.assertNotIn('IGUI_RC_Reward ', detail)
+        text = self.cev('A', 'return RadioSurvivorCore.notebook.Journal.lotText("tools")')
+        self.assertEqual(text, '1 \u00d7 item Base.Hammer, 1 \u00d7 item Base.Screwdriver, 10 \u00d7 item Base.Nails')
+
     def test_sidebar_button_opens_the_notebook(self):
         out = self.cev('A', 'local p = ISEquippedItem:new() p:initialise() ISEquippedItem.instance = p '
                             'local had = p.rcNotebook ~= nil '

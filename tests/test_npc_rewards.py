@@ -16,7 +16,7 @@ class NPCRewardsTests(unittest.TestCase):
         self.lua = LuaRuntime(unpack_returned_tuples=True)
         self.lua.execute('''
         function isClient() return false end
-        cfg={NPC_REWARD_TEACHES={medic='Doctor',fighter='Aiming'}}
+        cfg={NPC_REWARD_TEACHES={medic='Doctor',fighter='Aiming'},NPC_REWARD_TABLES={settlers='tools',neutrals='food',raiders='ammo'}}
         relation='trusting'; reputation='good'; item={getActualWeight=function() return 1 end}
         g={type='settlers',home={x=1,y=2,z=0},members={m={alive=true,role='medic'}}}
         npc={id='n',incarnation='npc-1'}
@@ -90,7 +90,13 @@ class AloneRewardTests(unittest.TestCase):
         self.lua.execute('''
         function isClient() return false end
         function isServer() return false end
-        function require() return nil end
+        config={NPC_REWARD_TABLES={settlers='tools'},Caches={tables={tools={{'Base.Hammer',1},{'Base.Nails',3}},
+          food={{'Base.TinnedBeans',2}}}}}
+        function require(name) if name=='RadioSurvivorCore/RC_MissionConfig' then return config end return nil end
+        nextId=100
+        function instanceItem(t) nextId=nextId+1; local id=nextId
+          return {getActualWeight=function() return 1 end,getID=function() return id end,
+                  getFullType=function() return t end} end
         added = {}
         item={getActualWeight=function() return 1 end,getID=function() return 77 end,
               getFullType=function() return 'Base.Bandage' end}
@@ -128,11 +134,38 @@ class AloneRewardTests(unittest.TestCase):
         self.assertEqual((ok, why), (False, 'State'))
         self.assertEqual(self.g.taken, 1)
 
-    def test_no_surplus_falls_back_to_the_common_lot(self):
-        self.lua.execute('assessment.ration=1')
+    def test_no_surplus_falls_back_to_the_announced_lot(self):
+        self.lua.execute("assessment.ration=1; m.rewardCount=2; m.rewardType='Base.Pills'")
+        self.assertIsNone(self.r.lot(self.g.m))
         self.assertIsNone(self.claim())
         self.assertIsNone(self.g.m.transaction)
         self.assertEqual(self.g.m.claimedBy, '')
+
+    def test_no_surplus_nor_announced_lot_creates_the_lot_of_the_group_type(self):
+        """E18-T33: settlers -> tools, every item of the table in the inventory, once for the group."""
+        self.lua.execute('assessment.ration=1')
+        self.assertEqual(self.r.lot(self.g.m), 'tools')
+        self.assertEqual(self.claim(), True)
+        got = [it.getFullType() for it in self.g.added.values()]
+        self.assertEqual(sorted(got), ['Base.Hammer'] + ['Base.Nails'] * 3)
+        self.assertEqual((self.g.m.claimedBy, self.g.m.createdLot), ('p', 'tools'))
+        self.assertIsNone(self.g.m.transaction)
+        self.assertEqual(self.claim('q', 'u'), (False, 'State'))
+        self.assertEqual(len(self.g.added), 4)
+
+    def test_created_lot_unknown_type_is_food_and_too_heavy_is_refused(self):
+        self.lua.execute("assessment.ration=1; g.type='traders'")
+        self.assertEqual(self.r.lot(self.g.m), 'food')
+        self.lua.execute('player.getInventory=function() return {getCapacityWeight=function() return 49 end,'
+                         'getEffectiveCapacity=function() return 50 end,AddItem=function(_, it) added[#added+1]=it; return it end} end')
+        self.assertEqual(self.claim(), (False, 'Capacity'))
+        self.assertEqual(len(self.g.added), 0)
+        self.assertEqual(self.g.m.claimedBy, '')
+
+    def test_dead_requester_has_no_created_lot(self):
+        self.lua.execute('g.members.m.alive=false')
+        self.assertIsNone(self.r.lot(self.g.m))
+        self.assertIsNone(self.claim())
 
     def test_supply_lot_paid_at_completion_is_the_common_lot(self):
         self.lua.execute("m.supply={ref='grp-1'}; m.rewardCount=2")

@@ -357,6 +357,8 @@ function Alone.start(newWorld)
         claim = function(store, m, player, character, token)
             return LivingKnox.MissionRewards.claim(store, m, player, character, token)
         end,
+        -- E18-T33: lot created by the group's type when the mission announces none.
+        lot = function(m) return LivingKnox.MissionRewards.lot(m) end,
     })
     M.setCharacterName(function(_, character) return characterName(character) end)
     M.setKnownMissions(function(_, character) return Talk.data and Talk.data.known[character] or nil end)

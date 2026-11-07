@@ -200,6 +200,37 @@ class AloneTests(unittest.TestCase):
         errors, _ = self.gesture(m, 'claim')
         self.assertEqual(errors, ['State'])
 
+    def test_without_surplus_nor_announced_lot_the_group_lot_is_created(self):
+        """E18-T33 : ni surplus ni lot annoncé : lot créé selon le type du groupe, annoncé par le carnet, donné une fois."""
+        m = self.accepted_supply()
+        m.quantity = 4
+        m.rewardCount = 0
+        kind = next(iter(m.accepted.keys()))
+        ids = []
+        for _ in range(2):
+            it = self.w.g.item(kind)
+            self.p.inv.AddItem(self.p.inv, it)
+            ids.append(it.id)
+        self.p.x = 13
+        errors, rows = self.gesture(m, 'deliver', items=self.w.rt.table_from(ids))
+        self.assertEqual(errors, [])
+        self.assertEqual(rows[1].toClaim, True)
+        cfg = self.w.rt.eval("require('RadioSurvivorCore/RC_MissionConfig')")
+        group = self.w.rt.eval('function(id) local G = LivingKnox.Groups; return G.get(G.findNpc(id)) end')(m.npc)
+        name = cfg.NPC_REWARD_TABLES[group.type] or 'food'
+        self.assertEqual(rows[1].rewardTable, name)
+        # Le banc ne charge pas le stock des foyers (LivingKnox.Stock) : aucun surplus.
+        self.assertIsNone(self.w.rt.eval('LivingKnox.Stock'))
+        errors, rows = self.gesture(m, 'claim')
+        self.assertEqual(errors, [])
+        self.assertEqual((m.claimedBy, m.createdLot), (self.character, name))
+        got = list(self.w.rt.eval('function(inv) local o = {} for _, it in ipairs(inv.items) do '
+                                  'o[#o + 1] = it:getFullType() end return o end')(self.p.inv).values())
+        for entry in cfg.Caches.tables[name].values():
+            self.assertEqual(got.count(entry[1]), entry[2], got)
+        errors, _ = self.gesture(m, 'claim')
+        self.assertEqual(errors, ['State'])
+
     def test_a_radiosurvivor_giver_is_refused_by_the_journal(self):
         m = self.accepted_supply()
         m.donor = 'voice'
