@@ -6,18 +6,29 @@ automatisés) vivent dans le fichier d'instructions unique du dossier de dévelo
 
 ## Périmètre du projet
 
-Un seul mod, **`batman_RadioSurvivor`** : la radio de Walt, le carnet et, depuis la fusion du 2026-10-08, le moteur de
-PNJ **Living Knox** (ancien projet `LivingKnox`, préfixe de plan `LK`, code sous `media/lua/*/LivingKnox/`).
-`require=batman_BeltRadio`, `batman_SignalSmoke`.
+Un projet, un article Workshop, **trois mods** sous `Contents/mods/` (décision :
+[ADR de séparation](architecture/decisions/adr-separation-mods.md), plan
+[`E18`](annexes/plans/E18-separation-living-knox.md)). Le dossier et l'`id=` sont identiques :
 
-**Séparation décidée le 2026-11-05** (étape [`E18`](annexes/plans/E18-separation-living-knox.md)) : deux mods
-autonomes dans le même projet, le même dépôt et le même article Workshop, `batman_RadioSurvivor` (radio, voix,
-carnet, factions) et `batman_LivingKnox` (moteur de PNJ et parole de proximité), bâtis sur un mod commun
-`batman_RadioSurvivorCore` qu'ils exigent : moteur de missions (donneurs : voix radio et PNJ), lien avec le pont
-Python LLM (base de leur intelligence), identité des personnages, outils partagés, journal des missions. Chacun
-fonctionne seul ; ensemble, RadioSurvivor enrichit les PNJ. Le code commun n'existe qu'une fois, dans le mod commun.
-Tant que `E18` n'est pas faite, le code reste dans un seul mod ; tout nouveau lien de Living Knox vers RadioSurvivor
-est à éviter (passer par l'API publique ou `RS_NPCProvider`).
+| Mod | Rôle | `require=` |
+|---|---|---|
+| `batman_RadioSurvivorCore` | mod commun : moteur et journal des missions, lien avec le pont Python LLM, identité des personnages, historique des échanges, réputation, outils, carnet (cadre et onglets Contacts, Missions, Réputation) | `batman_SignalSmoke` |
+| `batman_RadioSurvivor` | radio, voix, onglet Radio du carnet, factions ; fiches de voix | Core, `batman_BeltRadio`, `batman_SignalSmoke` |
+| `batman_LivingKnox` | moteur de PNJ : groupes, foyers, besoins, routines, parole de proximité ; `incompatible=` Bandits2, ProjectALifeNPCs | Core |
+
+Montages valides : RadioSurvivor seul, Living Knox seul, ou les deux, toujours avec le Core. Chacun vit sans l'autre ;
+le Core activé seul n'apporte rien de jouable. Le code commun n'existe qu'une fois, dans le Core. Aucun `require` ni
+appel de Living Knox vers RadioSurvivor : les liens passent par le Core, l'API publique de Living Knox ou
+`RS_NPCProvider`. Le pont est un seul programme, sans option selon le montage ; son dossier d'échange est
+`Zomboid/Lua/batman_RadioSurvivorCore/`, les fiches de voix restent dans `Zomboid/Lua/batman_RadioSurvivor/personas`
+(RadioSurvivor actif seulement). Le mod de tests `dev/batman_RadioSurvivorTests` n'est jamais publié.
+
+Pas de reprise des anciennes sauvegardes : les mods ne sont pas publiés avec une sauvegarde à reprendre, et aucune
+migration n'est écrite ni documentée.
+
+Limites connues de la séparation (plan E18) : sans RadioSurvivor, livrer et réclamer une mission de PNJ n'est pas
+encore possible (`E18-T29`, à faire) ; les observations des PNJ et la fréquence des initiatives restent dans
+RadioSurvivor, donc Living Knox seul n'a ni initiative ni conversation entre PNJ (`E18-T27`, à faire).
 
 ## Architecture validée — à préserver
 
@@ -29,7 +40,7 @@ autoritaire, adaptateurs d'exécution, fournisseur de PNJ. Vue détaillée :
 - Domaine et décisions serveur : missions, récompenses, groupes et état privé ; seules ces fonctions décident des
   effets persistants.
 - Adaptateurs moteur : inventaire, monde, XP et réseau ; exécutent uniquement les décisions validées par le serveur.
-- `RS_NPCProvider` : interface entre carnet et moteur Living Knox ; pas de dépendance aux détails des corps dans le
+- `RS_NPCProvider` : interface entre le carnet de RadioSurvivor et le moteur Living Knox ; pas de dépendance aux détails des corps dans le
   carnet. L'ancien adaptateur Bandits! (`RS_Bandits.lua`) a été retiré le 2026-10-08 (`E17-T02`).
 - Client : présentation, gestes du propriétaire et demandes ; aucune autorité sur récompenses, stocks ou objectifs.
 - Pont Python : validation du protocole et proposition du modèle dans les listes fermées ; jamais autorité sur objets,

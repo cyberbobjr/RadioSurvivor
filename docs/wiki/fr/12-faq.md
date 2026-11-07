@@ -7,7 +7,7 @@ Non. Sans lui, le jeu reste jouable : les voix radio ne répondent que par des p
 dernières pages prennent de courts textes fixes, et les PNJ restent muets. Les groupes vivent, se battent et se
 fortifient quand même.
 
-**Pourquoi le mod n'appelle-t-il pas l'IA lui-même ?**
+**Pourquoi les mods n'appellent-ils pas l'IA eux-mêmes ?**
 Le Lua de Project Zomboid n'a aucun accès réseau, et un mod du Workshop ne peut pas lancer de programme. Le pont est un
 petit programme Python qui lit les demandes du jeu dans un fichier et écrit les réponses.
 
@@ -37,20 +37,36 @@ ceinture peut écouter (avec Belt Walkie-Talkie) mais pas émettre.
 Approchez-vous, appuyez sur **Ctrl+G** pour sélectionner le PNJ visible le plus proche (8 cases au plus), puis parlez
 dans le chat local (`/say`). Les chats général, de faction et privé n'atteignent pas les PNJ.
 
+**Quels mods cocher ?**
+Radio Survivor, Living Knox, ou les deux ; le Core s'ajoute tout seul. Chacun fonctionne sans l'autre. Voir
+[Installation](04-installation.md).
+
+**À quoi sert le Core ?**
+Il porte ce que Radio Survivor et Living Knox partagent : missions et leur journal, lien avec le pont, identité des
+personnages, historique des échanges, réputation et carnet. Activé seul, il n'apporte rien de jouable.
+
+**Le pont change-t-il selon les mods cochés ?**
+Non. C'est un seul programme, sans option selon le montage. Il sert les voix de la radio, les PNJ, ou les deux.
+
+**Puis-je jouer Living Knox sans la radio ?**
+Oui. Parlez à un survivant dans le chat local (`/say`) près de lui, ou utilisez **Parler** dans le menu du clic droit.
+Limite connue : sans Radio Survivor, vous ne pouvez pas encore livrer ni réclamer la récompense d'une mission donnée
+par un PNJ.
+
 **Puis-je l'utiliser avec Bandits! ou Project A-Life ?**
-Non. Radio Survivor a son propre moteur de PNJ (Living Knox) ; un seul moteur de PNJ par partie.
+Pas avec Living Knox : c'est un moteur de PNJ à part entière, et il n'y a qu'un moteur de PNJ par partie.
 
 **Puis-je l'ajouter à une partie existante ?**
 C'est possible, mais c'est une version de test : une **nouvelle partie** est vivement conseillée. Le nombre de groupes
 est fixé à la création du monde.
 
 **Puis-je changer la personnalité d'une voix ?**
-Oui, en tant qu'admin du serveur : modifiez `<dossier d'échange>/personas/<voix>.txt` (texte après `[prompt]`, plus
+Oui, en tant qu'admin du serveur : modifiez `<dossier Zomboid>/Lua/batman_RadioSurvivor/personas/<voix>.txt` (texte après `[prompt]`, plus
 `knows`, `ignores`, `secret`). Elle est relue toutes les 30 s, et une fiche modifiée n'est jamais écrasée par une mise à
 jour du mod.
 
 **Est-ce que ça marche en multijoueur ?**
-Oui, le mod est pensé pour les serveurs dédiés : le serveur décide de tout, l'IA n'écrit que des paroles. Le
+Oui, les mods sont pensés pour les serveurs dédiés : le serveur décide de tout, l'IA n'écrit que des paroles. Le
 multijoueur est vérifié par des campagnes de tests automatiques ; signalez tout comportement étrange. Voir
 [Le pont sur un serveur dédié](06-pont-sur-serveur-dedie.md).
 

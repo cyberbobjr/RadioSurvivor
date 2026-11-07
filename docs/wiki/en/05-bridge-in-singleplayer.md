@@ -11,13 +11,13 @@ game ← responses.txt ← bridge
 ```
 
 In singleplayer (and in a game hosted from the menu), the bridge runs **on your PC**, in a terminal window left open
-while you play.
+while you play. It is one program for every setup (Radio Survivor, Living Knox or both): nothing to change in it.
 
 ## 1. What you need
 
 - **Python 3.10 or newer** (`python --version`). No package to install: the bridge uses only the standard library.
 - The **five bridge files**, kept together in one folder: `radio_bridge.py`, `npc_protocol.py`, `persona_store.py`,
-  `bulletin.py`, `last_pages.py`, plus `.env.example`. Use the bridge of the same version as the mod.
+  `bulletin.py`, `last_pages.py`, plus `.env.example`. Use the bridge of the same version as the mods.
 - An **API key** from a provider compatible with the OpenAI API: see
   [AI provider configuration](08-ai-provider-configuration.md). Not needed for `--offline`.
 

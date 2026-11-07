@@ -224,7 +224,7 @@ td .step { font-family: var(--f-mono); font-size: 0.8rem; color: var(--muted); w
 <section id="objectif">
   <div class="logline"><span class="ch">A</span><span>Vision</span><button class="comment-btn" type="button" hidden>Commenter</button></div>
   <h2>L'objectif du mod</h2>
-  <p>Knox County, juillet 1993. La zone est bouclée et les survivants sont seuls. <code>batman_RadioSurvivor</code> veut leur donner deux choses que le jeu de base n'a pas : <strong>des voix</strong>, de l'autre côté de la radio, et <strong>d'autres survivants</strong>, en chair et en os, qui vivent dans la zone. Les deux moitiés tiennent dans un seul mod depuis le 2026-10-08.</p>
+  <p>Knox County, juillet 1993. La zone est bouclée et les survivants sont seuls. Radio Survivor veut leur donner deux choses que le jeu de base n'a pas : <strong>des voix</strong>, de l'autre côté de la radio, et <strong>d'autres survivants</strong>, en chair et en os, qui vivent dans la zone. Depuis le 2026-11-05, un même article Workshop livre trois mods : <code>batman_RadioSurvivor</code> (la radio), <code>batman_LivingKnox</code> (les survivants PNJ) et <code>batman_RadioSurvivorCore</code> (missions, pont, identité, historique), chacun des deux premiers jouable sans l'autre.</p>
   <div class="vision">
     <div class="box">
       <h4>La radio</h4>
@@ -583,7 +583,7 @@ td .step { font-family: var(--f-mono); font-size: 0.8rem; color: var(--muted); w
   <div class="logline"><span class="ch">00</span><span>Situation</span><span class="chip ok">Fait</span><button class="comment-btn" type="button" hidden>Commenter</button></div>
   <h2>Où en est le projet</h2>
   <ul>
-    <li><strong>Pont par fichiers.</strong> Le Lua du jeu n'a aucun accès réseau. Le serveur écrit les demandes dans <code>Zomboid\Lua\batman_RadioSurvivor\requests.txt</code>. Un programme Python appelle le LLM et écrit <code>responses.txt</code>. Le serveur relit ce fichier toutes les 0,5 s. Chaque demande porte la voix visée (<code>voice=</code>), jamais la fréquence.</li>
+    <li><strong>Pont par fichiers.</strong> Le Lua du jeu n'a aucun accès réseau. Le serveur écrit les demandes dans <code>Zomboid\Lua\batman_RadioSurvivorCore\requests.txt</code>. Un programme Python appelle le LLM et écrit <code>responses.txt</code>. Le serveur relit ce fichier toutes les 0,5 s. Chaque demande porte la voix visée (<code>voice=</code>), jamais la fréquence.</li>
     <li><strong>Multijoueur dès le départ.</strong> Le client envoie, le serveur valide puis met en file, et la réponse est diffusée sur une vraie chaîne radio. Tous les joueurs réglés sur la fréquence entendent la conversation. Le solo passe par le même chemin.</li>
     <li><strong>Six voix, fréquences à découvrir.</strong> Chaque voix tire sa fréquence au hasard à chaque nouvelle partie. Les clients ne reçoivent aucune liste : on trouve les fréquences sur des notes dans le butin, et le serveur ne répond que si une voix tient la fréquence réglée (§04).</li>
     <li><strong>Garde-fous.</strong> Une demande en attente par joueur, une phrase toutes les 5 s, 15 phrases par minute au plus, un plafond de 60 appels par heure commun aux réponses et aux appels spontanés, un budget par voix. Les options se règlent dans le sandbox.</li>

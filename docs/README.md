@@ -1,7 +1,8 @@
 # Radio Survivor — documentation
 
-Voix radio jouées par une IA et groupes de survivants Living Knox pour Project Zomboid Build 42.21, serveur
-autoritaire, solo et multijoueur. Ce dossier suit la structure commune des projets
+Voix radio jouées par une IA (`batman_RadioSurvivor`) et groupes de survivants (`batman_LivingKnox`) pour Project
+Zomboid Build 42.21, bâtis sur un mod commun (`batman_RadioSurvivorCore`) : trois mods dans un seul article Workshop,
+serveur autoritaire, solo et multijoueur. Ce dossier suit la structure commune des projets
 (`Zomboid\Workshop\docs\structure-documentaire.md`) ; la documentation de développement est en français, le wiki en
 anglais et en français.
 

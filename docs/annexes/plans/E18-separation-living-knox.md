@@ -2,7 +2,7 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 10 / 31 tâche(s) terminée(s).
+**Avancement.** en cours — 11 / 31 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
@@ -21,7 +21,7 @@
 | ☑ | E18-T13 | Traductions et options sandbox des trois mods | `testé hors jeu` | hors jeu | E18-T06, E18-T07 |
 | ☑ | E18-T14 | Outillage des tests pour trois montages | `testé hors jeu` | hors jeu | E18-T07 |
 | ☑ | E18-T15 | Validation des trois montages | `testé MP` | MP | E18-T05, E18-T06, E18-T08, E18-T10, E18-T12, E18-T13, E18-T14, E18-T18, E18-T19 |
-| ☐ | E18-T16 | Documentation et page Workshop des trois mods | `à faire` | hors jeu | E18-T15 |
+| ☑ | E18-T16 | Documentation et page Workshop des trois mods | `testé hors jeu` | hors jeu | E18-T15 |
 | ☑ | E18-T17 | File des demandes de parole des PNJ portée par Living Knox | `testé MP` | MP | E18-T11, E18-T20, E18-T21, E18-T22 |
 | ☑ | E18-T18 | Parole de proximité avec Living Knox seul | `testé MP` | MP | E18-T17 |
 | ☐ | E18-T19 | Historique des voix radio dans le commun | `testé hors jeu` | MP | E18-T11 |
@@ -313,16 +313,16 @@ Deuxième article Workshop, dépôt séparé, nouvelles règles de jeu des missi
   - Preuve : 2026-11-07, campagnes une à une (trois tranches parallèles arrêtées faute de mémoire). Solo les deux : code 1 `pass=242 fail=4 skip=8` (`runs/20261107-083947-7ff0c3f60ad7`) ; solo RadioSurvivor seul : code 0 `pass=103 fail=0 skip=151` (`runs/20261107-090805-c6db5111afb6`) ; solo Living Knox seul : code 1 `pass=104 fail=1 skip=149` (`runs/20261107-091128-28736a52de6e`) ; MP RadioSurvivor seul : code 1 `pass=172 error=1` (`runs/20261107-092927-parallel-1`) ; MP Living Knox seul : code 1 `pass=262 fail=7` (`runs/20261107-093344-parallel-1`) ; MP les deux : code 1 `pass=513 fail=3` (`runs/20261107-101116-parallel-1`). Défaut corrigé : un membre incarné recevait un repas abstrait en plus de son repas réel quand l'horloge du jour avait été déplacée (pas horaire fermé après l'ouverture du suivant) : `LK_Needs` garde l'observation de l'heure précédente, banc `test_lk_needs` (échoue sans le correctif). Bancs corrigés : fenêtre verrouillée contournée par les portes (détour coupé pendant le test), ouï-dire compté comme témoin, demande d'enrichissement partie entre deux relevés, négociation sans Living Knox (SKIP), parole de Living Knox seul en MP (case libre dans la même pièce, attente du membre en vue), portion du repas lue à la prise. Rejeux : solo les deux ciblé code 1 `pass=40 fail=1 skip=1` (seul `lk.upkeep`, `runs/20261107-105521-15c2d31becd8`) ; `lk.windowlure` code 0 (`runs/20261107-110534-e4addcb38cb8`) ; MP `rs.factions.mandate` RadioSurvivor seul code 0 `skip=2` (`runs/20261107-110809-mp-3a68146b0685`) ; MP les deux `lk.meals,lk.alert` code 0 `pass=3` + 4 étapes (`runs/20261107-111029-mp-5f3626e079ef`) ; MP Living Knox seul `lk.talk.alone` code 0 `pass=2` (`runs/20261107-112331-mp-f9e8ba6b809c`) ; reconnexion et redémarrage (`--phases reconnect2,reconnect,restart --server-campaign mp-persist`) code 0 `pass=10` + 3 étapes (`runs/20261107-111412-mp-31e7f853ea5f`). Échecs restants, tous instables et suivis par `E18-T31` (sauf `lk.windowkill` : `E18-T30`).
   - Reste : partie d'avant la séparation non rechargée : exclu par la consigne du 2026-11-06 (aucune reprise, `E18-T23`) ; instabilités `E18-T31`.
 
-- [ ] **E18-T16** — Documentation et page Workshop des trois mods
-  - État : `à faire`
+- [x] **E18-T16** — Documentation et page Workshop des trois mods
+  - État : `testé hors jeu`
   - Cible : `hors jeu`
   - Dépend de : E18-T15
-  - Fichiers : `README.md`, `README_fr.md`, `README.steam*`, `docs/developpement.md`, `docs/architecture/README.md`, `docs/architecture/decisions/README.md`, wiki (`docs/wiki/*`), `docs/annexes/plans/README.md`
+  - Fichiers : `README.md`, `README_fr.md`, `workshop/description_en.bbcode`, `workshop/description_fr.bbcode` (les `README.steam*` n'existent pas), `docs/README.md`, `docs/developpement.md`, `docs/architecture/README.md`, `docs/architecture/decisions/README.md`, `adr-separation-mods.md` (D08 abandonnée), wiki (`docs/wiki/*`), `docs/annexes/plans/README.md`, `docs/annexes/maquettes/fonctionnalites.html`
   - Faire : expliquer au joueur quoi cocher et ce que chaque mod apporte, le mod commun activé seul, le pont ; architecture et décisions à jour ; page Steam qui présente les mods de l'article.
   - Accepté si : aucune page ne décrit encore un mod unique ; descriptions Steam dans toutes les langues sous la limite de 8 000 octets.
   - Tests : `plan.py check` ; contrôle de taille des descriptions.
-  - Preuve : —
-  - Reste : —
+  - Preuve : 2026-11-07 : section « Les trois mods » (quoi cocher, ce que chaque mod apporte, Core activé par `require=` : `ModSelectorModel.lua:408-413`, pont unique, limites `E18-T27` et `E18-T29`) dans les README, le wiki (en, fr) et les descriptions Workshop ; dossier d'échange `Zomboid/Lua/batman_RadioSurvivorCore/` et fiches de voix `Zomboid/Lua/batman_RadioSurvivor/personas` partout ; D08 de l'ADR marquée abandonnée (aucune reprise, `E18-T23`). Descriptions : en 7 244 octets, fr 7 961 octets. `plan.py check` : 0 erreur. Recherche « un seul mod », « mod unique » et ancien dossier d'échange : restent seulement l'historique (ADR, plans terminés, journal de la maquette) et `note-de-travail.html` (ancienne copie de travail).
+  - Reste : page d'artefact des fonctionnalités à republier depuis `fonctionnalites.html` ; menu « Parler » de Living Knox seul décrit d'après le code, sans capture relue.
 
 
 - [x] **E18-T17** — File des demandes de parole des PNJ portée par Living Knox

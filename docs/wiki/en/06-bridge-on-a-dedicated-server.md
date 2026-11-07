@@ -10,15 +10,17 @@ This page is the short path. Every option, cost, log and error message is in the
 
 ## 1. Server configuration
 
-In `<Zomboid>/Server/<server name>.ini`, add the four Workshop items and the four mod IDs:
+In `<Zomboid>/Server/<server name>.ini`, add the four Workshop items and the mod IDs of the mods you chose. The Radio
+Survivor item holds all three mods, so it is listed once:
 
 ```ini
 WorkshopItems=<Radio Survivor Workshop ID>;3817018338;3694097672;3811010882
-Mods=TooltipLib;batman_BeltRadio;batman_SignalSmoke;batman_RadioSurvivor
+Mods=TooltipLib;batman_BeltRadio;batman_SignalSmoke;batman_RadioSurvivorCore;batman_RadioSurvivor;batman_LivingKnox
 ```
 
-Keep your other entries; separate them with `;`. The Radio Survivor Workshop ID is shown at the bottom of its
-Workshop page. Remove Bandits! and Project A-Life if they are listed (one NPC engine per game).
+Keep `batman_RadioSurvivorCore`, then `batman_RadioSurvivor` and/or `batman_LivingKnox`: drop the one you do not want
+(Living Knox alone does not need `batman_BeltRadio` or `TooltipLib`). Keep your other entries; separate them with `;`.
+The Radio Survivor Workshop ID is shown at the bottom of its Workshop page. Remove Bandits! and Project A-Life if they are listed (one NPC engine per game).
 
 ## 2. The exchange folder
 
@@ -35,8 +37,10 @@ folder**.
 `~/Zomboid/Lua/batman_RadioSurvivorCore` of **its own** account: pass `--exchange` as soon as the server runs under
 another account or with `-cachedir`.
 
-- The bridge creates the folder if it is missing, so a typo gives no error. Check: after the server's first world
-  load, the folder holds a `personas` subfolder (`walt.txt`…); while the bridge runs, it also holds `bridge-alive.txt`.
+- The bridge creates the folder if it is missing, so a typo gives no error. Check: while the bridge runs, the folder
+  holds `bridge-alive.txt`, and the game's own files appear in it once the world has loaded. With Radio Survivor, the
+  voice sheets (`walt.txt`…) are in the neighbouring folder `Lua/batman_RadioSurvivor/personas`, not in the exchange
+  folder.
 - Two servers started by the same account without `-cachedir` share the same folder: give each one its own
   `-cachedir` and its own bridge.
 - **Only one bridge per folder**: a second one refuses to start (`Another bridge is already running on …`).
@@ -126,7 +130,7 @@ per server.
 
 - Frequencies are drawn per game; the server log shows `[RadioSurvivor] personas: voice '<id>' drew … MHz` at the
   first load.
-- The character of each voice is in `<exchange>/personas/<voice>.txt`, reread every 30 s. A sheet you edited is
+- The character of each voice is in `<Zomboid folder>/Lua/batman_RadioSurvivor/personas/<voice>.txt`, reread every 30 s. A sheet you edited is
   never overwritten by a mod update (a warning goes to the log).
 - Actions proposed by the voices (accepted or refused, with the reason) are written to
   `<exchange>/actions-<game>.log`.

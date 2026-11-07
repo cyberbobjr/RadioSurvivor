@@ -11,7 +11,8 @@ jeu ← responses.txt ← pont
 ```
 
 En solo (et dans une partie hébergée depuis le menu), le pont tourne **sur votre PC**, dans une fenêtre de terminal
-laissée ouverte pendant la partie.
+laissée ouverte pendant la partie. C'est un seul programme pour tous les montages (Radio Survivor, Living Knox ou
+les deux) : rien à y changer.
 
 ## 1. Ce qu'il faut
 

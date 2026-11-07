@@ -5,6 +5,8 @@
 Une **voix radio** est un personnage qui répond sur une fréquence : Walt, Darlene, Cody, les Whitaker, le Night Owl et
 Gus en sont six. Chaque voix tient dans un fichier texte, une **fiche**. Sur cette page, vous allez copier une fiche,
 en faire votre propre personnage, la tester et l'entendre en jeu. Aucun redémarrage, aucun fichier du mod à modifier.
+Les voix appartiennent au mod Radio Survivor (`batman_RadioSurvivor`) : avec Living Knox seul, il n'y a pas de fiches
+de voix.
 
 > **Astuce**
 > Les cinq étapes du démarrage rapide suffisent pour la plupart des voix. La suite de la page est une référence : ne
@@ -316,7 +318,7 @@ budget.start_mission=2
 
 - `call_text` est une **clé de traduction** du mod, utilisée seulement quand le pont n'écrit pas l'appel (pont
   arrêté, réponse vide, pas de réponse au bout de 30 s).
-- Une nouvelle voix n'a pas de clé propre dans le mod : donnez-lui quand même un nom nouveau
+- Une nouvelle voix n'a pas de clé propre dans Radio Survivor : donnez-lui quand même un nom nouveau
   (`IGUI_RadioSurvivor_Call_Mae`).
 - Quand le pont est arrêté, son appel est alors sauté et le journal indique une fois
   `call of voice 'mae' skipped: no translation for call_text 'IGUI_RadioSurvivor_Call_Mae'`.

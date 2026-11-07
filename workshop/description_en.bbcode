@@ -1,10 +1,24 @@
 [h1]Radio Survivor[/h1]
 
-[b]Build 42.21 · Singleplayer & Multiplayer · TEST VERSION 0.3.0[/b]
+[b]Build 42.21 · Singleplayer & Multiplayer · TEST VERSION[/b]
 
-Knox County, July 1993. You are not alone any more: voices answer on the radio, and groups of survivors live, fight and fortify in the county. The radio characters are played by an AI through a small program you run yourself, [b]the bridge[/b] (see below). Without it the game stays fully playable; the voices and the NPCs just stay silent.
+Knox County, July 1993. You are not alone any more: voices answer on the radio, and groups of survivors live, fight and fortify in the county. The radio characters and the NPCs are played by an AI through a small program you run yourself, [b]the bridge[/b] (see below). Without it the game stays fully playable; the voices and the NPCs just stay silent.
 
 [b]This is a test version.[/b] Expect bugs and balance changes. Start a new game, keep a backup of any save you care about, and report problems in the comments with your [i]console.txt[/i] and the bridge output.
+
+[h2]Three mods in this item: what to tick[/h2]
+
+Subscribe once, then tick in the Mods list what you want. Radio Survivor and Living Knox each work without the other.
+
+[list]
+[*][b]Radio Survivor[/b] (batman_RadioSurvivor): the radio, six AI voices, the Radio tab of the notebook, factions.
+[*][b]Living Knox[/b] (batman_LivingKnox): groups of NPC survivors with homes, needs, routines and fights.
+[*][b]Radio Survivor Core[/b] (batman_RadioSurvivorCore): what both share: missions and their journal, the link with the bridge, character identity, conversation history, reputation, the notebook. The game enables it for you; on its own it adds nothing playable.
+[/list]
+
+[b]Radio Survivor alone:[/b] voices, radio, notebook. [b]Living Knox alone:[/b] you talk to an NPC in the normal chat (/say) near them, or with the right-click menu [b]Talk[/b]; it answers in a speech bubble, and its missions go to the notebook. [b]Both:[/b] you talk to NPCs through the notebook (Ctrl+G) and Radio Survivor adds relations and agreements with the groups.
+
+[b]Known limit:[/b] without Radio Survivor, delivering and claiming the reward of an NPC mission is not possible yet, and NPCs do not speak first. The bridge is one program whatever you tick.
 
 [h2]What it adds[/h2]
 
@@ -12,11 +26,8 @@ Knox County, July 1993. You are not alone any more: voices answer on the radio, 
 [*][b]Voices on the radio:[/b] Walt, a nurse, a deserter, a besieged family, a pirate station and a smuggler, each on a real frequency drawn for each game. Find their frequency on notes in the loot, then talk with any transmitting radio held in hand or worn on the back ([b]Transmit[/b] section of the radio window). They remember you, give advice, news and missions.
 [*][b]Field notebook[/b] ([b]Notebook[/b] button): contacts, radio history by frequency, missions, rewards and your reputation.
 [*][b]Living Knox survivor groups:[/b] 3 to 5 groups of human NPCs with a home, a leader, real supplies, needs and routines (guard, sleep, meals, scavenging, garden). They defend and fortify their home, fight zombies, and keep living off screen. Settlers, neutrals and raiders: raiders may warn, raid your base or take revenge.
-[*][b]Meet them:[/b] press [b]Ctrl+G[/b] near an NPC, then speak in the local chat. Earn their trust, trade, negotiate truces and alliances with the leader.
 [*][b]Missions:[/b] deliver, scout, find a missing person, clear a place, recover a stash, signal. The server checks every objective; come back and report.
-[*][b]Rescue:[/b] a besieged family calls for help with clues. Reach them in time, or find what is left.
-[*][b]The Ohio smuggler:[/b] trades negotiated on the radio, one crossing per game week, a no-contact exchange on the river bank.
-[*][b]Evening chronicle:[/b] the pirate station reads the confirmed news of the server and the names of the dead.
+[*][b]Rescue, smuggler, chronicle:[/b] a besieged family calls for help; the Ohio smuggler trades over the radio; the pirate station reads the server news and the names of the dead.
 [*][b]Last pages:[/b] when a character dies, a handwritten journal of their life is left on the body.
 [*][b]Reputation:[/b] bad, neutral or good, earned through missions and kept by the server.
 [/list]
@@ -26,12 +37,12 @@ The server decides everything: the AI only writes words and picks from closed li
 [h2]Required mods[/h2]
 
 [list]
-[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3817018338]Belt Walkie-Talkie[/url] (batman_BeltRadio), which itself requires [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3694097672]TooltipLib[/url].
-[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3811010882]Signal Smoke[/url] (batman_SignalSmoke).
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3811010882]Signal Smoke[/url] (batman_SignalSmoke): all three mods.
+[*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3817018338]Belt Walkie-Talkie[/url] (batman_BeltRadio), which itself requires [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3694097672]TooltipLib[/url]: Radio Survivor only.
 [/list]
-Load order: TooltipLib, Belt Walkie-Talkie, Signal Smoke, Radio Survivor.
+Load order: TooltipLib, Belt Walkie-Talkie, Signal Smoke, Radio Survivor Core, Radio Survivor, Living Knox.
 
-[b]Not compatible[/b] with Bandits! and Project A-Life (one NPC engine per game).
+[b]Not compatible[/b] (Living Knox) with Bandits! and Project A-Life: one NPC engine per game.
 
 [h2]The bridge: install and start[/h2]
 
@@ -46,8 +57,8 @@ Project Zomboid's Lua has no network access, so the game and the bridge exchange
 [b]3. Start.[/b] [i]python radio_bridge.py[/i] and leave the window open while you play. Wait for [i]Bridge ready[/i]. The start order (game or bridge first) does not matter.
 
 [list]
-[*][b]Singleplayer and game hosted from the menu:[/b] nothing else; the default exchange folder is %USERPROFILE%\Zomboid\Lua\batman_RadioSurvivor.
-[*][b]Dedicated server (Windows or Linux):[/b] run the bridge under the server account. With -cachedir=X, add [i]--exchange X/Lua/batman_RadioSurvivor[/i]. Start it with the server (Task Scheduler, systemd service, or a second container sharing the server volume). After the first world load, that folder holds a [i]personas[/i] subfolder: if not, it is the wrong folder.
+[*][b]Singleplayer and game hosted from the menu:[/b] nothing else; the default exchange folder is %USERPROFILE%\Zomboid\Lua\batman_RadioSurvivorCore.
+[*][b]Dedicated server (Windows or Linux):[/b] run the bridge under the server account. With -cachedir=X, add [i]--exchange X/Lua/batman_RadioSurvivorCore[/i]. Start it with the server (Task Scheduler, systemd service, or a second container sharing the server volume). While the bridge runs, that folder holds bridge-alive.txt: if not, it is the wrong folder.
 [*][b]One bridge per folder:[/b] a second one refuses to start (double answers, double cost).
 [*][i]--offline[/i]: no AI, no cost, the voices echo you (to test the setup). [i]--debug[/i]: full log (contains the dialogues, do not share as is).
 [/list]
@@ -58,9 +69,13 @@ Project Zomboid's Lua has no network access, so the game and the bridge exchange
 
 [h2]Sandbox options[/h2]
 
-Pages [b]Radio Survivor[/b] (message cap and delay, spontaneous calls and their language, frequency notes in the loot, bulletin hour, last pages, NPC initiatives, rescue delay) and [b]Living Knox[/b] (number and kind of groups, group size, raids, revenge delay, combat distances).
+One page per mod: [b]Radio Survivor[/b] (message cap and delay, spontaneous calls and their language, frequency notes in the loot, bulletin hour, last pages, NPC initiatives, rescue delay) and [b]Living Knox[/b] (number and kind of groups, group size, raids, revenge delay, combat distances).
+
+[h2]Open source[/h2]
+
+Source code, full documentation and wiki on GitHub, MIT license: [url=https://github.com/cyberbobjr/RadioSurvivor]github.com/cyberbobjr/RadioSurvivor[/url]
 
 [h2]Support the project[/h2]
 
-Enjoying the mod? A coffee helps fund new features and translations.
+Enjoying the mods? A coffee helps fund new features and translations.
 [url=https://ko-fi.com/Z8Z8QJV31][img]https://storage.ko-fi.com/cdn/kofi6.png?v=6[/img][/url]

@@ -36,8 +36,9 @@ RadioSurvivor (outils, état des secours, identité des joueurs).
   l'intègre à son onglet missions (une seule liste).
 - **D07 — Historique dans le commun.** L'historique des échanges avec un PNJ (et avec une voix radio) est gardé par le
   mod commun, lu par le carnet.
-- **D08 — Parties existantes reprises.** Missions, identités, historiques, groupes et attitudes d'une partie d'avant la
-  séparation sont repris une fois au premier lancement, sans perte.
+- **D08 — Parties existantes reprises. Abandonnée le 2026-11-07** (consigne de l'utilisateur : les mods ne sont pas
+  publiés avec une sauvegarde à reprendre). Texte d'origine : missions, identités, historiques, groupes et attitudes
+  d'une partie d'avant la séparation sont repris une fois au premier lancement, sans perte. Aucune reprise n'est écrite.
 
 Valeurs techniques confirmées par défaut (identifiants, dossiers de données, outillage des tests) : voir la section
 « Décisions » du plan E18.
@@ -48,6 +49,7 @@ Valeurs techniques confirmées par défaut (identifiants, dossiers de données, 
   conservée ; seule la répartition en mods change.
 - Living Knox ne requiert plus aucun module de RadioSurvivor ; les liens restants passent par le mod commun, l'API
   publique de Living Knox et `RS_NPCProvider`.
-- Le dossier d'échange du pont change (mod commun), l'ancien étant lu pendant la transition.
+- Le dossier d'échange du pont change (mod commun : `Zomboid/Lua/batman_RadioSurvivorCore/`). L'ancien n'est pas lu
+  (révision du 2026-11-07, voir D08) ; les fiches de voix restent dans `Zomboid/Lua/batman_RadioSurvivor/personas`.
 - Les tests tournent dans trois montages (RadioSurvivor seul, Living Knox seul, les deux), en solo et en MP.
 - La page Workshop présente les mods de l'article et ce que chacun apporte.

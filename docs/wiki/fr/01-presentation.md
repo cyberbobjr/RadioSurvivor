@@ -2,16 +2,22 @@
 
 # Présentation
 
-Radio Survivor (`batman_RadioSurvivor`) fait entrer d'autres survivants dans le comté de Knox, juillet 1993 : des
-**voix à la radio**, un **carnet de terrain** qui garde la trace de tous ceux que vous rencontrez, et **Living Knox**,
-des groupes de survivants humains qui vivent, se battent et fortifient leur foyer. Solo et multijoueur, Project
-Zomboid **Build 42.21**.
+Radio Survivor fait entrer d'autres survivants dans le comté de Knox, juillet 1993 : des **voix à la radio**, un
+**carnet de terrain** qui garde la trace de tous ceux que vous rencontrez, et **Living Knox**, des groupes de
+survivants humains qui vivent, se battent et fortifient leur foyer. Solo et multijoueur, Project Zomboid
+**Build 42.21**.
+
+C'est un seul objet Workshop avec **trois mods** : **Radio Survivor** (`batman_RadioSurvivor` : la radio et ses
+voix), **Living Knox** (`batman_LivingKnox` : les groupes de PNJ) et **Radio Survivor Core**
+(`batman_RadioSurvivorCore` : ce que les deux partagent, activé pour vous). Vous pouvez jouer avec Radio Survivor,
+avec Living Knox, ou avec les deux ([quels mods cocher](04-installation.md)). Cette page décrit tout ; chaque partie
+dit quel mod l'apporte.
 
 Les voix et les PNJ parlent par un modèle d'IA, joint par un petit programme, **le pont**
 ([Installation et configuration](02-installation-et-configuration.md)). Le serveur du jeu décide de tout ce qui
 arrive : l'IA écrit seulement les mots et choisit dans des listes fermées.
 
-## Des voix à la radio
+## Des voix à la radio (Radio Survivor)
 
 Six voix répondent sur de vraies fréquences tirées pour chaque partie : Walt, le vieux radioamateur, une infirmière,
 un déserteur, une famille assiégée, une station pirate et un contrebandier. Chacune a son histoire, ses heures
@@ -33,17 +39,18 @@ radio, fiche de patient, avis de la Garde nationale, note griffonnée, prospectu
 
 ## Le carnet
 
-Le bouton **Carnet** de la barre de gauche ouvre le carnet de terrain de votre personnage. Il garde :
+Le bouton **Carnet** de la barre de gauche ouvre le carnet de terrain de votre personnage. Le Core tient le carnet :
+il existe avec l'un ou l'autre mod. Il garde :
 
 - **Contacts** : tous ceux à qui vous avez parlé, leur groupe, leur tempérament, les conversations entendues par
   votre personnage, votre note privée, et **ce qu'on pense de vous** ;
 - **Missions** : les offres et les missions en cours, leur objectif, leur délai et leur récompense ;
-- **Radio** : l'historique de chaque fréquence écoutée ;
+- **Radio** (Radio Survivor) : l'historique de chaque fréquence écoutée ;
 - **Réputation** : votre réputation parmi les survivants et ce qu'on retient de vos actes.
 
 ![Carnet, onglet Contacts](../../images/screenshots/fr-notebook-contacts.png)
 
-## Living Knox
+## Living Knox (Living Knox)
 
 Living Knox peuple le comté de 3 à 5 groupes de survivants humains : colons, neutres et pillards. Chaque groupe a un
 foyer, un chef, de vraies réserves, des besoins et des habitudes. Ses membres défendent et fortifient leur foyer,
@@ -51,8 +58,9 @@ combattent les zombies, partent en expédition et continuent de vivre quand vous
 
 ![Un groupe Living Knox à son foyer](../../images/screenshots/fr-group-home.png)
 
-Approchez-vous d'un survivant, sélectionnez-le avec **Ctrl+G** et parlez : il répond dans une bulle, avec sa propre
-voix, et se souvient de la conversation.
+Approchez-vous d'un survivant et parlez : il répond dans une bulle, avec sa propre voix, et se souvient de la
+conversation. Avec Radio Survivor, vous le sélectionnez avec **Ctrl+G** et parlez par le carnet ; avec Living Knox
+seul, vous parlez dans le chat local (`/say`) ou par le menu du clic droit **Parler**.
 
 ![Un survivant répond dans une bulle](../../images/screenshots/fr-npc-bubble.png)
 

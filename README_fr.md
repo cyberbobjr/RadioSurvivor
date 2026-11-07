@@ -3,10 +3,11 @@
 [English](README.md)
 
 **Des voix à la radio et des survivants bien vivants dans le comté de Knox.**
-Mod pour Project Zomboid **Build 42.21**, solo et multijoueur (serveur dédié compris).
-Identifiant `batman_RadioSurvivor`, version **0.3.0 (version de test)**.
+Mods pour Project Zomboid **Build 42.21**, solo et multijoueur (serveur dédié compris).
+Un objet Workshop, **trois mods** : Radio Survivor (`batman_RadioSurvivor`, 0.3.0), Living Knox (`batman_LivingKnox`,
+0.1.0) et leur socle commun (`batman_RadioSurvivorCore`, 0.1.0). Version de test.
 
-Knox County, juillet 1993. La zone est bouclée, les survivants sont seuls. Radio Survivor leur donne ce que le jeu de
+Knox County, juillet 1993. La zone est bouclée, les survivants sont seuls. Ces mods leur donnent ce que le jeu de
 base n'a pas : **des voix de l'autre côté de la radio**, jouées par une intelligence artificielle, et **d'autres
 survivants en chair et en os**, des groupes de PNJ qui vivent leur vie dans le comté. Un carnet de terrain sert à les
 rencontrer, à gagner leur confiance et à accepter leurs missions.
@@ -18,9 +19,10 @@ rencontrer, à gagner leur confiance et à accepter leurs missions.
 
 ## Sommaire
 
+- [Les trois mods](#les-trois-mods)
 - [Fonctionnalités](#fonctionnalités)
 - [Prérequis](#prérequis)
-- [Installation du mod](#installation-du-mod)
+- [Installation des mods](#installation-des-mods)
 - [Le pont d'IA](#le-pont-dia)
 - [Configuration](#configuration)
 - [Jouer](#jouer)
@@ -28,9 +30,31 @@ rencontrer, à gagner leur confiance et à accepter leurs missions.
 - [État du projet](#état-du-projet)
 - [Développement](#développement)
 
+## Les trois mods
+
+Abonnez-vous une fois, puis cochez dans la liste **Mods** ce que vous voulez jouer : Radio Survivor, Living Knox, ou
+les deux. Chacun fonctionne sans l'autre.
+
+| Mod | Mod ID | Ce qu'il apporte | Demande |
+|---|---|---|---|
+| Radio Survivor | `batman_RadioSurvivor` | La radio : six voix d'IA sur de vraies fréquences, l'onglet Radio du carnet, les factions | Radio Survivor Core, Belt Walkie-Talkie, Signal Smoke |
+| Living Knox | `batman_LivingKnox` | Des groupes de survivants PNJ : foyers, besoins, routines, combats, fortifications | Radio Survivor Core. Incompatible avec Bandits! et Project A-Life |
+| Radio Survivor Core | `batman_RadioSurvivorCore` | Ce que les deux partagent : missions et journal des missions, lien avec le pont d'IA, identité des personnages, historique des échanges, réputation, outils, carnet | Signal Smoke |
+
+- **Le Core** est exigé par les deux autres : le jeu l'active pour vous. Activé seul, il n'apporte rien de jouable.
+- **Radio Survivor seul** : voix, radio, carnet ; pas de groupes de PNJ.
+- **Living Knox seul** : groupes de PNJ. Vous parlez à un PNJ dans le chat normal (`/say`) quand vous êtes près de
+  lui, ou par le menu du clic droit **Parler** ; il répond dans une bulle. Les missions qu'il propose vont dans
+  l'onglet Missions du carnet.
+- **Les deux** : vous parlez aux PNJ par le carnet (**Ctrl+G**), et Radio Survivor ajoute les relations, les effets de
+  la réputation et les accords avec les groupes.
+- **Le pont d'IA** est un seul programme, sans réglage qui dépende du choix des mods.
+- **Limite connue** : sans Radio Survivor, livrer et réclamer la récompense d'une mission donnée par un PNJ n'est pas
+  encore possible, et les PNJ ne prennent pas la parole d'eux-mêmes ni ne se parlent entre eux.
+
 ## Fonctionnalités
 
-### La radio
+### La radio (Radio Survivor)
 
 - **Six voix**, chacune sur sa propre fréquence, tirée au hasard à chaque partie : Walt, le confident sorti de la zone ;
   Darlene, infirmière à West Point ; Cody, déserteur de la Garde nationale ; les Whitaker, famille assiégée ; le Night
@@ -53,6 +77,8 @@ rencontrer, à gagner leur confiance et à accepter leurs missions.
 
 ### Le carnet et les PNJ
 
+Une partie de ce qui suit demande Radio Survivor (onglet Radio, Ctrl+G, relations de factions) ; voir [Les trois mods](#les-trois-mods).
+
 - **Carnet de terrain** (bouton **Carnet** de la barre latérale) : contacts, onglet Radio (historique par fréquence, avec qui y parle et ses heures d'écoute dès le premier contact ou la note lue),
   missions, réputation, notes.
 - **Parler à un PNJ** : s'en approcher, **Ctrl+G** pour le sélectionner, puis parler dans le chat local (`/say`). Il
@@ -66,7 +92,7 @@ rencontrer, à gagner leur confiance et à accepter leurs missions.
   échecs, les abandons, la tricherie envers le passeur, et chute si vous tuez celui qui vous a confié une mission. Une
   mauvaise réputation ne laisse que les missions simples, le passeur fait payer plus cher, les PNJ en parlent.
 
-### Living Knox, le moteur de PNJ
+### Living Knox, le moteur de PNJ (Living Knox)
 
 - **Trois à cinq groupes de survivants** (colons, neutres, pillards), chacun avec un chef, des membres, une histoire et un
   foyer aménagé dans un vrai bâtiment, dont le stock est fait d'objets réels.
@@ -86,35 +112,37 @@ rencontrer, à gagner leur confiance et à accepter leurs missions.
 | Élément | Où | Remarque |
 |---|---|---|
 | Project Zomboid **42.21** | — | Build 41 non prise en charge. |
-| **Belt Walkie-Talkie** (`batman_BeltRadio`) | Workshop 3817018338 | Mod requis (talkie à la ceinture, règle d'émission commune). |
+| **Belt Walkie-Talkie** (`batman_BeltRadio`) | Workshop 3817018338 | Requis par Radio Survivor (talkie à la ceinture, règle d'émission commune). |
 | **TooltipLib** (`TooltipLib`) | Workshop 3694097672 | Requis par Belt Walkie-Talkie. |
-| **Signal Smoke** (`batman_SignalSmoke`) | Workshop 3811010882 | Mod requis (fumigènes et fusées des missions, du passeur et des secours). |
+| **Signal Smoke** (`batman_SignalSmoke`) | Workshop 3811010882 | Requis par les trois mods (fumigènes et fusées des missions, du passeur et des secours). |
 | **Python 3.10 ou plus récent** | sur la machine de la partie | Pour le pont d'IA. Aucun paquet à installer. |
 | **Une clé d'API d'IA** | chez un fournisseur | Compatible avec l'API OpenAI (voir [Fournisseur d'IA](#3-la-clé-et-le-fournisseur-dia)). |
 
-**Incompatible** avec Bandits! et Project A-Life : un seul moteur de PNJ par partie (le sélecteur de mods le signale).
+**Incompatible** (Living Knox) avec Bandits! et Project A-Life : un seul moteur de PNJ par partie (le sélecteur de mods le signale).
 `batman_CharacterReputation` est facultatif.
 
-## Installation du mod
+## Installation des mods
 
 ### En solo
 
-1. Abonnez-vous aux mods requis et à Radio Survivor sur le Workshop, **ou** copiez les dossiers de mods dans
+1. Abonnez-vous aux mods requis et à l'objet Radio Survivor (il contient les trois mods) sur le Workshop, **ou** copiez les dossiers de mods dans
    `%USERPROFILE%\Zomboid\mods\` (installation sans Workshop, par exemple à partir du zip de test : voir son
    `LISEZMOI.md`).
-2. Dans **Mods**, activez dans cet ordre : TooltipLib, Belt Walkie-Talkie, Signal Smoke, Radio Survivor.
+2. Dans **Mods**, activez les mods choisis, dans cet ordre : TooltipLib, Belt Walkie-Talkie, Signal Smoke, Radio
+   Survivor Core, Radio Survivor, Living Knox (Living Knox seul n'a besoin ni de TooltipLib ni de Belt Walkie-Talkie).
 3. Redémarrez complètement le jeu après une installation ou une mise à jour.
 4. **Créez une nouvelle partie** : les groupes de survivants s'installent au démarrage du monde.
 5. Installez et lancez le [pont d'IA](#le-pont-dia).
 
 ### Sur un serveur dédié
 
-Dans `<Zomboid>/Server/<nom du serveur>.ini`, ajoutez les quatre objets Workshop et les quatre identifiants de mod
-(en gardant vos autres entrées, séparées par `;`) :
+Dans `<Zomboid>/Server/<nom du serveur>.ini`, ajoutez les objets Workshop et les identifiants des mods choisis (en
+gardant vos autres entrées, séparées par `;`). L'objet Radio Survivor contient les trois mods : il n'est listé qu'une
+fois ; retirez celui que vous ne voulez pas parmi `batman_RadioSurvivor` et `batman_LivingKnox` :
 
 ```ini
 WorkshopItems=<ID Workshop de Radio Survivor>;3817018338;3694097672;3811010882
-Mods=TooltipLib;batman_BeltRadio;batman_SignalSmoke;batman_RadioSurvivor
+Mods=TooltipLib;batman_BeltRadio;batman_SignalSmoke;batman_RadioSurvivorCore;batman_RadioSurvivor;batman_LivingKnox
 ```
 
 Les joueurs n'ont rien d'autre à installer que les mods. Le pont tourne **sur la machine du serveur** : voir
@@ -132,8 +160,8 @@ jeu ──requests.txt──▶ pont ──HTTPS──▶ API de l'IA
 jeu ◀─responses.txt── pont ◀─────────
 ```
 
-- Dossier d'échange : `<dossier Zomboid>/Lua/batman_RadioSurvivor/` (en solo sous Windows :
-  `%USERPROFILE%\Zomboid\Lua\batman_RadioSurvivor`).
+- Dossier d'échange : `<dossier Zomboid>/Lua/batman_RadioSurvivorCore/` (en solo sous Windows :
+  `%USERPROFILE%\Zomboid\Lua\batman_RadioSurvivorCore`).
 - Le pont signale qu'il est vivant en réécrivant `bridge-alive.txt` toutes les 5 s. Tant qu'il est vivant, le jeu attend
   une réponse lente jusqu'à 150 s ; sans pont, il passe au secours après 90 s.
 - Le serveur ne transmet jamais de secret à l'IA (position exacte des bases, fréquences cachées…) et vérifie chaque
@@ -149,7 +177,7 @@ jeu ◀─responses.txt── pont ◀─────────
 
 ### 1. Les fichiers
 
-Le pont tient en cinq fichiers Python, à garder **ensemble dans un même dossier** et à mettre à jour avec le mod :
+Le pont tient en cinq fichiers Python, à garder **ensemble dans un même dossier** et à mettre à jour avec les mods :
 
 | Fichier | Rôle |
 |---|---|
@@ -205,8 +233,8 @@ python radio_bridge.py
 Le bandeau affiche la configuration effective, puis `Bridge ready, model …, directory …`. **Laissez la fenêtre ouverte**
 pendant la partie ; l'ordre (jeu ou pont d'abord) est indifférent. Arrêt par **Ctrl+C**.
 
-- Dossier d'échange par défaut : `%USERPROFILE%\Zomboid\Lua\batman_RadioSurvivor` (créé au besoin).
-- Jeu lancé avec `-cachedir=X` : ajoutez `--exchange "X\Lua\batman_RadioSurvivor"`.
+- Dossier d'échange par défaut : `%USERPROFILE%\Zomboid\Lua\batman_RadioSurvivorCore` (créé au besoin).
+- Jeu lancé avec `-cachedir=X` : ajoutez `--exchange "X\Lua\batman_RadioSurvivorCore"`.
 - Pour garder le journal dans un fichier : `python radio_bridge.py > bridge.log 2>&1`.
 
 ### Pont en partie hébergée
@@ -219,13 +247,13 @@ Comme en solo, sur le PC de l'hôte : le serveur lancé par le jeu utilise le m�
 
    | Cas | Dossier d'échange |
    |---|---|
-   | Windows, sans `-cachedir` | `%USERPROFILE%\Zomboid\Lua\batman_RadioSurvivor` |
-   | Linux, sans `-cachedir` | `/home/<compte du serveur>/Zomboid/Lua/batman_RadioSurvivor` |
-   | Serveur lancé avec `-cachedir=X` | `X/Lua/batman_RadioSurvivor` |
+   | Windows, sans `-cachedir` | `%USERPROFILE%\Zomboid\Lua\batman_RadioSurvivorCore` |
+   | Linux, sans `-cachedir` | `/home/<compte du serveur>/Zomboid/Lua/batman_RadioSurvivorCore` |
+   | Serveur lancé avec `-cachedir=X` | `X/Lua/batman_RadioSurvivorCore` |
 
    Sans `--exchange`, le pont prend le dossier `Zomboid` de **son propre** compte : passez `--exchange` dès que le
    serveur tourne sous un autre compte ou avec `-cachedir`. Le pont crée le dossier s'il manque, donc une faute de
-   frappe ne donne aucune erreur : après le premier chargement du monde, le bon dossier contient `personas/`.
+   frappe ne donne aucune erreur : tant que le pont tourne, le bon dossier contient `bridge-alive.txt`.
 2. **Installer** les cinq fichiers dans un dossier (par exemple `C:\RadioSurvivorBridge` ou
    `/opt/radiosurvivor-bridge`) et le fichier de clé **hors** de ce dossier et des dossiers du jeu, lisible par le seul
    compte du pont (`chmod 600` sous Linux).
@@ -233,7 +261,7 @@ Comme en solo, sur le PC de l'hôte : le serveur lancé par le jeu utilise le m�
 
    ```sh
    python3 /opt/radiosurvivor-bridge/radio_bridge.py --env /etc/radiosurvivor/bridge.env \
-     --exchange /srv/pz/cache/Lua/batman_RadioSurvivor
+     --exchange /srv/pz/cache/Lua/batman_RadioSurvivorCore
    ```
 
    et attendre `Bridge ready`.
@@ -248,7 +276,7 @@ Comme en solo, sur le PC de l'hôte : le serveur lancé par le jeu utilise le m�
 
    [Service]
    User=<compte du serveur PZ>
-   ExecStart=/usr/bin/python3 /opt/radiosurvivor-bridge/radio_bridge.py --env /etc/radiosurvivor/bridge.env --exchange /srv/pz/cache/Lua/batman_RadioSurvivor
+   ExecStart=/usr/bin/python3 /opt/radiosurvivor-bridge/radio_bridge.py --env /etc/radiosurvivor/bridge.env --exchange /srv/pz/cache/Lua/batman_RadioSurvivorCore
    Restart=on-failure
    RestartSec=10
    KillSignal=SIGINT
@@ -277,7 +305,7 @@ Comme en solo, sur le PC de l'hôte : le serveur lancé par le jeu utilise le m�
 | `--test "TEXTE"` | Un échange en console, sans le jeu ; `--voice ID` pour une autre voix que `walt`. |
 | `--env CHEMIN` | Autre fichier de réglages que `.env` à côté du pont. |
 | `--exchange CHEMIN` | Autre dossier d'échange. |
-| `--personas CHEMIN` | Dossier des fiches de voix pour `--test` (défaut : les fiches livrées avec le mod). |
+| `--personas CHEMIN` | Dossier des fiches de voix pour `--test` (défaut : les fiches livrées avec Radio Survivor). |
 | `--usage-log CHEMIN` | Journal de consommation (défaut `<échange>/token_usage.jsonl`). |
 | `--debug` | Journal complet dans le terminal, prompts et dialogues compris. |
 | `--poll SECONDES` | Intervalle de lecture de `requests.txt` (défaut 0,3). |
@@ -304,7 +332,7 @@ continue.
 
 ### Options sandbox
 
-Deux pages dans les réglages sandbox (sur un serveur dédié : `<Zomboid>/Server/<nom>_SandboxVars.lua`).
+Une page par mod dans les réglages sandbox (sur un serveur dédié : `<Zomboid>/Server/<nom>_SandboxVars.lua`).
 
 **Radio Survivor** : `Enabled` (voix radio), `PlayerCooldown` (10 s entre deux messages d'un joueur), `MaxPerHour`
 (60), `SpontaneousCalls`, `CallLanguage` (langue des appels spontanés), `NoteRarity` (notes de fréquences dans le
@@ -321,7 +349,7 @@ Liste complète avec les valeurs par défaut : [docs/wiki/fr/09-options-sandbox.
 
 ### Caractère des voix
 
-Chaque voix a une fiche texte dans `<dossier d'échange>/personas/<voix>.txt` (fréquences, horaires, radio exigée,
+Chaque voix a une fiche texte dans `<dossier Zomboid>/Lua/batman_RadioSurvivor/personas/<voix>.txt` (Radio Survivor seulement) (fréquences, horaires, radio exigée,
 actions permises, ce qu'elle sait, ignore ou cache, et son prompt après `[prompt]`). Le serveur l'installe au premier
 chargement du monde et la relit toutes les 30 s : la modifier change la voix sans redémarrer. Une fiche modifiée par
 l'admin n'est jamais écrasée par une mise à jour du mod. Guide : [docs/wiki/fr/10-creer-une-voix-radio.md](docs/wiki/fr/10-creer-une-voix-radio.md).
@@ -332,8 +360,9 @@ l'admin n'est jamais écrasée par une mise à jour du mod. Guide : [docs/wiki/f
 2. **Parler à une voix** : talkie allumé **en main ou sur le dos** (jamais depuis la ceinture), micro ouvert, réglé sur
    la fréquence ; dans la fenêtre de la radio, section **Émettre** : tapez votre phrase, Entrée. La radio de
    radioamateur posée (à moins de 5 cases) et l'autoradio émettrice d'un véhicule marchent aussi.
-3. **Rencontrer un groupe** : approchez sans arme pointée, **Ctrl+G** pour sélectionner le PNJ, parlez dans le chat
-   local. Faites connaissance avant de demander du travail.
+3. **Rencontrer un groupe** : approchez sans arme pointée, puis parlez dans le chat local (avec Radio Survivor,
+   **Ctrl+G** pour sélectionner le PNJ d'abord ; avec Living Knox seul, vous pouvez aussi faire un clic droit →
+   **Parler**). Faites connaissance avant de demander du travail.
 4. **Mission** : acceptez-la dans le carnet (**Missions**), remplissez l'objectif (cercle sur la carte), revenez le
    dire au demandeur, puis **Récupérer le lot commun**.
 5. **Carnet** : onglet Radio pour relire les conversations, Contacts pour ce que chaque PNJ pense de vous, Réputation
@@ -350,14 +379,14 @@ Admins et mode debug : fenêtre d'administration des groupes, fiche d'un PNJ par
 | Le pont refuse de démarrer | Un autre pont surveille déjà ce dossier (`bridge.lock`). |
 | Aucune voix sur une fréquence | Personne ne la tient cette partie, hors de ses horaires, ou radio pas assez puissante (ondes courtes). |
 | `Expired request ignored` | Demande de plus de 75 s : pont lancé en retard ou horloges différentes (pont sur une autre machine). |
-| Radio Survivor absent du jeu | Un mod requis manque (Belt Walkie-Talkie, TooltipLib, Signal Smoke) ou n'est pas dans `WorkshopItems=`. |
+| Radio Survivor ou Living Knox absent du jeu | Un mod requis manque (Radio Survivor Core, Signal Smoke ; pour Radio Survivor aussi Belt Walkie-Talkie et TooltipLib) ou n'est pas dans `WorkshopItems=` / `Mods=`. |
 
 Journaux : sortie du pont (`bridge.log` si redirigée), `token_usage.jsonl`, `%USERPROFILE%\Zomboid\console.txt` (solo),
 `server-console.txt` du serveur. Plus de cas : [docs/wiki/fr/11-depannage.md](docs/wiki/fr/11-depannage.md).
 
 ## État du projet
 
-Version de test, non publiée sur le Workshop.
+Version de test, non publiée sur le Workshop. Les trois mods sont testés ensemble, comme un seul projet.
 
 - Toutes les fonctions de la radio, du carnet et de Living Knox sont vérifiées **en jeu solo** par des campagnes de
   tests automatiques (vrai jeu 42.21 piloté par script), et une grande partie l'est aussi **en multijoueur** (serveur
@@ -365,13 +394,15 @@ Version de test, non publiée sur le Workshop.
   [docs/annexes/maquettes/fonctionnalites.html](docs/annexes/maquettes/fonctionnalites.html) ; plan : [docs/annexes/plans/SUIVI.md](docs/annexes/plans/SUIVI.md).
 - Les tests tournent dans une partie de test calme ; une longue partie avec la densité de zombies normale reste à
   éprouver.
-- Limites connues : offensive des PNJ par une fenêtre encore irrégulière en multijoueur ; pêche des PNJ non vérifiée ;
+- Limites connues : sans Radio Survivor, les missions des PNJ ne peuvent pas encore être livrées ni réclamées et les PNJ ne prennent pas la parole d'eux-mêmes ; offensive des PNJ par une fenêtre encore irrégulière en multijoueur ; pêche des PNJ non vérifiée ;
   les voix ne donnent que des missions de reconnaissance ; texte au-delà du Latin-1 (« ’ », « € ») mal transmis.
 
 ## Développement
 
 ```text
-Contents/mods/batman_RadioSurvivor/42.21/   le mod (Lua client, server, shared ; personas ; traductions EN/FR)
+Contents/mods/batman_RadioSurvivorCore/42.21/   socle commun (missions, lien avec le pont, identité, carnet)
+Contents/mods/batman_RadioSurvivor/42.21/   radio, voix, factions (Lua ; personas ; traductions EN/FR)
+Contents/mods/batman_LivingKnox/42.21/      moteur de PNJ (Lua ; traductions EN/FR)
 bridge/                                     le pont Python
 dev/batman_RadioSurvivorTests/              mod de tests en jeu (RST), jamais publié
 tests/                                      bancs hors jeu (lupa, VM Kahlua)
@@ -389,6 +420,7 @@ workshop/                                   descriptions Workshop (EN, FR)
 - Zip de test local sans le Workshop : `python tools/make_test_zip.py` (écrit `dist/`).
 - Pages wiki prêtes à publier : [docs/wiki/fr/](docs/wiki/fr/Home.md) ([anglais](docs/wiki/en/Home.md)).
 - Living Knox est écrit indépendamment : aucun code de Bandits! ni de Project A-Life n'est repris.
+- Code source : dépôt GitHub public, licence MIT (voir ci-dessous).
 
 ## Licence
 

@@ -3,10 +3,11 @@
 [Version française](README_fr.md)
 
 **Voices on the radio and very much alive survivors in Knox County.**
-A mod for Project Zomboid **Build 42.21**, singleplayer and multiplayer (dedicated servers included).
-Mod ID `batman_RadioSurvivor`, version **0.3.0 (test build)**.
+Mods for Project Zomboid **Build 42.21**, singleplayer and multiplayer (dedicated servers included).
+One Workshop item, **three mods**: Radio Survivor (`batman_RadioSurvivor`, 0.3.0), Living Knox (`batman_LivingKnox`,
+0.1.0) and their shared core (`batman_RadioSurvivorCore`, 0.1.0). Test build.
 
-Knox County, July 1993. The Exclusion Zone is sealed off and survivors are on their own. Radio Survivor gives them what
+Knox County, July 1993. The Exclusion Zone is sealed off and survivors are on their own. These mods give them what
 the base game lacks: **voices on the other end of the radio**, played by an artificial intelligence, and **other
 flesh-and-blood survivors**, NPC groups living their own lives across the county. A field notebook lets you meet them,
 earn their trust and take on their missions.
@@ -18,9 +19,10 @@ earn their trust and take on their missions.
 
 ## Contents
 
+- [The three mods](#the-three-mods)
 - [Features](#features)
 - [Requirements](#requirements)
-- [Installing the mod](#installing-the-mod)
+- [Installing the mods](#installing-the-mods)
 - [The AI bridge](#the-ai-bridge)
 - [Configuration](#configuration)
 - [Playing](#playing)
@@ -28,9 +30,32 @@ earn their trust and take on their missions.
 - [Project status](#project-status)
 - [Development](#development)
 
+## The three mods
+
+Subscribe once, then tick in the **Mods** list what you want to play: Radio Survivor, Living Knox, or both. Each one
+works without the other.
+
+| Mod | Mod ID | What it brings | Needs |
+|---|---|---|---|
+| Radio Survivor | `batman_RadioSurvivor` | The radio: six AI voices on real frequencies, the Radio tab of the notebook, factions | Radio Survivor Core, Belt Walkie-Talkie, Signal Smoke |
+| Living Knox | `batman_LivingKnox` | Groups of NPC survivors: homes, needs, routines, fights, fortifications | Radio Survivor Core. Not compatible with Bandits! and Project A-Life |
+| Radio Survivor Core | `batman_RadioSurvivorCore` | What both share: missions and the mission journal, link with the AI bridge, character identity, history of conversations, reputation, tools, the notebook | Signal Smoke |
+
+- **The Core** is required by the two others, so the game enables it for you. Enabled alone it adds nothing you can
+  play.
+- **Radio Survivor alone**: voices, radio, notebook; no NPC groups.
+- **Living Knox alone**: NPC groups. You talk to an NPC in the normal chat (`/say`) when you are close to it, or with
+  the right-click menu **Talk**; it answers in a speech bubble. The missions it offers go to the Missions tab of the
+  notebook.
+- **Both**: you talk to the NPCs through the notebook (**Ctrl+G**), and Radio Survivor adds relations, reputation
+  effects and agreements with the groups.
+- **The AI bridge** is one program, with no setting that depends on your choice of mods.
+- **Known limit**: without Radio Survivor, delivering and claiming the reward of a mission given by an NPC is not
+  possible yet, and the NPCs do not speak first nor talk to each other.
+
 ## Features
 
-### The radio
+### The radio (Radio Survivor)
 
 - **Six voices**, each on its own frequency, rolled at random for every game: Walt, the confidant who made it out of
   the Zone; Darlene, a nurse in West Point; Cody, a National Guard deserter; the Whitakers, a family under siege; the
@@ -53,6 +78,8 @@ earn their trust and take on their missions.
 
 ### The notebook and the NPCs
 
+Some of what follows needs Radio Survivor (radio tab, Ctrl+G, faction relations); see [The three mods](#the-three-mods).
+
 - **Field notebook** (**Notebook** button on the sidebar): contacts, Radio tab (history per frequency, with who speaks there and when they listen once you have reached them or read their note), missions,
   reputation, notes.
 - **Talking to an NPC**: walk up to them, press **Ctrl+G** to select them, then speak in local chat (`/say`). They
@@ -66,7 +93,7 @@ earn their trust and take on their missions.
   abandoned missions and cheating the smuggler, and collapses if you kill whoever gave you a mission. A bad reputation
   leaves only simple missions, the smuggler charges more and the NPCs talk about it.
 
-### Living Knox, the NPC engine
+### Living Knox, the NPC engine (Living Knox)
 
 - **Three to five survivor groups** (settlers, neutrals, raiders), each with a leader, members, a backstory and a home
   set up in a real building, whose stockpile is made of real items.
@@ -85,35 +112,37 @@ earn their trust and take on their missions.
 | Item | Where | Note |
 |---|---|---|
 | Project Zomboid **42.21** | — | Build 41 is not supported. |
-| **Belt Walkie-Talkie** (`batman_BeltRadio`) | Workshop 3817018338 | Required mod (walkie-talkie on the belt, shared transmit rule). |
+| **Belt Walkie-Talkie** (`batman_BeltRadio`) | Workshop 3817018338 | Required by Radio Survivor (walkie-talkie on the belt, shared transmit rule). |
 | **TooltipLib** (`TooltipLib`) | Workshop 3694097672 | Required by Belt Walkie-Talkie. |
-| **Signal Smoke** (`batman_SignalSmoke`) | Workshop 3811010882 | Required mod (smoke grenades and flares for missions, the smuggler and rescues). |
+| **Signal Smoke** (`batman_SignalSmoke`) | Workshop 3811010882 | Required by the three mods (smoke grenades and flares for missions, the smuggler and rescues). |
 | **Python 3.10 or newer** | on the machine running the game | For the AI bridge. No package to install. |
 | **An AI API key** | from a provider | Compatible with the OpenAI API (see [AI provider](#3-the-key-and-the-ai-provider)). |
 
-**Incompatible** with Bandits! and Project A-Life: only one NPC engine per game (the mod selector flags it).
+**Incompatible** (Living Knox) with Bandits! and Project A-Life: only one NPC engine per game (the mod selector flags it).
 `batman_CharacterReputation` is optional.
 
-## Installing the mod
+## Installing the mods
 
 ### In singleplayer
 
-1. Subscribe to the required mods and to Radio Survivor on the Workshop, **or** copy the mod folders into
+1. Subscribe to the required mods and to the Radio Survivor item (it holds the three mods) on the Workshop, **or** copy the mod folders into
    `%USERPROFILE%\Zomboid\mods\` (install without the Workshop, for example from the test zip: see its
    `LISEZMOI.md`).
-2. In **Mods**, enable in this order: TooltipLib, Belt Walkie-Talkie, Signal Smoke, Radio Survivor.
+2. In **Mods**, enable the mods you chose, in this order: TooltipLib, Belt Walkie-Talkie, Signal Smoke, Radio
+   Survivor Core, Radio Survivor, Living Knox (Living Knox alone needs neither TooltipLib nor Belt Walkie-Talkie).
 3. Fully restart the game after an install or an update.
 4. **Start a new game**: the survivor groups settle in when the world is created.
 5. Install and start the [AI bridge](#the-ai-bridge).
 
 ### On a dedicated server
 
-In `<Zomboid>/Server/<server name>.ini`, add the four Workshop items and the four mod IDs (keeping your other entries,
-separated by `;`):
+In `<Zomboid>/Server/<server name>.ini`, add the Workshop items and the IDs of the mods you chose (keeping your other
+entries, separated by `;`). The Radio Survivor item holds all three mods, so it is listed once; drop the mod you do
+not want among `batman_RadioSurvivor` and `batman_LivingKnox`:
 
 ```ini
 WorkshopItems=<Radio Survivor Workshop ID>;3817018338;3694097672;3811010882
-Mods=TooltipLib;batman_BeltRadio;batman_SignalSmoke;batman_RadioSurvivor
+Mods=TooltipLib;batman_BeltRadio;batman_SignalSmoke;batman_RadioSurvivorCore;batman_RadioSurvivor;batman_LivingKnox
 ```
 
 Players have nothing else to install besides the mods. The bridge runs **on the server machine**: see
@@ -131,8 +160,8 @@ game ──requests.txt──▶ bridge ──HTTPS──▶ AI API
 game ◀─responses.txt── bridge ◀─────────
 ```
 
-- Exchange folder: `<Zomboid folder>/Lua/batman_RadioSurvivor/` (in singleplayer on Windows:
-  `%USERPROFILE%\Zomboid\Lua\batman_RadioSurvivor`).
+- Exchange folder: `<Zomboid folder>/Lua/batman_RadioSurvivorCore/` (in singleplayer on Windows:
+  `%USERPROFILE%\Zomboid\Lua\batman_RadioSurvivorCore`).
 - The bridge shows it is alive by rewriting `bridge-alive.txt` every 5 s. While it is alive, the game waits up to 150 s
   for a slow answer; without a bridge, it falls back after 90 s.
 - The server never sends secrets to the AI (exact base positions, hidden frequencies…) and checks every action it
@@ -148,7 +177,7 @@ game ◀─responses.txt── bridge ◀─────────
 
 ### 1. The files
 
-The bridge is five Python files, to be kept **together in the same folder** and updated along with the mod:
+The bridge is five Python files, to be kept **together in the same folder** and updated along with the mods:
 
 | File | Role |
 |---|---|
@@ -204,8 +233,8 @@ python radio_bridge.py
 The banner shows the effective configuration, then `Bridge ready, model …, directory …`. **Keep the window open**
 while you play; the order (game or bridge first) does not matter. Stop it with **Ctrl+C**.
 
-- Default exchange folder: `%USERPROFILE%\Zomboid\Lua\batman_RadioSurvivor` (created if needed).
-- Game started with `-cachedir=X`: add `--exchange "X\Lua\batman_RadioSurvivor"`.
+- Default exchange folder: `%USERPROFILE%\Zomboid\Lua\batman_RadioSurvivorCore` (created if needed).
+- Game started with `-cachedir=X`: add `--exchange "X\Lua\batman_RadioSurvivorCore"`.
 - To keep the log in a file: `python radio_bridge.py > bridge.log 2>&1`.
 
 ### Bridge in a hosted game
@@ -219,20 +248,20 @@ game.
 
    | Case | Exchange folder |
    |---|---|
-   | Windows, no `-cachedir` | `%USERPROFILE%\Zomboid\Lua\batman_RadioSurvivor` |
-   | Linux, no `-cachedir` | `/home/<server account>/Zomboid/Lua/batman_RadioSurvivor` |
-   | Server started with `-cachedir=X` | `X/Lua/batman_RadioSurvivor` |
+   | Windows, no `-cachedir` | `%USERPROFILE%\Zomboid\Lua\batman_RadioSurvivorCore` |
+   | Linux, no `-cachedir` | `/home/<server account>/Zomboid/Lua/batman_RadioSurvivorCore` |
+   | Server started with `-cachedir=X` | `X/Lua/batman_RadioSurvivorCore` |
 
    Without `--exchange`, the bridge uses the `Zomboid` folder of **its own** account: pass `--exchange` as soon as the
    server runs under another account or with `-cachedir`. The bridge creates the folder if it is missing, so a typo
-   gives no error: after the world has loaded once, the right folder contains `personas/`.
+   gives no error: while the bridge runs, the right folder contains `bridge-alive.txt`.
 2. **Install** the five files in a folder (for example `C:\RadioSurvivorBridge` or `/opt/radiosurvivor-bridge`) and the
    key file **outside** that folder and the game folders, readable only by the bridge's account (`chmod 600` on Linux).
 3. **Test by hand**:
 
    ```sh
    python3 /opt/radiosurvivor-bridge/radio_bridge.py --env /etc/radiosurvivor/bridge.env \
-     --exchange /srv/pz/cache/Lua/batman_RadioSurvivor
+     --exchange /srv/pz/cache/Lua/batman_RadioSurvivorCore
    ```
 
    and wait for `Bridge ready`.
@@ -247,7 +276,7 @@ game.
 
    [Service]
    User=<PZ server account>
-   ExecStart=/usr/bin/python3 /opt/radiosurvivor-bridge/radio_bridge.py --env /etc/radiosurvivor/bridge.env --exchange /srv/pz/cache/Lua/batman_RadioSurvivor
+   ExecStart=/usr/bin/python3 /opt/radiosurvivor-bridge/radio_bridge.py --env /etc/radiosurvivor/bridge.env --exchange /srv/pz/cache/Lua/batman_RadioSurvivorCore
    Restart=on-failure
    RestartSec=10
    KillSignal=SIGINT
@@ -276,7 +305,7 @@ game.
 | `--test "TEXT"` | One exchange in the console, without the game; `--voice ID` for a voice other than `walt`. |
 | `--env PATH` | Settings file other than the `.env` next to the bridge. |
 | `--exchange PATH` | Another exchange folder. |
-| `--personas PATH` | Voice sheet folder for `--test` (default: the sheets shipped with the mod). |
+| `--personas PATH` | Voice sheet folder for `--test` (default: the sheets shipped with Radio Survivor). |
 | `--usage-log PATH` | Usage log (default `<exchange>/token_usage.jsonl`). |
 | `--debug` | Full log in the terminal, prompts and dialogue included. |
 | `--poll SECONDS` | How often `requests.txt` is read (default 0.3). |
@@ -301,7 +330,7 @@ texts, and the NPCs stay silent. Everything else (groups, fights, homes, noteboo
 
 ### Sandbox options
 
-Two pages in the sandbox settings (on a dedicated server: `<Zomboid>/Server/<name>_SandboxVars.lua`).
+One page per mod in the sandbox settings (on a dedicated server: `<Zomboid>/Server/<name>_SandboxVars.lua`).
 
 **Radio Survivor**: `Enabled` (radio voices), `PlayerCooldown` (10 s between two messages from a player), `MaxPerHour`
 (60), `SpontaneousCalls`, `CallLanguage` (language of unprompted calls), `NoteRarity` (frequency notes in the loot),
@@ -317,7 +346,7 @@ Full list with default values: [docs/wiki/en/09-sandbox-options.md](docs/wiki/en
 
 ### Voice personalities
 
-Each voice has a text sheet in `<exchange folder>/personas/<voice>.txt` (frequencies, hours, required radio, allowed
+Each voice has a text sheet in `<Zomboid folder>/Lua/batman_RadioSurvivor/personas/<voice>.txt` (Radio Survivor only) (frequencies, hours, required radio, allowed
 actions, what it knows, ignores or hides, and its prompt after `[prompt]`). The server installs it the first time the
 world loads and rereads it every 30 s: editing it changes the voice without a restart. A sheet edited by the admin is
 never overwritten by a mod update. Guide: [docs/wiki/en/10-creating-radio-voices.md](docs/wiki/en/10-creating-radio-voices.md).
@@ -328,8 +357,9 @@ never overwritten by a mod update. Guide: [docs/wiki/en/10-creating-radio-voices
 2. **Talk to a voice**: a walkie-talkie turned on **in hand or on your back** (never from the belt), mic on, tuned to the
    frequency; in the radio window, **Transmit** section: type your sentence, press Enter. A placed HAM radio (within 5
    tiles) and a vehicle radio that can transmit work too.
-3. **Meet a group**: approach without aiming a weapon, **Ctrl+G** to select the NPC, talk in local chat. Get to know
-   them before asking for work.
+3. **Meet a group**: approach without aiming a weapon, then talk in local chat (with Radio Survivor, press **Ctrl+G**
+   to select the NPC first; with Living Knox alone, you can also right click → **Talk**). Get to know them before
+   asking for work.
 4. **Mission**: accept it in the notebook (**Missions**), complete the objective (circle on the map), go back and report
    to whoever gave it, then claim the reward (**Claim shared reward**).
 5. **Notebook**: Radio tab to reread conversations, Contacts for what each NPC thinks of you, Reputation for your level
@@ -346,27 +376,29 @@ in singleplayer, the admin panel in multiplayer).
 | The bridge refuses to start | Another bridge is already watching this folder (`bridge.lock`). |
 | No voice on a frequency | Nobody holds it this game, outside its hours, or the radio is not powerful enough (shortwave). |
 | `Expired request ignored` | Request older than 75 s: bridge started late or clocks differ (bridge on another machine). |
-| Radio Survivor missing from the game | A required mod is missing (Belt Walkie-Talkie, TooltipLib, Signal Smoke) or not in `WorkshopItems=`. |
+| Radio Survivor or Living Knox missing from the game | A required mod is missing (Radio Survivor Core, Signal Smoke; for Radio Survivor also Belt Walkie-Talkie and TooltipLib) or not in `WorkshopItems=` / `Mods=`. |
 
 Logs: bridge output (`bridge.log` if redirected), `token_usage.jsonl`, `%USERPROFILE%\Zomboid\console.txt`
 (singleplayer), the server's `server-console.txt`. More cases: [docs/wiki/en/11-troubleshooting.md](docs/wiki/en/11-troubleshooting.md).
 
 ## Project status
 
-Test build, not published on the Workshop.
+Test build, not published on the Workshop. The three mods are tested together as one project.
 
 - Every radio, notebook and Living Knox feature is checked **in singleplayer** by automated test campaigns (the real
   42.21 game driven by script), and a large part is also checked **in multiplayer** (dedicated server and two driven
   clients). Detailed status and development log (in French): [docs/annexes/maquettes/fonctionnalites.html](docs/annexes/maquettes/fonctionnalites.html);
   plan: [docs/annexes/plans/SUIVI.md](docs/annexes/plans/SUIVI.md).
 - The tests run in a quiet test game; a long game with normal zombie population still has to be put through its paces.
-- Known limits: NPC assaults through a window are still unreliable in multiplayer; NPC fishing is unverified; the voices
+- Known limits: without Radio Survivor, NPC missions cannot be delivered or claimed yet and NPCs do not speak first; NPC assaults through a window are still unreliable in multiplayer; NPC fishing is unverified; the voices
   only give scouting missions; text beyond Latin-1 ("’", "€") is not transmitted correctly.
 
 ## Development
 
 ```text
-Contents/mods/batman_RadioSurvivor/42.21/   the mod (client, server, shared Lua; personas; EN/FR translations)
+Contents/mods/batman_RadioSurvivorCore/42.21/   shared core (missions, bridge link, identity, notebook)
+Contents/mods/batman_RadioSurvivor/42.21/   radio, voices, factions (Lua; personas; EN/FR translations)
+Contents/mods/batman_LivingKnox/42.21/      NPC engine (Lua; EN/FR translations)
 bridge/                                     the Python bridge
 dev/batman_RadioSurvivorTests/              in-game test mod (RST), never published
 tests/                                      offline test benches (lupa, Kahlua VM)
@@ -385,6 +417,7 @@ workshop/                                   Workshop descriptions (EN, FR)
 - Local test zip without the Workshop: `python tools/make_test_zip.py` (writes `dist/`).
 - Wiki pages ready to publish: [docs/wiki/en/](docs/wiki/en/Home.md) ([French](docs/wiki/fr/Home.md)).
 - Living Knox is written independently: no code from Bandits! or Project A-Life is reused.
+- Source code: public repository on GitHub, MIT license (see below).
 
 ## License
 

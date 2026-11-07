@@ -10,14 +10,17 @@ complet : [Installer le pont sur un serveur](07-installation-du-pont.md).
 
 ## 1. Configuration du serveur
 
-Dans `<Zomboid>/Server/<nom du serveur>.ini`, ajoutez les quatre objets Workshop et les quatre identifiants de mod :
+Dans `<Zomboid>/Server/<nom du serveur>.ini`, ajoutez les quatre objets Workshop et les identifiants des mods
+choisis. L'objet Radio Survivor contient les trois mods : il n'est listé qu'une fois :
 
 ```ini
 WorkshopItems=<ID Workshop de Radio Survivor>;3817018338;3694097672;3811010882
-Mods=TooltipLib;batman_BeltRadio;batman_SignalSmoke;batman_RadioSurvivor
+Mods=TooltipLib;batman_BeltRadio;batman_SignalSmoke;batman_RadioSurvivorCore;batman_RadioSurvivor;batman_LivingKnox
 ```
 
-Gardez vos autres entrées, séparées par `;`. L'ID Workshop de Radio Survivor figure en bas de sa page Workshop.
+Gardez `batman_RadioSurvivorCore`, puis `batman_RadioSurvivor` et/ou `batman_LivingKnox` : retirez celui que vous ne
+voulez pas (Living Knox seul n'a besoin ni de `batman_BeltRadio` ni de `TooltipLib`). Gardez vos autres entrées,
+séparées par `;`. L'ID Workshop de Radio Survivor figure en bas de sa page Workshop.
 Retirez Bandits! et Project A-Life s'ils y sont (un seul moteur de PNJ par partie).
 
 ## 2. Le dossier d'échange
@@ -34,9 +37,10 @@ ce dossier**.
 `<compte>` est le compte **qui lance le serveur**. Sans `--exchange`, le pont prend `~/Zomboid/Lua/batman_RadioSurvivorCore`
 de **son propre** compte : passez `--exchange` dès que le serveur tourne sous un autre compte ou avec `-cachedir`.
 
-- Le pont crée le dossier s'il manque : une faute de frappe ne donne aucune erreur. Vérification : après le premier
-  chargement du monde par le serveur, le dossier contient un sous-dossier `personas` (`walt.txt`…) ; tant que le pont
-  tourne, il contient aussi `bridge-alive.txt`.
+- Le pont crée le dossier s'il manque : une faute de frappe ne donne aucune erreur. Vérification : tant que le pont
+  tourne, le dossier contient `bridge-alive.txt`, et les fichiers du jeu y apparaissent une fois le monde chargé. Avec
+  Radio Survivor, les fiches des voix (`walt.txt`…) sont dans le dossier voisin `Lua/batman_RadioSurvivor/personas`,
+  pas dans le dossier d'échange.
 - Deux serveurs lancés par le même compte sans `-cachedir` partagent le même dossier : donnez à chacun son
   `-cachedir` et son pont.
 - **Un seul pont par dossier** : un second refuse de démarrer (`Another bridge is already running on …`).
@@ -125,7 +129,7 @@ seul conteneur de pont par serveur.
 
 - Les fréquences sont tirées à chaque partie ; le journal du serveur affiche
   `[RadioSurvivor] personas: voice '<id>' drew … MHz` au premier chargement.
-- Le caractère de chaque voix est dans `<exchange>/personas/<voix>.txt`, relu toutes les 30 s. Une fiche que vous avez
+- Le caractère de chaque voix est dans `<dossier Zomboid>/Lua/batman_RadioSurvivor/personas/<voix>.txt`, relu toutes les 30 s. Une fiche que vous avez
   modifiée n'est jamais écrasée par une mise à jour du mod (avertissement dans le journal).
 - Les actions proposées par les voix (acceptées ou refusées, avec la raison) sont écrites dans
   `<exchange>/actions-<partie>.log`.

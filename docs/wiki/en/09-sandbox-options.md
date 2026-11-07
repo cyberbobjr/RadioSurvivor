@@ -2,7 +2,7 @@
 
 # Sandbox options
 
-Two pages in the sandbox settings: **Radio Survivor** and **Living Knox**. On a dedicated server they are in
+Two pages in the sandbox settings: **Radio Survivor** and **Living Knox**, each shown for the mod you enabled. On a dedicated server they are in
 `<Zomboid>/Server/<server name>_SandboxVars.lua`. The in-game tooltip of each option gives the details.
 
 ## Radio Survivor

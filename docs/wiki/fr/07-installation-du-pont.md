@@ -22,15 +22,15 @@ lancer un programme : le pont s'installe et se lance **à la main, sur la machin
 - **Partie hébergée depuis le jeu** (« Héberger ») : sur le PC de l'hôte. Le serveur lancé par le jeu utilise le même
   dossier `Zomboid` que le jeu de l'hôte.
 - **Solo** : sur le PC du joueur.
-- Les **joueurs** qui se connectent n'ont **rien** à installer à part le mod.
+- Les **joueurs** qui se connectent n'ont **rien** à installer à part les mods.
 
-Sans pont, le mod fonctionne : les voix ne répondent que par des parasites, le bulletin du soir et les dernières pages
+Sans pont, les mods fonctionnent : les voix ne répondent que par des parasites, le bulletin du soir et les dernières pages
 passent à de courts textes de secours écrits par le serveur, et les PNJ du carnet restent muets.
 
 Le pont tient en cinq fichiers : `radio_bridge.py` (le programme), `npc_protocol.py` (dialogues du carnet),
 `persona_store.py` (fiches des voix), `bulletin.py` (bulletin du soir) et `last_pages.py` (dernières pages). Copiez-les
-ensemble dans un même dossier, avec `.env.example`, à la même version que le mod installé sur le serveur : un pont plus
-ancien que le mod ne comprend pas toutes les demandes, et un fichier manquant l'empêche de démarrer
+ensemble dans un même dossier, avec `.env.example`, à la même version que les mods installés sur le serveur : un pont plus
+ancien que les mods ne comprend pas toutes les demandes, et un fichier manquant l'empêche de démarrer
 (`ModuleNotFoundError`). Mettez-le à jour à chaque mise à jour du mod.
 
 ## 2. Prérequis
@@ -59,8 +59,9 @@ ce dossier**.
 - Sans option, le pont prend `~/Zomboid/Lua/batman_RadioSurvivorCore` **du compte qui lance le pont**. Si le serveur
   tourne sous un autre compte ou avec `-cachedir`, passez le chemin par `--exchange`.
 - Le pont crée le dossier s'il n'existe pas : une faute de frappe ne donne aucune erreur, le pont attend dans un
-  dossier vide. Pour vérifier le chemin : après le premier chargement du monde par le serveur, le dossier contient un
-  sous-dossier `personas` avec les fiches des voix (`walt.txt`…). S'il n'y est pas, ce n'est pas le bon dossier.
+  dossier vide. Pour vérifier le chemin : tant que le pont tourne, le dossier contient `bridge-alive.txt`, et les fichiers
+  du jeu y apparaissent une fois le monde chargé. Avec Radio Survivor, les fiches des voix (`walt.txt`…) sont dans le
+  dossier voisin `Lua/batman_RadioSurvivor/personas`.
 - **Deux serveurs lancés par le même compte sans `-cachedir` partagent le même dossier `Zomboid/Lua`**, donc le même
   dossier d'échange : ils s'écraseraient leurs demandes. Donnez à chaque serveur son propre `-cachedir`, puis un pont
   par serveur.
@@ -111,7 +112,7 @@ S'y ajoutent, sans option sandbox :
 
 - 8 demandes radio en attente au plus ; au-delà, ou plafond atteint, le joueur lit « Trop de monde sur la fréquence,
   réessayez plus tard. ». Une phrase sur une fréquence sans voix ne coûte rien.
-- Un budget par voix possible dans sa fiche (`budget=` dans `<dossier d'échange>/personas/<voix>.txt`, demandes par
+- Un budget par voix possible dans sa fiche (`budget=` dans `<dossier Zomboid>/Lua/batman_RadioSurvivor/personas/<voix>.txt`, demandes par
   heure réelle, `0` = seul `MaxPerHour`).
 - Une demande de consigne de mission juste après l'attribution d'une mission par une voix, hors plafond horaire.
 - Les dialogues du carnet avec les PNJ (seulement si un moteur de PNJ est actif) : plafond fixe de 60 dialogues et
@@ -178,7 +179,7 @@ Options vérifiées dans `radio_bridge.py` :
 | `--poll SECONDES` | Intervalle de lecture de `requests.txt` (défaut 0,3 s, minimum 0,02 s). |
 | `--test "TEXTE"` | Un échange en console, sans le jeu (section 8). |
 | `--voice ID` | Voix utilisée par `--test` (défaut `walt`). |
-| `--personas CHEMIN` | Dossier des fiches lu par `--test`. Défaut : `../Contents/mods/batman_RadioSurvivor/42.21/personas` relatif au pont (dépôt de développement) ; ailleurs, donner `<dossier d'échange>/personas` (rempli au premier chargement du monde) ou le dossier `42.21/personas` du mod installé. |
+| `--personas CHEMIN` | Dossier des fiches lu par `--test`. Défaut : `../Contents/mods/batman_RadioSurvivor/42.21/personas` relatif au pont (dépôt de développement) ; ailleurs, donner `<dossier Zomboid>/Lua/batman_RadioSurvivor/personas` (rempli au premier chargement du monde) ou le dossier `42.21/personas` du mod installé. |
 | `--help` | Aide complète. |
 
 ### Mode `--offline`
@@ -269,12 +270,13 @@ docker run -d --name rs-bridge --restart unless-stopped \
 ## 8. Vérifier que tout marche
 
 1. **Le pont seul, sans le jeu** : `python radio_bridge.py --env <fichier> --exchange <dossier> --test "Allô ?"
-   --personas <dossier d'échange>/personas`. Une ou plusieurs lignes de Walt s'affichent : clé, adresse et modèle sont
+   --personas <dossier Zomboid>/Lua/batman_RadioSurvivor/personas`. Une ou plusieurs lignes de Walt s'affichent : clé, adresse et modèle sont
    bons. Ajoutez `--offline` pour tester sans clé. (Sans `--personas`, `--test` cherche les fiches dans le dépôt de
    développement du mod, absent d'un serveur.) Ce test ajoute un historique dans `<dossier d'échange>/console-test`,
    sans effet sur les parties.
-2. **Le dossier** : après le chargement du monde par le serveur, `<dossier d'échange>/personas/` contient les fiches
-   des voix. Le bandeau du pont affiche ce même dossier (`Exchange directory`).
+2. **Le dossier** : tant que le pont tourne, le dossier d'échange contient `bridge-alive.txt`. Avec Radio Survivor,
+   après le chargement du monde par le serveur, `Lua/batman_RadioSurvivor/personas/` (à côté) contient les fiches des
+   voix. Le bandeau du pont affiche le dossier d'échange (`Exchange directory`).
 3. **En jeu** : réglez un talkie, tenu en main, allumé et micro ouvert, sur la fréquence d'une voix (les fréquences
    sont tirées à chaque partie ; l'admin les lit dans le journal du serveur au premier chargement de la partie, ligne
    `[RadioSurvivor] personas: voice '<id>' drew … MHz`), et

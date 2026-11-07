@@ -6,13 +6,14 @@ Four steps take you from the Workshop to a game where the voices and the survivo
 
 ## 1. Install the mods
 
-Subscribe to Radio Survivor and its three required mods (Belt Walkie-Talkie, TooltipLib, Signal Smoke), enable them in
-the right order and restart the game: [Installation](04-installation.md).
+Subscribe to the Radio Survivor item (it holds three mods: Radio Survivor, Living Knox and the Core they share) and to
+the required mods (Belt Walkie-Talkie, TooltipLib, Signal Smoke). Tick Radio Survivor, Living Knox or both, enable them
+in the right order and restart the game: [Installation](04-installation.md).
 
 ## 2. Start the bridge
 
 The bridge is a small Python program that carries the requests of the game to the AI and brings the answers back. It
-runs on the machine of the server: your PC in singleplayer or in a game hosted from the menu, the server machine for a
+is the same program whichever mods you enabled. It runs on the machine of the server: your PC in singleplayer or in a game hosted from the menu, the server machine for a
 dedicated server.
 
 - Singleplayer and hosted game: [The bridge in singleplayer](05-bridge-in-singleplayer.md).
@@ -27,7 +28,8 @@ Any service with an OpenAI-compatible API works (three settings: address, model,
 
 ## 4. Set the sandbox options
 
-The sandbox settings of a new game have two pages, **Radio Survivor** and **Living Knox**: voices, message limits,
+The sandbox settings of a new game have a page for each of the two mods you enabled, **Radio Survivor** and
+**Living Knox**: voices, message limits,
 frequency notes, number and kind of survivor groups, their behaviour. Every option is described in
 [Sandbox options](09-sandbox-options.md).
 
@@ -41,9 +43,11 @@ frequency notes, number and kind of survivor groups, their behaviour. Every opti
 
 Once in the world:
 
-1. take a walkie-talkie in hand, tune it to the frequency of Walt (note found in the loot) and type a sentence in the
-   **Transmit** section: Walt answers within a few seconds;
-2. the **Notebook** button of the left bar opens the notebook.
+1. with Radio Survivor: take a walkie-talkie in hand, tune it to the frequency of Walt (note found in the loot) and
+   type a sentence in the **Transmit** section: Walt answers within a few seconds;
+2. with Living Knox: say a sentence in the local chat near a survivor, or use **Talk** in the right-click menu: a
+   speech bubble answers;
+3. the **Notebook** button of the left bar opens the notebook.
 
 ![Transmit section and the answer of Walt](../../images/screenshots/en-radio-transmit.png)
 

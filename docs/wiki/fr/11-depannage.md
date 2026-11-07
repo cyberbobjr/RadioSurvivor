@@ -9,14 +9,14 @@
 | Pont | Sa fenêtre de terminal. Pour le garder : `python radio_bridge.py > bridge.log 2>&1` ; systemd : `journalctl -u radiosurvivor-bridge`. Relancez avec `--debug` pour le détail complet (il contient les dialogues : ne pas le partager tel quel). |
 | Jeu (solo, hôte) | `%USERPROFILE%\Zomboid\console.txt`, lignes `[RadioSurvivor]`, `[RS_Carnet]`, `[LK…]`. |
 | Serveur dédié | Le journal console du serveur (`<Zomboid>/server-console.txt` ou le journal de votre service). |
-| Dossier d'échange | `requests.txt`, `responses.txt`, `bridge-alive.txt`, `token_usage.jsonl`, `personas/`. |
+| Dossier d'échange (`Lua/batman_RadioSurvivorCore`) | `requests.txt`, `responses.txt`, `bridge-alive.txt`, `token_usage.jsonl`. Les fiches des voix sont dans `Lua/batman_RadioSurvivor/personas/` (Radio Survivor seulement). |
 
 ## Liste de contrôle : le pont marche-t-il ?
 
 1. Le terminal du pont affiche `Bridge ready, model …, directory …`. Sinon, lisez la dernière ligne (réglage manquant,
    autre pont en marche).
-2. `Exchange directory` dans le bandeau est bien le dossier du serveur : il contient `personas/` après le premier
-   chargement du monde, et `bridge-alive.txt` tant que le pont tourne.
+2. `Exchange directory` dans le bandeau est bien le dossier du serveur (`Lua/batman_RadioSurvivorCore`) : il contient
+   `bridge-alive.txt` tant que le pont tourne.
 3. Quand vous parlez à la radio, le terminal affiche `<appelant> -> walt : <phrase>`. Si rien n'apparaît, le jeu écrit
    dans un autre dossier, ou votre radio n'est pas sur la fréquence d'une voix (une phrase sur une fréquence vide est
    simplement émise, rien d'autre ne se passe).

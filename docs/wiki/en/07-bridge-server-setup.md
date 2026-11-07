@@ -22,14 +22,14 @@ a program: the bridge is installed and started **by hand, on the machine that ru
 - **Game hosted from the game menu** ("Host"): on the host's PC. The server started by the game uses the same
   `Zomboid` folder as the host's game.
 - **Single player**: on the player's PC.
-- **Players** who join have **nothing** to install besides the mod.
+- **Players** who join have **nothing** to install besides the mods.
 
-Without the bridge, the mod still works: the voices only answer with static, the evening bulletin and the last pages
+Without the bridge, the mods still work: the voices only answer with static, the evening bulletin and the last pages
 fall back to short texts written by the server, and the notebook NPCs stay silent.
 
 The bridge is five files: `radio_bridge.py` (the program), `npc_protocol.py` (notebook dialogues), `persona_store.py`
 (voice sheets), `bulletin.py` (evening bulletin) and `last_pages.py` (last pages). Copy them together into one folder,
-with `.env.example`, at the same version as the mod installed on the server: a bridge older than the mod does not
+with `.env.example`, at the same version as the mods installed on the server: a bridge older than the mods does not
 understand every request, and a missing file stops it from starting (`ModuleNotFoundError`). Update it with every mod
 update.
 
@@ -59,8 +59,9 @@ folder**.
 - Without options, the bridge uses `~/Zomboid/Lua/batman_RadioSurvivorCore` **of the account that runs the bridge**. If the
   server runs under another account or with `-cachedir`, pass the path with `--exchange`.
 - The bridge creates the folder if it does not exist: a typo gives no error, the bridge just waits in an empty folder.
-  To check the path: once the server has loaded the world, the folder holds a `personas` subfolder with the voice
-  sheets (`walt.txt`…). If it is not there, it is the wrong folder.
+  To check the path: while the bridge runs, the folder holds `bridge-alive.txt` and the game's own files appear in it
+  once the world has loaded. With Radio Survivor, the voice sheets (`walt.txt`…) are in the neighbouring folder
+  `Lua/batman_RadioSurvivor/personas`.
 - **Two servers started by the same account without `-cachedir` share the same `Zomboid/Lua` folder**, hence the same
   exchange folder: they would overwrite each other's requests. Give each server its own `-cachedir`, then run one
   bridge per server.
@@ -109,7 +110,7 @@ Also, with no sandbox option:
 
 - At most 8 pending radio requests; beyond that, or when the cap is reached, the player reads "Too much chatter on the
   frequency, try again later." A sentence on a frequency without a voice costs nothing.
-- An optional per-voice budget in its sheet (`budget=` in `<exchange folder>/personas/<voice>.txt`, requests per real
+- An optional per-voice budget in its sheet (`budget=` in `<Zomboid folder>/Lua/batman_RadioSurvivor/personas/<voice>.txt`, requests per real
   hour, `0` = `MaxPerHour` only).
 - One mission briefing request right after a voice gives a mission, outside the hourly cap.
 - Notebook dialogues with NPCs (only when an NPC engine is active): fixed cap of 60 dialogues and 12 biographies per
@@ -175,7 +176,7 @@ Options checked in `radio_bridge.py`:
 | `--poll SECONDS` | How often `requests.txt` is read (default 0.3 s, minimum 0.02 s). |
 | `--test "TEXT"` | One exchange in the console, without the game (section 8). |
 | `--voice ID` | Voice used by `--test` (default `walt`). |
-| `--personas PATH` | Sheets folder read by `--test`. Default: `../Contents/mods/batman_RadioSurvivor/42.21/personas` relative to the bridge (development repository); elsewhere, give `<exchange folder>/personas` (filled at the first world load) or the `42.21/personas` folder of the installed mod. |
+| `--personas PATH` | Sheets folder read by `--test`. Default: `../Contents/mods/batman_RadioSurvivor/42.21/personas` relative to the bridge (development repository); elsewhere, give `<Zomboid folder>/Lua/batman_RadioSurvivor/personas` (filled at the first world load) or the `42.21/personas` folder of the installed mod. |
 | `--help` | Full help. |
 
 ### `--offline` mode
@@ -266,12 +267,13 @@ docker run -d --name rs-bridge --restart unless-stopped \
 ## 8. Checking that everything works
 
 1. **The bridge alone, without the game**: `python radio_bridge.py --env <file> --exchange <folder> --test "Hello?"
-   --personas <exchange folder>/personas`. One or more lines from Walt appear: key, address and model are right. Add
+   --personas <Zomboid folder>/Lua/batman_RadioSurvivor/personas`. One or more lines from Walt appear: key, address and model are right. Add
    `--offline` to test without a key. (Without `--personas`, `--test` looks for the sheets in the mod's development
    repository, absent from a server.) This test adds a history in `<exchange folder>/console-test`, with no effect on
    games.
-2. **The folder**: once the server has loaded the world, `<exchange folder>/personas/` holds the voice sheets. The
-   bridge banner shows the same folder (`Exchange directory`).
+2. **The folder**: while the bridge runs, the exchange folder holds `bridge-alive.txt`. With Radio Survivor, once the
+   server has loaded the world, `Lua/batman_RadioSurvivor/personas/` (next to it) holds the voice sheets. The bridge
+   banner shows the exchange folder (`Exchange directory`).
 3. **In game**: set a walkie-talkie, held in hand, switched on with the microphone open, to a voice's frequency (the
    frequencies are drawn for each game; the admin reads them in the server log when the game is first loaded, line
    `[RadioSurvivor] personas: voice '<id>' drew … MHz`), and speak in the **Transmit** section of the radio window.

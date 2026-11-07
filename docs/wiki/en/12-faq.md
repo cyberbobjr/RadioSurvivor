@@ -6,7 +6,7 @@
 No. Without it the game stays playable: the radio voices answer only with static, the evening bulletin and the last
 pages use short fixed texts, and the NPCs stay silent. The groups still live, fight and fortify.
 
-**Why can't the mod call the AI by itself?**
+**Why can't the mods call the AI by themselves?**
 Project Zomboid's Lua has no network access, and a Workshop mod cannot start a program. The bridge is a small Python
 program that reads the game's requests from a file and writes the answers back.
 
@@ -36,19 +36,34 @@ belt can listen (with Belt Walkie-Talkie) but not transmit.
 Get close, press **Ctrl+G** to select the nearest visible NPC (8 squares at most), then speak in the local chat
 (`/say`). General, faction and private chat do not reach NPCs.
 
+**Which mods do I tick?**
+Radio Survivor, Living Knox, or both; the Core is added for you. Each works without the other. See
+[Installation](04-installation.md).
+
+**What does the Core do?**
+It holds what Radio Survivor and Living Knox share: missions and their journal, the link with the bridge, character
+identity, conversation history, reputation and the notebook. Enabled alone, it adds nothing you can play.
+
+**Does the bridge change with the mods I tick?**
+No. It is one program with no option for the setup. It serves the radio voices, the NPCs, or both.
+
+**Can I play Living Knox without the radio?**
+Yes. Speak to a survivor in the local chat (`/say`) near them, or use **Talk** in the right-click menu. Known limit:
+without Radio Survivor you cannot yet deliver or claim the reward of a mission an NPC gave you.
+
 **Can I use it with Bandits! or Project A-Life?**
-No. Radio Survivor has its own NPC engine (Living Knox); only one NPC engine per game.
+Not with Living Knox: it is an NPC engine of its own, and only one NPC engine per game.
 
 **Can I add it to an existing save?**
 Possible, but this is a test version: a **new game** is strongly recommended. The number of groups is set when the
 world is created.
 
 **Can I change a voice's personality?**
-Yes, as the server admin: edit `<exchange folder>/personas/<voice>.txt` (text after `[prompt]`, plus `knows`,
+Yes, as the server admin: edit `<Zomboid folder>/Lua/batman_RadioSurvivor/personas/<voice>.txt` (text after `[prompt]`, plus `knows`,
 `ignores`, `secret`). It is reread every 30 s, and an edited sheet is never overwritten by a mod update.
 
 **Does it work in multiplayer?**
-Yes, it is designed for dedicated servers: the server decides everything, the AI only writes words. Multiplayer is
+Yes, the mods are designed for dedicated servers: the server decides everything, the AI only writes words. Multiplayer is
 checked by automated test campaigns; report anything odd. See
 [The bridge on a dedicated server](06-bridge-on-a-dedicated-server.md).
 

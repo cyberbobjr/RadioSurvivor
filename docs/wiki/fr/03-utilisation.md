@@ -44,6 +44,12 @@ ne pointez pas d'arme : un groupe défend son foyer, et les pillards attaquent.
 
 ## 4. Parler à un survivant (Ctrl+G)
 
+*Cette section décrit Radio Survivor et Living Knox activés ensemble. Avec Living Knox seul, il n'y a ni Ctrl+G ni
+bouton **Parler** dans le carnet : dites une phrase dans le chat local (`/say`) près d'un survivant, ou faites un clic
+droit sur lui et choisissez **Parler** ; le survivant le plus proche répond dans une bulle, et les missions qu'il
+propose apparaissent dans l'onglet Missions du carnet. Livrer et réclamer ces missions n'est pas encore possible sans
+Radio Survivor.*
+
 1. Près d'un survivant que vous voyez, appuyez sur **Ctrl+G** : le PNJ visible le plus proche est sélectionné (touche
    **Sélectionner un PNJ RadioSurvivor** dans les options du jeu). Le bouton **Parler** d'un contact du carnet fait
    de même.

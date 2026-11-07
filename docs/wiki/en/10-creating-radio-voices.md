@@ -4,7 +4,8 @@
 
 A **radio voice** is a character who answers on a frequency: Walt, Darlene, Cody, the Whitakers, the Night Owl and Gus
 are six of them. Each voice is one plain text file, a **sheet**. On this page you will copy a sheet, turn it into your
-own character, test it and hear it in game. No restart, no change to the mod's files.
+own character, test it and hear it in game. No restart, no change to the mod's files. Voices belong to the Radio Survivor
+mod (`batman_RadioSurvivor`): with Living Knox alone there are no voice sheets.
 
 > **Tip**
 > The five steps of the quick start are enough for most voices. The rest of the page is a reference: read only what
@@ -306,9 +307,9 @@ budget.start_mission=2
 <details>
 <summary>About call_text for a new voice</summary>
 
-- `call_text` is a **translation key** of the mod, used only when the bridge does not write the call (bridge stopped,
+- `call_text` is a **translation key** of Radio Survivor, used only when the bridge does not write the call (bridge stopped,
   empty answer, no answer after 30 s).
-- A new voice has no key of its own in the mod: give it a new name anyway (`IGUI_RadioSurvivor_Call_Mae`).
+- A new voice has no key of its own in Radio Survivor: give it a new name anyway (`IGUI_RadioSurvivor_Call_Mae`).
 - When the bridge is down, its call is then skipped and the log says once
   `call of voice 'mae' skipped: no translation for call_text 'IGUI_RadioSurvivor_Call_Mae'`.
 - Do **not** reuse the key of another voice: Walt's text says "This is Walt".

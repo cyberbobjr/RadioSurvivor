@@ -9,13 +9,13 @@
 | Bridge | Its terminal window. To keep it: `python radio_bridge.py > bridge.log 2>&1`; systemd: `journalctl -u radiosurvivor-bridge`. Relaunch with `--debug` for the full detail (contains the dialogues: do not share as is). |
 | Game (singleplayer, host) | `%USERPROFILE%\Zomboid\console.txt`, lines `[RadioSurvivor]`, `[RS_Carnet]`, `[LK…]`. |
 | Dedicated server | The server console log (`<Zomboid>/server-console.txt` or your service log). |
-| Exchange folder | `requests.txt`, `responses.txt`, `bridge-alive.txt`, `token_usage.jsonl`, `personas/`. |
+| Exchange folder (`Lua/batman_RadioSurvivorCore`) | `requests.txt`, `responses.txt`, `bridge-alive.txt`, `token_usage.jsonl`. The voice sheets are in `Lua/batman_RadioSurvivor/personas/` (Radio Survivor only). |
 
 ## Checklist: is the bridge working?
 
 1. The bridge terminal shows `Bridge ready, model …, directory …`. If not, read the last line (missing setting, other
    bridge running).
-2. `Exchange directory` in the banner is the server's folder: it holds `personas/` after the first world load, and
+2. `Exchange directory` in the banner is the server's folder (`Lua/batman_RadioSurvivorCore`): it holds
    `bridge-alive.txt` while the bridge runs.
 3. When you speak on the radio, the terminal shows `<caller> -> walt : <sentence>`. If nothing appears, the game
    writes to another folder, or your radio is not on a voice's frequency (a sentence on an empty frequency is simply
