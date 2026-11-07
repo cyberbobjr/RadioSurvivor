@@ -613,7 +613,6 @@ local function init(newWorld) -- OnInitGlobalModData arg: always true on a dedic
     if S.data then return end
     if S.init(newWorld == true and WorldStart.isNewWorld(true)) then
         Identity.init(newWorld) -- E18-T03: core registry first (same OnInitGlobalModData argument)
-        Identity.adopt(S.data.characters) -- notebook records of a game made before the split, retirements included
         local now = getTimestampMs()
         saveAt = now + C.SAVE_INTERVAL_MS
         playMeter() -- start of the play clock: nothing counted for the time before the world loaded

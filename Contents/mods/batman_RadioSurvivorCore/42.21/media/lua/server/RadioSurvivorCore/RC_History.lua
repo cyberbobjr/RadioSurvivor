@@ -10,7 +10,7 @@ Two slot files written in turn (RC_SlotFile): Zomboid/Lua/batman_RadioSurvivorCo
 <0|1>.txt, header RCHISTORY1, data = { schema = 1, characters = { [character] = { [peer] = { lines } } } }. Never in a
 global ModData.
 
-    History.init(newWorld, legacy)   -- legacy: { [character] = { [peer] = lines } } of a game saved before the split
+    History.init(newWorld)
     History.lines(c, peer)           -- the line table (created empty), shared with the caller
     History.find(c, peer)            -- the line table, or nil
     History.append(c, peer, line, max)
@@ -20,14 +20,11 @@ global ModData.
     History.retainRadio(keep)        -- drops the radio history of every character for which keep(c) is false
     History.save()                   -- true when written
 
-Take-over: when no history file exists yet and the caller hands the histories of a game saved before the split
-(RadioSurvivor's notebook state), they become the content of this file as they are (same tables), written before the
-caller stops writing them itself. Once a history file exists it always wins.
 Storage blocked: a file exists but no slot can be read (or a newer schema): nothing is written, files kept.
 ]]
 local SlotFile = require "RadioSurvivorCore/RC_SlotFile"
 
-local History = { data = nil, seq = 0, blocked = false, dirty = false, base = nil, adopted = 0 }
+local History = { data = nil, seq = 0, blocked = false, dirty = false, base = nil }
 History.DIR = "batman_RadioSurvivorCore/"
 History.HEADER = "RCHISTORY1"
 History.SCHEMA = 1
@@ -41,25 +38,9 @@ local function fresh()
     return { schema = History.SCHEMA, characters = {}, radio = {} }
 end
 
-local function adopt(legacy)
-    local lines = 0
-    for c, peers in pairs(type(legacy) == "table" and legacy or {}) do
-        if type(c) == "string" and type(peers) == "table" then
-            for peer, list in pairs(peers) do
-                if type(peer) == "string" and type(list) == "table" and #list > 0 then
-                    History.data.characters[c] = History.data.characters[c] or {}
-                    History.data.characters[c][peer] = list
-                    lines = lines + #list
-                end
-            end
-        end
-    end
-    return lines
-end
-
-function History.init(newWorld, legacy)
+function History.init(newWorld)
     History.base = SlotFile.worldBase(History.DIR, "history")
-    History.blocked, History.dirty, History.adopted = false, false, 0
+    History.blocked, History.dirty = false, false
     local best, broken = SlotFile.read(History.base, History.HEADER)
     History.seq = best and best.seq or 0
     if newWorld then
@@ -80,12 +61,8 @@ function History.init(newWorld, legacy)
         return false
     else
         History.data = fresh()
-        History.adopted = adopt(legacy)
     end
     if not History.save() then return false end
-    if History.adopted > 0 then
-        log("taken over " .. History.adopted .. " line(s) of a game saved before the split")
-    end
     return true
 end
 

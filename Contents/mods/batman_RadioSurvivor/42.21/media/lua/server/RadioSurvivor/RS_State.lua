@@ -12,14 +12,11 @@ Private notebook state (authority only), two slots written in turn: batman_Radio
 - Verification read: at the first write of the session and after a failure (C20); fast hex and checksum (RC_Codec).
 - Schema: S.SCHEMA; S.MIGRATIONS[n](data) turns schema n into n + 1 (S.upgrade). None yet: schema 2 is current.
 - Missions (E18-T05): S.data.missions is the mission table of the core mod (RC_MissionStore, its own private file),
-  shared in memory. A game saved before the split is taken over once (RC_MissionStore.init with the missions read
-  here), then this file no longer holds them (S.data.missionsInCore). S.save encodes this file, writes the mission
-  file, then this file.
+  shared in memory, never written here. S.save encodes this file, writes the mission file, then this file.
 ]]
 local Codec = require 'RadioSurvivorCore/RC_Codec'
 local MissionStore = require 'RadioSurvivorCore/RC_MissionStore'
 local History = require 'RadioSurvivorCore/RC_History'
-local Reputation = require 'RadioSurvivorCore/RC_Reputation'
 local S = {data = nil, generation = 0, blocked = false, dirty = false, failures = 0, verified = false}
 S.SCHEMA = 2
 S.MIGRATIONS = {}
@@ -90,29 +87,16 @@ function S.init(newWorld)
         S.data = {schema = S.SCHEMA, world = S.uid('world'), npcs = {}, bindings = {}, characters = {}, missions = {}}
         S.generation = best and best.generation or 0
     end
-    -- E18-T05: missions in the core mod's private state; the ones read here are handed over once (first start after
-    -- the split), never again once the mission file exists.
-    if not MissionStore.init(newWorld, (not newWorld) and S.data.missions or nil) then
+    -- E18-T05: missions in the core mod's private state.
+    if not MissionStore.init(newWorld) then
         S.blocked = true
         print('[RS_Carnet] STORAGE BLOCKED: mission state of the core mod unreadable; preserve files for recovery')
         return false
     end
-    S.data.missions, S.data.missionsInCore = MissionStore.data.missions, true
-    -- E18-T11: exchange histories with the NPCs in the core mod's private state (RC_History), taken over once from
-    -- this file like the missions; each contact's history becomes the core table (same table: writers unchanged).
-    local legacy = nil
-    if not newWorld then
-        legacy = {}
-        for c, record in pairs(S.data.characters or {}) do
-            for id, k in pairs(type(record) == 'table' and record.contacts or {}) do
-                if type(k) == 'table' and type(k.history) == 'table' then
-                    legacy[c] = legacy[c] or {}
-                    legacy[c][id] = k.history
-                end
-            end
-        end
-    end
-    if not History.init(newWorld, legacy) then
+    S.data.missions = MissionStore.data.missions
+    -- E18-T11: exchange histories with the NPCs in the core mod's private state (RC_History); each contact's history
+    -- is the core table (same table: writers unchanged).
+    if not History.init(newWorld) then
         S.blocked = true
         print('[RS_Carnet] STORAGE BLOCKED: exchange history of the core mod unreadable; preserve files for recovery')
         return false
@@ -122,17 +106,6 @@ function S.init(newWorld)
             if type(k) == 'table' then k.history = History.lines(c, id) end
         end
     end
-    S.data.historyInCore = true
-    -- E18-T22: reputation and its outcomes in the core mod's private state (RC_Reputation), handed over once from this
-    -- file (entries already in the core file win); this file no longer holds them.
-    if not newWorld and (type(S.data.reputation) == 'table' or type(S.data.outcomes) == 'table') then
-        if Reputation.adopt({reputation = S.data.reputation, outcomes = S.data.outcomes}) == nil then
-            S.blocked = true
-            print('[RS_Carnet] STORAGE BLOCKED: reputation of the core mod unreadable; preserve files for recovery')
-            return false
-        end
-    end
-    S.data.reputation, S.data.outcomes = nil, nil
     S.run = S.uid('run')
     S.blocked = false
     return S.save()
@@ -215,12 +188,10 @@ function S.save()
         MissionStore.attach(S.data.missions)
         if not MissionStore.save() then return failed('mission state of the core mod not written') end
     end
-    if S.data.historyInCore then
-        History.retain(keepContact)
-        -- E18-T19: radio history of the characters the notebook still holds.
-        History.retainRadio(function(c) return S.data.characters and S.data.characters[c] ~= nil end)
-        if not History.save() then return failed('exchange history of the core mod not written') end
-    end
+    History.retain(keepContact)
+    -- E18-T19: radio history of the characters the notebook still holds.
+    History.retainRadio(function(c) return S.data.characters and S.data.characters[c] ~= nil end)
+    if not History.save() then return failed('exchange history of the core mod not written') end
     warnSize(body)
     local gen = S.generation + 1
     local path = S.path .. '-' .. (gen % 2) .. '.txt'

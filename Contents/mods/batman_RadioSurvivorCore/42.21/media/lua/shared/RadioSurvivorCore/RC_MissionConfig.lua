@@ -142,17 +142,4 @@ local MC = {
     },
 }
 
--- E18-T13: mission titles shipped by the core mod (IGUI_RC_Mission_<name>). A mission saved before the split keeps
--- the RadioSurvivor key it was created with (IGUI_RS_<name>); the engine shows it with the new key and never rewrites
--- the saved mission (state files taken over byte for byte).
-MC.LEGACY_TITLES = {}
-for _, name in ipairs({'FirstAid', 'Scout', 'Supply', 'Supply_food', 'Supply_medical', 'Supply_ammo', 'Retrieve',
-        'Clear', 'Recover', 'Signal'}) do
-    MC.LEGACY_TITLES['IGUI_RS_' .. name] = 'IGUI_RC_Mission_' .. name
-end
-
-function MC.titleKey(key)
-    return MC.LEGACY_TITLES[key] or key
-end
-
 return MC

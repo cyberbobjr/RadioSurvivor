@@ -321,7 +321,6 @@ function Hostility.init(newWorld)
     local st = Hostility.state
     st.data, st.seq, st.blocked, st.reason, st.dropped = nil, 0, false, nil, 0
     st.path = Store().worldFileBase(Hostility.FILE)
-    if not newWorld then Store().takeOver(Hostility.FILE) end
     local a, existsA = Store().readSlotFile(slotPath(0), Hostility.HEADER)
     local b, existsB = Store().readSlotFile(slotPath(1), Hostility.HEADER)
     local best = a

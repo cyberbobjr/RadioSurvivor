@@ -17,9 +17,7 @@ Registry (schema 1), private file of the authority (RC_SlotFile, header RCID1), 
   { schema = 1, counter = n, characters = { [id] = { owner, slot, retired = true|nil } } }
 New world (RC_WorldStart): empty registry, even if an old file has the same name.
 
-Games made before the split (D08): the notebook passes its records once at its start (Identity.adopt: unknown ids
-added, retirements imported); an identity found in the server copy of the modData and unknown to the registry was
-written by the authority itself, so it is taken over for this player. An unknown CLIENT claim is never accepted.
+An unknown CLIENT claim is never accepted.
 
 Network (module MODULE): the client sends "hello" { character = its modData value } when the game starts and when
 its player is created; the authority binds and answers "identity" { character }, which the client stores in its
@@ -145,7 +143,7 @@ function Identity.onBind(fn) table.insert(Identity.listeners.bind, fn) end
 function Identity.onRetire(fn) table.insert(Identity.listeners.retire, fn) end
 
 -- Binds the player of the authority to its identity: the server modData value, else the client claim when usable,
--- else the identity of a game made before the split found in the server modData, else a new one. Returns the
+-- else a new one. Returns the
 -- identity and true when it was created, or nil (registry unreadable, save failed, dead player).
 function Identity.bind(player, claimed)
     if player == nil or not Identity.ensure() then return nil end
@@ -160,11 +158,6 @@ function Identity.bind(player, claimed)
     local created, changed = false, false
     if Identity.usable(stored, owner, slot) then
         id = stored
-    elseif validId(stored) and chars[stored] == nil then
-        id = stored          -- written by the authority before the split: taken over
-        chars[id] = { owner = owner, slot = slot }
-        changed = true
-        log("took over " .. id .. " of " .. tostring(owner))
     elseif Identity.usable(claimed, owner, slot) then
         id = claimed
     else
@@ -192,30 +185,6 @@ end
 function Identity.idOf(player)
     if player == nil then return nil end
     return Identity.bound[player] or Identity.retiredBy[player]
-end
-
--- Takes over the records of a game made before the split: records = { [id] = { owner, slot, retired } }. Unknown ids
--- added, retirements imported, nothing else changed. Saved once when something changed. Returns true when changed.
-function Identity.adopt(records)
-    if type(records) ~= "table" or not Identity.ensure() then return false end
-    local chars, changed, n = Identity.state.data.characters, false, 0
-    for id, r in pairs(records) do
-        if validId(id) and type(r) == "table" then
-            local mine = chars[id]
-            if mine == nil and r.owner ~= nil then
-                chars[id] = { owner = r.owner, slot = r.slot, retired = r.retired == true or nil }
-                changed, n = true, n + 1
-            elseif mine ~= nil and r.retired == true and not mine.retired then
-                mine.retired = true
-                changed, n = true, n + 1
-            end
-        end
-    end
-    if changed then
-        log("took over " .. n .. " notebook record(s)")
-        Identity.save()
-    end
-    return changed
 end
 
 -- OnCharacterDeath: retires the identity of a dead player of the authority (zombies and NPC bodies ignored).

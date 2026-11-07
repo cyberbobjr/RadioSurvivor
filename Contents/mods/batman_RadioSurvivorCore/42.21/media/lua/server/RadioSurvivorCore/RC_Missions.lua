@@ -493,7 +493,7 @@ end
 
 function M.projection(m, character)
     -- Clone; never leak server receipts, inventory item IDs or another player's private data.
-    local p = {id = m.id, npc = m.npc, titleKey = Config.titleKey(m.titleKey), state = m.state, revision = m.revision,
+    local p = {id = m.id, npc = m.npc, titleKey = m.titleKey, state = m.state, revision = m.revision,
         remainingMs = m.remainingMs, durationMs = m.durationMs,
         rewardType = m.rewardType, rewardCount = m.rewardCount, claimedName = m.claimedName or '',
         engaged = m.participants[character] ~= nil, invited = m.invited[character] == true,

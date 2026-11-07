@@ -6,8 +6,7 @@ RC_Reputation (core mod, authority): one reputation per character, one private f
 Zomboid/Lua/batman_RadioSurvivorCore/reputation-<world>-<0|1>.txt (RC_SlotFile, header RCREP1); same rules as before
 (tests/test_reputation.py). Each mod reports its own facts: the common mission engine its results (with or without
 RadioSurvivor), Living Knox the death of a group member (LK_Reputation), RadioSurvivor the cheated trade and the
-killed requester. A game saved before the split (fixtures/e18-t22, written by the old RS_State and RS_Reputation of
-commit 2dee3b9) is taken over once; the notebook file no longer holds the reputation.
+killed requester.
 """
 from __future__ import annotations
 
@@ -24,11 +23,9 @@ ROOT = Path(__file__).resolve().parents[1]
 MODS = ROOT / 'Contents' / 'mods'
 LK_LUA = MODS / 'batman_LivingKnox' / '42.21' / 'media' / 'lua'
 RS_LUA = MODS / 'batman_RadioSurvivor' / '42.21' / 'media' / 'lua'
-FIXTURES = Path(__file__).resolve().parent / 'fixtures' / 'e18-t22'
 WORLD = ("getWorld = function() return {getGameMode = function() return 'Multiplayer' end, "
          "getWorld = function() return 'e18t22' end} end")
 WORLD_HEX = '4d756c7469706c617965722f653138743232'
-OLD_STATE = 'batman_RadioSurvivor/state-' + WORLD_HEX
 
 
 class Base(unittest.TestCase):
@@ -42,12 +39,6 @@ class Base(unittest.TestCase):
 
     def ev(self, code):
         return self.h.eval('server', '(function() ' + code + ' end)()')
-
-    def old_game(self):
-        for slot in (0, 1):
-            target = self.root / f'{OLD_STATE}-{slot}.txt'
-            target.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copyfile(FIXTURES / f'rs-state-{slot}.txt', target)
 
     def score(self, character):
         return self.ev(f'return require("RadioSurvivorCore/RC_Reputation").scoreOf("{character}")')
@@ -183,41 +174,6 @@ class WithoutRadioSurvivorTests(Base):
         ''')
         self.assertEqual(out, '-60|npc.memberKilled|bad')
         self.no_radiosurvivor()
-
-
-class TakeOverTests(Base):
-    def test_game_from_before_the_split_taken_over_once(self):
-        self.old_game()
-        self.assertTrue(self.ev('return require("RadioSurvivor/RS_State").init(false)'))
-        # Identities of the notebook records, as the notebook hands them at its start (RC_Identity.adopt, E18-T03).
-        self.ev('require("RadioSurvivorCore/RC_Identity").adopt(require("RadioSurvivor/RS_State").data.characters)')
-        self.assertEqual((self.score('c-ann'), self.score('c-bob')), (10, -10))
-        self.assertIsNone(self.score('c-old'), 'retired character of the old game')
-        self.assertTrue(self.ev('local R = require("RadioSurvivorCore/RC_Reputation") '
-                                'return R.data.outcomes["trade-3-cheated"].action == "trade.cheated"'))
-        self.assertTrue(any('taken over' in line and 'reputation' in line for line in self.h.logs('server')))
-        # The notebook file no longer holds the reputation.
-        self.assertTrue(self.ev('local S = require("RadioSurvivor/RS_State") '
-                                'return S.data.reputation == nil and S.data.outcomes == nil'))
-        state = self.ev('local S = require("RadioSurvivor/RS_State") local best for slot = 0, 1 do '
-                        'local r = S._read(S.path .. "-" .. slot .. ".txt") '
-                        'if r and (not best or r.generation > best.generation) then best = r end end '
-                        'return tostring(best.data.reputation) .. "|" .. tostring(best.data.outcomes)')
-        self.assertEqual(state, 'nil|nil')
-        # Restart: read from the core file, never taken over twice.
-        before = len([line for line in self.h.logs('server') if 'taken over' in line and 'reputation' in line])
-        self.restart()
-        self.assertTrue(self.ev('return require("RadioSurvivor/RS_State").init(false)'))
-        self.assertEqual((self.score('c-ann'), self.score('c-bob')), (10, -10))
-        self.assertEqual(len([line for line in self.h.logs('server')
-                              if 'taken over' in line and 'reputation' in line]), before)
-
-    def test_new_world_keeps_nothing_of_an_old_file(self):
-        self.old_game()
-        self.assertTrue(self.ev('return require("RadioSurvivor/RS_State").init(true)'))
-        self.assertTrue(self.ev('return require("RadioSurvivorCore/RC_Reputation").init(true)'))
-        self.assertIsNone(self.ev('local R = require("RadioSurvivorCore/RC_Reputation") '
-                                  'return R.data.reputation["c-ann"]'))
 
 
 if __name__ == '__main__':

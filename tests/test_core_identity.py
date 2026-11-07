@@ -7,7 +7,6 @@ Rules kept from E00-T01 / E00-T02, now owned by RC_Identity (shared/RadioSurvivo
   MP); the client value is only a fallback, accepted for the same account and slot, never for a retired character;
 - a new character gets a new identity; OnCharacterDeath (players only) retires it for good;
 - private registry of the core mod (Zomboid/Lua/batman_RadioSurvivorCore/identity-*.txt), kept across restarts;
-- identities of a game made before the split are taken over (server modData, records of the notebook);
 - Living Knox keys its attitudes on it without RadioSurvivor (LK_Hostility.keyOf).
 """
 from __future__ import annotations
@@ -148,24 +147,6 @@ class IdentityMP(Base):
         self.h.load('A', 'getPlayer():getModData().RS_CarnetCharacter = CLAIM')
         self.join('A')
         self.assertNotEqual(self.server_id('A'), a)
-
-    def test_identity_of_a_game_before_the_split_is_taken_over(self):
-        # No registry file of the core mod; the server copy of the modData holds the notebook identity.
-        self.h.close()
-        shutil.rmtree(self.root, ignore_errors=True)
-        self.h = self.start(server_md={'A': 'character-1790000000000-3-123456'})
-        self.join('A')
-        self.assertEqual(self.server_id('A'), 'character-1790000000000-3-123456')
-
-    def test_notebook_records_are_adopted_with_their_retirement(self):
-        self.h.load('server', 'IDENTITY.adopt({["character-1-1-1"] = {owner = "A", slot = -1, retired = true}, '
-                              '["character-1-2-1"] = {owner = "B", slot = -1}})')   # server copy: slot -1
-        self.h.load('A', 'getPlayer():getModData().RS_CarnetCharacter = "character-1-1-1"')
-        self.h.load('B', 'getPlayer():getModData().RS_CarnetCharacter = "character-1-2-1"')
-        self.join('A')
-        self.join('B')
-        self.assertNotEqual(self.server_id('A'), 'character-1-1-1')
-        self.assertEqual(self.server_id('B'), 'character-1-2-1')
 
     def test_living_knox_keys_attitudes_without_radiosurvivor(self):
         self.h.load('server', 'require "LivingKnox/LK_Core"; require "LivingKnox/LK_Hostility"')

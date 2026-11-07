@@ -2,7 +2,7 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 7 / 30 tâche(s) terminée(s).
+**Avancement.** en cours — 8 / 30 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
@@ -28,7 +28,7 @@
 | ☐ | E18-T20 | Accords dans Living Knox, identifiants d'équipe dans le commun | `testé hors jeu` | MP | E18-T09, E18-T24 |
 | ☐ | E18-T21 | Relation personnelle des PNJ dans Living Knox | `testé hors jeu` | MP | E18-T09 |
 | ☐ | E18-T22 | Réputation dans le commun | `testé hors jeu` | MP | E18-T05 |
-| ☐ | E18-T23 | Retirer les reprises des parties d'avant la séparation | `à faire` | hors jeu | E18-T21 |
+| ☑ | E18-T23 | Retirer les reprises des parties d'avant la séparation | `testé hors jeu` | hors jeu | E18-T21 |
 | ☐ | E18-T24 | Carnet dans le mod commun, onglets par mod | `testé hors jeu` | MP | E18-T09 |
 | ☐ | E18-T25 | Onglets Missions et Réputation tenus par le commun | `testé hors jeu` | MP | E18-T24 |
 | ☐ | E18-T26 | Onglet Contacts commun, contacts versés par chaque mod | `testé hors jeu` | MP | E18-T24 |
@@ -390,16 +390,16 @@ Deuxième article Workshop, dépôt séparé, nouvelles règles de jeu des missi
   - Preuve : décision du 2026-11-06 ; mod commun : `server/RadioSurvivorCore/RC_Reputation` (déplacé de `RS_Reputation` par `git mv`, mêmes règles ; état privé `Zomboid/Lua/batman_RadioSurvivorCore/reputation-*.txt`, en-tête `RCREP1`, `RC_SlotFile` ; personnage vivant = identité non retirée de `RC_Identity` ; motifs sans texte, l'action seule ; `chargedFor` ; `testAllowed` propre au commun), barème `shared/RadioSurvivorCore/RC_ReputationConfig` (`RS_Config.Reputation` = même table), abonnements `RC_ReputationEvents` (chargement, mort par `RC_Identity.onRetire`, purge chaque jour de jeu) ; moteur des missions : fait de chaque participant d'une mission close et refus des offres sensibles à une mauvaise réputation pour tous les donneurs (`RC_Missions`, sans RadioSurvivor) ; Living Knox : `LK_Reputation` (`npc.memberKilled` sur le fait `npcDied`, sauf mort déjà comptée en `npc.requesterKilled`), `LK_Hostility.reputationOf` lit le commun ; RadioSurvivor : plus de `npcDied` ni de crochet `Hooks.reputation`, textes `IGUI_RS_RepReason_*` ajoutés à la projection du carnet, marge du passeur `RS_Config.TradeMargin` ; `RS_State` remet une fois `reputation` et `outcomes` d'une partie d'avant la séparation au commun (`RC_Reputation.adopt`, une entrée déjà présente l'emporte) et ne les écrit plus ; `reputation-interne.md` mis à jour ; banc `tests/test_core_reputation.py` (9 tests ; rouge sur le commit `2dee3b9` : 9 ERROR ; puis OK) : une seule copie ASCII, aucune référence à l'ancien module, Living Knox ne requiert que le commun, écriture puis relecture après redémarrage sans double compte, mort puis purge 7 jours après, résultat de mission et offres par niveau sans aucun module de RadioSurvivor, Living Knox seul (membre tué compté une fois, mort déjà comptée ignorée), partie d'avant la séparation (`tests/fixtures/e18-t22`, écrite par l'ancien code du commit `2dee3b9`) reprise une fois, monde neuf vide ; bancs adaptés (`test_reputation.py` 25, `test_carnet.py`, `test_rs_trade*.py`, `test_voice_bonds.py`, bancs des missions, `test_kahlua.py` 40 dans la VM réelle, suites `rs.reputation`, `rs.missions.solo`, `rs.missions.radio`, `rs.missions.clear`) ; `run_all.py` 158 PASS, luacheck `Contents` 15 (référence 15), `dev` 0, `plan.py check` 0 erreur ; passages solo automatiques du 2026-11-06 (faux modèle, code 0) : trois mods, rs.env, rs.reputation, rs.missions, rs.missions.solo, rs.missions.radio 24/24 (`tools/autoclient/runs/20261106-134226-c4b45a012723`) ; Living Knox seul (`--mods lk`) 6/6, aucune erreur Lua au chargement (`tools/autoclient/runs/20261106-134334-a0f4db6d24fd`)
   - Reste : cible MP : suites rs.reputation et missions dans la campagne MP, et dans les trois montages (`E18-T15`) ; Living Knox seul : réputation lue par la parole des PNJ et missions des PNJ avec E18-T17 et E18-T18 ; `npc.requesterKilled` reste compté par RadioSurvivor (donneur PNJ du carnet) : avec Living Knox seul, le donneur des missions des PNJ (E18-T18) devra le signaler ; `tests/test_rs_state.py` déjà en échec avant cette tâche (4 erreurs, hors `run_all.py`)
 
-- [ ] **E18-T23** — Retirer les reprises des parties d'avant la séparation
-  - État : `à faire`
+- [x] **E18-T23** — Retirer les reprises des parties d'avant la séparation
+  - État : `testé hors jeu`
   - Cible : `hors jeu`
   - Dépend de : E18-T21
   - Fichiers : `LK_Store` (`takeOver`, `LEGACY_DIR`), `LK_Groups`, `LK_Hostility`, `RS_State` (missions, historiques, réputation remis au commun), `RC_MissionStore`, `RC_History`, `RC_Reputation` (`adopt`), `RC_Identity` (`adopt`, à vérifier : lien carnet → identité ou seule reprise), bancs `test_lk_takeover.py`, `test_core_reputation.py`, `test_core_history.py`, fixtures `tests/fixtures/e18-*`
   - Faire : décision de l'utilisateur du 2026-11-06 (mod jamais publié, toute partie repart de zéro) : retirer le code de reprise des données d'une partie d'avant la séparation et les numéros de schéma qui ne servent qu'à des formats anciens, avec les bancs et fixtures qui les prouvaient.
   - Accepté si : aucun code ni journal « taken over » ; une partie neuve et une partie relue après redémarrage gardent leurs données dans chaque mod ; bancs verts.
   - Tests : `run_all.py`, luacheck.
-  - Preuve : —
-  - Reste : —
+  - Preuve : retirés : `Store.takeOver` et `LEGACY_DIR` (`LK_Store`, appels de `LK_Groups` et `LK_Hostility`), reprises de `RC_MissionStore`, `RC_History`, `RC_Reputation.adopt`, `RC_Identity.adopt` et reprise d'un identifiant inconnu du registre (le carnet reçoit toujours son identité de `RC_Identity`, l'appel n'était qu'une reprise), `missionsInCore`, `historyInCore`, `MC.titleKey` et `LEGACY_TITLES` ; `RS_State.init` réduit à la lecture des fichiers du commun. Bancs `test_lk_takeover.py` et fixtures `e18-t05`, `e18-t11`, `e18-t22` retirés ; nouveaux bancs de relecture après redémarrage dans `test_core_missions.py` et `test_core_history.py`. `run_all.py --keep-going` : 161 réussis, 0 échec ; aucun journal « taken over » dans `Contents`.
+  - Reste : vieilles migrations sans lien avec la séparation laissées en place : `LK_Identity.upgrade` (schéma 1), `Fortify.migrate`, `Personas.migrateWalt`, `S.upgrade` (aucune migration inscrite) ; à retirer dans une tâche dédiée si voulu. Numéros de schéma gardés : ils refusent un fichier d'une version plus récente. Validation en jeu : campagne de `E18-T15`.
 
 - [ ] **E18-T24** — Carnet dans le mod commun, onglets par mod
   - État : `testé hors jeu`

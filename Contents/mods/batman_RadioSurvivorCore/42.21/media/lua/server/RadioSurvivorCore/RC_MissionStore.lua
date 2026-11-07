@@ -5,19 +5,15 @@ RadioSurvivorCore: private state of the common mission engine (E18-T05). Authori
 Two slot files written in turn (RC_SlotFile): Zomboid/Lua/batman_RadioSurvivorCore/missions-<hex of "mode/world">-<0|1>.txt,
 header RCMISSIONS1, data = { schema = 1, missions = { [id] = mission } }. Never in a global ModData.
 
-    Store.init(newWorld, legacy)   -- reads the file; legacy: missions of a game saved before the split
+    Store.init(newWorld)   -- reads the file
     Store.save()                   -- true when written and read back
     Store.data, Store.blocked
 
-Take-over (decision D08 of adr-separation-mods.md): when no mission file exists yet and the caller hands the missions
-of a game saved before the split (RadioSurvivor's notebook state), they become the missions of this file as they are
-(same tables, so the same bytes), written and read back before the caller stops writing them itself. Once a mission
-file exists it always wins: older copies elsewhere are never taken over again.
 Storage blocked: a file exists but no slot can be read (or a newer schema): nothing is written, files kept.
 ]]
 local SlotFile = require "RadioSurvivorCore/RC_SlotFile"
 
-local Store = { data = nil, seq = 0, blocked = false, dirty = false, base = nil, adopted = false }
+local Store = { data = nil, seq = 0, blocked = false, dirty = false, base = nil }
 Store.DIR = "batman_RadioSurvivorCore/"
 Store.HEADER = "RCMISSIONS1"
 Store.SCHEMA = 1
@@ -30,9 +26,9 @@ local function fresh()
     return { schema = Store.SCHEMA, missions = {} }
 end
 
-function Store.init(newWorld, legacy)
+function Store.init(newWorld)
     Store.base = SlotFile.worldBase(Store.DIR, "missions")
-    Store.blocked, Store.dirty, Store.adopted = false, false, false
+    Store.blocked, Store.dirty = false, false
     local best, broken = SlotFile.read(Store.base, Store.HEADER)
     Store.seq = best and best.seq or 0
     if newWorld then
@@ -52,16 +48,8 @@ function Store.init(newWorld, legacy)
         return false
     else
         Store.data = fresh()
-        local count = 0
-        for _ in pairs(type(legacy) == "table" and legacy or {}) do count = count + 1 end
-        if count > 0 then Store.data.missions, Store.adopted = legacy, true end
     end
     if not Store.save() then return false end
-    if Store.adopted then
-        local n = 0
-        for _ in pairs(Store.data.missions) do n = n + 1 end
-        log("taken over " .. n .. " mission(s) of a game saved before the split")
-    end
     return true
 end
 

@@ -188,15 +188,10 @@ class TranslationSplitTests(unittest.TestCase):
         self.assertEqual(options('core'), [], 'the core mod has no sandbox option')
         self.assertEqual(sorted(names), sorted(self.before['options']), 'sandbox option names kept')
 
-    def test_mission_titles_of_an_older_game(self):
+    def test_mission_titles_in_the_core_mod(self):
         lua = LuaRuntime(unpack_returned_tuples=True)
         path = media('core') / 'lua' / 'shared' / 'RadioSurvivorCore' / 'RC_MissionConfig.lua'
         mc = lua.execute(path.read_text(encoding='utf-8'))
-        for old, new in ((o, n) for o, n in RENAMED.items() if n.startswith('IGUI_RC_Mission_')):
-            self.assertEqual(mc.titleKey(old), new)
-            self.assertEqual(mc.titleKey(new), new)
-        self.assertEqual(mc.titleKey('IGUI_RC_Probe'), 'IGUI_RC_Probe')
-        self.assertIsNone(mc.titleKey(None))
         titles = {t.titleKey for t in mc.Missions.values()}
         self.assertTrue(titles <= set(RENAMED.values()), sorted(titles))
 

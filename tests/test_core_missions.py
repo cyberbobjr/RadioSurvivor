@@ -6,9 +6,6 @@
   of the caches, as RC_* modules of the core mod; none left in RadioSurvivor; old names gone from the code, the
   in-game suites, the benches and the tools; Living Knox requires no mission module of RadioSurvivor;
 - the core mod requires Signal Smoke (template "signal", user decision of 2026-11-05);
-- missions of a game saved before the split (fixtures/e18-t05, written by the old RS_State) are taken over once by
-  the private mission state of the core mod (batman_RadioSurvivorCore/missions-*.txt), byte for byte, then no longer
-  written in the notebook state; a later start never takes them over again;
 - a giver registered without RadioSurvivor (no RadioSurvivor module loaded) offers, opens, closes and releases a
   mission through the same engine (registerDonor, hooks).
 """
@@ -29,7 +26,6 @@ MODS = ROOT / 'Contents' / 'mods'
 CORE = MODS / 'batman_RadioSurvivorCore' / '42.21'
 CORE_LUA = CORE / 'media' / 'lua'
 RS_LUA = MODS / 'batman_RadioSurvivor' / '42.21' / 'media' / 'lua'
-FIXTURES = Path(__file__).resolve().parent / 'fixtures' / 'e18-t05'
 
 SERVER_MODULES = ('RC_Missions', 'RC_MissionStore', 'RC_MissionScout', 'RC_MissionClear', 'RC_MissionRecover',
                   'RC_MissionRetrieve', 'RC_MissionSignal', 'RC_Caches', 'RC_Sites')
@@ -44,8 +40,6 @@ SUFFIXES = {'.lua', '.py', '.ps1', '.json', '.txt', '.info'}
 
 WORLD = ("getWorld = function() return {getGameMode = function() return 'Multiplayer' end, "
          "getWorld = function() return 'e18t05' end} end")
-OLD_STATE = 'batman_RadioSurvivor/state-4d756c7469706c617965722f653138743035'
-MISSION_BASE = 'batman_RadioSurvivorCore/missions-4d756c7469706c617965722f653138743035'
 
 
 def scanned_files():
@@ -92,38 +86,19 @@ class LayoutTests(unittest.TestCase):
             self.assertTrue(path.read_bytes().isascii(), path)
 
 
-def old_lines():
-    return (FIXTURES / 'rs-state-0.txt').read_bytes().decode('latin-1').split('\n')
-
-
-class TakeOverTests(unittest.TestCase):
-    """Notebook state written by the code before the split, read by the new code."""
+class StorageTests(unittest.TestCase):
+    """Missions in the private file of the core mod, never in the notebook state."""
 
     def setUp(self):
         self.h = Harness(mode='mp')
         self.root = self.h.file_root('server')
         self.h.machine('server').rt.execute(WORLD)
-        target = self.root / (OLD_STATE + '-0.txt')
-        target.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(FIXTURES / 'rs-state-0.txt', target)
 
     def tearDown(self):
         self.h.close()
 
     def ev(self, code):
         return self.h.eval('server', '(function() ' + code + ' end)()')
-
-    def old_missions_hex(self):
-        self.h.machine('server').g.RAW = old_lines()[1]
-        return self.ev('local C = require("RadioSurvivorCore/RC_Codec") '
-                       'return C.hexOfBytes(C.encodeBytes(C.decodeBytes(C.unhexBytes(RAW)).missions))')
-
-    def core_file_missions_hex(self):
-        return self.ev('local C = require("RadioSurvivorCore/RC_Codec") '
-                       'local F = require("RadioSurvivorCore/RC_SlotFile") '
-                       f'local got = F.read("{MISSION_BASE}", "RCMISSIONS1") '
-                       'if not got then return "unread" end '
-                       'return C.hexOfBytes(C.encodeBytes(got.data.missions))')
 
     def restart(self):
         """New server machine on the same files (fresh Lua, as after a server restart)."""
@@ -136,42 +111,27 @@ class TakeOverTests(unittest.TestCase):
         self.root = h2.file_root('server')
         self.h.machine('server').rt.execute(WORLD)
 
-    def test_missions_taken_over_byte_for_byte(self):
-        before = self.old_missions_hex()
-        self.assertEqual(self.ev('local S = require("RadioSurvivor/RS_State") return tostring(S.init(false))'), 'true')
-        self.assertEqual(self.core_file_missions_hex(), before)
-        n = self.ev('local S = require("RadioSurvivor/RS_State") local n = 0 '
-                    'for _ in pairs(S.data.missions) do n = n + 1 end return n')
-        self.assertEqual(n, 4)
-        # the engine reads the same tables (one copy in memory)
-        same = self.ev('local S = require("RadioSurvivor/RS_State") '
-                       'local St = require("RadioSurvivorCore/RC_MissionStore") '
-                       'return tostring(rawequal(S.data.missions, St.data.missions))')
-        self.assertEqual(same, 'true')
+    def seed(self):
+        self.ev('local S = require("RadioSurvivor/RS_State") assert(S.init(true)) '
+                'S.data.missions["m-1"] = {id = "m-1", npc = "npc-a"} assert(S.save())')
 
-    def test_notebook_state_no_longer_holds_missions(self):
-        self.ev('local S = require("RadioSurvivor/RS_State") S.init(false) S.save()')
+    def test_saved_in_the_core_file_and_read_after_a_restart(self):
+        self.seed()
+        self.restart()
+        self.assertEqual(self.ev('local S = require("RadioSurvivor/RS_State") assert(S.init(false)) '
+                                 'return S.data.missions["m-1"].npc'), 'npc-a')
+
+    def test_notebook_state_holds_no_mission(self):
+        self.seed()
         out = self.ev('local S = require("RadioSurvivor/RS_State") '
                       'local r0 = S._read(S.path .. "-0.txt") local r1 = S._read(S.path .. "-1.txt") '
                       'local best = r0 if r1 and (not r0 or r1.generation > r0.generation) then best = r1 end '
-                      'return tostring(best.data.missions) .. "|" .. tostring(best.data.missionsInCore) '
-                      '.. "|" .. tostring(best.data.npcs["npc-a"].mission)')
-        self.assertEqual(out, 'nil|true|npc-a-delivery2')
-
-    def test_restart_reads_the_core_file_and_never_takes_over_again(self):
-        before = self.old_missions_hex()
-        self.ev('local S = require("RadioSurvivor/RS_State") S.init(false) '
-                'S.data.missions["npc-b-offer9"] = nil S.save() S.save()')
-        self.restart()
-        # the RS slot 0 written by the old code (with 4 missions) is still on disk
-        self.assertTrue((self.root / (OLD_STATE + '-0.txt')).is_file())
-        out = self.ev('local S = require("RadioSurvivor/RS_State") S.init(false) local n = 0 '
-                      'for _ in pairs(S.data.missions) do n = n + 1 end '
-                      'return n .. "|" .. S.data.missions["npc-a-delivery2"].transaction.token')
-        self.assertEqual(out, '3|tok-2')
-        self.assertNotEqual(self.core_file_missions_hex(), before)
+                      'return tostring(best.data.missions)')
+        self.assertEqual(out, 'nil')
 
     def test_new_world_starts_without_missions(self):
+        self.seed()
+        self.restart()
         out = self.ev('local S = require("RadioSurvivor/RS_State") S.init(true) local n = 0 '
                       'for _ in pairs(S.data.missions) do n = n + 1 end return n')
         self.assertEqual(out, 0)

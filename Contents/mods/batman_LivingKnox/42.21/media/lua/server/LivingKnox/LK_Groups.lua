@@ -497,7 +497,6 @@ function Groups.init(newWorld)
     st.dirty, st.pending, st.age, st.verified = false, nil, 0, false
     if Groups.peekState ~= nil then Groups.peekState.byGid = {} end   -- LK13-T08 : vues du registre précédent oubliées
     st.path = Store().worldFileBase(Groups.FILE)
-    if not newWorld then Store().takeOver(Groups.FILE) end
     local a, existsA = Store().readSlotFile(slotPath(0), Groups.HEADER)
     local b, existsB = Store().readSlotFile(slotPath(1), Groups.HEADER)
     local best = a

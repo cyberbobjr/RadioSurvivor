@@ -46,9 +46,7 @@ Death of a character (RC_Identity retire listener, R.onRetire): the purge clock 
 every game day, R.everyDay; both subscribed by RC_ReputationEvents): outcomes kept keepOutcomeDays (30) game days; a
 retired character is no longer read and is dropped with its outcomes retiredPurgeDays (7) game days after its death.
 
-Games saved before the split (decision D08 of adr-separation-mods.md): RadioSurvivor's notebook hands its
-`reputation` and `outcomes` once (R.adopt); an entry already in this file is never replaced, so a second hand-over
-changes nothing. Storage blocked (a file exists but no slot can be read, or a newer schema): nothing is written.
+Storage blocked (a file exists but no slot can be read, or a newer schema): nothing is written.
 
 Public API (server Lua only). `state` is optional everywhere: the data table above, R.data by default.
     R.ACTIONS                                   closed list of actions -> config key of the amount
@@ -70,7 +68,7 @@ Public API (server Lua only). `state` is optional everywhere: the data table abo
     R.prune(state [, today]) -> boolean         purge described above
     R.today() -> game day (1 = first) or nil
     R.descriptor()                              descriptor of the optional CharacterReputation mod (E04-T13)
-    R.init(newWorld), R.ensure(), R.adopt(legacy), R.save(), R.useData(data) (tests)
+    R.init(newWorld), R.ensure(), R.save(), R.useData(data) (tests)
 Console messages in English.
 ]==]
 local Config = require 'RadioSurvivorCore/RC_ReputationConfig'
@@ -177,28 +175,6 @@ function R.useData(data)
     R.data, R.store = data, {seq = 0, base = nil, blocked = false}
 end
 
--- Hand-over of a game saved before the split: legacy = { reputation = {...}, outcomes = {...} } of the notebook.
--- Entries already here win. Returns the number of entries taken over (saved when > 0), or nil when blocked.
-function R.adopt(legacy)
-    if not R.ensure() then return nil end
-    local n = 0
-    if type(legacy) == 'table' then
-        for _, field in ipairs({'reputation', 'outcomes'}) do
-            for k, v in pairs(type(legacy[field]) == 'table' and legacy[field] or {}) do
-                if type(k) == 'string' and type(v) == 'table' and R.data[field][k] == nil then
-                    R.data[field][k] = v
-                    n = n + 1
-                end
-            end
-        end
-    end
-    if n > 0 then
-        if not R.save() then return nil end
-        log('taken over ' .. n .. ' entr' .. (n == 1 and 'y' or 'ies') .. ' of a game saved before the split')
-    end
-    return n
-end
-
 local function dataOf(state)
     if state ~= nil then return state end
     R.ensure()
@@ -297,7 +273,7 @@ local function cleanArgs(args)
     return out
 end
 
--- Copy of a kept reason (a reason saved by RadioSurvivor before the split also holds a reasonKey: not returned).
+-- Copy of a kept reason (a reason may also hold a reasonKey: not returned).
 local function copyReason(r)
     local args = {}
     for i, v in ipairs(r.reasonArgs or {}) do args[i] = v end

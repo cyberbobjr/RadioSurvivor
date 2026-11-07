@@ -30,7 +30,6 @@ local Store = LivingKnox.Store or {}
 LivingKnox.Store = Store
 
 Store.DIR = "batman_LivingKnox/"                          -- E18-T10 : dossier propre du mod
-Store.LEGACY_DIR = "batman_RadioSurvivor/livingknox/"     -- parties d'avant la séparation (Store.takeOver)
 Store.HEADER = "LKREG1"
 
 Store.state = Store.state or { data = nil, seq = 0, blocked = false, reason = nil, dirty = false, path = nil }
@@ -154,39 +153,6 @@ local function fileLines(path)
     return lines
 end
 
--- E18-T10 : reprise unique d'une partie d'avant la séparation des mods. Si aucun des deux emplacements du registre
--- name n'existe sous Store.DIR et que l'ancien dossier (Store.LEGACY_DIR) en a, ils sont copiés tels quels (mêmes
--- lignes, ancien dossier laissé en place) avant la relecture ; une ligne de journal en anglais. Ne refait rien dès
--- qu'un fichier existe dans le nouveau dossier. L'appelant ne l'appelle pas pour un monde neuf. Rend le nombre de
--- fichiers copiés.
-function Store.takeOver(name)
-    local base = Store.worldFileBase(name)
-    local old = Store.LEGACY_DIR .. name .. "-" .. Codec.hexBytes(Store.worldKey())
-    for slot = 0, 1 do
-        if fileLines(base .. "-" .. slot .. ".txt") then return 0 end
-    end
-    local copied = 0
-    for slot = 0, 1 do
-        local lines = fileLines(old .. "-" .. slot .. ".txt")
-        if lines then
-            local w = getFileWriter(base .. "-" .. slot .. ".txt", true, false)
-            if not w then
-                log().error("%s: cannot write %s-%s.txt, data of the game before the split left in Zomboid/Lua/%s",
-                    name, base, tostring(slot), Store.LEGACY_DIR)
-                return copied
-            end
-            w:write(table.concat(lines, "\n") .. "\n")
-            w:close()
-            copied = copied + 1
-        end
-    end
-    if copied > 0 then
-        log().info("%s: data of a game from before the split taken over from Zomboid/Lua/%s (%s file(s) copied to "
-            .. "Zomboid/Lua/%s, old folder kept)", name, Store.LEGACY_DIR, tostring(copied), Store.DIR)
-    end
-    return copied
-end
-
 local function readSlot(path)
     return Store.readSlotFile(path, Store.HEADER)
 end
@@ -208,7 +174,6 @@ function Store.init(newWorld)
     st.data, st.seq, st.blocked, st.reason, st.dirty = nil, 0, false, nil, false
     st.queued, st.age, st.verified = false, 0, false
     st.path = Store.worldFileBase("registry")
-    if not newWorld then Store.takeOver("registry") end
     local a, existsA = readSlot(Store.slotPath(0))
     local b, existsB = readSlot(Store.slotPath(1))
     local best = a
