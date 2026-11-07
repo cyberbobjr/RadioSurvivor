@@ -16,7 +16,7 @@ copie modifiée de options.ini. Rien n'est écrit dans le jeu, dans `%USERPROFIL
      Lua/batman_RadioSurvivor/tests/autoclient.txt ; les mods requis Belt Walkie-Talkie et Signal Smoke sont toujours
      copiés de leurs dépôts locaux Workshop/BeltRadio et Workshop/SignalSmoke (lus seulement), en solo comme en MP ;
   2 bis. pont Python (--bridge auto|on|off|offline ; auto = lancé si une suite choisie en a besoin, BRIDGE_SUITES) :
-     bridge/radio_bridge.py --exchange <cache>\\Lua\\batman_RadioSurvivor, attendu jusqu'à « Bridge ready »
+     bridge/radio_bridge.py --exchange <cache>\\Lua\\batman_RadioSurvivorCore, attendu jusqu'à « Bridge ready »
      (--bridge-timeout), arrêté à la fin dans tous les cas ; il lit lui-même sa configuration (bridge/.env ou
      variables d'environnement), jamais ouverte par cet outil ; son journal est rangé en bridge.log, chaînes de
      forme « clé » masquées (code 2 s'il y en avait) ;
@@ -168,7 +168,7 @@ IGNORE = shutil.ignore_patterns('__pycache__', '*.pyc', '*.bak', '*.tmp', '.git'
 # Python bridge (step 2): started on the exchange folder of the cache, never on %USERPROFILE%\Zomboid. It reads its
 # own configuration (bridge/.env or environment variables): this tool never opens that file.
 BRIDGE_SCRIPT = ROOT / 'bridge' / 'radio_bridge.py'
-EXCHANGE_DIR = 'Lua/batman_RadioSurvivor'
+EXCHANGE_DIR = 'Lua/batman_RadioSurvivorCore'
 BRIDGE_READY = 'Bridge ready'
 BRIDGE_SUITES = ('rs.npctalk', 'rs.radiomodule', 'rs.relation', 'rs.conversations', 'rs.initiatives',
                  'rs.groupradio', 'lk.talk.alone')

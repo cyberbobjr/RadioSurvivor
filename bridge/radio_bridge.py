@@ -7,7 +7,7 @@ pour chaque nouvelle demande (plusieurs en parallèle) et écrit responses.txt, 
 puis diffuse sur la fréquence du survivant.
 
 À lancer sur la machine qui exécute le Lua serveur : le serveur dédié en multijoueur, le PC du
-joueur en solo. Pour un serveur lancé avec -cachedir, passer --exchange <cachedir>\\Lua\\batman_RadioSurvivor.
+joueur en solo. Pour un serveur lancé avec -cachedir, passer --exchange <cachedir>\\Lua\\batman_RadioSurvivorCore.
 
 Configuration (variables d'environnement, sinon fichier .env, par défaut bridge/.env à côté de ce script, modèle
 .env.example) : OPENAI_KEY, OPENAI_BASE_URL, OPENAI_MODEL.
@@ -96,10 +96,20 @@ import bulletin  # E14-T02: kind=bulletin (evening bulletin of the chronicler)
 
 HERE = Path(__file__).resolve().parent
 DEFAULT_ENV = HERE / ".env"      # à côté du pont, ignoré par Git (modèle : .env.example)
-DEFAULT_EXCHANGE = Path.home() / "Zomboid" / "Lua" / "batman_RadioSurvivor"
+DEFAULT_EXCHANGE = Path.home() / "Zomboid" / "Lua" / "batman_RadioSurvivorCore"
 # Fiches livrées par le mod, seul exemplaire du dépôt (E05-T10) : lues par --test et les tests, jamais en jeu (le pont
-# lit alors <exchange>/personas, où le serveur les installe).
+# lit alors celles que RadioSurvivor installe : personas_folder).
 BUNDLED_PERSONAS = HERE.parent / "Contents" / "mods" / "batman_RadioSurvivor" / "42.21" / "personas"
+
+
+def personas_folder(exchange: Path) -> Path:
+    """E18-T12: voice sheets, installed by RadioSurvivor in its own folder next to the exchange folder of the core mod,
+    read only when they exist (Living Knox alone has none, nothing is created). Another --exchange: <exchange>/personas."""
+    if exchange.name == DEFAULT_EXCHANGE.name:
+        return exchange.parent / "batman_RadioSurvivor" / "personas"
+    return exchange / "personas"
+
+
 MAIN_VOICE = "walt"       # voix d'une demande sans voice= (serveur antérieur à E05-T03)
 
 MAX_HISTORY = 40          # messages gardés par partie et par voix (questions + réponses, tous appelants)
@@ -230,7 +240,7 @@ def startup_header(args: argparse.Namespace, config: dict[str, str]) -> None:
     log(f"Environment file: {args.env.resolve()} {'(ignored offline)' if args.offline else '(environment variables take priority)'}")
     log(f"Exchange directory: {args.exchange.resolve()}")
     log(f"Token usage journal: {TOKEN_USAGE.path if TOKEN_USAGE else 'disabled'}")
-    log(f"Personas directory: {(args.personas if args.test else args.exchange / 'personas').resolve()}")
+    log(f"Personas directory: {(args.personas if args.test else personas_folder(args.exchange)).resolve()}")
     log(f"Poll interval: {max(0.02, args.poll):g}s | Workers: {WORKERS} | Request max age: {MAX_AGE_S}s"
         f" | LLM budget: {LLM_BUDGET_S}s")
     max_tokens, max_chars = llm_limits(config)
@@ -1890,7 +1900,7 @@ class Bridge:
         self.requests_file = exchange / "requests.txt"
         self.responses_file = exchange / "responses.txt"
         self.conversations = Conversations(exchange)
-        self.voices = Voices(exchange / "personas")
+        self.voices = Voices(personas_folder(exchange))
         self.npcs = NpcConversations(exchange)
         self.lock = threading.Lock()
         self.answers: dict[str, list[str]] = {}   # réponses encore attendues par le jeu

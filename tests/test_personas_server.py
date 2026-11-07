@@ -854,7 +854,7 @@ class DeliveredVoicesServerTests(ServerHarness):
               'nightowl': [88000, 109000], 'gus': [150200]}
 
     def requests(self) -> str:
-        path = self.lua_dir / 'batman_RadioSurvivor' / 'requests.txt'
+        path = self.lua_dir / 'batman_RadioSurvivorCore' / 'requests.txt'
         return path.read_text(encoding='utf-8') if path.exists() else ''
 
     def test_six_sheets_installed_with_one_channel_per_frequency(self):
@@ -1129,7 +1129,7 @@ class ServerTests(ServerHarness):
         self.g.fire('OnTickEvenPaused')
 
     def requests(self) -> str:
-        path = self.lua_dir / 'batman_RadioSurvivor' / 'requests.txt'
+        path = self.lua_dir / 'batman_RadioSurvivorCore' / 'requests.txt'
         return path.read_text(encoding='utf-8') if path.exists() else ''
 
     def test_active_walt_answers_on_his_frequency(self):
@@ -1237,7 +1237,7 @@ class ServerTests(ServerHarness):
 
     def test_bridge_text_of_the_call(self):
         """Texte écrit par le pont (LLM simulé) ; parasites seuls ou réponse vide : texte fixe de la fiche."""
-        out = self.lua_dir / 'batman_RadioSurvivor' / 'responses.txt'
+        out = self.lua_dir / 'batman_RadioSurvivorCore' / 'responses.txt'
         for lines, expected in ((['Anyone listening? Walt here. Over.'], ['Anyone listening? Walt here. Over.']),
                                 (['<fzzt>'], ['IGUI_RadioSurvivor_Call|145.0']),
                                 ([], ['IGUI_RadioSurvivor_Call|145.0']),
@@ -1405,7 +1405,7 @@ class SpontaneousCallTests(ServerHarness):
         self.sheets = {vid: store.load_file(BUNDLED / f'{vid}.txt') for vid in DeliveredVoicesServerTests.VOICES}
 
     def requests(self) -> str:
-        path = self.lua_dir / 'batman_RadioSurvivor' / 'requests.txt'
+        path = self.lua_dir / 'batman_RadioSurvivorCore' / 'requests.txt'
         return path.read_text(encoding='utf-8') if path.exists() else ''
 
     def listening(self, vid: str, hour: int) -> bool:
@@ -1608,7 +1608,7 @@ class WorldRadioServerTests(ServerHarness):
         self.rt.execute(WORLD_STUBS)
 
     def requests(self) -> str:
-        path = self.lua_dir / 'batman_RadioSurvivor' / 'requests.txt'
+        path = self.lua_dir / 'batman_RadioSurvivorCore' / 'requests.txt'
         return path.read_text(encoding='utf-8') if path.exists() else ''
 
     def world(self, x=102, y=200, z=0, khz=145000, before=0):

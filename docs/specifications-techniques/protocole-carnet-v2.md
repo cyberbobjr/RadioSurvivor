@@ -4,7 +4,7 @@ Cible 42.21.0. Implémentation : `RC_Codec.lua`, `RC_Transport.lua` (mod commun)
 `LK_Talk.lua` (parole des PNJ, voies `npc` et `acks`, E18-T17 : file, ordre et révision par PNJ, délais, refus,
 acquittements ; le carnet n'ajoute que son contexte et ses actions par les crochets de `LK_TalkHost.lua`),
 `bridge/npc_protocol.py`, `bridge/radio_bridge.py`. Le bridge unique garde le verrou `bridge.lock`,
-sa configuration et le transport par fichiers dans `<cachedir>/Lua/batman_RadioSurvivor`.
+sa configuration et le transport par fichiers dans `<cachedir>/Lua/batman_RadioSurvivorCore`.
 Python ne modifie aucun inventaire, état du moteur de PNJ, accord ou score de réputation.
 
 **File commune (E18-T04, décision du 2026-11-05).** Un seul fichier de demandes et un seul fichier de réponses pour tous les mods : chaque mod inscrit ses sortes de demandes comme **voies** de la file du mod commun (`RC_Transport.register(nom, { order, format })`) ; le fichier écrit les voies par ordre croissant (RadioSurvivor : `radio` 10, `npc` 20, `acks` 30, `lastPages` 40, `RS_BridgeLanes`), puis par ordre d'inscription ; format par défaut `kind=` et `payload=` (RSV2), la voie `radio` garde ses lignes `clé=valeur`. Les réponses de toutes les voies sont lues par `RC_Transport.readResponses`. Chaque mod garde ses plafonds (`MAX_PENDING`, plafond horaire). Fichiers et signal de vie : `RC_Bridge` (dossier `batman_RadioSurvivor/` inchangé jusqu'à `E18-T12`). Octets du fichier de demandes inchangés (banc `tests/test_core_bridge.py`).

@@ -356,7 +356,7 @@ class VoicesSuiteTests(tps.ServerHarness):
         return '\n'.join(out)
 
     def requests(self) -> str:
-        path = self.lua_dir / 'batman_RadioSurvivor' / 'requests.txt'
+        path = self.lua_dir / 'batman_RadioSurvivorCore' / 'requests.txt'
         return path.read_text(encoding='utf-8') if path.exists() else ''
 
     def assert_clean(self, probe=True):

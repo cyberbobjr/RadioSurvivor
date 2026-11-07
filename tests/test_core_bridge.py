@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import re
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -30,8 +31,8 @@ MODS = ROOT / 'Contents' / 'mods'
 CORE_LUA = MODS / 'batman_RadioSurvivorCore' / '42.21' / 'media' / 'lua'
 RS_LUA = MODS / 'batman_RadioSurvivor' / '42.21' / 'media' / 'lua'
 FIX = Path(__file__).resolve().parent / 'fixtures' / 'e18-t04'
-REQUESTS = 'batman_RadioSurvivor/requests.txt'   # exchange folder unchanged until E18-T12
-RESPONSES = 'batman_RadioSurvivor/responses.txt'
+REQUESTS = 'batman_RadioSurvivorCore/requests.txt'
+RESPONSES = 'batman_RadioSurvivorCore/responses.txt'
 
 STUBS = r'''
 isClient = function() return false end
@@ -144,6 +145,27 @@ class HeartbeatTests(unittest.TestCase):
         self.assertFalse(self.C.bridgeAlive(None, True))
         self.C.refreshTimeout()
         self.assertEqual(self.C.TIMEOUT_MS, self.B.NO_BRIDGE_TIMEOUT_MS)
+
+
+class ExchangeFolderTests(unittest.TestCase):
+    """E18-T12: one exchange folder, of the core mod, for every mounting; the voices stay with RadioSurvivor."""
+
+    def test_default_folder_and_voice_sheets(self):
+        sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'bridge'))
+        import radio_bridge as rb
+        self.assertEqual(rb.DEFAULT_EXCHANGE.name, 'batman_RadioSurvivorCore')
+        lua = Path('Zomboid') / 'Lua'
+        self.assertEqual(rb.personas_folder(lua / 'batman_RadioSurvivorCore'), lua / 'batman_RadioSurvivor' / 'personas')
+        self.assertEqual(rb.personas_folder(Path('other')), Path('other') / 'personas')
+
+    def test_nothing_is_created_for_a_mod_that_is_absent(self):
+        sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'bridge'))
+        import radio_bridge as rb
+        with tempfile.TemporaryDirectory() as tmp:
+            exchange = Path(tmp) / 'Lua' / 'batman_RadioSurvivorCore'
+            exchange.mkdir(parents=True)
+            rb.Bridge({'OFFLINE': '1', 'OPENAI_MODEL': 'offline'}, exchange)
+            self.assertFalse((Path(tmp) / 'Lua' / 'batman_RadioSurvivor').exists())
 
 
 if __name__ == '__main__':

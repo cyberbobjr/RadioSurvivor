@@ -56,8 +56,8 @@ python radio_bridge.py
 The banner shows the effective settings (the key stays hidden), then `Bridge ready, model …, directory …` and
 `Waiting for game requests (Ctrl+C to stop)`. Load your game; the order (game or bridge first) does not matter.
 
-- Default exchange folder: `%USERPROFILE%\Zomboid\Lua\batman_RadioSurvivor` (the bridge creates it if needed). If you
-  start the game with `-cachedir=X`, add `--exchange "X\Lua\batman_RadioSurvivor"`.
+- Default exchange folder: `%USERPROFILE%\Zomboid\Lua\batman_RadioSurvivorCore` (the bridge creates it if needed). If you
+  start the game with `-cachedir=X`, add `--exchange "X\Lua\batman_RadioSurvivorCore"`.
 - While it runs, the bridge refreshes `bridge-alive.txt` in that folder every 5 s; the game then waits up to 150 s
   for a slow answer instead of falling back after 90 s.
 - Stop it with **Ctrl+C** (`Bridge stopped`).

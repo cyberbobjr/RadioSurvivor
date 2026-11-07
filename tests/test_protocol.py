@@ -236,12 +236,14 @@ class Game:
         g.getTimestampMs = clock
         if hasattr(clock, 'play_ms'):
             g.PLAY_MS = clock.play_ms
-        # Zomboid/Lua/batman_RadioSurvivor/<x> -> exchange/<x> (fichiers d'échange et dossier des fiches) ;
+        # Zomboid/Lua/batman_RadioSurvivor/<x> -> exchange/<x> (dossier des fiches) ; fichiers d'échange du commun -> exchange/<x> ;
         # Zomboid/Lua/batman_RadioSurvivorCore/<x> -> exchange/_core/<x> (registres du mod commun, E18-T03) ;
         # Zomboid/Lua/batman_LivingKnox/<x> -> exchange/_livingknox/<x>.
         def lua_path(name):
             rel = Path(name)
             if rel.parts and rel.parts[0] == "batman_RadioSurvivorCore":
+                if rel.name in ("requests.txt", "responses.txt", "bridge-alive.txt"):   # E18-T12
+                    return exchange / rel.name
                 return exchange / "_core" / rel.relative_to("batman_RadioSurvivorCore")
             if rel.parts and rel.parts[0] == "batman_LivingKnox":   # registres de Living Knox (E18-T10)
                 return exchange / "_livingknox" / rel.relative_to("batman_LivingKnox")

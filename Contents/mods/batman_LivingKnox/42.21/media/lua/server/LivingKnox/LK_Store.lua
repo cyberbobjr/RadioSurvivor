@@ -138,21 +138,6 @@ function Store.worldFileBase(name)
     return Store.DIR .. name .. "-" .. Codec.hexBytes(Store.worldKey())
 end
 
--- Lignes d'un fichier (nil s'il n'existe pas ou s'il est vide : jamais écrit).
-local function fileLines(path)
-    local r = getFileReader(path, false)
-    if not r then return nil end
-    local lines = {}
-    local line = r:readLine()
-    while line ~= nil do
-        lines[#lines + 1] = line
-        line = r:readLine()
-    end
-    r:close()
-    if #lines == 0 then return nil end
-    return lines
-end
-
 local function readSlot(path)
     return Store.readSlotFile(path, Store.HEADER)
 end

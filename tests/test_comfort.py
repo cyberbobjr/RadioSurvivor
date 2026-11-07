@@ -196,7 +196,7 @@ class ComfortServerTests(tps.ServerHarness):
         self.stats['values']['Unhappiness'] = 40
 
     def requests(self) -> str:
-        path = self.lua_dir / 'batman_RadioSurvivor' / 'requests.txt'
+        path = self.lua_dir / 'batman_RadioSurvivorCore' / 'requests.txt'
         return path.read_text(encoding='utf-8') if path.exists() else ''
 
     def values(self):
@@ -205,7 +205,7 @@ class ComfortServerTests(tps.ServerHarness):
     def answer(self, lines=('Walt here. I hear you.',)):
         self.assertEqual(lua_list(self.g.say(145000)), ['accepted'])
         req = re.findall(r'(?m)^req=(.*)$', self.requests())[-1]
-        out = self.lua_dir / 'batman_RadioSurvivor' / 'responses.txt'
+        out = self.lua_dir / 'batman_RadioSurvivorCore' / 'responses.txt'
         out.write_text(f'resp={req}\n' + ''.join(f'line={x}\n' for x in lines) + 'end\n', encoding='utf-8')
         self.g.SENT = self.rt.eval('{}')
         self.g.CLOCK = self.g.CLOCK + 1000
@@ -228,7 +228,7 @@ class ComfortServerTests(tps.ServerHarness):
         self.g.fire('EveryHours')
         call = re.findall(r'(?m)^req=(.*-call)$', self.requests())
         self.assertTrue(call, 'no spontaneous call requested')
-        out = self.lua_dir / 'batman_RadioSurvivor' / 'responses.txt'
+        out = self.lua_dir / 'batman_RadioSurvivorCore' / 'responses.txt'
         out.write_text(f'resp={call[-1]}\nline=Anyone listening?\nend\n', encoding='utf-8')
         self.g.CLOCK = self.g.CLOCK + 1000
         self.g.fire('OnTick')
@@ -240,7 +240,7 @@ class ComfortServerTests(tps.ServerHarness):
         self.assertEqual(lua_list(self.g.say(145000)), ['accepted'])
         req = re.findall(r'(?m)^req=(.*)$', self.requests())[-1]
         self.rt.execute('getOnlinePlayers = function() return { size = function() return 0 end } end')
-        out = self.lua_dir / 'batman_RadioSurvivor' / 'responses.txt'
+        out = self.lua_dir / 'batman_RadioSurvivorCore' / 'responses.txt'
         out.write_text(f'resp={req}\nline=Walt here.\nend\n', encoding='utf-8')
         self.g.CLOCK = self.g.CLOCK + 1000
         self.g.fire('OnTick')

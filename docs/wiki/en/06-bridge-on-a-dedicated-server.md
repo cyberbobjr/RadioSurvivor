@@ -22,17 +22,17 @@ Workshop page. Remove Bandits! and Project A-Life if they are listed (one NPC en
 
 ## 2. The exchange folder
 
-The server writes to `<server Zomboid folder>/Lua/batman_RadioSurvivor/`. The bridge must watch **exactly that
+The server writes to `<server Zomboid folder>/Lua/batman_RadioSurvivorCore/`. The bridge must watch **exactly that
 folder**.
 
 | Case | Exchange folder |
 |---|---|
-| Windows, no `-cachedir` | `C:\Users\<account>\Zomboid\Lua\batman_RadioSurvivor` |
-| Linux, no `-cachedir` | `/home/<account>/Zomboid/Lua/batman_RadioSurvivor` |
-| Server started with `-cachedir=X` | `X/Lua/batman_RadioSurvivor` |
+| Windows, no `-cachedir` | `C:\Users\<account>\Zomboid\Lua\batman_RadioSurvivorCore` |
+| Linux, no `-cachedir` | `/home/<account>/Zomboid/Lua/batman_RadioSurvivorCore` |
+| Server started with `-cachedir=X` | `X/Lua/batman_RadioSurvivorCore` |
 
 `<account>` is the account **that runs the server**. Without `--exchange`, the bridge uses
-`~/Zomboid/Lua/batman_RadioSurvivor` of **its own** account: pass `--exchange` as soon as the server runs under
+`~/Zomboid/Lua/batman_RadioSurvivorCore` of **its own** account: pass `--exchange` as soon as the server runs under
 another account or with `-cachedir`.
 
 - The bridge creates the folder if it is missing, so a typo gives no error. Check: after the server's first world
@@ -53,7 +53,7 @@ another account or with `-cachedir`.
 
 ```sh
 python3 /opt/radiosurvivor-bridge/radio_bridge.py --env /etc/radiosurvivor/bridge.env \
-  --exchange /srv/pz/cache/Lua/batman_RadioSurvivor \
+  --exchange /srv/pz/cache/Lua/batman_RadioSurvivorCore \
   --test "Hello?" --personas /srv/pz/cache/Lua/batman_RadioSurvivor/personas
 ```
 
@@ -66,7 +66,7 @@ Then the same command without `--test` and `--personas`, and wait for `Bridge re
 In an administrator command prompt (one line):
 
 ```bat
-schtasks /Create /TN "RadioSurvivor bridge" /SC ONSTART /RU <account> /RP * /TR "\"C:\Program Files\Python312\python.exe\" C:\RadioSurvivorBridge\radio_bridge.py --env C:\RadioSurvivorBridge-secret\bridge.env --exchange D:\PZServer\cache\Lua\batman_RadioSurvivor"
+schtasks /Create /TN "RadioSurvivor bridge" /SC ONSTART /RU <account> /RP * /TR "\"C:\Program Files\Python312\python.exe\" C:\RadioSurvivorBridge\radio_bridge.py --env C:\RadioSurvivorBridge-secret\bridge.env --exchange D:\PZServer\cache\Lua\batman_RadioSurvivorCore"
 ```
 
 In the task properties, untick "Stop the task if it runs longer than 3 days" and enable restart on failure. Or start
@@ -84,7 +84,7 @@ Wants=network-online.target
 
 [Service]
 User=<PZ server account>
-ExecStart=/usr/bin/python3 /opt/radiosurvivor-bridge/radio_bridge.py --env /etc/radiosurvivor/bridge.env --exchange /srv/pz/cache/Lua/batman_RadioSurvivor
+ExecStart=/usr/bin/python3 /opt/radiosurvivor-bridge/radio_bridge.py --env /etc/radiosurvivor/bridge.env --exchange /srv/pz/cache/Lua/batman_RadioSurvivorCore
 Restart=on-failure
 RestartSec=10
 KillSignal=SIGINT
@@ -107,7 +107,7 @@ docker run -d --name rs-bridge --restart unless-stopped \
   -v /opt/radiosurvivor-bridge:/bridge:ro \
   -v /etc/radiosurvivor/bridge.env:/run/bridge.env:ro \
   python:3.12-slim \
-  python /bridge/radio_bridge.py --env /run/bridge.env --exchange /zomboid/Lua/batman_RadioSurvivor
+  python /bridge/radio_bridge.py --env /run/bridge.env --exchange /zomboid/Lua/batman_RadioSurvivorCore
 ```
 
 `--user` must be the owner of the server files so both processes can read and write each other's files. The path of

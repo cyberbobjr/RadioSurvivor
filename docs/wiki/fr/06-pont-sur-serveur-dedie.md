@@ -22,16 +22,16 @@ Retirez Bandits! et Project A-Life s'ils y sont (un seul moteur de PNJ par parti
 
 ## 2. Le dossier d'échange
 
-Le serveur écrit dans `<dossier Zomboid du serveur>/Lua/batman_RadioSurvivor/`. Le pont doit surveiller **exactement
+Le serveur écrit dans `<dossier Zomboid du serveur>/Lua/batman_RadioSurvivorCore/`. Le pont doit surveiller **exactement
 ce dossier**.
 
 | Cas | Dossier d'échange |
 |---|---|
-| Windows, sans `-cachedir` | `C:\Users\<compte>\Zomboid\Lua\batman_RadioSurvivor` |
-| Linux, sans `-cachedir` | `/home/<compte>/Zomboid/Lua/batman_RadioSurvivor` |
-| Serveur lancé avec `-cachedir=X` | `X/Lua/batman_RadioSurvivor` |
+| Windows, sans `-cachedir` | `C:\Users\<compte>\Zomboid\Lua\batman_RadioSurvivorCore` |
+| Linux, sans `-cachedir` | `/home/<compte>/Zomboid/Lua/batman_RadioSurvivorCore` |
+| Serveur lancé avec `-cachedir=X` | `X/Lua/batman_RadioSurvivorCore` |
 
-`<compte>` est le compte **qui lance le serveur**. Sans `--exchange`, le pont prend `~/Zomboid/Lua/batman_RadioSurvivor`
+`<compte>` est le compte **qui lance le serveur**. Sans `--exchange`, le pont prend `~/Zomboid/Lua/batman_RadioSurvivorCore`
 de **son propre** compte : passez `--exchange` dès que le serveur tourne sous un autre compte ou avec `-cachedir`.
 
 - Le pont crée le dossier s'il manque : une faute de frappe ne donne aucune erreur. Vérification : après le premier
@@ -53,7 +53,7 @@ de **son propre** compte : passez `--exchange` dès que le serveur tourne sous u
 
 ```sh
 python3 /opt/radiosurvivor-bridge/radio_bridge.py --env /etc/radiosurvivor/bridge.env \
-  --exchange /srv/pz/cache/Lua/batman_RadioSurvivor \
+  --exchange /srv/pz/cache/Lua/batman_RadioSurvivorCore \
   --test "Allô ?" --personas /srv/pz/cache/Lua/batman_RadioSurvivor/personas
 ```
 
@@ -66,7 +66,7 @@ Puis la même commande sans `--test` ni `--personas`, et attendez `Bridge ready`
 Dans une invite de commandes administrateur (une seule ligne) :
 
 ```bat
-schtasks /Create /TN "RadioSurvivor bridge" /SC ONSTART /RU <compte> /RP * /TR "\"C:\Program Files\Python312\python.exe\" C:\RadioSurvivorBridge\radio_bridge.py --env C:\RadioSurvivorBridge-secret\bridge.env --exchange D:\PZServer\cache\Lua\batman_RadioSurvivor"
+schtasks /Create /TN "RadioSurvivor bridge" /SC ONSTART /RU <compte> /RP * /TR "\"C:\Program Files\Python312\python.exe\" C:\RadioSurvivorBridge\radio_bridge.py --env C:\RadioSurvivorBridge-secret\bridge.env --exchange D:\PZServer\cache\Lua\batman_RadioSurvivorCore"
 ```
 
 Dans les propriétés de la tâche, décochez « Arrêter la tâche si elle s'exécute plus de 3 jours » et activez le
@@ -84,7 +84,7 @@ Wants=network-online.target
 
 [Service]
 User=<compte du serveur PZ>
-ExecStart=/usr/bin/python3 /opt/radiosurvivor-bridge/radio_bridge.py --env /etc/radiosurvivor/bridge.env --exchange /srv/pz/cache/Lua/batman_RadioSurvivor
+ExecStart=/usr/bin/python3 /opt/radiosurvivor-bridge/radio_bridge.py --env /etc/radiosurvivor/bridge.env --exchange /srv/pz/cache/Lua/batman_RadioSurvivorCore
 Restart=on-failure
 RestartSec=10
 KillSignal=SIGINT
@@ -107,7 +107,7 @@ docker run -d --name rs-bridge --restart unless-stopped \
   -v /opt/radiosurvivor-bridge:/bridge:ro \
   -v /etc/radiosurvivor/bridge.env:/run/bridge.env:ro \
   python:3.12-slim \
-  python /bridge/radio_bridge.py --env /run/bridge.env --exchange /zomboid/Lua/batman_RadioSurvivor
+  python /bridge/radio_bridge.py --env /run/bridge.env --exchange /zomboid/Lua/batman_RadioSurvivorCore
 ```
 
 `--user` doit être le propriétaire des fichiers du serveur, pour que chaque processus lise et écrive les fichiers de

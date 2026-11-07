@@ -44,19 +44,19 @@ ancien que le mod ne comprend pas toutes les demandes, et un fichier manquant l'
 
 ## 3. Le dossier d'échange
 
-Le serveur écrit dans `<dossier Zomboid du serveur>/Lua/batman_RadioSurvivor/`. Le pont doit surveiller **exactement
+Le serveur écrit dans `<dossier Zomboid du serveur>/Lua/batman_RadioSurvivorCore/`. Le pont doit surveiller **exactement
 ce dossier**.
 
 | Cas | Dossier `Zomboid` du serveur | Dossier d'échange |
 |---|---|---|
-| Windows, sans `-cachedir` | `%USERPROFILE%\Zomboid` | `%USERPROFILE%\Zomboid\Lua\batman_RadioSurvivor` |
-| Linux, sans `-cachedir` | `/home/<compte>/Zomboid` (`~/Zomboid`) | `~/Zomboid/Lua/batman_RadioSurvivor` |
-| Serveur lancé avec `-cachedir=X` | `X` | `X/Lua/batman_RadioSurvivor` |
+| Windows, sans `-cachedir` | `%USERPROFILE%\Zomboid` | `%USERPROFILE%\Zomboid\Lua\batman_RadioSurvivorCore` |
+| Linux, sans `-cachedir` | `/home/<compte>/Zomboid` (`~/Zomboid`) | `~/Zomboid/Lua/batman_RadioSurvivorCore` |
+| Serveur lancé avec `-cachedir=X` | `X` | `X/Lua/batman_RadioSurvivorCore` |
 | Partie hébergée depuis le jeu | celui du jeu de l'hôte | comme ci-dessus pour le compte de l'hôte |
 
 `<compte>` est le compte système **qui lance le serveur**, pas forcément le vôtre.
 
-- Sans option, le pont prend `~/Zomboid/Lua/batman_RadioSurvivor` **du compte qui lance le pont**. Si le serveur
+- Sans option, le pont prend `~/Zomboid/Lua/batman_RadioSurvivorCore` **du compte qui lance le pont**. Si le serveur
   tourne sous un autre compte ou avec `-cachedir`, passez le chemin par `--exchange`.
 - Le pont crée le dossier s'il n'existe pas : une faute de frappe ne donne aucune erreur, le pont attend dans un
   dossier vide. Pour vérifier le chemin : après le premier chargement du monde par le serveur, le dossier contient un
@@ -130,12 +130,12 @@ Exemples de commande (adaptez les chemins) :
 
 ```powershell
 # Windows
-python C:\RadioSurvivorBridge\radio_bridge.py --env C:\RadioSurvivorBridge-secret\bridge.env --exchange "D:\PZServer\cache\Lua\batman_RadioSurvivor"
+python C:\RadioSurvivorBridge\radio_bridge.py --env C:\RadioSurvivorBridge-secret\bridge.env --exchange "D:\PZServer\cache\Lua\batman_RadioSurvivorCore"
 ```
 
 ```sh
 # Linux
-python3 /opt/radiosurvivor-bridge/radio_bridge.py --env /etc/radiosurvivor/bridge.env --exchange /srv/pz/cache/Lua/batman_RadioSurvivor
+python3 /opt/radiosurvivor-bridge/radio_bridge.py --env /etc/radiosurvivor/bridge.env --exchange /srv/pz/cache/Lua/batman_RadioSurvivorCore
 ```
 
 Au démarrage, le pont affiche un bandeau : mode, modèle, adresse de l'API (sans identifiants), `API key: configured
@@ -170,7 +170,7 @@ Options vérifiées dans `radio_bridge.py` :
 
 | Option | Rôle |
 |---|---|
-| `--exchange CHEMIN` | Dossier d'échange (section 3). Défaut : `~/Zomboid/Lua/batman_RadioSurvivor` du compte du pont. |
+| `--exchange CHEMIN` | Dossier d'échange (section 3). Défaut : `~/Zomboid/Lua/batman_RadioSurvivorCore` du compte du pont. |
 | `--env CHEMIN` | Fichier des réglages (section 4). Ignoré avec `--offline`. |
 | `--offline` | Aucun appel au LLM, aucune clé lue, aucun coût : la voix répond en écho (« Walt, hors ligne. Je reçois … »). |
 | `--debug` | Journal complet dans le terminal (voir ci-dessous). |
@@ -210,7 +210,7 @@ lancement manuel. Testez toujours d'abord à la main.
 Dans une invite de commandes **administrateur** (une seule ligne) :
 
 ```bat
-schtasks /Create /TN "RadioSurvivor bridge" /SC ONSTART /RU <compte> /RP * /TR "\"C:\Program Files\Python312\python.exe\" C:\RadioSurvivorBridge\radio_bridge.py --env C:\RadioSurvivorBridge-secret\bridge.env --exchange D:\PZServer\cache\Lua\batman_RadioSurvivor"
+schtasks /Create /TN "RadioSurvivor bridge" /SC ONSTART /RU <compte> /RP * /TR "\"C:\Program Files\Python312\python.exe\" C:\RadioSurvivorBridge\radio_bridge.py --env C:\RadioSurvivorBridge-secret\bridge.env --exchange D:\PZServer\cache\Lua\batman_RadioSurvivorCore"
 ```
 
 `/RP *` demande le mot de passe du compte. Dans les propriétés de la tâche, décochez « Arrêter la tâche si elle
@@ -232,7 +232,7 @@ Wants=network-online.target
 
 [Service]
 User=<compte du serveur PZ>
-ExecStart=/usr/bin/python3 /opt/radiosurvivor-bridge/radio_bridge.py --env /etc/radiosurvivor/bridge.env --exchange /srv/pz/cache/Lua/batman_RadioSurvivor
+ExecStart=/usr/bin/python3 /opt/radiosurvivor-bridge/radio_bridge.py --env /etc/radiosurvivor/bridge.env --exchange /srv/pz/cache/Lua/batman_RadioSurvivorCore
 Restart=on-failure
 RestartSec=10
 KillSignal=SIGINT
@@ -256,7 +256,7 @@ docker run -d --name rs-bridge --restart unless-stopped \
   -v /opt/radiosurvivor-bridge:/bridge:ro \
   -v /etc/radiosurvivor/bridge.env:/run/bridge.env:ro \
   python:3.12-slim \
-  python /bridge/radio_bridge.py --env /run/bridge.env --exchange /zomboid/Lua/batman_RadioSurvivor
+  python /bridge/radio_bridge.py --env /run/bridge.env --exchange /zomboid/Lua/batman_RadioSurvivorCore
 ```
 
 - Le chemin du dossier `Zomboid` dans le conteneur du serveur dépend de l'image utilisée (lisez sa documentation ou

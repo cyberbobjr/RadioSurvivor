@@ -21,7 +21,7 @@ dans les pages liées ; ce document ne les répète pas.
                                                  │ corps (joueurs réanimés), registre fichier │
                                                  └───────────────┬────────────────────────────┘
                                                                  │ requests.txt / responses.txt
-                                                                 ▼ (Zomboid/Lua/batman_RadioSurvivor)
+                                                                 ▼ (Zomboid/Lua/batman_RadioSurvivorCore)
                                                  ┌────────────────────────────────────────────┐
                                                  │ pont Python (bridge/radio_bridge.py) ─▶ LLM │
                                                  └────────────────────────────────────────────┘

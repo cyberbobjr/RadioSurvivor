@@ -2,7 +2,7 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 8 / 30 tâche(s) terminée(s).
+**Avancement.** en cours — 9 / 30 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
@@ -17,7 +17,7 @@
 | ☐ | E18-T09 | Adaptateur fournisseur porté par Living Knox | `testé hors jeu` | MP | E18-T07 |
 | ☐ | E18-T10 | Dossier de données de Living Knox et reprise des parties existantes | `testé hors jeu` | MP | E18-T07 |
 | ☐ | E18-T11 | Historique des échanges avec les PNJ dans le commun | `testé hors jeu` | MP | E18-T04, E18-T09 |
-| ☐ | E18-T12 | Pont : un dossier d'échange pour les deux mods | `à faire` | MP | E18-T04, E18-T17 |
+| ☑ | E18-T12 | Pont : un dossier d'échange pour les deux mods | `testé MP` | MP | E18-T04, E18-T17 |
 | ☑ | E18-T13 | Traductions et options sandbox des trois mods | `testé hors jeu` | hors jeu | E18-T06, E18-T07 |
 | ☑ | E18-T14 | Outillage des tests pour trois montages | `testé hors jeu` | hors jeu | E18-T07 |
 | ☐ | E18-T15 | Validation des trois montages | `à faire` | MP | E18-T05, E18-T06, E18-T08, E18-T10, E18-T12, E18-T13, E18-T14, E18-T18, E18-T19 |
@@ -268,16 +268,16 @@ Deuxième article Workshop, dépôt séparé, nouvelles règles de jeu des missi
   - Tests : banc de reprise (fixture écrite par l'ancien code) ; `test_carnet.py`, `test_conversations.py`, `test_initiatives.py`, `test_group_radio.py` ; suites rs.npctalk, rs.conversations, rs.initiatives.
   - Preuve : `server/RadioSurvivorCore/RC_History` (mod commun, ASCII, anglais : lignes par personnage et par interlocuteur, `MAX` 40, fichier privé `batman_RadioSurvivorCore/history-*` en-tête RCHISTORY1 par `RC_SlotFile`) ; `RS_State` : historiques d'une partie d'avant la séparation repris une fois, chaque `contacts[...].history` devient la table du commun (écrivains du carnet, des conversations, des initiatives et de la radio de groupe inchangés), fichier du carnet écrit sans les historiques, contacts et personnages disparus oubliés à l'écriture (`History.retain`) ; banc `tests/test_core_history.py` (5 tests, fixture `tests/fixtures/e18-t11` écrite par l'ancien `RS_State`, rouge avant puis vert) ; `run_all.py` 156 PASS ; luacheck Contents 15, dev 0
   - Reste : suites rs.npctalk, rs.conversations, rs.initiatives en campagne MP avec l'historique dans le commun ; redémarrage d'une partie existante en jeu (`E18-T15`)
-- [ ] **E18-T12** — Pont : un dossier d'échange pour les deux mods
-  - État : `à faire`
+- [x] **E18-T12** — Pont : un dossier d'échange pour les deux mods
+  - État : `testé MP`
   - Cible : `MP`
   - Dépend de : E18-T04, E18-T17
   - Fichiers : `bridge/radio_bridge.py`, `bridge/npc_protocol.py`, `bridge/README*`
   - Faire : dossier d'échange par défaut du commun, ancien dossier lu en transition ; personnages des voix lus seulement quand RadioSurvivor les installe ; limites de texte de la parole lues dans un seul endroit ; aucune demande ni dossier créé pour un mod absent.
   - Accepté si : le même pont, sans option, sert RadioSurvivor seul, Living Knox seul et les deux.
   - Tests : bancs du pont (`tests/test_bridge*`, `test_protocol.py`) dans les trois montages ; campagnes avec `--bridge on`.
-  - Preuve : —
-  - Reste : —
+  - Preuve : dossier d'échange `Zomboid/Lua/batman_RadioSurvivorCore/` (`RC_Bridge`, `DEFAULT_EXCHANGE`, `EXCHANGE_DIR` d'autoclient, documentation fr et en) ; fiches des voix lues dans `batman_RadioSurvivor/personas` à côté (`personas_folder`), sans rien créer pour un mod absent ; limites de la parole : `npc_protocol.py` côté pont, comparées à `RC_SpeechConfig` par `test_protocol.py`. Ancien dossier non lu : consigne du 2026-11-06, aucune reprise. `test_core_bridge.py` OK ; `run_all.py` : 161 réussis, 0 échec. Pont sans option avec `--bridge on --llm fake` : Living Knox seul `lk.talk.alone` code 0 `pass=2` `runs/20261107-061649-mp-bac66df55cd3` ; RadioSurvivor seul `rs.voices` code 0 `pass=3` `runs/20261107-062322-mp-6ae375149f3e` ; les deux `rs.npctalk` code 0 `pass=4` `runs/20261107-062519-mp-278cacf83e89`.
+  - Reste : rejeu groupé `rs.npctalk,rs.radiomodule,rs.groupradio` code 1 `pass=8 fail=1` : `rs.npctalk` refusé `Cooldown` sur « Salut ! » (`runs/20261107-061946-mp-a4feee0bd04e`), vert seul et dans la campagne ; cause non établie, à revoir si la campagne de `E18-T15` le montre.
 
 - [x] **E18-T13** — Traductions et options sandbox des trois mods
   - État : `testé hors jeu`

@@ -1,9 +1,8 @@
 --[[
 RadioSurvivorCore: files and heartbeat of the Python bridge (E18-T04, moved from RadioSurvivor_Const, E17-T16).
 
-Exchange files of the queue (RC_Transport) and heartbeat file of the bridge. The folder stays the historical
-batman_RadioSurvivor/ until E18-T12 moves it to batman_RadioSurvivorCore/ with the bridge (old folder read during
-the transition).
+Exchange files of the queue (RC_Transport) and heartbeat file of the bridge, in the folder of the core mod (E18-T12):
+the same bridge serves RadioSurvivor alone, Living Knox alone or both, without any option.
 
 Heartbeat: the bridge writes any answer, error included, at most BRIDGE_REPLY_MS after the request
 (bridge/radio_bridge.py: MAX_AGE_S 75 + LLM_BUDGET_S 60) and, while it runs, keeps BRIDGE_ALIVE_FILE fresh
@@ -14,9 +13,9 @@ goes after its own short delay. The file is read at most every ALIVE_READ_MS. AS
 local Bridge = RC_Bridge or {}
 RC_Bridge = Bridge
 
-Bridge.REQUESTS_FILE = "batman_RadioSurvivor/requests.txt"
-Bridge.RESPONSES_FILE = "batman_RadioSurvivor/responses.txt"
-Bridge.BRIDGE_ALIVE_FILE = "batman_RadioSurvivor/bridge-alive.txt"
+Bridge.REQUESTS_FILE = "batman_RadioSurvivorCore/requests.txt"
+Bridge.RESPONSES_FILE = "batman_RadioSurvivorCore/responses.txt"
+Bridge.BRIDGE_ALIVE_FILE = "batman_RadioSurvivorCore/bridge-alive.txt"
 Bridge.BRIDGE_REPLY_MS = 135000
 Bridge.BRIDGE_TIMEOUT_MS = 150000      -- = RS_Config.REQUEST_TIMEOUT_MS (notebook)
 Bridge.NO_BRIDGE_TIMEOUT_MS = 90000    -- radio without bridge: static and NoAnswer refusal
