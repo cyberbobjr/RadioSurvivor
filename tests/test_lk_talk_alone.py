@@ -5,7 +5,9 @@
 Banc lupa (Lua 5.1) sur le vrai moteur Living Knox (registres, API, corps, histoires), le vrai `LK_Talk.lua`, le vrai
 `LK_TalkAlone.lua` et le vrai moteur des missions du commun, RadioSurvivor absent de la liste des mods : une phrase dite
 près d'un PNJ part au pont avec le contexte du PNJ, la réponse revient en bulle et dans l'historique du commun ; le PNJ
-connu propose une mission, acceptée par la parole, listée au journal du commun ; relecture après un redémarrage.
+connu propose une mission, acceptée par la parole, listée au journal du commun ; E18-T29 : les objets se livrent et le lot
+se réclame par les gestes du journal du commun (commande « mission »), à côté du demandeur ; relecture après un
+redémarrage.
 Doublures : le faux pont du banc écrit la réponse ; ne prouve ni le réseau ni Java.
 """
 from __future__ import annotations
@@ -145,6 +147,63 @@ class AloneTests(unittest.TestCase):
         self.w.answer('accept')
         rows = self.w.rt.eval("require('RadioSurvivorCore/RC_MissionJournal')").rows(self.character)
         self.assertEqual(rows[1].state, 'active')
+
+    def accepted_supply(self):
+        npc = self.w.g.LK_LEADER
+        for _ in range(4):
+            self.w.say(self.p, 'Salut', npc=npc)
+            self.w.answer()
+        req = self.w.say(self.p, 'Tu as du travail ?', npc=npc)
+        self.w.answer('offer', list(req.offers.keys())[0])
+        self.w.say(self.p, "D'accord", npc=npc)
+        self.w.answer('accept')
+        store = self.w.rt.eval("require('RadioSurvivorCore/RC_MissionStore')")
+        m = list(store.data.missions.values())[0]
+        self.assertEqual((m.state, m.unit), ('active', 'value'))
+        return m
+
+    def gesture(self, m, action, **args):
+        journal = self.w.rt.eval("require('RadioSurvivorCore/RC_MissionJournal')")
+        table = self.w.rt.table_from({'action': action, 'mission': m.id, 'revision': m.revision, **args})
+        self.w.sent.clear()
+        journal.onClientCommand('RadioSurvivorCore', 'mission', self.p, table)
+        errors = [c[3].reason for c in self.w.sent if c[2] == 'error']
+        rows = [c[3].missions for c in self.w.sent if c[2] == 'missions']
+        return errors, rows[-1] if rows else None
+
+    def test_items_are_handed_over_and_the_lot_claimed_from_the_journal(self):
+        m = self.accepted_supply()
+        m.quantity = 4  # two cans of value 2 each
+        kind = next(iter(m.accepted.keys()))
+        ids = []
+        for _ in range(2):
+            it = self.w.g.item(kind)
+            self.p.inv.AddItem(self.p.inv, it)
+            ids.append(it.id)
+        self.p.x = 500
+        errors, _ = self.gesture(m, 'deliver', items=self.w.rt.table_from(ids))
+        self.assertEqual(errors, ['Range'])
+        self.p.x = 13
+        errors, rows = self.gesture(m, 'deliver', items=self.w.rt.table_from(ids))
+        self.assertEqual(errors, [])
+        self.assertEqual(m.state, 'success')
+        self.assertEqual(rows[1].toClaim, True)
+        errors, rows = self.gesture(m, 'claim')
+        self.assertEqual(errors, [])
+        self.assertEqual(m.claimedBy, self.character)
+        # Engine supply lot paid at completion: the common lot (2 x Antibiotics) reaches the inventory.
+        got = list(self.w.rt.eval('function(inv) local o = {} for _, it in ipairs(inv.items) do '
+                                  'o[#o + 1] = it:getFullType() end return o end')(self.p.inv).values())
+        self.assertEqual(got.count(m.rewardType), m.rewardCount, got)
+        self.assertEqual(len(rows), 0)
+        errors, _ = self.gesture(m, 'claim')
+        self.assertEqual(errors, ['State'])
+
+    def test_a_radiosurvivor_giver_is_refused_by_the_journal(self):
+        m = self.accepted_supply()
+        m.donor = 'voice'
+        errors, _ = self.gesture(m, 'claim')
+        self.assertEqual(errors, ['State'])
 
     def test_speakers_and_acquaintance_survive_a_restart(self):
         req = self.w.say(self.p, 'Bonjour')

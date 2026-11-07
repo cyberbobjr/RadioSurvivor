@@ -809,9 +809,136 @@ end
 
 function Journal.tabRows() return Journal.rows end
 
+-- E18-T29: gesture on a mission of the journal (RC_MissionJournal "mission"): hand-over or claim, next to the requester;
+-- the authority checks everything and answers the list again (and "error" on a refusal).
+function Journal.act(action, row, extra)
+    if type(row) ~= 'table' then return end
+    local args = extra or {}
+    args.action, args.mission, args.revision = action, row.id, row.revision
+    local p = getSpecificPlayer(0)
+    if p ~= nil then sendClientCommand(p, MODULE, 'mission', args) end
+end
+
+-- Hand-over window: the items of the inventory (bags included) the mission accepts, at most the count still asked
+-- for; the authority checks them again (RC_Missions.deliver).
+local Delivery = ISCollapsableWindow:derive('RC_UI_Delivery')
+Notebook.Delivery = Delivery
+
+local function inventoryItems(container, out, depth)
+    if depth > 8 then return end
+    local items = container:getItems()
+    for i = 0, items:size() - 1 do
+        local item = items:get(i)
+        out[#out + 1] = item
+        if instanceof(item, 'InventoryContainer') then inventoryItems(item:getItemContainer(), out, depth + 1) end
+    end
+end
+
+-- Items of the player a row accepts (same filter as the server: accepted type, not broken, not favourite, not equipped).
+function Delivery.candidates(player, row)
+    local out, all = {}, {}
+    if player == nil or type(row) ~= 'table' or type(row.accepted) ~= 'table' then return out end
+    inventoryItems(player:getInventory(), all, 0)
+    for _, item in ipairs(all) do
+        if row.accepted[item:getFullType()] and item:getCondition() > 0 and not item:isFavorite()
+                and not item:isEquipped() then
+            out[#out + 1] = item
+        end
+    end
+    return out
+end
+
+function Delivery:left()
+    local row = self.mission
+    return math.max(0, (tonumber(row.quantity) or 0) - (tonumber(row.delivered) or 0))
+end
+
+function Delivery:chosenIds()
+    local ids = {}
+    for id in pairs(self.chosen) do ids[#ids + 1] = id end
+    table.sort(ids)
+    return ids
+end
+
+function Delivery:toggle(id)
+    if self.chosen[id] then self.chosen[id] = nil
+    elseif #self:chosenIds() < self:left() then self.chosen[id] = true end
+end
+
+function Delivery:createChildren()
+    ISCollapsableWindow.createChildren(self)
+    local top = self:titleBarHeight() + 12
+    self.items = ISScrollingListBox:new(12, top, self.width - 24, self.height - top - fontHeight() - 54)
+    self.items:initialise(); self:addChild(self.items)
+    self.items.itemheight = fontHeight() + 12
+    self.chosen = {}
+    for _, item in ipairs(Delivery.candidates(getSpecificPlayer(0), self.mission)) do
+        self.items:addItem(item:getDisplayName(), {id = item:getID()})
+    end
+    self.items:setOnMouseDownFunction(self, function(window, row) window:toggle(row.id) end)
+    self.items.doDrawItem = function(list, y, item)
+        local mark = list.parent.chosen[item.item.id] and '[x] ' or '[ ] '
+        local room = list.width - 8 - 17 - 4 - width(mark)
+        list:drawText(mark .. fit(item.text, room), 8, y + 4, 1, 1, 1, 1, UIFont.Small)
+        return y + list.itemheight
+    end
+    self.send = button(self, tr('DeliverSend'), function(window)
+        local ids = window:chosenIds()
+        if #ids > 0 then
+            Journal.act('deliver', window.mission, {items = ids})
+            window:close()
+        end
+    end)
+    self.send:setX(12); self.send:setY(self.height - fontHeight() - 30)
+end
+
+function Delivery:prerender()
+    ISCollapsableWindow.prerender(self)
+    if #self.items.items == 0 then
+        self:drawText(tr('DeliverEmpty'), 16, self:titleBarHeight() + 16, 1, 1, 1, 1, UIFont.Small)
+    end
+end
+
+function Delivery:close()
+    self:setVisible(false)
+    self:removeFromUIManager()
+    if Notebook.delivery == self then Notebook.delivery = nil end
+end
+
+-- Created without being shown (benches); centred on the notebook, kept whole on the screen.
+function Delivery.create(row, anchor)
+    local sw, sh = getCore():getScreenWidth(), getCore():getScreenHeight()
+    local w, h = math.min(480, sw - 60), math.min(420, sh - 60)
+    local x, y = (sw - w) / 2, (sh - h) / 2
+    if anchor then
+        x = anchor:getX() + (anchor:getWidth() - w) / 2
+        y = anchor:getY() + (anchor:getHeight() - h) / 2
+    end
+    local window = Delivery:new(math.floor(math.max(0, math.min(x, sw - w))), math.floor(math.max(0, math.min(y, sh - h))), w, h)
+    window.title, window.mission = tr('Delivery'), row
+    window:setResizable(false); window:initialise()
+    return window
+end
+
+function Journal.openDelivery(row, anchor)
+    if Notebook.delivery then Notebook.delivery:close() end
+    local window = Delivery.create(row, anchor)
+    window:addToUIManager()
+    Notebook.delivery = window
+    return window
+end
+
+-- Buttons of the Missions tab (RadioSurvivor's notebook replaces this tab with its own buttons).
+function Journal.create(w)
+    w.journalDeliver = w:addAction(stamp(w, tr('Deliver'), function(win)
+        if win.row then Journal.openDelivery(win.row, win) end
+    end))
+    w.journalClaim = w:addAction(stamp(w, tr('Claim'), function(win) Journal.act('claim', win.row) end, true))
+end
+
 local function missionState(row) return tr('State_' .. tostring(MissionList.stateKey(row))) end
 
-function Journal.detail(_, row, line)
+function Journal.detail(w, row, line)
     if not row then line(tr('JournalEmpty')); return false end
     line(missionState(row))
     line(tr('Requester', tostring(row.requester or '')))
@@ -824,6 +951,16 @@ function Journal.detail(_, row, line)
         line(tr('Participants', table.concat(row.participants, ', ')))
     end
     if row.toReport then line(tr('ReportHint')) end
+    local handover = type(row.accepted) == 'table' and row.engaged == true and row.state == 'active'
+        and not row.toReport and row.donor ~= 'voice'
+    if handover and type(row.quantity) == 'number' then
+        line(tr('Delivered', tonumber(row.delivered) or 0, row.quantity)); line(tr('DeliverHint'))
+    end
+    if row.toClaim then line(tr('ClaimHint')) end
+    if w.journalDeliver then
+        w.journalDeliver:setVisible(handover); enable(w.journalDeliver, not row.recovery)
+        w.journalClaim:setVisible(row.toClaim == true); enable(w.journalClaim, not row.recovery)
+    end
     return false
 end
 
@@ -950,6 +1087,7 @@ Notebook.registerTab({name = 'Missions', order = 30, color = {0.369, 0.478, 0.31
     secondLine = function(row)
         return missionState(row)
     end,
+    create = Journal.create,
     detail = Journal.detail,
     onOpen = function() Notebook.request('missions') end,
     update = function() poll('missions') end})

@@ -46,7 +46,7 @@ works without the other.
 - **Radio Survivor alone**: voices, radio, notebook; no NPC groups.
 - **Living Knox alone**: NPC groups. You talk to an NPC in the normal chat (`/say`) when you are close to it, or with
   the right-click menu **Talk**; it answers in a speech bubble. The missions it offers go to the Missions tab of the
-  notebook.
+  notebook, where you deliver items and claim the reward next to the NPC.
 - **Both**: you talk to the NPCs through the notebook (**Ctrl+G**), and Radio Survivor adds relations, reputation
   effects and agreements with the groups.
 - **The AI bridge** is one program, with no setting that depends on your choice of mods.

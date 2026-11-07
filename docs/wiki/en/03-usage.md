@@ -48,8 +48,9 @@ defends its home, and raiders attack.
 *This section describes Radio Survivor and Living Knox enabled together. With Living Knox alone there is no Ctrl+G and
 no **Talk** button in the notebook: say a sentence in the local chat (`/say`) while you are close to a survivor, or
 right click them and choose **Talk**; the nearest survivor answers in a speech bubble, and the missions it offers
-appear in the Missions tab of the notebook. Delivering and claiming those missions is not available yet without Radio
-Survivor.*
+appear in the Missions tab of the notebook. Next to the survivor who gave the mission, the **Deliver** button of that
+tab hands over the items asked for, and **Claim the reward** collects the reward once the mission has succeeded: an item
+the group has to spare, or the reward announced with the mission.*
 
 1. Near a survivor you can see, press **Ctrl+G**: the nearest visible NPC is selected (key **Select a RadioSurvivor
    NPC** in the game options). The **Talk** button of a contact in the notebook does the same.

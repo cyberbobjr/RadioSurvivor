@@ -6,8 +6,9 @@ state shown. Pure functions, loaded on every machine (media/lua/shared).
     List.visible(m, character, known)   the character takes part, is invited, or still knows the mission (known: set
                                         of mission ids kept by RadioSurvivor's notebook, or nil)
     List.sort(rows)                     mission id order (stable from one refresh to the next); returns rows
-    List.stateKey(row)                  'toReport' once the objective is met (E11-T13), else the mission state
-    List.open(row)                      offer, active or to report: what the journal lists
+    List.stateKey(row)                  'toReport' once the objective is met (E11-T13), 'toClaim' for a success whose lot
+                                        the journal can still collect (E18-T29), else the mission state
+    List.open(row)                      offer, active, to report or to claim: what the journal lists
 ]]
 local List = {}
 
@@ -26,12 +27,13 @@ end
 function List.stateKey(row)
     if type(row) ~= "table" then return nil end
     if row.toReport then return "toReport" end
+    if row.toClaim then return "toClaim" end
     return row.state
 end
 
 function List.open(row)
     local key = List.stateKey(row)
-    return key == "offer" or key == "active" or key == "toReport"
+    return key == "offer" or key == "active" or key == "toReport" or key == "toClaim"
 end
 
 return List

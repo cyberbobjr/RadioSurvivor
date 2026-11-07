@@ -17,16 +17,20 @@ Speakers: one record per NPC spoken to, in the private speech file of Living Kno
 The id of a speaker is the Living Knox NPC id, so a mission of an NPC reads "lk-3-<template><n>".
 
 Missions: engine of the core mod on its private state (RC_MissionStore), giver "npc" registered here (RC_MissionTalk:
-offer, acceptance and report by speech). Rewards: the common lot, no notebook button here (see the plan).
+offer, acceptance and report by speech). Hand-over and claim (E18-T29): buttons of the Missions tab of the common
+notebook (RC_MissionJournal, command "mission"), next to the requester's body (giver.near, DELIVERY_RANGE); the lot is
+an item of the household surplus (LK_MissionRewards), else the common lot of the engine.
 Observations, initiatives, conversations and incidents do not run alone (E18-T27).
 ]]
 require "LivingKnox/LK_Core"
 require "LivingKnox/LK_TalkHost"
+require "LivingKnox/LK_MissionRewards"
 
 local Hearing = require "RadioSurvivorCore/RC_Hearing"
 local History = require "RadioSurvivorCore/RC_History"
 local Identity = require "RadioSurvivorCore/RC_Identity"
 local M = require "RadioSurvivorCore/RC_Missions"
+local MissionConfig = require "RadioSurvivorCore/RC_MissionConfig"
 local MissionStore = require "RadioSurvivorCore/RC_MissionStore"
 local MissionTalk = require "RadioSurvivorCore/RC_MissionTalk"
 local Speech = require "RadioSurvivorCore/RC_SpeechConfig"
@@ -322,7 +326,16 @@ function Alone.start(newWorld)
     local provider = makeProvider()
     Alone.provider = provider
     M.setProvider(provider)
-    M.registerDonor("npc", { find = function(_, id) return find(id) end })
+    M.registerDonor("npc", {
+        find = function(_, id) return find(id) end,
+        -- E18-T29: hand-over and claim next to the requester's loaded body; the lot of a household surplus.
+        near = function(m, player)
+            return Hearing.near(player, provider.objects()[m.npc], MissionConfig.DELIVERY_RANGE)
+        end,
+        claim = function(store, m, player, character, token)
+            return LivingKnox.MissionRewards.claim(store, m, player, character, token)
+        end,
+    })
     M.setCharacterName(function(_, character) return characterName(character) end)
     M.setKnownMissions(function(_, character) return Talk.data and Talk.data.known[character] or nil end)
     M.addPruneListener(function(_, id)

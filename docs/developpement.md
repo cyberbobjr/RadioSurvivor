@@ -26,8 +26,7 @@ appel de Living Knox vers RadioSurvivor : les liens passent par le Core, l'API p
 Pas de reprise des anciennes sauvegardes : les mods ne sont pas publiés avec une sauvegarde à reprendre, et aucune
 migration n'est écrite ni documentée.
 
-Limites connues de la séparation (plan E18) : sans RadioSurvivor, livrer et réclamer une mission de PNJ n'est pas
-encore possible (`E18-T29`, à faire) ; les observations des PNJ et la fréquence des initiatives restent dans
+Limites connues de la séparation (plan E18) : les observations des PNJ et la fréquence des initiatives restent dans
 RadioSurvivor, donc Living Knox seul n'a ni initiative ni conversation entre PNJ (`E18-T27`, à faire).
 
 ## Architecture validée — à préserver

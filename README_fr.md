@@ -45,7 +45,7 @@ les deux. Chacun fonctionne sans l'autre.
 - **Radio Survivor seul** : voix, radio, carnet ; pas de groupes de PNJ.
 - **Living Knox seul** : groupes de PNJ. Vous parlez à un PNJ dans le chat normal (`/say`) quand vous êtes près de
   lui, ou par le menu du clic droit **Parler** ; il répond dans une bulle. Les missions qu'il propose vont dans
-  l'onglet Missions du carnet.
+  l'onglet Missions du carnet, où vous livrez les objets et récupérez la récompense à côté du PNJ.
 - **Les deux** : vous parlez aux PNJ par le carnet (**Ctrl+G**), et Radio Survivor ajoute les relations, les effets de
   la réputation et les accords avec les groupes.
 - **Le pont d'IA** est un seul programme, sans réglage qui dépende du choix des mods.

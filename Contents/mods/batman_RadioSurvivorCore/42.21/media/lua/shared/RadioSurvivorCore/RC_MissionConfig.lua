@@ -12,6 +12,9 @@ local MC = {
     -- template registration order and does not ask the templates after the cap: no place drawn for an offer that is
     -- not sent). Same value as MAX_OFFERS in bridge/npc_protocol.py, which rejects a larger catalog.
     MAX_OFFERS = 6,
+    -- Squares between a player and the requester's body for a hand-over or a claim (deliver, claim: notebook of
+    -- RadioSurvivor and journal of the core mod, E18-T29).
+    DELIVERY_RANGE = 3,
     MISSION_RETENTION_MS = 86400000,   -- closed missions kept 24 h for the notebook
     -- Successful but unclaimed lot kept 7 game days (168 game hours of world age, stopped while paused: user decision
     -- of 2026-10-21). UNCLAIMED_RETENTION_MS (7 real days) only converts a lot saved before that decision.

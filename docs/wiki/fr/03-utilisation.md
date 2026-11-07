@@ -47,8 +47,9 @@ ne pointez pas d'arme : un groupe défend son foyer, et les pillards attaquent.
 *Cette section décrit Radio Survivor et Living Knox activés ensemble. Avec Living Knox seul, il n'y a ni Ctrl+G ni
 bouton **Parler** dans le carnet : dites une phrase dans le chat local (`/say`) près d'un survivant, ou faites un clic
 droit sur lui et choisissez **Parler** ; le survivant le plus proche répond dans une bulle, et les missions qu'il
-propose apparaissent dans l'onglet Missions du carnet. Livrer et réclamer ces missions n'est pas encore possible sans
-Radio Survivor.*
+propose apparaissent dans l'onglet Missions du carnet. À côté du survivant qui a donné la mission, le bouton **Livrer**
+de cet onglet remet les objets demandés, et **Récupérer la récompense** prend la récompense une fois la mission
+réussie : un objet que le groupe a en trop, ou la récompense annoncée avec la mission.*
 
 1. Près d'un survivant que vous voyez, appuyez sur **Ctrl+G** : le PNJ visible le plus proche est sélectionné (touche
    **Sélectionner un PNJ RadioSurvivor** dans les options du jeu). Le bouton **Parler** d'un contact du carnet fait

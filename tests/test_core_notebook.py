@@ -196,6 +196,26 @@ class NotebookCoreOnlyTests(unittest.TestCase):
         detail = self.cev('A', 'return RadioSurvivorCore.notebook.window.detail.text')
         self.assertIn('IGUI_RC_JournalEmpty', detail)
 
+    def test_claim_button_of_a_success_near_the_requester(self):
+        """E18-T29: a success with a lot left is listed "to claim"; its button sends the gesture to the authority, which
+        asks the giver (near, claim) and answers the list again."""
+        self.sev('local M = require("RadioSurvivorCore/RC_Missions") CLAIMS = {} '
+                 'M.registerDonor("lknpc", {find = function(state, id) return GIVERS[id] end, '
+                 'near = function() return true end, '
+                 'claim = function(store, m, player, character) CLAIMS[#CLAIMS + 1] = character '
+                 'm.claimedBy, m.claimedName = character, "Alice" m.revision = m.revision + 1 return true end}) '
+                 'local b = newMission("lk:2", "cA") M.accept(STATE, b, "cA", "Alice") b.ready = true '
+                 'M.spoken(STORE, b, nil, "cA")')
+        self.open('A')
+        self.assertEqual(lua_rows(self.h.machine('A')), 'IGUI_RC_TestProbe - Abe (IGUI_RC_State_toClaim)')
+        out = self.cev('A', 'local w = RadioSurvivorCore.notebook.window '
+                            'return tostring(w.journalClaim:isVisible()) .. tostring(w.journalDeliver:isVisible())')
+        self.assertEqual(out, 'truefalse')
+        self.cev('A', 'local w = RadioSurvivorCore.notebook.window w.journalClaim.onclick(w)')
+        self.h.pump(); self.h.pump()
+        self.assertEqual(self.sev('return table.concat(CLAIMS, ",")'), 'cA')
+        self.assertEqual(lua_rows(self.h.machine('A')), '')
+
     def test_sidebar_button_opens_the_notebook(self):
         out = self.cev('A', 'local p = ISEquippedItem:new() p:initialise() ISEquippedItem.instance = p '
                             'local had = p.rcNotebook ~= nil '

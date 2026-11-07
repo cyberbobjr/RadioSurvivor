@@ -47,26 +47,14 @@ function N.describe(npc, character)
     return source
 end
 
--- Reserve the group's full target reserve, and never draw during rationing.
--- takeItem updates the real container AND the reference; the returned object retains its identity.
+-- One item of the household surplus (Living Knox: never during rationing, only above the target reserve, fitting in the
+-- inventory); the returned object retains its identity (E18-T29: same rule as the lot of Living Knox alone).
 function N.takeMaterial(npc, character, player)
     local r, why = N.resolve(npc)
     if not r then return nil, why end
-    local S = LivingKnox.Stock
-    if not S then return nil, 'stock unavailable' end
-    local assessment = S.needs(r.group)
-    if not assessment or assessment.ration ~= 0 or assessment.next ~= 0 then return nil, 'stock rationed' end
-    local found, item = S.takeItem(r.group, function(it)
-        local cat = S.categoryOf(it)
-        if cat == nil or (assessment.have[cat] or 0) <= (assessment.want[cat] or 0) then return false end
-        if player then
-            local inv = player:getInventory()
-            if inv:getCapacityWeight() + it:getActualWeight() > inv:getEffectiveCapacity(player) then return false end
-        end
-        return true
-    end, character, 'mission reward')
-    if not found then return nil, item end
-    return item, found
+    local Rewards = LivingKnox.MissionRewards
+    if not Rewards then return nil, 'stock unavailable' end
+    return Rewards.take(r.group, character, player)
 end
 
 -- nil means the historical common-lot path still owns this provider.

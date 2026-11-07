@@ -135,7 +135,7 @@ local C = {
         breaker = 'Maintenance', deputy = 'Aiming'},
     NPC_REWARD_TABLES = {settlers = 'tools', neutrals = 'food', raiders = 'ammo'},
     VERSION = 2,
-    DELIVERY_RANGE = 3,
+    DELIVERY_RANGE = MissionConfig.DELIVERY_RANGE,
     -- E17-T15: longer than the longest answer of the bridge (bridge/radio_bridge.py: start at most MAX_AGE_S = 75 s
     -- after `sent`, then one model call of at most LLM_BUDGET_S = 60 s, attempts included: 135 s). An error of the
     -- provider comes back sooner as a reply with `error` (timeout, http_503...), refused with that cause.

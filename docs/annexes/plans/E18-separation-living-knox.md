@@ -2,7 +2,7 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 11 / 31 tâche(s) terminée(s).
+**Avancement.** en cours — 12 / 31 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
@@ -34,7 +34,7 @@
 | ☐ | E18-T26 | Onglet Contacts commun, contacts versés par chaque mod | `testé hors jeu` | MP | E18-T24 |
 | ☐ | E18-T27 | Observations des PNJ et fréquence des initiatives dans Living Knox | `à faire` | MP | E18-T18 |
 | ☑ | E18-T28 | Corps de PNJ inconnus des clients quand l'identifiant réseau devient négatif | `testé MP` | MP | — |
-| ☐ | E18-T29 | Livrer et réclamer une mission de PNJ sans RadioSurvivor | `à faire` | MP | E18-T18 |
+| ☑ | E18-T29 | Livrer et réclamer une mission de PNJ sans RadioSurvivor | `testé MP` | MP | E18-T18 |
 | ☐ | E18-T30 | Offensive à la fenêtre instable en MP | `à faire` | MP | — |
 | ☐ | E18-T31 | Suites instables des campagnes de validation | `à faire` | MP | — |
 
@@ -457,16 +457,16 @@ Deuxième article Workshop, dépôt séparé, nouvelles règles de jeu des missi
   - Preuve : `IsoObjectID` (`network/IsoObjectID.java:14, 21, 51-57`) : compteur `short` tiré au hasard, négatif après `32767`, `-1` seul réservé. Campagne en défaut `runs/20261107-005102-mp-aedd4dca7b9b` (code 2, aucun résultat en 7200 s, compteur parti de 32485 : 29 trajets expirés, plus aucune arrivée après 00:55:24, `removing stale zombie 5000 id=-32767` chez les clients). 16 contrôles passés à `~= -1` / `== -1` dans `LK_ZombieGuard`, `LK_Senses`, `LK_Zombies`, `LK_Alert`, `LK_Decisions`, `LK_Equipment`, `LK_CombatClient`, plus 2 dans `RST_LKEssai` et `RST_LKEssaiServer`. `test_lk_guard.py` 26 tests OK (corps à -32767 gardé, corps à -1 écarté). Campagne `autoclient.py --mp --clients 2 --server-campaign mp --bridge on --llm fake` : code 1, `RST-RESULT ok=false total=377 pass=358 fail=1 error=2 skip=16`, `runs/20261107-030546-mp-2f49ffa1d5f4`, 2289 s, 168 arrivées, aucun trajet expiré (`timeout`) ; les 3 défauts sont sans lien et rejoués verts (voir E18-T17).
   - Reste : deuxième correction : `Guard.bornPass` (`id >= 0`) passé à `id ~= -1`, et `test_lk_guard.py` refuse tout test de signe sur un identifiant réseau. Campagne `runs/20261107-043057-mp-05cbafebf449` : le compteur y a réellement débordé (32357 à -32346, 128 copies négatives) sans aucun trajet expiré, mais `lk.spawnclean` échouait à cause de `bornPass`, vu avant cette correction. Rejeu après correction `runs/20261107-051943-mp-e7be111215bc` : lk.spawnclean, lk.expedition et lk.tradeview verts, mais compteur à 17895-17922, donc sans débordement : la deuxième correction n'est prouvée que par le banc.
 
-- [ ] **E18-T29** — Livrer et réclamer une mission de PNJ sans RadioSurvivor
-  - État : `à faire`
+- [x] **E18-T29** — Livrer et réclamer une mission de PNJ sans RadioSurvivor
+  - État : `testé MP`
   - Cible : `MP`
   - Dépend de : E18-T18
   - Fichiers : `RC_MissionJournal`, carnet commun `RC_Notebook`, `LK_TalkAlone` ; `RS_NPCRewards` (lot d'un PNJ de Living Knox, resté dans RadioSurvivor)
   - Faire : relevé pendant `E18-T18` : avec Living Knox seul, une mission se propose, s'accepte et se rapporte par la parole, mais le journal du commun n'a ni bouton de livraison ni bouton de réclamation, et le lot d'un PNJ passe aujourd'hui par `RS_NPCRewards`. Ajouter ces gestes au journal et donner au donneur `npc` de Living Knox son chemin de récompense.
   - Accepté si : Living Knox seul : une mission de PNJ se termine et sa récompense arrive dans l'inventaire.
   - Tests : banc du journal ; suite des missions dans le montage Living Knox seul.
-  - Preuve : —
-  - Reste : —
+  - Preuve : confirmé par défaut le 2026-11-07 : boutons « Livrer » et « Récupérer la récompense » de l'onglet Missions du carnet commun (pas d'invitation ni d'abandon par bouton, hors périmètre), à côté du demandeur (`DELIVERY_RANGE` = 3 cases, une seule valeur dans `RC_MissionConfig`, lue par `RS_Config`) ; lot d'un PNJ de Living Knox seul = un objet en surplus du foyer (même règle que la cache de RadioSurvivor : jamais pendant un rationnement, seulement au-dessus de la réserve visée), sinon le lot commun annoncé. Commun : `RC_MissionJournal` (commande `mission`, `Journal.act`, missions réussies listées « à récupérer » : `toClaim`, `RC_MissionList`), `RC_Notebook` (boutons, fenêtre de remise des objets), 18 textes `IGUI_RC_` en anglais et en français. Living Knox : `LK_MissionRewards` (lot du foyer, marqueur écrit avant que l'objet quitte le foyer), donneur `npc` de `LK_TalkAlone` (`near`, `claim`) ; `RS_NPCRewards.takeMaterial` lit `LivingKnox.MissionRewards.take` (une seule copie). Bancs : `test_npc_rewards.py` 10 OK (4 nouveaux : lot du foyer donné une fois, repli sur le lot commun, lot de ravitaillement déjà payé, échec d'écriture sans prise), `test_lk_talk_alone.py` 9 OK (remise de deux conserves hors de portée refusée puis acceptée, mission réussie « à récupérer », lot commun dans l'inventaire, seconde réclamation refusée, donneur sans `near` refusé), `test_core_notebook.py` 16 OK (bouton de réclamation, commande, liste rafraîchie) ; `run_all.py --keep-going` : 161 réussis, 0 échec ; luacheck `Contents` 8, `dev` 0. En jeu, Living Knox seul, suite `lk.missions.alone` : solo code 0 `OK - 1 test(s): 1 pass` (`runs/20261107-165101-84fa0ad043f7`) ; MP un client, réclamation envoyée par le client comme le bouton (étape `core.journal.act`) : code 0 `RST-RESULT ok=true total=1 pass=1` (`runs/20261107-165223-mp-4e50b41aec74`).
+  - Reste : en jeu, la suite passe par le lot commun (le groupe créé pour le test n'a pas de réserve) : le lot pris dans un surplus du foyer et la remise d'objets ne sont prouvés que sur banc ; le clic dans la fenêtre de remise n'est pas piloté en jeu.
 
 - [ ] **E18-T30** — Offensive à la fenêtre instable en MP
   - État : `à faire`
