@@ -39,7 +39,7 @@ local GLOBALS = {
     { "getWorld", "server", "server/RadioSurvivor/RS_State.lua:68" },
     { "ZombRand", "server", "server/RadioSurvivor/RS_State.lua:30" },
     { "getGameTime", "server", "server/RadioSurvivor_Server.lua:82" },
-    { "getClimateManager", "server", "server/RadioSurvivorCore/RC_WorldFacts.lua:30" },
+    { "getClimateManager", "server", "server/RadioSurvivorCore/RC_WorldFacts.lua:33" },
     { "getZomboidRadio", "server", "server/RadioSurvivor/RS_Personas.lua:720" },
     { "sendRemoveItemFromContainer", "server", "server/RadioSurvivorCore/RC_Missions.lua:669" },
     { "sendAddItemToContainer", "server", "server/RadioSurvivorCore/RC_Missions.lua:485" },

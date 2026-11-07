@@ -2,7 +2,7 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 14 / 33 tâche(s) terminée(s).
+**Avancement.** en cours — 15 / 33 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
@@ -37,7 +37,7 @@
 | ☑ | E18-T29 | Livrer et réclamer une mission de PNJ sans RadioSurvivor | `testé MP` | MP | E18-T18 |
 | ☐ | E18-T30 | Offensive à la fenêtre instable en MP | `à faire` | MP | — |
 | ☐ | E18-T31 | Suites instables des campagnes de validation | `à faire` | MP | — |
-| ☐ | E18-T32 | Bavardages entre membres d'un groupe | `à faire` | MP | E18-T27 |
+| ☑ | E18-T32 | Bavardages entre membres d'un groupe | `testé MP` | MP | E18-T27 |
 | ☑ | E18-T33 | Récompense d'une mission de PNJ créée à la volée | `testé MP` | MP | E18-T29 |
 
 <!-- fin du tableau de bord -->
@@ -503,16 +503,16 @@ Deuxième article Workshop, dépôt séparé, nouvelles règles de jeu des missi
   - Preuve : —
   - Reste : —
 
-- [ ] **E18-T32** — Bavardages entre membres d'un groupe
-  - État : `à faire`
+- [x] **E18-T32** — Bavardages entre membres d'un groupe
+  - État : `testé MP`
   - Cible : `MP`
   - Dépend de : E18-T27
   - Fichiers : Living Knox : nouveau `LK_Chatter` (ouverture, tours, sujet), `LK_Talk` (demande), option `InitiativeFrequency` de Living Knox (`E18-T27`) ; pont `bridge/npc_protocol.py` (sorte de demande ou sujet de `npc_converse`) ; `docs/specifications-techniques/protocole-carnet-v2.md`
   - Faire : quand un joueur est près du foyer d'un groupe, deux membres libres échangent de temps en temps sur leur quotidien (besoins, moral, météo, chef) sans observation à transmettre (décisions du 2026-11-07) ; rien sans le pont IA.
   - Accepté si : Living Knox seul et les deux : deux membres d'un groupe bavardent au foyer devant un joueur (2 à 4 répliques écrites par le pont, sujet tiré de l'état du groupe), au rythme de l'option ; option Désactivées ou pont arrêté : aucun bavardage.
   - Tests : banc des bavardages (ouverture, rythme par groupe, sujet, longueur, sans pont, intervention) ; suite en jeu dans les montages Living Knox seul et les deux.
-  - Preuve : —
-  - Reste : —
+  - Preuve : 2026-11-07 : Living Knox : `LK_Chatter` (deux fiches vivantes du même groupe au foyer, 10 cases en x et en y, même étage, à 8 cases et en vue à l'ouverture, libres, un joueur entend la première ; délai par groupe = délai par PNJ du niveau de l'option, `Talk.data.chatter.last` ; sujet : besoin le plus pressant de `Stock.needs` (vide ou critique d'abord), moral `low`/`steady`/`high`, temps de `RC_WorldFacts.weather`, nom du chef ; `TURNS` needs 4, leader 3, morale 3, weather 2 ; rien sans pont ni option, rien consommé) ; `LK_Conversations.openChatter` (même machinerie : tours, réponse, intervention, historique ; `context.topic`, sans `event`), `V.canSpeak`, `V.atHome` ; `LK_Talk.turns` ouvre un bavardage seulement si aucune conversation d'observation ne s'est ouverte ; commun : `RC_WorldFacts.weather` (`ClimateManager.java:474-499, 576`) ; pont : `context.topic` validé (sujet fermé, détail de 48 octets, `event` refusé avec un sujet), consigne de bavardage et ligne `Topic of the chat`. Essai en jeu : premier passage solo Living Knox seul code 1 `RST-RESULT ok=false total=1 pass=0 fail=1` `runs/20261107-202757-a2851f663b45` (« expected 4, got 2 » : `out of range`), puis avec une portée de 8 cases code 1 `runs/20261107-202956-964a1ac40f49`, puis avec le détail code 1 `runs/20261107-203207-ca0d6f86ec35` (`out of range (9.0 tiles, floors 0/0, in sight false)` : un membre vaque chez lui hors de vue) ; correction : le bavardage dure tant que les deux restent au foyer (`left home` sinon), banc qui échoue sans elle (`test_chatter.py` : membre à 9 cases hors de vue au foyer, puis sorti). Bancs : `test_chatter.py` 8 OK (ouverture au foyer, répliques selon le sujet, délai par groupe, rien loin du foyer ni sans auditeur, rien sans pont ni option et rien consommé, observation d'abord, intervention, sujet tiré de l'état, contrat du pont), `test_lk_talk_alone.py` 14 OK (bavardage sans RadioSurvivor), `test_conversations.py` OK, `test_protocol.py` OK  ; `run_all.py` 160 passés, 1 échec (`suite_mods` : `lk.chatter` charge `RST_RSHelpers`, aide des deux hôtes, déclarée facultative comme `rs.conversations`), corrigé, banc relancé : OK ; luacheck `Contents` 8, `dev` 0. Suite en jeu `lk.chatter` (pont, `--llm fake`) : Living Knox seul solo code 0 `RST-RESULT ok=true total=1 pass=1` `runs/20261107-203416-1ad99e7420e8` (4 répliques sur `needs`, `ended after 4 line(s): done`), MP code 0 `RST-RESULT ok=true total=1 pass=1 fail=0 error=0 skip=0` `runs/20261107-203543-mp-cdcc0044c332` ; les deux mods solo code 0 `pass=1` `runs/20261107-203755-83846047eca3`, MP code 0 `pass=1` `runs/20261107-203917-mp-c6e9cae1195d`. Non-régression `rs.conversations,rs.initiatives` les deux mods MP code 0 `RST-RESULT ok=true total=8 pass=8` `runs/20261107-204207-mp-5de192500365`.
+  - Reste : option « Désactivées » et pont arrêté prouvés par les bancs seulement ; seul le sujet `needs` a été tiré en jeu (les quatre passages), les trois autres sont prouvés par le banc ; la bulle chez le client MP n'est pas vérifiée par `lk.chatter` (même canal `Provider.say` que les conversations, vérifié par `rs.conversations`).
 - [x] **E18-T33** — Récompense d'une mission de PNJ créée à la volée
   - État : `testé MP`
   - Cible : `MP`

@@ -77,3 +77,15 @@ une intervention raccourcit l'échange entre PNJ. Les réponses aux joueurs ne s
 - Transmission entre PNJ non chargés exclue (aucune simulation de contact, ADR B11).
 - Une conversation par paire ; une bande de trois ou plus parle par paires successives.
 - Le contenu des répliques n'est pas vérifié contre la carte (le LLM peut mentir ou omettre, ADR B11) ; la transmission enregistrée est toujours la carte du serveur, jamais le texte.
+
+## Bavardage d'un groupe (E18-T32)
+
+Décisions de l'utilisateur du 2026-11-07 : au foyer seulement ; 2 à 4 répliques selon le sujet, écrites par le pont ;
+même délai que les initiatives, compté par groupe ; rien sans le pont. Confirmé par défaut : sujet tiré de l'état réel
+du groupe (besoin le plus pressant, moral, temps qu'il fait, chef), une observation à transmettre passe avant, un joueur
+peut s'y joindre comme à une conversation, les répliques rejoignent l'historique des contacts existants. Code :
+`media/lua/server/LivingKnox/LK_Chatter.lua` (ouverture, sujet, délai), qui ouvre une conversation de
+`LK_Conversations` (`V.openChatter`) ; contrat : [protocole](../../specifications-techniques/protocole-carnet-v2.md)
+« Bavardage d'un groupe ». Essai en jeu du 2026-11-07 : deux membres vaquent chez eux et s'éloignent ; un bavardage dure
+donc tant que les deux restent au foyer, sans exiger qu'ils restent face à face. Tests : `tests/test_chatter.py`,
+`tests/test_lk_talk_alone.py` ; suite en jeu `lk.chatter` (montages Living Knox seul et les deux).

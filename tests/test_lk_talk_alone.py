@@ -288,6 +288,37 @@ class AloneTests(unittest.TestCase):
         heard = [o.source for o in obs.list(partner).values() if o.key == key]
         self.assertEqual(heard, ['heard_from:' + teller])
 
+    def test_two_members_chatter_at_their_home(self):
+        """E18-T32 : sans RadioSurvivor, deux membres d'un groupe à leur foyer bavardent devant le joueur : sujet tiré
+        de l'état du groupe, répliques selon le sujet, dites en bulle."""
+        self.w.rt.execute("require 'LivingKnox/LK_Speech'")
+        self.w.rt.execute('assert(LivingKnox.Groups.setHome(LK_GROUP, 13, 10, 0))')
+        self.w.rt.execute("require('LivingKnox/LK_Chatter').draw = function(n) return n end")
+        a, b = self.w.g.LK_LEADER, self.w.g.LK_MATE
+        self.w.talk.ensure(a)
+        self.w.talk.ensure(b)
+        conversations = self.w.rt.eval("require('LivingKnox/LK_Conversations')")
+        chatter = self.w.rt.eval("require('LivingKnox/LK_Chatter')")
+        said = conversations.stats.said
+        for _ in range(3):
+            self.w.answer()
+            if self.pending('npc_converse'):
+                break
+        asked = self.pending('npc_converse')
+        self.assertTrue(asked, 'no chatter line asked')
+        topic = asked[0].context.topic
+        self.assertIsNotNone(topic, 'conversation without a topic')
+        self.assertIsNone(asked[0].event)
+        self.assertEqual(chatter.stats.opened, 1)
+        turns = chatter.TURNS[topic.subject]
+        ended = conversations.stats.ended
+        for _ in range(turns * 6):
+            self.w.answer()
+            if conversations.stats.ended > ended:
+                break
+        self.assertEqual(conversations.stats.said, said + turns)
+        self.assertEqual(self.pending('npc_converse'), [])
+
     def test_a_player_who_never_spoke_is_bound_and_hears_initiatives(self):
         """E18-T27 (campagne MP du 2026-11-07, « listeners 0 ») : le hello du client arrivé avant son joueur serveur est
         perdu ; chaque passage lie les joueurs vivants sans identité."""

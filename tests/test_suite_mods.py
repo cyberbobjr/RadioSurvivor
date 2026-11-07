@@ -25,7 +25,9 @@ DECL = re.compile(r'RST\.suite\(\s*"([\w.]+)"\s*,\s*(\{[^\n]*?\}\s*,|function)')
 OPTIONAL = {'lk.debugview': {'rs'}, 'lk.npcsheet': {'rs'}, 'rc.notebook': {'rs'},
             'rs.factions.mandate': {'lk'},  # E18-T15: agreements test skipped without Living Knox
             # E18-T27: Living Knox alone too; the notebook paths (selection, Say line) are SKIP without RadioSurvivor.
-            'rs.conversations': {'rs'}, 'rs.initiatives': {'rs'}}
+            'rs.conversations': {'rs'}, 'rs.initiatives': {'rs'},
+            # E18-T32: RST.RSHelpers.speech serves both speech hosts (notebook or Living Knox alone).
+            'lk.chatter': {'rs'}}
 
 
 def strip_comments(text):

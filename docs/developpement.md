@@ -27,7 +27,8 @@ Pas de reprise des anciennes sauvegardes : les mods ne sont pas publiés avec un
 migration n'est écrite ni documentée.
 
 Les observations des PNJ, leurs déclencheurs et l'option de fréquence des initiatives appartiennent à Living Knox
-(`E18-T27`) : seul ou avec RadioSurvivor, un PNJ prend la parole de lui-même et deux PNJ se racontent ce qu'ils ont vu.
+(`E18-T27`) : seul ou avec RadioSurvivor, un PNJ prend la parole de lui-même et deux PNJ se racontent ce qu'ils ont vu ;
+deux membres d'un groupe bavardent à leur foyer devant un joueur (`E18-T32`).
 
 ## Architecture validée — à préserver
 

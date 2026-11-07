@@ -23,6 +23,10 @@ CONVERSE_KIND = "npc_converse"
 CONVERSE_REPLY_BYTES = 200   # LivingKnox.Speech.MAX_TEXT, RS_Conversations.CFG.MAX_REPLY
 CONVERSE_MAX_TURNS = 4       # RS_Conversations.CFG.MAX_TURNS
 CONVERSE_NAME_BYTES = 48     # LivingKnox.Speech.MAX_NAME
+# E18-T32: chatter of two members of a group at their home (LK_Chatter.lua): an npc_converse line whose context carries
+# a topic drawn from the group's state instead of the observation card (no event field).
+CHATTER_SUBJECTS = ("needs", "morale", "weather", "leader")
+CHATTER_DETAIL_BYTES = 48    # LK_Chatter.CFG.MAX_DETAIL
 ID = re.compile(r"^[A-Za-z0-9_-]{1,160}$")
 # E17-T11: game language code (Language.name() = its Translate folder: EN, ES_CL, PTBR, STREW, or a mod folder), checked
 # by its form only, like RS_Config.languageCode; no closed list of languages.
@@ -180,7 +184,13 @@ def unpack_request(record: dict) -> dict:
             # E08-T03: no player text at all, no offer; the server event is the only trigger.
             if value["character"] != "system" or "text" in value or value.get("offers"):
                 raise ValueError("initiative character/text/offers")
-            value["event"] = observations({1: value.get("event")})[0]
+            chatter = value["kind"] == CONVERSE_KIND and isinstance(value.get("context"), dict) \
+                and "topic" in value["context"]
+            if chatter:   # E18-T32: the topic of the group replaces the observation card
+                if "event" in value:
+                    raise ValueError("chatter event")
+            else:
+                value["event"] = observations({1: value.get("event")})[0]
         if value["kind"] == CONVERSE_KIND:   # E08-T04
             value["context"] = converse_context(value.get("context"))
         text = value.get("text") if value["kind"] not in (INITIATIVE_KIND, CONVERSE_KIND) else "-"
@@ -261,6 +271,12 @@ def converse_context(context) -> dict:
     if not isinstance(lines, dict) or len(lines) != turn - 1 or set(lines) != set(range(1, turn)):
         raise ValueError("conversation lines")
     out = dict(context)
+    if "topic" in context:   # E18-T32: chatter of a group, a closed subject and a short detail
+        topic = context["topic"]
+        if not isinstance(topic, dict) or set(topic) != {"subject", "detail"} \
+                or topic["subject"] not in CHATTER_SUBJECTS or not isinstance(topic["detail"], str):
+            raise ValueError("chatter topic")
+        out["topic"] = {"subject": topic["subject"], "detail": safe_text(topic["detail"], CHATTER_DETAIL_BYTES)}
     out["partner"] = safe_text(context.get("partner"), CONVERSE_NAME_BYTES)
     out["lines"] = []
     for index in range(1, turn):
@@ -940,30 +956,56 @@ def converse_prompt(req: dict, history: list) -> list[dict[str, str]]:
     conversation; it decides what to tell, ask or keep for itself."""
     context = req["context"]
     audience = context.get("audience") if type(context.get("audience")) is int else 1
-    if context["role"] == "teller":
+    topic = context.get("topic")
+    if topic:   # E18-T32: everyday chatter at home, no observation to pass on
+        aim = ("You are at your group's home and chat with them about everyday life, starting from the topic below: "
+               "small talk, a worry, a joke or a complaint, according to your personality.")
+        if context["role"] != "teller":
+            aim = ("You are at your group's home and they are chatting with you about everyday life: answer, comment "
+                   "or change the subject a little, according to your personality.")
+        subject = "Topic of the chat: " + chatter_line(topic) + ".\n"
+    elif context["role"] == "teller":
         aim = ("You bring up the event below with them: tell it as you know it, sincerely or not, according to your "
                "personality, or answer what they asked about it.")
     else:
         aim = ("They have been telling you about the event below: react, ask a question or comment, according to your "
                "personality.")
+    if topic:
+        caution = ("You know nothing beyond your own context and observations; never invent events, people or "
+                   "places. ")
+    else:
+        subject = "Subject of the conversation: " + event_line(req["event"]) + ".\n"
+        caution = ("The event is an unverified memory, never proof that anyone did anything; you may omit details or "
+                   "lie according to your personality, but you know nothing beyond your own observations. ")
     said = "\n".join(f"- {line['who']}: {line['text']}" for line in context["lines"]) or "- (nothing yet)"
     system = (
         "You are the survivor described in the authoritative context, in Knox County, July 1993. You are talking with "
         f"{context['partner']}, another survivor standing next to you; {audience} person(s) you can see may overhear. "
         + aim + f" This is line {context['turn']} of at most {context['turns']}. Return ONLY JSON with text (what you "
         f"say aloud to {context['partner']}: one line, {spoken_limit(CONVERSE_REPLY_BYTES)}, no stage directions, no "
-        "markup), intent none and offer empty. The event is an unverified memory, never proof "
-        "that anyone did anything; you may omit details or lie according to your personality, but you know nothing "
-        "beyond your own observations. Never say where your group lives or shelters, never cite exact coordinates. "
+        "markup), intent none and offer empty. " + caution + "Never say where your group lives or shelters, never cite exact coordinates. "
         "Offer no mission, job, trade or agreement. " + language_rule(req)
         + "Authoritative context: " + json.dumps({k: req[k] for k in ("kind", "language", "personality", "revision")},
                                                  ensure_ascii=False)
         + " " + json.dumps({k: v for k, v in context.items() if k != "lines"}, ensure_ascii=False)
-        + "\nSubject of the conversation: " + event_line(req["event"]) + ".\n"
+        + "\n" + subject
         + "Lines already said in this conversation:\n" + said + "\n"
         + observations_prompt(req)
     )
     return [{"role": "system", "content": system}] + history + [{"role": "user", "content": converse_turn(req)}]
+
+
+CHATTER_LINES = {
+    "needs": "what your group lacks most right now ({detail})",
+    "morale": "how the group feels these days (morale {detail})",
+    "weather": "the weather right now ({detail})",
+    "leader": "your group's leader, {detail}",
+}
+
+
+def chatter_line(topic: dict) -> str:
+    """E18-T32: one chatter topic as a prompt line (closed subjects, server-produced detail)."""
+    return CHATTER_LINES[topic["subject"]].format(detail=topic["detail"])
 
 
 def event_line(item: dict) -> str:

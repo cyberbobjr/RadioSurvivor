@@ -39,6 +39,11 @@
 -- depuis (révision de la conversation), elle est refusée sans être dite et redemandée avec les nouveaux tours. La
 -- réponse admise au joueur devient une réplique de la conversation ; une intervention sans réponse admise met fin à
 -- la conversation. Chaque ligne garde les PNJ qui l'ont entendue : un locuteur ne reçoit que celles-là.
+--
+-- Bavardage (E18-T32, LK_Chatter) : une conversation ouverte par V.openChatter entre deux membres d'un même groupe, à
+-- leur foyer, sans observation : sujet conv.chatter = { subject, detail } tiré de l'état du groupe (contexte topic de
+-- npc_converse, sans carte event), conv.maxTurns répliques (2 à 4), rien à transmettre. Mêmes tours, mêmes règles
+-- sans pont, même intervention d'un joueur, même historique.
 if isClient() then return end
 
 local Talk = require 'LivingKnox/LK_TalkHost'
@@ -68,7 +73,7 @@ V.CFG = {
 V.active = {}   -- conversations en cours : [id] = conversation
 V.times = {}    -- demandes LLM de conversation de l'heure réelle écoulée (ms)
 V.interventions = {} -- E08-T05 : [id de la demande npc_talk] = id de la conversation (réponse attendue)
-V.stats = {opened = 0, silent = 0, llm = 0, said = 0, learned = 0, ended = 0, stale = 0, joined = 0}
+V.stats = {opened = 0, silent = 0, llm = 0, said = 0, learned = 0, ended = 0, stale = 0, joined = 0, chatter = 0}
 local seq, nextPass = 0, 0
 
 local function count(name) V.stats[name] = (V.stats[name] or 0) + 1 end
@@ -193,13 +198,30 @@ local function finish(conv, reason)
     print('[RS_Conversations] conversation ' .. conv.id .. ' ended after ' .. #conv.lines .. ' line(s): ' .. reason)
 end
 
--- Les deux participants peuvent encore se parler (corps chargés, vivants, proches, non occupés).
+-- E18-T32 : corps au foyer home = { x, y, z, radius } (écart en x et en y, même étage ; règle de LK_Decisions).
+function V.atHome(body, home)
+    if not body then return false end
+    return math.floor(body:getZ()) == home.z and math.abs(body:getX() - home.x) <= home.radius
+        and math.abs(body:getY() - home.y) <= home.radius
+end
+
+-- Les deux participants peuvent encore se parler (corps chargés, vivants, proches, non occupés ; bavardage : tous deux
+-- encore au foyer).
 local function together(conv, bodies)
     local a, b = Talk.fiche(conv.a), Talk.fiche(conv.b)
     local ba, bb = bodies[conv.aInc], bodies[conv.bInc]
     if not (a and a.alive and b and b.alive and ba and bb) then return false, 'participant gone' end
-    if not P.near(ba, bb, V.CFG.RANGE) then return false, 'out of range' end
     if P.engaged(conv.aInc) or P.engaged(conv.bInc) then return false, 'participant busy' end
+    -- E18-T32: a chatter goes on while both stay at their home (they go about their business there).
+    if conv.home then
+        if V.atHome(ba, conv.home) and V.atHome(bb, conv.home) then return true end
+        return false, 'left home'
+    end
+    if not P.near(ba, bb, V.CFG.RANGE) then
+        local dx, dy = ba:getX() - bb:getX(), ba:getY() - bb:getY()
+        return false, string.format('out of range (%.1f tiles, floors %d/%d, in sight %s)', math.sqrt(dx * dx + dy * dy),
+            math.floor(ba:getZ()), math.floor(bb:getZ()), tostring(ba:CanSee(bb)))
+    end
     return true
 end
 
@@ -259,15 +281,20 @@ end
 
 local function llmTurn(server, conv, speakerId, partnerId, heard, now)
     local npc, partner = server.fiche(speakerId), server.fiche(partnerId)
-    local event = I.card(speakerId, {fact = conv.item.fact, subject = conv.item.subject, day = conv.item.day,
-        place = conv.item.place})
-    if not event then return false end
+    local event = nil
+    if not conv.chatter then
+        event = I.card(speakerId, {fact = conv.item.fact, subject = conv.item.subject, day = conv.item.day,
+            place = conv.item.place})
+        if not event then return false end
+    end
     local lang = I.language()
     local g = P.context(npc.incarnation, nil, lang)
     local lines = linesHeardBy(conv, speakerId)
     local context = {name = npc.name, background = npc.background, audience = #heard, partner = partner.name,
-        role = speakerId == conv.a and 'teller' or 'listener', turn = #lines + 1, turns = V.CFG.MAX_TURNS,
+        role = speakerId == conv.a and 'teller' or 'listener', turn = #lines + 1, turns = conv.maxTurns,
         lines = lines, group = g and {member = g.member, role = g.role} or nil}
+    -- E18-T32: chatter of a group: its topic replaces the observation card.
+    if conv.chatter then context.topic = {subject = conv.chatter.subject, detail = conv.chatter.detail} end
     local req = server.enqueue(npc, V.KIND, 'system', nil, lang, context, {})
     if not req then return false end
     req.event = event
@@ -297,7 +324,7 @@ local function advance(server, conv, bodies, now)
     if now > conv.deadline then return finish(conv, 'time is up') end
     if held(conv) then return end -- E08-T05 : une intervention attend sa réponse (aucun double engagement)
     if now < conv.nextAt then return end
-    if #conv.lines >= V.CFG.MAX_TURNS then return finish(conv, 'done') end
+    if #conv.lines >= conv.maxTurns then return finish(conv, 'done') end
     local ok, why = together(conv, bodies)
     if not ok then return finish(conv, why) end
     local speakerId, speakerInc, partnerId = speakerOf(conv)
@@ -327,7 +354,8 @@ local function open(server, st, npc, found, hour, now, bodies)
     seq = seq + 1
     local conv = {id = 'cv-' .. seq .. '-' .. npc.id, a = npc.id, aInc = npc.incarnation, b = partner.id,
         bInc = partner.incarnation, subject = found.item.key, item = found.item, turn = 0, lines = {},
-        started = now, deadline = now + V.CFG.MAX_MS, nextAt = now, learned = false, rev = 0}
+        started = now, deadline = now + V.CFG.MAX_MS, nextAt = now, learned = false, rev = 0,
+        maxTurns = V.CFG.MAX_TURNS}
     if not heard then
         transmit(conv, 'silent')
         count('silent')
@@ -339,6 +367,27 @@ local function open(server, st, npc, found, hour, now, bodies)
         .. ' about ' .. found.item.fact)
     advance(server, conv, bodies, now)
     return 'opened', conv
+end
+
+-- E18-T32 : peut-on demander une réplique au modèle maintenant (pont, budgets, option) ; LK_Chatter.
+function V.canSpeak(server, now) return llmAllowed(server, now) end
+
+-- E18-T32 : bavardage de deux fiches libres a et b d'un même groupe (LK_Chatter a vérifié foyer, auditeurs, pont) :
+-- conversation sur topic = { subject, detail }, turns répliques, a commence ; elle dure tant que les deux restent au
+-- foyer home = { x, y, z, radius } (ils vaquent chez eux, essai en jeu du 2026-11-07 : un membre parti à 9 cases hors
+-- de vue coupait le bavardage). Rend la conversation, ou nil.
+function V.openChatter(server, a, b, topic, turns, now, home)
+    if not (free(server, a) and free(server, b)) then return nil end
+    seq = seq + 1
+    local conv = {id = 'ch-' .. seq .. '-' .. a.id, a = a.id, aInc = a.incarnation, b = b.id, bInc = b.incarnation,
+        subject = 'chatter:' .. topic.subject, chatter = topic, turn = 0, lines = {}, started = now,
+        deadline = now + V.CFG.MAX_MS, nextAt = now, learned = true, rev = 0, maxTurns = turns, home = home}
+    V.active[conv.id] = conv
+    count('chatter')
+    print('[RS_Conversations] chatter ' .. conv.id .. ' between ' .. a.id .. ' and ' .. b.id .. ' about '
+        .. topic.subject .. ' (' .. turns .. ' lines)')
+    advance(server, conv, P.objects(), now)
+    return conv
 end
 
 -- Passage (appelé une fois par seconde par le carnet) : tours des conversations en cours, puis au plus une ouverture
@@ -489,7 +538,7 @@ end
 -- Mémoire remise à zéro (bancs de test) ; les délais par paire restent dans l'état privé.
 function V.reset()
     V.active, V.times, V.interventions, nextPass, seq = {}, {}, {}, 0, 0
-    V.stats = {opened = 0, silent = 0, llm = 0, said = 0, learned = 0, ended = 0, stale = 0, joined = 0}
+    V.stats = {opened = 0, silent = 0, llm = 0, said = 0, learned = 0, ended = 0, stale = 0, joined = 0, chatter = 0}
 end
 
 Talk.conversations = V

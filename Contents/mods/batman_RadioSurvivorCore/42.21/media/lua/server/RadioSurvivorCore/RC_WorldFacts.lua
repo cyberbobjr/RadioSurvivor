@@ -7,6 +7,9 @@ RadioSurvivorCore: readings of the world shared by RadioSurvivor (RS_Facts) and 
     World.today()        game day (1 = first day), 1 without a clock
     World.weatherNow()   weather period running now: 'tropical_storm' | 'storm' | 'blizzard', or nil (no fog: almost
                          every morning, its strength depends on the fogQuality graphics option, ClimateManager.java:1307)
+    World.weather()      weather felt now, one word (E18-T32, chatter of a group): a storm of weatherNow, else 'snow',
+                         'rain', 'fog' (intensity above FOG), 'hot' (HOT degrees C or more), 'cold' (COLD or less) or
+                         'mild'; nil without a climate (ClimateManager.java:474-499, 576)
     World.gridPower()    global power grid present (true), cut (false), nil without options
                          (SandboxOptions.doesPowerGridExist, no loaded square needed)
 ]]
@@ -36,6 +39,24 @@ function World.weatherNow()
     end
     if wp and wp:isRunning() and wp:isBlizzard() then return 'blizzard' end
     return nil
+end
+
+World.FOG, World.HOT, World.COLD = 0.5, 28, 5
+
+function World.weather()
+    local storm = World.weatherNow()
+    if storm then return storm end
+    local cm = getClimateManager and getClimateManager()
+    if not cm or not cm.getPrecipitationIntensity then return nil end
+    if cm:getPrecipitationIntensity() > 0 then
+        if cm:getPrecipitationIsSnow() then return 'snow' end
+        return 'rain'
+    end
+    if cm:getFogIntensity() > World.FOG then return 'fog' end
+    local t = cm:getTemperature()
+    if t >= World.HOT then return 'hot' end
+    if t <= World.COLD then return 'cold' end
+    return 'mild'
 end
 
 function World.gridPower()

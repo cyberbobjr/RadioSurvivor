@@ -14,7 +14,8 @@ One request per speaker at the bridge: heads of the queue only (Talk.sync); the 
 Private state, two slot files written in turn (RC_SlotFile): Zomboid/Lua/batman_LivingKnox/talk-<hex of
 "mode/world">-<0|1>.txt, header LKTALK1, never a global ModData:
   data = { acks = bounded outbox of acknowledgements, a restart must not lose them,
-           initiatives = { done, last } (LK_Initiatives), conversations = { pairs } (LK_Conversations) }
+           initiatives = { done, last } (LK_Initiatives), conversations = { pairs } (LK_Conversations),
+           chatter = { last } (LK_Chatter, E18-T32) }
 The requests in the queue live in memory only: after a restart the bridge answers no old session.
 Console messages in English.
 ]]
@@ -28,6 +29,7 @@ local WorldStart = require "RadioSurvivorCore/RC_WorldStart"
 require "LivingKnox/LK_Incidents"
 require "LivingKnox/LK_Initiatives"
 require "LivingKnox/LK_Conversations"
+require "LivingKnox/LK_Chatter"
 require "LivingKnox/LK_ObservationTriggers" -- E18-T27: observations of the NPCs and their triggers
 
 local P, Obs = Talk.provider, Talk.observations
@@ -73,7 +75,9 @@ function Talk.remember(npc, id, text, players) return Talk.host.remember(npc, id
 
 local function log(msg) print("[LivingKnox] talk: " .. tostring(msg)) end
 
-local function fresh() return { acks = {}, initiatives = { done = {}, last = {} }, conversations = { pairs = {} } } end
+local function fresh()
+    return { acks = {}, initiatives = { done = {}, last = {} }, conversations = { pairs = {} }, chatter = { last = {} } }
+end
 
 function Talk.init(newWorld)
     local st = Talk.store
@@ -624,7 +628,8 @@ function Talk.poll()
 end
 
 -- One pass of the authority, once a second: comebacks of known characters (observations), initiatives, turns of
--- the conversations, decisions on incidents; observation logs of speakers no longer followed purged once a minute.
+-- the conversations, chatter of the groups, decisions on incidents; observation logs of speakers no longer followed
+-- purged once a minute.
 local pruneAt = 0
 function Talk.turns(now)
     local Triggers = Talk.observationTriggers
@@ -637,7 +642,9 @@ function Talk.turns(now)
         end
     end
     Talk.initiatives.tick(Talk, now) -- E08-T03: at most one NPC initiative per pass
-    Talk.conversations.tick(Talk, now) -- E08-T04: turns of the NPC conversations, at most one opened per pass
+    -- E08-T04: turns of the NPC conversations, at most one opened per pass; E18-T32: chatter of a group at its home
+    -- only when no observation conversation opened (an observation to pass on goes first).
+    if Talk.conversations.tick(Talk, now) == nil then Talk.chatter.tick(Talk, now) end
     Talk.incidents.tick(Talk, now) -- E09-T06: decision of a leader on an incident of a truce, one per pass
     if Talk.dirty then writeState() end
 end

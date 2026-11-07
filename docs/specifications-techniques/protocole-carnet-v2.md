@@ -1026,6 +1026,29 @@ dépasse pas `turns`. Une demande `npc_converse` antérieure à une nouvelle lig
 qu'une intervention attend sa réponse, si bien que la dernière ligne vue par le locuteur est toujours une réplique de
 PNJ (mémoire du pont : jamais un texte de joueur). Une intervention refusée ou expirée termine la conversation.
 
+### Bavardage d'un groupe (E18-T32)
+
+Deux membres d'un même groupe, à leur foyer (10 cases en x et en y de la case du foyer, même étage), à 8 cases au plus
+l'un de l'autre et en vue, libres, devant un joueur qui entend le premier, bavardent de leur quotidien
+(`server/LivingKnox/LK_Chatter.lua`). Une conversation d'observation à transmettre passe avant. Délai **par groupe** =
+délai par PNJ de l'option `LivingKnox.InitiativeFrequency` (Rares 24 h de jeu, Normales 1 h, Fréquentes 30 min,
+Désactivées : aucun), gardé dans l'état privé (`chatter.last`). Chaque réplique est une demande `npc_converse` comme
+ci-dessus (mêmes plafonds, même intervention d'un joueur, même historique), avec deux écarts :
+
+| Écart | Valeur |
+| --- | --- |
+| `event` | **absent** (refusé par le pont s'il est présent avec un `topic`) |
+| `context.topic` | `{ subject, detail }` : `subject` parmi `needs`, `morale`, `weather`, `leader` ; `detail` de 48 octets au plus (refusé au-delà, jamais coupé) |
+| `context.turns` | selon le sujet : `needs` 4, `leader` 3, `morale` 3, `weather` 2 |
+
+Sujet tiré par le serveur de l'état réel du groupe : besoin le plus pressant (`LivingKnox.Stock.needs` : catégorie et
+état, par exemple `food critical` ; vide ou critique : ce sujet d'abord), moral (`low` sous 35, `steady`, `high` dès
+70), temps qu'il fait (`RC_WorldFacts.weather` : orage, `snow`, `rain`, `fog`, `hot`, `cold`, `mild`), nom du chef
+vivant. Le bavardage dure tant que les deux restent au foyer (ils vaquent chez eux ; ni distance ni vue exigées après
+l'ouverture) ; il s'arrête si l'un en sort (`left home`), meurt ou est occupé. Pont : `converse_prompt` sans carte
+d'événement, ligne `Topic of the chat: …` et consigne de bavardage (rien d'inventé hors de son contexte). Pont arrêté,
+hors budget ou option « Désactivées » : aucun bavardage, rien consommé.
+
 ### Offres de missions et contexte `mission` (E11-T02, E11-T03)
 
 `offers` associe à chaque identifiant d'offre admissible ses conditions, calculées par le gabarit côté serveur
