@@ -1029,7 +1029,7 @@ PNJ (mémoire du pont : jamais un texte de joueur). Une intervention refusée ou
 ### Bavardage d'un groupe (E18-T32)
 
 Deux membres d'un même groupe, à leur foyer (10 cases en x et en y de la case du foyer, même étage), à 8 cases au plus
-l'un de l'autre et en vue, libres, devant un joueur qui entend le premier, bavardent de leur quotidien
+l'un de l'autre (même d'une pièce à l'autre), libres, devant un joueur qui entend le premier, bavardent de leur quotidien
 (`server/LivingKnox/LK_Chatter.lua`). Une conversation d'observation à transmettre passe avant. Délai **par groupe** =
 délai par PNJ de l'option `LivingKnox.InitiativeFrequency` (Rares 24 h de jeu, Normales 1 h, Fréquentes 30 min,
 Désactivées : aucun), gardé dans l'état privé (`chatter.last`). Chaque réplique est une demande `npc_converse` comme

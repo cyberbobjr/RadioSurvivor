@@ -5,11 +5,12 @@
 -- Ouverture (un passage toutes les EVERY_MS, appelé par Talk.turns quand aucune conversation d'observation ne s'est
 -- ouverte à ce passage : une observation à transmettre passe avant) : deux fiches vivantes, corps chargés, du même
 -- groupe, toutes deux au foyer (HOME_RADIUS cases en x et en y de la case du foyer, même étage : règle « au foyer »
--- de LK_Decisions), à RANGE cases l'une de l'autre et en vue (Provider.near), libres (aucune demande en file, aucune
--- conversation, non occupées), et au moins un joueur lié entend la première (Provider.hears). Délai par GROUPE : celui
--- de l'option LivingKnox.InitiativeFrequency par PNJ (Rares 24 h de jeu, Normales 1 h, Fréquentes 30 min), gardé dans
--- l'état privé (Talk.data.chatter.last) ; Désactivées : aucun bavardage. Les répliques comptent dans les mêmes
--- plafonds que les conversations (LK_Conversations : plafond du niveau de l'option, plafond commun du serveur).
+-- de LK_Decisions), à RANGE cases l'une de l'autre (sans exiger de vue : deux pièces du foyer, essai du 2026-11-07),
+-- libres (aucune demande en file, aucune conversation, non occupées), et au moins un joueur lié entend la première
+-- (Provider.hears). Délai par GROUPE : celui de l'option LivingKnox.InitiativeFrequency par PNJ (Rares 24 h de jeu,
+-- Normales 1 h, Fréquentes 30 min), gardé dans l'état privé (Talk.data.chatter.last) ; Désactivées : aucun
+-- bavardage. Les répliques comptent dans les mêmes plafonds que les conversations (LK_Conversations : plafond du
+-- niveau de l'option, plafond commun du serveur).
 -- Sans réponse possible du modèle (pont réputé arrêté, budget) : rien ne s'ouvre et rien n'est consommé.
 --
 -- Sujet tiré de l'état réel du groupe : besoin le plus pressant (LivingKnox.Stock.needs : catégorie et état ; vide
@@ -28,7 +29,7 @@ local P = Talk.provider
 local Ch = {}
 Ch.CFG = {
     EVERY_MS = 5000,     -- recherche d'un bavardage au plus toutes les 5 s réelles
-    RANGE = 8,           -- cases entre les deux membres à l'ouverture (ensuite : tous deux au foyer)
+    RANGE = 8,           -- cases entre les deux membres à l'ouverture, même étage (ensuite : tous deux au foyer)
     HOME_RADIUS = 10,    -- cases : « au foyer » (LK_Decisions.CFG.HOME_RADIUS)
     MORALE_LOW = 35,     -- moral 0..100 : bas en dessous, haut à partir de MORALE_HIGH
     MORALE_HIGH = 70,
@@ -65,6 +66,14 @@ end
 
 local function homeOf(g)
     return {x = g.home.x, y = g.home.y, z = g.home.z, radius = Ch.CFG.HOME_RADIUS}
+end
+
+-- Même étage, à RANGE cases au plus ; aucune vue exigée (ils se parlent d'une pièce à l'autre de leur foyer : campagne
+-- MP du 2026-11-07, deux membres à 1,8 case séparés par une cloison n'ouvraient rien pendant 30 s).
+local function close(ba, bb)
+    if math.floor(ba:getZ()) ~= math.floor(bb:getZ()) then return false end
+    local dx, dy = ba:getX() - bb:getX(), ba:getY() - bb:getY()
+    return dx * dx + dy * dy <= Ch.CFG.RANGE * Ch.CFG.RANGE
 end
 
 local function free(server, npc)
@@ -137,7 +146,7 @@ local function pairAtHome(server, st, hour, rule)
         for i = 1, #list do
             if #I.listeners(server, list[i].body) > 0 then
                 for j = 1, #list do
-                    if j ~= i and P.near(list[i].body, list[j].body, Ch.CFG.RANGE) then
+                    if j ~= i and close(list[i].body, list[j].body) then
                         return {a = list[i].npc, b = list[j].npc, gid = gid, g = byGroup[gid].g}
                     end
                 end
