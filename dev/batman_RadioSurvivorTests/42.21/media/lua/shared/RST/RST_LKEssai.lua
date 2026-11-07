@@ -416,7 +416,7 @@ end
 
 -- Zombie of this machine with this online id (nil when absent or dead). Linear scan of the zombie list.
 function C.findByOnlineId(onlineId)
-    if type(onlineId) ~= "number" or onlineId < 0 then return nil end
+    if type(onlineId) ~= "number" or onlineId == -1 then return nil end
     local list = getCell():getZombieList()
     for i = 0, list:size() - 1 do
         local z = list:get(i)

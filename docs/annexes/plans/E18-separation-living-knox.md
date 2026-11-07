@@ -2,7 +2,7 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 4 / 26 tâche(s) terminée(s).
+**Avancement.** en cours — 5 / 28 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
@@ -22,7 +22,7 @@
 | ☑ | E18-T14 | Outillage des tests pour trois montages | `testé hors jeu` | hors jeu | E18-T07 |
 | ☐ | E18-T15 | Validation des trois montages | `à faire` | MP | E18-T05, E18-T06, E18-T08, E18-T10, E18-T12, E18-T13, E18-T14, E18-T18, E18-T19 |
 | ☐ | E18-T16 | Documentation et page Workshop des trois mods | `à faire` | hors jeu | E18-T15 |
-| ☐ | E18-T17 | File des demandes de parole des PNJ portée par Living Knox | `à faire` | MP | E18-T11, E18-T20, E18-T21, E18-T22 |
+| ☐ | E18-T17 | File des demandes de parole des PNJ portée par Living Knox | `en cours` | MP | E18-T11, E18-T20, E18-T21, E18-T22 |
 | ☐ | E18-T18 | Parole de proximité avec Living Knox seul | `à faire` | MP | E18-T17 |
 | ☐ | E18-T19 | Historique des voix radio dans le commun | `testé hors jeu` | MP | E18-T11 |
 | ☐ | E18-T20 | Accords dans Living Knox, identifiants d'équipe dans le commun | `testé hors jeu` | MP | E18-T09, E18-T24 |
@@ -32,6 +32,8 @@
 | ☐ | E18-T24 | Carnet dans le mod commun, onglets par mod | `testé hors jeu` | MP | E18-T09 |
 | ☐ | E18-T25 | Onglets Missions et Réputation tenus par le commun | `testé hors jeu` | MP | E18-T24 |
 | ☐ | E18-T26 | Onglet Contacts commun, contacts versés par chaque mod | `testé hors jeu` | MP | E18-T24 |
+| ☐ | E18-T27 | Observations des PNJ et fréquence des initiatives dans Living Knox | `à faire` | MP | E18-T18 |
+| ☑ | E18-T28 | Corps de PNJ inconnus des clients quand l'identifiant réseau devient négatif | `testé MP` | MP | — |
 
 <!-- fin du tableau de bord -->
 
@@ -321,7 +323,7 @@ Deuxième article Workshop, dépôt séparé, nouvelles règles de jeu des missi
 
 
 - [ ] **E18-T17** — File des demandes de parole des PNJ portée par Living Knox
-  - État : `à faire`
+  - État : `en cours`
   - Cible : `MP`
   - Dépend de : E18-T11, E18-T20, E18-T21, E18-T22
   - Fichiers : `LK_Talk` (Living Knox : file, voie `npc` de `RC_Transport`, numéros d'ordre et révisions par PNJ, délais, refus) ; `RS_Carnet_Server.lua` (`enqueue`, `syncTransport`, `poll`, `reply`), `RS_Conversations`, `RS_Initiatives`, `RS_BridgeLanes` ; `docs/specifications-techniques/protocole-carnet-v2.md`
@@ -429,3 +431,25 @@ Deuxième article Workshop, dépôt séparé, nouvelles règles de jeu des missi
   - Tests : bancs des contacts, de la relation et `test_lk_removed.py` dans les trois montages.
   - Preuve : confirmé par défaut le 2026-11-06 : registre de sources dans le commun, Living Knox ne verse ses PNJ que sans RadioSurvivor (avec lui, les fiches du carnet les listent déjà, relation lue par l'API), panneau de relation dessiné par Living Knox (la relation est la sienne depuis `E18-T21`) ; mod commun : `server/RadioSurvivorCore/RC_Contacts` (`registerSource(nom, { list })`, `rows(character, player)` : lignes de chaque source active, historique du commun `RC_History` ajouté, tri par nom) et commande `contacts` du module `RadioSurvivorCore` (`RC_MissionJournal`, même limite) ; `RC_HistoryEvents` (historique du commun lu au démarrage du monde et écrit toutes les dix minutes de jeu s'il a changé : sans RadioSurvivor, rien ne l'initialisait, défaut trouvé en jeu par `rc.contacts`) ; carnet commun : Contacts lit la commande `contacts` (redemandée toutes les 3 s), page = nom, groupe, page du mod de la source (`Notebook.contactPages[source]`), échanges ; Living Knox : `shared/LivingKnox/LK_Names` (nom d'un PNJ, mêmes règles, sorti de l'adaptateur qui l'utilise), `server/LivingKnox/LK_Contacts` (source `lk` : PNJ ayant une relation personnelle ou un historique avec le personnage, encore au registre, avec nom, groupe, panneau de relation ; inscrite seulement sans RadioSurvivor), `client/LivingKnox/LK_NotebookPages` (panneau de relation `Notebook.relationLines`, mot d'un niveau, titre, page `contactPages.lk`) ; 50 clés `IGUI_RS_Rel*` devenues `IGUI_LK_Rel*`, clés `IGUI_RC_Group`, `KnownConversations`, `Contact`, `Dead` (EN, FR) ; RadioSurvivor : source `rs` = ses fiches (même projection que l'instantané) ; la fiche d'un PNJ d'un moteur (`incarnation`) sans moteur est masquée (instantané et liste du commun) et jamais purgée (`engineMissing`) ; panneau et mots de relation pris chez Living Knox s'il est actif ; bancs : `tests/test_lk_contacts.py` (Living Knox seul, aucun module de RadioSurvivor : PNJ connu par l'historique avec nom, groupe, niveau du groupe, puis niveau monté par un fait réel, rien pour un autre personnage ; source non inscrite avec RadioSurvivor), `tests/test_core_notebook.py` (15 : contacts d'une source par la commande, historique du commun, page de Living Knox chargée ou non, rien pour un autre joueur), `tests/test_lk_removed.py` (contact du PNJ masqué sans Living Knox, fiche gardée, retrouvé avec sa relation au retour), bancs adaptés (`test_relation_panel.py`, `test_notebook_visual.py`, `test_translations_split.py`, `test_rs_suites.py`, `test_protocol.py` : la page de Living Knox chargée avec le carnet comme dans le jeu) ; suite en jeu `rc.contacts` ; `run_all.py` 160 passés, 1 échec (`rs_suites`, renvois `fichier:ligne` de `RS_Env.lua` décalés, corrigés, banc relancé : OK) ; luacheck `Contents` 14 (référence 15), `dev` 0 ; passages solo automatiques du 2026-11-06 (`rc.notebook`, `rc.contacts`, `rc.journal`, code 0, aucune erreur Lua de nos mods) : Living Knox seul 5/5 (`tools/autoclient/runs/20261106-191359-572cbdf43d03`), les deux 5/5 (`tools/autoclient/runs/20261106-191442-8a773198cf6f`), RadioSurvivor seul 5/5 avant l'ajout de `RC_HistoryEvents` (`tools/autoclient/runs/20261106-191043-e8c7106a93bc`) ; premier passage Living Knox seul en échec (historique non initialisé, corrigé) (`tools/autoclient/runs/20261106-190959-3e6f8941223e`)
   - Reste : cible MP : campagne MP des trois montages (`E18-T15`) ; avec Living Knox seul, aucun échange n'est encore écrit (parole des PNJ sans RadioSurvivor : `E18-T18`), la liste n'a été vue en jeu que vide ; PNJ mort ou disparu du registre : retiré de la liste de Living Knox (son historique reste dans le commun) ; garde du nettoyage des fiches sans moteur écrite mais non prouvée par un banc (une fiche contactée n'est jamais purgée de toute façon)
+
+- [ ] **E18-T27** — Observations des PNJ et fréquence des initiatives dans Living Knox
+  - État : `à faire`
+  - Cible : `MP`
+  - Dépend de : E18-T18
+  - Fichiers : `RS_Observations`, `RS_ObservationTriggers`, `RS_Config.Observations` ; option `RadioSurvivor.InitiativeFrequency` (`sandbox-options.txt`, traductions), `LK_Initiatives`, `LK_Conversations`, `RS_Relations` (faits `obs:`)
+  - Faire : relevé pendant `E18-T17` : le journal des observations d'un PNJ et l'option de fréquence des initiatives restent dans RadioSurvivor (l'hôte les prête à `LK_Talk`) ; les passer à Living Knox pour que, seul, un PNJ prenne la parole de lui-même et que deux PNJ se racontent ce qu'ils ont vu.
+  - Accepté si : Living Knox seul : un PNJ dit une initiative et deux PNJ conversent devant un joueur ; ensemble : mêmes observations et mêmes demandes.
+  - Tests : `test_observations.py`, `test_initiatives.py`, `test_conversations.py` ; suites rs.initiatives et rs.conversations dans les montages Living Knox seul et les deux.
+  - Preuve : —
+  - Reste : —
+
+- [x] **E18-T28** — Corps de PNJ inconnus des clients quand l'identifiant réseau devient négatif
+  - État : `testé MP`
+  - Cible : `MP`
+  - Dépend de : —
+  - Fichiers : `LK_ZombieGuard`, `LK_Senses`, `LK_Zombies`, `LK_Alert`, `LK_Decisions`, `LK_Equipment`, `LK_CombatClient`
+  - Faire : relevé pendant `E18-T17` (campagne MP du 2026-11-07, délai dépassé) : `IsoObjectID` part d'un nombre tiré au hasard et déborde du `short` vers les négatifs, `-1` seul signifie « sans identifiant » ; Living Knox écartait tout identifiant négatif, donc le corps sortait de la liste envoyée aux clients et plus aucun PNJ ne bougeait ni n'était vu. Remplacer chaque contrôle par `-1`.
+  - Accepté si : un corps d'identifiant négatif reste dans la liste, un corps à `-1` en sort ; campagne MP complète sans trajet expiré.
+  - Tests : `test_lk_guard.py` ; campagne MP.
+  - Preuve : `IsoObjectID` (`network/IsoObjectID.java:14, 21, 51-57`) : compteur `short` tiré au hasard, négatif après `32767`, `-1` seul réservé. Campagne en défaut `runs/20261107-005102-mp-aedd4dca7b9b` (code 2, aucun résultat en 7200 s, compteur parti de 32485 : 29 trajets expirés, plus aucune arrivée après 00:55:24, `removing stale zombie 5000 id=-32767` chez les clients). 16 contrôles passés à `~= -1` / `== -1` dans `LK_ZombieGuard`, `LK_Senses`, `LK_Zombies`, `LK_Alert`, `LK_Decisions`, `LK_Equipment`, `LK_CombatClient`, plus 2 dans `RST_LKEssai` et `RST_LKEssaiServer`. `test_lk_guard.py` 26 tests OK (corps à -32767 gardé, corps à -1 écarté). Campagne `autoclient.py --mp --clients 2 --server-campaign mp --bridge on --llm fake` : code 1, `RST-RESULT ok=false total=377 pass=358 fail=1 error=2 skip=16`, `runs/20261107-030546-mp-2f49ffa1d5f4`, 2289 s, 168 arrivées, aucun trajet expiré (`timeout`) ; les 3 défauts sont sans lien et rejoués verts (voir E18-T17).
+  - Reste : le compteur de cette campagne (30581 à 31426) n'a pas franchi le débordement : le passage en négatif n'est prouvé en jeu que par le constat de panne, la correction par le banc (confirmé statiquement). Une campagne qui le franchit reste à obtenir au hasard du tirage.

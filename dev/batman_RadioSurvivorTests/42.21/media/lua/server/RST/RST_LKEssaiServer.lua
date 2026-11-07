@@ -356,7 +356,7 @@ local function clearEntry(entry, onlineIds)
         local z = S.find(entry)
         if z == nil then break end
         local onlineId = removeZombie(z)
-        if type(onlineId) == "number" and onlineId >= 0 then onlineIds[#onlineIds + 1] = onlineId end
+        if type(onlineId) == "number" and onlineId ~= -1 then onlineIds[#onlineIds + 1] = onlineId end
         removed = removed + 1
         entry.zombie = nil
     end

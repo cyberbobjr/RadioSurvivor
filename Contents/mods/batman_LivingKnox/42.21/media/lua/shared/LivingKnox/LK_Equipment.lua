@@ -207,7 +207,7 @@ end
 -- Serveur : objet accroché envoyé aux clients proches du corps z ; rend l'onlineId, ou nil.
 local function send(z, loc, item)
     local o = z:getOnlineID()
-    if type(o) ~= "number" or o < 0 then return nil end   -- les clients ne connaissent pas encore ce zombie
+    if type(o) ~= "number" or o == -1 then return nil end   -- les clients ne connaissent pas encore ce zombie
     sendAttachedItem(z, loc, item)
     stat("sent")
     return o

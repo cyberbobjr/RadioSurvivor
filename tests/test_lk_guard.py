@@ -367,6 +367,16 @@ class MultiplayerTests(GuardBase):
         self.assertEqual(self.state('A', zid), 'useless=false noTeeth=false target=true eat=true thump=true '
                                                'voice=default')
 
+    def test_body_with_a_negative_online_id_stays_in_the_roster(self):
+        # IsoObjectID.allocateID déborde du short vers les négatifs ; seul -1 veut dire « sans identifiant »
+        # (network/IsoObjectID.java:14, 51-57). Campagne MP du 2026-11-07 : plus aucune copie connue des clients.
+        zid = self.ready()
+        self.h.load('server', f'HARNESS.zombies[{zid}].onlineID = -32767')
+        self.h.load('A', f'HARNESS.zombies[{zid}].onlineID = -32767')
+        self.assertEqual(self.ev('(LivingKnox.ZombieGuard.buildRoster())[1].o'), -32767)
+        self.h.load('server', f'HARNESS.zombies[{zid}].onlineID = -1')
+        self.assertEqual(self.ev('#(LivingKnox.ZombieGuard.buildRoster())'), 0)
+
     def test_hello_answered_to_the_requester_only_and_older_rosters_ignored(self):
         zid = self.ready()
         self.h.load('B', 'LivingKnox.ZombieGuard.roster = { rev = -1, count = 0, byId = {}, byOnline = {} }\n'

@@ -1462,7 +1462,7 @@ function Decisions.withTarget(per, tg)
     if not isServer() or tg == nil or tg.zombie == nil then return per end
     local z = tg.zombie
     local o = z:getOnlineID()
-    if type(o) ~= "number" or o < 0 then return per end
+    if type(o) ~= "number" or o == -1 then return per end
     for _, e in ipairs(per and per.z or {}) do
         if e.o == o then return per end
     end

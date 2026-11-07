@@ -348,7 +348,7 @@ end
 -- Clé stable d'une cible : compte d'un joueur, identifiant réseau d'un zombie (solo : -1, objet Java à défaut).
 local function zombieKey(z)
     local o = z:getOnlineID()
-    if o ~= nil and o >= 0 then return "z:" .. tostring(o), o end
+    if o ~= nil and o ~= -1 then return "z:" .. tostring(o), o end
     return "z@" .. tostring(z), -1
 end
 
@@ -470,7 +470,7 @@ local function thumpsOf(zombies)
     local out = {}
     for _, z in ipairs(zombies or {}) do
         local o = z:getOnlineID()
-        if type(o) == "number" and o >= 0 and (G == nil or G.simulatedHere(z)) then
+        if type(o) == "number" and o ~= -1 and (G == nil or G.simulatedHere(z)) then
             local t = z:getThumpTarget()
             local sq = t ~= nil and instanceof(t, "IsoWindow") and t:getSquare() or nil
             if sq ~= nil then
@@ -493,7 +493,7 @@ local function floorOf(zombies)
     local out = {}
     for _, z in ipairs(zombies or {}) do
         local o = z:getOnlineID()
-        if type(o) == "number" and o >= 0 and (G == nil or G.simulatedHere(z)) and z:isOnFloor()
+        if type(o) == "number" and o ~= -1 and (G == nil or G.simulatedHere(z)) and z:isOnFloor()
             and not z:isCrawling() then
             out[#out + 1] = { o = o, x = math.floor(z:getX()), y = math.floor(z:getY()), z = math.floor(z:getZ()) }
         end
@@ -737,7 +737,7 @@ function Senses.validateThumps(list)
             or (w.k ~= "N" and w.k ~= "W") then
             return "bad report", "thump " .. i
         end
-        if w.o < 0 or w.o ~= math.floor(w.o) or w.x ~= math.floor(w.x) or w.y ~= math.floor(w.y)
+        if w.o == -1 or w.o ~= math.floor(w.o) or w.x ~= math.floor(w.x) or w.y ~= math.floor(w.y)
             or w.z ~= math.floor(w.z) or w.x < 0 or w.y < 0 or w.z < C.LEVEL_MIN or w.z > C.LEVEL_MAX then
             return "out of bounds", "thump " .. i
         end
@@ -754,7 +754,7 @@ function Senses.validateFloor(list)
         if type(f) ~= "table" or not finite(f.o) or not finite(f.x) or not finite(f.y) or not finite(f.z) then
             return "bad report", "floor " .. i
         end
-        if f.o < 0 or f.o ~= math.floor(f.o) or f.z < C.LEVEL_MIN or f.z > C.LEVEL_MAX then
+        if f.o == -1 or f.o ~= math.floor(f.o) or f.z < C.LEVEL_MIN or f.z > C.LEVEL_MAX then
             return "out of bounds", "floor " .. i
         end
     end
@@ -813,7 +813,7 @@ local function serverZombies()
             local z = list:get(i)
             if z ~= nil and not z:isDead() then
                 local o = z:getOnlineID()
-                if type(o) == "number" and o >= 0 then set[o] = z end   -- LK06-T11 : objet gardé
+                if type(o) == "number" and o ~= -1 then set[o] = z end   -- LK06-T11 : objet gardé
             end
         end
     end
@@ -853,7 +853,7 @@ function Senses.accept(id, sen, by, body)
     end
     for _, e in ipairs(sen.z or {}) do
         local ok, d = plausible(e, body, seenMax)
-        if ok and known ~= nil and e.o >= 0 and not known[e.o] then
+        if ok and known ~= nil and e.o ~= -1 and not known[e.o] then
             ok = false
             st0.ghosts = (st0.ghosts or 0) + 1   -- zombie inconnu du serveur (copie fantôme du client)
         end
@@ -1032,7 +1032,7 @@ end
 -- LK06-T11 : dernière fenêtre frappée rapportée pour le zombie d'onlineId o, encore crue (THUMP_MS), ou nil :
 -- { x, y, z, k, ms, by } (copie). Un rapport suivant du même client sans elle l'efface.
 function Senses.thumpOf(o)
-    if type(o) ~= "number" or o < 0 then return nil end
+    if type(o) ~= "number" or o == -1 then return nil end
     local t = now()
     local best = nil
     for name, r in pairs(Senses.thumpStore) do

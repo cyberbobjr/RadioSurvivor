@@ -251,7 +251,7 @@ end
 
 -- Zombie d'identifiant réseau o dans la cellule de cette machine, ou nil (LK06-T04).
 function View.zombieByOnlineId(o)
-    if type(o) ~= "number" or o < 0 then return nil end
+    if type(o) ~= "number" or o == -1 then return nil end
     local cell = getCell()
     if cell == nil then return nil end
     local list = cell:getZombieList()

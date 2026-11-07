@@ -302,7 +302,7 @@ function Guard.buildRoster()
     for id, z in pairs(b) do
         if z ~= nil and not z:isDead() and zombies:contains(z) then
             local onlineId = z:getOnlineID()
-            if type(onlineId) == "number" and onlineId >= 0 then
+            if type(onlineId) == "number" and onlineId ~= -1 then
                 ids[#ids + 1] = { id = id, o = onlineId, p = z:getPersistentOutfitID() }
             end
         end

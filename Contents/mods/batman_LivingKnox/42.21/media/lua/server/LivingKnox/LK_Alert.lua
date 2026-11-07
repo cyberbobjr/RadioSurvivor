@@ -133,7 +133,7 @@ function Alert.threatsOf(per, kinds, home)
     for _, e in ipairs(per.z or {}) do
         if (e.s or e.h) and finite(e.x) and finite(e.y) and (zmax == nil or (e.d or 0) <= zmax) then
             local o = e.o
-            local key = (finite(o) and o >= 0) and ("z:" .. string.format("%d", math.floor(o))) or "z?"
+            local key = (finite(o) and o ~= -1) and ("z:" .. string.format("%d", math.floor(o))) or "z?"
             local t = { kind = "zombie", key = key, label = key, x = math.floor(e.x), y = math.floor(e.y),
                 z = math.floor(e.z or 0), d = e.d or 0, seen = e.s == true }
             if Alert.isNear(t, home) then out[#out + 1] = t end

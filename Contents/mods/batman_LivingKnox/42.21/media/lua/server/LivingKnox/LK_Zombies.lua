@@ -151,7 +151,7 @@ end
 -- Numéro d'un zombie : identifiant réseau (serveur MP), sinon numéro tenu ici (solo : onlineId -1).
 function Zombies.numberOf(z)
     local o = z:getOnlineID()
-    if finite(o) and o >= 0 then return o end
+    if finite(o) and o ~= -1 then return o end
     local s = Zombies.serials[z]
     if s == nil then
         local st = Zombies.state
@@ -165,7 +165,7 @@ end
 -- Clé stable d'un zombie dans la session : "z:<onlineId>" (MP), "z@<numéro>" (solo).
 function Zombies.keyOf(z)
     local o = z:getOnlineID()
-    if finite(o) and o >= 0 then return "z:" .. tostring(o) end
+    if finite(o) and o ~= -1 then return "z:" .. tostring(o) end
     return "z@" .. tostring(Zombies.numberOf(z))
 end
 
@@ -643,7 +643,7 @@ LivingKnox.subscribe("OnTick", "Zombies.tick", onTick)
 -- identifiant réseau près de cette position (client/LivingKnox/LK_ZombiesClient.lua). Rend vrai si envoyée.
 Zombies.CMD_GONE = "bodyGone"
 function Zombies.tellBodyGone(g)
-    if type(g) ~= "table" or type(g.o) ~= "number" or g.o < 0 then return false end
+    if type(g) ~= "table" or type(g.o) ~= "number" or g.o == -1 then return false end
     if not (isServer and isServer()) or sendServerCommand == nil then return false end
     sendServerCommand(Zombies.MODULE, Zombies.CMD_GONE, { o = g.o, x = g.x, y = g.y, z = g.z })
     Zombies.stats.goneSent = (Zombies.stats.goneSent or 0) + 1
