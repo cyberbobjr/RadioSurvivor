@@ -377,6 +377,20 @@ class MultiplayerTests(GuardBase):
         self.h.load('server', f'HARNESS.zombies[{zid}].onlineID = -1')
         self.assertEqual(self.ev('#(LivingKnox.ZombieGuard.buildRoster())'), 0)
 
+    def test_no_sign_test_on_an_online_id(self):
+        # Campagne MP du 2026-11-07 (compteur passé de 32357 à -32346) : Guard.bornPass écartait encore les copies
+        # négatives, leur voix vanilla revenait (lk.spawnclean).
+        lua = Path(__file__).resolve().parents[1] / 'Contents/mods/batman_LivingKnox'
+        found = []
+        for path in lua.rglob('*.lua'):
+            lines = path.read_text(encoding='utf-8').splitlines()
+            for i, line in enumerate(lines):
+                got = re.search(r'(\w+)\s*=\s*\w+:getOnlineID\(\)', line)
+                if got:
+                    near = lines[i:i + 25]
+                    found += [(path.name, i, n) for n in near if re.search(r'%s\s*(<|>=)\s*0' % got.group(1), n)]
+        self.assertEqual(found, [])
+
     def test_hello_answered_to_the_requester_only_and_older_rosters_ignored(self):
         zid = self.ready()
         self.h.load('B', 'LivingKnox.ZombieGuard.roster = { rev = -1, count = 0, byId = {}, byOnline = {} }\n'

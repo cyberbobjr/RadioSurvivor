@@ -485,7 +485,7 @@ function Guard.bornPass()
     for _, e in ipairs(born) do
         local z = e.z
         local id = z:getOnlineID()
-        if not z:isDead() and type(id) == "number" and id >= 0 then
+        if not z:isDead() and type(id) == "number" and id ~= -1 then
             if Guard.seen[id] == nil then
                 if Guard.seenCount < Guard.SEEN_MAX then
                     Guard.seen[id] = { z = z, ms = e.ms }
