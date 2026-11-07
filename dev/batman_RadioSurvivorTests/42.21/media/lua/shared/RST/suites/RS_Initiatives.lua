@@ -1,5 +1,5 @@
 --[[
-rs.initiatives - NPC initiatives of the notebook (E08-T03, server/RadioSurvivor/RS_Initiatives.lua): a Living Knox npc
+rs.initiatives - NPC initiatives of the notebook (E08-T03, server/LivingKnox/LK_Initiatives.lua): a Living Knox npc
 created next to the player (E08-T11: on a square heard by the player, RST.RSHelpers.heardSquares), given a
 notebook fiche, notices a storm (observation recorded here) and speaks up on its
 own, once; a busy npc (hit less than 30 s ago) says nothing. Tags "world" and "server": the authority (solo or
@@ -28,7 +28,7 @@ local function setup(t)
     if not (LivingKnox and LivingKnox.isAuthority()) then t:skip("authority only (solo or dedicated server)") end
     local Server = RS_CarnetServer
     t:ok(Server ~= nil and Server.store.data ~= nil, "notebook server not ready")
-    local I = require "RadioSurvivor/RS_Initiatives"
+    local I = require "LivingKnox/LK_Initiatives"
     if I.LEVELS[I.level()] == nil then t:skip("option RadioSurvivor.InitiativeFrequency is Off") end
     return Server, I, require "RadioSurvivor/RS_Observations"
 end
@@ -52,8 +52,8 @@ local function npcWithFiche(t, Server, pick, after)
     t:ok(fiche ~= nil, "no fiche for " .. tostring(id))
     t:defer(function()
         local kept = {}
-        for _, r in ipairs(Server.pending) do if r.npc ~= fiche.id then kept[#kept + 1] = r end end
-        Server.pending = kept
+        for _, r in ipairs(Server.talk.pending) do if r.npc ~= fiche.id then kept[#kept + 1] = r end end
+        Server.talk.pending = kept
         B().despawn(id, true)
     end, "forget " .. id)
     t:waitUntil(function() return Server.objects[fiche.id] ~= nil and P.hears(body, p, C.HEARING_RANGE) end, 5000,
@@ -67,7 +67,7 @@ local function idleReason(Server, I, fiche)
     local object = Server.objects[fiche.id]
     if object == nil then return "body not mapped" end
     local busy, reason = P.engaged(fiche.incarnation)
-    return "listeners " .. #I.listeners(Server, object) .. ", pending " .. tostring(I.hasPending(Server, fiche.id))
+    return "listeners " .. #I.listeners(Server.talk, object) .. ", pending " .. tostring(I.hasPending(Server.talk, fiche.id))
         .. ", engaged " .. tostring(busy) .. (reason and (" (" .. tostring(reason) .. ")") or "")
 end
 
@@ -76,7 +76,7 @@ local function storm(Obs, fiche, subject)
 end
 
 local function pendingOf(Server, fiche)
-    for _, r in ipairs(Server.pending) do
+    for _, r in ipairs(Server.talk.pending) do
         if r.npc == fiche.id and r.kind == "npc_initiative" then return r end
     end
     return nil
@@ -90,12 +90,12 @@ RST.suite("rs.initiatives", { mods = { "rs", "lk" },
             local key, why = storm(Obs, fiche, "storm")
             t2:ok(key ~= nil, "observation refused: " .. tostring(why))
             I.reset()
-            local kind = I.tick(Server)
+            local kind = I.tick(Server.talk)
             t2:ok(kind == "llm" or kind == "silent", "no initiative opened (" .. tostring(kind) .. "; "
                 .. idleReason(Server, I, fiche) .. ")")
             if kind == "llm" then t2:ok(pendingOf(Server, fiche) ~= nil, "no npc_initiative request queued") end
             I.reset()
-            t2:eq(nil, I.tick(Server), "a second initiative for the same event")
+            t2:eq(nil, I.tick(Server.talk), "a second initiative for the same event")
         end)
     end)
 
@@ -106,7 +106,7 @@ RST.suite("rs.initiatives", { mods = { "rs", "lk" },
             local key, why = storm(Obs, fiche, "blizzard")
             t2:ok(key ~= nil, "observation refused: " .. tostring(why))
             I.reset()
-            t2:eq(nil, I.tick(Server), "initiative of a busy npc")
+            t2:eq(nil, I.tick(Server.talk), "initiative of a busy npc")
             t2:eq(nil, pendingOf(Server, fiche), "request of a busy npc")
             B().lastHits[id] = nil
         end)
@@ -126,7 +126,7 @@ RST.suite("rs.initiatives", { mods = { "rs", "lk" },
             I.reset()
             I.bridge.down, I.bridge.probeAt = true, getTimestampMs() + 600000
             t2:defer(function() I.reset() end, "bridge considered present again")
-            t2:eq("silent", I.tick(Server), "initiative of a stopped bridge (" .. idleReason(Server, I, fiche) .. ")")
+            t2:eq("silent", I.tick(Server.talk), "initiative of a stopped bridge (" .. idleReason(Server, I, fiche) .. ")")
             t2:eq(nil, pendingOf(Server, fiche), "request sent to a stopped bridge")
             t2:eq(0, barks, "Provider.bark called without the bridge")
             local mine = 0
@@ -142,7 +142,7 @@ RST.suite("rs.initiatives", { mods = { "rs", "lk" },
             storm(Obs, fiche, "tropical_storm")
             I.reset()
             local said = I.stats.said
-            t2:eq("llm", I.tick(Server), "no LLM initiative opened")
+            t2:eq("llm", I.tick(Server.talk), "no LLM initiative opened")
             local since = getTimestampMs()   -- E17-T15: cause of a missing reply named by the failure message
             t2:waitUntil(function() return I.stats.said > said end, 60000, function(t3)
                 t3:note("initiative said after the bridge reply")

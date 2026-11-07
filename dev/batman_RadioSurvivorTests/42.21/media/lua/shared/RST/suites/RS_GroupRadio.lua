@@ -191,15 +191,15 @@ RST.suite("rs.groupradio", { mods = { "rs", "lk" },
             local id = R.voiceId(entry.ref)
             local sheet = Personas.get(id)
             local khz = Personas.served(id)[1]
-            Server.lastTalk[character] = nil
+            Server.talk.lastTalk[character] = nil
             local aired = R.stats.aired
             local key = (type(isServer) == "function" and isServer()) and player:getUsername() or "solo"
             local req, why = R.talk(player, key, sheet, khz, "Radio check, anyone hear me?", "EN", nil)
             t:ok(req ~= nil, "call refused: " .. tostring(why))
             t:defer(function()
                 local kept = {}
-                for _, r in ipairs(Server.pending) do if r.id ~= req.id then kept[#kept + 1] = r end end
-                Server.pending = kept
+                for _, r in ipairs(Server.talk.pending) do if r.id ~= req.id then kept[#kept + 1] = r end end
+                Server.talk.pending = kept
                 R.state.outstanding[req.id] = nil
             end, "forget " .. tostring(req and req.id))
             t:eq("npc_talk", req.kind, "request kind")

@@ -24,7 +24,6 @@ local Personas = require "RadioSurvivor/RS_Personas"
 local P = require "RadioSurvivor/RS_NPCProvider"
 local C = require "RadioSurvivor/RS_Config"
 local Codec = require "RadioSurvivorCore/RC_Codec"
-local T = require "RadioSurvivor/RS_BridgeLanes"
 local TextCut = require "RadioSurvivorCore/RC_TextCut"
 local Rep = require "RadioSurvivorCore/RC_Reputation"
 
@@ -35,7 +34,6 @@ local GroupRadio = {}
 GroupRadio.RANGE = "75.0-149.8"
 GroupRadio.REFRESH_MS = 30000
 GroupRadio.NAME_MAX = 64
-GroupRadio.ACKS_MAX = 16          -- = garde de RS_Carnet_Server.talk
 -- Consigne jointe au contexte (anglais, composée par le serveur ; le pont la lit dans le contexte d'autorité).
 GroupRadio.NOTE = "You are answering a call on your group's radio. The caller only hears your voice and cannot see"
     .. " you. Never tell where your home or your group is: no place name, street, landmark, direction, distance or"
@@ -133,15 +131,10 @@ function GroupRadio.talk(player, key, sheet, khz, text, language, cid)
     end
     -- Mêmes quotas que la parole de proximité (RS_Carnet_Server.talk).
     local now = getTimestampMs()
-    if Server.lastTalk[character] and now - Server.lastTalk[character] < C.COOLDOWN_MS then return nil, "cooldown" end
-    local times = {}
-    for _, t in ipairs(Server.times) do
-        if now - t < 3600000 then times[#times + 1] = t end
-    end
-    Server.times = times
-    if #Server.pending >= C.MAX_PENDING or #times >= C.MAX_PER_HOUR or #T.acks >= GroupRadio.ACKS_MAX then
-        return nil, "notebook requests busy"
-    end
+    local Queue = Server.talk
+    if not Queue then return nil, "no Living Knox speech" end
+    if Queue.lastTalk[character] and now - Queue.lastTalk[character] < C.COOLDOWN_MS then return nil, "cooldown" end
+    if not Queue.room(now) then return nil, "notebook requests busy" end
     local known = Server.contact(character, npc)
     -- E04-T10 (Q10) : niveau de réputation du demandeur et dernier acte public (jamais de score).
     local context = { name = npc.name, background = npc.background, reputation = Rep.publicContext(character),
@@ -151,13 +144,13 @@ function GroupRadio.talk(player, key, sheet, khz, text, language, cid)
     context.stage = Server.acquaintance(character, npc, known)
     local g = context.group
     if g and context.stage == "stranger" then context.group = { member = g.member, role = g.role, attitude = g.attitude } end
-    local req = Server.enqueue(npc, "npc_talk", character, text, language, context, {})
+    local req = Queue.enqueue(npc, "npc_talk", character, text, language, context, {})
     if not req then return nil, "notebook state not saved" end
-    if not Server.syncTransport() then
+    if not Queue.sync() then
         Const.log("group radio: request " .. req.id .. " queued, exchange file not written yet")
     end
-    Server.lastTalk[character] = now
-    Server.times[#Server.times + 1] = now
+    Queue.lastTalk[character] = now
+    Queue.times[#Queue.times + 1] = now
     known.history[#known.history + 1] = { id = req.id .. "-player", author = record.name, text = text }
     while #known.history > C.MAX_HISTORY do table.remove(known.history, 1) end
     S.save()
@@ -192,8 +185,8 @@ function GroupRadio.reply(Server, req, result, npc)
         known.exchanges = (known.exchanges or 0) + 1
         if type(known.firstHour) ~= "number" then known.firstHour = getGameTime():getWorldAgeHours() end
     end
-    Server.acknowledge(req, true, {})
-    if not S.save() then return false, "state not saved" end
+    Server.talk.acknowledge(req, true, {})
+    if not Server.talk.save() then return false, "state not saved" end
     state.outstanding[req.id] = nil
     GroupRadio.stats.aired = GroupRadio.stats.aired + 1
     table.insert(lines, 1, "<bzzt>")
@@ -211,9 +204,9 @@ function GroupRadio.tick(now)
         GroupRadio.refresh()
     end
     local Server = RS_CarnetServer
-    if not Server then return end
+    if not Server or not Server.talk then return end
     local live = {}
-    for _, r in ipairs(Server.pending) do live[r.id] = true end
+    for _, r in ipairs(Server.talk.pending) do live[r.id] = true end
     local failed = {}
     for id in pairs(state.outstanding) do
         if not live[id] then failed[#failed + 1] = id end

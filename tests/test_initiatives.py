@@ -61,10 +61,10 @@ class InitiativeTests(unittest.TestCase):
         self.rt.execute(LOAD)
         self.server = self.g.RS_CarnetServer
         self.obs = self.rt.eval("require('RadioSurvivor/RS_Observations')")
-        self.init = self.rt.eval("require('RadioSurvivor/RS_Initiatives')")
+        self.init = self.rt.eval("require('LivingKnox/LK_Initiatives')")
         self.init.reset()
         # E08-T04: no conversation between the nearby fiches of this bench (range 0): initiatives only.
-        self.rt.eval("require('RadioSurvivor/RS_Conversations')").CFG.RANGE = 0
+        self.rt.eval("require('LivingKnox/LK_Conversations')").CFG.RANGE = 0
         # One pass per carnet tick (1 s): the bench clock stays close to real time (the bridge refuses requests sent
         # more than 10 s in the future).
         self.init.CFG.EVERY_MS = 0
@@ -83,7 +83,7 @@ class InitiativeTests(unittest.TestCase):
         self.sim.tick()
 
     def initiatives(self):
-        return [r for r in lua_list(self.server.pending) if r.kind == 'npc_initiative']
+        return [r for r in lua_list(self.server.talk.pending) if r.kind == 'npc_initiative']
 
     def said(self):
         return [convert(s) for s in lua_list(self.g.SPEECH_SENT)]
@@ -105,7 +105,7 @@ class InitiativeTests(unittest.TestCase):
         self.assertNotIn('group', convert(req.context).get('group') or {}, 'group name given to strangers')
         mine = lua_list(self.init.times)
         self.assertEqual(len(mine), 1)
-        self.assertIn(mine[0], lua_list(self.server.times), 'initiative outside the common cap')
+        self.assertIn(mine[0], lua_list(self.server.talk.times), 'initiative outside the common cap')
         # Same event: never a second request, even later or after the players leave and come back.
         self.step()
         self.assertEqual(len(self.initiatives()), 1)
@@ -128,7 +128,7 @@ class InitiativeTests(unittest.TestCase):
         self.step(); self.step()
         self.assertEqual(len(self.initiatives()), 0)
         self.assertEqual(len(self.said()), 2)
-        self.assertIsNotNone(sim.state().initiatives.done[self.fiche.id + '|' + key], 'event not kept in the state')
+        self.assertIsNotNone(sim.talk().data.initiatives.done[self.fiche.id + '|' + key], 'event not kept in the state')
 
     def test_quotas_of_each_level(self):
         sim = self.world(level=1)
@@ -148,7 +148,7 @@ class InitiativeTests(unittest.TestCase):
         self.assertEqual(convert(self.init.stats)['silent'], 2)
         # One per NPC per game day: a new event of the same NPC within the day opens nothing.
         self.sim.server.g.PLAYERS.alice.x = 10
-        self.server.pending = self.rt.table()
+        self.server.talk.pending = self.rt.table()
         self.sim.clock.offset += 3600001
         self.record(self.fiche, subject='blizzard')
         self.step()
@@ -162,17 +162,17 @@ class InitiativeTests(unittest.TestCase):
             self.step()
         self.assertEqual(len(self.initiatives()), 4)
         # Frequent: half an hour is enough, 12 per real hour; the common cap MAX_PER_HOUR applies to all.
-        self.server.pending = self.rt.table()
+        self.server.talk.pending = self.rt.table()
         self.g.SandboxVars.RadioSurvivor.InitiativeFrequency = 4
         self.g.WORLD_HOURS = self.g.WORLD_HOURS + 0.5
         self.record(self.fiche, fact='helicopter', subject='helicopter')
         self.step()
         self.assertEqual(len(self.initiatives()), 1)
-        self.server.pending = self.rt.table()
+        self.server.talk.pending = self.rt.table()
         cap = self.rt.eval("require('RadioSurvivor/RS_Config')").MAX_PER_HOUR
         now = self.g.getTimestampMs()
         for _ in range(cap):
-            self.server.times[len(self.server.times) + 1] = now
+            self.server.talk.times[len(self.server.talk.times) + 1] = now
         self.g.WORLD_HOURS = self.g.WORLD_HOURS + 0.5
         self.record(self.fiche, fact='power_cut', subject='power')
         self.step()
@@ -235,7 +235,7 @@ class InitiativeTests(unittest.TestCase):
         self.g.WORLD_HOURS = self.g.WORLD_HOURS + 1
         self.record(mate, subject='blizzard')
         self.step()
-        self.assertEqual(len(lua_list(self.server.pending)), 0, 'request sent to a stopped bridge')
+        self.assertEqual(len(lua_list(self.server.talk.pending)), 0, 'request sent to a stopped bridge')
         self.assertEqual(self.said(), [], 'line said without the bridge')
         self.assertEqual(barks, [], 'Provider.bark called by the initiatives')
         self.assertEqual(convert(self.init.stats)['silent'], silent + 2)
@@ -248,17 +248,17 @@ class InitiativeTests(unittest.TestCase):
         self.step()
         self.assertEqual(len(self.initiatives()), 1)
         # Budget spent (common cap): silence again, nothing said, no request.
-        self.server.pending = self.rt.table()
+        self.server.talk.pending = self.rt.table()
         cap = self.rt.eval("require('RadioSurvivor/RS_Config')").MAX_PER_HOUR
         now = self.g.getTimestampMs()
         for _ in range(cap):
-            self.server.times[len(self.server.times) + 1] = now
+            self.server.talk.times[len(self.server.talk.times) + 1] = now
         self.g.WORLD_HOURS = self.g.WORLD_HOURS + 1
         self.record(mate, fact='helicopter', subject='helicopter')
         self.step()
         self.assertEqual((len(self.initiatives()), self.said(), barks), (0, [], []))
         # Option Off: no initiative at all, even a bridge back with budget.
-        self.server.times = self.rt.table()
+        self.server.talk.times = self.rt.table()
         self.g.SandboxVars.RadioSurvivor.InitiativeFrequency = 1
         self.g.WORLD_HOURS = self.g.WORLD_HOURS + 1
         self.record(mate, fact='power_cut', subject='power')
@@ -270,7 +270,7 @@ class InitiativeTests(unittest.TestCase):
         self.record()
         self.step()
         self.assertEqual(len(self.initiatives()), 1)
-        self.server.pending = self.rt.table()
+        self.server.talk.pending = self.rt.table()
         # Reconnection (player objects bound again) and a reset of the module memory: the event stays consumed.
         sim.clients['bob'].g.RS_CarnetClient.hello()
         self.init.reset()
@@ -286,7 +286,7 @@ class InitiativeTests(unittest.TestCase):
 
 
 def count_times(server):
-    return len(lua_list(server.times))
+    return len(lua_list(server.talk.times))
 
 
 class InitiativeProtocolTests(unittest.TestCase):

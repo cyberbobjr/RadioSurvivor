@@ -1,11 +1,11 @@
 if isClient() then return end
 --[[
 RadioSurvivor: its lanes in the queue of the core mod (E18-T04, RadioSurvivorCore/RC_Transport). Returns the
-transport. Order of the requests file kept from RS_Transport: radio, npc, acks, lastPages.
+transport. Order of the requests file: radio (10), then the lanes npc (20) and acks (30) of Living Knox (LK_Talk,
+E18-T17), then lastPages (40).
 - radio: requests of the radio voices (RadioSurvivor_Server.lua), written as key=value lines (format below);
-- npc: notebook and NPC requests (RS_Carnet_Server: talk, enrich, member, initiative, conversation, incident...);
-- acks: acknowledgements of applied answers; lastPages (E15-T03): kind=last_pages requests of RS_LastPages.
-Every lane but radio is written as RSV2 (kind=, payload=). Caps stay in RadioSurvivor (decision of 2026-11-05).
+- lastPages (E15-T03): kind=last_pages requests of RS_LastPages, written as RSV2 (kind=, payload=).
+Caps stay in RadioSurvivor (decision of 2026-11-05).
 ]]
 local T = require "RadioSurvivorCore/RC_Transport"
 
@@ -30,8 +30,6 @@ local function radioLines(out, r)
 end
 
 T.register('radio', { order = 10, format = radioLines })
-T.register('npc', { order = 20 })
-T.register('acks', { order = 30 })
 T.register('lastPages', { order = 40 })
 
 return T

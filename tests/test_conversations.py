@@ -59,8 +59,8 @@ class ConversationTests(unittest.TestCase):
         self.rt.execute(LOAD)
         self.server = self.g.RS_CarnetServer
         self.obs = self.rt.eval("require('RadioSurvivor/RS_Observations')")
-        self.conv = self.rt.eval("require('RadioSurvivor/RS_Conversations')")
-        self.init = self.rt.eval("require('RadioSurvivor/RS_Initiatives')")
+        self.conv = self.rt.eval("require('LivingKnox/LK_Conversations')")
+        self.init = self.rt.eval("require('LivingKnox/LK_Initiatives')")
         self.conv.reset()
         self.init.reset()
         # One pass per carnet tick (1 s); the turns stay one second apart (bench clock close to real time).
@@ -91,7 +91,7 @@ class ConversationTests(unittest.TestCase):
         self.sim.tick()
 
     def requests(self):
-        return [r for r in lua_list(self.server.pending) if r.kind == 'npc_converse']
+        return [r for r in lua_list(self.server.talk.pending) if r.kind == 'npc_converse']
 
     def keys(self, fiche):
         return {item.key: [s for s in lua_list(item.chain)] for item in lua_list(self.obs.list(fiche.id))}
@@ -141,7 +141,7 @@ class ConversationTests(unittest.TestCase):
                          ('teller', 1, 4, self.mate.name))
         self.assertEqual(req.event.subject, 'storm')
         self.assertEqual(len(lua_list(self.conv.times)), 1)
-        self.assertIn(lua_list(self.conv.times)[0], lua_list(self.server.times), 'line outside the common cap')
+        self.assertIn(lua_list(self.conv.times)[0], lua_list(self.server.talk.times), 'line outside the common cap')
         self.assertNotIn(key, self.keys(self.mate), 'learned when the request was prepared')
         self.process = start_bridge(sim.path)
         # Several requests in a row: the bench clock stays less than 10 s ahead of real time (the bridge refuses
@@ -228,11 +228,11 @@ class ConversationTests(unittest.TestCase):
         key = self.record(self.leader)
         teller = self.rt.eval('LivingKnox.Bodies.bound')[self.g.LK_LEADER]
         teller.visible = False  # double of IsoGameCharacter.CanSee (LosUtil.lineClear Blocked)
-        self.assertIsNone(self.conv.tick(self.server))
+        self.assertIsNone(self.conv.tick(self.server.talk))
         self.assertEqual(convert(self.conv.stats)['opened'] + convert(self.conv.stats)['silent'], 0)
         self.assertNotIn(key, self.keys(self.mate))
         teller.visible = None
-        self.assertEqual(self.conv.tick(self.server)[0], 'opened')
+        self.assertEqual(self.conv.tick(self.server.talk)[0], 'opened')
 
     def test_bridge_stopped_silence(self):
         """E08-T09 : pont arrêté, budget épuisé ou option « Désactivées » : aucune conversation entendue, aucune
@@ -252,17 +252,17 @@ class ConversationTests(unittest.TestCase):
         stats = convert(self.conv.stats)
         self.assertEqual((stats['opened'], stats['silent']), (0, 0))
         self.assertNotIn('template', stats)
-        self.assertEqual(count(self.sim.state().conversations.pairs), 0, 'pair delay consumed by a silence')
+        self.assertEqual(count(self.sim.talk().data.conversations.pairs), 0, 'pair delay consumed by a silence')
         # Budget spent (common cap): silence too.
         self.init.bridge.down = False
         cap = self.rt.eval("require('RadioSurvivor/RS_Config')").MAX_PER_HOUR
         now = self.g.getTimestampMs()
         for _ in range(cap):
-            self.server.times[len(self.server.times) + 1] = now
+            self.server.talk.times[len(self.server.talk.times) + 1] = now
         self.step()
         self.assertEqual((self.requests(), self.said(), barks), ([], [], []))
         # Option Off: silence too.
-        self.server.times = self.rt.table()
+        self.server.talk.times = self.rt.table()
         self.g.SandboxVars.RadioSurvivor.InitiativeFrequency = 1
         self.step()
         self.assertEqual((self.requests(), self.said(), barks), ([], [], []))
@@ -285,7 +285,7 @@ class ConversationTests(unittest.TestCase):
         conv = self.conv.of(self.leader.id)
         self.assertIsNotNone(conv)
         # The line of the teller was said (as if the bridge answered), then the bridge is considered stopped.
-        self.server.pending = self.rt.table()
+        self.server.talk.pending = self.rt.table()
         conv.waiting = None
         conv.turn, conv.last = 1, self.leader.id
         self.init.bridge.down = True
@@ -305,17 +305,17 @@ TRACE = r'''
 -- E08-T05: every conversation line requested (with the talk requests pending at that instant), every line said.
 CONV_ASKED, CONV_SAID = {}, {}
 local server = RS_CarnetServer
-local enqueue = server.enqueue
-server.enqueue = function(npc, kind, ...)
+local enqueue = server.talk.enqueue
+server.talk.enqueue = function(npc, kind, ...)
     local talks = 0
-    for _, r in ipairs(server.pending) do if r.kind == 'npc_talk' then talks = talks + 1 end end
+    for _, r in ipairs(server.talk.pending) do if r.kind == 'npc_talk' then talks = talks + 1 end end
     local req = enqueue(npc, kind, ...)
     if req and kind == 'npc_converse' then CONV_ASKED[#CONV_ASKED + 1] = {req = req, talks = talks} end
     return req
 end
-local said = server.conversationReply
-server.conversationReply = function(req, result, npc)
-    local ok, why = said(req, result, npc)
+local said = server.talk.conversations.reply
+server.talk.conversations.reply = function(talk, req, result, npc)
+    local ok, why = said(talk, req, result, npc)
     if ok then CONV_SAID[#CONV_SAID + 1] = req.id end
     return ok, why
 end
@@ -340,7 +340,7 @@ class InterventionTests(unittest.TestCase):
         return sim
 
     def talks(self):
-        return [r for r in lua_list(self.server.pending) if r.kind == 'npc_talk']
+        return [r for r in lua_list(self.server.talk.pending) if r.kind == 'npc_talk']
 
     def asked(self):
         return [convert(a) for a in lua_list(self.g.CONV_ASKED)]
@@ -375,7 +375,7 @@ class InterventionTests(unittest.TestCase):
         context = convert(talk.context)
         self.assertEqual(context['conversation']['partner'], self.mate.name)
         self.assertEqual(convert(context['conversation']['lines']), {}, 'lines nobody said yet')
-        order = [r.id for r in lua_list(self.server.pending) if r.npc == self.leader.id]
+        order = [r.id for r in lua_list(self.server.talk.pending) if r.npc == self.leader.id]
         self.assertEqual(order, [first[0].id, talk.id], 'the talk overtook the line already requested')
         self.assertEqual(sim.clients['alice'].g.RS_CarnetClient.waiting.id, talk.id)
         self.assertEqual(convert(self.conv.stats)['joined'], 1)
@@ -416,7 +416,7 @@ class InterventionTests(unittest.TestCase):
         client = sim.clients['alice'].g.RS_CarnetClient
         sim.command('alice', 'select', incarnation=self.g.LK_LEADER)
         self.away('bob')
-        self.server.lastTalk[sim.character('alice')] = self.sim.clock() - 8000   # sentence of a previous test
+        self.server.talk.lastTalk[sim.character('alice')] = self.sim.clock() - 8000   # sentence of a previous test
         self.record(self.leader)
         self.step()
         conv = self.conv.of(self.leader.id)

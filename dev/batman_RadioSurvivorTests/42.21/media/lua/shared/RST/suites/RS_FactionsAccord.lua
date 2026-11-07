@@ -191,10 +191,10 @@ RST.suite("rs.factions.accord", { mods = { "rs", "lk" },
                                                 local negB = reqB.context.negotiation
                                                 t10:ok(negB ~= nil, "no agreement offered to the designated negotiator")
                                                 t10:eq("negotiator", negB.role, "role of the second client")
-                                                t10:eq(team, Server.collectives[reqA.id].team, "team of the owner")
-                                                t10:eq(team, Server.collectives[reqB.id].team, "team of the negotiator")
-                                                t10:eq(0, Server.collectives[reqA.id].revision, "owner revision")
-                                                t10:eq(0, Server.collectives[reqB.id].revision, "negotiator revision")
+                                                t10:eq(team, Server.talk.collectives[reqA.id].team, "team of the owner")
+                                                t10:eq(team, Server.talk.collectives[reqB.id].team, "team of the negotiator")
+                                                t10:eq(0, Server.talk.collectives[reqA.id].revision, "owner revision")
+                                                t10:eq(0, Server.talk.collectives[reqB.id].revision, "negotiator revision")
                                                 plan[textA].hold, plan[textB].hold = false, false
                                                 t10:waitUntil(function()
                                                     return E9.settled(c, reqA) and E9.settled(c, reqB)

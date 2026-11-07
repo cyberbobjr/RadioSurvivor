@@ -513,3 +513,14 @@ Aucun objet Java n'est rendu : le corps se retrouve par le fournisseur du carnet
 - `npcsNear` s'appuie sur la dernière position vue pour un corps non lié (hors zone chargée, ou pas encore relié après un redémarrage) : elle date du dernier balayage qui l'a vu et peut être ancienne ; un corps lié donne sa position courante (`inWorld` distingue les deux).
 - Le rayon est comparé en distance horizontale ; l'étage n'est pas filtré (`floor` le rend au consommateur, qui applique sa propre règle, par exemple `RS_NPCProvider.near`).
 - Offres (LK12-T03) : aucun stock réel d'objets (LK08-T07, LK09-T06 à venir) ; la récompense est prise sur une réserve abstraite, l'objet est créé par l'appelant. Le multiplicateur de besoin du barème (× 1,5 sous 25…) ne s'applique qu'au troc (LK11-T08), pas à la conversion en réserve. Un état `supply` malformé (édition manuelle du fichier) est remis à neuf : offres ouvertes et reçus perdus, numérotation gardée si lisible. Seuils et valeurs à recalibrer en jeu avec E17-T03.
+
+## Parole des PNJ (`LivingKnox.Talk`, E18-T17)
+
+Autorité seulement, serveur `LK_Talk.lua` (file), `LK_Initiatives.lua`, `LK_Conversations.lua`, `LK_Incidents.lua`. La
+file, l'ordre et la révision par PNJ, les délais, les refus, les acquittements, les liaisons de groupe, les accords, le
+départ d'un groupe et les réactions des membres sont à Living Knox. Un mod qui parle pour ses PNJ s'attache une fois
+par `Talk.attach(host)` : `host` donne les fiches et ajoute son contexte et ses actions (liste des crochets en tête de
+`LK_TalkHost.lua`). `Talk.speak(player, character, npc, args)` admet une phrase (rend la demande, ou `nil` et la
+raison `Text`, `Chat`, `Cooldown`, `Busy`, `Bridge`) ; `Talk.turns`, `Talk.poll`, `Talk.enrich` sont appelés par le tic
+de l'hôte. État privé : `Zomboid/Lua/batman_LivingKnox/talk-*.txt` (en-tête `LKTALK1`). RadioSurvivor est aujourd'hui le
+seul hôte ; sans hôte, rien n'est émis (`E18-T18` en ajoute un pour Living Knox seul).

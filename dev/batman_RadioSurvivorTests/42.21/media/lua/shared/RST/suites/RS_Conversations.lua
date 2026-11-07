@@ -1,5 +1,5 @@
 --[[
-rs.conversations - conversations between two nearby NPCs (E08-T04, server/RadioSurvivor/RS_Conversations.lua): two
+rs.conversations - conversations between two nearby NPCs (E08-T04, server/LivingKnox/LK_Conversations.lua): two
 Living Knox npcs created next to the player, both given a notebook fiche; the first one noticed a storm (observation
 recorded here); E08-T11: their spots are searched around the player (RST.RSHelpers.pairSquares, bounded) where the
 bodies see each other and the player hears the teller.
@@ -31,7 +31,7 @@ local function setup(t)
     if not (LivingKnox and LivingKnox.isAuthority()) then t:skip("authority only (solo or dedicated server)") end
     local Server = RS_CarnetServer
     t:ok(Server ~= nil and Server.store.data ~= nil, "notebook server not ready")
-    local V = require "RadioSurvivor/RS_Conversations"
+    local V = require "LivingKnox/LK_Conversations"
     V.reset()
     local every = V.CFG.EVERY_MS
     V.CFG.EVERY_MS = 0
@@ -47,8 +47,8 @@ local function spawn(t, Server, sq)
     local fiche = Server.ensure(id)
     t:defer(function()
         local kept = {}
-        for _, r in ipairs(Server.pending) do if not fiche or r.npc ~= fiche.id then kept[#kept + 1] = r end end
-        Server.pending = kept
+        for _, r in ipairs(Server.talk.pending) do if not fiche or r.npc ~= fiche.id then kept[#kept + 1] = r end end
+        Server.talk.pending = kept
         B().despawn(id, true)
     end, "forget " .. id)
     if fiche == nil then return nil, "no fiche for " .. tostring(id) end
@@ -65,7 +65,7 @@ local SETTLE_MS = 2000
 local function pair(t, Server, Obs, subject, after)
     local P = require "RadioSurvivor/RS_NPCProvider"
     local C = require "RadioSurvivor/RS_Config"
-    local V = require "RadioSurvivor/RS_Conversations"
+    local V = require "LivingKnox/LK_Conversations"
     local R = RST.RSHelpers
     local p = RST.Fixtures.player(t)
     t:ok(p ~= nil, "no target player (t.ctx.player)")
@@ -131,10 +131,10 @@ end
 -- E08-T05: the player line joined the conversation; it keeps its place until the conversation ends.
 local function joined(t3, c, V, Server, conv, joined0)
     local recent = 0
-    for _, when in ipairs(Server.times or {}) do
+    for _, when in ipairs(Server.talk.times or {}) do
         if getTimestampMs() - when < 3600000 then recent = recent + 1 end
     end
-    t3:eq(joined0 + 1, V.stats.joined, "player line not joined: " .. #Server.pending
+    t3:eq(joined0 + 1, V.stats.joined, "player line not joined: " .. #Server.talk.pending
         .. " pending request(s), " .. recent .. " request(s) in the last hour")
     local index = #conv.lines
     local mine = conv.lines[index]
@@ -159,7 +159,7 @@ local function waitJoined(t, c, V, Server, conv, joined0)
             local e = res.list[1]
             local why = e and e.data and e.data.lastError or nil
             t4:ok(false, "player line not joined within 10 s (notebook refusal " .. tostring(why) .. ", "
-                .. #Server.pending .. " pending request(s), conversation "
+                .. #Server.talk.pending .. " pending request(s), conversation "
                 .. (V.of(c.teller.id) and "open" or "over") .. ")")
         end)
     end, "player line wait never ended")
@@ -171,7 +171,7 @@ RST.suite("rs.conversations", { mods = { "rs", "lk" },
         local Server, V, Obs = setup(t)
         local said = RST.PeerChecks.recordSpeech(t)
         pair(t, Server, Obs, "storm", function(t2, c)
-            local kind = V.tick(Server)
+            local kind = V.tick(Server.talk)
             t2:eq("opened", kind, "no conversation opened (is the player within earshot?)")
             local since = getTimestampMs()   -- E17-T15: cause of a missing line named by the failure message
             t2:waitUntil(function() return knows(Obs, c.partner, c.key) ~= nil end, 90000, function(t3)
@@ -195,17 +195,17 @@ RST.suite("rs.conversations", { mods = { "rs", "lk" },
     s.test("a player line joins the conversation in order", function(t)
         local Server, V, Obs = setup(t)
         -- The notebook server refuses a sentence of the same character within C.COOLDOWN_MS of its previous one
-        -- (Server.lastTalk, 'Cooldown'; slow mode of the chat in MP): the previous suites talk a few seconds before
+        -- (Server.talk.lastTalk, 'Cooldown'; slow mode of the chat in MP): the previous suites talk a few seconds before
         -- (campaign 2026-10-15: refused 9 s after rs.relation). Wait for it BEFORE the pair is made: the observation
         -- recorded by pair() lets the server pass open the conversation by itself (EVERY_MS = 0).
         local cid0 = Server.bound[RST.Fixtures.player(t)]
         local quiet = talkCooldown()
         t:waitQuiet(function()
-            local last = cid0 and Server.lastTalk[cid0]
+            local last = cid0 and Server.talk.lastTalk[cid0]
             return last == nil or getTimestampMs() - last >= quiet + 200
         end, quiet + 5000, function(t1)
             pair(t1, Server, Obs, "fog", function(t2, c)
-                t2:eq("opened", V.tick(Server), "no conversation opened (is the player within earshot?)")
+                t2:eq("opened", V.tick(Server.talk), "no conversation opened (is the player within earshot?)")
                 local conv = V.of(c.teller.id)
                 t2:ok(conv ~= nil, "conversation not found")
                 local Steps = RST.Steps
@@ -231,7 +231,7 @@ RST.suite("rs.conversations", { mods = { "rs", "lk" },
     -- E08-T09: without an answer of the model, no heard conversation opens: no line, no template, no story passed.
     s.test("a stopped bridge: no conversation, no story", function(t)
         local Server, V, Obs = setup(t)
-        local I = require "RadioSurvivor/RS_Initiatives"
+        local I = require "LivingKnox/LK_Initiatives"
         local P = require "RadioSurvivor/RS_NPCProvider"
         local said = RST.PeerChecks.recordSpeech(t)
         local barks, bark = 0, P.bark
@@ -241,7 +241,7 @@ RST.suite("rs.conversations", { mods = { "rs", "lk" },
         I.bridge.down, I.bridge.probeAt = true, getTimestampMs() + 600000
         t:defer(function() I.bridge.down, I.bridge.probeAt = down, probeAt end, "restore the bridge state")
         pair(t, Server, Obs, "rain", function(t2, c)
-            t2:eq(nil, V.tick(Server), "conversation opened without the bridge")
+            t2:eq(nil, V.tick(Server.talk), "conversation opened without the bridge")
             t2:eq(nil, V.of(c.teller.id), "conversation in progress without the bridge")
             t2:eq(nil, knows(Obs, c.partner, c.key), "story passed without a conversation")
             t2:eq(0, barks, "Provider.bark called without the bridge")
@@ -257,7 +257,7 @@ RST.suite("rs.conversations", { mods = { "rs", "lk" },
         local Server, V, Obs = setup(t)
         pair(t, Server, Obs, "blizzard", function(t2, c)
             B().lastHits[c.partnerId] = { ms = getTimestampMs() }
-            t2:eq(nil, V.tick(Server), "conversation with a busy npc")
+            t2:eq(nil, V.tick(Server.talk), "conversation with a busy npc")
             t2:eq(nil, knows(Obs, c.partner, c.key), "story learned by a busy npc")
             B().lastHits[c.partnerId] = nil
         end)

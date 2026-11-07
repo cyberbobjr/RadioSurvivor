@@ -248,10 +248,10 @@ RST.suite("rs.carnet.leader", { mods = { "rs", "lk" }, tags = { "server", "world
                                         local neg = reqD.context.negotiation
                                         t7:ok(neg ~= nil and neg.terms ~= nil and neg.terms.truce ~= nil,
                                             "leader request: no truce offered")
-                                        local binding = Server.collectives[reqD.id]
+                                        local binding = Server.talk.collectives[reqD.id]
                                         t7:ok(binding ~= nil, "leader request not bound to the composition")
                                         t7:ok(E.Groups.markDead(gid, "m-2"), "m-2 not marked dead")
-                                        local okD, whyD = Server.collectiveCheck(binding, fl)
+                                        local okD, whyD = Server.talk.collectiveCheck(binding, fl)
                                         t7:eq(false, okD, "collective check after the death")
                                         t7:eq("group composition changed", whyD, "reason after the death")
                                         plan[textD].hold = false
@@ -264,7 +264,7 @@ RST.suite("rs.carnet.leader", { mods = { "rs", "lk" }, tags = { "server", "world
                                                 day = E.Groups.today() })
                                             t8:ok(mid ~= nil, "third member not added")
                                             E9.talkBy(t8, me, cl, textS, function(t9, reqS)
-                                                local bindS = Server.collectives[reqS.id]
+                                                local bindS = Server.talk.collectives[reqS.id]
                                                 t9:ok(bindS ~= nil, "second leader request not bound")
                                                 local heir = nil
                                                 local g = E.Groups.get(gid)
@@ -273,7 +273,7 @@ RST.suite("rs.carnet.leader", { mods = { "rs", "lk" }, tags = { "server", "world
                                                 end
                                                 t9:ok(heir ~= nil, "no living member to succeed")
                                                 t9:ok(E.Groups.setLeader(gid, heir), "succession not applied")
-                                                local okS, whyS = Server.collectiveCheck(bindS, fl)
+                                                local okS, whyS = Server.talk.collectiveCheck(bindS, fl)
                                                 t9:eq(false, okS, "collective check after the succession")
                                                 t9:eq("NPC no longer the group leader", whyS, "reason")
                                                 plan[textS].hold = false

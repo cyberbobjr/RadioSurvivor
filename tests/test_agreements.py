@@ -79,7 +79,7 @@ class AgreementCarnetTests(unittest.TestCase):
         rid = req.id
         if before_reply:
             before_reply()
-        self.assertTrue(pump(lambda: not any(r.id == rid for r in self.server.pending.values()), [sim.tick]),
+        self.assertTrue(pump(lambda: not any(r.id == rid for r in self.server.talk.pending.values()), [sim.tick]),
                         'no reply: ' + text)
         return convert(req)
 
@@ -87,7 +87,7 @@ class AgreementCarnetTests(unittest.TestCase):
         sim = self.sim
         sim.command(name, 'select', incarnation=npc)
         sim.acquaint(name)
-        self.server.lastTalk[self.cid(name)] = None
+        self.server.talk.lastTalk[self.cid(name)] = None
         sim.command(name, 'talk', channel='say', text=text, language='FR')
 
     def halos(self, name):
@@ -247,7 +247,7 @@ class AgreementCarnetTests(unittest.TestCase):
         reqs = talk_requests(self.g)
         self.assertEqual(len(reqs), 2)
         self.assertEqual([r.context.negotiation.current for r in reqs], ['none', 'none'])
-        self.assertTrue(pump(lambda: count(self.server.pending) == 0, [self.sim.tick]), 'no replies')
+        self.assertTrue(pump(lambda: count(self.server.talk.pending) == 0, [self.sim.tick]), 'no replies')
         a = self.agreement()
         self.assertEqual((a['kind'], a['revision'], a['signed']['account']), ('alliance', 1, 'alice'))
         # E09-T09: bob hears the leader's line to him (after the one to alice, heard too); only his agreement is

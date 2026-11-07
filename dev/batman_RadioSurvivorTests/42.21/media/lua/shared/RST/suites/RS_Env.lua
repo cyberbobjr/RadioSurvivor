@@ -31,11 +31,9 @@ local GLOBALS = {
     -- Lua global of the required mod batman_BeltRadio (shared file, loaded everywhere): transmit predicate.
     { "BatmanRadioSupport.canTransmitWith", "any", "shared/RadioSurvivor/RadioSurvivor_Const.lua:271" },
     { "getPlayer", "any", "server/RadioSurvivor_Server.lua:61" },
+    -- E18-T17: getServerOptions, detectBadWords and addSound are read by LK_Talk (Living Knox), run by rs.npctalk.
     { "sendServerCommand", "server", "server/RS_Carnet_Server.lua:38" },
     { "getOnlinePlayers", "server", "server/RadioSurvivor_Server.lua:62" },
-    { "getServerOptions", "server", "server/RS_Carnet_Server.lua:297" },
-    { "detectBadWords", "server", "server/RS_Carnet_Server.lua:304" },
-    { "addSound", "server", "server/RS_Carnet_Server.lua:832" },
     { "getFileReader", "server", "server/RadioSurvivor/RS_State.lua:53" },
     { "getFileWriter", "server", "server/RadioSurvivor/RS_State.lua:227" },
     { "getWorld", "server", "server/RadioSurvivor/RS_State.lua:70" },
@@ -235,12 +233,10 @@ RST.suite("rs.env", { tags = { "shared" } }, function(s)
         t:eq("string", type(world:getWorld()), "IsoWorld:getWorld() (used by " .. PREFIX
             .. "server/RadioSurvivor/RS_State.lua:64)")
         if runSide == "server" then
-            -- server/RS_Carnet_Server.lua:257 and :344 only read the options on a server.
+            -- The speech of the NPCs (Living Knox, E18-T17) only reads the options on a server.
             local options = getServerOptions()
-            t:eq("string", type(options:getOption("ChatStreams")), "ServerOptions:getOption (used by " .. PREFIX
-                .. "server/RS_Carnet_Server.lua:257)")
-            t:eq("number", type(options:getInteger("ChatMessageSlowModeTime")), "ServerOptions:getInteger (used by "
-                .. PREFIX .. "server/RS_Carnet_Server.lua:347)")
+            t:eq("string", type(options:getOption("ChatStreams")), "ServerOptions:getOption (speech of the NPCs)")
+            t:eq("number", type(options:getInteger("ChatMessageSlowModeTime")), "ServerOptions:getInteger (speech of the NPCs)")
         end
         if type(detectBadWords) == "function" then
             t:eq("boolean", type(detectBadWords("hello")), "detectBadWords returns a boolean")

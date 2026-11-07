@@ -1,6 +1,8 @@
 # Contrat RadioSurvivor Lua ↔ Python v2
 
-Cible 42.21.0. Implémentation : `RC_Codec.lua`, `RC_Transport.lua` (mod commun) et `RS_BridgeLanes.lua`, `RS_Carnet_Server.lua`,
+Cible 42.21.0. Implémentation : `RC_Codec.lua`, `RC_Transport.lua` (mod commun), `RS_BridgeLanes.lua` (voix radio),
+`LK_Talk.lua` (parole des PNJ, voies `npc` et `acks`, E18-T17 : file, ordre et révision par PNJ, délais, refus,
+acquittements ; le carnet n'ajoute que son contexte et ses actions par les crochets de `LK_TalkHost.lua`),
 `bridge/npc_protocol.py`, `bridge/radio_bridge.py`. Le bridge unique garde le verrou `bridge.lock`,
 sa configuration et le transport par fichiers dans `<cachedir>/Lua/batman_RadioSurvivor`.
 Python ne modifie aucun inventaire, état du moteur de PNJ, accord ou score de réputation.
@@ -829,7 +831,7 @@ privé, distinct du transport. Le schéma de dialogue n'utilise que des cartes b
 | Champ requis | Sens / validation |
 | --- | --- |
 | `version` | Entier `2` |
-| `kind` | `npc_talk` ou `npc_enrich` ; `npc_initiative` (E08-T03, « Initiative d'un PNJ ») |
+| `kind` (voie `npc`, émise par Living Knox, `LK_Talk`, E18-T17) | `npc_talk` ou `npc_enrich` ; `npc_initiative` (E08-T03, « Initiative d'un PNJ ») |
 | `id` | Identifiant unique de demande, identique à `req` |
 | `world` | Identité du monde persistée ; pas son simple nom de dossier |
 | `run` | Nouvelle identité à chaque exécution serveur |
@@ -951,7 +953,7 @@ propos des joueurs). Sans observation, le prompt est identique à celui d'avant 
 ### Initiative d'un PNJ (E08-T03)
 
 Un PNJ du carnet prend la parole de lui-même sur une observation récente (fiche [initiatives.md](../annexes/conception/initiatives.md),
-`server/RadioSurvivor/RS_Initiatives.lua`). Demande `kind = npc_initiative`, dans la **même file ordonnée par PNJ** que
+`server/LivingKnox/LK_Initiatives.lua`). Demande `kind = npc_initiative`, dans la **même file ordonnée par PNJ** que
 `npc_talk` (même compteur `order`, un seul tour en cours par PNJ chez le pont), comptée dans le plafond commun de 60
 demandes PNJ par heure. Écarts avec `npc_talk` :
 
@@ -973,7 +975,7 @@ utilisateur fixe `INITIATIVE_TURN` = `(nobody spoke to you; you spoke up on your
 `INITIATIVE_TURN` puis la réplique (`memory_turn`), jamais un texte de joueur ; `applied` doit rester vide. Mode
 `--offline` : une ligne fixe (FR ou EN) sans lire l'événement.
 
-Côté jeu (`RS_Carnet_Server.reply`) : mêmes contrôles communs, puis refus si l'intention n'est pas `none`, si le texte
+Côté jeu (`LK_Talk`) : mêmes contrôles communs, puis refus si l'intention n'est pas `none`, si le texte
 dépasse 200 octets, ou si la situation a changé (corps non chargé ou mort, PNJ occupé, observation sortie du journal,
 plus personne n'entend : `initiative stale: …`). Sinon la réplique passe par la parole de proximité de LK11-T04
 (`Provider.say`) et rejoint l'historique des contacts existants des auditeurs. Compatibilité : un pont antérieur ignore
@@ -983,7 +985,7 @@ la demande (`kind` inconnu) ; elle expire après 150 s sans effet, et le pont es
 ### Conversation entre deux PNJ (E08-T04)
 
 Deux PNJ proches se racontent une observation (fiche [conversations.md](../annexes/conception/conversations.md),
-`server/RadioSurvivor/RS_Conversations.lua`). Chaque réplique est une demande `kind = npc_converse` du PNJ qui parle,
+`server/LivingKnox/LK_Conversations.lua`). Chaque réplique est une demande `kind = npc_converse` du PNJ qui parle,
 dans la même file ordonnée par PNJ, comptée dans le plafond commun ; mêmes écarts avec `npc_talk` qu'une initiative
 (`character = system`, `text` absent, `offers` vide, `event` = carte du sujet **dans le journal du locuteur**,
 `observations` = son journal), plus un `context` borné et validé :
@@ -1387,7 +1389,7 @@ jamais tiré des mots du joueur.
 
 `npc_reply` reprend `version`, `id`, `world`, `run`, `npc`, `order`, `revision`.
 `text` : 1–1600 octets UTF-8, une seule ligne sans contrôle ni `<`, `>`, `[`, `]`, `*` (le serveur refuse sinon :
-`RS_Carnet_Server.reply`, motif `[%c<>%[%]*]`). `intent` est `none`, `offer`, `accept` (E17-T09, seulement avec
+`LK_Talk`, motif `[%c<>%[%]*]`). `intent` est `none`, `offer`, `accept` (E17-T09, seulement avec
 `context.acceptable`), `negotiate` (E09-T05, seulement avec `context.negotiation`), `leave_group` (E10-T04, seulement avec
 `context.leave`, `offer` vide), `change_relation` (E09-T04, seulement avec des faits dans `context.relation.facts`,
 `offer` vide, plus `dir` et `fact`) ou `report_done` (E11-T13, seulement avec `context.reportable`, `offer` vide) ;

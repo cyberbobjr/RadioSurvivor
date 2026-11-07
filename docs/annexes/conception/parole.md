@@ -85,7 +85,7 @@ Situations : `greet` (salut), `warn` (avertissement : trop près), `alert` (dang
   n'étaient affichées. Reconnaissance par `tostring(chat:getType()) == "say"` dans `RS_Client.isSayChat` et
   `LK_SpeechView.observeMessage`.
 - Contexte d'une conversation (E08-T05) : une ligne jointe (phrase du joueur, réponse au joueur) est bornée à 200 octets
-  par la même découpe (`RS_Conversations` `cut`, avant : coupe à l'octet, au milieu d'un mot).
+  par la même découpe (`LK_Conversations` `cut`, avant : coupe à l'octet, au milieu d'un mot).
 - Trace lisible depuis Lua : `stats.drawn` (dessins), `stats.pieces`, `lastDraw = { npc, text, x, y, player }`,
   `bubbles` (`rest` : morceaux en attente), `lastPieces = { npc, text, pieces }`, `pieceLog` (32 derniers morceaux
   affichés : `{ npc, text, at, ms }`).

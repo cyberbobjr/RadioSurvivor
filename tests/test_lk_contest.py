@@ -297,7 +297,7 @@ class MemberReactionTests(unittest.TestCase):
         return [e.text for e in carnet.lua_list(self.G.get(self.g.LK_GROUP).log) if e.kind == kind]
 
     def requests(self, kind):
-        return [r for r in self.server.pending.values() if r.kind == kind]
+        return [r for r in self.server.talk.pending.values() if r.kind == kind]
 
     def offer_by_the_leader(self):
         sim = self.sim
@@ -306,7 +306,7 @@ class MemberReactionTests(unittest.TestCase):
         sim.command('alice', 'talk', channel='say', text="Vous avez besoin d'aide ?", language='FR')
         [req] = carnet.talk_requests(self.g)
         rid = req.id
-        self.assertTrue(carnet.pump(lambda: not any(r.id == rid for r in self.server.pending.values()), [sim.tick]),
+        self.assertTrue(carnet.pump(lambda: not any(r.id == rid for r in self.server.talk.pending.values()), [sim.tick]),
                         'no leader reply')
         return sim.mission()
 
@@ -363,14 +363,14 @@ class MemberReactionTests(unittest.TestCase):
         self.world('quota', 'member:refuse', extra_members=3)
         self.offer_by_the_leader()
         reqs = self.requests('npc_member')
-        self.assertEqual(len(reqs), self.server.MEMBER_REACTIONS, 'quota of member reactions per decision')
+        self.assertEqual(len(reqs), self.server.talk.MEMBER_REACTIONS, 'quota of member reactions per decision')
         # Un membre quitte le groupe avant la réponse (départ) : sa réaction est refusée, rien n'est écrit pour lui.
         first = carnet.convert(reqs[0])
         gone = self.g.RS_CarnetServer.store.data.npcs[first['npc']].incarnation
         gid, mid = self.G.findNpc(gone)
         self.rt.execute(f'assert(LivingKnox.Groups.removeMember("{gid}", "{mid}"))')
         self.wait_members()
-        self.assertEqual(len(self.journal('refusal')), self.server.MEMBER_REACTIONS - 1)
+        self.assertEqual(len(self.journal('refusal')), self.server.talk.MEMBER_REACTIONS - 1)
 
     def test_bridge_contract_for_member_replies(self):
         req = {'kind': 'npc_member', 'id': 'r-1-npc-2', 'world': 'w', 'run': 'r', 'npc': 'npc-2', 'order': 1,

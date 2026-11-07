@@ -168,7 +168,7 @@ RST.suite("rs.factions.incident", { mods = { "rs", "lk" },
             local okC, whyC = F.conclude(p, gid, "truce", { team = team, revision = neg.revision }, { character = cid })
             t:ok(okC, "concluded: " .. tostring(whyC))
             t:defer(function() F.cancelAgreement(gid, team) end, "agreement removed")
-            local Ini = Server.initiatives
+            local Ini = Server.talk.initiatives
             local was = { down = Ini.bridge.down, probeAt = Ini.bridge.probeAt }
             Ini.bridge.down, Ini.bridge.probeAt = true, getTimestampMs() + 3600000
             t:defer(function()
@@ -215,7 +215,7 @@ RST.suite("rs.factions.incident", { mods = { "rs", "lk" },
                         Ini.bridge.down, ctl.blackout = false, false
                         t3:waitUntil(function() return E9.pendingOf(Server, "npc_incident", fl.id) end, 10000,
                             function(t4, reqI)
-                            local b = Server.incidents.bindings[reqI.id]
+                            local b = Server.talk.incidents.bindings[reqI.id]
                             t4:ok(b ~= nil and b.incident == inc.id, "decision request not bound to the incident")
                             local asked = b.revision
                             hit(t4, mateNpc)
@@ -227,7 +227,7 @@ RST.suite("rs.factions.incident", { mods = { "rs", "lk" },
                                 t5:waitUntil(function() return E9.settled({ Server = Server }, reqI) end, E9.REQUEST_MS,
                                     function(t6)
                                     local refused = nil
-                                    for _, r in ipairs(Server.refusals) do
+                                    for _, r in ipairs(Server.talk.refusals) do
                                         if r.id == reqI.id then refused = r.reason end
                                     end
                                     t6:eq("incident revision changed", refused, "late reply of the leader")
@@ -282,7 +282,7 @@ RST.suite("rs.factions.incident", { mods = { "rs", "lk" },
                     t3:ok(okC, "concluded: " .. tostring(whyC))
                     t3:defer(function() F.cancelAgreement(gid, team) end, "agreement removed")
                     t3:eq(true, F.covered(gid, cid2, leaderNpc), "innocent member covered before")
-                    local Ini = Server.initiatives
+                    local Ini = Server.talk.initiatives
                     local was = { down = Ini.bridge.down, probeAt = Ini.bridge.probeAt }
                     Ini.bridge.down, Ini.bridge.probeAt = true, getTimestampMs() + 3600000
                     t3:defer(function()

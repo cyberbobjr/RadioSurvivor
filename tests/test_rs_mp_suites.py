@@ -536,7 +536,7 @@ package.loaded["RadioSurvivorCore/RC_Missions"] = M
 -- Notebook server reduced to what the suites read (RS_Carnet_Server.lua: hello, snapshot, select, scan,
 -- prune, conditional save, enrichment of a contacted fiche).
 F = (function() local A, T = require("LivingKnox/LK_Agreements"), require("RadioSurvivorCore/RC_Teams") return setmetatable({}, {__index = function(_, k) if A[k] ~= nil then return A[k] end return T[k] end}) end)()
-Server = { store = S, bound = {}, selected = {}, objects = {}, pending = {}, enrichTimes = {}, times = {} }
+Server = { talk = { pending = {}, enrichTimes = {}, times = {} }, store = S, bound = {}, selected = {}, objects = {}, pending = {}, enrichTimes = {}, times = {} }
 RS_CarnetServer = Server
 local function players()
     if isServer() then local out = {} for i, n in ipairs(ONLINE) do out[i] = PLAYERS[n] end return out end
@@ -608,7 +608,7 @@ local function prune(now)
     if not DEFECT.pruneContacts then
         for _, record in pairs(S.data.characters) do for id in pairs(record.contacts) do kept[id] = true end end
     end
-    for _, r in ipairs(Server.pending) do kept[r.npc] = true end
+    for _, r in ipairs(Server.talk.pending) do kept[r.npc] = true end
     for id, npc in pairs(S.data.npcs) do
         if not kept[id] and not Server.objects[id] and (not npc.alive or now - (npc.seenAt or 0) > C.NPC_UNSEEN_MS) then
             S.data.npcs[id] = nil
@@ -639,8 +639,8 @@ Events.OnTickEvenPaused.Add(function()
         for _, npc in pairs(S.data.npcs) do
             if npc.enrichState == "needed" then
                 npc.enrichState = "pending"
-                Server.pending[#Server.pending + 1] = { npc = npc.id, kind = "npc_enrich" }
-                Server.enrichTimes[#Server.enrichTimes + 1] = now
+                Server.talk.pending[#Server.talk.pending + 1] = { npc = npc.id, kind = "npc_enrich" }
+                Server.talk.enrichTimes[#Server.talk.enrichTimes + 1] = now
             end
         end
         checkAt = now + 1000

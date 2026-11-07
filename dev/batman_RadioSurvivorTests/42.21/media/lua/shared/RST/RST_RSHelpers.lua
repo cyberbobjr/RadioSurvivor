@@ -108,8 +108,8 @@ function R.npcWithFiche(t, p, dx, after)
             t2:ok(fiche ~= nil, "no notebook fiche for " .. tostring(id))
             t2:defer(function()
                 local kept = {}
-                for _, r in ipairs(Server.pending) do if r.npc ~= fiche.id then kept[#kept + 1] = r end end
-                Server.pending = kept
+                for _, r in ipairs(Server.talk.pending) do if r.npc ~= fiche.id then kept[#kept + 1] = r end end
+                Server.talk.pending = kept
             end, "drop the pending requests of " .. id)
             t2:waitQuiet(function() return Server.objects[fiche.id] ~= nil end, R.MAPPED_MS,
                 function(t3) return after(t3, id, fiche, body) end,
@@ -364,7 +364,7 @@ function R.watchRequest(t, c, text)
     local seen = {}
     local function watch()
         if seen.req ~= nil then return end
-        for _, r in ipairs(c.Server.pending) do
+        for _, r in ipairs(c.Server.talk.pending) do
             if r.npc == c.fiche.id and r.kind == "npc_talk" and r.text == text and not seen.before[r.id] then
                 seen.req = r
                 return
@@ -372,7 +372,7 @@ function R.watchRequest(t, c, text)
         end
     end
     seen.before = {}
-    for _, r in ipairs(c.Server.pending) do seen.before[r.id] = true end
+    for _, r in ipairs(c.Server.talk.pending) do seen.before[r.id] = true end
     Events.OnTick.Add(watch)
     t:defer(function() Events.OnTick.Remove(watch) end, "stop watching the npc_talk requests")
     -- The request is saved right after it joins the pending list (RS_Carnet_Server enqueue: S.save()): seen there
@@ -418,7 +418,7 @@ function R.language()
 end
 
 function R.bridgeCause(Server, since)
-    local refusals = Server and Server.refusals or {}
+    local refusals = Server and Server.talk.refusals or {}
     for i = #refusals, 1, -1 do
         local r = refusals[i]
         if (r.at or 0) >= (since or 0) then

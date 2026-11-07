@@ -80,7 +80,8 @@ class LayoutTests(unittest.TestCase):
 class QueueTests(unittest.TestCase):
     def setUp(self):
         self.rt = runtime()
-        self.T = self.rt.eval('require("RadioSurvivor/RS_BridgeLanes")')
+        # Lanes npc and acks: registered by LK_Talk (E18-T17), same orders (tests/test_lk_talk.py).
+        self.T = self.rt.eval('(function() local T = require("RadioSurvivor/RS_BridgeLanes"); T.register("npc", {order = 20}); T.register("acks", {order = 30}); return T end)()')
         self.rt.globals().TRANSPORT = self.T
 
     def test_requests_file_byte_for_byte_as_the_old_code(self):

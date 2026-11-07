@@ -1,11 +1,11 @@
 if isClient() then return end
 -- E09-T06: decision of a group leader on an incident of a faction agreement (ADR B10). Registry, targeted defence and
 -- validation: Living Knox (LK_Agreements, since E18-T20; read through LivingKnox.Agreements, nothing without it).
--- Here: the request to the model (npc_incident) and its reply, for the notebook (RS_Carnet_Server tick and reply). Fiche:
+-- Here: the request to the model (npc_incident) and its reply (LK_Talk). Fiche:
 -- docs/annexes/conception/incidents.md.
 --
 -- Once the facts of an open incident settled (LivingKnox.Agreements.INCIDENT.SETTLE_MS), one request per pass, within the bridge
--- quotas (RS_Config.MAX_PENDING, MAX_PER_HOUR) and not while the bridge is considered stopped (RS_Initiatives): an
+-- quotas (RC_SpeechConfig.MAX_PENDING, MAX_PER_HOUR) and not while the bridge is considered stopped (LK_Initiatives): an
 -- npc_incident request in the queue of the leader's fiche (LivingKnox.API.composition(group).leaderNpc), character
 -- 'group', text = the established facts composed here in English, context.incident = facts, agreement, earlier
 -- decisions, context.choices = the decisions the server allows (maintain, repair with the stock categories and the
@@ -14,13 +14,12 @@ if isClient() then return end
 -- revalidated (same leader, same incident revision, same agreement revision) then applied once by
 -- LivingKnox.Agreements.decideIncident. A refused or unanswered request leaves the incident open (defence kept, no automatic
 -- break): asked again after LivingKnox.Agreements.INCIDENT.RETRY_MS.
-local C = require 'RadioSurvivor/RS_Config'
-local P = require 'RadioSurvivor/RS_NPCProvider'
-local S = require 'RadioSurvivor/RS_State'
--- E18-T20: the agreements and their incidents are Living Knox's (until the speech of the NPCs moves there, E18-T17).
+local Talk = require 'LivingKnox/LK_TalkHost'
+local C = require 'RadioSurvivorCore/RC_SpeechConfig'
+local P = Talk.provider
+-- E18-T20: the agreements and their incidents; read when used, LK_Agreements may load after this file.
 local F = {}
-local function agreements() return type(LivingKnox) == 'table' and LivingKnox.Agreements or nil end
-local Radio = require 'RadioSurvivor/RadioSurvivor_Const'
+local function agreements() return LivingKnox.Agreements end
 
 local I = {KIND = 'npc_incident', CHARACTER = 'group', MAX_REPLY = 400, bindings = {}}
 I.DECISIONS = {maintain = true, repair = true, ['break'] = true}
@@ -32,14 +31,13 @@ local function leaderOf(gid)
 end
 
 local function characterName(key)
-    local record = S.data and S.data.characters[key]
-    local name = type(record) == 'table' and Radio.oneLine(record.name or '') or ''
+    local name = Talk.oneLine(Talk.characterName(key) or '')
     return name ~= '' and name or 'someone'
 end
 
 local function npcName(id)
     local record = P.npc(id)
-    local name = record and Radio.oneLine(record.name or '') or ''
+    local name = record and Talk.oneLine(record.name or '') or ''
     return name ~= '' and name or 'one of your people'
 end
 
@@ -129,7 +127,7 @@ function I.tick(server, now)
                 group = inc.group}
             F.incidentAsked(inc.id, req.id, now)
             server.times[#server.times + 1] = now
-            server.syncTransport()
+            server.sync()
             print('[RS_Incidents] decision on incident ' .. inc.id .. ' (revision ' .. inc.revision .. ') asked to '
                 .. npc.id .. ', leader of ' .. inc.group)
             return 1
@@ -156,5 +154,7 @@ function I.reply(_, req, result, npc)
     if not ok then return false, why end
     return true, a, inc
 end
+
+Talk.incidents = I
 
 return I

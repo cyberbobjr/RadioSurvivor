@@ -3,7 +3,7 @@
 - Tâche : E08-T03 (création) ; servira E08-T04 (conversations entre PNJ) et E08-T06 (radio des groupes équipés, même file et mêmes quotas)
 - Build : 42.21.0 — Date : 2026-10-13 — Statut : brouillon (banc hors jeu seulement)
 
-Code : `media/lua/server/RadioSurvivor/RS_Initiatives.lua` (autorité), branché dans `RS_Carnet_Server.lua` (passage `tick`, réponse `reply`, délai `poll`) ; opérations du fournisseur `Provider.engaged`, `Provider.say`, `Provider.bark` (`RS_NPCProvider.lua`, implémentées par `RS_LivingKnox.lua` sur `LivingKnox.API.engaged` et `LivingKnox.Speech`) ; heure de rangement `hour` des observations (`RS_Observations.lua`) ; contrat `npc_initiative` (`bridge/npc_protocol.py`, [protocole](../../specifications-techniques/protocole-carnet-v2.md) « Initiative d'un PNJ ») ; option sandbox `RadioSurvivor.InitiativeFrequency`. Tests : `tests/test_initiatives.py` ; suite en jeu `rs.initiatives` (`dev/.../shared/RST/suites/RS_Initiatives.lua`).
+Code : `media/lua/server/LivingKnox/LK_Initiatives.lua` (autorité), branché dans `RS_Carnet_Server.lua` (passage `tick`, réponse `reply`, délai `poll`) ; opérations du fournisseur `Provider.engaged`, `Provider.say`, `Provider.bark` (`RS_NPCProvider.lua`, implémentées par `RS_LivingKnox.lua` sur `LivingKnox.API.engaged` et `LivingKnox.Speech`) ; heure de rangement `hour` des observations (`RS_Observations.lua`) ; contrat `npc_initiative` (`bridge/npc_protocol.py`, [protocole](../../specifications-techniques/protocole-carnet-v2.md) « Initiative d'un PNJ ») ; option sandbox `RadioSurvivor.InitiativeFrequency`. Tests : `tests/test_initiatives.py` ; suite en jeu `rs.initiatives` (`dev/.../shared/RST/suites/LK_Initiatives.lua`).
 
 ## Problème
 

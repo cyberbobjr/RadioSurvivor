@@ -17,6 +17,7 @@ require "LivingKnox/LK_Needs"         -- LK05-T06 : faim, soif, fatigue, peur (l
 require "LivingKnox/LK_Alert"         -- LK05-T08 : alerte de groupe (appelée par LK_Decisions)
 require "LivingKnox/LK_Decisions"     -- LK05-T02 : cadre de décision (objectifs par heure, cascade par membre)
 require "LivingKnox/LK_Routines"      -- LK05-T03 : postes, rondes, relèves et sommeil (appelé par LK_Decisions)
+require "LivingKnox/LK_Talk"          -- E18-T17 : file des demandes de parole des PNJ
 local WorldStart = require "RadioSurvivorCore/RC_WorldStart"   -- monde neuf : signal de la radio (serveur dédié)
 
 local Server = LivingKnox.Server or {}

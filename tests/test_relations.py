@@ -68,7 +68,7 @@ class RelationTests(unittest.TestCase):
     def request(self, name, npc, text):
         self.sim.command(name, 'select', incarnation=npc)
         self.sim.acquaint(name)
-        self.server.lastTalk[self.cid(name)] = None
+        self.server.talk.lastTalk[self.cid(name)] = None
         self.sim.command(name, 'talk', channel='say', text=text, language='FR')
 
     def say(self, name, npc, text, before_reply=None):
@@ -78,7 +78,7 @@ class RelationTests(unittest.TestCase):
         rid = req.id
         if before_reply:
             before_reply()
-        self.assertTrue(pump(lambda: not any(r.id == rid for r in self.server.pending.values()), [self.sim.tick]),
+        self.assertTrue(pump(lambda: not any(r.id == rid for r in self.server.talk.pending.values()), [self.sim.tick]),
                         'no reply: ' + text)
         return convert(req)
 
@@ -219,8 +219,8 @@ class RelationTests(unittest.TestCase):
         self.assertEqual(self.pair('alice', leader)['revision'], 1)
 
     def binding(self):
-        """Server binding of the only pending talk (Server.relations[request id]), or None."""
-        [(rid, b)] = [(r.id, self.server.relations[r.id]) for r in self.server.pending.values()
+        """Server binding of the only pending talk (Server.talk.relations[request id]), or None."""
+        [(rid, b)] = [(r.id, self.server.talk.relations[r.id]) for r in self.server.talk.pending.values()
                       if r.kind == 'npc_talk']
         return rid, b
 
@@ -238,7 +238,7 @@ class RelationTests(unittest.TestCase):
         self.assertEqual(req['context']['relation']['facts'] != {}, True, 'a fact offered to cite')
         line = (f'relation change of {self.fiche(npc).id} toward {self.cid(name)} in {req["id"]} ignored, reply kept: '
                 + reason)
-        self.assertIn(line, [x.partition('[RS_Carnet] ')[2] for x in self.logs()], self.logs())
+        self.assertIn(line, [x.partition('[LK_Talk] ')[2] for x in self.logs()], self.logs())
         self.assertFalse(any(req['id'] + ' refused' in x for x in self.logs()), 'whole reply refused')
         self.assertIsNone(self.sim.clients[name].g.RS_CarnetClient.lastError, 'the player sees NoAnswer')
         self.assertEqual(self.spoken(name, npc), before + [self.SAID], 'reply of the NPC not said')
@@ -254,7 +254,7 @@ class RelationTests(unittest.TestCase):
 
         def drop_binding():
             rid, _ = self.binding()
-            self.server.relations[rid] = None
+            self.server.talk.relations[rid] = None
 
         def empty_ids():
             self.binding()[1].ids = self.rt.table_from({})

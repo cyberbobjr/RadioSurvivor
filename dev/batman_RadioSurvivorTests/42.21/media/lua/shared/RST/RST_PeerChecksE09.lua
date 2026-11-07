@@ -89,7 +89,7 @@ function E9.intercept(t)
         local answers = original()
         local out = {}
         for k, v in pairs(answers or {}) do out[k] = v end
-        for _, req in ipairs(Server and Server.pending or {}) do
+        for _, req in ipairs(Server and Server.talk.pending or {}) do
             ctl.seenAll[req.id] = req
             for _, rule in ipairs(ctl.rules) do
                 if not rule.off and rule.match(req) then
@@ -349,7 +349,7 @@ local function matches(r, kind, ficheId, character, text)
 end
 
 function E9.pendingOf(Server, kind, ficheId, character, text)
-    for _, r in ipairs(Server.pending) do
+    for _, r in ipairs(Server.talk.pending) do
         if matches(r, kind, ficheId, character, text) then return r end
     end
     return nil
@@ -395,7 +395,7 @@ local function talkNow(t, who, c, text, after, attempt)
                         .. "), said again")
                     return E9.talkBy(t2, who, c, text, after, attempt + 1)
                 end
-                local last = c.Server.refusals[#c.Server.refusals]
+                local last = c.Server.talk.refusals[#c.Server.talk.refusals]
                 t2:ok(false, "no npc_talk request of " .. who.label .. " for '" .. text .. "'"
                     .. (last and (" (last refusal: " .. tostring(last.reason) .. ")") or "") .. ": " .. E9.why(who, c))
             end, "npc_talk request of " .. who.label .. " never awaited")
@@ -421,7 +421,7 @@ function E9.talkBy(t, who, c, text, after, attempt)
 end
 
 function E9.settled(c, req)
-    for _, r in ipairs(c.Server.pending) do if r.id == req.id then return false end end
+    for _, r in ipairs(c.Server.talk.pending) do if r.id == req.id then return false end end
     return true
 end
 

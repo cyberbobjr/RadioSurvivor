@@ -51,6 +51,8 @@ end
 
 -- Lieu sur une ligne : contrôles et balises retirés, espaces réduits, coupé à placeChars ; nil si vide ou s'il
 -- contient trois chiffres de suite (coordonnée exacte refusée : utiliser Obs.area).
+Obs.MAX_CHAIN = C.Observations.maxChain -- E18-T17: read by the conversations of Living Knox
+
 function Obs.cleanPlace(text)
     if type(text) ~= 'string' then return nil end
     text = string.gsub(text, '[%c<>%[%]]', ' ')

@@ -242,7 +242,7 @@ Rel = require "RadioSurvivor/RS_Relations"
 F.installHook()
 
 -- Notebook server reduced (RS_Carnet_Server.lua: hello, select, talk with context, pending, reply, incidents).
-Server = { store = S, bound = {}, selected = {}, objects = {}, pending = {}, refusals = {}, collectives = {},
+Server = { talk = { initiatives = { bridge = { down = false, probeAt = 0 } }, pending = {}, refusals = {}, collectives = {}, relations = {}, times = {}, lastTalk = {}, characterName = function(key) return S.data.characters[key] and S.data.characters[key].name end }, store = S, bound = {}, selected = {}, objects = {}, pending = {}, refusals = {}, collectives = {},
     relations = {}, times = {}, initiatives = { bridge = { down = false, probeAt = 0 } } }
 RS_CarnetServer = Server
 local function players()
@@ -265,32 +265,38 @@ function Server.ensure(id)
     end
     return npc
 end
-function Server.collectiveBinding(npc)
+function Server.talk.collectiveBinding(npc)
     local gid = groupOf(npc.incarnation)
     local c = gid and LK.API.composition(gid)
     if not c then return nil end
     local leaderName = c.leaderNpc and ("Npc " .. c.leaderNpc) or ""
     return { ref = gid, key = c.key, leader = c.leaderNpc == npc.incarnation, leaderName = leaderName }
 end
-function Server.collectiveCheck(binding, npc)
+function Server.talk.collectiveCheck(binding, npc)
     if type(binding) ~= "table" then return false, "collective intention without a group binding" end
     if DEFECT.noCollectiveCheck then return true end
-    local now = Server.collectiveBinding(npc)
+    local now = Server.talk.collectiveBinding(npc)
     if not now or now.ref ~= binding.ref then return false, "NPC no longer in the group" end
     if not now.leader then return false, "NPC no longer the group leader" end
     if now.key ~= binding.key then return false, "group composition changed" end
     return true
 end
-function Server.enqueue(npc, kind, character, text, language, context, offers)
+function Server.talk.enqueue(npc, kind, character, text, language, context, offers)
     npc.order = npc.order + 1
     local req = { version = 2, kind = kind, id = "run-" .. npc.order .. "-" .. npc.id, world = "w", run = "run",
         npc = npc.id, character = character, order = npc.order, revision = npc.revision, text = text,
         sent = getTimestampMs(), context = context, offers = offers or {} }
-    Server.pending[#Server.pending + 1] = req
+    Server.talk.pending[#Server.talk.pending + 1] = req
     return req
 end
-function Server.syncTransport() return true end
-Server.incidents = require "RadioSurvivor/RS_Incidents"
+function Server.talk.sync() return true end
+Server.talk.ensure = Server.ensure
+-- Base of LK_Talk read by the real LK_Incidents (E18-T17): provider and names of the double.
+local TalkBase = require "LivingKnox/LK_TalkHost"
+TalkBase.host = { provider = P }
+TalkBase.characterName = Server.talk.characterName
+TalkBase.oneLine = function(text) return tostring(text or "") end
+Server.talk.incidents = require "LivingKnox/LK_Incidents"
 local function contactOf(cid, npc)
     local record = S.data.characters[cid]
     record.contacts[npc.id] = record.contacts[npc.id] or { history = {}, exchanges = 0 }
@@ -342,7 +348,7 @@ function Server.command(module, command, player, args)
         local stage = (contact.exchanges or 0) >= C.ACQUAINT_EXCHANGES and "acquainted" or "stranger"
         local relation, relBinding = Rel.offer(npc, cid)
         local context = { relation = relation, stage = stage }
-        local group = Server.collectiveBinding(npc)
+        local group = Server.talk.collectiveBinding(npc)
         local negotiation, signer = nil, nil
         if group and stage == "acquainted" then
             context.collective = group.leader and { speaker = "leader" }
@@ -361,12 +367,12 @@ function Server.command(module, command, player, args)
                 end
             end
         end
-        local req = Server.enqueue(npc, "npc_talk", cid, args.text, "EN", context, {})
+        local req = Server.talk.enqueue(npc, "npc_talk", cid, args.text, "EN", context, {})
         if group and negotiation then
-            Server.collectives[req.id] = { ref = group.ref, key = group.key, team = negotiation.team,
+            Server.talk.collectives[req.id] = { ref = group.ref, key = group.key, team = negotiation.team,
                 revision = negotiation.revision, signer = signer }
         end
-        if relBinding then Server.relations[req.id] = relBinding end
+        if relBinding then Server.talk.relations[req.id] = relBinding end
         send(player, "queued", { id = req.id })
     end
 end
@@ -381,21 +387,21 @@ local function reply(req, result)
     if result.revision ~= req.revision or result.order ~= req.order then return false, "field differs" end
     if req.kind == "npc_incident" then
         if DEFECT.lateIncidentAccepted then
-            local b = Server.incidents.bindings[req.id]
+            local b = Server.talk.incidents.bindings[req.id]
             local inc = b and F.incident(b.incident)
             if inc then b.revision = inc.revision end
         end
-        return Server.incidents.reply(Server, req, result, npc)
+        return Server.talk.incidents.reply(Server.talk, req, result, npc)
     end
     if req.kind ~= "npc_talk" then return true end
     if result.intent == "change_relation" and not DEFECT.relationIgnored then
-        Rel.apply(npc, req.character, Server.relations[req.id], result.dir, result.fact)
+        Rel.apply(npc, req.character, Server.talk.relations[req.id], result.dir, result.fact)
     end
     if result.intent == "negotiate" then
         local neg = req.context.negotiation
-        local binding = Server.collectives[req.id]
+        local binding = Server.talk.collectives[req.id]
         local ok = type(neg) == "table" and neg.terms[result.offer] ~= nil
-        if ok then ok = Server.collectiveCheck(binding, npc) end
+        if ok then ok = Server.talk.collectiveCheck(binding, npc) end
         if ok then
             local expect = { team = binding.team, revision = binding.revision }
             if DEFECT.freshRevision then
@@ -415,11 +421,11 @@ end
 local nextIncident = 0
 Events.OnTickEvenPaused.Add(function()
     scan()
-    if DEFECT.bridgeAlwaysUp then Server.initiatives.bridge.down = false end
+    if DEFECT.bridgeAlwaysUp then Server.talk.initiatives.bridge.down = false end
     local T = require "RadioSurvivor/RS_BridgeLanes"
     local responses = T.readResponses() or {}
     local kept, used = {}, {}
-    for _, req in ipairs(Server.pending) do
+    for _, req in ipairs(Server.talk.pending) do
         local result = nil
         if not used[req.npc] then
             used[req.npc] = true   -- one request per fiche and pass, the oldest first (RS_Carnet_Server poll)
@@ -428,20 +434,20 @@ Events.OnTickEvenPaused.Add(function()
         if result then
             local ok, why = reply(req, result)
             if not ok then
-                Server.refusals[#Server.refusals + 1] = { id = req.id, kind = req.kind, reason = tostring(why),
+                Server.talk.refusals[#Server.talk.refusals + 1] = { id = req.id, kind = req.kind, reason = tostring(why),
                     at = getTimestampMs() }
                 local p = playerOf(req.character)
                 if p then send(p, "error", { reason = "NoAnswer" }) end
             end
-            Server.collectives[req.id], Server.relations[req.id] = nil, nil
+            Server.talk.collectives[req.id], Server.talk.relations[req.id] = nil, nil
         else
             kept[#kept + 1] = req
         end
     end
-    Server.pending = kept
+    Server.talk.pending = kept
     local now = getTimestampMs()
     if now >= nextIncident then
-        Server.incidents.tick(Server, now)
+        Server.talk.incidents.tick(Server.talk, now)
         nextIncident = now + 1000
     end
 end)
@@ -732,7 +738,7 @@ class InterceptTests(Bench):
             local E9 = RST.PeerChecksE09
             local T = require "RadioSurvivor/RS_BridgeLanes"
             BRIDGE = { ["r1"] = { id = "r1", text = "bridge" }, ["r2"] = { id = "r2", text = "bridge" } }
-            Server.pending = { { id = "r1", npc = "n1", kind = "npc_talk", world = "w", run = "x", order = 1,
+            Server.talk.pending = { { id = "r1", npc = "n1", kind = "npc_talk", world = "w", run = "x", order = 1,
                 revision = 1 }, { id = "r2", npc = "n2", kind = "npc_talk" } }
             local deferred = {}
             local t = { defer = function(_, f) deferred[#deferred + 1] = f end }

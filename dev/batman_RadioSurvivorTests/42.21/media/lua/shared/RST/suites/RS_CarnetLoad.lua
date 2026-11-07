@@ -80,7 +80,7 @@ end
 
 local function enrichRequests(Server)
     local k = 0
-    for _, r in ipairs(Server.pending or {}) do if r.kind == "npc_enrich" then k = k + 1 end end
+    for _, r in ipairs(Server.talk.pending or {}) do if r.kind == "npc_enrich" then k = k + 1 end end
     return k
 end
 
@@ -102,7 +102,7 @@ RST.suite("rs.carnet.load", { mods = { "rs", "lk" },
     s.test("loaded npcs without contact get no fiche and no LLM request (E00-T04)", function(t)
         local c = notebook(t)
         local API = testApi(t)
-        local fiches, enrich, times = count(c.S.data.npcs), enrichRequests(c.Server), #(c.Server.enrichTimes or {})
+        local fiches, enrich, times = count(c.S.data.npcs), enrichRequests(c.Server), #(c.Server.talk.enrichTimes or {})
         local ids = spawnMany(t, API, c.p, NPC_COUNT)
         if #ids < NPC_MIN then t:skip("only " .. #ids .. " test npc(s) spawned near the player (" .. NPC_MIN .. " needed)") end
         t:note(#ids .. " test npc(s) spawned without contact")
@@ -118,7 +118,7 @@ RST.suite("rs.carnet.load", { mods = { "rs", "lk" },
                 end
                 t3:eq(fiches, count(c.S.data.npcs), "number of notebook fiches")
                 t3:eq(enrich, enrichRequests(c.Server), "enrichment requests queued")
-                t3:eq(times, #(c.Server.enrichTimes or {}), "enrichment requests sent this hour")
+                t3:eq(times, #(c.Server.talk.enrichTimes or {}), "enrichment requests sent this hour")
             end)
         end, "the notebook provider never saw every test npc")
     end)
@@ -251,8 +251,8 @@ RST.suite("rs.carnet.load", { mods = { "rs", "lk" },
                     record.contacts[fk.id] = nil
                     if c.Server.selected[cid] == fk.id then c.Server.selected[cid] = nil end
                     local pending = {}
-                    for _, r in ipairs(c.Server.pending) do if r.npc ~= fk.id then pending[#pending + 1] = r end end
-                    c.Server.pending = pending
+                    for _, r in ipairs(c.Server.talk.pending) do if r.npc ~= fk.id then pending[#pending + 1] = r end end
+                    c.Server.talk.pending = pending
                     c.S.dirty = true
                 end, "contact, selection and requests of the kept fiche removed")
                 -- Contact by the real command (select), as the notebook client sends it.
@@ -262,8 +262,8 @@ RST.suite("rs.carnet.load", { mods = { "rs", "lk" },
                 -- so that only the contact protects it.
                 fk.enrichState, fk.enrichRetryAt = "deferred", getTimestampMs() + 3600000
                 local pending = {}
-                for _, r in ipairs(c.Server.pending) do if r.npc ~= fk.id then pending[#pending + 1] = r end end
-                c.Server.pending = pending
+                for _, r in ipairs(c.Server.talk.pending) do if r.npc ~= fk.id then pending[#pending + 1] = r end end
+                c.Server.talk.pending = pending
                 remove(kept)
                 remove(dropped)
                 local old = getTimestampMs() - c.C.NPC_UNSEEN_MS - 1000

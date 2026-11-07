@@ -188,15 +188,15 @@ class ObservationTests(unittest.TestCase):
         self.sim.state().characters[alice].name = 'Alice Doe'
         self.sim.select('alice')
         self.sim.say('alice', '/say Bonjour')
-        first = self.sim.server.g.RS_CarnetServer.pending[1]
+        first = self.sim.server.g.RS_CarnetServer.talk.pending[1]
         self.assertIsNone(first.observations, 'empty field sent')
         key, _ = self.record(b, fact='player_return', subject=alice, day=4, place='Gas station')
         self.assertEqual(self.obs.transmit(b, a, key)[1], 'ok')
         self.record(a, fact='helicopter', subject='sky', day=5, place=self.obs.area(10234, 9876))
-        self.sim.server.g.RS_CarnetServer.pending = self.sim.server.rt.table()
+        self.sim.server.g.RS_CarnetServer.talk.pending = self.sim.server.rt.table()
         self.sim.clock.offset += 11000  # after the talk cooldown (server and client)
         self.sim.say('alice', '/say Du nouveau ?')
-        req = self.sim.server.g.RS_CarnetServer.pending[1]
+        req = self.sim.server.g.RS_CarnetServer.talk.pending[1]
         self.assertEqual(req.kind, 'npc_talk')
         field = [convert(o) for o in lua_list(req.observations)]
         self.assertEqual(field, [
@@ -226,10 +226,10 @@ class ObservationTests(unittest.TestCase):
         # Enrichissement : jamais d'observations.
         npc = self.sim.state().npcs[a]
         npc.enrichState = 'needed'
-        self.sim.server.g.RS_CarnetServer.pending = self.sim.server.rt.table()
+        self.sim.server.g.RS_CarnetServer.talk.pending = self.sim.server.rt.table()
         self.sim.clock.offset += 5001
         self.sim.tick()
-        enrich = [r for r in self.sim.server.g.RS_CarnetServer.pending.values() if r.kind == 'npc_enrich']
+        enrich = [r for r in self.sim.server.g.RS_CarnetServer.talk.pending.values() if r.kind == 'npc_enrich']
         self.assertTrue(enrich)
         self.assertIsNone(enrich[0].observations)
 
@@ -512,7 +512,7 @@ class TriggerTests(unittest.TestCase):
     def test_engine_facts_before_the_namespace_and_listener_errors(self):
         """Living Knox loaded after the notebook: subscribed at the next poll; a broken fact never stops the
         engine (pcall of LK_Core.publish)."""
-        sim = Simulation(self.path / 'late')
+        sim = Simulation(self.path / 'late', provider=False)
         sim.server.rt.execute(GAME_CLOCK)
         trig = sim.server.rt.eval("require('RadioSurvivor/RS_ObservationTriggers')")
         self.assertFalse(trig.linked)

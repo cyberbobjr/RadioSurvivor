@@ -90,14 +90,14 @@ end
 -- Why a request left the queue without a line in the contact history: the acknowledgement of the server (S.data.acks,
 -- kept until the bridge confirms it) says whether the answer was refused or applied but not heard.
 local function lostAnswer(c, reqId)
-    for _, ack in ipairs(c.Server.store.data.acks or {}) do
+    for _, ack in ipairs(c.Server.talk.data.acks or {}) do
         if ack.request == reqId then
             if ack.status ~= "accepted" then
                 -- E17-T15: the cause kept by the server (bridge error timeout, http_503..., no reply).
-                for _, r in ipairs(c.Server.refusals or {}) do
+                for _, r in ipairs(c.Server.talk.refusals or {}) do
                     if r.id == reqId then return "answer refused by the server: " .. tostring(r.reason) end
                 end
-                return "answer refused by the server (see the '[RS_Carnet] npc_talk " .. tostring(reqId)
+                return "answer refused by the server (see the '[LK_Talk] npc_talk " .. tostring(reqId)
                     .. " refused' line of the log)"
             end
             local body = c.Server.objects[c.fiche.id]
@@ -106,7 +106,7 @@ local function lostAnswer(c, reqId)
             return "answer applied by the server but not heard by the player (RS_NPCProvider.hears; " .. where .. ")"
         end
     end
-    return "answer refused or not heard (acknowledgement already confirmed by the bridge; see the [RS_Carnet] lines)"
+    return "answer refused or not heard (acknowledgement already confirmed by the bridge; see the [LK_Talk] lines)"
 end
 
 -- npc next to the player, leader of a group, fiche selected by the notebook; after(t, c).
@@ -159,7 +159,7 @@ local function say(t, c, text, onRequest, onReply)
             for _, h in ipairs(c.contact.history or {}) do
                 if h.id == seen.id then return { text = h.text } end
             end
-            for _, r in ipairs(c.Server.pending) do if r.id == seen.id then return nil end end
+            for _, r in ipairs(c.Server.talk.pending) do if r.id == seen.id then return nil end end
             return { refused = true, why = lostAnswer(c, seen.id) }
         end, c.C.REQUEST_TIMEOUT_MS + 10000, function(t3, result)
             t3:ok(not result.refused, result.why)

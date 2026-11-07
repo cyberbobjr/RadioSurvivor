@@ -206,12 +206,12 @@ class EnvSuiteTests(SuiteHarness):
         self.assertEqual(rep.total, 7)
 
     def test_missing_global_is_an_explicit_fail(self):
-        self.lua('detectBadWords = nil')
+        self.lua('getOnlinePlayers = nil')
         rep = self.run_filter('"rs.env"')
         res = self.results()
         self.assertEqual(res['Java globals of the server files'],
-                         ('FAIL', 'missing Java global detectBadWords '
-                                  f'(used by {env_ref("detectBadWords", "RS_Carnet_Server.lua")})'))
+                         ('FAIL', 'missing Java global getOnlinePlayers '
+                                  f'(used by {env_ref("getOnlinePlayers", "RadioSurvivor_Server.lua")})'))
         self.assertEqual((rep.fail, rep['pass']), (1, 6))
 
     def test_several_missing_globals_listed_together(self):
@@ -592,7 +592,7 @@ class SourceTests(unittest.TestCase):
         self.assertGreater(len(refs), 35)
         for name, rel, line in refs:
             # E18-T05: modules of the core mod (missions) are cited under their own media/lua.
-            path = MOD_LUA / rel if (MOD_LUA / rel).is_file() else CORE_LUA / rel
+            path = next((r / rel for r in (MOD_LUA, CORE_LUA, LK_LUA) if (r / rel).is_file()), CORE_LUA / rel)
             self.assertTrue(path.is_file(), rel)
             self.assertNotEqual(path.name, 'RS_Bandits.lua')
             text = path.read_text(encoding='utf-8').splitlines()[int(line) - 1]
@@ -761,12 +761,12 @@ class SpotsTests(SuiteHarness):
             local t = { defer = function(_, f) defers[#defers + 1] = f end }
             local saves = 0
             local store = { save = function() saves = saves + 1 return true end }
-            local c = { Server = { store = store, pending = {
+            local c = { Server = { store = store, talk = { pending = {} }, pending = {
                 { id = "old", npc = "n1", kind = "npc_talk", text = "help" } } }, fiche = { id = "n1" } }
             local seen = R.watchRequest(t, c, "help")
-            c.Server.pending[#c.Server.pending + 1] = { id = "new", npc = "n1", kind = "npc_talk", text = "help" }
+            c.Server.talk.pending[#c.Server.talk.pending + 1] = { id = "new", npc = "n1", kind = "npc_talk", text = "help" }
             store.save()
-            c.Server.pending = {}
+            c.Server.talk.pending = {}
             for i = #defers, 1, -1 do defers[i]() end
             return { seen.req and seen.req.id or false, saves, #ticks, store.save ~= nil }
         """)

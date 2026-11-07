@@ -1,4 +1,4 @@
--- Radio Survivor : conversation entre deux PNJ proches (E08-T04, ADR B11 « Conversations et transmissions entre PNJ »).
+-- Living Knox : conversation entre deux PNJ proches (E08-T04, ADR B11 « Conversations et transmissions entre PNJ »).
 -- Autorité seulement (serveur MP ou solo). Fiche : docs/annexes/conception/conversations.md ; contrat :
 -- docs/specifications-techniques/protocole-carnet-v2.md « Conversation entre deux PNJ (E08-T04) ».
 --
@@ -41,15 +41,13 @@
 -- la conversation. Chaque ligne garde les PNJ qui l'ont entendue : un locuteur ne reçoit que celles-là.
 if isClient() then return end
 
-local C = require 'RadioSurvivor/RS_Config'
-local P = require 'RadioSurvivor/RS_NPCProvider'
-local S = require 'RadioSurvivor/RS_State'
-local Obs = require 'RadioSurvivor/RS_Observations'
-local I = require 'RadioSurvivor/RS_Initiatives'
-local T = require 'RadioSurvivor/RS_BridgeLanes'
+local Talk = require 'LivingKnox/LK_TalkHost'
+local C = require 'RadioSurvivorCore/RC_SpeechConfig'
+local I = require 'LivingKnox/LK_Initiatives'
+local T = require 'RadioSurvivorCore/RC_Transport'
 local Codec = require 'RadioSurvivorCore/RC_Codec'
 local TextCut = require 'RadioSurvivorCore/RC_TextCut'
-local Comfort = require 'RadioSurvivor/RS_Comfort'
+local P, Obs = Talk.provider, Talk.observations
 
 local V = {}
 V.KIND = 'npc_converse'
@@ -77,11 +75,7 @@ local function count(name) V.stats[name] = (V.stats[name] or 0) + 1 end
 
 -- État privé : { pairs = { ['fiche-a|fiche-b'] = heure de jeu de la dernière conversation } }.
 local function store()
-    if not S.data or S.blocked then return nil end
-    local st = S.data.conversations
-    if type(st) ~= 'table' then st = {}; S.data.conversations = st end
-    if type(st.pairs) ~= 'table' then st.pairs = {} end
-    return st
+    return Talk.data and Talk.data.conversations or nil
 end
 
 local function pairKey(a, b)
@@ -118,21 +112,9 @@ local function serverCalls(server, now)
     return n
 end
 
--- Groupes déjà contactés : groupe de chaque fiche présente dans les contacts d'un personnage.
-local function contactedGroups()
-    local out = {}
-    for _, record in pairs(S.data.characters or {}) do
-        for id in pairs(type(record.contacts) == 'table' and record.contacts or {}) do
-            local npc = S.data.npcs[id]
-            if npc and type(npc.clan) == 'string' and npc.clan ~= '' then out[npc.clan] = true end
-        end
-    end
-    return out
-end
-
-local function ficheCount()
+local function ficheCount(server)
     local n = 0
-    for _ in pairs(S.data.npcs) do n = n + 1 end
+    for _ in pairs(server.host.fiches()) do n = n + 1 end
     return n
 end
 
@@ -146,7 +128,7 @@ local function teachable(tellerId, listenerId)
     local items = Obs.list(tellerId)
     for i = #items, 1, -1 do
         local item = items[i]
-        local ok = not known[item.key] and #item.chain < C.Observations.maxChain
+        local ok = not known[item.key] and #item.chain < Obs.MAX_CHAIN
         if ok and listenerId then
             for _, step in ipairs(item.chain) do
                 if step == 'heard_from:' .. listenerId then ok = false end
@@ -182,7 +164,7 @@ local function partnerOf(server, npc, object, bodies, groups, st)
             elseif not fiche and not P.engaged(pid) then
                 local record = P.npc(pid)
                 local group = record and tostring(record.group or '') or ''
-                if group ~= '' and groups[group] and ficheCount() < V.CFG.MAX_FICHES then
+                if group ~= '' and groups[group] and ficheCount(server) < V.CFG.MAX_FICHES then
                     local item = teachable(npc.id, nil)
                     if item then return {pid = pid, body = body, item = item} end
                 end
@@ -213,7 +195,7 @@ end
 
 -- Les deux participants peuvent encore se parler (corps chargés, vivants, proches, non occupés).
 local function together(conv, bodies)
-    local a, b = S.data.npcs[conv.a], S.data.npcs[conv.b]
+    local a, b = Talk.fiche(conv.a), Talk.fiche(conv.b)
     local ba, bb = bodies[conv.aInc], bodies[conv.bInc]
     if not (a and a.alive and b and b.alive and ba and bb) then return false, 'participant gone' end
     if not P.near(ba, bb, V.CFG.RANGE) then return false, 'out of range' end
@@ -276,7 +258,7 @@ local function llmAllowed(server, now)
 end
 
 local function llmTurn(server, conv, speakerId, partnerId, heard, now)
-    local npc, partner = S.data.npcs[speakerId], S.data.npcs[partnerId]
+    local npc, partner = server.fiche(speakerId), server.fiche(partnerId)
     local event = I.card(speakerId, {fact = conv.item.fact, subject = conv.item.subject, day = conv.item.day,
         place = conv.item.place})
     if not event then return false end
@@ -292,7 +274,7 @@ local function llmTurn(server, conv, speakerId, partnerId, heard, now)
     req.observations = Obs.field(npc.id)
     V.times[#V.times + 1] = now
     server.times[#server.times + 1] = now
-    server.syncTransport()
+    server.sync()
     conv.waiting, conv.waitingRev, conv.mode = req.id, conv.rev, 'llm'
     count('llm')
     print('[RS_Conversations] line ' .. (#conv.lines + 1) .. ' of ' .. conv.id .. ': request ' .. req.id)
@@ -341,7 +323,7 @@ local function open(server, st, npc, found, hour, now, bodies)
             .. ' (group already contacted)')
     end
     st.pairs[pairKey(npc.id, partner.id)] = hour
-    S.dirty = true
+    Talk.dirty = true
     seq = seq + 1
     local conv = {id = 'cv-' .. seq .. '-' .. npc.id, a = npc.id, aInc = npc.incarnation, b = partner.id,
         bInc = partner.incarnation, subject = found.item.key, item = found.item, turn = 0, lines = {},
@@ -377,12 +359,13 @@ function V.tick(server, now)
     if now < nextPass then return nil end
     nextPass = now + V.CFG.EVERY_MS
     prune(st, hour)
-    local groups = contactedGroups()
+    local groups = server.host.contactedGroups()
     local fiches = {}
-    for id in pairs(server.objects) do fiches[#fiches + 1] = id end
+    local objects = server.objects()
+    for id in pairs(objects) do fiches[#fiches + 1] = id end
     table.sort(fiches)
     for _, id in ipairs(fiches) do
-        local npc, object = S.data.npcs[id], server.objects[id]
+        local npc, object = server.fiche(id), objects[id]
         if object and not object:isDead() and free(server, npc) and #Obs.list(id) > 0 then
             local found = partnerOf(server, npc, object, bodies, groups, st)
             local kind, conv = nil, nil
@@ -424,16 +407,10 @@ function V.reply(server, req, result, npc)
         return false, 'conversation line stale: ' .. tostring(reason)
     end
     conv.comforted = conv.comforted or {}
+    server.remember(npc, req.id, result.text, out.heard or {})
     for _, p in ipairs(out.heard or {}) do
-        local cid = server.bound[p]
-        local record = cid and S.data.characters[cid]
-        local known = record and record.contacts[npc.id]
-        if known then
-            known.history[#known.history + 1] = {id = req.id, author = npc.name, text = result.text}
-            while #known.history > C.MAX_HISTORY do table.remove(known.history, 1) end
-        end
         -- E05-T15 : entendre deux PNJ discuter apaise un peu l'ennui, une fois par conversation et par personnage.
-        Comfort.overheard(p, cid, conv.comforted)
+        server.host.overheard(p, server.bound()[p], conv.comforted)
     end
     count('said')
     addLine(conv, npc.name, result.text, {[conv.a] = true, [conv.b] = true})
@@ -456,7 +433,7 @@ end
 -- E08-T05 : contexte d'une intervention (champ context.conversation de la demande npc_talk) : l'interlocuteur et les
 -- répliques que le PNJ interpellé a entendues dans cette conversation (les dernières), jamais d'autre échange.
 function V.talkContext(conv, ficheId)
-    local partner = S.data.npcs[conv.a == ficheId and conv.b or conv.a]
+    local partner = Talk.fiche(conv.a == ficheId and conv.b or conv.a)
     local name = partner and partner.name or 'someone'
     local lines = linesHeardBy(conv, ficheId)
     while #lines > V.CFG.MAX_TALK_LINES do table.remove(lines, 1) end
@@ -514,5 +491,7 @@ function V.reset()
     V.active, V.times, V.interventions, nextPass, seq = {}, {}, {}, 0, 0
     V.stats = {opened = 0, silent = 0, llm = 0, said = 0, learned = 0, ended = 0, stale = 0, joined = 0}
 end
+
+Talk.conversations = V
 
 return V

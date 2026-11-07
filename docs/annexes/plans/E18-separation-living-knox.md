@@ -2,7 +2,7 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 5 / 28 tâche(s) terminée(s).
+**Avancement.** en cours — 6 / 28 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
@@ -22,7 +22,7 @@
 | ☑ | E18-T14 | Outillage des tests pour trois montages | `testé hors jeu` | hors jeu | E18-T07 |
 | ☐ | E18-T15 | Validation des trois montages | `à faire` | MP | E18-T05, E18-T06, E18-T08, E18-T10, E18-T12, E18-T13, E18-T14, E18-T18, E18-T19 |
 | ☐ | E18-T16 | Documentation et page Workshop des trois mods | `à faire` | hors jeu | E18-T15 |
-| ☐ | E18-T17 | File des demandes de parole des PNJ portée par Living Knox | `en cours` | MP | E18-T11, E18-T20, E18-T21, E18-T22 |
+| ☑ | E18-T17 | File des demandes de parole des PNJ portée par Living Knox | `testé MP` | MP | E18-T11, E18-T20, E18-T21, E18-T22 |
 | ☐ | E18-T18 | Parole de proximité avec Living Knox seul | `à faire` | MP | E18-T17 |
 | ☐ | E18-T19 | Historique des voix radio dans le commun | `testé hors jeu` | MP | E18-T11 |
 | ☐ | E18-T20 | Accords dans Living Knox, identifiants d'équipe dans le commun | `testé hors jeu` | MP | E18-T09, E18-T24 |
@@ -322,16 +322,16 @@ Deuxième article Workshop, dépôt séparé, nouvelles règles de jeu des missi
   - Reste : —
 
 
-- [ ] **E18-T17** — File des demandes de parole des PNJ portée par Living Knox
-  - État : `en cours`
+- [x] **E18-T17** — File des demandes de parole des PNJ portée par Living Knox
+  - État : `testé MP`
   - Cible : `MP`
   - Dépend de : E18-T11, E18-T20, E18-T21, E18-T22
   - Fichiers : `LK_Talk` (Living Knox : file, voie `npc` de `RC_Transport`, numéros d'ordre et révisions par PNJ, délais, refus) ; `RS_Carnet_Server.lua` (`enqueue`, `syncTransport`, `poll`, `reply`), `RS_Conversations`, `RS_Initiatives`, `RS_BridgeLanes` ; `docs/specifications-techniques/protocole-carnet-v2.md`
   - Faire : Living Knox émet `npc_talk`, `npc_converse`, `npc_initiative` et `npc_enrich` par le lien commun ; RadioSurvivor ajoute au contexte ses éléments (relation, réputation, accords, missions du carnet) et traite ses actions de la réponse par des crochets de l'API ; demandes en attente d'une partie existante reprises.
   - Accepté si : ensemble : mêmes demandes, mêmes offres, acceptations et relations qu'aujourd'hui (suites rs.npctalk, rs.conversations, rs.initiatives).
   - Tests : `test_protocol.py`, `test_carnet.py`, `test_conversations.py`, `test_initiatives.py`, `test_npc_reply.py` ; campagne MP.
-  - Preuve : —
-  - Reste : —
+  - Preuve : Living Knox : `LK_Talk` (file, voies `npc` 20 et `acks` 30, ordre et révisions, délais, refus, acquittements, liaisons de groupe, réactions, enrichissement, état privé `Zomboid/Lua/batman_LivingKnox/talk-*.txt`), `LK_TalkHost` (liste documentée des crochets de l'hôte), `LK_Conversations`, `LK_Initiatives`, `LK_Incidents` déplacés par `git mv` ; commun : `RC_SpeechConfig` ; carnet : table `HOST` (`talkContext`, `talkQueued`, `talkActions`, `heard`, `remember`, `contactedGroups`) et `attachTalk`, sans `require` de RadioSurvivor vers Living Knox. Reprise des demandes d'une partie existante écartée : consigne du 2026-11-07 (aucune reprise). `tests/test_lk_talk.py` 7 tests OK ; `run_all.py --keep-going` : 162 réussis, 0 échec ; luacheck `Contents` 8, `dev` 0. Campagne complète `runs/20261107-030546-mp-2f49ffa1d5f4` : `RST-RESULT ok=false total=377 pass=358 fail=1 error=2 skip=16` (code 1) ; rs.npctalk 4, rs.conversations 4, rs.groupradio 5, rs.relation 3, rs.factions.accord 3, rs.factions.incident 3 verts ; 2 erreurs rs.initiatives dans le diagnostic de la suite (`I.listeners(Server, ...)`) ; 1 échec lk.windowkill (`zombie not on the floor inside` après 20 s). Rejeu MP après correction de la suite : `--server-suite rs.initiatives,rs.conversations,lk.windowkill` : code 0, `OK - 9 test(s): 9 pass, 0 fail, 0 error, 0 skip, 0 empty`, `runs/20261107-034634-mp-5a91c6d07e28`.
+  - Reste : les 377 tests n'ont pas été rejoués d'un seul tenant après la dernière correction de suite (seules les suites touchées l'ont été) ; lk.windowkill a échoué une fois et réussi une fois : aléa non expliqué. Fiches, observations et option `InitiativeFrequency` restent chez RadioSurvivor (`E18-T27`) ; Living Knox seul n'a pas encore d'hôte, donc ni parole ni initiative seul (`E18-T18`).
 
 - [ ] **E18-T18** — Parole de proximité avec Living Knox seul
   - État : `à faire`

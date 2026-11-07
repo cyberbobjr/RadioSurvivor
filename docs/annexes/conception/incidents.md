@@ -1,7 +1,7 @@
 # Défense ciblée et décision sur la trêve (E09-T06)
 
 Brouillon du 2026-10-13. Code : `server/LivingKnox/LK_Agreements.lua` (Living Knox depuis E18-T20 ; identifiants d'équipe et mandats : `server/RadioSurvivorCore/RC_Teams.lua` du mod commun ; avant : `LivingKnox.Agreements.lua` de RadioSurvivor) (fin du fichier : registre des incidents,
-crochets, `decideIncident`), `server/RadioSurvivor/RS_Incidents.lua` (demande au modèle et réponse),
+crochets, `decideIncident`), `server/LivingKnox/LK_Incidents.lua` (demande au modèle et réponse),
 `server/RS_Carnet_Server.lua` (passage du `tick`, aiguillage de `reply`, annonce), `server/LivingKnox/LK_Bodies.lua`
 (fait `memberHit`), `client/RadioSurvivor/RS_Client.lua` (annonce), `bridge/npc_protocol.py` (genre `npc_incident`).
 Accords : [accords.md](accords.md). Choix de cible : [cibles.md](cibles.md). ADR B08 et B10 de
@@ -38,14 +38,14 @@ par le serveur et appliquée une seule fois.
 4. **Riposte** : une attaque d'un membre n'écrit aucun fait ici ; le coup d'un joueur couvert sur un membre qui le
    vise à cet instant (`Decisions.aims` : engagement de combat ou comportement `fight` / `warn`) n'ouvre rien
    (journal : raison `riposte`) ; un auteur déjà inscrit voit ses coups suivants ajoutés au même incident.
-5. **Demande au modèle** (`RS_Incidents.tick`, une par passage, dans les quotas du pont, pas quand le pont est
+5. **Demande au modèle** (`LK_Incidents.tick`, une par passage, dans les quotas du pont, pas quand le pont est
    considéré arrêté) : quand aucun fait n'est arrivé depuis `SETTLE_MS` (5 s), requête `npc_incident` dans la file de
    la fiche du **chef** (`LivingKnox.API.composition(groupe).leaderNpc`), personnage `group`, langue
    `NARRATIVE_LANGUAGE`, texte = faits établis composés en anglais par le serveur (noms des personnages du carnet et
    des PNJ, nombres de coups, tirs, morts), `context.incident = { agreement, state, teamName, authors (noms), victims
    (noms), facts, defence = "authors_only", earlier = décisions précédentes sur cet accord }`, `context.choices =
    { maintain, repair = { categories, quantity }, break }`. Aucune clé du carnet ni identifiant d'équipe n'est envoyé ;
-   la liaison (incident, révision de l'incident, révision de l'accord) reste en mémoire (`RS_Incidents.bindings`).
+   la liaison (incident, révision de l'incident, révision de l'accord) reste en mémoire (`LK_Incidents.bindings`).
 6. **Décision** (`npc_incident`) : `intent = maintain | repair | break` (ou `none`, aucune décision), `offer` = la
    catégorie de réparation pour `repair`, vide sinon. Revalidée par le serveur : chef toujours le même PNJ, même
    révision de l'incident (aucun fait nouveau), même révision de l'accord, catégorie parmi celles du stock

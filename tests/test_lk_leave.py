@@ -71,14 +71,14 @@ class LeaveGroupTests(unittest.TestCase):
         sim.command('alice', 'select', incarnation=npc)
         if acquaint:
             sim.acquaint('alice')
-        self.server.lastTalk[sim.character('alice')] = None
+        self.server.talk.lastTalk[sim.character('alice')] = None
         sim.command('alice', 'talk', channel='say', text=text, language='FR')
         [req] = talk_requests(self.g)
         rid = req.id
-        bound = convert(self.server.collectives[rid]) if self.server.collectives[rid] else None
+        bound = convert(self.server.talk.collectives[rid]) if self.server.talk.collectives[rid] else None
         if before_reply:
             before_reply()
-        self.assertTrue(pump(lambda: not any(r.id == rid for r in self.server.pending.values()), [sim.tick]),
+        self.assertTrue(pump(lambda: not any(r.id == rid for r in self.server.talk.pending.values()), [sim.tick]),
                         'no reply: ' + text)
         out = convert(req)
         out['bound'] = bound

@@ -1,4 +1,4 @@
--- Radio Survivor : initiative de parole d'un PNJ à proximité (E08-T03, ADR B04 « Initiative acceptée »).
+-- Living Knox : initiative de parole d'un PNJ à proximité (E08-T03, ADR B04 « Initiative acceptée »).
 -- Autorité seulement (serveur MP ou solo). Fiche : docs/annexes/conception/initiatives.md ; contrat :
 -- docs/specifications-techniques/protocole-carnet-v2.md « Initiative d'un PNJ (E08-T03) ».
 --
@@ -28,12 +28,10 @@
 -- PROBE_MS.
 if isClient() then return end
 
-local C = require 'RadioSurvivor/RS_Config'
-local P = require 'RadioSurvivor/RS_NPCProvider'
-local S = require 'RadioSurvivor/RS_State'
-local Obs = require 'RadioSurvivor/RS_Observations'
-local Radio = require 'RadioSurvivor/RadioSurvivor_Const'
-local T = require 'RadioSurvivor/RS_BridgeLanes'
+local Talk = require 'LivingKnox/LK_TalkHost'
+local C = require 'RadioSurvivorCore/RC_SpeechConfig'
+local T = require 'RadioSurvivorCore/RC_Transport'
+local P, Obs = Talk.provider, Talk.observations
 
 local I = {}
 I.KIND = 'npc_initiative'
@@ -76,12 +74,7 @@ end
 
 -- État privé : { done = { [fiche|clé] = heure de jeu }, last = { [fiche] = heure de la dernière initiative } }.
 local function store()
-    if not S.data or S.blocked then return nil end
-    local st = S.data.initiatives
-    if type(st) ~= 'table' then st = {}; S.data.initiatives = st end
-    if type(st.done) ~= 'table' then st.done = {} end
-    if type(st.last) ~= 'table' then st.last = {} end
-    return st
+    return Talk.data and Talk.data.initiatives or nil
 end
 
 -- Événements et délais périmés retirés (borne naturelle : seuls les événements de l'heure écoulée comptent).
@@ -93,7 +86,7 @@ local function prune(st, hour, rule)
     st.done = keep
     local last = {}
     for id, at in pairs(st.last) do
-        if type(at) == 'number' and S.data.npcs[id] and hour - at < rule.npcHours + 1 then last[id] = at end
+        if type(at) == 'number' and Talk.fiche(id) and hour - at < rule.npcHours + 1 then last[id] = at end
     end
     st.last = last
 end
@@ -101,7 +94,7 @@ end
 local function eventKey(npcId, obsKey) return npcId .. '|' .. obsKey end
 
 local function language()
-    local forced = Radio.callLanguage and Radio.callLanguage()
+    local forced = Talk.host.callLanguage()
     if forced then return forced end
     local current = Translator and Translator.getLanguage and Translator.getLanguage()
     return C.languageCode(current and tostring(current:name()) or 'EN')
@@ -117,7 +110,7 @@ end
 -- Joueurs liés au carnet qui entendent le corps (triés par personnage : ordre stable).
 local function listeners(server, object)
     local out = {}
-    for player, cid in pairs(server.bound) do
+    for player, cid in pairs(server.bound()) do
         if P.hears(object, player, C.HEARING_RANGE) then out[#out + 1] = {player = player, character = cid} end
     end
     table.sort(out, function(a, b) return a.character < b.character end)
@@ -172,7 +165,7 @@ end
 local function open(server, st, npc, item, heard, rule, hour, now)
     st.done[eventKey(npc.id, item.key)] = hour
     st.last[npc.id] = hour
-    S.dirty = true
+    Talk.dirty = true
     count('opened')
     local busy = #server.pending >= C.MAX_PENDING or serverCalls(server, now) >= C.MAX_PER_HOUR
         or #T.acks >= I.CFG.MAX_PENDING_ACKS
@@ -191,7 +184,7 @@ local function open(server, st, npc, item, heard, rule, hour, now)
     if I.bridge.down then I.bridge.probeAt = now + I.CFG.PROBE_MS end
     I.times[#I.times + 1] = now
     server.times[#server.times + 1] = now
-    server.syncTransport()
+    server.sync()
     count('llm')
     print('[RS_Initiatives] initiative ' .. req.id .. ' of ' .. tostring(npc.id) .. ' about ' .. item.fact
         .. ' (' .. #heard .. ' listener(s))')
@@ -210,10 +203,11 @@ function I.tick(server, now)
     if not rule or not st or not hour or not P.available() then return nil end
     prune(st, hour, rule)
     local ids = {}
-    for id in pairs(server.objects) do ids[#ids + 1] = id end
+    local objects = server.objects()
+    for id in pairs(objects) do ids[#ids + 1] = id end
     table.sort(ids)
     for _, id in ipairs(ids) do
-        local npc, object = S.data.npcs[id], server.objects[id]
+        local npc, object = server.fiche(id), objects[id]
         local last = st.last[id]
         if npc and npc.alive and object and not object:isDead() and not hasPending(server, id)
                 and not (server.conversations and server.conversations.busy(id)) -- E08-T04: not while talking
@@ -245,7 +239,7 @@ end
 function I.reply(server, req, result, npc)
     if result.intent ~= 'none' or result.offer ~= '' then return false, 'initiative with an intent' end
     if #result.text > I.CFG.MAX_REPLY then return false, 'initiative text too long (' .. #result.text .. ')' end
-    local object = server.objects[npc.id]
+    local object = server.objects()[npc.id]
     if not object or object:isDead() then count('stale'); return false, 'initiative stale: body not loaded or dead' end
     local busy, why = P.engaged(npc.incarnation)
     if busy then count('stale'); return false, 'initiative stale: NPC busy (' .. tostring(why) .. ')' end
@@ -258,15 +252,7 @@ function I.reply(server, req, result, npc)
     if not kept then count('stale'); return false, 'initiative stale: observation gone' end
     local out, reason = P.say(npc.incarnation, result.text, {name = npc.name, chat = true, range = C.HEARING_RANGE})
     if not out then count('stale'); return false, 'initiative stale: ' .. tostring(reason) end
-    for _, p in ipairs(out.heard or {}) do
-        local cid = server.bound[p]
-        local record = cid and S.data.characters[cid]
-        local known = record and record.contacts[npc.id]
-        if known then
-            known.history[#known.history + 1] = {id = req.id, author = npc.name, text = result.text}
-            while #known.history > C.MAX_HISTORY do table.remove(known.history, 1) end
-        end
-    end
+    server.remember(npc, req.id, result.text, out.heard or {})
     count('said')
     return true
 end
@@ -279,5 +265,6 @@ end
 
 -- E08-T04: helpers shared with the NPC conversations (RS_Conversations).
 I.listeners, I.language, I.card, I.hasPending = listeners, language, card, hasPending
+Talk.initiatives = I
 
 return I

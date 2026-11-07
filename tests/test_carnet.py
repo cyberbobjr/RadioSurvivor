@@ -588,6 +588,9 @@ class Simulation:
         if living_knox:
             self.server.rt.execute(LK_SERVER_STUBS)
             self.server.rt.execute(LK_SERVER_LOAD)
+        elif provider:
+            # E18-T17: the speech of the NPCs is Living Knox's; a fake provider stands for its engine, LK_Talk is real.
+            self.server.rt.execute("require 'LivingKnox/LK_Talk'")
         self.server.load('server/RS_Carnet_Server.lua')
         # E18-T20: the game loads every server file of the core mod, among them the events of the team ids (RC_Teams:
         # state read at the world start, commands "team" and "mandate").
@@ -600,6 +603,10 @@ class Simulation:
         self.server.g.sendServerCommand = self.deliver_to_client
         if not living_knox:
             self.zombie = self.server.g.spawn(2001, 'Real Bandit', False, 'original-key')
+
+    def talk(self):
+        """Speech of the NPCs (E18-T17, LivingKnox.Talk)."""
+        return self.server.g.RS_CarnetServer.talk
 
     def saved(self):
         """Server player files at shutdown, for a restarted Simulation."""
@@ -737,7 +744,7 @@ class CarnetTests(unittest.TestCase):
         sim.say('alice', '/say Bonjour, avez-vous besoin de fournitures ?')
         completed = pump(lambda: count(sim.state().missions) == 1, [sim.tick])
         if not completed:
-            print('DIAGNOSTIC pending=', convert(sim.server.g.RS_CarnetServer.pending),
+            print('DIAGNOSTIC pending=', convert(sim.server.g.RS_CarnetServer.talk.pending),
                 'client=', convert(sim.clients['alice'].g.RS_CarnetClient.snapshot),
                 'error=', sim.clients['alice'].g.RS_CarnetClient.lastError)
             for filename in ('requests.txt', 'responses.txt'):
@@ -748,7 +755,7 @@ class CarnetTests(unittest.TestCase):
 
     def test_complete_two_clients_and_concurrent_transactions(self):
         sim = self.connected()
-        self.assertFalse(any(r.kind == 'npc_talk' for r in sim.server.g.RS_CarnetServer.pending.values()))
+        self.assertFalse(any(r.kind == 'npc_talk' for r in sim.server.g.RS_CarnetServer.talk.pending.values()))
         npc = next(iter(sim.state().npcs.values()))
         self.assertTrue(npc.personality.smoker)
         self.assertEqual(npc.name, 'Real Bandit')
@@ -842,16 +849,16 @@ class CarnetTests(unittest.TestCase):
         sim.clock.offset += 3000
         sim.say('alice', '/w bob private')
         sim.clock.offset += 3000
-        self.assertFalse(any(r.kind == 'npc_talk' for r in sim.server.g.RS_CarnetServer.pending.values()))
+        self.assertFalse(any(r.kind == 'npc_talk' for r in sim.server.g.RS_CarnetServer.talk.pending.values()))
         sim.say('alice', '/say admitted')
-        self.assertEqual(len(sim.server.g.RS_CarnetServer.pending), 1)
+        self.assertEqual(len(sim.server.g.RS_CarnetServer.talk.pending), 1)
         sim.say('alice', '/say blocked by vanilla slow mode')
-        self.assertEqual(len(sim.server.g.RS_CarnetServer.pending), 1)
+        self.assertEqual(len(sim.server.g.RS_CarnetServer.talk.pending), 1)
         self.assertTrue(c.g.ISChat.instance.showSlowModeFeedback)
         sim.clock.offset += 11000
         sim.server.g.PLAYERS.alice.muted = True
         sim.say('alice', '/say muted server side')
-        self.assertEqual(len(sim.server.g.RS_CarnetServer.pending), 1)
+        self.assertEqual(len(sim.server.g.RS_CarnetServer.talk.pending), 1)
         self.assertEqual(c.g.RS_CarnetClient.lastError, 'Chat')
         sim.server.g.PLAYERS.alice.muted = False
         sim.clock.offset += 11000; sim.say('alice', '/say BLOCKED')
@@ -862,11 +869,11 @@ class CarnetTests(unittest.TestCase):
         sim.server.g.CHAT_STREAMS = 's,all'
         c.g.CHAT_ENABLED = False
         sim.clock.offset += 11000; sim.say('alice', '/say disabled locally')
-        self.assertEqual(len(sim.server.g.RS_CarnetServer.pending), 1)
+        self.assertEqual(len(sim.server.g.RS_CarnetServer.talk.pending), 1)
         # Direct Walt/programmatic processSayMessage preserves returns and is excluded from capture.
         c.g.CHAT_ENABLED = True
         self.assertEqual(c.g.processSayMessage('Walt radio message'), ('vanilla-return', None, 7))
-        self.assertEqual(len(sim.server.g.RS_CarnetServer.pending), 1)
+        self.assertEqual(len(sim.server.g.RS_CarnetServer.talk.pending), 1)
 
     def test_missing_bridge_expiry_range_and_death(self):
         sim = Simulation(self.path / 'missing'); sim.add_client('alice'); sim.select('alice')
@@ -874,7 +881,7 @@ class CarnetTests(unittest.TestCase):
         sim.clock.offset += 151000; sim.tick()
         self.assertEqual(count(sim.state().missions), 0)
         self.assertEqual(sim.clients['alice'].g.RS_CarnetClient.lastError, 'NoAnswer')
-        self.assertFalse(any(r.kind == 'npc_talk' for r in sim.server.g.RS_CarnetServer.pending.values()))
+        self.assertFalse(any(r.kind == 'npc_talk' for r in sim.server.g.RS_CarnetServer.talk.pending.values()))
         sim.server.g.PLAYERS.alice.x = 100
         sim.clock.offset += 1001; sim.tick()
         self.assertEqual(sim.clients['alice'].g.RS_CarnetClient.snapshot.selected, '')
@@ -950,7 +957,7 @@ class CarnetTests(unittest.TestCase):
     def test_invalid_or_stale_reply_and_inventory_selection(self):
         sim = Simulation(self.path / 'stale'); c = sim.add_client('alice'); sim.select('alice')
         sim.say('alice', '/say hello')
-        req = convert(sim.server.g.RS_CarnetServer.pending[1])
+        req = convert(sim.server.g.RS_CarnetServer.talk.pending[1])
         invalid = protocol.offline(req)
         invalid['run'] = 'old-session'
         bridge_module.write_responses(sim.path / 'responses.txt', {req['id']: invalid})
@@ -1108,7 +1115,7 @@ class CarnetTests(unittest.TestCase):
             sim.server.g.spawn(5000 + i, 'Crowd %d' % i, False, 'k%d' % i)
         sim.clock.offset += 1001; sim.tick()
         self.assertEqual(count(sim.state().npcs), 0, 'every spawn produced a fiche')
-        self.assertFalse(any(r.kind == 'npc_enrich' for r in sim.server.g.RS_CarnetServer.pending.values()))
+        self.assertFalse(any(r.kind == 'npc_enrich' for r in sim.server.g.RS_CarnetServer.talk.pending.values()))
         sim.select('alice')
         npc = next(iter(sim.state().npcs.values()))
         # Personality fixed by the spawn identity: identical whenever the NPC is first met.
@@ -1117,7 +1124,7 @@ class CarnetTests(unittest.TestCase):
         self.assertEqual(fixed, convert(provider.personality(npc.signature)))
         self.assertEqual({k: convert(npc.personality)[k] for k in fixed}, fixed)
         sim.clock.offset += 5001; sim.tick()
-        self.assertEqual([r.npc for r in sim.server.g.RS_CarnetServer.pending.values() if r.kind == 'npc_enrich'], [npc.id])
+        self.assertEqual([r.npc for r in sim.server.g.RS_CarnetServer.talk.pending.values() if r.kind == 'npc_enrich'], [npc.id])
         # An uncontacted fiche (created by another path) without a loaded body is pruned.
         stray = sim.server.g.RS_CarnetServer.ensure(5001)
         sim.server.g.ZOMBIES = sim.server.rt.table()
@@ -1241,6 +1248,7 @@ def solo_game(path: Path, clock):
     game.g.registerFakeProvider()
     game.g.getWorld = lambda: game.rt.eval(
         "{getGameMode=function() return 'Survivor' end, getWorld=function() return 'solo' end}")
+    game.rt.execute("require 'LivingKnox/LK_Talk'")  # E18-T17: speech of the NPCs
     game.load('server/RS_Carnet_Server.lua')
     game.g.fire('OnInitGlobalModData', False)
     zombie = game.g.spawn(2001, 'Real Bandit', False, 'original-key')
@@ -1264,7 +1272,7 @@ def open_notebook(game):
 
 
 def talk_requests(server_g):
-    return [r for r in server_g.RS_CarnetServer.pending.values() if r.kind == 'npc_talk']
+    return [r for r in server_g.RS_CarnetServer.talk.pending.values() if r.kind == 'npc_talk']
 
 
 def report_turn(sim, name, text, intent='none', incarnation=2001):
@@ -1274,11 +1282,11 @@ def report_turn(sim, name, text, intent='none', incarnation=2001):
     server = sim.server.g.RS_CarnetServer
     sim.clock.offset += 11000
     sim.command(name, 'select', incarnation=incarnation)
-    before = {r.id for r in server.pending.values()}
+    before = {r.id for r in server.talk.pending.values()}
     sim.say(name, '/say ' + text)
     [req] = [r for r in talk_requests(sim.server.g) if r.id not in before]
     out = ''
-    for r in server.pending.values():
+    for r in server.talk.pending.values():
         body = {'version': 2, 'kind': 'npc_reply', 'id': r.id, 'world': r.world, 'run': r.run, 'npc': r.npc,
                 'order': r.order, 'revision': r.revision, 'text': 'Noted.', 'intent': 'none', 'offer': ''}
         if r.id == req.id:
@@ -1290,13 +1298,13 @@ def report_turn(sim, name, text, intent='none', incarnation=2001):
     for _ in range(3):
         sim.clock.offset += 1001
         sim.tick()
-    assert not [r for r in server.pending.values() if r.id == req.id], 'sentence not answered'
+    assert not [r for r in server.talk.pending.values() if r.id == req.id], 'sentence not answered'
     return req
 
 
 def last_ack(sim, req):
     """Acknowledgement the server wrote for the request req (dict), or None."""
-    for ack in sim.server.g.RS_CarnetServer.store.data.acks.values():
+    for ack in sim.server.g.RS_CarnetServer.talk.data.acks.values():
         if ack.request == req.id:
             return convert(ack)
     return None
@@ -1537,8 +1545,8 @@ class ContactsTalkTests(unittest.TestCase):
         for name in ('ES', 'PTBR', 'bad code'):
             game.rt.execute("local n = ...; Translator = {getLanguage = function() return {name = function() return n end} end}",
                             name)
-            server.lastTalk[client.character] = None
-            server.pending = game.rt.table_from({})
+            server.talk.lastTalk[client.character] = None
+            server.talk.pending = game.rt.table_from({})
             client.waiting = None
             self.assertTrue(client.talk('Hola'))
             reqs = talk_requests(game.g)
@@ -1712,7 +1720,7 @@ class LivingKnoxCarnetTests(unittest.TestCase):
         self.process = start_bridge(sim.path)
         sim.acquaint('alice') # E17-T08: the stranger stage is covered by AcquaintanceTests
         sim.say('alice', '/say Bonjour, avez-vous besoin de quelque chose ?')
-        req = convert(sim.server.g.RS_CarnetServer.pending[1])
+        req = convert(sim.server.g.RS_CarnetServer.talk.pending[1])
         group = req['context']['group']
         self.assertEqual(group['summary'], self.g.LK_STORY.summary.fr, 'public summary in the request language')
         self.assertEqual((group['group'], group['type'], group['leaderName'], group['isLeader'], group['role']),
@@ -1810,7 +1818,7 @@ class LivingKnoxCarnetTests(unittest.TestCase):
         fiche = sim.server.g.RS_CarnetServer.find(leader)
         fiche.background = 'Chef du groupe, installe a l eglise baptiste de Riverside.'
         sim.say('alice', '/say Salut')
-        req = convert(sim.server.g.RS_CarnetServer.pending[1])
+        req = convert(sim.server.g.RS_CarnetServer.talk.pending[1])
         self.assertEqual((req['context']['stage'], req['offers']), ('stranger', {}))
         group = req['context']['group']
         self.assertEqual(set(group) - {'member', 'role', 'attitude'}, set(), group)
@@ -2004,7 +2012,7 @@ class AcquaintanceTests(unittest.TestCase):
         prompt the bridge builds for it."""
         sim = self.sim
         # Cooldown cleared instead of advancing the clock (the bridge refuses a request dated ahead).
-        self.server.lastTalk[sim.character('alice')] = None
+        self.server.talk.lastTalk[sim.character('alice')] = None
         before = self.known().exchanges or 0
         # The talk command itself (the vanilla chat double has its own slow mode tied to the clock).
         sim.command('alice', 'talk', channel='say', text=text, language='FR')
@@ -2042,7 +2050,7 @@ class AcquaintanceTests(unittest.TestCase):
         self.assertEqual(sim.mission().state, 'offer')
         # Acquaintance is kept for good, even back at an earlier hour.
         sim.server.g.WORLD_AGE_HOURS = 30
-        self.server.lastTalk[sim.character('alice')] = None
+        self.server.talk.lastTalk[sim.character('alice')] = None
         sim.command('alice', 'talk', channel='say', text='Salut', language='FR')
         self.assertEqual(talk_requests(sim.server.g)[0].context.stage, 'acquainted')
 
@@ -2125,7 +2133,7 @@ class AcquaintanceTests(unittest.TestCase):
             self.assertEqual(config.languageCode(given), expected, repr(given))
         sent = []
         for number, given in enumerate(('ES', 'xx-1'), 1):
-            self.server.lastTalk[sim.character('alice')] = None
+            self.server.talk.lastTalk[sim.character('alice')] = None
             sim.command('alice', 'talk', channel='say', text='Hola, ¿qué tal?', language=given)
             reqs = talk_requests(sim.server.g)
             self.assertEqual(len(reqs), 1, given)
@@ -2179,11 +2187,11 @@ class SpokenAcceptanceTests(unittest.TestCase):
     def say(self, text):
         """One sentence of alice to her selected NPC, answered by the offline bridge. Returns the request (dict)."""
         sim = self.sim
-        self.server.lastTalk[sim.character('alice')] = None
+        self.server.talk.lastTalk[sim.character('alice')] = None
         sim.command('alice', 'talk', channel='say', text=text, language='FR')
         [req] = talk_requests(sim.server.g)
         rid = req.id
-        self.assertTrue(pump(lambda: not any(r.id == rid for r in self.server.pending.values()), [sim.tick]),
+        self.assertTrue(pump(lambda: not any(r.id == rid for r in self.server.talk.pending.values()), [sim.tick]),
                         'no reply: ' + text)
         req = convert(req)
         self.assertTrue(sim.clients['alice'].g.RS_CarnetClient.seen[rid], 'reply not said: ' + text)
@@ -2767,7 +2775,7 @@ class ScoutMissionTests(unittest.TestCase):
         bridge reply intent 'offer' read from responses.txt by the server poll (RS_Carnet_Server reply)."""
         sim.acquaint(user) # E17-T08: offers only to an acquainted character
         self.talk(sim, user, 'Got any work for me?')
-        [req] = [r for r in sim.server.g.RS_CarnetServer.pending.values() if r.kind == 'npc_talk']
+        [req] = [r for r in sim.server.g.RS_CarnetServer.talk.pending.values() if r.kind == 'npc_talk']
         self.assertIn(offer, list(req.offers.keys()))
         body = {'version': 2, 'kind': 'npc_reply', 'id': req.id, 'world': req.world, 'run': req.run, 'npc': req.npc,
                 'order': req.order, 'revision': req.revision, 'text': 'I need eyes on a house.', 'intent': 'offer',
@@ -2807,10 +2815,10 @@ class ScoutMissionTests(unittest.TestCase):
 
     def respond(self, sim, text, intent='none'):
         """Bridge reply (as written by the bridge) to the pending npc_talk request, read by the next server poll."""
-        [req] = [r for r in sim.server.g.RS_CarnetServer.pending.values() if r.kind == 'npc_talk']
+        [req] = [r for r in sim.server.g.RS_CarnetServer.talk.pending.values() if r.kind == 'npc_talk']
         out = ''
         # An enrichment queued before the sentence would hold it back (one request per NPC at a time): answered too.
-        for r in sim.server.g.RS_CarnetServer.pending.values():
+        for r in sim.server.g.RS_CarnetServer.talk.pending.values():
             body = {'version': 2, 'kind': 'npc_reply', 'id': r.id, 'world': r.world, 'run': r.run, 'npc': r.npc,
                     'order': r.order, 'revision': r.revision, 'text': text, 'intent': intent, 'offer': ''}
             if r.kind == 'npc_enrich':
@@ -2819,7 +2827,7 @@ class ScoutMissionTests(unittest.TestCase):
         (sim.path / 'responses.txt').write_text(out + 'end\n', encoding='utf-8')
         for _ in range(3):
             self.poll(sim)
-        self.assertEqual([r for r in sim.server.g.RS_CarnetServer.pending.values() if r.id == req.id], [])
+        self.assertEqual([r for r in sim.server.g.RS_CarnetServer.talk.pending.values() if r.id == req.id], [])
         return req
 
     def test_npc_offer_accepted_by_speaking_draws_the_area(self):
@@ -2838,7 +2846,7 @@ class ScoutMissionTests(unittest.TestCase):
         self.assertEqual(convert(req.context.acceptable), {'mission': m.id, 'revision': revision})
         self.assertEqual((m.state, list(convert(m.participants))), ('active', [sim.character('alice')]))
         self.assertTrue(alice.g.RS_CarnetClient.seen[req.id])
-        self.assertEqual(sim.state().acks[len(sim.state().acks)].applied.accept, m.id)
+        self.assertEqual(sim.talk().data.acks[len(sim.talk().data.acks)].applied.accept, m.id)
         row = convert(alice.g.RS_CarnetClient.snapshot.missions[1])
         self.assertEqual((row['engaged'], row['mapZone']), (True, convert(m.mapZone)))
         self.assertEqual(sorted(s['kind'] for s in self.symbols(alice)), ['text', 'texture'])
@@ -3905,16 +3913,16 @@ class CollectiveLeaderTests(unittest.TestCase):
         sim = self.sim
         sim.command('alice', 'select', incarnation=npc)
         sim.acquaint('alice')
-        self.server.lastTalk[sim.character('alice')] = None
+        self.server.talk.lastTalk[sim.character('alice')] = None
         sim.command('alice', 'talk', channel='say', text=text, language='FR')
         [req] = talk_requests(self.g)
         rid = req.id
-        bound = convert(self.server.collectives[rid]) if self.server.collectives[rid] else None
+        bound = convert(self.server.talk.collectives[rid]) if self.server.talk.collectives[rid] else None
         if before_reply:
             before_reply()
-        self.assertTrue(pump(lambda: not any(r.id == rid for r in self.server.pending.values()), [sim.tick]),
+        self.assertTrue(pump(lambda: not any(r.id == rid for r in self.server.talk.pending.values()), [sim.tick]),
                         'no reply: ' + text)
-        self.assertEqual(count(self.server.collectives), 0, 'binding kept after the reply')
+        self.assertEqual(count(self.server.talk.collectives), 0, 'binding kept after the reply')
         out = convert(req)
         out['bound'] = bound
         return out
@@ -3936,7 +3944,7 @@ class CollectiveLeaderTests(unittest.TestCase):
         fiche = self.server.ensure(self.g.LK_LEADER)
         line = (f"{effect} of {fiche.id} toward {self.sim.character('alice')} in {req['id']} ignored, reply kept: "
                 + reason)
-        self.assertIn(line, [x.partition('[RS_Carnet] ')[2] for x in self.logs()], self.logs())
+        self.assertIn(line, [x.partition('[LK_Talk] ')[2] for x in self.logs()], self.logs())
         self.assertFalse(any(req['id'] + ' refused' in x for x in self.logs()), 'whole reply refused')
         self.assertIsNone(self.sim.clients['alice'].g.RS_CarnetClient.lastError, 'the player sees NoAnswer')
 

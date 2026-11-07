@@ -1141,7 +1141,7 @@ def npc_exchange(exchange: Path, utf16: bool) -> None:
     codec = rt.eval(b'require("RadioSurvivorCore/RC_Codec")')
     codec[b"_utf16"] = True if utf16 else None
     try:
-        transport = rt.eval(b'require("RadioSurvivor/RS_BridgeLanes")')
+        transport = rt.eval(b'(function() local T = require("RadioSurvivor/RS_BridgeLanes"); T.register("npc", {order = 20}); return T end)()')
         text = "Ça va ? Où êtes-vous, près de l'église ? Réponse « vite »." if utf16 else \
             "L’abri coûte 5 €, œuvre d’été \U0001F4FB, ça va ?"
         req = {"version": 2, "kind": "npc_talk", "id": "run-a-npc-a-1", "world": "world-a", "run": "run-a",
@@ -1205,7 +1205,7 @@ def scenario_npc_observations(tmp: Path) -> None:
     paths = ";".join((LUA / side).as_posix() + "/?.lua" for side in ("shared", "server"))
     paths = (CORE_LUA / "shared").as_posix() + "/?.lua;" + (CORE_LUA / "server").as_posix() + "/?.lua;" + (CORE_LUA / "client").as_posix() + "/?.lua;" + (LK_LUA / "shared").as_posix() + "/?.lua;" + (LK_LUA / "server").as_posix() + "/?.lua;" + (LK_LUA / "client").as_posix() + "/?.lua;" + paths  # mod commun (E18)
     rt.execute(f"package.path = [[{paths};]] .. package.path")
-    transport = rt.eval('require("RadioSurvivor/RS_BridgeLanes")')
+    transport = rt.eval('(function() local T = require("RadioSurvivor/RS_BridgeLanes"); T.register("npc", {order = 20}); T.register("acks", {order = 30}); return T end)()')
     observations = [
         {"fact": "assault_seen", "subject": "character-a", "day": 3, "place": "près de l'église", "source": "heard",
          "hops": 2, "who": "Alice Doe", "teller": "Paul"},
@@ -1279,7 +1279,7 @@ def scenario_relation_change(tmp: Path) -> None:
     paths = ";".join((LUA / side).as_posix() + "/?.lua" for side in ("shared", "server"))
     paths = (CORE_LUA / "shared").as_posix() + "/?.lua;" + (CORE_LUA / "server").as_posix() + "/?.lua;" + (CORE_LUA / "client").as_posix() + "/?.lua;" + (LK_LUA / "shared").as_posix() + "/?.lua;" + (LK_LUA / "server").as_posix() + "/?.lua;" + (LK_LUA / "client").as_posix() + "/?.lua;" + paths  # mod commun (E18)
     rt.execute(f"package.path = [[{paths};]] .. package.path")
-    transport = rt.eval('require("RadioSurvivor/RS_BridgeLanes")')
+    transport = rt.eval('(function() local T = require("RadioSurvivor/RS_BridgeLanes"); T.register("npc", {order = 20}); T.register("acks", {order = 30}); return T end)()')
     relation = {"level": "favorable", "trend": "up", "group": "cautious",
                 "facts": [{"id": "f1", "fact": "gift", "nature": "good", "source": "group", "day": 3},
                           {"id": "f2", "fact": "assault_seen", "nature": "bad", "source": "seen", "day": 4}]}
@@ -1386,7 +1386,7 @@ def scenario_scout_offer(tmp: Path) -> None:
     paths = ";".join((LUA / side).as_posix() + "/?.lua" for side in ("shared", "server"))
     paths = (CORE_LUA / "shared").as_posix() + "/?.lua;" + (CORE_LUA / "server").as_posix() + "/?.lua;" + (CORE_LUA / "client").as_posix() + "/?.lua;" + (LK_LUA / "shared").as_posix() + "/?.lua;" + (LK_LUA / "server").as_posix() + "/?.lua;" + (LK_LUA / "client").as_posix() + "/?.lua;" + paths  # mod commun (E18)
     rt.execute(f"package.path = [[{paths};]] .. package.path")
-    transport = rt.eval('require("RadioSurvivor/RS_BridgeLanes")')
+    transport = rt.eval('(function() local T = require("RadioSurvivor/RS_BridgeLanes"); T.register("npc", {order = 20}); T.register("acks", {order = 30}); return T end)()')
     clues = {1: "The place is a single-storey house.", 2: "There is a gas station a short walk to the north."}
     scout = {"kind": "scout", "place": "house", "clues": clues, "report": "in_person", "durationMs": 7200000,
              "rewardType": "Base.Bullets9mm", "rewardCount": 20}
@@ -1444,7 +1444,7 @@ def scenario_supply_offer(tmp: Path) -> None:
     paths = ";".join((LUA / side).as_posix() + "/?.lua" for side in ("shared", "server"))
     paths = (CORE_LUA / "shared").as_posix() + "/?.lua;" + (CORE_LUA / "server").as_posix() + "/?.lua;" + (CORE_LUA / "client").as_posix() + "/?.lua;" + (LK_LUA / "shared").as_posix() + "/?.lua;" + (LK_LUA / "server").as_posix() + "/?.lua;" + (LK_LUA / "client").as_posix() + "/?.lua;" + paths  # mod commun (E18)
     rt.execute(f"package.path = [[{paths};]] .. package.path")
-    transport = rt.eval('require("RadioSurvivor/RS_BridgeLanes")')
+    transport = rt.eval('(function() local T = require("RadioSurvivor/RS_BridgeLanes"); T.register("npc", {order = 20}); T.register("acks", {order = 30}); return T end)()')
     supply = {"kind": "supply", "unit": "value", "need": "food", "level": 20, "quantity": 60, "durationMs": 7200000,
               "accepted": {"Base.TinnedBeans": True, "Base.Rice": True},
               "values": {"Base.TinnedBeans": 2, "Base.Rice": 2}, "rewardType": "Base.Antibiotics", "rewardCount": 2,
@@ -3409,7 +3409,7 @@ def scenario_voice_mission_bridge(tmp: Path) -> None:
     paths = (CORE_LUA / "shared").as_posix() + "/?.lua;" + (CORE_LUA / "server").as_posix() + "/?.lua;" + (CORE_LUA / "client").as_posix() + "/?.lua;" + (LK_LUA / "shared").as_posix() + "/?.lua;" + (LK_LUA / "server").as_posix() + "/?.lua;" + (LK_LUA / "client").as_posix() + "/?.lua;" + paths  # mod commun (E18)
     rt.execute(f"package.path = [[{paths};]] .. package.path")
     codec = rt.eval('require("RadioSurvivorCore/RC_Codec")')
-    transport = rt.eval('require("RadioSurvivor/RS_BridgeLanes")')
+    transport = rt.eval('(function() local T = require("RadioSurvivor/RS_BridgeLanes"); T.register("npc", {order = 20}); T.register("acks", {order = 30}); return T end)()')
     context = rt.eval("""{ state = "active", remainingMs = 5400000, kind = "scout", place = "house",
         clues = { "The place is a large single-storey house.", "There is a gas station a short walk to the north." },
         zoneReached = false, report = "radio", turn = "not_yet" }""")
@@ -3816,7 +3816,7 @@ def scenario_npc_reply_cleaning(tmp: Path) -> None:
     try:
         def turn(text):
             client.talk(text, True)
-            reqs = [r for r in server.pending.values() if r.kind == "npc_talk"]
+            reqs = [r for r in server.talk.pending.values() if r.kind == "npc_talk"]
             assert len(reqs) == 1, reqs
             rid = reqs[0].id
             with contextlib.redirect_stdout(io.StringIO()):
@@ -3833,23 +3833,23 @@ def scenario_npc_reply_cleaning(tmp: Path) -> None:
         assert zombie.bubbles[1] == "Ça va, merci. Et toi ?", zombie.bubbles[1]
         assert not [line for line in logs if "refused" in line], logs
         # Refus restant : erreur du pont -> NoAnswer, une ligne de journal avec la raison.
-        server.lastTalk[client.character] = None
+        server.talk.lastTalk[client.character] = None
         second = turn("et ta famille ?")
-        assert pump(lambda: len(server.pending) == 0, [lambda: game.g.fire("OnTickEvenPaused")], timeout=5)
+        assert pump(lambda: len(server.talk.pending) == 0, [lambda: game.g.fire("OnTickEvenPaused")], timeout=5)
         refused = [line for line in logs if "npc_talk" in line and "refused" in line]
-        assert refused == [f"[RS_Carnet] npc_talk {second.id} refused: bridge error invalid_or_unavailable"], refused
-        # E17-T15: provider error named from the bridge to the server log and RS_CarnetServer.refusals, at once (no
+        assert refused == [f"[LK_Talk] npc_talk {second.id} refused: bridge error invalid_or_unavailable"], refused
+        # E17-T15: provider error named from the bridge to the server log and RS_CarnetServer.talk.refusals, at once (no
         # wait of REQUEST_TIMEOUT_MS: the game clock is never advanced, the turn takes a few real seconds).
-        server.lastTalk[client.character] = None
+        server.talk.lastTalk[client.character] = None
         started = time.time()
         third = turn("et demain ?")
-        assert pump(lambda: len(server.pending) == 0, [lambda: game.g.fire("OnTickEvenPaused")], timeout=5)
+        assert pump(lambda: len(server.talk.pending) == 0, [lambda: game.g.fire("OnTickEvenPaused")], timeout=5)
         assert time.time() - started < 10 and clock.offset == 0
         refused = [line for line in logs if third.id in line and "refused" in line]
-        assert refused == [f"[RS_Carnet] npc_talk {third.id} refused: bridge error http_503"], refused
-        last = lua_list(server.refusals)[-1]
+        assert refused == [f"[LK_Talk] npc_talk {third.id} refused: bridge error http_503"], refused
+        last = lua_list(server.talk.refusals)[-1]
         assert (last.id, last.kind, last.reason) == (third.id, "npc_talk", "bridge error http_503"), dict(last)
-        assert len(server.refusals) == 2 and server.MAX_REFUSALS == 16, len(server.refusals)
+        assert len(server.talk.refusals) == 2 and server.talk.MAX_REFUSALS == 16, len(server.talk.refusals)
     finally:
         rb.call_llm = saved
         worker.pool.shutdown(wait=True)
@@ -3959,7 +3959,7 @@ def scenario_provider_errors(tmp: Path) -> None:
         worker.pool.shutdown(wait=True)
 
     # (4) Every answer of the bridge (start <= MAX_AGE_S, call <= LLM_BUDGET_S) is written before the server gives up.
-    config_lua = ROOT / "Contents/mods/batman_RadioSurvivor/42.21/media/lua/shared/RadioSurvivor/RS_Config.lua"
+    config_lua = ROOT / "Contents/mods/batman_RadioSurvivorCore/42.21/media/lua/shared/RadioSurvivorCore/RC_SpeechConfig.lua"
     timeout_ms = int(re.search(r"REQUEST_TIMEOUT_MS = (\d+)", config_lua.read_text(encoding="utf-8")).group(1))
     assert (rb.MAX_AGE_S + rb.LLM_BUDGET_S) * 1000 + 5000 <= timeout_ms, (rb.MAX_AGE_S, rb.LLM_BUDGET_S, timeout_ms)
 

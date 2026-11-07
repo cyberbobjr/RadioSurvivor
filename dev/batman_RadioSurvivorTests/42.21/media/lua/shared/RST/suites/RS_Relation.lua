@@ -124,7 +124,7 @@ local function say(t, c, text, onRequest, onDone)
             for _, h in ipairs(c.contact.history or {}) do
                 if h.id == req.id then return { text = h.text } end
             end
-            for _, r in ipairs(c.Server.pending) do if r.id == req.id then return nil end end
+            for _, r in ipairs(c.Server.talk.pending) do if r.id == req.id then return nil end end
             return { text = nil }
         end, c.C.REQUEST_TIMEOUT_MS + 10000, function(t3, result)
             t3:note("'" .. text .. "' -> '" .. tostring(result.text) .. "'")
@@ -163,7 +163,7 @@ RST.suite("rs.relation", { mods = { "rs", "lk" },
                     end
                 else
                     t3:eq(before.level, after.level, "relation changed without a recorded change")
-                    t3:note("model kept the relation (no change_relation, or refused: see the [RS_Carnet] lines)")
+                    t3:note("model kept the relation (no change_relation, or refused: see the [LK_Talk] lines)")
                 end
             end)
         end)

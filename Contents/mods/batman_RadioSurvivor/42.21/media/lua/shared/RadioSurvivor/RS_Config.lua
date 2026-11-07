@@ -137,21 +137,9 @@ local C = {
     VERSION = 2,
     SELECT_RANGE = 8,
     DELIVERY_RANGE = 3,
-    HEARING_RANGE = 30, -- inspected SayChat default; our policy, not a claim of exact vanilla hearing
-    NOISE_RANGE = 15,
     -- E17-T15: longer than the longest answer of the bridge (bridge/radio_bridge.py: start at most MAX_AGE_S = 75 s
     -- after `sent`, then one model call of at most LLM_BUDGET_S = 60 s, attempts included: 135 s). An error of the
     -- provider comes back sooner as a reply with `error` (timeout, http_503...), refused with that cause.
-    REQUEST_TIMEOUT_MS = 150000,
-    COOLDOWN_MS = 10000,
-    MAX_PENDING = 8,
-    MAX_PER_HOUR = 60,
-    ENRICH_PER_HOUR = 12,
-    ENRICH_RETRY_MS = 300000,
-    ENRICH_MAX_ATTEMPTS = 3,
-    NARRATIVE_LANGUAGE = 'FR', -- one canonical biography, independent of listener language
-    MAX_TEXT_BYTES = 800,
-    MAX_REPLY_BYTES = 1600,
     SAVE_INTERVAL_MS = 5000, -- only while a mission clock runs or the state changed
     MAX_HISTORY = 40,
     -- E17-T08: acquaintance of a character with an NPC (RS_Carnet_Server, contact.stage). 'stranger' until a talk at
@@ -199,15 +187,11 @@ C.Reputation = require 'RadioSurvivorCore/RC_ReputationConfig'
 -- Historical name of the M01 entry (same table).
 C.Delivery = C.Missions.deliver
 
--- E17-T11: game language code sent to the bridge as a hint (npc_talk). The game names a language after its Translate
--- folder (Language.name(), Languages.loadTranslateDirectory: EN, ES, ES_CL, PTBR, STREW, or a folder added by a mod),
--- so the code is checked by its form only, never against a list of known languages: 2 to 8 characters, ASCII letters
--- and underscores, starting with a letter, upper-cased (Languages.getByName ignores the case). Anything else -> 'EN'.
--- Same form as LANGUAGE_CODE in bridge/npc_protocol.py.
-function C.languageCode(value)
-    if type(value) ~= 'string' then return 'EN' end
-    local code = value:upper()
-    if #code < 2 or #code > 8 or not code:match('^[A-Z][A-Z_]+$') then return 'EN' end
-    return code
+-- E18-T17: bounds of the NPC speech and game language code: core mod (RC_SpeechConfig); same values.
+local Speech = require 'RadioSurvivorCore/RC_SpeechConfig'
+for _, key in ipairs({'HEARING_RANGE', 'NOISE_RANGE', 'REQUEST_TIMEOUT_MS', 'COOLDOWN_MS', 'MAX_PENDING', 'MAX_PER_HOUR',
+        'ENRICH_PER_HOUR', 'ENRICH_RETRY_MS', 'ENRICH_MAX_ATTEMPTS', 'NARRATIVE_LANGUAGE', 'MAX_TEXT_BYTES',
+        'MAX_REPLY_BYTES', 'languageCode'}) do
+    C[key] = Speech[key]
 end
 return C

@@ -77,7 +77,7 @@ class GroupRadioTests(unittest.TestCase):
         self.assertTrue(self.sim.clients[user].rt.eval(f"Talk.send(getPlayer(), getPlayer().radio, {json.dumps(text)})"))
 
     def radio_requests(self):
-        return [r for r in lua_list(self.server.pending) if self.radio.owns(r.id)]
+        return [r for r in lua_list(self.server.talk.pending) if self.radio.owns(r.id)]
 
     def respond(self, req, text='We hear you. Stay safe out there.', intent='none', offer=''):
         body = {'version': 2, 'kind': 'npc_reply', 'id': req.id, 'world': req.world, 'run': req.run, 'npc': req.npc,
@@ -167,7 +167,7 @@ class GroupRadioTests(unittest.TestCase):
         text = json.dumps(convert(req), ensure_ascii=False)
         self.assertNotRegex(text, r'(?<![0-9])10637(?![0-9])')
         self.assertNotRegex(text, r'(?<![0-9])9412(?![0-9])')
-        self.assertEqual(len(lua_list(self.server.times)), 1, 'call outside the common cap')
+        self.assertEqual(len(lua_list(self.server.talk.times)), 1, 'call outside the common cap')
         # Nothing was sent to the radio bridge for this voice.
         parsed = bridge_module.parse_requests((self.sim.path / 'requests.txt').read_text(encoding='utf-8'))
         self.assertFalse([r for r in parsed[1] if r.get('voice') == 'grp_1'])
@@ -198,7 +198,7 @@ class GroupRadioTests(unittest.TestCase):
                          [(self.sim.state().characters[alice].name, 'Anyone on th'), (leader.name, 'We hear you.')])
         self.assertNotIn('10637', history[-1].text)
         self.assertFalse(self.radio_requests())
-        self.assertFalse([r for r in lua_list(self.server.pending) if r.kind == 'npc_talk'])
+        self.assertFalse([r for r in lua_list(self.server.talk.pending) if r.kind == 'npc_talk'])
         del khz
 
     def test_decision_over_the_radio_refused(self):
@@ -230,7 +230,7 @@ class GroupRadioTests(unittest.TestCase):
         self.assertIsNone(self.personas.voiceAt(khz))
         self.talk('alice', 'Hello? Anyone left?', khz)
         self.assertFalse(self.radio_requests())
-        self.assertFalse([r for r in lua_list(self.server.pending) if r.kind == 'npc_talk'])
+        self.assertFalse([r for r in lua_list(self.server.talk.pending) if r.kind == 'npc_talk'])
 
     def test_everybody_away_from_the_home_station_no_answer(self):
         self.world('away')

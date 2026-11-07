@@ -158,7 +158,7 @@ class ServerTests(unittest.TestCase):
         sim.tick()
 
     def talk(self, sim, text):
-        sim.server.g.RS_CarnetServer.lastTalk[sim.character('alice')] = None
+        sim.server.g.RS_CarnetServer.talk.lastTalk[sim.character('alice')] = None
         sim.command('alice', 'talk', channel='say', text=text, language='FR')
         [req] = talk_requests(sim.server.g)
         return convert(req)

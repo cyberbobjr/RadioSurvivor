@@ -3,7 +3,7 @@
 - Tâches : E08-T04 (création) ; E08-T05 (intervention du joueur dans une conversation entendue, section dédiée)
 - Build : 42.21.0 — Date : 2026-10-13 — Statut : brouillon (banc hors jeu seulement)
 
-Code : `media/lua/server/RadioSurvivor/RS_Conversations.lua` (autorité), branché dans `RS_Carnet_Server.lua` (passage `tick`, réponse `reply`) ; aides partagées d'`RS_Initiatives.lua` (auditeurs, langue, carte d'observation, état du pont) ; transmission `RS_Observations.transmit` (inchangée) ; parole `Provider.say` / `Provider.bark` (LK11-T04) ; contrat `npc_converse` (`bridge/npc_protocol.py`, [protocole](../../specifications-techniques/protocole-carnet-v2.md) « Conversation entre deux PNJ »). Tests : `tests/test_conversations.py` ; suite en jeu `rs.conversations` (`dev/.../shared/RST/suites/RS_Conversations.lua`).
+Code : `media/lua/server/LivingKnox/LK_Conversations.lua` (autorité), branché dans `RS_Carnet_Server.lua` (passage `tick`, réponse `reply`) ; aides partagées d'`LK_Initiatives.lua` (auditeurs, langue, carte d'observation, état du pont) ; transmission `RS_Observations.transmit` (inchangée) ; parole `Provider.say` / `Provider.bark` (LK11-T04) ; contrat `npc_converse` (`bridge/npc_protocol.py`, [protocole](../../specifications-techniques/protocole-carnet-v2.md) « Conversation entre deux PNJ »). Tests : `tests/test_conversations.py` ; suite en jeu `rs.conversations` (`dev/.../shared/RST/suites/LK_Conversations.lua`).
 
 ## Problème
 
