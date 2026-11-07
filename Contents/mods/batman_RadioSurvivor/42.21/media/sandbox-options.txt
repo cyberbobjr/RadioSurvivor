@@ -74,16 +74,6 @@ option RadioSurvivor.LastPages
 	translation = RadioSurvivor_LastPages,
 }
 
-option RadioSurvivor.InitiativeFrequency
-{
-	type = enum,
-	numValues = 4,
-	default = 3,
-	page = RadioSurvivor,
-	translation = RadioSurvivor_InitiativeFrequency,
-	valueTranslation = RadioSurvivor_InitiativeFrequency,
-}
-
 option RadioSurvivor.RescueDays
 {
 	type = integer,

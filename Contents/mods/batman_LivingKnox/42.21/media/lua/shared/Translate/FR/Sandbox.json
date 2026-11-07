@@ -63,5 +63,11 @@
     "Sandbox_LivingKnox_RaidDays": "Jours entre deux raids",
     "Sandbox_LivingKnox_RaidDays_tooltip": "Nombre minimal de jours de jeu entre deux raids (départs des éclaireurs), et avant le premier. Modifiable en cours de partie.",
     "Sandbox_LivingKnox_RevengeDelayHours": "Heures avant une vengeance",
-    "Sandbox_LivingKnox_RevengeDelayHours_tooltip": "Heures de jeu (12 à 336) entre le moment où un groupe jure vengeance pour un membre que vous avez tué et le départ de sa première équipe. Un changement s'applique au serment suivant, pas à une vengeance déjà jurée."
+    "Sandbox_LivingKnox_RevengeDelayHours_tooltip": "Heures de jeu (12 à 336) entre le moment où un groupe jure vengeance pour un membre que vous avez tué et le départ de sa première équipe. Un changement s'applique au serment suivant, pas à une vengeance déjà jurée.",
+    "Sandbox_LivingKnox_InitiativeFrequency": "Initiatives des PNJ",
+    "Sandbox_LivingKnox_InitiativeFrequency_tooltip": "Fréquence à laquelle un PNJ dont le corps est près de vous prend la parole de lui-même sur ce qu'il a remarqué il y a moins d'une heure de jeu (retour d'un joueur connu, orage, mort dans son groupe...), quand quelqu'un l'entend et qu'il ne se bat pas, ne somme personne et n'est pas en alerte ; deux PNJ proches se racontent aussi ce qu'ils ont vu à ce rythme. Chaque réplique écrite par le modèle de langage est un appel : le coût affiché est le maximum par heure réelle pour tout le serveur, compté aussi dans le plafond commun des demandes des PNJ. Sans le pont d'IA : silence. Modifiable en cours de partie.",
+    "Sandbox_LivingKnox_InitiativeFrequency_option1": "Désactivées (aucun appel)",
+    "Sandbox_LivingKnox_InitiativeFrequency_option2": "Rares : une par PNJ et par jour de jeu (2 appels par heure réelle au plus)",
+    "Sandbox_LivingKnox_InitiativeFrequency_option3": "Normales : une par PNJ et par heure de jeu (6 appels par heure réelle au plus)",
+    "Sandbox_LivingKnox_InitiativeFrequency_option4": "Fréquentes : une par PNJ et par demi-heure de jeu (12 appels par heure réelle au plus)"
 }

@@ -23,7 +23,9 @@ RS_USE = re.compile(r'RadioSurvivor/(?!tests\b)|\bRS_(?!LivingKnox\b)[A-Z]\w+|RS
 DECL = re.compile(r'RST\.suite\(\s*"([\w.]+)"\s*,\s*(\{[^\n]*?\}\s*,|function)')
 # Optional uses: the suite checks the mod first (if RS_LivingKnox ~= nil then ... end) and runs without it.
 OPTIONAL = {'lk.debugview': {'rs'}, 'lk.npcsheet': {'rs'}, 'rc.notebook': {'rs'},
-            'rs.factions.mandate': {'lk'}}  # E18-T15: agreements test skipped without Living Knox
+            'rs.factions.mandate': {'lk'},  # E18-T15: agreements test skipped without Living Knox
+            # E18-T27: Living Knox alone too; the notebook paths (selection, Say line) are SKIP without RadioSurvivor.
+            'rs.conversations': {'rs'}, 'rs.initiatives': {'rs'}}
 
 
 def strip_comments(text):

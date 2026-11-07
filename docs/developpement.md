@@ -26,8 +26,8 @@ appel de Living Knox vers RadioSurvivor : les liens passent par le Core, l'API p
 Pas de reprise des anciennes sauvegardes : les mods ne sont pas publiés avec une sauvegarde à reprendre, et aucune
 migration n'est écrite ni documentée.
 
-Limites connues de la séparation (plan E18) : les observations des PNJ et la fréquence des initiatives restent dans
-RadioSurvivor, donc Living Knox seul n'a ni initiative ni conversation entre PNJ (`E18-T27`, à faire).
+Les observations des PNJ, leurs déclencheurs et l'option de fréquence des initiatives appartiennent à Living Knox
+(`E18-T27`) : seul ou avec RadioSurvivor, un PNJ prend la parole de lui-même et deux PNJ se racontent ce qu'ils ont vu.
 
 ## Architecture validée — à préserver
 

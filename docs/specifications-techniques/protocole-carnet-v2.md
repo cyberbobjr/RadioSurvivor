@@ -878,10 +878,11 @@ l'indice du prompt s'il la connaît (`LANGUAGE_NAMES` : les 29 langues vanilla 4
 
 ### Observations des PNJ (E08-T02)
 
-Journal borné de ce qu'un PNJ **contacté** (fiche du carnet, jamais pour chaque spawn) a vu lui-même ou entendu d'un
-autre PNJ (ADR B11, aucun système de rumeurs). Implémentation : `server/RadioSurvivor/RS_Observations.lua` (modèle,
-bornes, champ), `RS_Carnet_Server.lua` (champ joint, purge), `shared/RadioSurvivor/RS_Config.lua`
-(`Observations`), `bridge/npc_protocol.py` (`observations`, `observations_prompt`).
+Journal borné de ce qu'un PNJ **contacté** (fiche de l'hôte de la parole : carnet de RadioSurvivor ou Living Knox seul,
+jamais pour chaque spawn) a vu lui-même ou entendu d'un autre PNJ (ADR B11, aucun système de rumeurs). Implémentation
+(Living Knox depuis E18-T27) : `server/LivingKnox/LK_Observations.lua` (modèle, bornes `Obs.CFG`, champ, purge ; état
+privé de la parole `Talk.data.observations`, fichier `talk-*`), `LK_Talk.lua` (champ joint), `bridge/npc_protocol.py`
+(`observations`, `observations_prompt`).
 
 **Modèle** (autorité seulement, état privé `RS_State` : `data.observations = { seq, npcs = { [<fiche>] = { touched,
 items = { { key, fact, subject, day, place, source, chain } } } } }`, jamais en ModData globale ; `S.dirty` à chaque
@@ -909,7 +910,7 @@ suite refusés** (aucune coordonnée exacte) ; `source` = `seen` (défaut) ou `h
   ou `storage`, `fiche`, `self`, `unknown`, `loop`, `chain`) ; l'appelant a déjà vérifié la réception admissible
   (E08-T04). Les déclencheurs du monde (météo, coupure, hélicoptère) sont décrits plus bas (E08-T08).
 
-**Déclencheurs du carnet et de Living Knox** (E08-T07, `server/RadioSurvivor/RS_ObservationTriggers.lua`, autorité) :
+**Déclencheurs** (E08-T07, `server/LivingKnox/LK_ObservationTriggers.lua` depuis E18-T27, autorité, quel que soit l'hôte) :
 toujours par `record`, donc seulement pour des fiches **existantes et vivantes** (aucun déclencheur ne crée de fiche),
 lieu en maille `area-<x>-<y>` (ou `unknown place`), jour = jour de jeu de l'âge du monde (rien sans horloge).
 

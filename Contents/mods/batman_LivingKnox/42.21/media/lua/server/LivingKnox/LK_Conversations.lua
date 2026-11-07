@@ -4,7 +4,7 @@
 --
 -- Ouverture (un passage toutes les EVERY_MS, une conversation ouverte au plus par passage) : un PNJ « conteur » dont la
 -- fiche est vivante et le corps chargé, non occupé (Provider.engaged), sans demande en file ni conversation en cours, a
--- dans son journal (RS_Observations) une observation que son voisin ne connaît pas et peut apprendre (absent de la
+-- dans son journal (LK_Observations) une observation que son voisin ne connaît pas et peut apprendre (absent de la
 -- chaîne, chaîne non pleine). Le voisin est un corps du fournisseur à RANGE cases au plus (Provider.near : même étage,
 -- distance, CanSee), non occupé, sans demande en file ; sa fiche existe, ou il est d'un groupe déjà contacté (une fiche
 -- de ce groupe figure dans les contacts d'un personnage) et le carnet compte moins de MAX_FICHES fiches : sa fiche est
@@ -18,7 +18,7 @@
 -- non encore reçu n'est pas transmis) ; auditeurs recalculés depuis le corps du locuteur ; personne n'entend : fin, avec
 -- transmission silencieuse si le récit n'est pas encore passé. Un tour = une demande npc_converse (même file ordonnée par
 -- PNJ que les sollicitations, plafond commun C.MAX_PER_HOUR, plafond propre du niveau de l'option
--- RadioSurvivor.InitiativeFrequency) ; la réplique est dite par Provider.say (canal de LK11-T04, auditeurs de cet
+-- LivingKnox.InitiativeFrequency) ; la réplique est dite par Provider.say (canal de LK11-T04, auditeurs de cet
 -- instant) et ajoutée à l'historique des contacts EXISTANTS des auditeurs.
 -- Réception : le voisin n'apprend le récit qu'une fois la première réplique du conteur dite alors qu'il est encore à
 -- portée (Obs.transmit : provenance heard_from, pas de boucle, chaîne de 4) ; jamais à la préparation de la demande.
@@ -59,7 +59,7 @@ V.CFG = {
     TURN_GAP_MS = 6000,    -- entre deux répliques (lecture de la bulle ; LK_Speech.GAP_MS)
     PAIR_HOURS = 6,        -- heures de jeu avant une nouvelle conversation entre les mêmes fiches
     MAX_REPLY = 200,       -- octets d'une réplique (LivingKnox.Speech.MAX_TEXT ; CONVERSE_REPLY_BYTES du pont)
-    MAX_FICHES = 64,       -- borne des fiches du carnet pour créer celle du voisin (RS_Config.Observations.maxNpcs)
+    MAX_FICHES = 64,       -- borne des fiches du carnet pour créer celle du voisin (LK_Observations : CFG.maxNpcs)
     MAX_PENDING_ACKS = 16,
     MAX_NAME = 48,         -- octets d'un nom dans une réplique (CONVERSE_NAME_BYTES du pont)
     MAX_TALK_LINES = 6,    -- répliques de la conversation jointes à une intervention (npc_talk)

@@ -1,48 +1,77 @@
--- Radio Survivor : observations personnelles des PNJ contactés (E08-T02, ADR B11).
--- Journal borné par fiche de PNJ (S.data.npcs, créée au contact seulement : RS_Carnet_Server.ensure) : ce que le PNJ
--- a vu lui-même ou entendu d'un autre PNJ. Une observation n'est jamais une preuve d'action : elle est jointe aux
--- demandes PNJ (champ observations=, docs/specifications-techniques/protocole-carnet-v2.md « Observations des PNJ ») et le pont
--- la présente comme un souvenir non vérifié, comme les propos des joueurs. Aucun système de rumeurs.
+-- Living Knox : observations personnelles des PNJ (E08-T02, ADR B11 ; dans Living Knox depuis E18-T27).
+-- Journal borné par interlocuteur de la parole des PNJ (fiche de l'hôte de LK_Talk : fiche du carnet de RadioSurvivor,
+-- ou interlocuteur de Living Knox seul, LK_TalkAlone ; créée au contact seulement) : ce que le PNJ a vu lui-même ou
+-- entendu d'un autre PNJ. Une observation n'est jamais une preuve d'action : elle est jointe aux demandes PNJ (champ
+-- observations=, docs/specifications-techniques/protocole-carnet-v2.md « Observations des PNJ ») et le pont la présente
+-- comme un souvenir non vérifié, comme les propos des joueurs. Aucun système de rumeurs.
 --
--- Entrée : { fact = <type de C.Observations.facts>, subject = <identifiant court [A-Za-z0-9_-]>, day = <jour de jeu,
+-- Entrée : { fact = <type de Obs.CFG.facts>, subject = <identifiant court [A-Za-z0-9_-]>, day = <jour de jeu,
 -- entier >= 0>, place = <libellé court ou maille Observations.area, sans coordonnée exacte>, source = 'seen' |
 -- 'heard_from:<npc>' }. Clé d'observation : fait|sujet|jour|lieu (lieu en minuscules) ; une même observation n'est
 -- stockée qu'une fois par PNJ, avec sa chaîne de provenance (sources successives depuis la première : 'seen',
 -- 'heard_from:<npc-1>', 'heard_from:<npc-2>'...).
 --
--- Bornes (RS_Config.Observations) : maxPerNpc observations par PNJ (la plus ancienne évincée), maxChain éléments de
--- chaîne (une observation à chaîne pleine n'est plus retransmise), maxNpcs PNJ suivis (le moins récemment mis à jour
--- évincé). Pas de boucle : un PNJ déjà présent dans la chaîne (ou l'émetteur lui-même) ne la réapprend pas.
--- Stockage : état privé RS_State (S.data.observations, jamais en ModData globale), S.dirty à chaque changement (le
--- carnet sauvegarde). Sans état chargé (ou bloqué), rien n'est enregistré.
--- Purge : mort d'une fiche (RS_Carnet_Server.dead -> forget) et fiches retirées par le carnet (prune -> prune).
--- Les déclencheurs du monde (E08-T03 et suivantes) appellent record ; transmit sert aux conversations (E08-T04).
+-- Bornes (Obs.CFG) : maxPerNpc observations par PNJ (la plus ancienne évincée), maxChain éléments de chaîne (une
+-- observation à chaîne pleine n'est plus retransmise), maxNpcs PNJ suivis (le moins récemment mis à jour évincé). Pas de
+-- boucle : un PNJ déjà présent dans la chaîne (ou l'émetteur lui-même) ne la réapprend pas.
+-- Stockage : état privé de la parole des PNJ (LK_Talk, Talk.data.observations, fichier talk-* de Living Knox, jamais en
+-- ModData globale), Talk.dirty à chaque changement. Sans état chargé, sans hôte ou état bloqué, rien n'est enregistré.
+-- Purge : fiches mortes ou retirées par l'hôte (prune, appelé par LK_Talk.turns).
+-- Les déclencheurs (LK_ObservationTriggers) appellent record ; transmit sert aux conversations (E08-T04).
 if isClient() then return end
 
-local C = require 'RadioSurvivor/RS_Config'
-local Radio = require 'RadioSurvivor/RadioSurvivor_Const'
-local S = require 'RadioSurvivor/RS_State'
+require 'LivingKnox/LK_Core'
+local Talk = require 'LivingKnox/LK_TalkHost'
+local World = require 'RadioSurvivorCore/RC_WorldFacts'
 
-local Obs = {}
-local B = C.Observations
+local Obs = LivingKnox.Observations or {}
+LivingKnox.Observations = Obs
+Talk.observationLog = Obs
+
+-- Personal observations (E08-T02). `facts` is the closed list of the E08-T01 triggers (same list as OBS_FACTS in
+-- bridge/npc_protocol.py).
+Obs.CFG = {
+    facts = {'player_return', 'mission_done', 'group_death', 'assault_seen', 'weather', 'power_cut', 'helicopter'},
+    maxPerNpc = 12,   -- oldest evicted
+    maxChain = 4,     -- provenance entries ('seen', 'heard_from:<npc>'...); a full chain is not retold
+    maxNpcs = 64,     -- tracked fiches, least recently updated evicted
+    subjectChars = 48,
+    placeChars = 32,
+    areaTiles = 256,  -- coarse area of Obs.area (one map cell)
+    -- E08-T07 triggers (LK_ObservationTriggers)
+    returnHours = 24,     -- player_return: game hours out of hearing range before a comeback counts
+    witnessRange = 20,    -- group_death: tiles between a witness body and the dead body (same floor, CanSee)
+    -- E08-T08 world triggers (same file): weather and power cut polled at EveryHours, vanilla helicopter heard
+    -- through its world sound (OnWorldSound, Helicopter.java:218).
+    worldPlace = 'everywhere',  -- place of a global event (storm, power cut): one shared key for every witness
+    helicopterSound = 500,      -- radius and volume of the vanilla helicopter world sound (source nil, z 0)
+    helicopterRange = 500,      -- tiles between a witness (loaded body, else home) and a helicopter sound
+    helicopterGapHours = 2,     -- game hours without a helicopter sound before the next sound is a new passage
+    helicopterEveryMs = 5000,   -- helicopter sounds handled at most once per this real time (ms)
+}
+local B = Obs.CFG
 
 local FACTS = {}
 for _, name in ipairs(B.facts) do FACTS[name] = true end
 
+local function dirty() Talk.dirty = true end
+
 local function store()
-    if not S.data or S.blocked then return nil end
-    if type(S.data.observations) ~= 'table' then S.data.observations = {seq = 0, npcs = {}} end
-    local all = S.data.observations
+    if not Talk.host or not Talk.data then return nil end
+    if type(Talk.data.observations) ~= 'table' then Talk.data.observations = {seq = 0, npcs = {}} end
+    local all = Talk.data.observations
     if type(all.npcs) ~= 'table' then all.npcs = {} end
     if type(all.seq) ~= 'number' then all.seq = 0 end
     return all
 end
 
--- Fiche suivie : fiche existante et vivante du carnet.
+-- Fiche suivie : fiche existante et vivante de l'hôte.
 local function tracked(npcId)
-    local npc = type(npcId) == 'string' and S.data and type(S.data.npcs) == 'table' and S.data.npcs[npcId]
+    if type(npcId) ~= 'string' or not Talk.host then return false end
+    local npc = Talk.host.fiche(npcId)
     return type(npc) == 'table' and npc.alive ~= false
 end
+Obs.tracked = tracked
 
 local function validId(value)
     return type(value) == 'string' and string.len(value) >= 1 and string.len(value) <= B.subjectChars
@@ -51,13 +80,13 @@ end
 
 -- Lieu sur une ligne : contrôles et balises retirés, espaces réduits, coupé à placeChars ; nil si vide ou s'il
 -- contient trois chiffres de suite (coordonnée exacte refusée : utiliser Obs.area).
-Obs.MAX_CHAIN = C.Observations.maxChain -- E18-T17: read by the conversations of Living Knox
+Obs.MAX_CHAIN = B.maxChain -- read by the conversations (LK_Conversations)
 
 function Obs.cleanPlace(text)
     if type(text) ~= 'string' then return nil end
     text = string.gsub(text, '[%c<>%[%]]', ' ')
-    text = Radio.oneLine(string.gsub(text, '%s+', ' '))
-    if string.len(text) > B.placeChars then text = Radio.oneLine(string.sub(text, 1, B.placeChars)) end
+    text = Talk.oneLine((string.gsub(text, '%s+', ' ')))
+    if string.len(text) > B.placeChars then text = Talk.oneLine(string.sub(text, 1, B.placeChars)) end
     if text == '' or string.find(text, '%d%d%d') then return nil end
     return text
 end
@@ -69,7 +98,7 @@ function Obs.area(x, y)
 end
 
 -- E08-T03 : heure de jeu (âge du monde en heures) à laquelle une observation a été rangée chez ce PNJ (champ `hour` de
--- l'entrée, absent des entrées d'avant E08-T03 et du champ observations= des demandes) ; nil sans horloge.
+-- l'entrée, absent du champ observations= des demandes) ; nil sans horloge.
 function Obs.hour()
     local gt = getGameTime and getGameTime()
     local hours = gt and gt:getWorldAgeHours()
@@ -78,13 +107,7 @@ function Obs.hour()
 end
 
 -- Jour de jeu courant (1 = premier jour), 1 sans horloge.
-function Obs.today()
-    local gt = getGameTime and getGameTime()
-    if not gt then return 1 end
-    local hours = gt:getWorldAgeHours()
-    if type(hours) ~= 'number' or hours ~= hours or hours < 0 then return 1 end
-    return math.floor(hours / 24) + 1
-end
+Obs.today = World.today
 
 local function sourceNpc(source)
     if type(source) ~= 'string' then return nil end
@@ -165,7 +188,7 @@ local function put(all, npcId, entry, chain)
         if entry.source == 'seen' and existing.source ~= 'seen' then
             existing.source, existing.chain, existing.hour = 'seen', {'seen'}, Obs.hour()
             b.touched = all.seq
-            S.dirty = true
+            dirty()
             return entry.key, 'upgraded'
         end
         return entry.key, 'duplicate'
@@ -175,7 +198,7 @@ local function put(all, npcId, entry, chain)
     while #b.items > B.maxPerNpc do table.remove(b.items, 1) end
     b.touched = all.seq
     evictNpcs(all)
-    S.dirty = true
+    dirty()
     return entry.key, 'ok'
 end
 
@@ -237,7 +260,7 @@ function Obs.forget(npcId)
     local all = store()
     if all and npcId ~= nil and all.npcs[npcId] ~= nil then
         all.npcs[npcId] = nil
-        S.dirty = true
+        dirty()
     end
 end
 
@@ -250,18 +273,17 @@ function Obs.prune()
         if not tracked(id) then doomed[#doomed + 1] = id end
     end
     for _, id in ipairs(doomed) do all.npcs[id] = nil end
-    if #doomed > 0 then S.dirty = true end
+    if #doomed > 0 then dirty() end
     return #doomed > 0
 end
 
+-- Nom d'une fiche de l'hôte ou d'un personnage, nil s'il est inconnu.
 local function nameOf(id)
-    if type(id) ~= 'string' or not S.data then return nil end
-    local npc = type(S.data.npcs) == 'table' and S.data.npcs[id]
+    if type(id) ~= 'string' or not Talk.host then return nil end
+    local npc = Talk.host.fiche(id)
     if type(npc) == 'table' and type(npc.name) == 'string' and npc.name ~= '' then return npc.name end
-    local character = type(S.data.characters) == 'table' and S.data.characters[id]
-    if type(character) == 'table' and type(character.name) == 'string' and character.name ~= '' then
-        return character.name
-    end
+    local name = Talk.host.characterName(id)
+    if type(name) == 'string' and name ~= '' then return name end
     return nil
 end
 

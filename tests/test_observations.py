@@ -1,4 +1,4 @@
-"""Observations personnelles des PNJ (E08-T02) : RS_Observations.lua dans le vrai serveur du carnet (lupa, Lua 5.1, `next`
+"""Observations personnelles des PNJ (E08-T02) : LK_Observations.lua (Living Knox depuis E18-T27) dans le vrai serveur du carnet (lupa, Lua 5.1, `next`
 retiré comme dans Kahlua) et le vrai pont (npc_protocol : champ observations=, prompt).
 
     python tests/test_observations.py
@@ -6,8 +6,8 @@ retiré comme dans Kahlua) et le vrai pont (npc_protocol : champ observations=, 
 Couvre : validation (liste fermée de faits, sujet, jour, lieu sans coordonnée exacte, source), bornes (observations
 par PNJ, chaîne, PNJ suivis), une même observation transmise deux fois stockée une fois avec sa chaîne, aucune boucle
 (un PNJ ne réapprend pas ce qu'il a transmis, même après éviction), chaîne pleine non retransmise, observation directe
-qui remplace un ouï-dire, purge à la mort et au retrait d'une fiche, persistance dans l'état privé RS_State (aucune
-ModData globale), champ joint à la demande npc_talk (absent sans observation et pour npc_enrich), relu par le pont et
+qui remplace un ouï-dire, purge à la mort et au retrait d'une fiche, persistance dans l'état privé de la parole de
+Living Knox (LK_Talk, aucune ModData globale), champ joint à la demande npc_talk (absent sans observation et pour npc_enrich), relu par le pont et
 présenté comme souvenirs non vérifiés ; prompt inchangé sans observation.
 Doublures du jeu de tests/test_carnet.py : ne prouve pas l'API Java réelle.
 E08-T07 (TriggerTests) : déclencheurs du carnet et de Living Knox. E08-T08 (WorldTriggerTests) : orage, coupure du
@@ -24,11 +24,16 @@ from pathlib import Path
 from test_carnet import LK_WORLD, Simulation, convert, count
 from test_protocol import LUA, ROOT, lua_list
 
+
+def talk(sim):
+    """État privé de la parole de Living Knox (LK_Talk : observations, heures à portée, événements du monde)."""
+    return sim.server.rt.eval('LivingKnox.Talk.data')
+
 sys.path.insert(0, str(ROOT / 'bridge'))
 import npc_protocol as protocol  # noqa: E402
 import radio_bridge as bridge_module  # noqa: E402
 
-SOURCE = LUA / 'server/RadioSurvivor/RS_Observations.lua'
+SOURCE = ROOT / 'Contents/mods/batman_LivingKnox/42.21/media/lua/server/LivingKnox/LK_Observations.lua'
 
 
 class ObservationTests(unittest.TestCase):
@@ -44,8 +49,8 @@ class ObservationTests(unittest.TestCase):
         sim = Simulation(self.path / name)
         sim.add_client('alice')
         self.sim, self.g = sim, sim.server.g
-        self.obs = sim.server.rt.eval("require('RadioSurvivor/RS_Observations')")
-        self.cfg = sim.server.rt.eval("require('RadioSurvivor/RS_Config')").Observations
+        self.obs = sim.server.rt.eval("require('LivingKnox/LK_Observations')")
+        self.cfg = sim.server.rt.eval("require('LivingKnox/LK_Observations')").CFG
         ids = [sim.server.g.RS_CarnetServer.ensure(2001).id]
         for i in range(1, npcs):
             sim.server.g.spawn(3000 + i, 'Survivor %d' % i, False, 'k%d' % i)
@@ -97,7 +102,7 @@ class ObservationTests(unittest.TestCase):
         a, = self.world()
         first, reason = self.record(a, place='Gas station')
         self.assertEqual(reason, 'ok')
-        self.assertIsNotNone(self.sim.state().observations, 'not in the private state')
+        self.assertIsNotNone(talk(self.sim).observations, 'not in the private state')
         # Même fait, sujet, jour et lieu (casse, espaces) : stockée une fois.
         self.assertEqual(self.record(a, place='GAS  station'), (first, 'duplicate'))
         self.assertEqual(len(self.listed(a)), 1)
@@ -151,7 +156,7 @@ class ObservationTests(unittest.TestCase):
                 self.assertEqual(self.record(npc)[1], 'ok')
         finally:
             self.cfg.maxNpcs = saved
-        self.assertEqual(count(self.sim.state().observations.npcs), 3)
+        self.assertEqual(count(talk(self.sim).observations.npcs), 3)
         self.assertEqual(self.listed(ids[0]), [], 'least recently updated NPC kept')
         # Mort d'une fiche (événement du fournisseur) : son journal est oublié, ce qu'elle a raconté reste.
         key, _ = self.record(ids[1], fact='power_cut', subject='grid', day=7, place='Muldraugh')
@@ -159,7 +164,10 @@ class ObservationTests(unittest.TestCase):
         body = [z for z in lua_list(self.g.ZOMBIES) if z.id == 3001][0]
         body.dead = True
         self.g.fire('OnZombieDead', body)
-        self.assertIsNone(self.sim.state().observations.npcs[ids[1]])
+        self.assertEqual(self.listed(ids[1]), [], 'a dead fiche still lists its observations')
+        self.sim.clock.offset += 60001  # E18-T27: logs purged by LK_Talk.turns once a minute
+        self.sim.tick()
+        self.assertIsNone(talk(self.sim).observations.npcs[ids[1]])
         self.assertEqual(self.listed(ids[1]), [])
         self.assertIn(key, [o['key'] for o in self.listed(ids[2])])
         # Fiche retirée par le carnet (non contactée, sans corps) : journal purgé au passage du prune.
@@ -167,15 +175,17 @@ class ObservationTests(unittest.TestCase):
         self.sim.clock.offset += 3600001 + 60001
         self.sim.tick()
         self.assertIsNone(self.sim.state().npcs[ids[2]])
-        self.assertEqual(count(self.sim.state().observations.npcs), 0)
+        self.sim.clock.offset += 60001  # next purge of LK_Talk.turns
+        self.sim.tick()
+        self.assertEqual(count(talk(self.sim).observations.npcs), 0)
 
     def test_private_state_persistence(self):
         a, = self.world('persist')
         key, _ = self.record(a, fact='mission_done', subject='first_aid_v1', day=2, place='Rosewood')
-        self.assertTrue(self.sim.server.g.RS_CarnetServer.store.dirty)
+        self.assertTrue(self.sim.server.rt.eval('LivingKnox.Talk.dirty'))
         self.sim.server.g.fire('OnSave')
         restart = Simulation(self.sim.path, self.sim.clock, saved_players=self.sim.saved())
-        obs = restart.server.rt.eval("require('RadioSurvivor/RS_Observations')")
+        obs = restart.server.rt.eval("require('LivingKnox/LK_Observations')")
         self.assertEqual([o.key for o in lua_list(obs.list(a))], [key])
         code = [line for line in SOURCE.read_text(encoding='utf-8').splitlines() if not line.lstrip().startswith('--')]
         source = '\n'.join(code)
@@ -295,7 +305,7 @@ class TriggerTests(unittest.TestCase):
         sim.add_client('bob')
         self.sim, self.g, self.rt = sim, sim.server.g, sim.server.rt
         self.server = self.g.RS_CarnetServer
-        self.obs = self.rt.eval("require('RadioSurvivor/RS_Observations')")
+        self.obs = self.rt.eval("require('LivingKnox/LK_Observations')")
         self.g.NPCS[2001].group = 'grp-1'
         self.fid = self.server.ensure(2001).id
         self.tick()
@@ -322,7 +332,7 @@ class TriggerTests(unittest.TestCase):
         self.rt.execute(f'LivingKnox.publish("{name}", {lua_info})')
 
     def assert_no_coordinates(self):
-        for fid in self.sim.state().observations.npcs.keys():
+        for fid in talk(self.sim).observations.npcs.keys():
             for o in self.listed(fid):
                 self.assertRegex(o['place'], r'^(area-\d{1,2}-\d{1,2}|unknown place)$')
 
@@ -335,8 +345,8 @@ class TriggerTests(unittest.TestCase):
                         '{history = {}, note = "", trust = "Unassessed", trend = "Stable"}')
         fiches = count(self.sim.state().npcs)
         self.tick()
-        contact = self.sim.state().characters[alice].contacts[self.fid]
-        self.assertEqual(contact.nearHour, 48)
+        near = talk(self.sim).nearHours[alice]  # E18-T27: last hour in range, private state of Living Knox
+        self.assertEqual(near[self.fid], 48)
         self.assertEqual(self.listed(self.fid), [], 'the first meeting is not a return')
         alice_body = self.g.PLAYERS['alice']
 
@@ -351,7 +361,7 @@ class TriggerTests(unittest.TestCase):
 
         away_then_back(23)  # less than a game day out of hearing range: no return
         self.assertEqual(self.listed(self.fid), [])
-        self.assertEqual(contact.nearHour, 71)
+        self.assertEqual(near[self.fid], 71)
         away_then_back(24)
         self.assertEqual(self.listed(self.fid), [
             {'fact': 'player_return', 'subject': alice, 'day': 4, 'place': 'area-0-0', 'source': 'seen'}])
@@ -402,10 +412,11 @@ class TriggerTests(unittest.TestCase):
         self.assertTrue(M.finish(state, m2, 'failed'))
         self.assertEqual(len(self.facts(self.fid, 'mission_done')), 2)
         fiches = count(state.npcs)
-        self.rt.execute(f'require("RadioSurvivor/RS_ObservationTriggers").missionFinished(RS_CarnetServer.store.data, '
-                        f'{{npc = "voice:walt:{alice}", participants = {{["{alice}"] = {{name = "Alice"}}}}}}, "success")')
+        self.rt.execute(f'require("LivingKnox/LK_ObservationTriggers").missionResult(nil, '
+                        f'{{npc = "voice:walt:{alice}", participants = {{["{alice}"] = {{name = "Alice"}}}}}}, "success", '
+                        f'"{alice}")')
         self.assertEqual(count(state.npcs), fiches)
-        self.assertIsNone(state.observations.npcs[f'voice:walt:{alice}'])
+        self.assertIsNone(talk(sim).observations.npcs[f'voice:walt:{alice}'])
 
     def test_group_death_in_sight_of_group_members_only(self):
         self.world()
@@ -488,7 +499,7 @@ class TriggerTests(unittest.TestCase):
         sim.server.rt.execute(LK_WORLD)
         sim.add_client('alice')
         self.sim, self.g, self.rt = sim, sim.server.g, sim.server.rt
-        self.obs = self.rt.eval("require('RadioSurvivor/RS_Observations')")
+        self.obs = self.rt.eval("require('LivingKnox/LK_Observations')")
         alice = sim.character('alice')
         server = self.g.RS_CarnetServer
         mate = server.ensure(self.g.LK_MATE).id
@@ -514,16 +525,16 @@ class TriggerTests(unittest.TestCase):
         engine (pcall of LK_Core.publish)."""
         sim = Simulation(self.path / 'late', provider=False)
         sim.server.rt.execute(GAME_CLOCK)
-        trig = sim.server.rt.eval("require('RadioSurvivor/RS_ObservationTriggers')")
-        self.assertFalse(trig.linked)
-        sim.server.load('shared/LivingKnox/LK_Core.lua')
+        # E18-T27: the triggers are Living Knox's and subscribe when they load (LK_Core loaded before them).
+        trig = sim.server.rt.eval("require('LivingKnox/LK_ObservationTriggers')")
         sim.clock.offset += 1001
         sim.tick()
         self.assertTrue(trig.linked)
         self.assertEqual(sim.server.rt.eval('#LivingKnox.listeners.memberDied'), 1)
         sim.server.rt.execute('LivingKnox.publish("memberDied", "bad")')
         sim.server.rt.execute('LivingKnox.publish("assaultSeen", {fact = "hit", witnesses = 3})')
-        self.assertEqual(count(sim.state().observations.npcs) if sim.state().observations else 0, 0)
+        data = talk(sim)  # no NPC engine here: the speech of Living Knox has no host, nothing is recorded
+        self.assertEqual(count(data.observations.npcs) if data and data.observations else 0, 0)
 
 
 # E08-T08 doubles of the Java world (signatures checked in the decompiled 42.21.0 Java): ClimateManager
@@ -578,8 +589,8 @@ class WorldTriggerTests(unittest.TestCase):
         sim.add_client('alice')
         self.sim, self.g, self.rt = sim, sim.server.g, sim.server.rt
         self.server = self.g.RS_CarnetServer
-        self.obs = self.rt.eval("require('RadioSurvivor/RS_Observations')")
-        self.cfg = self.rt.eval("require('RadioSurvivor/RS_Config')").Observations
+        self.obs = self.rt.eval("require('LivingKnox/LK_Observations')")
+        self.cfg = self.rt.eval("require('LivingKnox/LK_Observations')").CFG
         self.fid = self.server.ensure(2001).id
         self.tick()
         return sim
@@ -668,14 +679,14 @@ class WorldTriggerTests(unittest.TestCase):
         # The episode state lives in the private state and survives a restart.
         self.g.fire('OnSave')
         restart = Simulation(self.sim.path, self.sim.clock, saved_players=self.sim.saved())
-        self.assertEqual(restart.state().worldEvents.powerCut, 3)
+        self.assertEqual(talk(restart).worldEvents.powerCut, 3)
 
     def test_no_power_cut_without_a_grid_seen_first(self):
         self.world()
         self.g.GRID = False
         self.hour(3)
         self.assertEqual(self.listed(self.fid), [])
-        self.assertIsNone(self.sim.state().worldEvents.powerCut)
+        self.assertIsNone(talk(self.sim).worldEvents.powerCut)
 
     def test_helicopter_heard_from_its_world_sound(self):
         self.world()
@@ -691,7 +702,7 @@ class WorldTriggerTests(unittest.TestCase):
         self.sound(12, 10, radius=600, volume=600)
         self.sound(12, 10, radius=500, volume=20)
         self.sound(12, 10, z=1)
-        self.assertEqual(count(self.sim.state().observations.npcs) if self.sim.state().observations else 0, 0)
+        self.assertEqual(count(talk(self.sim).observations.npcs) if talk(self.sim).observations else 0, 0)
         self.sound(12, 10)
         heard = [{'fact': 'helicopter', 'subject': 'helicopter', 'day': 2, 'place': 'area-0-0', 'source': 'seen'}]
         self.assertEqual(self.listed(self.fid), heard)
@@ -714,7 +725,7 @@ class WorldTriggerTests(unittest.TestCase):
         self.assertEqual(self.listed(far)[-1], dict(heard[0], day=3, place='area-3-0'))
         self.assertEqual(len(self.listed(self.fid)), 1, 'out of range of the second passage')
         self.assertEqual(count(self.sim.state().npcs), fiches, 'a trigger created a fiche')
-        for fid in self.sim.state().observations.npcs.keys():
+        for fid in talk(self.sim).observations.npcs.keys():
             for o in self.listed(fid):
                 self.assertRegex(o['place'], r'^(area-\d{1,2}-\d{1,2}|everywhere)$')
 
@@ -727,8 +738,8 @@ class WorldTriggerTests(unittest.TestCase):
         sim.server.g.WORLD_HOURS = 60
         sim.add_client('alice')
         self.sim, self.g, self.rt = sim, sim.server.g, sim.server.rt
-        self.obs = self.rt.eval("require('RadioSurvivor/RS_Observations')")
-        self.cfg = self.rt.eval("require('RadioSurvivor/RS_Config')").Observations
+        self.obs = self.rt.eval("require('LivingKnox/LK_Observations')")
+        self.cfg = self.rt.eval("require('LivingKnox/LK_Observations')").CFG
         server = self.g.RS_CarnetServer
         mate = server.ensure(self.g.LK_MATE).id
         loner = server.ensure(self.g.LK_LONER).id

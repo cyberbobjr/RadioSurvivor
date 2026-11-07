@@ -313,3 +313,13 @@ option LivingKnox.RevengeDelayHours
 	page = LivingKnox,
 	translation = LivingKnox_RevengeDelayHours,
 }
+
+option LivingKnox.InitiativeFrequency
+{
+	type = enum,
+	numValues = 4,
+	default = 3,
+	page = LivingKnox,
+	translation = LivingKnox_InitiativeFrequency,
+	valueTranslation = LivingKnox_InitiativeFrequency,
+}

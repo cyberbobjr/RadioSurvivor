@@ -11,12 +11,12 @@ mémorial (E14-T03) lira les morts. Il ne contient ni coordonnée, ni texte de c
 | Sorte | Origine | Champs |
 |---|---|---|
 | `death` | `OnCharacterDeath` d'un `IsoPlayer` (déclenché aussi sur le serveur dédié, contrairement à `OnPlayerDeath` : base `multiplayer.md`) ; zombies et corps de PNJ écartés | `name` (descripteur du personnage), `place` |
-| `mission` | `RS_Missions.onFinished`, chaîné après l'écouteur des observations (`RS_ObservationTriggers`) : `success`, `failed`, `abandoned` ; les annulations (`cancelled_*`) ne sont pas des nouvelles | `template`, `result`, `requester` (nom de la fiche ou de la voix), `participants` (noms), `place` (corps du demandeur s'il est chargé) |
+| `mission` | `RC_Missions.onFinished` (les observations de Living Knox écoutent les résultats à part depuis E18-T27) : `success`, `failed`, `abandoned` ; les annulations (`cancelled_*`) ne sont pas des nouvelles | `template`, `result`, `requester` (nom de la fiche ou de la voix), `participants` (noms), `place` (corps du demandeur s'il est chargé) |
 | `rescue` | réservé à E12-T04/T05 : `RS_Facts.record('rescue', { result, requester, participants, place })` | |
 | `passage` | réservé au passeur (E13) : `RS_Facts.record('passage', { event, name, place })` | |
 | `power_cut` | sondage `EveryHours` de `SandboxOptions.doesPowerGridExist()` (aucun événement Lua : base `power-and-lights.md`) : passage de présent à absent | — |
 | `water_cut` | sondage `EveryHours` : `GameTime.getWorldAgeDaysSinceBegin() < SandboxOptions.getWaterShutModifier()` passe de vrai à faux (même test que `IsoObject.java:2544`, `ParameterWaterSupply.java:18`) | — |
-| `weather` | sondage `EveryHours` (`RS_ObservationTriggers.weatherNow`) : début d'un orage, d'une tempête tropicale ou d'un blizzard | `weather` |
+| `weather` | sondage `EveryHours` (`RC_WorldFacts.weatherNow` du mod commun) : début d'un orage, d'une tempête tropicale ou d'un blizzard | `weather` |
 | `group_death` | événement public `OnLivingKnoxMemberDied` | `group` (nom lu par `LivingKnox.API.getGroup`), `role`, `cause`, `byPlayer`, `offscreen`, `place` (maille `area`) |
 | `group_gone` | `OnLivingKnoxGroupGone` | `group`, `reason` |
 | `group_new` | `OnLivingKnoxGroupCreated` | `group`, `typeKey`, `place` |

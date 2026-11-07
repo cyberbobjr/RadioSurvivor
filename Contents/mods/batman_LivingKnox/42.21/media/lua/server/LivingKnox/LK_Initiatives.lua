@@ -4,11 +4,11 @@
 --
 -- Un PNJ du carnet prend la parole de lui-même quand, à un passage (toutes les EVERY_MS) :
 --   - sa fiche est vivante et son corps chargé (Server.objects), aucune demande de ce PNJ n'attend le pont ;
---   - il a une observation récente (RS_Observations, rangée chez lui depuis moins de RECENT_HOURS heure de jeu) qui
+--   - il a une observation récente (LK_Observations, rangée chez lui depuis moins de RECENT_HOURS heure de jeu) qui
 --     n'a jamais ouvert d'initiative chez lui (événement = fiche | clé d'observation, gardé dans l'état privé) ;
 --   - au moins un joueur lié au carnet l'entend (Provider.hears, depuis la position de son corps) ;
 --   - il n'est pas occupé (Provider.engaged : coup reçu ou combat, sommation, alerte ; LivingKnox.API.engaged) ;
---   - le niveau de l'option sandbox RadioSurvivor.InitiativeFrequency le permet : délai par PNJ en heures de jeu
+--   - le niveau de l'option sandbox LivingKnox.InitiativeFrequency le permet : délai par PNJ en heures de jeu
 --     depuis sa dernière initiative (gardé dans l'état privé : un redémarrage ou une reconnexion ne le remet pas à
 --     zéro) ; plafond serveur en demandes LLM par heure réelle (mémoire, comme les autres budgets du carnet).
 -- Au plus une initiative ouverte par passage. L'événement est marqué consommé dès l'ouverture : une même observation
@@ -35,7 +35,7 @@ local P, Obs = Talk.provider, Talk.observations
 
 local I = {}
 I.KIND = 'npc_initiative'
-I.OPTION = 'RadioSurvivor.InitiativeFrequency'
+I.OPTION = 'LivingKnox.InitiativeFrequency' -- E18-T27: option of Living Knox
 -- Niveaux de l'option enum (index 1..4) : délai par PNJ (heures de jeu) et demandes LLM par heure réelle (serveur).
 I.LEVELS = {
     [1] = nil,                                  -- désactivées
@@ -64,7 +64,7 @@ function I.level()
     local option = options and options.getOptionByName and options:getOptionByName(I.OPTION)
     local value = option and option:getValue() or nil
     if value == nil then
-        local vars = SandboxVars and SandboxVars.RadioSurvivor
+        local vars = SandboxVars and SandboxVars.LivingKnox
         value = vars and vars.InitiativeFrequency
     end
     value = math.floor(tonumber(value) or I.DEFAULT_LEVEL)

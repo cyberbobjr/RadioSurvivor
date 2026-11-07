@@ -2,7 +2,7 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 12 / 31 tâche(s) terminée(s).
+**Avancement.** en cours — 13 / 33 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
@@ -32,11 +32,13 @@
 | ☐ | E18-T24 | Carnet dans le mod commun, onglets par mod | `testé hors jeu` | MP | E18-T09 |
 | ☐ | E18-T25 | Onglets Missions et Réputation tenus par le commun | `testé hors jeu` | MP | E18-T24 |
 | ☐ | E18-T26 | Onglet Contacts commun, contacts versés par chaque mod | `testé hors jeu` | MP | E18-T24 |
-| ☐ | E18-T27 | Observations des PNJ et fréquence des initiatives dans Living Knox | `à faire` | MP | E18-T18 |
+| ☑ | E18-T27 | Observations des PNJ et fréquence des initiatives dans Living Knox | `testé MP` | MP | E18-T18 |
 | ☑ | E18-T28 | Corps de PNJ inconnus des clients quand l'identifiant réseau devient négatif | `testé MP` | MP | — |
 | ☑ | E18-T29 | Livrer et réclamer une mission de PNJ sans RadioSurvivor | `testé MP` | MP | E18-T18 |
 | ☐ | E18-T30 | Offensive à la fenêtre instable en MP | `à faire` | MP | — |
 | ☐ | E18-T31 | Suites instables des campagnes de validation | `à faire` | MP | — |
+| ☐ | E18-T32 | Bavardages entre membres d'un groupe | `à faire` | MP | E18-T27 |
+| ☐ | E18-T33 | Récompense d'une mission de PNJ créée à la volée | `à faire` | MP | E18-T29 |
 
 <!-- fin du tableau de bord -->
 
@@ -113,6 +115,18 @@ donnent des missions ; le pont Python LLM est la base de leur intelligence, avec
   (RadioSurvivor), Équipe (Living Knox, accords de `E18-T20`) ; Contacts, Missions et Réputation sont communs et ne
   montrent que les données des mods activés. Les données d'un mod décoché ne sont ni affichées ni effacées : elles
   reviennent quand il est recoché. Le carnet remplace le petit journal des missions du commun (décision du 2026-11-05).
+- 2026-11-07 — **Bavardages entre membres d'un groupe** (utilisateur, `E18-T32`) : au foyer seulement (les deux
+  membres chez eux, libres, à quelques pas l'un de l'autre, un joueur les entend) ; 2 à 4 répliques tirées par le
+  serveur selon le sujet ; rythme de l'option « Initiatives des PNJ », même délai par groupe que par PNJ pour les
+  initiatives (Rares 1 par jour de jeu, Normales 1 par heure, Fréquentes 1 par demi-heure, Désactivées aucun), compté
+  dans le plafond horaire des demandes des PNJ ; rien sans le pont IA. Confirmé par défaut : le serveur choisit le
+  sujet dans l'état réel du groupe (besoin le plus pressant, moral, météo du moment, chef) et le donne au modèle, qui
+  écrit les répliques ; une conversation sur une observation passe avant un bavardage ; un joueur qui parle à l'un des
+  deux s'y insère comme dans une conversation ; les répliques vont à l'historique des contacts existants des auditeurs.
+- 2026-11-07 — **Récompense créée à la volée** (utilisateur, `E18-T33`) : une mission de PNJ réussie rapporte toujours
+  quelque chose ; l'objet peut être créé pour la récompense. Confirmé par défaut : ordre surplus du foyer, puis lot
+  annoncé avec la mission, puis lot créé selon le type du groupe (table fermée du mod commun : colons outils, neutres
+  vivres, pillards munitions) ; le carnet n'annonce que ce qui sera donné.
 - 2026-11-05 — Confirmé par défaut (valeurs techniques, modifiables) :
   - identifiants `batman_RadioSurvivorCore` (mod commun, nom affiché « Radio Survivor Core », code sous
     `media/lua/*/RadioSurvivorCore/`, fichiers `RC_`) et `batman_LivingKnox` (nom affiché « Living Knox ») ;
@@ -435,16 +449,16 @@ Deuxième article Workshop, dépôt séparé, nouvelles règles de jeu des missi
   - Preuve : confirmé par défaut le 2026-11-06 : registre de sources dans le commun, Living Knox ne verse ses PNJ que sans RadioSurvivor (avec lui, les fiches du carnet les listent déjà, relation lue par l'API), panneau de relation dessiné par Living Knox (la relation est la sienne depuis `E18-T21`) ; mod commun : `server/RadioSurvivorCore/RC_Contacts` (`registerSource(nom, { list })`, `rows(character, player)` : lignes de chaque source active, historique du commun `RC_History` ajouté, tri par nom) et commande `contacts` du module `RadioSurvivorCore` (`RC_MissionJournal`, même limite) ; `RC_HistoryEvents` (historique du commun lu au démarrage du monde et écrit toutes les dix minutes de jeu s'il a changé : sans RadioSurvivor, rien ne l'initialisait, défaut trouvé en jeu par `rc.contacts`) ; carnet commun : Contacts lit la commande `contacts` (redemandée toutes les 3 s), page = nom, groupe, page du mod de la source (`Notebook.contactPages[source]`), échanges ; Living Knox : `shared/LivingKnox/LK_Names` (nom d'un PNJ, mêmes règles, sorti de l'adaptateur qui l'utilise), `server/LivingKnox/LK_Contacts` (source `lk` : PNJ ayant une relation personnelle ou un historique avec le personnage, encore au registre, avec nom, groupe, panneau de relation ; inscrite seulement sans RadioSurvivor), `client/LivingKnox/LK_NotebookPages` (panneau de relation `Notebook.relationLines`, mot d'un niveau, titre, page `contactPages.lk`) ; 50 clés `IGUI_RS_Rel*` devenues `IGUI_LK_Rel*`, clés `IGUI_RC_Group`, `KnownConversations`, `Contact`, `Dead` (EN, FR) ; RadioSurvivor : source `rs` = ses fiches (même projection que l'instantané) ; la fiche d'un PNJ d'un moteur (`incarnation`) sans moteur est masquée (instantané et liste du commun) et jamais purgée (`engineMissing`) ; panneau et mots de relation pris chez Living Knox s'il est actif ; bancs : `tests/test_lk_contacts.py` (Living Knox seul, aucun module de RadioSurvivor : PNJ connu par l'historique avec nom, groupe, niveau du groupe, puis niveau monté par un fait réel, rien pour un autre personnage ; source non inscrite avec RadioSurvivor), `tests/test_core_notebook.py` (15 : contacts d'une source par la commande, historique du commun, page de Living Knox chargée ou non, rien pour un autre joueur), `tests/test_lk_removed.py` (contact du PNJ masqué sans Living Knox, fiche gardée, retrouvé avec sa relation au retour), bancs adaptés (`test_relation_panel.py`, `test_notebook_visual.py`, `test_translations_split.py`, `test_rs_suites.py`, `test_protocol.py` : la page de Living Knox chargée avec le carnet comme dans le jeu) ; suite en jeu `rc.contacts` ; `run_all.py` 160 passés, 1 échec (`rs_suites`, renvois `fichier:ligne` de `RS_Env.lua` décalés, corrigés, banc relancé : OK) ; luacheck `Contents` 14 (référence 15), `dev` 0 ; passages solo automatiques du 2026-11-06 (`rc.notebook`, `rc.contacts`, `rc.journal`, code 0, aucune erreur Lua de nos mods) : Living Knox seul 5/5 (`tools/autoclient/runs/20261106-191359-572cbdf43d03`), les deux 5/5 (`tools/autoclient/runs/20261106-191442-8a773198cf6f`), RadioSurvivor seul 5/5 avant l'ajout de `RC_HistoryEvents` (`tools/autoclient/runs/20261106-191043-e8c7106a93bc`) ; premier passage Living Knox seul en échec (historique non initialisé, corrigé) (`tools/autoclient/runs/20261106-190959-3e6f8941223e`)
   - Reste : cible MP : campagne MP des trois montages (`E18-T15`) ; avec Living Knox seul, aucun échange n'est encore écrit (parole des PNJ sans RadioSurvivor : `E18-T18`), la liste n'a été vue en jeu que vide ; PNJ mort ou disparu du registre : retiré de la liste de Living Knox (son historique reste dans le commun) ; garde du nettoyage des fiches sans moteur écrite mais non prouvée par un banc (une fiche contactée n'est jamais purgée de toute façon)
 
-- [ ] **E18-T27** — Observations des PNJ et fréquence des initiatives dans Living Knox
-  - État : `à faire`
+- [x] **E18-T27** — Observations des PNJ et fréquence des initiatives dans Living Knox
+  - État : `testé MP`
   - Cible : `MP`
   - Dépend de : E18-T18
   - Fichiers : `RS_Observations`, `RS_ObservationTriggers`, `RS_Config.Observations` ; option `RadioSurvivor.InitiativeFrequency` (`sandbox-options.txt`, traductions), `LK_Initiatives`, `LK_Conversations`, `RS_Relations` (faits `obs:`)
   - Faire : relevé pendant `E18-T17` : le journal des observations d'un PNJ et l'option de fréquence des initiatives restent dans RadioSurvivor (l'hôte les prête à `LK_Talk`) ; les passer à Living Knox pour que, seul, un PNJ prenne la parole de lui-même et que deux PNJ se racontent ce qu'ils ont vu.
   - Accepté si : Living Knox seul : un PNJ dit une initiative et deux PNJ conversent devant un joueur ; ensemble : mêmes observations et mêmes demandes.
   - Tests : `test_observations.py`, `test_initiatives.py`, `test_conversations.py` ; suites rs.initiatives et rs.conversations dans les montages Living Knox seul et les deux.
-  - Preuve : —
-  - Reste : —
+  - Preuve : 2026-11-07 : Living Knox : `LK_Observations` (ex-`RS_Observations`, réglages `Obs.CFG` sortis de `RS_Config`, stockage `Talk.data.observations`), `LK_ObservationTriggers` (ex-`RS_ObservationTriggers` : retours par `host.knows`, heures de proximité et événements du monde dans `Talk.data`, résultat de mission par `RC_Missions.addResultListener`, `prune`), `Talk.turns` appelle retours et purges (une fois par minute) ; `LK_TalkAlone` : `knows`, `contactedGroups` réel, `Talk.turns` à chaque passe, joueur lié dès qu'il est vivant (défaut trouvé en MP : un joueur qui n'avait jamais parlé n'entendait rien) ; option `LivingKnox.InitiativeFrequency` (page Living Knox, retirée de RadioSurvivor, traductions EN/FR) ; commun : `RC_WorldFacts` (heure, jour, météo, courant) ; `RS_Carnet_Server` ne porte plus les observations (hôte `knows`), `RS_Relations` et `RS_Facts` lisent Living Knox et le commun. Bancs : `test_observations.py`, `test_lk_talk_alone.py` (initiative et conversation sans RadioSurvivor, joueur jamais lié lié par la passe, aucun require RS dans les modules déplacés), bancs adaptés ; `run_all.py` 161 passés, 0 échec ; luacheck `Contents` 8, `dev` 0. Suites `rs.initiatives` et `rs.conversations` passées à `mods = { "lk" }` (aide `RST.RSHelpers.speech`, la sélection du carnet sautée seule). En jeu (pont `--llm fake`) : Living Knox seul solo code 0 `RST-RESULT ok=true total=8 pass=7 skip=1` `runs/20261107-185127-f0f8a5afe204` ; Living Knox seul MP code 0 `RST-RESULT ok=true total=8 pass=7 fail=0 error=0 skip=1` `runs/20261107-195213-mp-22775c9dcfe0` ; les deux, `rs.initiatives,rs.conversations,rs.observations,rs.worldtriggers` : MP code 0 `RST-RESULT ok=true total=16 pass=16` `runs/20261107-195428-mp-157c1de4b7a1`, solo code 0 `RST-RESULT ok=true total=16 pass=16` `runs/20261107-195744-6b17e6d0042a`. Échecs avant corrections : solo seul code 1 `pass=0 error=7` (aides de test liées au carnet) `runs/20261107-185001-156737bc17bb`, MP seul code 1 `pass=2 fail=5` (joueur non lié) `runs/20261107-185227-mp-6e2d3e765e50`.
+  - Reste : le saut (`skip=1`) avec Living Knox seul est la jonction d'un joueur par la sélection du carnet, propre à RadioSurvivor ; `rs.observations` et `rs.worldtriggers` demandent RadioSurvivor (témoins des fiches du carnet) et ne tournent pas avec Living Knox seul ; bavardages au foyer : `E18-T32`.
 
 - [x] **E18-T28** — Corps de PNJ inconnus des clients quand l'identifiant réseau devient négatif
   - État : `testé MP`
@@ -486,5 +500,26 @@ Deuxième article Workshop, dépôt séparé, nouvelles règles de jeu des missi
   - Faire : relevé de `E18-T15` (2026-11-07), échecs non reproduits au rejeu ou déjà vus avant la séparation : `lk.upkeep` (travaux non finis en 300 s, solo les deux, deux fois), `lk.barricade` (chantier non fini, MP Living Knox seul), `lk.alert` (alerte levée par une foule au-delà de la distance, MP Living Knox seul ; angle `lk.facing`, MP les deux), `lk.spawnclean` (second zombie vu, MP Living Knox seul), `lk.traversal` porte intérieure verrouillée (13 portes ouvertes au lieu de 12, MP Living Knox seul), `lk.windowlure` (solo Living Knox seul), `rs.conversations` (conteur non choisi en 5 s, solo les deux), `rs.personas` canal créé après le chargement non reçu (solo les deux, première fois), `lk.meals` membre sans prise en 120 s (MP les deux, vert au rejeu). Pour chacune : cause (placement du test, délai ou défaut), puis correction.
   - Accepté si : chaque suite verte sur trois campagnes de suite, ou cause établie et corrigée.
   - Tests : campagnes solo et MP.
+  - Preuve : —
+  - Reste : —
+
+- [ ] **E18-T32** — Bavardages entre membres d'un groupe
+  - État : `à faire`
+  - Cible : `MP`
+  - Dépend de : E18-T27
+  - Fichiers : Living Knox : nouveau `LK_Chatter` (ouverture, tours, sujet), `LK_Talk` (demande), option `InitiativeFrequency` de Living Knox (`E18-T27`) ; pont `bridge/npc_protocol.py` (sorte de demande ou sujet de `npc_converse`) ; `docs/specifications-techniques/protocole-carnet-v2.md`
+  - Faire : quand un joueur est près du foyer d'un groupe, deux membres libres échangent de temps en temps sur leur quotidien (besoins, moral, météo, chef) sans observation à transmettre (décisions du 2026-11-07) ; rien sans le pont IA.
+  - Accepté si : Living Knox seul et les deux : deux membres d'un groupe bavardent au foyer devant un joueur (2 à 4 répliques écrites par le pont, sujet tiré de l'état du groupe), au rythme de l'option ; option Désactivées ou pont arrêté : aucun bavardage.
+  - Tests : banc des bavardages (ouverture, rythme par groupe, sujet, longueur, sans pont, intervention) ; suite en jeu dans les montages Living Knox seul et les deux.
+  - Preuve : —
+  - Reste : —
+- [ ] **E18-T33** — Récompense d'une mission de PNJ créée à la volée
+  - État : `à faire`
+  - Cible : `MP`
+  - Dépend de : E18-T29
+  - Fichiers : `LK_MissionRewards`, `RC_MissionConfig` (table type de groupe → lot, lue aussi par `RS_Config.NPC_REWARD_TABLES`), `RC_Notebook` (ligne de récompense), traductions du commun
+  - Faire : demande de l'utilisateur du 2026-11-07 : le lot pris dans les surplus du foyer est trop rare ; sans surplus et sans lot annoncé (mission de ravitaillement sans récompense), rien n'est donné. Après le surplus et le lot annoncé, créer un lot selon le type du groupe du demandeur ; le carnet l'annonce.
+  - Accepté si : Living Knox seul : une mission de PNJ réussie sans surplus ni lot annoncé donne un lot créé du type du groupe dans l'inventaire ; une seule fois pour le groupe de joueurs.
+  - Tests : `test_npc_rewards.py`, `test_lk_talk_alone.py` ; suite `lk.missions.alone`.
   - Preuve : —
   - Reste : —

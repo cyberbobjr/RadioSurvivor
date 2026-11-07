@@ -114,6 +114,12 @@ def options(mod: str) -> list[tuple[str, str, str]]:
 TALK = {'IGUI_LK_Talk_' + k for k in ('Menu', 'Prompt', 'Offer', 'Range', 'Text', 'Chat', 'Cooldown', 'Busy',
                                            'Bridge', 'NoAnswer')}
 
+# E18-T27: the option of the NPC initiatives belongs to Living Knox (its labels too).
+OPTIONS_RENAMED = {'RadioSurvivor.InitiativeFrequency': 'LivingKnox.InitiativeFrequency'}
+SANDBOX_RENAMED = ({k: 'Sandbox_LivingKnox_' + k[len('Sandbox_RadioSurvivor_'):]
+                for k in json.loads(FIXTURE.read_text(encoding='utf-8'))['keys']['EN'].get('Sandbox', [])
+                if k.startswith('Sandbox_RadioSurvivor_InitiativeFrequency')})
+
 # E18-T29: hand-over and claim from the journal of the core mod.
 JOURNAL_GESTURES = {'IGUI_RC_' + k for k in ('Deliver', 'Claim', 'Delivery', 'DeliverSend', 'DeliverEmpty',
                                              'State_toClaim', 'ClaimHint', 'DeliverHint', 'Delivered')} | {
@@ -136,6 +142,9 @@ class TranslationSplitTests(unittest.TestCase):
                 expected = set(before)
                 if name == 'IG_UI':
                     expected = ((expected - set(RENAMED)) | set(RENAMED.values()) | JOURNAL | NOTEBOOK | TALK | JOURNAL_GESTURES) - REMOVED
+                elif name == 'Sandbox':
+                    moved = {k for k in expected if k in SANDBOX_RENAMED}
+                    expected = (expected - moved) | {SANDBOX_RENAMED[k] for k in moved}
                 union = set()
                 for mod in MODS:
                     union |= self.keys[mod].get(lang, {}).get(name, set())
@@ -192,7 +201,8 @@ class TranslationSplitTests(unittest.TestCase):
                 self.assertEqual(page, pages[mod], f'{name}: page in {MODS[mod]}')
                 self.assertIn(f'Sandbox_{tr}', sandbox, f'{name}: label not in {MODS[mod]}')
         self.assertEqual(options('core'), [], 'the core mod has no sandbox option')
-        self.assertEqual(sorted(names), sorted(self.before['options']), 'sandbox option names kept')
+        before = [OPTIONS_RENAMED.get(name, name) for name in self.before['options']]
+        self.assertEqual(sorted(names), sorted(before), 'sandbox option names kept')
 
     def test_mission_titles_in_the_core_mod(self):
         lua = LuaRuntime(unpack_returned_tuples=True)

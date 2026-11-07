@@ -1,7 +1,8 @@
 --[[
 rs.conversations - conversations between two nearby NPCs (E08-T04, server/LivingKnox/LK_Conversations.lua): two
-Living Knox npcs created next to the player, both given a notebook fiche; the first one noticed a storm (observation
-recorded here); E08-T11: their spots are searched around the player (RST.RSHelpers.pairSquares, bounded) where the
+Living Knox npcs created next to the player, both given a fiche of the speech host (E18-T27: RadioSurvivor's notebook,
+or Living Knox alone: RST.RSHelpers.speech); the first one noticed a storm (observation recorded here, LK_Observations);
+E08-T11: their spots are searched around the player (RST.RSHelpers.pairSquares, bounded) where the
 bodies see each other and the player hears the teller.
 Heard by the player: a conversation opens and the second npc learns the story only once the first line is said
 (heard_from:<teller>); a busy partner (hit less than 30 s ago) gets nothing. Tags "world" and "server": the authority
@@ -11,7 +12,7 @@ tags = "world" }) from an admin client (campaign mp). E01-T16: the lines said by
 client (RST.Steps "lk.speech.seen", its speech view) in solo and in MP.
 E08-T05: "a player line joins the conversation in order" selects the teller and says one sentence through the notebook
 of the REQUESTER client (RST.Steps "carnet.send" / "carnet.talk": same command as the local chat; the real network path
-in MP).
+in MP); SKIP with Living Knox alone (no notebook selection).
 The heard conversations need the bridge program running (bridge/radio_bridge.py): the lines are written by the
 model. E08-T09: without an answer of the model two npcs do not talk (no template line): "a stopped bridge: no
 conversation, no story" marks the bridge as stopped (RS_Initiatives.bridge, no bridge program needed). Every test
@@ -28,15 +29,13 @@ RST.RSConversations = RST.RSConversations or {}
 local function B() return LivingKnox and LivingKnox.Bodies end
 
 local function setup(t)
-    if not (LivingKnox and LivingKnox.isAuthority()) then t:skip("authority only (solo or dedicated server)") end
-    local Server = RS_CarnetServer
-    t:ok(Server ~= nil and Server.store.data ~= nil, "notebook server not ready")
+    local H = RST.RSHelpers.speech(t)
     local V = require "LivingKnox/LK_Conversations"
     V.reset()
     local every = V.CFG.EVERY_MS
     V.CFG.EVERY_MS = 0
     t:defer(function() V.CFG.EVERY_MS = every end, "restore EVERY_MS")
-    return Server, V, require "RadioSurvivor/RS_Observations"
+    return H, V, LivingKnox.Observations
 end
 
 -- New npc on the square sq (Bodies.spawn keeps a free square as is) with its notebook fiche; nil and the reason when
@@ -63,8 +62,7 @@ local SETTLE_MS = 2000
 
 -- Two npcs next to the player, in sight of each other, both mapped by the notebook, the teller with an observation.
 local function pair(t, Server, Obs, subject, after)
-    local P = require "RadioSurvivor/RS_NPCProvider"
-    local C = require "RadioSurvivor/RS_Config"
+    local P = Server.P
     local V = require "LivingKnox/LK_Conversations"
     local R = RST.RSHelpers
     local p = RST.Fixtures.player(t)
@@ -73,9 +71,9 @@ local function pair(t, Server, Obs, subject, after)
     t:ok(#spots > 0, "no pair of free squares in sight of each other, the first heard by the player, within "
         .. R.SPOT_RADIUS .. " squares of " .. R.at(p))
     local tried = {}
-    local function ready(tb, pb) return P.near(tb, pb, V.CFG.RANGE) and P.hears(tb, p, C.HEARING_RANGE) end
+    local function ready(tb, pb) return P.near(tb, pb, V.CFG.RANGE) and P.hears(tb, p, Server.HEARING) end
     local function mapped(t1, c)
-        t1:waitUntil(function() return Server.objects[c.teller.id] ~= nil and Server.objects[c.partner.id] ~= nil end,
+        t1:waitUntil(function() return Server.objects()[c.teller.id] ~= nil and Server.objects()[c.partner.id] ~= nil end,
             5000, function(t2)
                 local key, why = Obs.record(c.teller.id, { fact = "weather", subject = subject, day = Obs.today(),
                     place = "everywhere" })
@@ -104,7 +102,7 @@ local function pair(t, Server, Obs, subject, after)
                 end
                 tried[#tried + 1] = R.at(spot.a) .. "/" .. R.at(spot.b) .. " -> " .. R.at(tb) .. "/" .. R.at(pb)
                     .. " (sight " .. R.sightOf(tb, pb) .. "/" .. R.sightOf(pb, tb)
-                    .. (P.hears(tb, p, C.HEARING_RANGE) and "" or ", player does not hear") .. ")"
+                    .. (P.hears(tb, p, Server.HEARING) and "" or ", player does not hear") .. ")"
                 B().despawn(tid, true)
                 B().despawn(pid, true)
                 return attempt(t2, i + 1)
@@ -113,10 +111,10 @@ local function pair(t, Server, Obs, subject, after)
     attempt(t, 1)
 end
 
--- Delay of the notebook server between two sentences of a character (RS_Carnet_Server talk: C.COOLDOWN_MS, or the
--- chat slow mode of a dedicated server when longer).
+-- Delay of the notebook server between two sentences of a character (LK_Talk: COOLDOWN_MS, or the chat slow mode of a
+-- dedicated server when longer).
 local function talkCooldown()
-    local C = require "RadioSurvivor/RS_Config"
+    local C = require "RadioSurvivorCore/RC_SpeechConfig"
     local slow = isServer() and getServerOptions():getInteger("ChatMessageSlowModeTime") * 1000 or 0
     return math.max(C.COOLDOWN_MS, slow)
 end
@@ -165,7 +163,7 @@ local function waitJoined(t, c, V, Server, conv, joined0)
     end, "player line wait never ended")
 end
 
-RST.suite("rs.conversations", { mods = { "rs", "lk" },
+RST.suite("rs.conversations", { mods = { "lk" },
     tags = { "world", "server" }, testTimeoutMs = 120000, timeoutMs = 300000 }, function(s)
     s.test("a heard conversation passes the story after the first line", function(t)
         local Server, V, Obs = setup(t)
@@ -194,11 +192,12 @@ RST.suite("rs.conversations", { mods = { "rs", "lk" },
     -- the sentence joins the conversation in order; no conversation line is asked while the answer is awaited.
     s.test("a player line joins the conversation in order", function(t)
         local Server, V, Obs = setup(t)
+        if Server.alone then t:skip("Living Knox alone: no notebook selection (the chat path is lk.talk.alone)") end
         -- The notebook server refuses a sentence of the same character within C.COOLDOWN_MS of its previous one
         -- (Server.talk.lastTalk, 'Cooldown'; slow mode of the chat in MP): the previous suites talk a few seconds before
         -- (campaign 2026-10-15: refused 9 s after rs.relation). Wait for it BEFORE the pair is made: the observation
         -- recorded by pair() lets the server pass open the conversation by itself (EVERY_MS = 0).
-        local cid0 = Server.bound[RST.Fixtures.player(t)]
+        local cid0 = Server.bound()[RST.Fixtures.player(t)]
         local quiet = talkCooldown()
         t:waitQuiet(function()
             local last = cid0 and Server.talk.lastTalk[cid0]
@@ -214,10 +213,10 @@ RST.suite("rs.conversations", { mods = { "rs", "lk" },
                 -- sendClientCommand queues the commands (SinglePlayerServer.addIncoming), read at the next logic
                 -- update; MP: network delay and commands not ordered: the Say line is sent only once the authority
                 -- selected the teller.
-                local cid = Server.bound[RST.Fixtures.player(t2)]
+                local cid = Server.bound()[RST.Fixtures.player(t2)]
                 Steps.ask(t2, "carnet.send", { command = "select", args = { incarnation = c.tellerId } },
                     { target = "requester", timeoutMs = 10000 }, function(t2a)
-                        t2a:waitUntil(function() return cid ~= nil and Server.selected[cid] == c.teller.id end, 5000,
+                        t2a:waitUntil(function() return cid ~= nil and RS_CarnetServer.selected[cid] == c.teller.id end, 5000,
                             function(t2b)
                                 local say = { text = "What are you two talking about?", cooldownMs = 0 }
                                 Steps.ask(t2b, "carnet.talk", say, { target = "requester", timeoutMs = 30000 },
@@ -232,11 +231,11 @@ RST.suite("rs.conversations", { mods = { "rs", "lk" },
     s.test("a stopped bridge: no conversation, no story", function(t)
         local Server, V, Obs = setup(t)
         local I = require "LivingKnox/LK_Initiatives"
-        local P = require "RadioSurvivor/RS_NPCProvider"
+        local P = Server.P
         local said = RST.PeerChecks.recordSpeech(t)
         local barks, bark = 0, P.bark
         P.bark = function(...) barks = barks + 1; return bark(...) end
-        t:defer(function() P.bark = bark end, "restore Provider.bark")
+        t:defer(function() rawset(P, "bark", nil) end, "restore Provider.bark") -- P: proxy of the host provider
         local down, probeAt = I.bridge.down, I.bridge.probeAt
         I.bridge.down, I.bridge.probeAt = true, getTimestampMs() + 600000
         t:defer(function() I.bridge.down, I.bridge.probeAt = down, probeAt end, "restore the bridge state")

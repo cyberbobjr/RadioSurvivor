@@ -76,13 +76,13 @@ Pages `RadioSurvivor` et `LivingKnox` de `media/sandbox-options.txt` (47 options
 | `RadioSurvivor.NoteRarity` | enum | 3 | 1–4 | Notes de fréquences dans le butin |
 | `RadioSurvivor.ChronicleHour` | integer | 20 | 0–23 | Heure du bulletin du soir |
 | `RadioSurvivor.LastPages` | boolean | true | — | Dernières pages des morts |
-| `RadioSurvivor.InitiativeFrequency` | enum | 3 | 1–4 | Initiatives des PNJ |
 | `RadioSurvivor.RescueDays` | integer | 3 | 1–10 | Jours de réserves d'un groupe à secourir |
 | `RadioSurvivor.ComfortBoredom` | integer | 3 | 0–20 | Ennui apaisé par une réponse radio |
 | `RadioSurvivor.ComfortSadness` | integer | 1 | 0–20 | Tristesse apaisée par une réponse radio |
 | `RadioSurvivor.ComfortListen` | integer | 1 | 0–20 | Ennui apaisé en écoutant des survivants |
 | `RadioSurvivor.ComfortPerHour` | integer | 5 | 0–20 | Réconforts par la parole par heure |
 | `LivingKnox.Enabled` | boolean | true | — | Activer le moteur de PNJ Living Knox |
+| `LivingKnox.InitiativeFrequency` | enum | 3 | 1–4 | Initiatives des PNJ (et rythme de leurs conversations ; dans Living Knox depuis E18-T27) |
 | `LivingKnox.Debug` | boolean | false | — | Journal de débogage Living Knox |
 | `LivingKnox.GroupCount` | integer | 4 | 3–5 | Nombre de groupes de survivants |
 | `LivingKnox.WeightSettlers` | integer | 40 | 0–100 | Part des groupes de colons |

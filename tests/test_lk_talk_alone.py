@@ -7,7 +7,8 @@ Banc lupa (Lua 5.1) sur le vrai moteur Living Knox (registres, API, corps, histo
 près d'un PNJ part au pont avec le contexte du PNJ, la réponse revient en bulle et dans l'historique du commun ; le PNJ
 connu propose une mission, acceptée par la parole, listée au journal du commun ; E18-T29 : les objets se livrent et le lot
 se réclame par les gestes du journal du commun (commande « mission »), à côté du demandeur ; relecture après un
-redémarrage.
+redémarrage. E18-T27 : un PNJ prend la parole de lui-même sur une observation récente et deux PNJ proches se racontent
+ce qu'ils ont vu, sans RadioSurvivor.
 Doublures : le faux pont du banc écrit la réponse ; ne prouve ni le réseau ni Java.
 """
 from __future__ import annotations
@@ -205,6 +206,66 @@ class AloneTests(unittest.TestCase):
         errors, _ = self.gesture(m, 'claim')
         self.assertEqual(errors, ['State'])
 
+    def storm(self, npc):
+        """Le PNJ a remarqué un orage (journal des observations de Living Knox, E18-T27)."""
+        obs = self.w.rt.eval('LivingKnox.Observations')
+        key, why = obs.record(npc, self.w.rt.table_from(
+            {'fact': 'weather', 'subject': 'storm', 'day': obs.today(), 'place': 'everywhere'}))
+        self.assertIsNotNone(key, why)
+        return key
+
+    def pending(self, kind):
+        return [r for r in self.w.talk.pending.values() if r.kind == kind]
+
+    def test_an_npc_speaks_up_on_its_own_without_radiosurvivor(self):
+        """E18-T27 : une observation récente d'un PNJ entendu ouvre une initiative, dite en bulle."""
+        self.w.rt.execute("require 'LivingKnox/LK_Speech'")  # proximity speech channel (loaded in the game)
+        npc = self.w.g.LK_LEADER
+        self.w.talk.ensure(npc)
+        self.storm(npc)
+        self.w.answer()  # one pass: LK_Talk.turns opens the initiative
+        asked = self.pending('npc_initiative')
+        self.assertEqual(len(asked), 1, [r.kind for r in self.w.talk.pending.values()])
+        self.assertEqual(asked[0].npc, npc)
+        self.assertIsNotNone(asked[0].event)
+        initiatives = self.w.rt.eval("require('LivingKnox/LK_Initiatives')")
+        said = initiatives.stats.said
+        self.w.answer()
+        # Said by the proximity speech channel of the NPC (Provider.say, LK11-T04), as with RadioSurvivor.
+        self.assertEqual(initiatives.stats.said, said + 1)
+        self.assertEqual(self.pending('npc_initiative'), [])
+
+    def test_two_npcs_tell_each_other_what_they_saw(self):
+        """E18-T27 : deux PNJ proches devant le joueur ; le voisin apprend le récit après la première réplique."""
+        self.w.rt.execute("require 'LivingKnox/LK_Speech'")
+        teller, partner = self.w.g.LK_LEADER, self.w.g.LK_MATE
+        self.w.talk.ensure(teller)
+        self.w.talk.ensure(partner)
+        initiatives = self.w.rt.eval("require('LivingKnox/LK_Initiatives')")
+        initiatives.bridge.down = False
+        key = self.storm(teller)
+        # The initiative of the teller goes first (same observation); its reply frees the teller.
+        for _ in range(4):
+            self.w.answer()
+            if self.pending('npc_converse'):
+                break
+        conv = self.pending('npc_converse')
+        self.assertTrue(conv, 'no conversation line asked')
+        obs = self.w.rt.eval('LivingKnox.Observations')
+        for _ in range(4):
+            self.w.answer()
+        heard = [o.source for o in obs.list(partner).values() if o.key == key]
+        self.assertEqual(heard, ['heard_from:' + teller])
+
+    def test_a_player_who_never_spoke_is_bound_and_hears_initiatives(self):
+        """E18-T27 (campagne MP du 2026-11-07, « listeners 0 ») : le hello du client arrivé avant son joueur serveur est
+        perdu ; chaque passage lie les joueurs vivants sans identité."""
+        identity = self.w.rt.eval("require('RadioSurvivorCore/RC_Identity')")
+        identity.bound[self.p] = None
+        self.assertIsNone(identity.bound[self.p])
+        self.w.answer()
+        self.assertEqual(identity.bound[self.p], self.character)
+
     def test_speakers_and_acquaintance_survive_a_restart(self):
         req = self.w.say(self.p, 'Bonjour')
         self.w.answer()
@@ -227,7 +288,9 @@ class SourceTests(unittest.TestCase):
             self.assertEqual(a, b, name)
 
     def test_no_radiosurvivor_module_is_required(self):
-        for path in (LK / 'server/LivingKnox/LK_TalkAlone.lua', LK / 'client/LivingKnox/LK_TalkView.lua'):
+        for path in (LK / 'server/LivingKnox/LK_TalkAlone.lua', LK / 'client/LivingKnox/LK_TalkView.lua',
+                     LK / 'server/LivingKnox/LK_Observations.lua', LK / 'server/LivingKnox/LK_ObservationTriggers.lua',
+                     LK / 'server/LivingKnox/LK_MissionRewards.lua'):
             text = path.read_text(encoding='utf-8')
             self.assertEqual(re.findall(r'''require\s*\(?\s*['"]RadioSurvivor/[^'"]+''', text), [], path.name)
 

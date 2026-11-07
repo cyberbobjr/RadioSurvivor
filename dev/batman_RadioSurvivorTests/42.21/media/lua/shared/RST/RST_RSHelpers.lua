@@ -37,6 +37,9 @@ Load with: require "RST/RST_RSHelpers". No side effect at load time (definitions
                                      request of the authority; after(t, req). No request within TALK_REQUEST_MS: FAIL
                                      with the last notebook refusal read on the client (RST.Steps "carnet.state")
     R.label(khz)                     "145.0"
+    R.speech(t)                      E18-T27: speech of the NPCs whatever the host (RadioSurvivor's notebook or Living Knox
+                                     alone): { talk = LivingKnox.Talk, P = its provider, ensure(id), objects(), bound(),
+                                     alone = no RadioSurvivor, HEARING }; skip on an MP client or without a started host
     R.bridgeCause(Server, since)     E17-T15: failure message of a wait for a bridge answer: the latest request refused
                                      by the notebook server since `since` (getTimestampMs) with its cause (bridge error
                                      `timeout`, `http_503`..., no reply), else "no request refused: is the bridge
@@ -170,8 +173,8 @@ end
 -- Squares (same level, at most r squares away, never next to the player) where a new body may stand and be heard by
 -- the player p, nearest first.
 function R.heardSquares(p, r)
-    local P = require "RadioSurvivor/RS_NPCProvider"
-    local C = require "RadioSurvivor/RS_Config"
+    local P = require "RadioSurvivorCore/RC_Hearing" -- E18-T27: rule of every speech host, any mod setup
+    local C = require "RadioSurvivorCore/RC_SpeechConfig"
     local Bodies = LivingKnox and LivingKnox.Bodies
     local cell = getCell()
     local out = {}
@@ -240,8 +243,8 @@ function R.talkSquare(p, dx, r)
     local function fits(sq)
         return sq ~= nil and not blocked(ps, sq) and not blocked(sq, ps)
     end
-    local P = require "RadioSurvivor/RS_NPCProvider"
-    local C = require "RadioSurvivor/RS_Config"
+    local P = require "RadioSurvivorCore/RC_Hearing" -- E18-T27: rule of every speech host, any mod setup
+    local C = require "RadioSurvivorCore/RC_SpeechConfig"
     local east = cell:getGridSquare(ps:getX() + dx, ps:getY(), ps:getZ())
     if east ~= nil and Bodies.freeSquare(east) and P.hears(standIn(east), p, C.HEARING_RANGE) and fits(east) then
         return east
@@ -415,6 +418,17 @@ function R.language()
     local lang = Translator and Translator.getLanguage and Translator.getLanguage()
     if lang ~= nil and tostring(lang:name()) == "FR" then return "FR" end
     return "EN"
+end
+
+function R.speech(t)
+    if not (LivingKnox and LivingKnox.isAuthority()) then t:skip("authority only (solo or dedicated server)") end
+    local Talk = LivingKnox.Talk
+    t:ok(Talk ~= nil and Talk.host ~= nil and Talk.data ~= nil, "speech of the NPCs not started (no host)")
+    local Speech = require "RadioSurvivorCore/RC_SpeechConfig"
+    return { talk = Talk, P = Talk.provider, alone = RS_CarnetServer == nil, HEARING = Speech.HEARING_RANGE,
+        ensure = function(id) return Talk.ensure(id) end,
+        objects = function() return Talk.objects() or {} end,
+        bound = function() return Talk.bound() or {} end }
 end
 
 function R.bridgeCause(Server, since)

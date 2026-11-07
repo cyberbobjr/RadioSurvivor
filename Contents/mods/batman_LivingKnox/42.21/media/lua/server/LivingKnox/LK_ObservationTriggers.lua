@@ -1,17 +1,18 @@
--- Radio Survivor : déclencheurs des observations des PNJ venus du carnet et de Living Knox (E08-T07).
--- Autorité seulement. Chaque déclencheur enregistre un fait de la liste fermée d'E08-T01 par RS_Observations.record,
--- chez les seuls témoins admissibles, et seulement pour des fiches existantes et vivantes du carnet (record refuse une
--- fiche inconnue : aucun déclencheur ne crée de fiche). Lieu = maille Obs.area (jamais de coordonnée exacte) ; jour =
--- jour de jeu (1 = premier jour). La clé fait|sujet|jour|lieu de RS_Observations évite tout doublon par témoin.
+-- Living Knox : déclencheurs des observations des PNJ (E08-T07, E08-T08 ; dans Living Knox depuis E18-T27).
+-- Autorité seulement. Chaque déclencheur enregistre un fait de la liste fermée d'E08-T01 par LK_Observations.record,
+-- chez les seuls témoins admissibles, et seulement pour des fiches existantes et vivantes de l'hôte de la parole
+-- (Talk.host : carnet de RadioSurvivor ou Living Knox seul ; record refuse une fiche inconnue : aucun déclencheur ne
+-- crée de fiche). Lieu = maille Obs.area (jamais de coordonnée exacte) ; jour = jour de jeu (1 = premier jour). La clé
+-- fait|sujet|jour|lieu de LK_Observations évite tout doublon par témoin.
 --
---   player_return  sondage du carnet (une fois par seconde, après scan) : un personnage déjà connu d'une fiche (contact
---                  du carnet) revient à portée d'audition de son corps (Provider.hears, le PNJ écoute) après au moins
---                  returnHours heures de jeu hors de portée. Témoin : cette fiche. Sujet : le personnage. Dernière
---                  heure de jeu à portée gardée dans le contact (nearHour, état privé RS_State) ; le premier passage
---                  à portée n'est pas un retour.
---   mission_done   RC_Missions.onFinished, mission réussie : chez le PNJ demandeur (fiche ; une voix radio n'a pas
---                  de fiche, rien n'est enregistré). Un fait par participant (sujet = personnage) ; lieu = corps du
---                  demandeur s'il est chargé.
+--   player_return  sondage de LK_Talk.turns (une fois par seconde) : un personnage déjà connu d'une fiche (contact de
+--                  l'hôte, host.knows) revient à portée d'audition de son corps (Provider.hears, le PNJ écoute) après
+--                  au moins returnHours heures de jeu hors de portée. Témoin : cette fiche. Sujet : le personnage.
+--                  Dernière heure de jeu à portée gardée dans l'état privé de la parole (Talk.data.nearHours) ; le
+--                  premier passage à portée n'est pas un retour.
+--   mission_done   écouteur de résultat du moteur des missions (RC_Missions.addResultListener), mission réussie :
+--                  chez le PNJ demandeur (fiche de l'hôte ; une voix radio n'en a pas, rien n'est enregistré). Un fait
+--                  par participant (sujet = personnage) ; lieu = corps du demandeur s'il est chargé.
 --   group_death    fait "memberDied" de Living Knox (LK_Core.publish). Corps présent (offscreen = false) : fiches des
 --                  membres du même groupe (Provider.npc(...).group) dont le corps chargé voit le mort (même règle que
 --                  Provider.near, qui refuse une cible morte : même étage, witnessRange cases, CanSee). Mort hors écran
@@ -19,13 +20,13 @@
 --                  lieu = maille du foyer. Sujet : fiche du mort, sinon <groupe>-<membre>.
 --   assault_seen   fait "assaultSeen" de Living Knox (LK_Hostility.record avec witnessed = true, faits hit, shot,
 --                  kill) : fiches des témoins nommés (info.witnesses). Sujet : personnage du carnet (clé de joueur).
--- Living Knox publie, le carnet s'abonne (link) : aucune dépendance du moteur vers ce fichier.
+-- Living Knox publie, ce fichier s'abonne (link).
 --
 -- Déclencheurs du monde (E08-T08), sans dépendance au moteur de PNJ autre que Provider.presence (facultatif) :
 --   weather        sondage EveryHours (rien sur un serveur vide en pause : l'heure n'avance pas) : période météo en
 --                  cours d'orage (ClimateManager.getIsThunderStorming ; sujet tropical_storm si tempête tropicale,
 --                  sinon storm) ou de blizzard (sujet blizzard). Un épisode = jour de son début, gardé dans l'état
---                  privé (data.worldEvents) : une seule observation par fiche même s'il passe minuit. Pas de
+--                  privé (Talk.data.worldEvents) : une seule observation par fiche même s'il passe minuit. Pas de
 --                  brouillard (matinal presque chaque jour, intensité qui dépend du réglage graphique fogQuality,
 --                  ClimateManager.java:1307).
 --   power_cut      sondage EveryHours : passage du réseau électrique global de présent à absent
@@ -36,30 +37,35 @@
 --                  appel de ce genre dans le Java 42.21). Le champ IsoWorld.helicopter n'est pas lisible depuis Lua
 --                  (Kahlua n'expose que les méthodes d'une instance). Épisode = jour et maille du premier son, fini
 --                  après helicopterGapHours sans son. Sujet helicopter.
---   Témoins (au plus maxNpcs fiches, les plus récemment vues d'abord) : fiches vivantes du carnet dont le PNJ n'est
+--   Témoins (au plus maxNpcs fiches, les plus récemment vues d'abord) : fiches vivantes de l'hôte dont le PNJ n'est
 --   pas en expédition (Provider.presence ; corps chargé = présent) ; pour l'hélicoptère, en plus, corps chargé ou
 --   foyer à moins de helicopterRange cases d'un son. Lieu : worldPlace pour un événement global (même clé pour
 --   tous les témoins), maille du premier son pour l'hélicoptère.
 if isClient() then return end
 
-local C = require 'RadioSurvivor/RS_Config'
-local P = require 'RadioSurvivor/RS_NPCProvider'
-local S = require 'RadioSurvivor/RS_State'
+require 'LivingKnox/LK_Core'
+local Talk = require 'LivingKnox/LK_TalkHost'
+local Speech = require 'RadioSurvivorCore/RC_SpeechConfig'
 local M = require 'RadioSurvivorCore/RC_Missions'
-local Obs = require 'RadioSurvivor/RS_Observations'
+local World = require 'RadioSurvivorCore/RC_WorldFacts'
+require 'LivingKnox/LK_Observations'
+local Obs = LivingKnox.Observations
+local P = Talk.provider
 
-local Triggers = {linked = false}
-local B = C.Observations
+local Triggers = LivingKnox.ObservationTriggers or {linked = false}
+LivingKnox.ObservationTriggers = Triggers
+Talk.observationTriggers = Triggers
+local B = Obs.CFG
 local UNKNOWN_PLACE = 'unknown place'
 
--- Heure de jeu (âge du monde, entier), ou nil sans horloge.
-function Triggers.worldHour()
-    local gt = getGameTime and getGameTime()
-    if not gt or not gt.getWorldAgeHours then return nil end
-    local hours = gt:getWorldAgeHours()
-    if type(hours) ~= 'number' or hours ~= hours or hours < 0 then return nil end
-    return math.floor(hours)
-end
+-- Heure de jeu (âge du monde, entier), ou nil sans horloge ; météo et réseau (lectures du mod commun).
+Triggers.worldHour = World.hour
+Triggers.weatherNow = World.weatherNow
+Triggers.gridPower = World.gridPower
+
+local function ready() return Talk.host ~= nil and Talk.data ~= nil end
+local function dirty() Talk.dirty = true end
+local function objects() return Talk.host.objects() or {} end
 
 local function dayOf(hour) return math.floor(hour / 24) + 1 end
 
@@ -74,10 +80,10 @@ end
 
 -- Fiche existante de l'identifiant fournisseur id (incarnation courante ou dernière connue), sans en créer.
 local function ficheOf(id)
-    if id == nil or not S.data then return nil end
-    local fiche = Triggers.server and Triggers.server.find(id)
+    if id == nil or not ready() then return nil end
+    local fiche = Talk.host.find(id)
     if fiche then return fiche end
-    for _, candidate in pairs(S.data.npcs) do
+    for _, candidate in pairs(Talk.host.fiches()) do
         if candidate.incarnation == id then return candidate end
     end
     return nil
@@ -96,27 +102,36 @@ local function record(ficheId, fact, subject, day, place)
     return Obs.record(ficheId, {fact = fact, subject = subject, day = day, place = place or UNKNOWN_PLACE})
 end
 
--- player_return : sondage sur les joueurs liés et les corps chargés des fiches (Server.bound, Server.objects).
+-- Dernières heures à portée : { [personnage] = { [fiche] = heure } } (état privé de la parole).
+local function nearHours(character)
+    local all = Talk.data.nearHours
+    if type(all) ~= 'table' then all = {}; Talk.data.nearHours = all end
+    local mine = all[character]
+    if type(mine) ~= 'table' then mine = {}; all[character] = mine end
+    return mine
+end
+
+-- player_return : sondage sur les joueurs liés et les corps chargés des fiches (host.bound, host.objects).
 -- Rend vrai si l'état a changé.
-function Triggers.returns(server)
-    if not S.data or S.blocked then return false end
+function Triggers.returns()
+    if not ready() or not Talk.host.knows then return false end
     local hour = Triggers.worldHour()
     if not hour then return false end
     local changed = false
-    for player, character in pairs(server.bound) do
-        local record_ = S.data.characters[character]
-        if record_ and not player:isDead() then
-            for fid, object in pairs(server.objects) do
-                local known = record_.contacts[fid]
-                if known and P.hears(player, object, C.HEARING_RANGE) then
-                    local last = known.nearHour
+    local bodies = objects()
+    for player, character in pairs(Talk.host.bound()) do
+        if not player:isDead() then
+            for fid, object in pairs(bodies) do
+                if Talk.host.knows(character, fid) and P.hears(player, object, Speech.HEARING_RANGE) then
+                    local hours = nearHours(character)
+                    local last = hours[fid]
                     if type(last) == 'number' and hour - last >= B.returnHours then
                         local _, status = record(fid, 'player_return', character, dayOf(hour), placeOf(object))
                         if status == 'ok' or status == 'upgraded' then changed = true end
                     end
                     if last ~= hour then
-                        known.nearHour = hour
-                        S.dirty = true
+                        hours[fid] = hour
+                        dirty()
                     end
                 end
             end
@@ -125,17 +140,24 @@ function Triggers.returns(server)
     return changed
 end
 
--- mission_done : RC_Missions.onFinished.
-function Triggers.missionFinished(state, mission, result)
-    if result ~= 'success' or type(state) ~= 'table' or type(state.npcs) ~= 'table' then return end
-    local fiche = state.npcs[mission.npc]
-    if not fiche then return end
+-- Heures à portée des fiches qui ne sont plus suivies retirées (avec Obs.prune, LK_Talk.turns).
+function Triggers.prune()
+    if not ready() or type(Talk.data.nearHours) ~= 'table' then return end
+    for _, hours in pairs(Talk.data.nearHours) do
+        local doomed = {}
+        for fid in pairs(hours) do if not Obs.tracked(fid) then doomed[#doomed + 1] = fid end end
+        for _, fid in ipairs(doomed) do hours[fid] = nil; dirty() end
+    end
+end
+
+-- mission_done : écouteur de résultat du moteur des missions (une fois par participant d'une mission close).
+function Triggers.missionResult(_, mission, result, character)
+    if result ~= 'success' or not ready() or (mission.donor or 'npc') ~= 'npc' then return end
+    local fiche = Talk.host.fiche(mission.npc)
+    if not fiche or type(character) ~= 'string' then return end
     local hour = Triggers.worldHour()
     if not hour then return end
-    local body = Triggers.server and Triggers.server.objects[mission.npc]
-    for character in pairs(mission.participants or {}) do
-        record(fiche.id, 'mission_done', character, dayOf(hour), placeOf(body))
-    end
+    record(fiche.id, 'mission_done', character, dayOf(hour), placeOf(objects()[mission.npc]))
 end
 
 local function memberSubject(info, dead)
@@ -147,7 +169,7 @@ end
 
 -- group_death : fait "memberDied" de Living Knox.
 function Triggers.memberDied(info)
-    if type(info) ~= 'table' or not S.data or S.blocked or type(info.group) ~= 'string' then return end
+    if type(info) ~= 'table' or not ready() or type(info.group) ~= 'string' then return end
     local day = validDay(info.day) and info.day or nil
     if not day then
         local hour = Triggers.worldHour()
@@ -168,8 +190,8 @@ function Triggers.memberDied(info)
     local body = info.body
     if not body then return end
     local place = placeOf(body)
-    for fid, object in pairs(Triggers.server and Triggers.server.objects or {}) do
-        local fiche = S.data.npcs[fid]
+    for fid, object in pairs(objects()) do
+        local fiche = Talk.host.fiche(fid)
         local data = fiche and fiche ~= dead and fiche.incarnation ~= info.npc and not rawequal(object, body)
             and P.npc(fiche.incarnation)
         if data and tostring(data.group or '') == info.group and sees(object, body, B.witnessRange) then
@@ -182,7 +204,7 @@ local ASSAULTS = {hit = true, shot = true, kill = true}
 
 -- assault_seen : fait "assaultSeen" de Living Knox.
 function Triggers.assaultSeen(info)
-    if type(info) ~= 'table' or not S.data or S.blocked or not ASSAULTS[info.fact] then return end
+    if type(info) ~= 'table' or not ready() or not ASSAULTS[info.fact] then return end
     if type(info.player) ~= 'string' or type(info.witnesses) ~= 'table' then return end
     local day = validDay(info.day) and info.day or nil
     if not day then
@@ -197,9 +219,10 @@ function Triggers.assaultSeen(info)
     end
     -- Un seul lieu pour tous les témoins (même clé) : la scène, sinon le premier témoin dont le corps est chargé.
     local place = Obs.area(info.x, info.y)
-    if not place and Triggers.server then
+    if not place then
+        local bodies = objects()
         for _, fiche in ipairs(fiches) do
-            place = placeOf(Triggers.server.objects[fiche.id])
+            place = placeOf(bodies[fiche.id])
             if place then break end
         end
     end
@@ -209,8 +232,8 @@ end
 -- ---------------------------------------------------------------- déclencheurs du monde (E08-T08)
 
 local function worldEvents()
-    if type(S.data.worldEvents) ~= 'table' then S.data.worldEvents = {} end
-    return S.data.worldEvents
+    if type(Talk.data.worldEvents) ~= 'table' then Talk.data.worldEvents = {} end
+    return Talk.data.worldEvents
 end
 
 -- Témoins d'un événement du monde : fiches vivantes dont le PNJ est présent (corps chargé, ou pas en expédition
@@ -218,11 +241,11 @@ end
 -- récemment vues d'abord. Travail proportionnel aux fiches du carnet, jamais à la population.
 function Triggers.witnesses(filter)
     local list = {}
-    if not S.data or type(S.data.npcs) ~= 'table' then return list end
-    local objects = Triggers.server and Triggers.server.objects or {}
-    for fid, fiche in pairs(S.data.npcs) do
+    if not ready() then return list end
+    local bodies = objects()
+    for fid, fiche in pairs(Talk.host.fiches()) do
         if type(fiche) == 'table' and fiche.alive ~= false then
-            local body = objects[fid]
+            local body = bodies[fid]
             local presence = P.presence(fiche.incarnation)
             if (body or not (presence and presence.away == true)) and (not filter or filter(fiche, body, presence)) then
                 list[#list + 1] = fiche
@@ -238,33 +261,13 @@ function Triggers.witnesses(filter)
     return list
 end
 
--- Épisode météo en cours : 'tropical_storm' | 'storm' | 'blizzard', ou nil.
-function Triggers.weatherNow()
-    local cm = getClimateManager and getClimateManager()
-    if not cm or not cm.getIsThunderStorming then return nil end
-    local wp = cm:getWeatherPeriod()
-    if cm:getIsThunderStorming() then
-        if wp and wp:isTropicalStorm() then return 'tropical_storm' end
-        return 'storm'
-    end
-    if wp and wp:isRunning() and wp:isBlizzard() then return 'blizzard' end
-    return nil
-end
-
--- Réseau électrique global présent (vrai), coupé (faux), ou nil sans options.
-function Triggers.gridPower()
-    local options = getSandboxOptions and getSandboxOptions()
-    if not options or not options.doesPowerGridExist then return nil end
-    return options:doesPowerGridExist() == true
-end
-
 local function recordAll(fiches, fact, subject, day, place)
     for _, fiche in ipairs(fiches) do record(fiche.id, fact, subject, day, place) end
 end
 
 -- Sondage EveryHours : météo et coupure du réseau.
 function Triggers.hourly()
-    if not S.data or S.blocked then return end
+    if not ready() then return end
     local hour = Triggers.worldHour()
     if not hour then return end
     local ev = worldEvents()
@@ -272,23 +275,23 @@ function Triggers.hourly()
     if kind then
         if ev.weather ~= kind or not validDay(ev.weatherDay) then
             ev.weather, ev.weatherDay = kind, dayOf(hour)
-            S.dirty = true
+            dirty()
         end
         -- Chaque heure de l'épisode, même clé : une fiche revenue d'expédition ou créée pendant l'orage l'apprend,
         -- les autres n'ont qu'un doublon refusé.
         recordAll(Triggers.witnesses(), 'weather', kind, ev.weatherDay, B.worldPlace)
     elseif ev.weather ~= nil then
         ev.weather, ev.weatherDay = nil, nil
-        S.dirty = true
+        dirty()
     end
     local grid = Triggers.gridPower()
     if grid == true and ev.grid ~= true then
         ev.grid = true
-        S.dirty = true
+        dirty()
     elseif grid == false and ev.grid ~= false then
         local cut = ev.grid == true and ev.powerCut == nil
         ev.grid = false
-        S.dirty = true
+        dirty()
         if cut then
             ev.powerCut = dayOf(hour)
             recordAll(Triggers.witnesses(), 'power_cut', 'power', ev.powerCut, B.worldPlace)
@@ -299,7 +302,7 @@ end
 -- OnWorldSound (x, y, z, radius, volume, source) : passage de l'hélicoptère vanilla.
 function Triggers.worldSound(x, y, z, radius, volume, source)
     if source ~= nil or z ~= 0 or radius ~= B.helicopterSound or volume ~= B.helicopterSound then return end
-    if not S.data or S.blocked or type(x) ~= 'number' or type(y) ~= 'number' then return end
+    if not ready() or type(x) ~= 'number' or type(y) ~= 'number' then return end
     local hour = Triggers.worldHour()
     if not hour then return end
     local ev = worldEvents()
@@ -309,10 +312,10 @@ function Triggers.worldSound(x, y, z, radius, volume, source)
         heli = {day = dayOf(hour), place = Obs.area(x, y), hour = hour}
         ev.helicopter = heli
         Triggers.helicopterAt = nil
-        S.dirty = true
+        dirty()
     elseif heli.hour ~= hour then
         heli.hour = hour
-        S.dirty = true
+        dirty()
     end
     local now = getTimestampMs()
     if Triggers.helicopterAt and now - Triggers.helicopterAt < B.helicopterEveryMs then return end
@@ -333,27 +336,21 @@ function Triggers.worldSound(x, y, z, radius, volume, source)
     recordAll(Triggers.witnesses(hears), 'helicopter', 'helicopter', heli.day, heli.place)
 end
 
--- Abonnement aux faits de Living Knox, dès que son espace de noms est chargé (idempotent). Rend vrai si abonné.
+-- Abonnement aux faits de Living Knox (idempotent). Rend vrai si abonné.
 function Triggers.link()
     if Triggers.linked then return true end
-    local LK = LivingKnox
-    if type(LK) ~= 'table' or type(LK.listen) ~= 'function' then return false end
-    LK.listen('memberDied', 'RS_Observations.groupDeath', Triggers.memberDied)
-    LK.listen('assaultSeen', 'RS_Observations.assaultSeen', Triggers.assaultSeen)
+    LivingKnox.listen('memberDied', 'Observations.groupDeath', Triggers.memberDied)
+    LivingKnox.listen('assaultSeen', 'Observations.assaultSeen', Triggers.assaultSeen)
     Triggers.linked = true
     return true
 end
 
--- Branche les déclencheurs sur le serveur du carnet (RS_Carnet_Server).
-function Triggers.attach(server)
-    Triggers.server = server
-    M.onFinished = Triggers.missionFinished
+if not Triggers.subscribed then
+    Triggers.subscribed = true
     Triggers.link()
-    if not Triggers.hooked then
-        Triggers.hooked = true
-        Events.EveryHours.Add(Triggers.hourly)
-        Events.OnWorldSound.Add(Triggers.worldSound)
-    end
+    M.addResultListener(Triggers.missionResult)
+    LivingKnox.subscribe('EveryHours', 'Observations.hourly', function() Triggers.hourly() end)
+    LivingKnox.subscribe('OnWorldSound', 'Observations.worldSound', function(...) Triggers.worldSound(...) end)
 end
 
 return Triggers

@@ -1,6 +1,7 @@
 --[[
 rs.observations - notebook and Living Knox triggers of the NPC observations (E08-T07,
-server/RadioSurvivor/RS_ObservationTriggers.lua) on the running engine: each fact once per admissible witness, never
+server/LivingKnox/LK_ObservationTriggers.lua, Living Knox since E18-T27) on the running engine: each fact once per
+admissible witness, never
 for an NPC that could not see it, no coordinate, no fiche created by a trigger.
 Scene (every test): Living Knox test npcs around the requester (LivingKnox.API.testSpawnNpc): A and B (2 squares),
 C (4 squares, NOT in the group), D (4 squares, in the group, NO fiche), each 2 squares at least from the others,
@@ -174,7 +175,7 @@ local function setup(t)
     end
     t:ok(type(cid) == "string", "no notebook character bound to the requester")
     return { Server = Server, S = Server.store, C = C, E = E, API = E.API, p = p, cid = cid,
-        Obs = require "RadioSurvivor/RS_Observations", P = require "RadioSurvivor/RS_NPCProvider",
+        Obs = require "LivingKnox/LK_Observations", P = require "RadioSurvivor/RS_NPCProvider",
         M = require "RadioSurvivorCore/RC_Missions" }
 end
 
@@ -210,7 +211,7 @@ local function scene(t, after, sightLine)
     local at = {}
     for name, off in pairs(DEFAULT_SPOTS) do at[name] = { x + off[1], y + off[2] } end
     if sightLine then
-        local l, how = witnessSpots(x, y, z, c.C.Observations.witnessRange)
+        local l, how = witnessSpots(x, y, z, c.Obs.CFG.witnessRange)
         t:ok(l ~= nil, "group_death scene: " .. tostring(how))
         at.A, at.B, at.D = l.A, l.B, l.D
         t:note("death scene: " .. how .. ": A " .. at.A[1] .. "," .. at.A[2] .. ", B " .. at.B[1] .. "," .. at.B[2]
@@ -351,7 +352,7 @@ RST.suite("rs.observations", { mods = { "rs", "lk" },
             local E, B = sc.c.E, sc.c.E.Bodies
             local victim = B.find(sc.ids.D)
             t2:ok(victim ~= nil, "body of D not found")
-            local range = sc.c.C.Observations.witnessRange
+            local range = sc.c.Obs.CFG.witnessRange
             local want, seen = {}, {}
             for _, name in ipairs({ "A", "B", "F" }) do
                 local body = sc.ids[name] and B.find(sc.ids[name])
@@ -424,17 +425,23 @@ RST.suite("rs.observations", { mods = { "rs", "lk" },
         scene(t, function(t2, sc)
             local record = sc.c.S.data.characters[sc.c.cid]
             local hour = math.floor(getGameTime():getWorldAgeHours())
+            local data = LivingKnox.Talk.data
+            data.nearHours = data.nearHours or {}
+            data.nearHours[sc.c.cid] = data.nearHours[sc.c.cid] or {}
+            local near = data.nearHours[sc.c.cid]
             local known = {}
             for _, name in ipairs({ "A", "F" }) do
                 local f = sc.fiches[name]
                 if f ~= nil then
                     record.contacts[f.id] = { history = {}, note = "", trust = "Unassessed", trend = "Stable",
-                        stage = "stranger", exchanges = 0, nearHour = hour - sc.c.C.Observations.returnHours }
+                        stage = "stranger", exchanges = 0 }
+                    -- E18-T27: last hour in range kept by Living Knox (LK_ObservationTriggers, Talk.data.nearHours)
+                    near[f.id] = hour - sc.c.Obs.CFG.returnHours
                     known[#known + 1] = f.id
                 end
             end
             t2:defer(function()
-                for _, id in ipairs(known) do record.contacts[id] = nil end
+                for _, id in ipairs(known) do record.contacts[id] = nil; near[id] = nil end
                 sc.c.S.dirty = true
             end, "test contacts removed")
             local before = count(sc.c.S.data.npcs)
@@ -445,7 +452,7 @@ RST.suite("rs.observations", { mods = { "rs", "lk" },
                 t3:note("far npc F hears the player: " .. tostring(farHears))
                 onlyFor(t3, sc, "player_return", { A = true, F = farHears }, sc.c.cid)
                 checkCommon(t3, sc, before, "player_return")
-                t3:ok((record.contacts[sc.fiches.A.id].nearHour or 0) >= hour, "last hour heard of A not updated")
+                t3:ok((near[sc.fiches.A.id] or 0) >= hour, "last hour heard of A not updated")
             end)
         end)
     end)

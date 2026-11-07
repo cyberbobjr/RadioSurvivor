@@ -15,8 +15,7 @@ local Contacts = require 'RadioSurvivorCore/RC_Contacts' -- E18-T26: contacts gi
 -- acts its mod knows).
 local function repProjection(character) return Rep.projection(character) end
 local Radio = require 'RadioSurvivor/RadioSurvivor_Const'
-local Obs = require 'RadioSurvivor/RS_Observations'
-local Triggers = require 'RadioSurvivor/RS_ObservationTriggers' -- E08-T07: observation triggers
+-- E18-T27: observations of the NPCs and their triggers are Living Knox's (LK_Observations, LK_ObservationTriggers).
 local Teams = require 'RadioSurvivorCore/RC_Teams' -- E09-T03, E18-T20: team ids and mandates of the core mod
 -- E18-T20: agreements, personal truces and incidents are Living Knox's (LK_Agreements), read through its global; nil
 -- without Living Knox (no agreement offered, none applied). E18-T17: so is the speech of the NPCs (LK_Talk).
@@ -474,7 +473,6 @@ function Server.dead(id, object, cause)
     -- 'player': attributed to a notebook character; 'unbound': a player account without a notebook character;
     -- 'unavailable_server_evidence': no killer established by the server (fire, trap, unseen death).
     npc.deathAttribution = killer and 'player' or (account and 'unbound') or 'unavailable_server_evidence'
-    Obs.forget(npc.id)
     S.save(); publish()
 end
 
@@ -535,8 +533,6 @@ local function prune(now)
         for sig, id in pairs(S.data.bindings) do if not S.data.npcs[id] then S.data.bindings[sig] = nil end end
         S.dirty = true
     end
-    -- Observation logs of removed or dead fiches (E08-T02).
-    removed = Obs.prune() or removed
     -- E18-T21: personal relations are kept and purged by Living Knox (LivingKnox.PersonalRelation.prune).
     return removed
 end
@@ -563,9 +559,6 @@ local function tick()
         for p in pairs(Server.lastSnapshot) do if not present[p] then gone[#gone + 1] = p end end
         for _, p in ipairs(gone) do Server.lastSnapshot[p] = nil end
         scan()
-        -- E08-T07: Living Knox facts (subscribed once its namespace exists) and comebacks of known characters.
-        Triggers.link()
-        Triggers.returns(Server)
         if Server.talk then Server.talk.turns(now) end -- E18-T17: initiatives, conversations, incidents (LK_Talk)
         for player, character in pairs(Server.bound) do
             local id = Server.selected[character]
@@ -717,10 +710,14 @@ end
 
 local HOST = {
     provider = P,
-    observations = Obs,
     session = function() return S.data.world, S.run end,
     fiche = function(id) return S.data.npcs[id] end,
     fiches = function() return S.data.npcs end,
+    -- E18-T27: a character knows a fiche (contact of its notebook record): comebacks of LK_ObservationTriggers.
+    knows = function(character, id)
+        local record = S.data.characters[character]
+        return record ~= nil and type(record.contacts) == 'table' and record.contacts[id] ~= nil
+    end,
     find = Server.find,
     ensure = Server.ensure,
     objects = function() return Server.objects end,
@@ -802,7 +799,6 @@ Events.OnClientCommand.Add(Server.command)
 Events.OnTickEvenPaused.Add(tick)
 P.on('death', Server.dead)
 P.on('reincarnated', Server.reincarnated)
-Triggers.attach(Server) -- E08-T07: mission_done, group_death, assault_seen
 Events.OnSave.Add(function() if S.data then tick(); S.save() end end)
 -- OnPlayerDeath is client-only (IsoPlayer.java:6096-6110). OnCharacterDeath also fires on the
 -- dedicated server, for every character: keep players only.

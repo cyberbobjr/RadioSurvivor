@@ -20,7 +20,9 @@ Missions: engine of the core mod on its private state (RC_MissionStore), giver "
 offer, acceptance and report by speech). Hand-over and claim (E18-T29): buttons of the Missions tab of the common
 notebook (RC_MissionJournal, command "mission"), next to the requester's body (giver.near, DELIVERY_RANGE); the lot is
 an item of the household surplus (LK_MissionRewards), else the common lot of the engine.
-Observations, initiatives, conversations and incidents do not run alone (E18-T27).
+Observations (LK_Observations, LK_ObservationTriggers), initiatives and conversations run alone too (E18-T27): each
+pass of the authority calls LK_Talk.turns (the decisions of a leader on an incident of a truce as well: agreements are
+Living Knox's, E18-T20).
 ]]
 require "LivingKnox/LK_Core"
 require "LivingKnox/LK_TalkHost"
@@ -95,9 +97,6 @@ local function makeProvider()
     return setmetatable({ near = Hearing.near, hears = Hearing.hears, personality = Hearing.personality,
         hasSupplies = function() return base.available() end }, { __index = base })
 end
-
--- Observations stay with RadioSurvivor until E18-T27: an NPC alone has none.
-local NO_OBSERVATIONS = { field = function() return nil end, list = function() return {} end, MAX_CHAIN = 0 }
 
 -- Speakers ----------------------------------------------------------------------------------------------------------
 
@@ -218,10 +217,13 @@ local function nothing() end
 local function makeHost(provider)
     return {
         provider = provider,
-        observations = NO_OBSERVATIONS,
         session = function() return Talk.data.world, Alone.run end,
         fiche = fiche,
         fiches = function() return Talk.data.speakers end,
+        knows = function(character, id)
+            local mine = Talk.data.contacts[character]
+            return mine ~= nil and mine[id] ~= nil
+        end,
         find = find,
         ensure = ensure,
         objects = function() return provider.objects() end,
@@ -241,7 +243,17 @@ local function makeHost(provider)
                 if cid and History.find(cid, peer(npc)) then line(cid, npc, id, npc.name, text) end
             end
         end,
-        contactedGroups = function() return {} end,
+        -- Groups already known to a character: group (clan) of each speaker among its contacts.
+        contactedGroups = function()
+            local out = {}
+            for _, mine in pairs(Talk.data.contacts) do
+                for id in pairs(mine) do
+                    local npc = Talk.data.speakers[id]
+                    if npc and type(npc.clan) == "string" and npc.clan ~= "" then out[npc.clan] = true end
+                end
+            end
+            return out
+        end,
         overheard = nothing,
         callLanguage = nothing,
         claim = nothing,
@@ -303,9 +315,18 @@ function Alone.onClientCommand(module, command, player, args)
     if module == Alone.MODULE and command == Alone.CMD_SAY then Alone.say(player, args) end
 end
 
--- One pass of the authority: clock and watch of the missions, answers of the bridge, background of the speakers.
+-- One pass of the authority: clock and watch of the missions, answers of the bridge, comebacks, initiatives and
+-- conversations (LK_Talk.turns), background of the speakers.
 function Alone.pass(now)
     if MissionStore.data == nil or MissionStore.blocked then return end
+    -- E18-T27: a hello of a client may arrive before its server player exists (then dropped): a connected player who
+    -- never spoke would have no identity and hear no initiative nor conversation. Every living player is bound here.
+    local Bodies = LivingKnox.Bodies
+    if Bodies ~= nil and Bodies.livingPlayers ~= nil then
+        for _, player in ipairs(Bodies.livingPlayers()) do
+            if Identity.bound[player] == nil then Identity.bind(player) end
+        end
+    end
     local changed = M.advance(MissionStore.data, playMeter())
     local watched = {}
     for player, character in pairs(Identity.bound) do watched[#watched + 1] = { player = player, character = character } end
@@ -313,6 +334,7 @@ function Alone.pass(now)
     if M.prune(MissionStore.data, now) then changed = true end
     if changed then MissionStore.save() end
     Talk.poll()
+    Talk.turns(now)
     Talk.enrich(now)
 end
 

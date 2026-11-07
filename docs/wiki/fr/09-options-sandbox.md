@@ -17,7 +17,6 @@ Deux pages dans les réglages sandbox : **Radio Survivor** et **Living Knox**, c
 | Notes de fréquences dans le butin (`NoteRarity`) | Normales | Aucune, Rares, Normales, Fréquentes. Lu au chargement du monde. |
 | Heure du bulletin du soir (`ChronicleHour`) | 20 | Heure de jeu à laquelle la station pirate lit les nouvelles du jour. |
 | Dernières pages des morts (`LastPages`) | oui | Le journal d'un personnage mort est laissé sur le corps. |
-| Initiatives des PNJ (`InitiativeFrequency`) | Normales | Désactivées, Rares, Normales, Fréquentes : à quelle fréquence un PNJ proche prend la parole de lui-même (chaque ligne est un appel à l'IA ; au plus 2, 6 ou 12 par heure réelle). |
 | Jours de réserves d'un groupe à secourir (`RescueDays`) | 3 | Temps pour rejoindre une famille assiégée (1 à 10 jours de jeu). |
 
 Limites fixes, sans option : 8 demandes radio en attente, 5 s entre deux phrases côté client, 15 phrases par minute et
@@ -36,6 +35,7 @@ par joueur, 60 dialogues de PNJ et 12 biographies par heure réelle.
 | Raids des pillards sur les bases des joueurs (`RaidsEnabled`) | oui | Les pillards peuvent envoyer des éclaireurs, puis attaquer une base de joueur. |
 | Jours entre deux raids (`RaidDays`) | 14 | Jours de jeu minimum entre deux raids, et avant le premier. |
 | Heures avant une vengeance (`RevengeDelayHours`) | 72 | Heures de jeu entre un serment de vengeance et le départ de la première équipe. |
+| Initiatives des PNJ (`InitiativeFrequency`) | Normales | Désactivées, Rares, Normales, Fréquentes : à quelle fréquence un PNJ proche prend la parole de lui-même sur ce qu'il a remarqué, et deux PNJ proches se racontent ce qu'ils ont vu (chaque ligne est un appel à l'IA ; au plus 2, 6 ou 12 par heure réelle). Sans le pont d'IA : silence. |
 
 Les distances de combat et d'alerte (en cases) se règlent aussi : distance d'alerte face aux zombies (10), portée de
 l'alerte (20), rayon du cri d'alerte (10), distances de fuite (4, 8 en cas de peur), distance d'engagement des

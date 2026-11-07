@@ -9,8 +9,8 @@ et deux clients (une machine lupa chacun, `next` retiré comme dans Kahlua ; ré
 réseau, livrées au tick suivant), puis en solo (une seule machine, sendClientCommand traité au tick suivant comme le
 jeu, réponses de l'autorité remises directement aux modules client). Ce qui est réel ici : RadioSurvivor_Const,
 RS_State, RC_Codec, RS_Config, RS_RadioLog (historique radio, côté serveur), RS_RadioHistory (copie client),
-RS_Factions (avec la doublure de zombie.characters.Faction de tests/test_factions.py), RS_Observations et
-RS_ObservationTriggers, LK_Core (listen / publish). Doublures : monde Java (cases, IsoRadio sans sprite, DeviceData,
+RS_Factions (avec la doublure de zombie.characters.Faction de tests/test_factions.py), LK_Observations et
+LK_ObservationTriggers, LK_Core (listen / publish). Doublures : monde Java (cases, IsoRadio sans sprite, DeviceData,
 inventaire, véhicule et sièges, paquets VehicleEnter et Faction*), juge de la commande talk (même ordre de contrôles
 que RadioSurvivor_Server.findRadio : radio, portée du micro, allumage, siège), serveur et client du carnet réduits à ce
 que les suites lisent (hello, snapshot, select, mandate, scan, purge, sauvegarde conditionnelle), moteur Living Knox
@@ -512,7 +512,9 @@ P = {
 package.loaded["RadioSurvivor/RS_NPCProvider"] = P
 
 -- RS_Missions reduced to create / accept / finish and its optional listener (RS_Missions.lua:87-160).
-M = { onFinished = nil }
+-- Result listeners heard once per participant of a closed mission (RC_Missions, E18-T05), not for a cancellation.
+M = { onFinished = nil, results = {} }
+function M.addResultListener(fn) M.results[#M.results + 1] = fn end
 function M.create(state, npc, cid)
     if npc.mission then return state.missions[npc.mission] end
     local m = { id = npc.id .. "-d1", npc = npc.id, state = "offer", participants = {}, invited = { [cid] = true } }
@@ -529,6 +531,11 @@ function M.finish(state, m, result)
     if m.state ~= "active" then return false end
     m.state = result
     if M.onFinished then M.onFinished(state, m, result) end
+    if string.sub(result, 1, 10) ~= "cancelled_" then
+        for cid in pairs(m.participants) do
+            for _, fn in ipairs(M.results) do fn(state, m, result, cid) end
+        end
+    end
     return true
 end
 package.loaded["RadioSurvivorCore/RC_Missions"] = M
@@ -616,8 +623,20 @@ local function prune(now)
         end
     end
 end
-Triggers = require "RadioSurvivor/RS_ObservationTriggers"
-Triggers.attach(Server)
+-- E18-T27: the observation log and its triggers are Living Knox's and read the host of its speech (LK_TalkHost): the
+-- reduced notebook stands for it, with an in-memory speech state.
+do
+    local Talk = require "LivingKnox/LK_TalkHost"
+    Talk.data = Talk.data or {}
+    Talk.host = { provider = P, find = Server.find,
+        fiche = function(id) return S.data.npcs[id] end,
+        fiches = function() return S.data.npcs end,
+        knows = function(c, id) local r = S.data.characters[c] return r ~= nil and r.contacts[id] ~= nil end,
+        objects = function() return Server.objects end,
+        bound = function() return Server.bound end,
+        characterName = function(c) local r = S.data.characters[c] return r and r.name or nil end }
+end
+Triggers = require "LivingKnox/LK_ObservationTriggers" -- subscribed on load
 local checkAt, pruneAt, saveAt = 0, getTimestampMs() + C.PRUNE_INTERVAL_MS, getTimestampMs() + C.SAVE_INTERVAL_MS
 Events.OnTickEvenPaused.Add(function()
     local now = getTimestampMs()

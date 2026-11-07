@@ -58,7 +58,7 @@ class ConversationTests(unittest.TestCase):
         self.sim, self.g, self.rt = sim, sim.server.g, sim.server.rt
         self.rt.execute(LOAD)
         self.server = self.g.RS_CarnetServer
-        self.obs = self.rt.eval("require('RadioSurvivor/RS_Observations')")
+        self.obs = self.rt.eval("require('LivingKnox/LK_Observations')")
         self.conv = self.rt.eval("require('LivingKnox/LK_Conversations')")
         self.init = self.rt.eval("require('LivingKnox/LK_Initiatives')")
         self.conv.reset()
@@ -263,12 +263,12 @@ class ConversationTests(unittest.TestCase):
         self.assertEqual((self.requests(), self.said(), barks), ([], [], []))
         # Option Off: silence too.
         self.server.talk.times = self.rt.table()
-        self.g.SandboxVars.RadioSurvivor.InitiativeFrequency = 1
+        self.g.SandboxVars.LivingKnox.InitiativeFrequency = 1
         self.step()
         self.assertEqual((self.requests(), self.said(), barks), ([], [], []))
         self.assertNotIn(key, self.keys(self.mate))
         # Bridge back, budget and option Normal: the conversation opens and asks the model.
-        self.g.SandboxVars.RadioSurvivor.InitiativeFrequency = 3
+        self.g.SandboxVars.LivingKnox.InitiativeFrequency = 3
         self.step()
         self.assertEqual(len(self.requests()), 1)
         self.assertEqual(convert(self.conv.stats)['opened'], 1)

@@ -1,5 +1,6 @@
 --[[
-rs.worldtriggers - world triggers of the NPC observations (E08-T08, server/RadioSurvivor/RS_ObservationTriggers.lua)
+rs.worldtriggers - world triggers of the NPC observations (E08-T08, server/LivingKnox/LK_ObservationTriggers.lua,
+Living Knox since E18-T27)
 provoked in a real game. A Living Knox test npc with a notebook fiche stands next to the player (present witness).
     - storm: the vanilla climate is forced into a storm (a modded weather period that starts with its STORM stage);
       the hourly poll (Triggers.hourly, the EveryHours subscriber, called twice here = two game hours of the same
@@ -36,16 +37,16 @@ local function witness(t, after)
     R.notebook(t)
     local p = RST.Fixtures.player(t)
     t:ok(p ~= nil, "no target player")
-    local Triggers = require "RadioSurvivor/RS_ObservationTriggers"
-    local Obs = require "RadioSurvivor/RS_Observations"
-    local S = require "RadioSurvivor/RS_State"
+    local Triggers = require "LivingKnox/LK_ObservationTriggers"
+    local Obs = require "LivingKnox/LK_Observations"
+    local S = LivingKnox.Talk -- E18-T27: world events kept in the private speech state of Living Knox
     R.god(t, p)
     R.npcWithFiche(t, p, 2, function(t2, id, fiche)
         return after(t2, { Triggers = Triggers, Obs = Obs, S = S, p = p, id = id, fiche = fiche })
     end)
 end
 
--- World event state of the triggers (private notebook state), copied and restored at the end.
+-- World event state of the triggers (private speech state of Living Knox), copied and restored at the end.
 local function keepEvents(t, S)
     if type(S.data.worldEvents) ~= "table" then S.data.worldEvents = {} end
     local ev = S.data.worldEvents
@@ -59,7 +60,8 @@ local function keepEvents(t, S)
     return ev
 end
 
-RST.suite("rs.worldtriggers", { tags = { "world", "server" }, testTimeoutMs = 120000, timeoutMs = 400000 }, function(s)
+RST.suite("rs.worldtriggers", { mods = { "rs", "lk" }, tags = { "world", "server" }, testTimeoutMs = 120000,
+    timeoutMs = 400000 }, function(s)
     s.test("a forced storm gives one weather observation per fiche", function(t)
         witness(t, function(t2, c)
             local ev = keepEvents(t2, c.S)

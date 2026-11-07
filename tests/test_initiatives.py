@@ -57,10 +57,10 @@ class InitiativeTests(unittest.TestCase):
         sim.add_client('alice')
         sim.add_client('bob')
         self.sim, self.g, self.rt = sim, sim.server.g, sim.server.rt
-        self.g.SandboxVars.RadioSurvivor.InitiativeFrequency = level
+        self.g.SandboxVars.LivingKnox.InitiativeFrequency = level
         self.rt.execute(LOAD)
         self.server = self.g.RS_CarnetServer
-        self.obs = self.rt.eval("require('RadioSurvivor/RS_Observations')")
+        self.obs = self.rt.eval("require('LivingKnox/LK_Observations')")
         self.init = self.rt.eval("require('LivingKnox/LK_Initiatives')")
         self.init.reset()
         # E08-T04: no conversation between the nearby fiches of this bench (range 0): initiatives only.
@@ -141,7 +141,7 @@ class InitiativeTests(unittest.TestCase):
             self.step()
         self.assertEqual(len(self.initiatives()), 0, 'disabled level opened an initiative')
         # Rare: 2 LLM requests per real hour for the server, the others fall back (weather: silence).
-        self.g.SandboxVars.RadioSurvivor.InitiativeFrequency = 2
+        self.g.SandboxVars.LivingKnox.InitiativeFrequency = 2
         for _ in range(6):
             self.step()
         self.assertEqual(len(self.initiatives()), 2)
@@ -154,7 +154,7 @@ class InitiativeTests(unittest.TestCase):
         self.step()
         self.assertEqual(len(self.initiatives()), 0, 'rare level: second initiative of the NPC within a game day')
         # Normal: one per NPC per game hour, 6 per real hour.
-        self.g.SandboxVars.RadioSurvivor.InitiativeFrequency = 3
+        self.g.SandboxVars.LivingKnox.InitiativeFrequency = 3
         self.g.WORLD_HOURS = self.g.WORLD_HOURS + 1
         for f in fiches:
             self.record(f, subject='tropical_storm')
@@ -163,7 +163,7 @@ class InitiativeTests(unittest.TestCase):
         self.assertEqual(len(self.initiatives()), 4)
         # Frequent: half an hour is enough, 12 per real hour; the common cap MAX_PER_HOUR applies to all.
         self.server.talk.pending = self.rt.table()
-        self.g.SandboxVars.RadioSurvivor.InitiativeFrequency = 4
+        self.g.SandboxVars.LivingKnox.InitiativeFrequency = 4
         self.g.WORLD_HOURS = self.g.WORLD_HOURS + 0.5
         self.record(self.fiche, fact='helicopter', subject='helicopter')
         self.step()
@@ -259,7 +259,7 @@ class InitiativeTests(unittest.TestCase):
         self.assertEqual((len(self.initiatives()), self.said(), barks), (0, [], []))
         # Option Off: no initiative at all, even a bridge back with budget.
         self.server.talk.times = self.rt.table()
-        self.g.SandboxVars.RadioSurvivor.InitiativeFrequency = 1
+        self.g.SandboxVars.LivingKnox.InitiativeFrequency = 1
         self.g.WORLD_HOURS = self.g.WORLD_HOURS + 1
         self.record(mate, fact='power_cut', subject='power')
         self.step()

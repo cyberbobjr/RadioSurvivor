@@ -190,7 +190,7 @@ class FactsTests(unittest.TestCase):
         fid = self.g.RS_CarnetServer.ensure(2001).id
         state = sim.state()
         M = self.rt.eval("require('RadioSurvivorCore/RC_Missions')")
-        Obs = self.rt.eval("require('RadioSurvivor/RS_Observations')")
+        Obs = self.rt.eval("require('LivingKnox/LK_Observations')")
         z = self.sim.zombie
         z.x, z.y = MULDRAUGH
         sim.tick()
@@ -216,7 +216,7 @@ class FactsTests(unittest.TestCase):
         self.assertEqual([f['result'] for f in self.listed()], ['success', 'failed'])
         # A listener set later (notebook reloaded) is wrapped again at the next poll, without a second fact.
         self.rt.execute("require('RadioSurvivorCore/RC_Missions').onFinished = "
-                        "require('RadioSurvivor/RS_ObservationTriggers').missionFinished")
+                        "require('LivingKnox/LK_ObservationTriggers').missionFinished")
         self.hour()
         m3 = M.create(state, state.npcs[fid], alice, None)
         M.accept(state, m3, alice, 'Alice')

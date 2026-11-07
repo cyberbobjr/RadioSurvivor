@@ -8,10 +8,10 @@ HOST, given by Talk.attach(host) (decision of 2026-11-06: each mod brings its ow
 
   provider                  table of NPC functions (RS_NPCProvider contract: near, hears, say, engaged, objects, npc,
                             context, composition, loyalty, leave, decide, dissent, available)
-  observations              observation log (list, field, keyOf, hour, transmit, MAX_CHAIN)
   session() -> world, run   identifiers of the requests
   fiche(id), fiches()       speaker of this id, every speaker (each { id, incarnation, name, background, alive,
                             order, revision, personality, ... }; order and revision are numbered by LK_Talk)
+  knows(character, id)      the character already knows this speaker (comebacks of the observations, E18-T27)
   find(body id), ensure(body id)   speaker of a body, without or with creation
   objects() -> { [speaker id] = loaded body }
   bound() -> { [player] = character }
@@ -49,7 +49,20 @@ local function proxy(name)
     end })
 end
 
+-- Text on one line, without surrounding blanks (linear: the borders are found by two finds). LK_Talk, LK_Observations.
+function Talk.oneLine(text)
+    text = string.gsub(tostring(text or ""), "[\r\n\t]", " ")
+    local first = string.find(text, "%S")
+    if not first then return "" end
+    return string.sub(text, first, string.find(text, "%S%s*$", first))
+end
+
 Talk.provider = Talk.provider or proxy("provider")
-Talk.observations = Talk.observations or proxy("observations")
+-- E18-T27: the observation log is Living Knox's own (LK_Observations), whatever the host.
+-- Talk.observationLog is set by LK_Observations when it loads.
+Talk.observations = Talk.observations or setmetatable({}, { __index = function(_, key)
+    local Obs = Talk.observationLog
+    return Obs and Obs[key] or nil
+end })
 
 return Talk

@@ -233,7 +233,8 @@ class PublishTests(Base):
             NONE = LivingKnox.publish("nobody", {})
         ''')
         self.assertEqual(list(self.h.eval('server', 'GOT').values()), ['a2:m-1', 'c:m-1'])
-        self.assertEqual(self.h.eval('server', 'CALLED'), 2)
+        # E18-T27: the observation triggers of Living Knox listen to memberDied too (LK_ObservationTriggers).
+        self.assertEqual(self.h.eval('server', 'CALLED'), 3)
         self.assertEqual(self.h.eval('server', 'NONE'), 0)
         self.assertTrue(any('ERROR' in line and 'listener b of memberDied failed' in line
                             for line in lk_lines(self.h, 'server')))

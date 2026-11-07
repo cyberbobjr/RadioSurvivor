@@ -363,7 +363,7 @@ class RelationTests(unittest.TestCase):
         leader = self.g.LK_LEADER
         fiche = self.fiche(leader)
         self.sim.command('alice', 'select', incarnation=leader)
-        obs = self.rt.eval("require('RadioSurvivor/RS_Observations')")
+        obs = self.rt.eval("require('LivingKnox/LK_Observations')")
         cid = self.cid('alice')
         for source in ('seen', 'heard_from:npc-x'):
             obs.record(fiche.id, self.rt.table_from({'fact': 'assault_seen', 'subject': cid, 'day': 4,

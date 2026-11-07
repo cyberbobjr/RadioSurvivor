@@ -568,8 +568,9 @@ class FileTests(unittest.TestCase):
                     self.assertTrue(lang[f'Sandbox_LivingKnox_{name}'].strip())
                     self.assertTrue(lang[f'Sandbox_LivingKnox_{name}_tooltip'].strip())
                     self.assertNotIn('%', lang[f'Sandbox_LivingKnox_{name}_tooltip'])
-        # Aucune option enum dans la page Living Knox.
-        self.assertFalse([n for n, o in options.items() if n.startswith('LivingKnox.') and o.get('type') == 'enum'])
+        # Une seule option enum dans la page Living Knox : la fréquence des initiatives (E18-T27, venue de RadioSurvivor).
+        self.assertEqual([n for n, o in options.items() if n.startswith('LivingKnox.') and o.get('type') == 'enum'],
+                         ['LivingKnox.InitiativeFrequency'])
 
     def test_kahlua_constraints(self):
         code = MODULE.read_text(encoding='utf-8')

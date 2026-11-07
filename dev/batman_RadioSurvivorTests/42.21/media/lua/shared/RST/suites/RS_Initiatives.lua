@@ -1,10 +1,11 @@
 --[[
-rs.initiatives - NPC initiatives of the notebook (E08-T03, server/LivingKnox/LK_Initiatives.lua): a Living Knox npc
+rs.initiatives - NPC initiatives (E08-T03, server/LivingKnox/LK_Initiatives.lua): a Living Knox npc
 created next to the player (E08-T11: on a square heard by the player, RST.RSHelpers.heardSquares), given a
-notebook fiche, notices a storm (observation recorded here) and speaks up on its
+fiche of the speech host (E18-T27: RadioSurvivor's notebook, or Living Knox alone: RST.RSHelpers.speech), notices a
+storm (observation recorded here, LK_Observations) and speaks up on its
 own, once; a busy npc (hit less than 30 s ago) says nothing. Tags "world" and "server": the authority (solo or
 dedicated server), a save named rstest*, with a target player (t.ctx.player); Living Knox enabled; option
-RadioSurvivor.InitiativeFrequency not "Off". Solo: RST.run({ suite = "rs.initiatives", tags = "world" }); MP:
+LivingKnox.InitiativeFrequency not "Off". Solo: RST.run({ suite = "rs.initiatives", tags = "world" }); MP:
 RST.server({ suite = "rs.initiatives", tags = "world" }) from an admin client (campaign mp). E01-T16: the line of the
 last test must reach the requester client (RST.Steps "lk.speech.seen": its speech view), in solo and in MP.
 The last test needs the bridge program running (bridge/radio_bridge.py): the line written by the model is said by
@@ -25,12 +26,10 @@ RST.RSInitiatives = RST.RSInitiatives or {}
 local function B() return LivingKnox and LivingKnox.Bodies end
 
 local function setup(t)
-    if not (LivingKnox and LivingKnox.isAuthority()) then t:skip("authority only (solo or dedicated server)") end
-    local Server = RS_CarnetServer
-    t:ok(Server ~= nil and Server.store.data ~= nil, "notebook server not ready")
+    local H = RST.RSHelpers.speech(t)
     local I = require "LivingKnox/LK_Initiatives"
-    if I.LEVELS[I.level()] == nil then t:skip("option RadioSurvivor.InitiativeFrequency is Off") end
-    return Server, I, require "RadioSurvivor/RS_Observations"
+    if I.LEVELS[I.level()] == nil then t:skip("option LivingKnox.InitiativeFrequency is Off") end
+    return H, I, LivingKnox.Observations
 end
 
 -- New npc next to the player with a notebook fiche; waits until the notebook maps its body and the player hears it.
@@ -38,8 +37,7 @@ end
 -- first), not a fixed offset: on the MP test server the square 3 west of the start spot was out of earshot
 -- (2026-10-15: I.tick nil instead of "silent"). pick differs per test (spots of the former bodies may still be busy).
 local function npcWithFiche(t, Server, pick, after)
-    local P = require "RadioSurvivor/RS_NPCProvider"
-    local C = require "RadioSurvivor/RS_Config"
+    local P = Server.P
     local R = RST.RSHelpers
     local p = RST.Fixtures.player(t)
     t:ok(p ~= nil, "no target player (t.ctx.player)")
@@ -56,15 +54,15 @@ local function npcWithFiche(t, Server, pick, after)
         Server.talk.pending = kept
         B().despawn(id, true)
     end, "forget " .. id)
-    t:waitUntil(function() return Server.objects[fiche.id] ~= nil and P.hears(body, p, C.HEARING_RANGE) end, 5000,
+    t:waitUntil(function() return Server.objects()[fiche.id] ~= nil and P.hears(body, p, Server.HEARING) end, 5000,
         function(t2) after(t2, id, fiche) end,
         "body of the fiche never mapped by the notebook or never heard by the player (" .. R.at(sq) .. ")")
 end
 
 -- Why I.tick opened nothing for this fiche (report of a failure).
 local function idleReason(Server, I, fiche)
-    local P = require "RadioSurvivor/RS_NPCProvider"
-    local object = Server.objects[fiche.id]
+    local P = Server.P
+    local object = Server.objects()[fiche.id]
     if object == nil then return "body not mapped" end
     local busy, reason = P.engaged(fiche.incarnation)
     return "listeners " .. #I.listeners(Server.talk, object) .. ", pending " .. tostring(I.hasPending(Server.talk, fiche.id))
@@ -82,7 +80,7 @@ local function pendingOf(Server, fiche)
     return nil
 end
 
-RST.suite("rs.initiatives", { mods = { "rs", "lk" },
+RST.suite("rs.initiatives", { mods = { "lk" },
     tags = { "world", "server" }, testTimeoutMs = 90000, timeoutMs = 240000 }, function(s)
     s.test("a fresh observation of a heard npc opens one initiative, never twice", function(t)
         local Server, I, Obs = setup(t)
@@ -115,11 +113,11 @@ RST.suite("rs.initiatives", { mods = { "rs", "lk" },
     -- E08-T09: without an answer of the model the npc says nothing of its own (no template line).
     s.test("a stopped bridge leaves the npc silent", function(t)
         local Server, I, Obs = setup(t)
-        local P = require "RadioSurvivor/RS_NPCProvider"
+        local P = Server.P
         local lines = RST.PeerChecks.recordSpeech(t)
         local barks, bark = 0, P.bark
         P.bark = function(...) barks = barks + 1; return bark(...) end
-        t:defer(function() P.bark = bark end, "restore Provider.bark")
+        t:defer(function() rawset(P, "bark", nil) end, "restore Provider.bark") -- P: proxy of the host provider
         npcWithFiche(t, Server, 3, function(t2, id, fiche)
             local key, why = storm(Obs, fiche, "fog")
             t2:ok(key ~= nil, "observation refused: " .. tostring(why))

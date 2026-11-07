@@ -17,7 +17,6 @@ Two pages in the sandbox settings: **Radio Survivor** and **Living Knox**, each 
 | Frequency notes in the loot (`NoteRarity`) | Normal | None, Rare, Normal, Common. Read when the world loads. |
 | Hour of the evening bulletin (`ChronicleHour`) | 20 | In-game hour at which the pirate station reads the news of the day. |
 | Last pages of the dead (`LastPages`) | on | A dead character's journal is left on the body. |
-| NPC initiatives (`InitiativeFrequency`) | Normal | Off, Rare, Normal, Frequent: how often a nearby NPC speaks up on his own (each line is an AI call; at most 2, 6 or 12 per real hour). |
 | Days of supplies of a group to rescue (`RescueDays`) | 3 | Time you have to reach a besieged family (1 to 10 game days). |
 
 Fixed limits, without option: 8 pending radio requests, 5 s between two sentences on the client side, 15 sentences per
@@ -36,6 +35,7 @@ minute per player, 60 NPC dialogues and 12 biographies per real hour.
 | Raider raids on player bases (`RaidsEnabled`) | on | Raiders may send scouts, then raid a player base. |
 | Days between two raids (`RaidDays`) | 14 | Minimum game days between two raids, and before the first. |
 | Hours before a revenge (`RevengeDelayHours`) | 72 | Game hours between an oath of revenge and the departure of the first team. |
+| NPC initiatives (`InitiativeFrequency`) | Normal | Off, Rare, Normal, Frequent: how often a nearby NPC speaks up on their own about something they noticed, and how often two NPCs near each other tell what they saw (each line is an AI call; at most 2, 6 or 12 per real hour). Without the AI bridge: silence. |
 
 Combat and alert distances (in squares) can also be tuned: zombie alert distance (10), alert reach (20), alert shout
 radius (10), flee distances (4, 8 when afraid), zombie engage distance per role (10), home defense radius (8),

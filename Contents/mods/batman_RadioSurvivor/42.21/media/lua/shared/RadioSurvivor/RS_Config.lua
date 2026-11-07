@@ -148,27 +148,7 @@ local C = {
     -- Lifecycle of missions and NPC fiches; keeps the private state bounded on long servers.
     NPC_UNSEEN_MS = 3600000,           -- uncontacted fiche dropped after 1 h without a loaded body
     PRUNE_INTERVAL_MS = 60000,
-    -- Personal observations of contacted NPCs (E08-T02, server/RadioSurvivor/RS_Observations.lua). `facts` is the
-    -- closed list of the E08-T01 triggers (same list as OBS_FACTS in bridge/npc_protocol.py).
-    Observations = {
-        facts = {'player_return', 'mission_done', 'group_death', 'assault_seen', 'weather', 'power_cut', 'helicopter'},
-        maxPerNpc = 12,   -- oldest evicted
-        maxChain = 4,     -- provenance entries ('seen', 'heard_from:<npc>'...); a full chain is not retold
-        maxNpcs = 64,     -- tracked fiches, least recently updated evicted
-        subjectChars = 48,
-        placeChars = 32,
-        areaTiles = 256,  -- coarse area of RS_Observations.area (one map cell)
-        -- E08-T07 triggers (server/RadioSurvivor/RS_ObservationTriggers.lua)
-        returnHours = 24,     -- player_return: game hours out of hearing range before a comeback counts
-        witnessRange = 20,    -- group_death: tiles between a witness body and the dead body (same floor, CanSee)
-        -- E08-T08 world triggers (same file): weather and power cut polled at EveryHours, vanilla helicopter heard
-        -- through its world sound (OnWorldSound, Helicopter.java:218).
-        worldPlace = 'everywhere',  -- place of a global event (storm, power cut): one shared key for every witness
-        helicopterSound = 500,      -- radius and volume of the vanilla helicopter world sound (source nil, z 0)
-        helicopterRange = 500,      -- tiles between a witness (loaded body, else home) and a helicopter sound
-        helicopterGapHours = 2,     -- game hours without a helicopter sound before the next sound is a new passage
-        helicopterEveryMs = 5000,   -- helicopter sounds handled at most once per this real time (ms)
-    },
+    -- E18-T27: personal observations of the NPCs and their triggers are Living Knox's (LK_Observations.CFG).
     -- E04-T11 (Q13): lowest margin of the smuggler by reputation level; a done deal lowers it by RS_Trade.MARGIN_STEP
     -- down to RS_Trade.MARGIN_MIN, a cheat sets RS_Trade.MARGIN_MAX.
     TradeMargin = {good = 0.10, neutral = 0.25, bad = 0.40},

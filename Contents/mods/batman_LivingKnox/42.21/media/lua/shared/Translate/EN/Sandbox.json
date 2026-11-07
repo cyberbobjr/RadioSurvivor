@@ -63,5 +63,11 @@
     "Sandbox_LivingKnox_RaidDays": "Days between two raids",
     "Sandbox_LivingKnox_RaidDays_tooltip": "Minimum number of in-game days between two raids (departures of the scouts), and before the first one. Can be changed during the game.",
     "Sandbox_LivingKnox_RevengeDelayHours": "Hours before a revenge",
-    "Sandbox_LivingKnox_RevengeDelayHours_tooltip": "In-game hours (12 to 336) between the moment a group swears revenge for a member you killed and the departure of its first team. A change applies to the next oath, not to a revenge already sworn."
+    "Sandbox_LivingKnox_RevengeDelayHours_tooltip": "In-game hours (12 to 336) between the moment a group swears revenge for a member you killed and the departure of its first team. A change applies to the next oath, not to a revenge already sworn.",
+    "Sandbox_LivingKnox_InitiativeFrequency": "NPC initiatives",
+    "Sandbox_LivingKnox_InitiativeFrequency_tooltip": "How often an NPC whose body is near you speaks up on their own about something they noticed less than a game hour ago (a known player back, a storm, a death in their group...), when someone hears them and they are not fighting, warning or on alert; two NPCs near each other also tell what they saw at this pace. Each spoken line written by the language model is one call: the cost shown is the most per real hour for the whole server, also counted in the common limit of NPC requests. Without the AI bridge: silence. Can be changed during the game.",
+    "Sandbox_LivingKnox_InitiativeFrequency_option1": "Off (no call)",
+    "Sandbox_LivingKnox_InitiativeFrequency_option2": "Rare: once per NPC per game day (2 calls per real hour at most)",
+    "Sandbox_LivingKnox_InitiativeFrequency_option3": "Normal: once per NPC per game hour (6 calls per real hour at most)",
+    "Sandbox_LivingKnox_InitiativeFrequency_option4": "Frequent: once per NPC per half game hour (12 calls per real hour at most)"
 }

@@ -6,7 +6,7 @@ if isClient() then return end
 --
 -- `npc` is a notebook fiche ({ id, incarnation = Living Knox NPC id }). The notebook brings its own citable facts
 -- (golden rule of 2026-11-06: each mod gives its context), passed as `extra` at the offer and again at the reply:
---   seen      observations of this NPC seen by itself (RS_Observations, source 'seen') whose subject is the
+--   seen      observations of this NPC seen by itself (LK_Observations of Living Knox, source 'seen') whose subject is the
 --             character: mission_done (+1), assault_seen (-1): 'obs:<observation key>';
 --   mission   closed missions of this NPC the character took part in: success (+1), failed or abandoned (-1):
 --             'mis:<mission id>'.
@@ -14,7 +14,9 @@ if isClient() then return end
 -- suspension (Living Knox's LK_Agreements since E18-T20, read through LivingKnox.Agreements).
 local S = require 'RadioSurvivor/RS_State'
 local P = require 'RadioSurvivor/RS_NPCProvider'
-local Obs = require 'RadioSurvivor/RS_Observations'
+local World = require 'RadioSurvivorCore/RC_WorldFacts'
+-- E18-T27: the observation log is Living Knox's (LK_Observations); without Living Knox there is no NPC to cite.
+local function Observations() return type(LivingKnox) == 'table' and LivingKnox.Observations or nil end
 local function Factions() return type(LivingKnox) == 'table' and LivingKnox.Agreements or nil end
 
 local R = {}
@@ -36,7 +38,8 @@ end
 -- Citable facts the notebook knows (oldest first within each source): observations, then missions.
 function R.extra(npc, character)
     local out = {}
-    for _, o in ipairs(Obs.list(npc.id)) do
+    local Obs = Observations()
+    for _, o in ipairs(Obs and Obs.list(npc.id) or {}) do
         if o.source == 'seen' and o.subject == character and R.OBS_SIGNS[o.fact] then
             out[#out + 1] = {key = 'obs:' .. o.key, fact = o.fact, sign = R.OBS_SIGNS[o.fact], day = o.day,
                 source = 'seen'}
@@ -119,7 +122,7 @@ end
 -- team: team of the reader (RC_Teams.projection of its player: { id, kind }); nil: no agreement listed.
 function R.panel(npc, character, team)
     local API, id = api(), npcOf(npc)
-    local out = API and id and API.relationPanel(id, character) or {today = Obs.today(), facts = {}}
+    local out = API and id and API.relationPanel(id, character) or {today = World.today(), facts = {}}
     local gid = groupOf(npc)
     out.agreements = panelAgreements(npc, gid, type(team) == 'table' and team.id or nil,
         type(team) == 'table' and team.kind == 'personal')

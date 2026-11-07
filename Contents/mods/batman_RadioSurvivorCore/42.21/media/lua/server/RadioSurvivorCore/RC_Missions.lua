@@ -297,7 +297,7 @@ function M.finish(state, mission, result)
         local t = M.template(mission)
         if t and t.complete then t.complete(state, mission) end
     end
-    -- E08-T07: optional listener of closed missions (RS_Carnet_Server: observation mission_done of the requester).
+    -- Optional listener of closed missions, cancellations included (RadioSurvivor: RS_Facts, mission fact).
     if M.onFinished then M.onFinished(state, mission, result) end
     -- Cancellations (requester dead, engine offer closed) tell no listener. Otherwise the result listeners hear once
     -- per registered participant, connected or not (RadioSurvivor: reputation fact and notebook trust, E04-T08); the

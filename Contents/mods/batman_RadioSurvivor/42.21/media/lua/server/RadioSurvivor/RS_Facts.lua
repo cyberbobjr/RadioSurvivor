@@ -12,14 +12,14 @@ RS_Rescue.town (vanilla map only; otherwise no place). No conversation text is r
 Sources (closed list, Facts.KINDS):
     death        OnCharacterDeath of an IsoPlayer (fires on the dedicated server, OnPlayerDeath does not): name of the
                  character (descriptor), place of the body.
-    mission      RC_Missions.onFinished (chained after RS_ObservationTriggers): success, failed, abandoned (no
+    mission      RC_Missions.onFinished (chained): success, failed, abandoned (no
                  cancellation): template, requester name, participant names, place of the requester body if loaded.
     rescue       reserved for E12-T04/T05: Facts.record('rescue', { result, requester, participants, place }).
     passage      reserved for E13 (smuggler): Facts.record('passage', { event, name, place }).
     power_cut    EveryHours poll of SandboxOptions.doesPowerGridExist: present -> absent (no Lua event exists).
     water_cut    EveryHours poll: GameTime.getWorldAgeDaysSinceBegin() < SandboxOptions.getWaterShutModifier() goes
                  from true to false (same test as IsoObject.java:2544 and ParameterWaterSupply.java:18).
-    weather      EveryHours poll (RS_ObservationTriggers.weatherNow): start of a storm, tropical storm or blizzard.
+    weather      EveryHours poll (RC_WorldFacts.weatherNow): start of a storm, tropical storm or blizzard.
     group_death  public event OnLivingKnoxMemberDied: group name, role, cause, byPlayer, offscreen, place.
     group_gone   public event OnLivingKnoxGroupGone: group name, reason.
     group_new    public event OnLivingKnoxGroupCreated: group name, type key, place (at most CAPS.group_new a day).
@@ -55,7 +55,7 @@ Console messages in English.
 local S = require 'RadioSurvivor/RS_State'
 local M = require 'RadioSurvivorCore/RC_Missions'
 local Rescue = require 'RadioSurvivor/RS_Rescue'
-local Triggers = require 'RadioSurvivor/RS_ObservationTriggers'
+local World = require 'RadioSurvivorCore/RC_WorldFacts' -- E18-T27: world readings of the core mod
 local Const = require 'RadioSurvivor/RadioSurvivor_Const'
 local Codec = require 'RadioSurvivorCore/RC_Codec'
 
@@ -236,7 +236,7 @@ end
 
 -- Game day (1 = first) and hour of the day (0..23, world age starts at 7 am), or nil without a clock.
 function Facts.now()
-    local hours = Triggers.worldHour()
+    local hours = World.hour()
     if not hours then return nil end
     return math.floor(hours / 24) + 1, (hours + 7) % 24
 end
@@ -369,8 +369,8 @@ function Facts.missionFinished(state, mission, result)
 end
 
 local chained
--- Installs Facts.missionFinished after the current listener of RC_Missions (RS_ObservationTriggers.attach sets it
--- when the notebook server loads, after this file). Called again at each poll: a listener set later is wrapped too.
+-- Installs Facts.missionFinished after the current listener of RC_Missions.onFinished (none since E18-T27: the
+-- observations of Living Knox use a result listener). Called again at each poll: a listener set later is wrapped too.
 function Facts.chain()
     if chained and M.onFinished == chained then return end
     local previous = M.onFinished
@@ -428,9 +428,9 @@ function Facts.hourly()
     Facts.expire()
     local world = book.world
     local before = {world.grid, world.water, world.weather}
-    transition(world, 'grid', Triggers.gridPower(), 'power_cut')
+    transition(world, 'grid', World.gridPower(), 'power_cut')
     transition(world, 'water', Facts.waterOn(), 'water_cut')
-    local weather = Triggers.weatherNow()
+    local weather = World.weatherNow()
     if weather and weather ~= world.weather then
         local day = Facts.now()
         Facts.record('weather', {weather = weather}, 'weather|' .. weather .. '|' .. tostring(day))

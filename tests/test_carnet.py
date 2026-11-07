@@ -1791,7 +1791,7 @@ class LivingKnoxCarnetTests(unittest.TestCase):
         self.assertEqual(given.count('Base.Antibiotics'), 2)
         self.assertEqual(given.count('Base.TinnedBeans'), 1)
         # E08-T07 observation of the requester: mission done by alice.
-        obs = self.rt.eval("require('RadioSurvivor/RS_Observations')")
+        obs = self.rt.eval("require('LivingKnox/LK_Observations')")
         done = [convert(o) for o in lua_list(obs.list(fiche.id))]
         self.assertEqual([(o['fact'], o['subject']) for o in done], [('mission_done', alice)])
         # Death of the NPC body: the engine marks it dead, the notebook closes the fiche, its group mate saw it.

@@ -28,6 +28,7 @@ local WorldStart = require "RadioSurvivorCore/RC_WorldStart"
 require "LivingKnox/LK_Incidents"
 require "LivingKnox/LK_Initiatives"
 require "LivingKnox/LK_Conversations"
+require "LivingKnox/LK_ObservationTriggers" -- E18-T27: observations of the NPCs and their triggers
 
 local P, Obs = Talk.provider, Talk.observations
 
@@ -56,13 +57,7 @@ Transport.register("acks", { order = 30 })
 
 local function Agreements() return type(LivingKnox) == "table" and LivingKnox.Agreements or nil end
 
-local function oneLine(text)
-    text = string.gsub(tostring(text or ""), "[\r\n\t]", " ")
-    local first = string.find(text, "%S")
-    if not first then return "" end
-    return string.sub(text, first, string.find(text, "%S%s*$", first))
-end
-Talk.oneLine = oneLine
+local oneLine = Talk.oneLine -- LK_TalkHost
 
 -- Host ------------------------------------------------------------------------------------------------------------
 
@@ -628,8 +623,19 @@ function Talk.poll()
     if changed then Talk.save(); Talk.sync(); host.publish() end
 end
 
--- One pass of the authority, once a second: initiatives, turns of the conversations, decisions on incidents.
+-- One pass of the authority, once a second: comebacks of known characters (observations), initiatives, turns of
+-- the conversations, decisions on incidents; observation logs of speakers no longer followed purged once a minute.
+local pruneAt = 0
 function Talk.turns(now)
+    local Triggers = Talk.observationTriggers
+    if Triggers then
+        Triggers.returns()
+        if now >= pruneAt then
+            pruneAt = now + 60000
+            Talk.observationLog.prune()
+            Triggers.prune()
+        end
+    end
     Talk.initiatives.tick(Talk, now) -- E08-T03: at most one NPC initiative per pass
     Talk.conversations.tick(Talk, now) -- E08-T04: turns of the NPC conversations, at most one opened per pass
     Talk.incidents.tick(Talk, now) -- E09-T06: decision of a leader on an incident of a truce, one per pass

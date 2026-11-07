@@ -319,9 +319,15 @@ class Writer:
 def Reader(path: Path):
     if not path.exists():
         return None
+    # LuaManager.getFileReader (LuaManager.java:4915-4925) logs an IOException and returns null: a file being written
+    # by the bridge (Windows sharing violation) reads as absent, never as an error.
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError:
+        return None
 
     class _R:
-        lines = path.read_text(encoding="utf-8").splitlines()
+        lines = text.splitlines()
 
         def readLine(self):
             return self.lines.pop(0) if self.lines else None

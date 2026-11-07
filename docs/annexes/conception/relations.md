@@ -63,7 +63,7 @@ la parole des PNJ sans RadioSurvivor (E18-T18) n'existe pas.
 | Source | Clé (serveur seulement) | Sens |
 |---|---|---|
 | `group` : faits de `LK_Hostility` du groupe du PNJ envers le personnage (vus ou attribuables, les 3 gardés) | `att:<groupe>:<n>` | signe du fait |
-| `seen` : observation du PNJ vue par lui (`RS_Observations`, source `seen`, sujet = le personnage) | `obs:<clé>` | `mission_done` +1, `assault_seen` −1 |
+| `seen` : observation du PNJ vue par lui (`LK_Observations` de Living Knox, source `seen`, sujet = le personnage) | `obs:<clé>` | `mission_done` +1, `assault_seen` −1 |
 | `mission` : mission close de ce PNJ à laquelle le personnage a participé | `mis:<id>` | `success` +1, `failed` et `abandoned` −1 |
 
 Écartés : ouï-dire (`heard_from`), `player_return` (nature inconnue), missions annulées ou expirées, faits déjà utilisés

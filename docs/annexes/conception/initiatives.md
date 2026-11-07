@@ -3,7 +3,7 @@
 - Tâche : E08-T03 (création) ; servira E08-T04 (conversations entre PNJ) et E08-T06 (radio des groupes équipés, même file et mêmes quotas)
 - Build : 42.21.0 — Date : 2026-10-13 — Statut : brouillon (banc hors jeu seulement)
 
-Code : `media/lua/server/LivingKnox/LK_Initiatives.lua` (autorité), branché dans `RS_Carnet_Server.lua` (passage `tick`, réponse `reply`, délai `poll`) ; opérations du fournisseur `Provider.engaged`, `Provider.say`, `Provider.bark` (`RS_NPCProvider.lua`, implémentées par `RS_LivingKnox.lua` sur `LivingKnox.API.engaged` et `LivingKnox.Speech`) ; heure de rangement `hour` des observations (`RS_Observations.lua`) ; contrat `npc_initiative` (`bridge/npc_protocol.py`, [protocole](../../specifications-techniques/protocole-carnet-v2.md) « Initiative d'un PNJ ») ; option sandbox `RadioSurvivor.InitiativeFrequency`. Tests : `tests/test_initiatives.py` ; suite en jeu `rs.initiatives` (`dev/.../shared/RST/suites/LK_Initiatives.lua`).
+Code : `media/lua/server/LivingKnox/LK_Initiatives.lua` (autorité), appelé par `LK_Talk.turns` (hôte : carnet de RadioSurvivor ou Living Knox seul, E18-T27 ; réponse `reply`, délai `poll`) ; opérations du fournisseur `Provider.engaged`, `Provider.say`, `Provider.bark` (`RS_NPCProvider.lua`, implémentées par `RS_LivingKnox.lua` sur `LivingKnox.API.engaged` et `LivingKnox.Speech`) ; heure de rangement `hour` des observations (`LK_Observations.lua`) ; contrat `npc_initiative` (`bridge/npc_protocol.py`, [protocole](../../specifications-techniques/protocole-carnet-v2.md) « Initiative d'un PNJ ») ; option sandbox `LivingKnox.InitiativeFrequency`. Tests : `tests/test_initiatives.py`, `tests/test_lk_talk_alone.py` ; suite en jeu `rs.initiatives` (`dev/.../shared/RST/suites/RS_Initiatives.lua`, montages Living Knox seul et les deux).
 
 ## Problème
 
@@ -11,7 +11,7 @@ Un PNJ du carnet doit pouvoir parler de lui-même d'un événement récent qu'il
 
 ## Règle
 
-1. **Déclencheur** : une observation de `RS_Observations` (faits fermés d'E08-T01, enregistrés par E08-T07 et E08-T08) rangée chez la fiche depuis moins d'**une heure de jeu** (champ `hour` posé au rangement, ou quand un ouï-dire devient une observation directe). Les entrées d'avant E08-T03 n'ont pas d'heure : elles n'ouvrent rien.
+1. **Déclencheur** : une observation de `LK_Observations` (faits fermés d'E08-T01, enregistrés par E08-T07 et E08-T08) rangée chez la fiche depuis moins d'**une heure de jeu** (champ `hour` posé au rangement, ou quand un ouï-dire devient une observation directe). Les entrées d'avant E08-T03 n'ont pas d'heure : elles n'ouvrent rien.
 2. **Événement** = fiche + clé d'observation (`fait|sujet|jour|lieu`) ; gardé dans l'état privé (`data.initiatives.done`), donc **une seule initiative par événement** même après une sortie puis un retour dans la portée, une reconnexion ou un redémarrage. Il est consommé dès l'ouverture, même si la réplique échoue ensuite (caduque, pont muet).
 3. **Conditions au passage** (toutes les 5 s réelles, une initiative au plus par passage) : fiche vivante, corps chargé (`Server.objects`), aucune demande de ce PNJ dans la file, pas de conversation en cours avec un autre PNJ (E08-T04, [conversations.md](conversations.md)), délai par PNJ écoulé, PNJ non occupé, au moins un joueur lié au carnet qui l'entend (`Provider.hears`, portée `HEARING_RANGE`).
 4. **Occupé** (`LivingKnox.API.engaged`, provisoire jusqu'à LK05-T08 et LK06-T01) : coup d'un joueur reçu depuis moins de 30 s (`Bodies.lastHits`), ordre de combat en cours (`LK_Combat.orders`), sommation en cours menée par ce PNJ (`LK_Encounters`, étape ≥ 1), alerte active de son groupe (`LK_Alert.isActive`).
@@ -19,7 +19,7 @@ Un PNJ du carnet doit pouvoir parler de lui-même d'un événement récent qu'il
 6. **Réponse** : intention `none`, 200 octets au plus (limite de `LivingKnox.Speech`). **Caduque** si, à l'arrivée, le corps n'est plus chargé, le PNJ est occupé, l'observation a quitté son journal ou plus personne ne l'entend. Sinon dite par `Provider.say` (bulle et ligne de chat de LK11-T04 chez les auditeurs de cet instant) et ajoutée à l'historique des contacts **existants** de ces auditeurs (aucun contact ni fiche créé par une initiative). Le pont garde dans la mémoire du PNJ un tour utilisateur fixe `(nobody spoke to you; you spoke up on your own)`, jamais un texte de joueur.
 7. **Sans pont** : pont réputé arrêté quand une demande `npc_talk` ou `npc_initiative` reste sans réponse 90 s ; réputé revenu à la première réponse reçue. Pendant l'arrêt : aucune demande, sauf un essai toutes les 10 min ; l'initiative reste **silencieuse** (E08-T09, décision de l'utilisateur du 2026-10-14 : sans l'IA, le PNJ ne dit rien de lui-même) : aucune réplique de gabarit, aucun appel de `Provider.bark` ; l'événement est consommé comme une initiative ouverte (compteur `silent`). Même silence quand le plafond du niveau, le plafond serveur ou le plafond commun est atteint ; option « Désactivées » : aucune initiative.
 
-## Quotas (option enum `RadioSurvivor.InitiativeFrequency`)
+## Quotas (option enum `LivingKnox.InitiativeFrequency`, dans Living Knox depuis E18-T27)
 
 | Niveau (index) | Par PNJ (heures de jeu) | Demandes LLM d'initiative par heure réelle (serveur) |
 |---|---|---|
