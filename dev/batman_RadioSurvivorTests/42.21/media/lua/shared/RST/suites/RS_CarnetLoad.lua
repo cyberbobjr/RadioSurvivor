@@ -117,8 +117,11 @@ RST.suite("rs.carnet.load", { mods = { "rs", "lk" },
                     t3:eq(nil, c.Server.find(id) and c.Server.find(id).id, "fiche created for " .. id .. " without contact")
                 end
                 t3:eq(fiches, count(c.S.data.npcs), "number of notebook fiches")
-                t3:eq(enrich, enrichRequests(c.Server), "enrichment requests queued")
-                t3:eq(times, #(c.Server.talk.enrichTimes or {}), "enrichment requests sent this hour")
+                -- A request of an earlier suite may leave the queue meanwhile (sent or answered, solo campaigns of
+                -- 2026-11-07): none added is the rule, queued and sent together.
+                local queued, sent = enrichRequests(c.Server), #(c.Server.talk.enrichTimes or {})
+                t3:ok(queued + sent <= enrich + times, string.format("enrichment requests added: queued %d -> %d, "
+                    .. "sent this hour %d -> %d", enrich, queued, times, sent))
             end)
         end, "the notebook provider never saw every test npc")
     end)

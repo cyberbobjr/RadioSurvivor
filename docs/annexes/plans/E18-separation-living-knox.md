@@ -2,7 +2,7 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 9 / 30 tâche(s) terminée(s).
+**Avancement.** en cours — 10 / 31 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
@@ -20,7 +20,7 @@
 | ☑ | E18-T12 | Pont : un dossier d'échange pour les deux mods | `testé MP` | MP | E18-T04, E18-T17 |
 | ☑ | E18-T13 | Traductions et options sandbox des trois mods | `testé hors jeu` | hors jeu | E18-T06, E18-T07 |
 | ☑ | E18-T14 | Outillage des tests pour trois montages | `testé hors jeu` | hors jeu | E18-T07 |
-| ☐ | E18-T15 | Validation des trois montages | `à faire` | MP | E18-T05, E18-T06, E18-T08, E18-T10, E18-T12, E18-T13, E18-T14, E18-T18, E18-T19 |
+| ☑ | E18-T15 | Validation des trois montages | `testé MP` | MP | E18-T05, E18-T06, E18-T08, E18-T10, E18-T12, E18-T13, E18-T14, E18-T18, E18-T19 |
 | ☐ | E18-T16 | Documentation et page Workshop des trois mods | `à faire` | hors jeu | E18-T15 |
 | ☑ | E18-T17 | File des demandes de parole des PNJ portée par Living Knox | `testé MP` | MP | E18-T11, E18-T20, E18-T21, E18-T22 |
 | ☑ | E18-T18 | Parole de proximité avec Living Knox seul | `testé MP` | MP | E18-T17 |
@@ -36,6 +36,7 @@
 | ☑ | E18-T28 | Corps de PNJ inconnus des clients quand l'identifiant réseau devient négatif | `testé MP` | MP | — |
 | ☐ | E18-T29 | Livrer et réclamer une mission de PNJ sans RadioSurvivor | `à faire` | MP | E18-T18 |
 | ☐ | E18-T30 | Offensive à la fenêtre instable en MP | `à faire` | MP | — |
+| ☐ | E18-T31 | Suites instables des campagnes de validation | `à faire` | MP | — |
 
 <!-- fin du tableau de bord -->
 
@@ -301,16 +302,16 @@ Deuxième article Workshop, dépôt séparé, nouvelles règles de jeu des missi
   - Preuve : moteur RST : chaque suite exige ses mods (`opts.mods`, sinon `lk.*` Living Knox, `rs.*` RadioSurvivor, autres : le commun seul), suite d'un mod absent SKIP « needs mod(s) … (not active) » (`RST.suiteMods`, `RST.modsRefusal`, `getActivatedMods`) ; 23 suites mixtes déclarées (`mods = { "rs", "lk" }`), `rst.rights` `{ "rs" }` ; banc `tests/test_suite_mods.py` (ce que chaque suite utilise est couvert par ses mods déclarés) ; mod de test : `require=\batman_RadioSurvivorCore` seul ; `autoclient.py --mods rs|lk|both` (lk : Signal Smoke, commun, Living Knox, mod de test) ; bancs `test_rst.py` (`ModsGuardTests`, rouge puis vert), `test_autoclient.py` (trois montages), `run_all.py` 156 PASS, luacheck dev 0 ; passages solo automatiques du 2026-11-06 : RadioSurvivor seul (`--mods rs`, rs.env et rst, code 0) 13/13, aucune erreur Lua au chargement (`tools/autoclient/runs/20261106-111224-6371ee6c5612`) ; Living Knox seul (`--mods lk`, lk.sites, lk.raid, rst, rs.env, code 1) 21 PASS, 1 FAIL rst.guard (auto-test qui ne connaissait pas le refus par mod, corrigé) (`tools/autoclient/runs/20261106-111314-7fc92fd30d78`), relancé code 0 : 22 PASS + 11 SKIP (rs.env, rst.rights, rst.fixtures.npc : RadioSurvivor absent), aucune erreur Lua au chargement (`tools/autoclient/runs/20261106-111504-a322ac1c347b`)
   - Reste : campagnes `solo` et `mp` complètes dans chaque montage (`E18-T15`) ; `run_dedicated_smoke.ps1` reste sur les deux mods ensemble
 
-- [ ] **E18-T15** — Validation des trois montages
-  - État : `à faire`
+- [x] **E18-T15** — Validation des trois montages
+  - État : `testé MP`
   - Cible : `MP`
   - Dépend de : E18-T05, E18-T06, E18-T08, E18-T10, E18-T12, E18-T13, E18-T14, E18-T18, E18-T19
-  - Fichiers : ce fichier
+  - Fichiers : ce fichier, `LK_Needs.lua`, suites `lk.meals`, `lk.traversal`, `lk.talk.alone`, `rs.carnet.load`, `rs.observations`, `rs.factions.mandate`, `tests/test_lk_needs.py`, `tests/test_suite_mods.py`
   - Faire : campagnes solo et MP automatiques avec RadioSurvivor seul, Living Knox seul et les deux, pont avec faux modèle ; reconnexion et redémarrage pour les deux ensemble ; une partie d'avant la séparation rechargée.
   - Accepté si : six campagnes vertes (hors instabilités suivies par leur propre tâche, citées dans la preuve).
   - Tests : campagnes automatiques.
-  - Preuve : —
-  - Reste : —
+  - Preuve : 2026-11-07, campagnes une à une (trois tranches parallèles arrêtées faute de mémoire). Solo les deux : code 1 `pass=242 fail=4 skip=8` (`runs/20261107-083947-7ff0c3f60ad7`) ; solo RadioSurvivor seul : code 0 `pass=103 fail=0 skip=151` (`runs/20261107-090805-c6db5111afb6`) ; solo Living Knox seul : code 1 `pass=104 fail=1 skip=149` (`runs/20261107-091128-28736a52de6e`) ; MP RadioSurvivor seul : code 1 `pass=172 error=1` (`runs/20261107-092927-parallel-1`) ; MP Living Knox seul : code 1 `pass=262 fail=7` (`runs/20261107-093344-parallel-1`) ; MP les deux : code 1 `pass=513 fail=3` (`runs/20261107-101116-parallel-1`). Défaut corrigé : un membre incarné recevait un repas abstrait en plus de son repas réel quand l'horloge du jour avait été déplacée (pas horaire fermé après l'ouverture du suivant) : `LK_Needs` garde l'observation de l'heure précédente, banc `test_lk_needs` (échoue sans le correctif). Bancs corrigés : fenêtre verrouillée contournée par les portes (détour coupé pendant le test), ouï-dire compté comme témoin, demande d'enrichissement partie entre deux relevés, négociation sans Living Knox (SKIP), parole de Living Knox seul en MP (case libre dans la même pièce, attente du membre en vue), portion du repas lue à la prise. Rejeux : solo les deux ciblé code 1 `pass=40 fail=1 skip=1` (seul `lk.upkeep`, `runs/20261107-105521-15c2d31becd8`) ; `lk.windowlure` code 0 (`runs/20261107-110534-e4addcb38cb8`) ; MP `rs.factions.mandate` RadioSurvivor seul code 0 `skip=2` (`runs/20261107-110809-mp-3a68146b0685`) ; MP les deux `lk.meals,lk.alert` code 0 `pass=3` + 4 étapes (`runs/20261107-111029-mp-5f3626e079ef`) ; MP Living Knox seul `lk.talk.alone` code 0 `pass=2` (`runs/20261107-112331-mp-f9e8ba6b809c`) ; reconnexion et redémarrage (`--phases reconnect2,reconnect,restart --server-campaign mp-persist`) code 0 `pass=10` + 3 étapes (`runs/20261107-111412-mp-31e7f853ea5f`). Échecs restants, tous instables et suivis par `E18-T31` (sauf `lk.windowkill` : `E18-T30`).
+  - Reste : partie d'avant la séparation non rechargée : exclu par la consigne du 2026-11-06 (aucune reprise, `E18-T23`) ; instabilités `E18-T31`.
 
 - [ ] **E18-T16** — Documentation et page Workshop des trois mods
   - État : `à faire`
@@ -475,5 +476,15 @@ Deuxième article Workshop, dépôt séparé, nouvelles règles de jeu des missi
   - Faire : relevé pendant `E18-T17` et `E18-T18` : lk.windowkill réussit le 2026-11-06, puis le 2026-11-07 échoue 3 fois sur 4 (`no window offensive` ou `zombie not on the floor inside`), compteur réseau positif. Une mesure à 90 s montre le zombie à l'arrêt à l'intérieur, fenêtre fermée. Trouver si c'est le placement du test ou un effet d'une tâche E18.
   - Accepté si : lk.windowkill vert sur trois campagnes MP de suite.
   - Tests : campagne MP.
+  - Preuve : —
+  - Reste : —
+- [ ] **E18-T31** — Suites instables des campagnes de validation
+  - État : `à faire`
+  - Cible : `MP`
+  - Dépend de : —
+  - Fichiers : suites citées
+  - Faire : relevé de `E18-T15` (2026-11-07), échecs non reproduits au rejeu ou déjà vus avant la séparation : `lk.upkeep` (travaux non finis en 300 s, solo les deux, deux fois), `lk.barricade` (chantier non fini, MP Living Knox seul), `lk.alert` (alerte levée par une foule au-delà de la distance, MP Living Knox seul ; angle `lk.facing`, MP les deux), `lk.spawnclean` (second zombie vu, MP Living Knox seul), `lk.traversal` porte intérieure verrouillée (13 portes ouvertes au lieu de 12, MP Living Knox seul), `lk.windowlure` (solo Living Knox seul), `rs.conversations` (conteur non choisi en 5 s, solo les deux), `rs.personas` canal créé après le chargement non reçu (solo les deux, première fois), `lk.meals` membre sans prise en 120 s (MP les deux, vert au rejeu). Pour chacune : cause (placement du test, délai ou défaut), puis correction.
+  - Accepté si : chaque suite verte sur trois campagnes de suite, ou cause établie et corrigée.
+  - Tests : campagnes solo et MP.
   - Preuve : —
   - Reste : —

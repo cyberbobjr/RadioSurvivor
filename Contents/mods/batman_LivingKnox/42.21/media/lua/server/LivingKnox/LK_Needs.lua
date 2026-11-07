@@ -205,6 +205,7 @@ end
 -- Activité observée au pas k pour la clé key : { activity, home } ou nil.
 local function observedActivity(key, k)
     local s = Needs.state.samples[key]
+    if s ~= nil and s.k ~= k then s = s.prev end
     if s == nil or s.k ~= k then return nil end
     local best, bestN
     for _, a in ipairs(Needs.ACTIVITIES) do
@@ -349,7 +350,11 @@ function Needs.observe(gid, mid, behaviour, atHome, minute)
     local k = Needs.stepOf(minute)
     local s = Needs.state.samples[key]
     if s == nil or s.k ~= k then
-        s = { k = k, n = {}, home = false }
+        -- E18-T15: the previous hour stays readable. EveryHours follows the clock of the day, the steps follow the age
+        -- of the world: once the clock is moved, a decision can open the next step before the pass closes this one,
+        -- and a member with a body would then get the abstract meal on top of its real one.
+        if s ~= nil then s.prev = nil end
+        s = { k = k, n = {}, home = false, prev = s }
         Needs.state.samples[key] = s
     end
     s.n[a] = (s.n[a] or 0) + 1

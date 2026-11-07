@@ -152,6 +152,23 @@ class PureNeedsTests(PureBase):
         '''
         self.assertEqual(self.run_lua(code), 16)   # ronde (+6) et non repos (-4) de la tâche du groupe
 
+    def test_step_closed_after_the_next_one_opened_keeps_its_observation(self):
+        # E18-T15 : horloge du jour déplacée, les décisions entrent dans le pas 101 avant que la passe ferme le pas 100.
+        code = f'''
+            {N}.reset()
+            local g = {{ task = "scavenge", home = {{ x = 1, y = 1, z = 0 }}, needs = {{ food = 50 }},
+                members = {{ ["m-1"] = {{ id = "m-1", alive = true,
+                vitals = {{ hunger = 95, thirst = 10, fatigue = 10, fear = 0, hour = 99 }} }} }} }}
+            local real = {N}.realMeals
+            {N}.realMeals = function() return true end
+            {N}.observe("grp-1", "m-1", "home", true, 99 * 60 + 5)
+            {N}.observe("grp-1", "m-1", "home", true, 100 * 60 + 5)
+            {N}.advanceMember(g, "grp-1", "m-1", g.members["m-1"], 100)
+            {N}.realMeals = real
+            return g.members["m-1"].vitals.hunger
+        '''
+        self.assertEqual(self.run_lua(code), 99)   # vu : pas de repas abstrait, activité idle (+4)
+
 
 class EnvyTests(PureBase):
     """Envies transmises à la cascade de LK_Decisions (seuils NEED_HIGH)."""

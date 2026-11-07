@@ -63,6 +63,10 @@ RST.suite("rs.factions.mandate", { tags = { "server", "world" }, testTimeoutMs =
 
     s.test("renamed faction keeps its id and agreements; a member without mandate cannot conclude (E09-T03)", function(t)
         local F, _, p1 = modules(t)
+        -- E18-T20: agreements and negotiation are kept by Living Knox (MP campaign of RadioSurvivor alone, 2026-11-07).
+        if not (type(LivingKnox) == "table" and LivingKnox.Agreements ~= nil) then
+            t:skip("needs mod(s) batman_LivingKnox (not active)")
+        end
         if not (type(isServer) == "function" and isServer()) then
             t:skip("vanilla factions exist on a dedicated server only (MP campaign, two clients)")
         end

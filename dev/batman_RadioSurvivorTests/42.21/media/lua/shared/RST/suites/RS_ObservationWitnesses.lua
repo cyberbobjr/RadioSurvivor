@@ -315,10 +315,14 @@ local function checkCommon(t, sc, before, fact)
     end
 end
 
--- Exactly once for each name of want, never for the other fiches.
+-- Exactly once for each name of want, never for the other fiches. Only what the fiche saw itself: a neighbour may tell
+-- it meanwhile (LK_Conversations, source "heard"), which is no witness (solo campaign of 2026-11-07, A told B).
 local function onlyFor(t, sc, fact, want, subject)
     for name in pairs(sc.fiches) do
-        local list = facts(sc, name, fact)
+        local list = {}
+        for _, item in ipairs(facts(sc, name, fact)) do
+            if item.source == "seen" then list[#list + 1] = item end
+        end
         if want[name] then
             t:eq(1, #list, fact .. " of witness " .. name)
             if list[1] ~= nil and subject ~= nil then t:eq(subject, list[1].subject, fact .. " subject for " .. name) end

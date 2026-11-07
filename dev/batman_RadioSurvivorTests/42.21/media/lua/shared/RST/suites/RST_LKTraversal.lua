@@ -1712,6 +1712,12 @@ RST.suite("lk.traversal", { tags = { "world", "server" }, testTimeoutMs = 300000
         w:setIsLocked(true)
         t:ok(w:isLocked() and not w:IsOpen(), "window not closed and locked")
         groupOf(t, id, "settlers")
+        -- A way around by the doors of the house is the right move (solo campaign of 2026-11-07, door 10910,10035): cut
+        -- here, so that the refusal itself is what this test sees.
+        local o = O()
+        local was = o.AVOID_REFUSED
+        o.AVOID_REFUSED = false
+        t:defer(function() o.AVOID_REFUSED = was end, "restore the way around refused openings")
     end, "locked window", true, function(t, w, info, e, ctx, was, site)
         t:eq(ctx.toggles, O().stats.windowToggles or 0, "window toggles by the authority")
         t:ok(not w:IsOpen() and w:isLocked() and not w:isSmashed(), "window changed")

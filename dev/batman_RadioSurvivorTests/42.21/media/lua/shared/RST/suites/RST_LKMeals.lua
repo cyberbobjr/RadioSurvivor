@@ -35,6 +35,7 @@ local measure = K.measurer("[LKM]")
 local BODIES_MS = 60000     -- materialization of the three members
 local TAKE_MS = 120000      -- the hungry member reaches the container and takes an item
 local EAT_MS = 120000       -- the meal ends (game minutes of Routines.CFG.MEAL_EAT_MINUTES)
+local HOUR_GROWTH = 5        -- hunger gained if an hour step falls in the scene (Needs.CFG.RATES, at most)
 
 local function LK() return LivingKnox end
 local function R() return LivingKnox.Routines end
@@ -202,19 +203,18 @@ RST.suite("lk.meals", { tags = { "world", "server" }, testTimeoutMs = 600000, ti
                 t3:ok(S().holderOf(m.took.i) == nil, "a player holds the taken item")
                 t3:eq("meal", E.Decisions.get(npc).b, "behaviour of the member during its meal")
                 -- The ration may change between the set-up and the meal (first stock check of the test group: strict
-                -- ration, seen in game on 2026-10-12): the relief follows the portion of the moment of the meal.
-                portion = math.max(S().portion(gid), S().PORTIONS[3])
-                relief = math.floor(E.Needs.CFG.MEAL * portion + 0.5)
-                measure(string.format("ration portion at the meal %.2f, expected relief %d", portion, relief))
+                -- ration, seen in game on 2026-10-12): the relief is the one the routine fixed at the take.
+                relief = m.relief
+                measure(string.format("relief fixed at the take %d", relief))
                 local tookId = m.took.i
                 t3:waitUntil(function()
                     local h = hungerOf(gid, "m-2")
-                    return h ~= nil and h <= hungerBefore - relief + 2
+                    return h ~= nil and h <= hungerBefore - relief + HOUR_GROWTH
                 end, EAT_MS, function(t4)
                     local h = hungerOf(gid, "m-2")
                     measure(string.format("eaten: hunger %d -> %d, behaviour %s, gesture %s", hungerBefore, h,
                         tostring(E.Decisions.get(npc) and E.Decisions.get(npc).b), E.Anim.gestureOf(npc)))
-                    t4:ok(hungerBefore - h >= relief - 2 and hungerBefore - h <= relief + 2,
+                    t4:ok(hungerBefore - h >= relief - HOUR_GROWTH and hungerBefore - h <= relief + 2,
                         "hunger not lowered once by the relief")
                     local c = S().check(gid, { force = true })
                     t4:ok(type(c) == "table", "stock not checked after the meal")

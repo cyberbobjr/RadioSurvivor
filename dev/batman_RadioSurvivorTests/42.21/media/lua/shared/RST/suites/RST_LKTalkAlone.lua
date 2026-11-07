@@ -27,11 +27,32 @@ local function setup(t)
     t:ok(Alone() ~= nil and Alone().started, "speech of Living Knox alone not started")
 end
 
+-- Free square 1 to 3 squares from the player, in the same room (or outdoors with him): a wall between them hides the
+-- npc (MP campaign of 2026-11-07: player in the home of a group, npc spawned behind its wall).
+local function spotNear(p)
+    local psq = p:getSquare()
+    local px, py, z = math.floor(p:getX()), math.floor(p:getY()), math.floor(p:getZ())
+    local cell = getCell()
+    -- isFree refused every square around the player on a dedicated server (MP campaign of 2026-11-07): floor and
+    -- solidity are read instead.
+    for r = 1, 3 do
+        for _, d in ipairs({ { r, 0 }, { -r, 0 }, { 0, r }, { 0, -r }, { r, r }, { -r, -r }, { r, -r }, { -r, r } }) do
+            local sq = cell:getGridSquare(px + d[1], py + d[2], z)
+            if sq ~= nil and psq ~= nil and sq:TreatAsSolidFloor() and not sq:isSolid() and not sq:isSolidTrans()
+                and sq:getRoom() == psq:getRoom() then
+                return sq:getX(), sq:getY(), z
+            end
+        end
+    end
+    return nil
+end
+
 local function spawnNear(t, after)
     local F = RST.Fixtures
     local p = F.player(t)
     t:ok(p ~= nil, "no target player")
-    local x, y, z = math.floor(p:getX()) + 2, math.floor(p:getY()), math.floor(p:getZ())
+    local x, y, z = spotNear(p)
+    t:ok(x ~= nil, "no free square in sight 1 to 3 squares from the player")
     local id, body = B().spawn({}, x, y, z)
     t:ok(id ~= nil, "npc spawn refused: " .. tostring(body))
     t:defer(function()
@@ -116,16 +137,21 @@ RST.suite("lk.talk.alone", { tags = { "world", "server" }, testTimeoutMs = 15000
             Talk.data.contacts[character][id] = { stage = "acquainted", exchanges = 4 }
             Talk.lastTalk[character] = nil -- cooldown of the previous test
             local before = #Journal.rows(character)
-            -- The menu entry: this NPC, whoever stands nearer.
-            local req, why = Alone().say(p, { text = "RST any work", channel = "say", language = "EN", npc = id })
-            t2:ok(req ~= nil, "sentence refused: " .. tostring(why))
-            t2:eq("acquainted", req.context.stage, "stage")
-            local offered = false
-            for _ in pairs(req.offers) do offered = true end
-            t2:ok(offered, "no offer in the request")
-            t2:waitUntil(function() return answered(id) end, REPLY_MS, function(t3)
-                t3:eq(before + 1, #Journal.rows(character), "missions in the journal")
-            end, "no answer of the bridge")
+            local Hearing = require "RadioSurvivorCore/RC_Hearing"
+            local Speech = require "RadioSurvivorCore/RC_SpeechConfig"
+            -- The member goes about its routine: asked once it stands in sight (MP campaign of 2026-11-07, "Range").
+            t2:waitUntil(function() return Hearing.near(p, B().find(id), Speech.SELECT_RANGE) end, TALK_MS, function(t2b)
+                -- The menu entry: this NPC, whoever stands nearer.
+                local req, why = Alone().say(p, { text = "RST any work", channel = "say", language = "EN", npc = id })
+                t2b:ok(req ~= nil, "sentence refused: " .. tostring(why))
+                t2b:eq("acquainted", req.context.stage, "stage")
+                local offered = false
+                for _ in pairs(req.offers) do offered = true end
+                t2b:ok(offered, "no offer in the request")
+                t2b:waitUntil(function() return answered(id) end, REPLY_MS, function(t3)
+                    t3:eq(before + 1, #Journal.rows(character), "missions in the journal")
+                end, "no answer of the bridge")
+            end, "member " .. tostring(id) .. " never in sight of the player")
         end)
     end)
 end)
