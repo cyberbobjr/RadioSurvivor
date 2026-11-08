@@ -11,8 +11,9 @@ Client handlers (RST.Steps.on); every body is found by its npc id in LivingKnox.
     lk.alert.view   { phase = "begin" | "end", key, cries }: begin = counters of LivingKnox.AlertView noted; end = new
                     cries received here (received - duplicate - refused) = cries (one delivery each), every one of
                     them played once (played = new cries), a vanilla shout voice (View.VOICES) last; data: deltas.
-    lk.facing       { bodies = { { npc, x, y }, ... }, maxDeg }: the local copy of each body faces the point x, y
-                    (getDirectionAngle, degrees, 0 = +x) within maxDeg; polled until all at once or the deadline.
+    lk.facing       { bodies = { { npc, x, y[, ax, ay] }, ... }, maxDeg }: the local copy of each body faces the point
+                    x, y (or the optional second point ax, ay) (getDirectionAngle, degrees, 0 = +x) within maxDeg;
+                    polled until all at once or the deadline.
     lk.positions    { bodies = { { npc, x, y, z }, ... }, tol }: the local copy of each body stands within tol squares
                     of the authority's position (same level); polled (an owner sends the full state every 4 s).
     lk.thump        { o, x, y, z, north } (E18-T34): the zombie of onlineId o, simulated by THIS client (the server copy
@@ -133,10 +134,13 @@ Steps.on("lk.facing", function(args)
         local parts, ok = {}, true
         for _, b in ipairs(bodies) do
             local z = bodyOf(b.npc)
-            if z ~= nil and onPoint(z, b.x, b.y) then
+            local alt = b.ax ~= nil and b.ay ~= nil
+            if z ~= nil and (onPoint(z, b.x, b.y) or (alt and onPoint(z, b.ax, b.ay))) then
                 parts[#parts + 1] = tostring(b.npc) .. " on the point"
             else
+                -- Optional second point (ax, ay; E18-T31): the smaller of both angles.
                 local d = z ~= nil and angleGap(z, b.x, b.y) or nil
+                if d ~= nil and alt then d = math.min(d, angleGap(z, b.ax, b.ay)) end
                 parts[#parts + 1] = tostring(b.npc) .. " " .. (d ~= nil and (math.floor(d + 0.5) .. " deg") or "no copy")
                 if d == nil or d > maxDeg then ok = false end
             end

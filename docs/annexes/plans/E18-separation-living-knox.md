@@ -2,7 +2,7 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 16 / 33 tâche(s) terminée(s), 1 abandonnée(s).
+**Avancement.** en cours — 17 / 34 tâche(s) terminée(s), 1 abandonnée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
@@ -36,10 +36,11 @@
 | ☑ | E18-T28 | Corps de PNJ inconnus des clients quand l'identifiant réseau devient négatif | `testé MP` | MP | — |
 | ☑ | E18-T29 | Livrer et réclamer une mission de PNJ sans RadioSurvivor | `testé MP` | MP | E18-T18 |
 | ✕ | E18-T30 | Offensive à la fenêtre instable en MP | `abandonné` | MP | — |
-| ☐ | E18-T31 | Suites instables des campagnes de validation | `à faire` | MP | — |
+| ☑ | E18-T31 | Suites instables des campagnes de validation | `testé MP` | MP | — |
 | ☑ | E18-T32 | Bavardages entre membres d'un groupe | `testé MP` | MP | E18-T27 |
 | ☑ | E18-T33 | Récompense d'une mission de PNJ créée à la volée | `testé MP` | MP | E18-T29 |
 | ☑ | E18-T34 | Zombie à une fenêtre du foyer : sortir l'attaquer dehors au lieu d'ouvrir la fenêtre | `testé MP` | MP | — |
+| ☐ | E18-T35 | Arrivée annoncée par un client qui n'a pas encore la copie du corps | `à faire` | MP | — |
 
 <!-- fin du tableau de bord -->
 
@@ -493,16 +494,16 @@ Deuxième article Workshop, dépôt séparé, nouvelles règles de jeu des missi
   - Tests : campagne MP.
   - Preuve : —
   - Reste : retirée le 2026-11-07 par E18-T34 (décision de l'utilisateur : offensive à la fenêtre supprimée, le zombie à la fenêtre est attaqué dehors par une sortie). Causes relevées avant l'abandon (journaux des campagnes MP du 2026-11-07) : porte voisine frappée au lieu de la fenêtre (`runs/20261107-051943-mp-e7be111215bc`), zombie sans PNJ en vue qui ne frappe pas (`runs/20261107-043057-mp-05cbafebf449`), zombie qui ne frappe plus à l'ouverture et griffe l'ouvreur (`runs/20261107-030546-mp-2f49ffa1d5f4`, `runs/20261107-211403-mp-641267735b19`) ; aucune ne vient d'une tâche E18 ; bilan 24 réussites pour 44 échecs en MP sur les passages enregistrés.
-- [ ] **E18-T31** — Suites instables des campagnes de validation
-  - État : `à faire`
+- [x] **E18-T31** — Suites instables des campagnes de validation
+  - État : `testé MP`
   - Cible : `MP`
   - Dépend de : —
   - Fichiers : suites citées
   - Faire : relevé de `E18-T15` (2026-11-07), échecs non reproduits au rejeu ou déjà vus avant la séparation : `lk.upkeep` (travaux non finis en 300 s, solo les deux, deux fois), `lk.barricade` (chantier non fini, MP Living Knox seul), `lk.alert` (alerte levée par une foule au-delà de la distance, MP Living Knox seul ; angle `lk.facing`, MP les deux), `lk.spawnclean` (second zombie vu, MP Living Knox seul), `lk.traversal` porte intérieure verrouillée (13 portes ouvertes au lieu de 12, MP Living Knox seul), `lk.windowlure` (solo Living Knox seul), `rs.conversations` (conteur non choisi en 5 s, solo les deux), `rs.personas` canal créé après le chargement non reçu (solo les deux, première fois), `lk.meals` membre sans prise en 120 s (MP les deux, vert au rejeu). Pour chacune : cause (placement du test, délai ou défaut), puis correction.
   - Accepté si : chaque suite verte sur trois campagnes de suite, ou cause établie et corrigée.
   - Tests : campagnes solo et MP.
-  - Preuve : —
-  - Reste : —
+  - Preuve : 2026-11-08, causes établies et corrigées (passages MP à deux clients `autoclient.py --mp --clients 2 --mods lk --server-suite lk.barricade,lk.alert,lk.facing,lk.spawnclean,lk.traversal,lk.meals,lk.windowlure,lk.defense --server-tags world --bridge on --llm fake --max-parallel 1`, solo `--suite lk.upkeep,lk.windowlure,rs.conversations,rs.personas --tags world`) : (1) `lk.windowlure` : flou vanilla du son entendu (`IsoZombie.java:1378-1414`), le zombie part ou erre sans frapper : zombie neuf, deux fois au plus, s'il s'éloigne (`WANDER`) ou ne frappe pas en `WAIT_MS` (`runs/20261108-101002-mp-0569ec9c26f8`, `runs/20261108-114408-mp-dd92da5ac93a`, `runs/20261108-153701-mp-2d502a8c98c8`) ; en MP, frappe non confirmée par `lk.thump` → zombie neuf. (2) `lk.defense` étape `lk.positions` lue pendant que les membres bougent encore : attente de l'immobilité (`stillCheck`, 0,3 case, 20 s au plus). (3) Défaut du mod, `LK_Obstacles.check` : seconde porte du même mur ouverte alors que la première, ouverte par le même PNJ et encore sur le chemin, n'est pas franchie (`runs/20261108-101002-mp-0569ec9c26f8`, 9 portes au lieu de 8) : règle `pending`, banc `test_lk_obstacles.py` rouge avant, vert après. (4) `lk.barricade` : déplacement du joueur expiré : téléportation renvoyée une fois après 8 s (`F.MOVE_RESEND_MS`, `runs/20261108-104212-mp-f742133daef7`). (5) `lk.traversal` : `lk.track` à 1,9 case après un changement de propriétaire (`TRACK_TOL` 2,5, `runs/20261108-111228-mp-50034033a4c3`) ; portes verrouillées gonflées par la routine du foyer (`Obstacles.stats.securedDoors` retiré du compte, `runs/20261108-113401-mp-94d7b31b0956`) ; sortie par une porte plus proche que celle du site, verrouillée et ouverte avec la clé : toute porte à 16 cases compte (`runs/20261108-154658-mp-d57165661acd`). (6) `lk.alert` : angle `lk.facing` retiré (décision de l'utilisateur du 2026-11-08 : l'alerte atteint tous les membres quelle que soit leur direction, qui attaque relève du groupe ; échecs 63°, 66°, 169° : `runs/20261108-105650-mp-bb20e472428b`, `runs/20261108-121402-mp-9ada1682cf6d`, `runs/20261108-122626-mp-da4e2fe22b76` ; la synchronisation d'une orientation reste vérifiée par `lk.executor`). (7) `lk.alert` foule et `lk.barricade` chantier non fini : zombies du monde autour du foyer de test (alerte d'un vrai zombie à 7 cases, puis attaque des deux membres, le bâtisseur se bat au lieu de clouer, `runs/20261108-160536-mp-a7f0b5da8e83`) : zombies du monde retirés à 30 cases avant la scène (9 retirés au passage suivant). Bancs : `run_all.py --keep-going` 161 PASS ; luacheck `Contents` 8, `dev` 0. Trois passages MP de suite verts après la dernière correction : code 0 `RST-RESULT ok=true total=27 pass=26 fail=0 error=0 skip=1` (client 2 `pass=32`) `runs/20261108-161935-mp-9268a539ba57`, code 0 `RST-RESULT ok=true total=27 pass=27` (client 2 `pass=19`) `runs/20261108-163000-mp-caca05e7ef27`, code 0 `RST-RESULT ok=true total=27 pass=27` (client 2 `pass=19`) `runs/20261108-163827-mp-5866b46d6e02`. Solo : code 0 `RST-RESULT ok=true total=16 pass=16` six fois de suite (`runs/20261108-095622-f320b633477a`, `runs/20261108-103730-f627fb324980`, `runs/20261108-112035-f99c04f38cd0`, `runs/20261108-120114-4b4815748efa`, `runs/20261108-124408-a01f68b5d8e2`, `runs/20261108-164649-395acc1f9891`) : `lk.upkeep`, `rs.conversations`, `rs.personas`, `lk.windowlure` verts.
+  - Reste : `lk.traversal` « far door » sauté une fois (aucun site trouvé à 400 cases) ; `lk.traversal` à un seul client : `E18-T35`. Observé en MP pendant `lk.defense` (journal du serveur, non vérifié par une suite) : un tireur dont la ligne de tir est coupée par une porte refermée reste à son poste pendant qu'un membre sorti se fait mordre ; coups signalés « target not seen there » (zombie vu ailleurs par le serveur) ; à reprendre dans une tâche si confirmé.
 
 - [x] **E18-T32** — Bavardages entre membres d'un groupe
   - État : `testé MP`
@@ -534,4 +535,15 @@ Deuxième article Workshop, dépôt séparé, nouvelles règles de jeu des missi
   - Tests : `test_lk_defense.py`, `test_lk_senses.py`, `test_lk_floor_strike.py`, `test_lk_window_lure.py` ; suites `lk.windowsally`, `lk.windowlure`, `lk.defense` en solo et en MP.
   - Preuve : 2026-11-07, code : `LK_Defense` 1 674 → 900 lignes (offensive, fenêtre, retenue, refermeture, bascule OnTick retirées) ; `LK_Senses` réduit au rapport des zombies au sol (`zombieFloor`) ; suite `lk.windowkill` et banc `test_lk_window_kill.py` supprimés, coups au sol repris dans `test_lk_floor_strike.py`. 2026-11-08, corrections après les passages MP : trajet guidé par une porte (`Directives.moveTo` → `e.dr`) sans ouverture de fenêtre au contact (`Obstacles.checkWindows` ; fenêtre du foyer ouverte par un membre arrêté à sa porte, `runs/20261108-012549-mp-a2dbaf99cf8b`) ; sortie par le chemin gardée dans la zone de la place même hors de vue (`Defense.targetFor`, aller-retour poste-porte, `runs/20261108-013343-mp-004614dab2ad`) ; suite : groupe tenu hors des expéditions, fenêtre contrôlée à chaque passage. Bancs : `run_all.py --keep-going` 161 PASS avant et après les corrections, puis `test_lk_obstacles.py` 171 OK, `test_lk_directives.py` 42 OK, `test_lk_defense.py` 23 OK ; luacheck `Contents` 8, `dev` 0. En jeu : solo `lk.windowsally` code 0 (`ok=true total=1 pass=1`, `runs/20261108-012354-897c83d70c14` : tué dehors en 7 s, fenêtre fermée, membres rentrés en 41 s) ; solo `lk.windowsally,lk.defense` code 0 deux fois (`ok=true total=3 pass=3`, `runs/20261108-013927-ec2a27149a18`, `runs/20261108-014633-6e0c175f0991`) ; MP `lk.windowsally,lk.windowlure,lk.defense` : `runs/20261108-014237-mp-79b8a54fc73a` code 1 (`ok=false total=4 pass=3 fail=1` : sortie verte, tué dehors en 21 s, fenêtre jamais ouverte, membres rentrés en 48 s ; `lk.windowlure` vert, frappe confirmée par `lk.thump` ; échec `lk.defense` petite horde, étape client `lk.positions` 2,8 cases > 2,5, déjà vu avant E18-T34) et `runs/20261108-014828-mp-c7df3e0da8dd` code 1 (`ok=false total=4 pass=3 fail=1` : sortie verte, `lk.defense` verte ; `lk.windowlure` rouge : zombie parti au loin sans cible, sans lien avec la sortie) ; `lk.windowlure` vert en MP avec `lk.thump` aussi dans `runs/20261108-013343-mp-004614dab2ad`.
   - Reste : instabilités MP hors de cette tâche, suivies par E18-T31 : `lk.windowlure` (zombie qui s'éloigne sans cible, 1 passage sur 3) et étape `lk.positions` de `lk.defense` (écart client-serveur de 2,8 cases).
+
+- [ ] **E18-T35** — Arrivée annoncée par un client qui n'a pas encore la copie du corps
+  - État : `à faire`
+  - Cible : `MP`
+  - Dépend de : —
+  - Fichiers : `LK_Executor` (client), `LK_Directives` (bail, rapport d'arrivée) ; suite `lk.traversal`
+  - Faire : relevé de E18-T31 (campagne MP à un seul client du 2026-11-08, `tools/autoclient/runs/20261108-095939-mp-2562f7af9ec8`, 11 échecs de `lk.traversal`) : le client 1, déplacé par la suite à côté du site (« player off the lane »), reçoit le bail du nouveau corps alors qu'il n'en a pas encore la copie (« watching lk-17 (no copy here yet) ») ; le serveur note « move #104 arrived after 3732 ms (by rs_mp1) » alors que le corps est resté sur sa case de départ (10651,10136). Établir pourquoi le client annonce l'arrivée (copie absente ou en retard, position d'un autre corps, rapport d'un ancien bail), puis ne plus accepter d'arrivée d'un client dont la copie n'est pas à la position du serveur. Avec deux clients (campagnes habituelles), le corps est simulé par le client 2 et la suite est verte.
+  - Accepté si : `lk.traversal` vert en MP avec `--clients 1` ; banc du bail ou de l'exécutant qui reproduit l'arrivée annoncée sans déplacement.
+  - Tests : `test_lk_executor.py` ou `test_lk_directives.py` ; suite `lk.traversal` en MP à un et deux clients.
+  - Preuve : —
+  - Reste : —
 

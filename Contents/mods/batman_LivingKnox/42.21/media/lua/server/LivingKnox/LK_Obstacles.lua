@@ -1025,9 +1025,24 @@ function Obstacles.check(id, e, z, seen, t)
     -- était « au contact » depuis plus de REFUSE_MS et la consigne échouait.
     if climbing(z) then Obstacles.track[id] = { x = px, y = py, ms = t } end
     local still = stillFor(id, z, t)
-    for _, c in ipairs(Obstacles.doorsNear(px, py, pz)) do
+    local near = Obstacles.doorsNear(px, py, pz)
+    local function onWay(c)
+        return Obstacles.onRoute(c.e, px, py, tx, ty) or (nx ~= nil and Obstacles.onRoute(c.e, px, py, nx, ny))
+    end
+    -- E18-T31 (campagne MP du 2026-11-08, runs/20261108-101002-mp-0569ec9c26f8, lk.traversal) : une porte du même mur
+    -- une case à côté rapproche aussi de l'étape ; tant que la porte ouverte par ce PNJ n'est pas franchie, une autre
+    -- porte fermée n'est ouverte qu'au contact.
+    local pending = false
+    for _, c in ipairs(near) do
+        local rec = Obstacles.opened[c.e.key]
+        if rec ~= nil and rec.door == c.door and rec.id == id and Obstacles.isOpen(c.door) and onWay(c) then
+            pending = true
+        end
+    end
+    for _, c in ipairs(near) do
         local contact = still >= Obstacles.STUCK_MS and c.d <= Obstacles.REACH
-        local route = Obstacles.onRoute(c.e, px, py, tx, ty) or (nx ~= nil and Obstacles.onRoute(c.e, px, py, nx, ny))
+        local route = onWay(c)
+        if pending and route and not contact and not Obstacles.isOpen(c.door) then route = false end
         if contact or route then
             seen[c.e.key] = true
             local rec = Obstacles.opened[c.e.key]
@@ -2555,6 +2570,8 @@ function Obstacles.secureHome(h)
     end)
     if n > 0 then
         count("secured")
+        -- E18-T31 : portes verrouillees par le foyer, comptees aussi dans stats.locked (setDoor).
+        Obstacles.stats.securedDoors = (Obstacles.stats.securedDoors or 0) + n
         log().info("group %s: %d exterior door(s) of its home locked", h.gid, n)
     end
     return n

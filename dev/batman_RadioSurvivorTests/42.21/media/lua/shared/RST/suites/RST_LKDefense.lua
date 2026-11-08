@@ -78,6 +78,8 @@ local CAMP_SEARCH = 30      -- squares around the player searched for such a cam
 local SHOOT_STALL_MS = 20000 -- a shooter in "shoot" at the same target without a shot this long is stalled
 local SNAP_MS = 10000       -- "[LKD] measure during the fight" every this long (positions, horde, owners)
 local POS_SETTLE_MS = 2000  -- members at their places: copies of the clients caught up before lk.positions
+local POS_STILL = 0.3       -- squares: a member that moved less over POS_SETTLE_MS stands still
+local POS_STILL_MAX_MS = 20000  -- the positions are sent anyway after this wait
 local POS_TOL = 2.5         -- squares: member positions seen by every client at the end (LK05-T09, E01-T16)
 
 local function LK() return LivingKnox end
@@ -92,6 +94,31 @@ local function memberNpcs(gid)
         if m.npc ~= nil then out[mid] = m.npc end
     end
     return out
+end
+
+-- E18-T31 (MP pass runs/20261108-014237-mp-79b8a54fc73a: m-2 still running back to its post when its position was
+-- sent, seen 2.8 squares from it 15 s later): lk.positions compares the copies of the clients with positions taken
+-- once, so they are taken when every member stood still for POS_SETTLE_MS (or after POS_STILL_MAX_MS).
+local function stillCheck(gid)
+    local last, since, t0 = nil, nil, getTimestampMs()
+    return function()
+        local now, pos = getTimestampMs(), {}
+        for mid, npc in pairs(memberNpcs(gid)) do
+            local b = LK().Bodies.find(npc)
+            if b ~= nil then pos[mid] = { b:getX(), b:getY() } end
+        end
+        if now - t0 >= POS_STILL_MAX_MS then return true end
+        local moved = last == nil
+        for mid, q in pairs(pos) do
+            local o = last and last[mid] or nil
+            if o == nil or math.abs(q[1] - o[1]) + math.abs(q[2] - o[2]) > POS_STILL then moved = true end
+        end
+        if moved then
+            last, since = pos, now
+            return false
+        end
+        return now - since >= POS_SETTLE_MS
+    end
 end
 
 local function sortedMids(gid)
@@ -561,8 +588,9 @@ local function scenario(t, sq, camp)
                                 -- as the authority (lk.positions, RST_PeerChecksH.lua; solo: the local player).
                                 -- Bodies still settling at their places (MP pass of 2026-10-15 12:01: lk-2 seen 2.6
                                 -- squares from the authority's position by the second client, at the arrival):
-                                -- POS_SETTLE_MS first, so the copies of every client catch up.
-                                t6b:sleep(POS_SETTLE_MS, function(t6s)
+                                -- POS_SETTLE_MS first, so the copies of every client catch up; every member
+                                -- still first (stillCheck, E18-T31).
+                                t6b:waitUntil(stillCheck(gid), POS_STILL_MAX_MS + 5000, function(t6s)
                                 local list = {}
                                 for _, mid in ipairs(sortedMids(gid)) do list[#list + 1] = memberNpcs(gid)[mid] end
                                 RST.Steps.ask(t6s, "lk.positions", { bodies = RST.PeerChecksH.bodiesOf(list),
@@ -583,7 +611,7 @@ local function scenario(t, sq, camp)
                                         t7:ok(mark ~= nil, "no after-the-attack mark")
                                     end, "defense not over after the horde")
                                 end)
-                                end)
+                                end, "members not still")
                             end, "defenders not back at their places")
                         end, "fight not over")
                     end, "defenders not steady (each at its post in guard, or fighting)")

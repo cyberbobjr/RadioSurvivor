@@ -311,7 +311,7 @@ td .step { font-family: var(--f-mono); font-size: 0.8rem; color: var(--muted); w
         <tr><td>Outils et performance<br><span class="step">LK13 sauf T04 T05</span></td><td>Fenêtre d'administration (groupes, journal, relève forcée, déplacement d'un foyer), fiche d'un PNJ par clic droit (tout son état, besoins et santé modifiables), panneau de debug des PNJ (activité en direct de chaque membre, journal d'activité fin en mémoire), outil de mesure de charge et banc hors jeu, écriture du registre regroupée, contrôle de la casse des chemins pour un serveur Linux.</td><td><span class="chip ok">Fait</span><br><span class="step">6/6 jouées</span></td><td><span class="chip ok">Fait</span><br><span class="step">5/5</span></td></tr>
         <tr><td>Validation finale et essai Linux<br><span class="step">LK13-T04, LK13-T05</span></td><td>Toutes les suites sur serveur dédié avec deux clients avant la publication, et essai du mod sur un serveur Linux (PNJ et zombies ordinaires animés normalement), fait par vous.</td><td><span class="chip later">En cours</span><br><span class="step">0/2 jouées</span></td><td><span class="chip later">À tester</span><br><span class="step">0/2</span></td></tr>
         <tr><td>Publication<br><span class="step">E16</span></td><td>Une version jouable sur le Workshop, avec le guide d'installation du pont et une validation multijoueur complète. Périmètre de la première publication décidé ; guide d'installation du pont rédigé.</td><td><span class="chip later">En cours</span><br><span class="step">0/5 jouées</span></td><td><span class="chip later">À tester</span><br><span class="step">0/3</span></td></tr>
-        <tr><td>Trois mods dans un article<br><span class="step">E18</span></td><td>Radio Survivor (la radio), Living Knox (les survivants PNJ) et un mod commun activé tout seul (missions, carnet, pont, identité). On coche la radio, les PNJ ou les deux ; un seul pont sert dans tous les cas.</td><td><span class="chip open">Validé en jeu</span><br><span class="step">11/28 jouées</span></td><td><span class="chip open">En cours</span><br><span class="step">10/25</span></td></tr>
+        <tr><td>Trois mods dans un article<br><span class="step">E18</span></td><td>Radio Survivor (la radio), Living Knox (les survivants PNJ) et un mod commun activé tout seul (missions, carnet, pont, identité). On coche la radio, les PNJ ou les deux ; un seul pont sert dans tous les cas.</td><td><span class="chip open">Validé en jeu</span><br><span class="step">12/29 jouées</span></td><td><span class="chip open">En cours</span><br><span class="step">11/26</span></td></tr>
       </tbody>
     </table>
   </div>
@@ -321,6 +321,13 @@ td .step { font-family: var(--f-mono); font-size: 0.8rem; color: var(--muted); w
   <div class="logline"><span class="ch">C</span><span>Historique</span><button class="comment-btn" type="button" hidden>Commenter</button></div>
   <h2>Journal de développement</h2>
   <ol class="devlog" reversed>
+    <li><time datetime="2026-11-08">2026-11-08</time><div>
+      <h4>Des essais automatiques fiables</h4>
+      <ul>
+        <li>Corrigé : un survivant qui traverse un mur percé de deux portes voisines n'ouvre plus la seconde alors qu'il va passer par la première.</li>
+        <li>Les essais multijoueur des survivants passent maintenant trois fois de suite sans échec. Plusieurs fausses alertes venaient des essais eux-mêmes, par exemple des zombies errants qui troublaient la scène.</li>
+      </ul>
+    </div></li>
     <li><time datetime="2026-11-08">2026-11-08</time><div>
       <h4>Un zombie à la fenêtre : on sort l'attaquer dehors</h4>
       <ul>

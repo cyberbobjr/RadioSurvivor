@@ -2440,7 +2440,9 @@ class FixtureTests(AsyncHarness):
         # le joueur n'a jamais quitté l'origine : la remise en place réussit tout de suite
         self.assertEqual(msg, 'movePlayer: player did not reach 103.5,200.5,0 (or its squares not loaded): '
                               'condition not met within 20000 ms')
-        self.assertEqual(self.g.SERVER_CMDS[2].args.x, 100.5)
+        # E18-T31 : téléportation renvoyée une fois après MOVE_RESEND_MS, puis remise en place
+        self.assertEqual(self.g.SERVER_CMDS[2].args.x, 103.5)
+        self.assertEqual(self.g.SERVER_CMDS[3].args.x, 100.5)
 
     def _server_moves(self):
         # Le client applique chaque demande deux ticks plus tard ; les cases autour de la cible arrivent 5 ticks

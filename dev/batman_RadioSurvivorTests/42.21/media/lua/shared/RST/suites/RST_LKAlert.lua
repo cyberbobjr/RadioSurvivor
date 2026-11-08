@@ -45,7 +45,6 @@ local MEMBERS_MS = 20000    -- every member alerted
 local CALM_MS = 240000      -- alert closed and routine resumed (game minutes: depends on the day length)
 local CROWD = 50            -- fake zombies perceived beyond the alert distance (LK05-T14)
 local CROWD_HOLD_MS = 20000 -- the group must stay in its routine this long
-local FACING_DEG = 60       -- members turned toward the last known position, seen by every client
 
 local function LK() return LivingKnox end
 local function Dec() return LivingKnox.Decisions end
@@ -231,16 +230,15 @@ RST.suite("lk.alert", { tags = { "world", "server" }, testTimeoutMs = 600000, ti
                         for _, npc in pairs(memberNpcs(gid)) do
                             t4:eq("guard", E.Senses.vigilanceOf(npc), npc .. " vigilance during the alert")
                         end
-                        -- LK05-T08 (E01-T16): every client sees the members turned toward the last known position.
-                        local facing = {}
-                        for _, npc in pairs(memberNpcs(gid)) do
-                            facing[#facing + 1] = { npc = npc, x = a.x, y = a.y }
-                        end
-                        RST.Steps.ask(t4, "lk.facing", { bodies = facing, maxDeg = FACING_DEG },
-                            { target = "all", timeoutMs = 10000 }, function(t4b)
+                        -- E18-T31: the facing of each member is not checked any more. The alert reaches every
+                        -- member whatever he faces (checked above); who attacks is left to the group (fight, orders)
+                        -- and a member fighting or walking to his post legitimately faces elsewhere (MP passes
+                        -- runs/20261108-105650-mp-bb20e472428b 63 deg, 121402 66 deg, 122626 169 deg). The sync of a
+                        -- facing to every client stays covered by lk.executor ("face S" directive).
+                        do
                             removeZombie()
                             measure("zombie removed")
-                            t4b:waitUntil(function() return Al().get(gid) == nil and noneAlerted(gid) end, CALM_MS,
+                            t4:waitUntil(function() return Al().get(gid) == nil and noneAlerted(gid) end, CALM_MS,
                                 function(t5)
                                     measure(string.format("calm: alerts raised during the run %d; members %s",
                                         Al().stats.raised - raisedBefore, describe(gid)))
@@ -258,7 +256,7 @@ RST.suite("lk.alert", { tags = { "world", "server" }, testTimeoutMs = 600000, ti
                                             end)
                                     end)
                                 end, "alert not closed or routine not resumed")
-                        end)
+                        end
                     end, "members not all alerted")
                 end, "alert not raised by the zombie")
             end, "group members not materialized and standing")
@@ -293,6 +291,12 @@ RST.suite("lk.alert", { tags = { "world", "server" }, testTimeoutMs = 600000, ti
         t:waitUntil(ready(gid), BODIES_MS, function(t2)
             measure("thresholds: " .. thresholds())
             measure("members before the crowd: " .. describe(gid) .. "; fear " .. fearOf(gid))
+            -- E18-T31 (MP pass runs/20261108-160536-mp-a7f0b5da8e83: alert raised by a world zombie 7 squares
+            -- away, the perception filter alone did not keep it out): the world zombies around the group removed.
+            local first = E.Bodies.find(memberNpcs(gid)["m-1"])
+            if first ~= nil then
+                K.clearZombiesNear(t2, first:getX(), first:getY(), math.floor(first:getZ()), 30)
+            end
             crowd = true
             local start = getTimestampMs()
             local alerted, threatened, defended = 0, 0, 0

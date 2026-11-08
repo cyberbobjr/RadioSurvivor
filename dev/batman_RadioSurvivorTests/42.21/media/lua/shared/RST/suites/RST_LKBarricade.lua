@@ -202,6 +202,9 @@ RST.suite("lk.barricade", { tags = { "world", "server" }, testTimeoutMs = 600000
             return bodyCount(gid) == 2 and allStanding(gid) and now >= 7 and now < 21.5
         end, BODIES_MS, function(t2)
             measure("bodies ready: " .. bodyCount(gid) .. " member(s)")
+            -- E18-T31 (MP pass runs/20261108-160536-mp-a7f0b5da8e83: a world zombie attacked both members, the
+            -- builder fought instead of nailing and the site was not finished in WORK_MS): world zombies removed.
+            K.clearZombiesNear(t2, home.x, home.y, home.z, 30)
             local function grew(k) return F().stats[k] - base[k] end
             t2:waitUntil(function() return grew("finished") >= 1 or grew("skipped") >= 1 end, WORK_MS, function(t3)
                 local a, b = planksAt(site)

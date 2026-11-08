@@ -5,7 +5,8 @@ strike through the glass). Tag "world": the authority only, on a save named rste
 within SEARCH squares of an outer window that is closed, intact, not barricaded and without a closed curtain (the
 suite moves him next to such a window of a nearby house by itself, RST.Places, solo); the Living Knox option Enabled
 must be on. Solo: RST.run({ suite = "lk.windowlure", tags = "world" }).
-Asynchronous run only (up to about 90 s).
+Asynchronous run only (up to about 420 s: WAIT_MS per zombie, up to FRESH_MAX fresh zombies when one walks round (WANDER) or does
+not thump within its own WAIT_MS).
 
 Automated (real Java objects, on the authority):
     window     the player is made invisible to zombies and protected by god mode (both restored at the end); an
@@ -37,7 +38,9 @@ local B = K.B
 local measure = K.measurer("[LKW]")
 local SEARCH = 8
 local DISTANCE = 6
-local WAIT_MS = 60000
+local WAIT_MS = 60000    -- per zombie (FRESH_MAX fresh zombies at most, WANDER)
+local FRESH_MAX = 2      -- fresh zombies after the first one (E18-T31)
+local WANDER = DISTANCE + 6   -- squares (Manhattan) from the outside square of the window
 
 local function Zm() return LivingKnox and LivingKnox.Zombies end
 
@@ -107,7 +110,7 @@ local function lureSpot(p)
     return nil
 end
 
-RST.suite("lk.windowlure", { tags = { "world", "server" }, testTimeoutMs = 120000, timeoutMs = 180000 }, function(s)
+RST.suite("lk.windowlure", { tags = { "world", "server" }, testTimeoutMs = 480000, timeoutMs = 540000 }, function(s)
     s.test("zombie outside comes to a bare window and thumps it", function(t)
         t:ok(B() ~= nil and Zm() ~= nil and Zm().lureRadius ~= nil,
             "LivingKnox.Zombies (LK06-T08) is not loaded on this side")
@@ -139,7 +142,13 @@ RST.suite("lk.windowlure", { tags = { "world", "server" }, testTimeoutMs = 12000
         t:waitUntil(K.standing(id), K.STAND_MS, function(t2x) K.invisibleClients(t2x, function(t2)
             local npcBody = B().find(id)
             K.clearZombiesNear(t2, o.inside:getX(), o.inside:getY(), o.inside:getZ(), 20)
-            local z = K.spawnVanilla(t2, npcBody, o.dx * (DISTANCE + 1), o.dy * (DISTANCE + 1))
+            local z, removeZ = K.spawnVanilla(t2, npcBody, o.dx * (DISTANCE + 1), o.dy * (DISTANCE + 1))
+            -- E18-T31 (MP pass runs/20261108-014828-mp-c7df3e0da8dd): vanilla blurs the square a zombie heard
+            -- (IsoZombie.java:1378-1414: +/- distance / 2.5, then 2 to 10 more squares when a wall hides it), so the
+            -- zombie may head for another room and walk round to a door; it still hunts the npc. Once only, a zombie
+            -- gone WANDER squares away from the window (or, on a server, without a thump confirmed) is replaced by a fresh one.
+            local fresh_n = 0
+            local zStart = getTimestampMs()   -- this zombie's own WAIT_MS starts here
             local st0 = { lures = Zm().stats.lures, attacks = Zm().stats.attacks }
             local t0 = getTimestampMs()
             local thumps, brokeAt = 0, nil
@@ -155,52 +164,93 @@ RST.suite("lk.windowlure", { tags = { "world", "server" }, testTimeoutMs = 12000
             -- Every 10 s: where the zombie stands and what it does (solo campaign of 2026-10-15: FAIL without any
             -- figure of the zombie's way).
             local nextDiag = t0 + 10000
-            t2:waitUntil(function()
-                if getTimestampMs() >= nextDiag then
-                    nextDiag = nextDiag + 10000
-                    local tg = z:getTarget()
-                    measure(string.format("waiting %d s: zombie %s at %.1f,%.1f state %s, target %s, thump target %s, "
-                        .. "lures %d, window open %s smashed %s; npc at %s", math.floor((getTimestampMs() - t0) / 1000),
-                        K.diedOf(z) and "dead" or "alive", z:getX(), z:getY(), tostring(z:getActionStateName()),
-                        tg ~= nil and tostring(tg) or "none", tostring(z:getThumpTarget()),
-                        Zm().stats.lures - st0.lures, tostring(o.w:IsOpen()), tostring(o.w:isSmashed()),
-                        (function()
-                            local nb = B().find(id)
-                            return nb and string.format("%.1f,%.1f", nb:getX(), nb:getY()) or "?"
-                        end)()))
-                    K.probeZombies({ z:getOnlineID(), npcBody:getOnlineID() }, "windowlure")
-                end
-                if not o.w:isDestroyed() then
-                    -- Attacks on THIS npc only (contacts of its id; MP campaign of 2026-10-15: the global counter
-                    -- also took the attacks of a zombie left by the previous suite on another npc).
-                    local n = 0
-                    for _, ct in pairs(Zm().contacts) do
-                        if ct.id == id then n = n + (ct.n or 0) end
+            -- A fresh zombie in front of the window, FRESH_MAX times at most: the previous one is removed. MP pass
+            -- runs/20261108-114408-mp-dd92da5ac93a: the fresh zombie (poor hearing) idle at the window, beside the
+            -- npc on a diagonal (heard square blurred again).
+            local function fresh(why)
+                fresh_n = fresh_n + 1
+                measure(why .. " (vanilla blur of the heard square): one fresh zombie in front of the window")
+                removeZ()
+                z, removeZ = K.spawnVanilla(t2, npcBody, o.dx * (DISTANCE + 1), o.dy * (DISTANCE + 1))
+                thumps = 0
+                zStart = getTimestampMs()
+            end
+            local watch
+            local function again(ta, why)
+                fresh(why)
+                return watch(ta)
+            end
+            watch = function(tw)
+                tw:waitUntil(function()
+                    if getTimestampMs() >= nextDiag then
+                        nextDiag = nextDiag + 10000
+                        local tg = z:getTarget()
+                        measure(string.format("waiting %d s: zombie %s at %.1f,%.1f state %s, target %s, thump target %s, "
+                            .. "lures %d, window open %s smashed %s; npc at %s", math.floor((getTimestampMs() - t0) / 1000),
+                            K.diedOf(z) and "dead" or "alive", z:getX(), z:getY(), tostring(z:getActionStateName()),
+                            tg ~= nil and tostring(tg) or "none", tostring(z:getThumpTarget()),
+                            Zm().stats.lures - st0.lures, tostring(o.w:IsOpen()), tostring(o.w:isSmashed()),
+                            (function()
+                                local nb = B().find(id)
+                                return nb and string.format("%.1f,%.1f", nb:getX(), nb:getY()) or "?"
+                            end)()))
+                        K.probeZombies({ z:getOnlineID(), npcBody:getOnlineID() }, "windowlure")
                     end
-                    if n > attacksWhileIntact then attacksWhileIntact = n end
-                elseif brokeAt == nil then
-                    brokeAt = getTimestampMs() - t0
-                end
-                if nearWindow() and z:getActionStateName() == "thump" then thumps = thumps + 1 end
-                return thumps > 0 or (brokeAt ~= nil and nearWindow()) or (remote and nearWindow())
-            end, WAIT_MS, function(t3)
-                local function checks(tx, how)
-                    measure("lures " .. (Zm().stats.lures - st0.lures) .. ", thump " .. how .. ", glass broken "
-                        .. tostring(brokeAt ~= nil) .. ", time " .. (getTimestampMs() - t0) .. " ms, zombie attacks "
-                        .. "while the glass held " .. attacksWhileIntact)
-                    tx:ok(Zm().stats.lures - st0.lures >= 1, "no lure noise emitted")
-                    tx:eq(0, attacksWhileIntact, "zombie attacks on the npc through the glass")
-                end
-                if thumps > 0 or brokeAt ~= nil or not remote then return checks(t3, "seen here " .. thumps) end
-                local owner = z.getOwnerPlayer ~= nil and z:getOwnerPlayer() or nil
-                local name = owner ~= nil and owner:getUsername() or nil
-                t3:ok(name ~= nil, "zombie at the window simulated by no client")
-                local wsq = o.w:getSquare()
-                RST.Steps.ask(t3, "lk.thump", { o = z:getOnlineID(), x = wsq:getX(), y = wsq:getY(), z = wsq:getZ(),
-                    north = o.w:getNorth() == true }, { target = { name }, timeoutMs = 20000 }, function(t4)
-                    checks(t4, "confirmed by " .. name)
-                end)
-            end, "the zombie did not thump the window in " .. WAIT_MS .. " ms")
+                    if not o.w:isDestroyed() then
+                        -- Attacks on THIS npc only (contacts of its id; MP campaign of 2026-10-15: the global counter
+                        -- also took the attacks of a zombie left by the previous suite on another npc).
+                        local n = 0
+                        for _, ct in pairs(Zm().contacts) do
+                            if ct.id == id then n = n + (ct.n or 0) end
+                        end
+                        if n > attacksWhileIntact then attacksWhileIntact = n end
+                    elseif brokeAt == nil then
+                        brokeAt = getTimestampMs() - t0
+                    end
+                    if nearWindow() and z:getActionStateName() == "thump" then thumps = thumps + 1 end
+                    -- runs/20261108-153701-mp-2d502a8c98c8: the zombie wandered 60 s near the house (within WANDER),
+                    -- idle and without target, and never thumped: a zombie without a thump after its own WAIT_MS is
+                    -- replaced too.
+                    if fresh_n < FRESH_MAX and brokeAt == nil and thumps == 0 and not K.diedOf(z) then
+                        if math.abs(z:getX() - o.outside:getX()) + math.abs(z:getY() - o.outside:getY()) > WANDER then
+                            fresh(string.format("zombie gone round at %.1f,%.1f", z:getX(), z:getY()))
+                        elseif getTimestampMs() - zStart > WAIT_MS and not (remote and nearWindow()) then
+                            fresh(string.format("zombie without a thump for %d s at %.1f,%.1f", WAIT_MS / 1000,
+                                z:getX(), z:getY()))
+                        end
+                    end
+                    return thumps > 0 or (brokeAt ~= nil and nearWindow()) or (remote and nearWindow())
+                end, WAIT_MS * (FRESH_MAX + 1 - fresh_n) - (getTimestampMs() - zStart), function(t3)
+                    local function checks(tx, how)
+                        measure("lures " .. (Zm().stats.lures - st0.lures) .. ", thump " .. how .. ", glass broken "
+                            .. tostring(brokeAt ~= nil) .. ", time " .. (getTimestampMs() - t0) .. " ms, zombie attacks "
+                            .. "while the glass held " .. attacksWhileIntact)
+                        tx:ok(Zm().stats.lures - st0.lures >= 1, "no lure noise emitted")
+                        tx:eq(0, attacksWhileIntact, "zombie attacks on the npc through the glass")
+                    end
+                    if thumps > 0 or brokeAt ~= nil or not remote then return checks(t3, "seen here " .. thumps) end
+                    local owner = z.getOwnerPlayer ~= nil and z:getOwnerPlayer() or nil
+                    local name = owner ~= nil and owner:getUsername() or nil
+                    t3:ok(name ~= nil, "zombie at the window simulated by no client")
+                    local wsq = o.w:getSquare()
+                    -- E18-T31 (MP pass runs/20261108-101002-mp-0569ec9c26f8: the server copy passed by the window,
+                    -- the client copy went on round the house): no thump confirmed, one fresh zombie (see WANDER).
+                    RST.Steps.ask(t3, "lk.thump", { o = z:getOnlineID(), x = wsq:getX(), y = wsq:getY(), z = wsq:getZ(),
+                        north = o.w:getNorth() == true }, { target = { name }, timeoutMs = 20000, assert = false },
+                        function(t4, result)
+                        local e = result.by[name]
+                        if e ~= nil and e.status == "PASS" then
+                            t4:note("client " .. name .. ": lk.thump: " .. tostring(e.message))
+                            return checks(t4, "confirmed by " .. name)
+                        end
+                        if fresh_n < FRESH_MAX then return again(t4, "no thump confirmed by " .. name .. ": "
+                            .. tostring(e and e.message)) end
+                        t4:ok(false, "client " .. name .. ": step 'lk.thump' " .. tostring(e and e.status or "MISSED")
+                            .. ": " .. tostring(e and e.message))
+                    end)
+                end, "no zombie thumped the window (" .. WAIT_MS .. " ms each, " .. (FRESH_MAX + 1) .. " zombies at most)")
+            end
+            watch(t2)
         end) end, "npc still on the floor")
         end)
     end)

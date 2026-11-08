@@ -96,6 +96,7 @@ local F = RST.Fixtures
 
 F.MOVE_TIMEOUT_MS = 10000
 F.MOVE_TIMEOUT_SERVER_MS = 20000
+F.MOVE_RESEND_MS = 8000          -- server: teleport sent again once after this delay (E18-T31)
 F.LOAD_RADIUS = 12
 F.WAIT_LOADED = true        -- server moves wait for the squares (false: bench doubles without any square)
 F.MOVE_TOLERANCE = 1.0
@@ -317,7 +318,25 @@ local function waitNear(t, moves, what, suite)
         error(what .. ": waiting for the move needs an asynchronous run (RST.start)", 0)
     end
     local first = moves[1]
+    local since, resent = getTimestampMs(), false
     t:waitQuiet(function()
+        -- E18-T31 (MP pass runs/20261108-104212-mp-f742133daef7, lk.barricade: client 2 told "teleported", its server
+        -- copy never seen on the square in 20 s): once, after F.MOVE_RESEND_MS, the teleport of every player not there
+        -- is sent again, with where the server sees him.
+        if isServerSide() and not resent and getTimestampMs() - since >= F.MOVE_RESEND_MS then
+            resent = true
+            for _, m in ipairs(moves) do
+                local sq = m.p:getCurrentSquare()
+                if not near(m.p, m.x, m.y, m.z) or sq == nil or sq:getX() ~= math.floor(m.x)
+                    or sq:getY() ~= math.floor(m.y) then
+                    log(string.format("%s: %s seen at %.1f,%.1f,%d (square %s) after %d ms, teleport to %s sent again",
+                        what, tostring(m.p:getUsername()), m.p:getX(), m.p:getY(), math.floor(m.p:getZ()),
+                        sq ~= nil and (sq:getX() .. "," .. sq:getY()) or "none", getTimestampMs() - since,
+                        coords(m.x, m.y, m.z)))
+                    sendServerCommand(m.p, "RST", F.COMMAND, { x = m.x, y = m.y, z = m.z })
+                end
+            end
+        end
         for _, m in ipairs(moves) do
             if not near(m.p, m.x, m.y, m.z) then return false end
             -- Server: the current square of the player follows its position one update later (getCurrentSquare

@@ -903,6 +903,9 @@ class MultiplayerDoorTests(ObstacleBase):
         self.assertEqual(self.h.eval('B', 'DOOR_STATE("107,105,0,N")'), 'true false false')
         self.assertEqual(self.h.eval('server', 'DOORS["106,102,0,W"].keyId'), 77)   # clé du bâtiment
         self.assertEqual(self.o('stats.secured'), 1)
+        # E18-T31 : portes verrouillées par le foyer, aussi comptées dans stats.locked
+        self.assertEqual(self.o('stats.securedDoors'), 1)
+        self.assertEqual(self.o('stats.locked'), 1)
         self.assertEqual(self.counters('server'), (0, 0))
 
     def test_client_loads_the_file_and_does_nothing(self):
@@ -925,6 +928,20 @@ class SoloDoorTests(ObstacleBase):
         self.assertEqual(self.counters('solo'), (2, 0))
         self.assertEqual(self.h.pending(), [])
         self.assertEqual(self.h.errors('solo'), [])
+
+    def test_second_door_of_the_wall_is_left_while_the_first_one_is_not_crossed(self):
+        # E18-T31 (MP pass runs/20261108-101002-mp-0569ec9c26f8, lk.traversal "locked interior home door"): a door of
+        # the same wall one square aside also brings the body nearer its target (onRoute) while it walks to the door it
+        # opened; it is left closed until that one is crossed.
+        self.wall(skip=(DOOR[1], DOOR[1] + 1))
+        self.door()
+        self.door(y=DOOR[1] + 1)
+        zid = self.start()
+        self.move()
+        self.walk_d(zid, 600, until=self.done())
+        self.assertEqual(self.entry('s'), 'arrived')
+        self.assertEqual(self.h.eval('solo', 'LivingKnox.Obstacles.stats.opened'), 1)
+        self.assertEqual(self.state('solo', '106,103,0,W'), 'false false false')
 
     def test_solo_body_waits_at_a_closed_door_without_spending_retries(self):
         # Porte fermée vue trop tard (passages de l'autorité coupés) : le corps s'arrête contre elle et attend.

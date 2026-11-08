@@ -137,6 +137,7 @@ local PLACE_RADIUS = 400     -- squares around the start place
 
 local B, D = K.B, K.D
 local measure = K.measurer("[LKT]")
+local TRACK_TOL = 2.5   -- squares: copy of every client at the target at the end (arrival 1 + lag of a copy)
 
 local clearLane   -- defined with atSite (players off the lane of a site)
 local function O() return LivingKnox and LivingKnox.Obstacles end
@@ -158,6 +159,24 @@ local function edgeAt(x, y, z, kind)
     local b = cell():getGridSquare(bx, by, z)
     if a == nil or b == nil then return nil end
     return { a = a, b = b, kind = kind, nx = bx - x, ny = by - y, key = bx .. "," .. by .. "," .. z .. "," .. kind }
+end
+
+-- Every door edge (west or north side of a square) within r squares of the square a (E18-T31).
+local function doorEdgesNear(a, r)
+    local out = {}
+    local z = a:getZ()
+    for x = a:getX() - r, a:getX() + r do
+        for y = a:getY() - r, a:getY() + r do
+            local p = cell():getGridSquare(x, y, z)
+            if p ~= nil then
+                for _, k in ipairs({ "W", "N" }) do
+                    local e = edgeAt(x, y, z, k)
+                    if e ~= nil and p:isDoorTo(e.b) then out[#out + 1] = e end
+                end
+            end
+        end
+    end
+    return out
 end
 
 -- Nothing on the common edge of the neighbours p and q: no wall, door, window, window frame or low fence
@@ -982,7 +1001,10 @@ local function trip(t, id, target, what, expectFail, after, edge, watch, observe
     RST.Steps.ask(t, "lk.track", { phase = "begin", key = key, npc = id, edge = e }, { target = "all", timeoutMs = 5000 },
         function(t1)
             tripRaw(t1, id, target, what, expectFail, function(t2, info, de)
-                RST.Steps.ask(t2, "lk.track", { phase = "end", key = key, cross = true, tol = 1.5,
+                -- E18-T31 (MP pass runs/20261108-111228-mp-50034033a4c3, open window): arrival is told within
+                -- Directives.ARRIVE (1 square) of the owner's copy; the other client took the body over right after,
+                -- its copy 0.9 square behind, and the body stayed there (1.9 squares): TRACK_TOL.
+                RST.Steps.ask(t2, "lk.track", { phase = "end", key = key, cross = true, tol = TRACK_TOL,
                     target = { x = target:getX() + 0.5, y = target:getY() + 0.5, z = target:getZ() } },
                     { target = "all", timeoutMs = 10000 }, function(t3)
                         if after then return after(t3, info, de) end
@@ -1285,6 +1307,9 @@ local function interiorKeyTest(withHomeKey)
                 t2:ok(not o.hasKey(z, homeKey), "key not removed")
             end
             local opened, refused, locked = o.stats.opened or 0, o.stats.refused or 0, o.stats.locked or 0
+            -- E18-T31 (MP passes runs/20261108-113401-mp-94d7b31b0956, -114408-mp-dd92da5ac93a: "5 exterior door(s)
+            -- of its home locked" by the routine of the test group during the trip): those locks are left out.
+            local secured = o.stats.securedDoors or 0
             local label = withHomeKey and "locked interior home door, home key" or "locked interior home door, no key"
             trip(t2, id, site.target, label, false, function(t3)
                 t3:eq(opened + 1, o.stats.opened or 0, "doors opened by the authority")
@@ -1292,7 +1317,8 @@ local function interiorKeyTest(withHomeKey)
                 t3:waitUntil(function() return not o.isOpen(door) end, CLOSE_MS, function(t4)
                     if withHomeKey then
                         t4:ok(o.isLocked(door), "door closed behind the body but not locked with its home key")
-                        t4:eq(locked + 1, o.stats.locked or 0, "doors locked by the authority")
+                        t4:eq(locked + 1, (o.stats.locked or 0) - ((o.stats.securedDoors or 0) - secured),
+                            "doors locked by the authority (home routine left out)")
                         local z2 = B().find(id)
                         t4:eq(1, z2 and #o.keysOf(z2), "keys of the home on the body after the trip")
                     else
@@ -1538,6 +1564,11 @@ local function doorFirstTest(find, label, skipWhy)
                     .. ")")
             end
             local routed = o.stats.routedByDoor or 0
+            -- E18-T31 (MP pass runs/20261108-154658-mp-d57165661acd): the route took a nearer door of the house
+            -- (10675,10106, locked, opened with the key) than the door of the site probe: any door counts.
+            local doors = doorEdgesNear(site.e.a, 16)
+            local watched = { site.e, door }
+            for _, d in ipairs(doors) do watched[#watched + 1] = d end
             trip(t2, id, site.target, label, false, function(t3, info, e)
                 measure(string.format(label .. ": %d step(s), route search %s ms, %s square(s)",
                     e and type(e.w) == "table" and #e.w or 0, tostring(o.stats.routeMs), tostring(o.stats.routeNodes)))
@@ -1548,9 +1579,11 @@ local function doorFirstTest(find, label, skipWhy)
                 if isServer() then
                     t3:ok(not info.through[site.e.key], "the body went through the window " .. site.e.key)
                 end
-                t3:ok(info.through[door.key] == true, "the body never went through the door " .. door.key)
+                local via = info.through[door.key] == true
+                for _, d in ipairs(doors) do via = via or info.through[d.key] == true end
+                t3:ok(via, "the body never went through a door (" .. door.key .. " or " .. #doors .. " near)")
                 if not isServer() then t3:ok(info.seen.climbwindow ~= true, "climbwindow state seen") end
-            end, nil, { site.e, door })
+            end, nil, watched)
         end, "npc still on the floor")
     end
     return test

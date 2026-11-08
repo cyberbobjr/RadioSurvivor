@@ -963,6 +963,10 @@ class HStepTests(unittest.TestCase):
         a = self.start('lk.facing', '{ bodies = { { npc = "lk-1", x = 9, y = 10 } }, maxDeg = 30 }')  # behind, 1 square
         self.assertEqual(a.status, 'PASS', a.message)
         self.assertIn('lk-1 on the point', a.message)
+        # E18-T31 (lk.alert en MP) : un membre qui se bat fait face au zombie où il est ; second point ax, ay.
+        a = self.start('lk.facing', '{ bodies = { { npc = "lk-1", x = 5, y = 10, ax = 15, ay = 10 } }, maxDeg = 30 }')
+        self.assertEqual(a.status, 'PASS', a.message)
+        self.assertIn('lk-1 0 deg', a.message)
         a = self.start('lk.positions', '{ bodies = { { npc = "lk-1", x = 11, y = 11, z = 0 } }, tol = 2 }')
         self.assertEqual(a.status, 'PASS', a.message)
         self.assertIsNone(self.start('lk.positions', '{ bodies = { { npc = "lk-3", x = 11, y = 11, z = 0 } }, '
