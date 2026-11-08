@@ -506,7 +506,7 @@ class SuiteTests(WindowBase):
         results = [(r.test, r.status, r.message) for r in lua_list(report.results)]
         self.assertTrue(report.ok, (results, self.h.logs('solo')[-40:]))
         measures = [line for line in self.h.logs('solo') if line.startswith('[LKW] measure')]
-        self.assertTrue(any('thumps' in line for line in measures), measures)
+        self.assertTrue(any('thump seen here' in line for line in measures), measures)
 
 
 class SourceTests(unittest.TestCase):

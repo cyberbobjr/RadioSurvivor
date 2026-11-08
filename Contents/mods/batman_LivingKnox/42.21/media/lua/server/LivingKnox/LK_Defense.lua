@@ -35,7 +35,7 @@
 --      ZombieEngage<Rôle> du rôle du membre, défaut 10, bornée par ZombieAlertDistance) autour de sa place. Corps dans la
 --      zone (à zone + 1 case au plus de sa place) : cible = zombie vanilla le plus proche du corps, dans la zone, au
 --      même niveau ; mêlée seulement par une ligne de coup (Combat.lineOfStrike : ni mur, ni porte fermée, ni vitre
---      fermée ; un zombie vu seulement derrière une vitre reste à l'offensive à la fenêtre du point 7), au plus
+--      fermée ; un zombie vu seulement derrière une vitre est rejoint par une porte, point 7), au plus
 --      MAX_TARGET_TRIES lignes ; tir (poste, arme à feu chargée) : zombie à portée de l'arme avec une ligne de tir
 --      dégagée (Combat.lineOfFire), recensé ou dans la zone. Laisse de l'ordre = zone : le membre va au-devant du
 --      zombie, le frappe, et revient à sa place quand plus aucune cible n'est dans la zone. Cible la plus proche par
@@ -60,45 +60,10 @@
 -- 6. Après l'attaque (fin de la défense) : marque Defense.after(gid) = { id, minute, minutes, wounded = { mid ... } }
 --    (blessés : santé < CARE_HEALTH), entrée « defense » au journal du groupe, et point d'appel des soins
 --    LivingKnox.Care.afterAttack(gid, marque) (LK07-T03, LK_Care.lua : blessés notés à soigner) ; aucun soin ici.
--- 7. Offensive à la fenêtre (LK06-T09, fiche defense.md, section « Offensive à la fenêtre ») : décision de
---    l'utilisateur du 2026-10-12, faire comme un joueur : ouvrir la fenêtre pour que le zombie tombe à l'intérieur et
---    l'achever au sol. Defense.updateOffense, à chaque plan en phase « hold » seulement (jamais en repli : groupe
---    débordé) : une fenêtre (IsoWindow) du bâtiment du foyer, au niveau du foyer, frappée de l'extérieur par un zombie
---    recensé (getThumpTarget, ThumpState), fermée, intacte, sans barricade, ouvrable (canOpen : ni bloquée, ni à
---    alarme armée, sol de l'autre côté ; verrouillée : ouverte de l'intérieur comme le vanilla). Rapport : zombies
---    qui attendent (OFFENSE_WAIT_RADIUS cases autour de la case extérieure, dehors) <= OFFENSE_RATIO x combattants
---    valides à OFFENSE_HELP_RADIUS cases de la case intérieure, sinon pas d'ouverture (chooseOffense, pur) ; ouvreur :
---    le plus proche du bord. Une offensive à la fois par groupe. L'ouvreur court à la case intérieure, joue le geste
---    openwindow du joueur tourné vers la fenêtre ; Defense.tick (OnTick) bascule la fenêtre (ToggleWindow avec son
---    corps) à l'instant du clip (OFFENSE_OPEN_TOGGLE_MS). La suite est vanilla : le zombie en ThumpState voit sa cible
---    devenir invalide et enjambe la fenêtre ouverte (J/ai/states/ThumpState.java:183-193, IsoWindow.getThumpableFor
---    :455-465), tombe à l'intérieur (OnFloor des nœuds zombie, ClimbThroughWindowState.java:105-127, 296-308) ; le
---    défenseur de la fenêtre recule d'un pas (case de chute libre) et les membres proches l'achèvent au sol (coup au
---    sol de LK_Combat et LK_Zombies, réaction « Floor » qui le garde à terre). Fin : plus aucun zombie à
---    OFFENSE_WAIT_RADIUS cases de la fenêtre (deux côtés), OFFENSE_END_MS après l'ouverture, fenêtre refermée ou
---    disparue ; abandon (fenêtre écartée OFFENSE_BLOCK_MINUTES) si elle n'est pas ouverte en OFFENSE_OPEN_MS ; annulée
---    avant l'ouverture si le groupe passe en repli ou si l'ouvreur devient inapte.
---    Cible des coups (LK06-T11, décision de l'utilisateur du 2026-10-14) : getThumpTarget sur la machine qui simule le
---    zombie (solo, zombie simulé par le serveur) ; sinon (serveur, zombie simulé par un client : paquet Thump seulement
---    relayé) la fenêtre que le client propriétaire du zombie rapporte (commande zombieThumps, LivingKnox.Senses,
---    contrôlée à la réception : zombie connu et simulé par ce client, fenêtre réelle, copie du zombie à portée) et récente
---    (Senses.CHECK.THUMP_MS), du bâtiment du foyer, zombie dehors (Defense.thumpTargetOf). Aucune déduction par la
---    seule proximité d'une vitre.
---    Refermeture (LK06-T11, décision du 2026-10-14) : fenêtre ouverte, plus aucun zombie près d'elle (ou délai
---    OFFENSE_END_MS écoulé) : l'offensive passe à l'état « closing » ; un membre valide (l'ouvreur d'abord, sinon le
---    plus proche du bord) joue le geste closewindow du joueur tourné vers la fenêtre (à OFFENSE_REACH du milieu du
---    bord, sinon il rejoint la case intérieure) ; Defense.tick la ferme à l'instant du clip (OFFENSE_CLOSE_TOGGLE_MS)
---    si aucun personnage (zombie, corps de PNJ, joueur) n'occupe les deux cases du bord, l'auteur du geste excepté ;
---    sinon nouvel essai, abandon (fenêtre laissée ouverte) après OFFENSE_CLOSE_MS. Les autres membres gardent leurs
---    places de recul pendant ce temps (case intérieure libre). La défense ne finit pas tant qu'une offensive est en
---    cours. Fenêtre déverrouillée par l'ouverture : laissée déverrouillée.
---    Retenue (demande du 2026-10-15, campagne MP : zombie frappé debout pendant qu'il enjambait, achevé sans coup au
---    sol) : comme un joueur vanilla, pendant l'ouverture et l'attente de la chute (états « opening » et « open »),
---    aucun membre n'engage (mêlée ni tir) un zombie de l'offensive (Defense.offenseHolds : zombie recensé qui attend
---    dehors à OFFENSE_WAIT_RADIUS cases de la case extérieure, ou qui enjambe, noté à chaque plan) tant qu'il n'est
---    pas au sol. Libéré, pour de bon : au sol (isOnFloor : coup au sol), entré debout (dans le bâtiment, hors de
---    l'état climbwindow, depuis OFFENSE_STAND_MS), OFFENSE_FALL_MS après l'ouverture (délai d'abandon), ou fin de
---    l'offensive ; ensuite combat normal (relevé compris).
+-- 7. Zombie à une fenêtre (E18-T34, décision de l'utilisateur du 2026-11-07) : plus d'offensive à la fenêtre (ouvrir
+--    pour le laisser tomber dedans, LK06-T09, retirée : instable en MP, le zombie étant simulé par un client). Un
+--    zombie qui frappe le bâtiment est une cible de sortie comme une autre (point 4) : vu derrière la vitre, un membre
+--    valide sort le rejoindre par une porte et l'attaque dehors ; débordé, le groupe reste à l'intérieur (repli).
 -- 8. Campement (LK05-T18, décision de l'utilisateur du 2026-10-14) : un groupe dont le foyer est hors de tout bâtiment
 --    (relevé « camp » de LK_Routines : feu de camp, tentes) se bat sur place au lieu de rester sans défense. Mêmes
 --    déclencheurs, seuils, rapport de forces, phases, sorties (point 4), blessés et fin que la défense d'une maison ;
@@ -109,7 +74,6 @@
 --    - abris (membres aux constantes mauvaises, surnombre, repli) : cases praticables à CAMP_CENTER case au plus du
 --      foyer, hors postes : les non-combattants sont regroupés au centre du camp, derrière la couronne ;
 --    - repli (groupe débordé) : tout le monde au centre, mêlée au contact seulement (aucun bâtiment où entrer) ;
---    - aucune offensive à la fenêtre (point 7) : pas de fenêtre.
 --    Interrupteur CFG.CAMP (faux : ancien comportement, aucune défense au camp).
 -- Mémoire seulement (plans, places bloquées, marques) : un redémarrage les oublie (la cascade les refait).
 if isClient() then return end
@@ -148,28 +112,8 @@ Defense.CFG = Defense.CFG or {
     FACE_DELTA = 30,         -- degrés : nouvelle consigne « face » si la direction a tourné d'au moins autant
     CARE_HEALTH = 0.75,      -- santé (0..1) sous laquelle un membre est noté blessé après l'attaque
 }
--- Offensive à la fenêtre (LK06-T09, point 7 de l'en-tête ; valeurs de départ, raisons dans la fiche).
 for k, v in pairs({
-    OFFENSE = true,          -- interrupteur
-    OFFENSE_WAIT_RADIUS = 2, -- cases (x et y) autour de la case extérieure de la fenêtre : zombies qui attendent
-    OFFENSE_HELP_RADIUS = 3, -- cases (x et y) autour de la case intérieure : combattants valides comptés
-    OFFENSE_RATIO = 1,       -- ouverture si zombies qui attendent <= OFFENSE_RATIO x combattants valides comptés
-    OFFENSE_REACH = 1.6,     -- cases : corps de l'ouvreur au plus à cette distance du milieu du bord pour le geste
-                             -- (case de la fenêtre, arrivée d'une consigne à Directives.ARRIVE = 1 case du centre)
-    OFFENSE_OPEN_MS = 20000, -- ouverture non faite dans ce délai (trajet, geste) : abandon, fenêtre écartée
-    OFFENSE_END_MS = 45000,  -- fenêtre ouverte : offensive close au plus tard après ce délai
-    OFFENSE_BLOCK_MINUTES = 5, -- minutes de jeu : fenêtre abandonnée écartée des offensives suivantes
-    OFFENSE_TICK_MS = 100,   -- passage de l'autorité pour basculer la fenêtre à l'instant du geste
-    OFFENSE_OPEN_TOGGLE_MS = 1000,  -- fenêtre ouverte à cet instant du geste openwindow (Obstacles.OPEN_TOGGLE_MS)
-    OFFENSE_OPEN_GESTURE_MS = 1750, -- durée du geste openwindow (Obstacles.OPEN_GESTURE_MS)
-    OFFENSE_CLOSE = true,    -- LK06-T11 : refermeture de la fenêtre après l'offensive
-    OFFENSE_CLOSE_MS = 20000, -- refermeture non faite dans ce délai (embrasure occupée, trajet) : fenêtre laissée ouverte
-    OFFENSE_CLOSE_TOGGLE_MS = 1080,  -- fenêtre fermée à cet instant du geste closewindow (Obstacles.CLOSE_TOGGLE_MS)
-    OFFENSE_CLOSE_GESTURE_MS = 2080, -- durée du geste closewindow (Obstacles.CLOSE_GESTURE_MS)
     ENGAGE_RANGE = 10,       -- LK06-T14 : zone de sortie (cases) sans LivingKnox.Zombies (repli de engageRange)
-    OFFENSE_HOLD = true,     -- retenue : aucun coup sur un zombie de l'offensive avant sa chute (point 7)
-    OFFENSE_FALL_MS = 15000, -- fenêtre ouverte depuis ce délai : retenue levée (zombie qui n'enjambe pas)
-    OFFENSE_STAND_MS = 1000, -- zombie debout dans le bâtiment, hors de climbwindow, depuis ce délai : retenue levée
     CAMP = true,             -- LK05-T18 : défense en plein air d'un foyer sans bâtiment (point 8)
     CAMP_RING = 3,           -- cases (Tchebychev) du foyer aux postes du camp
     CAMP_POSTS = 8,          -- postes du camp au plus (N, E, S, W, puis diagonales)
@@ -181,11 +125,6 @@ end
 Defense.state = Defense.state or { groups = {}, npcs = {}, after = {}, n = 0 }
 Defense.stats = Defense.stats or { plans = 0, started = 0, ended = 0, withdrawals = 0, holds = 0, engaged = 0,
     blocked = 0, moves = 0, faces = 0, refused = 0, careCalls = 0 }
-for _, k in ipairs({ "offenses", "offenseRefused", "windowsOpened", "offenseGestures", "offenseEnded",
-    "offenseGivenUp", "thumpReported", "windowsClosed", "closeGestures", "closeWaits", "closeGivenUp",
-    "offenseHeld", "offenseFreed" }) do
-    Defense.stats[k] = Defense.stats[k] or 0   -- LK06-T09
-end
 
 local function log() return LivingKnox.Log end
 local function cfg() return Defense.CFG end
@@ -616,7 +555,7 @@ function Defense.update(gid, g, minute, players)
     if st.plan == nil then
         local A = LivingKnox.Alert
         if census.threat <= 0 or A == nil or A.isActive == nil or not A.isActive(gid, minute) then return nil end
-    elseif census.threat <= 0 and minute - (st.lastThreat or minute) >= cfg().END_MINUTES and st.offense == nil then
+    elseif census.threat <= 0 and minute - (st.lastThreat or minute) >= cfg().END_MINUTES then
         finish(gid, g, st, minute, "no threat left")
         return nil
     end
@@ -647,7 +586,6 @@ function Defense.update(gid, g, minute, players)
         ty = plan.ty, members = members, prev = st.prev, blocked = blockedSet(st, minute) })
     st.prev = {}
     for mid, a in pairs(plan.assign) do st.prev[mid] = a.key end
-    if cfg().OFFENSE and not plan.camp then Defense.updateOffense(gid, g, st, plan, census, members, minute, t) end   -- LK06-T09
     if changed then
         local G = Groups()
         local leader = g.leader or "?"
@@ -674,635 +612,6 @@ function Defense.noteBlocked(gid, key, minute)
     st.blocked[key] = minute or 0
     st.at = nil   -- plan refait au prochain passage
     count("blocked")
-end
-
--- ================================================================ offensive à la fenêtre (LK06-T09, point 7)
-
-local function Obs() return LivingKnox.Obstacles end
-
--- Bord de la fenêtre w, même forme que LivingKnox.Obstacles.edge : { key, kind, ax, ay, bx, by, ex, ey, mx, my, z }
--- (a = case ouest ou nord du bord ; la fenêtre est posée sur la case b, dont elle est le bord ouest ou nord).
-function Defense.windowEdge(w)
-    local sq = w:getSquare()
-    if sq == nil then return nil end
-    local x, y, z = sq:getX(), sq:getY(), sq:getZ()
-    local e
-    if w:getNorth() then
-        e = { kind = "N", z = z, ax = x, ay = y - 1, bx = x, by = y, ex = x, ey = y, mx = x + 0.5, my = y }
-    else
-        e = { kind = "W", z = z, ax = x - 1, ay = y, bx = x, by = y, ex = x, ey = y, mx = x, my = y + 0.5 }
-    end
-    e.key = e.ex .. "," .. e.ey .. "," .. z .. "," .. e.kind
-    return e
-end
-
--- Angle (convention de setDirectionAngle : E 0, S 90, W 180, N 270) qui tourne un corps placé en (px, py) face au
--- bord e (comme Obstacles.faceAngle).
-function Defense.faceWindow(e, px, py)
-    local west
-    if e.kind == "W" then
-        west = px < e.ex
-        return west and 0 or 180
-    end
-    west = py < e.ey
-    return west and 90 or 270
-end
-
--- Fenêtre w que l'offensive peut ouvrir de l'intérieur (outside : case extérieure). Rend vrai, ou faux et la raison.
--- Verrouillée : ouverte quand même, comme le joueur vanilla de l'intérieur (OpenWindowState.java:128, 167 : seul un
--- personnage dehors est arrêté par le verrou ; IsoWindow.ToggleWindow déverrouille, IsoWindow.java:705-715).
-function Defense.canOpen(w, outside)
-    if not instanceof(w, "IsoWindow") then return false, "not a window" end
-    if w:getSquare() == nil or w:getObjectIndex() == -1 then return false, "window removed" end
-    if w:IsOpen() then return false, "window already open" end
-    if w:isDestroyed() then return false, "window broken" end
-    if w:isBarricaded() then return false, "barricaded window" end
-    if w:isPermaLocked() then return false, "window that cannot be opened" end
-    local O = Obs()
-    if O ~= nil and O.alarmArmed ~= nil and O.alarmArmed(w) then return false, "window of an alarmed house" end
-    if outside == nil or not outside:TreatAsSolidFloor() then return false, "window over a drop" end
-    return true
-end
-
--- Case du zombie z d'après sa position (LK06-T11) : sur un serveur, getCurrentSquare() de la copie d'un zombie simulé
--- par un client peut manquer ou retarder (campagne MP du 2026-10-15 : zombie à 10653,4 contre la vitre, rapport refusé
--- comme « dans le foyer » faute de case) ; la case de getX/getY/getZ, recalée à chaque paquet du propriétaire, sert de
--- repli. Rend la case ou nil.
-function Defense.squareOf(z)
-    local cell = getCell()
-    local sq = cell ~= nil and cell:getGridSquare(math.floor(z:getX()), math.floor(z:getY()), math.floor(z:getZ())) or nil
-    return sq or z:getCurrentSquare()
-end
-
--- Objet que frappe le zombie z, ou nil (LK06-T11, point 7 de l'en-tête). Machine qui simule le zombie : getThumpTarget.
--- Serveur, zombie simulé par un client (sa copie n'a jamais de cible de coups : paquet Thump seulement relayé,
--- J/network/packets/character/ThumpPacket.java:54-63) : fenêtre rapportée par le client qui le simule
--- (Senses.thumpOf, commande zombieThumps contrôlée à la réception), gardée seulement si elle est encore là, que l'un
--- de ses côtés est du bâtiment bid (foyer défendu), que le zombie est dehors (hors de bid), au même niveau et à
--- Senses.CHECK.THUMP_REACH cases au plus du milieu du bord. bid nil : rien sur rapport.
-function Defense.thumpTargetOf(z, bid)
-    local t = z:getThumpTarget()
-    if t ~= nil or not isServer() or bid == nil then return t end
-    local S = LivingKnox.Senses
-    local r = S ~= nil and S.thumpOf ~= nil and S.thumpOf(z:getOnlineID()) or nil
-    if r == nil then return nil end
-    local w = S.windowAt(r.x, r.y, r.z, r.k)
-    local zsq = Defense.squareOf(z)
-    local why = nil
-    if w == nil then
-        why = "window gone"
-    elseif zsq == nil then
-        why = "no square for the zombie"
-    elseif buildingOf(zsq) == bid then
-        why = "zombie inside the home"
-    elseif math.floor(z:getZ()) ~= r.z or S.edgeDist(z:getX(), z:getY(), r.x, r.y, r.k) > S.CHECK.THUMP_REACH then
-        why = "zombie away from the window"
-    else
-        local e = Defense.windowEdge(w)
-        local cell = getCell()
-        local sa = e ~= nil and cell:getGridSquare(e.ax, e.ay, e.z) or nil
-        local sb = e ~= nil and cell:getGridSquare(e.bx, e.by, e.z) or nil
-        if not ((sa ~= nil and buildingOf(sa) == bid) or (sb ~= nil and buildingOf(sb) == bid)) then
-            why = "window of another building"
-        end
-    end
-    local key = string.format("%d,%d,%d,%s %s", r.x, r.y, r.z, r.k, tostring(bid))
-    local seen = Defense.state.thumps or {}
-    Defense.state.thumps = seen
-    local o = z:getOnlineID()
-    if seen[o] ~= key .. tostring(why) then   -- une ligne par zombie, fenêtre, foyer et issue
-        seen[o] = key .. tostring(why)
-        log().info("zombie %s thumps window %s,%s,%s,%s (reported by %s): %s for the home building %s", tostring(o), r.x,
-            r.y, r.z, r.k, tostring(r.by), why ~= nil and ("ignored, " .. why) or "kept", tostring(bid))
-    end
-    if why ~= nil then return nil end
-    count("thumpReported")
-    return w
-end
-
--- Fenêtres du foyer (bâtiment bid, niveau lv) frappées de l'extérieur par un zombie recensé (getThumpTarget, état
--- ThumpState, ou rapport du propriétaire : Defense.thumpTargetOf) : { { w, e, key, inside, outside (cases),
--- thumpers }, ... } triées par clé de bord.
-function Defense.thumpedWindows(census, bid, lv)
-    local byKey, out = {}, {}
-    local cell = getCell()
-    if cell == nil or bid == nil then return out end
-    for _, ce in ipairs(census and census.list or {}) do
-        local z = ce.zombie
-        local t = z ~= nil and Defense.thumpTargetOf(z, bid) or nil
-        local zsq = z ~= nil and Defense.squareOf(z) or nil
-        if t ~= nil and instanceof(t, "IsoWindow") and zsq ~= nil and buildingOf(zsq) ~= bid then
-            local e = Defense.windowEdge(t)
-            if e ~= nil and e.z == lv then
-                local c = byKey[e.key]
-                if c == nil then
-                    local sa, sb = cell:getGridSquare(e.ax, e.ay, e.z), cell:getGridSquare(e.bx, e.by, e.z)
-                    local ina = sa ~= nil and buildingOf(sa) == bid
-                    local inb = sb ~= nil and buildingOf(sb) == bid
-                    if ina ~= inb then
-                        c = { w = t, e = e, key = e.key, inside = ina and sa or sb, outside = ina and sb or sa,
-                            thumpers = 0 }
-                        byKey[e.key] = c
-                        out[#out + 1] = c
-                    end
-                end
-                if c ~= nil then c.thumpers = c.thumpers + 1 end
-            end
-        end
-    end
-    table.sort(out, function(a, b) return a.key < b.key end)
-    return out
-end
-
--- Zombies recensés à OFFENSE_WAIT_RADIUS cases (x et y) au plus de la case sq, même niveau ; outsideOf = bid : dehors
--- seulement (hors du bâtiment bid).
-local function zombiesNear(census, sq, outsideOf)
-    local n = 0
-    local R = cfg().OFFENSE_WAIT_RADIUS
-    for _, ce in ipairs(census and census.list or {}) do
-        local z = ce.zombie
-        if z ~= nil and ce.z == sq:getZ() and cheb(ce.x, ce.y, sq:getX(), sq:getY()) <= R then
-            local zsq = Defense.squareOf(z)
-            if outsideOf == nil or zsq == nil or buildingOf(zsq) ~= outsideOf then n = n + 1 end
-        end
-    end
-    return n
-end
-
--- Choix de l'offensive (pur). phase : phase de la défense ; cands = { { key, waiting, helpers = { { mid, number, d },
--- ... } }, ... } (helpers : combattants valides près de la fenêtre, d = distance au milieu du bord). Rend { key, mid,
--- waiting, helpers } ou nil et la raison. Jamais en repli (groupe débordé) ; fenêtre retenue : la moins assiégée dont
--- les zombies qui attendent restent <= OFFENSE_RATIO x combattants comptés (rapport favorable : ils tombent un par un) ;
--- ouvreur : le plus proche du bord (puis numéro de membre).
-function Defense.chooseOffense(phase, cands)
-    if phase ~= "hold" then return nil, "group overwhelmed (" .. tostring(phase) .. ")" end
-    local ratio = cfg().OFFENSE_RATIO
-    local list = {}
-    for _, c in ipairs(cands or {}) do list[#list + 1] = c end
-    table.sort(list, function(a, b)
-        if a.waiting ~= b.waiting then return a.waiting < b.waiting end
-        return a.key < b.key
-    end)
-    local why = "no window thumped"
-    for _, c in ipairs(list) do
-        local n = #(c.helpers or {})
-        if n == 0 then
-            why = string.format("window %s: no able member near it", c.key)
-        elseif c.waiting > ratio * n then
-            why = string.format("window %s: %d zombie(s) waiting > %d x %d able member(s)", c.key, c.waiting, ratio, n)
-        else
-            local best = nil
-            for _, h in ipairs(c.helpers) do
-                local better = best == nil
-                if not better and (h.posted == true) ~= (best.posted == true) then
-                    better = h.posted == true
-                elseif not better then
-                    better = h.d < best.d or (h.d == best.d and h.number < best.number)
-                end
-                if better then best = h end
-            end
-            return { key = c.key, mid = best.mid, waiting = c.waiting, helpers = n }
-        end
-    end
-    return nil, why
-end
-
-local function addLog(gid, text)
-    local G = Groups()
-    if G.addLog ~= nil then G.addLog(gid, "defense", text) end
-end
-
--- Fin de l'offensive du groupe gid (état st) : giveUp écarte la fenêtre OFFENSE_BLOCK_MINUTES.
-local function offenseEnd(gid, st, why, giveUp, minute)
-    local off = st.offense
-    if off == nil then return end
-    st.offense = nil
-    if giveUp then
-        st.offBlocked[off.key] = minute or 0
-        count("offenseGivenUp")
-    else
-        count("offenseEnded")
-    end
-    local A = LivingKnox.Anim
-    if off.state == "opening" and A ~= nil and A.endAct ~= nil then A.endAct(off.npc, "openwindow") end
-    if off.state == "closing" and off.actAt ~= nil and A ~= nil and A.endAct ~= nil then
-        A.endAct(off.npc, "closewindow")   -- LK06-T11 : geste de refermeture en cours
-    end
-    local text = string.format("window offensive at %s over: %s", off.key, why)
-    log().info("group %s %s", gid, text)
-    addLog(gid, text)
-end
-
--- Places de recul autour de la case intérieure inside (bâtiment bid) : un pas vers l'intérieur, à l'opposé de
--- outside, puis les deux cases voisines de celle-ci le long du mur ; praticables et du bâtiment seulement. Toutes à
--- une case (x et y) de la case de chute : à portée de coup et dans la laisse COMBAT_LEASH.
-local function backSpots(inside, outside, bid)
-    local ix, iy, z = inside:getX(), inside:getY(), inside:getZ()
-    local nx, ny = ix - outside:getX(), iy - outside:getY()   -- vers l'intérieur
-    local out = {}
-    for _, d in ipairs({ { nx, ny }, { nx + ny, ny + nx }, { nx - ny, ny - nx } }) do
-        local sq = getCell():getGridSquare(ix + d[1], iy + d[2], z)
-        if sq ~= nil and buildingOf(sq) == bid and standable(sq) then
-            out[#out + 1] = { x = ix + d[1], y = iy + d[2], z = z }
-        end
-    end
-    return out
-end
-
--- Offensive à la fenêtre du groupe gid pour le plan plan (recensement census, membres de defenders), à la minute de
--- jeu minute et à l'heure t : suivi de l'offensive en cours, ou choix d'une nouvelle (point 7 de l'en-tête).
-function Defense.updateOffense(gid, g, st, plan, census, members, minute, t)
-    local c = cfg()
-    st.offBlocked = st.offBlocked or {}
-    local old = {}
-    for key, at in pairs(st.offBlocked) do
-        if minute - at >= c.OFFENSE_BLOCK_MINUTES then old[#old + 1] = key end
-    end
-    for _, key in ipairs(old) do st.offBlocked[key] = nil end
-    local valid = {}
-    for _, m in ipairs(members) do
-        if m.combatant and m.valid then valid[m.mid] = m end
-    end
-    local off = st.offense
-    if off ~= nil then
-        local w = off.w
-        if w:getSquare() == nil or w:getObjectIndex() == -1 then
-            offenseEnd(gid, st, "window removed", false, minute)
-        elseif off.state == "opening" then
-            if w:IsOpen() then
-                off.state, off.openedAt = "open", t   -- ouverte par quelqu'un d'autre : la suite est la même
-            elseif plan.phase ~= "hold" then
-                offenseEnd(gid, st, "group overwhelmed, window kept closed", false, minute)
-            elseif w:isDestroyed() or w:isBarricaded() then
-                offenseEnd(gid, st, "window broken or barricaded", false, minute)
-            elseif valid[off.mid] == nil then
-                offenseEnd(gid, st, "opener " .. off.mid .. " unfit or gone", false, minute)
-            elseif t - off.since > c.OFFENSE_OPEN_MS then
-                offenseEnd(gid, st, "window not opened in time", true, minute)
-            end
-        elseif off.state == "closing" then
-            Defense.followClosing(gid, st, off, valid, minute, t)
-        elseif not w:IsOpen() and not w:isDestroyed() then
-            offenseEnd(gid, st, "window closed again", false, minute)
-        elseif t - off.openedAt > c.OFFENSE_END_MS then
-            Defense.startClosing(gid, st, off, valid, "time out", minute, t)
-        elseif zombiesNear(census, off.outside, nil) + zombiesNear(census, off.inside, nil) == 0 then
-            Defense.startClosing(gid, st, off, valid, "no zombie left at the window", minute, t)
-        end
-    end
-    if st.offense == nil and plan.phase == "hold" and g.home ~= nil then
-        local hsq = getCell():getGridSquare(g.home.x, g.home.y, g.home.z)
-        local bid = hsq ~= nil and buildingOf(hsq) or nil
-        local cands = {}
-        for _, w in ipairs(Defense.thumpedWindows(census, bid, g.home.z)) do
-            local ok, why = Defense.canOpen(w.w, w.outside)
-            if st.offBlocked[w.key] ~= nil then ok, why = false, "window given up a moment ago" end
-            if ok then
-                w.waiting = zombiesNear(census, w.outside, bid)
-                w.bid = bid
-                w.helpers = {}
-                -- Combattants valides comptés : corps OU place de défense à OFFENSE_HELP_RADIUS cases de la case
-                -- intérieure, même niveau (un défenseur en route vers le poste de la fenêtre compte).
-                local ix, iy = w.inside:getX(), w.inside:getY()
-                for mid, m in pairs(valid) do
-                    local body = bodyOf(g.members[mid])
-                    local a = plan.assign[mid]
-                    local placed = a ~= nil and a.z == w.e.z and cheb(a.x, a.y, ix, iy) <= c.OFFENSE_HELP_RADIUS
-                    local near = body ~= nil and math.floor(body:getZ()) == w.e.z
-                        and cheb(body:getX(), body:getY(), ix + 0.5, iy + 0.5) <= c.OFFENSE_HELP_RADIUS + 0.5
-                    if body ~= nil and (placed or near) then
-                        local dx, dy = body:getX() - w.e.mx, body:getY() - w.e.my
-                        w.helpers[#w.helpers + 1] = { mid = mid, number = m.number, d = math.sqrt(dx * dx + dy * dy),
-                            posted = a ~= nil and a.x == ix and a.y == iy and a.z == w.e.z }
-                    end
-                end
-                table.sort(w.helpers, function(a, b) return a.number < b.number end)
-                cands[#cands + 1] = w
-            elseif st.offWhy ~= w.key .. why then
-                st.offWhy = w.key .. why
-                log().debug("group %s: window %s thumped, no offensive: %s", gid, w.key, why)
-            end
-        end
-        local choice, why = nil, nil
-        if #cands > 0 then choice, why = Defense.chooseOffense(plan.phase, cands) end
-        if choice ~= nil then
-            local w
-            for _, cd in ipairs(cands) do
-                if cd.key == choice.key then w = cd end
-            end
-            local m = g.members[choice.mid]
-            st.offense = { key = w.key, w = w.w, e = w.e, inside = w.inside, outside = w.outside, mid = choice.mid,
-                npc = m and m.npc, state = "opening", since = t, waiting = choice.waiting, bid = w.bid,
-                backs = backSpots(w.inside, w.outside, w.bid), held = {} }
-            count("offenses")
-            local text = string.format("window offensive at %s: %s opens it, %d zombie(s) waiting, %d able member(s) "
-                .. "near it", w.key, choice.mid, choice.waiting, choice.helpers)
-            log().info("group %s %s", gid, text)
-            addLog(gid, text)
-        elseif why ~= nil and st.offWhy ~= why then
-            st.offWhy = why
-            count("offenseRefused")
-            log().info("group %s: no window offensive: %s", gid, why)
-        end
-    end
-    off = st.offense
-    if off ~= nil and (off.state == "open" or off.state == "closing") and #off.backs > 0 then
-        -- Fenêtre ouverte : la case intérieure reste libre pour la chute du zombie ; l'ouvreur prend la première
-        -- place de recul, le défenseur posté à la fenêtre (s'il est un autre) la suivante : tous deux à une case de
-        -- la chute, tournés vers la fenêtre, pour l'achever au sol.
-        local ix, iy, iz = off.inside:getX(), off.inside:getY(), off.inside:getZ()
-        -- Refermeture (LK06-T11) : l'auteur du geste a sa propre consigne (contextFor) ; l'ouvreur, s'il en est un
-        -- autre, et le défenseur posté gardent leurs places de recul : case intérieure libre.
-        local order = {}
-        local opener = off.opener or off.mid
-        local closer = off.state == "closing" and off.mid or nil
-        if plan.assign[opener] ~= nil and opener ~= closer then order[1] = opener end
-        local posted = {}
-        for mid, a in pairs(plan.assign) do
-            if mid ~= opener and mid ~= closer and a.x == ix and a.y == iy and a.z == iz then posted[#posted + 1] = mid end
-        end
-        table.sort(posted)
-        for _, mid in ipairs(posted) do order[#order + 1] = mid end
-        for i, mid in ipairs(order) do
-            local a = plan.assign[mid]
-            local b = off.backs[math.min(i, #off.backs)]
-            plan.assign[mid] = { role = "post", x = b.x, y = b.y, z = b.z, a = Defense.faceWindow(off.e, b.x + 0.5,
-                b.y + 0.5), key = spotKey("post", b.x, b.y, b.z), what = "window", fighter = a.fighter }
-        end
-    end
-    if off ~= nil and (off.state == "opening" or off.state == "open") then Defense.noteHeld(off, census) end
-    plan.offense = off ~= nil and { key = off.key, mid = off.mid, state = off.state } or nil
-end
-
--- Zombie z au sol : isOnFloor, ou chute rapportée par le client qui le simule (MP, LivingKnox.Senses.onFloor :
--- la copie du serveur ne voit pas les 2 s à terre après l'enjambée, campagne MP du 2026-10-15).
-function Defense.down(z)
-    if z:isOnFloor() then return true end
-    local S = LivingKnox.Senses
-    return S ~= nil and S.onFloor ~= nil and S.onFloor(z)
-end
-
--- Retenue (point 7) : zombies de l'offensive off notés d'après le recensement census : dehors (hors du bâtiment
--- off.bid) à OFFENSE_WAIT_RADIUS cases de la case extérieure, ou en train d'enjamber (climbwindow) près du bord ; un
--- zombie déjà au sol n'est pas noté. Une entrée par clé ({ since }), jamais retirée avant la fin de l'offensive.
-function Defense.noteHeld(off, census)
-    if not cfg().OFFENSE_HOLD or off.held == nil then return end
-    local R = cfg().OFFENSE_WAIT_RADIUS
-    local ox, oy, oz = off.outside:getX(), off.outside:getY(), off.outside:getZ()
-    for _, ce in ipairs(census and census.list or {}) do
-        local z = ce.zombie
-        if z ~= nil and off.held[ce.key] == nil and ce.z == oz and cheb(ce.x, ce.y, ox, oy) <= R
-            and not Defense.down(z) then
-            local zsq = Defense.squareOf(z)
-            local outside = zsq == nil or buildingOf(zsq) ~= off.bid
-            if outside or z:getActionStateName() == "climbwindow" then off.held[ce.key] = { since = now() } end
-        end
-    end
-end
-
--- Vrai si le zombie z (clé key) ne doit pas être engagé par un membre du groupe gid : zombie de l'offensive en cours
--- (ouverture ou attente de la chute) pas encore au sol (point 7, retenue). Lève la retenue de ce zombie pour de bon
--- quand il est au sol, entré debout depuis OFFENSE_STAND_MS, ou OFFENSE_FALL_MS après l'ouverture.
-function Defense.offenseHolds(gid, z, key)
-    local st = gid ~= nil and Defense.state.groups[gid] or nil
-    local off = st and st.offense or nil
-    if off == nil or off.held == nil or (off.state ~= "opening" and off.state ~= "open") then return false end
-    local h = off.held[key]
-    if h == nil or h.free ~= nil then return false end
-    local c = cfg()
-    local t = now()
-    local why = nil
-    if Defense.down(z) then
-        why = "on the floor"
-    elseif off.openedAt ~= nil and t - off.openedAt >= c.OFFENSE_FALL_MS then
-        why = "not fallen " .. c.OFFENSE_FALL_MS .. " ms after the opening"
-    else
-        local zsq = Defense.squareOf(z)
-        if zsq ~= nil and buildingOf(zsq) == off.bid and z:getActionStateName() ~= "climbwindow" then
-            h.standing = h.standing or t
-            if t - h.standing >= c.OFFENSE_STAND_MS then why = "came in standing" end
-        else
-            h.standing = nil
-        end
-    end
-    if why ~= nil then
-        h.free = why
-        count("offenseFreed")
-        log().info("group %s: window offensive at %s: zombie %s %s, members may hit it", tostring(gid), off.key,
-            tostring(key), why)
-        return false
-    end
-    if not h.told then
-        h.told = true
-        log().info("group %s: window offensive at %s: zombie %s left alone until it falls inside", tostring(gid),
-            off.key, tostring(key))
-    end
-    count("offenseHeld")
-    return true
-end
-
--- Distance du corps body au milieu du bord e.
-local function edgeGap(body, e)
-    local dx, dy = body:getX() - e.mx, body:getY() - e.my
-    return math.sqrt(dx * dx + dy * dy)
-end
-
--- Auteur de la refermeture (LK06-T11) parmi les membres valides valid : l'ouvreur s'il l'est encore, sinon le plus
--- proche du milieu du bord au niveau de la fenêtre (puis numéro). Rend mid ou nil.
-function Defense.chooseCloser(g, off, valid)
-    local opener = off.opener or off.mid
-    if valid[opener] ~= nil and bodyOf(g.members[opener]) ~= nil then return opener end
-    local best, bestD, bestN = nil, nil, nil
-    for mid, m in pairs(valid) do
-        local body = bodyOf(g.members[mid])
-        if body ~= nil and math.floor(body:getZ()) == off.e.z then
-            local d = edgeGap(body, off.e)
-            if best == nil or d < bestD or (d == bestD and (m.number or 0) < bestN) then
-                best, bestD, bestN = mid, d, m.number or 0
-            end
-        end
-    end
-    return best
-end
-
--- Fin de l'offensive, fenêtre ouverte (why : raison) : refermeture par un membre (OFFENSE_CLOSE), sinon fin.
-function Defense.startClosing(gid, st, off, valid, why, minute, t)
-    local G = Groups()
-    local g = G.get ~= nil and G.get(gid) or nil
-    if not cfg().OFFENSE_CLOSE or g == nil then
-        offenseEnd(gid, st, why, false, minute)
-        return
-    end
-    off.opener = off.opener or off.mid
-    off.state, off.closeSince, off.closeWhy = "closing", t, why
-    off.actAt, off.toggleAt = nil, nil
-    local mid = Defense.chooseCloser(g, off, valid)
-    off.mid = mid or off.opener
-    local m = g.members[off.mid]
-    off.npc = m and m.npc or nil
-    st.at = nil   -- plan refait au prochain passage
-    local text = string.format("window offensive at %s: %s, %s closes the window", off.key, why, off.mid)
-    log().info("group %s %s", gid, text)
-    addLog(gid, text)
-end
-
--- Suivi de la refermeture (plan du groupe) : fenêtre disparue, déjà fermée, brisée ou barricadée : fin ; délai
--- OFFENSE_CLOSE_MS dépassé : fenêtre laissée ouverte ; auteur inapte ou parti : un autre membre.
-function Defense.followClosing(gid, st, off, valid, minute, t)
-    local w = off.w
-    local A = LivingKnox.Anim
-    if not w:IsOpen() then
-        offenseEnd(gid, st, "window closed (" .. off.closeWhy .. ")", false, minute)
-    elseif w:isDestroyed() or w:isBarricaded() then
-        offenseEnd(gid, st, "window broken or barricaded, left as it is (" .. off.closeWhy .. ")", false, minute)
-    elseif t - off.closeSince > cfg().OFFENSE_CLOSE_MS then
-        count("closeGivenUp")
-        offenseEnd(gid, st, "window left open: not closed in time, its squares stay occupied or no member reached "
-            .. "it (" .. off.closeWhy .. ")", false, minute)
-    elseif valid[off.mid] == nil then
-        local G = Groups()
-        local g = G.get ~= nil and G.get(gid) or nil
-        local mid = g ~= nil and Defense.chooseCloser(g, off, valid) or nil
-        if mid ~= nil and mid ~= off.mid then
-            if A ~= nil and A.endAct ~= nil and off.actAt ~= nil then A.endAct(off.npc, "closewindow") end
-            log().info("group %s: window %s: closer %s unfit or gone, %s closes it", gid, off.key, off.mid, mid)
-            off.mid, off.npc, off.actAt, off.toggleAt = mid, g.members[mid].npc, nil, nil
-        end
-    end
-end
-
--- Objet mobile (zombie vivant, corps de PNJ en escalade, joueur, véhicule) sur l'une des deux cases du bord de
--- l'offensive off, l'objet except (auteur du geste), les corps de PNJ debout et les personnages morts exceptés ;
--- les cadavres (IsoDeadBody) ne sont pas des objets mobiles de la case.
-function Defense.windowBusy(off, except)
-    local cell = getCell()
-    for _, p in ipairs({ { off.e.ax, off.e.ay }, { off.e.bx, off.e.by } }) do
-        local sq = cell:getGridSquare(p[1], p[2], off.e.z)
-        local list = sq ~= nil and sq:getMovingObjects() or nil
-        for i = 0, (list ~= nil and list:size() or 0) - 1 do
-            local o = list:get(i)
-            -- Personnage mort encore sur la case (animation de mort avant le cadavre) : ne compte pas.
-            local dead = instanceof(o, "IsoGameCharacter") and o:isDead()
-            -- Corps de PNJ debout sur une case du bord, hors escalade (campagne MP du 2026-10-15 : l'ouvreur resté sur
-            -- la case intérieure après la mise à mort bloquait la refermeture par un autre membre, fenêtre laissée
-            -- ouverte) : il ne gêne pas la vitre, comme le joueur vanilla qui la ferme depuis cette case.
-            local npc = not dead and instanceof(o, "IsoZombie") and o:hasModData()
-                and LivingKnox.Identity.readTag(o:getModData()) ~= nil
-            local climbing = npc and string.find(tostring(o:getActionStateName()), "^climb") ~= nil
-            if o ~= except and not dead and not (npc and not climbing) then return true, o end
-        end
-    end
-    return false
-end
-
--- Fermeture de la fenêtre à l'instant du geste closewindow (Defense.tick). Rend vrai si fermée.
-function Defense.closeNow(gid, st, off, t)
-    off.toggleAt = nil
-    local B = LivingKnox.Bodies
-    local body = B ~= nil and B.find(off.npc) or nil
-    local A = LivingKnox.Anim
-    if body == nil or body:isDead() or A == nil or A.actOf(off.npc) ~= "closewindow" then
-        off.actAt = nil   -- geste interrompu : nouvel essai au passage suivant de la cascade
-        return false
-    end
-    local busy, who = Defense.windowBusy(off, body)
-    if busy then
-        count("closeWaits")
-        if not off.busyTold then   -- une ligne par offensive : ce qui occupe l'embrasure (diagnostic MP)
-            off.busyTold = true
-            local what = who ~= nil and tostring(who.getObjectName and who:getObjectName() or who) or "?"
-            if instanceof(who, "IsoZombie") then
-                local nid = who:hasModData() and LivingKnox.Identity.readTag(who:getModData()) or nil
-                what = (nid ~= nil and ("body of " .. tostring(nid)) or ("zombie z:" .. tostring(who:getOnlineID())))
-            elseif instanceof(who, "IsoPlayer") then
-                what = "player " .. tostring(who:getUsername())
-            end
-            log().info("group %s: window %s not closed yet: %s at %.1f,%.1f on its squares", gid, off.key, what,
-                who ~= nil and who:getX() or -1, who ~= nil and who:getY() or -1)
-        end
-        if A.endAct ~= nil then A.endAct(off.npc, "closewindow") end
-        off.actAt = nil   -- embrasure occupée : nouveau geste au passage suivant (abandon après OFFENSE_CLOSE_MS)
-        log().debug("group %s: window %s not closed: its squares are occupied", gid, off.key)
-        return false
-    end
-    local O = Obs()
-    if O ~= nil and O.setWindow ~= nil then
-        O.setWindow(off.w, false, body)
-    elseif off.w:IsOpen() then
-        off.w:ToggleWindow(body)
-    end
-    if off.w:IsOpen() then
-        off.actAt = nil
-        return false
-    end
-    count("windowsClosed")
-    local text = string.format("window offensive at %s: %s closed the window", off.key, off.mid)
-    log().info("group %s %s", gid, text)
-    addLog(gid, text)
-    off.state = "closed"
-    offenseEnd(gid, st, "window closed (" .. tostring(off.closeWhy) .. ")", false, st.minute)
-    return true
-end
-
--- Bascule de la fenêtre de l'offensive off du groupe gid à l'instant du geste (Defense.tick). Rend vrai si ouverte.
-function Defense.openNow(gid, st, off, t)
-    off.toggleAt = nil
-    local B = LivingKnox.Bodies
-    local body = B ~= nil and B.find(off.npc) or nil
-    local A = LivingKnox.Anim
-    if body == nil or body:isDead() or A == nil or A.actOf(off.npc) ~= "openwindow" then
-        off.actAt = nil   -- geste interrompu : nouvel essai au passage suivant de la cascade
-        return false
-    end
-    local ok, why = Defense.canOpen(off.w, off.outside)
-    if not ok then
-        offenseEnd(gid, st, why, false, st.minute)
-        return false
-    end
-    local O = Obs()
-    if O ~= nil and O.setWindow ~= nil then
-        O.setWindow(off.w, true, body)
-    else
-        off.w:ToggleWindow(body)   -- vanilla : OpenWindowState.onSuccess, IsoWindow.ToggleWindow
-    end
-    if not off.w:IsOpen() then
-        offenseEnd(gid, st, "window did not open", true, st.minute)
-        return false
-    end
-    off.state, off.openedAt = "open", t
-    count("windowsOpened")
-    st.at = nil   -- plan refait au prochain passage : défenseur de la fenêtre en recul
-    local text = string.format("window offensive at %s: %s opened the window, %d zombie(s) waiting", off.key, off.mid,
-        off.waiting or 0)
-    log().info("group %s %s", gid, text)
-    addLog(gid, text)
-    return true
-end
-
--- OnTick (autorité) : fenêtres basculées à l'instant du geste d'ouverture, au plus toutes les OFFENSE_TICK_MS.
-function Defense.tick()
-    if not LivingKnox.isAuthority() then return end
-    local s = Defense.state
-    local t = now()
-    if s.lastTick ~= nil and t - s.lastTick < cfg().OFFENSE_TICK_MS then return end
-    s.lastTick = t
-    local due = {}
-    for gid, st in pairs(s.groups) do
-        local off = st.offense
-        if off ~= nil and (off.state == "opening" or off.state == "closing") and off.toggleAt ~= nil
-            and t >= off.toggleAt then
-            due[#due + 1] = gid
-        end
-    end
-    table.sort(due)
-    for _, gid in ipairs(due) do
-        local st = s.groups[gid]
-        if st.offense.state == "closing" then
-            Defense.closeNow(gid, st, st.offense, t)
-        else
-            Defense.openNow(gid, st, st.offense, t)
-        end
-    end
 end
 
 -- ================================================================ cascade (autorité)
@@ -1359,26 +668,30 @@ function Defense.targetFor(id, body, ctx, a, census, phase)
     local near = cheb(body:getX(), body:getY(), a.x + 0.5, a.y + 0.5) <= zone and math.floor(body:getZ()) == a.z
     local function held(o, d) return Defense.held(body, o, d, a, r, w) end
     local Zm = LivingKnox.Zombies
-    local gid = ctx.gid
-    local function spared(z, key)   -- point 7 : zombie de l'offensive pas encore tombé
-        return Defense.offenseHolds(gid, z, key or (Zm ~= nil and Zm.keyOf(z)) or "?")
+    -- Zombie engagé par la sortie en cours, gardé tant que la laisse le garde (aroundOnly : sortie par le chemin
+    -- seulement), ou nil.
+    local function engaged(aroundOnly)
+        local cur = sally and C ~= nil and C.orders ~= nil and C.orders[id] or nil
+        local cz = cur ~= nil and cur.k == "zombie" and cur.zt or nil
+        local around = cur ~= nil and cur.leash ~= nil and cur.leash.around == true
+        if cz == nil or (aroundOnly and not around) then return nil end
+        if Zm ~= nil and Zm.isVanilla(cz) and Zm.inWorld(cz) and held(cz, distTo(body, cz)) then
+            return { kind = "zombie", u = cur.u, d = distTo(body, cz), reason = "home defense", zombie = cz,
+                around = around }
+        end
+        return nil
     end
     if not near then
         -- Sortie en cours (corps sorti de la zone en contournant le bâtiment) : le zombie engagé est gardé tant que
         -- la laisse le garde, sans retour au poste à mi-chemin.
-        local cur = sally and C ~= nil and C.orders ~= nil and C.orders[id] or nil
-        local cz = cur ~= nil and cur.k == "zombie" and cur.zt or nil
-        if cz ~= nil and Zm ~= nil and Zm.isVanilla(cz) and Zm.inWorld(cz) and held(cz, distTo(body, cz))
-            and not spared(cz, cur.u) then
-            return { kind = "zombie", u = cur.u, d = distTo(body, cz), reason = "home defense", zombie = cz,
-                around = cur.leash ~= nil and cur.leash.around == true }
-        end
+        local kept = engaged(false)
+        if kept ~= nil then return kept end
         -- En route : seulement se défendre d'une menace au contact, gardée par la laisse.
         local tg = ctx.target
         if tg ~= nil and (tg.d or 99) <= c.MELEE_ENGAGE then
             local o = tg.zombie
             if o == nil and tg.kind ~= "zombie" and C ~= nil and C.playerByName ~= nil then o = C.playerByName(tg.u) end
-            if o ~= nil and held(o, distTo(body, o)) and not (tg.zombie ~= nil and spared(o, tg.u)) then return tg end
+            if o ~= nil and held(o, distTo(body, o)) then return tg end
         end
         return nil
     end
@@ -1395,10 +708,14 @@ function Defense.targetFor(id, body, ctx, a, census, phase)
         if p ~= nil and not p:isDead() and ok(p, distTo(body, p)) then return tg end
     end
     if Zm == nil then return nil end
+    -- E18-T34 : sortie par le chemin (zombie vu derrière une vitre) en cours dans la zone : le membre en route vers la
+    -- porte ne voit plus le zombie ; il le garde au lieu de revenir à son poste (campagne MP du 2026-11-08,
+    -- runs/20261108-013343-mp-004614dab2ad : aller-retour poste-porte toutes les 10 s, zombie entré par la vitre).
+    local kept = engaged(true)
+    if kept ~= nil then return kept end
     local cands, seen = {}, {}
     local function add(z, key)
-        if seen[key] == nil and z ~= nil and Zm.isVanilla(z) and Zm.inWorld(z) and sameLevel(body, z)
-            and not spared(z, key) then
+        if seen[key] == nil and z ~= nil and Zm.isVanilla(z) and Zm.inWorld(z) and sameLevel(body, z) then
             seen[key] = true
             cands[#cands + 1] = { z = z, key = key, d = distTo(body, z) }
         end
@@ -1435,14 +752,13 @@ function Defense.targetFor(id, body, ctx, a, census, phase)
             if lineOfFire(body, z) then return target(cd) end
         elseif sally and held(z, cd.d) and C ~= nil and C.lineOfStrike ~= nil then
             -- LK06-T14 : sortie de mêlée vers un zombie vu (Zombies.sees) ; sans ligne de coup directe (vu derrière une
-            -- vitre), le membre le rejoint par son chemin (porte, ouverture : Combat.engage, leash.around), sauf un
-            -- zombie qui frappe le bâtiment (getThumpTarget : fenêtre, porte, barricade), laissé au contact et à
-            -- l'offensive à la fenêtre (point 7). Jamais de coup à travers une vitre fermée (Combat.lineOfStrike).
+            -- vitre), le membre le rejoint par son chemin (porte, ouverture : Combat.engage, leash.around), y compris
+            -- un zombie qui frappe le bâtiment (E18-T34, décision de l'utilisateur du 2026-11-07 : sortir l'attaquer
+            -- dehors au lieu de lui ouvrir la fenêtre). Jamais de coup à travers une vitre fermée (Combat.lineOfStrike).
             tries = tries + 1
             if tries > c.MAX_TARGET_TRIES then break end
             if (C.lineOfStrike(body, z)) then return target(cd) end
-            local asq = getCell():getGridSquare(a.x, a.y, a.z)   -- place du membre : dans le foyer
-            if Defense.thumpTargetOf(z, asq and buildingOf(asq) or nil) == nil and (Zm.sees(body, z)) then
+            if Zm.sees(body, z) then
                 local out = target(cd)
                 out.around = true
                 return out
@@ -1464,21 +780,6 @@ function Defense.contextFor(gid, g, mid, m, body, ctx, players, minute)
     local out = { id = plan.id, phase = plan.phase, role = a.role, x = a.x, y = a.y, z = a.z, a = a.a, key = "def:" .. a.key,
         what = a.what, fighter = a.fighter }
     local cs = plan.census
-    local off = plan.offense   -- LK06-T09 : ouvreur de la fenêtre, aucune autre cible le temps d'ouvrir
-    if off ~= nil and off.state == "opening" and off.mid == mid then
-        out.offense = { key = off.key }
-        out.key = "def:offense " .. off.key
-        out.why = string.format("home defense %s %s: opening the window %s for the zombie(s) at it (%d zombie(s), "
-            .. "%d hostile(s))", plan.id, plan.phase, off.key, cs.zombies, cs.hostiles)
-        return out
-    end
-    if off ~= nil and off.state == "closing" and off.mid == mid then   -- LK06-T11 : refermeture
-        out.offense = { key = off.key, close = true }
-        out.key = "def:close " .. off.key
-        out.why = string.format("home defense %s %s: closing the window %s after the offensive", plan.id, plan.phase,
-            off.key)
-        return out
-    end
     out.sally, out.leash = Defense.leashFor(a, plan.phase, m.npc)   -- LK06-T14 : zone de sortie, ou COMBAT_LEASH
     out.target = Defense.targetFor(m.npc, body, ctx, a, plan.census, plan.phase)
     out.why = string.format("home defense %s %s: %s %d,%d,%d (%d zombie(s), %d hostile(s)%s)", plan.id, plan.phase,
@@ -1528,63 +829,10 @@ local function goTo(id, ctx, dv, mem, e)
     return "moving"
 end
 
--- Ouvreur de l'offensive (comportement « defend », Defense.apply) : course vers la case intérieure de la fenêtre,
--- puis geste openwindow tourné vers elle (la fenêtre s'ouvre à l'instant du clip, Defense.tick). LK06-T11 : même
--- conduite pour la refermeture (dv.offense.close : geste closewindow, fermeture par Defense.tick).
-local function applyOpener(id, ctx, dv)
-    local C = LivingKnox.Combat
-    if C ~= nil and C.leave ~= nil then C.leave(id) end   -- garde derrière la vitre interrompue
-    local st = Defense.state.groups[ctx.gid]
-    local off = st and st.offense or nil
-    local close = dv.offense.close == true   -- LK06-T11 : refermeture
-    local want = close and "closing" or "opening"
-    if off == nil or off.key ~= dv.offense.key or off.state ~= want or off.actAt ~= nil then return end
-    local B = LivingKnox.Bodies
-    local body = B ~= nil and B.find(id) or nil
-    if body == nil then return end
-    local e = off.e
-    local dx, dy = body:getX() - e.mx, body:getY() - e.my
-    local A = LivingKnox.Anim
-    if math.floor(body:getZ()) == e.z and math.sqrt(dx * dx + dy * dy) <= cfg().OFFENSE_REACH then
-        local g = close and "closewindow" or "openwindow"
-        local ok, why = A.startAct(id, g, close and cfg().OFFENSE_CLOSE_GESTURE_MS or cfg().OFFENSE_OPEN_GESTURE_MS,
-            Defense.faceWindow(e, body:getX(), body:getY()))
-        if not ok then
-            log().warn("npc %s: %s gesture at %s refused: %s", id, g, off.key, tostring(why))
-            return
-        end
-        off.actAt = now()
-        off.toggleAt = off.actAt + (close and cfg().OFFENSE_CLOSE_TOGGLE_MS or cfg().OFFENSE_OPEN_TOGGLE_MS)
-        count(close and "closeGestures" or "offenseGestures")
-        if close then
-            log().info("npc %s: closing the window %s after the offensive", id, off.key)
-        else
-            log().info("npc %s: opening the window %s for the zombie(s) at it", id, off.key)
-        end
-        return
-    end
-    local key = (close and "close:" or "off:") .. off.key
-    local mem = Defense.state.npcs[id]
-    if mem == nil or mem.key ~= key then
-        mem = { key = key, fails = 0 }
-        Defense.state.npcs[id] = mem
-    end
-    local res = goTo(id, ctx, { x = off.inside:getX(), y = off.inside:getY(), z = off.inside:getZ() }, mem, entryOf(id))
-    if res == "failed" and not mem.gaveUp then
-        mem.gaveUp = true
-        log().info("npc %s: cannot reach the window %s to %s it", id, off.key, close and "close" or "open")
-    end
-end
-Defense.applyOpener = applyOpener
-
 -- Comportement « defend » (appelé par Decisions.apply à chaque passage) : engagement, ou place, regard et geste.
 function Defense.apply(id, st, ctx, fresh)
     local dv = ctx.defense
     if dv == nil then return end
-    if dv.offense ~= nil then   -- LK06-T09 : ouvreur de la fenêtre (LK06-T11 : ou auteur de la refermeture)
-        applyOpener(id, ctx, dv)
-        return
-    end
     local C = LivingKnox.Combat
     if dv.target ~= nil and C ~= nil and C.engage ~= nil then
         local tg = dv.target
@@ -1636,11 +884,9 @@ function Defense.get(gid)
     local assign = {}
     for mid, a in pairs(p.assign or {}) do assign[mid] = { role = a.role, x = a.x, y = a.y, z = a.z, key = a.key } end
     local cs = p.census or {}
-    local off = p.offense   -- LK06-T09
     return { id = p.id, phase = p.phase, why = p.why, since = p.since, tx = p.tx, ty = p.ty, camp = p.camp == true,
         zombies = cs.zombies,
-        hostiles = cs.hostiles, threat = cs.threat, assign = assign,
-        offense = off ~= nil and { key = off.key, mid = off.mid, state = off.state } or nil }
+        hostiles = cs.hostiles, threat = cs.threat, assign = assign }
 end
 
 -- Marque de la dernière attaque repoussée du groupe gid (point d'appel des soins, LK07-T03), ou nil.
@@ -1664,11 +910,5 @@ end
 function Defense.reset()
     Defense.state = { groups = {}, npcs = {}, after = {}, n = 0 }
 end
-
-local function onTick()
-    LivingKnox.Defense.tick()
-end
-
-LivingKnox.subscribe("OnTick", "Defense.tick", onTick)   -- LK06-T09 : bascule des fenêtres à l'instant du geste
 
 return Defense

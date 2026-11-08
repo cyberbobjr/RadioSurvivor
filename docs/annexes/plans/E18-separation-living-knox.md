@@ -2,7 +2,7 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 15 / 33 tâche(s) terminée(s).
+**Avancement.** en cours — 16 / 33 tâche(s) terminée(s), 1 abandonnée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
@@ -35,10 +35,11 @@
 | ☑ | E18-T27 | Observations des PNJ et fréquence des initiatives dans Living Knox | `testé MP` | MP | E18-T18 |
 | ☑ | E18-T28 | Corps de PNJ inconnus des clients quand l'identifiant réseau devient négatif | `testé MP` | MP | — |
 | ☑ | E18-T29 | Livrer et réclamer une mission de PNJ sans RadioSurvivor | `testé MP` | MP | E18-T18 |
-| ☐ | E18-T30 | Offensive à la fenêtre instable en MP | `à faire` | MP | — |
+| ✕ | E18-T30 | Offensive à la fenêtre instable en MP | `abandonné` | MP | — |
 | ☐ | E18-T31 | Suites instables des campagnes de validation | `à faire` | MP | — |
 | ☑ | E18-T32 | Bavardages entre membres d'un groupe | `testé MP` | MP | E18-T27 |
 | ☑ | E18-T33 | Récompense d'une mission de PNJ créée à la volée | `testé MP` | MP | E18-T29 |
+| ☑ | E18-T34 | Zombie à une fenêtre du foyer : sortir l'attaquer dehors au lieu d'ouvrir la fenêtre | `testé MP` | MP | — |
 
 <!-- fin du tableau de bord -->
 
@@ -483,7 +484,7 @@ Deuxième article Workshop, dépôt séparé, nouvelles règles de jeu des missi
   - Reste : en jeu, la suite passe par le lot commun (le groupe créé pour le test n'a pas de réserve) : le lot pris dans un surplus du foyer et la remise d'objets ne sont prouvés que sur banc ; le clic dans la fenêtre de remise n'est pas piloté en jeu.
 
 - [ ] **E18-T30** — Offensive à la fenêtre instable en MP
-  - État : `à faire`
+  - État : `abandonné`
   - Cible : `MP`
   - Dépend de : —
   - Fichiers : suite `lk.windowkill`, `LK_Defense`
@@ -491,7 +492,7 @@ Deuxième article Workshop, dépôt séparé, nouvelles règles de jeu des missi
   - Accepté si : lk.windowkill vert sur trois campagnes MP de suite.
   - Tests : campagne MP.
   - Preuve : —
-  - Reste : —
+  - Reste : retirée le 2026-11-07 par E18-T34 (décision de l'utilisateur : offensive à la fenêtre supprimée, le zombie à la fenêtre est attaqué dehors par une sortie). Causes relevées avant l'abandon (journaux des campagnes MP du 2026-11-07) : porte voisine frappée au lieu de la fenêtre (`runs/20261107-051943-mp-e7be111215bc`), zombie sans PNJ en vue qui ne frappe pas (`runs/20261107-043057-mp-05cbafebf449`), zombie qui ne frappe plus à l'ouverture et griffe l'ouvreur (`runs/20261107-030546-mp-2f49ffa1d5f4`, `runs/20261107-211403-mp-641267735b19`) ; aucune ne vient d'une tâche E18 ; bilan 24 réussites pour 44 échecs en MP sur les passages enregistrés.
 - [ ] **E18-T31** — Suites instables des campagnes de validation
   - État : `à faire`
   - Cible : `MP`
@@ -523,3 +524,14 @@ Deuxième article Workshop, dépôt séparé, nouvelles règles de jeu des missi
   - Tests : `test_npc_rewards.py`, `test_lk_talk_alone.py` ; suite `lk.missions.alone`.
   - Preuve : 2026-11-07 : ordre du lot d'un PNJ de Living Knox seul : objet en surplus du foyer, sinon lot annoncé avec la mission, sinon lot créé selon le type du groupe (`RC_MissionConfig.NPC_REWARD_TABLES` : colons → `tools`, neutres → `food`, pillards → `ammo`, type inconnu → `food`, tables `Caches.tables`) ; `RS_Config.NPC_REWARD_TABLES` lit la table du commun. `LK_MissionRewards` : `R.lot(m)` (aucun lot si un lot est annoncé ou si le demandeur est mort), lot créé entier avant tout don, poids vérifié (`Capacity`), même marqueur écrit avant le don, `m.createdLot` ; `RC_Missions` : fonction facultative `lot(m)` d'un donneur, projetée en `rewardTable` ; donneur `npc` de `LK_TalkAlone` ; carnet : ligne `IGUI_RC_RewardLot` (« Lot du groupe : 1 × Marteau, … », EN/FR, `Journal.lotText`). Bancs : `test_npc_rewards.py` 13 OK (lot créé du type, une fois pour le groupe, type inconnu → vivres, trop lourd refusé sans rien donner, lot annoncé gardé, demandeur mort sans lot), `test_lk_talk_alone.py` 13 OK (livraison, ligne `rewardTable`, lot créé dans l'inventaire, deuxième réclamation refusée), `test_core_notebook.py` 17 OK (ligne du carnet) ; `run_all.py` 159 passés, 2 échecs (`translations_split` : clé `IGUI_RC_RewardLot` absente de la liste attendue du banc ; `rs_suites` : renvois `fichier:ligne` de `RS_Env.lua` vers `RC_Missions.lua` décalés de 2 à 4 lignes), corrigés, les deux bancs relancés : OK ; luacheck `Contents` 8, `dev` 0. En jeu, suite `lk.missions.alone` (nouveau test : mission sans lot annoncé, lot du type du groupe dans l'inventaire, aucun objet du foyer) : Living Knox seul solo code 0 `RST-RESULT ok=true total=2 pass=2` `runs/20261107-201359-c0df822803e6`, MP code 0 `RST-RESULT ok=true total=2 pass=2 fail=0 error=0 skip=0` `runs/20261107-201448-mp-f46858854f1f` ; RadioSurvivor (table lue du commun) : `rs.missionrewards` solo les deux mods code 0 `RST-RESULT ok=true total=5 pass=5` `runs/20261107-201656-fbce2979fa6a`.
   - Reste : le groupe de test n'a pas de stock : l'ordre « surplus d'abord » n'est prouvé que par les bancs ; le pont n'est pas informé du lot créé (le PNJ ne le cite pas en parlant).
+- [x] **E18-T34** — Zombie à une fenêtre du foyer : sortir l'attaquer dehors au lieu d'ouvrir la fenêtre
+  - État : `testé MP`
+  - Cible : `MP`
+  - Dépend de : —
+  - Fichiers : `LK_Defense` (point 7 retiré, sortie), `LK_Directives` et `LK_Obstacles` (trajet guidé par une porte : aucune fenêtre ouverte, `e.dr`), `LK_Senses` (rapport des fenêtres frappées retiré, rapport des zombies au sol gardé : `zombieFloor`), `LK_Executor`, `LK_Zombies` (commentaire) ; suites `lk.windowkill` (supprimée), `lk.windowsally` (nouvelle), `lk.windowlure` (étape `lk.thump` en MP) ; bancs `test_lk_window_kill.py` (supprimé), `test_lk_floor_strike.py` (repris), `test_lk_senses.py`, `test_lk_defense.py`, `test_lk_window_lure.py` ; fiches `defense.md`, `perception.md`, `combat.md`, spécification
+  - Faire : décision de l'utilisateur du 2026-11-07 (« que le PNJ sorte de la maison pour l'attaquer dehors », puis « vire tout ce gros code lié à la défense via la fenêtre ainsi que tous les tests associés ») : retirer l'offensive à la fenêtre (LK06-T09 : ouvrir pour laisser tomber le zombie, retenue des coups, refermeture LK06-T15, rapport de la fenêtre frappée) ; un zombie qui frappe le bâtiment devient une cible de la sortie (LK06-T14) : vu derrière la vitre, un membre valide le rejoint par une porte et l'attaque dehors, puis revient ; débordé, le groupe reste à l'intérieur.
+  - Accepté si : `lk.windowsally` vert en solo et en MP (zombie tué dehors par un membre, fenêtre jamais ouverte, membres revenus) ; `lk.windowlure` vert en MP avec l'étape `lk.thump` ; bancs verts.
+  - Tests : `test_lk_defense.py`, `test_lk_senses.py`, `test_lk_floor_strike.py`, `test_lk_window_lure.py` ; suites `lk.windowsally`, `lk.windowlure`, `lk.defense` en solo et en MP.
+  - Preuve : 2026-11-07, code : `LK_Defense` 1 674 → 900 lignes (offensive, fenêtre, retenue, refermeture, bascule OnTick retirées) ; `LK_Senses` réduit au rapport des zombies au sol (`zombieFloor`) ; suite `lk.windowkill` et banc `test_lk_window_kill.py` supprimés, coups au sol repris dans `test_lk_floor_strike.py`. 2026-11-08, corrections après les passages MP : trajet guidé par une porte (`Directives.moveTo` → `e.dr`) sans ouverture de fenêtre au contact (`Obstacles.checkWindows` ; fenêtre du foyer ouverte par un membre arrêté à sa porte, `runs/20261108-012549-mp-a2dbaf99cf8b`) ; sortie par le chemin gardée dans la zone de la place même hors de vue (`Defense.targetFor`, aller-retour poste-porte, `runs/20261108-013343-mp-004614dab2ad`) ; suite : groupe tenu hors des expéditions, fenêtre contrôlée à chaque passage. Bancs : `run_all.py --keep-going` 161 PASS avant et après les corrections, puis `test_lk_obstacles.py` 171 OK, `test_lk_directives.py` 42 OK, `test_lk_defense.py` 23 OK ; luacheck `Contents` 8, `dev` 0. En jeu : solo `lk.windowsally` code 0 (`ok=true total=1 pass=1`, `runs/20261108-012354-897c83d70c14` : tué dehors en 7 s, fenêtre fermée, membres rentrés en 41 s) ; solo `lk.windowsally,lk.defense` code 0 deux fois (`ok=true total=3 pass=3`, `runs/20261108-013927-ec2a27149a18`, `runs/20261108-014633-6e0c175f0991`) ; MP `lk.windowsally,lk.windowlure,lk.defense` : `runs/20261108-014237-mp-79b8a54fc73a` code 1 (`ok=false total=4 pass=3 fail=1` : sortie verte, tué dehors en 21 s, fenêtre jamais ouverte, membres rentrés en 48 s ; `lk.windowlure` vert, frappe confirmée par `lk.thump` ; échec `lk.defense` petite horde, étape client `lk.positions` 2,8 cases > 2,5, déjà vu avant E18-T34) et `runs/20261108-014828-mp-c7df3e0da8dd` code 1 (`ok=false total=4 pass=3 fail=1` : sortie verte, `lk.defense` verte ; `lk.windowlure` rouge : zombie parti au loin sans cible, sans lien avec la sortie) ; `lk.windowlure` vert en MP avec `lk.thump` aussi dans `runs/20261108-013343-mp-004614dab2ad`.
+  - Reste : instabilités MP hors de cette tâche, suivies par E18-T31 : `lk.windowlure` (zombie qui s'éloigne sans cible, 1 passage sur 3) et étape `lk.positions` de `lk.defense` (écart client-serveur de 2,8 cases).
+

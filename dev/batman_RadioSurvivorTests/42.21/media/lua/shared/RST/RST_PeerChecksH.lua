@@ -15,6 +15,9 @@ Client handlers (RST.Steps.on); every body is found by its npc id in LivingKnox.
                     (getDirectionAngle, degrees, 0 = +x) within maxDeg; polled until all at once or the deadline.
     lk.positions    { bodies = { { npc, x, y, z }, ... }, tol }: the local copy of each body stands within tol squares
                     of the authority's position (same level); polled (an owner sends the full state every 4 s).
+    lk.thump        { o, x, y, z, north } (E18-T34): the zombie of onlineId o, simulated by THIS client (the server copy
+                    never thumps: ThumpPacket only relayed), thumps the window placed on square x, y, z (edge north or
+                    west), or that window is broken; polled until then or the deadline. Zombie unknown here: FAIL.
     world.upkeep    { gens = { { x, y, z, fuel, cond }, ... }, clean = { { x, y, z }, ... } }: the generator of each
                     square has that fuel (0.05 l) and condition; no broken glass and no blood on the clean squares.
                     A square not loaded here: SKIP.
@@ -140,6 +143,48 @@ Steps.on("lk.facing", function(args)
         end
         last = "angle to the point: " .. table.concat(parts, ", ") .. " (max " .. maxDeg .. ")"
         if ok then return Steps.pass(last) end
+        if ctx.final then return Steps.fail(last) end
+        return nil
+    end
+end)
+
+-- ---------------------------------------------------------------- lk.thump (E18-T34)
+
+local function zombieByOnlineId(o)
+    local cell = getCell()
+    local zl = cell ~= nil and cell:getZombieList() or nil
+    for i = 0, (zl ~= nil and zl:size() or 0) - 1 do
+        local z = zl:get(i)
+        if z ~= nil and z:getOnlineID() == o then return z end
+    end
+    return nil
+end
+
+local function isTheWindow(w, args)
+    if w == nil or not instanceof(w, "IsoWindow") then return false end
+    local sq = w:getSquare()
+    return sq ~= nil and sq:getX() == args.x and sq:getY() == args.y and sq:getZ() == args.z
+        and (w:getNorth() == true) == (args.north == true)
+end
+
+Steps.on("lk.thump", function(args)
+    local last = "zombie " .. tostring(args.o) .. " not found here"
+    return function(ctx)
+        local z = zombieByOnlineId(args.o)
+        if z ~= nil then
+            local tt = z:getThumpTarget()
+            last = string.format("zombie %s at %.1f,%.1f state %s, thump target %s", tostring(args.o), z:getX(), z:getY(),
+                tostring(z:getActionStateName()), tostring(tt))
+            if isTheWindow(tt, args) then return Steps.pass("thumps the window: " .. last) end
+            local sq = getCell():getGridSquare(args.x, args.y, args.z)
+            local list = sq ~= nil and sq:getSpecialObjects() or nil
+            for i = 0, (list ~= nil and list:size() or 0) - 1 do
+                local w = list:get(i)
+                if isTheWindow(w, args) and (w:isSmashed() or w:isDestroyed()) then
+                    return Steps.pass("window broken: " .. last)
+                end
+            end
+        end
         if ctx.final then return Steps.fail(last) end
         return nil
     end

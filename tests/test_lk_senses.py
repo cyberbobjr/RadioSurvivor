@@ -657,10 +657,10 @@ end
 """
 
 
-class ThumpReportTests(SensesReportBase):
-    """LK06-T11 : le client qui simule un zombie rapporte la fenetre qu'il frappe (commande zombieThumps), qu'il simule
-    ou non les corps de PNJ voisins ; le serveur la garde apres controle (zombie connu et simule par ce client, fenetre
-    reelle, copie a portee)."""
+class FloorReportTests(SensesReportBase):
+    """LK06-T11 : le client qui simule un zombie rapporte qu'il est au sol (commande zombieFloor), qu'il simule ou non
+    les corps de PNJ voisins ; le serveur le garde apres controle (zombie connu et simule par ce client, copie a
+    portee). E18-T34 : plus de rapport des fenetres frappees (offensive a la fenetre retiree)."""
 
     def make(self, root=None):
         h = super().make(root)
@@ -684,45 +684,21 @@ class ThumpReportTests(SensesReportBase):
         for _ in range(n):
             self.h.advance_ms(gap)
             self.exec_pass()
-            sent += [m for m in self.h.pending() if m['command'] == 'zombieThumps']
+            sent += [m for m in self.h.pending() if m['command'] == 'zombieFloor']
             self.h.pump()
         return sent
 
-    def thump(self, machine, on=True):
-        self.h.eval(machine, f'(function() HARNESS.zombies[88].thump = {"TWIN" if on else "nil"} return true end)()')
-
-    def test_owner_reports_the_window_server_keeps_it_then_forgets_it(self):
-        self.ready()
-        self.h.spawn_zombie(88, 104.5, 104.5, owner='A')                 # simule par A, colle a la vitre
-        self.assertFalse(self.passes(8))                                 # aucun coup : aucun envoi
-        self.assertIsNone(self.s('thumpOf(88)'))
-        self.thump('A')
-        self.thump('B')                                                  # copie distante de B : jamais rapportee
-        sent = self.passes(8)
-        self.assertTrue(sent)
-        self.assertEqual({m['from'] for m in sent}, {'A'})
-        w = sent[0]['args']['w'][0] if isinstance(sent[0]['args']['w'], list) else sent[0]['args']['w'][1]
-        self.assertEqual((w['o'], w['x'], w['y'], w['z'], w['k']), (88, 105, 104, 0, 'W'))
-        self.assertLessEqual(len(sent), 2)                               # renvoye toutes les 2 s seulement
-        t = self.s('thumpOf(88)')
-        self.assertEqual((t.x, t.y, t.z, t.k, t.by), (105, 104, 0, 'W', 'A'))
-        self.assertIsNone(self.h.eval('server', 'HARNESS.zombies[88]:getThumpTarget()'))   # copie du serveur
-        # Le zombie ne frappe plus : liste vide envoyee aussitot, fenetre oubliee par le serveur.
-        self.thump('A', False)
-        sent = self.passes(2)
-        self.assertEqual(len(sent), 1)
-        self.assertIsNone(sent[0]['args'].get('w'))
-        self.assertIsNone(self.s('thumpOf(88)'))
-        self.assertEqual(self.s('stats.thumpsDropped or 0'), 0)
-        self.assertEqual(self.h.errors('server'), [])
+    def down(self, machine, on=True):
+        self.h.eval(machine, f'(function() HARNESS.zombies[88].onFloor = {"true" if on else "false"} return true end)()')
 
     def test_owner_reports_a_fallen_zombie_the_server_copy_does_not_see(self):
-        """Campagne MP du 2026-10-15 : zombie à terre après l'enjambée, copie du serveur debout (aucun coup au sol)."""
+        """Campagne MP du 2026-10-15 : zombie à terre, copie du serveur debout (aucun coup au sol)."""
         self.ready()
         self.h.spawn_zombie(88, 104.5, 104.5, owner='A')
         self.assertIs(self.s('onFloor(HARNESS.zombies[88])'), False)
-        self.h.eval('A', '(function() HARNESS.zombies[88].onFloor = true return true end)()')
-        self.h.eval('B', '(function() HARNESS.zombies[88].onFloor = true return true end)()')   # copie distante
+        self.assertFalse(self.passes(4))                                 # debout : aucun envoi
+        self.down('A')
+        self.down('B')                                                   # copie distante : jamais rapportee
         sent = self.passes(4)
         self.assertEqual({m['from'] for m in sent}, {'A'})
         f = sent[0]['args']['f']
@@ -731,60 +707,58 @@ class ThumpReportTests(SensesReportBase):
         self.assertIs(self.s('onFloor(HARNESS.zombies[88])'), True)        # copie du serveur pas au sol
         self.assertIs(self.h.eval('server', 'HARNESS.zombies[88]:isOnFloor()'), False)
         # Relevé : liste vidée aussitôt, plus au sol pour le serveur.
-        self.h.eval('A', '(function() HARNESS.zombies[88].onFloor = false return true end)()')
-        self.passes(2)
+        self.down('A', False)
+        sent = self.passes(2)
+        self.assertEqual(len(sent), 1)
+        self.assertIsNone(sent[0]['args'].get('f'))
         self.assertIs(self.s('onFloor(HARNESS.zombies[88])'), False)
-        # Rapport d'un client qui ne simule pas ce zombie : ignoré.
-        self.h.advance_ms(500)
-        self.h.fire('server', 'OnClientCommand', 'LivingKnox', 'zombieThumps', self.h.player('server', 'B'),
-                    {'n': 50, 'f': [{'o': 88, 'x': 104, 'y': 104, 'z': 0}]})
-        self.assertIs(self.s('onFloor(HARNESS.zombies[88])'), False)
-        self.assertGreaterEqual(self.s('stats.floorDropped'), 1)
         self.assertEqual(self.h.errors('server'), [])
 
     def test_owner_of_the_zombie_without_any_npc_body_still_reports(self):
-        """Campagne MP du 2026-10-15 : corps simules par A, zombie passe a B pendant qu'il frappe : B le rapporte."""
+        """Campagne MP du 2026-10-15 : corps simules par A, zombie simule par B : B le rapporte."""
         self.ready()
         self.h.spawn_zombie(88, 104.5, 104.5, owner='B')
-        self.thump('A')                                                  # A : copie distante (paquet Thump relaye)
-        self.thump('B')
+        self.down('A')                                                   # A : copie distante
+        self.down('B')
         sent = self.passes(6)
         self.assertEqual({m['from'] for m in sent}, {'B'})
-        self.assertEqual(self.s('thumpOf(88).by'), 'B')
+        self.assertIs(self.s('onFloor(HARNESS.zombies[88])'), True)
 
     def test_report_for_a_zombie_simulated_by_another_client_dropped(self):
         self.ready()
         self.h.spawn_zombie(88, 104.5, 104.5, owner='A')
-        self.h.fire('server', 'OnClientCommand', 'LivingKnox', 'zombieThumps', self.h.player('server', 'B'),
-                    {'n': 1, 'w': [{'o': 88, 'x': 105, 'y': 104, 'z': 0, 'k': 'W'}]})
-        self.assertIsNone(self.s('thumpOf(88)'))
-        self.assertEqual(self.s('stats.thumpsDropped'), 1)
+        self.h.fire('server', 'OnClientCommand', 'LivingKnox', 'zombieFloor', self.h.player('server', 'B'),
+                    {'n': 1, 'f': [{'o': 88, 'x': 104, 'y': 104, 'z': 0}]})
+        self.assertIs(self.s('onFloor(HARNESS.zombies[88])'), False)
+        self.assertEqual(self.s('stats.floorDropped'), 1)
 
-    def test_window_far_from_the_server_copy_dropped(self):
+    def test_fallen_zombie_far_from_the_server_copy_dropped(self):
         self.ready()
         self.h.spawn_zombie(88, 104.5, 104.5, owner='A')
-        self.thump('A')
+        self.down('A')
         self.h.eval('server', '(function() HARNESS.place(HARNESS.zombies[88], 97.5, 104.5, 0) return true end)()')
-        self.passes(8)
-        self.assertIsNone(self.s('thumpOf(88)'))                         # 7,5 cases de la fenetre sur le serveur
-        self.assertGreaterEqual(self.s('stats.thumpsDropped'), 1)
+        self.passes(4)
+        self.assertIs(self.s('onFloor(HARNESS.zombies[88])'), False)     # 7 cases de la copie du serveur
+        self.assertGreaterEqual(self.s('stats.floorDropped'), 1)
 
     def test_malformed_or_replayed_report_refused(self):
         self.ready()
         self.h.spawn_zombie(88, 104.5, 104.5, owner='A')
         A = self.h.player('server', 'A')
-        good = [{'o': 88, 'x': 105, 'y': 104, 'z': 0, 'k': 'W'}]
-        for args in ({'n': 1, 'w': [{'o': 88, 'x': 105, 'y': 104, 'z': 0, 'k': 'E'}]}, {'w': good},
-                     {'n': 2, 'w': [dict(good[0], o=i) for i in range(5)]}):
+        good = [{'o': 88, 'x': 104, 'y': 104, 'z': 0}]
+        for args in ({'n': 1, 'f': [{'o': -1, 'x': 104, 'y': 104, 'z': 0}]}, {'f': good},
+                     {'n': 2, 'f': [dict(good[0], o=i + 1) for i in range(5)]}):
             with self.subTest(args=args):
-                before = self.s('stats.thumpsRefused or 0')
-                self.h.fire('server', 'OnClientCommand', 'LivingKnox', 'zombieThumps', A, args)
-                self.assertEqual(self.s('stats.thumpsRefused or 0'), before + 1)
-        self.h.fire('server', 'OnClientCommand', 'LivingKnox', 'zombieThumps', A, {'n': 5, 'w': good})
-        self.assertIsNotNone(self.s('thumpOf(88)'))
+                before = self.s('stats.floorRefused or 0')
+                self.h.fire('server', 'OnClientCommand', 'LivingKnox', 'zombieFloor', A, args)
+                self.assertEqual(self.s('stats.floorRefused or 0'), before + 1)
+        self.h.fire('server', 'OnClientCommand', 'LivingKnox', 'zombieFloor', A, {'n': 5, 'f': good})
+        self.assertIs(self.s('onFloor(HARNESS.zombies[88])'), True)
         self.h.advance_ms(500)
-        self.h.fire('server', 'OnClientCommand', 'LivingKnox', 'zombieThumps', A, {'n': 5})   # rejoue : ignore
-        self.assertIsNotNone(self.s('thumpOf(88)'))
+        before = self.s('stats.floorRefused or 0')
+        self.h.fire('server', 'OnClientCommand', 'LivingKnox', 'zombieFloor', A, {'n': 5})   # rejoue : refuse
+        self.assertEqual(self.s('stats.floorRefused or 0'), before + 1)
+        self.assertIs(self.s('onFloor(HARNESS.zombies[88])'), True)
 
 
 # ---------------------------------------------------------------- suite en jeu lk.senses sur les doublures

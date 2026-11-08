@@ -176,7 +176,7 @@ Ajout du 2026-10-12, pour l'offensive à la fenêtre ([defense.md](defense.md#of
 
 ### Tests
 
-- Banc `tests/test_lk_window_kill.py` : geste selon l'arme et l'état du zombie (debout, rampant, au sol), retiré à la fin de l'engagement ; dégâts identiques aux formules vanilla (arme `x max(5, critique)`, piétinement, hausse du 4e coup, arme à feu inchangée) ; coups au sol minutés, appliqués une fois, réaction « Floor » à chaque coup non mortel, aucune réaction debout ; mort au sol ; MP : réaction posée chez le seul client qui simule le zombie.
+- Banc `tests/test_lk_floor_strike.py` (repris de `test_lk_window_kill.py`, supprimé par E18-T34) : geste selon l'arme et l'état du zombie (debout, rampant, au sol), retiré à la fin de l'engagement ; dégâts identiques aux formules vanilla (arme `x max(5, critique)`, piétinement, hausse du 4e coup, arme à feu inchangée) ; coups au sol minutés, appliqués une fois, réaction « Floor » à chaque coup non mortel, aucune réaction debout ; mort au sol ; MP : réaction posée chez le seul client qui simule le zombie.
 
 ### Points ouverts
 
@@ -204,13 +204,12 @@ Ajout du 2026-10-13, après un essai en jeu de l'utilisateur : « quand un PNJ f
 ### Tests
 
 - Banc `tests/test_lk_combat.py` (`MeleeSoundMultiplayerTests`, `MeleeSoundSoloTests`, doublures `MELEE_SCRIPTS` et `BODY_EMITTER` : surcharges `playSoundImpl(String, IsoObject)` à deux arguments, `stopSoundByName(String)`) : touche acceptée = un `combatMelee` par client proche, rien pour un client lointain ni pour une touche refusée, livraison répétée ignorée, élan arrêté puis impact sur la copie du corps, aucun son sur le serveur, aucun bruit ; noms tirés du script (batte, couteau, mains nues, arme sans `HitFloorSound`, arme sans `HitSound`), piétinement `AttackStomp` + `BareHandsHit` ; six secondes de frappes : un élan par boucle et un impact par touche chez A et B ; solo par appels directs. Échoue sur l'ancien code (5 tests sur 5).
-- Suites en jeu : mesure `[LKM] measure melee sounds: …` dans `lk.melee` et `[LKX] measure melee sounds: …` dans `lk.windowkill` (impacts envoyés = touches ; en solo, impacts joués = touches, élans >= touches).
+- Suites en jeu : mesure `[LKM] measure melee sounds: …` dans `lk.melee` (impacts envoyés = touches ; en solo, impacts joués = touches, élans >= touches).
 
 ### Protocole en jeu
 
 1. Solo, partie `rstest*` : `RST.run({ suite = "lk.melee", tags = "world" })` : élan (poussée) et coup entendus à chaque frappe ; ligne `[LKM] measure melee sounds: impacts sent N, played here: swings S, impacts N (last swing AttackShove, last impact BareHandsHit)`.
-2. Dans une maison : `RST.run({ suite = "lk.windowkill", tags = "world" })` : coups de batte au sol entendus ; ligne `[LKX] measure melee sounds: … last impact BaseballBatHit`.
-3. MP (séance finale) : `RST.server({ suite = "lk.melee", tags = "world" })`, deux clients près du PNJ : chacun entend chaque coup une fois.
+2. MP (séance finale) : `RST.server({ suite = "lk.melee", tags = "world" })`, deux clients près du PNJ : chacun entend chaque coup une fois.
 
 ### Points ouverts
 

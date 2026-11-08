@@ -76,33 +76,25 @@ Compteurs : `Senses.stats` (`passes`, `npcs`, `targets`, `los`, `losSkipped`, `z
 - **Contrôles** : avec le rapport (LK03-T02 : propriétaire, bail, ordre, seau à jetons) ; forme et bornes du résumé (`Senses.validate`, refus du rapport entier : `bad report`, `out of bounds`) ; puis, rapport accepté, filtre par entrée (`Senses.accept`) : joueur inconnu de l'autorité, cible vue à plus de 30 + 6 cases ou à plus de 2 étages de la copie du serveur, cible entendue à plus de 150 + 6 cases, bruit plus loin que son rayon × 1,25 + 6 : entrée retirée (`stats.dropped`, ligne DEBUG). Distance recalculée par le serveur.
 - **Lecture** : `Senses.perceived(npcId)` → `{ ms, age, stale, by, nz, seen, heard, p, z, n }` (copie ; `stale` au-delà de 15 s sans rapport) ; `Senses.perceivedPlayer(npcId, compte)`. Oubli avec l'état des rapports (`Reports.forget`, PNJ disparu).
 
-### Fenêtres frappées (LK06-T11)
+### Zombies au sol rapportés par le propriétaire (LK06-T11)
 
-Décision de l'utilisateur du 2026-10-14 : le client propriétaire rapporte la fenêtre que frappe son zombie (le serveur ne
-la connaît pas : paquet `Thump` seulement relayé, J/network/packets/character/ThumpPacket.java:54-63). Lecteur :
-`Defense.thumpTargetOf` ([defense.md](defense.md)).
+Sur un serveur, la copie d'un zombie simulé par un client ne voit pas qu'il est à terre (2 s après une chute) : le client
+qui le simule le rapporte, pour que les PNJ le frappent au sol (`LK_Combat`, `LK_Zombies.isDown`). Commande propre au
+propriétaire du **zombie** (il ne simule pas toujours les corps voisins, campagne MP du 2026-10-15) :
+`zombieFloor { n, f }` (client → serveur), envoyée par l'exécutant (`Executor.pass`, `Senses.floorReport`).
 
-- **Transport (écart à confirmer)** : prévu dans le rapport d'état des corps (`bodyReport`, champ `sen`), il a dû en
-  sortir : la campagne MP du 2026-10-15 (`tools/autoclient/runs/20261015-003218-mp-408e7729765d`) a montré le zombie
-  passé au client 2 au moment où il frappait, alors que les trois corps restaient simulés par le client 1 ; seul le
-  propriétaire d'un **corps** envoie un rapport d'état, rien n'arrivait. D'où une commande propre au propriétaire du
-  **zombie** : `zombieThumps { n, w }` (client → serveur), envoyée par l'exécutant (`Executor.pass`,
-  `Senses.thumpReport`) même s'il ne simule aucun corps.
 - **Collecte** (client MP) : zombies de la cellule à 30 cases (x et y, 2 étages) d'un corps de PNJ présent sur ce
-  client, que **ce client simule** (`ZombieGuard.simulatedHere` : la copie distante d'un autre client reçoit la cible
-  du paquet `Thump`, sans paquet de fin) et dont `getThumpTarget()` est une `IsoWindow`. Entrée `{ o (onlineId), x, y,
-  z (case de la fenêtre), k = "N" | "W" (bord nord ou ouest de cette case) }`, triées par `o`, 4 au plus ; envoi quand
-  la liste change, puis toutes les 2 s tant qu'elle n'est pas vide (`THUMP_REFRESH_MS`) ; liste vidée : `{ n }` seul.
-  Ligne `INFO thumped windows reported: …` à chaque changement.
-- **Contrôles du serveur** (`Senses.onThumps`) : forme (`Senses.validateThumps` : `o` entier ≥ 0, cases entières,
-  niveau −32..31, `k` N ou W, 4 au plus) et numéro `n` croissant, rapports plus rapprochés que 150 ms ignorés
-  (`stats.thumpsRefused`) ; par entrée : zombie vivant connu du serveur **et simulé par l'expéditeur**
-  (`getOwnerPlayer`), fenêtre réelle à cette case et sur ce bord (`Senses.windowAt` : `getWindowTo` des deux cases du
-  bord), copie du serveur du zombie au même niveau et à 4 cases au plus du milieu du bord (le propriétaire lâche sa
-  cible au-delà de 3 cases, J/characters/IsoZombie.java:738-746, + 1 case de retard) ; sinon entrée retirée
-  (`stats.thumpsDropped`, gardées : `stats.thumps`). Mémoire : dernier rapport par compte.
-- **Lecture** : `Senses.thumpOf(onlineId)` → `{ x, y, z, k, ms, by }` du rapport le plus récent de moins de 5 s
-  (`THUMP_MS`) ; un rapport suivant sans cette fenêtre l'efface. Le foyer est contrôlé à l'usage (`Defense`).
+  client, que **ce client simule** (`ZombieGuard.simulatedHere`), au sol (`isOnFloor`, non rampants). Entrée `{ o
+  (onlineId), x, y, z }`, triées par `o`, 4 au plus ; envoi quand la liste change, puis toutes les 2 s tant qu'elle
+  n'est pas vide (`FLOOR_REFRESH_MS`) ; liste vidée : `{ n }` seul.
+- **Contrôles du serveur** (`Senses.onFloorReport`) : forme (`Senses.validateFloor`) et numéro `n` croissant, rapports
+  plus rapprochés que 150 ms ignorés (`stats.floorRefused`) ; par entrée : zombie vivant connu du serveur **et simulé
+  par l'expéditeur** (`getOwnerPlayer`), copie du serveur au même niveau et à 3 cases au plus (`FLOOR_REACH`) ; sinon
+  entrée retirée (`stats.floorDropped`). Mémoire : dernier rapport par compte.
+- **Lecture** : `Senses.onFloor(z)` : `isOnFloor` local, ou, sur un serveur, rapport du propriétaire actuel de moins de
+  2,5 s (`FLOOR_MS`).
+- E18-T34 : la partie « fenêtre frappée » de ce rapport (commande `zombieThumps`, `Senses.thumpOf`) est retirée avec
+  l'offensive à la fenêtre.
 
 ## Alternatives écartées
 

@@ -677,10 +677,10 @@ function Executor.pass()
     -- Perception (LK05-T01, shared/LivingKnox/LK_Senses.lua) : mesurée ici avant les rapports d'état qui la portent.
     local S = LivingKnox.Senses
     if S ~= nil and S.scan ~= nil then S.scan(known, now()) end
-    -- LK06-T11 : fenêtres frappées par les zombies simulés ici, rapportées au serveur (client MP seulement).
-    local thumps = isClient() and S ~= nil and S.thumpReport ~= nil and S.thumpReport(known, now()) or nil
-    local player = thumps ~= nil and getPlayer() or nil
-    if player ~= nil then sendClientCommand(player, "LivingKnox", S.CMD_THUMPS, thumps) end
+    -- LK06-T11 : zombies au sol simulés ici, rapportés au serveur (client MP seulement : coups au sol des PNJ).
+    local floor = isClient() and S ~= nil and S.floorReport ~= nil and S.floorReport(known, now()) or nil
+    local player = floor ~= nil and getPlayer() or nil
+    if player ~= nil then sendClientCommand(player, "LivingKnox", S.CMD_FLOOR, floor) end
     Executor.stateReports(known, directives, me)
     if isClient() then
         Executor.askNew(known)

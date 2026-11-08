@@ -2,7 +2,7 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 16 / 21 tâche(s) terminée(s), 1 abandonnée(s).
+**Avancement.** en cours — 16 / 20 tâche(s) terminée(s), 2 abandonnée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
@@ -25,7 +25,7 @@
 | ☑ | E01-T17 | Reconnexion et redémarrage du serveur dans la campagne MP | `testé MP` | MP | E01-T16 |
 | ☑ | E01-T18 | API de test réservée au mode debug | `testé solo` | solo | E01-T10 |
 | ☐ | E01-T19 | Campagne `mp-ambient` et suites de gabarits dans la campagne `mp` | `codé` | MP | E01-T15 |
-| ☐ | E01-T20 | lk.windowkill indépendant de l'IA vanilla du zombie | `à faire` | MP | E01-T18 |
+| ✕ | E01-T20 | lk.windowkill indépendant de l'IA vanilla du zombie | `abandonné` | MP | E01-T18 |
 | ☐ | E01-T21 | lk.barricade stable en campagne MP | `à faire` | MP | E01-T18 |
 | ☐ | E01-T22 | lk.traversal stable en campagne MP | `à faire` | MP | E01-T18 |
 
@@ -289,7 +289,7 @@ Interface graphique du moteur (la console suffit), intégration continue distant
   - Reste : aucune campagne verte : `mp` (FAIL rs.carnet.leader, rs.factions.accord, lk.traversal ×2, lk.windowkill, lk.handover, étape client lk.track ; `tools/autoclient/runs/20261015-110446-parallel-2-54087fb0f84f/shard1/server/20261015-090647-server.txt`, `tools/autoclient/runs/20261015-110446-parallel-2-54087fb0f84f/shard2/server/20261015-090708-server.txt`) ; solo (19 FAIL dont 11 « npc spawn refused: square … is not loaded » (régression du harnais : le test n'a pas tourné) ; réels : lk.traversal ×2, lk.windowlure, lk.forage ×2, lk.upkeep, rs.relation ; `tools/autoclient/runs/20261015-114001-parallel-2-54087fb0f84f/shard1/20261015-094053-solo.txt`, `tools/autoclient/runs/20261015-114001-parallel-2-54087fb0f84f/shard2/20261015-094749-solo.txt`) ; `mp-ambient` (lk.alert ×2, lk.defense ×2, lk.zombies, étapes client lk.facing et lk.positions ; `tools/autoclient/runs/20261015-120139-run-54087fb0f84f/run/server/20261015-100346-server.txt`)
 
 - [ ] **E01-T20** — lk.windowkill indépendant de l'IA vanilla du zombie
-  - État : `à faire`
+  - État : `abandonné`
   - Cible : `MP`
   - Dépend de : E01-T18
   - Fichiers : `dev/batman_RadioSurvivorTests/42.21/media/lua/shared/RST/suites/RST_LKWindowKill.lua`, `tests/test_lk_window_kill.py`
@@ -297,7 +297,7 @@ Interface graphique du moteur (la console suffit), intégration continue distant
   - Accepté si : lk.windowkill vert dans trois campagnes MP de suite.
   - Tests : banc `test_lk_window_kill.py` ; campagnes MP.
   - Preuve : —
-  - Reste : —
+  - Reste : retirée le 2026-11-07 par E18-T34 (décision de l'utilisateur : offensive à la fenêtre supprimée, le zombie à la fenêtre est attaqué dehors par une sortie) ; suite `lk.windowkill` supprimée, remplacée par `lk.windowsally`.
 
 
 - [ ] **E01-T21** — lk.barricade stable en campagne MP

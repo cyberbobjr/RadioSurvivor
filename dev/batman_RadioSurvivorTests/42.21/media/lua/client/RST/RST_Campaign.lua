@@ -45,6 +45,7 @@ RST.CAMPAIGNS["solo-lk"] = {
     "lk.upkeep",        -- LK05-T10 (E01-T19)
     "lk.chores",        -- LK05-T04
     "lk.defense",       -- LK06-T07, LK06-T14
+    "lk.windowsally",   -- E18-T34
     "lk.force",         -- LK04-T04 (2026-10-15: solo proof)
     "lk.repair",        -- LK14-T06 (2026-10-15: solo proof)
     "lk.expedition",    -- LK05-T05 (2026-10-15: solo proof)
@@ -214,8 +215,8 @@ RST.CAMPAIGNS["mp"] = {
     "lk.barricade",     -- LK14-T03
     "lk.walls",         -- LK14-T04
     "lk.fortify_offscreen", -- LK14-T05
-    "lk.windowkill",    -- LK06-T11
     "lk.retreat",       -- LK06-T12
+    "lk.windowsally",   -- E18-T34 (replaces lk.windowkill)
     "lk.defense",       -- LK05-T09, LK06-T14
     "lk.chores",        -- LK05-T04
     "lk.meals",         -- LK05-T07 (E01-T19; clock to 6:59 at night)

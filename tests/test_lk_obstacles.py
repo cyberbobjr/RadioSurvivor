@@ -1249,6 +1249,20 @@ class SoloTraversalTests(ObstacleBase):
                                    f'LivingKnox.Directives.entries["lk-1"], HARNESS.zombies[{zid}], 5000)'), False)
         self.assertEqual(self.wcount('solo'), (1, 0))
 
+    def test_door_guided_move_never_opens_a_window(self):
+        """E18-T34 : trajet guidé par une porte (e.dr) : fenêtre faite face au contact laissée fermée."""
+        self.window()
+        self.run_lua('LivingKnox.Obstacles.WINDOW_GESTURE = false')
+        zid = self.start()
+        self.friendly_group()
+        self.run_lua(f'HARNESS.place(HARNESS.zombies[{zid}], 105.6, 102.5, 0); HARNESS.zombies[{zid}].angle = 0')
+        self.move()
+        self.run_lua('LivingKnox.Obstacles.track = {}; LivingKnox.Directives.entries["lk-1"].dr = true')
+        self.assertIs(self.run_lua(f'return LivingKnox.Obstacles.checkWindows("lk-1", '
+                                   f'LivingKnox.Directives.entries["lk-1"], HARNESS.zombies[{zid}], 5000)'), False)
+        self.assertEqual(self.wstate('solo'), 'false false')
+        self.assertEqual(self.wcount('solo'), (0, 0))
+
 
 class TraversalFixTests(ObstacleBase):
     """LK04-T08 : défauts de lk.traversal constatés en jeu le 2026-10-11 (20261011-134445-solo.txt)."""

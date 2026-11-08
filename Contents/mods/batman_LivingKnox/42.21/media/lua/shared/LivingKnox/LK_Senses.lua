@@ -66,8 +66,8 @@ Senses.BUDGET = {
     RANGE = 30,             -- cases : rayon des cibles candidates (au plus SIGHT_MAX)
     LEVELS = 2,             -- étages d'écart au plus pour une cible candidate
     PLAYERS = 4, ZOMBIES = 6, NOISES = 3,   -- entrées au plus dans un résumé
-    THUMPS = 4,             -- LK06-T11 : fenêtres frappées par les zombies simulés ici, au plus par rapport
-    THUMP_RANGE = 30,       -- LK06-T11 : cases (x et y) autour d'un corps de PNJ présent ici : zombies examinés
+    FLOOR = 4,              -- LK06-T11 : zombies au sol simulés ici, au plus par rapport
+    FLOOR_RANGE = 30,       -- LK06-T11 : cases (x et y) autour d'un corps de PNJ présent ici : zombies examinés
     SOUNDS = 32,            -- bruits du monde retenus (anneau)
 }
 
@@ -81,12 +81,8 @@ Senses.CHECK = {
     NAME_MAX = 64,
     STALE_MS = 15000,       -- résumé plus vieux : marqué stale (le corps ne rapporte plus)
     KNOWN_MS = 100,         -- serveur : liste des zombies vivants relue au plus à cet intervalle (Senses.accept)
-    THUMP_REACH = 4,        -- cases : copie du serveur du zombie au plus à cette distance du milieu du bord de la
-                            -- fenêtre rapportée (le propriétaire lâche sa cible au-delà de 3 cases,
-                            -- J/characters/IsoZombie.java:738-746 ; + 1 case de retard de la copie du serveur)
-    THUMP_MS = 5000,        -- ms : fenêtre frappée rapportée encore crue (rapport renouvelé toutes les THUMP_REFRESH_MS)
-    THUMP_REFRESH_MS = 2000, -- ms : client, rapport des coups renvoyé à cet intervalle tant qu'il n'est pas vide
-    THUMP_MIN_MS = 150,     -- ms : serveur, rapports des coups d'un même client plus rapprochés ignorés
+    FLOOR_REFRESH_MS = 2000, -- ms : client, rapport des zombies au sol renvoyé à cet intervalle tant qu'il n'est pas vide
+    FLOOR_MIN_MS = 150,     -- ms : serveur, rapports d'un même client plus rapprochés ignorés
     FLOOR_MS = 2500,        -- ms : zombie au sol rapporté encore cru (rapport renvoyé dès que la liste change)
     FLOOR_REACH = 3,        -- cases : copie du serveur à au plus cette distance du zombie au sol rapporté
     LEVEL_MIN = -32, LEVEL_MAX = 31,   -- niveaux de carte (base map-files.md)
@@ -97,9 +93,9 @@ Senses.sounds = Senses.sounds or {}     -- exécutant : bruits du monde récents
 Senses.vigilance = Senses.vigilance or {}   -- npcId -> "sleep" | "busy" | "rest" | "guard" (autorité ou LK05-T03)
 Senses.cursor = Senses.cursor or { npc = 0, zombie = 0 }
 Senses.store = Senses.store or {}       -- autorité : npcId -> dernier résumé accepté
-Senses.thumpStore = Senses.thumpStore or {}   -- serveur (LK06-T11) : compte -> { ms, w } dernier rapport des coups
-Senses.thumpSent = Senses.thumpSent or {}     -- client (LK06-T11) : { ms, key, n } dernier rapport des coups envoyé
-Senses.CMD_THUMPS = "zombieThumps"
+Senses.floorStore = Senses.floorStore or {}   -- serveur (LK06-T11) : compte -> { ms, n, f } dernier rapport au sol
+Senses.floorSent = Senses.floorSent or {}     -- client (LK06-T11) : { ms, key, n } dernier rapport au sol envoyé
+Senses.CMD_FLOOR = "zombieFloor"
 Senses.stats = Senses.stats or { passes = 0, npcs = 0, targets = 0, los = 0, losSkipped = 0, zombies = 0,
     sounds = 0, maxNpcs = 0, maxTargets = 0, maxLos = 0, maxZombies = 0, last = {}, accepted = 0, dropped = 0,
     refused = 0 }
@@ -459,35 +455,10 @@ local function byDistance(a, b)
     return a.key < b.key
 end
 
--- LK06-T11 : fenêtres (IsoWindow) que frappent, parmi zombies, ceux SIMULÉS ICI (getThumpTarget du propriétaire, état
--- ThumpState). Sur un serveur, la copie d'un zombie simulé par un client n'a jamais de cible de coups : le paquet Thump
--- est seulement relayé aux autres clients (J/network/packets/character/ThumpPacket.java:54-63) ; la copie distante d'un
--- autre client la reçoit sans paquet de fin de coups : seule celle du propriétaire est rapportée. Identifiant stable :
--- onlineId du zombie, case de la fenêtre (x, y, z) et bord (k = "N" ou "W" : fenêtre posée sur sa case, bord nord ou
--- ouest). Triées par onlineId, au plus BUDGET.THUMPS. Solo (onlineId -1) : rien, l'autorité simule.
-local function thumpsOf(zombies)
-    local G = LivingKnox.ZombieGuard
-    local out = {}
-    for _, z in ipairs(zombies or {}) do
-        local o = z:getOnlineID()
-        if type(o) == "number" and o ~= -1 and (G == nil or G.simulatedHere(z)) then
-            local t = z:getThumpTarget()
-            local sq = t ~= nil and instanceof(t, "IsoWindow") and t:getSquare() or nil
-            if sq ~= nil then
-                out[#out + 1] = { o = o, x = sq:getX(), y = sq:getY(), z = sq:getZ(), k = t:getNorth() and "N" or "W" }
-            end
-        end
-    end
-    table.sort(out, function(a, b) return a.o < b.o end)
-    while #out > Senses.BUDGET.THUMPS do table.remove(out) end
-    return out
-end
-Senses.thumpsOf = thumpsOf
-
 -- LK06-T11 (MP) : zombies SIMULÉS ICI, parmi zombies, au sol (isOnFloor, non rampants) : la copie du serveur ne suit
 -- que les paquets du propriétaire (base multiplayer.md) et ne voit pas les 2 s à terre après l'enjambée d'une fenêtre
 -- (campagne MP du 2026-10-15 : zombie « entré debout » pour le serveur, aucun coup au sol). { o, x, y, z } triés par
--- onlineId, au plus BUDGET.THUMPS.
+-- onlineId, au plus BUDGET.FLOOR.
 local function floorOf(zombies)
     local G = LivingKnox.ZombieGuard
     local out = {}
@@ -499,7 +470,7 @@ local function floorOf(zombies)
         end
     end
     table.sort(out, function(a, b) return a.o < b.o end)
-    while #out > Senses.BUDGET.THUMPS do table.remove(out) end
+    while #out > Senses.BUDGET.FLOOR do table.remove(out) end
     return out
 end
 Senses.floorOf = floorOf
@@ -727,28 +698,10 @@ function Senses.validate(sen)
     return nil
 end
 
--- LK06-T11 : forme et bornes d'une liste de fenêtres frappées reçue. Rend nil, ou la raison et un détail.
-function Senses.validateThumps(list)
-    local C = Senses.CHECK
-    if type(list) ~= "table" or #list > Senses.BUDGET.THUMPS then return "out of bounds", "thumps" end
-    for i = 1, #list do
-        local w = list[i]
-        if type(w) ~= "table" or not finite(w.o) or not finite(w.x) or not finite(w.y) or not finite(w.z)
-            or (w.k ~= "N" and w.k ~= "W") then
-            return "bad report", "thump " .. i
-        end
-        if w.o == -1 or w.o ~= math.floor(w.o) or w.x ~= math.floor(w.x) or w.y ~= math.floor(w.y)
-            or w.z ~= math.floor(w.z) or w.x < 0 or w.y < 0 or w.z < C.LEVEL_MIN or w.z > C.LEVEL_MAX then
-            return "out of bounds", "thump " .. i
-        end
-    end
-    return nil
-end
-
 -- LK06-T11 : forme et bornes d'une liste de zombies au sol reçue ({ o, x, y, z }). Rend nil, ou la raison.
 function Senses.validateFloor(list)
     local C = Senses.CHECK
-    if type(list) ~= "table" or #list > Senses.BUDGET.THUMPS then return "out of bounds", "floor" end
+    if type(list) ~= "table" or #list > Senses.BUDGET.FLOOR then return "out of bounds", "floor" end
     for i = 1, #list do
         local f = list[i]
         if type(f) ~= "table" or not finite(f.o) or not finite(f.x) or not finite(f.y) or not finite(f.z) then
@@ -759,33 +712,6 @@ function Senses.validateFloor(list)
         end
     end
     return nil
-end
-
--- LK06-T11 : fenêtre (IsoWindow) posée sur la case x, y, z, sur son bord k ("N" : entre y - 1 et y ; "W" : entre
--- x - 1 et x), ou nil. IsoGridSquare.getWindowTo rend la fenêtre du bord commun de deux cases voisines
--- (J/iso/IsoGridSquare.java:3131-3137).
-function Senses.windowAt(x, y, z, k)
-    local cell = getCell()
-    if cell == nil then return nil end
-    local sq = cell:getGridSquare(x, y, z)
-    local nb
-    if k == "N" then nb = cell:getGridSquare(x, y - 1, z) else nb = cell:getGridSquare(x - 1, y, z) end
-    if sq == nil or nb == nil then return nil end
-    local w = sq:getWindowTo(nb)
-    if w == nil or not instanceof(w, "IsoWindow") then return nil end
-    local ws = w:getSquare()
-    if ws == nil or ws:getX() ~= x or ws:getY() ~= y or ws:getZ() ~= z or (w:getNorth() == true) ~= (k == "N") then
-        return nil
-    end
-    return w
-end
-
--- Distance (cases, à plat) du point (px, py) au milieu du bord k de la case x, y.
-function Senses.edgeDist(px, py, x, y, k)
-    local mx, my = x + 0.5, y
-    if k == "W" then mx, my = x, y + 0.5 end
-    local dx, dy = px - mx, py - my
-    return math.sqrt(dx * dx + dy * dy)
 end
 
 -- Comptes des joueurs vivants connus de l'autorité (serveur : connectés ; solo : locaux).
@@ -914,15 +840,14 @@ function Senses.perceived(id)
     return out
 end
 
--- ================================================================ LK06-T11 : rapport des coups du propriétaire
+-- ================================================================ LK06-T11 : rapport des zombies au sol
 
--- Client MP (appelé par LivingKnox.Executor à chacun de ses passages) : fenêtres frappées par les zombies que CE
--- client simule, à THUMP_RANGE cases d'un corps de PNJ présent ici (known : { [npcId] = corps }, simulé ici ou non :
--- le propriétaire d'un zombie n'est pas toujours celui des corps voisins, campagne MP du 2026-10-15). Rend les
--- arguments { n, w } de la commande zombieThumps (envoyée par l'exécutant : aucune commande réseau ici) quand la liste
--- change, puis toutes les THUMP_REFRESH_MS tant qu'elle n'est pas vide ; liste vidée : { n } seul (une table vide
--- arrive en nil). Sinon nil.
-function Senses.thumpReport(known, t)
+-- Client MP (appelé par LivingKnox.Executor à chacun de ses passages) : zombies au sol que CE client simule, à
+-- FLOOR_RANGE cases d'un corps de PNJ présent ici (known : { [npcId] = corps }, simulé ici ou non : le propriétaire d'un
+-- zombie n'est pas toujours celui des corps voisins, campagne MP du 2026-10-15). Rend les arguments { n, f } de la
+-- commande zombieFloor (envoyée par l'exécutant : aucune commande réseau ici) quand la liste change, puis toutes les
+-- FLOOR_REFRESH_MS tant qu'elle n'est pas vide ; liste vidée : { n } seul (une table vide arrive en nil). Sinon nil.
+function Senses.floorReport(known, t)
     if not isClient() or isServer() then return nil end
     t = t or now()
     local B = Senses.BUDGET
@@ -939,7 +864,7 @@ function Senses.thumpReport(known, t)
             if z ~= nil and bodies[z] == nil and not z:isDead() then
                 local zx, zy, zz = z:getX(), z:getY(), math.floor(z:getZ())
                 for _, sp in ipairs(spots) do
-                    if math.abs(zx - sp.x) <= B.THUMP_RANGE and math.abs(zy - sp.y) <= B.THUMP_RANGE
+                    if math.abs(zx - sp.x) <= B.FLOOR_RANGE and math.abs(zy - sp.y) <= B.FLOOR_RANGE
                         and math.abs(zz - sp.z) <= B.LEVELS then
                         list[#list + 1] = z
                         break
@@ -948,71 +873,46 @@ function Senses.thumpReport(known, t)
             end
         end
     end
-    local w = thumpsOf(list)
     local fl = floorOf(list)
     local keys = {}
-    for _, e in ipairs(w) do keys[#keys + 1] = string.format("z%d %d,%d,%d,%s", e.o, e.x, e.y, e.z, e.k) end
     for _, e in ipairs(fl) do keys[#keys + 1] = string.format("z%d floor", e.o) end
     local key = table.concat(keys, "; ")
-    local last = Senses.thumpSent
-    local due = key ~= (last.key or "")
-        or ((#w > 0 or #fl > 0) and t - (last.ms or 0) >= Senses.CHECK.THUMP_REFRESH_MS)
+    local last = Senses.floorSent
+    local due = key ~= (last.key or "") or (#fl > 0 and t - (last.ms or 0) >= Senses.CHECK.FLOOR_REFRESH_MS)
     if not due then return nil end
     last.n = (last.n or 0) + 1
-    if key ~= (last.key or "") then
-        log().info("thumped windows reported: %s", key ~= "" and key or "none")
-    end
     last.key, last.ms = key, t
-    Senses.stats.thumpsSent = (Senses.stats.thumpsSent or 0) + 1
-    return { n = last.n, w = #w > 0 and w or nil, f = #fl > 0 and fl or nil }
+    Senses.stats.floorSent = (Senses.stats.floorSent or 0) + 1
+    return { n = last.n, f = #fl > 0 and fl or nil }
 end
 
--- Serveur : rapport des coups du client player (args { n, w }). Gardé (dernier rapport par compte) après contrôle :
--- forme (validateThumps, sinon rapport entier refusé), rapports plus rapprochés que THUMP_MIN_MS ignorés ; par
--- entrée : zombie vivant connu du serveur, SIMULÉ PAR CE CLIENT (getOwnerPlayer, le seul qui voit ses coups),
--- fenêtre réelle à la case et au bord indiqués, copie du serveur au même niveau et à THUMP_REACH cases au plus du
--- milieu du bord ; sinon entrée retirée (stats.thumpsDropped). Le foyer et la fraîcheur sont contrôlés à l'usage
--- (Senses.thumpOf, LivingKnox.Defense.thumpTargetOf). Rend le nombre d'entrées gardées, ou nil si refusé.
-function Senses.onThumps(player, args)
+-- Serveur : rapport des zombies au sol du client player (args { n, f }). Gardé (dernier rapport par compte) après
+-- contrôle : forme (validateFloor, sinon rapport entier refusé), rapports plus rapprochés que FLOOR_MIN_MS ignorés ;
+-- par entrée : zombie vivant connu du serveur, SIMULÉ PAR CE CLIENT (getOwnerPlayer), copie du serveur au même niveau
+-- et à FLOOR_REACH cases au plus ; sinon entrée retirée (stats.floorDropped). Rend le nombre d'entrées gardées, ou nil
+-- si refusé.
+function Senses.onFloorReport(player, args)
     if not isServer() or player == nil then return nil end
     local name = player:getUsername()
     local st = Senses.stats
     if type(name) ~= "string" or type(args) ~= "table" or not finite(args.n) then
-        st.thumpsRefused = (st.thumpsRefused or 0) + 1
+        st.floorRefused = (st.floorRefused or 0) + 1
         return nil
     end
     local why, detail = nil, nil
-    if args.w ~= nil then why, detail = Senses.validateThumps(args.w) end
-    if why == nil and args.f ~= nil then why, detail = Senses.validateFloor(args.f) end
+    if args.f ~= nil then why, detail = Senses.validateFloor(args.f) end
     local t = now()
-    local prev = Senses.thumpStore[name]
-    if why == nil and prev ~= nil and (args.n <= prev.n or t - prev.ms < Senses.CHECK.THUMP_MIN_MS) then
+    local prev = Senses.floorStore[name]
+    if why == nil and prev ~= nil and (args.n <= prev.n or t - prev.ms < Senses.CHECK.FLOOR_MIN_MS) then
         why, detail = "replayed or too frequent", tostring(args.n)
     end
     if why ~= nil then
-        st.thumpsRefused = (st.thumpsRefused or 0) + 1
-        log().debug("thump report from %s refused: %s (%s)", name, why, tostring(detail))
+        st.floorRefused = (st.floorRefused or 0) + 1
+        log().debug("floor report from %s refused: %s (%s)", name, why, tostring(detail))
         return nil
     end
     local known = serverZombies()
-    local out = {}
-    for _, w in ipairs(args.w or {}) do
-        local z = known ~= nil and known[w.o] or nil
-        local owner = z ~= nil and z.getOwnerPlayer ~= nil and z:getOwnerPlayer() or nil
-        local ok = z ~= nil and owner ~= nil and owner:getUsername() == name
-            and Senses.windowAt(w.x, w.y, w.z, w.k) ~= nil and math.floor(z:getZ()) == w.z
-            and Senses.edgeDist(z:getX(), z:getY(), w.x, w.y, w.k) <= Senses.CHECK.THUMP_REACH
-        if ok then
-            out[#out + 1] = { o = w.o, x = w.x, y = w.y, z = w.z, k = w.k }
-            st.thumps = (st.thumps or 0) + 1
-        else
-            st.thumpsDropped = (st.thumpsDropped or 0) + 1
-            log().debug("thump report from %s: zombie %s at window %d,%d,%d,%s dropped", name, tostring(w.o), w.x, w.y,
-                w.z, w.k)
-        end
-    end
-    -- Zombies au sol : même contrôle de propriétaire, copie du serveur au même niveau et à FLOOR_REACH cases au plus.
-    local floor = {}
+    local floor, kept = {}, 0
     for _, f in ipairs(args.f or {}) do
         local z = known ~= nil and known[f.o] or nil
         local owner = z ~= nil and z.getOwnerPlayer ~= nil and z:getOwnerPlayer() or nil
@@ -1020,29 +920,14 @@ function Senses.onThumps(player, args)
             and math.abs(z:getX() - (f.x + 0.5)) <= Senses.CHECK.FLOOR_REACH
             and math.abs(z:getY() - (f.y + 0.5)) <= Senses.CHECK.FLOOR_REACH then
             floor[f.o] = true
+            kept = kept + 1
             st.floorReported = (st.floorReported or 0) + 1
         else
             st.floorDropped = (st.floorDropped or 0) + 1
         end
     end
-    Senses.thumpStore[name] = { ms = t, n = args.n, w = out, f = floor }
-    return #out
-end
-
--- LK06-T11 : dernière fenêtre frappée rapportée pour le zombie d'onlineId o, encore crue (THUMP_MS), ou nil :
--- { x, y, z, k, ms, by } (copie). Un rapport suivant du même client sans elle l'efface.
-function Senses.thumpOf(o)
-    if type(o) ~= "number" or o == -1 then return nil end
-    local t = now()
-    local best = nil
-    for name, r in pairs(Senses.thumpStore) do
-        if t - r.ms <= Senses.CHECK.THUMP_MS and (best == nil or r.ms > best.ms or (r.ms == best.ms and name < best.by)) then
-            for _, w in ipairs(r.w) do
-                if w.o == o then best = { x = w.x, y = w.y, z = w.z, k = w.k, ms = r.ms, by = name } end
-            end
-        end
-    end
-    return best
+    Senses.floorStore[name] = { ms = t, n = args.n, f = floor }
+    return kept
 end
 
 -- LK06-T11 : vrai si le zombie z est au sol (isOnFloor, non rampant) ; sur un serveur MP, aussi d'après le dernier
@@ -1054,7 +939,7 @@ function Senses.onFloor(z)
     if not isServer() or z:isCrawling() then return false end
     local o = z:getOnlineID()
     local owner = z.getOwnerPlayer ~= nil and z:getOwnerPlayer() or nil
-    local r = owner ~= nil and Senses.thumpStore[owner:getUsername()] or nil
+    local r = owner ~= nil and Senses.floorStore[owner:getUsername()] or nil
     return r ~= nil and r.f ~= nil and r.f[o] == true and now() - r.ms <= Senses.CHECK.FLOOR_MS
 end
 
@@ -1074,13 +959,13 @@ function Senses.forget(id)
 end
 
 -- ================================================================ abonnements
-if isServer() and Events ~= nil then   -- LK06-T11 : rapport des coups du propriétaire d'un zombie
+if isServer() and Events ~= nil then   -- LK06-T11 : rapport des zombies au sol du propriétaire d'un zombie
     local function onClientCommand(module, command, player, args)
-        if module == "LivingKnox" and command == LivingKnox.Senses.CMD_THUMPS then
-            LivingKnox.Senses.onThumps(player, args)
+        if module == "LivingKnox" and command == LivingKnox.Senses.CMD_FLOOR then
+            LivingKnox.Senses.onFloorReport(player, args)
         end
     end
-    LivingKnox.subscribe("OnClientCommand", "Senses.onThumps", onClientCommand)
+    LivingKnox.subscribe("OnClientCommand", "Senses.onFloorReport", onClientCommand)
 end
 if not isServer() and Events ~= nil then   -- Events absent : VM de test sans moteur (tests/test_kahlua.py)
     local function onWorldSound(x, y, z, radius, volume, source)

@@ -396,7 +396,7 @@ local function outdoorSpots(home, n, opts)
 end
 
 -- opts (optional): { away = { dx, dy }, minR = n }: the free outdoor squares are taken on the side (dx, dy) of the
--- home only, at least minR squares away (lk.windowkill: players out of the zombie's side of the house).
+-- home only, at least minR squares away (players out of the zombie's side of the house).
 function K.clearHome(t, home, after, opts)
     local solo = not isServer() or (RST.Steps ~= nil and RST.Steps.isSolo ~= nil and RST.Steps.isSolo())
     if solo or type(getOnlinePlayers) ~= "function" then return after(t) end

@@ -13,9 +13,10 @@ Automated (real Java objects, on the authority):
                DISTANCE squares outside, in front of the window. Within WAIT_MS the zombie must thump the window
                (action state "thump", or the glass broken) from a square next to it. Checked: at least one lure noise
                emitted, no zombie attack on the npc while the glass held.
-Dedicated server: the thump is the one the client that simulates the zombie reports at that window
-(LivingKnox.Senses.thumpOf); the server copy never shows "thump". The client player is not made invisible by the
-server (setInvisible on the server copy is not sent): the zombie may also see him through the glass.
+Dedicated server: the server copy never shows "thump" (ThumpPacket only relayed); once the zombie stands next to the
+window, the client that simulates it confirms the thump at that window (step lk.thump, RST_PeerChecksH, E18-T34).
+The client player is not made invisible by the server (setInvisible on the server copy is not sent): the zombie may
+also see him through the glass.
 Figures are printed as "[LKW] measure ..." lines. The npc is forgotten and the zombie removed with t:defer; the glass
 may stay broken (rstest save only).
 
@@ -27,6 +28,7 @@ require "RST/RST"
 require "RST/RST_Fixtures"
 require "RST/RST_LKHelpers"
 require "RST/RST_Steps"
+require "RST/RST_PeerChecksH"
 
 require "RST/RST_Places"
 
@@ -147,15 +149,9 @@ RST.suite("lk.windowlure", { tags = { "world", "server" }, testTimeoutMs = 12000
                     and math.abs(math.floor(z:getY()) - o.outside:getY()) <= 1
             end
             -- Dedicated server (MP pass of 2026-10-15 11:23: zombie 0.5 square from the glass for 40 s, server copy
-            -- "idle"): the copy of the server never enters "thump" (ThumpPacket only relayed to the other clients);
-            -- the thump is the one reported by the client that simulates the zombie (LivingKnox.Senses.thumpOf,
-            -- LK06-T11), at this window.
-            local function reportedThump()
-                local S = LivingKnox.Senses
-                if not isServer() or S == nil or S.thumpOf == nil or S.windowAt == nil then return false end
-                local r = S.thumpOf(z:getOnlineID())
-                return r ~= nil and rawequal(S.windowAt(r.x, r.y, r.z, r.k), o.w)
-            end
+            -- "idle"): the copy of the server never enters "thump" (ThumpPacket only relayed to the other clients); the
+            -- client that simulates the zombie confirms the thump (step lk.thump) once the zombie is at the window.
+            local remote = isServer()
             -- Every 10 s: where the zombie stands and what it does (solo campaign of 2026-10-15: FAIL without any
             -- figure of the zombie's way).
             local nextDiag = t0 + 10000
@@ -185,14 +181,25 @@ RST.suite("lk.windowlure", { tags = { "world", "server" }, testTimeoutMs = 12000
                 elseif brokeAt == nil then
                     brokeAt = getTimestampMs() - t0
                 end
-                if nearWindow() and (z:getActionStateName() == "thump" or reportedThump()) then thumps = thumps + 1 end
-                return thumps > 0 or (brokeAt ~= nil and nearWindow())
+                if nearWindow() and z:getActionStateName() == "thump" then thumps = thumps + 1 end
+                return thumps > 0 or (brokeAt ~= nil and nearWindow()) or (remote and nearWindow())
             end, WAIT_MS, function(t3)
-                measure("lures " .. (Zm().stats.lures - st0.lures) .. ", thumps seen " .. thumps .. ", glass broken "
-                    .. tostring(brokeAt ~= nil) .. ", time " .. (getTimestampMs() - t0) .. " ms, zombie attacks while "
-                    .. "the glass held " .. attacksWhileIntact)
-                t3:ok(Zm().stats.lures - st0.lures >= 1, "no lure noise emitted")
-                t3:eq(0, attacksWhileIntact, "zombie attacks on the npc through the glass")
+                local function checks(tx, how)
+                    measure("lures " .. (Zm().stats.lures - st0.lures) .. ", thump " .. how .. ", glass broken "
+                        .. tostring(brokeAt ~= nil) .. ", time " .. (getTimestampMs() - t0) .. " ms, zombie attacks "
+                        .. "while the glass held " .. attacksWhileIntact)
+                    tx:ok(Zm().stats.lures - st0.lures >= 1, "no lure noise emitted")
+                    tx:eq(0, attacksWhileIntact, "zombie attacks on the npc through the glass")
+                end
+                if thumps > 0 or brokeAt ~= nil or not remote then return checks(t3, "seen here " .. thumps) end
+                local owner = z.getOwnerPlayer ~= nil and z:getOwnerPlayer() or nil
+                local name = owner ~= nil and owner:getUsername() or nil
+                t3:ok(name ~= nil, "zombie at the window simulated by no client")
+                local wsq = o.w:getSquare()
+                RST.Steps.ask(t3, "lk.thump", { o = z:getOnlineID(), x = wsq:getX(), y = wsq:getY(), z = wsq:getZ(),
+                    north = o.w:getNorth() == true }, { target = { name }, timeoutMs = 20000 }, function(t4)
+                    checks(t4, "confirmed by " .. name)
+                end)
             end, "the zombie did not thump the window in " .. WAIT_MS .. " ms")
         end) end, "npc still on the floor")
         end)

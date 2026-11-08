@@ -948,6 +948,10 @@ end
 -- refermée) ou refus (voir l'en-tête). Une seule fenêtre par passage. Rend vrai si une fenêtre a été traitée.
 function Obstacles.checkWindows(id, e, z, still, t)
     if still < Obstacles.STUCK_MS then return false end
+    -- E18-T34 : trajet guidé par une porte (Directives.moveTo, e.dr) : l'arrêt vient de la porte ou d'un pas du
+    -- chemin, jamais d'une fenêtre à ouvrir (campagne MP du 2026-11-08, runs/20261108-012549-mp-a2dbaf99cf8b : fenêtre
+    -- du foyer ouverte par un membre arrêté à sa porte pendant une sortie).
+    if e.dr == true then return false end
     t = t or now()
     local px, py = z:getX(), z:getY()
     local near = Obstacles.windowsNear(px, py, math.floor(z:getZ()))

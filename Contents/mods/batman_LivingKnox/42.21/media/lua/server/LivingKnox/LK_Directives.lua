@@ -655,6 +655,9 @@ function Directives.moveTo(id, x, y, z, gesture)
     -- contact (Obstacles.decide, decideWindow) autorisent alors la fenêtre verrouillée ou le foyer d'un autre groupe
     -- abordés de l'intérieur. Champ de l'autorité seulement (wire ne l'envoie pas : l'exécutant n'en a pas besoin).
     if doorInfo ~= nil and doorInfo.lastResort == true then e.lr = true end
+    -- E18-T34 : itinéraire guidé par une porte (hors dernier recours) : aucune fenêtre ouverte au contact en chemin
+    -- (Obstacles.checkWindows ; campagne MP du 2026-11-08 : fenêtre voisine ouverte pendant l'ouverture de la porte).
+    if doorSteps ~= nil and #doorSteps > 0 and not e.lr then e.dr = true end
     local v = issue(id, e, body)
     log().info("npc %s: move #%d to %d,%d,%d (%s) from %.1f,%.1f", id, v, x, y, z, g, bx, by)
     if doorDropped ~= nil then

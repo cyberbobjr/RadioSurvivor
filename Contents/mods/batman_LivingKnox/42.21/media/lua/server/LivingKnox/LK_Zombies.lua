@@ -573,9 +573,9 @@ function Zombies.pass(t)
                     Zombies.attack(b.id, b.z, e.z, e.key, ct.n, #b.touching)
                 end
             end
-            -- LK06-T09 (campagne MP du 2026-10-15, lk.windowkill) : un zombie au contact à travers une fenêtre OUVERTE
-            -- (offensive : vitre ouverte par un membre) attaque mais, sans bruit ni cible, ne l'enjambe jamais : il est
-            -- attiré aussi (bruit à la case du PNJ : chemin du bruit par la fenêtre, ClimbThroughWindowState).
+            -- Campagne MP du 2026-10-15 : un zombie au contact à travers une fenêtre OUVERTE attaque mais, sans bruit
+            -- ni cible, ne l'enjambe jamais : il est attiré aussi (bruit à la case du PNJ : chemin du bruit par la
+            -- fenêtre, ClimbThroughWindowState).
             if #b.near == 0 and #b.touching > 0 and not H.decided[b.id] and not b.z:isDead() then
                 local zt = b.touching[1].z
                 local sz, sb = zt:getCurrentSquare(), b.z:getCurrentSquare()

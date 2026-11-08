@@ -525,7 +525,6 @@ class CampDefenseTests(DefenseStack):
             self.assertEqual(self.ring(p[1], p[2]), 3, (mid, p))
         for m in ('m-1', 'm-2', 'm-3'):
             self.assertEqual(self.b(gid, m), 'defend', m)
-        self.assertEqual(self.ev(f'{Df}.stats.offenses'), 0)                  # pas de fenêtre au camp
         # Sortie dans la portée du rôle (10 cases autour du poste) : un défenseur va au-devant de la horde.
         engaged = set()
         for _ in range(15):
@@ -737,6 +736,30 @@ class SallyTests(DefenseStack):
         self.h.move_zombie(z[0], bx - 1.0, by)           # à portée de l'arme : frappé sur place
         self.assertEqual(self.ev(call), f'z:{z[0]}')
         self.assertEqual(self.h.errors('solo'), [])
+
+    def test_sally_around_keeps_its_zombie_out_of_sight_near_the_post(self):
+        # E18-T34 (campagne MP du 2026-11-08) : membre parti par la porte vers un zombie vu derrière une vitre, encore
+        # dans la zone de sa place : il ne voit plus le zombie mais le garde (ordre de combat leash.around) au lieu de
+        # revenir à son poste ; sans cet ordre, rien.
+        gid = self.mk()
+        self.jump_to(11)
+        self.dpass(2)
+        npc = self.npc_of(gid, 'm-1')
+        bx, by = self.run_lua(f'local b = LivingKnox.Bodies.find("{npc}") return b:getX(), b:getY()')
+        z = self.horde([(int(bx) - 4, int(by))])
+        call = (f'(function() local b = LivingKnox.Bodies.find("{npc}") '
+                'local a = { role = "post", x = math.floor(b:getX()), y = math.floor(b:getY()), z = 0, '
+                'fighter = true } '
+                'LivingKnox.Zombies.sees = function() return false end '
+                f'{C}.lineOfStrike = function() return false end '   # derrière une vitre, hors de vue
+                f'local t = {Df}.targetFor("{npc}", b, {{}}, a, {{ list = {{}} }}, "hold") '
+                'return t and (t.u .. ":" .. tostring(t.around)) or "none" end)()')
+        self.run_lua(f'{C}.orders["{npc}"] = nil')
+        self.assertEqual(self.ev(call), 'none')
+        self.run_lua(f'local zb = HARNESS.zombies[{z[0]}] {C}.orders["{npc}"] = {{ k = "zombie", zt = zb, '
+                     'u = LivingKnox.Zombies.keyOf(zb), leash = { around = true } }')
+        self.assertEqual(self.ev(call), f'z:{z[0]}:true')
+        self.run_lua(f'{C}.orders["{npc}"] = nil')
 
 
 class MultiplayerDefenseTests(DefenseStack):

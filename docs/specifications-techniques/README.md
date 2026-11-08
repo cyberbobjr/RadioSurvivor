@@ -39,7 +39,7 @@ Noms définis dans le code ; arguments et contrôles serveur dans les documents 
 | `RS_Carnet` | `report`, `accept`, `invite`, `abandon`, `prepare_delivery`… | client → serveur | `RS_Carnet_Server.lua` ([protocole-carnet-v2.md](protocole-carnet-v2.md)) |
 | `RadioSurvivorDebug` | `freqRequest` / `freqReply` | client admin ↔ serveur | `RS_FreqDebug.lua` ([persona-format.md](persona-format.md), « Panneau de debug ») |
 | `LivingKnox` | `dirAsk`, `dirClaim`, `dirReport` / `dirState`, `npcHand` (passage à un nouveau propriétaire) | client propriétaire ↔ serveur | `LK_Directives`, `LK_Executor` |
-| `LivingKnox` | `combatState`, `combatHit`, `combatShot`, `combatMelee`, `zombieHurt`, `zombieThumps`, `bodyReport`, `bodyGone`, `corpseCheck`, `corpseMissing` | client ↔ serveur | `LK_CombatClient`, `LK_ZombiesClient`, `LK_DeathClient`, `LK_Senses` |
+| `LivingKnox` | `combatState`, `combatHit`, `combatShot`, `combatMelee`, `zombieHurt`, `zombieFloor`, `bodyReport`, `bodyGone`, `corpseCheck`, `corpseMissing` | client ↔ serveur | `LK_CombatClient`, `LK_ZombiesClient`, `LK_DeathClient`, `LK_Senses` |
 | `LivingKnox` | `animState`, `equipState`, `guardRoster` (réponse à `guardHello`) | serveur → clients proches | `LK_Anim`, `LK_Equipment`, `LK_ZombieGuard` |
 | `LivingKnox` | `adminRequest` / `adminReply`, `tradeRequest` / `tradeReply`, `aidRequest` | client ↔ serveur | vues admin, fiche PNJ, troc, relations ; capacité d'administration vérifiée côté serveur |
 

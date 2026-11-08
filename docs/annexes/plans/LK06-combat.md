@@ -2,7 +2,7 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 13 / 15 tâche(s) terminée(s).
+**Avancement.** en cours — 12 / 13 tâche(s) terminée(s), 2 abandonnée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
@@ -14,13 +14,13 @@
 | ☑ | LK06-T06 | Cri de douleur des PNJ (N4) | `testé solo` | solo | LK02-T04 |
 | ☑ | LK06-T07 | Tout le monde se bat : fuite réservée aux constantes mauvaises et au débordement | `testé solo` | solo | LK06-T05 |
 | ☑ | LK06-T08 | Zombies attirés par les PNJ : bruit et vue à travers une fenêtre, coups à la fenêtre | `testé solo` | solo | LK06-T04 |
-| ☑ | LK06-T09 | Offensive à la fenêtre : ouvrir, laisser tomber le zombie, l'achever au sol | `testé solo` | solo | LK06-T07, LK06-T08 |
+| ✕ | LK06-T09 | Offensive à la fenêtre : ouvrir, laisser tomber le zombie, l'achever au sol | `abandonné` | solo | LK06-T07, LK06-T08 |
 | ☑ | LK06-T10 | Corps de PNJ qui réagit aux bruits d'attrait (état `turnalerted`) | `testé solo` | solo | LK06-T08 |
 | ☐ | LK06-T11 | Son des coups de mêlée d'un PNJ | `testé solo` | MP | LK06-T02 |
 | ☑ | LK06-T12 | Reddition visible : le PNJ le dit et lève les mains | `testé MP` | MP | LK06-T05, LK02-T05 |
 | ☑ | LK06-T13 | Son de mêlée répété en boucle quand le PNJ meurt pendant son coup | `testé MP` | MP | LK06-T11 |
 | ☑ | LK06-T14 | Les PNJ attaquent les zombies jusqu'à 10 cases, sans attendre le corps à corps | `testé MP` | MP | LK06-T07, LK06-T09 |
-| ☐ | LK06-T15 | Fenêtre refermée après l'offensive à la fenêtre | `testé solo` | MP | LK06-T11 |
+| ✕ | LK06-T15 | Fenêtre refermée après l'offensive à la fenêtre | `abandonné` | MP | LK06-T11 |
 
 <!-- fin du tableau de bord -->
 
@@ -146,8 +146,8 @@
   - Preuve : banc `tests/test_lk_window_lure.py` du 2026-10-12 (12 tests OK) : cause du constat en jeu : le bruit d'attrait de LK06-T04 avait pour source le corps du PNJ, un `IsoZombie`, et le moteur ignore tout bruit d'un zombie (`WorldSound.sourceIsZombie`, `getSoundAttract` 0, `J/WorldSoundManager.java:230, 259-261, 478`) ; bruits des PNJ émis sans source (`addSound(nil, …)`) : vue (`SIGHT` = tout sauf `Blocked`, vitre et porte vitrée comprises, rayon calculé pour être entendu par le zombie qui voit : atténuation des pièces, `getHearingMultiplier`, plafond 40), pas (7 / 11 cases dehors, moitié dans une pièce, une fois par seconde), tir et cri ; le zombie vient taper l'ouverture par le chemin vanilla (`ThumpState`) ; combat : `Combat.lineOfStrike` (mêlée à travers une fenêtre ouverte ou cassée non barricadée seulement, rapport de coup refusé sinon), même règle pour le contact des zombies (`Zombies.canReach`), PNJ de mêlée en garde derrière une vitre fermée (phase `hold`), tir à travers une vitre fermée qui la casse (`smashWindow`), cible acquise à travers une vitre ; `test_lk_zombies` 15 OK, `test_lk_combat` 32 OK ; suite `lk.windowlure` ; run_all 100/100 ; luacheck 16/0 ; conception `zombies.md` ; base `sounds-and-noise.md` (bruit d'une source zombie ignoré), `perception.md` ; essai en jeu du 2026-10-13 (Lua/batman_RadioSurvivor/tests/) : lk.windowlure 1/1 (`20261013-084754-solo.txt`)
   - Reste : essai solo : joueur dans une maison à 8 cases au plus d'une fenêtre extérieure fermée, intacte, sans barricade ni rideau : `RST.run({ suite = "lk.windowlure", tags = "world" })` (zombie qui vient taper la vitre, pas d'attaque à travers) ; à la main : rideau fermé ou 3 planches : le zombie ne vient pas ; PNJ qui marche dehors : zombies à environ 7 cases attirés ; PNJ au pistolet derrière une vitre : tir, vitre cassée ; `lk.zombies` sans régression. MP : seul le client qui simule le zombie réagit au bruit.
 
-- [x] **LK06-T09** — Offensive à la fenêtre : ouvrir, laisser tomber le zombie, l'achever au sol
-  - État : `testé solo`
+- [ ] **LK06-T09** — Offensive à la fenêtre : ouvrir, laisser tomber le zombie, l'achever au sol
+  - État : `abandonné`
   - Cible : `solo`
   - Dépend de : LK06-T07, LK06-T08
   - Fichiers : `LK_Defense.lua`, `LK_Combat.lua`, `LK_Zombies.lua`
@@ -156,7 +156,7 @@
   - Accepté si : zombie à la fenêtre : fenêtre ouverte par un PNJ, zombie au sol à l'intérieur, achevé ; jamais avec un groupe débordé.
   - Tests : banc ; suite en jeu.
   - Preuve : banc `tests/test_lk_window_kill.py` du 2026-10-12 (17 tests OK) : offensive à la fenêtre (`LK_Defense.lua`, point 7) : zombie qui frappe de l'extérieur (`getThumpTarget`) une fenêtre du foyer fermée, intacte, non barricadée, sans alarme armée ; seulement en défense `hold` (jamais débordé), zombies en attente <= combattants valides à 3 cases (`chooseOffense`, membres inaptes exclus) ; ouvreur = défenseur posté sinon le plus proche, geste `openwindow`, ouverture par `Defense.tick` ; le zombie enjambe et tombe à l'intérieur par le moteur (`ThumpState`), case de chute laissée libre ; fin à 45 s ou sans zombie, abandon à 20 s, annulation en repli ; coup au sol (`LK_Combat.lua`, `LK_Zombies.lua`) : gestes `strikefloor` et `stomp` (clips `Bob_AttackFloor*`, 3 nœuds générés, 44 au total), dégâts vanilla (arme x max(5, critique), piétinement), réaction `Floor` qui garde le zombie à terre (aussi chez le client MP par `zombieHurt`) ; suite `lk.windowkill` ; run_all 100/101 (plan-check : deux tâches en cours) ; luacheck 16/0 ; `gen_animsets.py --check` 44 nœuds ; conception `combat.md`, `defense.md` ; base `combat-and-xp.md` (attaque au sol), `pathfinding-and-obstacles.md` (fenêtre ouverte sous les coups : le zombie l'enjambe aussitôt) ; essai en jeu du 2026-10-13 (Lua/batman_RadioSurvivor/tests/) : lk.windowkill 1/1 (`20261013-084849-solo.txt` : zombie tombé à l'intérieur, achevé au sol en 2 coups) ; essai en jeu du 2026-10-13 (Lua/batman_RadioSurvivor/tests/) : lk.windowkill 1/1 avec leurre sonore du test (`20261013-153614-solo.txt`)
-  - Reste : essai solo : joueur dans une maison à 8 cases au plus d'une fenêtre extérieure fermée, intacte, sans barricade, rideau ni alarme : `RST.run({ suite = "lk.windowkill", tags = "world" })` (zombie à la vitre, geste d'ouverture, chute à l'intérieur, achevé au sol : batte visée au sol ou piétinement) ; à vérifier : le PNJ frappe à temps (zombie à terre environ 2 s, décision une fois par seconde), rendu des clips au sol sur un corps de zombie ; MP : cible des coups d'un zombie simulé par un client. Fenêtre laissée ouverte ; vitre cassée avant l'ouverture : pas d'offensive.
+  - Reste : retirée le 2026-11-07 par E18-T34 (décision de l'utilisateur : offensive à la fenêtre supprimée, le zombie à la fenêtre est attaqué dehors par une sortie) ; le coup au sol de cette tâche reste (LK_Combat, LK_Zombies, banc `tests/test_lk_floor_strike.py`). (reste antérieur sans objet : essai solo : joueur dans une maison à 8 cases au plus d'une fenêtre extérieure fermée, intacte, sans barricade, rideau ni alarme : `RST.run({ suite = "lk.window…)
 
 - [x] **LK06-T10** — Corps de PNJ qui réagit aux bruits d'attrait (état `turnalerted`)
   - État : `testé solo`
@@ -177,7 +177,7 @@
   - Accepté si : au banc, chaque coup de mêlée accepté produit un son d'impact (et d'élan) choisi comme le vanilla, une fois par client proche ; en jeu, coup audible.
   - Tests : banc ; essai solo (`lk.windowkill` ou un combat contre un zombie).
   - Preuve : banc `tests/test_lk_combat.py` du 2026-10-13 (37 tests OK ; `MeleeSoundMultiplayerTests` et `MeleeSoundSoloTests` 5, qui échouent sur l'ancien code : 3 échecs, 2 erreurs) : sons vanilla établis dans le Java (`SwipeStatePlayer.java:212-223, 348-373` élan `PlaySwingSound` et poussée `AttackShove`/`AttackStomp` ; `CombatManager.java:723-790` élan arrêté puis `HitFloorSound`/`HitSound`), élan joué localement d'après le geste, impact par la commande `combatMelee` une fois par client proche, aucun bruit pour les zombies ; mesures `[LKM]` (`lk.melee`) et `[LKX]` (`lk.windowkill`) ; conception `combat.md` ; base `sounds-and-noise.md` ; run_all 118/118, luacheck 16/0 (commit LK06-T11) ; essai en jeu du 2026-10-13 (Lua/batman_RadioSurvivor/tests/) : lk.melee 1/1 (`20261013-110931-solo.txt` : AttackShove et BareHandsHit, 3 élans, 3 impacts) ; lk.windowkill 1/1 (`20261013-153614-solo.txt` : 4 coups appliqués, 4 impacts envoyés, 4 élans BaseballBatSwing et 4 impacts BaseballBatHit joués) ; 2026-10-15 : cible de coups en MP par la commande `zombieThumps` du client qui simule le zombie (écart à la décision 1 : commande séparée au lieu du rapport d'état, car le zombie peut être simulé par un autre client que les corps ; contrôle serveur : expéditeur = simulateur, fenêtre réelle au bord indiqué, côté foyer, à portée, fraîche), approximation « collé à la vitre » retirée ; bancs `test_lk_window_kill.py` 21 OK, `test_lk_senses.py` (`ThumpReportTests` 5) ; solo lk.windowkill 1/1 (`tools/autoclient/runs/20261015-005524-f8dce0faa344`), lk.melee 2/2 ; MP : rapport accepté, offensive ouverte, fenêtre ouverte, mais zombie tué debout pendant l'enjambée (`tools/autoclient/runs/20261015-010324-mp-29017ca19a4f`, FAIL « no floor hit ») ; commit `89b9fd6` ; retenue de l'offensive : aucun membre n'engage le zombie de l'offensive avant sa chute à l'intérieur (levée au sol, entré debout ou après 15 s), banc `test_lk_window_kill.py` 24 OK, commit `66b5b10`
-  - Reste : lk.windowkill FAIL dans la campagne MP automatique du 2026-10-15 (copie figée du commit `54087fb`, serveur dédié + 2 clients, pont avec faux modèle) (« no window offensive (zombie not at the window, or defense not started): condition not met within 90000 ms », `tools/autoclient/runs/20261015-110446-parallel-2-54087fb0f84f/shard1/server/20261015-090647-server.txt`) ; campagne solo : lk.windowlure FAIL (« the zombie did not thump the window in 60000 ms », `tools/autoclient/runs/20261015-114001-parallel-2-54087fb0f84f/shard1/20261015-094053-solo.txt`). Limites : paramètre FMOD `MeleeHitSurface` non posé, voix d'effort non jouée, aucun élan pour un client hors `Directives.targets`
+  - Reste : mesure des sons de mêlée en MP par `lk.melee` (la suite `lk.windowkill`, qui la portait aussi, est supprimée par E18-T34) ; preuve MP à refaire dans une campagne.
 - [x] **LK06-T12** — Reddition visible : le PNJ le dit et lève les mains
   - État : `testé MP`
   - Cible : `MP`
@@ -213,7 +213,7 @@
   - Reste : colons entourés de zombies et colon blessé à la main abandonné (règle du 2026-10-14 : sortie et retour mesurés par `lk.defense`, blessé couvert par le banc).
 
 - [ ] **LK06-T15** — Fenêtre refermée après l'offensive à la fenêtre
-  - État : `testé solo`
+  - État : `abandonné`
   - Cible : `MP`
   - Dépend de : LK06-T11
   - Fichiers : `LK_Defense.lua`
@@ -221,4 +221,4 @@
   - Accepté si : au banc : offensive terminée = fenêtre refermée une seule fois par un membre ; zombie revenu pendant l'approche = offensive reprise ; vitre cassée = aucune tentative ; en jeu, fenêtre fermée vue du client.
   - Tests : banc (`tests/test_lk_window_kill.py`) ; suite `lk.windowkill` dans la campagne MP automatique.
   - Preuve : refermeture après l'offensive : état `closing`, geste `closewindow` de l'ouvreur (sinon membre valide le plus proche), fenêtre fermée à l'instant du clip ; jamais sur une embrasure occupée par un vivant, abandon à 20 s ; banc `test_lk_window_kill.py` 21 OK ; solo lk.windowkill 1/1 « window open false, closed by an npc 1 » (`tools/autoclient/runs/20261015-005524-f8dce0faa344`) ; commit `89b9fd6`
-  - Reste : lk.windowkill FAIL dans la campagne MP automatique du 2026-10-15 (copie figée du commit `54087fb`, serveur dédié + 2 clients, pont avec faux modèle) (« no window offensive … within 90000 ms », `tools/autoclient/runs/20261015-110446-parallel-2-54087fb0f84f/shard1/server/20261015-090647-server.txt`) ; lk.windowkill vert en campagne MP (dépend du correctif de LK06-T11)
+  - Reste : retirée le 2026-11-07 par E18-T34 (décision de l'utilisateur : offensive à la fenêtre supprimée, le zombie à la fenêtre est attaqué dehors par une sortie). (reste antérieur sans objet : lk.windowkill FAIL dans la campagne MP automatique du 2026-10-15 (copie figée du commit `54087fb`, serveur dédié + 2 clients, pont avec faux modèle) (« no windo…)
