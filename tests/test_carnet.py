@@ -584,7 +584,7 @@ class Simulation:
         if provider:
             self.server.g.registerFakeProvider()
         self.server.g.NO_CELL = not boot_cell
-        self.server.g.getWorld = lambda: self.server.rt.eval("{getGameMode=function() return 'Multiplayer' end, getWorld=function() return '" + world + "' end}")
+        self.server.g.getWorld = lambda: self.server.rt.eval("{getGameMode=function() return setmetatable({}, {__tostring = function() return 'Multiplayer' end}) end, getWorld=function() return '" + world + "' end}")
         if living_knox:
             self.server.rt.execute(LK_SERVER_STUBS)
             self.server.rt.execute(LK_SERVER_LOAD)
@@ -1247,7 +1247,7 @@ def solo_game(path: Path, clock):
     game.rt.execute(STUBS)
     game.g.registerFakeProvider()
     game.g.getWorld = lambda: game.rt.eval(
-        "{getGameMode=function() return 'Survivor' end, getWorld=function() return 'solo' end}")
+        "{getGameMode=function() return setmetatable({}, {__tostring = function() return 'Survivor' end}) end, getWorld=function() return 'solo' end}")
     game.rt.execute("require 'LivingKnox/LK_Talk'")  # E18-T17: speech of the NPCs
     game.load('server/RS_Carnet_Server.lua')
     game.g.fire('OnInitGlobalModData', False)
@@ -1868,7 +1868,7 @@ class LivingKnoxCarnetTests(unittest.TestCase):
         sim.server.rt.execute("""
             getScriptManager = function() return {FindItem = function(_, t)
                 if string.find(t, '^Base%.') then return {} end end} end
-            getWorld = function() return {getGameMode = function() return 'Multiplayer' end,
+            getWorld = function() return {getGameMode = function() return setmetatable({}, {__tostring = function() return 'Multiplayer' end}) end,
                 getWorld = function() return 'rstest-lk' end} end
             require 'RST/RST'
             require 'RST/RST_Fixtures'
@@ -2416,7 +2416,7 @@ function SCOUT_GRID:getCellData(cx, cy)
     end
     return cells[key]
 end
-getWorld = function() return {getGameMode = function() return 'Multiplayer' end,
+getWorld = function() return {getGameMode = function() return setmetatable({}, {__tostring = function() return 'Multiplayer' end}) end,
     getWorld = function() return 'test' end, getMetaGrid = function() return SCOUT_GRID end} end
 """
 
@@ -2634,7 +2634,7 @@ class ScoutMissionTests(unittest.TestCase):
                 return relay(p, module, command, args)
             end
             local grid = getWorld():getMetaGrid()
-            getWorld = function() return {getGameMode = function() return 'Multiplayer' end,
+            getWorld = function() return {getGameMode = function() return setmetatable({}, {__tostring = function() return 'Multiplayer' end}) end,
                 getWorld = function() return 'rstest-scout' end, getMetaGrid = function() return grid end} end
             require 'RST/RST'
             require 'RST/RST_Fixtures'
@@ -3388,7 +3388,7 @@ class VoiceMissionTests(unittest.TestCase):
                 return relay(p, module, command, args)
             end
             local grid = getWorld():getMetaGrid()
-            getWorld = function() return {getGameMode = function() return 'Multiplayer' end,
+            getWorld = function() return {getGameMode = function() return setmetatable({}, {__tostring = function() return 'Multiplayer' end}) end,
                 getWorld = function() return 'rstest-radio' end, getMetaGrid = function() return grid end} end
             require 'RST/RST'
             require 'RST/RST_Fixtures'

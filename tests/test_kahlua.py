@@ -510,7 +510,7 @@ DRAW_EVAL = (
     'getSandboxOptions = function() return { getOptionByName = function(_, n) '
     'if n == "RadioSurvivor.Enabled" then return { getValue = function() return true end } end end } end; '
     'getWorld = function() return { getWorld = function() return "kr" end, '
-    'getGameMode = function() return "Multiplayer" end } end; '
+    'getGameMode = function() return setmetatable({}, {__tostring = function() return "Multiplayer" end}) end } end; '
     'getGameTime = function() return { getModData = function() return { dynamicRadio = { { name = "AEBS", '
     'freq = 100400 } } } end } end; '
     'local draws = 0; ZombRand = function(n) draws = draws + 1; return 1 end; '

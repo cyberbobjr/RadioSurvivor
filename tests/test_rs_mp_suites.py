@@ -57,7 +57,7 @@ print = function(...) local t = {} for i = 1, select("#", ...) do t[#t + 1] = to
 function logged(pattern) for _, l in ipairs(LOGS) do if string.find(l, pattern, 1, true) then return l end end end
 WORLD_NAME = "rstest_bench"
 getWorld = function() return { getWorld = function() return WORLD_NAME end,
-    getGameMode = function() return ROLE == "solo" and "Sandbox" or "Multiplayer" end } end
+    getGameMode = function() return setmetatable({}, {__tostring = function() return ROLE == "solo" and "Sandbox" or "Multiplayer" end}) end } end
 getCore = function() return { getVersion = function() return "42.21.0 bench" end } end
 getActivatedMods = function() return JList({ "batman_RadioSurvivorCore", "batman_LivingKnox", "batman_RadioSurvivor", "batman_RadioSurvivorTests" }) end
 local seed = 0

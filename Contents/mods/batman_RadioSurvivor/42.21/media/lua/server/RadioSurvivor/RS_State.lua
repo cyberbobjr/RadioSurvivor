@@ -65,7 +65,7 @@ S._read = read
 
 function S.init(newWorld)
     local w = getWorld()
-    local name = w:getGameMode() .. '/' .. w:getWorld()
+    local name = tostring(w:getGameMode()) .. '/' .. tostring(w:getWorld()) -- 42.22: GameMode object
     S.path = 'batman_RadioSurvivor/state-' .. Codec.hexBytes(name) -- historical per-unit name, never decoded
     local a, existsA, newerA = read(S.path .. '-0.txt')
     local b, existsB, newerB = read(S.path .. '-1.txt')

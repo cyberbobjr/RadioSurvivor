@@ -20,7 +20,7 @@ isClient = function() return false end
 getTimestampMs = function() return 1000 end
 ZombRand = function(a) return a end
 print = function(s) PRINTS[#PRINTS + 1] = tostring(s) end
-getWorld = function() return {getGameMode = function() return 'Multiplayer' end, getWorld = function() return 'w' end} end
+getWorld = function() return {getGameMode = function() return setmetatable({}, {__tostring = function() return 'Multiplayer' end}) end, getWorld = function() return 'w' end} end
 getFileWriter = function(path)
     if WRITE_FAIL then return nil end
     local buf = {}

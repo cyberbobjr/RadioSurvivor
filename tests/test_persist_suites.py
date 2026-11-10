@@ -162,7 +162,7 @@ class RecoverPersistTests(unittest.TestCase):
         rt.execute(FILE_DOUBLES)
         rt.execute("""
             local grid = getWorld():getMetaGrid()
-            getWorld = function() return {getGameMode = function() return 'Multiplayer' end,
+            getWorld = function() return {getGameMode = function() return setmetatable({}, {__tostring = function() return 'Multiplayer' end}) end,
                 getWorld = function() return 'rstest-recover' end, getMetaGrid = function() return grid end} end
             require 'RST/RST'
             require 'RST/RST_Persist'
@@ -228,7 +228,7 @@ RADIOTAB_DOUBLES = r"""
 isServer = function() return true end
 isClient = function() return false end
 getWorld = function() return { getWorld = function() return 'rstest-radiotab' end,
-    getGameMode = function() return 'Multiplayer' end } end
+    getGameMode = function() return setmetatable({}, {__tostring = function() return 'Multiplayer' end}) end } end
 CLOCK = 1000000
 getTimestampMs = function() return CLOCK end
 ZombRand = function(a, b) return a end

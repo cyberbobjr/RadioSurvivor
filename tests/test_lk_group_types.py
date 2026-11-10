@@ -34,7 +34,7 @@ TRANSLATE = LK_LUA / 'shared' / 'Translate'
 
 WORLD = r'''
 getWorld = function()
-    return { getWorld = function() return 'rstest_types' end, getGameMode = function() return 'Multiplayer' end }
+    return { getWorld = function() return 'rstest_types' end, getGameMode = function() return setmetatable({}, {__tostring = function() return 'Multiplayer' end}) end }
 end
 '''
 

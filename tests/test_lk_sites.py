@@ -119,7 +119,7 @@ end
 getGameTime = function() return { getWorldAgeHours = function() return 0 end } end
 getWorld = function()
     return { getMetaGrid = function() return GRID end, getWorld = function() return "rstest-sites" end,
-             getGameMode = function() return "Sandbox" end }
+             getGameMode = function() return setmetatable({}, {__tostring = function() return "Sandbox" end}) end }
 end
 """
 

@@ -27,7 +27,7 @@ SERVER = 'server/LivingKnox/LK_Server.lua'
 
 WORLD = r'''
 getWorld = function()
-    return { getWorld = function() return 'rstest_attitude' end, getGameMode = function() return 'Multiplayer' end }
+    return { getWorld = function() return 'rstest_attitude' end, getGameMode = function() return setmetatable({}, {__tostring = function() return 'Multiplayer' end}) end }
 end
 '''
 

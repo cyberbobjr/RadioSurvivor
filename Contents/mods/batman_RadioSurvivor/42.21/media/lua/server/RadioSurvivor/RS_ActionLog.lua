@@ -30,7 +30,7 @@ end
 function Log.base()
     local w = getWorld()
     if not w then return nil end
-    return "batman_RadioSurvivor/actions-" .. Codec.hexBytes(w:getGameMode() .. "/" .. w:getWorld())
+    return "batman_RadioSurvivor/actions-" .. Codec.hexBytes(tostring(w:getGameMode()) .. "/" .. tostring(w:getWorld()))
 end
 
 -- Champ sur une ligne, sans séparateur : `%`, `=`, `;` et caractères de contrôle (tabulation, retours) encodés en

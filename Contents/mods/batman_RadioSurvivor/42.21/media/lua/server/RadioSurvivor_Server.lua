@@ -75,7 +75,7 @@ end
 -- Partie courante, pour séparer les conversations dans le pont.
 local function sessionKey()
     local world = getWorld()
-    return Const.oneLine(world:getGameMode() .. "_" .. world:getWorld())
+    return Const.oneLine(tostring(world:getGameMode()) .. "_" .. tostring(world:getWorld()))
 end
 
 local function inGameDate()

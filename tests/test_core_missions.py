@@ -38,7 +38,7 @@ SCANNED = ('Contents', 'dev', 'tests', 'tools', 'bridge')
 SKIPPED_PARTS = {'runs', '__pycache__', 'fixtures'}
 SUFFIXES = {'.lua', '.py', '.ps1', '.json', '.txt', '.info'}
 
-WORLD = ("getWorld = function() return {getGameMode = function() return 'Multiplayer' end, "
+WORLD = ("getWorld = function() return {getGameMode = function() return setmetatable({}, {__tostring = function() return 'Multiplayer' end}) end, "
          "getWorld = function() return 'e18t05' end} end")
 
 

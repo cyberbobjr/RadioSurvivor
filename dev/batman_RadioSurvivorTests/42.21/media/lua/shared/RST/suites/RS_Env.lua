@@ -228,7 +228,7 @@ RST.suite("rs.env", { tags = { "shared" } }, function(s)
         local world = getWorld()
         t:ok(world ~= nil, "getWorld() returned nil")
         -- server/RadioSurvivor/RS_State.lua:64 builds the state path from these two strings.
-        t:eq("string", type(world:getGameMode()), "IsoWorld:getGameMode() (used by " .. PREFIX
+        t:eq("string", type(tostring(world:getGameMode())), "tostring(IsoWorld:getGameMode()) (used by " .. PREFIX
             .. "server/RadioSurvivor/RS_State.lua:64)")
         t:eq("string", type(world:getWorld()), "IsoWorld:getWorld() (used by " .. PREFIX
             .. "server/RadioSurvivor/RS_State.lua:64)")

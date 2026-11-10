@@ -391,7 +391,7 @@ end
 
 local function gameMode()
     local ok, v = pcall(function() return getWorld():getGameMode() end)
-    if ok then return v end
+    if ok and v ~= nil then return tostring(v) end -- 42.22: GameMode object, tostring gives its id
     return nil
 end
 

@@ -86,7 +86,7 @@ getGameTime = function() return {
     getMinutesPerDay = function() return MINUTES_PER_DAY or 1440000 end,
     getModData = function() return GT_MODDATA end } end
 getWorld = function() return { getWorld = function() return "TestWorld" end,
-    getGameMode = function() return "Multiplayer" end } end
+    getGameMode = function() return setmetatable({}, {__tostring = function() return "Multiplayer" end}) end } end
 
 -- Diffusions dans l'ordre : lignes (BROADCASTS) et fréquence de la chaîne (AIRED_ON).
 BROADCASTS, AIRED_ON = {}, {}

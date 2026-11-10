@@ -75,7 +75,7 @@ getServerOptions = function()
     return { getOption = function(_, k) return "s,r,a" end, getInteger = function(_, k) return 0 end }
 end
 getWorld = function()
-    return { getGameMode = function() return "Multiplayer" end, getWorld = function() return "rstest_smoke" end }
+    return { getGameMode = function() return setmetatable({}, {__tostring = function() return "Multiplayer" end}) end, getWorld = function() return "rstest_smoke" end }
 end
 DynamicRadioChannel = { new = fn() }
 ChannelCategory = { Amateur = "Amateur" }
@@ -443,7 +443,7 @@ class VoicesSuiteTests(tps.ServerHarness):
 
     def test_world_suite_refused_outside_a_test_save(self):
         self.rt.execute('getWorld = function() return { getWorld = function() return "MyWorld" end,'
-                        'getGameMode = function() return "Multiplayer" end } end')
+                        'getGameMode = function() return setmetatable({}, {__tostring = function() return "Multiplayer" end}) end } end')
         _, results = self.run_suite('"rs.voices.world"')
         self.assertTrue(all(v[0] == 'SKIP' for v in results.values()), results)
         self.assertFalse((self.dir / 'rstest_voices.txt').exists())

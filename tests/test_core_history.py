@@ -17,7 +17,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from harness import Harness, CORE_LUA  # noqa: E402
 
-WORLD = ("getWorld = function() return {getGameMode = function() return 'Multiplayer' end, "
+WORLD = ("getWorld = function() return {getGameMode = function() return setmetatable({}, {__tostring = function() return 'Multiplayer' end}) end, "
          "getWorld = function() return 'e18t11' end} end")
 WORLD_HEX = '4d756c7469706c617965722f653138743131'
 

@@ -23,7 +23,7 @@ from harness import Harness  # noqa: E402
 ID = 'require("RadioSurvivorCore/RC_Identity")'
 # Engine globals the bench does not provide (IsoWorld, ZombRand); fixed values.
 WORLD = ('getWorld = getWorld or function() return { getWorld = function() return "rstest-identity" end, '
-         'getGameMode = function() return "Multiplayer" end } end; '
+         'getGameMode = function() return setmetatable({}, {__tostring = function() return "Multiplayer" end}) end } end; '
          'ZombRand = ZombRand or function(a, b) return a end')
 
 

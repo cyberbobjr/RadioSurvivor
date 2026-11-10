@@ -327,7 +327,7 @@ class ClearMissionTests(unittest.TestCase):
                 return relay(p, module, command, args)
             end
             local grid = getWorld():getMetaGrid()
-            getWorld = function() return {getGameMode = function() return 'Multiplayer' end,
+            getWorld = function() return {getGameMode = function() return setmetatable({}, {__tostring = function() return 'Multiplayer' end}) end,
                 getWorld = function() return 'rstest-clear' end, getMetaGrid = function() return grid end} end
             local baseCell = getCell
             getCell = function()

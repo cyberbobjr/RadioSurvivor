@@ -44,7 +44,7 @@ LOGS = {}
 print = function(...) local t = {} for i = 1, select("#", ...) do t[#t + 1] = tostring(select(i, ...)) end
     LOGS[#LOGS + 1] = table.concat(t, " ") end
 getWorld = function() return { getWorld = function() return "rstest_death" end,
-    getGameMode = function() return "Multiplayer" end } end
+    getGameMode = function() return setmetatable({}, {__tostring = function() return "Multiplayer" end}) end } end
 getCore = function() return { getVersion = function() return "42.21.0 bench" end } end
 Events = setmetatable({}, { __index = function(t, k)
     local e = { list = {} }

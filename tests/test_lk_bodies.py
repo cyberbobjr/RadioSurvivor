@@ -49,7 +49,7 @@ WORLD_NAME, GAME_MODE, ADMINS, SCANNED = 'rstest_banc', 'Multiplayer', { A = tru
 local function call(s) CALLS[#CALLS + 1] = s end
 
 getWorld = function()
-    return { getWorld = function() return WORLD_NAME end, getGameMode = function() return GAME_MODE end }
+    return { getWorld = function() return WORLD_NAME end, getGameMode = function() return setmetatable({}, {__tostring = function() return GAME_MODE end}) end }
 end
 Capability = { DebugConsole = 'DebugConsole' }
 checkPermissions = function() return true end

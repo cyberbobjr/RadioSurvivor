@@ -23,7 +23,7 @@ ROOT = Path(__file__).resolve().parents[1]
 MODS = ROOT / 'Contents' / 'mods'
 LK_LUA = MODS / 'batman_LivingKnox' / '42.21' / 'media' / 'lua'
 RS_LUA = MODS / 'batman_RadioSurvivor' / '42.21' / 'media' / 'lua'
-WORLD = ("getWorld = function() return {getGameMode = function() return 'Multiplayer' end, "
+WORLD = ("getWorld = function() return {getGameMode = function() return setmetatable({}, {__tostring = function() return 'Multiplayer' end}) end, "
          "getWorld = function() return 'e18t22' end} end")
 WORLD_HEX = '4d756c7469706c617965722f653138743232'
 

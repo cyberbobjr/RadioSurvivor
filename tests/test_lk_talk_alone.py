@@ -41,7 +41,7 @@ class World:
         self.rt.execute(STUBS)
         self.rt.execute(MODS)
         self.g.getWorld = lambda: self.rt.eval(
-            "{getGameMode=function() return 'Multiplayer' end, getWorld=function() return 'alone' end}")
+            "{getGameMode=function() return setmetatable({}, {__tostring = function() return 'Multiplayer' end}) end, getWorld=function() return 'alone' end}")
         self.rt.execute(LK_SERVER_STUBS)
         self.rt.execute(LK_SERVER_LOAD)
         self.sent = []

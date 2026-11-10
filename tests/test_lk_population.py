@@ -207,7 +207,7 @@ class DefaultPopulationTests(Bench):
     def test_seed_derived_from_the_game(self):
         a = self.ev(f'{POP}.baseSeed()')
         self.rt.execute('getWorld = function() return { getMetaGrid = function() return GRID end, '
-                        'getWorld = function() return "other-save" end, getGameMode = function() return "Sandbox" end } end')
+                        'getWorld = function() return "other-save" end, getGameMode = function() return setmetatable({}, {__tostring = function() return "Sandbox" end}) end } end')
         b = self.ev(f'{POP}.baseSeed()')
         self.assertNotEqual(a, b)
         self.assertEqual(b, self.ev(f'{POP}.baseSeed()'))
@@ -389,7 +389,7 @@ class OnceTests(Bench):
 
     def test_site_failure_leaves_the_group_without_home(self):
         self.rt.execute('getWorld = function() return { getMetaGrid = function() return nil end, '
-                        'getWorld = function() return "rstest-sites" end, getGameMode = function() return "Sandbox" end } end')
+                        'getWorld = function() return "rstest-sites" end, getGameMode = function() return setmetatable({}, {__tostring = function() return "Sandbox" end}) end } end')
         ids, _ = self.run_pop()
         self.assertEqual(len(lua_list(ids)), 4)
         self.assertTrue(all(g.home is None for g in self.groups()))
@@ -434,7 +434,7 @@ class ClientTests(unittest.TestCase):
 HWORLD = r'''
 WORLD_NAME, GAME_MODE = 'rstest_population', 'Multiplayer'
 getWorld = function()
-    return { getWorld = function() return WORLD_NAME end, getGameMode = function() return GAME_MODE end,
+    return { getWorld = function() return WORLD_NAME end, getGameMode = function() return setmetatable({}, {__tostring = function() return GAME_MODE end}) end,
              getMetaGrid = function() return nil end }
 end
 '''

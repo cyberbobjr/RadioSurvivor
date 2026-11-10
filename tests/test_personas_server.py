@@ -64,7 +64,7 @@ SEED = 1
 ZombRand = function(n) SEED = (SEED * 16807) % 2147483647 return SEED % n end
 WORLD = "rstest_a"
 getWorld = function() return { getWorld = function() return WORLD end,
-    getGameMode = function() return "Multiplayer" end } end
+    getGameMode = function() return setmetatable({}, {__tostring = function() return "Multiplayer" end}) end } end
 GT_MODDATA = {}
 getGameTime = function() return { getModData = function() return GT_MODDATA end } end
 ENABLED = true
@@ -784,7 +784,7 @@ getGameTime = function() return {
     getWorldAgeHours = function() return WORLD_AGE_HOURS or 0 end,
     getModData = function() return GT_MODDATA end } end
 getWorld = function() return { getWorld = function() return "rstest" end,
-    getGameMode = function() return "Multiplayer" end } end
+    getGameMode = function() return setmetatable({}, {__tostring = function() return "Multiplayer" end}) end } end
 RadioLine = { new = function(t) return t end }
 RadioBroadCast = { new = function(id) local b = { id = id, lines = {} }
     b.AddRadioLine = function(self, l) table.insert(self.lines, l) end return b end }

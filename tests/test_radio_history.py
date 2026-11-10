@@ -30,7 +30,7 @@ from test_carnet import Simulation, NOTEBOOK_UI, convert
 from test_protocol import lua_list
 
 SERVER_SETUP = r'''
-getWorld = function() return { getGameMode = function() return 'Multiplayer' end,
+getWorld = function() return { getGameMode = function() return setmetatable({}, {__tostring = function() return 'Multiplayer' end}) end,
     getWorld = function() return 'bench' end } end
 ZombRand = function(a, b) return a end
 SandboxVars = { RadioSurvivor = { Enabled = true } }
@@ -965,7 +965,7 @@ class SoloScenarioTests(unittest.TestCase):
         g = game.g
         game.rt.execute(STUBS)
         game.rt.execute(SOLO_NET)
-        g.getWorld = lambda: game.rt.eval("{getGameMode=function() return 'Sandbox' end, "
+        g.getWorld = lambda: game.rt.eval("{getGameMode=function() return setmetatable({}, {__tostring = function() return 'Sandbox' end}) end, "
                                           "getWorld=function() return 'rstest-solo' end}")
         # Only the single-argument draw decides a spontaneous call (ZombRand(call_one_in) == 0).
         game.rt.execute("ZombRand = function(a, b) if b then return a end return 0 end")

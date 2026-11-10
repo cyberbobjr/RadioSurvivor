@@ -692,7 +692,7 @@ class SuiteTests(Bench):
         self.lua("bind('A', 'char-a'); HARNESS.players.A.prof = 'doctor'")
         self.h.move_player('A', 100, 100)
         # World suites run on a save named rstest* only (RST guard); the state is already loaded.
-        self.lua("getWorld = function() return { getGameMode = function() return 'Multiplayer' end, "
+        self.lua("getWorld = function() return { getGameMode = function() return setmetatable({}, {__tostring = function() return 'Multiplayer' end}) end, "
                  "getWorld = function() return 'rstest-bench' end } end")
         self.h.load('server', 'shared/RST/suites/RS_LastPages.lua')
         report = self.h.eval('server', 'RST.runSync({ suite = "rs.lastpages", tags = "world" }, '

@@ -46,7 +46,7 @@ HM = 'LivingKnox.Homes'
 DOUBLES = r'''
 WORLD_NAME, GAME_MODE = 'rstest_homes', 'Multiplayer'
 getWorld = function()
-    return { getWorld = function() return WORLD_NAME end, getGameMode = function() return GAME_MODE end }
+    return { getWorld = function() return WORLD_NAME end, getGameMode = function() return setmetatable({}, {__tostring = function() return GAME_MODE end}) end }
 end
 local H = HARNESS
 local C = H.classes

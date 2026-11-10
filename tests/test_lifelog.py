@@ -27,7 +27,7 @@ from harness import Harness, ROOT
 from test_carnet import Simulation, convert
 
 SETUP = r'''
-getWorld = function() return { getGameMode = function() return 'Multiplayer' end,
+getWorld = function() return { getGameMode = function() return setmetatable({}, {__tostring = function() return 'Multiplayer' end}) end,
     getWorld = function() return 'bench' end } end
 ZombRand = function(a, b) return a end
 SandboxVars = { RadioSurvivor = { Enabled = true } }

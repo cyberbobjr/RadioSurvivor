@@ -282,7 +282,7 @@ class DriverTests(unittest.TestCase):
                 charCreationMain = panel("main", false) }
             MODE = "Multiplayer"
             getWorld = function() return { getWorld = function() return "127.0.0.1_17391_x" end,
-                getGameMode = function() return MODE end } end
+                getGameMode = function() return setmetatable({}, {__tostring = function() return MODE end}) end } end
             isClient = function() return true end
             SENT = {}
             sendClientCommand = function(p, module, command, args) SENT[#SENT + 1] = { module = module,

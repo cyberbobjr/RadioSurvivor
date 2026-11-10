@@ -265,7 +265,7 @@ class SignalMissionTests(unittest.TestCase):
         sim.server.rt.execute(f'package.path = [[{shared};]] .. package.path')
         sim.server.rt.execute("""
             local grid = getWorld():getMetaGrid()
-            getWorld = function() return {getGameMode = function() return 'Multiplayer' end,
+            getWorld = function() return {getGameMode = function() return setmetatable({}, {__tostring = function() return 'Multiplayer' end}) end,
                 getWorld = function() return 'rstest-signal' end, getMetaGrid = function() return grid end} end
             require 'RST/RST'
         """)
