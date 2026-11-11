@@ -1,6 +1,6 @@
 --[[
-Hooks of the generic launcher pz-autotest (.claude/tools/pz-autotest) for the RST test engine of RadioSurvivor.
-Configuration: RadioSurvivor/autotest.json. Loaded by batman_PZAutoTestDriver with loadstring (global environment,
+Hooks of the generic launcher pzdev (PZDevKit) for the RST test engine of RadioSurvivor.
+Configuration: RadioSurvivor/autotest.json. Loaded by batman_PZDevKit with loadstring (global environment,
 RST already loaded by batman_RadioSurvivorTests). Parameters (ctx.params, all text, "-P name=value"):
     suite=a,b       RST suite names or dot prefixes (client: RST.run, server: RST.Server.runSuites)
     campaign=name   client only: RST.campaign(name) (exclusive with suite)

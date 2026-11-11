@@ -19,7 +19,7 @@ bridge/.env
 # Lanceur client automatique (E01-T14) : résultats des exécutions
 tools/autoclient/runs/
 
-# pz-autotest (.claude/tools/pz-autotest) : résultats des exécutions
+# pzdev (PZDevKit) : résultats des exécutions
 runs/
 
 # Zip de test local (tools/make_test_zip.py)

@@ -1,10 +1,10 @@
-// pz-autotest configuration of RadioSurvivor (.claude/tools/pz-autotest/README.md). Same usage as
+// pzdev configuration of RadioSurvivor (PZDevKit/docs/wiki/fr/01-tests-automatiques.md). Same usage as
 // tools/autoclient/autoclient.py (E01-T14) and tests/run_dedicated_smoke.ps1, through the generic launcher:
-//   python .claude/tools/pz-autotest/pz_autotest.py sp RadioSurvivor -P suite=rs.env
-//   python .claude/tools/pz-autotest/pz_autotest.py sp RadioSurvivor -P campaign=solo-rs --timeout 1800
-//   python .claude/tools/pz-autotest/pz_autotest.py sp RadioSurvivor -P suite=rs.npctalk -P tags=world
-//   python .claude/tools/pz-autotest/pz_autotest.py server RadioSurvivor -P suite=rst,rs.codec
-//   python .claude/tools/pz-autotest/pz_autotest.py mp RadioSurvivor -P suite=rs.identity,rs.facts
+//   python PZDevKit/pzdev.py sp RadioSurvivor -P suite=rs.env
+//   python PZDevKit/pzdev.py sp RadioSurvivor -P campaign=solo-rs --timeout 1800
+//   python PZDevKit/pzdev.py sp RadioSurvivor -P suite=rs.npctalk -P tags=world
+//   python PZDevKit/pzdev.py server RadioSurvivor -P suite=rst,rs.codec
+//   python PZDevKit/pzdev.py mp RadioSurvivor -P suite=rs.identity,rs.facts
 {
   "name": "RadioSurvivor",
   "gameVersion": "42.21",
@@ -54,7 +54,7 @@
     "joinTimeoutSec": 600
   },
   // Python bridge on the exchange folder of the cache (client cache in sp, server cache in server/mp). It reads its
-  // own configuration (bridge/.env or the environment): pz-autotest never opens it.
+  // own configuration (bridge/.env or the environment): pzdev never opens it.
   "bridge": {
     "command": ["{python}", "-u", "radio_bridge.py", "--exchange", "{exchange}"],
     "cwd": "bridge",
