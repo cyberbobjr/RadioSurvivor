@@ -58,7 +58,7 @@ local function fn() return function() end end
 local function javaList(items)
     return { size = function() return #items end, get = function(_, i) return items[i + 1] end }
 end
-VERSION = "42.21.0 abcdef"
+VERSION = "42.22.2 abcdef"
 MOD_IDS = { "batman_CharacterReputation", "batman_RadioSurvivorCore", "batman_LivingKnox", "batman_RadioSurvivor", "batman_RadioSurvivorTests" }
 getCore = function() return { getVersion = function() return VERSION end } end
 getActivatedMods = function() return javaList(MOD_IDS) end
@@ -272,11 +272,11 @@ class EnvSuiteTests(SuiteHarness):
         self.assertEqual(self.results()['ItemContainer methods used by the missions'][0], 'SKIP')
 
     def test_version(self):
-        for version, status in (('42.21.0 abc', 'PASS'), ('42.21', 'PASS'), ('42.20.4 x', 'FAIL'),
-                                ('42.210.0', 'FAIL'), ('41.78.16', 'FAIL')):
+        for version, status in (('42.22.2 abc', 'PASS'), ('42.22', 'PASS'), ('42.21.0 x', 'FAIL'),
+                                ('42.220.0', 'FAIL'), ('41.78.16', 'FAIL')):
             self.lua(f'VERSION = "{version}"')
             self.run_filter('"rs.env"')
-            self.assertEqual(self.results()['game version is 42.21'][0], status, version)
+            self.assertEqual(self.results()['game version is 42.22'][0], status, version)
 
     def test_mod_id_with_or_without_backslash(self):
         self.lua(r'MOD_IDS = { "\\batman_RadioSurvivor" }')

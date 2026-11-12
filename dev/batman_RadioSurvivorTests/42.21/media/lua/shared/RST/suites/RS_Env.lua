@@ -1,5 +1,5 @@
 --[[
-rs.env — environment of batman_RadioSurvivor: game version 42.21, mod active, Java globals, exposed classes and
+rs.env — environment of batman_RadioSurvivor: game version 42.22, mod active, Java globals, exposed classes and
 methods the mod really uses (inventory of Contents/mods/batman_RadioSurvivor/42.21/media/lua, RS_Bandits.lua left out:
 the Bandits! adapter is being removed, E17-T01). Tag "shared": runs in solo and on a client (RST.run("rs.env")) and
 on the server (RST.server("rs.env"), dedicated server autorun); outside the game: tests/test_rs_suites.py.
@@ -174,12 +174,12 @@ local function container(t)
 end
 
 RST.suite("rs.env", { tags = { "shared" } }, function(s)
-    s.test("game version is 42.21", function(t)
+    s.test("game version is 42.22", function(t)
         t:ok(type(getCore) == "function", "missing Java global getCore")
         local version = tostring(getCore():getVersion())
-        t:eq("42.21", string.sub(version, 1, 5), "version " .. version)
+        t:eq("42.22", string.sub(version, 1, 5), "version " .. version)
         local nextChar = string.sub(version, 6, 6)
-        t:ok(not string.match(nextChar, "%d"), "version " .. version .. " is not 42.21")
+        t:ok(not string.match(nextChar, "%d"), "version " .. version .. " is not 42.22")
     end)
 
     s.test("batman_RadioSurvivor is active", function(t)
