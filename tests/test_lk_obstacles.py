@@ -2631,6 +2631,21 @@ class Traversal2308Tests(ObstacleBase):
         self.assertEqual(self.run_lua(f'return LivingKnox.Obstacles.decideWindow("lk-1", {w}, "window", '
                                       f'{self.sq(105, 102)}, {self.sq(106, 102)}, {self.sq(105, 102)})'), 'open')
 
+    def test_closed_window_next_to_a_refused_one_is_still_opened(self):
+        # E18-T36 (campagne solo du 2026-11-12, lk.traversal) : la fenêtre voisine 106,101,0,W donne sur un meuble
+        # (refusée) : le trajet est découpé autour d'elle sans aucune porte ; ce n'est pas un trajet guidé par une
+        # porte (e.dr, E18-T34) et la fenêtre fermée du chemin est ouverte au contact.
+        self.window()                                      # fermée, 106,102,0,W
+        self.window(y=101)                                 # fermée, meuble derrière
+        self.furniture(y=101)
+        zid = self.start()
+        self.move()
+        self.walk_w(zid, 1500, until=self.done())
+        self.assertTrue(any('around the refused door(s) or window(s) 106,101,0,W' in s for s in self.lk()),
+                        self.lk())
+        self.assertIsNone(self.entry('dr'))
+        self.assertEqual(self.entry('s'), 'arrived', self.lk())
+
     def test_window_over_furniture_is_avoided_by_the_detour(self):
         # Mur x = 106 percé d'une fenêtre OUVERTE (106,102,0,W, table derrière) et d'une porte ouverte (106,98,0,W) ;
         # règle porte d'abord coupée (comme une montée d'escalier, hors de son champ) : avant, le corps passait par

@@ -657,7 +657,11 @@ function Directives.moveTo(id, x, y, z, gesture)
     if doorInfo ~= nil and doorInfo.lastResort == true then e.lr = true end
     -- E18-T34 : itinéraire guidé par une porte (hors dernier recours) : aucune fenêtre ouverte au contact en chemin
     -- (Obstacles.checkWindows ; campagne MP du 2026-11-08 : fenêtre voisine ouverte pendant l'ouverture de la porte).
-    if doorSteps ~= nil and #doorSteps > 0 and not e.lr then e.dr = true end
+    -- E18-T36 : seulement si l'itinéraire passe par une porte (Obstacles.planDoorRoute, info.doors) ; un trajet découpé
+    -- autour d'une fenêtre refusée, sans porte, ouvre la fenêtre fermée de son chemin (campagne solo du 2026-11-12).
+    if doorSteps ~= nil and #doorSteps > 0 and not e.lr and doorInfo ~= nil and (doorInfo.doors or 0) > 0 then
+        e.dr = true
+    end
     local v = issue(id, e, body)
     log().info("npc %s: move #%d to %d,%d,%d (%s) from %.1f,%.1f", id, v, x, y, z, g, bx, by)
     if doorDropped ~= nil then
