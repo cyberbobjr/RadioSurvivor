@@ -113,6 +113,15 @@ local function newGroup(t, home, specs, name)
     -- The player stands in the home of the test group: an unknown intruder there keeps the group alerted, and in MP
     -- (spawn house, no move) the alert never closed while the builder waited (campaign of 2026-10-14).
     K.hidePlayersFrom(t, gid)
+    -- No expedition of the test group (solo campaign of 2026-11-12: a member sent for the water missing from the
+    -- fixture stock saw a zombie, and the alert held every upkeep job until the deadline).
+    local Ex = E.Expeditions
+    local depart = Ex.tryDepart
+    Ex.tryDepart = function(id, minute)
+        if id == gid then return nil, "test group: no expedition" end
+        return depart(id, minute)
+    end
+    t:defer(function() Ex.tryDepart = depart end, "restore the expeditions of group " .. gid)
     t:defer(function()
         S().clear(gid)
         local npcs = memberNpcs(gid)
