@@ -100,28 +100,34 @@ local function minuteOfDay()
     return gt:getHour() * 60 + gt:getMinutes()
 end
 
--- Diffuse la tête de file dès que sa chaîne est libre ; une diffusion dont la chaîne a disparu (fiche
--- modifiée, voix retirée) est abandonnée.
+-- Diffuse la première ligne en attente dont la chaîne est libre : une chaîne occupée ne retient pas les autres
+-- fréquences (E18-T37), l'ordre reste celui de la file pour chaque chaîne. Une diffusion dont la chaîne a disparu
+-- (fiche modifiée, voix retirée) est abandonnée.
 local function airNext()
-    while #airQueue > 0 do
-        local head = airQueue[1]
-        local channel = Personas.channel(head.khz)
-        if channel then
-            if channel:getAiringBroadcast() ~= nil then return end
-            table.remove(airQueue, 1)
+    local busy = {}
+    local i = 1
+    while i <= #airQueue do
+        local item = airQueue[i]
+        local channel = Personas.channel(item.khz)
+        if channel == nil then
+            table.remove(airQueue, i)
+        elseif busy[item.khz] or channel:getAiringBroadcast() ~= nil then
+            busy[item.khz] = true
+            i = i + 1
+        else
+            table.remove(airQueue, i)
             sequence = sequence + 1
             local bc = RadioBroadCast.new("RSV-" .. tostring(sequence), -1, -1)
             local c = Const.LINE_COLOR
-            for _, text in ipairs(head.lines) do
+            for _, text in ipairs(item.lines) do
                 -- Code de voix sur chaque ligne (Const.LINE_CODE) : couleur de la bulle MP du récepteur commun.
                 bc:AddRadioLine(RadioLine.new(text, c.r, c.g, c.b, Const.LINE_CODE))
             end
             channel:setAiringBroadcast(bc)
-            Log.broadcast(head.khz, head.lines, head.cid)
-            if head.onAir then head.onAir() end
-            return
+            Log.broadcast(item.khz, item.lines, item.cid)
+            if item.onAir then item.onAir() end
+            busy[item.khz] = true
         end
-        table.remove(airQueue, 1)
     end
 end
 

@@ -115,13 +115,16 @@ local function newGroup(t, home, specs, name)
     K.hidePlayersFrom(t, gid)
     -- No expedition of the test group (solo campaign of 2026-11-12: a member sent for the water missing from the
     -- fixture stock saw a zombie, and the alert held every upkeep job until the deadline).
+    -- (Offline doubles load no expedition module.)
     local Ex = E.Expeditions
-    local depart = Ex.tryDepart
-    Ex.tryDepart = function(id, minute)
-        if id == gid then return nil, "test group: no expedition" end
-        return depart(id, minute)
+    if Ex ~= nil then
+        local depart = Ex.tryDepart
+        Ex.tryDepart = function(id, minute)
+            if id == gid then return nil, "test group: no expedition" end
+            return depart(id, minute)
+        end
+        t:defer(function() Ex.tryDepart = depart end, "restore the expeditions of group " .. gid)
     end
-    t:defer(function() Ex.tryDepart = depart end, "restore the expeditions of group " .. gid)
     t:defer(function()
         S().clear(gid)
         local npcs = memberNpcs(gid)

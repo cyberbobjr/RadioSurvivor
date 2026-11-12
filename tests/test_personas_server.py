@@ -1136,6 +1136,24 @@ class ServerTests(ServerHarness):
         self.assertEqual(lua_list(self.g.say(145000)), ['accepted'])
         self.assertIn('text=hello', self.requests())
 
+    def test_busy_channel_does_not_hold_the_lines_of_another_frequency(self):
+        """E18-T37 : une diffusion longue sur une chaîne ne retient pas la ligne d'une autre fréquence (campagne solo
+        du 2026-11-12 : ligne de la sonde jamais diffusée derrière les voix des groupes) ; ordre gardé par chaîne."""
+        self.write('bench.txt', self.sheet('bench', '150.0'))
+        self.g.CLOCK = self.g.CLOCK + 30000
+        self.g.fire('OnTickEvenPaused')
+        self.assertEqual(self.served('bench'), [150000])
+        air = self.rt.eval('function(khz, line) RS_RadioServer.air(khz, { line }) end')
+        air(145000, 'walt one')
+        air(145000, 'walt two')
+        air(150000, 'bench one')
+        walt, bench = self.P.channel(145000), self.P.channel(150000)
+        self.assertEqual([lua_list(x) for x in lua_list(walt.aired)], [['walt one']])
+        self.assertEqual([lua_list(x) for x in lua_list(bench.aired)], [['bench one']])
+        walt.airing = None
+        self.g.fire('OnTick')
+        self.assertEqual([lua_list(x) for x in lua_list(walt.aired)], [['walt one'], ['walt two']])
+
     def test_frequency_not_served(self):
         # E05-T08 : sur une fréquence sans voix, la phrase part et personne ne répond ; aucun indice, rien au pont.
         self.assertEqual(lua_list(self.g.say(150000)), ['accepted', 'done'])
