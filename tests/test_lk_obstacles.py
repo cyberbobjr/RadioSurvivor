@@ -807,6 +807,32 @@ class MultiplayerDoorTests(ObstacleBase):
                             for s in lines), lines)
         self.assertEqual(self.o('stats.refused'), 1)
 
+    def test_contact_of_a_client_simulated_body_waits_out_the_report_interval(self):
+        """E18-T35 : la copie du serveur d'un corps simulé par un client n'avance qu'aux rapports (au moins tous les
+        REPORT_MS) : immobile en apparence entre deux, elle n'est « au contact » d'une porte qu'au-delà de REFUSE_MS
+        augmenté de cet intervalle (campagne MP à un client du 2026-11-12 : porte refusée longée, ouverte)."""
+        self.wall()
+        self.building()
+        self.door(locked=True, lockedByKey=True, keyId=77)
+        zid = self.start('A')
+        self.group(member=False)
+        self.move()
+        self.h.pump()
+        self.h.move_zombie(zid, 105.5, 102.5)   # devant la porte 106,102 W, sans plus bouger
+        refuse = self.ev('LivingKnox.Obstacles.REFUSE_MS')
+        report = self.ev('LivingKnox.Directives.REPORT_MS')
+        start = self.ev('getTimestampMs()')
+        while self.ev('getTimestampMs()') - start < refuse + report - 200:
+            self.h.tick(1)
+            self.h.pump()
+        self.assertEqual(self.o('stats.refused'), 0)
+        self.assertIs(self.entry('done'), False)
+        while self.ev('getTimestampMs()') - start < refuse + report + 600:
+            self.h.tick(1)
+            self.h.pump()
+        self.assertEqual(self.o('stats.refused'), 1)
+        self.assertEqual(self.entry('s'), 'failed')
+
     def test_member_of_another_group_is_refused_even_unlocked(self):
         self.wall()
         self.building()
@@ -1059,7 +1085,7 @@ class MultiplayerTraversalTests(ObstacleBase):
         self.friendly_group()
         self.move()
         self.h.pump()
-        self.walk_w(zid, 200, until=lambda: self.wstate('server') == 'true false')
+        self.walk_w(zid, 400, until=lambda: self.wstate('server') == 'true false')
         self.assertEqual(self.wstate('server'), 'true false')
         self.h.move_player('B', 105.5, 102.5, 0)   # B sur la case de départ, devant la fenêtre
         self.walk_w(zid, 900, until=self.done())
@@ -1081,7 +1107,7 @@ class MultiplayerTraversalTests(ObstacleBase):
         self.run_lua('LivingKnox.Obstacles.GIVE_UP_MS = 3000')
         self.move()
         self.h.pump()
-        self.walk_w(zid, 200, until=lambda: self.wstate('server') == 'true false')
+        self.walk_w(zid, 400, until=lambda: self.wstate('server') == 'true false')
         self.h.move_player('B', 105.5, 102.5, 0)
         self.walk_w(zid, 900, until=self.done())
         self.walk_w(zid, 300)
@@ -1098,7 +1124,7 @@ class MultiplayerTraversalTests(ObstacleBase):
         self.friendly_group()
         self.move()
         self.h.pump()
-        self.walk_w(zid, 200, until=lambda: self.wstate('server') == 'true false')
+        self.walk_w(zid, 400, until=lambda: self.wstate('server') == 'true false')
         self.assertEqual(self.o('stats.windowsOpened'), 1)
         # Refermée par un joueur sur le serveur avant le passage, puis rouverte par un autre (fenêtre « à lui ») : le
         # module ne la suit plus et ne la referme pas.

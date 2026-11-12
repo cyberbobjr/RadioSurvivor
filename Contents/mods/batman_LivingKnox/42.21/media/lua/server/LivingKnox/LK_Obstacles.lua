@@ -919,13 +919,18 @@ function Obstacles.onRoute(e, px, py, tx, ty)
 end
 
 -- Temps (ms) depuis lequel le corps du PNJ id est immobile (STILL case).
+-- E18-T35 : un corps simulé par un client n'est vu du serveur qu'aux rapports de l'exécutant (copie recalée par
+-- Directives.syncServerCopy, au moins tous les REPORT_MS) ou aux paquets du moteur (200 ms à 4 s) : entre deux, sa copie
+-- paraît immobile alors qu'il marche. Cette attente est retranchée (campagne MP à un client du 2026-11-12 : porte
+-- refusée longée, prise « au contact » après 800 ms et ouverte de l'intérieur).
 local function stillFor(id, z, t)
     local tr = Obstacles.track[id]
     if tr == nil or dist(tr.x, tr.y, z:getX(), z:getY()) >= Obstacles.STILL then
         Obstacles.track[id] = { x = z:getX(), y = z:getY(), ms = t }
         return 0
     end
-    return t - tr.ms
+    local blind = (isServer() and z:getOwner() ~= nil) and Dir().REPORT_MS or 0
+    return math.max(0, t - tr.ms - blind)
 end
 
 -- Vrai si le corps z est en train d'escalader (fenêtre ou clôture : nom de l'état d'action, en minuscules).

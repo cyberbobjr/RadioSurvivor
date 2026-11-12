@@ -226,6 +226,30 @@ class MultiplayerDirectiveTests(DirectiveBase):
         lines = [line for line in self.lk() if 'move #1 arrived' in line]
         self.assertEqual(len(lines), 1, self.lk())
 
+    def test_lagging_server_copy_follows_the_accepted_reports(self):
+        """E18-T35 : un joueur seul sur le serveur n'envoie l'état des zombies qu'il simule que toutes les 4 s
+        (GameClient.sendZombieTimer, 200 ms seulement avec un joueur voisin) : la copie du serveur, jamais recopiée ici,
+        suit la position de chaque rapport accepté, et l'arrivée la trouve à la case visée."""
+        zid = self.ready('A')
+        self.move()
+        self.h.pump()
+        start = (self.h.zombie('server', zid).x, self.h.zombie('server', zid).y)
+        for _ in range(400):
+            self.h.tick(1)
+            self.h.eval('A', f'STEP({zid}, 0.05)')
+            self.h.pump()
+            self.h.advance_ms(50)
+            if self.entry('done'):
+                break
+        self.assertEqual(self.entry('s'), 'arrived')
+        a, srv = self.h.zombie('A', zid), self.h.zombie('server', zid)
+        self.assertNotEqual((srv.x, srv.y), start)
+        self.assertLessEqual(((srv.x - a.x) ** 2 + (srv.y - a.y) ** 2) ** 0.5, self.d('SYNC_MIN') + 1e-9)
+        self.assertGreater(self.d('stats.synced'), 1)
+        self.assertEqual(self.d('stats.rejected'), 0)
+        sq = [self.h.eval('server', f'HARNESS.zombies[{zid}]:getCurrentSquare().{k}') for k in ('x', 'y')]
+        self.assertEqual(sq, [int(a.x), int(a.y)])
+
     def test_reports_from_a_non_owner_or_implausible_are_refused(self):
         zid = self.ready('A')
         self.move()

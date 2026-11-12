@@ -853,6 +853,32 @@ end
 -- exécutant e.po), livré après le transfert : un état final (arrived, stopped, faced, failed) l'est encore pendant
 -- LEASE_GRACE_MS si le nouvel exécutant n'a encore rien rapporté (aucune consigne perdue ni rejouée par le nouveau) ;
 -- sinon ignoré sans avertissement (course attendue). Bail inconnu (plus grand que le courant) : refusé.
+-- E18-T35 : copie du serveur recalée sur la position d'un rapport accepté. Le client propriétaire n'envoie l'état de
+-- ses zombies que toutes les 4 s s'il n'a aucun joueur voisin (200 ms sinon : ZombieSynchronizationPacket.parse,
+-- hasNeighborPlayer = UdpConnection.isNeighborPlayer, NetworkZombiePacker.send ; GameClient.sendZombieTimer) : un
+-- joueur seul sur le serveur laissait au serveur un corps en retard de 4 s (fenêtre refermée trop tôt ou jamais, trajet
+-- vu de loin, arrivée annoncée devant une copie restée au départ ; campagne MP à un client du 2026-11-12). Mêmes
+-- écritures que le moteur à la réception d'un paquet (NetworkZombiePacker.applyZombie) ; le paquet suivant du
+-- propriétaire reste prioritaire. Seulement pour un corps simulé par un client, au-delà de SYNC_MIN case.
+Directives.SYNC_MIN = 0.25
+function Directives.syncServerCopy(z, x, y, level)
+    if not isServer() or z == nil or z:getOwner() == nil then return false end
+    if dist(x, y, z:getX(), z:getY()) <= Directives.SYNC_MIN and math.floor(level) == math.floor(z:getZ()) then
+        return false
+    end
+    local sq = getCell():getGridSquare(math.floor(x), math.floor(y), math.floor(level))
+    if sq == nil then return false end
+    z:setLastX(z:setNextX(z:setX(x)))
+    z:setLastY(z:setNextY(z:setY(y)))
+    z:setLastZ(z:setZ(level))
+    if z:getCurrentSquare() ~= sq then
+        z:setCurrent(sq)
+        z:setMovingSquareNow()
+    end
+    Directives.stats.synced = (Directives.stats.synced or 0) + 1
+    return true
+end
+
 function Directives.onReport(player, args)
     if not LivingKnox.isAuthority() then return false, "not the authority" end
     Directives.stats.reports = Directives.stats.reports + 1
@@ -941,6 +967,7 @@ function Directives.onReport(player, args)
     end
     Directives.accepted[id] = { by = name, x = args.x, y = args.y, v = e.v, ms = t }
     Directives.stats.accepted = Directives.stats.accepted + 1
+    if not graced then Directives.syncServerCopy(z, args.x, args.y, args.z) end
     if e.by ~= name then
         if e.by ~= nil then log().info("npc %s: %s #%d now executed by %s (was %s)", id, e.op, e.v, name, e.by) end
         e.by = name

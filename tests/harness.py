@@ -269,6 +269,22 @@ end
 local IsoMovingObject = class('IsoMovingObject', IsoObject)
 function IsoMovingObject:getCurrentSquare() return self.square end
 function IsoMovingObject:isOnFloor() return self.onFloor == true end  -- IsoMovingObject.java:2038
+-- Positions écrites une à une, comme NetworkZombiePacker.applyZombie (IsoMovingObject.java:509-560, 1299-1350) :
+-- set*() rend la valeur posée ; la case ne change que par setCurrent (IsoMovingObject.java:1849).
+function IsoMovingObject:setX(v) self.x = v; return v end
+function IsoMovingObject:setY(v) self.y = v; return v end
+function IsoMovingObject:setZ(v) self.z = v; return v end
+function IsoMovingObject:setLastX(v) self.lastX = v; return v end
+function IsoMovingObject:setLastY(v) self.lastY = v; return v end
+function IsoMovingObject:setLastZ(v) self.lastZ = v; return v end
+function IsoMovingObject:setNextX(v) self.nextX = v; return v end
+function IsoMovingObject:setNextY(v) self.nextY = v; return v end
+function IsoMovingObject:setCurrent(sq)
+    if self.square then H.listRemove(self.square.movingObjects, self) end
+    self.square = sq
+    if sq then sq.movingObjects:add(self) end
+end
+function IsoMovingObject:setMovingSquareNow() self.movingSquareSet = (self.movingSquareSet or 0) + 1 end
 local IsoGameCharacter = class('IsoGameCharacter', IsoMovingObject)
 function IsoGameCharacter:isDead() return self.dead == true end
 function IsoGameCharacter:getOnlineID() return self.onlineID end
