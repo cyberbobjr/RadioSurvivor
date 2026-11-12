@@ -11,6 +11,7 @@ from pathlib import Path
 import lupa.lua51 as lua
 
 LUA = Path(__file__).resolve().parents[1] / 'Contents' / 'mods' / 'batman_RadioSurvivor' / '42.21' / 'media' / 'lua'
+LK_LUA = Path(__file__).resolve().parents[1] / 'Contents' / 'mods' / 'batman_LivingKnox' / '42.21' / 'media' / 'lua'  # moteur des PNJ (E18)
 CORE_LUA = Path(__file__).resolve().parents[1] / 'Contents' / 'mods' / 'batman_RadioSurvivorCore' / '42.21' / 'media' / 'lua'  # mod commun (E18)
 
 BOOT = r'''
@@ -35,29 +36,27 @@ getFileReader = function(path)
     local i = 0
     return {readLine = function() i = i + 1; return lines[i] end, close = function() end}
 end
-package.preload['RadioSurvivorCore/RC_Reputation'] = function() return {today = function() return DAY end} end
+-- RC_Reputation (E18-T22): reputation entries live in the core mod's state, Rep.data.reputation[cid].
+REP_DATA = {}
+package.preload['RadioSurvivorCore/RC_Reputation'] = function() return {today = function() return DAY end, data = REP_DATA} end
 package.preload['RadioSurvivor/RS_LifeLog'] = function() return {get = function(cid) return LIFELOG and LIFELOG[cid] end} end
 for name, src in pairs(loaders) do
-    package.preload[name] = function() return assert(loadstring(src, name))() end
+    if package.preload[name] == nil then  -- the doubles above win
+        package.preload[name] = function() return assert(loadstring(src, name))() end
+    end
 end
 '''
 
 
 def runtime():
     rt = lua.LuaRuntime(unpack_returned_tuples=True)
-    loaders = rt.table_from({
-        'RadioSurvivorCore/RC_Codec': (CORE_LUA / 'shared/RadioSurvivorCore/RC_Codec.lua').read_text(encoding='utf-8'),
-        'RadioSurvivor/RS_State': (LUA / 'server/RadioSurvivor/RS_State.lua').read_text(encoding='utf-8'),
-        'RadioSurvivor/RS_StatePurge': (LUA / 'server/RadioSurvivor/RS_StatePurge.lua').read_text(encoding='utf-8'),
-        # E18-T05 : etat prive des missions du mod commun et crochets du moteur de missions (requis par RS_State).
-        'RadioSurvivorCore/RC_SlotFile': (CORE_LUA / 'shared/RadioSurvivorCore/RC_SlotFile.lua').read_text(encoding='utf-8'),
-        'RadioSurvivorCore/RC_MissionStore': (CORE_LUA / 'server/RadioSurvivorCore/RC_MissionStore.lua').read_text(encoding='utf-8'),
-        'RadioSurvivorCore/RC_MissionConfig': (CORE_LUA / 'shared/RadioSurvivorCore/RC_MissionConfig.lua').read_text(encoding='utf-8'),
-        'RadioSurvivorCore/RC_GameClock': (CORE_LUA / 'shared/RadioSurvivorCore/RC_GameClock.lua').read_text(encoding='utf-8'),
-        'RadioSurvivorCore/RC_Missions': (CORE_LUA / 'server/RadioSurvivorCore/RC_Missions.lua').read_text(encoding='utf-8'),
-        'RadioSurvivor/RS_MissionHooks': (LUA / 'server/RadioSurvivor/RS_MissionHooks.lua').read_text(encoding='utf-8'),
-        'RadioSurvivor/RS_NPCProvider': (LUA / 'shared/RadioSurvivor/RS_NPCProvider.lua').read_text(encoding='utf-8'),
-    })
+    # Every module of the three mods (E18: RS_State and its providers require the core and the NPC engine).
+    sources = {}
+    for root in (LK_LUA, CORE_LUA, LUA):
+        for side in ('shared', 'server'):
+            for f in (root / side).rglob('*.lua'):
+                sources[f.relative_to(root / side).with_suffix('').as_posix()] = f.read_text(encoding='utf-8')
+    loaders = rt.table_from(sources)
     rt.execute(BOOT, loaders)
     return rt
 
@@ -175,30 +174,33 @@ class StateTests(unittest.TestCase):
         good = self.files()
         C = self.rt.eval("require('RadioSurvivorCore/RC_Codec')")
         C.MAX_NODES = 200
+        # Exchange histories live in the core mod (E18-T11) and are not encoded in the notebook file: the bulk that
+        # can overflow the codec bounds here is the known missions of the records.
         self.rt.execute('''
             local S = require('RadioSurvivor/RS_State')
             S.data.characters.alive = {id = 'alive', owner = 'a', name = 'A', contacts = {}, knownMissions = {}}
-            local hist = {}
-            for i = 1, 60 do hist[i] = {text = 'line'} end
+            local missions = {}
+            for i = 1, 300 do missions['m' .. i] = true end
             S.data.characters.dead = {id = 'dead', owner = 'b', name = 'B', retired = true,
-                contacts = {npc1 = {history = hist}}, knownMissions = {}}
+                contacts = {npc1 = {}}, knownMissions = missions}
         ''')
         # Reducer: the dead character is stripped, the state fits again.
         self.assertTrue(S.save())
         self.assertEqual(len(list(S.data.characters.dead.contacts.keys())), 0)
+        self.assertEqual(len(list(S.data.characters.dead.knownMissions.keys())), 0)
         self.assertIsNotNone(S.data.characters.alive)
         # Still too big with living data only: refused, nothing written, not blocked.
         self.rt.execute('''
             local S = require('RadioSurvivor/RS_State')
-            local hist = {}
-            for i = 1, 100 do hist[i] = {text = 'line'} end
-            S.data.characters.alive.contacts.npc1 = {history = hist}
+            local missions = {}
+            for i = 1, 300 do missions['m' .. i] = true end
+            S.data.characters.alive.knownMissions = missions
         ''')
         before = self.files()
         self.assertFalse(S.save())
         self.assertFalse(S.blocked)
         self.assertEqual(self.files(), before)
-        self.assertEqual(len(list(S.data.characters.alive.contacts.npc1.history.keys())), 100, 'living data reduced')
+        self.assertEqual(len(list(S.data.characters.alive.knownMissions.keys())), 300, 'living data reduced')
         self.assertNotEqual(good, before)
 
     def test_schema_upgrade_and_newer_schema_blocked(self):
@@ -255,10 +257,10 @@ class PurgeTests(unittest.TestCase):
         P.run(d, 100)
         self.assertIsNotNone(d.characters.dead, 'record of a pending last pages dropped')
         self.rt.execute("LIFELOG = nil")
-        d.reputation = self.rt.table_from({'dead': self.rt.table_from({})})
+        self.rt.execute("REP_DATA.reputation = {dead = {}}")
         P.run(d, 100)
         self.assertIsNotNone(d.characters.dead)
-        d.reputation = None
+        self.rt.execute("REP_DATA.reputation = nil")
         P.run(d, 100)
         self.assertIsNone(d.characters.dead)
 
