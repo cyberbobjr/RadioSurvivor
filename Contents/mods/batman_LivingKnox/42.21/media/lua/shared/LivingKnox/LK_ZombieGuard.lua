@@ -382,24 +382,6 @@ end
 
 -- ---------------------------------------------------------------- client MP
 
--- Identifiant de tenue persistante comparé quand la liste le donne (E18-T35) : un corps retiré libère son onlineId,
--- que le serveur rend aussitôt au corps suivant ; l'ancienne copie, encore présente chez le client, porte le même
--- onlineId et isReanimatedPlayer, mais pas la même tenue (campagne MP à un client du 2026-11-08 : copie périmée
--- menée à la cible, arrivée annoncée alors que le corps du serveur n'avait pas bougé).
--- Comparaison sans le bit 0x8000 (chapeau tombé, posé en jeu : PersistentOutfits.java:290-303) ; une copie sans
--- tenue lue (0 ou absente) n'est pas départagée.
-local function hatless(p)
-    local u = p < 0 and p + 4294967296 or p
-    return u - (math.floor(u / 32768) % 2) * 32768
-end
-
-local function otherOutfit(z, p)
-    if type(p) ~= "number" or p == 0 then return false end
-    local q = z:getPersistentOutfitID()
-    if type(q) ~= "number" or q == 0 then return false end
-    return hatless(q) ~= hatless(p)
-end
-
 -- Liste reçue du serveur ; une liste plus ancienne (livraison non ordonnée) est ignorée.
 function Guard.onServerCommand(module, command, args)
     if module ~= Guard.MODULE or command ~= Guard.CMD_ROSTER or not isClient() then return end
@@ -441,7 +423,7 @@ function Guard.onServerCommand(module, command, args)
     local stale = {}
     for id, z in pairs(Guard.cache) do
         local e = byId[id]
-        if e == nil or z:getOnlineID() ~= e.o or otherOutfit(z, e.p) then stale[#stale + 1] = id end
+        if e == nil or z:getOnlineID() ~= e.o then stale[#stale + 1] = id end
     end
     for _, id in ipairs(stale) do
         Guard.cache[id] = nil
@@ -452,8 +434,7 @@ function Guard.onServerCommand(module, command, args)
 end
 
 local function matches(z, entry)
-    if z == nil or z:isDead() or z:getOnlineID() ~= entry.o or not z:isReanimatedPlayer() then return false end
-    return not otherOutfit(z, entry.p)
+    return z ~= nil and not z:isDead() and z:getOnlineID() == entry.o and z:isReanimatedPlayer()
 end
 
 -- Client : copie reconnue comme corps de PNJ ; garde posée tout de suite (voix arrêtée si elle jouait déjà), puis
