@@ -479,6 +479,18 @@ menuTick = function()
     end
     -- After the request: the menu only stays when vanilla refused the save with a dialog.
     if screen ~= nil and screen.checkSavefileModal ~= nil then
+        -- A save of an older game version asks for the world conversion (MainScreen.continueLatestSaveAux):
+        -- the driver loads a cache copy of the test save, so it answers yes like the YES button.
+        local modal = screen.checkSavefileModal
+        local info = getSaveInfo(getWorld():getWorld())
+        if modal.yes ~= nil and info ~= nil and tonumber(info.worldVersion) ~= nil
+                and tonumber(info.worldVersion) < IsoWorld.getWorldVersion() and not m.converted then
+            m.converted = true
+            A.status("load", "save conversion accepted (copy of the test save, world version "
+                .. tostring(info.worldVersion) .. ")")
+            modal:onClick(modal.yes)
+            return
+        end
         stopMenu()
         A.fail("the main menu refused the save (save error dialog: missing mod, map or version)", false)
     end
