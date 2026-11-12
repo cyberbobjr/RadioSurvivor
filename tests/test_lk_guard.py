@@ -511,6 +511,17 @@ class AppearanceTests(GuardBase):
         self.assertIsNone(self.h.eval('A', 'LivingKnox.ZombieGuard.recent["lk-1"]'))
         self.assertEqual(self.h.errors('A'), [])
 
+    def test_copy_with_a_reused_online_id_and_another_outfit_is_never_adopted(self):
+        """E18-T35 : le serveur rend aussitôt l'onlineId d'un corps retiré au corps suivant ; l'ancienne copie du client
+        (même onlineId, cadavre réanimé, autre tenue) n'est pas prise pour le nouveau PNJ."""
+        zid, outfit = self.body()
+        self.h.pump()
+        self.net_create('A', zid, outfit + 1)
+        self.h.tick(2)
+        self.assertIs(self.h.eval('A', 'LivingKnox.ZombieGuard.cache["lk-1"] == nil'), True)
+        self.assertEqual(self.h.eval('A', 'LivingKnox.ZombieGuard.stats.adopted'), 0)
+        self.assertEqual(self.h.errors('A'), [])
+
     def test_copy_born_before_the_roster_is_silenced_on_reception(self):
         """Livraison non ordonnée : la copie peut naître avant la liste ; elle est rendue muette (voix arrêtée) au
         moment même où la liste arrive, sans attendre le sondage borné."""
