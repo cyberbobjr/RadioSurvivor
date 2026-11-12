@@ -131,7 +131,11 @@ RST.suite("lk.expedition", { tags = { "world", "server" }, testTimeoutMs = 90000
         tc:waitUntil(function() return bodyCount(gid) == 4 end, BODIES_MS, function(t2)
             -- Zombies of the save around the home and on the way (solo campaign of 2026-11-04: home defense against
             -- 4 zombies, the team never left): removed before the objective is set; the target is 20-35 squares away.
-            K.clearZombiesNear(t2, home.x, home.y, home.z, EXPEDITION_CLEAR_RADIUS)
+            -- Upper floor too (solo campaign of 2026-11-12: a zombie on floor 1 of the searched kitchen kept the team
+            -- on alert past SEARCH_MS).
+            for floor = home.z, home.z + 1 do
+                K.clearZombiesNear(t2, home.x, home.y, floor, EXPEDITION_CLEAR_RADIUS)
+            end
             local r, why = S().check(gid, { force = true })
             t2:ok(type(r) == "table", "stock not checked: " .. tostring(why))
             t2:ok(G.update(function(d)

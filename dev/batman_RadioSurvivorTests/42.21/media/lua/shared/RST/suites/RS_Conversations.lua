@@ -213,10 +213,16 @@ RST.suite("rs.conversations", { mods = { "lk" },
                 -- sendClientCommand queues the commands (SinglePlayerServer.addIncoming), read at the next logic
                 -- update; MP: network delay and commands not ordered: the Say line is sent only once the authority
                 -- selected the teller.
-                local cid = Server.bound()[RST.Fixtures.player(t2)]
+                -- The binding of the player is read at each poll (solo campaign of 2026-11-12: read once before the
+                -- select, it can still be missing and the wait never succeeds).
+                local player = RST.Fixtures.player(t2)
+                local function selected()
+                    local cid = Server.bound()[player]
+                    return cid ~= nil and RS_CarnetServer.selected[cid] == c.teller.id
+                end
                 Steps.ask(t2, "carnet.send", { command = "select", args = { incarnation = c.tellerId } },
                     { target = "requester", timeoutMs = 10000 }, function(t2a)
-                        t2a:waitUntil(function() return cid ~= nil and RS_CarnetServer.selected[cid] == c.teller.id end, 5000,
+                        t2a:waitUntil(selected, 5000,
                             function(t2b)
                                 local say = { text = "What are you two talking about?", cooldownMs = 0 }
                                 Steps.ask(t2b, "carnet.talk", say, { target = "requester", timeoutMs = 30000 },

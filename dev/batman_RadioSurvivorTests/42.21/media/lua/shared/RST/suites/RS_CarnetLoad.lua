@@ -78,12 +78,6 @@ local function spawnMany(t, API, p, wanted)
     return ids
 end
 
-local function enrichRequests(Server)
-    local k = 0
-    for _, r in ipairs(Server.talk.pending or {}) do if r.kind == "npc_enrich" then k = k + 1 end end
-    return k
-end
-
 local function clockRunning(S)
     for _, m in pairs(S.data.missions or {}) do
         if m.state == "active" or m.state == "offer" then return true end
@@ -102,7 +96,7 @@ RST.suite("rs.carnet.load", { mods = { "rs", "lk" },
     s.test("loaded npcs without contact get no fiche and no LLM request (E00-T04)", function(t)
         local c = notebook(t)
         local API = testApi(t)
-        local fiches, enrich, times = count(c.S.data.npcs), enrichRequests(c.Server), #(c.Server.talk.enrichTimes or {})
+        local fiches = count(c.S.data.npcs)
         local ids = spawnMany(t, API, c.p, NPC_COUNT)
         if #ids < NPC_MIN then t:skip("only " .. #ids .. " test npc(s) spawned near the player (" .. NPC_MIN .. " needed)") end
         t:note(#ids .. " test npc(s) spawned without contact")
@@ -117,11 +111,17 @@ RST.suite("rs.carnet.load", { mods = { "rs", "lk" },
                     t3:eq(nil, c.Server.find(id) and c.Server.find(id).id, "fiche created for " .. id .. " without contact")
                 end
                 t3:eq(fiches, count(c.S.data.npcs), "number of notebook fiches")
-                -- A request of an earlier suite may leave the queue meanwhile (sent or answered, solo campaigns of
-                -- 2026-11-07): none added is the rule, queued and sent together.
-                local queued, sent = enrichRequests(c.Server), #(c.Server.talk.enrichTimes or {})
-                t3:ok(queued + sent <= enrich + times, string.format("enrichment requests added: queued %d -> %d, "
-                    .. "sent this hour %d -> %d", enrich, queued, times, sent))
+                -- Only the test npcs count: a fiche of an earlier suite may be enriched meanwhile (background job,
+                -- solo campaigns of 2026-11-07 and 2026-11-12).
+                local talk = c.Server.talk
+                for _, id in ipairs(ids) do
+                    local queued = 0
+                    for _, r in ipairs(talk.pending or {}) do
+                        if r.kind == "npc_enrich" and r.npc == id then queued = queued + 1 end
+                    end
+                    t3:eq(0, queued, "enrichment request queued for " .. id)
+                    t3:eq(nil, talk.enrichAttempts and talk.enrichAttempts[id], "enrichment attempt for " .. id)
+                end
             end)
         end, "the notebook provider never saw every test npc")
     end)
