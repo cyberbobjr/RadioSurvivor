@@ -40,6 +40,28 @@ RST.suite("lk.chatter", { tags = { "world", "server" }, testTimeoutMs = 240000, 
             local ticks, tick = 0, Ch.tick
             Ch.tick = function(...) ticks = ticks + 1; return tick(...) end
             t2:defer(function() Ch.tick = tick end, "restore LK_Chatter.tick")
+            -- Both members kept in front of the player (fixture): no new move while the scene runs. MP campaign of
+            -- 2026-11-12: the group objective (supply, no water stocked) sent the sentry to its post outside after the
+            -- first line, the chatter then ended "nobody hears".
+            local D = LivingKnox.Directives
+            local held = {}
+            for _, mid in ipairs({ "m-1", "m-2" }) do
+                local npc = RST.LKGroup.memberNpc(gid, mid)
+                if npc ~= nil then held[npc] = true end
+            end
+            local moveTo, heldMoves = D.moveTo, 0
+            D.moveTo = function(id, ...)
+                if held[id] then
+                    heldMoves = heldMoves + 1
+                    return nil, "held by lk.chatter"
+                end
+                return moveTo(id, ...)
+            end
+            t2:defer(function()
+                D.moveTo = moveTo
+                print("[RST] lk.chatter: " .. heldMoves .. " move(s) of the two members held")
+            end, "restore LK_Directives.moveTo")
+            for id in pairs(held) do D.stop(id) end
             -- Why no chatter opens yet (printed every 5 s, the failure case too).
             local function diagnose()
                 local I = require "LivingKnox/LK_Initiatives"
