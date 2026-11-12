@@ -178,7 +178,7 @@ class ComfortModuleTests(unittest.TestCase):
         self.assertEqual([s.mask for s in lua_list(self.g.SYNCED)], [2 + 1048576])
 
     def test_fallback_masks_match_the_42_21_stat_order(self):
-        java = Path('E:/pz-decompiled/42.21.0/java/zombie/characters/CharacterStat.java')
+        java = Path('E:/pz-source-42.22/java/zombie/characters/CharacterStat.java')
         if not java.is_file():
             self.skipTest('decompiled sources absent')
         order = re.search(r'ORDERED_STATS = new CharacterStat\[\]\{([^}]*)\}', java.read_text(encoding='utf-8'))
