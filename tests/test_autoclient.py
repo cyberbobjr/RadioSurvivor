@@ -58,6 +58,11 @@ SHOTS = {}
 takeScreenshot = function(name) SHOTS[#SHOTS + 1] = name end
 LOADS = {}
 MainScreen = { continueLatestSave = function(mode, save) LOADS[#LOADS + 1] = mode .. "/" .. save end }
+-- 42.22: MainScreen.continueLatestSaveAux compares the save world version with IsoWorld.getWorldVersion().
+SAVE_WORLD_VERSION = 240
+IsoWorld = { getWorldVersion = function() return 240 end }
+getWorld = function() return { getWorld = function() return "rstest-auto" end } end
+getSaveInfo = function(name) return { worldVersion = tostring(SAVE_WORLD_VERSION) } end
 getFileWriter = function(name, createIfNull, append)
     local full = FILE_ROOT .. "/" .. name
     mkdirs(full)
@@ -201,6 +206,25 @@ class DriverTests(unittest.TestCase):
         self.assertEqual(d.lua('return QUITS'), 1)
         self.assertIn('reason=the main menu refused the save', self.result()[0])
         self.assertEqual(autoclient.result_code(self.result()[0]), 2)
+
+    def test_world_conversion_of_an_older_save_is_accepted(self):
+        # PZ 42.22 asks to convert a 42.21 save (MainScreen.continueLatestSaveAux): the copy is converted, YES pressed.
+        self.write_command()
+        d = Driver(self.root)
+        d.fire('OnMainMenuEnter')
+        d.lua('MainScreen.instance = {}')
+        d.fire('OnFETick', 10)
+        d.lua('SAVE_WORLD_VERSION = 239; YES_CLICKS = 0; MainScreen.instance.checkSavefileModal = { yes = {}, '
+              'onClick = function(self, b) if b == self.yes then YES_CLICKS = YES_CLICKS + 1 end '
+              'MainScreen.instance.checkSavefileModal = nil end }')
+        d.fire('OnFETick')
+        self.assertEqual(d.lua('return YES_CLICKS'), 1)
+        self.assertEqual(d.lua('return QUITS'), 0)
+        self.assertIn('save conversion accepted', self.status()[-1])
+        d.lua('MainScreen.instance.checkSavefileModal = { yes = {}, onClick = function() YES_CLICKS = YES_CLICKS + 1 end }')
+        d.fire('OnFETick')                                  # asked again in the same state: refused, no loop
+        self.assertEqual(d.lua('return YES_CLICKS'), 1)
+        self.assertEqual(d.lua('return QUITS'), 1)
 
     def test_invalid_command_writes_reason(self):
         self.write_command('token=abc\nsave=rstest-auto\ncampaign=solo-rs\nsuite=rs.env\n')
