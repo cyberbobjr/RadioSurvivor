@@ -1180,7 +1180,8 @@ def build_client_files(cache: Path, command: str, mods: list[tuple[str, Path]] =
     (tests / 'autoclient.txt').write_bytes(command.encode('utf-8'))  # no BOM: getFileReader keeps it
 
 
-def mp_server_sandbox(ambient_zombies: bool = False, group_count: int | None = None) -> str | None:
+def mp_server_sandbox(ambient_zombies: bool = False, group_count: int | None = None,
+                      lk_debug: bool = False) -> str | None:
     """Server/<name>_SandboxVars.lua of the test server, or None for the vanilla defaults. Without ambient zombies:
     ZombieConfig.PopulationStartMultiplier and PopulationPeakMultiplier at 0 (target population of the native
     population manager, ZombiePopulationManager.onConfigReloaded), the Living Knox suites need a calm site as the solo
@@ -1192,16 +1193,22 @@ def mp_server_sandbox(ambient_zombies: bool = False, group_count: int | None = N
     table LivingKnox (the part of the option name before the dot: IntegerSandboxOption.fromTable)."""
     if group_count is not None and not 3 <= group_count <= 5:
         raise ValueError(f'LivingKnox.GroupCount is 3..5 (got {group_count})')
-    if ambient_zombies and group_count is None:
+    if ambient_zombies and group_count is None and not lk_debug:
         return None
     parts, what = [], []
     if not ambient_zombies:
         parts.append('    ZombieConfig = {\n        PopulationStartMultiplier = 0.0,\n'
                      '        PopulationPeakMultiplier = 0.0,\n    },\n')
         what.append('no ambient zombie')
+    lk = []
     if group_count is not None:
-        parts.append(f'    LivingKnox = {{\n        GroupCount = {group_count},\n    }},\n')
+        lk.append(f'        GroupCount = {group_count},\n')
         what.append(f'{group_count} Living Knox groups')
+    if lk_debug:   # --lk-debug: DEBUG lines of Living Knox on the server and every client
+        lk.append('        Debug = true,\n')
+        what.append('Living Knox debug log')
+    if lk:
+        parts.append('    LivingKnox = {\n' + ''.join(lk) + '    },\n')
     return (f'-- Written by tools/autoclient/autoclient.py --mp: {", ".join(what)} (see mp_server_sandbox).\n'
             'SandboxVars = {\n    VERSION = 6,\n' + ''.join(parts) + '}\n')
 
@@ -1304,6 +1311,8 @@ def build_parser() -> argparse.ArgumentParser:
     mp.add_argument('--group-count', type=int, choices=(3, 4, 5),
                     help='sandbox option LivingKnox.GroupCount of the new test world (default: the mod default, '
                          f'{LOAD_GROUPS} with --load)')
+    mp.add_argument('--lk-debug', action='store_true',
+                    help='sandbox option LivingKnox.Debug of the new test world: DEBUG lines of Living Knox everywhere')
     mp.add_argument('--load', action='store_true',
                     help=f'LK13-T02 load campaign: {LOAD_CLIENTS} clients, {LOAD_GROUPS} groups, server campaign '
                          f'{LOAD_CAMPAIGN} when RST_Campaign.lua declares it, else --server-suite {LOAD_SUITE} '
@@ -1778,7 +1787,8 @@ def main_mp(args) -> int:
     if missing:
         log('ERROR: mod source folder(s) missing: ' + ', '.join(missing) + ' (RS_WORKSHOP_DIR from a frozen copy)')
         return 2
-    sandbox = mp_server_sandbox(args.ambient_zombies, getattr(args, 'group_count', None))
+    sandbox = mp_server_sandbox(args.ambient_zombies, getattr(args, 'group_count', None),
+                                getattr(args, 'lk_debug', False))
     server_cache = Path(tempfile.mkdtemp(prefix='rs-mp-server-'))
     build_server_cache(server_cache, mp_server_ini(ids, port, udp_port, max_players=max(MAX_CLIENTS, args.clients)),
                        sandbox_text=sandbox, mods=mods)
