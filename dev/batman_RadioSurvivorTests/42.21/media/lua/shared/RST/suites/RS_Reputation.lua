@@ -306,7 +306,8 @@ RST.suite("rs.reputation.before", { mods = { "rs", "lk" },
     end)
 end)
 
-RST.suite("rs.reputation.after-restart", { tags = { "server", "world", "manual" }, testTimeoutMs = 60000 }, function(s)
+RST.suite("rs.reputation.after-restart", { mods = { "rs", "lk" },
+    tags = { "server", "world", "manual" }, testTimeoutMs = 60000 }, function(s)
     s.test("same score after the restart, the fact counted once", function(t)
         local c = setup(t)
         local snap, why = RST.Persist.read(RP.FILE, RP.HEADER)

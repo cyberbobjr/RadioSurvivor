@@ -60,7 +60,8 @@ local function removeAll(E, snap)
     end
 end
 
-RST.suite("lk.leave.before", { tags = { "world", "server", "manual" }, testTimeoutMs = 120000 }, function(s)
+RST.suite("lk.leave.before", { mods = { "rs", "lk" },
+    tags = { "world", "server", "manual" }, testTimeoutMs = 120000 }, function(s)
     s.test("a member left its group: loner group written to the snapshot", function(t)
         local E, P = modules(t)
         local old = RST.Persist.read(LP.FILE, LP.HEADER)
@@ -108,7 +109,8 @@ RST.suite("lk.leave.before", { tags = { "world", "server", "manual" }, testTimeo
     end)
 end)
 
-RST.suite("lk.leave.after-restart", { tags = { "world", "server", "manual" }, testTimeoutMs = 60000 }, function(s)
+RST.suite("lk.leave.after-restart", { mods = { "rs", "lk" },
+    tags = { "world", "server", "manual" }, testTimeoutMs = 60000 }, function(s)
     s.test("loner group and departure kept by the restart", function(t)
         local E, P = modules(t)
         local snap, why = RST.Persist.read(LP.FILE, LP.HEADER)

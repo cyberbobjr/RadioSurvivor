@@ -511,7 +511,7 @@ RST.suite("rs.identity.before", { mods = { "rs", "lk" }, tags = { "server", "man
     end)
 end)
 
-RST.suite("rs.identity.after-reconnect", { tags = { "server", "manual" } }, function(s)
+RST.suite("rs.identity.after-reconnect", { mods = { "rs", "lk" }, tags = { "server", "manual" } }, function(s)
     s.test("same world and session", function(t)
         local _, store = carnet(t)
         local snapshot = snapshotOrFail(t)
@@ -565,7 +565,7 @@ RST.suite("rs.identity.after-reconnect", { tags = { "server", "manual" } }, func
     end)
 end)
 
-RST.suite("rs.identity.after-restart", { tags = { "server", "manual" } }, function(s)
+RST.suite("rs.identity.after-restart", { mods = { "rs", "lk" }, tags = { "server", "manual" } }, function(s)
     s.test("new session of the same world", function(t)
         local _, store = carnet(t)
         local snapshot = snapshotOrFail(t)
@@ -634,7 +634,7 @@ local function splitByDeath(server, snapshot)
     return dead, alive, offline
 end
 
-RST.suite("rs.identity.after-death", { tags = { "server", "manual" } }, function(s)
+RST.suite("rs.identity.after-death", { mods = { "rs", "lk" }, tags = { "server", "manual" } }, function(s)
     s.test("same world", function(t)
         local _, store = carnet(t)
         local snapshot = snapshotOrFail(t)
