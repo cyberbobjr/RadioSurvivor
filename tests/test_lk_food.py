@@ -259,6 +259,19 @@ function SFarmingSystem.instance:removePlant(p)
     PLANTS[key(p.x, p.y, p.z)] = nil
     H.square(p.x, p.y, p.z).plant = nil
 end
+-- SGlobalObjectSystem:getLuaObjectCount / getLuaObjectByIndex(i), 1 a n (SGlobalObjectSystem.lua) : ordre stable du
+-- banc (cles triees ; l'ordre du jeu est celui de creation, aucun appelant ne doit en dependre).
+local function sortedKeys()
+    local ks = {}
+    for k in pairs(PLANTS) do ks[#ks + 1] = k end
+    table.sort(ks)
+    return ks
+end
+function SFarmingSystem.instance:getLuaObjectCount() return #sortedKeys() end
+function SFarmingSystem.instance:getLuaObjectByIndex(i)
+    H.num(i, 'getLuaObjectByIndex')
+    return PLANTS[sortedKeys()[i]]
+end
 function FARM_PLANT(x, y, level, need)
     local p = SFarmingSystem.instance:plow(H.square(x, y, 0))
     p:seed('Carrots', 0)
@@ -1101,8 +1114,16 @@ class SuiteRunTests(FoodStack):
 class SuiteWaterRunTests(WaterStack):
     mode = 'solo'
 
-    def test_suite_watering_passes_on_the_doubles(self):
+    def test_suite_watering_waits_for_its_own_plant(self):
+        # Campagne MP du 2026-11-13 (runs/20261113-233636-parallel-3 shard1) : le sillon de carottes laisse par le
+        # potager d'un groupe de test precedent (LK15), assoiffe, est arrose a la place de la plante de la suite.
+        self.test_suite_watering_passes_on_the_doubles(before='OTHER = FARM_PLANT(108, 104, 0, 70)')
+        self.assertEqual(self.ev('OTHER.waterLvl'), 100)
+
+    def test_suite_watering_passes_on_the_doubles(self, before=None):
         from test_lk_materialize import PLAYER_MOVES
+        if before:
+            self.run_lua(before)
         self.h.load('solo', PLAYER_MOVES)
         self.run_lua('for _, it in ipairs(BEANS) do HARNESS.listRemove(PANTRY.container.items, it) end '
                      'local keep = {} for _, it in ipairs(PANTRY.container.items.items) do '
@@ -1133,7 +1154,7 @@ class SuiteWaterRunTests(WaterStack):
         self.assertTrue(report.ok, (results, [x for x in self.h.logs('solo') if 'LKF2' in x or 'ERROR' in x][-20:]))
         logs = self.h.logs('solo')
         self.assertTrue(any('[LKF2] measure watered: level 0 -> ' in line for line in logs))
-        self.assertEqual(self.run_lua('local n = 0 for _ in pairs(PLANTS) do n = n + 1 end return n'), 0)   # plante retirée
+        self.assertEqual(self.run_lua('local n = 0 for _ in pairs(PLANTS) do n = n + 1 end return n'), 1 if before else 0)   # plante retirée
         self.assertEqual(self.h.errors('solo'), [])
 
 

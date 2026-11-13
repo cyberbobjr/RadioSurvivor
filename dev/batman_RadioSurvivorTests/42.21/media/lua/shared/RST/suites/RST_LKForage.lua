@@ -505,6 +505,20 @@ RST.suite("lk.forage", { tags = { "world", "server" }, testTimeoutMs = 900000, t
         plant:seed("Carrots", 0)
         plant.waterLvl = 0
         plant:saveData()
+        -- Plants left by the gardens of earlier test groups (LK15: furrows dug and sown for real, kept in the world)
+        -- near the home are watered first: the engine waters the thirstiest plant, not the fixture (MP campaign
+        -- runs/20261113-233636-parallel-3 shard1: 10648,10128 watered 0 -> 50, the fixture at 10653,10138 left dry).
+        local others = 0
+        for i = 1, sys:getLuaObjectCount() do
+            local q = sys:getLuaObjectByIndex(i)
+            if q ~= nil and q ~= plant and q.z == pz and math.abs(q.x - px) <= 20 and math.abs(q.y - py) <= 20
+                and q.state ~= "destroyed" and (q.waterLvl or 100) < 100 then
+                q.waterLvl = 100
+                q:saveData()
+                others = others + 1
+            end
+        end
+        if others > 0 then measure(string.format("fixture: %d other plant(s) near the home watered first", others)) end
         local uses = Gd().waterUses(plant)
         if uses <= 0 then t:skip("the seeded plant needs no water (waterNeeded " .. tostring(plant.waterNeeded) .. ")") end
         local box = cts[1].container
