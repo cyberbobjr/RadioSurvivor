@@ -290,3 +290,23 @@
   - Faire : décision de l'utilisateur du 2026-11-04 (ci-dessus) : provisions réelles dans l'inventaire du corps (2 aliments non périssables, remplacés au foyer), boisson d'une bouteille ou gourde jamais vidée, repas d'une provision loin du foyer, décrochage du combat à faim ≥ 90 sans ennemi à 3 cases ou moins puis reprise.
   - Accepté si : au banc : PNJ affamé loin du foyer mange une provision (un objet en moins, faim soulagée) ; soif soulagée sans baisse du contenu de la bouteille ; en combat, faim ≥ 90 et ennemi au-delà de 3 cases : décrochage, repas, reprise ; ennemi au contact : combat d'abord ; provisions remplacées au foyer sur le stock ; cadavre avec ses provisions restantes. En jeu : suite dédiée solo et MP.
   - Tests : banc ; nouvelle suite en jeu dans les campagnes solo et MP.
+- [ ] **LK05-T20** — Jardinier : le comportement `garden` prend d'abord les tâches du jardin
+  - État : `testé hors jeu`
+  - Cible : `solo`
+  - Dépend de : LK05-T11
+  - Fichiers : `LK_Upkeep.lua` (`claim`, `run`) ; `tests/test_lk_upkeep.py` ; `docs/annexes/conception/entretien.md`
+  - Faire : demande de l'utilisateur du 2026-11-13 (« tu les branches ») : `garden`, listé dans les rôles des colons (travailleur), n'était lu par aucun code. Décision par défaut : un membre dont le rôle permet `garden` prend d'abord une tâche du jardin ouverte (`water`, `harvest`), puis les autres dans l'ordre de `JOBS` ; les autres membres gardent l'ordre (le jardin n'est pas réservé au jardinier).
+  - Accepté si : au banc, le jardinier prend l'arrosage avant le plein du générateur, un autre membre garde l'ordre ; en jeu, l'arrosage et la récolte de `lk.forage` restent verts.
+  - Tests : `test_lk_upkeep.py` ; campagne solo des deux mods.
+  - Preuve : 2026-11-13, banc `test_gardener_takes_the_plants_first_others_keep_the_job_order` rouge avant, vert après ; bancs complets OK, luacheck `Contents` 8 (`f67846f`).
+  - Reste : campagne solo.
+- [ ] **LK05-T21** — Casseur : le comportement `breach` des pillards force, les autres l'attendent
+  - État : `testé hors jeu`
+  - Cible : `solo`
+  - Dépend de : LK04-T04
+  - Fichiers : `LK_Obstacles.lua` (`blockedPolicy`, `breachPolicy`, `BREACH_RANGE`) ; `tests/test_lk_obstacles.py` ; `docs/annexes/conception/deplacement.md`
+  - Faire : demande de l'utilisateur du 2026-11-13 (« tu les branches ») : `breach`, listé pour le rôle casseur des pillards, n'était lu par aucun code (tout pillard forçait). Décision par défaut : devant un passage bloqué, un pillard dont le rôle permet `breach` force ; un autre pillard attend (`wait`, `WAIT_MS`) quand un casseur du groupe est incarné à `BREACH_RANGE` (20) cases au plus ; sans casseur sur place, chacun force comme avant (un raid sans casseur reste capable d'entrer).
+  - Accepté si : au banc, politique `force` pour le casseur, `wait` pour un combattant avec un casseur incarné près de lui, `force` sans casseur ou casseur sans corps ; les suites de forçage restent vertes.
+  - Tests : `test_lk_obstacles.py` ; campagnes solo et MP.
+  - Preuve : 2026-11-13, banc `test_raider_waits_for_the_breaker_of_his_group` rouge avant, vert après ; bancs complets OK, luacheck `Contents` 8 (`f67846f`).
+  - Reste : campagne solo (suite `lk.force`) ; aucune suite en jeu ne fait encore attendre un pillard derrière son casseur.
