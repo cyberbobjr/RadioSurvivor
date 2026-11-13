@@ -140,7 +140,55 @@ Portée (décision prise sans consigne du plan, la plus lisible pour un administ
 
 ### Extensions de la cascade (LK05-T20, 2026-11-13)
 
-Registre `Decisions.registerExtension(spec)` (règle SOLID du projet : un nouveau comportement s'ajoute sans nouveau cas dans le moteur). `spec` : `id` (unique ; nom du comportement ajouté), `order`, `rules` = `{ { name, before, rule(ctx) } }` (règle essayée juste avant la règle `before` de `PRIORITIES`, **au même rang** : les rangs, les sels du hasard et les durées des règles existantes ne changent pas ; une règle suivante interrompt l'état comme une autre), `behaviour` = `{ vigil, minutes, needs }` (ajouté à `BEHAVIOURS` et à `MINUTES` ; un comportement de la liste fermée ne peut pas être repris), `apply(id, st, ctx, fresh)` (appelé par `Decisions.apply` après la fin de la mêlée), `leave(id)` (membre sorti du comportement, ou oublié), `input(ctx, body, minute)` (fin de `Decisions.context`), `observe(ctx, st, body, minute)` (fin de `Decisions.evaluate`). Le moteur ne nomme aucune extension. Seule inscrite : `provision` (`LK_ProvisionMeal.lua`, [besoins.md](besoins.md), « Provisions sur soi et gourde inépuisable ») avec les règles `provision.fight` (avant `threat`), `provision.hunger` (avant `hunger`), `provision.thirst` (avant `thirst`). Coût : une boucle sur les extensions inscrites par évaluation (une seule aujourd'hui).
+Registre `Decisions.registerExtension(spec)` (règle SOLID du projet : un nouveau comportement s'ajoute sans nouveau cas dans le moteur). `spec` : `id` (unique ; nom du comportement ajouté), `order`, `rules` = `{ { name, before, rule(ctx) } }` (règle essayée juste avant la règle `before` de `PRIORITIES`, **au même rang** : les rangs, les sels du hasard et les durées des règles existantes ne changent pas ; une règle suivante interrompt l'état comme une autre), `behaviour` = `{ vigil, minutes, needs }` (ajouté à `BEHAVIOURS` et à `MINUTES` ; un comportement de la liste fermée ne peut pas être repris), `apply(id, st, ctx, fresh)` (appelé par `Decisions.apply` après la fin de la mêlée), `leave(id)` (membre sorti du comportement, ou oublié), `input(ctx, body, minute)` (fin de `Decisions.context`), `observe(ctx, st, body, minute)` (fin de `Decisions.evaluate`). Le moteur ne nomme aucune extension. Seule à déclarer son propre comportement et ses règles : `provision` (`LK_ProvisionMeal.lua`, [besoins.md](besoins.md), « Provisions sur soi et gourde inépuisable ») avec les règles `provision.fight` (avant `threat`), `provision.hunger` (avant `hunger`), `provision.thirst` (avant `thirst`). Coût : une boucle sur les extensions inscrites par évaluation (quatorze depuis LK16-T06, section suivante).
+
+### Comportements menés par extension (LK16-T06, 2026-11-13)
+
+`Decisions.apply` et `Decisions.decide` ne nomment plus aucun comportement : l'**extension propriétaire** (celle
+dont l'`id` est le nom du comportement et qui porte `apply`) mène l'application, la visée et le geste. Un `id` est
+unique au registre : un seul propriétaire par comportement.
+
+Les comportements proposés par les règles du moteur (`RULES`, `PRIORITIES` et sous-règles de menace inchangées :
+décision D04 de l'ADR de remise en ordre) restent **déclarés** dans `BEHAVIOURS` (vigilance, `needs`, durées
+`CFG.MINUTES`) : la décision reste la même que le module qui les mène soit chargé ou non. Leur propriétaire s'inscrit
+**sans** `behaviour` (il ne peut pas changer leur déclaration ; une extension qui redéclarerait un comportement de la
+liste fermée reste refusée). Un comportement nouveau se déclare par `behaviour` comme avant.
+
+Champs du propriétaire (tous facultatifs, contrat générique) :
+
+- `aim(ctx, out, rnd)` : visée de la décision `out` (`angle`, `away`, `side`, `u`), appelée par `Decisions.decide`
+  après le tirage de la durée (même flux `rnd`, mêmes tirages qu'avant) ;
+- `gesture` : `true`, ou `function(ctx, st)` rendant vrai, quand le comportement pose et garde lui-même son geste
+  (`Decisions.setAlertGesture`) ; sinon le moteur retire, avant d'appliquer, le geste posé par un comportement précédent ;
+- `overlay = true` : l'application passe après le soin (`LK_Care`) et la routine du comportement (`LK_Routines`) ; sans
+  lui, l'extension mène seule, avant eux (comme les modules) ;
+- `keeps = { id, ... }` : extensions dont l'état est gardé pendant ce comportement (leur `leave` n'est pas appelé) ;
+- `forget(id)` : membre oublié (`Decisions.forget`) ; sans lui, `leave`.
+
+Déclaration `owned` (liste fermée) : sans son propriétaire (module absent), le moteur n'applique rien ; sinon repli du
+moteur (soin, routine, puis retour au foyer s'il est loin ou fin de sa propre marche).
+
+Ordre de `Decisions.apply` : geste retiré (sauf `gesture`), vigilance, sortie de la routine, sorties des autres
+extensions (ordre du registre, sauf `keeps`), propriétaire seul ; sinon soin, routine, propriétaire `overlay`, repli.
+
+| Ordre | Comportement | Inscrit par | Champs |
+| --- | --- | --- | --- |
+| 10 | `provision` | `LK_ProvisionMeal.lua` | déclaré (`behaviour`), règles, `apply`, `leave`, `input`, `observe` |
+| 20 | `fight` | `LK_Combat.lua` | `apply`, `leave`, `forget` ; `owned` |
+| 30 | `defend` | `LK_Defense.lua` | `apply`, `forget`, `gesture`, `keeps = { "fight" }` |
+| 40 | `warn` | `LK_Encounters.lua` | `apply`, `forget`, `gesture` |
+| 50 | `expedition` | `LK_Expeditions.lua` | `apply` |
+| 60 | `revenge` | `LK_Relations.lua` (`applyHunt`) | `apply` |
+| 70 à 74 | `surrender`, `retreat`, `watch`, `alert`, `flee` | `Decisions/LK_Decide_Defence.lua` | `aim`, `apply`, `overlay` ; `gesture` (sauf `flee` ; `watch` pendant une alerte) |
+| 80, 81 | `guard`, `patrol` | `Decisions/LK_Decide_Post.lua` | `apply`, `overlay` ; `aim` (`guard`) |
+
+Restent appliqués par le repli du moteur : `home`, `rest`, `sleep`, `chore`, `meal` (soin, routine, foyer). Les deux
+fichiers de `server/LivingKnox/Decisions/` sont requis par `LK_Server.lua` juste après `LK_Decisions.lua` (et chargés
+par le jeu avant lui, tri des chemins) ; les modules s'inscrivent à leur chargement, avant la première décision.
+
+Écarts connus, sans effet observable : les sorties de la routine passent avant celles des extensions (avant : la
+sortie de `provision` passait avant celle de la routine) ; à l'oubli, `provision.leave` passe avant les `forget` des
+modules (ordre du registre). États indépendants (mémoires de modules distincts).
 
 ### Contexte d'un membre (LK16-T05, 2026-11-13)
 
@@ -204,6 +252,11 @@ comportements (`fight`, `surrender`, `retreat`) quand ceux-ci deviendront des ex
   au moment de l'appel) figés par empreinte sha256 sur 1 500 situations, relevée avant le registre (solo tous modules,
   serveur dédié, modules de `LK_Server` seuls) ; fournisseur et règle d'extension inscrits par le banc seul ; ordre
   des fournisseurs et dépendances entre champs ; entrées des extensions après les fournisseurs.
+- LK16-T06 (même banc) : application figée par empreinte sur 1 500 séquences de trois passages (état neuf, en cours,
+  changement de comportement, parfois oubli), tous modules puis modules de `LK_Server` seuls : consignes, gestes,
+  vigilance, appels aux modules qui mènent un comportement, au soin et aux routines ; relevée avant la migration,
+  identique après. Acceptation : un comportement inscrit par le banc seul (fournisseur, règle, visée, geste,
+  application, sortie) est décidé, visé, appliqué, garde son geste puis est quitté.
 - VM Kahlua (`tests/test_kahlua.py`, `KR-DECIDE`) : décisions, scores et tirage identiques à lupa.
 - LK05-T14 (`tests/test_lk_thresholds.py`, 17 tests) : options déclarées (bornes, défaut, page, traductions EN/FR avec l'unité) et identiques à `Config.DANGER` ; chaque seuil lu depuis son option, repli sans option, valeur invalide (une ligne d'avertissement), changement relu à l'appel suivant ; effets sur la cascade (fuite, peur), la retraite, les renforts, l'alerte (portée, zombies au-delà ignorés), la défense (rapport, recensement) et les sommations ; pile solo : groupe face à 50 zombies perçus au-delà de la distance d'alerte resté dans sa routine (aucune alerte, aucune règle `threat`, peur nulle), même foule sans l'option qui l'interrompt, zombie dans la distance qui donne l'alerte avec un cri au rayon de l'option. `test_lk_zombies.py` : portée d'engagement lue depuis l'option et bornée par la distance d'alerte. Suite en jeu `lk.alert`, second test (foule fictive au-delà de la distance d'alerte).
 - En jeu : aucun pour l'instant (cible « hors jeu »). Protocole solo proposé dans le compte rendu de la tâche.

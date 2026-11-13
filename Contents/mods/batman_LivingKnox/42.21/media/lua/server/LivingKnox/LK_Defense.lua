@@ -917,4 +917,11 @@ LivingKnox.Decisions.registerContext({ id = "defense", order = 100, fill = funct
     ctx.defense = Defense.contextFor(src.gid, src.g, src.mid, src.m, src.body, ctx, src.players, src.minute)
 end })
 
+-- LK16-T06 : comportement « defend » de la cascade mené par ce module (extension propriétaire, LK_Decisions.lua) :
+-- place, regard et geste qu'il pose et garde (gesture), engagement depuis la place par LK_Combat dont l'état est gardé
+-- (keeps « fight » : la mêlée n'est pas quittée), oubli (forget).
+LivingKnox.Decisions.registerExtension({ id = "defend", order = 30, gesture = true, keeps = { "fight" },
+    apply = function(id, st, ctx, fresh) return Defense.apply(id, st, ctx, fresh) end,
+    forget = function(id) return Defense.forget(id) end })
+
 return Defense

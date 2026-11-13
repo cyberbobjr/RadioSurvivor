@@ -117,6 +117,9 @@ LUA_FILES = [
     # LK05-T02 : cadre de decision (fonctions pures ; les passages sur les corps sont testes sous lupa). LK13-T11 :
     # file de notation horaire inscrite a OnTick au chargement (EVENTS_AT_LOAD).
     ('LivingKnox/LK_Decisions', LK_LUA / 'server' / 'LivingKnox' / 'LK_Decisions.lua'),
+    # LK16-T06 : comportements de défense et de poste (visée, geste, application) inscrits par leurs fichiers.
+    ('LivingKnox/Decisions/LK_Decide_Defence', LK_LUA / 'server' / 'LivingKnox' / 'Decisions' / 'LK_Decide_Defence.lua'),
+    ('LivingKnox/Decisions/LK_Decide_Post', LK_LUA / 'server' / 'LivingKnox' / 'Decisions' / 'LK_Decide_Post.lua'),
     # LK15-T02 : registre des activités des routines, outils d'exécution, relevé et activités (LK_Fortify.lua requiert
     # LK_Routines ; les activités s'inscrivent au chargement).
     ('LivingKnox/LK_RoutineExec', LK_LUA / 'server' / 'LivingKnox' / 'LK_RoutineExec.lua'),

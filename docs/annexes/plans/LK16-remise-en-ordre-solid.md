@@ -2,7 +2,7 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 8 / 12 tâche(s) terminée(s).
+**Avancement.** en cours — 9 / 12 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
@@ -11,7 +11,7 @@
 | ☑ | LK16-T03 | C7 : tables d'aiguillage (faits publics, administration, parole) | `testé hors jeu` | hors jeu | — |
 | ☑ | LK16-T04 | C5 : cycles cassés par événements | `testé hors jeu` | hors jeu | LK16-T01 |
 | ☑ | LK16-T05 | C3 : contexte de décision par inscription | `testé hors jeu` | hors jeu | LK16-T04 |
-| ☐ | LK16-T06 | C2 : comportements de décision par extension | `à faire` | hors jeu | LK16-T05 |
+| ☑ | LK16-T06 | C2 : comportements de décision par extension | `testé hors jeu` | hors jeu | LK16-T05 |
 | ☑ | LK16-T07 | C8 et C9 : corvées et plans des routines | `testé hors jeu` | hors jeu | LK16-T01 |
 | ☐ | LK16-T08 | C4 : genres d'expédition | `à faire` | hors jeu | LK16-T01 |
 | ☐ | LK16-T09 | C6 : simulation hors écran | `à faire` | hors jeu | LK16-T04 |
@@ -96,16 +96,16 @@ Constats P2 et P3 de l'audit hors des chantiers ; tout changement visible par un
   - Tests : suite complète.
   - Preuve : 2026-11-13 : registre dédié `Decisions.registerContext{ id, order, fill(ctx, src) }` sur `LivingKnox.Registry` (le hook `input` des extensions ne reçoit ni le groupe, ni le membre, ni les joueurs, ni la perception) ; `Decisions.context` de 62 à 16 lignes, sans nom de module ; fournisseurs inscrits par leur module : Routines 10, Expeditions 20, Relations 30, Alert 90, Defense 100, Encounters 110, Needs 120 ; fournisseurs du moteur : foyer 40, perception 50, menaces 60, cible 70, défense 80, besoins 130, débordement 140 ; dépendances entre champs relevées et ordre d'avant gardé ; cycle Decisions ↔ Defense, Encounters, Expeditions cassé ; banc `tests/test_lk_decision_context.py` (10 tests) : gel de trois grilles de 1 500 situations (solo complet, serveur dédié, modules de `LK_Server` seuls ; contexte, décision et appels aux modules), empreintes relevées sur l'ancien code et identiques après ; acceptation : un fournisseur inscrit par le banc seul nourrit une règle d'extension (rouge avant : `attempt to call field 'registerContext' (a nil value)`) ; banc de l'ordre ; une soixantaine de bancs verts sans attendu changé, balayage des phases vert sur onze suites ; `test_doubles_api`, `test_mod_calls_api`, `test_kahlua` verts ; luacheck `Contents` 8
   - Reste : lectures directes gardées hors du contexte pour les modules bas sans dépendance vers les décisions (perception, zombies, combat, hostilité, santé, corps) ; `target`, `defence` et `overwhelmed` à rapprocher de leurs comportements en `LK16-T06` ; `Decisions.groupInput` lit encore le stock et la fortification ; suite complète à repasser
-- [ ] **LK16-T06** — C2 : comportements de décision par extension
-  - État : `à faire`
+- [x] **LK16-T06** — C2 : comportements de décision par extension
+  - État : `testé hors jeu`
   - Cible : `hors jeu`
   - Dépend de : LK16-T05
   - Fichiers : `LK_Decisions.lua` ; fichiers d'extension par comportement
   - Faire : constats B-C01, B-C03, B-C04 : `fight`, `defend`, `expedition`, `revenge`, `warn`, puis la défense (`surrender`, `retreat`, `watch`, `alert`) inscrits par `registerExtension`, avec `aim` et le geste portés par chaque comportement.
   - Accepté si : `Decisions.apply` sans chaîne sur le comportement ; bancs verts sans changement d'attendu.
   - Tests : suite complète, balayage des phases.
-  - Preuve : —
-  - Reste : —
+  - Preuve : 2026-11-13 : comportements menés par l'extension qui porte leur nom (`registerExtension`, propriétaire inscrit sans `behaviour`, la liste fermée `BEHAVIOURS` et les règles restant dans le moteur, ADR D04) : `fight` (Combat), `defend` (Defense), `warn` (Encounters), `expedition` (Expeditions), `revenge` (Relations), `surrender`, `retreat`, `watch`, `alert`, `flee` (`server/LivingKnox/Decisions/LK_Decide_Defence.lua`), `guard`, `patrol` (`LK_Decide_Post.lua`) ; contrat étendu de façon générique : `aim`, `gesture`, `overlay`, `keeps`, `forget` ; `Decisions.apply` de 95 (+ 28) à 38 lignes sans nom de comportement, `Decisions.decide` de 31 à 9 lignes ; gel de l'application ajouté à `tests/test_lk_decision_context.py` (2 × 1 500 séquences de trois passages : consignes, gestes, vigilance, appels aux modules, état gardé), empreintes relevées sur l'ancien code et identiques après chaque étape, empreintes du contexte de `LK16-T05` identiques ; acceptation : un comportement inscrit par le banc seul est décidé, visé, appliqué, garde son geste et est quitté (rouge avant : `None != 342`) ; une vingtaine de bancs des décisions verts sans attendu changé, balayage des phases et désordre réseau verts ; `python tests/run_all.py` : `172 passed, 0 failed` (534 s) ; luacheck `Contents` 8
+  - Reste : deux nettoyages de mémoires indépendantes changent d'ordre (routine puis provision) ; le moteur nomme encore des comportements dans les règles et leurs suites (`noteThreat`, réveil, `afterDecision`, `defenceContext`, fournisseur `overwhelmed`), gardés par l'ADR D04 ; le soin et les routines restent des activités superposées appelées par `apply` ; non vérifié en jeu (`LK16-T12`)
 - [x] **LK16-T07** — C8 et C9 : corvées et plans des routines
   - État : `testé hors jeu`
   - Cible : `hors jeu`

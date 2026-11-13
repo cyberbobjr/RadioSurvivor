@@ -1524,4 +1524,9 @@ LivingKnox.Decisions.registerContext({ id = "expedition", order = 20, fill = fun
     ctx.trip = Ex.memberTrip(src.gid, src.mid)
 end })
 
+-- LK16-T06 : comportement « expedition » de la cascade mené par ce module (extension propriétaire, LK_Decisions.lua) :
+-- trajet, fouille et retour.
+LivingKnox.Decisions.registerExtension({ id = "expedition", order = 50,
+    apply = function(id, st, ctx, fresh) return Ex.apply(id, st, ctx, fresh) end })
+
 return Ex

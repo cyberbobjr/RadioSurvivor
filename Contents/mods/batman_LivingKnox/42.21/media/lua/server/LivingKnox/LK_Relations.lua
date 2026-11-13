@@ -1115,4 +1115,9 @@ LivingKnox.Decisions.registerContext({ id = "hunt", order = 30, fill = function(
     if ctx.trip == nil then ctx.hunt = Relations.memberHunt(src.gid, src.mid) end
 end })
 
+-- LK16-T06 : comportement « revenge » de la cascade mené par ce module (extension propriétaire, LK_Decisions.lua) :
+-- traque et retour d'une vengeance ou d'un raid.
+LivingKnox.Decisions.registerExtension({ id = "revenge", order = 60,
+    apply = function(id, st, ctx, fresh) return Relations.applyHunt(id, st, ctx, fresh) end })
+
 return Relations

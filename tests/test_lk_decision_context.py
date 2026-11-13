@@ -12,7 +12,11 @@ Bancs :
   avec les seuls modules de LK_Server (les autres absents : leurs champs manquent) ;
 - acceptation : un fournisseur inscrit par le banc seul pose un champ lu par la règle d'une extension, sans toucher au
   moteur ;
-- ordre : liste des fournisseurs (ordre explicite) et dépendances entre champs.
+- ordre : liste des fournisseurs (ordre explicite) et dépendances entre champs ;
+- LK16-T06 (chantier C2) : gel de l'application (Decisions.evaluate et Decisions.apply : consignes, gestes, vigilance,
+  appels aux modules qui mènent un comportement) sur des séquences de trois passages, relevé avant la migration des
+  comportements vers leurs extensions propriétaires ; acceptation : un comportement inscrit par le banc seul est
+  décidé, visé, appliqué, garde son geste et est quitté.
 Les fonctions des modules sont remplacées par des doublures qui notent leurs appels : elles NE PROUVENT PAS la logique
 des modules (prouvée par leurs bancs), seulement ce que le contexte leur demande, dans quel ordre, et ce qu'il en fait.
 """
@@ -282,6 +286,280 @@ class FrozenBareContextTests(GridBase):
         self.assertNotIn('trip=', out)                                         # modules absents : champs absents
         self.assertNotIn('defense=', out)
         self.assertEqual(hashlib.sha256(out.encode('utf-8')).hexdigest(), FROZEN_BARE)
+
+
+# LK16-T06 (chantier C2) : gel de l'APPLICATION d'une décision (Decisions.evaluate puis Decisions.apply) sur des
+# séquences de trois passages par situation : état neuf, même situation une minute plus tard (état en cours, consigne
+# parfois close, consigne bloquée), puis l'état transporté chez le membre d'une autre situation (changement de
+# comportement : sorties, gestes retirés), parfois suivi de l'oubli du membre (Decisions.forget). Sont notés : consignes
+# (Directives.moveTo, face, stop, setVigil avec arguments), gestes posés (Anim.setGesture), vigilance
+# (Senses.setVigilance), appels aux modules qui mènent un comportement (apply, leave, forget, applyHunt) et aux suites
+# (Needs.observe, Alert.noteWoken, Alert.raise, Speech.say, Activity.behaviour), état gardé et geste du moteur.
+# Empreintes relevées sur le code d'avant la migration des comportements (LK16-T06).
+FROZEN_APPLY_FULL = '020b0d45bd1dc5e96a7d9b3dab21a63dc2ea6c3f1777f51ede0d2b5321b367f4'
+FROZEN_APPLY_BARE = '5bdc67599bdf6606b66461f03330618da171d8d02bf72f42596fbdf7ac02e6cb'
+APPLY = r'''
+DIR, ANIM, VSEQ, CARE, STUCK = {}, {}, 0, false, false
+local function noteApply(mod, fn, ret)
+    local M = LivingKnox[mod]
+    if M == nil then return end
+    M[fn] = function(id, st, ctx, fresh)
+        LOG[#LOG + 1] = mod .. "." .. fn .. "(" .. tostring(id) .. ";" .. CTXS(st) .. ";" .. tostring(fresh) .. ")"
+        if ret ~= nil then return ret() end
+    end
+end
+local function noteCall(mod, fn, ret)
+    local M = LivingKnox[mod]
+    if M == nil then return end
+    M[fn] = function(...)
+        local n = select("#", ...)
+        local parts = {}
+        for k = 1, n do
+            local v = (select(k, ...))
+            parts[k] = type(v) == "table" and v.getX ~= nil and "obj" or CTXS(v)
+        end
+        LOG[#LOG + 1] = mod .. "." .. fn .. "(" .. table.concat(parts, ";") .. ")"
+        if ret ~= nil then return ret(...) end
+    end
+end
+local Dr = LivingKnox.Directives
+local function issue(id, e)
+    if VSEQ % 11 == 5 then VSEQ = VSEQ + 1 return nil end   -- consigne refusée de temps en temps
+    VSEQ = VSEQ + 1
+    e.v = VSEQ
+    DIR[id] = e
+    return VSEQ
+end
+Dr.get = function(id) return DIR[id] end
+noteCall("Directives", "moveTo", function(id, x, y, z, g) return issue(id, { op = Dr.OP_MOVE, x = x, y = y, z = z, g = g }) end)
+noteCall("Directives", "face", function(id, a) return issue(id, { op = Dr.OP_FACE, a = a }) end)
+noteCall("Directives", "stop", function(id) return issue(id, { op = Dr.OP_STOP }) end)
+noteCall("Directives", "setVigil", function() return true end)
+noteCall("Senses", "setVigilance", function() return true end)
+local An = LivingKnox.Anim
+if An ~= nil then
+    An.gestureOf = function(id) return ANIM[id] or An.DEFAULT end
+    noteCall("Anim", "setGesture", function(id, g) ANIM[id] = g return true end)
+end
+noteApply("Combat", "apply")
+noteCall("Combat", "leave")
+noteCall("Combat", "forget")
+noteCall("Combat", "playerByName", function(u) if u == "alice" then return { getX = function() return 103 end,
+    getY = function() return 100 end, getZ = function() return 0 end } end return nil end)
+noteApply("Defense", "apply")
+noteCall("Defense", "forget")
+noteApply("Expeditions", "apply")
+noteApply("Relations", "applyHunt")
+noteApply("Encounters", "apply")
+noteCall("Encounters", "forget")
+noteApply("Care", "apply", function() return CARE end)
+noteApply("Routines", "apply")
+noteCall("Routines", "leave")
+noteCall("Routines", "forget")
+noteCall("Routines", "handles", function(b)
+    if b == "guard" or b == "patrol" then return SIT.post == true end
+    return SIT.handles[b] == true
+end)
+noteCall("Needs", "observe")
+noteCall("Alert", "noteWoken")
+noteCall("Alert", "raise")
+LivingKnox.Speech = LivingKnox.Speech or {}
+noteCall("Speech", "say", function(id, what) return { id = "line-" .. tostring(what.key) } end)
+LivingKnox.Movement = LivingKnox.Movement or {}
+noteCall("Movement", "takeStuck", function() return STUCK end)
+noteCall("Activity", "behaviour")
+local Ma = LivingKnox.Materialize
+if Ma ~= nil then
+    noteCall("Materialize", "homeSquare", function(home) return { kind = "sq" }, "b-1" end)
+    noteCall("Materialize", "placeFor", function(home)
+        if VSEQ % 3 == 0 then return nil end
+        return { getX = function() return home.x + 1 end, getY = function() return home.y end,
+            getZ = function() return home.z end }
+    end)
+end
+local CELL = { getGridSquare = function(self, x, y, z)
+    return { isFree = function() return (x * 3 + y) % 4 ~= 0 end }
+end }
+getCell = function() return CELL end
+
+local function copy(t)
+    if type(t) ~= "table" then return t end
+    local out = {}
+    for k, v in pairs(t) do out[k] = v end
+    return out
+end
+
+-- Séquence de la situation i (voir le commentaire du banc) : rend les trois passages notés.
+function SEQUENCE(i, n)
+    local De = LivingKnox.Decisions
+    local st = De.state
+    DIR, ANIM, VSEQ = {}, {}, i % 7
+    st.issued, st.gestures = {}, {}
+    local g, mid, m, b, players, minute = SITUATION(i)
+    SIT.post = i % 3 == 0
+    CARE, STUCK = i % 4 == 0, false
+    if i % 13 == 0 then DIR[m.npc] = { op = Dr.OP_MOVE, v = -1 } end   -- consigne d'un autre module
+    local parts = {}
+    local function pass(tag, gg, mmid, mm, bb, pl, mn)
+        LOG = {}
+        local fresh = De.evaluate("grp-9", gg, mmid, mm, bb, pl, mn)
+        parts[#parts + 1] = tag .. " " .. tostring(fresh) .. " st " .. CTXS(st.members[mm.npc]) .. " gesture "
+            .. tostring(st.gestures[mm.npc]) .. " anim " .. tostring(ANIM[mm.npc]) .. " calls " .. table.concat(LOG, " | ")
+    end
+    pass("1", g, mid, m, b, players, minute)
+    if i % 5 == 1 and DIR[m.npc] ~= nil then DIR[m.npc].done = true end   -- consigne close entre deux passages
+    CARE, STUCK = i % 6 == 1, i % 9 == 4
+    pass("2", g, mid, m, b, players, minute + 1)
+    local keep = { member = copy(st.members[m.npc]), issued = st.issued[m.npc], gesture = st.gestures[m.npc],
+        dir = DIR[m.npc], anim = ANIM[m.npc] }
+    local j = (i * 7) % n + 1
+    local g2, mid2, m2, b2, players2, minute2 = SITUATION(j)
+    SIT.post = j % 3 == 0
+    CARE, STUCK = j % 4 == 1, false
+    if keep.member ~= nil and st.members[m2.npc] == nil then
+        keep.member.gid, keep.member.mid = "grp-9", mid2
+        st.members[m2.npc] = keep.member
+    end
+    st.issued[m2.npc], st.gestures[m2.npc], DIR[m2.npc], ANIM[m2.npc] = keep.issued, keep.gesture, keep.dir, keep.anim
+    pass("3", g2, mid2, m2, b2, players2, minute2 + 2)
+    if i % 7 == 0 then
+        LOG = {}
+        De.forget(m2.npc)
+        parts[#parts + 1] = "forget calls " .. table.concat(LOG, " | ")
+    end
+    return "#" .. i .. "\n" .. table.concat(parts, "\n")
+end
+
+function SEQUENCE_ALL(n)
+    local parts = {}
+    for i = 1, n do parts[i] = SEQUENCE(i, n) end
+    parts[#parts + 1] = "stats " .. CTXS(LivingKnox.Decisions.stats)
+    return table.concat(parts, "\n")
+end
+'''
+
+
+class ApplyGridBase(GridBase):
+    """Consignes et gestes chargés dans les deux grilles (le jeu les charge toujours) ; soin dans la grille complète."""
+
+    def setUp(self):
+        super().setUp()
+        for rel in ('shared/LivingKnox/LK_Anim.lua', 'server/LivingKnox/LK_Directives.lua') + (
+                ('server/LivingKnox/LK_Care.lua',) if self.full else ()):
+            self.h.load(self.srv, rel)
+        self.h.load(self.srv, APPLY)
+
+    def sequences(self):
+        return self.run_lua(f'return SEQUENCE_ALL({N})')
+
+
+class FrozenApplyTests(ApplyGridBase):
+    def test_application_with_all_modules_is_frozen(self):
+        out = self.sequences()
+        for call in ('Directives.moveTo(', 'Directives.face(', 'Directives.stop(', 'Directives.setVigil(',
+                     'Anim.setGesture(', 'Senses.setVigilance(', 'Combat.apply(', 'Combat.leave(', 'Combat.forget(',
+                     'Defense.apply(', 'Defense.forget(', 'Expeditions.apply(', 'Relations.applyHunt(',
+                     'Encounters.apply(', 'Encounters.forget(', 'Care.apply(', 'Routines.apply(', 'Routines.leave(',
+                     'Routines.forget(', 'Needs.observe(', 'Speech.say('):
+            self.assertIn(call, out, call)                                     # la grille couvre chaque appel
+        for b in ('fight', 'defend', 'expedition', 'revenge', 'warn', 'surrender', 'retreat', 'watch', 'alert',
+                  'flee', 'guard', 'patrol', 'home', 'rest', 'sleep', 'chore'):
+            self.assertIn(f'b={b},', out, b)                                   # et chaque comportement
+        self.assertEqual(self.h.errors(self.srv), [])
+        self.assertEqual(hashlib.sha256(out.encode('utf-8')).hexdigest(), FROZEN_APPLY_FULL)
+
+
+class FrozenBareApplyTests(ApplyGridBase):
+    """Modules de LK_Server seuls : un comportement dont le module manque retombe sur le repli du moteur."""
+    full = False
+
+    def test_application_without_the_optional_modules_is_frozen(self):
+        out = self.sequences()
+        self.assertNotIn('Combat.apply(', out)
+        self.assertIn('b=fight,', out)                                         # mêlée décidée (renfort), sans Combat
+        self.assertEqual(self.h.errors(self.srv), [])
+        self.assertEqual(hashlib.sha256(out.encode('utf-8')).hexdigest(), FROZEN_APPLY_BARE)
+
+
+# Acceptation LK16-T06 : un comportement nouveau inscrit par le banc seul (fournisseur de contexte, règle, visée, geste,
+# application, sortie), sans rien toucher au moteur. Le membre écoute un bruit près du foyer : il le regarde (visée
+# portée par le comportement), s'accroupit (geste qu'il pose et garde), puis le quitte quand le bruit cesse.
+LISTEN = r'''
+NOISE_ON, BENCH = true, {}
+local De = LivingKnox.Decisions
+De.registerContext({ id = "bench.noise", order = 45, fill = function(ctx)
+    if NOISE_ON and ctx.atHome then ctx.noise = { x = ctx.home.x + 3, y = ctx.home.y } end
+end })
+De.registerExtension({ id = "bench.listen", order = 5,
+    rules = { { name = "listen", before = "threat", rule = function(ctx)
+        if ctx.noise == nil then return nil end
+        return "bench.listen", "noise", "noise"
+    end } },
+    behaviour = { vigil = "guard", minutes = { 3, 3 } },
+    aim = function(ctx, out) out.angle = De.angleTo(ctx.noise.x + 0.5 - ctx.x, ctx.noise.y + 0.5 - ctx.y) end,
+    gesture = function() return true end,
+    apply = function(id, st, ctx, fresh)
+        BENCH[#BENCH + 1] = "apply " .. tostring(fresh)
+        if fresh then De.face(id, st.angle) end   -- consigne notée comme celle du moteur
+        De.setAlertGesture(id, "crouch")
+    end,
+    leave = function(id) BENCH[#BENCH + 1] = "leave " .. id end })
+function LISTEN_PASS(i, minute)
+    LOG, BENCH = {}, {}
+    local st = De.state
+    local g, mid, m, b, players, mn = SITUATION(i)
+    st.members[m.npc] = KEPT
+    local fresh = De.evaluate("grp-9", g, mid, m, b, players, minute or mn)
+    KEPT = st.members[m.npc]
+    return fresh, KEPT.b, KEPT.angle, table.concat(BENCH, ","), table.concat(LOG, " | "), m.npc, mn
+end
+'''
+
+
+# Première situation de la grille d'un membre valide au foyer, sans danger ni consigne d'un autre module (avant le banc).
+CALM = f'''
+for i = 1, {N} do
+    local g, mid, m, b, players, minute = SITUATION(i)
+    local ctx = {D}.context("grp-9", g, mid, m, b, players, minute)
+    local out = {D}.decide(ctx)
+    if i % 13 ~= 0 and ctx.atHome and out.rule ~= "threat" and {D}.unfitOf(ctx) == nil then return i end
+end
+return nil
+'''
+
+
+class BehaviourExtensionTests(ApplyGridBase):
+    def test_a_behaviour_registered_by_one_file_is_decided_applied_aimed_and_left(self):
+        i = self.run_lua(CALM)
+        self.assertIsNotNone(i)
+        self.h.load(self.srv, LISTEN)
+        self.run_lua('KEPT = nil')
+        fresh, b, angle, bench, calls, npc, minute = self.run_lua(f'return LISTEN_PASS({i})')
+        self.assertEqual((fresh, b, bench), (True, 'bench.listen', 'apply true'))
+        self.assertEqual(angle, self.ev(f'{D}.angleTo(103.5 - 100.5, 100.5 - 101.5)'))   # visée portée par l'extension
+        self.assertIn(f'Directives.face({npc};{angle:.10g})', calls)
+        self.assertIn(f'Senses.setVigilance({npc};guard)', calls)                     # vigilance déclarée
+        self.assertIn(f'Anim.setGesture({npc};crouch)', calls)
+        # Passage suivant : état en cours, geste gardé (ni retiré ni reposé).
+        fresh, b, _, bench, calls, _, _ = self.run_lua(f'return LISTEN_PASS({i}, {minute + 1})')
+        self.assertEqual((fresh, b, bench), (False, 'bench.listen', 'apply false'))
+        self.assertNotIn('Anim.setGesture(', calls)
+        # Bruit retombé : autre comportement, sortie appelée une fois, geste retiré par le moteur.
+        self.run_lua('NOISE_ON = false')
+        fresh, b, _, bench, calls, _, _ = self.run_lua(f'return LISTEN_PASS({i}, {minute + 2})')
+        self.assertTrue(fresh)
+        self.assertNotEqual(b, 'bench.listen')
+        self.assertEqual(bench, f'leave {npc}')
+        self.assertIn(f'Anim.setGesture({npc};idle)', calls)
+        self.assertEqual(self.h.errors(self.srv), [])
+
+    def test_malformed_behaviour_fields_are_refused(self):
+        base = 'id = "bench.bad", order = 1, apply = function() end'
+        for extra in ('aim = 3', 'gesture = "crouch"', 'overlay = 1', 'keeps = "fight"', 'forget = true',
+                      'behaviour = { vigil = "rest" }, id = "guard"'):   # redéclarer la liste fermée : refusé
+            ok, err = self.run_lua(f'return pcall({D}.registerExtension, {{ {base}, {extra} }})')
+            self.assertIs(ok, False, extra)
+            self.assertIn('LivingKnox.Decisions.registerExtension', err)
 
 
 # Fournisseur et règle d'extension inscrits par le banc seul : le champ « noise » (bruit entendu près du foyer) est posé

@@ -16,6 +16,8 @@ require "LivingKnox/LK_Materialize"   -- LK09-T03 : écoute bodyTick, bodyReleas
 require "LivingKnox/LK_Needs"         -- LK05-T06 : faim, soif, fatigue, peur (lus par LK_Decisions)
 require "LivingKnox/LK_Alert"         -- LK05-T08 : alerte de groupe (appelée par LK_Decisions)
 require "LivingKnox/LK_Decisions"     -- LK05-T02 : cadre de décision (objectifs par heure, cascade par membre)
+require "LivingKnox/Decisions/LK_Decide_Defence"   -- LK16-T06 : reddition, retraite, regard, alerte, fuite
+require "LivingKnox/Decisions/LK_Decide_Post"      -- LK16-T06 : guet et ronde
 require "LivingKnox/LK_Routines"      -- LK05-T03 : postes, rondes, relèves et sommeil (appelé par LK_Decisions)
 require "LivingKnox/LK_Talk"          -- E18-T17 : file des demandes de parole des PNJ
 require "LivingKnox/LK_TalkAlone"     -- E18-T18 : hôte de la parole sans RadioSurvivor

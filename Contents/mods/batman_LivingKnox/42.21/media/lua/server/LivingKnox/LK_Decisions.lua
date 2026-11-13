@@ -107,6 +107,11 @@ Decisions.PRIORITIES = { "threat", "fear", "wound", "hunger", "thirst", "fatigue
 -- Comportements (liste fermée) : vigilance de la perception, conditions de rôle. needs : au moins un de ces
 -- comportements de rôle ; nonCombatant : interdit à un combattant (rôle qui permet fight ou defend ; plus aucun
 -- comportement ne le porte depuis LK06-T07, condition gardée pour les comportements ajoutés plus tard).
+-- LK16-T06 : cette liste déclare les comportements que proposent les règles du moteur (RULES, qui restent ici :
+-- décision D04 de l'ADR de remise en ordre) ; leur APPLICATION (apply, visée aim, geste, sortie) est menée par
+-- l'extension propriétaire inscrite sous le même id (Decisions.registerExtension) par le module qui mène le
+-- comportement ou par un fichier de server/LivingKnox/Decisions/. owned : sans son extension (module absent), le
+-- moteur n'applique rien (ni soin, ni routine, ni retour au foyer) ; sinon, repli du moteur (soin, routine, foyer).
 Decisions.BEHAVIOURS = {
     home = { vigil = "rest" },                                     -- rester au foyer (y retourner s'il est loin)
     rest = { vigil = "rest" },                                     -- se reposer au foyer
@@ -118,7 +123,7 @@ Decisions.BEHAVIOURS = {
     flee = { vigil = "guard" },                                    -- s'éloigner d'une menace (LK06-T07 : constantes
                                                                    -- mauvaises ou groupe débordé, tout rôle)
     alert = { vigil = "guard" },                                   -- alerte du groupe (LK05-T08) : dernière position
-    fight = { vigil = "guard" },                                   -- mêlée ou tir contre la cible retenue (LK06-T02,
+    fight = { vigil = "guard", owned = true },                     -- mêlée ou tir contre la cible retenue (LK06-T02,
                                                                    -- LK_Combat) ; LK06-T07 : zombie pour tout rôle,
                                                                    -- joueur pour un rôle qui permet fight ou defend
     meal = { vigil = "rest" },                                     -- manger ou boire dans le stock (LK05-T07)
@@ -279,6 +284,8 @@ local function pick(lo, hi, rnd)
     if hi <= lo then return lo end
     return math.min(hi, lo + math.floor(rnd() * (hi - lo + 1)))
 end
+-- Entier tiré dans [lo, hi] du flux rnd (visées des comportements, LK16-T06).
+Decisions.pick = pick
 
 -- Angle (degrés, 0..360) de (dx, dy) dans la convention de setDirectionAngle (y croissant = sud,
 -- Directives.ANGLES) ; nil pour un vecteur nul.
@@ -778,6 +785,18 @@ end
 -- comportement id (ou oublié) ; input(ctx, body, minute) (facultatif) : complète le contexte lu par ses règles ;
 -- observe(ctx, st, body, minute) (facultatif) : après la décision appliquée }. Ce registre ne nomme aucune extension :
 -- chacune s'inscrit depuis son propre fichier (Decisions.registerExtension). Liste triée à l'inscription (sans next).
+-- LK16-T06 : l'extension qui porte l'id d'un comportement (et apply) le MÈNE, qu'il soit déclaré par elle (behaviour)
+-- ou par la liste fermée du moteur (sans behaviour : la déclaration reste celle des règles du moteur ; un id est unique,
+-- donc un seul propriétaire). Champs du meneur, tous facultatifs :
+--   aim(ctx, out, rnd) : visée de la décision out (angle, away, side, u...) ; rnd : flux de la décision, après la durée ;
+--   gesture : vrai, ou function(ctx, st) -> vrai, quand le comportement pose et garde lui-même son geste
+--     (Decisions.setAlertGesture) ; sinon le moteur retire, avant d'appliquer, le geste posé par un comportement
+--     précédent ;
+--   overlay : vrai si l'application passe après le soin (LK_Care) et la routine du comportement (LK_Routines) ; sans
+--     lui, l'extension mène seule, avant eux ;
+--   keeps = { id, ... } : extensions dont l'état du membre est gardé pendant ce comportement (leur leave n'est pas
+--     appelé) ;
+--   forget(id) : membre oublié (mort, corps parti) ; sans forget, leave.
 Decisions.extensions = Decisions.extensions or {}
 
 local function validRules(rules)
@@ -794,9 +813,12 @@ end
 local function wellFormed(spec)
     if type(spec) ~= "table" or type(spec.id) ~= "string" or type(spec.order) ~= "number" then return false end
     if not validRules(spec.rules) then return false end
-    for _, f in ipairs({ "apply", "leave", "input", "observe" }) do
+    for _, f in ipairs({ "apply", "leave", "input", "observe", "aim", "forget" }) do
         if spec[f] ~= nil and type(spec[f]) ~= "function" then return false end
     end
+    if spec.gesture ~= nil and spec.gesture ~= true and type(spec.gesture) ~= "function" then return false end
+    if spec.overlay ~= nil and type(spec.overlay) ~= "boolean" then return false end
+    if spec.keeps ~= nil and type(spec.keeps) ~= "table" then return false end
     local b = spec.behaviour
     if b ~= nil then
         if type(b) ~= "table" or type(b.vigil) ~= "string" or spec.apply == nil then return false end
@@ -902,29 +924,9 @@ function Decisions.decide(ctx)
     local span = cfg().MINUTES[b] or { 5, 5 }
     local out = { b = b, p = i, rule = rule, why = why, key = key, start = ctx.minute or 0 }
     out.untilMin = out.start + pick(span[1], span[2], rnd)
-    local t = ctx.threat
-    if b == "watch" and t then
-        out.angle = Decisions.angleTo(t.x + 0.5 - ctx.x, t.y + 0.5 - ctx.y)
-    elseif b == "alert" and ctx.alert then
-        out.angle = Decisions.angleTo(ctx.alert.x + 0.5 - ctx.x, ctx.alert.y + 0.5 - ctx.y)
-    elseif (b == "flee" or b == "retreat") and (t or ctx.fearFrom) then
-        local src = t or ctx.fearFrom   -- menace perçue, sinon source récente de la peur (LK05-T06)
-        -- LK06-T05 : fuite pondérée par la proximité de toutes les menaces perçues (I6.5).
-        out.away = Decisions.fleeAngle(ctx.x, ctx.y, ctx.threats or { t }, src) or pick(0, 7, rnd) * 45
-        out.side = rnd() < 0.5 and -1 or 1
-        if b == "retreat" and t then out.angle = Decisions.angleTo(t.x + 0.5 - ctx.x, t.y + 0.5 - ctx.y) end
-    elseif b == "surrender" then
-        local e = Decisions.playerSpot(ctx, string.sub(key or "", 2))   -- clé "p<compte>"
-        if e ~= nil then out.angle = Decisions.angleTo(e.x + 0.5 - ctx.x, e.y + 0.5 - ctx.y) end
-        out.u = string.sub(key or "", 2)
-    elseif b == "guard" then
-        -- Regard vers l'extérieur du foyer (sinon direction tirée), décalé de -45, 0 ou +45 degrés.
-        local base
-        if ctx.home then base = Decisions.angleTo(ctx.x - (ctx.home.x + 0.5), ctx.y - (ctx.home.y + 0.5)) end
-        if base == nil then base = pick(0, 7, rnd) * 45 end
-        local a = base + (pick(0, 2, rnd) - 1) * 45
-        out.angle = a - math.floor(a / 360) * 360
-    end
+    -- LK16-T06 : visée portée par le comportement (aim de l'extension qui le mène), tirages après la durée.
+    local lead = extensionOf(b)
+    if lead ~= nil and lead.aim ~= nil then lead.aim(ctx, out, rnd) end
     return out
 end
 
@@ -1730,7 +1732,8 @@ local function homeTarget(home)
     return home.x, home.y, home.z
 end
 
-local function goHome(id, ctx)
+-- Retour au foyer en marchant (consigne déjà en route : rien).
+function Decisions.goHome(id, ctx)
     local D = LivingKnox.Directives
     local open = ownOpen(id)
     if open ~= nil and open.op == D.OP_MOVE and open.g ~= "run" then return end   -- déjà en route
@@ -1742,91 +1745,45 @@ local function goHome(id, ctx)
     issued(id, D.moveTo(id, x, y, z, "walk"))
 end
 
-local function face(id, angle)
+-- Course vers le foyer, sauf si une consigne de marche du moteur est déjà ouverte (any : toute marche ; sinon seule
+-- une course compte comme « déjà en route »).
+function Decisions.runHome(id, ctx, any)
+    local D = LivingKnox.Directives
+    local open = ownOpen(id)
+    if open ~= nil and open.op == D.OP_MOVE and (any or open.g == "run") then return end
+    local x, y, z = homeTarget(ctx.home)
+    if x ~= nil then issued(id, D.moveTo(id, x, y, z, "run")) end
+end
+
+-- Regard vers l'angle angle (nil : rien).
+function Decisions.face(id, angle)
     local D = LivingKnox.Directives
     if angle == nil then return end
     issued(id, D.face(id, angle))
 end
 
-local function flee(id, ctx, out)
-    local D = LivingKnox.Directives
-    local cell = getCell()
-    local step = cfg().FLEE_STEP
-    local offsets = { 0, 45 * out.side, -45 * out.side, 90 * out.side, -90 * out.side }
-    for _, off in ipairs(offsets) do
-        local a = (out.away + off) * math.pi / 180
-        local tx = math.floor(ctx.x + step * math.cos(a))
-        local ty = math.floor(ctx.y + step * math.sin(a))
-        local sq = cell and cell:getGridSquare(tx, ty, ctx.z) or nil
-        if sq ~= nil and sq:isFree(false) then
-            local v = D.moveTo(id, tx, ty, ctx.z, "run")
-            if v ~= nil then
-                issued(id, v)
-                return true
-            end
-        end
-    end
-    Decisions.stats.refused = Decisions.stats.refused + 1
-    log().debug("npc %s: no square to flee to, watching instead", id)
-    if ctx.threat then face(id, Decisions.angleTo(ctx.threat.x + 0.5 - ctx.x, ctx.threat.y + 0.5 - ctx.y)) end
-    return false
-end
-
-local function stopOwnMove(id)
+-- Arrêt de la marche émise par le moteur (consigne ouverte), s'il y en a une.
+function Decisions.stopOwnMove(id)
     local D = LivingKnox.Directives
     local open = ownOpen(id)
     if open ~= nil and open.op == D.OP_MOVE then issued(id, D.stop(id)) end
 end
 
-local function faceTowards(id, st, ctx, x, y, fresh)
+-- Regard vers la case (x, y) : état neuf, premier regard, ou écart d'au moins FACE_DELTA degrés avec le dernier
+-- regard (st.faced). Rend vrai si une consigne est émise.
+function Decisions.faceTowards(id, st, ctx, x, y, fresh)
     if x == nil then return false end
     local a = Decisions.angleTo(x + 0.5 - ctx.x, y + 0.5 - ctx.y)
     if a == nil or not (fresh or st.faced == nil or angleGap(a, st.faced) >= cfg().FACE_DELTA) then return false end
     st.faced = a
-    face(id, a)
+    Decisions.face(id, a)
     return true
 end
 
--- LK06-T05 : reddition (arrêt, regard vers le joueur, mains levées : geste SURRENDER_GESTURE, LK06-T12) et retraite
--- (course vers le foyer ; sans foyer, fuite pondérée ; au foyer, accroupi face à la menace). Gestes posés après les
--- consignes (une consigne « face » ou « stop » remet le geste au repos) et retirés à la sortie
--- (Decisions.setAlertGesture).
-function Decisions.applyDefence(id, st, ctx, fresh)
-    local D = LivingKnox.Directives
-    if st.b == "surrender" then
-        stopOwnMove(id)
-        local e = Decisions.playerSpot(ctx, st.u)
-        if e ~= nil then faceTowards(id, st, ctx, e.x, e.y, fresh) end
-        Decisions.setAlertGesture(id, Decisions.SURRENDER_GESTURE)
-        return
-    end
-    if ctx.home ~= nil and not ctx.atHome then
-        Decisions.setAlertGesture(id, nil)
-        local open = ownOpen(id)
-        if open == nil or open.op ~= D.OP_MOVE or open.g ~= "run" then
-            local x, y, z = homeTarget(ctx.home)
-            if x ~= nil then issued(id, D.moveTo(id, x, y, z, "run")) end
-        end
-        return
-    end
-    if ctx.home == nil then
-        Decisions.setAlertGesture(id, nil)
-        if fresh and st.away ~= nil then flee(id, ctx, st) end
-        return
-    end
-    stopOwnMove(id)
-    local t = ctx.threat
-    if t ~= nil then faceTowards(id, st, ctx, t.x, t.y, fresh) end
-    Decisions.setAlertGesture(id, "crouch")
-end
-
--- Applique un état nouveau (fresh) ou en cours : vigilance, puis consigne si nécessaire.
--- Routines (LK05-T03, LK_Routines.lua) : guet au poste, ronde et sommeil au couchage, appliqués à chaque passage
--- (progression de la ronde, arrivée au poste, geste assis) ; sans routines chargées : regard vers l'extérieur.
--- Vigilance : posée pour la perception de l'autorité et portée par la consigne courante (champ vg, MP).
--- Geste d'alerte (LK05-T08) : garde pour un combattant, accroupi sinon ; posé après la consigne (une consigne
--- « face » ou « stop » remet le geste au repos, LK_Directives.issue), reposé à chaque passage s'il a changé ; retiré
--- quand le membre quitte « alert » ou « watch » (seulement s'il est encore le nôtre).
+-- Geste d'alerte, de reddition ou de défense (LK05-T08, LK06-T12) : posé par le comportement qui le garde
+-- (extension à champ gesture, Decisions.setAlertGesture) après ses consignes (une consigne « face » ou « stop » remet
+-- le geste au repos, LK_Directives.issue), reposé à chaque passage s'il a changé ; retiré par le moteur quand le
+-- membre passe à un comportement qui ne garde pas de geste (seulement s'il est encore le nôtre).
 local function alertGestures()
     local st = Decisions.state
     st.gestures = st.gestures or {}
@@ -1847,99 +1804,62 @@ function Decisions.setAlertGesture(id, gesture)
     if A.gestureOf(id) ~= gesture then A.setGesture(id, gesture) end
 end
 
+-- Vrai si le meneur lead du comportement garde son geste à ce passage (champ gesture).
+local function holdsGesture(lead, ctx, st)
+    if lead == nil or lead.gesture == nil then return false end
+    if lead.gesture == true then return true end
+    return lead.gesture(ctx, st) == true
+end
+
+-- Vrai si le meneur lead garde l'état de l'extension x (champ keeps).
+local function keeps(lead, x)
+    for _, k in ipairs(lead ~= nil and lead.keeps or {}) do
+        if k == x.id then return true end
+    end
+    return false
+end
+
+-- Applique un état nouveau (fresh) ou en cours : geste retiré (sauf comportement qui garde le sien), vigilance
+-- (perception de l'autorité et consigne courante, champ vg, MP), sorties de la routine et des autres extensions, puis
+-- l'extension qui mène le comportement (LK16-T06) ; sans elle, ou après le soin et la routine pour une extension
+-- overlay : soin (LK07-T03, comportement calme au foyer), routine (LK05-T03 : guet au poste, ronde, sommeil, corvées,
+-- repas, au foyer), puis repli du moteur : retour au foyer s'il est loin, sinon fin de sa propre marche.
 function Decisions.apply(id, st, ctx, fresh)
     local D = LivingKnox.Directives
     local S = LivingKnox.Senses
-    local vigil = Decisions.BEHAVIOURS[st.b].vigil
-    local alertGesture = nil
-    local unfit = Decisions.unfitOf(ctx) ~= nil   -- LK06-T07 : geste et abri selon les constantes, non le rôle
-    if st.b == "alert" or (st.b == "watch" and ctx.alert ~= nil) then
-        alertGesture = unfit and "crouch" or "guard"
-    elseif st.b == "surrender" or st.b == "retreat" or st.b == "defend" or st.b == "warn" then   -- geste posé plus bas
-        alertGesture = nil
-    else
-        Decisions.setAlertGesture(id, nil)
-    end
-    if S ~= nil and S.setVigilance ~= nil then S.setVigilance(id, vigil) end
-    if D == nil then return end
-    if D.setVigil ~= nil then D.setVigil(id, vigil) end
     local b = st.b
-    local ext = extensionOf(b)   -- LK05-T20 : comportement mené par une extension (registre)
-    for _, x in ipairs(Decisions.extensions) do
-        if x.leave ~= nil and x ~= ext then x.leave(id) end
-    end
+    local def = Decisions.BEHAVIOURS[b]
+    local lead = extensionOf(b)
+    if not holdsGesture(lead, ctx, st) then Decisions.setAlertGesture(id, nil) end
+    if S ~= nil and S.setVigilance ~= nil then S.setVigilance(id, def.vigil) end
+    if D == nil then return end
+    if D.setVigil ~= nil then D.setVigil(id, def.vigil) end
     local R = LivingKnox.Routines
     local routine = R ~= nil and R.handles(b) and (ctx.home == nil or ctx.atHome)
     if R ~= nil and not routine then R.leave(id) end   -- routine interrompue ou finie : debout, mémoire oubliée
-    local C = LivingKnox.Combat   -- LK06-T02 : mêlée menée par LK_Combat ; tout autre comportement y met fin
-    if b == "fight" then
-        if C ~= nil then C.apply(id, st, ctx, fresh) end
+    for _, x in ipairs(Decisions.extensions) do
+        if x.leave ~= nil and x ~= lead and not keeps(lead, x) then x.leave(id) end
+    end
+    if lead ~= nil and not lead.overlay then
+        lead.apply(id, st, ctx, fresh)
         return
     end
-    local Df = LivingKnox.Defense   -- LK05-T09 : engagement depuis la place, ou place, regard et geste
-    if b == "defend" and Df ~= nil then
-        Df.apply(id, st, ctx, fresh)
-        return
-    end
-    if C ~= nil and C.leave ~= nil then C.leave(id) end
-    if ext ~= nil then
-        ext.apply(id, st, ctx, fresh)
-        return
-    end
-    local Ex = LivingKnox.Expeditions   -- LK05-T05 : trajet, fouille et retour menés par LK_Expeditions
-    if b == "expedition" and Ex ~= nil then
-        Ex.apply(id, st, ctx, fresh)
-        return
-    end
-    local Rl = LivingKnox.Relations   -- LK11-T05 : traque et retour menés par LK_Relations
-    if b == "revenge" and Rl ~= nil and Rl.applyHunt ~= nil then
-        Rl.applyHunt(id, st, ctx, fresh)
-        return
-    end
-    local En = LivingKnox.Encounters   -- LK11-T02 : sommation (arrêt, regard, geste, réplique, coup de semonce)
-    if b == "warn" and En ~= nil then
-        En.apply(id, st, ctx, fresh)
-        return
-    end
+    if lead == nil and def.owned then return end
     local Ca = LivingKnox.Care   -- LK07-T03 : soin (médecin ou blessé seul) mené pendant un comportement calme au foyer
     if Ca ~= nil and Ca.apply ~= nil and Ca.apply(id, st, ctx, fresh) then return end
-    if b == "surrender" or b == "retreat" then
-        Decisions.applyDefence(id, st, ctx, fresh)   -- LK06-T05
-        return
-    end
-    if b == "watch" or b == "alert" then
-        local t = b == "watch" and ctx.threat or ctx.alert
-        if b == "alert" and unfit and ctx.home ~= nil and not ctx.atHome then
-            -- Membre aux constantes mauvaises loin du foyer (LK06-T07) : il y court d'abord (abri), accroupi ensuite.
-            local open = ownOpen(id)
-            if open == nil or open.op ~= D.OP_MOVE then
-                local x, y, z = homeTarget(ctx.home)
-                if x ~= nil then issued(id, D.moveTo(id, x, y, z, "run")) end
-            end
-            return
-        end
-        local a = t and Decisions.angleTo(t.x + 0.5 - ctx.x, t.y + 0.5 - ctx.y) or nil
-        if a ~= nil and (fresh or st.faced == nil or angleGap(a, st.faced) >= cfg().FACE_DELTA) then
-            st.faced = a
-            face(id, a)
-        end
-        if alertGesture ~= nil then Decisions.setAlertGesture(id, alertGesture) end
-        return
-    end
     if routine then
         R.apply(id, st, ctx, fresh)
         return
     end
+    if lead ~= nil then
+        lead.apply(id, st, ctx, fresh)
+        return
+    end
     if not fresh then return end
-    if b == "flee" then
-        flee(id, ctx, st)
-    elseif ctx.home ~= nil and not ctx.atHome then
-        goHome(id, ctx)
-    elseif b == "guard" or b == "patrol" then
-        face(id, st.angle)
+    if ctx.home ~= nil and not ctx.atHome then
+        Decisions.goHome(id, ctx)
     else
-        local open = ownOpen(id)
-        if open ~= nil and open.op == D.OP_MOVE then issued(id, D.stop(id)) end   -- fin d'une fuite au foyer
+        Decisions.stopOwnMove(id)   -- fin d'une fuite au foyer
     end
 end
 
@@ -2039,14 +1959,8 @@ function Decisions.forget(id)
     end
     local R = LivingKnox.Routines
     if R ~= nil then R.forget(id) end
-    local C = LivingKnox.Combat   -- LK06-T02
-    if C ~= nil and C.forget ~= nil then C.forget(id) end
-    local Df = LivingKnox.Defense   -- LK05-T09
-    if Df ~= nil and Df.forget ~= nil then Df.forget(id) end
-    local En = LivingKnox.Encounters   -- LK11-T02
-    if En ~= nil and En.forget ~= nil then En.forget(id) end
-    for _, x in ipairs(Decisions.extensions) do   -- LK05-T20
-        if x.leave ~= nil then x.leave(id) end
+    for _, x in ipairs(Decisions.extensions) do   -- LK05-T20, LK16-T06 : oubli (forget), sinon sortie (leave)
+        if x.forget ~= nil then x.forget(id) elseif x.leave ~= nil then x.leave(id) end
     end
 end
 

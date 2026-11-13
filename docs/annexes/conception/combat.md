@@ -40,7 +40,7 @@ Un PNJ combattant dont le groupe a retenu un joueur comme cible d'attaque doit a
 
 - Contexte d'un **combattant** (rôle qui permet `fight` ou `defend`) : `ctx.target = Combat.targetFor(gid, npcId, perception, joueurs)` = cible de `Hostility.chooseTarget` parmi les joueurs **vus**, seulement si l'action est `attack`.
 - Règle `threat`, en tête : cible présente et comportement `fight` permis → `fight` (clé `p<compte>`, raison `attack player A at 4.0 (hostile)`), avant le regard et la fuite. LK06-T07 : un non-combattant ne prend jamais un joueur pour cible, mais se bat contre un zombie à portée ([decisions.md](decisions.md), « Tout le monde se bat »).
-- `Decisions.apply` : `fight` → `Combat.apply` (engagement de source `decisions`) ; tout autre comportement → `Combat.leave` (fin d'un engagement de la cascade seulement ; un engagement de l'API ou d'une suite reste). `Decisions.forget` → `Combat.forget`.
+- Comportement `fight` mené par `LK_Combat.lua` (extension propriétaire `Decisions.registerExtension{ id = "fight" }`, LK16-T06) : `Decisions.apply` → `Combat.apply` (engagement de source `decisions`) ; tout autre comportement → `Combat.leave` (fin d'un engagement de la cascade seulement ; un engagement de l'API ou d'une suite reste), sauf `defend` qui garde la mêlée (`keeps`). `Decisions.forget` → `Combat.forget`. Sans `LK_Combat`, la mêlée décidée n'applique rien (`owned`).
 - Comportement `fight` : vigilance `guard`, échéance 1 minute de jeu (réévalué chaque minute ; perte de la cible = interruption).
 
 ### Touche : rapportée par le propriétaire, contrôlée et appliquée une fois par le serveur

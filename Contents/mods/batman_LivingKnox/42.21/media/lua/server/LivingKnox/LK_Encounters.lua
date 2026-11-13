@@ -489,4 +489,10 @@ LivingKnox.Decisions.registerContext({ id = "warn", order = 110, fill = function
     ctx.warn = Encounters.contextFor(src.gid, src.g, src.mid, src.m, src.body, ctx, src.per, src.players, src.minute)
 end })
 
+-- LK16-T06 : comportement « warn » de la cascade mené par ce module (extension propriétaire, LK_Decisions.lua) :
+-- arrêt, regard, geste qu'il pose et garde (gesture), réplique ou coup de semonce ; oubli (forget).
+LivingKnox.Decisions.registerExtension({ id = "warn", order = 40, gesture = true,
+    apply = function(id, st, ctx, fresh) return Encounters.apply(id, st, ctx, fresh) end,
+    forget = function(id) return Encounters.forget(id) end })
+
 return Encounters

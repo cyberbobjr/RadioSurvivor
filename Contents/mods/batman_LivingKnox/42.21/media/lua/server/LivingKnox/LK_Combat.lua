@@ -155,6 +155,7 @@ require "LivingKnox/LK_Directives"
 require "LivingKnox/LK_Anim"
 require "LivingKnox/LK_Equipment"
 require "LivingKnox/LK_Ammo"
+require "LivingKnox/LK_Decisions"   -- LK16-T06 : extension propriétaire du comportement « fight »
 
 Combat.orders = Combat.orders or {}     -- npcId -> ordre courant (autorité)
 Combat.weapons = Combat.weapons or {}   -- type -> objet HandWeapon de l'autorité (instancié une fois)
@@ -1255,5 +1256,12 @@ if isServer() then
     end
     LivingKnox.subscribe("OnClientCommand", "Combat.onClientCommand", onClientCommand)
 end
+
+-- LK16-T06 : comportement « fight » de la cascade mené par ce module (extension propriétaire, LK_Decisions.lua) :
+-- mêlée ou tir (apply), fin de l'engagement décidé quand le membre change de comportement (leave), oubli (forget).
+LivingKnox.Decisions.registerExtension({ id = "fight", order = 20,
+    apply = function(id, st, ctx, fresh) return Combat.apply(id, st, ctx, fresh) end,
+    leave = function(id) return Combat.leave(id) end,
+    forget = function(id) return Combat.forget(id) end })
 
 return Combat
