@@ -61,7 +61,7 @@
 | [LK13](LK13-outils-validation-publication.md) | Outils, performance, validation et publication | en cours | 13 / 16 |
 | [LK14](LK14-fortification-progressive.md) | Fortification progressive | en cours | 5 / 6 |
 | [LK15](LK15-registre-routines.md) | Registres des routines et potager du jardinier | en cours | 2 / 6 |
-| [LK16](LK16-remise-en-ordre-solid.md) | Remise en ordre SOLID | à faire | 0 / 12 |
+| [LK16](LK16-remise-en-ordre-solid.md) | Remise en ordre SOLID | en cours | 1 / 12 |
 
 ## Tâches
 
@@ -459,7 +459,7 @@
 | ☐ | [LK15-T06](LK15-registre-routines.md#L90) | Graines reçues par le jardinier | `testé hors jeu` | MP | 2026-11-13 : `Jobs/LK_Job_SeedSupply.lua` (`seeds`, ordre 42, `prefer = "garden"`, journal du groupe) : un membre range au dépôt un sachet de 5 graines d'une variété de saison (carotte, pomme de terre, chou, tomate, à tour de rôle, sans hasard) quand le foyer a moins de 2 graines semables, au plus une fois tous les 7 jours de jeu, seulement avec un jardinier vivant ; rien en hiver ; bancs `SeedSupplyTests` et `PureGardenTests` rouges puis verts ; `python tests/test_lk_garden.py` : `Ran 20 tests … OK` ; `test_lk_upkeep.py` 24 OK, `test_lk_food.py` 32 OK, `test_autoclient.py` 93 OK ; `python tests/run_all.py` : `162 passed, 0 failed` ; luacheck `Contents` 8 (inchangé), `dev` 0 |
 | ☐ | [LK16-T01](LK16-remise-en-ordre-solid.md#L49) | Socle `LivingKnox.Registry` | `à faire` | hors jeu | — |
 | ☐ | [LK16-T02](LK16-remise-en-ordre-solid.md#L59) | C1 : genres de chantier de la fortification | `à faire` | hors jeu | — |
-| ☐ | [LK16-T03](LK16-remise-en-ordre-solid.md#L69) | C7 : tables d'aiguillage (faits publics, administration, parole) | `à faire` | hors jeu | — |
+| ☑ | [LK16-T03](LK16-remise-en-ordre-solid.md#L69) | C7 : tables d'aiguillage (faits publics, administration, parole) | `testé hors jeu` | hors jeu | 2026-11-13 : `API.FACT_HANDLERS` (faits publics ; genre sans gestionnaire abandonné et journalisé) ; `Admin.HANDLERS[op] = { run, onNpc, logFailure }` à côté du contrat de noms `Admin.OPS` / `DEBUG_OPS` (gardé : lu par le client et la suite `lk.load`), opération sans gestionnaire refusée « unknown request » au lieu de retomber sur `moveHome` (rouge avant : `(True, None, 3, 'wipeAll') != (False, 'unknown request', 3, 'wipeAll')`), banc de concordance `OPS`/`HANDLERS` ; `Talk.REPLY_KINDS[kind] = { beforeClaim, reply }` et constante unique `REPLY_INTENTS` (pas de registre : contrat du pont) ; `View.onReply` (`LK_AdminView.lua`) et `Sheet.onReply` (`LK_NpcSheet.lua`) ; droits d'administration inchangés ; `test_lk_admin.py` 26 OK, `test_lk_api.py` 49 OK, `test_lk_talk.py` 9 OK, `test_lk_npcsheet.py` 19 OK, `test_lk_debugview.py` 23 OK, et 19 autres bancs qui chargent ces fichiers verts sans attendu changé ; `test_mod_calls_api.py` 16 OK ; luacheck `Contents` 8 |
 | ☐ | [LK16-T04](LK16-remise-en-ordre-solid.md#L79) | C5 : cycles cassés par événements | `à faire` | hors jeu | — |
 | ☐ | [LK16-T05](LK16-remise-en-ordre-solid.md#L89) | C3 : contexte de décision par inscription | `à faire` | hors jeu | — |
 | ☐ | [LK16-T06](LK16-remise-en-ordre-solid.md#L99) | C2 : comportements de décision par extension | `à faire` | hors jeu | — |

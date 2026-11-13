@@ -964,40 +964,56 @@ local function checkGone(g, reason, day)
     fire("groupGone", "gone|" .. g.id, { group = g.id, reason = reason, total = total, day = day })
 end
 
--- Traitement d'un fait en file (registre prêt). data = registre vivant (lecture seule).
-local function handle(data, f, touch)
-    local g = isText(f.group) and data.groups[f.group] or nil
-    if f.kind == "created" then
+-- Gestionnaire de chaque genre de fait en file (LK16-T03, F-R08), table de données : un fait public nouveau = son nom
+-- dans EVENTS, son abonné LivingKnox.listen (plus bas) et son gestionnaire ici, sans toucher à handle.
+-- handler(f, g, out) : f = fait en file, g = son groupe vivant (ou nil), out.fire(kind, key, payload) déclenche
+-- l'événement public une fois par clé, out.touch(g, reason, day) fait juger la disparition du groupe en fin de passage.
+API.FACT_HANDLERS = {
+    created = function(_, g, out)
         if not g then return end
         local alive = counts(g)
-        fire("groupCreated", "created|" .. g.id, { group = g.id, type = g.type, typeNameKey = typeNameKey(g.type),
+        out.fire("groupCreated", "created|" .. g.id, { group = g.id, type = g.type, typeNameKey = typeNameKey(g.type),
             name = g.name, day = g.founded, alive = alive, area = homeArea(g) })
-    elseif f.kind == "died" then
+    end,
+    died = function(f, g, out)
         local m = g and isText(f.member) and g.members[f.member] or nil
         if not m then return end
         local area = API.area(f.x, f.y) or homeArea(g)
         local alive = counts(g)
         local key = "died|" .. g.id .. "|" .. f.member
-        fire("memberDied", key, { group = g.id, member = f.member, npc = textOrNil(m.npc) or textOrNil(f.npc),
+        out.fire("memberDied", key, { group = g.id, member = f.member, npc = textOrNil(m.npc) or textOrNil(f.npc),
             role = m.role, offscreen = f.offscreen == true, cause = textOrNil(f.cause), byPlayer = f.byPlayer == true,
             area = area, groupAlive = alive, day = f.day })
-        touch(g, "dead", f.day)
-    elseif f.kind == "left" then
+        out.touch(g, "dead", f.day)
+    end,
+    left = function(f, g, out)
         if not isText(f.member) or f.alive ~= true then return end
         if g and g.members[f.member] ~= nil then return end   -- membre revenu : transaction annulée
         local key = "left|" .. f.group .. "|" .. f.member
-        fire("memberLeft", key, { group = f.group, member = f.member, npc = textOrNil(f.npc), role = textOrNil(f.role),
-            reason = textOrNil(f.reason), groupAlive = g and counts(g) or 0, day = f.day })
-        if g then touch(g, "left", f.day) end
-    elseif f.kind == "removed" then
+        out.fire("memberLeft", key, { group = f.group, member = f.member, npc = textOrNil(f.npc),
+            role = textOrNil(f.role), reason = textOrNil(f.reason), groupAlive = g and counts(g) or 0, day = f.day })
+        if g then out.touch(g, "left", f.day) end
+    end,
+    removed = function(f, g, out)
         if g or not isNumber(f.alive) or f.alive < 1 then return end   -- encore là, ou déjà sans vivant (annoncé)
-        fire("groupGone", "gone|" .. f.group, { group = f.group, reason = "removed", day = f.day })
-    elseif f.kind == "encounter" then
+        out.fire("groupGone", "gone|" .. f.group, { group = f.group, reason = "removed", day = f.day })
+    end,
+    encounter = function(f, g, out)
         if not g or not isText(f.player) then return end
         local key = "enc|" .. g.id .. "|" .. f.player .. "|" .. tostring(f.n)
-        fire("encounter", key, { group = g.id, npc = textOrNil(f.npc), player = f.player,
+        out.fire("encounter", key, { group = g.id, npc = textOrNil(f.npc), player = f.player,
             level = textOrNil(f.level), day = f.day })
+    end,
+}
+
+-- Traitement d'un fait en file (registre prêt). data = registre vivant (lecture seule).
+local function handle(data, f, out)
+    local handler = API.FACT_HANDLERS[f.kind]
+    if handler == nil then
+        LivingKnox.Log.error("events: no handler for fact %s, dropped", tostring(f.kind))
+        return
     end
+    handler(f, isText(f.group) and data.groups[f.group] or nil, out)
 end
 
 -- Déclenche les événements des faits en attente (appelé à chaque pas ; sans fait, rien). Les faits produits par un
@@ -1019,8 +1035,9 @@ function API.flushEvents()
         if last[g.id] == nil then order[#order + 1] = g.id end
         last[g.id] = { reason = reason, day = day }
     end
+    local out = { fire = fire, touch = touch }
     for _, f in ipairs(list) do
-        local ok, err = pcall(handle, data, f, touch)
+        local ok, err = pcall(handle, data, f, out)
         if not ok then LivingKnox.Log.error("events: fact %s failed: %s", tostring(f.kind), tostring(err)) end
     end
     for _, gid in ipairs(order) do

@@ -36,6 +36,11 @@ Code : `server/LivingKnox/LK_Admin.lua` (autorité), `client/LivingKnox/LK_Admin
 - **Requêtes** : une seule commande `adminRequest { op, n, gid, x, y, z }`, réponse `adminReply` au seul demandeur.
   Refus : `{ n, op, ok = false, err = "denied" }` sans aucun autre champ ; ligne WARN `admin: request <op> refused for
   <compte> (<raison>)`, au plus une par joueur et par opération et par minute réelle, avec le compte des refus tus.
+- **Ajouter une opération** (LK16-T03) : son nom dans `Admin.OPS` (et `Admin.DEBUG_OPS` si le mode debug est exigé en
+  solo), son gestionnaire dans `Admin.HANDLERS[op] = { run, onNpc, logFailure }` ; côté client, sa clé dans les
+  opérations de la vue et sa présentation par `View.onReply(op, handler)` (ou `Sheet.onReply` pour la fiche).
+  `Admin.request` et les `receive` ne changent pas. Une opération de `OPS` sans gestionnaire est refusée
+  (`unknown request`, ligne WARN `... refused for <compte> (no handler)`) : elle n'est jamais servie par une autre.
 - **État des groupes** (`list`) : vivants / total, incarnés, chef, objectif, tâche hors écran, besoins, moral, foyer
   exact, marque « disparu » (cause, heure, relève due, relève posée), expédition en cours. **Détail** (`group`) :
   membres (rôle, vivant, PNJ, poste, blessure, incarné), histoire publique, groupe relevé, journal complet (32

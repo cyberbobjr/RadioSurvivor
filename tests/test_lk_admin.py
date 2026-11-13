@@ -148,6 +148,32 @@ class AccessTests(AdminBench):
         r = self.ev(f'{ADMIN}.request(BOSS, {{ op = "list", n = -3 }})')
         self.assertEqual(r.n, 0)
 
+    def test_declared_operation_without_handler_is_refused_and_moves_nothing(self):
+        # LK16-T03 (F-R09) : une opération déclarée dans OPS sans gestionnaire ne retombe plus sur le foyer déplacé.
+        self.server()
+        self.rt.execute(f'{ADMIN}.OPS.wipeAll = true')
+        old = dict(self.group('grp-1').home.items())
+        seq = self.seq()
+        r = self.req('BOSS', op='wipeAll', n=3, gid='grp-1', x=12000, y=12000, z=0)
+        self.assertEqual((r.ok, r.err, r.n, r.op), (False, 'unknown request', 3, 'wipeAll'))
+        self.assertEqual(dict(self.group('grp-1').home.items()), old)
+        self.assertEqual(self.seq(), seq)
+        self.assertTrue(any('admin: request wipeAll refused for boss (no handler)' in line
+                            for line in self.logs('WARN')))
+
+    def test_operation_added_with_its_handler_is_served_without_touching_request(self):
+        self.server()
+        self.rt.execute(f'{ADMIN}.OPS.ping = true '
+                        f'{ADMIN}.HANDLERS.ping = {{ run = function(args, who) return {{ pong = who }} end }}')
+        r = self.req('BOSS', op='ping', n=2, gid='grp-1')
+        self.assertEqual((r.ok, r.op, r.pong, r.gid), (True, 'ping', 'boss', 'grp-1'))
+        self.assertEqual(self.req('PEON', op='ping', n=3).err, 'denied')   # droits inchangés
+
+    def test_every_declared_operation_has_a_handler_and_back(self):
+        ops = sorted(self.ev(f'{ADMIN}.OPS').keys())
+        handlers = sorted(self.ev(f'{ADMIN}.HANDLERS').keys())
+        self.assertEqual(ops, handlers)
+
     def test_client_command_routing_answers_only_the_sender(self):
         self.server()
         self.ev(f'{ADMIN}.onClientCommand("LivingKnox", "adminRequest", BOSS, {{ op = "list", n = 4 }})')
@@ -478,6 +504,18 @@ class SoloTests(HarnessBase):
         self.h.load('solo', f'LivingKnox.AdminView.send("home", {{ gid = "{self.a}", x = 1, y = 1, z = 0 }})')
         self.assertEqual(self.h.eval('solo', 'LivingKnox.AdminView.state.status'),
                          'IGUI_LK_Admin_Error|no metagrid')
+
+    def test_operation_added_on_both_sides_is_presented_without_touching_receive(self):
+        # LK16-T03 (F-R09, H-D05) : gestionnaire de l'autorité et présentation de la fenêtre, par données seulement.
+        self.h.load('solo', '''
+            local A, V = LivingKnox.Admin, LivingKnox.AdminView
+            A.OPS.ping = true
+            A.HANDLERS.ping = { run = function(args, who) return { pong = who } end }
+            V.onReply("ping", function(st, reply) st.status = "pong " .. tostring(reply.pong) end)
+            V.send("ping")
+        ''')
+        self.assertEqual(self.h.eval('solo', 'LivingKnox.AdminView.state.status'), 'pong A')
+        self.assertIsNone(self.h.eval('solo', 'LivingKnox.AdminView.state.pending.ping'))
 
 
 if __name__ == '__main__':

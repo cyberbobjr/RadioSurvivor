@@ -230,6 +230,31 @@ function Sheet.goTo(dest, moved)
     return tr("GotoDone", where)
 end
 
+-- Présentation d'une réponse acceptée, par opération (LK16-T03, H-D05) : une opération nouvelle de la fiche = sa clé
+-- dans OPS et un appel Sheet.onReply, sans toucher à Sheet.receive. handler(st, reply), st = Sheet.state.
+Sheet.replies = {}
+
+function Sheet.onReply(op, handler)
+    Sheet.replies[op] = handler
+end
+
+-- Fiche relue (npc) ou réglage retenu (npcSet, npcRole, npcName : message et champs repris), pour le PNJ affiché.
+local function showNpc(st, reply)
+    if type(reply.npc) ~= "table" or reply.npc.id ~= st.npc then return end
+    st.data = reply.npc
+    if reply.op ~= "npc" then
+        st.status = tr("SetDone", Sheet.fieldName(reply.field), tostring(reply.old), tostring(reply.value))
+        st.refill = true   -- champs repris sur les valeurs retenues
+    end
+end
+
+local function showGoto(_, reply)
+    Sheet.notify(Sheet.goTo(reply.dest, reply.moved == true))
+end
+
+for _, op in ipairs({ "npc", "npcSet", "npcRole", "npcName" }) do Sheet.onReply(op, showNpc) end
+for _, op in ipairs({ "npcGoto", "homeGoto" }) do Sheet.onReply(op, showGoto) end
+
 -- Réponse de l'autorité. Rend vrai si elle a été prise en compte.
 function Sheet.receive(reply)
     if type(reply) ~= "table" or not Sheet.OPS[reply.op] then return false end
@@ -244,14 +269,9 @@ function Sheet.receive(reply)
         count("refused")
         local text = reply.err == "denied" and tr("Denied") or tr("Error", tostring(reply.err))
         if Sheet.GOTO_OPS[reply.op] then Sheet.notify(text) else st.status = text end
-    elseif Sheet.GOTO_OPS[reply.op] then
-        Sheet.notify(Sheet.goTo(reply.dest, reply.moved == true))
-    elseif type(reply.npc) == "table" and reply.npc.id == st.npc then
-        st.data = reply.npc
-        if reply.op ~= "npc" then
-            st.status = tr("SetDone", Sheet.fieldName(reply.field), tostring(reply.old), tostring(reply.value))
-            st.refill = true   -- champs repris sur les valeurs retenues
-        end
+    else
+        local handler = Sheet.replies[reply.op]
+        if handler then handler(st, reply) end
     end
     Sheet.redraw()
     return true

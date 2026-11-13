@@ -525,6 +525,48 @@ local function talkReply(req, result, npc)
     return true
 end
 
+-- Once the reply text and its intent are accepted, the enrichment stores the background of the NPC (intent none only).
+local function enrichReply(req, result, npc)
+    if result.intent ~= "none" or type(result.background) ~= "string" or #result.background > 1000 then
+        return false, "invalid background"
+    end
+    npc.background, npc.enrichState = result.background, "done"
+    Talk.acknowledge(req, true, {})
+    if not Talk.save() then return false, "state not saved" end
+    return true
+end
+
+-- LK16-T03 (G-Z02): the only list of the intents a speech reply may carry. Vocabulary of the bridge protocol (contract
+-- with the bridge, closed): a new intent is a protocol change, made here and in the bridge together. talkOnly: npc_talk
+-- requests only (E10-T04 leave_group, E09-T04 change_relation, E11-T13 report_done); offer: may carry an offer;
+-- relation: may carry the relation fields dir and fact. Member replies have their own vocabulary (MEMBER_INTENTS).
+local REPLY_INTENTS = {
+    none = {},
+    offer = { offer = true },
+    accept = {},
+    negotiate = { offer = true },
+    leave_group = { talkOnly = true },
+    change_relation = { talkOnly = true, relation = true },
+    report_done = { talkOnly = true },
+}
+
+-- LK16-T03 (G-Z01): how each kind of request is answered, as data: a new kind of request is one entry here, without
+-- touching reply. beforeClaim: served before the radio claim and the intent checks (its reply has its own vocabulary:
+-- E10-T03 member, E09-T06 incident); otherwise served after them. A request of a kind without entry is a conversation
+-- (npc_talk), as before. reply(req, result, npc) -> true, or false and the reason (English).
+Talk.REPLY_KINDS = {
+    npc_member = { beforeClaim = true, reply = memberReply },
+    npc_incident = { beforeClaim = true, reply = incidentReply },
+    npc_enrich = { reply = enrichReply },
+    npc_initiative = { reply = function(req, result, npc) -- E08-T03
+        return spokenReply(Talk.initiatives, req, result, npc)
+    end },
+    npc_converse = { reply = function(req, result, npc) -- E08-T04
+        return spokenReply(Talk.conversations, req, result, npc)
+    end },
+    npc_talk = { reply = talkReply },
+}
+
 -- Applies a bridge reply. Returns true, or false and the reason of the refusal (English, logged once by poll, E17-T07).
 local function reply(req, result)
     local npc = Talk.fiche(req.npc)
@@ -540,34 +582,18 @@ local function reply(req, result)
     if string.find(result.text, "[%c<>%[%]*]") then return false, "text with a control character or markup" end
     -- E07-T09: raw JSON of the model is never said to a player (the bridge already refuses it; older bridge here).
     if string.find(result.text, '{%s*"') then return false, "text holds raw JSON" end
-    if req.kind == "npc_member" then return memberReply(req, result, npc) end -- E10-T03
-    if req.kind == "npc_incident" then return incidentReply(req, result, npc) end -- E09-T06
+    local kind = Talk.REPLY_KINDS[req.kind] or Talk.REPLY_KINDS.npc_talk
+    if kind.beforeClaim then return kind.reply(req, result, npc) end
     local claimed = Talk.host.claim(req)
     if claimed then return claimed(req, result, npc) end -- E08-T06: radio
-    local intent = result.intent
-    if intent ~= "none" and intent ~= "offer" and intent ~= "accept" and intent ~= "negotiate"
-            and not (intent == "leave_group" and req.kind == "npc_talk")
-            and not (intent == "change_relation" and req.kind == "npc_talk")
-            and not (intent == "report_done" and req.kind == "npc_talk") then
-        return false, "invalid intent" -- E10-T04: leave_group, E09-T04: change_relation, E11-T13: report_done; talk only
-    end
-    if intent ~= "change_relation" and (result.dir ~= nil or result.fact ~= nil) then
+    local intent = type(result.intent) == "string" and REPLY_INTENTS[result.intent] or nil
+    if not intent or (intent.talkOnly and req.kind ~= "npc_talk") then return false, "invalid intent" end
+    if not intent.relation and (result.dir ~= nil or result.fact ~= nil) then
         return false, "relation fields without intent"
     end
     if type(result.offer) ~= "string" then return false, "offer is not text" end
-    if intent ~= "offer" and intent ~= "negotiate" and result.offer ~= "" then return false, "offer without intent" end
-    if req.kind == "npc_enrich" then
-        if intent ~= "none" or type(result.background) ~= "string" or #result.background > 1000 then
-            return false, "invalid background"
-        end
-        npc.background, npc.enrichState = result.background, "done"
-        Talk.acknowledge(req, true, {})
-        if not Talk.save() then return false, "state not saved" end
-        return true
-    end
-    if req.kind == "npc_initiative" then return spokenReply(Talk.initiatives, req, result, npc) end -- E08-T03
-    if req.kind == "npc_converse" then return spokenReply(Talk.conversations, req, result, npc) end -- E08-T04
-    return talkReply(req, result, npc)
+    if not intent.offer and result.offer ~= "" then return false, "offer without intent" end
+    return kind.reply(req, result, npc)
 end
 
 -- Reads the answers: one request per speaker at most, in the order of the queue.

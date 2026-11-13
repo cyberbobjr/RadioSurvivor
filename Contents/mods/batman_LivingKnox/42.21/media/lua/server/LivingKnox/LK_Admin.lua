@@ -883,6 +883,31 @@ end
 
 -- Requête ------------------------------------------------------------------------------------------------------
 
+-- Gestionnaire de chaque opération de OPS (LK16-T03, F-R09), table de données : ajouter une opération = une clé dans
+-- OPS (contrat lu par le client et les suites en jeu, droits par DEBUG_OPS) et son gestionnaire ici, sans toucher à
+-- Admin.request. Une opération de OPS sans gestionnaire est refusée (journalisée), jamais servie par une autre.
+--   run(args, who, player) -> résultat (table de valeurs simples recopiée dans la réponse) ou nil, err ;
+--   onNpc : la requête vise un PNJ (args.npc renvoyé en reply.id) ;
+--   logFailure : un échec est journalisé (opérations qui écrivent).
+Admin.HANDLERS = {
+    list = { run = function() return Admin.list() end },
+    group = { run = function(args) return Admin.group(args.gid) end },
+    relief = { logFailure = true, run = function(args, who) return Admin.forceRelief(args.gid, who) end },
+    home = { logFailure = true, run = function(args, who) return Admin.moveHome(args.gid, args.x, args.y, args.z, who) end },
+    load = { run = function(args, who) return Admin.load(args, who) end },
+    npc = { onNpc = true, run = function(args) return Admin.npcView(args.npc) end },
+    activity = { run = function(args) return Admin.activity(args.gid, args.after) end },
+    npcSet = { onNpc = true, logFailure = true, run = function(args, who)
+        return Admin.npcSet(args.npc, type(args.field) == "string" and args.field or nil, args.value, who)
+    end },
+    npcRole = { onNpc = true, logFailure = true, run = function(args, who) return Admin.npcRole(args.npc, args.role, who) end },
+    npcName = { onNpc = true, logFailure = true,
+        run = function(args, who) return Admin.npcName(args.npc, args.first, args.last, who) end },
+    npcGoto = { onNpc = true, logFailure = true,
+        run = function(args, who, player) return Admin.npcGoto(args.npc, who, player) end },
+    homeGoto = { logFailure = true, run = function(args, who, player) return Admin.homeGoto(args.gid, who, player) end },
+}
+
 -- Traite une requête d'administration de player. args = { op, n, gid, x, y, z, action, windowMs, log, npc, field,
 -- value, after, role, first, last }. Rend la réponse { n, op, ok, err, ... } (table neuve de valeurs simples, prête
 -- à envoyer au seul demandeur).
@@ -902,40 +927,20 @@ function Admin.request(player, args)
         reply.err = "unknown request"
         return reply
     end
-    local who = Admin.nameOf(player)
-    local result, err
-    if op == "list" then
-        result, err = Admin.list()
-    elseif op == "group" then
-        result, err = Admin.group(args.gid)
-    elseif op == "relief" then
-        result, err = Admin.forceRelief(args.gid, who)
-    elseif op == "load" then
-        result, err = Admin.load(args, who)
-    elseif op == "npc" then
-        result, err = Admin.npcView(args.npc)
-    elseif op == "activity" then
-        result, err = Admin.activity(args.gid, args.after)
-    elseif op == "npcSet" then
-        result, err = Admin.npcSet(args.npc, type(args.field) == "string" and args.field or nil, args.value, who)
-    elseif op == "npcRole" then
-        result, err = Admin.npcRole(args.npc, args.role, who)
-    elseif op == "npcName" then
-        result, err = Admin.npcName(args.npc, args.first, args.last, who)
-    elseif op == "npcGoto" then
-        result, err = Admin.npcGoto(args.npc, who, player)
-    elseif op == "homeGoto" then
-        result, err = Admin.homeGoto(args.gid, who, player)
-    else
-        result, err = Admin.moveHome(args.gid, args.x, args.y, args.z, who)
+    local handler = Admin.HANDLERS[op]
+    if handler == nil then
+        refuse(player, op, "no handler")
+        reply.err = "unknown request"
+        return reply
     end
+    local who = Admin.nameOf(player)
+    local result, err = handler.run(args, who, player)
     reply.gid = type(args.gid) == "string" and args.gid or nil
-    local onNpc = op == "npc" or op == "npcSet" or op == "npcRole" or op == "npcName" or op == "npcGoto"
-    if onNpc then reply.id = type(args.npc) == "string" and args.npc or nil end
+    if handler.onNpc then reply.id = type(args.npc) == "string" and args.npc or nil end
     if result == nil then
         count("failed")
         reply.err = tostring(err)
-        if op == "relief" or op == "home" or op == "homeGoto" or (onNpc and op ~= "npc") then
+        if handler.logFailure then
             log().info("admin: %s by %s on %s failed: %s", op, who, tostring(reply.gid or reply.id), reply.err)
         end
         return reply

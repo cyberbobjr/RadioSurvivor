@@ -264,6 +264,13 @@ class MPTests(SheetBase):
 class SoloTests(SheetBase):
     mode = 'solo'
 
+    def test_operation_added_to_the_sheet_is_presented_without_touching_receive(self):
+        # LK16-T03 (H-D05) : une opération de la fiche s'ajoute par sa clé dans OPS et un appel onReply.
+        self.run_lua(f'{S}.OPS.npcPing = true {S}.state.pending.npcPing = 4 '
+                     f'{S}.onReply("npcPing", function(st, reply) st.status = "pong " .. reply.pong end)')
+        self.assertTrue(self.ev(f'{S}.receive({{ op = "npcPing", n = 4, ok = true, pong = "x" }})'))
+        self.assertEqual(self.ev(f'{S}.state.status'), 'pong x')
+
     def test_solo_requires_the_debug_mode(self):
         gid = self.mk()
         npc = self.npc_of(gid, 'm-2')

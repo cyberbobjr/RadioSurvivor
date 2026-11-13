@@ -2,13 +2,13 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** à faire — 0 / 12 tâche(s) terminée(s).
+**Avancement.** en cours — 1 / 12 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
 | ☐ | LK16-T01 | Socle `LivingKnox.Registry` | `à faire` | hors jeu | — |
 | ☐ | LK16-T02 | C1 : genres de chantier de la fortification | `à faire` | hors jeu | — |
-| ☐ | LK16-T03 | C7 : tables d'aiguillage (faits publics, administration, parole) | `à faire` | hors jeu | — |
+| ☑ | LK16-T03 | C7 : tables d'aiguillage (faits publics, administration, parole) | `testé hors jeu` | hors jeu | — |
 | ☐ | LK16-T04 | C5 : cycles cassés par événements | `à faire` | hors jeu | LK16-T01 |
 | ☐ | LK16-T05 | C3 : contexte de décision par inscription | `à faire` | hors jeu | LK16-T04 |
 | ☐ | LK16-T06 | C2 : comportements de décision par extension | `à faire` | hors jeu | LK16-T05 |
@@ -66,16 +66,16 @@ Constats P2 et P3 de l'audit hors des chantiers ; tout changement visible par un
   - Tests : bancs de la fortification ; suite complète.
   - Preuve : —
   - Reste : —
-- [ ] **LK16-T03** — C7 : tables d'aiguillage (faits publics, administration, parole)
-  - État : `à faire`
+- [x] **LK16-T03** — C7 : tables d'aiguillage (faits publics, administration, parole)
+  - État : `testé hors jeu`
   - Cible : `hors jeu`
   - Dépend de : —
   - Fichiers : `LK_API.lua`, `LK_Admin.lua`, `LK_Talk.lua`, `client/LivingKnox/LK_AdminView.lua` (et `LK_NpcSheet.lua` pour ses réponses) ; bancs correspondants
   - Faire : constats F-R08, F-R09, G-Z01, H-D05 : table de gestionnaires des faits publics, `Admin.OPS[op] = { debug, onNpc, run }` (fin du repli implicite vers `moveHome`), table des genres de requête de parole (ordre gardé), `onReply(op, handler)` côté client ; constante unique de la liste d'intents (G-Z02).
   - Accepté si : une opération ajoutée à `Admin.OPS` sans gestionnaire est refusée (test qui échoue aujourd'hui) ; bancs existants verts.
   - Tests : bancs de l'API, de l'administration et de la parole ; suite complète.
-  - Preuve : —
-  - Reste : —
+  - Preuve : 2026-11-13 : `API.FACT_HANDLERS` (faits publics ; genre sans gestionnaire abandonné et journalisé) ; `Admin.HANDLERS[op] = { run, onNpc, logFailure }` à côté du contrat de noms `Admin.OPS` / `DEBUG_OPS` (gardé : lu par le client et la suite `lk.load`), opération sans gestionnaire refusée « unknown request » au lieu de retomber sur `moveHome` (rouge avant : `(True, None, 3, 'wipeAll') != (False, 'unknown request', 3, 'wipeAll')`), banc de concordance `OPS`/`HANDLERS` ; `Talk.REPLY_KINDS[kind] = { beforeClaim, reply }` et constante unique `REPLY_INTENTS` (pas de registre : contrat du pont) ; `View.onReply` (`LK_AdminView.lua`) et `Sheet.onReply` (`LK_NpcSheet.lua`) ; droits d'administration inchangés ; `test_lk_admin.py` 26 OK, `test_lk_api.py` 49 OK, `test_lk_talk.py` 9 OK, `test_lk_npcsheet.py` 19 OK, `test_lk_debugview.py` 23 OK, et 19 autres bancs qui chargent ces fichiers verts sans attendu changé ; `test_mod_calls_api.py` 16 OK ; luacheck `Contents` 8
+  - Reste : suite complète à repasser avec les autres tâches du jour ; `LK_AdminView` et `LK_NpcSheet` dupliquent encore l'envoi, la réception et les compteurs (un client d'administration commun : constat P1 de l'audit) ; deux tables `OPS` et `HANDLERS` tenues d'accord par un banc
 - [ ] **LK16-T04** — C5 : cycles cassés par événements
   - État : `à faire`
   - Cible : `hors jeu`

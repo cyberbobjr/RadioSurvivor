@@ -99,6 +99,39 @@ function View.select(gid)
     View.redraw()
 end
 
+-- Présentation d'une réponse acceptée, par opération (LK16-T03, H-D05) : une opération nouvelle de la fenêtre = un
+-- appel View.onReply, sans toucher à View.receive. handler(st, reply), st = View.state ; une réponse acceptée d'une
+-- opération sans présentation est seulement comptée.
+View.replies = {}
+
+function View.onReply(op, handler)
+    View.replies[op] = handler
+end
+
+View.onReply("list", function(st, reply)
+    st.groups = type(reply.groups) == "table" and reply.groups or {}
+    st.hour, st.enabled = reply.hour, reply.enabled == true
+    if not st.enabled then st.status = tr("Disabled") end
+end)
+View.onReply("group", function(st, reply)
+    if type(reply.group) == "table" and reply.group.id == st.selected then st.detail = reply.group end
+end)
+View.onReply("relief", function(st, reply)
+    st.status = tr("ReliefDone", tostring(reply.gid), tostring(reply.relief))
+    View.refresh()
+end)
+View.onReply("load", function(st, reply)
+    st.load = { action = reply.action, running = reply.running == true,
+        lines = type(reply.lines) == "table" and reply.lines or {} }
+    st.showLoad = true
+    st.status = tr(st.load.running and "LoadRunning" or "LoadStopped")
+end)
+View.onReply("home", function(st, reply)
+    local h = type(reply.home) == "table" and reply.home or {}
+    st.status = tr("HomeDone", tostring(reply.gid), tostring(h.x) .. "," .. tostring(h.y) .. "," .. tostring(h.z))
+    View.refresh()
+end)
+
 -- Réponse de l'autorité. Rend vrai si elle a été prise en compte.
 function View.receive(reply)
     if type(reply) ~= "table" or type(reply.op) ~= "string" then return false end
@@ -113,24 +146,9 @@ function View.receive(reply)
     if not reply.ok then
         count("refused")
         if reply.err == "denied" then st.status = tr("Denied") else st.status = tr("Error", tostring(reply.err)) end
-    elseif reply.op == "list" then
-        st.groups = type(reply.groups) == "table" and reply.groups or {}
-        st.hour, st.enabled = reply.hour, reply.enabled == true
-        if not st.enabled then st.status = tr("Disabled") end
-    elseif reply.op == "group" then
-        if type(reply.group) == "table" and reply.group.id == st.selected then st.detail = reply.group end
-    elseif reply.op == "relief" then
-        st.status = tr("ReliefDone", tostring(reply.gid), tostring(reply.relief))
-        View.refresh()
-    elseif reply.op == "load" then
-        st.load = { action = reply.action, running = reply.running == true,
-            lines = type(reply.lines) == "table" and reply.lines or {} }
-        st.showLoad = true
-        st.status = tr(st.load.running and "LoadRunning" or "LoadStopped")
-    elseif reply.op == "home" then
-        local h = type(reply.home) == "table" and reply.home or {}
-        st.status = tr("HomeDone", tostring(reply.gid), tostring(h.x) .. "," .. tostring(h.y) .. "," .. tostring(h.z))
-        View.refresh()
+    else
+        local handler = View.replies[reply.op]
+        if handler then handler(st, reply) end
     end
     View.redraw()
     return true

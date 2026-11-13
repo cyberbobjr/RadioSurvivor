@@ -628,6 +628,24 @@ class EventTests(Base):
         self.flush()
         self.assertEqual(self.names().count('OnLivingKnoxGroupCreated'), 2)
 
+    def test_fact_kind_added_to_the_handler_table_is_served_without_touching_handle(self):
+        # LK16-T03 (F-R08) : un genre de fait s'ajoute par sa ligne dans FACT_HANDLERS ; un genre inconnu est abandonné.
+        self.flush()
+        self.run_lua(f'''
+            SEEN = {{}}
+            LivingKnox.API.FACT_HANDLERS.renamed = function(f, g, out)
+                SEEN[#SEEN + 1] = g and g.id or "none"
+                out.fire("groupCreated", "renamed|" .. f.group, {{ group = f.group }})
+            end
+            local q = LivingKnox.API.events.queue
+            q[#q + 1] = {{ kind = "renamed", group = "{self.a}" }}
+            q[#q + 1] = {{ kind = "nonsense", group = "{self.a}" }}
+        ''')
+        self.flush()
+        self.assertEqual(list(self.ev('SEEN').values()), [self.a])
+        self.assertEqual(self.ev('EVS("OnLivingKnoxGroupCreated")[3]').group, self.a)
+        self.assertTrue(any('no handler for fact nonsense' in line for line in self.h.logs(self.srv)))
+
     def test_created_and_offscreen_death_after_transaction_once(self):
         self.assertEqual(self.names(), [])  # rien avant le pas suivant
         self.flush()

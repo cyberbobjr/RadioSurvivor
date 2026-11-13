@@ -14,7 +14,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from test_carnet import Simulation, Clock
+from test_carnet import Simulation, Clock, protocol
 
 ROOT = Path(__file__).resolve().parents[1]
 LK = ROOT / 'Contents/mods/batman_LivingKnox/42.21/media/lua/server/LivingKnox'
@@ -88,6 +88,53 @@ class StateTests(unittest.TestCase):
         req = talk.enqueue(npc, 'npc_enrich', 'system', 'x', 'EN', sim.server.rt.table(), sim.server.rt.table())
         self.assertEqual((req.order, req.revision, npc.order), (5, 2, 5))
         self.assertTrue(req.id.endswith('-5-npc-9'))
+
+
+class ReplyKindTests(unittest.TestCase):
+    """LK16-T03 (G-Z01) : un genre de requête s'ajoute par sa ligne dans Talk.REPLY_KINDS, sans toucher à reply."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory(prefix='lk-talk-')
+        self.sim = Simulation(Path(self.tmp.name) / 'w', clock=Clock(), new_world=True)
+        self.rt = self.sim.server.rt
+        self.rt.execute('''
+            local Talk = RS_CarnetServer.talk
+            PROBE_NPC = { id = "npc-9", incarnation = 2001, order = 0, revision = 2, alive = true, personality = {} }
+            Talk.fiche = function(id) if id == "npc-9" then return PROBE_NPC end return nil end
+            SERVED = {}
+            local function served(req) SERVED[#SERVED + 1] = req.kind Talk.acknowledge(req, true, {}) return true end
+            Talk.REPLY_KINDS.npc_probe = { reply = served }
+            Talk.REPLY_KINDS.npc_early = { beforeClaim = true, reply = served }
+        ''')
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def answer(self, kind, intent):
+        req = self.rt.eval(f'RS_CarnetServer.talk.enqueue(PROBE_NPC, "{kind}", "system", "x", "EN", {{}}, {{}})')
+        body = {'version': 2, 'kind': 'npc_reply', 'id': req.id, 'world': req.world, 'run': req.run, 'npc': req.npc,
+                'order': req.order, 'revision': req.revision, 'text': 'Noted.', 'intent': intent, 'offer': ''}
+        (self.sim.path / 'responses.txt').write_text(f"resp={req.id}\npayload={protocol.encode(body).hex()}\nend\n",
+                                                     encoding='utf-8')
+        for _ in range(3):
+            self.sim.clock.offset += 1001
+            self.sim.tick()
+        return req
+
+    def served(self):
+        return list(self.rt.eval('SERVED').values())
+
+    def test_added_kind_is_served_after_the_intent_checks(self):
+        self.answer('npc_probe', 'none')
+        self.assertEqual(self.served(), ['npc_probe'])
+        refusals = self.rt.eval('RS_CarnetServer.talk.refusals')
+        self.answer('npc_probe', 'leave_group')                    # intention réservée à npc_talk : refusée
+        self.assertEqual(self.served(), ['npc_probe'])
+        self.assertEqual(refusals[len(refusals)].reason, 'invalid intent')
+
+    def test_added_kind_before_the_claim_skips_the_speech_intents(self):
+        self.answer('npc_early', 'its_own_vocabulary')
+        self.assertEqual(self.served(), ['npc_early'])
 
 
 class AloneTests(unittest.TestCase):
