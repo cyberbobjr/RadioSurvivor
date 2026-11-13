@@ -25,6 +25,7 @@ fortification LK14…) : les lire dans leur fichier.
 
 | ADR | Statut |
 |---|---|
+| [adr-banc-mimetique.md](adr-banc-mimetique.md) — banc hors jeu mimétique : doublures contrôlées contre l'API du jeu, Lua vanilla réel, horloge et réseau fidèles, site réel rejoué (2026-11-13), plan [E19](../../annexes/plans/E19-banc-mimetique.md) | Accepté |
 | [adr-registre-routines.md](adr-registre-routines.md) — registres des routines et des tâches du foyer de Living Knox, une par fichier ; potager du jardinier (2026-11-13), plan [LK15](../../annexes/plans/LK15-registre-routines.md) | Accepté |
 | [adr-separation-mods.md](adr-separation-mods.md) — trois mods dans un article : RadioSurvivor, Living Knox et un mod commun (2026-11-05), plan [E18](../../annexes/plans-termines/E18-separation-living-knox.md) | Accepté |
 | [adr-b17-chat-proximite-pnj.md](adr-b17-chat-proximite-pnj.md) — dialogue avec les PNJ dans le chat de proximité (2026-10-02) | Historique : écrit pour les PNJ Bandits! du carnet 0.2 ; le principe (chat « dire » + raccourci Ctrl+G) a été conservé avec Living Knox |
