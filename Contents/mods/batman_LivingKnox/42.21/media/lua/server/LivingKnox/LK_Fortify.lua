@@ -80,6 +80,7 @@ require "LivingKnox/LK_Log"
 require "LivingKnox/LK_Groups"
 require "LivingKnox/LK_Homes"
 require "LivingKnox/LK_Routines"
+require "LivingKnox/LK_Simulation"   -- LK16-T09 : passe horaire (registerHourly)
 
 local Fortify = LivingKnox.Fortify or {}
 LivingKnox.Fortify = Fortify
@@ -2867,3 +2868,9 @@ LivingKnox.Routines.registerActivity({ id = "chore.fortify", behaviour = "chore"
         if ctx.duty ~= "builder" then return false end
         return Fortify.run(id, st, ctx, g)
     end })
+
+-- LK16-T09 : passe horaire de la simulation hors écran (ordre 60, la dernière) : chantiers avancés hors écran avec
+-- les matériaux du stock (LK14-T05).
+LivingKnox.Simulation.registerHourly({ id = "fortify", order = 60, run = function(g, gid, hour)
+    Fortify.offscreenHour(g, gid, hour)
+end })

@@ -285,7 +285,10 @@ class StructureTests(Base):
                           ('moved', [])])
         # Formes lues dans le texte technique : présentes dans le code qui les écrit (couplage vérifié).
         ex = (LK_LUA / 'server/LivingKnox/LK_Expeditions.lua').read_text(encoding='utf-8')
-        sim = (LK_LUA / 'server/LivingKnox/LK_Simulation.lua').read_text(encoding='utf-8')
+        # LK16-T09 : textes des événements de groupe écrits par leurs fichiers (SimEvents/), à côté du moteur.
+        sim = '\n'.join(path.read_text(encoding='utf-8') for path in
+                        [LK_LUA / 'server/LivingKnox/LK_Simulation.lua']
+                        + sorted((LK_LUA / 'server/LivingKnox/SimEvents').glob('*.lua')))
         adm = (LK_LUA / 'server/LivingKnox/LK_Admin.lua').read_text(encoding='utf-8')
         self.assertIn('"trip %d to %s (%d squares)', ex)
         self.assertIn('%d back, %s%s%s', ex)

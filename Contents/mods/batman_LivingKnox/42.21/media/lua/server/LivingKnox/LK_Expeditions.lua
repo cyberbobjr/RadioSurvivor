@@ -50,31 +50,26 @@
 --    reproductible de la simulation (ABSTRACT_FIND par membre et par manque, objets ABSTRACT_ITEMS), puis phase
 --    deliver : le dépôt (objets abstraits créés à ce moment, seul cas de création) attend que le foyer soit lisible ;
 --    les membres, de nouveau présents, sont matérialisés au foyer si un joueur est proche (reprise de l'état).
--- 5. Cueillette (LK05-T11, fiche docs/annexes/conception/nourriture.md, tirages de LivingKnox.Food) : quand la nourriture est
---    le premier manque et qu'une zone de cueillette vanilla proche rapporte assez de nourriture à cette saison
---    (Food.pickTarget), l'expédition est de genre « forage » : seulement la nourriture (want, charge), lieu = case
---    libre hors bâtiment de la zone ; en fouille, chaque membre arrivé cueille (geste FORAGE_GESTURE) et fait un
---    tirage des tables vanilla toutes les Food.CFG.ROUND_MINUTES (tirage k de la cueillette, reproductible), r tirages
---    au plus (Food.CFG.ROUNDS par membre au départ) ; objets notés au registre comme objets à créer (a, f), créés au
---    dépôt par Food.make (instanceItem + fonctions d'apparition vanilla, empoisonnés jetés). Hors écran : tirages
---    restants faits au retour abstrait, avec le même flux (même résultat qu'à l'écran aux mêmes conditions).
--- 6. Pêche (LK05-T11, décision du 2026-10-15) : à l'aube et au crépuscule (Food.fishHour : fenêtres Food.FISH_HOURS,
---    seules heures hors DEPART_FROM..DEPART_TO où un départ est permis, et pour la pêche seulement), quand la
---    nourriture est le premier manque et qu'une rive libre est à portée (Food.fishTarget : eau à Food.CFG.MAX_DIST
---    cases), l'expédition est de genre « fish » : même équipe, mêmes phases et même dépôt qu'une cueillette ; chaque
---    membre arrivé sur la rive se tourne vers l'eau, s'agenouille et fait un tirage des tables du filet vanilla
---    (Food.fishRound) toutes les Food.CFG.FISH_MINUTES, Food.CFG.FISH_ROUNDS tirages par membre au plus ; prises
---    créées au dépôt (instanceItem du type tiré). Hors écran : tirages restants au retour abstrait, même flux.
+-- 5. Genres d'expédition (LK16-T08) : inscrits par Expeditions.registerKind, un fichier par genre (dossier
+--    Expeditions/) ; le moteur ne connaît aucun genre. Au départ, les genres sont essayés par priorité (order) : un
+--    genre permis à cette heure (hours), qui répond aux manques (wanted) et trouve un lieu (pickTarget) part ; le genre
+--    de repli (fallback : le bâtiment ci-dessus) passe en dernier et fixe les heures de jour. Le genre mène la fouille
+--    (round : fouille des conteneurs Ex.searchRound, ou tirages sur place Ex.drawnRound) et le retour hors écran
+--    (offscreen : Ex.searchOffscreen ou Ex.drawnOffscreen). Genres de la nourriture (LK05-T11, inscrits par LK_Food :
+--    fiche docs/annexes/conception/nourriture.md) : cueillette (« forage », zone de cueillette vanilla, de jour) et
+--    pêche (« fish », rive libre, à l'aube et au crépuscule), à tirages k sur r (flux reproductible de LivingKnox.Food,
+--    même résultat à l'écran et hors écran), objets notés à créer (a, f) et créés au dépôt par le genre (make).
 -- Persistance (registre des groupes, schéma 1 inchangé, champ facultatif contrôlé ici, oublié s'il est malformé) :
 --   trips = { v = FORMAT, n = expéditions parties, last = minute de jeu de la dernière fin, seen = { bâtiments },
 --             cur = { n, phase, team = { mid }, want = { { c, m } }, target = { x, y, z, b, room, label, zone },
 --                     start, due (minute limite de la phase), cap, carry = { { t, c, i, a, f } }, searched = { clé },
---                     from (phase quittée hors écran), kind (« forage », « fish » ou absent), k et r (tirages faits
---                     et prévus d'une cueillette ou d'une pêche) } ou absent }.
+--                     from (phase quittée hors écran), kind (identifiant d'un genre inscrit, absent pour le genre de
+--                     repli), k et r (tirages faits et prévus d'un genre à tirages) } ou absent }.
 -- Mémoire (places, réservations, objets portés) : non sauvegardée.
 if isClient() then return end
 
 require "LivingKnox/LK_Core"
+require "LivingKnox/LK_Registry"
 require "LivingKnox/LK_Config"
 require "LivingKnox/LK_Log"
 require "LivingKnox/LK_Groups"
@@ -89,11 +84,6 @@ LivingKnox.Expeditions = Ex
 Ex.FORMAT = 1
 Ex.PHASES = { out = true, search = true, back = true, away = true, deliver = true }
 Ex.ACTIVE = { out = true, search = true, back = true }   -- membres menés par la cascade (comportement « expedition »)
-Ex.GESTURE = "rummage"
-Ex.FORAGE_GESTURE = "kneel"                              -- cueillette (LK05-T11)
-Ex.FORAGE = "forage"                                     -- genre d'une cueillette (= LivingKnox.Food.KIND)
-Ex.FISH = "fish"                                         -- genre d'une sortie de pêche (= LivingKnox.Food.FISH_KIND)
-Ex.DRAWN = { forage = true, fish = true }                -- genres à tirages (k, r) sur place, objets créés au dépôt
 Ex.PLACE = "trip"                                       -- lieu de l'expédition abstraite (LK_Simulation)
 -- Pièces de la carte (RoomDef:getName, noms des distributions vanilla M/lua/server/Items/Distributions.lua) qui
 -- promettent une catégorie du stock.
@@ -178,6 +168,73 @@ end
 local CATS = {}
 for _, c in ipairs(LivingKnox.Stock.CATEGORIES) do CATS[c] = true end
 
+-- ================================================================ genres (LK16-T08)
+
+-- Genre d'expédition (Expeditions.registerKind, un fichier par genre dans Expeditions/) :
+--   id        : identifiant, écrit dans trips.cur.kind (sauf pour le genre de repli) ; order : priorité au départ
+--   fallback  : vrai pour le genre de repli (un seul) : essayé selon son order, lu pour une expédition sans kind ; ses
+--               heures sont celles où un départ sans autre genre est permis
+--   hours(hod) -> vrai si un départ de ce genre est permis à l'heure du jour hod
+--   wanted(want) -> vrai si ce genre répond aux manques (facultatif : toujours)
+--   pickTarget(gid, g, want, data) -> lieu { x, y, z, b, room, label, d, score, ... }, ou nil et une raison
+--   wants(want) -> manques de l'expédition (facultatif : tous)
+--   start(cur, target, team) : champs propres au genre dans l'expédition qui part (facultatif)
+--   valid(t) -> vrai, ou faux et une raison : champs propres au genre (facultatif)
+--   spot(t, rank) -> case de la place du rank-ième membre et angle de son regard (facultatif : point visé)
+--   round(id, ctx, t, m, e, kind) : pas d'un membre arrivé, phase search (Ex.searchRound, Ex.drawnRound)
+--   offscreen(g, gid, t, back, erand, kind) -> objets trouvés au retour abstrait (Ex.searchOffscreen,
+--               Ex.drawnOffscreen)
+--   gesture   : geste de la fouille (remis debout en la quittant) ; seen : vrai si le lieu (b) entre dans les derniers
+--               fouillés au retour ; make(type) -> objets, nombre jetés : création au dépôt des objets notés (a, f)
+--   Genres à tirages (Ex.drawnRound, Ex.drawnOffscreen) : draw(gid, t, k, cond) -> entrées { t, c, a, f } et texte ;
+--               conditions() -> conditions des tirages ; minutes() -> minutes de jeu par tirage ; verb et
+--               detail(cond) : journal du serveur.
+Ex.kinds = Ex.kinds or { list = {}, byId = {} }
+local KIND_FUNCTIONS = { "hours", "pickTarget", "round", "offscreen" }
+
+local function validKind(spec)
+    if type(spec) ~= "table" or type(spec.id) ~= "string" or spec.id == "" then return false, "spec needs an id" end
+    for _, f in ipairs(KIND_FUNCTIONS) do
+        if type(spec[f]) ~= "function" then return false, "kind " .. spec.id .. " needs " .. f end
+    end
+    if spec.fallback then
+        for _, other in ipairs(Ex.kinds.list) do
+            if other.fallback and other.id ~= spec.id then return false, "fallback kind already: " .. other.id end
+        end
+    end
+    return true
+end
+
+local kindRegistry = LivingKnox.Registry.new("LivingKnox.Expeditions.registerKind",
+    { validate = validKind, items = Ex.kinds.list, byKey = Ex.kinds.byId })
+
+function Ex.registerKind(spec)
+    return kindRegistry:register(spec, 2)
+end
+
+local function fallbackKind()
+    for _, spec in ipairs(kindRegistry:list()) do
+        if spec.fallback then return spec end
+    end
+    return nil
+end
+
+-- Genre de l'expédition t : genre inscrit de son kind, genre de repli sans kind ; nil si inconnu.
+function Ex.kindOf(t)
+    if t.kind == nil then return fallbackKind() end
+    local spec = kindRegistry:get(t.kind)
+    if spec == nil or spec.fallback then return nil end
+    return spec
+end
+
+-- Vrai si un genre inscrit permet un départ à l'heure du jour hod.
+local function kindHour(hod)
+    for _, spec in ipairs(kindRegistry:list()) do
+        if spec.hours(hod) then return true end
+    end
+    return false
+end
+
 -- ================================================================ registre (forme)
 
 local function validStrList(list, max, pred)
@@ -224,8 +281,15 @@ function Ex.validCur(t)
         return false, "bad load"
     end
     if not validStrList(t.searched, 1000, shortText) then return false, "bad searched list" end
-    if t.kind ~= nil and not Ex.DRAWN[t.kind] then return false, "unknown kind" end
-    if Ex.DRAWN[t.kind] and (not isInt(t.k, 0, 1000) or not isInt(t.r, 0, 1000) or not shortText(tg.room)) then
+    local kind = Ex.kindOf(t)
+    if kind == nil then return false, "unknown kind" end
+    if kind.valid ~= nil then return kind.valid(t) end
+    return true
+end
+
+-- Champs d'un genre à tirages (valid d'un genre) : tirages faits k et prévus r, zone ou rive visée (room).
+function Ex.drawnValid(t)
+    if not isInt(t.k, 0, 1000) or not isInt(t.r, 0, 1000) or not shortText(t.target.room) then
         return false, "bad foraging rounds"
     end
     return true
@@ -405,6 +469,7 @@ local function freeNear(x, y, z, bid, radius, rank)
     end
     return nil
 end
+Ex.freeNear = freeNear   -- LK16-T08 : place d'un membre au bâtiment visé (genre de repli)
 
 -- Bâtiments à écarter : foyer du groupe, foyers des autres groupes, derniers fouillés.
 local function skipSet(g, data)
@@ -454,14 +519,8 @@ end
 
 local function hourOfDay(minute) return (math.floor(minute / 60) + 7) % 24 end
 
--- Vrai si l'heure du jour hod permet tout départ (DEPART_FROM..DEPART_TO).
+-- Vrai si l'heure du jour hod est une heure de jour (DEPART_FROM..DEPART_TO : bâtiment, cueillette).
 function Ex.dayHour(hod) return hod >= cfg().DEPART_FROM and hod < cfg().DEPART_TO end
-
--- LK05-T11 : vrai si l'heure du jour hod est une heure de pêche (aube, crépuscule : LivingKnox.Food.fishHour).
-local function fishHour(hod)
-    local F = LivingKnox.Food
-    return F ~= nil and F.fishHour ~= nil and F.fishHour(hod) == true
-end
 
 local function isEmbodied(m)
     local Si = LivingKnox.Simulation
@@ -538,7 +597,7 @@ function Ex.departBlocker(g, minute)
         return "rested less than " .. c.COOLDOWN_MINUTES .. " minutes"
     end
     local hod = hourOfDay(minute)
-    if not Ex.dayHour(hod) and not fishHour(hod) then return "hour of day " .. hod end
+    if not kindHour(hod) then return "hour of day " .. hod end
     return nil
 end
 
@@ -575,43 +634,29 @@ function Ex.tryDepart(gid, minute)
     local team = Ex.teamOf(g, gid, want)
     if #team < cfg().TEAM_MIN then return nil, "no forager free to leave" end
     local data = Groups().state.data
-    -- LK05-T11 : la nourriture manque le plus et une zone de cueillette proche en rapporte à cette saison.
-    local F = LivingKnox.Food
-    local target, twhy, kind
+    -- LK16-T08 : genres par priorité ; le premier permis à cette heure, qui répond aux manques et trouve un lieu, part.
     local hod = hourOfDay(minute)
-    -- LK05-T11 : à l'aube et au crépuscule, une sortie de pêche si la nourriture manque le plus et qu'une rive est
-    -- à portée ; hors des heures de jour, rien d'autre.
-    if fishHour(hod) and F ~= nil and F.wanted ~= nil and F.wanted(want) and F.fishTarget ~= nil then
-        local ok, tg, fwhy = pcall(F.fishTarget, gid, g)
-        if not ok then
-            log().error("expedition: group %s fishing place failed: %s", gid, tostring(tg))
-        elseif tg ~= nil then
-            target, kind = tg, Ex.FISH
-            want = { { c = "food", m = want[1].m } }
-        else
-            twhy = "no fishing: " .. tostring(fwhy)
-            log().debug("expedition: group %s does not fish: %s", gid, tostring(fwhy))
+    local target, twhy, kind
+    for _, spec in ipairs(kindRegistry:list()) do
+        if spec.hours(hod) and (spec.wanted == nil or spec.wanted(want)) then
+            local tg, kwhy = spec.pickTarget(gid, g, want, data)
+            if tg ~= nil then
+                target, kind = tg, spec
+                break
+            end
+            if kwhy ~= nil then twhy = kwhy end
         end
     end
-    if target == nil and not Ex.dayHour(hod) then
-        return nil, "hour of day " .. hod .. (twhy ~= nil and (" (" .. twhy .. ")") or "")
-    end
-    if target == nil and F ~= nil and F.wanted ~= nil and F.wanted(want) then
-        local ok, tg, fwhy = pcall(F.pickTarget, gid, g)
-        if not ok then
-            log().error("expedition: group %s foraging place failed: %s", gid, tostring(tg))
-        elseif tg ~= nil then
-            target, kind = tg, Ex.FORAGE
-            want = { { c = "food", m = want[1].m } }
-        else
-            log().debug("expedition: group %s does not forage: %s", gid, tostring(fwhy))
-        end
-    end
-    if target == nil then target, twhy = Ex.pickTarget(gid, g, want, data) end
     if target == nil then
+        -- Heure où le genre de repli ne part pas : rien d'autre (raison du dernier genre essayé entre parenthèses).
+        local fb = fallbackKind()
+        if fb == nil or not fb.hours(hod) then
+            return nil, "hour of day " .. hod .. (twhy ~= nil and (" (" .. twhy .. ")") or "")
+        end
         Ex.stats.refused = Ex.stats.refused + 1
         return nil, twhy
     end
+    if kind.wants ~= nil then want = kind.wants(want) end
     local c = cfg()
     local missing = 0
     for _, w in ipairs(want) do missing = missing + w.m end
@@ -629,13 +674,8 @@ function Ex.tryDepart(gid, minute)
             target = { x = target.x, y = target.y, z = target.z, b = target.b, room = target.room,
                 label = target.label }, start = minute, due = minute + c.OUT_MINUTES, cap = cap, carry = {},
             searched = {} }
-        if kind == Ex.FORAGE then
-            local zn = target.zone
-            s.cur.kind, s.cur.k, s.cur.r = kind, 0, #team * F.CFG.ROUNDS
-            s.cur.target.zone = { x = zn.x, y = zn.y, w = zn.w, h = zn.h }
-        elseif kind == Ex.FISH then
-            s.cur.kind, s.cur.k, s.cur.r = kind, 0, #team * F.CFG.FISH_ROUNDS
-        end
+        if not kind.fallback then s.cur.kind = kind.id end
+        if kind.start ~= nil then kind.start(s.cur, target, team) end
         live.trips = s
         G.appendLog(live, "expedition", cut(string.format("trip %d to %s (%d squares): %s for %s", n, target.label,
             target.d, table.concat(team, " "), wantText(want))), G.today())
@@ -679,10 +719,16 @@ local function resetSteps(m)
     m.faced = nil   -- pêche (LK05-T11) : de nouveau tourné vers l'eau après une interruption
 end
 
+-- Remis debout s'il tient le geste de fouille d'un genre.
 local function standUp(id)
     local A = LivingKnox.Anim
-    if A ~= nil and (A.gestureOf(id) == Ex.GESTURE or A.gestureOf(id) == Ex.FORAGE_GESTURE) then
-        A.setGesture(id, A.DEFAULT)
+    if A == nil then return end
+    local now = A.gestureOf(id)
+    for _, spec in ipairs(kindRegistry:list()) do
+        if spec.gesture ~= nil and now == spec.gesture then
+            A.setGesture(id, A.DEFAULT)
+            return
+        end
     end
 end
 
@@ -907,7 +953,9 @@ local function skipContainer(gid, n, f, id, why)
     claimsOf(gid, n)[f.key] = nil
 end
 
-local function search(id, ctx, t, m, e)
+-- Fouille des conteneurs du lieu par un membre arrivé (round du genre de repli) : conteneur réservé, place à côté,
+-- regard, geste du genre (kind.gesture) RUMMAGE_MINUTES, prise ; retour quand la fouille est finie.
+function Ex.searchRound(id, ctx, t, m, e, kind)
     local minute = ctx.minute
     if m.job == nil then
         local f = claimNext(ctx.gid, t, id, minute)
@@ -941,7 +989,7 @@ local function search(id, ctx, t, m, e)
     if m.since == nil then
         local entry = X().entryOf(id)
         if entry == nil or entry.v ~= m.faceV or not entry.done then return end
-        X().sitDown(id, m, Ex.GESTURE)
+        X().sitDown(id, m, kind.gesture)
         m.since = minute
         return
     end
@@ -957,10 +1005,10 @@ local function search(id, ctx, t, m, e)
     end
 end
 
--- ================================================================ cueillette (LK05-T11)
+-- ================================================================ genres à tirages (LK05-T11, LK16-T08)
 
--- Fin de la cueillette ? Rend vrai et la raison si l'équipe doit rentrer.
-function Ex.forageDone(t, minute)
+-- Fin des tirages ? Rend vrai et la raison si l'équipe doit rentrer.
+function Ex.drawnDone(t, minute)
     local left = remaining(t)
     if left <= 0 then return true, "wants covered" end
     if #t.carry >= t.cap then return true, "load full" end
@@ -982,24 +1030,17 @@ local function addFinds(cur, entries)
     end
 end
 
--- Tirage k d'une expédition à tirages t (cueillette : tables vanilla de la zone aux conditions c ; pêche : tables
--- du filet vanilla) : entrées à noter et texte.
-local function drawRound(F, gid, t, k, c)
-    if t.kind == Ex.FISH then return F.fishRound(gid, t.n, k, t.cap - #t.carry) end
-    return F.round(gid, t.n, k, t.target.room, c, t.cap - #t.carry)
-end
-
--- Tirage suivant de la cueillette (ou de la pêche, LK05-T11) n du groupe gid (membre mid) : tables vanilla de la
--- zone, conditions du moment ; objets notés à créer au dépôt. Rend le nombre d'objets notés.
-function Ex.forageRound(gid, n, mid)
-    local F = LivingKnox.Food
+-- Tirage suivant (kind.draw) de l'expédition à tirages n du groupe gid (membre mid), conditions du moment
+-- (kind.conditions) ; objets notés à créer au dépôt. Rend le nombre d'objets notés.
+function Ex.drawNext(gid, n, mid)
     local t = curOf(gid)
-    if F == nil or t == nil or t.n ~= n or not Ex.DRAWN[t.kind] or (t.k or 0) >= (t.r or 0) or #t.carry >= t.cap then
+    local kind = t ~= nil and Ex.kindOf(t) or nil
+    if kind == nil or kind.draw == nil or t.n ~= n or (t.k or 0) >= (t.r or 0) or #t.carry >= t.cap then
         return 0
     end
     local k = (t.k or 0) + 1
-    local c = F.conditions()
-    local entries, text = drawRound(F, gid, t, k, c)
+    local c = kind.conditions()
+    local entries, text = kind.draw(gid, t, k, c)
     local added = 0
     Groups().update(function(d)
         local g = d.groups[gid]
@@ -1012,15 +1053,14 @@ function Ex.forageRound(gid, n, mid)
         return true, true
     end)
     Ex.stats.taken = Ex.stats.taken + added
-    log().info("expedition: group %s trip %d: %s %s (draw %d of %d, %s%s): %s", gid, n, tostring(mid),
-        t.kind == Ex.FISH and "fishes" or "forages", k, t.r or 0, tostring(t.target.room),
-        t.kind == Ex.FISH and "" or (", " .. F.conditionText(c)), text)
+    log().info("expedition: group %s trip %d: %s %s (draw %d of %d, %s%s): %s", gid, n, tostring(mid), kind.verb, k,
+        t.r or 0, tostring(t.target.room), kind.detail(c), text)
     return added
 end
 
--- Cueillette d'un membre arrivé : à sa place (retour après une interruption), geste, un tirage toutes les
--- ROUND_MINUTES minutes de jeu.
-local function forage(id, ctx, t, m, e)
+-- Tirages d'un membre arrivé (round d'un genre à tirages) : à sa place (retour après une interruption), tourné vers
+-- l'angle de sa place s'il en a un, geste du genre, un tirage toutes les kind.minutes() minutes de jeu.
+function Ex.drawnRound(id, ctx, t, m, e, kind)
     local minute = ctx.minute
     local A = LivingKnox.Anim
     if m.spot ~= nil and not m.stay then
@@ -1042,39 +1082,26 @@ local function forage(id, ctx, t, m, e)
         m.faced = true
     end
     if m.since == nil then
-        X().sitDown(id, m, Ex.FORAGE_GESTURE)
+        X().sitDown(id, m, kind.gesture)
         m.since = minute
         return
     end
-    if A ~= nil and A.gestureOf(id) ~= Ex.FORAGE_GESTURE then X().sitDown(id, m, Ex.FORAGE_GESTURE) end
-    local F = LivingKnox.Food
-    if minute - m.since < (t.kind == Ex.FISH and F.CFG.FISH_MINUTES or F.CFG.ROUND_MINUTES) then return end
+    if A ~= nil and A.gestureOf(id) ~= kind.gesture then X().sitDown(id, m, kind.gesture) end
+    if minute - m.since < kind.minutes() then return end
     m.since = minute
-    Ex.forageRound(ctx.gid, t.n, ctx.mid)
+    Ex.drawNext(ctx.gid, t.n, ctx.mid)
     local cur = curOf(ctx.gid)
     if cur ~= nil and cur.n == t.n then
-        local done, why = Ex.forageDone(cur, minute)
+        local done, why = Ex.drawnDone(cur, minute)
         if done then setPhase(ctx.gid, t.n, "back", minute, why) end
     end
 end
 
--- Place d'un membre à l'arrivée : case libre près du point visé (bâtiment visé, ou zone de cueillette hors bâtiment).
+-- Place d'un membre à l'arrivée (kind.spot : case et angle du regard), ou nil (point visé).
 local function spotFor(t, rank)
-    local tg = t.target
-    local F = LivingKnox.Food
-    if t.kind == Ex.FISH and F ~= nil then
-        -- Rive libre la plus proche de la rive visée, une par rang ; angle vers l'eau voisine.
-        local sq, wx, wy = F.shoreSpot(tg.x, tg.y, tg.z, F.CFG.SHORE_RADIUS, rank)
-        if sq == nil then return nil end
-        local D = Decisions()
-        local a = D ~= nil and D.angleTo ~= nil and D.angleTo(wx - sq:getX(), wy - sq:getY()) or nil
-        return sq, a
-    end
-    if t.kind == Ex.FORAGE and F ~= nil then
-        local zn = type(tg.zone) == "table" and tg.zone or { x = tg.x - 2, y = tg.y - 2, w = 5, h = 5 }
-        return F.spotIn(zn, tg.x, tg.y, tg.z, F.CFG.SPOT_RADIUS, rank)
-    end
-    return freeNear(tg.x, tg.y, tg.z, tg.b, cfg().SPOT_RADIUS, rank)
+    local kind = Ex.kindOf(t)
+    if kind == nil or kind.spot == nil then return nil end
+    return kind.spot(t, rank)
 end
 
 -- Vrai si un membre de l'équipe de l'expédition t du groupe gid est arrivé au lieu (mémoire de cette session).
@@ -1124,7 +1151,8 @@ function Ex.apply(id, st, ctx, fresh)
         m.phase = t.phase
     end
     if t.phase == "search" then
-        if Ex.DRAWN[t.kind] then forage(id, ctx, t, m, e) else search(id, ctx, t, m, e) end
+        local kind = Ex.kindOf(t)
+        if kind ~= nil then kind.round(id, ctx, t, m, e, kind) end
         return
     end
     if t.phase == "back" then
@@ -1187,13 +1215,13 @@ function Ex.deliver(gid)
     end
     local carried = carriedOf(gid, t.n)
     local refs, counts, lost, created, poisoned = {}, {}, 0, 0, 0
-    local F = LivingKnox.Food
+    local kind = Ex.kindOf(t)
     for _, e in ipairs(t.carry) do
         local items, bad = {}, 0
-        if e.a and e.f and F ~= nil then
-            -- Cueillette ou pêche (LK05-T11) : objet tiré des tables vanilla, créé maintenant avec ses fonctions
-            -- d'apparition (cueillette : graines comprises ; pêche : aucune) ; un objet empoisonné est jeté.
-            local ok, list, nbad = pcall(F.make, e.t)
+        if e.a and e.f and kind ~= nil and kind.make ~= nil then
+            -- Genre à tirages (cueillette, pêche : LK05-T11) : objet tiré, créé maintenant par son genre (cueillette :
+            -- graines comprises ; pêche : aucune) ; un objet empoisonné est jeté.
+            local ok, list, nbad = pcall(kind.make, e.t)
             if ok then
                 items, bad = list, nbad or 0
             else
@@ -1245,7 +1273,7 @@ function Ex.deliver(gid)
         s.cur = nil
         s.last = minute
         local seen = s.seen
-        if t.kind == nil and not inList(seen, t.target.b) then seen[#seen + 1] = t.target.b end
+        if kind ~= nil and kind.seen and not inList(seen, t.target.b) then seen[#seen + 1] = t.target.b end
         while #seen > cfg().SEEN_MAX do table.remove(seen, 1) end
         G.appendLog(live, "return", cut(text), G.today())
         return true, true
@@ -1323,6 +1351,39 @@ function Ex.onReleased(gid, mid)
     return result
 end
 
+-- Butin abstrait d'une fouille hors écran (offscreen du genre de repli) : par manque et par membre revenu, chance
+-- ABSTRACT_FIND d'un objet de ABSTRACT_ITEMS (flux erand), dans la charge. Rend le nombre d'objets trouvés.
+function Ex.searchOffscreen(g, gid, t, back, erand)
+    local c = cfg()
+    local found = 0
+    for _, w in ipairs(t.want) do
+        local list = Ex.ABSTRACT_ITEMS[w.c] or {}
+        for _ = 1, back do
+            if w.m > 0 and #t.carry < t.cap and #list > 0 and erand() < c.ABSTRACT_FIND then
+                local k = math.min(#list, math.floor(erand() * #list) + 1)
+                t.carry[#t.carry + 1] = { t = list[k], c = w.c, a = true }
+                w.m = w.m - 1
+                found = found + 1
+            end
+        end
+    end
+    return found
+end
+
+-- Tirages restants d'un genre à tirages hors écran (offscreen) : même flux qu'à l'écran (tirage k), conditions du
+-- moment. Rend le nombre d'objets notés.
+function Ex.drawnOffscreen(g, gid, t, back, erand, kind)
+    local cond = kind.conditions()
+    local found = 0
+    while (t.k or 0) < (t.r or 0) and #t.carry < t.cap and remaining(t) > 0 do
+        t.k = (t.k or 0) + 1
+        local before = #t.carry
+        addFinds(t, (kind.draw(gid, t, t.k, cond)))
+        found = found + #t.carry - before
+    end
+    return found
+end
+
 -- Retour d'une expédition abstraite (appelé par LivingKnox.Simulation.simulateHour, à l'heure returns, dans
 -- l'écriture du pas) : aucun membre perdu ni blessé ; butin abstrait tiré du flux erand (reproductible) ; phase
 -- deliver (dépôt dès que le foyer est lisible). Pur sur le registre : aucun accès au monde. Rend le bilan.
@@ -1342,32 +1403,8 @@ function Ex.resolveAbstract(g, gid, hour, erand, day)
         if type(s) == "table" then s.cur = nil end
         return { back = back, found = 0 }
     end
-    local c = cfg()
-    local found = 0
-    local F = LivingKnox.Food
-    if Ex.DRAWN[t.kind] and F ~= nil then
-        -- LK05-T11 : tirages restants de la cueillette ou de la pêche, même flux qu'à l'écran (tirage k), conditions
-        -- du moment.
-        local cond = F.conditions()
-        while (t.k or 0) < (t.r or 0) and #t.carry < t.cap and remaining(t) > 0 do
-            t.k = (t.k or 0) + 1
-            local before = #t.carry
-            addFinds(t, (drawRound(F, gid, t, t.k, cond)))
-            found = found + #t.carry - before
-        end
-    else
-        for _, w in ipairs(t.want) do
-            local list = Ex.ABSTRACT_ITEMS[w.c] or {}
-            for _ = 1, back do
-                if w.m > 0 and #t.carry < t.cap and #list > 0 and erand() < c.ABSTRACT_FIND then
-                    local k = math.min(#list, math.floor(erand() * #list) + 1)
-                    t.carry[#t.carry + 1] = { t = list[k], c = w.c, a = true }
-                    w.m = w.m - 1
-                    found = found + 1
-                end
-            end
-        end
-    end
+    local kind = Ex.kindOf(t)
+    local found = kind.offscreen(g, gid, t, back, erand, kind)
     t.phase = "deliver"
     t.due = math.floor(hour * 60)
     G.appendLog(g, "trip", cut(string.format("trip %d back offscreen: %d back, %d item(s) found", t.n, back, found)),

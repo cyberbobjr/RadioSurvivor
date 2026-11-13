@@ -30,6 +30,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from harness import Harness, LUA  # noqa: E402
 from harness import lua_src  # noqa: E402  (E18-T07)
 from harness import LK_LUA  # noqa: E402  (E18-T07)
+from harness import sim_event_files  # noqa: E402  (LK16-T09)
 
 ROOT = Path(__file__).resolve().parents[1]
 DEV_LUA = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua'
@@ -539,6 +540,8 @@ class Base(unittest.TestCase):
             # Toute machine charge media/lua/server (client MP compris) : le fichier lui-même s'y arrête ou refuse.
             for path in ('server/LivingKnox/LK_Store.lua', 'server/LivingKnox/LK_Bodies.lua',
                          'server/LivingKnox/LK_Server.lua'):
+                h.load(m, path)
+            for path in sim_event_files():   # LK16-T09 : événements de groupe de la simulation (SimEvents/)
                 h.load(m, path)
         h.move_player('A', 100, 100, 0)
         return h

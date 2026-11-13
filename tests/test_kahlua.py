@@ -101,6 +101,9 @@ LUA_FILES = [
     ('LivingKnox/LK_Groups', LK_LUA / 'server' / 'LivingKnox' / 'LK_Groups.lua'),
     # LK09-T01 : simulation hors écran (logique pure sur un registre en mémoire).
     ('LivingKnox/LK_Simulation', LK_LUA / 'server' / 'LivingKnox' / 'LK_Simulation.lua'),
+    # LK16-T09 : événements de groupe inscrits au registre de LK_Simulation, un par fichier (SimEvents/).
+    *[(f'LivingKnox/SimEvents/{p.stem}', p)
+      for p in sorted((LK_LUA / 'server' / 'LivingKnox' / 'SimEvents').glob('*.lua'), key=lambda p: p.name.lower())],
     # LK02-T14 : remise debout des corps (requis par LK_Bodies ; abonne OnZombieCreate seulement ici).
     ('LivingKnox/LK_Stand', LK_LUA / 'shared' / 'LivingKnox' / 'LK_Stand.lua'),
     # LK07-T10 : renvoi d'un cadavre manqué par un client (requis par LK_Bodies).

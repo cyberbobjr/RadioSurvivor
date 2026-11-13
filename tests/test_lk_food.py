@@ -37,7 +37,7 @@ import pz_paths  # noqa: E402  (vanilla folders: PZ_STEAM_LIBRARY, PZ_MEDIA or S
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from phase_sweep import WORLDS, other_groups, sweep  # noqa: E402
-from harness import lua_src  # noqa: E402  (E18-T07)
+from harness import food_files, lua_src  # noqa: E402  (E18-T07, LK16-T08)
 from test_lk_bodies import lua_list  # noqa: E402
 from test_lk_expeditions import ExpeditionStack  # noqa: E402
 from test_lk_upkeep import UpkeepStack  # noqa: E402
@@ -285,7 +285,8 @@ class FoodStack(ExpeditionStack):
         h = super().make(root)
         machines = ['solo'] if self.mode == 'solo' else ['server', 'A', 'B']
         for m in machines:
-            h.load(m, MODULE)
+            for path in food_files():   # LK16-T08 : LK_Food et les genres qu'elle inscrit (Expeditions/)
+                h.load(m, path)
         srv = 'solo' if self.mode == 'solo' else 'server'
         load_forage(h, srv)
         h.load(srv, FOOD_PANTRY)

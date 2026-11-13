@@ -49,6 +49,7 @@ require "LivingKnox/LK_Log"
 require "LivingKnox/LK_Groups"
 require "LivingKnox/LK_Hostility"
 require "LivingKnox/LK_Relations"
+require "LivingKnox/LK_Simulation"   -- LK16-T09 : passe horaire (registerHourly)
 
 local Raids = LivingKnox.Raids or {}
 LivingKnox.Raids = Raids
@@ -84,7 +85,6 @@ Raids.CFG = Raids.CFG or {
 Raids.PHASES = { "watch", "scout", "ready", "raid" }
 Raids.STEPS = { "out", "at", "back" }
 Raids.ENDINGS = { "cancelled", "done", "wiped", "peace", "disabled", "forgotten" }
-Raids.SIGNS = { "safehouse", "generator", "barricades", "constructions" }
 Raids.stats = Raids.stats or { surveys = 0, spotted = 0, scouts = 0, announced = 0, launched = 0, cancelled = 0,
     ended = 0, spawned = 0, spawnWaits = 0 }
 Raids.state = Raids.state or { warned = {}, lines = {} }
@@ -760,5 +760,11 @@ LivingKnox.listen("expeditionReturn", "Raids.raidReturn", function(info)
     info.handled = true
     LivingKnox.Raids.raidReturn(info.g, info.gid, info.hour, info.day)
 end, 30)
+
+-- LK16-T09 : passe horaire de la simulation hors écran (ordre 20, après la vengeance, avant les règles du groupe) :
+-- éclaireurs, annonce et attaque d'un raid.
+LivingKnox.Simulation.registerHourly({ id = "raid", order = 20, run = function(g, gid, hour, data)
+    Raids.offscreenHour(data, g, gid, hour)
+end })
 
 return Raids

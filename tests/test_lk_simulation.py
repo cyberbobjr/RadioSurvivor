@@ -17,7 +17,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from harness import Harness  # noqa: E402
+from harness import Harness, sim_event_files  # noqa: E402  (LK16-T09)
 
 ROOT = Path(__file__).resolve().parents[1]
 SIM_FILE = (ROOT / 'Contents' / 'mods' / 'batman_LivingKnox' / '42.21' / 'media' / 'lua' / 'server' / 'LivingKnox'
@@ -61,6 +61,8 @@ class Base(unittest.TestCase):
             for path in SHARED:
                 h.load(m, path)
             h.load(m, SERVER)
+            for path in sim_event_files():   # LK16-T09 : événements de groupe, un par fichier (SimEvents/)
+                h.load(m, path)
         return h
 
     def ev(self, code):
@@ -395,14 +397,16 @@ class SidesAndBoundsTests(Base):
         self.assertIsNotNone(self.ev('LivingKnox.Simulation'))
 
     def test_source_has_no_world_access_and_is_kahlua_safe(self):
-        text = SIM_FILE.read_text(encoding='utf-8')
-        code = '\n'.join(line.split('--', 1)[0] for line in text.splitlines())
-        for word in ('getCell', 'getGridSquare', 'getSquare', 'getChunk', 'getOnlinePlayers', 'getPlayer',
-                     'getNumActivePlayers', 'IsoWorld', 'LoadChunk', 'getZombieList'):
-            self.assertNotIn(word, code, word)
-        for pattern in (r'\bnext\b', r'\bgoto\b', r'coroutine', r'<<', r'>>', r'~[^=]', r'\bbit32\b', r'//'):
-            self.assertIsNone(re.search(pattern, code), pattern)
-        self.assertTrue(code.isascii())
+        # LK16-T09 : moteur et fichiers des événements de groupe (SimEvents/).
+        for path in [SIM_FILE] + sorted(SIM_FILE.parent.joinpath('SimEvents').glob('*.lua')):
+            text = path.read_text(encoding='utf-8')
+            code = '\n'.join(line.split('--', 1)[0] for line in text.splitlines())
+            for word in ('getCell', 'getGridSquare', 'getSquare', 'getChunk', 'getOnlinePlayers', 'getPlayer',
+                         'getNumActivePlayers', 'IsoWorld', 'LoadChunk', 'getZombieList'):
+                self.assertNotIn(word, code, (path.name, word))
+            for pattern in (r'\bnext\b', r'\bgoto\b', r'coroutine', r'<<', r'>>', r'~[^=]', r'\bbit32\b', r'//'):
+                self.assertIsNone(re.search(pattern, code), (path.name, pattern))
+            self.assertTrue(code.isascii(), path.name)
 
     def test_work_is_proportional_to_groups_and_hours(self):
         # 64 groupes de 32 membres, 72 heures : pas complet sans erreur, une seule écriture.
@@ -800,7 +804,7 @@ end
 '''
 
 
-class EventTests(Base):
+class EventWorld(Base):
     def world(self, morale=60, **needs):
         """Registre neuf : grp-1 colons (6, foyer 1000,1000), grp-2 pillards (5, foyer 1500,1000), grp-3 neutres
         (4, foyer 9000,9000) ; chef m-1 partout ; réserves needs (défaut 60) ; simulation à l'heure 0."""
@@ -836,6 +840,8 @@ class EventTests(Base):
     def chances(self, gid='grp-1', bases='{}'):
         return self.run_lua(f'return _CHANCES("{gid}", {bases})')
 
+
+class EventTests(EventWorld):
     def test_departure_low_morale_never_the_leader(self):
         self.world(morale=10)
         dep = self.chances()[0]
@@ -1164,6 +1170,206 @@ class EventTests(Base):
         self.assertEqual(self.ev(f'{SIM}.step()'), 3)
         self.assertEqual(self.ev('_KB'), 2)                    # une lecture par pas
         self.assertEqual(self.run_lua(f'return type({SIM}.knownBases())'), 'table')
+
+
+# LK16-T09 : relevé des passes horaires, des événements et du journal pendant la simulation hors écran. _WRAP remplace
+# une fonction de module par une enveloppe qui note son entrée (arguments) et sa sortie dans _TR, puis appelle
+# l'originale : la simulation appelle ses passes par leur module à l'appel, le relevé vaut avant et après les
+# registres. Valeurs : scalaires tels quels, groupe par son id, autres tables par leurs champs triés (deux niveaux).
+TRACE = r'''
+_TR = {}
+local function ser(v, depth)
+    if type(v) ~= "table" then return tostring(v) end
+    if type(v.id) == "string" then return "T:" .. v.id end
+    if depth >= 2 then return "{...}" end
+    local rows = {}
+    for k, x in pairs(v) do
+        if type(x) ~= "function" then rows[#rows + 1] = { tostring(k), x } end
+    end
+    table.sort(rows, function(a, b) return a[1] < b[1] end)
+    local parts = {}
+    for _, r in ipairs(rows) do parts[#parts + 1] = r[1] .. "=" .. ser(r[2], depth + 1) end
+    return "{" .. table.concat(parts, ",") .. "}"
+end
+function _SER(v) return ser(v, 0) end
+function _WRAP(tbl, name, label)
+    local f = tbl[name]
+    tbl[name] = function(...)
+        local args, n, parts = { ... }, select("#", ...), {}
+        for i = 1, n do parts[i] = ser(args[i], 1) end
+        _TR[#_TR + 1] = ">" .. label .. " " .. table.concat(parts, " ")
+        local r = f(...)
+        _TR[#_TR + 1] = "<" .. label .. " " .. ser(r, 0)
+        return r
+    end
+end
+-- Passes horaires et journal des modules chargés (absent : rien à relever).
+function _WRAP_ALL()
+    local L = LivingKnox
+    _WRAP(L.Simulation, "simulateHour", "rules")
+    _WRAP(L.Simulation, "runEvents", "events")
+    _WRAP(L.Groups, "appendLog", "log")
+    if L.Relations ~= nil then _WRAP(L.Relations, "offscreenHour", "revenge") end
+    if L.Raids ~= nil then _WRAP(L.Raids, "offscreenHour", "raid") end
+    if L.Stock ~= nil then _WRAP(L.Stock, "offscreenHour", "meal") end
+    if L.Fortify ~= nil then _WRAP(L.Fortify, "offscreenHour", "fortify") end
+    if L.Needs ~= nil and L.Needs.advanceGroup ~= nil then _WRAP(L.Needs, "advanceGroup", "needs") end
+end
+'''
+
+# Modules horaires chargés en plus de LK_Server (leurs dépendances suivent par require).
+HOURLY_MODULES = 'require "LivingKnox/LK_Raids" require "LivingKnox/LK_Fortify"'
+
+# LK16-T09 : empreintes (sha256) relevées sur le code d'avant les registres de la simulation (passes horaires dans une
+# boucle codée en dur, cinq événements tirés par applyEvent).
+FROZEN_SIM = {
+    'events': '458ace73a707e3196c30fd648c26cc1e30699564dfbd2e6d0f228d261b7373d5',
+    'catchup': '3233636844a2a90f87828108200d623c30b0c62c91a6078d2cb373ae601411db',
+}
+
+
+def trace_digest(h, srv, extra=''):
+    """Empreinte du relevé _TR, du registre canonique et de extra ; rend (empreinte, texte du relevé)."""
+    import hashlib
+    trace = h.eval(srv, 'table.concat(_TR, "\\n")') or ''
+    text = trace + '\n#\n' + h.eval(srv, CANON) + '\n#\n' + extra
+    return hashlib.sha256(text.encode('utf-8')).hexdigest(), trace
+
+
+class FrozenWorld(EventWorld):
+    def frozen_world(self, morale, food, seed):
+        self.world(morale=morale, food=food)
+        self.run_lua(HOURLY_MODULES)
+        self.run_lua(TRACE)
+        self.run_lua(f'LivingKnox.Config.SIMULATION.SEED = {seed}')
+
+
+class FrozenTests(FrozenWorld):
+    """Gel de la simulation hors écran (LK16-T09) : trois groupes de types différents, modules horaires réels
+    (vengeance, raids, stock, fortification) chargés, événements de groupe et expéditions sur plusieurs jours."""
+
+    def test_events_and_hourly_passes_are_frozen(self):
+        self.frozen_world(20, 20, 777)
+        self.run_lua(f'''
+            local E = {EVENTS_CFG}
+            E.MAX_DAILY = 1
+            E.DEPARTURE.CHANCE, E.RECRUIT.CHANCE, E.CONFLICT.CHANCE, E.ILLNESS.CHANCE, E.CLASH.CHANCE =
+                0.15, 0.15, 0.15, 0.15, 0.6
+            E.RECRUIT.MORALE_MIN, E.RECRUIT.FOOD_MIN = 0, 0
+            _WRAP_ALL()
+            _AFTER = function(g, gid, hour) _TR[#_TR + 1] = "=after " .. gid .. " " .. hour end
+        ''')
+        self.run_lua(f'for h = 24, 20 * 24, 24 do {SIM}.advance({G}.state.data, h, {{}}, _AFTER) end')
+        self.run_lua(f'for h = 20 * 24 + 1, 26 * 24 do {SIM}.advance({G}.state.data, h, {{}}, _AFTER) end')
+        digest, trace = trace_digest(self.h, self.srv)
+        kinds = set(re.findall(r'kind=([a-z]+)', trace))
+        self.assertTrue({'departure', 'recruit', 'conflict', 'illness', 'clash'} <= kinds, kinds)
+        self.assertEqual(self.h.errors(self.srv), [])
+        self.assertEqual(digest, FROZEN_SIM['events'], digest)
+
+    def test_catch_up_with_default_settings_is_frozen(self):
+        self.frozen_world(60, 40, 4242)
+        self.run_lua('_WRAP_ALL()')
+        for now in (31, 100, 172, 300):
+            self.run_lua(f'{SIM}.advance({G}.state.data, {now}, {{ {{ x1 = 990, y1 = 990, x2 = 1010, y2 = 1010 }} }}, '
+                         'LivingKnox.Needs.advanceGroup)')
+        digest, trace = trace_digest(self.h, self.srv)
+        self.assertIn('<events', trace)
+        self.assertEqual(self.h.errors(self.srv), [])
+        self.assertEqual(digest, FROZEN_SIM['catchup'], digest)
+
+
+class HourlyOrderTests(FrozenWorld):
+    """LK16-T09 : ordre des passes horaires de chaque groupe et de chaque heure, puis événements du jour."""
+
+    def test_passes_run_in_order_for_each_group_and_hour_then_the_events(self):
+        self.frozen_world(60, 60, 5)
+        self.run_lua('_WRAP_ALL()')
+        self.run_lua(f'{SIM}.advance({G}.state.data, 30, {{}}, LivingKnox.Needs.advanceGroup)')
+        trace = self.run_lua('return table.concat(_TR, "\\n")').split('\n')
+        heads = [line.split(' ')[0][1:] for line in trace if line.startswith('>') and not line.startswith('>log')]
+        per_group = ['revenge', 'raid', 'rules', 'needs', 'meal', 'fortify']
+        expected = []
+        for hour in range(1, 31):
+            expected += per_group * 3
+            if (hour + 6) % 24 == 12:
+                expected.append('events')
+        self.assertEqual(heads, expected)
+        # Une passe reçoit le groupe vivant et son id, l'heure simulée (et le jour pour le repas du stock).
+        first = [line for line in trace if line.startswith('>') and not line.startswith('>log')][:6]
+        self.assertEqual([line.split(' ')[:2] for line in first],
+                         [['>revenge', 'T:grp-1'], ['>raid', '{groups={...},nextId=4,schema=1,simHour=0}'],
+                          ['>rules', 'T:grp-1'],
+                          ['>needs', 'T:grp-1'], ['>meal', 'T:grp-1'], ['>fortify', 'T:grp-1']])
+        self.assertEqual(first[4].split(' ')[2:], ['grp-1', '1', '1'])
+
+    def test_registered_passes_and_their_order(self):
+        self.frozen_world(60, 60, 5)
+        rows = self.run_lua('local out = {} for _, p in ipairs(LivingKnox.Simulation.hourlyPasses()) do '
+                            'out[#out + 1] = p.id .. ":" .. p.order end return table.concat(out, " ")')
+        self.assertEqual(rows, 'revenge:10 raid:20 rules:30 needs:40 meal:50 fortify:60')
+        rows = self.run_lua('local out = {} for _, e in ipairs(LivingKnox.Simulation.events()) do '
+                            'out[#out + 1] = e.id .. ":" .. e.order end return table.concat(out, " ")')
+        self.assertEqual(rows, 'departure:10 recruit:20 conflict:30 illness:40 clash:50')
+
+
+# Événement et passe horaire factices inscrits par le banc seul (acceptation LK16-T09).
+FAKE_EVENT = r'''
+OMENS = {}
+LivingKnox.Simulation.registerEvent({
+    id = "omen", order = 25, config = "OMEN", bounds = { CHANCE = { 0, 1 }, MORALE = { -100, 100 } },
+    chance = function(e, ctx) return e.CHANCE end,
+    apply = function(e, ctx)
+        ctx.g.morale = math.max(0, math.min(100, ctx.g.morale + e.MORALE))
+        OMENS[#OMENS + 1] = ctx.gid .. "@" .. ctx.day .. ":" .. math.floor(ctx.rnd() * 1000)
+        return { omen = true }
+    end,
+})
+LivingKnox.Config.SIMULATION.EVENTS.OMEN = { CHANCE = 1, MORALE = -3 }
+'''
+FAKE_PASS = r'''
+LivingKnox.Simulation.registerHourly({ id = "tally", order = 35, run = function(g, gid, hour, data, step)
+    _TR[#_TR + 1] = ">tally " .. gid .. " " .. hour .. " " .. step.day .. " " .. tostring(g == data.groups[gid])
+end })
+'''
+
+
+class RegistryAcceptanceTests(FrozenWorld):
+    def test_an_event_registered_by_one_file_is_drawn_at_its_rank_and_applied(self):
+        self.frozen_world(60, 60, 9)
+        self.run_lua(FAKE_EVENT)
+        # Rang : entre recruit (20) et conflict (30) ; un tirage de 0.5 tombe dans la troisième part de 0.2.
+        drawn = self.run_lua(f'''
+            local c = {{ departure = 0.2, recruit = 0.2, omen = 0.2, conflict = 0.2, illness = 0, clash = 0 }}
+            return {SIM}.drawEvent(c, 1, function() return 0.5 end), {SIM}.drawEvent(c, 1, function() return 0.3 end),
+                {SIM}.drawEvent(c, 1, function() return 0.7 end)''')
+        self.assertEqual(drawn, ('omen', 'recruit', 'conflict'))
+        s = self.ev(f'{SIM}.eventSettings()')
+        self.assertEqual((s.omen.CHANCE, s.omen.MORALE), (1, -3))
+        chances = self.run_lua('return _CHANCES("grp-1", {})')
+        self.assertEqual(len(chances), 6)
+        # Seul événement possible : tiré pour chaque groupe à l'heure du jour, appliqué par son fichier.
+        self.run_lua(f'''
+            local E = {EVENTS_CFG}
+            E.DEPARTURE, E.RECRUIT, E.CONFLICT, E.ILLNESS, E.CLASH = nil, nil, nil, nil, nil
+            E.MAX_DAILY = 1
+            _EV = {SIM}.advance({G}.state.data, 24, {{}})''')
+        omens = list(self.ev('OMENS').values())
+        self.assertEqual([o.split(':')[0] for o in omens], ['grp-1@1', 'grp-2@1', 'grp-3@1'])
+        self.assertEqual(self.ev('_EV'), True)
+        self.assertLess(self.ev(f'{G}.state.data.groups["grp-2"].morale'), 60)
+        self.assertEqual(self.h.errors(self.srv), [])
+
+    def test_an_hourly_pass_registered_by_one_file_runs_at_its_rank(self):
+        self.frozen_world(60, 60, 9)
+        self.run_lua('_WRAP_ALL()')
+        self.run_lua(FAKE_PASS)
+        self.run_lua(f'{SIM}.advance({G}.state.data, 2, {{}}, LivingKnox.Needs.advanceGroup)')
+        trace = self.run_lua('return table.concat(_TR, "\\n")').split('\n')
+        heads = [line.split(' ')[0][1:] for line in trace if line.startswith('>') and not line.startswith('>log')]
+        self.assertEqual(heads, ['revenge', 'raid', 'rules', 'tally', 'needs', 'meal', 'fortify'] * 6)
+        self.assertIn('>tally grp-2 2 1 true', trace)
+        self.assertEqual(self.h.errors(self.srv), [])
 
 
 class CrossVmTests(Base):

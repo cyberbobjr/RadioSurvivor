@@ -37,6 +37,7 @@ from test_lk_bodies import lua_list  # noqa: E402
 from test_lk_decisions import DECIDERS, DUMP  # noqa: E402
 from test_lk_materialize import MatBase  # noqa: E402
 from test_lk_simulation import Base as SimBase  # noqa: E402
+from test_lk_simulation import TRACE, trace_digest  # noqa: E402  (LK16-T09)
 
 RA = 'LivingKnox.Raids'
 R = 'LivingKnox.Relations'
@@ -491,6 +492,29 @@ class OffscreenTests(RaidBase):
         a, b = run(True), run(False)
         self.assertEqual(a, b)
         self.assertIn('7261696' , a)   # « rai(d) » encodé : le champ est bien là
+
+
+# LK16-T09 : empreinte (sha256) relevée sur le code d'avant le registre des passes horaires de la simulation.
+FROZEN_RAID = 'cca07854decf33118930c3c87c4f45a0cdd0416cf42596b3b1b7270727b491f0'
+
+
+class FrozenRaidTests(RaidBase):
+    def test_raid_hours_are_frozen(self):
+        """Gel (LK16-T09) : un raid mené de la veille au retour et un second groupe pillard en attente, heure par heure
+        (vengeance, raid, règles, besoins, stock, fortification dans l'ordre), journal et registre."""
+        gid = self.mk()
+        self.run_lua(f'NOTE("{gid}", 1, 2, "{KEY_A}")')
+        other = self.mk(name='Wolves', home=(1500, 1000, 0))
+        self.run_lua(f'NOTE("{other}", 1, 2, "{KEY_A}")')
+        self.run_lua(TRACE)
+        self.run_lua('_WRAP_ALL()')
+        for hour in range(1, 141):
+            self.step_to(hour)
+        digest, trace = trace_digest(self.h, self.srv)
+        for phase in ('scout', 'ready', 'raid'):
+            self.assertIn('<raid ' + phase, trace)
+        self.assertEqual(self.h.errors(self.srv), [])
+        self.assertEqual(digest, FROZEN_RAID, digest)
 
 
 class HuntBase(MatBase):

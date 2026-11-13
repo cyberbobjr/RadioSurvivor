@@ -3,7 +3,9 @@
 -- Autorité seulement (serveur dédié ou hébergé, solo) : un client MP charge aussi media/lua/server, il s'arrête ici.
 --
 -- Ce module ne mène aucun corps : une cueillette est une expédition de LK_Expeditions de genre « forage » (même
--- départ, même équipe, même trajet, même dépôt, même bascule hors écran). Il fournit :
+-- départ, même équipe, même trajet, même dépôt, même bascule hors écran), une pêche une expédition de genre « fish » ;
+-- la nourriture inscrit elle-même ces deux genres (LK16-T08 : Expeditions/LK_Exp_Forage.lua et LK_Exp_Fish.lua),
+-- LK_Expeditions ne lit rien de ce module. Il fournit :
 --   - le lieu (Food.pickTarget) : zone de cueillette vanilla (types de forageSystem.zoneDefs, M/shared/Foraging/
 --     forageZones.lua) de la liste FORAGE_ZONES (forêts de la biomemap et zones agricoles, jamais TownZone, Nav,
 --     ForagingNav ni TrailerPark) la plus proche du foyer, lue dans la métagrille sans rien charger
@@ -39,7 +41,8 @@ require "LivingKnox/LK_Simulation"
 local Food = LivingKnox.Food or {}
 LivingKnox.Food = Food
 
-Food.KIND = "forage"          -- genre d'expédition (LK_Expeditions, champ kind)
+Food.KIND = "forage"          -- genre d'expédition (LK_Expeditions, champ kind ; Expeditions/LK_Exp_Forage.lua)
+Food.GESTURE = "kneel"        -- geste de la cueillette et de la pêche (genres d'expédition)
 Food.TARGET = "forage"        -- champ b du lieu visé d'une cueillette (pas un bâtiment)
 Food.SALT = 15485863          -- sel du flux des tirages (distinct des flux de LK_Simulation)
 -- Zones de cueillette retenues : forêts de la biomemap (M/server/metazones/BiomeMapConfig.lua) et zones agricoles,
@@ -323,6 +326,11 @@ end
 -- Vrai si les manques want ({ { c, m } }, ordre du manque) appellent une cueillette : la nourriture manque le plus.
 function Food.wanted(want)
     return type(want) == "table" and want[1] ~= nil and want[1].c == "food" and (want[1].m or 0) > 0
+end
+
+-- Manques d'une cueillette ou d'une pêche (genres d'expédition, wants) : la nourriture seule, autant qu'il en manque.
+function Food.tripWant(want)
+    return { { c = "food", m = want[1].m } }
 end
 
 -- Lieu d'une cueillette pour le groupe (registre vivant g) : { x, y, z, b = TARGET, room = type de zone, label, d,

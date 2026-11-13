@@ -99,6 +99,7 @@ require "LivingKnox/LK_Log"
 require "LivingKnox/LK_Groups"
 require "LivingKnox/LK_Homes"
 require "LivingKnox/LK_Hostility"
+require "LivingKnox/LK_Simulation"   -- LK16-T09 : passe horaire (registerHourly)
 
 local Stock = LivingKnox.Stock or {}
 LivingKnox.Stock = Stock
@@ -1539,5 +1540,11 @@ LivingKnox.subscribe("LoadChunk", "Stock.onLoadChunk", onLoadChunk)
 LivingKnox.subscribe("EveryOneMinute", "Stock.onEveryOneMinute", onEveryOneMinute)
 LivingKnox.subscribe("OnTickEvenPaused", "Stock.frameStart", function() Stock.onFrameStart() end)
 LivingKnox.subscribe("OnTick", "Stock.minuteQueue", function() Stock.onFrame() end)
+
+-- LK16-T09 : passe horaire de la simulation hors écran (ordre 50, après les besoins, avant les chantiers) : repas
+-- abstrait pris dans le stock de référence (LK09-T06).
+LivingKnox.Simulation.registerHourly({ id = "meal", order = 50, run = function(g, gid, hour, _, step)
+    Stock.offscreenHour(g, gid, hour, step.day)
+end })
 
 return Stock

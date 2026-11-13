@@ -19,8 +19,9 @@
 -- (Groups.applyDeath), blessés (wound), gains de réserves, recrue éventuelle (Groups.applyMember, profil tiré du
 -- type, bornée par size.max et MAX_MEMBERS), moral ; journal du groupe (kinds expedition, return, loss, recruit).
 -- Tirages des expéditions : flux séparé (EXPEDITION_SALT) de la même heure, le flux principal reste inchangé.
--- Événements de groupe (LK09-T05) : liste fermée Simulation.EVENTS (departure, recruit, conflict, illness, clash),
--- un tirage par groupe et par jour à l'heure du jour EVENTS.HOUR, après les règles horaires de tous les groupes ;
+-- Événements de groupe (LK09-T05) : inscrits par Simulation.registerEvent, un fichier par événement sous SimEvents/
+-- (LK16-T09 : departure, recruit, conflict, illness, clash), un tirage par groupe et par jour à l'heure du jour
+-- EVENTS.HOUR, après les règles horaires de tous les groupes ;
 -- au plus un événement par groupe et par jour (la cible d'un combat compte). Chances par jour et effets bornés en
 -- données (Config.SIMULATION.EVENTS) ; flux séparé (EVENT_SALT). Combat abstrait (I9.1) entre un groupe d'un type
 -- ATTACKERS et un groupe d'un autre type, foyers connus proches l'un de l'autre et loin des bases connues des
@@ -30,8 +31,10 @@
 -- et comptés dans la consommation, mais leur santé est celle de leur corps : ni blessure, ni guérison, ni mort
 -- horaire, jamais envoyés en expédition ; un groupe qui a un membre incarné ne tire aucun événement et n'est la cible
 -- d'aucun combat. Le retrait du corps (LK03-T04) rend au membre sa blessure (LK_Materialize.onReleased).
--- Stock réel hors écran (LK09-T06, LK_Stock) : après chaque heure de chaque groupe, Stock.offscreenHour (repas
--- abstrait quotidien pris dans l'inventaire de référence) ; au retour d'une expédition abstraite, Stock.offscreenLoot
+-- Passes horaires (LK16-T09) : chaque heure de chaque groupe passe par les modules inscrits par
+-- Simulation.registerHourly (vengeance, raid, règles du groupe, besoins, repas du stock, chantiers), sans les nommer.
+-- Stock réel hors écran (LK09-T06, LK_Stock) : passe horaire du repas abstrait quotidien pris dans l'inventaire de
+-- référence ; au retour d'une expédition abstraite, Stock.offscreenLoot
 -- (butin ajouté). Écarts gardés en attente dans la référence, appliqués aux conteneurs quand le foyer est lisible.
 -- Aucun déplacement de PNJ, aucun accès au monde (cases, chunks) : travail proportionnel au nombre de groupes et de
 -- membres du registre (bornés : 64 groupes, 32 membres), multiplié par les heures simulées (bornées).
@@ -54,6 +57,7 @@
 if isClient() then return end
 
 require "LivingKnox/LK_Core"
+require "LivingKnox/LK_Registry"
 require "LivingKnox/LK_Config"
 require "LivingKnox/LK_Log"
 require "LivingKnox/LK_Store"
@@ -70,6 +74,29 @@ local M = 2147483647
 local function log() return LivingKnox.Log end
 local function Groups() return LivingKnox.Groups end
 local function cfg() return LivingKnox.Config.SIMULATION end
+
+-- Registres (LK16-T09, ADR D02) : tables gardées au rechargement du module.
+-- Passes horaires : Simulation.registerHourly{ id, order, run(g, gid, hour, data, step) }, appelées par
+-- Simulation.advance pour chaque heure simulée et chaque groupe (ordre des identifiants), dans l'ordre croissant de
+-- order. g : groupe vivant relu au registre avant chaque passe ; step = { base, exp, afterHour, day } (graine, réglages
+-- des expéditions, besoins individuels, jour de l'heure). Chaque module horaire s'inscrit lui-même ; ordre actuel :
+-- vengeance 10 (LK_Relations), raid 20 (LK_Raids), règles du groupe 30 et besoins 40 (moteur), repas 50 (LK_Stock),
+-- chantiers 60 (LK_Fortify).
+Simulation.hourlyItems = Simulation.hourlyItems or {}
+Simulation.hourlyByKey = Simulation.hourlyByKey or {}
+local hourlyPasses = LivingKnox.Registry.new("LivingKnox.Simulation.registerHourly", {
+    items = Simulation.hourlyItems, byKey = Simulation.hourlyByKey,
+    validate = function(spec)
+        if type(spec) ~= "table" or type(spec.id) ~= "string" then return false, "spec needs id" end
+        if type(spec.run) ~= "function" then return false, "spec needs run" end
+        return true
+    end,
+})
+
+function Simulation.registerHourly(spec) return hourlyPasses:register(spec, 2) end
+
+-- Passes horaires inscrites, dans leur ordre (table vivante, à ne pas modifier).
+function Simulation.hourlyPasses() return hourlyPasses:list() end
 
 -- Retours d'expédition propres à un module (LK16-T04, F-R06) : la simulation publie l'événement "expeditionReturn"
 -- info = { g, gid, hour, day, erand, expedition, handled = false } ; le module qui fait partir une expédition d'un
@@ -667,34 +694,50 @@ function Simulation.simulateHour(g, gid, hour, base, exp)
     return task
 end
 
+-- Passes horaires du moteur : règles du groupe (Simulation.simulateHour), puis besoins individuels (afterHour de
+-- Simulation.advance, LK05-T06), entre le raid (20) et le repas du stock (50).
+Simulation.registerHourly({ id = "rules", order = 30, run = function(g, gid, hour, _, step)
+    Simulation.simulateHour(g, gid, hour, step.base, step.exp)
+end })
+Simulation.registerHourly({ id = "needs", order = 40, run = function(g, gid, hour, _, step)
+    if step.afterHour ~= nil then step.afterHour(g, gid, hour) end
+end })
+
 -- Événements de groupe (LK09-T05) ------------------------------------------------------------------------------------
 
--- Liste fermée, dans l'ordre du tirage ; chaque identifiant est aussi le kind de son entrée de journal.
-Simulation.EVENTS = { "departure", "recruit", "conflict", "illness", "clash" }
 Simulation.EVENT_SALT = 32452843
 
-local EVENT_KEYS = { departure = "DEPARTURE", recruit = "RECRUIT", conflict = "CONFLICT", illness = "ILLNESS",
-    clash = "CLASH" }
+-- Registre des événements (LK16-T09, F-R05) : un fichier par événement sous SimEvents/ ; tirés dans l'ordre croissant de
+-- order (ordre du tirage : départ 10, recrue 20, conflit 30, maladie 40, combat 50). Inscription :
+--   id      : identifiant, aussi le kind de son entrée de journal ;
+--   config  : nom de sa sous-table de Config.SIMULATION.EVENTS (absente : événement désactivé) ;
+--   bounds  : bornes de ses réglages { NOM = { min, max, entier } } (valeur non numérique : 0 ramené dans ses bornes) ;
+--   prepare(e, raw) : facultatif, réglages propres lus de la sous-table brute raw (e : réglages bornés) ;
+--   chance(e, ctx) : chance du jour (nombre, nil = 0) ; ctx = { data, ids, gid, g, s, bases, done, living, home,
+--                    low } (membres vivants, au foyer, nombre de réserves sous NEED_LOW) ; ctx.targets : cibles d'un
+--                    événement qui en a (passées à apply) ;
+--   apply(e, ctx)  : applique l'événement tiré ; ctx = { data, gid, g, s, rnd, day, targets } ; rend son bilan, ou nil
+--                    (rien n'est arrivé).
+-- Aucun tirage dans chance : le flux de l'événement (EVENT_SALT) sert au tirage puis à apply, dans cet ordre.
+Simulation.eventItems = Simulation.eventItems or {}
+Simulation.eventByKey = Simulation.eventByKey or {}
+local eventRegistry = LivingKnox.Registry.new("LivingKnox.Simulation.registerEvent", {
+    items = Simulation.eventItems, byKey = Simulation.eventByKey,
+    validate = function(spec)
+        if type(spec) ~= "table" or type(spec.id) ~= "string" then return false, "spec needs id" end
+        if type(spec.config) ~= "string" then return false, "spec needs config" end
+        if type(spec.bounds) ~= "table" then return false, "spec needs bounds" end
+        if type(spec.chance) ~= "function" or type(spec.apply) ~= "function" then
+            return false, "spec needs chance and apply"
+        end
+        return true
+    end,
+})
 
--- Bornes des réglages de chaque événement : { min, max, entier }. Valeur non numérique : 0 ramené dans ses bornes.
-local EVENT_BOUNDS = {
-    departure = { CHANCE = { 0, 1 }, MORALE_MAX = { 0, 100, true }, MIN_LEFT = { 1, 32, true },
-        MORALE = { -100, 100 } },
-    recruit = { CHANCE = { 0, 1 }, FOOD_MIN = { 0, 100, true }, MORALE_MIN = { 0, 100, true },
-        MORALE = { -100, 100 } },
-    conflict = { CHANCE = { 0, 1 }, CHANCE_LOW_NEED = { 0, 1 }, MORALE_MAX = { 0, 100, true },
-        MIN_MEMBERS = { 2, 32, true }, MORALE = { -100, 100 }, WOUND_CHANCE = { 0, 1 }, WOUND_MIN = { 0, 99, true },
-        WOUND_MAX = { 0, 99, true }, CONTEST_CHANCE = { 0, 1 } },
-    illness = { CHANCE = { 0, 1 }, CHANCE_HUNGRY = { 0, 1 }, SPREAD = { 0, 1 }, MAX_SICK = { 1, 32, true },
-        WOUND_MIN = { 0, 99, true }, WOUND_MAX = { 0, 99, true }, MEDICAL_PER_SICK = { 0, 100, true },
-        MORALE = { -100, 100 } },
-    clash = { CHANCE = { 0, 1 }, CHANCE_NEEDY = { 0, 1 }, MAX_DISTANCE = { 0, 100000, true },
-        PLAYER_DISTANCE = { 80, 100000, true }, MIN_FORCE = { 1, 32, true }, DEFENSE_BONUS = { 0.1, 10 },
-        LOSS_WIN = { 0, 1 }, LOSS_LOSE = { 0, 1 }, WOUND_WIN = { 0, 1 }, WOUND_LOSE = { 0, 1 },
-        MAX_DEATHS = { 0, 32, true }, WOUND_MIN = { 0, 99, true }, WOUND_MAX = { 0, 99, true },
-        LOOT_SHARE = { 0, 1 }, LOOT_MAX = { 0, 100, true }, AMMO_COST = { 0, 100, true },
-        MORALE_WIN = { -100, 100 }, MORALE_LOSE = { -100, 100 }, PLACE_ROUND = { 1, 1000, true } },
-}
+function Simulation.registerEvent(spec) return eventRegistry:register(spec, 2) end
+
+-- Événements inscrits, dans l'ordre du tirage (table vivante, à ne pas modifier).
+function Simulation.events() return eventRegistry:list() end
 
 local function bounded(v, range)
     if type(v) ~= "number" or v ~= v then v = 0 end
@@ -710,23 +753,15 @@ function Simulation.eventSettings()
     local raw = cfg().EVENTS
     if type(raw) ~= "table" then return nil end
     local s = { hour = bounded(raw.HOUR, { 0, 23, true }), maxDaily = bounded(raw.MAX_DAILY, { 0, 1 }) }
-    for id, bounds in pairs(EVENT_BOUNDS) do
-        local t = raw[EVENT_KEYS[id]]
+    for _, ev in ipairs(eventRegistry:list()) do
+        local t = raw[ev.config]
         if type(t) == "table" then
             local e = {}
-            for name, range in pairs(bounds) do e[name] = bounded(t[name], range) end
+            for name, range in pairs(ev.bounds) do e[name] = bounded(t[name], range) end
             if e.WOUND_MAX and e.WOUND_MAX < e.WOUND_MIN then e.WOUND_MAX = e.WOUND_MIN end
-            s[id] = e
+            if ev.prepare ~= nil then ev.prepare(e, t) end
+            s[ev.id] = e
         end
-    end
-    if s.clash then
-        local attackers = {}
-        if type(raw.CLASH.ATTACKERS) == "table" then
-            for _, t in ipairs(raw.CLASH.ATTACKERS) do
-                if type(t) == "string" then attackers[t] = true end
-            end
-        end
-        s.clash.ATTACKERS = attackers
     end
     return s
 end
@@ -753,19 +788,11 @@ local function lowNeedCount(g)
     return n
 end
 
-local function signed(v)
-    if v >= 0 then return "+" .. tostring(v) end
-    return tostring(v)
-end
-
--- Membres qui peuvent partir : au foyer, hors chef, sans PNJ lié (le registre des corps garde sa référence).
-local function departureCandidates(g, home)
-    local out = {}
-    for _, mid in ipairs(home) do
-        if mid ~= g.leader and g.members[mid].npc == nil then out[#out + 1] = mid end
-    end
-    return out
-end
+-- Outils des fichiers d'événements (SimEvents/) : mêmes règles que le moteur.
+Simulation.eventKit = {
+    pick = pick, hurt = hurt, cut = cut, clamp = clampLevel, living = livingMembers, home = homeMembers,
+    logRecruit = logRecruit,
+}
 
 -- Place pour une recrue : type enregistré, moins de size.max vivants et de MAX_MEMBERS membres (morts compris).
 function Simulation.recruitRoom(g)
@@ -779,300 +806,52 @@ function Simulation.recruitRoom(g)
     return living < def.size.max and total < Groups().MAX_MEMBERS
 end
 
--- Écart entre le foyer (case) et une base (rectangle à fin exclusive), même mesure que RC_Sites.gap.
-local function baseGap(home, b)
-    local gx = math.max(0, b.x1 - (home.x + 1), home.x - b.x2)
-    local gy = math.max(0, b.y1 - (home.y + 1), home.y - b.y2)
-    return math.sqrt(gx * gx + gy * gy)
-end
-
--- Foyer à minDist cases au moins de chaque base connue (entrée sans x1, y1, x2, y2 numériques : ignorée).
-function Simulation.farFromBases(home, bases, minDist)
-    for _, b in ipairs(bases) do
-        if type(b) == "table" and type(b.x1) == "number" and type(b.y1) == "number" and type(b.x2) == "number"
-            and type(b.y2) == "number" and baseGap(home, b) < minDist then
-            return false
-        end
-    end
-    return true
-end
-
--- Cibles possibles d'un combat lancé par le groupe gid (identifiants triés) : attaquant d'un type ATTACKERS, foyer
--- connu loin des bases, au moins MIN_FORCE membres au foyer ; cible d'un autre type (hors ATTACKERS), sans
--- événement ce jour, foyer connu à MAX_DISTANCE au plus et loin des bases, au moins un membre au foyer.
--- bases = nil (inconnues) : aucun combat.
-function Simulation.clashTargets(data, ids, gid, s, bases, done)
-    local e, g = s.clash, data.groups[gid]
-    if not e or bases == nil or not e.ATTACKERS[g.type] or not g.home then return {} end
-    if #homeMembers(g, livingMembers(g)) < e.MIN_FORCE then return {} end
-    if not Simulation.farFromBases(g.home, bases, e.PLAYER_DISTANCE) then return {} end
-    local out = {}
-    for _, tid in ipairs(ids) do
-        local t = data.groups[tid]
-        if tid ~= gid and not done[tid] and t and not e.ATTACKERS[t.type] and t.home
-            and not Simulation.materialized(t) then
-            local dx, dy = t.home.x - g.home.x, t.home.y - g.home.y
-            if math.sqrt(dx * dx + dy * dy) <= e.MAX_DISTANCE and Simulation.farFromBases(t.home, bases,
-                e.PLAYER_DISTANCE) and #homeMembers(t, livingMembers(t)) > 0 then
-                out[#out + 1] = tid
-            end
-        end
-    end
-    return out
-end
-
--- Chances du jour de chaque événement pour le groupe gid (0..1 chacune), et cibles d'un combat. Voir l'en-tête.
+-- Chances du jour de chaque événement pour le groupe gid (0..1 chacune), et cibles de l'événement qui en a (combat).
+-- Personne au foyer : aucune chance.
 function Simulation.eventChances(data, ids, gid, s, bases, done)
-    local c, g = cfg(), data.groups[gid]
-    local out, targets = {}, {}
-    for _, id in ipairs(Simulation.EVENTS) do out[id] = 0 end
+    local g = data.groups[gid]
+    local out = {}
+    for _, ev in ipairs(eventRegistry:list()) do out[ev.id] = 0 end
     local living = livingMembers(g)
     local home = homeMembers(g, living)
-    if #home == 0 then return out, targets end
-    local low = lowNeedCount(g)
-    local e = s.departure
-    if e and g.morale < e.MORALE_MAX and #living - 1 >= e.MIN_LEFT and #departureCandidates(g, home) > 0 then
-        out.departure = e.CHANCE * (e.MORALE_MAX - g.morale) / e.MORALE_MAX
+    if #home == 0 then return out, {} end
+    local ctx = { data = data, ids = ids, gid = gid, g = g, s = s, bases = bases, done = done, living = living,
+        home = home, low = lowNeedCount(g) }
+    for _, ev in ipairs(eventRegistry:list()) do
+        local e = s[ev.id]
+        if e then out[ev.id] = ev.chance(e, ctx) or 0 end
     end
-    e = s.recruit
-    if e and g.needs.food >= e.FOOD_MIN and g.morale >= e.MORALE_MIN and Simulation.recruitRoom(g) then
-        out.recruit = e.CHANCE
-    end
-    e = s.conflict
-    if e and #home >= e.MIN_MEMBERS and (g.morale < e.MORALE_MAX or low > 0) then
-        out.conflict = e.CHANCE + e.CHANCE_LOW_NEED * low
-    end
-    e = s.illness
-    if e then
-        out.illness = e.CHANCE
-        if g.needs.food < c.NEED_LOW then out.illness = out.illness + e.CHANCE_HUNGRY end
-    end
-    e = s.clash
-    if e then
-        targets = Simulation.clashTargets(data, ids, gid, s, bases, done)
-        if #targets > 0 then
-            out.clash = e.CHANCE
-            if low > 0 then out.clash = out.clash + e.CHANCE_NEEDY end
-        end
-    end
-    for _, id in ipairs(Simulation.EVENTS) do out[id] = math.min(out[id], 1) end
-    return out, targets
+    for _, ev in ipairs(eventRegistry:list()) do out[ev.id] = math.min(out[ev.id], 1) end
+    return out, ctx.targets or {}
 end
 
 -- Un seul tirage : événement choisi selon ses chances (somme plafonnée à maxDaily, proportions conservées), ou nil.
 function Simulation.drawEvent(chances, maxDaily, rnd)
+    local list = eventRegistry:list()
     local total = 0
-    for _, id in ipairs(Simulation.EVENTS) do total = total + chances[id] end
+    for _, ev in ipairs(list) do total = total + (chances[ev.id] or 0) end
     if total <= 0 then return nil end
     local scale = 1
     if total > maxDaily then scale = maxDaily / total end
     local r = rnd()
-    for _, id in ipairs(Simulation.EVENTS) do
-        local p = chances[id] * scale
+    for _, ev in ipairs(list) do
+        local p = (chances[ev.id] or 0) * scale
         if p > 0 then
-            if r < p then return id end
+            if r < p then return ev.id end
             r = r - p
         end
     end
     return nil
 end
 
--- departure : un membre part (journal departure puis left), moral.
-local function eventDeparture(g, gid, e, rnd, day)
-    local candidates = departureCandidates(g, homeMembers(g, livingMembers(g)))
-    if #candidates == 0 then return nil end
-    local mid = pick(candidates, rnd)
-    Groups().appendLog(g, "departure", cut(mid .. " " .. g.members[mid].role .. ": low morale"), day)
-    Groups().applyLeave(g, mid, day)
-    g.morale = clampLevel(g.morale + e.MORALE)
-    log().info("simulation: member %s left group %s (low morale)", mid, gid)
-    return { member = mid }
-end
-
--- recruit : un survivant rejoint le groupe (journal recruit « wanderer: <membre> <rôle> » puis joined), moral.
-local function eventRecruit(g, gid, e, rnd, day)
-    local spec = Simulation.drawRecruit(g, rnd)
-    if not spec then return nil end
-    local mid = Groups().applyMember(g, spec, day)
-    if not mid then return nil end
-    logRecruit(g, "wanderer", mid, spec.role, day)
-    g.morale = clampLevel(g.morale + e.MORALE)
-    log().debug("simulation: wanderer %s joined group %s", mid, gid)
-    return { member = mid, role = spec.role }
-end
-
--- conflict : deux membres au foyer s'opposent (le premier hors chef ; le second est le chef si contesté), blessure
--- légère possible de l'un d'eux, moral. Aucun changement de chef (journal seulement).
-local function eventConflict(g, e, rnd, day)
-    local home = homeMembers(g, livingMembers(g))
-    if #home < 2 then return nil end
-    local others, leaderHome = {}, false
-    for _, mid in ipairs(home) do
-        if mid == g.leader then leaderHome = true else others[#others + 1] = mid end
-    end
-    local a = pick(others, rnd)
-    local b, contested
-    if leaderHome and rnd() < e.CONTEST_CHANCE then
-        b, contested = g.leader, true
-    else
-        contested = false
-        local rest = {}
-        for _, mid in ipairs(home) do
-            if mid ~= a then rest[#rest + 1] = mid end
-        end
-        b = pick(rest, rnd)
-    end
-    local parts, wounded = { a .. " vs " .. b }, nil
-    if contested then parts[#parts + 1] = "leader contested" end
-    if rnd() < e.WOUND_CHANCE then
-        wounded = a
-        if rnd() < 0.5 then wounded = b end
-        hurt(g.members[wounded], e.WOUND_MIN, e.WOUND_MAX, rnd)
-        parts[#parts + 1] = wounded .. " wounded"
-    end
-    g.morale = clampLevel(g.morale + e.MORALE)
-    Groups().appendLog(g, "conflict", cut(table.concat(parts, ", ")), day)
-    return { a = a, b = b, contested = contested, wounded = wounded }
-end
-
--- illness : un malade au foyer, contagion à chaque autre (SPREAD, MAX_SICK au plus) ; un malade soigné (réserve
--- medical >= MEDICAL_PER_SICK et non vide) consomme MEDICAL_PER_SICK et prend la moitié de la blessure ; moral.
-local function eventIllness(g, e, rnd, day)
-    local home = homeMembers(g, livingMembers(g))
-    if #home == 0 then return nil end
-    local first = pick(home, rnd)
-    local sick = { first }
-    for _, mid in ipairs(home) do
-        if mid ~= first and #sick < e.MAX_SICK and rnd() < e.SPREAD then sick[#sick + 1] = mid end
-    end
-    local treated, used = 0, 0
-    for _, mid in ipairs(sick) do
-        local lo, hi = e.WOUND_MIN, e.WOUND_MAX
-        if g.needs.medical > 0 and g.needs.medical >= e.MEDICAL_PER_SICK then
-            g.needs.medical = g.needs.medical - e.MEDICAL_PER_SICK
-            used = used + e.MEDICAL_PER_SICK
-            treated = treated + 1
-            lo, hi = math.floor(lo / 2), math.floor(hi / 2)
-        end
-        hurt(g.members[mid], lo, hi, rnd)
-    end
-    g.morale = clampLevel(g.morale + e.MORALE)
-    Groups().appendLog(g, "illness", cut(table.concat(sick, " ") .. " sick, " .. treated .. " treated, medical -"
-        .. used), day)
-    return { sick = sick, treated = treated, medical = used }
-end
-
--- Force au foyer : 1 par membre, 0.5 par blessé grave (WOUND_SERIOUS).
-local function strength(g, home)
-    local serious, s = cfg().WOUND_SERIOUS, 0
-    for _, mid in ipairs(home) do
-        if (g.members[mid].wound or 0) >= serious then s = s + 0.5 else s = s + 1 end
-    end
-    return s
-end
-
--- Un tirage par membre au foyer : perte (lossRate, MAX_DEATHS au plus, au-delà : blessure), sinon blessure.
-local function casualties(g, home, lossRate, woundRate, e, rnd)
-    local dead, wounded = {}, {}
-    for _, mid in ipairs(home) do
-        local r = rnd()
-        if r < lossRate and #dead < e.MAX_DEATHS then
-            dead[#dead + 1] = mid
-        elseif r < lossRate + woundRate then
-            hurt(g.members[mid], e.WOUND_MIN, e.WOUND_MAX, rnd)
-            wounded[#wounded + 1] = mid
-        end
-    end
-    return dead, wounded
-end
-
-local function roundedPlace(home, step)
-    local function r(v) return math.floor(v / step + 0.5) * step end
-    return r(home.x) .. "," .. r(home.y) .. "," .. home.z
-end
-
--- clash (I9.1) : combat abstrait entre l'attaquant gid et la cible tid, au foyer de la cible. Victoire de
--- l'attaquant avec la chance force A / (force A + force D x DEFENSE_BONUS) ; pertes et blessés des deux côtés
--- (taux du vainqueur ou du vaincu) ; AMMO_COST munitions dépensées de chaque côté ; attaquant vainqueur : butin
--- borné (LOOT_SHARE de chaque réserve de la cible, LOOT_MAX au plus, sans dépasser 100) ; moral. Journal des deux
--- groupes : clash, died..., (leader), remains « <morts> at x,y,z » (foyer de la cible arrondi à PLACE_ROUND).
-local function eventClash(data, gid, g, tid, e, rnd, day)
-    local G, t = Groups(), data.groups[tid]
-    local homeA, homeD = homeMembers(g, livingMembers(g)), homeMembers(t, livingMembers(t))
-    local sa, sd = strength(g, homeA), strength(t, homeD) * e.DEFENSE_BONUS
-    local won = rnd() * (sa + sd) < sa
-    local deadA, woundedA, deadD, woundedD
-    if won then
-        deadA, woundedA = casualties(g, homeA, e.LOSS_WIN, e.WOUND_WIN, e, rnd)
-        deadD, woundedD = casualties(t, homeD, e.LOSS_LOSE, e.WOUND_LOSE, e, rnd)
-    else
-        deadA, woundedA = casualties(g, homeA, e.LOSS_LOSE, e.WOUND_LOSE, e, rnd)
-        deadD, woundedD = casualties(t, homeD, e.LOSS_WIN, e.WOUND_WIN, e, rnd)
-    end
-    local deltaA, deltaD = {}, {}
-    for _, key in ipairs(G.NEEDS) do deltaA[key], deltaD[key] = 0, 0 end
-    local beforeA, beforeD = g.needs.ammo, t.needs.ammo
-    g.needs.ammo, t.needs.ammo = clampLevel(beforeA - e.AMMO_COST), clampLevel(beforeD - e.AMMO_COST)
-    deltaA.ammo, deltaD.ammo = g.needs.ammo - beforeA, t.needs.ammo - beforeD
-    if won then
-        for _, key in ipairs(G.NEEDS) do
-            local take = math.min(math.floor(t.needs[key] * e.LOOT_SHARE), e.LOOT_MAX, G.LEVEL_MAX - g.needs[key])
-            if take > 0 then
-                t.needs[key], g.needs[key] = t.needs[key] - take, g.needs[key] + take
-                deltaA[key], deltaD[key] = deltaA[key] + take, deltaD[key] - take
-            end
-        end
-    end
-    local function needsText(delta)
-        local parts = {}
-        for _, key in ipairs(G.NEEDS) do parts[#parts + 1] = key .. " " .. signed(delta[key]) end
-        return table.concat(parts, " ")
-    end
-    local outcomeA, outcomeD = "lost", "won"
-    if won then outcomeA, outcomeD = "won", "lost" end
-    G.appendLog(g, "clash", cut("attack " .. tid .. " " .. outcomeA .. ": " .. #deadA .. " lost, " .. #woundedA
-        .. " wounded, " .. needsText(deltaA)), day)
-    G.appendLog(t, "clash", cut("defend " .. gid .. " " .. outcomeD .. ": " .. #deadD .. " lost, " .. #woundedD
-        .. " wounded, " .. needsText(deltaD)), day)
-    local place = roundedPlace(t.home, e.PLACE_ROUND)
-    local moraleA, moraleD = g.morale + e.MORALE_LOSE, t.morale + e.MORALE_WIN
-    if won then moraleA, moraleD = g.morale + e.MORALE_WIN, t.morale + e.MORALE_LOSE end
-    -- Morts d'un côté : toutes appliquées, puis une seule succession si le chef en était (jamais un mort du combat).
-    local function bury(grp, dead, morale)
-        local leaderDied = false
-        for _, mid in ipairs(dead) do
-            morale = morale + cfg().MORALE_DEATH
-            if G.applyDeath(grp, mid, day) then leaderDied = true end
-        end
-        if leaderDied then
-            local successor = G.pickSuccessor(grp)
-            if successor then G.applyLeader(grp, successor, day) end
-        end
-        if #dead > 0 then G.appendLog(grp, "remains", cut(table.concat(dead, " ") .. " at " .. place), day) end
-        return clampLevel(morale)
-    end
-    g.morale = bury(g, deadA, moraleA)
-    t.morale = bury(t, deadD, moraleD)
-    log().info("simulation: clash %s attacks %s, attacker %s, losses %s/%s", gid, tid, outcomeA,
-        tostring(#deadA), tostring(#deadD))
-    return { target = tid, won = won, deadA = deadA, deadD = deadD, woundedA = woundedA, woundedD = woundedD,
-        deltaA = deltaA, deltaD = deltaD, place = place }
-end
-
 -- Applique l'événement kind au groupe gid (tirages rnd). Rend son bilan, ou nil (rien n'est arrivé : aucun membre
--- possible, aucune recrue tirée, aucune cible). targets : cibles d'un combat (Simulation.clashTargets).
+-- possible, aucune recrue tirée, aucune cible ; événement inconnu ou désactivé). targets : cibles (eventChances).
 function Simulation.applyEvent(data, gid, kind, s, rnd, day, targets)
     local g = data.groups[gid]
     local e = s[kind]
-    if not g or not e then return nil end
-    if kind == "departure" then return eventDeparture(g, gid, e, rnd, day) end
-    if kind == "recruit" then return eventRecruit(g, gid, e, rnd, day) end
-    if kind == "conflict" then return eventConflict(g, e, rnd, day) end
-    if kind == "illness" then return eventIllness(g, e, rnd, day) end
-    if kind == "clash" and targets and #targets > 0 then
-        return eventClash(data, gid, g, pick(targets, rnd), e, rnd, day)
-    end
-    return nil
+    local ev = eventRegistry:get(kind)
+    if not g or not e or not ev then return nil end
+    return ev.apply(e, { data = data, gid = gid, g = g, s = s, rnd = rnd, day = day, targets = targets })
 end
 
 -- Tirage quotidien des événements (heure hour, dont l'heure du jour vaut s.hour) : groupes dans l'ordre ids, un flux
@@ -1146,23 +925,13 @@ function Simulation.advance(data, now, bases, afterHour)
     local ids = {}
     for gid in pairs(data.groups) do ids[#ids + 1] = gid end
     table.sort(ids, function(a, b) return (Groups().idNumber(a) or 0) < (Groups().idNumber(b) or 0) end)
-    local Stock = LivingKnox.Stock   -- LK09-T06 : repas abstrait pris dans le stock de référence (écarts en attente)
-    local Relations = LivingKnox.Relations   -- LK11-T05 : vengeance (serment, départ, traque) avant l'heure du groupe
+    local step = { base = base, exp = exp, afterHour = afterHour }
+    local passes = hourlyPasses:list()
     for hour = from, now do
         Groups().hourContext = hour   -- LK10-T02 : heure simulée des entrées du journal de récit (LK_Journal)
+        step.day = math.floor(hour / 24) + 1
         for _, gid in ipairs(ids) do
-            if Relations ~= nil and Relations.offscreenHour ~= nil then
-                Relations.offscreenHour(data.groups[gid], gid, hour)
-            end
-            local Raids = LivingKnox.Raids   -- LK11-T07 : raid (éclaireurs, annonce, attaque), après la vengeance
-            if Raids ~= nil and Raids.offscreenHour ~= nil then Raids.offscreenHour(data, data.groups[gid], gid, hour) end
-            Simulation.simulateHour(data.groups[gid], gid, hour, base, exp)
-            if afterHour ~= nil then afterHour(data.groups[gid], gid, hour) end
-            if Stock ~= nil and Stock.offscreenHour ~= nil then
-                Stock.offscreenHour(data.groups[gid], gid, hour, math.floor(hour / 24) + 1)
-            end
-            local Fortify = LivingKnox.Fortify   -- LK14-T05 : chantiers avancés hors écran (matériaux du stock)
-            if Fortify ~= nil and Fortify.offscreenHour ~= nil then Fortify.offscreenHour(data.groups[gid], gid, hour) end
+            for _, pass in ipairs(passes) do pass.run(data.groups[gid], gid, hour, data, step) end
         end
         -- Événements du jour (LK09-T05), après les règles horaires de tous les groupes, à l'heure EVENTS.HOUR.
         if events and (hour + 6) % 24 == events.hour then

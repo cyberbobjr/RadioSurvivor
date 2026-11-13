@@ -2,7 +2,7 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 9 / 12 tâche(s) terminée(s).
+**Avancement.** en cours — 11 / 12 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
@@ -13,8 +13,8 @@
 | ☑ | LK16-T05 | C3 : contexte de décision par inscription | `testé hors jeu` | hors jeu | LK16-T04 |
 | ☑ | LK16-T06 | C2 : comportements de décision par extension | `testé hors jeu` | hors jeu | LK16-T05 |
 | ☑ | LK16-T07 | C8 et C9 : corvées et plans des routines | `testé hors jeu` | hors jeu | LK16-T01 |
-| ☐ | LK16-T08 | C4 : genres d'expédition | `à faire` | hors jeu | LK16-T01 |
-| ☐ | LK16-T09 | C6 : simulation hors écran | `à faire` | hors jeu | LK16-T04 |
+| ☑ | LK16-T08 | C4 : genres d'expédition | `testé hors jeu` | hors jeu | LK16-T01 |
+| ☑ | LK16-T09 | C6 : simulation hors écran | `testé hors jeu` | hors jeu | LK16-T04 |
 | ☑ | LK16-T10 | C11 : aménagements des foyers ; nettoyages | `testé hors jeu` | hors jeu | LK16-T01 |
 | ☑ | LK16-T11 | C10 : obstacles | `testé hors jeu` | hors jeu | LK16-T01 |
 | ☐ | LK16-T12 | Remise en ordre vérifiée en jeu | `à faire` | MP | LK16-T02, LK16-T03, LK16-T06, LK16-T07, LK16-T08, LK16-T09, LK16-T10, LK16-T11 |
@@ -116,26 +116,26 @@ Constats P2 et P3 de l'audit hors des chantiers ; tout changement visible par un
   - Tests : bancs des routines et corvées.
   - Preuve : 2026-11-13 : `Routines.registerChore(spec)` sur `LivingKnox.Registry` (`id`, `order`, `gesture`, poids `duty`/`role`/`trait`, `avail(c)`, `plan(c)`) ; une corvée par fichier sous `server/LivingKnox/Chores/` (feu, se réchauffer, ranger, guetter, réparer, fumer, soigner, se reposer, ordres 10 à 80 = ordre d'avant) ; six tables parallèles et six branches de `chorePlan` supprimées ; tirage inchangé, figé avant la refonte par deux bancs à empreinte (`test_draw_is_frozen_on_a_grid` : 900 combinaisons × 36 tirages ; `test_chore_plans_are_frozen` : 3 membres × 6 postes × 3 jeux de traits × 24 créneaux), verts après ; plans du guet, de la ronde et du sommeil portés par leurs activités (`registerActivity` accepte `plan`), `Routines.plan` sans nom de comportement ; acceptation `test_a_chore_added_by_one_registration_is_drawn_and_done` (rouge avant : `attempt to call field 'registerChore' (a nil value)`) ; `test_lk_chores.py` et `test_lk_routines.py` 39 OK, `test_lk_meals` 16, `test_lk_upkeep` 28, `test_lk_provisions` 19, `test_lk_decisions` 27, `test_lk_care` 16, `test_lk_alert` 25, `test_lk_contest` 18, `test_lk_needs` 16, `test_lk_defense` 23, `test_lk_expeditions` 16, `test_lk_stand` 12, `test_kahlua` 40, `test_doubles_api` 17, `test_mod_calls_api` 16, sans attendu changé
   - Reste : suite complète à repasser avec LK16-T04 ; le relevé des places ne connaît que deux genres (feu, meuble) : une corvée qui demanderait un autre genre de place toucherait encore `surveySpots` ; non vérifié en jeu (`LK16-T12`)
-- [ ] **LK16-T08** — C4 : genres d'expédition
-  - État : `à faire`
+- [x] **LK16-T08** — C4 : genres d'expédition
+  - État : `testé hors jeu`
   - Cible : `hors jeu`
   - Dépend de : LK16-T01
   - Fichiers : `LK_Expeditions.lua`, `LK_Food.lua`
   - Faire : constats C-X01, C-X02, C-X03, C-X04, C-X07 : `Expeditions.registerKind` (bâtiment, cueillette, pêche), départ par boucle sur les genres, la nourriture s'inscrit elle-même.
   - Accepté si : un genre d'expédition ajouté par un seul fichier de banc part et revient ; bancs verts.
   - Tests : bancs des expéditions et de la nourriture.
-  - Preuve : —
-  - Reste : —
-- [ ] **LK16-T09** — C6 : simulation hors écran
-  - État : `à faire`
+  - Preuve : 2026-11-13 : `Expeditions.registerKind(spec)` sur `LivingKnox.Registry` (`fallback`, `hours`, `wanted`, `pickTarget`, `wants`, `start`, `valid`, `spot`, `round`, `offscreen`, `gesture`, `seen`, `make` ; pour les genres à tirages `draw`, `conditions`, `minutes`, `verb`, `detail`) ; trois genres sous `server/LivingKnox/Expeditions/` : bâtiment (repli, 100), cueillette (20), pêche (10), les deux derniers inscrits par la nourriture (plus de dépendance `Expeditions → LK_Food`) ; `tryDepart` en boucle sur les genres par priorité ; 30 lignes de chaînes sur le genre supprimées ; banc `tests/test_lk_expedition_kinds.py` : gel des départs (9 heures × bâtiments, eau, forêt × 5 profils de manques × 5 équipes), d'un déroulé complet de chaque genre et des retours hors écran, empreintes relevées sur l'ancien code et identiques après ; acceptation : un genre factice inscrit par le banc seul part, tire, rentre et se résout hors écran (rouge avant : `attempt to call field 'registerKind' (a nil value)`) ; `test_lk_expeditions` 16, `test_lk_food` 33, `test_lk_garden` 29, `test_lk_loot` 18, `test_lk_decisions` 27, `test_lk_decision_context` 14, `test_lk_stock` 44, `test_doubles_api`, `test_mod_calls_api`, `test_kahlua` verts sans attendu changé ; balayage des phases de `lk.expedition` et `lk.forage` vert
+  - Reste : phases de l'expédition (C-X07) non faites ; code propre au bâtiment encore dans le moteur (C-X06) ; une expédition à genre inconnu (enregistrement malformé) ne lance plus la fouille de bâtiment pendant le passage ; suite complète à repasser ; chargement du dossier `Expeditions/` non vérifié en jeu
+- [x] **LK16-T09** — C6 : simulation hors écran
+  - État : `testé hors jeu`
   - Cible : `hors jeu`
   - Dépend de : LK16-T04
   - Fichiers : `LK_Simulation.lua` et modules horaires
   - Faire : constats F-R05, F-R07 : `Simulation.registerHourly{ id, order, run }`, `Simulation.registerEvent`.
   - Accepté si : un événement de groupe ajouté par un seul fichier de banc est tiré ; bancs verts.
   - Tests : bancs de la simulation.
-  - Preuve : —
-  - Reste : —
+  - Preuve : 2026-11-13 : `Simulation.registerHourly{ id, order, run }` (passes : vengeance 10 par Relations, raids 20 par Raids, règles 30 et besoins 40 par le moteur, repas 50 par Stock, chantiers 60 par Fortify ; `advance` ne nomme plus de module) et `Simulation.registerEvent{ id, order, config, bounds, prepare, chance, apply }` (départ, recrue, conflit, maladie, affrontement, un par fichier sous `server/LivingKnox/SimEvents/`, ordre et sel du tirage inchangés) ; table morte `Raids.SIGNS` retirée ; gel sha256 de cinq mondes (simulation sur 26 jours avec les cinq événements, raid complet, vengeance, chantiers et repas sur 48 h ; entrée et sortie de chaque passe, événements tirés, journal, registre), identique avant et après chaque étape ; acceptation : un événement et une passe factices inscrits par le banc seul s'exécutent à leur rang (rouge avant : `attempt to call field 'registerEvent' (a nil value)`) ; banc de l'ordre ; 104 bancs `test_lk_*` verts ; seul attendu changé : la sonde de source de `test_lk_journal.py` lit aussi les fichiers `SimEvents/` (même invariant, code déménagé) ; luacheck `Contents` 8
+  - Reste : un banc qui charge `LK_Server.lua` sans les fichiers d'événements simule sans événement de groupe ; chargement du dossier `SimEvents/` non vérifié en jeu ; suite complète à repasser
 - [x] **LK16-T10** — C11 : aménagements des foyers ; nettoyages
   - État : `testé hors jeu`
   - Cible : `hors jeu`

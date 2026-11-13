@@ -29,6 +29,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from test_lk_barricade import FORTIFY, F, ST, BarricadeStack  # noqa: E402
 from test_lk_bodies import lua_list  # noqa: E402
 from test_lk_walls import WALL_DOUBLES  # noqa: E402
+from test_lk_simulation import TRACE, trace_digest  # noqa: E402  (LK16-T09)
+from harness import sim_event_files  # noqa: E402  (LK16-T09)
 
 ROOT = Path(__file__).resolve().parents[1]
 SUITE = 'shared/RST/suites/RST_LKFortifyOffscreen.lua'
@@ -116,6 +118,8 @@ class OffscreenStack(BarricadeStack):
         srv = 'solo' if self.mode == 'solo' else 'server'
         h.load(srv, WALL_DOUBLES)
         h.load(srv, OFF_DOUBLES)
+        for path in sim_event_files():   # LK16-T09 : événements de groupe de la simulation (SimEvents/)
+            h.load(srv, path)
         return h
 
     def prepare(self, extra=None):
@@ -449,6 +453,31 @@ class CompactFormTests(OffscreenStack):
         self.assertEqual(self.arrive(), 1)
         self.assertEqual((self.planks('WIN_N'), self.planks('WIN_W')), ((0, 4), (0, 4)))
         self.assertEqual(self.h.errors('solo'), [])
+
+
+# LK16-T09 : empreinte (sha256) relevée sur le code d'avant le registre des passes horaires de la simulation.
+FROZEN_WORKS = 'f25625493b60b3578e42781bad64a82116d54798d397ee69c346dfdac99b019e'
+
+
+class FrozenWorksTests(OffscreenStack):
+    mode = 'solo'
+
+    def test_simulated_works_and_meals_are_frozen(self):
+        """Gel (LK16-T09) : chantiers avancés hors écran et repas abstraits pris au stock pendant deux jours simulés
+        heure par heure par Simulation.step (ordre des passes, matériaux, écarts, journal, registre)."""
+        gid = self.prepare({'Base.Plank': 12})
+        self.run_lua(f'assert(LivingKnox.Groups.update(function(d) d.simHour = {DAY_HOUR - 1} return true, true end))')
+        self.run_lua(TRACE)
+        self.run_lua('_WRAP_ALL()')
+        for hour in range(DAY_HOUR, DAY_HOUR + 48):
+            self.run_lua(f'LivingKnox.Simulation.step({hour})')
+        pending = self.ev(f'STOCK_PENDING("{gid}")')
+        extra = f'{pending} {self.ev(f"{F}.stats.offSteps")}'
+        digest, trace = trace_digest(self.h, 'solo', extra)
+        self.assertRegex(trace, r'<fortify \{builders=1')
+        self.assertRegex(trace, r'<meal \{eaters=')
+        self.assertEqual(self.h.errors('solo'), [])
+        self.assertEqual(digest, FROZEN_WORKS, digest)
 
 
 class SuiteListTests(OffscreenStack):

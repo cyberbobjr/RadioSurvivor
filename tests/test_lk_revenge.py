@@ -31,6 +31,7 @@ from test_lk_bodies import lua_list  # noqa: E402
 from test_lk_decisions import DECIDERS, DUMP  # noqa: E402
 from test_lk_materialize import MatBase  # noqa: E402
 from test_lk_simulation import Base as SimBase  # noqa: E402
+from test_lk_simulation import TRACE, trace_digest  # noqa: E402  (LK16-T09)
 
 R = 'LivingKnox.Relations'
 SIM = 'LivingKnox.Simulation'
@@ -525,6 +526,29 @@ class OffscreenTests(OffscreenBase):
         a, b = run(True), run(False)
         self.assertEqual(a, b)
         self.assertIn('72657665', a)   # « reve(nge) » encodé : le champ est bien là
+
+
+# LK16-T09 : empreinte (sha256) relevée sur le code d'avant le registre des passes horaires de la simulation.
+FROZEN_REVENGE = '306bf006b103b26859c09d60b4a02cd5bd79a532c141f5d77463c72d8ec9ba69'
+
+
+class FrozenRevengeTests(OffscreenBase):
+    def test_revenge_hours_are_frozen(self):
+        """Gel (LK16-T09) : serment, départ, traque, retours et nouvelles tentatives d'une vengeance, et un second
+        groupe sans vengeance, heure par heure ; journal et registre."""
+        gid = self.mk()
+        self.assertTrue(self.kill(gid).sworn)
+        self.mk(name='Rooks', home=(1400, 1000, 0))
+        self.run_lua(TRACE)
+        self.run_lua('_WRAP_ALL()')
+        start = self.ev(f'{SIM}.currentHour()')
+        for hour in range(start + 1, start + 200):
+            self.step_to(hour)
+        digest, trace = trace_digest(self.h, self.srv)
+        for phase in ('sworn', 'out', 'hunt'):
+            self.assertIn('<revenge ' + phase, trace)
+        self.assertEqual(self.h.errors(self.srv), [])
+        self.assertEqual(digest, FROZEN_REVENGE, digest)
 
 
 class HuntBase(MatBase):

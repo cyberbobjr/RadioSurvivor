@@ -1077,6 +1077,41 @@ def homes_files():
     return ['server/LivingKnox/LK_Homes.lua'] + [f'server/LivingKnox/Furnishings/{name}' for name in names]
 
 
+EXPEDITION_KINDS_DIR = LK_LUA / 'server' / 'LivingKnox' / 'Expeditions'
+FOOD_REQUIRE = 'require "LivingKnox/LK_Food"'
+
+
+def _expedition_kinds(food: bool):
+    """Genres d'expédition du dossier Expeditions/ (triés par nom, comme le chargement du jeu ; l'ordre entre genres
+    vient de leur order) : ceux qui requièrent la nourriture (food vrai) ou les autres."""
+    names = sorted((p.name for p in EXPEDITION_KINDS_DIR.glob('*.lua')), key=str.lower)
+    return [f'server/LivingKnox/Expeditions/{name}' for name in names
+            if (FOOD_REQUIRE in (EXPEDITION_KINDS_DIR / name).read_text(encoding='utf-8')) == food]
+
+
+def expedition_files():
+    """Fichiers des expéditions (LK16-T08) comme le jeu les charge : moteur, puis chaque genre du dossier Expeditions/
+    qui ne dépend pas de la nourriture (bâtiment)."""
+    return ['server/LivingKnox/LK_Expeditions.lua'] + _expedition_kinds(False)
+
+
+def food_files():
+    """Fichiers de la nourriture (LK16-T08) : LK_Food, puis les genres d'expédition qu'elle inscrit (cueillette,
+    pêche : fichiers du dossier Expeditions/ qui la requièrent). À charger après expedition_files()."""
+    return ['server/LivingKnox/LK_Food.lua'] + _expedition_kinds(True)
+
+
+
+SIM_EVENTS_DIR = LK_LUA / 'server' / 'LivingKnox' / 'SimEvents'
+
+
+def sim_event_files():
+    """Événements de groupe de la simulation hors écran (LK16-T09), un par fichier du dossier SimEvents/, triés par nom
+    comme le chargement du jeu (l'ordre du tirage vient de leur order). À charger après LK_Simulation.lua (requis par
+    LK_Server.lua)."""
+    names = sorted((p.name for p in SIM_EVENTS_DIR.glob('*.lua')), key=str.lower)
+    return [f'server/LivingKnox/SimEvents/{name}' for name in names]
+
 # Lua vanilla réel (E19-T04, ADR banc mimétique D03) ------------------------------------------------------------------
 VANILLA_MISSING = ('vanilla Lua not found: install Project Zomboid (PZ_STEAM_LIBRARY, PZ_DIR or PZ_MEDIA, '
                    'tools/pz_paths.py) or set PZ_SOURCE_DIR to the 42.22 reference sources (media/lua)')
