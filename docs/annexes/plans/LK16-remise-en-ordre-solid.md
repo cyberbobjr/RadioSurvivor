@@ -164,5 +164,5 @@ Constats P2 et P3 de l'audit hors des chantiers ; tout changement visible par un
   - Faire : campagnes solo (deux mods, Living Knox seul), MP et `mp-ambient` sur le commit de fin.
   - Accepté si : mêmes résultats que la dernière campagne verte de référence.
   - Tests : campagnes en jeu.
-  - Preuve : —
-  - Reste : —
+  - Preuve : campagnes du 2026-11-13 au soir et du 2026-11-14 (dossier de travail, commits `8b439ee` à `a7ddc94`) : MP 3 tranches `tools/autoclient/runs/20261113-233636-parallel-3` 510/534, 3 FAIL (`lk.alert` garde, `lk.forage` arrosage, `rs.npctalk` délai : corrigés par `19ac890`, `44b200a`, `f9c8d8f`) ; solo deux mods `20261113-235754-parallel-2` 245/257, 3 FAIL (`lk.forage` : lancé avant `44b200a` ; `lk.upkeep` : corrigé par `a7ddc94` ; `lk.debugview` : ouvert, registre des écarts) ; Living Knox seul `20261114-001702-parallel-2` 105/114, 0 FAIL ; `mp-ambient` `20261114-003116-mp-cf36126965e3` 23/24, 0 FAIL ; campagne MP de contrôle sur `a7ddc94` arrêtée par Claude Code (mémoire de la machine basse), non relancée
+  - Reste : campagne MP de contrôle sur le dernier commit (relancée seulement à la demande de l'utilisateur, la dernière ayant été arrêtée faute de mémoire) ; `lk.debugview` en solo (registre des écarts, `E19-T08`) ; `lk.garden` jamais joué en jeu jusqu'ici (sauté par la pollution des potagers de test, corrigée par `debc2ac`)

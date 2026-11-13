@@ -319,5 +319,5 @@ Interface graphique du moteur (la console suffit), intégration continue distant
   - Faire : trois cas différents en échec sur deux passages MP du 2026-11-06 (campagne : « open window: climbed through » (étape client `lk.track`, copie à 0,9 case du but) et « window of a house, destination behind a locked door elsewhere » (corps jamais passé par la porte), `tools/autoclient/runs/20261106-002923-mp-2889c9f2103f` ; passage ciblé : « locked interior home door … relocked » (portes verrouillées par l'autorité : 10 au lieu de 8), `tools/autoclient/runs/20261106-011253-mp-398bd3fa693f`) ; verts dans les 15 campagnes MP précédentes ; code du moteur des PNJ inchangé par E18-T05 et E18-T06 (hypothèse : délais et course entre deux scènes de la suite).
   - Accepté si : lk.traversal vert dans trois campagnes MP de suite.
   - Tests : bancs `test_lk_obstacles.py`, `test_lk_movement.py` ; campagnes MP.
-  - Preuve : —
+  - Preuve : `lk.traversal` 18/18 dans la campagne MP `20261113-233636-parallel-3` (1 sur 3) et en solo deux mods et Living Knox seul, après `853b9d2` (joueurs écartés du trajet par les portes)
   - Reste : —
