@@ -128,7 +128,7 @@ la réputation » (`bridge/npc_protocol.py:979`) reste vraie : seul le serveur l
 
 ## 7. Adaptateur optionnel CharacterReputation
 
-- Le contrat **RSREP-1** (`reputation-contract.md`, supprimé le 2026-11-13 avec le projet CharacterReputation) reste la cible : détection par
+- Le contrat **RSREP-1** ([reputation-contract.md](../../specifications-techniques/reputation-contract.md)) reste la cible : détection par
   `getDescriptor()` (§2), identité opaque (§3), `recordEvent` idempotent avec `eventId = rs:` + identifiant de
   `outcomes` (§4), lecture (§5), isolement par `pcall` à la frontière (§7).
 - Changement de principe à reporter dans RSREP-1 (§1 et §8) : RadioSurvivor **tient désormais sa propre réputation**
