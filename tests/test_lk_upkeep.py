@@ -371,6 +371,35 @@ class EngineTests(UpkeepStack):
         self.assertEqual(self.h.errors('solo'), [])
 
 
+    def test_place_shifted_out_of_the_home_by_a_plant_is_refused(self):
+        # Campagne solo du 2026-11-13 (runs/20261113-235754-parallel-2 shard1, lk.upkeep) : place 10903,10027 au foyer,
+        # collée à une carotte semée par un groupe de test précédent ; moveTo la décale hors des plantes à 10903,10025,
+        # hors du foyer : aller-retour sans fin entre la place décalée et le foyer. La place retenue reste au foyer
+        # après le décalage de moveTo (Directives.standTarget), sinon la tâche est close avec son délai.
+        gid = self.mk()
+        self.run_lua(r'''
+            FAKE_RUNS = 0
+            local Dir = LivingKnox.Directives
+            local stand = Dir.standTarget
+            Dir.standTarget = function(x, y, z)
+                if y <= 103 then return x, y - 9 end                         -- plante voisine : décalée hors du foyer
+                return stand(x, y, z)
+            end
+            LivingKnox.Upkeep.registerJob({ kind = "nearplant", order = 55, gesture = "kneel", minutes = 1,
+                survey = function() return { { x = 110, y = 102 } } end,
+                apply = function() FAKE_RUNS = FAKE_RUNS + 1 return "applied" end })
+        ''')
+        self.assertEqual(self.jobs(gid), ['nearplant 110,102,0'])
+        self.jump_to(11)
+        for _ in range(120):
+            self.dpass(1, walk=1.0)
+        self.h.advance(1)
+        self.assertEqual((self.ev('FAKE_RUNS'), self.stat('skipped')), (0, 1))
+        self.assertIsNotNone(self.ev(f'{U}.state.done["{gid}|nearplant 110,102,0"]'))
+        self.assertEqual(self.run_lua(f'local n = 0 for _, m in pairs({R}.state.npcs) do '
+                                      'if m.kind == "upkeep" and m.phase == "go" then n = n + 1 end end return n'), 0)
+        self.assertEqual(self.h.errors('solo'), [])
+
 
 class JobSurveyTests(UpkeepStack):
     mode = 'solo'

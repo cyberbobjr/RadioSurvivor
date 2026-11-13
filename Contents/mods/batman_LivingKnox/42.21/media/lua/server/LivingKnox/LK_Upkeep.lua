@@ -313,8 +313,16 @@ local function placeFor(job, spec, home)
             end
         end
     end
-    local p = X.placeBeside(cell, job.x, job.y, job.z, job.bid, used)
-    if p ~= nil then return p end
+    -- Place gardée au foyer après le décalage de moveTo hors des plantes et feux de camp (campagne solo du 2026-11-13 :
+    -- place collée à une carotte d'un autre potager, décalée hors du foyer, aller-retour sans fin).
+    local Dir = LivingKnox.Directives
+    for _ = 1, 9 do
+        local p = X.placeBeside(cell, job.x, job.y, job.z, job.bid, used)
+        if p == nil then break end
+        local sx, sy = Dir.standTarget(p.x, p.y, p.z)
+        if sx ~= nil and Upkeep.atHome(home, sx, sy, p.z) then return p end
+        used[p.x .. "," .. p.y] = true
+    end
     if spec.standOnSelf then
         local sq = cell:getGridSquare(job.x, job.y, job.z)
         if X.standable(sq) then return { x = job.x, y = job.y, z = job.z } end

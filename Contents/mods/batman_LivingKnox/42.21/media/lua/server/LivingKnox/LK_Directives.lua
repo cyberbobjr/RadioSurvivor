@@ -608,6 +608,21 @@ function Directives.planDoors(id, body, x, y, z)
     return w, info
 end
 
+-- Case où un corps envoyé en (x, y, z) s'arrêtera : la même, ou la plus proche hors des plantes et feux de camp
+-- (Bodies.HAZARD_AVOID, à SHIFT_RADIUS cases au plus). Rend x, y et, si la case est décalée, le danger et ses
+-- coordonnées ; ou nil et une raison. Lecture seule (moveTo, et LK_Upkeep pour garder une place au foyer).
+function Directives.standTarget(x, y, z)
+    local B = Bodies()
+    local what, hx, hy = B.hazardNear(x, y, z, B.HAZARD_AVOID)
+    if what == nil then return x, y end
+    local safe = B.safeSquare(x, y, z, Directives.SHIFT_RADIUS, B.HAZARD_AVOID + 1)
+    if safe == nil then
+        return nil, string.format("target %d,%d,%d is next to a %s at %d,%d and no safe square within %d", x, y, z,
+            what, hx, hy, Directives.SHIFT_RADIUS)
+    end
+    return safe:getX(), safe:getY(), what, hx, hy
+end
+
 -- Consigne "aller à" la case (x, y, z), geste walk (défaut), run ou crouch. Case chargée, praticable, à MAX_TRIP
 -- cases au plus du corps, décalée hors des plantes et feux de camp (voir plus haut). Rend le numéro de la consigne,
 -- ou nil et une raison.
@@ -630,17 +645,11 @@ function Directives.moveTo(id, x, y, z, gesture)
     local Mv = LivingKnox.Movement   -- LK04-T05 : case d'un échec "stuck" récent de ce PNJ
     local avoid = Mv ~= nil and Mv.avoided ~= nil and Mv.avoided(id, x, y, z) or nil
     if avoid ~= nil then return nil, avoid end
-    local B = Bodies()
-    local what, hx, hy = B.hazardNear(x, y, z, B.HAZARD_AVOID)
+    local sx, sy, what, hx, hy = Directives.standTarget(x, y, z)
+    if sx == nil then return nil, sy end
     if what ~= nil then
-        local safe = B.safeSquare(x, y, z, Directives.SHIFT_RADIUS, B.HAZARD_AVOID + 1)
-        if safe == nil then
-            return nil, string.format("target %d,%d,%d is next to a %s at %d,%d and no safe square within %d", x, y, z,
-                what, hx, hy, Directives.SHIFT_RADIUS)
-        end
-        log().info("npc %s: move target %d,%d,%d shifted to %d,%d (%s at %d,%d)", id, x, y, z, safe:getX(),
-            safe:getY(), what, hx, hy)
-        x, y = safe:getX(), safe:getY()
+        log().info("npc %s: move target %d,%d,%d shifted to %d,%d (%s at %d,%d)", id, x, y, z, sx, sy, what, hx, hy)
+        x, y = sx, sy
         avoid = Mv ~= nil and Mv.avoided ~= nil and Mv.avoided(id, x, y, z) or nil
         if avoid ~= nil then return nil, avoid end
     end
