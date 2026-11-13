@@ -285,7 +285,7 @@
   - Reste : foyer aménagé avant la tâche : aucun générateur marqué (entretien du générateur inactif)
 
 - [ ] **LK05-T20** — Provisions sur soi et gourde inépuisable
-  - État : `à faire`
+  - État : `testé hors jeu`
   - Cible : `MP`
   - Dépend de : LK05-T07, LK07-T05
   - Fichiers : `LK_Loot.lua`, `LK_Needs.lua`, `LK_Decisions.lua`, `LK_Routines.lua`, `LK_Combat.lua`

@@ -51,6 +51,7 @@ RST.CAMPAIGNS["solo-lk"] = {
     "lk.repair",        -- LK14-T06 (2026-10-15: solo proof)
     "lk.expedition",    -- LK05-T05 (2026-10-15: solo proof)
     "lk.meals",         -- LK05-T07 (2026-10-15: solo proof)
+    "lk.provisions",    -- LK05-T20 (provisions carried, canteen, replaced at home)
     "lk.zombies",       -- LK06-T04 (2026-10-15: solo proof)
     "lk.admin",         -- LK13-T01 (2026-10-15: solo window by the debug menu button)
     "lk.npcsheet",      -- LK13-T13 (2026-10-15: solo sheet by the right-click menu)
@@ -121,7 +122,7 @@ RST.CAMPAIGNS["solo-retry"] = {
 -- .retrieve, .recover and .signal (required mod Signal Smoke: FAIL without it). Suites that need a group near the player
 -- (rs.carnet.lk, rs.carnet.lk.supply, rs.groupradio, rs.factions.*) create one around the requester when none is
 -- loaded (RST_LKGroupFixture.lua). Suites that move the game clock: lk.expedition, lk.forage (9:00), lk.meals,
--- lk.repair (6:59 at night), and lk.routines (23:00 then dawn) LAST.
+-- lk.provisions, lk.repair (6:59 at night), and lk.routines (23:00 then dawn) LAST.
 RST.CAMPAIGNS["mp"] = {
     "rst.selftest",     -- engine on the server
     "rs.env",           -- E01-T08
@@ -222,6 +223,7 @@ RST.CAMPAIGNS["mp"] = {
     "lk.defense",       -- LK05-T09, LK06-T14
     "lk.chores",        -- LK05-T04
     "lk.meals",         -- LK05-T07 (E01-T19; clock to 6:59 at night)
+    "lk.provisions",    -- LK05-T20 (clock to 6:59 at night)
     "lk.repair",        -- LK14-T06 (E01-T19; clock to 6:59 at night)
     "lk.expedition",    -- LK05-T05 (E01-T19; clock to 9:00 outside 7 h - 16 h)
     "lk.forage",        -- LK05-T11 (E01-T19; clock to 9:00 outside 7 h - 15 h)

@@ -11,7 +11,9 @@
 -- Construction (Loot.build, une seule fois par corps) : passage toutes les EVERY_MS sur les corps reliés dans le
 -- monde, et au plus tard à la mort. Marque persistante MD_BUILT dans les ModData du corps (sauvegardées avec lui dans
 -- reanimated.bin) : un corps relu ou relié de nouveau n'est jamais rempli deux fois ; un nouveau corps (incarnation
--- suivante) a des ModData neuves et reçoit son propre butin (l'ancien corps a quitté le monde avec le sien). Contenu :
+-- suivante) a des ModData neuves et reçoit son propre butin (l'ancien corps a quitté le monde avec le sien). Contenu,
+-- par le registre Loot.registerContent (LK05-T20 ; ordre : munitions 10, poches 20, provisions 30 de LK_Provisions.lua,
+-- mission 90) :
 --   - munitions de l'arme à feu du registre (npc.weapon, LivingKnox.Ammo) selon le niveau de munitions du groupe
 --     (needs.ammo 0..100 ; sans groupe : AMMO_LEVEL) : cartouches dans l'arme (fraction de la capacité), chargeurs
 --     pleins de réserve (arme à chargeur) ou cartouches libres (sinon). Un état déjà noté (Ammo.give d'une suite)
@@ -173,8 +175,81 @@ local function entries(list, max)
     return out
 end
 
--- Construit l'inventaire du corps z du PNJ id, une seule fois (marque MD_BUILT). Rend vrai s'il vient d'être construit,
--- sinon faux et la raison.
+-- ================================================================ registre du contenu (LK05-T20)
+
+-- Contenu du butin : { id (unique), order (plus petit d'abord, à égalité par id), add(id, z, inv, info) -> nil (rien)
+-- ou { items, rounds, part } (objets et cartouches ajoutés, texte du journal) }. info = { npc (entrée du registre),
+-- level, group, member, role } (Loot.contextOf). Chaque contenu s'inscrit par Loot.registerContent (munitions, poches et
+-- objets de mission ci-dessous ; provisions : LK_Provisions.lua). Une inscription de même id remplace l'ancienne.
+Loot.contents = Loot.contents or {}
+
+function Loot.registerContent(spec)
+    if type(spec) ~= "table" or type(spec.id) ~= "string" or type(spec.order) ~= "number"
+        or type(spec.add) ~= "function" then
+        error("LivingKnox.Loot.registerContent: spec needs id, order and add", 2)
+    end
+    local list = Loot.contents
+    for i = #list, 1, -1 do
+        if list[i].id == spec.id then table.remove(list, i) end
+    end
+    list[#list + 1] = spec
+    table.sort(list, function(a, b)
+        if a.order ~= b.order then return a.order < b.order end
+        return a.id < b.id
+    end)
+    return spec
+end
+
+Loot.addItems = addItems   -- LK05-T20 : contenus inscrits ailleurs (type refusé ou inconnu signalé une fois)
+
+-- Munitions de l'arme à feu du registre.
+Loot.registerContent({ id = "ammo", order = 10, add = function(id, z, _, info)
+    local gun = info.npc and info.npc.weapon
+    local plan = gun and Loot.ammoPlan(gun, info.level) or nil
+    if plan == nil then return nil end
+    local A = Ammo()
+    local items, rounds = 0, 0
+    if not A.hasState(z) then
+        local n = A.setLoaded(z, gun, plan.loaded)
+        rounds = rounds + (n or 0)
+    end
+    local added, why = A.addReserve(z, gun, plan.rounds, plan.mags)
+    if added == nil then
+        reportOnce("ammo:" .. gun, "npc %s reserve ammo for %s not given: %s", id, gun, tostring(why))
+    else
+        rounds = rounds + added
+        items = items + plan.rounds + plan.mags
+    end
+    return { items = items, rounds = rounds, part = string.format("%s: %d loaded, %d magazine(s), %d loose round(s) "
+        .. "(ammo level %s)", gun, plan.loaded, plan.mags, plan.rounds, tostring(info.level)) }
+end })
+
+-- Poches du rôle.
+Loot.registerContent({ id = "pockets", order = 20, add = function(_, _, inv, info)
+    local pockets = info.role and cfg().POCKETS[info.role] or nil
+    if pockets == nil then return nil end
+    local n = 0
+    for _, e in ipairs(entries(pockets, 100)) do n = n + addItems(inv, e.t, e.n, "pockets of " .. info.role) end
+    return { items = n, rounds = 0, part = string.format("%d pocket item(s) of a %s", n, info.role) }
+end })
+
+-- Objets de mission (point d'appel).
+Loot.registerContent({ id = "mission", order = 90, add = function(id, _, inv, info)
+    if type(Loot.missionItems) ~= "function" then return nil end
+    local ok, list = pcall(Loot.missionItems, id, { npc = info.npc, group = info.group, member = info.member,
+        role = info.role })
+    if not ok then
+        log().error("npc %s mission items failed: %s", id, tostring(list))
+        return nil
+    end
+    local n = 0
+    for _, e in ipairs(entries(list, cfg().MISSION_MAX)) do n = n + addItems(inv, e.t, e.n, "mission") end
+    count("missions", n)
+    return { items = n, rounds = 0, part = n > 0 and string.format("%d mission item(s)", n) or nil }
+end })
+
+-- Construit l'inventaire du corps z du PNJ id, une seule fois (marque MD_BUILT) : chaque contenu inscrit, par ordre.
+-- Rend vrai s'il vient d'être construit, sinon faux et la raison.
 function Loot.build(id, z)
     if not LivingKnox.isAuthority() then return false, "not the authority (MP client)" end
     if z == nil then return false, "no body" end
@@ -182,49 +257,16 @@ function Loot.build(id, z)
     if md[Loot.MD_BUILT] ~= nil then return false, "already built" end
     md[Loot.MD_BUILT] = Loot.VERSION   -- posée d'abord : une erreur plus bas ne fait jamais construire deux fois
     local S = LivingKnox.Store
-    local npc = S ~= nil and S.isReady() and S.data().npcs[id] or nil
-    local ctx = Loot.contextOf(id)
+    local info = Loot.contextOf(id)
+    info.npc = S ~= nil and S.isReady() and S.data().npcs[id] or nil
     local inv = z:getInventory()
     local items, rounds, parts = 0, 0, {}
-    -- Munitions de l'arme à feu du registre.
-    local gun = npc and npc.weapon
-    local plan = gun and Loot.ammoPlan(gun, ctx.level) or nil
-    if plan ~= nil then
-        local A = Ammo()
-        if not A.hasState(z) then
-            local n = A.setLoaded(z, gun, plan.loaded)
-            rounds = rounds + (n or 0)
-        end
-        local added, why = A.addReserve(z, gun, plan.rounds, plan.mags)
-        if added == nil then
-            reportOnce("ammo:" .. gun, "npc %s reserve ammo for %s not given: %s", id, gun, tostring(why))
-        else
-            rounds = rounds + added
-            items = items + plan.rounds + plan.mags
-        end
-        parts[#parts + 1] = string.format("%s: %d loaded, %d magazine(s), %d loose round(s) (ammo level %s)", gun,
-            plan.loaded, plan.mags, plan.rounds, tostring(ctx.level))
-    end
-    -- Poches du rôle.
-    local pockets = ctx.role and cfg().POCKETS[ctx.role] or nil
-    if pockets ~= nil then
-        local n = 0
-        for _, e in ipairs(entries(pockets, 100)) do n = n + addItems(inv, e.t, e.n, "pockets of " .. ctx.role) end
-        items = items + n
-        parts[#parts + 1] = string.format("%d pocket item(s) of a %s", n, ctx.role)
-    end
-    -- Objets de mission (point d'appel).
-    if type(Loot.missionItems) == "function" then
-        local ok, list = pcall(Loot.missionItems, id, { npc = npc, group = ctx.group, member = ctx.member,
-            role = ctx.role })
-        if not ok then
-            log().error("npc %s mission items failed: %s", id, tostring(list))
-        else
-            local n = 0
-            for _, e in ipairs(entries(list, cfg().MISSION_MAX)) do n = n + addItems(inv, e.t, e.n, "mission") end
-            items = items + n
-            count("missions", n)
-            if n > 0 then parts[#parts + 1] = string.format("%d mission item(s)", n) end
+    for _, c in ipairs(Loot.contents) do
+        local got = c.add(id, z, inv, info)
+        if got ~= nil then
+            items = items + (got.items or 0)
+            rounds = rounds + (got.rounds or 0)
+            if got.part ~= nil then parts[#parts + 1] = got.part end
         end
     end
     count("built")

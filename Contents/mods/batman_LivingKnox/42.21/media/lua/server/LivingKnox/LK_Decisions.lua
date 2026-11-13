@@ -17,7 +17,9 @@
 --      heures passent : base api-42-21.md) ; un groupe qui se matérialise est noté aussitôt.
 --   2. Membre, court terme (Decisions.decide, pur) : cascade de priorités fixe PRIORITIES (menace, peur, blessure,
 --      faim, soif, fatigue, poste du groupe, routine) ; la première règle qui propose un comportement permis par le
---      rôle l'emporte. Comportements en liste fermée BEHAVIOURS. Entrées : perception (LivingKnox.Senses.perceived),
+--      rôle l'emporte. Comportements en liste fermée BEHAVIOURS, complétée par les extensions inscrites
+--      (Decisions.registerExtension, LK05-T20 : règles placées avant une règle de PRIORITIES, au même rang, et leur
+--      comportement ; aucune n'est nommée ici). Entrées : perception (LivingKnox.Senses.perceived),
 --      santé de référence (LivingKnox.Health.get), attitude du groupe envers les joueurs perçus (LivingKnox.Hostility),
 --      besoins (LivingKnox.Needs, LK05-T06 : jauges tenues par l'autorité ; module absent : valeurs neutres), poste
 --      du groupe. Envies : fatigue -> dormir, faim et soif -> rentrer au foyer (repas abstrait au pas horaire de
@@ -766,48 +768,137 @@ function RULES.routine(ctx)
     return atHomeOr(ctx, ctx.night and "rest" or "home"), "routine", "routine"
 end
 
+-- ================================================================ extensions de la cascade (registre, LK05-T20)
+
+-- Extension : { id (unique ; nom du comportement ajouté quand behaviour est donné), order (plus petit d'abord, à
+-- égalité par id), rules (facultatif) = { { name, before (règle de PRIORITIES), rule(ctx) -> b, why, key }, ... } :
+-- règle essayée juste avant la règle before, au même rang ; behaviour (facultatif) = { vigil, minutes = { lo, hi },
+-- needs } : comportement id ajouté à BEHAVIOURS, mené par apply(id, st, ctx, fresh) ; leave(id) : membre sorti du
+-- comportement id (ou oublié) ; input(ctx, body, minute) (facultatif) : complète le contexte lu par ses règles ;
+-- observe(ctx, st, body, minute) (facultatif) : après la décision appliquée }. Ce registre ne nomme aucune extension :
+-- chacune s'inscrit depuis son propre fichier (Decisions.registerExtension). Liste triée à l'inscription (sans next).
+Decisions.extensions = Decisions.extensions or {}
+
+local function validRules(rules)
+    if rules == nil then return true end
+    if type(rules) ~= "table" then return false end
+    for _, r in ipairs(rules) do
+        if type(r) ~= "table" or type(r.name) ~= "string" or type(r.rule) ~= "function" or RULES[r.before] == nil then
+            return false
+        end
+    end
+    return true
+end
+
+local function validExtension(spec)
+    if type(spec) ~= "table" or type(spec.id) ~= "string" or type(spec.order) ~= "number" then return false end
+    if not validRules(spec.rules) then return false end
+    for _, f in ipairs({ "apply", "leave", "input", "observe" }) do
+        if spec[f] ~= nil and type(spec[f]) ~= "function" then return false end
+    end
+    local b = spec.behaviour
+    if b ~= nil then
+        if type(b) ~= "table" or type(b.vigil) ~= "string" or spec.apply == nil then return false end
+        if Decisions.BEHAVIOURS[spec.id] ~= nil and Decisions.BEHAVIOURS[spec.id].ext ~= spec.id then return false end
+    end
+    return true
+end
+
+-- Inscrit une extension (spec, voir ci-dessus). Une extension déjà inscrite sous le même id est remplacée
+-- (rechargement). Un comportement de la liste fermée ne peut pas être repris par une extension.
+function Decisions.registerExtension(spec)
+    if not validExtension(spec) then
+        error("LivingKnox.Decisions.registerExtension: spec needs id, order, rules { name, before, rule } and, for a "
+            .. "behaviour { vigil }, apply", 2)
+    end
+    local list = Decisions.extensions
+    for i = #list, 1, -1 do
+        if list[i].id == spec.id then table.remove(list, i) end
+    end
+    list[#list + 1] = spec
+    table.sort(list, function(a, b)
+        if a.order ~= b.order then return a.order < b.order end
+        return a.id < b.id
+    end)
+    local b = spec.behaviour
+    if b ~= nil then
+        Decisions.BEHAVIOURS[spec.id] = { vigil = b.vigil, needs = b.needs, ext = spec.id }
+        if type(b.minutes) == "table" then cfg().MINUTES[spec.id] = { b.minutes[1], b.minutes[2] } end
+    end
+    return spec
+end
+
+-- Extension qui mène le comportement b, ou nil.
+local function extensionOf(b)
+    for _, x in ipairs(Decisions.extensions) do
+        if x.id == b and x.apply ~= nil then return x end
+    end
+    return nil
+end
+
+-- Proposition de la règle fn (comportement permis au membre), ou nil.
+local function proposal(ctx, fn)
+    local b, why, key = fn(ctx)
+    if b == nil or not Decisions.allows(ctx, b) then return nil end
+    return b, why, key
+end
+
+-- Première proposition de la cascade : b, why, key, rang, nom de la règle. Avant chaque règle de PRIORITIES, les
+-- règles des extensions placées devant elle (même rang : la règle suivante en interrompt l'état comme une autre).
+local function firstProposal(ctx)
+    for i, name in ipairs(Decisions.PRIORITIES) do
+        for _, x in ipairs(Decisions.extensions) do
+            for _, r in ipairs(x.rules or {}) do
+                if r.before == name then
+                    local b, why, key = proposal(ctx, r.rule)
+                    if b ~= nil then return b, why, key, i, r.name end
+                end
+            end
+        end
+        local b, why, key = proposal(ctx, RULES[name])
+        if b ~= nil then return b, why, key, i, name end
+    end
+    return nil
+end
+
 -- Décision d'un membre (pur) : ctx = { id, role, allowed, combatant, x, y, z, home, atHome, threat (menace la plus
 -- proche ou nil), alert (alerte du groupe qui le concerne, Alert.forMember, LK05-T08, ou nil), needs, fearFrom
 -- (source récente de la peur { x, y, z } ou nil, LK05-T06), health (0..1 ou nil), duty, objective, night, minute,
 -- meals (vrai si les repas réels de LK05-T07 sont chargés), unfed (besoins mis de côté { hunger, thirst } ou nil),
 -- sentryKind ("guard" ou "patrol", LK05-T03 ; absent = "guard"), chores (vrai si les corvées de LK05-T04 sont
--- chargées) }. Rend { b, p (rang de la règle), rule, why, key, start, untilMin, angle (guet
--- ou menace), away (fuite : angle d'éloignement) }.
+-- chargées) } et les champs posés par les extensions (input). Rend { b, p (rang de la règle), rule, why, key, start,
+-- untilMin, angle (guet ou menace), away (fuite : angle d'éloignement) }.
 function Decisions.decide(ctx)
-    for i, rule in ipairs(Decisions.PRIORITIES) do
-        local b, why, key = RULES[rule](ctx)
-        if b ~= nil and Decisions.allows(ctx, b) then
-            local rnd = Decisions.stream(ctx.id, ctx.minute or 0, i)
-            local span = cfg().MINUTES[b] or { 5, 5 }
-            local out = { b = b, p = i, rule = rule, why = why, key = key, start = ctx.minute or 0 }
-            out.untilMin = out.start + pick(span[1], span[2], rnd)
-            local t = ctx.threat
-            if b == "watch" and t then
-                out.angle = Decisions.angleTo(t.x + 0.5 - ctx.x, t.y + 0.5 - ctx.y)
-            elseif b == "alert" and ctx.alert then
-                out.angle = Decisions.angleTo(ctx.alert.x + 0.5 - ctx.x, ctx.alert.y + 0.5 - ctx.y)
-            elseif (b == "flee" or b == "retreat") and (t or ctx.fearFrom) then
-                local src = t or ctx.fearFrom   -- menace perçue, sinon source récente de la peur (LK05-T06)
-                -- LK06-T05 : fuite pondérée par la proximité de toutes les menaces perçues (I6.5).
-                out.away = Decisions.fleeAngle(ctx.x, ctx.y, ctx.threats or { t }, src) or pick(0, 7, rnd) * 45
-                out.side = rnd() < 0.5 and -1 or 1
-                if b == "retreat" and t then out.angle = Decisions.angleTo(t.x + 0.5 - ctx.x, t.y + 0.5 - ctx.y) end
-            elseif b == "surrender" then
-                local e = Decisions.playerSpot(ctx, string.sub(key or "", 2))   -- clé "p<compte>"
-                if e ~= nil then out.angle = Decisions.angleTo(e.x + 0.5 - ctx.x, e.y + 0.5 - ctx.y) end
-                out.u = string.sub(key or "", 2)
-            elseif b == "guard" then
-                -- Regard vers l'extérieur du foyer (sinon direction tirée), décalé de -45, 0 ou +45 degrés.
-                local base
-                if ctx.home then base = Decisions.angleTo(ctx.x - (ctx.home.x + 0.5), ctx.y - (ctx.home.y + 0.5)) end
-                if base == nil then base = pick(0, 7, rnd) * 45 end
-                local a = base + (pick(0, 2, rnd) - 1) * 45
-                out.angle = a - math.floor(a / 360) * 360
-            end
-            return out
-        end
+    local b, why, key, i, rule = firstProposal(ctx)
+    if b == nil then return nil end   -- inaccessible : la routine est toujours permise
+    local rnd = Decisions.stream(ctx.id, ctx.minute or 0, i)
+    local span = cfg().MINUTES[b] or { 5, 5 }
+    local out = { b = b, p = i, rule = rule, why = why, key = key, start = ctx.minute or 0 }
+    out.untilMin = out.start + pick(span[1], span[2], rnd)
+    local t = ctx.threat
+    if b == "watch" and t then
+        out.angle = Decisions.angleTo(t.x + 0.5 - ctx.x, t.y + 0.5 - ctx.y)
+    elseif b == "alert" and ctx.alert then
+        out.angle = Decisions.angleTo(ctx.alert.x + 0.5 - ctx.x, ctx.alert.y + 0.5 - ctx.y)
+    elseif (b == "flee" or b == "retreat") and (t or ctx.fearFrom) then
+        local src = t or ctx.fearFrom   -- menace perçue, sinon source récente de la peur (LK05-T06)
+        -- LK06-T05 : fuite pondérée par la proximité de toutes les menaces perçues (I6.5).
+        out.away = Decisions.fleeAngle(ctx.x, ctx.y, ctx.threats or { t }, src) or pick(0, 7, rnd) * 45
+        out.side = rnd() < 0.5 and -1 or 1
+        if b == "retreat" and t then out.angle = Decisions.angleTo(t.x + 0.5 - ctx.x, t.y + 0.5 - ctx.y) end
+    elseif b == "surrender" then
+        local e = Decisions.playerSpot(ctx, string.sub(key or "", 2))   -- clé "p<compte>"
+        if e ~= nil then out.angle = Decisions.angleTo(e.x + 0.5 - ctx.x, e.y + 0.5 - ctx.y) end
+        out.u = string.sub(key or "", 2)
+    elseif b == "guard" then
+        -- Regard vers l'extérieur du foyer (sinon direction tirée), décalé de -45, 0 ou +45 degrés.
+        local base
+        if ctx.home then base = Decisions.angleTo(ctx.x - (ctx.home.x + 0.5), ctx.y - (ctx.home.y + 0.5)) end
+        if base == nil then base = pick(0, 7, rnd) * 45 end
+        local a = base + (pick(0, 2, rnd) - 1) * 45
+        out.angle = a - math.floor(a / 360) * 360
     end
-    return nil   -- inaccessible : la routine est toujours permise
+    return out
 end
 
 -- Vrai si la décision out remplace l'état st : aucun état, échéance atteinte, ou interruption (autre règle, autre
@@ -1537,6 +1628,9 @@ function Decisions.context(gid, g, mid, m, body, players, minute)
         ctx.overwhelmed = Decisions.overwhelmedOf(weight, Decisions.ableNear(gid, g, x, y, ctx.z),
             prev ~= nil and prev.b == "retreat" and prev.key == "overwhelmed")
     end
+    for _, ext in ipairs(Decisions.extensions) do   -- LK05-T20 : entrées des extensions (registre)
+        if ext.input ~= nil then ext.input(ctx, body, minute) end
+    end
     return ctx
 end
 
@@ -1736,6 +1830,10 @@ function Decisions.apply(id, st, ctx, fresh)
     if D == nil then return end
     if D.setVigil ~= nil then D.setVigil(id, vigil) end
     local b = st.b
+    local ext = extensionOf(b)   -- LK05-T20 : comportement mené par une extension (registre)
+    for _, x in ipairs(Decisions.extensions) do
+        if x.leave ~= nil and x ~= ext then x.leave(id) end
+    end
     local R = LivingKnox.Routines
     local routine = R ~= nil and R.handles(b) and (ctx.home == nil or ctx.atHome)
     if R ~= nil and not routine then R.leave(id) end   -- routine interrompue ou finie : debout, mémoire oubliée
@@ -1750,6 +1848,10 @@ function Decisions.apply(id, st, ctx, fresh)
         return
     end
     if C ~= nil and C.leave ~= nil then C.leave(id) end
+    if ext ~= nil then
+        ext.apply(id, st, ctx, fresh)
+        return
+    end
     local Ex = LivingKnox.Expeditions   -- LK05-T05 : trajet, fouille et retour menés par LK_Expeditions
     if b == "expedition" and Ex ~= nil then
         Ex.apply(id, st, ctx, fresh)
@@ -1851,6 +1953,9 @@ function Decisions.evaluate(gid, g, mid, m, body, players, minute)
     Decisions.apply(id, st, ctx, fresh)
     local N = LivingKnox.Needs   -- LK05-T06 : activité de l'heure pour le pas horaire des besoins
     if N ~= nil and N.observe ~= nil then N.observe(gid, mid, st.b, ctx.home == nil or ctx.atHome, minute) end
+    for _, x in ipairs(Decisions.extensions) do   -- LK05-T20 : suites des extensions (registre)
+        if x.observe ~= nil then x.observe(ctx, st, body, minute) end
+    end
     return fresh
 end
 
@@ -1906,6 +2011,9 @@ function Decisions.forget(id)
     if Df ~= nil and Df.forget ~= nil then Df.forget(id) end
     local En = LivingKnox.Encounters   -- LK11-T02
     if En ~= nil and En.forget ~= nil then En.forget(id) end
+    for _, x in ipairs(Decisions.extensions) do   -- LK05-T20
+        if x.leave ~= nil then x.leave(id) end
+    end
 end
 
 -- Passage des membres : au plus MEMBERS_PER_PASS choisis, tour à tour. Liste refaite toutes les ROSTER_MS, ou à

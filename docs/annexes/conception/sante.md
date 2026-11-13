@@ -396,6 +396,11 @@ cadavre la montrait en solo mais la perdait sur un serveur (ni pillable, ni vue 
 - **Objets de mission** : aucune API ne confie encore d'objet à un PNJ ; point d'appel `Loot.missionItems = function(id,
   info) return { { t = "Module.Objet", n = 1..5 }, ... } end` (`info` : `npc`, `group`, `member`, `role`), contrôlé
   (type bien formé, nombre borné à `MISSION_MAX`, type inconnu du jeu sauté et journalisé une fois).
+- **Registre du contenu** (LK05-T20, 2026-11-13) : chaque partie du butin s'inscrit par `Loot.registerContent({ id,
+  order, add(id, z, inv, info) })` et `Loot.build` les passe par ordre ; `add` rend `{ items, rounds, part }` (texte du
+  journal `loot built: …`) ou rien. Inscrits : munitions (10), poches (20), **provisions** (30, `LK_Provisions.lua` :
+  2 aliments non périssables et une gourde pleine, [besoins.md](besoins.md), « Provisions sur soi et gourde
+  inépuisable »), objets de mission (90). Le cadavre garde les provisions restantes comme le reste de l'inventaire.
 
 ### Mort (une fois par corps)
 

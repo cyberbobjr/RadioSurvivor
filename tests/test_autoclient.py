@@ -1458,7 +1458,7 @@ class CampaignContentTests(unittest.TestCase):
         mp = self.campaign('mp')
         for entry in ('rs.mission', 'rs.factions.accord', 'rs.factions.incident', 'rs.trade_exchange',
                       'rs.trade_run', 'rs.groupradio', 'rs.actions.map', 'rs.actions.reveal', 'lk.traversal',
-                      'lk.force', 'lk.stuck', 'lk.expedition', 'lk.meals', 'lk.forage', 'lk.repair', 'lk.milestone1',
+                      'lk.force', 'lk.stuck', 'lk.expedition', 'lk.meals', 'lk.provisions', 'lk.forage', 'lk.repair', 'lk.milestone1',
                       'lk.essai', 'lk.equipment', 'lk.ranged', 'lk.speech', 'lk.garden', 'lk.routines'):
             self.assertIn(entry, mp)
         self.assertEqual(mp[-1], 'lk.routines')
