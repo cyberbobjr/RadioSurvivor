@@ -308,6 +308,40 @@ class EngineTests(UpkeepStack):
         self.assertEqual(self.ev(f'({U}.claim("g", {{}}, "lk-2", 100, {{ chores = true }})).key'), 'fake2 1')
         self.assertIsNone(self.ev(f'{U}.claim("g", {{}}, "lk-3", 100, {{ garden = true }})'))
 
+    def test_place_out_of_the_home_is_refused_and_closed_with_its_delay(self):
+        # LK15-T07 (campagne MP du 2026-11-13, lk.upkeep) : place à 12 cases du foyer (110,110), au-delà du rayon « au
+        # foyer » des décisions (HOME_RADIUS 10) ; avant la correction, le membre y allait, n'était plus au foyer,
+        # quittait sa routine, la tâche libérée était reprise aussitôt par un autre membre, sans fin.
+        gid = self.mk()
+        self.run_lua(r'''
+            FAKE_TAKES, FAKE_RUNS = 0, 0
+            LivingKnox.Upkeep.registerJob({ kind = "far", order = 55, gesture = "kneel", minutes = 1,
+                survey = function() return { { x = 112, y = 112 } } end,
+                place = function(job) FAKE_TAKES = FAKE_TAKES + 1 return { x = 110, y = 98, z = 0 } end,
+                apply = function() FAKE_RUNS = FAKE_RUNS + 1 return "far applied" end })
+        ''')
+        self.assertEqual(self.jobs(gid), ['far 112,112,0'])
+        self.jump_to(11)
+        self.assertTrue(self.work(lambda: self.ev('FAKE_TAKES') >= 1), self.lk()[-8:])
+        self.run_lua('FAKE_TAKES = 0')
+        for _ in range(60):                                                   # une minute de jeu, seconde par seconde
+            self.dpass(1, walk=1.0)
+        self.h.advance(1)
+        self.assertEqual(self.ev('FAKE_TAKES'), 0)                            # close : personne ne la reprend
+        self.assertEqual((self.ev('FAKE_RUNS'), self.stat('started'), self.stat('skipped')), (0, 1, 1))
+        key = f'{gid}|far 112,112,0'
+        self.assertIsNone(self.ev(f'{U}.state.claims["{key}"]'))
+        self.assertIsNotNone(self.ev(f'{U}.state.done["{key}"]'))             # délai d'attente DONE_MINUTES
+        # Aucun membre n'est sorti du foyer pour elle.
+        self.assertEqual(self.run_lua(f'local n = 0 for _, m in pairs({R}.state.npcs) do '
+                                      'if m.kind == "upkeep" and m.phase == "go" then n = n + 1 end end return n'), 0)
+        # Rayon des décisions (HOME_RADIUS 10, centre de la case du foyer) : la case entière, bord compris.
+        home = f'LivingKnox.Groups.get("{gid}").home'
+        self.assertEqual([self.ev(f'{U}.atHome({home}, 110, {y}, 0)') for y in (98, 100, 101, 119, 120)],
+                         [False, False, True, True, False])
+        self.assertFalse(self.ev(f'{U}.atHome({home}, 110, 101, 1)'))         # autre niveau
+        self.assertEqual(self.h.errors('solo'), [])
+
 
 
 class JobSurveyTests(UpkeepStack):
@@ -788,9 +822,8 @@ class SuiteVanillaGardenTests(UpkeepStack):
         self.assertGreaterEqual(self.stat('dug'), 1)
         self.assertEqual(self.h.errors('solo'), [])
 
-    @unittest.expectedFailure
     def test_garden_at_the_edge_of_the_home_does_not_hold_the_upkeep(self):
-        # DÉFAUT DU MOD reproduit (E19-T04, registre ecarts-banc-jeu.md, 2026-11-13 lk.upkeep) : cour jusqu'à 10 cases
+        # Défaut du mod corrigé en LK15-T07 (E19-T04, registre ecarts-banc-jeu.md, 2026-11-13 lk.upkeep) : cour jusqu'à 10 cases
         # (zone du foyer, Homes.CFG.RADIUS ; sillon de la campagne en 10646,10128 pour un foyer en 10656,10137). Le
         # premier sillon est au coin de la zone, la place à côté à 11 cases : le membre arrivé n'est plus « au foyer »
         # (LK_Decisions.lua:1593-1594, HOME_RADIUS 10), la routine est quittée (LK_Decisions.apply:1837-1838 ->

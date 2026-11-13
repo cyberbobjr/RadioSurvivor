@@ -46,6 +46,7 @@ local function cfg() return Garden.CFG end
 local function Groups() return LivingKnox.Groups end
 local function Homes() return LivingKnox.Homes end
 local function Stock() return LivingKnox.Stock end
+local function Upkeep() return LivingKnox.Upkeep end
 
 -- ================================================================ système de cultures
 
@@ -224,12 +225,41 @@ function Garden.harvestPlant(plant, gid, depot)
     return n, count, types
 end
 
--- Place d'un membre pour arroser ou récolter la plante de la tâche job : jamais à côté (un corps de zombie détruit la
--- plante de sa case, LK04-T06) ; case libre la plus proche (LK_Bodies.findFreeSquare : ni plante ni feu sur elle ni
--- autour), tournée vers la plante.
-function Garden.placeNear(job)
+-- Case libre (LK_Bodies.freeSquare) la plus proche de (x, y, z), à FREE_RADIUS cases au plus, où un membre reste « au
+-- foyer » home (Upkeep.atHome, LK15-T07) ; même ordre que LK_Bodies.findFreeSquare (anneau, puis distance, puis y et
+-- x), qui ne connaît pas le foyer. Rend la case, ou nil.
+local function freeSquareAtHome(B, x, y, z, home)
+    local cell = getCell()
+    for r = 0, B.FREE_RADIUS do
+        local best, bestD = nil, nil
+        for dy = -r, r do
+            for dx = -r, r do
+                local d = dx * dx + dy * dy
+                if math.max(math.abs(dx), math.abs(dy)) == r and (bestD == nil or d < bestD)
+                    and Upkeep().atHome(home, x + dx, y + dy, z) then
+                    local sq = cell:getGridSquare(x + dx, y + dy, z)
+                    if B.freeSquare(sq) then best, bestD = sq, d end
+                end
+            end
+        end
+        if best ~= nil then return best end
+    end
+    return nil
+end
+
+-- Place d'un membre pour arroser, récolter ou semer la plante de la tâche job : jamais à côté (un corps de zombie
+-- détruit la plante de sa case, LK04-T06) ; case libre la plus proche (LK_Bodies.findFreeSquare : ni plante ni feu sur
+-- elle ni autour), restée au foyer home quand il est donné (LK15-T07 : plante au bord de la zone), tournée vers la
+-- plante.
+function Garden.placeNear(job, home)
     local B = LivingKnox.Bodies
-    local sq = B ~= nil and B.findFreeSquare(job.x, job.y, job.z) or nil
+    if B == nil then return nil end
+    local sq
+    if home ~= nil then
+        sq = freeSquareAtHome(B, job.x, job.y, job.z, home)
+    else
+        sq = B.findFreeSquare(job.x, job.y, job.z)
+    end
     if sq == nil then return nil end
     local px, py = sq:getX(), sq:getY()
     local D = LivingKnox.Decisions
@@ -282,10 +312,14 @@ function Garden.plots(area)
 end
 
 -- Première case de la zone où creuser un sillon : hors du bâtiment du foyer, à l'air libre (isOutside), creusable
--- (Garden.canDig) ; { x, y }, ou nil.
+-- (Garden.canDig), la case entière « au foyer » (Upkeep.atHome, LK15-T07) : ses voisines côté foyer, où se tenir pour la
+-- creuser puis la soigner (Garden.placeNear), le restent aussi ; { x, y }, ou nil.
 function Garden.digSpot(area)
     for _, e in ipairs(area.squares) do
-        if not e.inside and Garden.canDig(e.sq) and e.sq:isOutside() then return { x = e.x, y = e.y } end
+        if not e.inside and Upkeep().atHome(area.home, e.x, e.y, area.z) and Garden.canDig(e.sq)
+            and e.sq:isOutside() then
+            return { x = e.x, y = e.y }
+        end
     end
     return nil
 end

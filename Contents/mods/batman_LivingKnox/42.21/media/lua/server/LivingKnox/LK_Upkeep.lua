@@ -12,7 +12,8 @@
 --   duration(job, gid) : facultatif (LK15-T04), minutes de cette tâche-ci, lues au début du travail (outil présent ou
 --                  non...) ; un nombre positif, sinon minutes
 --   survey(gid, g, area) : cases ouvertes { x, y, bid } ou nil ; area = zone du foyer (Upkeep.area)
---   place(job)   : facultatif, case où se tenir ; par défaut une case libre voisine de l'objet
+--   place(job, home) : facultatif, case où se tenir (home : foyer du groupe, pour la chercher « au foyer ») ; par
+--                  défaut une case libre voisine de l'objet
 --   standOnSelf  : facultatif, si pas de case voisine, la case de l'objet elle-même quand elle est praticable
 --   apply(job, gid, who, sq) : effet, une seule fois, état et matériaux relus au moment de l'effet ; rend un texte
 --                  (fait) ou nil et une raison (rien fait)
@@ -21,6 +22,9 @@
 -- (LK_Homes : Homes.ready). Réservation : un membre prend la première tâche ouverte qu'aucun autre ne tient (le
 -- comportement « garden » d'abord pour une tâche préférée). Exécution : aller à la case, regarder, geste, durée, effet
 -- une fois ; tâche faite ou abandonnée : plus proposée pendant DONE_MINUTES ; interrompue avant l'effet : libérée.
+-- Place hors du foyer (LK15-T07, Upkeep.atHome) : refusée dès la prise, tâche abandonnée (DONE_MINUTES) ; arrivé là, le
+-- membre ne serait plus « au foyer » pour les décisions, quitterait sa routine et un autre membre reprendrait aussitôt
+-- la tâche libérée, sans fin (campagne MP du 2026-11-13, lk.upkeep : verre et sang jamais faits).
 -- Lumières : à chaque minute de jeu, de LIGHT_FROM à LIGHT_TO, un membre qui entre dans une pièce du bâtiment de son
 -- foyer allume les interrupteurs éteints que le courant permet d'allumer (IsoLightSwitch.canSwitchLight ;
 -- J/iso/objects/IsoLightSwitch.java:392-447 ; setActive(true) : J/iso/objects/IsoLightSwitch.java:449-476). Aucune
@@ -35,6 +39,7 @@ require "LivingKnox/LK_Groups"
 require "LivingKnox/LK_Homes"
 require "LivingKnox/LK_Stock"
 require "LivingKnox/LK_Routines"
+require "LivingKnox/LK_Decisions"
 
 local Upkeep = LivingKnox.Upkeep or {}
 LivingKnox.Upkeep = Upkeep
@@ -62,6 +67,7 @@ local function cfg() return Upkeep.CFG end
 local function Groups() return LivingKnox.Groups end
 local function Homes() return LivingKnox.Homes end
 local function R() return LivingKnox.Routines end
+local function Decisions() return LivingKnox.Decisions end
 
 local function cheb(ax, ay, bx, by) return math.max(math.abs(ax - bx), math.abs(ay - by)) end
 
@@ -103,6 +109,15 @@ function Upkeep.registerJob(spec)
 end
 
 -- ================================================================ zone et relevé
+
+-- Vrai si un membre debout n'importe où sur la case (x, y, z) reste « au foyer » home pour les décisions (LK_Decisions :
+-- même niveau, écart en x et en y de sa position au centre de la case du foyer au plus HOME_RADIUS) : la case entière,
+-- jusqu'à son bord (une demi-case au-delà de son centre : un corps arrêté n'est pas au centre). Rayon 10 : cases à 9
+-- cases du foyer au plus.
+function Upkeep.atHome(home, x, y, z)
+    if type(home) ~= "table" or z ~= home.z then return false end
+    return cheb(x, y, home.x, home.y) + 0.5 <= Decisions().CFG.HOME_RADIUS
+end
 
 -- Zone du foyer du groupe g : { home, z, style, bid, rd, squares = { { x, y, dx, dy, sq, inside } ... } }, dans l'ordre
 -- (dy, dx) ; inside = case du bâtiment du foyer. Rend la zone, ou nil et une raison (pas de foyer, zone non chargée).
@@ -291,13 +306,22 @@ local function finish(id, m, minute, text, why)
 end
 
 -- Place du membre pour la tâche : place de la tâche (spec.place), sinon case libre voisine de l'objet (règle des
--- corvées), sinon la case de l'objet si spec.standOnSelf et praticable (tache de sang, verre), sans regard.
-local function placeFor(job, spec)
+-- corvées) restée au foyer home, sinon la case de l'objet si spec.standOnSelf et praticable (tache de sang, verre),
+-- sans regard.
+local function placeFor(job, spec, home)
     local cell = getCell()
     if cell == nil then return nil end
-    if spec.place ~= nil then return spec.place(job) end
+    if spec.place ~= nil then return spec.place(job, home) end
     local X = R().exec
-    local p = X.placeBeside(cell, job.x, job.y, job.z, job.bid, {})
+    local used = {}   -- voisines hors du foyer écartées (clés de placeBeside)
+    for dy = -1, 1 do
+        for dx = -1, 1 do
+            if not Upkeep.atHome(home, job.x + dx, job.y + dy, job.z) then
+                used[(job.x + dx) .. "," .. (job.y + dy)] = true
+            end
+        end
+    end
+    local p = X.placeBeside(cell, job.x, job.y, job.z, job.bid, used)
     if p ~= nil then return p end
     if spec.standOnSelf then
         local sq = cell:getGridSquare(job.x, job.y, job.z)
@@ -315,7 +339,7 @@ local function minutesOf(spec, job, gid)
     return spec.minutes
 end
 
-local function step(id, ctx, m)
+local function step(id, ctx, m, home)
     local X = R().exec
     local spec = specOf(m.job)
     if spec == nil then return finish(id, m, ctx.minute, nil, "unknown job " .. tostring(m.job.kind)) end
@@ -326,8 +350,12 @@ local function step(id, ctx, m)
         m.phase = "go"
     end
     if m.phase == "place" then
-        local p = placeFor(m.job, spec)
+        local p = placeFor(m.job, spec, home)
         if p == nil then return finish(id, m, ctx.minute, nil, "no free square beside " .. m.job.key) end
+        if not Upkeep.atHome(home, p.x, p.y, p.z) then
+            return finish(id, m, ctx.minute, nil, string.format("place %s,%s,%s out of the home", tostring(p.x),
+                tostring(p.y), tostring(p.z)))
+        end
         m.place, m.phase = p, "go"
     end
     if m.phase == "go" then
@@ -371,7 +399,7 @@ function Upkeep.run(id, st, ctx, g)
     local m = mem[id]
     if m ~= nil and m.kind == "upkeep" then
         if m.phase == "done" then return false end
-        step(id, ctx, m)
+        step(id, ctx, m, g.home)
         return true
     end
     local job = Upkeep.claim(ctx.gid, g, id, ctx.minute, ctx.allowed)
@@ -382,7 +410,7 @@ function Upkeep.run(id, st, ctx, g)
     mem[id] = m
     Upkeep.stats.started = Upkeep.stats.started + 1
     log().debug("npc %s: upkeep %s (%s)", tostring(id), job.key, tostring(st.why or st.b))
-    step(id, ctx, m)
+    step(id, ctx, m, g.home)
     return true
 end
 

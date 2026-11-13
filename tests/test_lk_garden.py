@@ -643,6 +643,23 @@ class VanillaGardenTests(VanillaGardenStack):
         self.assertEqual(self.stat('harvested'), 2)
         self.assertEqual(self.h.errors('solo'), [])
 
+    def test_ripe_plant_at_the_edge_of_the_home_is_harvested_from_inside(self):
+        # LK15-T07 : plante mûre sur le bord nord de la zone (10 cases du foyer 110,110). La case libre la plus proche
+        # (LK_Bodies.findFreeSquare) est au nord, à 12 cases : le membre n'y serait plus « au foyer » (HOME_RADIUS 10),
+        # quitterait sa routine et la récolte serait reprise en boucle. La place est cherchée dans le rayon du foyer.
+        gid = self.mk()
+        self.run_lua('CARROT = RIPEN(FARM_PLANT(110, 100, 80))')
+        self.assertEqual(self.jobs(gid), ['harvest 110,100,0'])
+        home = f'LivingKnox.Groups.get("{gid}").home'
+        place = self.run_lua(f'local p = {GD}.placeNear({{ kind = "harvest", x = 110, y = 100, z = 0 }}, {home}) '
+                             'return p.x, p.y')
+        self.assertTrue(self.ev(f'{U}.atHome({home}, {place[0]}, {place[1]}, 0)'), place)
+        self.jump_to(11)
+        self.assertTrue(self.work(lambda: self.stat('harvested') >= 1), (self.stat('harvested'), self.lk()[-8:]))
+        self.assertEqual(self.ev('CARROT.state'), 'harvested')
+        self.assertEqual(self.stat('started'), 1)                              # prise une fois, jamais quittée
+        self.assertEqual(self.h.errors('solo'), [])
+
     def test_furrow_dug_once_on_real_dirt_with_the_grass_removed(self):
         gid = self.mk()
         self.run_lua('SHOVEL = UPK_ITEM("Base.Shovel", { tags = { DigPlow = true } }) PANTRY.container:AddItem(SHOVEL) '
