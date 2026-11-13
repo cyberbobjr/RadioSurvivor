@@ -12,6 +12,7 @@
 if isClient() then return end
 
 require "LivingKnox/LK_Core"
+require "LivingKnox/LK_Registry"
 require "LivingKnox/LK_Config"
 require "LivingKnox/LK_Log"
 require "LivingKnox/LK_Groups"
@@ -473,27 +474,20 @@ Routines.cheb, Routines.byPlace, Routines.rankOf = cheb, byPlace, rankOf
 Routines.activities = Routines.activities or {}
 
 local function validActivity(spec)
-    return type(spec) == "table" and type(spec.id) == "string" and type(spec.behaviour) == "string"
-        and type(spec.order) == "number" and type(spec.run) == "function"
+    if type(spec) == "table" and type(spec.id) == "string" and type(spec.behaviour) == "string"
+        and type(spec.order) == "number" and type(spec.run) == "function" then
+        return true
+    end
+    return false, "spec needs id, behaviour, order and run"
 end
 
-local function byOrder(a, b)
-    if a.order ~= b.order then return a.order < b.order end
-    return a.id < b.id
-end
+-- LK16-T01 : socle commun (LivingKnox.Registry) ; Routines.activities en est la liste.
+local activities = LivingKnox.Registry.new("LivingKnox.Routines.registerActivity",
+    { validate = validActivity, items = Routines.activities })
 
 -- Inscrit une activité (spec, voir ci-dessus). Une activité déjà inscrite sous le même id est remplacée (rechargement).
 function Routines.registerActivity(spec)
-    if not validActivity(spec) then
-        error("LivingKnox.Routines.registerActivity: spec needs id, behaviour, order and run", 2)
-    end
-    local list = Routines.activities
-    for i = #list, 1, -1 do
-        if list[i].id == spec.id then table.remove(list, i) end
-    end
-    list[#list + 1] = spec
-    table.sort(list, byOrder)
-    return spec
+    return activities:register(spec, 2)
 end
 
 -- Rend vrai si une activité est inscrite pour le comportement b (la cascade confie alors le membre à la routine).

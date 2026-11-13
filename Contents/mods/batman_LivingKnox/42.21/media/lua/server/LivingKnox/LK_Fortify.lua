@@ -74,6 +74,7 @@
 if isClient() then return end
 
 require "LivingKnox/LK_Core"
+require "LivingKnox/LK_Registry"
 require "LivingKnox/LK_Config"
 require "LivingKnox/LK_Log"
 require "LivingKnox/LK_Groups"
@@ -122,45 +123,49 @@ Fortify.kinds = Fortify.kinds or { list = {}, byId = {}, byCode = {} }
 
 local KIND_FIELDS = { work = "function", plan = "function", stages = "table", names = "table", repair = "table" }
 
-local function kindError(msg)
-    error("LivingKnox.Fortify.registerKind: " .. msg, 4)   -- niveau de l'appelant de registerKind
-end
-
-local function checkKind(spec)
-    if type(spec) ~= "table" then kindError("spec must be a table") end
+-- Raison du refus de spec, ou nil. Règle propre à ce registre : un code déjà pris par une autre sorte est refusé.
+local function kindProblem(spec)
+    if type(spec) ~= "table" then return "spec must be a table" end
     if type(spec.id) ~= "string" or string.match(spec.id, "^[a-z][a-z0-9_]*$") == nil then
-        kindError("id must be a lowercase name")
+        return "id must be a lowercase name"
     end
     if type(spec.order) ~= "number" or type(spec.unit) ~= "string" or type(spec.work) ~= "function" then
-        kindError(spec.id .. " needs order, unit and work")
+        return spec.id .. " needs order, unit and work"
     end
     for field, t in pairs(KIND_FIELDS) do
-        if spec[field] ~= nil and type(spec[field]) ~= t then kindError(spec.id .. "." .. field .. " must be a " .. t) end
+        if spec[field] ~= nil and type(spec[field]) ~= t then return spec.id .. "." .. field .. " must be a " .. t end
     end
-    if spec.repair ~= nil and type(spec.repair.run) ~= "function" then kindError(spec.id .. ".repair needs run") end
+    if spec.repair ~= nil and type(spec.repair.run) ~= "function" then return spec.id .. ".repair needs run" end
     local off = spec.offscreen
-    if off == nil and spec.code == nil then return end
+    if off == nil and spec.code == nil then return nil end
     if type(off) ~= "table" or type(off.nextStage) ~= "function" or type(off.remaining) ~= "function"
         or type(off.apply) ~= "function" then
-        kindError(spec.id .. ".offscreen needs nextStage, remaining and apply")
+        return spec.id .. ".offscreen needs nextStage, remaining and apply"
     end
     if type(spec.code) ~= "string" or string.match(spec.code, "^[a-z]$") == nil then
-        kindError(spec.id .. ".code must be one lowercase letter")
+        return spec.id .. ".code must be one lowercase letter"
     end
     local owner = Fortify.kinds.byCode[spec.code]
     if owner ~= nil and owner ~= spec.id then
-        kindError('code "' .. spec.code .. '" already used by ' .. owner)
+        return 'code "' .. spec.code .. '" already used by ' .. owner
     end
+    return nil
 end
+
+local function validKind(spec)
+    local why = kindProblem(spec)
+    return why == nil, why
+end
+
+-- LK16-T01 : socle commun (LivingKnox.Registry) ; Fortify.kinds.list et Fortify.kinds.byId en sont la liste triée et
+-- l'index (mêmes tables d'une inscription à l'autre).
+local kindRegistry = LivingKnox.Registry.new("LivingKnox.Fortify.registerKind",
+    { validate = validKind, items = Fortify.kinds.list, byKey = Fortify.kinds.byId })
 
 -- Tables dérivées du registre (une seule source : les specs inscrites).
 local function deriveKinds()
     local K = Fortify.kinds
-    table.sort(K.list, function(a, b)
-        if a.order ~= b.order then return a.order < b.order end
-        return a.id < b.id
-    end)
-    local byId, byCode, codes = {}, {}, {}
+    local byCode, codes = {}, {}
     local kinds, off, stages, repairs, names, structures, types, seen = {}, {}, {}, {}, {}, {}, {}, {}
     local function addType(t)
         if not seen[t] then
@@ -169,7 +174,7 @@ local function deriveKinds()
         end
     end
     for _, s in ipairs(K.list) do
-        byId[s.id], kinds[s.id] = s, true
+        kinds[s.id] = true
         if s.stages ~= nil then
             stages[s.id] = s.stages
             for _, st in ipairs(s.stages) do
@@ -190,7 +195,7 @@ local function deriveKinds()
             end
         end
     end
-    K.byId, K.byCode = byId, byCode
+    K.byCode = byCode
     local set = table.concat(codes)
     K.sitePattern = set ~= "" and ("^([" .. set .. "])([guo])(%-?%d+),(%-?%d+),(%-?%d+)([NW])([01])(%d)(%d)$") or nil
     K.opPattern = set ~= "" and ("^(%d+):([" .. set .. "])(%-?%d+),(%-?%d+),(%-?%d+)([NW])([01])(%d)(%d)$") or nil
@@ -201,30 +206,19 @@ end
 -- Inscrit la sorte de chantier spec (voir plus haut) ; rend spec. Erreur claire si spec est invalide ou si son code
 -- est déjà pris : rien n'est inscrit.
 function Fortify.registerKind(spec)
-    checkKind(spec)
-    local K = Fortify.kinds
-    local old = K.byId[spec.id]
-    if old ~= nil then
-        for i, s in ipairs(K.list) do
-            if s == old then
-                table.remove(K.list, i)
-                break
-            end
-        end
-    end
-    K.list[#K.list + 1] = spec
+    kindRegistry:register(spec, 2)
     deriveKinds()
     return spec
 end
 
 -- Sortes inscrites, dans l'ordre du registre (liste à ne pas modifier).
 function Fortify.kindList()
-    return Fortify.kinds.list
+    return kindRegistry:list()
 end
 
 -- Spec de la sorte id, ou nil.
 function Fortify.kindOf(id)
-    return Fortify.kinds.byId[id]
+    return kindRegistry:get(id)
 end
 
 -- Sorte dont le pourtour d'un foyer de style style est fait (premier dans l'ordre du registre), ou nil.

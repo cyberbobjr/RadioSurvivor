@@ -33,6 +33,7 @@
 if isClient() then return end
 
 require "LivingKnox/LK_Core"
+require "LivingKnox/LK_Registry"
 require "LivingKnox/LK_Config"
 require "LivingKnox/LK_Log"
 require "LivingKnox/LK_Groups"
@@ -74,35 +75,23 @@ local function cheb(ax, ay, bx, by) return math.max(math.abs(ax - bx), math.abs(
 -- ================================================================ registre
 
 local function validSpec(spec)
-    return type(spec) == "table" and type(spec.kind) == "string" and type(spec.order) == "number"
+    if type(spec) == "table" and type(spec.kind) == "string" and type(spec.order) == "number"
         and type(spec.gesture) == "string" and type(spec.minutes) == "number" and type(spec.survey) == "function"
-        and type(spec.apply) == "function" and (spec.duration == nil or type(spec.duration) == "function")
+        and type(spec.apply) == "function" and (spec.duration == nil or type(spec.duration) == "function") then
+        return true
+    end
+    return false, "spec needs kind, order, gesture, minutes, survey and apply (duration: a function when set)"
 end
+
+-- LK16-T01 : socle commun (LivingKnox.Registry) ; Upkeep.registry et Upkeep.specs en sont la liste et l'index.
+local jobRegistry = LivingKnox.Registry.new("LivingKnox.Upkeep.registerJob",
+    { key = "kind", validate = validSpec, items = Upkeep.registry, byKey = Upkeep.specs })
 
 -- Inscrit une tâche (spec, voir l'en-tête). Une tâche déjà inscrite sous le même kind est remplacée (rechargement).
 function Upkeep.registerJob(spec)
-    if not validSpec(spec) then
-        error("LivingKnox.Upkeep.registerJob: spec needs kind, order, gesture, minutes, survey and apply "
-            .. "(duration: a function when set)", 2)
-    end
-    local reg = Upkeep.registry
-    local old = Upkeep.specs[spec.kind]
-    if old ~= nil then
-        for i, s in ipairs(reg) do
-            if s == old then
-                table.remove(reg, i)
-                break
-            end
-        end
-    end
-    Upkeep.specs[spec.kind] = spec
-    reg[#reg + 1] = spec
-    table.sort(reg, function(a, b)
-        if a.order ~= b.order then return a.order < b.order end
-        return a.kind < b.kind
-    end)
+    jobRegistry:register(spec, 2)
     local kinds = {}
-    for i, s in ipairs(reg) do kinds[i] = s.kind end
+    for i, s in ipairs(jobRegistry:list()) do kinds[i] = s.kind end
     Upkeep.JOBS = kinds
     Upkeep.GESTURE[spec.kind] = spec.gesture
     return spec

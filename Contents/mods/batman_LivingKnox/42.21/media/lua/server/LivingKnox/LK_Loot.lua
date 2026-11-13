@@ -42,6 +42,7 @@
 if isClient() then return end
 
 require "LivingKnox/LK_Core"
+require "LivingKnox/LK_Registry"
 require "LivingKnox/LK_Config"
 require "LivingKnox/LK_Log"
 require "LivingKnox/LK_Identity"
@@ -183,21 +184,20 @@ end
 -- objets de mission ci-dessous ; provisions : LK_Provisions.lua). Une inscription de même id remplace l'ancienne.
 Loot.contents = Loot.contents or {}
 
+local function validContent(spec)
+    if type(spec) == "table" and type(spec.id) == "string" and type(spec.order) == "number"
+        and type(spec.add) == "function" then
+        return true
+    end
+    return false, "spec needs id, order and add"
+end
+
+-- LK16-T01 : socle commun (LivingKnox.Registry) ; Loot.contents en est la liste.
+local contents = LivingKnox.Registry.new("LivingKnox.Loot.registerContent",
+    { validate = validContent, items = Loot.contents })
+
 function Loot.registerContent(spec)
-    if type(spec) ~= "table" or type(spec.id) ~= "string" or type(spec.order) ~= "number"
-        or type(spec.add) ~= "function" then
-        error("LivingKnox.Loot.registerContent: spec needs id, order and add", 2)
-    end
-    local list = Loot.contents
-    for i = #list, 1, -1 do
-        if list[i].id == spec.id then table.remove(list, i) end
-    end
-    list[#list + 1] = spec
-    table.sort(list, function(a, b)
-        if a.order ~= b.order then return a.order < b.order end
-        return a.id < b.id
-    end)
-    return spec
+    return contents:register(spec, 2)
 end
 
 Loot.addItems = addItems   -- LK05-T20 : contenus inscrits ailleurs (type refusé ou inconnu signalé une fois)

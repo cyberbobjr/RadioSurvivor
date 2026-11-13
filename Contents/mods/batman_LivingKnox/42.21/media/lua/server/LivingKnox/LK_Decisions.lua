@@ -81,6 +81,7 @@
 if isClient() then return end
 
 require "LivingKnox/LK_Core"
+require "LivingKnox/LK_Registry"
 require "LivingKnox/LK_Config"
 require "LivingKnox/LK_Log"
 require "LivingKnox/LK_GroupTypes"
@@ -790,7 +791,7 @@ local function validRules(rules)
     return true
 end
 
-local function validExtension(spec)
+local function wellFormed(spec)
     if type(spec) ~= "table" or type(spec.id) ~= "string" or type(spec.order) ~= "number" then return false end
     if not validRules(spec.rules) then return false end
     for _, f in ipairs({ "apply", "leave", "input", "observe" }) do
@@ -799,27 +800,25 @@ local function validExtension(spec)
     local b = spec.behaviour
     if b ~= nil then
         if type(b) ~= "table" or type(b.vigil) ~= "string" or spec.apply == nil then return false end
+        -- Règle propre à ce registre : un comportement de la liste fermée ne peut pas être repris par une extension.
         if Decisions.BEHAVIOURS[spec.id] ~= nil and Decisions.BEHAVIOURS[spec.id].ext ~= spec.id then return false end
     end
     return true
 end
 
+local function validExtension(spec)
+    if wellFormed(spec) then return true end
+    return false, "spec needs id, order, rules { name, before, rule } and, for a behaviour { vigil }, apply"
+end
+
+-- LK16-T01 : socle commun (LivingKnox.Registry) ; Decisions.extensions en est la liste.
+local extensions = LivingKnox.Registry.new("LivingKnox.Decisions.registerExtension",
+    { validate = validExtension, items = Decisions.extensions })
+
 -- Inscrit une extension (spec, voir ci-dessus). Une extension déjà inscrite sous le même id est remplacée
 -- (rechargement). Un comportement de la liste fermée ne peut pas être repris par une extension.
 function Decisions.registerExtension(spec)
-    if not validExtension(spec) then
-        error("LivingKnox.Decisions.registerExtension: spec needs id, order, rules { name, before, rule } and, for a "
-            .. "behaviour { vigil }, apply", 2)
-    end
-    local list = Decisions.extensions
-    for i = #list, 1, -1 do
-        if list[i].id == spec.id then table.remove(list, i) end
-    end
-    list[#list + 1] = spec
-    table.sort(list, function(a, b)
-        if a.order ~= b.order then return a.order < b.order end
-        return a.id < b.id
-    end)
+    extensions:register(spec, 2)
     local b = spec.behaviour
     if b ~= nil then
         Decisions.BEHAVIOURS[spec.id] = { vigil = b.vigil, needs = b.needs, ext = spec.id }

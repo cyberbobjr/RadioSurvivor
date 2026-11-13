@@ -28,6 +28,7 @@
 -- besoins vitaux (dormir, manger, boire, fuir) ne sont pas des comportements de rôle : ils valent pour tous.
 -- Définition invalide : refusée et journalisée, les autres gardées. Identifiant déjà enregistré : refusé.
 require "LivingKnox/LK_Core"
+require "LivingKnox/LK_Registry"
 require "LivingKnox/LK_Config"
 require "LivingKnox/LK_Log"
 require "LivingKnox/LK_Appearance"
@@ -322,19 +323,28 @@ local function copy(v)
     return out
 end
 
+-- Règle propre à ce registre : un identifiant déjà enregistré est refusé (pas de remplacement).
+local function notRegistered(t)
+    if GroupTypes.state.types[t.id] ~= nil then return false, "identifier already registered" end
+    return true
+end
+
+-- LK16-T01 : socle commun (LivingKnox.Registry), ordre d'inscription ; GroupTypes.state.types en est l'index.
+local types = LivingKnox.Registry.new("LivingKnox.GroupTypes.register",
+    { sort = false, validate = notRegistered, byKey = GroupTypes.state.types })
+
 -- Enregistre une définition (appelé par un fichier de données). Rend vrai, ou nil et une raison ; un refus est
 -- journalisé (ERROR) et gardé dans state.refused, les types déjà enregistrés restent.
 function GroupTypes.register(def)
     local label = type(def) == "table" and isId(def.id) and def.id or "?"
     local t, why = GroupTypes.validate(def)
-    if t and GroupTypes.state.types[t.id] then why, t = "identifier already registered", nil end
+    if t then t, why = types:try(t) end
     if not t then
         local refused = GroupTypes.state.refused
         refused[#refused + 1] = { id = label, why = why }
         log().error("group type %s refused: %s", label, why)
         return nil, why
     end
-    GroupTypes.state.types[t.id] = t
     log().info("group type %s registered (%s profile(s))", t.id, tostring(#t.profiles))
     return true
 end

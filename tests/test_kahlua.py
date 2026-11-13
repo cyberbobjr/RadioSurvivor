@@ -90,6 +90,8 @@ LUA_FILES = [
     ('LivingKnox/LK_Log', LK_LUA / 'shared' / 'LivingKnox' / 'LK_Log.lua'),
     ('LivingKnox/LK_Appearance', LK_LUA / 'shared' / 'LivingKnox' / 'LK_Appearance.lua'),
     ('LivingKnox/LK_Identity', LK_LUA / 'shared' / 'LivingKnox' / 'LK_Identity.lua'),
+    # LK16-T01 : socle commun des registres (requis par LK_GroupTypes, LK_Decisions, LK_Routines).
+    ('LivingKnox/LK_Registry', LK_LUA / 'shared' / 'LivingKnox' / 'LK_Registry.lua'),
     # LK08-T02 : registre des types de groupes, puis les fichiers de données comme le balayage du jeu les exécute.
     ('LivingKnox/LK_GroupTypes', LK_LUA / 'shared' / 'LivingKnox' / 'LK_GroupTypes.lua'),
     ('LivingKnox/Data/LK_Type_neutrals', LK_LUA / 'shared' / 'LivingKnox' / 'Data' / 'LK_Type_neutrals.lua'),

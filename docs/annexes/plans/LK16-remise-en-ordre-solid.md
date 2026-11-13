@@ -2,11 +2,11 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 2 / 12 tâche(s) terminée(s).
+**Avancement.** en cours — 3 / 12 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
-| ☐ | LK16-T01 | Socle `LivingKnox.Registry` | `à faire` | hors jeu | — |
+| ☑ | LK16-T01 | Socle `LivingKnox.Registry` | `testé hors jeu` | hors jeu | — |
 | ☑ | LK16-T02 | C1 : genres de chantier de la fortification | `testé hors jeu` | hors jeu | — |
 | ☑ | LK16-T03 | C7 : tables d'aiguillage (faits publics, administration, parole) | `testé hors jeu` | hors jeu | — |
 | ☐ | LK16-T04 | C5 : cycles cassés par événements | `à faire` | hors jeu | LK16-T01 |
@@ -46,16 +46,16 @@ Constats P2 et P3 de l'audit hors des chantiers ; tout changement visible par un
 
 ## Tâches
 
-- [ ] **LK16-T01** — Socle `LivingKnox.Registry`
-  - État : `à faire`
+- [x] **LK16-T01** — Socle `LivingKnox.Registry`
+  - État : `testé hors jeu`
   - Cible : `hors jeu`
   - Dépend de : —
   - Fichiers : `shared/LivingKnox/LK_Registry.lua` ; `LK_Upkeep.lua`, `LK_Routines.lua`, `LK_Decisions.lua`, `LK_Loot.lua`, `LK_GroupTypes.lua` ; bancs
   - Faire : ADR D02 : inscription, liste triée (`order` puis identifiant, sans `next`), lecture, remplacement au rechargement ; les cinq registres existants s'appuient dessus sans changer leur API.
   - Accepté si : banc du socle ; bancs des cinq registres verts sans changement d'attendu.
   - Tests : banc nouveau ; suite complète.
-  - Preuve : —
-  - Reste : —
+  - Preuve : 2026-11-13 : `shared/LivingKnox/LK_Registry.lua` : `LivingKnox.Registry.new(name, { key, validate, sort, items, byKey })` rend `register` (erreur « <registre>: <raison> » au niveau de l'appelant), `try`, `list` (tri par `order` puis clé, sans `next`), `get` ; une seule politique de doublon (remplacement par clé) ; `Upkeep.registerJob`, `Routines.registerActivity`, `Decisions.registerExtension`, `Loot.registerContent`, types de groupes et `Fortify.registerKind` s'appuient dessus en gardant leur API, leurs tables publiques et leurs messages ; les règles propres restent dans leur `validate` (code de chantier déjà pris, comportement de la liste fermée, identifiant de type déjà enregistré) ; banc `tests/test_lk_registry.py` 11 tests (rouge avant : `errors=11`) ; bancs des six registres verts sans attendu changé ; `python tests/run_all.py` : `170 passed, 0 failed, 0 skipped` (482 s) ; luacheck `Contents` 8, `dev` 0
+  - Reste : le registre des types de groupes garde son index `state.types` (lu directement par un banc) ; non vérifié en jeu (`LK16-T12`)
 - [x] **LK16-T02** — C1 : genres de chantier de la fortification
   - État : `testé hors jeu`
   - Cible : `hors jeu`
