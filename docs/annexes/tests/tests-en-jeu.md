@@ -484,19 +484,19 @@ du serveur de test porte donc `AntiCheatPermission=4` (désactivé) ; les droits
 (`PacketTypes.PacketAuthorization`) et de Lua (`checkPermissions`) ne dépendent pas de cette option. Le passage à
 `user` retire le mode dieu (rôle sans `ToggleGodModHimself`, `GameServer.changeRole`) ; le retour à `admin` le rend.
 
+Contrôles « client 2 » du plan couverts par une étape du client 2, verts dans la campagne `mp` du 2026-11-13
+(`tools/autoclient/runs/20261113-092625-parallel-3-13d311e27a22`) : mort réelle d'un client et nouveau personnage
+(E14, E15 : `rs.death`, le client 2 meurt sur le serveur) ; revendication de l'identité d'un autre compte (E00-T01 :
+`carnet.claim`) ; troc par la fenêtre d'un client (LK11-T08 : `lk.trade.window`) ; arme braquée pendant la sommation
+(LK11-T02 : `lk.weapon.state`) ; cercle de mission retiré chez le client (E11-T05 : `map.zones`) ; groupe renommé
+dans le carnet (E10-T04 : `carnet.contact`).
+
 Contrôles « client 2 » du plan non automatisés (raison) : réplique de refus d'un membre entendue (E10-T03 : demande un
-LLM en ligne pour la réplique, pas de suite qui la provoque sans pont) ; mort réelle d'un client (E14, E15 : aucune
-suite ne tue un client, le mode dieu est posé par le lanceur) ; décompte de mission à deux participants, cartes,
-sacs et fumigènes (E11-T04..T07 : gabarits dans la campagne `mp` depuis E01-T19, mais vus par un seul client ;
-actions de joueur à ajouter aux étapes) ;
-revendication de l'identité d'un autre compte (E00-T01 : commande à forger côté client) ; reprise d'une consigne
-par un client reconnecté (LK02-T07, LK03-T01 ; LK03-T02, T03, T05 sont couverts par `lk.ownerreports`,
-`lk.handover`, `lk.relay` ci-dessus) ; reconnexion d'un client pendant l'apparition d'un PNJ (LK03-T06) ; vengeance et
-aide vues par le second client (LK11-T05/T06) ; troc par le menu « Troquer » d'un client et un seul gagnant quand A et
-B demandent la même conserve (LK11-T08 : `lk.trade` se passe de corps et de fenêtre ; il faudrait un corps de PNJ près
-des deux clients, des objets donnés aux deux inventaires et une étape client qui ouvre `LivingKnox.TradeView` et
-propose) ; arme braquée pendant la sommation (LK11-T02 : `lk.weapon.state` demande l'emplacement et l'objet, non relevés
-par `lk.warn`) ; cercle de mission retiré chez le client (E11-T05) ; groupe renommé dans le carnet (E10-T04).
+LLM en ligne pour la réplique, pas de suite qui la provoque sans pont) ; décompte de mission à deux participants,
+cartes, sacs et fumigènes (E11-T04..T07 : gabarits dans la campagne `mp` depuis E01-T19, mais vus par un seul client ;
+actions de joueur à ajouter aux étapes) ; reprise d'une consigne par un client reconnecté (LK02-T07, LK03-T01 ;
+LK03-T02, T03, T05 sont couverts par `lk.ownerreports`, `lk.handover`, `lk.relay` ci-dessus) ; reconnexion d'un client
+pendant l'apparition d'un PNJ (LK03-T06) ; vengeance et aide vues par le second client (LK11-T05/T06).
 
 Contrôles du second client branchés le 2026-10-15 (étapes de `shared/RST/RST_PeerChecksH.lua`, requis par les suites
 qui les posent ; cible `all` : les deux clients, le joueur local en solo) :
