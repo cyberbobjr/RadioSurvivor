@@ -149,7 +149,7 @@ class EngineOrderRefusalTests(MatBase):
                      'g.members["m-3"].duty = "sentry"')
         # Relève de quart en quart : quand la rotation donne le guet à m-3, il refuse et m-2 le prend.
         for _ in range(6):
-            self.h.advance(60 * 4)   # quart suivant : autre rotation
+            self.h.skip(60 * 4)      # quart suivant : autre rotation, sans pas horaire
             self.score(gid)
             if self.log(gid, 'refusal'):
                 break

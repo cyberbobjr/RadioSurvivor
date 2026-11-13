@@ -27,6 +27,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from phase_sweep import sweep  # noqa: E402
 from harness import lua_src  # noqa: E402  (E18-T07)
 from test_lk_bodies import lua_list  # noqa: E402
 from test_lk_decisions import PureBase  # noqa: E402
@@ -525,13 +526,12 @@ class MultiplayerExpeditionTests(ExpeditionStack):
 class SuiteRunTests(ExpeditionStack):
     mode = 'solo'
 
-    def test_suite_lk_expedition_passes_on_the_doubles(self):
+    def test_suite_lk_expedition_passes_on_the_doubles(self, start=(9, 0)):
         from test_lk_materialize import PLAYER_MOVES
-        from test_lk_routines import TIME_OF_DAY
         self.h.load('solo', PLAYER_MOVES)
-        self.h.load('solo', TIME_OF_DAY)
         self.h.move_player('A', 110, 110)
-        self.jump_to(9)
+        if start is not None:
+            self.h.jump_to(*start)
         self.h.load('solo', SUITE)
         listed = self.h.eval('solo', 'RST.list({ suite = "lk.expedition", tags = "world" }, true)[1]')
         self.assertEqual(listed.name, 'lk.expedition')
@@ -559,6 +559,10 @@ class SuiteRunTests(ExpeditionStack):
         self.assertEqual(self.ev('MEAL_COUNT.removed'), 5)
         self.assertEqual(self.h.errors('solo'), [])
 
+
+    def test_suite_lk_expedition_passes_under_the_phase_sweep(self):
+        """E19-T05 : changement d'heure, de jour, nuit et aube à des instants différents de la scène."""
+        sweep(self, lambda phase: self.test_suite_lk_expedition_passes_on_the_doubles(start=None))
 
 class SuiteTests(unittest.TestCase):
     def test_suite_source_is_ascii_and_kahlua_safe(self):

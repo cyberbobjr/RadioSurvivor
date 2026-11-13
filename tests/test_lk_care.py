@@ -22,6 +22,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from phase_sweep import sweep  # noqa: E402
 from harness import lua_src  # noqa: E402  (E18-T07)
 from test_lk_bodies import lua_list  # noqa: E402
 from test_lk_meals import MealStack  # noqa: E402
@@ -327,11 +328,9 @@ class SoloCareTests(CareStack):
 class SuiteTests(CareStack):
     CREW = MealStack.CREW
 
-    def test_suite_lk_care_passes_on_the_doubles(self):
+    def test_suite_lk_care_passes_on_the_doubles(self, start=(9, 0)):
         from test_lk_materialize import PLAYER_MOVES
-        from test_lk_routines import TIME_OF_DAY
         self.h.load('solo', PLAYER_MOVES)
-        self.h.load('solo', TIME_OF_DAY)
         self.h.load('solo', r'''
             local mk = instanceItem
             instanceItem = function(t)
@@ -339,7 +338,8 @@ class SuiteTests(CareStack):
                 return mk(t)
             end''')
         self.h.move_player('A', 110, 110)
-        self.jump_to(9)
+        if start is not None:
+            self.h.jump_to(*start)
         self.h.load('solo', SUITE)
         listed = self.h.eval('solo', 'RST.list({ suite = "lk.care", tags = "world" }, true)[1]')
         self.assertEqual(listed.name, 'lk.care')
@@ -365,6 +365,10 @@ class SuiteTests(CareStack):
             self.assertTrue(any(text in line for line in logs), text)
         self.assertEqual(self.ev('#LivingKnox.Groups.list()'), 0)
         self.assertEqual(self.h.errors('solo'), [])
+
+    def test_suite_lk_care_passes_under_the_phase_sweep(self):
+        """E19-T05 : changement d'heure, de jour, nuit et aube à des instants différents de la scène."""
+        sweep(self, lambda phase: self.test_suite_lk_care_passes_on_the_doubles(start=None))
 
     def test_suite_source_is_ascii_and_kahlua_safe(self):
         raw = SUITE_FILE.read_bytes()

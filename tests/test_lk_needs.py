@@ -243,7 +243,7 @@ class RegistryNeedsTests(Base):
         try:
             self.h = other
             self.setup_world()
-            self.h.advance(30 * 60)                     # aucun EveryHours : 30 h manquées
+            self.h.skip(30 * 60)                        # aucun EveryHours : 30 h manquées
             self.restart()
             self.h.fire(self.srv, 'OnInitGlobalModData', False)
             self.h.fire(self.srv, 'OnServerStarted')    # rattrapage au démarrage, même calcul
@@ -272,7 +272,7 @@ class RegistryNeedsTests(Base):
         self.setup_world()
         self.every_hour(1)
         self.run_lua('LivingKnox.Config.SIMULATION.MAX_CATCHUP_HOURS = 0')   # simulation figée : pas des besoins seul
-        self.h.advance(100 * 60)
+        self.h.skip(100 * 60)
         self.run_lua(f'for k in pairs({N}.stats) do {N}.stats[k] = 0 end')
         self.h.fire(self.srv, 'EveryHours')
         self.h.load(self.srv, FINISH_HOUR)   # LK13-T09 : pas horaire étalé, file vidée tout de suite

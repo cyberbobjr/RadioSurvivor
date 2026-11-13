@@ -1565,6 +1565,7 @@ def _retreat_suite_base():
 
 class RetreatSuiteTests(_retreat_suite_base()):
     test_suite_lk_alert_passes_on_the_doubles = None   # jouée par test_lk_alert.py
+    test_suite_lk_alert_passes_under_the_phase_sweep = None
 
     def make(self, root=None):
         from test_lk_zombies import HEALTH, HEALTH_CLIENT, ZOMBIE_DOUBLES
@@ -1577,9 +1578,7 @@ class RetreatSuiteTests(_retreat_suite_base()):
 
     def test_suite_lk_retreat_passes_on_the_doubles(self):
         from test_lk_materialize import PLAYER_MOVES
-        from test_lk_routines import TIME_OF_DAY
         self.h.load('solo', PLAYER_MOVES)
-        self.h.load('solo', TIME_OF_DAY)
         self.h.move_player('A', 110, 110)
         self.h.load('solo', 'shared/RST/suites/RST_LKRetreat.lua')
         self.assertIs(self.h.load('solo', 'return (RST.start({ suite = "lk.retreat", tags = "world" }, '

@@ -7,12 +7,14 @@ pas le mod ni l'API Java réelle.
 """
 from __future__ import annotations
 
+import re
 import sys
 import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from harness import Harness, HarnessError, LuaError  # noqa: E402
+from phase_sweep import DEFAULT_PHASES, PHASES_SHORT, sweep  # noqa: E402
 
 
 def lua_list(t):
@@ -329,6 +331,152 @@ class ClockTests(Base):
         self.assertEqual(self.h.load('A', 'local g = getGameTime(); return g:getDay(), g:getHour(), g:getMinutes()'),
                          (9, 0, 25))
         self.assertAlmostEqual(self.h.eval('A', 'getGameTime():getWorldAgeHours()'), 2 + (25 + 900) / 60)
+
+
+# Relevé des abonnés : nom de l'événement et horloge lue pendant l'événement (jour, heure, minute, âge, nuits).
+RECORD_TIME_EVENTS = r'''
+SEEN = {}
+local function rec(name)
+    return function()
+        local g = getGameTime()
+        SEEN[#SEEN + 1] = string.format('%s %d/%d %02d:%02d age=%.4f nights=%d tod=%.4f', name, g:getDay(),
+            g:getMonth(), g:getHour(), g:getMinutes(), g:getWorldAgeHours(), g:getNightsSurvived(), g:getTimeOfDay())
+    end
+end
+for _, e in ipairs({ 'EveryDays', 'EveryHours', 'EveryTenMinutes', 'EveryOneMinute' }) do Events[e].Add(rec(e)) end
+'''
+
+
+class GameClockTests(Base):
+    """GameTime.update (42.22, java/zombie/GameTime.java:431-580) appelé une fois par image entre IsoWorld.update et
+    OnTick (IngameState.java:1542, 1573 -> 561, 1582 -> 1680)."""
+
+    def seen(self, machine='server'):
+        return lua_list(self.h.eval(machine, 'SEEN'))
+
+    def record(self):
+        for m in ('server', 'A', 'B'):
+            self.h.load(m, RECORD_TIME_EVENTS)
+
+    def test_midnight_fires_days_hours_ten_minutes_then_minute_with_the_new_clock(self):
+        # GameTime.java:532-534 + 582-593 (EveryDays, jour déjà avancé), 547-548 (EveryHours), 559-568, 572-573.
+        self.h.jump_to(23, 58)
+        self.record()
+        self.h.advance(3)
+        night = 16 + 58 / 60
+        expected = [f'EveryOneMinute 8/6 23:59 age={night + 1 / 60:.4f} nights=0 tod={23 + 59 / 60:.4f}'] + [
+            f'{e} 9/6 00:00 age={night + 2 / 60:.4f} nights=0 tod=0.0000'
+            for e in ('EveryDays', 'EveryHours', 'EveryTenMinutes', 'EveryOneMinute')] + [
+            f'EveryOneMinute 9/6 00:01 age={night + 3 / 60:.4f} nights=0 tod={1 / 60:.4f}']
+        for m in ('server', 'A', 'B'):
+            self.assertEqual(self.seen(m), expected, m)
+
+    def test_every_hours_once_per_hour_change(self):
+        self.record()
+        self.h.advance(180)                                    # 09:00 -> 12:00
+        names = [s.split()[0] for s in self.seen()]
+        self.assertEqual(names.count('EveryHours'), 3)
+        self.assertEqual(names.count('EveryTenMinutes'), 18)
+        self.assertEqual(names.count('EveryOneMinute'), 180)
+        self.assertNotIn('EveryDays', names)
+        hours = [s for s in self.seen() if s.startswith('EveryHours')]
+        self.assertEqual([h.split()[2] for h in hours], ['10:00', '11:00', '12:00'])
+
+    def test_month_and_year_roll_over_before_every_days(self):
+        with Harness(mode='solo', start=(1993, 12, 31, 23, 59)) as h:
+            h.load('solo', RECORD_TIME_EVENTS)
+            h.advance(1)
+            days = [s for s in lua_list(h.eval('solo', 'SEEN')) if s.startswith('EveryDays')]
+            self.assertEqual(len(days), 1)
+            self.assertTrue(days[0].startswith('EveryDays 0/0 00:00'), days)
+            self.assertEqual(h.eval('solo', 'getGameTime():getYear()'), 1994)
+
+    def test_dawn_adds_a_night_and_keeps_the_world_age_continuous(self):
+        # GameTime.java:515-516 (nightsSurvived + 1 au passage de 7 h), 824-827 (âge tiré des nuits et de l'heure).
+        self.h.jump_to(6, 59)
+        self.assertEqual(self.h.eval('A', 'getGameTime():getNightsSurvived()'), 0)
+        age = self.h.eval('A', 'getGameTime():getWorldAgeHours()')
+        self.assertAlmostEqual(age, 23 + 59 / 60)
+        self.h.advance(1)
+        self.assertEqual(self.h.eval('A', 'getGameTime():getNightsSurvived()'), 1)
+        self.assertAlmostEqual(self.h.eval('A', 'getGameTime():getWorldAgeHours()'), 24)
+        self.assertEqual(self.h.load('A', 'local g = getGameTime(); return g:getHour(), g:getTimeOfDay()'), (7, 7))
+
+    def test_set_time_of_day_moves_hour_and_age_like_the_game_without_events(self):
+        # GameTime.java:764-766 (setTimeOfDay : heure seule, jour et nuits inchangés), 824-827 (âge recalculé) ;
+        # previousHour lu au début de update (471) : le saut lui-même ne déclenche pas EveryHours.
+        self.record()
+        self.h.load('server', 'getGameTime():setTimeOfDay(6.98)')
+        self.assertEqual(self.seen(), [])
+        g = 'local g = getGameTime(); return g:getDay(), g:getHour(), g:getMinutes(), g:getNightsSurvived()'
+        for m in ('server', 'A', 'B'):
+            self.assertEqual(self.h.load(m, g), (8, 6, 58, 0), m)
+            self.assertAlmostEqual(self.h.eval(m, 'getGameTime():getWorldAgeHours()'), 23 + 58 / 60)
+        self.h.advance(2)
+        self.assertEqual([s.split()[0] for s in self.seen()].count('EveryHours'), 1)
+        self.assertEqual(self.h.load('A', g), (8, 7, 0, 1))
+        self.assertAlmostEqual(self.h.eval('A', 'getGameTime():getWorldAgeHours()'), 24)
+        with self.assertRaises(LuaError):
+            self.h.load('server', 'getGameTime():setTimeOfDay("7")')
+
+    def test_paused_machine_gets_no_time_event(self):
+        # GameTime.java:191-193, 474 : serveur vide en pause (PauseEmpty), l'heure n'avance pas, aucun événement.
+        self.record()
+        self.h.set_paused('server', True)
+        self.h.advance(60)
+        self.assertEqual(self.seen('server'), [])
+        self.assertEqual(len(self.seen('A')), 60 + 6 + 1)
+
+    def test_jump_to_goes_forward_to_the_next_time_without_events(self):
+        self.record()
+        self.h.jump_to(9, 0)                                   # déjà 9 h : le lendemain
+        self.assertEqual(self.h.load('A', 'local g = getGameTime(); return g:getDay(), g:getHour()'), (9, 9))
+        self.assertAlmostEqual(self.h.eval('A', 'getGameTime():getWorldAgeHours()'), 26)
+        self.h.jump_to(9, 30)
+        self.assertEqual(self.h.load('A', 'local g = getGameTime(); return g:getDay(), g:getMinutes()'), (9, 30))
+        self.h.skip(30 * 60)                                   # serveur arrêté 30 h : heures manquées, aucun événement
+        self.assertEqual(self.h.load('A', 'local g = getGameTime(); return g:getDay(), g:getHour()'), (10, 15))
+        self.assertEqual(self.h.eval('A', 'getGameTime():getNightsSurvived()'), 2)
+        self.assertEqual(self.seen(), [])
+
+
+class PhaseSweepTests(Base):
+    mode = 'solo'
+
+    def test_each_phase_starts_on_a_fresh_harness_at_its_time(self):
+        starts = []
+
+        def scene(phase):
+            starts.append((phase.name, self.h.load('solo', 'MARK = (MARK or 0) + 1; local g = getGameTime(); '
+                                                          'return MARK, g:getHour(), g:getMinutes()')))
+        played = sweep(self, scene)
+        self.assertEqual(played, [p.name for p in DEFAULT_PHASES])
+        self.assertEqual(starts, [(p.name, (1, p.hour, p.minute)) for p in DEFAULT_PHASES])
+        self.assertTrue(6 <= len(DEFAULT_PHASES) <= 10)
+        self.assertEqual(sweep(self, scene, PHASES_SHORT), [p.name for p in PHASES_SHORT])
+
+    def test_a_failure_names_the_phase_that_produced_it(self):
+        class HourSensitive(unittest.TestCase):
+            """Scène factice qui échoue si l'heure change pendant ses trois minutes."""
+
+            def setUp(self):
+                self.h = Harness(mode='solo')
+                self.h.load('solo', 'HOURS = 0; Events.EveryHours.Add(function() HOURS = HOURS + 1 end)')
+
+            def tearDown(self):
+                self.h.close()
+
+            def test_scene(self):
+                def scene(phase):
+                    self.h.advance(3)
+                    self.assertEqual(self.h.eval('solo', 'HOURS'), 0)
+                sweep(self, scene)
+
+        result = unittest.TestResult()
+        HourSensitive('test_scene').run(result)
+        failed = sorted(re.search(r"phase='([^']+)'", str(t)).group(1) for t, _ in result.failures)
+        self.assertEqual(failed, ['hour-1', 'hour-2', 'hour-3'])
+        self.assertEqual(result.errors, [])
 
 
 class FileTests(Base):

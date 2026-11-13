@@ -35,6 +35,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from phase_sweep import sweep  # noqa: E402
 from harness import lua_src  # noqa: E402
 from test_lk_bodies import lua_list  # noqa: E402
 from test_lk_food import WaterStack  # noqa: E402
@@ -472,11 +473,9 @@ class MultiplayerGardenTests(GardenStack):
 class SuiteRunTests(GardenStack):
     mode = 'solo'
 
-    def run_suite(self):
+    def run_suite(self, start=(9, 0)):
         from test_lk_materialize import PLAYER_MOVES
-        from test_lk_routines import TIME_OF_DAY
         self.h.load('solo', PLAYER_MOVES)
-        self.h.load('solo', TIME_OF_DAY)
         self.run_lua('for _, it in ipairs(BEANS) do HARNESS.listRemove(PANTRY.container.items, it) end '
                      'for x = 101, 104 do DIRT(x, 118, { grass = true }) end '
                      # IsoPlayer.setGodMod / isGodMod (suites voisines : RST_LKDeathSwing.lua:47-49).
@@ -485,7 +484,8 @@ class SuiteRunTests(GardenStack):
                      'error("No implementation found for setGodMod", 2) end self.god = b end')
         self.set_month(7)
         self.h.move_player('A', 110, 110)
-        self.jump_to(9)
+        if start is not None:
+            self.h.jump_to(*start)
         self.h.load('solo', SUITE)
         self.assertIs(self.h.load('solo', 'return (RST.start({ suite = "lk.garden", tags = "world" }, '
                                           '{ ctx = { player = getPlayer() } }))'), True)
@@ -503,8 +503,8 @@ class SuiteRunTests(GardenStack):
         self.assertTrue(report.ok, (results, [x for x in self.h.logs('solo') if 'LKG' in x or 'ERROR' in x][-20:]))
         return self.h.logs('solo')
 
-    def test_suite_lk_garden_passes_on_the_doubles(self):
-        logs = self.run_suite()
+    def test_suite_lk_garden_passes_on_the_doubles(self, start=(9, 0)):
+        logs = self.run_suite(start=start)
         self.assertTrue(any('[LKG] measure done: 1 packet(s) of 5 seed(s), 1 furrow(s) dug, 1 seed(s) sown' in line
                             for line in logs), [x for x in logs if 'LKG' in x][-10:])
         self.assertEqual(self.run_lua('local n = 0 for _ in pairs(PLANTS) do n = n + 1 end return n'), 0)  # nettoyé
@@ -513,9 +513,11 @@ class SuiteRunTests(GardenStack):
                                       'if string.find(it.t, "Seed", 1, true) then n = n + 1 end end return n'), 0)
         self.assertEqual(self.h.errors('solo'), [])
 
+    def test_suite_lk_garden_passes_under_the_phase_sweep(self):
+        """E19-T05 : changement d'heure, de jour, nuit et aube à des instants différents de la scène."""
+        sweep(self, lambda phase: self.test_suite_lk_garden_passes_on_the_doubles(start=None))
+
     def test_suite_is_listed_with_its_tags(self):
-        from test_lk_routines import TIME_OF_DAY
-        self.h.load('solo', TIME_OF_DAY)
         self.h.load('solo', SUITE)
         listed = lua_list(self.h.eval('solo', 'RST.list({ suite = "lk.garden", tags = "world" }, true)'))
         self.assertEqual([e.name for e in listed], ['lk.garden'])

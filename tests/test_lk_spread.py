@@ -3,8 +3,8 @@ passes horaires), LK_Groups.lua (écriture retenue), LK_Server.lua (abonnés), L
 
     python RadioSurvivor/tests/test_lk_spread.py
 
-Banc tests/harness.py. EveryHours et EveryOneMinute sont déclenchés par le test (le banc n'émule pas GameTime.update) :
-l'ordre réel « EveryHours avant OnTick dans la même image » est rejoué à la main (OnTickEvenPaused, EveryHours,
+Banc tests/harness.py. EveryHours et EveryOneMinute viennent de l'horloge du banc (advance, ordre de GameTime.update) :
+l'ordre réel « EveryHours avant OnTick dans la même image » est rejoué à la main (OnTickEvenPaused, advance,
 OnTick). Déterminisme : mêmes octets du registre des groupes (journal compris) et des attitudes, avec les passes
 dans la même image (ancien chemin : Simulation.defer et Stock.queueScan remplacés par l'appel direct) ou étalées,
 sur le banc léger de test_lk_simulation et sur le banc de charge complet (tools/load_bench.py, 5 groupes, 4 joueurs).
@@ -81,8 +81,7 @@ class SpreadBase(tsim.Base):
         return self.ev(f'{G}.stats.writes')
 
     def next_hour(self):
-        self.h.advance(60)
-        self.h.fire(self.srv, 'EveryHours')
+        self.h.advance(60)  # EveryHours : de l'avance (GameTime.java:547-548)
         return self.hour()
 
 
@@ -123,8 +122,7 @@ class HourlyQueueTests(SpreadBase):
     def test_game_order_hour_before_tick_in_the_same_frame(self):
         # GameTime.update (EveryHours) part avant l'OnTick de la même image : aucune passe dans cette image.
         self.h.fire(self.srv, 'OnTickEvenPaused', 1.0)
-        self.h.advance(60)
-        self.h.fire(self.srv, 'EveryHours')
+        self.h.advance(60)  # EveryHours : de l'avance (GameTime.java:547-548)
         self.h.fire(self.srv, 'OnTick', 1.0)
         self.assertEqual([t.split(':')[0] for t in self.trace()], list(NOW))
         self.frame()
@@ -193,8 +191,7 @@ class DeterminismTests(unittest.TestCase):
             if inline:
                 case.h.load(case.srv, INLINE)
             for _ in range(hours):
-                case.h.advance(60)
-                case.h.fire(case.srv, 'EveryHours')
+                case.h.advance(60)  # EveryHours : de l'avance (GameTime.java:547-548)
                 case.h.tick(len(LATER) + 2)
             case.h.load(case.srv, f'{G}.flush()')
             return case.ev(STATE), case.lk()

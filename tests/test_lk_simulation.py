@@ -4,8 +4,9 @@
 
 Banc tests/harness.py (serveur dédié + deux clients, ou solo). Doublures : getWorld (mode et nom de la partie),
 getGameTime():getWorldAgeHours() de l'horloge du banc (0 à 7 h le premier jour), fichiers getFileWriter /
-getFileReader du banc. EveryHours est déclenché par le test (le banc n'émule pas GameTime.update) : il NE PROUVE PAS
-l'accroche réelle, seulement la logique du mod (heures simulées, rattrapage, tirages, persistance).
+getFileReader du banc. EveryHours vient de l'horloge du banc (advance, ordre de GameTime.update) ; les heures manquées
+(serveur arrêté, rattrapage au démarrage) passent par skip, sans événement. Logique du mod : heures simulées,
+rattrapage, tirages, persistance.
 """
 from __future__ import annotations
 
@@ -111,8 +112,7 @@ class Base(unittest.TestCase):
 
     def every_hour(self, hours):
         for _ in range(hours):
-            self.h.advance(60)
-            self.h.fire(self.srv, 'EveryHours')
+            self.h.advance(60)  # EveryHours : de l'avance (GameTime.java:547-548)
             self.h.load(self.srv, FINISH_HOUR)   # LK13-T09 : pas horaire étalé, file vidée tout de suite
 
 
@@ -134,7 +134,7 @@ class ReproducibilityTests(Base):
             self.h, first = other, self.h
             self.setup_world()
             self.assertEqual(self.ev(CANON), start)             # même état de départ, même graine
-            self.h.advance(24 * 60)                            # aucun EveryHours : 24 h manquées
+            self.h.skip(24 * 60)                               # aucun EveryHours : 24 h manquées
             self.restart()                                     # arrêt du serveur, puis démarrage
             self.h.fire(self.srv, 'OnInitGlobalModData', False)
             self.h.fire(self.srv, 'OnServerStarted')           # rattrapage borné au démarrage
@@ -144,9 +144,9 @@ class ReproducibilityTests(Base):
             third = self.make()
             self.h = third
             self.setup_world()
-            self.h.advance(5 * 60)
+            self.h.skip(5 * 60)
             self.assertEqual(self.ev(f'{SIM}.step()'), 5)
-            self.h.advance(19 * 60)
+            self.h.skip(19 * 60)
             self.assertEqual(self.ev(f'{SIM}.step()'), 19)
             self.assertEqual(self.ev(CANON), stepwise)
             third.close()
@@ -201,7 +201,7 @@ class CatchUpTests(Base):
         self.setup_world()
         self.run_lua(f'_SNAP = {G}.copy({G}.state.data)')
         start = self.hour()
-        self.h.advance(100 * 60)
+        self.h.skip(100 * 60)
         now = self.hour()
         self.assertEqual(now - start, 100)
         self.assertEqual(self.ev(f'{SIM}.step()'), 72)
@@ -215,7 +215,7 @@ class CatchUpTests(Base):
         self.assertEqual(self.ev(CANON), expected)
         # Configurable.
         self.run_lua('LivingKnox.Config.SIMULATION.MAX_CATCHUP_HOURS = 3')
-        self.h.advance(10 * 60)
+        self.h.skip(10 * 60)
         self.assertEqual(self.ev(f'{SIM}.step()'), 3)
         self.run_lua('LivingKnox.Config.SIMULATION.MAX_CATCHUP_HOURS = 72')
 
@@ -232,7 +232,7 @@ class CatchUpTests(Base):
         self.setup_world()
         self.run_lua(f'{G}.flush()')   # LK13-T06 : écriture différée, faite ici pour compter
         seq = self.ev(f'{G}.state.seq')
-        self.h.advance(30 * 60)
+        self.h.skip(30 * 60)
         self.assertEqual(self.ev(f'{SIM}.step()'), 30)
         self.run_lua(f'{G}.flush()')
         self.assertEqual(self.ev(f'{G}.state.seq'), seq + 1)
@@ -246,14 +246,14 @@ class CatchUpTests(Base):
         self.assertEqual(self.ev(CANON), before)
         waits = [line for line in self.lk() if 'is behind the last simulated hour' in line]
         self.assertEqual(len(waits), 1)      # journalisé une fois
-        self.h.advance(6 * 60)
+        self.h.skip(6 * 60)
         self.assertEqual(self.ev(f'{SIM}.step()'), 1)
 
     def test_registry_without_sim_hour_starts_without_catch_up(self):
         self.h.fire(self.srv, 'OnInitGlobalModData', True)
         self.run_lua(f'{G}.create({{ type = "settlers", name = "Old" }}) {G}.addMember("grp-1", {{ role = "worker" }})')
         self.assertIsNone(self.ev(f'{G}.state.data.simHour'))
-        self.h.advance(40 * 60)
+        self.h.skip(40 * 60)
         self.assertEqual(self.ev(f'{SIM}.step()'), 0)
         self.assertEqual(self.ev(f'{G}.state.data.simHour'), self.hour())
         self.assertTrue(any('simulation: starts at world hour' in line for line in self.lk()))
@@ -270,7 +270,7 @@ class CatchUpTests(Base):
     def test_blocked_registry_refuses(self):
         self.setup_world()
         self.run_lua(f'{G}.state.blocked = true')
-        self.h.advance(60)
+        self.h.skip(60)
         self.assertEqual(self.run_lua(f'return {SIM}.step()'), (None, 'group registry not ready'))
 
 
@@ -422,7 +422,7 @@ class SidesAndBoundsTests(Base):
         self.ev(f'{SIM}.step()')
         self.run_lua(f'{G}.flush()')   # LK13-T06 : écriture différée, faite ici pour compter
         seq = self.ev(f'{G}.state.seq')
-        self.h.advance(72 * 60)
+        self.h.skip(72 * 60)
         self.assertEqual(self.ev(f'{SIM}.step()'), 72)
         self.run_lua(f'{G}.flush()')
         self.assertEqual(self.ev(f'{G}.state.seq'), seq + 1)
@@ -1129,7 +1129,7 @@ class EventTests(Base):
         self.run_lua(f'_KB = 0 local R = require("RadioSurvivorCore/RC_Sites") local kb = R.knownBases '
                      'R.knownBases = function(o) _KB = _KB + 1 return kb(o) end')
         self.setup_world()
-        self.h.advance(3 * 60)
+        self.h.skip(3 * 60)
         self.assertEqual(self.ev(f'{SIM}.step()'), 3)
         self.assertEqual(self.ev('_KB'), 2)                    # une lecture par pas
         self.assertEqual(self.run_lua(f'return type({SIM}.knownBases())'), 'table')
@@ -1155,7 +1155,7 @@ class SoloTests(Base):
 
     def test_solo_catch_up_on_game_start(self):
         self.setup_world()
-        self.h.advance(6 * 60)
+        self.h.skip(6 * 60)
         self.h.fire(self.srv, 'OnGameStart')
         self.assertEqual(self.ev(f'{G}.state.data.simHour'), self.hour())
         self.assertTrue(any('caught up 6 hour(s)' in line for line in self.lk()))

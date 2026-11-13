@@ -15,7 +15,7 @@ getText / getTextOrNull qui rendent la clé. Les clients C et D reçoivent les m
 Scénario : Population.run crée 5 groupes (option GroupCount = 5, types tirés par les poids par défaut, foyers fixés
 par le banc : Sites.pick remplacé). Joueurs : A (propriétaire) et B (observateur) près du foyer 1, C près du foyer 2,
 D loin de tout ; les foyers 3 à 5 restent hors écran. Serveur à 10 images par seconde (100 ms, base
-multiplayer.md), une minute de jeu toutes les 25 images (journée de 1 h réelle), EveryHours à chaque heure de jeu.
+multiplayer.md), une minute de jeu toutes les 25 images (journée de 1 h réelle), EveryHours de l'horloge du banc.
 Réseau : file du banc livrée à chaque image. Corps : copie chez chaque client à 64 cases ou moins de son joueur
 (portée réseau), propriétaire = client le plus proche à 48 cases ou moins (sinon le serveur), position du
 propriétaire recopiée sur les autres machines, marche STEP du banc chez le propriétaire.
@@ -171,7 +171,6 @@ class LoadBench:
         self.h = self.stack.h
         self.h.strict = strict
         self.seed = seed
-        self.minute = 0
         for m in self.h.machines:
             for name, doubles in (('health', HEALTH_DOUBLES), ('senses', SENSES_DOUBLES), ('combat', COMBAT_DOUBLES),
                                   ('ranged', RANGED_DOUBLES), ('zombies', ZOMBIE_DOUBLES), ('loot', LOOT_DOUBLES),
@@ -243,11 +242,7 @@ class LoadBench:
         if self.ticks % SYNC_EVERY == 0:
             self.sync_bodies()
         if self.ticks % TICKS_PER_MINUTE == 0:
-            h.advance(1)
-            self.minute += 1
-            if self.minute % 60 == 0:
-                for m in h.machines:
-                    h.fire(m, 'EveryHours')
+            h.advance(1)                                          # EveryHours à l'heure pleine (GameTime.update)
 
     def run_minutes(self, minutes: int):
         t0 = time.perf_counter()

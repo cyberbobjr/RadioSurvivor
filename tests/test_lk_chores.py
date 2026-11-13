@@ -22,10 +22,11 @@ from collections import Counter
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from phase_sweep import sweep  # noqa: E402
 from test_lk_bodies import lua_list  # noqa: E402
 from test_lk_decisions import PureBase  # noqa: E402
 from harness import routine_files  # noqa: E402  (LK15-T02)
-from test_lk_routines import POSTS, TIME_OF_DAY, RoutineStack  # noqa: E402
+from test_lk_routines import POSTS, RoutineStack  # noqa: E402
 
 R = 'LivingKnox.Routines'
 D = 'LivingKnox.Decisions'
@@ -384,12 +385,12 @@ SUITE_FILE = Path(__file__).resolve().parents[1] / 'dev' / 'batman_RadioSurvivor
 class SuiteTests(ChoreStack):
     mode = 'solo'
 
-    def test_suite_lk_chores_passes_on_the_doubles(self):
+    def test_suite_lk_chores_passes_on_the_doubles(self, start=(9, 0)):
         from test_lk_materialize import PLAYER_MOVES
         self.h.load('solo', PLAYER_MOVES)
-        self.h.load('solo', TIME_OF_DAY)
         self.h.move_player('A', 110, 110)
-        self.jump_to(9)
+        if start is not None:
+            self.h.jump_to(*start)
         self.h.load('solo', SUITE)
         listed = self.h.eval('solo', 'RST.list({ suite = "lk.chores", tags = "world" }, true)[1]')
         self.assertEqual(listed.name, 'lk.chores')
@@ -397,12 +398,14 @@ class SuiteTests(ChoreStack):
         self.assertIsNone(listed.error)
         self.assertIs(self.h.load('solo', 'return (RST.start({ suite = "lk.chores", tags = "world" }, '
                                           '{ ctx = { player = getPlayer() } }))'), True)
-        for _ in range(6000):
+        for i in range(6000):
             self.h.tick()
             self.run_lua('STEP_ALL(0.1) for _, z in pairs(HARNESS.zombies) do z.onFloor = false end')
             if not self.h.eval('solo', 'RST.running()'):
                 break
             self.h.advance_ms(100)
+            if i % 10 == 9:
+                self.h.advance(1)                    # le temps de jeu passe pendant la scène (E19-T05)
         report = self.h.eval('solo', 'RST.last()')
         results = [(r.test, r.status, r.message) for r in lua_list(report.results)]
         self.assertEqual(len(results), 1, results)
@@ -413,6 +416,10 @@ class SuiteTests(ChoreStack):
             self.assertTrue(any(text in line for line in logs), text)
         self.assertEqual(self.ev('#LivingKnox.Groups.list()'), 0)
         self.assertEqual(self.h.errors('solo'), [])
+
+    def test_suite_lk_chores_passes_under_the_phase_sweep(self):
+        """E19-T05 : changement d'heure, de jour, nuit et aube à des instants différents de la scène."""
+        sweep(self, lambda phase: self.test_suite_lk_chores_passes_on_the_doubles(start=None))
 
     def test_suite_source_is_ascii_and_kahlua_safe(self):
         import re

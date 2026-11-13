@@ -160,8 +160,7 @@ class Base(unittest.TestCase):
 
     def every_hour(self, hours):
         for _ in range(hours):
-            self.h.advance(60)
-            self.h.fire(self.srv, 'EveryHours')
+            self.h.advance(60)  # EveryHours : de l'avance (GameTime.java:547-548)
             self.h.load(self.srv, FINISH_HOUR)   # LK13-T09 : pas horaire étalé, file vidée tout de suite
 
 

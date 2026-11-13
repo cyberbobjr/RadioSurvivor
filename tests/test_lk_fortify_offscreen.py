@@ -438,8 +438,6 @@ class SuiteListTests(OffscreenStack):
     mode = 'solo'
 
     def test_suite_is_listed_with_its_tags(self):
-        from test_lk_routines import TIME_OF_DAY
-        self.h.load('solo', TIME_OF_DAY)
         self.h.load('solo', SUITE)
         listed = lua_list(self.h.eval('solo', 'RST.list({ suite = "lk.fortify_offscreen", tags = "world" }, true)'))
         self.assertEqual([e.name for e in listed], ['lk.fortify_offscreen'])

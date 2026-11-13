@@ -831,9 +831,7 @@ class SuiteTests(DefenseStack):
         """Suite lk.defense sur les doublures, joueur en (x, y), seulement le test dont le nom contient test."""
         from test_lk_alert import VANILLA_ZOMBIES
         from test_lk_materialize import PLAYER_MOVES
-        from test_lk_routines import TIME_OF_DAY
         self.h.load('solo', PLAYER_MOVES)
-        self.h.load('solo', TIME_OF_DAY)
         self.h.load('solo', VANILLA_ZOMBIES)
         self.h.move_player('A', x, y)
         self.h.load('solo', SUITE)

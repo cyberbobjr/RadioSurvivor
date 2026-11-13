@@ -35,7 +35,7 @@ from test_lk_bodies import lua_list  # noqa: E402
 from test_lk_decisions import PureBase  # noqa: E402
 from harness import routine_files  # noqa: E402
 from test_lk_meals import MealStack  # noqa: E402
-from test_lk_routines import TIME_OF_DAY  # noqa: E402
+from phase_sweep import sweep  # noqa: E402
 from test_lk_loot import LootBase  # noqa: E402
 
 D = 'LivingKnox.Decisions'
@@ -548,16 +548,17 @@ class CorpseProvisionTests(LootBase):
 class SuiteTests(ProvisionStack):
     mode = 'solo'
 
-    def run_suite(self):
+    def run_suite(self, start=(9, 0)):
+        """start : heure de départ (None : horloge déjà placée par le balayage des phases)."""
         from test_lk_materialize import PLAYER_MOVES
         self.h.load('solo', PLAYER_MOVES)
-        self.h.load('solo', TIME_OF_DAY)
         # IsoGameCharacter.isGodMod / setGodMod(boolean) (IsoGameCharacter.java:11192, 11237), comme test_lk_garden.py.
         self.h.load('solo', 'local Pl = HARNESS.classes.IsoPlayer function Pl:isGodMod() return self.god == true end '
                             'function Pl:setGodMod(b) if type(b) ~= "boolean" then '
                             'error("No implementation found for setGodMod", 2) end self.god = b end')
         self.h.move_player('A', 110, 110)
-        self.jump_to(9)
+        if start is not None:
+            self.h.jump_to(*start)
         self.h.load('solo', SUITE)
         listed = self.h.eval('solo', 'RST.list({ suite = "lk.provisions", tags = "world" }, true)[1]')
         self.assertEqual(listed.name, 'lk.provisions')
@@ -576,7 +577,12 @@ class SuiteTests(ProvisionStack):
         return self.h.eval('solo', 'RST.last()')
 
     def test_suite_lk_provisions_passes_on_the_doubles(self):
-        report = self.run_suite()
+        self.check(self.run_suite())
+
+    def test_suite_lk_provisions_passes_under_the_phase_sweep(self):
+        sweep(self, lambda phase: self.check(self.run_suite(start=None)))   # E19-T05
+
+    def check(self, report):
         results = [(r.test, r.status, r.message) for r in lua_list(report.results)]
         self.assertEqual(len(results), 1, results)
         self.assertTrue(report.ok, (results, [x for x in self.h.logs('solo') if 'LKP' in x or 'ERROR' in x][-20:]))

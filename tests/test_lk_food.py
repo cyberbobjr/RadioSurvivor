@@ -36,6 +36,7 @@ sys.path.append(str(Path(__file__).resolve().parents[1] / 'tools'))
 import pz_paths  # noqa: E402  (vanilla folders: PZ_STEAM_LIBRARY, PZ_MEDIA or Steam detection)
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from phase_sweep import sweep  # noqa: E402
 from harness import lua_src  # noqa: E402  (E18-T07)
 from test_lk_bodies import lua_list  # noqa: E402
 from test_lk_expeditions import ExpeditionStack  # noqa: E402
@@ -1029,15 +1030,14 @@ class MultiplayerHarvestTests(WaterStack):
 class SuiteRunTests(FoodStack):
     mode = 'solo'
 
-    def run_suite(self, test, before=None):
+    def run_suite(self, test, before=None, start=(9, 0)):
         from test_lk_materialize import PLAYER_MOVES
-        from test_lk_routines import TIME_OF_DAY
         self.h.load('solo', PLAYER_MOVES)
-        self.h.load('solo', TIME_OF_DAY)
         if before:
             self.run_lua(before)
         self.h.move_player('A', 110, 110)
-        self.jump_to(9)
+        if start is not None:
+            self.h.jump_to(*start)
         self.h.load('solo', SUITE)
         listed = self.h.eval('solo', 'RST.list({ suite = "lk.forage", tags = "world" }, true)[1]')
         self.assertEqual(listed.name, 'lk.forage')
@@ -1064,13 +1064,17 @@ class SuiteRunTests(FoodStack):
         self.assertTrue(any('[LKF2] measure draws: zone DeepForest at ' in line for line in logs))
         self.assertEqual(self.h.errors('solo'), [])
 
-    def test_suite_foraging_trip_passes_on_the_doubles(self):
-        logs = self.run_suite('foragers gather vanilla food near home and store it')
+    def test_suite_foraging_trip_passes_on_the_doubles(self, start=(9, 0)):
+        logs = self.run_suite('foragers gather vanilla food near home and store it', start=start)
         for text in ('[LKF2] measure departure: trip 1 to forage DeepForest ', '[LKF2] measure reached: ',
                      '[LKF2] measure foraged: 6 draw(s)', '[LKF2] measure home: '):
             self.assertTrue(any(text in line for line in logs), text)
         self.assertEqual(self.ev('#LivingKnox.Groups.list()'), 0)
         self.assertEqual(self.h.errors('solo'), [])
+
+    def test_suite_foraging_trip_passes_under_the_phase_sweep(self):
+        """E19-T05 : changement d'heure, de jour, nuit et aube à des instants différents de la scène."""
+        sweep(self, lambda phase: self.test_suite_foraging_trip_passes_on_the_doubles(start=None))
 
     def test_suite_foraging_trip_keeps_ordinary_zombies_away(self):
         # Campagne solo du 2026-10-15 : des zombies arrivés un à un à la maison de la suite tenaient le groupe en
@@ -1091,9 +1095,7 @@ class SuiteWaterRunTests(WaterStack):
 
     def test_suite_watering_passes_on_the_doubles(self):
         from test_lk_materialize import PLAYER_MOVES
-        from test_lk_routines import TIME_OF_DAY
         self.h.load('solo', PLAYER_MOVES)
-        self.h.load('solo', TIME_OF_DAY)
         self.run_lua('for _, it in ipairs(BEANS) do HARNESS.listRemove(PANTRY.container.items, it) end '
                      'local keep = {} for _, it in ipairs(PANTRY.container.items.items) do '
                      'if not (it.fc and it.fc.fluid == Fluid.TaintedWater) then keep[#keep + 1] = it end end '
@@ -1137,9 +1139,7 @@ class SuiteHarvestRunTests(WaterStack):
 
     def run_harvest_suite(self, before=None):
         from test_lk_materialize import PLAYER_MOVES
-        from test_lk_routines import TIME_OF_DAY
         self.h.load('solo', PLAYER_MOVES)
-        self.h.load('solo', TIME_OF_DAY)
         self.run_lua('for _, it in ipairs(BEANS) do HARNESS.listRemove(PANTRY.container.items, it) end')
         if before:
             self.run_lua(before)

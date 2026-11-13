@@ -35,7 +35,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from test_lk_bodies import lua_list  # noqa: E402
 from test_lk_decisions import PureBase  # noqa: E402
 from harness import routine_files  # noqa: E402  (LK15-T02)
-from test_lk_routines import TIME_OF_DAY, RoutineStack  # noqa: E402
+from test_lk_routines import RoutineStack  # noqa: E402
+from phase_sweep import sweep  # noqa: E402
 
 R = 'LivingKnox.Routines'
 D = 'LivingKnox.Decisions'
@@ -490,11 +491,11 @@ class MultiplayerMealTests(MealStack):
 class SuiteTests(MealStack):
     mode = 'solo'
 
-    def run_suite(self, each_tick=None):
-        """Lance la suite lk.meals sur les doublures ; each_tick(i) est appelé après chaque image. Rend le rapport."""
+    def run_suite(self, each_tick=None, start=(9, 0)):
+        """Lance la suite lk.meals sur les doublures ; each_tick(i) est appelé après chaque image ; start : heure de
+        départ (None : horloge déjà placée, balayage des phases). Rend le rapport."""
         from test_lk_materialize import PLAYER_MOVES
         self.h.load('solo', PLAYER_MOVES)
-        self.h.load('solo', TIME_OF_DAY)
         # Fixture de la suite : instanceItem des boîtes et de la bouteille (doublures de repas), Fluid.Water.
         self.h.load('solo', r'''
             local mk = instanceItem
@@ -512,7 +513,8 @@ class SuiteTests(MealStack):
                 return mk(t)
             end''')
         self.h.move_player('A', 110, 110)
-        self.jump_to(9)
+        if start is not None:
+            self.h.jump_to(*start)
         self.h.load('solo', SUITE)
         listed = self.h.eval('solo', 'RST.list({ suite = "lk.meals", tags = "world" }, true)[1]')
         self.assertEqual(listed.name, 'lk.meals')
@@ -533,7 +535,13 @@ class SuiteTests(MealStack):
         return self.h.eval('solo', 'RST.last()')
 
     def test_suite_lk_meals_passes_on_the_doubles(self):
-        report = self.run_suite()
+        self.check(self.run_suite())
+
+    def test_suite_lk_meals_passes_under_the_phase_sweep(self):
+        """E19-T05 : changement d'heure, de jour, nuit et aube à des instants différents de la scène."""
+        sweep(self, lambda phase: self.check(self.run_suite(start=None)))
+
+    def check(self, report):
         results = [(r.test, r.status, r.message) for r in lua_list(report.results)]
         self.assertEqual(len(results), 1, results)
         self.assertTrue(report.ok, (results, [x for x in self.h.logs('solo') if 'LKM' in x or 'ERROR' in x][-20:]))

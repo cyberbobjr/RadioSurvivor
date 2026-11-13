@@ -507,8 +507,7 @@ class EventTests(unittest.TestCase):
         self.restart()
         self.h.fire(self.srv, 'OnInitGlobalModData', False)
         self.h.fire(self.srv, self.start_event())
-        self.h.advance(60)
-        self.h.fire(self.srv, 'EveryHours')
+        self.h.advance(60)  # EveryHours : de l'avance (GameTime.java:547-548)
         self.h.load(self.srv, FINISH_HOUR)   # LK13-T09 : pas horaire étalé, file vidée tout de suite
         self.assertEqual(self.count(), 4)
         self.assertEqual(self.h.eval(self.srv, 'LivingKnox.Groups.state.data.populated'), True)
@@ -522,8 +521,7 @@ class EventTests(unittest.TestCase):
         self.h.fire(self.srv, self.start_event())
         self.assertEqual(self.count(), 0)
         self.h.load(self.srv, 'JAVA_OPTIONS["LivingKnox.Enabled"] = true')
-        self.h.advance(60)
-        self.h.fire(self.srv, 'EveryHours')
+        self.h.advance(60)  # EveryHours : de l'avance (GameTime.java:547-548)
         self.h.load(self.srv, FINISH_HOUR)   # LK13-T09 : pas horaire étalé, file vidée tout de suite
         self.assertEqual(self.count(), 4)
 

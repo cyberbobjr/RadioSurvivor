@@ -23,6 +23,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from phase_sweep import sweep  # noqa: E402
 from test_lk_bodies import lua_list  # noqa: E402
 from test_lk_decisions import CTX, DECIDERS, DUMP, PureBase  # noqa: E402
 from test_lk_materialize import MatBase  # noqa: E402
@@ -350,15 +351,8 @@ class RoutineStack(MatBase):
                 self.h.pump()
 
     def jump_to(self, hod):
-        """Avance l'horloge jusqu'à la prochaine heure du jour hod (minute 0)."""
-        age = self.h.age_minutes
-        now_hod = ((age // 60) + 7) % 24
-        hours = (hod - now_hod) % 24 or 24
-        minutes = hours * 60 - age % 60
-        import datetime as _dt
-        self.h.date += _dt.timedelta(minutes=minutes)
-        self.h.age_minutes += minutes
-        self.h._push_clock()
+        """Avance l'horloge jusqu'à la prochaine heure du jour hod (minute 0), sans événement."""
+        self.h.jump_to(hod)
 
     def sentries(self, gid):
         out = self.run_lua(f'local out = {{}} local g = LivingKnox.Groups.get("{gid}") '
@@ -543,17 +537,6 @@ SUITE_FILE = Path(__file__).resolve().parents[1] / 'dev' / 'batman_RadioSurvivor
 
 # Heure du jour réglable (GameTime.setTimeOfDay, GameTime.java:770) : l'âge du monde suit (nuits x 24 + heure - 7, ou
 # + 17 avant 7 h ; base api-42-21.md), modélisé par un décalage ajouté à l'horloge du banc.
-TIME_OF_DAY = r'''
-local GT = getmetatable(getGameTime())
-TOD_OFFSET = 0
-local age = GT.getWorldAgeHours
-function GT:getWorldAgeHours() return age(self) + TOD_OFFSET end
-function GT:getTimeOfDay() return (self:getWorldAgeHours() + 7) % 24 end
-function GT:setTimeOfDay(h)
-    HARNESS.num(h, 'setTimeOfDay')
-    TOD_OFFSET = TOD_OFFSET - (self:getTimeOfDay() + 17) % 24 + (h + 17) % 24
-end
-'''
 
 
 class SuiteTests(RoutineStack):
@@ -562,7 +545,6 @@ class SuiteTests(RoutineStack):
     def test_suite_lk_routines_passes_on_the_doubles(self):
         from test_lk_materialize import PLAYER_MOVES
         self.h.load('solo', PLAYER_MOVES)
-        self.h.load('solo', TIME_OF_DAY)
         self.h.move_player('A', 110, 110)
         self.h.load('solo', SUITE)
         listed = self.h.eval('solo', 'RST.list({ suite = "lk.routines", tags = "world" }, true)[1]')
@@ -571,12 +553,14 @@ class SuiteTests(RoutineStack):
         self.assertIsNone(listed.error)
         self.assertIs(self.h.load('solo', 'return (RST.start({ suite = "lk.routines", tags = "world" }, '
                                           '{ ctx = { player = getPlayer() } }))'), True)
-        for _ in range(6000):
+        for i in range(6000):
             self.h.tick()
             self.run_lua('STEP_ALL(0.1) for _, z in pairs(HARNESS.zombies) do z.onFloor = false end')   # relevés
             if not self.h.eval('solo', 'RST.running()'):
                 break
             self.h.advance_ms(100)
+            if i % 10 == 9:
+                self.h.advance(1)                    # le temps de jeu passe pendant la scène (E19-T05)
         report = self.h.eval('solo', 'RST.last()')
         results = [(r.test, r.status, r.message) for r in lua_list(report.results)]
         self.assertEqual(len(results), 1, results)
@@ -587,6 +571,10 @@ class SuiteTests(RoutineStack):
             self.assertTrue(any(text in line for line in logs), text)
         self.assertEqual(self.ev('#LivingKnox.Groups.list()'), 0)                # groupe de test retiré
         self.assertEqual(self.h.errors('solo'), [])
+
+    def test_suite_lk_routines_passes_under_the_phase_sweep(self):
+        """E19-T05 : changement d'heure, de jour, nuit et aube à des instants différents de la scène."""
+        sweep(self, lambda phase: self.test_suite_lk_routines_passes_on_the_doubles())
 
     def test_suite_source_is_ascii_and_kahlua_safe(self):
         import re

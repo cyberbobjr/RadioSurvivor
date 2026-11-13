@@ -32,11 +32,11 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from phase_sweep import sweep  # noqa: E402
 from harness import LK_LUA, lua_src, routine_files  # noqa: E402  (E18-T07, LK15-T02)
 from test_lk_bodies import lua_list  # noqa: E402
 from test_lk_decisions import PureBase  # noqa: E402
 from test_lk_meals import MealStack  # noqa: E402
-from test_lk_routines import TIME_OF_DAY  # noqa: E402
 
 U = 'LivingKnox.Upkeep'
 R = 'LivingKnox.Routines'
@@ -646,10 +646,9 @@ class SuiteTests(UpkeepStack):
         for pattern in (r'\bnext\s*\(', r'\bgoto\b', r'\bcoroutine\.', r'\bunpack\b'):
             self.assertIsNone(re.search(pattern, code), pattern)
 
-    def run_suite(self, before=None):
+    def run_suite(self, before=None, start=(9, 0)):
         from test_lk_materialize import PLAYER_MOVES
         self.h.load('solo', PLAYER_MOVES)
-        self.h.load('solo', TIME_OF_DAY)
         # Fixture de la suite : objets d'entretien, générateur posé par IsoGenerator.new, verre, tache de sang.
         self.h.load('solo', r'''
             HARNESS.listRemove(PANTRY.container.items, CAN) HARNESS.listRemove(PANTRY.container.items, SCRAP)
@@ -687,7 +686,8 @@ class SuiteTests(UpkeepStack):
         if before:
             self.run_lua(before)
         self.h.move_player('A', 110, 110)
-        self.jump_to(9)
+        if start is not None:
+            self.h.jump_to(*start)
         self.h.load('solo', SUITE)
         self.assertIs(self.h.load('solo', 'return (RST.start({ suite = "lk.upkeep", tags = "world" }, '
                                           '{ ctx = { player = getPlayer() } }))'), True)
@@ -706,13 +706,17 @@ class SuiteTests(UpkeepStack):
         self.assertEqual(results[1][1], 'SKIP', results)                              # aucune pièce doublée
         return self.h.logs('solo')
 
-    def test_suite_lk_upkeep_passes_on_the_doubles(self):
-        logs = self.run_suite()
+    def test_suite_lk_upkeep_passes_on_the_doubles(self, start=(9, 0)):
+        logs = self.run_suite(start=start)
         for text in ('[LKU] measure fixture of ', '[LKU] measure done: fuel 2.00 -> 6.00, can 0.00 l, condition 50 -> 54',
                      '[LKU] measure unmarked generator: fuel 0.00 -> 0.00, condition 30 -> 30'):
             self.assertTrue(any(text in line for line in logs), text)
         self.assertEqual(self.ev('#LivingKnox.Groups.list()'), 0)
         self.assertEqual(self.h.errors('solo'), [])
+
+    def test_suite_lk_upkeep_passes_under_the_phase_sweep(self):
+        """E19-T05 : changement d'heure, de jour, nuit et aube à des instants différents de la scène."""
+        sweep(self, lambda phase: self.test_suite_lk_upkeep_passes_on_the_doubles(start=None))
 
     def test_suite_clears_older_glass_before_its_fixture(self):
         # Campagne solo du 2026-10-15 : un verre plus ancien de la maison (fenêtre cassée par les combats d'une
@@ -723,7 +727,6 @@ class SuiteTests(UpkeepStack):
         self.assertEqual(self.h.errors('solo'), [])
 
     def test_suite_is_listed_with_its_tags(self):
-        self.h.load('solo', TIME_OF_DAY)
         self.h.load('solo', SUITE)
         listed = lua_list(self.h.eval('solo', 'RST.list({ suite = "lk.upkeep", tags = "world" }, true)'))
         self.assertEqual([e.name for e in listed], ['lk.upkeep'])

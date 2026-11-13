@@ -20,7 +20,10 @@ Utilisation
     h.tick(n)                               # n images : par machine OnTickEvenPaused, OnZombieUpdate, OnTick
     h.pump(order='fifo'|'lifo'|'random', limit=None)   # livre la file réseau ; rend le nombre livré
     h.pending()                             # messages en attente (dicts)
-    h.advance(minutes)                      # horloge de jeu ; EveryTenMinutes puis EveryOneMinute à chaque minute
+    h.advance(minutes)                      # horloge de jeu, minute par minute : EveryDays, EveryHours,
+                                            # EveryTenMinutes, EveryOneMinute (GameTime.update)
+    h.jump_to(hour, minute=0)               # prochaine heure du jour hh:mm, sans événement (partie chargée là)
+    h.skip(minutes)                         # horloge avancée sans événement (serveur arrêté, heures manquées)
     h.advance_ms(ms)                        # horloge réelle (getTimestampMs, GameTime.getServerTimeMills)
     h.set_clock_synced('A', False)          # getServerTimeMills() rend 0 sur ce client
     h.set_paused('server', True)            # serveur vide en pause : OnTickEvenPaused seul
@@ -44,6 +47,13 @@ Règles simulées
 - Zombies (NetworkZombieComponent.java:23) : isRemoteZombie() = aucune connexion propriétaire. Client : faux pour
   le zombie qu'il simule, vrai sinon. Serveur : vrai pour un zombie qu'il simule, faux pour un zombie possédé par un
   client (getOwner() rend alors sa connexion, getOwnerPlayer() son joueur). Solo : toujours vrai, getOwner() nil ; OnZombieUpdate pour tous les zombies chargés, locaux ou distants (IsoZombie.java:2738).
+- Horloge de jeu (sources 42.22, java/zombie/GameTime.java) : une horloge pour toutes les machines, à la minute.
+  advance() joue une mise à jour par minute et, dans la minute, sur chaque machine non en pause : EveryDays au
+  passage de minuit (jour, mois, année déjà avancés : 532-534, 582-593), EveryHours si l'heure a changé (547-548),
+  EveryTenMinutes si la dizaine a changé (559-568), EveryOneMinute (572-573). L'horloge lue pendant l'événement est
+  la nouvelle. getNightsSurvived() + 1 au passage de 7 h (515-516) ; getWorldAgeHours() = nuits * 24 + heures depuis
+  7 h (824-827), continu ; setTimeOfDay(h) change l'heure seule (jour et nuits gardés, âge recalculé, aucun
+  événement : 764-766, 471). Machine en pause (serveur vide PauseEmpty) : aucun événement d'horloge (191-193, 474).
 """
 from __future__ import annotations
 
@@ -465,7 +475,7 @@ triggerEvent = function(name, ...) H.trigger(name, ...) end
 
 -- Horloges ---------------------------------------------------------------------------------------------
 H.clock = { realMs = 0, serverMs = 0, synced = true, year = 1993, month = 6, day = 8, hour = 9, minute = 0,
-    ageHours = 2, multiplier = 1 }
+    ageHours = 2, nights = 0, multiplier = 1 }
 getTimestampMs = function() return H.clock.realMs end
 -- Rand.java (42.21.0) : ZombRand(max) dans [0, max[, ZombRand(min, max) dans [min, max[ ; tirage du banc (math.random).
 ZombRand = function(a, b)
@@ -483,6 +493,9 @@ function GameTimeClass:getHour() return H.clock.hour end
 function GameTimeClass:getMinutes() return H.clock.minute end
 function GameTimeClass:getTimeOfDay() return H.clock.hour + H.clock.minute / 60 end
 function GameTimeClass:getWorldAgeHours() return H.clock.ageHours end
+function GameTimeClass:getNightsSurvived() return H.clock.nights end
+-- GameTime.java:764-766 : heure du jour seule ; l'horloge du banc est commune aux machines (synchronisation).
+function GameTimeClass:setTimeOfDay(h) PY.set_time_of_day(num(h, 'setTimeOfDay')) end
 -- GameTime.java:867: real minutes of one game day (DayLength, vanilla default 90), read by RC_GameClock (E11-T20).
 function GameTimeClass:getMinutesPerDay() return H.clock.minutesPerDay or 90 end
 function GameTimeClass:getMultiplier() return H.clock.multiplier end
@@ -652,6 +665,9 @@ class _Bridge:
 
     def file_read(self, name, create):
         return self.m._file_read(name, create)
+
+    def set_time_of_day(self, hours):
+        self.m.harness.set_time_of_day(hours)
 
 
 class Machine:
@@ -925,6 +941,7 @@ class Harness:
             c.realMs, c.serverMs = self.real_ms, self.server_ms
             c.year, c.month, c.day, c.hour, c.minute = d.year, d.month - 1, d.day - 1, d.hour, d.minute
             c.ageHours = self.age_minutes / 60.0
+            c.nights = self.age_minutes // 1440                  # âge 0 à 7 h : une nuit de plus à chaque 7 h
 
     def advance_ms(self, ms: int):
         self.real_ms += int(ms)
@@ -935,17 +952,47 @@ class Harness:
         self.machine(client).H.clock.synced = synced
 
     def advance(self, minutes: int = 1):
-        """GameTime.java:565-581 : EveryTenMinutes (changement de dizaine) puis EveryOneMinute, sur chaque machine."""
+        """Une mise à jour de GameTime par minute (GameTime.java:431-580, 42.22) : horloge avancée d'abord, puis sur
+        chaque machine non en pause EveryDays (minuit), EveryHours (heure changée), EveryTenMinutes (dizaine
+        changée), EveryOneMinute. Vitesse normale : jamais plus d'une minute par mise à jour."""
         for _ in range(int(minutes)):
             before = self.date
             self.date += _dt.timedelta(minutes=1)
             self.age_minutes += 1
             self._push_clock()
+            events = [name for name, changed in (
+                ('EveryDays', self.date.date() != before.date()),
+                ('EveryHours', self.date.hour != before.hour),
+                ('EveryTenMinutes', self.date.minute // 10 != before.minute // 10),
+                ('EveryOneMinute', True)) if changed]
             for m in self._all():
-                if self.date.minute // 10 != before.minute // 10:
-                    m.H.trigger('EveryTenMinutes')
-                m.H.trigger('EveryOneMinute')
+                if m.paused:
+                    continue
+                for name in events:
+                    m.H.trigger(name)
         self._check()
+
+    def jump_to(self, hour: int, minute: int = 0):
+        """Avance l'horloge, sans événement, jusqu'à la prochaine heure du jour hour:minute (strictement plus tard) :
+        partie chargée à cette heure."""
+        now = self.date.hour * 60 + self.date.minute
+        self.skip((hour * 60 + minute - now) % 1440 or 1440)
+
+    def skip(self, minutes: int):
+        """Avance l'horloge de minutes sans aucun événement : temps passé serveur arrêté (heures manquées rattrapées
+        au démarrage) ou partie rechargée plus tard."""
+        self.date += _dt.timedelta(minutes=int(minutes))
+        self.age_minutes += int(minutes)
+        self._push_clock()
+
+    def set_time_of_day(self, hours: float):
+        """GameTime.setTimeOfDay (GameTime.java:764-766) : heure du jour seule, à la minute (getMinutes, 423-424) ;
+        jour du calendrier et nuits survécues gardés, âge du monde recalculé (824-827) ; aucun événement."""
+        tod = int(float(hours) * 60) % 1440
+        nights = self.age_minutes // 1440
+        self.date = self.date.replace(hour=tod // 60, minute=tod % 60)
+        self.age_minutes = nights * 1440 + (tod - 420) % 1440
+        self._push_clock()
 
     # Réseau ---------------------------------------------------------------------------------------------
     def _client_send(self, sender: Machine, module, command, args):
