@@ -282,6 +282,25 @@ class DigTests(GardenStack):
         self.assertEqual((r.missing, r.lost, len(lua_list(r.thefts))), (0, 0, 0))
         self.assertEqual(self.h.errors('solo'), [])
 
+    def test_test_group_furrows_removed_with_the_group_during_a_test_run(self):
+        # Campagnes du 2026-11-13 : les sillons creusés par les groupes de test (potager LK15) restaient dans le monde
+        # et faussaient les suites suivantes (lk.forage arrose une autre plante, lk.upkeep : place décalée hors du
+        # foyer, lk.garden sauté : « an empty furrow already waits »). Mod de test : RST_GardenHygiene.
+        gid = self.mk()
+        self.h.load('solo', 'require "RST/RST"')
+        self.h.load('solo', 'require "RST/RST_GardenHygiene"')
+        self.run_lua('RST.running = function() return true end assert(RST.GardenHygiene.install()) '
+                     'assert(not RST.GardenHygiene.install()) '                            # une seule enveloppe
+                     'SHOVEL = UPK_ITEM("Base.Shovel", { tags = { DigPlow = true } }) PANTRY.container:AddItem(SHOVEL) '
+                     'DIRT(106, 118)')
+        self.jump_to(11)
+        self.assertTrue(self.work(lambda: self.stat('dug') >= 1), self.lk()[-8:])
+        self.assertEqual(self.plant(106, 118), ('plow', None))
+        self.run_lua(f'LivingKnox.Groups.remove("{gid}")')
+        self.assertIsNone(self.plant(106, 118))
+        self.assertEqual(self.ev('#RST.GardenHygiene.dug'), 0)
+        self.assertEqual(self.h.errors('solo'), [])
+
     def test_bare_hands_take_twice_as_long_and_a_broken_tool_does_not_count(self):
         gid = self.mk()
         job = '{ kind = "dig", key = "dig 106,118,0", x = 106, y = 118, z = 0 }'
