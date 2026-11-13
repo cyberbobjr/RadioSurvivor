@@ -47,6 +47,13 @@ autoritaire, adaptateurs d'exécution, fournisseur de PNJ. Vue détaillée :
   fréquences, coordonnées ou récompenses.
 - Dépendances : présentation/pont → contrat → décisions serveur → adaptateurs moteur ; état secret dans `RS_State`
   uniquement.
+- **Principes SOLID dès la conception** (demande de l'utilisateur du 2026-11-13). Une nouvelle routine, tâche du foyer,
+  activité, variante ou nature d'effet passe par un registre et vit dans son propre fichier (modèle : registre des
+  tâches `LivingKnox.Upkeep.registerJob`, dossier `server/LivingKnox/Jobs/`, ADR
+  [`registre des routines`](architecture/decisions/adr-registre-routines.md)). Interdit : ajouter un cas à une chaîne
+  `if kind == "…"` ou à une liste de noms dans un moteur ; au plus tard au troisième cas du même genre, extraire un
+  registre avant d'ajouter le suivant. À la clôture d'une tâche, relire le module touché (une responsabilité par
+  fichier, ajout sans modification du moteur) et signaler tout écart dans le compte rendu.
 
 ## Méthode du plan
 
