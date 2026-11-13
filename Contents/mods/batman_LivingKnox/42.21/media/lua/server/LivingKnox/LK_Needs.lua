@@ -46,6 +46,7 @@ require "LivingKnox/LK_Config"
 require "LivingKnox/LK_Log"
 require "LivingKnox/LK_Store"
 require "LivingKnox/LK_Groups"
+require "LivingKnox/LK_Decisions"   -- LK16-T05 : fournisseur de contexte (registerContext)
 
 local Needs = LivingKnox.Needs or {}
 LivingKnox.Needs = Needs
@@ -458,5 +459,12 @@ end
 function Needs.reset()
     Needs.state = { samples = {}, threats = {}, sources = {} }
 end
+
+-- LK16-T05 : contexte de la cascade (LivingKnox.Decisions.registerContext, ordre 120 : après les menaces, avant la
+-- lecture des jauges par le moteur, ordre 130) : la menace perçue fait monter la peur ; source récente de la peur.
+LivingKnox.Decisions.registerContext({ id = "fear", order = 120, fill = function(ctx, src)
+    Needs.perceive(src.gid, src.mid, ctx.threats, ctx.combatant, src.minute)
+    ctx.fearFrom = Needs.fearSource(src.gid, src.mid, src.minute)
+end })
 
 return Needs

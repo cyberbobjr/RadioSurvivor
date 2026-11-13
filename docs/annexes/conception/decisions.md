@@ -142,6 +142,43 @@ Portée (décision prise sans consigne du plan, la plus lisible pour un administ
 
 Registre `Decisions.registerExtension(spec)` (règle SOLID du projet : un nouveau comportement s'ajoute sans nouveau cas dans le moteur). `spec` : `id` (unique ; nom du comportement ajouté), `order`, `rules` = `{ { name, before, rule(ctx) } }` (règle essayée juste avant la règle `before` de `PRIORITIES`, **au même rang** : les rangs, les sels du hasard et les durées des règles existantes ne changent pas ; une règle suivante interrompt l'état comme une autre), `behaviour` = `{ vigil, minutes, needs }` (ajouté à `BEHAVIOURS` et à `MINUTES` ; un comportement de la liste fermée ne peut pas être repris), `apply(id, st, ctx, fresh)` (appelé par `Decisions.apply` après la fin de la mêlée), `leave(id)` (membre sorti du comportement, ou oublié), `input(ctx, body, minute)` (fin de `Decisions.context`), `observe(ctx, st, body, minute)` (fin de `Decisions.evaluate`). Le moteur ne nomme aucune extension. Seule inscrite : `provision` (`LK_ProvisionMeal.lua`, [besoins.md](besoins.md), « Provisions sur soi et gourde inépuisable ») avec les règles `provision.fight` (avant `threat`), `provision.hunger` (avant `hunger`), `provision.thirst` (avant `thirst`). Coût : une boucle sur les extensions inscrites par évaluation (une seule aujourd'hui).
 
+### Contexte d'un membre (LK16-T05, 2026-11-13)
+
+`Decisions.context` pose les champs propres au membre (identité, rôle, comportements permis, combattant, position,
+foyer, santé, poste, objectif, nuit, minute), puis appelle les **fournisseurs de contexte** inscrits
+(`Decisions.registerContext{ id, order, fill(ctx, src) }`, socle `LivingKnox.Registry`, tri par `order` puis `id`),
+puis les entrées des extensions (`input`). `src` = `{ gid, g, mid, m, body, players, minute, per }` (`per` :
+perception, posée par le fournisseur `perception`). Le moteur ne nomme plus aucun module dans `Decisions.context` :
+chaque module pose son champ depuis son propre fichier ; module absent = fournisseur absent = champ absent (même
+contexte qu'avant sans ce module).
+
+Registre dédié plutôt que le hook `input` des extensions : un fournisseur a besoin du groupe, du membre, des joueurs et
+de la perception (`input(ctx, body, minute)` ne les porte pas), il ne porte ni règle ni comportement (interface
+étroite), et il passe avant toutes les entrées d'extension, qui lisent ses champs.
+
+| Ordre | Fournisseur | Fichier | Champs posés | Lit (posé avant) |
+| --- | --- | --- | --- | --- |
+| 10 | `routines` | `LK_Routines.lua` | `sentryKind`, `chores`, `meals`, `unfed` | minute, groupe |
+| 20 | `expedition` | `LK_Expeditions.lua` | `trip` | — |
+| 30 | `hunt` | `LK_Relations.lua` | `hunt` (hors expédition) | `trip` |
+| 40 | `home` | `LK_Decisions.lua` | `homeDist`, `atHome` | position, foyer |
+| 50 | `perception` | `LK_Decisions.lua` | `src.per` (`Decisions.perceptionOf`) | — |
+| 60 | `threats` | `LK_Decisions.lua` | `threats`, `threat` | `per`, attitudes (Hostility) |
+| 70 | `target` | `LK_Decisions.lua` | `target` (`Decisions.targetOf`) | `per`, combattant |
+| 80 | `defence` | `LK_Decisions.lua` | `morale`, `hit`, `seen`, `canSurrender`, `surrendered`, `betrayed`, `help`, `target` (épargnée, renfort) | `target`, `per` |
+| 90 | `alert` | `LK_Alert.lua` | `alert` (après `Alert.observe`) | `per`, `target`, `atHome` |
+| 100 | `defense` | `LK_Defense.lua` | `defense` | `alert` (état de l'alerte), `target`, `threats` |
+| 110 | `warn` | `LK_Encounters.lua` | `warn` | `per`, combattant |
+| 120 | `fear` | `LK_Needs.lua` | `fearFrom` (après `Needs.perceive`) | `threats` |
+| 130 | `needs` | `LK_Decisions.lua` | `needs` (`Decisions.needsOf`, neutre sans module) | peur montée (120) |
+| 140 | `overwhelmed` | `LK_Decisions.lua` | `overwhelmed` | `threats`, `needs`, santé |
+
+Ordre d'avant gardé tel quel (appels et effets de bord dans le même ordre ; seule la lecture pure de
+`Needs.fearSource` passe avant celle de `Needs.get`). Les fournisseurs restés dans `LK_Decisions.lua` lisent des
+modules plus bas (Senses, partagé et chargé avant ce registre ; Combat, Zombies, Hostility, Health, Bodies), qui ne
+dépendent pas de Decisions : aucun cycle. La cible, la défense personnelle et le débordement suivront leurs
+comportements (`fight`, `surrender`, `retreat`) quand ceux-ci deviendront des extensions (LK16-T06).
+
 ## Alternatives écartées
 
 - **Arbre de comportement ou machine à états par PNJ** : plus expressif, mais coûteux à tenir reproductible et à borner ; la cascade fixe suffit au court terme décidé (décision du 2026-10-08).
@@ -163,6 +200,10 @@ Registre `Decisions.registerExtension(spec)` (règle SOLID du projet : un nouvea
 ## Tests
 
 - Banc lupa (`tests/test_lk_decisions.py`, 20 tests) : champs `objective` et `duty` contrôlés à la relecture ; mêmes entrées → même décision, même raison et même échéance ; ordre de la cascade (menace avant peur, blessure, faim, soif, fatigue, poste, routine) ; fuite d'un non-combattant, regard d'un combattant, guet refusé à un rôle sans `guard` ; échéance et interruption ; besoins neutres puis fournis ; menaces d'après la perception et l'attitude ; objectifs et raisons (nuit, réserve basse, menaces, blessés, fortification, chef nerveux), écart borné et reproductible, postes selon rôles, blessures et rotation ; pile complète en MP (serveur + deux clients) et en solo : aucun module de décision chez les clients, objectif journalisé une fois, consignes `face`, `move` en course puis `stop` et retour au foyer à l'échéance, coût de 4 membres par passage, changement d'objectif horaire journalisé avec sa raison, même monde rejoué deux fois → mêmes états et même journal.
+- LK16-T05 (`tests/test_lk_decision_context.py`) : contexte, décision et appels faits aux modules (arguments, contexte
+  au moment de l'appel) figés par empreinte sha256 sur 1 500 situations, relevée avant le registre (solo tous modules,
+  serveur dédié, modules de `LK_Server` seuls) ; fournisseur et règle d'extension inscrits par le banc seul ; ordre
+  des fournisseurs et dépendances entre champs ; entrées des extensions après les fournisseurs.
 - VM Kahlua (`tests/test_kahlua.py`, `KR-DECIDE`) : décisions, scores et tirage identiques à lupa.
 - LK05-T14 (`tests/test_lk_thresholds.py`, 17 tests) : options déclarées (bornes, défaut, page, traductions EN/FR avec l'unité) et identiques à `Config.DANGER` ; chaque seuil lu depuis son option, repli sans option, valeur invalide (une ligne d'avertissement), changement relu à l'appel suivant ; effets sur la cascade (fuite, peur), la retraite, les renforts, l'alerte (portée, zombies au-delà ignorés), la défense (rapport, recensement) et les sommations ; pile solo : groupe face à 50 zombies perçus au-delà de la distance d'alerte resté dans sa routine (aucune alerte, aucune règle `threat`, peur nulle), même foule sans l'option qui l'interrompt, zombie dans la distance qui donne l'alerte avec un cri au rayon de l'option. `test_lk_zombies.py` : portée d'engagement lue depuis l'option et bornée par la distance d'alerte. Suite en jeu `lk.alert`, second test (foule fictive au-delà de la distance d'alerte).
 - En jeu : aucun pour l'instant (cible « hors jeu »). Protocole solo proposé dans le compte rendu de la tâche.

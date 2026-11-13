@@ -2,7 +2,7 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 7 / 12 tâche(s) terminée(s).
+**Avancement.** en cours — 8 / 12 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
@@ -10,7 +10,7 @@
 | ☑ | LK16-T02 | C1 : genres de chantier de la fortification | `testé hors jeu` | hors jeu | — |
 | ☑ | LK16-T03 | C7 : tables d'aiguillage (faits publics, administration, parole) | `testé hors jeu` | hors jeu | — |
 | ☑ | LK16-T04 | C5 : cycles cassés par événements | `testé hors jeu` | hors jeu | LK16-T01 |
-| ☐ | LK16-T05 | C3 : contexte de décision par inscription | `à faire` | hors jeu | LK16-T04 |
+| ☑ | LK16-T05 | C3 : contexte de décision par inscription | `testé hors jeu` | hors jeu | LK16-T04 |
 | ☐ | LK16-T06 | C2 : comportements de décision par extension | `à faire` | hors jeu | LK16-T05 |
 | ☑ | LK16-T07 | C8 et C9 : corvées et plans des routines | `testé hors jeu` | hors jeu | LK16-T01 |
 | ☐ | LK16-T08 | C4 : genres d'expédition | `à faire` | hors jeu | LK16-T01 |
@@ -86,16 +86,16 @@ Constats P2 et P3 de l'audit hors des chantiers ; tout changement visible par un
   - Tests : suite complète.
   - Preuve : 2026-11-13 : bus `LivingKnox.listen(name, key, fn, order)` à ordre explicite (stable à ordre égal) ; retour d'expédition publié par la simulation (`expeditionReturn`, écouté par Expeditions 10, Relations 20, Raids 30, retour abstrait sinon) ; fin de routine par la libération portée par la mémoire (`release`, posée par l'entretien et la fortification) ; `LK_Bodies` publie `bodyDying` (santé puis butin), `bodyDied`, `bodyReleasing` (consignes puis rapports), `bodyReleased`, `bodyTick` au lieu d'appeler sept modules (trois `pcall` en moins) ; `LK_Materialize` publie `memberReleased` (écouté par les expéditions) ; `Fortify.ports` (stock, nuit, incarnation, minute, angle, marque d'attaque) ; 8 bancs nouveaux rouges sur une copie de HEAD (5 échecs, 3 erreurs) puis verts ; une cinquantaine de bancs des modules touchés verts ; seul attendu changé : une sonde de source de `test_lk_traces.py` qui cherche maintenant `LivingKnox.publish("bodyDied"` (même invariant : `memberDied` avant la mort au registre) ; `test_doubles_api`, `test_mod_calls_api`, `test_kahlua` verts ; luacheck `Contents` 8
   - Reste : suite complète à repasser ; sur un chemin d'erreur seulement, une erreur d'un écouteur est journalisée par le bus au lieu de se propager ; lectures avec valeur de retour encore directes dans `LK_Bodies` (santé, rapports, consignes, gestes) ; arêtes inverses hors périmètre : `LK_Stock` lit la fortification, la boucle horaire de la simulation nomme Relations, Raids, Stock et Fortify (`LK16-T09`), `Decisions` lit la fortification (`LK16-T05`)
-- [ ] **LK16-T05** — C3 : contexte de décision par inscription
-  - État : `à faire`
+- [x] **LK16-T05** — C3 : contexte de décision par inscription
+  - État : `testé hors jeu`
   - Cible : `hors jeu`
   - Dépend de : LK16-T04
   - Fichiers : `LK_Decisions.lua` et les modules fournisseurs de contexte
   - Faire : constats B-C02, B-C12, B-C13 : chaque module fournit son champ de contexte par `registerExtension` (`input`), ordre des champs figé par un banc ; `Decisions.context` ne nomme plus de module.
   - Accepté si : banc de l'ordre des champs ; bancs des décisions verts sans changement d'attendu.
   - Tests : suite complète.
-  - Preuve : —
-  - Reste : —
+  - Preuve : 2026-11-13 : registre dédié `Decisions.registerContext{ id, order, fill(ctx, src) }` sur `LivingKnox.Registry` (le hook `input` des extensions ne reçoit ni le groupe, ni le membre, ni les joueurs, ni la perception) ; `Decisions.context` de 62 à 16 lignes, sans nom de module ; fournisseurs inscrits par leur module : Routines 10, Expeditions 20, Relations 30, Alert 90, Defense 100, Encounters 110, Needs 120 ; fournisseurs du moteur : foyer 40, perception 50, menaces 60, cible 70, défense 80, besoins 130, débordement 140 ; dépendances entre champs relevées et ordre d'avant gardé ; cycle Decisions ↔ Defense, Encounters, Expeditions cassé ; banc `tests/test_lk_decision_context.py` (10 tests) : gel de trois grilles de 1 500 situations (solo complet, serveur dédié, modules de `LK_Server` seuls ; contexte, décision et appels aux modules), empreintes relevées sur l'ancien code et identiques après ; acceptation : un fournisseur inscrit par le banc seul nourrit une règle d'extension (rouge avant : `attempt to call field 'registerContext' (a nil value)`) ; banc de l'ordre ; une soixantaine de bancs verts sans attendu changé, balayage des phases vert sur onze suites ; `test_doubles_api`, `test_mod_calls_api`, `test_kahlua` verts ; luacheck `Contents` 8
+  - Reste : lectures directes gardées hors du contexte pour les modules bas sans dépendance vers les décisions (perception, zombies, combat, hostilité, santé, corps) ; `target`, `defence` et `overwhelmed` à rapprocher de leurs comportements en `LK16-T06` ; `Decisions.groupInput` lit encore le stock et la fortification ; suite complète à repasser
 - [ ] **LK16-T06** — C2 : comportements de décision par extension
   - État : `à faire`
   - Cible : `hors jeu`

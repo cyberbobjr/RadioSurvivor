@@ -1518,4 +1518,10 @@ LivingKnox.listen("expeditionReturn", "Expeditions.resolveAbstract", function(in
     LivingKnox.Expeditions.resolveAbstract(info.g, info.gid, info.hour, info.erand, info.day)
 end, 10)
 
+-- LK16-T05 : champ de contexte de la cascade (LivingKnox.Decisions.registerContext, ordre 20) : expédition en cours
+-- qui compte ce membre (LK05-T05, règle duty -> comportement « expedition »).
+LivingKnox.Decisions.registerContext({ id = "expedition", order = 20, fill = function(ctx, src)
+    ctx.trip = Ex.memberTrip(src.gid, src.mid)
+end })
+
 return Ex

@@ -827,6 +827,33 @@ function Decisions.registerExtension(spec)
     return spec
 end
 
+-- ================================================================ fournisseurs de contexte (registre, LK16-T05)
+
+-- Fournisseur : { id (unique), order (plus petit d'abord, à égalité par id), fill(ctx, src) } : pose ses champs dans
+-- le contexte ctx d'un membre (Decisions.context) ; src = { gid, g, mid, m, body, players, minute, per } : entrées de
+-- l'évaluation (per : perception du membre, posée par le fournisseur « perception »). Un fournisseur lit seulement les
+-- champs posés avant lui (ordre explicite, figé par tests/test_lk_decision_context.py) ; module absent = fournisseur
+-- absent = champ absent. Chaque module pose son champ depuis son propre fichier (Decisions.registerContext) ; ce
+-- registre n'en nomme aucun. Les entrées des extensions (input) passent après tous les fournisseurs.
+-- Bandes d'ordre (fiche docs/annexes/conception/decisions.md, « Contexte d'un membre ») : 10 routines, 20 expédition,
+-- 30 traque, 40 foyer, 50 perception, 60 menaces, 70 cible, 80 défense personnelle, 90 alerte, 100 défense du foyer,
+-- 110 sommation, 120 peur, 130 besoins, 140 débordement.
+Decisions.contextProviders = Decisions.contextProviders or {}
+
+local function validProvider(spec)
+    if type(spec) == "table" and type(spec.id) == "string" and type(spec.fill) == "function" then return true end
+    return false, "spec needs id, order and fill(ctx, src)"
+end
+
+local providers = LivingKnox.Registry.new("LivingKnox.Decisions.registerContext",
+    { validate = validProvider, items = Decisions.contextProviders })
+
+-- Inscrit un fournisseur de contexte (spec, voir ci-dessus) ; un fournisseur déjà inscrit sous le même id est remplacé
+-- (rechargement). Rend spec ; spec mal formée : erreur.
+function Decisions.registerContext(spec)
+    return providers:register(spec, 2)
+end
+
 -- Extension qui mène le comportement b, ou nil.
 local function extensionOf(b)
     for _, x in ipairs(Decisions.extensions) do
@@ -865,7 +892,8 @@ end
 -- (source récente de la peur { x, y, z } ou nil, LK05-T06), health (0..1 ou nil), duty, objective, night, minute,
 -- meals (vrai si les repas réels de LK05-T07 sont chargés), unfed (besoins mis de côté { hunger, thirst } ou nil),
 -- sentryKind ("guard" ou "patrol", LK05-T03 ; absent = "guard"), chores (vrai si les corvées de LK05-T04 sont
--- chargées) } et les champs posés par les extensions (input). Rend { b, p (rang de la règle), rule, why, key, start,
+-- chargées) } ; ces champs sont posés par les fournisseurs de contexte (Decisions.registerContext, LK16-T05), puis
+-- par les extensions (input). Rend { b, p (rang de la règle), rule, why, key, start,
 -- untilMin, angle (guet ou menace), away (fuite : angle d'éloignement) }.
 function Decisions.decide(ctx)
     local b, why, key, i, rule = firstProposal(ctx)
@@ -1568,7 +1596,8 @@ function Decisions.withTarget(per, tg)
     return out
 end
 
--- Contexte d'un membre incarné (corps body) pour Decisions.decide.
+-- Contexte d'un membre incarné (corps body) pour Decisions.decide : champs propres au membre, puis ceux des
+-- fournisseurs inscrits (Decisions.registerContext, dans leur ordre), puis les entrées des extensions (input).
 function Decisions.context(gid, g, mid, m, body, players, minute)
     local allowed = Decisions.allowedOf(g.type, m.role)
     local x, y, z = body:getX(), body:getY(), body:getZ()
@@ -1576,62 +1605,68 @@ function Decisions.context(gid, g, mid, m, body, players, minute)
         combatant = anyOf(allowed, Decisions.COMBAT_BEHAVIOURS), x = x, y = y, z = math.floor(z), home = g.home,
         health = Decisions.healthOf(m), duty = m.duty, objective = g.objective,
         night = Decisions.isNight(math.floor(minute / 60)), minute = minute }
-    local R = LivingKnox.Routines   -- LK05-T03 : postes relevés au foyer, poste de guet ou ronde selon l'heure
-    if R ~= nil and R.sentryKind ~= nil then
-        ctx.sentryKind = R.sentryKind(math.floor(minute / 60), R.ensurePosts(gid, g))
-    end
-    ctx.chores = R ~= nil and R.handles ~= nil and R.handles("chore") or nil   -- LK05-T04
-    -- LK05-T07 : repas réels (routine « meal ») et besoins mis de côté (rien à prendre, repas récent).
-    ctx.meals = R ~= nil and R.handles ~= nil and R.handles("meal") or nil
-    if ctx.meals and R.unfed ~= nil then ctx.unfed = R.unfed(gid, mid, minute) end
-    local Ex = LivingKnox.Expeditions   -- LK05-T05 : expédition en cours qui compte ce membre
-    if Ex ~= nil and Ex.memberTrip ~= nil then ctx.trip = Ex.memberTrip(gid, mid) end
-    local Rl = LivingKnox.Relations   -- LK11-T05 : traque d'une vengeance qui compte ce membre
-    if ctx.trip == nil and Rl ~= nil and Rl.memberHunt ~= nil then ctx.hunt = Rl.memberHunt(gid, mid) end
-    if ctx.home ~= nil then
-        ctx.homeDist = math.max(math.abs(x - (ctx.home.x + 0.5)), math.abs(y - (ctx.home.y + 0.5)))
-        ctx.atHome = ctx.z == ctx.home.z and ctx.homeDist <= cfg().HOME_RADIUS
-    end
-    local S = LivingKnox.Senses
-    local per = S ~= nil and S.perceived ~= nil and S.perceived(m.npc) or nil
-    ctx.threats = Decisions.threatsOf(per, attitudesFor(gid, g, players))
-    ctx.threat = ctx.threats[1]
-    local C = LivingKnox.Combat   -- LK06-T02 : cible d'attaque d'un combattant (joueurs vus, Hostility.chooseTarget)
-    if ctx.combatant and C ~= nil and C.targetFor ~= nil then
-        ctx.target = C.targetFor(gid, m.npc, per, players)
-    elseif not ctx.combatant then   -- LK06-T07 : tout rôle se bat contre un zombie à portée (jamais contre un joueur)
-        local Zm = LivingKnox.Zombies
-        if Zm ~= nil and Zm.targetFor ~= nil then ctx.target = Zm.targetFor(m.npc) end
-    end
-    Decisions.defenceContext(ctx, gid, g, m, per, players, minute)   -- LK06-T05
-    -- Alerte de groupe (LK05-T08) : la perception du membre est notée, puis l'alerte en cours qui le concerne est lue.
-    local A = LivingKnox.Alert
-    if A ~= nil and A.observe ~= nil then
-        A.observe(gid, g, mid, m, body, Decisions.withTarget(per, ctx.target), players, minute)
-        ctx.alert = A.forMember(gid, x, y, ctx.z, ctx.home == nil or ctx.atHome == true, minute)
-    end
-    local Df = LivingKnox.Defense   -- LK05-T09 : défense coordonnée du foyer (place, cible depuis la place)
-    if Df ~= nil and Df.contextFor ~= nil then ctx.defense = Df.contextFor(gid, g, mid, m, body, ctx, players, minute) end
-    local En = LivingKnox.Encounters   -- LK11-T02 : sommation d'un joueur averti près du foyer ou du groupe
-    if En ~= nil and En.contextFor ~= nil then ctx.warn = En.contextFor(gid, g, mid, m, body, ctx, per, players, minute) end
-    -- Besoins (LK05-T06) : la menace perçue fait d'abord monter la peur, puis les jauges sont lues.
-    local N = LivingKnox.Needs
-    if N ~= nil and N.perceive ~= nil then N.perceive(gid, mid, ctx.threats, ctx.combatant, minute) end
-    ctx.needs = Decisions.needsOf(gid, mid)
-    if N ~= nil and N.fearSource ~= nil then ctx.fearFrom = N.fearSource(gid, mid, minute) end
-    -- LK06-T07 : groupe débordé (menaces perçues qui mettent en danger contre membres valides proches), pour un membre
-    -- valide seulement (aux constantes mauvaises, la règle threat le retire déjà).
-    local weight = Decisions.threatWeight(ctx.threats)
-    if weight > 0 and Decisions.unfitOf(ctx) == nil then
-        local prev = Decisions.state.members[m.npc]
-        ctx.overwhelmed = Decisions.overwhelmedOf(weight, Decisions.ableNear(gid, g, x, y, ctx.z),
-            prev ~= nil and prev.b == "retreat" and prev.key == "overwhelmed")
-    end
+    local src = { gid = gid, g = g, mid = mid, m = m, body = body, players = players, minute = minute }
+    for _, p in ipairs(Decisions.contextProviders) do p.fill(ctx, src) end
     for _, ext in ipairs(Decisions.extensions) do   -- LK05-T20 : entrées des extensions (registre)
         if ext.input ~= nil then ext.input(ctx, body, minute) end
     end
     return ctx
 end
+
+-- Perception du membre id (LivingKnox.Senses.perceived, module partagé chargé avant ce registre : lu ici), ou nil.
+function Decisions.perceptionOf(id)
+    local S = LivingKnox.Senses
+    if S == nil or S.perceived == nil then return nil end
+    return S.perceived(id)
+end
+
+-- Cible d'attaque d'un membre : un combattant prend la cible de LivingKnox.Combat (joueurs vus, Hostility.chooseTarget,
+-- LK06-T02) ; LK06-T07 : tout autre rôle se bat contre un zombie à portée (Zombies.targetFor, jamais contre un joueur).
+function Decisions.targetOf(ctx, src)
+    if ctx.combatant then
+        local C = LivingKnox.Combat
+        if C ~= nil and C.targetFor ~= nil then return C.targetFor(src.gid, ctx.id, src.per, src.players) end
+        return nil
+    end
+    local Zm = LivingKnox.Zombies
+    if Zm ~= nil and Zm.targetFor ~= nil then return Zm.targetFor(ctx.id) end
+    return nil
+end
+
+-- Fournisseurs propres au moteur (ordre : voir le registre). Les champs des modules (routines, expédition, traque,
+-- alerte, défense du foyer, sommation, peur) sont inscrits par ces modules eux-mêmes.
+Decisions.registerContext({ id = "home", order = 40, fill = function(ctx)
+    if ctx.home == nil then return end
+    ctx.homeDist = math.max(math.abs(ctx.x - (ctx.home.x + 0.5)), math.abs(ctx.y - (ctx.home.y + 0.5)))
+    ctx.atHome = ctx.z == ctx.home.z and ctx.homeDist <= cfg().HOME_RADIUS
+end })
+Decisions.registerContext({ id = "perception", order = 50, fill = function(ctx, src)
+    src.per = Decisions.perceptionOf(ctx.id)
+end })
+Decisions.registerContext({ id = "threats", order = 60, fill = function(ctx, src)
+    ctx.threats = Decisions.threatsOf(src.per, attitudesFor(src.gid, src.g, src.players))
+    ctx.threat = ctx.threats[1]
+end })
+Decisions.registerContext({ id = "target", order = 70, fill = function(ctx, src)
+    ctx.target = Decisions.targetOf(ctx, src)
+end })
+Decisions.registerContext({ id = "defence", order = 80, fill = function(ctx, src)   -- LK06-T05
+    Decisions.defenceContext(ctx, src.gid, src.g, src.m, src.per, src.players, src.minute)
+end })
+-- Besoins (LK05-T06) : lus après la montée de la peur (fournisseur « fear » de LK_Needs, ordre 120) ; module absent :
+-- valeurs neutres (Decisions.needsOf).
+Decisions.registerContext({ id = "needs", order = 130, fill = function(ctx, src)
+    ctx.needs = Decisions.needsOf(src.gid, src.mid)
+end })
+-- LK06-T07 : groupe débordé (menaces perçues qui mettent en danger contre membres valides proches), pour un membre
+-- valide seulement (aux constantes mauvaises, la règle threat le retire déjà).
+Decisions.registerContext({ id = "overwhelmed", order = 140, fill = function(ctx, src)
+    local weight = Decisions.threatWeight(ctx.threats)
+    if weight <= 0 or Decisions.unfitOf(ctx) ~= nil then return end
+    local prev = Decisions.state.members[ctx.id]
+    ctx.overwhelmed = Decisions.overwhelmedOf(weight, Decisions.ableNear(src.gid, src.g, ctx.x, ctx.y, ctx.z),
+        prev ~= nil and prev.b == "retreat" and prev.key == "overwhelmed")
+end })
 
 -- LK06-T07 : membres valides (Decisions.unfitOf : santé et peur) du groupe gid, incarnés, au même niveau et à
 -- OVERWHELM.RADIUS cases au plus de (x, y), le membre évalué compris.

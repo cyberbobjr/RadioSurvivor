@@ -3,7 +3,7 @@
 -- Autorité seulement (serveur dédié ou hébergé, solo) : un client MP charge aussi media/lua/server, il s'arrête ici.
 -- Le client ne fait que jouer le cri reçu (client/LivingKnox/LK_AlertView.lua) : aucune décision côté client.
 --
--- 1. Entrée (Alert.observe, appelé par LivingKnox.Decisions.context pour chaque membre incarné évalué) : ce que perçoit
+-- 1. Entrée (Alert.observe, appelé par le contexte « alert » pour chaque membre incarné évalué) : ce que perçoit
 --    le membre (LivingKnox.Senses.perceived : zombies et joueurs vus ou entendus). Menace d'alerte (Alert.threatsOf) :
 --      - zombie : clé "z:<onlineId>" ; sans identifiant réseau (solo : -1), clé commune "z?" ;
 --      - joueur hostile : niveau d'attitude du groupe "hostile" (LivingKnox.Hostility ; sans paire : niveau de
@@ -45,6 +45,7 @@ require "LivingKnox/LK_Core"
 require "LivingKnox/LK_Config"
 require "LivingKnox/LK_Log"
 require "LivingKnox/LK_Groups"
+require "LivingKnox/LK_Decisions"   -- LK16-T05 : fournisseur de contexte (registerContext)
 
 local Alert = LivingKnox.Alert or {}
 LivingKnox.Alert = Alert
@@ -465,5 +466,14 @@ end
 function Alert.reset()
     Alert.state = { groups = {}, n = 0 }
 end
+
+-- LK16-T05 : champ de contexte de la cascade (LivingKnox.Decisions.registerContext, ordre 90 : après la cible et le
+-- foyer) : la perception du membre, complétée de sa cible zombie sur un serveur (Decisions.withTarget), est notée,
+-- puis l'alerte en cours qui le concerne est lue.
+LivingKnox.Decisions.registerContext({ id = "alert", order = 90, fill = function(ctx, src)
+    Alert.observe(src.gid, src.g, src.mid, src.m, src.body, LivingKnox.Decisions.withTarget(src.per, ctx.target),
+        src.players, src.minute)
+    ctx.alert = Alert.forMember(src.gid, ctx.x, ctx.y, ctx.z, ctx.home == nil or ctx.atHome == true, src.minute)
+end })
 
 return Alert

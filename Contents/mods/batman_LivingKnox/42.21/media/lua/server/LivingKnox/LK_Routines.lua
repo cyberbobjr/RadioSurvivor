@@ -503,4 +503,16 @@ function Routines.reset()
     Routines.state = { npcs = {}, valid = {}, tried = {}, spots = {}, byChore = {}, unfed = {} }
 end
 
+-- LK16-T05 : champs de contexte de la cascade (LivingKnox.Decisions.registerContext, ordre 10) : poste de guet ou
+-- ronde selon l'heure (LK05-T03, postes relevés au foyer), corvées (LK05-T04), repas réels et besoins mis de côté
+-- (LK05-T07 : rien à prendre, repas récent). sentryKind et unfed viennent de Routines/ (absents : champs absents).
+LivingKnox.Decisions.registerContext({ id = "routines", order = 10, fill = function(ctx, src)
+    if Routines.sentryKind ~= nil then
+        ctx.sentryKind = Routines.sentryKind(math.floor(src.minute / 60), Routines.ensurePosts(src.gid, src.g))
+    end
+    ctx.chores = Routines.handles("chore") or nil
+    ctx.meals = Routines.handles("meal") or nil
+    if ctx.meals and Routines.unfed ~= nil then ctx.unfed = Routines.unfed(src.gid, src.mid, src.minute) end
+end })
+
 return Routines

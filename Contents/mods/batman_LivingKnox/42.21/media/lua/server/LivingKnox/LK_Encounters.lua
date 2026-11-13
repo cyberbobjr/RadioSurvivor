@@ -4,7 +4,7 @@
 -- (LK_Speech), les consignes LK03 (regard, arrêt), les gestes (LK_Anim) et les effets d'un coup de semonce (LK_Combat),
 -- tous décidés et diffusés par l'autorité : deux observateurs voient la même séquence.
 --
--- 1. Qui est averti (Encounters.contextFor, appelé par LivingKnox.Decisions.context pour chaque membre COMBATTANT
+-- 1. Qui est averti (Encounters.contextFor, appelé par le contexte « warn » pour chaque membre COMBATTANT
 --    évalué) : joueur VU par le membre (Hostility.candidatesOf), pour qui Hostility.chooseTarget rend l'action "warn"
 --    (niveau méfiant, ou hostile pour un type qui ne tire pas le premier : cibles.md), et qui est DANS LA ZONE :
 --    à HOME_ZONE cases (x et y) de la case du foyer, au plus un étage d'écart, ou à MEMBER_ZONE cases du membre
@@ -282,7 +282,7 @@ local function stepEncounter(key, enc, npc, obs, t)
     return ev
 end
 
--- Entrée de la cascade (LivingKnox.Decisions.context) : sommation que mène le membre m (combattant), ou nil. Rend
+-- Entrée de la cascade (contexte « warn », bas du fichier) : sommation que mène le membre m (combattant), ou nil. Rend
 -- { u, stage, key = "p<compte>", why, x, y, z, d, level, ekey }.
 function Encounters.contextFor(gid, g, mid, m, body, ctx, per, players, minute)
     if not ctx.combatant or m == nil or m.npc == nil then return nil end
@@ -482,5 +482,11 @@ end
 function Encounters.reset()
     Encounters.state = { list = {}, n = 0 }
 end
+
+-- LK16-T05 : champ de contexte de la cascade (LivingKnox.Decisions.registerContext, ordre 110 : après la défense du
+-- foyer) : sommation d'un joueur averti que mène le membre (Encounters.contextFor).
+LivingKnox.Decisions.registerContext({ id = "warn", order = 110, fill = function(ctx, src)
+    ctx.warn = Encounters.contextFor(src.gid, src.g, src.mid, src.m, src.body, ctx, src.per, src.players, src.minute)
+end })
 
 return Encounters

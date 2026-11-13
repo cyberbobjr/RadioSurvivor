@@ -48,6 +48,7 @@ require "LivingKnox/LK_Config"
 require "LivingKnox/LK_Log"
 require "LivingKnox/LK_Groups"
 require "LivingKnox/LK_Hostility"
+require "LivingKnox/LK_Decisions"   -- LK16-T05 : fournisseur de contexte (registerContext)
 require "LivingKnox/LK_Stock"
 
 local Relations = LivingKnox.Relations or {}
@@ -1107,5 +1108,11 @@ LivingKnox.listen("expeditionReturn", "Relations.revengeReturn", function(info)
     info.handled = true
     LivingKnox.Relations.revengeReturn(info.g, info.gid, info.hour, info.day)
 end, 20)
+
+-- LK16-T05 : champ de contexte de la cascade (LivingKnox.Decisions.registerContext, ordre 30, après l'expédition) :
+-- traque d'une vengeance ou d'un raid qui compte ce membre (LK11-T05), pour un membre qui n'est pas en expédition.
+LivingKnox.Decisions.registerContext({ id = "hunt", order = 30, fill = function(ctx, src)
+    if ctx.trip == nil then ctx.hunt = Relations.memberHunt(src.gid, src.mid) end
+end })
 
 return Relations

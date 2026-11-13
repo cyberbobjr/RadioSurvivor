@@ -770,7 +770,7 @@ function Defense.targetFor(id, body, ctx, a, census, phase)
     return nil
 end
 
--- Entrée de la cascade (LivingKnox.Decisions.context) : rôle du membre mid dans la défense du foyer, ou nil. Rend
+-- Entrée de la cascade (contexte « defense », bas du fichier) : rôle du membre mid dans la défense du foyer, ou nil. Rend
 -- { id (défense), phase, role, x, y, z, a, key = "def:<rôle> x,y,z", why, target, sally, leash (cases, LK06-T14) }.
 function Defense.contextFor(gid, g, mid, m, body, ctx, players, minute)
     local plan = Defense.update(gid, g, minute, players)
@@ -910,5 +910,11 @@ end
 function Defense.reset()
     Defense.state = { groups = {}, npcs = {}, after = {}, n = 0 }
 end
+
+-- LK16-T05 : champ de contexte de la cascade (LivingKnox.Decisions.registerContext, ordre 100 : après l'alerte et la
+-- cible) : rôle du membre dans la défense coordonnée du foyer (Defense.contextFor).
+LivingKnox.Decisions.registerContext({ id = "defense", order = 100, fill = function(ctx, src)
+    ctx.defense = Defense.contextFor(src.gid, src.g, src.mid, src.m, src.body, ctx, src.players, src.minute)
+end })
 
 return Defense
