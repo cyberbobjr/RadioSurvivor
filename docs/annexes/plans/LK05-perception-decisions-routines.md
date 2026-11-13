@@ -2,7 +2,7 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 19 / 20 tâche(s) terminée(s).
+**Avancement.** en cours — 19 / 22 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
@@ -26,6 +26,8 @@
 | ☑ | LK05-T18 | Campement : le groupe se défend sur place contre les zombies | `testé MP` | MP | LK05-T09 |
 | ☑ | LK05-T19 | Entretien limité aux générateurs du groupe | `testé MP` | MP | LK05-T10 |
 | ☐ | LK05-T20 | Provisions sur soi et gourde inépuisable | `à faire` | MP | LK05-T07, LK07-T05 |
+| ☐ | LK05-T21 | Jardinier : le comportement `garden` prend d'abord les tâches du jardin | `testé hors jeu` | solo | LK05-T11 |
+| ☐ | LK05-T22 | Casseur : le comportement `breach` des pillards force, les autres l'attendent | `testé hors jeu` | solo | LK04-T04 |
 
 <!-- fin du tableau de bord -->
 
@@ -290,7 +292,7 @@
   - Faire : décision de l'utilisateur du 2026-11-04 (ci-dessus) : provisions réelles dans l'inventaire du corps (2 aliments non périssables, remplacés au foyer), boisson d'une bouteille ou gourde jamais vidée, repas d'une provision loin du foyer, décrochage du combat à faim ≥ 90 sans ennemi à 3 cases ou moins puis reprise.
   - Accepté si : au banc : PNJ affamé loin du foyer mange une provision (un objet en moins, faim soulagée) ; soif soulagée sans baisse du contenu de la bouteille ; en combat, faim ≥ 90 et ennemi au-delà de 3 cases : décrochage, repas, reprise ; ennemi au contact : combat d'abord ; provisions remplacées au foyer sur le stock ; cadavre avec ses provisions restantes. En jeu : suite dédiée solo et MP.
   - Tests : banc ; nouvelle suite en jeu dans les campagnes solo et MP.
-- [ ] **LK05-T20** — Jardinier : le comportement `garden` prend d'abord les tâches du jardin
+- [ ] **LK05-T21** — Jardinier : le comportement `garden` prend d'abord les tâches du jardin
   - État : `testé hors jeu`
   - Cible : `solo`
   - Dépend de : LK05-T11
@@ -300,7 +302,7 @@
   - Tests : `test_lk_upkeep.py` ; campagne solo des deux mods.
   - Preuve : 2026-11-13, banc `test_gardener_takes_the_plants_first_others_keep_the_job_order` rouge avant, vert après ; bancs complets OK, luacheck `Contents` 8 (`f67846f`).
   - Reste : campagne solo.
-- [ ] **LK05-T21** — Casseur : le comportement `breach` des pillards force, les autres l'attendent
+- [ ] **LK05-T22** — Casseur : le comportement `breach` des pillards force, les autres l'attendent
   - État : `testé hors jeu`
   - Cible : `solo`
   - Dépend de : LK04-T04
