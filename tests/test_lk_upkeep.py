@@ -299,8 +299,8 @@ class EngineTests(UpkeepStack):
                 survey = function() return nil end, apply = function() return nil end })   -- inscrite deux fois
         """)
         self.assertEqual(lua_list(self.ev(f'{U}.JOBS')),
-                         ['fake2', 'refuel', 'repair', 'harvest', 'water', 'seeds', 'sow', 'dig', 'clean', 'fake',
-                          'glass'])   # LK15-T04..T06 : potager entre l'arrosage et le ménage
+                         ['fake2', 'refuel', 'repair', 'harvest', 'water', 'clean', 'fake', 'glass', 'seeds',
+                          'sow', 'dig'])   # LK15-T04..T06 : potager après l'entretien du foyer
         jobs = ('{ { kind = "fake2", key = "fake2 1", x = 1, y = 1, z = 0 }, '
                 '{ kind = "fake", key = "fake 2", x = 2, y = 2, z = 0 } }')
         self.run_lua(f'{U}.state.scans["g"] = {{ minute = 100, jobs = {jobs} }}')

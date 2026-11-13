@@ -197,8 +197,11 @@ class PureGardenTests(GardenStack):
     mode = 'solo'
 
     def test_job_order_puts_the_plants_first_then_seeds_sowing_and_digging(self):
+        # Campagne MP du 2026-11-13 (lk.upkeep, runs/20261113-150840-parallel-3, shard3) : sachet de graines et sillon
+        # creuse a mains nues pris avant le verre et le sang, scene d'entretien non finie en 300 s. Les taches qui
+        # creent le potager passent apres l'entretien du foyer ; le jardinier les prend d'abord (prefer).
         self.assertEqual(lua_list(self.ev(f'{U}.JOBS')),
-                         ['refuel', 'repair', 'harvest', 'water', 'seeds', 'sow', 'dig', 'clean', 'glass'])
+                         ['refuel', 'repair', 'harvest', 'water', 'clean', 'glass', 'seeds', 'sow', 'dig'])
         for kind in ('seeds', 'sow', 'dig'):
             self.assertEqual(self.ev(f'{U}.specs.{kind}.prefer'), 'garden', kind)
         jobs = ('{ { kind = "dig", key = "dig 1", x = 1, y = 1, z = 0 }, { kind = "sow", key = "sow 2", x = 2, y = 2, '

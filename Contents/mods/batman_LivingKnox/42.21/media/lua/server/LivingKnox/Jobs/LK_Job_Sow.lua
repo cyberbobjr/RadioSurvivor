@@ -32,5 +32,5 @@ local function apply(job, gid, who, sq)
     return string.format("%s sown at %d,%d (%s from %s)", typeOfSeed, job.x, job.y, taken.t, taken.k)
 end
 
-Upkeep.registerJob({ kind = "sow", order = 44, prefer = "garden", gesture = "kneel", minutes = Garden.CFG.SOW_MINUTES,
+Upkeep.registerJob({ kind = "sow", order = 72, prefer = "garden", gesture = "kneel", minutes = Garden.CFG.SOW_MINUTES,
     groupLog = true, place = Garden.placeNear, survey = survey, apply = apply })

@@ -46,5 +46,5 @@ local function apply(job, gid, who, sq)
     return string.format("furrow dug at %d,%d with %s", job.x, job.y, tool ~= nil and tool.t or "bare hands")
 end
 
-Upkeep.registerJob({ kind = "dig", order = 46, prefer = "garden", gesture = "kneel", minutes = Garden.CFG.DIG_MINUTES,
+Upkeep.registerJob({ kind = "dig", order = 74, prefer = "garden", gesture = "kneel", minutes = Garden.CFG.DIG_MINUTES,
     duration = duration, survey = survey, apply = apply })

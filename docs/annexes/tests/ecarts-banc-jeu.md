@@ -30,6 +30,7 @@ cités par ces sources n'ont pas été relus un par un. Les plus récents d'abor
 
 | Date | Suite ou tâche | Ce qui a cassé en jeu | Cat. | Couvert par |
 |---|---|---|---|---|
+| 2026-11-13 | `lk.upkeep` (MP) | tâches du potager (graines, sillon à mains nues) prises avant le verre et le sang : entretien non fini en 300 s ; au banc, sans système de cultures vanilla, ces tâches ne sont jamais relevées | C | ordre des tâches fixé par `test_lk_garden.py` et `test_lk_upkeep.py` ; scène complète au banc par `E19-T04` (vrai Lua du potager) |
 | 2026-11-13 | `lk.meals` | heure de jeu changée entre la faim posée par la suite et la première décision du membre : repas abstrait du pas horaire, aucun objet pris | D | `test_lk_meals.py` `test_suite_lk_meals_passes_under_the_phase_sweep` (monde peuplé, phases `hour-3` et `hour-4`, `E19-T05`) |
 | 2026-11-13 | `rs.observations` (témoins) | compte passé de 47 à 48 pendant une attente ; contrôle unique après un sommeil fixe, avant la passe | D | à couvrir (`E19-T05`) |
 | 2026-11-13 | `rs.observations` (témoins) | témoin placé à 3 cases, placement par défaut qui suit le joueur | E | à couvrir (`E19-T08`) |
@@ -74,5 +75,5 @@ cités par ces sources n'ont pas été relus un par un. Les plus récents d'abor
 
 ## Mesure
 
-Au 2026-11-13 : 41 lignes, 1 couverte par un test du banc, 6 non reproductibles (catégories C et H), 34 à couvrir.
+Au 2026-11-13 : 42 lignes, 2 couvertes par un test du banc (`lk.meals` par le balayage des phases, ordre des tâches de `lk.upkeep`), 6 non reproductibles (catégories C et H), 34 à couvrir.
 Mettre ce compte à jour à chaque tâche de `E19` terminée.

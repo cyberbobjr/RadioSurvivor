@@ -51,5 +51,5 @@ local function apply(job, gid, who, sq)
     return string.format("%d %s received into %s (%s, day %d)", n, offer.seed, depot.key, offer.typeOfSeed, day)
 end
 
-Upkeep.registerJob({ kind = "seeds", order = 42, prefer = "garden", gesture = "rummage",
+Upkeep.registerJob({ kind = "seeds", order = 70, prefer = "garden", gesture = "rummage",
     minutes = Garden.CFG.SEED_MINUTES, groupLog = true, survey = survey, apply = apply })
