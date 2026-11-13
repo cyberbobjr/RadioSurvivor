@@ -81,7 +81,7 @@ local function visual(z)
     local hv = rawget(z, 'hv')
     if hv then return hv end
     local body = H.list()
-    hv = { skin = nil, blood = true, body = body }
+    hv = H.fake('HumanVisual', { skin = nil, blood = true, body = body })
     function hv:setSkinTextureName(n) if type(n) ~= 'string' then error('No implementation found', 2) end self.skin = n end
     function hv:getSkinTexture() return self.skin or 'M_ZedBody01_level1' end
     function hv:removeBlood() self.blood = false end
@@ -94,7 +94,7 @@ function Z:getHumanVisual() return visual(self) end
 function Z:getItemVisuals()
     local l = rawget(self, 'ivs')
     if not l then
-        l = H.list({ { removeBlood = function() end, removeDirt = function() end } })
+        l = H.list({ H.fake('ItemVisual', { removeBlood = function() end, removeDirt = function() end }) })
         self.ivs = l
     end
     return l
@@ -102,7 +102,7 @@ end
 function Z:getDescriptor()
     local d = rawget(self, 'desc')
     if not d then
-        d = { prefix = 'MaleZombie' }
+        d = H.fake('SurvivorDesc', { prefix = 'MaleZombie' })
         function d:getVoicePrefix() return self.prefix end
         function d:setVoicePrefix(p) self.prefix = p end
         self.desc = d

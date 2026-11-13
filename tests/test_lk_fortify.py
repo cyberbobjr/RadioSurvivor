@@ -98,7 +98,9 @@ local function edgeClass(name)
     function cls:getBarricadeOnSameSquare() return self.own end
     function cls:getBarricadeOnOppositeSquare() return self.opp end
     function cls:getName() return self.name end
-    function cls:IsOpen() return self.open == true end   -- LK14-T05 : porte ouverte écartée du relevé hors écran
+    if name ~= 'IsoWindowFrame' then   -- IsoWindowFrame n'a pas d'IsOpen (API 42.22, E19-T03)
+        function cls:IsOpen() return self.open == true end   -- LK14-T05 : porte ouverte écartée du relevé hors écran
+    end
     return cls
 end
 local Door, Window, Frame = edgeClass('IsoDoor'), edgeClass('IsoWindow'), edgeClass('IsoWindowFrame')

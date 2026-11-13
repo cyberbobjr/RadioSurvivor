@@ -183,7 +183,6 @@ sendServerCommand = function(player, module, command, args) PY_SEND("s2c", playe
 addZombiesInOutfit = function(x, y, z, n)
     local zed = { classes = CLASSES("IsoZombie", "IsoGameCharacter"), md = {} }
     function zed:getModData() return self.md end
-    function zed:getUsername() return nil end
     function zed:removeFromWorld() self.removed = true end
     function zed:removeFromSquare() end
     function zed:isDead() return false end

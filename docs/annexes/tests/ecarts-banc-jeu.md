@@ -66,7 +66,7 @@ cités par ces sources n'ont pas été relus un par un. Les plus récents d'abor
 | 2026-10-14 | `lk.executor` | copie arrivée 4,3 cases derrière la cible | F | à couvrir (`E19-T06`) |
 | 2026-10-12 | `LK06` | PNJ resté 7 s dans l'état vanilla « turnalerted » | C | non reproductible (états vanilla) |
 | 2026-10-12 | `LK05` | ligne de vue « Blocked » alors que la perception dit « vu » | B | à couvrir (`E19-T03`) |
-| 2026-10-11 | `LK04` | fenêtre ouverte : « expected 1 argument, got 2 » | A | à couvrir (`E19-T03`, nombre d'arguments) |
+| 2026-10-11 | `LK04` | fenêtre ouverte : « expected 1 argument, got 2 » | A | `test_harness.py` `StrictDoublesTests.test_wrong_arity_refused_like_kahlua` (doublures strictes : nombre d'arguments contrôlé contre l'API 42.22, `E19-T03`) |
 | 2026-10-11 | `LK04` | PNJ qui enjambe la fenêtre au lieu du portail (chemin vanilla) | C | non reproductible (chemins vanilla) |
 | 2026-10-11 | `LK04` | aucune animation d'ouverture quand l'autorité ouvre une fenêtre | H | non reproductible |
 | 2026-10-11 | `LK11` | réplique entendue, bulle non dessinée au-dessus du corps | H | non reproductible |
@@ -75,5 +75,5 @@ cités par ces sources n'ont pas été relus un par un. Les plus récents d'abor
 
 ## Mesure
 
-Au 2026-11-13 : 42 lignes, 2 couvertes par un test du banc (`lk.meals` par le balayage des phases, ordre des tâches de `lk.upkeep`), 6 non reproductibles (catégories C et H), 34 à couvrir.
+Au 2026-11-13 : 42 lignes, 3 couvertes par un test du banc (`lk.meals` par le balayage des phases, ordre des tâches de `lk.upkeep`, nombre d'arguments de `LK04` par les doublures strictes), 6 non reproductibles (catégories C et H), 33 à couvrir. `E19-T03` n'a révélé aucun défaut du mod (seulement des doublures de bancs fautives).
 Mettre ce compte à jour à chaque tâche de `E19` terminée.

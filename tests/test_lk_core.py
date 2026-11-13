@@ -17,8 +17,7 @@ from harness import Harness  # noqa: E402
 
 SANDBOX = r'''
 JAVA_OPTIONS = {}
-local SandboxOptionsStub = {}
-SandboxOptionsStub.__index = SandboxOptionsStub
+local SandboxOptionsStub = HARNESS.class('SandboxOptions')
 function SandboxOptionsStub:getOptionByName(name)
     local value = JAVA_OPTIONS[name]
     if value == nil then return nil end

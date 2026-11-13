@@ -30,6 +30,28 @@ Utilisation
     h.logs('server'), h.errors('server')    # lignes print ; erreurs attrapées dans les abonnés d'événements
     h.file_root('A')                        # dossier Zomboid/Lua simulé de la machine
     h.close()                               # ou « with Harness() as h: »
+    Harness(java_api=False)                 # doublures libres (échappatoire locale, à justifier dans le banc)
+    HARNESS.fake('IsoPlayer', { … })        # (Lua) table rattachée à sa classe Java, mêmes contrôles qu'une classe
+
+Doublures strictes (E19-T03, ADR banc mimétique D01)
+---------------------------------------------------
+Quand les sources de référence 42.22 sont présentes (tools/pz_api.py, PZ_SOURCE_DIR), toute classe créée par
+HARNESS.class(nom) ou HARNESS.fake(nom) dont le nom est une classe exposée à Lua est contrôlée à l'exécution :
+- définir une méthode absente de la classe Java (héritage compris) lève « harness: Classe:m n'existe pas dans la classe
+  Java … » à la définition, avec le nom Java proche s'il y en a un ;
+- appeler une méthode doublée avec un nombre d'arguments qu'aucune surcharge n'accepte lève le message de Kahlua
+  (LuaJavaInvoker.java) : « expected N argument(s), got M » (une surcharge), « No implementation found for
+  function: … » (plusieurs) ; nil explicites comptés ; méthode statique : appelée sans self, tous ses arguments
+  comptés ;
+- lire sur une instance une méthode du jeu non doublée rend une fonction qui lève « doublure incomplète : Classe:m
+  existe dans le jeu mais n'est pas doublée » ; un nom inconnu du jeu reste nil (erreur Lua d'appel de nil, comme en
+  jeu). Un champ de données du banc ne doit donc pas porter le nom d'une méthode Java (ex. « climb »).
+Convention des aides de test : nom de classe suffixé « Double » (HARNESS.class('IsoZombieDouble', C.IsoZombie)) ;
+jamais contrôlé, instanceof suit sa classe mère. Méthodes rangées hors de la table de classe : rawget/rawset sur une
+classe stricte ne voient pas les méthodes (affecter normalement). Méthode posée sur une instance : contrôlée à sa
+première définition seulement. Sans les sources, ou Harness(java_api=False), le banc se comporte comme avant.
+Table de l'API : construite à la demande et gardée par processus, et dans un fichier JSON du dossier temporaire du
+système (jamais dans le dépôt) pour que chaque processus n'analyse pas le Java à nouveau.
 
 Règles simulées
 ---------------
@@ -58,15 +80,26 @@ Règles simulées
 from __future__ import annotations
 
 import datetime as _dt
+import difflib
+import functools
+import hashlib
+import json
+import os
 import random
 import re
 import shutil
+import sys
 import tempfile
 from pathlib import Path
+from typing import NamedTuple
 
 import lupa.lua51 as lupa
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / 'tools'))
+import pz_api  # noqa: E402  (API Java lue sur les sources de référence du poste, E19-T03)
+
+HELPER_SUFFIX = 'Double'  # classe d'aide de test : nom suffixé, jamais contrôlé contre l'API Java
 LUA = ROOT / 'Contents/mods/batman_RadioSurvivor/42.21/media/lua'
 CORE_LUA = ROOT / 'Contents/mods/batman_RadioSurvivorCore/42.21/media/lua'  # mod commun exigé (E18)
 LK_LUA = ROOT / 'Contents/mods/batman_LivingKnox/42.21/media/lua'  # moteur des PNJ (E18-T07)
@@ -126,7 +159,7 @@ ViewTickets
 FILE_EXTENSIONS = {'ini', 'cfg', 'txt', 'log', 'json'}
 
 ENGINE = r'''
-local MODE, NAME, PY, EVENT_NAMES, DEBUG = ...
+local MODE, NAME, PY, EVENT_NAMES, DEBUG, STRICT = ...
 next = nil  -- absent de Kahlua (BaseLib)
 
 HARNESS = { mode = MODE, name = NAME, errors = {}, objects = {}, zombies = {}, players = {} }
@@ -144,16 +177,157 @@ isDebugEnabled = function() return DEBUG == true end
 getDebug = isDebugEnabled
 
 -- Classes Java simulées --------------------------------------------------------------------------------
+-- Doublure stricte (E19-T03) : classe exposée à Lua dont l'API 42.22 est lue sur le poste (PY.api_*), sauf nom
+-- d'aide de test (suffixe Double). Méthodes rangées hors de la classe (table `methods`) pour que toute définition,
+-- redéfinition comprise, passe par __newindex.
+local apiCache = {}
+local function apiOf(name)  -- false, ou table paresseuse méthode -> spécification d'arités (false si absente)
+    local a = apiCache[name]
+    if a == nil then
+        a = false
+        if STRICT and PY.api_strict(name) then
+            a = setmetatable({}, { __index = function(t, k)
+                local s = type(k) == 'string' and PY.api_method(name, k) or false
+                rawset(t, k, s)
+                return s
+            end })
+        end
+        apiCache[name] = a
+    end
+    return a
+end
+
+-- Message de Kahlua (se/krka/kahlua/integration/expose/LuaJavaInvoker.java : une surcharge ;
+-- MultiLuaJavaInvoker.java : plusieurs). n compte self pour une méthode d'instance.
+local function arityError(cname, k, s, n)
+    if s.expected then
+        local got = s.static and n or n - 1
+        error(('expected %d argument%s, got %d'):format(s.expected, s.expected == 1 and '' or 's', got), 3)
+    end
+    error('No implementation found for function: ' .. cname .. ':' .. k .. ' with ' .. (n - 1) .. ' arguments', 3)
+end
+
+local originals = setmetatable({}, { __mode = 'k' })
+local function guard(cname, k, f, s)
+    f = originals[f] or f
+    local counts, varmin = s.counts, s.varmin
+    local g = function(...)
+        local n = select('#', ...)
+        if not (counts[n] or (varmin and n >= varmin)) then arityError(cname, k, s, n) end
+        return f(...)
+    end
+    originals[g] = f
+    return g
+end
+
+local function checked(cname, api, k, v)  -- valeur à ranger pour la clé k d'une doublure stricte
+    if type(v) ~= 'function' or type(k) ~= 'string' then return v end
+    local s = api[k]
+    if not s then
+        local near = PY.api_suggest(cname, k)
+        error('harness: ' .. cname .. ':' .. k .. " n'existe pas dans la classe Java " .. cname .. ' (API 42.22)'
+            .. (near and (' ; voulu : ' .. near .. ' ?') or '') .. ' ; aide de test : classe suffixée Double', 3)
+    end
+    return guard(cname, k, v, s)
+end
+
+local incompletes = {}
+local function missing(cname, api, k)  -- méthode du jeu non doublée : fonction qui le dit ; sinon nil
+    if type(k) ~= 'string' or not api[k] then return nil end
+    local key = cname .. ':' .. k
+    local f = incompletes[key]
+    if not f then
+        f = function() error('doublure incomplète : ' .. key .. " existe dans le jeu mais n'est pas doublée", 2) end
+        incompletes[key] = f
+    end
+    return f
+end
+
+-- Classe stricte : méthodes de classe rangées dans c.__methods (toute définition passe par __newindex) ; les
+-- instances lisent un cache aplati (méthode trouvée en remontant les classes mères, ou fonction « doublure
+-- incomplète »), vidé à chaque définition. Méthode posée sur une instance : contrôlée à sa première définition,
+-- gardée dans l'instance. Données des instances : dans l'instance.
+local caches = setmetatable({}, { __mode = 'k' })
+local function flushCaches()
+    for cache in pairs(caches) do
+        for k in pairs(cache) do cache[k] = nil end
+    end
+end
+local function lookup(cls, k)  -- méthode doublée par cls ou une classe mère (__super), nil sinon
+    while cls do
+        local v = rawget(rawget(cls, '__methods') or cls, k)
+        if v ~= nil then return v end
+        cls = rawget(cls, '__super')
+    end
+    return nil
+end
+local function allStrict(cls)  -- vrai si cls et toutes ses mères sont strictes (méthodes = noms de son API)
+    while cls do
+        if rawget(cls, '__methods') == nil then return false end
+        cls = rawget(cls, '__super')
+    end
+    return true
+end
+local function strictClass(c, name, api)
+    c.__methods = {}
+    local onlyApi = allStrict(rawget(c, '__super'))
+    local cache = setmetatable({}, { __index = function(t, k)
+        if onlyApi and not api[k] then return nil end  -- champ de données : chemin court
+        local v = lookup(c, k)
+        if v == nil then v = missing(name, api, k) end
+        if v ~= nil then rawset(t, k, v) end
+        return v
+    end })
+    caches[cache] = true
+    c.__index = cache
+    c.__newindex = function(o, k, v) rawset(o, k, checked(name, api, k, v)) end
+    setmetatable(c, { __index = function(_, k) return lookup(c, k) end, __newindex = function(_, k, v)
+        if type(k) == 'string' and k:sub(1, 2) == '__' then rawset(c, k, v) return end
+        rawset(c.__methods, k, checked(name, api, k, v))
+        flushCaches()
+    end })
+end
+
+local function newClass(name, parent)
+    -- __parent : classe mère pour instanceof ; __super : classe mère dont les méthodes sont héritées.
+    local c = { __javaName = name, __parent = parent, __super = parent }
+    c.__tostring = function(o) return name .. '@' .. tostring(rawget(o, '__id') or '?') end
+    local api = apiOf(name)
+    if api then
+        strictClass(c, name, api)
+    else
+        c.__index = c
+        if parent then setmetatable(c, { __index = parent }) end
+    end
+    return c
+end
+
 local classes = {}
 local function class(name, parent)
-    local c = { __javaName = name, __parent = parent }
-    c.__index = c
-    c.__tostring = function(o) return name .. '@' .. tostring(rawget(o, '__id') or '?') end
-    if parent then setmetatable(c, { __index = parent }) end
+    local c = newClass(name, parent)
     classes[name] = c
     return c
 end
 H.class, H.classes = class, classes
+
+-- Faux objet anonyme rattaché à sa classe Java (E19-T03) : mêmes contrôles qu'une doublure de classe, sans hériter
+-- des méthodes doublées par le harnais ; instanceof suit la classe du harnais du même nom et ses mères.
+local fakeClasses = {}
+function H.fake(name, fields)
+    local c = fakeClasses[name]
+    if not c then
+        c = newClass(name, nil)
+        c.__parent = classes[name]
+        fakeClasses[name] = c
+    end
+    local o = fields or {}
+    local funcs = {}
+    for k, v in pairs(o) do if type(v) == 'function' then funcs[k] = v end end
+    for k in pairs(funcs) do o[k] = nil end
+    setmetatable(o, c)
+    for k, v in pairs(funcs) do o[k] = v end
+    return o
+end
 
 function H.javaClass(v)
     if type(v) ~= 'table' then return nil end
@@ -238,6 +412,8 @@ function IsoGridSquare:getWindowFrameTo(next) return nil end
 -- IsoGridSquare.java:935-941 : mur, fenêtre, porte bloqués ou escalier entre deux cases ; aucun sur le banc
 -- (doublures de test_lk_obstacles.py).
 function IsoGridSquare:isBlockedTo(other) return false end
+-- IsoGridSquare.java:1043-1049 (42.22) : objet franchissable (clôture basse) du bord commun ; aucun sur le banc.
+function IsoGridSquare:isHoppableTo(other) return false end
 -- LK06-T08 : IsoGridSquare.java:971-977 (fenêtre fermée ou barricadée du bord commun) ; pièce de la case
 -- (self.room, nil = dehors). Aucune fenêtre ni pièce sur le banc (doublures de test_lk_window_lure.py).
 function IsoGridSquare:isWindowBlockedTo(other) return false end
@@ -307,6 +483,14 @@ function IsoGameCharacter:isZombie() return false end
 function IsoGameCharacter:getVehicle() return self.vehicle end  -- IsoGameCharacter.java:10202 (nil hors vehicule)
 -- IsoGameCharacter.java:13210 : état d'action courant (nom de dossier d'actiongroups en minuscules) ; self.actionState.
 function IsoGameCharacter:getActionStateName() return self.actionState or 'idle' end
+-- IsoGameCharacter (42.22) : endormi, invisible (champs du banc, faux par défaut) ; ouïe modifiée par les vêtements
+-- portés : 1 / wornItemsHearingModifier (IsoGameCharacter.java:14248-14254), 1 sans vêtement qui la change.
+function IsoGameCharacter:isAsleep() return self.asleep == true end
+function IsoGameCharacter:isInvisible() return self.invisible == true end
+function IsoGameCharacter:setInvisible(b) self.invisible = b end
+function IsoGameCharacter:getWornItemsHearingMultiplier() return 1 / (self.wornItemsHearingModifier or 1) end
+-- IsoGameCharacter.java:14264-14268 : 1 - pluie * 0,33 - brouillard * 0,1 ; ni pluie ni brouillard sur le banc.
+function IsoGameCharacter:getWeatherHearingMultiplier() return 1 end
 -- Corps au sol et remise debout (LK02-T14). IsoMovingObject.java:2018, 2042 ; IsoGameCharacter.java:11555,
 -- 13419 ; IsoObject.java:1766-1777 (alpha du joueur local courant). Relevé / rejeu de l'état d'action
 -- (IsoGameCharacter.java:11516-11528, ActionStateContainer.java:199-243) : objet ActionStateSnapshot opaque, rejeu
@@ -644,6 +828,126 @@ class HarnessError(AssertionError):
     pass
 
 
+# --- API Java des doublures strictes (E19-T03) -----------------------------------------------------------------
+
+class CallSpec(NamedTuple):
+    """Nombres d'arguments acceptés par une méthode Java, self compris pour une surcharge d'instance (appel avec ':'),
+    sans self pour une surcharge statique ; varmin : minimum d'une surcharge à varargs ; expected : paramètres de
+    l'unique surcharge (message « expected N arguments, got M » de Kahlua), None sinon."""
+    counts: frozenset
+    varmin: int | None
+    expected: int | None
+    static: bool
+
+
+def call_spec(arities, statics) -> CallSpec:
+    """Spécification d'appel d'une méthode d'après ses surcharges (pz_api.Arity) et celles qui sont statiques."""
+    counts, varmins = set(), []
+    for a in arities:
+        shift = 0 if a in statics else 1
+        if a.varargs:
+            varmins.append(a.params - 1 + shift)
+        else:
+            counts.add(a.params + shift)
+    single = next(iter(arities)) if len(arities) == 1 else None
+    expected = single.params if single is not None and not single.varargs else None
+    return CallSpec(frozenset(counts), min(varmins) if varmins else None, expected,
+                    single is not None and single in statics)
+
+
+def compute_class_specs(cls: str) -> dict[str, CallSpec] | None:
+    """Méthode -> CallSpec d'une classe exposée, d'après les sources de référence (pz_api) ; None si non exposée."""
+    api = pz_api.api()
+    methods = api.class_methods(cls)
+    if methods is None:
+        return None
+    statics = api.class_static_methods(cls) or {}
+    return {name: call_spec(arities, statics.get(name, set())) for name, arities in methods.items()}
+
+
+class SpecStore:
+    """Spécifications d'appel par classe, gardées en mémoire et dans un fichier JSON du dossier temporaire du système
+    (jamais dans le dépôt : données tirées du Java du poste) pour que chaque processus de banc n'analyse pas le Java à
+    nouveau (environ 0,6 s). Clé du fichier : dossier des sources, index des classes exposées, pz_api.py et ce fichier."""
+
+    DIR = Path(tempfile.gettempdir()) / 'rs-harness-java-api'
+
+    def __init__(self, root: str):
+        stamps = [str(Path(root).resolve())]
+        for path in (Path(root) / pz_api.EXPOSED_INDEX, Path(pz_api.__file__), Path(__file__)):
+            stat = path.stat()
+            stamps.append(f'{stat.st_mtime_ns}:{stat.st_size}')
+        self.path = self.DIR / (hashlib.sha1('|'.join(stamps).encode()).hexdigest()[:16] + '.json')
+        self._raw = self._read()
+        self._specs: dict[str, dict[str, CallSpec] | None] = {}
+
+    def _read(self) -> dict:
+        try:
+            return json.loads(self.path.read_text(encoding='utf-8'))
+        except (OSError, ValueError):
+            return {}
+
+    def _write(self, cls: str, raw):
+        """Ajoute une classe au fichier (relu d'abord : les bancs tournent en parallèle), remplacement atomique."""
+        try:
+            self.DIR.mkdir(parents=True, exist_ok=True)
+            merged = {**self._read(), cls: raw}
+            tmp = self.path.with_suffix(f'.{os.getpid()}.tmp')
+            tmp.write_text(json.dumps(merged), encoding='utf-8')
+            os.replace(tmp, self.path)
+        except OSError:
+            pass  # cache seulement : le calcul reste juste sans lui
+
+    def get(self, cls: str) -> dict[str, CallSpec] | None:
+        if cls not in self._specs:
+            if cls in self._raw:
+                raw = self._raw[cls]
+                specs = None if raw is None else {m: CallSpec(frozenset(s[0]), s[1], s[2], s[3])
+                                                  for m, s in raw.items()}
+            else:
+                specs = compute_class_specs(cls)
+                self._write(cls, None if specs is None else
+                            {m: [sorted(s.counts), s.varmin, s.expected, s.static] for m, s in specs.items()})
+            self._specs[cls] = specs
+        return self._specs[cls]
+
+
+@functools.lru_cache(maxsize=None)
+def _spec_store(root: str) -> SpecStore:
+    return SpecStore(root)
+
+
+def _class_specs(root: str, cls: str) -> dict[str, CallSpec] | None:
+    return _spec_store(root).get(cls)
+
+
+class JavaApiTable:
+    """API Java 42.22 vue par les doublures : classes strictes, spécification d'appel, nom proche suggéré."""
+
+    def __init__(self, root: str):
+        self.root = root
+
+    def strict(self, cls: str) -> bool:
+        return not cls.endswith(HELPER_SUFFIX) and _class_specs(self.root, cls) is not None
+
+    def spec(self, cls: str, method: str) -> CallSpec | None:
+        specs = _class_specs(self.root, cls)
+        return specs.get(method) if specs else None
+
+    def suggest(self, cls: str, method: str) -> str | None:
+        names = list(_class_specs(self.root, cls) or ())
+        same_case = [n for n in names if n.lower() == method.lower()]
+        close = same_case or difflib.get_close_matches(method, names, n=1, cutoff=0.8)
+        return close[0] if close else None
+
+
+def java_api_table(enabled: bool | None) -> JavaApiTable | None:
+    """Table de l'API pour un Harness : None (doublures libres) si désactivée ou sans les sources de référence."""
+    if enabled is False or not pz_api.available():
+        return None
+    return JavaApiTable(str(pz_api.source_dir()))
+
+
 class _Bridge:
     """Fonctions Python appelées par le prélude Lua d'une machine."""
 
@@ -674,6 +978,23 @@ class _Bridge:
     def set_time_of_day(self, hours):
         self.m.harness.set_time_of_day(hours)
 
+    def api_strict(self, cls):
+        return self.m.harness.java_api.strict(cls)
+
+    def api_method(self, cls, method):
+        spec = self.m.harness.java_api.spec(cls, method)
+        if spec is None:
+            return None
+        fields = {'counts': self.m.rt.table_from({n: True for n in spec.counts}), 'static': spec.static}
+        if spec.varmin is not None:
+            fields['varmin'] = spec.varmin
+        if spec.expected is not None:
+            fields['expected'] = spec.expected
+        return self.m.rt.table_from(fields)
+
+    def api_suggest(self, cls, method):
+        return self.m.harness.java_api.suggest(cls, method)
+
 
 class Machine:
     """Une machine Lua : 'server', un client ('A', 'B'…) ou 'solo'."""
@@ -691,7 +1012,8 @@ class Machine:
         self.rt = lupa.LuaRuntime(unpack_returned_tuples=True, register_eval=False, register_builtins=False)
         self.g = self.rt.globals()
         self.g.python = None
-        self.rt.execute(ENGINE, mode, name, _Bridge(self), self.rt.table_from(GAME_EVENTS), harness.debug)
+        self.rt.execute(ENGINE, mode, name, _Bridge(self), self.rt.table_from(GAME_EVENTS), harness.debug,
+                        harness.java_api is not None)
         self.H = self.g.HARNESS
         # Dédié : shared, client (somme de contrôle seulement), server (GameServer.java:1403-1405) ;
         # client MP et solo : shared, client au démarrage puis server au chargement (LuaManager.java:1242-1246,
@@ -781,9 +1103,10 @@ def _to_py(value):
 class Harness:
     def __init__(self, mode: str = 'mp', clients=('A', 'B'), order: str = 'fifo', seed: int = 0,
                  debug: bool = False, strict: bool = True, tick_ms: int = 16,
-                 start=(1993, 7, 9, 9, 0), root: Path | None = None, lua_roots=()):
+                 start=(1993, 7, 9, 9, 0), root: Path | None = None, lua_roots=(), java_api: bool | None = None):
         if mode not in ('mp', 'solo'):
             raise ValueError("mode must be 'mp' or 'solo'")
+        self.java_api = java_api_table(java_api)  # avant les machines : leurs classes en dépendent
         self.mode, self.order, self.debug, self.strict, self.tick_ms = mode, order, debug, strict, tick_ms
         self.lua_roots = list(lua_roots)  # racines media/lua supplémentaires, après celle du mod publié
         self.rng = random.Random(seed)

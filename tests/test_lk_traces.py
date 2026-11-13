@@ -81,7 +81,6 @@ function Lit:isEmptyPages()
 end
 function Lit:setLockedBy(n) self.lockedBy = n end
 function Lit:getLockedBy() return self.lockedBy end
-function Lit:pageCount() local n = 0 for _ in pairs(self.pages) do n = n + 1 end return n end
 local WRITABLE = { ['Base.Notebook'] = true, ['Base.SheetPaper2'] = true }
 instanceItem = function(t)
     if WRITABLE[t] then return setmetatable({ type = t, pages = {} }, Lit) end

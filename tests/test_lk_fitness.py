@@ -158,7 +158,7 @@ SUITE = 'shared/RST/suites/RST_LKFitness.lua'
 # Options réelles de SandboxOptions (IntegerConfigOption) : getValue, setValue hors bornes refusé sans erreur.
 REAL_OPTIONS = r"""
 local function intOption(v, lo, hi)
-    local o = { v = v }
+    local o = HARNESS.fake('IntegerSandboxOption', { v = v })
     function o:getValue() return self.v end
     function o:setValue(n) if n >= lo and n <= hi then self.v = n end end
     return o

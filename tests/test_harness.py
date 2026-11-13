@@ -7,12 +7,15 @@ pas le mod ni l'API Java réelle.
 """
 from __future__ import annotations
 
+import os
 import re
 import sys
 import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
+import pz_api  # noqa: E402
 from harness import Harness, HarnessError, LuaError  # noqa: E402
 from phase_sweep import DEFAULT_PHASES, EMPTY, PHASES_SHORT, other_groups, sweep  # noqa: E402
 
@@ -89,6 +92,142 @@ class MachinesTests(Base):
         self.assertIs(self.h.eval('server', 'getCell():getGridSquare(1, 1, 0) == getCell():getGridSquare(1.2, 1.9, 0)'),
                       True)
         self.assertEqual(self.h.eval('server', 'getCell():getGridSquare(0, 0, 0):getObjects():size()'), 0)
+
+
+@unittest.skipUnless(pz_api.available(), 'sources de référence absentes : ' + (pz_api.missing() or ''))
+class StrictDoublesTests(Base):
+    """E19-T03 : doublures des classes exposées contrôlées à l'exécution contre l'API Java 42.22."""
+
+    def assertLuaError(self, code, *fragments, machine='server'):
+        with self.assertRaises(LuaError) as ctx:
+            self.h.load(machine, code)
+        for fragment in fragments:
+            self.assertIn(fragment, str(ctx.exception))
+
+    def test_invented_method_refused_at_definition(self):
+        self.assertLuaError('local Z = HARNESS.classes.IsoZombie\nfunction Z:methodeInventee() end',
+                            "IsoZombie:methodeInventee n'existe pas dans la classe Java IsoZombie")
+        # Nom Java probable proposé (casse différente).
+        self.assertLuaError('local Z = HARNESS.classes.IsoZombie\nfunction Z:isdead() end', 'isDead')
+        # Sur une instance du banc aussi (objet anonyme rattaché à sa classe par le harnais).
+        self.assertLuaError('local zb = HARNESS.spawnZombie(7, 1, 1, 0, "server")\nfunction zb:getUsername() end',
+                            "IsoZombie:getUsername n'existe pas")
+        # Méthode héritée d'une classe mère Java : acceptée.
+        self.h.load('server', 'local Z = HARNESS.classes.IsoZombie\nfunction Z:getBodyDamage() return 1 end')
+
+    def test_wrong_arity_refused_like_kahlua(self):
+        # Cas réel du 2026-10-11 (LK04-T08, registre ecarts-banc-jeu.md) : la suite lk.traversal appelait
+        # w:ToggleWindow(B().find(id)) ; Bodies.find rend deux valeurs (corps, "bound") ; IsoWindow.ToggleWindow
+        # n'a qu'une surcharge à un paramètre : Kahlua « expected 1 argument, got 2 » (LuaJavaInvoker.java:71-80).
+        setup = '''
+local H = HARNESS
+local W = H.class('IsoWindow', H.classes.IsoObject)
+function W:ToggleWindow(chr) self.open = not self.open end
+WIN = setmetatable({}, W)
+function FIND(id) return H.players.A, 'bound' end
+'''
+        self.h.load('server', setup)
+        self.assertLuaError('WIN:ToggleWindow(FIND(1))', 'expected 1 argument, got 2')
+        self.h.load('server', 'WIN:ToggleWindow((FIND(1)))')
+        self.assertIs(self.h.eval('server', 'WIN.open'), True)
+        self.assertLuaError('WIN:ToggleWindow()', 'expected 1 argument, got 0')
+        self.assertLuaError('WIN:ToggleWindow(nil, nil)', 'expected 1 argument, got 2')  # nil explicites comptés
+
+    def test_every_overload_and_varargs_accepted(self):
+        # IsoObject.setAlpha : (float) et (int, float) ; ArrayList.add : (E) et (int, E).
+        self.h.load('server', 'local o = HARNESS.addObject(1, 1, 0); o:setAlpha(0.5); o:setAlpha(0, 0.5)')
+        self.h.load('server', 'local l = HARNESS.list(); l:add(1); l:add(0, 2)')
+        self.assertLuaError('HARNESS.list():add()', 'No implementation found for function: ArrayList:add')
+        self.assertLuaError('HARNESS.addObject(1, 1, 0):setAlpha(1, 2, 3)', 'No implementation found')
+        # IsoObject.sendObjectChange(String, Object...) : au moins un argument.
+        self.h.load('server', '''
+local O = HARNESS.classes.IsoObject
+function O:sendObjectChange(name, ...) self.sent = select('#', ...) end
+local o = HARNESS.addObject(2, 2, 0)
+o:sendObjectChange('a'); o:sendObjectChange('a', 1, 2, 3)
+''')
+        self.assertLuaError('HARNESS.addObject(2, 2, 0):sendObjectChange()', 'No implementation found')
+
+    def test_static_method_counts_every_argument(self):
+        # IsoDoor.getDoubleDoorIndex(IsoObject) est statique : appelée sans self.
+        self.h.load('server', '''
+local D = HARNESS.class('IsoDoor', HARNESS.classes.IsoObject)
+function D.getDoubleDoorIndex(o) return -1 end
+''')
+        self.assertEqual(self.h.eval('server', 'HARNESS.classes.IsoDoor.getDoubleDoorIndex({})'), -1)
+        self.assertLuaError('HARNESS.classes.IsoDoor.getDoubleDoorIndex()', 'expected 1 argument, got 0')
+
+    def test_game_method_not_doubled_is_explicit(self):
+        self.assertLuaError('getCell():getGridSquare(0, 0, 0):getBuilding()',
+                            "doublure incomplète : IsoGridSquare:getBuilding existe dans le jeu mais n'est pas "
+                            'doublée')
+        # Méthode inconnue du jeu : erreur Lua d'appel de nil, comme en jeu.
+        self.assertLuaError('getCell():getGridSquare(0, 0, 0):methodeInconnue()', "method 'methodeInconnue'")
+        # Champ de données du banc : nil, sans erreur.
+        self.assertIsNone(self.h.eval('server', 'getCell():getGridSquare(0, 0, 0).champInconnu'))
+
+    def test_test_helpers_named_double_are_free(self):
+        self.h.load('server', '''
+local H = HARNESS
+local D = H.class('IsoZombieDouble', H.classes.IsoZombie)
+function D:aideDeTest(a, b, c) return 3 end
+OBJ = setmetatable({}, D)
+''')
+        self.assertEqual(self.h.eval('server', 'OBJ:aideDeTest()'), 3)
+        self.assertIs(self.h.eval('server', 'instanceof(OBJ, "IsoZombie")'), True)
+        self.assertIs(self.h.eval('server', 'OBJ:isZombie()'), True)
+
+    def test_fake_attaches_a_table_to_its_java_class(self):
+        self.h.load('server', '''
+P = HARNESS.fake('IsoPlayer', { username = 'x', getDisplayName = function(self) return self.username end })
+function P:isDead() return false end
+''')
+        self.assertEqual(self.h.eval('server', 'P:getDisplayName()'), 'x')
+        self.assertIs(self.h.eval('server', 'instanceof(P, "IsoPlayer")'), True)
+        self.assertIs(self.h.eval('server', 'instanceof(P, "IsoGameCharacter")'), True)
+        self.assertEqual(self.h.eval('server', 'HARNESS.javaClass(P)'), 'IsoPlayer')
+        self.assertLuaError('P:getDisplayName(1)', 'expected 0 arguments, got 1')
+        self.assertLuaError('P:getInventory()', 'doublure incomplète : IsoPlayer:getInventory')
+        self.assertLuaError("HARNESS.fake('IsoPlayer', { inventee = function() end })",
+                            "IsoPlayer:inventee n'existe pas")
+        self.assertLuaError('function P:inventee() end', "IsoPlayer:inventee n'existe pas")
+        # Redéfinition d'une méthode de classe déjà doublée : contrôlée aussi.
+        self.h.load('server', 'function HARNESS.classes.IsoPlayer:getDisplayName() return "y" end')
+        self.assertLuaError('HARNESS.players.A:getDisplayName(1, 2)', 'expected 0 arguments, got 2')
+        self.assertEqual(self.h.eval('server', 'HARNESS.players.A:getDisplayName()'), 'y')
+        # Classe d'aide de test : aucune vérification.
+        self.h.load('server', "Q = HARNESS.fake('RadioDouble', { inventee = function() return 1 end })")
+        self.assertEqual(self.h.eval('server', 'Q:inventee(1, 2)'), 1)
+
+
+class StrictDoublesWithoutSourcesTests(unittest.TestCase):
+    """Sans les sources de référence, le banc se comporte comme avant E19-T03."""
+
+    def test_unchanged_without_sources(self):
+        saved = os.environ.get('PZ_SOURCE_DIR')
+        os.environ['PZ_SOURCE_DIR'] = str(Path(__file__).resolve().parent / 'sources-absentes')
+        try:
+            with Harness() as h:
+                h.load('server', '''
+local Z = HARNESS.classes.IsoZombie
+function Z:methodeInventee(a) return a end
+local zb = HARNESS.spawnZombie(1, 1, 1, 0, "server")
+P = HARNESS.fake('IsoPlayer', { inventee = function() return 2 end })
+''')
+                self.assertEqual(h.eval('server', 'HARNESS.zombies[1]:methodeInventee(1, 2)'), 1)
+                self.assertIsNone(h.eval('server', 'getCell():getGridSquare(0, 0, 0).getBuilding'))
+                self.assertEqual(h.eval('server', 'P:inventee()'), 2)
+                self.assertIs(h.eval('server', 'instanceof(P, "IsoPlayer")'), True)
+        finally:
+            if saved is None:
+                os.environ.pop('PZ_SOURCE_DIR', None)
+            else:
+                os.environ['PZ_SOURCE_DIR'] = saved
+
+    def test_strict_check_can_be_turned_off(self):
+        with Harness(java_api=False) as h:
+            h.load('server', 'function HARNESS.classes.IsoZombie:methodeInventee() return 1 end')
+            self.assertEqual(h.eval('server', 'HARNESS.spawnZombie(1, 1, 1, 0, "server"):methodeInventee(9)'), 1)
 
 
 class EventsTests(Base):

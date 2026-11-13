@@ -68,8 +68,7 @@ for _, n in ipairs({ "revengeSworn", "revengeStarted", "revengeEnded" }) do
     LivingKnox.listen(n, "test", function(info) REV_FACTS[#REV_FACTS + 1] = { name = n, info = info } end)
 end
 SafeHouse = { hasSafehouse = function(u) return SAFEHOUSES and SAFEHOUSES[u] or nil end }
-local SH = {}
-SH.__index = SH
+local SH = HARNESS.class('SafeHouse')
 function SH:getX() return self.x end
 function SH:getY() return self.y end
 function SH:getW() return self.w end

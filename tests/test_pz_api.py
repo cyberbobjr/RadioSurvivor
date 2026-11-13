@@ -296,6 +296,16 @@ public final class StringLib { private static final String[] names = new String[
         self.assertNotIn('anonymous', crate)          # static interface method: not inherited
         self.assertEqual(crate['new'], {Arity(0), Arity(2)})  # own constructors only
 
+    def test_static_methods_inherited_without_constructors(self):
+        crate = self.api.class_static_methods('Crate')
+        self.assertEqual(crate['make'], {Arity(0)})        # public static of the superclass Thing
+        self.assertNotIn('getX', crate)                    # instance method
+        self.assertNotIn('anonymous', crate)               # static interface method: not inherited
+        self.assertEqual(crate['new'], {Arity(0), Arity(2)})
+        self.assertEqual(self.api.class_static_methods('Box')['new'], {Arity(0)})
+        self.assertIn('new', self.api.class_static_methods('ArrayList'))
+        self.assertIsNone(self.api.class_static_methods('Inconnue'))
+
     def test_nested_superclass_through_wildcard_import(self):
         box = self.api.class_methods('Box')
         self.assertIn('isOpen', box)

@@ -103,8 +103,7 @@ ITEMS = {
 -- Scripts d'objets (ScriptManager.getAllItems, Item.getModuleName/getFullName/isRanged) : une arme à feu d'un mod
 -- d'armes simulée par un module autre que Base qui rend le pistolet vanilla (LK02-T13) ; compteur d'erreurs Lua
 -- (LuaManager.java:6437-6445).
-local ScriptItem = {}
-ScriptItem.__index = ScriptItem
+local ScriptItem = HARNESS.class('Item')  -- script d'objet (zombie.scripting.objects.Item)
 function ScriptItem:getModuleName() return self.m end
 function ScriptItem:getFullName() return self.n end
 function ScriptItem:isRanged() return self.r end

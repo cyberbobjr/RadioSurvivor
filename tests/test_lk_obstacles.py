@@ -192,8 +192,13 @@ function M:sync()
     SYNCS[#SYNCS + 1] = { key = self.key, open = self.open == true, locked = self.locked == true,
         lockedByKey = self.lockedByKey == true }
 end
-for name, f in pairs(M) do Door[name] = f; Thump[name] = f end
-Door.isLockedByPadlock = nil
+-- Méthodes d'une seule des deux classes Java (API 42.22) : isLockedByPadlock (IsoThumpable), checkKeyId (IsoDoor).
+local ONLY = { isLockedByPadlock = Thump, checkKeyId = Door }
+for name, f in pairs(M) do
+    for _, cls in ipairs({ Door, Thump }) do
+        if ONLY[name] == nil or ONLY[name] == cls then cls[name] = f end
+    end
+end
 function NEW_DOOR(x, y, z, kind, cls, fields)
     local sq = H.square(x, y, z)
     local d = setmetatable({ key = key(x, y, z, kind), north = kind == 'N', open = false }, cls == 'thump' and Thump or Door)
@@ -441,11 +446,11 @@ function STEP_W(zid, speed)
         zb.recover = zb.recover - 1
         return 'recovering'
     end
-    if zb.climb ~= nil then
-        zb.climb.n = zb.climb.n - 1
-        if zb.climb.n > 0 then return 'climbing' end
-        local c = zb.climb
-        zb.climb, zb.actionState = nil, nil
+    if zb.climbing ~= nil then
+        zb.climbing.n = zb.climbing.n - 1
+        if zb.climbing.n > 0 then return 'climbing' end
+        local c = zb.climbing
+        zb.climbing, zb.actionState = nil, nil
         H.place(zb, c.x, c.y, zb.z)
         CLIMBS[#CLIMBS + 1] = c.kind .. ' ' .. c.key
         zb.recover = CLIMB_RECOVER or 0
@@ -478,7 +483,8 @@ function STEP_W(zid, speed)
             return 'window'
         end
         local kind = w ~= nil and 'climbwindow' or 'climbfence'
-        zb.climb = { n = CLIMB_TICKS, x = b.x + 0.5, y = b.y + 0.5, kind = kind, key = k }
+        -- champ du banc « climbing » : « climb » est une méthode Java d'IsoGameCharacter (E19-T03)
+        zb.climbing = { n = CLIMB_TICKS, x = b.x + 0.5, y = b.y + 0.5, kind = kind, key = k }
         -- CLIMB_LAND_EARLY (LK04-T17) : glissement du moteur arrêté à l'entrée de la case d'en face, corps immobile
         -- là jusqu'à la fin du clip (base, zombies-as-npc-bodies.md).
         if CLIMB_LAND_EARLY then H.place(zb, b.x + 0.5, b.y + 0.5, zb.z) end
@@ -1200,12 +1206,12 @@ class SoloTraversalTests(ObstacleBase):
         self.fence()
         zid = self.start()
         self.move()
-        self.walk_w(zid, 900, until=lambda: self.h.zombie('solo', zid).climb is not None)
-        self.assertIsNotNone(self.h.zombie('solo', zid).climb, 'the body never climbed the fence')
+        self.walk_w(zid, 900, until=lambda: self.h.zombie('solo', zid).climbing is not None)
+        self.assertIsNotNone(self.h.zombie('solo', zid).climbing, 'the body never climbed the fence')
         self.assertIsNotNone(self.d('stop("lk-1")'))
         self.walk_w(zid, 300)
         zb = self.h.zombie('solo', zid)
-        self.assertIsNone(zb.climb)
+        self.assertIsNone(zb.climbing)
         self.assertEqual(self.climbs('solo'), ['climbfence ' + DOOR_KEY])
         self.assertLess(zb.x, 107.5, 'the body walked on after the stop')
         self.assertEqual(self.entry('s'), 'stopped')

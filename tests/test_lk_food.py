@@ -1183,10 +1183,8 @@ class SuiteFishRunTests(FishStack):
     mode = 'solo'
 
     def test_suite_fishing_trip_passes_on_the_doubles(self):
-        self.run_lua('IsoFlagType = IsoFlagType or {} IsoFlagType.water = IsoFlagType.water or "water" '
-                     'local Sq = HARNESS.classes.IsoGridSquare '
-                     'function Sq:Is(f) if f ~= IsoFlagType.water then error("No implementation found for Is", 2) end '
-                     'return self.water == true end')
+        # Eau lue par isWaterSquare (doublure du harnais, self.water) : IsoGridSquare.Is n'existe plus en 42.22.
+        self.run_lua('IsoFlagType = IsoFlagType or {} IsoFlagType.water = IsoFlagType.water or "water"')
         logs = SuiteRunTests.run_suite(self, 'fishers bring vanilla fish home at dawn')
         self.assertTrue(any('[LKF2] measure fishing: ' in line and 'vanilla fish item(s) stored' in line
                             for line in logs))

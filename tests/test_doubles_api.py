@@ -38,14 +38,19 @@ import pz_api  # noqa: E402
 
 BASELINE = TESTS / 'fixtures' / 'doubles-api-baseline.txt'
 HARNESS_FILE = TESTS / 'harness.py'
-EXCLUDED = {'test_doubles_api.py', 'test_pz_api.py'}  # doublures fabriquées et extraits Java de ces bancs
+EXCLUDED = {'test_doubles_api.py', 'test_pz_api.py', 'test_harness.py'}  # doublures fabriquées (méthodes inventées
+#                                                    exprès) et extraits Java de ces bancs
 HELPER_SUFFIX = 'Double'
+ANONYMOUS_PREFIX = 'anonymes '
 BASELINE_HEADER = """\
 # Écarts entre les doublures du banc et l'API Java 42.22 (E19-T01, tests/test_doubles_api.py).
 # Une ligne par méthode de doublure absente de sa classe Java (Classe.methode) ou fonction globale doublée
 # inconnue du jeu (global.nom). Cette liste ne peut que DIMINUER : un écart nouveau fait échouer le banc, une
 # ligne qui n'est plus un écart aussi. Corriger la doublure (renommer, supprimer, ou suffixe Double pour une aide
 # de test), puis retirer la ligne : python tests/test_doubles_api.py --write-baseline (n'ajoute jamais d'écart).
+# Lignes « anonymes <fichier> <nombre> » (E19-T03) : plafond, par fichier, des méthodes définies sur des faux objets
+# anonymes (function r:m( sur une table rattachée à aucune classe), non contrôlées ; à rattacher par
+# HARNESS.fake('Classe', {...}). Un plafond ne peut que BAISSER (--write-baseline l'abaisse, ne le relève jamais).
 """
 # Bibliothèque de base Lua 5.1 / Kahlua (BaseLib), hors API du jeu.
 # Bibliotheque de base reellement presente dans Kahlua (releve de E19-T02 : J2SEPlatform et stdlib.lua du jeu) ;
@@ -82,7 +87,8 @@ class GlobalDouble:
 
 @dataclass(frozen=True)
 class Binding:
-    kind: str       # 'class' (classe ou instance) / 'classes' (H.classes) / 'static' (table globale Nom = {...})
+    kind: str       # 'class' (classe ou instance) / 'classes' (H.classes) / 'static' (table globale Nom = {...}) /
+                    # 'dynamic' (class(nom_variable) : nom inconnu du relevé)
     name: str = ''
 
 
@@ -90,6 +96,7 @@ class Binding:
 class Scan:
     methods: list[Double] = field(default_factory=list)
     dynamic: list[str] = field(default_factory=list)   # X['m' .. f] = function, class(nom_variable) : non relevés
+    anonymous: list[str] = field(default_factory=list)  # function r:m( sur un receveur sans classe (E19-T03)
 
 
 def lua_chunks(path: Path) -> list[Chunk]:
@@ -189,7 +196,7 @@ INSTANCE_FACTORIES = [
 ]
 
 RE_EVENT = re.compile(r'''
-    (?P<deffunc>\bfunction\s+(?P<fr>[A-Za-z_][\w.]*)[:.](?P<fm>[A-Za-z_]\w*)\s*\()
+    (?P<deffunc>\bfunction\s+(?P<fr>[A-Za-z_][\w.]*)(?P<fsep>[:.])(?P<fm>[A-Za-z_]\w*)\s*\()
   | (?P<bracket>(?<![\w.:])(?P<br>[A-Za-z_][\w.]*)\[[^\]\n]+\]\s*=\s*function\b)
   | (?P<defassign>(?<![\w.:])(?P<ar>[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)\.(?P<am>[A-Za-z_]\w*)\s*=(?!=)(?=(?P<arhs>[^\n]*)))
   | (?P<assign>(?<![\w.:])(?P<local>local\s+)?(?P<names>[A-Za-z_]\w*(?:\s*,\s*[A-Za-z_]\w*)*)\s*=(?!=)
@@ -227,9 +234,18 @@ class DoubleScanner:
             return Binding('class', m.group(2))
         if re.fullmatch(r'[A-Za-z_]\w*', term):
             return bound(term)
-        m = re.fullmatch(r'(?:[\w.]*\.)?class\(\s*[\'"](\w+)[\'"].*\)', term, re.S)
+        m = re.fullmatch(r'(?:[\w.]*\.)?(?:class|fake)\(\s*[\'"](\w+)[\'"].*\)', term, re.S)
         if m:
             return Binding('class', m.group(1))
+        if re.fullmatch(r'(?:[\w.]*\.)?(?:class|fake)\(\s*[A-Za-z_].*\)', term, re.S):
+            return Binding('dynamic')  # class(nom_variable) : contrôlée à l'exécution seulement (harnais strict)
+        m = re.fullmatch(r'getmetatable\((.*)\)', term, re.S)  # métatable d'une instance du harnais : sa classe
+        if m:
+            b = self.evaluate(leading_term(m.group(1).strip()))
+            return b if b and b.kind in ('class', 'dynamic') else None
+        m = re.fullmatch(r'(\w+)\[\s*[A-Za-z_]\w*\s*\]', term)
+        if m and bound(m.group(1)) == Binding('classes'):
+            return Binding('dynamic')  # C[nom_variable]
         m = re.fullmatch(r'setmetatable\((.*)\)', term, re.S)
         if m:
             args = _split_args(m.group(1))
@@ -257,7 +273,7 @@ class DoubleScanner:
             self.scan.dynamic.append(where(m.start()) + ' class(<variable>)')
         for m in RE_EVENT.finditer(text):
             if m['deffunc']:
-                self._define(m['fr'], m['fm'], where(m.start()))
+                self._define(m['fr'], m['fm'], where(m.start()), method_form=m['fsep'] == ':')
             elif m['bracket']:
                 if self._class_of(m['br']):
                     self.scan.dynamic.append(where(m.start()) + f' {m["br"]}[...] = function')
@@ -273,12 +289,16 @@ class DoubleScanner:
         parts = re.fullmatch(r'(.+)[.:](\w+)', term)
         return bool(parts) and (self._class_of(parts.group(1)), parts.group(2)) in self.defined
 
-    def _define(self, receiver: str, method: str, where: str):
+    def _define(self, receiver: str, method: str, where: str, method_form: bool = False):
         if method.startswith('__'):
             return  # métaméthodes et champs du harnais (__index, __javaName)
         b = self.evaluate(receiver)
         if b and b.kind in ('class', 'static'):
             self._record(Double(b.name, method, where, static=b.kind == 'static'))
+        elif b and b.kind == 'dynamic':
+            return
+        elif method_form:
+            self.scan.anonymous.append(where)  # faux objet anonyme : non contrôlé (à rattacher par H.fake)
         elif re.fullmatch(r'[A-Za-z_]\w*', receiver) and receiver not in self.vars:
             self._record(Double(receiver, method, where, static=True))
 
@@ -389,16 +409,52 @@ def run_check() -> Report:
     return report
 
 
-def read_baseline(path: Path = BASELINE) -> set[str]:
+def _baseline_lines(path: Path) -> list[str]:
     if not path.exists():
-        return set()
-    return {line.strip() for line in path.read_text(encoding='utf-8').splitlines()
-            if line.strip() and not line.startswith('#')}
+        return []
+    return [line.strip() for line in path.read_text(encoding='utf-8').splitlines()
+            if line.strip() and not line.startswith('#')]
 
 
-def write_baseline(gaps, path: Path = BASELINE):
+def read_baseline(path: Path = BASELINE) -> set[str]:
+    return {line for line in _baseline_lines(path) if not line.startswith(ANONYMOUS_PREFIX)}
+
+
+def read_anonymous_baseline(path: Path = BASELINE) -> dict[str, int]:
+    """Fichier -> nombre de définitions sur des faux objets anonymes (lignes « anonymes <fichier> <nombre> »)."""
+    out = {}
+    for line in _baseline_lines(path):
+        if line.startswith(ANONYMOUS_PREFIX):
+            name, count = line[len(ANONYMOUS_PREFIX):].split()
+            out[name] = int(count)
+    return out
+
+
+def write_baseline(gaps, anonymous: dict[str, int], path: Path = BASELINE):
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(BASELINE_HEADER + ''.join(f'{g}\n' for g in sorted(gaps)), encoding='utf-8', newline='\n')
+    lines = [f'{g}\n' for g in sorted(gaps)]
+    lines += [f'{ANONYMOUS_PREFIX}{name} {count}\n' for name, count in sorted(anonymous.items()) if count]
+    path.write_text(BASELINE_HEADER + ''.join(lines), encoding='utf-8', newline='\n')
+
+
+def anonymous_counts(paths) -> dict[str, int]:
+    """Fichier -> définitions de méthodes (function r:m() sur des receveurs rattachés à aucune classe."""
+    return {path.name: len(scan_file(path).anonymous) for path in paths}
+
+
+def compare_anonymous(counts: dict[str, int], baseline: dict[str, int]) -> tuple[list[str], list[str]]:
+    """(fichiers au-dessus de leur plafond, fichiers en dessous : plafond à abaisser par --write-baseline)."""
+    above = sorted(n for n, c in counts.items() if c > baseline.get(n, 0))
+    below = sorted(n for n, c in baseline.items() if counts.get(n, 0) < c)
+    return above, below
+
+
+def ratchet_anonymous(counts: dict[str, int], baseline: dict[str, int] | None) -> dict[str, int]:
+    """Plafonds après --write-baseline : relevé courant à la création (baseline None), ensuite jamais relevés (un
+    fichier en hausse, ou nouveau, garde son plafond)."""
+    if baseline is None:
+        return dict(counts)
+    return {n: min(c, baseline.get(n, 0)) for n, c in counts.items()}
 
 
 def compare(gaps, baseline: set[str]) -> tuple[list[str], list[str]]:
@@ -528,6 +584,28 @@ next = nil
         new, stale = compare({'IsoZombie.a': [], 'IsoZombie.b': []}, {'IsoZombie.b', 'IsoZombie.c'})
         self.assertEqual((new, stale), (['IsoZombie.a'], ['IsoZombie.c']))
 
+    def test_anonymous_method_definitions_are_counted(self):
+        scan = _scan_lua('''
+local p = { username = 'a' }
+function p:getUsername() return self.username end
+p.getX = function(self) return 1 end
+function PLAYER:getDisplayName() end
+local q = HARNESS.fake('IsoPlayer', { username = 'b' })
+function q:getDisplayName() end
+local Z = HARNESS.classes.IsoZombie
+function Z:isDead() end
+function LK.helper() end
+''')
+        self.assertEqual(scan.anonymous, ['essai.py:3', 'essai.py:5'])
+        self.assertIn(('IsoPlayer', 'getDisplayName'), {(d.cls, d.method) for d in scan.methods})
+
+    def test_anonymous_ratchet(self):
+        self.assertEqual(compare_anonymous({'a.py': 3, 'b.py': 1, 'c.py': 1}, {'a.py': 3, 'b.py': 2}),
+                         (['c.py'], ['b.py']))
+        self.assertEqual(ratchet_anonymous({'a.py': 4, 'b.py': 1, 'c.py': 2}, {'a.py': 3, 'b.py': 2}),
+                         {'a.py': 3, 'b.py': 1, 'c.py': 0})
+        self.assertEqual(ratchet_anonymous({'a.py': 4}, None), {'a.py': 4})
+
     def test_check_classifies_helpers(self):
         tables = {'IsoZombie': {'isDead': set()}}
         report = check([Double('IsoZombie', 'isDead', 'f:1'), Double('IsoZombie', 'invente', 'f:2'),
@@ -537,6 +615,29 @@ next = nil
                        tables.get, lambda n: n == 'getPlayer')
         self.assertEqual(report.gaps, {'IsoZombie.invente': ['f:2'], 'global.inventee': ['h:2']})
         self.assertEqual(report.helpers, {'ObjetDouble': {'x'}, 'Inconnue': {'y'}})
+
+
+class AnonymousFakesTest(unittest.TestCase):
+    """Faux objets anonymes des bancs : plafond par fichier en cliquet (E19-T03 ; sans les sources du jeu)."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.counts = anonymous_counts(test_files())
+        cls.baseline = read_anonymous_baseline()
+        left = {n: c for n, c in cls.counts.items() if c}
+        print(f'\ndoubles-api: {sum(left.values())} définitions de méthodes sur des faux objets anonymes '
+              f'({len(left)} fichiers ; plafond {sum(cls.baseline.values())}) : '
+              + ', '.join(f'{n} {c}' for n, c in sorted(left.items(), key=lambda kv: -kv[1])), flush=True)
+
+    def test_no_file_above_its_ceiling(self):
+        above, _ = compare_anonymous(self.counts, self.baseline)
+        self.assertFalse(above, 'faux objet anonyme ajouté : rattacher la table à sa classe Java par '
+                                'HARNESS.fake("Classe", {...}) (ou classe suffixée Double pour une aide de test) : '
+                         + ', '.join(f'{n} {self.counts[n]} > {self.baseline.get(n, 0)}' for n in above))
+
+    def test_ceilings_are_up_to_date(self):
+        _, below = compare_anonymous(self.counts, self.baseline)
+        self.assertFalse(below, 'plafonds à abaisser, lancer --write-baseline : ' + ', '.join(below))
 
 
 @unittest.skipUnless(pz_api.available(), 'sources de référence absentes : ' + (pz_api.missing() or ''))
@@ -591,13 +692,19 @@ def main(argv: list[str]) -> int:
         # Cliquet : une liste existante ne fait que perdre ses lignes résolues ; un écart nouveau n'y entre pas.
         new = compare(report.gaps, read_baseline())[0] if BASELINE.exists() else []
         kept = sorted(set(report.gaps) - set(new))
-        write_baseline(kept)
-        print(f'doubles-api: {len(kept)} écarts écrits dans {BASELINE.relative_to(ROOT).as_posix()}')
+        counts = anonymous_counts(test_files())
+        previous = read_anonymous_baseline() if BASELINE.exists() else None  # plafonds absents : zéro partout
+        above = compare_anonymous(counts, previous)[0] if previous is not None else []
+        ceilings = ratchet_anonymous(counts, previous)
+        write_baseline(kept, ceilings)
+        print(f'doubles-api: {len(kept)} écarts et {sum(ceilings.values())} définitions anonymes (plafond) écrits '
+              f'dans {BASELINE.relative_to(ROOT).as_posix()}')
         print(summary(report, read_baseline()))
         if new:
             print('doubles-api: écarts nouveaux NON ajoutés (corriger la doublure) : ' + ', '.join(new))
-            return 1
-        return 0
+        if above:
+            print('doubles-api: faux objets anonymes en hausse NON admis (HARNESS.fake) : ' + ', '.join(above))
+        return 1 if new or above else 0
     unittest.main(argv=[argv[0]] + [a for a in argv[1:]], verbosity=1)
     return 0
 

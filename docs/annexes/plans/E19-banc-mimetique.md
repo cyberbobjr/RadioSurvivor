@@ -2,13 +2,13 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 4 / 8 tâche(s) terminée(s).
+**Avancement.** en cours — 5 / 8 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
 | ☑ | E19-T01 | Table de l'API du jeu et doublures conformes | `testé hors jeu` | hors jeu | — |
 | ☑ | E19-T02 | Appels du mod conformes à l'API 42.22 | `testé hors jeu` | hors jeu | E19-T01 |
-| ☐ | E19-T03 | Doublures corrigées et nombre d'arguments contrôlé | `à faire` | hors jeu | E19-T01 |
+| ☑ | E19-T03 | Doublures corrigées et nombre d'arguments contrôlé | `testé hors jeu` | hors jeu | E19-T01 |
 | ☐ | E19-T04 | Potager sur le vrai Lua vanilla | `à faire` | hors jeu | LK15-T06 |
 | ☑ | E19-T05 | Horloge fidèle et balayage des phases | `testé hors jeu` | hors jeu | — |
 | ☐ | E19-T06 | Réseau en désordre dans les bancs multijoueurs | `à faire` | hors jeu | — |
@@ -61,16 +61,16 @@ Rendu, animation, son, interface ; IA et chemins vanilla écrits en Java. Les ca
   - Tests : `python tests/test_mod_calls_api.py`.
   - Preuve : 2026-11-13 : `tests/test_mod_calls_api.py` : `371 fichiers, 14183 appels de méthode contrôlés, 14184 appels globaux contrôlés, 0 écarts`, `Ran 16 tests … OK` ; `tests/test_pz_api.py` `Ran 22 tests … OK` ; analyse lexicale du Lua (commentaires et chaînes ignorés) et bibliothèque de base relevée dans Kahlua et `stdlib.lua` du jeu (`next`, `xpcall`, `load`, `dofile`, `rawlen` absents) dans `tools/pz_api.py` ; `obj:dropHeldItems(…)`, `sq:Is(x)` et `next(t)` sont signalés sur des extraits d'essai ; liste de référence `tests/fixtures/mod-calls-api-baseline.txt` vide (les 40 faux positifs de la carte du monde venaient de classes exposées par délégation, absentes de l'index de la référence : suivies désormais) ; aucun défaut trouvé dans les trois mods ; banc inscrit dans `tests/run_all.py`
   - Reste : contrôle par union de noms : le type du receveur n'est pas connu (un nom retiré d'une classe et encore présent ailleurs passe), les appels `a.b(` et dynamiques ne sont pas vus, le nombre d'arguments non plus (`E19-T03`) ; pour aller plus loin : garder le type de retour des méthodes Java et propager les types dans les variables locales
-- [ ] **E19-T03** — Doublures corrigées et nombre d'arguments contrôlé
-  - État : `à faire`
+- [x] **E19-T03** — Doublures corrigées et nombre d'arguments contrôlé
+  - État : `testé hors jeu`
   - Cible : `hors jeu`
   - Dépend de : E19-T01
   - Fichiers : `tests/harness.py`, bancs `tests/test_*.py` cités par la liste de référence
   - Faire : ADR D01 : vider la liste de référence (doublure renommée, supprimée ou justifiée comme aide de test préfixée) ; les doublures de classe refusent un nombre d'arguments qu'aucune surcharge Java n'accepte.
   - Accepté si : liste de référence vide ou réduite aux aides de test nommées ; un appel à deux arguments d'une méthode à un paramètre échoue au banc comme en jeu (cas « expected 1 argument, got 2 » du 2026-10-11).
   - Tests : suite complète `python tests/run_all.py`.
-  - Preuve : —
-  - Reste : —
+  - Preuve : 2026-11-13 : `HARNESS.class` strict à l'exécution pour une classe exposée (méthode absente du jeu refusée à la définition avec le nom proche ; nombre d'arguments refusé comme Kahlua, « expected N argument(s), got M » ou « No implementation found » selon les surcharges ; méthode du jeu non doublée : erreur « doublure incomplète » ; méthodes statiques comptées sans `self`) ; `HARNESS.fake('Classe', {…})` pour les faux objets ; convention des aides de test : nom de classe terminé par `Double` ; table de l'API mise en cache hors du dépôt ; coût : 7,0 ms par `Harness()` au lieu de 6,1 ms ; cas réel du 2026-10-11 (`w:ToggleWindow(B().find(id))`, commit `9211603`) refusé au banc avec le message du jeu (`StrictDoublesTests.test_wrong_arity_refused_like_kahlua`) ; liste de référence vide (5 doublures fautives supprimées ou corrigées) ; 9 doublures de bancs fautives corrigées (méthodes inexistantes en Java, méthodes du jeu jamais doublées que le mod teste par `x.m ~= nil`) ; aucun défaut du mod ; `python tests/test_harness.py` : `Ran 43 tests … OK` ; `test_doubles_api.py` : `86 classes contrôlées, 630 méthodes contrôlées, 0 écarts`, `Ran 17 tests … OK` ; `test_mod_calls_api.py` 16 OK ; `test_pz_api.py` 23 OK ; `python tests/run_all.py` : `166 passed, 0 failed` (491 s, +37 s) ; luacheck `Contents` 8, `dev` 0
+  - Reste : faux objets anonymes : 872 définitions sur receveurs sans classe (907 avant), plafond par fichier en cliquet dans `tests/fixtures/doubles-api-baseline.txt` ; la plupart dans des bancs qui n'utilisent pas le harnais (carnet, protocole, module radio, suites RS) ; types des arguments non contrôlés, seulement leur nombre
 - [ ] **E19-T04** — Potager sur le vrai Lua vanilla
   - État : `à faire`
   - Cible : `hors jeu`

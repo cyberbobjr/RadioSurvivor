@@ -181,17 +181,22 @@ end }
 ITEM_ID = 500
 function newItem(fullType)
     ITEM_ID = ITEM_ID + 1
+    if string.find(fullType, "WalkieTalkie", 1, true) then return newWalkie(fullType) end
     local it = { id = ITEM_ID, fullType = fullType, classes = classes("InventoryItem") }
     function it:getID() return self.id end
     function it:getFullType() return self.fullType end
     function it:getContainer() return self.container end
-    if string.find(fullType, "WalkieTalkie", 1, true) then
-        it.classes.Radio = true
-        it.device = newDevice()
-        it.device.twoWay, it.device.portable = true, true
-        function it:getDeviceData() return self.device end
-    end
     return it
+end
+-- Talkie-walkie : zombie.inventory.types.Radio (getDeviceData est une méthode de Radio, pas d'InventoryItem).
+function newWalkie(fullType)
+    local radio = { id = ITEM_ID, fullType = fullType, classes = classes("Radio", "InventoryItem"), device = newDevice() }
+    radio.device.twoWay, radio.device.portable = true, true
+    function radio:getID() return self.id end
+    function radio:getFullType() return self.fullType end
+    function radio:getContainer() return self.container end
+    function radio:getDeviceData() return self.device end
+    return radio
 end
 function newInventory()
     local inv = { items = {} }

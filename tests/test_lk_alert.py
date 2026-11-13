@@ -99,7 +99,7 @@ function Z:getEmitter()
     end
     local mt = getmetatable(e)
     local idx = type(mt.__index) == 'table' and mt.__index or mt
-    rawset(idx, 'playSoundImpl', charPlay)
+    idx.playSoundImpl = charPlay   -- affectation (pas rawset) : contrôlée par la doublure stricte (E19-T03)
     return e
 end
 local Free = {}

@@ -10,6 +10,8 @@ this module reads them on the fly and keeps its tables in process memory only.
     available()                  True when the sources are present (callers skip otherwise)
     class_methods('IsoZombie')   {method name: {Arity}} of the public methods, inherited ones included;
                                  None when the class is not exposed to Lua or its source is unknown
+    class_static_methods(nom)    {method name: {Arity}} of its public static overloads (called without self),
+                                 those of its superclasses and constructors `new` included (E19-T03)
     global_functions()           names of the global @LuaMethod functions (getPlayer, sendClientCommand...)
     events()                     names of the Lua events (declared by Java or triggered by vanilla Lua)
     vanilla_lua_functions()      names of the non-local functions defined by vanilla Lua (ISTimedActionQueue.add...)
@@ -342,6 +344,7 @@ class JavaApi:
         self.java = self.root / 'java'
         self._files: dict[Path, JavaFile] = {}
         self._methods: dict[TypeRef, dict[str, set[Arity]]] = {}
+        self._statics: dict[TypeRef, dict[str, set[Arity]]] = {}
         self._exposed: dict[str, list[tuple[str, str]]] | None = None
 
     # Reference indexes -----------------------------------------------------------------------------------------
@@ -491,6 +494,44 @@ class JavaApi:
         for meth in decl.methods:
             if meth.public:
                 out.setdefault(meth.name, set()).add(meth.arity)
+        return out
+
+    def type_statics(self, ref: TypeRef, inherited_only: bool = False) -> dict[str, set[Arity]]:
+        """Public static overloads of a type, those of its superclasses included (E19-T03: a static method is
+        called without self); constructors `new` and static interface methods are not inherited."""
+        if ref not in self._statics:
+            self._statics[ref] = {}  # cycle guard
+            out: dict[str, set[Arity]] = {}
+            if ref.path is None:
+                if ref.name in JDK_CONSTRUCTORS:
+                    out['new'] = set(JDK_CONSTRUCTORS[ref.name])
+            else:
+                decl = self._file(ref.path).types[ref.name]
+                for parent in decl.supers:
+                    found = self.resolve(parent, ref)
+                    if found:
+                        for name, arities in self.type_statics(found, inherited_only=True).items():
+                            out.setdefault(name, set()).update(arities)
+                for meth in decl.methods:
+                    if meth.public and meth.static:
+                        out.setdefault(meth.name, set()).add(meth.arity)
+            self._statics[ref] = out
+        statics = self._statics[ref]
+        if not inherited_only:
+            return statics
+        if ref.path is not None and self._file(ref.path).types[ref.name].kind == 'interface':
+            return {}
+        return {k: v for k, v in statics.items() if k != 'new'}
+
+    def class_static_methods(self, simple: str) -> dict[str, set[Arity]] | None:
+        """Static overloads of an exposed class (union over same-named classes); None when not checkable."""
+        refs = self.class_ref(simple)
+        if not refs:
+            return None
+        out: dict[str, set[Arity]] = {}
+        for ref in refs:
+            for name, arities in self.type_statics(ref).items():
+                out.setdefault(name, set()).update(arities)
         return out
 
     def declared_methods(self, full: str) -> set[str] | None:
@@ -720,6 +761,11 @@ def api() -> JavaApi:
 @lru_cache(maxsize=None)
 def class_methods(simple_name: str) -> dict[str, set[Arity]] | None:
     return api().class_methods(simple_name)
+
+
+@lru_cache(maxsize=None)
+def class_static_methods(simple_name: str) -> dict[str, set[Arity]] | None:
+    return api().class_static_methods(simple_name)
 
 
 @lru_cache(maxsize=None)

@@ -85,7 +85,7 @@ end
 -- a) (TextManager.java:80 ; sans police, la surcharge à 7 arguments attend un nombre en premier : refusée ici).
 DRAWS = {}
 local FONTS = { Dialogue = true, Medium = true, Small = true }
-local TM = {}
+local TM = H.fake('TextManager')
 function TM:getFontHeight(font)
     if not FONTS[font] then error('No implementation found for getFontHeight', 2) end
     return 22
@@ -130,8 +130,7 @@ function LINE(zb, i)
 end
 -- Canal « dire » (ChatBase) et message affiché localement.
 CHAT_LINES = {}
-local Msg = {}
-Msg.__index = Msg
+local Msg = H.class('ChatMessage')
 function Msg:setAuthor(a) self.author = a end
 function Msg:setLocal(v) self.isLocal = v end
 function Msg:setOverHeadSpeech(v) self.overHead = v end
@@ -145,7 +144,7 @@ function CHAT_TYPE(name)
         __index = function(_, k) error("attempted index: " .. tostring(k) .. " of non-table: " .. name, 2) end})
 end
 CHAT_NAMES = { [2] = 'say', [5] = 'safehouse', [0] = 'general', [7] = 'admin' }
-SAY_CHAT = { kind = 2 }
+SAY_CHAT = H.fake('ChatBase', { kind = 2 })
 function SAY_CHAT:createMessage(text) return setmetatable({ text = text, chat = SAY_CHAT }, Msg) end
 function SAY_CHAT:getType() return CHAT_TYPE(CHAT_NAMES[SAY_CHAT.kind]) end
 function SAY_CHAT:showMessage(m)
@@ -479,7 +478,7 @@ class HearingTests(SpeechBase):
             local Sq = HARNESS.classes.IsoGridSquare
             function OBJ(x, y, z, b, r, extra)
                 local sq = setmetatable({ x = math.floor(x), y = math.floor(y), z = z, building = b, room = r }, Sq)
-                local o = { x = x, y = y, z = z, sq = sq }
+                local o = HARNESS.fake('IsoPlayer', { x = x, y = y, z = z, sq = sq })
                 function o:getSquare() return self.sq end
                 function o:getX() return self.x end
                 function o:getY() return self.y end

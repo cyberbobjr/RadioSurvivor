@@ -191,7 +191,6 @@ function IV:removePatch(i) self.patches[part(i, 'removePatch') + 1] = nil end
 function IV:getHolesNumber() local n = 0 for _ in pairs(self.holes) do n = n + 1 end return n end
 function IV:getBasicPatchesNumber() local n = 0 for _ in pairs(self.patches) do n = n + 1 end return n end
 function IV:getTotalBlood() return self.blood end
-function IV:getTotalDirt() return self.dirt end  -- doublure seulement : la somme des getDirt(partie)
 -- Habillage d'un zombie par son identifiant de tenue : sang, saleté, trous (addRandomBloodDirtHolesEtc). Le résultat
 -- dépend de l'index de la tenue ET de la variante (graine), comme le tirage OutfitRNG vanilla : un décalage d'index
 -- (OUTFIT_SHIFT) donne d'autres objets et d'autres teintes pour la même variante. La teinte du t-shirt reste à

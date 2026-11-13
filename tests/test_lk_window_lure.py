@@ -139,8 +139,7 @@ LosUtil = { lineClear = function(cell, x0, y0, z0, x1, y1, z1, ignoreDoors)
 end }
 
 HEARING = 1
-local WSM = {}
-WSM.__index = WSM
+local WSM = HARNESS.class('WorldSoundManager')
 function WSM:getHearingMultiplier(z)
     if getmetatable(z) ~= C.IsoZombie then error('No implementation found for getHearingMultiplier', 2) end
     return HEARING
