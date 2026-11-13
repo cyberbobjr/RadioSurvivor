@@ -205,6 +205,18 @@ class PureUpkeepTests(PureBase):
             self.assertTrue(self.ev(f'{R}.GESTURES[{U}.GESTURE["{kind}"]]'), kind)   # remis debout par leave
 
 
+    def test_gardener_takes_the_plants_first_others_keep_the_job_order(self):
+        # Comportement "garden" (décision du 2026-11-13) : un membre dont le rôle le permet prend d'abord une tâche du
+        # jardin (arrosage, récolte) ; les autres gardent l'ordre de JOBS.
+        jobs = ('{ { kind = "refuel", key = "refuel 1", x = 1, y = 1, z = 0 }, '
+                '{ kind = "water", key = "water 2", x = 2, y = 2, z = 0 }, '
+                '{ kind = "clean", key = "clean 3", x = 3, y = 3, z = 0 } }')
+        self.run_lua(f'{U}.state.scans["g"] = {{ minute = 100, jobs = {jobs} }}')
+        self.assertEqual(self.ev(f'({U}.claim("g", {{}}, "lk-1", 100, {{ garden = true }})).key'), 'water 2')
+        self.assertEqual(self.ev(f'({U}.claim("g", {{}}, "lk-2", 100, {{ chores = true }})).key'), 'refuel 1')
+        self.assertEqual(self.ev(f'({U}.claim("g", {{}}, "lk-3", 100, {{ garden = true }})).key'), 'clean 3')
+
+
 class UpkeepStack(MealStack):
     """Pile des repas + LK_Upkeep et ses doublures ; caisse garnie de matériaux d'entretien."""
 

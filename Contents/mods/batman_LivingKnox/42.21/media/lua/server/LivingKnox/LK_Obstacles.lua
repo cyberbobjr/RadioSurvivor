@@ -1147,9 +1147,34 @@ function Obstacles.blockedPolicy(npcId)
     if not Obstacles.BLOCKED_RULES then return "detour" end
     local h = Obstacles.typeHostility(Obstacles.groupOf(npcId))
     if type(h) ~= "number" then return "detour" end
-    if h >= Obstacles.FORCE_HOSTILITY then return "force" end
+    if h >= Obstacles.FORCE_HOSTILITY then return Obstacles.breachPolicy(npcId) end
     if h >= Obstacles.WAIT_HOSTILITY then return "wait" end
     return "detour"
+end
+
+-- Comportement "breach" (rôle casseur des pillards, décision du 2026-11-13) : un membre dont le rôle le permet force ;
+-- les autres attendent (WAIT_MS) qu'un casseur du groupe, incarné à BREACH_RANGE cases au plus, ouvre le passage ;
+-- sans casseur sur place (resté au foyer, mort, sans corps) : chacun force comme avant.
+Obstacles.BREACH_RANGE = 20
+function Obstacles.breachPolicy(npcId)
+    local G, D = LivingKnox.Groups, LivingKnox.Decisions
+    local gid, mid = nil, nil
+    if G ~= nil and G.isReady() then gid, mid = G.findNpc(npcId) end
+    local g = gid and G.peek(gid) or nil
+    if g == nil or D == nil or D.allowedOf == nil then return "force" end
+    local function breaks(m) return m ~= nil and m.role ~= nil and (D.allowedOf(g.type, m.role) or {}).breach == true end
+    if breaks(g.members[mid]) then return "force" end
+    local B = LivingKnox.Bodies
+    local me = B and B.find(npcId) or nil
+    if me == nil then return "force" end
+    for omid, m in pairs(g.members) do
+        local other = omid ~= mid and m.npc ~= nil and breaks(m) and B.find(m.npc) or nil
+        if other ~= nil and math.abs(other:getX() - me:getX()) <= Obstacles.BREACH_RANGE
+            and math.abs(other:getY() - me:getY()) <= Obstacles.BREACH_RANGE then
+            return "wait"
+        end
+    end
+    return "force"
 end
 
 -- Consigne explicite (autorité) : le PNJ npcId peut forcer le foyer d'un groupe ami des joueurs pendant le "move" v

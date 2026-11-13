@@ -3889,6 +3889,19 @@ class ForceTests(ForceBase):
         self.run_lua('LivingKnox.Obstacles.BLOCKED_RULES = false')
         self.assertEqual(self.o('blockedPolicy("lk-1")'), 'detour')
 
+    def test_raider_waits_for_the_breaker_of_his_group(self):
+        # Comportement "breach" des pillards (rôle casseur) : le casseur force ; les autres attendent qu'il ouvre ;
+        # sans casseur au groupe, chacun force comme avant.
+        self.start()
+        gid = self.friendly_group(gtype='raiders')
+        self.assertEqual(self.o('blockedPolicy("lk-1")'), 'force')            # aucun casseur au groupe
+        self.assertIsNotNone(self.run_lua(f'return LivingKnox.Groups.addMember("{gid}", '
+                                          f'{{ role = "breaker", npc = "lk-2" }})'))
+        self.assertEqual(self.o('blockedPolicy("lk-1")'), 'force')            # casseur sans corps : pas sur place
+        self.spawn(x=101, y=102)                                              # lk-2 incarné près de lk-1
+        self.assertEqual(self.o('blockedPolicy("lk-1")'), 'wait')             # combattant : le casseur force
+        self.assertEqual(self.o('blockedPolicy("lk-2")'), 'force')            # casseur
+
     def test_raider_breaks_the_barricade_plank_by_plank_then_the_door_is_opened_and_closed_behind(self):
         zid = self.setup()
         ms, seen = self.trip(zid)

@@ -423,11 +423,16 @@ local function cached(gid, g, minute)
     return jobs or {}
 end
 
--- Première tâche ouverte du groupe que personne d'autre ne tient (et pas faite récemment), prise par id. Rend la tâche
+-- Tâches du jardin (comportement "garden" du rôle, décision du 2026-11-13 : le jardinier les prend d'abord).
+Upkeep.GARDEN_JOBS = { water = true, harvest = true }
+
+-- Première tâche ouverte du groupe que personne d'autre ne tient (et pas faite récemment), prise par id ; allowed
+-- (comportements du rôle, facultatif) : un jardinier ("garden") prend d'abord une tâche du jardin. Rend la tâche
 -- (copie), ou nil.
-function Upkeep.claim(gid, g, id, minute)
+function Upkeep.claim(gid, g, id, minute, allowed)
     local st = Upkeep.state
-    for _, job in ipairs(cached(gid, g, minute)) do
+    local jobs = cached(gid, g, minute)
+    local function take(job)
         local k = claimKey(gid, job.key)
         local holder = st.claims[k]
         local doneUntil = st.done[k]
@@ -435,6 +440,17 @@ function Upkeep.claim(gid, g, id, minute)
             st.claims[k] = id
             return { kind = job.kind, key = job.key, x = job.x, y = job.y, z = job.z, bid = job.bid }
         end
+        return nil
+    end
+    if type(allowed) == "table" and allowed.garden then
+        for _, job in ipairs(jobs) do
+            local got = Upkeep.GARDEN_JOBS[job.kind] and take(job) or nil
+            if got ~= nil then return got end
+        end
+    end
+    for _, job in ipairs(jobs) do
+        local got = take(job)
+        if got ~= nil then return got end
     end
     return nil
 end
@@ -649,7 +665,7 @@ function Upkeep.run(id, st, ctx, g)
         step(id, ctx, m)
         return true
     end
-    local job = Upkeep.claim(ctx.gid, g, id, ctx.minute)
+    local job = Upkeep.claim(ctx.gid, g, id, ctx.minute, ctx.allowed)
     if job == nil then return false end
     if m ~= nil then R().leave(id) end   -- corvée visible en cours : debout d'abord
     m = { key = "upkeep " .. job.key, kind = "upkeep", job = job, gid = ctx.gid, mid = ctx.mid, phase = "place",

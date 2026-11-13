@@ -491,6 +491,9 @@ Nouveau test « window of a house, destination behind a locked door elsewhere: o
 
 Tâche LK04-T04 (« selon le type de groupe : contourner, attendre, ou forcer (pillards) ; jamais forcer le foyer d'un groupe ami des joueurs sans consigne ») ; idée I6.8 (porte verrouillée forcée seulement par un groupe hostile). Code : `LK_Obstacles.lua`, section « passage bloqué » (`blockedPolicy`, `onBlocked`, `canForce`, `blockedPass`, `orderForce`, `forceWeapon`) ; gestes ponctuels `force` et `wait` (`LK_Anim.lua`, `Anim.ACTS`, `Anim.ACT_CLIP`). Tests : `tests/test_lk_obstacles.py` (`ForceTests` 13, `MultiplayerForceTests` 3, `ForceSuiteTests` 4) ; suite en jeu `lk.force` (`dev/.../suites/RST_LKForce.lua`).
 
+
+Casseur (comportement `breach` du rôle casseur des pillards, décision du 2026-11-13, `Obstacles.breachPolicy`) : devant un passage bloqué, un pillard dont le rôle permet `breach` force ; un autre pillard attend (`wait`, `WAIT_MS`) quand un casseur du groupe est incarné à `BREACH_RANGE` (20) cases au plus ; sans casseur sur place, chacun force comme avant.
+
 ### Faits du moteur
 
 | Fait | Preuve | Statut |
