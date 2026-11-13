@@ -44,7 +44,7 @@
 | [E16](E16-publication.md) | Publication sur le Workshop | en cours | 3 / 10 |
 | [E17](../plans-termines/E17-fournisseur-pnj-living-knox.md) | Fournisseur de PNJ et passage à Living Knox | terminée | 15 / 16 |
 | [E18](../plans-termines/E18-separation-living-knox.md) | Séparer RadioSurvivor et Living Knox autour d'un mod commun | terminée | 38 / 39 |
-| [E19](E19-banc-mimetique.md) | Banc hors jeu mimétique | à faire | 0 / 8 |
+| [E19](E19-banc-mimetique.md) | Banc hors jeu mimétique | en cours | 1 / 8 |
 | [LK00](../plans-termines/LK00-cadrage.md) | Cadrage : décisions de conception et architecture | terminée | 2 / 2 |
 | [LK01](../plans-termines/LK01-fondations.md) | Fondations du projet | terminée | 6 / 6 |
 | [LK02](LK02-jalon-corps-gestes.md) | Jalon 1 : corps et gestes prouvés (décision de continuer) | en cours | 12 / 15 |
@@ -296,7 +296,7 @@
 | ☐ | [E19-T04](E19-banc-mimetique.md#L74) | Potager sur le vrai Lua vanilla | `à faire` | hors jeu | — |
 | ☐ | [E19-T05](E19-banc-mimetique.md#L84) | Horloge fidèle et balayage des phases | `à faire` | hors jeu | — |
 | ☐ | [E19-T06](E19-banc-mimetique.md#L94) | Réseau en désordre dans les bancs multijoueurs | `à faire` | hors jeu | — |
-| ☐ | [E19-T07](E19-banc-mimetique.md#L104) | Règle de travail et registre des écarts | `à faire` | hors jeu | — |
+| ☑ | [E19-T07](E19-banc-mimetique.md#L104) | Règle de travail et registre des écarts | `testé hors jeu` | hors jeu | 2026-11-13 : règle « le banc hors jeu fait l'essentiel, le jeu confirme » et « un défaut vu en jeu se reproduit d'abord au banc » dans `docs/developpement.md` (Méthode du plan) ; registre `docs/annexes/tests/ecarts-banc-jeu.md` : 41 lignes classées (1 couverte, 6 non reproductibles, 34 à couvrir), lié depuis l'ADR et `docs/developpement.md` ; `python tools/plan.py check` : 0 erreur |
 | ☐ | [E19-T08](E19-banc-mimetique.md#L114) | Site réel des campagnes rejoué au banc | `à faire` | hors jeu | — |
 | ☑ | [LK00-T01](../plans-termines/LK00-cadrage.md#L40) | Analyse comparative des architectures d'exécution de l'IA en multijoueur | `testé hors jeu` | hors jeu | analyse v2 et estimation, commits `9441d40` et `534803f` ; faits porteurs revérifiés à la main (accroche `IsRagdoll`, `sendClientCommand` réservé au joueur local, `NetworkZombieAI.parse`, `isRemote`, `isOwner` d'A-Life, `sendDamage`) |
 | ☑ | [LK00-T02](../plans-termines/LK00-cadrage.md#L51) | Choisir la base des PNJ et l'architecture d'exécution | `testé hors jeu` | hors jeu | décision « moteur propre avec jalon » et nom « Living Knox » du 2026-10-03 (section Décisions) ; étapes LK01 à LK13 écrites |

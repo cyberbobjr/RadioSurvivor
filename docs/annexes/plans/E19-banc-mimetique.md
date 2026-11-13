@@ -2,7 +2,7 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** à faire — 0 / 8 tâche(s) terminée(s).
+**Avancement.** en cours — 1 / 8 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
@@ -12,7 +12,7 @@
 | ☐ | E19-T04 | Potager sur le vrai Lua vanilla | `à faire` | hors jeu | LK15-T06 |
 | ☐ | E19-T05 | Horloge fidèle et balayage des phases | `à faire` | hors jeu | — |
 | ☐ | E19-T06 | Réseau en désordre dans les bancs multijoueurs | `à faire` | hors jeu | — |
-| ☐ | E19-T07 | Règle de travail et registre des écarts | `à faire` | hors jeu | — |
+| ☑ | E19-T07 | Règle de travail et registre des écarts | `testé hors jeu` | hors jeu | — |
 | ☐ | E19-T08 | Site réel des campagnes rejoué au banc | `à faire` | hors jeu | E19-T03 |
 
 <!-- fin du tableau de bord -->
@@ -101,16 +101,16 @@ Rendu, animation, son, interface ; IA et chemins vanilla écrits en Java. Les ca
   - Tests : bancs multijoueurs.
   - Preuve : —
   - Reste : —
-- [ ] **E19-T07** — Règle de travail et registre des écarts
-  - État : `à faire`
+- [x] **E19-T07** — Règle de travail et registre des écarts
+  - État : `testé hors jeu`
   - Cible : `hors jeu`
   - Dépend de : —
   - Fichiers : `docs/developpement.md` ; `docs/annexes/tests/ecarts-banc-jeu.md`
   - Faire : ADR D07, D08 : règle « un défaut vu en jeu se reproduit d'abord au banc » ; registre des 40 cas de l'inventaire avec catégorie et mécanisme de couverture.
   - Accepté si : règle écrite ; registre rempli et lié depuis l'index des documents.
   - Tests : `python tools/plan.py check`.
-  - Preuve : —
-  - Reste : —
+  - Preuve : 2026-11-13 : règle « le banc hors jeu fait l'essentiel, le jeu confirme » et « un défaut vu en jeu se reproduit d'abord au banc » dans `docs/developpement.md` (Méthode du plan) ; registre `docs/annexes/tests/ecarts-banc-jeu.md` : 41 lignes classées (1 couverte, 6 non reproductibles, 34 à couvrir), lié depuis l'ADR et `docs/developpement.md` ; `python tools/plan.py check` : 0 erreur
+  - Reste : lien depuis `docs/README.md` à ajouter quand ses modifications en cours (autre session) seront commitées ; compte du registre à tenir à chaque tâche de `E19`
 - [ ] **E19-T08** — Site réel des campagnes rejoué au banc
   - État : `à faire`
   - Cible : `hors jeu`

@@ -63,6 +63,12 @@ autoritaire, adaptateurs d'exécution, fournisseur de PNJ. Vue détaillée :
   (skill `radiosurvivor-plan`). Préfixes : `E` (radio, carnet, missions) et `LK` (moteur de PNJ).
 - **Une tâche à la fois.** Les décisions marquées `à décider` se posent à l'utilisateur avant tout code : une question
   à la fois, trois réponses fermées et une réponse libre.
+- **Le banc hors jeu fait l'essentiel, le jeu confirme** (demande de l'utilisateur du 2026-11-13,
+  [ADR du banc mimétique](architecture/decisions/adr-banc-mimetique.md)). Une doublure d'API Java ne définit que des
+  méthodes qui existent dans le jeu, avec leurs refus ; un système écrit en Lua par le jeu se charge pour de vrai au
+  banc plutôt que d'être réécrit. **Un défaut vu en jeu se reproduit d'abord au banc** : il reçoit une ligne dans
+  [`annexes/tests/ecarts-banc-jeu.md`](annexes/tests/ecarts-banc-jeu.md) avec sa catégorie, puis un test rouge au banc
+  quand la catégorie le permet, puis la correction.
 - Avant de déclarer une tâche testée : `tests/test_protocol.py`, `tests/test_carnet.py`, luacheck (sans nouvel
   avertissement) et `python tools/plan.py check`. La suite complète est `python tests/run_all.py`.
 
