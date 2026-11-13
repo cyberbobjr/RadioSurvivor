@@ -1,0 +1,4 @@
+# Appels du Lua des mods inconnus de l'API 42.22 (E19-T02, tests/test_mod_calls_api.py).
+# Une ligne « chemin::genre::nom » par écart examiné (genre : méthode ou globale). Cette liste ne peut que DIMINUER :
+# un écart nouveau fait échouer le banc, une ligne qui n'est plus un écart aussi. Corriger l'appel, puis retirer la
+# ligne : python tests/test_mod_calls_api.py --write-baseline (n'ajoute jamais d'écart).

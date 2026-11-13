@@ -129,6 +129,83 @@ class ParseJavaTest(unittest.TestCase):
         self.assertTrue(pz_api.accepts({Arity(0), Arity(2)}, 2))
 
 
+class BlankJavaTest(unittest.TestCase):
+    def test_comments_and_literals(self):
+        java = 'a("x\\"{", \'}\'); // f() {\nb(); /* { */ c("""\n{\n"""); d("open\ne();'
+        self.assertEqual(pz_api.blank_java(java), 'a("", \'\'); \nb();   c(""); d(""e();')
+
+
+class LuaLexerTest(unittest.TestCase):
+    def test_tokens(self):
+        lua = 'a:b("x:y()") -- c:d()\n--[=[ e:f() ]=] g[[h:i()]] j = \'k\\\'l\' .. 0x1F\n'
+        self.assertEqual([(t.kind, t.text, t.line) for t in pz_api.lua_tokens(lua)], [
+            ('name', 'a', 1), ('op', ':', 1), ('name', 'b', 1), ('op', '(', 1), ('string', '"x:y()"', 1),
+            ('op', ')', 1), ('name', 'g', 2), ('string', '[[h:i()]]', 2), ('name', 'j', 2), ('op', '=', 2),
+            ('string', "'k\\'l'", 2), ('op', '..', 2), ('number', '0x1F', 2)])
+
+    def test_function_header(self):
+        toks = pz_api.lua_tokens('function A.b:c(x) end function f(y) end local g = function(z) end')
+        heads = [pz_api.lua_function_header(toks, i) for i, t in enumerate(toks) if t.text == 'function']
+        self.assertEqual([(parts, sep, toks[paren].text) for parts, sep, paren in heads],
+                         [(['A', 'b', 'c'], ':', '('), (['f'], '', '('), ([], '', '(')])
+
+    def test_keywords_and_columns(self):
+        toks = pz_api.lua_tokens('local function f() end\n  return nil')
+        self.assertEqual([t.kind for t in toks], ['keyword', 'keyword', 'name', 'op', 'op', 'keyword', 'keyword',
+                                                  'keyword'])
+        self.assertEqual((toks[-1].line, toks[-1].col), (2, 9))
+
+
+class KahluaLibraryTest(unittest.TestCase):
+    """Bibliothèque de base Kahlua relevée sur de petits extraits écrits pour ce banc."""
+
+    def test_platform_libraries(self):
+        self.assertEqual(pz_api.platform_libraries('MathLib.register(this, env);\nBaseLib.register(env);'),
+                         ['MathLib', 'BaseLib'])
+
+    def test_object_library_and_environment_literals(self):
+        java = '''public final class RandomLib {
+    private static final String[] names = new String[2];
+    public static void register(Platform platform, KahluaTable environment) {
+        KahluaTable t = platform.newTable();
+        for (int i = 0; i < 2; ++i) { t.rawset(names[i], (Object)functions[i]); }
+        t.rawset("__index", (Object)t);
+        environment.rawset("newrandom", (Object)NEWRANDOM_FUN); }
+    static { RandomLib.names[0] = "random"; RandomLib.names[1] = "seed"; } }'''
+        lib = pz_api.parse_kahlua_lib(java)
+        self.assertEqual((lib.globals, lib.value_methods, lib.value_tables),
+                         ({'newrandom'}, {'random', 'seed'}, frozenset()))
+
+    def test_plain_table_library_is_not_a_value_library(self):
+        java = '''class OsLib { private static final String[] funcnames = new String[1];
+    public static void register(Platform platform, KahluaTable env) { KahluaTable os = platform.newTable();
+        for (int i = 0; i < 1; ++i) { os.rawset(funcnames[i], (Object)funcs[i]); }
+        env.rawset("os", (Object)os); }
+    static { OsLib.funcnames[0] = "time"; } }'''
+        self.assertEqual(pz_api.parse_kahlua_lib(java), pz_api.KahluaLib(frozenset({'os'})))
+
+    def test_stdlib_lua(self):
+        lua = '''function assert(c, ...) end
+--[[ function ipairs(t) end ]]
+ipairs = table.ipairs
+do
+    local function helper() end
+    function table.sort(t, comp) end
+end
+function string.len(s)
+    local n = 1
+    max = n
+end
+'''
+        lib = pz_api.parse_stdlib_lua(lua, frozenset({'string'}))
+        self.assertEqual((lib.globals, lib.value_methods), ({'assert', 'ipairs'}, {'len'}))
+
+    def test_split_vanilla_names(self):
+        globals_, methods = pz_api.split_vanilla_names({'ISFoo.new', 'ISBar:render', 'luautils', 'A.b.c'})
+        self.assertEqual(globals_, {'luautils'})
+        self.assertEqual(methods, {'new', 'render', 'luautils', 'c'})
+
+
 class InheritanceTest(unittest.TestCase):
     """Résolution des classes mères (paquet, import, joker, imbriquée, JDK) sur une petite arborescence."""
 
@@ -153,6 +230,38 @@ import demo.world.*;
 public class Box extends Crate.Lid { public void tape(int n, int m) {} }''',
         'java/demo/Registry.java': '''package demo;
 public class Registry { public static class Writer { public void write(String s) {} } }''',
+        # Exposition déléguée (absente de l'index) : LuaManager -> Atlas.setExposed -> Pin.setExposed.
+        'java/zombie/Lua/LuaManager.java': '''package zombie.Lua;
+import demo.map.Atlas;
+public final class LuaManager { public static class Exposer {
+    void exposeAll() { this.setExposed(Integer.class); Atlas.setExposed(this); }
+    public void setExposed(Class<?> c) {} } }''',
+        'java/demo/map/Atlas.java': '''package demo.map;
+public class Atlas { public void zoomTo(int level) {}
+    public static class Layer { public void hide() {} }
+    public static void setExposed(LuaManager.Exposer exposer) {
+        exposer.setExposed(Atlas.class); exposer.setExposed(Atlas.Layer.class); Pin.setExposed(exposer); } }''',
+        'java/demo/map/Pin.java': '''package demo.map;
+public class Pin { public void drop() {}
+    public static void setExposed(LuaManager.Exposer exposer) { exposer.setExposed(Pin.class); } }''',
+        # Plate-forme Kahlua : bibliothèques enregistrées par setupEnvironment.
+        'java/se/krka/kahlua/j2se/J2SEPlatform.java': '''package se.krka.kahlua.j2se;
+import se.krka.kahlua.stdlib.BaseLib;
+import se.krka.kahlua.stdlib.StringLib;
+public class J2SEPlatform { public void setupEnvironment(KahluaTable env) {
+    BaseLib.register(env); StringLib.register(this, env); } }''',
+        'java/se/krka/kahlua/stdlib/BaseLib.java': '''package se.krka.kahlua.stdlib;
+public final class BaseLib { private static final String[] names = new String[2];
+    public static void register(KahluaTable environment) {
+        for (int i = 0; i < 2; ++i) { environment.rawset(names[i], (Object)functions[i]); } }
+    static { BaseLib.names[0] = "pcall"; BaseLib.names[1] = "type"; } }''',
+        'java/se/krka/kahlua/stdlib/StringLib.java': '''package se.krka.kahlua.stdlib;
+public final class StringLib { private static final String[] names = new String[]{"sub", "find"};
+    public static synchronized void register(Platform platform, KahluaTable env) {
+        KahluaTable string = platform.newTable();
+        for (int i = 0; i < 2; ++i) { string.rawset(names[i], (Object)functions[i]); }
+        string.rawset("__index", (Object)string);
+        env.rawset("string", (Object)string); } }''',
     }
     INDEX = ('# exposed\n'
              'demo.world.Crate\tCrate\tjava/demo/world/Crate.java\n'
@@ -210,6 +319,26 @@ public class Registry { public static class Writer { public void write(String s)
         self.assertEqual(self.api.global_functions(), {'getWorld'})
         self.assertEqual(self.api.events(), {'OnTick', 'OnCustom'})
         self.assertEqual(self.api.vanilla_lua_functions(), {'ISFoo.new'})
+
+    def test_delegated_exposure_is_followed(self):
+        rows = self.api.delegated_exposed()
+        self.assertEqual([r[:2] for r in rows], [('demo.map.Atlas', 'Atlas'), ('demo.map.Atlas.Layer', 'Layer'),
+                                                 ('demo.map.Pin', 'Pin')])
+        self.assertNotIn('Integer', self.api.exposed())      # exposition directe de LuaManager : l'index la porte
+        self.assertIn('zoomTo', self.api.class_methods('Atlas'))
+        self.assertEqual(self.api.class_methods('Layer')['hide'], {Arity(0)})
+
+    def test_exposed_method_names_is_the_union(self):
+        names = self.api.exposed_method_names()
+        for name in ('tidy', 'tape', 'getX', 'drop', 'hide', 'write', 'toString'):
+            self.assertIn(name, names)
+        self.assertNotIn('internal', names)
+
+    def test_kahlua_java_library(self):
+        lib = self.api.kahlua_java_library()
+        self.assertEqual(lib.globals, {'pcall', 'type', 'string'})
+        self.assertEqual(lib.value_methods, {'sub', 'find'})
+        self.assertEqual(lib.value_tables, {'string'})
 
     def test_available_follows_the_environment(self):
         saved = os.environ.get('PZ_SOURCE_DIR')

@@ -13,6 +13,12 @@ this module reads them on the fly and keeps its tables in process memory only.
     global_functions()           names of the global @LuaMethod functions (getPlayer, sendClientCommand...)
     events()                     names of the Lua events (declared by Java or triggered by vanilla Lua)
     vanilla_lua_functions()      names of the non-local functions defined by vanilla Lua (ISTimedActionQueue.add...)
+    vanilla_lua_globals()        their global names (no '.' or ':'), vanilla_lua_methods() their last segments
+    exposed_method_names()       union of the public method names of every exposed class (E19-T02)
+    lua_library()                Kahlua base library really present: global functions and methods callable with ':'
+                                 on a value (string, coroutine...), read from the Kahlua sources and the game's
+                                 stdlib.lua (reference sources first, then the game folder of tools/pz_paths.py)
+    lua_tokens(text)             Lua lexer (comments dropped, strings kept as one token); lua_function_header()
 
 Java analysis: regular expressions over the CFR output once comments and literals are blanked, one type body at a
 time (annotations, generics, modifiers, multi-line headers, varargs). Superclasses and interfaces are resolved through
@@ -33,6 +39,11 @@ EXPOSED_INDEX = 'index-lua-exposed-classes.txt'
 METHODS_INDEX = 'index-lua-methods.txt'
 EVENTS_INDEX = 'index-lua-events.txt'
 VANILLA_INDEX = 'index-vanilla-lua-functions.txt'
+LUA_MANAGER = 'zombie.Lua.LuaManager'                             # its Exposer delegates part of setExposed
+RE_CLASS_EXPOSE = re.compile(r'\.setExposed\(\s*([A-Z][\w.]*)\.class\s*\)')
+RE_DELEGATED_EXPOSE = re.compile(r'\b([A-Z][\w.]*)\.setExposed\(\s*\w+\s*\)')
+KAHLUA_PLATFORM ='java/se/krka/kahlua/j2se/J2SEPlatform.java'   # setupEnvironment: libraries of every Lua state
+STDLIB_LUA = 'stdlib.lua'                                         # loaded by setupEnvironment from the game folder
 
 
 class Arity(NamedTuple):
@@ -133,33 +144,26 @@ _NOT_A_TYPE = MODIFIERS | {'new', 'return', 'throw', 'else', 'case', 'goto', 'as
 
 # --- Java analysis ---------------------------------------------------------------------------------------------------
 
+# Line comment (dropped), block comment (one space), text block and string / char literal (emptied; an unterminated
+# literal stops at the end of its line, which it swallows).
+RE_JAVA_BLANKED = re.compile(r'//[^\n]*|/\*[\s\S]*?(?:\*/|\Z)|"""[\s\S]*?(?:"""|\Z)'
+                             r'|(["\'])(?:\\[\s\S]|(?!\1)[^\\\n])*(?:\1|\n)?')
+
+
+def _blanked(m: re.Match) -> str:
+    token = m.group(0)
+    if token.startswith('//'):
+        return ''
+    if token.startswith('/*'):
+        return ' '
+    if token.startswith('"""'):
+        return '""'
+    return m.group(1) * 2
+
+
 def blank_java(text: str) -> str:
     """Text with comments removed and string / char literals emptied, so braces and parentheses can be counted."""
-    out = []
-    i, n = 0, len(text)
-    while i < n:
-        c = text[i]
-        if text.startswith('//', i):
-            j = text.find('\n', i)
-            i = n if j < 0 else j
-        elif text.startswith('/*', i):
-            j = text.find('*/', i + 2)
-            i = n if j < 0 else j + 2
-            out.append(' ')
-        elif text.startswith('"""', i):
-            j = text.find('"""', i + 3)
-            i = n if j < 0 else j + 3
-            out.append('""')
-        elif c in '"\'':
-            j = i + 1
-            while j < n and text[j] != c and text[j] != '\n':
-                j += 2 if text[j] == '\\' else 1
-            i = j + 1
-            out.append(c + c)
-        else:
-            out.append(c)
-            i += 1
-    return ''.join(out)
+    return RE_JAVA_BLANKED.sub(_blanked, text)
 
 
 def strip_generics(text: str) -> str:
@@ -347,13 +351,42 @@ class JavaApi:
                 if line and not line.startswith('#')]
 
     def exposed(self) -> dict[str, list[tuple[str, str]]]:
-        """Simple name -> [(full name, decompiled file or '?')] of the classes exposed to Lua."""
+        """Simple name -> [(full name, decompiled file or '?')] of the classes exposed to Lua: the index, plus the
+        classes exposed through a delegated setExposed(exposer) that the index misses (UIWorldMap and its family)."""
         if self._exposed is None:
             self._exposed = {}
-            for row in self._rows(EXPOSED_INDEX):
-                if len(row) >= 3:
-                    self._exposed.setdefault(row[1], []).append((row[0], row[2]))
+            rows = [(row[0], row[1], row[2]) for row in self._rows(EXPOSED_INDEX) if len(row) >= 3]
+            known = {full for full, _, _ in rows}
+            rows += [row for row in self.delegated_exposed() if row[0] not in known]
+            for full, simple, path in rows:
+                self._exposed.setdefault(simple, []).append((full, path))
         return self._exposed
+
+    def delegated_exposed(self) -> list[tuple[str, str, str]]:
+        """(full name, simple name, decompiled file) of the classes exposed by the static setExposed(exposer) methods
+        that LuaManager's Exposer calls (X.setExposed(this)), followed recursively."""
+        start = self.locate(LUA_MANAGER)
+        if start is None:
+            return []
+        found, seen, todo = [], {start}, [start]
+        while todo:
+            ref = todo.pop()
+            code = blank_java(ref.path.read_text(encoding='utf-8', errors='replace'))
+            for name in RE_CLASS_EXPOSE.findall(code) if ref != start else ():  # LuaManager's own: the index
+                target = self.resolve(name, ref)
+                if target is not None and target.path is not None:
+                    found.append(self._row(target))
+            for name in RE_DELEGATED_EXPOSE.findall(code):
+                target = self.resolve(name, ref)
+                if target is not None and target.path is not None and target not in seen:
+                    seen.add(target)
+                    todo.append(target)
+        return sorted(set(found))
+
+    def _row(self, ref: TypeRef) -> tuple[str, str, str]:
+        package = self._file(ref.path).package
+        full = (package + '.' if package else '') + ref.name
+        return full, ref.name.rsplit('.', 1)[-1], ref.path.relative_to(self.root).as_posix()
 
     def global_functions(self) -> set[str]:
         return {row[0] for row in self._rows(METHODS_INDEX) if len(row) > 1 and row[1] == 'global'}
@@ -493,6 +526,168 @@ class JavaApi:
                 out.setdefault(name, set()).update(arities)
         return out
 
+    def exposed_method_names(self) -> set[str]:
+        """Union of the public method names of every exposed class (inherited ones included)."""
+        names: set[str] = set()
+        for simple in self.exposed():
+            names.update(self.class_methods(simple) or ())
+        return names
+
+    # Kahlua base library -------------------------------------------------------------------------------------------
+    def kahlua_java_library(self) -> KahluaLib:
+        """Library the Kahlua platform registers in every Lua state (J2SEPlatform.setupEnvironment), from Java."""
+        platform = self.root / KAHLUA_PLATFORM
+        imports = self._file(platform).imports
+        found = KahluaLib()
+        for simple in platform_libraries(platform.read_text(encoding='utf-8', errors='replace')):
+            ref = self.locate(imports.get(simple, simple))
+            if ref is not None:
+                found = found.merge(parse_kahlua_lib(ref.path.read_text(encoding='utf-8', errors='replace')))
+        return found
+
+
+# --- Lua lexer -------------------------------------------------------------------------------------------------------
+
+LUA_KEYWORDS = frozenset('and break do else elseif end false for function if in local nil not or repeat return then '
+                         'true until while'.split())
+
+
+class LuaToken(NamedTuple):
+    kind: str     # 'name', 'keyword', 'string', 'number', 'op'
+    text: str     # a string token keeps its quotes or long brackets
+    line: int     # 1-based
+    col: int      # 0-based
+
+
+RE_LUA_TOKEN = re.compile(r'''
+    (?P<space>\s+)
+  | (?P<comment>--\[(?P<ceq>=*)\[[\s\S]*?(?:\](?P=ceq)\]|\Z)|--[^\n]*)
+  | (?P<string>\[(?P<seq>=*)\[[\s\S]*?(?:\](?P=seq)\]|\Z)
+        |"(?:\\[\s\S]|[^"\\\n])*"?|'(?:\\[\s\S]|[^'\\\n])*'?)
+  | (?P<number>0[xX][0-9a-fA-F]+|(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?)
+  | (?P<name>[A-Za-z_]\w*)
+  | (?P<op>\.\.\.|\.\.|==|~=|<=|>=|::|[\s\S])
+''', re.X)
+
+
+def lua_tokens(text: str) -> list[LuaToken]:
+    """Tokens of a Lua source; comments and blanks dropped, escapes and long brackets honoured."""
+    tokens, line, line_start, last = [], 1, 0, 0
+    for m in RE_LUA_TOKEN.finditer(text):
+        start = m.start()
+        newlines = text.count('\n', last, start)
+        if newlines:
+            line += newlines
+            line_start = text.rfind('\n', last, start) + 1
+        last = start
+        kind = m.lastgroup if m.lastgroup not in ('ceq', 'seq') else ('comment' if m.group('comment') else 'string')
+        if kind in ('space', 'comment'):
+            continue
+        if kind == 'name' and m.group(0) in LUA_KEYWORDS:
+            kind = 'keyword'
+        tokens.append(LuaToken(kind, m.group(0), line, start - line_start))
+    return tokens
+
+
+# --- Kahlua base library ---------------------------------------------------------------------------------------------
+
+@dataclass(frozen=True)
+class KahluaLib:
+    """Base library of a Lua state: global names, methods callable with ':' on a value (string, coroutine, random
+    object) and the global tables whose functions are such methods ('string', 'coroutine')."""
+    globals: frozenset[str] = frozenset()
+    value_methods: frozenset[str] = frozenset()
+    value_tables: frozenset[str] = frozenset()
+
+    def merge(self, other: KahluaLib) -> KahluaLib:
+        return KahluaLib(self.globals | other.globals, self.value_methods | other.value_methods,
+                         self.value_tables | other.value_tables)
+
+
+RE_PLATFORM_REGISTER = re.compile(r'\b([A-Z]\w*)\.register\(')
+RE_NAMES_ITEM = re.compile(r'\b(\w*names)\[\d+\]\s*=\s*"(\w+)"')
+RE_NAMES_ARRAY = re.compile(r'\b(\w*names)\s*=\s*new\s+String\[\]\s*\{([^}]*)\}')
+RE_REGISTER_HEADER = re.compile(r'\bstatic\s+(?:\w+\s+)*void\s+register\s*\(([^)]*)\)')
+RE_LOOP_RAWSET = re.compile(r'\b(\w+)\.rawset\(\s*(\w*names)\[\w+\]')
+RE_LITERAL_RAWSET = re.compile(r'\b(\w+)\.rawset\(\s*"(\w+)"\s*,\s*\(Object\)\s*(\w+)')
+
+
+def platform_libraries(text: str) -> list[str]:
+    """Simple class names whose register() the platform calls (J2SEPlatform.setupEnvironment)."""
+    return RE_PLATFORM_REGISTER.findall(text)
+
+
+def _kahlua_name_arrays(text: str) -> dict[str, set[str]]:
+    arrays: dict[str, set[str]] = {}
+    for array, name in RE_NAMES_ITEM.findall(text):
+        arrays.setdefault(array, set()).add(name)
+    for array, items in RE_NAMES_ARRAY.findall(text):
+        arrays.setdefault(array, set()).update(re.findall(r'"(\w+)"', items))
+    return arrays
+
+
+def parse_kahlua_lib(text: str) -> KahluaLib:
+    """Names one Kahlua library class registers: its name arrays stored in the environment (globals) or in a table
+    that is its own __index (methods on values), plus the literal names it stores in the environment."""
+    header = RE_REGISTER_HEADER.search(text)
+    if not header:
+        return KahluaLib()
+    env = {p.split()[-1] for p in header.group(1).split(',') if p.split()[:1] == ['KahluaTable']}
+    arrays = _kahlua_name_arrays(text)
+    literal = RE_LITERAL_RAWSET.findall(text)
+    self_indexed = {table for table, key, value in literal if key == '__index' and value == table}
+    globals_, methods = set(), set()
+    for table, array in RE_LOOP_RAWSET.findall(text):
+        if table in env:
+            globals_ |= arrays.get(array, set())
+        elif table in self_indexed:
+            methods |= arrays.get(array, set())
+    env_literals = [(key, value) for table, key, value in literal if table in env]
+    return KahluaLib(frozenset(globals_ | {key for key, _ in env_literals}), frozenset(methods),
+                     frozenset(key for key, value in env_literals if value in self_indexed))
+
+
+def lua_function_header(tokens: list[LuaToken], i: int) -> tuple[list[str], str, int]:
+    """Header of the function whose keyword is at i: (names a.b.c, last separator '.' or ':' ('' for a single name),
+    index of the opening parenthesis). Anonymous function: ([], '', index of the parenthesis)."""
+    parts, sep, j = [], '', i + 1
+    while j < len(tokens) and tokens[j].kind == 'name':
+        parts.append(tokens[j].text)
+        if j + 1 < len(tokens) and tokens[j + 1].text in ('.', ':'):
+            sep = tokens[j + 1].text
+            j += 2
+        else:
+            j += 1
+            break
+    return parts, sep if len(parts) > 1 else '', j
+
+
+def parse_stdlib_lua(text: str, value_tables: frozenset[str]) -> KahluaLib:
+    """Definitions of Kahlua's stdlib.lua: global functions (function f(, f = ... at column 0) and methods added to a
+    value table (function string.len()."""
+    tokens = lua_tokens(text)
+    globals_, methods = set(), set()
+    for i, tok in enumerate(tokens):
+        previous = tokens[i - 1].text if i else ''
+        if tok.text == 'function' and previous != 'local':
+            parts, sep, _ = lua_function_header(tokens, i)
+            if len(parts) == 1:
+                globals_.add(parts[0])
+            elif len(parts) == 2 and sep == '.' and parts[0] in value_tables:
+                methods.add(parts[1])
+        elif (tok.kind == 'name' and tok.col == 0 and i + 1 < len(tokens) and tokens[i + 1].text == '='
+              and previous != 'local'):
+            globals_.add(tok.text)
+    return KahluaLib(frozenset(globals_), frozenset(methods))
+
+
+def split_vanilla_names(names) -> tuple[frozenset[str], frozenset[str]]:
+    """(global names, method names) of vanilla Lua function names: 'f' is global (or a table field), the last segment
+    of 'A.b' / 'A:b' is a method; a field function is also callable with ':'."""
+    globals_ = frozenset(n for n in names if not re.search(r'[.:]', n))
+    methods = frozenset(re.split(r'[.:]', n)[-1] for n in names)
+    return globals_, methods
+
 
 # --- Module interface (one table per process) ------------------------------------------------------------------------
 
@@ -540,6 +735,47 @@ def events() -> frozenset[str]:
 @lru_cache(maxsize=None)
 def vanilla_lua_functions() -> frozenset[str]:
     return frozenset(api().vanilla_lua_functions())
+
+
+def vanilla_lua_globals() -> frozenset[str]:
+    return split_vanilla_names(vanilla_lua_functions())[0]
+
+
+def vanilla_lua_methods() -> frozenset[str]:
+    return split_vanilla_names(vanilla_lua_functions())[1]
+
+
+@lru_cache(maxsize=None)
+def exposed_method_names() -> frozenset[str]:
+    return frozenset(api().exposed_method_names())
+
+
+def stdlib_lua_path() -> Path | None:
+    """Kahlua's stdlib.lua: in the reference sources if copied there, else in the game folder; None when absent."""
+    import pz_paths  # same folder; imported here so the Java table needs no game installation
+    for candidate in (source_dir() / STDLIB_LUA, pz_paths.game_dir() / STDLIB_LUA):
+        if candidate.is_file():
+            return candidate
+    return None
+
+
+def lua_library_missing() -> str | None:
+    """What is missing for lua_library(), or None."""
+    if missing():
+        return missing()
+    if not (source_dir() / KAHLUA_PLATFORM).is_file():
+        return f'{KAHLUA_PLATFORM} not found in the reference sources {source_dir()}'
+    if stdlib_lua_path() is None:
+        return f'{STDLIB_LUA} not found in the reference sources nor in the game folder (set PZ_DIR)'
+    return None
+
+
+@lru_cache(maxsize=None)
+def lua_library() -> KahluaLib:
+    """Kahlua base library of every Lua state of the game: Java libraries, then stdlib.lua over them."""
+    java = api().kahlua_java_library()
+    stdlib = parse_stdlib_lua(stdlib_lua_path().read_text(encoding='utf-8', errors='replace'), java.value_tables)
+    return java.merge(stdlib)
 
 
 if __name__ == '__main__':

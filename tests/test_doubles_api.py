@@ -48,10 +48,12 @@ BASELINE_HEADER = """\
 # de test), puis retirer la ligne : python tests/test_doubles_api.py --write-baseline (n'ajoute jamais d'écart).
 """
 # Bibliothèque de base Lua 5.1 / Kahlua (BaseLib), hors API du jeu.
+# Bibliotheque de base reellement presente dans Kahlua (releve de E19-T02 : J2SEPlatform et stdlib.lua du jeu) ;
+# next, xpcall, load, dofile et rawlen en sont absents.
 LUA_BASE_FUNCTIONS = frozenset(
-    'assert collectgarbage dofile error gcinfo getfenv getmetatable ipairs load loadfile loadstring module next '
-    'pairs pcall print rawequal rawget rawlen rawset require select setfenv setmetatable tonumber tostring type '
-    'unpack xpcall'.split())
+    'assert bytecodeloader collectgarbage debugstacktrace error getfenv getmetatable ipairs loadstream loadstring '
+    'newrandom pairs pcall print rawequal rawget rawset require select setfenv setmetatable tonumber tostring type '
+    'unpack'.split())
 
 
 # --- Relevé des doublures ---------------------------------------------------------------------------------------

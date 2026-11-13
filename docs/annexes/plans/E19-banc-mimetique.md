@@ -2,12 +2,12 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 2 / 8 tâche(s) terminée(s).
+**Avancement.** en cours — 3 / 8 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
 | ☑ | E19-T01 | Table de l'API du jeu et doublures conformes | `testé hors jeu` | hors jeu | — |
-| ☐ | E19-T02 | Appels du mod conformes à l'API 42.22 | `à faire` | hors jeu | E19-T01 |
+| ☑ | E19-T02 | Appels du mod conformes à l'API 42.22 | `testé hors jeu` | hors jeu | E19-T01 |
 | ☐ | E19-T03 | Doublures corrigées et nombre d'arguments contrôlé | `à faire` | hors jeu | E19-T01 |
 | ☐ | E19-T04 | Potager sur le vrai Lua vanilla | `à faire` | hors jeu | LK15-T06 |
 | ☐ | E19-T05 | Horloge fidèle et balayage des phases | `à faire` | hors jeu | — |
@@ -51,16 +51,16 @@ Rendu, animation, son, interface ; IA et chemins vanilla écrits en Java. Les ca
   - Tests : `python tests/test_doubles_api.py`.
   - Preuve : 2026-11-13 : `tools/pz_api.py` (classes exposées, méthodes publiques héritées comprises, nombres de paramètres, constructeurs sous `new`, fonctions globales, événements, fonctions Lua vanilla ; lu sur le poste, rien de versionné) ; `tests/test_pz_api.py` (`Ran 10 tests … OK`, analyse Java sur des extraits écrits pour le test) ; `tests/test_doubles_api.py` : `76 classes contrôlées, 602 méthodes contrôlées, 21 fonctions globales contrôlées, 5 écarts (5 en liste de référence)`, `Ran 13 tests … OK` ; une méthode inventée sur `IsoZombie` est signalée, une méthode héritée d'`IsoGameCharacter` acceptée ; sans les sources : contrôle sauté avec le message de ce qui manque ; liste de référence `tests/fixtures/doubles-api-baseline.txt` (5 lignes : `IsoGridSquare.Is` retirée en 42.22, `IsoZombie.getUsername`, `Literature.pageCount`, `ItemVisual.getTotalDirt`, `InventoryItem.getDeviceData`) ; le mod n'appelle pas `:Is(` (recherche du 2026-11-13) ; bancs inscrits dans `tests/run_all.py`
   - Reste : limite principale : les faux objets anonymes des bancs (tables Lua sans nom de classe, environ 1 400 définitions de méthodes) ne sont pas contrôlés, seuls le sont les objets marqués d'un nom de classe ; à traiter par `E19-T03` (contrôle à l'exécution dans `H.class`, faux objets rattachés à une classe) ; 8 formes dynamiques et les fonctions globales définies par les bancs non contrôlées ; liste des événements du harnais non comparée
-- [ ] **E19-T02** — Appels du mod conformes à l'API 42.22
-  - État : `à faire`
+- [x] **E19-T02** — Appels du mod conformes à l'API 42.22
+  - État : `testé hors jeu`
   - Cible : `hors jeu`
   - Dépend de : E19-T01
   - Fichiers : `tests/test_mod_calls_api.py` ; `tools/pz_api.py`
   - Faire : ADR D02 : contrôle statique du Lua des trois mods et du mod de test : méthodes appelées par `:` et fonctions globales appelées connues du Java exposé, du Lua vanilla ou du mod ; liste de référence en cliquet pour les faux positifs justifiés.
   - Accepté si : un appel à une méthode retirée en 42.22 (`dropHeldItems`) placé dans un fichier d'essai est refusé ; les trois mods passent.
   - Tests : `python tests/test_mod_calls_api.py`.
-  - Preuve : —
-  - Reste : —
+  - Preuve : 2026-11-13 : `tests/test_mod_calls_api.py` : `371 fichiers, 14183 appels de méthode contrôlés, 14184 appels globaux contrôlés, 0 écarts`, `Ran 16 tests … OK` ; `tests/test_pz_api.py` `Ran 22 tests … OK` ; analyse lexicale du Lua (commentaires et chaînes ignorés) et bibliothèque de base relevée dans Kahlua et `stdlib.lua` du jeu (`next`, `xpcall`, `load`, `dofile`, `rawlen` absents) dans `tools/pz_api.py` ; `obj:dropHeldItems(…)`, `sq:Is(x)` et `next(t)` sont signalés sur des extraits d'essai ; liste de référence `tests/fixtures/mod-calls-api-baseline.txt` vide (les 40 faux positifs de la carte du monde venaient de classes exposées par délégation, absentes de l'index de la référence : suivies désormais) ; aucun défaut trouvé dans les trois mods ; banc inscrit dans `tests/run_all.py`
+  - Reste : contrôle par union de noms : le type du receveur n'est pas connu (un nom retiré d'une classe et encore présent ailleurs passe), les appels `a.b(` et dynamiques ne sont pas vus, le nombre d'arguments non plus (`E19-T03`) ; pour aller plus loin : garder le type de retour des méthodes Java et propager les types dans les variables locales
 - [ ] **E19-T03** — Doublures corrigées et nombre d'arguments contrôlé
   - État : `à faire`
   - Cible : `hors jeu`
