@@ -946,6 +946,11 @@ local function refuse(id, e, c, why, what)
     count("refused")
     Obstacles.lastRefused = { id = id, what = what, key = c.e.key, why = why, ms = now() }
     log().warn("npc %s: move #%d refused at the %s %s: %s", id, e.v, what, c.e.key, why)
+    -- E18-T38 : case visée derrière une fenêtre refusée écartée comme après un échec "stuck" (Movement.AVOID_MS) :
+    -- un trajet sans itinéraire par les portes (découpé autour de plantations) revenait sur la même fenêtre verrouillée
+    -- à chaque consigne (campagne solo du 2026-11-13 : 37 refus de suite).
+    local Mv = LivingKnox.Movement
+    if what == "window" and Mv ~= nil and Mv.noteStuck ~= nil then Mv.noteStuck(id, e) end
     Dir().abort(id, what .. " " .. c.e.key .. ": " .. why)
 end
 

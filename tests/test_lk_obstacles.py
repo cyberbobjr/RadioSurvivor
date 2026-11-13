@@ -1424,6 +1424,20 @@ class TraversalFixTests(ObstacleBase):
         self.assertEqual(self.wcount('solo'), (0, 0))
         self.assertEqual(self.wstate('solo'), 'false false')
 
+    def test_target_behind_a_refused_window_is_avoided_by_the_next_move(self):
+        """E18-T38 : campagne solo du 2026-11-13, même fenêtre verrouillée refusée 37 fois de suite par un PNJ dont le
+        trajet était découpé autour de plantations (sans itinéraire par les portes) : la case visée est écartée comme
+        après un échec « stuck » (Movement.AVOID_MS), la consigne suivante vers elle est refusée sans marcher."""
+        self.window(locked=True)
+        zid = self.start()
+        self.friendly_group()
+        self.move()
+        self.walk_w(zid, 900, until=self.done())
+        self.assertEqual(self.entry('s'), 'failed')
+        v, why = self.move()
+        self.assertIsNone(v)
+        self.assertIn('avoided', why)
+
 
 class DoorFirstTests(ObstacleBase):
     """LK04-T09 : porte d'abord. Mur (ou clôture basse) le long du bord ouest de x = 106, de y = 90 à 125, percé d'une

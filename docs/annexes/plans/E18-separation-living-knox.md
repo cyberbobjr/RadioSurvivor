@@ -2,7 +2,7 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 34 / 36 tâche(s) terminée(s), 1 abandonnée(s).
+**Avancement.** en cours — 35 / 37 tâche(s) terminée(s), 1 abandonnée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
@@ -41,8 +41,9 @@
 | ☑ | E18-T33 | Récompense d'une mission de PNJ créée à la volée | `testé MP` | MP | E18-T29 |
 | ☑ | E18-T34 | Zombie à une fenêtre du foyer : sortir l'attaquer dehors au lieu d'ouvrir la fenêtre | `testé MP` | MP | — |
 | ☑ | E18-T35 | Arrivée annoncée par un client qui n'a pas encore la copie du corps | `testé MP` | MP | — |
-| ☐ | E18-T36 | Fenêtre fermée jamais ouverte sur un trajet découpé sans porte (solo) | `testé hors jeu` | solo | — |
-| ☐ | E18-T37 | Suites vertes seules, en échec dans la campagne solo complète des deux mods | `à faire` | solo | E18-T36 |
+| ☑ | E18-T36 | Fenêtre fermée jamais ouverte sur un trajet découpé sans porte (solo) | `testé solo` | solo | — |
+| ☐ | E18-T37 | Suites vertes seules, en échec dans la campagne solo complète des deux mods | `en cours` | solo | E18-T36 |
+| ☐ | E18-T38 | Fenêtre verrouillée retentée en boucle par un trajet découpé autour de plantations | `testé hors jeu` | solo | — |
 
 <!-- fin du tableau de bord -->
 
@@ -550,24 +551,33 @@ Deuxième article Workshop, dépôt séparé, nouvelles règles de jeu des missi
   - Preuve : 2026-11-12, cause établie (décision « Creuser jusqu'au bout ») : seul sur le serveur, le client propriétaire n'envoie l'état de ses zombies que toutes les 4 s (`ZombieSynchronizationPacket`, 200 ms seulement avec un joueur voisin) ; la copie du serveur restait sur sa case de départ et le contact aux portes et fenêtres était jugé sur une position périmée. Correction `03c38ce` : `Directives.syncServerCopy` recale la copie du serveur sur chaque rapport accepté, et `Obstacles.stillFor` retranche l'intervalle des rapports pour un corps simulé par un client. Bancs `test_lk_directives.py` et `test_lk_obstacles.py` rouges avant, verts après. `lk.traversal` en MP à un client : code 0 `RST-RESULT ok=true total=18 pass=18` (`runs/20261112-145912-mp-39d20b8a5488`, 7/19 avant) ; à deux clients : campagnes du 2026-11-12 (`E18-T15`). Fausse piste (tenue d'un autre corps) annulée (`aad22f2`, revert `9097d16`).
   - Reste : —
 
-- [ ] **E18-T36** — Fenêtre fermée jamais ouverte sur un trajet découpé sans porte (solo)
-  - État : `testé hors jeu`
+- [x] **E18-T36** — Fenêtre fermée jamais ouverte sur un trajet découpé sans porte (solo)
+  - État : `testé solo`
   - Cible : `solo`
   - Dépend de : —
   - Fichiers : `LK_Directives.lua` (`moveTo`, `e.dr`) ; `tests/test_lk_obstacles.py` ; suite `lk.traversal` ; `RST_LKUpkeep.lua`
   - Faire : relevé des campagnes solo du 2026-11-12 (première depuis le 2026-11-07, PZ 42.22) : `lk.traversal` « closed window » (colon et pillard) en échec dans les deux et Living Knox seul, aussi sur `93659cb` (avant `E18-T35`, `runs/20261112-214023-444087e59854`) : corps arrêté contre la fenêtre fermée 10910,10038,0,W, jamais ouverte, « stuck: no path » ; `lk.upkeep` travaux non finis en 300 s.
   - Accepté si : `lk.traversal` et `lk.upkeep` verts dans la campagne solo des deux mods et de Living Knox seul.
   - Tests : `test_lk_obstacles.py` ; suites `lk.traversal`, `lk.upkeep` en solo.
-  - Preuve : 2026-11-12, causes établies hors jeu. (1) Défaut du mod, régression de `E18-T34` : `moveTo` marquait tout itinéraire planifié comme guidé par une porte (`e.dr`), même découpé autour d'une fenêtre refusée (fenêtre voisine 10910,10037 au-dessus d'un meuble) sans aucune porte ; `Obstacles.checkWindows` ne traitait alors plus la fenêtre fermée du chemin. `e.dr` seulement si l'itinéraire passe par une porte (`info.doors`) : `a3c597e`, banc `test_closed_window_next_to_a_refused_one_is_still_opened` rouge avant (`dr` vrai), vert après. (2) `lk.upkeep` : un membre parti en expédition chercher l'eau absente du stock de la scène voit un zombie ; l'alerte du groupe tient tous les travaux jusqu'à l'échéance (`runs/20261112-205752-run-591b54652fab`, alerte al-2 jamais calmée) : expéditions du groupe de test retenues pendant la suite. Bancs : `run_all.py --keep-going` 160/161 puis `test_autoclient.py` réparé (`0eb7f60`) ; luacheck `Contents` 8, `dev` 0.
-  - Reste : passage solo en jeu (`lk.traversal`, `lk.upkeep`, puis campagnes solo des deux mods et de Living Knox seul), non lancé : jeu occupé par l'utilisateur.
-
+  - Preuve : 2026-11-12, causes établies hors jeu. (1) Défaut du mod, régression de `E18-T34` : `moveTo` marquait tout itinéraire planifié comme guidé par une porte (`e.dr`), même découpé autour d'une fenêtre refusée (fenêtre voisine 10910,10037 au-dessus d'un meuble) sans aucune porte ; `Obstacles.checkWindows` ne traitait alors plus la fenêtre fermée du chemin. `e.dr` seulement si l'itinéraire passe par une porte (`info.doors`) : `a3c597e`, banc `test_closed_window_next_to_a_refused_one_is_still_opened` rouge avant (`dr` vrai), vert après. (2) `lk.upkeep` : un membre parti en expédition chercher l'eau absente du stock de la scène voit un zombie ; l'alerte du groupe tient tous les travaux jusqu'à l'échéance (`runs/20261112-205752-run-591b54652fab`, alerte al-2 jamais calmée) : expéditions du groupe de test retenues pendant la suite. Bancs : `run_all.py --keep-going` 160/161 puis `test_autoclient.py` réparé (`0eb7f60`) ; luacheck `Contents` 8, `dev` 0. 2026-11-13, en jeu solo (PZ 42.22.2) : `lk.traversal,lk.upkeep` Living Knox seul code 0 `pass=19 skip=1` (`runs/20261113-002442-run-d2397cf64bf9`) ; campagne solo Living Knox seul code 0 `pass=112 fail=0` (`runs/20261113-010104-run-62bf2d48de37`) ; campagne solo des deux mods : `lk.traversal` et `lk.upkeep` verts (`runs/20261113-003525-run-6c1ae857bf42`, autres échecs : `E18-T37`), puis campagne entière verte code 0 `pass=245 fail=0` (`runs/20261113-015730-run-79b296c4bfc2`).
+  - Reste : —
 - [ ] **E18-T37** — Suites vertes seules, en échec dans la campagne solo complète des deux mods
-  - État : `à faire`
+  - État : `en cours`
   - Cible : `solo`
   - Dépend de : E18-T36
-  - Fichiers : suites `rs.personas`, `rs.conversations`, `rs.carnet.load`, `lk.expedition`
+  - Fichiers : suites `rs.personas`, `rs.conversations`, `rs.carnet.load`, `lk.expedition`, `rs.worldtriggers`, `rs.observations`, `lk.upkeep`, `lk.windowlure`, `lk.windowsally`, `lk.forage` ; `RadioSurvivor_Server.lua` (`airNext`) ; `tests/test_personas_server.py`, `tests/test_rs_state.py`
   - Faire : relevé des campagnes solo du 2026-11-07 (`runs/20261107-083947-7ff0c3f60ad7`) et du 2026-11-12 (`runs/20261112-205752-run-591b54652fab`), mêmes échecs : `rs.personas` ligne d'un canal créé après le chargement jamais reçue par la radio en main (30 s), `rs.conversations` conteur non choisi par le carnet en 5 s, `rs.carnet.load` une demande d'enrichissement envoyée pendant le test (9 -> 10, sans doute une demande d'un PNJ de Living Knox d'une suite précédente) ; `lk.expedition` (2026-11-12) équipe qui ne finit pas sa fouille en 180 s (« gave up reaching building », conteneurs « cannot reach it » dans la cuisine 10875,10017 : peut-être la même cause que `E18-T36`). Vertes seules six fois de suite le 2026-11-08 (`E18-T31`). Pour chacune : état laissé par une suite précédente ou défaut du mod, puis correction.
   - Accepté si : campagne solo des deux mods verte (hors instabilités suivies par leur propre tâche).
   - Tests : campagne solo des deux mods ; suites concernées seules puis dans l'ordre de la campagne.
-  - Preuve : —
-  - Reste : —
+  - Preuve : 2026-11-13, causes établies hors jeu (sous-agents en lecture des journaux) puis corrigées. Défaut du mod : la file de diffusion radio ne regardait que sa tête, une chaîne occupée (voix d'un groupe) retenait les lignes de toutes les autres fréquences ; elle diffuse maintenant la première ligne de chaque chaîne libre, ordre gardé par chaîne (`44538f9`, banc `test_busy_channel_does_not_hold_the_lines_of_another_frequency` rouge avant, vert après). Défauts de banc : zombie de l'étage de la cuisine fouillée (`lk.expedition`), demandes d'enrichissement comptées pour tous les PNJ (`rs.carnet.load`), liaison du joueur lue une fois (`rs.conversations`) (`6c1ae85`) ; conteur entendu mais non sélectionnable derrière une vitre (`rs.conversations`), sons de l'hélicoptère tracés (`rs.worldtriggers`, le message d'échec était construit avant l'attente) (`67a5136`) ; zombies autour du foyer pendant l'entretien et case intérieure de la fenêtre (`lk.upkeep`, `lk.windowlure`) (`aca70a6`) ; texte brouillé par la météo (`rs.personas`) et attente du fait `player_return` (`rs.observations`) (`79b296c`) ; ronde du guetteur à l'heure du test et expédition du gardien partie chercher l'eau (`lk.windowsally`, `lk.forage`) (`68d10c1`) ; doublures de `test_rs_state.py` alignées sur la séparation (`62bf2d4`). En jeu solo (PZ 42.22.2, deux mods) : suites fragiles seules code 0 `pass=24` (`runs/20261113-014955-run-67a5136af715`) ; campagne entière code 0 `pass=245 fail=0 skip=10` (`runs/20261113-015730-run-79b296c4bfc2`), puis même commit code 1 `pass=245 fail=2` (`lk.windowsally`, `lk.forage` : `runs/20261113-022043-run-79b296c4bfc2`, corrigés par `68d10c1`). Living Knox seul code 0 `pass=112` (`runs/20261113-010104-run-62bf2d48de37`) ; RadioSurvivor seul code 0 `pass=103` (`runs/20261113-011735-run-62bf2d48de37`).
+  - Reste : campagnes solo des deux mods sur `68d10c1` ou suivant, plusieurs fois de suite.
+- [ ] **E18-T38** — Fenêtre verrouillée retentée en boucle par un trajet découpé autour de plantations
+  - État : `testé hors jeu`
+  - Cible : `solo`
+  - Dépend de : —
+  - Fichiers : `LK_Obstacles.lua` (`refuse`) ; `LK_Movement.lua` (`noteStuck`, `avoided`) ; `tests/test_lk_obstacles.py`
+  - Faire : relevé des campagnes solo du 2026-11-12 et du 2026-11-13 (`runs/20261113-022043-run-79b296c4bfc2`, PNJ lk-129) : la même fenêtre verrouillée 10907,10035,0,N refusée 37 fois de suite. `Directives.moveTo` ne cherche l'itinéraire par les portes que si aucun détour de plantations n'est nécessaire ; le chemin natif entre les points du détour passe par la fenêtre, refusée au contact, et rien ne retient le refus : chaque consigne suivante y retourne.
+  - Accepté si : après le refus d'une fenêtre, la consigne suivante du même PNJ vers la même case est refusée sans marcher pendant `Movement.AVOID_MS` (la décision choisit autre chose), et les campagnes solo restent vertes.
+  - Tests : `test_lk_obstacles.py` ; campagne solo des deux mods.
+  - Preuve : 2026-11-13, décision par défaut (réutiliser l'écart des cases d'un échec « stuck », LK04-T05, plutôt qu'une nouvelle mémoire) ; `refuse` d'une fenêtre appelle `Movement.noteStuck` ; banc `test_target_behind_a_refused_window_is_avoided_by_the_next_move` rouge avant (consigne émise), vert après ; `test_lk_obstacles.py` 175 tests OK, bancs complets OK, luacheck `Contents` 8.
+  - Reste : passage solo en jeu (campagne des deux mods) ; contournement par les portes d'un trajet déjà découpé autour de plantations non traité (nouvelle tâche si une campagne le montre).
