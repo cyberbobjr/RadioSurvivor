@@ -66,7 +66,7 @@ LK05-T21 (préférence du jardinier, remplacée par `prefer`).
   - Accepté si : mêmes résultats que les campagnes vertes du 2026-11-13 (`20261113-071238-run-13d311e27a22`, `20261113-092625-parallel-3-13d311e27a22`, `20261113-095437-run-85680d65085c`).
   - Tests : campagnes en jeu.
   - Preuve : —
-  - Reste : —
+  - Reste : campagnes partielles du 2026-11-13 après-midi, lancées depuis le dossier de travail (la copie figée d'un commit échoue tant que l'abandon de CharacterReputation de l'autre session n'est pas commité : `batman_CharacterReputation` encore dans la liste des mods du lanceur commité ; c'est aussi la cause du « code 2, total=0 » de la campagne solo deux mods du matin) : MP sur `157c4a0` (`runs/20261113-150840-parallel-3`) code 1, `total=533 pass=509 fail=3` : `lk.upkeep` (tâches du potager avant le verre et le sang, corrigé par `73247c8`), `lk.alert` (cri sans auditeur chez le second client, intermittent connu : 2 échecs sur 9 avant) et `lk.traversal` « destination behind a locked door elsewhere » (intermittent connu : 4 sur 34) ; `mp-ambient` code 0, `total=24 pass=23 fail=0` (`runs/20261113-153040-mp-a41ca303d196`) ; solo deux mods interrompue (jeu rendu à l'utilisateur) ; à refaire sur le dernier commit : solo deux mods, solo Living Knox seul, MP
 - [ ] **LK15-T04** — Creuser un sillon (`LK_Job_Dig`)
   - État : `testé hors jeu`
   - Cible : `MP`
