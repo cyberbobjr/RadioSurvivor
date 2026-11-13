@@ -61,7 +61,7 @@
 | [LK13](LK13-outils-validation-publication.md) | Outils, performance, validation et publication | en cours | 13 / 16 |
 | [LK14](LK14-fortification-progressive.md) | Fortification progressive | en cours | 5 / 6 |
 | [LK15](LK15-registre-routines.md) | Registres des routines et potager du jardinier | en cours | 2 / 7 |
-| [LK16](LK16-remise-en-ordre-solid.md) | Remise en ordre SOLID | en cours | 5 / 12 |
+| [LK16](LK16-remise-en-ordre-solid.md) | Remise en ordre SOLID | en cours | 6 / 12 |
 
 ## Tâches
 
@@ -468,5 +468,5 @@
 | ☐ | [LK16-T08](LK16-remise-en-ordre-solid.md#L119) | C4 : genres d'expédition | `à faire` | hors jeu | — |
 | ☐ | [LK16-T09](LK16-remise-en-ordre-solid.md#L129) | C6 : simulation hors écran | `à faire` | hors jeu | — |
 | ☐ | [LK16-T10](LK16-remise-en-ordre-solid.md#L139) | C11 : aménagements des foyers ; nettoyages | `à faire` | hors jeu | — |
-| ☐ | [LK16-T11](LK16-remise-en-ordre-solid.md#L149) | C10 : obstacles | `à faire` | hors jeu | — |
+| ☑ | [LK16-T11](LK16-remise-en-ordre-solid.md#L149) | C10 : obstacles | `testé hors jeu` | hors jeu | 2026-11-13 : `LivingKnox.Obstacles.Routing.registerModel(name, spec)` sur `LivingKnox.Registry` (`edgeCost`, `maxNodes`, `vanilla`, `refusedCost`) ; moteur d'itinéraires sorti dans `LK_Routing.lua` (relevé des bords, recherche de chemin, détours, choix d'itinéraire) ; sept modèles, un par fichier sous `server/LivingKnox/Routing/` ; plus aucune comparaison de mode dans le moteur ; `LK_Obstacles.lua` de 2 850 à 1 947 lignes, appels publics `LivingKnox.Obstacles.*` inchangés ; dédoublonnages locaux (fin commune des refermetures, contrôle « objet disparu ») ; paires porte/fenêtre et politique force/attente/détour gardées (règles différentes, ADR D04) ; banc de gel `tests/test_lk_routing.py` (9 cartes, 7 modèles : coûts de chaque bord dans les deux sens, itinéraires, lignes dégagées, `planDoorRoute`), empreintes identiques avant et après ; acceptation : un modèle factice inscrit par le banc seul est suivi par la recherche (rouge avant : `attempt to index field 'Routing' (a nil value)`) ; `test_lk_obstacles.py` 176 OK, `test_lk_alert` 25, `test_lk_window_lure` 12, `test_lk_floor_strike` 6, `test_lk_movement` 15, `test_lk_guard` 27, `test_lk_milestone` 13, `test_lk_directives` 43, `test_doubles_api`, `test_mod_calls_api`, `test_kahlua` verts sans attendu changé ; luacheck `Contents` 8 |
 | ☐ | [LK16-T12](LK16-remise-en-ordre-solid.md#L159) | Remise en ordre vérifiée en jeu | `à faire` | MP | — |

@@ -290,7 +290,7 @@ Solo, partie `rstest*`, le joueur près d'une maison (fenêtres au rez-de-chauss
 
 ## Porte d'abord (LK04-T09)
 
-Décision de l'utilisateur du 2026-10-11, après l'essai solo du même jour (un PNJ enjambe le portail d'une clôture basse au lieu de l'ouvrir, et passe par une fenêtre, avec l'animation de zombie et sa chute à la réception, alors qu'une porte ouverte est juste à côté) : **un PNJ passe par une porte ou ouvre un portail utilisable à proximité ; fenêtre ou clôture seulement sans porte utilisable** (barricadée, verrouillée sans clé, ou détour trop long). Code : `Obstacles.planDoorRoute`, `Obstacles.findRoute` (`LK_Obstacles.lua`), `Directives.planDoors` appelé par `Directives.moveTo` (`LK_Directives.lua`). Tests : `tests/test_lk_obstacles.py`, classes `DoorFirstTests` (10 tests), `DoorFirstRejoinTests` (4 tests) et `DoorFirstCounterTests` (3 tests, fenêtre au-dessus d'un comptoir) ; suite en jeu `lk.traversal`, test « open door next to an open window ».
+Décision de l'utilisateur du 2026-10-11, après l'essai solo du même jour (un PNJ enjambe le portail d'une clôture basse au lieu de l'ouvrir, et passe par une fenêtre, avec l'animation de zombie et sa chute à la réception, alors qu'une porte ouverte est juste à côté) : **un PNJ passe par une porte ou ouvre un portail utilisable à proximité ; fenêtre ou clôture seulement sans porte utilisable** (barricadée, verrouillée sans clé, ou détour trop long). Code : `Obstacles.planDoorRoute`, `Obstacles.findRoute` (`LK_Routing.lua` depuis LK16-T11, modèles d'itinéraire dans `Routing/`), `Directives.planDoors` appelé par `Directives.moveTo` (`LK_Directives.lua`). Tests : `tests/test_lk_obstacles.py`, classes `DoorFirstTests` (10 tests), `DoorFirstRejoinTests` (4 tests) et `DoorFirstCounterTests` (3 tests, fenêtre au-dessus d'un comptoir) ; suite en jeu `lk.traversal`, test « open door next to an open window ».
 
 ### Pourquoi l'autorité calcule un itinéraire
 
@@ -317,6 +317,21 @@ Le seul levier fiable est donc de **découper le trajet** : une étape juste ava
 | Potagers | Un itinéraire par une porte dont un segment passe dans la zone d'une plante ou d'un feu de camp (`hazardsOnLine`, marge `HAZARD_AVOID`) est écarté avec un `WARN` : le potager prime (LK04-T06). |
 | Mesure | `Obstacles.stats.routes`, `routedByDoor`, `routeNodes`, `routeMs`, `routeMaxMs` ; ligne INFO « split into N steps through K door(s) instead of C window or fence crossing(s) (S squares searched, T ms) », ou « keeps the vanilla path over C window or fence crossing(s): raison ». |
 | Interrupteur | `Obstacles.DOORS_FIRST` (vrai) : coupé par les essais en jeu qui vérifient le franchissement d'une fenêtre ou d'une clôture. |
+
+### Modèles d'itinéraire inscrits (LK16-T11)
+
+Remise en ordre SOLID (constat D-OBS-01 de l'audit du 2026-11-13), sans changement de comportement. Les itinéraires
+(relevé des bords, A*, lignes dégagées, détours et points de passage de `planDoorRoute`) sont sortis de
+`LK_Obstacles.lua` dans `LK_Routing.lua` ; chacun des sept modèles (« zombie », « zombie-door », « npc », « detour »,
+« exit », « exit-loose », « trapped ») est un fichier `Routing/LK_Route_<Nom>.lua` inscrit par
+`LivingKnox.Obstacles.Routing.registerModel(name, spec)` (socle `LivingKnox.Registry`). `spec` : `edgeCost(r, npcId,
+sqA, sqB, exitKeys, from)` (surcoût et franchissement d'un bord porte, fenêtre ou clôture ; bords sans élément et murs
+réglés par le moteur), `maxNodes()` facultatif (`ROUTE_MAX_NODES` sinon), `vanilla` facultatif (modèle du chemin natif :
+meuble bas sous une fenêtre praticable, escalade vers un meuble bas notée « refused » au coût `refusedCost()`). Règles
+partagées par les modèles : `Routing.bodyCost` (chemin natif d'un corps) et `Routing.doorFirstCost` (porte d'abord).
+Un nouveau modèle s'ajoute par un fichier, sans toucher au moteur ; `planDoorRoute` reste le seul client qui nomme les
+modèles (cascade de stratégies, `chooseRoute`). Banc de gel : `tests/test_lk_routing.py` (empreintes des coûts de bord,
+itinéraires, lignes dégagées et plans des sept modèles sur neuf cartes, relevées avant le registre).
 
 ### Pourquoi le modèle « zombie » ne suffit pas (3e correction, 2026-10-11)
 

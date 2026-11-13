@@ -2,7 +2,7 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 5 / 12 tâche(s) terminée(s).
+**Avancement.** en cours — 6 / 12 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
@@ -16,7 +16,7 @@
 | ☐ | LK16-T08 | C4 : genres d'expédition | `à faire` | hors jeu | LK16-T01 |
 | ☐ | LK16-T09 | C6 : simulation hors écran | `à faire` | hors jeu | LK16-T04 |
 | ☐ | LK16-T10 | C11 : aménagements des foyers ; nettoyages | `à faire` | hors jeu | LK16-T01 |
-| ☐ | LK16-T11 | C10 : obstacles | `à faire` | hors jeu | LK16-T01 |
+| ☑ | LK16-T11 | C10 : obstacles | `testé hors jeu` | hors jeu | LK16-T01 |
 | ☐ | LK16-T12 | Remise en ordre vérifiée en jeu | `à faire` | MP | LK16-T02, LK16-T03, LK16-T06, LK16-T07, LK16-T08, LK16-T09, LK16-T10, LK16-T11 |
 
 <!-- fin du tableau de bord -->
@@ -146,16 +146,16 @@ Constats P2 et P3 de l'audit hors des chantiers ; tout changement visible par un
   - Tests : bancs des foyers et des raids.
   - Preuve : —
   - Reste : —
-- [ ] **LK16-T11** — C10 : obstacles
-  - État : `à faire`
+- [x] **LK16-T11** — C10 : obstacles
+  - État : `testé hors jeu`
   - Cible : `hors jeu`
   - Dépend de : LK16-T01
   - Fichiers : `LK_Obstacles.lua` (découpage)
   - Faire : constats D-OBS-01, D-OBS-03, D-OBS-05, D-OBS-06 : modèles d'itinéraire inscrits, un fichier par modèle ; paires `decide`/`decideWindow` et voisines dédoublonnées localement (D-OBS-02 sans registre).
   - Accepté si : bancs des obstacles verts sans changement d'attendu.
   - Tests : bancs des obstacles ; suite complète.
-  - Preuve : —
-  - Reste : —
+  - Preuve : 2026-11-13 : `LivingKnox.Obstacles.Routing.registerModel(name, spec)` sur `LivingKnox.Registry` (`edgeCost`, `maxNodes`, `vanilla`, `refusedCost`) ; moteur d'itinéraires sorti dans `LK_Routing.lua` (relevé des bords, recherche de chemin, détours, choix d'itinéraire) ; sept modèles, un par fichier sous `server/LivingKnox/Routing/` ; plus aucune comparaison de mode dans le moteur ; `LK_Obstacles.lua` de 2 850 à 1 947 lignes, appels publics `LivingKnox.Obstacles.*` inchangés ; dédoublonnages locaux (fin commune des refermetures, contrôle « objet disparu ») ; paires porte/fenêtre et politique force/attente/détour gardées (règles différentes, ADR D04) ; banc de gel `tests/test_lk_routing.py` (9 cartes, 7 modèles : coûts de chaque bord dans les deux sens, itinéraires, lignes dégagées, `planDoorRoute`), empreintes identiques avant et après ; acceptation : un modèle factice inscrit par le banc seul est suivi par la recherche (rouge avant : `attempt to index field 'Routing' (a nil value)`) ; `test_lk_obstacles.py` 176 OK, `test_lk_alert` 25, `test_lk_window_lure` 12, `test_lk_floor_strike` 6, `test_lk_movement` 15, `test_lk_guard` 27, `test_lk_milestone` 13, `test_lk_directives` 43, `test_doubles_api`, `test_mod_calls_api`, `test_kahlua` verts sans attendu changé ; luacheck `Contents` 8
+  - Reste : suite complète à repasser ; portes, clés, fenêtres, passage bloqué et refermetures restent dans `LK_Obstacles.lua` (aides privées partagées) ; passes codées en dur (D-OBS-04), lectures directes de l'état des consignes et des décisions (D-OBS-08) ; les nouveaux fichiers ne sont pas compilés par le banc Kahlua réel (le moteur des obstacles n'y est pas chargé) ; chargement du dossier `Routing/` vérifié statiquement, pas en jeu
 - [ ] **LK16-T12** — Remise en ordre vérifiée en jeu
   - État : `à faire`
   - Cible : `MP`

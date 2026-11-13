@@ -45,6 +45,15 @@ from harness import lua_src  # noqa: E402  (E18-T07)
 from test_lk_directives import DirectiveBase  # noqa: E402
 
 OBSTACLES = 'server/LivingKnox/LK_Obstacles.lua'
+ROUTING_DIR = LK_LUA / 'server' / 'LivingKnox' / 'Routing'
+
+
+def routing_files():
+    """Itinéraires (LK16-T11) comme le jeu les charge : moteur, puis chaque modèle d'itinéraire du dossier Routing/
+    (trié par nom, comme le chargement du jeu)."""
+    names = sorted((p.name for p in ROUTING_DIR.glob('*.lua')), key=str.lower)
+    return ['server/LivingKnox/LK_Routing.lua'] + [f'server/LivingKnox/Routing/{name}' for name in names]
+
 TRAVERSAL_SUITE = DEV_LUA / 'shared' / 'RST' / 'suites' / 'RST_LKTraversal.lua'
 TYPES = ('shared/LivingKnox/Data/LK_Type_neutrals.lua', 'shared/LivingKnox/Data/LK_Type_raiders.lua',
          'shared/LivingKnox/Data/LK_Type_settlers.lua')
@@ -586,6 +595,8 @@ class ObstacleBase(DirectiveBase):
             h.load(m, WINDOW_DOUBLES)
             h.load(m, LANE_DOUBLES)
             h.load(m, OBSTACLES)
+            for path in routing_files():
+                h.load(m, path)
         return h
 
     @property
@@ -3242,15 +3253,16 @@ class MultiplayerTrappedTests(ObstacleBase):
 
 class SourceTests(unittest.TestCase):
     def test_kahlua_safe_sources_and_english_logs(self):
-        for path in (lua_src(OBSTACLES), LK_LUA / 'client/LivingKnox/LK_Executor.lua',
-                     LK_LUA / 'server/LivingKnox/LK_Directives.lua', TRAVERSAL_SUITE):
+        engine = [lua_src(OBSTACLES)] + [LK_LUA / p for p in routing_files()]   # LK16-T11 : itinéraires
+        for path in engine + [LK_LUA / 'client/LivingKnox/LK_Executor.lua',
+                              LK_LUA / 'server/LivingKnox/LK_Directives.lua', TRAVERSAL_SUITE]:
             src = path.read_text(encoding='utf-8')
             code = '\n'.join(line.split('--', 1)[0] for line in src.splitlines())
             self.assertTrue(code.isascii(), path)
             self.assertNotRegex(code, r'\bnext\s*\(|\bgoto\b|\bcoroutine\.|\bbit32\b', path)
-        src = lua_src(OBSTACLES).read_text(encoding='utf-8')
-        for msg in re.findall(r'log\(\)\.\w+\("([^"]*)"', src):
-            self.assertTrue(msg.isascii() and re.match(r'^[a-z%]', msg), msg)
+        for path in engine:
+            for msg in re.findall(r'log\(\)\.\w+\("([^"]*)"', path.read_text(encoding='utf-8')):
+                self.assertTrue(msg.isascii() and re.match(r'^[a-z%]', msg), msg)
 
 
 class WindowGestureBase(ObstacleBase):
