@@ -9,6 +9,8 @@
 --   prefer   : facultatif, comportement de rôle qui la prend avant les autres (« garden » : le jardinier)
 --   gesture  : geste pendant le travail (LivingKnox.Anim)
 --   minutes  : minutes de jeu de travail avant l'effet
+--   duration(job, gid) : facultatif (LK15-T04), minutes de cette tâche-ci, lues au début du travail (outil présent ou
+--                  non...) ; un nombre positif, sinon minutes
 --   survey(gid, g, area) : cases ouvertes { x, y, bid } ou nil ; area = zone du foyer (Upkeep.area)
 --   place(job)   : facultatif, case où se tenir ; par défaut une case libre voisine de l'objet
 --   standOnSelf  : facultatif, si pas de case voisine, la case de l'objet elle-même quand elle est praticable
@@ -68,13 +70,14 @@ local function cheb(ax, ay, bx, by) return math.max(math.abs(ax - bx), math.abs(
 local function validSpec(spec)
     return type(spec) == "table" and type(spec.kind) == "string" and type(spec.order) == "number"
         and type(spec.gesture) == "string" and type(spec.minutes) == "number" and type(spec.survey) == "function"
-        and type(spec.apply) == "function"
+        and type(spec.apply) == "function" and (spec.duration == nil or type(spec.duration) == "function")
 end
 
 -- Inscrit une tâche (spec, voir l'en-tête). Une tâche déjà inscrite sous le même kind est remplacée (rechargement).
 function Upkeep.registerJob(spec)
     if not validSpec(spec) then
-        error("LivingKnox.Upkeep.registerJob: spec needs kind, order, gesture, minutes, survey and apply", 2)
+        error("LivingKnox.Upkeep.registerJob: spec needs kind, order, gesture, minutes, survey and apply "
+            .. "(duration: a function when set)", 2)
     end
     local reg = Upkeep.registry
     local old = Upkeep.specs[spec.kind]
@@ -303,6 +306,15 @@ local function placeFor(job, spec)
     return nil
 end
 
+-- Minutes de travail de la tâche job (spec.duration facultatif, sinon spec.minutes).
+local function minutesOf(spec, job, gid)
+    if spec.duration ~= nil then
+        local n = spec.duration(job, gid)
+        if type(n) == "number" and n > 0 then return n end
+    end
+    return spec.minutes
+end
+
 local function step(id, ctx, m)
     local X = R().exec
     local spec = specOf(m.job)
@@ -334,13 +346,13 @@ local function step(id, ctx, m)
             if e == nil or e.v ~= m.faceV or not e.done then return end
         end
         X.sitDown(id, m, spec.gesture)
-        m.since, m.phase = ctx.minute, "work"
+        m.since, m.phase, m.minutes = ctx.minute, "work", minutesOf(spec, m.job, m.gid)
         return
     end
     if m.phase == "work" then
         local A = LivingKnox.Anim
         if A ~= nil and A.gestureOf(id) ~= spec.gesture then X.sitDown(id, m, spec.gesture) end
-        if ctx.minute - m.since < spec.minutes then return end
+        if ctx.minute - m.since < (m.minutes or spec.minutes) then return end
         m.phase = "done"   -- avant l'effet : jamais deux fois, même si le Java lève une erreur
         local ok, text, why = pcall(Upkeep.apply, m.job, m.gid, m.mid)
         if not ok then

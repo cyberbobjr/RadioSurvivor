@@ -9,9 +9,9 @@
 | ☑ | LK15-T01 | Moteur des tâches du foyer et registre `registerJob` | `testé hors jeu` | hors jeu | — |
 | ☑ | LK15-T02 | Registre des activités et une routine par fichier | `testé hors jeu` | hors jeu | LK15-T01 |
 | ☐ | LK15-T03 | Découpage vérifié en jeu | `à faire` | MP | LK15-T02 |
-| ☐ | LK15-T04 | Creuser un sillon (`LK_Job_Dig`) | `à faire` | MP | LK15-T03 |
-| ☐ | LK15-T05 | Semer (`LK_Job_Sow`) | `à faire` | MP | LK15-T04 |
-| ☐ | LK15-T06 | Graines reçues par le jardinier | `à faire` | MP | LK15-T05 |
+| ☐ | LK15-T04 | Creuser un sillon (`LK_Job_Dig`) | `testé hors jeu` | MP | LK15-T03 |
+| ☐ | LK15-T05 | Semer (`LK_Job_Sow`) | `testé hors jeu` | MP | LK15-T04 |
+| ☐ | LK15-T06 | Graines reçues par le jardinier | `testé hors jeu` | MP | LK15-T05 |
 
 <!-- fin du tableau de bord -->
 
@@ -68,32 +68,32 @@ LK05-T21 (préférence du jardinier, remplacée par `prefer`).
   - Preuve : —
   - Reste : —
 - [ ] **LK15-T04** — Creuser un sillon (`LK_Job_Dig`)
-  - État : `à faire`
+  - État : `testé hors jeu`
   - Cible : `MP`
   - Dépend de : LK15-T03
   - Fichiers : `server/LivingKnox/Jobs/LK_Job_Dig.lua` ; `LK_Garden.lua` ; banc nouveau ; suite en jeu `lk.garden`
   - Faire : ADR D07, Q01 : case de terre libre, dehors, au rez-de-chaussée, dans la zone du foyer, au plus `MAX_PLOTS` sillons par foyer ; outil `DIG_PLOW` du stock sinon mains nues (durée doublée) ; effet `SFarmingSystem.instance:plow`, herbes hautes retirées d'abord.
   - Accepté si : au banc, sillon créé une fois, plafond respecté, case refusée hors conditions ; en jeu, le sillon apparaît chez les deux clients.
   - Tests : banc ; suite `lk.garden` (campagnes solo et MP).
-  - Preuve : —
-  - Reste : —
+  - Preuve : 2026-11-13 : `Jobs/LK_Job_Dig.lua` (`dig`, ordre 46, `prefer = "garden"`) ; domaine dans `LK_Garden.lua` (`canDig`, `plots`, `digSpot`, `digTool`, `dig`, `MAX_PLOTS` 6) : conditions du menu vanilla, hors du bâtiment et à l'air libre, un seul sillon vide à la fois, outil `DIG_PLOW` du stock gardé, mains nues deux fois plus long ; champ générique facultatif `duration(job, gid)` ajouté au registre `Upkeep.registerJob` (aucun nom de tâche dans le moteur) ; banc `DigTests` rouge puis vert ; `python tests/test_lk_garden.py` : `Ran 20 tests … OK` ; `test_lk_upkeep.py` 24 OK, `test_lk_food.py` 32 OK, `test_autoclient.py` 93 OK ; `python tests/run_all.py` : `162 passed, 0 failed` ; luacheck `Contents` 8 (inchangé), `dev` 0
+  - Reste : campagnes solo et MP (suite `lk.garden` écrite, inscrite dans `solo-lk` et `mp`, jouée sur les doublures) ; à vérifier en jeu : `ISShovelGroundCursor.GetDirtGravelSand` chargé sur un serveur dédié (sinon aucun sillon, sans erreur), sillon vu par les deux clients ; `PlaceDirtAboveground` non suivi ; la première case de terre de la zone est prise (emplacement à juger en jeu)
 - [ ] **LK15-T05** — Semer (`LK_Job_Sow`)
-  - État : `à faire`
+  - État : `testé hors jeu`
   - Cible : `MP`
   - Dépend de : LK15-T04
   - Fichiers : `server/LivingKnox/Jobs/LK_Job_Sow.lua` ; `LK_Garden.lua` ; banc ; suite `lk.garden`
   - Faire : ADR D07 : sillon vide, graine du stock dont le mois est dans `sowMonth`, effet `plant:seed(type, 0)`, graine retirée du conteneur et de la référence du stock dans la même écriture.
   - Accepté si : au banc, une graine en moins, une plante semée, rien hors saison ; en jeu, la plante semée est vue par les deux clients, puis arrosée par la tâche existante.
   - Tests : banc ; suite `lk.garden`.
-  - Preuve : —
-  - Reste : —
+  - Preuve : 2026-11-13 : `Jobs/LK_Job_Sow.lua` (`sow`, ordre 44, `prefer = "garden"`) ; `LK_Garden.lua` (`month`, `inSeason`, `sowable`, `seedCount`, `findSeed`, `takeSeed`) : sillon vide, graine de saison (`sowMonth`), jamais un objet de nourriture, une graine retirée par `Stock.takeItem` puis `plant:seed(type, 0)`, saison relue à l'effet ; banc `SowTests` rouge puis vert ; `python tests/test_lk_garden.py` : `Ran 20 tests … OK` ; `test_lk_upkeep.py` 24 OK, `test_lk_food.py` 32 OK, `test_autoclient.py` 93 OK ; `python tests/run_all.py` : `162 passed, 0 failed` ; luacheck `Contents` 8 (inchangé), `dev` 0
+  - Reste : campagnes solo et MP (`lk.garden`) : plante semée vue par les deux clients, puis arrosée ; le groupe sème aussi dans un sillon vide d'un joueur situé dans sa zone
 - [ ] **LK15-T06** — Graines reçues par le jardinier
-  - État : `à faire`
+  - État : `testé hors jeu`
   - Cible : `MP`
   - Dépend de : LK15-T05
   - Fichiers : `server/LivingKnox/Jobs/LK_Job_SeedSupply.lua` (ou activité du jardinier) ; banc ; suite `lk.garden`
   - Faire : ADR D08, Q01 : dépôt de graines de saison au foyer quand le stock en a moins de `SEED_LOW`, au plus une fois tous les `SEED_DAYS` jours par groupe qui a un jardinier ; graines ajoutées à la référence du stock (ni perte ni vol à la relecture).
   - Accepté si : au banc, dépôt une fois par fenêtre, rien sans jardinier, rien au-dessus du seuil ; en jeu, le potager se remplit sans action du joueur.
   - Tests : banc ; suite `lk.garden`.
-  - Preuve : —
-  - Reste : —
+  - Preuve : 2026-11-13 : `Jobs/LK_Job_SeedSupply.lua` (`seeds`, ordre 42, `prefer = "garden"`, journal du groupe) : un membre range au dépôt un sachet de 5 graines d'une variété de saison (carotte, pomme de terre, chou, tomate, à tour de rôle, sans hasard) quand le foyer a moins de 2 graines semables, au plus une fois tous les 7 jours de jeu, seulement avec un jardinier vivant ; rien en hiver ; bancs `SeedSupplyTests` et `PureGardenTests` rouges puis verts ; `python tests/test_lk_garden.py` : `Ran 20 tests … OK` ; `test_lk_upkeep.py` 24 OK, `test_lk_food.py` 32 OK, `test_autoclient.py` 93 OK ; `python tests/run_all.py` : `162 passed, 0 failed` ; luacheck `Contents` 8 (inchangé), `dev` 0
+  - Reste : campagnes solo et MP (`lk.garden`) ; les graines n'ont pas de catégorie de stock : elles ne sont pas dans la référence (ni perte ni vol à la relecture, comme les graines d'une récolte) ; le jour du dernier sachet n'est pas sauvegardé (un redémarrage du serveur peut donner un sachet de plus dans la fenêtre)

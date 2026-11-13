@@ -43,6 +43,7 @@ RST.CAMPAIGNS["solo-lk"] = {
     "lk.doors",         -- LK04-T02 (2026-10-15: sites found by RST.Places when missing near the player)
     "lk.melee",         -- LK06-T02
     "lk.upkeep",        -- LK05-T10 (E01-T19)
+    "lk.garden",        -- LK15-T04..T06 (garden of the gardener: seeds, furrow, sowing)
     "lk.chores",        -- LK05-T04
     "lk.defense",       -- LK06-T07, LK06-T14
     "lk.windowsally",   -- E18-T34
@@ -212,6 +213,7 @@ RST.CAMPAIGNS["mp"] = {
     "lk.leave",         -- E10-T04, E10-T05
     "lk.contest",       -- E10-T03
     "lk.upkeep",        -- LK05-T10
+    "lk.garden",        -- LK15-T04..T06
     "lk.barricade",     -- LK14-T03
     "lk.walls",         -- LK14-T04
     "lk.fortify_offscreen", -- LK14-T05

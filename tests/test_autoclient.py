@@ -1459,7 +1459,7 @@ class CampaignContentTests(unittest.TestCase):
         for entry in ('rs.mission', 'rs.factions.accord', 'rs.factions.incident', 'rs.trade_exchange',
                       'rs.trade_run', 'rs.groupradio', 'rs.actions.map', 'rs.actions.reveal', 'lk.traversal',
                       'lk.force', 'lk.stuck', 'lk.expedition', 'lk.meals', 'lk.forage', 'lk.repair', 'lk.milestone1',
-                      'lk.essai', 'lk.equipment', 'lk.ranged', 'lk.speech', 'lk.routines'):
+                      'lk.essai', 'lk.equipment', 'lk.ranged', 'lk.speech', 'lk.garden', 'lk.routines'):
             self.assertIn(entry, mp)
         self.assertEqual(mp[-1], 'lk.routines')
         # "rs.missions" never selects the templates (singular): "rs.mission" does
@@ -1475,7 +1475,7 @@ class CampaignContentTests(unittest.TestCase):
     def test_solo_lists_and_ambient_campaign(self):
         solo = self.campaign('solo')
         for entry in ('rs.initiatives', 'rs.conversations', 'rs.rescue', 'rs.groupradio', 'lk.revenge',
-                      'lk.traversal', 'lk.upkeep'):
+                      'lk.traversal', 'lk.upkeep', 'lk.garden'):
             self.assertIn(entry, solo)
         self.assertFalse(autoclient.needs_bridge('solo-lk', None, self.lua))
         ambient = self.campaign('mp-ambient')
