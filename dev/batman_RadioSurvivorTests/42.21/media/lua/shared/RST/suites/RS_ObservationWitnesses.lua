@@ -306,9 +306,16 @@ local function facts(sc, name, fact)
     return out
 end
 
+-- Fiches of the scene only: a fiche of an earlier suite may be created meanwhile by the conversations of Living Knox
+-- (solo campaign of 2026-11-13: 47 -> 48 during the wait for player_return).
 local function checkCommon(t, sc, before, fact)
-    t:eq(before, count(sc.c.S.data.npcs), "fiches created or removed by the trigger " .. fact)
-    t:eq(nil, sc.c.Server.find(sc.ids.D), "fiche created for D (no contact)")
+    for name, id in pairs(sc.ids) do
+        if sc.fiches[name] ~= nil then
+            t:ok(sc.c.Server.find(id) ~= nil, "fiche of " .. name .. " removed by the trigger " .. fact)
+        else
+            t:eq(nil, sc.c.Server.find(id), "fiche created for " .. name .. " (no contact) by the trigger " .. fact)
+        end
+    end
     for name in pairs(sc.fiches) do
         for _, item in ipairs(facts(sc, name, fact)) do
             t:ok(string.find(item.place, "^area%-%-?%d+%-%-?%d+$") ~= nil, fact .. " of " .. name .. ": place '"
