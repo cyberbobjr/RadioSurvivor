@@ -490,7 +490,8 @@ class MultiplayerMealTests(MealStack):
 class SuiteTests(MealStack):
     mode = 'solo'
 
-    def test_suite_lk_meals_passes_on_the_doubles(self):
+    def run_suite(self, each_tick=None):
+        """Lance la suite lk.meals sur les doublures ; each_tick(i) est appelé après chaque image. Rend le rapport."""
         from test_lk_materialize import PLAYER_MOVES
         self.h.load('solo', PLAYER_MOVES)
         self.h.load('solo', TIME_OF_DAY)
@@ -522,12 +523,17 @@ class SuiteTests(MealStack):
         for i in range(6000):
             self.h.tick()
             self.run_lua('STEP_ALL(0.1) for _, z in pairs(HARNESS.zombies) do z.onFloor = false end')
+            if each_tick is not None:
+                each_tick(i)
             if not self.h.eval('solo', 'RST.running()'):
                 break
             self.h.advance_ms(100)
             if i % 10 == 9:
                 self.h.advance(1)
-        report = self.h.eval('solo', 'RST.last()')
+        return self.h.eval('solo', 'RST.last()')
+
+    def test_suite_lk_meals_passes_on_the_doubles(self):
+        report = self.run_suite()
         results = [(r.test, r.status, r.message) for r in lua_list(report.results)]
         self.assertEqual(len(results), 1, results)
         self.assertTrue(report.ok, (results, [x for x in self.h.logs('solo') if 'LKM' in x or 'ERROR' in x][-20:]))
@@ -536,6 +542,29 @@ class SuiteTests(MealStack):
                      '[LKM] measure eaten: '):
             self.assertTrue(any(text in line for line in logs), text)
         self.assertEqual(self.ev('#LivingKnox.Groups.list()'), 0)
+        self.assertEqual(self.h.errors('solo'), [])
+
+    def test_suite_survives_an_hour_change_before_the_first_decision(self):
+        """Campagne solo du 2026-11-13 (run 20261113-120014) : l'heure de jeu a changé entre la faim posée par la suite
+        et la première décision du membre ; jamais évalué pendant l'heure, il a reçu le repas abstrait du pas horaire
+        (Needs.scheduleActivity) et n'a rien pris. Ici : cadre de décision retenu pendant les premières secondes, heure
+        passée dès que la suite pose la faim. La suite doit attendre une première décision avant de poser la faim."""
+        state = {'hour': False}
+
+        def each_tick(i):
+            if i == 0:
+                self.run_lua(f'{D}.state.lastPass = 1e18')                     # aucune décision pour l'instant
+            if i == 150:
+                self.run_lua(f'{D}.state.lastPass = 0')                        # le cadre de décision reprend
+            if not state['hour'] and any('[LKM] measure hungry: ' in x for x in self.h.logs('solo')):
+                state['hour'] = True
+                self.h.advance(60)
+                self.run_lua(f'{N}.pass()')                                    # pas horaire des besoins (EveryHours)
+
+        report = self.run_suite(each_tick)
+        results = [(r.test, r.status, r.message) for r in lua_list(report.results)]
+        self.assertTrue(state['hour'], 'the suite never set the hunger')
+        self.assertTrue(report.ok, (results, [x for x in self.h.logs('solo') if 'LKM' in x or 'ERROR' in x][-20:]))
         self.assertEqual(self.h.errors('solo'), [])
 
     def test_suite_source_is_ascii_and_kahlua_safe(self):

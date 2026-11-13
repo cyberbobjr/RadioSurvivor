@@ -68,6 +68,16 @@ local function allStanding(gid)
     return true
 end
 
+-- True once the decision frame has evaluated the embodied member at least once: its activity of the hour is then
+-- observed (Needs.observe). The hunger of the scene is set only after that: a member never evaluated during the hour
+-- follows the abstract schedule at the hourly step of the needs and gets the abstract meal (Needs.scheduleActivity),
+-- so an hour change between the hunger set and the first decision fed it without any item taken (solo campaign of
+-- 2026-11-13, run 20261113-120014: m-2 went to its chores, never to the stove).
+local function decided(gid, mid)
+    local npc = memberNpcs(gid)[mid]
+    return npc ~= nil and LK().Decisions.get(npc) ~= nil
+end
+
 -- Containers of the home (LivingKnox.Stock.containers), or nil.
 local function homeContainers(gid, home)
     local style, def = LK().Homes.ready(home)
@@ -163,7 +173,7 @@ RST.suite("lk.meals", { tags = { "world", "server" }, testTimeoutMs = 600000, ti
         t:note("group " .. gid .. " home " .. home.x .. "," .. home.y .. "," .. home.z)
         t:waitUntil(function()
             local now = getGameTime():getTimeOfDay()
-            return bodyCount(gid) == 3 and allStanding(gid) and now >= 7 and now < 21.5
+            return bodyCount(gid) == 3 and allStanding(gid) and now >= 7 and now < 21.5 and decided(gid, "m-2")
         end, BODIES_MS, function(t2)
             -- Zombies of the save around the home (solo campaign of 2026-11-04: m-2 raised an alert and defended the
             -- home for 120 s instead of eating, the right priority): removed before hunger is set.
