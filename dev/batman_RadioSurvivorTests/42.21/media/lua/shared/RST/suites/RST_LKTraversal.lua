@@ -309,18 +309,34 @@ end
 -- Players are solid: the player standing on the lane of a site (or next to it) blocks or pushes the body (solo
 -- campaign of 2026-10-15, commit 54087fb: player placed on the door square 11313,6940 of "locked home door: refused
 -- without the key", body counted through the door). A player within LANE_CLEAR squares of a square of the lane is
--- moved (RST.Fixtures.movePlayer, back at the end) to the nearest free square farther than that, same level.
+-- moved (RST.Fixtures.movePlayers, back at the end: on a server the other clients move by the same offset) to the
+-- nearest free square farther than that, same level. A site routed through doors (site.doorEdges) also clears the
+-- route start -> door edges: MP campaign of 2026-11-13 (runs/20261113-150840-parallel-3 shard3), both players in the
+-- one-square corridor to the door 10655,10135 N of "destination behind a locked door elsewhere", body stuck there.
 local LANE_CLEAR = 2
+local function addSegment(out, x0, y0, x1, y1)
+    local n = math.max(math.abs(x1 - x0), math.abs(y1 - y0))
+    for i = 0, n do
+        out[#out + 1] = { x = x0 + (n > 0 and math.floor((x1 - x0) * i / n + 0.5) or 0),
+            y = y0 + (n > 0 and math.floor((y1 - y0) * i / n + 0.5) or 0) }
+    end
+end
 local function laneSquares(site)
     local out = {}
     local e = site.e
     if e == nil or site.start == nil or site.target == nil then return out end
     local x0, y0 = site.start:getX(), site.start:getY()
-    local x1, y1 = site.target:getX(), site.target:getY()
-    local n = math.max(math.abs(x1 - x0), math.abs(y1 - y0))
-    for i = 0, n do
-        out[#out + 1] = { x = x0 + (n > 0 and math.floor((x1 - x0) * i / n + 0.5) or 0),
-            y = y0 + (n > 0 and math.floor((y1 - y0) * i / n + 0.5) or 0) }
+    addSegment(out, x0, y0, site.target:getX(), site.target:getY())
+    local px, py = x0, y0
+    for _, d in ipairs(site.doorEdges or {}) do
+        if d.ax ~= nil and d.ay ~= nil then
+            addSegment(out, px, py, d.ax, d.ay)
+            px, py = d.ax, d.ay
+            if d.bx ~= nil and d.by ~= nil then
+                addSegment(out, px, py, d.bx, d.by)
+                px, py = d.bx, d.by
+            end
+        end
     end
     return out
 end
@@ -345,7 +361,7 @@ clearLane = function(t, site, run)
                     local sq = cell():getGridSquare(cx + dx, cy + dy, z)
                     if sq ~= nil and walkable(sq) and not nearLane(squares, sq:getX(), sq:getY()) then
                         print("[LKT] player off the lane of the site: " .. sq:getX() .. "," .. sq:getY() .. "," .. z)
-                        return RST.Fixtures.movePlayer(t, p, sq:getX() + 0.5, sq:getY() + 0.5, z, function(t2)
+                        return RST.Fixtures.movePlayers(t, p, sq:getX() + 0.5, sq:getY() + 0.5, z, function(t2)
                             return run(t2, site)
                         end)
                     end
@@ -1445,6 +1461,7 @@ RST.LKTraversal.pickWindow = pickWindow
 RST.LKTraversal.pickFence = pickFence
 RST.LKTraversal.rawPick = rawPick
 RST.LKTraversal.doorsByLane = doorsByLane
+RST.LKTraversal.laneSquares = laneSquares
 RST.LKTraversal.refusedDoorsByLane = refusedDoorsByLane
 RST.LKTraversal.pickFenceByRefusedDoor = pickFenceByRefusedDoor
 RST.LKTraversal.setOpen = setOpen

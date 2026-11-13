@@ -3214,6 +3214,24 @@ class ExitLooseTests(ObstacleBase):
         self.assertEqual(self.run_lua(probe), ('106,102,0,W', '100,104,0,W', '106,108,0,W', '108,102', '99,104'))
         self.assertEqual(self.state('solo', '100,104,0,W'), 'true false false')   # porte rendue telle quelle
 
+    def test_suite_loose_exit_lane_reaches_the_door_of_the_route(self):
+        # MP 2026-11-13 (runs/20261113-150840-parallel-3 shard3) : les deux joueurs dans le couloir d'une case menant
+        # à la porte de l'itinéraire, hors de la voie départ -> cible de la fenêtre ; corps bloqué 23 s. La voie à
+        # dégager suit aussi l'itinéraire jusqu'aux portes (joueurs écartés à 2 cases).
+        self.h.load('solo', 'shared/RST/suites/RST_LKTraversal.lua')
+        self.kitchen()
+        self.other()
+        self.bedroom()
+        self.init()
+        probe = ('local s = RST.LKTraversal.findLooseExitSite({ getX = function() return 110 end, getY = function() '
+                 'return 102 end, getZ = function() return 0 end }) '
+                 'local d = s.doorEdges[1] local hit = false '
+                 'for _, q in ipairs(RST.LKTraversal.laneSquares(s)) do '
+                 'if q.x == d.ax and q.y == d.ay then hit = true end end '
+                 'return hit, d.ax .. "," .. d.ay')
+        hit, door = self.run_lua(probe)
+        self.assertTrue(hit, door)
+
 
 class MultiplayerTrappedTests(ObstacleBase):
     """LK04-T20 en MP (serveur dédié, A simule le corps, B regarde) : itinéraire de dernier recours calculé par le
