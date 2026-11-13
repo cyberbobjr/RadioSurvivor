@@ -33,7 +33,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from phase_sweep import WORLDS, other_groups, sweep  # noqa: E402
-from harness import LK_LUA, lua_src, routine_files  # noqa: E402  (E18-T07, LK15-T02)
+from harness import LK_LUA, homes_files, lua_src, routine_files  # noqa: E402  (E18-T07, LK15-T02, LK16-T10)
 from test_lk_bodies import lua_list  # noqa: E402
 from test_lk_decisions import PureBase  # noqa: E402
 from test_lk_meals import MealStack  # noqa: E402
@@ -201,7 +201,8 @@ for _, it in ipairs({ CAN, SCRAP, BLEACH, CLOTH }) do PANTRY.container:AddItem(i
 class PureUpkeepTests(PureBase):
     def setUp(self):
         super().setUp()
-        self.h.load('solo', 'server/LivingKnox/LK_Homes.lua')
+        for rel in homes_files():   # LK16-T10 : moteur et aménagements (Furnishings/)
+            self.h.load('solo', rel)
         self.h.load('solo', 'server/LivingKnox/LK_Stock.lua')
         for rel in routine_files() + upkeep_files():   # LK15-T02
             self.h.load('solo', rel)

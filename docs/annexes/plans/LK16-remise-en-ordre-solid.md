@@ -2,7 +2,7 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 6 / 12 tâche(s) terminée(s).
+**Avancement.** en cours — 7 / 12 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
@@ -15,7 +15,7 @@
 | ☑ | LK16-T07 | C8 et C9 : corvées et plans des routines | `testé hors jeu` | hors jeu | LK16-T01 |
 | ☐ | LK16-T08 | C4 : genres d'expédition | `à faire` | hors jeu | LK16-T01 |
 | ☐ | LK16-T09 | C6 : simulation hors écran | `à faire` | hors jeu | LK16-T04 |
-| ☐ | LK16-T10 | C11 : aménagements des foyers ; nettoyages | `à faire` | hors jeu | LK16-T01 |
+| ☑ | LK16-T10 | C11 : aménagements des foyers ; nettoyages | `testé hors jeu` | hors jeu | LK16-T01 |
 | ☑ | LK16-T11 | C10 : obstacles | `testé hors jeu` | hors jeu | LK16-T01 |
 | ☐ | LK16-T12 | Remise en ordre vérifiée en jeu | `à faire` | MP | LK16-T02, LK16-T03, LK16-T06, LK16-T07, LK16-T08, LK16-T09, LK16-T10, LK16-T11 |
 
@@ -136,16 +136,16 @@ Constats P2 et P3 de l'audit hors des chantiers ; tout changement visible par un
   - Tests : bancs de la simulation.
   - Preuve : —
   - Reste : —
-- [ ] **LK16-T10** — C11 : aménagements des foyers ; nettoyages
-  - État : `à faire`
+- [x] **LK16-T10** — C11 : aménagements des foyers ; nettoyages
+  - État : `testé hors jeu`
   - Cible : `hors jeu`
   - Dépend de : LK16-T01
   - Fichiers : `LK_Homes.lua`, `LK_Raids.lua`
   - Faire : constat E-F01 : `Homes.registerFurnishing`, un fichier par sorte ; table morte `Raids.SIGNS` retirée (E-F02).
   - Accepté si : un aménagement ajouté par un seul fichier de banc est posé ; bancs verts.
   - Tests : bancs des foyers et des raids.
-  - Preuve : —
-  - Reste : —
+  - Preuve : 2026-11-13 : `Homes.registerFurnishing(kind, spec)` sur `LivingKnox.Registry` (`order`, `style`, `plan(ctx, out)` ; facultatifs `furniture`, `prep`, `place`, `clear`) ; six aménagements, un par fichier sous `server/LivingKnox/Furnishings/` (barricade, lampe, lit, caisse, feu, tente) ; `KINDS` et `FURNITURE` dérivés, blocs par sorte de `planBuilding`/`planCamp`, cas particuliers de `applyAction` et de `clear` et liste du journal supprimés (`LK_Homes.lua` 813 → 744 lignes) ; banc de gel `FrozenTests` (6 foyers : maisons, camps, réaménagement, pose refusée ; plan, marque, objets posés, feux, journal, retraits), empreinte identique avant et après ; acceptation `RegistryTests` : un aménagement factice inscrit par le banc seul est planifié, posé, journalisé, validé et retiré (rouge avant : `attempt to call field 'registerFurnishing' (a nil value)`) ; `test_lk_homes.py` 25 OK ; une vingtaine de bancs qui chargent les foyers verts sans attendu changé ; `test_doubles_api`, `test_mod_calls_api`, `test_kahlua` verts ; luacheck `Contents` 8
+  - Reste : retrait de la table morte `Raids.SIGNS` reporté (fichier voisin d'une autre tâche en cours) ; repli `crate` de `findTagged` encore écrit dans le moteur ; le retrait choisit son traitement par la sorte notée sur l'objet et non plus par sa classe (aucun cas différent aujourd'hui) ; suite complète à repasser ; chargement du dossier `Furnishings/` non vérifié en jeu
 - [x] **LK16-T11** — C10 : obstacles
   - État : `testé hors jeu`
   - Cible : `hors jeu`

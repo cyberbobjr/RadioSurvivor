@@ -26,7 +26,7 @@ sys.path.append(str(Path(__file__).resolve().parents[1] / 'tools'))
 import pz_paths  # noqa: E402  (vanilla folders: PZ_STEAM_LIBRARY, PZ_MEDIA or Steam detection)
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from harness import Harness  # noqa: E402
+from harness import Harness, homes_files  # noqa: E402  (LK16-T10)
 from harness import lua_src  # noqa: E402  (E18-T07)
 from harness import LK_LUA  # noqa: E402  (E18-T07)
 from test_lk_homes import DOUBLES, HOUSE, SHARED, DEV_LUA  # noqa: E402
@@ -38,7 +38,7 @@ MODULE = 'server/LivingKnox/LK_Traces.lua'
 SUITE = 'shared/RST/suites/RST_LKTraces.lua'
 SUITE_FILE = DEV_LUA / SUITE
 SERVER = ('server/LivingKnox/LK_Server.lua', 'server/LivingKnox/LK_Journal.lua', 'server/LivingKnox/LK_Stories.lua',
-          'server/LivingKnox/LK_Homes.lua', MODULE)
+          *homes_files(), MODULE)   # LK16-T10 : moteur et aménagements (Furnishings/)
 T, G = 'LivingKnox.Traces', 'LivingKnox.Groups'
 
 

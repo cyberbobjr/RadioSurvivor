@@ -28,7 +28,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from phase_sweep import WORLDS, other_groups, sweep  # noqa: E402
-from harness import lua_src  # noqa: E402  (E18-T07)
+from harness import homes_files, lua_src  # noqa: E402  (E18-T07, LK16-T10)
 from test_lk_bodies import lua_list  # noqa: E402
 from test_lk_decisions import PureBase  # noqa: E402
 from test_lk_meals import MEAL_DOUBLES, PANTRY  # noqa: E402
@@ -136,7 +136,7 @@ CREW = [('fighter', 'gunner', 'false'), ('worker', 'cook', 'false'), ('scout', '
 class PureExpeditionTests(PureBase):
     def setUp(self):
         super().setUp()
-        for path in ('server/LivingKnox/LK_Homes.lua', 'server/LivingKnox/LK_Stock.lua',
+        for path in (*homes_files(), 'server/LivingKnox/LK_Stock.lua',   # LK16-T10 : aménagements (Furnishings/)
                      'server/LivingKnox/LK_Routines.lua', MODULE):
             self.h.load(self.srv, path)
 
@@ -236,7 +236,7 @@ class ExpeditionStack(RoutineStack):
         h = super().make(root)
         machines = ['solo'] if self.mode == 'solo' else ['server', 'A', 'B']
         for m in machines:
-            for path in ('server/LivingKnox/LK_Homes.lua', 'server/LivingKnox/LK_Stock.lua', MODULE):
+            for path in (*homes_files(), 'server/LivingKnox/LK_Stock.lua', MODULE):   # LK16-T10
                 h.load(m, path)
         srv = 'solo' if self.mode == 'solo' else 'server'
         h.load(srv, MEAL_DOUBLES)

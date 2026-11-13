@@ -30,7 +30,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from harness import Harness  # noqa: E402
+from harness import Harness, homes_files  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 DEV_LUA = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua'
@@ -40,7 +40,6 @@ SHARED = ('shared/LivingKnox/LK_Core.lua', 'shared/LivingKnox/LK_Config.lua', 's
           'shared/LivingKnox/Data/LK_Type_neutrals.lua', 'shared/LivingKnox/Data/LK_Type_raiders.lua',
           'shared/LivingKnox/Data/LK_Type_settlers.lua')
 SERVER = 'server/LivingKnox/LK_Server.lua'
-MODULE = 'server/LivingKnox/LK_Homes.lua'
 HM = 'LivingKnox.Homes'
 
 DOUBLES = r'''
@@ -356,7 +355,8 @@ class Base(unittest.TestCase):
             for path in SHARED:
                 self.h.load(m, path)
             self.h.load(m, SERVER)
-            self.h.load(m, MODULE)
+            for path in homes_files():   # LK16-T10 : moteur et aménagements (Furnishings/)
+                self.h.load(m, path)
         self.h.fire(self.srv, 'OnInitGlobalModData', False)
 
     def tearDown(self):
@@ -667,6 +667,129 @@ class CampTests(Base):
         self.assertEqual(kinds.get('tent'), 1)
         fire = [p for p in self.mark(gid).placed.values() if p.k == 'fire']
         self.assertTrue(all((p.x, p.y) != (200, 200) for p in fire))
+
+
+# LK16-T10 : empreinte (sha256) des plans, des objets posés, des journaux et des retraits relevée sur le code d'avant le
+# registre des aménagements (Homes.registerFurnishing).
+FROZEN_FURNISH = 'bedcde474bb092888ad3bfed09458bdfae95ebc18fc53c76d8f77d82bd90b28a'
+
+# Plans et objets posés sérialisés (ordre de pose, cases, sortes, sprites, lampe, feux).
+FREEZE = r'''
+function SER_PLAN(gid, n)
+    local H = LivingKnox.Homes
+    local home = LivingKnox.Groups.get(gid).home
+    local style, def = H.ready(home)
+    local plan, info
+    if style == "building" then plan, info = H.planBuilding(getCell(), home, def:getIDString(), n)
+    else plan, info = H.planCamp(getCell(), home, n) end
+    local parts = { style }
+    for _, a in ipairs(plan) do
+        parts[#parts + 1] = table.concat({ a.k, a.x, a.y, a.z, tostring(a.nx), tostring(a.ny), tostring(a.v) }, ",")
+    end
+    local ik = {}
+    for k, v in pairs(info) do ik[#ik + 1] = k .. "=" .. tostring(v) end
+    table.sort(ik)
+    return table.concat(parts, ";") .. "|" .. table.concat(ik, ",")
+end
+function SER_PLACED(gid)
+    local parts = {}
+    for _, p in ipairs(LivingKnox.Groups.get(gid).furnish.placed) do
+        parts[#parts + 1] = table.concat({ p.k, p.x, p.y, p.z }, ",")
+    end
+    for _, t in ipairs(TAGGED(gid)) do
+        local o = t.o
+        parts[#parts + 1] = table.concat({ t.x, t.y, tostring(t.kind), t.sprite, tostring(o:getModData().LKHomeSide),
+            tostring(rawget(o, "useBattery")), tostring(rawget(o, "power")), tostring(rawget(o, "sourceActive")),
+            tostring(o.container and o.container.type) }, ",")
+    end
+    local fk = {}
+    for k, lo in pairs(FIRES) do fk[#fk + 1] = k .. "=" .. tostring(lo.isLit) .. "/" .. lo.fuelAmt end
+    table.sort(fk)
+    parts[#parts + 1] = table.concat(fk, ",")
+    return table.concat(parts, ";")
+end
+'''
+
+# Second bâtiment sans lit (id 8), fenêtres sur trois côtés ; feu déjà là au foyer d'un camp.
+FREEZE_WORLD = r'''
+BUILDINGS[#BUILDINGS + 1] = { 140, 100, 152, 110, 8 }
+ADD_DOOR(140, 105, 139, 105)
+ADD_WINDOW(143, 100, 143, 99) ADD_WINDOW(148, 100, 148, 99) ADD_WINDOW(152, 103, 153, 103)
+ADD_WINDOW(152, 108, 153, 108) ADD_WINDOW(145, 110, 145, 111) ADD_WINDOW(150, 110, 150, 111, true)
+PUT(146, 106, 'table_object')
+TREE(200, 200) TREE(203, 200) TREE(200, 197)
+SCampfireSystem.instance:addCampfire(getCell():getGridSquare(240, 200, 0))
+TREE(201, 240) TREE(197, 243)
+'''
+
+
+class FrozenTests(Base):
+    """LK16-T10 : plans et poses d'aménagement figés sur plusieurs foyers (maison, bâtiment sans lit, camps, styles de
+    groupe), identiques avant et après le registre des aménagements."""
+
+    def test_furnishing_plans_and_objects_are_frozen(self):
+        import hashlib
+        self.run_lua(HOUSE)
+        self.run_lua(FREEZE_WORLD)
+        self.run_lua(FREEZE)
+        cases = [('settlers', (103, 104, 0), 4, 'Mill'), ('raiders', (145, 105, 0), 8, 'Crows'),
+                 ('neutrals', (106, 103, 0), 2, 'Pair'), ('raiders', (200, 200, 0), 5, 'Camp'),
+                 ('neutrals', (240, 200, 0), 1, 'Lone'), ('settlers', (200, 240, 0), 8, 'Big')]
+        out = []
+        for gtype, home, n, name in cases:
+            gid = self.group(gtype, home=home, members=n, name=name)
+            out.append(self.ev(f'SER_PLAN("{gid}", {n})'))
+            self.run_lua(f'assert(type({HM}.check("{gid}", {{ force = true }})) == "table")')
+            out.append(self.ev(f'SER_PLACED("{gid}")'))
+            out.append(';'.join(line for line in self.lk() if f'group {gid} home' in line and 'furnished' in line))
+            out.append(str(self.ev(f'{HM}.clear("{gid}")')))
+            out.append(str(self.ev('COUNT.removed')))
+        text = '\n'.join(out)
+        self.assertIn('barricade', text)
+        self.assertIn('tent', text)
+        self.assertEqual(hashlib.sha256(text.encode('ascii')).hexdigest(), FROZEN_FURNISH, text)
+
+
+class RegistryTests(Base):
+    """LK16-T10 : un aménagement inscrit par un seul fichier (ici le banc) est planifié, posé, journalisé, accepté dans
+    la marque et retiré, sans toucher au moteur."""
+
+    STOOL = r'''
+LivingKnox.Homes.registerFurnishing("stool", { style = "building", order = 45,
+    furniture = { stool = { sprite = "chair", w = 1, h = 1 } },
+    plan = function(ctx, out)
+        for _, s in ipairs(ctx.inside) do
+            if ctx.fits(s.x, s.y, 1, 1) then
+                out[#out + 1] = { k = "stool", x = s.x, y = s.y, z = ctx.z, v = "stool" }
+                ctx.reserve(s.x, s.y, 1, 1)
+                return
+            end
+        end
+    end })
+'''
+
+    def test_a_furnishing_registered_by_one_file_is_planned_and_placed(self):
+        self.run_lua(HOUSE)
+        self.run_lua(self.STOOL)
+        gid = self.group()
+        self.assertEqual(self.scan(), 1)
+        self.assertEqual(self.placed_kinds(gid), {'barricade': 2, 'lamp': 1, 'bed': 3, 'crate': 1, 'stool': 1})
+        self.assertEqual([t[3] for t in self.tagged(gid) if t[2] == 'stool'], ['chair'])
+        self.assertTrue(any('2 barricade, 1 lamp, 3 bed, 1 crate, 1 stool' in line for line in self.lk()), self.lk())
+        self.assertTrue(self.ev(f'({HM}.validMark(LivingKnox.Groups.get("{gid}").furnish, '
+                                f'LivingKnox.Groups.get("{gid}").home))'))
+        self.assertEqual(self.ev(f'{HM}.clear("{gid}")'), 8 + 2 + 1)
+        self.assertEqual(self.tagged(gid), [])
+
+    def test_a_bad_furnishing_is_refused(self):
+        for bad in ('"Stool", { style = "building", order = 1, plan = function() end }',
+                    '"stool", { style = "tower", order = 1, plan = function() end }',
+                    '"stool", { style = "building", order = 1 }',
+                    '"stool", { style = "building", plan = function() end }'):
+            with self.subTest(bad=bad):
+                ok = self.run_lua(f'return (pcall({HM}.registerFurnishing, {bad}))')
+                self.assertFalse(ok)
+        self.assertIsNone(self.ev(f'{HM}.KINDS.stool'))
 
 
 class MultiplayerTests(Base):

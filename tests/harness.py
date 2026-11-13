@@ -1067,6 +1067,16 @@ def fortify_files():
     return ['server/LivingKnox/LK_Fortify.lua'] + [f'server/LivingKnox/Fortify/{name}' for name in names]
 
 
+FURNISHINGS_DIR = LK_LUA / 'server' / 'LivingKnox' / 'Furnishings'
+
+
+def homes_files():
+    """Fichiers de l'aménagement des foyers (LK16-T10) comme le jeu les charge : moteur, puis chaque aménagement du
+    dossier Furnishings/ (trié par nom, comme le chargement du jeu ; l'ordre entre aménagements vient de leur order)."""
+    names = sorted((p.name for p in FURNISHINGS_DIR.glob('*.lua')), key=str.lower)
+    return ['server/LivingKnox/LK_Homes.lua'] + [f'server/LivingKnox/Furnishings/{name}' for name in names]
+
+
 # Lua vanilla réel (E19-T04, ADR banc mimétique D03) ------------------------------------------------------------------
 VANILLA_MISSING = ('vanilla Lua not found: install Project Zomboid (PZ_STEAM_LIBRARY, PZ_DIR or PZ_MEDIA, '
                    'tools/pz_paths.py) or set PZ_SOURCE_DIR to the 42.22 reference sources (media/lua)')

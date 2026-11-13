@@ -9,7 +9,8 @@
 -- BuildingDef:isFullyStreamedIn() est faux et qu'aucune pièce n'est explorée (l'histoire de bâtiment vanilla, qui
 -- peut vider ou retirer des objets, passe avant LoadChunk et seulement sur un bâtiment complet jamais exploré : base
 -- world-placement.md, « Quand poser »).
--- Quoi (objets vanilla seulement, quantités modestes, tous démontables ou ramassables par un joueur) :
+-- Quoi (objets vanilla seulement, quantités modestes, tous démontables ou ramassables par un joueur ; LK16-T10 : un
+-- aménagement par fichier sous Furnishings/, inscrit par Homes.registerFurnishing, voir « aménagements » plus bas) :
 --   bâtiment (case du foyer dans une pièce, même règle que LK_Routines) : planches sur WINDOWS fenêtres fermées et non
 --     barricadées du bâtiment, au niveau du foyer, côté extérieur, les plus éloignées du foyer d'abord (PLANKS planches
 --     chacune : au plus 2, la vue reste dégagée, J/iso/objects/IsoBarricade.java:234-236) ; une lampe sur pile
@@ -57,6 +58,7 @@ if isClient() then return end
 require "LivingKnox/LK_Core"
 require "LivingKnox/LK_Config"
 require "LivingKnox/LK_Log"
+require "LivingKnox/LK_Registry"
 require "LivingKnox/LK_Groups"
 
 local Homes = LivingKnox.Homes or {}
@@ -68,20 +70,83 @@ Homes.TAG_KIND = "LKHomeKind"
 Homes.TAG_SIDE = "LKHomeSide"   -- fenêtre barricadée : côté de la barricade du groupe ("same" | "opposite")
 Homes.GEN_TAG = "LKGenerator"   -- LK05-T19 : générateur du groupe (ModData de l'IsoGenerator)
 Homes.STYLES = { building = true, camp = true }
-Homes.KINDS = { barricade = true, lamp = true, bed = true, crate = true, fire = true, tent = true }
 Homes.MAX_PLACED = 32
 
--- Meubles vanilla posés (newtiledefinitions.tiles.txt, 42.21) : sprite d'ancrage et emprise (largeur en x, hauteur en
--- y depuis l'ancrage, SpriteGridPos 0,0). Lampe lighting_indoor_03_4 « Grey Lamp » (lightswitch, LightRadius 12, une
--- case) ; sac de couchage vert camping_02_16 + _17 (bed, BedType badBed, nord) ; caisse carpentry_01_16 (container
--- crate, 60) ; petite tente camping_01_1 + _0 (est) ou camping_01_2 + _3 (sud) (bed, badBed, container tent 30).
-Homes.FURNITURE = {
-    lamp = { sprite = "lighting_indoor_03_4", w = 1, h = 1 },
-    bed = { sprite = "camping_02_16", w = 2, h = 1 },
-    crate = { sprite = "carpentry_01_16", w = 1, h = 1 },
-    tentE = { sprite = "camping_01_1", w = 1, h = 2 },
-    tentS = { sprite = "camping_01_2", w = 2, h = 1 },
-}
+-- ================================================================ aménagements (LK16-T10)
+-- Ce module ne décrit AUCUN aménagement : chacun s'inscrit par Homes.registerFurnishing(kind, spec) depuis son fichier
+-- media/lua/server/LivingKnox/Furnishings/LK_Furnish_<Nom>.lua (chargé par le jeu, sous-dossiers compris, après ce
+-- module qu'il requiert). Les tables KINDS (sortes acceptées dans la marque) et FURNITURE (meubles vanilla : sprite
+-- d'ancrage et emprise w en x, h en y depuis l'ancrage) en sont DÉRIVÉES à chaque inscription. spec :
+--   kind     : nom unique (premier argument ; a.k du plan, ModData[TAG_KIND], journal), minuscules, chiffres, « _ »
+--   order    : rang dans le registre, plus petit d'abord ; à égalité, par kind : ordre du plan d'un style et du journal
+--   style    : style de foyer aménagé (« building » ou « camp »)
+--   plan(ctx, out) : ajoute ses actions { k, x, y, z, ... } à out (plan du style, déjà rempli par les aménagements
+--              d'ordre plus petit). ctx : cell, home, z, members (membres vivants), cfg (Homes.CFG), taken (cases
+--              réservées), fits(x, y, w, h) (emprise libre pour ce style), reserve(x, y, w, h), info (rendue par le
+--              plan) ; bâtiment : bid, inside (cases du bâtiment triées par Homes.byPlace), windows (fenêtres fermées non
+--              barricadées du bord), beds (lits déjà là) ; camp : cx, cy (centre du camp, case du foyer au départ)
+--   furniture : facultatif, { [nom] = { sprite, w, h } } (a.v du plan, sinon a.k)
+--   prep(item) : facultatif, réglage de l'objet d'inventaire avant la pose d'un meuble
+--   place(gid, a, sq) : facultatif, pose de l'action a sur sq (case chargée) ; rend vrai, ou nil et la raison ; par
+--              défaut le meuble FURNITURE[a.v or a.k] posé comme un joueur (Homes.placeFurniture)
+--   clear    : facultatif, retrait propre : { collect(o, sq) -> entrée gardée pour finish, ou nil (objet marqué retiré
+--              de sa case) ; finish(entries, cell, mark) -> objets retirés }, finish appelé dans l'ordre du registre
+-- Inscrire de nouveau un kind le remplace (rechargement).
+Homes.furnishings = Homes.furnishings or { list = {}, byKind = {} }
+
+local SPEC_FIELDS = { plan = "function", place = "function", prep = "function", furniture = "table", clear = "table" }
+
+local function furnishingProblem(spec)
+    if type(spec) ~= "table" then return "spec must be a table" end
+    if type(spec.kind) ~= "string" or string.match(spec.kind, "^[a-z][a-z0-9_]*$") == nil then
+        return "kind must be a lowercase name"
+    end
+    if type(spec.order) ~= "number" or not Homes.STYLES[spec.style] or type(spec.plan) ~= "function" then
+        return spec.kind .. " needs order, style (building or camp) and plan"
+    end
+    for field, t in pairs(SPEC_FIELDS) do
+        if spec[field] ~= nil and type(spec[field]) ~= t then return spec.kind .. "." .. field .. " must be a " .. t end
+    end
+    if spec.clear ~= nil and (type(spec.clear.collect) ~= "function" or type(spec.clear.finish) ~= "function") then
+        return spec.kind .. ".clear needs collect and finish"
+    end
+    return nil
+end
+
+local function validFurnishing(spec)
+    local why = furnishingProblem(spec)
+    return why == nil, why
+end
+
+-- LK16-T01 : socle commun (LivingKnox.Registry) ; Homes.furnishings.list et byKind en sont la liste triée et l'index.
+local furnishingRegistry = LivingKnox.Registry.new("LivingKnox.Homes.registerFurnishing",
+    { key = "kind", validate = validFurnishing, items = Homes.furnishings.list, byKey = Homes.furnishings.byKind })
+
+-- Tables dérivées du registre (une seule source : les specs inscrites).
+local function deriveFurnishings()
+    local kinds, furniture = {}, {}
+    for _, s in ipairs(Homes.furnishings.list) do
+        kinds[s.kind] = true
+        for name, f in pairs(s.furniture or {}) do furniture[name] = f end
+    end
+    Homes.KINDS, Homes.FURNITURE = kinds, furniture
+end
+
+-- Inscrit l'aménagement kind décrit par spec (voir plus haut) ; rend spec. Erreur claire si spec est invalide : rien
+-- n'est inscrit.
+function Homes.registerFurnishing(kind, spec)
+    if type(spec) == "table" then spec.kind = kind end
+    furnishingRegistry:register(spec, 2)
+    deriveFurnishings()
+    return spec
+end
+
+-- Spec de l'aménagement kind, ou nil.
+function Homes.furnishingOf(kind)
+    return furnishingRegistry:get(kind)
+end
+
+deriveFurnishings()
 
 Homes.CFG = Homes.CFG or {
     RADIUS = 10,          -- cases autour du foyer examinées (laisse de LK_Decisions, HOME_RADIUS)
@@ -201,11 +266,14 @@ end
 
 -- ================================================================ plan (lecture seule)
 
+-- Ordre des cases d'un plan : écart au foyer, puis y, puis x.
 local function byPlace(a, b)
     if a.d ~= b.d then return a.d < b.d end
     if a.y ~= b.y then return a.y < b.y end
     return a.x < b.x
 end
+Homes.byPlace = byPlace
+Homes.cheb = cheb
 
 -- Pourtour réservé : l'emprise et ses cases voisines (y compris en diagonale) ne reçoivent plus rien.
 local function reserve(taken, x, y, w, h)
@@ -223,6 +291,16 @@ local function footprintFree(cell, x, y, z, w, h, taken, test)
         end
     end
     return true
+end
+
+-- Plan du style style : chaque aménagement de ce style, dans l'ordre du registre, ajoute ses actions.
+local function planStyle(style, ctx)
+    ctx.reserve = function(x, y, w, h) reserve(ctx.taken, x, y, w, h) end
+    local plan = {}
+    for _, s in ipairs(Homes.furnishings.list) do
+        if s.style == style then s.plan(ctx, plan) end
+    end
+    return plan
 end
 
 -- Plan d'un foyer de bâtiment : { { k, x, y, z, ... } } dans l'ordre de pose. members = membres vivants.
@@ -264,109 +342,44 @@ function Homes.planBuilding(cell, home, bid, members)
             end
         end
     end
-    local plan = {}
-    -- Fenêtres : les plus éloignées du foyer d'abord (arrière de la maison).
-    table.sort(windows, function(a, b)
-        if a.d ~= b.d then return a.d > b.d end
-        if a.y ~= b.y then return a.y < b.y end
-        if a.x ~= b.x then return a.x < b.x end
-        if a.ny ~= b.ny then return a.ny < b.ny end
-        return a.nx < b.nx
-    end)
-    for i = 1, math.min(c.WINDOWS, #windows) do
-        local w = windows[i]
-        plan[#plan + 1] = { k = "barricade", x = w.x, y = w.y, z = z, nx = w.nx, ny = w.ny }
-    end
     local taken = {}
     reserve(taken, home.x, home.y, 1, 1)   -- case du foyer et son pourtour : lieu de rassemblement
     for k in pairs(edge) do taken[k] = true end
     local function inBuilding(sq) return Homes.clearSquare(sq) and buildingId(sq) == bid end
     table.sort(inside, byPlace)
-    -- Lampe : la case libre la plus proche du foyer.
-    for _, s in ipairs(inside) do
-        if footprintFree(cell, s.x, s.y, z, 1, 1, taken, inBuilding) then
-            plan[#plan + 1] = { k = "lamp", x = s.x, y = s.y, z = z, v = "lamp" }
-            reserve(taken, s.x, s.y, 1, 1)
-            break
-        end
-    end
-    -- Couchages : un par membre vivant, lits existants compris.
-    local f = Homes.FURNITURE.bed
-    local need = math.min(c.MAX_BEDS, members) - beds
-    for _, s in ipairs(inside) do
-        if need <= 0 then break end
-        if footprintFree(cell, s.x, s.y, z, f.w, f.h, taken, inBuilding) then
-            plan[#plan + 1] = { k = "bed", x = s.x, y = s.y, z = z, v = "bed" }
-            reserve(taken, s.x, s.y, f.w, f.h)
-            need = need - 1
-        end
-    end
-    -- Réserves : caisses vides, au fond (cases les plus éloignées du foyer).
-    local crates = 0
-    for i = #inside, 1, -1 do
-        if crates >= c.CRATES then break end
-        local s = inside[i]
-        if footprintFree(cell, s.x, s.y, z, 1, 1, taken, inBuilding) then
-            plan[#plan + 1] = { k = "crate", x = s.x, y = s.y, z = z, v = "crate" }
-            reserve(taken, s.x, s.y, 1, 1)
-            crates = crates + 1
-        end
-    end
-    return plan, { beds = beds, windows = #windows, squares = #inside }
+    local ctx = { cell = cell, home = home, z = z, members = members, cfg = c, taken = taken, bid = bid,
+                  inside = inside, windows = windows, beds = beds,
+                  info = { beds = beds, windows = #windows, squares = #inside } }
+    ctx.fits = function(x, y, w, h) return footprintFree(cell, x, y, z, w, h, taken, inBuilding) end
+    return planStyle("building", ctx), ctx.info
 end
 
--- Plan d'un camp : feu près du foyer, tentes autour du feu.
+-- Plan d'un camp (feu près du foyer, tentes autour du feu, selon les aménagements inscrits).
 function Homes.planCamp(cell, home, members)
     local c, z = cfg(), home.z
     local function outdoor(sq) return Homes.clearSquare(sq) and buildingId(sq) == nil end
-    local plan, taken = {}, {}
-    local spots = {}
-    for dy = -c.FIRE_RADIUS, c.FIRE_RADIUS do
-        for dx = -c.FIRE_RADIUS, c.FIRE_RADIUS do
-            spots[#spots + 1] = { x = home.x + dx, y = home.y + dy, d = cheb(dx, dy, 0, 0) }
-        end
-    end
-    table.sort(spots, byPlace)
-    local cx, cy = home.x, home.y
-    for _, s in ipairs(spots) do
-        if footprintFree(cell, s.x, s.y, z, 1, 1, taken, outdoor) then
-            plan[#plan + 1] = { k = "fire", x = s.x, y = s.y, z = z }
-            reserve(taken, s.x, s.y, 1, 1)
-            cx, cy = s.x, s.y
-            break
-        end
-    end
-    local tents = math.max(1, math.min(c.MAX_TENTS, math.ceil(members / c.PER_TENT)))
-    -- Ouest, est, nord, sud, puis les diagonales ; tente « est » (verticale) sur les côtés ouest et est.
-    local around = { { -1, 0, "tentE" }, { 1, 0, "tentE" }, { 0, -1, "tentS" }, { 0, 1, "tentS" },
-        { -1, -1, "tentS" }, { 1, -1, "tentS" }, { -1, 1, "tentS" }, { 1, 1, "tentS" } }
-    local placed = 0
-    for _, r in ipairs(c.TENT_RINGS) do
-        for _, a in ipairs(around) do
-            if placed >= tents then break end
-            local f = Homes.FURNITURE[a[3]]
-            local x, y = cx + a[1] * r, cy + a[2] * r
-            if footprintFree(cell, x, y, z, f.w, f.h, taken, outdoor) then
-                plan[#plan + 1] = { k = "tent", x = x, y = y, z = z, v = a[3] }
-                reserve(taken, x, y, f.w, f.h)
-                placed = placed + 1
-            end
-        end
-    end
-    return plan, { tents = tents }
+    local taken = {}
+    local ctx = { cell = cell, home = home, z = z, members = members, cfg = c, taken = taken, cx = home.x,
+                  cy = home.y, info = {} }
+    ctx.fits = function(x, y, w, h) return footprintFree(cell, x, y, z, w, h, taken, outdoor) end
+    return planStyle("camp", ctx), ctx.info
 end
 
 -- ================================================================ pose (autorité)
 
+-- Marque l'objet o (objet posé ou objet d'inventaire) comme aménagement kind du groupe gid.
 local function tagObject(o, gid, kind)
     local md = o:getModData()
     md[Homes.TAG] = gid
     md[Homes.TAG_KIND] = kind
 end
+Homes.tagObject = tagObject
 
+-- Vrai si l'objet o porte la marque du groupe gid.
 local function tagged(o, gid)
     return o ~= nil and o:hasModData() and o:getModData()[Homes.TAG] == gid
 end
+Homes.isTagged = tagged
 
 -- ================================================================ générateurs du groupe (LK05-T19)
 
@@ -404,38 +417,6 @@ function Homes.adoptGenerators(gid, home, bid)
     return n
 end
 
--- Barricade de planches côté extérieur de la fenêtre du bord (x, y) - (nx, ny).
-local function placeBarricade(gid, a)
-    local cell = getCell()
-    local sq, nb = cell:getGridSquare(a.x, a.y, a.z), cell:getGridSquare(a.nx, a.ny, a.z)
-    if sq == nil or nb == nil then return nil, "square not loaded" end
-    local w = sq:getWindowTo(nb)
-    if w == nil or not instanceof(w, "IsoWindow") then return nil, "no window" end
-    if w:IsOpen() or w:isBarricaded() then return nil, "window open or barricaded" end
-    local wsq = w:getSquare()
-    local out = wsq:getRoom() == nil and wsq or w:getOppositeSquare()
-    if out == nil or out:getRoom() ~= nil then return nil, "no outside square" end
-    local b = IsoBarricade.AddBarricadeToObject(w, out ~= wsq)
-    if b == nil then return nil, "barricade refused" end
-    if b:getNumPlanks() > 0 or b:isMetal() or b:isMetalBar() then return nil, "already barricaded" end
-    for _ = 1, cfg().PLANKS do b:addPlank(nil, nil) end
-    -- Marque sur la fenêtre, pas sur la barricade : IsoBarricade.save n'écrit pas la ModData (perdue au redémarrage,
-    -- J/iso/objects/IsoBarricade.java:621-632), IsoWindow.save si (IsoWindow.java:547-548). Côté de la barricade noté.
-    tagObject(w, gid, "barricade")
-    w:getModData()[Homes.TAG_SIDE] = out ~= wsq and "opposite" or "same"
-    if isServer() then b:transmitCompleteItemToClients() end
-    return true
-end
-
--- Barricade posée par le groupe sur la fenêtre marquée w (côté noté à la pose), ou nil.
-function Homes.barricadeOf(w)
-    if not instanceof(w, "IsoWindow") or not w:hasModData() then return nil end
-    local side = w:getModData()[Homes.TAG_SIDE]
-    if side == "opposite" then return w:getBarricadeOnOppositeSquare() end
-    if side == "same" then return w:getBarricadeOnSameSquare() end
-    return nil
-end
-
 -- Cases d'un meuble (grille de sprites vanilla pour un meuble de plusieurs cases) : { { square, sprite } }.
 local function gridOf(props, sq)
     if not props.isMultiSprite then return { { square = sq, sprite = props.sprite } } end
@@ -448,7 +429,7 @@ end
 
 -- Pose un meuble vanilla d'ancrage spriteName sur sq, comme un joueur (sans personnage). prep(item) règle l'objet
 -- d'inventaire avant la pose. Rend le nombre de cases posées, ou nil et la raison.
-local function placeFurniture(gid, kind, sq, spriteName, prep)
+local function placeSprite(gid, kind, sq, spriteName, prep)
     local sprite = getSprite(spriteName)
     if sprite == nil then return nil, "unknown sprite " .. spriteName end
     local props = ISMoveableSpriteProps.new(sprite)
@@ -471,56 +452,26 @@ local function placeFurniture(gid, kind, sq, spriteName, prep)
     return #grid
 end
 
-local function lampItem(item)
-    if not instanceof(item, "Moveable") then return end
-    item:setLightUseBattery(true)
-    item:setLightHasBattery(true)
-    item:setLightPower(cfg().LAMP_POWER)
+-- Pose par défaut d'une action a du plan sur sq : le meuble FURNITURE[a.v or a.k], marqué de la sorte a.k ; prep(item)
+-- facultatif règle l'objet d'inventaire avant la pose. Rend vrai, ou nil et la raison.
+function Homes.placeFurniture(gid, a, sq, prep)
+    local f = Homes.FURNITURE[a.v or a.k]
+    if f == nil then return nil, "unknown furniture " .. tostring(a.v) end
+    local n, why = placeSprite(gid, a.k, sq, f.sprite, prep)
+    if n == nil then return nil, why end
+    return true
 end
 
-local function lightLamp(gid, sq)
-    local objs = sq:getObjects()
-    for i = 0, objs:size() - 1 do
-        local o = objs:get(i)
-        if instanceof(o, "IsoLightSwitch") and tagged(o, gid) then
-            o:switchLight(true)
-            return true
-        end
-    end
-    return false
-end
-
-local function campfires()
-    return SCampfireSystem ~= nil and SCampfireSystem.instance or nil
-end
-
--- Pose une action du plan. Rend vrai, ou nil et la raison.
+-- Pose une action du plan par son aménagement (spec.place, sinon le meuble). Rend vrai, ou nil et la raison.
 function Homes.applyAction(gid, a)
     local cell = getCell()
     if cell == nil then return nil, "no cell" end
-    if a.k == "barricade" then return placeBarricade(gid, a) end
     local sq = cell:getGridSquare(a.x, a.y, a.z)
     if sq == nil then return nil, "square not loaded" end
-    if a.k == "fire" then
-        local sys = campfires()
-        if sys == nil then return nil, "no campfire system" end
-        if not Homes.clearSquare(sq) then return nil, "square no longer free" end
-        local fire = sys:addCampfire(sq)
-        if fire == nil then return nil, "campfire refused" end
-        fire:addFuel(cfg().FIRE_FUEL)
-        fire:lightFire()
-        -- Marque du groupe sur l'objet du feu : le système vanilla n'écrit que ses propres clés dans cette ModData
-        -- (SCampfireGlobalObject:toModData), la marque reste et permet de retrouver le feu sans la marque du foyer.
-        local iso = fire.getIsoObject and fire:getIsoObject() or nil
-        if iso ~= nil then tagObject(iso, gid, "fire") end
-        return true
-    end
-    local f = Homes.FURNITURE[a.v or a.k]
-    if f == nil then return nil, "unknown furniture " .. tostring(a.v) end
-    local n, why = placeFurniture(gid, a.k, sq, f.sprite, a.k == "lamp" and lampItem or nil)
-    if n == nil then return nil, why end
-    if a.k == "lamp" and not lightLamp(gid, sq) then return nil, "lamp not found after placement" end
-    return true
+    local spec = furnishingRegistry:get(a.k)
+    if spec == nil then return nil, "unknown furniture " .. tostring(a.v) end
+    if spec.place ~= nil then return spec.place(gid, a, sq) end
+    return Homes.placeFurniture(gid, a, sq, spec.prep)
 end
 
 -- ================================================================ marque (registre des groupes)
@@ -697,8 +648,8 @@ function Homes.check(gid, opts)
     Homes.stats.placed = Homes.stats.placed + #mark.placed
     Homes.stats.failed = Homes.stats.failed + failed
     local parts = {}
-    for _, k in ipairs({ "barricade", "lamp", "bed", "crate", "fire", "tent" }) do
-        if counts[k] then parts[#parts + 1] = counts[k] .. " " .. k end
+    for _, s in ipairs(Homes.furnishings.list) do
+        if counts[s.kind] then parts[#parts + 1] = counts[s.kind] .. " " .. s.kind end
     end
     log().info("homes: group %s home %s furnished (%s, %d member(s)): %s%s", gid, hk, style, alive,
         #parts > 0 and table.concat(parts, ", ") or "nothing", failed > 0 and (", " .. failed .. " failed") or "")
@@ -729,12 +680,13 @@ function Homes.scan(reason)
     return n
 end
 
--- Retire ce qui a été posé pour un groupe (objets marqués dans la zone chargée autour du foyer de la marque, feu de
--- camp de la marque) et efface la marque. Rend le nombre d'objets retirés.
+-- Retire ce qui a été posé pour un groupe (objets marqués dans la zone chargée autour du foyer de la marque ; retrait
+-- propre à un aménagement par son clear, par exemple barricade d'une fenêtre ou feu de camp de la marque) et efface la
+-- marque. Rend le nombre d'objets retirés.
 function Homes.clear(gid)
     local g = Groups().get(gid)
     local m = g and g.furnish
-    local removed, fires, windows = 0, {}, {}
+    local removed, kept = 0, {}
     local cell = getCell()
     if cell ~= nil and type(m) == "table" and isInt(m.hx, 0, 2147483647) and isInt(m.hy, 0, 2147483647)
         and isInt(m.hz, -32, 31) then
@@ -747,12 +699,12 @@ function Homes.clear(gid)
                     for i = objs:size() - 1, 0, -1 do
                         local o = objs:get(i)
                         if tagged(o, gid) then
-                            if instanceof(o, "IsoWindow") then
-                                -- Fenêtre barricadée : retirer la barricade du groupe, garder la fenêtre.
-                                windows[#windows + 1] = o
-                            elseif o:getModData()[Homes.TAG_KIND] == "fire" then
-                                -- Feu : retiré après la boucle par son système (flammes, contenu, objet global).
-                                fires[#fires + 1] = { x = sq:getX(), y = sq:getY(), z = sq:getZ() }
+                            local kind = o:getModData()[Homes.TAG_KIND]
+                            local spec = furnishingRegistry:get(kind)
+                            local entry = spec ~= nil and spec.clear ~= nil and spec.clear.collect(o, sq) or nil
+                            if entry ~= nil then
+                                kept[kind] = kept[kind] or {}
+                                kept[kind][#kept[kind] + 1] = entry
                             else
                                 sq:transmitRemoveItemFromSquare(o)
                                 removed = removed + 1
@@ -762,29 +714,8 @@ function Homes.clear(gid)
                 end
             end
         end
-        for _, w in ipairs(windows) do
-            local b = Homes.barricadeOf(w)
-            local bsq = b and b:getSquare()
-            if bsq ~= nil then
-                bsq:transmitRemoveItemFromSquare(b)
-                removed = removed + 1
-            end
-            local md = w:getModData()
-            md[Homes.TAG], md[Homes.TAG_KIND], md[Homes.TAG_SIDE] = nil, nil, nil
-        end
-        local sys = campfires()
-        for _, p in ipairs(type(m.placed) == "table" and m.placed or {}) do
-            if p.k == "fire" then fires[#fires + 1] = p end
-        end
-        for _, p in ipairs(fires) do
-            if sys ~= nil then
-                local sq = cell:getGridSquare(p.x, p.y, p.z)
-                local fire = sq and sys:getLuaObjectOnSquare(sq)
-                if fire then
-                    sys:removeCampfire(fire)
-                    removed = removed + 1
-                end
-            end
+        for _, s in ipairs(Homes.furnishings.list) do
+            if s.clear ~= nil then removed = removed + s.clear.finish(kept[s.kind] or {}, cell, m) end
         end
     end
     if g ~= nil and g.furnish ~= nil then writeMark(gid, nil) end

@@ -1,7 +1,7 @@
 # Aménagement des foyers : objets vanilla posés au premier chargement
 
 - Tâche : LK08-T04 (création) ; sert LK08-T06 (stock réel dans les conteneurs du foyer), LK05-T03 (couchages relevés par les routines), LK14 (fortification progressive)
-- Code : `Contents/mods/batman_LivingKnox/42.21/media/lua/server/LivingKnox/LK_Homes.lua` ; banc `tests/test_lk_homes.py` ; suite en jeu `lk.homes` (`dev/batman_RadioSurvivorTests/42.21/media/lua/shared/RST/suites/RST_LKHomes.lua`)
+- Code : `Contents/mods/batman_LivingKnox/42.21/media/lua/server/LivingKnox/LK_Homes.lua` et un fichier par aménagement sous `Furnishings/` ; banc `tests/test_lk_homes.py` ; suite en jeu `lk.homes` (`dev/batman_RadioSurvivorTests/42.21/media/lua/shared/RST/suites/RST_LKHomes.lua`)
 - Build : 42.21.0 (Java décompilé **J/** = `<decompiled>\42.21.0\java\zombie\` ; Lua vanilla **M/** = `ProjectZomboid\media\lua\`) — Date : 2026-10-12 — Statut : brouillon, testé hors jeu seulement
 
 Base de connaissances : [world-placement.md](../../../../.claude/pz-knowledge/world-placement.md) (quand poser, placement différé), [barricades-and-constructions.md](../../../../.claude/pz-knowledge/barricades-and-constructions.md) (barricade posée par script), [power-and-lights.md](../../../../.claude/pz-knowledge/power-and-lights.md) (lampe sur pile), [custom-tiles-entities.md](../../../../.claude/pz-knowledge/custom-tiles-entities.md) (meuble vanilla posé par script, tentes et sacs de couchage). Aucune ligne de Bandits! ni de Project A-Life n'a été lue ; l'idée de jeu vient de I8.3 (foyer lisible de l'extérieur).
@@ -29,6 +29,8 @@ Un foyer choisi sans charger la zone (LK08-T03) n'est qu'un point. Quand un joue
 | | 1 caisse vide | `carpentry_01_16` (conteneur `crate`, 60) au fond de la maison ; LK08-T06 y range le stock initial ([stock.md](stock.md)). |
 | Camp (case du foyer hors de toute pièce) | 1 feu de camp allumé | Système vanilla `SCampfireSystem` ; 120 minutes de combustible ; sur la case du foyer ou à 2 cases au plus. |
 | | tentes | Une pour 2 membres vivants (1 à 3), petite tente `camping_01_1`/`_0` (est) ou `camping_01_2`/`_3` (sud), à 3, 4 ou 5 cases du feu ; leurs conteneurs (`tent`, 30) servent de réserve. |
+
+Chaque aménagement (barricade, lamp, bed, crate, fire, tent) est décrit par son propre fichier `server/LivingKnox/Furnishings/LK_Furnish_<Nom>.lua` et s'inscrit par `Homes.registerFurnishing(kind, spec)` (LK16-T10, socle `LivingKnox.Registry`) : style de foyer, rang (`order` : ordre du plan et du journal), `plan(ctx, out)`, meubles vanilla (`furniture`), réglage de l'objet (`prep`), pose propre (`place`) et retrait propre (`clear`). Le moteur `LK_Homes.lua` relève les cases, enchaîne les plans du style dans l'ordre du registre et pose chaque action par son aménagement ; `Homes.KINDS` et `Homes.FURNITURE` sont dérivées des inscriptions. Ajouter un aménagement = ajouter un fichier, sans toucher au moteur.
 
 Cases utilisées : praticables (`isFree(false)`), ni escalier, ni eau, ni buisson, ni meuble déplaçable, ni objet au sol ; dans le bâtiment du foyer ou hors de tout bâtiment ; jamais la case du foyer et son pourtour (bâtiment), ni une case intérieure contre une porte ou une fenêtre (postes de guet des routines), ni le pourtour d'un objet déjà posé (passages). Le camp ne coupe aucun arbre : une case boisée est simplement évitée.
 

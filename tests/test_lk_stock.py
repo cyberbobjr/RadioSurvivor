@@ -26,7 +26,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from harness import Harness  # noqa: E402
+from harness import Harness, homes_files  # noqa: E402  (LK16-T10)
 from test_lk_homes import DOUBLES as HOME_DOUBLES, HOUSE  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -36,7 +36,7 @@ SHARED = ('shared/LivingKnox/LK_Core.lua', 'shared/LivingKnox/LK_Config.lua', 's
           'shared/LivingKnox/Data/LK_Type_neutrals.lua', 'shared/LivingKnox/Data/LK_Type_raiders.lua',
           'shared/LivingKnox/Data/LK_Type_settlers.lua')
 SERVER = 'server/LivingKnox/LK_Server.lua'
-MODULES = ('server/LivingKnox/LK_Homes.lua', 'server/LivingKnox/LK_Stock.lua')
+MODULES = (*homes_files(), 'server/LivingKnox/LK_Stock.lua')   # LK16-T10 : moteur et aménagements (Furnishings/)
 ST = 'LivingKnox.Stock'
 
 STOCK_DOUBLES = r'''

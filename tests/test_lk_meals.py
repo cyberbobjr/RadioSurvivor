@@ -34,7 +34,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from test_lk_bodies import lua_list  # noqa: E402
 from test_lk_decisions import PureBase  # noqa: E402
-from harness import routine_files  # noqa: E402  (LK15-T02)
+from harness import homes_files, routine_files  # noqa: E402  (LK15-T02, LK16-T10)
 from test_lk_routines import RoutineStack  # noqa: E402
 from phase_sweep import WORLDS, other_groups, sweep  # noqa: E402
 
@@ -209,7 +209,7 @@ class MealStack(RoutineStack):
         h = super().make(root)
         machines = ['solo'] if self.mode == 'solo' else ['server', 'A', 'B']
         for m in machines:
-            for path in ('server/LivingKnox/LK_Homes.lua', 'server/LivingKnox/LK_Stock.lua'):
+            for path in (*homes_files(), 'server/LivingKnox/LK_Stock.lua'):   # LK16-T10 : aménagements (Furnishings/)
                 h.load(m, path)
         srv = 'solo' if self.mode == 'solo' else 'server'
         h.load(srv, MEAL_DOUBLES)
