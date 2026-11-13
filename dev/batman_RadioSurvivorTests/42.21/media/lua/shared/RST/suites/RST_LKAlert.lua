@@ -255,6 +255,24 @@ RST.suite("lk.alert", { tags = { "world", "server" }, testTimeoutMs = 600000, ti
                                     t5:eq(1, Al().stats.raised - raisedBefore, "alerts raised for one zombie")
                                     -- E01-T16: the cry bubble reached the other clients that heard it, and the requester.
                                     local cries = Al().stats.cries - criesBefore
+                                    -- Nobody could read the cry (spotter inside on the door square, players outside:
+                                    -- half range and scrambled, LK_Speech.hears = ChatElement.getScrambleValue; MP
+                                    -- runs/20261113-150840-parallel-3 shard1): the line is refused as unheard, the
+                                    -- world sound and the voice still go out. Any other refusal still fails.
+                                    if #said == 0 and #RST.Steps.others(t5) > 0 then
+                                        local unheard, seen = false, {}
+                                        for _, r in ipairs(said.refused) do
+                                            if r.npc == a.spotter and r.why == "nobody hears" then unheard = true end
+                                            seen[#seen + 1] = tostring(r.npc) .. " " .. r.why
+                                        end
+                                        t5:ok(unheard, "cry line of " .. tostring(a.spotter)
+                                            .. " neither said nor refused as heard by nobody (refusals: "
+                                            .. table.concat(seen, "; ") .. ")")
+                                        t5:note("cry line heard by nobody where the spotter stood (rule of the bubble)")
+                                        RST.Steps.ask(t5, "lk.alert.view", { phase = "end", key = viewKey,
+                                            cries = cries }, { target = "all", timeoutMs = 10000 })
+                                        return
+                                    end
                                     RST.PeerChecks.checkSpeech(t5, said, function(t6)
                                         -- requester: dedicated server only (solo: the authority's own speech view).
                                         local who = (type(isServer) == "function" and isServer()) and "requester" or {}

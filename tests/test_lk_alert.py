@@ -668,6 +668,53 @@ class SuiteTests(AlertStack):
         self.assertEqual(self.h.errors('solo'), [])
 
 
+    def _run_suite_with_peer(self, refuse_why=None):
+        """MP seen from the suite: one other client (RST.Steps.others), nobody can read the cry (spotter indoors,
+        players outside: LK_Speech.hears false). refuse_why: the speech refuses for that reason instead."""
+        from test_lk_materialize import PLAYER_MOVES
+        self.h.load('solo', PLAYER_MOVES)
+        self.h.load('solo', VANILLA_ZOMBIES)
+        self.h.load('solo', 'getSandboxOptions = function() return { getOptionByName = function(_, n) '
+                            'if n == "LivingKnox.ZombieAlertDistance" then return { getValue = function() return 10 end }'
+                            ' end return nil end } end')
+        self.h.move_player('A', 110, 110)
+        self.h.load('solo', SUITE)
+        # Real speech (LK_Speech.lua, catalogue, hearing rule of the vanilla bubble) instead of the bark double;
+        # the player stands in a shed, the spotter outside: half range and scrambled, nobody reads the line.
+        import test_lk_speech as tsp
+        self.h.machine('solo').g.TRANSLATIONS = self.h.machine('solo').to_lua(tsp.translations('EN'))
+        self.h.load('solo', tsp.SPEECH_DOUBLES)
+        self.h.load('solo', tsp.DATA)
+        self.h.load('solo', 'LivingKnox.Speech = nil package.loaded["LivingKnox/LK_Speech"] = nil')
+        self.h.load('solo', tsp.SPEECH)
+        self.h.load('solo', 'getCell():getGridSquare(110, 110, 0).building = { name = "SHED" } '
+                            'RST.Steps.others = function() return { "rs_mp2" } end')
+        if refuse_why is not None:
+            self.h.load('solo', 'LivingKnox.Speech.say = function() return nil, "%s" end' % refuse_why)
+        self.assertIs(self.h.load('solo', 'return (RST.start({ suite = "lk.alert", tags = "world" }, '
+                                          '{ ctx = { player = getPlayer() } }))'), True)
+        for i in range(6000):
+            self.h.tick()
+            self.run_lua('STEP_ALL(0.1) for _, z in pairs(HARNESS.zombies) do z.onFloor = false end')
+            if not self.h.eval('solo', 'RST.running()'):
+                break
+            self.h.advance_ms(100)
+            if i % 20 == 19:
+                self.h.advance(1)
+        report = self.h.eval('solo', 'RST.last()')
+        return [(r.test, r.status, r.message) for r in lua_list(report.results)]
+
+    def test_cry_heard_by_nobody_passes_with_another_client(self):
+        """MP 2026-11-13 (shard1 of runs/20261113-150840-parallel-3): spotter on the door square inside, players
+        outside, nobody reads the line: the cry is still counted, the test passes on the refusal "nobody hears"."""
+        results = self._run_suite_with_peer()
+        self.assertEqual(results[0][1], 'PASS', results)
+
+    def test_cry_line_refused_for_another_reason_fails(self):
+        results = self._run_suite_with_peer(refuse_why='npc not embodied')
+        self.assertEqual(results[0][1], 'FAIL', results)
+        self.assertIn('neither said nor refused as heard by nobody', results[0][2])
+
     def test_suite_lk_alert_passes_under_the_phase_sweep(self):
         """E19-T05 : changement d'heure, de jour, nuit et aube à des instants différents de la scène."""
         sweep(self, lambda phase: self.test_suite_lk_alert_passes_on_the_doubles(), worlds=WORLDS)

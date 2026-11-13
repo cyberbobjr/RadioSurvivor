@@ -673,12 +673,17 @@ function PC.waitCopies(t, bodies, after)
 end
 
 function PC.recordSpeech(t)
-    local lines = {}
+    -- lines.refused: { npc, key, why } of each line the speech refused (nobody hears it, unknown npc...)
+    local lines = { refused = {} }
     local Sp = LivingKnox and LivingKnox.Speech
     if Sp == nil or type(Sp.say) ~= "function" then return lines end
     local say = Sp.say
     Sp.say = function(npcId, what, opts)
         local out, why = say(npcId, what, opts)
+        if type(out) ~= "table" then
+            lines.refused[#lines.refused + 1] = { npc = npcId, key = type(what) == "table" and what.key or nil,
+                why = tostring(why) }
+        end
         if type(out) == "table" then
             local names = {}
             for i, n in ipairs(out.names or {}) do names[i] = tostring(n) end
