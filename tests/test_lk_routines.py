@@ -122,6 +122,8 @@ end
 class PureRoutineTests(PureBase):
     def setUp(self):
         super().setUp()
+        for rel in routine_files():   # LK16-T07 : plans et guet ou ronde portés par les activités (Routines/)
+            self.h.load(self.srv, rel)
         self.run_lua(POSTS)
 
     def test_periods_watches_and_sentry_kind_by_hour_of_day(self):

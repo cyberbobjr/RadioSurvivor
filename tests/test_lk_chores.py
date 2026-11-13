@@ -31,6 +31,9 @@ from test_lk_routines import POSTS, RoutineStack  # noqa: E402
 R = 'LivingKnox.Routines'
 D = 'LivingKnox.Decisions'
 CHORES = ['fire', 'warm', 'tidy', 'lookout', 'repair', 'smoke', 'care', 'rest']
+# LK16-T07 : empreintes (sha256) des tirages et des plans de corvée relevées sur le code d'avant le registre des corvées.
+FROZEN_DRAW = 'b0196227728cab513481a0c295d38a974daef83a1f96532ea9917d3ab0b5ed74'
+FROZEN_PLANS = 'aa0b56700dbf29db9787e23891d30c3a44d1a642fab6a2ac0a1462c5216db2a5'
 
 # Objets de corvée doublés : cheminée, conteneurs typés (lecture seule : getType, getItems), murs entre deux cases.
 OBJECTS = r'''
@@ -166,6 +169,43 @@ class PureChoreTests(PureBase):
         self.assertNotEqual(first, other)                                     # autre identité, autre suite
         self.assertEqual(self.ev(f'{R}.pickChore("lk-3", 5, {{}})'), 'rest')  # aucun poids : repos
 
+    def test_draw_is_frozen_on_a_grid(self):
+        """LK16-T07 : poids et tirages figés sur une grille (postes, rôles, traits, places, identités, créneaux) ;
+        empreinte relevée sur le code d'avant le registre des corvées : mêmes entrées, mêmes corvées."""
+        code = r'''
+            local R = LivingKnox.Routines
+            local fixed = { "fire", "warm", "tidy", "lookout", "repair", "smoke", "care", "rest" }
+            local duties = { "keeper", "carer", "forager", "builder", "routine", "unknown" }
+            local alloweds = { {}, { cook = true, chores = true }, { heal = true }, { maintain = true, fortify = true },
+                { guard = true, patrol = true, scout = true, scavenge = true } }
+            local traitss = { {}, { tidy = true }, { nervous = true, keenHearing = true }, { strong = true },
+                { smoker = true }, { drinker = true, smoker = true } }
+            local avails = { { fire = true, warm = true, tidy = true, lookout = true, repair = true, smoke = true,
+                care = true, rest = true }, { tidy = true, rest = true },
+                { fire = true, warm = true, lookout = true, smoke = true, rest = true },
+                { repair = true, care = true, rest = true }, {} }
+            local out = {}
+            for _, d in ipairs(duties) do for _, a in ipairs(alloweds) do for _, t in ipairs(traitss) do
+                for _, v in ipairs(avails) do
+                    local w = R.choreWeights(d, a, t, v)
+                    local ws = {}
+                    for _, c in ipairs(fixed) do ws[#ws + 1] = tostring(w[c]) end
+                    out[#out + 1] = table.concat(ws, ",")
+                    for _, id in ipairs({ "lk-1", "lk-7", "npc-x" }) do
+                        for slot = 1, 12 do out[#out + 1] = R.pickChore(id, slot, w) end
+                    end
+                end
+            end end end
+            for _, id in ipairs({ "lk-1", "lk-7", "npc-x" }) do
+                for m = 600, 720, 7 do out[#out + 1] = tostring(R.choreSlot(id, m)) end
+            end
+            return table.concat(out, ";")
+        '''
+        import hashlib
+        out = self.run_lua(code)
+        self.assertEqual(set(CHORES) & set(out.split(';')), set(CHORES))       # la grille tire toutes les corvées
+        self.assertEqual(hashlib.sha256(out.encode('ascii')).hexdigest(), FROZEN_DRAW)
+
     def test_slot_lasts_the_chore_minutes_and_is_shifted_per_member(self):
         span = self.ev(f'{R}.CFG.CHORE_MINUTES')
         changes = {}
@@ -296,6 +336,76 @@ class SoloChoreTests(ChoreStack):
         self.dpass(3)
         self.assertNotEqual(self.b(gid, 'm-2'), 'chore')
         self.assertIsNone(self.chore_of(gid, 'm-2') if self.b(gid, 'm-2') != 'sleep' else None)
+        self.assertEqual(self.h.errors('solo'), [])
+
+    def test_chore_plans_are_frozen(self):
+        """LK16-T07 : plans de corvée (corvée, genre, clé, place, regard, geste) figés pour trois membres, six postes,
+        trois jeux de traits et 24 créneaux, sans puis avec un blessé ; empreinte relevée avant le registre des corvées."""
+        import hashlib
+        gid = self.mk()
+        self.jump_to(11)
+        self.dpass(2)
+        code = (f'local G = LivingKnox.Groups local g = G.get("{gid}") local out = {{}} '
+                'for _, mid in ipairs({ "m-1", "m-2", "m-3" }) do '
+                'local m = g.members[mid] '
+                f'local z = MAT_BODY("{gid}", mid) '
+                'for _, duty in ipairs({ "keeper", "carer", "forager", "builder", "routine", "none" }) do '
+                'for _, tr in ipairs({ {}, { "smoker" }, { "nervous", "tidy" } }) do '
+                'm.traits = tr '
+                'for i = 0, 23 do '
+                f'local ctx = {D}.context("{gid}", g, mid, m, z, {{}}, {D}.currentMinute() + i * 30) '
+                'ctx.duty = duty '
+                f'local p = {R}.chorePlan(m.npc, ctx, g, g.posts) '
+                'out[#out + 1] = table.concat({ mid, duty, tostring(p.chore), tostring(p.kind), tostring(p.key), '
+                'tostring(p.x), tostring(p.y), tostring(p.z), tostring(p.a), tostring(p.gesture) }, "|") '
+                'end end end end return table.concat(out, ";")')
+        healthy = self.run_lua(code)
+        self.update(gid, 'g.members["m-3"].wound = 70')
+        hurt = self.run_lua(code)
+        seen = {row.split('|')[2] for row in (healthy + ';' + hurt).split(';')}
+        self.assertEqual(seen, set(CHORES))                                    # la grille couvre toutes les corvées
+        self.assertIn('|care|spot|', hurt)
+        digest = hashlib.sha256((healthy + '#' + hurt).encode('ascii')).hexdigest()
+        self.assertEqual(digest, FROZEN_PLANS)
+        self.assertEqual(self.h.errors('solo'), [])
+
+    def test_a_chore_added_by_one_registration_is_drawn_and_done(self):
+        """LK16-T07 (acceptation) : une corvée inscrite par le banc seul (aucun moteur touché) est tirée, planifiée à sa
+        place avec son geste, puis exécutée par la pile (corps arrivé, geste posé)."""
+        self.run_lua(f'{R}.registerChore({{ id = "sweep", order = 85, gesture = "rummage", '
+                     'duty = { keeper = 1000, routine = 1000 }, role = { cook = 5 }, trait = { tidy = 5 }, '
+                     'avail = function(c) return #c.spots.furniture > 0 end, '
+                     'plan = function(c) return c.place(c.nth(c.spots.furniture)) end })')
+        self.assertIn('sweep', lua_list(self.ev(f'{R}.CHORES')))
+        self.assertEqual(self.ev(f'{R}.CHORE_GESTURE.sweep'), 'rummage')
+        gid = self.mk()
+        self.jump_to(11)
+        self.dpass(2)
+        self.assertEqual(self.member(gid, 'm-2', 'duty'), 'keeper')
+        code = (f'local g = LivingKnox.Groups.get("{gid}") local m = g.members["m-2"] '
+                f'local z = MAT_BODY("{gid}", "m-2") local out = {{}} '
+                'for i = 0, 23 do '
+                f'local ctx = {D}.context("{gid}", g, "m-2", m, z, {{}}, {D}.currentMinute() + i * 30) '
+                f'local p = {R}.chorePlan(m.npc, ctx, g, g.posts) '
+                'out[#out + 1] = p.chore .. "|" .. p.kind .. "|" .. tostring(p.gesture) .. "|" .. p.key end '
+                'return table.concat(out, ";")')
+        plans = self.run_lua(code).split(';')
+        sweeps = [p for p in plans if p.startswith('sweep|')]
+        self.assertGreaterEqual(len(sweeps), 20, plans)
+        self.assertTrue(all(p.startswith('sweep|spot|rummage|chore sweep ') for p in sweeps), sweeps)
+        for _ in range(4):
+            if self.chore_of(gid, 'm-2') is not None and self.chore_of(gid, 'm-2')[0] == 'sweep':
+                break
+            self.h.advance(self.ev(f'{R}.CFG.CHORE_MINUTES'))
+            self.dpass(2)
+        self.assertTrue(self.reach_chore(gid, 'm-2'), self.chore_of(gid, 'm-2'))
+        chore, key = self.chore_of(gid, 'm-2')
+        self.assertEqual(chore, 'sweep')
+        npc = self.npc_of(gid, 'm-2')
+        self.assertEqual(self.ev(f'LivingKnox.Anim.gestureOf("{npc}")'), 'rummage')
+        x, y = (int(v) for v in key.split(' ')[2].split(',')[:2])
+        bx, by = self.body_xy(gid, 'm-2')
+        self.assertLessEqual(((bx - x - 0.5) ** 2 + (by - y - 0.5) ** 2) ** 0.5, 1.0, key)
         self.assertEqual(self.h.errors('solo'), [])
 
     def test_care_goes_beside_the_most_wounded_member(self):

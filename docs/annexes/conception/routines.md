@@ -61,12 +61,16 @@ Foyer hors bâtiment (camp) : ni poste, ni ronde, ni couchage. Le relevé est sa
   `chore` : barricades (10, `LK_Fortify.lua`, poste `builder` seulement), entretien (20, `LK_Upkeep.lua`), corvée visible
   (90, `LK_Routine_Chores.lua`).
 - `spec` : `id` (unique : une inscription de même id remplace la précédente), `behaviour` (le comportement de la cascade servi),
-  `order` (nombre, plus petit d'abord), `run(id, st, ctx, g, fresh)` -> vrai quand l'activité a pris le membre.
+  `order` (nombre, plus petit d'abord), `run(id, st, ctx, g, fresh)` -> vrai quand l'activité a pris le membre ; ou, pour
+  une activité de plan (LK16-T07), `plan(posts, g, mid, hour, angle)` -> plan ou nil à la place de `run`.
 - Ajouter une activité : un fichier sous `Routines/` (ou dans le fichier du mod concerné) qui commence par
   `if isClient() then return end`, `require "LivingKnox/LK_Routines"` (et `LK_RoutineExec` s'il sert `Routines.exec`), puis
   `LivingKnox.Routines.registerActivity({ ... })` au premier niveau. Un comportement dont une activité est inscrite est tenu
   par la routine (`Routines.handles`).
-- Les routines de plan (guet, ronde, sommeil) passent par `Routines.runPlanned` (relevé, plan, exécution `Routines.execPlan`).
+- Les routines de plan (guet, ronde, sommeil) portent leur plan (`LK_Routine_Watch.lua` : poste ou ronde, et
+  `Routines.sentryKind` ; `LK_Routine_Sleep.lua` : couchage) ; `Routines.runPlanned(activité, ...)` fait le relevé, appelle
+  le plan de l'activité puis l'exécute (`Routines.execPlan`). `Routines.plan(b, ...)` rend le plan de la première activité
+  de `b` qui en porte un (aucun nom de comportement dans le moteur).
 
 ### Vigilance transmise à l'exécutant (MP)
 
@@ -80,7 +84,16 @@ Fichier arrêté sur un client MP ; aucun module de routine chez un client. Coû
 
 Petites activités **visibles** au foyer, de jour, sans aucun effet sur le monde. Comportement `chore` de la cascade ([decisions.md](decisions.md)) : poste `keeper`, `carer`, `forager`, `builder` (règle `duty`) ou sans poste (règle `routine`), hors nuit, quand les routines sont chargées (`ctx.chores`) ; vigilance `rest` ; durée de l'état 20 à 40 min. Loin du foyer, comme `home` : retour d'abord, sans interrompre l'état. La nuit : `home` (poste) ou `rest` (routine) comme avant.
 
-**Liste fermée** `Routines.CHORES` (ordre du tirage) :
+**Registre des corvées** (LK16-T07, socle `LivingKnox.Registry`) : une corvée par fichier sous
+`media/lua/server/LivingKnox/Chores/` (`LK_Chore_<Nom>.lua`, qui commence par `if isClient() then return end` et
+`require "LivingKnox/Routines/LK_Routine_Chores"`), inscrite par `LivingKnox.Routines.registerChore(spec)` :
+`id`, `order` (ordre du tirage, puis `id`), `gesture` (absent : debout), `duty = { [poste] = poids }`,
+`role = { [comportement du rôle] = bonus }`, `trait = { [trait] = bonus }`, `avail(c)` (place au foyer ; absent :
+toujours), `plan(c)` (absent ou nil : sur place, `sit`). `c` : places relevées (`spots.fire`, `spots.furniture`),
+fenêtres libres (`windows`), postes (`doors`), puis après le tirage `nth(liste)`, `place(p, a, clé)`, `sit(corvée)`.
+`Routines.CHORES` (identifiants dans l'ordre du tirage) et `Routines.CHORE_GESTURE` sont des vues tenues à
+l'inscription ; le geste d'une corvée s'ajoute à `Routines.GESTURES`. Ajouter une corvée : un fichier, aucun moteur
+touché. Corvées actuelles (ordre 10 à 80) :
 
 | Corvée | Place (relevée au foyer) | Regard | Geste (clip vanilla) |
 |---|---|---|---|
@@ -95,7 +108,7 @@ Petites activités **visibles** au foyer, de jour, sans aucun effet sur le monde
 
 **Places** (`Routines.surveySpots`, mémoire, une fois par foyer, zone chargée comme le relevé des postes) : dans le bâtiment du foyer, au niveau du foyer, à `HOME_RADIUS` cases ; objet de case lu par `choreObject` (lecture seule) ; place = première case voisine (nord, est, sud, ouest) praticable, du même bâtiment, sans lit, non prise, sans mur ni porte fermée entre elle et l'objet (`isBlockedTo`) ; regard vers l'objet. Cheminées d'abord, puis cuisinières, puis meubles, chacun par distance au foyer puis position ; 4 feux et 12 meubles au plus. Camp : aucune place (restent `rest`, `smoke`, `care`). Places non sauvegardées (recalculées au redémarrage) ; journal « group grp-N home … chore places: N fire(s), N furniture ».
 
-**Choix** (`Routines.chorePlan`, autorité) : poids `CHORE_DUTY` par poste (sans poste à corvées : `routine`), plus `CHORE_ROLE` par comportement du rôle (`heal` → soins, `cook` → feu, `chores` → feu et rangement, `maintain`/`fortify` → bricolage, `guard`/`patrol`/`scout` → guet, `scavenge` → rangement) et `CHORE_TRAIT` par trait du membre (I3.4 : `tidy` → rangement +3, `nervous` → guet +3, `keenHearing` → guet +2, `strong` → bricolage +2, `smoker` → fumer +4, seul moyen de fumer, `drinker` → repos +2 et chaleur +1). Une corvée sans place au foyer a un poids nul ; aucun poids : `rest`. Tirage pondéré par `Decisions.stream("chore/<id>", créneau, 11)` : **graine d'identité + créneau de temps de jeu**. Créneau = `CHORE_MINUTES` (30) minutes de jeu, décalé de 0 à 29 minutes selon l'identité : la corvée change toutes les 30 minutes, pas pour tous à la même minute. Place choisie parmi les candidates par (créneau + rang du membre) : deux membres présents ne prennent pas la même au même créneau quand il y en a assez.
+**Choix** (`Routines.chorePlan`, autorité) : poids `duty` de chaque corvée par poste (poste sans poids de corvée : `routine`), plus bonus `role` par comportement du rôle (`heal` → soins, `cook` → feu, `chores` → feu et rangement, `maintain`/`fortify` → bricolage, `guard`/`patrol`/`scout` → guet, `scavenge` → rangement) et bonus `trait` par trait du membre (I3.4 : `tidy` → rangement +3, `nervous` → guet +3, `keenHearing` → guet +2, `strong` → bricolage +2, `smoker` → fumer +4, seul moyen de fumer, `drinker` → repos +2 et chaleur +1). Une corvée sans place au foyer a un poids nul ; aucun poids : `rest`. Tirage pondéré par `Decisions.stream("chore/<id>", créneau, 11)` : **graine d'identité + créneau de temps de jeu**. Créneau = `CHORE_MINUTES` (30) minutes de jeu, décalé de 0 à 29 minutes selon l'identité : la corvée change toutes les 30 minutes, pas pour tous à la même minute. Place choisie parmi les candidates par (créneau + rang du membre) : deux membres présents ne prennent pas la même au même créneau quand il y en a assez.
 
 **Exécution** : comme une routine (une consigne au plus par passage, au nom du cadre) : marche jusqu'à la place, `face`, puis geste ; `rest` et `smoke` sans place : `stop` puis geste. Nouveau créneau ou nouvelle corvée : le membre se relève (`Routines.leave`, geste remis au repos) puis part. **Menace** : la cascade passe avant ; `Routines.leave` remet au repos tout geste de routine (`Routines.GESTURES` : `sit`, `kneel`, `warmhands`, `rummage`, `hammer`, `smoke`) et oublie la mémoire ; la menace partie, la corvée du créneau reprend. Compteurs `stats.chores`, `stats.gestures`, `stats.spotSurveys`, `state.byChore`.
 

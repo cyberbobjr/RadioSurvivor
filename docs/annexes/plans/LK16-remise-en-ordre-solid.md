@@ -2,7 +2,7 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 3 / 12 tâche(s) terminée(s).
+**Avancement.** en cours — 4 / 12 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
@@ -12,7 +12,7 @@
 | ☐ | LK16-T04 | C5 : cycles cassés par événements | `à faire` | hors jeu | LK16-T01 |
 | ☐ | LK16-T05 | C3 : contexte de décision par inscription | `à faire` | hors jeu | LK16-T04 |
 | ☐ | LK16-T06 | C2 : comportements de décision par extension | `à faire` | hors jeu | LK16-T05 |
-| ☐ | LK16-T07 | C8 et C9 : corvées et plans des routines | `à faire` | hors jeu | LK16-T01 |
+| ☑ | LK16-T07 | C8 et C9 : corvées et plans des routines | `testé hors jeu` | hors jeu | LK16-T01 |
 | ☐ | LK16-T08 | C4 : genres d'expédition | `à faire` | hors jeu | LK16-T01 |
 | ☐ | LK16-T09 | C6 : simulation hors écran | `à faire` | hors jeu | LK16-T04 |
 | ☐ | LK16-T10 | C11 : aménagements des foyers ; nettoyages | `à faire` | hors jeu | LK16-T01 |
@@ -106,16 +106,16 @@ Constats P2 et P3 de l'audit hors des chantiers ; tout changement visible par un
   - Tests : suite complète, balayage des phases.
   - Preuve : —
   - Reste : —
-- [ ] **LK16-T07** — C8 et C9 : corvées et plans des routines
-  - État : `à faire`
+- [x] **LK16-T07** — C8 et C9 : corvées et plans des routines
+  - État : `testé hors jeu`
   - Cible : `hors jeu`
   - Dépend de : LK16-T01
   - Fichiers : `LK_Routines.lua`, `Routines/LK_Routine_*.lua`
   - Faire : constats F-R03, G-Z09, F-R01 : `Routines.registerChore` (une corvée par fichier) ; le plan de guet, de ronde et de sommeil porté par son activité.
   - Accepté si : une corvée ajoutée par un seul fichier de banc est choisie et exécutée ; bancs verts.
   - Tests : bancs des routines et corvées.
-  - Preuve : —
-  - Reste : —
+  - Preuve : 2026-11-13 : `Routines.registerChore(spec)` sur `LivingKnox.Registry` (`id`, `order`, `gesture`, poids `duty`/`role`/`trait`, `avail(c)`, `plan(c)`) ; une corvée par fichier sous `server/LivingKnox/Chores/` (feu, se réchauffer, ranger, guetter, réparer, fumer, soigner, se reposer, ordres 10 à 80 = ordre d'avant) ; six tables parallèles et six branches de `chorePlan` supprimées ; tirage inchangé, figé avant la refonte par deux bancs à empreinte (`test_draw_is_frozen_on_a_grid` : 900 combinaisons × 36 tirages ; `test_chore_plans_are_frozen` : 3 membres × 6 postes × 3 jeux de traits × 24 créneaux), verts après ; plans du guet, de la ronde et du sommeil portés par leurs activités (`registerActivity` accepte `plan`), `Routines.plan` sans nom de comportement ; acceptation `test_a_chore_added_by_one_registration_is_drawn_and_done` (rouge avant : `attempt to call field 'registerChore' (a nil value)`) ; `test_lk_chores.py` et `test_lk_routines.py` 39 OK, `test_lk_meals` 16, `test_lk_upkeep` 28, `test_lk_provisions` 19, `test_lk_decisions` 27, `test_lk_care` 16, `test_lk_alert` 25, `test_lk_contest` 18, `test_lk_needs` 16, `test_lk_defense` 23, `test_lk_expeditions` 16, `test_lk_stand` 12, `test_kahlua` 40, `test_doubles_api` 17, `test_mod_calls_api` 16, sans attendu changé
+  - Reste : suite complète à repasser avec LK16-T04 ; le relevé des places ne connaît que deux genres (feu, meuble) : une corvée qui demanderait un autre genre de place toucherait encore `surveySpots` ; non vérifié en jeu (`LK16-T12`)
 - [ ] **LK16-T08** — C4 : genres d'expédition
   - État : `à faire`
   - Cible : `hors jeu`

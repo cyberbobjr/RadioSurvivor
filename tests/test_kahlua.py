@@ -125,6 +125,9 @@ LUA_FILES = [
     ('LivingKnox/Routines/LK_Routine_Meal', LK_LUA / 'server' / 'LivingKnox' / 'Routines' / 'LK_Routine_Meal.lua'),
     ('LivingKnox/Routines/LK_Routine_Sleep', LK_LUA / 'server' / 'LivingKnox' / 'Routines' / 'LK_Routine_Sleep.lua'),
     ('LivingKnox/Routines/LK_Routine_Watch', LK_LUA / 'server' / 'LivingKnox' / 'Routines' / 'LK_Routine_Watch.lua'),
+    # LK16-T07 : corvées inscrites au registre de LK_Routine_Chores, une par fichier.
+    *[(f'LivingKnox/Chores/{p.stem}', p)
+      for p in sorted((LK_LUA / 'server' / 'LivingKnox' / 'Chores').glob('*.lua'), key=lambda p: p.name.lower())],
     # LK05-T08 : alerte de groupe (fonctions pures ; les passages sur les corps sont testes sous lupa).
     ('LivingKnox/LK_Alert', LK_LUA / 'server' / 'LivingKnox' / 'LK_Alert.lua'),
     # LK13-T02 : mesure de charge (enveloppes d'abonnes et reseau ; Events absent au chargement : aucun abonne).

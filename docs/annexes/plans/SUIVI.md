@@ -61,7 +61,7 @@
 | [LK13](LK13-outils-validation-publication.md) | Outils, performance, validation et publication | en cours | 13 / 16 |
 | [LK14](LK14-fortification-progressive.md) | Fortification progressive | en cours | 5 / 6 |
 | [LK15](LK15-registre-routines.md) | Registres des routines et potager du jardinier | en cours | 2 / 7 |
-| [LK16](LK16-remise-en-ordre-solid.md) | Remise en ordre SOLID | en cours | 3 / 12 |
+| [LK16](LK16-remise-en-ordre-solid.md) | Remise en ordre SOLID | en cours | 4 / 12 |
 
 ## Tâches
 
@@ -464,7 +464,7 @@
 | ☐ | [LK16-T04](LK16-remise-en-ordre-solid.md#L79) | C5 : cycles cassés par événements | `à faire` | hors jeu | — |
 | ☐ | [LK16-T05](LK16-remise-en-ordre-solid.md#L89) | C3 : contexte de décision par inscription | `à faire` | hors jeu | — |
 | ☐ | [LK16-T06](LK16-remise-en-ordre-solid.md#L99) | C2 : comportements de décision par extension | `à faire` | hors jeu | — |
-| ☐ | [LK16-T07](LK16-remise-en-ordre-solid.md#L109) | C8 et C9 : corvées et plans des routines | `à faire` | hors jeu | — |
+| ☑ | [LK16-T07](LK16-remise-en-ordre-solid.md#L109) | C8 et C9 : corvées et plans des routines | `testé hors jeu` | hors jeu | 2026-11-13 : `Routines.registerChore(spec)` sur `LivingKnox.Registry` (`id`, `order`, `gesture`, poids `duty`/`role`/`trait`, `avail(c)`, `plan(c)`) ; une corvée par fichier sous `server/LivingKnox/Chores/` (feu, se réchauffer, ranger, guetter, réparer, fumer, soigner, se reposer, ordres 10 à 80 = ordre d'avant) ; six tables parallèles et six branches de `chorePlan` supprimées ; tirage inchangé, figé avant la refonte par deux bancs à empreinte (`test_draw_is_frozen_on_a_grid` : 900 combinaisons × 36 tirages ; `test_chore_plans_are_frozen` : 3 membres × 6 postes × 3 jeux de traits × 24 créneaux), verts après ; plans du guet, de la ronde et du sommeil portés par leurs activités (`registerActivity` accepte `plan`), `Routines.plan` sans nom de comportement ; acceptation `test_a_chore_added_by_one_registration_is_drawn_and_done` (rouge avant : `attempt to call field 'registerChore' (a nil value)`) ; `test_lk_chores.py` et `test_lk_routines.py` 39 OK, `test_lk_meals` 16, `test_lk_upkeep` 28, `test_lk_provisions` 19, `test_lk_decisions` 27, `test_lk_care` 16, `test_lk_alert` 25, `test_lk_contest` 18, `test_lk_needs` 16, `test_lk_defense` 23, `test_lk_expeditions` 16, `test_lk_stand` 12, `test_kahlua` 40, `test_doubles_api` 17, `test_mod_calls_api` 16, sans attendu changé |
 | ☐ | [LK16-T08](LK16-remise-en-ordre-solid.md#L119) | C4 : genres d'expédition | `à faire` | hors jeu | — |
 | ☐ | [LK16-T09](LK16-remise-en-ordre-solid.md#L129) | C6 : simulation hors écran | `à faire` | hors jeu | — |
 | ☐ | [LK16-T10](LK16-remise-en-ordre-solid.md#L139) | C11 : aménagements des foyers ; nettoyages | `à faire` | hors jeu | — |

@@ -1,11 +1,13 @@
 -- Living Knox : routine « corvées visibles » des PNJ au foyer (LK05-T04, découpée en LK15-T02, ADR D05) : petite activité
--- tirée dans la liste fermée Routines.CHORES selon le poste, les comportements du rôle et les traits du membre (I3.4),
--- parmi celles qui ont une place au foyer ; emplacements relevés en mémoire (non sauvegardés). Fiche :
+-- tirée parmi les corvées inscrites (Routines.registerChore, LK16-T07 : une corvée par fichier dans
+-- media/lua/server/LivingKnox/Chores/) selon le poste, les comportements du rôle et les traits du membre (I3.4), parmi
+-- celles qui ont une place au foyer ; emplacements relevés en mémoire (non sauvegardés). Fiche :
 -- docs/annexes/conception/routines.md. Activité du comportement « chore » (ordre 90, après les barricades (10) et
 -- l'entretien (20)). Autorité seulement : un client MP charge aussi media/lua/server, il s'arrête ici.
 if isClient() then return end
 
 require "LivingKnox/LK_Core"
+require "LivingKnox/LK_Registry"
 require "LivingKnox/LK_Config"
 require "LivingKnox/LK_Log"
 require "LivingKnox/LK_Decisions"
@@ -22,6 +24,53 @@ local function cfg() return Routines.CFG end
 local function Decisions() return LivingKnox.Decisions end
 local function now() return getTimestampMs() end
 local function leash() return Decisions().CFG.HOME_RADIUS end
+
+-- ================================================================ registre des corvées (LK16-T07, ADR D02)
+
+-- Corvée : { id (unique), order (ordre du tirage : plus petit d'abord, à égalité par id), gesture (geste final, nil :
+-- debout, regard seul), duty = { [poste] = poids } (« routine » : sans poste à corvées), role = { [comportement du
+-- rôle] = bonus }, trait = { [trait] = bonus }, avail(c) -> vrai si la corvée a une place au foyer (absent : toujours),
+-- plan(c) -> plan, ou nil pour rester ou rentrer et faire le geste sur place (c : voir Routines.chorePlan) }.
+-- Vues tenues à l'inscription : Routines.CHORES (identifiants dans l'ordre du tirage), Routines.CHORE_GESTURE.
+Routines.choreSpecs = Routines.choreSpecs or {}
+Routines.CHORES = Routines.CHORES or {}
+Routines.CHORE_GESTURE = Routines.CHORE_GESTURE or {}
+Routines.CHORE_FALLBACK = "rest"          -- aucun poids, ou corvée impossible sur place : se reposer
+Routines.CHORE_DEFAULT_DUTY = "routine"   -- poste sans poids de corvée
+
+local function optional(v, kind) return v == nil or type(v) == kind end
+
+local function validChore(spec)
+    if type(spec) == "table" and type(spec.id) == "string" and type(spec.order) == "number"
+        and optional(spec.gesture, "string") and optional(spec.duty, "table") and optional(spec.role, "table")
+        and optional(spec.trait, "table") and optional(spec.avail, "function") and optional(spec.plan, "function") then
+        return true
+    end
+    return false, "spec needs id and order; gesture string; duty, role, trait tables; avail, plan functions"
+end
+
+local chores = LivingKnox.Registry.new("LivingKnox.Routines.registerChore",
+    { validate = validChore, items = Routines.choreSpecs })
+
+local function refreshViews()
+    local list, gestures = Routines.CHORES, Routines.CHORE_GESTURE
+    for i = #list, 1, -1 do list[i] = nil end
+    local old = {}
+    for k in pairs(gestures) do old[#old + 1] = k end
+    for _, k in ipairs(old) do gestures[k] = nil end
+    for _, s in ipairs(chores:list()) do
+        list[#list + 1] = s.id
+        gestures[s.id] = s.gesture
+        if s.gesture ~= nil then Routines.GESTURES[s.gesture] = true end
+    end
+end
+
+-- Inscrit une corvée (spec, voir ci-dessus) ; même id : remplacée (rechargement). Spec refusée : erreur.
+function Routines.registerChore(spec)
+    local s = chores:register(spec, 2)
+    refreshViews()
+    return s
+end
 
 -- Objet de corvée de la case : "fire" (IsoFireplace : cheminée, poêle à bois, brasero ; ou conteneur de type
 -- « stove »), "furniture" (autre objet à conteneur, hors NOT_FURNITURE), ou nil ; et son rang (cheminée 1, cuisinière
@@ -121,65 +170,50 @@ function Routines.choreSlot(id, minute)
     return math.floor((math.floor(minute) + off) / span)
 end
 
--- Poids des corvées (pur) : poste duty (CHORE_DUTY, "routine" par défaut), comportements du rôle allowed
--- ({ [nom] = vrai }), traits ({ [nom] = vrai }), corvées possibles avail ({ [corvée] = vrai }). Rend { [corvée] = n }.
-function Routines.choreWeights(duty, allowed, traits, avail)
-    local c = cfg()
-    local base = c.CHORE_DUTY[duty] or c.CHORE_DUTY.routine
-    local out = {}
-    for _, ch in ipairs(Routines.CHORES) do out[ch] = base[ch] or 0 end
-    local function bonus(tbl, set)
-        local names = {}
-        for n in pairs(set or {}) do names[#names + 1] = n end
-        table.sort(names)
-        for _, n in ipairs(names) do
-            local b = tbl[n]
-            if b ~= nil then
-                for _, ch in ipairs(Routines.CHORES) do out[ch] = out[ch] + (b[ch] or 0) end
-            end
-        end
+-- Poste duty s'il a un poids de corvée, sinon CHORE_DEFAULT_DUTY.
+function Routines.choreDuty(duty)
+    for _, s in ipairs(chores:list()) do
+        if s.duty ~= nil and s.duty[duty] ~= nil then return duty end
     end
-    bonus(c.CHORE_ROLE, allowed)
-    bonus(c.CHORE_TRAIT, traits)
-    for _, ch in ipairs(Routines.CHORES) do
-        if not (avail or {})[ch] then out[ch] = 0 end
+    return Routines.CHORE_DEFAULT_DUTY
+end
+
+local function sortedNames(set)
+    local names = {}
+    for n in pairs(set or {}) do names[#names + 1] = n end
+    table.sort(names)
+    return names
+end
+
+-- Poids des corvées (pur) : poste duty (Routines.choreDuty), comportements du rôle allowed ({ [nom] = vrai }), traits
+-- ({ [nom] = vrai }), corvées possibles avail ({ [corvée] = vrai }). Rend { [corvée] = n } : poids du poste, puis
+-- bonus des comportements puis des traits (noms triés).
+function Routines.choreWeights(duty, allowed, traits, avail)
+    local d = Routines.choreDuty(duty)
+    local roles, traitNames = sortedNames(allowed), sortedNames(traits)
+    local out = {}
+    for _, s in ipairs(chores:list()) do
+        local w = s.duty ~= nil and s.duty[d] or 0
+        for _, n in ipairs(roles) do w = w + (s.role ~= nil and s.role[n] or 0) end
+        for _, n in ipairs(traitNames) do w = w + (s.trait ~= nil and s.trait[n] or 0) end
+        if not (avail or {})[s.id] then w = 0 end
+        out[s.id] = w
     end
     return out
 end
 
 -- Corvée tirée (pur, déterministe) : graine = identité id + créneau slot ; tirage pondéré dans l'ordre de CHORES.
--- Aucun poids : "rest".
+-- Aucun poids : CHORE_FALLBACK.
 function Routines.pickChore(id, slot, weights)
     local total = 0
     for _, ch in ipairs(Routines.CHORES) do total = total + (weights[ch] or 0) end
-    if total <= 0 then return "rest" end
+    if total <= 0 then return Routines.CHORE_FALLBACK end
     local r = math.floor(Decisions().stream("chore/" .. tostring(id), slot, 11)() * total)
     for _, ch in ipairs(Routines.CHORES) do
         r = r - (weights[ch] or 0)
         if r < 0 then return ch end
     end
-    return "rest"
-end
-
--- Membre présent le plus blessé (santé sous CARE_HEALTH, corps incarné au foyer), autre que mid : mid, corps ; ou nil.
-function Routines.woundedFor(g, mid, home)
-    local B = LivingKnox.Bodies
-    if B == nil or B.find == nil then return nil end
-    local best, bestH, bestBody
-    for _, other in ipairs(Routines.present(g)) do
-        local m = g.members[other]
-        if other ~= mid and m.npc ~= nil then
-            local h = Decisions().healthOf(m)
-            if h < cfg().CARE_HEALTH and (bestH == nil or h < bestH) then
-                local z = B.find(m.npc)
-                if z ~= nil and (home == nil or (math.floor(z:getZ()) == home.z
-                    and cheb(z:getX(), z:getY(), home.x + 0.5, home.y + 0.5) <= leash())) then
-                    best, bestH, bestBody = other, h, z
-                end
-            end
-        end
-    end
-    return best, bestBody
+    return Routines.CHORE_FALLBACK
 end
 
 local function windowsFree(posts, g, hour)
@@ -196,49 +230,51 @@ local function windowsFree(posts, g, hour)
     return out
 end
 
+-- Contexte c d'une corvée (avail, plan) : { id, ctx, g, posts, hour, spots = { fire, furniture } (places relevées),
+-- windows (fenêtres du relevé sans guetteur), doors (postes du relevé) } ; après le tirage : slot, rank, chore,
+-- nth(list) (place de la liste pour ce créneau et ce membre), place(p, a, key) (plan « spot » : aller en p, regarder
+-- a ou p.a, geste), sit(chore) (plan « sit » de la corvée, celle tirée par défaut). Une corvée peut y garder ce que
+-- son avail a trouvé pour son plan (champ à son nom).
+local function choreContext(id, ctx, g, posts)
+    local hour = math.floor(ctx.minute / 60)
+    return { id = id, ctx = ctx, g = g, posts = posts, hour = hour,
+        spots = Routines.ensureSpots(ctx.gid, g.home) or { fire = {}, furniture = {} },
+        windows = windowsFree(posts, g, hour),
+        doors = type(posts) == "table" and type(posts.posts) == "table" and posts.posts or {} }
+end
+
+local function drawn(c, slot, rank, chore)
+    c.slot, c.rank, c.chore = slot, rank, chore
+    function c.nth(list) return list[((slot + rank - 1) % #list) + 1] end
+    function c.place(p, a, key)
+        return { kind = "spot", chore = chore, key = key or string.format("chore %s %d,%d,%d", chore, p.x, p.y, p.z),
+            x = p.x, y = p.y, z = p.z, a = a or p.a, gesture = Routines.CHORE_GESTURE[chore] }
+    end
+    function c.sit(other)
+        local ch = other or chore
+        return { kind = "sit", chore = ch, key = "chore " .. ch, gesture = Routines.CHORE_GESTURE[ch] }
+    end
+    return c
+end
+
 -- Plan de corvée du membre (contexte ctx du cadre de décision, groupe g du registre, relevé posts) : { kind, key,
 -- chore, x, y, z, a, gesture }. kind "spot" (aller, regarder, geste) ou "sit" (rester ou rentrer, s'arrêter, geste).
+-- Corvées possibles (avail de chacune), tirage pondéré, puis plan de la corvée tirée (sans plan : « sit »).
 function Routines.chorePlan(id, ctx, g, posts)
     local m = g.members[ctx.mid] or {}
-    local hour = math.floor(ctx.minute / 60)
-    local spots = Routines.ensureSpots(ctx.gid, g.home) or { fire = {}, furniture = {} }
-    local windows = windowsFree(posts, g, hour)
-    local doors = type(posts) == "table" and type(posts.posts) == "table" and posts.posts or {}
-    local wounded, wbody = Routines.woundedFor(g, ctx.mid, g.home)
-    local avail = { fire = #spots.fire > 0, warm = #spots.fire > 0, tidy = #spots.furniture > 0,
-        lookout = #windows > 0, repair = #doors > 0, smoke = true, care = wounded ~= nil, rest = true }
+    local c = choreContext(id, ctx, g, posts)
+    local avail = {}
+    for _, s in ipairs(chores:list()) do
+        if s.avail == nil or s.avail(c) then avail[s.id] = true end
+    end
     local traits = {}
     for _, t in ipairs(type(m.traits) == "table" and m.traits or {}) do traits[t] = true end
-    local duty = Routines.CFG.CHORE_DUTY[ctx.duty] ~= nil and ctx.duty or "routine"
     local slot = Routines.choreSlot(id, ctx.minute)
-    local chore = Routines.pickChore(id, slot, Routines.choreWeights(duty, ctx.allowed, traits, avail))
-    local rank = rankOf(Routines.present(g), ctx.mid) or 1
-    local function nth(list) return list[((slot + rank - 1) % #list) + 1] end
-    local gesture = Routines.CHORE_GESTURE[chore]
-    local function spot(p, a)
-        return { kind = "spot", chore = chore, key = string.format("chore %s %d,%d,%d", chore, p.x, p.y, p.z),
-            x = p.x, y = p.y, z = p.z, a = a or p.a, gesture = gesture }
-    end
-    if chore == "fire" or chore == "warm" then return spot(nth(spots.fire)) end
-    if chore == "tidy" then return spot(nth(spots.furniture)) end
-    if chore == "lookout" then return spot(nth(windows)) end
-    if chore == "repair" then
-        -- Porte ou fenêtre du relevé : regard vers elle (direction du poste).
-        return spot(nth(doors))
-    end
-    if chore == "smoke" and #windows > 0 then return spot(nth(windows)) end
-    if chore == "care" then
-        local cell = getCell()
-        local wx, wy, wz = math.floor(wbody:getX()), math.floor(wbody:getY()), math.floor(wbody:getZ())
-        local p = cell ~= nil and placeBeside(cell, wx, wy, wz, nil, {}) or nil
-        if p ~= nil then
-            local out = spot(p)
-            out.key = string.format("chore care %s %d,%d,%d", wounded, p.x, p.y, p.z)
-            return out
-        end
-        chore, gesture = "rest", Routines.CHORE_GESTURE.rest
-    end
-    return { kind = "sit", chore = chore, key = "chore " .. chore, gesture = gesture }
+    local chore = Routines.pickChore(id, slot, Routines.choreWeights(ctx.duty, ctx.allowed, traits, avail))
+    drawn(c, slot, rankOf(Routines.present(g), ctx.mid) or 1, chore)
+    local spec = chores:get(chore)
+    local plan = spec ~= nil and spec.plan ~= nil and spec.plan(c) or nil
+    return plan or c.sit()
 end
 
 -- Activité « chore » (ADR D04, ordre 90) : corvée visible, après les barricades (10) et l'entretien (20).

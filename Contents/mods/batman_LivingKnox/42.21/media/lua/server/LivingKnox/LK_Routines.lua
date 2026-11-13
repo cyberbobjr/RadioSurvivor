@@ -3,12 +3,13 @@
 -- Autorité seulement (serveur dédié ou hébergé, solo) : un client MP charge aussi media/lua/server, il s'arrête ici.
 --
 -- Ce fichier porte le relevé du foyer (Routines.survey, ensurePosts : postes de guet, couchages, ronde ; sauvegardé
--- avec le groupe), les plans de guet, de ronde et de sommeil (Routines.plan, Routines.runPlanned) et le registre des
--- activités : Routines.registerActivity(spec) ; Routines.apply confie le membre à l'activité de son comportement, par
--- ordre (la première qui rend vrai l'emporte). Les activités sont dans media/lua/server/LivingKnox/Routines/
--- (LK_Routine_Watch, _Sleep, _Meal, _Chores) ; LK_Fortify.lua (barricades, « chore » 10) et LK_Upkeep.lua (entretien,
--- « chore » 20) s'inscrivent aussi. Outils d'exécution partagés (aller, regarder, s'asseoir, geste, quitter, plan
--- exécuté) : LK_RoutineExec.lua (Routines.exec). Mémoire des membres : non sauvegardée (recalculée).
+-- avec le groupe), les affectations (postes, ronde, couchages) et le registre des activités :
+-- Routines.registerActivity(spec) ; Routines.apply confie le membre à l'activité de son comportement, par ordre (la
+-- première qui rend vrai l'emporte). Une activité de plan (guet, ronde, sommeil) porte son plan (spec.plan, LK16-T07) :
+-- Routines.runPlanned l'exécute. Les activités sont dans media/lua/server/LivingKnox/Routines/ (LK_Routine_Watch,
+-- _Sleep, _Meal, _Chores ; corvées : Chores/) ; LK_Fortify.lua (barricades, « chore » 10) et LK_Upkeep.lua
+-- (entretien, « chore » 20) s'inscrivent aussi. Outils d'exécution partagés (aller, regarder, s'asseoir, geste,
+-- quitter, plan exécuté) : LK_RoutineExec.lua (Routines.exec). Mémoire des membres : non sauvegardée (recalculée).
 if isClient() then return end
 
 require "LivingKnox/LK_Core"
@@ -28,17 +29,16 @@ Routines.FORMAT = 1
 
 Routines.POST_KINDS = { door = true, window = true }
 Routines.SIT = "sit"
--- Corvées (LK05-T04) : liste fermée (ordre = ordre du tirage) et geste final de chacune (nil : debout, regard seul).
-Routines.CHORES = { "fire", "warm", "tidy", "lookout", "repair", "smoke", "care", "rest" }
-Routines.CHORE_GESTURE = { fire = "kneel", warm = "warmhands", tidy = "rummage", repair = "hammer", smoke = "smoke",
-    care = "kneel", rest = "sit" }
+-- Corvées (LK05-T04) : registre Routines.registerChore (LK16-T07), Routines/LK_Routine_Chores.lua et Chores/.
 -- Repas réels (LK05-T07) : besoin -> catégorie du stock ; gestes existants (aucun clip de repas n'est généré : fouille
 -- pour prendre, assis pour consommer).
 Routines.MEAL = { hunger = "food", thirst = "water" }
 Routines.MEAL_TAKE_GESTURE = "rummage"
 Routines.MEAL_EAT_GESTURE = "sit"
--- Gestes posés par les routines : remis au repos quand la routine s'arrête (Routines.leave).
-Routines.GESTURES = { sit = true, kneel = true, warmhands = true, rummage = true, hammer = true, smoke = true }
+-- Gestes posés par les routines : remis au repos quand la routine s'arrête (Routines.leave). Le geste d'une corvée
+-- inscrite s'y ajoute (Routines.registerChore).
+Routines.GESTURES = Routines.GESTURES or { sit = true, kneel = true, warmhands = true, rummage = true, hammer = true,
+    smoke = true }
 
 -- Réglages (valeurs de départ propres au mod, raisons dans la fiche).
 Routines.CFG = Routines.CFG or {
@@ -60,19 +60,7 @@ Routines.CFG = Routines.CFG or {
     NOT_FURNITURE = { stove = true, microwave = true, toaster = true, coffeemaker = true, fireplace = true,
         woodstove = true, brazier = true, campfire = true, barbecue = true, barbecuepropane = true,
         clothingwasher = true, clothingdryer = true },
-    -- Poids des corvées : par poste (routine = sans poste à corvées), puis bonus par comportement du rôle et par trait.
-    CHORE_DUTY = {
-        keeper = { fire = 3, warm = 1, tidy = 3, lookout = 2, repair = 1, care = 1, rest = 2 },
-        carer = { care = 6, fire = 1, tidy = 1, rest = 1 },
-        forager = { tidy = 3, lookout = 1, repair = 1, rest = 2 },
-        builder = { repair = 5, fire = 1, tidy = 1, rest = 1 },
-        routine = { fire = 1, warm = 1, tidy = 1, lookout = 1, rest = 3 },
-    },
-    CHORE_ROLE = { heal = { care = 3 }, cook = { fire = 2 }, chores = { fire = 1, tidy = 1 }, maintain = { repair = 2 },
-        fortify = { repair = 1 }, guard = { lookout = 1 }, patrol = { lookout = 1 }, scout = { lookout = 1 },
-        scavenge = { tidy = 1 } },
-    CHORE_TRAIT = { tidy = { tidy = 3 }, nervous = { lookout = 3 }, keenHearing = { lookout = 2 },
-        strong = { repair = 2 }, smoker = { smoke = 4 }, drinker = { warm = 1, rest = 2 } },
+    -- Poids des corvées (par poste, rôle et trait) : portés par chaque corvée (Chores/, LK16-T07).
     -- Repas réels (LK05-T07).
     MEAL_TAKE_MINUTES = 1,     -- minutes de jeu à fouiller le conteneur avant de prendre l'objet
     MEAL_EAT_MINUTES = 5,      -- minutes de jeu assis à manger ou boire
@@ -118,16 +106,7 @@ function Routines.hourInWatch(hour)
     return (hour + 7 + 24 - c.WATCH_START) % c.WATCH_HOURS
 end
 
--- Guet ("guard") ou ronde ("patrol") du guetteur à l'heure hour, selon les postes relevés (posts, ou nil).
-function Routines.sentryKind(hour, posts)
-    local hasRound = type(posts) == "table" and type(posts.round) == "table" and #posts.round >= cfg().MIN_ROUND
-    if not hasRound then return "guard" end
-    local p = Routines.period(hour)
-    if p == "night" then return "guard" end
-    if p == "dawn" then return "patrol" end
-    if Routines.hourInWatch(hour) == 0 then return "patrol" end
-    return "guard"
-end
+-- Guet ou ronde du guetteur selon l'heure (Routines.sentryKind) : Routines/LK_Routine_Watch.lua (LK16-T07).
 
 -- ================================================================ relevé du foyer
 
@@ -437,32 +416,6 @@ function Routines.bedFor(posts, g, mid)
     return list[r]
 end
 
--- Plan du comportement b (guard, patrol, sleep) pour le membre mid à l'heure hour : { kind, key, x, y, z, a, sit,
--- points, start }. kind : "post" (aller au poste, regarder), "round", "bed" (aller au couchage, regarder le lit,
--- s'asseoir), "face" (regarder dans la direction a), "sit" (s'arrêter et s'asseoir).
-function Routines.plan(b, posts, g, mid, hour, angle)
-    if b == "guard" then
-        local p = Routines.postFor(posts, g, mid, hour)
-        if p ~= nil then
-            return { kind = "post", key = string.format("post %d,%d,%d", p.x, p.y, p.z), x = p.x, y = p.y, z = p.z,
-                a = p.a, what = p.k }
-        end
-        return { kind = "face", key = "face", a = angle }
-    elseif b == "patrol" then
-        if type(posts) == "table" and #posts.round >= cfg().MIN_ROUND then
-            return { kind = "round", key = "round", points = posts.round, start = Routines.roundStart(posts, g, mid) }
-        end
-        return { kind = "face", key = "face", a = angle }
-    elseif b == "sleep" then
-        local bed = Routines.bedFor(posts, g, mid)
-        if bed ~= nil then
-            return { kind = "bed", key = string.format("bed %d,%d,%d", bed.x, bed.y, bed.z), x = bed.x, y = bed.y,
-                z = bed.z, a = bed.a, sit = true }
-        end
-        return { kind = "sit", key = "sit" }
-    end
-    return nil
-end
 -- Outils de tri et de voisinage partagés avec les corvées (LK_Routine_Chores.lua).
 Routines.cheb, Routines.byPlace, Routines.rankOf = cheb, byPlace, rankOf
 
@@ -470,15 +423,19 @@ Routines.cheb, Routines.byPlace, Routines.rankOf = cheb, byPlace, rankOf
 
 -- Activité : { id (unique), behaviour (comportement servi : "chore", "meal", "guard", "patrol", "sleep"), order
 -- (plus petit d'abord, à égalité par id), run(id, st, ctx, g, fresh) -> vrai quand elle a pris le membre }.
--- Inscrite par Routines.registerActivity ; liste triée à l'inscription (sans next : Kahlua).
+-- Activité de plan (LK16-T07) : plan(posts, g, mid, hour, angle) -> { kind, key, x, y, z, a, sit, points, start } ou
+-- nil, à la place de run (run = Routines.runPlanned avec ce plan). kind : "post" (aller au poste, regarder), "round",
+-- "bed" (aller au couchage, regarder le lit, s'asseoir), "face" (regarder dans la direction a), "sit" (s'arrêter et
+-- s'asseoir). Inscrite par Routines.registerActivity ; liste triée à l'inscription (sans next : Kahlua).
 Routines.activities = Routines.activities or {}
 
 local function validActivity(spec)
     if type(spec) == "table" and type(spec.id) == "string" and type(spec.behaviour) == "string"
-        and type(spec.order) == "number" and type(spec.run) == "function" then
+        and type(spec.order) == "number" and type(spec.run) == "function"
+        and (spec.plan == nil or type(spec.plan) == "function") then
         return true
     end
-    return false, "spec needs id, behaviour, order and run"
+    return false, "spec needs id, behaviour, order and run (or plan)"
 end
 
 -- LK16-T01 : socle commun (LivingKnox.Registry) ; Routines.activities en est la liste.
@@ -487,7 +444,19 @@ local activities = LivingKnox.Registry.new("LivingKnox.Routines.registerActivity
 
 -- Inscrit une activité (spec, voir ci-dessus). Une activité déjà inscrite sous le même id est remplacée (rechargement).
 function Routines.registerActivity(spec)
+    if type(spec) == "table" and spec.run == nil and type(spec.plan) == "function" then
+        spec.run = function(id, st, ctx, g, fresh) return Routines.runPlanned(spec, id, st, ctx, g, fresh) end
+    end
     return activities:register(spec, 2)
+end
+
+-- Plan du comportement b pour le membre mid à l'heure hour : celui de la première activité de b qui porte un plan
+-- (ordre des activités), ou nil.
+function Routines.plan(b, posts, g, mid, hour, angle)
+    for _, a in ipairs(Routines.activities) do
+        if a.behaviour == b and a.plan ~= nil then return a.plan(posts, g, mid, hour, angle) end
+    end
+    return nil
 end
 
 -- Rend vrai si une activité est inscrite pour le comportement b (la cascade confie alors le membre à la routine).
@@ -509,10 +478,11 @@ function Routines.apply(id, st, ctx, fresh)
     end
 end
 
--- Routine de plan (guet, ronde, sommeil) : relevé du foyer, plan du comportement st.b, exécution. Rend faux sans plan.
-function Routines.runPlanned(id, st, ctx, g, fresh)
+-- Routine de plan (guet, ronde, sommeil) de l'activité a : relevé du foyer, plan de l'activité, exécution. Rend faux
+-- sans plan.
+function Routines.runPlanned(a, id, st, ctx, g, fresh)
     local posts = Routines.ensurePosts(ctx.gid, g)
-    local plan = Routines.plan(st.b, posts, g, ctx.mid, math.floor(ctx.minute / 60), st.angle)
+    local plan = a.plan(posts, g, ctx.mid, math.floor(ctx.minute / 60), st.angle)
     if plan == nil then return false end
     Routines.execPlan(id, st, ctx, plan, fresh)
     return true

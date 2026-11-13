@@ -1043,14 +1043,18 @@ def lua_src(rel, base=None):
 
 
 ROUTINES_DIR = LK_LUA / 'server' / 'LivingKnox' / 'Routines'
+CHORES_DIR = LK_LUA / 'server' / 'LivingKnox' / 'Chores'
 
 
 def routine_files():
     """Fichiers des routines (LK15-T02) comme le jeu les charge : outils d'exécution, relevé, puis chaque activité du
-    dossier Routines/ (triée par nom, comme le chargement du jeu ; l'ordre entre activités vient de leur order)."""
-    names = sorted((p.name for p in ROUTINES_DIR.glob('*.lua')), key=str.lower)
-    return ['server/LivingKnox/LK_RoutineExec.lua', 'server/LivingKnox/LK_Routines.lua'] + [
-        f'server/LivingKnox/Routines/{name}' for name in names]
+    dossier Routines/ et chaque corvée du dossier Chores/ (LK16-T07), triées par nom comme le chargement du jeu
+    (l'ordre entre activités et entre corvées vient de leur order)."""
+    def listed(folder):
+        names = sorted((p.name for p in folder.glob('*.lua')), key=str.lower)
+        return [f'server/LivingKnox/{folder.name}/{name}' for name in names]
+    return (['server/LivingKnox/LK_RoutineExec.lua', 'server/LivingKnox/LK_Routines.lua'] + listed(ROUTINES_DIR)
+            + listed(CHORES_DIR))
 
 
 FORTIFY_KINDS_DIR = LK_LUA / 'server' / 'LivingKnox' / 'Fortify'
