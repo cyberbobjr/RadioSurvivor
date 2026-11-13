@@ -4,3 +4,5 @@ description=Shared core of Radio Survivor and Living Knox: missions, link with t
 require=\batman_SignalSmoke
 versionMin=42.21
 modversion=0.1.0
+poster=poster.png
+icon=icon.png

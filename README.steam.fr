@@ -18,7 +18,7 @@ Abonnez-vous une fois, puis cochez dans la liste des mods ce que vous voulez. Ra
 
 [b]Radio Survivor seul :[/b] voix, radio, carnet. [b]Living Knox seul :[/b] vous parlez à un PNJ dans le chat normal (/say) près de lui, ou par le menu du clic droit [b]Parler[/b] ; il répond dans une bulle, et ses missions vont dans le carnet. [b]Les deux :[/b] vous parlez aux PNJ par le carnet (Ctrl+G) et Radio Survivor ajoute les relations et les accords avec les groupes.
 
-[b]Limite connue :[/b] sans Radio Survivor, livrer et réclamer la récompense d'une mission de PNJ n'est pas encore possible, et les PNJ ne prennent pas la parole d'eux-mêmes. Le pont est un seul programme, quel que soit votre choix.
+Le pont est un seul programme, quel que soit votre choix.
 
 [h2]Ce que les mods ajoutent[/h2]
 
@@ -48,7 +48,7 @@ Ordre de chargement : TooltipLib, Belt Walkie-Talkie, Signal Smoke, Radio Surviv
 
 Le Lua de Project Zomboid n'a aucun accès réseau : le jeu et le pont s'échangent des fichiers texte dans un dossier commun, et le pont appelle l'IA. Un mod du Workshop ne peut pas lancer de programme : [b]lancez le pont vous-même, sur la machine qui exécute le serveur[/b] (votre PC en solo). Les joueurs qui rejoignent un serveur n'installent que les mods.
 
-[b]Il faut :[/b] Python 3.10 ou plus récent (aucun paquet à installer), les cinq fichiers du pont gardés ensemble (radio_bridge.py, npc_protocol.py, persona_store.py, bulletin.py, last_pages.py ; fournis avec la version de test) et une clé d'API d'un fournisseur compatible avec l'API OpenAI (/chat/completions).
+[b]Il faut :[/b] Python 3.10 ou plus récent (aucun paquet à installer), les cinq fichiers du pont gardés ensemble (radio_bridge.py, npc_protocol.py, persona_store.py, bulletin.py, last_pages.py ; à télécharger dans le dossier [i]bridge[/i] du dépôt GitHub ci-dessous) et une clé d'API d'un fournisseur compatible avec l'API OpenAI (/chat/completions).
 
 [b]1. Clé.[/b] Copiez [i].env.example[/i] en [i].env[/i] à côté de radio_bridge.py et remplissez OPENAI_KEY, OPENAI_BASE_URL (par exemple https://api.openai.com/v1) et OPENAI_MODEL. Ne partagez jamais ce fichier.
 

@@ -2,12 +2,12 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 2 / 10 tâche(s) terminée(s).
+**Avancement.** en cours — 3 / 10 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
 | ☑ | E16-T01 | Périmètre de la première publication | `testé hors jeu` | hors jeu | — |
-| ☐ | E16-T02 | Nettoyage et métadonnées | `à faire` | hors jeu | E16-T01, E18-T16 |
+| ☑ | E16-T02 | Nettoyage et métadonnées | `testé hors jeu` | hors jeu | E16-T01, E18-T16 |
 | ☐ | E16-T03 | Guide d'installation du pont pour un serveur | `codé` | hors jeu | E16-T01, E18-T12 |
 | ☐ | E16-T04 | Validation multijoueur finale | `à faire` | MP | E16-T02, E18-T15 |
 | ☐ | E16-T05 | Publication | `à faire` | hors jeu | E16-T04 |
@@ -49,16 +49,16 @@
   - Preuve : décisions du 2026-10-10 (section Décisions) : publication après les actions des voix (E07) et une mission générée (E11), Living Knox désactivé par défaut ; visibilité privée
   - Reste : —
 
-- [ ] **E16-T02** — Nettoyage et métadonnées
-  - État : `à faire`
+- [x] **E16-T02** — Nettoyage et métadonnées
+  - État : `testé hors jeu`
   - Cible : `hors jeu`
   - Dépend de : E16-T01, E18-T16
   - Fichiers : `mod.info` (nom sans « expérimental » si validé, version), `workshop.txt`, `preview.png`, `poster.png`, `icon.png`
   - Faire : suivre les skills `pz-workshop` et `pz-workshop-art` ; ne pas publier `dev/`, `docs/`, `tests/`, `bridge/` hors de l'archive prévue pour le pont.
   - Accepté si : structure validée par la skill ; aucun fichier de développement dans `Contents`.
   - Tests : contrôles de la skill.
-  - Preuve : —
-  - Reste : —
+  - Preuve : 2026-11-13 : `workshop.txt` (sans `id=`, titre « Radio Survivor & Living Knox - AI Radio Voices and NPC Survivors », tags `Build 42;Multiplayer;Realistic;WIP`, `visibility=private` selon E16-T01) ; descriptions `README.steam` et `README.steam.fr` (anciens `workshop/description_*.bbcode`, limite « livrer une mission de PNJ sans Radio Survivor » retirée car levée par `E18-T29`, fichiers du pont à prendre dans le dossier `bridge` du dépôt GitHub) ; `poster.png` et `icon.png` dans les trois mods (affiche et icône « Radio Survivor » pour le mod et le mod commun, « Living Knox » pour le sien, charte de la skill `pz-workshop-art`), `poster=` et `icon=` dans les trois `mod.info`, `preview.png` 512 × 512 (276 811 octets) ; simulation `steam_workshop_publish.py RadioSurvivor --allow-dirty --skip-tests` : 284 fichiers, 7,2 Mo, descriptions 7 212 et 7 929 octets (bloc d'identifiants compris) « ok », aucun fichier refusé dans `Contents` ; seuls blocages restants, propres à la publication : section de version du `CHANGELOG.md` et création de l'objet (`--create`)
+  - Reste : affiches et icônes à valider par l'utilisateur (posées sans son regard) ; à la publication (`E16-T05`) : renommer « Unreleased » du `CHANGELOG.md` en « 0.3.0 — date » ; `name=` des `mod.info` inchangés (`batman_…`, à ne changer que sur demande) ; `modversion` : 0.3.0 (Radio Survivor), 0.1.0 (Living Knox, mod commun)
 
 - [ ] **E16-T03** — Guide d'installation du pont pour un serveur
   - État : `codé`
@@ -69,7 +69,7 @@
   - Accepté si : un admin tiers lance le pont en suivant le guide.
   - Tests : relecture.
   - Preuve : guides rédigés le 2026-10-12 : `docs/wiki/fr/07-installation-du-pont.md` (FR) et `docs/wiki/en/07-bridge-server-setup.md` (EN) — dossier d'échange par cas (`-cachedir`, partie hébergée vérifiée `CoopMaster.java:116`), clé `OPENAI_*` par `--env`, coût et options sandbox, `--offline`, `--debug`, verrou `bridge.lock`, démarrage automatique, vérification, 16 messages de dépannage relevés dans le code ; options vérifiées dans `main()` ; `radio_bridge.py --offline --test` exécuté avec succès
-  - Reste : relecture et installation par un admin tiers (critère) ; renvoi à ajouter dans `README.md` (modifications non commitées de l'utilisateur) et dans les descriptions Workshop ; moyen de distribuer le pont à décider avec E16-T02 (dépôt privé : pas de lien GitHub) ; défaut `--env` relatif au dépôt à corriger dans le pont ; boucle `run()` sans pause si `requests.txt` reste illisible : corrigée le 2026-10-12 (pause avant la relecture, banc `scenario_unreadable_requests_wait`)
+  - Reste : relecture et installation par un admin tiers (critère, seul point ouvert). Faits depuis, constatés le 2026-11-13 : renvoi au guide présent dans `README.md` et `README_fr.md` (section du pont) ; descriptions Workshop avec les étapes du pont et le lien du dépôt GitHub public (les cinq fichiers du pont se prennent dans son dossier `bridge`) ; défaut `--env` à côté du pont (`DEFAULT_ENV = HERE / ".env"`) ; boucle `run()` sans pause si `requests.txt` reste illisible : corrigée le 2026-10-12 (pause avant la relecture, banc `scenario_unreadable_requests_wait`)
 
 - [ ] **E16-T04** — Validation multijoueur finale
   - État : `à faire`

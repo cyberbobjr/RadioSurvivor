@@ -18,7 +18,7 @@ Subscribe once, then tick in the Mods list what you want. Radio Survivor and Liv
 
 [b]Radio Survivor alone:[/b] voices, radio, notebook. [b]Living Knox alone:[/b] you talk to an NPC in the normal chat (/say) near them, or with the right-click menu [b]Talk[/b]; it answers in a speech bubble, and its missions go to the notebook. [b]Both:[/b] you talk to NPCs through the notebook (Ctrl+G) and Radio Survivor adds relations and agreements with the groups.
 
-[b]Known limit:[/b] without Radio Survivor, delivering and claiming the reward of an NPC mission is not possible yet, and NPCs do not speak first. The bridge is one program whatever you tick.
+The bridge is one program whatever you tick.
 
 [h2]What it adds[/h2]
 
@@ -48,7 +48,7 @@ Load order: TooltipLib, Belt Walkie-Talkie, Signal Smoke, Radio Survivor Core, R
 
 Project Zomboid's Lua has no network access, so the game and the bridge exchange text files in a shared folder, and the bridge calls the AI. A Workshop mod cannot start a program: [b]run the bridge yourself, on the machine that runs the server[/b] (your PC in singleplayer). Players who join a server install nothing but the mods.
 
-[b]You need:[/b] Python 3.10 or newer (no package to install), the five bridge files kept together (radio_bridge.py, npc_protocol.py, persona_store.py, bulletin.py, last_pages.py; during the test phase they are handed out with the test build), and an API key from a provider compatible with the OpenAI API (/chat/completions).
+[b]You need:[/b] Python 3.10 or newer (no package to install), the five bridge files kept together (radio_bridge.py, npc_protocol.py, persona_store.py, bulletin.py, last_pages.py; download them from the [i]bridge[/i] folder of the GitHub repository below), and an API key from a provider compatible with the OpenAI API (/chat/completions).
 
 [b]1. Key.[/b] Copy [i].env.example[/i] to [i].env[/i] next to radio_bridge.py and fill in OPENAI_KEY, OPENAI_BASE_URL (for example https://api.openai.com/v1) and OPENAI_MODEL. Never share this file.
 
