@@ -41,6 +41,7 @@ require "RST/RST_Steps"
 require "RST/RST_PeerChecksH"
 
 local K = RST.LKHelpers
+local UPKEEP_CLEAR_RADIUS = 30   -- squares around the home kept free of vanilla zombies during the jobs
 local measure = K.measurer("[LKU]")
 
 local BODIES_MS = 60000     -- materialization of the members
@@ -163,6 +164,7 @@ RST.suite("lk.upkeep", { tags = { "world", "server" }, testTimeoutMs = 600000, t
             { "worker", "farmer" } }, "RST upkeep")
         local cts = homeContainers(gid, home)
         if cts == nil or #cts == 0 then t:skip("no container in the house around the player") end
+        K.clearZombiesNear(t, home.x, home.y, home.z, UPKEEP_CLEAR_RADIUS)
         local free = freeSquares(home, 4)
         if #free < 4 then t:skip("fewer than 4 free squares in the house near the player") end
 
@@ -265,7 +267,10 @@ RST.suite("lk.upkeep", { tags = { "world", "server" }, testTimeoutMs = 600000, t
         end, BODIES_MS, function(t2)
             measure("bodies ready: " .. bodyCount(gid) .. " member(s)")
             local function grew(k) return U().stats[k] - base[k] end
+            -- No zombie around the home while the jobs run (solo campaign of 2026-11-13: the guard on his round shot
+            -- one, the alerts that followed held the glass job until the deadline).
             t2:waitUntil(function()
+                K.clearZombiesNear(t2, home.x, home.y, home.z, UPKEEP_CLEAR_RADIUS)
                 return grew("refuels") >= 1 and grew("repairs") >= 1 and grew("glass") >= 1
                     and glassSq:getBrokenGlass() == nil and (not blood or grew("cleaned") >= 1)
             end, WORK_MS, function(t3)

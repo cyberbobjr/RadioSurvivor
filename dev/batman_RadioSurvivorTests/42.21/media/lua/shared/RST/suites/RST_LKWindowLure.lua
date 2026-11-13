@@ -131,6 +131,10 @@ RST.suite("lk.windowlure", { tags = { "world", "server" }, testTimeoutMs = 48000
             p:setInvisible(true)
             t:defer(function() p:setInvisible(wasInvisible) end, "restore the visibility of the player")
         end
+        -- A zombie next to the inside square makes the spawn fall back on a neighbour, possibly the outside square
+        -- (solo campaign of 2026-11-13): cleared first, the square state noted for the next failure.
+        K.clearZombiesNear(t, o.inside:getX(), o.inside:getY(), o.inside:getZ(), 3)
+        t:note("inside square free before the spawn: " .. tostring(B().freeSquare(o.inside)))
         local id, body = B().spawn({}, o.inside:getX(), o.inside:getY(), o.inside:getZ())
         t:ok(id ~= nil, "npc spawn refused: " .. tostring(body))
         t:defer(function() B().despawn(id, true) end, "forget " .. id)
