@@ -8,7 +8,7 @@ automatisés) vivent dans le fichier d'instructions unique du dossier de dévelo
 
 Un projet, un article Workshop, **trois mods** sous `Contents/mods/` (décision :
 [ADR de séparation](architecture/decisions/adr-separation-mods.md), plan
-[`E18`](annexes/plans/E18-separation-living-knox.md)). Le dossier et l'`id=` sont identiques :
+[`E18`](annexes/plans-termines/E18-separation-living-knox.md)). Le dossier et l'`id=` sont identiques :
 
 | Mod | Rôle | `require=` |
 |---|---|---|

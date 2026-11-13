@@ -26,7 +26,7 @@
 ## Décisions
 
 - 2026-10-14 — **LK12-T02** : déclenchement différé au pas suivant ; besoin critique fondé sur les réserves publiques (sous 25, sortie à 40) ; « membre mort » limité aux membres d'un groupe ; « groupe disparu » = plus aucun vivant ou retrait ; « rencontre » = début d'une sommation ; `reason` vide pour les départs hors écran (LK09-T05), `"leave_group"` pour E10-T04 (confirmé par défaut, valeurs techniques).
-- 2026-11-05 — **Séparation** (utilisateur, [`E18`](../plans/E18-separation-living-knox.md)) : l'API publique gagne les crochets de la séparation : donneur de missions des PNJ (`E18-T05`), contexte et actions ajoutés par RadioSurvivor à la parole des PNJ (`E18-T11`), bases connues (`E18-T08`) ; l'adaptateur `RS_LivingKnox.lua` passe dans Living Knox (`E18-T09`).
+- 2026-11-05 — **Séparation** (utilisateur, [`E18`](E18-separation-living-knox.md)) : l'API publique gagne les crochets de la séparation : donneur de missions des PNJ (`E18-T05`), contexte et actions ajoutés par RadioSurvivor à la parole des PNJ (`E18-T11`), bases connues (`E18-T08`) ; l'adaptateur `RS_LivingKnox.lua` passe dans Living Knox (`E18-T09`).
 
 ## Tâches
 

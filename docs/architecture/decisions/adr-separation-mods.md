@@ -6,7 +6,7 @@
 | Statut | Accepté |
 | Décideur | utilisateur |
 | Remplace | la fusion du 2026-10-08 (Living Knox intégré à `batman_RadioSurvivor`) |
-| Plan associé | [E18 — Séparer RadioSurvivor et Living Knox autour d'un mod commun](../../annexes/plans/E18-separation-living-knox.md) (suivi des tâches dans le plan) |
+| Plan associé | [E18 — Séparer RadioSurvivor et Living Knox autour d'un mod commun](../../annexes/plans-termines/E18-separation-living-knox.md) (suivi des tâches dans le plan) |
 | Références | relevé des liens du 2026-11-05 (résumé dans le plan E18) ; [`RS_NPCProvider`](../README.md) ; [protocole du carnet v2](../../specifications-techniques/protocole-carnet-v2.md) ; [API Living Knox](../../specifications-techniques/api-living-knox.md) |
 
 ## Contexte

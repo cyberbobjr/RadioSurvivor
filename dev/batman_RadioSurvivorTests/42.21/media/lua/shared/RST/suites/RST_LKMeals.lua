@@ -34,7 +34,8 @@ local MEAL_UNLOCK_RADIUS = 12  -- squares around the home whose locked doors and
 local measure = K.measurer("[LKM]")
 
 local BODIES_MS = 60000     -- materialization of the three members
-local TAKE_MS = 120000      -- the hungry member reaches the container and takes an item
+local TAKE_MS = 180000      -- the hungry member reaches the container and takes an item (a stuck walk: about 30 s,
+                            -- then the square avoided Movement.AVOID_MS = 60 s before the retry, E18-T39)
 local EAT_MS = 120000       -- the meal ends (game minutes of Routines.CFG.MEAL_EAT_MINUTES)
 local HOUR_GROWTH = 5        -- hunger gained if an hour step falls in the scene (Needs.CFG.RATES, at most)
 
