@@ -1,0 +1,168 @@
+# LK16 — Remise en ordre SOLID
+
+<!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
+
+**Avancement.** à faire — 0 / 12 tâche(s) terminée(s).
+
+| | Tâche | Titre | État | Cible | Dépend de |
+|---|---|---|---|---|---|
+| ☐ | LK16-T01 | Socle `LivingKnox.Registry` | `à faire` | hors jeu | — |
+| ☐ | LK16-T02 | C1 : genres de chantier de la fortification | `à faire` | hors jeu | — |
+| ☐ | LK16-T03 | C7 : tables d'aiguillage (faits publics, administration, parole) | `à faire` | hors jeu | — |
+| ☐ | LK16-T04 | C5 : cycles cassés par événements | `à faire` | hors jeu | LK16-T01 |
+| ☐ | LK16-T05 | C3 : contexte de décision par inscription | `à faire` | hors jeu | LK16-T04 |
+| ☐ | LK16-T06 | C2 : comportements de décision par extension | `à faire` | hors jeu | LK16-T05 |
+| ☐ | LK16-T07 | C8 et C9 : corvées et plans des routines | `à faire` | hors jeu | LK16-T01 |
+| ☐ | LK16-T08 | C4 : genres d'expédition | `à faire` | hors jeu | LK16-T01 |
+| ☐ | LK16-T09 | C6 : simulation hors écran | `à faire` | hors jeu | LK16-T04 |
+| ☐ | LK16-T10 | C11 : aménagements des foyers ; nettoyages | `à faire` | hors jeu | LK16-T01 |
+| ☐ | LK16-T11 | C10 : obstacles | `à faire` | hors jeu | LK16-T01 |
+| ☐ | LK16-T12 | Remise en ordre vérifiée en jeu | `à faire` | MP | LK16-T02, LK16-T03, LK16-T06, LK16-T07, LK16-T08, LK16-T09, LK16-T10, LK16-T11 |
+
+<!-- fin du tableau de bord -->
+
+**Mod (après la séparation).** Living Knox (`batman_LivingKnox`).
+
+**Objectif.** Que chaque « genre » du moteur (sorte de chantier, comportement, expédition, corvée, événement, opération)
+s'ajoute par un fichier inscrit à un registre, sans toucher aux moteurs, et que les modules ne se lient plus par des
+cycles cachés. Aucun changement de comportement pour un joueur.
+
+**ADR.** [Remise en ordre SOLID du moteur Living Knox](../../architecture/decisions/adr-remise-en-ordre-solid.md)
+(accepté par défaut le 2026-11-13) ; ce plan en est l'ordre de livraison et porte le suivi des tâches.
+
+**Dépend de.** LK15 (registres des routines et des tâches du foyer), E19 (banc hors jeu mimétique, filet de sécurité).
+
+**Sources.** [Audit SOLID](../audits/audit-solid-livingknox-2026-11-13.md) ;
+[vérification des P0](../audits/audit-solid-livingknox-2026-11-13-verification-p0.md) (chantiers C1 à C11).
+
+## Décisions
+
+- 2026-11-13 — **LK16** : ADR confirmé par défaut (règle de l'utilisateur : option recommandée, veto possible) ; ordre
+  C1 et C7, puis C5, C3, C2, puis les autres ; corrections spéculatives écartées (ADR D04).
+
+## Hors périmètre
+
+Constats P2 et P3 de l'audit hors des chantiers ; tout changement visible par un joueur ; RadioSurvivor.
+
+## Tâches
+
+- [ ] **LK16-T01** — Socle `LivingKnox.Registry`
+  - État : `à faire`
+  - Cible : `hors jeu`
+  - Dépend de : —
+  - Fichiers : `shared/LivingKnox/LK_Registry.lua` ; `LK_Upkeep.lua`, `LK_Routines.lua`, `LK_Decisions.lua`, `LK_Loot.lua`, `LK_GroupTypes.lua` ; bancs
+  - Faire : ADR D02 : inscription, liste triée (`order` puis identifiant, sans `next`), lecture, remplacement au rechargement ; les cinq registres existants s'appuient dessus sans changer leur API.
+  - Accepté si : banc du socle ; bancs des cinq registres verts sans changement d'attendu.
+  - Tests : banc nouveau ; suite complète.
+  - Preuve : —
+  - Reste : —
+- [ ] **LK16-T02** — C1 : genres de chantier de la fortification
+  - État : `à faire`
+  - Cible : `hors jeu`
+  - Dépend de : —
+  - Fichiers : `LK_Fortify.lua` (+ `Fortify/Kinds/*.lua`) ; bancs `test_lk_fortify*.py`, `test_lk_barricade.py`, `test_lk_walls.py`, `test_lk_repair.py`
+  - Faire : constats A01 à A06 : `Fortify.registerKind` dont dérivent `KINDS`, `OFF_KINDS`, `KIND_CODE`, `CODE_KIND`, les motifs de la forme compacte et `STAGES` ; un fichier par sorte (barricade, mur, palissade, réparation).
+  - Accepté si : une sorte de chantier ajoutée par un seul fichier de banc est planifiée, sauvegardée en forme compacte, relue et appliquée hors écran (test qui échoue aujourd'hui) ; bancs existants verts sans changement d'attendu.
+  - Tests : bancs de la fortification ; suite complète.
+  - Preuve : —
+  - Reste : —
+- [ ] **LK16-T03** — C7 : tables d'aiguillage (faits publics, administration, parole)
+  - État : `à faire`
+  - Cible : `hors jeu`
+  - Dépend de : —
+  - Fichiers : `LK_API.lua`, `LK_Admin.lua`, `LK_Talk.lua`, `client/LivingKnox/LK_AdminView.lua` (et `LK_NpcSheet.lua` pour ses réponses) ; bancs correspondants
+  - Faire : constats F-R08, F-R09, G-Z01, H-D05 : table de gestionnaires des faits publics, `Admin.OPS[op] = { debug, onNpc, run }` (fin du repli implicite vers `moveHome`), table des genres de requête de parole (ordre gardé), `onReply(op, handler)` côté client ; constante unique de la liste d'intents (G-Z02).
+  - Accepté si : une opération ajoutée à `Admin.OPS` sans gestionnaire est refusée (test qui échoue aujourd'hui) ; bancs existants verts.
+  - Tests : bancs de l'API, de l'administration et de la parole ; suite complète.
+  - Preuve : —
+  - Reste : —
+- [ ] **LK16-T04** — C5 : cycles cassés par événements
+  - État : `à faire`
+  - Cible : `hors jeu`
+  - Dépend de : LK16-T01
+  - Fichiers : `LK_Simulation.lua`, `LK_Relations.lua`, `LK_Raids.lua`, `LK_Fortify.lua`, `LK_RoutineExec.lua`, `LK_Bodies.lua`, `LK_Materialize.lua`
+  - Faire : constats F-R04, F-R06, A-A20, A-A21, F-R11, C-X25 : retours d'expédition par événement, `release` mémorisé par la routine, ports injectés dans la fortification, événements de corps.
+  - Accepté si : plus aucun appel d'un module bas vers un module haut cité par l'audit ; bancs verts.
+  - Tests : suite complète.
+  - Preuve : —
+  - Reste : —
+- [ ] **LK16-T05** — C3 : contexte de décision par inscription
+  - État : `à faire`
+  - Cible : `hors jeu`
+  - Dépend de : LK16-T04
+  - Fichiers : `LK_Decisions.lua` et les modules fournisseurs de contexte
+  - Faire : constats B-C02, B-C12, B-C13 : chaque module fournit son champ de contexte par `registerExtension` (`input`), ordre des champs figé par un banc ; `Decisions.context` ne nomme plus de module.
+  - Accepté si : banc de l'ordre des champs ; bancs des décisions verts sans changement d'attendu.
+  - Tests : suite complète.
+  - Preuve : —
+  - Reste : —
+- [ ] **LK16-T06** — C2 : comportements de décision par extension
+  - État : `à faire`
+  - Cible : `hors jeu`
+  - Dépend de : LK16-T05
+  - Fichiers : `LK_Decisions.lua` ; fichiers d'extension par comportement
+  - Faire : constats B-C01, B-C03, B-C04 : `fight`, `defend`, `expedition`, `revenge`, `warn`, puis la défense (`surrender`, `retreat`, `watch`, `alert`) inscrits par `registerExtension`, avec `aim` et le geste portés par chaque comportement.
+  - Accepté si : `Decisions.apply` sans chaîne sur le comportement ; bancs verts sans changement d'attendu.
+  - Tests : suite complète, balayage des phases.
+  - Preuve : —
+  - Reste : —
+- [ ] **LK16-T07** — C8 et C9 : corvées et plans des routines
+  - État : `à faire`
+  - Cible : `hors jeu`
+  - Dépend de : LK16-T01
+  - Fichiers : `LK_Routines.lua`, `Routines/LK_Routine_*.lua`
+  - Faire : constats F-R03, G-Z09, F-R01 : `Routines.registerChore` (une corvée par fichier) ; le plan de guet, de ronde et de sommeil porté par son activité.
+  - Accepté si : une corvée ajoutée par un seul fichier de banc est choisie et exécutée ; bancs verts.
+  - Tests : bancs des routines et corvées.
+  - Preuve : —
+  - Reste : —
+- [ ] **LK16-T08** — C4 : genres d'expédition
+  - État : `à faire`
+  - Cible : `hors jeu`
+  - Dépend de : LK16-T01
+  - Fichiers : `LK_Expeditions.lua`, `LK_Food.lua`
+  - Faire : constats C-X01, C-X02, C-X03, C-X04, C-X07 : `Expeditions.registerKind` (bâtiment, cueillette, pêche), départ par boucle sur les genres, la nourriture s'inscrit elle-même.
+  - Accepté si : un genre d'expédition ajouté par un seul fichier de banc part et revient ; bancs verts.
+  - Tests : bancs des expéditions et de la nourriture.
+  - Preuve : —
+  - Reste : —
+- [ ] **LK16-T09** — C6 : simulation hors écran
+  - État : `à faire`
+  - Cible : `hors jeu`
+  - Dépend de : LK16-T04
+  - Fichiers : `LK_Simulation.lua` et modules horaires
+  - Faire : constats F-R05, F-R07 : `Simulation.registerHourly{ id, order, run }`, `Simulation.registerEvent`.
+  - Accepté si : un événement de groupe ajouté par un seul fichier de banc est tiré ; bancs verts.
+  - Tests : bancs de la simulation.
+  - Preuve : —
+  - Reste : —
+- [ ] **LK16-T10** — C11 : aménagements des foyers ; nettoyages
+  - État : `à faire`
+  - Cible : `hors jeu`
+  - Dépend de : LK16-T01
+  - Fichiers : `LK_Homes.lua`, `LK_Raids.lua`
+  - Faire : constat E-F01 : `Homes.registerFurnishing`, un fichier par sorte ; table morte `Raids.SIGNS` retirée (E-F02).
+  - Accepté si : un aménagement ajouté par un seul fichier de banc est posé ; bancs verts.
+  - Tests : bancs des foyers et des raids.
+  - Preuve : —
+  - Reste : —
+- [ ] **LK16-T11** — C10 : obstacles
+  - État : `à faire`
+  - Cible : `hors jeu`
+  - Dépend de : LK16-T01
+  - Fichiers : `LK_Obstacles.lua` (découpage)
+  - Faire : constats D-OBS-01, D-OBS-03, D-OBS-05, D-OBS-06 : modèles d'itinéraire inscrits, un fichier par modèle ; paires `decide`/`decideWindow` et voisines dédoublonnées localement (D-OBS-02 sans registre).
+  - Accepté si : bancs des obstacles verts sans changement d'attendu.
+  - Tests : bancs des obstacles ; suite complète.
+  - Preuve : —
+  - Reste : —
+- [ ] **LK16-T12** — Remise en ordre vérifiée en jeu
+  - État : `à faire`
+  - Cible : `MP`
+  - Dépend de : LK16-T02, LK16-T03, LK16-T06, LK16-T07, LK16-T08, LK16-T09, LK16-T10, LK16-T11
+  - Fichiers : —
+  - Faire : campagnes solo (deux mods, Living Knox seul), MP et `mp-ambient` sur le commit de fin.
+  - Accepté si : mêmes résultats que la dernière campagne verte de référence.
+  - Tests : campagnes en jeu.
+  - Preuve : —
+  - Reste : —

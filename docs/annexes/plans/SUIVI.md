@@ -61,6 +61,7 @@
 | [LK13](LK13-outils-validation-publication.md) | Outils, performance, validation et publication | en cours | 13 / 16 |
 | [LK14](LK14-fortification-progressive.md) | Fortification progressive | en cours | 5 / 6 |
 | [LK15](LK15-registre-routines.md) | Registres des routines et potager du jardinier | en cours | 2 / 6 |
+| [LK16](LK16-remise-en-ordre-solid.md) | Remise en ordre SOLID | à faire | 0 / 12 |
 
 ## Tâches
 
@@ -456,3 +457,15 @@
 | ☐ | [LK15-T04](LK15-registre-routines.md#L70) | Creuser un sillon (`LK_Job_Dig`) | `testé hors jeu` | MP | 2026-11-13 : `Jobs/LK_Job_Dig.lua` (`dig`, ordre 46, `prefer = "garden"`) ; domaine dans `LK_Garden.lua` (`canDig`, `plots`, `digSpot`, `digTool`, `dig`, `MAX_PLOTS` 6) : conditions du menu vanilla, hors du bâtiment et à l'air libre, un seul sillon vide à la fois, outil `DIG_PLOW` du stock gardé, mains nues deux fois plus long ; champ générique facultatif `duration(job, gid)` ajouté au registre `Upkeep.registerJob` (aucun nom de tâche dans le moteur) ; banc `DigTests` rouge puis vert ; `python tests/test_lk_garden.py` : `Ran 20 tests … OK` ; `test_lk_upkeep.py` 24 OK, `test_lk_food.py` 32 OK, `test_autoclient.py` 93 OK ; `python tests/run_all.py` : `162 passed, 0 failed` ; luacheck `Contents` 8 (inchangé), `dev` 0 |
 | ☐ | [LK15-T05](LK15-registre-routines.md#L80) | Semer (`LK_Job_Sow`) | `testé hors jeu` | MP | 2026-11-13 : `Jobs/LK_Job_Sow.lua` (`sow`, ordre 44, `prefer = "garden"`) ; `LK_Garden.lua` (`month`, `inSeason`, `sowable`, `seedCount`, `findSeed`, `takeSeed`) : sillon vide, graine de saison (`sowMonth`), jamais un objet de nourriture, une graine retirée par `Stock.takeItem` puis `plant:seed(type, 0)`, saison relue à l'effet ; banc `SowTests` rouge puis vert ; `python tests/test_lk_garden.py` : `Ran 20 tests … OK` ; `test_lk_upkeep.py` 24 OK, `test_lk_food.py` 32 OK, `test_autoclient.py` 93 OK ; `python tests/run_all.py` : `162 passed, 0 failed` ; luacheck `Contents` 8 (inchangé), `dev` 0 |
 | ☐ | [LK15-T06](LK15-registre-routines.md#L90) | Graines reçues par le jardinier | `testé hors jeu` | MP | 2026-11-13 : `Jobs/LK_Job_SeedSupply.lua` (`seeds`, ordre 42, `prefer = "garden"`, journal du groupe) : un membre range au dépôt un sachet de 5 graines d'une variété de saison (carotte, pomme de terre, chou, tomate, à tour de rôle, sans hasard) quand le foyer a moins de 2 graines semables, au plus une fois tous les 7 jours de jeu, seulement avec un jardinier vivant ; rien en hiver ; bancs `SeedSupplyTests` et `PureGardenTests` rouges puis verts ; `python tests/test_lk_garden.py` : `Ran 20 tests … OK` ; `test_lk_upkeep.py` 24 OK, `test_lk_food.py` 32 OK, `test_autoclient.py` 93 OK ; `python tests/run_all.py` : `162 passed, 0 failed` ; luacheck `Contents` 8 (inchangé), `dev` 0 |
+| ☐ | [LK16-T01](LK16-remise-en-ordre-solid.md#L49) | Socle `LivingKnox.Registry` | `à faire` | hors jeu | — |
+| ☐ | [LK16-T02](LK16-remise-en-ordre-solid.md#L59) | C1 : genres de chantier de la fortification | `à faire` | hors jeu | — |
+| ☐ | [LK16-T03](LK16-remise-en-ordre-solid.md#L69) | C7 : tables d'aiguillage (faits publics, administration, parole) | `à faire` | hors jeu | — |
+| ☐ | [LK16-T04](LK16-remise-en-ordre-solid.md#L79) | C5 : cycles cassés par événements | `à faire` | hors jeu | — |
+| ☐ | [LK16-T05](LK16-remise-en-ordre-solid.md#L89) | C3 : contexte de décision par inscription | `à faire` | hors jeu | — |
+| ☐ | [LK16-T06](LK16-remise-en-ordre-solid.md#L99) | C2 : comportements de décision par extension | `à faire` | hors jeu | — |
+| ☐ | [LK16-T07](LK16-remise-en-ordre-solid.md#L109) | C8 et C9 : corvées et plans des routines | `à faire` | hors jeu | — |
+| ☐ | [LK16-T08](LK16-remise-en-ordre-solid.md#L119) | C4 : genres d'expédition | `à faire` | hors jeu | — |
+| ☐ | [LK16-T09](LK16-remise-en-ordre-solid.md#L129) | C6 : simulation hors écran | `à faire` | hors jeu | — |
+| ☐ | [LK16-T10](LK16-remise-en-ordre-solid.md#L139) | C11 : aménagements des foyers ; nettoyages | `à faire` | hors jeu | — |
+| ☐ | [LK16-T11](LK16-remise-en-ordre-solid.md#L149) | C10 : obstacles | `à faire` | hors jeu | — |
+| ☐ | [LK16-T12](LK16-remise-en-ordre-solid.md#L159) | Remise en ordre vérifiée en jeu | `à faire` | MP | — |

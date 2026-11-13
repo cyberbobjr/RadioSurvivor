@@ -25,6 +25,7 @@ fortification LK14…) : les lire dans leur fichier.
 
 | ADR | Statut |
 |---|---|
+| [adr-remise-en-ordre-solid.md](adr-remise-en-ordre-solid.md) — remise en ordre SOLID du moteur Living Knox après l'audit du 2026-11-13, par chantiers vérifiés, sans changement de comportement, plan [LK16](../../annexes/plans/LK16-remise-en-ordre-solid.md) | Accepté (par défaut) |
 | [adr-banc-mimetique.md](adr-banc-mimetique.md) — banc hors jeu mimétique : doublures contrôlées contre l'API du jeu, Lua vanilla réel, horloge et réseau fidèles, site réel rejoué (2026-11-13), plan [E19](../../annexes/plans/E19-banc-mimetique.md) | Accepté |
 | [adr-registre-routines.md](adr-registre-routines.md) — registres des routines et des tâches du foyer de Living Knox, une par fichier ; potager du jardinier (2026-11-13), plan [LK15](../../annexes/plans/LK15-registre-routines.md) | Accepté |
 | [adr-separation-mods.md](adr-separation-mods.md) — trois mods dans un article : RadioSurvivor, Living Knox et un mod commun (2026-11-05), plan [E18](../../annexes/plans-termines/E18-separation-living-knox.md) | Accepté |
