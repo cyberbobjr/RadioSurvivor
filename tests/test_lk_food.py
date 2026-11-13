@@ -806,6 +806,16 @@ class MultiplayerFishTests(FishStack):
             self.assertEqual(self.h.errors(c), [])
 
 
+# Pluie (ClimateManager.getPrecipitationIntensity, WEATHER.precip) et dose d'arrosage vanilla (M/shared/defines.lua:52).
+WEATHER_DOUBLES = r'''
+WEATHER = { precip = 0 }
+local CM = HARNESS.classes.ClimateManager or HARNESS.class("ClimateManager")
+function CM:getPrecipitationIntensity() return WEATHER.precip end
+if getClimateManager == nil then getClimateManager = function() return setmetatable({}, CM) end end
+ZomboidGlobals.farmingFluidContainerMillilitresPerUse = 200
+'''
+
+
 class WaterStack(UpkeepStack):
     """Pile de l'entretien + système de cultures doublé et climat (pluie)."""
 
@@ -816,10 +826,7 @@ class WaterStack(UpkeepStack):
         h = super().make(root)
         srv = 'solo' if self.mode == 'solo' else 'server'
         h.load(srv, FARM_DOUBLES)
-        h.load(srv, 'WEATHER = { precip = 0 } local CM = HARNESS.classes.ClimateManager or HARNESS.class("ClimateManager") '
-                    'function CM:getPrecipitationIntensity() return WEATHER.precip end '
-                    'if getClimateManager == nil then getClimateManager = function() return setmetatable({}, CM) end end '
-                    'ZomboidGlobals.farmingFluidContainerMillilitresPerUse = 200')
+        h.load(srv, WEATHER_DOUBLES)
         return h
 
 

@@ -8,7 +8,7 @@ Windows registry or the standard locations), keeping the first library that hold
     PZ_MEDIA          vanilla media folder
 
 Nothing found: the returned paths do not exist, so the callers skip what needs the game.
-Command line: python tools/pz_paths.py [--steam-library|--game|--media|--workshop]
+Command line: python tools/pz_paths.py [--steam-library|--game|--media|--lua|--workshop]
 """
 import os
 import re
@@ -79,6 +79,11 @@ def media_dir():
     return Path(value) if value else game_dir() / 'media'
 
 
+def lua_dir():
+    """Vanilla Lua folder of the game (media/lua: shared, client, server)."""
+    return media_dir() / 'lua'
+
+
 def workshop_dir():
     """Steam Workshop content folder of Project Zomboid (subscribed mods, read only)."""
     return steam_library() / WORKSHOP_SUBDIR
@@ -87,4 +92,4 @@ def workshop_dir():
 if __name__ == '__main__':
     choice = sys.argv[1] if len(sys.argv) > 1 else '--game'
     print({'--steam-library': steam_library, '--game': game_dir, '--media': media_dir,
-           '--workshop': workshop_dir}[choice]())
+           '--lua': lua_dir, '--workshop': workshop_dir}[choice]())

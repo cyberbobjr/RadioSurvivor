@@ -32,6 +32,16 @@ Utilisation
     h.close()                               # ou « with Harness() as h: »
     Harness(java_api=False)                 # doublures libres (échappatoire locale, à justifier dans le banc)
     HARNESS.fake('IsoPlayer', { … })        # (Lua) table rattachée à sa classe Java, mêmes contrôles qu'une classe
+    h.load_vanilla('server', 'server/Farming/SFarmingSystem.lua')   # vrai Lua vanilla du jeu installé (E19-T04)
+
+Lua vanilla réel (E19-T04, ADR banc mimétique D03)
+--------------------------------------------------
+h.load_vanilla(machine, rel, ...) exécute des fichiers de media/lua du jeu installé (tools/pz_paths.py ; à défaut les
+sources de référence PZ_SOURCE_DIR/media/lua), lus sur le poste, jamais copiés dans le dépôt. Un fichier ne tourne
+qu'une fois par machine (LuaManager.RunLuaInternal) ; ses require vanilla trouvent leurs fichiers (dossiers vanilla
+ajoutés après ceux des mods dans package.path, côtés de la machine). Les objets Java qu'il touche restent des
+doublures strictes à écrire dans le banc. Sans le jeu ni les sources : unittest.SkipTest(VANILLA_MISSING), banc
+sauté avec le message de ce qui manque. vanilla_lua_dir() rend le dossier ou None (pour un skipUnless).
 
 Doublures strictes (E19-T03, ADR banc mimétique D01)
 ---------------------------------------------------
@@ -90,6 +100,7 @@ import re
 import shutil
 import sys
 import tempfile
+import unittest
 from pathlib import Path
 from typing import NamedTuple
 
@@ -98,6 +109,7 @@ import lupa.lua51 as lupa
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'tools'))
 import pz_api  # noqa: E402  (API Java lue sur les sources de référence du poste, E19-T03)
+import pz_paths  # noqa: E402  (installation du jeu : Lua vanilla, E19-T04)
 
 HELPER_SUFFIX = 'Double'  # classe d'aide de test : nom suffixé, jamais contrôlé contre l'API Java
 LUA = ROOT / 'Contents/mods/batman_RadioSurvivor/42.21/media/lua'
@@ -800,6 +812,152 @@ function H.run(src, chunkname)
     if not f then error(err, 0) end
     return f()
 end
+
+-- Fichier vanilla (E19-T04) : une fois par machine sous son nom de require (LuaManager.RunLuaInternal : déjà chargé,
+-- rend le retour gardé ; chargé par require ou par load_vanilla, c'est le même fichier).
+function H.loadVanilla(module, src, chunkname)
+    local done = package.loaded[module]
+    if done ~= nil then return done end
+    local r = H.run(src, chunkname)
+    if package.loaded[module] == nil then package.loaded[module] = r == nil and true or r end
+    return package.loaded[module]
+end
+'''
+
+
+# Objets globaux du serveur (E19-T04), doublures strictes de J/globalObjects (42.22), à charger sur l'autorité (serveur
+# dédié ou solo) avant un système vanilla qui s'appuie dessus (Map/SGlobalObjectSystem.lua : potager, feux de camp...).
+# La table Lua d'un système et celle d'un objet sont les getModData() du Java, comme en jeu (le Lua y pose sa
+# métatable). Refus du Java : objet sur une case déjà prise (GlobalObjectSystem.java:40-48), objet nil ou d'un autre
+# système (:50-60, SGlobalObjectSystem.java:117-145), clé non chaîne (:47-89), système déjà créé ou nom à « .. »
+# (SGlobalObjects.java:48-57, GlobalObjectSystem.java:22-27). Aucun fichier gos_<nom>.bin : loadedWorldVersion() = -1
+# (monde neuf). Envois aux clients comptés dans GLOBAL_OBJECTS_SENT (SGlobalObjectNetwork, effet client non simulé).
+GLOBAL_OBJECTS = r'''
+local H = HARNESS
+local C = H.classes
+if SGlobalObjects ~= nil then return end
+local Sys = H.class('SGlobalObjectSystem')
+local GO = H.class('SGlobalObject')
+local SGO = H.class('SGlobalObjects')
+local systems = {}
+GLOBAL_OBJECTS_SENT = { add = 0, remove = 0, update = 0, command = 0 }
+local function int(v, method)  -- paramètre int du Java : nombre tronqué vers zéro
+    H.num(v, method)
+    return v >= 0 and math.floor(v) or math.ceil(v)
+end
+local function key(x, y, z) return x .. ',' .. y .. ',' .. z end
+local function wipe(t) for k in pairs(t) do t[k] = nil end end   -- KahluaTable.wipe
+
+function SGO.getSystemByName(name)
+    for _, s in ipairs(systems) do if s.goName == name then return s end end
+    return nil
+end
+function SGO.newSystem(name)
+    if type(name) ~= 'string' then error('No implementation found for SGlobalObjects.newSystem', 2) end
+    if SGO.getSystemByName(name) ~= nil then error('IllegalStateException: system with that name already exists', 2) end
+    if string.find(name, '..', 1, true) then
+        error('IllegalStateException: Name of GlobalObjectSystem invalid: ' .. name, 2)
+    end
+    local s = setmetatable({ goName = name, goData = {}, goList = {}, goAt = {} }, Sys)
+    systems[#systems + 1] = s
+    return s
+end
+-- SGlobalObjects.java:40-46 : système existant, sinon nouveau puis load() (aucun fichier : rien n'est lu).
+function SGO.registerSystem(name) return SGO.getSystemByName(name) or SGO.newSystem(name) end
+function SGO.getSystemCount() return #systems end
+function SGO.getSystemByIndex(i)
+    i = int(i, 'SGlobalObjects.getSystemByIndex')
+    return systems[i + 1]
+end
+SGlobalObjects = SGO
+
+function Sys:getName() return self.goName end
+function Sys:getModData() return self.goData end
+local function keys(t, method)
+    if t == nil then return end
+    if type(t) ~= 'table' then error('No implementation found for ' .. method, 3) end
+    for _, v in pairs(t) do
+        if type(v) ~= 'string' then
+            error('IllegalArgumentException: expected string but got "' .. tostring(v) .. '"', 3)
+        end
+    end
+end
+function Sys:setModDataKeys(t) keys(t, 'setModDataKeys') self.goKeys = t end
+function Sys:setObjectModDataKeys(t) keys(t, 'setObjectModDataKeys') self.goObjectKeys = t end
+function Sys:setObjectSyncKeys(t) keys(t, 'setObjectSyncKeys') self.goSyncKeys = t end
+function Sys:loadedWorldVersion() return -1 end
+function Sys:getObjectAt(x, y, z)
+    if z == nil then  -- getObjectAt(IsoGridSquare)
+        if not instanceof(x, 'IsoGridSquare') then error('No implementation found for getObjectAt', 2) end
+        x, y, z = x:getX(), x:getY(), x:getZ()
+    end
+    return self.goAt[key(int(x, 'getObjectAt'), int(y, 'getObjectAt'), int(z, 'getObjectAt'))]
+end
+function Sys:newObject(x, y, z)
+    x, y, z = int(x, 'newObject'), int(y, 'newObject'), int(z, 'newObject')
+    if self:getObjectAt(x, y, z) ~= nil then
+        error('IllegalStateException: already an object at ' .. x .. ',' .. y .. ',' .. z, 2)
+    end
+    local o = setmetatable({ system = self, x = x, y = y, z = z, modData = {} }, GO)
+    self.goList[#self.goList + 1] = o
+    self.goAt[key(x, y, z)] = o
+    return o
+end
+function Sys:removeObject(o)
+    if o == nil then error('NullPointerException: object is null', 2) end
+    if getmetatable(o) ~= GO then error('No implementation found for removeObject', 2) end
+    if o.system ~= self then error('IllegalStateException: object not in this system', 2) end
+    for i, v in ipairs(self.goList) do if v == o then table.remove(self.goList, i) break end end
+    self.goAt[key(o.x, o.y, o.z)] = nil
+    o.system = nil   -- GlobalObject.Reset : système oublié, table vidée (la table Lua de l'objet aussi)
+    wipe(o.modData)
+end
+function Sys:getObjectCount() return #self.goList end
+function Sys:getObjectByIndex(i)
+    i = int(i, 'getObjectByIndex')
+    return self.goList[i + 1]
+end
+-- GlobalObjectLookup.java:122-131 : les neuf cases autour, la case elle-même comprise.
+function Sys:getObjectsAdjacentTo(x, y, z)
+    x, y, z = int(x, 'getObjectsAdjacentTo'), int(y, 'getObjectsAdjacentTo'), int(z, 'getObjectsAdjacentTo')
+    local list = H.list()
+    for dy = -1, 1 do
+        for dx = -1, 1 do
+            local o = self.goAt[key(x + dx, y + dy, z)]
+            if o ~= nil then list:add(o) end
+        end
+    end
+    return list
+end
+function Sys:finishedWithList(list) if list ~= nil then list.items = {} end end
+local function onClient(self, o, kind)
+    if o == nil then error('IllegalArgumentException: globalObject is null', 3) end
+    if getmetatable(o) ~= GO then error('No implementation found for ' .. kind .. 'GlobalObjectOnClient', 3) end
+    if o.system ~= self then error('IllegalArgumentException: object not in this system', 3) end
+    GLOBAL_OBJECTS_SENT[kind] = GLOBAL_OBJECTS_SENT[kind] + 1
+end
+function Sys:addGlobalObjectOnClient(o) onClient(self, o, 'add') end
+function Sys:removeGlobalObjectOnClient(o) onClient(self, o, 'remove') end
+function Sys:updateGlobalObjectOnClient(o) onClient(self, o, 'update') end
+function Sys:sendCommand(command, args)
+    if type(command) ~= 'string' then error('No implementation found for sendCommand', 2) end
+    GLOBAL_OBJECTS_SENT.command = GLOBAL_OBJECTS_SENT.command + 1
+end
+
+function GO:getModData() return self.modData end
+function GO:getX() return self.x end
+function GO:getY() return self.y end
+function GO:getZ() return self.z end
+function GO:getSystem() return self.system end
+function GO:getSquare() return getCell():getGridSquare(self.x, self.y, self.z) end
+
+-- IsoGridSquare.java:9702-9718 : plante du système « farming » de la case (SGlobalObjects hors client MP).
+function C.IsoGridSquare:getFarmingPlant()
+    local s = SGO.getSystemByName('farming')
+    if s == nil then return nil end
+    return s:getObjectAt(self)
+end
+function C.IsoGridSquare:hasFarmingPlant() return self:getFarmingPlant() ~= nil end
 '''
 
 
@@ -832,6 +990,29 @@ def fortify_files():
     dossier Fortify/ (triée par nom, comme le chargement du jeu ; l'ordre entre sortes vient de leur order)."""
     names = sorted((p.name for p in FORTIFY_KINDS_DIR.glob('*.lua')), key=str.lower)
     return ['server/LivingKnox/LK_Fortify.lua'] + [f'server/LivingKnox/Fortify/{name}' for name in names]
+
+
+# Lua vanilla réel (E19-T04, ADR banc mimétique D03) ------------------------------------------------------------------
+VANILLA_MISSING = ('vanilla Lua not found: install Project Zomboid (PZ_STEAM_LIBRARY, PZ_DIR or PZ_MEDIA, '
+                   'tools/pz_paths.py) or set PZ_SOURCE_DIR to the 42.22 reference sources (media/lua)')
+
+
+def vanilla_lua_dir() -> Path | None:
+    """Dossier media/lua vanilla : installation du jeu (tools/pz_paths.py), à défaut les sources de référence 42.22
+    (PZ_SOURCE_DIR/media/lua) ; None si aucun des deux. Lecture seule : rien n'est copié dans le dépôt."""
+    for root in (pz_paths.lua_dir(), pz_api.source_dir() / 'media' / 'lua'):
+        if (root / 'shared').is_dir() and (root / 'server').is_dir():
+            return root
+    return None
+
+
+def vanilla_module(rel: str) -> str:
+    """Nom de require d'un fichier vanilla : 'server/Farming/SFarmingSystem.lua' -> 'Farming/SFarmingSystem'
+    (LuaManager.require cherche « nom.lua » dans shared, client et server : LuaManager.java:4753-4766)."""
+    side, _, rest = rel.replace('\\', '/').partition('/')
+    if side not in ('shared', 'client', 'server') or not rest.endswith('.lua'):
+        raise HarnessError(f'harness: vanilla path must be <shared|client|server>/....lua, got {rel!r}')
+    return rest[:-4]
 
 
 class HarnessError(AssertionError):
@@ -1028,9 +1209,10 @@ class Machine:
         # Dédié : shared, client (somme de contrôle seulement), server (GameServer.java:1403-1405) ;
         # client MP et solo : shared, client au démarrage puis server au chargement (LuaManager.java:1242-1246,
         # GameLoadingState.java:153) : les fichiers server/ tournent aussi sur un client MP.
-        sides = ('shared', 'server') if mode == 'server' else ('shared', 'client', 'server')
-        paths = ';'.join((root / side).as_posix() + '/?.lua' for root in self.roots for side in sides)
+        self.sides = ('shared', 'server') if mode == 'server' else ('shared', 'client', 'server')
+        paths = ';'.join((root / side).as_posix() + '/?.lua' for root in self.roots for side in self.sides)
         self.rt.execute(f'package.path = [[{paths}]]; package.cpath = ""')
+        self._vanilla_root: Path | None = None
 
     # Lua --------------------------------------------------------------------------------------------
     def load(self, path_or_code: str):
@@ -1038,6 +1220,25 @@ class Machine:
             path = next((r / path_or_code for r in self.roots if (r / path_or_code).exists()), LUA / path_or_code)
             return self.H.run(path.read_text(encoding='utf-8'), '@' + path_or_code)
         return self.H.run(path_or_code, '=' + self.name)
+
+    def load_vanilla(self, rel: str):
+        """Exécute le fichier Lua vanilla rel ('server/Farming/SFarmingSystem.lua') du jeu installé, une fois par
+        machine comme LuaManager.RunLuaInternal (fichier déjà chargé : rien, rend son retour gardé, LuaManager.java
+        :1334-1336). Au premier appel, les dossiers vanilla des côtés de la machine passent après ceux des mods dans
+        package.path : un require vanilla (« ISBaseObject », « Map/SGlobalObjectSystem ») trouve son fichier, marqué
+        chargé lui aussi. Lève unittest.SkipTest (VANILLA_MISSING) sans le jeu ni les sources de référence."""
+        root = vanilla_lua_dir()
+        if root is None:
+            raise unittest.SkipTest(VANILLA_MISSING)
+        module = vanilla_module(rel)
+        path = root / rel
+        if not path.is_file():
+            raise HarnessError(f'harness: vanilla Lua file not found: {path}')
+        if self._vanilla_root is None:
+            self._vanilla_root = root
+            extra = ';'.join((root / side).as_posix() + '/?.lua' for side in self.sides)
+            self.rt.execute(f'package.path = package.path .. [[;{extra}]]')
+        return self.H.loadVanilla(module, path.read_text(encoding='utf-8-sig'), '@' + rel)
 
     def eval(self, expr: str):
         return self.load('return ' + expr)
@@ -1167,6 +1368,14 @@ class Harness:
 
     def load(self, machine, path_or_code: str):
         return self.machine(machine).load(path_or_code)
+
+    def load_vanilla(self, machine, *rels: str):
+        """Fichiers Lua vanilla du jeu installé, dans l'ordre donné (Machine.load_vanilla) ; rend le retour du
+        dernier. Sans le jeu ni les sources de référence : unittest.SkipTest."""
+        result = None
+        for rel in rels:
+            result = self.machine(machine).load_vanilla(rel)
+        return result
 
     def eval(self, machine, expr: str):
         return self.machine(machine).eval(expr)

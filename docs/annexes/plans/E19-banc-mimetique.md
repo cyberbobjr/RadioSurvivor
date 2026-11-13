@@ -2,14 +2,14 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 5 / 8 tâche(s) terminée(s).
+**Avancement.** en cours — 6 / 8 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
 | ☑ | E19-T01 | Table de l'API du jeu et doublures conformes | `testé hors jeu` | hors jeu | — |
 | ☑ | E19-T02 | Appels du mod conformes à l'API 42.22 | `testé hors jeu` | hors jeu | E19-T01 |
 | ☑ | E19-T03 | Doublures corrigées et nombre d'arguments contrôlé | `testé hors jeu` | hors jeu | E19-T01 |
-| ☐ | E19-T04 | Potager sur le vrai Lua vanilla | `à faire` | hors jeu | LK15-T06 |
+| ☑ | E19-T04 | Potager sur le vrai Lua vanilla | `testé hors jeu` | hors jeu | LK15-T06 |
 | ☑ | E19-T05 | Horloge fidèle et balayage des phases | `testé hors jeu` | hors jeu | — |
 | ☐ | E19-T06 | Réseau en désordre dans les bancs multijoueurs | `à faire` | hors jeu | — |
 | ☑ | E19-T07 | Règle de travail et registre des écarts | `testé hors jeu` | hors jeu | — |
@@ -71,16 +71,16 @@ Rendu, animation, son, interface ; IA et chemins vanilla écrits en Java. Les ca
   - Tests : suite complète `python tests/run_all.py`.
   - Preuve : 2026-11-13 : `HARNESS.class` strict à l'exécution pour une classe exposée (méthode absente du jeu refusée à la définition avec le nom proche ; nombre d'arguments refusé comme Kahlua, « expected N argument(s), got M » ou « No implementation found » selon les surcharges ; méthode du jeu non doublée : erreur « doublure incomplète » ; méthodes statiques comptées sans `self`) ; `HARNESS.fake('Classe', {…})` pour les faux objets ; convention des aides de test : nom de classe terminé par `Double` ; table de l'API mise en cache hors du dépôt ; coût : 7,0 ms par `Harness()` au lieu de 6,1 ms ; cas réel du 2026-10-11 (`w:ToggleWindow(B().find(id))`, commit `9211603`) refusé au banc avec le message du jeu (`StrictDoublesTests.test_wrong_arity_refused_like_kahlua`) ; liste de référence vide (5 doublures fautives supprimées ou corrigées) ; 9 doublures de bancs fautives corrigées (méthodes inexistantes en Java, méthodes du jeu jamais doublées que le mod teste par `x.m ~= nil`) ; aucun défaut du mod ; `python tests/test_harness.py` : `Ran 43 tests … OK` ; `test_doubles_api.py` : `86 classes contrôlées, 630 méthodes contrôlées, 0 écarts`, `Ran 17 tests … OK` ; `test_mod_calls_api.py` 16 OK ; `test_pz_api.py` 23 OK ; `python tests/run_all.py` : `166 passed, 0 failed` (491 s, +37 s) ; luacheck `Contents` 8, `dev` 0
   - Reste : faux objets anonymes : 872 définitions sur receveurs sans classe (907 avant), plafond par fichier en cliquet dans `tests/fixtures/doubles-api-baseline.txt` ; la plupart dans des bancs qui n'utilisent pas le harnais (carnet, protocole, module radio, suites RS) ; types des arguments non contrôlés, seulement leur nombre
-- [ ] **E19-T04** — Potager sur le vrai Lua vanilla
-  - État : `à faire`
+- [x] **E19-T04** — Potager sur le vrai Lua vanilla
+  - État : `testé hors jeu`
   - Cible : `hors jeu`
   - Dépend de : LK15-T06
   - Fichiers : `tests/harness.py` (chargement de fichiers vanilla) ; bancs du potager (`tests/test_lk_food.py`, `tests/test_lk_upkeep.py`, banc de `LK15`)
   - Faire : ADR D03 : charger `SFarmingSystem`, `SPlantGlobalObject`, les définitions des légumes et leurs dépendances depuis l'installation du jeu (`tools/pz_paths.py`) au-dessus des doublures Java ; rejouer arrosage, récolte, sillon et semis dessus ; bancs sautés sans le jeu.
   - Accepté si : sillon, semis, arrosage et récolte passent sur le Lua vanilla réel ; un écart avec les anciennes doublures est corrigé dans le mod ou consigné.
   - Tests : bancs du potager.
-  - Preuve : —
-  - Reste : —
+  - Preuve : 2026-11-13 : `h.load_vanilla(machine, rel…)` (une exécution par machine comme le jeu, `require` vanilla résolus, saut propre sans le jeu ni les sources de référence) ; vrai Lua du potager chargé depuis l'installation du jeu dans l'ordre du jeu (`ISBaseObject`, `luautils`, curseurs de pelle et de retrait de plante, définitions des légumes et des herbes, `farmingCommands`, `SFarmingSystem`, `SPlantGlobalObject`, `SGlobalObject`, `SGlobalObjectSystem`, saisons, puis `OnSGlobalObjectSystemInit`), rien copié dans le dépôt ; doublures Java strictes du système d'objets globaux (refus du Java : case déjà prise, objet étranger, clé non chaîne) ; banc `tests/test_lk_vanilla_farming.py` (7 tests OK) ; classes « vanilla réel » de `test_lk_garden.py` (arrosage, récolte avec repousse, sillon, cases refusées, semis, MP, suite `lk.garden`) et `test_lk_upkeep.py` (suite `lk.upkeep` sur une cour de terre, horloge des campagnes 3,75 s par minute) ; écarts trouvés avec les anciennes doublures : besoin en eau au semis, retrait d'une plante par l'événement du jeu, nom vanilla `Base.Strewberrie`, plante morte non recreusée en solo ; le défaut `lk.upkeep` de la campagne MP du 2026-11-13 est reproduit au banc (« upkeep jobs not all done ») et sa vraie cause trouvée : voir `LK15-T07` ; `python tests/run_all.py` : `167 passed, 0 failed` (561 s)
+  - Reste : non reproduits : croissance sur des jours de jeu, maladies, pluie et saison réelles (posées par le banc), miroir client `CFarmingSystem` d'un client MP, sauvegarde du système de cultures, vrai `ISBuildingObject` ; anciennes doublures de `transmitRemoveItemFromSquare` (entretien, foyers) sans l'événement du jeu ; `LK_Job_Glass` déclenche `OnObjectAboutToBeRemoved` en plus du jeu (sans effet aujourd'hui) ; durée de la suite complète +70 s (dont 6 s expliquées)
 - [x] **E19-T05** — Horloge fidèle et balayage des phases
   - État : `testé hors jeu`
   - Cible : `hors jeu`

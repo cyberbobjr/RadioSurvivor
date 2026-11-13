@@ -2,7 +2,7 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 2 / 6 tâche(s) terminée(s).
+**Avancement.** en cours — 2 / 7 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
@@ -12,6 +12,7 @@
 | ☐ | LK15-T04 | Creuser un sillon (`LK_Job_Dig`) | `testé hors jeu` | MP | LK15-T03 |
 | ☐ | LK15-T05 | Semer (`LK_Job_Sow`) | `testé hors jeu` | MP | LK15-T04 |
 | ☐ | LK15-T06 | Graines reçues par le jardinier | `testé hors jeu` | MP | LK15-T05 |
+| ☐ | LK15-T07 | Potager en bord de zone : l'entretien du foyer n'est plus bloqué | `à faire` | MP | LK15-T04 |
 
 <!-- fin du tableau de bord -->
 
@@ -97,3 +98,13 @@ LK05-T21 (préférence du jardinier, remplacée par `prefer`).
   - Tests : banc ; suite `lk.garden`.
   - Preuve : 2026-11-13 : `Jobs/LK_Job_SeedSupply.lua` (`seeds`, ordre 42, `prefer = "garden"`, journal du groupe) : un membre range au dépôt un sachet de 5 graines d'une variété de saison (carotte, pomme de terre, chou, tomate, à tour de rôle, sans hasard) quand le foyer a moins de 2 graines semables, au plus une fois tous les 7 jours de jeu, seulement avec un jardinier vivant ; rien en hiver ; bancs `SeedSupplyTests` et `PureGardenTests` rouges puis verts ; `python tests/test_lk_garden.py` : `Ran 20 tests … OK` ; `test_lk_upkeep.py` 24 OK, `test_lk_food.py` 32 OK, `test_autoclient.py` 93 OK ; `python tests/run_all.py` : `162 passed, 0 failed` ; luacheck `Contents` 8 (inchangé), `dev` 0
   - Reste : campagnes solo et MP (`lk.garden`) ; les graines n'ont pas de catégorie de stock : elles ne sont pas dans la référence (ni perte ni vol à la relecture, comme les graines d'une récolte) ; le jour du dernier sachet n'est pas sauvegardé (un redémarrage du serveur peut donner un sachet de plus dans la fenêtre)
+- [ ] **LK15-T07** — Potager en bord de zone : l'entretien du foyer n'est plus bloqué
+  - État : `à faire`
+  - Cible : `MP`
+  - Dépend de : LK15-T04
+  - Fichiers : `LK_Upkeep.lua` (`placeFor`) ; `LK_Garden.lua` (cases du potager) ; `tests/test_lk_upkeep.py`
+  - Faire : défaut de la campagne MP du 2026-11-13 (`lk.upkeep`, `runs/20261113-150840-parallel-3/shard3`), reproduit au banc sur le vrai Lua du potager (`E19-T04`) : le premier sillon tombe au bord de la zone (10 cases), sa place est à 11 cases, le membre n'est plus « au foyer » (`HOME_RADIUS` 10), quitte sa routine, la tâche est libérée sans délai et l'autre ouvrier la reprend en boucle ; le verre et le sang ne sont jamais faits. Correction confirmée par défaut (option recommandée) : une place hors du rayon « au foyer » est refusée par le moteur des tâches (`placeFor`), qui clôt la tâche avec son délai d'attente au lieu de la libérer ; et le potager ne propose que des cases dont la place reste dans ce rayon. L'ordre des tâches du commit `73247c8` (potager après l'entretien) est gardé, mais n'était pas la cause.
+  - Accepté si : `test_garden_at_the_edge_of_the_home_does_not_hold_the_upkeep` passe (marque `expectedFailure` retirée) ; bancs de l'entretien, du potager et des décisions verts ; en jeu, `lk.upkeep` verte en campagne MP.
+  - Tests : bancs ; campagne MP.
+  - Preuve : —
+  - Reste : —

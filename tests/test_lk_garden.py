@@ -26,6 +26,13 @@ Doublures relevées dans les sources vanilla 42.22 (E:/pz-source-42.22, lecture 
 Elles NE PROUVENT PAS l'API réelle : seulement la logique (sillon une fois, plafond, cases refusées, graine retirée une
 fois, rien hors saison, dépôt une fois par fenêtre, référence du stock cohérente, rien chez un client). Le vrai jeu se
 vérifie en jeu (suite lk.garden, campagnes solo et MP).
+Classes « vanilla réel » (E19-T04 : VanillaGardenTests, MultiplayerVanillaGardenTests, SuiteVanillaRunTests) : les
+mêmes tâches sur le VRAI Lua vanilla du potager (test_lk_vanilla_farming.py), sans doublure du système de cultures.
+Écarts des anciennes doublures relevés : besoin en eau du semis (70 fixe et plafond 100 -> waterNeeded de la
+définition, aucun plafond ; puis waterLvl de la définition aux stades suivants), retrait d'une plante par
+l'événement OnObjectAboutToBeRemoved du Java (absent des doublures de transmitRemoveItemFromSquare), nom vanilla
+Base.Strewberrie (doublure : Base.Strawberrie), terre d'une plante morte illisible en solo (miroir client,
+ISShovelGroundCursor.GetDirtGravelSand), recreusée par un serveur dédié.
 """
 from __future__ import annotations
 
@@ -38,8 +45,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from phase_sweep import WORLDS, other_groups, sweep  # noqa: E402
 from harness import lua_src  # noqa: E402
 from test_lk_bodies import lua_list  # noqa: E402
-from test_lk_food import WaterStack  # noqa: E402
-from test_lk_upkeep import upkeep_files  # noqa: E402
+from test_lk_food import WEATHER_DOUBLES, WaterStack  # noqa: E402
+from test_lk_upkeep import UpkeepStack, upkeep_files  # noqa: E402
+from test_lk_vanilla_farming import load_vanilla_farming  # noqa: E402
 
 U = 'LivingKnox.Upkeep'
 R = 'LivingKnox.Routines'
@@ -52,11 +60,12 @@ JOBS = ['server/LivingKnox/Jobs/LK_Job_Dig.lua', 'server/LivingKnox/Jobs/LK_Job_
 SUITE = 'shared/RST/suites/RST_LKGarden.lua'
 SUITE_FILE = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua' / SUITE
 
-GARDEN_DOUBLES = r'''
+# Doublures du système de cultures et du sol (anciennes doublures ; la classe « vanilla réel » charge le vrai Lua à la
+# place : test_lk_vanilla_farming.py).
+GARDEN_FARM_DOUBLES = r'''
 local H = HARNESS
 local C = H.classes
 local Sq = C.IsoGridSquare
-GARDEN = { plowed = 0, tall = 0, grass = 0, sent = 0 }
 -- Définitions vanilla (farming_vegetableconf_vegetables.lua, champs lus par le potager).
 farming_vegetableconf = farming_vegetableconf or { props = {} }
 local P = farming_vegetableconf.props
@@ -111,7 +120,6 @@ function Sq:removeGrass()
 end
 IsoPropertyType = IsoPropertyType or {}
 IsoPropertyType.GRASS_FLOOR = { name = 'GrassFloor' }
-ItemTag.DIG_PLOW = { name = 'DigPlow' }
 ISShovelGroundCursor = { GetDirtGravelSand = function(sq)
     if getmetatable(sq) ~= Sq then error('No implementation found for GetDirtGravelSand', 2) end
     if sq.ground ~= nil then return sq.ground, rawget(sq, 'floor') end
@@ -129,6 +137,14 @@ function DIRT(x, y, o)
     sq.tall = o.tall
     return sq
 end
+'''
+
+# Graines, conteneurs et jardinier (communs aux deux piles du potager).
+GARDEN_STOCK_DOUBLES = r'''
+local H = HARNESS
+local C = H.classes
+GARDEN = { plowed = 0, tall = 0, grass = 0, sent = 0 }
+ItemTag.DIG_PLOW = { name = 'DigPlow' }
 -- Graines (DisplayCategory Gardening) ; tout le reste, nourriture.
 local Ctr = C.ItemContainer
 function SEED(t) return MEAL_ITEM(t, { cat = 'Gardening' }) end
@@ -167,7 +183,8 @@ class GardenStack(WaterStack):
     def make(self, root=None):
         h = super().make(root)
         srv = 'solo' if self.mode == 'solo' else 'server'
-        h.load(srv, GARDEN_DOUBLES)
+        h.load(srv, GARDEN_STOCK_DOUBLES)
+        h.load(srv, GARDEN_FARM_DOUBLES)
         return h
 
     def mk(self):
@@ -526,6 +543,201 @@ class SuiteRunTests(GardenStack):
         self.assertEqual([e.name for e in listed], ['lk.garden'])
         self.assertEqual(lua_list(listed[0].tags), ['world', 'server'])
         self.assertIsNone(listed[0].error)
+
+
+# ===================================================================== vanilla réel (E19-T04, ADR banc mimétique D03)
+
+# Aides de la pile « vanilla réel » : terre réelle (FARM_DIRT), tombe de cimetière, plante labourée et semée par le vrai
+# Lua (SFarmingSystem:plow, SPlantGlobalObject:seed), croissance vanilla (growPlant) jusqu'à la récolte.
+VANILLA_GARDEN = r'''
+local H = HARNESS
+DIRT = FARM_DIRT
+function GRAVE(x, y)
+    local sq = H.square(x, y, 0)
+    if sq:getFloor() == nil then FARM_DIRT(x, y) end
+    H.addObject(x, y, 0, setmetatable({ sprite = FARM_SPRITE('location_community_cemetary_01_0') }, H.classes.IsoObject))
+    return sq
+end
+function FARM_PLANT(x, y, level, kind)
+    local sq = H.square(x, y, 0)
+    if sq:getFloor() == nil then FARM_DIRT(x, y) end
+    SFarmingSystem.instance:plow(sq)
+    local p = SFarmingSystem.instance:getLuaObjectAt(x, y, 0)
+    p:seed(kind or 'Carrots', 0)
+    p.waterLvl = level
+    p:saveData()
+    return p
+end
+function RIPEN(p)
+    for _ = 1, 20 do
+        if p.hasVegetable then break end
+        p.waterLvl = 100
+        SFarmingSystem.instance:growPlant(p, nil, true)
+    end
+    p.health = 60
+    p:saveData()
+    return p
+end
+function PLANT_COUNT() return SFarmingSystem.instance:getLuaObjectCount() end
+'''
+
+
+class VanillaGardenStack(GardenStack):
+    """Pile de l'entretien + potager sur le VRAI Lua vanilla (« vanilla réel », test_lk_vanilla_farming.py) : aucune
+    doublure du système de cultures ; graines, conteneurs et jardinier doublés comme dans GardenStack."""
+
+    def make(self, root=None):
+        h = UpkeepStack.make(self, root)
+        srv = 'solo' if self.mode == 'solo' else 'server'
+        h.load(srv, WEATHER_DOUBLES)
+        load_vanilla_farming(h, srv)
+        h.load(srv, GARDEN_STOCK_DOUBLES)
+        h.load(srv, VANILLA_GARDEN)
+        return h
+
+    def plant(self, x, y):
+        return self.run_lua(f'local p = {GD}.plantAt({x}, {y}, 0) if p == nil then return nil end '
+                            'return p.state, p.typeOfSeed ~= "none" and p.typeOfSeed or nil')
+
+
+class VanillaGardenTests(VanillaGardenStack):
+    """Arrosage, récolte, sillon et semis du mod rejoués sur le vrai Lua vanilla (« vanilla réel »)."""
+
+    mode = 'solo'
+
+    def test_thirsty_plant_watered_with_the_vanilla_water_need(self):
+        gid = self.mk()
+        # Vrai semis : besoin du premier stade = waterNeeded de la définition (carottes 70), pas de plafond.
+        self.run_lua('PLANT = FARM_PLANT(106, 118, 0) for _, it in ipairs(PANTRY.container.items.items) do '
+                     'if it.fc and it.fc.fluid == Fluid.TaintedWater then TAINTED = it end end')
+        self.assertEqual((self.ev('PLANT.waterNeeded'), self.ev('PLANT.waterNeededMax')), (70, None))
+        self.assertIsNotNone(self.ev(f'({ST}.check("{gid}", {{ force = true }}))'))
+        self.assertEqual(self.jobs(gid), ['water 106,118,0'])
+        self.assertEqual(self.ev(f'{GD}.waterUses(PLANT)'), 8)                 # visée 70 + 10 : 8 doses
+        self.jump_to(11)
+        self.assertTrue(self.work(lambda: self.stat('watered') >= 1), (self.stat('watered'), self.jobs(gid)))
+        self.assertEqual(self.ev('PLANT.waterLvl'), 50)                        # 1 l d'eau croupie : 5 doses
+        self.assertEqual(self.ev('PLANT:getIsoObject():getModData().waterLvl'), 50)   # sauvegardé sur l'objet
+        self.assertEqual(self.ev('PLANT.lastWaterHour'), self.ev('SFarmingSystem.instance.hoursElapsed'))
+        self.assertAlmostEqual(self.ev('TAINTED.fc.amount'), 0.0, places=6)
+        self.settle(30)
+        self.assertEqual(self.stat('watered'), 1)
+        self.assertEqual(self.h.errors('solo'), [])
+
+    def test_ripe_plants_harvested_with_the_vanilla_yield_and_regrowth(self):
+        gid = self.mk()
+        self.run_lua('CARROT = RIPEN(FARM_PLANT(106, 118, 80)) BERRY = RIPEN(FARM_PLANT(108, 118, 80, "Strawberryplant"))')
+        self.assertTrue(self.ev('CARROT.hasVegetable and BERRY.hasVegetable'))
+        self.assertEqual(sorted(self.jobs(gid)), ['harvest 106,118,0', 'harvest 108,118,0'])
+        self.jump_to(11)
+        self.assertTrue(self.work(lambda: self.stat('harvested') >= 2), (self.stat('harvested'), self.lk()[-8:]))
+        self.assertEqual(self.ev('CARROT.state'), 'harvested')                # harvestThis vanilla
+        self.assertEqual(self.ev('CARROT:getIsoObject():getModData().state'), 'harvested')
+        self.assertGreaterEqual(self.ev('PANTRY_COUNT("Base.Carrots")'), 1)    # getVegetablesNumber vanilla
+        self.assertEqual(self.ev('BERRY.state'), 'seeded')                    # growBack : la plante repousse
+        self.assertEqual(self.ev('BERRY.nbOfGrow'), 3)                         # growBack 2, puis growPlant
+        self.assertFalse(self.ev('BERRY.hasVegetable'))
+        self.assertGreaterEqual(self.ev('PANTRY_COUNT("Base.Strewberrie")'), 1)  # nom vanilla (ancienne doublure :
+        #                                                                        Base.Strawberrie)
+        self.settle(30)
+        self.assertEqual(self.stat('harvested'), 2)
+        self.assertEqual(self.h.errors('solo'), [])
+
+    def test_furrow_dug_once_on_real_dirt_with_the_grass_removed(self):
+        gid = self.mk()
+        self.run_lua('SHOVEL = UPK_ITEM("Base.Shovel", { tags = { DigPlow = true } }) PANTRY.container:AddItem(SHOVEL) '
+                     'DIRT(106, 118, { grass = true, tall = true }) DIRT(108, 118)')
+        self.assertEqual(self.jobs(gid), ['dig 106,118,0'])
+        self.jump_to(11)
+        self.assertTrue(self.work(lambda: self.stat('dug') >= 1), (self.stat('dug'), self.jobs(gid), self.lk()[-8:]))
+        self.assertEqual(self.plant(106, 118), ('plow', None))
+        self.assertEqual(self.ev('HARNESS.square(106, 118, 0):getObjects():size()'), 2)   # sol + sillon, herbe ôtée
+        self.assertEqual(self.ev('FARM_JAVA.grassRemoved'), 1)
+        self.assertEqual(self.ev('HARNESS.square(106, 118, 0):checkHaveGrass()'), False)
+        self.settle(40)
+        self.assertEqual((self.stat('dug'), self.ev('PLANT_COUNT()')), (1, 1))   # un sillon vide attend sa graine
+        self.assertEqual(self.h.errors('solo'), [])
+
+    def test_squares_refused_on_the_vanilla_ground_reader(self):
+        gid = self.mk()
+        self.run_lua('GRAVE(106, 118) DIRT(108, 112) DIRT(107, 118).roof = true DIRT(108, 118).blocked = true '
+                     'DIRT(109, 118, { ground = "gravel" }) DIRT(125, 110) FARM_PLANT(110, 118, 100) '
+                     'DEAD = FARM_PLANT(111, 118, 50) DEAD:killThis()')
+        self.assertEqual(self.ev('DEAD.state'), 'dead')
+        # Solo : la terre d'une plante morte reste lue sous la plante du miroir client (GetDirtGravelSand), comme le
+        # menu vanilla ; le serveur dédié la recreuse (MultiplayerVanillaGardenTests).
+        self.assertEqual(self.jobs(gid), [])
+        self.assertEqual(self.run_lua(f'return select(2, {GD}.canDig(HARNESS.square(111, 118, 0)))'), 'not dirt')
+        self.assertTrue(self.run_lua(f'return ({GD}.canDig(DIRT(106, 119)))'))
+        self.assertEqual(self.h.errors('solo'), [])
+
+    def test_one_seed_sown_with_the_vanilla_seed(self):
+        gid = self.mk()
+        self.run_lua('DIRT(106, 118) SFarmingSystem.instance:plow(HARNESS.square(106, 118, 0)) '
+                     'S1 = SEED("Base.CarrotSeed") PANTRY.container:AddItem(S1) DIRT(108, 118)')
+        self.assertIsNotNone(self.ev(f'({ST}.check("{gid}", {{ force = true }}))'))
+        self.assertEqual(self.jobs(gid), ['sow 106,118,0'])
+        self.jump_to(11)
+        self.assertTrue(self.work(lambda: self.stat('sown') >= 1), (self.stat('sown'), self.jobs(gid), self.lk()[-8:]))
+        self.assertEqual(self.plant(106, 118), ('seeded', 'Carrots'))
+        self.assertEqual(self.ev(f'{GD}.plantAt(106, 118, 0).waterNeeded'), 70)
+        self.assertEqual(self.ev(f'{GD}.plantAt(106, 118, 0):getIsoObject():getModData().state'), 'seeded')
+        self.assertEqual(self.ev('PANTRY_COUNT("Base.CarrotSeed")'), 0)
+        # Juste semée : la plante a soif (niveau 0 sous 70) ; l'arrosage suit.
+        self.assertTrue(self.work(lambda: self.stat('watered') >= 1), (self.stat('watered'), self.jobs(gid)))
+        self.assertEqual(self.h.errors('solo'), [])
+
+
+class MultiplayerVanillaGardenTests(VanillaGardenStack):
+    """Serveur dédié + deux clients sur le vrai Lua vanilla (« vanilla réel ») : graines, sillon et semis par le
+    serveur, recreusage d'une plante morte ; objets envoyés aux clients une fois."""
+
+    mode = 'mp'
+
+    def test_server_receives_digs_sows_and_redigs_a_dead_plant(self):
+        gid = self.mk()
+        self.run_lua('GARDENER() DIRT(106, 118)')
+        sent = self.ev('GLOBAL_OBJECTS_SENT.add')
+        self.jump_to(11)
+        for _ in range(400):
+            self.run_lua(f'for id, m in pairs({R}.state.npcs) do if m.kind == "upkeep" and m.place then '
+                         'HARNESS.place(LivingKnox.Bodies.find(id), m.place.x + 0.5, m.place.y + 0.5, 0) '
+                         'local e = LivingKnox.Directives.entries[id] if e and e.op == "face" and not e.done then '
+                         'e.done, e.s = true, "faced" LivingKnox.Directives.sync(id, true) end end end')
+            self.dpass(1)
+            self.h.advance(1)
+            if self.stat('sown') >= 1:
+                break
+        self.assertEqual((self.stat('seedPackets'), self.stat('dug'), self.stat('sown')), (1, 1, 1))
+        self.assertEqual(self.plant(106, 118), ('seeded', 'Carrots'))
+        self.assertEqual(self.ev('GLOBAL_OBJECTS_SENT.add') - sent, 1)         # le sillon, un envoi
+        self.assertEqual(self.ev('FARM_JAVA.complete'), 1)                     # son objet du monde, un envoi
+        # Plante morte : le serveur dédié la recreuse (GetDirtGravelSand ne lit pas le miroir client), retrait par
+        # l'événement OnObjectAboutToBeRemoved du Java puis nouveau sillon.
+        self.run_lua('DEAD = FARM_PLANT(110, 118, 50) DEAD:killThis()')
+        self.assertEqual(self.ev(f'({U}.specs.dig.apply({{ kind = "dig", key = "k", x = 110, y = 118, z = 0 }}, '
+                                 f'"{gid}", "m-2", HARNESS.square(110, 118, 0)))'), 'furrow dug at 110,118 with bare hands')
+        self.assertEqual(self.plant(110, 118), ('plow', None))
+        self.assertEqual(self.ev('GLOBAL_OBJECTS_SENT.remove'), 1)             # la plante morte
+        self.assertEqual(self.ev('HARNESS.square(110, 118, 0):getObjects():size()'), 2)   # sol + nouveau sillon
+        self.assertEqual(self.h.errors('server'), [])
+        for c in ('A', 'B'):
+            self.assertIsNone(self.h.eval(c, 'SFarmingSystem'))
+            self.assertEqual(self.h.errors(c), [])
+
+
+class SuiteVanillaRunTests(VanillaGardenStack):
+    """Suite lk.garden jouée sur le vrai Lua vanilla (« vanilla réel »)."""
+
+    mode = 'solo'
+    run_suite = SuiteRunTests.run_suite
+
+    def test_suite_lk_garden_passes_on_the_vanilla_lua(self):
+        logs = self.run_suite()
+        self.assertTrue(any('[LKG] measure done: 1 packet(s) of 5 seed(s), 1 furrow(s) dug, 1 seed(s) sown' in line
+                            for line in logs), [x for x in logs if 'LKG' in x][-10:])
+        self.assertEqual(self.ev('PLANT_COUNT()'), 0)                          # nettoyé par la suite
+        self.assertEqual(self.h.errors('solo'), [])
 
 
 class SourceTests(unittest.TestCase):

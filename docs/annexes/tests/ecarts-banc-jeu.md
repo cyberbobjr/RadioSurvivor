@@ -30,7 +30,7 @@ cités par ces sources n'ont pas été relus un par un. Les plus récents d'abor
 
 | Date | Suite ou tâche | Ce qui a cassé en jeu | Cat. | Couvert par |
 |---|---|---|---|---|
-| 2026-11-13 | `lk.upkeep` (MP) | tâches du potager (graines, sillon à mains nues) prises avant le verre et le sang : entretien non fini en 300 s ; au banc, sans système de cultures vanilla, ces tâches ne sont jamais relevées | C | ordre des tâches fixé par `test_lk_garden.py` et `test_lk_upkeep.py` ; scène complète au banc par `E19-T04` (vrai Lua du potager) |
+| 2026-11-13 | `lk.upkeep` (MP) | tâches du potager (graines, sillon à mains nues) prises avant le verre et le sang : entretien non fini en 300 s ; au banc, sans système de cultures vanilla, ces tâches ne sont jamais relevées | C | `test_lk_upkeep.py` `SuiteVanillaGardenTests` (`E19-T04` : vrai Lua du potager, cour de terre, horloge des campagnes 3,75 s par minute) : échec reproduit avec le message du jeu ; vraie cause, défaut du mod encore ouvert : sillon au bord de la zone du foyer (10 cases), place à 11 cases, le membre n'est plus « au foyer » (`HOME_RADIUS` 10), quitte sa routine et libère la tâche, reprise sans fin par l'autre ouvrier, avec l'ancien ordre (42/44/46) comme avec l'actuel (70/72/74) ; `test_garden_at_the_edge_of_the_home_does_not_hold_the_upkeep` (échec attendu jusqu'à la correction) ; cour à 9 cases : verte |
 | 2026-11-13 | `lk.meals` | heure de jeu changée entre la faim posée par la suite et la première décision du membre : repas abstrait du pas horaire, aucun objet pris | D | `test_lk_meals.py` `test_suite_lk_meals_passes_under_the_phase_sweep` (monde peuplé, phases `hour-3` et `hour-4`, `E19-T05`) |
 | 2026-11-13 | `rs.observations` (témoins) | compte passé de 47 à 48 pendant une attente ; contrôle unique après un sommeil fixe, avant la passe | D | à couvrir (`E19-T05`) |
 | 2026-11-13 | `rs.observations` (témoins) | témoin placé à 3 cases, placement par défaut qui suit le joueur | E | à couvrir (`E19-T08`) |
@@ -75,5 +75,5 @@ cités par ces sources n'ont pas été relus un par un. Les plus récents d'abor
 
 ## Mesure
 
-Au 2026-11-13 : 42 lignes, 3 couvertes par un test du banc (`lk.meals` par le balayage des phases, ordre des tâches de `lk.upkeep`, nombre d'arguments de `LK04` par les doublures strictes), 6 non reproductibles (catégories C et H), 33 à couvrir. `E19-T03` n'a révélé aucun défaut du mod (seulement des doublures de bancs fautives).
+Au 2026-11-13 : 42 lignes, 3 couvertes par un test du banc (`lk.meals` par le balayage des phases, `lk.upkeep` par la scène sur le vrai Lua du potager, défaut reproduit et encore ouvert, nombre d'arguments de `LK04` par les doublures strictes), 6 non reproductibles (catégories C et H), 33 à couvrir. `E19-T03` n'a révélé aucun défaut du mod (seulement des doublures de bancs fautives) ; `E19-T04` en a révélé un (place d'une tâche d'entretien hors du rayon « au foyer », ci-dessus).
 Mettre ce compte à jour à chaque tâche de `E19` terminée.

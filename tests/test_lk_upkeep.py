@@ -646,7 +646,9 @@ class SuiteTests(UpkeepStack):
         for pattern in (r'\bnext\s*\(', r'\bgoto\b', r'\bcoroutine\.', r'\bunpack\b'):
             self.assertIsNone(re.search(pattern, code), pattern)
 
-    def run_suite(self, before=None, start=(9, 0)):
+    def run_suite(self, before=None, start=(9, 0), real_s_per_minute=1.0):
+        """Suite lk.upkeep jouée image par image (100 ms réelles chacune) ; real_s_per_minute : secondes réelles par
+        minute de jeu (1 par défaut ; GAME_S_PER_MINUTE = horloge des campagnes)."""
         from test_lk_materialize import PLAYER_MOVES
         self.h.load('solo', PLAYER_MOVES)
         # Fixture de la suite : objets d'entretien, générateur posé par IsoGenerator.new, verre, tache de sang.
@@ -691,13 +693,16 @@ class SuiteTests(UpkeepStack):
         self.h.load('solo', SUITE)
         self.assertIs(self.h.load('solo', 'return (RST.start({ suite = "lk.upkeep", tags = "world" }, '
                                           '{ ctx = { player = getPlayer() } }))'), True)
-        for i in range(9000):
+        minute_ms, real_ms = real_s_per_minute * 1000, 0.0   # une minute de jeu toutes les minute_ms réelles
+        for _ in range(int(9000 * max(1.0, real_s_per_minute))):
             self.h.tick()
             self.run_lua('STEP_ALL(0.1) for _, z in pairs(HARNESS.zombies) do z.onFloor = false end')
             if not self.h.eval('solo', 'RST.running()'):
                 break
             self.h.advance_ms(100)
-            if i % 10 == 9:
+            real_ms += 100
+            if real_ms >= minute_ms - 1e-6:
+                real_ms -= minute_ms
                 self.h.advance(1)
         report = self.h.eval('solo', 'RST.last()')
         results = [(r.test, r.status, r.message) for r in lua_list(report.results)]
@@ -740,6 +745,60 @@ class SuiteTests(UpkeepStack):
         self.assertTrue(all(ord(ch) < 128 for ch in code), 'non ASCII character in the code')
         for pattern in (r'\bnext\s*\(', r'\bgoto\b', r'\bcoroutine\.', r'\bunpack\b'):
             self.assertIsNone(re.search(pattern, code), pattern)
+
+
+# Secondes réelles par minute de jeu en campagne : jour vanilla de 90 minutes (DayLength 4 par défaut, gardé par le
+# serveur de test : SandboxOptions.java:72, 397-405 ; GameTime.java:476), 5400 s / 1440 min.
+GAME_S_PER_MINUTE = 3.75
+
+
+def garden_yard(radius):
+    """Cour du foyer (E19-T04) : terre herbeuse dehors autour de la maison HOUSE (105..115), jusqu'à radius cases de la
+    case du foyer (110,110) en x et en y, comme le site des campagnes ; le potager vanilla y relève des sillons."""
+    return (f'for y = {110 - radius}, {110 + radius} do for x = {110 - radius}, {110 + radius} do '
+            'if x < 105 or x > 115 or y < 105 or y > 115 then FARM_DIRT(x, y, { grass = true }) end end end')
+
+
+class SuiteVanillaGardenTests(UpkeepStack):
+    """Suite lk.upkeep jouée avec le VRAI potager vanilla (« vanilla réel », E19-T04 : test_lk_vanilla_farming.py), de
+    la terre dehors autour du foyer et l'horloge des campagnes (GAME_S_PER_MINUTE) : les deux ouvriers du groupe de la
+    suite (rôle worker, comportement garden) relèvent sachet de graines, sillon et semis pendant l'entretien, comme
+    dans la campagne MP du 2026-11-13 (runs/20261113-150840-parallel-3, shard3)."""
+
+    mode = 'solo'
+    run_suite = SuiteTests.run_suite
+
+    def make(self, root=None):
+        from test_lk_food import WEATHER_DOUBLES
+        from test_lk_garden import GARDEN_STOCK_DOUBLES, VANILLA_GARDEN
+        from test_lk_vanilla_farming import load_vanilla_farming
+        h = super().make(root)
+        h.load('solo', WEATHER_DOUBLES)
+        load_vanilla_farming(h, 'solo')
+        h.load('solo', GARDEN_STOCK_DOUBLES)
+        h.load('solo', VANILLA_GARDEN)
+        return h
+
+    def test_suite_lk_upkeep_passes_with_the_vanilla_garden(self):
+        # Cour jusqu'à 9 cases du foyer : la place de chaque tâche du potager reste « au foyer » (HOME_RADIUS 10).
+        self.run_lua(garden_yard(9))
+        logs = self.run_suite(real_s_per_minute=GAME_S_PER_MINUTE)
+        self.assertTrue(any('[LKU] measure done: ' in line for line in logs))
+        self.assertGreaterEqual(self.stat('seedPackets'), 1)                  # le potager a bien été relevé
+        self.assertGreaterEqual(self.stat('dug'), 1)
+        self.assertEqual(self.h.errors('solo'), [])
+
+    @unittest.expectedFailure
+    def test_garden_at_the_edge_of_the_home_does_not_hold_the_upkeep(self):
+        # DÉFAUT DU MOD reproduit (E19-T04, registre ecarts-banc-jeu.md, 2026-11-13 lk.upkeep) : cour jusqu'à 10 cases
+        # (zone du foyer, Homes.CFG.RADIUS ; sillon de la campagne en 10646,10128 pour un foyer en 10656,10137). Le
+        # premier sillon est au coin de la zone, la place à côté à 11 cases : le membre arrivé n'est plus « au foyer »
+        # (LK_Decisions.lua:1593-1594, HOME_RADIUS 10), la routine est quittée (LK_Decisions.apply:1837-1838 ->
+        # Routines.leave), la tâche libérée sans délai (Upkeep.release) puis reprise par l'autre ouvrier, sans fin ;
+        # verre et sang jamais faits : « upkeep jobs not all done », avec l'ancien ordre des tâches (42/44/46) comme
+        # avec l'actuel (70/72/74). Même scène avec HOME_RADIUS 12, ou une cour de 9 cases : verte.
+        self.run_lua(garden_yard(10))
+        self.run_suite(real_s_per_minute=GAME_S_PER_MINUTE)
 
 
 if __name__ == '__main__':
