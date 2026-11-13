@@ -30,6 +30,7 @@ require "RST/RST_LKHelpers"
 
 local K = RST.LKHelpers
 local MEAL_CLEAR_RADIUS = 30   -- squares around the home cleared of vanilla zombies before the meal
+local MEAL_UNLOCK_RADIUS = 12  -- squares around the home whose locked doors and windows are unlocked for the meal
 local measure = K.measurer("[LKM]")
 
 local BODIES_MS = 60000     -- materialization of the three members
@@ -166,6 +167,10 @@ RST.suite("lk.meals", { tags = { "world", "server" }, testTimeoutMs = 600000, ti
             -- Zombies of the save around the home (solo campaign of 2026-11-04: m-2 raised an alert and defended the
             -- home for 120 s instead of eating, the right priority): removed before hunger is set.
             K.clearZombiesNear(t2, home.x, home.y, home.z, MEAL_CLEAR_RADIUS)
+            -- Locked openings of the house (solo campaigns of 2026-11-13: m-2 refused at a locked window on its way to
+            -- the stove, the stove avoided 60 s and the meal set aside for an hour, past TAKE_MS).
+            local unlocked = K.unlockDoorsNear(t2, sq, MEAL_UNLOCK_RADIUS)
+            if unlocked > 0 then t2:note(unlocked .. " locked door(s) or window(s) of the house unlocked") end
             -- A trip may have left before the hunger is set (MP campaign of 2026-11-04: objective "supply", m-2 sent
             -- to the next building, never at the home stock); a hungry member is not sent again (Ex.needBlocker).
             local Ex = E.Expeditions

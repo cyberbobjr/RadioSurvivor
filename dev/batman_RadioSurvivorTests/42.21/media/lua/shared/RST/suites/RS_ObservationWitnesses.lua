@@ -453,6 +453,14 @@ RST.suite("rs.observations", { mods = { "rs", "lk" },
                 sc.c.S.dirty = true
             end, "test contacts removed")
             local before = count(sc.c.S.data.npcs)
+            -- The trigger needs A to hear the player (RC_Hearing: no hearing through a building the other one is not
+            -- in). The default spots follow the player's square (solo campaign of 2026-11-13: A 3 squares away across
+            -- a wall, never heard): a layout where A does not hear is not a case of this test.
+            local bodyA = sc.c.Server.objects[sc.fiches.A.id]
+            if bodyA == nil or sc.c.P.hears(sc.c.p, bodyA, sc.c.C.HEARING_RANGE) ~= true then
+                t2:skip(string.format("witness A at %s does not hear the player at %d,%d,%d (wall or building)",
+                    bodyA and (math.floor(bodyA:getX()) .. "," .. math.floor(bodyA:getY())) or "?", sc.x, sc.y, sc.z))
+            end
             -- The triggers poll once per speech pass (LK_Talk turns): wait for the fact of A, then SETTLE_MS for the
             -- other fiches (solo campaign of 2026-11-13: a single check after a fixed sleep came before the pass).
             t2:waitUntil(function() return #facts(sc, "A", "player_return") > 0 end, RETURN_MS, function(t2b)

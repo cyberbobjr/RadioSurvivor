@@ -73,7 +73,8 @@ local function pair(t, Server, Obs, subject, after, needSelect)
     t:ok(#spots > 0, "no pair of free squares in sight of each other, the first heard by the player, within "
         .. R.SPOT_RADIUS .. " squares of " .. R.at(p))
     local tried = {}
-    local selectRange = require("RadioSurvivor/RS_Config").SELECT_RANGE
+    -- RS_Config ships with Radio Survivor only (Living Knox alone: no notebook, no select range)
+    local selectRange = needSelect and require("RadioSurvivor/RS_Config").SELECT_RANGE or nil
     local function ready(tb, pb)
         return P.near(tb, pb, V.CFG.RANGE) and P.hears(tb, p, Server.HEARING)
             and (not needSelect or P.near(p, tb, selectRange))
