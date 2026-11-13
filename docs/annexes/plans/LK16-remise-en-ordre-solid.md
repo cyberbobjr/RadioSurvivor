@@ -2,14 +2,14 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 4 / 12 tâche(s) terminée(s).
+**Avancement.** en cours — 5 / 12 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
 | ☑ | LK16-T01 | Socle `LivingKnox.Registry` | `testé hors jeu` | hors jeu | — |
 | ☑ | LK16-T02 | C1 : genres de chantier de la fortification | `testé hors jeu` | hors jeu | — |
 | ☑ | LK16-T03 | C7 : tables d'aiguillage (faits publics, administration, parole) | `testé hors jeu` | hors jeu | — |
-| ☐ | LK16-T04 | C5 : cycles cassés par événements | `à faire` | hors jeu | LK16-T01 |
+| ☑ | LK16-T04 | C5 : cycles cassés par événements | `testé hors jeu` | hors jeu | LK16-T01 |
 | ☐ | LK16-T05 | C3 : contexte de décision par inscription | `à faire` | hors jeu | LK16-T04 |
 | ☐ | LK16-T06 | C2 : comportements de décision par extension | `à faire` | hors jeu | LK16-T05 |
 | ☑ | LK16-T07 | C8 et C9 : corvées et plans des routines | `testé hors jeu` | hors jeu | LK16-T01 |
@@ -76,16 +76,16 @@ Constats P2 et P3 de l'audit hors des chantiers ; tout changement visible par un
   - Tests : bancs de l'API, de l'administration et de la parole ; suite complète.
   - Preuve : 2026-11-13 : `API.FACT_HANDLERS` (faits publics ; genre sans gestionnaire abandonné et journalisé) ; `Admin.HANDLERS[op] = { run, onNpc, logFailure }` à côté du contrat de noms `Admin.OPS` / `DEBUG_OPS` (gardé : lu par le client et la suite `lk.load`), opération sans gestionnaire refusée « unknown request » au lieu de retomber sur `moveHome` (rouge avant : `(True, None, 3, 'wipeAll') != (False, 'unknown request', 3, 'wipeAll')`), banc de concordance `OPS`/`HANDLERS` ; `Talk.REPLY_KINDS[kind] = { beforeClaim, reply }` et constante unique `REPLY_INTENTS` (pas de registre : contrat du pont) ; `View.onReply` (`LK_AdminView.lua`) et `Sheet.onReply` (`LK_NpcSheet.lua`) ; droits d'administration inchangés ; `test_lk_admin.py` 26 OK, `test_lk_api.py` 49 OK, `test_lk_talk.py` 9 OK, `test_lk_npcsheet.py` 19 OK, `test_lk_debugview.py` 23 OK, et 19 autres bancs qui chargent ces fichiers verts sans attendu changé ; `test_mod_calls_api.py` 16 OK ; luacheck `Contents` 8
   - Reste : suite complète à repasser avec les autres tâches du jour ; `LK_AdminView` et `LK_NpcSheet` dupliquent encore l'envoi, la réception et les compteurs (un client d'administration commun : constat P1 de l'audit) ; deux tables `OPS` et `HANDLERS` tenues d'accord par un banc
-- [ ] **LK16-T04** — C5 : cycles cassés par événements
-  - État : `à faire`
+- [x] **LK16-T04** — C5 : cycles cassés par événements
+  - État : `testé hors jeu`
   - Cible : `hors jeu`
   - Dépend de : LK16-T01
   - Fichiers : `LK_Simulation.lua`, `LK_Relations.lua`, `LK_Raids.lua`, `LK_Fortify.lua`, `LK_RoutineExec.lua`, `LK_Bodies.lua`, `LK_Materialize.lua`
   - Faire : constats F-R04, F-R06, A-A20, A-A21, F-R11, C-X25 : retours d'expédition par événement, `release` mémorisé par la routine, ports injectés dans la fortification, événements de corps.
-  - Accepté si : plus aucun appel d'un module bas vers un module haut cité par l'audit ; bancs verts.
+  - Accepté si : plus aucun appel d'un module bas vers un module haut cité par l'audit ; bancs verts. (2026-11-13 : le contrôle statique des couches envisagé au brief n'est pas écrit : ce serait un test « nom interdit qui ne doit pas revenir », que la règle de l'utilisateur interdit ; chaque coupure est prouvée par un banc de comportement.)
   - Tests : suite complète.
-  - Preuve : —
-  - Reste : —
+  - Preuve : 2026-11-13 : bus `LivingKnox.listen(name, key, fn, order)` à ordre explicite (stable à ordre égal) ; retour d'expédition publié par la simulation (`expeditionReturn`, écouté par Expeditions 10, Relations 20, Raids 30, retour abstrait sinon) ; fin de routine par la libération portée par la mémoire (`release`, posée par l'entretien et la fortification) ; `LK_Bodies` publie `bodyDying` (santé puis butin), `bodyDied`, `bodyReleasing` (consignes puis rapports), `bodyReleased`, `bodyTick` au lieu d'appeler sept modules (trois `pcall` en moins) ; `LK_Materialize` publie `memberReleased` (écouté par les expéditions) ; `Fortify.ports` (stock, nuit, incarnation, minute, angle, marque d'attaque) ; 8 bancs nouveaux rouges sur une copie de HEAD (5 échecs, 3 erreurs) puis verts ; une cinquantaine de bancs des modules touchés verts ; seul attendu changé : une sonde de source de `test_lk_traces.py` qui cherche maintenant `LivingKnox.publish("bodyDied"` (même invariant : `memberDied` avant la mort au registre) ; `test_doubles_api`, `test_mod_calls_api`, `test_kahlua` verts ; luacheck `Contents` 8
+  - Reste : suite complète à repasser ; sur un chemin d'erreur seulement, une erreur d'un écouteur est journalisée par le bus au lieu de se propager ; lectures avec valeur de retour encore directes dans `LK_Bodies` (santé, rapports, consignes, gestes) ; arêtes inverses hors périmètre : `LK_Stock` lit la fortification, la boucle horaire de la simulation nomme Relations, Raids, Stock et Fortify (`LK16-T09`), `Decisions` lit la fortification (`LK16-T05`)
 - [ ] **LK16-T05** — C3 : contexte de décision par inscription
   - État : `à faire`
   - Cible : `hors jeu`

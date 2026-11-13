@@ -248,6 +248,12 @@ end
 
 -- ================================================================ fin de routine
 
+-- Ressource tenue par la mémoire m du membre id libérée (LK16-T04, F-R04) : le module qui écrit la mémoire y pose sa
+-- fonction release(id, m) (tâche d'entretien LK05-T10, chantier de barricade LK14-T03 : reprise par un autre membre).
+local function releaseHeld(id, m)
+    if type(m.release) == "function" then m.release(id, m) end
+end
+
 -- Fin d'une routine (le membre passe à un comportement sans routine) : geste de routine (assis, corvée) -> debout,
 -- mémoire oubliée ; repas pris mais pas encore appliqué (LK05-T07) : appliqué maintenant.
 function Routines.leave(id)
@@ -255,10 +261,7 @@ function Routines.leave(id)
     if m == nil then return end
     Routines.state.npcs[id] = nil
     Routines.finishMeal(id, m)
-    local U = LivingKnox.Upkeep   -- LK05-T10 : tâche d'entretien libérée (reprise par un autre membre)
-    if m.kind == "upkeep" and U ~= nil and U.release ~= nil then U.release(id, m) end
-    local F = LivingKnox.Fortify   -- LK14-T03 : chantier de barricade libéré
-    if m.kind == "fortify" and F ~= nil and F.release ~= nil then F.release(id, m) end
+    releaseHeld(id, m)
     local A = LivingKnox.Anim
     if A ~= nil and Routines.GESTURES[A.gestureOf(id)] then A.setGesture(id, A.DEFAULT) end
 end
@@ -266,11 +269,10 @@ end
 function Routines.forget(id)
     local m = Routines.state.npcs[id]
     Routines.state.npcs[id] = nil
-    if m ~= nil then Routines.finishMeal(id, m) end
-    local U = LivingKnox.Upkeep   -- LK05-T10
-    if m ~= nil and m.kind == "upkeep" and U ~= nil and U.release ~= nil then U.release(id, m) end
-    local F = LivingKnox.Fortify   -- LK14-T03
-    if m ~= nil and m.kind == "fortify" and F ~= nil and F.release ~= nil then F.release(id, m) end
+    if m ~= nil then
+        Routines.finishMeal(id, m)
+        releaseHeld(id, m)
+    end
 end
 
 return Routines

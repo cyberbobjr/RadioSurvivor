@@ -850,6 +850,13 @@ class MultiplayerReleaseTests(ReleaseBase):
 class SoloReleaseTests(ReleaseBase):
     mode = 'solo'
 
+    def test_release_listeners_are_the_directives_then_the_reports(self):
+        """LK16-T04 (F-R11) : LK_Bodies.release publie bodyReleasing sans nommer ses écouteurs ; ordre fixé par order
+        (consigne abandonnée et dropped écrit d'abord, puis état des rapports oublié)."""
+        keys = self.ev('(function() local out = {} for _, e in ipairs(LivingKnox.listeners.bodyReleasing) do '
+                       'out[#out + 1] = e.key end return table.concat(out, ",") end)()')
+        self.assertEqual(keys, 'Directives.forget,Reports.forget')
+
     def test_solo_body_far_from_the_player_is_released(self):
         self.init()
         npc_id, body = self.spawn()

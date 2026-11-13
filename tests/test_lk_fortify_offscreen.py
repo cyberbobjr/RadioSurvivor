@@ -167,6 +167,23 @@ class PureOffscreenTests(OffscreenStack):
         self.assertTrue(self.ev(f'{F}.hasWork("{gid}")'))
         self.assertEqual(self.h.errors('solo'), [])
 
+    def test_offscreen_hour_reads_the_simulation_through_injected_ports(self):
+        """LK16-T04 (A-A20, A-A21) : la fortification lit la nuit, les corps et la matérialisation par ses ports
+        (Fortify.ports) : un port remplacé par le banc décide, LK_Simulation retiré n'est plus lu."""
+        gid = self.prepare()
+        self.run_lua('SIM_SAVED = LivingKnox.Simulation LivingKnox.Simulation = nil '
+                     'LivingKnox.Fortify.ports.isNight = function() return true end')
+        self.assertIsNone(self.off(gid))                                   # nuit dite par le port
+        self.run_lua('LivingKnox.Fortify.ports.isNight = function() return false end '
+                     'LivingKnox.Fortify.ports.materialized = function() return true end')
+        self.assertIsNone(self.off(gid))                                   # groupe matérialisé dit par le port
+        self.run_lua('LivingKnox.Fortify.ports.materialized = function() return false end '
+                     'LivingKnox.Fortify.ports.isEmbodied = function() return false end')
+        r = self.off(gid)
+        self.assertEqual((r.builders, r.sites), (1, 2))
+        self.run_lua('LivingKnox.Simulation = SIM_SAVED')
+        self.assertEqual(self.h.errors('solo'), [])
+
     def test_no_work_at_night_without_builder_or_with_bodies(self):
         gid = self.prepare()
         self.assertIsNone(self.off(gid, NIGHT_HOUR))

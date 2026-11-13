@@ -1100,4 +1100,12 @@ if Events ~= nil then
     LivingKnox.subscribe("EveryOneMinute", "Relations.huntPass", function() LivingKnox.Relations.huntPass() end)
 end
 
+-- LK16-T04 : retour publié par LK_Simulation ("expeditionReturn", après LK_Expeditions) : équipe d'une vengeance
+-- (LK11-T05 : traque manquée, cible morte, rancune).
+LivingKnox.listen("expeditionReturn", "Relations.revengeReturn", function(info)
+    if info.handled or info.expedition.place ~= "revenge" then return end
+    info.handled = true
+    LivingKnox.Relations.revengeReturn(info.g, info.gid, info.hour, info.day)
+end, 20)
+
 return Relations

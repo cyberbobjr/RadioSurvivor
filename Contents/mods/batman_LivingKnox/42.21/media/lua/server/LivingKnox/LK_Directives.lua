@@ -1348,4 +1348,14 @@ if isServer() then
     LivingKnox.subscribe("OnClientCommand", "Directives.onClientCommand", onClientCommand)
 end
 
+-- LK16-T04 : corps rendu à la simulation abstraite (LK_Bodies, "bodyReleasing", avant LK_Reports) : consigne en cours
+-- abandonnée ; info.dropped dit laquelle pour le journal de LK_Bodies.release.
+LivingKnox.listen("bodyReleasing", "Directives.forget", function(info)
+    local D = LivingKnox.Directives
+    if D == nil or D.forget == nil then return end
+    local e = D.entries and D.entries[info.npc]
+    if e ~= nil and not e.done then info.dropped = tostring(e.op) .. " #" .. tostring(e.v) .. " abandoned" end
+    D.forget(info.npc)
+end, 10)
+
 return Directives

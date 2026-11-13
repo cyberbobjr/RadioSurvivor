@@ -366,4 +366,10 @@ end
 
 LivingKnox.subscribe("OnTick", "Loot.tick", onTick)
 
+-- LK16-T04 : mort du corps courant publiée par LK_Bodies ("bodyDying"), après LK_Health (order 10), avant le cadavre.
+LivingKnox.listen("bodyDying", "Loot.onDeath", function(info)
+    local L = LivingKnox.Loot
+    if L ~= nil and L.onDeath ~= nil then L.onDeath(info.npc, info.body) end
+end, 20)
+
 return Loot

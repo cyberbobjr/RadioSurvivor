@@ -94,21 +94,45 @@ end
 -- "raidAnnounced", "raidLaunched", "raidEnded" (LK_Raids, LK11-T07), "memberHit" (LK_Bodies, E09-T06) ; LK12-T02 relaie
 -- les sept premiers en événements Lua publics (LK_API). Champs dans
 -- docs/specifications-techniques/api-living-knox.md, section « Faits publiés ».
+-- Événements internes du moteur (LK16-T04, cycles cassés : un module bas publie, les modules hauts écoutent) :
+-- "bodyDying" { npc, body } (LK_Bodies, avant le cadavre : LK_Health 10, LK_Loot 20), "bodyDied" { npc, group,
+-- member } (LK_Bodies, après memberDied : LK_Materialize), "bodyReleasing" { npc, dropped } (LK_Bodies, avant le
+-- retrait du corps : LK_Directives 10 qui écrit dropped, LK_Reports 20), "bodyReleased" { npc, hp, record }
+-- (LK_Bodies : LK_Materialize), "bodyTick" {} (LK_Bodies.tick : LK_Materialize.pass), "memberReleased" { group,
+-- member } (LK_Materialize.onReleased : LK_Expeditions).
+-- LK.listen(name, key, fn, order) : order (nombre, 0 par défaut) fixe l'ordre des abonnés quand il importe ; à order
+-- égal, ordre d'inscription (un abonné sans order garde donc le comportement d'avant LK16-T04).
 LK.listeners = LK.listeners or {}
 
-function LK.listen(name, key, fn)
+-- Range entry dans list après le dernier abonné d'order inférieur ou égal (stable : ordre d'inscription à égalité).
+local function placeListener(list, entry)
+    local at = #list + 1
+    for i = #list, 1, -1 do
+        if (list[i].order or 0) <= entry.order then break end
+        at = i
+    end
+    table.insert(list, at, entry)
+end
+
+function LK.listen(name, key, fn, order)
+    order = type(order) == "number" and order or 0
     local list = LK.listeners[name]
     if not list then
         list = {}
         LK.listeners[name] = list
     end
-    for _, entry in ipairs(list) do
+    for i, entry in ipairs(list) do
         if entry.key == key then
             entry.fn = fn
+            if (entry.order or 0) ~= order then
+                table.remove(list, i)
+                entry.order = order
+                placeListener(list, entry)
+            end
             return true
         end
     end
-    list[#list + 1] = { key = key, fn = fn }
+    placeListener(list, { key = key, fn = fn, order = order })
     return true
 end
 

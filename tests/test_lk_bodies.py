@@ -835,6 +835,51 @@ class DuplicateAndOrphanTests(Base):
         self.assertTrue(self.ev('rawequal(PUB[1].body, BODY1)'))
         self.assertEqual(self.ev('LivingKnox.Store.data().npcs["lk-2"].state'), 'dead')
 
+    def test_body_facts_are_published_in_order_without_naming_their_listeners(self):
+        """LK16-T04 (F-R11) : LK_Bodies publie bodyDying (avant le cadavre), bodyDied (après memberDied, avant
+        npcDied), bodyReleasing (dropped écrit par l'écouteur), bodyReleased et bodyTick ; les modules qui les écoutent
+        (santé, butin, matérialisation, consignes, rapports) remplacés ici par des écouteurs du banc."""
+        self.init()
+        self.spawn()
+        self.spawn(104, 104)
+        self.run_lua('''
+            SEQ, INFO = {}, {}
+            LivingKnox.Materialize, LivingKnox.Health, LivingKnox.Loot = nil, nil, nil
+            LivingKnox.Directives, LivingKnox.Reports = nil, nil
+            for _, n in ipairs({ "bodyDying", "memberDied", "bodyDied", "npcDied", "bodyReleasing", "bodyReleased",
+                                 "bodyTick" }) do
+                LivingKnox.listen(n, "test", function(i)
+                    SEQ[#SEQ + 1] = n
+                    INFO[n] = i
+                    if n == "bodyDying" then STATE_AT_DYING = LivingKnox.Store.data().npcs[i.npc].state end
+                    if n == "bodyReleasing" then i.dropped = "test directive" end
+                end, 100)
+            end
+            local realGroups = LivingKnox.Groups
+            LivingKnox.Groups = { today = function() return 4 end,
+                findNpc = function(id) if id == "lk-1" then return "grp-1", "m-2" end end }
+            local z = (LivingKnox.Bodies.find("lk-1")); z.dead = true; HARNESS.trigger("OnZombieDead", z)
+            BODY1 = z
+            LivingKnox.Groups = realGroups
+        ''')
+        self.assertEqual(list(self.ev('SEQ').values()), ['bodyDying', 'memberDied', 'bodyDied', 'npcDied'])
+        self.assertEqual(self.ev('STATE_AT_DYING'), 'embodied')            # avant le cadavre
+        self.assertTrue(self.ev('rawequal(INFO.bodyDying.body, BODY1)'))
+        died = self.ev('INFO.bodyDied')
+        self.assertEqual((died.npc, died.group, died.member), ('lk-1', 'grp-1', 'm-2'))
+        self.run_lua('SEQ = {}')
+        ok = self.run_lua('return LivingKnox.Bodies.release("lk-2", "bench")')
+        self.assertTrue(ok[0])
+        self.assertEqual(list(self.ev('SEQ').values()), ['bodyReleasing', 'bodyReleased'])
+        self.assertEqual(self.ev('INFO.bodyReleasing.npc'), 'lk-2')
+        rel = self.ev('INFO.bodyReleased')
+        self.assertEqual((rel.npc, rel.record.state), ('lk-2', 'virtual'))
+        self.assertTrue(any('released to the offscreen simulation' in line and 'directive test directive' in line
+                            for line in self.lk()))
+        self.run_lua('SEQ = {}')
+        self.scan_ticks(1)
+        self.assertEqual(list(self.ev('SEQ').values()), ['bodyTick'])
+
 class KillerTests(Base):
     """E04-T06 : cause de la mort et tueur probable, établis sur l'autorité (LivingKnox.Bodies.deathCause). Doublures
     du chemin Java 42.21.0 : Hit (OnHitZombie avant les dégâts, setAttackedBy, coup mortel -> die/Kill), santé

@@ -238,6 +238,27 @@ class PublishTests(Base):
         self.assertTrue(any('ERROR' in line and 'listener b of memberDied failed' in line
                             for line in lk_lines(self.h, 'server')))
 
+    def test_listen_order_is_explicit_then_by_inscription(self):
+        """LK16-T04 : order (0 par défaut) fixe l'ordre des abonnés ; à égalité, ordre d'inscription ; une
+        réinscription de même clé avec un autre order déplace l'abonné."""
+        self.boot('server')
+        self.h.load('server', '''
+            GOT = {}
+            local function rec(tag) return function() GOT[#GOT + 1] = tag end end
+            LivingKnox.listen("orderTest", "late", rec("late"), 20)
+            LivingKnox.listen("orderTest", "early", rec("early"), 10)
+            LivingKnox.listen("orderTest", "plain1", rec("plain1"))
+            LivingKnox.listen("orderTest", "mid", rec("mid"), 15)
+            LivingKnox.listen("orderTest", "plain2", rec("plain2"))
+            LivingKnox.publish("orderTest", {})
+            GOT[#GOT + 1] = "|"
+            LivingKnox.listen("orderTest", "plain1", rec("plain1b"), 30)
+            LivingKnox.listen("orderTest", "mid", rec("mid2"), 15)
+            LivingKnox.publish("orderTest", {})
+        ''')
+        self.assertEqual(list(self.h.eval('server', 'GOT').values()),
+                         ['plain1', 'plain2', 'early', 'mid', 'late', '|', 'plain2', 'early', 'mid2', 'late', 'plain1b'])
+
 
 class SoloTests(Base):
     mode = 'solo'

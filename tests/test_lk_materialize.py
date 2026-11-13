@@ -247,6 +247,21 @@ class MultiplayerMaterializeTests(MatBase):
         self.run_lua('LivingKnox.Config.MATERIALIZE.RADIUS = 500')             # plafonné : hystérésis gardée
         self.assertEqual(self.ev('LivingKnox.Materialize.settings().radius'), 111)
 
+    def test_release_publishes_member_released_without_naming_the_expeditions(self):
+        """LK16-T04 (C-X25) : membre rendu à la simulation : fait memberReleased (LK_Expeditions, absent de ce banc,
+        l'écoute) ; écouteur du banc à sa place."""
+        gid = self.prepared()
+        self.assertIsNone(self.ev('LivingKnox.Expeditions'))
+        self.run_lua('MREL = {} LivingKnox.listen("memberReleased", "test", function(i) '
+                     'MREL[#MREL + 1] = i.group .. ":" .. i.member end)')
+        self.h.move_player('A', 100, 100)
+        self.passes(3)
+        self.assertEqual(len(self.bodies(gid)), 3)
+        self.away(300, 110)
+        self.wait(65)
+        self.assertEqual(self.bodies(gid), [])
+        self.assertEqual(sorted(self.ev('MREL').values()), [f'{gid}:m-1', f'{gid}:m-2', f'{gid}:m-3'])
+
     def test_body_death_marks_the_member_dead_once_and_it_never_comes_back(self):
         gid = self.prepared()
         self.run_lua('PUB = {} LivingKnox.listen("memberDied", "test", function(i) PUB[#PUB + 1] = i end)')

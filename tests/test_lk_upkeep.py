@@ -277,6 +277,33 @@ class EngineTests(UpkeepStack):
             end })
     '''
 
+    def test_routine_end_calls_the_release_carried_by_the_memory(self):
+        """LK16-T04 (F-R04) : Routines.leave et forget appellent la fonction release portée par la mémoire, quel que
+        soit son genre (aucun module nommé) ; la mémoire d'une tâche d'entretien porte celle de LK_Upkeep."""
+        self.mk()
+        self.run_lua(f'''
+            REL = {{}}
+            local function mem(id) return {{ key = "bench", kind = "benchwork",
+                release = function(who, m) REL[#REL + 1] = who .. ":" .. m.key end }} end
+            {R}.state.npcs["lk-91"] = mem("lk-91")
+            {R}.state.npcs["lk-92"] = mem("lk-92")
+            {R}.leave("lk-91")
+            {R}.forget("lk-92")
+            {R}.state.npcs["lk-93"] = {{ key = "plain", kind = "benchwork" }}
+            {R}.leave("lk-93")
+        ''')
+        self.assertEqual(list(self.ev('REL').values()), ['lk-91:bench', 'lk-92:bench'])
+        self.run_lua(self.FAKE)
+        self.jump_to(11)
+        holder = lambda: self.run_lua(  # noqa: E731
+            f'for id, m in pairs({R}.state.npcs) do if m.kind == "upkeep" then return id end end return nil')
+        self.assertTrue(self.work(lambda: holder() is not None))
+        npc = holder()
+        self.assertEqual(self.run_lua(f'return type({R}.state.npcs["{npc}"].release)'), 'function')
+        self.run_lua(f'{R}.leave("{npc}")')
+        self.assertEqual(self.run_lua(f'local n = 0 for _ in pairs({U}.state.claims) do n = n + 1 end return n'), 0)
+        self.assertEqual(self.h.errors('solo'), [])
+
     def test_registered_job_is_surveyed_claimed_and_applied_once(self):
         gid = self.mk()
         self.run_lua(self.FAKE)

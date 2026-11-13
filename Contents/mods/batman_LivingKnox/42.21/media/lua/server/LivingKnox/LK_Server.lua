@@ -12,7 +12,7 @@ require "LivingKnox/LK_Groups"
 require "LivingKnox/LK_Simulation"
 require "LivingKnox/LK_Population"
 require "LivingKnox/LK_Hostility"
-require "LivingKnox/LK_Materialize"   -- LK09-T03 : appelé par Bodies.tick, Bodies.release, Bodies.onZombieDead
+require "LivingKnox/LK_Materialize"   -- LK09-T03 : écoute bodyTick, bodyReleased et bodyDied publiés par LK_Bodies (LK16-T04)
 require "LivingKnox/LK_Needs"         -- LK05-T06 : faim, soif, fatigue, peur (lus par LK_Decisions)
 require "LivingKnox/LK_Alert"         -- LK05-T08 : alerte de groupe (appelée par LK_Decisions)
 require "LivingKnox/LK_Decisions"     -- LK05-T02 : cadre de décision (objectifs par heure, cascade par membre)

@@ -819,26 +819,20 @@ function Bodies.release(npcId, why)
     local z = Bodies.bound[npcId]
     local hp = Bodies.keptHealth(npcId, z)
     if hp ~= nil then npc.hp = hp end
-    local dropped = "none"
-    local D = LivingKnox.Directives
-    if D ~= nil and D.forget ~= nil then
-        local e = D.entries and D.entries[npcId]
-        if e ~= nil and not e.done then dropped = tostring(e.op) .. " #" .. tostring(e.v) .. " abandoned" end
-        D.forget(npcId)
-    end
-    if LivingKnox.Reports ~= nil and LivingKnox.Reports.forget ~= nil then LivingKnox.Reports.forget(npcId) end
+    -- LK16-T04 : événement "bodyReleasing" ; LK_Directives (order 10) abandonne la consigne et écrit dropped,
+    -- LK_Reports (order 20) oublie l'état des rapports.
+    local releasing = { npc = npcId, dropped = "none" }
+    LivingKnox.publish("bodyReleasing", releasing)
+    local dropped = releasing.dropped
     local A = LivingKnox.Anim
     if A ~= nil and A.setGesture ~= nil then A.setGesture(npcId, A.DEFAULT) end
     local inWorld = z ~= nil and Bodies.inWorld(z)
     local done, removed = Bodies.despawn(npcId, false)
     Bodies.farSince[npcId] = nil
     if not done then return false, removed end
-    -- LK09-T03 : état simulé du membre de groupe lié mis à jour (santé -> blessure abstraite, présent au foyer).
-    local M = LivingKnox.Materialize
-    if M ~= nil and M.onReleased ~= nil then
-        local okM, errM = pcall(M.onReleased, npcId, hp, npc)
-        if not okM then log().error("npc %s: group member not updated at release: %s", npcId, tostring(errM)) end
-    end
+    -- LK09-T03, LK16-T04 : événement "bodyReleased" (LK_Materialize : état simulé du membre de groupe lié mis à
+    -- jour, santé -> blessure abstraite, présent au foyer).
+    LivingKnox.publish("bodyReleased", { npc = npcId, hp = hp, record = npc })
     local last = npc.last or npc.want
     log().info("npc %s released to the offscreen simulation (%s): body %s, last seen %s,%s,%s, health %s, "
         .. "weapon %s, directive %s", npcId, tostring(why), inWorld and "removed" or "out of the loaded area",
@@ -917,9 +911,9 @@ function Bodies.tick()
         st.release = 0
         Bodies.releasePass()
     end
-    -- Matérialisation des groupes à l'approche d'un joueur (LK09-T03) : un passage par tranche, création étalée.
-    local M = LivingKnox.Materialize
-    if M ~= nil and M.pass ~= nil then M.pass() end
+    -- LK16-T04 : événement "bodyTick", une fois par tranche (LK_Materialize : matérialisation des groupes à l'approche
+    -- d'un joueur, LK09-T03, création étalée).
+    LivingKnox.publish("bodyTick", {})
 end
 
 -- ---------------------------------------------------------------- mort et tueur (E04-T06)
@@ -1038,18 +1032,10 @@ function Bodies.onZombieDead(z)
     local class, npc = I.classify(Store().data(), id, generation)
     if class ~= I.CURRENT then return end
     local cause = Bodies.deathCause(z, id)
-    -- LK07-T02 : mort décidée par la santé de référence, ou mort du moteur signalée et menée à son terme.
-    local H = LivingKnox.Health
-    if H ~= nil and H.onBodyDied ~= nil then
-        local okH, errH = pcall(H.onBodyDied, id, z)
-        if not okH then log().error("npc %s: health not closed at death: %s", id, tostring(errH)) end
-    end
-    -- LK07-T05 : butin de mort (arme gardée dans le cadavre, cartouches de l'arme en objets), avant le cadavre.
-    local L = LivingKnox.Loot
-    if L ~= nil and L.onDeath ~= nil then
-        local okL, errL = pcall(L.onDeath, id, z)
-        if not okL then log().error("npc %s: death loot not set: %s", id, tostring(errL)) end
-    end
+    -- LK16-T04 : événement "bodyDying", avant le cadavre ; écouté par LK_Health (order 10 : mort décidée par la santé
+    -- de référence, ou mort du moteur signalée et menée à son terme, LK07-T02) puis LK_Loot (order 20 : butin de
+    -- mort, arme gardée dans le cadavre, cartouches de l'arme en objets, LK07-T05).
+    LivingKnox.publish("bodyDying", { npc = id, body = z })
     I.markDead(npc)
     npc.death = cause
     npc.last = positionOf(z)
@@ -1073,12 +1059,9 @@ function Bodies.onZombieDead(z)
     if gid then
         LivingKnox.publish("memberDied", { group = gid, member = mid, npc = id, day = G.today(), offscreen = false,
             body = z, cause = cause.cause, killer = cause.killer, weapon = cause.weapon })
-        -- LK09-T03 : membre marqué mort dans le groupe, une seule fois et sans seconde publication (applyDeath quiet).
-        local M = LivingKnox.Materialize
-        if M ~= nil and M.onBodyDied ~= nil then
-            local okM, errM = pcall(M.onBodyDied, id, gid, mid)
-            if not okM then log().error("npc %s: group member death not recorded: %s", id, tostring(errM)) end
-        end
+        -- LK09-T03, LK16-T04 : événement "bodyDied" (LK_Materialize : membre marqué mort dans le groupe, une seule
+        -- fois et sans seconde publication, applyDeath quiet), après memberDied et avant npcDied.
+        LivingKnox.publish("bodyDied", { npc = id, group = gid, member = mid })
     end
     -- LK07-T04 : fait "npcDied" pour tout PNJ dont le corps meurt (membre de groupe ou non), après le registre des
     -- groupes : point d'appel des événements publics de LK12-T02 (docs/specifications-techniques/api-living-knox.md, « Faits

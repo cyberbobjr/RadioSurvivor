@@ -140,7 +140,7 @@ Attaquant non joueur (piège sans lanceur, code du moteur de PNJ) : contrôle du
 
 ### Mort unique
 
-À 0 : `Health.decided[id]`, référence 0, santé nulle envoyée aux destinataires, invulnérabilité et faux mort levés, puis chemin vanilla de l'autorité : serveur `setAttackedBy(attaquant)` + `die()`, solo `Kill(arme, attaquant)` (`J/characters/IsoGameCharacter.java:5836-5846`). `OnZombieDead` → `Bodies.onZombieDead` (registre `dead`, cause et tueur, `Materialize.onBodyDied`, une fois par corps courant) → `Health.onBodyDied`. Les coups suivants sur le corps mort sont ignorés. Mort du moteur non décidée (un `Kill` d'un autre mod ; santé négative forgée par un client propriétaire, `J/popman/NetworkZombiePacker.java:97-101`) : WARN `died without a decision of the authority`, invulnérabilité levée et santé posée à 0 pour que le moteur crée le cadavre (`Kill` sur un corps invulnérable déclenche `onKilled` mais laisse `isDead()` faux, `J/characters/IsoGameCharacter.java:13463-13474, 4645`) ; le registre ne la compte qu'une fois. `Bodies.removeBody` lève aussi l'invulnérabilité avant `setHealth(0)` (sinon ignoré : le corps serait mis de côté au lieu d'être retiré).
+À 0 : `Health.decided[id]`, référence 0, santé nulle envoyée aux destinataires, invulnérabilité et faux mort levés, puis chemin vanilla de l'autorité : serveur `setAttackedBy(attaquant)` + `die()`, solo `Kill(arme, attaquant)` (`J/characters/IsoGameCharacter.java:5836-5846`). `OnZombieDead` → `Bodies.onZombieDead` : événement `bodyDying` (écouté par `Health.onBodyDied`, order 10, puis `Loot.onDeath`, order 20, avant le cadavre), registre `dead`, cause et tueur, événement `bodyDied` (`Materialize.onBodyDied`), une fois par corps courant (LK16-T04). Les coups suivants sur le corps mort sont ignorés. Mort du moteur non décidée (un `Kill` d'un autre mod ; santé négative forgée par un client propriétaire, `J/popman/NetworkZombiePacker.java:97-101`) : WARN `died without a decision of the authority`, invulnérabilité levée et santé posée à 0 pour que le moteur crée le cadavre (`Kill` sur un corps invulnérable déclenche `onKilled` mais laisse `isDead()` faux, `J/characters/IsoGameCharacter.java:13463-13474, 4645`) ; le registre ne la compte qu'une fois. `Bodies.removeBody` lève aussi l'invulnérabilité avant `setHealth(0)` (sinon ignoré : le corps serait mis de côté au lieu d'être retiré).
 
 ### Retransmission
 
@@ -404,7 +404,7 @@ cadavre la montrait en solo mais la perdait sur un serveur (ni pillable, ni vue 
 
 ### Mort (une fois par corps)
 
-`Loot.onDeath(id, z)`, appelé par `Bodies.onZombieDead` pour le seul corps courant (marque `LKLootDead`) :
+`Loot.onDeath(id, z)`, écouteur de `bodyDying` publié par `Bodies.onZombieDead` (LK16-T04) pour le seul corps courant (marque `LKLootDead`) :
 
 1. construction si elle n'a pas eu lieu ;
 2. **arme gardée dans le cadavre**, de la même façon partout : objet accroché de la copie de l'autorité, sinon objet

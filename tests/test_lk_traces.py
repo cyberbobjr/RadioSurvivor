@@ -442,12 +442,12 @@ class ChiefTests(Base):
         self.assertEqual(self.notes(inv), [])
 
     def test_real_death_order_puts_the_note_in_the_body_before_the_registry_death(self):
-        """LK_Bodies publie memberDied (corps présent) avant Materialize.onBodyDied (mort au registre) : le chef est
-        encore chef quand la note est composée (ordre vérifié dans le source)."""
+        """LK_Bodies publie memberDied (corps présent) avant bodyDied (LK16-T04 : écouté par Materialize.onBodyDied,
+        mort au registre) : le chef est encore chef quand la note est composée (ordre vérifié dans le source)."""
         src = (LK_LUA / 'server/LivingKnox/LK_Bodies.lua').read_text(encoding='utf-8')
         start = src.index('function Bodies.onZombieDead')
         body = src[start:]
-        self.assertLess(body.index('LivingKnox.publish("memberDied"'), body.index('M.onBodyDied'))
+        self.assertLess(body.index('LivingKnox.publish("memberDied"'), body.index('LivingKnox.publish("bodyDied"'))
         self.assertIn('body = z', body[body.index('LivingKnox.publish("memberDied"'):][:200])
 
 

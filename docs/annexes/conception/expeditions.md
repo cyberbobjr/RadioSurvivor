@@ -3,7 +3,7 @@
 - Tâches : LK05-T05 (création, 2026-10-12) ; s'appuie sur LK05-T02 (objectif `supply`, poste `forager`), LK08-T06/T07 (stock réel, manques), LK09-T02 (expédition abstraite), LK09-T03 (matérialisation) ; servira LK05-T11 (production de nourriture), LK09-T06 (stock hors écran)
 - Build : 42.21.0 (Java décompilé **J/** = `<decompiled>\42.21.0\java\zombie\` ; **M/** = `media/lua` vanilla) — Date : 2026-10-12 — Statut : brouillon, testé hors jeu seulement
 
-Code : `Contents/mods/batman_LivingKnox/42.21/media/lua/server/LivingKnox/LK_Expeditions.lua` (`LivingKnox.Expeditions`, autorité seulement). Branchements (modifications minimales) : `LK_Decisions.lua` (comportement `expedition`, règle `duty`, faim/soif/fatigue au retour, `ctx.trip`, `Decisions.apply`), `LK_Materialize.lua` (`onReleased` → `Expeditions.onReleased`), `LK_Simulation.lua` (retour d'une expédition abstraite d'origine physique → `Expeditions.resolveAbstract`), `LK_Needs.lua` (activité `travel`). Banc `tests/test_lk_expeditions.py` ; suite en jeu `lk.expedition` (`dev/batman_RadioSurvivorTests/42.21/media/lua/shared/RST/suites/RST_LKExpedition.lua`).
+Code : `Contents/mods/batman_LivingKnox/42.21/media/lua/server/LivingKnox/LK_Expeditions.lua` (`LivingKnox.Expeditions`, autorité seulement). Branchements (modifications minimales) : `LK_Decisions.lua` (comportement `expedition`, règle `duty`, faim/soif/fatigue au retour, `ctx.trip`, `Decisions.apply`), `LK_Materialize.lua` (`onReleased` publie `memberReleased`, écouté par `Expeditions.onReleased`), `LK_Simulation.lua` (retour d'une expédition abstraite d'origine physique : événement `expeditionReturn`, écouté par `Expeditions.resolveAbstract`, order 10 ; LK16-T04), `LK_Needs.lua` (activité `travel`). Banc `tests/test_lk_expeditions.py` ; suite en jeu `lk.expedition` (`dev/batman_RadioSurvivorTests/42.21/media/lua/shared/RST/suites/RST_LKExpedition.lua`).
 
 ## Problème
 
@@ -57,7 +57,7 @@ Retenu le 2026-10-12, dans le cadre du contrat de la tâche (aucune décision `�
 
 ### Hors écran (LK09)
 
-- `Materialize.onReleased` → `Expeditions.onReleased(gid, mid)` dans le même passage que le retrait du corps (avant toute rematérialisation) :
+- `Materialize.onReleased` publie `memberReleased` → `Expeditions.onReleased(gid, mid)` (LK16-T04) dans le même passage que le retrait du corps (avant toute rematérialisation) :
   - si un autre corps de l'équipe a encore un joueur à 120 cases : le membre retiré **quitte seulement l'équipe** (il est « au foyer » pour la simulation, comme tout corps retiré, et rematérialisé au foyer si un joueur en est proche) ;
   - sinon : **toute l'équipe passe hors écran** : champ `expedition` du groupe (LK09-T02) `{ place = "trip", team, departed, returns, trip = n }`, retour dans `ABSTRACT_HOURS` heures selon la phase quittée (3 en route, 2 en fouille, 1 au retour) ; journal `trip` : `trip 1 offscreen (out): m-3 m-4, back in 3 h`. Les absents ne sont jamais matérialisés (LK09-T03) ; les objets déjà portés restent en mémoire.
 - Retour abstrait (`LK_Simulation.simulateHour`, heure `returns` → `Expeditions.resolveAbstract`, dans l'écriture du pas, sans accès au monde) : **aucun membre perdu ni blessé** ; pour chaque manque, un tirage par membre (chance `ABSTRACT_FIND` = 0,5, flux reproductible des expéditions de la simulation) rapporte un objet vanilla de `ABSTRACT_ITEMS`, dans la limite de la charge ; phase `deliver` ; journal `trip` : `trip 1 back offscreen: 2 back, 5 item(s) found`. Même registre et mêmes heures → même butin.

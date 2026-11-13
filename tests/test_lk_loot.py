@@ -252,6 +252,13 @@ class MultiplayerLootTests(LootBase):
         self.assertIs(self.ev('LAST_CORPSE():getModData().LKLootDead'), True)
         self.assertEqual(self.h.errors('server'), [])
 
+    def test_dying_listeners_are_the_health_then_the_loot(self):
+        """LK16-T04 (F-R11) : LK_Bodies.onZombieDead publie bodyDying sans nommer ses écouteurs ; ordre fixé par
+        order (santé de référence close d'abord, puis butin de mort, avant le cadavre)."""
+        keys = self.ev('(function() local out = {} for _, e in ipairs(LivingKnox.listeners.bodyDying) do '
+                       'out[#out + 1] = e.key end return table.concat(out, ",") end)()')
+        self.assertEqual(keys, 'Health.onBodyDied,Loot.onDeath')
+
     def test_without_the_loot_module_the_attached_weapon_never_reaches_the_clients(self):
         """Témoin du fait du moteur : un objet accroché absent du conteneur est perdu sur un serveur."""
         self.armed('Base.Pistol')

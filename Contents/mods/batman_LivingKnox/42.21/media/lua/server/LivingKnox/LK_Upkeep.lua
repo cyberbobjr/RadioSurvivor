@@ -253,6 +253,9 @@ function Upkeep.release(id, m)
     if Upkeep.state.claims[k] == id then Upkeep.state.claims[k] = nil end
 end
 
+-- Libération portée par la mémoire de routine (LK16-T04 : Routines.leave et forget l'appellent sans nommer ce module).
+local function releaseMemory(id, m) Upkeep.release(id, m) end
+
 -- ================================================================ effet (autorité, une fois)
 
 -- Applique la tâche job pour le groupe gid (who : texte du journal) par le spec de son kind. Rend un texte (fait), ou
@@ -395,7 +398,7 @@ function Upkeep.run(id, st, ctx, g)
     if job == nil then return false end
     if m ~= nil then R().leave(id) end   -- corvée visible en cours : debout d'abord
     m = { key = "upkeep " .. job.key, kind = "upkeep", job = job, gid = ctx.gid, mid = ctx.mid, phase = "place",
-        fails = 0 }
+        fails = 0, release = releaseMemory }
     mem[id] = m
     Upkeep.stats.started = Upkeep.stats.started + 1
     log().debug("npc %s: upkeep %s (%s)", tostring(id), job.key, tostring(st.why or st.b))

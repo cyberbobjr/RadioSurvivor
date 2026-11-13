@@ -753,4 +753,12 @@ if Events ~= nil then
     LivingKnox.subscribe("EveryOneMinute", "Raids.pass", function() LivingKnox.Raids.pass() end)
 end
 
+-- LK16-T04 : retour publié par LK_Simulation ("expeditionReturn", après LK_Relations) : éclaireurs ou attaque d'un
+-- raid (LK11-T07).
+LivingKnox.listen("expeditionReturn", "Raids.raidReturn", function(info)
+    if info.handled or info.expedition.place ~= "raid" then return end
+    info.handled = true
+    LivingKnox.Raids.raidReturn(info.g, info.gid, info.hour, info.day)
+end, 30)
+
 return Raids

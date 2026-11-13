@@ -273,6 +273,43 @@ local function log() return LivingKnox.Log end
 local function Groups() return LivingKnox.Groups end
 local function Homes() return LivingKnox.Homes end
 local function cfg() return Fortify.CFG end
+
+-- Ports (LK16-T04, A-A20, A-A21) : tout ce que la fortification lit hors d'elle dans le stock, la simulation, les
+-- décisions et la défense, en un seul endroit. Adaptateurs par défaut liés au module à l'appel ; module absent : la
+-- valeur neutre d'avant (stock nil, jour, non incarné, non matérialisé, minute nil, aucune attaque). Un banc ou une
+-- racine de composition remplace un port : Fortify.ports.<nom> = fn.
+Fortify.ports = {
+    -- Stock du foyer (LK_Stock : reference, findItem, takeItem, check, validRef, offscreenTake...), ou nil.
+    stock = function() return LivingKnox.Stock end,
+    -- Vrai si l'heure du jour hourOfDay est de nuit (LK_Simulation.isNight).
+    isNight = function(hourOfDay)
+        local S = LivingKnox.Simulation
+        return S ~= nil and S.isNight ~= nil and S.isNight(hourOfDay) or false
+    end,
+    -- Vrai si le membre m a un corps (LK_Simulation.isEmbodied).
+    isEmbodied = function(m)
+        local S = LivingKnox.Simulation
+        return S ~= nil and S.isEmbodied ~= nil and S.isEmbodied(m) or false
+    end,
+    -- Vrai si le groupe g est matérialisé (LK_Simulation.materialized).
+    materialized = function(g)
+        local S = LivingKnox.Simulation
+        return S ~= nil and S.materialized ~= nil and S.materialized(g) or false
+    end,
+    -- Minute de jeu courante (LK_Decisions.currentMinute), ou nil.
+    currentMinute = function()
+        local Dc = LivingKnox.Decisions
+        return Dc ~= nil and Dc.currentMinute ~= nil and Dc.currentMinute() or nil
+    end,
+    -- Angle de la direction (dx, dy) (LK_Decisions.angleTo).
+    angleTo = function(dx, dy) return LivingKnox.Decisions.angleTo(dx, dy) end,
+    -- Marque de la dernière attaque repoussée du groupe gid (LK_Defense.after, LK05-T09), ou nil.
+    attackMark = function(gid)
+        local D = LivingKnox.Defense
+        return D ~= nil and D.after ~= nil and D.after(gid) or nil
+    end,
+}
+local function Stock() return Fortify.ports.stock() end
 -- LK13-T11 : relevé de la minute fait dans une image suivante avec l'heure de la minute (Fortify.clockAt, file
 -- Fortify.minuteJobs plus bas) : PLAN_MS compté comme si le relevé avait été fait dans l'image de la minute.
 local function now() return Fortify.clockAt or getTimestampMs() end
@@ -759,7 +796,7 @@ end
 -- Matériaux disponibles d'après l'inventaire de référence du stock : { [type complet] = nombre } (boîte de clous =
 -- BOX_NAILS clous), ou nil et une raison.
 function Fortify.available(gid)
-    local St = LivingKnox.Stock
+    local St = Stock()
     if St == nil or St.reference == nil then return nil, "no stock module" end
     local ref, why = St.reference(gid)
     if ref == nil then return nil, why end
@@ -777,7 +814,7 @@ end
 
 -- Vrai si un objet du tag ItemTag[name] est dans les conteneurs du foyer (outil gardé, non consommé).
 function Fortify.hasTool(gid, name)
-    local St = LivingKnox.Stock
+    local St = Stock()
     if St == nil or St.findItem == nil or ItemTag == nil or ItemTag[name] == nil then return false end
     local tag = ItemTag[name]
     local found = St.findItem(gid, function(it) return it:hasTag(tag) end)
@@ -915,11 +952,9 @@ end
 -- LK14-T06 : vrai si une attaque contre le foyer a été repoussée il y a moins de REPAIR_URGENT_MINUTES minutes de jeu
 -- (marque LivingKnox.Defense.after, LK05-T09) : les réparations passent alors en tête du plan.
 function Fortify.urgent(gid)
-    local D = LivingKnox.Defense
-    local mark = D ~= nil and D.after ~= nil and D.after(gid) or nil
+    local mark = Fortify.ports.attackMark(gid)
     if mark == nil or type(mark.minute) ~= "number" then return false end
-    local Dc = LivingKnox.Decisions
-    local minute = Dc ~= nil and Dc.currentMinute ~= nil and Dc.currentMinute() or nil
+    local minute = Fortify.ports.currentMinute()
     if minute == nil then return false end
     return minute - mark.minute <= cfg().REPAIR_URGENT_MINUTES
 end
@@ -994,10 +1029,8 @@ local function noteNeed(gid, plan, shortage)
         needs[gid] = nil
         return
     end
-    local D = LivingKnox.Defense
-    local mark = D ~= nil and D.after ~= nil and D.after(gid) or nil
-    local Dc = LivingKnox.Decisions
-    local minute = Dc ~= nil and Dc.currentMinute ~= nil and Dc.currentMinute() or 0
+    local mark = Fortify.ports.attackMark(gid)
+    local minute = Fortify.ports.currentMinute() or 0
     local text = needText(shortage)
     local attack = plan.urgent and mark ~= nil and mark.id or nil
     local prev = needs[gid]
@@ -1107,7 +1140,6 @@ end
 -- Fiche docs/annexes/conception/fortification.md §7. Autorité seulement (module absent d'un client MP).
 
 local function R() return LivingKnox.Routines end
-local function Stock() return LivingKnox.Stock end
 
 local function ofType(t)
     return function(it) return it:getFullType() == t end
@@ -1661,6 +1693,9 @@ function Fortify.release(id, m)
     if Fortify.state.claims[k] == id then Fortify.state.claims[k] = nil end
 end
 
+-- Libération portée par la mémoire de routine (LK16-T04 : Routines.leave et forget l'appellent sans nommer ce module).
+local function releaseMemory(id, m) Fortify.release(id, m) end
+
 local function finishSite(id, m, minute, why)
     m.phase = "done"
     Fortify.release(id, m)
@@ -1697,9 +1732,8 @@ local function placeFor(site)
     local X = R().exec
     local sq = cell:getGridSquare(site.inside.x, site.inside.y, site.z)
     if X.standable(sq) then
-        local D = LivingKnox.Decisions
         return { x = site.inside.x, y = site.inside.y, z = site.z,
-            a = D.angleTo(site.outside.x - site.inside.x, site.outside.y - site.inside.y) }
+            a = Fortify.ports.angleTo(site.outside.x - site.inside.x, site.outside.y - site.inside.y) }
     end
     local bid = sq ~= nil and X.buildingId(sq) or nil
     return X.placeBeside(cell, site.inside.x, site.inside.y, site.z, bid, {})
@@ -1789,7 +1823,7 @@ function Fortify.run(id, st, ctx, g)
     if m ~= nil then R().leave(id) end   -- corvée visible en cours : debout d'abord
     Fortify.state.claims[k] = id
     m = { key = "fortify " .. site.id, kind = "fortify", site = site, gid = ctx.gid, mid = ctx.mid, phase = "place",
-        fails = 0, placed = 0 }
+        fails = 0, placed = 0, release = releaseMemory }
     mem[id] = m
     Fortify.stats.started = Fortify.stats.started + 1
     log().info("npc %s (%s %s): %s %s (%s, %d/%d step(s), %s)", tostring(id), tostring(ctx.gid), tostring(ctx.mid),
@@ -2185,9 +2219,7 @@ local function takeStage(g, gid, f, reqs)
 end
 
 local function nightAt(hour)
-    local S = LivingKnox.Simulation
-    if S == nil or S.isNight == nil then return false end
-    return S.isNight((hour + 6) % 24)   -- heure simulée k = intervalle [k - 1, k[ : heure du jour de son début
+    return Fortify.ports.isNight((hour + 6) % 24)   -- heure simulée k = intervalle [k - 1, k[ : heure du jour de son début
 end
 
 -- Ouvriers du groupe vivant g qui travaillent hors écran : vivants, poste « builder », au foyer (hors expédition),
@@ -2197,11 +2229,10 @@ local function offBuilders(g)
     if type(g.expedition) == "table" and type(g.expedition.team) == "table" then
         for _, mid in ipairs(g.expedition.team) do away[mid] = true end
     end
-    local S = LivingKnox.Simulation
     local n = 0
     for mid, m in pairs(g.members) do
         if type(m) == "table" and m.alive and m.duty == "builder" and not away[mid]
-            and not (S ~= nil and S.isEmbodied ~= nil and S.isEmbodied(m)) then
+            and not Fortify.ports.isEmbodied(m) then
             n = n + 1
         end
     end
@@ -2219,9 +2250,9 @@ function Fortify.offscreenHour(g, gid, hour)
     -- hors écran peut travailler (mêmes conditions que le début de son corps, indépendantes du relevé) : le relevé
     -- qu'elle lit est celui qu'aurait écrit l'image de la minute. Sinon il reste en file (heure sans effet).
     if Fortify.minuteJobs.queued[gid] ~= nil then
-        local St, S = Stock(), LivingKnox.Simulation
+        local St = Stock()
         if St ~= nil and St.offscreenTake ~= nil and St.validRef(g.stock, g.home) and type(hour) == "number"
-            and not nightAt(hour) and not (S ~= nil and S.materialized ~= nil and S.materialized(g)) then
+            and not nightAt(hour) and not Fortify.ports.materialized(g) then
             settle(gid)
         end
     end
@@ -2237,8 +2268,7 @@ offscreenHour = function(g, gid, hour, f)
     local St = Stock()
     if St == nil or St.offscreenTake == nil or not St.validRef(g.stock, g.home) then return nil, false end
     if type(hour) ~= "number" or nightAt(hour) then return nil, false end
-    local S = LivingKnox.Simulation
-    if S ~= nil and S.materialized ~= nil and S.materialized(g) then return nil, false end   -- vrais ouvriers au travail
+    if Fortify.ports.materialized(g) then return nil, false end   -- vrais ouvriers au travail
     local builders = offBuilders(g)
     if builders == 0 then
         local changed = f.work ~= 0

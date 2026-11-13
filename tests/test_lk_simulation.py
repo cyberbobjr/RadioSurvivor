@@ -527,6 +527,37 @@ class ExpeditionTests(Base):
                      f'{SIM}.advance({G}.state.data, 30)')
         self.assertNotIn('expedition', [e.kind for e in self.g().log.values()])
 
+    def test_return_is_published_and_done_by_the_first_listener_of_its_kind(self):
+        """LK16-T04 (F-R06) : la simulation ne nomme ni LK_Relations ni LK_Raids (absents de ce banc) ; le retour est
+        publié ("expeditionReturn") et fait par le premier écouteur, par order, qui reconnaît l'expédition."""
+        self.group(['worker', 'fighter', 'scout', 'fighter'], food=90)
+        self.assertIsNone(self.ev('LivingKnox.Relations'))
+        self.run_lua(f'''
+            GOT = {{}}
+            local function claim(tag, place)
+                return function(info)
+                    if info.handled or info.expedition.place ~= place then return end
+                    info.handled = true
+                    GOT[#GOT + 1] = tag .. ":" .. info.gid .. ":" .. info.hour .. ":" .. info.day
+                end
+            end
+            LivingKnox.listen("expeditionReturn", "test.late", claim("late", "revenge"), 30)
+            LivingKnox.listen("expeditionReturn", "test.early", claim("early", "revenge"), 10)
+            LivingKnox.listen("expeditionReturn", "test.raid", claim("raid", "raid"), 20)
+            {G}.state.data.groups["grp-1"].expedition = {{ place = "revenge", team = {{ "m-2", "m-3" }},
+                departed = 0, returns = 1 }}
+        ''')
+        self.run_lua(f'{SIM}.advance({G}.state.data, 1)')
+        self.assertEqual(list(self.ev('GOT').values()), ['early:grp-1:1:1'])
+        self.assertIsNotNone(self.g().expedition)   # retour fait par l'écouteur seul (abstrait non tiré)
+        # Expédition qu'aucun écouteur ne reconnaît : retour abstrait de la fouille (équipe rentrée).
+        self.run_lua(f'GOT = {{}} {G}.state.data.groups["grp-1"].expedition = {{ place = "houses", '
+                     'team = { "m-2", "m-3" }, departed = 1, returns = 2 }')
+        self.run_lua(f'{SIM}.advance({G}.state.data, 2)')
+        self.assertEqual(len(self.ev('GOT')), 0)
+        self.assertIsNone(self.g().expedition)
+        self.assertEqual(self.h.errors(self.srv), [])
+
     def test_members_away_do_not_consume_rest_or_heal(self):
         self.group(['worker', 'worker', 'scout', 'scout', 'fighter', 'fighter'], food=90)
         self.run_lua('local c = LivingKnox.Config.SIMULATION c.FOOD_PER_MEMBER = 1 c.AMMO_PER_MEMBER = 0 '

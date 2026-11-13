@@ -71,6 +71,18 @@ local function log() return LivingKnox.Log end
 local function Groups() return LivingKnox.Groups end
 local function cfg() return LivingKnox.Config.SIMULATION end
 
+-- Retours d'expédition propres à un module (LK16-T04, F-R06) : la simulation publie l'événement "expeditionReturn"
+-- info = { g, gid, hour, day, erand, expedition, handled = false } ; le module qui fait partir une expédition d'un
+-- genre l'écoute, et s'il la reconnaît et que handled est encore faux, pose handled = vrai puis fait le retour. Ordre
+-- des écouteurs (premier qui la reconnaît) : LK_Expeditions (10, expédition physique passée hors écran),
+-- LK_Relations (20, vengeance), LK_Raids (30, raid). Aucun : retour abstrait de la fouille (Simulation.resolveExpedition,
+-- butin au stock). La simulation ne nomme aucun de ces modules.
+local function publishReturn(g, gid, hour, day, erand)
+    local info = { g = g, gid = gid, hour = hour, day = day, erand = erand, expedition = g.expedition, handled = false }
+    LivingKnox.publish("expeditionReturn", info)
+    return info.handled == true
+end
+
 -- Niveau entier 0..100 (le registre n'admet que des entiers, même si un taux configuré est fractionnaire).
 local function clampLevel(v)
     v = math.floor(v + 0.5)
@@ -533,15 +545,7 @@ function Simulation.simulateHour(g, gid, hour, base, exp)
 
     -- 0. Retour d'expédition (au début de l'heure de retour, ou de la première heure simulée après elle).
     if g.expedition and hour >= g.expedition.returns then
-        local Ex = LivingKnox.Expeditions   -- LK05-T05 : expédition physique passée hors écran (aucune perte)
-        local Rl = LivingKnox.Relations   -- LK11-T05 : équipe d'une vengeance (traque manquée, cible morte, rancune)
-        if g.expedition.trip ~= nil and Ex ~= nil and Ex.resolveAbstract ~= nil then
-            Ex.resolveAbstract(g, gid, hour, erand, day)
-        elseif g.expedition.place == "revenge" and Rl ~= nil and Rl.revengeReturn ~= nil then
-            Rl.revengeReturn(g, gid, hour, day)
-        elseif g.expedition.place == "raid" and LivingKnox.Raids ~= nil and LivingKnox.Raids.raidReturn ~= nil then
-            LivingKnox.Raids.raidReturn(g, gid, hour, day)   -- LK11-T07 : éclaireurs ou attaque d'un raid
-        else
+        if not publishReturn(g, gid, hour, day, erand) then   -- LK16-T04 : retour fait par le module de l'expédition
             local res = Simulation.resolveExpedition(g, gid, hour, exp, erand, day)
             local S = LivingKnox.Stock   -- LK09-T06 : butin abstrait ajouté au stock de référence (écarts en attente)
             if S ~= nil and S.offscreenLoot ~= nil then S.offscreenLoot(g, gid, res.gains, day) end

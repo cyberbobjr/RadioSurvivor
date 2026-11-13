@@ -1503,4 +1503,19 @@ end
 
 LivingKnox.subscribe("EveryOneMinute", "Expeditions.minutePass", onEveryOneMinute)
 
+-- LK16-T04 : membre rendu à la simulation abstraite (LK_Materialize, "memberReleased") : équipe d'une expédition
+-- physique ou bascule hors écran (LK05-T05).
+LivingKnox.listen("memberReleased", "Expeditions.onReleased", function(info)
+    local E = LivingKnox.Expeditions
+    if E ~= nil and E.onReleased ~= nil then E.onReleased(info.group, info.member) end
+end, 10)
+
+-- LK16-T04 : retour publié par LK_Simulation ("expeditionReturn", premier écouteur) : expédition physique passée hors
+-- écran (LK05-T05, aucune perte).
+LivingKnox.listen("expeditionReturn", "Expeditions.resolveAbstract", function(info)
+    if info.handled or info.expedition.trip == nil then return end
+    info.handled = true
+    LivingKnox.Expeditions.resolveAbstract(info.g, info.gid, info.hour, info.erand, info.day)
+end, 10)
+
 return Ex

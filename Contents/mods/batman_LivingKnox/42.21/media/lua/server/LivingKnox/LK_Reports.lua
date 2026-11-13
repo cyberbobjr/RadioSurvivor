@@ -346,4 +346,11 @@ if isServer() then
     LivingKnox.subscribe("OnClientCommand", "Reports.onClientCommand", onClientCommand)
 end
 
+-- LK16-T04 : corps rendu à la simulation abstraite (LK_Bodies, "bodyReleasing", après LK_Directives) : état des
+-- rapports oublié.
+LivingKnox.listen("bodyReleasing", "Reports.forget", function(info)
+    local R = LivingKnox.Reports
+    if R ~= nil and R.forget ~= nil then R.forget(info.npc) end
+end, 20)
+
 return Reports

@@ -288,8 +288,9 @@ function Materialize.onReleased(npcId, hp, npc)
         return before ~= wound, true
     end)
     Materialize.stats.released = Materialize.stats.released + 1
-    local Ex = LivingKnox.Expeditions   -- LK05-T05 : membre d'une expédition physique : équipe ou bascule hors écran
-    if Ex ~= nil and Ex.onReleased ~= nil then Ex.onReleased(gid, mid) end
+    -- LK05-T05, LK16-T04 : événement "memberReleased" (LK_Expeditions : membre d'une expédition physique, équipe ou
+    -- bascule hors écran).
+    LivingKnox.publish("memberReleased", { group = gid, member = mid })
     log().info("group %s member %s back to the offscreen simulation at home (npc %s): health %s of %s, wound %s",
         gid, mid, npcId, hp and string.format("%.3f", hp) or "unknown", string.format("%.3f", full),
         wound and tostring(wound) or "unchanged")
@@ -445,5 +446,19 @@ function Materialize.pass()
     end
     return created
 end
+
+-- LK16-T04 : faits du corps publiés par LK_Bodies (aucun appel de LK_Bodies vers ce module).
+LivingKnox.listen("bodyDied", "Materialize.onBodyDied", function(info)
+    local Mat = LivingKnox.Materialize
+    if Mat ~= nil and Mat.onBodyDied ~= nil and info.group ~= nil then Mat.onBodyDied(info.npc, info.group, info.member) end
+end, 10)
+LivingKnox.listen("bodyReleased", "Materialize.onReleased", function(info)
+    local Mat = LivingKnox.Materialize
+    if Mat ~= nil and Mat.onReleased ~= nil then Mat.onReleased(info.npc, info.hp, info.record) end
+end, 10)
+LivingKnox.listen("bodyTick", "Materialize.pass", function()
+    local Mat = LivingKnox.Materialize
+    if Mat ~= nil and Mat.pass ~= nil then Mat.pass() end
+end, 10)
 
 return Materialize

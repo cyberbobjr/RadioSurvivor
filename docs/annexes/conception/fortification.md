@@ -187,7 +187,7 @@ Limites : compétences (Menuiserie 2 pour un mur) non vérifiées (les PNJ n'ont
 
 ## 7. Pose des barricades par un membre (LK14-T03, `LK_Fortify.lua`)
 
-Autorité seulement (module absent d'un client MP). Code : `Fortify.run`, `Fortify.nailPlank`, `Fortify.openingOf`, `Fortify.release` ; point d'accroche `LK_Routines.apply` (comportement `chore`), `Routines.leave`/`forget` (chantier libéré).
+Autorité seulement (module absent d'un client MP). Code : `Fortify.run`, `Fortify.nailPlank`, `Fortify.openingOf`, `Fortify.release` ; point d'accroche `LK_Routines.apply` (comportement `chore`), `Routines.leave`/`forget` (chantier libéré par la fonction `release` portée par la mémoire de routine, LK16-T04). Lectures hors du module par ses ports `Fortify.ports` (stock, nuit, corps, matérialisation, minute, angle, marque d'attaque ; LK16-T04).
 
 | Étape | Règle | Preuve / source |
 |---|---|---|

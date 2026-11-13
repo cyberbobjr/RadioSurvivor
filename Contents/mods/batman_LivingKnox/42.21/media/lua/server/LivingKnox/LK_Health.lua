@@ -735,4 +735,10 @@ if isServer() then
     LivingKnox.subscribe("OnClientCommand", "Health.onClientCommand", onClientCommand)
 end
 
+-- LK16-T04 : mort du corps courant publiée par LK_Bodies ("bodyDying"), avant le butin de LK_Loot (order 20).
+LivingKnox.listen("bodyDying", "Health.onBodyDied", function(info)
+    local H = LivingKnox.Health
+    if H ~= nil and H.onBodyDied ~= nil then H.onBodyDied(info.npc, info.body) end
+end, 10)
+
 return Health
