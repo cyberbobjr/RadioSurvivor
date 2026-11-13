@@ -191,6 +191,10 @@ RST.suite("rs.groupradio", { mods = { "rs", "lk" },
             local id = R.voiceId(entry.ref)
             local sheet = Personas.get(id)
             local khz = Personas.served(id)[1]
+            -- The call is admitted on the server for the character: its talk cooldown, unknown to the client, is
+            -- given back as found (MP campaign of 2026-11-13: next suite rs.npctalk refused with "Cooldown").
+            local lastTalk = Server.talk.lastTalk[character]
+            t:defer(function() Server.talk.lastTalk[character] = lastTalk end, "restore the talk cooldown")
             Server.talk.lastTalk[character] = nil
             local aired = R.stats.aired
             local key = (type(isServer) == "function" and isServer()) and player:getUsername() or "solo"

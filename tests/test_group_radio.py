@@ -371,6 +371,32 @@ class GroupRadioTests(unittest.TestCase):
         self.assertEqual(sorted(lua_list(self.personas.ids())), before, 'test voices left behind')
         self.assertEqual(len(lua_list(self.rt.eval('LivingKnox.Groups.list()'))), groups, 'test groups left behind')
 
+    def test_suite_call_leaves_no_talk_cooldown_behind(self):
+        # MP campaign of 2026-11-13 (runs/20261113-233636-parallel-3 shard1): the call of rs.groupradio, admitted on
+        # the server for the character of the player, armed its talk cooldown; rs.npctalk right after had its first
+        # sentence refused ("Cooldown") while the client, unaware of it, let it go.
+        self.world('suite')
+        from test_carnet import TESTS_SHARED
+        self.rt.execute(f'package.path = [[{TESTS_SHARED.as_posix()}/?.lua;]] .. package.path')
+        self.rt.execute('require "RST/RST"; RST.clock = function() return getTimestampMs() end')
+        self.rt.execute('local base = getWorld; getWorld = function() local w = base() '
+                        'if type(w) == "table" then w.getWorld = function() return "rstest-groupradio" end end '
+                        'return w end')
+        self.rt.execute(f'dofile([[{(TESTS_SHARED / "RST" / "suites" / "RS_GroupRadio.lua").as_posix()}]])')
+        self.assertIs(self.rt.execute('return (RST.start({ suite = "rs.groupradio", tags = "world", '
+                                      'test = "a call is an npc_talk" }, { ctx = { player = PLAYERS.alice } }))'),
+                      True)
+        for _ in range(600):
+            if not self.rt.eval('RST.running()'):
+                break
+            self.step(500)
+        report = self.rt.eval('RST.last()')
+        results = [(r.test, r.status, r.message) for r in lua_list(report.results)]
+        self.assertEqual(len(results), 1, results)   # no bridge on this bench: the call goes unanswered (FAIL)
+        left = self.rt.eval('(function() local n = 0 for _ in pairs(LivingKnox.Talk.lastTalk) do n = n + 1 end '
+                            'return n end)()')
+        self.assertEqual(left, 0, 'talk cooldown left armed by the call')
+
     def test_redact_and_lines(self):
         self.world('pure')
         self.assertEqual(self.radio.redact('at 10637,9412 since 1993 or 12'), 'at ...,... since ... or 12')
