@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| Date | 2026-11-13 (création) |
-| Statut | Proposé |
+| Date | 2026-11-13 (création, acceptation) |
+| Statut | Accepté (utilisateur, 2026-11-13) |
 | Décideur | utilisateur |
 | Portée | `batman_LivingKnox`, côté autorité (`media/lua/server/LivingKnox`) : aiguillage des routines (`LK_Routines.lua`), entretien du foyer (`LK_Upkeep.lua`), et les tâches ajoutées ensuite (creuser, semer, graines du jardinier) |
 | Plan associé | [LK15 — Registres des routines et potager du jardinier](../../annexes/plans/LK15-registre-routines.md) (suivi des tâches dans le plan) |
@@ -90,7 +90,7 @@ Faits du moteur retenus (sources vanilla 42.22, relevé du 2026-11-13, confirmé
 - **Q01 — Quantités par défaut du potager** (`MAX_PLOTS`, `SEED_LOW`, `SEED_DAYS`, nombre et variétés des graines
   reçues). Valeurs proposées, confirmées par défaut sans réponse contraire : 6 sillons par foyer ; dépôt quand le stock a
   moins de 2 graines semables ; au plus une fois tous les 7 jours de jeu ; 5 graines (un sachet) d'une variété de
-  saison tirée parmi carotte, pomme de terre, chou, tomate. Ne bloque que D07 et D08.
+  saison tirée parmi carotte, pomme de terre, chou, tomate. Ne bloque que D07 et D08. **Rendu le 2026-11-13** : ADR accepté sans changement de ces valeurs, confirmées par défaut.
 
 ## Alternatives écartées
 

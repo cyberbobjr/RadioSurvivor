@@ -22,7 +22,7 @@ ouvert/fermé), puis un potager tenu par le jardinier : sillons creusés, graine
 automatiquement.
 
 **ADR.** [Registres des routines et des tâches du foyer](../../architecture/decisions/adr-registre-routines.md)
-(proposé le 2026-11-13) ; ce plan en est l'ordre de livraison et porte le suivi des tâches.
+(accepté le 2026-11-13) ; ce plan en est l'ordre de livraison et porte le suivi des tâches.
 
 **Dépend de.** LK05-T07 (repas), LK05-T10 (entretien), LK05-T11 (arrosage et récolte), LK14-T03 (barricades),
 LK05-T21 (préférence du jardinier, remplacée par `prefer`).
@@ -33,7 +33,7 @@ LK05-T21 (préférence du jardinier, remplacée par `prefer`).
 ## Décisions
 
 - 2026-11-13 — **LK15** (utilisateur) : routines isolées, une par fichier, ajoutées sans toucher au code partout ;
-  potager du jardinier « option 2 » (creuser et semer) avec des graines reçues automatiquement. ADR proposé le même jour.
+  potager du jardinier « option 2 » (creuser et semer) avec des graines reçues automatiquement. ADR accepté le même jour ; Q01 confirmé par défaut (6 sillons, seuil 2 graines, 7 jours, un sachet de 5 graines de saison).
 
 ## Tâches
 
