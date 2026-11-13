@@ -114,9 +114,24 @@ RST.suite("rs.worldtriggers", { mods = { "rs", "lk" }, tags = { "world", "server
     s.test("the vanilla helicopter gives one helicopter observation", function(t)
         witness(t, function(t2, c)
             keepEvents(t2, c.S)
-            local first = nil
-            local function onSound(_x, _y, z, radius, volume, source)
-                if source == nil and z == 0 and radius == 500 and volume == 500 then first = first or getTimestampMs() end
+            -- Each helicopter sound is printed with its distance to the witness body (solo campaign of 2026-11-13: no
+            -- observation within 110 s although the helicopter hovered over the player; the wait message is built
+            -- before the wait and cannot carry the sounds).
+            local first, sounds = nil, 0
+            local function inWitnesses()
+                local list = c.Triggers.witnesses()
+                for i, f in ipairs(list) do if f.id == c.fiche.id then return "listed " .. i .. "/" .. #list end end
+                return "not listed (" .. #list .. " witness(es))"
+            end
+            local function onSound(x, y, z, radius, volume, source)
+                if source == nil and z == 0 and radius == 500 and volume == 500 then
+                    first = first or getTimestampMs()
+                    sounds = sounds + 1
+                    local dx, dy = x - c.p:getX(), y - c.p:getY()
+                    print("[RST] helicopter sound #" .. sounds .. " at " .. math.floor(x) .. "," .. math.floor(y) .. ", "
+                        .. math.floor(math.sqrt(dx * dx + dy * dy)) .. " squares from the player, witness fiche "
+                        .. tostring(inWitnesses()) .. ", helicopter observations " .. count(c.Obs, c.fiche, "helicopter"))
+                end
             end
             Events.OnWorldSound.Add(onSound)
             t2:defer(function() Events.OnWorldSound.Remove(onSound) end, "remove the OnWorldSound listener")
@@ -127,7 +142,7 @@ RST.suite("rs.worldtriggers", { mods = { "rs", "lk" }, tags = { "world", "server
                 local n, what = count(c.Obs, c.fiche, "helicopter")
                 t3:eq(1, n, "helicopter observations: " .. what)
                 t3:note("first helicopter sound after " .. tostring(first and (first - started)) .. " ms; " .. what)
-            end, "no helicopter observation within 110 s (first sound: " .. tostring(first) .. ")")
+            end, "no helicopter observation within 110 s (helicopter sounds: see the [RST] helicopter sound lines)")
         end)
     end)
 end)

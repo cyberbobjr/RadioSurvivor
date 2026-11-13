@@ -61,7 +61,9 @@ end
 local SETTLE_MS = 2000
 
 -- Two npcs next to the player, in sight of each other, both mapped by the notebook, the teller with an observation.
-local function pair(t, Server, Obs, subject, after)
+-- needSelect: the player must also see the teller within the notebook select range (the server refuses a select
+-- otherwise, 'Range'; solo campaigns of 2026-11-07 to 2026-11-13: a teller heard behind a window was never selected).
+local function pair(t, Server, Obs, subject, after, needSelect)
     local P = Server.P
     local V = require "LivingKnox/LK_Conversations"
     local R = RST.RSHelpers
@@ -71,7 +73,11 @@ local function pair(t, Server, Obs, subject, after)
     t:ok(#spots > 0, "no pair of free squares in sight of each other, the first heard by the player, within "
         .. R.SPOT_RADIUS .. " squares of " .. R.at(p))
     local tried = {}
-    local function ready(tb, pb) return P.near(tb, pb, V.CFG.RANGE) and P.hears(tb, p, Server.HEARING) end
+    local selectRange = require("RadioSurvivor/RS_Config").SELECT_RANGE
+    local function ready(tb, pb)
+        return P.near(tb, pb, V.CFG.RANGE) and P.hears(tb, p, Server.HEARING)
+            and (not needSelect or P.near(p, tb, selectRange))
+    end
     local function mapped(t1, c)
         t1:waitUntil(function() return Server.objects()[c.teller.id] ~= nil and Server.objects()[c.partner.id] ~= nil end,
             5000, function(t2)
@@ -102,7 +108,9 @@ local function pair(t, Server, Obs, subject, after)
                 end
                 tried[#tried + 1] = R.at(spot.a) .. "/" .. R.at(spot.b) .. " -> " .. R.at(tb) .. "/" .. R.at(pb)
                     .. " (sight " .. R.sightOf(tb, pb) .. "/" .. R.sightOf(pb, tb)
-                    .. (P.hears(tb, p, Server.HEARING) and "" or ", player does not hear") .. ")"
+                    .. (P.hears(tb, p, Server.HEARING) and "" or ", player does not hear")
+                    .. ((needSelect and not P.near(p, tb, selectRange)) and ", player cannot select the teller" or "")
+                    .. ")"
                 B().despawn(tid, true)
                 B().despawn(pid, true)
                 return attempt(t2, i + 1)
@@ -229,7 +237,7 @@ RST.suite("rs.conversations", { mods = { "lk" },
                                     function(t2c) waitJoined(t2c, c, V, Server, conv, joined0) end)
                             end, "teller not selected by the notebook")
                     end)
-            end)
+            end, true)
         end, "previous sentence of the character still within the notebook cooldown")
     end)
 
