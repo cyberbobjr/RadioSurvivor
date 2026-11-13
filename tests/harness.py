@@ -14,12 +14,18 @@ Utilisation
     h.eval('A', 'X')                        # valeur d'une expression Lua
     h.spawn_zombie(1001, 10, 20, 0, owner='A')   # zombie chargé sur toutes les machines ; owner : 'server', 'A', 'B'
     h.set_owner(1001, 'B')                  # transfert instantané (le jeu exige distance et délai)
+    h.set_owner(1001, 'B', via_network=True)   # serveur à l'instant, clients à la livraison de leur ZombieList
+    h.at_tick(20, action)                   # action() à la fin de la 20e image à venir
     h.move_zombie(1001, 11, 20); h.kill_zombie(1001); h.move_player('A', 5, 5, 0); h.kill_player('A')
     h.zombie('A', 1001), h.player('server', 'A')   # objets Lua de cette machine
     h.fire('server', 'OnTick', 0)           # déclenche un événement (dict/list Python convertis en tables)
     h.tick(n)                               # n images : par machine OnTickEvenPaused, OnZombieUpdate, OnTick
-    h.pump(order='fifo'|'lifo'|'random', limit=None)   # livre la file réseau ; rend le nombre livré
-    h.pending()                             # messages en attente (dicts)
+    h.pump(order='fifo'|'lifo'|'random', limit=None)   # livre la file réseau ; rend le nombre de commandes livrées
+    Harness(order='random', seed=1, delay=2)   # random : chaque message retenu 0 à delay pompes (perte, renvoi)
+    h.pending(), h.pending_packets()        # commandes Lua en attente (dicts) ; paquets du moteur en attente
+    h.relevant_to('B', x, y)                # le serveur écrirait-il maintenant à B un paquet lié à la case x, y
+    HARNESS.sendToRelative(x, y, 'AddCorpseToMap', args)   # (Lua serveur) paquet aux seuls clients de la zone
+    HARNESS.onPacket('AddCorpseToMap', function(args) … end)   # (Lua client) réception de ce paquet
     h.advance(minutes)                      # horloge de jeu, minute par minute : EveryDays, EveryHours,
                                             # EveryTenMinutes, EveryOneMinute (GameTime.update)
     h.jump_to(hour, minute=0)               # prochaine heure du jour hh:mm, sans événement (partie chargée là)
@@ -76,6 +82,14 @@ Règles simulées
   booléenne, fonction, objet du moteur) avec la ligne « ERROR: sendXCommand: can't save key,value=… » pour le
   premier niveau ; table vide ou nil → nil chez le destinataire. Client → serveur et serveur → client passent
   par une file livrée par pump(). Solo : sendClientCommand livré pendant l'envoi, sendServerCommand sans effet.
+- Ordre et zone d'envoi (E19-T06, sources 42.22 ; aide tests/net_disorder.py) : commandes Lua fiables NON ordonnées
+  (PacketTypes.java:491, reliability 2), même entre deux commandes d'un même émetteur ; paquets du moteur simulés
+  (PACKET_CHANNELS) fiables ordonnés par (émetteur, destinataire, canal), jamais inversés dans leur flux. Un message
+  envoyé pendant une livraison part au lot suivant (jamais de réponse avant sa demande). Zone d'envoi (SendZone) :
+  boîte de 88 cases autour de la position que chaque client a SIGNALÉE ; un client signale sa position à la fin d'une
+  image où elle a changé (paquet PlayerUpdate livré par pump) : après move_player, le serveur le compte à son ancienne
+  place jusqu'à cette livraison. Non simulés : perte définitive, latence en temps réel, reconnexion, paquets de zombie
+  et interpolation des copies, chargement des cases côté client (un paquet manqué n'est jamais renvoyé).
 - Zombies (NetworkZombieComponent.java:23) : isRemoteZombie() = aucune connexion propriétaire. Client : faux pour
   le zombie qu'il simule, vrai sinon. Serveur : vrai pour un zombie qu'il simule, faux pour un zombie possédé par un
   client (getOwner() rend alors sa connexion, getOwnerPlayer() son joueur). Solo : toujours vrai, getOwner() nil ; OnZombieUpdate pour tous les zombies chargés, locaux ou distants (IsoZombie.java:2738).
@@ -116,6 +130,48 @@ LUA = ROOT / 'Contents/mods/batman_RadioSurvivor/42.21/media/lua'
 CORE_LUA = ROOT / 'Contents/mods/batman_RadioSurvivorCore/42.21/media/lua'  # mod commun exigé (E18)
 LK_LUA = ROOT / 'Contents/mods/batman_LivingKnox/42.21/media/lua'  # moteur des PNJ (E18-T07)
 LuaError = lupa.LuaError
+
+# Réseau du serveur dédié (E19-T06, sources 42.22, java/zombie/...). Zone d'envoi d'une connexion : rayon en cases de
+# la boîte carrée autour de la position que le client a signalée (UdpConnection.java:216-232 : |dx| et |dy| <=
+# relevantRange * 8 ; connectArea nulle pour un joueur connecté normalement, GameServer.java:2649).
+# relevantRange = clamp(chunkGridWidth, 12, 20) / 2 + 2 (GameServer.java:2638-2639) ; chunkGridWidth vaut 19 dès
+# 1920x1080 (IsoChunkMap.java:131-140, envoyé par ConnectPacket.java:42) : 11 * 8 = 88 cases.
+RELEVANT_RANGE = (19 // 2 + 2) * 8
+# Canal d'ordre RakNet des paquets simulés : entier = RELIABLE_ORDERED sur ce canal (ordre garanti entre paquets d'un
+# même émetteur vers un même destinataire sur ce canal) ; None = sans ordre. Commandes Lua : ClientCommand,
+# reliability 2 = RELIABLE, jamais ordonnées (PacketTypes.java:491, RakNetPeerInterface.java:44-51), dans les deux sens.
+PACKET_CHANNELS = {
+    'AddCorpseToMap': 0,                       # AddCorpseToMapPacket.java:27 (reliability 3, ordering 0)
+    'ObjectChange': 0,                         # ObjectChangePacket.java:29
+    'AddItemToMap': 1,                         # AddItemToMapPacket.java:32 (transmitCompleteItemToClients)
+    'AddInventoryItemToContainer': 1,          # AddInventoryItemToContainerPacket.java:33
+    'RemoveInventoryItemFromContainer': 1,     # RemoveInventoryItemFromContainerPacket.java:24
+    'PlayerUpdate': 5,                         # PlayerPacketReliable.java:11 (client -> serveur)
+    'ZombieList': None,                        # ZombieListPacket.java:15 (reliability 0 : non fiable, non ordonné)
+}
+ORDERS = ('fifo', 'lifo', 'random')
+
+
+class SendZone:
+    """Zone d'envoi des connexions d'un serveur dédié (UdpConnection.isRelevantTo, UdpConnection.java:216-232) :
+    position signalée par chaque client (releventPos : à la connexion, GameServer.java:2646-2648, puis à chaque
+    PlayerPacket reçu, PlayerPacket.java:169) et boîte carrée de relevant_range cases autour. Partagée par Harness et
+    les bancs à simulateur propre (tests/test_mission_retrieve.py)."""
+
+    def __init__(self, relevant_range: int = RELEVANT_RANGE):
+        self.relevant_range = relevant_range
+        self.reported: dict[str, tuple] = {}
+
+    def report(self, client: str, x, y, z=0):
+        self.reported[client] = (x, y, z)
+
+    def relevant_to(self, client: str, x, y) -> bool:
+        rx, ry = self.reported[client][:2]
+        return abs(rx - x) <= self.relevant_range and abs(ry - y) <= self.relevant_range
+
+    def relevant_clients(self, x, y) -> list[str]:
+        """Connexions qui reçoivent un paquet lié à la case x, y envoyé maintenant (INetworkPacket.java:182-189)."""
+        return [c for c in self.reported if self.relevant_to(c, x, y)]
 
 # zombie/Lua/LuaEventManager.java:634-895 (42.21.0), AddEvent(...) du moteur.
 GAME_EVENTS = """
@@ -807,6 +863,21 @@ sendServerCommand = function(...)
     end
 end
 
+-- Paquets liés à une case (E19-T06) : INetworkPacket.sendToRelative et GameServer.sendCorpse n'écrivent qu'aux
+-- connexions dont la zone couvre la case (INetworkPacket.java:182-189, GameServer.java:1869-1883, 42.22) ; sans effet
+-- hors serveur dédié (GameServer.server faux : client et solo). Les doublures des bancs (sendCorpse,
+-- transmitCompleteItemToClients, sendObjectChange...) appellent H.sendToRelative ; le client reçoit par H.onPacket.
+H.packetHandlers = {}
+function H.onPacket(packet, f) H.packetHandlers[packet] = f end
+function H.sendToRelative(x, y, packet, args)
+    if MODE ~= 'server' then return end
+    PY.send_relative(num(x, 'sendToRelative'), num(y, 'sendToRelative'), packet, H.netArgs(args, packet))
+end
+function H.receivePacket(packet, args)
+    local f = H.packetHandlers[packet]
+    if f then f(args) end
+end
+
 function H.run(src, chunkname)
     local f, err = loadstring(src, chunkname)
     if not f then error(err, 0) end
@@ -1154,6 +1225,9 @@ class _Bridge:
     def server_send(self, username, module, command, args):
         self.m.harness._server_send(self.m, username, module, command, args)
 
+    def send_relative(self, x, y, packet, args):
+        self.m.harness.send_to_relative(x, y, packet, _to_py(args) if args is not None else None)
+
     def file_open(self, name, create, append):
         return self.m._file_open(name, create, append)
 
@@ -1314,16 +1388,22 @@ def _to_py(value):
 class Harness:
     def __init__(self, mode: str = 'mp', clients=('A', 'B'), order: str = 'fifo', seed: int = 0,
                  debug: bool = False, strict: bool = True, tick_ms: int = 16,
-                 start=(1993, 7, 9, 9, 0), root: Path | None = None, lua_roots=(), java_api: bool | None = None):
+                 start=(1993, 7, 9, 9, 0), root: Path | None = None, lua_roots=(), java_api: bool | None = None,
+                 relevant_range: int = RELEVANT_RANGE, delay: int = 0):
         if mode not in ('mp', 'solo'):
             raise ValueError("mode must be 'mp' or 'solo'")
         self.java_api = java_api_table(java_api)  # avant les machines : leurs classes en dépendent
         self.mode, self.order, self.debug, self.strict, self.tick_ms = mode, order, debug, strict, tick_ms
         self.lua_roots = list(lua_roots)  # racines media/lua supplémentaires, après celle du mod publié
         self.rng = random.Random(seed)
+        self.zone = SendZone(relevant_range)   # serveur : zone d'envoi de chaque client
+        self.delay = delay              # order='random' : pompes de retard au plus d'un message (renvoi après perte)
         self._tmp = None if root else tempfile.mkdtemp(prefix='lk_harness_')
         self.root = Path(root or self._tmp)
         self.queue: list[dict] = []
+        self._sent_pos: dict[str, tuple] = {}   # client : dernière position envoyée au serveur
+        self.frame = 0
+        self._scheduled: list[tuple[int, object]] = []
         self.owners: dict[int, str] = {}
         self.real_ms = 1_790_000_000_000
         self.server_ms = 5_000_000
@@ -1343,6 +1423,9 @@ class Harness:
             for m in self.machines.values():
                 for i, c in enumerate(clients):
                     m.H.addPlayer(c, i, 0, 0, 0, m.name == c)
+            for c in clients:   # connexion : releventPos = position du joueur (GameServer.java:2646-2648)
+                self._sent_pos[c] = self._position(c)
+                self.zone.report(c, *self._sent_pos[c])
         self._push_clock()
         self._mark()
 
@@ -1422,11 +1505,19 @@ class Harness:
         if self.mode == 'mp' and owner not in self.machines:
             raise ValueError(f'unknown owner {owner!r}')
 
-    def set_owner(self, zid: int, owner: str):
+    def set_owner(self, zid: int, owner: str, via_network: bool = False):
+        """Nouveau propriétaire. via_network (MP) : le serveur le pose à l'instant (NetworkZombiePacker.postupdate),
+        chaque client ne l'apprend qu'à la livraison de son paquet ZombieList (non fiable, non ordonné avec les
+        commandes Lua : ZombieListPacket.java:15) ; l'ancien propriétaire se croit propriétaire jusque-là."""
         self._check_owner(owner)
         self.owners[zid] = owner
-        for m in self._all():
-            m.H.zombies[zid].owner = owner
+        if not via_network or self.mode != 'mp':
+            for m in self._all():
+                m.H.zombies[zid].owner = owner
+            return
+        self.server.H.zombies[zid].owner = owner
+        for c in self.clients:
+            self._enqueue_packet('server', c, 'ZombieList', {'zid': zid, 'owner': owner})
 
     def move_zombie(self, zid, x, y, z=None):
         for m in self._all():
@@ -1465,7 +1556,9 @@ class Harness:
         return result
 
     def tick(self, n: int = 1):
-        """IngameState.java:1380 (OnTickEvenPaused), 1543 (IsoWorld.update -> OnZombieUpdate), 1604, 1681 (OnTick)."""
+        """IngameState.java:1380 (OnTickEvenPaused), 1543 (IsoWorld.update -> OnZombieUpdate), 1604, 1681 (OnTick).
+        MP : à la fin de l'image, chaque client dont le joueur a bougé envoie sa position (PlayerUpdate) ; puis les
+        actions de at_tick dues."""
         for _ in range(n):
             self.advance_ms(self.tick_ms)
             for m in self._all():
@@ -1475,7 +1568,20 @@ class Harness:
                 m.H.updateZombies()
                 m.ticks += 1
                 m.H.trigger('OnTick', float(m.ticks))
+            self._send_positions()
+            self.frame += 1
+            self._run_scheduled()
         self._check()
+
+    def at_tick(self, n: int, action):
+        """action() jouée à la fin de la n-ième image à venir (changement de propriétaire pendant une scène...)."""
+        self._scheduled.append((self.frame + int(n), action))
+
+    def _run_scheduled(self):
+        due = [a for f, a in self._scheduled if f <= self.frame]
+        self._scheduled = [(f, a) for f, a in self._scheduled if f > self.frame]
+        for action in due:
+            action()
 
     def set_paused(self, machine, paused: bool = True):
         self.machine(machine).paused = paused
@@ -1559,36 +1665,150 @@ class Harness:
                 self.queue.append({'to': t, 'from': 'server', 'module': module, 'command': command,
                                    'args': payload})
 
+    _COMMAND_KEYS = ('to', 'from', 'module', 'command', 'args')
+
     def pending(self) -> list[dict]:
-        return [dict(msg) for msg in self.queue]
+        """Commandes Lua en attente (sendClientCommand / sendServerCommand), sans les paquets du moteur."""
+        return [{k: msg[k] for k in self._COMMAND_KEYS} for msg in self.queue if 'packet' not in msg]
+
+    def pending_packets(self) -> list[dict]:
+        """Paquets du moteur en attente (position du joueur, paquets liés à une case, ZombieList)."""
+        return [{k: msg[k] for k in ('to', 'from', 'packet', 'args')} for msg in self.queue if 'packet' in msg]
+
+    # Zone d'envoi (E19-T06) ------------------------------------------------------------------------------
+    def _position(self, username) -> tuple:
+        """Position du joueur sur sa propre machine (celle qu'il signale au serveur)."""
+        p = self.machines[username].H.players[username]
+        return (p.x, p.y, p.z)
+
+    @property
+    def relevant_range(self) -> int:
+        return self.zone.relevant_range
+
+    def relevant_to(self, client: str, x, y) -> bool:
+        """Le serveur écrirait-il maintenant à ce client un paquet lié à la case x, y (SendZone)."""
+        return self.zone.relevant_to(client, x, y)
+
+    def _send_positions(self):
+        """Fin d'image d'un client : position envoyée au serveur si elle a changé (NetworkPlayerAI.java:300-333, paquet
+        fiable dès que la case change ; téléportation : GameClient.sendPlayer, TeleportPacket.java:70-76). Le serveur
+        la prend à la livraison : jusque-là, le client reste compté à son ancienne place. Solo : aucun réseau."""
+        if self.mode != 'mp':
+            return
+        for c, m in self.clients.items():
+            if m.paused:
+                continue
+            pos = self._position(c)
+            if pos != self._sent_pos[c]:
+                self._sent_pos[c] = pos
+                self._enqueue_packet(c, 'server', 'PlayerUpdate', {'x': pos[0], 'y': pos[1], 'z': pos[2]})
+
+    def send_to_relative(self, x, y, packet: str, args):
+        """Paquet du serveur lié à la case x, y, mis en file pour chaque client dont la zone la couvre AU MOMENT de
+        l'envoi (INetworkPacket.java:182-189, GameServer.sendCorpse 1869-1883) ; un client hors zone ne le reçoit
+        jamais (aucun renvoi : il ne verra l'objet qu'avec la case rechargée)."""
+        if self.mode != 'mp':
+            return
+        for c in self.zone.relevant_clients(x, y):
+            self._enqueue_packet('server', c, packet, args)
+
+    def _enqueue_packet(self, sender: str, to: str, packet: str, args):
+        if packet not in PACKET_CHANNELS:
+            raise HarnessError(f'harness: packet {packet!r} not simulated (PACKET_CHANNELS)')
+        self.queue.append({'to': to, 'from': sender, 'packet': packet, 'args': args,
+                           'channel': PACKET_CHANNELS[packet]})
+
+    # Livraison ------------------------------------------------------------------------------------------
+    @staticmethod
+    def _stream(msg):
+        """Flux ordonné RakNet d'un message (émetteur, destinataire, canal), ou None (aucun ordre garanti)."""
+        channel = msg.get('channel')
+        return None if channel is None else (msg['from'], msg['to'], channel)
+
+    def _take_ready(self, order):
+        """Sépare la file en messages livrables et retenus. order='random' avec delay : chaque message vu pour la
+        première fois est retenu 0 à delay pompes (paquet perdu puis renvoyé) ; un message retenu d'un flux ordonné
+        retient les suivants de son flux."""
+        ready, held, blocked = [], [], set()
+        for msg in self.queue:
+            if 'hold' not in msg:
+                msg['hold'] = self.rng.randint(0, self.delay) if order == 'random' and self.delay > 0 else 0
+            stream = self._stream(msg)
+            if msg['hold'] > 0 or (stream is not None and stream in blocked):
+                held.append(msg)
+                if stream is not None:
+                    blocked.add(stream)
+            else:
+                ready.append(msg)
+        return ready, held
+
+    def _arrange(self, batch, order):
+        """Ordre de livraison d'un lot : fifo, lifo ou random sur l'ensemble, puis chaque flux ordonné remis dans son
+        ordre d'envoi aux places qu'il occupe (RELIABLE_ORDERED : ordre garanti dans un flux, aucun entre flux)."""
+        arranged = list(batch)
+        if order == 'lifo':
+            arranged.reverse()
+        elif order == 'random':
+            self.rng.shuffle(arranged)
+        streams: dict = {}
+        for msg in batch:
+            stream = self._stream(msg)
+            if stream is not None:
+                streams.setdefault(stream, []).append(msg)
+        for stream, sent in streams.items():
+            slots = [i for i, msg in enumerate(arranged) if self._stream(msg) == stream]
+            for i, msg in zip(slots, sent):
+                arranged[i] = msg
+        return arranged
 
     def pump(self, order: str | None = None, limit: int | None = None) -> int:
+        """Livre la file : messages livrables par lots (ceux qu'une livraison envoie forment le lot suivant), dans
+        l'ordre demandé ; rend le nombre de commandes Lua livrées (les paquets du moteur ne comptent pas)."""
         order = order or self.order
-        delivered = 0
-        while self.queue and (limit is None or delivered < limit):
-            batch, self.queue = self.queue, []
-            if order == 'lifo':
-                batch.reverse()
-            elif order == 'random':
-                self.rng.shuffle(batch)
-            elif order != 'fifo':
-                raise ValueError(f'unknown order {order!r}')
+        if order not in ORDERS:
+            raise ValueError(f'unknown order {order!r}')
+        for msg in self.queue:
+            if msg.get('hold', 0) > 0:
+                msg['hold'] -= 1
+        delivered = handled = 0
+        while limit is None or delivered < limit:
+            batch, held = self._take_ready(order)
+            if not batch:
+                break
+            self.queue = held
+            batch = self._arrange(batch, order)
             for i, msg in enumerate(batch):
                 if limit is not None and delivered >= limit:
                     self.queue = batch[i:] + self.queue
                     break
                 self._deliver(msg)
-                delivered += 1
-            if delivered > 100_000:
+                handled += 1
+                if 'packet' not in msg:
+                    delivered += 1
+            if handled > 100_000:
                 raise HarnessError('harness: network loop (more than 100000 messages)')
         self._check()
         return delivered
 
     def _deliver(self, msg):
-        if msg['to'] == 'server':
+        if 'packet' in msg:
+            self._deliver_packet(msg)
+        elif msg['to'] == 'server':
             m = self.server
             player = m.H.players[msg['from']]
             m.H.trigger('OnClientCommand', msg['module'], msg['command'], player, m.to_lua(msg['args']))
         else:
             m = self.clients[msg['to']]
             m.H.trigger('OnServerCommand', msg['module'], msg['command'], m.to_lua(msg['args']))
+
+    def _deliver_packet(self, msg):
+        args = msg['args']
+        if msg['packet'] == 'PlayerUpdate':
+            self.zone.report(msg['from'], args['x'], args['y'], args['z'])
+        elif msg['packet'] == 'ZombieList':
+            zb = self.clients[msg['to']].H.zombies[args['zid']]
+            if zb is not None:
+                zb.owner = args['owner']
+        else:
+            m = self.clients[msg['to']]
+            m.H.receivePacket(msg['packet'], m.to_lua(args))

@@ -20,6 +20,7 @@ from test_lk_directives import DirectiveBase, TARGET  # noqa: E402
 from test_lk_milestone import MilestoneBase  # noqa: E402
 from test_lk_bodies import lua_list  # noqa: E402
 from test_lk_equipment import EQUIP_DOUBLES, EQUIPMENT  # noqa: E402
+from net_disorder import OwnerChange, disorder  # noqa: E402  (E19-T06)
 
 REPORTS = 'server/LivingKnox/LK_Reports.lua'
 EXECUTOR = 'client/LivingKnox/LK_Executor.lua'
@@ -551,6 +552,66 @@ class OwnershipHandoverTests(ReportBase):
         self.walk(zid, 400)
         self.assertGreater(self.r('stats.accepted'), before)
         self.assertEqual(self.r('stats.rejected'), 0, self.refused())
+
+
+class HandoverUnderNetworkDisorderTests(ReportBase):
+    """E19-T06 (registre catégorie F : lk.handover du 2026-10-15, LK03 du 2026-10-11) : marche du PNJ avec changement de
+    propriétaire pendant l'action, rejouée sous tests/net_disorder.py (fifo, lifo, random à trois graines avec retard).
+    Le propriétaire change par le réseau (Harness.set_owner via_network : serveur à l'instant, chaque client à la
+    livraison de son ZombieList, non ordonné avec les commandes) ; chaque client simule tant qu'il se croit
+    propriétaire ; la copie du serveur suit le propriétaire choisi par le serveur."""
+
+    ready = OwnershipHandoverTests.ready
+
+    def believes_owner(self, c, zid):
+        return self.h.eval(c, f'not HARNESS.zombies[{zid}]:isRemoteZombie()') is True
+
+    def walk_by_belief(self, zid, frames, speed=0.05):
+        """Rend les expéditeurs successifs de l'état accepté par le serveur (Reports.get().by)."""
+        reporters = []
+        for _ in range(frames):
+            self.h.tick(1)
+            for c in ('A', 'B'):
+                if self.believes_owner(c, zid):
+                    self.h.eval(c, f'STEP({zid}, {speed})')
+            zb = self.h.zombie(self.h.owners[zid], zid)
+            self.h.move_zombie(zid, zb.x, zb.y)
+            self.h.pump()
+            by = self.state('by')
+            if by is not None and (not reporters or reporters[-1] != by):
+                reporters.append(by)
+            if self.done()():
+                break
+        return reporters
+
+    def test_walk_reaches_its_target_through_an_owner_change_under_network_disorder(self):
+        def scene(delivery):
+            zid = self.ready('A')
+            self.assertEqual(self.d(f'moveTo("lk-1", {TARGET[0]}, {TARGET[1]}, {TARGET[2]})'), 1)
+            self.h.pump()
+            OwnerChange(zid, 'B', 40).schedule(self.h)      # pendant la marche
+            OwnerChange(zid, 'A', 120).schedule(self.h)     # et retour, avant l'arrivée
+            reporters = self.walk_by_belief(zid, 1500)
+            # Chaque nouveau propriétaire a repris le corps (le premier rapport de A peut arriver après le bail de B :
+            # refus « previous lease », course attendue).
+            self.assertEqual(reporters[-2:], ['B', 'A'], reporters)
+            self.walk(zid, 60)
+            while self.h.pending() or self.h.pending_packets():
+                self.h.pump()
+            self.assertEqual(self.entry('s'), 'arrived')
+            self.assertEqual(self.entry('v'), 1)
+            self.assertEqual(len([line for line in self.lk() if 'move #1 arrived' in line]), 1)
+            # Rapport en vol sous l'ancien bail : refus attendu de la course (INFO « previous lease », rapports.md),
+            # jamais un refus suspect (WARN) ni un refus de consigne.
+            self.assertEqual(self.suspect_refusals(), 0, self.refused())
+            self.assertTrue(all('previous lease' in line for line in self.refused()), self.refused())
+            self.assertEqual(self.d('stats.rejected'), 0)
+            self.assertEqual(self.ev('LivingKnox.Directives.hands["lk-1"]'), 'A')
+        disorder(self, scene)
+
+    def suspect_refusals(self):
+        return self.ev('(function() local R, n = LivingKnox.Reports, 0 for k, v in pairs(R.stats.why) do '
+                       'if R.SUSPECT[k] then n = n + v end end return n end)()')
 
 
 class SoloReportTests(ReportBase):

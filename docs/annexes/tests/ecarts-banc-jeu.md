@@ -47,8 +47,8 @@ cités par ces sources n'ont pas été relus un par un. Les plus récents d'abor
 | 2026-11-07 | `lk.chatter` | aucune discussion en 30 s : budget horaire déjà épuisé | D | à couvrir (`E19-T05`) |
 | 2026-11-07 | `lk.traversal` | trajet par les portes de la maison coupé | E | à couvrir (`E19-T08`) |
 | 2026-11-07 | `E18-T17` | identifiant d'objet tiré au hasard qui déborde du `short` vers les négatifs | B | à couvrir (`E19-T03`) |
-| 2026-11-05 | `rs.mission.retrieve` | cadavre jamais reçu par un client téléporté (zone d'envoi) | F | à couvrir (`E19-T06`) |
-| 2026-11-05 | `rs.npctalk` | commande et réponse livrées sans ordre | F | à couvrir (`E19-T06`) |
+| 2026-11-05 | `rs.mission.retrieve` | cadavre jamais reçu par un client téléporté (zone d'envoi) | F | `test_mission_retrieve.py` `test_in_game_suite_under_the_send_zone` (`E19-T06` : zone d'envoi `harness.SendZone` d'après `UdpConnection.isRelevantTo`, 88 cases autour de la position signalée par le client, mise à jour par son paquet de position suivant) : la suite d'avant `a469d1f` échoue (« client alice: corpse of the spot not received »), l'actuelle passe |
+| 2026-11-05 | `rs.npctalk` | commande et réponse livrées sans ordre | F | `test_rs_net_disorder.py` `test_request_seen_under_network_disorder` (`E19-T06` : vrai `R.talk` et vraies étapes RST sous `tests/net_disorder.py`) : le `R.talk` d'avant `a469d1f` échoue sur `random-1` (« no npc_talk request »), l'actuel passe sur les cinq ordres |
 | 2026-11-05 | `lk.windowkill` | le zombie reste dehors, une seule frappe (IA vanilla) | C | non reproductible (IA vanilla) |
 | 2026-11-05 | `lk.barricade` | les joueurs de test, solides, bouchent un couloir d'une case | I | à couvrir (`E19-T08`) |
 | 2026-11-04 | `lk.guard` | zombie recyclé resté `useless` : corps inoffensif | B | à couvrir (`E19-T03`) |
@@ -59,21 +59,21 @@ cités par ces sources n'ont pas été relus un par un. Les plus récents d'abor
 | 2026-11-04 | `lk.routines` | cueilleur debout toute la nuit | D | à couvrir (`E19-T05`) |
 | 2026-11-04 | `lk.meals`, `lk.expedition` | zombies de la partie autour du foyer : alerte et défense pendant la scène | E | à couvrir (`E19-T08`) |
 | 2026-11-04 | `lk.melee` | case du joueur impraticable pour un déplacement | E | à couvrir (`E19-T08`) |
-| 2026-10-15 | `lk.handover` | écart de 3 s autour d'un changement de propriétaire pendant une escalade | F | à couvrir (`E19-T06`) |
+| 2026-10-15 | `lk.handover` | écart de 3 s autour d'un changement de propriétaire pendant une escalade | F | en partie : `test_lk_reports.py` `HandoverUnderNetworkDisorderTests` (`E19-T06` : propriétaire changé deux fois par le réseau pendant une marche, sous désordre ; vert, seul refus vu : « previous lease », course attendue) ; l'escalade elle-même n'est pas simulée |
 | 2026-10-15 | `lk.traversal` | clé non retirée : le corps porte une autre clé du même bâtiment | B | à couvrir (`E19-T03`) |
 | 2026-10-15 | `rs.relation` | corps posé derrière un mur de la maison | E | à couvrir (`E19-T08`) |
 | 2026-10-15 | `lk.milestone` | case du PNJ encore chargée après 60 s sur le serveur | E | à couvrir (`E19-T08`) |
-| 2026-10-14 | `lk.executor` | copie arrivée 4,3 cases derrière la cible | F | à couvrir (`E19-T06`) |
+| 2026-10-14 | `lk.executor` | copie arrivée 4,3 cases derrière la cible | F | à couvrir : retard de la copie d'un client (paquets de zombie interpolés) non simulé par `E19-T06` |
 | 2026-10-12 | `LK06` | PNJ resté 7 s dans l'état vanilla « turnalerted » | C | non reproductible (états vanilla) |
 | 2026-10-12 | `LK05` | ligne de vue « Blocked » alors que la perception dit « vu » | B | à couvrir (`E19-T03`) |
 | 2026-10-11 | `LK04` | fenêtre ouverte : « expected 1 argument, got 2 » | A | `test_harness.py` `StrictDoublesTests.test_wrong_arity_refused_like_kahlua` (doublures strictes : nombre d'arguments contrôlé contre l'API 42.22, `E19-T03`) |
 | 2026-10-11 | `LK04` | PNJ qui enjambe la fenêtre au lieu du portail (chemin vanilla) | C | non reproductible (chemins vanilla) |
 | 2026-10-11 | `LK04` | aucune animation d'ouverture quand l'autorité ouvre une fenêtre | H | non reproductible |
 | 2026-10-11 | `LK11` | réplique entendue, bulle non dessinée au-dessus du corps | H | non reproductible |
-| 2026-10-11 | `LK03` | rapport d'état refusé en boucle après la sortie de zone | F | à couvrir (`E19-T06`) |
-| 2026-10-11 | `E17` | « pont absent » affiché alors que le pont tourne | F | à couvrir (`E19-T06`) |
+| 2026-10-11 | `LK03` | rapport d'état refusé en boucle après la sortie de zone | F | à couvrir : zone d'envoi simulée (`E19-T06`), mais pas la copie de zombie retirée d'un client sorti de zone |
+| 2026-10-11 | `E17` | « pont absent » affiché alors que le pont tourne | F | à couvrir : non traité par `E19-T06` (désordre des commandes en place, scène du pont non écrite) |
 
 ## Mesure
 
-Au 2026-11-13 : 42 lignes, 3 couvertes par un test du banc (`lk.meals` par le balayage des phases, `lk.upkeep` par la scène sur le vrai Lua du potager, défaut reproduit puis corrigé en `LK15-T07`, nombre d'arguments de `LK04` par les doublures strictes), 6 non reproductibles (catégories C et H), 33 à couvrir. `E19-T03` n'a révélé aucun défaut du mod (seulement des doublures de bancs fautives) ; `E19-T04` en a révélé un (place d'une tâche d'entretien hors du rayon « au foyer », ci-dessus).
+Au 2026-11-13 : 42 lignes, 5 couvertes par un test du banc (`lk.meals` par le balayage des phases, `lk.upkeep` par la scène sur le vrai Lua du potager, défaut reproduit puis corrigé en `LK15-T07`, nombre d'arguments de `LK04` par les doublures strictes, `rs.mission.retrieve` par la zone d'envoi et `rs.npctalk` par le réseau en désordre, `E19-T06`), 1 en partie (`lk.handover`), 6 non reproductibles (catégories C et H), 30 à couvrir. `E19-T03` n'a révélé aucun défaut du mod (seulement des doublures de bancs fautives) ; `E19-T04` en a révélé un (place d'une tâche d'entretien hors du rayon « au foyer », ci-dessus). `E19-T06` n'en a révélé aucun : les deux défauts reproduits étaient déjà corrigés (`a469d1f`), les bancs passés sous désordre sont verts.
 Mettre ce compte à jour à chaque tâche de `E19` terminée.

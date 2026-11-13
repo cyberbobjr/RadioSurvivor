@@ -16,7 +16,10 @@ from pathlib import Path
 
 from test_carnet import (MAP_DOUBLE, NOTEBOOK_UI, SCOUT_GRID, TESTS_SHARED, Simulation, convert, count)
 from test_protocol import lua_list
+from harness import SendZone
 import npc_protocol as protocol
+
+SUITE_TEST = "body placed once, another ID card refused, the body's card accepted by id"
 
 # Cell, building and corpse doubles of the server machine (installed after the Simulation is built).
 # House 5002 of SCOUT_GRID: 100..110 x 10..20, z 0; site point = centre of its room rect (104, 14).
@@ -354,10 +357,11 @@ class RetrieveMissionTests(unittest.TestCase):
         self.assertIn('ID card', reply['text'])
         self.assertIn('120 minutes', reply['text'])
 
-    def test_in_game_suite_on_the_simulated_server(self):
-        """rs.mission.retrieve (dev mod) run by the real RST engine on the server machine; the server move of
-        RST_Fixtures is played directly on the server copy of the player, which loads the house."""
-        sim, npc, record, missions = self.retrieve_sim('suite')
+    def suite_sim(self, name):
+        """Simulated server with the real RST engine and the suite rs.mission.retrieve loaded (dev mod); the server move
+        of RST_Fixtures is played directly on the server copy of the player, which loads the house. Rend la simulation et
+        le joueur demandeur (alice)."""
+        sim, npc, record, missions = self.retrieve_sim(name)
         shared = (TESTS_SHARED.as_posix() + '/?.lua')
         sim.server.rt.execute(f'package.path = [[{shared};]] .. package.path')
         sim.server.rt.execute("""
@@ -386,6 +390,36 @@ class RetrieveMissionTests(unittest.TestCase):
             RST.Fixtures.WAIT_LOADED = false   -- the server double has no current square: moves do not wait for it
         """)
         sim.server.rt.execute((TESTS_SHARED / 'RST' / 'suites' / 'RS_MissionRetrieve.lua').read_text(encoding='utf-8'))
+        alice = sim.server.g.PLAYERS.alice
+        # F.giveItem: inv:AddItem("Module.Item") creates the item (ItemContainer.AddItem(String)).
+        sim.server.rt.execute("""
+            local p = PLAYERS.alice
+            p.removeAttachedItem = function() end
+            p.isEquipped = function() return false end
+            local add = p.inv.AddItem
+            p.inv.AddItem = function(self, it)
+                if type(it) == 'string' then it = instanceItem(it) end
+                return add(self, it)
+            end
+        """)
+        return sim, alice
+
+    def run_suite(self, sim, alice, each_step=None):
+        """Runs the suite by RST.step every 100 ms (each_step() after each step); rend les résultats par test."""
+        self.assertTrue(sim.server.rt.eval('function(p) return RST.start("rs.mission.retrieve", '
+                                           '{ attach = false, ctx = { player = p } }) end')(alice))
+        for _ in range(400):
+            if not sim.server.rt.eval('RST.step()'):
+                break
+            if each_step:
+                each_step()
+            sim.clock.offset += 100
+        report = sim.server.rt.eval('RST.last()')
+        self.assertIsNotNone(report, 'run not finished')
+        return {r.test: (r.status, r.message) for r in report.results.values()}
+
+    def test_in_game_suite_on_the_simulated_server(self):
+        sim, alice = self.suite_sim('suite')
         # E01-T16: the client checks (world.keys) are covered by test_rst_steps.py; here the suite asks them twice
         # (body with the card, then without it), recorded and answered at once.
         sim.server.rt.execute("""
@@ -401,29 +435,8 @@ class RetrieveMissionTests(unittest.TestCase):
                 if after then return after(t) end
             end
         """)
-        alice = sim.server.g.PLAYERS.alice
-        # F.giveItem: inv:AddItem("Module.Item") creates the item (ItemContainer.AddItem(String)).
-        sim.server.rt.execute("""
-            local p = PLAYERS.alice
-            p.removeAttachedItem = function() end
-            p.isEquipped = function() return false end
-            local add = p.inv.AddItem
-            p.inv.AddItem = function(self, it)
-                if type(it) == 'string' then it = instanceItem(it) end
-                return add(self, it)
-            end
-        """)
-        self.assertTrue(sim.server.rt.eval('function(p) return RST.start("rs.mission.retrieve", '
-                                           '{ attach = false, ctx = { player = p } }) end')(alice))
-        for _ in range(400):
-            if not sim.server.rt.eval('RST.step()'):
-                break
-            sim.clock.offset += 100
-        report = sim.server.rt.eval('RST.last()')
-        self.assertIsNotNone(report, 'run not finished')
-        results = {r.test: (r.status, r.message) for r in report.results.values()}
-        self.assertEqual(results, {'body placed once, another ID card refused, the body\'s card accepted by id':
-                                   ('PASS', None)})
+        results = self.run_suite(sim, alice)
+        self.assertEqual(results, {SUITE_TEST: ('PASS', None)})
         self.assertEqual((alice.x, alice.y), (10, 10), 'the fixture did not move the player back')
         self.assertEqual(sim.server.rt.eval('#PEER_ASKS'), 2, 'world.keys asks of the suite')
         self.assertTrue(sim.server.rt.eval('PEER_ASKS[1].corpse and PEER_ASKS[1].union and PEER_ASKS[1].n == 9'))
@@ -432,6 +445,64 @@ class RetrieveMissionTests(unittest.TestCase):
                         'clients asked to hold the area after the body was placed')
         bodies = sim.server.g.RETRIEVE.bodies[1].square.bodies
         self.assertEqual(len(lua_list(bodies)), 0, 'body not removed by the cleanup')
+
+    def test_in_game_suite_under_the_send_zone(self):
+        """E19-T06 (campagne MP du 2026-11-05, registre catégorie F) : zone d'envoi du serveur dédié (harness.SendZone,
+        sources 42.22). createRandomDeadBody envoie le cadavre par GameServer.sendCorpse (RandomizedWorldBase.java:505,
+        GameServer.java:1869-1883) aux seules connexions dont la position SIGNALÉE couvre la case ; un client téléporté
+        signale sa nouvelle place par son paquet de position suivant (TeleportPacket.java:70-76, PlayerPacket.java:169),
+        ici une étape (100 ms) après la copie du serveur. Un client qui a manqué le paquet n'a pas le cadavre (case déjà
+        reçue : aucun renvoi). world.loaded (PC.waitLoaded) : les clients tiennent la zone settleMs (2 s) ; world.keys
+        (PC.checkSquares) : chaque client compare ses cadavres à ceux du serveur. L'ancienne suite (a469d1f^, sans
+        waitLoaded) échoue ici, l'actuelle passe."""
+        sim, alice = self.suite_sim('zone')
+        zone = SendZone()
+        names = ('alice', 'bob')
+        players = {n: sim.server.g.PLAYERS[n] for n in names}
+        for n, p in players.items():
+            zone.report(n, p.x, p.y, p.z or 0)
+        sim.server.g.RELEVANT_CLIENTS = lambda x, y: sim.server.rt.table_from(zone.relevant_clients(x, y))
+        sim.server.rt.execute("""
+            ZONE = { asks = 0 }
+            RST.clock = getTimestampMs   -- the GameTime double of the simulation does not move: real clock of the bench
+            local create = RandomizedWorldBase.createRandomDeadBody
+            RandomizedWorldBase.createRandomDeadBody = function(sq, ...)
+                local body = create(sq, ...)
+                body.receivers = {}   -- GameServer.sendCorpse : connexions dont la zone couvre la case
+                for _, name in ipairs(RELEVANT_CLIENTS(sq:getX(), sq:getY())) do body.receivers[name] = true end
+                return body
+            end
+            -- Every client holds the squares loaded (loaded at its teleport) for PC.SETTLE_MS, then after(t).
+            RST.PeerChecks.waitLoaded = function(t, squares, after)
+                local since = RST.now()
+                t:waitQuiet(function() return RST.now() - since >= RST.PeerChecks.SETTLE_MS end, 30000,
+                    after, "world.loaded")
+            end
+            -- Each client compares its corpses on the squares with the server's: a body never received differs.
+            RST.PeerChecks.checkSquares = function(t, squares, kinds, after, union)
+                ZONE.asks = ZONE.asks + 1
+                for _, name in ipairs({ "alice", "bob" }) do
+                    for _, b in ipairs(RETRIEVE.bodies) do
+                        t:ok(b.receivers[name] == true, "client " .. name .. ": corpse of the spot not received")
+                    end
+                end
+                if after then return after(t) end
+            end
+        """)
+        lag = {}
+
+        def player_packets():
+            # Position received by the server one step after the client moved (packet of the next client frame).
+            for n, pos in lag.items():
+                zone.report(n, *pos)
+            lag.clear()
+            for n, p in players.items():
+                pos = (p.x, p.y, p.z or 0)
+                if pos != zone.reported[n]:
+                    lag[n] = pos
+        results = self.run_suite(sim, alice, player_packets)
+        self.assertEqual(results, {SUITE_TEST: ('PASS', None)})
+        self.assertEqual(sim.server.rt.eval('ZONE.asks'), 2)
 
 
 if __name__ == '__main__':

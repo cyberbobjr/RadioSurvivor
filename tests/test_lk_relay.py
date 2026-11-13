@@ -18,6 +18,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from harness import lua_src  # noqa: E402  (E18-T07)
 from test_lk_bodies import LUA  # noqa: E402
 from test_lk_directives import DirectiveBase, TARGET  # noqa: E402
+from net_disorder import disorder  # noqa: E402  (E19-T06)
 
 RELAY = 'server/LivingKnox/LK_Relay.lua'
 TICK_MS = 100
@@ -173,6 +174,27 @@ class CadenceTests(RelayBase):
             self.assertEqual(sorted(m['args']['d']), ['lk-1', 'lk-2'])
         self.h.pump()
         self.assertEqual(self.h.eval('B', 'LivingKnox.Anim.gestureOf("lk-2")'), 'guard')
+
+
+class RelayUnderNetworkDisorderTests(RelayBase):
+    """E19-T06 (registre catégorie F) : gestes relayés par le serveur (commandes Lua fiables NON ordonnées,
+    PacketTypes.java:491), rejoués sous tests/net_disorder.py (fifo, lifo, random à trois graines avec retard) :
+    le dernier geste gagne chez chaque client quel que soit l'ordre d'arrivée, frappe comprise."""
+
+    def test_last_gesture_wins_whatever_the_delivery(self):
+        def scene(delivery):
+            self.ready('A')
+            self.relayed()
+            for g in ['aim', 'guard', 'strike', 'aim'] * 5 + ['guard']:   # un changement par image
+                self.gesture(g)
+                self.h.tick(1)
+                self.h.pump()
+            self.relayed()
+            while self.h.pending():
+                self.h.pump()
+            for c in ('A', 'B'):
+                self.assertEqual(self.h.eval(c, 'LivingKnox.Anim.gestureOf("lk-1")'), 'guard', c)
+        disorder(self, scene)
 
 
 class BudgetTests(RelayBase):

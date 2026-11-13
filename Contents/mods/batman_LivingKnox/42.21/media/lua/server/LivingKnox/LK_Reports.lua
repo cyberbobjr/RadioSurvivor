@@ -15,7 +15,8 @@
 --      ANCIEN propriétaire encore persuadé de simuler le corps (LK03-T03, Directives.isPreviousOwner) : rapport
 --      ignoré sans être compté comme refus (stats.ignored, INFO), course attendue du transfert ;
 --   3. bail (LK03-T01, Directives.entries) : rapport sous le bail courant l, et expéditeur = exécutant désigné o ;
---      bail plus ancien : ignoré (course) ; plus grand que tout bail donné : refusé. PNJ sans consigne : bail 0 ;
+--      bail plus ancien : refusé (« previous lease », course attendue après une relève) ; plus grand que tout bail
+--      donné : refusé (« unknown lease »). PNJ sans consigne : bail 0 ;
 --   4. cadence (seau à jetons par PNJ, RATE par seconde, BURST d'avance) ;
 --   5. ordre : numéro n croissant pour un même expéditeur et un même bail (rapport rejoué ou plus ancien refusé ;
 --      numéros remis à zéro à l'entrée en partie de l'expéditeur, "guardHello", comme le fait LK03-T01) ;

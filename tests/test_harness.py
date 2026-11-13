@@ -18,6 +18,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
 import pz_api  # noqa: E402
 from harness import Harness, HarnessError, LuaError  # noqa: E402
 from phase_sweep import DEFAULT_PHASES, EMPTY, PHASES_SHORT, other_groups, sweep  # noqa: E402
+from net_disorder import DEFAULT_ORDERS, OwnerChange, disorder  # noqa: E402
 
 
 def lua_list(t):
@@ -698,6 +699,205 @@ class SoloTests(Base):
         self.assertFalse(h.eval('A', 'GOT[1].a == SENT'))
         h.load('A', 'GOT[1].a.v[1] = 5')
         self.assertEqual(h.eval('A', 'SENT.v[1]'), 1)
+
+
+class SendZoneTests(Base):
+    """E19-T06 : zone d'envoi d'un paquet lié à une case (UdpConnection.isRelevantTo, sources 42.22)."""
+
+    RECEIVE = '''
+        PACKETS = {}
+        HARNESS.onPacket("AddCorpseToMap", function(args) PACKETS[#PACKETS + 1] = args.n end)
+    '''
+
+    def setUp(self):
+        super().setUp()
+        for c in ('A', 'B'):
+            self.h.load(c, self.RECEIVE)
+
+    def got(self, c):
+        return lua_list(self.h.eval(c, 'PACKETS'))
+
+    def report(self):
+        self.h.tick()
+        self.h.pump()
+
+    def test_zone_is_a_square_box_around_the_reported_position(self):
+        h = self.h
+        self.assertEqual(h.relevant_range, 88)   # chunkGridWidth 19 : (19 / 2 + 2) * 8
+        h.move_player('B', 1000, 1000)
+        self.report()
+        self.assertTrue(h.relevant_to('B', 1088, 912))
+        self.assertFalse(h.relevant_to('B', 1089, 1000))
+        self.assertFalse(h.relevant_to('B', 1000, 911))
+        self.assertTrue(h.relevant_to('A', 88, -88))
+        self.assertFalse(h.relevant_to('A', 1000, 1000))
+
+    def test_teleport_counts_at_the_old_place_until_the_player_packet(self):
+        h = self.h
+        h.move_player('B', 500, 500)
+        self.assertFalse(h.relevant_to('B', 500, 500))   # serveur : copie déplacée, zone encore l'ancienne
+        h.tick()
+        self.assertFalse(h.relevant_to('B', 500, 500))   # paquet du joueur en route
+        self.assertEqual(h.pending(), [])                 # pas une commande Lua
+        self.assertEqual(h.pump(), 0)                     # seules les commandes Lua sont comptées
+        self.assertTrue(h.relevant_to('B', 500, 500))
+        h.tick()
+        self.assertEqual(h.pump(), 0)                     # immobile : aucun nouveau paquet de position
+
+    def test_solo_has_no_send_zone(self):
+        h = Harness(mode='solo')
+        h.move_player('A', 500, 500)
+        h.tick()
+        h.load('solo', 'HARNESS.sendToRelative(500, 500, "AddCorpseToMap", { n = 1 })')
+        self.assertEqual(h.pending_packets(), [])
+        h.close()
+
+    def test_packet_reaches_only_the_relevant_clients_and_is_never_resent(self):
+        h = self.h
+        h.move_player('B', 500, 500)
+        h.load('server', 'HARNESS.sendToRelative(500, 500, "AddCorpseToMap", { n = 1 })')   # B pas encore compté là
+        self.report()
+        h.load('server', 'HARNESS.sendToRelative(500, 500, "AddCorpseToMap", { n = 2 })')
+        h.load('server', 'HARNESS.sendToRelative(0, 0, "AddCorpseToMap", { n = 3 })')
+        h.pump()
+        self.assertEqual(self.got('B'), [2])
+        self.assertEqual(self.got('A'), [3])
+        h.load('A', 'HARNESS.sendToRelative(0, 0, "AddCorpseToMap", { n = 4 })')   # GameServer.server faux : rien
+        self.assertEqual(h.pending_packets(), [])
+
+    def test_ordered_channel_keeps_its_order_whatever_the_delivery(self):
+        h = self.h
+        h.load('server', '''
+            Events.OnClientCommand.Add(function(module, command, player, args) CMDS = (CMDS or 0) + 1 end)
+            for n = 1, 6 do HARNESS.sendToRelative(0, 0, "AddCorpseToMap", { n = n }) end''')
+        h.load('A', 'for i = 1, 6 do sendClientCommand("LK", "n" .. i, {}) end')
+        self.assertEqual(h.pump(order='lifo'), 6)
+        self.assertEqual(self.got('A'), [1, 2, 3, 4, 5, 6])
+        h.load('server', 'for n = 7, 12 do HARNESS.sendToRelative(0, 0, "AddCorpseToMap", { n = n }) end')
+        h.pump(order='random')
+        self.assertEqual(self.got('B'), list(range(1, 13)))
+
+
+class LateDeliveryTests(Base):
+    """E19-T06 : commande Lua fiable non ordonnée (PacketTypes.java:491, reliability 2) retenue quelques pompes."""
+
+    def setUp(self):
+        self.h = Harness(order='random', seed=1, delay=2)
+        self.h.load('server', 'GOT = {}; Events.OnClientCommand.Add(function(m, c, p, a) GOT[#GOT + 1] = a.i end)')
+        for c in ('A', 'B'):
+            self.h.load(c, 'P = {}; HARNESS.onPacket("ObjectChange", function(a) P[#P + 1] = a.i end)')
+
+    def test_a_late_command_arrives_after_later_ones_on_a_later_pump(self):
+        h = self.h
+        h.load('A', 'for i = 1, 10 do sendClientCommand("LK", "n", { i = i }) end')
+        first = h.pump()
+        self.assertLess(first, 10)
+        pumps = 1
+        while h.pending():
+            h.pump()
+            pumps += 1
+        self.assertLessEqual(pumps, 3)
+        got = lua_list(h.eval('server', 'GOT'))
+        self.assertEqual(sorted(got), list(range(1, 11)))
+        self.assertNotEqual(got, sorted(got))
+
+    def test_a_late_packet_holds_the_rest_of_its_channel(self):
+        h = self.h
+        h.load('server', 'for i = 1, 8 do HARNESS.sendToRelative(0, 0, "ObjectChange", { i = i }) end')
+        for _ in range(4):
+            h.pump()
+        for c in ('A', 'B'):
+            self.assertEqual(lua_list(h.eval(c, 'P')), list(range(1, 9)))
+
+    def test_without_delay_random_is_unchanged(self):
+        a = Harness(order='random', seed=5)
+        a.load('server', 'GOT = {}; Events.OnClientCommand.Add(function(m, c, p, x) GOT[#GOT + 1] = x.i end)')
+        a.load('A', 'for i = 1, 6 do sendClientCommand("LK", "n", { i = i }) end')
+        self.assertEqual(a.pump(), 6)
+        a.close()
+
+
+class NetworkOwnerTests(Base):
+    """E19-T06 : propriétaire décidé par le serveur, appris par le client avec le paquet ZombieList (non fiable, non
+    ordonné : ZombieListPacket.java:15, NetworkZombiePacker)."""
+
+    def test_owner_change_reaches_the_clients_by_the_network(self):
+        h = self.h
+        h.spawn_zombie(101, 10, 10, 0, owner='A')
+        h.set_owner(101, 'B', via_network=True)
+        zl = 'getCell():getZombieList():get(0)'
+        self.assertEqual(h.eval('server', f'{zl}:getOwnerPlayer():getUsername()'), 'B')
+        self.assertIs(h.eval('A', f'{zl}:isRemoteZombie()'), False)   # A se croit encore propriétaire
+        self.assertIs(h.eval('B', f'{zl}:isRemoteZombie()'), True)
+        self.assertEqual(h.pending(), [])
+        h.pump()
+        self.assertIs(h.eval('A', f'{zl}:isRemoteZombie()'), True)
+        self.assertIs(h.eval('B', f'{zl}:isRemoteZombie()'), False)
+
+    def test_at_tick_runs_after_that_many_frames(self):
+        h = self.h
+        seen = []
+        h.at_tick(3, lambda: seen.append(h.eval('server', 'getGameTime() and 1')))
+        h.tick(2)
+        self.assertEqual(seen, [])
+        h.tick()
+        self.assertEqual(seen, [1])
+        h.tick(5)
+        self.assertEqual(seen, [1])
+
+
+class NetDisorderTests(Base):
+    """E19-T06 : aide tests/net_disorder.py."""
+
+    def test_each_order_replays_on_a_fresh_harness(self):
+        seen = []
+
+        def scene(o):
+            seen.append((o.name, self.h.order, self.h.delay, self.h.load('server', 'MARK = (MARK or 0) + 1 return MARK')))
+        played = disorder(self, scene)
+        self.assertEqual(played, ['fifo', 'lifo', 'random-1', 'random-2', 'random-3'])
+        self.assertEqual([s[0] for s in seen], played)
+        self.assertEqual({s[3] for s in seen}, {1})
+        self.assertEqual([s[1] for s in seen], ['fifo', 'lifo', 'random', 'random', 'random'])
+        self.assertEqual([s[2] > 0 for s in seen], [False, False, True, True, True])
+
+    def test_owner_change_at_a_given_frame(self):
+        def scene(o):
+            self.h.spawn_zombie(7, 1, 1, 0, owner='A')
+            self.h.tick(2)
+            self.assertEqual(self.h.owners[7], 'A')
+            self.h.tick()
+            self.assertEqual(self.h.owners[7], 'B')
+            self.assertIs(self.h.eval('A', 'getCell():getZombieList():get(0):isRemoteZombie()'), False)
+            self.h.pump()
+            while self.h.pending_packets():
+                self.h.pump()
+            self.assertIs(self.h.eval('A', 'getCell():getZombieList():get(0):isRemoteZombie()'), True)
+        disorder(self, scene, orders=DEFAULT_ORDERS[:2], owner_change=OwnerChange(7, 'B', 3))
+
+    def test_a_failure_names_the_order_that_produced_it(self):
+        class OrderSensitive(unittest.TestCase):
+            def setUp(self):
+                self.h = Harness()
+                self.h.load('server', 'GOT = {}; Events.OnClientCommand.Add(function(m, c) GOT[#GOT + 1] = c end)')
+
+            def tearDown(self):
+                self.h.close()
+
+            def test_scene(self):
+                def scene(o):
+                    self.h.load('A', 'sendClientCommand("LK", "first", {}); sendClientCommand("LK", "second", {})')
+                    while self.h.pending():
+                        self.h.pump()
+                    self.assertEqual(lua_list(self.h.eval('server', 'GOT')), ['first', 'second'])
+                disorder(self, scene)
+
+        result = unittest.TestResult()
+        OrderSensitive('test_scene').run(result)
+        failed = {re.search(r"order='([^']+)'", str(t)).group(1) for t, _ in result.failures}
+        self.assertIn('lifo', failed)
+        self.assertNotIn('fifo', failed)
+        self.assertEqual(result.errors, [])
 
 
 if __name__ == '__main__':

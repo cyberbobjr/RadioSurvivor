@@ -2,7 +2,7 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 6 / 8 tâche(s) terminée(s).
+**Avancement.** en cours — 7 / 8 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
@@ -11,7 +11,7 @@
 | ☑ | E19-T03 | Doublures corrigées et nombre d'arguments contrôlé | `testé hors jeu` | hors jeu | E19-T01 |
 | ☑ | E19-T04 | Potager sur le vrai Lua vanilla | `testé hors jeu` | hors jeu | LK15-T06 |
 | ☑ | E19-T05 | Horloge fidèle et balayage des phases | `testé hors jeu` | hors jeu | — |
-| ☐ | E19-T06 | Réseau en désordre dans les bancs multijoueurs | `à faire` | hors jeu | — |
+| ☑ | E19-T06 | Réseau en désordre dans les bancs multijoueurs | `testé hors jeu` | hors jeu | — |
 | ☑ | E19-T07 | Règle de travail et registre des écarts | `testé hors jeu` | hors jeu | — |
 | ☐ | E19-T08 | Site réel des campagnes rejoué au banc | `à faire` | hors jeu | E19-T03 |
 
@@ -91,16 +91,16 @@ Rendu, animation, son, interface ; IA et chemins vanilla écrits en Java. Les ca
   - Tests : `python tests/test_harness.py`, bancs des suites.
   - Preuve : 2026-11-13 : `advance()` de `tests/harness.py` déclenche minute par minute `EveryDays`, `EveryHours`, `EveryTenMinutes`, `EveryOneMinute` dans l'ordre de `GameTime.update` (aucun sur une machine en pause), horloge lue pendant l'événement déjà à la nouvelle valeur ; `h.jump_to`, `h.skip` (heures manquées), doublures `getNightsSurvived` et `setTimeOfDay` ; surcouche `TIME_OF_DAY` des bancs supprimée (16 bancs) ; aide `tests/phase_sweep.py` (9 phases : 1 à 30 minutes avant un changement d'heure, avant la nuit, avant minuit, avant l'aube ; un harnais neuf par phase, l'échec nomme la phase) ; suites passées sous balayage, vertes sur les 9 phases : `lk.meals`, `lk.provisions`, `lk.garden`, `lk.upkeep`, `lk.care`, `lk.chores`, `lk.expedition`, `lk.forage`, `lk.alert`, `lk.warn`, `lk.routines` ; bancs qui supposaient une horloge sans heures corrigés (double `EveryHours` à la main retiré, heures manquées par `h.skip`, boucles de `lk.chores` et `lk.routines` qui n'avançaient pas l'heure) ; `python tests/test_harness.py` : `Ran 33 tests … OK` ; `python tests/run_all.py` : `166 passed, 0 failed` (434 s, inchangé) ; `test_doubles_api.py` vert sans nouvelle ligne de référence ; luacheck `Contents` 8, `dev` 0 ; axe « monde déjà peuplé » du balayage (un groupe voisin de 3 membres incarné et déjà évalué par les vrais modules, à 40 cases) : cause du retard confirmée au banc (`LK_Decisions` ne refait la liste des membres incarnés que toutes les `ROSTER_MS` = 5 s quand elle n'est pas vide) ; l'ancienne suite `lk.meals` échoue sur `populated/hour-3` et `populated/hour-4` avec le message vu en jeu (« hungry member did not take an item »), la suite actuelle est verte ; onze suites vertes dans les deux mondes (20 rejeux chacune) ; test à crochet de `test_lk_meals.py` supprimé (cas couvert par le vrai mécanisme) ; `python tests/run_all.py` : `166 passed, 0 failed` (454 s, +20 s)
   - Reste : non reproduit : vitesse ×2 ou ×3 et sommeil (plusieurs minutes par image), jour d'un client reçu par le réseau, horloge propre à chaque machine ; un seul monde peuplé (un groupe de 3 : le tour à tour au-delà de 4 membres incarnés n'est exercé qu'en partie)
-- [ ] **E19-T06** — Réseau en désordre dans les bancs multijoueurs
-  - État : `à faire`
+- [x] **E19-T06** — Réseau en désordre dans les bancs multijoueurs
+  - État : `testé hors jeu`
   - Cible : `hors jeu`
   - Dépend de : —
   - Fichiers : `tests/harness.py` ; bancs serveur + deux clients
   - Faire : ADR D06 : rejouer les bancs multijoueurs avec livraison aléatoire à graines fixes et changement de propriétaire du corps pendant l'action ; zone d'envoi des paquets liés à une case d'après le Java.
   - Accepté si : les cas « réponse avant la demande » et « cadavre non reçu après une téléportation » de l'inventaire sont reproduits au banc sur l'ancien code, verts sur le code actuel.
   - Tests : bancs multijoueurs.
-  - Preuve : —
-  - Reste : —
+  - Preuve : 2026-11-13 : relevé Java 42.22 : commandes Lua `RELIABLE` non ordonnées dans les deux sens (`PacketTypes.java:611-613`), paquets du monde `RELIABLE_ORDERED` par canal, envois liés à une case filtrés par `UdpConnection.isRelevantTo` (88 cases pour une grille de 19) ; harnais : `SendZone` (position signalée par le client, livrée au pompage suivant), `HARNESS.sendToRelative` / `onPacket`, canaux ordonnés, `pump(delay=…)`, changement de propriétaire par le réseau (`set_owner(via_network=True)`) ; aide `tests/net_disorder.py` (`fifo`, `lifo`, trois graines `random` avec retard, changement de propriétaire pendant la scène, l'échec nomme l'ordre) ; bancs sous désordre ou zone : `tests/test_rs_net_disorder.py` (vraie suite de parole du carnet), `test_mission_retrieve.py` (vraie suite `rs.mission.retrieve` sous la zone d'envoi), `test_lk_reports.py` (relève A→B→A pendant une marche), `test_lk_relay.py` (gestes périmés écartés) ; preuves sur le code d'avant le correctif `a469d1f` : `rs.npctalk` échoue sur `random-1` (« no npc_talk request »), `rs.mission.retrieve` échoue (« corpse of the spot not received »), les deux verts sur le code actuel ; `test_harness.py` 56 OK ; les 79 bancs qui utilisent le harnais verts un par un ; `test_doubles_api.py`, `test_mod_calls_api.py` verts ; commentaire trompeur de `LK_Reports.lua` (bail plus ancien « ignoré » alors qu'il est refusé) corrigé
+  - Reste : non simulés : perte définitive d'un paquet non fiable (`ZombieList`), latence en temps réel, reconnexion, paquets de zombie et interpolation des copies (`lk.executor`), copie retirée d'un client sorti de zone (`LK03`) ; en 42.22 la copie serveur d'un joueur et sa zone viennent du même paquet, le banc déplace la copie aussitôt : le symptôme du 2026-11-05 est reproduit par le mécanisme de zone, pas forcément par le chemin exact
 - [x] **E19-T07** — Règle de travail et registre des écarts
   - État : `testé hors jeu`
   - Cible : `hors jeu`
