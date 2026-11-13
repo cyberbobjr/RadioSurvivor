@@ -16,6 +16,9 @@ tests/kahlua/*.class
 # Pont LLM : configuration locale (modèle versionné : bridge/.env.example)
 bridge/.env
 
+# Site réel des campagnes exporté par la suite site.export (E19-T08, ADR banc mimétique D05) : jamais versionné
+tests/fixtures/local/
+
 # Lanceur client automatique (E01-T14) : résultats des exécutions
 tools/autoclient/runs/
 
