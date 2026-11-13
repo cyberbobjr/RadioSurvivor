@@ -526,6 +526,28 @@ class MultiplayerAlertTests(AlertStack):
         self.assertEqual(self.ev(f'{A}.stats.raised'), before + 1)
         self.assertEqual(self.ev(f'{A}.get("{gid}").label'), 'z:951')
 
+    def test_zombie_fought_while_reported_unseen_raises_the_alert(self):
+        """Campagne MP du 2026-11-13 (runs/20261113-233636-parallel-3 shard1) : le garde tire sur un zombie a 3,6 cases
+        (cible du serveur, ligne degagee) que le rapport du proprietaire connait deja sans l'avoir vu ni entendu (dans
+        son dos) : withTarget gardait ce rapport tel quel, l'alerte ignorait la menace. Le fait du serveur prime."""
+        gid = self.mk()
+        self.jump_to(11)
+        self.dpass(2)
+        x, y = self.body_xy(gid, 'm-2')
+        self.h.spawn_zombie(952, int(x) + 3, int(y))
+        D = 'LivingKnox.Decisions'
+        self.run_lua('TG = { kind = "zombie", u = "z:952", d = 3.6, zombie = HARNESS.zombies[952] } '
+                     'PER = { ms = 0, age = 0, stale = false, nz = 1, p = {}, n = {}, '
+                     'z = { { o = 952, x = 1, y = 1, z = 0, a = 1, s = false, h = false, d = 3.6 } } }')
+        self.assertIs(self.ev(f'{D}.withTarget(PER, TG).z[1].s'), True)
+        self.assertIs(self.ev('PER.z[1].s'), False)                                  # rapport du client intact
+        before = self.ev(f'{A}.stats.raised')
+        self.run_lua(f'local g = LivingKnox.Groups.get("{gid}") local m = g.members["m-2"] '
+                     f'local body = LivingKnox.Bodies.find(m.npc) '
+                     f'{A}.observe("{gid}", g, "m-2", m, body, {D}.withTarget(PER, TG), {{}}, '
+                     f'{D}.currentMinute())')
+        self.assertEqual(self.ev(f'{A}.stats.raised'), before + 1)
+
     def test_two_clients_hear_the_same_cry_once_and_see_the_same_alert(self):
         gid, sentry, sleepers = self.night_with_sleepers()
         for c in ('A', 'B'):

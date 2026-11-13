@@ -247,15 +247,17 @@ function Plant:water(source, uses)
     FARM.watered = FARM.watered + 1
 end
 local function key(x, y, z) return x .. ',' .. y .. ',' .. z end
-SFarmingSystem = { instance = {} }
-function SFarmingSystem.instance:getLuaObjectAt(x, y, z) return PLANTS[key(x, y, z)] end
-function SFarmingSystem.instance:plow(sq)
+-- Systeme du potager (SFarmingSystem.lua, Lua vanilla) : classe d'aide du banc.
+local Farm = H.class('SFarmingSystemDouble')
+SFarmingSystem = { instance = setmetatable({}, Farm) }
+function Farm:getLuaObjectAt(x, y, z) return PLANTS[key(x, y, z)] end
+function Farm:plow(sq)
     local p = setmetatable({ state = 'plow', waterLvl = 0, waterNeeded = 0, x = sq.x, y = sq.y, z = sq.z }, Plant)
     PLANTS[key(sq.x, sq.y, sq.z)] = p
     sq.plant = p
     return p
 end
-function SFarmingSystem.instance:removePlant(p)
+function Farm:removePlant(p)
     PLANTS[key(p.x, p.y, p.z)] = nil
     H.square(p.x, p.y, p.z).plant = nil
 end
@@ -267,8 +269,8 @@ local function sortedKeys()
     table.sort(ks)
     return ks
 end
-function SFarmingSystem.instance:getLuaObjectCount() return #sortedKeys() end
-function SFarmingSystem.instance:getLuaObjectByIndex(i)
+function Farm:getLuaObjectCount() return #sortedKeys() end
+function Farm:getLuaObjectByIndex(i)
     H.num(i, 'getLuaObjectByIndex')
     return PLANTS[sortedKeys()[i]]
 end
@@ -912,7 +914,8 @@ function getVegetablesNumber(min, max, minA, maxA, plant, skill)
     return VEG.n
 end
 FARM.grown = 0
-function SFarmingSystem.instance:growPlant(p, nextGrowing, update)
+local Farm = getmetatable(SFarmingSystem.instance)
+function Farm:growPlant(p, nextGrowing, update)
     if nextGrowing ~= nil or update ~= true then error('bad growPlant arguments', 2) end
     FARM.grown = FARM.grown + 1
 end

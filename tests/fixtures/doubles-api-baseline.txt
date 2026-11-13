@@ -19,7 +19,7 @@ anonymes test_lastpages_corpse.py 4
 anonymes test_lk_aid.py 4
 anonymes test_lk_alert.py 1
 anonymes test_lk_combat.py 1
-anonymes test_lk_food.py 12
+anonymes test_lk_food.py 9
 anonymes test_lk_fortify.py 3
 anonymes test_lk_fortify_offscreen.py 1
 anonymes test_lk_garden.py 2

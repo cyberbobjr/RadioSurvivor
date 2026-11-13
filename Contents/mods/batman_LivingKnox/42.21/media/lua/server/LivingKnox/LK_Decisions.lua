@@ -1583,8 +1583,14 @@ function Decisions.withTarget(per, tg)
     local z = tg.zombie
     local o = z:getOnlineID()
     if type(o) ~= "number" or o == -1 then return per end
-    for _, e in ipairs(per and per.z or {}) do
-        if e.o == o then return per end
+    local known
+    for i, e in ipairs(per and per.z or {}) do
+        -- Connu du propriétaire sans être vu ni entendu (dans son dos) : la ligne dégagée du serveur fait foi
+        -- (campagne MP du 2026-11-13 : garde qui tire, aucune alerte). Résumé périmé : reconstruit plus bas.
+        if e.o == o and not per.stale then
+            if e.s or e.h then return per end
+            known = i
+        end
     end
     local fresh = per ~= nil and not per.stale   -- résumé périmé : seul le fait du serveur compte
     local out = { z = {}, p = fresh and per.p or {}, n = fresh and per.n or {}, stale = false }
@@ -1592,7 +1598,9 @@ function Decisions.withTarget(per, tg)
         for k, v in pairs(per) do
             if out[k] == nil then out[k] = v end
         end
-        for i, e in ipairs(per.z or {}) do out.z[i] = e end
+        for i, e in ipairs(per.z or {}) do
+            if i ~= known then out.z[#out.z + 1] = e end
+        end
     end
     out.z[#out.z + 1] = { o = o, x = z:getX(), y = z:getY(), z = z:getZ(), a = 1, s = true, h = false, d = tg.d or 0 }
     return out
