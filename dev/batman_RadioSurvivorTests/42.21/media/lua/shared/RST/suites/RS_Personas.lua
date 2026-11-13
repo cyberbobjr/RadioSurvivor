@@ -190,14 +190,16 @@ RST.suite("rs.personas", { tags = { "world", "server" }, testTimeoutMs = 60000, 
         local text = "RST probe line " .. string.format("%.0f", getTimestampMs())
         local aired = getTimestampMs()
         RS_RadioServer.air(free, { "<fzzt>", text, "<szzt>" })
+        -- Any line of the new frequency counts: vanilla scrambles the received text while a weather period runs
+        -- (ZomboidRadio.applyWeatherInterference, solo campaign of 2026-11-13), the exact text is only noted.
         t:waitUntil(function()
             for _, h in ipairs(heard) do
-                if h.khz == free and string.find(h.text, text, 1, true) then return h end
+                if h.khz == free and h.at >= aired then return h end
             end
             return nil
         end, 30000, function(t2, h)
             t2:note("line received on " .. string.format("%.1f", free / 1000) .. " MHz after "
-                .. tostring(h.at - aired) .. " ms")
+                .. tostring(h.at - aired) .. " ms: '" .. tostring(h.text) .. "' (sent '" .. text .. "')")
         end, "line of the new channel never received by the radio in hand")
     end)
 

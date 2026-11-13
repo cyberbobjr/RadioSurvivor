@@ -43,6 +43,7 @@ require "RST/RST_Fixtures"
 local FAR_DX = 40
 local SEEN_MS = 15000
 local SETTLE_MS = 3000
+local RETURN_MS = 15000      -- player_return of a known witness: recorded at the next speech pass
 local DEAD_MS = 10000
 
 local function LK() return LivingKnox end
@@ -445,15 +446,19 @@ RST.suite("rs.observations", { mods = { "rs", "lk" },
                 sc.c.S.dirty = true
             end, "test contacts removed")
             local before = count(sc.c.S.data.npcs)
-            t2:sleep(SETTLE_MS, function(t3)
-                local farHears = false
-                local bodyF = sc.fiches.F and sc.c.Server.objects[sc.fiches.F.id]
-                if bodyF ~= nil then farHears = sc.c.P.hears(sc.c.p, bodyF, sc.c.C.HEARING_RANGE) == true end
-                t3:note("far npc F hears the player: " .. tostring(farHears))
-                onlyFor(t3, sc, "player_return", { A = true, F = farHears }, sc.c.cid)
-                checkCommon(t3, sc, before, "player_return")
-                t3:ok((near[sc.fiches.A.id] or 0) >= hour, "last hour heard of A not updated")
-            end)
+            -- The triggers poll once per speech pass (LK_Talk turns): wait for the fact of A, then SETTLE_MS for the
+            -- other fiches (solo campaign of 2026-11-13: a single check after a fixed sleep came before the pass).
+            t2:waitUntil(function() return #facts(sc, "A", "player_return") > 0 end, RETURN_MS, function(t2b)
+                t2b:sleep(SETTLE_MS, function(t3)
+                    local farHears = false
+                    local bodyF = sc.fiches.F and sc.c.Server.objects[sc.fiches.F.id]
+                    if bodyF ~= nil then farHears = sc.c.P.hears(sc.c.p, bodyF, sc.c.C.HEARING_RANGE) == true end
+                    t3:note("far npc F hears the player: " .. tostring(farHears))
+                    onlyFor(t3, sc, "player_return", { A = true, F = farHears }, sc.c.cid)
+                    checkCommon(t3, sc, before, "player_return")
+                    t3:ok((near[sc.fiches.A.id] or 0) >= hour, "last hour heard of A not updated")
+                end)
+            end, "player_return of witness A never recorded")
         end)
     end)
 
