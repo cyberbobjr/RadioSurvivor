@@ -23,7 +23,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from phase_sweep import sweep  # noqa: E402
+from phase_sweep import WORLDS, other_groups, sweep  # noqa: E402
 from test_lk_bodies import lua_list  # noqa: E402
 from test_lk_decisions import CTX, DECIDERS, DUMP, PureBase  # noqa: E402
 from test_lk_materialize import MatBase  # noqa: E402
@@ -569,12 +569,12 @@ class SuiteTests(RoutineStack):
         for text in ('[LKR] measure survey: 3 post(s), round of 8, 2 bed(s)', '[LKR] measure night post',
                      '[LKR] measure sleep', '[LKR] measure threat', '[LKR] measure dawn round'):
             self.assertTrue(any(text in line for line in logs), text)
-        self.assertEqual(self.ev('#LivingKnox.Groups.list()'), 0)                # groupe de test retiré
+        self.assertEqual(self.ev('#LivingKnox.Groups.list()'), other_groups(self))                # groupe de test retiré
         self.assertEqual(self.h.errors('solo'), [])
 
     def test_suite_lk_routines_passes_under_the_phase_sweep(self):
         """E19-T05 : changement d'heure, de jour, nuit et aube à des instants différents de la scène."""
-        sweep(self, lambda phase: self.test_suite_lk_routines_passes_on_the_doubles())
+        sweep(self, lambda phase: self.test_suite_lk_routines_passes_on_the_doubles(), worlds=WORLDS)
 
     def test_suite_source_is_ascii_and_kahlua_safe(self):
         import re

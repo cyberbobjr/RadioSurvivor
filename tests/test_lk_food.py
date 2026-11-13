@@ -36,7 +36,7 @@ sys.path.append(str(Path(__file__).resolve().parents[1] / 'tools'))
 import pz_paths  # noqa: E402  (vanilla folders: PZ_STEAM_LIBRARY, PZ_MEDIA or Steam detection)
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from phase_sweep import sweep  # noqa: E402
+from phase_sweep import WORLDS, other_groups, sweep  # noqa: E402
 from harness import lua_src  # noqa: E402  (E18-T07)
 from test_lk_bodies import lua_list  # noqa: E402
 from test_lk_expeditions import ExpeditionStack  # noqa: E402
@@ -1069,12 +1069,12 @@ class SuiteRunTests(FoodStack):
         for text in ('[LKF2] measure departure: trip 1 to forage DeepForest ', '[LKF2] measure reached: ',
                      '[LKF2] measure foraged: 6 draw(s)', '[LKF2] measure home: '):
             self.assertTrue(any(text in line for line in logs), text)
-        self.assertEqual(self.ev('#LivingKnox.Groups.list()'), 0)
+        self.assertEqual(self.ev('#LivingKnox.Groups.list()'), other_groups(self))
         self.assertEqual(self.h.errors('solo'), [])
 
     def test_suite_foraging_trip_passes_under_the_phase_sweep(self):
         """E19-T05 : changement d'heure, de jour, nuit et aube à des instants différents de la scène."""
-        sweep(self, lambda phase: self.test_suite_foraging_trip_passes_on_the_doubles(start=None))
+        sweep(self, lambda phase: self.test_suite_foraging_trip_passes_on_the_doubles(start=None), worlds=WORLDS)
 
     def test_suite_foraging_trip_keeps_ordinary_zombies_away(self):
         # Campagne solo du 2026-10-15 : des zombies arrivés un à un à la maison de la suite tenaient le groupe en
@@ -1190,7 +1190,7 @@ class SuiteFishRunTests(FishStack):
         logs = SuiteRunTests.run_suite(self, 'fishers bring vanilla fish home at dawn')
         self.assertTrue(any('[LKF2] measure fishing: ' in line and 'vanilla fish item(s) stored' in line
                             for line in logs))
-        self.assertEqual(self.ev('#LivingKnox.Groups.list()'), 0)
+        self.assertEqual(self.ev('#LivingKnox.Groups.list()'), other_groups(self))
         self.assertEqual(self.h.errors('solo'), [])
 
 

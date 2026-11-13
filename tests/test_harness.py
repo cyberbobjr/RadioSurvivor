@@ -14,7 +14,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from harness import Harness, HarnessError, LuaError  # noqa: E402
-from phase_sweep import DEFAULT_PHASES, PHASES_SHORT, sweep  # noqa: E402
+from phase_sweep import DEFAULT_PHASES, EMPTY, PHASES_SHORT, other_groups, sweep  # noqa: E402
 
 
 def lua_list(t):
@@ -454,6 +454,23 @@ class PhaseSweepTests(Base):
         self.assertEqual(starts, [(p.name, (1, p.hour, p.minute)) for p in DEFAULT_PHASES])
         self.assertTrue(6 <= len(DEFAULT_PHASES) <= 10)
         self.assertEqual(sweep(self, scene, PHASES_SHORT), [p.name for p in PHASES_SHORT])
+
+    def test_world_axis_prepares_each_replay_after_the_clock(self):
+        class Marked:
+            name, groups = 'marked', 2
+
+            def prepare(self, case):
+                case.h.load('solo', 'WORLD_AT = getGameTime():getMinutes()')
+
+        seen = []
+
+        def scene(phase):
+            seen.append((self.sweep_world.name, self.h.eval('solo', 'WORLD_AT'), other_groups(self)))
+        phases = PHASES_SHORT[:2]
+        played = sweep(self, scene, phases, worlds=(EMPTY, Marked()))
+        self.assertEqual(played, [p.name for p in phases] + [f'marked/{p.name}' for p in phases])
+        self.assertEqual(seen, [('empty', None, 0)] * 2 + [('marked', p.minute, 2) for p in phases])
+        self.assertEqual(other_groups(self), 0)
 
     def test_a_failure_names_the_phase_that_produced_it(self):
         class HourSensitive(unittest.TestCase):

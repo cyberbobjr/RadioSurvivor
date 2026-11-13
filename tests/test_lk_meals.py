@@ -36,7 +36,7 @@ from test_lk_bodies import lua_list  # noqa: E402
 from test_lk_decisions import PureBase  # noqa: E402
 from harness import routine_files  # noqa: E402  (LK15-T02)
 from test_lk_routines import RoutineStack  # noqa: E402
-from phase_sweep import sweep  # noqa: E402
+from phase_sweep import WORLDS, other_groups, sweep  # noqa: E402
 
 R = 'LivingKnox.Routines'
 D = 'LivingKnox.Decisions'
@@ -491,8 +491,8 @@ class MultiplayerMealTests(MealStack):
 class SuiteTests(MealStack):
     mode = 'solo'
 
-    def run_suite(self, each_tick=None, start=(9, 0)):
-        """Lance la suite lk.meals sur les doublures ; each_tick(i) est appelé après chaque image ; start : heure de
+    def run_suite(self, start=(9, 0)):
+        """Lance la suite lk.meals sur les doublures ; start : heure de
         départ (None : horloge déjà placée, balayage des phases). Rend le rapport."""
         from test_lk_materialize import PLAYER_MOVES
         self.h.load('solo', PLAYER_MOVES)
@@ -525,8 +525,6 @@ class SuiteTests(MealStack):
         for i in range(6000):
             self.h.tick()
             self.run_lua('STEP_ALL(0.1) for _, z in pairs(HARNESS.zombies) do z.onFloor = false end')
-            if each_tick is not None:
-                each_tick(i)
             if not self.h.eval('solo', 'RST.running()'):
                 break
             self.h.advance_ms(100)
@@ -538,8 +536,9 @@ class SuiteTests(MealStack):
         self.check(self.run_suite())
 
     def test_suite_lk_meals_passes_under_the_phase_sweep(self):
-        """E19-T05 : changement d'heure, de jour, nuit et aube à des instants différents de la scène."""
-        sweep(self, lambda phase: self.check(self.run_suite(start=None)))
+        """E19-T05 : changement d'heure, de jour, nuit et aube à des instants différents de la scène, monde vide puis
+        peuplé (campagne solo du 2026-11-13 : sans attendre la première décision, faim posée puis repas abstrait)."""
+        sweep(self, lambda phase: self.check(self.run_suite(start=None)), worlds=WORLDS)
 
     def check(self, report):
         results = [(r.test, r.status, r.message) for r in lua_list(report.results)]
@@ -549,30 +548,7 @@ class SuiteTests(MealStack):
         for text in ('[LKM] measure stock of ', '[LKM] measure hungry: ', '[LKM] measure taken: ',
                      '[LKM] measure eaten: '):
             self.assertTrue(any(text in line for line in logs), text)
-        self.assertEqual(self.ev('#LivingKnox.Groups.list()'), 0)
-        self.assertEqual(self.h.errors('solo'), [])
-
-    def test_suite_survives_an_hour_change_before_the_first_decision(self):
-        """Campagne solo du 2026-11-13 (run 20261113-120014) : l'heure de jeu a changé entre la faim posée par la suite
-        et la première décision du membre ; jamais évalué pendant l'heure, il a reçu le repas abstrait du pas horaire
-        (Needs.scheduleActivity) et n'a rien pris. Ici : cadre de décision retenu pendant les premières secondes, heure
-        passée dès que la suite pose la faim. La suite doit attendre une première décision avant de poser la faim."""
-        state = {'hour': False}
-
-        def each_tick(i):
-            if i == 0:
-                self.run_lua(f'{D}.state.lastPass = 1e18')                     # aucune décision pour l'instant
-            if i == 150:
-                self.run_lua(f'{D}.state.lastPass = 0')                        # le cadre de décision reprend
-            if not state['hour'] and any('[LKM] measure hungry: ' in x for x in self.h.logs('solo')):
-                state['hour'] = True
-                self.h.advance(60)
-                self.run_lua(f'{N}.pass()')                                    # pas horaire des besoins (EveryHours)
-
-        report = self.run_suite(each_tick)
-        results = [(r.test, r.status, r.message) for r in lua_list(report.results)]
-        self.assertTrue(state['hour'], 'the suite never set the hunger')
-        self.assertTrue(report.ok, (results, [x for x in self.h.logs('solo') if 'LKM' in x or 'ERROR' in x][-20:]))
+        self.assertEqual(self.ev('#LivingKnox.Groups.list()'), other_groups(self))   # groupe de test retiré
         self.assertEqual(self.h.errors('solo'), [])
 
     def test_suite_source_is_ascii_and_kahlua_safe(self):

@@ -2,7 +2,7 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 3 / 8 tâche(s) terminée(s).
+**Avancement.** en cours — 4 / 8 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
@@ -10,7 +10,7 @@
 | ☑ | E19-T02 | Appels du mod conformes à l'API 42.22 | `testé hors jeu` | hors jeu | E19-T01 |
 | ☐ | E19-T03 | Doublures corrigées et nombre d'arguments contrôlé | `à faire` | hors jeu | E19-T01 |
 | ☐ | E19-T04 | Potager sur le vrai Lua vanilla | `à faire` | hors jeu | LK15-T06 |
-| ☐ | E19-T05 | Horloge fidèle et balayage des phases | `codé` | hors jeu | — |
+| ☑ | E19-T05 | Horloge fidèle et balayage des phases | `testé hors jeu` | hors jeu | — |
 | ☐ | E19-T06 | Réseau en désordre dans les bancs multijoueurs | `à faire` | hors jeu | — |
 | ☑ | E19-T07 | Règle de travail et registre des écarts | `testé hors jeu` | hors jeu | — |
 | ☐ | E19-T08 | Site réel des campagnes rejoué au banc | `à faire` | hors jeu | E19-T03 |
@@ -81,16 +81,16 @@ Rendu, animation, son, interface ; IA et chemins vanilla écrits en Java. Les ca
   - Tests : bancs du potager.
   - Preuve : —
   - Reste : —
-- [ ] **E19-T05** — Horloge fidèle et balayage des phases
-  - État : `codé`
+- [x] **E19-T05** — Horloge fidèle et balayage des phases
+  - État : `testé hors jeu`
   - Cible : `hors jeu`
   - Dépend de : —
   - Fichiers : `tests/harness.py` ; `tests/test_harness.py` ; bancs des suites jouées au banc (`SuiteTests`)
   - Faire : ADR D04 : `EveryHours` et `EveryDays` déclenchés par `advance()` dans l'ordre du Java ; aide de balayage qui rejoue un scénario avec l'heure décalée par pas (changement d'heure, de jour, passage à la nuit) ; suites en jeu jouées au banc passées sous le balayage, en commençant par `lk.meals`.
   - Accepté si : le défaut `lk.meals` du 2026-11-13 est attrapé par le balayage sans crochet écrit pour lui ; les suites balayées sont vertes.
   - Tests : `python tests/test_harness.py`, bancs des suites.
-  - Preuve : 2026-11-13 : `advance()` de `tests/harness.py` déclenche minute par minute `EveryDays`, `EveryHours`, `EveryTenMinutes`, `EveryOneMinute` dans l'ordre de `GameTime.update` (aucun sur une machine en pause), horloge lue pendant l'événement déjà à la nouvelle valeur ; `h.jump_to`, `h.skip` (heures manquées), doublures `getNightsSurvived` et `setTimeOfDay` ; surcouche `TIME_OF_DAY` des bancs supprimée (16 bancs) ; aide `tests/phase_sweep.py` (9 phases : 1 à 30 minutes avant un changement d'heure, avant la nuit, avant minuit, avant l'aube ; un harnais neuf par phase, l'échec nomme la phase) ; suites passées sous balayage, vertes sur les 9 phases : `lk.meals`, `lk.provisions`, `lk.garden`, `lk.upkeep`, `lk.care`, `lk.chores`, `lk.expedition`, `lk.forage`, `lk.alert`, `lk.warn`, `lk.routines` ; bancs qui supposaient une horloge sans heures corrigés (double `EveryHours` à la main retiré, heures manquées par `h.skip`, boucles de `lk.chores` et `lk.routines` qui n'avançaient pas l'heure) ; `python tests/test_harness.py` : `Ran 33 tests … OK` ; `python tests/run_all.py` : `166 passed, 0 failed` (434 s, inchangé) ; `test_doubles_api.py` vert sans nouvelle ligne de référence ; luacheck `Contents` 8, `dev` 0
-  - Reste : critère non atteint : l'ancienne suite `lk.meals` passe les 9 phases, car au banc la première décision du membre arrive 5 images après son corps, toujours avant la faim posée ; en jeu elle arrivait environ 90 images après (hypothèse : liste des membres incarnés de `LK_Decisions` refaite toutes les `ROSTER_MS` quand d'autres PNJ sont déjà incarnés). À ajouter : un axe « monde déjà peuplé » au balayage (un autre groupe incarné avant la scène) ; en attendant, le cas reste couvert par le test à crochet de `test_lk_meals.py`. Non reproduit : vitesse ×2 ou ×3 et sommeil (plusieurs minutes par image), jour d'un client reçu par le réseau, horloge propre à chaque machine
+  - Preuve : 2026-11-13 : `advance()` de `tests/harness.py` déclenche minute par minute `EveryDays`, `EveryHours`, `EveryTenMinutes`, `EveryOneMinute` dans l'ordre de `GameTime.update` (aucun sur une machine en pause), horloge lue pendant l'événement déjà à la nouvelle valeur ; `h.jump_to`, `h.skip` (heures manquées), doublures `getNightsSurvived` et `setTimeOfDay` ; surcouche `TIME_OF_DAY` des bancs supprimée (16 bancs) ; aide `tests/phase_sweep.py` (9 phases : 1 à 30 minutes avant un changement d'heure, avant la nuit, avant minuit, avant l'aube ; un harnais neuf par phase, l'échec nomme la phase) ; suites passées sous balayage, vertes sur les 9 phases : `lk.meals`, `lk.provisions`, `lk.garden`, `lk.upkeep`, `lk.care`, `lk.chores`, `lk.expedition`, `lk.forage`, `lk.alert`, `lk.warn`, `lk.routines` ; bancs qui supposaient une horloge sans heures corrigés (double `EveryHours` à la main retiré, heures manquées par `h.skip`, boucles de `lk.chores` et `lk.routines` qui n'avançaient pas l'heure) ; `python tests/test_harness.py` : `Ran 33 tests … OK` ; `python tests/run_all.py` : `166 passed, 0 failed` (434 s, inchangé) ; `test_doubles_api.py` vert sans nouvelle ligne de référence ; luacheck `Contents` 8, `dev` 0 ; axe « monde déjà peuplé » du balayage (un groupe voisin de 3 membres incarné et déjà évalué par les vrais modules, à 40 cases) : cause du retard confirmée au banc (`LK_Decisions` ne refait la liste des membres incarnés que toutes les `ROSTER_MS` = 5 s quand elle n'est pas vide) ; l'ancienne suite `lk.meals` échoue sur `populated/hour-3` et `populated/hour-4` avec le message vu en jeu (« hungry member did not take an item »), la suite actuelle est verte ; onze suites vertes dans les deux mondes (20 rejeux chacune) ; test à crochet de `test_lk_meals.py` supprimé (cas couvert par le vrai mécanisme) ; `python tests/run_all.py` : `166 passed, 0 failed` (454 s, +20 s)
+  - Reste : non reproduit : vitesse ×2 ou ×3 et sommeil (plusieurs minutes par image), jour d'un client reçu par le réseau, horloge propre à chaque machine ; un seul monde peuplé (un groupe de 3 : le tour à tour au-delà de 4 membres incarnés n'est exercé qu'en partie)
 - [ ] **E19-T06** — Réseau en désordre dans les bancs multijoueurs
   - État : `à faire`
   - Cible : `hors jeu`

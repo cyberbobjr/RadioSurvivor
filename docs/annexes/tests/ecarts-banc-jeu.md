@@ -30,7 +30,7 @@ cités par ces sources n'ont pas été relus un par un. Les plus récents d'abor
 
 | Date | Suite ou tâche | Ce qui a cassé en jeu | Cat. | Couvert par |
 |---|---|---|---|---|
-| 2026-11-13 | `lk.meals` | heure de jeu changée entre la faim posée par la suite et la première décision du membre : repas abstrait du pas horaire, aucun objet pris | D | `test_lk_meals.py` `test_suite_survives_an_hour_change_before_the_first_decision` |
+| 2026-11-13 | `lk.meals` | heure de jeu changée entre la faim posée par la suite et la première décision du membre : repas abstrait du pas horaire, aucun objet pris | D | `test_lk_meals.py` `test_suite_lk_meals_passes_under_the_phase_sweep` (monde peuplé, phases `hour-3` et `hour-4`, `E19-T05`) |
 | 2026-11-13 | `rs.observations` (témoins) | compte passé de 47 à 48 pendant une attente ; contrôle unique après un sommeil fixe, avant la passe | D | à couvrir (`E19-T05`) |
 | 2026-11-13 | `rs.observations` (témoins) | témoin placé à 3 cases, placement par défaut qui suit le joueur | E | à couvrir (`E19-T08`) |
 | 2026-11-13 | `lk.upkeep` | un garde en ronde tire sur un zombie pendant les tâches | E | à couvrir (`E19-T08`) |

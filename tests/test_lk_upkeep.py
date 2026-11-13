@@ -32,7 +32,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from phase_sweep import sweep  # noqa: E402
+from phase_sweep import WORLDS, other_groups, sweep  # noqa: E402
 from harness import LK_LUA, lua_src, routine_files  # noqa: E402  (E18-T07, LK15-T02)
 from test_lk_bodies import lua_list  # noqa: E402
 from test_lk_decisions import PureBase  # noqa: E402
@@ -711,12 +711,12 @@ class SuiteTests(UpkeepStack):
         for text in ('[LKU] measure fixture of ', '[LKU] measure done: fuel 2.00 -> 6.00, can 0.00 l, condition 50 -> 54',
                      '[LKU] measure unmarked generator: fuel 0.00 -> 0.00, condition 30 -> 30'):
             self.assertTrue(any(text in line for line in logs), text)
-        self.assertEqual(self.ev('#LivingKnox.Groups.list()'), 0)
+        self.assertEqual(self.ev('#LivingKnox.Groups.list()'), other_groups(self))
         self.assertEqual(self.h.errors('solo'), [])
 
     def test_suite_lk_upkeep_passes_under_the_phase_sweep(self):
         """E19-T05 : changement d'heure, de jour, nuit et aube à des instants différents de la scène."""
-        sweep(self, lambda phase: self.test_suite_lk_upkeep_passes_on_the_doubles(start=None))
+        sweep(self, lambda phase: self.test_suite_lk_upkeep_passes_on_the_doubles(start=None), worlds=WORLDS)
 
     def test_suite_clears_older_glass_before_its_fixture(self):
         # Campagne solo du 2026-10-15 : un verre plus ancien de la maison (fenêtre cassée par les combats d'une

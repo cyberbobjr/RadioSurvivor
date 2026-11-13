@@ -22,7 +22,7 @@ from collections import Counter
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from phase_sweep import sweep  # noqa: E402
+from phase_sweep import WORLDS, other_groups, sweep  # noqa: E402
 from test_lk_bodies import lua_list  # noqa: E402
 from test_lk_decisions import PureBase  # noqa: E402
 from harness import routine_files  # noqa: E402  (LK15-T02)
@@ -414,12 +414,12 @@ class SuiteTests(ChoreStack):
         for text in ('[LKC] measure places: 2 fire(s), 3 furniture', '[LKC] measure chore: ',
                      '[LKC] measure threat: ', '[LKC] measure resumed: ', '[LKC] measure objects after: '):
             self.assertTrue(any(text in line for line in logs), text)
-        self.assertEqual(self.ev('#LivingKnox.Groups.list()'), 0)
+        self.assertEqual(self.ev('#LivingKnox.Groups.list()'), other_groups(self))
         self.assertEqual(self.h.errors('solo'), [])
 
     def test_suite_lk_chores_passes_under_the_phase_sweep(self):
         """E19-T05 : changement d'heure, de jour, nuit et aube à des instants différents de la scène."""
-        sweep(self, lambda phase: self.test_suite_lk_chores_passes_on_the_doubles(start=None))
+        sweep(self, lambda phase: self.test_suite_lk_chores_passes_on_the_doubles(start=None), worlds=WORLDS)
 
     def test_suite_source_is_ascii_and_kahlua_safe(self):
         import re

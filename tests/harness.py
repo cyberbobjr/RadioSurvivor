@@ -242,6 +242,11 @@ function IsoGridSquare:isBlockedTo(other) return false end
 -- (self.room, nil = dehors). Aucune fenêtre ni pièce sur le banc (doublures de test_lk_window_lure.py).
 function IsoGridSquare:isWindowBlockedTo(other) return false end
 function IsoGridSquare:getRoom() return self.room end
+-- Sol nu par défaut (IsoGridSquare.java 42.22 : HasStairs 2169, hasBush 2378, isWaterSquare 9570) ; champs du banc.
+function IsoGridSquare:HasStairs() return self.stairs == true end
+function IsoGridSquare:hasBush() return self.bush == true end
+function IsoGridSquare:isWaterSquare() return self.water == true end
+function IsoGridSquare:getWorldObjects() return rawget(self, 'worldObjects') or H.list() end
 
 local squares = {}
 local function floorInt(v) return math.floor(v) end  -- PZMath.fastfloor (IsoCell.java:2734-2742)

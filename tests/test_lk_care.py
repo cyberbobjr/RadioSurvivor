@@ -22,7 +22,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from phase_sweep import sweep  # noqa: E402
+from phase_sweep import WORLDS, other_groups, sweep  # noqa: E402
 from harness import lua_src  # noqa: E402  (E18-T07)
 from test_lk_bodies import lua_list  # noqa: E402
 from test_lk_meals import MealStack  # noqa: E402
@@ -363,12 +363,12 @@ class SuiteTests(CareStack):
         for text in ('[LKC] measure stock of ', '[LKC] measure wounded: ', '[LKC] measure bleeding: ',
                      '[LKC] measure treated: '):
             self.assertTrue(any(text in line for line in logs), text)
-        self.assertEqual(self.ev('#LivingKnox.Groups.list()'), 0)
+        self.assertEqual(self.ev('#LivingKnox.Groups.list()'), other_groups(self))
         self.assertEqual(self.h.errors('solo'), [])
 
     def test_suite_lk_care_passes_under_the_phase_sweep(self):
         """E19-T05 : changement d'heure, de jour, nuit et aube à des instants différents de la scène."""
-        sweep(self, lambda phase: self.test_suite_lk_care_passes_on_the_doubles(start=None))
+        sweep(self, lambda phase: self.test_suite_lk_care_passes_on_the_doubles(start=None), worlds=WORLDS)
 
     def test_suite_source_is_ascii_and_kahlua_safe(self):
         raw = SUITE_FILE.read_bytes()

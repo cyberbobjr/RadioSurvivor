@@ -27,7 +27,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from phase_sweep import sweep  # noqa: E402
+from phase_sweep import WORLDS, other_groups, sweep  # noqa: E402
 from harness import LK_LUA  # noqa: E402  (E18-T07)
 from harness import lua_src  # noqa: E402  (E18-T07)
 from test_lk_bodies import LUA, DEV_LUA, lua_list  # noqa: E402
@@ -550,12 +550,12 @@ class SuiteTests(EncounterStack):
         for text in ('[LKW] measure stage 1:', '[LKW] measure stage 3:', '[LKW] measure held:',
                      '[LKW] measure stood down:', '[LKW] measure resumed:', '[LKW] measure warning shot:'):
             self.assertTrue(any(text in line for line in logs), text)
-        self.assertEqual(self.ev('#LivingKnox.Groups.list()'), 0)   # groupes de test retirés
+        self.assertEqual(self.ev('#LivingKnox.Groups.list()'), other_groups(self))   # groupes de test retirés
         self.assertEqual(self.h.errors('solo'), [])
 
     def test_suite_lk_warn_passes_under_the_phase_sweep(self):
         """E19-T05 : changement d'heure, de jour, nuit et aube à des instants différents de la scène."""
-        sweep(self, lambda phase: self.test_suite_lk_warn_passes_on_the_doubles())
+        sweep(self, lambda phase: self.test_suite_lk_warn_passes_on_the_doubles(), worlds=WORLDS)
 
     def test_sources_are_ascii_kahlua_safe_with_english_logs(self):
         for path in (SUITE_FILE, lua_src(ENC)):

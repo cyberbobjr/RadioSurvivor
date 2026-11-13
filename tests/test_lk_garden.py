@@ -35,7 +35,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from phase_sweep import sweep  # noqa: E402
+from phase_sweep import WORLDS, other_groups, sweep  # noqa: E402
 from harness import lua_src  # noqa: E402
 from test_lk_bodies import lua_list  # noqa: E402
 from test_lk_food import WaterStack  # noqa: E402
@@ -508,14 +508,14 @@ class SuiteRunTests(GardenStack):
         self.assertTrue(any('[LKG] measure done: 1 packet(s) of 5 seed(s), 1 furrow(s) dug, 1 seed(s) sown' in line
                             for line in logs), [x for x in logs if 'LKG' in x][-10:])
         self.assertEqual(self.run_lua('local n = 0 for _ in pairs(PLANTS) do n = n + 1 end return n'), 0)  # nettoyé
-        self.assertEqual(self.ev('#LivingKnox.Groups.list()'), 0)
+        self.assertEqual(self.ev('#LivingKnox.Groups.list()'), other_groups(self))
         self.assertEqual(self.run_lua('local n = 0 for _, it in ipairs(PANTRY.container.items.items) do '
                                       'if string.find(it.t, "Seed", 1, true) then n = n + 1 end end return n'), 0)
         self.assertEqual(self.h.errors('solo'), [])
 
     def test_suite_lk_garden_passes_under_the_phase_sweep(self):
         """E19-T05 : changement d'heure, de jour, nuit et aube à des instants différents de la scène."""
-        sweep(self, lambda phase: self.test_suite_lk_garden_passes_on_the_doubles(start=None))
+        sweep(self, lambda phase: self.test_suite_lk_garden_passes_on_the_doubles(start=None), worlds=WORLDS)
 
     def test_suite_is_listed_with_its_tags(self):
         self.h.load('solo', SUITE)

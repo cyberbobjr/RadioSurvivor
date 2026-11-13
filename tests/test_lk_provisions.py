@@ -35,7 +35,7 @@ from test_lk_bodies import lua_list  # noqa: E402
 from test_lk_decisions import PureBase  # noqa: E402
 from harness import routine_files  # noqa: E402
 from test_lk_meals import MealStack  # noqa: E402
-from phase_sweep import sweep  # noqa: E402
+from phase_sweep import WORLDS, other_groups, sweep  # noqa: E402
 from test_lk_loot import LootBase  # noqa: E402
 
 D = 'LivingKnox.Decisions'
@@ -580,7 +580,7 @@ class SuiteTests(ProvisionStack):
         self.check(self.run_suite())
 
     def test_suite_lk_provisions_passes_under_the_phase_sweep(self):
-        sweep(self, lambda phase: self.check(self.run_suite(start=None)))   # E19-T05
+        sweep(self, lambda phase: self.check(self.run_suite(start=None)), worlds=WORLDS)   # E19-T05
 
     def check(self, report):
         results = [(r.test, r.status, r.message) for r in lua_list(report.results)]
@@ -590,7 +590,7 @@ class SuiteTests(ProvisionStack):
         for text in ('[LKP] measure carried: ', '[LKP] measure eaten away: ', '[LKP] measure drunk away: ',
                      '[LKP] measure replaced at home: '):
             self.assertTrue(any(text in line for line in logs), text)
-        self.assertEqual(self.ev('#LivingKnox.Groups.list()'), 0)
+        self.assertEqual(self.ev('#LivingKnox.Groups.list()'), other_groups(self))
         self.assertEqual(self.ev(f'{D}.CFG.HOME_RADIUS'), 10)        # réglage du test remis
         self.assertEqual(self.h.errors('solo'), [])
 
