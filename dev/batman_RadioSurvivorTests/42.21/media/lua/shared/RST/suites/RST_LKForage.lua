@@ -57,6 +57,7 @@ local function X() return LivingKnox.Expeditions end
 local function F() return LivingKnox.Food end
 local function S() return LivingKnox.Stock end
 local function U() return LivingKnox.Upkeep end
+local function Gd() return LivingKnox.Garden end
 
 local function memberNpcs(gid)
     local g = LK().Groups.get(gid)
@@ -468,12 +469,12 @@ RST.suite("lk.forage", { tags = { "world", "server" }, testTimeoutMs = 900000, t
     s.test("a thirsty plant of the home is watered from the stock", function(t)
         if type(isClient) == "function" and isClient() then t:skip("authority only (not on an MP client)") end
         local E = LK()
-        t:ok(E ~= nil and E.Upkeep ~= nil and E.Upkeep.waterUses ~= nil and E.Stock ~= nil,
+        t:ok(E ~= nil and E.Upkeep ~= nil and E.Garden ~= nil and E.Garden.waterUses ~= nil and E.Stock ~= nil,
             "LivingKnox upkeep (watering) not loaded")
         local sys = SFarmingSystem and SFarmingSystem.instance
         t:ok(sys ~= nil, "SFarmingSystem is not loaded on this side (authority only)")
         t:ok(E.Groups.ensure(), "group registry not ready")
-        if U().raining() then t:skip("it rains: no watering under the rain") end
+        if Gd().raining() then t:skip("it rains: no watering under the rain") end
         local home = insideHouse(t)
         local gid, addMembers = newGroup(t, home, { { "fighter", "guard" }, { "worker", "handyman" },
             { "worker", "farmer" } }, "RST watering")
@@ -504,7 +505,7 @@ RST.suite("lk.forage", { tags = { "world", "server" }, testTimeoutMs = 900000, t
         plant:seed("Carrots", 0)
         plant.waterLvl = 0
         plant:saveData()
-        local uses = U().waterUses(plant)
+        local uses = Gd().waterUses(plant)
         if uses <= 0 then t:skip("the seeded plant needs no water (waterNeeded " .. tostring(plant.waterNeeded) .. ")") end
         local box = cts[1].container
         if not box:isExplored() then box:setExplored(true) end

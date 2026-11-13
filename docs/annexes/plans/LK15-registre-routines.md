@@ -2,11 +2,11 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** à faire — 0 / 6 tâche(s) terminée(s).
+**Avancement.** en cours — 1 / 6 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
-| ☐ | LK15-T01 | Moteur des tâches du foyer et registre `registerJob` | `à faire` | hors jeu | — |
+| ☑ | LK15-T01 | Moteur des tâches du foyer et registre `registerJob` | `testé hors jeu` | hors jeu | — |
 | ☐ | LK15-T02 | Registre des activités et une routine par fichier | `à faire` | hors jeu | LK15-T01 |
 | ☐ | LK15-T03 | Découpage vérifié en jeu | `à faire` | MP | LK15-T02 |
 | ☐ | LK15-T04 | Creuser un sillon (`LK_Job_Dig`) | `à faire` | MP | LK15-T03 |
@@ -37,16 +37,16 @@ LK05-T21 (préférence du jardinier, remplacée par `prefer`).
 
 ## Tâches
 
-- [ ] **LK15-T01** — Moteur des tâches du foyer et registre `registerJob`
-  - État : `à faire`
+- [x] **LK15-T01** — Moteur des tâches du foyer et registre `registerJob`
+  - État : `testé hors jeu`
   - Cible : `hors jeu`
   - Dépend de : —
   - Fichiers : `LK_Upkeep.lua` ; `server/LivingKnox/Jobs/LK_Job_Refuel.lua`, `LK_Job_Repair.lua`, `LK_Job_Harvest.lua`, `LK_Job_Water.lua`, `LK_Job_Clean.lua`, `LK_Job_Glass.lua` ; `LK_Garden.lua` ; `tests/test_lk_upkeep.py`, `tests/test_lk_forage.py`, `tests/test_lk_homes.py` (chargement du dossier) ; `docs/annexes/conception/entretien.md`
   - Faire : ADR D01, D02, D03, D06 : moteur sans nom de tâche, chaque tâche actuelle dans son fichier, ordre et `prefer` déclarés par la tâche (`prefer = "garden"` pour l'arrosage et la récolte, à la place de `Upkeep.GARDEN_JOBS`). Aucun changement de comportement.
   - Accepté si : `grep` de `job.kind ==` vide dans le moteur ; banc du moteur avec une fausse tâche inscrite par le test (relevé, réservation, effet une fois, préférence) ; bancs actuels de l'entretien, du potager et des foyers verts sans changement d'attendu ; luacheck sans hausse.
   - Tests : bancs hors jeu complets.
-  - Preuve : —
-  - Reste : —
+  - Preuve : 2026-11-13 : `LK_Upkeep.lua` (476 lignes au lieu de 779) sans nom de tâche, registre `Upkeep.registerJob` (`kind`, `order`, `prefer`, `gesture`, `minutes`, `survey`, `apply`, facultatifs `place`, `standOnSelf`, `groupLog`) ; six tâches dans `server/LivingKnox/Jobs/` ; domaine du potager dans `LK_Garden.lua` (appelants mis à jour : suite `lk.forage`, `test_lk_food.py`) ; `Upkeep.GARDEN_JOBS` remplacé par `prefer = "garden"`. Bancs du moteur avec une fausse tâche (`EngineTests` : relevée, réservée, appliquée une fois ; ordre et préférence) rouges avant, verts après. `python tests/test_lk_upkeep.py` : `Ran 24 tests … OK` ; `test_lk_food.py` 32 OK ; `test_lk_homes.py` 22 OK ; `test_lk_peaks.py` 13 OK ; les 162 fichiers `tests/test_*.py` verts ; luacheck `Contents` 8 avertissements (inchangé), `dev` 0.
+  - Reste : vérification en jeu par `LK15-T03`.
 - [ ] **LK15-T02** — Registre des activités et une routine par fichier
   - État : `à faire`
   - Cible : `hors jeu`

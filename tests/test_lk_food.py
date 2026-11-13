@@ -834,7 +834,7 @@ class SoloWateringTests(WaterStack):
         self.assertIsNotNone(r)
         self.assertIn(self.ev('TAINTED.id'), self.ids(f'REF_IDS("{gid}")'))   # eau croupie : catégorie eau
         self.assertEqual(self.jobs(gid), ['water 106,118,0'])
-        self.assertEqual(self.ev(f'{U}.waterUses(PLANT)'), 5)                  # visée 40 + 10 : 5 doses
+        self.assertEqual(self.ev('LivingKnox.Garden.waterUses(PLANT)'), 5)                  # visée 40 + 10 : 5 doses
         self.run_lua('WEATHER.precip = 0.4')
         self.run_lua(f'{U}.reset()')
         self.assertEqual(self.jobs(gid), [])                                   # sous la pluie : rien

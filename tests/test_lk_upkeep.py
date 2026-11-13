@@ -32,7 +32,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from harness import lua_src  # noqa: E402  (E18-T07)
+from harness import LK_LUA, lua_src  # noqa: E402  (E18-T07)
 from test_lk_bodies import lua_list  # noqa: E402
 from test_lk_decisions import PureBase  # noqa: E402
 from test_lk_meals import MealStack  # noqa: E402
@@ -43,8 +43,16 @@ R = 'LivingKnox.Routines'
 ST = 'LivingKnox.Stock'
 ROOT = Path(__file__).resolve().parents[1]
 UPKEEP = 'server/LivingKnox/LK_Upkeep.lua'
+GARDEN = 'server/LivingKnox/LK_Garden.lua'
+JOBS_DIR = LK_LUA / 'server' / 'LivingKnox' / 'Jobs'
 SUITE = 'shared/RST/suites/RST_LKUpkeep.lua'
 SUITE_FILE = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua' / SUITE
+
+
+def upkeep_files():
+    """Moteur, puis chaque tâche du dossier Jobs/ (LK15-T01 : triée par nom, comme le chargement du jeu)."""
+    names = sorted((p.name for p in JOBS_DIR.glob('*.lua')), key=str.lower)
+    return [UPKEEP] + [f'server/LivingKnox/Jobs/{name}' for name in names]
 
 UPKEEP_DOUBLES = r'''
 local H = HARNESS
@@ -195,7 +203,8 @@ class PureUpkeepTests(PureBase):
         super().setUp()
         self.h.load('solo', 'server/LivingKnox/LK_Homes.lua')
         self.h.load('solo', 'server/LivingKnox/LK_Stock.lua')
-        self.h.load('solo', UPKEEP)
+        for rel in upkeep_files():
+            self.h.load('solo', rel)
 
     def test_lit_hours_wrap_around_midnight(self):
         lit = [h for h in range(24) if self.ev(f'{U}.dark({h})')]
@@ -224,7 +233,8 @@ class UpkeepStack(MealStack):
         h = super().make(root)
         machines = ['solo'] if self.mode == 'solo' else ['server', 'A', 'B']
         for m in machines:
-            h.load(m, UPKEEP)
+            for rel in upkeep_files():
+                h.load(m, rel)
         srv = 'solo' if self.mode == 'solo' else 'server'
         h.load(srv, UPKEEP_DOUBLES)
         h.load(srv, SUPPLIES)
@@ -247,6 +257,56 @@ class UpkeepStack(MealStack):
     def work(self, cond, seconds=150):
         """Journée de corvées (11 h) : passe jusqu'à cond()."""
         return self.run_until(cond, seconds=seconds)
+
+
+class EngineTests(UpkeepStack):
+    """Moteur (LK15-T01, ADR D01 et D03) avec une fausse tâche inscrite par le test : relevée, réservée une fois,
+    effet appliqué une fois, ordre et préférence honorés."""
+    mode = 'solo'
+
+    FAKE = r'''
+        FAKE_RUNS = 0
+        LivingKnox.Upkeep.registerJob({ kind = "fake", order = 55, prefer = "garden", gesture = "kneel", minutes = 1,
+            survey = function(gid, g, area)
+                if FAKE_RUNS > 0 then return nil end
+                return { { x = 112, y = 112 } }
+            end,
+            apply = function(job, gid, who, sq)
+                FAKE_RUNS = FAKE_RUNS + 1
+                return "fake applied at " .. job.x .. "," .. job.y
+            end })
+    '''
+
+    def test_registered_job_is_surveyed_claimed_and_applied_once(self):
+        gid = self.mk()
+        self.run_lua(self.FAKE)
+        self.assertEqual(self.jobs(gid), ['fake 112,112,0'])
+        self.jump_to(11)
+        self.assertTrue(self.work(lambda: self.ev('FAKE_RUNS') >= 1), self.lk()[-8:])
+        for _ in range(30):
+            self.dpass(1)
+            self.h.advance(1)
+        self.assertEqual(self.ev('FAKE_RUNS'), 1)
+        self.assertEqual(self.stat('applied'), 1)
+        self.assertEqual(self.run_lua(f'local n = 0 for _ in pairs({U}.state.claims) do n = n + 1 end return n'), 0)
+        self.assertEqual(self.h.errors('solo'), [])
+
+    def test_registered_jobs_keep_their_order_and_a_preference_goes_first(self):
+        self.run_lua(self.FAKE + """
+            LivingKnox.Upkeep.registerJob({ kind = "fake2", order = 5, gesture = "rummage", minutes = 1,
+                survey = function() return nil end, apply = function() return nil end })
+            LivingKnox.Upkeep.registerJob({ kind = "fake2", order = 5, gesture = "rummage", minutes = 1,
+                survey = function() return nil end, apply = function() return nil end })   -- inscrite deux fois
+        """)
+        self.assertEqual(lua_list(self.ev(f'{U}.JOBS')),
+                         ['fake2', 'refuel', 'repair', 'harvest', 'water', 'clean', 'fake', 'glass'])
+        jobs = ('{ { kind = "fake2", key = "fake2 1", x = 1, y = 1, z = 0 }, '
+                '{ kind = "fake", key = "fake 2", x = 2, y = 2, z = 0 } }')
+        self.run_lua(f'{U}.state.scans["g"] = {{ minute = 100, jobs = {jobs} }}')
+        self.assertEqual(self.ev(f'({U}.claim("g", {{}}, "lk-1", 100, {{ garden = true }})).key'), 'fake 2')
+        self.assertEqual(self.ev(f'({U}.claim("g", {{}}, "lk-2", 100, {{ chores = true }})).key'), 'fake2 1')
+        self.assertIsNone(self.ev(f'{U}.claim("g", {{}}, "lk-3", 100, {{ garden = true }})'))
+
 
 
 class JobSurveyTests(UpkeepStack):
