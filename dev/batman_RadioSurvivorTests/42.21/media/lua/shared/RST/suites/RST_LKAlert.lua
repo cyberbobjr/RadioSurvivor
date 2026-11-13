@@ -42,6 +42,7 @@ local measure = K.measurer("[LKA]")
 local BODIES_MS = 60000     -- materialization of the three members
 local ALERT_MS = 30000      -- alert raised after the zombie is created
 local MEMBERS_MS = 20000    -- every member alerted
+local ALERT_CLEAR_RADIUS = 30   -- squares around the first member cleared of other zombies
 local CALM_MS = 240000      -- alert closed and routine resumed (game minutes: depends on the day length)
 local CROWD = 50            -- fake zombies perceived beyond the alert distance (LK05-T14)
 local CROWD_HOLD_MS = 20000 -- the group must stay in its routine this long
@@ -210,6 +211,10 @@ RST.suite("lk.alert", { tags = { "world", "server" }, testTimeoutMs = 600000, ti
             t1:waitUntil(ready(gid), BODIES_MS, function(t2)
                 measure("members before: " .. describe(gid))
                 local first = E.Bodies.find(memberNpcs(gid)["m-1"])
+                -- Ambient zombies of the save (campaign mp-ambient of 2026-11-13: the horde drawn by the shots joined
+                -- the alert, killed the group and the requester, the alert never closed): one zombie only.
+                local fx, fy, fz = first:getX(), first:getY(), math.floor(first:getZ())
+                K.clearZombiesNear(t2, fx, fy, fz, ALERT_CLEAR_RADIUS)
                 local zombie, removeZombie = K.spawnVanillaInView(t2, first, 3, 6)
                 measure(string.format("zombie created at %.1f,%.1f,%d", zombie:getX(), zombie:getY(),
                     math.floor(zombie:getZ())))
@@ -238,7 +243,12 @@ RST.suite("lk.alert", { tags = { "world", "server" }, testTimeoutMs = 600000, ti
                         do
                             removeZombie()
                             measure("zombie removed")
-                            t4:waitUntil(function() return Al().get(gid) == nil and noneAlerted(gid) end, CALM_MS,
+                            t4:waitUntil(function()
+                                -- the test zombie (its removal did not reach the server in mp-ambient of
+                                -- 2026-11-13) and the ambient ones walking in are taken out at every poll
+                                K.clearZombiesNear(t4, fx, fy, fz, ALERT_CLEAR_RADIUS)
+                                return Al().get(gid) == nil and noneAlerted(gid)
+                            end, CALM_MS,
                                 function(t5)
                                     measure(string.format("calm: alerts raised during the run %d; members %s",
                                         Al().stats.raised - raisedBefore, describe(gid)))
