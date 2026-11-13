@@ -115,6 +115,14 @@ LUA_FILES = [
     # LK05-T02 : cadre de decision (fonctions pures ; les passages sur les corps sont testes sous lupa). LK13-T11 :
     # file de notation horaire inscrite a OnTick au chargement (EVENTS_AT_LOAD).
     ('LivingKnox/LK_Decisions', LK_LUA / 'server' / 'LivingKnox' / 'LK_Decisions.lua'),
+    # LK15-T02 : registre des activités des routines, outils d'exécution, relevé et activités (LK_Fortify.lua requiert
+    # LK_Routines ; les activités s'inscrivent au chargement).
+    ('LivingKnox/LK_RoutineExec', LK_LUA / 'server' / 'LivingKnox' / 'LK_RoutineExec.lua'),
+    ('LivingKnox/LK_Routines', LK_LUA / 'server' / 'LivingKnox' / 'LK_Routines.lua'),
+    ('LivingKnox/Routines/LK_Routine_Chores', LK_LUA / 'server' / 'LivingKnox' / 'Routines' / 'LK_Routine_Chores.lua'),
+    ('LivingKnox/Routines/LK_Routine_Meal', LK_LUA / 'server' / 'LivingKnox' / 'Routines' / 'LK_Routine_Meal.lua'),
+    ('LivingKnox/Routines/LK_Routine_Sleep', LK_LUA / 'server' / 'LivingKnox' / 'Routines' / 'LK_Routine_Sleep.lua'),
+    ('LivingKnox/Routines/LK_Routine_Watch', LK_LUA / 'server' / 'LivingKnox' / 'Routines' / 'LK_Routine_Watch.lua'),
     # LK05-T08 : alerte de groupe (fonctions pures ; les passages sur les corps sont testes sous lupa).
     ('LivingKnox/LK_Alert', LK_LUA / 'server' / 'LivingKnox' / 'LK_Alert.lua'),
     # LK13-T02 : mesure de charge (enveloppes d'abonnes et reseau ; Events absent au chargement : aucun abonne).

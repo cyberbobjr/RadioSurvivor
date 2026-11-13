@@ -2,12 +2,12 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 1 / 6 tâche(s) terminée(s).
+**Avancement.** en cours — 2 / 6 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
 | ☑ | LK15-T01 | Moteur des tâches du foyer et registre `registerJob` | `testé hors jeu` | hors jeu | — |
-| ☐ | LK15-T02 | Registre des activités et une routine par fichier | `à faire` | hors jeu | LK15-T01 |
+| ☑ | LK15-T02 | Registre des activités et une routine par fichier | `testé hors jeu` | hors jeu | LK15-T01 |
 | ☐ | LK15-T03 | Découpage vérifié en jeu | `à faire` | MP | LK15-T02 |
 | ☐ | LK15-T04 | Creuser un sillon (`LK_Job_Dig`) | `à faire` | MP | LK15-T03 |
 | ☐ | LK15-T05 | Semer (`LK_Job_Sow`) | `à faire` | MP | LK15-T04 |
@@ -47,16 +47,16 @@ LK05-T21 (préférence du jardinier, remplacée par `prefer`).
   - Tests : bancs hors jeu complets.
   - Preuve : 2026-11-13 : `LK_Upkeep.lua` (476 lignes au lieu de 779) sans nom de tâche, registre `Upkeep.registerJob` (`kind`, `order`, `prefer`, `gesture`, `minutes`, `survey`, `apply`, facultatifs `place`, `standOnSelf`, `groupLog`) ; six tâches dans `server/LivingKnox/Jobs/` ; domaine du potager dans `LK_Garden.lua` (appelants mis à jour : suite `lk.forage`, `test_lk_food.py`) ; `Upkeep.GARDEN_JOBS` remplacé par `prefer = "garden"`. Bancs du moteur avec une fausse tâche (`EngineTests` : relevée, réservée, appliquée une fois ; ordre et préférence) rouges avant, verts après. `python tests/test_lk_upkeep.py` : `Ran 24 tests … OK` ; `test_lk_food.py` 32 OK ; `test_lk_homes.py` 22 OK ; `test_lk_peaks.py` 13 OK ; les 162 fichiers `tests/test_*.py` verts ; luacheck `Contents` 8 avertissements (inchangé), `dev` 0.
   - Reste : vérification en jeu par `LK15-T03`.
-- [ ] **LK15-T02** — Registre des activités et une routine par fichier
-  - État : `à faire`
+- [x] **LK15-T02** — Registre des activités et une routine par fichier
+  - État : `testé hors jeu`
   - Cible : `hors jeu`
   - Dépend de : LK15-T01
   - Fichiers : `LK_Routines.lua` ; `LK_RoutineExec.lua` ; `server/LivingKnox/Routines/` (guet et rondes, sommeil, repas, corvées visibles) ; `LK_Fortify.lua`, `LK_Upkeep.lua` (inscription comme activités) ; bancs `tests/test_lk_routines.py`, `test_lk_meals.py`, `test_lk_fortify*.py`, `test_lk_upkeep.py` ; `docs/annexes/conception/routines.md`
   - Faire : ADR D04, D05, D06 : `Routines.registerActivity`, `Routines.apply` sans module nommé, ordre actuel gardé (barricades, entretien, corvée visible) ; découpage de `LK_Routines.lua`. Aucun changement de comportement.
   - Accepté si : `Routines.apply` ne cite ni `Fortify`, ni `Upkeep`, ni un comportement par son nom ; banc de l'aiguillage avec une fausse activité ; bancs actuels verts sans changement d'attendu.
   - Tests : bancs hors jeu complets.
-  - Preuve : —
-  - Reste : —
+  - Preuve : 2026-11-13 : `Routines.registerActivity({ id, behaviour, order, run })` ; `Routines.apply` réduit à la boucle du registre (ne cite ni module ni comportement) ; `LK_Routines.lua` 542 lignes au lieu de 1 170 (constantes, relevé, plans, registre) ; outils partagés dans `LK_RoutineExec.lua` ; activités `Routines/LK_Routine_Watch.lua` (guet, ronde), `LK_Routine_Sleep.lua`, `LK_Routine_Meal.lua`, `LK_Routine_Chores.lua` ; `LK_Fortify` (`chore.fortify`, ordre 10) et `LK_Upkeep` (`chore.upkeep`, ordre 20) inscrits ; chargement des piles de test par `harness.routine_files()`. Banc `RegistryTests` (4 tests : ordre, première activité qui prend le membre, repli) rouge avant, vert après ; `test_lk_routines.py` 22 OK, `test_lk_chores.py` 12, `test_lk_meals.py` 15, `test_lk_upkeep.py` 24, `test_lk_decisions.py` 27, `test_kahlua.py` 40 ; les 162 fichiers `tests/test_*.py` verts ; luacheck `Contents` 8 (inchangé), `dev` 0.
+  - Reste : vérification en jeu par `LK15-T03`.
 - [ ] **LK15-T03** — Découpage vérifié en jeu
   - État : `à faire`
   - Cible : `MP`

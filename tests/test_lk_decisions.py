@@ -17,7 +17,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from harness import Harness  # noqa: E402
+from harness import Harness, routine_files  # noqa: E402
 from test_lk_bodies import lua_list  # noqa: E402
 from test_lk_materialize import MatBase  # noqa: E402
 from test_lk_simulation import WORLD, SHARED, SERVER  # noqa: E402
@@ -338,6 +338,9 @@ class MultiplayerDecisionTests(MatBase):
 
     def make(self, root=None):
         h = super().make(root)
+        for m in (['solo'] if self.mode == 'solo' else ['server', 'A', 'B']):
+            for rel in routine_files():   # LK15-T02 : activités des routines, comme au chargement du jeu
+                h.load(m, rel)
         h.load(self.srv_name(), DECIDERS)
         h.load(self.srv_name(), DUMP)
         return h

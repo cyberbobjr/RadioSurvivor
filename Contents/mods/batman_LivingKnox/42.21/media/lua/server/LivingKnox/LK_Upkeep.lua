@@ -473,4 +473,8 @@ end
 
 LivingKnox.subscribe("EveryOneMinute", "Upkeep.onEveryOneMinute", function() Upkeep.lights() end)
 
+-- Activité « chore » (ADR D04, ordre 20) : entretien du foyer avant les corvées visibles (LK05-T10 ; inscrite en LK15-T02).
+LivingKnox.Routines.registerActivity({ id = "chore.upkeep", behaviour = "chore", order = 20,
+    run = function(id, st, ctx, g) return Upkeep.run(id, st, ctx, g) end })
+
 return Upkeep

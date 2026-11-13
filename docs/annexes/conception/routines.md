@@ -3,7 +3,7 @@
 - Tâches : LK05-T03 (création, 2026-10-11), LK05-T04 (corvées, 2026-10-11) ; suite : LK05-T06 (besoins : fatigue), LK05-T08 (alerte : réveil, portes), LK05-T09 (défense des postes)
 - Build : 42.21.0 (Java décompilé `<decompiled>\42.21.0\java`, noté **J/** = `…\java\zombie\`) — Date : 2026-10-11 — Statut : brouillon
 
-Code : `media/lua/server/LivingKnox/LK_Routines.lua` (`LivingKnox.Routines`, autorité seulement), appelé par `LK_Decisions.lua` (contexte d'un membre, application d'un état) et chargé par `LK_Server.lua`. Entrées : [decisions.md](decisions.md) (poste `sentry`, comportements `guard`, `patrol`, `sleep`), [groupes.md](groupes.md) (registre, foyer). Sorties : [consignes.md](consignes.md) (`Directives.moveTo`, `face`, `stop`), gestes ([corps-et-animations.md](corps-et-animations.md)), vigilance de la perception ([perception.md](perception.md)).
+Code (LK15-T02, découpé) : `media/lua/server/LivingKnox/LK_Routines.lua` (`LivingKnox.Routines` : relevé du foyer, plans, registre et `apply`), `LK_RoutineExec.lua` (outils d'exécution partagés : aller, regarder, s'asseoir, case voisine, geste, quitter, `Routines.exec`), une activité par fichier sous `media/lua/server/LivingKnox/Routines/` (`LK_Routine_Watch`, `_Sleep`, `_Meal`, `_Chores`), et les activités `chore` de `LK_Fortify.lua` (barricades) et `LK_Upkeep.lua` (entretien). Autorité seulement, appelé par `LK_Decisions.lua` (contexte d'un membre, application d'un état) ; chargé par `LK_Server.lua` et, pour les activités, par le jeu (dossier entier). Entrées : [decisions.md](decisions.md) (poste `sentry`, comportements `guard`, `patrol`, `sleep`), [groupes.md](groupes.md) (registre, foyer). Sorties : [consignes.md](consignes.md) (`Directives.moveTo`, `face`, `stop`), gestes ([corps-et-animations.md](corps-et-animations.md)), vigilance de la perception ([perception.md](perception.md)).
 
 ## Problème
 
@@ -52,6 +52,21 @@ Foyer hors bâtiment (camp) : ni poste, ni ronde, ni couchage. Le relevé est sa
 - Une consigne au plus par membre et par passage, émise au nom du cadre de décision (`Decisions.noteIssued` : jamais « externe »). Une autre consigne passée entre-temps (menace, retour au foyer) : la routine repart de son plan (point de ronde gardé). Plan changé (relève, réveil) : le membre se relève d'abord.
 - **Menace** : la cascade la fait passer avant le poste ; tout comportement hors routine (y compris `watch`) relève le membre (`Routines.leave`) et oublie sa mémoire de routine. La menace partie, la routine reprend.
 - Mémoire des membres (point de ronde, consignes suivies) non sauvegardée : recalculée.
+
+### Registre des activités (LK15-T02, ADR D04-D05)
+
+- `Routines.apply(id, st, ctx, fresh)` ne nomme ni module ni comportement : il essaie, pour `st.b`, les activités inscrites
+  par `LivingKnox.Routines.registerActivity(spec)`, par `order` puis `id` ; la première qui rend vrai (`run` -> vrai) prend le
+  membre. Ordre actuel : `meal` (10) ; `guard` et `patrol` (10, `LK_Routine_Watch.lua`) ; `sleep` (10, `LK_Routine_Sleep.lua`) ;
+  `chore` : barricades (10, `LK_Fortify.lua`, poste `builder` seulement), entretien (20, `LK_Upkeep.lua`), corvée visible
+  (90, `LK_Routine_Chores.lua`).
+- `spec` : `id` (unique : une inscription de même id remplace la précédente), `behaviour` (le comportement de la cascade servi),
+  `order` (nombre, plus petit d'abord), `run(id, st, ctx, g, fresh)` -> vrai quand l'activité a pris le membre.
+- Ajouter une activité : un fichier sous `Routines/` (ou dans le fichier du mod concerné) qui commence par
+  `if isClient() then return end`, `require "LivingKnox/LK_Routines"` (et `LK_RoutineExec` s'il sert `Routines.exec`), puis
+  `LivingKnox.Routines.registerActivity({ ... })` au premier niveau. Un comportement dont une activité est inscrite est tenu
+  par la routine (`Routines.handles`).
+- Les routines de plan (guet, ronde, sommeil) passent par `Routines.runPlanned` (relevé, plan, exécution `Routines.execPlan`).
 
 ### Vigilance transmise à l'exécutant (MP)
 

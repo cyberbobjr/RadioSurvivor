@@ -24,6 +24,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from test_lk_bodies import lua_list  # noqa: E402
 from test_lk_decisions import PureBase  # noqa: E402
+from harness import routine_files  # noqa: E402  (LK15-T02)
 from test_lk_routines import POSTS, TIME_OF_DAY, RoutineStack  # noqa: E402
 
 R = 'LivingKnox.Routines'
@@ -100,6 +101,8 @@ end
 class PureChoreTests(PureBase):
     def setUp(self):
         super().setUp()
+        for rel in routine_files():   # LK15-T02 : activités des routines, comme au chargement du jeu
+            self.h.load(self.srv, rel)
         self.run_lua(POSTS)
 
     def weights(self, duty, allowed='{}', traits='{}', avail=None):

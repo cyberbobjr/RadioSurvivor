@@ -611,6 +611,17 @@ def lua_src(rel, base=None):
     return base / rel
 
 
+ROUTINES_DIR = LK_LUA / 'server' / 'LivingKnox' / 'Routines'
+
+
+def routine_files():
+    """Fichiers des routines (LK15-T02) comme le jeu les charge : outils d'exécution, relevé, puis chaque activité du
+    dossier Routines/ (triée par nom, comme le chargement du jeu ; l'ordre entre activités vient de leur order)."""
+    names = sorted((p.name for p in ROUTINES_DIR.glob('*.lua')), key=str.lower)
+    return ['server/LivingKnox/LK_RoutineExec.lua', 'server/LivingKnox/LK_Routines.lua'] + [
+        f'server/LivingKnox/Routines/{name}' for name in names]
+
+
 class HarnessError(AssertionError):
     pass
 

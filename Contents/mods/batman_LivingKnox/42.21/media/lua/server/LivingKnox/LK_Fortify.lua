@@ -78,6 +78,7 @@ require "LivingKnox/LK_Config"
 require "LivingKnox/LK_Log"
 require "LivingKnox/LK_Groups"
 require "LivingKnox/LK_Homes"
+require "LivingKnox/LK_Routines"
 
 local Fortify = LivingKnox.Fortify or {}
 LivingKnox.Fortify = Fortify
@@ -2715,3 +2716,11 @@ function Fortify.reset()
     Fortify.minuteJobs = { list = {}, head = 1, queued = {}, fresh = false, write = false }   -- LK13-T11
     if Groups() ~= nil and Groups().release ~= nil then Groups().release("fortify") end
 end
+
+-- Activité « chore » (ADR D04, ordre 10) : barricades du foyer pour un membre de poste « builder », avant l'entretien
+-- et les corvées visibles (LK14-T03 ; inscrite en LK15-T02).
+LivingKnox.Routines.registerActivity({ id = "chore.fortify", behaviour = "chore", order = 10,
+    run = function(id, st, ctx, g)
+        if ctx.duty ~= "builder" then return false end
+        return Fortify.run(id, st, ctx, g)
+    end })

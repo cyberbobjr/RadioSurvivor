@@ -32,7 +32,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from harness import LK_LUA, lua_src  # noqa: E402  (E18-T07)
+from harness import LK_LUA, lua_src, routine_files  # noqa: E402  (E18-T07, LK15-T02)
 from test_lk_bodies import lua_list  # noqa: E402
 from test_lk_decisions import PureBase  # noqa: E402
 from test_lk_meals import MealStack  # noqa: E402
@@ -203,7 +203,7 @@ class PureUpkeepTests(PureBase):
         super().setUp()
         self.h.load('solo', 'server/LivingKnox/LK_Homes.lua')
         self.h.load('solo', 'server/LivingKnox/LK_Stock.lua')
-        for rel in upkeep_files():
+        for rel in routine_files() + upkeep_files():   # LK15-T02
             self.h.load('solo', rel)
 
     def test_lit_hours_wrap_around_midnight(self):

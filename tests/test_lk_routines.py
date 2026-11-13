@@ -27,6 +27,7 @@ from test_lk_bodies import lua_list  # noqa: E402
 from test_lk_decisions import CTX, DECIDERS, DUMP, PureBase  # noqa: E402
 from test_lk_materialize import MatBase  # noqa: E402
 from test_lk_senses import SENSES_DOUBLES  # noqa: E402
+from harness import routine_files  # noqa: E402  (LK15-T02)
 
 SENSES = 'shared/LivingKnox/LK_Senses.lua'
 R = 'LivingKnox.Routines'
@@ -306,6 +307,8 @@ class RoutineStack(MatBase):
             h.load(m, WORLD)
             h.load(m, SENSES_DOUBLES)
             h.load(m, SENSES)
+            for rel in routine_files():   # LK15-T02 : outils, relevé et activités (Routines/), comme au chargement du jeu
+                h.load(m, rel)
         srv = 'solo' if self.mode == 'solo' else 'server'
         h.load(srv, DECIDERS)
         h.load(srv, DUMP)
@@ -662,6 +665,49 @@ class MultiplayerRoutineTests(RoutineStack):
         self.away()
         second = self.run_scenario()
         self.assertEqual(first, second)
+
+
+class RegistryTests(PureBase):
+    """Registre des activités des routines (LK15-T02, ADR D04) : Routines.apply essaie les activités du comportement
+    par ordre puis id ; la première qui rend vrai l'emporte ; un groupe absent ne lance rien. Activités fausses ici."""
+
+    def setUp(self):
+        super().setUp()
+        self.run_lua('LivingKnox.Groups.state.data = { groups = { g = { members = {} } } } CALLS = {}')
+
+    def fake(self, name, order, result, behaviour='fake'):
+        self.run_lua(f'{R}.registerActivity({{ id = "{name}", behaviour = "{behaviour}", order = {order}, '
+                     f'run = function(id, st, ctx, g) CALLS[#CALLS + 1] = "{name}" return {result} end }})')
+
+    def apply(self, behaviour='fake', gid='g'):
+        return self.run_lua(f'CALLS = {{}} {R}.apply("lk-1", {{ b = "{behaviour}" }}, '
+                            f'{{ gid = "{gid}", mid = "m-1", minute = 600 }}, true) return table.concat(CALLS, ",")')
+
+    def test_first_true_wins_in_order_and_false_falls_through(self):
+        self.fake('late', 30, 'true')
+        self.fake('early', 10, 'false')
+        self.fake('mid', 20, 'true')
+        self.fake('other', 1, 'true', behaviour='other')
+        self.assertEqual(self.apply(), 'early,mid')   # early rend faux, mid prend le membre, late n'est pas essayée
+        self.assertEqual(self.apply('other'), 'other')
+
+    def test_equal_order_is_sorted_by_id(self):
+        self.fake('b', 5, 'false')
+        self.fake('a', 5, 'false')
+        self.fake('c', 5, 'true')
+        self.assertEqual(self.apply(), 'a,b,c')
+
+    def test_behaviour_without_activity_and_missing_group_do_nothing(self):
+        self.fake('a', 1, 'true')
+        self.assertEqual(self.apply('nothing'), '')
+        self.assertEqual(self.apply(gid='nope'), '')
+        self.assertEqual(self.ev(f'{R}.handles("fake")'), True)
+        self.assertEqual(self.ev(f'{R}.handles("nothing")'), False)
+
+    def test_same_id_replaces_the_activity(self):
+        self.fake('a', 1, 'false')
+        self.fake('a', 1, 'true')
+        self.assertEqual(self.apply(), 'a')
 
 
 if __name__ == '__main__':
