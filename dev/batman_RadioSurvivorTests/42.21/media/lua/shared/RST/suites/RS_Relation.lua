@@ -203,7 +203,10 @@ RST.suite("rs.relation", { mods = { "rs", "lk" },
                     t2:defer(function()
                         LivingKnox.PersonalRelation.forget(leaderNpc)
                         LivingKnox.PersonalRelation.forget(mateNpc)
-                    end, "relations of the fixture npcs removed")
+                        -- Solo (one Lua VM): a reply never heard leaves the Say line waiting TALK_WAIT_MS on the
+                        -- notebook client; the next suite would wait behind it (rs.conversations, 2026-11-13).
+                        if type(RS_CarnetClient) == "table" then RS_CarnetClient.waiting = nil end
+                    end, "relations of the fixture npcs removed, notebook client wait cleared")
                     local ctl = E9.intercept(t2)
                     ctl.quiet({ [fa.id] = true, [fb.id] = true })
                     local want = {}
@@ -229,7 +232,11 @@ RST.suite("rs.relation", { mods = { "rs", "lk" },
                         E9.talkBy(t3, me, c, help, function(t4, req1)
                             t4:waitUntil(function() return E9.settled(c, req1) end, E9.REQUEST_MS, function(t5)
                                 t5:ok(want[help].id ~= nil, "the gift was not offered as a citable fact")
-                                t5:ok(E9.heard(Server, me.cid, fa, req1.id) ~= nil, "reply of the help not kept")
+                                if E9.heard(Server, me.cid, fa, req1.id) == nil then
+                                    -- The server keeps a reply only for the listeners who hear the speaker at that
+                                    -- moment (solo campaign of 2026-11-13: not kept, the cause not logged).
+                                    t5:ok(false, "reply of the help not kept: " .. E9.why(me, c))
+                                end
                                 local pair = Rel.debugPair(fa.id, me.cid)
                                 t5:eq(1, pair and pair.gap, "help: one level above the group")
                                 local okT, whyT = H.record(gid, me.cid, "theft", { witnessed = true })

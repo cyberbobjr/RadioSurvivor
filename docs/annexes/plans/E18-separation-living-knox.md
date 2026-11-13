@@ -2,7 +2,7 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 35 / 37 tâche(s) terminée(s), 1 abandonnée(s).
+**Avancement.** en cours — 35 / 38 tâche(s) terminée(s), 1 abandonnée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
@@ -44,6 +44,7 @@
 | ☑ | E18-T36 | Fenêtre fermée jamais ouverte sur un trajet découpé sans porte (solo) | `testé solo` | solo | — |
 | ☐ | E18-T37 | Suites vertes seules, en échec dans la campagne solo complète des deux mods | `en cours` | solo | E18-T36 |
 | ☐ | E18-T38 | Fenêtre verrouillée retentée en boucle par un trajet découpé autour de plantations | `testé hors jeu` | solo | — |
+| ☐ | E18-T39 | Repas abandonné une heure de jeu après un seul trajet bloqué | `testé hors jeu` | solo | E18-T38 |
 
 <!-- fin du tableau de bord -->
 
@@ -581,3 +582,13 @@ Deuxième article Workshop, dépôt séparé, nouvelles règles de jeu des missi
   - Tests : `test_lk_obstacles.py` ; campagne solo des deux mods.
   - Preuve : 2026-11-13, décision par défaut (réutiliser l'écart des cases d'un échec « stuck », LK04-T05, plutôt qu'une nouvelle mémoire) ; `refuse` d'une fenêtre appelle `Movement.noteStuck` ; banc `test_target_behind_a_refused_window_is_avoided_by_the_next_move` rouge avant (consigne émise), vert après ; `test_lk_obstacles.py` 175 tests OK, bancs complets OK, luacheck `Contents` 8.
   - Reste : passage solo en jeu (campagne des deux mods) ; contournement par les portes d'un trajet déjà découpé autour de plantations non traité (nouvelle tâche si une campagne le montre).
+- [ ] **E18-T39** — Repas abandonné une heure de jeu après un seul trajet bloqué
+  - État : `testé hors jeu`
+  - Cible : `solo`
+  - Dépend de : E18-T38
+  - Fichiers : `LK_Routines.lua` (`goTo`) ; `tests/test_lk_meals.py`
+  - Faire : campagnes solo du 2026-11-13 (`runs/20261113-045816-run-d731bf29b891`, `runs/20261113-052129-run-d731bf29b891`, suite `lk.meals`) : le membre affamé reste bloqué en allant au poêle, la case est évitée 60 s (`Movement.avoided`), le refus de `Directives.moveTo` compte comme un second échec (`MAX_FAILS = 2`) et le repas est mis de côté `UNFED_MINUTES` (une heure de jeu) alors que le poêle reste accessible.
+  - Accepté si : un refus pour case évitée n'est pas compté comme un échec ; la routine attend la fin de l'évitement puis retente ; deux vrais trajets manqués mettent toujours le repas de côté.
+  - Tests : `test_lk_meals.py` ; campagne solo des deux mods.
+  - Preuve : 2026-11-13, décision par défaut (attendre la fin de l'évitement, pas de changement de conteneur) ; banc `test_meal_square_avoided_after_a_stuck_walk_keeps_the_meal_until_the_avoid_window_ends` rouge avant (repas mis de côté), vert après ; bancs complets OK, luacheck `Contents` 8.
+  - Reste : passage solo en jeu (campagne des deux mods).

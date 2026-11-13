@@ -822,6 +822,11 @@ local function goTo(id, ctx, x, y, z, m, e)
         m.moveV = nil
     end
     if m.fails >= cfg().MAX_FAILS then return "failed" end
+    -- Case évitée après un trajet "stuck" (Movement.AVOID_MS) : cet échec est déjà compté ; attendre la fin de
+    -- l'évitement au lieu de compter le refus comme un second échec (campagnes solo du 2026-11-13 : repas mis de côté
+    -- une heure de jeu après un seul trajet bloqué).
+    local Mv = LivingKnox.Movement
+    if Mv ~= nil and Mv.avoided ~= nil and Mv.avoided(id, x, y, z) ~= nil then return "moving" end
     local v, why = LivingKnox.Directives.moveTo(id, x, y, z, "walk")
     if not note(id, m, v, why, "moves") then
         m.fails = m.fails + 1

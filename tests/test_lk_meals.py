@@ -347,6 +347,23 @@ class SoloMealTests(MealStack):
         self.assertEqual(self.ev(f'{R}.stats.meals'), 1)
         self.assertEqual(self.h.errors('solo'), [])
 
+    def test_meal_square_avoided_after_a_stuck_walk_keeps_the_meal_until_the_avoid_window_ends(self):
+        # Campagnes solo du 2026-11-13 : un trajet "stuck" vers le poele, la case evitee 60 s, le refus de moveTo
+        # compte comme un second echec et le repas est mis de cote une heure de jeu.
+        gid = self.mk()
+        self.jump_to(11)
+        npc = self.npc_of(gid, 'm-2')
+        self.run_lua(f'LivingKnox.Movement.noteStuck("{npc}", {{ x = 112, y = 111, z = 0, v = 1, op = "move" }})')
+        self.set_needs(gid, 'm-2', hunger=95)
+        self.assertTrue(self.run_until(lambda: self.meal(gid, 'm-2') is not None, seconds=10), 'no meal routine')
+        for _ in range(20):
+            self.dpass(1, walk=1.0)
+            self.h.advance(1)
+            self.assertIsNotNone(self.meal(gid, 'm-2'), 'meal set aside while its square is only avoided')
+        self.assertTrue(self.run_until(lambda: (self.meal(gid, 'm-2') or (None,))[0] == 'eat', seconds=90),
+                        self.meal(gid, 'm-2'))
+        self.assertEqual(self.h.errors('solo'), [])
+
     def test_thirsty_member_drinks_clean_water_only(self):
         gid = self.mk()
         self.jump_to(11)
