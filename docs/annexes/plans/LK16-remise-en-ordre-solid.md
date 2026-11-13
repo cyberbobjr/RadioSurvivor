@@ -2,12 +2,12 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 1 / 12 tâche(s) terminée(s).
+**Avancement.** en cours — 2 / 12 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
 | ☐ | LK16-T01 | Socle `LivingKnox.Registry` | `à faire` | hors jeu | — |
-| ☐ | LK16-T02 | C1 : genres de chantier de la fortification | `à faire` | hors jeu | — |
+| ☑ | LK16-T02 | C1 : genres de chantier de la fortification | `testé hors jeu` | hors jeu | — |
 | ☑ | LK16-T03 | C7 : tables d'aiguillage (faits publics, administration, parole) | `testé hors jeu` | hors jeu | — |
 | ☐ | LK16-T04 | C5 : cycles cassés par événements | `à faire` | hors jeu | LK16-T01 |
 | ☐ | LK16-T05 | C3 : contexte de décision par inscription | `à faire` | hors jeu | LK16-T04 |
@@ -56,16 +56,16 @@ Constats P2 et P3 de l'audit hors des chantiers ; tout changement visible par un
   - Tests : banc nouveau ; suite complète.
   - Preuve : —
   - Reste : —
-- [ ] **LK16-T02** — C1 : genres de chantier de la fortification
-  - État : `à faire`
+- [x] **LK16-T02** — C1 : genres de chantier de la fortification
+  - État : `testé hors jeu`
   - Cible : `hors jeu`
   - Dépend de : —
   - Fichiers : `LK_Fortify.lua` (+ `Fortify/Kinds/*.lua`) ; bancs `test_lk_fortify*.py`, `test_lk_barricade.py`, `test_lk_walls.py`, `test_lk_repair.py`
   - Faire : constats A01 à A06 : `Fortify.registerKind` dont dérivent `KINDS`, `OFF_KINDS`, `KIND_CODE`, `CODE_KIND`, les motifs de la forme compacte et `STAGES` ; un fichier par sorte (barricade, mur, palissade, réparation).
   - Accepté si : une sorte de chantier ajoutée par un seul fichier de banc est planifiée, sauvegardée en forme compacte, relue et appliquée hors écran (test qui échoue aujourd'hui) ; bancs existants verts sans changement d'attendu.
   - Tests : bancs de la fortification ; suite complète.
-  - Preuve : —
-  - Reste : —
+  - Preuve : 2026-11-13 : `Fortify.registerKind(spec)` (`id`, `order`, `unit`, `work` ; facultatifs `stages`, `names`, `ring`, `repair`, `need`, `plan` ; `code` et `offscreen` ensemble) dans `LK_Fortify.lua` ; `KINDS`, `OFF_KINDS`, codes de la forme compacte, motifs de lecture, `STAGES`, `STRUCTURES`, `REPAIRS`, noms d'ouvrages et types hors écran dérivés du registre ; code dupliqué refusé avant toute modification ; une sorte par fichier sous `server/LivingKnox/Fortify/` (barricade `b`, mur `w`, palissade `p`, réparation sans hors écran) ; sonde sur le code d'avant : une lettre absente du motif `[bwp]` perdait le chantier hors écran sans erreur (8 planches prises, rien posé), une sorte sans lettre échouait par une erreur Lua ; banc `tests/test_lk_fortify_kinds.py` : une sorte factice inscrite par le banc seul est planifiée, gardée en forme compacte, relue, avancée hors écran et posée une fois (rouge avant : `attempt to call field 'registerKind' (a nil value)`, `Ran 3 tests … OK` après) ; `test_lk_fortify` 15, `test_lk_fortify_offscreen` 17, `test_lk_barricade` 12, `test_lk_walls` 10, `test_lk_repair` 14, `test_lk_peaks` 13, `test_kahlua` 40 (forme compacte comprise) verts sans attendu changé ; `test_doubles_api`, `test_mod_calls_api` verts ; luacheck `Contents` 8
+  - Reste : suite complète à repasser avec les autres tâches du jour ; le planificateur nomme encore `barricade` et `repair` pour ses deux sources (ouvertures, pourtour) ; primitives de pose dans le moteur (découpage A24 non fait) ; réglages propres à une sorte encore dans `CFG` ; registre local à remplacer par `LivingKnox.Registry` (LK16-T01) ; chargement du dossier `Fortify/` vérifié statiquement, pas en jeu
 - [x] **LK16-T03** — C7 : tables d'aiguillage (faits publics, administration, parole)
   - État : `testé hors jeu`
   - Cible : `hors jeu`

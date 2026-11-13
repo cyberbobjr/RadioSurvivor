@@ -377,6 +377,39 @@ minute, 3 à 4 ms chacun (`plan` : relevé du monde puis `build`, 60 % ; `snapsh
 
 Choix pris par défaut (à confirmer) : empreinte de 3 nombres au lieu de la clé complète (collision possible mais sans effet durable : le relevé n'est pas réécrit jusqu'au prochain changement du plan) ; migration au premier examen plutôt qu'au chargement du registre (aucun crochet de chargement dans `LK_Groups`, hors du périmètre de la tâche ; l'ancienne forme reste lisible entre-temps).
 
+## 11. Sortes de chantier inscrites (LK16-T02)
+
+Avant LK16-T02, chaque sorte (barricade, mur, palissade, réparation) était décrite dans plusieurs tables parallèles de
+`LK_Fortify.lua` (`KINDS`, `OFF_KINDS`, lettres de la forme compacte et motifs `[bwp]`, `STAGES`, `REPAIRS`, sprites,
+noms reconnus) et dans des chaînes de `if` sur `site.kind` / `site.target`. Un oubli dans une table cassait la forme
+compacte : constaté au banc avant le changement, une sorte ajoutée à `OFF_KINDS` sans lettre fait échouer l'écriture
+(erreur Lua, bruyante) ; une lettre écrite mais absente du motif rend tout le relevé illisible **sans erreur** (vue
+`nil`, travail en attente ignoré, puis relevé remplacé avec un simple avertissement : planches déjà prises hors écran
+jamais posées).
+
+Désormais chaque sorte s'inscrit par `Fortify.registerKind(spec)` depuis un fichier de
+`media/lua/server/LivingKnox/Fortify/` (`LK_Fortify_Barricade.lua`, `_Wall.lua`, `_Palisade.lua`, `_Repair.lua`) ;
+toutes les tables et les motifs en sont dérivés à chaque inscription. Champs de `spec` (détail en tête du registre dans
+`LK_Fortify.lua`) : `id`, `order`, `unit`, `work(site, c)` (geste, minutes, effet) ; facultatifs `stages` (étapes d'un
+ouvrage du pourtour, avec sprites et clé de durée), `names` (objets reconnus sur un bord), `ring` (style de foyer dont
+c'est le pourtour), `repair` (réparation de cet ouvrage, recette vanilla pour le pourtour), `need` (chantiers notés
+comme besoin), `plan(survey, opts)` (chantiers de plus, placés après le pourtour), et ensemble `code` (une lettre
+unique de la forme compacte) et `offscreen` (`nextStage`, `remaining`, `apply`, `skip`, `types`). Un code déjà pris
+par une autre sorte est refusé par une erreur claire ; inscrire de nouveau un `id` le remplace.
+
+- Chargement : le jeu parcourt les sous-dossiers de `media/lua/server` triés par chemin en minuscules
+  (`.claude/pz-knowledge/mod-loading.md`) ; `livingknox/fortify/…` passe avant `livingknox/lk_fortify.lua`, et chaque
+  fichier de sorte requiert `LivingKnox/LK_Fortify` : le moteur est exécuté une fois, avant les sortes. Les bancs
+  chargent le moteur puis le dossier (`tests/harness.py`, `fortify_files()`), comme `Jobs/` et `Routines/`.
+- Lettres gardées (`b`, `w`, `p`) : la forme compacte est inchangée.
+- Limites : le plan garde ses deux sources du relevé (ouvertures → barricades et leurs réparations, pourtour → sorte
+  du style du foyer et ses réparations) ; une nouvelle source passe par `spec.plan`. Les primitives de pose (planche,
+  étape, réparation, pose hors écran) restent dans `LK_Fortify.lua`, appelées par les fichiers de sorte. Les réglages
+  propres à une sorte restent dans `CFG` (`RING_GESTURES`, `REPAIR_MINUTES`, `TIME`), lus par les specs.
+- Banc : `tests/test_lk_fortify_kinds.py` (sorte factice inscrite par le banc seul : planifiée, gardée en forme
+  compacte, relue, avancée hors écran et posée à l'arrivée ; code dupliqué refusé ; quatre sortes tirées de leurs
+  fichiers).
+
 ## Alternatives écartées
 
 - Simuler la fortification par un niveau abstrait seul (sans relevé des chantiers) : rien ne permettrait de poser à l'arrivée l'état simulé, ouverture par ouverture.

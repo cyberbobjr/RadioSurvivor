@@ -633,6 +633,10 @@ EXCHANGE_EVALS += [
     'eval:Events = {} return nil',
     'load:LivingKnox/LK_Homes=' + str(LK_LUA / 'server' / 'LivingKnox' / 'LK_Homes.lua'),
     'load:LivingKnox/LK_Fortify=' + str(LK_LUA / 'server' / 'LivingKnox' / 'LK_Fortify.lua'),
+] + [   # LK16-T02 : sortes de chantier (Fortify/), triées par nom comme au chargement du jeu
+    f'load:LivingKnox/Fortify/{p.stem}={p}'
+    for p in sorted((LK_LUA / 'server' / 'LivingKnox' / 'Fortify').glob('*.lua'), key=lambda p: p.name.lower())
+] + [
     'eval:Events = nil return nil',
 ]
 FORT_EVAL = (

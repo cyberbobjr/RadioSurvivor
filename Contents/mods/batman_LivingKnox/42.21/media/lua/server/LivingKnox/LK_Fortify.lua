@@ -85,7 +85,6 @@ LivingKnox.Fortify = Fortify
 LivingKnox.Fortification = Fortify   -- interface lue par LK_Decisions (levelOf)
 
 Fortify.TIERS = { "ground", "upper", "outer" }
-Fortify.KINDS = { barricade = true, wall = true, palisade = true, repair = true }
 -- Rang des ouvertures dans un tier : cadre vide (trou), fenêtre, porte.
 Fortify.OPENING_RANK = { frame = 1, window = 2, door = 3 }
 Fortify.PLANK = "Base.Plank"
@@ -93,9 +92,150 @@ Fortify.NAILS = "Base.Nails"
 Fortify.NAILS_BOX = "Base.NailsBox"
 Fortify.LOG = "Base.Log"
 Fortify.TIES = { "Base.RippedSheets", "Base.RippedSheetsDirty", "Base.Twine", "Base.Rope", "Base.SheetRope" }
--- Noms d'objet (getName) des ouvrages vanilla reconnus sur un bord : étapes faites.
-Fortify.WALL_NAMES = { WoodenWallFrame = 1, WoodenWallLvl1 = 2, WoodenWallLvl2 = 2, WoodenWallLvl3 = 2 }
-Fortify.PALISADE_NAME = "LogWall"
+
+-- ================================================================ sortes de chantier (LK16-T02)
+-- Ce module ne décrit AUCUNE sorte de chantier : chacune s'inscrit par Fortify.registerKind(spec) depuis son fichier
+-- media/lua/server/LivingKnox/Fortify/LK_Fortify_<Nom>.lua (chargé par le jeu, sous-dossiers compris, après ce module
+-- qu'il requiert). Les tables KINDS, OFF_KINDS, STAGES, REPAIRS, STRUCTURES, les codes et les motifs de la forme
+-- compacte en sont DÉRIVÉS à chaque inscription. spec :
+--   id       : nom unique (site.kind ; identifiant de chantier « <id>:x,y,zF »), minuscules, chiffres, « _ »
+--   order    : rang dans le registre, plus petit d'abord ; à égalité, par id (ordre stable, sans next : Kahlua)
+--   unit     : unité du journal de fin de chantier (« plank(s) »)
+--   work(site, c) : geste, minutes de jeu de travail avant chaque pose (c = Fortify.CFG) et effet(site, gid, who)
+--              qui pose une étape : rend un texte et les étapes faites, ou nil et une raison
+--   stages   : facultatif, étapes d'un ouvrage du pourtour { entity, prev, sprites = { W, N }, materials, tool,
+--              time (clé de CFG.TIME) } ; site du plan, travail et rattrapage hors écran en sont tirés
+--   names    : facultatif, { [nom d'objet vanilla] = étapes faites } reconnus sur un bord par le relevé
+--   ring     : facultatif, style de foyer (« building », « camp ») dont le pourtour est fait de cette sorte
+--   repair   : facultatif, réparation de cet ouvrage (site.target = id) : { run(site, gid, who) } ; ouvrage du pourtour :
+--              plus la recette vanilla { tools, part = { type, n }, options = { { type, n }... } }
+--   need     : facultatif, vrai si ses chantiers non faisables sont notés comme besoin du groupe (réparations)
+--   plan(survey, opts) : facultatif, chantiers de plus relevés par la sorte (liste de sites complets), placés après
+--              le pourtour (opts.urgent : plan après une attaque)
+--   code, offscreen : facultatifs ensemble, rattrapage hors écran : code = une lettre minuscule unique (forme
+--              compacte) ; offscreen = { nextStage(e, c) -> besoins, outil, minutes ; remaining(e) -> besoins ;
+--              apply(gid, op, mark) -> issue, objet marqué, étapes posées, raison ; skip(site) facultatif (chantier
+--              du plan non gardé hors écran) ; types facultatif (types de matériaux comptés hors écran, en plus de ceux
+--              des étapes) }
+-- Inscrire de nouveau un id le remplace (rechargement) ; un code déjà pris par une autre sorte est refusé.
+Fortify.kinds = Fortify.kinds or { list = {}, byId = {}, byCode = {} }
+
+local KIND_FIELDS = { work = "function", plan = "function", stages = "table", names = "table", repair = "table" }
+
+local function kindError(msg)
+    error("LivingKnox.Fortify.registerKind: " .. msg, 4)   -- niveau de l'appelant de registerKind
+end
+
+local function checkKind(spec)
+    if type(spec) ~= "table" then kindError("spec must be a table") end
+    if type(spec.id) ~= "string" or string.match(spec.id, "^[a-z][a-z0-9_]*$") == nil then
+        kindError("id must be a lowercase name")
+    end
+    if type(spec.order) ~= "number" or type(spec.unit) ~= "string" or type(spec.work) ~= "function" then
+        kindError(spec.id .. " needs order, unit and work")
+    end
+    for field, t in pairs(KIND_FIELDS) do
+        if spec[field] ~= nil and type(spec[field]) ~= t then kindError(spec.id .. "." .. field .. " must be a " .. t) end
+    end
+    if spec.repair ~= nil and type(spec.repair.run) ~= "function" then kindError(spec.id .. ".repair needs run") end
+    local off = spec.offscreen
+    if off == nil and spec.code == nil then return end
+    if type(off) ~= "table" or type(off.nextStage) ~= "function" or type(off.remaining) ~= "function"
+        or type(off.apply) ~= "function" then
+        kindError(spec.id .. ".offscreen needs nextStage, remaining and apply")
+    end
+    if type(spec.code) ~= "string" or string.match(spec.code, "^[a-z]$") == nil then
+        kindError(spec.id .. ".code must be one lowercase letter")
+    end
+    local owner = Fortify.kinds.byCode[spec.code]
+    if owner ~= nil and owner ~= spec.id then
+        kindError('code "' .. spec.code .. '" already used by ' .. owner)
+    end
+end
+
+-- Tables dérivées du registre (une seule source : les specs inscrites).
+local function deriveKinds()
+    local K = Fortify.kinds
+    table.sort(K.list, function(a, b)
+        if a.order ~= b.order then return a.order < b.order end
+        return a.id < b.id
+    end)
+    local byId, byCode, codes = {}, {}, {}
+    local kinds, off, stages, repairs, names, structures, types, seen = {}, {}, {}, {}, {}, {}, {}, {}
+    local function addType(t)
+        if not seen[t] then
+            seen[t] = true
+            types[#types + 1] = t
+        end
+    end
+    for _, s in ipairs(K.list) do
+        byId[s.id], kinds[s.id] = s, true
+        if s.stages ~= nil then
+            stages[s.id] = s.stages
+            for _, st in ipairs(s.stages) do
+                if st.sprites ~= nil then structures[st.entity] = st.sprites end
+            end
+        end
+        for name, n in pairs(s.names or {}) do names[name] = { kind = s.id, steps = n } end
+        if s.repair ~= nil and s.repair.part ~= nil then repairs[s.id] = s.repair end
+        if s.offscreen ~= nil then
+            off[s.id] = true
+            byCode[s.code] = s.id
+            codes[#codes + 1] = s.code
+            for _, t in ipairs(s.offscreen.types or {}) do addType(t) end
+            for _, st in ipairs(s.stages or {}) do
+                for _, r in ipairs(st.materials) do
+                    for _, t in ipairs(r.types) do addType(t) end
+                end
+            end
+        end
+    end
+    K.byId, K.byCode = byId, byCode
+    local set = table.concat(codes)
+    K.sitePattern = set ~= "" and ("^([" .. set .. "])([guo])(%-?%d+),(%-?%d+),(%-?%d+)([NW])([01])(%d)(%d)$") or nil
+    K.opPattern = set ~= "" and ("^(%d+):([" .. set .. "])(%-?%d+),(%-?%d+),(%-?%d+)([NW])([01])(%d)(%d)$") or nil
+    Fortify.KINDS, Fortify.OFF_KINDS, Fortify.STAGES, Fortify.REPAIRS = kinds, off, stages, repairs
+    Fortify.BUILT_NAMES, Fortify.STRUCTURES, Fortify.OFF_TYPES = names, structures, types
+end
+
+-- Inscrit la sorte de chantier spec (voir plus haut) ; rend spec. Erreur claire si spec est invalide ou si son code
+-- est déjà pris : rien n'est inscrit.
+function Fortify.registerKind(spec)
+    checkKind(spec)
+    local K = Fortify.kinds
+    local old = K.byId[spec.id]
+    if old ~= nil then
+        for i, s in ipairs(K.list) do
+            if s == old then
+                table.remove(K.list, i)
+                break
+            end
+        end
+    end
+    K.list[#K.list + 1] = spec
+    deriveKinds()
+    return spec
+end
+
+-- Sortes inscrites, dans l'ordre du registre (liste à ne pas modifier).
+function Fortify.kindList()
+    return Fortify.kinds.list
+end
+
+-- Spec de la sorte id, ou nil.
+function Fortify.kindOf(id)
+    return Fortify.kinds.byId[id]
+end
+
+-- Sorte dont le pourtour d'un foyer de style style est fait (premier dans l'ordre du registre), ou nil.
+function Fortify.ringKindOf(style)
+    for _, s in ipairs(Fortify.kinds.list) do
+        if s.ring == style then return s.id end
+    end
+    return nil
+end
+
+deriveKinds()
 
 Fortify.CFG = Fortify.CFG or {
     PLANKS = { ground = 4, upper = 2 },   -- planches visées par ouverture (4 = maximum vanilla, IsoBarricade.java:62-67)
@@ -235,17 +375,16 @@ function Fortify.openingsAt(cell, def, bid, z)
     return out
 end
 
--- Étapes faites sur le bord d'un segment (case porteuse sq, face north) : "wall", 1 ou 2 ; "palisade", 1 ; ou nil ;
--- puis l'ouvrage (LK14-T06).
+-- Étapes faites sur le bord d'un segment (case porteuse sq, face north) : sorte de l'ouvrage reconnu (noms inscrits,
+-- spec.names) et ses étapes faites ; ou nil ; puis l'ouvrage (LK14-T06).
 local function builtOn(sq, north)
     local objs = sq:getObjects()
     for i = 0, objs:size() - 1 do
         local o = objs:get(i)
         if instanceof(o, "IsoThumpable") and (o:getNorth() == true) == north then
             local name = o:getName()
-            if name == Fortify.PALISADE_NAME then return "palisade", 1, o end
-            local steps = name ~= nil and Fortify.WALL_NAMES[name] or nil
-            if steps ~= nil then return "wall", steps, o end
+            local b = name ~= nil and Fortify.BUILT_NAMES[name] or nil   -- LK16-T02 : noms des sortes inscrites
+            if b ~= nil then return b.kind, b.steps, o end
         end
     end
     return nil
@@ -293,12 +432,12 @@ function Fortify.survey(gid)
         s.bid = def:getIDString()
         local M = c.OUTER_MARGIN
         rect = { x1 = def:getX() - M, y1 = def:getY() - M, x2 = def:getX2() - 1 + M, y2 = def:getY2() - 1 + M }
-        s.ringKind, s.ringZ = "wall", 0
+        s.ringKind, s.ringZ = Fortify.ringKindOf("building"), 0   -- LK16-T02 : sorte inscrite (spec.ring)
         s.levels = math.max(0, def:getMaxLevel())
     else
         local R = c.CAMP_RING
         rect = { x1 = home.x - R, y1 = home.y - R, x2 = home.x + R, y2 = home.y + R }
-        s.ringKind, s.ringZ = "palisade", home.z
+        s.ringKind, s.ringZ = Fortify.ringKindOf("camp"), home.z
         s.levels = 0
     end
     s.rect = rect
@@ -316,7 +455,9 @@ function Fortify.survey(gid)
     end
     local segs = Fortify.ringSegments(rect, s.ringZ)
     s.ring = {}
-    if #segs > c.MAX_OUTER then
+    if s.ringKind == nil then
+        s.outerSkipped = "no ring kind for " .. tostring(style)
+    elseif #segs > c.MAX_OUTER then
         s.outerSkipped = "ring of " .. #segs .. " segment(s) over " .. c.MAX_OUTER
     else
         for _, seg in ipairs(segs) do
@@ -332,7 +473,7 @@ function Fortify.survey(gid)
                     e.built, e.steps = kind, steps
                     -- LK14-T06 : santé d'un ouvrage achevé (mur sur son cadre, palissade) ; un cadre seul n'est pas
                     -- réparé (l'étape du mur le remplace).
-                    if kind == "palisade" or steps >= 2 then e.health = Fortify.healthRatio(obj) end
+                    if steps >= #(Fortify.STAGES[kind] or {}) then e.health = Fortify.healthRatio(obj) end
                 elseif not groundOk(sq) or other:getBuildingDef() ~= nil or other:isWaterSquare() then
                     e.blocked = "ground"
                 elseif sq:isBlockedTo(other) then
@@ -349,8 +490,10 @@ end
 -- ================================================================ plan (pur)
 
 local function req(types, n) return { types = types, n = n } end
+Fortify.req = req   -- LK16-T02 : besoin { types, n } des fichiers de sorte
 
 local function siteId(kind, x, y, z, north) return kind .. ":" .. x .. "," .. y .. "," .. z .. (north and "N" or "W") end
+Fortify.siteId = siteId
 
 -- Chantier de barricade d'une ouverture e jusqu'à target planches.
 local function barricadeSite(e, tier, target)
@@ -369,52 +512,49 @@ local function barricadeSite(e, tier, target)
     return site
 end
 
--- Chantier d'un segment de pourtour (kind "wall" ou "palisade").
+-- Chantier d'un segment de pourtour de la sorte kind (ouvrage déjà sur le bord : sa sorte), tiré des étapes inscrites
+-- (spec.stages, LK16-T02) : étapes visées et faites, entité (liste si plusieurs étapes), matériaux des étapes restantes
+-- (même type additionné, ordre de première apparition), outils (sans doublon), durée (CFG.TIME de chaque étape).
 local function ringSite(e, kind)
-    if e.built == "wall" then kind = "wall" elseif e.built == "palisade" then kind = "palisade" end
+    if e.built ~= nil then kind = e.built end
     -- LK14-T04 : case intérieure (dans le pourtour) et extérieure du bord. Côtés N et W : le bord est porté par la
     -- case intérieure (x, y) ; côtés E et S : par la case extérieure.
     local inside, outside = { x = e.x, y = e.y }, { x = e.ox, y = e.oy }
     if e.side == "E" or e.side == "S" then inside, outside = outside, inside end
     local site = { id = siteId(kind, e.x, e.y, e.z, e.north), kind = kind, tier = "outer", x = e.x, y = e.y, z = e.z,
-        north = e.north, side = e.side, pos = e.pos, inside = inside, outside = outside, tools = {}, materials = {},
-        time = 0 }
+        north = e.north, side = e.side, pos = e.pos, inside = inside, outside = outside }
     local T = cfg().TIME
-    if kind == "wall" then
-        site.steps, site.have = 2, e.steps or 0
-        site.entity = { "WoodenWallFrame", "WoodenWallLvl1" }
-        if site.have == 0 then
-            site.materials = { req({ Fortify.PLANK }, 4), req({ Fortify.NAILS }, 6) }
-            site.time = T.frame + T.wall
-        elseif site.have == 1 then
-            site.materials = { req({ Fortify.PLANK }, 2), req({ Fortify.NAILS }, 4) }
-            site.time = T.wall
-        end
-        if site.have < 2 then site.tools = { "HAMMER" } end
+    local stages = Fortify.STAGES[kind]
+    site.steps, site.have = #stages, e.steps or 0
+    if #stages == 1 then
+        site.entity = stages[1].entity
     else
-        site.steps, site.have = 1, e.steps or 0
-        site.entity = "LogWall"
-        if site.have == 0 then
-            site.materials = { req({ Fortify.LOG }, 4), req(Fortify.TIES, 4) }
-            site.time = T.palisade
-        end
+        site.entity = {}
+        for i, st in ipairs(stages) do site.entity[i] = st.entity end
     end
+    local materials, byTypes, tools, seen, time = {}, {}, {}, {}, 0
+    for n = site.have + 1, #stages do
+        local st = stages[n]
+        for _, r in ipairs(st.materials) do
+            local key = table.concat(r.types, ",")
+            local m = byTypes[key]
+            if m == nil then
+                m = req(r.types, 0)
+                byTypes[key] = m
+                materials[#materials + 1] = m
+            end
+            m.n = m.n + r.n
+        end
+        if st.tool ~= nil and not seen[st.tool] then
+            seen[st.tool] = true
+            tools[#tools + 1] = st.tool
+        end
+        time = time + (T[st.time] or 0)
+    end
+    site.materials, site.tools, site.time = materials, tools, time
     site.done = site.have >= site.steps
     return site
 end
-
--- LK14-T06 : recettes de réparation vanilla des ouvrages du pourtour (M/lua/shared/Moveables/ISMoveableDefinitions.lua
--- :656-668 : définition « Wood » des murs en bois, Material = Wood ; « Log » de la palissade, Material = Log) : outils
--- (marteau et scie), pièce requise, pièces facultatives (une seule sorte utilisée : la première présente en quantité,
--- ISMoveableSpriteProps:repairObjectInternal, M/lua/shared/Moveables/ISMoveableSpriteProps.lua:3574-3599). « Tag.Rope »
--- réduit ici à Base.Rope.
-Fortify.REPAIRS = {
-    wall = { tools = { "HAMMER", "SAW" }, part = { Fortify.PLANK, 2 },
-        options = { { Fortify.NAILS, 4 }, { "Base.Screws", 4 } } },
-    palisade = { tools = { "HAMMER", "SAW" }, part = { Fortify.LOG, 2 },
-        options = { { Fortify.NAILS, 4 }, { "Base.Screws", 2 }, { "Base.RippedSheets", 4 }, { "Base.Sheet", 2 },
-            { "Base.Rope", 2 } } },
-}
 
 -- Quantité d'une pièce de réparation selon les dégâts (0..1) : floor(max(n x dégâts, 1)), comme
 -- ISMoveableSpriteProps:getRepairPartsForMaterial (ISMoveableSpriteProps.lua:840-869).
@@ -576,6 +716,13 @@ function Fortify.build(survey, opts)
     end
     table.sort(outer, ringOrder)
     table.sort(repOuter, ringOrder)
+    -- LK16-T02 : chantiers relevés par les sortes elles-mêmes (spec.plan), dans l'ordre du registre, après le pourtour.
+    local extra = {}
+    for _, spec in ipairs(Fortify.kinds.list) do
+        if spec.plan ~= nil then
+            for _, s in ipairs(spec.plan(survey, { urgent = urgent }) or {}) do extra[#extra + 1] = s end
+        end
+    end
     -- LK14-T06 : ordre des listes. Après une attaque : réparations (rez-de-chaussée, étages, pourtour), puis barricades
     -- entamées (planche retirée ou chantier en cours), puis le reste ; sinon le plan de LK14-T02, réparations en dernier.
     local lists
@@ -590,9 +737,9 @@ function Fortify.build(survey, opts)
                 if not s.done and s.have > 0 then started[#started + 1] = s else rest[#rest + 1] = s end
             end
         end
-        lists = { repairs, started, rest, outer }
+        lists = { repairs, started, rest, outer, extra }
     else
-        lists = { ground, upper, outer, repairs }
+        lists = { ground, upper, outer, extra, repairs }
     end
     for _, list in ipairs(lists) do
         for _, s in ipairs(list) do
@@ -795,7 +942,8 @@ function Fortify.repairShortage(plan, avail, tools, feasible)
     end
     local need, missingTools, toolSeen, blocked = {}, {}, {}, 0
     for _, s in ipairs(plan.sites) do
-        if s.kind == "repair" and not s.done and not ok[s.id] then
+        local spec = Fortify.kinds.byId[s.kind]
+        if spec ~= nil and spec.need == true and not s.done and not ok[s.id] then   -- LK16-T02 : sortes à besoin
             blocked = blocked + 1
             for _, name in ipairs(s.tools) do
                 if not tools[name] and not toolSeen[name] then
@@ -1103,23 +1251,8 @@ end
 -- étape précédente retirée (transmitRemoveItemFromSquare), AddSpecialObject, poteau d'angle, setExplored,
 -- RecalcAllWithNeighbours, transmitCompleteItemToClients.
 
--- Sprites vanilla (faces W, N) des ouvrages du pourtour (M/scripts/generated/entities/walls/entity_woodenwallframe.txt,
--- entity_wood_walllvl1.txt, entity_logwall.txt).
-Fortify.STRUCTURES = {
-    WoodenWallFrame = { W = "carpentry_02_100", N = "carpentry_02_101" },
-    WoodenWallLvl1 = { W = "walls_exterior_wooden_01_44", N = "walls_exterior_wooden_01_45" },
-    LogWall = { W = "carpentry_02_80", N = "carpentry_02_81" },
-}
--- Étapes d'un chantier du pourtour (recettes vanilla) : entité posée, étape remplacée, matériaux, outil gardé.
-Fortify.STAGES = {
-    wall = {
-        { entity = "WoodenWallFrame", materials = { req({ Fortify.PLANK }, 2), req({ Fortify.NAILS }, 2) },
-            tool = "HAMMER" },
-        { entity = "WoodenWallLvl1", prev = "WoodenWallFrame",
-            materials = { req({ Fortify.PLANK }, 2), req({ Fortify.NAILS }, 4) }, tool = "HAMMER" },
-    },
-    palisade = { { entity = "LogWall", materials = { req({ Fortify.LOG }, 4), req(Fortify.TIES, 4) } } },
-}
+-- Sprites des ouvrages (Fortify.STRUCTURES : entité -> faces W, N) et étapes de chaque sorte du pourtour
+-- (Fortify.STAGES) : dérivés des sortes inscrites (LK16-T02, fichiers Fortify/LK_Fortify_Wall.lua, _Palisade.lua).
 -- Multiplicateur de la santé bonus selon l'option sandbox ConstructionBonusPoints (ISBuildIsoEntity.lua:655-660).
 local BONUS_MULT = { [1] = 0.5, [2] = 0.7, [4] = 1.3, [5] = 1.5 }
 
@@ -1265,6 +1398,45 @@ local function gather(gid, reqs, picked)
     return out
 end
 
+-- Objets pris un à un dans le stock (items : { it, ctr }) ; une prise qui échoue remet les objets déjà pris. Rend vrai,
+-- ou faux et une raison.
+local function takeAll(gid, items, who, use)
+    local St = Stock()
+    local taken = {}
+    for _, e in ipairs(items) do
+        local id = e.it:getID()
+        local got, w = St.takeItem(gid, function(it) return it:getID() == id end, who, use)
+        if got == nil then
+            for _, b in ipairs(taken) do   -- objets remis (relus comme ajoutés) : rien n'est perdu
+                b.ctr:AddItem(b.it)
+                if isServer() then sendAddItemToContainer(b.ctr, b.it) end
+            end
+            return false, e.it:getFullType() .. " not taken: " .. tostring(w)
+        end
+        taken[#taken + 1] = e
+    end
+    return true
+end
+
+-- Clous libres pour n clous, en ouvrant une boîte au besoin (étape du pourtour, réparation) : liste { it, ctr }, ou nil
+-- et une raison. picked : objets déjà retenus, complété.
+local function nailsFor(gid, n, picked, who, use)
+    local trial = {}
+    for k, v in pairs(picked) do trial[k] = v end
+    local loose = gather(gid, { req({ Fortify.NAILS }, n) }, trial)
+    if loose ~= nil then
+        for k, v in pairs(trial) do picked[k] = v end
+        return loose
+    end
+    local boxF, box, bctr = Stock().findItem(gid, ofType(Fortify.NAILS_BOX))
+    if boxF == nil then return nil, "no nails" end
+    local ok, w = openBox(gid, box, bctr, who, use)
+    if not ok then return nil, "box of nails not opened: " .. tostring(w) end
+    loose = gather(gid, { req({ Fortify.NAILS }, n) }, picked)
+    if loose == nil then return nil, "no nails" end
+    return loose
+end
+
 -- Chantier du pourtour du plan courant (même identifiant), ou nil et une raison (brèche, hors du plan).
 local function ringSiteNow(gid, site)
     local plan = Fortify.plan(gid)
@@ -1328,36 +1500,16 @@ function Fortify.buildStep(site, gid, who)
     if items == nil then return nil, "no " .. tostring(miss) end
     local use = site.kind .. " " .. site.id
     if nails > 0 then
-        local trial = {}
-        for k, v in pairs(picked) do trial[k] = v end
-        local loose = gather(gid, { req({ Fortify.NAILS }, nails) }, trial)
-        if loose == nil then
-            local boxF, box, bctr = St.findItem(gid, ofType(Fortify.NAILS_BOX))
-            if boxF == nil then return nil, "no nails" end
-            local ok, w = openBox(gid, box, bctr, who, use)
-            if not ok then return nil, "box of nails not opened: " .. tostring(w) end
-            loose = gather(gid, { req({ Fortify.NAILS }, nails) }, picked)
-            if loose == nil then return nil, "no nails" end
-        end
+        local loose, w = nailsFor(gid, nails, picked, who, use)
+        if loose == nil then return nil, w end
         for _, e in ipairs(loose) do items[#items + 1] = e end
     end
-    local taken = {}
-    for _, e in ipairs(items) do
-        local id = e.it:getID()
-        local got, w = St.takeItem(gid, function(it) return it:getID() == id end, who, use)
-        if got == nil then
-            for _, b in ipairs(taken) do   -- objets remis (relus comme ajoutés) : rien n'est perdu
-                b.ctr:AddItem(b.it)
-                if isServer() then sendAddItemToContainer(b.ctr, b.it) end
-            end
-            return nil, e.it:getFullType() .. " not taken: " .. tostring(w)
-        end
-        taken[#taken + 1] = e
-    end
+    local ok, w = takeAll(gid, items, who, use)
+    if not ok then return nil, w end
     Fortify.placeStructure(sq, north, info, sprite, prev)
     Fortify.invalidate(gid)
     Fortify.stats.stages = Fortify.stats.stages + 1
-    return string.format("%s %d/%d built on %s (%d item(s) used)", stage.entity, done + 1, #stages, site.id, #taken),
+    return string.format("%s %d/%d built on %s (%d item(s) used)", stage.entity, done + 1, #stages, site.id, #items),
         done + 1
 end
 
@@ -1365,49 +1517,11 @@ end
 -- Fiche docs/annexes/conception/fortification.md §9. Autorité seulement ; une réparation par appel ; tout est relu AVANT toute
 -- prise ; matériaux retirés une seule fois par Stock.takeItem (remis si une prise échoue).
 
--- Objets pris un à un dans le stock (items : { it, ctr }) ; une prise qui échoue remet les objets déjà pris. Rend vrai,
--- ou faux et une raison.
-local function takeAll(gid, items, who, use)
-    local St = Stock()
-    local taken = {}
-    for _, e in ipairs(items) do
-        local id = e.it:getID()
-        local got, w = St.takeItem(gid, function(it) return it:getID() == id end, who, use)
-        if got == nil then
-            for _, b in ipairs(taken) do   -- objets remis (relus comme ajoutés) : rien n'est perdu
-                b.ctr:AddItem(b.it)
-                if isServer() then sendAddItemToContainer(b.ctr, b.it) end
-            end
-            return false, e.it:getFullType() .. " not taken: " .. tostring(w)
-        end
-        taken[#taken + 1] = e
-    end
-    return true
-end
-
 -- Planche saine : état relatif au moins REPAIR_BELOW (une planche plus abîmée serait aussitôt à réparer).
 local function soundPlank(it)
     if it:getFullType() ~= Fortify.PLANK then return false end
     local mx = it:getConditionMax()
     return mx ~= nil and mx > 0 and it:getCondition() / mx >= cfg().REPAIR_BELOW
-end
-
--- Clous libres pour n clous, en ouvrant une boîte au besoin (comme buildStep) : liste { it, ctr }, ou nil et une raison.
-local function nailsFor(gid, n, picked, who, use)
-    local trial = {}
-    for k, v in pairs(picked) do trial[k] = v end
-    local loose = gather(gid, { req({ Fortify.NAILS }, n) }, trial)
-    if loose ~= nil then
-        for k, v in pairs(trial) do picked[k] = v end
-        return loose
-    end
-    local boxF, box, bctr = Stock().findItem(gid, ofType(Fortify.NAILS_BOX))
-    if boxF == nil then return nil, "no nails" end
-    local ok, w = openBox(gid, box, bctr, who, use)
-    if not ok then return nil, "box of nails not opened: " .. tostring(w) end
-    loose = gather(gid, { req({ Fortify.NAILS }, n) }, picked)
-    if loose == nil then return nil, "no nails" end
-    return loose
 end
 
 -- Barricade de bois la plus garnie de l'ouverture o (celle dont la planche extérieure reçoit les coups) : barricade,
@@ -1475,7 +1589,7 @@ end
 local function finishedStructure(sq, north, target)
     local kind, steps, o = builtOn(sq, north)
     if kind ~= target then return nil end
-    if kind == "wall" and steps < 2 then return nil end
+    if steps < #(Fortify.STAGES[kind] or {}) then return nil end   -- cadre seul : pas encore un mur
     return o
 end
 
@@ -1532,13 +1646,16 @@ local function repairStructure(site, gid, who)
         o:getHealth(), o:getMaxHealth(), #items), 1
 end
 
--- Répare l'ouvrage du chantier site (kind "repair") du groupe gid : barricade, mur ou palissade.
+Fortify.repairPlank = repairPlank           -- LK16-T02 : réparation de la sorte barricade (spec.repair.run)
+Fortify.repairStructure = repairStructure   -- LK16-T02 : réparation des sortes du pourtour (spec.repair.run)
+
+-- Répare l'ouvrage du chantier site (kind "repair") du groupe gid par la réparation de la sorte site.target.
 function Fortify.repair(site, gid, who)
     local St = Stock()
     if St == nil or St.findItem == nil or St.takeItem == nil then return nil, "no stock module" end
-    if site.target == "barricade" then return repairPlank(site, gid, who) end
-    if site.target == "wall" or site.target == "palisade" then return repairStructure(site, gid, who) end
-    return nil, "unknown repair target " .. tostring(site.target)
+    local spec = Fortify.kinds.byId[site.target]
+    if spec == nil or spec.repair == nil then return nil, "unknown repair target " .. tostring(site.target) end
+    return spec.repair.run(site, gid, who)
 end
 
 local function claimKey(gid, sid) return tostring(gid) .. "|" .. sid end
@@ -1554,7 +1671,8 @@ local function finishSite(id, m, minute, why)
     m.phase = "done"
     Fortify.release(id, m)
     Fortify.state.rest[id] = minute + cfg().REST_MINUTES
-    local unit = m.site.kind == "barricade" and "plank(s)" or m.site.kind == "repair" and "repair(s)" or "stage(s)"
+    local spec = Fortify.kinds.byId[m.site.kind]
+    local unit = spec ~= nil and spec.unit or "stage(s)"
     if why == nil then
         Fortify.stats.finished = Fortify.stats.finished + 1
         log().info("npc %s (%s %s): %s %s done, %d %s", tostring(id), tostring(m.gid), tostring(m.mid), m.site.kind,
@@ -1566,13 +1684,14 @@ local function finishSite(id, m, minute, why)
     end
 end
 
--- Geste, minutes de travail avant chaque pose et effet (une planche, une étape) selon la sorte de chantier.
+-- Geste, minutes de travail avant chaque pose et effet (une planche, une étape) : travail de la sorte inscrite.
 local function workOf(site)
-    local c = cfg()
-    if site.kind == "barricade" then return c.GESTURE, c.PLANK_MINUTES, Fortify.nailPlank end
-    if site.kind == "repair" then   -- LK14-T06 : marteau (son vanilla « Hammering » des deux réparations)
-        return c.GESTURE, (c.REPAIR_MINUTES or {})[site.target] or c.PLANK_MINUTES, Fortify.repair
-    end
+    return Fortify.kinds.byId[site.kind].work(site, cfg())
+end
+
+-- LK16-T02 : travail d'une sorte du pourtour (spec.work des fichiers de sorte à étapes) : geste de la sorte
+-- (CFG.RING_GESTURES), STAGE_MINUTES minutes avant chaque étape posée par Fortify.buildStep.
+function Fortify.stageWork(site, c)
     return c.RING_GESTURES[site.kind] or c.GESTURE, c.STAGE_MINUTES, Fortify.buildStep
 end
 
@@ -1699,6 +1818,7 @@ end
 --     fort = { v = 2, hx, hy, hz, key = empreinte, day, tools = "HAMMER,SAW" (outils présents), tiers = "h/s,h/s,h/s"
 --       (ordre de TIERS), sites = "<chantier>;<chantier>", work, boxes = "<i>:<u>,<i>:<u>", pn, ops = "<écart>;..." }
 --       chantier = <sorte b|w|p><tier g|u|o><dx>,<dy>,<z><face N|W><côté opposé 0|1><visées s><faites h>
+--       (sorte : lettre inscrite par sa spec, spec.code, LK16-T02)
 --       écart    = <u>:<sorte><dx>,<dy>,<z><face><côté><avant a><après b>
 --     L'ancienne forme 1 est lue telle quelle et réécrite en forme 2 (Fortify.migrate au premier examen, ou à la
 --     première écriture du relevé), écarts en attente et numéros compris : aucune perte ni double pose.
@@ -1728,7 +1848,6 @@ end
 Fortify.FORT_FORMAT = 2      -- forme compacte gardée au registre (LK13-T07)
 Fortify.FORT_FORMAT_OLD = 1  -- ancienne forme (tables), lue et convertie
 Fortify.OP_TAG = "LKFortOp"
-Fortify.OFF_KINDS = { barricade = true, wall = true, palisade = true }
 Fortify.OFF_PEND_MAX = 256    -- écarts de pose en attente au plus
 Fortify.CFG.OFF_WORK_MINUTES = Fortify.CFG.OFF_WORK_MINUTES or 30   -- minutes de travail utiles par ouvrier et par
                               -- heure hors écran (trajets et pauses du travail visible : moitié de l'heure)
@@ -1781,12 +1900,10 @@ local function validView(f, home)
 end
 
 -- ---------------------------------------------------------------- forme compacte (LK13-T07)
-local KIND_CODE = { barricade = "b", wall = "w", palisade = "p" }
-local CODE_KIND = { b = "barricade", w = "wall", p = "palisade" }
+-- LK16-T02 : lettre de chaque sorte (spec.code) et motifs des chantiers et des écarts tirés du registre
+-- (Fortify.kinds.byCode, sitePattern, opPattern).
 local TIER_CODE = { ground = "g", upper = "u", outer = "o" }
 local CODE_TIER = { g = "ground", u = "upper", o = "outer" }
-local SITE_PATTERN = "^([bwp])([guo])(%-?%d+),(%-?%d+),(%-?%d+)([NW])([01])(%d)(%d)$"
-local OP_PATTERN = "^(%d+):([bwp])(%-?%d+),(%-?%d+),(%-?%d+)([NW])([01])(%d)(%d)$"
 local BOX_PATTERN = "^(%-?%d+):(%d+)$"
 local TIER_PATTERN = "^(%d+)/(%d+)$"
 
@@ -1837,17 +1954,20 @@ local function parseFort(f)
         if h == nil then return nil end
         view.tiers[t] = { h = tonumber(h), s = tonumber(s) }
     end
-    for _, txt in ipairs(split(f.sites, ";")) do
-        local k, t, dx, dy, z, n, o, s, h = string.match(txt, SITE_PATTERN)
+    local K = Fortify.kinds
+    local sites, ops = split(f.sites, ";"), split(f.ops, ";")
+    if K.sitePattern == nil and (#sites > 0 or #ops > 0) then return nil end   -- aucune sorte gardée hors écran
+    for _, txt in ipairs(sites) do
+        local k, t, dx, dy, z, n, o, s, h = string.match(txt, K.sitePattern)
         if k == nil then return nil end
-        local kind, x, y = CODE_KIND[k], hx + tonumber(dx), hy + tonumber(dy)
+        local kind, x, y = K.byCode[k], hx + tonumber(dx), hy + tonumber(dy)
         view.sites[#view.sites + 1] = { id = siteId(kind, x, y, tonumber(z), n == "N"), k = kind, t = CODE_TIER[t],
             x = x, y = y, z = tonumber(z), n = n == "N", o = o == "1", s = tonumber(s), h = tonumber(h) }
     end
-    for _, txt in ipairs(split(f.ops, ";")) do
-        local u, k, dx, dy, z, n, o, a, b = string.match(txt, OP_PATTERN)
+    for _, txt in ipairs(ops) do
+        local u, k, dx, dy, z, n, o, a, b = string.match(txt, K.opPattern)
         if u == nil then return nil end
-        local kind, x, y = CODE_KIND[k], hx + tonumber(dx), hy + tonumber(dy)
+        local kind, x, y = K.byCode[k], hx + tonumber(dx), hy + tonumber(dy)
         view.pend.ops[#view.pend.ops + 1] = { u = tonumber(u), id = siteId(kind, x, y, tonumber(z), n == "N"), k = kind,
             x = x, y = y, z = tonumber(z), n = n == "N", o = o == "1", a = tonumber(a), b = tonumber(b) }
     end
@@ -1875,14 +1995,15 @@ local function packFort(view)
         local p = view.tiers[t] or { h = 0, s = 0 }
         tiers[i] = p.h .. "/" .. p.s
     end
+    local byId = Fortify.kinds.byId
     local sites = {}
     for i, e in ipairs(view.sites) do
-        sites[i] = KIND_CODE[e.k] .. TIER_CODE[e.t] .. (e.x - hx) .. "," .. (e.y - hy) .. "," .. e.z .. face(e.n)
+        sites[i] = byId[e.k].code .. TIER_CODE[e.t] .. (e.x - hx) .. "," .. (e.y - hy) .. "," .. e.z .. face(e.n)
             .. flag(e.o) .. e.s .. e.h
     end
     local ops = {}
     for i, op in ipairs(view.pend.ops) do
-        ops[i] = op.u .. ":" .. KIND_CODE[op.k] .. (op.x - hx) .. "," .. (op.y - hy) .. "," .. op.z .. face(op.n)
+        ops[i] = op.u .. ":" .. byId[op.k].code .. (op.x - hx) .. "," .. (op.y - hy) .. "," .. op.z .. face(op.n)
             .. flag(op.o) .. op.a .. op.b
     end
     local boxes = {}
@@ -1986,31 +2107,16 @@ function Fortify.hasPending(gid)
 end
 
 -- Étape suivante d'un chantier du relevé e : besoins { types, n }, outil (ou nil), minutes de travail ; nil si fini.
+-- LK16-T02 : étape de la sorte inscrite (spec.offscreen.nextStage).
 local function nextStage(e)
-    local c = cfg()
     if e.h >= e.s then return nil end
-    if e.k == "barricade" then
-        return { req({ Fortify.PLANK }, 1), req({ Fortify.NAILS }, 1) }, "HAMMER", c.PLANK_MINUTES
-    end
-    local stages = Fortify.STAGES[e.k]
-    local st = stages ~= nil and stages[e.h + 1] or nil
-    if st == nil then return nil end
-    return st.materials, st.tool, c.STAGE_MINUTES
+    return Fortify.kinds.byId[e.k].offscreen.nextStage(e, cfg())
 end
 
 -- Matériaux de toutes les étapes restantes d'un chantier du relevé e (comme site.materials du plan : un chantier
--- n'est commencé que si tout ce qui lui reste tient dans le stock, Fortify.feasibleSites).
+-- n'est commencé que si tout ce qui lui reste tient dans le stock, Fortify.feasibleSites) : spec.offscreen.remaining.
 local function remainingReqs(e)
-    if e.k == "barricade" then
-        local n = e.s - e.h
-        return { req({ Fortify.PLANK }, n), req({ Fortify.NAILS }, n) }
-    end
-    local out = {}
-    local stages = Fortify.STAGES[e.k] or {}
-    for n = e.h + 1, e.s do
-        for _, r in ipairs(stages[n] ~= nil and stages[n].materials or {}) do out[#out + 1] = r end
-    end
-    return out
+    return Fortify.kinds.byId[e.k].offscreen.remaining(e)
 end
 
 local function boxUsed(f, id)
@@ -2021,18 +2127,17 @@ local function boxUsed(f, id)
 end
 
 -- Matériaux disponibles hors écran (pur) : { [type] = n } d'après la référence du stock (objets suivis et ajouts en
--- attente) ; clous = clous libres + clous restants des boîtes suivies (BOX_NAILS moins ceux déjà utilisés).
+-- attente), types des sortes inscrites (Fortify.OFF_TYPES, LK16-T02) ; clous = clous libres + clous restants des
+-- boîtes suivies (BOX_NAILS moins ceux déjà utilisés).
 local function offAvail(g, f)
     local St = Stock()
     local s = g.stock
     local out = {}
-    local types = { Fortify.PLANK, Fortify.NAILS, Fortify.LOG }
-    for _, t in ipairs(Fortify.TIES) do types[#types + 1] = t end
-    for _, t in ipairs(types) do out[t] = St.offscreenCount(s, { t }) end
+    for _, t in ipairs(Fortify.OFF_TYPES) do out[t] = St.offscreenCount(s, { t }) end
     for _, e in ipairs(s.items) do
         if e.t == Fortify.NAILS_BOX then
             local b = boxUsed(f, e.i)
-            out[Fortify.NAILS] = out[Fortify.NAILS] + cfg().BOX_NAILS - (b ~= nil and b.u or 0)
+            out[Fortify.NAILS] = (out[Fortify.NAILS] or 0) + cfg().BOX_NAILS - (b ~= nil and b.u or 0)
         end
     end
     return out
@@ -2246,12 +2351,8 @@ function Fortify.snapshot(gid, plan, tools)
         local tier = tiers[s.tier]
         if tier ~= nil then tier.h, tier.s = tier.h + math.min(s.have, s.steps), tier.s + s.steps end
         if not s.done and Fortify.OFF_KINDS[s.kind] then
-            local open = false
-            if s.kind == "barricade" and s.opening == "door" then   -- porte ouverte : refusée en jeu (« door open »)
-                local o = Fortify.openingOf(s)
-                open = o ~= nil and o:IsOpen() == true
-            end
-            if open then
+            local skip = Fortify.kinds.byId[s.kind].offscreen.skip   -- LK16-T02 : chantier écarté par sa sorte
+            if skip ~= nil and skip(s) == true then
                 skipped[#skipped + 1] = s.id
             else
                 sites[#sites + 1] = { id = s.id, k = s.kind, t = s.tier, x = s.x, y = s.y, z = s.z, n = s.north == true,
@@ -2374,6 +2475,28 @@ local function applyRing(op, mark)
     return "placed", last, placed
 end
 
+-- LK16-T02 : pose hors écran de la sorte barricade (spec.offscreen.apply).
+Fortify.applyBarricade = applyBarricade
+
+-- LK16-T02 : rattrapage hors écran d'une sorte à étapes (spec.stages : mur, palissade), partagé par leurs fichiers :
+-- étape suivante (matériaux et outil de l'étape, STAGE_MINUTES), matériaux des étapes restantes, pose par étapes.
+Fortify.STAGE_OFFSCREEN = {
+    nextStage = function(e, c)
+        local st = Fortify.STAGES[e.k][e.h + 1]
+        if st == nil then return nil end
+        return st.materials, st.tool, c.STAGE_MINUTES
+    end,
+    remaining = function(e)
+        local out = {}
+        local stages = Fortify.STAGES[e.k]
+        for n = e.h + 1, e.s do
+            for _, r in ipairs(stages[n] ~= nil and stages[n].materials or {}) do out[#out + 1] = r end
+        end
+        return out
+    end,
+    apply = function(_, op, mark) return applyRing(op, mark) end,
+}
+
 -- Ouvre une boîte de clous entamée hors écran (entrée b = { i, u }) comme OpenBox100 : BOX_NAILS - u clous marqués
 -- ajoutés au conteneur de la boîte (envoyés aux clients proches sur un serveur), boîte retirée par Stock.takeItem.
 -- Boîte absente : clous déjà créés (marque) = repris, sinon boîte partie (rien). Rend l'issue.
@@ -2436,12 +2559,8 @@ function Fortify.applyPending(gid)
     local done, marked, doneBox = {}, {}, {}
     for _, op in ipairs(ops) do
         local mark = gid .. ":" .. op.u
-        local ok, res, obj, n, reason
-        if op.k == "barricade" then
-            ok, res, obj, n, reason = pcall(applyBarricade, gid, op, mark)
-        else
-            ok, res, obj, n, reason = pcall(applyRing, op, mark)
-        end
+        local apply = Fortify.kinds.byId[op.k].offscreen.apply   -- LK16-T02 : pose de la sorte inscrite
+        local ok, res, obj, n, reason = pcall(apply, gid, op, mark)
         if not ok then
             rep.kept = rep.kept + 1
             log().error("fortify: group %s offscreen change %s (%s) not placed: %s (kept)", gid, tostring(op.u), op.id,

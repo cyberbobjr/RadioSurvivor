@@ -31,7 +31,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from harness import lua_src  # noqa: E402  (E18-T07)
+from harness import fortify_files, lua_src  # noqa: E402  (E18-T07, LK16-T02)
 from test_lk_bodies import lua_list  # noqa: E402
 from test_lk_meals import MealStack  # noqa: E402
 
@@ -204,7 +204,8 @@ class BarricadeStack(MealStack):
         h = super().make(root)
         machines = ['solo'] if self.mode == 'solo' else ['server', 'A', 'B']
         for m in machines:
-            h.load(m, FORTIFY)
+            for rel in fortify_files():   # LK16-T02 : moteur et sortes de chantier (Fortify/)
+                h.load(m, rel)
         srv = 'solo' if self.mode == 'solo' else 'server'
         h.load(srv, BARRICADE_DOUBLES)
         h.load(srv, WORKSHOP)
@@ -448,12 +449,12 @@ class SuiteTests(unittest.TestCase):
         self.assertIn('Homes.skip(', code)
 
     def test_module_source_is_kahlua_safe(self):
-        path = lua_src(FORTIFY)
-        raw = path.read_text(encoding='utf-8')
-        code = '\n'.join(line.split('--', 1)[0] for line in raw.splitlines())
-        self.assertTrue(all(ord(ch) < 128 for ch in code), 'non ASCII character in the code')
-        for pattern in (r'\bnext\s*\(', r'\bgoto\b', r'\bcoroutine\.', r'\bunpack\b'):
-            self.assertIsNone(re.search(pattern, code), pattern)
+        for rel in fortify_files():   # LK16-T02 : moteur et sortes de chantier
+            raw = lua_src(rel).read_text(encoding='utf-8')
+            code = '\n'.join(line.split('--', 1)[0] for line in raw.splitlines())
+            self.assertTrue(all(ord(ch) < 128 for ch in code), f'non ASCII character in the code of {rel}')
+            for pattern in (r'\bnext\s*\(', r'\bgoto\b', r'\bcoroutine\.', r'\bunpack\b'):
+                self.assertIsNone(re.search(pattern, code), (rel, pattern))
 
 
 if __name__ == '__main__':

@@ -824,6 +824,16 @@ def routine_files():
         f'server/LivingKnox/Routines/{name}' for name in names]
 
 
+FORTIFY_KINDS_DIR = LK_LUA / 'server' / 'LivingKnox' / 'Fortify'
+
+
+def fortify_files():
+    """Fichiers de la fortification (LK16-T02) comme le jeu les charge : moteur, puis chaque sorte de chantier du
+    dossier Fortify/ (triée par nom, comme le chargement du jeu ; l'ordre entre sortes vient de leur order)."""
+    names = sorted((p.name for p in FORTIFY_KINDS_DIR.glob('*.lua')), key=str.lower)
+    return ['server/LivingKnox/LK_Fortify.lua'] + [f'server/LivingKnox/Fortify/{name}' for name in names]
+
+
 class HarnessError(AssertionError):
     pass
 

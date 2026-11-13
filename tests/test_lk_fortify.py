@@ -26,14 +26,13 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from harness import Harness  # noqa: E402
+from harness import Harness, fortify_files  # noqa: E402  (LK16-T02)
 
 SHARED = ('shared/LivingKnox/LK_Core.lua', 'shared/LivingKnox/LK_Config.lua', 'shared/LivingKnox/LK_Log.lua',
           'shared/LivingKnox/Data/LK_Type_neutrals.lua', 'shared/LivingKnox/Data/LK_Type_raiders.lua',
           'shared/LivingKnox/Data/LK_Type_settlers.lua')
 SERVER = 'server/LivingKnox/LK_Server.lua'
 HOMES = 'server/LivingKnox/LK_Homes.lua'
-MODULE = 'server/LivingKnox/LK_Fortify.lua'
 FT = 'LivingKnox.Fortify'
 
 DOUBLES = r'''
@@ -183,7 +182,8 @@ class Base(unittest.TestCase):
                 self.h.load(m, path)
             self.h.load(m, SERVER)
             self.h.load(m, HOMES)
-            self.h.load(m, MODULE)
+            for rel in fortify_files():   # LK16-T02 : moteur et sortes de chantier (Fortify/)
+                self.h.load(m, rel)
         if self.stub_stock:
             self.run_lua('LivingKnox.Stock = STUB_STOCK')
         self.h.fire(self.srv, 'OnInitGlobalModData', False)

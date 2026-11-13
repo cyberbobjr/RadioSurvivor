@@ -36,7 +36,8 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from test_lk_barricade import BARRICADE_DOUBLES, FORTIFY, F, R, ST  # noqa: E402
+from harness import fortify_files  # noqa: E402  (LK16-T02)
+from test_lk_barricade import BARRICADE_DOUBLES, F, R, ST  # noqa: E402
 from test_lk_bodies import lua_list  # noqa: E402
 from test_lk_meals import MealStack  # noqa: E402
 
@@ -245,7 +246,8 @@ class WallStack(MealStack):
         h = super().make(root)
         machines = ['solo'] if self.mode == 'solo' else ['server', 'A', 'B']
         for m in machines:
-            h.load(m, FORTIFY)
+            for rel in fortify_files():   # LK16-T02 : moteur et sortes de chantier (Fortify/)
+                h.load(m, rel)
         srv = 'solo' if self.mode == 'solo' else 'server'
         h.load(srv, BARRICADE_DOUBLES)
         h.load(srv, WALL_DOUBLES)
