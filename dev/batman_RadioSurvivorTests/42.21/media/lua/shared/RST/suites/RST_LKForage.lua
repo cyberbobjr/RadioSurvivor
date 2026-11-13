@@ -478,6 +478,17 @@ RST.suite("lk.forage", { tags = { "world", "server" }, testTimeoutMs = 900000, t
         local gid, addMembers = newGroup(t, home, { { "fighter", "guard" }, { "worker", "handyman" },
             { "worker", "farmer" } }, "RST watering")
         keepZombiesAway(t, home)
+        -- No expedition of the test group (solo campaign of 2026-11-13: the keeper went out for the water the
+        -- stock lacked and the plant was never watered before the deadline); the water of the stock is the subject.
+        local Ex = E.Expeditions
+        if Ex ~= nil then
+            local depart = Ex.tryDepart
+            Ex.tryDepart = function(id, minute)
+                if id == gid then return nil, "test group: no expedition" end
+                return depart(id, minute)
+            end
+            t:defer(function() Ex.tryDepart = depart end, "restore the expeditions of group " .. gid)
+        end
         local cts = homeContainers(gid, home)
         if cts == nil or #cts == 0 then t:skip("no container in the house around the player") end
         local spot = plantSpot(E, home)

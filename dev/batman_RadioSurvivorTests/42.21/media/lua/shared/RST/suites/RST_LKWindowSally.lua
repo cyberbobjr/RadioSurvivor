@@ -206,6 +206,10 @@ RST.suite("lk.windowsally", { tags = { "world", "server" }, testTimeoutMs = 3000
                 local npc = memberNpcs(gid)[mid]
                 if npc ~= nil and E.Equipment and E.Equipment.setWeapon then E.Equipment.setWeapon(npc, "Base.BaseballBat") end
             end
+            -- Day watch hour (solo campaign of 2026-11-13): a guard goes on his round outside at dawn and at the
+            -- first hour of each watch (LK_Routines.sentryKind), and was never back inside after the kill.
+            -- Rounds at hours 3, 7, 11, 15, 19 and 23 of the day (hourInWatch 0): 13:30 leaves 1 h 30 of watch.
+            getGameTime():setTimeOfDay(13.5)
             local defOf = sq:getBuildingDef()
             local function allInside()
                 for _, npc in pairs(memberNpcs(gid)) do
