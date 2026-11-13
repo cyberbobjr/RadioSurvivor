@@ -1,0 +1,10 @@
+# Écarts entre les doublures du banc et l'API Java 42.22 (E19-T01, tests/test_doubles_api.py).
+# Une ligne par méthode de doublure absente de sa classe Java (Classe.methode) ou fonction globale doublée
+# inconnue du jeu (global.nom). Cette liste ne peut que DIMINUER : un écart nouveau fait échouer le banc, une
+# ligne qui n'est plus un écart aussi. Corriger la doublure (renommer, supprimer, ou suffixe Double pour une aide
+# de test), puis régénérer : python tests/test_doubles_api.py --write-baseline
+InventoryItem.getDeviceData
+IsoGridSquare.Is
+IsoZombie.getUsername
+ItemVisual.getTotalDirt
+Literature.pageCount

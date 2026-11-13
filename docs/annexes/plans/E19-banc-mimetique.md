@@ -2,11 +2,11 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 1 / 8 tâche(s) terminée(s).
+**Avancement.** en cours — 2 / 8 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
-| ☐ | E19-T01 | Table de l'API du jeu et doublures conformes | `à faire` | hors jeu | — |
+| ☑ | E19-T01 | Table de l'API du jeu et doublures conformes | `testé hors jeu` | hors jeu | — |
 | ☐ | E19-T02 | Appels du mod conformes à l'API 42.22 | `à faire` | hors jeu | E19-T01 |
 | ☐ | E19-T03 | Doublures corrigées et nombre d'arguments contrôlé | `à faire` | hors jeu | E19-T01 |
 | ☐ | E19-T04 | Potager sur le vrai Lua vanilla | `à faire` | hors jeu | LK15-T06 |
@@ -41,16 +41,16 @@ Rendu, animation, son, interface ; IA et chemins vanilla écrits en Java. Les ca
 
 ## Tâches
 
-- [ ] **E19-T01** — Table de l'API du jeu et doublures conformes
-  - État : `à faire`
+- [x] **E19-T01** — Table de l'API du jeu et doublures conformes
+  - État : `testé hors jeu`
   - Cible : `hors jeu`
   - Dépend de : —
   - Fichiers : `tools/pz_api.py` (lecture des sources de référence) ; `tests/test_doubles_api.py` ; `tests/fixtures/doubles-api-baseline.txt` (cliquet)
   - Faire : ADR D01 : table classe exposée → méthodes publiques (héritées comprises) et nombres de paramètres, fonctions globales `@LuaMethod`, événements, lue sur le poste (jamais versionnée) ; banc qui relève les doublures de classes Java de `tests/harness.py` et des bancs (`H.class`, `C.<Classe>`, fonctions `function <Classe>:m`), et refuse une méthode absente du Java ; écarts existants dans une liste de référence qui ne peut que diminuer.
   - Accepté si : une doublure qui invente une méthode fait échouer le banc (test du contrôle lui-même) ; la liste de référence est produite et chiffrée ; banc sauté proprement sans les sources.
   - Tests : `python tests/test_doubles_api.py`.
-  - Preuve : —
-  - Reste : —
+  - Preuve : 2026-11-13 : `tools/pz_api.py` (classes exposées, méthodes publiques héritées comprises, nombres de paramètres, constructeurs sous `new`, fonctions globales, événements, fonctions Lua vanilla ; lu sur le poste, rien de versionné) ; `tests/test_pz_api.py` (`Ran 10 tests … OK`, analyse Java sur des extraits écrits pour le test) ; `tests/test_doubles_api.py` : `76 classes contrôlées, 602 méthodes contrôlées, 21 fonctions globales contrôlées, 5 écarts (5 en liste de référence)`, `Ran 13 tests … OK` ; une méthode inventée sur `IsoZombie` est signalée, une méthode héritée d'`IsoGameCharacter` acceptée ; sans les sources : contrôle sauté avec le message de ce qui manque ; liste de référence `tests/fixtures/doubles-api-baseline.txt` (5 lignes : `IsoGridSquare.Is` retirée en 42.22, `IsoZombie.getUsername`, `Literature.pageCount`, `ItemVisual.getTotalDirt`, `InventoryItem.getDeviceData`) ; le mod n'appelle pas `:Is(` (recherche du 2026-11-13) ; bancs inscrits dans `tests/run_all.py`
+  - Reste : limite principale : les faux objets anonymes des bancs (tables Lua sans nom de classe, environ 1 400 définitions de méthodes) ne sont pas contrôlés, seuls le sont les objets marqués d'un nom de classe ; à traiter par `E19-T03` (contrôle à l'exécution dans `H.class`, faux objets rattachés à une classe) ; 8 formes dynamiques et les fonctions globales définies par les bancs non contrôlées ; liste des événements du harnais non comparée
 - [ ] **E19-T02** — Appels du mod conformes à l'API 42.22
   - État : `à faire`
   - Cible : `hors jeu`
