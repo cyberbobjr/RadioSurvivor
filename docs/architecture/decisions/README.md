@@ -16,7 +16,8 @@ l'architecture et range les ADR rédigés à part.
 | 2026-10-09 | Corps des PNJ : base B « joueur réanimé » retenue au jalon 1, base A (zombie ordinaire) abandonnée | [LK02-jalon-corps-gestes.md](../../annexes/plans/LK02-jalon-corps-gestes.md) |
 | 2026-10-09 | Six voix, fréquences tirées par partie et jamais envoyées aux clients, découvertes par des notes | [E05-voix-reseau-radio.md](../../annexes/plans/E05-voix-reseau-radio.md) |
 | 2026-11-05 | Séparation : `batman_RadioSurvivor` et `batman_LivingKnox` autonomes dans un article Workshop, sur un mod commun `batman_RadioSurvivorCore` (missions, pont LLM, identité, historique, outils) ; remplace la fusion du 2026-10-08. Révision du 2026-11-07 : pas de reprise des parties d'avant la séparation (D08 de l'ADR abandonnée) | [adr-separation-mods.md](adr-separation-mods.md), [E18](../../annexes/plans-termines/E18-separation-living-knox.md) |
-| 2026-10-14 | « Les tests font foi » : une tâche MP est `testé MP` quand la campagne automatique (serveur dédié + 2 clients) passe | [E01-moteur-tests-en-jeu.md](../../annexes/plans/E01-moteur-tests-en-jeu.md) |
+| 2026-11-14 | Chaque mod paie ses missions : un PNJ Living Knox est payé par Living Knox (source de récompense déclarée au mod commun), RadioSurvivor ne paie que ses voix et ne lit plus Living Knox pour une récompense | [adr-separation-mods.md](adr-separation-mods.md) (D09), [E11](../../annexes/plans/E11-missions-generees.md) |
+| 2026-10-14 | « Les tests font foi » : une tâche MP est `testé MP` quand la campagne automatique (serveur dédié + 2 clients) passe | [E01-moteur-tests-en-jeu.md](../../annexes/plans-termines/E01-moteur-tests-en-jeu.md) |
 
 Les autres étapes portent aussi leurs décisions (réputation E04, missions E11, troc E13, combat LK06,
 fortification LK14…) : les lire dans leur fichier.

@@ -11,12 +11,14 @@ notebook (R.lot, projected as rewardTable).
 
     R.resolve(npcId)                         -> { group, member, data, role } | nil, reason   living member of a group
     R.take(gid, character, player)           -> item, found | nil, reason   one surplus item taken from the household
-    R.lot(m)                                 -> name of the created lot table, or nil (a lot is announced)
-    R.claim(store, m, player, character, token) -> true | false, reason | nil (common lot)
-        reward path of the giver "npc" of Living Knox alone (LK_TalkAlone); write-ahead marker on the mission before
-        the item leaves the household, so an interrupted claim is never paid twice.
+    R.lot(m, npcId)                          -> name of the created lot table, or nil (a lot is announced)
+    R.claim(store, m, player, character, token, npcId) -> true | false, reason | nil (common lot)
+        write-ahead marker on the mission before the item leaves the household, so an interrupted claim is never paid
+        twice. npcId: Living Knox id of the requester, m.npc by default (Living Knox alone: the mission's NPC id).
 
-RadioSurvivor (RS_NPCRewards) reads R.resolve and R.take for its own "cache" reward of a Living Knox NPC.
+Each mod pays its missions (E11-T21, decision D09): R.claim and R.lot are the reward path of the giver "npc" of
+Living Knox alone (LK_TalkAlone) and the reward source registered in the core engine at load
+(RC_Missions.registerNpcReward), through which RadioSurvivor's notebook pays a mission of a Living Knox NPC.
 ]]
 require "LivingKnox/LK_Core"
 -- LivingKnox.Groups and LivingKnox.Stock are read at call time (loaded with every server file of the engine).
@@ -66,9 +68,9 @@ local function config() return require "RadioSurvivorCore/RC_MissionConfig" end
 
 -- Name of the lot created for mission m (a table of Caches.tables), or nil when the mission announces its own lot.
 -- The group's type is read now (unknown type: food); a dead requester gives nothing.
-function R.lot(m)
+function R.lot(m, npcId)
     if (m.rewardCount or 0) > 0 then return nil end
-    local r = R.resolve(m.npc)
+    local r = R.resolve(npcId or m.npc)
     if r == nil then return nil end
     local MC = config()
     local name = MC.NPC_REWARD_TABLES[r.data.type] or "food"
@@ -121,15 +123,15 @@ end
 
 -- nil: no household surplus and a lot announced (or a supply lot already paid at completion): the common lot of the
 -- engine is claimed. No surplus and no announced lot: the created lot (R.lot).
-function R.claim(store, m, player, character, token)
+function R.claim(store, m, player, character, token, npcId)
     -- A supply contract with an engine reward paid that exact lot from the reserve at completion: never charge twice.
     if m.supply and (m.rewardCount or 0) > 0 then return nil end
     if m.transaction or m.state ~= "success" or not m.participants[character] or m.claimedBy ~= "" then
         return false, "State"
     end
-    local r = R.resolve(m.npc)
+    local r = R.resolve(npcId or m.npc)
     if r == nil then return nil end
-    local created = R.lot(m)
+    local created = R.lot(m, npcId)
     m.transaction = { kind = "reward", token = token, character = character, ids = {}, stage = "prepared" }
     if not store.save() then m.transaction = nil; return false, "Storage" end
     local item = R.take(r.group, character, player)
@@ -157,5 +159,13 @@ function R.claim(store, m, player, character, token)
     if not store.save() then return false, "Recovery" end
     return true
 end
+
+-- Reward source of Living Knox in the core engine (read at call time, so a wrapper of R.claim or R.lot applies).
+require("RadioSurvivorCore/RC_Missions").registerNpcReward({
+    claim = function(store, m, player, character, token, npcId)
+        return R.claim(store, m, player, character, token, npcId)
+    end,
+    lot = function(m, npcId) return R.lot(m, npcId) end,
+})
 
 return R

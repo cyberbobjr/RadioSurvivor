@@ -15,6 +15,15 @@ Givers (E18-T05, user decision of 2026-11-05: registration and hooks). A mod reg
                                       announces none (E18-T33), projected as rewardTable
                             observeDeliver(m, player, name, state, store) -> changed }       optional, `deliver` poll
 The engine keeps its fields on the giver record, owned by that mod: id, name, mission, missionCount, nextOfferHour.
+NPC reward source (E11-T21, decision D09 of 2026-11-14: each mod pays its missions). The NPC engine declares how a
+mission given by one of its NPCs is paid, so that a giver of another mod (RadioSurvivor's notebook fiche of an engine
+NPC) delegates the claim to it without reading any module of that engine:
+    M.registerNpcReward({ claim(store, m, player, character, token, npcId) -> handled, reason | nil,
+                          lot(m, npcId) -> name of a Caches table | nil })
+    M.npcReward() -> the registered source, or nil (no NPC engine: the giver keeps the common lot)
+npcId is the engine's id of the requester; claim and lot have the contract of the giver's claim and lot above (nil:
+the common lot of the engine). One source per game (Living Knox registers its own at load, authority only); a second
+registration replaces the first.
 Reputation (E18-T22): the engine records the fact of each participant of a closed mission in the reputation of the
 core mod (RC_Reputation: mission.success, mission.failed, mission.abandoned; not for the cancelled_* results) and
 keeps the sensitive offers from a character of bad reputation (RC_Reputation.offerAllowed, E04-T05), for every giver.
@@ -109,6 +118,15 @@ function M.registerDonor(kind, donor)
 end
 
 function M.donor(kind) return donors[kind] end
+
+local npcReward = nil
+
+function M.registerNpcReward(source)
+    npcReward = source
+    return source
+end
+
+function M.npcReward() return npcReward end
 
 local function kindOf(m) return m.donor or 'npc' end
 
@@ -453,7 +471,7 @@ end
 
 -- Common reward lot of a successful mission, claimed once for the whole group.
 function M.claim(store, m, player, character, token)
-    -- Reward path of the giver (RadioSurvivor: household surplus of a Living Knox NPC); nil keeps the common lot.
+    -- Reward path of the giver (an NPC engine's source, M.registerNpcReward); nil keeps the common lot.
     local giver = donors[kindOf(m)]
     if giver and giver.claim then
         local handled, reason = giver.claim(store, m, player, character, token)

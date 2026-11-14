@@ -71,7 +71,7 @@ class LayoutTests(unittest.TestCase):
         self.assertEqual(hits, [])
 
     def test_living_knox_requires_no_mission_module_of_radiosurvivor(self):
-        req = re.compile(r'require\s*\(?\s*["\']RadioSurvivor/RS_(Mission\w*|NPCRewards|Caches|Rewards)["\']')
+        req = re.compile(r'require\s*\(?\s*["\']RadioSurvivor/RS_(Mission\w*|Caches|Rewards)["\']')
         hits = [str(p.relative_to(ROOT)) for p in RS_LUA.rglob('*.lua')
                 if 'LivingKnox' in p.parts and req.search(p.read_text(encoding='utf-8'))]
         self.assertEqual(hits, [])

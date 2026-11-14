@@ -1,4 +1,4 @@
-"""In-game suites of E11-T17 and E11-T18 run on the bench doubles (red on injected defects, green on the real code).
+"""In-game suite of E11-T17 run on the bench doubles (red on injected defects, green on the real code).
 
     python tests/test_rs_e11_voice_npc_suites.py
 
@@ -6,16 +6,12 @@
   (VoiceMissionTests: real RadioSurvivor_Server and RS_Carnet_Server, scout metagrid), the clear density double of
   tests/test_mission_clear.py and the Signal Smoke double; zombies spawned by an addZombiesInOutfit double that fires
   OnHitZombie and OnZombieDead in the order of the game. The real RST engine runs the suite on the server machine.
-- rs.npcrewards (dev/.../suites/RS_NpcRewards.lua): the Living Knox harness of tests/test_lk_aid.py (real group
-  registry, home furnishing, stock, containers and identities) plus the real RadioSurvivor reward chain
-  (RS_NPCRewards, RS_Rewards, RC_Missions with the givers of RS_MissionHooks, provider RS_LivingKnox).
 
-Doubles only: nothing here proves the Java API (zombie hits, Signal Smoke, containers); the campaigns do.
+Doubles only: nothing here proves the Java API (zombie hits, Signal Smoke); the campaigns do.
 """
 from __future__ import annotations
 
 import sys
-import tempfile
 import unittest
 from pathlib import Path
 
@@ -23,9 +19,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import test_carnet  # noqa: E402  (VoiceMissionTests reused without running its tests here)
 from test_carnet import TESTS_SHARED  # noqa: E402
 from test_mission_clear import CLEAR_WORLD  # noqa: E402
-from test_lk_aid import AID_DOUBLES  # noqa: E402
-from test_lk_homes import HOUSE  # noqa: E402
-from test_lk_stock import Base as StockBase, KITCHEN, OFFSCREEN_DOUBLES  # noqa: E402
 
 VOICE_SUITE = 'rs.missions.voicetemplates'
 VOICE_TESTS = {
@@ -165,140 +158,6 @@ class VoiceTemplateSuiteTests(unittest.TestCase):
             end""")
         for name in VOICE_TESTS.values():
             self.assertEqual(results[name][0], 'FAIL', name)
-
-
-NPC_SUITE = 'rs.npcrewards'
-NPC_TEST = 'household reward taken once for the recipient only, never from a dead NPC'
-
-# Living Knox registries read by the reward (identities, names, personal relations, public API, household lot) and the
-# real RadioSurvivor chain: provider RS_LivingKnox, givers of RS_MissionHooks (the "npc" giver claims through
-# RS_NPCRewards), RS_Rewards.
-REWARD_CHAIN = r"""
-for _, name in ipairs({ 'LivingKnox/LK_Identity', 'LivingKnox/LK_Store', 'LivingKnox/LK_Names',
-        'LivingKnox/LK_PersonalRelation', 'LivingKnox/LK_API', 'LivingKnox/LK_MissionRewards',
-        'RadioSurvivor/RS_LivingKnox' }) do
-    require(name)
-end
-LivingKnox.Store.ensure()
-"""
-# InventoryItem.getActualWeight (InventoryItem.java, read by the household lot to fit the player's inventory): weight
-# field w of the item, 1 by default (same rule as the containers of tests/test_lk_aid.py).
-ITEM_WEIGHT = r"""
-local Item = HARNESS.classes.InventoryItem
-function Item:getActualWeight() return rawget(self, 'w') or 1 end
-"""
-MIRROR = r"""
-local wanted = {%s}
-local inv = getSpecificPlayer(0):getInventory()
-local have = {}
-for _, it in ipairs(inv:getItems().items) do have[it.id] = it end
-for id, it in pairs(have) do if wanted[id] == nil then inv:Remove(it) end end
-for id, fullType in pairs(wanted) do
-    if have[id] == nil then
-        local it = instanceItem(fullType)
-        it.id = id
-        inv:AddItem(it)
-    end
-end
-"""
-SERVER_CHAIN = r"""
-assert(RS_LivingKnox.install(), 'provider RS_LivingKnox not installed')
-require('RadioSurvivor/RS_MissionHooks').attach({ data = {}, save = function() return true end })
-"""
-
-
-class NpcRewardsSuiteTests(StockBase):
-    """rs.npcrewards on a dedicated server with two clients (A requester inside the test house, B second client)."""
-
-    mode = 'mp'
-
-    def run_suite(self, defect=''):
-        for m in ('server', 'A', 'B'):
-            self.h.load(m, OFFSCREEN_DOUBLES)
-            self.h.load(m, AID_DOUBLES)
-            self.h.load(m, ITEM_WEIGHT)
-        self.run_lua(HOUSE)
-        self.run_lua(KITCHEN)
-        self.run_lua(REWARD_CHAIN)
-        self.run_lua(SERVER_CHAIN)
-        for m in ('server', 'A', 'B'):
-            self.h.load(m, 'require "RST/RST"')
-            self.h.load(m, 'shared/RST/suites/RS_NpcRewards.lua')
-        if defect:
-            self.run_lua(defect)
-        self.h.move_player('A', 103, 104)
-        self.h.move_player('B', 104, 106)
-        self.run_lua('PLAYER = HARNESS.players.A')
-        self.assertTrue(self.ev(f'RST.start({{ suite = "{NPC_SUITE}", tags = "world" }}, '
-                                '{ attach = false, ctx = { player = PLAYER } })'))
-        for _ in range(600):
-            if not self.ev('RST.step()'):
-                break
-            self.h.advance_ms(100)
-            self.h.pump()
-            self.mirror_inventories()
-            self.h.tick(1)
-        report = self.ev('RST.last()')
-        self.assertIsNotNone(report, 'run not finished')
-        return {r.test: (r.status, r.message) for r in report.results.values()}
-
-    def mirror_inventories(self):
-        """Inventory of each client = the server copy of its player (the delivery of sendAddItemToContainer and
-        sendRemoveItemFromContainer, which this harness only counts): same ids and types."""
-        for user in ('A', 'B'):
-            server = {it.id: it.type for it in self.ev(f'HARNESS.players.{user}:getInventory():getItems().items')
-                      .values()}
-            self.h.load(user, MIRROR % ', '.join(f'[{i}] = "{t}"' for i, t in sorted(server.items())))
-
-    def test_suite_passes_and_cleans_up(self):
-        results = self.run_suite()
-        self.assertEqual(results, {NPC_TEST: ('PASS', None)})
-        self.assertEqual(len(list(self.ev('LivingKnox.Groups.list()').values())), 0)
-        self.assertEqual(self.ev('HARNESS.players.A:getInventory():getItems():size()'), 0)
-
-    def test_stock_withdrawn_twice_fails(self):
-        # Injected defect: the household lot takes a second item from the stock for the same claim.
-        results = self.run_suite("""
-            local R = LivingKnox.MissionRewards
-            local take = R.take
-            R.take = function(gid, character, player)
-                local item, found = take(gid, character, player)
-                if item then take(gid, character, player) end
-                return item, found
-            end""")
-        status, message = results[NPC_TEST]
-        self.assertEqual(status, 'FAIL')
-        self.assertIn('stock reference after the claim', message)
-
-    def test_reward_leaked_to_the_second_client_fails(self):
-        # Injected defect: the second client's player also receives the reward (same item id) besides the recipient.
-        results = self.run_suite("""
-            local R = LivingKnox.MissionRewards
-            local take = R.take
-            R.take = function(gid, character, player)
-                local item, found = take(gid, character, player)
-                if item then
-                    local copy = instanceItem(item:getFullType())
-                    copy.id = item:getID()
-                    HARNESS.players.B:getInventory():AddItem(copy)
-                end
-                return item, found
-            end""")
-        status, message = results[NPC_TEST]
-        self.assertEqual(status, 'FAIL')
-        self.assertIn('second client', message)
-
-    def test_reward_from_a_dead_npc_fails(self):
-        # Injected defect: the adapter no longer checks that the member is alive.
-        results = self.run_suite("""
-            local G = LivingKnox.Groups
-            local get = G.get
-            G.get = function(gid)
-                local g = get(gid)
-                if g then for _, m in pairs(g.members) do m.alive = true end end
-                return g
-            end""")
-        self.assertEqual(results[NPC_TEST][0], 'FAIL')
 
 
 if __name__ == '__main__':

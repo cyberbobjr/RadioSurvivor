@@ -97,7 +97,6 @@ RST.CAMPAIGNS["solo-rs"] = {
     "rs.reputation",    -- E04-T14 (E04-T04, T05, T07, T11, Q17)
     "rs.voicedelivery", -- hidden radio deposits, actual world removal
     "rs.missionrewards", -- E11: actual cache, private frequency, stash and server XP
-    "rs.npcrewards",    -- E11-T18: household reward of a Living Knox NPC (stock once, recipient only, dead NPC)
 }
 
 -- Suites with a FAIL or SKIP in the solo campaign of 2026-10-13 (report 20261013-202155-solo.txt), fixed since.
@@ -159,7 +158,6 @@ RST.CAMPAIGNS["mp"] = {
     "rs.reputation",    -- E04-T14 (two clients: killer and team mate, admin view)
     "rs.voicedelivery", -- all online witnesses leave before physical collection
     "rs.missionrewards", -- E11: recipient client XP and unrelated client isolation
-    "rs.npcrewards",    -- E11-T18: household reward of a Living Knox NPC (stock once, recipient only, dead NPC)
     "rs.lastpages",     -- E15-T02, E15-T03 (prefix: corpse)
     "rs.bulletin",      -- E14-T02
     "rs.notes",         -- E05-T09

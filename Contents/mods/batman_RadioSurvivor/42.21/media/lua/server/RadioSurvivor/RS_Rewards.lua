@@ -74,7 +74,7 @@ end
 
 local function available(state, source, m, cid, kind)
     if kind == 'cache' then
-        return (source.material ~= nil or Config.Caches.tables[source.cache_table] ~= nil)
+        return Config.Caches.tables[source.cache_table] ~= nil
             and source.places and source.places[1] and m.cache == nil
     elseif kind == 'frequency' then return R.frequency(source)
     elseif kind == 'stashmap' then
@@ -144,10 +144,8 @@ function R.grant(store, source, m, player, cid, khz)
     elseif kind == 'cache' then
         local p = source.places[1]
         rec.place = {id = p.id, x = p.x, y = p.y, z = p.z or 0, label = p.label}
-        if not source.material then
-            local caches = require 'RadioSurvivor/RS_CacheAction'
-            caches.attach(m, source.cache_table, p, {x1 = p.x - 3, y1 = p.y - 3, x2 = p.x + 4, y2 = p.y + 4})
-        end
+        local caches = require 'RadioSurvivor/RS_CacheAction'
+        caches.attach(m, source.cache_table, p, {x1 = p.x - 3, y1 = p.y - 3, x2 = p.x + 4, y2 = p.y + 4})
     end
     if not store.save() then
         m.extendedReward, row.cursor = nil, previous
@@ -155,21 +153,14 @@ function R.grant(store, source, m, player, cid, khz)
         return nil, 'storage'
     end
     if kind == 'cache' then
-        local item = source.material and source.material(player)
-        if item then
-            -- Adapter checks capacity before withdrawing the actual stock item.
-            if not giveItem(player, item) then return rec, 'recovery' end
-            rec.inHand = true
-        else
-            local caches = require 'RadioSurvivor/RS_CacheAction'
-            if not m.cache then
-                local p = rec.place
-                caches.attach(m, source.cache_table, p, {x1 = p.x - 3, y1 = p.y - 3, x2 = p.x + 4, y2 = p.y + 4})
-                if not store.save() then return rec, 'recovery' end
-            end
-            if m.cache then caches.place(store, m.cache) end
-            if khz then require('RadioSurvivor/RS_MapMarks').give(player, cid, khz, rec.place) end
+        local caches = require 'RadioSurvivor/RS_CacheAction'
+        if not m.cache then
+            local p = rec.place
+            caches.attach(m, source.cache_table, p, {x1 = p.x - 3, y1 = p.y - 3, x2 = p.x + 4, y2 = p.y + 4})
+            if not store.save() then return rec, 'recovery' end
         end
+        if m.cache then caches.place(store, m.cache) end
+        if khz then require('RadioSurvivor/RS_MapMarks').give(player, cid, khz, rec.place) end
     elseif kind == 'frequency' then
         require('RadioSurvivor/RS_RadioLog').add(cid, rec.khz, 'reply',
             (rec.name or rec.voice) .. ' (' .. string.format('%.1f MHz', rec.khz / 1000) .. ')', rec.voice)

@@ -25,6 +25,7 @@ from pathlib import Path
 from test_carnet import MAP_DOUBLE, SCOUT_GRID, TESTS_SHARED, Simulation, convert
 from test_protocol import lua_list
 
+ROOT_LK = Path(__file__).resolve().parents[1] / 'Contents/mods/batman_LivingKnox/42.21/media/lua'
 REQUESTER, OTHER = 'alice', 'bob'
 SUITE = 'rs.mission.signal.client'
 TEST_NAME = ('requester client: accept, circle on its map only, signal outside the window ignored, report and claim')
@@ -54,6 +55,21 @@ RST.SignalClientSuite.requester = function(t, p, Signal, c, after)
     return after(t, { fiche = fiche, body = RS_CarnetServer.objects[fiche.id] })
 end
 '''
+
+# E11-T21 (chaque mod paie ses missions) : la vraie source de récompense de Living Knox inscrite au moteur commun, comme
+# en jeu avec les deux mods ; le PNJ 2001 du faux fournisseur n'est membre d'aucun groupe Living Knox (LivingKnox.Groups
+# absent) : règle de Living Knox seul, le lot annoncé avec la mission. Chaque délégation est comptée.
+LK_SOURCE = r'''
+package.path = [[%s/?.lua;%s/?.lua;]] .. package.path
+require "LivingKnox/LK_MissionRewards"
+local M = require 'RadioSurvivorCore/RC_Missions'
+local source = M.npcReward()
+LK_DELEGATED = {}
+M.registerNpcReward({ lot = source.lot, claim = function(store, m, player, character, token, npcId)
+    LK_DELEGATED[#LK_DELEGATED + 1] = npcId
+    return source.claim(store, m, player, character, token, npcId)
+end })
+''' % ((ROOT_LK / 'shared').as_posix(), (ROOT_LK / 'server').as_posix())
 
 DEFECT_LUA = {
     'any_hour': ('server', "require('RadioSurvivorCore/RC_MissionSignal').inWindow = function() return true end"),
@@ -92,6 +108,7 @@ class SignalClientSuiteBench(unittest.TestCase):
             game.rt.execute(f'package.path = [[{shared};]] .. package.path')
             game.rt.execute(RST_LOAD)
         sim.server.rt.execute(SERVER)
+        sim.server.rt.execute(LK_SOURCE)
         self.rawequal = sim.server.rt.eval('rawequal')
         sim.server.g.sendAddItemToContainer = self.item_added
         sim.server.g.sendRemoveItemFromContainer = self.item_removed
@@ -188,6 +205,8 @@ class SignalClientSuiteBench(unittest.TestCase):
                         notes)
         self.assertTrue(any('client alice: rs.signal.send: claim sent: row success' in n
                             and 'gained 20 x Base.Bullets9mm' in n for n in notes), notes)
+        # The claim of the engine NPC went through Living Knox's source once, with its engine id (incarnation).
+        self.assertEqual(list(self.sim.server.g.LK_DELEGATED.values()), [2001])
         self.assert_restored()
 
     def test_without_second_client_the_absence_is_noted(self):

@@ -26,7 +26,7 @@
 | ✕ | E11-T18 | Récompenses et offres des PNJ Living Knox | `abandonné` | MP | E11-T16 |
 | ☑ | E11-T19 | Livraison radio discrète après éloignement | `testé MP` | MP | E11-T17 |
 | ☐ | E11-T20 | Délais des missions en temps de jeu (pause, vitesse) | `testé hors jeu` | solo | E00-T03 |
-| ☐ | E11-T21 | Chaque mod paie ses missions : récompense d'un PNJ Living Knox payée par Living Knox | `à faire` | MP | E11-T16 |
+| ☐ | E11-T21 | Chaque mod paie ses missions : récompense d'un PNJ Living Knox payée par Living Knox | `testé hors jeu` | MP | E11-T16 |
 
 <!-- fin du tableau de bord -->
 
@@ -287,12 +287,12 @@
   - Reste : en jeu solo : chrono arrêté pendant la pause (Échap) et accéléré en x3 ; campagne MP : `rs.identity.after-reconnect` avec le serveur vide en `PauseEmpty`
 
 - [ ] **E11-T21** — Chaque mod paie ses missions : récompense d'un PNJ Living Knox payée par Living Knox
-  - État : `à faire`
+  - État : `testé hors jeu`
   - Cible : `MP`
   - Dépend de : E11-T16
   - Fichiers : `RadioSurvivorCore/RC_Missions.lua`, `RadioSurvivor/RS_MissionHooks.lua`, `RadioSurvivor/RS_NPCRewards.lua` (retiré), `LivingKnox/LK_MissionRewards.lua`, `LivingKnox/LK_TalkAlone.lua`, suites `rs.npcrewards` (retirée) et bancs
   - Faire : décision du 2026-11-14. La réclamation d'une mission donnée par un PNJ du moteur passe par une source de récompense que le moteur déclare au mod commun ; Living Knox y déclare son chemin existant (`LK_MissionRewards.claim`), seul ou avec RadioSurvivor ; RadioSurvivor ne référence plus Living Knox pour une récompense ; `RS_NPCRewards`, ses bancs et la suite `rs.npcrewards` sont supprimés.
   - Accepté si : au banc, les deux mods actifs : lot du foyer pris une fois, au seul destinataire, refus d'un PNJ mort, comme Living Knox seul ; RadioSurvivor seul : missions des voix payées comme avant ; aucun module de RadioSurvivor ne lit `LivingKnox.MissionRewards` ; en jeu, campagnes solo deux mods, RadioSurvivor seul et Living Knox seul vertes sur les suites de missions.
   - Tests : bancs des récompenses (`test_npc_rewards.py` remplacé, `test_mission_rewards.py`, `test_lk_*` du lot) ; campagnes `--mods rs`, `--mods lk`, deux mods.
-  - Preuve : —
-  - Reste : —
+  - Preuve : contrat du mod commun `RC_Missions.registerNpcReward` / `npcReward` ; Living Knox y inscrit `LK_MissionRewards.claim`/`lot` ; `RS_MissionHooks` délègue la réclamation et le lot d'un PNJ du moteur ; `RS_NPCRewards`, `rs.npcrewards` et leurs bancs supprimés ; banc `tests/test_lk_mission_rewards.py` 12 OK (`BothModsRewardTests` : un objet du foyer au seul destinataire, second refusé, PNJ mort sans sortie, lot créé selon le groupe, PNJ sans groupe : lot annoncé, fiche sans moteur : lot commun ; 3 rouges avant le changement) ; `tests/run_all.py --keep-going` : 181 passed, 0 failed ; luacheck 0 avertissement sur les 8 fichiers touchés
+  - Reste : campagnes en jeu : deux mods, RadioSurvivor seul (`--mods rs`), Living Knox seul (`--mods lk`)

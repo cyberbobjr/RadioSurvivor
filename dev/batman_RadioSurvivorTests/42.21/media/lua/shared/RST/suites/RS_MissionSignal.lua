@@ -34,6 +34,9 @@ RST_PeerChecksSignal: the real network path in MP, the same code in one Lua stat
     report       notebook command "report" near the requester (the Report button, "rs.signal.send"): success;
     claim        notebook command "claim" ("Reclamer", "rs.signal.send"): the lot reserved for the character on the
                  authority, the items added to its inventory there are the items received by the requester client.
+                 The lot is Living Knox's (E11-T21, each mod pays its missions; same rule as Living Knox alone): one
+                 item of the household surplus of the requester's group, else the lot announced with the mission
+                 (signal: rewardType x rewardCount), which is also the lot of a requester of no resolvable group.
 Cleanup (t:defer): signals of the test stopped, mission, outcome and reputation entry of the character, contact and
 known missions put back, the items of the claim removed (and synced), notebook snapshots sent again; the npc and the
 player position are undone by the fixtures. Outside the game: tests/test_rs_signal_client_suite.py.

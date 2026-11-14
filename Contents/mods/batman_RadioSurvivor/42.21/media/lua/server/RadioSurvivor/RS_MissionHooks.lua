@@ -5,7 +5,8 @@ RadioSurvivor's givers and hooks of the common mission engine (E18-T05, RC_Missi
 
 - store: the notebook state RS_State (its S.save writes the mission file of the core mod first, then the notebook);
 - NPC engine: RS_NPCProvider (Living Knox through its adapter, or no engine);
-- givers: 'npc' = NPC fiche of the notebook (S.data.npcs; reward path RS_NPCRewards for a Living Knox NPC),
+- givers: 'npc' = NPC fiche of the notebook (S.data.npcs; the mission of an engine NPC is paid by the reward source
+  its engine registered in the core, M.npcReward: each mod pays its missions, E11-T21),
   'voice' = radio voice (S.data.voiceDonors, E11-T08; its dead drop polled by RS_VoiceDelivery);
 - result of a mission: trust of the notebook contact (the reputation fact of each participant and the offers closed
   to a bad reputation are the core engine's, E18-T22);
@@ -19,6 +20,15 @@ local M = require 'RadioSurvivorCore/RC_Missions'
 local P = require 'RadioSurvivor/RS_NPCProvider'
 
 local H = {}
+
+-- Reward source of the engine of the requester's fiche and its engine id (incarnation), or nil.
+local function engineReward(state, m)
+    local npcs = type(state) == 'table' and state.npcs or nil
+    local npc = npcs and npcs[m.npc]
+    local source = M.npcReward()
+    if not npc or npc.incarnation == nil or not source then return nil end
+    return source, npc.incarnation
+end
 
 local function npcGiver()
     return {
@@ -34,12 +44,17 @@ local function npcGiver()
             if npc and npc.incarnation ~= nil then return P.available() == true end
             return true
         end,
+        -- E11-T21 (decision D09): the lot of an engine NPC is its engine's (same path as that engine alone); nil (no
+        -- engine source, fiche of no engine) keeps the common lot.
         claim = function(store, m, player, character, token)
-            local npc = store.data.npcs and store.data.npcs[m.npc]
-            if npc and npc.incarnation ~= nil then
-                return require('RadioSurvivor/RS_NPCRewards').claim(store, m, player, character, token)
-            end
-            return nil
+            local source, id = engineReward(store.data, m)
+            if not source then return nil end
+            return source.claim(store, m, player, character, token, id)
+        end,
+        lot = function(m)
+            local source, id = engineReward(M.store().data, m)
+            if not source or not source.lot then return nil end
+            return source.lot(m, id)
         end,
     }
 end
