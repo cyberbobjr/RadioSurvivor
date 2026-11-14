@@ -44,7 +44,9 @@ Authority helpers (suite code, through RST.Steps.ask)
 Kinds of PC.squareKeys: { corpse = true, barricade = true, thumpable = true | { name, ... },
 container = true | { sprite name, ... }, floor = true (items on the floor: "floor <full type>"),
 sprite = { sprite name, ... } (objects drawn with one of these sprites: "sprite <name>"),
-light = true (IsoLightSwitch: "light <sprite> on=<activated>") }.
+light = true (IsoLightSwitch: "light <sprite> on=<activated>"), barricadeHealth = true (with barricade: also
+"barricade health=<IsoBarricade.getHealth>", synced by the engine), plant = true (farming plants, objects whose ModData
+holds typeOfSeed: "plant <sprite> seed=<typeOfSeed> state=<state>") }.
 ]]
 
 require "RST/RST"
@@ -129,6 +131,9 @@ function PC.squareKeys(x, y, z, kinds)
         if kinds.barricade and instanceof(o, "IsoBarricade") then
             out[#out + 1] = "barricade planks=" .. tostring(safe(function() return o:getNumPlanks() end))
                 .. " metal=" .. tostring(safe(function() return o:isMetal() end) and true or false)
+            if kinds.barricadeHealth then
+                out[#out + 1] = "barricade health=" .. tostring(safe(function() return o:getHealth() end))
+            end
         elseif kinds.thumpable and instanceof(o, "IsoThumpable") then
             local name = tostring(safe(function() return o:getName() end))
             if listed(kinds.thumpable, name) then
@@ -138,6 +143,13 @@ function PC.squareKeys(x, y, z, kinds)
         end
         if kinds.sprite and type(kinds.sprite) == "table" and listed(kinds.sprite, spriteName(o)) then
             out[#out + 1] = "sprite " .. spriteName(o)
+        end
+        if kinds.plant then
+            local md = safe(function() return o:hasModData() and o:getModData() or nil end)
+            if md ~= nil and md.typeOfSeed ~= nil then
+                out[#out + 1] = "plant " .. spriteName(o) .. " seed=" .. tostring(md.typeOfSeed) .. " state="
+                    .. tostring(md.state)
+            end
         end
         if kinds.light and instanceof(o, "IsoLightSwitch") then
             out[#out + 1] = "light " .. spriteName(o) .. " on=" .. tostring(safe(function() return o:isActivated() end)

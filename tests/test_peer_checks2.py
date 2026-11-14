@@ -453,6 +453,30 @@ class SquareKeyTests(unittest.TestCase):
             m.lua('LAMP.on = false')
             self.assertIn('on=false', m.lua('return table.concat(RST.PeerChecks.squareKeys(1, 1, 0, { light = true }), "|")'))
 
+    def test_barricade_health_and_plant_keys(self):
+        """LK14-T06 and LK15-T04/T05 MP: plank health of a barricade and farming plants compared on every client."""
+        with tempfile.TemporaryDirectory() as tmp:
+            m = Machine(Path(tmp) / 'c', SQ_GAME, [STEPS_FILE, PEER_FILE])
+            m.lua('BAR = { cls = "IsoBarricade", hp = 300, getSprite = function() return { getName = function() '
+                  'return "b" end } end, getContainerCount = function() return 0 end, '
+                  'getNumPlanks = function() return 2 end, isMetal = function() return false end }\n'
+                  'function BAR:getHealth() return self.hp end\n'
+                  'PLANT = { cls = "IsoObject", md = { typeOfSeed = "Carrots", state = "seeded" }, '
+                  'getSprite = function() return { getName = function() return "vegetation_farming_01_8" end } end, '
+                  'getContainerCount = function() return 0 end }\n'
+                  'function PLANT:hasModData() return true end\n'
+                  'function PLANT:getModData() return self.md end\n'
+                  'OBJECTS = { BAR, PLANT, OBJECTS[1] }')
+            keys = lambda kinds: m.lua('return table.concat(RST.PeerChecks.squareKeys(1, 1, 0, ' + kinds + '), "|")')
+            self.assertEqual(keys('{ barricade = true }'), 'barricade planks=2 metal=false')
+            self.assertEqual(keys('{ barricade = true, barricadeHealth = true }'),
+                             'barricade health=300|barricade planks=2 metal=false')
+            m.lua('BAR.hp = 1000')
+            self.assertIn('health=1000', keys('{ barricade = true, barricadeHealth = true }'))
+            self.assertEqual(keys('{ plant = true }'), 'plant vegetation_farming_01_8 seed=Carrots state=seeded')
+            m.lua('PLANT.md = {}')
+            self.assertEqual(keys('{ plant = true }'), '')
+
 
 class SourceTests(unittest.TestCase):
 

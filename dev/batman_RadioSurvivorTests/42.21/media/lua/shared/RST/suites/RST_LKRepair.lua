@@ -8,7 +8,9 @@ INSIDE a house that has at least one container near the player and one outer win
 other than the entrance, without any barricade yet (the test group gets its home on the player's square, no
 furnishing: LivingKnox.Homes.skip).
 Solo: RST.run({ suite = "lk.repair", tags = "world" }). Asynchronous run only (about 2 to 4 minutes).
-Multiplayer: final session (two clients look at the same barricade).
+Multiplayer (dedicated server): after the repair, every connected client reads the barricade square with the same
+describer as the authority (world.keys, RST_PeerChecks.lua: planks, metal and health of the barricade) and must find
+the same keys.
 
 Test "builder repairs a damaged barricade after an attack" (by day; the clock is moved to 6:59 first when it is night
 or late evening):
@@ -29,6 +31,7 @@ group removed. The clock is not set back.
 require "RST/RST"
 require "RST/RST_Fixtures"
 require "RST/RST_LKHelpers"
+require "RST/RST_PeerChecks"
 
 local K = RST.LKHelpers
 local measure = K.measurer("[LKR]")
@@ -279,6 +282,12 @@ RST.suite("lk.repair", { tags = { "world", "server" }, testTimeoutMs = 600000, t
                 t3:eq(0, c.missing, "missing items at the check after the work")
                 t3:eq(0, c.lost, "items counted as lost")
                 t3:eq(0, #c.thefts, "thefts counted")
+                -- LK14-T06 MP: the repaired barricade (planks and health) seen alike by every client.
+                if b ~= nil and type(isServer) == "function" and isServer() then
+                    local bq = b:getSquare()
+                    RST.PeerChecks.checkSquares(t3, { { x = bq:getX(), y = bq:getY(), z = bq:getZ() } },
+                        { barricade = true, barricadeHealth = true })
+                end
             end, "the builder did not repair the barricade")
         end, "group members not materialized and standing")
         end)

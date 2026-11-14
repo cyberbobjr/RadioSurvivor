@@ -23,13 +23,15 @@ night or late evening):
       and a stock check finds nothing missing, lost or stolen.
 Every phase prints "[LKG] measure ..." lines. Cleanup (t:defer): plants created in the home area removed, seeds of the
 packet left in the depot removed, the packet day of the group forgotten, stock reference erased, bodies and test group
-removed, the god mode set back. The clock is not set back. Multiplayer: the furrow and the plant seen by both clients
-are checked by eye in the MP session (no peer step yet).
+removed, the god mode set back. The clock is not set back. Multiplayer (dedicated server): every connected client reads
+the squares of the new plants with the same describer as the authority (world.keys, RST_PeerChecks.lua kind "plant":
+sprite, seed type and state of the farming object) and must find the same keys.
 ]]
 
 require "RST/RST"
 require "RST/RST_Fixtures"
 require "RST/RST_LKHelpers"
+require "RST/RST_PeerChecks"
 
 local K = RST.LKHelpers
 local GARDEN_CLEAR_RADIUS = 30   -- squares around the home kept free of vanilla zombies during the jobs
@@ -194,11 +196,12 @@ RST.suite("lk.garden", { tags = { "world", "server" }, testTimeoutMs = 720000, t
                         grew("seedPackets"), grew("seedsReceived"), grew("dug"), grew("sown")))
                     t3:eq(1, grew("seedPackets"), "seed packets received")
                     t3:eq(Gd().CFG.SEED_PACKET, grew("seedsReceived"), "seeds of the packet")
-                    local seeded = 0
+                    local seeded, grown = 0, {}
                     for _, e in ipairs(area.squares) do
                         local q = Gd().plantAt(e.x, e.y, area.z)
-                        if q ~= nil and not before[e.x .. "," .. e.y] and q.state ~= "plow" and q.typeOfSeed ~= nil then
-                            seeded = seeded + 1
+                        if q ~= nil and not before[e.x .. "," .. e.y] then
+                            grown[#grown + 1] = { x = e.x, y = e.y, z = area.z }
+                            if q.state ~= "plow" and q.typeOfSeed ~= nil then seeded = seeded + 1 end
                         end
                     end
                     t3:ok(seeded >= 1, "no plant sown on a dug square of the home area")
@@ -209,6 +212,10 @@ RST.suite("lk.garden", { tags = { "world", "server" }, testTimeoutMs = 720000, t
                     t3:eq(0, c.missing, "missing items at the check after the garden jobs")
                     t3:eq(0, c.lost, "items counted as lost")
                     t3:eq(0, #c.thefts, "thefts counted")
+                    -- LK15-T04, T05 MP: the furrows and the plant sown seen alike by every client.
+                    if #grown > 0 and type(isServer) == "function" and isServer() then
+                        RST.PeerChecks.checkSquares(t3, grown, { plant = true })
+                    end
                 end, "garden jobs not all done (seeds, furrow, sowing)")
             end, "group members not materialized")
         end)
