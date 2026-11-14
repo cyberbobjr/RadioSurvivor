@@ -14,6 +14,11 @@ client, campaign mp), save rstest*.
                         aired: the authority copy dropped by the configured amounts; the requester client reads the
                         same drop on its own gauges and its two halos (Boredom, Unhappiness, arrow down)
                         ("rs.comfort.read"); every other client (second client in MP) reads no drop and no halo.
+                        The real callback is called through CS.probe, which records the facts around it, so a failure
+                        names its step: never aired (CS.whyNotAired: channel gone, busy with broadcast X, or line still
+                        queued) or aired without comfort (CS.whyNotEased: requester not found or another player
+                        object, notebook character changed, hourly cap, gauges eased through another RS_Comfort
+                        table, refusal with gauges unchanged).
 Cleanup (t:defer): stats of every touched player restored and synced, hourly cap counters and counters of RS_Comfort
 restored, the test line removed from the radio histories. Solo runs the same code with the local player (no other
 client: noted). Outside the game: tests/test_rs_comfort_suite.py (doubles), tests/test_comfort.py (module and wiring).
@@ -146,6 +151,66 @@ end
 
 local function answerOf(res) return res and res.list and res.list[1] or {} end
 
+local function mhz(khz) return string.format("%.1f MHz", (tonumber(khz) or 0) / 1000) end
+
+-- Why the queued test line is not on the air yet (failure message of the wait): channel gone (the air queue drops
+-- the line), channel still busy with another broadcast, or channel free with the line still queued.
+function CS.whyNotAired(Personas, khz)
+    local channel = Personas.channel(khz)
+    if channel == nil then return "voice channel of " .. mhz(khz) .. " gone (RS_Personas.channel nil): line dropped" end
+    local bc = channel:getAiringBroadcast()
+    if bc ~= nil then
+        return "voice channel of " .. mhz(khz) .. " still busy with broadcast " .. tostring(bc:getID())
+    end
+    return "voice channel of " .. mhz(khz) .. " free but the line still queued (air queue not drained)"
+end
+
+-- The real comfort callback of the requester (GroupRadio.state.comfort), with the facts around its call recorded
+-- in probe: aired, requester found online under the caller key, notebook character on the air, RS_Comfort counters
+-- and gauges of the requester on the authority before and after. The real callback alone decides the comfort.
+function CS.probe(c, key, cid)
+    local probe = { aired = false, key = key, cid = cid }
+    local real = c.state.comfort(key, cid)
+    probe.onAir = function()
+        probe.aired = true
+        local found = c.p
+        if isServerSide() then found = Steps.playerOf(key) end
+        probe.found, probe.same = found ~= nil, found == c.p
+        probe.current = c.Log.characterOf(c.p)
+        probe.dead = c.p:isDead()
+        probe.applied, probe.capped = c.Comfort.stats.applied, c.Comfort.stats.capped
+        probe.before = gauges(c.p)
+        real()
+        probe.after = gauges(c.p)
+        probe.appliedAfter, probe.cappedAfter = c.Comfort.stats.applied, c.Comfort.stats.capped
+    end
+    return probe
+end
+
+-- Why the line aired without comforting the requester (failure message), from the facts of CS.probe.
+function CS.whyNotEased(probe)
+    if not probe.found then
+        return "requester '" .. tostring(probe.key) .. "' not found online by the comfort callback (findPlayer)"
+    end
+    if not probe.same then
+        return "the online player of '" .. tostring(probe.key) .. "' is another object than the requester of the run"
+    end
+    if probe.current ~= probe.cid then
+        return "notebook character changed: " .. tostring(probe.cid) .. " at the request, " .. tostring(probe.current)
+            .. " on the air (no comfort by design)"
+    end
+    if probe.cappedAfter > probe.capped then
+        return "hourly cap of RS_Comfort refused the comfort (capped " .. probe.capped .. " -> " .. probe.cappedAfter .. ")"
+    end
+    local b, a = probe.before, probe.after
+    if a.boredom < b.boredom or a.sadness < b.sadness then
+        return "gauges eased on the authority but RS_Comfort.stats.applied unchanged (" .. probe.applied .. " -> "
+            .. probe.appliedAfter .. "): the server comforts through another RS_Comfort table than the suite reads"
+    end
+    return string.format("RS_Comfort.answered refused with gauges unchanged (boredom %.2f, unhappiness %.2f, dead %s)",
+        b.boredom, b.sadness, tostring(probe.dead))
+end
+
 RST.suite("rs.comfort", { tags = { "server", "world" } }, function(s)
     s.test("an answer on the air eases the requester only: gauges and halo on his client (E05-T15)", function(t)
         local c = setup(t)
@@ -165,9 +230,11 @@ RST.suite("rs.comfort", { tags = { "server", "world" } }, function(s)
                     .. " (boredom " .. tostring(d.boredom) .. ", unhappiness " .. tostring(d.sadness) .. ")")
                 before[e.user] = { boredom = d.boredom, sadness = d.sadness, watched = d.watched, why = d.why }
             end
-            local applied = c.Comfort.stats.applied
-            c.state.air(khz, { CS.MARK .. tostring(ZombRand(1000, 9999)) }, cid, c.state.comfort(callerKey(c.p), cid))
-            t2:waitUntil(function() return c.Comfort.stats.applied > applied end, CS.AIR_MS, function(t3)
+            local probe = CS.probe(c, callerKey(c.p), cid)
+            c.state.air(khz, { CS.MARK .. tostring(ZombRand(1000, 9999)) }, cid, probe.onAir)
+            t2:waitUntil(function() return probe.aired end, CS.AIR_MS, function(t3)
+                t3:ok(probe.appliedAfter > probe.applied, "the answer aired on " .. mhz(khz)
+                    .. " without its comfort: " .. CS.whyNotEased(probe))
                 local now = gauges(c.p)
                 t3:near(CS.BASE - c.drop.boredom, now.boredom, 0.01, "boredom of the requester on the authority")
                 t3:near(CS.BASE - c.drop.sadness, now.sadness, 0.01, "unhappiness of the requester on the authority")
@@ -211,7 +278,7 @@ RST.suite("rs.comfort", { tags = { "server", "world" } }, function(s)
                         end
                     end)
                 end)
-            end, "the answer never went on the air with its comfort (RS_Comfort applied count unchanged)")
+            end, function() return "the answer never went on the air: " .. CS.whyNotAired(c.Personas, khz) end)
         end)
     end, { timeoutMs = 120000 })
 end)

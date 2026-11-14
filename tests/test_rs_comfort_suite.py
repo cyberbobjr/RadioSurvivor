@@ -10,7 +10,9 @@ de diffusion et rappel de réconfort de RadioSurvivor_Server (queueAir, airNext,
 voix et chaîne (RS_Personas), personnage du carnet (RS_RadioLog.characterOf), jauges (Stats, CharacterStat), paquet
 SyncPlayerStats (livré par la file du banc, appliqué à la copie du joueur sur le client), HaloTextHelper.
 La suite passe sur les doublures et échoue sur chaque défaut injecté (DEFECTS) : jauges jamais synchronisées vers le
-client, halo absent, réconfort aussi accordé au second joueur (autorité), baisse et halo chez le second client seul.
+client, halo absent, réconfort aussi accordé au second joueur (autorité), baisse et halo chez le second client seul ;
+son message nomme l'étape en échec (campagne MP du 2026-11-14) : ligne jamais diffusée (chaîne occupée par telle
+diffusion, chaîne disparue), diffusée sans réconfort (plafond horaire, personnage changé, autre table RS_Comfort).
 Ne prouve ni l'API Java (SyncPlayerStats réel, HaloTextHelper remplaçable depuis Lua) ni le vrai serveur radio
 (tests/test_comfort.py) : la campagne MP réelle reste nécessaire.
 """
@@ -83,15 +85,22 @@ syncPlayerStats = function(player, mask)
     H.sendToRelative(player:getX(), player:getY(), "SyncPlayerStats", args)
 end
 
+-- RadioChannel.getAiringBroadcast (RadioChannel.java:81) : diffusion en cours ou nil ; RadioBroadCast.getID.
+local Broadcast = H.class('RadioBroadCast')
+function Broadcast:getID() return self.idDouble end
 local Channel = H.class('RadioChannel')
-function Channel:getAiringBroadcast() return self.airingDouble end
+function Channel:getAiringBroadcast()
+    if self.airingDouble == nil then return nil end
+    return setmetatable({ idDouble = self.airingDouble }, Broadcast)
+end
 CHANNEL = setmetatable({}, Channel)
 package.loaded["RadioSurvivor/RS_Personas"] = {
     ids = function() return { "walt" } end,
     served = function(id) if id == "walt" then return { 145000 } end return {} end,
     channel = function(khz) if khz == 145000 then return CHANNEL end return nil end,
 }
-local function characterOf(player) return "cid-" .. player:getUsername() end
+-- Defaut "other_character" : nouveau personnage du carnet entre la demande et la diffusion.
+local function characterOf(player) return "cid-" .. player:getUsername() .. (CHARACTER_CHANGED and "-new" or "") end
 package.loaded["RadioSurvivor/RS_RadioLog"] = { characterOf = characterOf }
 
 local function findPlayer(key)
@@ -106,13 +115,22 @@ end
 local queue = {}
 local state = {}
 state.air = function(khz, lines, cid, onAir)
+    if DEFECT == "other_character" then CHARACTER_CHANGED = true end
     queue[#queue + 1] = { khz = khz, lines = lines, cid = cid, onAir = onAir }
+end
+-- Defaut "other_module" : le serveur reconforte par une autre table RS_Comfort que celle que lit la suite.
+local OtherComfort = nil
+if DEFECT == "other_module" then
+    package.loaded["RadioSurvivor/RS_Comfort"] = nil
+    OtherComfort = require "RadioSurvivor/RS_Comfort"
+    package.loaded["RadioSurvivor/RS_Comfort"] = Comfort
 end
 state.comfort = function(caller, cid)
     return function()
         local player = findPlayer(caller)
         if DEFECT == "stale_client" then SYNC_OFF = true end
-        if player then Comfort.answered(player, cid, characterOf(player)) end
+        if DEFECT == "capped" and cid then Comfort.counts["c:" .. cid] = { hour = 2, given = 99 } end
+        if player then (OtherComfort or Comfort).answered(player, cid, characterOf(player)) end
         local other = H.players["B"]
         if DEFECT == "everyone" and other ~= nil and isServer() then Comfort.answered(other, nil, nil) end
         if DEFECT == "wrong_client" and other ~= nil and isServer() then
@@ -284,7 +302,29 @@ class ComfortSuiteBench(unittest.TestCase):
         'no_halo': 'Boredom halo (arrow down) on the requester',
         'everyone': 'boredom of B on the authority',
         'wrong_client': 'boredom drop read by the other client B',
+        # Failure message names the step that failed (MP campaign of 2026-11-14: one opaque "never went on the air").
+        'capped': 'the answer aired on 145.0 MHz without its comfort: hourly cap of RS_Comfort refused the comfort',
+        'other_character': 'without its comfort: notebook character changed: cid-A at the request, cid-A-new on the air',
+        'other_module': 'without its comfort: gauges eased on the authority but RS_Comfort.stats.applied unchanged',
     }
+
+    def test_mp_line_never_aired_names_the_busy_channel(self):
+        h = self.build()
+        h.load('server', 'CHANNEL.airingDouble = "RSV-7"')
+        status, message, _ = self.run_suite()
+        self.assertEqual(status, 'FAIL', message)
+        self.assertIn('the answer never went on the air: voice channel of 145.0 MHz still busy with broadcast RSV-7',
+                      message)
+        self.assertEqual(h.eval('server', '#AIRED'), 0)
+
+    def test_mp_line_dropped_names_the_gone_channel(self):
+        h = self.build()
+        h.load('server', 'CHANNEL.airingDouble = "RSV-7"')
+        h.at_tick(40, lambda: h.load('server', 'package.loaded["RadioSurvivor/RS_Personas"].channel = '
+                                               'function() return nil end'))
+        status, message, _ = self.run_suite()
+        self.assertEqual(status, 'FAIL', message)
+        self.assertIn('the answer never went on the air: voice channel of 145.0 MHz gone', message)
 
     def test_each_defect_fails_the_suite(self):
         for defect, expected in self.DEFECTS.items():
