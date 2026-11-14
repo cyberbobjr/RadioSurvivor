@@ -85,6 +85,36 @@ local function bodyText(gid, mid)
         tostring(LK().Anim.gestureOf(npc)))
 end
 
+-- State of a team member when the search stalls (campaigns MP of 2026-11-14: m-3 arrived first, faced its first
+-- container, then never searched while m-4 searched every other one): decision, expedition memory, current
+-- directive, last activity lines of the member.
+local function stallText(gid, mid)
+    local npc = memberNpcs(gid)[mid]
+    if npc == nil then return mid .. " no npc" end
+    local st = LK().Decisions.get(npc)
+    local m = X().memberState(npc) or {}
+    local e = LK().Directives.get(npc)
+    local job = type(m.job) == "table" and m.job or nil
+    local parts = { bodyText(gid, mid),
+        string.format("decision %s rule %s (%s)", tostring(st and st.b), tostring(st and st.rule), tostring(st and st.why)),
+        string.format("memory phase %s arrived %s job %s place %s since %s lastV %s moveV %s faceV %s fails %s",
+            tostring(m.phase), tostring(m.arrived), tostring(job and job.key),
+            job and job.place and (job.place.x .. "," .. job.place.y) or "-", tostring(m.since), tostring(m.lastV),
+            tostring(m.moveV), tostring(m.faceV), tostring(m.fails)),
+        string.format("directive #%s op %s done %s state %s by %s issued-by-decisions %s", tostring(e and e.v),
+            tostring(e and e.op), tostring(e and e.done), tostring(e and e.s), tostring(e and e.by),
+            tostring(LK().Decisions.state.issued[npc])) }
+    local Ac = LK().Activity
+    if Ac ~= nil then
+        local lines = {}
+        for _, a in ipairs(Ac.entries(gid)) do
+            if a.mid == mid then lines[#lines + 1] = a.t end
+        end
+        for i = math.max(1, #lines - 3), #lines do parts[#parts + 1] = "activity: " .. lines[i] end
+    end
+    return table.concat(parts, "; ")
+end
+
 RST.suite("lk.expedition", { tags = { "world", "server" }, testTimeoutMs = 900000, timeoutMs = 1200000 },
     function(s)
     s.test("foragers search a nearby building and bring real items home", function(t)
@@ -206,7 +236,11 @@ RST.suite("lk.expedition", { tags = { "world", "server" }, testTimeoutMs = 90000
                             t5:ok(S().holderOf(i) == nil, "a player holds a carried item")
                         end
                     end, "team not back home (trip not closed)")
-                end, "team did not finish its search")
+                end, function()
+                    local cur = X().get(gid)
+                    return string.format("team did not finish its search (%d container(s) searched); %s | %s",
+                        cur and #cur.searched or -1, stallText(gid, "m-3"), stallText(gid, "m-4"))
+                end)
             end, "team did not reach the building")
         end, "group members not materialized")
         end)

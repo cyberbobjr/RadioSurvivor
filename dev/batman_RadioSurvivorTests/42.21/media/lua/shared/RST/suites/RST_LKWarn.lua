@@ -126,13 +126,17 @@ local function makeGroup(t, p, gtype, profile, fact, times)
     return gid
 end
 
--- Fighter materialized and standing, armed with a loaded pistol; then suite(t2, npc).
+-- Fighter materialized, standing and not walking, armed with a loaded pistol; then suite(t2, npc).
+-- Not walking: MP campaign of 2026-11-14, the fighter walked to its sentry post through a door just after the player
+-- was moved in its view, lost sight of him and held a home defense without any warning.
 local function armedFighter(t, gid, suite)
     local E = LK()
     local npc
     t:waitUntil(function()
         npc = memberNpc(gid, "m-1")
-        return npc ~= nil and E.Bodies.find(npc) ~= nil and K.standing(npc)()
+        if npc == nil or E.Bodies.find(npc) == nil or not K.standing(npc)() then return false end
+        local e = E.Directives.get(npc)
+        return e == nil or e.done or e.op ~= E.Directives.OP_MOVE
     end, BODIES_MS, function(t2)
         local body = E.Bodies.find(npc)
         t2:ok(E.Equipment.setWeapon(npc, GUN), "pistol not given to the fighter")
@@ -147,7 +151,7 @@ local function armedFighter(t, gid, suite)
         RST.Fixtures.movePlayer(t2, RST.Fixtures.player(t2), x + 0.5, y + 0.5, z, function(t3)
             suite(t3, npc)
         end)
-    end, "fighter not materialized and standing")
+    end, "fighter not materialized, standing and still")
 end
 
 RST.suite("lk.warn", { tags = { "world", "server" }, testTimeoutMs = 400000, timeoutMs = 900000 }, function(s)

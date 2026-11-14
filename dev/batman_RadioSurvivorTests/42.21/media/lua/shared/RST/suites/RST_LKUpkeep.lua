@@ -313,7 +313,17 @@ RST.suite("lk.upkeep", { tags = { "world", "server" }, testTimeoutMs = 600000, t
                 if blood then clean[2] = { x = bloodSq:getX(), y = bloodSq:getY(), z = bloodSq:getZ() } end
                 RST.Steps.ask(t3, "world.upkeep", { gens = { genOf(gen), genOf(playerGen) }, clean = clean },
                     { target = "all", timeoutMs = 15000 })
-            end, "upkeep jobs not all done")
+            end, function()
+                -- Solo campaign of 2026-11-14: failed with no cause noted; the jobs still listed and the counters
+                -- tell which job was missing.
+                local j, jwhy = U().jobs(gid, LK().Groups.get(gid))
+                local keys = {}
+                for _, e in ipairs(j or {}) do keys[#keys + 1] = tostring(e.key) end
+                return string.format("upkeep jobs not all done (refuels %d, repairs %d, glass %d, cleaned %d, glass "
+                    .. "left %s, blood left %s; jobs listed: %s)", grew("refuels"), grew("repairs"), grew("glass"),
+                    grew("cleaned"), tostring(glassSq:getBrokenGlass() ~= nil), tostring(bloodSq:haveBlood()),
+                    j == nil and ("none: " .. tostring(jwhy)) or (#keys > 0 and table.concat(keys, " ") or "none"))
+            end)
         end, "group members not materialized and standing")
     end)
 

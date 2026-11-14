@@ -301,6 +301,24 @@ class DigTests(GardenStack):
         self.assertEqual(self.ev('#RST.GardenHygiene.dug'), 0)
         self.assertEqual(self.h.errors('solo'), [])
 
+    def test_test_group_seed_packet_removed_with_the_group_during_a_test_run(self):
+        # Campagnes du 2026-11-14 : lk.garden sauté (« the home already holds 5 sowable seed(s) ») : le sachet reçu
+        # par un groupe de test d'une suite précédente restait dans le dépôt du foyer commun aux suites.
+        gid = self.mk()
+        self.run_lua('GARDENER()')
+        self.h.load('solo', 'require "RST/RST"')
+        self.h.load('solo', 'require "RST/RST_GardenHygiene"')
+        self.run_lua('RST.running = function() return true end assert(RST.GardenHygiene.install())')
+        self.jump_to(11)
+        self.assertTrue(self.work(lambda: self.stat('seedPackets') >= 1), (self.jobs(gid), self.lk()[-8:]))
+        day = self.ev('LivingKnox.Groups.today()')
+        want = self.ev(f'{GD}.seedVariety({day}, 7).seed')
+        self.assertEqual(self.ev(f'PANTRY_COUNT("{want}")'), 5)
+        self.run_lua(f'LivingKnox.Groups.remove("{gid}")')
+        self.assertEqual(self.ev(f'PANTRY_COUNT("{want}")'), 0)
+        self.assertEqual(self.ev('#RST.GardenHygiene.seeds'), 0)
+        self.assertEqual(self.h.errors('solo'), [])
+
     def test_bare_hands_take_twice_as_long_and_a_broken_tool_does_not_count(self):
         gid = self.mk()
         job = '{ kind = "dig", key = "dig 106,118,0", x = 106, y = 118, z = 0 }'
