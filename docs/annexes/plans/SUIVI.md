@@ -10,16 +10,16 @@
 |---|---|---|---|
 | 1 | [E16-T05](E16-publication.md#L85) | Publication | `à faire` |
 | 2 | [E19-T08](E19-banc-mimetique.md#L114) | Site réel des campagnes rejoué au banc | `à faire` |
-| 3 | [LK02-T06](LK02-jalon-corps-gestes.md#L108) | Arme en main visible par tous | `testé solo` |
-| 4 | [LK02-T07](LK02-jalon-corps-gestes.md#L119) | Exécution par le propriétaire : consigne « aller à » et relais de pose | `testé solo` |
-| 5 | [LK02-T08](LK02-jalon-corps-gestes.md#L130) | Suite de jalon et mesures | `testé solo` |
-| 6 | [LK03-T01](LK03-execution-multijoueur.md#L31) | Consignes serveur versionnées et réémission | `testé solo` |
-| 7 | [LK05-T20](LK05-perception-decisions-routines.md#L287) | Provisions sur soi et gourde inépuisable | `testé hors jeu` |
-| 8 | [LK05-T21](LK05-perception-decisions-routines.md#L297) | Jardinier : le comportement `garden` prend d'abord les tâches du jardin | `testé hors jeu` |
-| 9 | [LK05-T22](LK05-perception-decisions-routines.md#L307) | Casseur : le comportement `breach` des pillards force, les autres l'attendent | `testé hors jeu` |
-| 10 | [LK06-T11](LK06-combat.md#L171) | Son des coups de mêlée d'un PNJ | `testé solo` |
-| 11 | [LK08-T04](LK08-socle-groupes.md#L75) | Aménagement des foyers | `testé solo` |
-| 12 | [LK13-T04](LK13-outils-validation-publication.md#L91) | Validation multijoueur finale et publication | `à faire` |
+| 3 | [E20-T01](E20-voix-declaratives.md#L62) | Registre des types de mission, sans changement de comportement | `à faire` |
+| 4 | [E20-T02](E20-voix-declaratives.md#L72) | Analyseur unique des fiches et pont sans liste de types | `à faire` |
+| 5 | [E20-T03](E20-voix-declaratives.md#L82) | Fiche à sections : lieux, missions, récompenses, catégories | `à faire` |
+| 6 | [E20-T04](E20-voix-declaratives.md#L92) | Récompenses tirées au hasard par catégorie | `à faire` |
+| 7 | [E20-T05](E20-voix-declaratives.md#L102) | Planques multiples au choix du joueur, ramassées hors de vue | `à faire` |
+| 8 | [E20-T06](E20-voix-declaratives.md#L112) | Objets demandés par une voix toujours déposés à une planque | `à faire` |
+| 9 | [E20-T07](E20-voix-declaratives.md#L122) | Troc déclaré dans la fiche, un état par marchand | `à faire` |
+| 10 | [E20-T08](E20-voix-declaratives.md#L132) | Missions enchaînées et état de fiche | `à faire` |
+| 11 | [E20-T09](E20-voix-declaratives.md#L142) | Type de mission `barricade` | `à faire` |
+| 12 | [E20-T10](E20-voix-declaratives.md#L152) | Darlene veut rentrer à sa clinique | `à faire` |
 
 ## Étapes
 
@@ -45,6 +45,7 @@
 | [E17](../plans-termines/E17-fournisseur-pnj-living-knox.md) | Fournisseur de PNJ et passage à Living Knox | terminée | 15 / 16 |
 | [E18](../plans-termines/E18-separation-living-knox.md) | Séparer RadioSurvivor et Living Knox autour d'un mod commun | terminée | 38 / 39 |
 | [E19](E19-banc-mimetique.md) | Banc hors jeu mimétique | en cours | 7 / 8 |
+| [E20](E20-voix-declaratives.md) | Voix déclarées en un seul fichier : missions, récompenses, planques et troc | à faire | 0 / 15 |
 | [LK00](../plans-termines/LK00-cadrage.md) | Cadrage : décisions de conception et architecture | terminée | 2 / 2 |
 | [LK01](../plans-termines/LK01-fondations.md) | Fondations du projet | terminée | 6 / 6 |
 | [LK02](LK02-jalon-corps-gestes.md) | Jalon 1 : corps et gestes prouvés (décision de continuer) | en cours | 12 / 15 |
@@ -300,6 +301,21 @@
 | ☑ | [E19-T06](E19-banc-mimetique.md#L94) | Réseau en désordre dans les bancs multijoueurs | `testé hors jeu` | hors jeu | 2026-11-13 : relevé Java 42.22 : commandes Lua `RELIABLE` non ordonnées dans les deux sens (`PacketTypes.java:611-613`), paquets du monde `RELIABLE_ORDERED` par canal, envois liés à une case filtrés par `UdpConnection.isRelevantTo` (88 cases pour une grille de 19) ; harnais : `SendZone` (position signalée par le client, livrée au pompage suivant), `HARNESS.sendToRelative` / `onPacket`, canaux ordonnés, `pump(delay=…)`, changement de propriétaire par le réseau (`set_owner(via_network=True)`) ; aide `tests/net_disorder.py` (`fifo`, `lifo`, trois graines `random` avec retard, changement de propriétaire pendant la scène, l'échec nomme l'ordre) ; bancs sous désordre ou zone : `tests/test_rs_net_disorder.py` (vraie suite de parole du carnet), `test_mission_retrieve.py` (vraie suite `rs.mission.retrieve` sous la zone d'envoi), `test_lk_reports.py` (relève A→B→A pendant une marche), `test_lk_relay.py` (gestes périmés écartés) ; preuves sur le code d'avant le correctif `a469d1f` : `rs.npctalk` échoue sur `random-1` (« no npc_talk request »), `rs.mission.retrieve` échoue (« corpse of the spot not received »), les deux verts sur le code actuel ; `test_harness.py` 56 OK ; les 79 bancs qui utilisent le harnais verts un par un ; `test_doubles_api.py`, `test_mod_calls_api.py` verts ; commentaire trompeur de `LK_Reports.lua` (bail plus ancien « ignoré » alors qu'il est refusé) corrigé |
 | ☑ | [E19-T07](E19-banc-mimetique.md#L104) | Règle de travail et registre des écarts | `testé hors jeu` | hors jeu | 2026-11-13 : règle « le banc hors jeu fait l'essentiel, le jeu confirme » et « un défaut vu en jeu se reproduit d'abord au banc » dans `docs/developpement.md` (Méthode du plan) ; registre `docs/annexes/tests/ecarts-banc-jeu.md` : 41 lignes classées (1 couverte, 6 non reproductibles, 34 à couvrir), lié depuis l'ADR et `docs/developpement.md` ; `python tools/plan.py check` : 0 erreur |
 | ☐ | [E19-T08](E19-banc-mimetique.md#L114) | Site réel des campagnes rejoué au banc | `à faire` | hors jeu | outillage du 2026-11-14 : suite manuelle `site.export` (`dev/.../RST/suites/RST_SiteExport.lua` : cases chargées à 70 cases du joueur, niveaux 0 et 1, murs, portes, fenêtres, clôtures basses, escaliers, conteneurs, lits, un fichier texte `site-export.txt` copié dans le dossier du passage) ; lecture et chargement au banc `tests/site_world.py` (registre des sortes d'enregistrement, doublures des murs, portes et fenêtres de `test_lk_obstacles.py`, cases hors de l'export ou loin des joueurs déchargées) ; `tests/fixtures/local/` ignoré par Git ; `python tests/test_site_replay.py` : `Ran 15 tests` / `OK (skipped=4)` (aller-retour de l'exporteur au banc, itinéraire par la porte puis évité une fois barricadée) ; `python tests/test_lk_obstacles.py` : `Ran 177 tests` / `OK` |
+| ☐ | [E20-T01](E20-voix-declaratives.md#L62) | Registre des types de mission, sans changement de comportement | `à faire` | hors jeu | — |
+| ☐ | [E20-T02](E20-voix-declaratives.md#L72) | Analyseur unique des fiches et pont sans liste de types | `à faire` | hors jeu | — |
+| ☐ | [E20-T03](E20-voix-declaratives.md#L82) | Fiche à sections : lieux, missions, récompenses, catégories | `à faire` | hors jeu | — |
+| ☐ | [E20-T04](E20-voix-declaratives.md#L92) | Récompenses tirées au hasard par catégorie | `à faire` | MP | — |
+| ☐ | [E20-T05](E20-voix-declaratives.md#L102) | Planques multiples au choix du joueur, ramassées hors de vue | `à faire` | MP | — |
+| ☐ | [E20-T06](E20-voix-declaratives.md#L112) | Objets demandés par une voix toujours déposés à une planque | `à faire` | MP | — |
+| ☐ | [E20-T07](E20-voix-declaratives.md#L122) | Troc déclaré dans la fiche, un état par marchand | `à faire` | MP | — |
+| ☐ | [E20-T08](E20-voix-declaratives.md#L132) | Missions enchaînées et état de fiche | `à faire` | hors jeu | — |
+| ☐ | [E20-T09](E20-voix-declaratives.md#L142) | Type de mission `barricade` | `à faire` | MP | — |
+| ☐ | [E20-T10](E20-voix-declaratives.md#L152) | Darlene veut rentrer à sa clinique | `à faire` | MP | — |
+| ☐ | [E20-T11](E20-voix-declaratives.md#L162) | Un marchand par ville vanilla | `à faire` | MP | — |
+| ☐ | [E20-T12](E20-voix-declaratives.md#L172) | Type de mission `relay` (relais radio) | `à faire` | MP | — |
+| ☐ | [E20-T13](E20-voix-declaratives.md#L182) | Type de mission `route` (itinéraire) | `à faire` | MP | — |
+| ☐ | [E20-T14](E20-voix-declaratives.md#L192) | Type de mission `watch` (guet) | `à faire` | MP | — |
+| ☐ | [E20-T15](E20-voix-declaratives.md#L202) | Type de mission `item` (objet personnel) | `à faire` | MP | — |
 | ☑ | [LK00-T01](../plans-termines/LK00-cadrage.md#L40) | Analyse comparative des architectures d'exécution de l'IA en multijoueur | `testé hors jeu` | hors jeu | analyse v2 et estimation, commits `9441d40` et `534803f` ; faits porteurs revérifiés à la main (accroche `IsRagdoll`, `sendClientCommand` réservé au joueur local, `NetworkZombieAI.parse`, `isRemote`, `isOwner` d'A-Life, `sendDamage`) |
 | ☑ | [LK00-T02](../plans-termines/LK00-cadrage.md#L51) | Choisir la base des PNJ et l'architecture d'exécution | `testé hors jeu` | hors jeu | décision « moteur propre avec jalon » et nom « Living Knox » du 2026-10-03 (section Décisions) ; étapes LK01 à LK13 écrites |
 | ☑ | [LK01-T01](../plans-termines/LK01-fondations.md#L33) | Banc de tests hors jeu : serveur et deux clients simulés | `testé hors jeu` | hors jeu | `tests/test_harness.py` 24/24 (machines séparées, relais copié et non ordonné, propriétaire de zombie transférable, horloges, fichiers par machine, mode solo), `test_protocol.py`, `test_carnet.py` 19, `test_rst.py` 151, `test_rs_suites.py` 20, luacheck 21, `plan.py check` du 2026-10-08 ; LK01-T04 : commit `6d5ff74` |
