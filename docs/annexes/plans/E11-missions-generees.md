@@ -2,7 +2,7 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 15 / 20 tâche(s) terminée(s).
+**Avancement.** en cours — 15 / 20 tâche(s) terminée(s), 1 abandonnée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
@@ -23,9 +23,10 @@
 | ☑ | E11-T15 | Fiches et contrat fermé des missions et récompenses | `testé hors jeu` | hors jeu | E11-T08 |
 | ☑ | E11-T16 | Récompenses serveur des voix : cache, fréquence, carte et leçon | `testé MP` | MP | E11-T15 |
 | ☐ | E11-T17 | Gabarits de missions des voix avec compte rendu radio | `testé solo` | MP | E11-T15 |
-| ☐ | E11-T18 | Récompenses et offres des PNJ Living Knox | `testé solo` | MP | E11-T16 |
+| ✕ | E11-T18 | Récompenses et offres des PNJ Living Knox | `abandonné` | MP | E11-T16 |
 | ☑ | E11-T19 | Livraison radio discrète après éloignement | `testé MP` | MP | E11-T17 |
 | ☐ | E11-T20 | Délais des missions en temps de jeu (pause, vitesse) | `testé hors jeu` | solo | E00-T03 |
+| ☐ | E11-T21 | Chaque mod paie ses missions : récompense d'un PNJ Living Knox payée par Living Knox | `à faire` | MP | E11-T16 |
 
 <!-- fin du tableau de bord -->
 
@@ -60,6 +61,7 @@
 - 2026-10-14 — **E11-T07** : API `onSignal` existante au lieu de l'événement `batman_OnSignalLit` prévu (Signal Smoke non modifié) ; cercle de 20 cases ; 4 couleurs, tout type de signal ; fenêtre de 2 h valable chaque jour ; PNJ seulement (confirmé par défaut, valeurs techniques) ; changement (décision de l'utilisateur) : plus de réussite automatique sans compte rendu, le participant revient le dire au PNJ (ou l'annonce à la radio pour une voix) : tâche E11-T13.
 - 2026-10-15 — **Signal Smoke est un mod prérequis** (décision de l'utilisateur, remplace « mod facultatif, aucune dépendance dans mod.info ») : `require=` dans `mod.info`, objet requis sur Steam et mention dans les descriptions ; plus aucun chemin « sans Signal Smoke » dans le code ni dans les tests (suite `rs.mission.nosignal` retirée).
 - 2026-11-05 — **Séparation** (utilisateur, [`E18`](../plans-termines/E18-separation-living-knox.md)) : le moteur de missions, les gabarits, les récompenses et les délais passent dans le mod commun (`E18-T05`), avec un journal commun des missions (`E18-T06`) ; donneurs : voix radio (RadioSurvivor) et PNJ (Living Knox).
+- 2026-11-14 — **Chaque mod paie ses missions** (décision de l'utilisateur : « les récompenses de missions ne doivent pas être liées à LivingKnox, RadioSurvivor et LivingKnox doivent fonctionner l'un sans l'autre », option retenue « chaque mod paie ses missions ») : une mission donnée par un PNJ Living Knox est payée par Living Knox (lot du foyer, même chemin que Living Knox seul), que RadioSurvivor soit actif ou non ; RadioSurvivor ne paie que les missions de ses voix et ne lit plus rien de Living Knox pour une récompense. `RS_NPCRewards` et sa suite `rs.npcrewards` sont retirés ; `E11-T18` est abandonnée, remplacée par `E11-T21`. ADR mis à jour : [`adr-separation-mods.md`](../../architecture/decisions/adr-separation-mods.md) (D09).
 
 ## Tâches
 
@@ -251,7 +253,7 @@
   - Reste : campagne MP (isolation du client 2) ; voix avec le vrai modèle non vue. Les contrats supply dont le lot a déjà été prélevé conservent ce lot ; pas de second prélèvement.
 
 - [ ] **E11-T18** — Récompenses et offres des PNJ Living Knox
-  - État : `testé solo`
+  - État : `abandonné`
   - Cible : `MP`
   - Dépend de : E11-T16
   - Fichiers : modules RadioSurvivor, bridge, tests, dev/batman_RadioSurvivorTests, docs
@@ -259,7 +261,7 @@
   - Accepté si : mécanismes et isolation bénéficiaire vérifiés, sans récompense doublée ni secret dans le prompt.
   - Tests : banc PNJ ; campagnes solo/MP ; confidentialité client 2
   - Preuve : `tests/run_all.py --keep-going` : 140 étapes vertes le 2026-10-15 ; 15 avertissements Contents et 0 dev (références inchangées) ; suites en jeu ajoutées, pas encore exécutées ; suite en jeu `rs.npcrewards` (commit `5d99de1`, banc `tests/test_rs_e11_voice_npc_suites.py`) ; campagne solo des deux mods du 2026-11-14 (une partie, code `5d99de1`) : exit 1 (2 FAIL hors de cette tâche), `RST-RESULT ok=false total=269 pass=257 fail=2 skip=10` (`tools/autoclient/runs/20261114-095105-parallel-1/shard1/20261114-085153-solo.txt`) : rs.npcrewards PASS (stock réel prélevé une fois pour le destinataire, refus des autres réclamations et d'un PNJ mort)
-  - Reste : campagne MP (confidentialité du client 2). Les contrats supply dont le lot a déjà été prélevé conservent ce lot ; pas de second prélèvement.
+  - Reste : — (abandonnée le 2026-11-14 : décision « chaque mod paie ses missions », remplacée par E11-T21)
 
 
 - [x] **E11-T19** — Livraison radio discrète après éloignement
@@ -283,3 +285,14 @@
   - Tests : `tests/test_carnet.py` (`GameClockTests`, chrono existant) ; suites en jeu `rs.missions`, `rs.identity` dans les bancs ; `tests/run_all.py`
   - Preuve : bancs du 2026-10-21 : `tests/test_carnet.py` 92 OK (`GameClockTests` 5 tests : unité et compteur, pause, vitesse x3, durée du jour 3 h, délai entre deux offres et conversion de l'ancien `nextOfferAt`, redémarrage ; chrono et reconnexion adaptés : serveur arrêté ou en pause = aucun décompte), `test_rs_suites.py`, `test_kahlua.py` (vrai Kahlua) ; `tests/run_all.py --keep-going` 142/142 ; luacheck 15/0 (base inchangée), dev 0/0 ; commit `24d6cab`
   - Reste : en jeu solo : chrono arrêté pendant la pause (Échap) et accéléré en x3 ; campagne MP : `rs.identity.after-reconnect` avec le serveur vide en `PauseEmpty`
+
+- [ ] **E11-T21** — Chaque mod paie ses missions : récompense d'un PNJ Living Knox payée par Living Knox
+  - État : `à faire`
+  - Cible : `MP`
+  - Dépend de : E11-T16
+  - Fichiers : `RadioSurvivorCore/RC_Missions.lua`, `RadioSurvivor/RS_MissionHooks.lua`, `RadioSurvivor/RS_NPCRewards.lua` (retiré), `LivingKnox/LK_MissionRewards.lua`, `LivingKnox/LK_TalkAlone.lua`, suites `rs.npcrewards` (retirée) et bancs
+  - Faire : décision du 2026-11-14. La réclamation d'une mission donnée par un PNJ du moteur passe par une source de récompense que le moteur déclare au mod commun ; Living Knox y déclare son chemin existant (`LK_MissionRewards.claim`), seul ou avec RadioSurvivor ; RadioSurvivor ne référence plus Living Knox pour une récompense ; `RS_NPCRewards`, ses bancs et la suite `rs.npcrewards` sont supprimés.
+  - Accepté si : au banc, les deux mods actifs : lot du foyer pris une fois, au seul destinataire, refus d'un PNJ mort, comme Living Knox seul ; RadioSurvivor seul : missions des voix payées comme avant ; aucun module de RadioSurvivor ne lit `LivingKnox.MissionRewards` ; en jeu, campagnes solo deux mods, RadioSurvivor seul et Living Knox seul vertes sur les suites de missions.
+  - Tests : bancs des récompenses (`test_npc_rewards.py` remplacé, `test_mission_rewards.py`, `test_lk_*` du lot) ; campagnes `--mods rs`, `--mods lk`, deux mods.
+  - Preuve : —
+  - Reste : —
