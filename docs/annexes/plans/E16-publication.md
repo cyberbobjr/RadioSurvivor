@@ -2,7 +2,7 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 4 / 10 tâche(s) terminée(s).
+**Avancement.** en cours — 5 / 10 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
@@ -14,7 +14,7 @@
 | ☐ | E16-T06 | Pont LLM : injections et coût des appels (C01, C02, C03, C10) | `testé hors jeu` | solo | — |
 | ☑ | E16-T07 | Plafonds du pont réglables | `testé hors jeu` | hors jeu | E16-T06 |
 | ☐ | E16-T08 | Carnet : état privé borné et écritures fiables (C17 à C20) | `testé hors jeu` | MP | — |
-| ☐ | E16-T09 | Limites de débit et coût côté serveur (C21, C22, C30, C31) | `testé hors jeu` | MP | — |
+| ☑ | E16-T09 | Limites de débit et coût côté serveur (C21, C22, C30, C31) | `testé MP` | MP | — |
 | ☑ | E16-T10 | Lot non réclamé gardé 7 jours de jeu | `testé solo` | solo | — |
 
 <!-- fin du tableau de bord -->
@@ -126,16 +126,16 @@
   - Preuve : commits `3760771`, `5fd79b3`, `99dc0bc` ; `tests/test_rs_state.py` vert (2026-10-21)
   - Reste : vérification sur un serveur dédié (sauvegarde, redémarrage, purge après quelques semaines de jeu).
 
-- [ ] **E16-T09** — Limites de débit et coût côté serveur (C21, C22, C30, C31)
-  - État : `testé hors jeu`
+- [x] **E16-T09** — Limites de débit et coût côté serveur (C21, C22, C30, C31)
+  - État : `testé MP`
   - Cible : `MP`
   - Dépend de : —
   - Fichiers : `shared/RadioSurvivor/RS_RateLimit.lua`, `shared/RadioSurvivor/RadioSurvivor_Const.lua`, `tests/test_server_guards.py`, `tests/test_lk_bodies.py`
   - Faire : seaux de jetons par compte pour les commandes client, coupe linéaire des espaces (`oneLine`), cache par image de `Bodies.find`.
   - Accepté si : bancs verts ; jeu normal et reconnexions non limités sur un serveur dédié.
   - Tests : `tests/test_server_guards.py`, `FindCacheTests` (`tests/test_lk_bodies.py`)
-  - Preuve : commits `2d8cae5`, `ed4353f` ; `tests/test_server_guards.py` et `FindCacheTests` verts (2026-10-21) ; campagnes MP du 2026-11-13 et 2026-11-14 (serveur dédié + 2 clients, 534 tests en 3 parties, puis `mp-ambient` 24 tests) : aucune ligne `rate limit: dropped` (`RC_RateLimit.lua`) dans les journaux du serveur ni des clients (`tools/autoclient/runs/20261113-233636-parallel-3`, `tools/autoclient/runs/20261114-003116-mp-cf36126965e3`).
-  - Reste : reconnexions : relire les journaux d'une campagne `mp-persist` (reconnexions et redémarrage réels) sur le dernier commit.
+  - Preuve : commits `2d8cae5`, `ed4353f` ; `tests/test_server_guards.py` et `FindCacheTests` verts (2026-10-21) ; campagnes MP du 2026-11-13 et 2026-11-14 (serveur dédié + 2 clients, 534 tests en 3 parties, puis `mp-ambient` 24 tests) : aucune ligne `rate limit: dropped` (`RC_RateLimit.lua`) dans les journaux du serveur ni des clients (`tools/autoclient/runs/20261113-233636-parallel-3`, `tools/autoclient/runs/20261114-003116-mp-cf36126965e3`) ; campagne `mp-persist` du 2026-11-14 (serveur dédié + 2 clients, `--phases reconnect2,reconnect,restart`, code `51fbbcb`) : `RS_AUTOCLIENT_EXIT=0`, 4 étapes à code 0, 35 tests PASS, 0 FAIL (`tools/autoclient/runs/20261114-124151-mp-95fcf8bff7e8`) : aucune ligne `rate limit: dropped` dans les journaux du serveur et des clients à travers les reconnexions et le redémarrage
+  - Reste : —
 
 - [x] **E16-T10** — Lot non réclamé gardé 7 jours de jeu
   - État : `testé solo`

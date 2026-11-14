@@ -2,14 +2,14 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 9 / 10 tâche(s) terminée(s).
+**Avancement.** terminée — 10 / 10 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
 | ☑ | E07-T01 | Réponse structurée des voix et validation des actions | `testé hors jeu` | hors jeu | — |
 | ☑ | E07-T02 | Journal admin des actions | `testé hors jeu` | hors jeu | E07-T01 |
 | ☑ | E07-T03 | Action `remember` : mémoire bornée par appelant | `testé hors jeu` | hors jeu | E07-T01 |
-| ☐ | E07-T04 | Action `mark_map` : repère sur la carte de l'appelant | `testé solo` | MP | E07-T01, E01-T05 |
+| ☑ | E07-T04 | Action `mark_map` : repère sur la carte de l'appelant | `testé MP` | MP | E07-T01, E01-T05 |
 | ☑ | E07-T05 | Action `reveal_area` : révéler un quartier | `testé MP` | MP | E07-T04 |
 | ☑ | E07-T06 | Action `persona_state` : moral, réserves, lieu | `testé hors jeu` | hors jeu | E07-T01 |
 | ☑ | E07-T07 | Paramètres des actions décrits dans le prompt | `testé hors jeu` | hors jeu | E07-T03, E07-T06 |
@@ -72,16 +72,16 @@
   - Preuve : `RS_Memory.lua` : exécuteur `remember` (paramètre `fact` seul, nettoyé, 64 caractères), mémoire dans l'état privé `RS_State` par voix + appelant + personnage, 5 faits par appelant (plus ancien évincé, doublon rafraîchi), 50 appelants par voix, purge à la mort (`characterDeath`) et personnages retirés filtrés ; champ de demande `memory=` (RSV2 hex) ; pont : section « souvenirs non vérifiés » injectée dès qu'il y en a, `safe_text`, fait citant un secret retiré, prompt inchangé sans souvenir ; `test_protocol.py` 14/14 (`scenario_memory_bridge`, `scenario_memory_server`) ; `tests/run_all.py` 27/27 le 2026-10-10, luacheck 18/0, `check_case.py` PASS ; `docs/specifications-techniques/protocole-carnet-v2.md`, `docs/specifications-techniques/persona-format.md` ; LK04-T01 : commit `7a34e3f`
   - Reste : ⚠ non exécuté dans la VM Kahlua (`string.lower` non ASCII, motif `[%c<>%[%]]`) ; sans carnet lié (`cid` absent) un nouveau personnage solo hérite des souvenirs ; budget `remember` par voix et non par appelant
 
-- [ ] **E07-T04** — Action `mark_map` : repère sur la carte de l'appelant
-  - État : `testé solo`
+- [x] **E07-T04** — Action `mark_map` : repère sur la carte de l'appelant
+  - État : `testé MP`
   - Cible : `MP`
   - Dépend de : E07-T01, E01-T05
   - Fichiers : `media/lua/client/RadioSurvivor/RS_MapActions.lua` ; `RS_Actions.lua`
   - Faire : la fiche liste les lieux connus du personnage (coordonnées côté serveur) ; le LLM choisit un lieu par son identifiant ; le serveur envoie le repère au seul appelant, qui l'ajoute par l'API de symboles de carte ; nombre par jour borné.
   - Accepté si : un lieu non listé est refusé ; le repère persiste après reconnexion.
   - Tests : suite en jeu `rs.actions.map`.
-  - Preuve : fiches : clé répétable `place=<id> <x>,<y>,<z> <libellé>` (12 lieux, mêmes erreurs dans `persona_store.py` et `RS_Persona.lua`) ; pont : `mark_map` proposée seulement si la fiche a des lieux, prompt avec identifiants et libellés sans coordonnées, identifiant inconnu retiré ; serveur `RS_MapMarks.lua` : lieu de la fiche obligatoire, `budget.mark_map`, délai 30 s par voix, envoi au seul appelant (`Const.toClient`) ; client `RS_MapActions.lua` : symbole `Target` + libellé traduit sur la carte du monde par une `UIWorldMap` cachée, sans doublon ; persistance = symboles du joueur dans `map_symbols.bin` côté client (`WorldMapSymbols.java:240-259`, `MapItem.java:47-66`) ; `test_protocol.py` 22/22 (dont 4 `scenario_map_*`), `test_personas.py` 20/20, VM Kahlua 27/27 ; suites en jeu `rs.actions.map`, `.before`, `.after-reload` ; `tests/run_all.py` 37/37 le 2026-10-10, luacheck 17/0 et 0, `check_case.py` PASS ; base `world-map.md` ; E05/LK : commit `42c1eb6` ; **en jeu solo le 2026-10-11** (partie `rstest-1011`, jeu en anglais) : repère de récompense reçu sur la carte ; `rs.actions.map` 3/3 (`20261011-135206-solo.txt`) ; campagne MP automatique du 2026-10-15 (copie figée du commit `54087fb`, serveur dédié + 2 clients, pont avec faux modèle) : rs.actions.map 3/3 (`tools/autoclient/runs/20261015-110446-parallel-2-54087fb0f84f/shard1/server/20261015-090647-server.txt`)
-  - Reste : repère gardé après une reconnexion non prouvé en MP : les suites `rs.actions.map.before`/`.after-reload` ne sont pas dans la campagne `mp-persist`
+  - Preuve : fiches : clé répétable `place=<id> <x>,<y>,<z> <libellé>` (12 lieux, mêmes erreurs dans `persona_store.py` et `RS_Persona.lua`) ; pont : `mark_map` proposée seulement si la fiche a des lieux, prompt avec identifiants et libellés sans coordonnées, identifiant inconnu retiré ; serveur `RS_MapMarks.lua` : lieu de la fiche obligatoire, `budget.mark_map`, délai 30 s par voix, envoi au seul appelant (`Const.toClient`) ; client `RS_MapActions.lua` : symbole `Target` + libellé traduit sur la carte du monde par une `UIWorldMap` cachée, sans doublon ; persistance = symboles du joueur dans `map_symbols.bin` côté client (`WorldMapSymbols.java:240-259`, `MapItem.java:47-66`) ; `test_protocol.py` 22/22 (dont 4 `scenario_map_*`), `test_personas.py` 20/20, VM Kahlua 27/27 ; suites en jeu `rs.actions.map`, `.before`, `.after-reload` ; `tests/run_all.py` 37/37 le 2026-10-10, luacheck 17/0 et 0, `check_case.py` PASS ; base `world-map.md` ; E05/LK : commit `42c1eb6` ; **en jeu solo le 2026-10-11** (partie `rstest-1011`, jeu en anglais) : repère de récompense reçu sur la carte ; `rs.actions.map` 3/3 (`20261011-135206-solo.txt`) ; campagne MP automatique du 2026-10-15 (copie figée du commit `54087fb`, serveur dédié + 2 clients, pont avec faux modèle) : rs.actions.map 3/3 (`tools/autoclient/runs/20261015-110446-parallel-2-54087fb0f84f/shard1/server/20261015-090647-server.txt`) ; campagne `mp-persist` du 2026-11-14 (serveur dédié + 2 clients, `--phases reconnect2,reconnect,restart`, code `51fbbcb`) : `RS_AUTOCLIENT_EXIT=0`, 4 étapes à code 0, 35 tests PASS, 0 FAIL (`tools/autoclient/runs/20261114-124151-mp-95fcf8bff7e8`) : rs.actions.map.before PASS puis rs.actions.map.after-reconnect PASS (repère gardé une fois sur la carte du demandeur après sa vraie reconnexion, nouveau MapItem)
+  - Reste : —
 
 - [x] **E07-T05** — Action `reveal_area` : révéler un quartier
   - État : `testé MP`
