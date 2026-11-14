@@ -1,6 +1,7 @@
 """Suites de persistance en jeu de la campagne MP par étapes (E01-T17, autoclient.py --mp --phases) : bases
-rs.mission.recover, rs.rescue.missed, lk.leave, lk.walls, rs.radiotab (before / after-reconnect / after-restart) et
-lk.rejoin (before / after-reconnect2), leur fichier d'instantané (RST_Persist.lua) et la campagne mp-persist.
+rs.mission.recover, rs.rescue.missed, lk.leave, lk.walls, rs.radiotab, rs.actions.map (before / after-reconnect /
+after-restart) et lk.rejoin (before / after-reconnect2), leur fichier d'instantané (RST_Persist.lua) et la campagne
+mp-persist. Repère de carte après reconnexion joué sur doublures : tests/test_map_persist.py.
 
     python RadioSurvivor/tests/test_persist_suites.py
 
@@ -36,6 +37,7 @@ FILES = {
                                'lk.walls.after-restart': None},
     'RST_LKRejoin.lua': {'lk.rejoin.before': None, 'lk.rejoin.after-reconnect2': None},
     'RS_RadioPersist.lua': {'rs.radiotab.before': None, 'rs.radiotab.after-reconnect': None},
+    'RS_MapActions.lua': {'rs.actions.map.before': None, 'rs.actions.map.after-reconnect': None},
     'RST_RstDisconnect.lua': {'rst.disconnect.before': None, 'rst.disconnect.slow': None,
                               'rst.disconnect.after-reconnect2': None},
 }
@@ -95,7 +97,7 @@ class ListingTests(unittest.TestCase):
         lua = autoclient.CAMPAIGN_FILE.read_text(encoding='utf-8')
         bases = autoclient.campaign_suites(lua, 'mp-persist')
         for base in ('rs.identity', 'lk.homes', 'lk.leave', 'rs.mission.recover', 'rs.rescue.missed', 'lk.walls',
-                     'rs.radiotab', 'rst.disconnect', 'lk.rejoin'):
+                     'rs.radiotab', 'rs.actions.map', 'rst.disconnect', 'lk.rejoin'):
             self.assertIn(base, bases)
         self.assertEqual(bases[-1], 'lk.rejoin')   # its before step moves the requester away: last of step 0
         declared = autoclient.declared_suite_names(autoclient.CAMPAIGN_FILE.parents[2])
@@ -107,7 +109,7 @@ class ListingTests(unittest.TestCase):
         self.assertEqual(steps[1], [['rst.disconnect.after-reconnect2', 'lk.rejoin.after-reconnect2']])
         self.assertIn('rs.radiotab.before', steps[0][0])   # at the players' place, before lk.rejoin moves them
         self.assertEqual(steps[2], [['rs.identity.after-reconnect', 'lk.walls.after-reconnect',
-                                     'rs.radiotab.after-reconnect'],
+                                     'rs.radiotab.after-reconnect', 'rs.actions.map.after-reconnect'],
                                     ['rs.identity.before', 'lk.walls.before']])
         self.assertEqual(sorted(steps[3][0]), sorted(['rs.identity.after-restart', 'lk.homes.after-restart',
                                                       'lk.leave.after-restart', 'rs.mission.recover.after-restart',

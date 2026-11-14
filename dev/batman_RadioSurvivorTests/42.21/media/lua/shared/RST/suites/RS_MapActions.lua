@@ -5,8 +5,8 @@ caller. Solo: the executor (server/RadioSurvivor/RS_MapMarks.lua) and the map of
 "server", campaign mp): the server decides and executes, and the REQUESTER client (the caller) checks its own map and
 radio history through RST.Steps (RST_ViewSteps.lua: map.symbols, map.known, radio.history; the symbols and blocks of
 the test are removed there by the same steps); the notebook character of the caller is bound when missing
-("hello", RST.RSHelpers.character). On an MP client the suites are skipped. The manual before/after-reload steps stay
-solo only.
+("hello", RST.RSHelpers.character). On an MP client the suites are skipped. The manual step before has a dedicated
+server branch (base rs.actions.map of the phased MP run, below); after-reload stays solo only.
 
 rs.actions.map (tag "world": solo save named rstest*)
     - a test sheet read by the real parser (RS_Persona.parseLines) with one place= line, a few squares from the
@@ -34,6 +34,22 @@ rs.actions.map.before / rs.actions.map.after-reload (tags "world" and "manual": 
     3. RST.run({ suite = "rs.actions.map.after-reload" }): the MapItem is a new one (the session really changed),
        the icon and the label are still at PERSIST, exactly once; then they are removed and the file emptied.
 
+rs.actions.map.before / rs.actions.map.after-reconnect (dedicated server, base rs.actions.map of the phased MP run:
+autoclient.py --mp --clients 2 --phases reconnect2,reconnect,restart --server-campaign mp-persist)
+    The requester client (client 1) keeps the private symbols of its map in its own save cache (map_symbols.bin,
+    written by GameWindow.save when the client quits, read by MapItem.LoadWorldMap when it joins again); the
+    server keeps nothing of them. Only the "reconnect" action makes the requester leave (reconnect2 keeps client 1
+    connected; restart is not checked here).
+    1. rs.actions.map.before: the real executor marks PERSIST for the requester; the requester client sees the icon
+       and the label there exactly once (step map.symbols, which also gives the identity of its MapItem); the
+       account, that identity and the place are written to the snapshot MAP_SNAPSHOT (RST_Persist, server).
+    2. the requester client quits and joins again (action reconnect).
+    3. rs.actions.map.after-reconnect: once the account of the snapshot is online again, its client shows the icon
+       and the label at PERSIST exactly once, on a new MapItem (the client really reloaded its world); the symbols
+       are removed there (PASS or FAIL) and the snapshot is consumed.
+    Tags "server", "world", "manual" (as rs.radiotab): authority only, test saves rstest*, exact names only.
+    Outside the game: tests/test_map_persist.py.
+
 Solo: RST.run({ suite = "rs.actions.map", tags = { "world" } })
 ]]
 
@@ -42,11 +58,16 @@ require "RST/RST_Fixtures"
 require "RST/RST_Steps"
 require "RST/RST_ViewSteps"
 require "RST/RST_RSHelpers"
+require "RST/RST_Persist"
 
 local PLACE_ID = "rstest_spot"
 local LABEL = "RST map test"
 local PERSIST = { x = 10612, y = 9318, label = "RST persist" }
 local PERSIST_FILE = "batman_RadioSurvivor/rstest_map_mark.txt"
+-- Dedicated server: snapshot of rs.actions.map.before read by rs.actions.map.after-reconnect (RST_Persist).
+local MAP_SNAPSHOT = "map-mark-persist.txt"
+local MAP_HEADER = "RSMAPMARK1"
+local BACK_MS = 30000   -- the account of the snapshot online again after the reconnection
 -- Frequency of the answer given to the decision (199.8 MHz, the one of the test sheet) and a neighbour.
 local TEST_KHZ = 199800
 local ASK_MS = 15000
@@ -333,8 +354,26 @@ local function readMarker()
     return line
 end
 
-RST.suite("rs.actions.map.before", { tags = { "world", "manual" } }, function(s)
+-- Dedicated server: the executor marks PERSIST for the requester, whose client confirms it; snapshot written.
+local function beforeOnServer(t)
+    local Actions, _, player = server(t)
+    local sheet = testSheet(t, PERSIST.x, PERSIST.y, PERSIST.label)
+    t:eq("ok", decide(Actions, sheet, PLACE_ID, player), "mark_map decision")
+    ask(t, "map.symbols", { x = PERSIST.x, y = PERSIST.y, label = PERSIST.label, icons = 1, texts = 1 },
+        function(t2, answer)
+            local map = answer.data and answer.data.map
+            t2:ok(type(map) == "string", "no MapItem identity from the requester client")
+            local ok, why = RST.Persist.write(MAP_SNAPSHOT, MAP_HEADER, { user = player:getUsername(), map = map,
+                x = PERSIST.x, y = PERSIST.y, label = PERSIST.label })
+            t2:ok(ok, "snapshot not written: " .. tostring(why))
+            t2:note("marked " .. PERSIST.x .. "," .. PERSIST.y .. " for " .. tostring(player:getUsername())
+                .. "; checked by rs.actions.map.after-reconnect")
+        end)
+end
+
+RST.suite("rs.actions.map.before", { tags = { "world", "server", "manual" }, testTimeoutMs = 60000 }, function(s)
     s.test("persistent mark placed through the executor", function(t)
+        if onServer() then return beforeOnServer(t) end
         local MapActions, Actions, player = solo(t)
         local icons, texts = symbolsAt(MapActions, PERSIST.x, PERSIST.y)
         if #icons + #texts == 0 then
@@ -365,6 +404,30 @@ RST.suite("rs.actions.map.after-reload", { tags = { "world", "manual" } }, funct
         t:eq(1, #texts, "label at " .. PERSIST.x .. "," .. PERSIST.y .. " after the reload")
     end)
 end)
+
+-- Declared with a literal name: autoclient.py (declared_suite_names) finds the steps of a base in the sources.
+RST.suite("rs.actions.map.after-reconnect", { tags = { "world", "server", "manual" }, testTimeoutMs = 90000 },
+    function(s)
+        s.test("mark kept on the map of the requester after its reconnection, once", function(t)
+            if not onServer() then
+                t:skip("persistence across a reconnection: phased MP run only (autoclient.py --phases, base "
+                    .. "rs.actions.map); solo: rs.actions.map.after-reload")
+            end
+            local snap, why = RST.Persist.read(MAP_SNAPSHOT, MAP_HEADER)
+            t:ok(snap ~= nil, tostring(why))
+            t:defer(function() RST.Persist.consume(MAP_SNAPSHOT) end, "snapshot consumed")
+            t:waitUntil(function() return RST.Steps.playerOf(snap.user) ~= nil end, BACK_MS, function(t2)
+                RST.Steps.ask(t2, "map.symbols", { x = snap.x, y = snap.y, label = snap.label, icons = 1, texts = 1,
+                    remove = true }, { target = { snap.user }, timeoutMs = ASK_MS }, function(t3, res)
+                    local e = res.by[snap.user]
+                    local map = e and e.data and e.data.map
+                    t3:ok(type(map) == "string", "no MapItem identity from " .. snap.user)
+                    t3:ok(map ~= snap.map, "same MapItem as rs.actions.map.before (" .. tostring(map) .. "): "
+                        .. snap.user .. " did not really leave and join again")
+                end)
+            end, function() return "account " .. tostring(snap.user) .. " not back online" end)
+        end)
+    end)
 
 -- ======================================================================================== rs.actions.reveal
 

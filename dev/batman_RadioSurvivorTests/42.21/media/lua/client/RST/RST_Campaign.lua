@@ -68,7 +68,9 @@ RST.CAMPAIGNS["solo-rs"] = {
     "rst.guard",        -- E01-T06
     "rs.env",           -- E01-T08
     "rs.codec",         -- E01-T08
-    "rs.missions",      -- E01-T08, E00-T03, E00-T10, E11-T11 (prefix: radio, scout, solo)
+    "rs.missions",      -- E01-T08, E00-T03, E00-T10, E11-T11 (prefix: radio, scout, solo, voicetemplates)
+    "rs.comfort",       -- E05-T15 (gauges and halo of the local player)
+    "rs.memorial",      -- E14-T04 (animal death kept out, bulletin announces the names)
     "rc.notebook",      -- E18-T24 (bookmarks of the active mods)
     "rs.notebook.ink",  -- E00-T12
     "rs.notebook.relation", -- E09-T07
@@ -86,12 +88,14 @@ RST.CAMPAIGNS["solo-rs"] = {
     "rs.groupradio",    -- E08-T06, E08-T10, E17-T12 (E01-T19, bridge; fixture group when none holds a transmitter)
     "rs.worldradio",   -- E06-T03
     "rs.radio",        -- E06-T05
+    "rs.notebook.voices", -- E06-T07 (voice and hours in the Radio tab; client 2 sees nothing)
     "rs.carnet.load",  -- E00-T04
     "rs.observations", -- E08-T07
     "rs.factions.mandate", -- E09-T03
     "rs.reputation",    -- E04-T14 (E04-T04, T05, T07, T11, Q17)
     "rs.voicedelivery", -- hidden radio deposits, actual world removal
     "rs.missionrewards", -- E11: actual cache, private frequency, stash and server XP
+    "rs.npcrewards",    -- E11-T18: household reward of a Living Knox NPC (stock once, recipient only, dead NPC)
 }
 
 -- Suites with a FAIL or SKIP in the solo campaign of 2026-10-13 (report 20261013-202155-solo.txt), fixed since.
@@ -130,10 +134,12 @@ RST.CAMPAIGNS["mp"] = {
     "rs.identity",      -- E00-T01, E03-T04 (each online player bound to an identity)
     "rs.claim",         -- E00-T01 (E01-T16: the second client claiming another identity is refused)
     "rs.facts",         -- E14-T01, E14-T03
+    "rs.memorial",      -- E14-T04 (animal death kept out, bulletin announces the names)
     "rs.lifelog",       -- E15-T01
     "rs.freqdebug",     -- E05-T14
     "rst.rights",       -- E01-T05 (E01-T16: a real user client refused RST.server, an admin told busy)
     "rs.voices",        -- E05-T06
+    "rs.comfort",       -- E05-T15 (requester client: gauges and halo; second client: no drop)
     "rs.missions",      -- E11-T03, E11-T08 (prefix: radio, scout, solo; NOT the templates rs.mission.*)
     "rc.journal",       -- E18-T06 (rows of the mission journal of the core mod)
     "rs.mission",       -- E11-T04..T07, E01-T19 (prefix: clear, retrieve, recover, signal)
@@ -151,6 +157,7 @@ RST.CAMPAIGNS["mp"] = {
     "rs.reputation",    -- E04-T14 (two clients: killer and team mate, admin view)
     "rs.voicedelivery", -- all online witnesses leave before physical collection
     "rs.missionrewards", -- E11: recipient client XP and unrelated client isolation
+    "rs.npcrewards",    -- E11-T18: household reward of a Living Knox NPC (stock once, recipient only, dead NPC)
     "rs.lastpages",     -- E15-T02, E15-T03 (prefix: corpse)
     "rs.bulletin",      -- E14-T02
     "rs.notes",         -- E05-T09
@@ -166,6 +173,7 @@ RST.CAMPAIGNS["mp"] = {
     "rs.groupradio",    -- E08-T06, E08-T10, E17-T12 (E01-T19, bridge)
     "rs.worldradio",   -- E06-T03
     "rs.radio",        -- E06-T05
+    "rs.notebook.voices", -- E06-T07 (voice and hours in the Radio tab; client 2 sees nothing)
     "rs.carnet.load",  -- E00-T04
     "rs.observations", -- E08-T07
     "rs.factions.mandate", -- E09-T03
@@ -266,6 +274,7 @@ RST.CAMPAIGNS["mp-persist"] = {
     "rs.rescue.missed",   -- E12-T05: no second zombie nor notebook after a restart
     "lk.walls",           -- LK14-T04: wall kept after a reconnection and a restart
     "rs.radiotab",        -- E06-T05: Radio tab history of both players kept after a reconnection
+    "rs.actions.map",     -- E07-T04: map mark of the requester kept after its reconnection (reconnect)
     "rst.disconnect",     -- E01-T05: client 2 leaves (reconnect2) during the run it asked; report kept, not busy
     "rs.reputation",      -- E04-T14: score and facts kept by a restart, no duplicate
     "lk.rejoin",          -- LK03-T01: the executor rejoins (reconnect2); LAST: its before step moves the requester away

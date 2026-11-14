@@ -1484,4 +1484,12 @@ function RST.setRadio(cid, radio)
     H.data.radio[cid], H.dirty = radio, true
 end
 
+-- Plain deep copy of Lua data (tables of tables, strings, numbers, booleans), to save state a test puts back.
+function RST.deepCopy(v)
+    if type(v) ~= "table" then return v end
+    local out = {}
+    for k, x in pairs(v) do out[k] = RST.deepCopy(x) end
+    return out
+end
+
 return RST

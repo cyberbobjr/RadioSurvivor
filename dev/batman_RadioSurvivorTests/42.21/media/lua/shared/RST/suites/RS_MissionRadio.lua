@@ -356,3 +356,263 @@ RST.suite("rs.missionreport.llm", { tags = { "server", "world" }, testTimeoutMs 
         end)
     end)
 end)
+
+--[[
+rs.missions.voicetemplates (E11-T17, tags "server" and "world"): the other templates a radio voice may give
+(RS_MissionVoice.TEMPLATES: deliver, retrieve, clear, signal; scout is rs.missions.radio), each one through the real
+start path of a voice (RS_MissionVoice.start, the executor of start_mission) with a test sheet whose missions= list
+permits only that template. For every template: the mission is created for the caller with the engine template
+(retrieve -> retrieve_id), radio report, no reward lot; a second one is refused while it is open; another caller
+(the second client's character when one is online, else a character of the test state) has no open mission, hears
+nothing, cannot report it and is not engaged in the notebook projection; a report before the objective is refused
+("not_done").
+Two templates are played to the end with the real objective mechanism of their rs.mission.* suite:
+    - clear: a real zombie spawned next to the player, killed by a lethal bat hit of the player, counted by the
+      template (Clear.noteHit / Clear.count on OnHitZombie / OnZombieDead subscribers of the test, as rs.mission.clear);
+      the counting circle is moved onto the player and the target lowered to 1 (as the solo test of rs.mission.clear);
+    - signal: real signals started through the public Signal Smoke API (SignalSmoke.start, source "grenade", player
+      = the target player) at the centre of the circle, judged by Signal.count (listener of the test, as
+      rs.mission.signal); the hour window is moved to the current game hour; another colour is not counted.
+  Then the report on another frequency (another voice) changes nothing, the voice turn is "report_due", a report by
+  another caller is refused, the report on the voice's frequency closes the mission in success; a second report is
+  refused, the reputation fact is written once and the mission has no lot to claim (no reward doubled).
+Each mission lives in an in-memory state built by the test (characters char1 and char2, store whose save does
+nothing): no notebook state, no history line, no ModData of the notebook. The test sheets have no place= line except
+the deliver one (its dead drop point is the player's square): reputation only, no map mark. A deliver dead drop in
+"box" mode leaves an opaque key in the ModData of a nearby container: removed at the end. Cleanup: zombies and
+corpses of the test removed, Signal Smoke listener removed and test signals stopped, god mode restored.
+Outside the game: tests/test_rs_e11_voice_npc_suites.py (voice simulation of tests/test_carnet.py, clear and Signal
+Smoke doubles).
+]]
+
+require "RST/RST_Steps"
+
+local TEMPLATE_OF = { deliver = "deliver", retrieve = "retrieve_id", clear = "clear", signal = "signal" }
+local VOICE_KHZ, OTHER_KHZ = 199800, 199900
+local MARK = "RST_VoiceClearZombie"
+local OWNER = "RST:voicesignal"
+local LETHAL = 100.0
+local DEATH_MS = 5000
+
+-- Server copy of the second online player, or nil (solo, or no second client).
+local function peerPlayer(t)
+    local others = RST.Steps.others(t)
+    return others[1] and RST.Steps.playerOf(others[1]) or nil
+end
+
+-- Facts of mission m written in a test state (reputation events of the engine).
+local function factsOf(state, m)
+    local n, prefix = 0, m.id .. "-"
+    for key in pairs(state.outcomes) do
+        if string.sub(key, 1, string.len(prefix)) == prefix then n = n + 1 end
+    end
+    return n
+end
+
+-- A mission of a test voice whose sheet permits only `template`, started for char1 through RS_MissionVoice.start.
+-- Returns { M, V, p, peer, sheet, state, store, m }; SKIP when the template has no place around the player.
+local function voiceMission(t, template)
+    local M, V, Actions = modules(t)
+    t:eq(true, Actions.isKnown("start_mission"), "start_mission not in the catalogue")
+    t:eq(true, V.register(), "start_mission or report_mission executor not registered")
+    local p = F.player(t)
+    if not p then t:skip("no target player") end
+    local sheet = { id = "rst-voice-" .. template, name = "RST Voice", actions = { "say", "start_mission" },
+        budgets = {}, missions = { template }, places = {} }
+    if template == "deliver" then
+        sheet.places[1] = { id = "drop", label = "RST drop", x = math.floor(p:getX()), y = math.floor(p:getY()),
+            z = math.floor(p:getZ()) }
+    end
+    local state = { missions = {}, npcs = {}, characters = {}, outcomes = {} }
+    state.characters.char1 = { name = "Tester", contacts = {}, knownMissions = {} }
+    state.characters.char2 = { name = "Mate", contacts = {}, knownMissions = {} }
+    local store = { data = state, save = function() return true end }
+    require("RadioSurvivorCore/RC_MissionScout").resetForTests()
+    require("RadioSurvivorCore/RC_MissionClear").resetForTests()
+    require("RadioSurvivorCore/RC_MissionRetrieve").resetForTests()
+    require("RadioSurvivorCore/RC_MissionSignal").resetForTests()
+    local m, why = V.start(store, sheet, "char1", p, VOICE_KHZ, template)
+    if not m and why == "no_place" and template == "clear" then
+        -- Same rule as rs.mission.clear: a quiet spawn area has no building above minDensity; the draw is made again
+        -- with a test catalogue entry without minimum density (the suite brings its own zombie).
+        local c = require("RadioSurvivor/RS_Config").Missions.clear
+        local minDensity = c.minDensity
+        c.minDensity = 0
+        require("RadioSurvivorCore/RC_MissionClear").resetForTests()
+        m, why = V.start(store, sheet, "char1", p, VOICE_KHZ, template)
+        c.minDensity = minDensity
+        t:note("no building above minDensity " .. tostring(minDensity) .. ": drawn again without minimum density")
+    end
+    if not m and why == "no_place" then
+        t:skip("no place for a " .. template .. " mission around the player: move to a town and run again")
+    end
+    t:ok(m ~= nil, template .. " mission not created: " .. tostring(why))
+    if m.deposit and m.deposit.box then
+        local box, z = m.deposit.box, m.deposit.z
+        t:defer(function()
+            local sq = getCell() and getCell():getGridSquare(box.x, box.y, z)
+            local objects = sq and sq:getObjects()
+            local o = objects and box.object < objects:size() and objects:get(box.object) or nil
+            local md = o and o:getModData()
+            if md and type(md.RS_DeadDrop) == "table" then md.RS_DeadDrop[box.key] = nil end
+        end, "remove the dead drop key of the test box")
+    end
+    return { M = M, V = V, p = p, peer = peerPlayer(t), sheet = sheet, state = state, store = store, m = m }
+end
+
+-- Created for the caller with the engine template, radio report and no lot; refused while open; a report before
+-- the objective refused; another caller gets nothing.
+local function created(t, c, template)
+    local M, V, m, p = c.M, c.V, c.m, c.p
+    t:eq({ TEMPLATE_OF[template], "voice", c.sheet.id, "radio", "active", 0 },
+        { m.template, m.donor, m.voice, m.report, m.state, m.rewardCount }, template .. " mission of the voice")
+    t:eq(true, m.participants.char1 ~= nil, "caller not engaged")
+    t:eq({ nil, "mission_open" }, { V.start(c.store, c.sheet, "char1", p, VOICE_KHZ, template) },
+        "second mission for the same caller")
+    local heard = V.heard(c.sheet, p, "char1", VOICE_KHZ, c.store)
+    t:eq({ "not_yet", false }, { heard and heard.turn, heard and heard.toReport }, "turn before the objective")
+    t:eq({ nil, "not_done" }, { V.report(c.store, c.sheet, "char1", p, VOICE_KHZ) }, "report before the objective")
+    t:eq("active", m.state, "a report before the objective closed the mission")
+    -- Another caller: the second client's character when one is online, else char2 of the test state.
+    local who = c.peer or p
+    t:note("other caller: " .. (c.peer and "second client" or "test character without a client"))
+    t:eq(nil, V.open(c.state, c.sheet.id, "char2"), "another caller has the mission")
+    t:eq(nil, V.heard(c.sheet, who, "char2", VOICE_KHZ, c.store), "another caller hears the mission")
+    t:eq({ nil, "no_mission" }, { V.report(c.store, c.sheet, "char2", who, VOICE_KHZ) }, "report by another caller")
+    t:eq(nil, m.participants.char2, "another caller engaged")
+    local row = M.projection(m, "char2")
+    t:eq({ false, nil }, { row.engaged, row.mapZone }, "notebook projection of another caller")
+end
+
+-- Objective met (reportReady): report on another frequency, by another caller, then on the voice's frequency; no
+-- second report, one reputation fact, nothing to claim.
+local function reported(t, c)
+    local M, V, m, p, store = c.M, c.V, c.m, c.p, c.store
+    t:eq(true, M.reportReady(m), "objective met but the mission does not wait for its report")
+    local other = { id = "rst-other", name = "RST Other", actions = { "say", "start_mission" }, places = {} }
+    t:eq(nil, V.heard(other, p, "char1", OTHER_KHZ, store), "another voice hears the mission")
+    t:eq({ nil, "no_mission" }, { V.report(store, other, "char1", p, OTHER_KHZ) }, "report on another frequency")
+    t:eq("active", m.state, "a report on another frequency closed the mission")
+    local due = V.heard(c.sheet, p, "char1", VOICE_KHZ, store)
+    t:eq({ "report_due", true }, { due and due.turn, due and due.toReport }, "turn after the objective")
+    t:eq({ nil, "no_mission" }, { V.report(store, c.sheet, "char2", c.peer or p, VOICE_KHZ) },
+        "report by another caller after the objective")
+    t:eq("active", m.state, "a report by another caller closed the mission")
+    t:eq(true, V.report(store, c.sheet, "char1", p, VOICE_KHZ) == m, "report on the voice's frequency refused")
+    t:eq("success", m.state)
+    t:eq("mission.success", c.state.outcomes[m.id .. "-char1-result"].action)
+    local facts = factsOf(c.state, m)
+    t:eq({ nil, "no_mission" }, { V.report(store, c.sheet, "char1", p, VOICE_KHZ) }, "second report")
+    t:eq(facts, factsOf(c.state, m), "reputation fact written twice")
+    t:eq(false, (M.claim(store, m, p, "char1", "rst-voice-claim")), "a voice mission gave a lot to claim")
+    t:eq({ 0, nil }, { m.rewardCount, m.rewardPlace }, "reward of a sheet without place= lines")
+    t:eq(nil, V.open(c.state, c.sheet.id, "char1"), "mission still open after the report")
+end
+
+-- Clear: one real zombie next to the player, lethal bat hit of the player, counted by the template.
+local function playClear(t, c)
+    local Clear = require "RadioSurvivorCore/RC_MissionClear"
+    local m, p = c.m, c.p
+    local px, py, pz = math.floor(p:getX()), math.floor(p:getY()), math.floor(p:getZ())
+    t:note("clear target " .. tostring(m.target) .. " lowered to 1, circle moved onto the player")
+    m.target, m.mapZone = 1, { x = px, y = py, r = 8 }
+    local mine, credited = {}, {}
+    local function resolve(player) if rawequal(player, p) then return "char1" end end
+    local function onHit(z, wielder, _, weapon) if mine[z] then Clear.noteHit(z, wielder, weapon) end end
+    local function onDead(z) if mine[z] then credited[#credited + 1] = Clear.count(c.state, z, resolve) ~= nil end end
+    Events.OnHitZombie.Add(onHit)
+    Events.OnZombieDead.Add(onDead)
+    t:defer(function() Events.OnHitZombie.Remove(onHit); Events.OnZombieDead.Remove(onDead) end,
+        "remove the test subscribers")
+    local wasGod = p:isGodMod()
+    p:setGodMod(true)
+    t:defer(function() p:setGodMod(wasGod) end, "restore the god mode of the target player")
+    local function spawn(t1)
+        local list = addZombiesInOutfit(px + 2, py, pz, 1, nil, 50)
+        t1:ok(list ~= nil and list:size() == 1, "zombie not created")
+        local z = list:get(0)
+        z:getModData()[MARK] = true
+        mine[z] = true
+        t1:defer(function()
+            if not z:isDead() then z:removeFromWorld(); z:removeFromSquare() end
+            local sq = getCell() and getCell():getGridSquare(px + 2, py, pz)
+            local objects = sq and sq:getStaticMovingObjects()
+            for i = (objects and objects:size() or 0) - 1, 0, -1 do
+                local o = objects:get(i)
+                if instanceof(o, "IsoDeadBody") and o:hasModData() and o:getModData()[MARK] then sq:removeCorpse(o, false) end
+            end
+        end, "remove the zombie and corpse of the test")
+        z:Hit(instanceItem("Base.BaseballBat"), p, LETHAL, false, 1.0)
+        t1:waitUntil(function() return z:isDead() and #credited >= 1 end, DEATH_MS, function(t2)
+            t2:eq({ true, 1, 1 }, { credited[1], m.kills, m.tally.char1 }, "kill of the caller in the circle")
+            t2:eq(nil, Clear.count(c.state, z, resolve), "same zombie counted again")
+            t2:eq(1, m.kills, "count after a second death event")
+            reported(t2, c)
+        end, "zombie not dead after a lethal hit")
+    end
+    if F.WAIT_LOADED then F.waitSquare(t, px + 2, py, pz, nil, spawn) else spawn(t) end
+end
+
+-- Signal: another colour, then the asked colour at the centre of the circle, lit by the player in the window.
+local function playSignal(t, c)
+    local Signal = require "RadioSurvivorCore/RC_MissionSignal"
+    local lib = Signal.library()
+    if not lib then t:fail("required mod Signal Smoke (batman_SignalSmoke) unusable: Signal.library() returned nil") end
+    local m, p = c.m, c.p
+    t:ok(lib.COLORS[m.color] ~= nil, "colour unknown to Signal Smoke: " .. tostring(m.color))
+    m.hour = getGameTime():getHour()
+    t:note("signal colour " .. tostring(m.color) .. ", window moved to " .. m.hour .. ":00")
+    local function resolve(player) if rawequal(player, p) then return "char1" end end
+    local credited, ids = {}, {}
+    local function listener(event)
+        if event.type == "started" and event.entry and event.entry.owner == OWNER then
+            credited[#credited + 1] = Signal.count(c.state, event, resolve) ~= nil
+        end
+    end
+    lib.onSignal(listener)
+    t:defer(function()
+        lib.removeSignalListener(listener)
+        for _, id in ipairs(ids) do lib.stop(id) end
+    end, "remove the test listener and stop the test signals")
+    local function light(n, color)
+        local id = "rst-voicesignal-" .. n
+        ids[#ids + 1] = id
+        local started, err = lib.start{ x = m.mapZone.x, y = m.mapZone.y, z = 0, color = color, kind = "smoke",
+            realSeconds = 15, radius = 0, light = false, id = id, owner = OWNER, source = "grenade", player = p }
+        t:ok(started ~= nil, "Signal Smoke refused the signal: " .. tostring(err))
+    end
+    light(1, m.color == "green" and "red" or "green")
+    t:eq({ false, false }, { credited[1], m.lit }, "signal of another colour counted")
+    light(2, m.color)
+    t:eq({ true, true }, { credited[2], m.lit }, "signal of the asked colour not counted")
+    reported(t, c)
+end
+
+RST.suite("rs.missions.voicetemplates", { tags = { "server", "world" }, testTimeoutMs = 60000 }, function(s)
+    s.test("deliver: created for the caller only, drop at the voice's place, no report before collection", function(t)
+        local c = voiceMission(t, "deliver")
+        created(t, c, "deliver")
+        local d, place = c.m.deposit, c.sheet.places[1]
+        t:eq({ place.x, place.y, place.z }, { d and d.x, d and d.y, d and d.z }, "dead drop point of the sheet")
+        t:ok(d.mode == "box" or d.mode == "bag", "dead drop mode " .. tostring(d.mode))
+        t:note("dead drop mode " .. tostring(d.mode))
+    end)
+
+    s.test("retrieve: created for the caller only as retrieve_id, no report without the card", function(t)
+        local c = voiceMission(t, "retrieve")
+        created(t, c, "retrieve")
+        t:eq({ false, false }, { c.m.placed, c.m.found }, "body placed or card found at creation")
+    end)
+
+    s.test("clear: kill of the caller counted, report on the voice's frequency only, no reward doubled", function(t)
+        local c = voiceMission(t, "clear")
+        created(t, c, "clear")
+        playClear(t, c)
+    end)
+
+    s.test("signal: asked colour counted, report on the voice's frequency only, no reward doubled", function(t)
+        local c = voiceMission(t, "signal")
+        created(t, c, "signal")
+        playSignal(t, c)
+    end)
+end)

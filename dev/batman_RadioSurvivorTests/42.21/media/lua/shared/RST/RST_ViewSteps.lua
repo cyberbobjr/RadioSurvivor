@@ -28,7 +28,8 @@ Client handlers (RST.Steps.on); every body is found by its npc id in LivingKnox.
                       at the centre of square x, y on the map of this player equal to icons, texts (polled, at least
                       settleMs after the ask); label (when this character can read); markAgain = a second
                       RS_MapActions.mark gives "present" and adds nothing; remove = the symbols there are removed
-                      at the end, PASS or FAIL.
+                      at the end, PASS or FAIL. data.map: identity of the MapItem of this session (tostring of
+                      MapItem.getSingleton(), nil without one; a new one after a reconnection).
     map.known         { blocks = { { bx, by }, ... }, expect = "1001..." | nil, clear = { { bx, by }, ... } }:
                       known state of blocks of 32 squares on the map of this player (WorldMapVisited, read at the
                       centre of each block), returned in data.known as a string of "1" / "0"; with expect, polled
@@ -302,6 +303,14 @@ function VS.symbolsAt(M, x, y)
     return icons, texts
 end
 
+-- Identity of the world map object of this session (MapItem.getSingleton), or nil.
+local function mapIdentity()
+    if MapItem == nil or type(MapItem.getSingleton) ~= "function" then return nil end
+    local map = MapItem.getSingleton()
+    if map == nil then return nil end
+    return tostring(map)
+end
+
 function VS.removeAt(M, x, y)
     local icons, texts = VS.symbolsAt(M, x, y)
     local all = {}
@@ -354,7 +363,7 @@ Steps.on("map.symbols", function(args)
                 end
                 note = note .. "; second mark: present"
             end
-            return finish(Steps.pass(note))
+            return finish(Steps.pass(note, { map = mapIdentity() }))
         end
         if ctx.final then return finish(Steps.fail(last)) end
         return nil
