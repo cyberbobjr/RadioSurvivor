@@ -13,7 +13,12 @@ client, campaign mp), save rstest*.
                         GroupRadio.bind(queueAir, notify, comfortOnAir): the path of every answer to a player). Once it
                         aired: the authority copy dropped by the configured amounts; the requester client reads the
                         same drop on its own gauges and its two halos (Boredom, Unhappiness, arrow down)
-                        ("rs.comfort.read"); every other client (second client in MP) reads no drop and no halo.
+                        ("rs.comfort.read"). Isolation (second client in MP) is about the comfort, not the absolute
+                        gauges of the others (their client may re-send its god mode, ExtraInfoPacket.java:238-245, or
+                        the game may move them, e.g. panic resets boredom, BodyDamage.java:1710-1711): exactly one
+                        comfort counted (RS_Comfort.stats.applied +1), hourly cap entries of the others untouched, no
+                        halo on the other clients, and their gauges not lowered by the comfort amounts (another move
+                        is only noted).
                         The real callback is called through CS.probe, which records the facts around it, so a failure
                         names its step: never aired (CS.whyNotAired: channel gone, busy with broadcast X, or line still
                         queued) or aired without comfort (CS.whyNotEased: requester not found or another player
@@ -23,8 +28,9 @@ God mode: on the authority, BodyDamage.Update of a god-mode player calls Restore
 each update (BodyDamage.java:1820-1823, 1564-1570; the MP harness gives god mode with the server command
 godmodeplayer). The authority owns the stats in MP (the client does not simulate them, BodyDamage.java:1815-1819, and
 gets them back every second, NetworkPlayerManager.java:33-35), so the baseline would be lost: the suite lifts the god
-mode of every player whose gauges it sets, the forced way of godmodeplayer (setGodMod(b, true),
-GodModePlayerCommand.java:41), for the test only. Zombies stay cleared by the fixtures.
+mode of the requester, the forced way of godmodeplayer (setGodMod(b, true), GodModePlayerCommand.java:41), for the test
+only; god mode back on the requester at the air (its client re-sending it) is named by the failure.
+Zombies stay cleared by the fixtures.
 Cleanup (t:defer): stats of every touched player restored and synced, god mode given back, hourly cap counters and
 counters of RS_Comfort restored, the test line removed from the radio histories. Solo runs the same code with the
 local player (no other client: noted). Outside the game: tests/test_rs_comfort_suite.py (doubles), tests/test_comfort.py
@@ -132,10 +138,11 @@ local function liftGodMode(t, e)
     t:defer(function() e.player:setGodMod(true, true) end, "god mode of " .. e.name .. " given back")
 end
 
--- Gauges of every listed player restored (and synced) at the end, baseline set now (god mode lifted first).
+-- Gauges of every listed player restored (and synced) at the end, baseline set now (god mode of the requester,
+-- first of the list, lifted first; the others keep theirs: their isolation does not read absolute gauges).
 local function baseline(t, list)
-    for _, e in ipairs(list) do
-        liftGodMode(t, e)
+    for i, e in ipairs(list) do
+        if i == 1 then liftGodMode(t, e) end
         local saved = gauges(e.player)
         t:defer(function() setGauges(e.player, saved) end, "gauges of " .. e.name .. " restored")
         setGauges(e.player, { boredom = CS.BASE, sadness = CS.BASE })
@@ -164,6 +171,43 @@ local function capKey(p, cid)
     return "solo"
 end
 
+-- Hourly cap entries of RS_Comfort except the requester's (key): key -> "hour:given".
+local function capsOf(Comfort, key)
+    local out = {}
+    for k, e in pairs(Comfort.counts) do
+        if k ~= key then out[k] = tostring(e.hour) .. ":" .. tostring(e.given) end
+    end
+    return out
+end
+
+-- First difference between two capsOf snapshots, or nil.
+function CS.capsChanged(before, after)
+    for k, v in pairs(after) do
+        if before[k] ~= v then return k .. " " .. tostring(before[k]) .. " -> " .. v end
+    end
+    for k, v in pairs(before) do
+        if after[k] == nil then return k .. " " .. v .. " -> removed" end
+    end
+    return nil
+end
+
+-- Did these drops match the comfort amounts (an eased gauge at least)?
+function CS.easedLikeComfort(dropB, dropS, drop, tolerance)
+    if drop.boredom <= 0 and drop.sadness <= 0 then return false end
+    return math.abs(dropB - drop.boredom) <= tolerance and math.abs(dropS - drop.sadness) <= tolerance
+end
+
+-- Isolation of another player from its gauge drops (where: "on the authority", "read by its client"): a drop by the
+-- comfort amounts fails, any other move is noted only.
+local function checkOther(t, who, where, dropB, dropS, drop)
+    t:ok(not CS.easedLikeComfort(dropB, dropS, drop, CS.TOLERANCE), string.format(
+        "gauges of %s %s lowered by the comfort amounts (boredom -%.2f, unhappiness -%.2f)", who, where, dropB, dropS))
+    if math.abs(dropB) > CS.TOLERANCE or math.abs(dropS) > CS.TOLERANCE then
+        t:note(string.format("gauges of %s moved by the game (%s: boredom -%.2f, unhappiness -%.2f), not by the "
+            .. "comfort amounts: not counted", who, where, dropB, dropS))
+    end
+end
+
 local function answerOf(res) return res and res.list and res.list[1] or {} end
 
 local function mhz(khz) return string.format("%.1f MHz", (tonumber(khz) or 0) / 1000) end
@@ -184,7 +228,7 @@ end
 -- in probe: aired, requester found online under the caller key, notebook character on the air, RS_Comfort counters
 -- and gauges of the requester on the authority before and after. The real callback alone decides the comfort.
 function CS.probe(c, key, cid)
-    local probe = { aired = false, key = key, cid = cid }
+    local probe = { aired = false, key = key, cid = cid, capKey = capKey(c.p, cid) }
     local real = c.state.comfort(key, cid)
     probe.onAir = function()
         probe.aired = true
@@ -196,8 +240,10 @@ function CS.probe(c, key, cid)
         probe.god = c.p:isGodMod()
         probe.applied, probe.capped = c.Comfort.stats.applied, c.Comfort.stats.capped
         probe.before = gauges(c.p)
+        probe.capsBefore = capsOf(c.Comfort, probe.capKey)
         real()
         probe.after = gauges(c.p)
+        probe.capsAfter = capsOf(c.Comfort, probe.capKey)
         probe.appliedAfter, probe.cappedAfter = c.Comfort.stats.applied, c.Comfort.stats.capped
     end
     return probe
@@ -257,10 +303,13 @@ RST.suite("rs.comfort", { tags = { "server", "world" } }, function(s)
                 local now = gauges(c.p)
                 t3:near(CS.BASE - c.drop.boredom, now.boredom, 0.01, "boredom of the requester on the authority")
                 t3:near(CS.BASE - c.drop.sadness, now.sadness, 0.01, "unhappiness of the requester on the authority")
+                t3:eq(1, probe.appliedAfter - probe.applied, "comforts applied for one answer (RS_Comfort.stats.applied)")
+                local changed = CS.capsChanged(probe.capsBefore, probe.capsAfter)
+                t3:ok(changed == nil, "hourly cap entry of another player changed by the answer: " .. tostring(changed))
                 for i = 2, #list do
                     local other = gauges(list[i].player)
-                    t3:near(CS.BASE, other.boredom, 0.01, "boredom of " .. list[i].name .. " on the authority")
-                    t3:near(CS.BASE, other.sadness, 0.01, "unhappiness of " .. list[i].name .. " on the authority")
+                    checkOther(t3, list[i].name, "on the authority", CS.BASE - other.boredom, CS.BASE - other.sadness,
+                        c.drop)
                 end
                 local me = list[1].name
                 Steps.ask(t3, "rs.comfort.read", { before = before[me], drop = c.drop, tolerance = CS.TOLERANCE },
@@ -282,18 +331,17 @@ RST.suite("rs.comfort", { tags = { "server", "world" } }, function(s)
                         t4:note("no other client online: isolation not checked")
                         return
                     end
-                    -- No drop expected: each other client reads after RST.PeerComfort.SETTLE_MS (packets had time).
+                    -- No comfort expected: each other client reads after RST.PeerComfort.SETTLE_MS (packets had time).
                     Steps.ask(t4, "rs.comfort.read", { tolerance = CS.TOLERANCE }, { target = others,
                         timeoutMs = CS.ASK_MS },
                         function(t5, res2)
                         for _, e in ipairs(res2.list) do
                             local o = e.data or {}
                             local b = before[e.user] or {}
-                            t5:near(0, (tonumber(b.boredom) or 0) - (tonumber(o.boredom) or 0), CS.TOLERANCE,
-                                "boredom drop read by the other client " .. e.user)
-                            t5:near(0, (tonumber(b.sadness) or 0) - (tonumber(o.sadness) or 0), CS.TOLERANCE,
-                                "unhappiness drop read by the other client " .. e.user)
                             t5:eq(0, tonumber(o.halos) or 0, "halos shown on the other client " .. e.user)
+                            checkOther(t5, e.user, "read by its client",
+                                (tonumber(b.boredom) or 0) - (tonumber(o.boredom) or 0),
+                                (tonumber(b.sadness) or 0) - (tonumber(o.sadness) or 0), c.drop)
                         end
                     end)
                 end)

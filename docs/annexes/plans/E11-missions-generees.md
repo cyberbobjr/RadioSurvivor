@@ -275,16 +275,16 @@
   - Preuve : `tests/test_voice_delivery.py` 22/22 ; suite `rs.voicedelivery` ajoutée aux campagnes solo et MP ; aucune preuve en jeu à ce stade ; campagne MP complète du 2026-11-05 (copie figée du commit `efa5558`, serveur dédié + 2 clients, pont avec faux modèle, 520/537, seul échec lk.windowkill) : rs.voicedelivery 2 PASS (`tools/autoclient/runs/20261105-122206-run-efa5558e207a/run/server/20261105-112357-server.txt`)
   - Reste : campagnes solo/MP ; reprise ambiguë après interruption bloquée sans crédit automatique.
 
-- [ ] **E11-T20** — Délais des missions en temps de jeu (pause, vitesse)
-  - État : `testé hors jeu`
+- [x] **E11-T20** — Délais des missions en temps de jeu (pause, vitesse)
+  - État : `testé solo`
   - Cible : `solo`
   - Dépend de : E00-T03
   - Fichiers : `shared/RadioSurvivor/RS_GameClock.lua` (nouveau), `RS_Missions.lua` (`offers`, `release`, `offerWait`), `RS_MissionVoice.lua`, `RS_Carnet_Server.lua` (`tick`, `command`, `init`), `RS_Config.lua` (commentaires), traductions EN/FR `IGUI_RS_Time` ; suites en jeu `RS_Missions`, `RS_MissionRadio`, `RS_Identity`, `RST_Fixtures` ; bancs ; `docs/specifications-techniques/protocole-carnet-v2.md`, `docs/annexes/conception/carnet-implementation-04221.md`, `docs/ameliorations-et-idees.md` (C27)
   - Faire : décision C27 du 2026-10-21. Décompter le temps restant d'une mission (`remainingMs`) et d'une offre (`offerRemainingMs`) avec le temps de jeu écoulé (écart d'âge du monde × ms réelles d'une heure de jeu à vitesse normale) au lieu de `getTimestampMs` ; délai entre deux offres d'un PNJ ou d'une voix en âge du monde (`nextOfferHour`), ancien `nextOfferAt` (ms réelles) converti à la lecture ; âge du monde qui recule (`setTimeOfDay`) sans gain ni perte.
   - Accepté si : pause (âge du monde figé) = aucun décompte même si le temps réel passe ; vitesse x3 = décompte x3 ; durée du jour 3 h = mêmes ms à vitesse normale ; serveur vide en pause = rien ; redémarrage sans saut ; ancienne valeur `nextOfferAt` ni bloquante ni perdue ; délais techniques inchangés.
   - Tests : `tests/test_carnet.py` (`GameClockTests`, chrono existant) ; suites en jeu `rs.missions`, `rs.identity` dans les bancs ; `tests/run_all.py`
-  - Preuve : bancs du 2026-10-21 : `tests/test_carnet.py` 92 OK (`GameClockTests` 5 tests : unité et compteur, pause, vitesse x3, durée du jour 3 h, délai entre deux offres et conversion de l'ancien `nextOfferAt`, redémarrage ; chrono et reconnexion adaptés : serveur arrêté ou en pause = aucun décompte), `test_rs_suites.py`, `test_kahlua.py` (vrai Kahlua) ; `tests/run_all.py --keep-going` 142/142 ; luacheck 15/0 (base inchangée), dev 0/0 ; commit `24d6cab`
-  - Reste : en jeu solo : chrono arrêté pendant la pause (Échap) et accéléré en x3 ; campagne MP : `rs.identity.after-reconnect` avec le serveur vide en `PauseEmpty`
+  - Preuve : bancs du 2026-10-21 : `tests/test_carnet.py` 92 OK (`GameClockTests` 5 tests : unité et compteur, pause, vitesse x3, durée du jour 3 h, délai entre deux offres et conversion de l'ancien `nextOfferAt`, redémarrage ; chrono et reconnexion adaptés : serveur arrêté ou en pause = aucun décompte), `test_rs_suites.py`, `test_kahlua.py` (vrai Kahlua) ; `tests/run_all.py --keep-going` 142/142 ; luacheck 15/0 (base inchangée), dev 0/0 ; commit `24d6cab` ; suite en jeu `rs.missions.clock` (commit `a24a105`, banc `tests/test_rs_mission_clock_suite.py`) ; solo du 2026-11-14 : `RS_AUTOCLIENT_EXIT=0`, PASS : vitesse normale 3028 ms de jeu en 3015 ms réelles, pause vanilla (`setGameSpeed(0)`) 0 ms comptée en 2985 ms réelles, avance rapide (vitesse 3, multiplicateur 20 : le « x3 » du plan est ce bouton) 59995 ms en 3000 ms, rapport 19,9 (`tools/autoclient/runs/20261114-140810-eef2b5ce3cc8`)
+  - Reste : — (non joué : serveur dédié vide en `PauseEmpty` pendant une déconnexion ; le serveur de test des campagnes ne se met pas en pause)
 
 - [x] **E11-T21** — Chaque mod paie ses missions : récompense d'un PNJ Living Knox payée par Living Knox
   - État : `testé MP`

@@ -13,6 +13,7 @@ Mode dieu sur l'autorité (setGodMod forcé, remise à zéro des stats à chaque
 suite le lève pour le test et le rend (2e passage MP du 2026-11-14).
 La suite passe sur les doublures et échoue sur chaque défaut injecté (DEFECTS) : jauges jamais synchronisées vers le
 client, halo absent, réconfort aussi accordé au second joueur (autorité), baisse et halo chez le second client seul ;
+isolation du second joueur jugée sur le réconfort (compteur, plafond, halo, montants), pas sur ses jauges absolues ;
 son message nomme l'étape en échec (campagne MP du 2026-11-14) : ligne jamais diffusée (chaîne occupée par telle
 diffusion, chaîne disparue), diffusée sans réconfort (plafond horaire, personnage changé, autre table RS_Comfort).
 Ne prouve ni l'API Java (SyncPlayerStats réel, HaloTextHelper remplaçable depuis Lua) ni le vrai serveur radio
@@ -33,6 +34,8 @@ REQUESTER, OTHER = 'A', 'B'
 TEST_NAME = 'an answer on the air eases the requester only: gauges and halo on his client (E05-T15)'
 # SyncPlayerStatsPacket.java:19 : reliability 2 (fiable, non ordonné), aucun flux ordonné.
 harness_module.PACKET_CHANNELS.setdefault('SyncPlayerStats', None)
+# PlayerStatsPacket.java:20 : reliability 3, ordering 12 (fiable ordonné), serveur -> client toutes les 1000 ms.
+harness_module.PACKET_CHANNELS.setdefault('PlayerStats', 12)
 
 # Toutes les machines : jauges (Stats.java:76-93, CharacterStat.java:15/34 : bornes 0-100), monde de test, options.
 COMMON = r'''
@@ -108,14 +111,37 @@ package.loaded["RadioSurvivor/RS_Personas"] = {
 function C.IsoPlayer:isGodMod() return self.godDouble == true end
 function C.IsoPlayer:setGodMod(b, forced)
     if self:isDead() then return end
-    if forced then self.godDouble = b == true else self.godDouble = false end
+    if forced or self.godRightDouble then self.godDouble = b == true else self.godDouble = false end
 end
+-- ExtraInfoPacket.processServer (ExtraInfoPacket.java:238-245) : the client's own god mode flag, sent by
+-- sendPlayerExtraInfo, applied with setGodMod(b) when its role has ToggleGodModHimself (godRightDouble).
+-- GOD_BACK = { user, afterMs } : that client re-sends its god mode afterMs after the line aired.
+local godBackAt = nil
 Events.OnTick.Add(function()
+    if GOD_BACK and AIRED_AT and godBackAt == nil then godBackAt = AIRED_AT + GOD_BACK.afterMs end
+    if godBackAt and getTimestampMs() >= godBackAt then
+        local p = H.players[GOD_BACK.user]
+        p.godRightDouble = true
+        p:setGodMod(true)
+        GOD_BACK, godBackAt = nil, nil
+    end
     for _, p in pairs(H.players) do
         if p:isGodMod() and not p:isDead() then
             p:getStats():set(CharacterStat.BOREDOM, 0)
             p:getStats():set(CharacterStat.UNHAPPINESS, 0)
         end
+    end
+end)
+-- NetworkPlayerManager.update (NetworkPlayerManager.java:14, 25-35) : every 1000 ms the dedicated server sends each
+-- client the full stats of its player (NetworkPlayerAI.syncStats -> PlayerStatsPacket, Stats.save / Stats.load).
+local nextStatsAt = 0
+Events.OnTick.Add(function()
+    if SYNC_OFF or not isServer() or getTimestampMs() < nextStatsAt then return end   -- stale_client: no packet at all
+    nextStatsAt = getTimestampMs() + 1000
+    for user, p in pairs(H.players) do
+        local s = p:getStats()
+        H.sendToRelative(p:getX(), p:getY(), "PlayerStats", { user = user,
+            boredom = s:get(CharacterStat.BOREDOM), sadness = s:get(CharacterStat.UNHAPPINESS) })
     end
 end)
 -- Defaut "other_character" : nouveau personnage du carnet entre la demande et la diffusion.
@@ -154,6 +180,11 @@ state.comfort = function(caller, cid)
         if player then (OtherComfort or Comfort).answered(player, cid, characterOf(player)) end
         local other = H.players["B"]
         if DEFECT == "everyone" and other ~= nil and isServer() then Comfort.answered(other, nil, nil) end
+        -- Defaut "other_eased" : gauges of B lowered on the authority by the comfort amounts, outside RS_Comfort.
+        if DEFECT == "other_eased" and other ~= nil and isServer() then
+            other:getStats():remove(CharacterStat.BOREDOM, 3)
+            other:getStats():remove(CharacterStat.UNHAPPINESS, 1)
+        end
         if DEFECT == "wrong_client" and other ~= nil and isServer() then
             local s = other:getStats()
             H.sendToRelative(0, 0, "SyncPlayerStats", { user = "B", mask = 2 + 1048576,
@@ -168,6 +199,7 @@ Events.OnTick.Add(function()
     if #queue == 0 or CHANNEL.airingDouble ~= nil then return end
     local item = table.remove(queue, 1)
     AIRED[#AIRED + 1] = item.lines[1]
+    AIRED_AT = getTimestampMs()
     if item.onAir then item.onAir() end
 end)
 '''
@@ -181,6 +213,13 @@ H.onPacket("SyncPlayerStats", function(a)
     if p == nil then return end
     if math.floor(a.mask / 2) % 2 == 1 then p:getStats():set(CharacterStat.BOREDOM, a.boredom) end
     if math.floor(a.mask / 1048576) % 2 == 1 then p:getStats():set(CharacterStat.UNHAPPINESS, a.sadness) end
+end)
+-- PlayerStatsPacket.parse (PlayerStatsPacket.java:47-55) : every stat of the client copy replaced.
+H.onPacket("PlayerStats", function(a)
+    local p = H.players[a.user]
+    if p == nil then return end
+    p:getStats():set(CharacterStat.BOREDOM, a.boredom)
+    p:getStats():set(CharacterStat.UNHAPPINESS, a.sadness)
 end)
 HALOS = {}
 GOOD = { r = 0, g = 255, b = 0 }
@@ -299,6 +338,19 @@ class ComfortSuiteBench(unittest.TestCase):
         for user in (REQUESTER, OTHER):
             self.assertTrue(h.eval('server', f'HARNESS.players.{user}:isGodMod()'), f'god mode of {user} not restored')
 
+    def test_mp_second_client_god_mode_back_does_not_fail_isolation(self):
+        # Full MP campaign of 2026-11-14 13:24: rs_mp2 read its gauges at 0 three seconds after the air ("boredom drop
+        # read by the other client rs_mp2: expected 0 +/- 0.5, got 49.999"). Here its client re-sends god mode
+        # (ExtraInfo) after the air: the authority resets its stats, the next PlayerStats packet brings 0 to client B.
+        # Isolation is about the comfort (counter, cap, halo, comfort amounts), not the absolute gauges of B.
+        h = self.build()
+        h.load('server', f'GOD_BACK = {{ user = "{OTHER}", afterMs = 500 }}')
+        status, message, notes = self.run_suite()
+        self.assertEqual((status, message), ('PASS', ''))
+        self.assertEqual(self.halos(OTHER), [])
+        self.assertTrue(h.eval('server', f'HARNESS.players.{OTHER}:isGodMod()'))
+        self.assertTrue(any('gauges of B moved by the game' in n for n in notes), notes)
+
     def test_mp_busy_channel_waits_for_its_turn(self):
         h = self.build()
         h.load('server', 'CHANNEL.airingDouble = "walt reply"')
@@ -335,8 +387,9 @@ class ComfortSuiteBench(unittest.TestCase):
     DEFECTS = {
         'stale_client': 'boredom drop read by the requester client',
         'no_halo': 'Boredom halo (arrow down) on the requester',
-        'everyone': 'boredom of B on the authority',
-        'wrong_client': 'boredom drop read by the other client B',
+        'everyone': 'comforts applied for one answer (RS_Comfort.stats.applied): expected 1, got 2',
+        'other_eased': 'gauges of B on the authority lowered by the comfort amounts (boredom -3.00, unhappiness -1.00)',
+        'wrong_client': 'halos shown on the other client B: expected 0, got 2',
         # Failure message names the step that failed (MP campaign of 2026-11-14: one opaque "never went on the air").
         'capped': 'the answer aired on 145.0 MHz without its comfort: hourly cap of RS_Comfort refused the comfort',
         'other_character': 'without its comfort: notebook character changed: cid-A at the request, cid-A-new on the air',
