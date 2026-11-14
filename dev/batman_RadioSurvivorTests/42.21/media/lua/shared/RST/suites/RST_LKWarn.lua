@@ -127,16 +127,27 @@ local function makeGroup(t, p, gtype, profile, fact, times)
 end
 
 -- Fighter materialized, standing and not walking, armed with a loaded pistol; then suite(t2, npc).
--- Not walking: MP campaign of 2026-11-14, the fighter walked to its sentry post through a door just after the player
--- was moved in its view, lost sight of him and held a home defense without any warning.
+-- Not walking: MP campaigns of 2026-11-14, the fighter walked to its sentry post through a door just after the
+-- player was moved in its view, lost sight of him and held a home defense without any warning. The sentry duty comes
+-- with the first objective of the group, a few ticks after the body: the group must have its objective and the
+-- fighter no open move for STILL_MS in a row.
+local STILL_MS = 2000
 local function armedFighter(t, gid, suite)
     local E = LK()
     local npc
+    local stillSince
     t:waitUntil(function()
         npc = memberNpc(gid, "m-1")
-        if npc == nil or E.Bodies.find(npc) == nil or not K.standing(npc)() then return false end
-        local e = E.Directives.get(npc)
-        return e == nil or e.done or e.op ~= E.Directives.OP_MOVE
+        local g = E.Groups.get(gid)
+        local e = npc ~= nil and E.Directives.get(npc) or nil
+        local still = npc ~= nil and E.Bodies.find(npc) ~= nil and K.standing(npc)() and g ~= nil
+            and g.objective ~= nil and (e == nil or e.done or e.op ~= E.Directives.OP_MOVE)
+        if not still then
+            stillSince = nil
+            return false
+        end
+        stillSince = stillSince or getTimestampMs()
+        return getTimestampMs() - stillSince >= STILL_MS
     end, BODIES_MS, function(t2)
         local body = E.Bodies.find(npc)
         t2:ok(E.Equipment.setWeapon(npc, GUN), "pistol not given to the fighter")
