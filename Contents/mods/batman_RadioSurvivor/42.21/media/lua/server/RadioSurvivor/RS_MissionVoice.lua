@@ -13,8 +13,11 @@ One open mission at a time per caller and per voice; after its closure, the next
 (same rule as an NPC, M01). start_mission also has the RS_Actions controls: sheet actions=, budget.start_mission per
 game day, START_MISSION_COOLDOWN_MS per voice.
 
-start_mission { template }: closed list V.TEMPLATES, further restricted by the sheet's missions list.
-The server draws the place with the template's
+start_mission { template }: a name declared by a registered template (RC_Missions, declaration voiceName: V.allowed,
+looked up when the action runs, after every file is loaded), further restricted by the sheet's missions list. A
+voice-specific set-up of the mission (dead drop of `deliver`, RS_VoiceDelivery) is registered by its own file:
+V.registerSetup(voiceName, { check(sheet) -> ok, reason, apply(m, sheet, donor) }), checked before the mission is
+created and applied before it is accepted and saved. The server draws the place with the template's
 offer (RC_MissionScout: habitable building at 60-250 tiles of the caller's server position, same rules as E11-T03),
 creates and accepts the mission for the caller, writes the history line "mission" (kind of place, no coordinate) on
 the frequency of the reply. Refusals (reason): no_player (caller not connected: no server position), storage
@@ -53,9 +56,6 @@ local Config = require "RadioSurvivor/RS_Config"
 local Codec = require "RadioSurvivorCore/RC_Codec"
 local M = require "RadioSurvivorCore/RC_Missions"
 local Rep = require "RadioSurvivorCore/RC_Reputation"
-require "RadioSurvivorCore/RC_MissionScout" -- registers the scout template
-require "RadioSurvivorCore/RC_MissionClear"
-require "RadioSurvivorCore/RC_MissionRetrieve"
 local S = require "RadioSurvivor/RS_State"
 local Actions = require "RadioSurvivor/RS_Actions"
 local Log = require "RadioSurvivor/RS_RadioLog"
@@ -64,10 +64,29 @@ local MapMarks = require "RadioSurvivor/RS_MapMarks"
 
 local V = {}
 
--- Closed list of the start_mission parameter `template` (names of RC_Missions templates and RS_Config.Missions).
-V.TEMPLATES = { scout = true, deliver = true, retrieve = true, clear = true, signal = true }
-local TEMPLATE_NAMES = {retrieve = "retrieve_id"}
 V.COOLDOWN_MS = Const.START_MISSION_COOLDOWN_MS
+
+-- E20-T01: voice-specific set-ups of a mission, by voice name (one file per set-up registers it).
+local setups = {}
+
+function V.registerSetup(voiceName, setup)
+    setups[voiceName] = setup
+    return setup
+end
+
+-- True when a registered template is given by a voice under this name (start_mission parameter `template`).
+function V.allowed(voiceName)
+    return M.voiceTemplate(voiceName) ~= nil
+end
+
+-- A name listed by a sheet but declared by no template is logged once (English console line).
+local unknownLogged = {}
+local function logUnknown(sheet, voiceName)
+    local key = tostring(sheet.id) .. ":" .. tostring(voiceName)
+    if unknownLogged[key] then return end
+    unknownLogged[key] = true
+    Const.log("voice sheet " .. tostring(sheet.id) .. " lists unknown mission type '" .. tostring(voiceName) .. "'")
+end
 
 function V.donorId(voice, cid)
     return "voice:" .. tostring(voice) .. ":" .. tostring(cid)
@@ -116,32 +135,26 @@ function V.start(store, sheet, cid, player, khz, template)
     local allowed = sheet.missions or {"scout"}
     local permitted = false
     for _, name in ipairs(allowed) do if name == template then permitted = true end end
-    if not V.TEMPLATES[template] or not permitted then return nil, "bad_template" end
-    local name = TEMPLATE_NAMES[template] or template
-    if name == "signal" then require "RadioSurvivorCore/RC_MissionSignal" end
+    local name, t = M.voiceTemplate(template)
+    if permitted and not name then logUnknown(sheet, template) end
+    if not name or not permitted then return nil, "bad_template" end
     local c = Config.Missions[name]
-    -- E04-T05 (Q11): a sensitive template is never started for a bad reputation (V.TEMPLATES holds simple ones only).
+    -- E04-T05 (Q11): a sensitive template is never started for a bad reputation.
     if not Rep.offerAllowed(Rep.level(cid), name) then return nil, "reputation" end
-    local t = V.TEMPLATES[template] and c and M.template({ template = name })
     -- The template's offer draws the place around the caller (server copy of the player: never a client claim).
-    local terms = t and t.offer(c, d, nil, player, cid)
+    local terms = c and t.offer(c, d, nil, player, cid)
     if not terms then return nil, "no_place" end
-    if template == "deliver" and (type(sheet.places) ~= "table" or #sheet.places == 0) then
-        return nil, "no_place"
+    local setup = setups[template]
+    if setup then
+        local ok, reason = setup.check(sheet)
+        if not ok then return nil, reason end
     end
     local m = M.create(state, d, cid, c.id, terms)
     if not m then return nil, "no_place" end
     m.donor, m.voice, m.requesterName, m.khz, m.report = "voice", sheet.id, tostring(sheet.name or sheet.id), khz, "radio"
     m.rewardType, m.rewardCount = "", 0
-    if template == "deliver" then
-        local place = sheet.places[(d.missionCount - 1) % #sheet.places + 1]
-        m.deposit = {x = place.x, y = place.y, z = place.z or 0,
-            mode = d.missionCount % 2 == 1 and 'box' or 'bag'}
-        m.place, m.placeKind = place.label, "dead drop"
-        -- Saved atomically with acceptance below; do not persist a half-created mission.
-        require("RadioSurvivor/RS_VoiceDelivery").prepare(m, {save = function() return true end})
-        m.mapZone = m.mapZone or {x = place.x, y = place.y, r = 3}
-    end
+    -- Saved atomically with acceptance below; a set-up never persists a half-created mission.
+    if setup then setup.apply(m, sheet, d) end
     M.accept(state, m, cid, record.name or "")
     if type(record.knownMissions) == "table" then record.knownMissions[m.id] = true end
     if not store.save() then
@@ -252,12 +265,12 @@ end
 
 -- Executor -----------------------------------------------------------------------------------------------------
 
--- Single parameter `template`, from the closed list.
+-- Single parameter `template`, a name declared by a registered template (V.allowed).
 local function validate(params)
     for key in pairs(params) do
         if key ~= "template" then return false end
     end
-    return type(params.template) == "string" and V.TEMPLATES[params.template] == true
+    return type(params.template) == "string" and V.allowed(params.template)
 end
 
 local function execute(params, ctx)

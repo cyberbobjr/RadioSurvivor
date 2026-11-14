@@ -1,6 +1,9 @@
 -- A dead drop is collected only when nobody is close enough to watch it.
+-- E20-T01: also the set-up of a `deliver` mission given by a radio voice (dead drop at a place of its sheet),
+-- registered in RS_MissionVoice (V.registerSetup).
 if isClient() then return end
 local Config = require 'RadioSurvivor/RS_Config'
+local Voice = require 'RadioSurvivor/RS_MissionVoice'
 local D = {}
 local unseen = {} -- Real-time delay deliberately restarts after a process restart.
 local nextBox = 0
@@ -311,4 +314,24 @@ function D.observe(m, player, _name, _state, store)
 end
 
 function D.resetForTests() unseen = {} end
+
+-- Set-up of a voice `deliver` mission: the sheet needs a place; the dead drop takes its places in turn, a box on odd
+-- missions and a bag on even ones.
+local function hasPlaces(sheet)
+    if type(sheet.places) ~= 'table' or #sheet.places == 0 then return false, 'no_place' end
+    return true
+end
+
+local function setUp(m, sheet, d)
+    local place = sheet.places[(d.missionCount - 1) % #sheet.places + 1]
+    m.deposit = {x = place.x, y = place.y, z = place.z or 0,
+        mode = d.missionCount % 2 == 1 and 'box' or 'bag'}
+    m.place, m.placeKind = place.label, 'dead drop'
+    -- Saved atomically with acceptance by RS_MissionVoice; do not persist a half-created mission.
+    D.prepare(m, {save = function() return true end})
+    m.mapZone = m.mapZone or {x = place.x, y = place.y, r = 3}
+end
+
+Voice.registerSetup('deliver', {check = hasPlaces, apply = setUp})
+
 return D

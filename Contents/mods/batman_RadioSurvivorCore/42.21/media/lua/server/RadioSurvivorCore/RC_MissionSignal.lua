@@ -13,7 +13,7 @@ load (a Signal.resetForTests never subscribes it again to the same module). The 
 registry entry decided by the server (x, y, z, colour { r, g, b }, kind, source) and
 event.player (IsoPlayer at the origin, when known: thrown grenade, lit flare, chemlight dropped near a player) or
 event.username. The colour name is found back by comparing the entry colour to SignalSmoke.COLORS.
-Requester: an NPC fiche of the notebook only (a radio voice does not offer it: RS_MissionVoice.TEMPLATES).
+Requester: an NPC fiche of the notebook, or a radio voice under the name `signal` (declaration voiceName).
 Place: drawn as the scout template (RC_MissionScout.pick: habitable building at 60-250 tiles of the requester's body,
 60 tiles at least from any known base, nothing loaded), kept per requester for siteTtlMs in a memory of this file so
 that the offer told by the bridge and the created mission name the same building, colour and hour.
@@ -40,7 +40,8 @@ local function log(msg)
     print('[RadioSurvivorCore] ' .. tostring(msg))
 end
 
-local Signal = {idPrefix = 'signal', reportBySpeech = true} -- E11-T13: report in person
+-- E11-T13: report in person. E20-T01: given by a voice as `signal`, labelled IGUI_RS_MapZoneSignal on the map.
+local Signal = {idPrefix = 'signal', reportBySpeech = true, voiceName = 'signal', mapStyle = 'Signal'}
 local COLOR_TOLERANCE = 0.02
 -- Requester fiche id -> {site = ..., at = ms} (memory only); Signal Smoke module (false: unusable).
 local sites = {}

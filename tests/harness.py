@@ -1042,6 +1042,16 @@ def lua_src(rel, base=None):
     return base / rel
 
 
+MISSION_VIEWS_DIR = LUA / 'client' / 'RadioSurvivor' / 'MissionViews'
+
+
+def mission_view_files():
+    """Vues du carnet des gabarits de mission (E20-T01) comme le jeu les charge : chaque fichier du dossier
+    client/RadioSurvivor/MissionViews/, trié par nom ; chacune s'inscrit au registre RS_MissionViews."""
+    names = sorted((p.name for p in MISSION_VIEWS_DIR.glob('*.lua')), key=str.lower)
+    return [f'client/RadioSurvivor/MissionViews/{name}' for name in names]
+
+
 ROUTINES_DIR = LK_LUA / 'server' / 'LivingKnox' / 'Routines'
 CHORES_DIR = LK_LUA / 'server' / 'LivingKnox' / 'Chores'
 

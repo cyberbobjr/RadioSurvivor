@@ -113,7 +113,7 @@ class SignalMissionTests(unittest.TestCase):
         c = sim.server.rt.eval("require('RadioSurvivor/RS_Config').Missions.signal")
         donor = sim.server.rt.table_from({'id': 'voice:walt:c1', 'missionCount': 0})
         self.assertIsNone(signal.offer(c, donor, None, g.PLAYERS.alice))
-        self.assertTrue(sim.server.rt.eval("require('RadioSurvivor/RS_MissionVoice')").TEMPLATES['signal'])
+        self.assertTrue(sim.server.rt.eval("require('RadioSurvivor/RS_MissionVoice')").allowed('signal'))
         # Window across midnight.
         self.assertEqual([signal.inWindow(23, 2, h) for h in (22, 23, 0, 1)], [False, True, True, False])
 

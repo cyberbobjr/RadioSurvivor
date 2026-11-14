@@ -6,7 +6,7 @@ retrieve_id_v1). Registered in RC_Missions (M.register); required by RS_Carnet_S
 participants (M.observe) also places the body. Details: docs/annexes/conception/carnet-implementation-04221.md, "Gabarit
 retrouver"; design choices: docs/annexes/conception/mission-retrouver.md.
 
-Requester: an NPC fiche of the notebook only (a radio voice does not offer it: RS_MissionVoice.TEMPLATES). Offered only
+Requester: an NPC fiche of the notebook, or a radio voice under the name `retrieve` (declaration voiceName). Offered only
 where the game can make a corpse (exposed class RandomizedWorldBase; a bench without it offers nothing).
 Place: drawn exactly as the scout template (RC_MissionScout.pick: habitable building of the metagrid at 60-250 tiles
 of the requester's body, 60 tiles at least from any known base, nothing loaded), kept per requester for siteTtlMs in
@@ -40,7 +40,7 @@ local function log(msg)
     print('[RadioSurvivorCore] ' .. tostring(msg))
 end
 
-local Retrieve = {idPrefix = 'retrieve'}
+local Retrieve = {idPrefix = 'retrieve', handover = true, voiceName = 'retrieve', mapStyle = 'Search'}
 Retrieve.MARK = 'RS_RetrieveMission'
 -- Requester fiche id -> {site = ..., at = ms} (memory only); mission id -> last placement attempt (ms).
 local sites, tried = {}, {}

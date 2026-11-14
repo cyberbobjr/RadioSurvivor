@@ -42,7 +42,7 @@ local function log(msg)
     print('[RadioSurvivorCore] ' .. tostring(msg))
 end
 
-local Scout = {idPrefix = 'scout', reportBySpeech = true}
+local Scout = {idPrefix = 'scout', reportBySpeech = true, voiceName = 'scout'}
 local CELL = 256
 -- Requester fiche id -> {site = ..., at = ms} or {at = ms} when no place was found (memory only).
 local sites = {}

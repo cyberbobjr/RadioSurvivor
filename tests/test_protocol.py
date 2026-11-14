@@ -32,7 +32,7 @@ import unittest
 import lupa.lua51 as lupa
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from harness import lua_src  # noqa: E402  (E18-T07)
+from harness import lua_src, mission_view_files  # noqa: E402  (E18-T07, E20-T01)
 import beltradio_lib  # noqa: E402
 from signalsmoke_double import SIGNAL_SMOKE  # noqa: E402
 
@@ -280,6 +280,10 @@ class Game:
             # (panneau de relation, textes de ses actes) : chargée avec le carnet de RadioSurvivor.
             if rel == 'client/RS_Carnet_Client.lua' and self.WITH_LK:
                 self.rt.execute('require "LivingKnox/LK_NotebookPages"')
+            # E20-T01 : le jeu charge aussi chaque vue de gabarit du carnet (client/RadioSurvivor/MissionViews/).
+            if rel == 'client/RS_Carnet_Client.lua':
+                for view in mission_view_files():
+                    self.rt.execute(lua_src(view).read_text(encoding="utf-8"))
 
     def table(self, value):
         """Copie (récursive) d'une table d'une autre machine Lua, comme le réseau."""

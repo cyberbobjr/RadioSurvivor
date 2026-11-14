@@ -5,7 +5,7 @@ Authority only. Catalogue: RC_MissionConfig.Missions.clear (offer id clear_v1). 
 required by RS_Carnet_Server. Details: docs/annexes/conception/carnet-implementation-04221.md, "Gabarit nettoyer"; design choices:
 docs/annexes/conception/mission-nettoyer.md.
 
-Requester: an NPC fiche of the notebook only (a radio voice does not offer it: RS_MissionVoice.TEMPLATES).
+Requester: an NPC fiche of the notebook, or a radio voice under the name `clear` (declaration voiceName).
 Place: drawn exactly as the scout template (RC_MissionScout.pick: habitable building of the metagrid at 60-250 tiles
 of the requester's body, 60 tiles at least from any known base, nothing loaded), kept per requester for siteTtlMs in
 a memory of this file so that the offer told by the bridge and the created mission name the same building.
@@ -46,7 +46,8 @@ local function log(msg)
     print('[RadioSurvivorCore] ' .. tostring(msg))
 end
 
-local Clear = {idPrefix = 'clear', reportBySpeech = true} -- E11-T13: report in person
+-- E11-T13: report in person. E20-T01: given by a voice as `clear`, labelled IGUI_RS_MapZoneClear on the map.
+local Clear = {idPrefix = 'clear', reportBySpeech = true, voiceName = 'clear', mapStyle = 'Clear'}
 Clear.MARK = 'RS_ClearCounted'
 Clear.HIT_WINDOW_MS = 5000   -- E04-T06: a kill is attributed only to a recent hit (LivingKnox.Bodies.HIT_WINDOW_MS)
 local CHUNK = 8

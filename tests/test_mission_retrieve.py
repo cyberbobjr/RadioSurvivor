@@ -176,7 +176,7 @@ class RetrieveMissionTests(unittest.TestCase):
         donor = sim.server.rt.table_from({'id': 'voice:walt:c1', 'missionCount': 0})
         self.assertIsNone(retrieve.offer(c, donor, None, sim.server.g.PLAYERS.alice))
         voice = sim.server.rt.eval("require('RadioSurvivor/RS_MissionVoice')")
-        self.assertIsNone(voice.TEMPLATES['retrieve_id'])
+        self.assertFalse(voice.allowed('retrieve_id'))
         sim.server.g.RandomizedWorldBase = None
         self.assertNotIn('retrieve_id_v1', self.catalog(sim, npc, record))
 

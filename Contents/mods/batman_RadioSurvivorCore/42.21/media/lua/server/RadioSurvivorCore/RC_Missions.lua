@@ -65,6 +65,14 @@ Template interface (M.register(name, template)); observe and reportBySpeech are 
     reportReady(m) -> boolean                   (with reportBySpeech) the objective is met, checked by the server
                                                 (zone visited, count reached, bag deposited, signal seen): the
                                                 mission waits "to report" (E11-T13) and succeeds only by M.spoken
+Declarations read by the other modules (E20-T01, ADR D02; all optional, nothing else names a template):
+    handover = true                             the objective is a hand-over of items to the requester (notebook
+                                                Deliver button and NoRefund line, journal action "deliver")
+    voiceName = '<name>'                        a radio voice may give it under this name (sheet missions= line,
+                                                start_mission parameter, bridge); none: never given by a voice
+    mapStyle = '<Suffix>'                       suffix of the map label key IGUI_RS_MapZone<Suffix>; none: plain label
+The engine copies handover (boolean) and mapStyle into every client projection (p.handover, p.mapStyle);
+M.voiceTemplate(voiceName) -> name, template | nil and M.voiceNames() -> sorted list read voiceName.
 Report to the requester (E11-T13, user decision of 2026-10-14): the templates scout, clear, recover and signal never
 succeed by themselves. Their objective met, the mission stays 'active' and is projected with toReport = true (the
 notebook shows "to report"); it succeeds only when a participant reports to the requester: in person to the NPC
@@ -204,6 +212,26 @@ end
 
 function M.template(m)
     return templates[m.template or DEFAULT]
+end
+
+-- E20-T01: template a radio voice gives under this name (declaration voiceName), or nil.
+function M.voiceTemplate(voiceName)
+    if type(voiceName) ~= 'string' then return nil end
+    for _, name in ipairs(order) do
+        if templates[name].voiceName == voiceName then return name, templates[name] end
+    end
+    return nil
+end
+
+-- E20-T01: names under which a radio voice may give a mission, sorted.
+function M.voiceNames()
+    local names = {}
+    for _, name in ipairs(order) do
+        local voiceName = templates[name].voiceName
+        if type(voiceName) == 'string' then names[#names + 1] = voiceName end
+    end
+    table.sort(names)
+    return names
 end
 
 local function templateForOffer(offerId)
@@ -523,6 +551,9 @@ function M.projection(m, character)
     local giver = donors[kindOf(m)]
     if giver and giver.lot then p.rewardTable = giver.lot(m) end
     local t = M.template(m)
+    -- E20-T01: declarations of the template the client reads (notebook, map), never a template name.
+    p.handover = t ~= nil and t.handover == true
+    p.mapStyle = t and type(t.mapStyle) == 'string' and t.mapStyle or nil
     if t then t.project(m, p) end
     -- E11-T13: objective met, the report to the requester is still expected (templates with a report only).
     if t and (t.reportBySpeech or m.donor == 'voice') then p.toReport = M.reportReady(m) end
@@ -553,7 +584,7 @@ end
 -- transaction token: a replay is a duplicate); an engine refusal at that point removes the marker (refusal before any
 -- effect), then the items are removed. Reward lot = engine reward item at completion (none, or withdrawn by the
 -- engine: rewardCount 0), claimed by the common lot mechanism (M.claim).
-local Deliver = {idPrefix = 'delivery'}
+local Deliver = {idPrefix = 'delivery', handover = true, voiceName = 'deliver'}
 
 local SUPPLY_TITLES = {food = 'IGUI_RC_Mission_Supply_food', medical = 'IGUI_RC_Mission_Supply_medical',
     ammo = 'IGUI_RC_Mission_Supply_ammo'}

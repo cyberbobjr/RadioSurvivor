@@ -28,6 +28,7 @@ require "RadioSurvivor/RS_MapMarks"
 -- Mission donnée par une voix (E11-T08) : exécuteur start_mission enregistré au chargement ; compte rendu et contexte
 -- de la mission joints aux demandes de l'appelant à cette voix (mission=).
 local VoiceMissions = require "RadioSurvivor/RS_MissionVoice"; require "RadioSurvivor/RS_CacheAction" -- E11-T06: place_cache
+require "RadioSurvivor/RS_VoiceDelivery" -- E20-T01: registers the dead-drop set-up of a voice `deliver` mission
 -- Livre du passeur (E13-T02) : exécuteur propose_trade enregistré au chargement ; contexte joint (trade=).
 local Trade = require "RadioSurvivor/RS_Trade"; local GroupRadio = require "RadioSurvivor/RS_GroupRadio" -- E08-T06
 local Rep = require "RadioSurvivorCore/RC_Reputation" -- E04-T10: reputation of the caller in the voice request

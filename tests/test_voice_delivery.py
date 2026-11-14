@@ -109,6 +109,11 @@ STORE={save=function() SAVES=SAVES+1; return SAVE_OK end}
 STATE={}
 package.preload['RadioSurvivor/RS_Config']=function() return {VoiceDelivery={radius=3,unseenDistance=40,unseenMs=10000,maxItems=200}} end
 package.preload['RadioSurvivor/RS_State']=function() return STORE end
+-- E20-T01: the module registers its voice set-up in RS_MissionVoice (covered by test_voice_templates.py).
+SETUPS={}
+package.preload['RadioSurvivor/RS_MissionVoice']=function()
+    return {registerSetup=function(name, setup) SETUPS[name]=setup; return setup end}
+end
 '''
 
 

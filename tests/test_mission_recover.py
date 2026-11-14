@@ -211,7 +211,7 @@ class RecoverMissionTests(unittest.TestCase):
         c = sim.server.rt.eval("require('RadioSurvivor/RS_Config').Missions.recover")
         donor = sim.server.rt.table_from({'id': 'voice:walt:c1', 'missionCount': 0})
         self.assertIsNone(recover.offer(c, donor, None, sim.server.g.PLAYERS.alice))
-        self.assertIsNone(sim.server.rt.eval("require('RadioSurvivor/RS_MissionVoice')").TEMPLATES['recover'])
+        self.assertFalse(sim.server.rt.eval("require('RadioSurvivor/RS_MissionVoice')").allowed('recover'))
         sim.server.g.RECOVER.home = sim.server.rt.table_from({'away': False})
         self.assertNotIn('recover_v1', self.catalog(sim, npc, record))
         sim.server.g.RECOVER.home = None

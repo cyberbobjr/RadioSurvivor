@@ -27,9 +27,6 @@ local Journal = {}
 Journal.MODULE = "RadioSurvivorCore"
 Journal.LIMIT = { 4, 1 }   -- token bucket of "missions" per account (RC_RateLimit, MP server only)
 
--- Templates whose objective is a hand-over of items to the requester (window of the notebook).
-Journal.HANDOVER = { deliver = true, retrieve_id = true }
-
 local seq = 0
 local function token(kind)
     seq = seq + 1
@@ -50,7 +47,9 @@ function Journal.act(player, character, args)
     if not giver or not giver.near then return false, "State" end
     if not giver.near(m, player) then return false, "Range" end
     if args.action == "deliver" then
-        if m.state ~= "active" or not Journal.HANDOVER[m.template or "deliver"] then return false, "State" end
+        -- E20-T01: only a template that declares a hand-over of items to the requester (RC_Missions, handover).
+        local t = M.template(m)
+        if m.state ~= "active" or not (t and t.handover) then return false, "State" end
         return M.deliver(store, m, player, character, args.items, token("deliver"))
     elseif args.action == "claim" then
         return M.claim(store, m, player, character, token("claim"))

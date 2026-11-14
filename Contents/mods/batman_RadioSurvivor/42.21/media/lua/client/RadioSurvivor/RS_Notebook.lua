@@ -20,6 +20,7 @@ local History = require 'RadioSurvivor/RS_RadioHistory'
 -- "Say" line of the Radio tab (E06-T06): same send path, checks and delay as the radio window module.
 local Talk = require 'RadioSurvivor/RS_RadioTalk'
 local MissionList = require 'RadioSurvivorCore/RC_MissionList' -- E18-T06: state shown, as in the core mod
+local Views = require 'RadioSurvivor/RS_MissionViews' -- E20-T01: lines of each mission template
 
 local RS_MOD = 'batman_RadioSurvivor'
 local COLOR, INK_TAG, DOT = UI.COLOR, UI.INK_TAG, UI.DOT
@@ -481,14 +482,11 @@ local function missionDetail(self, row, line)
     line(getText(row.titleKey)); line(tr('Requester', row.requester))
     -- E11-T13: objective met, the report to the requester is expected (in person, or on the voice's frequency).
     line(tr('State_' .. MissionList.stateKey(row)))
-    local scout = row.template == 'scout' -- E11-T03: reach a place, then report in person
-    local retrieve = row.template == 'retrieve_id' -- E11-T05: bring back the ID card of a body
-    local clear = row.template == 'clear' -- E11-T04: kill zombies inside the circle drawn on the map
-    local recover = row.template == 'recover' -- E11-T06: carry the cache bag to the depot of the group
-    local signal = row.template == 'signal' -- E11-T07: light a signal of a colour in the circle, at an hour
     -- E11-T08: mission given by a radio voice: no body to join, report on its frequency, information as reward.
     local voice = row.donor == 'voice'
-    if scout or retrieve or clear or recover or signal then
+    -- E20-T01: lines proper to the template come from its view (RS_MissionViews, one file per template).
+    local view = Views.get(row.template)
+    if view and view.showsPlace then
         if row.placeKind and row.placeKind ~= '' then line(tr('ScoutPlace', placeName(row.placeKind))) end
         -- E11-T09: clues of the place, translated here (the server sends keys and codes only).
         local clues = {}
@@ -501,61 +499,8 @@ local function missionDetail(self, row, line)
             for _, said in ipairs(clues) do line('- ' .. said) end
         end
     end
-    if recover then
-        if row.mapZone and not row.found then line(tr('RecoverMapZone')) end
-        if row.cache and row.cache ~= '' then line(tr('RecoverCache', getText('IGUI_RS_Cache_' .. row.cache))) end
-        line(row.found and tr('RecoverFound', row.foundBy) or tr('RecoverNotFound'))
-        if row.depotZone then line(tr('RecoverDepotZone')) end
-        line(tr('RecoverReport'))
-    elseif signal then
-        if row.mapZone then line(tr('SignalMapZone')) end
-        line(tr('SignalColor', getText('IGUI_RS_SignalColor_' .. tostring(row.color))))
-        line(tr('SignalHour', row.hour, (row.hour + row.windowHours) % 24))
-        line(row.lit and tr('SignalLit', row.litBy) or tr('SignalNotLit'))
-        line(tr('SignalRule')); line(tr('SignalReport'))
-    elseif clear then
-        if row.mapZone then line(tr('ClearMapZone')) end
-        line(tr('ClearProgress', row.kills, row.target))
-        for _, part in ipairs(type(row.tally) == 'table' and row.tally or {}) do
-            line('- ' .. tr('ClearBy', part.name, part.count))
-        end
-        line(tr('ClearRule')); line(tr('ClearReport'))
-    elseif retrieve then
-        if row.mapZone and not row.found then line(tr('RetrieveMapZone')) end
-        if row.person and row.person ~= '' then line(tr('RetrievePerson', row.person)) end
-        line(row.found and tr('RetrieveFound', row.foundBy) or tr('RetrieveNotFound'))
-        line(tr('RetrieveReport'))
-    elseif scout then
-        -- E11-T10: approximate area drawn on the world map (missions created since).
-        if row.mapZone and not row.zoneReached then line(tr('ScoutMapZone')) end
-        if voice then
-            line(row.zoneReached and tr('ScoutReachedRadio', row.reachedBy) or tr('ScoutNotReached'))
-            line(tr('ScoutReportRadio'))
-        else
-            line(row.zoneReached and tr('ScoutReached', row.reachedBy) or tr('ScoutNotReached')); line(tr('ScoutReport'))
-        end
-    elseif row.unit == 'value' then
-        -- E17-T03: supply offer of a Living Knox group, counted in value points (one item = its value).
-        line(tr('SupplyProgress', row.delivered, row.quantity))
-        local accepted = {}
-        for fullType in pairs(row.accepted) do
-            accepted[#accepted + 1] = itemName(fullType) .. ' (' .. tostring((row.values or {})[fullType] or 0) .. ')'
-        end
-        table.sort(accepted)
-        line(tr('AcceptedItems', table.concat(accepted, ', ')))
-        line(tr('SupplyValues'))
-    else
-        line(tr('Progress', row.delivered, row.quantity))
-        if voice then
-            if not row.depositReady then line(tr('DeadDropApproach')) end
-            line(tr(row.depositMode == 'bag' and 'DeadDropBag' or 'DeadDropBox'))
-            line(tr(row.depositCollected and 'DeadDropCollected' or 'DeadDropLeave'))
-        end
-        local accepted = {}
-        for fullType in pairs(row.accepted) do accepted[#accepted + 1] = itemName(fullType) end
-        table.sort(accepted)
-        line(tr('AcceptedItems', table.concat(accepted, ', ')))
-        line(tr('OneUnit'))
+    if view then
+        view.detail(row, line, {tr = tr, placeName = placeName, clueText = clueText, itemName = itemName, voice = voice})
     end
     line(tr('Time', math.ceil(row.remainingMs / 60000)))
     if row.rewardCount > 0 then line(tr('Reward', row.rewardCount, itemName(row.rewardType)))
@@ -564,14 +509,14 @@ local function missionDetail(self, row, line)
     line(tr('Participants', table.concat(row.participants, ', ')))
     if row.toReport then line(row.donor == 'voice' and tr('ReportRadio', row.requester)
         or tr('ReportInPerson', row.requester)) end
-    if not scout and not clear and not recover and not signal then line(tr('NoRefund')) end
+    -- E20-T01: a hand-over of items (template declaration handover, projected by the engine).
+    if row.handover then line(tr('NoRefund')) end
     if row.claimedName ~= '' then line(tr('ClaimedBy', row.claimedName)) end
     if row.recovery then line(tr('Error_Recovery')) end
     if not row.near and not voice then line(tr('JoinRequester')) end
     self.accept:setVisible(row.invited and not row.engaged and (row.state == 'offer' or row.state == 'active'))
     enable(self.accept, not row.recovery)
-    self.deliver:setVisible(row.engaged and row.state == 'active' and not scout and not clear and not recover
-        and not signal)
+    self.deliver:setVisible(row.engaged and row.state == 'active' and row.handover == true)
     enable(self.deliver, row.near and not row.recovery)
     self.report:setVisible(row.engaged and row.state == 'active' and row.toReport == true and not voice)
     enable(self.report, row.near and not row.recovery)

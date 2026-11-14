@@ -199,29 +199,27 @@ local function wantedZones(missions)
         local z = type(p) == "table" and p.mapZone or nil
         if type(z) == "table" and p.state == "active" and p.engaged and type(z.x) == "number"
                 and type(z.y) == "number" and type(z.r) == "number" and z.r > 0 then
+            -- E20-T01: label style declared by the template (RC_Missions, mapStyle), projected by the engine.
             out[#out + 1] = { id = tostring(p.id), x = z.x, y = z.y, r = z.r, requester = p.requester,
-                search = p.template == "retrieve_id", clear = p.template == "clear", cache = p.template == "recover",
-                signal = p.template == "signal" }
+                style = type(p.mapStyle) == "string" and p.mapStyle or nil }
         end
         -- E11-T06: depot circle of a recover mission (same conditions), drawn next to its search area.
         local d = type(p) == "table" and p.depotZone or nil
         if type(d) == "table" and p.state == "active" and p.engaged and type(d.x) == "number"
                 and type(d.y) == "number" and type(d.r) == "number" and d.r > 0 then
             out[#out + 1] = { id = tostring(p.id) .. ":depot", x = d.x, y = d.y, r = d.r, requester = p.requester,
-                depot = true }
+                style = "Depot" }
         end
     end
     return out
 end
 
--- E11-T05: a retrieve_id mission (search for a body) has its own label, E11-T04 a clear mission (counting circle) too,
--- E11-T06 a recover mission (cache area and depot circle), E11-T07 a signal mission; the symbols are matched by position
--- only.
+-- Label of a zone: IGUI_RS_MapZone followed by the style the template declares (E20-T01: Search for retrieve_id,
+-- Clear, Cache for recover, Signal) or Depot for the depot circle of recover; none: the plain label. The symbols are
+-- matched by position only.
 local function zoneLabel(z)
     local name = cleanLabel(z.requester)
-    local key = z.search and "IGUI_RS_MapZoneSearch" or (z.clear and "IGUI_RS_MapZoneClear")
-        or (z.cache and "IGUI_RS_MapZoneCache") or (z.depot and "IGUI_RS_MapZoneDepot")
-        or (z.signal and "IGUI_RS_MapZoneSignal") or "IGUI_RS_MapZone"
+    local key = "IGUI_RS_MapZone" .. (z.style or "")
     if name == "" then return cleanLabel(getText(key .. "Anon")) end
     return cleanLabel(getText(key, name))
 end
