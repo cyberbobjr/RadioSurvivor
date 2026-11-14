@@ -1,4 +1,4 @@
-"""Recalcule les colonnes « Solo » et « MP » des tableaux de docs/annexes/maquettes/fonctionnalites.html depuis le plan (docs/annexes/plans).
+"""Recalcule les colonnes « Solo » et « MP » des tableaux de docs/annexes/maquettes/fonctionnalites.html depuis le plan (docs/annexes/plans et plans-termines).
 
 Chaque ligne de tableau porte ses étapes dans <span class="step">E00, E03</span>. Pour l'ensemble de ces étapes
 (tâches abandonnées exclues) :
@@ -26,6 +26,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 PAGE = ROOT / "docs" / "annexes" / "maquettes" / "fonctionnalites.html"
 PLAN = ROOT / "docs" / "annexes" / "plans"
+DONE = ROOT / "docs" / "annexes" / "plans-termines"   # finished steps, moved there by plan.py suivi
 
 TASK = re.compile(r"^- \[([ x])\] \*\*(([A-Z]+[0-9]+)-T[0-9]+)\*\*(.*?)(?=^- \[[ x]\] \*\*|^#|\Z)", re.S | re.M)
 ROW = re.compile(r'(<tr><td>[^<]*<br><span class="step">)([^<]+)(</span></td><td>(?:(?!</td>).)*</td>)(.*?)(</tr>)',
@@ -39,7 +40,7 @@ OPEN = ("à faire", "à décider", "en cours", "bloqué", "codé")
 def stages():
     out = {}
     # Step files only (E00-…, LK00-…), as plan.py: drafts such as proposition-*.md hold copies of tasks.
-    for p in PLAN.glob("*.md"):
+    for p in [*PLAN.glob("*.md"), *DONE.glob("*.md")]:
         if not re.match(r"[A-Z]+[0-9]+-", p.name):
             continue
         for m in TASK.finditer(p.read_text(encoding="utf-8")):
