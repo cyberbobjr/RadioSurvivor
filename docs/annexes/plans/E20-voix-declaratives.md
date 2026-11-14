@@ -51,6 +51,11 @@ chaque tâche avant son code.
   de son choix (ADR D06, précision).
 - 2026-11-14 — **E20** (utilisateur) : Darlene a quitté sa clinique et veut y revenir une fois les lieux sûrs ; ses
   missions préparent ce retour, point d'accroche pour Living Knox (ADR D09).
+- 2026-11-14 — **E20** (utilisateur) : le wiki suit le code. Toute tâche qui change ce qu'on écrit dans une fiche
+  (sections, récompenses, planques, troc, enchaînements, nouveau type) ou ce que vit le joueur (remise, ramassage,
+  marchands) met à jour dans le même commit les pages concernées de `docs/wiki/fr/` et `docs/wiki/en/`
+  (`10-creer-une-voix-radio.md` / `10-creating-radio-voices.md`, `03-utilisation.md` / `03-usage.md`, FAQ), et le
+  dit dans sa preuve.
 
 ## Hors périmètre
 
@@ -83,9 +88,9 @@ chaque tâche avant son code.
   - État : `à faire`
   - Cible : `hors jeu`
   - Dépend de : E20-T02
-  - Fichiers : `RS_Persona.lua` (sections) ; `RS_Personas.lua` (empreintes `KNOWN_DELIVERED`) ; `personas/*.txt` (six fiches réécrites) ; `personas/_categories.txt` (catalogue livré) ; `docs/specifications-techniques/persona-format.md`
+  - Fichiers : `RS_Persona.lua` (sections) ; `RS_Personas.lua` (empreintes `KNOWN_DELIVERED`) ; `personas/*.txt` (six fiches réécrites) ; `personas/_categories.txt` (catalogue livré) ; `docs/specifications-techniques/persona-format.md` ; `docs/wiki/fr/10-creer-une-voix-radio.md` et `docs/wiki/en/10-creating-radio-voices.md` (exemples de fiche réécrits)
   - Faire : ADR D01, D04, D11. Sections `[place <id>]` (`at`, `label`, `use` parmi `mark`, `target`, `drop`, `landing`), `[mission <id>]` (`type`, paramètres validés par le schéma déclaré du gabarit, `weight`, `after`, `story`, `drops`), `[rewards]` (`pool` pondéré), `[category <id>]` (objets et fourchettes de quantités). Une fiche ne cite que des types inscrits et des lieux qu'elle déclare ; erreur de fiche = ligne et raison journalisées, fiche refusée. Les six fiches passent au format sans changer ce que propose chaque voix aujourd'hui. Pas de lecture de l'ancien format.
-  - Accepté si : bancs d'analyse (sections valides, type inconnu, lieu absent, `drops` vers un lieu sans `use=drop`, catégorie inconnue, poids invalides) ; un faux type inscrit par le test accepte ses propres paramètres sans modifier l'analyseur ; les six fiches livrées se chargent ; `persona-format.md` réécrit.
+  - Accepté si : bancs d'analyse (sections valides, type inconnu, lieu absent, `drops` vers un lieu sans `use=drop`, catégorie inconnue, poids invalides) ; un faux type inscrit par le test accepte ses propres paramètres sans modifier l'analyseur ; les six fiches livrées se chargent ; `persona-format.md` réécrit ; pages 10 du wiki FR et EN réécrites, leurs exemples de fiche se chargent tels quels.
   - Tests : `tests/test_persona*.py`, `tests/run_all.py`.
   - Preuve : —
   - Reste : —
