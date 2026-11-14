@@ -97,7 +97,7 @@ class ListingTests(unittest.TestCase):
         lua = autoclient.CAMPAIGN_FILE.read_text(encoding='utf-8')
         bases = autoclient.campaign_suites(lua, 'mp-persist')
         for base in ('rs.identity', 'lk.homes', 'lk.leave', 'rs.mission.recover', 'rs.rescue.missed', 'lk.walls',
-                     'rs.radiotab', 'rs.actions.map', 'rst.disconnect', 'lk.rejoin'):
+                     'rs.radiotab', 'rs.actions.map', 'rs.state', 'rst.disconnect', 'lk.rejoin'):
             self.assertIn(base, bases)
         self.assertEqual(bases[-1], 'lk.rejoin')   # its before step moves the requester away: last of step 0
         declared = autoclient.declared_suite_names(autoclient.CAMPAIGN_FILE.parents[2])
@@ -114,7 +114,7 @@ class ListingTests(unittest.TestCase):
         self.assertEqual(sorted(steps[3][0]), sorted(['rs.identity.after-restart', 'lk.homes.after-restart',
                                                       'lk.leave.after-restart', 'rs.mission.recover.after-restart',
                                                       'rs.rescue.missed.after-restart', 'lk.walls.after-restart',
-                                                      'rs.reputation.after-restart']))
+                                                      'rs.reputation.after-restart', 'rs.state.after-restart']))
         self.assertFalse(autoclient.needs_bridge(None, [n for st in steps for r in st for n in r]))
 
 

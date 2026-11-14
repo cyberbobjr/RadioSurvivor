@@ -3,7 +3,7 @@
 Les fréquences des voix sont tirées au hasard à chaque partie (E05-T07) et ne sont jamais envoyées aux clients
 (E05-T08). Les joueurs les découvrent par des **notes** : des documents lisibles trouvés dans le butin, qui portent la
 fréquence de la partie en cours. Build 42.21 ; décision de l'utilisateur du 2026-10-09
-(`docs/annexes/plans/E05-voix-reseau-radio.md`, Décisions).
+(`docs/annexes/plans-termines/E05-voix-reseau-radio.md`, Décisions).
 
 ## Les cinq notes
 

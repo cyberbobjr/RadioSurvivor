@@ -68,7 +68,7 @@ RST.CAMPAIGNS["solo-rs"] = {
     "rst.guard",        -- E01-T06
     "rs.env",           -- E01-T08
     "rs.codec",         -- E01-T08
-    "rs.missions",      -- E01-T08, E00-T03, E00-T10, E11-T11 (prefix: radio, scout, solo, voicetemplates)
+    "rs.missions",      -- E01-T08, E00-T03, E00-T10, E11-T11, E11-T20 (prefix: radio, scout, solo, voicetemplates, clock)
     "rs.mission.signal.client", -- E11-T07 (requester notebook and map: accept, circle, hours, report, claim)
     "rs.comfort",       -- E05-T15 (gauges and halo of the local player)
     "rs.memorial",      -- E14-T04 (animal death kept out, bulletin announces the names)
@@ -278,6 +278,7 @@ RST.CAMPAIGNS["mp-persist"] = {
     "rs.actions.map",     -- E07-T04: map mark of the requester kept after its reconnection (reconnect)
     "rst.disconnect",     -- E01-T05: client 2 leaves (reconnect2) during the run it asked; report kept, not busy
     "rs.reputation",      -- E04-T14: score and facts kept by a restart, no duplicate
+    "rs.state",           -- E16-T08: notebook state purged after game weeks, kept records and file valid after a restart
     "lk.rejoin",          -- LK03-T01: the executor rejoins (reconnect2); LAST: its before step moves the requester away
 }
 
