@@ -2,7 +2,7 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 5 / 6 tâche(s) terminée(s).
+**Avancement.** terminée — 6 / 6 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
@@ -11,7 +11,7 @@
 | ☑ | LK14-T03 | Barricader portes et fenêtres | `testé MP` | MP | LK14-T02, LK08-T06 |
 | ☑ | LK14-T04 | Défenses plus lourdes | `testé MP` | MP | LK14-T03 |
 | ☑ | LK14-T05 | Rattrapage hors écran de la fortification | `testé MP` | MP | LK14-T03, LK09-T06 |
-| ☐ | LK14-T06 | Entretien et réparation après une attaque | `testé solo` | MP | LK14-T03, LK05-T09 |
+| ☑ | LK14-T06 | Entretien et réparation après une attaque | `testé MP` | MP | LK14-T03, LK05-T09 |
 
 <!-- fin du tableau de bord -->
 
@@ -92,13 +92,13 @@
   - Preuve : banc `tests/test_lk_fortify_offscreen.py` du 2026-10-12 (12 tests OK : relevé du plan au registre, chantiers avancés hors écran selon les bâtisseurs et les matériaux pris une seule fois par le journal d'écarts du stock, pose à l'arrivée par les fonctions existantes avant tout chantier, marque `LKFortOp` idempotente (sur l'ouverture, la ModData d'une barricade n'étant pas sauvegardée), application interrompue reprise sans double, serveur + 2 clients) ; bancs voisins OK ; luacheck des fichiers de la tâche sans nouvel avertissement ; conception `fortification.md` §10 ; campagne MP automatique du 2026-10-14 (E01-T15, serveur dédié + 2 clients, client 2 seulement présent) : lk.fortify_offscreen PASS (`tools/autoclient/runs/20261014-144930-mp-045a8627ec16/server/20261014-125125-server.txt`) ; campagne MP automatique du 2026-10-14 soir (règle « les tests font foi ») : lk.fortify_offscreen 1/1 (`tools/autoclient/runs/20261014-184508-mp-1b6224aba9e1/server/20261014-164709-server.txt`)
   - Reste : Suite qui appelle l'heure hors écran directement ; planches posées neuves ; relevé en retard d'une minute possible ; boîtes de clous en attente non comptées ; pas de réparation hors écran ; écart impossible abandonné sans remboursement.
 
-- [ ] **LK14-T06** — Entretien et réparation après une attaque
-  - État : `testé solo`
+- [x] **LK14-T06** — Entretien et réparation après une attaque
+  - État : `testé MP`
   - Cible : `MP`
   - Dépend de : LK14-T03, LK05-T09
   - Fichiers : `LK_Fortify.lua`
   - Faire : les barricades endommagées par les zombies ou les joueurs sont repérées et réparées en priorité après une attaque, avec les matériaux du stock ; à défaut, un besoin de matériaux remonte au groupe.
   - Accepté si : réparation visible et synchronisée ; besoin de matériaux créé si le stock manque.
   - Tests : suite en jeu.
-  - Preuve : banc `tests/test_lk_repair.py` du 2026-10-12 (13 tests OK : usure des barricades (`getThumpCondition`) et santé des murs relevées, chantiers `repair` en tête pendant un jour après `Defense.after`, planche abîmée remplacée avec un seul `sendObjectChange`, mur et palissade réparés selon les recettes vanilla `Wood`/`Log`, matériaux retirés une seule fois, manque journalisé et lisible par `Fortify.needOf`) ; `lk_fortify` 15, `lk_barricade` 12, `lk_walls` 10 OK ; run_all 73/73 ; luacheck 16/0 ; conception `fortification.md` §9 ; campagne MP automatique du 2026-10-15 (copie figée du commit `54087fb`, serveur dédié + 2 clients, pont avec faux modèle) : lk.repair 1/1 (`tools/autoclient/runs/20261015-110446-parallel-2-54087fb0f84f/shard1/server/20261015-090647-server.txt`) ; santé du mur après reconnexion et redémarrage : lk.walls.after-reconnect et .after-restart PASS dans la campagne `mp-persist` du 2026-10-15 (copie figée du commit `54087fb`, reconnexions et redémarrage réels, toutes étapes vertes) (`tools/autoclient/runs/20261015-113252-run-54087fb0f84f/run/server/20261015-093730-server.txt`, `tools/autoclient/runs/20261015-113252-run-54087fb0f84f/run/server/20261015-093940-server.txt`) ; campagne solo-lk (`tools/autoclient/runs/20261015-135627-parallel-2-c6a500a78137`) : lk.repair « builder repairs a damaged barricade after an attack » PASS
-  - Reste : MP : même planche chez deux clients (aucune étape client) ; barricades de métal non réparées ; pas de son
+  - Preuve : banc `tests/test_lk_repair.py` du 2026-10-12 (13 tests OK : usure des barricades (`getThumpCondition`) et santé des murs relevées, chantiers `repair` en tête pendant un jour après `Defense.after`, planche abîmée remplacée avec un seul `sendObjectChange`, mur et palissade réparés selon les recettes vanilla `Wood`/`Log`, matériaux retirés une seule fois, manque journalisé et lisible par `Fortify.needOf`) ; `lk_fortify` 15, `lk_barricade` 12, `lk_walls` 10 OK ; run_all 73/73 ; luacheck 16/0 ; conception `fortification.md` §9 ; campagne MP automatique du 2026-10-15 (copie figée du commit `54087fb`, serveur dédié + 2 clients, pont avec faux modèle) : lk.repair 1/1 (`tools/autoclient/runs/20261015-110446-parallel-2-54087fb0f84f/shard1/server/20261015-090647-server.txt`) ; santé du mur après reconnexion et redémarrage : lk.walls.after-reconnect et .after-restart PASS dans la campagne `mp-persist` du 2026-10-15 (copie figée du commit `54087fb`, reconnexions et redémarrage réels, toutes étapes vertes) (`tools/autoclient/runs/20261015-113252-run-54087fb0f84f/run/server/20261015-093730-server.txt`, `tools/autoclient/runs/20261015-113252-run-54087fb0f84f/run/server/20261015-093940-server.txt`) ; campagne solo-lk (`tools/autoclient/runs/20261015-135627-parallel-2-c6a500a78137`) : lk.repair « builder repairs a damaged barricade after an attack » PASS ; passage MP du 2026-11-15 (serveur dédié + 2 clients, commit `9162e24`, `python RadioSurvivor/tools/autoclient/autoclient.py --mp --clients 2 --server-suite lk.repair,lk.garden --server-tags world --llm fake --timeout 2400 --wait-idle 3600`) : code 0, `RST-RESULT ok=true total=2 pass=2 fail=0` (`tools/autoclient/runs/20261115-001701-mp-1365d09b7f2e`) ; lk.repair PASS (fenêtre 10663,10136 : 4 planches, planche extérieure de 0,30 à 1,00) puis `world.keys` vert chez rs_mp1 et rs_mp2 : mêmes planches et même santé de barricade que le serveur (genre `barricadeHealth` de `RST_PeerChecks.lua`, banc `test_peer_checks2.py` 19 OK)
+  - Reste : barricades de métal non réparées ; pas de son

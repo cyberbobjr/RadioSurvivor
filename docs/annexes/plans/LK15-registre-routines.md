@@ -2,15 +2,15 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 4 / 7 tâche(s) terminée(s).
+**Avancement.** en cours — 6 / 7 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
 | ☑ | LK15-T01 | Moteur des tâches du foyer et registre `registerJob` | `testé hors jeu` | hors jeu | — |
 | ☑ | LK15-T02 | Registre des activités et une routine par fichier | `testé hors jeu` | hors jeu | LK15-T01 |
 | ☐ | LK15-T03 | Découpage vérifié en jeu | `à faire` | MP | LK15-T02 |
-| ☐ | LK15-T04 | Creuser un sillon (`LK_Job_Dig`) | `testé hors jeu` | MP | LK15-T03 |
-| ☐ | LK15-T05 | Semer (`LK_Job_Sow`) | `testé hors jeu` | MP | LK15-T04 |
+| ☑ | LK15-T04 | Creuser un sillon (`LK_Job_Dig`) | `testé MP` | MP | LK15-T03 |
+| ☑ | LK15-T05 | Semer (`LK_Job_Sow`) | `testé MP` | MP | LK15-T04 |
 | ☑ | LK15-T06 | Graines reçues par le jardinier | `testé MP` | MP | LK15-T05 |
 | ☑ | LK15-T07 | Potager en bord de zone : l'entretien du foyer n'est plus bloqué | `testé MP` | MP | LK15-T04 |
 
@@ -68,26 +68,26 @@ LK05-T21 (préférence du jardinier, remplacée par `prefer`).
   - Tests : campagnes en jeu.
   - Preuve : `lk.meals` et `lk.routines` verts en MP ; `lk.meals` vert en solo deux mods et Living Knox seul ; campagnes du 2026-11-13 au soir et du 2026-11-14 (dossier de travail, commits `8b439ee` à `a7ddc94`) : MP 3 tranches `tools/autoclient/runs/20261113-233636-parallel-3` 510/534, 3 FAIL (`lk.alert` garde, `lk.forage` arrosage, `rs.npctalk` délai : corrigés par `19ac890`, `44b200a`, `f9c8d8f`) ; solo deux mods `20261113-235754-parallel-2` 245/257, 3 FAIL (`lk.forage` : lancé avant `44b200a` ; `lk.upkeep` : corrigé par `a7ddc94` ; `lk.debugview` : ouvert, registre des écarts) ; Living Knox seul `20261114-001702-parallel-2` 105/114, 0 FAIL ; `mp-ambient` `20261114-003116-mp-cf36126965e3` 23/24, 0 FAIL ; campagne MP de contrôle sur `a7ddc94` arrêtée par Claude Code (mémoire de la machine basse), non relancée
   - Reste : campagnes partielles du 2026-11-13 après-midi, lancées depuis le dossier de travail (la copie figée d'un commit échoue tant que l'abandon de CharacterReputation de l'autre session n'est pas commité : `batman_CharacterReputation` encore dans la liste des mods du lanceur commité ; c'est aussi la cause du « code 2, total=0 » de la campagne solo deux mods du matin) : MP sur `157c4a0` (`runs/20261113-150840-parallel-3`) code 1, `total=533 pass=509 fail=3` : `lk.upkeep` (tâches du potager avant le verre et le sang, corrigé par `73247c8`), `lk.alert` (cri sans auditeur chez le second client, intermittent connu : 2 échecs sur 9 avant) et `lk.traversal` « destination behind a locked door elsewhere » (intermittent connu : 4 sur 34) ; `mp-ambient` code 0, `total=24 pass=23 fail=0` (`runs/20261113-153040-mp-a41ca303d196`) ; solo deux mods interrompue (jeu rendu à l'utilisateur) ; à refaire sur le dernier commit : solo deux mods, solo Living Knox seul, MP
-- [ ] **LK15-T04** — Creuser un sillon (`LK_Job_Dig`)
-  - État : `testé hors jeu`
+- [x] **LK15-T04** — Creuser un sillon (`LK_Job_Dig`)
+  - État : `testé MP`
   - Cible : `MP`
   - Dépend de : LK15-T03
   - Fichiers : `server/LivingKnox/Jobs/LK_Job_Dig.lua` ; `LK_Garden.lua` ; banc nouveau ; suite en jeu `lk.garden`
   - Faire : ADR D07, Q01 : case de terre libre, dehors, au rez-de-chaussée, dans la zone du foyer, au plus `MAX_PLOTS` sillons par foyer ; outil `DIG_PLOW` du stock sinon mains nues (durée doublée) ; effet `SFarmingSystem.instance:plow`, herbes hautes retirées d'abord.
   - Accepté si : au banc, sillon créé une fois, plafond respecté, case refusée hors conditions ; en jeu, le sillon apparaît chez les deux clients.
   - Tests : banc ; suite `lk.garden` (campagnes solo et MP).
-  - Preuve : 2026-11-13 : `Jobs/LK_Job_Dig.lua` (`dig`, ordre 46, `prefer = "garden"`) ; domaine dans `LK_Garden.lua` (`canDig`, `plots`, `digSpot`, `digTool`, `dig`, `MAX_PLOTS` 6) : conditions du menu vanilla, hors du bâtiment et à l'air libre, un seul sillon vide à la fois, outil `DIG_PLOW` du stock gardé, mains nues deux fois plus long ; champ générique facultatif `duration(job, gid)` ajouté au registre `Upkeep.registerJob` (aucun nom de tâche dans le moteur) ; banc `DigTests` rouge puis vert ; `python tests/test_lk_garden.py` : `Ran 20 tests … OK` ; `test_lk_upkeep.py` 24 OK, `test_lk_food.py` 32 OK, `test_autoclient.py` 93 OK ; `python tests/run_all.py` : `162 passed, 0 failed` ; luacheck `Contents` 8 (inchangé), `dev` 0
-  - Reste : campagnes solo et MP (suite `lk.garden` écrite, inscrite dans `solo-lk` et `mp`, jouée sur les doublures) ; à vérifier en jeu : `ISShovelGroundCursor.GetDirtGravelSand` chargé sur un serveur dédié (sinon aucun sillon, sans erreur), sillon vu par les deux clients ; `PlaceDirtAboveground` non suivi ; la première case de terre de la zone est prise (emplacement à juger en jeu)
-- [ ] **LK15-T05** — Semer (`LK_Job_Sow`)
-  - État : `testé hors jeu`
+  - Preuve : 2026-11-13 : `Jobs/LK_Job_Dig.lua` (`dig`, ordre 46, `prefer = "garden"`) ; domaine dans `LK_Garden.lua` (`canDig`, `plots`, `digSpot`, `digTool`, `dig`, `MAX_PLOTS` 6) : conditions du menu vanilla, hors du bâtiment et à l'air libre, un seul sillon vide à la fois, outil `DIG_PLOW` du stock gardé, mains nues deux fois plus long ; champ générique facultatif `duration(job, gid)` ajouté au registre `Upkeep.registerJob` (aucun nom de tâche dans le moteur) ; banc `DigTests` rouge puis vert ; `python tests/test_lk_garden.py` : `Ran 20 tests … OK` ; `test_lk_upkeep.py` 24 OK, `test_lk_food.py` 32 OK, `test_autoclient.py` 93 OK ; `python tests/run_all.py` : `162 passed, 0 failed` ; luacheck `Contents` 8 (inchangé), `dev` 0 ; passage MP du 2026-11-15 (serveur dédié + 2 clients, commit `9162e24`, `python RadioSurvivor/tools/autoclient/autoclient.py --mp --clients 2 --server-suite lk.repair,lk.garden --server-tags world --llm fake --timeout 2400 --wait-idle 3600`) : code 0, `RST-RESULT ok=true total=2 pass=2 fail=0` (`tools/autoclient/runs/20261115-001701-mp-1365d09b7f2e`) ; lk.garden PASS (1 sachet de 5 graines de carotte, 1 sillon creusé, 1 graine semée) puis `world.keys` vert chez rs_mp1 et rs_mp2 : même plante (sprite, graine, état) que le serveur (genre `plant`) ; le sillon est donc créé sur un serveur dédié
+  - Reste : `PlaceDirtAboveground` non suivi ; la première case de terre de la zone est prise (emplacement à juger en jeu)
+- [x] **LK15-T05** — Semer (`LK_Job_Sow`)
+  - État : `testé MP`
   - Cible : `MP`
   - Dépend de : LK15-T04
   - Fichiers : `server/LivingKnox/Jobs/LK_Job_Sow.lua` ; `LK_Garden.lua` ; banc ; suite `lk.garden`
   - Faire : ADR D07 : sillon vide, graine du stock dont le mois est dans `sowMonth`, effet `plant:seed(type, 0)`, graine retirée du conteneur et de la référence du stock dans la même écriture.
   - Accepté si : au banc, une graine en moins, une plante semée, rien hors saison ; en jeu, la plante semée est vue par les deux clients, puis arrosée par la tâche existante.
   - Tests : banc ; suite `lk.garden`.
-  - Preuve : 2026-11-13 : `Jobs/LK_Job_Sow.lua` (`sow`, ordre 44, `prefer = "garden"`) ; `LK_Garden.lua` (`month`, `inSeason`, `sowable`, `seedCount`, `findSeed`, `takeSeed`) : sillon vide, graine de saison (`sowMonth`), jamais un objet de nourriture, une graine retirée par `Stock.takeItem` puis `plant:seed(type, 0)`, saison relue à l'effet ; banc `SowTests` rouge puis vert ; `python tests/test_lk_garden.py` : `Ran 20 tests … OK` ; `test_lk_upkeep.py` 24 OK, `test_lk_food.py` 32 OK, `test_autoclient.py` 93 OK ; `python tests/run_all.py` : `162 passed, 0 failed` ; luacheck `Contents` 8 (inchangé), `dev` 0
-  - Reste : campagnes solo et MP (`lk.garden`) : plante semée vue par les deux clients, puis arrosée ; le groupe sème aussi dans un sillon vide d'un joueur situé dans sa zone
+  - Preuve : 2026-11-13 : `Jobs/LK_Job_Sow.lua` (`sow`, ordre 44, `prefer = "garden"`) ; `LK_Garden.lua` (`month`, `inSeason`, `sowable`, `seedCount`, `findSeed`, `takeSeed`) : sillon vide, graine de saison (`sowMonth`), jamais un objet de nourriture, une graine retirée par `Stock.takeItem` puis `plant:seed(type, 0)`, saison relue à l'effet ; banc `SowTests` rouge puis vert ; `python tests/test_lk_garden.py` : `Ran 20 tests … OK` ; `test_lk_upkeep.py` 24 OK, `test_lk_food.py` 32 OK, `test_autoclient.py` 93 OK ; `python tests/run_all.py` : `162 passed, 0 failed` ; luacheck `Contents` 8 (inchangé), `dev` 0 ; passage MP du 2026-11-15 (serveur dédié + 2 clients, commit `9162e24`, `python RadioSurvivor/tools/autoclient/autoclient.py --mp --clients 2 --server-suite lk.repair,lk.garden --server-tags world --llm fake --timeout 2400 --wait-idle 3600`) : code 0, `RST-RESULT ok=true total=2 pass=2 fail=0` (`tools/autoclient/runs/20261115-001701-mp-1365d09b7f2e`) ; lk.garden PASS : la plante semée est vue à l'identique par les deux clients (`world.keys`) ; arrosage par la tâche existante vert dans la campagne MP du 2026-11-14 (lk.forage « a thirsty plant of the home is watered from the stock »)
+  - Reste : le groupe sème aussi dans un sillon vide d'un joueur situé dans sa zone (laissé ainsi)
 - [x] **LK15-T06** — Graines reçues par le jardinier
   - État : `testé MP`
   - Cible : `MP`
