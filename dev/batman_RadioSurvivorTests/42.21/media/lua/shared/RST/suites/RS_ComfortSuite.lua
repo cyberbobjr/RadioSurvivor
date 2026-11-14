@@ -18,10 +18,17 @@ client, campaign mp), save rstest*.
                         names its step: never aired (CS.whyNotAired: channel gone, busy with broadcast X, or line still
                         queued) or aired without comfort (CS.whyNotEased: requester not found or another player
                         object, notebook character changed, hourly cap, gauges eased through another RS_Comfort
-                        table, refusal with gauges unchanged).
-Cleanup (t:defer): stats of every touched player restored and synced, hourly cap counters and counters of RS_Comfort
-restored, the test line removed from the radio histories. Solo runs the same code with the local player (no other
-client: noted). Outside the game: tests/test_rs_comfort_suite.py (doubles), tests/test_comfort.py (module and wiring).
+                        table, god mode on the authority, refusal with gauges unchanged).
+God mode: on the authority, BodyDamage.Update of a god-mode player calls RestoreToFullHealth, which resets every stat
+each update (BodyDamage.java:1820-1823, 1564-1570; the MP harness gives god mode with the server command
+godmodeplayer). The authority owns the stats in MP (the client does not simulate them, BodyDamage.java:1815-1819, and
+gets them back every second, NetworkPlayerManager.java:33-35), so the baseline would be lost: the suite lifts the god
+mode of every player whose gauges it sets, the forced way of godmodeplayer (setGodMod(b, true),
+GodModePlayerCommand.java:41), for the test only. Zombies stay cleared by the fixtures.
+Cleanup (t:defer): stats of every touched player restored and synced, god mode given back, hourly cap counters and
+counters of RS_Comfort restored, the test line removed from the radio histories. Solo runs the same code with the
+local player (no other client: noted). Outside the game: tests/test_rs_comfort_suite.py (doubles), tests/test_comfort.py
+(module and wiring).
 ]]
 
 require "RST/RST"
@@ -118,9 +125,17 @@ local function setGauges(player, values)
     end
 end
 
--- Gauges of every listed player restored (and synced) at the end, baseline set now.
+-- God mode of player lifted for the test (it would reset the baseline every update), given back at the end.
+local function liftGodMode(t, e)
+    if not e.player:isGodMod() then return end
+    e.player:setGodMod(false, true)
+    t:defer(function() e.player:setGodMod(true, true) end, "god mode of " .. e.name .. " given back")
+end
+
+-- Gauges of every listed player restored (and synced) at the end, baseline set now (god mode lifted first).
 local function baseline(t, list)
     for _, e in ipairs(list) do
+        liftGodMode(t, e)
         local saved = gauges(e.player)
         t:defer(function() setGauges(e.player, saved) end, "gauges of " .. e.name .. " restored")
         setGauges(e.player, { boredom = CS.BASE, sadness = CS.BASE })
@@ -178,6 +193,7 @@ function CS.probe(c, key, cid)
         probe.found, probe.same = found ~= nil, found == c.p
         probe.current = c.Log.characterOf(c.p)
         probe.dead = c.p:isDead()
+        probe.god = c.p:isGodMod()
         probe.applied, probe.capped = c.Comfort.stats.applied, c.Comfort.stats.capped
         probe.before = gauges(c.p)
         real()
@@ -201,6 +217,9 @@ function CS.whyNotEased(probe)
     end
     if probe.cappedAfter > probe.capped then
         return "hourly cap of RS_Comfort refused the comfort (capped " .. probe.capped .. " -> " .. probe.cappedAfter .. ")"
+    end
+    if probe.god then
+        return "god mode on the authority resets the stats every tick (BodyDamage.RestoreToFullHealth)"
     end
     local b, a = probe.before, probe.after
     if a.boredom < b.boredom or a.sadness < b.sadness then

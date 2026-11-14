@@ -9,6 +9,8 @@ RS_RadioTalk.lua sur les clients (halo de la commande comfort, branché comme Ra
 de diffusion et rappel de réconfort de RadioSurvivor_Server (queueAir, airNext, comfortOnAir, liés par GroupRadio.bind),
 voix et chaîne (RS_Personas), personnage du carnet (RS_RadioLog.characterOf), jauges (Stats, CharacterStat), paquet
 SyncPlayerStats (livré par la file du banc, appliqué à la copie du joueur sur le client), HaloTextHelper.
+Mode dieu sur l'autorité (setGodMod forcé, remise à zéro des stats à chaque mise à jour comme BodyDamage.Update) : la
+suite le lève pour le test et le rend (2e passage MP du 2026-11-14).
 La suite passe sur les doublures et échoue sur chaque défaut injecté (DEFECTS) : jauges jamais synchronisées vers le
 client, halo absent, réconfort aussi accordé au second joueur (autorité), baisse et halo chez le second client seul ;
 son message nomme l'étape en échec (campagne MP du 2026-11-14) : ligne jamais diffusée (chaîne occupée par telle
@@ -99,6 +101,23 @@ package.loaded["RadioSurvivor/RS_Personas"] = {
     served = function(id) if id == "walt" then return { 145000 } end return {} end,
     channel = function(khz) if khz == 145000 then return CHANNEL end return nil end,
 }
+-- God mode (CheatType.GOD_MODE). setGodMod(b) honours the role (ToggleGodModHimself: the bench players have none,
+-- IsoGameCharacter.java:11237-11245); setGodMod(b, true) forces it like the server command godmodeplayer
+-- (GodModePlayerCommand.java:41, IsoGameCharacter.java:11226-11234). On the authority, BodyDamage.Update of a god-mode
+-- player calls RestoreToFullHealth -> Stats.resetStats every update (BodyDamage.java:1820-1823, 1564-1570).
+function C.IsoPlayer:isGodMod() return self.godDouble == true end
+function C.IsoPlayer:setGodMod(b, forced)
+    if self:isDead() then return end
+    if forced then self.godDouble = b == true else self.godDouble = false end
+end
+Events.OnTick.Add(function()
+    for _, p in pairs(H.players) do
+        if p:isGodMod() and not p:isDead() then
+            p:getStats():set(CharacterStat.BOREDOM, 0)
+            p:getStats():set(CharacterStat.UNHAPPINESS, 0)
+        end
+    end
+end)
 -- Defaut "other_character" : nouveau personnage du carnet entre la demande et la diffusion.
 local function characterOf(player) return "cid-" .. player:getUsername() .. (CHARACTER_CHANGED and "-new" or "") end
 package.loaded["RadioSurvivor/RS_RadioLog"] = { characterOf = characterOf }
@@ -116,6 +135,8 @@ local queue = {}
 local state = {}
 state.air = function(khz, lines, cid, onAir)
     if DEFECT == "other_character" then CHARACTER_CHANGED = true end
+    -- Defaut "god_mode" : god mode given back to the requester on the authority before the line airs.
+    if DEFECT == "god_mode" then H.players["A"]:setGodMod(true, true) end
     queue[#queue + 1] = { khz = khz, lines = lines, cid = cid, onAir = onAir }
 end
 -- Defaut "other_module" : le serveur reconforte par une autre table RS_Comfort que celle que lit la suite.
@@ -264,6 +285,20 @@ class ComfortSuiteBench(unittest.TestCase):
         self.assertTrue(any('client B: rs.comfort.read: boredom -0.00' in n for n in notes), notes)
         self.assert_restored(['server', REQUESTER, OTHER])
 
+    def test_mp_god_mode_on_the_authority_lifted_for_the_test_and_restored(self):
+        # MP campaign of 2026-11-14 (2nd run): both accounts in god mode on the server (autoclient godmodeplayer); the
+        # authority reset their gauges every update, so the comfort found nothing to ease.
+        h = self.build()
+        for user in (REQUESTER, OTHER):
+            h.load('server', f'HARNESS.players.{user}:setGodMod(true, true)')
+        status, message, notes = self.run_suite()
+        self.assertEqual((status, message), ('PASS', ''))
+        self.assertEqual(self.halos(REQUESTER), ['txt:IGUI_HaloNote_Boredom:down', 'txt:IGUI_HaloNote_Unhappiness:down'])
+        self.assertEqual(self.halos(OTHER), [])
+        self.assertTrue(any('client A: rs.comfort.read: boredom -3.00, unhappiness -1.00' in n for n in notes), notes)
+        for user in (REQUESTER, OTHER):
+            self.assertTrue(h.eval('server', f'HARNESS.players.{user}:isGodMod()'), f'god mode of {user} not restored')
+
     def test_mp_busy_channel_waits_for_its_turn(self):
         h = self.build()
         h.load('server', 'CHANNEL.airingDouble = "walt reply"')
@@ -306,6 +341,7 @@ class ComfortSuiteBench(unittest.TestCase):
         'capped': 'the answer aired on 145.0 MHz without its comfort: hourly cap of RS_Comfort refused the comfort',
         'other_character': 'without its comfort: notebook character changed: cid-A at the request, cid-A-new on the air',
         'other_module': 'without its comfort: gauges eased on the authority but RS_Comfort.stats.applied unchanged',
+        'god_mode': 'without its comfort: god mode on the authority resets the stats every tick (BodyDamage.RestoreToFullHealth)',
     }
 
     def test_mp_line_never_aired_names_the_busy_channel(self):
