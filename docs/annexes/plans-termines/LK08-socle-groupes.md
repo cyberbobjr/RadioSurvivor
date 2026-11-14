@@ -2,14 +2,14 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 7 / 8 tâche(s) terminée(s).
+**Avancement.** terminée — 8 / 8 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
 | ☑ | LK08-T01 | Registre des groupes et persistance | `testé hors jeu` | hors jeu | LK01-T02 |
 | ☑ | LK08-T02 | Profils et types de groupes en données | `testé hors jeu` | hors jeu | LK08-T01 |
 | ☑ | LK08-T03 | Choix des sites sans charger la zone | `testé solo` | solo | LK08-T01 |
-| ☐ | LK08-T04 | Aménagement des foyers | `testé solo` | MP | LK08-T03 |
+| ☑ | LK08-T04 | Aménagement des foyers | `testé MP` | MP | LK08-T03 |
 | ☑ | LK08-T05 | Population : 3 à 5 groupes et réglages | `testé hors jeu` | hors jeu | LK08-T03 |
 | ☑ | LK08-T06 | Stock réel dans les conteneurs du foyer | `testé MP` | MP | LK08-T04 |
 | ☑ | LK08-T07 | Gestion du stock : seuils, rationnement, besoins du groupe | `testé hors jeu` | hors jeu | LK08-T06 |
@@ -72,8 +72,8 @@
   - Preuve : `LK_Sites.lua` : `Sites.pick(type, opts)` sans lecture de case ni écriture ; style de foyer lu dans le type (`building`/`forest`) ; bâtiment habitable par `RS_Rescue.check` (types admis par type de groupe, aucune pièce explorée pour I8.2), clairière de 17 × 17 cases dans les zones de forêt déjà inscrites de la métagrille (`getZonesIntersecting`, sans `Water`, à 40 cases d'une route `Nav` et 60 d'un bâtiment) ; à 600 cases des bases des joueurs et 400 des autres foyers ; 300 tirages au plus, graine Park-Miller ; repli sur bâtiment isolé si aucune forêt connue (`fallback`, ligne `WARN`, désactivable) ; `tests/test_lk_sites.py` 24/24 ; suite en jeu `lk.sites` (6 tests, sondes de non-chargement) ; `tests/run_all.py` 33/33 le 2026-10-10, luacheck 17/0 et 0, `check_case.py` PASS ; `docs/annexes/conception/sites.md` ; base `world-placement.md` (forêt d'une case non chargée, pièce explorée) ; LK09-T01 : commit `757d7db` ; **en jeu solo le 2026-10-10** (`rstest-1010`) : `RST.server("lk.sites")` 6/6, fichier `20261010-165227-server.txt` (après LK08-T08)
   - Reste : I8.2 = « déjà vu », jamais « récemment » ; forêt connue seulement pour les cellules approchées (repli validé par l’utilisateur)
 
-- [ ] **LK08-T04** — Aménagement des foyers
-  - État : `testé solo`
+- [x] **LK08-T04** — Aménagement des foyers
+  - État : `testé MP`
   - Cible : `MP`
   - Dépend de : LK08-T03
   - Fichiers : `LK_Homes.lua`
@@ -81,8 +81,8 @@
   - Idées : I8.3 (foyer lisible de l'extérieur) (voir `docs/annexes/recherches/idees-bandits-alife.md`)
   - Accepté si : aucun doublon après redémarrage ; deux clients voient le même foyer.
   - Tests : suite en jeu.
-  - Preuve : banc `tests/test_lk_homes.py` du 2026-10-12 (18 tests OK : plans bâtiment et camp, pose unique, marque relue après redémarrage, marque perdue rétablie par les objets marqués, suite `lk.homes` exécutée au banc) ; run_all 52/52 ; luacheck 16/0 ; conception `docs/annexes/conception/foyers.md` ; **en jeu solo le 2026-10-12** : `RST.run({ suite = "lk.homes", tags = "world" })` OK (`Lua/batman_RadioSurvivor/tests/20261012-181143-solo.txt`) (après correctifs `feb3aff` et `e322fdc` : sols et tapis ramassables, feu de camp marqué) ; campagne MP automatique du 2026-10-14 (E01-T15, serveur dédié + 2 clients, client 2 seulement présent) : lk.homes 2/2 (`tools/autoclient/runs/20261014-144930-mp-045a8627ec16/server/20261014-125125-server.txt`) ; phases réelles du 2026-10-15 6 h 07 (reconnexion des clients puis `quit` et relance du serveur sur la même partie, `tools/autoclient/runs/20261015-060712-mp-1a0abb0c888e`) : lk.homes.after-restart « same furnishing after the restart, nothing placed twice » PASS (marque des barricades portée par la fenêtre, `1bc001a`) ; campagne MP automatique du 2026-10-15 (copie figée du commit `54087fb`, serveur dédié + 2 clients, pont avec faux modèle) : lk.homes 2/2 (`tools/autoclient/runs/20261015-110446-parallel-2-54087fb0f84f/shard2/server/20261015-090708-server.txt`) ; campagne `mp-persist` du 2026-10-15 (copie figée du commit `54087fb`, reconnexions et redémarrage réels, toutes étapes vertes) : lk.homes.before et lk.homes.after-restart PASS (aucun doublon après redémarrage) (`tools/autoclient/runs/20261015-113252-run-54087fb0f84f/run/server/20261015-093457-server.txt`, `tools/autoclient/runs/20261015-113252-run-54087fb0f84f/run/server/20261015-093940-server.txt`)
-  - Reste : même foyer vu par les deux clients : aucune étape client dans lk.homes ; rideaux (I8.3) non faits
+  - Preuve : banc `tests/test_lk_homes.py` du 2026-10-12 (18 tests OK : plans bâtiment et camp, pose unique, marque relue après redémarrage, marque perdue rétablie par les objets marqués, suite `lk.homes` exécutée au banc) ; run_all 52/52 ; luacheck 16/0 ; conception `docs/annexes/conception/foyers.md` ; **en jeu solo le 2026-10-12** : `RST.run({ suite = "lk.homes", tags = "world" })` OK (`Lua/batman_RadioSurvivor/tests/20261012-181143-solo.txt`) (après correctifs `feb3aff` et `e322fdc` : sols et tapis ramassables, feu de camp marqué) ; campagne MP automatique du 2026-10-14 (E01-T15, serveur dédié + 2 clients, client 2 seulement présent) : lk.homes 2/2 (`tools/autoclient/runs/20261014-144930-mp-045a8627ec16/server/20261014-125125-server.txt`) ; phases réelles du 2026-10-15 6 h 07 (reconnexion des clients puis `quit` et relance du serveur sur la même partie, `tools/autoclient/runs/20261015-060712-mp-1a0abb0c888e`) : lk.homes.after-restart « same furnishing after the restart, nothing placed twice » PASS (marque des barricades portée par la fenêtre, `1bc001a`) ; campagne MP automatique du 2026-10-15 (copie figée du commit `54087fb`, serveur dédié + 2 clients, pont avec faux modèle) : lk.homes 2/2 (`tools/autoclient/runs/20261015-110446-parallel-2-54087fb0f84f/shard2/server/20261015-090708-server.txt`) ; campagne `mp-persist` du 2026-10-15 (copie figée du commit `54087fb`, reconnexions et redémarrage réels, toutes étapes vertes) : lk.homes.before et lk.homes.after-restart PASS (aucun doublon après redémarrage) (`tools/autoclient/runs/20261015-113252-run-54087fb0f84f/run/server/20261015-093457-server.txt`, `tools/autoclient/runs/20261015-113252-run-54087fb0f84f/run/server/20261015-093940-server.txt`) ; campagne MP du 2026-11-14 (serveur dédié + 2 clients, pont avec faux modèle, `tools/autoclient/runs/20261114-193029-parallel-1`, code 1, `TOTAL total=556 pass=534 fail=2 error=0 skip=20`, échecs étrangers à la tâche : rs.factions.accord, lk.warn) : lk.homes 2/2 PASS ; `world.keys` vert chez rs_mp1 et rs_mp2 (foyer en bâtiment : 6 cases, camp : 5 cases, mêmes barricades, lampe allumée, couchages et caisse que le serveur)
+  - Reste : rideaux (I8.3) non faits
 
 - [x] **LK08-T05** — Population : 3 à 5 groupes et réglages
   - État : `testé hors jeu`

@@ -5,7 +5,7 @@
 
 ## Problème
 
-Un PNJ armé doit montrer son arme : accrochée (dos, hanche, ceinture) au repos et en marche, en main quand il vise, garde ou frappe, pour que les nœuds `LKActorAimRifle`, `LKActorGuard1H`, `LKActorStrike1H` (LK02-T05) reçoivent la variable vanilla `Weapon`. Décision de l'utilisateur du 2026-10-09 (`docs/annexes/plans/LK02-jalon-corps-gestes.md`, Décisions) : arme **accrochée** par le serveur (`sendAttachedItem`), **mise en main** par chaque client pour les gestes, abonnés `OnEquipPrimary` qui supposent un joueur neutralisés.
+Un PNJ armé doit montrer son arme : accrochée (dos, hanche, ceinture) au repos et en marche, en main quand il vise, garde ou frappe, pour que les nœuds `LKActorAimRifle`, `LKActorGuard1H`, `LKActorStrike1H` (LK02-T05) reçoivent la variable vanilla `Weapon`. Décision de l'utilisateur du 2026-10-09 (`docs/annexes/plans-termines/LK02-jalon-corps-gestes.md`, Décisions) : arme **accrochée** par le serveur (`sendAttachedItem`), **mise en main** par chaque client pour les gestes, abonnés `OnEquipPrimary` qui supposent un joueur neutralisés.
 
 ## Contraintes du moteur
 

@@ -2,7 +2,7 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 2 / 7 tâche(s) terminée(s).
+**Avancement.** en cours — 4 / 7 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
@@ -11,8 +11,8 @@
 | ☐ | LK15-T03 | Découpage vérifié en jeu | `à faire` | MP | LK15-T02 |
 | ☐ | LK15-T04 | Creuser un sillon (`LK_Job_Dig`) | `testé hors jeu` | MP | LK15-T03 |
 | ☐ | LK15-T05 | Semer (`LK_Job_Sow`) | `testé hors jeu` | MP | LK15-T04 |
-| ☐ | LK15-T06 | Graines reçues par le jardinier | `testé hors jeu` | MP | LK15-T05 |
-| ☐ | LK15-T07 | Potager en bord de zone : l'entretien du foyer n'est plus bloqué | `testé hors jeu` | MP | LK15-T04 |
+| ☑ | LK15-T06 | Graines reçues par le jardinier | `testé MP` | MP | LK15-T05 |
+| ☑ | LK15-T07 | Potager en bord de zone : l'entretien du foyer n'est plus bloqué | `testé MP` | MP | LK15-T04 |
 
 <!-- fin du tableau de bord -->
 
@@ -88,23 +88,23 @@ LK05-T21 (préférence du jardinier, remplacée par `prefer`).
   - Tests : banc ; suite `lk.garden`.
   - Preuve : 2026-11-13 : `Jobs/LK_Job_Sow.lua` (`sow`, ordre 44, `prefer = "garden"`) ; `LK_Garden.lua` (`month`, `inSeason`, `sowable`, `seedCount`, `findSeed`, `takeSeed`) : sillon vide, graine de saison (`sowMonth`), jamais un objet de nourriture, une graine retirée par `Stock.takeItem` puis `plant:seed(type, 0)`, saison relue à l'effet ; banc `SowTests` rouge puis vert ; `python tests/test_lk_garden.py` : `Ran 20 tests … OK` ; `test_lk_upkeep.py` 24 OK, `test_lk_food.py` 32 OK, `test_autoclient.py` 93 OK ; `python tests/run_all.py` : `162 passed, 0 failed` ; luacheck `Contents` 8 (inchangé), `dev` 0
   - Reste : campagnes solo et MP (`lk.garden`) : plante semée vue par les deux clients, puis arrosée ; le groupe sème aussi dans un sillon vide d'un joueur situé dans sa zone
-- [ ] **LK15-T06** — Graines reçues par le jardinier
-  - État : `testé hors jeu`
+- [x] **LK15-T06** — Graines reçues par le jardinier
+  - État : `testé MP`
   - Cible : `MP`
   - Dépend de : LK15-T05
   - Fichiers : `server/LivingKnox/Jobs/LK_Job_SeedSupply.lua` (ou activité du jardinier) ; banc ; suite `lk.garden`
   - Faire : ADR D08, Q01 : dépôt de graines de saison au foyer quand le stock en a moins de `SEED_LOW`, au plus une fois tous les `SEED_DAYS` jours par groupe qui a un jardinier ; graines ajoutées à la référence du stock (ni perte ni vol à la relecture).
   - Accepté si : au banc, dépôt une fois par fenêtre, rien sans jardinier, rien au-dessus du seuil ; en jeu, le potager se remplit sans action du joueur.
   - Tests : banc ; suite `lk.garden`.
-  - Preuve : 2026-11-13 : `Jobs/LK_Job_SeedSupply.lua` (`seeds`, ordre 42, `prefer = "garden"`, journal du groupe) : un membre range au dépôt un sachet de 5 graines d'une variété de saison (carotte, pomme de terre, chou, tomate, à tour de rôle, sans hasard) quand le foyer a moins de 2 graines semables, au plus une fois tous les 7 jours de jeu, seulement avec un jardinier vivant ; rien en hiver ; bancs `SeedSupplyTests` et `PureGardenTests` rouges puis verts ; `python tests/test_lk_garden.py` : `Ran 20 tests … OK` ; `test_lk_upkeep.py` 24 OK, `test_lk_food.py` 32 OK, `test_autoclient.py` 93 OK ; `python tests/run_all.py` : `162 passed, 0 failed` ; luacheck `Contents` 8 (inchangé), `dev` 0
-  - Reste : campagnes solo et MP (`lk.garden`) ; les graines n'ont pas de catégorie de stock : elles ne sont pas dans la référence (ni perte ni vol à la relecture, comme les graines d'une récolte) ; le jour du dernier sachet n'est pas sauvegardé (un redémarrage du serveur peut donner un sachet de plus dans la fenêtre)
-- [ ] **LK15-T07** — Potager en bord de zone : l'entretien du foyer n'est plus bloqué
-  - État : `testé hors jeu`
+  - Preuve : 2026-11-13 : `Jobs/LK_Job_SeedSupply.lua` (`seeds`, ordre 42, `prefer = "garden"`, journal du groupe) : un membre range au dépôt un sachet de 5 graines d'une variété de saison (carotte, pomme de terre, chou, tomate, à tour de rôle, sans hasard) quand le foyer a moins de 2 graines semables, au plus une fois tous les 7 jours de jeu, seulement avec un jardinier vivant ; rien en hiver ; bancs `SeedSupplyTests` et `PureGardenTests` rouges puis verts ; `python tests/test_lk_garden.py` : `Ran 20 tests … OK` ; `test_lk_upkeep.py` 24 OK, `test_lk_food.py` 32 OK, `test_autoclient.py` 93 OK ; `python tests/run_all.py` : `162 passed, 0 failed` ; luacheck `Contents` 8 (inchangé), `dev` 0 ; campagne MP du 2026-11-14 (serveur dédié + 2 clients, pont avec faux modèle, `tools/autoclient/runs/20261114-193029-parallel-1`, code 1, `TOTAL total=556 pass=534 fail=2 error=0 skip=20`, échecs étrangers à la tâche : rs.factions.accord, lk.warn) : lk.garden PASS « the gardener receives seeds, digs a furrow and sows it » (un sachet reçu sans action du joueur)
+  - Reste : le jour du dernier sachet n'est pas sauvegardé (un redémarrage du serveur peut donner un sachet de plus dans la fenêtre)
+- [x] **LK15-T07** — Potager en bord de zone : l'entretien du foyer n'est plus bloqué
+  - État : `testé MP`
   - Cible : `MP`
   - Dépend de : LK15-T04
   - Fichiers : `LK_Upkeep.lua` (`placeFor`) ; `LK_Garden.lua` (cases du potager) ; `tests/test_lk_upkeep.py`
   - Faire : défaut de la campagne MP du 2026-11-13 (`lk.upkeep`, `runs/20261113-150840-parallel-3/shard3`), reproduit au banc sur le vrai Lua du potager (`E19-T04`) : le premier sillon tombe au bord de la zone (10 cases), sa place est à 11 cases, le membre n'est plus « au foyer » (`HOME_RADIUS` 10), quitte sa routine, la tâche est libérée sans délai et l'autre ouvrier la reprend en boucle ; le verre et le sang ne sont jamais faits. Correction confirmée par défaut (option recommandée) : une place hors du rayon « au foyer » est refusée par le moteur des tâches (`placeFor`), qui clôt la tâche avec son délai d'attente au lieu de la libérer ; et le potager ne propose que des cases dont la place reste dans ce rayon. L'ordre des tâches du commit `73247c8` (potager après l'entretien) est gardé, mais n'était pas la cause.
   - Accepté si : `test_garden_at_the_edge_of_the_home_does_not_hold_the_upkeep` passe (marque `expectedFailure` retirée) ; bancs de l'entretien, du potager et des décisions verts ; en jeu, `lk.upkeep` verte en campagne MP.
   - Tests : bancs ; campagne MP.
-  - Preuve : 2026-11-13 : `Upkeep.atHome` (case entière dans le rayon « au foyer » des décisions, `écart + 0,5 ≤ HOME_RADIUS` : un corps arrêté n'est pas au centre de sa case) ; `placeFor` écarte les places hors du foyer, `spec.place(job, home)` reçoit le foyer ; une place hors du foyer clôt la tâche avec son délai (`DONE_MINUTES`) au lieu de la libérer ; `Garden.digSpot` et `Garden.placeNear` ne proposent que des cases au foyer ; aussi corrigé : récolte et arrosage d'une plante au bord nord (tâche prise 3 fois avant, 1 après) ; `test_garden_at_the_edge_of_the_home_does_not_hold_the_upkeep` rouge avant (« upkeep jobs not all done: condition not met within 300000 ms »), vert après (marque `expectedFailure` retirée) ; `EngineTests.test_place_out_of_the_home_is_refused_and_closed_with_its_delay` rouge avant (`1 != 0` reprise), vert après ; `test_ripe_plant_at_the_edge_of_the_home_is_harvested_from_inside` ; `test_lk_upkeep.py` 28 OK, `test_lk_garden.py` 29 OK, `test_lk_food.py` 33, `test_lk_routines.py` 23, `test_lk_chores.py` 13, `test_lk_decisions.py` 27, `test_lk_homes.py` 22, `test_lk_repair.py` 14, `test_lk_meals.py` 16 verts sans attendu changé ; `python tests/run_all.py` : `168 passed, 0 failed` (515 s) ; luacheck `Contents` 8, `dev` 0
-  - Reste : campagne MP (`lk.upkeep`) ; un objet posé sur l'anneau 10 du foyer n'a souvent aucune place : tâche refusée puis reproposée toutes les 10 minutes, sans boucle (laissé ainsi, confirmé par défaut) ; ménage et verre pouvaient boucler dans un grand bâtiment (déduit du code, aucun banc) ; `freeSquareAtHome` reprend l'ordre de `Bodies.findFreeSquare` (un filtre facultatif dans `LK_Bodies.lua` serait mieux : LK16)
+  - Preuve : 2026-11-13 : `Upkeep.atHome` (case entière dans le rayon « au foyer » des décisions, `écart + 0,5 ≤ HOME_RADIUS` : un corps arrêté n'est pas au centre de sa case) ; `placeFor` écarte les places hors du foyer, `spec.place(job, home)` reçoit le foyer ; une place hors du foyer clôt la tâche avec son délai (`DONE_MINUTES`) au lieu de la libérer ; `Garden.digSpot` et `Garden.placeNear` ne proposent que des cases au foyer ; aussi corrigé : récolte et arrosage d'une plante au bord nord (tâche prise 3 fois avant, 1 après) ; `test_garden_at_the_edge_of_the_home_does_not_hold_the_upkeep` rouge avant (« upkeep jobs not all done: condition not met within 300000 ms »), vert après (marque `expectedFailure` retirée) ; `EngineTests.test_place_out_of_the_home_is_refused_and_closed_with_its_delay` rouge avant (`1 != 0` reprise), vert après ; `test_ripe_plant_at_the_edge_of_the_home_is_harvested_from_inside` ; `test_lk_upkeep.py` 28 OK, `test_lk_garden.py` 29 OK, `test_lk_food.py` 33, `test_lk_routines.py` 23, `test_lk_chores.py` 13, `test_lk_decisions.py` 27, `test_lk_homes.py` 22, `test_lk_repair.py` 14, `test_lk_meals.py` 16 verts sans attendu changé ; `python tests/run_all.py` : `168 passed, 0 failed` (515 s) ; luacheck `Contents` 8, `dev` 0 ; campagne MP du 2026-11-14 (serveur dédié + 2 clients, pont avec faux modèle, `tools/autoclient/runs/20261114-193029-parallel-1`, code 1, `TOTAL total=556 pass=534 fail=2 error=0 skip=20`, échecs étrangers à la tâche : rs.factions.accord, lk.warn) : lk.upkeep 2/2 PASS « home upkeep from the stock » (potager du foyer compris)
+  - Reste : un objet posé sur l'anneau 10 du foyer n'a souvent aucune place (tâche reproposée toutes les 10 minutes, sans boucle)

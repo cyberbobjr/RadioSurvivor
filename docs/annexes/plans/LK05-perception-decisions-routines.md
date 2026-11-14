@@ -2,7 +2,7 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 19 / 22 tâche(s) terminée(s).
+**Avancement.** en cours — 20 / 22 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
@@ -25,7 +25,7 @@
 | ☑ | LK05-T17 | Joueur vu à travers un mur (suite `lk.senses`) | `testé solo` | solo | LK05-T01 |
 | ☑ | LK05-T18 | Campement : le groupe se défend sur place contre les zombies | `testé MP` | MP | LK05-T09 |
 | ☑ | LK05-T19 | Entretien limité aux générateurs du groupe | `testé MP` | MP | LK05-T10 |
-| ☐ | LK05-T20 | Provisions sur soi et gourde inépuisable | `testé hors jeu` | MP | LK05-T07, LK07-T05 |
+| ☑ | LK05-T20 | Provisions sur soi et gourde inépuisable | `testé MP` | MP | LK05-T07, LK07-T05 |
 | ☐ | LK05-T21 | Jardinier : le comportement `garden` prend d'abord les tâches du jardin | `testé hors jeu` | solo | LK05-T11 |
 | ☐ | LK05-T22 | Casseur : le comportement `breach` des pillards force, les autres l'attendent | `testé hors jeu` | solo | LK04-T04 |
 
@@ -284,16 +284,16 @@
   - Preuve : générateur du groupe = marque ModData `LKGenerator` posée à l'aménagement du foyer (`Homes.adoptGenerators`), relue au relevé et à l'effet ; bancs `test_lk_upkeep.py` 20 OK et `test_lk_homes.py` 21 OK (générateurs d'un joueur dans la maison et au jardin intacts, générateur remplacé avant l'effet intact) ; suite `lk.upkeep` avec un générateur non marqué qui doit rester intact ; luacheck 15/0 ; base `power-and-lights.md` ; commit `83aefe5`; campagne MP complète du 2026-10-15 (client 2 actif, règle « les tests font foi ») : lk.upkeep 2/2 (générateur non marqué ni rempli ni réparé) (`tools/autoclient/runs/20261015-024734-mp-348bee78d4b7/server/20261015-004928-server.txt`)
   - Reste : foyer aménagé avant la tâche : aucun générateur marqué (entretien du générateur inactif)
 
-- [ ] **LK05-T20** — Provisions sur soi et gourde inépuisable
-  - État : `testé hors jeu`
+- [x] **LK05-T20** — Provisions sur soi et gourde inépuisable
+  - État : `testé MP`
   - Cible : `MP`
   - Dépend de : LK05-T07, LK07-T05
   - Fichiers : `LK_Loot.lua`, `LK_Needs.lua`, `LK_Decisions.lua`, `LK_Routines.lua`, `LK_Combat.lua`
   - Faire : décision de l'utilisateur du 2026-11-04 (ci-dessus) : provisions réelles dans l'inventaire du corps (2 aliments non périssables, remplacés au foyer), boisson d'une bouteille ou gourde jamais vidée, repas d'une provision loin du foyer, décrochage du combat à faim ≥ 90 sans ennemi à 3 cases ou moins puis reprise.
   - Accepté si : au banc : PNJ affamé loin du foyer mange une provision (un objet en moins, faim soulagée) ; soif soulagée sans baisse du contenu de la bouteille ; en combat, faim ≥ 90 et ennemi au-delà de 3 cases : décrochage, repas, reprise ; ennemi au contact : combat d'abord ; provisions remplacées au foyer sur le stock ; cadavre avec ses provisions restantes. En jeu : suite dédiée solo et MP.
   - Tests : banc ; nouvelle suite en jeu dans les campagnes solo et MP.
-  - Preuve : 2026-11-13 : `LK_Provisions.lua` (objets et effets : 2 provisions parmi barre de céréales, viande séchée, abricots secs ; gourde militaire pleine jamais vidée ; remplacement depuis le stock du foyer, repas, boisson) et `LK_ProvisionMeal.lua` (règles, décrochage à faim ≥ 90 avec ennemi au-delà de 3 cases, course de 8 cases vers une case cachée, repas assis, reprise) ; deux registres extraits pour ne pas ajouter de cas en dur : `Decisions.registerExtension` (`LK_Decisions.lua`, rangs de `PRIORITIES` inchangés) et `Loot.registerContent` (`LK_Loot.lua` : munitions, poches, provisions, mission) ; `python tests/test_lk_provisions.py` : `Ran 18 tests … OK` (rouge avant : 18 erreurs), dont un banc serveur + deux clients et la suite `lk.provisions` jouée sur les doublures ; `test_lk_meals.py` 16 OK, `test_lk_decisions.py` 27 OK, `test_lk_loot.py` 17 OK, `test_doubles_api.py` 13 OK (toute méthode doublée existe en Java), `test_autoclient.py` 93 OK ; `python tests/run_all.py` : `166 passed, 0 failed` ; luacheck `Contents` 8 (inchangé), `dev` 0
-  - Reste : campagnes solo et MP (suite `lk.provisions` inscrite dans `solo-lk` et `mp`) ; non prouvé hors jeu : gourde créée pleine, inventaire du corps relu après une sauvegarde, cadavre pillé en MP, décrochage dans une vraie maison (la suite en jeu retire les zombies : le combat n'est prouvé qu'au banc) ; interprétations à confirmer par l'utilisateur : un défenseur du foyer affamé quitte son poste pour manger si l'ennemi est à plus de 3 cases ; en expédition ou en traque, un membre affamé mange sa provision sur place ; soif en combat non traitée ; une conserve du stock compte comme provision ; le registre d'extensions de la cascade est un mécanisme nouveau (les modules encore nommés en dur dans `Decisions.context` et `Decisions.apply` pourraient y migrer : audit SOLID)
+  - Preuve : 2026-11-13 : `LK_Provisions.lua` (objets et effets : 2 provisions parmi barre de céréales, viande séchée, abricots secs ; gourde militaire pleine jamais vidée ; remplacement depuis le stock du foyer, repas, boisson) et `LK_ProvisionMeal.lua` (règles, décrochage à faim ≥ 90 avec ennemi au-delà de 3 cases, course de 8 cases vers une case cachée, repas assis, reprise) ; deux registres extraits pour ne pas ajouter de cas en dur : `Decisions.registerExtension` (`LK_Decisions.lua`, rangs de `PRIORITIES` inchangés) et `Loot.registerContent` (`LK_Loot.lua` : munitions, poches, provisions, mission) ; `python tests/test_lk_provisions.py` : `Ran 18 tests … OK` (rouge avant : 18 erreurs), dont un banc serveur + deux clients et la suite `lk.provisions` jouée sur les doublures ; `test_lk_meals.py` 16 OK, `test_lk_decisions.py` 27 OK, `test_lk_loot.py` 17 OK, `test_doubles_api.py` 13 OK (toute méthode doublée existe en Java), `test_autoclient.py` 93 OK ; `python tests/run_all.py` : `166 passed, 0 failed` ; luacheck `Contents` 8 (inchangé), `dev` 0 ; campagne MP du 2026-11-14 (serveur dédié + 2 clients, pont avec faux modèle, `tools/autoclient/runs/20261114-193029-parallel-1`, code 1, `TOTAL total=556 pass=534 fail=2 error=0 skip=20`, échecs étrangers à la tâche : rs.factions.accord, lk.warn) : lk.provisions PASS « provisions carried, eaten away from home, canteen never emptied, replaced at home »
+  - Reste : campagne solo (`solo-lk`) ; non prouvé en jeu : inventaire du corps relu après une sauvegarde, cadavre pillé en MP, décrochage dans une vraie maison (la suite retire les zombies : le combat est prouvé au banc)
 - [ ] **LK05-T21** — Jardinier : le comportement `garden` prend d'abord les tâches du jardin
   - État : `testé hors jeu`
   - Cible : `solo`
