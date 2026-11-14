@@ -93,7 +93,10 @@ function CORE:setOptionBorderlessWindow(b) SCREEN.borderless = b end
 function CORE:setResolutionAndFullScreen(w, h, full)
     DISPLAY_CALLS[#DISPLAY_CALLS + 1] = w .. 'x' .. h .. (full and ' full' or '') .. (SCREEN.borderless and ' borderless' or '')
     if not full and SCREEN.borderless then w, h = MONITOR.w, MONITOR.h end
+    local ow, oh = SCREEN.w, SCREEN.h
     SCREEN.w, SCREEN.h, SCREEN.full = w, h, full
+    -- Core.java:1807: the event follows every change of the display size.
+    if ow ~= w or oh ~= h then fire('OnResolutionChange', ow, oh, w, h) end
 end
 function CORE:getScreenModes() local t = {} for i, m in ipairs(SCREEN_MODES) do t[i] = m end return t end
 function CORE:getOptionFontSizeReal() return 2 end
@@ -398,6 +401,26 @@ class NotebookVisualTests(unittest.TestCase):
         self.assertIn('rs_notebook_scrolled_2560x1440_fs2.png', lua_list(self.g.SHOTS))
         self.assertTrue(any(n.startswith('refresh: selection rsv_c11 row 11') for n in notes), notes)
         self.assertTrue(any(n.startswith('shortcut key 34') for n in notes), notes)
+
+    def test_notebook_kept_on_the_screen_after_a_smaller_resolution(self):
+        # Campaign of 2026-11-14 (solo): the notebook opened at 1920x1080 (874x760) stayed 760 px high once the display
+        # went back to 1280x720 ("window 523,151 874x760 outside the screen 1280x720").
+        out = self.c.rt.eval('''function()
+            SCREEN.borderless = false
+            CORE:setResolutionAndFullScreen(1920, 1080, false)
+            local w = RC_UI_Notebook.toggle(0, false)
+            local before = w:getHeight()
+            CORE:setResolutionAndFullScreen(1280, 720, false)
+            local r = {before, w:getX(), w:getY(), w:getWidth(), w:getHeight()}
+            w:close()
+            return r
+        end''')()
+        before, x, y, width, height = [out[i] for i in range(1, 6)]
+        self.assertEqual(before, 760)
+        self.assertGreaterEqual(x, 0)
+        self.assertGreaterEqual(y, 0)
+        self.assertLessEqual(x + width, 1280)
+        self.assertLessEqual(y + height, 720)
 
     def test_detects_a_button_outside_the_window(self):
         self.c.rt.execute('''

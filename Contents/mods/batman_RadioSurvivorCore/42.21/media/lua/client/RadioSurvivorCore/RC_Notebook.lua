@@ -1158,4 +1158,23 @@ Events.OnGameStart.Add(function()
     if ISEquippedItem.instance then sidebar(ISEquippedItem.instance) end
 end)
 
+-- Kept whole on a smaller display: the window made for a larger one (size of Notebook:new: margins of 80 x 70 px)
+-- shrinks to the new screen and moves inside it. OnResolutionChange follows every change of the display size
+-- (Core.java:1807); nothing changes when the window already fits.
+function Notebook.fitScreen(w, sw, sh)
+    local mw, mh = math.max(sw - 80, 1), math.max(sh - 70, 1)
+    w.minimumWidth = math.min(w.minimumWidth or mw, mw)
+    w.minimumHeight = math.min(w.minimumHeight or mh, mh)
+    local fitW, fitH = math.min(w:getWidth(), mw), math.min(w:getHeight(), mh)
+    local resized = fitW ~= w:getWidth() or fitH ~= w:getHeight()
+    if resized then w:setWidth(fitW); w:setHeight(fitH) end
+    w:setX(math.max(0, math.min(w:getX(), sw - fitW)))
+    w:setY(math.max(0, math.min(w:getY(), sh - fitH)))
+    if resized then w:layout() end
+end
+
+Events.OnResolutionChange.Add(function(_, _, sw, sh)
+    if Notebook.window then Notebook.fitScreen(Notebook.window, sw, sh) end
+end)
+
 return Notebook
