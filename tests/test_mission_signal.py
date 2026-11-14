@@ -271,7 +271,10 @@ class SignalMissionTests(unittest.TestCase):
         """)
         sim.server.rt.execute((TESTS_SHARED / 'RST' / 'suites' / 'RS_MissionSignal.lua').read_text(encoding='utf-8'))
         alice = sim.server.g.PLAYERS.alice
-        self.assertTrue(sim.server.rt.eval('function(p) return RST.start("rs.mission.signal", '
+        # Server suite only: the client suite rs.mission.signal.client of the same file has its own bench
+        # (tests/test_rs_signal_client_suite.py, requester and second client).
+        self.assertTrue(sim.server.rt.eval('function(p) return RST.start({ suite = "rs.mission.signal", '
+                                           'test = "^a signal of the asked colour" }, '
                                            '{ attach = false, ctx = { player = p } }) end')(alice))
         for _ in range(100):
             if not sim.server.rt.eval('RST.step()'):

@@ -69,6 +69,7 @@ RST.CAMPAIGNS["solo-rs"] = {
     "rs.env",           -- E01-T08
     "rs.codec",         -- E01-T08
     "rs.missions",      -- E01-T08, E00-T03, E00-T10, E11-T11 (prefix: radio, scout, solo, voicetemplates)
+    "rs.mission.signal.client", -- E11-T07 (requester notebook and map: accept, circle, hours, report, claim)
     "rs.comfort",       -- E05-T15 (gauges and halo of the local player)
     "rs.memorial",      -- E14-T04 (animal death kept out, bulletin announces the names)
     "rc.notebook",      -- E18-T24 (bookmarks of the active mods)
@@ -89,6 +90,7 @@ RST.CAMPAIGNS["solo-rs"] = {
     "rs.worldradio",   -- E06-T03
     "rs.radio",        -- E06-T05
     "rs.notebook.voices", -- E06-T07 (voice and hours in the Radio tab; client 2 sees nothing)
+    "rs.actions.share",   -- E07-T10 (exceptional share_frequency: bond, 7/3-day delays, known voice never given)
     "rs.carnet.load",  -- E00-T04
     "rs.observations", -- E08-T07
     "rs.factions.mandate", -- E09-T03
@@ -142,7 +144,7 @@ RST.CAMPAIGNS["mp"] = {
     "rs.comfort",       -- E05-T15 (requester client: gauges and halo; second client: no drop)
     "rs.missions",      -- E11-T03, E11-T08 (prefix: radio, scout, solo; NOT the templates rs.mission.*)
     "rc.journal",       -- E18-T06 (rows of the mission journal of the core mod)
-    "rs.mission",       -- E11-T04..T07, E01-T19 (prefix: clear, retrieve, recover, signal)
+    "rs.mission",       -- E11-T04..T07, E01-T19 (prefix: clear, retrieve, recover, signal, signal.client)
     "rs.carnet.lk",     -- E10-T02, E17-T03 (prefix: supply; fixture group, E01-T19)
     "rs.carnet.leader", -- E10-T02 (non-leader member, reply after a death or a succession)
     "rs.factions.accord", -- E09-T05 (E01-T19)
@@ -163,6 +165,7 @@ RST.CAMPAIGNS["mp"] = {
     "rs.notes",         -- E05-T09
     "rs.actions.map",   -- E07-T04, E07-T08 (E01-T19: map and history checked by the requester client)
     "rs.actions.reveal", -- E07-T05 (E01-T19)
+    "rs.actions.share",   -- E07-T10 (shared voice in the requester Radio tab only, client 2 sees nothing)
     "rs.personas",      -- E05-T02, E05-T11
     "rs.worldtriggers", -- E08-T08
     -- E01-T16: notebook suites through the requester client (RST.Steps): real network path, bridge on the server.
