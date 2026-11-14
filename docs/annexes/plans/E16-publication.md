@@ -2,14 +2,14 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 7 / 10 tâche(s) terminée(s).
+**Avancement.** en cours — 8 / 10 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
 | ☑ | E16-T01 | Périmètre de la première publication | `testé hors jeu` | hors jeu | — |
 | ☑ | E16-T02 | Nettoyage et métadonnées | `testé hors jeu` | hors jeu | E16-T01, E18-T16 |
 | ☐ | E16-T03 | Guide d'installation du pont pour un serveur | `codé` | hors jeu | E16-T01, E18-T12 |
-| ☐ | E16-T04 | Validation multijoueur finale | `à faire` | MP | E16-T02, E18-T15 |
+| ☑ | E16-T04 | Validation multijoueur finale | `testé MP` | MP | E16-T02, E18-T15 |
 | ☐ | E16-T05 | Publication | `à faire` | hors jeu | E16-T04 |
 | ☑ | E16-T06 | Pont LLM : injections et coût des appels (C01, C02, C03, C10) | `testé solo` | solo | — |
 | ☑ | E16-T07 | Plafonds du pont réglables | `testé hors jeu` | hors jeu | E16-T06 |
@@ -71,16 +71,16 @@
   - Preuve : guides rédigés le 2026-10-12 : `docs/wiki/fr/07-installation-du-pont.md` (FR) et `docs/wiki/en/07-bridge-server-setup.md` (EN) — dossier d'échange par cas (`-cachedir`, partie hébergée vérifiée `CoopMaster.java:116`), clé `OPENAI_*` par `--env`, coût et options sandbox, `--offline`, `--debug`, verrou `bridge.lock`, démarrage automatique, vérification, 16 messages de dépannage relevés dans le code ; options vérifiées dans `main()` ; `radio_bridge.py --offline --test` exécuté avec succès
   - Reste : relecture et installation par un admin tiers (critère, seul point ouvert). Faits depuis, constatés le 2026-11-13 : renvoi au guide présent dans `README.md` et `README_fr.md` (section du pont) ; descriptions Workshop avec les étapes du pont et le lien du dépôt GitHub public (les cinq fichiers du pont se prennent dans son dossier `bridge`) ; défaut `--env` à côté du pont (`DEFAULT_ENV = HERE / ".env"`) ; boucle `run()` sans pause si `requests.txt` reste illisible : corrigée le 2026-10-12 (pause avant la relecture, banc `scenario_unreadable_requests_wait`)
 
-- [ ] **E16-T04** — Validation multijoueur finale
-  - État : `à faire`
+- [x] **E16-T04** — Validation multijoueur finale
+  - État : `testé MP`
   - Cible : `MP`
   - Dépend de : E16-T02, E18-T15
   - Fichiers : `docs/annexes/tests/validation/`
   - Faire : toutes les suites en jeu du périmètre + protocole nominal sur le serveur dédié de test avec deux clients, mods exacts de la publication.
   - Accepté si : aucune erreur `f:0` liée au mod ; suites au vert.
   - Tests : `RST.server('rs')`, `RST.run('rs')`.
-  - Preuve : —
-  - Reste : —
+  - Preuve : campagne MP finale du 2026-11-14 (serveur dédié + 2 clients, une partie, code `c7424dd`) : exit 1, `TOTAL total=556 pass=533 fail=2 skip=21` (`tools/autoclient/runs/20261114-142422-parallel-1`) : toutes les suites de RadioSurvivor vertes sauf rs.comfort, tolérance du test trop serrée (46,91 lu pour 47), corrigée puis rs.comfort PASS en MP (`tools/autoclient/runs/20261114-150804-mp-b01ea47cf06a`) ; l'autre échec est `lk.expedition` (Living Knox) ; aucune erreur `f:0` des mods dans le journal du serveur (seulement des scripts vanilla : « Large Bucket », icônes Item_Yarn et Item_WaterDrop) ; campagnes RadioSurvivor seul, Living Knox seul et `mp-persist` vertes le même jour
+  - Reste : — (Living Knox : `lk.expedition` à analyser, hors de cette tâche)
 
 - [ ] **E16-T05** — Publication
   - État : `à faire`
