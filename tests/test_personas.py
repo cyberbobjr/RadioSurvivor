@@ -71,12 +71,12 @@ FULL = ('# fiche complète\n'
 CASES: list[tuple[str, str | bytes, tuple[int, str] | None]] = [
     ('minimal', HEAD + PROMPT, None),
     ('mission reward permissions', HEAD + 'cache_table=medical\nshares=gus,cody\nteaches=Doctor\nmissions=scout,deliver,retrieve,clear,signal\nrewards=cache,frequency,stashmap,lesson\nactions=say,share_frequency\n' + PROMPT, None),
-    ('bad cache_table', HEAD + 'cache_table=weapon\n' + PROMPT, (5, "bad cache_table 'weapon' (expected medical, ammo, tools, food, radio)")),
+    ('bad cache_table', HEAD + 'cache_table=Weapon\n' + PROMPT, (5, "bad cache_table 'Weapon' (a to z, 0 to 9 and _, starting with a letter, 32 characters at most)")),
     ('bad teaches', HEAD + 'teaches=Carpentry\n' + PROMPT, (5, "bad teaches 'Carpentry' (expected Doctor, Aiming, Reloading, Woodwork, Mechanics, Electricity, MetalWelding, Cooking, Farming, Fishing, Trapping, PlantScavenging)")),
     ('bad shares', HEAD + 'shares=Gus\n' + PROMPT, (5, "bad shares entry 'Gus'")),
     ('duplicate shares', HEAD + 'shares=gus,gus\n' + PROMPT, (5, "duplicate shares entry 'gus'")),
     ('empty shares entry', HEAD + 'shares=gus,\n' + PROMPT, (5, "bad shares entry ''")),
-    ('bad missions', HEAD + 'missions=recover\n' + PROMPT, (5, "bad missions entry 'recover'")),
+    ('bad missions', HEAD + 'missions=re-cover\n' + PROMPT, (5, "bad missions entry 're-cover'")),
     ('duplicate missions', HEAD + 'missions=scout,scout\n' + PROMPT, (5, "duplicate missions entry 'scout'")),
     ('empty missions entry', HEAD + 'missions=scout,\n' + PROMPT, (5, "bad missions entry ''")),
     ('bad rewards', HEAD + 'rewards=gold\n' + PROMPT, (5, "bad rewards entry 'gold'")),
@@ -578,7 +578,7 @@ class DeliveredVoicesTests(unittest.TestCase):
                 if vid in ('darlene', 'cody'):
                     self.assertEqual(s.cache_table, 'medical' if vid == 'darlene' else 'ammo')
                     self.assertEqual(s.teaches, 'Doctor' if vid == 'darlene' else 'Aiming')
-                    self.assertEqual(s.missions, list(store.MISSION_TEMPLATES))
+                    self.assertEqual(s.missions, ['scout', 'deliver', 'retrieve', 'clear', 'signal'])
                     self.assertEqual(s.rewards, list(store.REWARDS))
                     self.assertTrue(s.places and s.shares)
                 self.assertTrue(s.knows and s.ignores and s.secrets)

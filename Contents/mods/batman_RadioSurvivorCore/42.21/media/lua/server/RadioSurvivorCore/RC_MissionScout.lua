@@ -42,7 +42,8 @@ local function log(msg)
     print('[RadioSurvivorCore] ' .. tostring(msg))
 end
 
-local Scout = {idPrefix = 'scout', reportBySpeech = true, voiceName = 'scout'}
+local Scout = {idPrefix = 'scout', reportBySpeech = true, voiceName = 'scout',
+    voiceText = 'visit a building and report on it'}
 local CELL = 256
 -- Requester fiche id -> {site = ..., at = ms} or {at = ms} when no place was found (memory only).
 local sites = {}
@@ -226,6 +227,13 @@ end
 function Scout.context(m, ctx)
     ctx.kind, ctx.place, ctx.clues, ctx.zoneReached, ctx.report = 'scout', m.place, copyList(m.clues),
         m.zoneReached == true, m.report or 'in_person'
+end
+
+-- E20-T02: the job told to a radio voice (kind of building, never its position).
+function Scout.voiceBrief(m)
+    return {job = 'Go and look at a building (kind: ' .. tostring(m.place) .. '), then call you back on this '
+        .. 'frequency to report.',
+        facts = {'The caller has been to the place (checked by the server): ' .. M.yesNo(m.zoneReached == true) .. '.'}}
 end
 
 M.register('scout', Scout)

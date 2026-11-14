@@ -99,6 +99,9 @@ local function allowedBy(sheet, name)
     return false
 end
 
+-- E20-T02: true when the sheet allows this action (listed, or implied by a listed one).
+Actions.allowedBy = allowedBy
+
 -- Paramètres d'une action proposée : tout champ sauf `type`, clés en chaînes courtes, valeurs scalaires (chaîne
 -- d'au plus MAX_PARAM_CHARS, nombre fini, booléen), au plus MAX_PARAMS. Rend la copie, ou nil.
 local function paramsOf(action)

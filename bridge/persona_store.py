@@ -25,8 +25,8 @@ ACTIONS = ('say', 'mark_map', 'reveal_area', 'signal', 'place_cache', 'place_sce
            'persona_state', 'remember', 'propose_trade', 'report_mission', 'share_frequency')
 RADIOS = ('any', 'high_tier')
 LOCATIONS = ('none', 'fixed', 'rescue')
-CACHE_TABLES = ('medical', 'ammo', 'tools', 'food', 'radio')
-MISSION_TEMPLATES = ('scout', 'deliver', 'retrieve', 'clear', 'signal')
+# E20-T02 (ADR D03): missions= and cache_table= are checked for syntax only (ID_RE); the server owns the registered
+# mission types and cache tables, refuses an unknown name at runtime and logs it.
 REWARDS = ('cache', 'frequency', 'stashmap', 'lesson')
 TEACHES = ('Doctor', 'Aiming', 'Reloading', 'Woodwork', 'Mechanics', 'Electricity', 'MetalWelding',
            'Cooking', 'Farming', 'Fishing', 'Trapping', 'PlantScavenging')
@@ -100,7 +100,7 @@ class Persona:
     cache_table: str = ''
     shares: list[str] = field(default_factory=list)
     teaches: str = ''
-    missions: list[str] = field(default_factory=lambda: ['scout'])
+    missions: list[str] = field(default_factory=list)   # empty: the server's default (RS_MissionVoice)
     rewards: list[str] = field(default_factory=list)
     state: str = 'active'
 
@@ -235,6 +235,13 @@ def _closed_list(value: str, key: str, allowed: tuple[str, ...] | None, line: in
     return result
 
 
+def _name(value: str, key: str, line: int) -> str:
+    if not ID_RE.fullmatch(value):
+        raise PersonaError(line, f"bad {key} '{value}' (a to z, 0 to 9 and _, starting with a letter, "
+                                 '32 characters at most)')
+    return value
+
+
 def _choice(value: str, key: str, allowed: tuple[str, ...], line: int) -> str:
     if value not in allowed:
         raise PersonaError(line, f"bad {key} '{value}' (expected {', '.join(allowed)})")
@@ -327,10 +334,12 @@ def parse_lines(lines: list[str], expected_id: str | None = None) -> Persona:
             location = _choice(value, key, LOCATIONS, number)
         elif key == 'coords':
             coords = _coords(value, number)
-        elif key in ('cache_table', 'teaches'):
-            reward_fields[key] = _choice(value, key, CACHE_TABLES if key == 'cache_table' else TEACHES, number)
+        elif key == 'cache_table':
+            reward_fields[key] = _name(value, key, number)
+        elif key == 'teaches':
+            reward_fields[key] = _choice(value, key, TEACHES, number)
         elif key in ('shares', 'missions', 'rewards'):
-            allowed_entries = {'shares': None, 'missions': MISSION_TEMPLATES, 'rewards': REWARDS}
+            allowed_entries = {'shares': None, 'missions': None, 'rewards': REWARDS}
             reward_fields[key] = _closed_list(value, key, allowed_entries[key], number)
         elif key == 'actions':
             actions = _actions(value, number)

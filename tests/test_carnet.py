@@ -3035,7 +3035,7 @@ class VoiceMissionTests(unittest.TestCase):
     def tearDown(self):
         self.tmp.cleanup()
 
-    def voice_sim(self, name='voice', far_only=False):
+    def voice_sim(self, name='voice', far_only=False, sheet=VOICE_SHEET):
         sim = Simulation(self.path / name, provider=False)
         sim.server.rt.execute(SCOUT_GRID)
         # Players at (10, 10): building 5002 reachable (gap 87), 5001 too close, 5003 too far.
@@ -3044,7 +3044,7 @@ class VoiceMissionTests(unittest.TestCase):
             sim.server.g.scoutHouse(5002, 100, 10, 10, 10)
         sim.server.g.scoutHouse(5003, 600, 10, 10, 10)
         (sim.path / 'personas').mkdir(parents=True, exist_ok=True)
-        (sim.path / 'personas' / 'scouter.txt').write_text(VOICE_SHEET, encoding='utf-8')
+        (sim.path / 'personas' / 'scouter.txt').write_text(sheet, encoding='utf-8')
         (sim.path / 'personas' / 'other.txt').write_text(OTHER_SHEET, encoding='utf-8')
         sim.server.load('shared/RadioSurvivor/RadioSurvivor_Const.lua', 'server/RadioSurvivor_Server.lua')
         sim.server.g.fire('OnLoadRadioScripts', sim.server.g.MANAGER, True)
@@ -3179,7 +3179,9 @@ class VoiceMissionTests(unittest.TestCase):
         self.assertIn('Tell them NOW where to go', prompt)
         for clue in clues:
             self.assertIn(f'- What you know of the place: {clue}', prompt)
-        self.assertNotIn('has NOT been there yet', prompt)
+        # E20-T02: the job is composed by the template on the server (kind of building, no coordinate).
+        self.assertIn('- The job: Go and look at a building (kind: house)', prompt)
+        self.assertNotIn('has NOT completed the objective', prompt)
         self.assertFalse(re.search(r'\d', re.sub(r'\[Caller 1\]|about 120 minutes', '', prompt)), prompt)
         # The briefing reply is aired on the voice's frequency, without a DONE notice to the caller.
         before = len(self.sent)
@@ -3209,14 +3211,17 @@ class VoiceMissionTests(unittest.TestCase):
         self.assertEqual(m.state, 'active')
         self.assertEqual(count(m.receipts), 0)
         field = self.mission_field(req)
-        self.assertEqual(set(field), {'state', 'remainingMs', 'kind', 'place', 'clues', 'zoneReached', 'report', 'turn',
-                                      'toReport'})
-        self.assertEqual((field['state'], field['turn'], field['zoneReached'], field['report'], field['place'],
-                          field['toReport']), ('active', 'not_yet', False, 'radio', 'house', False))
+        # E20-T02: generic fields only; what the template tells comes as job and facts.
+        self.assertEqual(set(field), {'state', 'remainingMs', 'kind', 'place', 'clues', 'turn', 'toReport', 'job',
+                                      'facts'})
+        self.assertEqual((field['state'], field['turn'], field['kind'], field['place'], field['toReport']),
+                         ('active', 'not_yet', 'scout', 'house', False))
+        self.assertEqual(field['facts'], {1: 'The caller has been to the place (checked by the server): no.'})
         self.assertFalse(any(ch.isdigit() for clue in field['clues'].values() for ch in clue))
         sheet = bridge_module.Voices(sim.path / 'personas').get('scouter')
         prompt = bridge_module.mission_prompt(bridge_module.mission_context(req, sheet), '[Caller 1]')
-        self.assertIn('has NOT been there yet', prompt)
+        self.assertIn('has NOT completed the objective', prompt)
+        self.assertIn('- The caller has been to the place (checked by the server): no.', prompt)
         self.assertIn('about 120 minutes', prompt)
         self.assertFalse(re.search(r'\d', re.sub(r'\[Caller 1\]|about 120 minutes', '', prompt)), prompt)
         # E11-T13: a report_mission proposed before the visit is refused (a claim validates nothing).
@@ -3260,7 +3265,8 @@ class VoiceMissionTests(unittest.TestCase):
         self.assertIn('you only wait for their report', prompt)
         self.assertIn('report_mission', prompt)
         self.assertIn('Fuel depot', prompt)
-        self.assertNotIn('has NOT been there yet', prompt)
+        self.assertIn('- The caller has been to the place (checked by the server): yes.', prompt)
+        self.assertNotIn('has NOT completed the objective', prompt)
         self.respond(sim, req)
         self.assertEqual(m.state, 'active')
         row = sim.clients['alice'].g.RS_CarnetClient.snapshot.missions[1]

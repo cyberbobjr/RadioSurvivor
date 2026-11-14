@@ -40,12 +40,15 @@ character by this voice (MapMarks.give: map mark and history line "mark", no bud
 (field reward). The mark is sent after the success is saved: a crash in between loses the mark, never the success.
 Without the bridge the voice never answers: a voice mission waits for the bridge (or its delay); no notebook button.
 
-Bridge context (V.context, field mission= of the radio request, hex RSV2): kind, state, place (kind of building in
-English), clues (no digits), zoneReached, report = 'radio', remainingMs, turn ('briefing': the mission was just
-created, the voice must now tell the clues; 'not_yet': the caller has not reached the place; 'report_due': the place
-was reached, this call may be the report (action report_mission); 'success': the report was accepted; 'open':
-otherwise), toReport (objective met), reward (label of the place given, or to be given at the report). Never a
-coordinate nor the zone.
+Bridge context (V.context, field mission= of the radio request, hex RSV2; generic since E20-T02, ADR D03): kind
+(voice name of the template), state, place (kind of place in English), clues (no digits), remainingMs, turn
+('briefing': the mission was just created, the voice must now tell the clues; 'not_yet': the objective is not met;
+'report_due': the objective is met (M.reportReady, toReport), this call may be the report (action report_mission);
+'success': the report was accepted; 'open': otherwise), toReport (objective met), reward (label of the place given, or
+to be given at the report), job and facts (English, composed by the template's voiceBrief from server facts). Never a
+coordinate nor the zone. Jobs this voice may give (V.jobs, field jobs=, hex RSV2, only for a sheet that allows
+start_mission): jobs = ordered list of { name, text } (names of the sheet's missions= line declared by a registered
+template, text = its voiceText) and caches = the cache tables of place_cache (RC_Caches.tableNames).
 Briefing (E11-T09): the reply that proposes start_mission is aired before the action is judged, so it cannot know the
 place. Once the mission is created, V.onStarted(m, ctx) (set by RadioSurvivor_Server) queues one more request to the
 bridge for this caller and this voice, with turn = 'briefing': the voice then says the kind of place and its clues on
@@ -60,6 +63,7 @@ local S = require "RadioSurvivor/RS_State"
 local Actions = require "RadioSurvivor/RS_Actions"
 local Log = require "RadioSurvivor/RS_RadioLog"
 local Bonds = require "RadioSurvivor/RS_VoiceBonds" -- E07-T10: exceptional share_frequency
+local Caches = require "RadioSurvivorCore/RC_Caches" -- E20-T02: cache tables told to the voice (jobs=)
 local MapMarks = require "RadioSurvivor/RS_MapMarks"
 
 local V = {}
@@ -86,6 +90,11 @@ local function logUnknown(sheet, voiceName)
     if unknownLogged[key] then return end
     unknownLogged[key] = true
     Const.log("voice sheet " .. tostring(sheet.id) .. " lists unknown mission type '" .. tostring(voiceName) .. "'")
+end
+
+-- Mission types listed by the sheet (missions= line; default: scout).
+local function missionsOf(sheet)
+    return type(sheet.missions) == "table" and #sheet.missions > 0 and sheet.missions or {"scout"}
 end
 
 function V.donorId(voice, cid)
@@ -132,9 +141,8 @@ function V.start(store, sheet, cid, player, khz, template)
     if V.open(state, sheet.id, cid) then return nil, "mission_open" end
     local d = V.donor(state, sheet.id, cid, true)
     if M.offerWait(d) then return nil, "recent_mission" end -- E11-T20: play time (pause, speed)
-    local allowed = sheet.missions or {"scout"}
     local permitted = false
-    for _, name in ipairs(allowed) do if name == template then permitted = true end end
+    for _, name in ipairs(missionsOf(sheet)) do if name == template then permitted = true end end
     local name, t = M.voiceTemplate(template)
     if permitted and not name then logUnknown(sheet, template) end
     if not name or not permitted then return nil, "bad_template" end
@@ -211,15 +219,37 @@ function V.nextPlace(state, sheet, m)
     return nil
 end
 
+-- Fields of the engine context (M.context) every voice mission shares; the template tells the rest (voiceBrief).
+local GENERIC = {"state", "remainingMs", "place", "clues", "toReport"}
+
 -- Bridge context of an open (or just closed) voice mission; turn: 'not_yet', 'report_due', 'success' or 'open'.
 -- place: the place that the report would give (turn 'report_due'), told to the voice beforehand.
 function V.context(m, turn, place)
-    local ctx = M.context(m)
-    ctx.rewardType, ctx.rewardCount = nil, nil
-    ctx.turn = turn
+    local base = M.context(m)
+    local t = M.template(m)
+    local ctx = {kind = t and t.voiceName or m.template, turn = turn}
+    for _, key in ipairs(GENERIC) do ctx[key] = base[key] end
+    local brief = M.voiceBrief(m)
+    if type(brief) == "table" then ctx.job, ctx.facts = brief.job, brief.facts end
     if m.rewardLabel then ctx.reward = m.rewardLabel
     elseif type(place) == "table" and type(place.label) == "string" then ctx.reward = place.label end
     return ctx
+end
+
+-- Jobs this voice may give, told to its model (field jobs=), or nil when the sheet does not allow start_mission.
+-- A name of the sheet without a registered template is left out and logged once (V.start refuses it too).
+function V.jobs(sheet)
+    if not Actions.allowedBy(sheet, "start_mission") then return nil end
+    local jobs = {}
+    for _, name in ipairs(missionsOf(sheet)) do
+        local _, t = M.voiceTemplate(name)
+        if t and type(t.voiceText) == "string" then
+            jobs[#jobs + 1] = {name = name, text = t.voiceText}
+        elseif not t then
+            logUnknown(sheet, name)
+        end
+    end
+    return {jobs = jobs, caches = Caches.tableNames()}
 end
 
 -- The caller (notebook character cid) speaks to this voice and the request goes to the bridge (E11-T13): nothing is
@@ -257,7 +287,7 @@ function V.report(store, sheet, cid, player, khz)
     return m
 end
 
--- Field mission= of a radio request (hex RSV2), nil without context.
+-- Field mission= (context) or jobs= (V.jobs) of a radio request (hex RSV2), nil without a value.
 function V.field(ctx)
     if type(ctx) ~= "table" then return nil end
     return Codec.hexBytes(Codec.encodeBytes(ctx))

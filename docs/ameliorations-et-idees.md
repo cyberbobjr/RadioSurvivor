@@ -208,7 +208,7 @@ Priorité : **haute** (bug, sécurité ou perte de données possible), **moyenne
 
 #### C13 — Pont : duplications et fichier monolithique
 - **Problème** :
-  - `CACHE_TABLES` et `MISSION_TEMPLATES` existent en double, dans `radio_bridge.py:1489`/`:1492` et dans `persona_store.py:28-29` ;
+  - ~~listes des tables de cache et des types de mission en double dans le pont et `persona_store.py`~~ : retirées par E20-T02 (le serveur les envoie dans `jobs=`) ;
   - table des langues en double (C08) ;
   - réponse d'erreur construite deux fois (`:1833-1836` et `:1914-1917`) ;
   - décodage hexadécimal répété six fois (`:893`, `:947`, `:1003`, `:1037`, `:1228`, `bulletin.py:31`) ;

@@ -97,7 +97,9 @@ RST.suite("rs.missions.radio", { tags = { "server", "world" }, testTimeoutMs = 6
         t:eq(nil, again, "second mission for the same caller")
         t:eq("mission_open", reason)
         local before = V.heard(sheet, p, "char1", 199800, store)
-        t:eq({ "not_yet", "active", false, false }, { before.turn, before.state, before.zoneReached, before.toReport })
+        -- E20-T02: generic context, the visit told by the template's facts.
+        t:eq({ "not_yet", "active", false, "scout" }, { before.turn, before.state, before.toReport, before.kind })
+        t:eq("The caller has been to the place (checked by the server): no.", before.facts and before.facts[1])
         t:eq({ nil, "not_done" }, { V.report(store, sheet, "char1", p, 199800) }, "report before the visit")
         t:eq(nil, before.zone, "zone in the bridge context")
         for _, clue in ipairs(before.clues) do t:ok(not string.find(clue, "%d"), "clue with a digit: " .. clue) end

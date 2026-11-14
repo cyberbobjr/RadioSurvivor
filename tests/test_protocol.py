@@ -2545,9 +2545,6 @@ def scenario_action_descriptions(tmp: Path) -> None:
     assert registered is not None, "RS_Actions.register has no 'executors' upvalue"
     names = set(registered.split(","))
     assert sorted(names) == sorted(rb.EXECUTABLE_ACTIONS), (registered, sorted(rb.EXECUTABLE_ACTIONS))
-    # E11-T06: closed list of the cache tables, same order as the server (RS_Config.Caches.order).
-    order = g.require("RadioSurvivor/RS_Config").Caches.order
-    assert tuple(order[i] for i in range(1, len(order) + 1)) == rb.CACHE_TABLES, rb.CACHE_TABLES
     const = g.require("RadioSurvivor/RadioSurvivor_Const")
     assert (rb.MEMORY_FACT_CHARS, rb.PERSONA_LEVEL_MAX, rb.PERSONA_LEVEL_STEP, rb.PERSONA_PLACE_CHARS) == (
         const.MEMORY_FACT_CHARS, const.PERSONA_LEVEL_MAX, const.PERSONA_LEVEL_STEP, const.PERSONA_PLACE_CHARS)
@@ -3379,11 +3376,12 @@ You are Job Giver, a voice of the offline test bench who hands out scouting jobs
 
 
 def scenario_voice_mission_bridge(tmp: Path) -> None:
-    """E11-T08, pont + écriture Lua : start_mission proposée avec sa description et son exemple (gabarit en liste
-    fermée, lieu choisi par le serveur) ; bounded_actions retire un gabarit inconnu, un paramètre en trop ou absent ;
-    le champ mission= écrit par le vrai RS_Transport (contexte de RS_MissionVoice) est relu par parse_requests et
-    mission_context ; le prompt porte le type de lieu, les indices, « pas encore » ou « compte rendu accepté » et la
-    récompense, jamais de chiffre ni de coordonnée ; un indice chiffré, une récompense hors fiche, un champ illisible
+    """E11-T08, pont + écriture Lua : start_mission proposée avec sa description, la liste des missions de la demande
+    (jobs=, E20-T02) et son exemple (lieu choisi par le serveur) ; sans jobs=, start_mission n'est pas proposée ;
+    bounded_actions retire un type absent de jobs=, un paramètre en trop ou absent ; les champs mission= et jobs= écrits
+    par le vrai RS_Transport sont relus par parse_requests, mission_context et voice_jobs ; le prompt porte l'objectif
+    et les faits composés par le serveur, les indices, « pas encore » ou « compte rendu accepté » et la récompense,
+    jamais de chiffre ni de coordonnée hors des faits ; un indice chiffré, une récompense hors fiche, un champ illisible
     sont écartés ; sans mission= le prompt est celui d'avant E11-T08."""
     sys.path.insert(0, str(ROOT / "bridge"))
     import radio_bridge as rb
@@ -3393,19 +3391,10 @@ def scenario_voice_mission_bridge(tmp: Path) -> None:
     (folder / "giver.txt").write_text(MISSION_SHEET, encoding="utf-8")
     voices = rb.Voices(folder)
     giver = voices.get("giver")
-    # E11-T13 : report_mission (compte rendu à la radio) est permise avec start_mission sans être listée par la fiche.
-    assert rb.offered_actions(giver) == ["start_mission", "report_mission"] and rb.structured(giver)
+    # E20-T02 : sans liste de missions de la demande (jobs=), start_mission n'est pas proposée ; E11-T13 : report_mission
+    # (compte rendu à la radio) est permise avec start_mission sans être listée par la fiche.
+    assert rb.offered_actions(giver) == ["report_mission"]
     assert rb.sheet_actions(giver) == ["say", "start_mission", "report_mission"]
-    system = rb.actions_prompt(giver)
-    assert "Allowed action types: start_mission, report_mission." in system, system
-    assert '{"type": "start_mission", "template": "scout"}' in system and '{"type": "report_mission"}' in system
-    assert "The server chooses the place and objective" in system and "10600" not in system, system
-    assert rb.bounded_actions(giver, [{"type": "start_mission"}, {"type": "start_mission", "template": "deliver"},
-                                      {"type": "start_mission", "template": "scout", "place": "depot"},
-                                      {"type": "start_mission", "template": "scout"}]) == [
-        {"type": "start_mission", "template": "scout"}]
-    assert rb.bounded_actions(giver, [{"type": "report_mission", "mission": "x"}, {"type": "report_mission"}]) == [
-        {"type": "report_mission"}]
     (folder / "talker.txt").write_text(MISSION_SHEET.replace("id=giver", "id=talker").replace("164.0", "165.0")
                                        .replace("actions=say,start_mission", "actions=say,remember"), encoding="utf-8")
     talker = rb.Voices(folder).get("talker")
@@ -3422,26 +3411,47 @@ def scenario_voice_mission_bridge(tmp: Path) -> None:
     rt.execute(f"package.path = [[{paths};]] .. package.path")
     codec = rt.eval('require("RadioSurvivorCore/RC_Codec")')
     transport = rt.eval('(function() local T = require("RadioSurvivor/RS_BridgeLanes"); T.register("npc", {order = 20}); T.register("acks", {order = 30}); return T end)()')
+    job = "Go and look at a building (kind: house), then call you back on this frequency to report."
     context = rt.eval("""{ state = "active", remainingMs = 5400000, kind = "scout", place = "house",
         clues = { "The place is a large single-storey house.", "There is a gas station a short walk to the north." },
-        zoneReached = false, report = "radio", turn = "not_yet" }""")
+        job = "Go and look at a building (kind: house), then call you back on this frequency to report.",
+        facts ={ "The caller has been to the place (checked by the server): no." },
+        turn = "not_yet" }""")
     field = codec.hexBytes(codec.encodeBytes(context))
+    jobs_field = codec.hexBytes(codec.encodeBytes(rt.eval(
+        '{ jobs = { { name = "scout", text = "visit a building and report on it" } }, caches = { "food" } }')))
     req = rt.eval("{}")
     for key, value in {"id": "8-8", "sentAt": 1, "caller": "kate", "voice": "giver", "name": "Kate",
-                       "text": "I went there.", "mission": field}.items():
+                       "text": "I went there.", "mission": field, "jobs": jobs_field}.items():
         req[key] = value
     transport.radio = rt.table_from([req])
     assert transport.write()
     parsed = rb.parse_requests((exchange / "requests.txt").read_text(encoding="utf-8"))
     sent = parsed[1][0]
-    assert sent["mission"] == field, sent
+    assert (sent["mission"], sent["jobs"]) == (field, jobs_field), sent
+    # E20-T02 : missions de la demande (jobs=) : description, exemple et validation de start_mission.
+    jobs = rb.voice_jobs(sent, giver)
+    assert jobs == rb.VoiceJobs((("scout", "visit a building and report on it"),), ("food",)), jobs
+    assert rb.offered_actions(giver, jobs) == ["start_mission", "report_mission"] and rb.structured(giver, jobs)
+    system = rb.actions_prompt(giver, jobs)
+    assert "Allowed action types: start_mission, report_mission." in system, system
+    assert '{"type": "start_mission", "template": "scout"}' in system and '{"type": "report_mission"}' in system
+    assert "Jobs you may give (name: what it is):\n  - scout: visit a building and report on it" in system, system
+    assert "The server chooses the place and objective" in system and "10600" not in system, system
+    assert rb.bounded_actions(giver, [{"type": "start_mission"}, {"type": "start_mission", "template": "deliver"},
+                                      {"type": "start_mission", "template": "scout", "place": "depot"},
+                                      {"type": "start_mission", "template": "scout"}], jobs) == [
+        {"type": "start_mission", "template": "scout"}]
+    assert rb.bounded_actions(giver, [{"type": "report_mission", "mission": "x"}, {"type": "report_mission"}],
+                              jobs) == [{"type": "report_mission"}]
     mission = rb.mission_context(sent, giver)
-    assert mission == {"kind": "scout", "state": "active", "turn": "not_yet", "place": "house", "minutes": 90, "reached": False,
+    assert mission == {"kind": "scout", "state": "active", "turn": "not_yet", "place": "house", "minutes": 90,
+                       "job": job, "facts": ["The caller has been to the place (checked by the server): no."],
                        "clues": ["The place is a large single-storey house.",
                                  "There is a gas station a short walk to the north."], "reward": None,
                        "to_report": False}, mission
     prompt = rb.mission_prompt(mission, "[Caller 1]")
-    assert "has NOT been there yet" in prompt and "kind: house" in prompt and "about 90 minutes" in prompt, prompt
+    assert "has NOT completed the objective" in prompt and "kind: house" in prompt and "about 90 minutes" in prompt, prompt
     assert "never add report_mission" in prompt, prompt
     # Mission ouverte : la voix redit les indices si on le lui demande (E11-T09).
     assert "tell them the clues again" in prompt, prompt
@@ -3450,22 +3460,22 @@ def scenario_voice_mission_bridge(tmp: Path) -> None:
     # Consigne juste après la création (E11-T09, tour « briefing ») : indices + ordre de les dire, sans « pas encore ».
     briefing = rb.mission_context({**sent, "mission": codec.hexBytes(codec.encodeBytes(rt.eval("""{ state = "active",
         remainingMs = 7200000, kind = "scout", place = "house", clues = { "The place is a large single-storey house." },
-        zoneReached = false, report = "radio", turn = "briefing" }""")))}, giver)
+        turn = "briefing" }""")))}, giver)
     assert briefing and briefing["turn"] == "briefing", briefing
     told = rb.mission_prompt(briefing, "[Caller 1]")
     assert "Tell them NOW where to go" in told and "every clue above" in told, told
     assert "- What you know of the place: The place is a large single-storey house." in told, told
-    assert "has NOT been there yet" not in told and "tell them the clues again" not in told, told
+    assert "has NOT completed the objective" not in told and "tell them the clues again" not in told, told
     # E11-T13 : objectif rempli (tour « report_due ») : la voix reconnaît le compte rendu et ajoute report_mission ;
     # le lieu que donnera la réussite est dit d'avance.
     due = rb.mission_context({**sent, "mission": codec.hexBytes(codec.encodeBytes(rt.eval("""{ state = "active",
         remainingMs = 600000, kind = "scout", place = "house", clues = { "The place is a large single-storey house." },
-        zoneReached = true, toReport = true, report = "radio", turn = "report_due", reward = "Fuel depot" }""")))},
+        toReport = true, turn = "report_due", reward = "Fuel depot" }""")))},
         giver)
     assert due and (due["turn"], due["to_report"], due["reward"]) == ("report_due", True, "Fuel depot"), due
     told = rb.mission_prompt(due, "[Caller 1]")
     assert "you only wait for their report" in told and '{"type": "report_mission"}' in told, told
-    assert "Fuel depot" in told and "has NOT been there yet" not in told, told
+    assert "Fuel depot" in told and "has NOT completed the objective" not in told, told
     assert not re.search(r"\d", told.replace("[Caller 1]", "").replace("about 10 minutes", "")), told
 
     # Réponse complète : section mission dans le prompt système, avant la consigne de format ; sans mission= le prompt
@@ -3490,8 +3500,8 @@ def scenario_voice_mission_bridge(tmp: Path) -> None:
     def encoded(value) -> str:
         return protocol.encode(value).hex()
 
-    success = {"state": "success", "remainingMs": 0, "kind": "scout", "place": "house", "zoneReached": True,
-               "report": "radio", "turn": "success", "reward": "Fuel depot",
+    success = {"state": "success", "remainingMs": 0, "kind": "scout", "place": "house", "turn": "success",
+               "reward": "Fuel depot",
                "clues": {1: "The place is 4 floors high at 10600, 9300.", 2: "The radio mast hides the cache.",
                          3: "There is a church nearby."}}
     mission = rb.mission_context({"id": "9", "mission": encoded(success)}, giver)
@@ -3500,9 +3510,9 @@ def scenario_voice_mission_bridge(tmp: Path) -> None:
     assert "the job is done" in prompt and "Fuel depot" in prompt and "Time left" not in prompt, prompt
     assert "circled on" not in prompt, prompt   # E11-T10 : plus de zone après la réussite
     assert not re.search(r"\d", prompt.replace("[Caller 1]", "")), prompt
-    # Récompense absente de la fiche, gabarit ou tour inconnus, chiffre dans le lieu, champ illisible : écartés.
+    # Récompense absente de la fiche, type au nom invalide, tour inconnu, chiffre dans le lieu, champ illisible : écartés.
     assert rb.mission_context({"mission": encoded(dict(success, reward="Secret bunker"))}, giver)["reward"] is None
-    for bad in (dict(success, kind="invented"), dict(success, turn="done"), dict(success, state="failed"),
+    for bad in (dict(success, kind="In-vented"), dict(success, turn="done"), dict(success, state="failed"),
                 dict(success, place="house 12")):
         assert rb.mission_context({"mission": encoded(bad)}, giver) is None, bad
     assert rb.mission_context({"mission": "zz"}, giver) is None

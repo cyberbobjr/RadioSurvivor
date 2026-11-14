@@ -238,6 +238,7 @@ Always allowed, even if you do not list it. The voice answers you on the radio.
 #### Missions and rewards — `start_mission`
 
 - `missions=scout,deliver,retrieve,clear,signal` allows scouting, a delivery drop, missing papers, clearing zombies and a Signal Smoke signal. The server checks each objective; one mission per player and voice. The notebook is required.
+- The accepted names are the mission types registered by the mod (currently `scout`, `deliver`, `retrieve`, `clear`, `signal`). `persona_store.py` only checks how a name is written; a well-written name the mod does not know is ignored by the server, with a line in the game log (`console.txt`): `voice sheet <id> lists unknown mission type '<name>'`. The voice keeps its other missions.
 - **Report by radio**, on the voice's frequency (`report_mission` is implicit). Successful missions improve reputation.
 - `rewards=cache,frequency,stashmap,lesson` allows one extra reward. The server rotates through that order per player and voice, skipping unavailable effects and saving its choice. The AI never chooses the reward.
 - A cache contains real items from `cache_table`, at the first `place=`: one per mission, deferred placement when unloaded, with a private map marker. `shares` limits other active voices whose frequency may enter the beneficiary's radio notebook. A vanilla stash map leads to an unexplored stash (one map per player and voice). `teaches` fixes the lesson's skill.
@@ -252,13 +253,13 @@ Always allowed, even if you do not list it. The voice answers you on the radio.
 
 | Key | Allowed values |
 |---|---|
-| `cache_table` | `medical`, `ammo`, `tools`, `food`, `radio` |
+| `cache_table` | Tables of the mod: `medical`, `ammo`, `tools`, `food`, `radio` |
 | `shares` | Comma-separated voice IDs |
 | `teaches` | `Doctor`, `Aiming`, `Reloading`, `Woodwork`, `Mechanics`, `Electricity`, `MetalWelding`, `Cooking`, `Farming`, `Fishing`, `Trapping`, `PlantScavenging` |
-| `missions` | `scout`, `deliver`, `retrieve`, `clear`, `signal` |
+| `missions` | Types registered by the mod: `scout`, `deliver`, `retrieve`, `clear`, `signal` |
 | `rewards` | `cache`, `frequency`, `stashmap`, `lesson` |
 
-Keys cannot repeat; lists cannot contain duplicates or empty entries; spelling is case-sensitive. In-game solo and MP validation of the new rewards is **pending**.
+Keys cannot repeat; lists cannot contain duplicates or empty entries; spelling is case-sensitive. For `missions` and `cache_table`, `persona_store.py` only checks the spelling (lowercase letters, digits and `_`, starting with a letter): a name the mod does not know is ignored by the server and reported in `console.txt`. In-game solo and MP validation of the new rewards is **pending**.
 
 #### Radio deliveries: discreet collection
 

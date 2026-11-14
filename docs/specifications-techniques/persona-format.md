@@ -531,12 +531,22 @@ Tu es Hélène, ...
 Les cinq clés facultatives suivantes sont strictes, non répétables, et identiques dans les lecteurs Python et Lua.
 Les listes sont séparées par des virgules, sans doublons ni entrée vide ; la casse compte.
 
+`missions=` et `cache_table=` ne sont contrôlées que pour leur **syntaxe** par les deux lecteurs (E20-T02, ADR D03) :
+un nom fait de `a` à `z`, `0` à `9` et `_`, commençant par une lettre, 32 caractères au plus (sinon
+`bad missions entry '<nom>'` ou `bad cache_table '<nom>' (a to z, 0 to 9 and _, starting with a letter, 32 characters
+at most)`). Les types de mission et les tables de cache existants appartiennent au serveur : registre des gabarits
+(`RC_Missions`, déclaration `voiceName`) et `RC_MissionConfig.Caches.order`. À l'exécution, le serveur ignore un type
+de mission sans gabarit inscrit et l'écrit une fois dans le journal du jeu (`voice sheet <id> lists unknown mission
+type '<nom>'`, `console.txt`) ; `start_mission` le refuse (`bad_template`). Le pont ne lit plus ces deux clés : il
+reçoit les missions permises et les tables dans la demande (champ `jobs=`,
+[protocole](protocole-carnet-v2.md#mission-donnée-par-une-voix-e11-t08)).
+
 | Clé | Valeurs | Défaut |
 |---|---|---|
-| `cache_table` | `medical`, `ammo`, `tools`, `food`, `radio` | aucune table |
+| `cache_table` | un nom (syntaxe de `id`) ; tables du serveur aujourd'hui : `medical`, `ammo`, `tools`, `food`, `radio` | aucune table |
 | `shares` | IDs de voix, même syntaxe que `id` ; présence et état vérifiés par le serveur | aucun destinataire |
 | `teaches` | `Doctor`, `Aiming`, `Reloading`, `Woodwork`, `Mechanics`, `Electricity`, `MetalWelding`, `Cooking`, `Farming`, `Fishing`, `Trapping`, `PlantScavenging` | aucune leçon |
-| `missions` | `scout`, `deliver`, `retrieve`, `clear`, `signal` | `scout` |
+| `missions` | noms (syntaxe de `id`) ; types inscrits aujourd'hui : `scout`, `deliver`, `retrieve`, `clear`, `signal` | `scout` |
 | `rewards` | `cache`, `frequency`, `stashmap`, `lesson` | ancien repère de reconnaissance |
 
 `actions=...,share_frequency` autorise aussi le partage direct d'une fréquence comme geste de confiance.

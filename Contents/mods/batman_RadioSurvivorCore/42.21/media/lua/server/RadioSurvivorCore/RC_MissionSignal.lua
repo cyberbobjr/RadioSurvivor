@@ -41,7 +41,8 @@ local function log(msg)
 end
 
 -- E11-T13: report in person. E20-T01: given by a voice as `signal`, labelled IGUI_RS_MapZoneSignal on the map.
-local Signal = {idPrefix = 'signal', reportBySpeech = true, voiceName = 'signal', mapStyle = 'Signal'}
+local Signal = {idPrefix = 'signal', reportBySpeech = true, voiceName = 'signal', mapStyle = 'Signal',
+    voiceText = 'light a Signal Smoke signal at a place'}
 local COLOR_TOLERANCE = 0.02
 -- Requester fiche id -> {site = ..., at = ms} (memory only); Signal Smoke module (false: unusable).
 local sites = {}
@@ -288,6 +289,14 @@ end
 function Signal.context(m, ctx)
     ctx.kind, ctx.place, ctx.clues, ctx.report = 'signal', m.place, copyList(m.clues), 'in_person'
     ctx.color, ctx.hour, ctx.windowHours, ctx.lit = m.color, m.hour, m.windowHours, m.lit == true
+end
+
+-- E20-T02: the job told to a radio voice (colour and daily window, never the place's position).
+function Signal.voiceBrief(m)
+    return {job = 'Start a ' .. tostring(m.color) .. ' Signal Smoke signal inside the circled area around a '
+        .. tostring(m.place) .. ', in the daily window starting at ' .. tostring(m.hour or 0) .. ':00 for '
+        .. tostring(m.windowHours or 0) .. ' game hours, then report to you on this frequency.',
+        facts = {'A matching participant signal was verified: ' .. M.yesNo(m.lit == true) .. '.'}}
 end
 
 M.register('signal', Signal)

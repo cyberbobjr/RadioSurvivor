@@ -70,9 +70,16 @@ Declarations read by the other modules (E20-T01, ADR D02; all optional, nothing 
                                                 Deliver button and NoRefund line, journal action "deliver")
     voiceName = '<name>'                        a radio voice may give it under this name (sheet missions= line,
                                                 start_mission parameter, bridge); none: never given by a voice
+    voiceText = '<short English phrase>'        (with voiceName) what the job is, told to the voice's model among the
+                                                jobs it may give (field jobs= of the radio request, E20-T02)
+    voiceBrief(m) -> {job, facts}               (with voiceName) the open mission told to the voice (field mission=,
+                                                E20-T02): job, one English sentence of the objective; facts, English
+                                                lines of server facts and rules (counts, yes/no). Composed from server
+                                                facts only: never a coordinate, an item id in the job, nor a frequency
     mapStyle = '<Suffix>'                       suffix of the map label key IGUI_RS_MapZone<Suffix>; none: plain label
 The engine copies handover (boolean) and mapStyle into every client projection (p.handover, p.mapStyle);
-M.voiceTemplate(voiceName) -> name, template | nil and M.voiceNames() -> sorted list read voiceName.
+M.voiceTemplate(voiceName) -> name, template | nil and M.voiceNames() -> sorted list read voiceName; M.voiceBrief(m)
+reads voiceBrief.
 Report to the requester (E11-T13, user decision of 2026-10-14): the templates scout, clear, recover and signal never
 succeed by themselves. Their objective met, the mission stays 'active' and is projected with toReport = true (the
 notebook shows "to report"); it succeeds only when a participant reports to the requester: in person to the NPC
@@ -232,6 +239,18 @@ function M.voiceNames()
     end
     table.sort(names)
     return names
+end
+
+-- E20-T02: job and facts of a mission told to its radio voice (declaration voiceBrief), or nil without one.
+function M.voiceBrief(m)
+    local t = type(m) == 'table' and M.template(m)
+    if not t or type(t.voiceBrief) ~= 'function' then return nil end
+    return t.voiceBrief(m)
+end
+
+-- E20-T02: 'yes' or 'no', for the fact lines of the voice briefs.
+function M.yesNo(flag)
+    return flag and 'yes' or 'no'
 end
 
 local function templateForOffer(offerId)
@@ -584,7 +603,8 @@ end
 -- transaction token: a replay is a duplicate); an engine refusal at that point removes the marker (refusal before any
 -- effect), then the items are removed. Reward lot = engine reward item at completion (none, or withdrawn by the
 -- engine: rewardCount 0), claimed by the common lot mechanism (M.claim).
-local Deliver = {idPrefix = 'delivery', handover = true, voiceName = 'deliver'}
+local Deliver = {idPrefix = 'delivery', handover = true, voiceName = 'deliver',
+    voiceText = 'leave requested goods at a dead drop'}
 
 local SUPPLY_TITLES = {food = 'IGUI_RC_Mission_Supply_food', medical = 'IGUI_RC_Mission_Supply_medical',
     ammo = 'IGUI_RC_Mission_Supply_ammo'}
@@ -765,19 +785,38 @@ function Deliver.project(m, p)
 end
 
 function Deliver.context(m, ctx)
-    if m.donor == 'voice' then
-        ctx.kind, ctx.place, ctx.report = 'deliver', m.place, 'radio'
-        ctx.depositMode = m.deposit and m.deposit.mode or 'box'
-        ctx.depositCollected = m.delivered >= m.quantity
-        ctx.collectionRule = 'Leave the complete requested goods in the designated box, or a bag containing only '
-            .. 'the requested goods on the ground. Everyone must move at least forty tiles away for ten seconds '
-            .. 'before collection. Then report by radio.'
-    end
+    if m.donor == 'voice' then ctx.kind, ctx.place, ctx.report = 'deliver', m.place, 'radio' end
     ctx.quantity, ctx.delivered, ctx.accepted = m.quantity, m.delivered, m.accepted
     if m.unit == 'value' then
         ctx.unit, ctx.values = 'value', m.values
         ctx.need = m.supply and m.supply.need or nil
     end
+end
+
+-- E20-T02: dead drop of a radio voice, told to the voice. The report is due only once the server collected the whole
+-- drop (Deliver.voiceReportReady): before that, the mission is never sent with toReport nor turn 'report_due'.
+local MAX_ACCEPTED_TOLD = 32
+
+function Deliver.voiceBrief(m)
+    local mode = m.deposit and m.deposit.mode == 'bag' and 'a bag hidden on the ground' or 'the agreed box'
+    local accepted = {}
+    for fullType, ok in pairs(m.accepted or {}) do
+        if ok == true and type(fullType) == 'string' then accepted[#accepted + 1] = fullType end
+    end
+    table.sort(accepted)
+    while #accepted > MAX_ACCEPTED_TOLD do table.remove(accepted) end
+    return {
+        job = 'Leave ' .. tostring(m.quantity) .. ' requested items in ' .. mode .. ' at ' .. tostring(m.place)
+            .. ', then report to you on this frequency after collection.',
+        facts = {
+            'Accepted item types (closed server list): ' .. table.concat(accepted, ', ') .. '.',
+            'Collection rule: leave the complete requested goods; for a bag include only the requested goods. '
+                .. 'Everyone must move at least forty tiles away for ten seconds. The goods disappear only when '
+                .. 'collected; a hidden bag also disappears. Never claim collection before the server confirms it.',
+            'Collected by the server: ' .. tostring(m.delivered) .. ' of ' .. tostring(m.quantity)
+                .. '; collection complete: ' .. M.yesNo(Deliver.voiceReportReady(m)) .. '.',
+        },
+    }
 end
 
 -- Poll of the giver (RadioSurvivor's radio voice: deferred, unseen collection of the complete dead drop; never

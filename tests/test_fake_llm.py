@@ -144,7 +144,9 @@ class FakeLLMTests(unittest.TestCase):
 
     def test_radio_structured_briefing_says_the_clues(self):
         mission = {"kind": "scout", "state": "active", "turn": "briefing", "place": "gas station",
-                   "clues": {1: "a red roof", 2: "next to a water tower"}, "zoneReached": False}
+                   "clues": {1: "a red roof", 2: "next to a water tower"},
+                   # E20-T02: the objective is composed by the template on the server (field job).
+                   "job": "Go and look at a building (kind: gas station), then call you back on this frequency."}
         lines = self.radio("rstfake", self.mission_voices, mission=hexed(mission))
         self.assertIsInstance(lines, list)   # no action: plain lines
         said = " ".join(lines)

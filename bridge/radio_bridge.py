@@ -54,10 +54,12 @@ envoie les coordonnées au seul appelant.
 Quartier révélé (E07-T05) : reveal_area prend le même paramètre place que mark_map, proposée dans les mêmes conditions
 (lieux de la fiche) ; le serveur rend connu sur la carte du seul appelant un carré plafonné autour du lieu.
 
-Mission donnée par la voix (E11-T08) : start_mission { template = "scout" } ; le serveur choisit le bâtiment et joint
-ensuite la mission de cette voix pour cet appelant à ses demandes (mission=, hexadécimal RSV2 : type de lieu, indices
-sans chiffre, visite constatée, tour « pas encore » ou « compte rendu accepté », lieu donné en récompense) ; le pont
-l'ajoute au prompt. Sans mission, prompt inchangé. Consigne (E11-T09) : juste après la création, le serveur envoie une
+Mission donnée par la voix (E11-T08) : start_mission { template } ; le serveur choisit le lieu et joint ensuite la
+mission de cette voix pour cet appelant à ses demandes (mission=, hexadécimal RSV2 générique depuis E20-T02 : type,
+état, tour, lieu, indices sans chiffre, objectif et faits composés par le gabarit côté serveur, lieu donné en
+récompense) ; le pont l'ajoute au prompt. Sans mission, prompt inchangé. Les missions que la voix peut donner et les
+tables de cache de place_cache arrivent par la demande (jobs=, E20-T02, ADR D03) : le pont ne connaît aucun type de
+mission ni aucune table. Consigne (E11-T09) : juste après la création, le serveur envoie une
 demande de plus (tour « briefing ») ; le prompt demande alors à la voix de dire le type de lieu et tous les indices.
 Compte rendu (E11-T13) : visite constatée, tour « report_due » ; si l'appel en rend compte, la voix ajoute l'action
 report_mission (sans paramètre, permise avec start_mission : IMPLIED_ACTIONS), revérifiée par le serveur.
@@ -88,7 +90,9 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass
 from pathlib import Path
+from typing import Callable
 import npc_protocol as npc
 import persona_store
 import last_pages  # E15-T03: kind=last_pages (journal of a dead notebook character)
@@ -200,7 +204,8 @@ def debug(msg: str) -> None:
 
 
 # E05-T13: hexadecimal RSV2 fields of a request, shown decoded next to their raw value in the debug journal.
-HEX_FIELDS = ("payload", "memory", "persona", "mission", "facts", "trade", "reputation")   # reputation: E04-T10
+HEX_FIELDS = ("payload", "memory", "persona", "mission", "jobs", "facts", "trade",
+              "reputation")   # reputation: E04-T10, jobs: E20-T02
 
 
 def debug_dump(title: str, value) -> None:
@@ -948,7 +953,8 @@ def answer(config: dict[str, str], conversations: Conversations, session: str, r
     speaker = sheet.name.split()[0]
     # Mode structuré (E07-T01) seulement si la fiche autorise une action dotée d'un exécuteur (E07-T07), jamais hors
     # ligne.
-    with_actions = structured(sheet) and not config.get("OFFLINE")
+    jobs = voice_jobs(req, sheet)   # E20-T02 : missions et tables de cache que la voix peut proposer
+    with_actions = structured(sheet, jobs) and not config.get("OFFLINE")
     with conversations.turn_lock(session, voice):
         tag, history = conversations.prepare(session, req.get("caller", "?"), voice)
         # C02: the caller's text can never carry the tag of another caller (history shared by all callers).
@@ -961,10 +967,10 @@ def answer(config: dict[str, str], conversations: Conversations, session: str, r
                   + mission_prompt(mission_context(req, sheet), tag)
                   + trade_prompt(trade_context(req, sheet), tag)
                   + reputation_prompt(reputation_field(req), tag)
-                  + (actions_prompt(sheet) if with_actions else ""))
+                  + (actions_prompt(sheet, jobs) if with_actions else ""))
         # Mode structuré (E07-T09) : consigne de format rappelée juste avant la question (message envoyé seulement,
         # l'historique garde user_msg) et mode JSON de l'API demandé, avec repli sans.
-        sent = user_msg + format_reminder(sheet) if with_actions else user_msg
+        sent = user_msg + format_reminder(sheet, jobs) if with_actions else user_msg
         messages = [{"role": "system", "content": system}] + history + [{"role": "user", "content": sent}]
         if with_actions:
             reply = call_llm(config, messages, speaker, json_mode=True).strip()
@@ -974,7 +980,7 @@ def answer(config: dict[str, str], conversations: Conversations, session: str, r
         if with_actions:
             reply, proposed = parse_structured(reply, sheet.secrets)
             reply = reply.strip()
-        actions = bounded_actions(sheet, proposed)
+        actions = bounded_actions(sheet, proposed, jobs)
         params = [v for action in actions for v in action.values() if isinstance(v, str)]
         if leaks_secret(reply, sheet.secrets) or any(leaks_secret(p, sheet.secrets) for p in params):
             # Jamais diffusée ni gardée en mémoire, aucune action : la voix « perd le signal ».
@@ -1133,117 +1139,99 @@ def reputation_prompt(reputation: dict | None, tag: str) -> str:
 
 MISSION_FIELD_CHARS = 8192    # champ mission= (hexadécimal RSV2) ; au-delà, ignoré
 MISSION_TEXT_BYTES = 400      # un indice ou le type de lieu, en octets UTF-8 après safe_text
+MISSION_JOB_BYTES = 600       # objectif composé par le gabarit (E20-T02)
+MISSION_FACT_BYTES = 800      # un fait ou une règle composés par le gabarit (liste d'objets admis comprise)
 MISSION_MAX_CLUES = 8
+MISSION_MAX_FACTS = 8
 MISSION_TURNS = ("open", "not_yet", "success", "briefing", "report_due")   # report_due: E11-T13
 MISSION_STATES = ("active", "success")
+# Nom d'un type de mission ou d'une table de cache (E20-T02) : syntaxe seule, le serveur tient les noms inscrits.
+MISSION_NAME = re.compile(r"[a-z][a-z0-9_]{0,31}")
+
+
+def _hex_table(raw: str, max_chars: int, name: str):
+    """Valeur RSV2 d'un champ hexadécimal de la demande, ou ValueError (trop long, illisible)."""
+    if len(raw) > max_chars or not re.fullmatch(r"(?:[0-9a-f]{2})+", raw):
+        raise ValueError(f"{name} hex")
+    return npc.decode(bytes.fromhex(raw))
+
+
+def _sequence(value, maximum: int) -> list:
+    """Liste Lua décodée (table de clés 1..n) → ses maximum premiers éléments ; toute autre valeur : []."""
+    if not isinstance(value, dict) or set(value) != set(range(1, len(value) + 1)):
+        return []
+    return [value[index] for index in range(1, min(len(value), maximum) + 1)]
+
+
+def _mission_lines(req: dict[str, str], sheet: persona_store.Persona, values, maximum: int, max_bytes: int,
+                   what: str, digits: bool) -> list[str]:
+    """Lignes de texte d'une mission (indices, faits) passées par safe_text ; une ligne trop longue, qui cite un secret
+    ou, sans digits, qui contient un chiffre (une coordonnée ne doit jamais atteindre le prompt) est retirée et
+    journalisée."""
+    lines: list[str] = []
+    for index, raw in enumerate(_sequence(values, maximum), 1):
+        try:
+            text = npc.safe_text(raw, max_bytes)
+        except ValueError:
+            log(f"request {req.get('id', '?')}: mission {what} {index} dropped (text)")
+            continue
+        if (not digits and re.search(r"\d", text)) or leaks_secret(text, sheet.secrets):
+            log(f"request {req.get('id', '?')}: mission {what} {index} dropped (digit or secret)")
+            continue
+        lines.append(text)
+    return lines
 
 
 def mission_context(req: dict[str, str], sheet: persona_store.Persona) -> dict | None:
     """Mission que cette voix a donnée à cet appelant (champ mission= : hexadécimal RSV2 d'une table du serveur,
-    RS_MissionVoice.context). Champ absent : None. Illisible, trop long, gabarit inconnu, état ou tour invalide : ignoré
-    (None, journalisé). Lieu et indices passent par safe_text ; un indice qui contient un chiffre (une coordonnée ne
-    doit jamais atteindre le prompt) ou cite un secret est retiré ; une récompense absente de la fiche est retirée."""
+    RS_MissionVoice.context, générique depuis E20-T02). Champ absent : None. Illisible, trop long, type au nom invalide,
+    état ou tour invalide, lieu chiffré ou objectif qui cite un secret : ignoré (None, journalisé). Lieu et indices
+    passent par safe_text, sans chiffre ; objectif (job) et faits (facts) sont composés par le gabarit côté serveur et
+    peuvent porter des nombres (comptes, heures), jamais un secret ; une récompense absente de la fiche est retirée.
+    Le tour report_due n'est gardé qu'avec l'objectif constaté (toReport) : sinon il devient not_yet."""
     raw = req.get("mission")
     if not raw:
         return None
     try:
-        if len(raw) > MISSION_FIELD_CHARS or not re.fullmatch(r"(?:[0-9a-f]{2})+", raw):
-            raise ValueError("mission hex")
-        value = npc.decode(bytes.fromhex(raw))
-        if not isinstance(value, dict) or value.get("kind") not in ("scout", "deliver", "retrieve_id", "clear", "signal"):
+        value = _hex_table(raw, MISSION_FIELD_CHARS, "mission")
+        if not isinstance(value, dict) or not isinstance(value.get("kind"), str) \
+                or not MISSION_NAME.fullmatch(value["kind"]):
             raise ValueError("mission kind")
         if value.get("state") not in MISSION_STATES or value.get("turn") not in MISSION_TURNS:
             raise ValueError("mission state")
-        place = npc.safe_text(value.get("place"), MISSION_TEXT_BYTES)
+        place = npc.safe_text(value["place"], MISSION_TEXT_BYTES) if value.get("place") is not None else ""
         if re.search(r"\d", place) or leaks_secret(place, sheet.secrets):
             raise ValueError("mission place")
+        job = npc.safe_text(value["job"], MISSION_JOB_BYTES) if value.get("job") is not None else ""
+        if leaks_secret(job, sheet.secrets):
+            raise ValueError("mission job")
     except ValueError as err:
         log(f"request {req.get('id', '?')}: mission context ignored ({err})")
         return None
-    clues: list[str] = []
-    raw_clues = value.get("clues") if isinstance(value.get("clues"), dict) else {}
-    for index in range(1, len(raw_clues) + 1):
-        if len(clues) >= MISSION_MAX_CLUES or index not in raw_clues:
-            break
-        try:
-            clue = npc.safe_text(raw_clues[index], MISSION_TEXT_BYTES)
-        except ValueError:
-            continue
-        if re.search(r"\d", clue) or leaks_secret(clue, sheet.secrets):
-            log(f"request {req.get('id', '?')}: mission clue {index} dropped (digit or secret)")
-            continue
-        clues.append(clue)
     remaining = value.get("remainingMs")
     minutes = math.ceil(remaining / 60000) if isinstance(remaining, (int, float)) and not isinstance(
         remaining, bool) and remaining > 0 else 0
     reward = value.get("reward")
     labels = {p.label for p in sheet.places}
-    out = {"kind": value["kind"], "state": value["state"], "turn": value["turn"], "place": place, "clues": clues,
-            "to_report": value.get("toReport") is True,   # E11-T13: objective met (server fact)
-            "reached": value.get("zoneReached") is True, "minutes": minutes,
+    to_report = value.get("toReport") is True   # E11-T13: objective met (server fact)
+    turn = value["turn"] if value["turn"] != "report_due" or to_report else "not_yet"
+    return {"kind": value["kind"], "state": value["state"], "turn": turn, "place": place, "job": job,
+            "facts": _mission_lines(req, sheet, value.get("facts"), MISSION_MAX_FACTS, MISSION_FACT_BYTES, "fact",
+                                    digits=True),
+            "clues": _mission_lines(req, sheet, value.get("clues"), MISSION_MAX_CLUES, MISSION_TEXT_BYTES, "clue",
+                                    digits=False),
+            "to_report": to_report, "minutes": minutes,
             "reward": reward if isinstance(reward, str) and reward in labels else None}
-
-    def count(key: str, maximum: int = 10000) -> int:
-        number = value.get(key)
-        return int(number) if (isinstance(number, (int, float)) and not isinstance(number, bool)
-                               and math.isfinite(number) and 0 <= number <= maximum and int(number) == number) else 0
-
-    kind = out["kind"]
-    if kind == "deliver":
-        accepted = value.get("accepted")
-        out.update(quantity=count("quantity"), delivered=count("delivered"),
-                   deposit_mode=value.get("depositMode") if value.get("depositMode") in ("box", "bag") else "box",
-                   collected=value.get("depositCollected") is True,
-                   accepted=sorted(k for k, v in accepted.items() if v is True and isinstance(k, str)
-                                   and re.fullmatch(r"[A-Za-z][A-Za-z0-9_]*\.[A-Za-z][A-Za-z0-9_]*", k)
-                                   and not leaks_secret(k, sheet.secrets))[:32] if isinstance(accepted, dict) else [])
-        # A caller's claim or a premature turn is never enough to report an uncollected drop.
-        if not out["collected"] and out["state"] != "success":
-            out["to_report"] = False
-            if out["turn"] == "report_due": out["turn"] = "not_yet"
-    elif kind == "retrieve_id":
-        out.update(found=value.get("found") is True, placed=value.get("placed") is True)
-    elif kind == "clear":
-        out.update(kills=count("kills"), target=count("target"))
-    elif kind == "signal":
-        color = value.get("color")
-        out.update(color=color if color in ("green", "red", "yellow", "purple") else "unknown",
-                   hour=count("hour", 23), window_hours=count("windowHours", 24), lit=value.get("lit") is True)
-    return out
 
 
 def mission_prompt(mission: dict | None, tag: str) -> str:
     """Section « mission » du prompt système ; "" sans mission (prompt d'avant E11-T08). Ce que le serveur a constaté
-    (visite, compte rendu accepté), jamais ce que l'appelant affirme ; aucune coordonnée."""
+    (objectif et faits composés par le gabarit, compte rendu accepté), jamais ce que l'appelant affirme ; aucune
+    coordonnée. Aucune branche par type de mission (E20-T02)."""
     if not mission:
         return ""
-    kind = mission.get("kind", "scout")
-    lines = [f"- The job: go and look at a building (kind: {mission['place']}), then call you back on this frequency "
-             "to report."]
-    if kind == "deliver":
-        mode = "the agreed box" if mission["deposit_mode"] == "box" else "a bag hidden on the ground"
-        lines = [f"- The job: leave {mission['quantity']} requested items in {mode} at {mission['place']}, "
-                 "then report to you on this frequency after collection.",
-                 "- Accepted item types (closed server list): " + ", ".join(mission["accepted"]),
-                 "- Collection rule: leave the complete requested goods; for a bag include only the requested goods. "
-                 "Everyone must move at least forty tiles away for ten seconds. The goods disappear only when "
-                 "collected; a hidden bag also disappears. Never claim collection before the server confirms it.",
-                 f"- Collected by the server: {mission['delivered']} of {mission['quantity']}; "
-                 f"collection complete: {'yes' if mission['collected'] else 'no'}."]
-    elif kind == "retrieve_id":
-        lines = [f"- The job: find the missing person's body at a {mission['place']}, take their ID card, "
-                 "and report to you on this frequency while still holding the real card. The server takes that "
-                 "specific card when accepting the report; another ID card never counts.",
-                 f"- The server has observed the card in a participant's inventory: {'yes' if mission['found'] else 'no'}."]
-    elif kind == "clear":
-        lines = [f"- The job: kill {mission['target']} zombies inside the circled area around a {mission['place']}, "
-                 "then report to you on this frequency. Only participant-attributed kills in the area count.",
-                 f"- Verified kills: {mission['kills']} of {mission['target']}."]
-    elif kind == "signal":
-        lines = [f"- The job: start a {mission['color']} Signal Smoke signal inside the circled area around a "
-                 f"{mission['place']}, in the daily window starting at {mission['hour']}:00 for "
-                 f"{mission['window_hours']} game hours, then report to you on this frequency.",
-                 f"- A matching participant signal was verified: {'yes' if mission['lit'] else 'no'}."]
+    lines = [f"- The job: {mission['job']}"] if mission["job"] else []
+    lines += [f"- {fact}" for fact in mission["facts"]]
     lines += [f"- What you know of the place: {clue}" for clue in mission["clues"]]
     if mission["state"] != "success":
         lines.append(f"- An approximate area around the place (not its exact spot) is circled on {tag}'s map; you may tell them to check their map.")
@@ -1260,7 +1248,7 @@ def mission_prompt(mission: dict | None, tag: str) -> str:
         if mission["reward"]:
             lines.append(f"- In return you shared a place you know: {mission['reward']}. It is marked on their map.")
     elif mission["turn"] == "briefing":
-        pass  # consigne ci-dessus ; la visite n'a pas encore pu avoir lieu
+        pass  # consigne ci-dessus ; l'objectif n'a pas encore pu être rempli
     elif mission["turn"] == "report_due":
         # E11-T13 : objectif constaté par le serveur ; le modèle reconnaît le compte rendu (aucune liste de mots).
         lines.append(f"- {tag} has completed the objective (checked): you only wait for their report. If this call, in whatever "
@@ -1270,20 +1258,65 @@ def mission_prompt(mission: dict | None, tag: str) -> str:
         if mission["reward"]:
             lines.append(f"- With their report you share a place you know: {mission['reward']}. It gets marked on "
                          "their map once the other side records the report.")
-    elif kind != "scout" and not mission["to_report"]:
+    elif mission["turn"] == "not_yet" or not mission["to_report"]:
         lines.append(f"- {tag} has NOT completed the objective, whatever they say. Never accept a claimed completion; "
                      "never add report_mission. Repeat the verified objective and rules if asked.")
-    elif mission["turn"] == "not_yet" or not mission["reached"]:
-        lines.append(f"- {tag} has NOT been there yet, whatever they say: the job is not done. Say so if they claim it; "
-                     "never add report_mission.")
     else:
-        lines.append(f"- {tag} has been there; their report is still expected.")
+        lines.append(f"- {tag} has completed the objective (checked); their report is still expected.")
     if mission["state"] != "success" and mission["minutes"]:
         lines.append(f"- Time left: about {mission['minutes']} minutes.")
     return (
         f"\nThe job you gave {tag} (facts checked by the other side, never by what the caller claims; do not give "
         "street names, numbers or coordinates you do not have):\n" + "\n".join(lines)
     )
+
+
+# --- missions que la voix peut donner (E20-T02, ADR D03) ------------------------------------------------------
+
+JOBS_FIELD_CHARS = 4096       # champ jobs= (hexadécimal RSV2) ; au-delà, ignoré
+JOB_TEXT_BYTES = 160          # description d'un type de mission (voiceText du gabarit), en octets UTF-8
+MAX_JOBS = 16
+MAX_CACHES = 16
+
+
+@dataclass(frozen=True)
+class VoiceJobs:
+    """Missions que cette voix peut donner, dans l'ordre de sa fiche, décrites par leur gabarit (nom, texte), et tables
+    de cache admises par place_cache ; jointes par le serveur (RS_MissionVoice.jobs), seul à tenir les noms inscrits."""
+    jobs: tuple[tuple[str, str], ...]
+    caches: tuple[str, ...]
+
+
+def voice_jobs(req: dict[str, str], sheet: persona_store.Persona) -> VoiceJobs | None:
+    """Champ jobs= de la demande (hexadécimal RSV2 de { jobs = { {name, text}... }, caches = {...} }). Absent : None.
+    Illisible ou trop long : None (journalisé). Un type au nom invalide, en double, au texte illisible ou qui cite un
+    secret est retiré (journalisé) ; une table au nom invalide aussi."""
+    raw = req.get("jobs")
+    if not raw:
+        return None
+    try:
+        value = _hex_table(raw, JOBS_FIELD_CHARS, "jobs")
+        if not isinstance(value, dict):
+            raise ValueError("jobs table")
+    except ValueError as err:
+        log(f"request {req.get('id', '?')}: jobs ignored ({err})")
+        return None
+    jobs: list[tuple[str, str]] = []
+    for index, entry in enumerate(_sequence(value.get("jobs"), MAX_JOBS), 1):
+        name = entry.get("name") if isinstance(entry, dict) else None
+        try:
+            if not isinstance(name, str) or not MISSION_NAME.fullmatch(name) or name in dict(jobs):
+                raise ValueError("name")
+            text = npc.safe_text(entry.get("text"), JOB_TEXT_BYTES)
+            if leaks_secret(text, sheet.secrets):
+                raise ValueError("secret")
+        except ValueError as err:
+            log(f"request {req.get('id', '?')}: job {index} dropped ({err})")
+            continue
+        jobs.append((name, text))
+    caches = tuple(dict.fromkeys(c for c in _sequence(value.get("caches"), MAX_CACHES)
+                                 if isinstance(c, str) and MISSION_NAME.fullmatch(c)))
+    return VoiceJobs(tuple(jobs), caches)
 
 
 # --- livre du passeur (E13-T02) ---------------------------------------------------------------
@@ -1527,7 +1560,7 @@ EXECUTABLE_ACTIONS: dict[str, tuple[str, dict]] = {
         "you are.",
         {"type": "persona_state", "morale": 4, "place": "the old mill"},
     ),
-    # E07-T04 : lieux de la fiche (place=) ; le prompt n'en donne que les identifiants et libellés (places_prompt),
+    # E07-T04 : lieux de la fiche (place=) ; le prompt n'en donne que les identifiants et libellés (ACTION_CHOICES),
     # l'exemple prend le premier identifiant de la fiche. Les coordonnées restent au serveur.
     "mark_map": (
         "put a mark on the caller's own map at one of the places you know, when you tell them where it is. "
@@ -1547,14 +1580,14 @@ EXECUTABLE_ACTIONS: dict[str, tuple[str, dict]] = {
         "that the moment is right and privately supplies its frequency. Never invent or state a frequency yourself.",
         {"type": "share_frequency"},
     ),
-    # E11-T08 : gabarit en liste fermée (MISSION_TEMPLATES) ; le serveur choisit le lieu, une mission par appelant.
+    # E11-T08 : le serveur choisit le lieu, une mission par appelant. E20-T02 : types de la demande (jobs=,
+    # ACTION_CHOICES).
     "start_mission": (
-        "give the caller a job from the allowed mission templates below when they ask for work. Parameter "
-        "\"template\": scout (visit), deliver (dead drop), retrieve (missing person papers), clear (zombies), "
-        "or signal (Signal Smoke). They always report to you on this frequency. "
+        "give the caller a job when they ask for work. Parameter \"template\": the name of one job of the list below, "
+        "nothing else. They always report to you on this frequency. "
         "The server chooses the place and objective, which are described to you right after this reply; "
         "never invent them now. One job at a time per caller. You never choose the reward or its contents.",
-        {"type": "start_mission", "template": "scout"},
+        {"type": "start_mission", "template": "<job name>"},
     ),
     # E11-T13 : compte rendu à la radio d'une mission de cette voix dont l'objectif est rempli (sans paramètre) ;
     # permise à toute voix qui autorise start_mission (IMPLIED_ACTIONS, RS_Actions.IMPLIED).
@@ -1564,14 +1597,14 @@ EXECUTABLE_ACTIONS: dict[str, tuple[str, dict]] = {
         "otherwise.",
         {"type": "report_mission"},
     ),
-    # E11-T06 : cache d'une table fermée du serveur (RS_Config.Caches.order), posée par le serveur au lieu de la
-    # dernière mission que cette voix a donnée à l'appelant (RS_Caches.lua) ; une cache par mission.
+    # E11-T06 : cache d'une table du serveur, posée au lieu de la dernière mission que cette voix a donnée à l'appelant
+    # (RS_CacheAction.lua) ; une cache par mission. E20-T02 : tables de la demande (jobs=, ACTION_CHOICES).
     "place_cache": (
         "leave a bag of supplies for the caller at the place of the job you gave them (the open one, or the last "
-        "one they finished for you), as a reward or to help them. Parameter \"table\": what the bag holds, one of "
-        "\"food\", \"medical\", \"ammo\", \"tools\". You do not choose where it is: it is the place of that job. "
+        "one they finished for you), as a reward or to help them. Parameter \"table\": what the bag holds, one name "
+        "of the list below, nothing else. You do not choose where it is: it is the place of that job. "
         "Only one bag per job; without a job given by you, nothing happens.",
-        {"type": "place_cache", "table": "food"},
+        {"type": "place_cache", "table": "<bag name>"},
     ),
     # E13-T02 : offre du passeur, contrôlée et figée par le serveur (RS_Trade.lua) d'après le livre joint (trade=).
     "propose_trade": (
@@ -1598,65 +1631,83 @@ def sheet_actions(sheet: persona_store.Persona) -> list[str]:
     return out
 
 
-# Gabarits admis par start_mission (RS_MissionVoice.TEMPLATES).
-MISSION_TEMPLATES = ("scout", "deliver", "retrieve", "clear", "signal")
+@dataclass(frozen=True)
+class ActionChoice:
+    """Paramètre unique d'une action dont la valeur est une des valeurs d'une liste (lieux de la fiche, types de
+    mission ou tables de cache de la demande) : param, titre de la liste dans le prompt, values(sheet, jobs) → [(valeur,
+    libellé)], et la raison journalisée quand la liste est vide (action non proposée)."""
+    param: str
+    heading: str
+    values: Callable[[persona_store.Persona, VoiceJobs | None], list[tuple[str, str]]]
+    missing: str
 
-# Tables de cache admises par place_cache (RS_Config.Caches.order, vérifiées par tests/test_protocol.py).
-CACHE_TABLES = ("food", "medical", "ammo", "tools", "radio")
 
-# Actions dont le paramètre unique place est l'identifiant d'un lieu place= de la fiche (E07-T04, E07-T05) : proposées
-# seulement si la fiche a des lieux.
-PLACE_ACTIONS = ("mark_map", "reveal_area")
+PLACE_CHOICE = ActionChoice("place", "Places you know (id: label):",
+                            lambda sheet, jobs: [(p.id, p.label) for p in sheet.places], "the sheet has no place= line")
+JOB_CHOICE = ActionChoice("template", "Jobs you may give (name: what it is):",
+                          lambda sheet, jobs: list(jobs.jobs) if jobs else [], "the request lists no job (jobs=)")
+CACHE_CHOICE = ActionChoice("table", "Bags you may leave (name):",
+                            lambda sheet, jobs: [(c, "") for c in jobs.caches] if jobs else [],
+                            "the request lists no cache table (jobs=)")
+# Actions à paramètre unique choisi dans une liste (E07-T04, E07-T05, E11-T08, E11-T06) : proposées seulement si la
+# liste n'est pas vide ; une valeur hors liste est retirée.
+ACTION_CHOICES: dict[str, ActionChoice] = {"mark_map": PLACE_CHOICE, "reveal_area": PLACE_CHOICE,
+                                           "start_mission": JOB_CHOICE, "place_cache": CACHE_CHOICE}
 
 _unoffered_logged: set[tuple[str, tuple[str, ...]]] = set()
 
 
-def offered_actions(sheet: persona_store.Persona) -> list[str]:
+def _choices(name: str, sheet: persona_store.Persona, jobs: VoiceJobs | None) -> list[tuple[str, str]] | None:
+    """Valeurs admises du paramètre de cette action, ou None pour une action sans liste."""
+    choice = ACTION_CHOICES.get(name)
+    return choice.values(sheet, jobs) if choice else None
+
+
+def offered_actions(sheet: persona_store.Persona, jobs: VoiceJobs | None = None) -> list[str]:
     """Actions de la fiche proposées au LLM, dans l'ordre de la fiche : celles qui ont un exécuteur côté serveur
-    (EXECUTABLE_ACTIONS). Les autres (say exclu) sont journalisées une fois par voix et par liste."""
-    offered = [a for a in sheet_actions(sheet) if a in EXECUTABLE_ACTIONS and (a not in PLACE_ACTIONS or sheet.places)]
+    (EXECUTABLE_ACTIONS) et, pour une action à liste (ACTION_CHOICES), au moins une valeur. Les autres (say exclu) sont
+    journalisées une fois par voix et par liste."""
+    offered = [a for a in sheet_actions(sheet) if a in EXECUTABLE_ACTIONS and _choices(a, sheet, jobs) != []]
     skipped = tuple(a for a in sheet.actions if a != "say" and a not in EXECUTABLE_ACTIONS)
     if skipped and (sheet.id, skipped) not in _unoffered_logged:
         _unoffered_logged.add((sheet.id, skipped))
         log(f"voice '{sheet.id}': actions not offered to the LLM, no executor on the server yet: {', '.join(skipped)}")
-    # mark_map ou reveal_area sans lieu dans la fiche : le serveur refuserait tout identifiant (bad_params).
-    for name in PLACE_ACTIONS:
-        if name in sheet.actions and not sheet.places and (sheet.id, (name,)) not in _unoffered_logged:
+    # Action à liste sans valeur : le serveur refuserait tout paramètre (bad_params).
+    for name, choice in ACTION_CHOICES.items():
+        if name in sheet.actions and not choice.values(sheet, jobs) and (sheet.id, (name,)) not in _unoffered_logged:
             _unoffered_logged.add((sheet.id, (name,)))
-            log(f"voice '{sheet.id}': {name} not offered to the LLM, the sheet has no place= line")
+            log(f"voice '{sheet.id}': {name} not offered to the LLM, {choice.missing}")
     return offered
 
 
-def places_prompt(sheet: persona_store.Persona) -> str:
-    """Lieux de la fiche proposés à mark_map et reveal_area (E07-T04, E07-T05) : identifiant et libellé, jamais les
-    coordonnées."""
-    return "".join(f"\n  - {place.id}: {place.label}" for place in sheet.places)
-
-
-def structured(sheet: persona_store.Persona) -> bool:
+def structured(sheet: persona_store.Persona, jobs: VoiceJobs | None = None) -> bool:
     """Mode structuré : la fiche autorise au moins une action dotée d'un exécuteur (E07-T07). Sinon, mode texte
     d'avant E07, même si elle autorise des actions sans exécuteur."""
-    return bool(offered_actions(sheet))
+    return bool(offered_actions(sheet, jobs))
 
 
-def actions_prompt(sheet: persona_store.Persona) -> str:
+def actions_prompt(sheet: persona_store.Persona, jobs: VoiceJobs | None = None) -> str:
     """Consigne de format du mode structuré : chaque action proposée (offered_actions) avec sa description et un
-    exemple d'objet JSON ; aucun secret ni coordonnée."""
-    offered = offered_actions(sheet)
+    exemple d'objet JSON ; pour une action à liste (ACTION_CHOICES), sa liste une seule fois, sous la première action
+    qui l'utilise, et un exemple à sa première valeur ; aucun secret ni coordonnée."""
+    offered = offered_actions(sheet, jobs)
+    listed: set[str] = set()
 
     def example(name: str) -> dict:
-        if name in PLACE_ACTIONS:
-            return {"type": name, "place": sheet.places[0].id}
-        if name == "start_mission":
-            return {"type": name, "template": (getattr(sheet, "missions", ()) or ("scout",))[0]}
-        return EXECUTABLE_ACTIONS[name][1]
+        values = _choices(name, sheet, jobs)
+        return {"type": name, ACTION_CHOICES[name].param: values[0][0]} if values else EXECUTABLE_ACTIONS[name][1]
 
-    # Liste des lieux une seule fois, sous la première action à lieu proposée.
-    first_place_action = next((name for name in offered if name in PLACE_ACTIONS), None)
+    def choice_list(name: str) -> str:
+        choice = ACTION_CHOICES.get(name)
+        if not choice or choice.heading in listed:
+            return ""
+        listed.add(choice.heading)
+        return "\n  " + choice.heading + "".join(f"\n  - {value}: {label}" if label else f"\n  - {value}"
+                                                for value, label in choice.values(sheet, jobs))
+
     described = "".join(
         f"\n- {name}: {EXECUTABLE_ACTIONS[name][0]} Example: " + json.dumps(example(name), ensure_ascii=False)
-        + ("\n  Places you know (id: label):" + places_prompt(sheet) if name == first_place_action else "")
-        for name in offered)
+        + choice_list(name) for name in offered)
     return (
         "\n\nReply format: return ONLY one JSON object, no other text: "
         '{"say": "what you say on the radio", "actions": [{"type": "<action>", "<parameter>": <value>}]}. '
@@ -1666,18 +1717,18 @@ def actions_prompt(sheet: persona_store.Persona) -> str:
         'decides whether it happens, so never promise it in "say". Never put a secret, a code, a frequency or exact '
         "coordinates in an action."
         + described
-        + ("\nAllowed mission templates: " + ", ".join(getattr(sheet, "missions", ()) or ("scout",)) + "."
-           if "start_mission" in offered else "")
+        + ("\nAllowed mission templates: " + ", ".join(name for name, _ in jobs.jobs) + "."
+           if "start_mission" in offered and jobs else "")
     )
 
 
-def format_reminder(sheet: persona_store.Persona) -> str:
+def format_reminder(sheet: persona_store.Persona, jobs: VoiceJobs | None = None) -> str:
     """Rappel de la consigne de format (E07-T09), ajouté à la fin du message de l'appelant envoyé au LLM, jamais à
     l'historique : un long historique de réponses en texte pousse sinon le modèle à continuer en texte. Aucun secret,
     lieu ni coordonnée."""
     return (
         "\n\n(Reply format reminder: answer with ONLY one JSON object, no other text: "
-        '{"say": "...", "actions": [...]}. Allowed action types: ' + ", ".join(offered_actions(sheet))
+        '{"say": "...", "actions": [...]}. Allowed action types: ' + ", ".join(offered_actions(sheet, jobs))
         + '. "actions" may be an empty list.)'
     )
 
@@ -1695,11 +1746,12 @@ def _param(value):
     raise ValueError("type")
 
 
-def bounded_actions(sheet: persona_store.Persona, raw) -> list[dict]:
+def bounded_actions(sheet: persona_store.Persona, raw, jobs: VoiceJobs | None = None) -> list[dict]:
     """Actions proposées par le LLM → actions de forme valide (le serveur juge le fond). Garde au plus MAX_ACTIONS
     éléments : table de paramètres scalaires (chaînes ≤ MAX_PARAM_BYTES octets après safe_text, nombres finis,
     booléens), type du catalogue persona_store.ACTIONS et de la fiche, doté d'un exécuteur (EXECUTABLE_ACTIONS),
-    jamais say. Tout élément invalide est retiré et
+    jamais say ; une action à liste (ACTION_CHOICES : lieux de la fiche, types et tables de jobs=) n'a que son
+    paramètre, à une valeur de la liste. Tout élément invalide est retiré et
     journalisé ; le reste passe."""
     if raw is None:
         return []
@@ -1733,25 +1785,17 @@ def bounded_actions(sheet: persona_store.Persona, raw) -> list[dict]:
         except ValueError as err:
             log(f"voice '{sheet.id}': action {index} '{kind}' dropped, bad parameters ({err})")
             continue
-        # mark_map, reveal_area (E07-T04, E07-T05) : un seul paramètre, identifiant d'un lieu de la fiche.
-        if kind in PLACE_ACTIONS and (set(clean) != {"place"} or clean["place"] not in {p.id for p in sheet.places}):
-            log(f"voice '{sheet.id}': action {index} '{kind}' dropped, not a place of the sheet "
-                f"({str(clean.get('place'))[:32]!r})")
-            continue
-        # start_mission (E11-T08) : un seul paramètre, gabarit de la liste fermée.
-        if kind == "start_mission" and (set(clean) != {"template"} or clean["template"] not in MISSION_TEMPLATES
-                or clean["template"] not in (getattr(sheet, "missions", ()) or ("scout",))):
-            log(f"voice '{sheet.id}': action {index} 'start_mission' dropped, unknown template "
-                f"({str(clean.get('template'))[:32]!r})")
+        # mark_map, reveal_area (E07-T04, E07-T05), start_mission (E11-T08), place_cache (E11-T06) : un seul
+        # paramètre, valeur de sa liste (lieux de la fiche ; types et tables de la demande, E20-T02).
+        choice = ACTION_CHOICES.get(kind)
+        if choice and (set(clean) != {choice.param}
+                       or clean[choice.param] not in {value for value, _ in choice.values(sheet, jobs)}):
+            log(f"voice '{sheet.id}': action {index} '{kind}' dropped, {choice.param} not in its list "
+                f"({str(clean.get(choice.param))[:32]!r})")
             continue
         # report_mission (E11-T13) : aucun paramètre.
         if kind in {"report_mission", "share_frequency"} and clean:
             log(f"voice '{sheet.id}': action {index} 'report_mission' dropped, it takes no parameter")
-            continue
-        # place_cache (E11-T06) : un seul paramètre, table de la liste fermée du serveur.
-        if kind == "place_cache" and (set(clean) != {"table"} or clean["table"] not in CACHE_TABLES):
-            log(f"voice '{sheet.id}': action {index} 'place_cache' dropped, unknown table "
-                f"({str(clean.get('table'))[:32]!r})")
             continue
         # propose_trade (E13-T02) : items (forme « Nom:quantité,... »), margin facultative entre 0 et 1 ; le serveur
         # contrôle le stock, la marge permise et les plafonds.

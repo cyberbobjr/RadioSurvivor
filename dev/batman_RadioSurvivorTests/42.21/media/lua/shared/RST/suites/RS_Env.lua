@@ -26,7 +26,7 @@ local PREFIX = "media/lua/"
 local GLOBALS = {
     { "isClient", "any", "server/RadioSurvivorCore/RC_Missions.lua:1" },
     { "isServer", "any", "client/RS_Carnet_Client.lua:1" },
-    { "getTimestampMs", "any", "server/RadioSurvivorCore/RC_Missions.lua:253" },
+    { "getTimestampMs", "any", "server/RadioSurvivorCore/RC_Missions.lua:272" },
     { "getSandboxOptions", "any", "shared/RadioSurvivor/RadioSurvivor_Const.lua:146" },
     -- Lua global of the required mod batman_BeltRadio (shared file, loaded everywhere): transmit predicate.
     { "BatmanRadioSupport.canTransmitWith", "any", "shared/RadioSurvivor/RadioSurvivor_Const.lua:271" },
@@ -41,8 +41,8 @@ local GLOBALS = {
     { "getGameTime", "server", "server/RadioSurvivor_Server.lua:83" },
     { "getClimateManager", "server", "server/RadioSurvivorCore/RC_WorldFacts.lua:33" },
     { "getZomboidRadio", "server", "server/RadioSurvivor/RS_Personas.lua:720" },
-    { "sendRemoveItemFromContainer", "server", "server/RadioSurvivorCore/RC_Missions.lua:718" },
-    { "sendAddItemToContainer", "server", "server/RadioSurvivorCore/RC_Missions.lua:531" },
+    { "sendRemoveItemFromContainer", "server", "server/RadioSurvivorCore/RC_Missions.lua:738" },
+    { "sendAddItemToContainer", "server", "server/RadioSurvivorCore/RC_Missions.lua:550" },
     { "DynamicRadioChannel.new", "server", "server/RadioSurvivor/RS_Personas.lua:676" },
     { "ChannelCategory.Amateur", "server", "server/RadioSurvivor/RS_Personas.lua:676" },
     { "RadioBroadCast.new", "server", "server/RadioSurvivor_Server.lua:121" },
@@ -51,15 +51,15 @@ local GLOBALS = {
     { "listFilesInModDirectory", "server", "server/RadioSurvivor/RS_Personas.lua:265" },
     { "getModFileReader", "server", "server/RadioSurvivor/RS_Personas.lua:281" },
     { "listFilesInZomboidLuaDirectory", "server", "server/RadioSurvivor/RS_Personas.lua:369" },
-    { "instanceItem", "server", "server/RadioSurvivorCore/RC_Missions.lua:515" },
+    { "instanceItem", "server", "server/RadioSurvivorCore/RC_Missions.lua:534" },
     { "ItemPickerJava.Parse", "server", "server/RadioSurvivor/RS_NotesServer.lua:114" },
     { "getSpecificPlayer", "client", "client/RadioSurvivor/RS_Client.lua:11" },
     { "sendClientCommand", "client", "client/RadioSurvivor/RS_Client.lua:15" },
     { "processSayMessage", "client", "client/RadioSurvivor/RS_Client.lua:130" },
     { "checkPlayerCanUseChat", "client", "client/RadioSurvivor/RS_Client.lua:141" },
     { "getText", "any", "client/RadioSurvivor/RS_Client.lua:176" },
-    { "getTextOrNull", "server", "server/RadioSurvivor_Server.lua:543" },
-    { "Translator.loadFiles", "server", "server/RadioSurvivor_Server.lua:545" },
+    { "getTextOrNull", "server", "server/RadioSurvivor_Server.lua:545" },
+    { "Translator.loadFiles", "server", "server/RadioSurvivor_Server.lua:547" },
     { "getCore", "client", "client/RadioSurvivor/RS_Notebook.lua:701" },
     { "getTextManager", "client", "client/RadioSurvivorCore/RC_Notebook.lua:75" },
     { "getTexture", "client", "client/RadioSurvivorCore/RC_Notebook.lua:58" },
@@ -86,12 +86,12 @@ local GLOBALS = {
 
 -- Methods of an ItemContainer used by the server files (missions, radio carried on the belt).
 local CONTAINER_METHODS = {
-    { "getItemWithIDRecursiv", "server/RadioSurvivorCore/RC_Missions.lua:658" },
+    { "getItemWithIDRecursiv", "server/RadioSurvivorCore/RC_Missions.lua:678" },
     { "getItemWithID", "server/RadioSurvivor_Server.lua:241" },
-    { "getCapacityWeight", "server/RadioSurvivorCore/RC_Missions.lua:521" },
-    { "getEffectiveCapacity", "server/RadioSurvivorCore/RC_Missions.lua:521" },
-    { "AddItem", "server/RadioSurvivorCore/RC_Missions.lua:530" },
-    { "Remove", "server/RadioSurvivorCore/RC_Missions.lua:717" },
+    { "getCapacityWeight", "server/RadioSurvivorCore/RC_Missions.lua:540" },
+    { "getEffectiveCapacity", "server/RadioSurvivorCore/RC_Missions.lua:540" },
+    { "AddItem", "server/RadioSurvivorCore/RC_Missions.lua:549" },
+    { "Remove", "server/RadioSurvivorCore/RC_Missions.lua:737" },
 }
 
 local function side()

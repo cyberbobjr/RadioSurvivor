@@ -315,7 +315,7 @@ def radio_json(system: str, last: str) -> dict:
         return {"say": "Report received, thank you. Well done. Over.", "actions": [{"type": "report_mission"}]}
     # Explicit machine-readable test requests, independent of the caller's language.
     # They still pass through the prompt's sheet whitelist and the real server executor.
-    requested = re.search(r"\[mission:(scout|deliver|retrieve|clear|signal)\]", last)
+    requested = re.search(r"\[mission:([a-z][a-z0-9_]*)\]", last)
     templates = re.search(r"Allowed mission templates: ([a-z_, ]+)\.", system)
     permitted = [v.strip() for v in templates.group(1).split(",")] if templates else ["scout"]
     if requested and "start_mission" in allowed and requested.group(1) in permitted:

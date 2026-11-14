@@ -40,7 +40,8 @@ local function log(msg)
     print('[RadioSurvivorCore] ' .. tostring(msg))
 end
 
-local Retrieve = {idPrefix = 'retrieve', handover = true, voiceName = 'retrieve', mapStyle = 'Search'}
+local Retrieve = {idPrefix = 'retrieve', handover = true, voiceName = 'retrieve', mapStyle = 'Search',
+    voiceText = 'bring back the papers of a missing person'}
 Retrieve.MARK = 'RS_RetrieveMission'
 -- Requester fiche id -> {site = ..., at = ms} (memory only); mission id -> last placement attempt (ms).
 local sites, tried = {}, {}
@@ -260,6 +261,14 @@ function Retrieve.context(m, ctx)
     ctx.kind, ctx.place, ctx.clues, ctx.report = 'retrieve_id', m.place, copyList(m.clues), 'in_person'
     ctx.item, ctx.placed, ctx.found = 'ID card', m.placed == true, m.found == true
     if m.person and m.person ~= '' then ctx.person = m.person end
+end
+
+-- E20-T02: the job told to a radio voice; only the card the server placed counts.
+function Retrieve.voiceBrief(m)
+    return {job = "Find the missing person's body at a " .. tostring(m.place) .. ', take their ID card, and report '
+        .. 'to you on this frequency while still holding the real card. The server takes that specific card when '
+        .. 'accepting the report; another ID card never counts.',
+        facts = {"The server has observed the card in a participant's inventory: " .. M.yesNo(m.found == true) .. '.'}}
 end
 
 M.register('retrieve_id', Retrieve)

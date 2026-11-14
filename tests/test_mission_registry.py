@@ -1,6 +1,9 @@
 """Registre des types de mission (E20-T01, ADR D02) : un faux gabarit inscrit par le banc, avec ses déclarations
 (voiceName 'fake', handover false, mapStyle 'Fake') et sa vue du carnet, est donné par une voix, projeté, affiché au
-carnet et sur la carte sans aucune modification de RS_MissionVoice, du carnet ni de la carte.
+carnet et sur la carte sans aucune modification de RS_MissionVoice, du carnet ni de la carte. E20-T02 (ADR D03) : le
+même faux gabarit se décrit à la voix (voiceText, voiceBrief) ; listé par la fiche (missions=fake), il est proposé au
+modèle par le champ jobs= de la demande, admis par la validation de start_mission du pont et sa mission racontée (objectif
+et faits composés par le serveur), sans aucune modification de bridge/.
 
     python RadioSurvivor/tests/test_mission_registry.py
 
@@ -9,10 +12,11 @@ Lua, pas de l'API Java ni du réseau réel.
 """
 from __future__ import annotations
 
+import json
 import unittest
 
 import test_carnet as carnet_helpers
-from test_carnet import MAP_DOUBLE, NOTEBOOK_UI, convert
+from test_carnet import MAP_DOUBLE, NOTEBOOK_UI, VOICE_SHEET, bridge_module, convert, protocol
 from test_mission_clear import CLEAR_WORLD
 from test_protocol import lua_list
 
@@ -21,9 +25,16 @@ FAKE_TEMPLATE = r'''
 local M = require 'RadioSurvivorCore/RC_Missions'
 require('RadioSurvivorCore/RC_MissionConfig').Missions.fake = {id = 'fake_v1', titleKey = 'IGUI_RS_FakeTitle',
     durationMs = 3600000, rewardType = '', rewardCount = 0}
-local Fake = {idPrefix = 'fake', voiceName = 'fake', handover = false, mapStyle = 'Fake'}
+local Fake = {idPrefix = 'fake', voiceName = 'fake', handover = false, mapStyle = 'Fake',
+    voiceText = 'check the old water tower'}
 function Fake.offer(entry, npc, record, body, character) return {x = 100, y = 10} end
-function Fake.create(m, entry, npc, terms) m.mapZone = {x = terms.x, y = terms.y, r = 6} end
+function Fake.create(m, entry, npc, terms)
+    m.mapZone, m.place, m.checked = {x = terms.x, y = terms.y, r = 6}, 'water tower', 0
+end
+function Fake.voiceBrief(m)
+    return {job = 'Climb the water tower and count the crows on it, then report to you on this frequency.',
+        facts = {'Crows counted by the server: ' .. m.checked .. ' of 3.'}}
+end
 function Fake.project(m, p)
     p.template, p.fakeLine = 'fake', 'here'
     if p.engaged then p.mapZone = {x = m.mapZone.x, y = m.mapZone.y, r = m.mapZone.r} end
@@ -39,9 +50,14 @@ require('RadioSurvivor/RS_MissionViews').register('fake', {showsPlace = false,
 '''
 
 
+# Voix du banc qui donne le faux gabarit (ligne missions= de la fiche).
+FAKE_SHEET = VOICE_SHEET.replace('budget.start_mission=3\n', 'budget.start_mission=3\nmissions=fake\n')
+
+
 class MissionRegistryTests(unittest.TestCase):
     setUp, tearDown = carnet_helpers.VoiceMissionTests.setUp, carnet_helpers.VoiceMissionTests.tearDown
     voice_sim = carnet_helpers.VoiceMissionTests.voice_sim
+    talk, respond = carnet_helpers.VoiceMissionTests.talk, carnet_helpers.VoiceMissionTests.respond
 
     def start_fake(self, name):
         sim = self.voice_sim(name)
@@ -99,6 +115,48 @@ class MissionRegistryTests(unittest.TestCase):
         for key in ('IGUI_RS_Progress', 'IGUI_RS_NoRefund', 'IGUI_RS_ScoutPlace'):
             self.assertNotIn(key, text)
         self.assertFalse(window.deliver.isVisible(window.deliver), 'delivery button for a fake mission')
+
+
+    def answer(self, sim, req, reply):
+        """The real bridge answers this request (model replaced by `reply`); returns (system prompt, result)."""
+        seen = []
+        saved = bridge_module.call_llm
+        try:
+            bridge_module.call_llm = lambda config, messages, speaker='Walt', **_: seen.append(messages) or reply
+            voices = bridge_module.Voices(sim.path / 'personas')
+            result = bridge_module.answer({}, bridge_module.Conversations(sim.path), 's', req, voices)
+        finally:
+            bridge_module.call_llm = saved
+        return seen[-1][0]['content'], result
+
+    def test_fake_template_is_offered_to_the_model_and_its_job_told_without_bridge_change(self):
+        sim = self.voice_sim('registry-bridge', sheet=FAKE_SHEET)
+        rt = sim.server.rt
+        rt.execute(CLEAR_WORLD)
+        rt.execute(FAKE_TEMPLATE)
+        req = self.talk(sim, 'alice', 'Got any work for me?')
+        # The server tells the bridge the jobs this voice may give, described by their template.
+        jobs = convert(protocol.decode(bytes.fromhex(req['jobs'])))
+        self.assertEqual([jobs['jobs'][i] for i in sorted(jobs['jobs'])],
+                         [{'name': 'fake', 'text': 'check the old water tower'}])
+        order = rt.eval("require('RadioSurvivorCore/RC_MissionConfig').Caches.order")
+        self.assertEqual([jobs['caches'][i] for i in sorted(jobs['caches'])], list(lua_list(order)))
+        start = json.dumps({'say': 'Go check the tower.', 'actions': [{'type': 'start_mission', 'template': 'fake'}]})
+        system, result = self.answer(sim, req, start)
+        self.assertIn('fake: check the old water tower', system)
+        self.assertIn('{"type": "start_mission", "template": "fake"}', system)
+        self.assertEqual(result['actions'], [{'type': 'start_mission', 'template': 'fake'}])
+        # The server starts the fake mission, then the briefing tells its job and facts to the voice.
+        self.respond(sim, req, result['actions'], 'Go check the tower.')
+        [m] = [m for m in sim.state().missions.values() if m.donor == 'voice']
+        self.assertEqual((m.template, m.state), ('fake', 'active'))
+        parsed = bridge_module.parse_requests((sim.path / 'requests.txt').read_text(encoding='utf-8'))
+        [brief] = [r for r in parsed[1] if r['id'].endswith('-brief')]
+        system, _ = self.answer(sim, brief, json.dumps({'say': 'Listen.', 'actions': []}))
+        self.assertIn('- The job: Climb the water tower and count the crows on it, then report to you on this '
+                      'frequency.', system)
+        self.assertIn('- Crows counted by the server: 0 of 3.', system)
+        self.assertIn('Tell them NOW where to go', system)
 
 
 if __name__ == '__main__':

@@ -2,12 +2,12 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 1 / 15 tâche(s) terminée(s).
+**Avancement.** en cours — 2 / 15 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
 | ☑ | E20-T01 | Registre des types de mission, sans changement de comportement | `testé hors jeu` | hors jeu | — |
-| ☐ | E20-T02 | Analyseur unique des fiches et pont sans liste de types | `à faire` | hors jeu | E20-T01 |
+| ☑ | E20-T02 | Analyseur unique des fiches et pont sans liste de types | `testé hors jeu` | hors jeu | E20-T01 |
 | ☐ | E20-T03 | Fiche à sections : lieux, missions, récompenses, catégories | `à faire` | hors jeu | E20-T02 |
 | ☐ | E20-T04 | Récompenses tirées au hasard par catégorie | `à faire` | MP | E20-T03 |
 | ☐ | E20-T05 | Planques multiples au choix du joueur, ramassées hors de vue | `à faire` | MP | E20-T03 |
@@ -74,16 +74,16 @@ chaque tâche avant son code.
   - Tests : `tests/run_all.py` ; nouveau banc du registre.
   - Preuve : 2026-11-14 : déclarations `handover`, `voiceName`, `mapStyle` sur les gabarits ; `M.voiceTemplate`, `M.voiceNames`, projection de `handover` et `mapStyle` (`RC_Missions.lua`) ; `Journal.HANDOVER` retiré ; `V.TEMPLATES`, `TEMPLATE_NAMES` et les cas `deliver`/`signal` retirés de `RS_MissionVoice.lua` (`V.allowed`, `V.registerSetup`, planque inscrite par `RS_VoiceDelivery.lua`) ; registre `RS_MissionViews.lua` et six vues `client/RadioSurvivor/MissionViews/RS_View_*.lua` ; carte : clé `IGUI_RS_MapZone` + `mapStyle`. Banc `tests/test_mission_registry.py` (faux gabarit donné par une voix, projeté, affiché par une fausse vue, libellé de carte) : 3 tests OK (écrit après le code, jamais vu rouge : il appelle des fonctions absentes de l'ancien code). `python tests/run_all.py --keep-going` : 184 passés, 1 échec (`rs_suites`, références `file:line` de `RS_Env.lua` décalées), corrigé, puis `--only rs_suites --only rst --only rs_mp_suites --only persist_suites --only mission_registry` : 5 passés, `RESULT: PASS` ; `test_voice_templates.py` et bancs touchés : `Ran 132 tests … OK`. luacheck `Contents` 8 avertissements (inchangé), `dev` 0. Greps d'acceptation vides dans `RS_MissionVoice.lua`, `RS_Notebook.lua`, `RS_MapActions.lua`, `RC_MissionJournal.lua`.
   - Reste : liste `MISSION_TEMPLATES` de `RS_Persona.lua` reportée à `E20-T02` (le cas « bad missions » de `tests/test_personas.py:79` compare les deux analyseurs). Chargement du dossier `MissionViews/` à confirmer en jeu avec la première tâche `solo` ou `MP` du plan.
-- [ ] **E20-T02** — Analyseur unique des fiches et pont sans liste de types
-  - État : `à faire`
+- [x] **E20-T02** — Analyseur unique des fiches et pont sans liste de types
+  - État : `testé hors jeu`
   - Cible : `hors jeu`
   - Dépend de : E20-T01
   - Fichiers : `RS_Persona.lua` ; `RadioSurvivor_Server.lua` (contexte des demandes) ; `bridge/persona_store.py` ; `bridge/radio_bridge.py` ; `docs/specifications-techniques/protocole-carnet-v2.md` ; bancs Python et Lua
   - Faire : ADR D03. Le serveur envoie, dans chaque demande d'une voix, les missions permises avec la description déclarée par leur gabarit et le contexte de la mission ouverte sous une forme générique (champs nommés par le gabarit). Le pont ne lit plus dans la fiche que l'identité et le prompt ; supprimer `MISSION_TEMPLATES`, `CACHE_TABLES` et les branches `elif kind ==` (`radio_bridge.py:1153, 1204-1242, 1553, 1602` ; `persona_store.py:37, 330-333`). Retirer aussi `MISSION_TEMPLATES` de `RS_Persona.lua` (reporté de E20-T01) : la ligne `missions=` accepte tout nom syntaxiquement valide, `V.start` refuse et journalise un nom sans gabarit ; revoir avec le pont le cas « bad missions » de `tests/test_personas.py:79`.
   - Accepté si : un faux gabarit du banc E20-T01 est décrit au modèle sans aucune modification du pont ; aucune liste de noms de gabarits dans `bridge/` (`grep`) ; contrat mis à jour des deux côtés dans le même commit ; bancs Python et Lua verts.
   - Tests : `tests/test_protocol.py`, `tests/test_bridge_*.py`, `tests/run_all.py`.
-  - Preuve : —
-  - Reste : —
+  - Preuve : 2026-11-15 : chaque gabarit déclare `voiceText` et `voiceBrief(m)` (objectif et faits en anglais composés par le serveur) ; `mission=` générique (`kind`, `state`, `turn`, `place`, `clues`, `remainingMs`, `toReport`, `reward`, `job`, `facts`) ; nouveau champ `jobs=` (`V.jobs` : types permis par la fiche et inscrits, tables de cache de `RC_Caches.tableNames`) ; pont sans liste de types ni de tables (registre `ACTION_CHOICES`, `voice_jobs`) ; `missions=` et `cache_table=` contrôlés par leur syntaxe seule dans les deux analyseurs ; défaut `scout` porté par `RS_MissionVoice` seul. Rouge d'abord : `test_mission_registry.py` `Ran 4 tests … FAILED (errors=1)` (fiche `missions=fake` refusée), puis `Ran 4 tests … OK` ; `test_personas.py` 20 OK ; `test_voice_templates.py` OK ; `test_fake_llm.py` 27 OK ; `test_protocol.py` code 0 ; `test_carnet.py` OK ; `run_all.py --keep-going` : 184 passés, 1 échec `doubles_api` (`test_peer_checks2.py`, commit LK `9162e24` arrivé pendant le passage, sans lien). luacheck `Contents` 8 avertissements (inchangé), `dev` 0. `grep MISSION_TEMPLATES\|CACHE_TABLES` vide dans `bridge/` et `Contents/`. Contrat (`protocole-carnet-v2.md`), `persona-format.md` et pages 10 du wiki FR/EN mis à jour.
+  - Reste : `bridge/npc_protocol.py:1191-1220` (réponses hors ligne des offres de PNJ, Living Knox) garde une chaîne par type : hors périmètre E20 (Living Knox exclu), à reprendre par une tâche LK.
 - [ ] **E20-T03** — Fiche à sections : lieux, missions, récompenses, catégories
   - État : `à faire`
   - Cible : `hors jeu`

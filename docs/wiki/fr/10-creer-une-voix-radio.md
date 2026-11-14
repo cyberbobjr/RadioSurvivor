@@ -245,6 +245,7 @@ Toujours permise, même si vous ne l'écrivez pas. La voix vous répond à la ra
 #### Missions et récompenses — `start_mission`
 
 - `missions=scout,deliver,retrieve,clear,signal` autorise reconnaissance, dépôt, recherche de papiers, nettoyage et signal Signal Smoke. Le serveur vérifie chaque objectif ; une mission par joueur et voix.
+- Les noms admis sont les types de mission inscrits par le mod (aujourd'hui `scout`, `deliver`, `retrieve`, `clear`, `signal`). `persona_store.py` ne vérifie que l'écriture du nom ; un nom bien écrit mais inconnu du mod est ignoré par le serveur, avec une ligne dans le journal du jeu (`console.txt`) : `voice sheet <id> lists unknown mission type '<nom>'`. La voix garde ses autres missions.
 - **Il faut :** que le joueur ait le carnet. Le bâtiment est choisi par le serveur, jamais par l'IA.
 - **Récompense :** réputation et une récompense autorisée par `rewards=cache,frequency,stashmap,lesson`. Le serveur suit cet ordre cyclique par joueur et voix, saute les effets indisponibles et mémorise son choix. L'IA ne choisit ni récompense ni contenu. Sans `rewards`, l'ancien repère reste disponible ; sans `missions`, seul `scout` est permis.
 - Une cache contient des objets réels de `cache_table`, au premier `place=` ; une seule par mission, pose différée si le lieu est déchargé et repère privé. `shares` limite les autres voix actives dont la fréquence peut entrer dans le carnet du bénéficiaire. Une carte-cachette vanilla mène à une planque inexplorée : une par joueur et voix. `teaches` fixe la compétence enseignée.
@@ -267,13 +268,13 @@ Dans une boîte, seuls les objets demandés disparaissent : boîte et autres obj
 
 | Clé | Valeurs autorisées |
 |---|---|
-| `cache_table` | `medical`, `ammo`, `tools`, `food`, `radio` |
+| `cache_table` | Tables du mod : `medical`, `ammo`, `tools`, `food`, `radio` |
 | `shares` | IDs de voix séparés par des virgules |
 | `teaches` | `Doctor`, `Aiming`, `Reloading`, `Woodwork`, `Mechanics`, `Electricity`, `MetalWelding`, `Cooking`, `Farming`, `Fishing`, `Trapping`, `PlantScavenging` |
-| `missions` | `scout`, `deliver`, `retrieve`, `clear`, `signal` |
+| `missions` | Types inscrits par le mod : `scout`, `deliver`, `retrieve`, `clear`, `signal` |
 | `rewards` | `cache`, `frequency`, `stashmap`, `lesson` |
 
-Clés non répétables, listes sans doublon ni entrée vide, casse exacte. Validation solo et MP des nouvelles récompenses **en attente**.
+Clés non répétables, listes sans doublon ni entrée vide, casse exacte. Pour `missions` et `cache_table`, `persona_store.py` ne contrôle que l'écriture (lettres minuscules, chiffres et `_`, une lettre en tête) : un nom inconnu du mod est ignoré par le serveur et signalé dans `console.txt`. Validation solo et MP des nouvelles récompenses **en attente**.
 
 #### Actions à ne pas ajouter
 

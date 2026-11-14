@@ -54,6 +54,13 @@ function Caches.isTable(name)
     return false
 end
 
+-- E20-T02: names of the tables, in the closed order (a copy), told to the voices that may leave a cache (jobs=).
+function Caches.tableNames()
+    local out = {}
+    for i, t in ipairs(Config.Caches.order) do out[i] = t end
+    return out
+end
+
 -- Table drawn with draw(n) -> 0..n-1 (RC_Sites.drawer), in the closed order.
 function Caches.drawTable(draw)
     local order = Config.Caches.order

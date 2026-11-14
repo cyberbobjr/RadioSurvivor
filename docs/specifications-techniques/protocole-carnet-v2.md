@@ -195,7 +195,7 @@ valide la forme, le serveur le fond ; le serveur seul exécute. Implémentation 
   | `persona_state` | au moins un de : `morale`, `supplies` (vivres, eau, munitions) : entiers de 0 à `PERSONA_LEVEL_MAX` (10), au plus `PERSONA_LEVEL_STEP` (2) d'écart par appel ; `place` : texte d'au plus `PERSONA_PLACE_CHARS` (40) caractères, où la voix dit être |
   | `mark_map` | `place` : identifiant d'un lieu de la fiche ; suivi de la liste `id: libellé` des lieux (`place=`), jamais de coordonnées ; exemple au premier identifiant. Proposée seulement si la fiche a au moins un lieu (sinon journal anglais une fois par voix : `mark_map not offered to the LLM, the sheet has no place= line`) |
   | `reveal_area` | `place` : identifiant d'un lieu de la fiche, comme `mark_map` (E07-T05) ; mêmes conditions (au moins un lieu, sinon `reveal_area not offered to the LLM, the sheet has no place= line`) ; la liste `id: libellé` n'est écrite qu'une fois, sous la première de ces deux actions proposée ; aucune taille de zone demandée au LLM (le serveur la fixe) |
-  | `start_mission` | `template` : `scout`, `deliver`, `retrieve`, `clear` ou `signal`, restreint à `missions=` de la fiche (défaut `scout`) ; la voix ne choisit pas le bâtiment, décrit juste après par une demande de consigne (`turn = briefing`, E11-T09), puis à chaque appel par le champ `mission=` (« Mission donnée par une voix ») |
+  | `start_mission` | `template` : un nom de la liste `jobs=` de la demande (types inscrits au registre des gabarits et listés par `missions=` de la fiche, défaut `scout` ; E20-T02) ; la voix ne choisit pas le bâtiment, décrit juste après par une demande de consigne (`turn = briefing`, E11-T09), puis à chaque appel par le champ `mission=` (« Mission donnée par une voix ») |
   | `report_mission` | aucun paramètre (E11-T13) : compte rendu, à la radio, de la mission de cette voix dont l'objectif est rempli (tour `report_due`) ; permise avec `start_mission` sans être listée ; refusée `no_mission` (pas de mission ouverte de cette voix pour l'appelant) ou `not_done` (objectif non rempli) |
   | `propose_trade` | `items` : texte d'au plus 64 caractères, « `Nom:quantité` » séparés par des virgules, noms du livre du passeur ; `margin` : nombre facultatif dans la fourchette du livre ; le serveur calcule le prix et fige l'offre (E13-T02, « Livre du passeur ») ; refuser = ne rien proposer |
 
@@ -569,44 +569,45 @@ client partagent la carte de ce client (comportement vanilla).
 
 ### Mission donnée par une voix (E11-T08)
 
-**Extension du 2026-10-15 — contrat courant.** `start_mission {template}` accepte `scout`, `deliver`,
-`retrieve`, `clear`, `signal`, seulement si la fiche l'autorise par `missions=` (absence : `scout`).
-`retrieve` est l'alias public de `retrieve_id` dans le moteur. Aucun lieu, type d'objet, nombre, position ou
-récompense ne vient du modèle. Le serveur conserve une mission ouverte par personnage et par voix,
-les délais et budgets existants, ainsi que les restrictions de réputation. Le compte rendu reste radio
-pour ces cinq gabarits ; pour un PNJ, il reste en personne.
+**Contrat courant (E20-T02, ADR D03 ; extension du 2026-10-15).** `start_mission {template}` accepte le nom d'un
+type de mission inscrit au registre des gabarits (`RC_Missions`, déclaration `voiceName` ; aujourd'hui `scout`,
+`deliver`, `retrieve`, `clear`, `signal`), seulement si la fiche le liste dans `missions=` (absence : `scout`). Aucun
+lieu, type d'objet, nombre, position ou récompense ne vient du modèle. Le serveur conserve une mission ouverte par
+personnage et par voix, les délais et budgets existants, ainsi que les restrictions de réputation. Le compte rendu
+reste radio pour les missions d'une voix ; pour un PNJ, il reste en personne. Ce que vérifie chaque type (visite de la
+zone, planque collectée hors de vue, carte d'identité exacte, morts attribuées, signal de la bonne couleur à l'heure)
+reste dans son gabarit ; un dépôt de `deliver` n'est « à rapporter » qu'une fois collecté en entier
+(`Deliver.voiceReportReady`).
 
-- `scout` garde la visite vérifiée de la zone.
-- `deliver` choisit un `place=` de la fiche, en rotation déterministe. La boîte convenue est un vrai
-  conteneur du monde identifié par le serveur, dont les objets préexistants sont exclus. Le mode sac
-  exige un sac déposé au sol contenant exactement les biens demandés. Tous les joueurs doivent
-  s'éloigner d'au moins quarante cases pendant dix secondes : le serveur retire les objets, et le sac
-  en mode sac, avant d'autoriser le rapport. Une affirmation du joueur ne suffit jamais.
-- `retrieve` garde le corps, la carte physique et son identité serveur. Le rapport radio exige encore
-  la carte exacte dans l'inventaire du participant ; la transaction la retire à la réussite.
-- `clear` garde le cercle et l'attribution réelle des morts aux participants.
-- `signal` garde les contrôles Signal Smoke de couleur, de cercle, de participant et d'heure de jeu.
+**Champ `jobs=`** (hexadécimal RSV2, `RS_MissionVoice.jobs`, joint à toute demande d'une voix dont la fiche autorise
+`start_mission`, consigne comprise) : `{ jobs = { {name, text}, ... }, caches = { ... } }`. `jobs` suit l'ordre de
+`missions=` et ne garde que les noms déclarés par un gabarit inscrit ; `text` est la description courte en anglais
+déclarée par le gabarit (`voiceText`). Un nom de la fiche sans gabarit est omis et journalisé une fois
+(`voice sheet <id> lists unknown mission type '<nom>'`) ; `V.start` le refuse aussi (`bad_template`). `caches` donne
+les tables de cache de `place_cache`, de leur seul propriétaire (`RC_Caches.tableNames`, ordre de
+`RC_MissionConfig.Caches.order`). Le pont (`voice_jobs`) borne le champ à 4 096 caractères, 16 types et 16 tables ;
+un nom hors syntaxe `[a-z][a-z0-9_]*`, en double, ou un texte illisible ou qui cite un secret est retiré. La
+description de `start_mission`, son exemple et sa validation prennent la liste `jobs` ; ceux de `place_cache`, la
+liste `caches`. Sans `jobs=` (ou liste vide), l'action n'est pas proposée au modèle (journalisé une fois par voix).
 
-Le champ privé `mission=` reste hexadécimal RSV2, avec `kind`, `state`, `turn`, `place`, `clues`,
-`remainingMs`, `toReport`. Le pont filtre chaque gabarit vers ses seuls faits :
-
-| `kind` | Faits supplémentaires admis au prompt |
-| --- | --- |
-| `scout` | `zoneReached` |
-| `deliver` | `quantity`, `delivered`, `accepted` (types fermés), `depositMode` (`box` ou `bag`), `depositCollected` |
-| `retrieve_id` | `placed`, `found` ; jamais l'identifiant de carte ni les coordonnées du corps |
-| `clear` | `kills`, `target` |
-| `signal` | `color` (`green`, `red`, `yellow`, `purple`), `hour` (0..23), `windowHours` (0..24), `lit` |
-
-Les coordonnées, identifiants d'objets, fréquences et champs arbitraires sont omis. Le pont compose
-lui-même la consigne de collecte (quarante cases, dix secondes), sans recopier `collectionRule`.
-Un dépôt non collecté ne devient jamais un `report_due` dans le prompt. Le modèle reconnaît seulement
-le compte rendu, et `report_mission {}` reste revérifié par le serveur.
+**Champ `mission=`** (hexadécimal RSV2, `RS_MissionVoice.context`), générique : `kind` (nom du type pour la voix),
+`state` (`active`, `success`), `turn` (`open`, `briefing`, `not_yet`, `report_due`, `success`), `place` (type de
+lieu, sans chiffre), `clues` (indices, sans chiffre), `remainingMs`, `toReport` (objectif constaté par le serveur),
+`reward` (libellé d'un lieu de la fiche), `job` et `facts`. `job` (une phrase) et `facts` (lignes de faits et de
+règles : comptes, oui ou non, règle de collecte) sont composés par le gabarit (`voiceBrief(m)`) à partir des seuls faits
+du serveur ; jamais une coordonnée, une fréquence, ni un identifiant d'objet dans l'objectif (la liste fermée des types
+d'objets admis d'un dépôt est un fait). Aucun autre champ propre à un type ne part au pont. Le pont (`mission_context`)
+ne contrôle que ces champs : `kind` de syntaxe valide, état et tour connus, lieu et indices sans chiffre ni secret,
+objectif sans secret (sinon le contexte est ignoré), faits sans secret (un fait qui en cite un est retiré), 8 indices
+et 8 faits au plus. Un `turn = report_due` sans `toReport` est lu `not_yet`. `mission_prompt` rend l'objectif, les
+faits, les indices et les lignes communes (consigne, compte rendu attendu, objectif non rempli, réussite, temps
+restant), sans branche par type. Le modèle reconnaît seulement le compte rendu, et `report_mission {}` reste revérifié
+par le serveur.
 
 Nouvelle action `share_frequency {}` : aucun paramètre admis. Le serveur choisit une autre voix vivante
 et non silencieuse parmi `shares=`, ajoute la fréquence réelle à la réponse et au répertoire du seul
 bénéficiaire. Aucune fréquence exacte n'est donnée au modèle. Les quotas existants restent applicables.
-Le faux modèle accepte les marqueurs de test `[mission:<gabarit>]` et `[share_frequency]`, vérifie
+Le faux modèle accepte les marqueurs de test `[mission:<nom>]` et `[share_frequency]`, vérifie
 les actions et gabarits du prompt et produit les actions de manière déterministe, sans appel supplémentaire.
 
 Les paragraphes ci-dessous décrivent l'origine du mécanisme scout ; les restrictions « scout seul »
@@ -625,7 +626,8 @@ ni corps. Implémentation : `server/RadioSurvivorCore/RC_MissionVoice.lua (mod c
 voix, tous appelants confondus) :
 
 - paramètre unique `template`, liste fermée `RS_MissionVoice.TEMPLATES` (seulement `scout`) ; autre valeur, paramètre
-  absent ou en trop : `bad_params` ;
+  absent ou en trop : `bad_params` (historique : la liste a été remplacée par le registre des gabarits, E20-T01, et le
+  champ `jobs=`, E20-T02 ; contrat courant ci-dessus) ;
 - le serveur choisit le lieu avec l'offre du gabarit (`RC_MissionScout` : bâtiment habitable de la métagrille à 60–250
   cases de la **copie serveur** de l'appelant, à 60 cases au moins de toute base connue, mêmes règles qu'E11-T03) ;
 - refus motivés (raison de l'exécuteur, aucun usage compté) : `no_player` (appelant déconnecté : pas de position

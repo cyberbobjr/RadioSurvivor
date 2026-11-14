@@ -15,12 +15,14 @@ local T = require "RadioSurvivorCore/RC_Transport"
 -- memory (E07-T03): facts the voice remembers about this caller (hex RSV2 list, RS_Memory.field); absent = none.
 -- persona (E07-T06): dynamic state of the voice (hex RSV2 table, RS_PersonaState.field); absent = never changed.
 -- mission (E11-T08): mission of this voice for this caller (hex RSV2 table, RS_MissionVoice.field); absent = none.
+-- jobs (E20-T02): missions this voice may give and cache tables (hex RSV2, RS_MissionVoice.jobs); absent = the sheet
+-- does not allow start_mission.
 -- kind=bulletin (E14-T02): evening bulletin of the chronicler; facts = confirmed facts of the day (hex RSV2 list
 -- of English sentences, RS_Facts.bulletin); absent = nothing confirmed. A bridge older than E14-T02 ignores it.
 -- trade (E13-T02): book of the smuggler for this caller (hex RSV2 table, RS_Trade.field); absent = no trade.
 -- reputation (E04-T10): public reputation of this caller (level and last public act); absent = none.
 local RADIO_KEYS = { 'kind', 'caller', 'voice', 'name', 'date', 'days', 'radio', 'text', 'language', 'memory',
-    'persona', 'mission', 'facts', 'trade', 'reputation' }
+    'persona', 'mission', 'jobs', 'facts', 'trade', 'reputation' }
 
 local function radioLines(out, r)
     out[#out + 1] = 'sent=' .. string.format('%.0f', r.sentAt)

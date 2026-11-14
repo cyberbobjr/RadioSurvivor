@@ -486,6 +486,8 @@ local function onTalk(player, args)
     -- rempli (sondage serveur), turn = report_due : le modèle de la voix reconnaît le compte rendu et rend l'action
     -- report_mission, revérifiée par son exécuteur (RS_MissionVoice) ; avant, turn = not_yet.
     req.mission = VoiceMissions.field(VoiceMissions.heard(sheet, player, req.cid, khz))
+    -- E20-T02 : missions que cette voix peut donner, décrites par leur gabarit (voix qui autorise start_mission).
+    req.jobs = VoiceMissions.field(VoiceMissions.jobs(sheet))
     req.trade = Trade.field(sheet, req.caller, req.cid) -- E13-T02 : voix qui autorise propose_trade seulement
     -- E04-T10 (Q10) : réputation du personnage appelant (niveau et dernier acte public, hexadécimal RSV2), absente sans
     -- personnage du carnet ; jamais de score. Écrite par RS_Transport.write (clé reputation).
@@ -683,6 +685,7 @@ VoiceMissions.onStarted = function(m, ctx)
     req.memory = Memory.field(src.voice, src.caller, src.cid)
     req.persona = PersonaState.field(src.voice)
     req.mission = VoiceMissions.field(VoiceMissions.context(m, "briefing"))
+    req.jobs = VoiceMissions.field(VoiceMissions.jobs(Personas.get(src.voice))) -- E20-T02
     req.trade = Trade.field(Personas.get(src.voice), src.caller, src.cid) -- E13-T02
     briefings[#briefings + 1] = req
 end

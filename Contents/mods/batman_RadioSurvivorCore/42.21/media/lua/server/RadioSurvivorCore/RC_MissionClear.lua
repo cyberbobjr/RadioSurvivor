@@ -47,7 +47,8 @@ local function log(msg)
 end
 
 -- E11-T13: report in person. E20-T01: given by a voice as `clear`, labelled IGUI_RS_MapZoneClear on the map.
-local Clear = {idPrefix = 'clear', reportBySpeech = true, voiceName = 'clear', mapStyle = 'Clear'}
+local Clear = {idPrefix = 'clear', reportBySpeech = true, voiceName = 'clear', mapStyle = 'Clear',
+    voiceText = 'kill zombies around a place'}
 Clear.MARK = 'RS_ClearCounted'
 Clear.HIT_WINDOW_MS = 5000   -- E04-T06: a kill is attributed only to a recent hit (LivingKnox.Bodies.HIT_WINDOW_MS)
 local CHUNK = 8
@@ -328,6 +329,14 @@ end
 function Clear.context(m, ctx)
     ctx.kind, ctx.place, ctx.clues, ctx.report = 'clear', m.place, copyList(m.clues), 'in_person'
     ctx.kills, ctx.target = m.kills or 0, m.target or 0
+end
+
+-- E20-T02: the job told to a radio voice (verified kills only).
+function Clear.voiceBrief(m)
+    local target = m.target or 0
+    return {job = 'Kill ' .. tostring(target) .. ' zombies inside the circled area around a ' .. tostring(m.place)
+        .. ', then report to you on this frequency. Only participant-attributed kills in the area count.',
+        facts = {'Verified kills: ' .. tostring(m.kills or 0) .. ' of ' .. tostring(target) .. '.'}}
 end
 
 M.register('clear', Clear)
