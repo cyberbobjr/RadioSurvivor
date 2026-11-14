@@ -22,8 +22,8 @@
 | ☑ | E11-T14 | Écouteur Signal Smoke abonné deux fois après `Signal.resetForTests` | `testé hors jeu` | hors jeu | E11-T07 |
 | ☑ | E11-T15 | Fiches et contrat fermé des missions et récompenses | `testé hors jeu` | hors jeu | E11-T08 |
 | ☑ | E11-T16 | Récompenses serveur des voix : cache, fréquence, carte et leçon | `testé MP` | MP | E11-T15 |
-| ☐ | E11-T17 | Gabarits de missions des voix avec compte rendu radio | `testé hors jeu` | MP | E11-T15 |
-| ☐ | E11-T18 | Récompenses et offres des PNJ Living Knox | `testé hors jeu` | MP | E11-T16 |
+| ☐ | E11-T17 | Gabarits de missions des voix avec compte rendu radio | `testé solo` | MP | E11-T15 |
+| ☐ | E11-T18 | Récompenses et offres des PNJ Living Knox | `testé solo` | MP | E11-T16 |
 | ☑ | E11-T19 | Livraison radio discrète après éloignement | `testé MP` | MP | E11-T17 |
 | ☐ | E11-T20 | Délais des missions en temps de jeu (pause, vitesse) | `testé hors jeu` | solo | E00-T03 |
 
@@ -240,26 +240,26 @@
   - Reste : — (les contrats supply dont le lot a déjà été prélevé conservent ce lot ; pas de second prélèvement).
 
 - [ ] **E11-T17** — Gabarits de missions des voix avec compte rendu radio
-  - État : `testé hors jeu`
+  - État : `testé solo`
   - Cible : `MP`
   - Dépend de : E11-T15
   - Fichiers : modules RadioSurvivor, bridge, tests, dev/batman_RadioSurvivorTests, docs
   - Faire : scout, deliver, retrieve, clear, signal selon fiche ; objectifs vérifiés côté serveur, règles des gabarits préservées.
   - Accepté si : mécanismes et isolation bénéficiaire vérifiés, sans récompense doublée ni secret dans le prompt.
   - Tests : banc missions ; campagnes solo/MP ; voix vrai modèle
-  - Preuve : `tests/run_all.py --keep-going` : 140 étapes vertes le 2026-10-15 ; 15 avertissements Contents et 0 dev (références inchangées) ; suites en jeu ajoutées ; campagnes du 2026-11-13 : rs.missions.radio PASS en MP (mission de voix `scout` : une par appelant, compte rendu radio seulement après la visite ; `tools/autoclient/runs/20261113-233636-parallel-3/shard1/server/20261113-224008-server.txt`) et en solo (`tools/autoclient/runs/20261113-235754-parallel-2/shard1/20261113-225859-solo.txt`).
-  - Reste : les gabarits deliver, retrieve, clear et signal donnés par une voix (`RS_MissionVoice.TEMPLATES`, pont `MISSION_TEMPLATES`) ne sont pas joués en jeu : rs.missions.radio ne couvre que `scout` ; voix avec le vrai modèle non vue. Les contrats supply dont le lot a déjà été prélevé conservent ce lot ; pas de second prélèvement.
+  - Preuve : `tests/run_all.py --keep-going` : 140 étapes vertes le 2026-10-15 ; 15 avertissements Contents et 0 dev (références inchangées) ; suites en jeu ajoutées ; campagnes du 2026-11-13 : rs.missions.radio PASS en MP (mission de voix `scout` : une par appelant, compte rendu radio seulement après la visite ; `tools/autoclient/runs/20261113-233636-parallel-3/shard1/server/20261113-224008-server.txt`) et en solo (`tools/autoclient/runs/20261113-235754-parallel-2/shard1/20261113-225859-solo.txt`) ; suite en jeu `rs.missions.voicetemplates` (commit `5d99de1`) ; campagne solo des deux mods du 2026-11-14 (une partie, code `5d99de1`) : exit 1 (2 FAIL hors de cette tâche), `RST-RESULT ok=false total=269 pass=257 fail=2 skip=10` (`tools/autoclient/runs/20261114-095105-parallel-1/shard1/20261114-085153-solo.txt`) : 4/4 PASS (deliver, retrieve créés pour l'appelant seul ; clear et signal joués jusqu'au compte rendu sur la fréquence de la voix, aucune récompense doublée)
+  - Reste : campagne MP (isolation du client 2) ; voix avec le vrai modèle non vue. Les contrats supply dont le lot a déjà été prélevé conservent ce lot ; pas de second prélèvement.
 
 - [ ] **E11-T18** — Récompenses et offres des PNJ Living Knox
-  - État : `testé hors jeu`
+  - État : `testé solo`
   - Cible : `MP`
   - Dépend de : E11-T16
   - Fichiers : modules RadioSurvivor, bridge, tests, dev/batman_RadioSurvivorTests, docs
   - Faire : Stock réel rationné, tables selon groupe, fréquence, carte, leçon par rôle ; retrait partagé, contrôle décès et relations.
   - Accepté si : mécanismes et isolation bénéficiaire vérifiés, sans récompense doublée ni secret dans le prompt.
   - Tests : banc PNJ ; campagnes solo/MP ; confidentialité client 2
-  - Preuve : `tests/run_all.py --keep-going` : 140 étapes vertes le 2026-10-15 ; 15 avertissements Contents et 0 dev (références inchangées) ; suites en jeu ajoutées, pas encore exécutées.
-  - Reste : campagnes solo/MP pour les tâches de cible MP. Les contrats supply dont le lot a déjà été prélevé conservent ce lot ; pas de second prélèvement.
+  - Preuve : `tests/run_all.py --keep-going` : 140 étapes vertes le 2026-10-15 ; 15 avertissements Contents et 0 dev (références inchangées) ; suites en jeu ajoutées, pas encore exécutées ; suite en jeu `rs.npcrewards` (commit `5d99de1`, banc `tests/test_rs_e11_voice_npc_suites.py`) ; campagne solo des deux mods du 2026-11-14 (une partie, code `5d99de1`) : exit 1 (2 FAIL hors de cette tâche), `RST-RESULT ok=false total=269 pass=257 fail=2 skip=10` (`tools/autoclient/runs/20261114-095105-parallel-1/shard1/20261114-085153-solo.txt`) : rs.npcrewards PASS (stock réel prélevé une fois pour le destinataire, refus des autres réclamations et d'un PNJ mort)
+  - Reste : campagne MP (confidentialité du client 2). Les contrats supply dont le lot a déjà été prélevé conservent ce lot ; pas de second prélèvement.
 
 
 - [x] **E11-T19** — Livraison radio discrète après éloignement

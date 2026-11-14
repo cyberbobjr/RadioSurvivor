@@ -2,14 +2,14 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 3 / 4 tâche(s) terminée(s).
+**Avancement.** terminée — 4 / 4 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
 | ☑ | E14-T01 | Journal des faits du serveur | `testé MP` | MP | — |
 | ☑ | E14-T02 | Bulletin du soir | `testé MP` | MP | E14-T01, E07-T01 |
 | ☑ | E14-T03 | Mémorial | `testé MP` | MP | E14-T02 |
-| ☐ | E14-T04 | Mémorial : animaux exclus, consigne des noms sans contradiction | `testé hors jeu` | solo | E14-T03 |
+| ☑ | E14-T04 | Mémorial : animaux exclus, consigne des noms sans contradiction | `testé solo` | solo | E14-T03 |
 
 <!-- fin du tableau de bord -->
 
@@ -64,13 +64,13 @@
   - Preuve : banc du 2026-10-13 : `tests/test_memorial.py` 6 OK (exécute aussi la suite `rs.facts` sous lupa), `tests/test_bulletin.py` 12 OK, `tests/test_facts.py` 9 OK : chaque personnage joueur mort depuis le bulletin précédent nommé une seule fois par le serveur, sans texte du LLM, à la fin du bulletin (ligne d'ouverture `IGUI_RS_Bulletin_Memorial` EN/FR, noms dans l'ordre des morts, lignes de 140 caractères au plus) ; le pont ne reçoit que le nombre de morts (`deathsText`), le secours ne raconte plus les morts ; morts lues purgées avec les faits ; `RS_Facts` : `split`, `deathsText`, `memorialLines` ; suite `rs.facts` (7 tests) ; luacheck 16/0 ; conception `chronique.md` ; essai en jeu du 2026-10-13 (Lua/batman_RadioSurvivor/tests/) : RST.server rs.bulletin 2/2 (`20261013-112430-server.txt`) ; campagne MP automatique du 2026-10-14 (E01-T15, serveur dédié + 2 clients, client 2 seulement présent) : rs.facts 7/7 (`tools/autoclient/runs/20261014-144930-mp-045a8627ec16/server/20261014-125125-server.txt`) ; campagne MP automatique du 2026-10-14 soir (règle « les tests font foi ») : rs.facts 7/7 (test du mémorial), rs.bulletin 2/2 (`tools/autoclient/runs/20261014-184508-mp-1b6224aba9e1/server/20261014-164709-server.txt`)
   - Reste : à automatiser par le client 2 (E01-T16) : mort réelle d'un client puis bulletin : texte sans le nom, puis « One more thing… » et le nom une seule fois. Membres Living Knox non nommés ; lieu de la mort plus dit ; mémorial hors de la limite de 6 lignes.
 
-- [ ] **E14-T04** — Mémorial : animaux exclus, consigne des noms sans contradiction
-  - État : `testé hors jeu`
+- [x] **E14-T04** — Mémorial : animaux exclus, consigne des noms sans contradiction
+  - État : `testé solo`
   - Cible : `solo`
   - Dépend de : E14-T03
   - Fichiers : `RS_Facts.lua`, `tests/test_facts.py`, `tests/test_carnet.py`
   - Faire : `IsoAnimal` hérite d'`IsoPlayer` et déclenche `OnCharacterDeath` (descripteur « None None ») : `Facts.characterDeath` l'écarte par `isAnimal()`. `Facts.deathsText` ne dit plus « do not name them » (le modèle annonçait à l'antenne qu'il ne donnerait pas les noms, juste avant le mémorial) : il dit que la station lit les noms juste après, que la voix peut l'annoncer, sans jamais dire qu'elle ne les donnera pas ni nommer quiconque.
   - Accepté si : au banc, la mort d'un animal n'ajoute aucun fait ; en jeu, un animal tué n'apparaît pas au mémorial et le bulletin annonce les noms sans les refuser.
   - Tests : `tests/test_facts.py`, `tests/test_bulletin.py`, `tests/test_memorial.py`.
-  - Preuve : `test_facts.py` 9 OK (animal `isAnimal` vrai : aucun fait), `test_bulletin.py` 14 OK, `test_memorial.py` 6 OK ; run_all 140/141 du 2026-10-18 (échec instable `mission_recover`, sans lien, vert seul 3 fois sur 3)
-  - Reste : essai en jeu (animal tué, bulletin du soir suivant) ; le fait « None None » déjà enregistré dans la partie en cours a déjà été lu et ne revient pas
+  - Preuve : `test_facts.py` 9 OK (animal `isAnimal` vrai : aucun fait), `test_bulletin.py` 14 OK, `test_memorial.py` 6 OK ; run_all 140/141 du 2026-10-18 (échec instable `mission_recover`, sans lien, vert seul 3 fois sur 3) ; suite en jeu `rs.memorial.animals` (commit `5d99de1`, banc `tests/test_rs_e14_e16_suites.py`) ; campagne solo des deux mods du 2026-11-14 (une partie, code `5d99de1`) : exit 1 (2 FAIL hors de cette tâche), `RST-RESULT ok=false total=269 pass=257 fail=2 skip=10` (`tools/autoclient/runs/20261114-095105-parallel-1/shard1/20261114-085153-solo.txt`) : rs.memorial.animals 2/2 PASS (poule réelle tuée : aucun fait ni nom au mémorial ; bulletin : « names follow », aucun refus des noms)
+  - Reste : — (limites : mort par `Kill(player)`, pas par le geste vanilla d'abattage ; le fait « None None » déjà lu dans la partie de l'utilisateur ne revient pas)

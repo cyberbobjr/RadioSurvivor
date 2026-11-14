@@ -2,7 +2,7 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 3 / 10 tâche(s) terminée(s).
+**Avancement.** en cours — 4 / 10 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
@@ -15,7 +15,7 @@
 | ☑ | E16-T07 | Plafonds du pont réglables | `testé hors jeu` | hors jeu | E16-T06 |
 | ☐ | E16-T08 | Carnet : état privé borné et écritures fiables (C17 à C20) | `testé hors jeu` | MP | — |
 | ☐ | E16-T09 | Limites de débit et coût côté serveur (C21, C22, C30, C31) | `testé hors jeu` | MP | — |
-| ☐ | E16-T10 | Lot non réclamé gardé 7 jours de jeu | `testé hors jeu` | solo | — |
+| ☑ | E16-T10 | Lot non réclamé gardé 7 jours de jeu | `testé solo` | solo | — |
 
 <!-- fin du tableau de bord -->
 
@@ -137,13 +137,13 @@
   - Preuve : commits `2d8cae5`, `ed4353f` ; `tests/test_server_guards.py` et `FindCacheTests` verts (2026-10-21) ; campagnes MP du 2026-11-13 et 2026-11-14 (serveur dédié + 2 clients, 534 tests en 3 parties, puis `mp-ambient` 24 tests) : aucune ligne `rate limit: dropped` (`RC_RateLimit.lua`) dans les journaux du serveur ni des clients (`tools/autoclient/runs/20261113-233636-parallel-3`, `tools/autoclient/runs/20261114-003116-mp-cf36126965e3`).
   - Reste : reconnexions : relire les journaux d'une campagne `mp-persist` (reconnexions et redémarrage réels) sur le dernier commit.
 
-- [ ] **E16-T10** — Lot non réclamé gardé 7 jours de jeu
-  - État : `testé hors jeu`
+- [x] **E16-T10** — Lot non réclamé gardé 7 jours de jeu
+  - État : `testé solo`
   - Cible : `solo`
   - Dépend de : —
   - Fichiers : `server/RadioSurvivor/RS_Missions.lua`, `shared/RadioSurvivor/RS_Config.lua`, `tests/test_carnet.py`, `docs/specifications-techniques/protocole-carnet-v2.md`
   - Faire : échéance `unclaimedUntilHour` = âge du monde à la réussite + `UNCLAIMED_RETENTION_HOURS` (168 h de jeu, `RS_GameClock`), arrêtée en pause et sur un serveur vide ; plafonnée à 168 h au-delà de l'âge actuel ; lot enregistré avant la décision converti une fois (temps réel restant en heures de jeu à vitesse normale, plafonné à 7 jours de jeu) ; gardé sans horloge de jeu.
   - Accepté si : bancs verts ; en jeu, un lot réussi non réclamé reste réclamable après une longue pause.
   - Tests : `tests/test_carnet.py` (`GameClockTests.test_unclaimed_lot_kept_seven_game_days`, `test_unclaimed_lot_saved_in_real_time_is_converted`)
-  - Preuve : commits `a2a81b3`, `ff8fc39` (suite en jeu `rs.missions` alignée) ; `tests/test_carnet.py`, `tests/test_rs_suites.py`, `tests/test_kahlua.py` verts (2026-10-21)
-  - Reste : vérification en jeu (lot laissé, pause longue, puis réclamation).
+  - Preuve : commits `a2a81b3`, `ff8fc39` (suite en jeu `rs.missions` alignée) ; `tests/test_carnet.py`, `tests/test_rs_suites.py`, `tests/test_kahlua.py` verts (2026-10-21) ; suite en jeu `rs.missions.unclaimed` (commit `5d99de1`, banc `tests/test_rs_e14_e16_suites.py`) ; campagne solo des deux mods du 2026-11-14 (une partie, code `5d99de1`) : exit 1 (2 FAIL hors de cette tâche), `RST-RESULT ok=false total=269 pass=257 fail=2 skip=10` (`tools/autoclient/runs/20261114-095105-parallel-1/shard1/20261114-085153-solo.txt`) : rs.missions.unclaimed 2/2 PASS (lot gardé 6 jours de jeu puis réclamé dans le vrai inventaire ; purgé après 7 jours)
+  - Reste : — (limite : l'âge du monde est décalé par la couture `RC_GameClock.hours` du module, pas par une vraie pause longue)
