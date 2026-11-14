@@ -2,7 +2,7 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 8 / 10 tâche(s) terminée(s).
+**Avancement.** en cours — 9 / 10 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
@@ -15,7 +15,7 @@
 | ☑ | E07-T07 | Paramètres des actions décrits dans le prompt | `testé hors jeu` | hors jeu | E07-T03, E07-T06 |
 | ☑ | E07-T08 | Repère reçu noté dans le carnet au lieu d'un texte flottant | `testé solo` | solo | E07-T04 |
 | ☑ | E07-T09 | Réponse structurée du LLM robuste | `testé hors jeu` | hors jeu | E07-T01 |
-| ☐ | E07-T10 | Fréquence d'une autre voix donnée exceptionnellement | `testé hors jeu` | MP | E07-T01, E06-T07 |
+| ☑ | E07-T10 | Fréquence d'une autre voix donnée exceptionnellement | `testé MP` | MP | E07-T01, E06-T07 |
 
 <!-- fin du tableau de bord -->
 
@@ -138,13 +138,13 @@
   - Preuve : `bridge/radio_bridge.py` : mode JSON de l'API en mode structuré (`response_format` `json_object`, repli sans lui sur refus HTTP 400, mémorisé par fournisseur et modèle), rappel de format en fin du message de l'appelant (`format_reminder`, historique non pollué), extraction tolérante du premier objet JSON avec `say` ou `actions` (entouré de texte, bloc de code, saut de ligne brut ; réparation des guillemets typographiques et de la virgule finale en dernier recours), réponse brute illisible journalisée en DEBUG (300 caractères, jamais un secret) ; mode texte inchangé ; `test_protocol.py` 31/31 (`scenario_structured_robust` : 10 formes lues, bout en bout après 34 messages d'historique) ; luacheck 17/0 ; `docs/specifications-techniques/protocole-carnet-v2.md` ; commit `19904bb` (fait par l'utilisateur, avec une partie d'E17-T06)
   - Reste : essai en jeu avec le vrai LLM : la demande à Walt de « montrer le coin autour de la clinique » doit produire `reveal_area` ; le constat du 2026-10-11 (aucune accolade dans la réponse) n’est couvert que par le rappel et le mode JSON
 
-- [ ] **E07-T10** — Fréquence d'une autre voix donnée exceptionnellement
-  - État : `testé hors jeu`
+- [x] **E07-T10** — Fréquence d'une autre voix donnée exceptionnellement
+  - État : `testé MP`
   - Cible : `MP`
   - Dépend de : E07-T01, E06-T07
   - Fichiers : `server/RadioSurvivor/RS_VoiceBonds.lua` (nouveau), `RS_MissionVoice.lua`, `RS_RadioLog.lua`, `RadioSurvivor_Server.lua`, `RS_Personas.lua`, `bridge/radio_bridge.py`, fiches `walt.txt` et `gus.txt`, `docs/specifications-techniques/persona-format.md`
   - Faire : décision du 2026-10-18. `share_frequency` n'aboutit que si le personnage a un lien avec la voix (réponses diffusées comptées par l'autorité, jours de jeu distincts, ou bonne réputation) et si le dernier partage est assez ancien ; la voix donnée est la première de `shares` active, servie et inconnue du carnet, inscrite avec sa voix (E06-T07). La consigne du modèle rend l'action exceptionnelle. Walt et Gus reçoivent l'action et leurs listes `shares` (empreintes des fiches livrées ajoutées).
   - Accepté si : au banc, refus sans lien, accord avec lien ou bonne réputation, délais de 7 et 3 jours, aucune voix déjà connue ; en jeu, une voix finit par présenter une autre voix après plusieurs échanges, et pas avant.
   - Tests : `tests/test_voice_bonds.py`, `tests/test_personas.py`, `tests/test_personas_server.py`.
-  - Preuve : `test_voice_bonds.py` 5 OK, `test_personas.py` 20 OK, `test_personas_server.py` 106 OK ; `test_fake_llm.py`, `test_rs_trade_run.py` et `rs.env` ajustés (Walt et Gus en mode structuré) ; run_all du 2026-10-18 vert hors ces trois bancs, corrigés et relancés ; luacheck 15/0
-  - Reste : essai en jeu par l'utilisateur ; ⚠ la fiche `walt.txt` installée de la partie de l'utilisateur est modifiée par l'admin : elle n'est pas remplacée (ajouter `share_frequency` et `shares=` à la main pour Walt)
+  - Preuve : `test_voice_bonds.py` 5 OK, `test_personas.py` 20 OK, `test_personas_server.py` 106 OK ; `test_fake_llm.py`, `test_rs_trade_run.py` et `rs.env` ajustés (Walt et Gus en mode structuré) ; run_all du 2026-10-18 vert hors ces trois bancs, corrigés et relancés ; luacheck 15/0 ; suite en jeu `rs.actions.share` (commit `72bb9b2`, banc `tests/test_rs_share_suite.py`) ; campagne MP du 2026-11-14 (serveur dédié + 2 clients, une partie, code `72bb9b2`) : exit 1 (2 FAIL hors de cette tâche : rs.comfort, rs.mission.signal.client), `TOTAL total=558 pass=535 fail=2 skip=21` (`tools/autoclient/runs/20261114-102455-parallel-1/shard1/server/20261114-092700-server.txt`) : rs.actions.share 2/2 PASS (refus sans lien, accord après les échanges ou avec une bonne réputation, délais 7 et 3 jours, voix connue jamais redonnée, client 2 sans la voix)
+  - Reste : — (la fiche `walt.txt` installée de la partie de l'utilisateur, modifiée par l'admin, n'est pas remplacée : ajouter `share_frequency` et `shares=` à la main pour Walt)

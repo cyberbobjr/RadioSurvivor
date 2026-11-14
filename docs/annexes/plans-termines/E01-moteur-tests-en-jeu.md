@@ -2,7 +2,7 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 18 / 20 tâche(s) terminée(s), 2 abandonnée(s).
+**Avancement.** terminée — 20 / 20 tâche(s) terminée(s), 2 abandonnée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
@@ -26,8 +26,8 @@
 | ☑ | E01-T18 | API de test réservée au mode debug | `testé solo` | solo | E01-T10 |
 | ☑ | E01-T19 | Campagne `mp-ambient` et suites de gabarits dans la campagne `mp` | `testé MP` | MP | E01-T15 |
 | ✕ | E01-T20 | lk.windowkill indépendant de l'IA vanilla du zombie | `abandonné` | MP | E01-T18 |
-| ☐ | E01-T21 | lk.barricade stable en campagne MP | `à faire` | MP | E01-T18 |
-| ☐ | E01-T22 | lk.traversal stable en campagne MP | `à faire` | MP | E01-T18 |
+| ☑ | E01-T21 | lk.barricade stable en campagne MP | `testé MP` | MP | E01-T18 |
+| ☑ | E01-T22 | lk.traversal stable en campagne MP | `testé MP` | MP | E01-T18 |
 
 <!-- fin du tableau de bord -->
 
@@ -300,24 +300,24 @@ Interface graphique du moteur (la console suffit), intégration continue distant
   - Reste : retirée le 2026-11-07 par E18-T34 (décision de l'utilisateur : offensive à la fenêtre supprimée, le zombie à la fenêtre est attaqué dehors par une sortie) ; suite `lk.windowkill` supprimée, remplacée par `lk.windowsally`.
 
 
-- [ ] **E01-T21** — lk.barricade stable en campagne MP
-  - État : `à faire`
+- [x] **E01-T21** — lk.barricade stable en campagne MP
+  - État : `testé MP`
   - Cible : `MP`
   - Dépend de : E01-T18
   - Fichiers : `dev/batman_RadioSurvivorTests/42.21/media/lua/shared/RST/suites/RST_LKBarricade.lua`, `tests/test_lk_barricade.py`
   - Faire : échec revenu dans la campagne MP du 2026-11-06 (« builder nails planks from the stock … sites finished: expected 1, got 0 », `tools/autoclient/runs/20261106-002923-mp-2889c9f2103f/server/20261105-233208-server.txt`) après les passages verts du 2026-11-05 ; trouver pourquoi le chantier ne se termine pas dans le délai (hypothèse : joueurs ou PNJ sur le chemin de l'ouvrier, comme le 2026-11-05).
   - Accepté si : lk.barricade vert dans trois campagnes MP de suite.
   - Tests : banc `test_lk_barricade.py` ; campagnes MP.
-  - Preuve : `lk.barricade` PASS dans la campagne MP `20261113-233636-parallel-3` (shard 1) puis dans `tools/autoclient/runs/20261114-090853-parallel-1` (serveur dédié + 2 clients, une seule partie, pont avec faux modèle, code `cf93563`) (2 sur 3)
+  - Preuve : `lk.barricade` PASS dans la campagne MP `20261113-233636-parallel-3` (shard 1) puis dans `tools/autoclient/runs/20261114-090853-parallel-1` (serveur dédié + 2 clients, une seule partie, pont avec faux modèle, code `cf93563`) (2 sur 3) ; puis vert dans la campagne MP `tools/autoclient/runs/20261114-102455-parallel-1` (3 sur 3)
   - Reste : —
 
-- [ ] **E01-T22** — lk.traversal stable en campagne MP
-  - État : `à faire`
+- [x] **E01-T22** — lk.traversal stable en campagne MP
+  - État : `testé MP`
   - Cible : `MP`
   - Dépend de : E01-T18
   - Fichiers : `dev/batman_RadioSurvivorTests/42.21/media/lua/shared/RST/suites/RST_LKTraversal.lua`, `tests/test_lk_obstacles.py`
   - Faire : trois cas différents en échec sur deux passages MP du 2026-11-06 (campagne : « open window: climbed through » (étape client `lk.track`, copie à 0,9 case du but) et « window of a house, destination behind a locked door elsewhere » (corps jamais passé par la porte), `tools/autoclient/runs/20261106-002923-mp-2889c9f2103f` ; passage ciblé : « locked interior home door … relocked » (portes verrouillées par l'autorité : 10 au lieu de 8), `tools/autoclient/runs/20261106-011253-mp-398bd3fa693f`) ; verts dans les 15 campagnes MP précédentes ; code du moteur des PNJ inchangé par E18-T05 et E18-T06 (hypothèse : délais et course entre deux scènes de la suite).
   - Accepté si : lk.traversal vert dans trois campagnes MP de suite.
   - Tests : bancs `test_lk_obstacles.py`, `test_lk_movement.py` ; campagnes MP.
-  - Preuve : `lk.traversal` 18/18 dans la campagne MP `20261113-233636-parallel-3` (1 sur 3), puis 18/18 dans `tools/autoclient/runs/20261114-090853-parallel-1` (serveur dédié + 2 clients, une seule partie, pont avec faux modèle, code `cf93563`) (2 sur 3), et en solo deux mods et Living Knox seul, après `853b9d2` (joueurs écartés du trajet par les portes)
+  - Preuve : `lk.traversal` 18/18 dans la campagne MP `20261113-233636-parallel-3` (1 sur 3), puis 18/18 dans `tools/autoclient/runs/20261114-090853-parallel-1` (serveur dédié + 2 clients, une seule partie, pont avec faux modèle, code `cf93563`) (2 sur 3), et en solo deux mods et Living Knox seul, après `853b9d2` (joueurs écartés du trajet par les portes) ; puis vert dans la campagne MP `tools/autoclient/runs/20261114-102455-parallel-1` (3 sur 3)
   - Reste : —

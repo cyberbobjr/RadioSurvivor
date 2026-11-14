@@ -2,7 +2,7 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 6 / 7 tâche(s) terminée(s).
+**Avancement.** terminée — 7 / 7 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
@@ -12,7 +12,7 @@
 | ☑ | E06-T04 | Onglet Radio du carnet : historique par fréquence et voyant | `testé solo` | solo | E06-T01 |
 | ☑ | E06-T05 | Validation multijoueur du carnet radio | `testé MP` | MP | E06-T03, E06-T04 |
 | ☑ | E06-T06 | Refonte visuelle du carnet (maquette A « carnet papier ») | `testé solo` | solo | E06-T04 |
-| ☐ | E06-T07 | Carnet : voix et heures d'écoute d'une fréquence connue | `testé solo` | MP | E06-T04, E05-T09 |
+| ☑ | E06-T07 | Carnet : voix et heures d'écoute d'une fréquence connue | `testé MP` | MP | E06-T04, E05-T09 |
 
 <!-- fin du tableau de bord -->
 
@@ -103,13 +103,13 @@
   - Preuve : 2026-10-09 : interface du carnet réécrite d'après la maquette A (papier, reliure à anneaux, marque-pages à droite, boutons tampons) ; onglet Radio : fréquences entendues avec « Régler ma radio » dessous, point non lu par fréquence, conversation colorée, saisie « Dire : » par `Talk.send` ; textures générées par `tools/gen_notebook_textures.py` (facultatives) ; tests carnet, historique, module à jour ; `tests/run_all.py` 27/27 ; serveur dédié de test 50 PASS / 3 SKIP. ; **en jeu solo le 2026-10-10** (partie `rstest-1010`, retour de l’utilisateur) : correctif `8eddfc3` vérifié (aucun ascenseur vanilla au milieu des panneaux, message PNJ seulement dans Contacts)
   - Reste : validation visuelle en jeu par l'utilisateur (`docs/annexes/tests/tests-en-jeu.md`, « Carnet papier (E06-T06) ») ; ⚠ étiquette « Réponse » au lieu du nom de la voix, fenêtre de livraison restée vanilla.
 
-- [ ] **E06-T07** — Carnet : voix et heures d'écoute d'une fréquence connue
-  - État : `testé solo`
+- [x] **E06-T07** — Carnet : voix et heures d'écoute d'une fréquence connue
+  - État : `testé MP`
   - Cible : `MP`
   - Dépend de : E06-T04, E05-T09
   - Fichiers : `RS_RadioLog.lua`, `RadioSurvivor_Server.lua`, `RS_Rewards.lua`, `RS_MissionVoice.lua`, `RadioSurvivor_Const.lua`, `client/RadioSurvivor/RS_RadioHistory.lua`, `RS_Notebook.lua`, `RS_NotesReader.lua`, traductions `IG_UI` EN/FR
   - Faire : décision du 2026-10-18. L'autorité garde l'id de la voix d'une fréquence (`f.voice`) dès un contact (réponse, ligne de la voix entendue), une note lue (commande `note_read` vérifiée : objet dans l'inventaire, ModData de l'autorité, voix toujours sur cette fréquence) ou une fréquence donnée ; l'historique envoyé porte `voice = { id, name, hours }`. L'onglet Radio affiche le nom de la voix en seconde ligne de la fréquence et, en tête de la page, « nom - à l'écoute 19:00-22:00 » (ou « à toute heure ») ; ligne « Note lue : fréquence de … ».
   - Accepté si : au banc, voix connue après une réponse, une ligne de voix entendue ou une note lue, jamais après une phrase sans réponse ni une phrase d'un autre joueur ; note hors inventaire, d'une autre voix ou relue : refusée ou sans doublon ; heures formatées ; en jeu, l'onglet affiche voix et heures.
   - Tests : `tests/test_radio_history.py` (VoiceKnownTests) ; essai en jeu par l'utilisateur.
-  - Preuve : `tests/test_radio_history.py` 36 OK dont VoiceKnownTests 6 (voix connue après réponse, ligne de voix entendue, note lue vérifiée ; jamais après un silence ni une phrase de joueur ; note hors inventaire, d'une autre voix ou relue : rien ; heures « 19:00-22:00, 23:00-03:00 » ; page et seconde ligne de l'onglet Radio ; le lecteur envoie `note_read` seulement pour une note lisible) ; `test_notes.py` 27 OK ; `test_mission_recover.py` corrigé (table `radio` d'E11 tirée une fois sur cinq) ; run_all du 2026-10-18 vert hors ces deux bancs, corrigés et relancés ; luacheck 15/0 ; suite en jeu `rs.notebook.voices` (commit `5d99de1`, banc `tests/test_rs_notebook_voices_suite.py`) ; campagne solo des deux mods du 2026-11-14 (une partie, code `5d99de1`) : exit 1 (2 FAIL hors de cette tâche), `RST-RESULT ok=false total=269 pass=257 fail=2 skip=10` (`tools/autoclient/runs/20261114-095105-parallel-1/shard1/20261114-085153-solo.txt`) : rs.notebook.voices 2/2 PASS (phrase sans réponse : voix inconnue ; note lue : voix et heures dans l'onglet Radio)
-  - Reste : campagne MP (carnet de chaque client, client 2 sans la voix)
+  - Preuve : `tests/test_radio_history.py` 36 OK dont VoiceKnownTests 6 (voix connue après réponse, ligne de voix entendue, note lue vérifiée ; jamais après un silence ni une phrase de joueur ; note hors inventaire, d'une autre voix ou relue : rien ; heures « 19:00-22:00, 23:00-03:00 » ; page et seconde ligne de l'onglet Radio ; le lecteur envoie `note_read` seulement pour une note lisible) ; `test_notes.py` 27 OK ; `test_mission_recover.py` corrigé (table `radio` d'E11 tirée une fois sur cinq) ; run_all du 2026-10-18 vert hors ces deux bancs, corrigés et relancés ; luacheck 15/0 ; suite en jeu `rs.notebook.voices` (commit `5d99de1`, banc `tests/test_rs_notebook_voices_suite.py`) ; campagne solo des deux mods du 2026-11-14 (une partie, code `5d99de1`) : exit 1 (2 FAIL hors de cette tâche), `RST-RESULT ok=false total=269 pass=257 fail=2 skip=10` (`tools/autoclient/runs/20261114-095105-parallel-1/shard1/20261114-085153-solo.txt`) : rs.notebook.voices 2/2 PASS (phrase sans réponse : voix inconnue ; note lue : voix et heures dans l'onglet Radio) ; campagne MP du 2026-11-14 (serveur dédié + 2 clients, une partie, code `72bb9b2`) : exit 1 (2 FAIL hors de cette tâche : rs.comfort, rs.mission.signal.client), `TOTAL total=558 pass=535 fail=2 skip=21` (`tools/autoclient/runs/20261114-102455-parallel-1/shard1/server/20261114-092700-server.txt`) : rs.notebook.voices 2/2 PASS (onglet Radio du demandeur avec voix et heures, client 2 sans la voix)
+  - Reste : —
