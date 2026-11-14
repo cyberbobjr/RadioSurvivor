@@ -2,7 +2,7 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 14 / 20 tâche(s) terminée(s).
+**Avancement.** en cours — 15 / 20 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
@@ -21,7 +21,7 @@
 | ☐ | E11-T13 | Compte rendu au demandeur : la mission se valide en le disant au PNJ ou à la radio | `testé solo` | MP | E11-T04, E11-T06, E11-T07 |
 | ☑ | E11-T14 | Écouteur Signal Smoke abonné deux fois après `Signal.resetForTests` | `testé hors jeu` | hors jeu | E11-T07 |
 | ☑ | E11-T15 | Fiches et contrat fermé des missions et récompenses | `testé hors jeu` | hors jeu | E11-T08 |
-| ☐ | E11-T16 | Récompenses serveur des voix : cache, fréquence, carte et leçon | `testé hors jeu` | MP | E11-T15 |
+| ☑ | E11-T16 | Récompenses serveur des voix : cache, fréquence, carte et leçon | `testé MP` | MP | E11-T15 |
 | ☐ | E11-T17 | Gabarits de missions des voix avec compte rendu radio | `testé hors jeu` | MP | E11-T15 |
 | ☐ | E11-T18 | Récompenses et offres des PNJ Living Knox | `testé hors jeu` | MP | E11-T16 |
 | ☑ | E11-T19 | Livraison radio discrète après éloignement | `testé MP` | MP | E11-T17 |
@@ -204,7 +204,7 @@
   - Accepté si : au banc : objectif rempli sans compte rendu = mission non réussie (état « à rapporter » affiché au carnet) ; parler au PNJ demandeur après l'objectif = réussite ; parler à un autre PNJ ou affirmer sans objectif rempli = rien ; mission d'une voix : annonce sur sa fréquence = réussite, autre fréquence = rien ; mêmes résultats pour `clear`, `recover`, `signal`.
   - Tests : banc `lupa` (`tests/test_mission_clear.py`, `test_mission_recover.py`, `test_mission_signal.py`, `test_protocol.py`) ; suites `rs.mission.clear`, `rs.mission.recover`, `rs.mission.signal` dans la campagne MP automatique.
   - Preuve : plus de réussite automatique pour `clear`, `recover`, `signal` et `scout` : objectif rempli = mission active « à rapporter » (carnet : « Objectif rempli — à rapporter au demandeur », court « À rapporter ») ; réussite seulement par l'intention fermée `report_done` du modèle sur `context.reportable` revérifié par le serveur (demandeur, participant, objectif), bouton « Rendre compte » près du corps du demandeur sans pont, ou action radio `report_mission` d'une voix (refus `not_done`, `no_mission`) ; demandeur mort = `cancelled_dead` sans malus ; aucune lecture du texte du joueur par mots-clés ; bancs `ReportCases` ×3, test_mission_clear 12, test_mission_recover 15, test_mission_signal 13, test_carnet, `scenario_report_done_bridge` ; run_all 127/127 ; luacheck 15/0 ; `protocole-carnet-v2.md` « Compte rendu au demandeur » ; commit `a4d88b9` ; campagne MP automatique du 2026-10-15 (copie figée du commit `54087fb`, serveur dédié + 2 clients, pont avec faux modèle) : rs.mission.clear, rs.mission.clearcount, rs.mission.recover, rs.mission.retrieve, rs.mission.signal 1/1 chacune (`tools/autoclient/runs/20261015-110446-parallel-2-54087fb0f84f/shard2/server/20261015-090708-server.txt`), rs.missions.radio 1/1 (`tools/autoclient/runs/20261015-110446-parallel-2-54087fb0f84f/shard1/server/20261015-090647-server.txt`) ; vrai modèle deepseek-v4-flash en solo : suite `rs.missionreport.llm` 2/2 trois fois (voix Darlene : `start_mission` puis `report_mission` à la radio ; PNJ demandeur : `report_done`), `tools/autoclient/runs/20261015-133617-1f165e1e489c`, `20261015-133120-f2e6e922b012`, `20261015-133351-dc81e1b10d79` ; Darlene et Cody donnent des missions `scout` (commit `15134f3`)
-  - Reste : compte rendu par le vrai modèle en MP non vu ; seules les missions `scout` peuvent être données par une voix (`RS_MissionVoice.TEMPLATES`, pont `MISSION_TEMPLATES`) ; la réponse de consigne repropose `start_mission` (refusé par le serveur, appel inutile)
+  - Reste : compte rendu par le vrai modèle en MP non vu ; les cinq gabarits sont ouverts aux voix depuis E11-T17 (`RS_MissionVoice.TEMPLATES`, pont `MISSION_TEMPLATES`, constaté le 2026-11-14), mais seul `scout` est joué en jeu par une voix (rs.missions.radio) ; la réponse de consigne repropose `start_mission` (refusé par le serveur, appel inutile)
 
 - [x] **E11-T14** — Écouteur Signal Smoke abonné deux fois après `Signal.resetForTests`
   - État : `testé hors jeu`
@@ -228,16 +228,16 @@
   - Preuve : `tests/run_all.py --keep-going` : 140 étapes vertes le 2026-10-15 ; 15 avertissements Contents et 0 dev (références inchangées) ; suites en jeu ajoutées, pas encore exécutées.
   - Reste : campagnes solo/MP pour les tâches de cible MP. Les contrats supply dont le lot a déjà été prélevé conservent ce lot ; pas de second prélèvement.
 
-- [ ] **E11-T16** — Récompenses serveur des voix : cache, fréquence, carte et leçon
-  - État : `testé hors jeu`
+- [x] **E11-T16** — Récompenses serveur des voix : cache, fréquence, carte et leçon
+  - État : `testé MP`
   - Cible : `MP`
   - Dépend de : E11-T15
   - Fichiers : modules RadioSurvivor, bridge, tests, dev/batman_RadioSurvivorTests, docs
   - Faire : Registre privé anti-doublon, rotation, cache différée au lieu de fiche, répertoire individuel, carte vanilla et XP serveur plafonnée.
   - Accepté si : mécanismes et isolation bénéficiaire vérifiés, sans récompense doublée ni secret dans le prompt.
   - Tests : banc récompenses ; suites solo/MP et client 2
-  - Preuve : `tests/run_all.py --keep-going` : 140 étapes vertes le 2026-10-15 ; 15 avertissements Contents et 0 dev (références inchangées) ; suites en jeu ajoutées, pas encore exécutées.
-  - Reste : campagnes solo/MP pour les tâches de cible MP. Les contrats supply dont le lot a déjà été prélevé conservent ce lot ; pas de second prélèvement.
+  - Preuve : `tests/run_all.py --keep-going` : 140 étapes vertes le 2026-10-15 ; 15 avertissements Contents et 0 dev (références inchangées) ; suites en jeu ajoutées ; campagne MP du 2026-11-13 (serveur dédié + 2 clients, pont avec faux modèle) : rs.missionrewards 5/5 PASS (tables de récompense en objets réels, cache réelle posée une fois sur une case chargée, fréquence dans l'historique privé du seul bénéficiaire, carte annotée réelle non répétable pour une même source, leçon appliquée par le serveur et vue par le client bénéficiaire, client 2 inchangé) (`tools/autoclient/runs/20261113-233636-parallel-3/shard3/server/20261113-224014-server.txt`) ; campagne solo des deux mods du 2026-11-13 : rs.missionrewards 5/5 PASS (`tools/autoclient/runs/20261113-235754-parallel-2/shard1/20261113-225859-solo.txt`).
+  - Reste : — (les contrats supply dont le lot a déjà été prélevé conservent ce lot ; pas de second prélèvement).
 
 - [ ] **E11-T17** — Gabarits de missions des voix avec compte rendu radio
   - État : `testé hors jeu`
@@ -247,8 +247,8 @@
   - Faire : scout, deliver, retrieve, clear, signal selon fiche ; objectifs vérifiés côté serveur, règles des gabarits préservées.
   - Accepté si : mécanismes et isolation bénéficiaire vérifiés, sans récompense doublée ni secret dans le prompt.
   - Tests : banc missions ; campagnes solo/MP ; voix vrai modèle
-  - Preuve : `tests/run_all.py --keep-going` : 140 étapes vertes le 2026-10-15 ; 15 avertissements Contents et 0 dev (références inchangées) ; suites en jeu ajoutées, pas encore exécutées.
-  - Reste : campagnes solo/MP pour les tâches de cible MP. Les contrats supply dont le lot a déjà été prélevé conservent ce lot ; pas de second prélèvement.
+  - Preuve : `tests/run_all.py --keep-going` : 140 étapes vertes le 2026-10-15 ; 15 avertissements Contents et 0 dev (références inchangées) ; suites en jeu ajoutées ; campagnes du 2026-11-13 : rs.missions.radio PASS en MP (mission de voix `scout` : une par appelant, compte rendu radio seulement après la visite ; `tools/autoclient/runs/20261113-233636-parallel-3/shard1/server/20261113-224008-server.txt`) et en solo (`tools/autoclient/runs/20261113-235754-parallel-2/shard1/20261113-225859-solo.txt`).
+  - Reste : les gabarits deliver, retrieve, clear et signal donnés par une voix (`RS_MissionVoice.TEMPLATES`, pont `MISSION_TEMPLATES`) ne sont pas joués en jeu : rs.missions.radio ne couvre que `scout` ; voix avec le vrai modèle non vue. Les contrats supply dont le lot a déjà été prélevé conservent ce lot ; pas de second prélèvement.
 
 - [ ] **E11-T18** — Récompenses et offres des PNJ Living Knox
   - État : `testé hors jeu`

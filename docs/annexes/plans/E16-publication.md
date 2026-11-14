@@ -134,8 +134,8 @@
   - Faire : seaux de jetons par compte pour les commandes client, coupe linéaire des espaces (`oneLine`), cache par image de `Bodies.find`.
   - Accepté si : bancs verts ; jeu normal et reconnexions non limités sur un serveur dédié.
   - Tests : `tests/test_server_guards.py`, `FindCacheTests` (`tests/test_lk_bodies.py`)
-  - Preuve : commits `2d8cae5`, `ed4353f` ; `tests/test_server_guards.py` et `FindCacheTests` verts (2026-10-21)
-  - Reste : vérification MP (jeu normal à deux clients, aucune commande légitime refusée).
+  - Preuve : commits `2d8cae5`, `ed4353f` ; `tests/test_server_guards.py` et `FindCacheTests` verts (2026-10-21) ; campagnes MP du 2026-11-13 et 2026-11-14 (serveur dédié + 2 clients, 534 tests en 3 parties, puis `mp-ambient` 24 tests) : aucune ligne `rate limit: dropped` (`RC_RateLimit.lua`) dans les journaux du serveur ni des clients (`tools/autoclient/runs/20261113-233636-parallel-3`, `tools/autoclient/runs/20261114-003116-mp-cf36126965e3`).
+  - Reste : reconnexions : relire les journaux d'une campagne `mp-persist` (reconnexions et redémarrage réels) sur le dernier commit.
 
 - [ ] **E16-T10** — Lot non réclamé gardé 7 jours de jeu
   - État : `testé hors jeu`
