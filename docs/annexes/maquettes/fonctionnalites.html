@@ -186,11 +186,11 @@ td .step { font-family: var(--f-mono); font-size: 0.8rem; color: var(--muted); w
 </style>
 
 <header class="top">
-  <div class="eyebrow">Radio Survivor · Living Knox · Core · Project Zomboid 42.21 · note de travail</div>
+  <div class="eyebrow">Radio Survivor · Living Knox · Core · Project Zomboid 42.22 · note de travail</div>
   <h1>Carnet <span class="freq">???.?</span> Radio Survivor</h1>
   <p class="lede">Ce qu'on construit autour des voix de la radio : uniquement ce qui est décidé et encore d'actualité. Claude tient cette note à jour, et les commentaires sur chaque section servent à en discuter.</p>
   <div class="meta-row">
-    <span>Mise à jour <b>2026-11-08</b></span>
+    <span>Mise à jour <b>2026-11-14</b></span>
     <span>Article Workshop <b>trois mods</b></span>
     <span>Cible <b>serveur multijoueur</b></span>
     <span>Plan <b>docs/annexes/plans · SUIVI.md</b></span>
@@ -321,7 +321,18 @@ td .step { font-family: var(--f-mono); font-size: 0.8rem; color: var(--muted); w
   <div class="logline"><span class="ch">C</span><span>Historique</span><button class="comment-btn" type="button" hidden>Commenter</button></div>
   <h2>Journal de développement</h2>
   <ol class="devlog" reversed>
-    <li><time datetime="2026-11-14">2026-11-09 au 14</time><div>
+    <li><time datetime="2026-11-14">2026-11-14</time><div>
+      <h4>Chaque mod paie ses missions, et la radio passe ses essais en multijoueur</h4>
+      <ul>
+        <li>Votre choix : Radio Survivor et Living Knox fonctionnent l'un sans l'autre, récompenses comprises. Une mission donnée par un survivant de Living Knox est payée par son groupe (un objet en trop du foyer), même quand on la réclame dans le carnet de Radio Survivor ; Radio Survivor ne paie que les missions de ses voix. Vérifié en jeu avec Radio Survivor seul, Living Knox seul et les deux.</li>
+        <li>Vérifié en multijoueur : une réponse d'une voix à l'antenne baisse l'ennui (−3) et la tristesse (−1) de celui qui a parlé, avec le petit texte au-dessus de lui, et pas des autres joueurs.</li>
+        <li>Vérifié en multijoueur : l'onglet Radio du carnet montre la voix et ses heures d'écoute après une réponse ou une note lue, chez ce joueur seulement ; une voix finit par donner la fréquence d'une autre après plusieurs échanges, jamais avant ; le repère posé sur la carte par une voix reste après une reconnexion.</li>
+        <li>Vérifié en multijoueur : les cinq types de missions qu'une voix peut donner (reconnaître, livrer, retrouver, nettoyer, signaler) ; pour « signaler », le cercle n'apparaît que sur la carte de celui qui a accepté, un signal hors des heures ne compte pas, et la récompense arrive dans son inventaire.</li>
+        <li>Vérifié en solo : un animal tué n'entre pas au mémorial, et une récompense non réclamée reste disponible 7 jours de jeu.</li>
+        <li>Corrigé : le carnet dépassait de l'écran quand on passait à une résolution plus petite ; il se réduit et revient dans l'écran.</li>
+      </ul>
+    </div></li>
+    <li><time datetime="2026-11-13">2026-11-09 au 13</time><div>
       <h4>Le foyer s'organise, et la radio passe ses derniers essais</h4>
       <ul>
         <li>Nouveau : un groupe de survivants s'occupe de son foyer dans un ordre clair, l'entretien d'abord, puis le potager. Le jardinier creuse un sillon près de la maison, sème et arrose avec le jardinage normal du jeu (pas encore vu passer dans un essai en jeu).</li>
@@ -642,7 +653,7 @@ td .step { font-family: var(--f-mono); font-size: 0.8rem; color: var(--muted); w
     <li><strong>Six voix, fréquences à découvrir.</strong> Chaque voix tire sa fréquence au hasard à chaque nouvelle partie. Les clients ne reçoivent aucune liste : on trouve les fréquences sur des notes dans le butin, et le serveur ne répond que si une voix tient la fréquence réglée (§04).</li>
     <li><strong>Garde-fous.</strong> Une demande en attente par joueur, une phrase toutes les 5 s, 15 phrases par minute au plus, un plafond de 60 appels par heure commun aux réponses et aux appels spontanés, un budget par voix. Les options se règlent dans le sandbox.</li>
     <li><strong>Trois mods dans un article depuis le 2026-11-07.</strong> Radio Survivor (<code>batman_RadioSurvivor</code>), Living Knox (<code>batman_LivingKnox</code>) et le mod commun <code>batman_RadioSurvivorCore</code>, activé tout seul ; chacun des deux premiers se joue sans l'autre. Dans Living Knox, les PNJ du carnet sont des corps de « joueurs réanimés » pilotés par le serveur. Bandits! n'est plus utilisé.</li>
-    <li><strong>Tests.</strong> Plus de 170 bancs hors jeu (<code>tests/run_all.py</code>), un moteur de tests lancé depuis la console du jeu (<code>RST.run</code>, <code>RST.server</code>) et un serveur dédié de test automatique. Le carnet, les corps, les déplacements des PNJ et la vie des foyers (alerte, stock, soins, entretien, sommations, aide, troc) sont validés en jeu solo ; le combat, la fortification, les expéditions, les voix, le module « Émettre » et l'onglet Radio sont testés hors jeu seulement. Le multijoueur est validé par la campagne multijoueur automatique (serveur dédié et deux clients pilotés), entièrement verte le 2026-11-14 (515 essais réussis, aucun échec).</li>
+    <li><strong>Tests.</strong> Plus de 170 bancs hors jeu (<code>tests/run_all.py</code>), un moteur de tests lancé depuis la console du jeu (<code>RST.run</code>, <code>RST.server</code>) et un serveur dédié de test automatique. Les essais en jeu tournent dans trois montages (Radio Survivor seul, Living Knox seul, les deux), en solo et en multijoueur (serveur dédié et deux clients pilotés), plus une campagne de reconnexion et de redémarrage du serveur. Le 2026-11-14 : campagne multijoueur entièrement verte (515 essais réussis), Radio Survivor seul et Living Knox seul verts, reconnexion et redémarrage verts ; toutes les tâches de Radio Survivor prouvables par ces campagnes le sont. Restent à voir avec le vrai modèle d'IA : le compte rendu de mission dit à la radio et un nom de personnage piégé.</li>
   </ul>
 </section>
 
