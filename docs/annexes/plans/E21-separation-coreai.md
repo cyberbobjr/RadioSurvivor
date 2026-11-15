@@ -120,38 +120,38 @@ qui porte le carnet et les méthodes factorisées. Les tests de Living Knox ne c
   - Preuve : commit `ec77cab4` : LK_NotebookProvider toujours inscrit, LK_TalkAlone et LK_Contacts supprimés ; bancs `test_lk_notebook_provider` (2) et `test_lk_speech_single_path` (13) rouges avant, verts après ; `run_all.py --keep-going` : `Summary: 192 passed, 0 failed, 0 skipped` ; aucune mention de RadioSurvivor dans le code de `batman_LivingKnox` (recherche `RadioSurvivor|\bRS_` : 0 ligne) ; campagne solo des deux mods sur `ec77cab4` (copie figée, `--campaign solo --bridge on --llm fake --wait-idle 3600`) : code 1, `RST-RESULT ok=false total=281 pass=270 fail=1 error=0 skip=10` (`tools/autoclient/runs/20261115-135810-933a6492ed4e`) : parole, contacts et missions des PNJ verts par le carnet commun, seul échec `lk.windowsally` sans lien
   - Reste : Living Knox seul en jeu : campagne `solo-lk` (E21-T07)
 
-- [ ] **E21-T06** — RadioSurvivor sans appel à Living Knox
-  - État : `testé hors jeu`
+- [x] **E21-T06** — RadioSurvivor sans appel à Living Knox
+  - État : `testé solo`
   - Cible : `solo`
   - Dépend de : E21-T04
   - Fichiers : `RS_Facts.lua`, `RS_Relations.lua`, partie RadioSurvivor du carnet ; `CA_MissionClear.lua` ; registres ou événements neutres du commun
   - Faire : faits de groupe, accords, relations, hostilité et attribution des morts lus par des registres ou événements neutres de `batman_CoreAI` que Living Knox alimente (D05) ; tout comportement impossible à neutraliser est nommé ici et signalé.
   - Accepté si : aucun `LivingKnox` ni `LK_` dans le code de `batman_RadioSurvivor` et de `batman_CoreAI`.
   - Tests : bancs des faits, des relations et des accords ; suites `rs.*` concernées.
-  - Preuve : commit `7dd0a12e` : CA_GroupFacts et LK_GroupFactsFeed, RS_Facts sans Living Knox, registre des objets vendus seulement ; bancs `test_core_group_facts` (3), `test_lk_group_facts_feed` (3) et `test_core_tools` (vente seule) rouges avant, verts après ; `run_all.py --keep-going` : `Summary: 194 passed, 0 failed, 0 skipped` ; luacheck Contents 0, dev 0 ; aucune mention de Living Knox dans le code de `batman_RadioSurvivor`, ni de l'un ou l'autre dans `batman_CoreAI` (restent les descriptions `mod.info` vues par le joueur, revues en E21-T10)
-  - Reste : campagne solo (E21-T09)
+  - Preuve : commit `7dd0a12e` ; `run_all.py --keep-going` : `Summary: 194 passed, 0 failed, 0 skipped` ; campagne `solo` (les deux) : code 0, `RST-RESULT ok=true total=281 pass=271 fail=0 error=0 skip=10` (`tools/autoclient/runs/20261115-155639-08a79cee0786`), faits de groupe à la radio verts ; campagne `solo-rs` (sans Living Knox) : code 0, `RST-RESULT ok=true total=168 pass=125 fail=0 error=0 skip=43` (`tools/autoclient/runs/20261115-155302-7917d6409d43`, les 43 suites sautées demandent Living Knox) ; campagne `solo-lk` (CoreAI et Living Knox seuls, copie figée de `85d03066`, `--bridge on --llm fake --wait-idle 3600`) : code 0, `RST-RESULT ok=true total=131 pass=124 fail=0 error=0 skip=7` (`tools/autoclient/runs/20261115-152930-e4fba59a6632`)
+  - Reste : aucun
 
-- [ ] **E21-T07** — Trois mods de test et campagnes séparées
-  - État : `à faire`
+- [x] **E21-T07** — Trois mods de test et campagnes séparées
+  - État : `testé solo`
   - Cible : `solo`
   - Dépend de : E21-T05, E21-T06
   - Fichiers : `dev/batman_CoreAITests` (outil `RST`, aides communes, suites `rc.*`), `dev/batman_LivingKnoxTests` (suites `lk.*`), `dev/batman_RadioSurvivorTests` (suites `rs.*`) ; `autotest.json` ; `tools/autoclient/autoclient.py` ; `RST_Campaign.lua`
   - Faire : répartir les suites et aides selon D06 ; `solo-lk` sans RadioSurvivor ni Belt Walkie-Talkie ; `solo-rs` sans Living Knox ; `solo` avec tout.
   - Accepté si : les trois montages démarrent et jouent leurs suites.
   - Tests : `test_autoclient.py`, `test_rst.py` ; campagnes `solo-lk`, `solo-rs`, `solo`.
-  - Preuve : —
-  - Reste : —
+  - Preuve : commits `85d03066` (trois mods de test, registres `RST.Campaigns.add` et `RST.registerMod`, montage choisi par la campagne) et `00588bc4` (`lk.conversations`, `lk.initiatives` passées aux tests de Living Knox) ; bancs `test_rst` (CampaignRegistryTests), `test_autoclient` (montages), `test_core_mod`, `test_suite_mods` ; `run_all.py --keep-going` : `Summary: 194 passed, 0 failed, 0 skipped` ; campagne `solo-lk` (CoreAI et Living Knox seuls, copie figée de `85d03066`, `--bridge on --llm fake --wait-idle 3600`) : code 0, `RST-RESULT ok=true total=131 pass=124 fail=0 error=0 skip=7` (`tools/autoclient/runs/20261115-152930-e4fba59a6632`) ; campagne `solo-rs` (sans Living Knox) : code 0, `RST-RESULT ok=true total=168 pass=125 fail=0 error=0 skip=43` (`tools/autoclient/runs/20261115-155302-7917d6409d43`, les 43 suites sautées demandent Living Knox) ; campagne `solo` (les deux) : code 0, `RST-RESULT ok=true total=281 pass=271 fail=0 error=0 skip=10` (`tools/autoclient/runs/20261115-155639-08a79cee0786`)
+  - Reste : `lk.conversations` et `lk.initiatives` pas encore jouées dans `solo-lk` (ajoutées après la copie figée)
 
-- [ ] **E21-T08** — Bancs de Living Knox sans RadioSurvivor
-  - État : `à faire`
+- [x] **E21-T08** — Bancs de Living Knox sans RadioSurvivor
+  - État : `testé hors jeu`
   - Cible : `hors jeu`
   - Dépend de : E21-T07
   - Fichiers : les 44 bancs `tests/test_lk_*.py` du relevé
   - Faire : chaque banc LK ne charge que CoreAI et Living Knox ; un banc qui vérifiait les deux mods ensemble passe dans les bancs du commun avec des doublures neutres, ou il est supprimé avec le code qu'il vérifiait.
   - Accepté si : aucun banc `test_lk_*.py` ne nomme `batman_RadioSurvivor` ni un fichier `RS_`.
   - Tests : `tests/run_all.py --keep-going`.
-  - Preuve : —
-  - Reste : —
+  - Preuve : commit `85d03066` : chaque `tests/test_lk_*.py` ne charge que CoreAI et Living Knox (`harness.tests_lua(setup)`, `Harness(with_rs=False)`, `Game.WITH_RS = False`) ; recherche `batman_RadioSurvivor|RadioSurvivor/|\bRS_[A-Z]` dans `tests/test_lk_*.py` et `dev/batman_LivingKnoxTests` : 0 fichier ; `run_all.py --keep-going` : `Summary: 194 passed, 0 failed, 0 skipped`
+  - Reste : aucun
 
 - [ ] **E21-T09** — Les trois montages en jeu, solo et MP
   - État : `à faire`
@@ -165,12 +165,12 @@ qui porte le carnet et les méthodes factorisées. Les tests de Living Knox ne c
   - Reste : —
 
 - [ ] **E21-T10** — Documentation, README et descriptions Workshop
-  - État : `à faire`
+  - État : `testé hors jeu`
   - Cible : `hors jeu`
   - Dépend de : E21-T09
   - Fichiers : `README*`, `README.steam*`, `workshop.txt`, `docs/` (architecture, spécifications, wiki), page des fonctionnalités
   - Faire : décrire les trois mods (`batman_CoreAI` : ce qu'il apporte, activé seul), mettre à jour l'architecture et les specs ; aucune publication.
   - Accepté si : contrôles des descriptions verts ; aucune mention de l'ancien nom hors historique.
   - Tests : contrôles des descriptions du dépôt ; `features_status.py --check`.
-  - Preuve : —
-  - Reste : —
+  - Preuve : commit `094f467d` : architecture, règles de développement, spécifications, guide des tests en jeu, notes de conception, README, wiki et descriptions Workshop (README.steam 7212 octets, README.steam.fr 7864 octets avec le bloc d'identifiants) ; `pz_workshop_project.validate` sans erreur ; `run_all.py --keep-going` : `Summary: 194 passed, 0 failed, 0 skipped` ; aucune publication
+  - Reste : page des fonctionnalités
