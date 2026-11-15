@@ -699,6 +699,10 @@ function Directives.moveTo(id, x, y, z, gesture)
         local say = warn and log().warn or log().info
         say("npc %s: move #%d keeps the vanilla path over %d window or fence crossing(s): %s%s", id, v,
             doorInfo.climbs, tostring(doorInfo.reason), e.lr and " (last resort allowed at contact)" or "")
+    elseif doorInfo ~= nil and doorInfo.wary then
+        -- LK05-T23 : PNJ prudent après une fenêtre refusée au contact, mais aucun itinéraire par les portes trouvé.
+        log().warn("npc %s: move #%d keeps the vanilla path after a refused window: %s", id, v,
+            tostring(doorInfo.reason))
     elseif steps == nil then
         local n, first = Directives.hazardsOnLine(bx, by, x + 0.5, y + 0.5, z)
         if n > 0 then

@@ -780,6 +780,7 @@ function Obstacles.planDoorRoute(npcId, x0, y0, tx, ty, z)
     if risk then info.refused = refused end
     if not Obstacles.DOORS_FIRST and not risk then return done({}, "door-first rule off") end
     local wary = info.climbs == 0 and not risk and waryOfWindows(npcId)
+    info.wary = wary
     if info.climbs == 0 and not risk and not wary then return done({}, "no window, low fence or closed gate on the way") end
     local mode = Obstacles.DOORS_FIRST and "npc" or "detour"
     local r, why2, exitUsed, trapped = chooseRoute(npcId, x0, y0, tx, ty, z, shared, exit, zr, mode, info)
