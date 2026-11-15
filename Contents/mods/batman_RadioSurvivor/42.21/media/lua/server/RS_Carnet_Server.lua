@@ -545,6 +545,7 @@ end
 local Caches = require 'RadioSurvivor/RS_CacheAction' -- E11-T06: caches (core RC_Caches with the voice action)
 require 'RadioSurvivorCore/RC_MissionRecover' -- E11-T06: template recover
 require 'RadioSurvivorCore/RC_MissionSignal'; require 'RadioSurvivorCore/RC_MissionBarricade' -- E11-T07 signal, E20-T09
+require 'RadioSurvivorCore/RC_MissionRelay' -- E20-T12: template relay
 local function tick()
     if not S.data or S.blocked then return end
     local now = getTimestampMs()

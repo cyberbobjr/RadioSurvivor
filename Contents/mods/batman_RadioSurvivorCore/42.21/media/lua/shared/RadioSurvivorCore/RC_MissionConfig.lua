@@ -142,6 +142,21 @@ local MC = {
             zoneMargin = 3,        -- tiles kept between the building corners and the circle
             scanMs = 3000,         -- real ms between two server reads of the building's openings
         },
+        -- E20-T12: a powered two-way radio turned on high at a place of the voice sheet
+        -- (server/RadioSurvivorCore/RC_MissionRelay.lua). Given by a radio voice only (no reward lot: the voice pays).
+        relay = {
+            id = 'relay_v1',
+            titleKey = 'IGUI_RC_Mission_Relay',
+            durationMs = 14400000, -- a radio and a way up to find: the delay of `barricade`
+            rewardType = '',
+            rewardCount = 0,
+            minZ = 1,              -- lowest level of the radio (0 = ground), raised to the level of a high place
+            zoneHalf = 6,          -- tiles around a place outside any building (square zone of 13 x 13 tiles)
+            zoneLevels = 4,        -- levels of that zone, from the lowest one allowed
+            zoneRadius = 8,        -- tiles: smallest circle drawn on the map around the spot
+            zoneMargin = 3,        -- tiles kept between the spot corners and the circle
+            scanMs = 3000,         -- real ms between two server reads of the spot
+        },
     },
     -- E11-T06: caches (server/RadioSurvivorCore/RC_Caches.lua): a marked bag filled from one closed table of the server,
     -- placed once in the world when its site is loaded. `order` is the closed list (and the draw order) of the tables.

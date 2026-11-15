@@ -266,11 +266,12 @@ Always allowed, even if you do not list it. The voice answers you on the radio.
 #### Missions and rewards — `start_mission`
 
 - Each mission the voice can give is a `[mission <id>]` section with its `type`: `scout` (scouting), `deliver`
-  (delivery drop), `retrieve` (missing papers), `clear` (clearing zombies), `signal` (Signal Smoke signal), `barricade` (barricading a building). The server
+  (delivery drop), `retrieve` (missing papers), `clear` (clearing zombies), `signal` (Signal Smoke signal), `barricade` (barricading a building), `relay` (radio relay). The server
   checks each objective; one mission per player and voice. The notebook is required. Without any `[mission]` section,
   only `scout` is allowed. Keys in detail: [Missions, rewards and items](#missions-rewards-and-items).
-- The building is chosen by the server, never by the AI (for `barricade`: the one of the section's required
-  `target=` place); a `deliver` or `retrieve` mission needs at least one `use=drop` place.
+- The building is chosen by the server, never by the AI: for `scout` and `clear`, the one of the section's
+  `target=` place, wherever the player is, or else a building drawn around them; for `barricade` and `relay`, the one of
+  the required `target=` place. A `deliver` or `retrieve` mission needs at least one `use=drop` place.
 - **Report by radio**, on the voice's frequency (`report_mission` is implicit). Successful missions improve reputation.
 - The `[rewards]` section allows one extra reward per success. The AI never chooses the reward nor its contents.
   Without a `[rewards]` section, the voice offers the marker of one of its `use=mark` places.
@@ -310,19 +311,19 @@ pool=cache:medical:3, cache:snacks:1, frequency:1, stashmap:1, lesson:Doctor:2
 
 | `[mission]` key | What it does |
 |---|---|
-| `type` | Required: `scout`, `deliver`, `retrieve`, `clear`, `signal` or `barricade` (types registered by the mod). |
+| `type` | Required: `scout`, `deliver`, `retrieve`, `clear`, `signal`, `barricade` or `relay` (types registered by the mod). |
 | `weight` | Weight of the mission when the AI asks for a type and several available missions of that type match (1 by default). |
 | `after` | The mission is offered only after the success of another mission of the sheet (its id), for that character. |
 | `scope` | `character` (default): `after` counts the character's successes; `team`: those of its team (faction, or the lone player). |
 | `sets_state` | Story state the voice takes when this mission succeeds, a name (`returned`…). See "Chained missions". |
 | `story` | The reason the voice gives, told to the AI with the mission (200 bytes at most). |
 | `drops` | Dead drops of the mission, all offered to the player: `any` (every `use=drop` place, as without the key) or a list of ids of `use=drop` places. |
-| `target` | Objective place, a `use=target` place. Required for `barricade`: a square inside the building to barricade. |
-| others | Parameters of the type: `deliver` takes `items` (an item category), `quantity` (`4` or `2-4`) and `collect_hours` (game hours before a dead drop is collected, 6 by default); `retrieve` takes `collect_hours` (the ID card is left at a dead drop); `barricade` takes `count` (outside windows and doors to barricade, 4 by default, at least 1). |
+| `target` | Objective place, a `use=target` place: a square inside the building aimed at. `scout` and `clear`: that building, wherever the player is (without the key, a building drawn around them); required for `barricade` (the building to barricade) and for `relay` (the relay spot: the radio goes on level 1 or higher, at least on the place's `z=` level; outside any building, a high point). |
+| others | Parameters of the type: `deliver` takes `items` (an item category), `quantity` (`4` or `2-4`) and `collect_hours` (game hours before a dead drop is collected, 6 by default); `retrieve` takes `collect_hours` (the ID card is left at a dead drop); `barricade` takes `count` (outside windows and doors to barricade, 4 by default, at least 1); `relay` takes none. |
 
-Every key is **read and checked** when the sheet loads. `weight`, `after`, `scope`, `sets_state`, `story`, `drops`
-and `collect_hours` are already used; `target`, `items` and `quantity` will be over the next versions (new mission
-types, requested quantities).
+Every key is **read and checked** when the sheet loads. `weight`, `after`, `scope`, `sets_state`, `story`, `drops`,
+`collect_hours` and `target` (`scout`, `clear`, `barricade`) are already used; `items` and `quantity` will be over the
+next versions (requested quantities).
 
 ##### Chained missions and story state
 
@@ -410,6 +411,8 @@ A delivery mission of a voice offers **all its dead drops at once** (key `drops=
 From a box, only requested items disappear, never more than the remaining quantity: the box, other items and the surplus remain. For a bag, the bag and contents disappear; a bag containing unrelated items, or more than the remaining quantity, is refused to prevent their loss. Each item counts only once, even after a restart. Until collection, you can take the drop back and nothing is validated. **Only once the whole quantity is collected, report over the radio**. Solo and MP in-game validation of this collection is **pending**.
 
 **Barricading for a voice.** The building of the `target=` place is circled on your map. Barricade the requested number (`count=`) of its **outside** windows and doors, with planks or metal sheets, from inside or outside: each opening counts once. The server counts the building's barricades itself; those already in place when the mission started do not count, and a barricade removed again stops counting. Once the count is reached, call the voice back. MP in-game validation: **pending**.
+
+**Radio relay for a voice.** The `target=` place is circled on your map. Put a radio that can transmit there, high up, on an upper floor or the roof (at least on the level the notebook shows): a walkie-talkie or a ham radio. Turn it on; it must stay powered by its battery, the grid or a generator. The server checks the radio itself; turned off, without power or taken away, it stops counting and the report is refused. While it is on, call the voice back. MP in-game validation: **pending**.
 
 **Missing papers for a voice.** The ID card taken from the body is not handed over on the radio: leave it at one of the mission's dead drops, marked on your map as for a delivery (in the designated box, or alone in a bag on the ground). The voice collects it by the same rule, out of sight and after the wait (`collect_hours=` of the `[mission]` section); only the card of that body is taken, another ID card stays where it is. **Only once the card is collected, report over the radio**: the report removes nothing from your inventory. MP in-game validation: **pending**.
 
@@ -841,7 +844,7 @@ first error, and the last valid version of the voice stays in service until you 
 | `bad use entry 'hide' (expected mark, target, drop, landing)` | See [Places](#places--place-sections). |
 | `place label of 'mill' too long (48 bytes of UTF-8 at most)` | Shorten the label. |
 | `unknown section 'shop' (expected place, mission, rewards, category or prompt)` | Typo in a section title. |
-| `unknown mission type 'fly'` (server log only) | Use a type of the mod: `scout`, `deliver`, `retrieve`, `clear`, `signal`, `barricade`. |
+| `unknown mission type 'fly'` (server log only) | Use a type of the mod: `scout`, `deliver`, `retrieve`, `clear`, `signal`, `barricade`, `relay`. |
 | `place 'clinic' has no use=drop` (server log only) | Add `drop` to the `use` of that place, or cite another place. |
 | `unknown category 'weapons'` (server log only) | A category of the catalogue or a `[category]` of the sheet. |
 | `bad reward weight '0' (whole number from 1 to 999999)` (server log only) | Weights start at 1. |

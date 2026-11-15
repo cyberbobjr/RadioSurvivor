@@ -15,9 +15,9 @@
 | ☑ | E20-T07 | Troc déclaré dans la fiche, un état par marchand | `testé MP` | MP | E20-T03, E20-T05 |
 | ☑ | E20-T08 | Missions enchaînées et état de fiche | `testé hors jeu` | hors jeu | E20-T03 |
 | ☑ | E20-T09 | Type de mission `barricade` | `testé MP` | MP | E20-T01, E20-T03 |
-| ☐ | E20-T10 | Darlene veut rentrer à sa clinique | `à faire` | MP | E20-T04, E20-T05, E20-T08, E20-T09 |
+| ☐ | E20-T10 | Darlene veut rentrer à sa clinique | `testé hors jeu` | MP | E20-T04, E20-T05, E20-T08, E20-T09 |
 | ☐ | E20-T11 | Un marchand par ville vanilla | `à faire` | MP | E20-T07 |
-| ☐ | E20-T12 | Type de mission `relay` (relais radio) | `à faire` | MP | E20-T01, E20-T03 |
+| ☐ | E20-T12 | Type de mission `relay` (relais radio) | `testé hors jeu` | MP | E20-T01, E20-T03 |
 | ☐ | E20-T13 | Type de mission `route` (itinéraire) | `à faire` | MP | E20-T01, E20-T03 |
 | ☐ | E20-T14 | Type de mission `watch` (guet) | `à faire` | MP | E20-T01, E20-T03 |
 | ☐ | E20-T15 | Type de mission `item` (objet personnel) | `à faire` | MP | E20-T01, E20-T03, E20-T05 |
@@ -155,15 +155,15 @@ chaque tâche avant son code.
   - Preuve : 2026-11-15 : gabarit `barricade` dans son fichier (`RC_MissionBarricade.lua`, déclarations `voiceName`, `voiceText`, `voiceBrief`, `mapStyle`, `params={count}`, `observe`, nouvelle déclaration `aimAt`) ; mise en place commune des types à objectif `target=` (`RS_MissionTarget.lua`, `V.registerDeclaredSetup('aimAt', …)`, refus `no_target`, `no_building`, `bad_count`) ; le serveur compte les fenêtres et portes extérieures du bâtiment barricadées (planches, tôle ou barres, un côté ou l'autre, une fois par ouverture ; déjà barricadée au départ = jamais comptée ; retirée = décomptée ; bâtiment déchargé = dernier compte) par `IsoMetaGrid.getBuildingAt`, `BuildingDef`, `getBarricadeOnSameSquare/OppositeSquare`, `IsoBarricade.getNumPlanks/isMetal/isMetalBar` (42.22 : `IsoMetaGrid.java:271-280`, `IsoDoor.java:1584-1604`, `IsoBarricade.java:90-108`, confirmé statiquement) ; vue du carnet `RS_View_Barricade.lua`, zone de carte, traductions EN/FR. Rouge d'abord : `test_mission_barricade.py` `FAILED (failures=17, errors=1)`. Vert : `test_mission_barricade.py` 14 OK (doublures rattachées à leurs classes Java, suite en jeu jouée par le vrai moteur RST sur le monde du banc), `test_mission_clear.py` 12, `test_core_missions.py` 10, `test_mod_calls_api.py` 16, `test_translations_split.py` 7, `test_doubles_api.py` OK, `test_protocol.py` code 0. luacheck `Contents` 8, `dev` 0. `persona-format.md`, wiki FR/EN 03 et 10 mis à jour. Suite en jeu `rs.voicebarricade`. Campagne MP 2026-11-15 (42.22.2, serveur dédié + 2 clients, `autoclient.py --mp --clients 2 --server-suite rs.voicebarricade,rs.missions.voicetemplates,rs.voiceretrieve,rs.voicedelivery,rs.missionrewards --server-tags world --bridge on --llm fake`) : code 0, rapport `tools/autoclient/runs/e20-t08-t09-mp/server/20261115-014943-server.txt` `OK - 14 test(s): 14 pass, 0 fail` ; `rs.voicebarricade` : « outside openings of a real building barricaded, counted by the server, then the radio report » PASS ; suites des voix inchangées après E20-T08 (`rs.missions.voicetemplates`, `rs.voiceretrieve`, `rs.voicedelivery`, `rs.missionrewards`) PASS.
   - Reste : Seules les ouvertures extérieures comptent. `RS_MissionVoice.setupOf` ne rend qu'une mise en place par gabarit : un type qui déclarerait `dropAccepts` et `aimAt` (`item`, E20-T15) devra les composer.
 - [ ] **E20-T10** — Darlene veut rentrer à sa clinique
-  - État : `à faire`
+  - État : `testé hors jeu`
   - Cible : `MP`
   - Dépend de : E20-T04, E20-T05, E20-T08, E20-T09
   - Fichiers : `personas/darlene.txt` ; `RS_Personas.lua` (empreinte) ; traductions de son appel ; suite en jeu
   - Faire : ADR D09. Prompt : elle a quitté la clinique après la nuit de la porte fermée et se cache ailleurs ; elle veut y revenir une fois les lieux sûrs. Chaîne : reconnaître la clinique → nettoyer les abords → barricader → déposer des médicaments à une planque proche ; la dernière réussite pose l'état `returned`. Planques et lieux relevés sur la carte 42.22.
   - Accepté si : fiche chargée ; banc de la chaîne avec la vraie fiche ; suite MP : la chaîne entière jusqu'à l'état `returned`.
   - Tests : campagne MP.
-  - Preuve : —
-  - Reste : —
+  - Preuve : 2026-11-15 : fiche de Darlene réécrite : elle a quitté la clinique le soir où elle a fermé la porte aux patients et se cache ailleurs dans West Point (`location=none`) ; chaîne `scout_clinic` → `clear_clinic` → `secure_clinic` (`barricade`, `target=clinic`, `count=4`) → `meds` (`deliver`, `items=medical`, deux planques `use=drop` relevées sur la carte 42.22 près des bennes derrière la clinique et la librairie, 11874,6870,0 et 11894,6870,0), chacune avec son `story=`, la dernière avec `sets_state=returned` ; prompt selon l'état de récit. `scout` et `clear` visent le lieu `target=` de la section quand il existe (argument `aim` de leur `offer`, dans leur propre fichier ; sans `target=`, tirage autour du joueur comme avant) ; `Persona.targetOf` partagé avec `RS_MissionTarget`. Clinique relevée dans le lotheader 46_26 (bâtiment 43, galerie marchande dont la clinique occupe x 11879-11888 ; 4 vitrines sur la façade sud). Empreinte ajoutée. Rouge d'abord : `test_darlene_chain.py` `FAILED (failures=6)`. Vert : `test_darlene_chain.py` 8 OK (vraie fiche chargée, chaîne dans l'ordre, planques de `meds`, état `returned` par l'API et sauvegardé, blocage après un échec, `scout`/`clear` visés ou non), `test_persona_sections.py`, `test_personas.py`, `test_personas_server.py` 107, `test_mission_chain.py`, `test_mission_barricade.py`, `test_mission_clear.py`, `test_rs_suites.py`, `test_doubles_api.py` OK, `test_protocol.py` code 0. luacheck `Contents` 9 dont 1 dans `LK_Needs.lua` (Living Knox, modifications d'un autre ; 8 pour ce dépôt, inchangé), `dev` 0. Wiki FR/EN 10, `persona-format.md`, `fonctionnalites.html` mis à jour. Suite en jeu `rs.voicedarlene`.
+  - Reste : campagne MP de `rs.voicedarlene`. `quantity=2-4` et `items=medical` de `meds` ne sont pas encore lus par `deliver` (il demande toujours 6 objets de soins) : tâche E20-T16. Le serveur compte les ouvertures de tout le bâtiment 43 (galerie comprise). Un `clear` visé sur une zone sans zombies rend `no_place` (chaîne bloquée dans un monde vide). Artefact `fonctionnalites.html` à republier. `radio-et-carnet.md:8` (modifications d'un autre) dit encore « infirmière, clinique de West Point ».
 - [ ] **E20-T11** — Un marchand par ville vanilla
   - État : `à faire`
   - Cible : `MP`
@@ -175,15 +175,15 @@ chaque tâche avant son code.
   - Preuve : —
   - Reste : —
 - [ ] **E20-T12** — Type de mission `relay` (relais radio)
-  - État : `à faire`
+  - État : `testé hors jeu`
   - Cible : `MP`
   - Dépend de : E20-T01, E20-T03
   - Fichiers : fichier du gabarit ; traductions ; bancs ; suite en jeu
   - Faire : ADR D10. Poser une radio (talkie ou HAM) dans un lieu `target` en hauteur, alimentée et allumée ; vérification par les objets radio vanilla relevés dans 42.22 ; compte rendu à la radio.
   - Accepté si : banc ; suite MP : radio posée et allumée comptée, éteinte refusée.
   - Tests : banc du gabarit ; campagne MP.
-  - Preuve : —
-  - Reste : —
+  - Preuve : 2026-11-15 : gabarit `relay` dans son fichier (`RC_MissionRelay.lua`, déclarations seulement, mise en place `aimAt` partagée) : une radio émettrice (`DeviceData:getIsTwoWay`, objets `TwoWay = true` de `media/scripts/generated/items/radio.txt` 42.22 : talkies, ManPackRadio, radios amateur) posée au niveau `max(1, z du lieu)` ou plus haut dans le bâtiment du lieu `target=` (hors bâtiment : zone de 13×13 cases sur 4 niveaux), alimentée et allumée (`getIsTurnedOn`, `getIsBatteryPowered`, `getPower`, `canBePoweredHere` : `DeviceData.java:257-583`, `IsoWaveSignal.java:67-156`, confirmé statiquement) ; le monde est relu au compte rendu (éteinte = refusé) ; vue du carnet `RS_View_Relay.lua`, zone de carte, traductions EN/FR. Rouge d'abord : `test_mission_relay.py` `FAILED (failures=15, errors=3)`. Vert : `test_mission_relay.py` 15 OK (posée et allumée comptée, éteinte, sans courant, mauvais étage ou hors du lieu refusés, compte rendu accepté, suite en jeu jouée au banc), `test_mission_barricade.py`, `test_mission_registry.py`, `test_voice_templates.py`, `test_translations_split.py`, `test_core_missions.py`, `test_mod_calls_api.py`, `test_carnet.py`, `test_rst.py` OK. luacheck inchangé pour ce dépôt, `dev` 0. Wiki FR/EN 03 et 10, `persona-format.md` mis à jour. Suite en jeu `rs.voicerelay`.
+  - Reste : campagne MP de `rs.voicerelay`. Une radio sur secteur dont le réseau est coupé pendant que sa case est déchargée n'est vue qu'au prochain chargement.
 - [ ] **E20-T13** — Type de mission `route` (itinéraire)
   - État : `à faire`
   - Cible : `MP`

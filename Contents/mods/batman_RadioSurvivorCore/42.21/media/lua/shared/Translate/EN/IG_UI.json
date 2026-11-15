@@ -27,6 +27,7 @@
     "IGUI_RC_Mission_Recover": "Bringing back a cache",
     "IGUI_RC_Mission_Signal": "Signalling at a place",
     "IGUI_RC_Mission_Barricade": "Barricading a building",
+    "IGUI_RC_Mission_Relay": "Setting up a radio relay",
     "IGUI_RC_Notebook": "Notebook",
     "IGUI_RC_NotebookHint": "Open the notebook: contacts, missions, reputation and the pages of your mods.",
     "IGUI_RC_Contacts": "Contacts",

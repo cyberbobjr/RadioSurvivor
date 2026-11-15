@@ -274,11 +274,12 @@ Toujours permise, même si vous ne l'écrivez pas. La voix vous répond à la ra
 
 - Chaque mission que la voix peut confier est une section `[mission <id>]` avec son `type` : `scout`
   (reconnaissance), `deliver` (dépôt de matériel), `retrieve` (recherche de papiers), `clear` (nettoyage), `signal`
-  (signal Signal Smoke), `barricade` (barricader un bâtiment). Le serveur vérifie chaque objectif ; une mission par joueur et voix. Sans aucune section
+  (signal Signal Smoke), `barricade` (barricader un bâtiment), `relay` (relais radio). Le serveur vérifie chaque objectif ; une mission par joueur et voix. Sans aucune section
   `[mission]`, seul `scout` est permis. Détail des clés : [Missions, récompenses et objets](#missions-récompenses-et-objets).
-- **Il faut :** que le joueur ait le carnet. Le bâtiment est choisi par le serveur, jamais par l'IA (pour
-  `barricade` : celui du lieu `target=` de la section, obligatoire) ; une mission
-  `deliver` ou `retrieve` demande au moins un lieu `use=drop`.
+- **Il faut :** que le joueur ait le carnet. Le bâtiment est choisi par le serveur, jamais par l'IA : pour `scout`
+  et `clear`, celui du lieu `target=` de la section, où que soit le joueur, ou à défaut un bâtiment tiré autour de
+  lui ; pour `barricade`, celui du lieu `target=`, obligatoire. Une mission `deliver` ou `retrieve` demande au moins
+  un lieu `use=drop`.
 - **Récompense :** réputation et une récompense de la section `[rewards]`. L'IA ne choisit ni récompense ni contenu.
   Sans section `[rewards]`, la voix vous offre le repère d'un de ses lieux `use=mark`.
 - Une cache contient des objets réels de sa catégorie, au premier lieu `use=drop` ; une seule par mission, pose
@@ -301,6 +302,8 @@ Une mission de dépôt d'une voix propose **toutes ses planques à la fois** (cl
 Dans une boîte, seuls les objets demandés disparaissent, jamais plus que la quantité restante : boîte, autres objets et surplus restent. Pour un sac, sac et contenu disparaissent ; un sac qui contient des objets étrangers au lot, ou plus que la quantité restante, est refusé pour éviter leur perte. Chaque objet n'est compté qu'une fois, même après un redémarrage. Avant la collecte, vous pouvez reprendre le dépôt et rien n'est validé. **Une fois toute la quantité collectée seulement, rendez compte à la radio**. Validation en jeu solo et MP de cette collecte : **en attente**.
 
 **Barricader pour une voix.** Le bâtiment du lieu `target=` est entouré sur votre carte. Barricadez le nombre demandé (`count=`) de ses fenêtres et portes **extérieures**, avec des planches ou de la tôle, de l'intérieur ou de l'extérieur : chaque ouverture compte une fois. Le serveur compte lui-même les barricades du bâtiment ; celles déjà en place au début de la mission ne comptent pas, et une barricade retirée ne compte plus. Une fois le compte atteint, rappelez la voix. Validation en jeu MP : **en attente**.
+
+**Relais radio pour une voix.** Le lieu `target=` est entouré sur votre carte. Posez-y en hauteur, à un étage ou sur le toit (au moins au niveau indiqué par le carnet), une radio qui peut émettre : talkie-walkie ou radio amateur. Allumez-la ; elle doit rester alimentée par sa pile, le réseau ou un générateur. Le serveur vérifie lui-même la radio ; éteinte, sans courant ou retirée, elle ne compte plus et le compte rendu est refusé. Tant qu'elle est allumée, rappelez la voix. Validation en jeu MP : **en attente**.
 
 **Papiers à retrouver pour une voix.** La carte d'identité prise sur le corps ne se remet pas à la radio : déposez-la à l'une des planques de la mission, marquées sur votre carte comme pour un dépôt (dans la boîte désignée, ou seule dans un sac au sol). La voix la ramasse avec la même règle, hors de vue et après le délai (`collect_hours=` de la section `[mission]`) ; seule la carte de ce corps est prise, une autre carte d'identité reste sur place. **Une fois la carte ramassée seulement, rendez compte à la radio** : le compte rendu ne retire rien de votre inventaire. Validation en jeu MP : **en attente**.
 
@@ -330,19 +333,19 @@ pool=cache:medical:3, cache:snacks:1, frequency:1, stashmap:1, lesson:Doctor:2
 
 | Clé de `[mission]` | À quoi ça sert |
 |---|---|
-| `type` | Obligatoire : `scout`, `deliver`, `retrieve`, `clear`, `signal` ou `barricade` (types inscrits par le mod). |
+| `type` | Obligatoire : `scout`, `deliver`, `retrieve`, `clear`, `signal`, `barricade` ou `relay` (types inscrits par le mod). |
 | `weight` | Poids de la mission quand l'IA demande un type et que plusieurs missions disponibles de ce type se présentent (1 par défaut). |
 | `after` | La mission n'est proposée qu'après la réussite d'une autre mission de la fiche (son id), pour ce personnage. |
 | `scope` | `character` (par défaut) : `after` compte les réussites du personnage ; `team` : celles de son équipe (faction, ou le joueur seul). |
 | `sets_state` | État de récit que prend la voix à la réussite de cette mission, un nom (`returned`…). Voir « Missions enchaînées ». |
 | `story` | La raison que donne la voix, dite à l'IA avec la mission (200 octets au plus). |
 | `drops` | Planques de la mission, toutes proposées au joueur : `any` (tous les lieux `use=drop`, comme sans la clé) ou une liste d'ids de lieux `use=drop`. |
-| `target` | Lieu objectif, un lieu `use=target`. Obligatoire pour `barricade` : une case à l'intérieur du bâtiment à barricader. |
-| autres | Les paramètres propres au type : `deliver` accepte `items` (une catégorie d'objets), `quantity` (`4` ou `2-4`) et `collect_hours` (heures de jeu avant le ramassage d'une planque, 6 par défaut) ; `retrieve` accepte `collect_hours` (la carte d'identité se dépose à une planque) ; `barricade` accepte `count` (fenêtres et portes extérieures à barricader, 4 par défaut, au moins 1). |
+| `target` | Lieu objectif, un lieu `use=target` : une case à l'intérieur du bâtiment visé. `scout` et `clear` : ce bâtiment, où que soit le joueur (sans la clé, un bâtiment tiré autour de lui) ; obligatoire pour `barricade` (le bâtiment à barricader) et pour `relay` (le lieu du relais : la radio se pose au niveau 1 ou plus haut, au moins au niveau `z=` du lieu ; hors bâtiment, un point en hauteur). |
+| autres | Les paramètres propres au type : `deliver` accepte `items` (une catégorie d'objets), `quantity` (`4` ou `2-4`) et `collect_hours` (heures de jeu avant le ramassage d'une planque, 6 par défaut) ; `retrieve` accepte `collect_hours` (la carte d'identité se dépose à une planque) ; `barricade` accepte `count` (fenêtres et portes extérieures à barricader, 4 par défaut, au moins 1) ; `relay` n'en accepte aucun. |
 
-Toutes ces clés sont **lues et vérifiées** au chargement. `weight`, `after`, `scope`, `sets_state`, `story`, `drops`
-et `collect_hours` servent déjà ; `target`, `items` et `quantity` serviront au fil des prochaines versions (nouveaux
-types de mission, quantités demandées).
+Toutes ces clés sont **lues et vérifiées** au chargement. `weight`, `after`, `scope`, `sets_state`, `story`, `drops`,
+`collect_hours` et `target` (`scout`, `clear`, `barricade`) servent déjà ; `items` et `quantity` serviront au fil des
+prochaines versions (quantités demandées).
 
 ##### Missions enchaînées et état de récit
 
@@ -854,7 +857,7 @@ s'arrête à la première erreur, et la dernière version valide de la voix rest
 | `bad use entry 'hide' (expected mark, target, drop, landing)` | Voir [Lieux](#lieux--sections-place). |
 | `place label of 'mill' too long (48 bytes of UTF-8 at most)` | Raccourcir le libellé. |
 | `unknown section 'shop' (expected place, mission, rewards, category or prompt)` | Faute de frappe dans un titre de section. |
-| `unknown mission type 'fly'` (journal du serveur seulement) | Un type du mod : `scout`, `deliver`, `retrieve`, `clear`, `signal`, `barricade`. |
+| `unknown mission type 'fly'` (journal du serveur seulement) | Un type du mod : `scout`, `deliver`, `retrieve`, `clear`, `signal`, `barricade`, `relay`. |
 | `place 'clinic' has no use=drop` (journal du serveur seulement) | Ajouter `drop` au `use` de ce lieu, ou citer un autre lieu. |
 | `unknown category 'weapons'` (journal du serveur seulement) | Une catégorie du catalogue ou une `[category]` de la fiche. |
 | `bad reward weight '0' (whole number from 1 to 999999)` (journal du serveur seulement) | Les poids commencent à 1. |

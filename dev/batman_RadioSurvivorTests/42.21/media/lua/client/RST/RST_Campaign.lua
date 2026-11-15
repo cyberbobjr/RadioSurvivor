@@ -98,6 +98,8 @@ RST.CAMPAIGNS["solo-rs"] = {
     "rs.voicedelivery", -- hidden radio deposits, actual world removal
     "rs.voiceretrieve", -- E20-T06: ID card of a voice mission left at a dead drop, then the radio report
     "rs.voicebarricade", -- E20-T09: outside openings of a real building barricaded, then the radio report
+    "rs.voicerelay",    -- E20-T12: powered radio turned on upstairs in a real building, off refused, then the report
+    "rs.voicedarlene",  -- E20-T10: Darlene's chain with her real sheet at the West Point clinic, up to returned
     "rs.missionrewards", -- E11: actual cache, private frequency, stash and server XP
 }
 
@@ -161,6 +163,8 @@ RST.CAMPAIGNS["mp"] = {
     "rs.voicedelivery", -- all online witnesses leave before physical collection
     "rs.voiceretrieve", -- E20-T06: card collected out of view of every online player, then the radio report
     "rs.voicebarricade", -- E20-T09: barricades counted by the server, then the radio report
+    "rs.voicerelay",    -- E20-T12: radio relay read by the server, off refused, then the radio report
+    "rs.voicedarlene",  -- E20-T10: Darlene's chain with her real sheet at the West Point clinic, up to returned
     "rs.missionrewards", -- E11: recipient client XP and unrelated client isolation
     "rs.lastpages",     -- E15-T02, E15-T03 (prefix: corpse)
     "rs.bulletin",      -- E14-T02

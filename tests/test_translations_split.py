@@ -132,7 +132,11 @@ ADDED = {'IGUI_RS_DeadDropPoints', 'IGUI_RS_RetrieveDropCard',
          # E20-T09: template barricade (title, notebook view, map label).
          'IGUI_RC_Mission_Barricade', 'IGUI_RS_MapZoneBarricade', 'IGUI_RS_MapZoneBarricadeAnon',
          'IGUI_RS_BarricadePlace', 'IGUI_RS_BarricadeMapZone', 'IGUI_RS_BarricadeProgress', 'IGUI_RS_BarricadeRule',
-         'IGUI_RS_BarricadeReport'}
+         'IGUI_RS_BarricadeReport',
+         # E20-T12: template relay (title, notebook view, map label).
+         'IGUI_RC_Mission_Relay', 'IGUI_RS_MapZoneRelay', 'IGUI_RS_MapZoneRelayAnon', 'IGUI_RS_RelayPlace',
+         'IGUI_RS_RelayMapZone', 'IGUI_RS_RelayLevel', 'IGUI_RS_RelayOn', 'IGUI_RS_RelayOff', 'IGUI_RS_RelayRule',
+         'IGUI_RS_RelayReport'}
 
 
 class TranslationSplitTests(unittest.TestCase):
