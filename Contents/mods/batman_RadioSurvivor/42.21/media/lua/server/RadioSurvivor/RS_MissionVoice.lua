@@ -25,7 +25,9 @@ template that declares a field: V.registerDeclaredSetup(field, setup) (E20-T06: 
 dropAccepts, RS_DeadDrops); a set-up by name comes first. It is checked before the mission is created and applied
 before it is accepted and saved; section = the chosen [mission] section (drops, params). The server draws the place
 with the template's offer (RC_MissionScout: habitable building at 60-250 tiles of the caller's server position, same
-rules as E11-T03), creates and accepts the mission for the caller, writes the history line "mission" (kind of place,
+rules as E11-T03; E20-T10: the offer also receives the place named by the section's target=, RS_Persona.targetOf,
+and scout and clear then take the building at that place, wherever the caller is), creates and accepts the mission
+for the caller, writes the history line "mission" (kind of place,
 no coordinate) on the frequency of the reply. Refusals (reason): no_player (caller not connected: no server position), storage
 (private state not loaded or blocked), no_character (no notebook character bound), mission_open (this caller already
 has an open mission from this voice), recent_mission (OFFER_COOLDOWN_MS after the previous one), bad_template (no
@@ -172,8 +174,9 @@ function V.start(store, sheet, cid, player, khz, template)
     local c = Config.Missions[name]
     -- E04-T05 (Q11): a sensitive template is never started for a bad reputation.
     if not Rep.offerAllowed(Rep.level(cid), name) then return nil, "reputation" end
-    -- The template's offer draws the place around the caller (server copy of the player: never a client claim).
-    local terms = c and t.offer(c, d, nil, player, cid)
+    -- The template's offer draws the place around the caller (server copy of the player: never a client claim);
+    -- E20-T10: or takes the building of the section's target place (aim), for the templates that can (scout, clear).
+    local terms = c and t.offer(c, d, nil, player, cid, Persona.targetOf(sheet, section))
     if not terms then return nil, "no_place" end
     local setup = setupOf(section.type, t)
     if setup then

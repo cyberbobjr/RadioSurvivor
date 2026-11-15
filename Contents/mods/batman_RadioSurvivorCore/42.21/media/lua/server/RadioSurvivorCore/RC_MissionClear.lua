@@ -9,6 +9,9 @@ Requester: an NPC fiche of the notebook, or a radio voice under the name `clear`
 Place: drawn exactly as the scout template (RC_MissionScout.pick: habitable building of the metagrid at 60-250 tiles
 of the requester's body, 60 tiles at least from any known base, nothing loaded), kept per requester for siteTtlMs in
 a memory of this file so that the offer told by the bridge and the created mission name the same building.
+Aimed place (E20-T10): an offer that receives `aim` (target= of a voice's mission section) takes the building at that
+place (RC_MissionScout.siteAt), wherever the requester stands; zone, density and N are then computed as for a drawn
+place (no building there, or a density below minDensity: no offer).
 Zone: a circle centred on the building (m.mapZone = { x, y, r }, r = zoneRadius tiles, larger for a big building so
 that the whole footprint lies inside), every floor. It is the counting zone itself, drawn on the map of an engaged
 participant of an active mission (client/RadioSurvivor/RS_MapActions.lua, label IGUI_RS_MapZoneClear): unlike the
@@ -126,6 +129,23 @@ function Clear.zone(bounds, c)
         r = math.max(c.zoneRadius, math.ceil(half) + c.zoneMargin)}
 end
 
+-- Counting circle, density and N of a site; nil and the reason when the metagrid cannot tell or too few zombies.
+local function counted(site, grid, c)
+    site.zone = Clear.zone(site.bounds, c)
+    local density = Clear.density(grid, site.zone)
+    if density == nil then return nil, 'no zombie density on the metagrid' end
+    if density < c.minDensity then return nil, 'too few zombies around ' .. tostring(site.key) end
+    site.density, site.kills = density, Clear.target(c, density)
+    return site
+end
+
+-- Keeps the site (or the miss) for this requester, so that create names the offered building.
+local function keep(npc, site, why, now)
+    if not site then log('clear: no place for ' .. tostring(npc.id) .. ' (' .. tostring(why) .. ')') end
+    sites[npc.id] = {site = site, at = now}
+    return site
+end
+
 -- Place kept for this requester (drawn again after siteTtlMs, or retryMs when none fitted); nil when none fits.
 function Clear.site(npc, body, c)
     local now = getTimestampMs()
@@ -136,23 +156,20 @@ function Clear.site(npc, body, c)
     if body and grid then
         site, why = Scout.pick(body:getX(), body:getY(), c, 'clear:' .. tostring(npc.id) .. ':'
             .. tostring(npc.missionCount or 0) .. ':' .. tostring(now))
-        if site then
-            site.zone = Clear.zone(site.bounds, c)
-            local density = Clear.density(grid, site.zone)
-            if density == nil then
-                site, why = nil, 'no zombie density on the metagrid'
-            elseif density < c.minDensity then
-                site, why = nil, 'too few zombies around ' .. tostring(site.key)
-            else
-                site.density, site.kills = density, Clear.target(c, density)
-            end
-        end
+        if site then site, why = counted(site, grid, c) end
     elseif body then
         why = 'no metagrid'
     end
-    if not site then log('clear: no place for ' .. tostring(npc.id) .. ' (' .. tostring(why) .. ')') end
-    sites[npc.id] = {site = site, at = now}
-    return site
+    return keep(npc, site, why, now)
+end
+
+-- E20-T10: the building at a place named by the giver ({ x, y, z, label }), kept like a drawn place; nil when none.
+function Clear.aimedSite(npc, place, c)
+    local grid = metaGrid()
+    local site, why = nil, 'no metagrid'
+    if grid then site, why = Scout.siteAt(place) end
+    if site then site, why = counted(site, grid, c) end
+    return keep(npc, site, why, getTimestampMs())
 end
 
 -- Bench: forget the kept places and the recorded hits.
@@ -160,10 +177,12 @@ function Clear.resetForTests()
     sites, hits, hitCount = {}, {}, 0
 end
 
-function Clear.offer(c, npc, record, body)
+-- aim (E20-T10): place named by the giver, or nil (drawn around the body).
+function Clear.offer(c, npc, record, body, character, aim)
     -- A radio voice donor has no fiche (npc.incarnation): this template is for NPC fiches only.
     if not npc or (npc.incarnation == nil and not npc.voice) then return nil end
-    local site = Clear.site(npc, body, c)
+    local site
+    if aim then site = Clear.aimedSite(npc, aim, c) else site = Clear.site(npc, body, c) end
     if not site then return nil end
     return {kind = 'clear', place = site.label, clues = copyList(site.clues), kills = site.kills, report = 'in_person',
         durationMs = c.durationMs, rewardType = c.rewardType, rewardCount = c.rewardCount}

@@ -304,17 +304,23 @@ class DeliveredSheetsTests(unittest.TestCase):
     def test_mission_givers_offer_the_same_jobs_and_rewards(self):
         # Avant E20-T03 : missions=scout,deliver,retrieve,clear,signal ; rewards=cache,frequency,stashmap,lesson ;
         # cache_table et teaches propres à chaque voix ; un seul lieu (dépôt de deliver et cache de récompense).
-        expected = {'darlene': ('medical', 'Doctor', 'clinic'), 'cody': ('ammo', 'Aiming', 'checkpoint')}
-        for vid, (table, skill, place) in expected.items():
+        # E20-T10 : Darlene donne la chaîne du retour à sa clinique (tests/test_darlene_chain.py), Cody les cinq types.
+        expected = {
+            'darlene': ('medical', 'Doctor',
+                        [('scout_clinic', 'scout'), ('clear_clinic', 'clear'), ('secure_clinic', 'barricade'),
+                         ('meds', 'deliver')],
+                        [('clinic', ['mark', 'target']), ('drop_dumpsters', ['drop']), ('drop_bookstore', ['drop'])]),
+            'cody': ('ammo', 'Aiming', [(t, t) for t in ('scout', 'deliver', 'retrieve', 'clear', 'signal')],
+                     [('checkpoint', ['mark', 'target', 'drop'])]),
+        }
+        for vid, (table, skill, missions, places) in expected.items():
             with self.subTest(vid):
                 s = self.sheets[vid]
-                self.assertEqual([(m.id, m.type) for m in lua_items(s.missions)],
-                                 [(t, t) for t in ('scout', 'deliver', 'retrieve', 'clear', 'signal')])
+                self.assertEqual([(m.id, m.type) for m in lua_items(s.missions)], missions)
                 self.assertEqual([(r.kind, r.param, r.weight) for r in lua_items(s.rewards)],
                                  [('cache', table, 1), ('frequency', None, 1), ('stashmap', None, 1),
                                   ('lesson', skill, 1)])
-                self.assertEqual([(q.id, lua_items(q.uses)) for q in lua_items(s.places)],
-                                 [(place, ['mark', 'target', 'drop'])])
+                self.assertEqual([(q.id, lua_items(q.uses)) for q in lua_items(s.places)], places)
 
     def test_other_voices_give_no_mission(self):
         for vid in ('walt', 'gus', 'nightowl', 'whitaker'):

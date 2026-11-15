@@ -68,12 +68,12 @@ Personas.CATALOGUE = "_categories.txt"
 -- reconnaissent une fiche non modifiée installée avant le fichier d'empreintes (E05-T02 à E05-T10). Versions des
 -- commits 09d7474 et 24832ea (fréquences fixes ; Walt identique dans les deux), 486b21e (plages, E05-T07), puis
 -- E05-T10 (commentaires de walt.txt), E05-T05 (appels de darlene, cody, gus), E20-T03 (fiches à sections de darlene
--- et cody), E20-T07 (troc de gus). Toute nouvelle version livrée d'une fiche ajoute ici son empreinte (banc le
--- tests/test_personas_server.py).
+-- et cody), E20-T07 (troc de gus), E20-T10 (retour de darlene a sa clinique). Toute nouvelle version livrée d'une
+-- fiche ajoute ici son empreinte (banc le tests/test_personas_server.py).
 Personas.KNOWN_DELIVERED = {
     walt = { "2105682694", "2759756800", "213942039", "1586801598" },   -- E07-T10 : share_frequency
     darlene = { "611497886", "1134557996", "2120896689", "3998911546", "3957645400",
-        "1182033778" },   -- E20-T03 : sections
+        "1182033778", "674887514" },   -- E20-T10 : chaine du retour a la clinique
     cody = { "3131466986", "673421833", "4032160620", "318842949", "1196981398",
         "1976566616" },   -- E20-T03 : sections
     whitaker = { "4044533006", "3352221633", "2075828338" },   -- E12-T04 : règle du secours réussi

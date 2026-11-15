@@ -30,7 +30,8 @@ PERSONA_LUA = LUA / 'server/RadioSurvivor/RS_Persona.lua'
 LUA_PATH = ';'.join(f'{(root / side).as_posix()}/?.lua' for root in (CORE_LUA, LUA) for side in ('shared', 'server'))
 # Gabarits de mission qui s'inscrivent dans RC_Missions (deliver est déclaré par RC_Missions même).
 TEMPLATE_MODULES = ('RadioSurvivorCore/RC_MissionScout', 'RadioSurvivorCore/RC_MissionClear',
-                    'RadioSurvivorCore/RC_MissionRetrieve', 'RadioSurvivorCore/RC_MissionSignal')
+                    'RadioSurvivorCore/RC_MissionRetrieve', 'RadioSurvivorCore/RC_MissionSignal',
+                    'RadioSurvivorCore/RC_MissionBarricade')  # E20-T10: secure_clinic of darlene.txt
 # Natures de récompense qui s'inscrivent dans RS_Rewards (E20-T04 : un fichier par nature, server/RadioSurvivor/Rewards/).
 REWARD_KIND_MODULES = tuple(f'RadioSurvivor/Rewards/{p.stem}' for p in sorted(
     (LUA / 'server/RadioSurvivor/Rewards').glob('*.lua'), key=lambda p: p.name.lower()))
@@ -642,8 +643,9 @@ class DeliveredVoicesTests(unittest.TestCase):
 
     def test_decided_values(self):
         # Décision E05-T04 du 2026-10-09 (docs/annexes/plans-termines/E05-voix-reseau-radio.md), fréquences : E05-T07.
+        # E20-T10 (décision du 2026-11-14, ADR D09) : Darlene a quitté sa clinique et se cache ailleurs, hors carte.
         expected = {
-            'darlene': ([(420, 600), (960, 1140)], 'fixed', (11880, 6878, 0), 'active'),
+            'darlene': ([(420, 600), (960, 1140)], 'none', None, 'active'),
             'cody': ([(1320, 180)], 'none', None, 'active'),
             'whitaker': ([(360, 1260)], 'rescue', None, 'silent'),
             'nightowl': ([(1140, 1320)], 'none', None, 'active'),

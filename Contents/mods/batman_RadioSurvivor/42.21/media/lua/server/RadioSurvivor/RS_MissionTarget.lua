@@ -14,14 +14,7 @@ local Missions = require 'RadioSurvivorCore/RC_Missions'
 local T = {}
 
 -- Place of the sheet named by the section's target= (use=target), or nil.
-function T.place(sheet, section)
-    local id = type(section) == 'table' and section.target or nil
-    if type(id) ~= 'string' then return nil end
-    for _, p in ipairs(Persona.placesFor(sheet, 'target')) do
-        if p.id == id then return p end
-    end
-    return nil
-end
+T.place = Persona.targetOf
 
 local function paramsOf(section)
     return type(section) == 'table' and type(section.params) == 'table' and section.params or {}

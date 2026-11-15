@@ -48,9 +48,9 @@ Hooks (all optional; none registered: a mission changes no notebook):
                                                 their own; default: the private mission state RC_MissionStore
 Template interface (M.register(name, template)); observe and reportBySpeech are optional:
     idPrefix                                    mission ids are <npc>-<idPrefix><n>, n counted per NPC
-    offer(entry, npc, record, body, character) -> offer | nil
+    offer(entry, npc, record, body, character, aim) -> offer | nil
                                                 bounded parameters for the bridge `offers` (body: NPC body or nil;
-                                                character: notebook character the offer is computed for, or nil)
+                                                character: offer's character or nil; aim: E20-T10, giver's place)
     create(m, entry, npc, terms) -> false | nil template fields of a new mission (copies); false: no mission created;
                                                 terms: the admissible offer just revalidated (M.create), or nil
     check(m, player, payload) -> evidence | nil, reason

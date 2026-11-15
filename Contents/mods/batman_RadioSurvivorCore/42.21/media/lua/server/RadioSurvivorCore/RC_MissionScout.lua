@@ -23,6 +23,11 @@ collective result and reward lot: the common engine (same values as M01).
 Radio voice requester (E11-T08, RS_MissionVoice.lua): the same template, drawn around the caller's server position
 (the "body" given to Scout.site), m.report = 'radio'; the report is announced to the voice on its frequency (action
 report_mission of its reply, E11-T13).
+Aimed place (E20-T10): an offer that receives `aim` (a place { x, y, z, label } named by the giver: target= of a
+voice's mission section) draws nothing; Scout.siteAt takes the building whose room covers that tile on the metagrid
+(IsoMetaGrid:getBuildingAt(x, y, z), loaded or not: IsoMetaGrid.java:271-280), wherever the requester stands and
+without the habitability or distance rules of a draw (the giver chose it), labelled with the place's label; no
+building there: no offer. Kept per requester like a drawn place, so that create names the same building.
 The bridge sees the place only as clues without digits (RC_Sites.clues) and its kind; the coordinates stay here.
 Notebook (E11-T09): the same clues as translatable data (RC_Sites.clueData: m.clueData = list of { key, args } with
 codes and town names only, never a coordinate), projected as p.clues and rendered by the client in its own language
@@ -117,6 +122,29 @@ function Scout.pick(x, y, c, seed)
     return nil, 'no suitable building around the requester'
 end
 
+-- E20-T10: site of the building at a place named by the giver ({ x, y, z, label }), or nil and a reason. Same
+-- fields as a drawn site; kind from RC_Sites.KINDS (else 'building'), label = the place's label.
+function Scout.siteAt(place)
+    local grid = metaGrid()
+    if grid == nil then return nil, 'no metagrid' end
+    local b = grid:getBuildingAt(place.x, place.y, place.z or 0)
+    if b == nil then return nil, 'no building at the place' end
+    local rule = Sites.classify(b)
+    local id = b:getIDString()
+    local site = {x = place.x, y = place.y, z = place.z or 0, buildingId = id, key = 'b' .. tostring(id),
+        kind = rule and rule.kind or 'building', label = tostring(place.label or ''), bounds = Sites.bounds(b)}
+    site.clues, site.clueData = clues(b, grid)
+    return site
+end
+
+-- E20-T10: the site at the aimed place, kept for this requester as a drawn one; nil when no building stands there.
+function Scout.aimedSite(npc, place)
+    local site, why = Scout.siteAt(place)
+    if not site then log('scout: no building at ' .. tostring(place.label) .. ' (' .. tostring(why) .. ')') end
+    sites[npc.id] = {site = site, at = getTimestampMs()}
+    return site
+end
+
 -- Place kept for this requester (drawn again after siteTtlMs); nil when none fits.
 function Scout.site(npc, body, c)
     local now = getTimestampMs()
@@ -137,8 +165,10 @@ function Scout.resetForTests()
     sites = {}
 end
 
-function Scout.offer(c, npc, record, body)
-    local site = Scout.site(npc, body, c)
+-- aim (E20-T10): place named by the giver, or nil (drawn around the body).
+function Scout.offer(c, npc, record, body, character, aim)
+    local site
+    if aim then site = Scout.aimedSite(npc, aim) else site = Scout.site(npc, body, c) end
     if not site then return nil end
     return {kind = 'scout', place = site.label, clues = copyList(site.clues), report = 'in_person',
         durationMs = c.durationMs, rewardType = c.rewardType, rewardCount = c.rewardCount}

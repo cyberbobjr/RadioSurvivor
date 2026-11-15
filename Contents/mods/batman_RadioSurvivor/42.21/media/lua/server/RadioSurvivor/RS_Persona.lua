@@ -1005,4 +1005,14 @@ function Persona.placeFor(sheet, use)
     return Persona.placesFor(sheet, use)[1]
 end
 
+-- E20-T10 : lieu de la fiche (use=target) nomme par la cle target= d une section [mission], ou nil.
+function Persona.targetOf(sheet, section)
+    local id = type(section) == "table" and section.target or nil
+    if type(id) ~= "string" then return nil end
+    for _, p in ipairs(Persona.placesFor(sheet, "target")) do
+        if p.id == id then return p end
+    end
+    return nil
+end
+
 return Persona
