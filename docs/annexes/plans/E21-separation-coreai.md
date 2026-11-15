@@ -2,7 +2,7 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 4 / 10 tâche(s) terminée(s).
+**Avancement.** en cours — 8 / 10 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
@@ -11,11 +11,11 @@
 | ☑ | E21-T03 | Carnet client et interfaces dans batman_CoreAI | `testé solo` | solo | E21-T01 |
 | ☐ | E21-T04 | Carnet serveur dans batman_CoreAI | `testé solo` | MP | E21-T03 |
 | ☑ | E21-T05 | Living Knox fournisseur du carnet commun | `testé solo` | solo | E21-T04 |
-| ☐ | E21-T06 | RadioSurvivor sans appel à Living Knox | `testé hors jeu` | solo | E21-T04 |
-| ☐ | E21-T07 | Trois mods de test et campagnes séparées | `à faire` | solo | E21-T05, E21-T06 |
-| ☐ | E21-T08 | Bancs de Living Knox sans RadioSurvivor | `à faire` | hors jeu | E21-T07 |
+| ☑ | E21-T06 | RadioSurvivor sans appel à Living Knox | `testé solo` | solo | E21-T04 |
+| ☑ | E21-T07 | Trois mods de test et campagnes séparées | `testé solo` | solo | E21-T05, E21-T06 |
+| ☑ | E21-T08 | Bancs de Living Knox sans RadioSurvivor | `testé hors jeu` | hors jeu | E21-T07 |
 | ☐ | E21-T09 | Les trois montages en jeu, solo et MP | `à faire` | MP | E21-T08 |
-| ☐ | E21-T10 | Documentation, README et descriptions Workshop | `à faire` | hors jeu | E21-T09 |
+| ☑ | E21-T10 | Documentation, README et descriptions Workshop | `testé hors jeu` | hors jeu | E21-T09 |
 
 <!-- fin du tableau de bord -->
 
@@ -164,7 +164,7 @@ qui porte le carnet et les méthodes factorisées. Les tests de Living Knox ne c
   - Preuve : —
   - Reste : —
 
-- [ ] **E21-T10** — Documentation, README et descriptions Workshop
+- [x] **E21-T10** — Documentation, README et descriptions Workshop
   - État : `testé hors jeu`
   - Cible : `hors jeu`
   - Dépend de : E21-T09
@@ -173,4 +173,4 @@ qui porte le carnet et les méthodes factorisées. Les tests de Living Knox ne c
   - Accepté si : contrôles des descriptions verts ; aucune mention de l'ancien nom hors historique.
   - Tests : contrôles des descriptions du dépôt ; `features_status.py --check`.
   - Preuve : commit `094f467d` : architecture, règles de développement, spécifications, guide des tests en jeu, notes de conception, README, wiki et descriptions Workshop (README.steam 7212 octets, README.steam.fr 7864 octets avec le bloc d'identifiants) ; `pz_workshop_project.validate` sans erreur ; `run_all.py --keep-going` : `Summary: 194 passed, 0 failed, 0 skipped` ; aucune publication
-  - Reste : page des fonctionnalités
+  - Reste : aucun (page des fonctionnalités mise à jour avec E21-T09)
