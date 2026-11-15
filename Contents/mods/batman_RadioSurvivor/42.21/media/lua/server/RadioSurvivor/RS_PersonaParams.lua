@@ -4,7 +4,8 @@
 -- kind = one Params.register call, without touching the sheet reader.
 -- validator(value, ctx) -> parsed value, or nil and the reason (English, logged with the line of the sheet).
 -- ctx (built by RS_Persona): places (id -> place of the sheet), categories (id -> category: shared catalogue and
--- categories of the sheet), skills (list of the skills a lesson may teach).
+-- categories of the sheet), skills (list of the skills a lesson may teach), split (value -> list of its comma
+-- separated parts, trimmed, as the sheet reader splits a list).
 -- ASCII only (Kahlua lexer).
 if isClient() then return end
 
@@ -58,6 +59,23 @@ end)
 Params.register("place", function(value, ctx)
     if not ctx.places[value] then return nil, "unknown place '" .. value .. "'" end
     return value
+end)
+
+-- E20-T13: ordered list of places with use=target ("a, b, c"), MIN_PLACES to MAX_PLACES of them, never the same twice
+-- in a row; parsed as the list of their ids.
+local MIN_PLACES, MAX_PLACES = 2, 8
+Params.register("places", function(value, ctx)
+    local ids = ctx.split(value)
+    if #ids < MIN_PLACES or #ids > MAX_PLACES then
+        return nil, "bad place list (" .. MIN_PLACES .. " to " .. MAX_PLACES .. " places with use=target)"
+    end
+    for i, id in ipairs(ids) do
+        local place = ctx.places[id]
+        if not place then return nil, "unknown place '" .. id .. "'" end
+        if not place.use.target then return nil, "place '" .. id .. "' has no use=target" end
+        if ids[i - 1] == id then return nil, "place '" .. id .. "' twice in a row" end
+    end
+    return ids
 end)
 
 Params.register("text", function(value)

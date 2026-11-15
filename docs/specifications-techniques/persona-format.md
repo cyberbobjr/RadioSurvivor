@@ -463,6 +463,18 @@ Les trois clés sont obligatoires (`missing key 'use' in [place mill]`, à la li
   13 × 13 cases autour du lieu ; au niveau `max(1, z du lieu)` ou plus haut, toit compris (`getMaxLevel() + 1`).
   Lu par le serveur toutes les 3 s et de nouveau au compte rendu : éteinte, sans courant ou retirée, la radio ne
   compte plus ; case de la dernière radio déchargée : dernier état vérifié.
+  `watch` (E20-T14) : le poste de guet. Un participant guette tant que la copie serveur de son personnage est à
+  moins de `RC_MissionConfig.Missions.watch.radius` cases (6) du lieu, sur le plan du sol (tout niveau). Le temps
+  est l'âge du monde (`RC_GameClock.hours`, heures de jeu : arrêté en pause, plus rapide en x2/x3 et pendant le
+  sommeil), lu à chaque passage du serveur ; il compte entre deux lectures avec quelqu'un sur place. Personne sur
+  place : l'absence part de la dernière lecture avec quelqu'un et ne compte jamais ; au-delà de `absenceMinutes`
+  (10 minutes de jeu), ou deux lectures à plus de `gapHours` (1 heure de jeu) d'écart, le guet repart de zéro.
+  Durée atteinte : objectif rempli, définitivement. Pendant le guet, le serveur relève des faits par des sources
+  inscrites (`RC_WatchFacts`, un fichier par source sous `WatchFacts/`) : hélicoptère vanilla entendu à moins de
+  500 cases (`OnWorldSound` sans source, niveau 0, rayon et volume 500 : `Helicopter.java:217-218`,
+  `WorldSoundManager.java:480` en 42.22) et groupe d'au moins 10 zombies à moins de 30 cases (zombies chargés du
+  serveur, joueurs réanimés exclus) ; chaque fait devient une phrase anglaise du contexte de la voix, sans
+  coordonnée.
 - `drop` : planque. Une mission `deliver` ou `retrieve` d'une voix porte toutes les planques de sa section (`drops=`,
   sans la clé : tous les lieux `drop` de la fiche ; `RS_DeadDrops`, E20-T05, E20-T06 : la carte d'identité de `retrieve`
   s'y dépose), toutes marquées sur la carte du participant ; une voix sans lieu `drop` ne peut donner ni `deliver` ni
@@ -481,6 +493,9 @@ Celui d'une mission `barricade` est le bâtiment du lieu `target=` de sa section
 `aimAt` du gabarit) : sans lieu `target`, départ refusé `no_target` ; sans bâtiment à ce lieu, `no_building`.
 Le point d'une mission `relay` est le bâtiment du lieu `target=` (même déclaration `aimAt`), à défaut une zone
 autour du lieu : sans lieu `target`, départ refusé `no_target` ; jamais d'autre refus.
+Le poste d'une mission `watch` est le lieu `target=` de sa section (même déclaration `aimAt`) : sans lieu `target`,
+départ refusé `no_target` ; `hours` hors de 1 à 24, `bad_hours`.
+Les points d'une mission `route` (E20-T13) sont les lieux `target` nommés dans l'ordre par `points=` (`RS_MissionWaypoints`, déclaration `alongPoints` du gabarit) ; un point est franchi quand la copie serveur d'un participant, ou le véhicule où il est assis, passe à moins de `RC_MissionConfig.Missions.route.radius` cases (8) du lieu, trajet depuis la lecture précédente compris (au plus `maxStep`, 60 cases : au-delà, un saut, seule son arrivée compte) ; seul le prochain point compte, un point atteint avant son tour ne l'est pas. Carte : un cercle par point connu (franchis et prochain), carnet : « n sur N » et le prochain point ; voix : libellés dans l'ordre et compte vérifié.
 Les lieux n'ont aucun autre effet : ni distance (`too_far`), ni `coords` de la voix, ni `persona_state`.
 
 ## Erreurs
@@ -643,15 +658,15 @@ sections **disponibles** pour l'appelant, dans l'ordre du fichier (`RS_MissionVo
 
 | Clé | Valeurs | Défaut | Rôle |
 |---|---|---|---|
-| `type` | nom d'un type de mission inscrit au registre du mod commun (`RC_Missions`, déclaration `voiceName`) ; aujourd'hui `scout`, `deliver`, `retrieve`, `clear`, `signal`, `barricade`, `relay` | obligatoire | Gabarit de la mission. |
+| `type` | nom d'un type de mission inscrit au registre du mod commun (`RC_Missions`, déclaration `voiceName`) ; aujourd'hui `scout`, `deliver`, `retrieve`, `clear`, `signal`, `barricade`, `relay`, `route`, `watch` | obligatoire | Gabarit de la mission. |
 | `weight` | entier de 1 à 999999 | `1` | Poids du tirage parmi les sections disponibles d'un même type, quand le modèle nomme un type plutôt qu'une section. |
 | `after` | identifiant d'une autre section `[mission]` de la fiche, sans boucle | aucun | Section proposée seulement quand la dernière mission de la section citée est une réussite (par personnage, ou par équipe avec `scope=team`). |
 | `scope` | `character`, `team` | `character` | Portée de `after` : réussites du personnage du carnet, ou de son équipe (`RC_Teams.idOf` : faction vanilla, ou équipe personnelle du joueur seul). |
 | `sets_state` | nom : `a`-`z`, `0`-`9`, `_`, commence par une lettre, 32 caractères au plus | aucun | État de récit de la voix posé à la réussite de cette mission (« Enchaînement et état de récit »). |
 | `story` | texte, 200 octets UTF-8 au plus | aucun | Raison donnée par la voix : ajoutée à la description du travail dite au modèle (`jobs=`). |
 | `drops` | `any` (tous les lieux `use=drop`, au moins un) ou liste de lieux `use=drop` | tous les lieux `use=drop` | Planques de la mission, toutes proposées au joueur ; les dépôts s'additionnent (E20-T05). |
-| `target` | un lieu `use=target` | aucun | Objectif de la mission : bâtiment à barricader de `barricade`, point du relais radio de `relay` (obligatoire pour ces types, refus `no_target` au départ) ; bâtiment visé par `scout` et `clear` (E20-T10 : sans la clé, bâtiment tiré autour de l'appelant ; sans bâtiment à ce lieu, `no_place`) ; lu, utilisé par les autres nouveaux types d'E20. |
-| autres clés | celles que **déclare le type** (`params = { clé = '<genre>' }` du gabarit), chacune contrôlée par son genre | aucun | Paramètres propres au type. `deliver` déclare `items` (catégorie : les objets acceptés sont exactement ceux de la catégorie, section `[category]` de la fiche d'abord, sinon le catalogue partagé, même résolution que la récompense `cache` : `RS_Categories.lua`) et `quantity` (fourchette : nombre d'objets demandés, tiré au départ de la mission et gardé sur elle, au moins 1 ; un nombre fixe n'est pas tiré) ; sans ces clés, liste et quantité de `RC_MissionConfig.Missions.deliver` (`Base.Bandage`, `Base.RippedSheets` ; 6) ; appliqués par `RS_MissionGoods.lua` (déclaration `askFor` du gabarit, E20-T16) ; `collect_hours` (`count`) : heures de jeu hors de vue avant le ramassage d'une planque (défaut `RS_Config.DeadDrops.collectDelayHours`, 6). `retrieve` déclare `collect_hours` (même sens, E20-T06). `barricade` déclare `count` (`count`) : nombre de fenêtres et portes extérieures à barricader, au moins 1 (défaut `RC_MissionConfig.Missions.barricade.count`, 4 ; `0` refusé au départ `bad_count`). `relay` n'en déclare aucun : la hauteur se règle par le niveau `z` du lieu. Les autres types livrés n'en déclarent aucun. |
+| `target` | un lieu `use=target` | aucun | Objectif de la mission : bâtiment à barricader de `barricade`, point du relais radio de `relay`, poste de guet de `watch` (obligatoire pour ces types, refus `no_target` au départ) ; bâtiment visé par `scout` et `clear` (E20-T10 : sans la clé, bâtiment tiré autour de l'appelant ; sans bâtiment à ce lieu, `no_place`) ; lu, utilisé par les autres nouveaux types d'E20. |
+| autres clés | celles que **déclare le type** (`params = { clé = '<genre>' }` du gabarit), chacune contrôlée par son genre | aucun | Paramètres propres au type. `deliver` déclare `items` (catégorie : les objets acceptés sont exactement ceux de la catégorie, section `[category]` de la fiche d'abord, sinon le catalogue partagé, même résolution que la récompense `cache` : `RS_Categories.lua`) et `quantity` (fourchette : nombre d'objets demandés, tiré au départ de la mission et gardé sur elle, au moins 1 ; un nombre fixe n'est pas tiré) ; sans ces clés, liste et quantité de `RC_MissionConfig.Missions.deliver` (`Base.Bandage`, `Base.RippedSheets` ; 6) ; appliqués par `RS_MissionGoods.lua` (déclaration `askFor` du gabarit, E20-T16) ; `collect_hours` (`count`) : heures de jeu hors de vue avant le ramassage d'une planque (défaut `RS_Config.DeadDrops.collectDelayHours`, 6). `retrieve` déclare `collect_hours` (même sens, E20-T06). `barricade` déclare `count` (`count`) : nombre de fenêtres et portes extérieures à barricader, au moins 1 (défaut `RC_MissionConfig.Missions.barricade.count`, 4 ; `0` refusé au départ `bad_count`). `relay` n'en déclare aucun : la hauteur se règle par le niveau `z` du lieu. `watch` déclare `hours` (`count`) : heures de jeu du guet, de 1 à 24 (défaut `RC_MissionConfig.Missions.watch.hours`, 2 ; hors bornes refusé au départ `bad_hours`). `route` (E20-T13) déclare `points` (`places`) : lieux à franchir dans cet ordre, obligatoire (sans la clé, ou un nom qui n'est plus un lieu `target` de la fiche, départ refusé `no_points`). Les autres types livrés n'en déclarent aucun. |
 
 Genres de valeurs (`RS_PersonaParams.lua`, un validateur par genre, registre ouvert : un nouveau genre s'inscrit
 sans toucher au lecteur) :
@@ -662,6 +677,7 @@ sans toucher au lecteur) :
 | `range` | entier, ou fourchette `bas-haut`, le plus bas d'abord (`2-4`) | `{ min, max }` |
 | `category` | catégorie du catalogue ou de la fiche | identifiant |
 | `place` | lieu `[place]` de la fiche | identifiant |
+| `places` | liste de 2 à 8 lieux `[place]` de la fiche avec `use=target`, séparés par des virgules, jamais le même deux fois de suite (E20-T13) | liste d'identifiants, dans l'ordre |
 | `text` | texte non vide | texte |
 | `skill` | compétence que peut enseigner une leçon (`RS_Rewards.SKILLS`) | nom |
 

@@ -137,6 +137,14 @@ ADDED = {'IGUI_RS_DeadDropPoints', 'IGUI_RS_RetrieveDropCard',
          'IGUI_RC_Mission_Relay', 'IGUI_RS_MapZoneRelay', 'IGUI_RS_MapZoneRelayAnon', 'IGUI_RS_RelayPlace',
          'IGUI_RS_RelayMapZone', 'IGUI_RS_RelayLevel', 'IGUI_RS_RelayOn', 'IGUI_RS_RelayOff', 'IGUI_RS_RelayRule',
          'IGUI_RS_RelayReport'}
+# E20-T13: template route (title, notebook view, map label).
+ADDED |= {'IGUI_RC_Mission_Route', 'IGUI_RS_MapZoneRoute', 'IGUI_RS_MapZoneRouteAnon', 'IGUI_RS_RouteProgress',
+          'IGUI_RS_RouteNext', 'IGUI_RS_RouteAllCrossed', 'IGUI_RS_RouteMapZone', 'IGUI_RS_RouteRule',
+          'IGUI_RS_RouteReport'}
+# E20-T14: template watch (title, notebook view, map label).
+ADDED |= {'IGUI_RC_Mission_Watch', 'IGUI_RS_MapZoneWatch', 'IGUI_RS_MapZoneWatchAnon', 'IGUI_RS_WatchPlace',
+          'IGUI_RS_WatchMapZone', 'IGUI_RS_WatchProgress', 'IGUI_RS_WatchDone', 'IGUI_RS_WatchRule',
+          'IGUI_RS_WatchReport'}
 
 
 class TranslationSplitTests(unittest.TestCase):

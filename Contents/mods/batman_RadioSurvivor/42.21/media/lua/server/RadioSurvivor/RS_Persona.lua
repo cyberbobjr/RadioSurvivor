@@ -1,6 +1,7 @@
 -- Radio Survivor : fiches des voix radio (E05-T01), lecture et validation stricte cote serveur.
 -- Format : docs/specifications-techniques/persona-format.md. Le serveur est le seul lecteur complet (E20-T03, ADR D03) :
--- tete (lignes cle=valeur), sections [place <id>], [mission <id>], [rewards], [category <id>], [trade], puis [prompt].
+-- tete (lignes cle=valeur), sections [place <id>], [mission <id>], [rewards], [category <id>], [trade], [note], puis
+-- [prompt].
 -- bridge/persona_store.py lit la tete, les lieux et le prompt avec les memes regles et les memes messages
 -- (« line N: raison », en anglais) et passe les autres sections sans les lire ; tests/test_personas.py compare les deux
 -- lecteurs, tests/test_persona_sections.py couvre ce que seul le serveur valide.
@@ -337,7 +338,7 @@ end
 
 -- Contexte des validateurs de RS_PersonaParams.
 local function paramsContext(ctx)
-    return { places = ctx.placeById, categories = ctx.categories, skills = ctx.rules.skills or {} }
+    return { places = ctx.placeById, categories = ctx.categories, skills = ctx.rules.skills or {}, split = splitList }
 end
 
 local function param(kind, value, line, ctx)
@@ -695,6 +696,64 @@ local function tradeResolve(sec, ctx)
     ctx.trade, ctx.tradeLine = sec.trade, sec.line
 end
 
+-- [note] (E20-T11) : note de frequence de la voix trouvee dans le butin (RS_Notes, RS_NotesServer). item (objet du
+-- document, Module.Type d'un script d'objets dont OnCreate est RadioSurvivorNotes.onCreate ; plusieurs voix peuvent
+-- partager un objet), key (racine des traductions Print_Media_<module>_<key>_title et _info,
+-- Print_Text_<module>_<key>_info), loot= repetable (liste procedurale vanilla:poids), glovebox= repetable (liste
+-- VehicleDistributions:poids), corpse (yes ou no, defaut no : note possible sur un mort qui porte un talkie).
+local MAX_NOTE_LISTS = 16
+local MAX_LOOT_WEIGHT = 100
+
+local function noteOpen(sec)
+    sec.note = { loot = {}, glovebox = {}, corpse = false }
+end
+
+local function noteList(note, key, value, line)
+    local list, w = string.match(value, "^([A-Za-z0-9_]+):([0-9.]+)$")
+    if not list then
+        fail(line, "bad " .. key .. " '" .. value .. "' (list:weight, e.g. OfficeDesk:4)")
+    end
+    local n = decimal(w, key .. " weight", line, MAX_LOOT_WEIGHT)
+    if n <= 0 then fail(line, "bad " .. key .. " weight '" .. w .. "' (above 0)") end
+    local lists = note[key]
+    for _, e in ipairs(lists) do
+        if e.list == list then fail(line, "duplicate " .. key .. " list '" .. list .. "'") end
+    end
+    if #lists >= MAX_NOTE_LISTS then fail(line, "too many " .. key .. " lists (" .. MAX_NOTE_LISTS .. " at most)") end
+    lists[#lists + 1] = { list = list, weight = n }
+end
+
+local function noteItem(note, _, value, line)
+    local module, itemType = string.match(value, "^([A-Za-z0-9_]+)%.([A-Za-z0-9_]+)$")
+    if not module then fail(line, "bad note item '" .. value .. "' (Module.Type, e.g. RadioSurvivor.NoteWalt)") end
+    note.item, note.module, note.type = value, module, itemType
+end
+
+local function noteTextKey(note, _, value, line)
+    if not string.match(value, "^[A-Za-z0-9_]+$") then
+        fail(line, "bad note key '" .. value .. "' (A to Z, a to z, 0 to 9 and _)")
+    end
+    note.key = value
+end
+
+local function noteCorpse(note, _, value, line)
+    if value ~= "yes" and value ~= "no" then fail(line, "bad corpse '" .. value .. "' (yes or no)") end
+    note.corpse = value == "yes"
+end
+
+local NOTE_KEYS = { item = noteItem, key = noteTextKey, loot = noteList, glovebox = noteList, corpse = noteCorpse }
+
+local function noteKey(sec, key, value, line)
+    local reader = NOTE_KEYS[key]
+    if not reader then unknownKey(sec, key, line) end
+    reader(sec.note, key, value, line)
+end
+
+local function noteClose(sec, ctx)
+    requireKeys(sec, { "item", "key" })
+    ctx.note = sec.note
+end
+
 local SECTIONS = {
     place = { rank = 1, example = "mill", open = placeOpen, key = placeKey, close = placeClose },
     mission = { rank = 2, example = "meds", key = missionKey, close = missionClose, resolve = missionResolve,
@@ -704,6 +763,8 @@ local SECTIONS = {
         close = categoryClose },
     trade = { rank = 5, repeatable = { item = true, group = true }, open = tradeOpen, key = tradeKey,
         close = tradeClose, resolve = tradeResolve },
+    note = { rank = 6, repeatable = { loot = true, glovebox = true }, open = noteOpen, key = noteKey,
+        close = noteClose },
 }
 
 -- Noms de SECTIONS (ou d'un sous-ensemble) dans l'ordre de leur rang.
@@ -806,7 +867,7 @@ local function checkRaw(raw, number)
     end
 end
 
-local SHEET_SECTIONS = { place = true, mission = true, rewards = true, category = true, trade = true }
+local SHEET_SECTIONS = { place = true, mission = true, rewards = true, category = true, trade = true, note = true }
 local SHEET_EXPECTED = (function()
     local names = {}
     for name in pairs(SHEET_SECTIONS) do names[#names + 1] = name end
@@ -925,6 +986,7 @@ local function parse(lines, expectedId, rules)
         budget = values.budget or 0, budgets = values.budgets, call_one_in = values.call_one_in or 0,
         call_text = values.call_text or "", state = values.state or "active", shares = values.shares or {},
         missions = ctx.missions, rewards = ctx.rewards, categories = ctx.ownCategories, trade = ctx.trade,
+        note = ctx.note,
     }
 end
 

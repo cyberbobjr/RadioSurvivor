@@ -192,31 +192,34 @@ local function paintZone(symbol, anchorY, scale)
     symbol:setScale(scale)
 end
 
+local function isCircle(z)
+    return type(z) == "table" and type(z.x) == "number" and type(z.y) == "number" and type(z.r) == "number"
+        and z.r > 0
+end
+
+local function addCircle(out, id, z, name, style)
+    if isCircle(z) then out[#out + 1] = { id = id, x = z.x, y = z.y, r = z.r, name = name, style = style } end
+end
+
 -- Zones voulues : missions actives de l'instantané dont le joueur est participant et qui portent mapZone.
 local function wantedZones(missions)
     local out = {}
     for _, p in ipairs(type(missions) == "table" and missions or {}) do
-        local z = type(p) == "table" and p.mapZone or nil
-        if type(z) == "table" and p.state == "active" and p.engaged and type(z.x) == "number"
-                and type(z.y) == "number" and type(z.r) == "number" and z.r > 0 then
+        if type(p) == "table" and p.state == "active" and p.engaged then
+            local id = tostring(p.id)
             -- E20-T01: label style declared by the template (RC_Missions, mapStyle), projected by the engine.
-            out[#out + 1] = { id = tostring(p.id), x = z.x, y = z.y, r = z.r, name = p.requester,
-                style = type(p.mapStyle) == "string" and p.mapStyle or nil }
-        end
-        -- E11-T06: depot circle of a recover mission (same conditions), drawn next to its search area.
-        local d = type(p) == "table" and p.depotZone or nil
-        if type(d) == "table" and p.state == "active" and p.engaged and type(d.x) == "number"
-                and type(d.y) == "number" and type(d.r) == "number" and d.r > 0 then
-            out[#out + 1] = { id = tostring(p.id) .. ":depot", x = d.x, y = d.y, r = d.r, name = p.requester,
-                style = "Depot" }
-        end
-        -- E20-T05: one circle per dead drop of a voice mission, labelled with the place label of the sheet.
-        local drops = type(p) == "table" and p.state == "active" and p.engaged and p.dropZones or nil
-        for i, drop in ipairs(type(drops) == "table" and drops or {}) do
-            if type(drop) == "table" and type(drop.x) == "number" and type(drop.y) == "number"
-                    and type(drop.r) == "number" and drop.r > 0 then
-                out[#out + 1] = { id = tostring(p.id) .. ":drop" .. i, x = drop.x, y = drop.y, r = drop.r,
-                    name = drop.label, style = "Depot" }
+            local style = type(p.mapStyle) == "string" and p.mapStyle or nil
+            addCircle(out, id, p.mapZone, p.requester, style)
+            -- E11-T06: depot circle of a recover mission, drawn next to its search area.
+            addCircle(out, id .. ":depot", p.depotZone, p.requester, "Depot")
+            -- E20-T05: one circle per dead drop of a voice mission, labelled with the place label of the sheet.
+            for i, drop in ipairs(type(p.dropZones) == "table" and p.dropZones or {}) do
+                addCircle(out, id .. ":drop" .. i, drop, type(drop) == "table" and drop.label or nil, "Depot")
+            end
+            -- E20-T13: several circles of the template itself (route: one per known point), each with its place
+            -- label, in the template's style.
+            for i, zone in ipairs(type(p.mapZones) == "table" and p.mapZones or {}) do
+                addCircle(out, id .. ":zone" .. i, zone, type(zone) == "table" and zone.label or nil, style)
             end
         end
     end

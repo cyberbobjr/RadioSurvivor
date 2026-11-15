@@ -18,8 +18,8 @@
 | ☑ | E20-T10 | Darlene veut rentrer à sa clinique | `testé MP` | MP | E20-T04, E20-T05, E20-T08, E20-T09 |
 | ☐ | E20-T11 | Un marchand par ville vanilla | `à faire` | MP | E20-T07 |
 | ☑ | E20-T12 | Type de mission `relay` (relais radio) | `testé MP` | MP | E20-T01, E20-T03 |
-| ☐ | E20-T13 | Type de mission `route` (itinéraire) | `à faire` | MP | E20-T01, E20-T03 |
-| ☐ | E20-T14 | Type de mission `watch` (guet) | `à faire` | MP | E20-T01, E20-T03 |
+| ☐ | E20-T13 | Type de mission `route` (itinéraire) | `testé hors jeu` | MP | E20-T01, E20-T03 |
+| ☐ | E20-T14 | Type de mission `watch` (guet) | `testé hors jeu` | MP | E20-T01, E20-T03 |
 | ☐ | E20-T15 | Type de mission `item` (objet personnel) | `à faire` | MP | E20-T01, E20-T03, E20-T05 |
 | ☑ | E20-T16 | `deliver` lit la catégorie et la quantité de sa section | `testé MP` | MP | E20-T03, E20-T05 |
 
@@ -186,25 +186,25 @@ chaque tâche avant son code.
   - Preuve : 2026-11-15 : gabarit `relay` dans son fichier (`RC_MissionRelay.lua`, déclarations seulement, mise en place `aimAt` partagée) : une radio émettrice (`DeviceData:getIsTwoWay`, objets `TwoWay = true` de `media/scripts/generated/items/radio.txt` 42.22 : talkies, ManPackRadio, radios amateur) posée au niveau `max(1, z du lieu)` ou plus haut dans le bâtiment du lieu `target=` (hors bâtiment : zone de 13×13 cases sur 4 niveaux), alimentée et allumée (`getIsTurnedOn`, `getIsBatteryPowered`, `getPower`, `canBePoweredHere` : `DeviceData.java:257-583`, `IsoWaveSignal.java:67-156`, confirmé statiquement) ; le monde est relu au compte rendu (éteinte = refusé) ; vue du carnet `RS_View_Relay.lua`, zone de carte, traductions EN/FR. Rouge d'abord : `test_mission_relay.py` `FAILED (failures=15, errors=3)`. Vert : `test_mission_relay.py` 15 OK (posée et allumée comptée, éteinte, sans courant, mauvais étage ou hors du lieu refusés, compte rendu accepté, suite en jeu jouée au banc), `test_mission_barricade.py`, `test_mission_registry.py`, `test_voice_templates.py`, `test_translations_split.py`, `test_core_missions.py`, `test_mod_calls_api.py`, `test_carnet.py`, `test_rst.py` OK. luacheck inchangé pour ce dépôt, `dev` 0. Wiki FR/EN 03 et 10, `persona-format.md` mis à jour. Suite en jeu `rs.voicerelay`. Campagne MP 2026-11-15 (42.22.2, serveur dédié + 2 clients, `autoclient.py --mp --clients 2 --server-suite rs.voicedarlene,rs.voicerelay,rs.voicebarricade,rs.missions.voicetemplates --server-tags world --bridge on --llm fake`) : code 0, rapport `tools/autoclient/runs/e20-t10-t12-mp/server/20261115-021527-server.txt` `OK - 7 test(s): 7 pass, 0 fail` ; `rs.voicerelay` : « powered radio turned on upstairs in a real building, read by the server, off refused, then the report » PASS.
   - Reste : Une radio sur secteur dont le réseau est coupé pendant que sa case est déchargée n'est vue qu'au prochain chargement.
 - [ ] **E20-T13** — Type de mission `route` (itinéraire)
-  - État : `à faire`
+  - État : `testé hors jeu`
   - Cible : `MP`
   - Dépend de : E20-T01, E20-T03
   - Fichiers : fichier du gabarit ; traductions ; bancs ; suite en jeu
   - Faire : ADR D10. Traverser dans l'ordre plusieurs lieux `target` de la fiche (à pied ou en véhicule) ; points marqués un à un sur la carte ; compte rendu à la radio.
   - Accepté si : banc (ordre respecté, point sauté refusé) ; suite MP du parcours.
   - Tests : banc du gabarit ; campagne MP.
-  - Preuve : —
-  - Reste : —
+  - Preuve : 2026-11-15 : gabarit `route` dans son fichier (`RC_MissionRoute.lua`, `params={points='places'}`, déclaration `alongPoints`) : franchir dans l'ordre 2 à 8 lieux `use=target` de la fiche (rayon 8 cases, position du véhicule si le participant y est assis ; passage détecté aussi sur le trajet entre deux lectures jusqu'à 60 cases, au-delà seule l'arrivée compte) ; seul le prochain point compte (point sauté refusé) ; points marqués un à un sur la carte ; compte rendu à la radio. Nature de paramètre `places` ajoutée au registre `RS_PersonaParams` ; mise en place `RS_MissionWaypoints.lua` (`V.registerDeclaredSetup('alongPoints', …)`) ; vue `RS_View_Route.lua`, traductions EN/FR ; `RS_MapActions` lit une liste de cercles `mapZones`. Rouge d'abord : `test_mission_route.py` `FAILED (errors=17)`. Vert : `test_mission_route.py` 15 OK (ordre, rayon, point sauté refusé, véhicule et passage rapide, téléportation, participant mort, refus au départ, carnet et cercles, consigne de la voix, erreurs de fiche, suite en jeu jouée au banc), `test_mission_relay.py`, `test_mission_barricade.py`, `test_mission_registry.py`, `test_voice_templates.py`, `test_persona_sections.py`, `test_translations_split.py`, `test_core_missions.py`, `test_doubles_api.py`, `test_mod_calls_api.py`, `test_carnet.py`, `test_rst.py`, `test_rs_suites.py` OK, `test_protocol.py` code 0. luacheck : 8 pour ce dépôt (inchangé), `dev` 0. Wiki FR/EN 03 et 10, `persona-format.md` mis à jour. Suite en jeu `rs.voiceroute`.
+  - Reste : campagne MP de `rs.voiceroute`. L'en-tête de `RC_Missions.lua` (liste des natures de paramètres) ne cite pas encore `places`.
 - [ ] **E20-T14** — Type de mission `watch` (guet)
-  - État : `à faire`
+  - État : `testé hors jeu`
   - Cible : `MP`
   - Dépend de : E20-T01, E20-T03
   - Fichiers : fichier du gabarit ; traductions ; bancs ; suite en jeu
   - Faire : ADR D10. Rester à un point d'observation une durée en heures de jeu (absence tolérée courte), puis compte rendu ; le contexte du modèle reçoit les faits vus pendant le guet (hélicoptère vanilla entendu, horde proche) pour en parler.
   - Accepté si : banc (durée en temps de jeu, absence longue = remise à zéro) ; suite MP.
   - Tests : banc du gabarit ; campagne MP.
-  - Preuve : —
-  - Reste : —
+  - Preuve : 2026-11-15 : gabarit `watch` dans son fichier (`RC_MissionWatch.lua`, `params={hours='count'}`, `aimAt` partagé) : rester à moins de `radius` cases du lieu `target=` pendant `hours` heures de jeu (`RC_GameClock`, pause arrêtée, vitesse accélérée) ; absence courte (10 min de jeu) tolérée, plus longue = guet remis à zéro ; faits relevés pendant le guet par un registre de sources, un fichier chacune (`RC_WatchFacts.lua`, `WatchFacts/RC_WatchHelicopter.lua` : son vanilla sans source, rayon 500, `Helicopter.java:217-218`, `WorldSoundManager.java:480` ; `WatchFacts/RC_WatchHorde.lua` : au moins 10 zombies à 30 cases par `IsoCell.getZombieList`, joueurs réanimés exclus, `IsoZombie.java:3700` ; 42.22, confirmé statiquement), dits à la voix sans coordonnée ; vue `RS_View_Watch.lua`, traductions EN/FR. Rouge d'abord : `test_mission_watch.py` `FAILED (failures=16, errors=2)`. Vert : `test_mission_watch.py` 17 OK (durée en temps de jeu, absence courte, longue absence, faits, compte rendu, erreurs de fiche), mêmes bancs que E20-T13 OK. luacheck : 8 pour ce dépôt, `dev` 0. Wiki FR/EN 03 et 10, `persona-format.md` mis à jour. Suite en jeu `rs.voicewatch`.
+  - Reste : campagne MP de `rs.voicewatch`. La suite en jeu ne déclenche ni hélicoptère ni horde (un son de rayon 500 attirerait les zombies) : ces deux faits ne sont prouvés qu'au banc. Un mod qui imiterait le son de l'hélicoptère serait compté.
 - [ ] **E20-T15** — Type de mission `item` (objet personnel)
   - État : `à faire`
   - Cible : `MP`

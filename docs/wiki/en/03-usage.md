@@ -81,6 +81,13 @@ notebook").
   an upper floor or the roof, at least at the level shown), a walkie-talkie or a ham radio, turned on and powered
   by its battery, the grid or a generator. The server checks by itself; while the radio is off, without power or
   taken away, the mission is no longer to report and the report is refused.
+- A voice's **watch** mission circles the watch post on the map: stay there (within 6 tiles; an upper floor
+  or the roof counts too) for the game hours shown. Time counts in game hours; leaving for more than 10
+  game minutes starts the watch again from zero. Once it is done, call the voice back: it talks about what
+  happened during the watch (a helicopter heard, a group of the dead close by).
+- A voice's **route** mission has you cross several places in order, on foot or by vehicle: only the
+  next point is circled on the map, the notebook shows "2 of 4". A point reached before the previous
+  one does not count; the server reads your position itself.
 - When the objective is met, the mission shows **To report**: go back to the requester and tell them (**Talk**), or
   use **Report** next to them. For a radio voice, call it back on its frequency. The mission succeeds only then, and
   the deadline still runs.
@@ -89,7 +96,7 @@ notebook").
 
 After success and reporting, voice missions improve reputation and may grant **one** material cache, another voice's frequency, a vanilla stash map or a skill lesson. Darlene offers medical rewards and first-aid lessons; Cody offers ammunition and aiming lessons. The server draws the reward at random among those the voice offers, and the contents of a cache at random within its category; you choose neither. Frequencies enter only your notebook; voice caches get a marker only on your map. Physical supplies remain real world items.
 
-Depending on their sheet, voices can request scouting, a delivery drop, missing papers, clearing, a Signal Smoke signal, barricading a building or a radio relay. Some missions of a voice only come after the success of another one: a failure puts them on hold until the next success, and a successful chain can change the voice's situation. NPCs can also offer recovery and group supplies. Always report an NPC mission **in person** to its requester.
+Depending on their sheet, voices can request scouting, a delivery drop, missing papers, clearing, a Signal Smoke signal, barricading a building, a route, a radio relay or keeping watch. Some missions of a voice only come after the success of another one: a failure puts them on hold until the next success, and a successful chain can change the voice's situation. NPCs can also offer recovery and group supplies. Always report an NPC mission **in person** to its requester.
 
 ### Radio deliveries: discreet collection
 

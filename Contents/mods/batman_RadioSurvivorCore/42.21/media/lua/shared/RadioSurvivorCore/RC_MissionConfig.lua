@@ -157,6 +157,33 @@ local MC = {
             zoneMargin = 3,        -- tiles kept between the spot corners and the circle
             scanMs = 3000,         -- real ms between two server reads of the spot
         },
+        -- E20-T14: keep watch at a place of the voice sheet for a duration in game hours, then report what was seen
+        -- (server/RadioSurvivorCore/RC_MissionWatch.lua). Given by a radio voice only (no reward lot: the voice pays).
+        watch = {
+            id = 'watch_v1',
+            titleKey = 'IGUI_RC_Mission_Watch',
+            durationMs = 14400000, -- 64 game hours at the default day length: room for a watch of maxHours
+            rewardType = '',
+            rewardCount = 0,
+            hours = 2,             -- game hours of the watch when the section sets no hours
+            maxHours = 24,         -- longest watch a section may ask
+            radius = 6,            -- tiles (on the ground plane, any level) around the place where a participant watches
+            absenceMinutes = 10,   -- game minutes a watch tolerates nobody at the spot; longer: it starts from zero
+            gapHours = 1,          -- game hours between two readings (fast forward) still counted; longer: from zero
+            zoneRadius = 8,        -- tiles: circle drawn on the map around the place
+            scanMs = 3000,         -- real ms between two samplings of the facts of the spot (horde)
+        },
+        -- E20-T13: several places of the voice sheet crossed in order, on foot or by vehicle
+        -- (server/RadioSurvivorCore/RC_MissionRoute.lua). Given by a radio voice only (no reward lot: the voice pays).
+        route = {
+            id = 'route_v1',
+            titleKey = 'IGUI_RC_Mission_Route',
+            durationMs = 14400000, -- several places to reach, maybe far apart: the delay of `relay`
+            rewardType = '',
+            rewardCount = 0,
+            radius = 8,            -- tiles: a point is crossed within this distance of the participant (or vehicle)
+            maxStep = 60,          -- tiles between two server readings still driven (above: a jump, only its end counts)
+        },
     },
     -- E11-T06: caches (server/RadioSurvivorCore/RC_Caches.lua): a marked bag filled from one closed table of the server,
     -- placed once in the world when its site is loaded. `order` is the closed list (and the draw order) of the tables.

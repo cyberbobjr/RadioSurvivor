@@ -81,6 +81,13 @@ offre dans le carnet »).
   toit, au moins au niveau indiqué) une radio qui peut émettre, talkie-walkie ou radio amateur, allumée et
   alimentée par sa pile, le réseau ou un générateur. Le serveur vérifie lui-même ; tant que la radio est éteinte,
   sans courant ou retirée, la mission n'est plus à rapporter et le compte rendu est refusé.
+- Une mission **guet** d'une voix entoure le poste de guet sur la carte : restez-y (à moins de 6 cases, un
+  étage ou le toit compte aussi) le nombre d'heures de jeu indiqué. Le temps compte en heures de jeu ; une
+  absence de plus de 10 minutes de jeu fait recommencer le guet à zéro. Le guet terminé, rappelez la voix :
+  elle parle de ce qui s'est passé pendant le guet (hélicoptère entendu, groupe de morts tout proche).
+- Une mission **itinéraire** d'une voix fait franchir plusieurs lieux dans l'ordre, à pied ou en
+  véhicule : seul le prochain point est entouré sur la carte, le carnet indique « 2 sur 4 ». Un point
+  atteint avant le précédent ne compte pas ; le serveur lit lui-même votre position.
 - Une fois l'objectif rempli, la mission indique **À rapporter** : retournez voir le demandeur et dites-le-lui
   (**Parler**), ou utilisez **Rendre compte** près de lui. Pour une voix radio, rappelez-la sur sa fréquence. La
   mission ne réussit qu'à ce moment, et le délai continue de courir.
@@ -89,7 +96,7 @@ offre dans le carnet »).
 
 Après réussite et compte rendu, les missions de voix améliorent la réputation et peuvent donner **une** cache de matériel, une fréquence d'une autre voix, une carte-cachette vanilla ou une leçon. Darlene propose du matériel médical et enseigne les soins ; Cody propose des munitions et enseigne le tir. Le serveur tire la récompense au hasard parmi celles que la voix propose, et le contenu d'une cache au hasard dans sa catégorie ; vous ne choisissez ni l'une ni l'autre. Les fréquences rejoignent votre seul carnet ; les caches de voix ont un repère sur votre seule carte. Le matériel posé reste un objet réel du monde.
 
-Les voix peuvent demander reconnaissance, dépôt, papiers à retrouver, nettoyage, signal Signal Smoke, barricadage d'un bâtiment ou relais radio selon leur fiche. Certaines missions d'une voix n'arrivent qu'après la réussite d'une autre : un échec les remet en attente jusqu'à la réussite suivante, et une suite réussie peut changer la situation de la voix. Les PNJ peuvent aussi proposer récupération et ravitaillement du groupe. Rapportez toujours une mission de PNJ **en personne** au demandeur.
+Les voix peuvent demander reconnaissance, dépôt, papiers à retrouver, nettoyage, signal Signal Smoke, barricadage d'un bâtiment, itinéraire, relais radio ou guet selon leur fiche. Certaines missions d'une voix n'arrivent qu'après la réussite d'une autre : un échec les remet en attente jusqu'à la réussite suivante, et une suite réussie peut changer la situation de la voix. Les PNJ peuvent aussi proposer récupération et ravitaillement du groupe. Rapportez toujours une mission de PNJ **en personne** au demandeur.
 
 ### Livraisons radio : collecte discrète
 

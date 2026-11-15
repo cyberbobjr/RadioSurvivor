@@ -266,7 +266,7 @@ Always allowed, even if you do not list it. The voice answers you on the radio.
 #### Missions and rewards — `start_mission`
 
 - Each mission the voice can give is a `[mission <id>]` section with its `type`: `scout` (scouting), `deliver`
-  (delivery drop), `retrieve` (missing papers), `clear` (clearing zombies), `signal` (Signal Smoke signal), `barricade` (barricading a building), `relay` (radio relay). The server
+  (delivery drop), `retrieve` (missing papers), `clear` (clearing zombies), `signal` (Signal Smoke signal), `barricade` (barricading a building), `relay` (radio relay), `route` (several places to cross in order), `watch` (keeping watch). The server
   checks each objective; one mission per player and voice. The notebook is required. Without any `[mission]` section,
   only `scout` is allowed. Keys in detail: [Missions, rewards and items](#missions-rewards-and-items).
 - The building is chosen by the server, never by the AI: for `scout` and `clear`, the one of the section's
@@ -311,15 +311,15 @@ pool=cache:medical:3, cache:snacks:1, frequency:1, stashmap:1, lesson:Doctor:2
 
 | `[mission]` key | What it does |
 |---|---|
-| `type` | Required: `scout`, `deliver`, `retrieve`, `clear`, `signal`, `barricade` or `relay` (types registered by the mod). |
+| `type` | Required: `scout`, `deliver`, `retrieve`, `clear`, `signal`, `barricade`, `route`, `relay` or `watch` (types registered by the mod). |
 | `weight` | Weight of the mission when the AI asks for a type and several available missions of that type match (1 by default). |
 | `after` | The mission is offered only after the success of another mission of the sheet (its id), for that character. |
 | `scope` | `character` (default): `after` counts the character's successes; `team`: those of its team (faction, or the lone player). |
 | `sets_state` | Story state the voice takes when this mission succeeds, a name (`returned`…). See "Chained missions". |
 | `story` | The reason the voice gives, told to the AI with the mission (200 bytes at most). |
 | `drops` | Dead drops of the mission, all offered to the player: `any` (every `use=drop` place, as without the key) or a list of ids of `use=drop` places. |
-| `target` | Objective place, a `use=target` place: a square inside the building aimed at. `scout` and `clear`: that building, wherever the player is (without the key, a building drawn around them); required for `barricade` (the building to barricade) and for `relay` (the relay spot: the radio goes on level 1 or higher, at least on the place's `z=` level; outside any building, a high point). |
-| others | Parameters of the type: `deliver` takes `items` (an item category), `quantity` (`4` or `2-4`) and `collect_hours` (game hours before a dead drop is collected, 6 by default); `retrieve` takes `collect_hours` (the ID card is left at a dead drop); `barricade` takes `count` (outside windows and doors to barricade, 4 by default, at least 1); `relay` takes none. |
+| `target` | Objective place, a `use=target` place: a square inside the building aimed at. `scout` and `clear`: that building, wherever the player is (without the key, a building drawn around them); required for `barricade` (the building to barricade) and for `relay` (the relay spot: the radio goes on level 1 or higher, at least on the place's `z=` level; outside any building, a high point). Required for `watch`: the watch post (the watch counts within 6 tiles of the place, on any level). |
+| others | Parameters of the type: `deliver` takes `items` (an item category), `quantity` (`4` or `2-4`) and `collect_hours` (game hours before a dead drop is collected, 6 by default); `retrieve` takes `collect_hours` (the ID card is left at a dead drop); `barricade` takes `count` (outside windows and doors to barricade, 4 by default, at least 1); `relay` takes none; `route` requires `points` (2 to 8 `use=target` places separated by commas, to cross in this order, never the same twice in a row: `points=bridge,station,clinic`). `watch` takes `hours` (game hours of the watch, 2 by default, from 1 to 24). |
 
 Every key is **read and checked** when the sheet loads. `weight`, `after`, `scope`, `sets_state`, `story`, `drops`,
 `collect_hours`, `target` (`scout`, `clear`, `barricade`), `items` and `quantity` (`deliver`: accepted items and
@@ -415,6 +415,10 @@ From a box, only requested items disappear, never more than the remaining quanti
 **Barricading for a voice.** The building of the `target=` place is circled on your map. Barricade the requested number (`count=`) of its **outside** windows and doors, with planks or metal sheets, from inside or outside: each opening counts once. The server counts the building's barricades itself; those already in place when the mission started do not count, and a barricade removed again stops counting. Once the count is reached, call the voice back. MP in-game validation: **pending**.
 
 **Radio relay for a voice.** The `target=` place is circled on your map. Put a radio that can transmit there, high up, on an upper floor or the roof (at least on the level the notebook shows): a walkie-talkie or a ham radio. Turn it on; it must stay powered by its battery, the grid or a generator. The server checks the radio itself; turned off, without power or taken away, it stops counting and the report is refused. While it is on, call the voice back. MP in-game validation: **pending**.
+
+**Keeping watch for a voice.** The `target=` place is circled on your map: it is the watch post. Stay there (within 6 tiles of the place; an upper floor or the roof counts too) for the game hours the notebook shows, 2 by default. Time counts in game hours: it stops while the game is paused and runs faster at a higher speed. A short absence (10 game minutes at most) is tolerated without counting; a longer one starts the watch again from zero. The server notes what happens during the watch (a helicopter heard, a group of the dead close by) and the voice talks about it when you call back once the watch is done. MP in-game validation: **pending**.
+
+**Route for a voice.** A `route` mission names several places to cross **in order**, on foot or by vehicle. Only the next point is circled on your map, with the place name; points already crossed stay circled, the later ones only show in their turn. A point is crossed when you pass within 8 tiles of its centre, even driving fast; a point reached before the previous one does not count and must be crossed again in its turn. The notebook shows "2 of 4" and the next point. The server reads your position itself (the one of the vehicle you sit in). Once every point is crossed, call the voice back. MP in-game validation: **pending**.
 
 **Missing papers for a voice.** The ID card taken from the body is not handed over on the radio: leave it at one of the mission's dead drops, marked on your map as for a delivery (in the designated box, or alone in a bag on the ground). The voice collects it by the same rule, out of sight and after the wait (`collect_hours=` of the `[mission]` section); only the card of that body is taken, another ID card stays where it is. **Only once the card is collected, report over the radio**: the report removes nothing from your inventory. MP in-game validation: **pending**.
 
@@ -846,7 +850,8 @@ first error, and the last valid version of the voice stays in service until you 
 | `bad use entry 'hide' (expected mark, target, drop, landing)` | See [Places](#places--place-sections). |
 | `place label of 'mill' too long (48 bytes of UTF-8 at most)` | Shorten the label. |
 | `unknown section 'shop' (expected place, mission, rewards, category or prompt)` | Typo in a section title. |
-| `unknown mission type 'fly'` (server log only) | Use a type of the mod: `scout`, `deliver`, `retrieve`, `clear`, `signal`, `barricade`, `relay`. |
+| `unknown mission type 'fly'` (server log only) | Use a type of the mod: `scout`, `deliver`, `retrieve`, `clear`, `signal`, `barricade`, `route`, `relay`, `watch`. |
+| `bad place list (2 to 8 places with use=target)` | The `points=` key of a `route` mission names 2 to 8 `use=target` places, separated by commas. |
 | `place 'clinic' has no use=drop` (server log only) | Add `drop` to the `use` of that place, or cite another place. |
 | `unknown category 'weapons'` (server log only) | A category of the catalogue or a `[category]` of the sheet. |
 | `bad reward weight '0' (whole number from 1 to 999999)` (server log only) | Weights start at 1. |
