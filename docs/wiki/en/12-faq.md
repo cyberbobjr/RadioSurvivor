@@ -67,6 +67,11 @@ Yes, the mods are designed for dedicated servers: the server decides everything,
 checked by automated test campaigns; report anything odd. See
 [The bridge on a dedicated server](06-bridge-on-a-dedicated-server.md).
 
+**The smuggler did not take my bag?**
+He only comes once nobody is within 100 tiles of the place (on x and on y) for about one game hour. Go further, or
+longer: a player back in view resets the wait, and the exchange is made on your return when the place was too far to
+be loaded.
+
 **Can two servers share one bridge?**
 No. One bridge per server and per exchange folder; give each server its own `-cachedir`.
 

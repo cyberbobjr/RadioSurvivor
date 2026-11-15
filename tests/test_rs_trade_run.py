@@ -1,4 +1,5 @@
-"""Passage réservé et rendez-vous du passeur (E13-T03) : RS_Trade.lua et RS_TradeRun.lua dans lupa, et le pont
+"""Passage réservé et rendez-vous du passeur (E13-T03 ; E20-T07 : fiche de Gus au format [trade], état par
+marchand, causes et signal du mode d'arrivée `boat`) : RS_Trade.lua et RS_TradeRun.lua dans lupa, et le pont
 (radio_bridge.py : passage du livre, prompt).
 
     python RadioSurvivor/tests/test_rs_trade_run.py
@@ -32,6 +33,8 @@ CORE_LUA = Path(__file__).resolve().parents[1] / 'Contents' / 'mods' / 'batman_R
 LK_LUA = Path(__file__).resolve().parents[1] / 'Contents' / 'mods' / 'batman_LivingKnox' / '42.21' / 'media' / 'lua'  # moteur des PNJ (E18-T07)
 RUN_LUA = LUA / 'server/RadioSurvivor/RS_TradeRun.lua'
 TRADE_LUA = LUA / 'server/RadioSurvivor/RS_Trade.lua'
+BOAT_LUA = LUA / 'server/RadioSurvivor/TradeArrivals/RS_TradeArrival_Boat.lua'
+ARRIVALS_LUA = LUA / 'server/RadioSurvivor/RS_TradeArrivals.lua'
 TRANSLATE = LUA / 'shared/Translate'
 sys.path.insert(0, str(ROOT / 'bridge'))
 
@@ -79,7 +82,7 @@ end
 ON_AIR = true
 AIRED = {}
 RS_RadioServer = {
-    frequency = function(id) if id == "gus" and ON_AIR then return 160000 end return nil end,
+    frequency = function(id) if VOICES[id] and ON_AIR then return 160000 end return nil end,
     air = function(khz, lines) AIRED[#AIRED + 1] = { khz = khz, lines = lines } end,
 }
 STORM = false
@@ -110,7 +113,43 @@ SIGNAL = {}
 package.preload["SignalSmoke/SignalSmoke"] = function() return {
     onSignal = function(f) SIGNAL[#SIGNAL + 1] = f return true end,
     COLORS = { red = { r = 1.0, g = 0.25, b = 0.2 }, green = { r = 0.3, g = 1.0, b = 0.3 } } } end
+-- E20-T07 : voix chargées (port RS_Trade.useVoices, RS_Personas en jeu) et sons joués aux lieux (port RS_TradeRun.useSound).
+VOICES = {}
+VOICE_PORT = { get = function(id) return VOICES[id] end,
+    ids = function() local out = {} for id in pairs(VOICES) do out[#out + 1] = id end table.sort(out) return out end }
+SOUNDS = {}
+SOUND_PORT = function(name, point) SOUNDS[#SOUNDS + 1] = { name = name, x = point.x, y = point.y, z = point.z } end
 """
+
+# E20-T07 : fonctions de RS_Trade qui prennent l'identifiant de la voix en premier (le marchand) ; TraderProxy le
+# passe pour un marchand donné, comme les bancs d'avant l'état par marchand appelaient le module.
+BOUND = {'propose', 'evaluate', 'offerOf', 'deals', 'close', 'available', 'marginRange', 'lastRun', 'runOf',
+         'runStatus', 'cancelRun', 'arrive', 'finishRun', 'patrolRoll', 'stock', 'cordon', 'setCordon', 'passage',
+         'passageEnd', 'rendezvous', 'runContext'}
+
+
+class TraderProxy:
+    """RS_Trade vu pour un marchand : les fonctions de BOUND reçoivent l'identifiant de la voix ; une doublure posée
+    sur l'une d'elles remplace la fonction du module (pour tous les marchands)."""
+
+    def __init__(self, module, vid):
+        object.__setattr__(self, 'module', module)
+        object.__setattr__(self, 'vid', vid)
+
+    def __getattr__(self, name):
+        value = self.module[name]
+        if name in BOUND:
+            return lambda *args: value(self.vid, *args)
+        return value
+
+    def __setattr__(self, name, value):
+        if name in BOUND:
+            self.module[name] = lambda vid, *args: value(*args)
+        else:
+            self.module[name] = value
+
+
+GUS = MOD / 'personas/gus.txt'
 
 TRANSLATOR = r'''
 local texts = ...
@@ -132,19 +171,34 @@ class RunHarness(unittest.TestCase):
         paths = ';'.join((LUA / side).as_posix() + '/?.lua' for side in ('shared', 'server'))
         paths = (CORE_LUA / 'shared').as_posix() + '/?.lua;' + (CORE_LUA / 'server').as_posix() + '/?.lua;' + (CORE_LUA / 'client').as_posix() + '/?.lua;' + (LK_LUA / 'shared').as_posix() + '/?.lua;' + (LK_LUA / 'server').as_posix() + '/?.lua;' + (LK_LUA / 'client').as_posix() + '/?.lua;' + paths  # mod commun (E18)
         self.rt.execute(f'package.path = [[{paths};]] .. package.path')
-        self.T = self.rt.eval('require("RadioSurvivor/RS_Trade")')
+        self.rt.eval('require("RadioSurvivor/TradeArrivals/RS_TradeArrival_Boat")')
+        self.Persona = self.rt.eval('require("RadioSurvivor/RS_Persona")')
+        self.rules = self.rt.eval('{ arrivals = require("RadioSurvivor/RS_TradeArrivals").NAMES }')
+        self.gus = self.add_voice(GUS.read_text(encoding='utf-8'), 'gus')
+        self.Trade = self.rt.eval('require("RadioSurvivor/RS_Trade")')
+        self.T = TraderProxy(self.Trade, 'gus')
         self.Run = self.rt.eval('require("RadioSurvivor/RS_TradeRun")')
+        self.Trade.useVoices(self.g.VOICE_PORT)       # après RS_TradeRun.install, qui branche RS_Personas
+        self.Run.useSound(self.g.SOUND_PORT)
         self.Actions = self.rt.eval('require("RadioSurvivor/RS_Actions")')
         self.g.STATE.data = self.rt.table_from({'schema': 2})
         self.T.resetForTests()
         self.T.setCordon(1, 1.0)
-        names = [e.n for e in lua_list(self.T.SUPPLY)]
+        names = [e.n for e in lua_list(self.gus.trade['items'])]
         full = {n: 0 for n in names}
         full.update({'Battery': 10, 'Antibiotics': 4})
-        self.T.drawStock = lambda seed, passage: self.rt.table_from(full)
+        self.T.drawStock = lambda spec, seed, passage: self.rt.table_from(full)
         self.patrol_roll = self.T.patrolRoll
         self.T.patrolRoll = lambda passage: 99          # aucune patrouille, sauf test dédié
         self.make = self.g.makePlayer
+
+    def add_voice(self, text: str, vid: str):
+        """Fiche lue par le vrai RS_Persona (modes d'arrivée inscrits), rangée dans les voix chargées."""
+        lines = self.rt.table_from(text.splitlines())
+        result = self.Persona.parseLines(lines, vid, self.rules)
+        self.assertFalse(isinstance(result, tuple), result)
+        self.g.VOICES[vid] = result
+        return result
 
     def t(self, value):
         if isinstance(value, dict):
@@ -153,11 +207,12 @@ class RunHarness(unittest.TestCase):
             return self.rt.table_from([self.t(v) for v in value])
         return value
 
-    def decide(self, player, items='Battery:2', caller=None):
+    def decide(self, player, items='Battery:2', caller=None, voice='gus'):
         caller = caller or player.name
         ctx = self.t({'cid': None, 'day': '1993-07-10', 'khz': 160000})
         ctx.player = player
-        out = self.Actions.decide(self.t(SHEET), caller, self.t([{'type': 'propose_trade', 'items': items}]), 1000, ctx)
+        out = self.Actions.decide(self.g.VOICES[voice], caller, self.t([{'type': 'propose_trade', 'items': items}]),
+                                  1000, ctx)
         return lua_list(out)[0].reason
 
     def current_run(self):
@@ -170,7 +225,7 @@ class RunHarness(unittest.TestCase):
         return [line for line in lua_list(self.g.LOGS) if text in line]
 
     def context(self, caller):
-        hexed = self.T.field(self.t(SHEET), caller, None)
+        hexed = self.Trade.field(self.gus, caller, None)
         return rb.trade_context({'trade': hexed}, FakeSheet())
 
     def booked(self, hours=4.0):
@@ -216,7 +271,7 @@ class RendezvousTests(RunHarness):
             counts[c] += 1
         self.assertTrue(1050 < counts[1.0] < 1350 and 450 < counts[1.25] < 750 and 120 < counts[1.5] < 280, counts)
         self.assertEqual(self.T.cordon(1), 1.0)                      # fixé par setCordon
-        self.assertEqual(self.T.cordon(3), self.T.drawCordon(self.g.STATE.data.trade.seed, 3))
+        self.assertEqual(self.T.cordon(3), self.T.drawCordon(self.g.STATE.data.trade.traders.gus.seed, 3))
 
 
 class BookingTests(RunHarness):
@@ -229,7 +284,7 @@ class BookingTests(RunHarness):
         self.assertEqual(len(marks), 1)
         self.assertEqual((marks[0].who, marks[0].place.x, marks[0].place.y, marks[0].place.label),
                          ('kate', 6041, 5217, EN['IGUI_RS_TradeRun_Pier']))
-        self.assertTrue(self.logs('run 1 booked by team fac-1 (kate), meeting at world hour 18'))
+        self.assertTrue(self.logs('run 1 of gus booked by team fac-1 (kate), meeting at world hour 18'))
         # Une autre équipe : refus, aucune offre ; même équipe, autre membre : l'offre du passage change de main.
         bob = self.make('bob', 'fac-2', 0, 0)
         self.assertEqual(self.decide(bob), 'booked')
@@ -248,7 +303,7 @@ class BookingTests(RunHarness):
 
     def test_no_offer_once_the_run_is_over_or_too_late(self):
         kate, _ = self.booked(4.0)
-        self.Run.cancel('storm')
+        self.Run.cancel('gus', 'storm')
         self.assertEqual(self.decide(kate), 'run_over')
         self.assertEqual(self.decide(self.make('bob', 'fac-2')), 'run_over')
         self.g.CLOCK.hours = 168 + 161                               # dernier jour du passage 2
@@ -283,7 +338,7 @@ class ContextTests(RunHarness):
         self.assertEqual(ctx['run'], {'status': 'free', 'from': 1, 'to': 3, 'days': 1, 'inHours': 14.0})
         prompt = rb.trade_prompt(ctx, '[Caller 1]')
         self.assertIn('not booked yet', prompt)
-        self.assertIn('the coming night, between 01:00 and 03:00 in the morning', prompt)
+        self.assertIn('tomorrow, between 01:00 and 03:00', prompt)
         self.assertNotIn('Riverside', prompt)
         self.assertEqual(self.decide(PLAYERS(self, 0)), 'ok')
         ctx = self.context('kate')
@@ -299,19 +354,25 @@ class ContextTests(RunHarness):
         prompt = rb.trade_prompt(other, '[Caller 2]')
         self.assertIn('already booked by another group', prompt)
         self.assertNotIn('Riverside', prompt)
-        self.Run.cancel('patrol')
-        self.assertEqual(self.context('bob')['run'], {'status': 'over', 'from': 1, 'to': 3, 'reason': 'patrol'})
+        self.Run.cancel('gus', 'patrol')
+        self.assertEqual(self.context('bob')['run'], {'status': 'over', 'from': 1, 'to': 3,
+                                                      'reason': 'a patrol boat on the river'})
         self.assertIn('over (a patrol boat on the river)', rb.trade_prompt(self.context('kate'), 'you'))
 
     def test_bridge_rejects_a_broken_run(self):
         good = {'status': 'yours', 'from': 1, 'to': 3, 'days': 1, 'inHours': 5, 'state': 'booked',
-                'place': 'the old pier'}
+                'place': 'the old pier', 'signal': 'a lamp held up'}
         self.assertEqual(rb.trade_run(good)['place'], 'the old pier')
         for bad in (dict(good, status='mine'), dict(good, place='pier 6041'), dict(good, state='gone'),
                     dict(good, place=''), dict(good, **{'from': 30}), {k: v for k, v in good.items() if k != 'days'},
+                    {k: v for k, v in good.items() if k != 'signal'}, dict(good, signal='flare at 6041'),
                     {'status': 'free', 'from': 1, 'to': 3}, None, 'yours'):
             self.assertIsNone(rb.trade_run(bad), bad)
-        self.assertEqual(rb.trade_run({'status': 'over', 'from': 1, 'to': 3, 'reason': 'odd'})['reason'], 'cancelled')
+        over = {'status': 'over', 'from': 1, 'to': 3}
+        self.assertEqual(rb.trade_run(dict(over, reason='a storm'))['reason'], 'a storm')
+        self.assertEqual(rb.trade_run(dict(over, reason='storm at 2'))['reason'], 'it was called off')
+        self.assertEqual(rb.trade_run(over)['reason'], 'it was called off')
+        self.assertEqual(rb.trade_run(dict(good, state='arrived', arrived='the cart is in'))['arrived'], 'the cart is in')
         self.assertEqual(rb.trade_run_lines(None, 'you'), [])
         self.assertIn('right now', rb.trade_run_lines(dict(rb.trade_run(good), inHours=-0.5), 'you')[0])
         self.assertIn('in 2 days', rb.trade_run_lines(dict(rb.trade_run(good), days=2), 'you')[0])
@@ -327,7 +388,7 @@ class RuleTests(RunHarness):
 
     def update(self, hours):
         self.g.CLOCK.hours = hours
-        return self.Run.update()
+        return self.Run.updateTrader('gus', hours)
 
     def test_storm_cancels_and_is_announced_once(self):
         kate, run = self.booked(4.0)
@@ -451,17 +512,27 @@ class StaticTests(unittest.TestCase):
 
     def test_translations_and_fallbacks(self):
         source = RUN_LUA.read_text(encoding='utf-8')
-        names = ['Pier'] + ['Cancel_' + r for r in ('patrol', 'helicopter', 'storm', 'late')]
-        for name in names:
+        boat = BOAT_LUA.read_text(encoding='utf-8')
+        for name in ['Pier', 'Cancel_late'] + ['Cancel_' + r for r in ('patrol', 'helicopter', 'storm')]:
             key = 'IGUI_RS_TradeRun_' + name
             self.assertIn(key, EN)
             self.assertIn(key, FR)
             self.assertNotIn('%', EN[key] + FR[key])
             self.assertLessEqual(len(FR[key]), 140)
-            self.assertIn(f'{name} = "{EN[key]}"', source)
+            if name in ('Pier', 'Cancel_late'):
+                self.assertIn(f'{name} = "{EN[key]}"', source)
+            else:                                    # E20-T07 : repli de la cause, dans le mode d'arrivée
+                self.assertIn(f'name = "{name[7:]}"', boat)
+                self.assertIn(f'fallback = "{EN[key]}"', boat)
+
+    def test_boat_sounds_are_vanilla_42_22(self):
+        # Sons du mode boat relevés dans media/scripts/generated/sounds/objects/sounds_object_generator.txt (42.22).
+        boat = BOAT_LUA.read_text(encoding='utf-8')
+        self.assertIn('sounds = { approach = "GeneratorStopping", leave = "GeneratorStarting" }', boat)
+        self.assertIn('sounds_object_generator.txt:13-31', boat)
 
     def test_ascii_kahlua_safe_code(self):
-        for path in (RUN_LUA, TRADE_LUA):
+        for path in (RUN_LUA, TRADE_LUA, BOAT_LUA, ARRIVALS_LUA):
             code = path.read_text(encoding='utf-8')
             body = re.sub(r'--[^\n]*', '', code)
             self.assertTrue(body.isascii(), path.name)

@@ -5,8 +5,8 @@
 Format: docs/specifications-techniques/persona-format.md. The server reads the same files with
 Contents/mods/batman_RadioSurvivor/42.21/media/lua/server/RadioSurvivor/RS_Persona.lua, the only full validator (ADR
 D03, E20-T03). This reader takes the head, the [place] sections and the prompt with the same rules and messages
-("line N: reason"), checked by tests/test_personas.py; it skips the [mission], [rewards] and [category] sections
-without reading them. Lines are split like Java's BufferedReader.readLine (the game's getFileReader): "\\r\\n", "\\r"
+("line N: reason"), checked by tests/test_personas.py; it skips the [mission], [rewards], [category] and [trade]
+sections without reading them. Lines are split like Java's BufferedReader.readLine (the game's getFileReader): "\\r\\n", "\\r"
 or "\\n". Invalid UTF-8 is decoded as U+FFFD, as Java's InputStreamReader does, then refused. Standard library only.
 """
 from __future__ import annotations
@@ -358,7 +358,7 @@ class SkippedSection:
 # Sections of a sheet, in the order of the Lua reader's messages; example None = section without id.
 SECTIONS: dict[str, PlaceSection | SkippedSection] = {
     'place': PlaceSection(), 'mission': SkippedSection('meds'), 'rewards': SkippedSection(None),
-    'category': SkippedSection('snacks'),
+    'category': SkippedSection('snacks'), 'trade': SkippedSection(None),
 }
 SECTIONS_EXPECTED = ', '.join(SECTIONS) + ' or prompt'
 

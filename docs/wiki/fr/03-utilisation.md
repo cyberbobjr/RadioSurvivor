@@ -89,6 +89,8 @@ Une mission de dépôt d'une voix propose **toutes ses planques à la fois** (cl
 
 Dans une boîte, seuls les objets demandés disparaissent, jamais plus que la quantité restante : boîte, autres objets et surplus restent. Pour un sac, sac et contenu disparaissent ; un sac qui contient des objets étrangers au lot, ou plus que la quantité restante, est refusé pour éviter leur perte. Chaque objet n'est compté qu'une fois, même après un redémarrage. Avant la collecte, vous pouvez reprendre le dépôt et rien n'est validé. **Une fois toute la quantité collectée seulement, rendez compte à la radio**. Validation en jeu solo et MP de cette collecte : **en attente**.
 
+**Papiers à retrouver pour une voix.** La carte d'identité prise sur le corps ne se remet pas à la radio : déposez-la à l'une des planques de la mission, marquées sur votre carte comme pour un dépôt (dans la boîte désignée, ou seule dans un sac au sol). La voix la ramasse avec la même règle, hors de vue et après le délai ; seule la carte de ce corps est prise, une autre carte d'identité reste sur place. **Une fois la carte ramassée seulement, rendez compte à la radio** : le compte rendu ne retire rien de votre inventaire. Validation en jeu MP : **en attente**.
+
 Pour Living Knox, le matériel provient d'abord du surplus réel du foyer, sans toucher aux réserves nécessaires ni au stock rationné ; à défaut, une cache près du foyer utilise une table fermée selon le groupe. Une relation favorable ou confiante, sans mauvaise réputation, ouvre cartes et leçons adaptées au rôle. Un demandeur mort ne remet plus de récompense. Une mission de groupe a **un seul retrait partagé**, effectué par un participant, comme l'ancien lot commun. Un contact de confiance peut partager la radio de son groupe si elle existe, sinon une voix active. Les contrats de ravitaillement déjà dotés d’un lot payé sur les réserves conservent ce lot, pour éviter un second prélèvement.
 
 L'option sandbox du multiplicateur de leçon désactive l'expérience à 0. Les nouvelles récompenses sont écrites ; leur validation solo et MP est **en attente**.
@@ -98,6 +100,19 @@ L'option sandbox du multiplicateur de leçon désactive l'expérience à 0. Les 
 ![Une mission à rapporter](../../images/screenshots/fr-notebook-report.png)
 
 ![Cercle d'une mission de reconnaissance sur la carte](../../images/screenshots/fr-map-zone.png)
+
+### Troc avec un marchand
+
+Un marchand radio (Gus, le passeur de l'Ohio) vend son stock à la radio. Votre première offre ferme réserve son
+**passage** pour votre groupe : il vous donne le lieu, la nuit et le signal, et le lieu est marqué sur votre carte. Un
+autre marchand a son propre passage : réserver chez l'un ne bloque pas l'autre. Pendant la fenêtre, montrez le signal
+sur place (Gus : lampe allumée en main ou fusée rouge) ; vous entendez son moteur quand il accoste. Posez un sac à moins
+de 3 cases du lieu avec de quoi payer, puis **éloignez-vous hors de vue** : il ne passe que lorsque personne n'est à
+moins de 100 cases en x comme en y **depuis environ une heure de jeu** (réglable par la fiche du marchand). Revenu trop
+tôt, vous remettez l'attente à zéro ; parti loin assez longtemps, l'échange est fait quand vous revenez. Le sac contient
+alors votre marchandise ; un sac qui ne couvre pas le prix est une tricherie (rien n'est pris). Un passage peut être
+annulé (patrouille, hélicoptère, orage), et le marchand repart s'il n'a jamais eu un moment tranquille. Validation en
+jeu MP du passage de Gus : **en attente**.
 
 ## 6. Le carnet
 

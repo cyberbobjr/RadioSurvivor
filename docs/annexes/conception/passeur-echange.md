@@ -4,6 +4,15 @@
 - Code : `media/lua/server/RadioSurvivor/RS_TradeExchange.lua` (sondage, évaluation, application) ; `RS_Trade.lua` (`Trade.finishRun`) ; `RS_TradeRun.lua` (`Run.say`, textes de repli) ; traductions `IGUI_RS_TradeRun_Done`, `_Cheated`, `_Cancel_nodrop`, `IGUI_RS_Event_trade_cheated` (EN, FR) ; banc `tests/test_rs_trade_exchange.py` ; suite en jeu `rs.trade_exchange`
 - Build : 42.21.0 (Java décompilé **J/** = `<decompiled>\42.21.0\java\zombie\`) — Date : 2026-10-13 — Statut : brouillon, testé hors jeu seulement
 
+> **Évolution E20-T07 (2026-11-15, ADR D06/D07)** : un passage par marchand (`Trade.finishRun(id, …)`), lieu du
+> rendez-vous lu dans la fiche (lieu `use=landing` de la section `[trade]`, plus de `Trade.PIER`). La règle « personne à
+> moins de 20 cases » et l'attente de 2 heures sont remplacées par celle d'E20-T05 : échange seulement **hors de vue de
+> tout joueur** (aucun joueur à moins de 100 cases en x et en y, ou case déchargée, `RS_OutOfSight`) **depuis
+> `delay_hours` heures de jeu** (fiche, sinon 1) ; dû pendant que la case est déchargée, il se fait au premier sondage où
+> elle se charge ; jamais tranquille 12 heures après l'arrivée, le marchand repart (`no_drop`) ; aucun sac de valeur une
+> fois l'échange dû : `no_drop`. Sons d'approche et de départ du mode d'arrivée joués au lieu. Les choix ci-dessous
+> restent l'historique du 2026-10-13.
+
 ## Problème
 
 Le joueur dépose un sac au lieu convenu et s'éloigne ; le serveur vérifie le contenu contre l'offre, retire les objets, pose la contrepartie au même endroit ; tricherie (contenu insuffisant) = échange refusé et réputation en baisse. Acceptation : aucun doublon d'objets ; contrepartie posée une seule fois même si le joueur revient pendant l'échange.

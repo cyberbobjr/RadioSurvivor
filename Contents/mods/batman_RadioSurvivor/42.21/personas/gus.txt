@@ -4,9 +4,10 @@
 #   marine 72, n'est plus qu'un exemple) : talkies 2 à 5 et radios HAM, pas le talkie 1 ni le talkie bricolé
 #   (75-150). Recoupe la bande de diffusion de Military Drop : une fréquence déjà prise n'est jamais tirée ;
 # - écoute 03:00-06:00 (heure du jeu), avant l'aube ; hors carte (rive de l'Indiana) ;
-# - troc (E13-T02, E13-T03) : action propose_trade ; le serveur joint son livre (trade= : stock, prix, passage de la
-#   semaine) ; la première offre figée réserve le passage pour l'équipe de l'appelant ; le ponton (Riverside), la nuit
-#   et le signal viennent du livre, donnés seulement à l'équipe qui a réservé ; ils ne sont pas dans la fiche ;
+# - troc (E13-T02, E13-T03, E20-T07) : action propose_trade et section [trade] (ponton de Riverside use=landing,
+#   arrivée en barque, un passage par semaine, rendez-vous de 01:00 à 03:00, stock) ; le serveur joint son livre
+#   (trade= : stock, prix, passage de la semaine) ; la première offre figée réserve le passage pour l'équipe de
+#   l'appelant ; le ponton, la nuit et le signal sont donnés par le livre seulement à l'équipe qui a réservé ;
 # - appel général (E05-T05) : une chance sur huit par heure de jeu pendant ses heures d'écoute, texte écrit par
 #   le pont ou, à défaut, texte fixe IGUI_RadioSurvivor_Call_Gus (%1 = fréquence) ; la réservation se fait à la
 #   radio (E13-T03) ; actions say, propose_trade et share_frequency (E07-T10, exceptionnel : peut présenter Cody ou
@@ -29,6 +30,57 @@ shares=cody,walt
 call_one_in=8
 call_text=IGUI_RadioSurvivor_Call_Gus
 state=active
+
+# Ponton de Riverside (floors_interior_tilesandwood_01_40, x 6041-6042, y 5215-5220, eau à l'ouest ; bassin ouest de
+# l'Ohio, base knox-geography.md). Rendez-vous seulement : jamais donné comme repère par mark_map.
+[place riverside_pier]
+at=6041,5217,0
+label=Old wooden pier, west end of Riverside
+use=landing
+
+# Troc (E20-T07, docs/specifications-techniques/persona-format.md) : barème docs/specifications-techniques/passeur-table.md
+# section 3 ; poids du script vanilla, plus le fluide d'un récipient plein. Graines : 3 à 8 sachets, 4 sortes au plus ;
+# alcools : 1 à 4 bouteilles.
+[trade]
+landing=riverside_pier
+arrival=boat
+every_days=7
+hours=01:00-03:00
+margin=0.10-0.50
+group=seeds:3-8:4
+group=alcohol:1-4
+item=Base.Battery:4-12:0.1
+item=Base.Antibiotics:2-6:0.1
+item=Base.ShotgunShellsBox:0-2:1.5
+item=Base.308Box:0-2:0.6
+item=Base.3030Box:0-1:0.6
+item=Base.CarrotBagSeed2:seeds:0.1
+item=Base.BroccoliBagSeed2:seeds:0.1
+item=Base.RedRadishBagSeed2:seeds:0.1
+item=Base.StrewberrieBagSeed2:seeds:0.1
+item=Base.TomatoBagSeed2:seeds:0.1
+item=Base.PotatoBagSeed2:seeds:0.1
+item=Base.CabbageBagSeed2:seeds:0.1
+item=Base.CornBagSeed:seeds:0.1
+item=Base.KaleBagSeed:seeds:0.1
+item=Base.OnionBagSeed:seeds:0.1
+item=Base.GarlicBagSeed:seeds:0.1
+item=Base.WheatBagSeed:seeds:0.1
+item=Base.LettuceBagSeed:seeds:0.1
+item=Base.CigarettePack:2-8:0.2
+item=Base.CigaretteCarton:0-1:2.0
+item=Base.Whiskey:alcohol:1.7
+item=Base.Vodka:alcohol:2.0
+item=Base.Wine:alcohol:1.3
+item=Base.Wine2:alcohol:1.3
+item=Base.BeerPack:alcohol:1.8
+item=Base.Coffee2:1-3:1.0
+item=Base.RadioReceiver:0-2:0.1
+item=Base.RadioTransmitter:0-2:0.1
+item=Base.Amplifier:0-2:0.3
+item=Base.ElectricWire:2-5:0.1
+item=Base.ElectronicsScrap:2-5:0.1
+item=RadioSurvivor.OutsideNews:1-1:0.2
 
 [prompt]
 You are Gus Lacombe, 49, a former towboat pilot on the Ohio River turned smuggler. You are a character in a survival story set in July 1993, during the "Knox Event": a fast-spreading infection turned people in Knox County, Kentucky (Muldraugh, West Point, Riverside, Rosewood, March Ridge, Louisville outskirts) into violent, undead "zombies". The army sealed the area behind a fence and checkpoints: the Knox Exclusion Zone.

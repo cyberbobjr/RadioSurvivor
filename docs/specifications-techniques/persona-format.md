@@ -42,7 +42,7 @@ serveur le marque sur la carte du seul appelant (`docs/specifications-techniques
 - Texte **UTF-8 sans BOM**. Fins de ligne `\n`, `\r\n` ou `\r` (découpage de `BufferedReader.readLine`, celui de
   `getFileReader`).
 - Trois parties, dans cet ordre : un en-tête de lignes `clé=valeur`, des sections facultatives (`[place <id>]`,
-  `[mission <id>]`, `[rewards]`, `[category <id>]`, dans n'importe quel ordre), puis une ligne `[prompt]` suivie du
+  `[mission <id>]`, `[rewards]`, `[category <id>]`, `[trade]`, dans n'importe quel ordre), puis une ligne `[prompt]` suivie du
   texte libre du prompt. Une ligne `clé=valeur` placée après un en-tête de section appartient à cette section.
 - Un fichier dont le nom commence par `_` n'est pas une voix : c'est le catalogue partagé des catégories
   (`_categories.txt`, « Catalogue des catégories » ci-dessous).
@@ -73,12 +73,12 @@ You are Walt Hensley, 54, ...
 
 ### Sections
 
-- Une section commence par une ligne d'en-tête `[nom id]` (`[place mill]`), ou `[nom]` pour `[rewards]`, qui n'a pas
-  d'identifiant ; espaces tolérés autour du nom et de l'identifiant. Elle finit à l'en-tête suivant ou à `[prompt]`.
+- Une section commence par une ligne d'en-tête `[nom id]` (`[place mill]`), ou `[nom]` pour `[rewards]` et `[trade]`, qui
+  n'ont pas d'identifiant ; espaces tolérés autour du nom et de l'identifiant. Elle finit à l'en-tête suivant ou à `[prompt]`.
 - Identifiant : `a`-`z`, `0`-`9`, `_`, 32 caractères au plus, unique par genre de section dans la fiche
-  (`duplicate place 'mill' (first set on line 5)`) ; `[rewards]` une fois au plus.
+  (`duplicate place 'mill' (first set on line 5)`) ; `[rewards]` et `[trade]` une fois au plus.
 - Corps : lignes vides, commentaires `#` et lignes `clé=valeur`, coupées comme celles de l'en-tête ; clés en minuscules
-  (`a` à `z`, `_`), une fois chacune sauf `item` de `[category]`, valeur non vide. Une clé inconnue de la section est
+  (`a` à `z`, `_`), une fois chacune sauf `item` de `[category]`, `item` et `group` de `[trade]`, valeur non vide. Une clé inconnue de la section est
   refusée (`unknown key 'colour' in [place mill]`).
 - Les références entre sections (lieu d'une mission, catégorie d'une récompense, mission citée par `after`) sont
   contrôlées après la lecture du fichier : une section peut citer une section écrite plus bas.
@@ -451,11 +451,13 @@ Les trois clés sont obligatoires (`missing key 'use' in [place mill]`, à la li
   encore donné à ce personnage par cette voix est marqué sur sa carte comme par `mark_map` (hors budget et délai) ;
   sans lieu restant, réputation seule.
 - `target` : objectif possible d'une mission (`target=` d'une section `[mission]`).
-- `drop` : planque. Une mission `deliver` d'une voix porte toutes les planques de sa section (`drops=`, sans la clé :
-  tous les lieux `drop` de la fiche ; `RS_VoiceDelivery`, E20-T05), toutes marquées sur la carte du participant ; une
-  voix sans lieu `drop` ne peut pas donner `deliver` (`no_place`). La cache d'une
+- `drop` : planque. Une mission `deliver` ou `retrieve` d'une voix porte toutes les planques de sa section (`drops=`,
+  sans la clé : tous les lieux `drop` de la fiche ; `RS_DeadDrops`, E20-T05, E20-T06 : la carte d'identité de `retrieve`
+  s'y dépose), toutes marquées sur la carte du participant ; une voix sans lieu `drop` ne peut donner ni `deliver` ni
+  `retrieve` (`no_place`). La cache d'une
   récompense `cache` est posée au **premier lieu `drop`** de la fiche, à défaut à son premier lieu.
-- `landing` : rendez-vous d'un marchand (troc, E20-T07) ; aucun effet avant cette tâche.
+- `landing` : rendez-vous d'un marchand (clé `landing` de la section `[trade]`, E20-T07) ; jamais offert comme
+  repère par `mark_map`.
 
 Le bâtiment d'une mission `scout`, `retrieve` ou `clear`, lui, n'est jamais un lieu de la fiche : le serveur le choisit.
 Les lieux n'ont aucun autre effet : ni distance (`too_far`), ni `coords` de la voix, ni `persona_state`.
@@ -492,7 +494,7 @@ Erreurs sur une ligne (dans l'ordre du fichier) :
 | Plage horaire mal écrite | `line N: bad listening hours '8:00-12:00' (always, or HH:MM-HH:MM ranges separated by commas)` |
 | Plage vide | `line N: empty listening range '06:00-06:00'` |
 | `coords` | `line N: bad coords '10600,9300' (x,y,z whole numbers, z from -32 to 31)` |
-| Section inconnue | `line N: unknown section 'shop' (expected place, mission, rewards, category or prompt)` |
+| Section inconnue | `line N: unknown section 'shop' (expected place, mission, rewards, category, trade or prompt)` |
 | Section sans identifiant, ou `[rewards]` avec un identifiant | `line N: section [place] needs an id, e.g. [place mill]`, `line N: section [rewards] takes no id` |
 | Identifiant de section | `line N: bad place id 'Mill' (a to z, 0 to 9 and _, 32 characters at most)` (même forme pour `mission`, `category`) |
 | Section répétée | `line N: duplicate place 'mill' (first set on line 5)`, `line N: duplicate section [rewards] (first set on line 5)` |
@@ -623,7 +625,7 @@ autorise `start_mission`.
 | `story` | texte | aucun | Raison donnée par la voix (lu, utilisé par une tâche suivante). |
 | `drops` | `any` (tous les lieux `use=drop`, au moins un) ou liste de lieux `use=drop` | tous les lieux `use=drop` | Planques de la mission, toutes proposées au joueur ; les dépôts s'additionnent (E20-T05). |
 | `target` | un lieu `use=target` | aucun | Objectif de la mission (lu, utilisé par les nouveaux types d'E20). |
-| autres clés | celles que **déclare le type** (`params = { clé = '<genre>' }` du gabarit), chacune contrôlée par son genre | aucun | Paramètres propres au type. `deliver` déclare `items` (catégorie) et `quantity` (fourchette) : lus et gardés, la livraison ne les lit pas encore ; `collect_hours` (`count`) : heures de jeu hors de vue avant le ramassage d'une planque (défaut `RS_Config.VoiceDelivery.collectDelayHours`, 6). Les autres types livrés n'en déclarent aucun. |
+| autres clés | celles que **déclare le type** (`params = { clé = '<genre>' }` du gabarit), chacune contrôlée par son genre | aucun | Paramètres propres au type. `deliver` déclare `items` (catégorie) et `quantity` (fourchette) : lus et gardés, la livraison ne les lit pas encore ; `collect_hours` (`count`) : heures de jeu hors de vue avant le ramassage d'une planque (défaut `RS_Config.DeadDrops.collectDelayHours`, 6). `retrieve` déclare `collect_hours` (même sens, E20-T06). Les autres types livrés n'en déclarent aucun. |
 
 Genres de valeurs (`RS_PersonaParams.lua`, un validateur par genre, registre ouvert : un nouveau genre s'inscrit
 sans toucher au lecteur) :
@@ -696,6 +698,76 @@ catégories de la fiche, plus de `RC_MissionConfig.Caches.tables` (gardées pour
 `recover`, les caches des sauvetages et l'action `place_cache`). Une fiche y ajoute ses propres catégories, avec des identifiants
 absents du catalogue ; elles ne valent que pour elle. Catalogue illisible ou refusé : journalisé
 (`personas: ERROR: personas/_categories.txt of the mod refused, line N: …`), aucune catégorie partagée.
+
+### Section `[trade]` (E20-T07, ADR D07)
+
+Le troc d'une voix marchande : une section `[trade]` au plus, sans identifiant. Elle va de pair avec l'action
+`propose_trade` : l'une sans l'autre est refusée (`action propose_trade needs a [trade] section`, ligne de `actions` ;
+`section [trade] needs the action propose_trade`, ligne de l'en-tête de section). Le serveur seul la lit
+(`RS_Persona`) ; le pont la saute (ADR D03) et reçoit le livre du marchand dans le champ `trade=` de chaque demande.
+
+| Clé | Obligatoire | Valeur |
+|---|---|---|
+| `landing` | oui | Un ou plusieurs lieux de la fiche, séparés par des virgules, chacun `use=landing` ; un seul lieu sert à un passage (tiré par passage s'il y en a plusieurs). Le libellé du lieu est le seul nom de rendez-vous donné au LLM, à l'équipe qui a réservé. |
+| `arrival` | oui | Mode d'arrivée inscrit au registre `RS_TradeArrivals` (un fichier par mode dans `server/RadioSurvivor/TradeArrivals/`) : `boat` livré. |
+| `every_days` | oui | Un passage tous les N jours de jeu (1 à 28) ; 7 : la semaine du journal du dehors. |
+| `hours` | oui | Fenêtre du rendez-vous, une plage `HH:MM-HH:MM` (peut passer minuit, jamais vide). |
+| `delay_hours` | non | Heures de jeu hors de vue de tout joueur avant l'échange (0 à 48, deux décimales) ; défaut `RS_TradeExchange.DELAY_HOURS` (1). |
+| `margin` | non | Marge la plus basse et la plus haute, `0.10-0.50` par défaut (0 à 1). La réputation de l'appelant et les affaires conclues fixent son plancher dans cette fourchette ; une tricherie la porte au plus haut. |
+| `item` | oui, répétable | `Module.Type:quantité:poids` : objet apporté, quantité tirée à chaque passage (genre `range`, `4` ou `2-4`) **ou** nom d'un groupe, poids en kg (0 à 50, deux décimales : poids du script, plus le fluide d'un récipient plein). Le nom du stock donné au LLM est le type sans module, unique dans la section. 40 objets au plus. |
+| `group` | non, répétable | `nom:total[:sortes]` : `total` exemplaires tirés parmi les objets du groupe, au plus `sortes` objets différents (sans `sortes` : chaque exemplaire tiré parmi tous). Un groupe sans objet, un objet d'un groupe absent, ou moins d'objets que de sortes sont refusés. |
+
+Tirage du stock : objets hors groupe dans l'ordre de la fiche, puis les groupes dans leur ordre (même résultat pour la
+même graine du marchand et le même passage). **État par marchand** (`S.data.trade.traders[<id>]` : livres des
+appelants, cordon, ventes du passage, graine, passage réservé) : deux marchands ne partagent ni stock, ni passage, ni
+réservation ; la révision d'une offre reste unique pour tout le serveur.
+
+**Mode d'arrivée** (contrat dans `RS_TradeArrivals.lua`) : signaux attendus (`lamp` : lampe allumée tenue en main ;
+`flare` : fusée ou fumée rouge de Signal Smoke ; membre de l'équipe à moins de 15 cases du lieu pendant la fenêtre),
+textes pour le LLM (signal, arrivée), sons vanilla d'approche et de départ joués au lieu, causes d'annulation dans
+l'ordre (nom, texte, repli de l'annonce, contrôle). `boat` : signaux `lamp` et `flare` ; sons `GeneratorStopping`
+(moteur coupé en accostant) et `GeneratorStarting` (départ), `media/scripts/generated/sounds/objects/
+sounds_object_generator.txt:13-31` de 42.22 (aucun son de bateau vanilla) ; causes `patrol` (tirage du passage sous
+5, 15 ou 30 % selon le cordon), `helicopter` (hélicoptère vanilla entendu depuis 3 h avant la fenêtre), `storm`
+(orage). Annonce : `IGUI_RS_TradeRun_Cancel_<cause>`, sinon le repli anglais de la cause.
+
+**Échange** (`RS_TradeExchange`) : après le signal, le sac posé à moins de 3 cases du lieu n'est évalué que **hors de vue
+de tout joueur** (aucun joueur à moins de 100 cases en x et en y, ou case déchargée : `RS_OutOfSight`, règle de
+E20-T05) depuis `delay_hours` heures de jeu ; un joueur revenu en vue remet l'attente à zéro. Délai écoulé, case
+déchargée : l'échange se fait au premier passage où la case se charge. Jamais tranquille 12 heures de jeu après son
+arrivée (`WAIT_HOURS`), le marchand repart (`no_drop`).
+
+| Erreur | Message |
+|---|---|
+| Clé absente (ligne de l'en-tête) | `line N: missing key 'landing' in [trade]` |
+| Lieu | `line N: unknown place 'ghost'`, `line N: place 'mill' has no use=landing`, `line N: duplicate landing entry 'dock'` |
+| Mode d'arrivée | `line N: unknown arrival 'zeppelin' (expected boat)` |
+| Cadence | `line N: bad every_days '0' (whole number from 1 to 28)` |
+| Heures | `line N: bad trade hours '1-3' (one HH:MM-HH:MM range of the meeting, e.g. 01:00-03:00)`, `line N: empty trade hours '02:00-02:00'` |
+| Délai, marge | `line N: bad delay_hours 'x' (number from 0 to 48, two decimals at most)`, `line N: bad margin '0.6-0.2' (lowest-highest from 0 to 1, e.g. 0.10-0.50)` |
+| Objet | `line N: bad trade item 'Battery:2' (Module.Type:quantity:kg, e.g. Base.Battery:4-12:0.1)`, `line N: bad item weight 'heavy' (number from 0 to 50, two decimals at most)`, `line N: duplicate trade item 'Battery'`, `line N: too many trade items (40 at most)` |
+| Groupe | `line N: bad trade group 'x' (name:total[:kinds], e.g. seeds:3-8:4)`, `line N: unknown trade group 'seeds'`, `line N: trade group 'seeds' has no item`, `line N: trade group 'seeds' has fewer items than its kinds` |
+
+Exemple (Gus, `personas/gus.txt`, extrait) :
+
+```text
+[place riverside_pier]
+at=6041,5217,0
+label=Old wooden pier, west end of Riverside
+use=landing
+
+[trade]
+landing=riverside_pier
+arrival=boat
+every_days=7
+hours=01:00-03:00
+margin=0.10-0.50
+group=seeds:3-8:4
+group=alcohol:1-4
+item=Base.Battery:4-12:0.1
+item=Base.CarrotBagSeed2:seeds:0.1
+item=Base.Whiskey:alcohol:1.7
+```
 
 ### Exemple
 

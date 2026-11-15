@@ -1,5 +1,6 @@
-"""Livre du passeur et action propose_trade (E13-T02) : RS_Trade.lua dans lupa, le pont (radio_bridge.py) et le
-serveur radio complet (RadioSurvivor_Server.lua, doublures de tests/test_protocol.py).
+"""Livre du passeur et action propose_trade (E13-T02 ; E20-T07 : stock et marges déclarés dans la section [trade]
+de la fiche de Gus, état par marchand) : RS_Trade.lua dans lupa, le pont (radio_bridge.py) et le serveur radio complet
+(RadioSurvivor_Server.lua, doublures de tests/test_protocol.py).
 
     python RadioSurvivor/tests/test_rs_trade.py
 
@@ -42,6 +43,7 @@ sys.path.insert(0, str(ROOT / 'tests'))
 
 import npc_protocol as npc  # noqa: E402
 import radio_bridge as rb  # noqa: E402
+from test_rs_trade_run import GUS, TraderProxy  # noqa: E402
 
 
 def lua_list(t) -> list:
@@ -67,9 +69,10 @@ ACTION_LOG = {}
 package.preload["RadioSurvivor/RS_ActionLog"] = function() return {
     format = function(d, voice, caller, name) return name .. ":" .. tostring(d.reason) end,
     append = function(lines) for _, l in ipairs(lines) do ACTION_LOG[#ACTION_LOG + 1] = l end end } end
+-- E20-T07 : voix chargées (port RS_Trade.useVoices).
+VOICES = {}
+VOICE_PORT = { get = function(id) return VOICES[id] end, ids = function() return { "gus" } end }
 """
-
-SHEET = {'id': 'gus', 'actions': ['say', 'propose_trade']}
 
 
 class TradeHarness(unittest.TestCase):
@@ -82,7 +85,17 @@ class TradeHarness(unittest.TestCase):
         paths = ';'.join((LUA / side).as_posix() + '/?.lua' for side in ('shared', 'server'))
         paths = (CORE_LUA / 'shared').as_posix() + '/?.lua;' + (CORE_LUA / 'server').as_posix() + '/?.lua;' + (CORE_LUA / 'client').as_posix() + '/?.lua;' + (LK_LUA / 'shared').as_posix() + '/?.lua;' + (LK_LUA / 'server').as_posix() + '/?.lua;' + (LK_LUA / 'client').as_posix() + '/?.lua;' + paths  # mod commun (E18)
         self.rt.execute(f'package.path = [[{paths};]] .. package.path')
-        self.T = self.rt.eval('require("RadioSurvivor/RS_Trade")')
+        # E20-T07 : la vraie fiche de Gus (section [trade]) lue par RS_Persona, mode d'arrivée boat inscrit.
+        self.rt.eval('require("RadioSurvivor/TradeArrivals/RS_TradeArrival_Boat")')
+        rules = self.rt.eval('{ arrivals = require("RadioSurvivor/RS_TradeArrivals").NAMES }')
+        persona = self.rt.eval('require("RadioSurvivor/RS_Persona")')
+        self.gus = persona.parseLines(self.rt.table_from(GUS.read_text(encoding='utf-8').splitlines()), 'gus', rules)
+        self.assertFalse(isinstance(self.gus, tuple), self.gus)
+        self.g.VOICES.gus = self.gus
+        self.spec = self.gus.trade
+        self.Trade = self.rt.eval('require("RadioSurvivor/RS_Trade")')
+        self.Trade.useVoices(self.g.VOICE_PORT)
+        self.T = TraderProxy(self.Trade, 'gus')
         self.Actions = self.rt.eval('require("RadioSurvivor/RS_Actions")')
         self.Codec = self.rt.eval('require("RadioSurvivorCore/RC_Codec")')
         self.TV = self.rt.eval('require("RadioSurvivorCore/RC_TradeValues")')
@@ -102,9 +115,13 @@ class TradeHarness(unittest.TestCase):
 
     def force_stock(self, stock: dict[str, int]):
         """Stock tiré imposé (toutes les autres lignes à 0)."""
-        names = [e.n for e in lua_list(self.T.SUPPLY)]
+        names = [e.n for e in self.supply()]
         full = {n: stock.get(n, 0) for n in names}
-        self.T.drawStock = lambda seed, passage: self.t(full)
+        self.T.drawStock = lambda spec, seed, passage: self.t(full)
+
+    def supply(self):
+        """Stock déclaré par la fiche de Gus (section [trade], lignes item=)."""
+        return lua_list(self.spec['items'])
 
     def propose(self, caller, items, margin=None, cid=None):
         return self.two(self.T.propose, caller, cid, items, margin)
@@ -119,7 +136,7 @@ class CatalogueTests(TradeHarness):
     def test_supply_matches_the_validated_table(self):
         doc = DOC.read_text(encoding='utf-8')
         section = doc[doc.index('## 3. Ce que le passeur apporte'):doc.index('## 4.')]
-        for e in lua_list(self.T.SUPPLY):
+        for e in self.supply():
             with self.subTest(e.n):
                 self.assertTrue(f'`{e.n}`' in section or f'`{e.t}`' in section, e.n)
                 self.assertGreater(self.TV.sellValue(e.t), 0)
@@ -128,22 +145,23 @@ class CatalogueTests(TradeHarness):
                     if rng:
                         row = next(line for line in section.splitlines() if f'`{e.n}`' in line)
                         self.assertIn(rng, row)
-        self.assertEqual((self.T.GROUPS.seeds.min, self.T.GROUPS.seeds.max, self.T.GROUPS.seeds.kinds), (3, 8, 4))
+        groups = {g.id: g for g in lua_list(self.spec.groups)}
+        self.assertEqual((groups['seeds'].min, groups['seeds'].max, groups['seeds'].kinds), (3, 8, 4))
         self.assertIn('3 – 8 sachets, 4 sortes au plus', section)
-        self.assertEqual((self.T.GROUPS.alcohol.min, self.T.GROUPS.alcohol.max), (1, 4))
+        self.assertEqual((groups['alcohol'].min, groups['alcohol'].max, groups['alcohol'].kinds), (1, 4, None))
         self.assertIn('1 – 4 bouteilles au total', section)
         self.assertEqual((self.T.CAP_POINTS, self.T.CAP_KG), (120, 10))
         self.assertIn('au plus 120 points', doc)
         self.assertIn('pèse **au plus 10 kg**', doc)
-        self.assertEqual((self.T.MARGIN_MIN, self.T.MARGIN_DEFAULT, self.T.MARGIN_MAX, self.T.M_MAX, self.T.RARITY),
-                         (0.10, 0.25, 0.50, 1.75, 1.25))
+        self.assertEqual((self.spec.marginMin, self.T.MARGIN_DEFAULT, self.spec.marginMax, self.T.M_MAX,
+                          self.T.RARITY), (0.10, 0.25, 0.50, 1.75, 1.25))
         caps = {t.k: t.cap for t in lua_list(self.T.TAKES)}
         self.assertEqual(caps, {'valuables': 60, 'images': 40, 'papers': 30, 'military': 60})
 
     @unittest.skipUnless(VANILLA_ITEMS.is_dir(), 'vanilla 42.21 scripts missing')
     def test_weights_are_the_vanilla_ones_with_their_fluid(self):
         text = {f.name: f.read_text(encoding='utf-8', errors='replace') for f in VANILLA_ITEMS.glob('*.txt')}
-        for e in lua_list(self.T.SUPPLY):
+        for e in self.supply():
             if not e.t.startswith('Base.'):
                 continue
             name = e.t[5:]
@@ -161,7 +179,7 @@ class CatalogueTests(TradeHarness):
 
     def test_news_weight_is_the_mod_script(self):
         script = (MOD / 'media/scripts/RadioSurvivor_outsidenews.txt').read_text(encoding='utf-8')
-        news = next(e for e in lua_list(self.T.SUPPLY) if e.n == 'OutsideNews')
+        news = next(e for e in self.supply() if e.n == 'OutsideNews')
         self.assertAlmostEqual(news.w, float(re.search(r'Weight\s*=\s*([\d.]+)', script).group(1)))
         self.assertEqual((news.min, news.max), (1, 1))
 
@@ -171,28 +189,28 @@ class StockTests(TradeHarness):
     def test_draw_is_reproducible_and_within_ranges(self):
         seen = set()
         for passage in range(1, 400):
-            a = self.T.drawStock(123456, passage)
-            b = self.T.drawStock(123456, passage)
+            a = self.Trade.drawStock(self.spec, 123456, passage)
+            b = self.Trade.drawStock(self.spec, 123456, passage)
             stock = {k: a[k] for k in a.keys()}
             self.assertEqual(stock, {k: b[k] for k in b.keys()})
             seen.add(tuple(sorted(stock.items())))
-            for e in lua_list(self.T.SUPPLY):
+            for e in self.supply():
                 if e.gr is None:
                     self.assertTrue(e.min <= stock[e.n] <= e.max, (passage, e.n, stock[e.n]))
-            seeds = [stock[e.n] for e in lua_list(self.T.SUPPLY) if e.gr == 'seeds']
+            seeds = [stock[e.n] for e in self.supply() if e.gr == 'seeds']
             self.assertTrue(3 <= sum(seeds) <= 8 and 1 <= sum(1 for s in seeds if s) <= 4, seeds)
-            alcohol = [stock[e.n] for e in lua_list(self.T.SUPPLY) if e.gr == 'alcohol']
+            alcohol = [stock[e.n] for e in self.supply() if e.gr == 'alcohol']
             self.assertTrue(1 <= sum(alcohol) <= 4, alcohol)
         self.assertGreater(len(seen), 300)
-        self.assertNotEqual({k: v for k, v in self.T.drawStock(1, 5).items()},
-                            {k: v for k, v in self.T.drawStock(2, 5).items()})
+        self.assertNotEqual({k: v for k, v in self.Trade.drawStock(self.spec, 1, 5).items()},
+                            {k: v for k, v in self.Trade.drawStock(self.spec, 2, 5).items()})
 
     def test_seed_drawn_once_and_kept_in_the_private_state(self):
         self.T.stock()
-        seed = self.g.STATE.data.trade.seed
+        seed = self.g.STATE.data.trade.traders.gus.seed
         self.assertTrue(1 <= seed <= 2147483646)
         self.T.stock()
-        self.assertEqual(self.g.STATE.data.trade.seed, seed)
+        self.assertEqual(self.g.STATE.data.trade.traders.gus.seed, seed)
         self.assertTrue(self.g.STATE.dirty)
 
 
@@ -213,7 +231,7 @@ class PriceTests(TradeHarness):
         self.T.setCordon(self.T.passage(), 1.25)
         prices = {}
         for margin in (0.25, 0.10, 0.50):
-            store = self.g.STATE.data.trade
+            store = self.g.STATE.data.trade.traders.gus
             book = store.books['kate']
             book.deals = self.t([{'state': 'done', 'rev': 0, 'passage': 0, 'items': 'Battery:1', 'price': 1}] * 3)
             offer, why = self.propose('kate', 'Antibiotics', margin)
@@ -248,7 +266,7 @@ class OfferTests(TradeHarness):
         self.assertEqual([(d.rev, d.state) for d in deals], [(1, 'replaced'), (3, 'open')])
         self.assertEqual(self.available('carl')['Antibiotics'], 2)
         self.assertEqual(self.available('carl')['Battery'], 0)
-        self.assertTrue(any('offer 3 frozen for kate: Battery:6' in line for line in lua_list(self.g.LOGS)))
+        self.assertTrue(any('offer 3 of gus frozen for kate: Battery:6' in line for line in lua_list(self.g.LOGS)))
 
     def test_refusals_outside_the_table(self):
         self.force_stock({'Antibiotics': 20, 'CigaretteCarton': 1, 'ShotgunShellsBox': 2, 'Coffee2': 3,
@@ -270,13 +288,13 @@ class OfferTests(TradeHarness):
                 self.assertEqual(self.propose('kate', 'Battery', margin)[1], 'bad_margin')
         self.assertEqual(self.propose('kate', 'Battery', 0.249)[1], None)   # arrondi à 0,25
         self.assertEqual(self.propose('kate', 'Battery', 0.24)[1], 'bad_margin')
-        book = self.g.STATE.data.trade.books['kate']
+        book = self.g.STATE.data.trade.traders.gus.books['kate']
         self.propose('kate', 'Battery:9')
         self.assertEqual(book.refused.reason, 'over_stock')
 
     def test_stocks_never_negative_and_no_offer_outside_the_table(self):
         rnd = random.Random(7)
-        names = [e.n for e in lua_list(self.T.SUPPLY)] + ['Money', 'GoldBar', 'Base.Battery']
+        names = [e.n for e in self.supply()] + ['Money', 'GoldBar', 'Base.Battery']
         callers = [f'p{i}' for i in range(12)]
         accepted = 0
         for passage_hours in (0, 168):
@@ -312,7 +330,7 @@ class OfferTests(TradeHarness):
                 self.assertEqual(total, offer.price)
                 # Pris dans le passage (échanges faits + offres ouvertes) <= stock tiré, pour chaque objet.
                 avail = self.available('nobody')
-                root = self.g.STATE.data.trade
+                root = self.g.STATE.data.trade.traders.gus
                 sold = root.sold['items']   # attribut .items de lupa = méthode Python
                 for name in drawn.keys():
                     self.assertGreaterEqual(avail[name], 0)
@@ -353,7 +371,7 @@ class MemoryTests(TradeHarness):
         self.assertAlmostEqual(offer.margin, 0.10)
         self.assertTrue(self.T.close('good', 'cg', offer.rev, 'cheated'))
         self.assertEqual(tuple(self.T.marginRange('good', 'cg')), (0.5, 0.5))
-        ctx = self.T.context(self.t(SHEET), 'bad', 'cb')
+        ctx = self.Trade.context(self.gus, 'bad', 'cb')
         self.assertAlmostEqual(ctx.marginMin, 0.35)
 
     def test_margin_floor_follows_past_deals(self):
@@ -410,7 +428,7 @@ class MemoryTests(TradeHarness):
         self.assertEqual(self.T.offerOf('solo', 'c1').rev, 1)
         for i in range(60):
             self.propose(f'p{i}', 'Battery:99')   # refus : crée le livre (dernier refus)
-        self.assertLessEqual(len(list(self.g.STATE.data.trade.books.keys())), self.T.MAX_BOOKS)
+        self.assertLessEqual(len(list(self.g.STATE.data.trade.traders.gus.books.keys())), self.T.MAX_BOOKS)
         self.assertIsNotNone(self.T.offerOf('solo', 'c1'))         # offre ouverte jamais évincée
 
     def test_volatile_without_state_and_persistence(self):
@@ -430,7 +448,7 @@ class MemoryTests(TradeHarness):
 class ActionTests(TradeHarness):
 
     def decide(self, actions, sheet=None, caller='kate'):
-        sheet = self.t(sheet or SHEET)
+        sheet = self.t(sheet) if sheet else self.gus
         out = self.Actions.decide(sheet, caller, self.t(actions), 1000, self.t({'cid': None, 'day': '1993-07-10'}))
         return [(d.type, d.reason) for d in lua_list(out)]
 
@@ -454,12 +472,13 @@ class ActionTests(TradeHarness):
 class ContextTests(TradeHarness):
 
     def context(self, caller='kate'):
-        hexed = self.T.field(self.t(SHEET), caller, None)
+        hexed = self.Trade.field(self.gus, caller, None)
         return {'trade': hexed}, npc.decode(bytes.fromhex(hexed))
 
     def test_field_only_for_a_trading_voice(self):
-        self.assertIsNone(self.T.field(self.t({'id': 'walt', 'actions': ['say', 'remember']}), 'kate', None))
-        self.assertIsNone(self.T.field(None, 'kate', None))
+        self.assertIsNone(self.Trade.field(self.t({'id': 'walt', 'actions': ['say', 'remember']}), 'kate', None))
+        self.assertIsNone(self.Trade.field(self.t({'id': 'gus', 'actions': ['say', 'propose_trade']}), 'kate', None))
+        self.assertIsNone(self.Trade.field(None, 'kate', None))
 
     def test_context_read_by_the_bridge(self):
         self.force_stock({'Antibiotics': 1, 'Battery': 6, 'OutsideNews': 1})
@@ -555,7 +574,10 @@ class ServerChainTests(unittest.TestCase):
             folder = exchange / 'personas'
             folder.mkdir(parents=True)
             (folder / 'gus.txt').write_text(
-                'format=1\nid=gus\nname=Gus Bench\nfrequencies=160.0\nactions=say,propose_trade\n[prompt]\n'
+                'format=1\nid=gus\nname=Gus Bench\nfrequencies=160.0\nactions=say,propose_trade\n'
+                '[place pier]\nat=6041,5217,0\nlabel=Bench pier\nuse=landing\n'
+                '[trade]\nlanding=pier\narrival=boat\nevery_days=7\nhours=01:00-03:00\n'
+                'item=Base.Battery:4-12:0.1\nitem=Base.Antibiotics:2-6:0.1\n[prompt]\n'
                 'You are Gus Bench, a smuggler of the test bench.\n', encoding='utf-8')
             (folder / 'ps.txt').write_text(tp.PS_SHEETS['ps'], encoding='utf-8')
             clock = tp.Clock()
@@ -568,6 +590,9 @@ class ServerChainTests(unittest.TestCase):
             player = g.makePlayer('Kate')
             g.getPlayer = lambda: player
             g.getSpecificPlayer = lambda n: player
+            # E20-T07 : chargés par le jeu avec tous les fichiers serveur (mode boat, racine du troc RS_TradeRun).
+            g.require('RadioSurvivor/TradeArrivals/RS_TradeArrival_Boat')
+            g.require('RadioSurvivor/RS_TradeRun')
             g.fire('OnLoadRadioScripts', g.MANAGER, True)
             state = g.require('RadioSurvivor/RS_State')
             trade = g.require('RadioSurvivor/RS_Trade')
@@ -607,7 +632,7 @@ class ServerChainTests(unittest.TestCase):
             respond(req['id'], [{'type': 'propose_trade', 'items': f"Battery:{stock['Battery']}", 'margin': 0.3},
                                 {'type': 'propose_trade', 'items': 'GoldBar:1'}])
             self.assertTrue(tp.pump(lambda: len(g.BROADCASTS) == 2, [lambda: g.fire('OnTick')]))
-            offer = trade.offerOf('solo', 'c1')
+            offer = trade.offerOf('gus', 'solo', 'c1')
             self.assertEqual((offer.rev, offer.state, offer.margin), (1, 'open', 0.3))
             logs = [line for line in tp.lua_list(g.LOGS) if line.startswith('[RadioSurvivor] action propose_trade')]
             self.assertEqual(logs, [

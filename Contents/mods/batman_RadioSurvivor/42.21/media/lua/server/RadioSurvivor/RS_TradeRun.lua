@@ -1,51 +1,51 @@
--- Radio Survivor : suivi du passage réservé du passeur (E13-T03). Fiche : docs/annexes/conception/passeur-rendezvous.md.
--- La réservation et le rendez-vous sont tenus par RS_Trade (S.data.trade.run) ; ce fichier applique les règles du
--- serveur pendant la semaine et la nuit du rendez-vous. Autorité seulement (serveur MP, jeu local en solo).
+-- Radio Survivor : suivi des passages reserves des marchands (E13-T03 ; E20-T07 : un passage par marchand, causes et
+-- signal donnes par le mode d'arrivee de la fiche, registre RS_TradeArrivals). Fiche :
+-- docs/annexes/conception/passeur-rendezvous.md. La reservation et le rendez-vous sont tenus par RS_Trade ; ce fichier
+-- applique les regles du serveur pendant la periode et la nuit du rendez-vous. Autorite seulement (serveur MP, jeu
+-- local en solo). Racine de composition du troc : install branche les voix chargees (RS_Personas) dans RS_Trade.
 --
--- - Réservation (Trade.onBooked, appelé par l'exécuteur de propose_trade) : repère du ponton envoyé à l'appelant
---   (RS_MapMarks.give, libellé traduit dans la langue de l'autorité) ; sans joueur en ligne, rien.
--- - Hélicoptère vanilla : signature OnWorldSound (source nil, étage 0, rayon et volume 500, base staging-effects.md)
---   -> Trade.noteHelicopter (cordon monté d'un cran la première fois dans le passage).
--- - Règles, à chaque EveryTenMinutes, pour le passage attendu (state booked), à partir de WARN_HOURS avant la
---   fenêtre : patrouille (Trade.patrolRoll < PATROL_CHANCE du cordon, reproductible), hélicoptère entendu depuis
---   HELI_HOURS avant la fenêtre, orage en cours (ClimateManager.getIsThunderStorming, base api-42-21.md) : annulation.
---   Fenêtre finie sans signal : annulation « late » (le passeur est reparti).
--- - Annulation : Trade.cancelRun (offre du passage close « cancelled ») puis annonce à la radio sur la fréquence de la
---   voix qui a pris la réservation (RS_RadioServer.air, texte traduit dans la langue de l'autorité, comme le texte
---   fixe des appels spontanés) ; voix absente ou hors antenne : journal seulement. Un retard découvert plus de
---   ANNOUNCE_LATE_HOURS après la fin de la fenêtre (serveur arrêté) n'est pas annoncé.
--- - Signal pendant la fenêtre, avec un membre de l'équipe à moins de RADIUS cases du ponton : fusée rouge de Signal
---   Smoke (événement « started » de couleur red à moins de RADIUS cases, mod requis) ou lampe allumée tenue en
---   main (InventoryItem.isEmittingLight ; état allumé reçu par le serveur, SyncItemActivatedPacket.processServer)
---   -> Trade.arrive : la barque est au ponton ; l'échange sans contact est dans RS_TradeExchange.lua (E13-T04), qui
---   dit son issue par Run.say.
--- Messages de journal en anglais ; aucun secret ni coordonnée dans les textes diffusés. Code ASCII seulement.
+-- - Reservation (Trade.onBooked, appele par l'executeur de propose_trade) : repere du lieu du rendez-vous envoye a
+--   l'appelant (RS_MapMarks.give, libelle traduit dans la langue de l'autorite) ; sans joueur en ligne, rien.
+-- - Helicoptere vanilla : signature OnWorldSound (source nil, etage 0, rayon et volume 500, base staging-effects.md)
+--   -> Trade.noteHelicopter (cordon de chaque marchand monte d'un cran la premiere fois dans son passage).
+-- - Regles, a chaque EveryTenMinutes et pour chaque marchand dont le passage est attendu (state booked) : fenetre
+--   finie sans signal -> annulation « late » ; a partir de WARN_HOURS avant la fenetre, chaque cause du mode
+--   d'arrivee dans son ordre (check(world)) -> annulation de ce nom.
+-- - Annulation : Trade.cancelRun puis annonce a la radio sur la frequence de la voix du marchand (RS_RadioServer.air,
+--   texte IGUI_RS_TradeRun_Cancel_<cause> traduit dans la langue de l'autorite, repli anglais de la cause) ; voix hors
+--   antenne : journal seulement. Un retard decouvert plus de ANNOUNCE_LATE_HOURS apres la fin de la fenetre n'est pas
+--   annonce.
+-- - Signal pendant la fenetre, avec un membre de l'equipe a moins de RADIUS cases du lieu, si le mode l'attend :
+--   lamp (lampe allumee tenue en main, InventoryItem.isEmittingLight) ou flare (evenement « started » rouge de Signal
+--   Smoke, mod requis, a moins de RADIUS cases) -> Trade.arrive et son d'approche du mode joue au lieu (port
+--   useSound, RS_TradeSound par defaut). L'echange sans contact est dans RS_TradeExchange.lua, qui dit son issue par
+--   Run.say et joue le son de depart par Run.playSound.
+-- Messages de journal en anglais ; aucun secret ni coordonnee dans les textes diffuses. Code ASCII seulement.
 if isClient() then return end
 
 local Const = require "RadioSurvivor/RadioSurvivor_Const"
 local Trade = require "RadioSurvivor/RS_Trade"
+local Arrivals = require "RadioSurvivor/RS_TradeArrivals"
 local MapMarks = require "RadioSurvivor/RS_MapMarks"
 local Factions = require "RadioSurvivorCore/RC_Teams" -- E18-T20: team ids kept by the core mod
+local Sound = require "RadioSurvivor/RS_TradeSound"
 
 local Run = {}
 
-Run.RADIUS = 15                  -- cases autour du ponton (Trade.PIER)
-Run.WARN_HOURS = 1               -- règles appliquées dès 00:00 : l'annonce précède le départ des joueurs
-Run.HELI_HOURS = 3               -- hélicoptère entendu depuis 22:00 : rendez-vous annulé
+Run.RADIUS = 15                  -- cases autour du lieu du rendez-vous
+Run.WARN_HOURS = 1               -- causes appliquees une heure avant la fenetre : l'annonce precede le depart
 Run.ANNOUNCE_LATE_HOURS = 2
-Run.PATROL_CHANCE = { 5, 15, 30 }  -- pour cent, par cordon (Trade.CORDONS : calme, patrouilles, serré)
 Run.SIGNAL_COLOR = "red"
 Run.COLOR_TOLERANCE = 0.02
-Run.REASONS = { "patrol", "helicopter", "storm", "late" }
+-- Signaux reconnus par ce suivi (champ signals d'un mode d'arrivee).
+Run.SIGNALS = { lamp = true, flare = true }
 Run.KEY = "IGUI_RS_TradeRun_"
--- Textes anglais si les traductions du mod manquent sur cette machine (getTextOrNull nil après rechargement).
+-- Textes anglais si les traductions du mod manquent sur cette machine (getTextOrNull nil apres rechargement). Les
+-- annonces des causes ont leur repli dans le mode d'arrivee.
 Run.FALLBACK = {
     Pier = "Smuggler's landing",
-    Cancel_patrol = "No run tonight. A patrol boat is working the river. Stay off the bank. Over.",
-    Cancel_helicopter = "No run tonight. A helicopter is sweeping the river. Keep your heads down. Over.",
-    Cancel_storm = "No run tonight. There is a storm on the river, no boat crosses in that. Over.",
     Cancel_late = "I waited at the landing and nobody showed the signal. I am gone. Over.",
-    -- E13-T04 : issue de l'échange sur la berge (RS_TradeExchange.lua).
+    -- E13-T04 : issue de l'echange au lieu du rendez-vous (RS_TradeExchange.lua).
     Done = "Your goods are in the bag on the landing. Pleasure doing business. Over.",
     Cheated = "You tried to short me. Your bag stays where it is, no deal, and I will remember it. Over.",
     Cancel_nodrop = "Nobody left me a bag at the landing. I am gone. Over.",
@@ -53,13 +53,36 @@ Run.FALLBACK = {
 
 local function log(msg) Const.log("trade run: " .. msg) end
 
+-- ================================================================ ports
+
+local play = Sound.playAt
+
+-- Son joue a un lieu : function(name, { x, y, z }). Bancs : doublure ; jeu : RS_TradeSound.playAt.
+function Run.useSound(fn)
+    play = fn or Sound.playAt
+end
+
+local function modeOf(id)
+    local spec = Trade.specOf(id)
+    return spec and Arrivals.get(spec.arrival) or nil
+end
+
+-- Son `which` (approach, leave) du mode d'arrivee du marchand du passage, joue au lieu du rendez-vous.
+function Run.playSound(run, which)
+    local mode = type(run) == "table" and modeOf(run.voice) or nil
+    local name = mode and mode.sounds[which]
+    if type(name) ~= "string" or type(run.landing) ~= "table" then return false end
+    play(name, run.landing)
+    return true
+end
+
 -- ================================================================ textes
 
 local reloaded = false
 
--- Texte de la clé Run.KEY .. name dans la langue de cette machine ; serveur MP : traductions des mods rechargées une
--- fois (Translator.loadFiles, base api-42-21.md) ; repli anglais Run.FALLBACK.
-function Run.text(name)
+-- Texte de la cle Run.KEY .. name dans la langue de cette machine ; serveur MP : traductions des mods rechargees une
+-- fois (Translator.loadFiles, base api-42-21.md) ; repli anglais fallback, puis Run.FALLBACK.
+function Run.text(name, fallback)
     local key = Run.KEY .. name
     local value = getTextOrNull and getTextOrNull(key) or nil
     if value == nil and isServer() and not reloaded and Translator and Translator.loadFiles then
@@ -68,10 +91,10 @@ function Run.text(name)
         log("mod translations reloaded on the server")
         value = getTextOrNull(key)
     end
-    return value or Run.FALLBACK[name] or key
+    return value or fallback or Run.FALLBACK[name] or key
 end
 
--- ================================================================ joueurs et équipe
+-- ================================================================ joueurs et equipe
 
 local function players()
     local out = {}
@@ -87,30 +110,30 @@ local function players()
     return out
 end
 
-local function near(x, y)
-    local p = Trade.PIER
-    if type(x) ~= "number" or type(y) ~= "number" then return false end
+local function near(run, x, y)
+    local p = run.landing
+    if type(p) ~= "table" or type(x) ~= "number" or type(y) ~= "number" then return false end
     return (x - p.x) * (x - p.x) + (y - p.y) * (y - p.y) <= Run.RADIUS * Run.RADIUS
 end
 
--- Le joueur est-il un membre vivant de l'équipe du passage, au ponton ?
-local function memberAtPier(player, run)
+-- Le joueur est-il un membre vivant de l'equipe du passage, au lieu du rendez-vous ?
+local function memberAtLanding(player, run)
     if player == nil or (player.isDead and player:isDead()) then return false end
-    if not near(player:getX(), player:getY()) then return false end
+    if not near(run, player:getX(), player:getY()) then return false end
     return Trade.teamOf(Factions.keyOf(player), player) == run.team
 end
 
-local function anyMemberAtPier(run)
+local function anyMemberAtLanding(run)
     for _, p in ipairs(players()) do
-        if memberAtPier(p, run) then return true end
+        if memberAtLanding(p, run) then return true end
     end
     return false
 end
 
--- Lampe allumée tenue en main par un membre de l'équipe au ponton.
-local function lampAtPier(run)
+-- Lampe allumee tenue en main par un membre de l'equipe au lieu du rendez-vous.
+local function lampAtLanding(run)
     for _, p in ipairs(players()) do
-        if memberAtPier(p, run) then
+        if memberAtLanding(p, run) then
             local hands = { p:getPrimaryHandItem(), p:getSecondaryHandItem() }
             for i = 1, 2 do
                 local item = hands[i]
@@ -121,11 +144,11 @@ local function lampAtPier(run)
     return false
 end
 
--- ================================================================ annonces et règles
+-- ================================================================ annonces et regles
 
--- Texte Run.KEY .. name dit sur la fréquence de la voix du passage ; what : objet du message de journal. Rend true si
--- mis en file.
-function Run.say(run, name, what)
+-- Texte Run.KEY .. name dit sur la frequence de la voix du passage ; what : objet du message de journal ; fallback :
+-- repli anglais. Rend true si mis en file.
+function Run.say(run, name, what, fallback)
     what = what or name
     local radio = RS_RadioServer
     local khz = type(radio) == "table" and type(radio.frequency) == "function" and run.voice
@@ -135,21 +158,37 @@ function Run.say(run, name, what)
             .. "' is off the air")
         return false
     end
-    radio.air(khz, { "<fzzt>", Run.text(name), "<szzt>" })
-    log(what .. " of run " .. tostring(run.passage) .. " aired (" .. name .. ")")
+    radio.air(khz, { "<fzzt>", Run.text(name, fallback), "<szzt>" })
+    log(what .. " of run " .. tostring(run.passage) .. " of " .. tostring(run.voice) .. " aired (" .. name .. ")")
     return true
 end
 
--- Annonce d'une annulation sur la fréquence de la voix du passage. Rend true si mise en file.
-function Run.announce(run, reason)
-    return Run.say(run, "Cancel_" .. reason, "cancellation")
+local function causeOf(id, reason)
+    local mode = modeOf(id)
+    for _, cause in ipairs(mode and mode.causes or {}) do
+        if cause.name == reason then return cause end
+    end
+    return nil
 end
 
--- Annule le passage attendu et l'annonce (sauf announce == false). Rend la copie du passage annulé, ou nil.
-function Run.cancel(reason, announce)
-    local run = Trade.cancelRun(reason)
+-- Annonce d'une annulation sur la frequence de la voix du passage. Rend true si mise en file.
+function Run.announce(run, reason)
+    local cause = causeOf(run.voice, reason)
+    return Run.say(run, "Cancel_" .. reason, "cancellation", cause and cause.fallback or nil)
+end
+
+-- Annule le passage attendu du marchand id et l'annonce (sauf announce == false). Rend la copie annulee, ou nil.
+function Run.cancel(id, reason, announce)
+    local run = Trade.cancelRun(id, reason)
     if run and announce ~= false then Run.announce(run, reason) end
     return run
+end
+
+-- Arrivee du marchand au lieu (signal how) : etat arrived et son d'approche. Rend true si le passage etait attendu.
+function Run.arrive(id, how)
+    if not Trade.arrive(id, how) then return false end
+    Run.playSound(Trade.lastRun(id), "approach")
+    return true
 end
 
 local function stormy()
@@ -157,45 +196,48 @@ local function stormy()
     return cm ~= nil and cm:getIsThunderStorming() == true
 end
 
-local function patrolChance(cordon)
-    for i, level in ipairs(Trade.CORDONS) do
-        if level == cordon then return Run.PATROL_CHANCE[i] or 0 end
-    end
-    return 0
+-- Monde vu par les causes d'un mode d'arrivee (contrat : RS_TradeArrivals).
+local function worldOf(id, run, hours)
+    local function patrolRoll() return Trade.patrolRoll(id, run.passage) end
+    return { id = id, run = run, hours = hours, cordonLevel = Trade.cordonLevel(Trade.cordon(id, run.passage)),
+        patrolRoll = patrolRoll, helicopterSince = Trade.helicopterSince, stormy = stormy }
 end
 
--- Règles du passage attendu à l'heure du monde `hours`. Rend la raison d'une annulation, "arrived", ou nil.
-function Run.update(hours)
+-- Regles du passage attendu du marchand id a l'heure `hours`. Rend la raison d'une annulation, "arrived", ou nil.
+function Run.updateTrader(id, hours)
     hours = hours or Trade.worldHours()
-    local run = Trade.lastRun()
-    if run == nil or run.state ~= "booked" or type(run.start) ~= "number" then return nil end
-    local stop = run.start + Trade.WINDOW_HOURS
+    local run = Trade.lastRun(id)
+    local spec, mode = Trade.specOf(id), modeOf(id)
+    if run == nil or run.state ~= "booked" or type(run.start) ~= "number" or not spec or not mode then return nil end
+    local stop = run.start + spec.hours
     if hours >= stop then
-        Run.cancel("late", hours < stop + Run.ANNOUNCE_LATE_HOURS)
+        Run.cancel(id, "late", hours < stop + Run.ANNOUNCE_LATE_HOURS)
         return "late"
     end
     if hours < run.start - Run.WARN_HOURS then return nil end
-    if Trade.patrolRoll(run.passage) < patrolChance(Trade.cordon(run.passage)) then
-        Run.cancel("patrol")
-        return "patrol"
+    local world = worldOf(id, run, hours)
+    for _, cause in ipairs(mode.causes) do
+        if cause.check(world) then
+            Run.cancel(id, cause.name)
+            return cause.name
+        end
     end
-    if Trade.helicopterSince(run.start - Run.HELI_HOURS) then
-        Run.cancel("helicopter")
-        return "helicopter"
+    if hours >= run.start and mode.signals.lamp and lampAtLanding(run) and Run.arrive(id, "lamp") then
+        return "arrived"
     end
-    if stormy() then
-        Run.cancel("storm")
-        return "storm"
-    end
-    if hours >= run.start and lampAtPier(run) and Trade.arrive("lamp") then return "arrived" end
     return nil
+end
+
+-- Regles de tous les marchands.
+function Run.update(hours)
+    for _, id in ipairs(Trade.traderIds()) do Run.updateTrader(id, hours) end
 end
 
 local function onEveryTenMinutes()
     Run.update()
 end
 
--- ================================================================ hélicoptère
+-- ================================================================ helicoptere
 
 function Run.onWorldSound(x, y, z, radius, volume, source)
     if source ~= nil or z ~= 0 or radius ~= 500 or volume ~= 500 then return end
@@ -206,8 +248,7 @@ end
 
 local lib, subscribed = nil, nil
 
--- Module public de Signal Smoke (mod requis), ou nil s'il est inutilisable (installation cassée : erreur au
--- journal). Cherché une fois.
+-- Module public de Signal Smoke (mod requis), ou nil s'il est inutilisable (erreur au journal). Cherche une fois.
 function Run.library()
     if lib == nil then
         local mod = require "SignalSmoke/SignalSmoke"
@@ -232,32 +273,38 @@ local function isColor(color, name)
     return true
 end
 
--- Événement de Signal Smoke : une fusée ou fumée rouge allumée près du ponton pendant la fenêtre, un membre de
--- l'équipe au ponton -> la barque arrive.
-function Run.onSignal(event)
-    if type(event) ~= "table" or event.type ~= "started" or type(event.entry) ~= "table" then return end
-    local run = Trade.lastRun()
-    if run == nil or run.state ~= "booked" or type(run.start) ~= "number" then return end
-    local hours = Trade.worldHours()
-    if hours < run.start or hours >= run.start + Trade.WINDOW_HOURS then return end
-    local e = event.entry
-    if not isColor(e.color, Run.SIGNAL_COLOR) or not near(e.x, e.y) then return end
-    if anyMemberAtPier(run) then Trade.arrive("flare") end
+-- Fusee rouge pour le marchand id : passage attendu, fenetre ouverte, mode qui l'attend, pres du lieu, membre present.
+local function flareFor(id, entry, hours)
+    local run, spec, mode = Trade.lastRun(id), Trade.specOf(id), modeOf(id)
+    if run == nil or run.state ~= "booked" or type(run.start) ~= "number" or not spec or not mode then return end
+    if not mode.signals.flare or hours < run.start or hours >= run.start + spec.hours then return end
+    if not near(run, entry.x, entry.y) or not anyMemberAtLanding(run) then return end
+    Run.arrive(id, "flare")
 end
 
--- ================================================================ réservation
+-- Evenement de Signal Smoke : une fusee ou fumee rouge allumee.
+function Run.onSignal(event)
+    if type(event) ~= "table" or event.type ~= "started" or type(event.entry) ~= "table" then return end
+    if not isColor(event.entry.color, Run.SIGNAL_COLOR) then return end
+    local hours = Trade.worldHours()
+    for _, id in ipairs(Trade.traderIds()) do flareFor(id, event.entry, hours) end
+end
 
--- Trade.onBooked : repère du ponton sur la carte de l'appelant qui a réservé.
+-- ================================================================ reservation
+
+-- Trade.onBooked : repere du lieu du rendez-vous sur la carte de l'appelant qui a reserve.
 function Run.onBooked(run, ctx)
     local player = type(ctx) == "table" and ctx.player or nil
-    if player == nil or type(run) ~= "table" then return end
-    local p = Trade.PIER
+    if player == nil or type(run) ~= "table" or type(run.landing) ~= "table" then return end
+    local p = run.landing
     MapMarks.give(player, ctx.cid, ctx.khz, { x = p.x, y = p.y, z = p.z, label = Run.text("Pier") })
 end
 
--- Abonnements (une fois) : rappel de réservation, horloge, hélicoptère, Signal Smoke.
+-- Racine de composition du troc et abonnements (une fois) : voix chargees, rappel de reservation, horloge,
+-- helicoptere, Signal Smoke.
 local installed = false
 function Run.install()
+    Trade.useVoices(require "RadioSurvivor/RS_Personas")
     Trade.onBooked = Run.onBooked
     local mod = Run.library()
     if mod and subscribed ~= mod then
@@ -270,7 +317,7 @@ function Run.install()
     if Events.OnWorldSound then Events.OnWorldSound.Add(Run.onWorldSound) end
 end
 
--- Bancs : oublie le module Signal Smoke retenu (l'abonnement à un module précédent reste).
+-- Bancs : oublie le module Signal Smoke retenu (l'abonnement a un module precedent reste).
 function Run.resetForTests()
     lib, subscribed = nil, nil
 end

@@ -1334,17 +1334,15 @@ TRADE_STATES = {"open": "standing", "replaced": "replaced by a newer offer", "ex
                 "cancelled": "called off"}
 TRADE_REFUSALS = {"bad_params": "it was badly written", "bad_margin": "your margin was outside your range",
                   "not_in_stock": "you named goods you do not have this run",
-                  "over_stock": "you offered more than what is left", "over_weight": "it was too heavy for the boat",
+                  "over_stock": "you offered more than what is left", "over_weight": "it was too heavy to carry",
                   "over_cap": "it was worth more than you can take on one run", "failed": "it could not be noted",
-                  "booked": "this week's run is booked by another group",
-                  "run_over": "there is no run left this week"}
-# Passage de la semaine (E13-T03, RS_Trade.runContext) : état vu par l'équipe de l'appelant, raison d'une fin.
+                  "booked": "the current run is booked by another group",
+                  "run_over": "there is no run left in this period"}
+# Passage en cours (E13-T03, E20-T07, RS_Trade.runContext) : état vu par l'équipe de l'appelant. Lieu, signal, texte
+# d'arrivée et raison d'une fin sont des textes du serveur (fiche du marchand et mode d'arrivée), sans chiffre : le pont
+# ne connaît ni marchand, ni lieu, ni mode.
 TRADE_RUN_STATUS = ("free", "yours", "taken", "over")
-TRADE_RUN_STATES = {"booked": "booked", "arrived": "the boat is at the pier now"}
-TRADE_RUN_REASONS = {"patrol": "a patrol boat on the river", "helicopter": "a helicopter over the river",
-                     "storm": "a storm on the river", "late": "nobody showed the signal in time",
-                     "done": "the trade is done", "cheated": "they cheated you", "cancelled": "it was called off",
-                     "closed": "it is too late in the week for a night crossing"}
+TRADE_RUN_STATES = ("booked", "arrived")
 TRADE_PLACE_BYTES = 160
 
 
@@ -1418,67 +1416,81 @@ def trade_context(req: dict[str, str], sheet: persona_store.Persona) -> dict | N
     return out
 
 
+def _run_text(value) -> str | None:
+    """Texte du serveur pour le passage (lieu, signal, arrivée, raison) : texte sûr, non vide, sans chiffre ; sinon
+    None."""
+    try:
+        text = npc.safe_text(value, TRADE_PLACE_BYTES)
+    except ValueError:
+        return None
+    if not text or re.search(r"\d", text):
+        return None
+    return text
+
+
 def trade_run(run) -> dict | None:
-    """Passage de la semaine (E13-T03) relu du livre : None s'il est absent ou mal formé ; le lieu (description du
-    serveur, sans chiffre) seulement pour l'équipe qui a réservé."""
+    """Passage en cours (E13-T03, E20-T07) relu du livre : None s'il est absent ou mal formé ; le lieu, le signal et
+    le texte d'arrivée (textes du serveur, sans chiffre) seulement pour l'équipe qui a réservé ; la raison d'une fin
+    (texte du serveur), sinon « it was called off »."""
     if not isinstance(run, dict) or run.get("status") not in TRADE_RUN_STATUS:
         return None
     if not all(_number(run.get(k)) and 0 <= run[k] <= 24 for k in ("from", "to")):
         return None
-    out = {"status": run["status"], "from": int(run["from"]), "to": int(run["to"])}
-    if _number(run.get("days")) and 0 <= run["days"] <= 7 and _number(run.get("inHours")):
+    out = {"status": run["status"], "from": run["from"], "to": run["to"]}
+    if _number(run.get("days")) and 0 <= run["days"] <= 28 and _number(run.get("inHours")):
         out["days"], out["inHours"] = int(run["days"]), run["inHours"]
     if out["status"] == "yours":
-        if run.get("state") not in TRADE_RUN_STATES or "days" not in out:
+        place, signal = _run_text(run.get("place")), _run_text(run.get("signal"))
+        if run.get("state") not in TRADE_RUN_STATES or "days" not in out or not place or not signal:
             return None
-        try:
-            place = npc.safe_text(run.get("place"), TRADE_PLACE_BYTES)
-        except ValueError:
-            return None
-        if not place or re.search(r"\d", place):
-            return None
-        out["state"], out["place"] = run["state"], place
+        out["state"], out["place"], out["signal"] = run["state"], place, signal
+        if run["state"] == "arrived":
+            out["arrived"] = _run_text(run.get("arrived")) or "you are at the landing now"
     elif out["status"] == "over":
-        out["reason"] = run.get("reason") if run.get("reason") in TRADE_RUN_REASONS else "cancelled"
+        out["reason"] = _run_text(run.get("reason")) or "it was called off"
     elif out["status"] == "free" and "days" not in out:
         return None
     return out
 
 
+def _clock(hours) -> str:
+    """Heure du jeu HH:MM d'une heure décimale du serveur (1.5 -> 01:30)."""
+    minutes = int(round(float(hours) * 60)) % 1440
+    return f"{minutes // 60:02d}:{minutes % 60:02d}"
+
+
 def _run_when(run: dict) -> str:
-    """Nuit du rendez-vous en mots : heures de la fenêtre, jours de calendrier jusqu'à elle."""
-    window = f"between {run['from']:02d}:00 and {run['to']:02d}:00 in the morning"
+    """Rendez-vous en mots : heures de la fenêtre, jours de calendrier jusqu'à elle."""
+    window = f"between {_clock(run['from'])} and {_clock(run['to'])}"
     if run["inHours"] <= 0:
         return f"right now, {window}"
     if run["days"] == 0:
-        return f"tonight, {window}"
+        return f"today, {window}"
     if run["days"] == 1:
-        return f"the coming night, {window} (after midnight)"
+        return f"tomorrow, {window}"
     return f"in {run['days']} days, {window}"
 
 
 def trade_run_lines(run: dict | None, tag: str) -> list[str]:
-    """Lignes du prompt sur le passage de la semaine (E13-T03) ; [] sans passage."""
+    """Lignes du prompt sur le passage en cours (E13-T03, E20-T07) ; [] sans passage."""
     if not run:
         return []
     if run["status"] == "free":
-        return [f"- This week's run is not booked yet; one run a week for the whole county. Your first firm offer "
-                f"books it for the group of {tag}: the meeting would be {_run_when(run)}, at a landing you name only "
-                "once it is booked."]
+        return [f"- The current run is not booked yet; one run per period for the whole county. Your first firm "
+                f"offer books it for the group of {tag}: the meeting would be {_run_when(run)}, at a landing you name "
+                "only once it is booked."]
     if run["status"] == "taken":
-        return ["- This week's run is already booked by another group: make no offer; tell the caller to call "
-                "again next week."]
+        return ["- The current run is already booked by another group: make no offer; tell the caller to call "
+                "again for the next run."]
     if run["status"] == "over":
-        return [f"- This week's run is over ({TRADE_RUN_REASONS[run['reason']]}): make no offer; the next run is "
-                "next week."]
-    lines = [f"- This week's run is booked by the group of {tag}. Meeting: {run['place']}, {_run_when(run)}. "
-             "Signal: a red flare or a lit lamp held up on the pier, then you come alongside; nobody there by "
-             f"{run['to']:02d}:00 and you leave. The other side has marked the landing on their map. Tell them this "
-             "plainly when they ask.",
-             "- No contact: they leave their goods in a bag on the pier, step back, and find your goods in the same "
-             "spot."]
+        return [f"- The current run is over ({run['reason']}): make no offer; there will be a next run."]
+    lines = [f"- The current run is booked by the group of {tag}. Meeting: {run['place']}, {_run_when(run)}. "
+             f"Signal: {run['signal']}; nobody there by {_clock(run['to'])} and you leave. The other side has "
+             "marked the landing on their map. Tell them this plainly when they ask.",
+             "- No contact: they leave their goods in a bag at the landing, go far away out of sight for a while, "
+             "and find your goods in the same spot when they come back."]
     if run["state"] == "arrived":
-        lines.append(f"- {TRADE_RUN_STATES['arrived'].capitalize()}: they gave the signal.")
+        lines.append(f"- {run['arrived'][:1].upper()}{run['arrived'][1:]}: they gave the signal.")
     return lines
 
 
@@ -1493,7 +1505,7 @@ def trade_prompt(trade: dict | None, tag: str) -> str:
              f"- Your margin with {tag}: from {_fmt(trade['marginMin'])} to {_fmt(trade['marginMax'])} (lower for "
              "honest regulars, the highest after cheating).",
              "- Price of each line you bring: value x quantity x (1 + margin) x risk, rounded up; the risk is "
-             f"x{_fmt(trade['cordon'])} this week, a quarter more for goods you have only one of. The other side "
+             f"x{_fmt(trade['cordon'])} this run, a quarter more for goods you have only one of. The other side "
              "counts the exact price."]
     if trade["stock"]:
         lines.append(f"- What you bring and can still offer {tag} this run, a new offer replacing their standing one "

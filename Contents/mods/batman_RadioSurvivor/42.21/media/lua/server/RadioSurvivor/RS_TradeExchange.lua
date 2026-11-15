@@ -1,28 +1,28 @@
--- Radio Survivor : échange sans contact sur la berge (E13-T04). Fiche : docs/annexes/conception/passeur-echange.md ; barème
--- docs/specifications-techniques/passeur-table.md (sections 1 et 2), code shared/RadioSurvivorCore/RC_TradeValues.lua. Autorité
--- seulement (serveur MP, jeu local en solo).
+-- Radio Survivor : échange sans contact au lieu du rendez-vous (E13-T04 ; E20-T07 : un passage par marchand, règle
+-- hors de vue et délai de jeu d'E20-T05, ADR D06/D07). Fiche : docs/annexes/conception/passeur-echange.md ; barème
+-- docs/specifications-techniques/passeur-table.md (sections 1 et 2), code shared/RadioSurvivorCore/RC_TradeValues.lua.
+-- Autorité seulement (serveur MP, jeu local en solo).
 --
--- Après le signal (RS_TradeRun : state arrived), le joueur dépose un sac au ponton (DROP_RADIUS cases autour de
--- Trade.PIER) et s'éloigne. Sondage à chaque minute de jeu (EveryOneMinute) tant que la barque attend :
--- - personne (aucun joueur vivant, quelle que soit son équipe) à moins de AWAY_RADIUS cases du ponton, case du ponton
---   chargée, au moins un sac (InventoryContainer posé au sol) dans la zone : le passeur passe. Il évalue le contenu de
---   chaque sac (premier niveau ; un portefeuille avec son contenu) au barème, avec les conditions et les plafonds de
---   la table, et prend dans l'ordre du sac ce qui couvre le prix de l'offre figée du passage (Trade.offerOf) ;
--- - assez : les objets pris sont retirés du sac (DoRemoveItem + sendRemoveItemFromContainer), la contrepartie de
---   l'offre est créée dans le même sac (instanceItem, journal du dehors par RS_OutsideNewsServer.create, marque
---   ModData MARK = révision de l'offre, AddItem + sendAddItemToContainer), puis le passage est clos « done »
---   (Trade.finishRun) et l'état privé écrit aussitôt (RS_State.save). Tout se fait dans un seul appel Lua : un joueur
---   qui revient ne peut rien interrompre, et le passage clos n'est plus sondé (contrepartie posée une seule fois) ;
--- - pas assez (sac de valeur positive mais inférieure au prix) : tricherie, rien n'est pris ni donné, passage clos
---   « cheated » (marge du passeur au plus haut, RS_Trade) et fait de réputation trade.cheated appliqué une fois au
---   personnage du carnet de l'appelant (RS_Reputation.record, réputation interne E04-T08 ; un appelant sans
---   personnage du carnet : fait noté sans effet) ;
--- - sac sans rien que le passeur prenne : ignoré (pas de tricherie) ;
--- - rien d'utile au bout de EXCHANGE_HOURS heures de jeu après l'arrivée : le passeur repart, passage annulé
+-- Après le signal (RS_TradeRun : state arrived), le joueur dépose un sac au lieu du rendez-vous (DROP_RADIUS cases
+-- autour du lieu du passage) et s'éloigne. Sondage à chaque minute de jeu (EveryOneMinute), pour chaque marchand dont
+-- le passage est arrivé :
+-- - reprise : un sac du lieu (case chargée) qui contient déjà un objet marqué de la révision du passage prouve que
+--   l'échange a été appliqué au monde sans que l'état soit écrit : passage clos « done » sans rien reposer ;
+-- - le marchand ne passe que hors de vue de tout joueur (RS_OutOfSight : personne à moins de VIEW_TILES cases sur
+--   chaque axe, ou case déchargée) depuis delay_hours heures de jeu (fiche, sinon DELAY_HOURS) ; un joueur revenu à
+--   portée remet l'attente à zéro. Délai écoulé : l'échange est dû (Trade.watchLanding) et se fait au premier
+--   sondage où la case est chargée (un joueur qui revient la charge avant de la voir) ;
+-- - jamais tranquille WAIT_HOURS heures après son arrivée : le marchand repart (« no_drop ») ;
+-- - échange dû : il évalue le contenu de chaque sac (premier niveau ; un portefeuille avec son contenu) au barème et
+--   prend dans l'ordre du sac ce qui couvre le prix de l'offre figée du passage. Assez : objets pris retirés
+--   (DoRemoveItem + sendRemoveItemFromContainer), contrepartie créée dans le même sac (instanceItem, journal du dehors
+--   de l'édition en cours par RS_OutsideNewsServer.create, marque ModData MARK = révision, AddItem +
+--   sendAddItemToContainer), passage clos « done », état écrit aussitôt (RS_State.save), le tout dans un seul appel
+--   Lua ; pas assez : tricherie, rien n'est pris ni donné, passage clos « cheated » (marge au plus haut) et fait de
+--   réputation trade.cheated au personnage du carnet de l'appelant ; aucun sac de valeur : le marchand repart
 --   (« no_drop »).
--- Reprise : un sac de la zone qui contient déjà un objet marqué de la révision du passage prouve que l'échange a été
--- appliqué au monde sans que l'état soit écrit : passage clos « done » sans rien reposer.
--- Chaque issue est dite à la radio sur la fréquence de la voix du passage (RS_TradeRun.say, texte traduit).
+-- Chaque issue est dite à la radio sur la fréquence de la voix du passage (RS_TradeRun.say) et le son de départ du
+-- mode d'arrivée est joué au lieu (RS_TradeRun.playSound).
 -- Messages de journal en anglais ; aucune coordonnée diffusée. Code ASCII seulement.
 if isClient() then return end
 
@@ -35,12 +35,13 @@ local TV = require "RadioSurvivorCore/RC_TradeValues"
 local News = require "RadioSurvivor/RS_OutsideNews"
 local NewsServer = require "RadioSurvivor/RS_OutsideNewsServer"
 local Rep = require "RadioSurvivorCore/RC_Reputation"
+local OutOfSight = require "RadioSurvivor/RS_OutOfSight"
 
 local Ex = {}
 
-Ex.DROP_RADIUS = 3             -- cases autour de Trade.PIER où le sac est cherché (le ponton fait 2 x 6 cases)
-Ex.AWAY_RADIUS = 20            -- personne à moins de 20 cases : le passeur accoste
-Ex.EXCHANGE_HOURS = 2          -- heures de jeu d'attente après l'arrivée de la barque
+Ex.DROP_RADIUS = 3             -- cases autour du lieu du rendez-vous où le sac est cherché
+Ex.DELAY_HOURS = 1             -- heures de jeu hors de vue avant l'échange, sauf delay_hours de la fiche
+Ex.WAIT_HOURS = 12             -- jamais tranquille 12 heures de jeu après son arrivée : le marchand repart
 Ex.CAP_POINTS = 120            -- points pris au plus par passage (section 1)
 Ex.CAP_KG = 20                 -- poids pris au plus (place dans la barque, section 1)
 Ex.MARK = "RS_TradeGiven"      -- ModData de la contrepartie : révision de l'offre
@@ -51,6 +52,11 @@ Ex.EMPTY = { ["Base.Bag_ALICEpack_Army"] = true }             -- sac militaire p
 Ex.WALLETS = { ["Base.Wallet"] = true, ["Base.Wallet_Male"] = true, ["Base.Wallet_Female"] = true }
 
 local function log(msg) Const.log("trade exchange: " .. msg) end
+
+local sight = OutOfSight.engine()
+
+-- Composition : règle hors de vue (les bancs ou un autre moteur injectent la leur).
+function Ex.useSight(watcher) sight = watcher end
 
 -- ================================================================ joueurs
 
@@ -66,19 +72,6 @@ local function players()
         if p then out[1] = p end
     end
     return out
-end
-
--- Un joueur vivant à moins de AWAY_RADIUS cases du ponton ?
-function Ex.anyoneNear()
-    local p = Trade.PIER
-    local r2 = Ex.AWAY_RADIUS * Ex.AWAY_RADIUS
-    for _, pl in ipairs(players()) do
-        if pl and not (pl.isDead and pl:isDead()) then
-            local dx, dy = pl:getX() - p.x, pl:getY() - p.y
-            if dx * dx + dy * dy <= r2 then return true end
-        end
-    end
-    return false
 end
 
 -- « Prénom Nom » des personnages des joueurs en ligne (papiers à leur nom refusés).
@@ -269,7 +262,11 @@ function Ex.apply(bag, taken, offer, mark)
     for _, l in ipairs(offer.lines or {}) do
         for _ = 1, l.q do
             local item
-            if l.t == News.FULL_TYPE then item = NewsServer.create(offer.passage) else item = instanceItem(l.t) end
+            if l.t == News.FULL_TYPE then
+                item = NewsServer.create(News.currentEdition())
+            else
+                item = instanceItem(l.t)
+            end
             if item then
                 item:getModData()[Ex.MARK] = mark
                 inv:AddItem(item)
@@ -289,9 +286,10 @@ local function save()
     if S.data and not S.blocked and type(S.save) == "function" then S.save() end
 end
 
--- Clôt le passage arrivé (Trade.finishRun), écrit l'état, dit l'issue à la radio (say : nom du texte, facultatif).
-local function finish(outcome, reason, detail, say)
-    local run = Trade.finishRun(outcome, reason, detail)
+-- Clôt le passage arrivé du marchand id (Trade.finishRun), écrit l'état, dit l'issue à la radio (say : nom du texte,
+-- facultatif) et joue le son de départ du mode d'arrivée (sauf reprise : le marchand est déjà loin).
+local function finish(id, outcome, reason, detail, say)
+    local run = Trade.finishRun(id, outcome, reason, detail)
     if run == nil then return nil end
     if outcome == "cheated" and type(S.data) == "table" then
         local who = run.cid or run.caller
@@ -302,33 +300,20 @@ local function finish(outcome, reason, detail, say)
     end
     save()
     if say then Run.say(run, say, "exchange") end
+    if reason ~= "recovered" then Run.playSound(run, "leave") end
     return run
 end
 
--- Sondage du passage dont la barque attend, à l'heure du monde hours. Rend l'issue (done, cheated, no_drop,
--- no_offer) ou nil (rien à faire, ou attente).
-function Ex.update(hours)
-    hours = hours or Trade.worldHours()
-    local run = Trade.lastRun()
-    if run == nil or run.state ~= "arrived" then return nil end
-    local p = Trade.PIER
-    local bags = Ex.bagsIn(p.x, p.y, p.z, Ex.DROP_RADIUS)
-    for _, bag in ipairs(bags or {}) do
-        if Ex.hasMark(bag, run.rev) then
-            log("run " .. tostring(run.passage) .. ": counterpart of offer " .. tostring(run.rev)
-                .. " already in a bag, exchange recovered")
-            finish("done", "recovered")
-            return "done"
-        end
-    end
-    if hours >= (run.arrivedAt or hours) + Ex.EXCHANGE_HOURS then
-        finish("cancelled", "no_drop", nil, "Cancel_nodrop")
-        return "no_drop"
-    end
-    if bags == nil or #bags == 0 or Ex.anyoneNear() then return nil end
-    local offer = Trade.offerOf(run.caller, run.cid)
+local function delayOf(id)
+    local spec = Trade.specOf(id)
+    return spec and spec.delayHours or Ex.DELAY_HOURS
+end
+
+-- Échange dû au lieu chargé : le meilleur sac évalué, issue appliquée. Rend l'issue.
+local function exchange(id, run, bags)
+    local offer = Trade.offerOf(id, run.caller, run.cid)
     if offer == nil or offer.rev ~= run.rev or offer.state ~= "open" then
-        finish("cancelled", "no_offer")
+        finish(id, "cancelled", "no_offer")
         return "no_offer"
     end
     local names = Ex.playerNames()
@@ -337,20 +322,56 @@ function Ex.update(hours)
         local res = Ex.appraise(Ex.itemsOf(bag), names, offer.price)
         if bestRes == nil or res.value > bestRes.value then best, bestRes = bag, res end
     end
-    if bestRes.value <= 0 then return nil end      -- rien que le passeur prenne : pas un échange
+    if bestRes == nil or bestRes.value <= 0 then
+        finish(id, "cancelled", "no_drop", nil, "Cancel_nodrop")
+        return "no_drop"
+    end
     local detail = { value = bestRes.value, price = offer.price, took = #bestRes.taken, bag = best:getID() }
     if bestRes.value < offer.price then
-        log("run " .. tostring(run.passage) .. ": bag " .. tostring(detail.bag) .. " worth " .. bestRes.value
-            .. " points for a price of " .. offer.price .. ", refused")
-        finish("cheated", "cheated", detail, "Cheated")
+        log("run " .. tostring(run.passage) .. " of " .. tostring(id) .. ": bag " .. tostring(detail.bag) .. " worth "
+            .. bestRes.value .. " points for a price of " .. offer.price .. ", refused")
+        finish(id, "cheated", "cheated", detail, "Cheated")
         return "cheated"
     end
     local given = Ex.apply(best, bestRes.taken, offer, run.rev)
     detail.given = #given
-    log("run " .. tostring(run.passage) .. ": took " .. #bestRes.taken .. " items worth " .. bestRes.value
-        .. " points from bag " .. tostring(detail.bag) .. ", gave " .. #given .. " items for " .. offer.price)
-    finish("done", "done", detail, "Done")
+    log("run " .. tostring(run.passage) .. " of " .. tostring(id) .. ": took " .. #bestRes.taken .. " items worth "
+        .. bestRes.value .. " points from bag " .. tostring(detail.bag) .. ", gave " .. #given .. " items for "
+        .. offer.price)
+    finish(id, "done", "done", detail, "Done")
     return "done"
+end
+
+-- Sondage du passage arrivé du marchand id à l'heure du monde hours. Rend l'issue (done, cheated, no_drop, no_offer)
+-- ou nil (rien à faire, ou attente).
+function Ex.updateTrader(id, hours)
+    hours = hours or Trade.worldHours()
+    local run = Trade.lastRun(id)
+    if run == nil or run.state ~= "arrived" or type(run.landing) ~= "table" then return nil end
+    local p = run.landing
+    local bags = Ex.bagsIn(p.x, p.y, p.z, Ex.DROP_RADIUS)
+    for _, bag in ipairs(bags or {}) do
+        if Ex.hasMark(bag, run.rev) then
+            log("run " .. tostring(run.passage) .. " of " .. tostring(id) .. ": counterpart of offer "
+                .. tostring(run.rev) .. " already in a bag, exchange recovered")
+            finish(id, "done", "recovered")
+            return "done"
+        end
+    end
+    if not Trade.watchLanding(id, sight, delayOf(id)) then
+        if hours >= (run.arrivedAt or hours) + Ex.WAIT_HOURS then
+            finish(id, "cancelled", "no_drop", nil, "Cancel_nodrop")
+            return "no_drop"
+        end
+        return nil
+    end
+    if bags == nil then return nil end              -- dû, case déchargée : au retour d'un joueur
+    return exchange(id, run, bags)
+end
+
+-- Sondage de tous les marchands.
+function Ex.update(hours)
+    for _, id in ipairs(Trade.traderIds()) do Ex.updateTrader(id, hours) end
 end
 
 local function onEveryOneMinute()

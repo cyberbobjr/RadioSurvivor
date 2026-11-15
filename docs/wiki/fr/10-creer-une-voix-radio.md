@@ -205,9 +205,9 @@ use=mark,target
 - `mark` : un **repère** qu'elle peut vous donner (`mark_map`, `reveal_area`, repère offert à la fin d'une mission
   sans section `[rewards]`). L'IA ne voit que l'id et le libellé de ces lieux.
 - `target` : un **objectif** de mission (`target=` d'une section `[mission]`).
-- `drop` : une **planque**. Une mission `deliver` les propose toutes à la fois (ou celles de `drops=`) ; une récompense `cache` est
+- `drop` : une **planque**. Une mission `deliver` ou `retrieve` les propose toutes à la fois (ou celles de `drops=`) ; une récompense `cache` est
   posée au premier lieu `drop` de la fiche (à défaut, à son premier lieu).
-- `landing` : un rendez-vous de marchand (réservé au troc, sans effet pour l'instant).
+- `landing` : un rendez-vous de marchand (clé `landing` de la section `[trade]`, voir « Troc »).
 
 ### Actions
 
@@ -277,7 +277,7 @@ Toujours permise, même si vous ne l'écrivez pas. La voix vous répond à la ra
   (signal Signal Smoke). Le serveur vérifie chaque objectif ; une mission par joueur et voix. Sans aucune section
   `[mission]`, seul `scout` est permis. Détail des clés : [Missions, récompenses et objets](#missions-récompenses-et-objets).
 - **Il faut :** que le joueur ait le carnet. Le bâtiment est choisi par le serveur, jamais par l'IA ; une mission
-  `deliver` demande au moins un lieu `use=drop`.
+  `deliver` ou `retrieve` demande au moins un lieu `use=drop`.
 - **Récompense :** réputation et une récompense de la section `[rewards]`. L'IA ne choisit ni récompense ni contenu.
   Sans section `[rewards]`, la voix vous offre le repère d'un de ses lieux `use=mark`.
 - Une cache contient des objets réels de sa catégorie, au premier lieu `use=drop` ; une seule par mission, pose
@@ -298,6 +298,8 @@ Toujours permise, même si vous ne l'écrivez pas. La voix vous répond à la ra
 Une mission de dépôt d'une voix propose **toutes ses planques à la fois** (clé `drops=` de sa section ; sans elle, tous les lieux `use=drop` de la fiche), chacune entourée sur votre carte avec son nom. Déposez où vous voulez : les objets laissés à plusieurs planques s'additionnent jusqu'à la quantité demandée. À chaque planque, le serveur désigne une boîte existante adaptée (une mission sur deux) ou, à défaut, demande un sac au sol. La voix ne ramasse une planque que **hors de vue de tout le monde** (aucun joueur à moins de 100 cases en x comme en y, quel que soit l'étage, ou la case déchargée) **et après environ 6 heures de jeu** (`collect_hours=` de la section `[mission]`). Le délai suit l'horloge du jeu : il s'arrête en pause, va plus vite en vitesse accélérée ou pendant le sommeil, et ne compte pas serveur arrêté. Un joueur revenu en vue avant la fin remet le délai à zéro. Une planque dont le délai s'est écoulé pendant que sa case était déchargée est vidée dès que la case se charge de nouveau.
 
 Dans une boîte, seuls les objets demandés disparaissent, jamais plus que la quantité restante : boîte, autres objets et surplus restent. Pour un sac, sac et contenu disparaissent ; un sac qui contient des objets étrangers au lot, ou plus que la quantité restante, est refusé pour éviter leur perte. Chaque objet n'est compté qu'une fois, même après un redémarrage. Avant la collecte, vous pouvez reprendre le dépôt et rien n'est validé. **Une fois toute la quantité collectée seulement, rendez compte à la radio**. Validation en jeu solo et MP de cette collecte : **en attente**.
+
+**Papiers à retrouver pour une voix.** La carte d'identité prise sur le corps ne se remet pas à la radio : déposez-la à l'une des planques de la mission, marquées sur votre carte comme pour un dépôt (dans la boîte désignée, ou seule dans un sac au sol). La voix la ramasse avec la même règle, hors de vue et après le délai (`collect_hours=` de la section `[mission]`) ; seule la carte de ce corps est prise, une autre carte d'identité reste sur place. **Une fois la carte ramassée seulement, rendez compte à la radio** : le compte rendu ne retire rien de votre inventaire. Validation en jeu MP : **en attente**.
 
 #### Missions, récompenses et objets
 
@@ -331,7 +333,7 @@ pool=cache:medical:3, cache:snacks:1, frequency:1, stashmap:1, lesson:Doctor:2
 | `story` | La raison que donne la voix. |
 | `drops` | Planques de la mission, toutes proposées au joueur : `any` (tous les lieux `use=drop`, comme sans la clé) ou une liste d'ids de lieux `use=drop`. |
 | `target` | Lieu objectif, un lieu `use=target`. |
-| autres | Les paramètres propres au type : `deliver` accepte `items` (une catégorie d'objets), `quantity` (`4` ou `2-4`) et `collect_hours` (heures de jeu avant le ramassage d'une planque, 6 par défaut). |
+| autres | Les paramètres propres au type : `deliver` accepte `items` (une catégorie d'objets), `quantity` (`4` ou `2-4`) et `collect_hours` (heures de jeu avant le ramassage d'une planque, 6 par défaut) ; `retrieve` accepte `collect_hours` (la carte d'identité se dépose à une planque). |
 
 Les clés `weight`, `after`, `story`, `drops`, `target` et les paramètres de `deliver` sont **lus et vérifiés dès
 maintenant** ; `drops` et `collect_hours` servent déjà, les autres serviront au fil des prochaines versions (tirage
@@ -363,11 +365,70 @@ catégorie inconnue ou un poids invalide fait refuser la fiche par le serveur, a
 `console.txt` (la dernière version valide de la voix reste en service). `persona_store.py` ne lit que l'en-tête, les
 lieux et le prompt : il ne voit pas ces erreurs. Validation solo et MP des récompenses **en attente**.
 
+#### Troc — `propose_trade` et section `[trade]`
+
+Une voix **marchande** vend un stock à la radio et livre au cours d'un **passage** : rendez-vous à un lieu, la nuit
+ou à l'heure de la fiche, échange sans contact. Ajoutez `propose_trade` à `actions` **et** une section `[trade]` :
+l'une sans l'autre est refusée.
+
+| Clé | À quoi ça sert |
+|---|---|
+| `landing` | Lieu(x) du rendez-vous, chacun `use=landing` ; son libellé est le seul nom de rendez-vous que la voix donne, et seulement au groupe qui a réservé. |
+| `arrival` | Comment le marchand arrive : `boat` (barque qui accoste ; le joueur montre une lampe allumée en main ou une fusée rouge sur place pendant la fenêtre). |
+| `every_days` | Un passage tous les N jours de jeu (1 à 28). |
+| `hours` | Fenêtre du rendez-vous, `HH:MM-HH:MM`. |
+| `delay_hours` | Facultatif : heures de jeu où personne ne doit voir le lieu avant l'échange (1 par défaut). |
+| `margin` | Facultatif : marge la plus basse et la plus haute (`0.10-0.50` par défaut). |
+| `item` | Un objet apporté par ligne : `Module.Type:quantité:poids en kg` ; quantité tirée à chaque passage (`4`, `2-6`) ou nom d'un groupe. |
+| `group` | Facultatif : `nom:total[:sortes]`, un total tiré parmi les objets du groupe (`seeds:3-8:4` : 3 à 8 sachets, 4 sortes au plus). |
+
+Chaque marchand a son propre stock, sa propre réservation et ses propres affaires : deux marchands réservés la même
+semaine ne se gênent pas. La première offre ferme d'un passage le réserve pour le groupe de l'appelant ; le lieu est
+alors marqué sur sa carte. Après le signal, le joueur pose un sac à moins de 3 cases du lieu et s'en va : le marchand
+ne passe qu'une fois **personne à moins de 100 cases** (en x comme en y) **depuis `delay_hours` heures de jeu**, puis
+laisse sa marchandise dans le même sac. Une barque peut être annulée par une patrouille, un hélicoptère entendu ou un
+orage : la voix l'annonce sur sa fréquence. Le barème de ce que prend un marchand est celui du passeur
+(`docs/specifications-techniques/passeur-table.md`).
+
+```ini
+format=1
+id=ada
+name=Ada Pruitt
+frequency_range=60.0-64.8
+listen=21:00-02:00
+actions=say,propose_trade
+budget=3
+
+# Coordonnées d'exemple (le ponton de Gus) : relevez celles de votre lieu sur la carte.
+[place ferry]
+at=6041,5217,0
+label=Old ferry landing
+use=landing
+
+[trade]
+landing=ferry
+arrival=boat
+every_days=7
+hours=01:00-03:00
+delay_hours=2
+item=Base.Battery:2-6:0.1
+item=Base.Coffee2:1-2:1.0
+group=smokes:1-3
+item=Base.CigarettePack:smokes:0.2
+item=Base.CigaretteCarton:smokes:2.0
+
+[prompt]
+You are Ada Pruitt, 61, who runs an old ferry boat on the Ohio and trades with people inside the Knox Exclusion Zone.
+Your trade book is the only truth about your stock, your prices and your run; give the landing, the night and the
+signal only to the group whose run is booked, exactly as written in your book.
+Stay in character. Radio style: 1 to 3 short sentences, end each transmission with "Over.".
+Answer in the same language the caller uses.
+```
+
 #### Actions à ne pas ajouter
 
 | Mot-clé | Pourquoi |
 |---|---|
-| `propose_trade` | Le troc du passeur Gus : il vend le stock de **son** bateau et fixe un rendez-vous à **son** ponton. Une autre voix vendrait le bateau de Gus. |
 | `place_cache` | Réservée aux missions de récupération du carnet ; ne se règle pas dans une fiche. |
 | `signal`, `place_scene` | Prévues mais sans effet pour l'instant : toujours refusées. |
 
@@ -524,7 +585,7 @@ Rules:
 *Exemple de fan, personnage appartenant à ses ayants droit.*
 Un ancien shérif adjoint qui a perdu sa femme et son fils dans l'évacuation et traverse Knox County pour les
 retrouver, méfiant mais juste. Plage 50.0-64.8 MHz (talkies 2 à 5, radios HAM, poste militaire) ; toutes les actions
-qui ont un effet, sauf `propose_trade`, qui appartient au passage de Gus.
+qui ont un effet, sauf `propose_trade`, qui demande une section `[trade]` (voir « Troc »).
 
 <details>
 <summary><code>personas/rick.txt</code></summary>

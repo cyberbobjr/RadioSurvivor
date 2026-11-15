@@ -102,6 +102,52 @@ CASES: list[tuple[str, str, tuple[int, str] | None]] = [
      (15, "unknown key 'weight' in [category snacks]")),
 ]
 
+# E20-T07 : section [trade] (troc de la voix). TRADE_HEAD : lignes 1 à 9 ; trade(body) : en-tête ligne 10, première clé
+# ligne 11 ; TRADE_OK : lignes 11 à 15.
+TRADE_HEAD = HEAD + 'actions=say,propose_trade\n[place dock]\nat=1,2,0\nlabel=Old dock\nuse=landing\n'
+TRADE_OK = 'landing=dock\narrival=boat\nevery_days=7\nhours=01:00-03:00\nitem=Base.Battery:1-2:0.1\n'
+
+
+def trade(body: str) -> str:
+    return TRADE_HEAD + '[trade]\n' + body + PROMPT
+
+
+CASES += [
+    ('trade section', trade(TRADE_OK), None),
+    ('trade with groups, delay and margin',
+     trade(TRADE_OK + 'group=seeds:3-8:2\nitem=Base.CornBagSeed:seeds:0.1\nitem=Base.KaleBagSeed:seeds:0.1\n'
+           'delay_hours=2.5\nmargin=0.2-0.4\n'), None),
+    ('propose_trade without trade', HEAD + 'actions=say,propose_trade\n' + PROMPT,
+     (5, 'action propose_trade needs a [trade] section')),
+    ('trade without propose_trade', HEAD + '[place dock]\nat=1,2,0\nlabel=Old dock\nuse=landing\n[trade]\n' + TRADE_OK
+     + PROMPT, (9, 'section [trade] needs the action propose_trade')),
+    ('trade without landing', trade('arrival=boat\nevery_days=7\nhours=01:00-03:00\nitem=Base.Battery:1:0.1\n'),
+     (10, "missing key 'landing' in [trade]")),
+    ('landing to an absent place', trade(TRADE_OK.replace('landing=dock', 'landing=ghost')),
+     (11, "unknown place 'ghost'")),
+    ('landing to a place without use=landing',
+     HEAD + 'actions=say,propose_trade\n[place mill]\nat=1,2,0\nlabel=Mill\nuse=mark\n[trade]\n'
+     + TRADE_OK.replace('landing=dock', 'landing=mill') + PROMPT, (11, "place 'mill' has no use=landing")),
+    ('unknown arrival', trade(TRADE_OK.replace('arrival=boat', 'arrival=zeppelin')),
+     (12, "unknown arrival 'zeppelin' (expected boat)")),
+    ('bad every_days', trade(TRADE_OK.replace('every_days=7', 'every_days=0')),
+     (13, "bad every_days '0' (whole number from 1 to 28)")),
+    ('bad trade hours', trade(TRADE_OK.replace('hours=01:00-03:00', 'hours=1-3')),
+     (14, "bad trade hours '1-3' (one HH:MM-HH:MM range of the meeting, e.g. 01:00-03:00)")),
+    ('empty trade hours', trade(TRADE_OK.replace('hours=01:00-03:00', 'hours=02:00-02:00')),
+     (14, "empty trade hours '02:00-02:00'")),
+    ('bad trade item', trade(TRADE_OK.replace('item=Base.Battery:1-2:0.1', 'item=Battery:2')),
+     (15, "bad trade item 'Battery:2' (Module.Type:quantity:kg, e.g. Base.Battery:4-12:0.1)")),
+    ('bad trade item weight', trade(TRADE_OK.replace('item=Base.Battery:1-2:0.1', 'item=Base.Battery:2:heavy')),
+     (15, "bad item weight 'heavy' (number from 0 to 50, two decimals at most)")),
+    ('duplicate trade item', trade(TRADE_OK + 'item=Base.Battery:1:0.1\n'), (16, "duplicate trade item 'Battery'")),
+    ('unknown trade group', trade(TRADE_OK + 'item=Base.CornBagSeed:seeds:0.1\n'), (16, "unknown trade group 'seeds'")),
+    ('trade group without item', trade(TRADE_OK + 'group=seeds:1-2\n'), (16, "trade group 'seeds' has no item")),
+    ('bad trade margin', trade(TRADE_OK + 'margin=0.6-0.2\n'),
+     (16, "bad margin '0.6-0.2' (lowest-highest from 0 to 1, e.g. 0.10-0.50)")),
+    ('unknown key in trade', trade(TRADE_OK + 'colour=red\n'), (16, "unknown key 'colour' in [trade]")),
+]
+
 # Faux type de mission du banc : chaque genre de paramètre, déclaré par le gabarit seul.
 FAKE_TEMPLATE = r'''
 require('RadioSurvivorCore/RC_Missions').register('watchtower', {voiceName = 'watch_tower',
@@ -265,7 +311,11 @@ class DeliveredSheetsTests(unittest.TestCase):
         for vid in ('walt', 'gus', 'nightowl', 'whitaker'):
             with self.subTest(vid):
                 s = self.sheets[vid]
-                self.assertEqual((lua_items(s.missions), lua_items(s.rewards), lua_items(s.places)), ([], [], []))
+                # E20-T07 : Gus n'a qu'un lieu, son ponton de rendez-vous (use=landing), et sa section [trade].
+                places = [(p.id, tuple(lua_items(p.uses))) for p in lua_items(s.places)]
+                self.assertEqual((lua_items(s.missions), lua_items(s.rewards), places),
+                                 ([], [], [('riverside_pier', ('landing',))] if vid == 'gus' else []))
+                self.assertEqual(s.trade is not None, vid == 'gus')
 
 
 class WikiExamplesTests(unittest.TestCase):

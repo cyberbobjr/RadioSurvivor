@@ -34,8 +34,12 @@ TEMPLATE_MODULES = ('RadioSurvivorCore/RC_MissionScout', 'RadioSurvivorCore/RC_M
 # Natures de récompense qui s'inscrivent dans RS_Rewards (E20-T04 : un fichier par nature, server/RadioSurvivor/Rewards/).
 REWARD_KIND_MODULES = tuple(f'RadioSurvivor/Rewards/{p.stem}' for p in sorted(
     (LUA / 'server/RadioSurvivor/Rewards').glob('*.lua'), key=lambda p: p.name.lower()))
+# Modes d'arrivée des marchands qui s'inscrivent dans RS_TradeArrivals (E20-T07 : un fichier par mode,
+# server/RadioSurvivor/TradeArrivals/).
+ARRIVAL_MODULES = tuple(f'RadioSurvivor/TradeArrivals/{p.stem}' for p in sorted(
+    (LUA / 'server/RadioSurvivor/TradeArrivals').glob('*.lua'), key=lambda p: p.name.lower()))
 # Modules chargés par le jeu avant la lecture des fiches : leurs inscriptions forment les règles du lecteur.
-RULE_MODULES = TEMPLATE_MODULES + REWARD_KIND_MODULES
+RULE_MODULES = TEMPLATE_MODULES + REWARD_KIND_MODULES + ARRIVAL_MODULES
 # Doublures minimales du jeu pour charger ces modules (côté autorité, solo).
 RULES_STUBS = '''
 isClient = function() return false end
@@ -239,7 +243,7 @@ CASES: list[tuple[str, str | bytes, tuple[int, str] | None]] = [
     ('rewards section with an id', HEAD + '[rewards main]\npool=frequency:1\n' + PROMPT,
      (5, 'section [rewards] takes no id')),
     ('unknown section', HEAD + '[shop gus]\nstock=food\n' + PROMPT,
-     (5, "unknown section 'shop' (expected place, mission, rewards, category or prompt)")),
+     (5, "unknown section 'shop' (expected place, mission, rewards, category, trade or prompt)")),
     ('place coords with two numbers', HEAD + PLACE.replace('10600,9300,0', '10600,9300') + PROMPT,
      (6, "bad place coords '10600,9300' (x,y,z whole numbers, z from -32 to 31)")),
     ('place coords z out of range', HEAD + PLACE.replace('10600,9300,0', '1,2,-33') + PROMPT,

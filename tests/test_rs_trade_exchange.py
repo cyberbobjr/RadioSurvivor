@@ -1,4 +1,5 @@
-"""Échange sans contact sur la berge (E13-T04) : RS_TradeExchange.lua avec RS_Trade.lua et RS_TradeRun.lua dans lupa.
+"""Échange sans contact sur la berge (E13-T04 ; E20-T07 : hors de vue de tout joueur et après un délai de jeu) :
+RS_TradeExchange.lua avec RS_Trade.lua et RS_TradeRun.lua dans lupa.
 
     python RadioSurvivor/tests/test_rs_trade_exchange.py
 
@@ -8,9 +9,10 @@ d'inventaire (type, nom affiché et nom du script, état, utilisations, poids, M
 (cases chargées ou non), instanceItem, envois sendAddItemToContainer / sendRemoveItemFromContainer, création du
 journal du dehors. Couvre : barème et conditions de la table (état, filtre, sac vide, papiers nominatifs, nom d'un
 joueur, objets du mod ou hors Base, billets par lots, portefeuille, plafonds par type, par classe, pièces, points et
-kilos), prise limitée au prix, échange fait une seule fois (joueur proche = attente, joueur revenu, second sondage),
-tricherie (rien pris ni donné, marge au plus haut, fait de réputation non appliqué, annonce), sac sans valeur ignoré,
-départ sans sac, zone non chargée, reprise d'un échange appliqué sans état écrit, annonces traduites.
+kilos), prise limitée au prix, échange fait une seule fois (joueur à portée de vue = attente, joueur revenu, second
+sondage), tricherie (rien pris ni donné, marge au plus haut, fait de réputation non appliqué, annonce), sac sans valeur
+ou hors zone = départ, lieu déchargé (échange au retour d'un joueur), reprise d'un échange appliqué sans état écrit,
+annonces traduites.
 Ne prouve ni l'API Java réelle ni la synchronisation MP : suite en jeu rs.trade_exchange.
 """
 from __future__ import annotations
@@ -91,7 +93,8 @@ NEWS = 0
 package.preload["RadioSurvivor/RS_OutsideNewsServer"] = function() return {
     create = function(passage) NEWS = NEWS + 1 return makeItem("RadioSurvivor.OutsideNews", { md = { edition = passage } }) end }
 end
-package.preload["RadioSurvivor/RS_Config"] = function() return { Reputation = { success = 5, failure = -5 } } end
+package.preload["RadioSurvivor/RS_Config"] = function() return { Reputation = { success = 5, failure = -5 },
+    TradeMargin = { good = 0.10, neutral = 0.25, bad = 0.40 } } end
 """
 
 ID_BASE = 'ID Card'
@@ -126,6 +129,16 @@ class ExchangeHarness(RunHarness):
         kate.x, kate.y = 6041, 5217
         self.assertTrue(self.T.arrive('lamp'))
         return kate
+
+    def poll(self):
+        """Sondage de l'échange du passage de Gus à l'heure du monde (E20-T07 : un passage par marchand)."""
+        return self.Ex.updateTrader('gus', None)
+
+    def leave(self, player, x=9000):
+        """Le joueur part hors de vue : premier sondage (l'attente commence), puis le délai de jeu passe."""
+        player.x = x
+        self.assertIsNone(self.poll())
+        self.g.CLOCK.hours = self.g.CLOCK.hours + self.Ex.DELAY_HOURS
 
     def appraise(self, items, names=None, need=None):
         return self.Ex.appraise(self.t(items), self.t(names or []), need)
@@ -195,10 +208,10 @@ class ExchangeTests(ExchangeHarness):
         bag = self.g.dropBag(6042, 5216, self.t([
             self.it('MoneyBundle'), self.it('Necklace_Gold'), self.it('IDcard', name='ID Card: John Doe', base=ID_BASE),
             self.it('IDcard', name='ID Card: Jane Roe', base=ID_BASE), self.it('Hammer'), self.it('MoneyBundle')]))
-        self.assertIsNone(self.Ex.update())                                 # kate encore au ponton
+        self.assertIsNone(self.poll())                                      # kate encore au ponton
         self.assertEqual(self.sent(), [])
-        kate.x = 6041 + 25
-        self.assertEqual(self.Ex.update(), 'done')
+        self.leave(kate)
+        self.assertEqual(self.poll(), 'done')
         items = self.bag_items(bag)
         self.assertEqual(items, ['Base.Hammer', 'Base.MoneyBundle', 'Base.Antibiotics', 'Base.Antibiotics'])
         given = [x for x in lua_list(bag.inv.list) if x.t == 'Base.Antibiotics']
@@ -214,29 +227,31 @@ class ExchangeTests(ExchangeHarness):
         self.assertEqual(self.aired(), [['<fzzt>', EN['IGUI_RS_TradeRun_Done'], '<szzt>']])
         # Joueur revenu, sondages suivants : rien de plus.
         kate.x = 6041
-        for hours in (18.6, 19.0, 25.0):
+        for hours in (19.6, 20.0, 25.0):
             self.g.CLOCK.hours = hours
-            self.assertIsNone(self.Ex.update())
-        kate.x = 6041 + 25
-        self.assertIsNone(self.Ex.update())
+            self.assertIsNone(self.poll())
+        kate.x = 9000
+        self.assertIsNone(self.poll())
         self.assertEqual(len(self.bag_items(bag)), 4)
         self.assertEqual(len(self.sent()), 6)
         self.assertEqual(len(self.aired()), 1)
         self.assertEqual(self.decide(kate), 'run_over')
 
-    def test_any_player_near_blocks_the_boat(self):
+    def test_any_player_in_view_blocks_the_boat(self):
         kate = self.arrived()
         kate.x = 9000
-        self.make('bob', 'fac-2', 6041 + 10, 5217)                          # autre équipe, sur la berge
+        self.make('bob', 'fac-2', 6041 + 60, 5217)                          # autre équipe, à portée de vue
         self.g.dropBag(6041, 5217, self.t([self.it('MoneyBundle') for _ in range(2)]))
-        self.assertIsNone(self.Ex.update())
+        for hours in (18.6, 20.0, 24.0):
+            self.g.CLOCK.hours = hours
+            self.assertIsNone(self.poll())
         self.assertEqual(self.T.lastRun().state, 'arrived')
 
     def test_cheat_refused_nothing_moved_reputation_down(self):
         kate = self.arrived()
         bag = self.g.dropBag(6040, 5218, self.t([self.it('MoneyBundle'), self.it('SilverCoin'), self.it('Hammer')]))
-        kate.x = 9000
-        self.assertEqual(self.Ex.update(), 'cheated')
+        self.leave(kate)
+        self.assertEqual(self.poll(), 'cheated')
         self.assertEqual(self.bag_items(bag), ['Base.MoneyBundle', 'Base.SilverCoin', 'Base.Hammer'])
         self.assertEqual(self.sent(), [])
         run = self.T.lastRun()
@@ -247,18 +262,14 @@ class ExchangeTests(ExchangeHarness):
         fact = self.g.STATE.data.outcomes[f'trade-{rev}-cheated']
         self.assertEqual((fact.character, fact.action, fact.proposedDelta, fact.applied), ('kate', 'trade.cheated', -5, False))
         self.assertEqual(self.aired(), [['<fzzt>', EN['IGUI_RS_TradeRun_Cheated'], '<szzt>']])
-        self.assertIsNone(self.Ex.update())
+        self.assertIsNone(self.poll())
         self.assertEqual(self.decide(kate), 'run_over')
 
-    def test_bag_without_value_ignored_then_no_drop(self):
+    def test_bag_without_value_means_no_drop(self):
         kate = self.arrived()
-        kate.x = 9000
-        self.assertIsNone(self.Ex.update())                                 # pas de sac
         self.g.dropBag(6041, 5217, self.t([self.it('Hammer'), self.it('MoneyBundle', md={'RS_Cache': 'm1'})]))
-        self.assertIsNone(self.Ex.update())                                 # rien que le passeur prenne
-        self.assertEqual(self.T.lastRun().state, 'arrived')
-        self.g.CLOCK.hours = 20.5
-        self.assertEqual(self.Ex.update(), 'no_drop')
+        self.leave(kate)
+        self.assertEqual(self.poll(), 'no_drop')                            # rien que le passeur prenne
         run = self.T.lastRun()
         self.assertEqual((run.state, run.reason), ('cancelled', 'no_drop'))
         self.assertEqual(self.T.offerOf('kate', None).state, 'cancelled')
@@ -266,28 +277,32 @@ class ExchangeTests(ExchangeHarness):
         self.assertEqual(self.aired(), [['<fzzt>', EN['IGUI_RS_TradeRun_Cancel_nodrop'], '<szzt>']])
         self.assertEqual(self.T.marginRange('kate', None)[0], 0.25)        # pas de tricherie
 
-    def test_unloaded_pier_waits_then_leaves(self):
+    def test_unloaded_landing_waits_for_a_player_to_come_back(self):
         kate = self.arrived()
-        kate.x = 9000
-        self.g.dropBag(6041, 5217, self.t([self.it('MoneyBundle') for _ in range(2)]))
+        bag = self.g.dropBag(6041, 5217, self.t([self.it('MoneyBundle') for _ in range(2)]))
         self.g.LOADED = False
-        self.assertIsNone(self.Ex.update())
-        self.g.CLOCK.hours = 20.6
-        self.assertEqual(self.Ex.update(), 'no_drop')
+        self.leave(kate)
+        self.assertIsNone(self.poll())                                      # dû, case déchargée
+        self.g.CLOCK.hours = 60.0
+        self.assertIsNone(self.poll())                                      # jamais de départ tant qu'il est dû
         self.assertEqual(self.sent(), [])
+        self.g.LOADED = True
+        self.assertEqual(self.poll(), 'done')
+        self.assertEqual(self.bag_items(bag), ['Base.Antibiotics', 'Base.Antibiotics'])
 
-    def test_bag_outside_the_drop_zone_ignored(self):
+    def test_bag_outside_the_drop_zone_means_no_drop(self):
         kate = self.arrived()
-        kate.x = 9000
-        self.g.dropBag(6041 + 4, 5217, self.t([self.it('MoneyBundle') for _ in range(2)]))
-        self.assertIsNone(self.Ex.update())
+        bag = self.g.dropBag(6041 + 4, 5217, self.t([self.it('MoneyBundle') for _ in range(2)]))
+        self.leave(kate)
+        self.assertEqual(self.poll(), 'no_drop')
+        self.assertEqual(len(self.bag_items(bag)), 2)
 
     def test_best_bag_chosen(self):
         kate = self.arrived()
-        kate.x = 9000
         poor = self.g.dropBag(6041, 5217, self.t([self.it('SilverCoin')]))
         rich = self.g.dropBag(6042, 5218, self.t([self.it('MoneyBundle') for _ in range(2)]))
-        self.assertEqual(self.Ex.update(), 'done')
+        self.leave(kate)
+        self.assertEqual(self.poll(), 'done')
         self.assertEqual(self.bag_items(poor), ['Base.SilverCoin'])
         self.assertEqual(self.bag_items(rich), ['Base.Antibiotics', 'Base.Antibiotics'])
 
@@ -296,19 +311,19 @@ class ExchangeTests(ExchangeHarness):
         rev = self.T.offerOf('kate', None).rev
         given = self.it('Antibiotics', md={'RS_TradeGiven': rev})
         bag = self.g.dropBag(6041, 5217, self.t([given]))
-        self.assertEqual(self.Ex.update(), 'done')                         # kate au ponton : reprise quand même
+        self.assertEqual(self.poll(), 'done')                              # kate au ponton : reprise quand même
         self.assertEqual((self.T.lastRun().state, self.T.lastRun().reason), ('done', 'recovered'))
         self.assertEqual(self.bag_items(bag), ['Base.Antibiotics'])
         self.assertEqual(self.sent(), [])
 
     def test_outside_news_counterpart(self):
-        stock = {e.n: 0 for e in lua_list(self.T.SUPPLY)}
+        stock = {e.n: 0 for e in lua_list(self.gus.trade['items'])}
         stock.update({'Battery': 10, 'Antibiotics': 4, 'OutsideNews': 1})
-        self.T.drawStock = lambda seed, passage: self.rt.table_from(stock)
+        self.T.drawStock = lambda spec, seed, passage: self.rt.table_from(stock)
         kate = self.arrived('OutsideNews:1,Battery:2')
-        kate.x = 9000
         bag = self.g.dropBag(6041, 5217, self.t([self.it('MoneyBundle')]))
-        self.assertEqual(self.Ex.update(), 'done')
+        self.leave(kate)
+        self.assertEqual(self.poll(), 'done')
         self.assertEqual(sorted(self.bag_items(bag)), ['Base.Battery', 'Base.Battery', 'RadioSurvivor.OutsideNews'])
         self.assertEqual(self.g.NEWS, 1)
 
@@ -318,7 +333,8 @@ class ExchangeTests(ExchangeHarness):
         self.assertEqual(self.decide(kate, 'Antibiotics:2'), 'ok')
         self.g.CLOCK.hours = 18.5
         self.g.dropBag(6041, 5217, self.t([self.it('MoneyBundle') for _ in range(2)]))
-        self.assertIsNone(self.Ex.update())
+        self.g.CLOCK.hours = 30.0
+        self.assertIsNone(self.poll())
         self.assertEqual(self.T.lastRun().state, 'booked')
 
     def test_hook_installed(self):

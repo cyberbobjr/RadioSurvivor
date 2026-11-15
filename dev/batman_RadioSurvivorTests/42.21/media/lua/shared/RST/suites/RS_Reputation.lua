@@ -263,10 +263,11 @@ RST.suite("rs.reputation", { mods = { "rs", "lk" },
         local c = setup(t)
         guard(t, c, c.cid)
         local Trade = require "RadioSurvivor/RS_Trade"
+        if not Trade.specOf("gus") then t:skip("voice gus has no [trade] section loaded") end  -- E20-T07: per trader
         local caller = "rst-rep-caller"
         for _, case in ipairs({ { "good", 0.10 }, { "neutral", 0.25 }, { "bad", 0.40 } }) do
             baseline(t, c, c.cid, case[1])
-            local low = Trade.marginRange(caller, c.cid)
+            local low = Trade.marginRange("gus", caller, c.cid)
             t:ok(math.abs(low - case[2]) < 0.001, case[1] .. ": lowest margin " .. tostring(low) .. ", expected "
                 .. case[2])
         end

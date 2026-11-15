@@ -201,9 +201,9 @@ use=mark,target
 - `mark`: a **marker** it can give you (`mark_map`, `reveal_area`, marker offered at the end of a mission without a
   `[rewards]` section). The AI only sees the id and label of these places.
 - `target`: a mission **objective** (`target=` of a `[mission]` section).
-- `drop`: a **dead drop**. A `deliver` mission offers them all at once (or those of `drops=`); a `cache` reward is left at the
+- `drop`: a **dead drop**. A `deliver` or `retrieve` mission offers them all at once (or those of `drops=`); a `cache` reward is left at the
   first `drop` place of the sheet (else at its first place).
-- `landing`: a trader's meeting point (reserved for trade, no effect yet).
+- `landing`: a trader's meeting point (`landing` key of the `[trade]` section, see "Trade").
 
 ### Actions
 
@@ -269,7 +269,7 @@ Always allowed, even if you do not list it. The voice answers you on the radio.
   (delivery drop), `retrieve` (missing papers), `clear` (clearing zombies), `signal` (Signal Smoke signal). The server
   checks each objective; one mission per player and voice. The notebook is required. Without any `[mission]` section,
   only `scout` is allowed. Keys in detail: [Missions, rewards and items](#missions-rewards-and-items).
-- The building is chosen by the server, never by the AI; a `deliver` mission needs at least one `use=drop` place.
+- The building is chosen by the server, never by the AI; a `deliver` or `retrieve` mission needs at least one `use=drop` place.
 - **Report by radio**, on the voice's frequency (`report_mission` is implicit). Successful missions improve reputation.
 - The `[rewards]` section allows one extra reward per success. The AI never chooses the reward nor its contents.
   Without a `[rewards]` section, the voice offers the marker of one of its `use=mark` places.
@@ -315,7 +315,7 @@ pool=cache:medical:3, cache:snacks:1, frequency:1, stashmap:1, lesson:Doctor:2
 | `story` | The reason the voice gives. |
 | `drops` | Dead drops of the mission, all offered to the player: `any` (every `use=drop` place, as without the key) or a list of ids of `use=drop` places. |
 | `target` | Objective place, a `use=target` place. |
-| others | Parameters of the type: `deliver` takes `items` (an item category), `quantity` (`4` or `2-4`) and `collect_hours` (game hours before a dead drop is collected, 6 by default). |
+| others | Parameters of the type: `deliver` takes `items` (an item category), `quantity` (`4` or `2-4`) and `collect_hours` (game hours before a dead drop is collected, 6 by default); `retrieve` takes `collect_hours` (the ID card is left at a dead drop). |
 
 The keys `weight`, `after`, `story`, `drops`, `target` and the parameters of `deliver` are **read and checked
 now**; `drops` and `collect_hours` are already used, the others will be over the next versions (weighted draw,
@@ -353,11 +353,71 @@ A delivery mission of a voice offers **all its dead drops at once** (key `drops=
 
 From a box, only requested items disappear, never more than the remaining quantity: the box, other items and the surplus remain. For a bag, the bag and contents disappear; a bag containing unrelated items, or more than the remaining quantity, is refused to prevent their loss. Each item counts only once, even after a restart. Until collection, you can take the drop back and nothing is validated. **Only once the whole quantity is collected, report over the radio**. Solo and MP in-game validation of this collection is **pending**.
 
+**Missing papers for a voice.** The ID card taken from the body is not handed over on the radio: leave it at one of the mission's dead drops, marked on your map as for a delivery (in the designated box, or alone in a bag on the ground). The voice collects it by the same rule, out of sight and after the wait (`collect_hours=` of the `[mission]` section); only the card of that body is taken, another ID card stays where it is. **Only once the card is collected, report over the radio**: the report removes nothing from your inventory. MP in-game validation: **pending**.
+
+#### Trade — `propose_trade` and the `[trade]` section
+
+A **trader** voice sells a stock over the radio and delivers during a **run**: a meeting at a place, at night or at
+the hours of the sheet, then a contactless exchange. Add `propose_trade` to `actions` **and** a `[trade]` section:
+one without the other is refused.
+
+| Key | What it does |
+|---|---|
+| `landing` | Meeting place(s), each `use=landing`; its label is the only meeting name the voice gives, and only to the group that booked. |
+| `arrival` | How the trader comes: `boat` (a boat comes alongside; the player shows a lit lamp in hand or a red flare there during the window). |
+| `every_days` | One run every N game days (1 to 28). |
+| `hours` | Meeting window, `HH:MM-HH:MM`. |
+| `delay_hours` | Optional: game hours during which nobody may see the place before the exchange (1 by default). |
+| `margin` | Optional: lowest and highest margin (`0.10-0.50` by default). |
+| `item` | One item brought per line: `Module.Type:quantity:weight in kg`; quantity drawn each run (`4`, `2-6`) or the name of a group. |
+| `group` | Optional: `name:total[:kinds]`, a total drawn among the items of the group (`seeds:3-8:4`: 3 to 8 packets, 4 kinds at most). |
+
+Each trader has its own stock, its own booking and its own deals: two traders booked the same week do not get in each
+other's way. The first firm offer of a run books it for the caller's group; the place is then marked on their map.
+After the signal, the player leaves a bag within 3 tiles of the place and walks away: the trader only comes once
+**nobody is within 100 tiles** (on x and on y) **for `delay_hours` game hours**, then leaves the goods in the same bag.
+A boat can be called off by a patrol, a helicopter heard or a storm: the voice says so on its frequency. What a trader
+takes follows the smuggler's table (`docs/specifications-techniques/passeur-table.md`).
+
+```ini
+format=1
+id=ada
+name=Ada Pruitt
+frequency_range=60.0-64.8
+listen=21:00-02:00
+actions=say,propose_trade
+budget=3
+
+# Example coordinates (Gus's pier): read your own place on the map.
+[place ferry]
+at=6041,5217,0
+label=Old ferry landing
+use=landing
+
+[trade]
+landing=ferry
+arrival=boat
+every_days=7
+hours=01:00-03:00
+delay_hours=2
+item=Base.Battery:2-6:0.1
+item=Base.Coffee2:1-2:1.0
+group=smokes:1-3
+item=Base.CigarettePack:smokes:0.2
+item=Base.CigaretteCarton:smokes:2.0
+
+[prompt]
+You are Ada Pruitt, 61, who runs an old ferry boat on the Ohio and trades with people inside the Knox Exclusion Zone.
+Your trade book is the only truth about your stock, your prices and your run; give the landing, the night and the
+signal only to the group whose run is booked, exactly as written in your book.
+Stay in character. Radio style: 1 to 3 short sentences, end each transmission with "Over.".
+Answer in the same language the caller uses.
+```
+
 #### Actions not to add
 
 | Keyword | Why |
 |---|---|
-| `propose_trade` | Gus the smuggler's trading: it sells the stock of **his** boat and sets a meeting at **his** pier. Another voice would sell Gus's boat. |
 | `place_cache` | Reserved for the notebook's recovery missions; not set in a sheet. |
 | `signal`, `place_scene` | Planned but without effect for now: always refused. |
 
@@ -514,7 +574,7 @@ Rules:
 *Fan example, character belonging to its rights holders.*
 A former sheriff's deputy who lost his wife and son in the evacuation and crosses Knox County looking for them,
 wary but fair. Range 50.0-64.8 MHz (walkie-talkies 2 to 5, HAM radios, military radio); every action that has an
-effect, except `propose_trade`, which belongs to Gus's crossing.
+effect, except `propose_trade`, which needs a `[trade]` section (see "Trade").
 
 <details>
 <summary><code>personas/rick.txt</code></summary>

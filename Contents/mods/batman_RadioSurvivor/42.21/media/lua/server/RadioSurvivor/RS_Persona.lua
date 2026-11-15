@@ -1,12 +1,13 @@
 -- Radio Survivor : fiches des voix radio (E05-T01), lecture et validation stricte cote serveur.
 -- Format : docs/specifications-techniques/persona-format.md. Le serveur est le seul lecteur complet (E20-T03, ADR D03) :
--- tete (lignes cle=valeur), sections [place <id>], [mission <id>], [rewards], [category <id>], puis [prompt].
+-- tete (lignes cle=valeur), sections [place <id>], [mission <id>], [rewards], [category <id>], [trade], puis [prompt].
 -- bridge/persona_store.py lit la tete, les lieux et le prompt avec les memes regles et les memes messages
 -- (« line N: raison », en anglais) et passe les autres sections sans les lire ; tests/test_personas.py compare les deux
 -- lecteurs, tests/test_persona_sections.py couvre ce que seul le serveur valide.
 -- Regles injectees (RS_Personas.rules, racine de composition) : template(nom) -> gabarit de mission donne par une
 -- voix (RC_Missions.voiceTemplate, schema `params` declare par le gabarit), rewards (natures de recompense de
--- RS_Rewards.KINDS), skills (RS_Rewards.SKILLS), categories (catalogue partage personas/_categories.txt).
+-- RS_Rewards.KINDS), skills (RS_Rewards.SKILLS), categories (catalogue partage personas/_categories.txt), arrivals
+-- (modes d'arrivee des marchands, RS_TradeArrivals.NAMES).
 -- Valeurs des parametres : RS_PersonaParams, un validateur par genre.
 -- Aucun loadstring : chaque ligne est decoupee et controlee a la main.
 -- Seulement de l'ASCII dans ce fichier : le lexeur Kahlua change les litteraux non ASCII en U+FFFD. Les
@@ -523,6 +524,158 @@ local function categoryClose(sec, ctx)
     ctx.categories[sec.id] = sec.category
 end
 
+-- [trade] (E20-T07, ADR D07) : troc de la voix. landing (lieux use=landing), arrival (mode d'arrivee inscrit,
+-- regles arrivals), every_days (un passage tous les N jours de jeu), hours (fenetre du rendez-vous), delay_hours
+-- (facultatif : heures de jeu hors de vue avant l'echange), margin (facultatif : marge la plus basse et la plus
+-- haute), item= repetable (Module.Type:quantite:poids en kg ; quantite : fourchette, ou nom d'un groupe), group=
+-- repetable (nom:total[:sortes] : total tire dans le groupe, au plus `sortes` objets differents).
+local MAX_TRADE_ITEMS = 40
+local MAX_EVERY_DAYS = 28
+local MAX_DELAY_HOURS = 48
+local MAX_ITEM_KG = 50
+Persona.TRADE_MARGIN = { min = 0.10, max = 0.50 }
+
+-- Nombre positif ecrit en chiffres avec au plus deux decimales, au plus maximum ; sinon erreur.
+local function decimal(value, key, line, maximum)
+    local whole = string.match(value, "^([0-9]+)$") or string.match(value, "^([0-9]+)%.[0-9][0-9]?$")
+    local n = whole and string.len(whole) <= 3 and tonumber(value)
+    if not n or n > maximum then
+        fail(line, "bad " .. key .. " '" .. value .. "' (number from 0 to " .. tostring(maximum)
+            .. ", two decimals at most)")
+    end
+    return n
+end
+
+local function minutesOf(h, m)
+    return tonumber(h) * 60 + tonumber(m)
+end
+
+local function tradeLanding(trade, value, line, ctx)
+    for _, id in ipairs(splitList(value)) do
+        local p = ctx.placeById[param("place", id, line, ctx)]
+        if not p.use.landing then fail(line, "place '" .. id .. "' has no use=landing") end
+        for _, other in ipairs(trade.landings) do
+            if other.id == id then fail(line, "duplicate landing entry '" .. id .. "'") end
+        end
+        trade.landings[#trade.landings + 1] = p
+    end
+end
+
+local function tradeArrival(trade, value, line, ctx)
+    local names = {}
+    for name in pairs(ctx.rules.arrivals or {}) do names[#names + 1] = name end
+    table.sort(names)
+    if not (ctx.rules.arrivals or {})[value] then
+        fail(line, "unknown arrival '" .. value .. "' (expected " .. table.concat(names, ", ") .. ")")
+    end
+    trade.arrival = value
+end
+
+local function tradeEveryDays(trade, value, line)
+    local n = count(value, "every_days", line, MAX_EVERY_DAYS)
+    if n < 1 then fail(line, "bad every_days '" .. value .. "' (whole number from 1 to " .. MAX_EVERY_DAYS .. ")") end
+    trade.everyDays = n
+end
+
+local function tradeHours(trade, value, line)
+    local h1, m1, h2, m2 = string.match(value, "^([0-9][0-9]):([0-9][0-9])%-([0-9][0-9]):([0-9][0-9])$")
+    if not h1 or tonumber(h1) > 23 or tonumber(h2) > 23 or tonumber(m1) > 59 or tonumber(m2) > 59 then
+        fail(line, "bad trade hours '" .. value .. "' (one HH:MM-HH:MM range of the meeting, e.g. 01:00-03:00)")
+    end
+    local from, to = minutesOf(h1, m1), minutesOf(h2, m2)
+    if from == to then fail(line, "empty trade hours '" .. value .. "'") end
+    trade.from, trade.hours = from / 60, ((to - from) % 1440) / 60
+end
+
+local function tradeDelay(trade, value, line)
+    trade.delayHours = decimal(value, "delay_hours", line, MAX_DELAY_HOURS)
+end
+
+local function tradeMargin(trade, value, line)
+    local low, high = string.match(value, "^([^-]+)%-([^-]+)$")
+    local hint = "bad margin '" .. value .. "' (lowest-highest from 0 to 1, e.g. 0.10-0.50)"
+    if not low then fail(line, hint) end
+    low, high = decimal(trim(low), "margin", line, 1), decimal(trim(high), "margin", line, 1)
+    if low > high then fail(line, hint) end
+    trade.marginMin, trade.marginMax = low, high
+end
+
+local function tradeItem(trade, value, line, ctx)
+    local itemType, quantity, kg = string.match(value, "^([A-Za-z0-9_]+%.[A-Za-z0-9_]+):([^:]+):([^:]+)$")
+    if not itemType then
+        fail(line, "bad trade item '" .. value .. "' (Module.Type:quantity:kg, e.g. Base.Battery:4-12:0.1)")
+    end
+    if #trade.items >= MAX_TRADE_ITEMS then
+        fail(line, "too many trade items (" .. tostring(MAX_TRADE_ITEMS) .. " at most)")
+    end
+    local name = string.match(itemType, "%.(.+)$")
+    for _, item in ipairs(trade.items) do
+        if string.lower(item.n) == string.lower(name) then fail(line, "duplicate trade item '" .. name .. "'") end
+    end
+    local item = { n = name, t = itemType, w = decimal(kg, "item weight", line, MAX_ITEM_KG), line = line }
+    if string.match(quantity, "^[a-z][a-z0-9_]*$") then
+        item.gr = quantity
+    else
+        local range = param("range", quantity, line, ctx)
+        item.min, item.max = range.min, range.max
+    end
+    trade.items[#trade.items + 1] = item
+end
+
+local function tradeGroup(trade, value, line, ctx)
+    local id, total, kinds = string.match(value, "^([a-z][a-z0-9_]*):([0-9%-]+):?([0-9]*)$")
+    if not id then fail(line, "bad trade group '" .. value .. "' (name:total[:kinds], e.g. seeds:3-8:4)") end
+    if trade.groupById[id] then fail(line, "duplicate trade group '" .. id .. "'") end
+    local range = param("range", total, line, ctx)
+    local group = { id = id, min = range.min, max = range.max, line = line }
+    if kinds ~= "" then
+        group.kinds = count(kinds, "group kinds", line, MAX_TRADE_ITEMS)
+        if group.kinds < 1 then fail(line, "bad group kinds '" .. kinds .. "' (whole number from 1)") end
+    end
+    trade.groups[#trade.groups + 1] = group
+    trade.groupById[id] = group
+end
+
+local TRADE_KEYS = { landing = tradeLanding, arrival = tradeArrival, every_days = tradeEveryDays, hours = tradeHours,
+    delay_hours = tradeDelay, margin = tradeMargin, item = tradeItem, group = tradeGroup }
+
+local function tradeOpen(sec)
+    sec.trade = { landings = {}, items = {}, groups = {}, groupById = {}, marginMin = Persona.TRADE_MARGIN.min,
+        marginMax = Persona.TRADE_MARGIN.max }
+end
+
+-- landing se lit apres toute la fiche (lieux) ; les autres cles a leur ligne, sauf les references aux groupes.
+local function tradeKey(sec, key, value, line, ctx)
+    local reader = TRADE_KEYS[key]
+    if not reader then unknownKey(sec, key, line) end
+    if key == "landing" then return end
+    reader(sec.trade, value, line, ctx)
+end
+
+local function tradeClose(sec)
+    requireKeys(sec, { "landing", "arrival", "every_days", "hours", "item" })
+    local trade, used = sec.trade, {}
+    for _, item in ipairs(trade.items) do
+        if item.gr then
+            if not trade.groupById[item.gr] then fail(item.line, "unknown trade group '" .. item.gr .. "'") end
+            used[item.gr] = (used[item.gr] or 0) + 1
+        end
+        item.line = nil
+    end
+    for _, group in ipairs(trade.groups) do
+        if not used[group.id] then fail(group.line, "trade group '" .. group.id .. "' has no item") end
+        if group.kinds and group.kinds > used[group.id] then
+            fail(group.line, "trade group '" .. group.id .. "' has fewer items than its kinds")
+        end
+        group.line = nil
+    end
+end
+
+local function tradeResolve(sec, ctx)
+    tradeLanding(sec.trade, sec.values.landing, sec.lines.landing, ctx)
+    ctx.trade, ctx.tradeLine = sec.trade, sec.line
+end
+
 local SECTIONS = {
     place = { rank = 1, example = "mill", open = placeOpen, key = placeKey, close = placeClose },
     mission = { rank = 2, example = "meds", key = missionKey, close = missionClose, resolve = missionResolve,
@@ -530,6 +683,8 @@ local SECTIONS = {
     rewards = { rank = 3, key = rewardsKey, close = rewardsClose, resolve = rewardsResolve },
     category = { rank = 4, example = "snacks", repeatable = { item = true }, open = categoryOpen, key = categoryKey,
         close = categoryClose },
+    trade = { rank = 5, repeatable = { item = true, group = true }, open = tradeOpen, key = tradeKey,
+        close = tradeClose, resolve = tradeResolve },
 }
 
 -- Noms de SECTIONS (ou d'un sous-ensemble) dans l'ordre de leur rang.
@@ -632,7 +787,7 @@ local function checkRaw(raw, number)
     end
 end
 
-local SHEET_SECTIONS = { place = true, mission = true, rewards = true, category = true }
+local SHEET_SECTIONS = { place = true, mission = true, rewards = true, category = true, trade = true }
 local SHEET_EXPECTED = (function()
     local names = {}
     for name in pairs(SHEET_SECTIONS) do names[#names + 1] = name end
@@ -734,6 +889,13 @@ local function parse(lines, expectedId, rules)
         end
     end
     resolveSections(ctx)
+    -- Le troc (E20-T07) : l'action propose_trade et la section [trade] vont ensemble.
+    if contains(allowed, "propose_trade") and not ctx.trade then
+        fail(seen.actions, "action propose_trade needs a [trade] section")
+    end
+    if ctx.trade and not contains(allowed, "propose_trade") then
+        fail(ctx.tradeLine, "section [trade] needs the action propose_trade")
+    end
 
     return {
         format = values.format, id = values.id, name = values.name, frequencies = values.frequencies or {},
@@ -743,7 +905,7 @@ local function parse(lines, expectedId, rules)
         ignores = values.ignores, secrets = values.secret, places = ctx.places, actions = allowed,
         budget = values.budget or 0, budgets = values.budgets, call_one_in = values.call_one_in or 0,
         call_text = values.call_text or "", state = values.state or "active", shares = values.shares or {},
-        missions = ctx.missions, rewards = ctx.rewards, categories = ctx.ownCategories,
+        missions = ctx.missions, rewards = ctx.rewards, categories = ctx.ownCategories, trade = ctx.trade,
     }
 end
 

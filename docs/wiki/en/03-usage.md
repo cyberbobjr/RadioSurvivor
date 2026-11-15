@@ -89,6 +89,8 @@ A delivery mission of a voice offers **all its dead drops at once** (key `drops=
 
 From a box, only requested items disappear, never more than the remaining quantity: the box, other items and the surplus remain. For a bag, the bag and contents disappear; a bag containing unrelated items, or more than the remaining quantity, is refused to prevent their loss. Each item counts only once, even after a restart. Until collection, you can take the drop back and nothing is validated. **Only once the whole quantity is collected, report over the radio**. Solo and MP in-game validation of this collection is **pending**.
 
+**Missing papers for a voice.** The ID card taken from the body is not handed over on the radio: leave it at one of the mission's dead drops, marked on your map as for a delivery (in the designated box, or alone in a bag on the ground). The voice collects it by the same rule, out of sight and after the wait; only the card of that body is taken, another ID card stays where it is. **Only once the card is collected, report over the radio**: the report removes nothing from your inventory. MP in-game validation: **pending**.
+
 Living Knox material rewards first use real household surplus, preserving required reserves and rationed stock; otherwise, a cache near home uses a closed table for the group type. A favorable or trusting personal relationship, without bad reputation, opens stash maps and role-based lessons. A dead requester cannot grant rewards. Group missions have **one shared withdrawal** by a participant, following the previous common-lot rule. Trusted contacts can share their group's radio when available, otherwise an active radio voice. Existing supply contracts retain a reward lot already paid from group reserves, preventing a second withdrawal.
 
 The sandbox lesson multiplier disables XP at 0. The new rewards are implemented; solo and MP in-game validation is **pending**.
@@ -98,6 +100,18 @@ The sandbox lesson multiplier disables XP at 0. The new rewards are implemented;
 ![A mission to report](../../images/screenshots/en-notebook-report.png)
 
 ![Circle of a scouting mission on the world map](../../images/screenshots/en-map-zone.png)
+
+### Trading with a trader
+
+A radio trader (Gus, the Ohio smuggler) sells his stock over the radio. Your first firm offer books his **run** for
+your group: he gives you the place, the night and the signal, and the place is marked on your map. Another trader has
+his own run: booking one never blocks the other. During the window, show the signal there (Gus: a lit lamp in hand or a
+red flare); you hear his engine as he comes alongside. Leave a bag within 3 tiles of the place with enough to pay, then
+**walk away out of sight**: he only comes once nobody is within 100 tiles on x and on y **for about one game hour**
+(set by the trader's sheet). Coming back too early resets the wait; gone long enough, the exchange is made when you come
+back. The bag then holds your goods; a bag that does not cover the price is cheating (nothing is taken). A run can be
+called off (patrol, helicopter, storm), and the trader leaves if he never gets a quiet moment. In-game MP validation of
+Gus's run: **pending**.
 
 ## 6. The notebook
 

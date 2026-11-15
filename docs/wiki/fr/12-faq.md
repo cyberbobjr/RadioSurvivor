@@ -24,6 +24,11 @@ notée dans `token_usage.jsonl`. Ou lancez `--offline`, gratuit (les voix répè
 Tout fournisseur compatible avec l'API `/chat/completions` d'OpenAI, serveurs locaux compris. Voir
 [Configurer le fournisseur d'IA](08-fournisseur-ia.md).
 
+**Le passeur n'a pas pris mon sac ?**
+Il ne passe que lorsque personne n'est à moins de 100 cases du lieu (en x comme en y) depuis environ une heure de jeu.
+Éloignez-vous davantage, ou plus longtemps : un joueur revenu en vue remet l'attente à zéro, et l'échange se fait au
+retour quand le lieu était trop loin pour être chargé.
+
 **Comment trouver les voix ?**
 Leurs fréquences sont tirées à chaque partie et jamais envoyées aux joueurs : cherchez des notes dans le butin (page de
 journal radio, fiche de patient, avis de la Garde nationale, note griffonnée, prospectus de radio) et **Inspectez**-les.

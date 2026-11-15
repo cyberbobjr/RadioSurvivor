@@ -578,7 +578,9 @@ personnage et par voix, les délais et budgets existants, ainsi que les restrict
 reste radio pour les missions d'une voix ; pour un PNJ, il reste en personne. Ce que vérifie chaque type (visite de la
 zone, planque collectée hors de vue, carte d'identité exacte, morts attribuées, signal de la bonne couleur à l'heure)
 reste dans son gabarit ; un dépôt de `deliver` n'est « à rapporter » qu'une fois la quantité collectée, toutes planques confondues
-(`Deliver.voiceReportReady`).
+(`Deliver.voiceReportReady`). E20-T06 : un `retrieve` donné par une voix se rend aussi à une planque (carte déposée,
+ramassée hors de vue) ; il n'est « à rapporter » qu'une fois la carte de la mission collectée (`Retrieve.voiceReportReady`),
+et le compte rendu radio ne retire plus rien de l'inventaire.
 
 **Champ `jobs=`** (hexadécimal RSV2, `RS_MissionVoice.jobs`, joint à toute demande d'une voix dont la fiche autorise
 `start_mission`, consigne comprise) : `{ jobs = { {name, text}, ... }, caches = { ... } }`. `jobs` suit l'ordre des
@@ -763,7 +765,13 @@ chaque demande radio (et la demande de consigne) porte `trade=` : hexadécimal R
 marginMin, marginMax, cordon, stock = { { n, q, v, w, unit } }, takes = { { k, cap, pieces?, items } }, offer? = { rev,
 items, price, margin, weight, state }, deals = { { passage, items, price, state } }, refused? }` (état d'une offre :
 `open`, `replaced`, `expired`, `done`, `cheated`, `cancelled` ; refus : `bad_params`, `bad_margin`, `not_in_stock`,
-`over_stock`, `over_weight`, `over_cap`, `failed`). Le pont l'ajoute au prompt (« Your trade book ») ; champ absent,
+`over_stock`, `over_weight`, `over_cap`, `failed`, `booked`, `run_over`), plus `run` (E13-T03, E20-T07) = { status
+(`free`, `yours`, `taken`, `over`), from, to (heures du jeu de la fenêtre, décimales pour les minutes), days?, inHours?,
+state? (`booked`, `arrived`), place? (libellé du lieu `use=landing`), signal? et arrived? (textes du mode d'arrivée),
+reason? (texte d'une fin : cause du mode d'arrivée ou raison générale) } ; lieu, signal et texte d'arrivée seulement pour
+l'équipe qui a réservé. E20-T07 : le livre est construit par le serveur depuis l'état **du marchand** de la voix
+(`S.data.trade.traders[<voix>]`) et la section `[trade]` de sa fiche ; le pont ne connaît ni marchand, ni lieu, ni mode
+d'arrivée, et refuse un texte de passage qui contient un chiffre. Le pont l'ajoute au prompt (« Your trade book ») ; champ absent,
 illisible, au-delà de 32 768 caractères, bornes manquantes ou catégorie qui cite un secret : livre ignoré (journal
 anglais), prompt d'avant E13-T02. Le pont garde `propose_trade` si `items` a la forme « `Nom:quantité` » (quantité de
 1 ou 2 chiffres, facultative) et si `margin`, présente, est un nombre de 0 à 1 ; le serveur contrôle le reste (stock
@@ -1079,7 +1087,8 @@ sont constatés par le serveur seul. Une mission `deliver` d'un groupe Living Kn
 (E17-T03). Une mission `retrieve_id` (E11-T05) ajoute `kind`, `place`, `clues`, `report` = `in_person`, `item` =
 `ID card`, `placed` (le corps est posé), `found` (un participant tient la carte, constaté par le serveur) et `person`
 (nom du mort, une fois le corps posé) ; jamais de coordonnée, de zone ni d'identifiant d'objet. La remise de la carte
-passe par l'échange de livraison du carnet (`prepare_delivery` / `confirm_delivery`), pas par le pont. Une mission
+à un PNJ passe par l'échange de livraison du carnet (`prepare_delivery` / `confirm_delivery`), pas par le pont ; pour
+une voix (E20-T06), `report` = `radio` et la carte se dépose à une planque (« Dépôt discret des livraisons radio »). Une mission
 `clear` (E11-T04) ajoute `kind`, `place`, `clues`, `report` = `in_person`, `target` (N) et `kills` (décompte commun
 établi par le serveur à `OnZombieDead`) ; jamais de coordonnée ni de cercle. Au N-ième zombie compté l'objectif est
 rempli (`toReport`, plus aucun décompte) ; elle réussit au compte rendu (E11-T13). Une mission `recover` (E11-T06) ajoute `kind`, `place`, `clues`,
@@ -1534,15 +1543,29 @@ génération empêche sa proposition d'être réenregistrée ensuite. Un arrêt 
 les fichiers persistants et libère le verrou après arrêt des travailleurs. Aucun effet de jeu
 n'est réexécuté par Python lors de sa reprise.
 
-## Dépôt discret des livraisons radio — E11-T19
+## Dépôt discret des livraisons radio — E11-T19, E20-T06
 
 Cette extension remplace les anciennes restrictions de reconnaissance seule pour `deliver` donné par une voix ; la remise en personne des missions de PNJ est inchangée. Aucun nouvel appel LLM ni choix du dépôt par le modèle.
 
-Une mission de dépôt d'une voix propose **toutes ses planques à la fois** (clé `drops=` de sa section ; sans elle, tous les lieux `use=drop` de la fiche), chacune entourée sur votre carte avec son nom. Déposez où vous voulez : les objets laissés à plusieurs planques s'additionnent jusqu'à la quantité demandée. À chaque planque, le serveur désigne une boîte existante adaptée (une mission sur deux) ou, à défaut, demande un sac au sol. La voix ne ramasse une planque que **hors de vue de tout le monde** (aucun joueur à moins de 100 cases en x comme en y, quel que soit l'étage, ou la case déchargée) **et après environ 6 heures de jeu** (`collect_hours=` de la section, défaut `RS_Config.VoiceDelivery.collectDelayHours`). Le délai suit l'horloge du jeu : il s'arrête en pause, va plus vite en vitesse accélérée ou pendant le sommeil, et ne compte pas serveur arrêté. Un joueur revenu en vue avant la fin remet le délai à zéro. Une planque dont le délai s'est écoulé pendant que sa case était déchargée est vidée dès que la case se charge de nouveau.
+Une mission de dépôt d'une voix propose **toutes ses planques à la fois** (clé `drops=` de sa section ; sans elle, tous les lieux `use=drop` de la fiche), chacune entourée sur votre carte avec son nom. Déposez où vous voulez : les objets laissés à plusieurs planques s'additionnent jusqu'à la quantité demandée. À chaque planque, le serveur désigne une boîte existante adaptée (une mission sur deux) ou, à défaut, demande un sac au sol. La voix ne ramasse une planque que **hors de vue de tout le monde** (aucun joueur à moins de 100 cases en x comme en y, quel que soit l'étage, ou la case déchargée) **et après environ 6 heures de jeu** (`collect_hours=` de la section, défaut `RS_Config.DeadDrops.collectDelayHours`). Le délai suit l'horloge du jeu : il s'arrête en pause, va plus vite en vitesse accélérée ou pendant le sommeil, et ne compte pas serveur arrêté. Un joueur revenu en vue avant la fin remet le délai à zéro. Une planque dont le délai s'est écoulé pendant que sa case était déchargée est vidée dès que la case se charge de nouveau.
 
 Dans une boîte, seuls les objets demandés disparaissent, jamais plus que la quantité restante : boîte, autres objets et surplus restent. Pour un sac, sac et contenu disparaissent ; un sac qui contient des objets étrangers au lot, ou plus que la quantité restante, est refusé pour éviter leur perte. Chaque objet n'est compté qu'une fois, même après un redémarrage. Avant la collecte, vous pouvez reprendre le dépôt et rien n'est validé. **Une fois toute la quantité collectée seulement, rendez compte à la radio**. Validation en jeu solo et MP de cette collecte : **en attente**.
 
-E20-T05 (ADR D06 et sa précision du 2026-11-14) : état de la mission `m.drops` (une entrée par planque : `id`, `label`, `x`, `y`, `z`, `mode`, `ready`, `baseline`, `box`, `hiddenSince`, `due`, `pickup`), `m.credited` (identifiants d'objets déjà comptés), `m.collectHours`. La règle « hors de vue » et le délai en heures de jeu forment une seule unité, `RS_OutOfSight` (positions, chargement et horloge injectés ; horloge `RC_GameClock.hours`) : en vue = un joueur connecté vivant à au plus 100 cases sur chaque axe, étages ignorés (portée d'envoi du jeu : `relevantRange` = vue bornée à 12-20, divisée par 2, plus 2 morceaux de 8 cases, soit 96 cases au plus, `GameServer.java:2638-2639` et `UdpConnection.isRelevantTo`, `UdpConnection.java:216-232`, Java 42.22), ou case non chargée sur l'autorité. `hiddenSince` (heure de jeu où le dernier témoin est sorti de vue) est sauvegardé avec la mission. La collecte de toute la quantité rend l'objectif rapportable ; `report_mission` reste obligatoire sur la fréquence du donneur. Une affirmation avant collecte ne valide rien. Le carnet du seul participant reçoit `drops` (`label`, `mode`, `ready`), `dropZones` (une zone `{x, y, r, label}` par planque, cercle « Dépôt (nom) » sur sa carte) et `collectHours` ; le modèle reçoit les noms des planques et la règle de collecte (`RS_VoiceDelivery.where` et `.rule`), jamais une coordonnée ni une fréquence. Un journal de retrait interrompu n'est jamais crédité.
+E20-T05 (ADR D06 et sa précision du 2026-11-14) : état de la mission `m.drops` (une entrée par planque : `id`, `label`, `x`, `y`, `z`, `mode`, `ready`, `baseline`, `box`, `hiddenSince`, `due`, `pickup`), `m.credited` (identifiants d'objets déjà comptés), `m.collectHours`. La règle « hors de vue » et le délai en heures de jeu forment une seule unité, `RS_OutOfSight` (positions, chargement et horloge injectés ; horloge `RC_GameClock.hours`) : en vue = un joueur connecté vivant à au plus 100 cases sur chaque axe, étages ignorés (portée d'envoi du jeu : `relevantRange` = vue bornée à 12-20, divisée par 2, plus 2 morceaux de 8 cases, soit 96 cases au plus, `GameServer.java:2638-2639` et `UdpConnection.isRelevantTo`, `UdpConnection.java:216-232`, Java 42.22), ou case non chargée sur l'autorité. `hiddenSince` (heure de jeu où le dernier témoin est sorti de vue) est sauvegardé avec la mission. La collecte de toute la quantité rend l'objectif rapportable ; `report_mission` reste obligatoire sur la fréquence du donneur. Une affirmation avant collecte ne valide rien. Le carnet du seul participant reçoit `drops` (`label`, `mode`, `ready`), `dropZones` (une zone `{x, y, r, label}` par planque, cercle « Dépôt (nom) » sur sa carte) et `collectHours` ; le modèle reçoit les noms des planques et la règle de collecte (`RS_DeadDrops.where` et `.rule`), jamais une coordonnée ni une fréquence. Un journal de retrait interrompu n'est jamais crédité.
+
+E20-T06 (ADR D06) : l'unité des planques, `RS_DeadDrops` (ex-`RS_VoiceDelivery`), sert tout gabarit qui déclare la
+stratégie `dropAccepts(m, item)` (« ce qui compte ») : `deliver` accepte les types demandés en état d'usage,
+`retrieve_id` seulement l'objet dont l'identifiant est `m.cardId` (une autre carte d'identité n'est jamais prise). La mise
+en place est inscrite pour cette déclaration (`RS_MissionVoice.registerDeclaredSetup('dropAccepts', …)`) ; le moteur
+appelle les crochets du donneur (`observeDrops`, `projectDrops`, `dropsWhere`, `dropsRule` ; `RC_Missions.dropsWhere`,
+`RC_Missions.dropsRule` pour les `voiceBrief`). Une mission sans lieu propre (`deliver`) prend pour lieu ses planques ;
+`retrieve_id` garde le bâtiment à fouiller et sa zone de recherche, ses planques s'ajoutent sur la carte. Pour une voix,
+la carte trouvée sur le corps se dépose dans la boîte désignée (ou, sans boîte, seule dans un sac au sol) ; ramassée hors
+de vue après `collect_hours` (défaut 6 h de jeu), elle compte `m.delivered = 1` : l'objectif est atteint et
+`report_mission` est accepté sans toucher à l'inventaire. Tenir la carte (`found`) ne suffit plus. Le carnet reçoit
+`report` = `radio`, `drops`, `dropZones`, `collectHours`, `depositCollected` ; le modèle reçoit le travail (« déposer la
+carte à une planque »), la règle de collecte et le fait « carte collectée à une planque : oui/non ». La remise en main
+propre à un PNJ (Living Knox, fiche du carnet) ne change pas.
 
 ### Récompenses de mission (E11)
 

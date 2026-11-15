@@ -86,6 +86,11 @@ LUA_FILES = [
     ('RadioSurvivorCore/RC_Caches', CORE_LUA / 'server' / 'RadioSurvivorCore' / 'RC_Caches.lua'),
     *[(f'RadioSurvivor/Rewards/{p.stem}', p)
       for p in sorted((MOD_LUA / 'server' / 'RadioSurvivor' / 'Rewards').glob('*.lua'), key=lambda p: p.name.lower())],
+    # E20-T07 : registre des modes d'arrivée des marchands (RS_Personas.rules) et un fichier par mode (TradeArrivals/).
+    ('RadioSurvivor/RS_TradeArrivals', MOD_LUA / 'server' / 'RadioSurvivor' / 'RS_TradeArrivals.lua'),
+    *[(f'RadioSurvivor/TradeArrivals/{p.stem}', p)
+      for p in sorted((MOD_LUA / 'server' / 'RadioSurvivor' / 'TradeArrivals').glob('*.lua'),
+                      key=lambda p: p.name.lower())],
     ('RadioSurvivor/RadioSurvivor_Const', MOD_LUA / 'shared' / 'RadioSurvivor' / 'RadioSurvivor_Const.lua'),
     ('RadioSurvivor/RS_Personas', MOD_LUA / 'server' / 'RadioSurvivor' / 'RS_Personas.lua'),
     ('RadioSurvivor/RS_RadioHistory', MOD_LUA / 'client' / 'RadioSurvivor' / 'RS_RadioHistory.lua'),
