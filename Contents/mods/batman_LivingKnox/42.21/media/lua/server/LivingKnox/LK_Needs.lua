@@ -2,8 +2,8 @@
 -- Fiche : docs/annexes/conception/besoins.md. Autorité seulement (serveur dédié ou hébergé, solo) : un client MP charge aussi
 -- media/lua/server, il s'arrête ici. Aucune jauge n'est tenue par un client.
 --
--- Décision du 2026-10-08 (docs/annexes/plans-termines/LK05-perception-decisions-routines.md) : quatre jauges de 0 à 100 par membre,
--- tenues par le serveur, même modèle à l'écran et hors écran.
+-- Décision du 2026-10-08 (docs/annexes/plans-termines/LK05-perception-decisions-routines.md) : quatre jauges de 0 à 100
+-- par membre, tenues par le serveur, même modèle à l'écran et hors écran.
 --
 -- Modèle (valeurs de départ propres au mod, à recalibrer en jeu ; raisons dans la fiche) :
 --   1. Pas horaire (Needs.step, pur, entiers seulement, aucun hasard) : une heure de jeu k (intervalle d'âge du monde
