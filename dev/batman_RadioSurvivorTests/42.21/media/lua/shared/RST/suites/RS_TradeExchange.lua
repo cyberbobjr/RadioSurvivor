@@ -17,6 +17,14 @@ Changes to the world: none kept. The bag is removed from the floor at the end; t
 (S.data.trade.traders.gus) is copied before the run and put back after it; the radio lines are captured, never aired;
 the players are moved back (RST.Fixtures.movePlayers).
 Outside the game: tests/test_rs_trade_exchange.py, tests/test_rs_trade_traders.py.
+
+rs.trade_road - the same passage for a trader who comes by road (E20-T11, ADR D08): the first loaded trader whose
+sheet says arrival=road (none named here), at the roadside landing of its sheet; the arrival plays the approach sound
+of the mode (van door) and the exchange its leave sound (van trunk), both read from the mode and checked on the sound
+port of RS_TradeRun (the sounds still reach the players through RS_TradeSound). Booking, arrival by road, bag on the
+roadside, players out of sight past the delay of the sheet, exchange. Tags "server" and "world"; campaign:
+python tools/autoclient/autoclient.py --mp --clients 2 --server-suite rs.trade_road --server-tags world --bridge on
+--llm fake. Outside the game: tests/test_rs_town_traders.py.
 ]]
 
 require "RST/RST"
@@ -24,7 +32,7 @@ require "RST/RST_Fixtures"
 
 local F = RST.Fixtures
 
-local VOICE = "gus"     -- the delivered trader whose run is played (his sheet holds the landing and the delay)
+local GUS = "gus"       -- the delivered trader of rs.trade_exchange (his sheet holds the landing and the delay)
 local AWAY = 150        -- tiles: beyond RS_OutOfSight.VIEW_TILES (100) on the x axis
 
 local function deepCopy(v)
@@ -90,11 +98,41 @@ local function advance(hours)
     gt:setTimeOfDay(gt:getTimeOfDay() + hours)
 end
 
-local function gusRun(t)
+-- First loaded trader whose [trade] section names this arrival mode, or nil.
+local function traderBy(Trade, arrival)
+    for _, id in ipairs(Trade.traderIds()) do
+        if Trade.specOf(id).arrival == arrival then return id end
+    end
+    return nil
+end
+
+-- Stock item booked for the run: the outside news when the trader brings it (cheap), else the first one available.
+local function goods(Trade, voice, caller)
+    local free = Trade.available(voice, caller, nil)
+    if (free.OutsideNews or 0) > 0 then return "OutsideNews", "RadioSurvivor.OutsideNews" end
+    for _, e in ipairs(Trade.specOf(voice).items) do
+        if (free[e.n] or 0) > 0 then return e.n, e.t end
+    end
+    return nil
+end
+
+-- Full passage of the trader VOICE. sounds: true to check the approach and leave sounds of its arrival mode.
+local function passage(t, VOICE, sounds)
     local Ex, Trade, S, Run = modules(t)
     if not S.data or S.blocked then t:skip("private state not loaded") end
+    if not VOICE then t:skip("no loaded trader for this arrival mode") end
     local spec = Trade.specOf(VOICE)
     if not spec then t:skip("voice " .. VOICE .. " has no [trade] section loaded") end
+    local mode = require("RadioSurvivor/RS_TradeArrivals").get(spec.arrival)
+    local played = {}
+    if sounds then
+        local Sound = require "RadioSurvivor/RS_TradeSound"
+        Run.useSound(function(name, point)
+            played[#played + 1] = name
+            return Sound.playAt(name, point)
+        end)
+        t:defer(function() Run.useSound(nil) end, "sound port of RS_TradeRun put back")
+    end
     local p = F.player(t)
     if not p then t:skip("no target player") end
     local gt = getGameTime()
@@ -123,16 +161,19 @@ local function gusRun(t)
     F.movePlayers(t, p, L.x + 1, L.y, L.z, function(t1)
         F.waitSquare(t1, L.x, L.y, L.z, nil, function(t2)
             local caller = p:getUsername()
-            local offer, why, booked = Trade.propose(VOICE, caller, nil, "OutsideNews:1", nil,
+            local name, fullType = goods(Trade, VOICE, caller)
+            if not name then t2:skip("nothing left in the stock of " .. VOICE) end
+            local offer, why, booked = Trade.propose(VOICE, caller, nil, name .. ":1", nil,
                 Trade.teamOf(caller, p), {})
             if offer == nil then t2:skip("no offer from " .. VOICE .. " now: " .. tostring(why)) end
             t2:ok(booked == true, "run not booked")
             t2:ok(offer.price <= 30, "price above three money bundles: " .. tostring(offer.price))
-            t2:eq(true, Run.arrive(VOICE, "rst"), "boat not arrived")
+            t2:eq(true, Run.arrive(VOICE, "rst"), VOICE .. " not arrived (" .. spec.arrival .. ")")
+            if sounds then t2:eq(mode.sounds.approach, played[1], "approach sound of " .. spec.arrival) end
             local bag = bagWith({ "Base.MoneyBundle", "Base.MoneyBundle", "Base.MoneyBundle", "Base.Hammer" })
             bagId = bag:getID()
             getCell():getGridSquare(L.x, L.y, L.z):AddWorldInventoryItem(bag, 0.5, 0.5, 0, true)
-            t2:eq(1, #(Ex.bagsIn(L.x, L.y, L.z, 0) or {}), "bag not found on the landing")
+            t2:eq(1, #(Ex.holdsAt(VOICE, Trade.lastRun(VOICE)) or {}), "bag not found on the landing")
             t2:eq(nil, poll(), "exchanged in front of the players")
             F.movePlayers(t2, p, L.x + 1 + AWAY, L.y, L.z, function(t3)
                 poll()
@@ -153,11 +194,14 @@ local function gusRun(t)
                                 local item = bagOn(L.x, L.y, L.z, bagId)
                                 t7:ok(item ~= nil, "bag gone from the landing")
                                 local inv = item and item:getInventory()
-                                t7:eq(1, inv and countType(inv, "RadioSurvivor.OutsideNews") or 0, "counterpart")
+                                t7:eq(1, inv and countType(inv, fullType) or 0, "counterpart")
                                 t7:eq(true, item ~= nil and Ex.hasMark(item, offer.rev), "counterpart not marked")
                                 t7:eq(1, inv and countType(inv, "Base.Hammer") or 0, "hammer taken")
+                                if sounds then
+                                    t7:eq(mode.sounds.leave, played[#played], "leave sound of " .. spec.arrival)
+                                end
                                 for _ = 1, 3 do t7:eq(nil, poll(), "a later poll did something") end
-                                t7:eq(1, inv and countType(inv, "RadioSurvivor.OutsideNews") or 0, "given twice")
+                                t7:eq(1, inv and countType(inv, fullType) or 0, "given twice")
                                 if air and captured[1] then
                                     t7:ok(string.find(captured[#captured][2], "IGUI_", 1, true) == nil,
                                         "untranslated key")
@@ -196,5 +240,14 @@ RST.suite("rs.trade_exchange", { tags = { "server", "world" }, testTimeoutMs = 1
         t:eq(14, Ex.appraise(Ex.itemsOf(inv), { "Rst Example" }, nil).value, "card named after a player taken")
     end)
 
-    s.test("Gus' run: exchanged only once every player is out of view for the delay", gusRun)
+    s.test("Gus' run: exchanged only once every player is out of view for the delay", function(t)
+        passage(t, GUS, false)
+    end)
+end)
+
+RST.suite("rs.trade_road", { tags = { "server", "world" }, testTimeoutMs = 180000 }, function(s)
+    s.test("run of a road trader: van at the roadside, bag exchanged once every player is out of view", function(t)
+        local _, Trade = modules(t)
+        passage(t, traderBy(Trade, "road"), true)
+    end)
 end)

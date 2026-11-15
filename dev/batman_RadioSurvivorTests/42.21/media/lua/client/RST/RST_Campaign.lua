@@ -101,6 +101,7 @@ RST.CAMPAIGNS["solo-rs"] = {
     "rs.voicerelay",    -- E20-T12: powered radio turned on upstairs in a real building, off refused, then the report
     "rs.voicewatch",    -- E20-T14: watch counted in game time at the spot, long absence resets, then the report
     "rs.voiceroute",    -- E20-T13: three places crossed in order, skipped points refused, then the report
+    "rs.voiceitem",     -- E20-T15: personal item spawned by the server, left at a drop with a decoy, then the report
     "rs.voicedarlene",  -- E20-T10: Darlene's chain with her real sheet at the West Point clinic, up to returned
     "rs.missionrewards", -- E11: actual cache, private frequency, stash and server XP
 }
@@ -156,6 +157,7 @@ RST.CAMPAIGNS["mp"] = {
     "rs.factions.incident", -- E09-T06 (E01-T19: hit simulated on the authority)
     "rs.trade_exchange", -- E13-T04 (E01-T19)
     "rs.trade_run",     -- E13-T03 (E01-T19)
+    "rs.trade_road",    -- E20-T11: a road trader's run, van sounds of the mode, exchange out of sight after the delay
     "rs.rescue",        -- E12-T02..T05
     "lk.load",          -- LK13-T02
     "lk.fitness",       -- LK05-T16
@@ -168,6 +170,7 @@ RST.CAMPAIGNS["mp"] = {
     "rs.voicerelay",    -- E20-T12: radio relay read by the server, off refused, then the radio report
     "rs.voicewatch",    -- E20-T14: watch read on the server copy in game hours, long absence resets, then the report
     "rs.voiceroute",    -- E20-T13: route crossed in order by the server copy, skipped points refused, then the report
+    "rs.voiceitem",     -- E20-T15: only the marked item collected out of view of every online player, then the report
     "rs.voicedarlene",  -- E20-T10: Darlene's chain with her real sheet at the West Point clinic, up to returned
     "rs.missionrewards", -- E11: recipient client XP and unrelated client isolation
     "rs.lastpages",     -- E15-T02, E15-T03 (prefix: corpse)

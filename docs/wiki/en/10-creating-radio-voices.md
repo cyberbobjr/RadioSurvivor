@@ -47,7 +47,7 @@ mod (`batman_RadioSurvivor`): with Living Knox alone there are no voice sheets.
 | Dedicated server | `<Zomboid folder of the server>/Lua/batman_RadioSurvivor/personas` (with `-cachedir=`: `<cachedir>/Lua/...`) |
 
 - One file per voice: `personas/<id>.txt`.
-- The mod installs its six sheets there the **first time a world loads**. Before that, the folder does not exist.
+- The mod installs its sixteen sheets there the **first time a world loads**. Before that, the folder does not exist.
 - **Hot reload**: the server rereads the folder every **30 real seconds** and at each world load; the bridge rereads a
   sheet at the next request after it changed.
 - **Your changes are kept**: a delivered sheet you edited is never overwritten by a mod update.
@@ -117,8 +117,8 @@ The full reference of the format (in French) is
 - Hours: two digits (`08:00`, not `8:00`). The start minute is included, the end minute excluded; `22:00-06:00` goes
   past midnight.
 
-**Free bands**: 25.0-39.8, 50.0-74.8 and 200.2 and above (fewer radios reach the higher ones). Mae (example 1) uses
-40.0-49.8, Rick (example 2) 50.0-64.8.
+**Free bands**: 40.0-64.8 and 270.0 and above (fewer radios reach the higher ones). Mae (example 1) uses 40.0-49.8,
+Rick (example 2) 50.0-64.8. Ranges that overlap a shipped voice work too (1.0 MHz rule below).
 
 <details>
 <summary>Bands already taken</summary>
@@ -131,6 +131,16 @@ The full reference of the format (in French) is
 | Darlene | 115.0-129.8 |
 | Walt | 130.0-149.8 |
 | Gus | 150.2-199.8 |
+| Wanda (West Point) | 25.0-31.8 |
+| Lamar (Brandenburg) | 32.0-39.8 |
+| Delphine (Louisville) | 65.0-74.8 |
+| Hollis (Muldraugh) | 201.0-209.8 |
+| Loretta (March Ridge) | 210.0-219.8 |
+| Virgil (Irvington) | 220.0-229.8 |
+| Boone (Echo Creek) | 230.0-239.8 |
+| Odessa (Rosewood) | 240.0-249.8 |
+| Ezra (Ekron) | 250.0-259.8 |
+| Maxine (Fallas Lake) | 260.0-269.8 |
 | Vanilla FM stations and the emergency broadcast | 88-108 |
 | Operation Artemis (default) | 108.0 |
 | Military Drop | 120-170 (broadcasts), 10-25 (numbers station) |
@@ -266,7 +276,7 @@ Always allowed, even if you do not list it. The voice answers you on the radio.
 #### Missions and rewards — `start_mission`
 
 - Each mission the voice can give is a `[mission <id>]` section with its `type`: `scout` (scouting), `deliver`
-  (delivery drop), `retrieve` (missing papers), `clear` (clearing zombies), `signal` (Signal Smoke signal), `barricade` (barricading a building), `relay` (radio relay), `route` (several places to cross in order), `watch` (keeping watch). The server
+  (delivery drop), `retrieve` (missing papers), `clear` (clearing zombies), `signal` (Signal Smoke signal), `barricade` (barricading a building), `relay` (radio relay), `route` (several places to cross in order), `watch` (keeping watch), `item` (personal item to find and leave at a dead drop). The server
   checks each objective; one mission per player and voice. The notebook is required. Without any `[mission]` section,
   only `scout` is allowed. Keys in detail: [Missions, rewards and items](#missions-rewards-and-items).
 - The building is chosen by the server, never by the AI: for `scout` and `clear`, the one of the section's
@@ -311,15 +321,15 @@ pool=cache:medical:3, cache:snacks:1, frequency:1, stashmap:1, lesson:Doctor:2
 
 | `[mission]` key | What it does |
 |---|---|
-| `type` | Required: `scout`, `deliver`, `retrieve`, `clear`, `signal`, `barricade`, `route`, `relay` or `watch` (types registered by the mod). |
+| `type` | Required: `scout`, `deliver`, `retrieve`, `clear`, `signal`, `barricade`, `route`, `relay`, `watch` or `item` (types registered by the mod). |
 | `weight` | Weight of the mission when the AI asks for a type and several available missions of that type match (1 by default). |
 | `after` | The mission is offered only after the success of another mission of the sheet (its id), for that character. |
 | `scope` | `character` (default): `after` counts the character's successes; `team`: those of its team (faction, or the lone player). |
 | `sets_state` | Story state the voice takes when this mission succeeds, a name (`returned`…). See "Chained missions". |
 | `story` | The reason the voice gives, told to the AI with the mission (200 bytes at most). |
 | `drops` | Dead drops of the mission, all offered to the player: `any` (every `use=drop` place, as without the key) or a list of ids of `use=drop` places. |
-| `target` | Objective place, a `use=target` place: a square inside the building aimed at. `scout` and `clear`: that building, wherever the player is (without the key, a building drawn around them); required for `barricade` (the building to barricade) and for `relay` (the relay spot: the radio goes on level 1 or higher, at least on the place's `z=` level; outside any building, a high point). Required for `watch`: the watch post (the watch counts within 6 tiles of the place, on any level). |
-| others | Parameters of the type: `deliver` takes `items` (an item category), `quantity` (`4` or `2-4`) and `collect_hours` (game hours before a dead drop is collected, 6 by default); `retrieve` takes `collect_hours` (the ID card is left at a dead drop); `barricade` takes `count` (outside windows and doors to barricade, 4 by default, at least 1); `relay` takes none; `route` requires `points` (2 to 8 `use=target` places separated by commas, to cross in this order, never the same twice in a row: `points=bridge,station,clinic`). `watch` takes `hours` (game hours of the watch, 2 by default, from 1 to 24). |
+| `target` | Objective place, a `use=target` place: a square inside the building aimed at. `scout` and `clear`: that building, wherever the player is (without the key, a building drawn around them); required for `barricade` (the building to barricade) and for `relay` (the relay spot: the radio goes on level 1 or higher, at least on the place's `z=` level; outside any building, a high point). Required for `watch`: the watch post (the watch counts within 6 tiles of the place, on any level). Required for `item`: the place where the server puts the item (on the floor, in the building of the square, on the place's `z=` level; outside any building, within 4 tiles of the place). |
+| others | Parameters of the type: `deliver` takes `items` (an item category), `quantity` (`4` or `2-4`) and `collect_hours` (game hours before a dead drop is collected, 6 by default); `retrieve` takes `collect_hours` (the ID card is left at a dead drop); `barricade` takes `count` (outside windows and doors to barricade, 4 by default, at least 1); `relay` takes none; `route` requires `points` (2 to 8 `use=target` places separated by commas, to cross in this order, never the same twice in a row: `points=bridge,station,clinic`). `watch` takes `hours` (game hours of the watch, 2 by default, from 1 to 24). `item` requires `item` (the full type of a game item, `Module.Type`: `item=Base.Locket`, `Base.Photo`, `Base.Pocketwatch`...) and takes `label` (the name the voice gives it, else the game's name) and `collect_hours` (the item is left at a dead drop). |
 
 Every key is **read and checked** when the sheet loads. `weight`, `after`, `scope`, `sets_state`, `story`, `drops`,
 `collect_hours`, `target` (`scout`, `clear`, `barricade`), `items` and `quantity` (`deliver`: accepted items and
@@ -418,6 +428,8 @@ From a box, only requested items disappear, never more than the remaining quanti
 
 **Keeping watch for a voice.** The `target=` place is circled on your map: it is the watch post. Stay there (within 6 tiles of the place; an upper floor or the roof counts too) for the game hours the notebook shows, 2 by default. Time counts in game hours: it stops while the game is paused and runs faster at a higher speed. A short absence (10 game minutes at most) is tolerated without counting; a longer one starts the watch again from zero. The server notes what happens during the watch (a helicopter heard, a group of the dead close by) and the voice talks about it when you call back once the watch is done. MP in-game validation: **pending**.
 
+**Personal item for a voice.** An `item` mission names a vanilla item (`item=`, for example a locket, a photo or a pocket watch) and, optionally, how the voice calls it (`label=`, "Ellen's locket"). When the mission starts, the server puts that item on the floor in the building of the `target=` place (or close to the place outside any building), only once, as soon as the place is loaded; the place is circled on your map. Find it, then leave it at one of the mission's drop points, at your choice: it is collected out of everyone's sight, after the delay in game hours. Only the item put there for the voice counts: another item of the same kind, even identical, is never taken and stays where you left it. Once the item has been collected, call the voice back. MP in-game validation: **pending**.
+
 **Route for a voice.** A `route` mission names several places to cross **in order**, on foot or by vehicle. Only the next point is circled on your map, with the place name; points already crossed stay circled, the later ones only show in their turn. A point is crossed when you pass within 8 tiles of its centre, even driving fast; a point reached before the previous one does not count and must be crossed again in its turn. The notebook shows "2 of 4" and the next point. The server reads your position itself (the one of the vehicle you sit in). Once every point is crossed, call the voice back. MP in-game validation: **pending**.
 
 **Missing papers for a voice.** The ID card taken from the body is not handed over on the radio: leave it at one of the mission's dead drops, marked on your map as for a delivery (in the designated box, or alone in a bag on the ground). The voice collects it by the same rule, out of sight and after the wait (`collect_hours=` of the `[mission]` section); only the card of that body is taken, another ID card stays where it is. **Only once the card is collected, report over the radio**: the report removes nothing from your inventory. MP in-game validation: **pending**.
@@ -431,7 +443,7 @@ one without the other is refused.
 | Key | What it does |
 |---|---|
 | `landing` | Meeting place(s), each `use=landing`; its label is the only meeting name the voice gives, and only to the group that booked. |
-| `arrival` | How the trader comes: `boat` (a boat comes alongside; the player shows a lit lamp in hand or a red flare there during the window). |
+| `arrival` | How the trader comes: `boat` (a boat comes alongside; the player shows a lit lamp in hand or a red flare there during the window), `road` (a van pulls over by the road, same signals; its door at the arrival, its trunk at the departure) or `cache` (a dead drop: nobody comes; the payment is left in a container of the place, a dumpster or a mailbox, and the goods are put there out of sight; no signal, no sound). |
 | `every_days` | One run every N game days (1 to 28). |
 | `hours` | Meeting window, `HH:MM-HH:MM`. |
 | `delay_hours` | Optional: game hours during which nobody may see the place before the exchange (1 by default). |
@@ -442,8 +454,11 @@ one without the other is refused.
 Each trader has its own stock, its own booking and its own deals: two traders booked the same week do not get in each
 other's way. The first firm offer of a run books it for the caller's group; the place is then marked on their map.
 After the signal, the player leaves a bag within 3 tiles of the place and walks away: the trader only comes once
-**nobody is within 100 tiles** (on x and on y) **for `delay_hours` game hours**, then leaves the goods in the same bag.
-A boat can be called off by a patrol, a helicopter heard or a storm: the voice says so on its frequency. What a trader
+**nobody is within 100 tiles** (on x and on y) **for `delay_hours` game hours**, then leaves the goods in the same bag
+(cache: in the container of the place where the payment was left). A boat can be called off by a patrol, a
+helicopter heard or a storm; a van by an army checkpoint, a helicopter or a storm; a cache by a sweep or a
+helicopter: the voice says so on its frequency. The ten shipped traders (one per vanilla town) are examples:
+`personas/wanda.txt` (boat), `hollis.txt` (road), `odessa.txt` (cache). What a trader
 takes follows the smuggler's table (`docs/specifications-techniques/passeur-table.md`).
 
 ```ini
@@ -479,6 +494,27 @@ Your trade book is the only truth about your stock, your prices and your run; gi
 signal only to the group whose run is booked, exactly as written in your book.
 Stay in character. Radio style: 1 to 3 short sentences, end each transmission with "Over.".
 Answer in the same language the caller uses.
+```
+
+#### Frequency note — the `[note]` section
+
+A voice is found through a **note** hidden in the loot: the player inspects it and reads the frequency drawn for the
+game. The `[note]` section (one at most, no id) declares it; without it, the voice has no note.
+
+| Key | What it does |
+|---|---|
+| `item` | The document item, `Module.Type` of an item script of the mod whose `OnCreate` is `RadioSurvivorNotes.onCreate` (`RadioSurvivor.NoteTrade`: a shared handwritten note; several voices may share an item, each new note carries one of them). |
+| `key` | Root of the translations: `Print_Media_RadioSurvivor_<key>_title`, `Print_Media_RadioSurvivor_<key>_info` (layout, `%1` = frequency) and `Print_Text_RadioSurvivor_<key>_info` (transcript), in `media/lua/shared/Translate/<language>/`. |
+| `loot` | Optional, repeatable: `list:weight`, a vanilla procedural list (`ProceduralDistributions`) and its weight (about the per cent per roll). |
+| `glovebox` | Optional, repeatable: `list:weight` in `VehicleDistributions` (glove box). |
+| `corpse` | Optional: `yes` so that a dead body carrying a walkie-talkie may have it (`no` by default). |
+
+```ini
+[note]
+item=RadioSurvivor.NoteTrade
+key=NoteAda
+loot=FishingStoreGear:2
+glovebox=GloveBox:0.5
 ```
 
 #### Actions not to add
@@ -850,7 +886,9 @@ first error, and the last valid version of the voice stays in service until you 
 | `bad use entry 'hide' (expected mark, target, drop, landing)` | See [Places](#places--place-sections). |
 | `place label of 'mill' too long (48 bytes of UTF-8 at most)` | Shorten the label. |
 | `unknown section 'shop' (expected place, mission, rewards, category or prompt)` | Typo in a section title. |
-| `unknown mission type 'fly'` (server log only) | Use a type of the mod: `scout`, `deliver`, `retrieve`, `clear`, `signal`, `barricade`, `route`, `relay`, `watch`. |
+| `unknown mission type 'fly'` (server log only) | Use a type of the mod: `scout`, `deliver`, `retrieve`, `clear`, `signal`, `barricade`, `route`, `relay`, `watch`, `item`. |
+| `bad item 'Locket' (Module.Type of an item script, e.g. Base.Locket)` (server log only) | The `item=` key of an `item` mission gives the module and the type: `Base.Locket`. |
+| `unknown item 'Base.Lockett'` (server log only) | No item of the game (nor of the active mods) has this type: check the spelling. |
 | `bad place list (2 to 8 places with use=target)` | The `points=` key of a `route` mission names 2 to 8 `use=target` places, separated by commas. |
 | `place 'clinic' has no use=drop` (server log only) | Add `drop` to the `use` of that place, or cite another place. |
 | `unknown category 'weapons'` (server log only) | A category of the catalogue or a `[category]` of the sheet. |

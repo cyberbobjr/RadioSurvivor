@@ -20,8 +20,8 @@ arrive : l'IA écrit seulement les mots et choisit dans des listes fermées.
 ## Des voix à la radio (Radio Survivor)
 
 Six voix répondent sur de vraies fréquences tirées pour chaque partie : Walt, le vieux radioamateur, une infirmière,
-un déserteur, une famille assiégée, une station pirate et un contrebandier. Chacune a son histoire, ses heures
-d'écoute et sa mémoire de vous.
+un déserteur, une famille assiégée, une station pirate et un contrebandier, plus dix marchands, un par ville.
+Chacune a son histoire, ses heures d'écoute et sa mémoire de vous.
 
 Prenez une radio émettrice **en main** (talkie-walkie, radio HAM) ou une radio militaire portée sur le dos,
 allumez-la, réglez-la, ouvrez le micro et écrivez votre phrase dans la section **Émettre** de la fenêtre radio. La

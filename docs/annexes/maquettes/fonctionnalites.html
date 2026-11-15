@@ -263,6 +263,7 @@ td .step { font-family: var(--f-mono); font-size: 0.8rem; color: var(--muted); w
         <tr><td>Missions générées<br><span class="step">E11</span></td><td>Livrer, signaler, retrouver, reconnaître, nettoyer, récupérer : objectifs vérifiés par le serveur. Les voix disposent de cinq gabarits ; matériel réel, fréquence, carte-cachette et leçon complètent la réputation. Chaque mod paie ses propres missions : une mission donnée par un survivant Living Knox est payée par Living Knox, et RadioSurvivor fonctionne sans lui.</td><td><span class="chip ok">Fait</span><br><span class="step">15/15 jouées</span></td><td><span class="chip ok">Fait</span><br><span class="step">11/11</span></td></tr>
         <tr><td>Survivants à secourir<br><span class="step">E12</span></td><td>Une famille assiégée dans un vrai bâtiment appelle à l'aide avec des indices ; secourue à temps, elle laisse une cache, sinon on trouve la scène. Le premier secours est validé en jeu solo ; réserves, délai et un secours par équipe sont écrits.</td><td><span class="chip ok">Fait</span><br><span class="step">7/7 jouées</span></td><td><span class="chip ok">Fait</span><br><span class="step">5/5</span></td></tr>
         <tr><td>Le passeur de l'Ohio<br><span class="step">E13</span></td><td>Troc négocié à la radio, une traversée par semaine de jeu, échange sans contact sur une berge. La table de valeurs est validée et sert aussi au troc avec les groupes ; le « journal du dehors » qu'il apporte est écrit.</td><td><span class="chip ok">Fait</span><br><span class="step">3/3 jouées</span></td><td><span class="chip ok">Fait</span><br><span class="step">2/2</span></td></tr>
+        <tr><td>Un marchand par ville<br><span class="step">E20-T11</span></td><td>Dix nouveaux marchands radio, un par ville vanilla (onze avec Gus) : barque au bord de l'Ohio (West Point, Brandenburg, Louisville), fourgon au bord de la route (Muldraugh, March Ridge, Irvington, Echo Creek) ou planque dans une poubelle ou une boîte aux lettres où personne ne vient (Rosewood, Ekron, Fallas Lake). Chacun a son histoire, sa fréquence, son stock et son mot manuscrit dans le butin.</td><td><span class="chip ok">Testé hors jeu</span></td><td><span class="chip later">À tester</span><br><span class="step">passage par la route écrit</span></td></tr>
         <tr><td>Parler fait du bien<br><span class="step">E05-T15</span></td><td>Chaque réponse d'un survivant à votre personnage par radio apaise un peu l'ennui et la tristesse ; entendre deux survivants discuter apaise un peu l'ennui. Cinq réconforts par heure de jeu au plus, réglables dans les options sandbox.</td><td><span class="chip ok">Fait</span><br><span class="step">1/1 jouées</span></td><td><span class="chip ok">Fait</span><br><span class="step">1/1</span></td></tr>
         <tr><td>Chronique et mémorial<br><span class="step">E14</span></td><td>Chaque soir, la station pirate raconte les faits du serveur et lit les noms des morts du jour. Journal des faits, bulletin du soir et mémorial sont validés en solo et en multijoueur ; les animaux morts ne sont pas lus.</td><td><span class="chip ok">Fait</span><br><span class="step">4/4 jouées</span></td><td><span class="chip ok">Fait</span><br><span class="step">3/3</span></td></tr>
         <tr><td>Dernières pages<br><span class="step">E15</span></td><td>À la mort d'un personnage, son journal manuscrit est écrit par le LLM et laissé sur le corps. Le relevé de vie est écrit et la façon de poser le document dans le cadavre est établie.</td><td><span class="chip ok">Fait</span><br><span class="step">4/4 jouées</span></td><td><span class="chip ok">Fait</span><br><span class="step">3/3</span></td></tr>
@@ -813,12 +814,22 @@ td .step { font-family: var(--f-mono); font-size: 0.8rem; color: var(--muted); w
         <tr><td>Whitaker</td><td>Famille assiégée, le premier secours (§05)</td><td class="mono">75,0 – 87,8</td><td>Tous les talkies</td><td>Silencieuse jusqu'à E12</td></tr>
         <tr><td>Night Owl</td><td>Station pirate, la chronique (§06)</td><td class="mono">88,0 – 107,8 et 109,0 – 114,8</td><td>Radios FM et talkies</td><td>Bulletins en E14</td></tr>
         <tr><td>Gus</td><td>Passeur de l'Ohio, le troc (§09)</td><td class="mono">150,2 – 199,8</td><td>Talkies 2 à 5, radios HAM</td><td>1 h sur 8</td></tr>
+        <tr><td>Wanda</td><td>West Point : ancienne marchande d'appâts, barque ; épicerie, cigarettes, pansements</td><td class="mono">25,0 – 31,8</td><td>Talkies 3 à 5, radios HAM</td><td>Aucun</td></tr>
+        <tr><td>Lamar</td><td>Brandenburg : ancien matelot du bac, barque ; cartouches, alcool</td><td class="mono">32,0 – 39,8</td><td>Talkies 3 à 5, radios HAM</td><td>Aucun</td></tr>
+        <tr><td>Delphine</td><td>Louisville : cuisinière d'un pousseur, barque ; vivres, médicaments</td><td class="mono">65,0 – 74,8</td><td>Talkies 2 à 5, radios HAM</td><td>Aucun</td></tr>
+        <tr><td>Hollis</td><td>Muldraugh : routier de l'armée, fourgon ; surplus militaire</td><td class="mono">201,0 – 209,8</td><td>Talkies 3 à 5, radios HAM</td><td>Aucun</td></tr>
+        <tr><td>Loretta</td><td>March Ridge : factrice, fourgon ; pièces radio, piles, journaux</td><td class="mono">210,0 – 219,8</td><td>Talkies 3 à 5, radios HAM</td><td>Aucun</td></tr>
+        <tr><td>Virgil</td><td>Irvington : fermier de la clôture, fourgon ; graines, conserves, cartouches</td><td class="mono">220,0 – 229,8</td><td>Talkies 3 à 5, radios HAM</td><td>Aucun</td></tr>
+        <tr><td>Boone</td><td>Echo Creek : contrebandier d'alcool, fourgon ; alcool, cigarettes</td><td class="mono">230,0 – 239,8</td><td>Talkies 3 à 5, radios HAM</td><td>Aucun</td></tr>
+        <tr><td>Odessa</td><td>Rosewood : infirmière scolaire, planque ; soins</td><td class="mono">240,0 – 249,8</td><td>Talkies 3 à 5, radios HAM</td><td>Aucun</td></tr>
+        <tr><td>Ezra</td><td>Ekron : prédicateur, planque dans une boîte aux lettres ; vivres</td><td class="mono">250,0 – 259,8</td><td>Talkies 3 à 5, radios HAM</td><td>Aucun</td></tr>
+        <tr><td>Maxine</td><td>Fallas Lake : gérante du camping, planque ; camping, vivres</td><td class="mono">260,0 – 269,8</td><td>Talkies 3 à 5, radios HAM</td><td>Aucun</td></tr>
       </tbody>
     </table>
   </div>
   <h3>Trouver une voix</h3>
   <ul>
-    <li><strong>Notes dans le butin.</strong> Cinq documents (page de journal radio, fiche de patient, avis de recherche, note griffonnée, prospectus) donnent la fréquence de la partie en cours et, le cas échéant, les horaires. Ils se lisent par « Inspecter », en français ou en anglais. Whitaker n'a pas de note tant qu'elle est silencieuse.</li>
+    <li><strong>Notes dans le butin.</strong> Cinq documents (page de journal radio, fiche de patient, avis de recherche, note griffonnée, prospectus), plus le mot manuscrit de chaque marchand, donnent la fréquence de la partie en cours et, le cas échéant, les horaires. Ils se lisent par « Inspecter », en français ou en anglais. Whitaker n'a pas de note tant qu'elle est silencieuse.</li>
     <li><strong>Lieux cohérents.</strong> Bureaux et garages pour Walt, cliniques et pharmacies pour Darlene, police et armée pour Cody, pêche et boîtes à gants pour Gus, salons, kiosques et voitures pour le Night Owl. Rareté réglable (<code>NoteRarity</code>).</li>
     <li><strong>Le serveur trie.</strong> Toute phrase dite dans une radio part avec sa fréquence. Si aucune voix ne la tient, c'est le silence, sans indice. Limite du jeu de base : en multijoueur, chaque émission part chez tous les clients avec sa fréquence, et un client modifié peut la lire.</li>
   </ul>
@@ -913,7 +924,7 @@ td .step { font-family: var(--f-mono); font-size: 0.8rem; color: var(--muted); w
 
 <section id="troc">
   <div class="logline"><span class="ch">09</span><span>Économie</span><span class="chip ok">Retenu</span><button class="comment-btn" type="button" hidden>Commenter</button></div>
-  <h2>Le troc : le passeur de l'Ohio</h2>
+  <h2>Le troc : le passeur de l'Ohio et les marchands des villes</h2>
   <p>Le marchand <strong>ne vient pas</strong> dans la zone. C'est un contrebandier de la rive de l'Indiana. Il traverse de nuit en barque et n'accoste jamais longtemps.</p>
   <h3>Règles décidées</h3>
   <ul>
@@ -941,6 +952,13 @@ td .step { font-family: var(--f-mono); font-size: 0.8rem; color: var(--muted); w
       </ul>
     </div>
   </div>
+  <h3>Un marchand par ville</h3>
+  <p>Chaque ville vanilla a son marchand, avec sa fréquence, son histoire et son stock. Il arrive de trois façons :</p>
+  <ul>
+    <li><strong>En barque</strong> au bord de l'Ohio (Riverside, West Point, Brandenburg, Louisville) : lampe ou fusée rouge sur le ponton, on entend le moteur.</li>
+    <li><strong>Par la route</strong> (Muldraugh, March Ridge, Irvington, Echo Creek) : même signal au bord de la route, on entend la portière puis le hayon d'un fourgon. Un barrage de l'armée, un hélicoptère ou un orage peut annuler.</li>
+    <li><strong>Par une planque</strong> (Rosewood, Ekron, Fallas Lake) : personne ne vient. On laisse le paiement dans une poubelle ou une boîte aux lettres avant l'heure, on s'éloigne, et la marchandise y est déposée quand personne ne regarde.</li>
+  </ul>
   <h3>Comment l'échange a lieu</h3>
   <ol>
     <li><strong>On négocie à la radio.</strong> Le LLM tient le rôle du passeur, se souvient des affaires passées et peut refuser. Les prix et les stocks sont dans une table du serveur ; le LLM ne propose qu'à l'intérieur de ces fourchettes (<code>propose_trade</code>).</li>

@@ -90,6 +90,8 @@ LUA_FILES = [
       for p in sorted((MOD_LUA / 'server' / 'RadioSurvivor' / 'Rewards').glob('*.lua'), key=lambda p: p.name.lower())],
     # E20-T07 : registre des modes d'arrivée des marchands (RS_Personas.rules) et un fichier par mode (TradeArrivals/).
     ('RadioSurvivor/RS_TradeArrivals', MOD_LUA / 'server' / 'RadioSurvivor' / 'RS_TradeArrivals.lua'),
+    # E20-T11 : causes d'annulation partagées par les modes d'arrivée.
+    ('RadioSurvivor/RS_TradeCauses', MOD_LUA / 'server' / 'RadioSurvivor' / 'RS_TradeCauses.lua'),
     *[(f'RadioSurvivor/TradeArrivals/{p.stem}', p)
       for p in sorted((MOD_LUA / 'server' / 'RadioSurvivor' / 'TradeArrivals').glob('*.lua'),
                       key=lambda p: p.name.lower())],

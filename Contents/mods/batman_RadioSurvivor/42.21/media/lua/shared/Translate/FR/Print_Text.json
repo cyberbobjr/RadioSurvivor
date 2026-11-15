@@ -66,5 +66,15 @@
     "Print_Text_RadioSurvivor_OutsideNews_month9": "septembre",
     "Print_Text_RadioSurvivor_OutsideNews_month10": "octobre",
     "Print_Text_RadioSurvivor_OutsideNews_month11": "novembre",
-    "Print_Text_RadioSurvivor_OutsideNews_month12": "décembre"
+    "Print_Text_RadioSurvivor_OutsideNews_month12": "décembre",
+    "Print_Text_RadioSurvivor_NoteWanda_info": "Plus d'appâts frais.\\nDemandez WANDA à la radio :\\n%1 MHz.\\nTôt le matin, de 5 à 8 h.\\nDe quoi manger contre ce que vous avez.",
+    "Print_Text_RadioSurvivor_NoteLamar_info": "Besoin de cartouches ? D'un verre ?\\nDemandez LAMAR :\\n%1 MHz.\\nLa nuit, de 21 h à 1 h.\\nParlez vite. Pas de noms.",
+    "Print_Text_RadioSurvivor_NoteDelphine_info": "Faim ? Blessé ?\\nDemandez la cuisinière, DELPHINE :\\n%1 MHz.\\nLe soir, de 16 h à 20 h.\\nÉpicerie et médicaments.",
+    "Print_Text_RadioSurvivor_NoteHollis_info": "À vous, les routiers.\\nDemandez HOLLIS à la radio :\\n%1 MHz.\\nTard le soir, de 22 h à 2 h.\\nSurplus de l'armée, contre du liquide.",
+    "Print_Text_RadioSurvivor_NoteLoretta_info": "Votre factrice est toujours là.\\nDemandez LORETTA :\\n%1 MHz.\\nL'après-midi, de 12 h à 15 h.\\nPiles, pièces radio, nouvelles.",
+    "Print_Text_RadioSurvivor_NoteVirgil_info": "Graines à vendre, ou à troquer.\\nDemandez VIRGIL :\\n%1 MHz.\\nLe matin de 5 à 7 h, le soir de 18 à 20 h.\\nQue Dieu vous garde.",
+    "Print_Text_RadioSurvivor_NoteBoone_info": "Soif ?\\nDemandez BOONE :\\n%1 MHz.\\nTard, de 23 h à 3 h.\\nL'argent parle.",
+    "Print_Text_RadioSurvivor_NoteOdessa_info": "Blessé ou malade ?\\nDemandez L'INFIRMIÈRE ODESSA :\\n%1 MHz.\\nLe matin, de 9 h à 12 h.\\nMains propres, s'il vous plaît.",
+    "Print_Text_RadioSurvivor_NoteEzra_info": "Faim ? En deuil ?\\nDemandez FRÈRE EZRA :\\n%1 MHz.\\nLe matin de 6 à 8 h, le soir de 19 à 21 h.\\nPersonne ne se voit. Personne ne regarde.",
+    "Print_Text_RadioSurvivor_NoteMaxine_info": "Du ravitaillement, campeurs !\\nDemandez MAXINE :\\n%1 MHz.\\nLe soir, de 17 h à 20 h.\\nNe laissez pas de traces."
 }

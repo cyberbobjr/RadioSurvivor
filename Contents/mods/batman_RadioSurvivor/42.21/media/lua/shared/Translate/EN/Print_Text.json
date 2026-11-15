@@ -66,5 +66,15 @@
     "Print_Text_RadioSurvivor_OutsideNews_month9": "September",
     "Print_Text_RadioSurvivor_OutsideNews_month10": "October",
     "Print_Text_RadioSurvivor_OutsideNews_month11": "November",
-    "Print_Text_RadioSurvivor_OutsideNews_month12": "December"
+    "Print_Text_RadioSurvivor_OutsideNews_month12": "December",
+    "Print_Text_RadioSurvivor_NoteWanda_info": "Fresh bait gone.\\nAsk for WANDA on the radio:\\n%1 MHz.\\nEarly mornings, 5 to 8.\\nFood for what you can spare.",
+    "Print_Text_RadioSurvivor_NoteLamar_info": "Need shells? Need a drink?\\nAsk for LAMAR:\\n%1 MHz.\\nNights, 9 to 1.\\nTalk quick. No names.",
+    "Print_Text_RadioSurvivor_NoteDelphine_info": "Hungry? Hurt?\\nAsk the cook, DELPHINE:\\n%1 MHz.\\nEvenings, 4 to 8.\\nGroceries and medicine.",
+    "Print_Text_RadioSurvivor_NoteHollis_info": "Breaker breaker.\\nAsk for HOLLIS on the radio:\\n%1 MHz.\\nLate nights, 10 to 2.\\nArmy surplus, cash only.",
+    "Print_Text_RadioSurvivor_NoteLoretta_info": "Your mail carrier is still around.\\nAsk for LORETTA:\\n%1 MHz.\\nAfternoons, 12 to 3.\\nBatteries, radio parts, news.",
+    "Print_Text_RadioSurvivor_NoteVirgil_info": "Seeds for sale, or for trade.\\nAsk for VIRGIL:\\n%1 MHz.\\nMornings 5 to 7, evenings 6 to 8.\\nGod bless.",
+    "Print_Text_RadioSurvivor_NoteBoone_info": "Thirsty?\\nAsk for BOONE:\\n%1 MHz.\\nLate, 11 to 3.\\nCash talks.",
+    "Print_Text_RadioSurvivor_NoteOdessa_info": "Hurt or sick?\\nAsk NURSE ODESSA:\\n%1 MHz.\\nMornings, 9 to 12.\\nClean hands, please.",
+    "Print_Text_RadioSurvivor_NoteEzra_info": "Hungry? Grieving?\\nAsk for BROTHER EZRA:\\n%1 MHz.\\nMornings 6 to 8, evenings 7 to 9.\\nNobody meets. Nobody sees.",
+    "Print_Text_RadioSurvivor_NoteMaxine_info": "Supplies, campers!\\nAsk for MAXINE:\\n%1 MHz.\\nEvenings, 5 to 8.\\nLeave no trace."
 }

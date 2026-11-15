@@ -8,7 +8,7 @@ One Workshop item holds **three mods**. Subscribe once, then tick in the **Mods*
 
 | Mod | Mod ID | What it brings | Needs |
 |---|---|---|---|
-| Radio Survivor | `batman_RadioSurvivor` | The radio: six AI voices on real frequencies, their missions, the Radio tab of the notebook, factions | Radio Survivor Core, Belt Walkie-Talkie, Signal Smoke |
+| Radio Survivor | `batman_RadioSurvivor` | The radio: sixteen AI voices (a trader per town among them) on real frequencies, their missions, the Radio tab of the notebook, factions | Radio Survivor Core, Belt Walkie-Talkie, Signal Smoke |
 | Living Knox | `batman_LivingKnox` | Groups of NPC survivors with homes, needs, routines, fights and fortifications | Radio Survivor Core. **Not compatible** with Bandits! and Project A-Life |
 | Radio Survivor Core | `batman_RadioSurvivorCore` | What the two others share: missions and the mission journal, the link with the bridge, character identity, the history of conversations, reputation, the notebook | Signal Smoke |
 

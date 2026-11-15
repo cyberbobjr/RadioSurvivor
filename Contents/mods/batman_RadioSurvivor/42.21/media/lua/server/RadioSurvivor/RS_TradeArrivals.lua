@@ -4,18 +4,26 @@
 -- loads every server file, modes included, before the sheets are read (OnLoadRadioScripts), so they are known to
 -- RS_Personas.rules (Arrivals.NAMES); the benches require each file of the folder (tests/test_personas.py).
 --
--- Contract of a mode (every field required):
+-- Contract of a mode (signals, texts, sounds and causes required):
 --   signals   set of the signals that call the trader to the landing during the meeting window, among the
---             detectors of RS_TradeRun.SIGNALS: lamp (lit lamp held in hand by a member of the booking team at the
---             landing), flare (red flare or smoke of Signal Smoke lit near the landing, a member present)
+--             detectors registered in RS_TradeRun (RS_TradeRun.SIGNALS): lamp (lit lamp held in hand by a member
+--             of the booking team at the landing), flare (red flare or smoke of Signal Smoke lit near the landing, a
+--             member present), hour (no signal: the trader comes at the start of the window, seen or not)
 --   texts     { signal = what the caller must do, arrived = the trader is there now } English for the voice
 --             context, plain words without any digit (the bridge refuses digits in these texts)
---   sounds    { approach = vanilla sound played at the landing when the trader arrives, leave = when he goes }
+--   sounds    { approach = vanilla sound played at the landing when the trader arrives, leave = when he goes };
+--             a sound left out is not played (a trader nobody hears)
 --   causes    ordered list of cancellation causes checked by RS_TradeRun while the run is booked, from
---             RS_TradeRun.WARN_HOURS before the window: { name, text (English, for the voice context, no digit),
---             fallback (English radio line when the translation IGUI_RS_TradeRun_Cancel_<name> is missing),
---             check(world) -> true to cancel }. world (RS_TradeRun): id, run (copy), hours, cordonLevel (index in
---             RS_Trade.CORDONS), patrolRoll() (0..99, reproducible per run), helicopterSince(hours), stormy().
+--             RS_TradeRun.WARN_HOURS before the window: { name (unique among the modes: it names the translation),
+--             text (English, for the voice context, no digit), fallback (English radio line when the translation
+--             IGUI_RS_TradeRun_Cancel_<name> is missing), check(world) -> true to cancel }. world (RS_TradeRun): id,
+--             run (copy), hours, cordonLevel (index in RS_Trade.CORDONS), patrolRoll() (0..99, reproducible per
+--             run), helicopterSince(hours), stormy(); shared checks in RS_TradeCauses.
+--   holds     optional: where the payment is left and the goods are put, a finder of RS_TradeHolds (bags, the
+--             default: bags on the floor; containers: containers of the objects at the landing)
+--   lines     optional: English radio lines of this mode by text name of RS_TradeRun (Pier, Cancel_late, Done,
+--             Cheated, Cancel_nodrop), used when its translation IGUI_RS_TradeRun_<name>_<mode> is missing; without
+--             either, the shared text of the name is said.
 -- ASCII only (Kahlua lexer).
 if isClient() then return end
 

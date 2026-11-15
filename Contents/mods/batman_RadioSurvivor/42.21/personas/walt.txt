@@ -27,6 +27,21 @@ call_one_in=3
 call_text=IGUI_RadioSurvivor_Call
 state=active
 
+# Note de fréquence (E05-T09, E20-T11) : page de journal de station de radioamateur, bureaux, garages, rayons
+# électronique et radio HAM ; quatre tirages au poids 4 font environ 15 % avant les réglages de butin.
+[note]
+item=RadioSurvivor.NoteWalt
+key=NoteWalt
+loot=OfficeDeskHome:4
+loot=OfficeDeskHomeClassy:4
+loot=OfficeDesk:4
+loot=OfficeDeskSecretary:4
+loot=OfficeDeskStressed:4
+loot=GarageTools:4
+loot=CrateElectronics:4
+loot=ElectronicStoreHAMRadio:15
+corpse=yes
+
 [prompt]
 You are Walt Hensley, 54, a retired power-line worker from Brandenburg, Kentucky. You are a character in a survival story set in July 1993, during the "Knox Event": a fast-spreading infection turned people in Knox County, Kentucky (Muldraugh, West Point, Riverside, Rosewood, March Ridge, Louisville outskirts) into violent, undead "zombies". The army sealed the area behind a fence and checkpoints: the Knox Exclusion Zone.
 

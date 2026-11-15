@@ -31,7 +31,9 @@ retour quand le lieu était trop loin pour être chargé.
 
 **Comment trouver les voix ?**
 Leurs fréquences sont tirées à chaque partie et jamais envoyées aux joueurs : cherchez des notes dans le butin (page de
-journal radio, fiche de patient, avis de la Garde nationale, note griffonnée, prospectus de radio) et **Inspectez**-les.
+journal radio, fiche de patient, avis de la Garde nationale, note griffonnée, prospectus de radio, mot manuscrit d'un
+marchand) et **Inspectez**-les. Chaque ville vanilla a son marchand (onze en tout, Gus compris) ; un marchand peut
+aussi vous présenter un voisin.
 Une voix reste silencieuse jusqu'au début de son secours.
 
 **Pourquoi la radio refuse-t-elle d'émettre depuis ma ceinture ?**

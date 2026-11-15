@@ -49,7 +49,7 @@ de voix.
 | Serveur dédié | `<dossier Zomboid du serveur>/Lua/batman_RadioSurvivor/personas` (avec `-cachedir=` : `<cachedir>/Lua/...`) |
 
 - Un fichier par voix : `personas/<id>.txt`.
-- Le mod y installe ses six fiches au **premier chargement d'un monde**. Avant cela, le dossier n'existe pas.
+- Le mod y installe ses seize fiches au **premier chargement d'un monde**. Avant cela, le dossier n'existe pas.
 - **Relecture à chaud** : le serveur relit le dossier toutes les **30 secondes réelles** et à chaque chargement du
   monde ; le pont relit une fiche à la demande suivante après sa modification.
 - **Vos modifications sont gardées** : une fiche livrée que vous avez modifiée n'est jamais écrasée par une mise à
@@ -120,8 +120,9 @@ La référence complète du format est
 - Heures : deux chiffres (`08:00`, pas `8:00`). La minute de début est incluse, celle de fin exclue ; `22:00-06:00`
   passe minuit.
 
-**Bandes libres** : 25.0-39.8, 50.0-74.8, et 200.2 et au-delà (moins de radios atteignent les plus hautes). Mae
-(exemple 1) utilise 40.0-49.8, Rick (exemple 2) 50.0-64.8.
+**Bandes libres** : 40.0-64.8 et 270.0 et au-delà (moins de radios atteignent les plus hautes). Mae (exemple 1)
+utilise 40.0-49.8, Rick (exemple 2) 50.0-64.8. Des plages qui recoupent une voix livrée fonctionnent aussi (règle
+de 1,0 MHz ci-dessous).
 
 <details>
 <summary>Bandes déjà prises</summary>
@@ -134,6 +135,16 @@ La référence complète du format est
 | Darlene | 115.0-129.8 |
 | Walt | 130.0-149.8 |
 | Gus | 150.2-199.8 |
+| Wanda (West Point) | 25.0-31.8 |
+| Lamar (Brandenburg) | 32.0-39.8 |
+| Delphine (Louisville) | 65.0-74.8 |
+| Hollis (Muldraugh) | 201.0-209.8 |
+| Loretta (March Ridge) | 210.0-219.8 |
+| Virgil (Irvington) | 220.0-229.8 |
+| Boone (Echo Creek) | 230.0-239.8 |
+| Odessa (Rosewood) | 240.0-249.8 |
+| Ezra (Ekron) | 250.0-259.8 |
+| Maxine (Fallas Lake) | 260.0-269.8 |
 | Stations FM du jeu et diffusion d'urgence | 88-108 |
 | Opération Artemis (par défaut) | 108.0 |
 | Military Drop | 120-170 (émissions), 10-25 (station de nombres) |
@@ -274,7 +285,7 @@ Toujours permise, même si vous ne l'écrivez pas. La voix vous répond à la ra
 
 - Chaque mission que la voix peut confier est une section `[mission <id>]` avec son `type` : `scout`
   (reconnaissance), `deliver` (dépôt de matériel), `retrieve` (recherche de papiers), `clear` (nettoyage), `signal`
-  (signal Signal Smoke), `barricade` (barricader un bâtiment), `relay` (relais radio), `route` (itinéraire : plusieurs lieux à franchir dans l'ordre), `watch` (guet). Le serveur vérifie chaque objectif ; une mission par joueur et voix. Sans aucune section
+  (signal Signal Smoke), `barricade` (barricader un bâtiment), `relay` (relais radio), `route` (itinéraire : plusieurs lieux à franchir dans l'ordre), `watch` (guet), `item` (objet personnel à retrouver et déposer à une planque). Le serveur vérifie chaque objectif ; une mission par joueur et voix. Sans aucune section
   `[mission]`, seul `scout` est permis. Détail des clés : [Missions, récompenses et objets](#missions-récompenses-et-objets).
 - **Il faut :** que le joueur ait le carnet. Le bâtiment est choisi par le serveur, jamais par l'IA : pour `scout`
   et `clear`, celui du lieu `target=` de la section, où que soit le joueur, ou à défaut un bâtiment tiré autour de
@@ -309,6 +320,8 @@ Dans une boîte, seuls les objets demandés disparaissent, jamais plus que la qu
 
 **Guet pour une voix.** Le lieu `target=` est entouré sur votre carte : c'est le poste de guet. Restez-y (à moins de 6 cases du lieu, un étage ou le toit compte aussi) le nombre d'heures de jeu indiqué par le carnet, 2 par défaut. Le temps compte en heures de jeu : il s'arrête quand le jeu est en pause et va plus vite en vitesse accélérée. Une absence courte (10 minutes de jeu au plus) est tolérée sans compter ; plus longue, le guet recommence à zéro. Le serveur note ce qui se passe pendant le guet (hélicoptère entendu, groupe de morts tout proche) et la voix en parle quand vous la rappelez une fois le guet terminé. Validation en jeu MP : **en attente**.
 
+**Objet personnel pour une voix.** Une mission `item` nomme un objet vanilla (`item=`, par exemple un médaillon, une photo ou une montre de poche) et, au choix, la façon dont la voix l'appelle (`label=`, « le médaillon d'Ellen »). Au début de la mission, le serveur pose cet objet au sol dans le bâtiment du lieu `target=` (ou tout près du lieu hors bâtiment), une seule fois, dès que ce lieu est chargé ; le lieu est entouré sur votre carte. Trouvez-le puis déposez-le à l'une des planques de la mission, au choix : il est ramassé hors de vue de tous, après le délai en heures de jeu. Seul l'objet posé pour la voix compte : un autre objet du même genre, même identique, n'est jamais pris et reste où vous l'avez laissé. Une fois l'objet ramassé, rappelez la voix. Validation en jeu MP : **en attente**.
+
 **Itinéraire pour une voix.** Une mission `route` nomme plusieurs lieux à franchir **dans l'ordre**, à pied ou en véhicule. Seul le prochain point est entouré sur votre carte, avec le nom du lieu ; les points déjà franchis le restent, les suivants n'apparaissent qu'à leur tour. Un point est franchi quand vous passez à moins de 8 cases de son centre, même en roulant vite ; un point atteint avant le précédent ne compte pas et doit être repassé à son tour. Le carnet indique « 2 sur 4 » et le prochain point. Le serveur lit lui-même votre position (celle du véhicule où vous êtes assis). Une fois tous les points franchis, rappelez la voix. Validation en jeu MP : **en attente**.
 
 **Papiers à retrouver pour une voix.** La carte d'identité prise sur le corps ne se remet pas à la radio : déposez-la à l'une des planques de la mission, marquées sur votre carte comme pour un dépôt (dans la boîte désignée, ou seule dans un sac au sol). La voix la ramasse avec la même règle, hors de vue et après le délai (`collect_hours=` de la section `[mission]`) ; seule la carte de ce corps est prise, une autre carte d'identité reste sur place. **Une fois la carte ramassée seulement, rendez compte à la radio** : le compte rendu ne retire rien de votre inventaire. Validation en jeu MP : **en attente**.
@@ -339,15 +352,15 @@ pool=cache:medical:3, cache:snacks:1, frequency:1, stashmap:1, lesson:Doctor:2
 
 | Clé de `[mission]` | À quoi ça sert |
 |---|---|
-| `type` | Obligatoire : `scout`, `deliver`, `retrieve`, `clear`, `signal`, `barricade`, `route`, `relay` ou `watch` (types inscrits par le mod). |
+| `type` | Obligatoire : `scout`, `deliver`, `retrieve`, `clear`, `signal`, `barricade`, `route`, `relay`, `watch` ou `item` (types inscrits par le mod). |
 | `weight` | Poids de la mission quand l'IA demande un type et que plusieurs missions disponibles de ce type se présentent (1 par défaut). |
 | `after` | La mission n'est proposée qu'après la réussite d'une autre mission de la fiche (son id), pour ce personnage. |
 | `scope` | `character` (par défaut) : `after` compte les réussites du personnage ; `team` : celles de son équipe (faction, ou le joueur seul). |
 | `sets_state` | État de récit que prend la voix à la réussite de cette mission, un nom (`returned`…). Voir « Missions enchaînées ». |
 | `story` | La raison que donne la voix, dite à l'IA avec la mission (200 octets au plus). |
 | `drops` | Planques de la mission, toutes proposées au joueur : `any` (tous les lieux `use=drop`, comme sans la clé) ou une liste d'ids de lieux `use=drop`. |
-| `target` | Lieu objectif, un lieu `use=target` : une case à l'intérieur du bâtiment visé. `scout` et `clear` : ce bâtiment, où que soit le joueur (sans la clé, un bâtiment tiré autour de lui) ; obligatoire pour `barricade` (le bâtiment à barricader) et pour `relay` (le lieu du relais : la radio se pose au niveau 1 ou plus haut, au moins au niveau `z=` du lieu ; hors bâtiment, un point en hauteur). Obligatoire pour `watch` : le poste de guet (le guet compte à moins de 6 cases du lieu, à tout niveau). |
-| autres | Les paramètres propres au type : `deliver` accepte `items` (une catégorie d'objets), `quantity` (`4` ou `2-4`) et `collect_hours` (heures de jeu avant le ramassage d'une planque, 6 par défaut) ; `retrieve` accepte `collect_hours` (la carte d'identité se dépose à une planque) ; `barricade` accepte `count` (fenêtres et portes extérieures à barricader, 4 par défaut, au moins 1) ; `relay` n'en accepte aucun ; `route` exige `points` (de 2 à 8 lieux `use=target` séparés par des virgules, à franchir dans cet ordre, jamais deux fois le même de suite : `points=pont,station,clinique`). `watch` accepte `hours` (heures de jeu du guet, 2 par défaut, de 1 à 24). |
+| `target` | Lieu objectif, un lieu `use=target` : une case à l'intérieur du bâtiment visé. `scout` et `clear` : ce bâtiment, où que soit le joueur (sans la clé, un bâtiment tiré autour de lui) ; obligatoire pour `barricade` (le bâtiment à barricader) et pour `relay` (le lieu du relais : la radio se pose au niveau 1 ou plus haut, au moins au niveau `z=` du lieu ; hors bâtiment, un point en hauteur). Obligatoire pour `watch` : le poste de guet (le guet compte à moins de 6 cases du lieu, à tout niveau). Obligatoire pour `item` : le lieu où le serveur pose l'objet (au sol, dans le bâtiment de la case, au niveau `z=` du lieu ; hors bâtiment, à moins de 4 cases du lieu). |
+| autres | Les paramètres propres au type : `deliver` accepte `items` (une catégorie d'objets), `quantity` (`4` ou `2-4`) et `collect_hours` (heures de jeu avant le ramassage d'une planque, 6 par défaut) ; `retrieve` accepte `collect_hours` (la carte d'identité se dépose à une planque) ; `barricade` accepte `count` (fenêtres et portes extérieures à barricader, 4 par défaut, au moins 1) ; `relay` n'en accepte aucun ; `route` exige `points` (de 2 à 8 lieux `use=target` séparés par des virgules, à franchir dans cet ordre, jamais deux fois le même de suite : `points=pont,station,clinique`). `watch` accepte `hours` (heures de jeu du guet, 2 par défaut, de 1 à 24). `item` exige `item` (le type complet d'un objet du jeu, `Module.Type` : `item=Base.Locket`, `Base.Photo`, `Base.Pocketwatch`…) et accepte `label` (le nom que lui donne la voix, sinon le nom du jeu) et `collect_hours` (l'objet se dépose à une planque). |
 
 Toutes ces clés sont **lues et vérifiées** au chargement. `weight`, `after`, `scope`, `sets_state`, `story`, `drops`,
 `collect_hours`, `target` (`scout`, `clear`, `barricade`), `items` et `quantity` (`deliver` : objets acceptés et
@@ -442,7 +455,7 @@ l'une sans l'autre est refusée.
 | Clé | À quoi ça sert |
 |---|---|
 | `landing` | Lieu(x) du rendez-vous, chacun `use=landing` ; son libellé est le seul nom de rendez-vous que la voix donne, et seulement au groupe qui a réservé. |
-| `arrival` | Comment le marchand arrive : `boat` (barque qui accoste ; le joueur montre une lampe allumée en main ou une fusée rouge sur place pendant la fenêtre). |
+| `arrival` | Comment le marchand arrive : `boat` (barque qui accoste ; le joueur montre une lampe allumée en main ou une fusée rouge sur place pendant la fenêtre), `road` (fourgon garé au bord de la route, mêmes signaux ; portière à l'arrivée, hayon au départ) ou `cache` (planque : personne ne vient ; le paiement se laisse dans un conteneur du lieu, poubelle ou boîte aux lettres, et la marchandise y est déposée hors de vue ; aucun signal, aucun bruit). |
 | `every_days` | Un passage tous les N jours de jeu (1 à 28). |
 | `hours` | Fenêtre du rendez-vous, `HH:MM-HH:MM`. |
 | `delay_hours` | Facultatif : heures de jeu où personne ne doit voir le lieu avant l'échange (1 par défaut). |
@@ -454,8 +467,11 @@ Chaque marchand a son propre stock, sa propre réservation et ses propres affair
 semaine ne se gênent pas. La première offre ferme d'un passage le réserve pour le groupe de l'appelant ; le lieu est
 alors marqué sur sa carte. Après le signal, le joueur pose un sac à moins de 3 cases du lieu et s'en va : le marchand
 ne passe qu'une fois **personne à moins de 100 cases** (en x comme en y) **depuis `delay_hours` heures de jeu**, puis
-laisse sa marchandise dans le même sac. Une barque peut être annulée par une patrouille, un hélicoptère entendu ou un
-orage : la voix l'annonce sur sa fréquence. Le barème de ce que prend un marchand est celui du passeur
+laisse sa marchandise dans le même sac (planque : dans le conteneur du lieu où le paiement a été laissé). Une barque
+peut être annulée par une patrouille, un hélicoptère entendu ou un orage ; un fourgon par un barrage de l'armée, un
+hélicoptère ou un orage ; une planque par un ratissage ou un hélicoptère : la voix l'annonce sur sa fréquence. Les
+dix marchands livrés (un par ville vanilla) servent d'exemples : `personas/wanda.txt` (barque), `hollis.txt`
+(route), `odessa.txt` (planque). Le barème de ce que prend un marchand est celui du passeur
 (`docs/specifications-techniques/passeur-table.md`).
 
 ```ini
@@ -491,6 +507,27 @@ Your trade book is the only truth about your stock, your prices and your run; gi
 signal only to the group whose run is booked, exactly as written in your book.
 Stay in character. Radio style: 1 to 3 short sentences, end each transmission with "Over.".
 Answer in the same language the caller uses.
+```
+
+#### Note de fréquence — section `[note]`
+
+Une voix se trouve par une **note** cachée dans le butin : le joueur l'inspecte et lit la fréquence tirée pour la
+partie. La section `[note]` (une au plus, sans identifiant) la déclare ; sans elle, la voix n'a pas de note.
+
+| Clé | À quoi ça sert |
+|---|---|
+| `item` | L'objet du document, `Module.Type` d'un script d'objets du mod dont `OnCreate` est `RadioSurvivorNotes.onCreate` (`RadioSurvivor.NoteTrade` : mot manuscrit partagé ; plusieurs voix peuvent partager un objet, chaque note neuve porte l'une d'elles). |
+| `key` | Racine des traductions : `Print_Media_RadioSurvivor_<key>_title`, `Print_Media_RadioSurvivor_<key>_info` (mise en page, `%1` = fréquence) et `Print_Text_RadioSurvivor_<key>_info` (transcription), dans `media/lua/shared/Translate/<langue>/`. |
+| `loot` | Facultatif, répétable : `liste:poids`, une liste procédurale vanilla (`ProceduralDistributions`) et son poids (environ le pourcentage par tirage). |
+| `glovebox` | Facultatif, répétable : `liste:poids` dans `VehicleDistributions` (boîte à gants). |
+| `corpse` | Facultatif : `yes` pour qu'un mort qui porte un talkie puisse l'avoir sur lui (`no` par défaut). |
+
+```ini
+[note]
+item=RadioSurvivor.NoteTrade
+key=NoteAda
+loot=FishingStoreGear:2
+glovebox=GloveBox:0.5
 ```
 
 #### Actions à ne pas ajouter
@@ -863,7 +900,9 @@ s'arrête à la première erreur, et la dernière version valide de la voix rest
 | `bad use entry 'hide' (expected mark, target, drop, landing)` | Voir [Lieux](#lieux--sections-place). |
 | `place label of 'mill' too long (48 bytes of UTF-8 at most)` | Raccourcir le libellé. |
 | `unknown section 'shop' (expected place, mission, rewards, category or prompt)` | Faute de frappe dans un titre de section. |
-| `unknown mission type 'fly'` (journal du serveur seulement) | Un type du mod : `scout`, `deliver`, `retrieve`, `clear`, `signal`, `barricade`, `route`, `relay`, `watch`. |
+| `unknown mission type 'fly'` (journal du serveur seulement) | Un type du mod : `scout`, `deliver`, `retrieve`, `clear`, `signal`, `barricade`, `route`, `relay`, `watch`, `item`. |
+| `bad item 'Locket' (Module.Type of an item script, e.g. Base.Locket)` (journal du serveur seulement) | La clé `item=` d'une mission `item` donne le module et le type : `Base.Locket`. |
+| `unknown item 'Base.Lockett'` (journal du serveur seulement) | Aucun objet du jeu (ni des mods actifs) ne porte ce type : vérifier l'orthographe. |
 | `bad place list (2 to 8 places with use=target)` | La clé `points=` d'une mission `route` nomme de 2 à 8 lieux `use=target`, séparés par des virgules. |
 | `place 'clinic' has no use=drop` (journal du serveur seulement) | Ajouter `drop` au `use` de ce lieu, ou citer un autre lieu. |
 | `unknown category 'weapons'` (journal du serveur seulement) | Une catégorie du catalogue ou une `[category]` de la fiche. |

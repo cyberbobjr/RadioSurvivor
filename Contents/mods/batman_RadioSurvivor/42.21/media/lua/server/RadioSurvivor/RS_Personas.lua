@@ -67,18 +67,18 @@ Personas.CATALOGUE = "_categories.txt"
 -- Empreintes (Personas.fingerprint) de toutes les versions livrées de chaque fiche, la version actuelle comprise :
 -- reconnaissent une fiche non modifiée installée avant le fichier d'empreintes (E05-T02 à E05-T10). Versions des
 -- commits 09d7474 et 24832ea (fréquences fixes ; Walt identique dans les deux), 486b21e (plages, E05-T07), puis
--- E05-T10 (commentaires de walt.txt), E05-T05 (appels de darlene, cody, gus), E20-T03 (fiches à sections de darlene
--- et cody), E20-T07 (troc de gus), E20-T10 (retour de darlene a sa clinique). Toute nouvelle version livrée d'une
--- fiche ajoute ici son empreinte (banc le tests/test_personas_server.py).
+-- E05-T10, E05-T05, E20-T03, E20-T07, E20-T10, E20-T11 ([note] des fiches). Toute nouvelle version livrée d'une
+-- fiche ajoute ici son empreinte (banc tests/test_personas_server.py) ; une fiche livrée après E05-T11 (marchands
+-- des villes, E20-T11) n'a jamais été installée sans le fichier d'empreintes : aucune entrée.
 Personas.KNOWN_DELIVERED = {
-    walt = { "2105682694", "2759756800", "213942039", "1586801598" },   -- E07-T10 : share_frequency
+    walt = { "2105682694", "2759756800", "213942039", "1586801598", "2833011528" },   -- E20-T11 : [note]
     darlene = { "611497886", "1134557996", "2120896689", "3998911546", "3957645400",
-        "1182033778", "674887514" },   -- E20-T10 : chaine du retour a la clinique
+        "1182033778", "674887514", "2957274911" },   -- E20-T11 : [note]
     cody = { "3131466986", "673421833", "4032160620", "318842949", "1196981398",
-        "1976566616" },   -- E20-T03 : sections
+        "1976566616", "1464760889" },   -- E20-T11 : [note]
     whitaker = { "4044533006", "3352221633", "2075828338" },   -- E12-T04 : règle du secours réussi
-    nightowl = { "4175146858", "225312038" },
-    gus = { "2508366732", "2733824589", "2930912175", "1078646290", "1260582370", "3810027509" },   -- E20-T07 : [trade]
+    nightowl = { "4175146858", "225312038", "1263236001" },   -- E20-T11 : [note]
+    gus = { "2508366732", "2733824589", "2930912175", "1078646290", "1260582370", "3810027509", "4079538633" },
 }
 
 local STEP_KHZ, MIN_KHZ, MAX_KHZ = 200, 1000, 999800

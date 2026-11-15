@@ -75,4 +75,19 @@ module RadioSurvivor
         Tags = base:fastread;base:picture,
         OnCreate = RadioSurvivorNotes.onCreate,
     }
+
+    /* Marchands des villes (E20-T11) : mot manuscrit partagé par les fiches qui le déclarent (section [note]) ;
+       chaque note neuve porte l'une de ces voix, tirée à sa création (RS_Notes.lua). */
+    item NoteTrade
+    {
+        DisplayCategory = Literature,
+        Weight = 0.05,
+        ItemType = base:literature,
+        Icon = Note2,
+        ReadType = photo,
+        StaticModel = Note2,
+        WorldStaticModel = Note2,
+        Tags = base:fastread;base:picture,
+        OnCreate = RadioSurvivorNotes.onCreate,
+    }
 }

@@ -18,8 +18,8 @@ the AI only writes the words and picks from closed lists.
 ## Voices on the radio (Radio Survivor)
 
 Six voices answer on real frequencies drawn for each game: Walt the old radio amateur, a nurse, a deserter, a
-besieged family, a pirate station and a smuggler. Each one has its own story, its listening hours and its memory of
-you.
+besieged family, a pirate station and a smuggler, plus ten traders, one per town. Each one has its own story, its
+listening hours and its memory of you.
 
 Take a transmitting radio **in hand** (walkie-talkie, HAM radio) or a manpack radio on your back, switch it on, tune
 it, open the microphone, and type your sentence in the **Transmit** section of the radio window. The answer comes

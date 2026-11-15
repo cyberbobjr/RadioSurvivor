@@ -145,6 +145,23 @@ ADDED |= {'IGUI_RC_Mission_Route', 'IGUI_RS_MapZoneRoute', 'IGUI_RS_MapZoneRoute
 ADDED |= {'IGUI_RC_Mission_Watch', 'IGUI_RS_MapZoneWatch', 'IGUI_RS_MapZoneWatchAnon', 'IGUI_RS_WatchPlace',
           'IGUI_RS_WatchMapZone', 'IGUI_RS_WatchProgress', 'IGUI_RS_WatchDone', 'IGUI_RS_WatchRule',
           'IGUI_RS_WatchReport'}
+# E20-T15: template item (title, notebook view, map label).
+ADDED |= {'IGUI_RC_Mission_Item', 'IGUI_RS_MapZoneItem', 'IGUI_RS_MapZoneItemAnon', 'IGUI_RS_ItemWhat',
+          'IGUI_RS_ItemPlace', 'IGUI_RS_ItemMapZone', 'IGUI_RS_ItemFound', 'IGUI_RS_ItemNotFound', 'IGUI_RS_ItemDropIt',
+          'IGUI_RS_ItemOnlyThis', 'IGUI_RS_ItemReport'}
+
+
+# E20-T11: radio lines of the arrival modes road and cache (RS_TradeRun.textFor), notes of the town traders.
+ADDED |= {'IGUI_RS_TradeRun_' + k for k in (
+    'Pier_road', 'Cancel_late_road', 'Done_road', 'Cancel_nodrop_road', 'Cancel_checkpoint', 'Cancel_air_patrol',
+    'Cancel_washout', 'Pier_cache', 'Cancel_late_cache', 'Done_cache', 'Cheated_cache', 'Cancel_nodrop_cache',
+    'Cancel_sweep', 'Cancel_overflight')}
+TOWN_NOTES = ('Wanda', 'Lamar', 'Delphine', 'Hollis', 'Loretta', 'Virgil', 'Boone', 'Odessa', 'Ezra', 'Maxine')
+ADDED_FILES = {
+    'Print_Media': {f'Print_Media_RadioSurvivor_Note{n}_{p}' for n in TOWN_NOTES for p in ('title', 'info')},
+    'Print_Text': {f'Print_Text_RadioSurvivor_Note{n}_info' for n in TOWN_NOTES},
+    'ItemName': {'RadioSurvivor.NoteTrade'},
+}
 
 
 class TranslationSplitTests(unittest.TestCase):
@@ -162,6 +179,8 @@ class TranslationSplitTests(unittest.TestCase):
                 expected = set(before)
                 if name == 'IG_UI':
                     expected = ((expected - set(RENAMED)) | set(RENAMED.values()) | JOURNAL | NOTEBOOK | TALK | JOURNAL_GESTURES | ADDED) - REMOVED
+                elif name in ADDED_FILES:
+                    expected = expected | ADDED_FILES[name]
                 elif name == 'Sandbox':
                     moved = {k for k in expected if k in SANDBOX_RENAMED}
                     expected = (expected - moved) | {SANDBOX_RENAMED[k] for k in moved}

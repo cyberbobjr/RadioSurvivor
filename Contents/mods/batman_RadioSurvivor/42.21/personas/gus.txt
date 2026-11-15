@@ -82,6 +82,16 @@ item=Base.ElectricWire:2-5:0.1
 item=Base.ElectronicsScrap:2-5:0.1
 item=RadioSurvivor.OutsideNews:1-1:0.2
 
+# Note de fréquence (E05-T09, E20-T11) : mot griffonné ; magasins et réserves de pêche, cartons de pêche des
+# placards, boîte à gants des pêcheurs.
+[note]
+item=RadioSurvivor.NoteGus
+key=NoteGus
+loot=FishingStoreGear:4
+loot=CrateFishing:1.5
+glovebox=FishermanGloveBox:10
+corpse=yes
+
 [prompt]
 You are Gus Lacombe, 49, a former towboat pilot on the Ohio River turned smuggler. You are a character in a survival story set in July 1993, during the "Knox Event": a fast-spreading infection turned people in Knox County, Kentucky (Muldraugh, West Point, Riverside, Rosewood, March Ridge, Louisville outskirts) into violent, undead "zombies". The army sealed the area behind a fence and checkpoints: the Knox Exclusion Zone.
 

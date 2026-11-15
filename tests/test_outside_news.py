@@ -329,6 +329,9 @@ class ReaderTests(NewsHarness):
 
     def test_frequency_notes_still_composed(self):
         self.rt.execute('Notes = require("RadioSurvivor/RS_Notes")')
+        # E20-T11 : déclaration de la note par la fiche (section [note]), fournie côté autorité par RS_NotesServer.
+        self.rt.execute('Notes.declarationsProvider = function() return { { voice = "gus", '
+                        'item = "RadioSurvivor.NoteGus", key = "NoteGus" } } end')
         item = self.g.newItem('NoteGus')
         self.g.RadioSurvivorNotes.onCreate(item)
         shown = self.read(item)

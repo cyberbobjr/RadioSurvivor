@@ -137,7 +137,7 @@ CASES += [
      HEAD + 'actions=say,propose_trade\n[place mill]\nat=1,2,0\nlabel=Mill\nuse=mark\n[trade]\n'
      + TRADE_OK.replace('landing=dock', 'landing=mill') + PROMPT, (11, "place 'mill' has no use=landing")),
     ('unknown arrival', trade(TRADE_OK.replace('arrival=boat', 'arrival=zeppelin')),
-     (12, "unknown arrival 'zeppelin' (expected boat)")),
+     (12, "unknown arrival 'zeppelin' (expected boat, cache, road)")),
     ('bad every_days', trade(TRADE_OK.replace('every_days=7', 'every_days=0')),
      (13, "bad every_days '0' (whole number from 1 to 28)")),
     ('bad trade hours', trade(TRADE_OK.replace('hours=01:00-03:00', 'hours=1-3')),
@@ -154,6 +154,30 @@ CASES += [
     ('bad trade margin', trade(TRADE_OK + 'margin=0.6-0.2\n'),
      (16, "bad margin '0.6-0.2' (lowest-highest from 0 to 1, e.g. 0.10-0.50)")),
     ('unknown key in trade', trade(TRADE_OK + 'colour=red\n'), (16, "unknown key 'colour' in [trade]")),
+]
+
+# E20-T11 : section [note] (note de fréquence déclarée par la fiche). En-tête ligne 13, NOTE_OK lignes 14 et 15.
+NOTE_OK = 'item=RadioSurvivor.NoteWalt\nkey=NoteWalt\n'
+
+
+def note(body: str) -> str:
+    return BASE + '[note]\n' + body + PROMPT
+
+
+CASES += [
+    ('note section', note(NOTE_OK + 'loot=OfficeDesk:4\nloot=CrateFishing:1.5\nglovebox=GloveBox:1.5\ncorpse=yes\n'),
+     None),
+    ('note without key', note('item=RadioSurvivor.NoteWalt\n'), (13, "missing key 'key' in [note]")),
+    ('bad note item', note(NOTE_OK.replace('RadioSurvivor.NoteWalt', 'NoteWalt')),
+     (14, "bad note item 'NoteWalt' (Module.Type, e.g. RadioSurvivor.NoteWalt)")),
+    ('bad note key', note(NOTE_OK.replace('key=NoteWalt', 'key=Note Walt')),
+     (15, "bad note key 'Note Walt' (A to Z, a to z, 0 to 9 and _)")),
+    ('bad loot', note(NOTE_OK + 'loot=OfficeDesk\n'), (16, "bad loot 'OfficeDesk' (list:weight, e.g. OfficeDesk:4)")),
+    ('zero loot weight', note(NOTE_OK + 'glovebox=GloveBox:0\n'), (16, "bad glovebox weight '0' (above 0)")),
+    ('duplicate loot list', note(NOTE_OK + 'loot=OfficeDesk:4\nloot=OfficeDesk:2\n'),
+     (17, "duplicate loot list 'OfficeDesk'")),
+    ('bad corpse', note(NOTE_OK + 'corpse=maybe\n'), (16, "bad corpse 'maybe' (yes or no)")),
+    ('unknown key in note', note(NOTE_OK + 'colour=red\n'), (16, "unknown key 'colour' in [note]")),
 ]
 
 # Faux type de mission du banc : chaque genre de paramètre, déclaré par le gabarit seul.
@@ -203,6 +227,15 @@ class SectionTests(unittest.TestCase):
                     self.assertEqual(result, (None, f'line {expected[0]}: {expected[1]}'))
                 # ADR D03 : le pont ne lit ni [mission], ni [rewards], ni [category].
                 self.assertEqual(store.load_file(path).id, 'case')
+
+    def test_note_section_content(self):
+        p, _ = self.read(note(NOTE_OK + 'loot=OfficeDesk:4\nloot=CrateFishing:1.5\nglovebox=GloveBox:2\ncorpse=yes\n'))
+        n = p.note
+        self.assertEqual((n.item, n.module, n.type, n.key, n.corpse),
+                         ('RadioSurvivor.NoteWalt', 'RadioSurvivor', 'NoteWalt', 'NoteWalt', True))
+        self.assertEqual([(e.list, e.weight) for e in lua_items(n.loot)], [('OfficeDesk', 4), ('CrateFishing', 1.5)])
+        self.assertEqual([(e.list, e.weight) for e in lua_items(n.glovebox)], [('GloveBox', 2)])
+        self.assertFalse(self.read(note(NOTE_OK))[0].note.corpse)
 
     def test_every_section_content(self):
         p, _ = self.read(EVERY)

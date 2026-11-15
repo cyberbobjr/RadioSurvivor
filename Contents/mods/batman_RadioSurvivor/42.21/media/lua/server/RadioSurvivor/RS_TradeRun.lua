@@ -15,11 +15,14 @@
 --   texte IGUI_RS_TradeRun_Cancel_<cause> traduit dans la langue de l'autorite, repli anglais de la cause) ; voix hors
 --   antenne : journal seulement. Un retard decouvert plus de ANNOUNCE_LATE_HOURS apres la fin de la fenetre n'est pas
 --   annonce.
--- - Signal pendant la fenetre, avec un membre de l'equipe a moins de RADIUS cases du lieu, si le mode l'attend :
---   lamp (lampe allumee tenue en main, InventoryItem.isEmittingLight) ou flare (evenement « started » rouge de Signal
---   Smoke, mod requis, a moins de RADIUS cases) -> Trade.arrive et son d'approche du mode joue au lieu (port
---   useSound, RS_TradeSound par defaut). L'echange sans contact est dans RS_TradeExchange.lua, qui dit son issue par
---   Run.say et joue le son de depart par Run.playSound.
+-- - Signal pendant la fenetre, si le mode l'attend (registre des detecteurs, Run.registerSignal ; E20-T11) : lamp
+--   (lampe allumee tenue en main par un membre de l'equipe a moins de RADIUS cases du lieu,
+--   InventoryItem.isEmittingLight), flare (evenement « started » rouge de Signal Smoke, mod requis, a moins de RADIUS
+--   cases, un membre present), hour (aucun signal : le marchand vient au debut de la fenetre) -> Trade.arrive et son
+--   d'approche du mode joue au lieu (port useSound, RS_TradeSound par defaut). L'echange sans contact est dans
+--   RS_TradeExchange.lua, qui dit son issue par Run.say et joue le son de depart par Run.playSound.
+-- - Textes dits : variante du mode d'arrivee (cle IGUI_RS_TradeRun_<nom>_<mode>, puis lines du mode) avant le texte
+--   commun du nom (Run.textFor).
 -- Messages de journal en anglais ; aucun secret ni coordonnee dans les textes diffuses. Code ASCII seulement.
 if isClient() then return end
 
@@ -37,8 +40,8 @@ Run.WARN_HOURS = 1               -- causes appliquees une heure avant la fenetre
 Run.ANNOUNCE_LATE_HOURS = 2
 Run.SIGNAL_COLOR = "red"
 Run.COLOR_TOLERANCE = 0.02
--- Signaux reconnus par ce suivi (champ signals d'un mode d'arrivee).
-Run.SIGNALS = { lamp = true, flare = true }
+-- Signaux reconnus par ce suivi (champ signals d'un mode d'arrivee) : nom -> true, tenu par Run.registerSignal.
+Run.SIGNALS = {}
 Run.KEY = "IGUI_RS_TradeRun_"
 -- Textes anglais si les traductions du mod manquent sur cette machine (getTextOrNull nil apres rechargement). Les
 -- annonces des causes ont leur repli dans le mode d'arrivee.
@@ -80,9 +83,9 @@ end
 
 local reloaded = false
 
--- Texte de la cle Run.KEY .. name dans la langue de cette machine ; serveur MP : traductions des mods rechargees une
--- fois (Translator.loadFiles, base api-42-21.md) ; repli anglais fallback, puis Run.FALLBACK.
-function Run.text(name, fallback)
+-- Traduction de la cle Run.KEY .. name dans la langue de cette machine, ou nil ; serveur MP : traductions des mods
+-- rechargees une fois (Translator.loadFiles, base api-42-21.md).
+local function translated(name)
     local key = Run.KEY .. name
     local value = getTextOrNull and getTextOrNull(key) or nil
     if value == nil and isServer() and not reloaded and Translator and Translator.loadFiles then
@@ -91,7 +94,24 @@ function Run.text(name, fallback)
         log("mod translations reloaded on the server")
         value = getTextOrNull(key)
     end
-    return value or fallback or Run.FALLBACK[name] or key
+    return value
+end
+
+-- Texte de la cle Run.KEY .. name ; repli anglais fallback, puis Run.FALLBACK.
+function Run.text(name, fallback)
+    return translated(name) or fallback or Run.FALLBACK[name] or (Run.KEY .. name)
+end
+
+-- Texte `name` dit pour le passage run : variante de son mode d'arrivee (traduction name_<mode>, puis lines du mode),
+-- sinon Run.text(name, fallback).
+function Run.textFor(run, name, fallback)
+    local spec = type(run) == "table" and Trade.specOf(run.voice) or nil
+    local mode = spec and Arrivals.get(spec.arrival) or nil
+    if mode then
+        local own = translated(name .. "_" .. spec.arrival) or (type(mode.lines) == "table" and mode.lines[name])
+        if type(own) == "string" then return own end
+    end
+    return Run.text(name, fallback)
 end
 
 -- ================================================================ joueurs et equipe
@@ -144,6 +164,32 @@ local function lampAtLanding(run)
     return false
 end
 
+-- Aucun signal attendu : le marchand vient des que la fenetre est ouverte.
+local function windowOpen()
+    return true
+end
+
+-- ================================================================ detecteurs de signal
+
+-- Detecteurs sondes a chaque EveryTenMinutes pendant la fenetre, dans l'ordre d'inscription : { name, poll }.
+local polled = {}
+
+-- Inscrit le signal name (nom d'un champ signals des modes d'arrivee). poll(run) -> true quand le signal est donne,
+-- sonde pendant la fenetre ; false : signal recu par un evenement (flare, Run.onSignal). Rend false si deja inscrit.
+function Run.registerSignal(name, poll)
+    if type(name) ~= "string" or Run.SIGNALS[name] or (poll ~= false and type(poll) ~= "function") then
+        log("ERROR signal detector '" .. tostring(name) .. "' refused")
+        return false
+    end
+    Run.SIGNALS[name] = true
+    if poll then polled[#polled + 1] = { name = name, poll = poll } end
+    return true
+end
+
+Run.registerSignal("lamp", lampAtLanding)
+Run.registerSignal("flare", false)
+Run.registerSignal("hour", windowOpen)
+
 -- ================================================================ annonces et regles
 
 -- Texte Run.KEY .. name dit sur la frequence de la voix du passage ; what : objet du message de journal ; fallback :
@@ -158,7 +204,7 @@ function Run.say(run, name, what, fallback)
             .. "' is off the air")
         return false
     end
-    radio.air(khz, { "<fzzt>", Run.text(name, fallback), "<szzt>" })
+    radio.air(khz, { "<fzzt>", Run.textFor(run, name, fallback), "<szzt>" })
     log(what .. " of run " .. tostring(run.passage) .. " of " .. tostring(run.voice) .. " aired (" .. name .. ")")
     return true
 end
@@ -222,8 +268,9 @@ function Run.updateTrader(id, hours)
             return cause.name
         end
     end
-    if hours >= run.start and mode.signals.lamp and lampAtLanding(run) and Run.arrive(id, "lamp") then
-        return "arrived"
+    if hours < run.start then return nil end
+    for _, d in ipairs(polled) do
+        if mode.signals[d.name] and d.poll(run) and Run.arrive(id, d.name) then return "arrived" end
     end
     return nil
 end
@@ -297,7 +344,7 @@ function Run.onBooked(run, ctx)
     local player = type(ctx) == "table" and ctx.player or nil
     if player == nil or type(run) ~= "table" or type(run.landing) ~= "table" then return end
     local p = run.landing
-    MapMarks.give(player, ctx.cid, ctx.khz, { x = p.x, y = p.y, z = p.z, label = Run.text("Pier") })
+    MapMarks.give(player, ctx.cid, ctx.khz, { x = p.x, y = p.y, z = p.z, label = Run.textFor(run, "Pier") })
 end
 
 -- Racine de composition du troc et abonnements (une fois) : voix chargees, rappel de reservation, horloge,

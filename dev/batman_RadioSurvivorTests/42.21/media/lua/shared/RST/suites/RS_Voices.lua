@@ -37,8 +37,9 @@ are overwritten (test save only).
 
 Callers: on a dedicated server each phrase uses its own account name (rstest_voices_<n>): no delay between them. In
 solo every phrase shares the caller key "solo": the suite waits PlayerCooldown (sandbox, 10 s by default) after each
-answered request, and the anti-spam limit (Const.SPAM_MAX phrases per minute) allows one run per minute. The game
-must run (not paused): the server reads the answers in OnTick.
+answered request, and keeps under the anti-spam limit (Const.SPAM_MAX phrases per Const.SPAM_WINDOW_MS): with more
+voices than that, it waits for the oldest phrase of the window to leave it. The game must run (not paused): the server
+reads the answers in OnTick.
 
 Files: rstest_voices.txt (probe sheet) is emptied at the end (Lua cannot delete a file: an empty file is a removed
 voice). The changed sheet is backed up first in Zomboid/Lua/batman_RadioSurvivor/rstest_voices_backup_<id>.txt and
@@ -236,7 +237,7 @@ end
 -- Wraps Const.toClient for the test: answers to the fake players (and, in solo, every answer) are recorded instead
 -- of being sent. Restored by t:defer.
 local function newTalker(t, Const)
-    local talker = { n = 0, fakes = {}, sent = {} }
+    local talker = { n = 0, fakes = {}, sent = {}, times = {} }
     local original = Const.toClient
     Const.toClient = function(player, command, args)
         local solo = not (type(isServer) == "function" and isServer())
@@ -292,6 +293,7 @@ local function say(talker, Const, radio, khz)
     local key = server and ("rstest_voices_" .. tostring(callerSeq)) or "solo"
     local player = fakePlayer(talker, radio, key)
     local first = #talker.sent + 1
+    talker.times[#talker.times + 1] = getTimestampMs()
     triggerEvent("OnClientCommand", Const.MODULE, Const.CMD.TALK, player,
         { text = text, itemId = radio:getID(), channel = khz })
     local sent = {}
@@ -302,7 +304,24 @@ end
 -- One phrase on khz with its expected outcome (expectVoice = id of the voice that must get the request, or nil for
 -- silence), then continue(t). A request is answered by the suite (simulated bridge) and awaited until the server
 -- dropped it; in solo, the PlayerCooldown delay is awaited too (shared caller key).
+-- Phrases left before the anti-spam limit of the server: solo only (shared caller key "solo"); two kept for the
+-- phrases of the other tests of the run.
+local SPAM_MARGIN = 2
+local function underSpam(talker, Const)
+    if type(isServer) == "function" and isServer() then return true end
+    local now, recent = getTimestampMs(), 0
+    for _, at in ipairs(talker.times) do
+        if now - at < Const.SPAM_WINDOW_MS then recent = recent + 1 end
+    end
+    return recent < Const.SPAM_MAX - SPAM_MARGIN
+end
+
 local function phrase(t, talker, Const, radio, khz, expectVoice, what, continue)
+    if not underSpam(talker, Const) then
+        local function again(t2) return phrase(t2, talker, Const, radio, khz, expectVoice, what, continue) end
+        local function free() return underSpam(talker, Const) end
+        return t:waitQuiet(free, Const.SPAM_WINDOW_MS + 5000, again, "anti-spam window of the solo caller")
+    end
     local result = say(talker, Const, radio, khz)
     if not expectVoice then
         t:eq({ "accepted", "done" }, result.sent, what .. ": answers to the caller (silence expected)")

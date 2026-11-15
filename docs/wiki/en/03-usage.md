@@ -88,6 +88,9 @@ notebook").
 - A voice's **route** mission has you cross several places in order, on foot or by vehicle: only the
   next point is circled on the map, the notebook shows "2 of 4". A point reached before the previous
   one does not count; the server reads your position itself.
+- A voice's **personal item** mission circles a place on the map: the item the voice names (a locket, a
+  photo...) lies on the floor there. Find it and leave it at one of the mission's drop points; only that
+  item counts, another one of the same kind is never taken. It is collected out of sight, after the delay.
 - When the objective is met, the mission shows **To report**: go back to the requester and tell them (**Talk**), or
   use **Report** next to them. For a radio voice, call it back on its frequency. The mission succeeds only then, and
   the deadline still runs.
@@ -96,7 +99,7 @@ notebook").
 
 After success and reporting, voice missions improve reputation and may grant **one** material cache, another voice's frequency, a vanilla stash map or a skill lesson. Darlene offers medical rewards and first-aid lessons; Cody offers ammunition and aiming lessons. The server draws the reward at random among those the voice offers, and the contents of a cache at random within its category; you choose neither. Frequencies enter only your notebook; voice caches get a marker only on your map. Physical supplies remain real world items.
 
-Depending on their sheet, voices can request scouting, a delivery drop, missing papers, clearing, a Signal Smoke signal, barricading a building, a route, a radio relay or keeping watch. Some missions of a voice only come after the success of another one: a failure puts them on hold until the next success, and a successful chain can change the voice's situation. NPCs can also offer recovery and group supplies. Always report an NPC mission **in person** to its requester.
+Depending on their sheet, voices can request scouting, a delivery drop, missing papers, clearing, a Signal Smoke signal, barricading a building, a route, a radio relay, keeping watch or finding a personal item. Some missions of a voice only come after the success of another one: a failure puts them on hold until the next success, and a successful chain can change the voice's situation. NPCs can also offer recovery and group supplies. Always report an NPC mission **in person** to its requester.
 
 ### Radio deliveries: discreet collection
 
@@ -118,14 +121,34 @@ The sandbox lesson multiplier disables XP at 0. The new rewards are implemented;
 
 ### Trading with a trader
 
-A radio trader (Gus, the Ohio smuggler) sells his stock over the radio. Your first firm offer books his **run** for
+Each vanilla town has its radio trader, each on its own frequency, with a story and a stock:
+
+| Town | Trader | Arrival |
+|---|---|---|
+| Riverside | Gus Lacombe, the Ohio smuggler | boat |
+| West Point | Wanda Haddix, the former bait shop owner | boat |
+| Brandenburg | Lamar Dunaway, the former ferry deckhand | boat |
+| Louisville | Delphine Arnett, the cook of a towboat | boat |
+| Muldraugh | Hollis Beck, the army trucker | road |
+| March Ridge | Loretta Royce, the mail carrier | road |
+| Irvington | Virgil Mattingly, the farmer on the fence line | road |
+| Echo Creek | Boone Tackett, the moonshine runner | road |
+| Rosewood | Odessa Kessler, the school nurse | cache |
+| Ekron | Ezra Overby, the lay preacher | cache |
+| Fallas Lake | Maxine Whitlock, the campground manager | cache |
+
+Their frequencies are found like those of the other voices: a handwritten note in the loot (shops, drawers, glove
+boxes depending on the trader), to **Inspect**; a trader may also give you the frequency of a neighbour.
+A trader sells a stock over the radio. Your first firm offer books his **run** for
 your group: he gives you the place, the night and the signal, and the place is marked on your map. Another trader has
-his own run: booking one never blocks the other. During the window, show the signal there (Gus: a lit lamp in hand or a
-red flare); you hear his engine as he comes alongside. Leave a bag within 3 tiles of the place with enough to pay, then
+his own run: booking one never blocks the other. During the window, show the signal there (boat and road: a lit lamp
+in hand or a red flare); you hear the engine of the boat coming alongside, or the door of the van parked by the road.
+A **cache** needs no signal: leave the payment in the container of the place (dumpster, mailbox) before the time,
+nobody comes to meet you. Leave a bag within 3 tiles of the place with enough to pay, then
 **walk away out of sight**: he only comes once nobody is within 100 tiles on x and on y **for about one game hour**
 (set by the trader's sheet). Coming back too early resets the wait; gone long enough, the exchange is made when you come
 back. The bag then holds your goods; a bag that does not cover the price is cheating (nothing is taken). A run can be
-called off (patrol, helicopter, storm), and the trader leaves if he never gets a quiet moment. In-game MP validation of
+called off (patrol, checkpoint, sweep, helicopter, storm), and the trader leaves if he never gets a quiet moment. In-game MP validation of
 Gus's run: **pending**.
 
 ## 6. The notebook

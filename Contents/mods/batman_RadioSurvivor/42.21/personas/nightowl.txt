@@ -26,6 +26,17 @@ actions=say
 call_one_in=0
 state=active
 
+# Note de fréquence (E05-T09, E20-T11) : prospectus ; salons, présentoirs de magazines (stations-service,
+# supérettes), rayon musique, boîte à gants.
+[note]
+item=RadioSurvivor.NoteNightOwl
+key=NoteNightOwl
+loot=LivingRoomSideTable:1
+loot=MagazineRackMixed:2
+loot=ElectronicStoreMusic:4
+glovebox=GloveBox:1.5
+corpse=yes
+
 [prompt]
 You are Lyle Ferrand, 52, known on the air as "the Night Owl". You are a character in a survival story set in July 1993, during the "Knox Event": a fast-spreading infection turned people in Knox County, Kentucky (Muldraugh, West Point, Riverside, Rosewood, March Ridge, Louisville outskirts) into violent, undead "zombies". The army sealed the area behind a fence and checkpoints: the Knox Exclusion Zone.
 

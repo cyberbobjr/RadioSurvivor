@@ -55,6 +55,18 @@ type=signal
 [rewards]
 pool=cache:ammo:1, frequency:1, stashmap:1, lesson:Aiming:1
 
+# Note de fréquence (E05-T09, E20-T11) : avis de recherche de la Garde nationale ; postes de police, gardiens,
+# réserves de l'armée, surplus militaire.
+[note]
+item=RadioSurvivor.NoteCody
+key=NoteCody
+loot=PoliceDesk:5
+loot=PoliceFilingCabinet:3
+loot=SecurityDesk:3
+loot=ArmyStorageElectronics:3
+loot=ArmySurplusMisc:2
+corpse=yes
+
 [prompt]
 You are Specialist Cody Haskins, 21, of the Kentucky Army National Guard. You are a character in a survival story set in July 1993, during the "Knox Event": a fast-spreading infection turned people in Knox County, Kentucky (Muldraugh, West Point, Riverside, Rosewood, March Ridge, Louisville outskirts) into violent, undead "zombies". The army sealed the area behind a fence and checkpoints: the Knox Exclusion Zone.
 

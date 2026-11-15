@@ -1,15 +1,21 @@
 -- Radio Survivor : notes de fréquences côté autorité (E05-T09) : fréquence écrite sur la note à sa création, et
 -- butin. Serveur MP ou solo. Détails : docs/specifications-techniques/notes-frequences.md.
 --
+-- Déclarations (E20-T11) : section [note] de chaque fiche chargée (RS_Personas, ordre des fiches) : objet, racine des
+-- traductions, listes de butin (loot=, glovebox=) et mort au talkie (corpse=yes). Aucune voix n'est nommée ici ;
+-- fournisseur des déclarations de RS_Notes.
 -- Fréquence : fournisseur de RS_Notes. Première fréquence servie de la voix (RS_Personas.served, ordre des plages de
 -- la fiche), si la voix est active ; sinon nil (note sans fréquence). Les fiches sont lues à OnLoadRadioScripts
--- (IsoWorld.java:1905, 42.21.0), avant que le monde charge ses premiers conteneurs (WorldStreamer, l.2067).
+-- (IsoWorld.java:1918, 42.22 : ZomboidRadio.Init), avant GlobalModData.init (OnInitGlobalModData, l.1921) et avant
+-- que le monde charge ses premiers conteneurs.
 --
--- Butin : notes ajoutées à des listes procédurales vanilla 42.21 citées par des salles (relevé distmatrix.py :
--- docs/specifications-techniques/notes-frequences.md) et à la boîte à gants des voitures, à OnInitGlobalModData (options sandbox
--- de la partie connues, y compris en solo, base loot-distributions.md), sans doublon, puis ItemPickerJava.Parse(). Poids de base
--- multipliés par l'option NoteRarity (0 : aucune note). Un changement de l'option en cours de partie n'est repris
--- qu'au prochain chargement du monde. Mod désactivé (Enabled) : aucune note dans le butin.
+-- Butin : notes ajoutées aux listes déclarées (procédurales vanilla citées par des salles, relevé distmatrix.py :
+-- docs/specifications-techniques/notes-frequences.md ; boîte à gants des voitures), à OnInitGlobalModData (options
+-- sandbox de la partie connues, y compris en solo, base loot-distributions.md), sans doublon, puis
+-- ItemPickerJava.Parse(). Un objet partagé par plusieurs voix dans une même liste y est inscrit une fois, avec la
+-- somme de leurs poids. Poids de base multipliés par l'option NoteRarity (0 : aucune note). Un changement de l'option
+-- ou d'une déclaration en cours de partie n'est repris qu'au prochain chargement du monde. Mod désactivé (Enabled) :
+-- aucune note dans le butin.
 -- Seul l'ASCII est utilisé dans le code (littéraux non ASCII changés en U+FFFD par le lexeur Kahlua).
 if isClient() then return end
 
@@ -22,45 +28,38 @@ local Notes = require "RadioSurvivor/RS_Notes"
 
 local NotesServer = {}
 
--- { voix, liste, poids de base }. Liste procédurale (ProceduralDistributions.list) sauf vehicle = true
--- (VehicleDistributions). Poids : environ poids % par tirage (rolls de la liste, 1 à 4), avant le facteur de rareté
--- et les réglages de butin du sandbox (base loot-distributions.md, « Chance d'un objet »).
-NotesServer.ENTRIES = {
-    -- Walt: home and general office desks (including their variants), garages, electronics and HAM radio shelves.
-    -- Four rolls at weight 4 give about 15% before sandbox loot modifiers; HAM shelves have one roll.
-    { voice = "walt", list = "OfficeDeskHome", weight = 4 },
-    { voice = "walt", list = "OfficeDeskHomeClassy", weight = 4 },
-    { voice = "walt", list = "OfficeDesk", weight = 4 },
-    { voice = "walt", list = "OfficeDeskSecretary", weight = 4 },
-    { voice = "walt", list = "OfficeDeskStressed", weight = 4 },
-    { voice = "walt", list = "GarageTools", weight = 4 },
-    { voice = "walt", list = "CrateElectronics", weight = 4 },
-    { voice = "walt", list = "ElectronicStoreHAMRadio", weight = 15 },
-    -- Darlene : cliniques, cabinets médicaux, pharmacies, hôpitaux, rayon santé des épiceries.
-    { voice = "darlene", list = "MedicalClinicDrugs", weight = 3 },
-    { voice = "darlene", list = "MedicalOfficeDesk", weight = 4 },
-    { voice = "darlene", list = "HospitalRoomCounter", weight = 2 },
-    { voice = "darlene", list = "StoreShelfMedical", weight = 1 },
-    -- Cody : postes de police, gardiens, réserves de l'armée, surplus militaire.
-    { voice = "cody", list = "PoliceDesk", weight = 5 },
-    { voice = "cody", list = "PoliceFilingCabinet", weight = 3 },
-    { voice = "cody", list = "SecurityDesk", weight = 3 },
-    { voice = "cody", list = "ArmyStorageElectronics", weight = 3 },
-    { voice = "cody", list = "ArmySurplusMisc", weight = 2 },
-    -- Gus : magasins et réserves de pêche, cartons de pêche des placards, garages et remises, boîte à gants des
-    -- pêcheurs.
-    { voice = "gus", list = "FishingStoreGear", weight = 4 },
-    { voice = "gus", list = "CrateFishing", weight = 1.5 },
-    { voice = "gus", list = "FishermanGloveBox", weight = 10, vehicle = true },
-    -- Night Owl : salons, présentoirs de magazines (stations-service, supérettes), rayon musique, boîte à gants.
-    { voice = "nightowl", list = "LivingRoomSideTable", weight = 1 },
-    { voice = "nightowl", list = "MagazineRackMixed", weight = 2 },
-    { voice = "nightowl", list = "ElectronicStoreMusic", weight = 4 },
-    { voice = "nightowl", list = "GloveBox", weight = 1.5, vehicle = true },
-}
-
 local function log(msg)
     Const.log("notes: " .. msg)
+end
+
+-- Déclarations des notes des fiches chargées : { voice, item, key, loot, glovebox, corpse }.
+function NotesServer.declarations()
+    local out = {}
+    for _, id in ipairs(Personas.ids()) do
+        local sheet = Personas.get(id)
+        local note = type(sheet) == "table" and sheet.note or nil
+        if type(note) == "table" then
+            out[#out + 1] = { voice = id, item = note.item, key = note.key, loot = note.loot, glovebox = note.glovebox,
+                corpse = note.corpse }
+        end
+    end
+    return out
+end
+
+-- Entrées de butin des notes déclarées : { voice, fullType, list, weight (poids de base, environ poids % par tirage
+-- avant le facteur de rareté), vehicle = true pour VehicleDistributions }.
+function NotesServer.entries()
+    local out = {}
+    for _, def in ipairs(Notes.voices()) do
+        for _, e in ipairs(def.loot) do
+            out[#out + 1] = { voice = def.voice, fullType = def.fullType, list = e.list, weight = e.weight }
+        end
+        for _, e in ipairs(def.glovebox) do
+            out[#out + 1] = { voice = def.voice, fullType = def.fullType, list = e.list, weight = e.weight,
+                vehicle = true }
+        end
+    end
+    return out
 end
 
 -- Fréquence (kHz) à écrire sur une note neuve de la voix, ou nil.
@@ -80,14 +79,16 @@ local function listItems(entry)
     return list and list.items
 end
 
-local function contains(items, value)
-    for _, v in ipairs(items) do
-        if v == value then return true end
+-- Position du nom value dans items (liste nom, poids, nom, poids...), ou nil.
+local function indexOf(items, value)
+    for i, v in ipairs(items) do
+        if v == value then return i end
     end
-    return false
+    return nil
 end
 
--- Ajoute chaque note absente de sa liste, avec son poids x facteur ; nombre d'entrées ajoutées.
+-- Ajoute chaque note absente de sa liste, avec son poids x facteur (poids cumulés d'un objet partagé) ; nombre
+-- d'entrées appliquées.
 function NotesServer.addToLoot()
     if not Const.isEnabled() then
         log("mod disabled, no note added to the loot")
@@ -98,15 +99,19 @@ function NotesServer.addToLoot()
         log("NoteRarity = none, no note added to the loot")
         return 0
     end
-    local added = 0
-    for _, entry in ipairs(NotesServer.ENTRIES) do
-        local def = Notes.forVoice(entry.voice)
+    local added, mine = 0, {}
+    for _, entry in ipairs(NotesServer.entries()) do
         local items = listItems(entry)
+        local key = (entry.vehicle and "vehicle:" or "") .. entry.list .. "|" .. entry.fullType
         if not items then
             log("WARNING: loot list " .. entry.list .. " not found, note of voice '" .. entry.voice .. "' skipped")
-        elseif not contains(items, def.fullType) then
-            table.insert(items, def.fullType)
+        elseif mine[key] then
+            items[mine[key] + 1] = items[mine[key] + 1] + entry.weight * factor
+            added = added + 1
+        elseif not indexOf(items, entry.fullType) then
+            table.insert(items, entry.fullType)
             table.insert(items, entry.weight * factor)
+            mine[key] = #items - 1
             added = added + 1
         end
     end
@@ -118,10 +123,10 @@ function NotesServer.addToLoot()
 end
 
 -- Roll after vanilla fills corpse loot (ItemPickerJava.java:587-622, 42.21.0).
--- Remember the result on the corpse; repeated fills never roll again or duplicate the note.
+-- Remember the result on the corpse; repeated fills never roll again or duplicate the note. Candidates: the notes
+-- declared with corpse=yes whose voice serves a frequency.
 NotesServer.CORPSE_NOTE_CHANCE = 35
 local CORPSE_KEY = "RadioSurvivorCorpseNote"
-local CORPSE_VOICES = { "walt", "darlene", "cody", "gus", "nightowl" }
 
 function NotesServer.onFillContainer(roomName, containerType, inv)
     if roomName ~= "Zombie" then return end
@@ -145,9 +150,9 @@ function NotesServer.onFillContainer(roomName, containerType, inv)
         local chance = math.min(100, NotesServer.CORPSE_NOTE_CHANCE * Const.noteRarityFactor())
         if ZombRand(10000) >= chance * 100 then return end
         local candidates = {}
-        for _, voice in ipairs(CORPSE_VOICES) do
-            if NotesServer.frequencyOf(voice) ~= nil then
-                candidates[#candidates + 1] = Notes.forVoice(voice).fullType
+        for _, def in ipairs(Notes.voices()) do
+            if def.corpse and NotesServer.frequencyOf(def.voice) ~= nil then
+                candidates[#candidates + 1] = def.fullType
             end
         end
         if #candidates == 0 then return end
@@ -162,6 +167,7 @@ function NotesServer.onFillContainer(roomName, containerType, inv)
     inv:AddItem(chosen)
 end
 
+Notes.declarationsProvider = NotesServer.declarations
 Notes.frequencyProvider = NotesServer.frequencyOf
 Events.OnInitGlobalModData.Add(NotesServer.addToLoot)
 Events.OnFillContainer.Add(NotesServer.onFillContainer)

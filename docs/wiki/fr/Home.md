@@ -13,7 +13,7 @@ survivants humains vivent, se battent et se fortifient dans le comté.
 
 | Mod | Mod ID | Apporte |
 |---|---|---|
-| Radio Survivor | `batman_RadioSurvivor` | La radio : six voix d'IA, l'onglet Radio du carnet, les factions |
+| Radio Survivor | `batman_RadioSurvivor` | La radio : seize voix d'IA (dont un marchand par ville), l'onglet Radio du carnet, les factions |
 | Living Knox | `batman_LivingKnox` | Des groupes de survivants PNJ : foyers, besoins, routines, combats |
 | Radio Survivor Core | `batman_RadioSurvivorCore` | Ce que les deux partagent : missions et leur journal, lien avec le pont, identité, historique des échanges, réputation, carnet. Activé pour vous ; inutile seul |
 

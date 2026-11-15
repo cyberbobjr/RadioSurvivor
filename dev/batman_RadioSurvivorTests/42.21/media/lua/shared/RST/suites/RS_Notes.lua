@@ -1,7 +1,8 @@
 --[[
-rs.notes - frequency notes (E05-T09): item scripts loaded, frequency of the game written by the authority on a new
-note (OnCreate), notes present in the vanilla loot lists according to the NoteRarity option, text composed with the
-frequency in the language of the game (solo only: a dedicated server does not load the translations of the mods).
+rs.notes - frequency notes (E05-T09; E20-T11: declared by the [note] section of the sheets, an item may be shared
+by several voices): item scripts loaded, frequency of the game written by the authority on a new note (OnCreate), notes
+present in the vanilla loot lists according to the NoteRarity option, text composed with the frequency in the
+language of the game (solo only: a dedicated server does not load the translations of the mods).
 Tags "world" and "server": the authority only (dedicated server or solo), on a save named rstest*. Solo:
 RST.run({ suite = "rs.notes", tags = { "world", "server" } }); dedicated server:
 RST.server({ suite = "rs.notes", tags = { "world", "server" } }) from an admin client. A plain string filter
@@ -25,9 +26,10 @@ local function authority(t)
 end
 
 RST.suite("rs.notes", { tags = { "world", "server" }, testTimeoutMs = 90000, timeoutMs = 240000 }, function(s)
-    s.test("item scripts of the five notes loaded", function(t)
+    s.test("item scripts of the declared notes loaded", function(t)
         local _, Notes = authority(t)
-        for _, def in ipairs(Notes.VOICES) do
+        t:ok(#Notes.voices() > 0, "no note declared by the loaded sheets")
+        for _, def in ipairs(Notes.voices()) do
             t:ok(getScriptManager():FindItem(def.fullType) ~= nil, "no item script " .. def.fullType)
         end
         t:ok(Notes.forVoice("whitaker") == nil, "whitaker (silent until E12) must not have a note")
@@ -37,15 +39,17 @@ RST.suite("rs.notes", { tags = { "world", "server" }, testTimeoutMs = 90000, tim
         local NotesServer, Notes = authority(t)
         local Personas = require "RadioSurvivor/RS_Personas"
         local written = 0
-        for _, def in ipairs(Notes.VOICES) do
-            local item = instanceItem(def.fullType)
-            t:ok(item ~= nil, "instanceItem(" .. def.fullType .. ") returned nil")
+        for _, decl in ipairs(Notes.voices()) do
+            local item = instanceItem(decl.fullType)
+            t:ok(item ~= nil, "instanceItem(" .. decl.fullType .. ") returned nil")
             local modData = item:getModData()
-            t:eq(def.id, modData.printMedia and modData.printMedia.id, "printMedia id of " .. def.fullType)
-            t:eq(def.infoKey, modData.printMedia.info, "info of " .. def.fullType .. " (keys, not a composed text)")
             local note = modData[Notes.MODDATA_KEY]
-            t:ok(note ~= nil, "no " .. Notes.MODDATA_KEY .. " in the ModData of " .. def.fullType)
-            t:eq(def.voice, note.voice, "voice of " .. def.fullType)
+            t:ok(note ~= nil, "no " .. Notes.MODDATA_KEY .. " in the ModData of " .. decl.fullType)
+            -- A shared item names one of the voices that declare it, drawn at its creation.
+            local def = Notes.forVoice(note.voice)
+            t:ok(def ~= nil and def.type == decl.type, decl.fullType .. " names voice " .. tostring(note.voice))
+            t:eq(def.id, modData.printMedia and modData.printMedia.id, "printMedia id of " .. decl.fullType)
+            t:eq(def.infoKey, modData.printMedia.info, "info of " .. decl.fullType .. " (keys, not a composed text)")
             t:eq(NotesServer.frequencyOf(def.voice), note.khz, "frequency of " .. def.fullType)
             local sheet = Personas.get(def.voice)
             if sheet and sheet.state == "active" and #Personas.served(def.voice) > 0 then
@@ -58,11 +62,12 @@ RST.suite("rs.notes", { tags = { "world", "server" }, testTimeoutMs = 90000, tim
     end)
 
     s.test("notes in the loot lists according to NoteRarity", function(t)
-        local NotesServer, Notes = authority(t)
+        local NotesServer = authority(t)
         local Const = require "RadioSurvivor/RadioSurvivor_Const"
         local factor = Const.noteRarityFactor()
         local expected = Const.isEnabled() and factor > 0
-        for _, entry in ipairs(NotesServer.ENTRIES) do
+        local entries = NotesServer.entries()
+        for _, entry in ipairs(entries) do
             local list
             if entry.vehicle then
                 list = VehicleDistributions[entry.list]
@@ -73,16 +78,23 @@ RST.suite("rs.notes", { tags = { "world", "server" }, testTimeoutMs = 90000, tim
             local weight = nil
             local items = list.items
             for i = 1, #items - 1 do
-                if items[i] == Notes.forVoice(entry.voice).fullType then weight = items[i + 1] end
+                if items[i] == entry.fullType then weight = items[i + 1] end
+            end
+            -- A shared item has one line per list, with the weights of its voices added up.
+            local sum = 0
+            for _, other in ipairs(entries) do
+                if other.list == entry.list and other.fullType == entry.fullType and other.vehicle == entry.vehicle then
+                    sum = sum + other.weight
+                end
             end
             if expected then
                 t:ok(weight ~= nil, "note of " .. entry.voice .. " missing from " .. entry.list)
-                t:ok(math.abs(weight - entry.weight * factor) < 0.0001, "weight in " .. entry.list)
+                t:ok(math.abs(weight - sum * factor) < 0.0001, "weight in " .. entry.list)
             else
                 t:ok(weight == nil, "note of " .. entry.voice .. " in " .. entry.list .. " although disabled")
             end
         end
-        t:note(tostring(#NotesServer.ENTRIES) .. " entries, rarity factor " .. tostring(factor))
+        t:note(tostring(#entries) .. " entries, rarity factor " .. tostring(factor))
     end)
 
     s.test("text composed with the frequency (solo)", function(t)
@@ -121,11 +133,13 @@ RST.suite("rs.notes", { tags = { "world", "server" }, testTimeoutMs = 90000, tim
                 if win.javaObj then UIManager.RemoveElement(win.javaObj) end
             end
         end, "restore PZAPI.UI.PrintMedia and close the documents")
+        local declared = Notes.voices()
         local function step(t2, i)
-            local def = Notes.VOICES[i]
-            if def == nil then return t2:ok(#opened == #Notes.VOICES, "documents opened") end
+            local def = declared[i]
+            if def == nil then return t2:ok(#opened == #declared, "documents opened") end
             local item = instanceItem(def.fullType)
             local note = item:getModData()[Notes.MODDATA_KEY]
+            def = Notes.forVoice(note.voice) or def
             local label = Notes.frequencyLabel(note)
             local before = #opened
             ISReadABook:new(getPlayer(), item):displayPrintMedia()
@@ -184,7 +198,7 @@ RST.suite("rs.notes", { tags = { "world", "server" }, testTimeoutMs = 90000, tim
             return out
         end
         local types = {}
-        for _, def in ipairs(Notes.VOICES) do types[def.fullType] = def end
+        for _, def in ipairs(Notes.voices()) do types[def.fullType] = def end
         R.place(t, p, containers, function(t2, list)
             R.god(t2, p)
             local found, byVoice, where, rounds = {}, {}, {}, 0
@@ -205,8 +219,9 @@ RST.suite("rs.notes", { tags = { "world", "server" }, testTimeoutMs = 90000, tim
                         local def = types[item:getFullType()]
                         if def then
                             local note = item:getModData()[Notes.MODDATA_KEY]
-                            found[#found + 1] = { voice = def.voice, khz = note and note.khz }
-                            byVoice[def.voice] = (byVoice[def.voice] or 0) + 1
+                            local voice = note and note.voice or def.voice
+                            found[#found + 1] = { voice = voice, khz = note and note.khz }
+                            byVoice[voice] = (byVoice[voice] or 0) + 1
                             where[entry.room .. "/" .. c:getType()] = true
                         end
                         c:Remove(item)

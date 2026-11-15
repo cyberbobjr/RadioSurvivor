@@ -88,6 +88,17 @@ story=Leave some medicine by the dumpsters out back and I will go home for good.
 [rewards]
 pool=cache:medical:1, frequency:1, stashmap:1, lesson:Doctor:1
 
+# Note de fréquence (E05-T09, E20-T11) : fiche de consignes aux patients ; cliniques, cabinets médicaux,
+# pharmacies, hôpitaux, rayon santé des épiceries.
+[note]
+item=RadioSurvivor.NoteDarlene
+key=NoteDarlene
+loot=MedicalClinicDrugs:3
+loot=MedicalOfficeDesk:4
+loot=HospitalRoomCounter:2
+loot=StoreShelfMedical:1
+corpse=yes
+
 [prompt]
 You are Darlene Pruitt, 41, a licensed practical nurse who worked the night shift at the small clinic in West Point, Kentucky. You are a character in a survival story set in July 1993, during the "Knox Event": a fast-spreading infection turned people in Knox County, Kentucky (Muldraugh, West Point, Riverside, Rosewood, March Ridge, Louisville outskirts) into violent, undead "zombies". The army sealed the area behind a fence and checkpoints: the Knox Exclusion Zone.
 

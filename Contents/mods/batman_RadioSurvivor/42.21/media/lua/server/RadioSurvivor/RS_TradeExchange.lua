@@ -4,8 +4,9 @@
 -- Autorité seulement (serveur MP, jeu local en solo).
 --
 -- Après le signal (RS_TradeRun : state arrived), le joueur dépose un sac au lieu du rendez-vous (DROP_RADIUS cases
--- autour du lieu du passage) et s'éloigne. Sondage à chaque minute de jeu (EveryOneMinute), pour chaque marchand dont
--- le passage est arrivé :
+-- autour du lieu du passage) et s'éloigne ; « sac » désigne ci-dessous le contenant que cherche le mode d'arrivée du
+-- marchand (champ holds, RS_TradeHolds, E20-T11 : sacs au sol par défaut, contenants des objets du lieu pour une
+-- planque). Sondage à chaque minute de jeu (EveryOneMinute), pour chaque marchand dont le passage est arrivé :
 -- - reprise : un sac du lieu (case chargée) qui contient déjà un objet marqué de la révision du passage prouve que
 --   l'échange a été appliqué au monde sans que l'état soit écrit : passage clos « done » sans rien reposer ;
 -- - le marchand ne passe que hors de vue de tout joueur (RS_OutOfSight : personne à moins de VIEW_TILES cases sur
@@ -36,10 +37,13 @@ local News = require "RadioSurvivor/RS_OutsideNews"
 local NewsServer = require "RadioSurvivor/RS_OutsideNewsServer"
 local Rep = require "RadioSurvivorCore/RC_Reputation"
 local OutOfSight = require "RadioSurvivor/RS_OutOfSight"
+local Arrivals = require "RadioSurvivor/RS_TradeArrivals"
+local Holds = require "RadioSurvivor/RS_TradeHolds"
 
 local Ex = {}
 
-Ex.DROP_RADIUS = 3             -- cases autour du lieu du rendez-vous où le sac est cherché
+Ex.DROP_RADIUS = 3             -- cases autour du lieu du rendez-vous où le paiement est cherché
+Ex.HOLDS = "bags"              -- chercheur des contenants d'un mode sans champ holds (RS_TradeHolds)
 Ex.DELAY_HOURS = 1             -- heures de jeu hors de vue avant l'échange, sauf delay_hours de la fiche
 Ex.WAIT_HOURS = 12             -- jamais tranquille 12 heures de jeu après son arrivée : le marchand repart
 Ex.CAP_POINTS = 120            -- points pris au plus par passage (section 1)
@@ -221,28 +225,18 @@ end
 
 -- ================================================================ monde
 
--- Sacs posés au sol dans le carré de côté 2r + 1 centré sur (cx, cy, z) ; nil si la case centrale n'est pas chargée.
-function Ex.bagsIn(cx, cy, z, r)
-    local cell = getCell and getCell() or nil
-    if cell == nil or cell:getGridSquare(cx, cy, z) == nil then return nil end
-    local out = {}
-    for x = cx - r, cx + r do
-        for y = cy - r, cy + r do
-            local sq = cell:getGridSquare(x, y, z)
-            local wos = sq and sq:getWorldObjects() or nil
-            if wos then
-                for i = 0, wos:size() - 1 do
-                    local wo = wos:get(i)
-                    local item = wo and wo:getItem() or nil
-                    if item and instanceof(item, "InventoryContainer") then out[#out + 1] = item end
-                end
-            end
-        end
-    end
-    return out
+-- Contenants du lieu du passage run (DROP_RADIUS cases autour), cherchés par le chercheur du mode d'arrivée du
+-- marchand id (champ holds, RS_TradeHolds ; sacs au sol par défaut) : liste { inv, id }, ou nil si la case du lieu
+-- n'est pas chargée.
+function Ex.holdsAt(id, run)
+    local spec = Trade.specOf(id)
+    local mode = spec and Arrivals.get(spec.arrival) or nil
+    local finder = Holds.get(mode and mode.holds or Ex.HOLDS)
+    local p = run.landing
+    return finder(p.x, p.y, p.z, Ex.DROP_RADIUS)
 end
 
--- Vrai si le sac contient un objet de contrepartie marqué de la révision rev.
+-- Vrai si le contenant (sac ou inventaire) contient un objet de contrepartie marqué de la révision rev.
 function Ex.hasMark(bag, rev)
     for _, item in ipairs(Ex.itemsOf(bag)) do
         if item.hasModData and item:hasModData() and item:getModData()[Ex.MARK] == rev then return true end
@@ -250,10 +244,9 @@ function Ex.hasMark(bag, rev)
     return false
 end
 
--- Applique l'échange au sac : retire les objets pris, crée la contrepartie de l'offre (marquée mark). Rend la liste
--- des objets donnés.
-function Ex.apply(bag, taken, offer, mark)
-    local inv = bag:getInventory()
+-- Applique l'échange à l'inventaire inv d'un contenant : retire les objets pris, crée la contrepartie de l'offre
+-- (marquée mark). Rend la liste des objets donnés.
+function Ex.apply(inv, taken, offer, mark)
     for _, item in ipairs(taken) do
         inv:DoRemoveItem(item)
         sendRemoveItemFromContainer(inv, item)
@@ -309,8 +302,8 @@ local function delayOf(id)
     return spec and spec.delayHours or Ex.DELAY_HOURS
 end
 
--- Échange dû au lieu chargé : le meilleur sac évalué, issue appliquée. Rend l'issue.
-local function exchange(id, run, bags)
+-- Échange dû au lieu chargé : le meilleur contenant évalué, issue appliquée. Rend l'issue.
+local function exchange(id, run, holds)
     local offer = Trade.offerOf(id, run.caller, run.cid)
     if offer == nil or offer.rev ~= run.rev or offer.state ~= "open" then
         finish(id, "cancelled", "no_offer")
@@ -318,25 +311,25 @@ local function exchange(id, run, bags)
     end
     local names = Ex.playerNames()
     local best, bestRes = nil, nil
-    for _, bag in ipairs(bags) do
-        local res = Ex.appraise(Ex.itemsOf(bag), names, offer.price)
-        if bestRes == nil or res.value > bestRes.value then best, bestRes = bag, res end
+    for _, hold in ipairs(holds) do
+        local res = Ex.appraise(Ex.itemsOf(hold.inv), names, offer.price)
+        if bestRes == nil or res.value > bestRes.value then best, bestRes = hold, res end
     end
     if bestRes == nil or bestRes.value <= 0 then
         finish(id, "cancelled", "no_drop", nil, "Cancel_nodrop")
         return "no_drop"
     end
-    local detail = { value = bestRes.value, price = offer.price, took = #bestRes.taken, bag = best:getID() }
+    local detail = { value = bestRes.value, price = offer.price, took = #bestRes.taken, bag = best.id }
     if bestRes.value < offer.price then
-        log("run " .. tostring(run.passage) .. " of " .. tostring(id) .. ": bag " .. tostring(detail.bag) .. " worth "
-            .. bestRes.value .. " points for a price of " .. offer.price .. ", refused")
+        log("run " .. tostring(run.passage) .. " of " .. tostring(id) .. ": hold " .. tostring(detail.bag)
+            .. " worth " .. bestRes.value .. " points for a price of " .. offer.price .. ", refused")
         finish(id, "cheated", "cheated", detail, "Cheated")
         return "cheated"
     end
-    local given = Ex.apply(best, bestRes.taken, offer, run.rev)
+    local given = Ex.apply(best.inv, bestRes.taken, offer, run.rev)
     detail.given = #given
     log("run " .. tostring(run.passage) .. " of " .. tostring(id) .. ": took " .. #bestRes.taken .. " items worth "
-        .. bestRes.value .. " points from bag " .. tostring(detail.bag) .. ", gave " .. #given .. " items for "
+        .. bestRes.value .. " points from hold " .. tostring(detail.bag) .. ", gave " .. #given .. " items for "
         .. offer.price)
     finish(id, "done", "done", detail, "Done")
     return "done"
@@ -348,12 +341,11 @@ function Ex.updateTrader(id, hours)
     hours = hours or Trade.worldHours()
     local run = Trade.lastRun(id)
     if run == nil or run.state ~= "arrived" or type(run.landing) ~= "table" then return nil end
-    local p = run.landing
-    local bags = Ex.bagsIn(p.x, p.y, p.z, Ex.DROP_RADIUS)
-    for _, bag in ipairs(bags or {}) do
-        if Ex.hasMark(bag, run.rev) then
+    local holds = Ex.holdsAt(id, run)
+    for _, hold in ipairs(holds or {}) do
+        if Ex.hasMark(hold.inv, run.rev) then
             log("run " .. tostring(run.passage) .. " of " .. tostring(id) .. ": counterpart of offer "
-                .. tostring(run.rev) .. " already in a bag, exchange recovered")
+                .. tostring(run.rev) .. " already at the landing, exchange recovered")
             finish(id, "done", "recovered")
             return "done"
         end
@@ -365,8 +357,8 @@ function Ex.updateTrader(id, hours)
         end
         return nil
     end
-    if bags == nil then return nil end              -- dû, case déchargée : au retour d'un joueur
-    return exchange(id, run, bags)
+    if holds == nil then return nil end             -- dû, case déchargée : au retour d'un joueur
+    return exchange(id, run, holds)
 end
 
 -- Sondage de tous les marchands.

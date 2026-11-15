@@ -4,28 +4,21 @@
 -- again when it leaves.
 -- Sounds: vanilla 42.22 media/scripts/generated/sounds/objects/sounds_object_generator.txt:13-31 (GeneratorStarting,
 -- GeneratorStopping: one-shot small engine, distanceMax 100); no boat sound exists in the vanilla sound scripts.
--- Causes (checked from RS_TradeRun.WARN_HOURS before the window): a patrol boat (reproducible roll of the run below the
--- chance of the cordon), a helicopter heard since HELI_HOURS before the window (vanilla helicopter, RS_TradeRun), a
--- thunderstorm (ClimateManager). ASCII only (Kahlua lexer).
+-- Causes (checked from RS_TradeRun.WARN_HOURS before the window, checks of RS_TradeCauses): a patrol boat
+-- (reproducible roll of the run below the chance of the cordon), a helicopter heard since HELI_HOURS before the window
+-- (vanilla helicopter, RS_TradeRun), a thunderstorm (ClimateManager). ASCII only (Kahlua lexer).
 if isClient() then return end
 local Arrivals = require "RadioSurvivor/RS_TradeArrivals"
+local Causes = require "RadioSurvivor/RS_TradeCauses"
 
 local Boat = {}
 
 Boat.PATROL_CHANCE = { 5, 15, 30 }  -- per cent, by cordon (RS_Trade.CORDONS: calm, patrols, tight)
 Boat.HELI_HOURS = 3                 -- a helicopter heard from 22:00 for a 01:00 window cancels the night
 
-local function patrol(world)
-    return world.patrolRoll() < (Boat.PATROL_CHANCE[world.cordonLevel] or 0)
-end
-
-local function helicopter(world)
-    return world.helicopterSince(world.run.start - Boat.HELI_HOURS)
-end
-
-local function storm(world)
-    return world.stormy()
-end
+local patrol = Causes.patrol(Boat.PATROL_CHANCE)
+local helicopter = Causes.helicopter(Boat.HELI_HOURS)
+local storm = Causes.storm
 
 Boat.mode = {
     signals = { lamp = true, flare = true },

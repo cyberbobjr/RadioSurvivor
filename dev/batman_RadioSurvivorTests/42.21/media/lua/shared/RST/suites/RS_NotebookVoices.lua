@@ -4,7 +4,7 @@ server/RadioSurvivor/RS_RadioLog.lua: f.voice, Log.voiceInfo, command note_read;
 Radio tab of RS_Notebook.lua). Through the REAL server path: the requester client sends the real radio commands
 ("talk", "note_read") and reads its own Radio tab (RST.Steps "rs.talk", "rs.history" of RST_PeerChecksRadio.lua,
 "rs.voice.read" and "rs.voice.tab" of RST_PeerChecksVoices.lua).
-    voice chosen    a voice of a frequency note (RS_Notes.VOICES) served in this game, not a group voice; its
+    voice chosen    a voice of a frequency note (RS_Notes.voices) served in this game, not a group voice; its
                     listening hours are set, in memory, to a window two to four hours after the current game time
                     (the sheet file is untouched; put back at the end).
     no answer       the requester says a sentence on the frequency of the voice with a walkie-talkie: outside its
@@ -48,12 +48,14 @@ local function clock(minute)
     return string.format("%02d:%02d", math.floor(minute / 60), minute % 60)
 end
 
--- A voice of a frequency note served in this game (not a group voice): def of RS_Notes, its frequency, its sheet.
+-- A voice of a frequency note served in this game (not a group voice), whose note item is its own (an item shared by
+-- several voices names one of them, drawn at its creation): def of RS_Notes, its frequency, its sheet.
 local function noteVoice(Notes, Personas)
-    for _, def in ipairs(Notes.VOICES) do
+    for _, def in ipairs(Notes.voices()) do
         local sheet = Personas.get(def.voice)
         local khz = Personas.served(def.voice)[1]
-        if sheet ~= nil and not sheet.group and khz ~= nil and Personas.voiceAt(khz) == def.voice then
+        if sheet ~= nil and not sheet.group and khz ~= nil and Personas.voiceAt(khz) == def.voice
+            and #Notes.forType(def.type) == 1 then
             return Notes.forVoice(def.voice), khz, sheet
         end
     end

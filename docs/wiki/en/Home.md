@@ -12,7 +12,7 @@ and fortify in the county.
 
 | Mod | Mod ID | Brings |
 |---|---|---|
-| Radio Survivor | `batman_RadioSurvivor` | The radio: six AI voices, the Radio tab of the notebook, factions |
+| Radio Survivor | `batman_RadioSurvivor` | The radio: sixteen AI voices (a trader per town among them), the Radio tab of the notebook, factions |
 | Living Knox | `batman_LivingKnox` | Groups of NPC survivors: homes, needs, routines, fights |
 | Radio Survivor Core | `batman_RadioSurvivorCore` | What both share: missions and their journal, link with the bridge, identity, conversation history, reputation, the notebook. Enabled for you; useless alone |
 

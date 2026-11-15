@@ -244,7 +244,7 @@ CASES: list[tuple[str, str | bytes, tuple[int, str] | None]] = [
     ('rewards section with an id', HEAD + '[rewards main]\npool=frequency:1\n' + PROMPT,
      (5, 'section [rewards] takes no id')),
     ('unknown section', HEAD + '[shop gus]\nstock=food\n' + PROMPT,
-     (5, "unknown section 'shop' (expected place, mission, rewards, category, trade or prompt)")),
+     (5, "unknown section 'shop' (expected place, mission, rewards, category, trade, note or prompt)")),
     ('place coords with two numbers', HEAD + PLACE.replace('10600,9300,0', '10600,9300') + PROMPT,
      (6, "bad place coords '10600,9300' (x,y,z whole numbers, z from -32 to 31)")),
     ('place coords z out of range', HEAD + PLACE.replace('10600,9300,0', '1,2,-33') + PROMPT,
@@ -511,7 +511,9 @@ class WaltSheetTests(unittest.TestCase):
 # tests/test_personas_server.py) : seule la plage FM du chroniqueur recoupe ces chaînes.
 VANILLA_KHZ = {200, 201, *range(203, 211), 89400, 91200, 93200, 94200, 95000, 98000, 101200, 107600}
 AEBS_KHZ = range(88000, 108001)
-VOICES = {'walt', 'darlene', 'cody', 'whitaker', 'nightowl', 'gus'}
+VOICES = {'walt', 'darlene', 'cody', 'whitaker', 'nightowl', 'gus',
+          # E20-T11 : un marchand par ville vanilla.
+          'wanda', 'lamar', 'delphine', 'hollis', 'loretta', 'virgil', 'boone', 'odessa', 'ezra', 'maxine'}
 
 # Bornes de réglage des radios vanilla 42.21 (media/scripts/generated/items/radio.txt, MinChannel et MaxChannel,
 # bornes incluses comme radioReaches de RadioSurvivor_Server.lua) ; vrai = émettrice (TwoWay). Les autoradios
@@ -550,6 +552,17 @@ class DeliveredVoicesTests(unittest.TestCase):
         'whitaker': ([(75000, 87800)], [81400]),
         'nightowl': ([(88000, 107800), (109000, 114800)], [106200, 112400]),
         'gus': ([(150200, 199800)], [156600]),
+        # E20-T11 : marchands des villes, bandes libres.
+        'wanda': ([(25000, 31800)], [25000]),
+        'lamar': ([(32000, 39800)], [32000]),
+        'delphine': ([(65000, 74800)], [65000]),
+        'hollis': ([(201000, 209800)], [201000]),
+        'loretta': ([(210000, 219800)], [210000]),
+        'virgil': ([(220000, 229800)], [220000]),
+        'boone': ([(230000, 239800)], [230000]),
+        'odessa': ([(240000, 249800)], [240000]),
+        'ezra': ([(250000, 259800)], [250000]),
+        'maxine': ([(260000, 269800)], [260000]),
     }
 
     @classmethod

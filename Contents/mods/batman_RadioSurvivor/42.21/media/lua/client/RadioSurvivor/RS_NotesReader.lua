@@ -36,7 +36,7 @@ local function documentOf(action)
     local item = action.item
     if not item or not item:hasModData() then return nil end
     local modData = item:getModData()
-    if Notes.forPrintMedia(modData.printMedia) then return modData, Notes.compose end
+    if Notes.isNote(modData) then return modData, Notes.compose end
     if News.isPrintMedia(modData.printMedia) then return modData, News.compose end
     return nil
 end

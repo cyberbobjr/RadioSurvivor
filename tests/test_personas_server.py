@@ -711,15 +711,24 @@ class FingerprintTests(Harness):
         self.assertEqual(len(self.logs_with("voice 'walt' modified by the admin")), 1)
 
 
+# E20-T11 : marchands des villes, livrés pour la première fois avec le fichier d'empreintes (E05-T11) : jamais
+# installés sans lui, donc ni dans KNOWN_DELIVERED ni dans une installation d'avant E05-T07.
+TOWN_TRADERS = ('wanda', 'lamar', 'delphine', 'hollis', 'loretta', 'virgil', 'boone', 'odessa', 'ezra', 'maxine')
+
+
+def first_voices() -> list[str]:
+    return [vid for vid in DeliveredVoicesServerTests.VOICES if vid not in TOWN_TRADERS]
+
+
 class KnownDeliveredTests(Harness):
     """KNOWN_DELIVERED connaît toutes les versions livrées : l'actuelle et celles de l'historique git."""
 
     def test_current_and_past_versions_are_known(self):
-        known = {vid: set(lua_list(self.P.KNOWN_DELIVERED[vid])) for vid in DeliveredVoicesServerTests.VOICES}
+        known = {vid: set(lua_list(self.P.KNOWN_DELIVERED[vid])) for vid in first_voices()}
         self.assertEqual(set(lua_list(self.rt.eval('function(t) local k = {} for n in pairs(t) do k[#k + 1] = n end '
                                                    'return k end')(self.P.KNOWN_DELIVERED))),
-                         set(DeliveredVoicesServerTests.VOICES))
-        for vid in DeliveredVoicesServerTests.VOICES:
+                         set(first_voices()))
+        for vid in first_voices():
             with self.subTest(vid):
                 self.assertIn(fingerprint((BUNDLED / f'{vid}.txt').read_bytes()), known[vid],
                               f'add the fingerprint of the new delivered {vid}.txt to RS_Personas.KNOWN_DELIVERED')
@@ -736,7 +745,7 @@ class PreviousInstallTests(Harness):
     bundled = None
 
     def test_fixed_frequency_install_receives_the_ranges(self):
-        old = {vid: git_file('24832ea', f'{vid}.txt') for vid in DeliveredVoicesServerTests.VOICES}
+        old = {vid: git_file('24832ea', f'{vid}.txt') for vid in first_voices()}
         if None in old.values():
             self.skipTest('git history not available')
         for vid, raw in old.items():
@@ -745,7 +754,7 @@ class PreviousInstallTests(Harness):
         self.assertNotEqual(admin, old['gus'])
         self.write('gus.txt', admin)
         self.load_world(True)
-        for vid in DeliveredVoicesServerTests.VOICES:
+        for vid in first_voices():
             with self.subTest(vid):
                 if vid == 'gus':
                     self.assertEqual(self.installed_bytes(vid), admin)
@@ -866,7 +875,10 @@ class DeliveredVoicesServerTests(ServerHarness):
 
     bundled = None
     VOICES = {'walt': [130000], 'darlene': [115000], 'cody': [10000], 'whitaker': [75000],
-              'nightowl': [88000, 109000], 'gus': [150200]}
+              'nightowl': [88000, 109000], 'gus': [150200],
+              # E20-T11 : marchands des villes (plus basse fréquence libre de chaque plage).
+              'wanda': [25000], 'lamar': [32000], 'delphine': [65000], 'hollis': [201000], 'loretta': [210000],
+              'virgil': [220000], 'boone': [230000], 'odessa': [240000], 'ezra': [250000], 'maxine': [260000]}
 
     def requests(self) -> str:
         path = self.lua_dir / 'batman_RadioSurvivorCore' / 'requests.txt'
@@ -904,7 +916,12 @@ class DrawTests(Harness):
     bundled = None
     RANGES = {'walt': [(130000, 149800)], 'darlene': [(115000, 129800)], 'cody': [(10000, 24800)],
               'whitaker': [(75000, 87800)], 'nightowl': [(88000, 107800), (109000, 114800)],
-              'gus': [(150200, 199800)]}
+              'gus': [(150200, 199800)],
+              # E20-T11 : marchands des villes.
+              'wanda': [(25000, 31800)], 'lamar': [(32000, 39800)], 'delphine': [(65000, 74800)],
+              'hollis': [(201000, 209800)], 'loretta': [(210000, 219800)], 'virgil': [(220000, 229800)],
+              'boone': [(230000, 239800)], 'odessa': [(240000, 249800)], 'ezra': [(250000, 259800)],
+              'maxine': [(260000, 269800)]}
     AEBS = 'EMRG-711984'
 
     def start(self, new_game, seed=1, world='rstest_a', aebs=None):
@@ -947,8 +964,8 @@ class DrawTests(Harness):
     def test_two_new_worlds_draw_different_frequencies(self):
         first = self.start(True, seed=11, aebs=98600)
         self.check_draw(first, aebs=98600)
-        self.assertEqual(len(self.logs_with(' drew ')), 7)
-        self.assertEqual(len(self.logs_with('(new game)')), 7)
+        self.assertEqual(len(self.logs_with(' drew ')), 17)
+        self.assertEqual(len(self.logs_with('(new game)')), 17)
         second = self.start(True, seed=977, world='rstest_b', aebs=101800)
         self.check_draw(second, aebs=101800)
         self.assertNotEqual(first, second)
@@ -961,7 +978,7 @@ class DrawTests(Harness):
         text = memory.read_text(encoding='utf-8')
         lines = text.splitlines()
         self.assertEqual(lines[0], 'RSFREQ1')
-        self.assertEqual(len(lines), 8)  # six voix, deux plages pour le chroniqueur
+        self.assertEqual(len(lines), 18)  # seize voix, deux plages pour le chroniqueur
         self.assertIn(f"walt 130000-149800 {first['walt'][0]}", lines)
         drawn = len(self.logs_with(' drew '))
         again = self.start(False, seed=4242, aebs=99000)  # autre graine : rien n'est tiré
@@ -984,7 +1001,7 @@ class DrawTests(Harness):
         first = self.start(False, seed=3)
         self.check_draw(first)
         self.assertEqual(len(self.logs_with('no drawn frequencies remembered for this game yet')), 1)
-        self.assertEqual(len(self.logs_with('(no frequency remembered for this range)')), 7)
+        self.assertEqual(len(self.logs_with('(no frequency remembered for this range)')), 17)
         self.assertEqual(self.start(False, seed=8), first)
 
     def test_aebs_is_never_drawn(self):
@@ -1032,7 +1049,7 @@ class DrawTests(Harness):
             with self.subTest(seed=seed):
                 served = self.start(True, seed=seed)
                 every = sorted(k for v in list(self.RANGES) + ['abe', 'bea', 'cid'] for k in self.served(v))
-                self.assertEqual(len(every), 10)
+                self.assertEqual(len(every), 20)  # E20-T11 : seize voix livrées (nightowl : deux), trois du banc
                 self.assertTrue(all(b - a >= 1000 for a, b in zip(every, every[1:])), every)
                 self.assertEqual(len(served['nightowl']), 2)
                 got = sorted(self.served(v)[0] for v in ('abe', 'bea', 'cid'))

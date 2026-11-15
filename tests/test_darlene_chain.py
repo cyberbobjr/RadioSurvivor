@@ -176,13 +176,11 @@ class DarleneChainTests(unittest.TestCase):
     def test_no_code_names_her(self):
         names = sorted(str(p.relative_to(ROOT)) for p in (ROOT / 'Contents').rglob('*.lua')
                        if 'darlene' in p.read_text(encoding='utf-8', errors='replace').lower())
-        # Before E20-T10: discovery notes (loot lists and corpse notes), the fingerprints of the shipped sheet, an
-        # example in a comment of the rescue module and the list of the notes. Never a mission or chain of hers.
+        # The fingerprints of the shipped sheet and an example in a comment of the rescue module (her discovery note
+        # is declared by her sheet since E20-T11). Never a mission or chain of hers.
         self.assertEqual([n.replace('\\', '/') for n in names], [
-            'Contents/mods/batman_RadioSurvivor/42.21/media/lua/server/RadioSurvivor/RS_NotesServer.lua',
             'Contents/mods/batman_RadioSurvivor/42.21/media/lua/server/RadioSurvivor/RS_Personas.lua',
-            'Contents/mods/batman_RadioSurvivor/42.21/media/lua/server/RadioSurvivor/RS_Rescue.lua',
-            'Contents/mods/batman_RadioSurvivor/42.21/media/lua/shared/RadioSurvivor/RS_Notes.lua'])
+            'Contents/mods/batman_RadioSurvivor/42.21/media/lua/server/RadioSurvivor/RS_Rescue.lua'])
 
 
 class AimedScoutClearTests(unittest.TestCase):

@@ -38,6 +38,20 @@ TYPES = {'walt': 'NoteWalt', 'darlene': 'NoteDarlene', 'cody': 'NoteCody', 'gus'
          'nightowl': 'NoteNightOwl'}
 
 
+def note_sections() -> dict[str, str]:
+    """Voix -> lignes de la section [note] de sa fiche livrée (E20-T11)."""
+    out = {}
+    for path in sorted((MOD / 'personas').glob('*.txt')):
+        m = re.search(r'(?ms)^\[note\]\n(.*?)^\[', path.read_text(encoding='utf-8'))
+        if m:
+            out[path.stem] = m.group(1)
+    return out
+
+
+def declared_voices() -> list[str]:
+    return sorted(note_sections())
+
+
 def translations(lang: str) -> dict[str, str]:
     out: dict[str, str] = {}
     for path in (TRANSLATE / lang).glob('*.json'):
@@ -102,7 +116,7 @@ class NotesHarness(Harness):
         return item
 
     def entries(self) -> list:
-        return [self.NS.ENTRIES[i] for i in range(1, len(self.NS.ENTRIES) + 1)]
+        return lua_list(self.NS.entries())
 
     def reset_loot(self):
         lists = [e.list for e in self.entries() if not e.vehicle]
@@ -140,9 +154,11 @@ class AuthorityTests(NotesHarness):
         self.assertNotEqual(first, second)
 
     def test_whitaker_has_no_note(self):
+        # E20-T11 : chaque voix livrée déclare sa note dans sa fiche ([note]), sauf whitaker.
         self.assertIsNone(self.Notes.forVoice('whitaker'))
         self.assertEqual(sorted(e.voice for e in self.entries() if e.voice == 'whitaker'), [])
-        self.assertEqual({e.voice for e in self.entries()}, set(VOICES))
+        self.assertEqual({e.voice for e in self.entries()}, set(declared_voices()))
+        self.assertTrue(set(VOICES) <= set(declared_voices()))
 
     def test_silent_or_gone_voice_gives_a_note_without_frequency(self):
         for state in ('silent', 'gone'):
@@ -179,11 +195,13 @@ class ClientTests(unittest.TestCase):
         notes = self.rt.eval('require("RadioSurvivor/RS_Notes")')
         self.rt.execute('require("RadioSurvivor/RS_NotesServer")')  # rend tout de suite sur un client
         self.assertIsNone(notes.frequencyProvider)
+        self.assertIsNone(notes.declarationsProvider)
         self.assertEqual(len(lua_list(self.g.Events.OnInitGlobalModData.list)), 0)
+        # E20-T11 : sans les fiches (serveur seulement), le client ne connaît aucune note et ne pose rien ; la ModData
+        # de l'autorité arrive avec l'objet.
         item = self.g.newItem('NoteWalt')
         self.g.RadioSurvivorNotes.onCreate(item)
-        self.assertEqual(item.md['RadioSurvivorNote']['voice'], 'walt')
-        self.assertIsNone(item.md['RadioSurvivorNote']['khz'])
+        self.assertIsNone(item.md)
 
     def test_no_network_command_in_the_note_modules(self):
         for path in NOTES_LUA:
@@ -306,12 +324,15 @@ class LootTests(NotesHarness):
                     self.assertEqual(self.g.PARSED, parsed + 1)
                 for entry in entries:
                     items = self.items_of(entry)
-                    full = f'RadioSurvivor.{TYPES[entry.voice]}'
+                    full = entry.fullType
                     if factor == 0:
                         self.assertNotIn(full, items)
                     else:
+                        # Objet partagé (E20-T11) : une seule ligne, somme des poids des voix dans cette liste.
+                        same = [e.weight for e in entries if e.list == entry.list and e.fullType == full
+                                and bool(e.vehicle) == bool(entry.vehicle)]
                         i = items.index(full)
-                        self.assertAlmostEqual(items[i + 1], entry.weight * factor)
+                        self.assertAlmostEqual(items[i + 1], sum(same) * factor)
 
     def test_idempotent_and_registered_on_init_global_mod_data(self):
         self.option(3)
@@ -321,7 +342,7 @@ class LootTests(NotesHarness):
         handlers[0]()
         self.assertEqual(self.NS.addToLoot(), 0)
         for entry in self.entries():
-            self.assertEqual(self.items_of(entry).count(f'RadioSurvivor.{TYPES[entry.voice]}'), 1)
+            self.assertEqual(self.items_of(entry).count(entry.fullType), 1)
 
     def test_disabled_mod_adds_nothing(self):
         self.option(4, enabled=False)
@@ -368,7 +389,10 @@ ZombRand = function(n) ROLLS = ROLLS + 1 if n == 10000 then return TEST_ROLL els
         self.NS.onFillContainer("Zombie", "Generic", self.g.CORPSE_INV)
         self.assertEqual(len(self.g.CORPSE_ITEMS), 2)
         note = self.g.CORPSE_ITEMS[2]
-        self.assertEqual(note.getModData(note).RadioSurvivorNote.khz, self.NS.frequencyOf('walt'))
+        md = note.getModData(note).RadioSurvivorNote
+        first = next(d for d in lua_list(self.Notes.voices()) if d.corpse)      # premier candidat (tirage 0)
+        self.assertEqual(note.getFullType(note), first.fullType)
+        self.assertEqual(md.khz, self.NS.frequencyOf(md.voice))
         self.NS.onFillContainer("Zombie", "Generic", self.g.CORPSE_INV)
         self.assertEqual(len(self.g.CORPSE_ITEMS), 2)
         self.rt.execute('table.remove(CORPSE_ITEMS, 2)')
@@ -408,15 +432,18 @@ ZombRand = function(n) ROLLS = ROLLS + 1 if n == 10000 then return TEST_ROLL els
 class StaticTests(unittest.TestCase):
 
     def entries(self) -> list[tuple[str, str, bool]]:
-        code = (LUA / 'server/RadioSurvivor/RS_NotesServer.lua').read_text(encoding='utf-8')
-        return [(m.group(1), m.group(2), bool(m.group(3))) for m in re.finditer(
-            r'\{ voice = "(\w+)", list = "(\w+)", weight = [\d.]+(, vehicle = true)? \}', code)]
+        # E20-T11 : listes déclarées dans la section [note] des fiches livrées.
+        out = []
+        for voice, body in note_sections().items():
+            for key, name in re.findall(r'(?m)^(loot|glovebox)=(\w+):', body):
+                out.append((voice, name, key == 'glovebox'))
+        return out
 
     def test_item_scripts(self):
         text = SCRIPT.read_text(encoding='utf-8')
         self.assertTrue(text.lstrip().startswith('module RadioSurvivor'))
         items = re.findall(r'item (\w+)\s*\{([^}]*)\}', text)
-        self.assertEqual([name for name, _ in items], [TYPES[v] for v in VOICES])
+        self.assertEqual([name for name, _ in items], [TYPES[v] for v in VOICES] + ['NoteTrade'])
         for name, body in items:
             with self.subTest(name):
                 self.assertIn('OnCreate = RadioSurvivorNotes.onCreate,', body)
@@ -498,7 +525,7 @@ class StaticTests(unittest.TestCase):
         proc_text = proc.read_text(encoding='utf-8', errors='replace')
         veh_text = veh.read_text(encoding='utf-8', errors='replace')
         entries = self.entries()
-        self.assertEqual(len(entries), 24)
+        self.assertGreaterEqual(len(entries), 24)
         for voice, name, vehicle in entries:
             with self.subTest(name):
                 if vehicle:

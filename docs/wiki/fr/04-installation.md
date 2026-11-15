@@ -9,7 +9,7 @@ voulez jouer.
 
 | Mod | Mod ID | Ce qu'il apporte | Demande |
 |---|---|---|---|
-| Radio Survivor | `batman_RadioSurvivor` | La radio : six voix d'IA sur de vraies fréquences, leurs missions, l'onglet Radio du carnet, les factions | Radio Survivor Core, Belt Walkie-Talkie, Signal Smoke |
+| Radio Survivor | `batman_RadioSurvivor` | La radio : seize voix d'IA (dont un marchand par ville) sur de vraies fréquences, leurs missions, l'onglet Radio du carnet, les factions | Radio Survivor Core, Belt Walkie-Talkie, Signal Smoke |
 | Living Knox | `batman_LivingKnox` | Des groupes de survivants PNJ avec foyers, besoins, routines, combats et fortifications | Radio Survivor Core. **Incompatible** avec Bandits! et Project A-Life |
 | Radio Survivor Core | `batman_RadioSurvivorCore` | Ce que les deux autres partagent : missions et journal des missions, lien avec le pont, identité des personnages, historique des échanges, réputation, carnet | Signal Smoke |
 

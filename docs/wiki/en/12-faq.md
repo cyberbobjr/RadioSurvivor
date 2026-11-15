@@ -25,7 +25,9 @@ Any provider compatible with the OpenAI `/chat/completions` API, including local
 
 **How do I find the voices?**
 Their frequencies are drawn for each game and never sent to the players: look for notes in the loot (a radio log page,
-a patient file, a National Guard notice, a scribbled note, a radio flyer) and **Inspect** them. One voice stays silent
+a patient file, a National Guard notice, a scribbled note, a radio flyer, a trader's handwritten note) and
+**Inspect** them. Each vanilla town has its trader (eleven in all, Gus included); a trader may also introduce a
+neighbour. One voice stays silent
 until its rescue starts.
 
 **Why does the radio refuse to transmit from my belt?**

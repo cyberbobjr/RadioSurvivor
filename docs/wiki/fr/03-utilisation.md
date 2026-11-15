@@ -88,6 +88,9 @@ offre dans le carnet »).
 - Une mission **itinéraire** d'une voix fait franchir plusieurs lieux dans l'ordre, à pied ou en
   véhicule : seul le prochain point est entouré sur la carte, le carnet indique « 2 sur 4 ». Un point
   atteint avant le précédent ne compte pas ; le serveur lit lui-même votre position.
+- Une mission **objet personnel** d'une voix entoure un lieu sur la carte : l'objet nommé par la voix (un
+  médaillon, une photo…) y est posé au sol. Trouvez-le et déposez-le à l'une des planques de la mission ;
+  seul cet objet compte, un autre du même genre n'est jamais pris. Il est ramassé hors de vue, après le délai.
 - Une fois l'objectif rempli, la mission indique **À rapporter** : retournez voir le demandeur et dites-le-lui
   (**Parler**), ou utilisez **Rendre compte** près de lui. Pour une voix radio, rappelez-la sur sa fréquence. La
   mission ne réussit qu'à ce moment, et le délai continue de courir.
@@ -96,7 +99,7 @@ offre dans le carnet »).
 
 Après réussite et compte rendu, les missions de voix améliorent la réputation et peuvent donner **une** cache de matériel, une fréquence d'une autre voix, une carte-cachette vanilla ou une leçon. Darlene propose du matériel médical et enseigne les soins ; Cody propose des munitions et enseigne le tir. Le serveur tire la récompense au hasard parmi celles que la voix propose, et le contenu d'une cache au hasard dans sa catégorie ; vous ne choisissez ni l'une ni l'autre. Les fréquences rejoignent votre seul carnet ; les caches de voix ont un repère sur votre seule carte. Le matériel posé reste un objet réel du monde.
 
-Les voix peuvent demander reconnaissance, dépôt, papiers à retrouver, nettoyage, signal Signal Smoke, barricadage d'un bâtiment, itinéraire, relais radio ou guet selon leur fiche. Certaines missions d'une voix n'arrivent qu'après la réussite d'une autre : un échec les remet en attente jusqu'à la réussite suivante, et une suite réussie peut changer la situation de la voix. Les PNJ peuvent aussi proposer récupération et ravitaillement du groupe. Rapportez toujours une mission de PNJ **en personne** au demandeur.
+Les voix peuvent demander reconnaissance, dépôt, papiers à retrouver, nettoyage, signal Signal Smoke, barricadage d'un bâtiment, itinéraire, relais radio, guet ou objet personnel à retrouver selon leur fiche. Certaines missions d'une voix n'arrivent qu'après la réussite d'une autre : un échec les remet en attente jusqu'à la réussite suivante, et une suite réussie peut changer la situation de la voix. Les PNJ peuvent aussi proposer récupération et ravitaillement du groupe. Rapportez toujours une mission de PNJ **en personne** au demandeur.
 
 ### Livraisons radio : collecte discrète
 
@@ -118,15 +121,36 @@ L'option sandbox du multiplicateur de leçon désactive l'expérience à 0. Les 
 
 ### Troc avec un marchand
 
-Un marchand radio (Gus, le passeur de l'Ohio) vend son stock à la radio. Votre première offre ferme réserve son
+Chaque ville vanilla a son marchand radio, chacun sur sa fréquence, avec son histoire et son stock :
+
+| Ville | Marchand | Arrivée |
+|---|---|---|
+| Riverside | Gus Lacombe, le passeur de l'Ohio | barque |
+| West Point | Wanda Haddix, l'ancienne marchande d'appâts | barque |
+| Brandenburg | Lamar Dunaway, l'ancien matelot du bac | barque |
+| Louisville | Delphine Arnett, la cuisinière d'un pousseur | barque |
+| Muldraugh | Hollis Beck, le routier de l'armée | route |
+| March Ridge | Loretta Royce, la factrice | route |
+| Irvington | Virgil Mattingly, le fermier de la clôture | route |
+| Echo Creek | Boone Tackett, le contrebandier d'alcool | route |
+| Rosewood | Odessa Kessler, l'infirmière scolaire | planque |
+| Ekron | Ezra Overby, le prédicateur | planque |
+| Fallas Lake | Maxine Whitlock, la gérante du camping | planque |
+
+Leurs fréquences se trouvent comme celles des autres voix : un mot manuscrit dans le butin (magasins, tiroirs,
+boîtes à gants selon le marchand), à **Inspecter** ; un marchand peut aussi vous donner la fréquence d'un voisin.
+Un marchand vend son stock à la radio. Votre première offre ferme réserve son
 **passage** pour votre groupe : il vous donne le lieu, la nuit et le signal, et le lieu est marqué sur votre carte. Un
 autre marchand a son propre passage : réserver chez l'un ne bloque pas l'autre. Pendant la fenêtre, montrez le signal
-sur place (Gus : lampe allumée en main ou fusée rouge) ; vous entendez son moteur quand il accoste. Posez un sac à moins
+sur place (barque et route : lampe allumée en main ou fusée rouge) ; vous entendez le moteur de la barque qui accoste,
+ou la portière du fourgon garé au bord de la route. Une **planque** ne demande aucun signal : laissez le paiement
+dans le conteneur du lieu (poubelle, boîte aux lettres) avant l'heure, personne ne vient vous voir. Posez un sac à moins
 de 3 cases du lieu avec de quoi payer, puis **éloignez-vous hors de vue** : il ne passe que lorsque personne n'est à
 moins de 100 cases en x comme en y **depuis environ une heure de jeu** (réglable par la fiche du marchand). Revenu trop
 tôt, vous remettez l'attente à zéro ; parti loin assez longtemps, l'échange est fait quand vous revenez. Le sac contient
 alors votre marchandise ; un sac qui ne couvre pas le prix est une tricherie (rien n'est pris). Un passage peut être
-annulé (patrouille, hélicoptère, orage), et le marchand repart s'il n'a jamais eu un moment tranquille. Validation en
+annulé (patrouille, barrage, ratissage, hélicoptère, orage), et le marchand repart s'il n'a jamais eu un moment
+tranquille. Validation en
 jeu MP du passage de Gus : **en attente**.
 
 ## 6. Le carnet

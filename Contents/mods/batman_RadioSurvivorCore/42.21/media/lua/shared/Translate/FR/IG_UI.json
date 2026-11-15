@@ -30,6 +30,7 @@
     "IGUI_RC_Mission_Relay": "Installer un relais radio",
     "IGUI_RC_Mission_Watch": "Faire le guet",
     "IGUI_RC_Mission_Route": "Suivre un itinéraire",
+    "IGUI_RC_Mission_Item": "Retrouver un objet personnel",
     "IGUI_RC_Notebook": "Carnet",
     "IGUI_RC_NotebookHint": "Ouvrir le carnet : contacts, missions, réputation et les pages de vos mods.",
     "IGUI_RC_Contacts": "Contacts",

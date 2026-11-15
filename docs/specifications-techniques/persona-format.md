@@ -42,7 +42,7 @@ serveur le marque sur la carte du seul appelant (`docs/specifications-techniques
 - Texte **UTF-8 sans BOM**. Fins de ligne `\n`, `\r\n` ou `\r` (découpage de `BufferedReader.readLine`, celui de
   `getFileReader`).
 - Trois parties, dans cet ordre : un en-tête de lignes `clé=valeur`, des sections facultatives (`[place <id>]`,
-  `[mission <id>]`, `[rewards]`, `[category <id>]`, `[trade]`, dans n'importe quel ordre), puis une ligne `[prompt]` suivie du
+  `[mission <id>]`, `[rewards]`, `[category <id>]`, `[trade]`, `[note]`, dans n'importe quel ordre), puis une ligne `[prompt]` suivie du
   texte libre du prompt. Une ligne `clé=valeur` placée après un en-tête de section appartient à cette section.
 - Un fichier dont le nom commence par `_` n'est pas une voix : c'est le catalogue partagé des catégories
   (`_categories.txt`, « Catalogue des catégories » ci-dessous).
@@ -73,12 +73,12 @@ You are Walt Hensley, 54, ...
 
 ### Sections
 
-- Une section commence par une ligne d'en-tête `[nom id]` (`[place mill]`), ou `[nom]` pour `[rewards]` et `[trade]`, qui
-  n'ont pas d'identifiant ; espaces tolérés autour du nom et de l'identifiant. Elle finit à l'en-tête suivant ou à `[prompt]`.
+- Une section commence par une ligne d'en-tête `[nom id]` (`[place mill]`), ou `[nom]` pour `[rewards]`, `[trade]` et
+  `[note]`, qui n'ont pas d'identifiant ; espaces tolérés autour du nom et de l'identifiant. Elle finit à l'en-tête suivant ou à `[prompt]`.
 - Identifiant : `a`-`z`, `0`-`9`, `_`, 32 caractères au plus, unique par genre de section dans la fiche
-  (`duplicate place 'mill' (first set on line 5)`) ; `[rewards]` et `[trade]` une fois au plus.
+  (`duplicate place 'mill' (first set on line 5)`) ; `[rewards]`, `[trade]` et `[note]` une fois au plus.
 - Corps : lignes vides, commentaires `#` et lignes `clé=valeur`, coupées comme celles de l'en-tête ; clés en minuscules
-  (`a` à `z`, `_`), une fois chacune sauf `item` de `[category]`, `item` et `group` de `[trade]`, valeur non vide. Une clé inconnue de la section est
+  (`a` à `z`, `_`), une fois chacune sauf `item` de `[category]`, `item` et `group` de `[trade]`, `loot` et `glovebox` de `[note]`, valeur non vide. Une clé inconnue de la section est
   refusée (`unknown key 'colour' in [place mill]`).
 - Les références entre sections (lieu d'une mission, catégorie d'une récompense, mission citée par `after`) sont
   contrôlées après la lecture du fichier : une section peut citer une section écrite plus bas.
@@ -132,7 +132,7 @@ Module `media/lua/server/RadioSurvivor/RS_Personas.lua`, côté autorité (serve
   hors de `media/`), lu par `listFilesInModDirectory` et `getModFileReader`. C'est le seul exemplaire des fiches
   livrées dans le dépôt (E05-T10) : le pont le lit aussi pour ses tests et son mode `--test`, par chemin relatif à
   son propre fichier (`bridge/../Contents/mods/batman_RadioSurvivor/42.21/personas`) ou `--personas <dossier>` ;
-  `tests/test_personas_server.py` vérifie que les six fiches y sont valides.
+  `tests/test_personas_server.py` vérifie que les seize fiches y sont valides.
 - **Installation et mise à jour** (E05-T11) : à chaque chargement d'un monde (`OnLoadRadioScripts`), pour chaque fiche
   livrée :
   - absente du dossier de travail : copiée ;
@@ -195,7 +195,7 @@ Décision du 2026-10-09 : **toutes les voix, Walt compris**, tirent leur fréque
 dans une plage propre à chaque voix qui garde les radios capables de la joindre. Code : `RS_Personas.lua`, section
 « Tirage » ; les fréquences fixes d'E05-T04 ne sont plus que des exemples (commentaires des fiches).
 
-### Plages des six voix livrées
+### Plages des voix livrées
 
 Radios : bornes `MinChannel`/`MaxChannel` de `media/scripts/generated/items/radio.txt` (42.21), bornes incluses
 comme le contrôle du serveur ; talkie 1 = `WalkieTalkie1` et talkie bricolé (75-150 MHz), talkie 2 (50-200),
@@ -213,6 +213,11 @@ seule). Chaque fréquence de chaque plage est jointe par exactement les mêmes r
 | Night Owl (`nightowl`), FM | 88.0-107.8 | 100 | 106.2 | tous les talkies et toutes les radios HAM | radios FM, autoradios, téléviseurs |
 | Night Owl (`nightowl`), VHF | 109.0-114.8 | 30 | 112.4 | tous les talkies et toutes les radios HAM | téléviseurs |
 | Gus (`gus`) | 150.2-199.8 | 249 | 156.6 | talkies 2 à 5, radios HAM (ni le talkie 1 ni le bricolé) | téléviseurs |
+| Wanda (`wanda`, West Point) | 25.0-31.8 | 35 | 25.0 | talkies 3 à 5, radios HAM | téléviseurs |
+| Lamar (`lamar`, Brandenburg) | 32.0-39.8 | 40 | 32.0 | talkies 3 à 5, radios HAM | téléviseurs |
+| Delphine (`delphine`, Louisville) | 65.0-74.8 | 50 | 65.0 | talkies 2 à 5, radios HAM | téléviseurs |
+| Hollis (`hollis`, Muldraugh) | 201.0-209.8 | 45 | 201.0 | talkies 3 à 5, radios HAM | téléviseurs |
+| Loretta, Virgil, Boone, Odessa, Ezra, Maxine (March Ridge, Irvington, Echo Creek, Rosewood, Ekron, Fallas Lake) | 210.0-219.8, 220.0-229.8, 230.0-239.8, 240.0-249.8, 250.0-259.8, 260.0-269.8 | 50 chacune | borne basse | talkies 3 à 5, radios HAM | téléviseurs |
 
 Les plages sont disjointes. Seule la plage FM du Night Owl recoupe des chaînes vanilla (huit stations FM et l'alerte
 d'urgence AEBS, tirée par le jeu dans 88-108) : elles ne sont jamais tirées. 108.0 (Opération Artemis par défaut)
@@ -475,10 +480,11 @@ Les trois clés sont obligatoires (`missing key 'use' in [place mill]`, à la li
   `WorldSoundManager.java:480` en 42.22) et groupe d'au moins 10 zombies à moins de 30 cases (zombies chargés du
   serveur, joueurs réanimés exclus) ; chaque fait devient une phrase anglaise du contexte de la voix, sans
   coordonnée.
-- `drop` : planque. Une mission `deliver` ou `retrieve` d'une voix porte toutes les planques de sa section (`drops=`,
+  `item` (E20-T15) : le lieu de l'objet personnel. Au départ, la mission garde le bâtiment dont une pièce couvre la case du lieu (`IsoMetaGrid:getBuildingAt(x, y, z)`, emprise `BuildingDef`), à défaut une zone carrée de 9 × 9 cases autour du lieu (`RC_MissionConfig.Missions.item.zoneHalf`, 4), au niveau `z` du lieu. Le serveur y pose l'objet `item=` (`instanceItem`) une seule fois, par les règles de pose de `RC_Caches` (fiche à part `m.personal`, clé `<mission>:item`, jamais `m.cache` réservé à une récompense `cache`) : case du lieu chargée et bâtiment passé par ses histoires vanilla, case libre la plus proche du lieu dans le bâtiment, objet au sol envoyé aux clients (`AddWorldInventoryItem(..., true)`), marqué `ModData.RS_Cache` = la clé ; le drapeau de pose est sauvegardé avant, un objet déjà marqué de la clé est adopté après un arrêt (jamais un second objet). La mission garde son identifiant (`InventoryItem:getID`, gardé par les transferts MP). Trouvé : un participant le porte (copie serveur de l'inventaire, sacs compris). Déposé à une planque de la mission, seul l'objet de cet identifiant est ramassé (stratégie `dropAccepts` = `RC_Missions.onlyItem('itemId')`, partagée avec la carte de `retrieve`) : un objet du même type non marqué est laissé.
+- `drop` : planque. Une mission `deliver`, `retrieve` ou `item` d'une voix porte toutes les planques de sa section (`drops=`,
   sans la clé : tous les lieux `drop` de la fiche ; `RS_DeadDrops`, E20-T05, E20-T06 : la carte d'identité de `retrieve`
-  s'y dépose), toutes marquées sur la carte du participant ; une voix sans lieu `drop` ne peut donner ni `deliver` ni
-  `retrieve` (`no_place`). La cache d'une
+  s'y dépose ; E20-T15 : l'objet personnel de `item` aussi), toutes marquées sur la carte du participant ; une voix sans lieu `drop` ne peut donner ni `deliver`, ni
+  `retrieve`, ni `item` (`no_place`). La cache d'une
   récompense `cache` est posée au **premier lieu `drop`** de la fiche, à défaut à son premier lieu.
 - `landing` : rendez-vous d'un marchand (clé `landing` de la section `[trade]`, E20-T07) ; jamais offert comme
   repère par `mark_map`.
@@ -495,6 +501,7 @@ Le point d'une mission `relay` est le bâtiment du lieu `target=` (même déclar
 autour du lieu : sans lieu `target`, départ refusé `no_target` ; jamais d'autre refus.
 Le poste d'une mission `watch` est le lieu `target=` de sa section (même déclaration `aimAt`) : sans lieu `target`,
 départ refusé `no_target` ; `hours` hors de 1 à 24, `bad_hours`.
+L'objet d'une mission `item` est posé au lieu `target=` de sa section (même déclaration `aimAt`, qui reçoit aussi `item=` et `label=`) : sans lieu `target`, départ refusé `no_target` ; sans `item=` ou avec un type que les scripts d'objets ne connaissent pas (`ScriptManager.FindItem`), `no_item` ; sans planque, `no_place`. Carnet : nom de l'objet (`label=`, sinon le nom du jeu), lieu, trouvé ou non, planques ; carte : un cercle autour du lieu et les planques ; voix : nom de l'objet, libellés du lieu et des planques, trouvé et ramassé (oui/non), jamais l'identifiant ni une coordonnée.
 Les points d'une mission `route` (E20-T13) sont les lieux `target` nommés dans l'ordre par `points=` (`RS_MissionWaypoints`, déclaration `alongPoints` du gabarit) ; un point est franchi quand la copie serveur d'un participant, ou le véhicule où il est assis, passe à moins de `RC_MissionConfig.Missions.route.radius` cases (8) du lieu, trajet depuis la lecture précédente compris (au plus `maxStep`, 60 cases : au-delà, un saut, seule son arrivée compte) ; seul le prochain point compte, un point atteint avant son tour ne l'est pas. Carte : un cercle par point connu (franchis et prochain), carnet : « n sur N » et le prochain point ; voix : libellés dans l'ordre et compte vérifié.
 Les lieux n'ont aucun autre effet : ni distance (`too_far`), ni `coords` de la voix, ni `persona_state`.
 
@@ -611,7 +618,7 @@ fichier, code de sortie 1 si une fiche est refusée).
 
 ## Exemple complet
 
-Fiche fictive de démonstration (ce n'est pas une des voix livrées ; les six fiches réelles sont dans
+Fiche fictive de démonstration (ce n'est pas une des voix livrées ; les seize fiches réelles sont dans
 `Contents/mods/batman_RadioSurvivor/42.21/personas/`, E05-T04).
 Elle a des fréquences fixes ; pour un tirage à chaque partie, remplacer la ligne `frequencies` par par exemple
 `frequency_range=5.0-9.8, 140.0-150.0` (une fréquence tirée par plage) :
@@ -658,15 +665,15 @@ sections **disponibles** pour l'appelant, dans l'ordre du fichier (`RS_MissionVo
 
 | Clé | Valeurs | Défaut | Rôle |
 |---|---|---|---|
-| `type` | nom d'un type de mission inscrit au registre du mod commun (`RC_Missions`, déclaration `voiceName`) ; aujourd'hui `scout`, `deliver`, `retrieve`, `clear`, `signal`, `barricade`, `relay`, `route`, `watch` | obligatoire | Gabarit de la mission. |
+| `type` | nom d'un type de mission inscrit au registre du mod commun (`RC_Missions`, déclaration `voiceName`) ; aujourd'hui `scout`, `deliver`, `retrieve`, `clear`, `signal`, `barricade`, `relay`, `route`, `watch`, `item` | obligatoire | Gabarit de la mission. |
 | `weight` | entier de 1 à 999999 | `1` | Poids du tirage parmi les sections disponibles d'un même type, quand le modèle nomme un type plutôt qu'une section. |
 | `after` | identifiant d'une autre section `[mission]` de la fiche, sans boucle | aucun | Section proposée seulement quand la dernière mission de la section citée est une réussite (par personnage, ou par équipe avec `scope=team`). |
 | `scope` | `character`, `team` | `character` | Portée de `after` : réussites du personnage du carnet, ou de son équipe (`RC_Teams.idOf` : faction vanilla, ou équipe personnelle du joueur seul). |
 | `sets_state` | nom : `a`-`z`, `0`-`9`, `_`, commence par une lettre, 32 caractères au plus | aucun | État de récit de la voix posé à la réussite de cette mission (« Enchaînement et état de récit »). |
 | `story` | texte, 200 octets UTF-8 au plus | aucun | Raison donnée par la voix : ajoutée à la description du travail dite au modèle (`jobs=`). |
 | `drops` | `any` (tous les lieux `use=drop`, au moins un) ou liste de lieux `use=drop` | tous les lieux `use=drop` | Planques de la mission, toutes proposées au joueur ; les dépôts s'additionnent (E20-T05). |
-| `target` | un lieu `use=target` | aucun | Objectif de la mission : bâtiment à barricader de `barricade`, point du relais radio de `relay`, poste de guet de `watch` (obligatoire pour ces types, refus `no_target` au départ) ; bâtiment visé par `scout` et `clear` (E20-T10 : sans la clé, bâtiment tiré autour de l'appelant ; sans bâtiment à ce lieu, `no_place`) ; lu, utilisé par les autres nouveaux types d'E20. |
-| autres clés | celles que **déclare le type** (`params = { clé = '<genre>' }` du gabarit), chacune contrôlée par son genre | aucun | Paramètres propres au type. `deliver` déclare `items` (catégorie : les objets acceptés sont exactement ceux de la catégorie, section `[category]` de la fiche d'abord, sinon le catalogue partagé, même résolution que la récompense `cache` : `RS_Categories.lua`) et `quantity` (fourchette : nombre d'objets demandés, tiré au départ de la mission et gardé sur elle, au moins 1 ; un nombre fixe n'est pas tiré) ; sans ces clés, liste et quantité de `RC_MissionConfig.Missions.deliver` (`Base.Bandage`, `Base.RippedSheets` ; 6) ; appliqués par `RS_MissionGoods.lua` (déclaration `askFor` du gabarit, E20-T16) ; `collect_hours` (`count`) : heures de jeu hors de vue avant le ramassage d'une planque (défaut `RS_Config.DeadDrops.collectDelayHours`, 6). `retrieve` déclare `collect_hours` (même sens, E20-T06). `barricade` déclare `count` (`count`) : nombre de fenêtres et portes extérieures à barricader, au moins 1 (défaut `RC_MissionConfig.Missions.barricade.count`, 4 ; `0` refusé au départ `bad_count`). `relay` n'en déclare aucun : la hauteur se règle par le niveau `z` du lieu. `watch` déclare `hours` (`count`) : heures de jeu du guet, de 1 à 24 (défaut `RC_MissionConfig.Missions.watch.hours`, 2 ; hors bornes refusé au départ `bad_hours`). `route` (E20-T13) déclare `points` (`places`) : lieux à franchir dans cet ordre, obligatoire (sans la clé, ou un nom qui n'est plus un lieu `target` de la fiche, départ refusé `no_points`). Les autres types livrés n'en déclarent aucun. |
+| `target` | un lieu `use=target` | aucun | Objectif de la mission : bâtiment à barricader de `barricade`, point du relais radio de `relay`, poste de guet de `watch`, lieu de l'objet de `item` (obligatoire pour ces types, refus `no_target` au départ) ; bâtiment visé par `scout` et `clear` (E20-T10 : sans la clé, bâtiment tiré autour de l'appelant ; sans bâtiment à ce lieu, `no_place`) ; lu, utilisé par les autres nouveaux types d'E20. |
+| autres clés | celles que **déclare le type** (`params = { clé = '<genre>' }` du gabarit), chacune contrôlée par son genre | aucun | Paramètres propres au type. `deliver` déclare `items` (catégorie : les objets acceptés sont exactement ceux de la catégorie, section `[category]` de la fiche d'abord, sinon le catalogue partagé, même résolution que la récompense `cache` : `RS_Categories.lua`) et `quantity` (fourchette : nombre d'objets demandés, tiré au départ de la mission et gardé sur elle, au moins 1 ; un nombre fixe n'est pas tiré) ; sans ces clés, liste et quantité de `RC_MissionConfig.Missions.deliver` (`Base.Bandage`, `Base.RippedSheets` ; 6) ; appliqués par `RS_MissionGoods.lua` (déclaration `askFor` du gabarit, E20-T16) ; `collect_hours` (`count`) : heures de jeu hors de vue avant le ramassage d'une planque (défaut `RS_Config.DeadDrops.collectDelayHours`, 6). `retrieve` déclare `collect_hours` (même sens, E20-T06). `barricade` déclare `count` (`count`) : nombre de fenêtres et portes extérieures à barricader, au moins 1 (défaut `RC_MissionConfig.Missions.barricade.count`, 4 ; `0` refusé au départ `bad_count`). `relay` n'en déclare aucun : la hauteur se règle par le niveau `z` du lieu. `watch` déclare `hours` (`count`) : heures de jeu du guet, de 1 à 24 (défaut `RC_MissionConfig.Missions.watch.hours`, 2 ; hors bornes refusé au départ `bad_hours`). `route` (E20-T13) déclare `points` (`places`) : lieux à franchir dans cet ordre, obligatoire (sans la clé, ou un nom qui n'est plus un lieu `target` de la fiche, départ refusé `no_points`). `item` (E20-T15) déclare `item` (`item`) : l'objet personnel à poser, obligatoire (sans la clé, départ refusé `no_item`), `label` (`text`) : son nom dit par la voix et montré au carnet (défaut : nom d'affichage du script) et `collect_hours` (même sens que `deliver`). Les autres types livrés n'en déclarent aucun. |
 
 Genres de valeurs (`RS_PersonaParams.lua`, un validateur par genre, registre ouvert : un nouveau genre s'inscrit
 sans toucher au lecteur) :
@@ -679,6 +686,7 @@ sans toucher au lecteur) :
 | `place` | lieu `[place]` de la fiche | identifiant |
 | `places` | liste de 2 à 8 lieux `[place]` de la fiche avec `use=target`, séparés par des virgules, jamais le même deux fois de suite (E20-T13) | liste d'identifiants, dans l'ordre |
 | `text` | texte non vide | texte |
+| `item` | type complet d'un script d'objet, `Module.Type` (`Base.Locket`) ; contrôlé contre les scripts d'objets du jeu là où le lecteur les a (serveur : `ScriptManager.FindItem`, `unknown item '…'`), sinon par sa forme seule (`bad item '…'`) ; le départ de la mission le contrôle de nouveau (E20-T15) | type complet |
 | `skill` | compétence que peut enseigner une leçon (`RS_Rewards.SKILLS`) | nom |
 
 Ajouter un type de mission avec ses paramètres = un fichier de gabarit qui s'inscrit (`RC_Missions.register`) avec
@@ -771,7 +779,7 @@ Le troc d'une voix marchande : une section `[trade]` au plus, sans identifiant. 
 | Clé | Obligatoire | Valeur |
 |---|---|---|
 | `landing` | oui | Un ou plusieurs lieux de la fiche, séparés par des virgules, chacun `use=landing` ; un seul lieu sert à un passage (tiré par passage s'il y en a plusieurs). Le libellé du lieu est le seul nom de rendez-vous donné au LLM, à l'équipe qui a réservé. |
-| `arrival` | oui | Mode d'arrivée inscrit au registre `RS_TradeArrivals` (un fichier par mode dans `server/RadioSurvivor/TradeArrivals/`) : `boat` livré. |
+| `arrival` | oui | Mode d'arrivée inscrit au registre `RS_TradeArrivals` (un fichier par mode dans `server/RadioSurvivor/TradeArrivals/`) : `boat`, `road` et `cache` livrés. |
 | `every_days` | oui | Un passage tous les N jours de jeu (1 à 28) ; 7 : la semaine du journal du dehors. |
 | `hours` | oui | Fenêtre du rendez-vous, une plage `HH:MM-HH:MM` (peut passer minuit, jamais vide). |
 | `delay_hours` | non | Heures de jeu hors de vue de tout joueur avant l'échange (0 à 48, deux décimales) ; défaut `RS_TradeExchange.DELAY_HOURS` (1). |
@@ -791,7 +799,18 @@ l'ordre (nom, texte, repli de l'annonce, contrôle). `boat` : signaux `lamp` et 
 (moteur coupé en accostant) et `GeneratorStarting` (départ), `media/scripts/generated/sounds/objects/
 sounds_object_generator.txt:13-31` de 42.22 (aucun son de bateau vanilla) ; causes `patrol` (tirage du passage sous
 5, 15 ou 30 % selon le cordon), `helicopter` (hélicoptère vanilla entendu depuis 3 h avant la fenêtre), `storm`
-(orage). Annonce : `IGUI_RS_TradeRun_Cancel_<cause>`, sinon le repli anglais de la cause.
+(orage). `road` (E20-T11) : signaux `lamp` et `flare` ; sons `VehicleDoorCloseVan` (portière à l'arrivée) et
+`VehicleTrunkCloseVan` (hayon au départ), `media/scripts/generated/sounds/vehicles/sounds_vehicle_van.txt:60-67`
+et `:123-130` de 42.22 (le moteur et le klaxon sont des sons tenus d'un vrai véhicule, non joués) ; causes
+`checkpoint` (barrage de l'armée, tirage sous 10, 20 ou 35 %), `air_patrol` (hélicoptère depuis 2 h avant la
+fenêtre), `washout` (orage). `cache` (E20-T11) : signal `hour` (aucun signal : le coursier vient au début de la
+fenêtre), aucun son, `holds = containers` (le paiement et la marchandise sont dans un conteneur d'un objet à moins de
+3 cases du lieu : benne, boîte aux lettres ; un sac au sol n'est pas pris) ; causes `sweep` (ratissage, sous 5, 10
+ou 20 %) et `overflight` (hélicoptère depuis 2 h). Les contrôles des causes sont partagés (`RS_TradeCauses.lua`) ;
+les signaux sondés sont un registre de `RS_TradeRun` (`registerSignal`). Annonce :
+`IGUI_RS_TradeRun_Cancel_<cause>` (nom de cause unique parmi les modes), sinon le repli anglais de la cause. Textes
+dits par mode : `IGUI_RS_TradeRun_<nom>_<mode>` (`Pier`, `Cancel_late`, `Done`, `Cheated`, `Cancel_nodrop`), puis
+les `lines` anglaises du mode, puis le texte commun.
 
 **Échange** (`RS_TradeExchange`) : après le signal, le sac posé à moins de 3 cases du lieu n'est évalué que **hors de vue
 de tout joueur** (aucun joueur à moins de 100 cases en x et en y, ou case déchargée : `RS_OutOfSight`, règle de
@@ -803,7 +822,7 @@ arrivée (`WAIT_HOURS`), le marchand repart (`no_drop`).
 |---|---|
 | Clé absente (ligne de l'en-tête) | `line N: missing key 'landing' in [trade]` |
 | Lieu | `line N: unknown place 'ghost'`, `line N: place 'mill' has no use=landing`, `line N: duplicate landing entry 'dock'` |
-| Mode d'arrivée | `line N: unknown arrival 'zeppelin' (expected boat)` |
+| Mode d'arrivée | `line N: unknown arrival 'zeppelin' (expected boat, cache, road)` |
 | Cadence | `line N: bad every_days '0' (whole number from 1 to 28)` |
 | Heures | `line N: bad trade hours '1-3' (one HH:MM-HH:MM range of the meeting, e.g. 01:00-03:00)`, `line N: empty trade hours '02:00-02:00'` |
 | Délai, marge | `line N: bad delay_hours 'x' (number from 0 to 48, two decimals at most)`, `line N: bad margin '0.6-0.2' (lowest-highest from 0 to 1, e.g. 0.10-0.50)` |
@@ -829,6 +848,40 @@ group=alcohol:1-4
 item=Base.Battery:4-12:0.1
 item=Base.CarrotBagSeed2:seeds:0.1
 item=Base.Whiskey:alcohol:1.7
+```
+
+### Section `[note]` (E20-T11)
+
+La note de fréquence de la voix, trouvée dans le butin (`RS_Notes`, `RS_NotesServer`) : une section `[note]` au plus,
+sans identifiant. Aucune voix n'est nommée dans le code des notes : objet, traductions et listes viennent de la
+fiche. Le serveur seul la lit ; le pont la saute. Sur un client MP, sans les fiches, `OnCreate` ne pose rien : la
+ModData de l'autorité arrive avec l'objet.
+
+| Clé | Obligatoire | Valeur |
+|---|---|---|
+| `item` | oui | `Module.Type` d'un objet de `media/scripts/RadioSurvivor_notes.txt` (`OnCreate = RadioSurvivorNotes.onCreate`). Plusieurs fiches peuvent déclarer le même objet (`RadioSurvivor.NoteTrade`, mot manuscrit des marchands) : une note neuve porte l'une de ces voix, tirée parmi celles qui servent une fréquence. |
+| `key` | oui | Racine des traductions (`A`-`Z`, `a`-`z`, `0`-`9`, `_`) : `Print_Media_<module>_<key>_title`, `Print_Media_<module>_<key>_info` (mise en page, `%1` une fois), `Print_Text_<module>_<key>_info` ; identifiant printMedia `<module>_<key>`. |
+| `loot` | non, répétable | `liste:poids` d'une liste de `ProceduralDistributions` (poids au-dessus de 0, au plus 100, deux décimales), multiplié par l'option `NoteRarity`. Un objet partagé reçoit une ligne par liste, poids des voix additionnés. 16 listes au plus. |
+| `glovebox` | non, répétable | `liste:poids` de `VehicleDistributions` (boîte à gants), mêmes règles. |
+| `corpse` | non | `yes` : candidate pour la note d'un mort qui porte un talkie (`no` par défaut). |
+
+| Erreur | Message |
+|---|---|
+| Clé absente | `line N: missing key 'key' in [note]` |
+| Objet, racine | `line N: bad note item 'NoteWalt' (Module.Type, e.g. RadioSurvivor.NoteWalt)`, `line N: bad note key 'Note Walt' (A to Z, a to z, 0 to 9 and _)` |
+| Listes | `line N: bad loot 'OfficeDesk' (list:weight, e.g. OfficeDesk:4)`, `line N: bad glovebox weight '0' (above 0)`, `line N: duplicate loot list 'OfficeDesk'`, `line N: too many loot lists (16 at most)` |
+| Mort | `line N: bad corpse 'maybe' (yes or no)` |
+
+Exemple (Gus, `personas/gus.txt`) :
+
+```text
+[note]
+item=RadioSurvivor.NoteGus
+key=NoteGus
+loot=FishingStoreGear:4
+loot=CrateFishing:1.5
+glovebox=FishermanGloveBox:10
+corpse=yes
 ```
 
 ### Exemple
