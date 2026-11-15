@@ -4,10 +4,10 @@
 
 - SiteParseTests, SiteWorldTests (toujours joués) : lecture d'un export synthétique (tests/site_world.py), chargement
   dans les doublures des bancs d'obstacles (tests/test_lk_obstacles.py), aller-retour de l'exporteur en jeu
-  (dev/.../RST/suites/RST_SiteExport.lua) sur ce monde, itinéraire LivingKnox par une porte.
+  (dev/.../RST/suites/RST_SiteExport.lua) sur ce monde.
 - SiteReplayTests (sautés sans export local, site_world.available()) : le vrai site exporté par la suite site.export ;
-  itinéraire LivingKnox (LK_Routing : Obstacles.findRoute, modèle "npc") qui passe une porte extérieure, recherches de
-  site de la suite lk.traversal (RST.LKTraversal.findSite, findExitSite, findLooseExitSite).
+  recherches de site de la suite lk.traversal (RST.LKTraversal.findSite ; findDetourSite : fenêtre dont le détour après
+  un refus passe par une porte, LK17-T01, LK_Detour.lua).
 """
 from __future__ import annotations
 
@@ -148,21 +148,6 @@ class SiteBase(ObstacleBase):
     def sq(self, x, y, z=0):
         return f'getCell():getGridSquare({x}, {y}, {z})'
 
-    def door_crossings(self, start, target, z=0):
-        """Itinéraire LivingKnox (Obstacles.findRoute, modèle "npc") de la case start à la case target : bords des
-        portes passées (liste de clés de bord) et nombre d'escalades ; (None, raison) sans itinéraire."""
-        doors, climbs = self.run_lua(
-            f'local r, _, why = LivingKnox.Obstacles.findRoute("lk-1", {start[0] + 0.5}, {start[1] + 0.5}, '
-            f'{target[0]}, {target[1]}, {z}, "npc") '
-            'if r == nil then return nil, why end '
-            'local d, c = {}, 0 for i = 2, #r do '
-            f'local a, b = HARNESS.square(r[i - 1].x, r[i - 1].y, {z}), HARNESS.square(r[i].x, r[i].y, {z}) '
-            'if r[i].cross == "door" then d[#d + 1] = EDGE_KEY(a, b) '
-            'elseif r[i].cross == "climb" then c = c + 1 end end return table.concat(d, " "), c')
-        if doors is None:
-            return None, climbs
-        return (doors.split() if doors else []), climbs
-
     def probe_player(self):
         x, y, z = self.site.origin
         return (f'{{ getX = function() return {x + 0.5} end, getY = function() return {y + 0.5} end, '
@@ -197,7 +182,7 @@ class SiteWorldTests(SiteBase):
         self.assertEqual(self.ev(f'{self.sq(103, 102)}:getDoorTo({self.sq(104, 102)}):checkKeyId()'), 77)
         self.assertEqual(self.ev(f'{self.sq(106, 101)}:getDoorTo({self.sq(105, 101)}):checkKeyId()'), -1)
         self.assertEqual(self.wstate('solo', '106,105,0,N'), 'false false')
-        self.assertIs(self.o(f'isFenceTo({self.sq(100, 97)}, {self.sq(100, 98)})'), True)
+        self.assertIs(self.ev(f'LivingKnox.Detour.isFenceTo({self.sq(100, 97)}, {self.sq(100, 98)})'), True)
         self.assertIs(self.ev(f'{self.sq(107, 103)}:HasStairs()'), True)
 
     def test_beds_and_containers_are_objects_of_their_square(self):
@@ -214,13 +199,6 @@ class SiteWorldTests(SiteBase):
         self.assertIsNotNone(self.ev(self.sq(108, 104)))
         self.h.move_player('A', 111.5, 107.5, 0)
         self.assertIsNotNone(self.ev(self.sq(112, 108)))
-
-    def test_route_into_the_house_passes_the_door(self):
-        self.init()
-        self.assertEqual(self.door_crossings((100, 102), (105, 103)), (['104,102,0,W'], 0))
-        self.run_lua('DOORS["104,102,0,W"].barricaded = true')
-        doors, _ = self.door_crossings((100, 102), (105, 103))
-        self.assertNotIn('104,102,0,W', doors or [])           # porte barricadée : jamais passée
 
     def test_exporter_round_trip(self):
         """L'exporteur en jeu, joué sur ce monde, rend l'export chargé."""
@@ -241,7 +219,6 @@ class SiteWorldTests(SiteBase):
                      'tests/site-export.txt, tests/fixtures/local/, tools/autoclient/runs/): run the suite site.export')
 class SiteReplayTests(SiteBase):
     """Vrai site des campagnes (export local)."""
-    DOOR_TRIES = 10
 
     @classmethod
     def setUpClass(cls):
@@ -253,64 +230,14 @@ class SiteReplayTests(SiteBase):
         self.h.load('solo', TRAVERSAL_SUITE)
         self.init()
 
-    def walkable(self):
-        z = self.export.origin[2]
-        return {(r['x'], r['y']) for r in self.export.of('S') if r['z'] == z
-                and not r['flags'] & {'blocked', 'nofloor'}} - {(r['x'], r['y']) for r in self.export.of('T')}
-
-    def door_lanes(self):
-        """Portes extérieures simples, ni barricadées, ni verrouillées (sauf ouvertes), ni portails, du niveau de
-        l'origine : (case de départ dehors, case visée dedans) à deux cases de part et d'autre, la plus proche
-        d'abord."""
-        ox, oy, oz = self.export.origin
-        inside = {(r['x'], r['y']) for r in self.export.of('S') if r['z'] == oz and r['building']}
-        free = self.walkable()
-        out = []
-        for d in self.export.of('D'):
-            f = d['flags']
-            if d['z'] != oz or d['ddi'] != -1 or d['gdi'] != -1 or f & {'barricaded', 'hoppable', 'obstructed'}:
-                continue
-            if 'open' not in f and f & {'locked', 'lockedByKey', 'padlock'}:
-                continue
-            b = (d['x'], d['y'])
-            a = (b[0] - 1, b[1]) if d['edge'] == 'W' else (b[0], b[1] - 1)
-            if (a in inside) == (b in inside):
-                continue
-            o, i = (a, b) if b in inside else (b, a)
-            dx, dy = i[0] - o[0], i[1] - o[1]
-            lane = [(o[0] - k * dx, o[1] - k * dy) for k in (2, 1, 0)] + [(i[0] + k * dx, i[1] + k * dy)
-                                                                         for k in (0, 1, 2)]
-            if all(p in free for p in lane):
-                out.append((abs(b[0] - ox) + abs(b[1] - oy), lane[0], lane[-1]))
-        return [(s, t) for _, s, t in sorted(out)]
-
-    def test_route_through_an_exterior_door(self):
-        lanes = self.door_lanes()
-        if not lanes:
-            self.skipTest('no single unlocked exterior door with a free lane at the origin level')
-        tried = []
-        for start, target in lanes[:self.DOOR_TRIES]:
-            doors, why = self.door_crossings(start, target, self.export.origin[2])
-            tried.append((start, target, doors, why))
-            if doors:
-                break
-        else:
-            self.fail(f'no LivingKnox route through a door: {tried}')
-        self.assertEqual(self.h.errors('solo'), [])
-
     def test_traversal_window_site(self):
         res = self.run_lua(f'local s = RST.LKTraversal.findSite({self.probe_player()}, RST.LKTraversal.pickWindow) '
                            'return s and s.e.key')
         self.assertIsNotNone(res, 'lk.traversal: no window site around the origin')
 
-    def test_traversal_exit_site(self):
-        res = self.run_lua(f'local s = RST.LKTraversal.findExitSite({self.probe_player()}) return s and s.e.key')
-        self.assertIsNotNone(res, 'lk.traversal: no exit site (window routed through a door by the exit rule)')
-
-    def test_traversal_loose_exit_site(self):
-        res = self.run_lua(f'local s = RST.LKTraversal.findLooseExitSite({self.probe_player()}) '
-                           'return s and s.e.key')
-        self.assertIsNotNone(res, 'lk.traversal: no loose exit site (door of another building to lock)')
+    def test_traversal_detour_site(self):
+        res = self.run_lua(f'local s = RST.LKTraversal.findDetourSite({self.probe_player()}) return s and s.e.key')
+        self.assertIsNotNone(res, 'lk.traversal: no detour site (window whose detour after a refusal takes a door)')
 
 
 if __name__ == '__main__':

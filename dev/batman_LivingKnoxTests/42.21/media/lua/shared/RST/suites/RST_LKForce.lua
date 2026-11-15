@@ -12,9 +12,9 @@ tags = "world" }) from an admin client standing still. Asynchronous run only (ab
 
 Every test spawns a fresh npc on the start square of the lane (outside or inside, two squares before the door), makes
 it the member of a group of the tested type (no home; left out of the decisions of its group), closes the door and
-sends the npc two squares past it. The door-first rule and the detour around refused doors are switched off during the
-test (LivingKnox.Obstacles.DOORS_FIRST, AVOID_REFUSED, restored by t:defer): the npc has no way around and meets the
-door, which is what is checked here. Barricade: one plank nailed on the side of the npc
+sends the npc two squares past it. The npc follows the game path and meets the door; the detour after a refusal is
+switched off during the test (hook LivingKnox.Obstacles.onRefusal, LK17-T01, restored by t:defer): a refusal at the end
+of a wait closes the move, which is what is checked here. Barricade: one plank nailed on the side of the npc
 (IsoBarricade.AddBarricadeToObject, addPlank), removed afterwards if still there.
     - barricaded door, raider with a sledgehammer: the plank is broken (LivingKnox.Obstacles.stats.planksBroken + 1,
       barricade gone), the door opened by the authority, the npc arrives; "force" act shown while striking;
@@ -50,12 +50,12 @@ local function count(name)
     return O().stats[name] or 0
 end
 
--- Rule switches set for the test, restored by t:defer.
-local function rules(t, doorsFirst, avoid)
+-- Detour after a refusal off for the test (LK17-T01, hook of LK_Detour.lua), restored by t:defer.
+local function noDetour(t)
     local o = O()
-    local was = { o.DOORS_FIRST, o.AVOID_REFUSED }
-    o.DOORS_FIRST, o.AVOID_REFUSED = doorsFirst, avoid
-    t:defer(function() o.DOORS_FIRST, o.AVOID_REFUSED = was[1], was[2] end, "restore the obstacle rules")
+    local was = o.onRefusal
+    o.onRefusal = nil
+    t:defer(function() o.onRefusal = was end, "restore the detour after a refusal")
 end
 
 -- The npc left out of the decisions of its group (same as lk.traversal: a move closed by the test must not be
@@ -193,7 +193,7 @@ local function blockedTest(gtype, weapon, prepare, what, issued, after, fromOuts
         local o = O()
         t:ok(o ~= nil and o.onBlocked ~= nil and GR() ~= nil and GR().isReady(),
             "LivingKnox.Obstacles (LK04-T04) or LivingKnox.Groups is not ready here")
-        rules(t, false, false)
+        noDetour(t)
         site(t, fromOutside, function(t1, s)
         keepSiteDoor(t1, s)
         local id = spawnAt(t1, s.start)

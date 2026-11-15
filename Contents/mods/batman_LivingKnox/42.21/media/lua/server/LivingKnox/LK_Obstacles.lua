@@ -29,11 +29,11 @@
 --     derrière un membre porteur de la clé du foyer si c'est une porte de son foyer sans clé propre, LK04-T19) ;
 --   - porte de garage : tous ses panneaux ensemble (LK04-T17, panelsOf), mêmes règles ;
 --   - sinon ouverte (déverrouillée s'il le faut : clé portée) et notée pour être refermée.
--- Porte refusée : rien n'est touché ; si le corps reste à REACH case, immobile depuis REFUSE_MS, la consigne est close
--- en échec par l'autorité (Directives.abort, raison journalisée, dernier refus dans Obstacles.lastRefused) et
--- l'exécutant arrête le corps. Jamais de refus pendant une escalade, ni devant une porte BASSE (portail de clôture,
--- isHoppable et non TallHoppable) : le corps l'enjambe, verrouillée ou non (IsoZombie.java:3051-3058, 1075) (LK04-T08 ;
--- l'ouvrir plutôt que l'enjamber relève de LK04-T09).
+-- Porte refusée : rien n'est touché ; si le corps reste à REACH case, immobile depuis REFUSE_MS, la consigne reçoit un
+-- détour (LK_Detour.lua, LK17-T01) ou, sans détour, est close en échec par l'autorité (Directives.abort, raison
+-- journalisée, dernier refus dans Obstacles.lastRefused) et l'exécutant arrête le corps. Jamais de refus pendant une
+-- escalade, ni devant une porte BASSE (portail de clôture, isHoppable et non TallHoppable) : le corps l'enjambe,
+-- verrouillée ou non (IsoZombie.java:3051-3058, 1075) (LK04-T08 ; jamais ouverte par l'autorité).
 -- Refermeture : quand le dernier PNJ qui avait la porte sur son trajet est passé de l'autre côté à CLOSE_DIST cases
 -- au moins, ou au bout de CLOSE_AFTER_MS s'il n'est pas passé (consigne changée, corps disparu), et qu'aucun objet
 -- mobile n'occupe les deux cases de la porte ; sinon nouvel essai à chaque passage, abandon (porte laissée ouverte,
@@ -104,8 +104,10 @@
 -- durée 0) ; elle reste ouverte en marche, sans arrêt, et se referme quand le corps a quitté ses cases (CLOSE_DIST).
 -- Interrupteur WINDOW_GESTURE (coupé : bascule immédiate, mêmes conditions de distance).
 --
--- Porte d'abord, porte refusée, sortie par une porte, dernier recours (LK04-T09 à LK04-T20) : itinéraires et
--- détours dans LK_Routing.lua (modèles d'itinéraire : dossier Routing/).
+-- Chemin du jeu, détour seulement après un refus (LK17, ADR docs/architecture/decisions/adr-chemin-vanilla.md) :
+-- aucun itinéraire n'est calculé ici. Un refus au contact (refuse, plus bas) passe d'abord par le gestionnaire
+-- Obstacles.onRefusal (LK_Detour.lua) : détour court par une porte, ou dernier recours (e.lr, LK04-T20), sinon la
+-- consigne est close en échec.
 --
 -- Passage bloqué (LK04-T04 ; fiche deplacement.md, section « Passage bloqué : attendre ou forcer » ; section
 -- « passage bloqué » plus bas) : au lieu du refus au contact d'une porte ou d'une fenêtre refusée, selon le type du
@@ -157,15 +159,13 @@ Obstacles.winActs = Obstacles.winActs or {}     -- clé de bord -> geste en cour
 Obstacles.closedBy = Obstacles.closedBy or {}   -- clé de bord -> { id, ms } fenêtre refermée par ce PNJ (LK04-T18)
 Obstacles.alertShuts = Obstacles.alertShuts or {}   -- gid|bâtiment -> fermeture demandée par une alerte (LK05-T08)
 Obstacles.track = Obstacles.track or {}     -- npcId -> { x, y, ms } dernière position mobile
-Obstacles.windowRefusedAt = Obstacles.windowRefusedAt or {}   -- npcId -> ms du dernier refus au contact d'une fenêtre (LK05-T23)
 Obstacles.homes = Obstacles.homes or { ms = nil, byBuilding = {}, list = {} }
 Obstacles.state = Obstacles.state or { ticks = 0, secured = nil }
 Obstacles.arrivals = Obstacles.arrivals or {}   -- gid|bâtiment -> { ms, due, doors, done } arrivée près du foyer
 Obstacles.stats = Obstacles.stats or { passes = 0, opened = 0, unlocked = 0, closed = 0, locked = 0, refused = 0,
     syncs = 0, busy = 0, givenUp = 0, secured = 0, shut = 0, shutBusy = 0, shutRefused = 0, shutGivenUp = 0,
     windowsOpened = 0, windowToggles = 0, windowsRefused = 0,
-    windowsClosed = 0, windowsBusy = 0, windowsGivenUp = 0, routes = 0, routedByDoor = 0, routeNodes = 0,
-    routeMs = 0, routeMaxMs = 0 }
+    windowsClosed = 0, windowsBusy = 0, windowsGivenUp = 0, detoured = 0 }
 
 local function log() return LivingKnox.Log end
 local function Dir() return LivingKnox.Directives end
@@ -626,26 +626,6 @@ function Obstacles.windowOf(sq, nb)
     return nil
 end
 
--- Vrai si un bord d'une case du carré 3 x 3 centré sur (x, y, z) porte une fenêtre (windowOf) ou une clôture basse
--- (isFenceTo) : un corps à une case de ce point peut être devant elle.
-function Obstacles.crossingNear(x, y, z)
-    local cell = getCell()
-    for ax = x - 1, x + 1 do
-        for ay = y - 1, y + 1 do
-            local sq = cell:getGridSquare(ax, ay, z)
-            if sq ~= nil then
-                for _, nb in ipairs({ cell:getGridSquare(ax + 1, ay, z), cell:getGridSquare(ax, ay + 1, z),
-                    cell:getGridSquare(ax - 1, ay, z), cell:getGridSquare(ax, ay - 1, z) }) do
-                    if nb ~= nil and (Obstacles.windowOf(sq, nb) ~= nil or Obstacles.isFenceTo(sq, nb)) then
-                        return true
-                    end
-                end
-            end
-        end
-    end
-    return false
-end
-
 -- Vrai si la fenêtre arrête un corps : barricadée, ou IsoWindow fermée et intacte. Fenêtre ouverte, cassée ou
 -- détruite, cadre vide et fenêtre construite non barricadés : franchis par le moteur (IsoWindow.java:1220-1238,
 -- IsoWindowFrame.java:348-372, IsoThumpable.java:2175-2186).
@@ -873,20 +853,26 @@ local function climbing(z)
     return st == "climbwindow" or st == "climbfence"
 end
 
--- Refus d'une consigne bloquée par une porte (what = "door") ou une fenêtre ("window") : close en échec par
--- l'autorité.
+-- Refus d'une consigne bloquée par une porte (what = "door") ou une fenêtre ("window"). LK17-T01 : le gestionnaire
+-- Obstacles.onRefusal (LK_Detour.lua : function(id, e, c, why, what), vrai si la consigne a reçu un détour) est
+-- consulté d'abord ; détour donné : consigne gardée, immobilité du corps remise à zéro (aucun second refus avant
+-- REFUSE_MS). Sinon close en échec par l'autorité.
 local function refuse(id, e, c, why, what)
     what = what or "door"
     count("refused")
     Obstacles.lastRefused = { id = id, what = what, key = c.e.key, why = why, ms = now() }
+    if Obstacles.onRefusal ~= nil and Obstacles.onRefusal(id, e, c, why, what) then
+        count("detoured")
+        Obstacles.track[id] = nil
+        log().info("npc %s: move #%d refused at the %s %s: %s; detour given", id, e.v, what, c.e.key, why)
+        return
+    end
     log().warn("npc %s: move #%d refused at the %s %s: %s", id, e.v, what, c.e.key, why)
-    -- E18-T38 : case visée derrière une fenêtre refusée écartée comme après un échec "stuck" (Movement.AVOID_MS) :
-    -- un trajet sans itinéraire par les portes (découpé autour de plantations) revenait sur la même fenêtre verrouillée
-    -- à chaque consigne (campagne solo du 2026-11-13 : 37 refus de suite).
+    -- E18-T38 : sans détour, case visée derrière une fenêtre refusée écartée comme après un échec "stuck"
+    -- (Movement.AVOID_MS) : le même trajet revenait sur la même fenêtre verrouillée à chaque consigne (campagne solo du
+    -- 2026-11-13 : 37 refus de suite).
     local Mv = LivingKnox.Movement
     if what == "window" and Mv ~= nil and Mv.noteStuck ~= nil then Mv.noteStuck(id, e) end
-    -- LK05-T23 : PNJ prudent pour ses prochains trajets (Routing : itinéraire jalonné par les portes, WINDOW_WARY_MS).
-    if what == "window" then Obstacles.windowRefusedAt[id] = now() end
     Dir().abort(id, what .. " " .. c.e.key .. ": " .. why)
 end
 
@@ -894,10 +880,10 @@ end
 -- refermée) ou refus (voir l'en-tête). Une seule fenêtre par passage. Rend vrai si une fenêtre a été traitée.
 function Obstacles.checkWindows(id, e, z, still, t)
     if still < Obstacles.STUCK_MS then return false end
-    -- E18-T34 : trajet guidé par une porte (Directives.moveTo, e.dr) : l'arrêt vient de la porte ou d'un pas du
-    -- chemin, jamais d'une fenêtre à ouvrir (campagne MP du 2026-11-08, runs/20261108-012549-mp-a2dbaf99cf8b : fenêtre
-    -- du foyer ouverte par un membre arrêté à sa porte pendant une sortie).
-    if e.dr == true then return false end
+    -- E18-T34 : corps mené vers la porte d'un détour (LK17-T01, Directives.detouring) : l'arrêt vient de la porte ou
+    -- d'un pas du chemin, jamais d'une fenêtre à ouvrir (campagne MP du 2026-11-08,
+    -- runs/20261108-012549-mp-a2dbaf99cf8b : fenêtre du foyer ouverte par un membre arrêté à sa porte).
+    if Dir().detouring(e) then return false end
     t = t or now()
     local px, py = z:getX(), z:getY()
     local near = Obstacles.windowsNear(px, py, math.floor(z:getZ()))
@@ -957,9 +943,9 @@ end
 
 -- Portes du PNJ id (consigne e, corps z) : ouverture ou refus. seen : clés des bords sur un trajet à ce passage.
 -- Jamais de refus pendant une escalade, ni devant une porte basse (enjambée par le moteur).
--- Une porte qui rapproche de l'étape SUIVANTE compte aussi (LK04-T09) : le point de passage « case avant la porte »
--- est atteint à ARRIVE case près, souvent à moins d'une case de la porte ; elle est ainsi ouverte avant (en course,
--- moins d'une demi-seconde sépare l'arrivée sur ce point du contact).
+-- Une porte qui rapproche de l'étape SUIVANTE compte aussi (LK04-T09, détour LK17-T01) : le point de passage « case
+-- avant la porte » est atteint à ARRIVE case près, souvent à moins d'une case de la porte ; elle est ainsi ouverte
+-- avant (en course, moins d'une demi-seconde sépare l'arrivée sur ce point du contact).
 function Obstacles.check(id, e, z, seen, t)
     local px, py, pz = z:getX(), z:getY(), math.floor(z:getZ())
     local tx, ty = Dir().stepTarget(e, e.k)
@@ -1028,10 +1014,9 @@ end
 
 -- ---------------------------------------------------------------- passage bloqué (LK04-T04)
 -- Fiche : deplacement.md, section « Passage bloqué : attendre ou forcer ». Un passage est bloqué quand le corps reste
--- au contact d'une porte ou d'une fenêtre refusée (REFUSE_MS) : aucun détour n'a été trouvé à l'émission du "move"
--- (porte d'abord, détour LK04-T14 : contourner reste la première réponse, pour tous). Comportement selon l'hostilité du
--- type de groupe du PNJ (blockedPolicy) :
---   - "detour" (colons, PNJ sans groupe) : refus aussitôt, comme avant (consigne close en échec ; le cadre de décision
+-- au contact d'une porte ou d'une fenêtre refusée (REFUSE_MS). Comportement selon l'hostilité du type de groupe du PNJ
+-- (blockedPolicy), avant le refus (qui donne un détour par une porte s'il y en a une, LK_Detour.lua, LK17-T01) :
+--   - "detour" (colons, PNJ sans groupe) : refus aussitôt (détour, ou consigne close en échec : le cadre de décision
 --     choisit autre chose) ;
 --   - "wait" (neutres) : le corps attend WAIT_MS devant l'obstacle (geste ponctuel "wait", clip de repos : l'exécutant
 --     le garde arrêté et tourné vers l'obstacle), passage repris dès que l'obstacle cède (porte ouverte ou

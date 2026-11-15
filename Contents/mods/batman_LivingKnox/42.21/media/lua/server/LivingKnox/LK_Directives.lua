@@ -39,9 +39,9 @@
 -- camp porte en plus w = { { x, y }, ... } (contournement calculé par l'autorité, Directives.planDetour) et k (étape
 -- courante, 1 = premier point) ; l'exécutant passe à l'étape suivante à l'arrivée sur un point (même tolérance) et
 -- l'annonce dans son rapport (k) ; l'autorité l'accepte d'une étape à la fois et republie la table. Sans w : format
--- antérieur, une seule étape. Porte d'abord (LK04-T09) : sans détour de potager, w peut aussi guider le corps par
--- une porte ou un portail plutôt que par une fenêtre ou une clôture (Directives.planDoors, case avant et case après
--- chaque porte, LivingKnox.Obstacles.planDoorRoute).
+-- antérieur, une seule étape. Aucun point n'est posé d'avance pour une porte ou une fenêtre : le jeu calcule le
+-- chemin (LK17, ADR adr-chemin-vanilla.md). Après un refus au contact (LK_Obstacles), LK_Detour.lua rend à la même
+-- consigne (même numéro, nouveau bail) un détour court par une porte (Directives.reroute).
 --
 -- Transfert de propriété (LK03-T03) : le serveur compare À CHAQUE IMAGE le propriétaire de chaque corps relié avec
 -- celui qui détient la « remise » (Directives.ownerWatch) ; au changement : nouveau bail (consigne ouverte ou close)
@@ -174,11 +174,17 @@ function Directives.distToStep(e, k, x, y, z)
     if math.floor(z) ~= e.z then return nil end
     local tx, ty = Directives.stepTarget(e, k)
     local d = dist(x, y, tx + 0.5, ty + 0.5)
-    -- Point "serré" (Obstacles.planDoorRoute : porte à côté d'une fenêtre ou d'une clôture) : distance mise à
-    -- l'échelle, pour que la tolérance ARRIVE de l'exécutant et de l'autorité vaille STEP_TIGHT case pour ce point.
+    -- Point "serré" (LK_Detour : cases avant et après l'ouverture d'un détour) : distance mise à l'échelle, pour que
+    -- la tolérance ARRIVE de l'exécutant et de l'autorité vaille STEP_TIGHT case pour ce point.
     local p = type(e.w) == "table" and type(k) == "number" and e.w[k] or nil
     if type(p) == "table" and p.t == true then d = d * Directives.ARRIVE / Directives.STEP_TIGHT end
     return d
+end
+
+-- Vrai si la consigne e mène encore son corps vers les points d'un détour par une porte (LK17-T01, e.dk : nombre de
+-- ces points, posé par Directives.reroute ; champ de l'autorité seulement).
+function Directives.detouring(e)
+    return type(e.dk) == "number" and e.dk >= (type(e.k) == "number" and e.k or 1)
 end
 
 -- Angle (degrés) d'une direction : nom ("N", "SE"...) ou nombre. Rend l'angle dans [0, 360), ou nil.
@@ -581,33 +587,6 @@ function Directives.planDetour(x0, y0, tx, ty, z)
     return out
 end
 
--- Porte d'abord (LK04-T09, fiche docs/annexes/conception/deplacement.md, section « Porte d'abord ») : quand la ligne droite
--- n'a pas de détour de potager (planDetour rend une liste vide), les points de passage par une porte ou un portail
--- calculés par l'autorité (LivingKnox.Obstacles.planDoorRoute, absent sur un client MP) remplacent une fenêtre ou une
--- clôture basse franchie par le chemin vanilla. Un itinéraire dont un segment passe SUR la case d'une plante ou d'un
--- feu de camp (hazardsOnLine sans marge) est écarté : le potager prime (LK04-T06). Campagne solo du 2026-10-15
--- (runs/20261015-122214-c3211ee9c847) : avec la marge HAZARD_AVOID, une plante sur la case voisine de la sortie d'une
--- porte écartait tout trajet par cette porte, deux PNJ restés 11 min contre la fenêtre (11317.5,6938.5) ; frôler une
--- plante en passant ne la détruit pas (seul un zombie sur sa case, J/characters/IsoZombie.java:2837-2842). Corps à un
--- autre niveau que la destination : rien (itinéraire d'un seul niveau). Rend les points (ou nil), le relevé, et la raison d'un
--- itinéraire écarté.
-function Directives.planDoors(id, body, x, y, z)
-    local O = LivingKnox.Obstacles
-    if O == nil or O.planDoorRoute == nil or math.floor(body:getZ()) ~= z then return nil end
-    local bx, by = body:getX(), body:getY()
-    local w, info = O.planDoorRoute(id, bx, by, x, y, z)
-    if w == nil or #w == 0 then return nil, info end
-    local memo, ax, ay = {}, bx, by
-    for i = 1, #w + 1 do
-        local px, py = x + 0.5, y + 0.5
-        if i <= #w then px, py = w[i].x + 0.5, w[i].y + 0.5 end
-        local n, first = Directives.hazardsOnLine(ax, ay, px, py, z, 0, memo)
-        if n > 0 then return nil, info, tostring(first) end
-        ax, ay = px, py
-    end
-    return w, info
-end
-
 -- Case où un corps envoyé en (x, y, z) s'arrêtera : la même, ou la plus proche hors des plantes et feux de camp
 -- (Bodies.HAZARD_AVOID, à SHIFT_RADIUS cases au plus). Rend x, y et, si la case est décalée, le danger et ses
 -- coordonnées ; ou nil et une raison. Lecture seule (moveTo, et LK_Upkeep pour garder une place au foyer).
@@ -655,55 +634,15 @@ function Directives.moveTo(id, x, y, z, gesture)
     end
     local bx, by = body:getX(), body:getY()
     local steps, noDetour = Directives.planDetour(bx, by, x, y, z)
-    local doorSteps, doorInfo, doorDropped = nil, nil, nil
-    if steps ~= nil and #steps == 0 then doorSteps, doorInfo, doorDropped = Directives.planDoors(id, body, x, y, z) end
     local e = { op = Directives.OP_MOVE, x = x, y = y, z = z, g = g }
     if steps ~= nil and #steps > 0 then e.w, e.k = steps, 1 end
-    if doorSteps ~= nil and #doorSteps > 0 then e.w, e.k = doorSteps, 1 end
-    -- LK04-T20 : dernier recours d'un PNJ enfermé (Obstacles.planDoorRoute, itinéraire "trapped") : les décisions au
-    -- contact (Obstacles.decide, decideWindow) autorisent alors la fenêtre verrouillée ou le foyer d'un autre groupe
-    -- abordés de l'intérieur. Champ de l'autorité seulement (wire ne l'envoie pas : l'exécutant n'en a pas besoin).
-    if doorInfo ~= nil and doorInfo.lastResort == true then e.lr = true end
-    -- E18-T34 : itinéraire guidé par une porte (hors dernier recours) : aucune fenêtre ouverte au contact en chemin
-    -- (Obstacles.checkWindows ; campagne MP du 2026-11-08 : fenêtre voisine ouverte pendant l'ouverture de la porte).
-    -- E18-T36 : seulement si l'itinéraire passe par une porte (Obstacles.planDoorRoute, info.doors) ; un trajet découpé
-    -- autour d'une fenêtre refusée, sans porte, ouvre la fenêtre fermée de son chemin (campagne solo du 2026-11-12).
-    if doorSteps ~= nil and #doorSteps > 0 and not e.lr and doorInfo ~= nil and (doorInfo.doors or 0) > 0 then
-        e.dr = true
-    end
     local v = issue(id, e, body)
     log().info("npc %s: move #%d to %d,%d,%d (%s) from %.1f,%.1f", id, v, x, y, z, g, bx, by)
-    if doorDropped ~= nil then
-        log().warn("npc %s: move #%d door route dropped: it passes next to %s; the vanilla path may use a window or "
-            .. "a fence", id, v, doorDropped)
-    end
     if e.w ~= nil then
         local parts = {}
         for i = 1, #e.w do parts[i] = e.w[i].x .. "," .. e.w[i].y end
-        if doorSteps ~= nil and #doorSteps > 0 and e.lr then
-            log().info("npc %s: move #%d split into %d steps (%s; %d squares searched, %d ms): %s then %d,%d", id, v,
-                #e.w + 1, tostring(doorInfo.reason), doorInfo.nodes or 0, doorInfo.ms or 0, table.concat(parts, " "),
-                x, y)
-        elseif doorSteps ~= nil and #doorSteps > 0 then
-            log().info("npc %s: move #%d split into %d steps %s (%d squares searched, %d ms): %s then %d,%d", id, v,
-                #e.w + 1, tostring(doorInfo.reason), doorInfo.nodes or 0, doorInfo.ms or 0, table.concat(parts, " "),
-                x, y)
-        else
-            log().info("npc %s: move #%d split into %d steps around farming plants or campfires: %s then %d,%d", id,
-                v, #e.w + 1, table.concat(parts, " "), x, y)
-        end
-    elseif doorInfo ~= nil and (doorInfo.climbs or 0) > 0 then
-        -- LK04-T20 : aucune porte pour sortir et aucun itinéraire de dernier recours : le chemin natif gardé échouera
-        -- probablement (fenêtre barricadée, refus au contact) : WARN.
-        local warn = doorInfo.noExitDoor ~= nil and not e.lr
-        local say = warn and log().warn or log().info
-        say("npc %s: move #%d keeps the vanilla path over %d window or fence crossing(s): %s%s", id, v,
-            doorInfo.climbs, tostring(doorInfo.reason), e.lr and " (last resort allowed at contact)" or "")
-    elseif doorInfo ~= nil and doorInfo.waryOfWindows and (doorInfo.npcClimbs == nil or (doorInfo.doors or 0) > 0) then
-        -- LK05-T23 : PNJ prudent après une fenêtre refusée au contact, mais aucun itinéraire par les portes trouvé
-        -- (itinéraire introuvable, ou porte sans point de passage) ; un court trajet en ligne dégagée ne dit rien.
-        log().warn("npc %s: move #%d keeps the vanilla path after a refused window: %s", id, v,
-            tostring(doorInfo.reason))
+        log().info("npc %s: move #%d split into %d steps around farming plants or campfires: %s then %d,%d", id,
+            v, #e.w + 1, table.concat(parts, " "), x, y)
     elseif steps == nil then
         local n, first = Directives.hazardsOnLine(bx, by, x + 0.5, y + 0.5, z)
         if n > 0 then
@@ -822,6 +761,32 @@ function Directives.abort(id, why)
     local e = Directives.entries[id]
     if e == nil or e.done then return false end
     finish(id, e, "failed", "server", why)
+    return true
+end
+
+-- Nouveau trajet pour la consigne "move" ouverte du PNJ id, SANS changer son numéro (LK17-T01 : détour après un refus
+-- au contact, LK_Detour.lua ; les modules qui l'ont émise la suivent toujours par son numéro) : points de passage
+-- route.w (liste vide ou nil : chemin du jeu seul), route.dk (points du détour par une porte, Directives.detouring),
+-- route.lr (dernier recours, LK04-T20 : champ de l'autorité, jamais envoyé). Étape 1 et nouveau bail (comme un
+-- transfert, LK03-T01) : l'exécutant lâche son exécution et repart aussitôt de la position du corps. why : texte du
+-- journal. Rend vrai si la consigne a changé.
+function Directives.reroute(id, route, why)
+    if not LivingKnox.isAuthority() then return false end
+    local e = Directives.entries[id]
+    if e == nil or e.done or e.op ~= Directives.OP_MOVE or e.suspended ~= nil then return false end
+    local z = Bodies().find(id)
+    if z == nil then return false end
+    if type(route.w) == "table" and #route.w > 0 then e.w, e.k = route.w, 1 else e.w, e.k = nil, nil end
+    e.dk = route.dk
+    if route.lr == true then e.lr = true end
+    grant(e, z)
+    Directives.lastN[id] = nil
+    count("rerouted")
+    local parts = {}
+    for i = 1, #(e.w or {}) do parts[i] = e.w[i].x .. "," .. e.w[i].y end
+    log().info("npc %s: move #%d %s: %d step(s)%s then %d,%d (lease %d)", id, e.v, tostring(why), #parts,
+        #parts > 0 and (" " .. table.concat(parts, " ")) or "", e.x, e.y, e.l)
+    Directives.sync(id, true)
     return true
 end
 

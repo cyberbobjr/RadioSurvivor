@@ -45,15 +45,7 @@ from harness import lua_src  # noqa: E402  (E18-T07)
 from test_lk_directives import DirectiveBase  # noqa: E402
 
 OBSTACLES = 'server/LivingKnox/LK_Obstacles.lua'
-ROUTING_DIR = LK_LUA / 'server' / 'LivingKnox' / 'Routing'
-
-
-def routing_files():
-    """Itinéraires (LK16-T11) comme le jeu les charge : moteur, puis chaque modèle d'itinéraire du dossier Routing/
-    (trié par nom, comme le chargement du jeu)."""
-    names = sorted((p.name for p in ROUTING_DIR.glob('*.lua')), key=str.lower)
-    return ['server/LivingKnox/LK_Routing.lua'] + [f'server/LivingKnox/Routing/{name}' for name in names]
-
+DETOUR = 'server/LivingKnox/LK_Detour.lua'   # LK17-T01 : détour après un refus au contact
 TRAVERSAL_SUITE = DEV_LUA / 'shared' / 'RST' / 'suites' / 'RST_LKTraversal.lua'
 TYPES = ('shared/LivingKnox/Data/LK_Type_neutrals.lua', 'shared/LivingKnox/Data/LK_Type_raiders.lua',
          'shared/LivingKnox/Data/LK_Type_settlers.lua')
@@ -595,8 +587,7 @@ class ObstacleBase(DirectiveBase):
             h.load(m, WINDOW_DOUBLES)
             h.load(m, LANE_DOUBLES)
             h.load(m, OBSTACLES)
-            for path in routing_files():
-                h.load(m, path)
+            h.load(m, DETOUR)
         return h
 
     @property
@@ -1310,14 +1301,16 @@ class SoloTraversalTests(ObstacleBase):
         self.assertEqual(self.wcount('solo'), (1, 0))
 
     def test_door_guided_move_never_opens_a_window(self):
-        """E18-T34 : trajet guidé par une porte (e.dr) : fenêtre faite face au contact laissée fermée."""
+        """E18-T34 : corps mené vers la porte d'un détour (LK17-T01, e.dk, Directives.detouring) : fenêtre faite face au
+        contact laissée fermée."""
         self.window()
         self.run_lua('LivingKnox.Obstacles.WINDOW_GESTURE = false')
         zid = self.start()
         self.friendly_group()
         self.run_lua(f'HARNESS.place(HARNESS.zombies[{zid}], 105.6, 102.5, 0); HARNESS.zombies[{zid}].angle = 0')
         self.move()
-        self.run_lua('LivingKnox.Obstacles.track = {}; LivingKnox.Directives.entries["lk-1"].dr = true')
+        self.run_lua('LivingKnox.Obstacles.track = {}; local e = LivingKnox.Directives.entries["lk-1"] '
+                     'e.w, e.k, e.dk = { { x = 105, y = 107 }, { x = 106, y = 107 } }, 1, 2')
         self.assertIs(self.run_lua(f'return LivingKnox.Obstacles.checkWindows("lk-1", '
                                    f'LivingKnox.Directives.entries["lk-1"], HARNESS.zombies[{zid}], 5000)'), False)
         self.assertEqual(self.wstate('solo'), 'false false')
@@ -1454,386 +1447,6 @@ class TraversalFixTests(ObstacleBase):
         v, why = self.move()
         self.assertIsNone(v)
         self.assertIn('avoided', why)
-
-    def test_window_refusal_is_remembered_for_the_routing(self):
-        """LK05-T23 : la fenêtre refusée au contact rend le PNJ prudent pour ses prochains trajets
-        (Obstacles.windowRefusedAt, lu par planDoorRoute)."""
-        self.window(locked=True)
-        zid = self.start()
-        self.friendly_group()
-        self.move()
-        self.walk_w(zid, 900, until=self.done())
-        self.assertEqual(self.entry('s'), 'failed')
-        self.assertIsNotNone(self.o('windowRefusedAt["lk-1"]'))
-
-
-class DoorFirstTests(ObstacleBase):
-    """LK04-T09 : porte d'abord. Mur (ou clôture basse) le long du bord ouest de x = 106, de y = 90 à 125, percé d'une
-    fenêtre ou d'une clôture en (106, 102) sur la ligne droite départ (102, 102) -> destination (111, 102) ; porte ou
-    portail ailleurs sur la même ligne. Les doublures de marche ignorent les murs : seul le guidage par points de
-    passage fait passer le corps par la porte."""
-    mode = 'solo'
-
-    def line(self, fence=False, skip=()):
-        for y in range(90, 126):
-            if y in skip:
-                continue
-            table = 'FENCES' if fence else 'WALLS'
-            self.run_lua(f'{table}["106,{y},0,W"] = true')
-
-    def trip(self, ticks=1500):
-        zid = self.start()
-        self.move()
-        self.walk_w(zid, ticks, until=self.done())
-        return zid
-
-    def steps(self):
-        w = self.entry('w')
-        return [] if w is None else [(w[i].x, w[i].y) for i in range(1, len(w) + 1)]
-
-    def planned(self):
-        out = self.run_lua('local w, info = LivingKnox.Obstacles.planDoorRoute("lk-1", 102.5, 102.5, 111, 102, 0) '
-                           'local s = {} for _, q in ipairs(w) do s[#s + 1] = q.x .. "," .. q.y end '
-                           'return table.concat(s, ";") .. " | " .. tostring(info.reason)')
-        steps, reason = out.split(' | ')
-        return [tuple(int(v) for v in s.split(',')) for s in steps.split(';') if s], reason
-
-    def test_npc_refused_at_a_window_is_guided_by_the_doors_next_time(self):
-        """LK05-T23 (campagne solo du 2026-11-15, runs/20261115-013428-dd05558cc5fd, lk.expedition) : le chemin natif
-        a pris une fenêtre condamnée que le modèle « zombie » ne prévoyait pas (aucune escalade prévue : aucun guidage) ;
-        refusé au contact, le PNJ reprenait le même chemin une minute plus tard. Une fenêtre refusée récemment fait
-        jalonner tout l'itinéraire du PNJ (lignes dégagées, sans fenêtre), par la porte."""
-        self.line(skip=(105,))
-        self.door(y=105, open=True)
-        self.start()
-        steps, reason = self.planned()
-        self.assertEqual(steps, [])
-        self.assertIn('no window', reason)
-        self.run_lua('LivingKnox.Obstacles.windowRefusedAt["lk-1"] = getTimestampMs()')
-        steps, reason = self.planned()
-        self.assertTrue(any(x == 105 and y == 105 for x, y in steps), (steps, reason))
-        self.assertTrue(any(x >= 106 for x, _ in steps), (steps, reason))
-        self.assertIn('after a refused window', reason)
-        # Prudence limitée dans le temps (WINDOW_WARY_MS).
-        self.run_lua('LivingKnox.Obstacles.windowRefusedAt["lk-1"] = getTimestampMs() '
-                     '- LivingKnox.Obstacles.WINDOW_WARY_MS - 1')
-        self.assertEqual(self.planned()[0], [])
-
-    def test_open_door_next_to_an_open_window_is_used(self):
-        self.line(skip=(102, 105))
-        self.window(open=True)
-        self.door(y=105, open=True)
-        self.trip()
-        self.assertEqual(self.entry('s'), 'arrived')
-        steps = self.steps()
-        self.assertTrue(any(x == 105 for x, _ in steps) and any(x >= 106 for x, _ in steps), steps)
-        self.assertEqual(self.climbs('solo'), [])
-        self.assertEqual(self.wstate('solo'), 'true false')
-        self.assertEqual(self.o('stats.routedByDoor'), 1)
-        self.assertEqual(self.h.errors('solo'), [])
-
-    def test_plant_next_to_the_door_exit_keeps_the_door_route(self):
-        # Campagne solo du 2026-10-15 (runs/20261015-122214-c3211ee9c847) : plante sur la case voisine de la sortie de
-        # la porte : tout le trajet par la porte était écarté (« door route dropped »), PNJ bloqués contre la fenêtre.
-        self.line(skip=(102, 105))
-        self.window(open=True)
-        self.door(y=105, open=True)
-        self.run_lua('getCell():getGridSquare(107, 104, 0).plant = true')
-        self.trip()
-        self.assertEqual(self.entry('s'), 'arrived')
-        steps = self.steps()
-        self.assertTrue(any(x == 105 for x, _ in steps) and any(x >= 106 for x, _ in steps), steps)
-        self.assertEqual(self.climbs('solo'), [])
-        self.assertFalse(any('door route dropped' in line for line in self.lk()), self.lk())
-
-    def test_plant_on_a_square_of_the_door_route_drops_it(self):
-        # Plante SUR une case du trajet par la porte : le potager prime (LK04-T06), le trajet par la porte est écarté.
-        self.line(skip=(102, 105))
-        self.window(open=True)
-        self.door(y=105, open=True)
-        self.run_lua('getCell():getGridSquare(106, 105, 0).plant = true')
-        self.start()
-        self.move()
-        self.assertEqual(self.steps(), [])
-        self.assertTrue(any('door route dropped' in line for line in self.lk()), self.lk())
-
-    def test_closed_gate_is_opened_instead_of_climbing_the_fence(self):
-        self.line(fence=True, skip=(105,))
-        self.door(y=105, hoppable=True)
-        zid = self.trip()
-        self.assertEqual(self.entry('s'), 'arrived')
-        self.assertEqual(self.climbs('solo'), [])
-        self.assertEqual(self.o('stats.opened'), 1)
-        self.walk_w(zid, 60)
-        self.assertEqual(self.counters('solo'), (2, 0))             # ouvert puis refermé, jamais ToggleDoor(corps)
-        self.assertEqual(self.state('solo', '106,105,0,W'), 'false false false')
-        self.assertEqual(self.h.errors('solo'), [])
-
-    def test_window_is_the_last_resort_without_a_door(self):
-        self.line(skip=(102,))
-        self.window(open=True)
-        self.trip()
-        self.assertEqual(self.entry('s'), 'arrived')
-        self.assertEqual(self.steps(), [])
-        self.assertEqual(self.climbs('solo'), ['climbwindow ' + DOOR_KEY])
-        self.assertEqual(self.o('stats.routedByDoor'), 0)
-
-    def test_door_beyond_the_detour_limit_is_not_used(self):
-        self.line(skip=(102, 120))
-        self.window(open=True)
-        self.door(y=120, open=True)                     # 18 cases plus loin : détour d'environ 36 cases > 20
-        self.trip()
-        self.assertEqual(self.entry('s'), 'arrived')
-        self.assertEqual(self.steps(), [])
-        self.assertEqual(self.climbs('solo'), ['climbwindow ' + DOOR_KEY])
-
-    def test_locked_door_without_key_is_not_a_way(self):
-        self.line(skip=(102, 105))
-        self.window(open=True)
-        self.door(y=105, locked=True)
-        self.trip()
-        self.assertEqual(self.entry('s'), 'arrived')
-        self.assertEqual(self.steps(), [])
-        self.assertEqual(self.climbs('solo'), ['climbwindow ' + DOOR_KEY])
-        self.assertEqual(self.counters('solo'), (0, 0))
-
-    def test_locked_gate_of_a_stranger_is_climbed(self):
-        # LK04-T08 inchangé : portail verrouillé (aucune clé) = clôture, enjambé, jamais refusé.
-        self.line(fence=True, skip=(102,))
-        self.door(hoppable=True, locked=True)
-        self.trip()
-        self.assertEqual(self.entry('s'), 'arrived')
-        self.assertEqual(self.steps(), [])
-        self.assertEqual(self.climbs('solo'), ['climbfence ' + DOOR_KEY])
-        self.assertEqual(self.o('stats.refused'), 0)
-
-    def test_rule_can_be_switched_off(self):
-        self.line(skip=(102, 105))
-        self.window(open=True)
-        self.door(y=105, open=True)
-        self.run_lua('LivingKnox.Obstacles.DOORS_FIRST = false')
-        self.trip()
-        self.assertEqual(self.steps(), [])
-        self.assertEqual(self.climbs('solo'), ['climbwindow ' + DOOR_KEY])
-
-    def test_gate_is_opened_before_the_step_in_front_of_it_is_reached(self):
-        # Le point « case avant le portail » est atteint à une case près : le portail doit être ouvert avant (étape
-        # suivante prise en compte), sinon un corps qui court l'atteindrait fermé et l'enjamberait.
-        self.line(fence=True, skip=(105,))
-        self.door(y=105, hoppable=True)
-        self.trip()
-        logs = self.h.logs('solo')
-        steps = self.steps()
-        k = steps.index((105, 105)) + 1                       # point « case avant le portail »
-        opened = next(i for i, line in enumerate(logs) if 'door 106,105,0,W opened' in line)
-        reached = next(i for i, line in enumerate(logs) if f'step {k}/{len(steps) + 1} reached' in line)
-        self.assertLess(opened, reached)
-
-    def test_suite_door_site_is_a_window_routed_through_a_door(self):
-        self.h.load('solo', 'shared/RST/suites/RST_LKTraversal.lua')
-        self.init()
-        self.line(skip=(102, 105))
-        self.window()
-        self.door(y=105)
-        res = self.run_lua('local s = RST.LKTraversal.findDoorSite({ getX = function() return 100 end, getY = function() '
-                           'return 102 end, getZ = function() return 0 end }) '
-                           'return s and s.e.key, s and s.doorEdges[1].key, s and s.start:getX() .. "," .. s.start:getY()')
-        self.assertEqual(res, ('106,102,0,W', '106,105,0,W', '103,102'))
-        # Sans porte : aucun site.
-        self.run_lua('DOORS["106,105,0,W"].removed = true; WALLS["106,105,0,W"] = true')
-        res = self.run_lua('return RST.LKTraversal.findDoorSite({ getX = function() return 100 end, getY = function() '
-                           'return 102 end, getZ = function() return 0 end }) == nil')
-        self.assertIs(res, True)
-
-    def test_route_search_is_bounded(self):
-        self.line(skip=(102, 105))
-        self.window(open=True)
-        self.door(y=105, open=True)
-        self.init()
-        self.run_lua('LivingKnox.Obstacles.ROUTE_MAX_NODES = 5')
-        res = self.run_lua('local w, info = LivingKnox.Obstacles.planDoorRoute("lk-1", 102.5, 102.5, 111, 102, 0) '
-                           'return #w, info.reason')
-        self.assertEqual(res[0], 0)
-        self.assertIn('more than 5 squares', res[1])
-        self.run_lua('LivingKnox.Obstacles.ROUTE_MAX_NODES = 4000')
-        res = self.run_lua('local w, info = LivingKnox.Obstacles.planDoorRoute("lk-1", 102.5, 102.5, 111, 102, 0) '
-                           'local s = {} for i = 1, #w do s[i] = w[i].x .. "," .. w[i].y end '
-                           'return table.concat(s, " "), info.climbs, info.npcClimbs, info.doors')
-        # Cases avant et après la porte, jalons rapprochés avant et après (LK04-T09, 3e correction).
-        self.assertEqual(res, ('104,104 105,105 107,105 109,104', 1, 0, 1))
-
-
-class DoorFirstRejoinTests(ObstacleBase):
-    """LK04-T09 (essai solo du 2026-10-11, partie rstest-1011) : porte d'abord, mais le chemin natif reprend la fenêtre
-    APRÈS la porte. Maison (murs) x 100..109, y 95..104 ; corps dedans en (105, 103), cible dehors en (105, 107) au
-    sud ; fenêtre ouverte au milieu du mur sud (bord 105,105,0,N) ; porte ouverte dans le mur ouest (bord
-    100,101,0,W) ; muret d'une case prolongeant le mur sud vers l'ouest (bord 99,105,0,N). Depuis la case après la
-    porte, le plus court chemin d'un zombie revient par la porte et ressort par la fenêtre : la suite des points de
-    passage doit l'en empêcher (chaque tronçon parcouru « comme un zombie » ne franchit aucune fenêtre)."""
-    mode = 'solo'
-    START, TARGET = (105.5, 103.5), (105, 107)
-
-    def house(self):
-        walls = [f'100,{y},0,W' for y in range(95, 105) if y != 101]
-        walls += [f'110,{y},0,W' for y in range(95, 105)]
-        walls += [f'{x},95,0,N' for x in range(100, 110)]
-        walls += [f'{x},105,0,N' for x in range(99, 110) if x != 105]
-        for m in self.machines:
-            self.h.load(m, '; '.join(f'WALLS["{k}"] = true' for k in walls))
-        self.window(x=105, y=105, kind='N', open=True)
-        self.door(x=100, y=101, kind='W', open=True)
-        self.init()
-
-    def plan(self):
-        res = self.run_lua(
-            'local w, info = LivingKnox.Obstacles.planDoorRoute("lk-1", %s, %s, %d, %d, 0) '
-            'local s = {} for i = 1, #w do s[#s + 1] = w[i].x .. "," .. w[i].y end '
-            'return table.concat(s, " "), info.reason, info.doors or 0'
-            % (self.START[0], self.START[1], self.TARGET[0], self.TARGET[1]))
-        pts = [tuple(int(v) for v in p.split(',')) for p in res[0].split()] if res[0] else []
-        return pts, res[1], res[2]
-
-    def zombie_climbs(self, a, b):
-        """Franchissements (fenêtre, clôture) du chemin d'un zombie de la case a à la case b, et franchissements de
-        porte."""
-        return self.run_lua(
-            'local r = LivingKnox.Obstacles.findRoute("lk-1", %d + 0.5, %d + 0.5, %d, %d, 0, "zombie") '
-            'if r == nil then return -1, -1 end local c, d = 0, 0 '
-            'for _, p in ipairs(r) do if p.cross == "climb" then c = c + 1 elseif p.cross == "door" then d = d + 1 end end '
-            'return c, d' % (a[0], a[1], b[0], b[1]))
-
-    def test_vanilla_path_after_the_door_would_take_the_window_back(self):
-        # Constat du banc : sans points au-delà de la porte, le corps sorti par la porte y revient.
-        self.house()
-        self.assertEqual(self.zombie_climbs((98, 101), self.TARGET), (1, 1))
-        self.assertEqual(self.zombie_climbs((105, 103), self.TARGET)[0], 1)
-
-    def test_every_leg_of_the_plan_avoids_the_window(self):
-        self.house()
-        pts, reason, doors = self.plan()
-        self.assertEqual(doors, 1, reason)
-        self.assertTrue(pts, reason)
-        i = pts.index((100, 101))                             # case avant la porte (dedans)
-        self.assertTrue(all(x <= 99 or y >= 105 for x, y in pts[i + 1:]), pts)   # les suivants dehors
-        legs = [(int(self.START[0]), int(self.START[1]))] + pts + [self.TARGET]
-        for a, b in zip(legs, legs[1:]):
-            self.assertEqual(self.zombie_climbs(a, b)[0], 0, f'leg {a} -> {b} of {pts}')
-        extra = self.run_lua('local _, info = LivingKnox.Obstacles.planDoorRoute("lk-1", 105.5, 103.5, 105, 107, 0) '
-                             'return info.extra, info.unsafe, info.blind')
-        self.assertGreaterEqual(extra[0], 1)
-        self.assertIsNone(extra[1])
-        self.assertEqual(extra[2], 0)
-        self.assertIn('clear lines', reason)
-        self.assertEqual(self.h.errors('solo'), [])
-
-    def test_body_walks_out_through_the_door_and_round_the_house(self):
-        # Trajet complet au banc (les doublures de marche ignorent les murs, pas la fenêtre) : étapes de la consigne =
-        # points planifiés, arrivée, aucune escalade.
-        self.house()
-        pts, _, _ = self.plan()
-        _, body = self.spawn(x=105, y=103)
-        zid = body.onlineID
-        self.d('moveTo("lk-1", 105, 107, 0)')
-        self.walk_w(zid, 2000, until=self.done())
-        self.assertEqual(self.entry('s'), 'arrived')
-        w = self.entry('w')
-        self.assertEqual([(w[i].x, w[i].y) for i in range(1, len(w) + 1)], pts)
-        self.assertEqual(self.climbs('solo'), [])
-        self.assertEqual(self.h.errors('solo'), [])
-
-    def test_steps_are_bounded(self):
-        # Au-delà de ROUTE_MAX_POINTS jalons : seules les cases des portes restent, raison donnée.
-        self.house()
-        self.run_lua('LivingKnox.Obstacles.ROUTE_MAX_POINTS = 2')
-        pts, reason, doors = self.plan()
-        self.assertEqual(doors, 1)
-        self.assertIn('legs may still cross: more than 2 steps, door steps only', reason)
-        self.assertEqual(pts, [(100, 101)])
-
-
-class DoorFirstCounterTests(ObstacleBase):
-    """LK04-T09, 3e correction (essais solo du 2026-10-11 21:27 et 21:42, rstest-1011 : corps sorti par la porte
-    10694,9381 W, puis chemin natif par la fenêtre verrouillée 10693,9387 N, au-dessus du comptoir 10693,9386). Le
-    chemin vanilla tient pour praticable une case « solidtrans » qui borde une fenêtre (J/pathfind/Square.java:60-62) ;
-    isFree(false) la dit pleine, et le modèle « zombie » de l'A* Lua ne voyait pas ce raccourci. Maison (murs)
-    x 100..109, y 95..104 ; corps dedans en (107, 103), cible dehors en (104, 108) ; porte ouverte dans le mur ouest
-    (bord 100,101,0,W) ; fenêtre ouverte A au mur sud (bord 107,105,0,N, le chemin « zombie » la prend) ; fenêtre
-    ouverte B au mur sud (bord 102,105,0,N) au-dessus d'un comptoir (case 102,104 : blocked + solidTrans). La doublure
-    de marche va en ligne droite (murs ignorés) et escalade toute fenêtre croisée, comme le chemin natif coupe par la
-    fenêtre B : avant la correction, le tronçon 100,101 -> 103,108 la croisait."""
-    mode = 'solo'
-    START, TARGET = (107, 103), (104, 108)
-
-    def house(self, counter=True):
-        walls = [f'100,{y},0,W' for y in range(95, 105) if y != 101]
-        walls += [f'110,{y},0,W' for y in range(95, 105)]
-        walls += [f'{x},95,0,N' for x in range(100, 110)]
-        walls += [f'{x},105,0,N' for x in range(100, 110) if x not in (102, 107)]
-        self.h.load('solo', '; '.join(f'WALLS["{k}"] = true' for k in walls))
-        self.window(x=107, y=105, kind='N', open=True)
-        self.window(x=102, y=105, kind='N', open=True)
-        if counter:
-            self.h.load('solo', 'local s = getCell():getGridSquare(102, 104, 0) s.blocked = true s.solidTrans = true')
-        self.door(x=100, y=101, kind='W', open=True)
-        self.init()
-
-    def route(self, a, b, mode):
-        res = self.run_lua(
-            'local r = LivingKnox.Obstacles.findRoute("lk-1", %d + 0.5, %d + 0.5, %d, %d, 0, "%s") '
-            'if r == nil then return "" end local s = {} '
-            'for _, p in ipairs(r) do s[#s + 1] = p.x .. "," .. p.y .. "," .. tostring(p.cross) end '
-            'return table.concat(s, " ")' % (a[0], a[1], b[0], b[1], mode))
-        return [(int(x), int(y), c) for x, y, c in (p.split(',') for p in res.split())]
-
-    def plan(self):
-        res = self.run_lua(
-            'local w, info = LivingKnox.Obstacles.planDoorRoute("lk-1", %d.5, %d.5, %d, %d, 0) '
-            'local s = {} for i = 1, #w do s[#s + 1] = w[i].x .. "," .. w[i].y end '
-            'return table.concat(s, " "), info.reason, info.doors or 0, info.blind or 0'
-            % (self.START[0], self.START[1], self.TARGET[0], self.TARGET[1]))
-        pts = [tuple(int(v) for v in p.split(',')) for p in res[0].split()] if res[0] else []
-        return pts, res[1], res[2], res[3]
-
-    def test_zombie_model_climbs_over_a_counter_under_a_window(self):
-        # Modèle « zombie » : la case du comptoir sous la fenêtre B est praticable (chemin natif) ; pas pour un PNJ.
-        self.house()
-        self.assertEqual(self.ev('LivingKnox.Obstacles.squareKind(getCell():getGridSquare(102, 104, 0))'), 3)
-        z = self.route((102, 103), (102, 106), 'zombie')
-        self.assertIn((102, 104, 'nil'), z)
-        self.assertEqual(sum(1 for p in z if p[2] == 'climb'), 1)
-        self.assertNotIn((102, 104), [(x, y) for x, y, _ in self.route((102, 103), (102, 106), 'npc')])
-        # Comptoir loin de toute fenêtre : plein pour les deux modèles.
-        self.h.load('solo', 'local s = getCell():getGridSquare(104, 102, 0) s.blocked = true s.solidTrans = true')
-        self.assertEqual(self.ev('LivingKnox.Obstacles.squareKind(getCell():getGridSquare(104, 102, 0))'), 0)
-
-    def test_every_leg_is_a_short_clear_line(self):
-        self.house()
-        pts, reason, doors, blind = self.plan()
-        self.assertEqual(doors, 1, reason)
-        self.assertIn((100, 101), pts)
-        self.assertEqual(blind, 0, reason)
-        step = self.o('ROUTE_STEP')
-        legs = [(self.START[0] + 0.5, self.START[1] + 0.5)] + [(x + 0.5, y + 0.5) for x, y in pts] \
-            + [(self.TARGET[0] + 0.5, self.TARGET[1] + 0.5)]
-        for a, b in zip(legs, legs[1:]):
-            self.assertLessEqual(((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2) ** 0.5, step + 1e-9, f'{a} -> {b} of {pts}')
-            self.assertIs(self.ev('LivingKnox.Obstacles.lineClear("lk-1", %s, %s, %s, %s, 0)' % (a + b)), True,
-                          f'{a} -> {b} of {pts}')
-
-    def test_body_takes_the_door_and_never_cuts_through_the_window_over_the_counter(self):
-        # Trajet complet : la doublure de marche coupe en ligne droite par toute fenêtre croisée (chemin natif).
-        self.house()
-        pts, _, _, _ = self.plan()
-        _, body = self.spawn(x=self.START[0], y=self.START[1])
-        zid = body.onlineID
-        self.d('moveTo("lk-1", %d, %d, 0)' % self.TARGET)
-        self.walk_w(zid, 3000, until=self.done())
-        self.assertEqual(self.entry('s'), 'arrived')
-        w = self.entry('w')
-        self.assertEqual([(w[i].x, w[i].y) for i in range(1, len(w) + 1)], pts)
-        self.assertEqual(self.climbs('solo'), [])
-        self.assertEqual(self.h.errors('solo'), [])
-
 
 UNLOAD_DOUBLES = r'''
 -- Zone chargée : getGridSquare rend nil pour les cases de UNLOADED (clé "x,y,z").
@@ -1976,8 +1589,8 @@ class TraversalSuiteTests(ObstacleBase):
         self.assertEqual(listed.name, 'lk.traversal')
         self.assertEqual(lua_list(listed.tags), ['world', 'server'])
         self.assertIsNone(listed.error)
-        self.assertEqual(listed.count, 18)   # LK04-T15, LK04-T16 ; LK04-T17 : porte verrouillée ouverte de l'intérieur ;
-        #                                      LK04-T19 : porte intérieure reverrouillée ou non ; LK04-T20 : PNJ enfermé
+        self.assertEqual(listed.count, 16)   # LK04-T17 : porte verrouillée ouverte de l'intérieur ; LK04-T19 : porte
+        #                                      intérieure reverrouillée ou non ; LK04-T20 : PNJ enfermé ; LK17-T01 : détour
 
 
 class TraversalFix1011Tests(ObstacleBase):
@@ -2019,27 +1632,6 @@ class TraversalFix1011Tests(ObstacleBase):
         self.assertIs(self.run_lua(on.format(105.5, 102.5)), False)      # contre l'obstacle
         self.assertIs(self.run_lua('return (RST.LKTraversal.onLane(SITE, 103.5, 102.5, 1))'), False)
 
-    # Porte d'abord : fenêtre fermée et verrouillée au choix du site (infranchissable pour l'itinéraire du PNJ, d'où la
-    # porte), puis ouverte par le test : la porte, trop loin (détour > ROUTE_PENALTY), n'était plus préférée.
-    def test_door_site_is_probed_with_its_window_open(self):
-        line = DoorFirstTests.line
-        line(self, skip=(102, 114))
-        self.init()
-        self.window(locked=True)
-        self.door(y=114)                                   # détour d'environ 27 cases (> 5 + 20) fenêtre ouverte
-        probe = ('return RST.LKTraversal.findDoorSite({ getX = function() return 100 end, getY = function() '
-                 'return 102 end, getZ = function() return 0 end }) == nil')
-        self.assertIs(self.run_lua(probe), True)
-        self.assertEqual(self.wstate('solo'), 'false false')
-        self.assertIs(self.h.eval('solo', f'WINDOWS["{DOOR_KEY}"]:isLocked()'), True)   # verrou rendu
-        # Porte proche : site retenu, et l'autorité guide encore par la porte une fois la fenêtre ouverte.
-        self.run_lua('WALLS["106,105,0,W"] = nil')
-        self.door(y=105)
-        res = self.run_lua('local s = RST.LKTraversal.findDoorSite({ getX = function() return 100 end, getY = function() '
-                           'return 102 end, getZ = function() return 0 end }) return s and s.doorEdges[1].key')
-        self.assertEqual(res, '106,105,0,W')
-        self.assertIs(self.h.eval('solo', f'WINDOWS["{DOOR_KEY}"]:isLocked()'), True)
-
     # Foyer : la maison avait une seconde porte extérieure ouverte, fermée aussi (stats.shut + 2) : le test doit
     # vérifier SA porte, sans supposer qu'elle est la seule ; les autres portes de la maison sont rendues.
     def test_home_door_suite_test_with_two_open_exterior_doors(self):
@@ -2053,31 +1645,6 @@ class TraversalFix1011Tests(ObstacleBase):
         self.assertEqual(self.o('stats.shut'), 2)
         self.assertEqual(self.state('solo'), 'false false false')                       # rendue (fermée au départ)
         self.assertEqual(self.h.eval('solo', 'DOOR_STATE("109,105,0,N")'), 'true false false')   # rendue ouverte
-
-    # Essai en jeu du 2026-10-11 23:58 (20261011-215800-solo.txt) : porte 10745,9528,0,W juste à côté de la fenêtre
-    # 10745,9529,0,W ; corps passé par la porte (aucun climbwindow) mais mesuré à travers le bord de la fenêtre près
-    # du coin. Site ambigu écarté (porte à moins de DOOR_GAP = 2 cases de la fenêtre).
-    def test_door_site_next_to_its_window_is_left_out(self):
-        probe = ('local s = RST.LKTraversal.findDoorSite({ getX = function() return 100 end, getY = function() '
-                 'return 102 end, getZ = function() return 0 end }) return s and s.doorEdges[1].key')
-        DoorFirstTests.line(self, skip=(102, 103))
-        self.init()
-        self.window()
-        self.door(y=103)                                   # milieux des bords à 1 case : ambigu
-        self.assertIsNone(self.run_lua(probe))
-        self.run_lua('DOORS["106,103,0,W"].removed = true; WALLS["106,103,0,W"] = true; WALLS["106,104,0,W"] = nil')
-        self.door(y=104)                                   # à 2 cases : retenu
-        self.assertEqual(self.run_lua(probe), '106,104,0,W')
-
-    def test_window_crossing_by_position_is_checked_on_a_server_only(self):
-        src = TRAVERSAL_SUITE.read_text(encoding='utf-8')
-        test = src[src.index('local function doorFirstTest('):]
-        test = test[:test.index('RST.suite(')]
-        self.assertIn('doorFirstTest(findDoorSite', src)
-        self.assertIn('doorFirstTest(findExitSite', src)
-        self.assertRegex(test, r'if isServer\(\) then\s+t3:ok\(not info\.through\[site\.e\.key\]')
-        self.assertIn('if not isServer() then t3:ok(info.seen.climbwindow ~= true', test)
-
 
 HOME9 ={'id': 'B9', 'x1': 300, 'y1': 300, 'x2': 306, 'y2': 306, 'keyId': 99}
 
@@ -2408,9 +1975,9 @@ class RefusedDoorDetourTests(ObstacleBase):
     """LK04-T14 (essai solo du 2026-10-11 22:30, 20261011-202959-solo.txt) : le chemin natif d'un PNJ vers une clôture
     basse a pris la porte de garage fermée voisine (10747,9537,0,W), refusée par l'autorité (« garage door not
     handled ») : consigne échouée. Clôture basse le long du bord ouest de x = 106 (y 90..125) ; porte de garage
-    fermée dans cette ligne. La doublure de marche va en ligne droite (chemin natif) : seuls les points de passage
-    l'écartent de la porte. Depuis LK04-T17, une porte de garage s'ouvre (tous ses panneaux) : une porte double, toujours
-    refusée, tient ici le rôle de la porte refusée."""
+    fermée dans cette ligne. La doublure de marche va en ligne droite (chemin du jeu) jusqu'à la porte ; depuis LK17-T01,
+    le refus au contact donne un détour par la clôture voisine (LK_Detour.lua). Depuis LK04-T17, une porte de garage
+    s'ouvre (tous ses panneaux) : une porte double, toujours refusée, tient ici le rôle de la porte refusée."""
     mode = 'solo'
 
     def line(self, fence=True, skip=()):
@@ -2428,21 +1995,14 @@ class RefusedDoorDetourTests(ObstacleBase):
         w = self.entry('w')
         return [] if w is None else [(w[i].x, w[i].y) for i in range(1, len(w) + 1)]
 
-    def plan(self, x0=102.5, y0=102.5):
-        return self.run_lua(
-            'local w, info = LivingKnox.Obstacles.planDoorRoute("lk-1", %s, %s, 111, 102, 0) '
-            'local s = {} for i = 1, #w do s[i] = w[i].x .. "," .. w[i].y end '
-            'local r = info.refused and info.refused[1] '
-            'return table.concat(s, " "), info.reason, r and r.key, r and r.why' % (x0, y0))
-
     def garage_on_the_line(self):
         self.line(skip=(102,))
         self.door(double=True)                            # 106,102,0,W, sur la ligne droite
 
     def test_before_the_garage_door_on_the_native_path_fails_the_move(self):
-        # Constat reproduit (détour coupé) : le corps va droit à la porte de garage, refusée : échec.
+        # Constat reproduit (détour LK17-T01 coupé) : le corps va droit à la porte de garage, refusée : échec.
         self.garage_on_the_line()
-        self.run_lua('LivingKnox.Obstacles.AVOID_REFUSED = false')
+        self.run_lua('LivingKnox.Obstacles.onRefusal = nil')
         self.trip()
         self.assertEqual(self.entry('s'), 'failed')
         self.assertTrue(any('refused at the door 106,102,0,W: double door not handled' in s for s in self.lk()),
@@ -2453,70 +2013,28 @@ class RefusedDoorDetourTests(ObstacleBase):
         self.garage_on_the_line()
         self.trip()
         self.assertEqual(self.entry('s'), 'arrived')
-        steps = self.steps()
-        self.assertTrue(steps, self.lk())
+        self.assertEqual(self.steps(), [(105, 101), (106, 101)])        # clôture voisine, puis la destination
         climbs = self.climbs('solo')
-        self.assertEqual(len(climbs), 1, climbs)
-        self.assertTrue(climbs[0].startswith('climbfence 106,') and climbs[0] != 'climbfence ' + DOOR_KEY, climbs)
+        self.assertEqual(climbs, ['climbfence 106,101,0,W'])
         self.assertEqual(self.counters('solo'), (0, 0))                 # porte jamais touchée
         self.assertEqual(self.state('solo'), 'false false false')
-        self.assertEqual(self.o('stats.refused'), 0)
+        self.assertEqual((self.o('stats.refused'), self.o('stats.detoured')), (1, 1))
         lines = self.lk()
-        self.assertTrue(any('around the refused door(s) 106,102,0,W (double door not handled)' in s for s in lines),
-                        lines)
+        self.assertTrue(any('detour through the fence 106,101,0,W after the refused door 106,102,0,W (double door not '
+                            'handled)' in s for s in lines), lines)
         self.assertEqual(self.h.errors('solo'), [])
-
-    def test_detour_also_with_the_door_first_rule_off(self):
-        self.garage_on_the_line()
-        self.run_lua('LivingKnox.Obstacles.DOORS_FIRST = false')
-        self.trip()
-        self.assertEqual(self.entry('s'), 'arrived')
-        self.assertTrue(self.steps())
-        self.assertEqual(self.counters('solo'), (0, 0))
-        self.assertEqual(self.o('stats.refused'), 0)
-
-    def test_garage_door_next_to_the_fence_at_almost_the_same_length(self):
-        # Cas de l'essai : le modèle « zombie » prend la clôture (léger bonus d'escalade), mais le chemin natif peut
-        # prendre la porte de garage voisine pour moins de ROUTE_REFUSED_SLACK case de plus : guidage quand même.
-        self.line(fence=False, skip=(101, 102))
-        self.fence()                                      # 106,102,0,W sur la ligne droite
-        self.door(y=101, double=True)                     # porte de garage juste à côté
-        self.init()
-        pts, reason, key, why = self.plan(102.0, 102.0)
-        self.assertTrue(pts, reason)
-        self.assertEqual((key, why), ('106,101,0,W', 'double door not handled'))
-        self.assertIn('around the refused door(s) 106,101,0,W', reason)
-        legs = [(102.0, 102.0)] + [(int(p.split(',')[0]) + 0.5, int(p.split(',')[1]) + 0.5) for p in pts.split()] \
-            + [(111.5, 102.5)]
-        for a, b in zip(legs, legs[1:]):      # aucun tronçon ne longe la porte de garage en ligne dégagée par elle
-            self.assertIs(self.ev('LivingKnox.Obstacles.lineClear("lk-1", %s, %s, %s, %s, 0)' % (a + b)) or
-                          abs(a[0] - b[0]) <= 1.01, True, f'{a} -> {b} of {pts}')
-        # Porte loin de la ligne (détour bien plus long que ROUTE_REFUSED_SLACK) : aucun guidage.
-        self.run_lua('DOORS["106,101,0,W"].removed = true; WALLS["106,101,0,W"] = true; WALLS["106,98,0,W"] = nil')
-        self.door(y=98, double=True)
-        pts, reason, key, _ = self.plan(102.0, 102.0)
-        self.assertEqual(pts, '', reason)
-        self.assertIsNone(key)
-        # Porte ordinaire fermée (que le PNJ ouvre) : rien de refusé, aucun guidage de ce fait.
-        self.run_lua('DOORS["106,98,0,W"].double = false')
-        pts, reason, key, _ = self.plan(102.0, 102.0)
-        self.assertIsNone(key, reason)
 
     def test_no_way_around_keeps_the_failure_with_a_clear_reason(self):
         self.line(fence=False, skip=(102,))
         self.door(double=True)
         self.init()
-        pts, reason, key, _ = self.plan()
-        self.assertEqual(pts, '')
-        self.assertEqual(key, '106,102,0,W')
-        self.assertIn('no way around the refused door(s) 106,102,0,W (double door not handled): npc route: '
-                      'no route in the loaded squares', reason)
-        self.assertTrue(any('WARN' in s and 'no way around the refused door(s)' in s for s in self.lk()), self.lk())
         self.trip()
         self.assertEqual(self.entry('s'), 'failed')
-        self.assertTrue(any('double door not handled' in s for s in self.lk()), self.lk())
+        self.assertIsNone(self.entry('w'))
+        self.assertTrue(any('WARN' in s and 'no detour after the refused door 106,102,0,W (double door not handled): '
+                            'no usable door, gate or low fence within' in s for s in self.lk()), self.lk())
 
-    def test_other_refused_doors_are_avoided_too(self):
+    def test_other_refused_doors_give_the_same_detour(self):
         for fields in ({'double': True}, {'locked': True}, {'barricaded': True}):
             with self.subTest(fields=fields):
                 self.tearDown()
@@ -2525,8 +2043,8 @@ class RefusedDoorDetourTests(ObstacleBase):
                 self.door(**fields)
                 self.trip()
                 self.assertEqual(self.entry('s'), 'arrived', self.lk())
-                self.assertEqual(self.o('stats.refused'), 0)
-                self.assertEqual(len(self.climbs('solo')), 1)
+                self.assertEqual((self.o('stats.refused'), self.o('stats.detoured')), (1, 1))
+                self.assertEqual(self.climbs('solo'), ['climbfence 106,101,0,W'])
 
     def test_suite_fence_sites_skip_doors_and_the_detour_site_needs_a_refused_door(self):
         self.h.load('solo', 'shared/RST/suites/RST_LKTraversal.lua')
@@ -2623,14 +2141,6 @@ class Traversal2308Tests(ObstacleBase):
     def walls(self, keys):
         self.run_lua('; '.join(f'WALLS["{k}"] = true' for k in keys))
 
-    def plan(self, x0, y0, tx, ty):
-        res = self.run_lua(
-            'local w, info = LivingKnox.Obstacles.planDoorRoute("lk-1", %s, %s, %d, %d, 0) '
-            'local s = {} for i = 1, #w do s[i] = w[i].x .. "," .. w[i].y end '
-            'return table.concat(s, " "), info.reason, info.doors or 0' % (x0, y0, tx, ty))
-        pts = [tuple(int(v) for v in p.split(',')) for p in res[0].split()] if res[0] else []
-        return pts, res[1], res[2]
-
     def sq(self, x, y, z=0):
         return f'getCell():getGridSquare({x}, {y}, {z})'
 
@@ -2642,29 +2152,10 @@ class Traversal2308Tests(ObstacleBase):
         self.fence(y=104)                                  # vraie clôture basse
         a, b = self.sq(105, 102), self.sq(106, 102)
         self.assertIs(self.ev(f'{a}:isHoppableTo({b})'), True)
-        self.assertIs(self.ev(f'LivingKnox.Obstacles.isFenceTo({a}, {b})'), False)
-        self.assertIs(self.ev(f'LivingKnox.Obstacles.isFenceTo({b}, {a})'), False)
+        self.assertIs(self.ev(f'LivingKnox.Detour.isFenceTo({a}, {b})'), False)
+        self.assertIs(self.ev(f'LivingKnox.Detour.isFenceTo({b}, {a})'), False)
         for p, q in ((self.sq(105, 104), self.sq(106, 104)), (self.sq(106, 104), self.sq(105, 104))):
-            self.assertIs(self.ev(f'LivingKnox.Obstacles.isFenceTo({p}, {q})'), True)
-        # Itinéraires : le bord est un mur (aucun pas « climb » par lui).
-        r = self.run_lua('local r = LivingKnox.Obstacles.findRoute("lk-1", 105.5, 102.5, 106, 102, 0, "zombie") '
-                         'local s = {} for _, p in ipairs(r) do s[#s + 1] = p.x .. "," .. p.y .. "," '
-                         '.. tostring(p.cross) end return table.concat(s, " ")')
-        self.assertNotIn('106,102,climb', r)
-        self.assertGreater(len(r.split()), 2, r)
-
-    def test_route_never_plans_a_step_over_the_hoppable_wall(self):
-        # Cas de l'essai : ligne de murs x = 106, porte de garage fermée 106,101,0,W, comptoir enjambable sur le mur
-        # 106,102,0,W, sur la ligne droite. Avant : « around the refused door(s) 106,101,0,W ... through 0 door(s) and
-        # 1 window or fence crossing(s) », pas d'une case par le mur. Après : aucun contournement dans la zone.
-        self.walls([f'106,{y},0,W' for y in range(90, 126) if y != 101])
-        self.fence()
-        self.door(y=101, double=True)
-        self.init()
-        pts, reason, _ = self.plan(102.0, 102.0, 111, 102)
-        self.assertNotIn((106, 102), pts, reason)
-        self.assertEqual(pts, [], reason)
-        self.assertIn('no way around the refused door(s) 106,101,0,W (double door not handled)', reason)
+            self.assertIs(self.ev(f'LivingKnox.Detour.isFenceTo({p}, {q})'), True)
 
     def test_suite_fence_sites_skip_a_hoppable_object_on_a_wall(self):
         self.suite()
@@ -2688,7 +2179,7 @@ class Traversal2308Tests(ObstacleBase):
         self.window()                                      # fermée, 106,102,0,W
         self.furniture()                                   # table de l'autre côté (case 106,102)
         zid = self.start()
-        self.run_lua('LivingKnox.Obstacles.AVOID_REFUSED = false')   # le refus lui-même
+        self.run_lua('LivingKnox.Obstacles.onRefusal = nil')   # le refus lui-même (détour LK17-T01 coupé)
         self.move()
         self.walk_w(zid, 1500, until=self.done())
         self.assertEqual(self.entry('s'), 'failed')
@@ -2703,41 +2194,17 @@ class Traversal2308Tests(ObstacleBase):
 
     def test_closed_window_next_to_a_refused_one_is_still_opened(self):
         # E18-T36 (campagne solo du 2026-11-12, lk.traversal) : la fenêtre voisine 106,101,0,W donne sur un meuble
-        # (refusée) : le trajet est découpé autour d'elle sans aucune porte ; ce n'est pas un trajet guidé par une
-        # porte (e.dr, E18-T34) et la fenêtre fermée du chemin est ouverte au contact.
+        # (refusée) ; aucun détour par une porte n'est en cours (e.dk, E18-T34) et la fenêtre fermée du chemin est
+        # ouverte au contact.
         self.window()                                      # fermée, 106,102,0,W
         self.window(y=101)                                 # fermée, meuble derrière
         self.furniture(y=101)
         zid = self.start()
         self.move()
         self.walk_w(zid, 1500, until=self.done())
-        self.assertTrue(any('around the refused door(s) or window(s) 106,101,0,W' in s for s in self.lk()),
-                        self.lk())
-        self.assertIsNone(self.entry('dr'))
+        self.assertIsNone(self.entry('dk'))
         self.assertEqual(self.entry('s'), 'arrived', self.lk())
-
-    def test_window_over_furniture_is_avoided_by_the_detour(self):
-        # Mur x = 106 percé d'une fenêtre OUVERTE (106,102,0,W, table derrière) et d'une porte ouverte (106,98,0,W) ;
-        # règle porte d'abord coupée (comme une montée d'escalier, hors de son champ) : avant, le corps passait par
-        # la fenêtre ; après, la fenêtre est un franchissement refusé dans ce sens et le détour passe par la porte.
-        self.walls([f'106,{y},0,W' for y in range(90, 126) if y not in (98, 102)])
-        self.window(open=True)
-        self.furniture()
-        self.door(y=98, open=True)
-        zid = self.start()
-        self.run_lua('LivingKnox.Obstacles.DOORS_FIRST = false')
-        self.move()
-        self.walk_w(zid, 3000, until=self.done())
-        self.assertEqual(self.entry('s'), 'arrived', self.lk())
-        self.assertEqual(self.climbs('solo'), [])
-        self.assertTrue(any('around the refused door(s) or window(s) 106,102,0,W (window over furniture)' in s
-                            for s in self.lk()), self.lk())
-        self.assertEqual(self.o('stats.refused'), 0)
-        # Dans l'autre sens (meuble au départ), la fenêtre reste un passage ordinaire du modèle « zombie ».
-        r = self.run_lua('local r = LivingKnox.Obstacles.findRoute("lk-1", 106.5, 103.5, 104, 102, 0, "zombie") '
-                         'local n = 0 for _, p in ipairs(r) do if p.cross == "refused" then n = n + 1 end end '
-                         'return n')
-        self.assertEqual(r, 0)
+        self.assertEqual(self.climbs('solo'), ['climbwindow ' + DOOR_KEY])
 
     def test_suite_stairs_bottom_is_joined_to_the_stairs(self):
         # Escalier en 110,102 (montée vers le niveau 1) ; mur x = 109 (bord ouest) : la case 107,102, la plus proche à
@@ -2785,63 +2252,14 @@ class Traversal2308Tests(ObstacleBase):
         self.assertEqual(self.h.eval('solo', 'FAKE_FACES'), 0)
         self.assertIs(self.h.eval('solo', 'LivingKnox.Decisions.evaluate ~= nil'), True)
 
-    # 4. Haie : coût natif des buissons ; aucun tronçon ne traverse une case de buisson avant son bout.
-    def hedge_house(self):
-        """Maison x 100..103, y 105..112 ; fenêtre ouverte au mur nord (bord 102,105,0,N) ; porte ouverte dans le mur
-        est (bord 104,111,0,W) ; haie (buissons) sur les cases 104,105 à 104,109, dehors le long du mur est (comme
-        x = 10753 en jeu) ; colonne x = 105 libre. Départ 102,102 dehors au nord, cible 102,107 dedans."""
-        walls = [f'{x},105,0,N' for x in range(100, 104) if x != 102]
-        walls += [f'{x},113,0,N' for x in range(100, 104)]
-        walls += [f'100,{y},0,W' for y in range(105, 113)]
-        walls += [f'104,{y},0,W' for y in range(105, 113) if y != 111]
-        self.walls(walls)
-        self.window(x=102, y=105, kind='N', open=True)
-        self.door(x=104, y=111, kind='W', open=True)
-        self.run_lua('; '.join(f'{self.sq(104, y)}.bush = true' for y in range(105, 110)))
-        self.init()
-
-    @staticmethod
-    def squares_on(a, b):
-        """Cases traversées par le segment a -> b (centres), échantillonné tous les 0,1 case, dans l'ordre."""
-        n = max(1, int((((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2) ** 0.5) * 10 + 0.999))
-        out = []
-        for i in range(n + 1):
-            s = (int((a[0] + (b[0] - a[0]) * i / n) // 1), int((a[1] + (b[1] - a[1]) * i / n) // 1))
-            if not out or out[-1] != s:
-                out.append(s)
-        return out
-
-    def test_hedge_square_costs_like_the_native_path(self):
-        self.hedge_house()
-        self.assertEqual(self.ev(f'LivingKnox.Obstacles.squareKind({self.sq(104, 106)})'), 2)
-        self.assertEqual(self.ev(f'LivingKnox.Obstacles.squareKind({self.sq(105, 106)})'), 1)
-        clear = 'LivingKnox.Obstacles.lineClear("lk-1", %s, %s, %s, %s, 0)'
-        self.assertIs(self.ev(clear % (104.5, 104.5, 104.5, 108.5)), False)   # buissons avant le bout
-        self.assertIs(self.ev(clear % (104.5, 104.5, 104.5, 105.5)), True)    # buisson au bout seulement
-        self.assertIs(self.ev(clear % (105.5, 104.5, 105.5, 109.5)), True)
-
-    def test_door_route_never_walks_a_leg_through_the_hedge(self):
-        self.hedge_house()
-        pts, reason, doors = self.plan(102.5, 102.5, 102, 107)
-        self.assertEqual(doors, 1, reason)
-        self.assertIn((104, 111), pts, reason)              # case après la porte (dehors) ou avant
-        legs = [(102.5, 102.5)] + [(x + 0.5, y + 0.5) for x, y in pts] + [(102.5, 107.5)]
-        bush = {(104, y) for y in range(105, 110)}
-        for a, b in zip(legs, legs[1:]):
-            inner = self.squares_on(a, b)[1:-1]
-            self.assertFalse(bush & set(inner), f'leg {a} -> {b} of {pts} goes through the hedge ({reason})')
-        self.assertEqual(self.h.errors('solo'), [])
-
-
 EXIT_HOUSE = {'id': 'B7', 'x1': 106, 'y1': 90, 'x2': 120, 'y2': 126}   # murs sur les quatre côtés (enclose)
 
 
-class ExitByDoorTests(ObstacleBase):
-    """LK04-T15 (décision de l'utilisateur du 2026-10-11) : dans une maison, pour sortir, priorité aux portes. Maison
-    EXIT_HOUSE fermée de murs, fenêtre ouverte (106, 102) W sur la ligne droite départ (108, 102) dedans -> destination
-    (102, 102) dehors ; porte en (106, 120) W : détour d'environ 36 cases (> ROUTE_PENALTY), hors de la boîte de
-    recherche habituelle (ROUTE_MARGIN). Les doublures de marche ignorent les murs : seul le guidage fait passer le corps
-    par la porte."""
+
+
+class TrappedDecisionTests(ObstacleBase):
+    """LK04-T20 : règles de contact du dernier recours (decide, decideWindow avec trapped) ; le dernier recours
+    lui-même est donné après un refus (LK_Detour.lua, bancs de tests/test_lk_detour.py)."""
     mode = 'solo'
 
     def enclose(self, skip=('106,102,0,W', '106,120,0,W')):
@@ -2851,266 +2269,6 @@ class ExitByDoorTests(ObstacleBase):
         keys += [f"{x},{b['y1']},0,N" for x in range(b['x1'], b['x2'])]
         keys += [f"{x},{b['y2']},0,N" for x in range(b['x1'], b['x2'])]
         self.run_lua('; '.join(f'WALLS["{k}"] = true' for k in keys if k not in skip))
-
-    def house(self, door=True, **door_fields):
-        self.building(EXIT_HOUSE)
-        self.enclose(skip=('106,102,0,W',) + (('106,120,0,W',) if door else ()))
-        self.window(open=True)
-        if door:
-            self.door(y=120, **(door_fields or {'open': True}))
-
-    def trip(self, start=(108, 102), target=(102, 102), ticks=3000):
-        self.init()
-        _, body = self.spawn(x=start[0], y=start[1])
-        zid = body.onlineID
-        self.d(f'moveTo("lk-1", {target[0]}, {target[1]}, 0)')
-        self.walk_w(zid, ticks, until=self.done())
-        return zid
-
-    def steps(self):
-        w = self.entry('w')
-        return [] if w is None else [(w[i].x, w[i].y) for i in range(1, len(w) + 1)]
-
-    def test_far_door_is_used_to_leave_the_house(self):
-        self.house()
-        self.trip()
-        self.assertEqual(self.entry('s'), 'arrived')
-        steps = self.steps()
-        self.assertIn((106, 120), steps)                      # case avant la porte (dedans), puis après
-        self.assertIn((105, 120), steps)
-        self.assertEqual(self.climbs('solo'), [])
-        self.assertEqual(self.wstate('solo'), 'true false')
-        self.assertTrue(any('out of building B7 through 1 door(s) whatever the detour' in s
-                            for s in self.h.logs('solo')), self.h.logs('solo'))
-        self.assertEqual(self.h.errors('solo'), [])
-
-    def test_door_step_next_to_a_window_is_tight(self):
-        # Campagne solo du 2026-10-15 (porte 11360,6977 W, fenêtre fermée 11360,6978 W juste à côté) : le point de la
-        # porte, atteint à ARRIVE (1 case) près, laissait le corps devant la fenêtre ; le chemin natif vers le point
-        # suivant la prenait. Les points de porte voisins d'une fenêtre sont "serrés" (STEP_TIGHT) et le restent sur le
-        # réseau (wire).
-        self.house()
-        self.window(y=121)                                    # fenêtre fermée juste au sud de la porte
-        self.trip()
-        self.assertEqual(self.entry('s'), 'arrived')
-        w = self.entry('w')
-        tight = {(w[i].x, w[i].y): w[i].t for i in range(1, len(w) + 1)}
-        self.assertIs(tight.get((106, 120)), True, tight)
-        self.assertIsNone(tight.get((108, 106)), tight)       # point ordinaire, loin de la fenêtre
-        self.assertEqual(self.climbs('solo'), [])
-        self.assertEqual(self.h.errors('solo'), [])
-
-    def test_tight_step_distance_is_scaled(self):
-        self.init()
-        D = 'LivingKnox.Directives.'
-        e = '{ z = 0, x = 20, y = 20, w = { { x = 10, y = 10, t = true }, { x = 12, y = 10 } } }'
-        self.assertAlmostEqual(self.ev(f'{D}distToStep({e}, 1, 10.5, 10.9, 0)'), 0.4 * 1.0 / 0.5)
-        self.assertAlmostEqual(self.ev(f'{D}distToStep({e}, 2, 12.5, 10.9, 0)'), 0.4)
-        self.assertAlmostEqual(self.ev(f'{D}distToStep({e}, 3, 20.5, 20.9, 0)'), 0.4)
-
-    def test_closed_door_is_opened_to_leave_the_house(self):
-        self.house(open=False)
-        self.trip()
-        self.assertEqual(self.entry('s'), 'arrived')
-        self.assertEqual(self.climbs('solo'), [])
-        self.assertGreaterEqual(self.o('stats.opened'), 1)
-        self.assertEqual(self.h.errors('solo'), [])
-
-    def test_door_locked_without_key_is_opened_from_inside_to_leave(self):
-        # LK04-T17 : un joueur dans la maison ouvre sans clé une porte verrouillée (canBeOpenFromInside) ; le PNJ aussi.
-        self.house(locked=True)
-        self.trip()
-        self.assertEqual(self.entry('s'), 'arrived')
-        self.assertEqual(self.climbs('solo'), [])
-        self.assertIn((105, 120), self.steps())
-        self.assertEqual(self.o('stats.unlocked'), 1)
-        self.assertEqual(self.state('solo', '106,120,0,W'), 'false false false')   # refermée, pas reverrouillée
-        self.assertEqual(self.h.errors('solo'), [])
-
-    def test_window_without_any_door(self):
-        self.house(door=False)
-        self.trip()
-        self.assertEqual(self.entry('s'), 'arrived')
-        self.assertEqual(self.steps(), [])
-        self.assertEqual(self.climbs('solo'), ['climbwindow ' + DOOR_KEY])
-        self.assertTrue(any('no usable door out of building B7 in the loaded squares' in s
-                            for s in self.h.logs('solo')), self.h.logs('solo'))
-
-    def test_window_when_the_only_door_is_locked_without_key(self):
-        # Porte blindée (forceLocked) : seule porte qu'un joueur dedans n'ouvre pas sans clé (LK04-T17,
-        # IsoDoor.java:1266-1268).
-        self.house(locked=True)
-        self.run_lua('DOORS["106,120,0,W"].props = { forceLocked = true }')
-        self.trip()
-        self.assertEqual(self.entry('s'), 'arrived')
-        self.assertEqual(self.climbs('solo'), ['climbwindow ' + DOOR_KEY])
-        self.assertEqual(self.counters('solo'), (0, 0))
-        self.assertTrue(any('no usable door out of building B7' in s for s in self.h.logs('solo')))
-
-    def test_fleeing_keeps_the_shortest_way(self):
-        self.house()
-        self.run_lua('local D = LivingKnox.Decisions or {}; LivingKnox.Decisions = D; D.state = D.state or {}; '
-                     'D.state.members = D.state.members or {}; D.state.members["lk-1"] = { b = "flee" }')
-        self.trip()
-        self.assertEqual(self.entry('s'), 'arrived')
-        self.assertEqual(self.steps(), [])
-        self.assertEqual(self.climbs('solo'), ['climbwindow ' + DOOR_KEY])
-
-    def test_far_door_is_used_to_enter_the_house(self):
-        self.house()
-        self.trip(start=(102, 102), target=(108, 102))
-        self.assertEqual(self.entry('s'), 'arrived')
-        self.assertIn((105, 120), self.steps())
-        self.assertEqual(self.climbs('solo'), [])
-        self.assertTrue(any('into building B7 through 1 door(s)' in s for s in self.h.logs('solo')))
-
-    def test_rule_switch_and_same_building_trip(self):
-        self.house()
-        self.init()
-        self.spawn(x=108, y=102)
-        plan = ('local w, info = LivingKnox.Obstacles.planDoorRoute("lk-1", 108.5, 102.5, %d, %d, 0) '
-                'return #w, tostring(info.exitUsed), info.reason')
-        n, used, reason = self.run_lua(plan % (102, 102))
-        self.assertGreater(n, 0)
-        self.assertEqual(used, 'true')
-        self.run_lua('LivingKnox.Obstacles.EXIT_BY_DOOR = false')
-        n, used, reason = self.run_lua(plan % (102, 102))
-        self.assertEqual(n, 0)                            # règle habituelle : porte au-delà de ROUTE_PENALTY
-        self.assertIn('within 20 squares of detour', reason)
-        self.run_lua('LivingKnox.Obstacles.EXIT_BY_DOOR = true')
-        self.assertIsNone(self.o('exitOf(108.5, 102.5, 115, 110, 0)'))   # même bâtiment
-        self.assertIsNone(self.o('exitOf(100.5, 102.5, 102, 110, 0)'))   # dehors tous les deux
-
-    def test_suite_exit_site(self):
-        # Site de lk.traversal (LK04-T15) : fenêtre de maison dont la voie (ici entrante) n'est guidée par la porte que par la règle.
-        self.h.load('solo', 'shared/RST/suites/RST_LKTraversal.lua')
-        probe = ('local s = RST.LKTraversal.findExitSite({ getX = function() return 110 end, getY = function() '
-                 'return 102 end, getZ = function() return 0 end }) '
-                 'return s and s.e.key, s and s.doorEdges[1].key, s and s.start:getX() .. "," .. s.start:getY()')
-        self.house(open=False)
-        self.init()
-        self.assertEqual(self.run_lua(probe), ('106,102,0,W', '106,120,0,W', '103,102'))   # voie entrante
-        self.assertEqual(self.wstate('solo'), 'true false')                   # fenêtre rendue (ouverte)
-        # Porte proche (dans la limite habituelle) : la règle ne change rien, aucun site.
-        self.run_lua('WALLS["106,105,0,W"] = nil')
-        self.door(y=105)
-        self.assertIsNone(self.run_lua(probe)[0])
-
-
-OTHER_HOUSE = {'id': 'B9', 'x1': 90, 'y1': 96, 'x2': 100, 'y2': 110}   # à l'ouest de EXIT_HOUSE
-
-
-class ExitLooseTests(ObstacleBase):
-    """LK04-T16 (essai solo du 2026-10-12, console.txt, PNJ lk-36) : dans la cuisine de son foyer, un PNJ part en
-    expédition vers une chambre d'un autre bâtiment, derrière une porte intérieure verrouillée sans clé (10981,9672,0,N,
-    « locked door (no key) ») : l'itinéraire "exit" n'en trouvait aucun (« exit route: no route in the loaded squares »),
-    l'itinéraire "npc" non plus, et le chemin natif gardé sortait par la fenêtre de la cuisine (10999,9696,0,N), la
-    porte du foyer, ouverte, à quelques cases. Ici : foyer EXIT_HOUSE (B7), fenêtre ouverte (106, 102) W, porte ouverte
-    (106, 108) W ; maison OTHER_HOUSE (B9) fermée de murs, porte d'entrée (100, 104) W, mur intérieur le long de x = 96
-    percé d'une porte verrouillée (96, 102) W ; destination (93, 102) derrière elle."""
-    mode = 'solo'
-    enclose = ExitByDoorTests.enclose
-    trip = ExitByDoorTests.trip
-    steps = ExitByDoorTests.steps
-
-    def other(self, entry=True, window=False):
-        b = OTHER_HOUSE
-        keys = [f"{b['x1']},{y},0,W" for y in range(b['y1'], b['y2'])]
-        keys += [f"{b['x2']},{y},0,W" for y in range(b['y1'], b['y2'])]
-        keys += [f"{x},{b['y1']},0,N" for x in range(b['x1'], b['x2'])]
-        keys += [f"{x},{b['y2']},0,N" for x in range(b['x1'], b['x2'])]
-        skip = {'100,104,0,W'}
-        self.run_lua('; '.join(f'WALLS["{k}"] = true' for k in keys if k not in skip))
-        self.building(OTHER_HOUSE)
-        if entry:
-            self.door(x=100, y=104, open=True)
-        if window:
-            self.window(x=100, y=104, open=True)
-
-    def kitchen(self, door_y=108):
-        self.building(EXIT_HOUSE)
-        self.enclose(skip=('106,102,0,W', f'106,{door_y},0,W'))
-        self.window(open=True)
-        self.door(y=door_y, open=True)
-
-    def bedroom(self, armoured=True):
-        # LK04-T17 : une porte intérieure verrouillée s'ouvre sans clé de l'intérieur (IsoDoor.java:1266-1268) ;
-        # seule une porte blindée (forceLocked) retient un PNJ qui l'aborde depuis une pièce.
-        self.run_lua('; '.join(f'WALLS["96,{y},0,W"] = true' for y in range(96, 110) if y != 102))
-        self.door(x=96, y=102, locked=True)
-        if armoured:
-            self.run_lua('DOORS["96,102,0,W"].props = { forceLocked = true }')
-
-    def test_destination_behind_a_locked_door_out_through_the_near_door(self):
-        self.kitchen()
-        self.other()
-        self.bedroom()
-        self.trip(target=(93, 102))
-        self.assertEqual(self.entry('s'), 'failed')                    # refus au contact de la porte verrouillée
-        steps = self.steps()
-        self.assertIn((106, 108), steps)                                # porte du foyer, dedans puis dehors
-        after = steps[steps.index((106, 108)) + 1]
-        self.assertLess(after[0], 106, steps)
-        self.assertEqual(self.climbs('solo'), [])                       # fenêtre de la cuisine jamais prise
-        self.assertEqual(self.wstate('solo'), 'true false')
-        logs = self.h.logs('solo')
-        self.assertTrue(any('out of building B7 and into building B9 through 2 door(s) whatever the detour' in s
-                            and 'the destination being beyond the refused door(s) 96,102,0,W (locked door (no key))'
-                            in s for s in logs), logs)
-        self.assertTrue(any('refused at the door 96,102,0,W: locked door (no key)' in s for s in self.lk()), self.lk())
-        self.assertFalse(any('no usable door out of building B7' in s for s in logs), logs)
-        self.assertEqual(self.h.errors('solo'), [])
-
-    def test_destination_behind_an_interior_locked_door_reached_from_inside(self):
-        # LK04-T17 : porte de chambre verrouillée, ordinaire : un joueur dans la maison l'ouvre sans clé.
-        self.kitchen()
-        self.other()
-        self.bedroom(armoured=False)
-        self.trip(target=(93, 102))
-        self.assertEqual(self.entry('s'), 'arrived')
-        self.assertEqual(self.climbs('solo'), [])
-        self.assertTrue(any('door 96,102,0,W opened and unlocked from inside' in s for s in self.lk()), self.lk())
-        self.assertEqual(self.h.errors('solo'), [])
-
-    def test_destination_reachable_only_through_a_window_out_through_the_far_door(self):
-        # Porte du foyer au-delà de ROUTE_PENALTY ; maison voisine sans porte, fenêtre ouverte : la porte pour sortir
-        # du foyer, la fenêtre seulement pour entrer (une escalade de moins que le chemin natif).
-        self.kitchen(door_y=120)
-        self.other(entry=False, window=True)
-        self.trip(target=(97, 104))
-        self.assertEqual(self.entry('s'), 'arrived')
-        self.assertIn((106, 120), self.steps())
-        self.assertEqual(self.climbs('solo'), ['climbwindow 100,104,0,W'])
-        self.assertTrue(any('out of building B7 and into building B9 through 1 door(s) whatever the detour, instead '
-                            'of 2 window or fence crossing(s)' in s for s in self.h.logs('solo')), self.h.logs('solo'))
-        self.assertEqual(self.h.errors('solo'), [])
-
-    def test_door_next_to_the_start_still_guided(self):
-        # Corps sur la case de la porte (106, 104) W, fenêtre (106, 103) W juste au nord, destination dehors juste
-        # derrière la fenêtre : chemin natif par la fenêtre (1,7 contre 2) ; points de porte à moins de ROUTE_GAP du
-        # départ et de la destination : avant LK04-T16, consigne sans point (« door next to the start or the
-        # destination ») et sortie par la fenêtre.
-        self.building(EXIT_HOUSE)
-        self.enclose(skip=('106,103,0,W', '106,104,0,W'))
-        self.window(y=103, open=True)
-        self.door(y=104, open=True)
-        self.trip(start=(106, 104), target=(105, 103))
-        self.assertEqual(self.entry('s'), 'arrived')
-        self.assertEqual(self.steps(), [(105, 104)])
-        self.assertEqual(self.climbs('solo'), [])
-        self.assertEqual(self.h.errors('solo'), [])
-
-    def test_no_usable_door_at_all_window_as_a_last_resort(self):
-        # Foyer sans porte utilisable (verrouillée sans clé) et destination derrière la porte verrouillée : fenêtre.
-        self.kitchen()
-        self.run_lua('local d = DOORS["106,108,0,W"]; d.open = false; d.locked = true; '
-                     'd.props = { forceLocked = true }')
-        self.other()
-        self.bedroom()
-        self.trip(target=(93, 102))
-        self.assertEqual(self.climbs('solo')[:1], ['climbwindow ' + DOOR_KEY])
-        self.assertTrue(any('no usable door out of building B7 and into building B9' in s
-                            for s in self.h.logs('solo')), self.h.logs('solo'))
 
     def trapped_house(self, door_fields=None, barricade_y=110):
         """LK04-T20 (campagne MP du 2026-10-15, lk-7 sans groupe apparu dans le foyer de grp-5) : foyer EXIT_HOUSE (B7)
@@ -3124,60 +2282,6 @@ class ExitLooseTests(ObstacleBase):
         self.door(y=108, **(door_fields or {}))
         self.init()
         return self.group(member=False, home=(110, 110, 0), name='Owners')
-
-    def test_trapped_in_the_home_of_another_group_out_through_the_locked_window(self):
-        # Porte blindée et verrouillée (forceLocked : jamais ouverte sans clé, même de l'intérieur).
-        gid = self.trapped_house(door_fields={'locked': True, 'props': '{ forceLocked = true }'})
-        _, body = self.spawn(x=108, y=102)
-        zid = body.onlineID
-        self.d('moveTo("lk-1", 100, 114, 0)')
-        self.assertIs(self.entry('lr'), True)
-        steps = self.steps()
-        self.assertIn((106, 114), steps, steps)                       # case avant la fenêtre verrouillée (dedans)
-        i = steps.index((106, 114))
-        self.assertEqual(steps[i + 1], (104, 114), steps)             # puis deux cases après (dehors), rien entre
-        logs = self.h.logs('solo')
-        self.assertEqual(self.ev(f'LivingKnox.Obstacles.doorRefusal("lk-1", DOORS["106,108,0,W"], getCell():'
-                                 f'getGridSquare(105, 108, 0), getCell():getGridSquare(106, 108, 0))'),
-                         f'door of the home of {gid} (not a member)')
-        self.assertFalse(any('exit route: no route in the loaded squares' in s for s in logs), logs)
-        self.assertTrue(any('split into' in s and '(last resort out of building B7 through 1 window or fence '
-                            'crossing(s) and 0 door(s)' in s for s in logs), logs)
-        self.assertFalse(any('keeps the vanilla path' in s for s in logs), logs)
-        self.walk_w(zid, 3000, until=self.done())
-        self.assertEqual(self.entry('s'), 'arrived')
-        self.assertEqual(self.climbs('solo'), ['climbwindow 106,114,0,W'])   # fenêtre barricadée jamais prise
-        self.assertTrue(any('openwindow gesture at the window 106,114,0,W' in s for s in self.lk()), self.lk())
-        self.assertTrue(any('window 106,114,0,W opened' in s for s in self.lk()), self.lk())
-        self.assertEqual(self.wstate('solo', '106,110,0,W'), 'false false')   # barricadée : jamais touchée
-        self.assertIs(self.ev('WINDOWS["106,114,0,W"].locked'), False)   # verrou levé par ToggleWindow
-        self.assertEqual(self.state('solo', '106,108,0,W'), 'false true true')   # porte blindée jamais touchée
-        self.assertEqual(self.h.errors('solo'), [])
-
-    def test_trapped_behind_a_barricaded_window_on_the_native_path(self):
-        # Cas de lk-7 : chemin natif par la fenêtre barricadée (106, 113) W, toutes les sorties refusées (itinéraire
-        # "exit-loose" sans aucune porte passée) ; avant LK04-T20, journal trompeur « exit route: no route in the
-        # loaded squares » et consigne sans point (« keeps the vanilla path over 1 window or fence crossing(s) »).
-        # Départ (110, 114) : la marche des doublures ignore les murs, l'approche de la fenêtre (106, 114) W se fait
-        # dans l'axe.
-        self.trapped_house(barricade_y=113, door_fields={'locked': True, 'props': '{ forceLocked = true }'})
-        _, body = self.spawn(x=110, y=114)
-        zid = body.onlineID
-        self.d('moveTo("lk-1", 102, 112, 0)')
-        self.assertIs(self.entry('lr'), True)
-        steps = self.steps()
-        self.assertIn((106, 114), steps, steps)
-        self.assertEqual(steps[steps.index((106, 114)) + 1], (104, 114), steps)   # deux cases au-delà, dehors
-        logs = self.h.logs('solo')
-        self.assertTrue(any('no usable door out of building B7' in s and 'every way out is refused: door(s) or '
-                            'window(s) 106,114,0,W (locked window)' in s for s in logs), logs)
-        self.assertFalse(any('exit route: no route in the loaded squares' in s for s in logs), logs)
-        self.assertFalse(any('keeps the vanilla path' in s for s in logs), logs)
-        self.walk_w(zid, 3000, until=self.done())
-        self.assertEqual(self.entry('s'), 'arrived')
-        self.assertEqual(self.climbs('solo'), ['climbwindow 106,114,0,W'])
-        self.assertEqual(self.wstate('solo', '106,113,0,W'), 'false false')
-        self.assertEqual(self.h.errors('solo'), [])
 
     def test_trapped_decisions_need_the_last_resort_and_the_inside(self):
         # Sans dernier recours (e.lr), refus inchangés ; depuis dehors, fenêtre verrouillée et foyer toujours refusés.
@@ -3209,108 +2313,10 @@ class ExitLooseTests(ObstacleBase):
         self.assertEqual(r[7], 'nil')                                 # dernier recours, depuis dehors : refusée
         self.assertEqual(r[8], 'barricaded window')                   # barricade toujours refusée
 
-    def test_trapped_out_through_the_door_of_the_home_when_no_window_opens(self):
-        # Fenêtre verrouillée inamovible : la porte du foyer, abordée de l'intérieur, est la seule issue.
-        self.trapped_house()
-        self.run_lua('WINDOWS["106,114,0,W"].permaLocked = true')
-        _, body = self.spawn(x=108, y=102)
-        zid = body.onlineID
-        self.d('moveTo("lk-1", 102, 102, 0)')
-        self.assertIs(self.entry('lr'), True)
-        steps = self.steps()
-        self.assertIn((106, 108), steps)                              # case avant la porte (dedans), puis dehors
-        self.assertLess(steps[steps.index((106, 108)) + 1][0], 106, steps)
-        self.walk_w(zid, 3000, until=self.done())
-        self.assertEqual(self.entry('s'), 'arrived')
-        self.assertEqual(self.climbs('solo'), [])
-        self.assertTrue(any('door 106,108,0,W opened' in s for s in self.lk()), self.lk())
-        self.assertEqual(self.h.errors('solo'), [])
-
-    def test_no_trapped_route_keeps_the_vanilla_path_with_a_warning(self):
-        # Porte barricadée, fenêtre inamovible : aucun itinéraire de dernier recours ; avertissement, aucun e.lr.
-        self.trapped_house(door_fields={'barricaded': True})
-        self.run_lua('WINDOWS["106,114,0,W"].permaLocked = true')
-        self.spawn(x=108, y=102)
-        self.d('moveTo("lk-1", 102, 102, 0)')
-        self.assertIsNone(self.entry('lr'))
-        self.assertEqual(self.steps(), [])
-        logs = self.h.logs('solo')
-        self.assertTrue(any('WARN' in s and 'no way around the refused door(s) 106,108,0,W (barricaded door)' in s
-                            and 'trapped route: no route' in s for s in logs), logs)
-
-    def test_suite_loose_exit_site(self):
-        # Site de lk.traversal (LK04-T16) : voie de la fenêtre prise à rebours (départ dans le foyer), porte d'un autre
-        # bâtiment à verrouiller par le test, itinéraire de l'autorité par la porte du foyer jusqu'à elle.
-        self.h.load('solo', 'shared/RST/suites/RST_LKTraversal.lua')
-        self.kitchen()
-        self.other()
-        self.bedroom()
-        self.init()
-        probe = ('local s = RST.LKTraversal.findLooseExitSite({ getX = function() return 110 end, getY = function() '
-                 'return 102 end, getZ = function() return 0 end }) '
-                 'return s and s.e.key, s and s.lockKey, s and s.doorEdges[1].key, '
-                 's and s.start:getX() .. "," .. s.start:getY(), s and s.dest:getX() .. "," .. s.dest:getY()')
-        self.assertEqual(self.run_lua(probe), ('106,102,0,W', '100,104,0,W', '106,108,0,W', '108,102', '99,104'))
-        self.assertEqual(self.state('solo', '100,104,0,W'), 'true false false')   # porte rendue telle quelle
-
-    def test_suite_loose_exit_lane_reaches_the_door_of_the_route(self):
-        # MP 2026-11-13 (runs/20261113-150840-parallel-3 shard3) : les deux joueurs dans le couloir d'une case menant
-        # à la porte de l'itinéraire, hors de la voie départ -> cible de la fenêtre ; corps bloqué 23 s. La voie à
-        # dégager suit aussi l'itinéraire jusqu'aux portes (joueurs écartés à 2 cases).
-        self.h.load('solo', 'shared/RST/suites/RST_LKTraversal.lua')
-        self.kitchen()
-        self.other()
-        self.bedroom()
-        self.init()
-        probe = ('local s = RST.LKTraversal.findLooseExitSite({ getX = function() return 110 end, getY = function() '
-                 'return 102 end, getZ = function() return 0 end }) '
-                 'local d = s.doorEdges[1] local hit = false '
-                 'for _, q in ipairs(RST.LKTraversal.laneSquares(s)) do '
-                 'if q.x == d.ax and q.y == d.ay then hit = true end end '
-                 'return hit, d.ax .. "," .. d.ay')
-        hit, door = self.run_lua(probe)
-        self.assertTrue(hit, door)
-
-
-class MultiplayerTrappedTests(ObstacleBase):
-    """LK04-T20 en MP (serveur dédié, A simule le corps, B regarde) : itinéraire de dernier recours calculé par le
-    serveur, points de passage envoyés ; e.lr reste sur le serveur (les décisions au contact y sont prises)."""
-    mode = 'mp'
-    enclose = ExitByDoorTests.enclose
-    steps = ExitByDoorTests.steps
-    trapped_house = ExitLooseTests.trapped_house
-
-    def setUp(self):
-        super().setUp()
-        SENT.clear()
-
-    def test_server_guides_the_owner_out_through_the_locked_window(self):
-        self.trapped_house(barricade_y=113, door_fields={'locked': True, 'props': '{ forceLocked = true }'})
-        _, body = self.spawn(x=110, y=114)
-        zid = body.onlineID
-        srv = self.h.zombie('server', zid)
-        for c in ('A', 'B'):
-            self.h.eval(c, f'MIRROR({zid}, {srv.x}, {srv.y}, {srv.z}, "A")')
-        self.h.set_owner(zid, 'A')
-        self.h.pump()
-        self.d('moveTo("lk-1", 102, 112, 0)')
-        self.h.pump()
-        self.assertIs(self.entry('lr'), True)
-        self.assertIsNone(self.h.eval('A', 'LivingKnox.Executor.remote.d["lk-1"].lr'))   # jamais envoyé
-        self.assertEqual(self.h.eval('A', '#LivingKnox.Executor.remote.d["lk-1"].w'), len(self.steps()))
-        self.walk_w(zid, 3000, until=self.done())
-        self.assertEqual(self.entry('s'), 'arrived')
-        self.assertEqual(self.climbs('A'), ['climbwindow 106,114,0,W'])
-        self.assertEqual(self.wcount('A'), (0, 0))                               # bascules sur le serveur seulement
-        for m in ('server', 'A', 'B'):
-            self.assertEqual(self.wstate(m, '106,114,0,W'), 'false false', m)  # ouverte puis refermée derrière
-            self.assertEqual(self.wstate(m, '106,113,0,W'), 'false false', m)
-        self.assertEqual(self.h.errors('server'), [])
-
 
 class SourceTests(unittest.TestCase):
     def test_kahlua_safe_sources_and_english_logs(self):
-        engine = [lua_src(OBSTACLES)] + [LK_LUA / p for p in routing_files()]   # LK16-T11 : itinéraires
+        engine = [lua_src(OBSTACLES), lua_src(DETOUR)]
         for path in engine + [LK_LUA / 'client/LivingKnox/LK_Executor.lua',
                               LK_LUA / 'server/LivingKnox/LK_Directives.lua', TRAVERSAL_SUITE]:
             src = path.read_text(encoding='utf-8')
@@ -4423,7 +3429,7 @@ class InsideDoorTests(ObstacleBase):
         self.door(locked=True, lockedByKey=True, keyId=77)
         self.init()
         self.spawn(x=108, y=102)
-        refusal = 'return LivingKnox.Obstacles.doorRefusal("lk-1", DOORS["106,102,0,W"], %s, %s, %s)'
+        refusal = 'return LivingKnox.Detour.doorRefusal("lk-1", DOORS["106,102,0,W"], %s, %s, %s)'
         a, b = 'getCell():getGridSquare(105, 102, 0)', 'getCell():getGridSquare(106, 102, 0)'
         self.assertIsNone(self.run_lua(refusal % (a, b, b)))                     # abordée de l'intérieur
         self.assertEqual(self.run_lua(refusal % (a, b, a)), 'locked door (no key)')   # de dehors

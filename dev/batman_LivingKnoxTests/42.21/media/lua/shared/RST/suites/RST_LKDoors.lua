@@ -23,8 +23,8 @@ solo and dedicated server, same places in the same order at each run) and the pl
       body arrives, the door is closed and locked again behind it; every client sees it closed and locked.
     - home door, non-member: same home (a group of the test), the npc of no group walks in from outside: the move is
       refused at the door (directive failed, reason "door of the home of <group> (not a member)"), the door stays
-      closed and locked, no opening by the authority; every client sees it closed and locked. The detour around
-      refused doors is off for this test (LivingKnox.Obstacles.AVOID_REFUSED), otherwise the npc would look for
+      closed and locked, no opening by the authority; every client sees it closed and locked. The detour after a
+      refusal is off for this test (hook LivingKnox.Obstacles.onRefusal, LK17-T01), otherwise the npc would be given
       another way in.
     - barricaded door: one plank nailed on the start side of the closed door (IsoBarricade.AddBarricadeToObject), a
       npc of no group: the move is refused (reason "barricaded door", detour off), the door and the plank stay as they
@@ -73,12 +73,11 @@ local function clientsSee(t, key, open, locked, after)
         timeoutMs = STEP_MS }, after)
 end
 
--- Detour around refused doors off for the test (the refusal itself is checked).
+-- Detour after a refusal off for the test (LK17-T01, hook of LK_Detour.lua; the refusal itself is checked).
 local function noDetour(t, o)
-    if o.AVOID_REFUSED == nil then return end
-    local was = o.AVOID_REFUSED
-    o.AVOID_REFUSED = false
-    t:defer(function() o.AVOID_REFUSED = was end, "restore the detour around refused doors")
+    local was = o.onRefusal
+    o.onRefusal = nil
+    t:defer(function() o.onRefusal = was end, "restore the detour after a refusal")
 end
 
 -- Settlers group of the test with its home in the building of the square inside; member (npc id) or none.

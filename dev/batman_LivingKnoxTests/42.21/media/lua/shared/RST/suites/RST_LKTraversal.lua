@@ -19,10 +19,11 @@ never cross it for the locked window. Low gates (closed hoppable doors) are not 
     - broken window (set with setSmashed, restored afterwards): same;
     - low fence (hoppable edge, no window frame, no stairs next to it): the body climbs over it ("climbfence");
     - refused door next to a low fence (LK04-T14): a low fence site with a closed door that a npc would not pass
-      (double, locked, barricaded, home of a group: LivingKnox.Obstacles.doorRefusal; LK04-T17: garage doors are
+      (double, locked, barricaded, home of a group: LivingKnox.Detour.doorRefusal; LK04-T17: garage doors are
       opened, all their panels) within one square of
-      its lane; the authority guides the body around it: the move arrives, the body never crosses that door, the
-      door is left as it was and no refusal is counted. Decor (solo campaign of 2026-10-15): when no door next to a
+      its lane; the game path may take the fence or the door; a refusal at the door gives a detour (LK17-T01,
+      LivingKnox.Detour: the low fence or another gate): the move arrives, the body never crosses that door, the
+      door is left as it was and every refusal counted gave a detour. Decor (solo campaign of 2026-10-15): when no door next to a
       low fence is refused, a fence with a single door within one square of its lane is taken and the test closes that
       door and nails one plank on it (refused: "barricaded door"; plank removed and door restored afterwards), places
       tried 2 PLACE_TRIES. No such site: SKIP;
@@ -36,23 +37,13 @@ never cross it for the locked window. Low gates (closed hoppable doors) are not 
     - closed window, npc member of a raiders group: same (any npc may open a closed window, LK04-T07);
     - locked window, settlers member: the move is refused (directive failed, reason "locked window"), the window
       stays closed, locked and unbroken (LivingKnox.Obstacles.stats.windowsRefused + 1; reason in the log);
-    - open door next to an open window (LK04-T09, door first): a window site whose lane the authority routes through a
-      door (LivingKnox.Obstacles.planDoorRoute, checked before the test with the window taken as open, as the test
-      opens it; checked again once the window and the doors of that route are opened by the test, restored
-      afterwards): the move carries waypoints, the body never crosses the window edge, goes through the
-      first door of the route, arrives, and never climbs ("climbwindow" never seen in solo; the crossing of the
-      window edge by position is checked on a server only, ambiguous near a corner). A door of the route less than
-      two squares from the window makes the site ambiguous: left out. No such site: SKIP.
-    - window of a house, far door (LK04-T15, out of a house through a door whatever the detour): same trip, for a
-      window site whose lane leaves or enters a building and that the authority routes through a door only by that
-      rule (with LivingKnox.Obstacles.EXIT_BY_DOOR off, the window is kept). No such site: SKIP.
-    - window of a house, destination behind a locked door elsewhere (LK04-T16): a window site whose lane leaves the
-      house (taken backwards when it enters it), and a single EXTERIOR door of another building that the test closes
-      and locks (restored afterwards; LK04-T17: from inside, a locked door opens without a key), the destination on
-      its inside square (a body before a closed door never "arrives" through it: LivingKnox.Executor.behindClosedDoor)
-      (findLooseExitSite: route of the authority probed out through a door of the house up to that door); detour
-      around refused doors off: the body leaves the house through the door of the route, never through the window,
-      and the move is refused at the locked door ("locked door (no key)"). No such site: SKIP.
+    - locked window, detour through a door (LK17-T01): a window site (no door next to its lane) for which
+      LivingKnox.Detour.plan, probed from the lane start, gives a door of the house (findDetourSite); the test closes
+      and locks the window (restored afterwards), the npc (settlers member) walks the lane: the game path takes the
+      window, the authority refuses it at contact ("locked window") and gives the same move a detour through a door
+      (LivingKnox.Detour.stats.detours + 1, waypoints): the body arrives, never through the window ("climbwindow"
+      never seen in solo; crossing of the window edge by position checked on a server only), through a door, and
+      the window is left closed and locked. No such site: SKIP.
     - open exterior door of a home (LK04-T10): the nearest free single exterior door of a building that is no group's
       home is opened, a npc is spawned two squares inside, then a settlers group is created with its home in that
       building and the npc as member (LK04-T12: locking needs a member with the key at home; a new loaded home is an
@@ -83,22 +74,21 @@ never cross it for the locked window. Low gates (closed hoppable doors) are not 
       and without a broken window or bare frame, lane from inside; a npc of no group spawned on the lane start, then
       a settlers group (no member) gets its home in that building; every exterior door of the house is closed and
       locked, every exterior window closed (restored afterwards): by the usual rules no door or window lets the npc
-      out. The route of the authority is the last resort (LivingKnox.Obstacles.planDoorRoute: lastResort), the move
-      carries the last resort mark (Directives entry lr), the body leaves the house and arrives two squares out.
-The six window and fence tests above check the crossing itself: they switch the door-first rule off
-(LivingKnox.Obstacles.DOORS_FIRST, restored by t:defer), otherwise a door next to the site would take the body, and
-leave out a site with any door within one square of its lane (LK04-T14: the native path to a low fence took the
-closed garage door next to it, at about the same length).
+      out. Refused at the door (home of another group), the authority gives the last resort (LivingKnox.Detour, LK04-T20:
+      the door opened from inside, or a locked window): the move carries the last resort mark (Directives entry lr),
+      the body leaves the house and arrives two squares out.
+The window and fence tests above check the crossing itself: they leave out a site with any door within one square of
+its lane (LK04-T14: the native path to a low fence took the closed garage door next to it, at about the same length).
 They also leave out a site whose lane passes within Bodies.HAZARD_AVOID of a farming plant or a campfire: the
 move would be split around it (Directives.planDetour) and pass beside the obstacle (solo campaign 2026-10-15).
-The key test without the key checks the refusal itself:
-it switches the detour around refused doors off (LivingKnox.Obstacles.AVOID_REFUSED, restored by t:defer).
+The locked window test and the key test without the key check the refusal itself: they switch the detour after a
+refusal off (hook LivingKnox.Obstacles.onRefusal, restored by t:defer).
 Blocking is detected as the longest stretch with the body still (less than STILL squares in STILL_MS) outside a
 crossing: measured, and FAIL when it reaches BLOCKED_MS. Figures are printed as "[LKT] measure ..." lines: trip time,
 crossing time (LivingKnox.Executor.stats.crossMs, solo), longest still stretch, retries. Human climb (LK04-T11,
 not on a server): once a crossing state was seen, the body must never be on the floor (isOnFloor, isKnockedDown,
 ClimbWindowFlopped, ClimbFenceFlopped) until the end of the trip; FAIL otherwise. Low fences are edges that the
-engine sees as such (LivingKnox.Obstacles.isFenceTo: square flag HoppableW/N, not only a hoppable object over a
+engine sees as such (LivingKnox.Detour.isFenceTo: square flag HoppableW/N, not only a hoppable object over a
 wall). The npc of a test that joins a group is left out of the decisions of that group (LivingKnox.Decisions,
 isolate), and a move replaced by another directive before its end was read is a FAIL that says so. Every test removes its npc
 (and its directive), restores the window state and removes its group with t:defer.
@@ -144,6 +134,7 @@ local clearLane   -- defined with atSite (players off the lane of a site)
 local function O() return LivingKnox and LivingKnox.Obstacles end
 local function X() return LivingKnox and LivingKnox.Executor end
 local function GR() return LivingKnox and LivingKnox.Groups end
+local function DT() return LivingKnox and LivingKnox.Detour end
 
 local function cell() return getCell() end
 
@@ -213,12 +204,13 @@ local function edgeOffset(e, x, y)
     return (x - e.b:getX()) * e.nx + (y - e.b:getY()) * e.ny, math.abs((x - mx) * e.ny + (y - my) * e.nx)
 end
 
--- True if a move from (ax, ay) to (bx, by) crosses the edge e through the obstacle itself (within one square of
--- the middle of the edge), from the start side to the far side.
+-- True if a move from (ax, ay) to (bx, by) crosses the edge e through the obstacle itself (within e.lat squares of
+-- the middle of the edge, one by default), from the start side to the far side.
 local function crossed(e, ax, ay, bx, by)
     local a, la = edgeOffset(e, ax, ay)
     local b, lb = edgeOffset(e, bx, by)
-    return a < 0 and b >= 0 and la <= 1 and lb <= 1
+    local lat = e.lat or 1
+    return a < 0 and b >= 0 and la <= lat and lb <= lat
 end
 
 -- Nearest edge around the player accepted by pick(e) (returns the object), with its lane, or nil.
@@ -401,12 +393,12 @@ local function pickWindow(e)
 end
 
 -- Low fence: hoppable edge without window, window frame or door, no stairs on either side. A low gate (closed
--- hoppable door) is left out: the authority opens it when it is not locked (LK04-T09 decides gates).
+-- hoppable door) is left out (a door edge).
 local function pickFence(e)
     -- 2026-10-11 23:08: the edge 10747,9538 W carries a wall and a "HoppableW" counter: isHoppableTo (objects) is true,
-    -- but the engine sees a wall (square flag removed): LivingKnox.Obstacles.isFenceTo reads the flag.
-    local o = O()
-    if o == nil or o.isFenceTo == nil or not o.isFenceTo(e.a, e.b) then return nil end
+    -- but the engine sees a wall (square flag removed): LivingKnox.Detour.isFenceTo reads the flag.
+    local dt = DT()
+    if dt == nil or dt.isFenceTo == nil or not dt.isFenceTo(e.a, e.b) then return nil end
     if e.a:getWindowTo(e.b) ~= nil or e.a:getWindowFrameTo(e.b) ~= nil then return nil end
     if e.a:getDoorTo(e.b) ~= nil then return nil end
     if e.a:HasStairs() or e.b:HasStairs() then return nil end
@@ -437,8 +429,8 @@ end
 
 -- LK04-T14 (solo test of 2026-10-11 22:30): the native path to a low fence took a closed garage door next to it,
 -- refused by the authority. The crossing tests check the window or the fence itself: a site with a door within one
--- square of its lane is left out (the native path may take the door at about the same length, and the door-first
--- rule is off there). The detour around a refused door has its own test (pickFenceByRefusedDoor).
+-- square of its lane is left out (the native path may take the door at about the same length). The detour after a
+-- refused door has its own test (pickFenceByRefusedDoor).
 -- Solo campaign of 2026-10-15 (low fence 11311,6938,W: "the body went around the obstacle"): a farming plant or a
 -- campfire within Bodies.HAZARD_AVOID of the lane splits the move into steps around it (LivingKnox.Directives.planDetour,
 -- LK05-T12: the garden comes first; "move #20 split into 3 steps around farming plants or campfires"), and the detour
@@ -462,13 +454,13 @@ local function rawPick(pick)
 end
 
 -- Closed doors within one square of the lane of e that a npc without group or key would not pass
--- (LivingKnox.Obstacles.doorRefusal: double, locked, barricaded, home of a group...), low gates left out.
+-- (LivingKnox.Detour.doorRefusal: double, locked, barricaded, home of a group...), low gates left out.
 local function refusedDoorsByLane(e)
     local o = O()
     local out = {}
     for _, d in ipairs(doorsByLane(e)) do
         if not o.isOpen(d.door) and not o.isLowGate(d.door)
-            and o.doorRefusal("lkt-probe", d.door, d.e.a, d.e.b) ~= nil then
+            and DT().doorRefusal("lkt-probe", d.door, d.e.a, d.e.b) ~= nil then
             out[#out + 1] = d
         end
     end
@@ -493,7 +485,7 @@ end
 -- test barricades (decor made by the test: solo campaign of 2026-10-15, no fence next to a refused door in 10 places).
 local function pickFenceByRefusedDoor(e)
     local obj = pickFence(e)
-    if obj == nil or O() == nil or O().doorRefusal == nil or laneNearHazard(e) then return nil end
+    if obj == nil or DT() == nil or DT().doorRefusal == nil or laneNearHazard(e) then return nil end
     if #refusedDoorsByLane(e) == 0 and #barricadableDoorsByLane(e) == 0 then return nil end
     return obj
 end
@@ -566,190 +558,28 @@ local function buildFence(t, site)
     t:ok(lane(site.e) ~= nil, "no free lane through the fence put on " .. site.e.key)
 end
 
--- Route of the authority for the lane of the window site s, as the test will run it: window open (the test opens it
--- before the move). The window is left as it is (often closed and locked in a house): LivingKnox.Obstacles.decideWindow
--- is answered "open" for it during the call (same cost as an open window in Obstacles.findRoute: ROUTE_PENALTY), then
--- put back. Probing the closed locked window made it a wall, so a far door was chosen, and the move, window open,
--- kept the window (2026-10-11 14:58: "no usable door or gate within 20 squares of detour").
-local function probeWindowOpen(o, s, id, x0, y0)
-    local decideWindow = o.decideWindow
-    o.decideWindow = function(npcId, w, ...)
-        if w == s.obj then return "open" end
-        return decideWindow(npcId, w, ...)
-    end
-    local ok, w, info = pcall(o.planDoorRoute, id, x0, y0, s.target:getX(), s.target:getY(), s.e.a:getZ())
-    o.decideWindow = decideWindow
-    if not ok then error(w) end
-    return w, info
-end
-
--- Window site whose lane the authority routes through a door (LK04-T09): LivingKnox.Obstacles.planDoorRoute from the
--- lane start to the lane target, with the window open and the doors as they are (no npc group; a closed door that
--- the authority would open counts as a way). The DOOR_PROBE nearest window sites are tried. Adds doorEdges (edges of
--- the doors of the route, with their door) to the site. A site with a door of the route less than DOOR_GAP squares
--- from the window (middles of the edges) is ambiguous and left out (2026-10-11 23:58: door 10745,9528,0,W next to
--- the window 10745,9529,0,W; the body, through the door, was measured crossing the window edge near the corner).
-local DOOR_PROBE = 12
-local DOOR_GAP = 2
-local function doorNextToWindow(s, doorEdges)
-    local e = s.e
-    local wx = (e.a:getX() + e.b:getX() + 1) / 2
-    local wy = (e.a:getY() + e.b:getY() + 1) / 2
-    for _, de in ipairs(doorEdges) do
-        local dx, dy = (de.mx or wx + DOOR_GAP) - wx, (de.my or wy) - wy
-        if dx * dx + dy * dy < DOOR_GAP * DOOR_GAP then return true end
-    end
-    return false
-end
-local function findDoorSite(p)
-    local sites = findSites(p, pickWindow)
-    for i = 1, math.min(#sites, DOOR_PROBE) do
-        local s = sites[i]
-        local w, info = probeWindowOpen(O(), s, "lkt-probe", s.start:getX() + 0.5, s.start:getY() + 0.5)
-        if #w > 0 and info.doorEdges ~= nil and info.doorEdges[1] ~= nil and info.doorEdges[1].door ~= nil
-            and not doorNextToWindow(s, info.doorEdges) then
-            s.doorEdges = info.doorEdges
-            return s
-        end
-    end
-    return nil
-end
-
--- Window site of a building whose lane leaves (or enters) the building, routed through a door only by the rule
--- "out of a house through a door, whatever the detour" (LK04-T15): with the window open, planDoorRoute guides through
--- a door (info.exitUsed), and with LivingKnox.Obstacles.EXIT_BY_DOOR off it keeps the window (door beyond
--- ROUTE_PENALTY squares of detour, or out of the usual search box). Doors less than DOOR_GAP squares from the window
--- left out. The EXIT_PROBE nearest window sites are tried. Adds doorEdges to the site.
-local EXIT_PROBE = 24
-local function findExitSite(p)
-    local o = O()
-    if o == nil or o.exitOf == nil then return nil end
-    local sites = findSites(p, pickWindow)
-    for i = 1, math.min(#sites, EXIT_PROBE) do
+-- Window site for the detour test (LK17-T01): a window lane with no door next to it (rawPick), for which
+-- LivingKnox.Detour.plan, probed from the lane start as if the window were refused there, gives a door (no last
+-- resort). The DETOUR_PROBE nearest window sites are tried. Adds detour (the plan) and doorEdges (edge of that door,
+-- for the lane clearing) to the site.
+local DETOUR_PROBE = 12
+local function findDetourSite(p)
+    local o, dt = O(), DT()
+    if o == nil or dt == nil or dt.plan == nil then return nil end
+    local sites = findSites(p, rawPick(pickWindow))
+    for i = 1, math.min(#sites, DETOUR_PROBE) do
         local s = sites[i]
         local z = s.e.a:getZ()
-        local x0, y0 = s.start:getX() + 0.5, s.start:getY() + 0.5
-        if o.exitOf(x0, y0, s.target:getX(), s.target:getY(), z) ~= nil then
-            local w, info = probeWindowOpen(o, s, "lkt-probe", x0, y0)
-            if #w > 0 and info.exitUsed == true and info.doorEdges ~= nil and info.doorEdges[1] ~= nil
-                and info.doorEdges[1].door ~= nil and not doorNextToWindow(s, info.doorEdges) then
-                local saved = o.EXIT_BY_DOOR
-                o.EXIT_BY_DOOR = false
-                local ok, w2 = pcall(probeWindowOpen, o, s, "lkt-probe", x0, y0)
-                o.EXIT_BY_DOOR = saved
-                if not ok then error(w2) end
-                if #w2 == 0 then
-                    s.doorEdges = info.doorEdges
-                    return s
-                end
-            end
-        end
-    end
-    return nil
-end
-
--- Window site of a house A whose lane leaves A (start inside A, target outside; the lane is taken backwards when it
--- enters A), with a destination behind a single door of another building B that the test closes and locks (LK04-T16,
--- solo test of 2026-10-12: a npc in the kitchen of its home, sent to a bedroom of another house behind a locked
--- door without key, left through the kitchen window, the open door of the home a few squares away). The route of the
--- authority is probed with the window open and that door refused ("locked door (no key)"): it must leave A through a
--- door (info.exitUsed) and end at the refused door (info.loose). Doors of the route less than DOOR_GAP squares from
--- the window left out. Returns { e, obj, start, target (outside, unused), dest (square behind the locked door), lock
--- (that door), lockKey, doorEdges, inside (building id of A) } or nil.
-local LOOSE_PROBE = 8      -- window sites tried
-local LOOSE_DOORS = 6      -- doors of another building tried per window site, nearest first
-local function lockableDoors(p, z)
-    local o = O()
-    local px, py = math.floor(p:getX()), math.floor(p:getY())
-    local out = {}
-    for x = px - SEARCH, px + SEARCH do
-        for y = py - SEARCH, py + SEARCH do
-            for _, kind in ipairs({ "W", "N" }) do
-                local e = edgeAt(x, y, z, kind)
-                local door = e and e.a:getDoorTo(e.b)
-                if door ~= nil and o.kindOf(door) == "single" and not door:isBarricaded() and not door:isObstructed()
-                    and not o.isLowGate(door) and walkable(e.a) and walkable(e.b) then
-                    -- LK04-T17 : exterior door only, destination on its inside square, reached from outside (a
-                    -- locked door opens without a key from inside, as for a player: LivingKnox.Obstacles.opensFromInside).
-                    local da, db = e.a:getBuildingDef(), e.b:getBuildingDef()
-                    if (da == nil) ~= (db == nil) then
-                        local sq, def = e.a, da
-                        if def == nil then sq, def = e.b, db end
-                        out[#out + 1] = { door = door, e = e, dest = sq, building = def:getIDString(), x = x, y = y }
-                    end
-                end
-            end
-        end
-    end
-    return out
-end
-local function probeLoose(o, s, lock)
-    local decide, isOpen = o.decide, o.isOpen
-    o.decide = function(npcId, d, ...)
-        if d == lock.door then return nil, "locked door (no key)" end
-        return decide(npcId, d, ...)
-    end
-    o.isOpen = function(d)   -- the test closes it (an open door is passed whatever decide says)
-        if d == lock.door then return false end
-        return isOpen(d)
-    end
-    local ok, w, info = pcall(probeWindowOpen, o, { obj = s.obj, target = lock.dest, e = s.e }, "lkt-probe",
-        s.start:getX() + 0.5, s.start:getY() + 0.5)
-    o.decide, o.isOpen = decide, isOpen
-    if not ok then error(w) end
-    return w, info
-end
-local function findLooseExitSite(p)
-    local o = O()
-    if o == nil or o.exitOf == nil then return nil end
-    local z = math.floor(p:getZ())
-    local doors = nil
-    local tried = 0
-    for _, s in ipairs(findSites(p, pickWindow)) do
-        if tried >= LOOSE_PROBE then break end
-        local da, db = s.start:getBuildingDef(), s.target:getBuildingDef()
-        local start, target = s.start, s.target
-        if da == nil and db ~= nil and B() ~= nil and B().freeSquare ~= nil and B().freeSquare(s.target) then
-            start, target, da = s.target, s.start, db
-        elseif db ~= nil then
-            da = nil
-        end
-        if da ~= nil then
-            tried = tried + 1
-            local inside = da:getIDString()
-            doors = doors or lockableDoors(p, z)
-            local cands = {}
-            for _, c in ipairs(doors) do
-                if c.building ~= inside then cands[#cands + 1] = c end
-            end
-            table.sort(cands, function(a, b)
-                local ka = math.abs(a.x - start:getX()) + math.abs(a.y - start:getY())
-                local kb = math.abs(b.x - start:getX()) + math.abs(b.y - start:getY())
-                if ka ~= kb then return ka < kb end
-                return a.e.key < b.e.key
-            end)
-            local site = { e = s.e, obj = s.obj, start = start, target = target }
-            for i = 1, math.min(#cands, LOOSE_DOORS) do
-                local c = cands[i]
-                local w, info = probeLoose(o, site, c)
-                local stops = false
-                for _, r in ipairs(info.loose or {}) do
-                    if r.key == c.e.key then stops = true end
-                end
-                local first = info.doorEdges and info.doorEdges[1]
-                local fa = first and getCell():getGridSquare(first.ax, first.ay, z)
-                local fb = first and getCell():getGridSquare(first.bx, first.by, z)
-                local function inA(sq)
-                    local d = sq and sq:getBuildingDef()
-                    return d ~= nil and d:getIDString() == inside
-                end
-                if #w > 0 and info.exitUsed == true and stops and first ~= nil and first.door ~= nil
-                    and (inA(fa) or inA(fb)) and not doorNextToWindow(site, info.doorEdges) then
-                    site.dest, site.lock, site.lockKey, site.doorEdges, site.inside = c.dest, c.door, c.e.key,
-                        info.doorEdges, inside
-                    return site
-                end
-            end
+        local sx, sy = s.start:getX() + 0.5, s.start:getY() + 0.5
+        local body = { getX = function() return sx end, getY = function() return sy end, getZ = function() return z end }
+        local entry = { v = -1, op = "move", x = s.target:getX(), y = s.target:getY(), z = z }
+        local c = { e = o.edge(s.e.a:getX(), s.e.a:getY(), z, s.e.kind), sqA = s.e.a, sqB = s.e.b }
+        local plan = dt.plan("lkt-probe", entry, c, body, { [s.e.key] = true })
+        if plan ~= nil and plan.kind == "door" and not plan.lr and plan.w ~= nil and #plan.w >= 2 then
+            local a, b = plan.w[1], plan.w[2]
+            s.detour = plan
+            s.doorEdges = { { ax = a.x, ay = a.y, bx = b.x, by = b.y, key = plan.via } }
+            return s
         end
     end
     return nil
@@ -888,14 +718,14 @@ local function refuseDoorNextTo(t, site)
     print("[LKT] refused door next to a low fence: door " .. d.key .. " closed and barricaded by the test")
 end
 
--- The six crossing tests check the window or the fence itself: door-first rule off during the test (LK04-T09),
--- otherwise a door next to the site would take the body.
-local function rawCrossing(t)
+-- Tests of a refusal itself: the detour after a refusal (LK17-T01, hook LivingKnox.Obstacles.onRefusal of
+-- LK_Detour.lua) is switched off during the test, restored by t:defer; the refusal then closes the move.
+local function noDetour(t)
     local o = O()
-    if o == nil or o.DOORS_FIRST == nil then return end
-    local was = o.DOORS_FIRST
-    o.DOORS_FIRST = false
-    t:defer(function() o.DOORS_FIRST = was end, "restore the door-first rule")
+    if o == nil then return end
+    local was = o.onRefusal
+    o.onRefusal = nil
+    t:defer(function() o.onRefusal = was end, "restore the detour after a refusal")
 end
 
 -- 2026-10-11 23:08 (closed window, raiders: "expected arrived, got faced"): the decision framework of the group
@@ -1102,7 +932,6 @@ end
 local function windowTest(prepare, what, expectFail, check, observe)
     local run
     local function test(t)
-        rawCrossing(t)
         atSite(t, "ground floor window with a free lane and no door next to it",
             function(p) return findSite(p, rawPick(pickWindow)) end, run)
     end
@@ -1191,13 +1020,9 @@ local function keyTest(withKey, fromInside)
         local o = O()
         t:ok(o ~= nil and o.giveKey ~= nil and GR() ~= nil and GR().isReady(),
             "LivingKnox.Obstacles.giveKey or LivingKnox.Groups is not ready here")
-        if not withKey and o.AVOID_REFUSED ~= nil then
-            -- The refusal itself is checked: detour around a refused door off (LK04-T14), otherwise the npc would
-            -- enter through another door of the house.
-            local was = o.AVOID_REFUSED
-            o.AVOID_REFUSED = false
-            t:defer(function() o.AVOID_REFUSED = was end, "restore the detour around refused doors")
-        end
+        -- The refusal itself is checked without the key: detour after a refusal off (LK17-T01), otherwise the npc
+        -- would enter through another door of the house.
+        if not withKey and not fromInside then noDetour(t) end
         local pick = withKey and pickHomeDoor or pickHomeDoorFrom(fromInside == true)
         atSite(t, "free single exterior door of a building without a home, with a free lane"
             .. (withKey and "" or (fromInside and " from inside" or " from outside")),
@@ -1390,14 +1215,14 @@ end
 
 -- LK04-T20 (campaign MP of 2026-10-15): a npc that belongs to no group stands in a house that is the home of another
 -- group, every exterior door of the house closed and locked and every exterior window closed: no door or window it
--- would take by the usual rules (home of another group). The move to two squares out of the door takes the last
--- resort route of the authority ("trapped": door of the other home opened from inside, or a locked window): the
+-- would take by the usual rules (home of another group). Refused at the door, the move gets the last resort of the
+-- authority (LK17-T01, LivingKnox.Detour: door of the other home opened from inside, or a locked window): the
 -- directive carries the last resort mark, the body leaves the house and arrives.
 local trappedRun
 local function trappedTest(t)
     local o = O()
-    t:ok(o ~= nil and o.planDoorRoute ~= nil and GR() ~= nil and GR().isReady(),
-        "LivingKnox.Obstacles.planDoorRoute or LivingKnox.Groups is not ready here")
+    t:ok(o ~= nil and DT() ~= nil and o.onRefusal ~= nil and GR() ~= nil and GR().isReady(),
+        "LivingKnox.Detour (detour after a refusal) or LivingKnox.Groups is not ready here")
     atSite(t, "free single exterior door of a building without a home, lane from inside, no broken window",
         findTrappedSite, trappedRun)
 end
@@ -1430,14 +1255,11 @@ trappedRun = function(t, site)
         for _, we in ipairs(windows) do setOpen(we.w, id, false) end
         t2:ok(not o.isOpen(door) and o.isLocked(door), "door " .. e.key .. " not closed and locked")
         t2:eq(nil, o.groupOf(id), "group of the npc")
-        local zb = B().find(id)
-        local _, pinfo = o.planDoorRoute(id, zb:getX(), zb:getY(), site.target:getX(), site.target:getY(), z)
-        measure("trapped: route of the authority " .. tostring(pinfo and pinfo.reason) .. ", last resort "
-            .. tostring(pinfo and pinfo.lastResort))
-        t2:ok(pinfo ~= nil and pinfo.lastResort == true, "route of the authority: no last resort ("
-            .. tostring(pinfo and pinfo.reason) .. ")")
+        local last0 = DT().stats.lastResorts or 0
         trip(t2, id, site.target, "trapped in the home of another group", false, function(t3)
             local entry = D().entries and D().entries[id] or nil
+            measure(string.format("trapped: %d last resort(s) given, %d step(s)", (DT().stats.lastResorts or 0)
+                - last0, entry and type(entry.w) == "table" and #entry.w or 0))
             t3:ok(entry ~= nil and entry.lr == true, "move without the last resort mark")
             local zb2 = B().find(id)
             local sq = zb2 and zb2:getCurrentSquare() or nil
@@ -1456,8 +1278,7 @@ RST.LKTraversal.pickInteriorDoor = pickInteriorDoor
 RST.LKTraversal.pickHomeDoor = pickHomeDoor
 RST.LKTraversal.findSite = findSite
 RST.LKTraversal.findSiteFrom = findSiteFrom
-RST.LKTraversal.findDoorSite = findDoorSite
-RST.LKTraversal.findExitSite = findExitSite
+RST.LKTraversal.findDetourSite = findDetourSite
 RST.LKTraversal.pickWindow = pickWindow
 RST.LKTraversal.pickFence = pickFence
 RST.LKTraversal.rawPick = rawPick
@@ -1469,7 +1290,6 @@ RST.LKTraversal.setOpen = setOpen
 RST.LKTraversal.crossed = crossed
 RST.LKTraversal.onLane = onLane
 RST.LKTraversal.stairsEnds = stairsEnds
-RST.LKTraversal.findLooseExitSite = findLooseExitSite
 -- LK04-T02: helpers of the trips, shared with lk.doors (RST_LKDoors.lua).
 RST.LKTraversal.atSite = atSite
 RST.LKTraversal.edgeAt = edgeAt
@@ -1481,130 +1301,58 @@ RST.LKTraversal.onStartSide = onStartSide
 RST.LKTraversal.exteriorDoors = exteriorDoors
 RST.LKTraversal.trip = trip
 
--- LK04-T16: npc in a house A at a window site whose lane leaves A, destination in another building behind a door that
--- the test closes and locks (findLooseExitSite): the body leaves A through the door of the route, never through the
--- window, and the move ends refused at the locked door ("locked door (no key)").
-local looseExitRun
-local function looseExitTest(t)
-    local o = O()
-    t:ok(o ~= nil and o.planDoorRoute ~= nil and o.DOORS_FIRST == true and o.EXIT_BY_DOOR == true,
-        "LivingKnox.Obstacles.planDoorRoute is not loaded here, or the door-first or exit-by-door rule is off")
-    if o.AVOID_REFUSED ~= nil then   -- refusal at the locked door checked, no detour hunt around it
-        local was = o.AVOID_REFUSED
-        o.AVOID_REFUSED = false
-        t:defer(function() o.AVOID_REFUSED = was end, "restore the detour around refused doors")
-    end
-    atSite(t, "window of a house whose lane leaves it, with a door of another building to lock", findLooseExitSite,
-        looseExitRun)
+-- LK17-T01: locked window on the game path, detour through a door of the house given by the authority at the refusal.
+local detourRun
+local function detourTest(t)
+    t:ok(O() ~= nil and DT() ~= nil and O().onRefusal ~= nil,
+        "LivingKnox.Detour (detour after a refusal) is not loaded here")
+    atSite(t, "window with a free lane and a door of the house for a detour", findDetourSite, detourRun)
 end
-looseExitRun = function(t, site)
-    local o = O()
-    local z = site.e.a:getZ()
+detourRun = function(t, site)
+    local o, dt = O(), DT()
     local de = site.doorEdges[1]
-    local door = edgeAt(de.ax, de.ay, z, de.kind)
-    t:ok(door ~= nil, "door edge not loaded")
-    print("[LKT] out through a door, locked destination: window " .. site.e.key .. ", door " .. door.key
-        .. ", locked door " .. site.lockKey .. ", start " .. site.start:getX() .. "," .. site.start:getY()
-        .. ", destination " .. site.dest:getX() .. "," .. site.dest:getY())
+    print("[LKT] locked window, detour: window " .. site.e.key .. ", door " .. tostring(de.key) .. ", start "
+        .. site.start:getX() .. "," .. site.start:getY() .. ", target " .. site.target:getX() .. ","
+        .. site.target:getY())
     local id = spawnAt(t, site.start)
     local w = site.obj
     keepWindow(t, w, id)
-    keepDoors(t, site.doorEdges)
-    keepDoors(t, { { door = site.lock, key = site.lockKey } })
+    local doors = doorEdgesNear(site.e.a, dt.RADIUS or 15)
+    local kept = {}
+    for _, d in ipairs(doors) do
+        local door = d.a:getDoorTo(d.b)
+        if door ~= nil then kept[#kept + 1] = { door = door, key = d.key } end
+    end
+    keepDoors(t, kept)
     t:waitUntil(K.standing(id), STAND_MS, function(t2)
-        local zb = B().find(id)
-        local def = zb and zb:getSquare() and zb:getSquare():getBuildingDef()
-        t2:ok(def ~= nil and def:getIDString() == site.inside, "body spawned out of the house " .. site.inside)
-        setOpen(w, id, true)
-        for _, d in ipairs(site.doorEdges) do
-            if d.door ~= nil and d.door ~= site.lock then o.setDoor(d.door, true) end
-        end
-        o.setDoor(site.lock, false, true)
-        t2:ok(w:IsOpen() or w:isSmashed(), "window not open")
-        t2:ok(not o.isOpen(site.lock) and o.isLocked(site.lock), "door " .. site.lockKey .. " not closed and locked")
-        local pre, info = o.planDoorRoute(id, zb:getX(), zb:getY(), site.dest:getX(), site.dest:getY(), z)
-        t2:ok(#pre > 0 and info.exitUsed == true and info.loose ~= nil,
-            "route of the authority: not out through a door up to the locked door (" .. tostring(info.reason) .. ")")
-        local refused = o.stats.refused or 0
-        trip(t2, id, site.dest, "out through a door, locked destination", true, function(t3, tinfo, e)
-            t3:ok(e ~= nil and type(e.w) == "table" and #e.w > 0, "move without waypoints")
-            if isServer() then
-                t3:ok(not tinfo.through[site.e.key], "the body went through the window " .. site.e.key)
-            else
-                t3:ok(tinfo.seen.climbwindow ~= true, "climbwindow state seen")
-            end
-            t3:ok(tinfo.through[door.key] == true, "the body never went through the door " .. door.key)
-            t3:eq(refused + 1, o.stats.refused or 0, "refusals by the authority")
+        onStartSide(t2, id, site)
+        setOpen(w, id, false)
+        w:setIsLocked(true)
+        t2:ok(w:isLocked() and not w:IsOpen(), "window not closed and locked")
+        groupOf(t2, id, "settlers")
+        local detours, refusedW = dt.stats.detours or 0, o.stats.windowsRefused or 0
+        local watched = { site.e }
+        for _, d in ipairs(doors) do watched[#watched + 1] = d end
+        trip(t2, id, site.target, "locked window, detour", false, function(t3, info, e)
+            measure(string.format("locked window, detour: %d step(s), %d detour(s), %d window refusal(s)",
+                e and type(e.w) == "table" and #e.w or 0, (dt.stats.detours or 0) - detours,
+                (o.stats.windowsRefused or 0) - refusedW))
+            t3:ok((dt.stats.detours or 0) > detours, "no detour given by the authority")
+            t3:ok(e ~= nil and type(e.w) == "table" and #e.w >= 2, "move without the detour waypoints")
             local r = o.lastRefused
-            t3:eq(site.lockKey, r and r.key, "edge of the refusal")
-            t3:eq("locked door (no key)", r and r.why, "reason of the refusal")
-        end, nil, { site.e, door })
+            t3:eq(site.e.key, r and r.key, "edge of the refusal")
+            t3:eq("locked window", r and r.why, "reason of the refusal")
+            if isServer() then
+                t3:ok(not info.through[site.e.key], "the body went through the window " .. site.e.key)
+            else
+                t3:ok(info.seen.climbwindow ~= true, "climbwindow state seen")
+            end
+            local via = false
+            for _, d in ipairs(doors) do via = via or info.through[d.key] == true end
+            t3:ok(via, "the body never went through a door (" .. #doors .. " near the window)")
+            t3:ok(not w:IsOpen() and w:isLocked() and not w:isSmashed(), "window changed")
+        end, nil, watched)
     end, "npc still on the floor")
-end
-
--- Door-first trip (LK04-T09, LK04-T15): site found by find(player), or SKIP with skipWhy; the move carries
--- waypoints, the body goes through the first door of the route and never through the window. label: log prefix.
-local function doorFirstTest(find, label, skipWhy)
-    local run
-    local function test(t)
-        local o = O()
-        t:ok(o ~= nil and o.planDoorRoute ~= nil and o.DOORS_FIRST == true,
-            "LivingKnox.Obstacles.planDoorRoute is not loaded here, or the door-first rule is off")
-        atSite(t, string.gsub(skipWhy, "^no ", ""), find, run)
-    end
-    run = function(t, site)
-        local o = O()
-        local z = site.e.a:getZ()
-        local de = site.doorEdges[1]
-        local door = edgeAt(de.ax, de.ay, z, de.kind)
-        t:ok(door ~= nil, "door edge not loaded")
-        print("[LKT] " .. label .. ": window " .. site.e.key .. ", door " .. door.key .. ", start " .. site.start:getX()
-            .. "," .. site.start:getY() .. ", target " .. site.target:getX() .. "," .. site.target:getY())
-        local id = spawnAt(t, site.start)
-        local w = site.obj
-        keepWindow(t, w, id)
-        keepDoors(t, site.doorEdges)
-        t:waitUntil(K.standing(id), STAND_MS, function(t2)
-            onStartSide(t2, id, site)
-            setOpen(w, id, true)
-            for _, d in ipairs(site.doorEdges) do
-                if d.door ~= nil then o.setDoor(d.door, true) end
-            end
-            t2:ok(w:IsOpen() or w:isSmashed(), "window not open")
-            t2:ok(o.isOpen(de.door), "door not open")
-            -- Same route as the move will compute (body where it stands, window and doors open): a site probe that
-            -- diverges is reported here, before the trip.
-            local zb = B().find(id)
-            local pre, ninfo = o.planDoorRoute(id, zb:getX(), zb:getY(), site.target:getX(), site.target:getY(), z)
-            t2:ok(#pre > 0, "route of the authority, window open: no door (" .. tostring(ninfo.reason) .. ")")
-            if find == findExitSite then
-                t2:ok(ninfo.exitUsed == true, "route of the authority: not out through a door (" .. tostring(ninfo.reason)
-                    .. ")")
-            end
-            local routed = o.stats.routedByDoor or 0
-            -- E18-T31 (MP pass runs/20261108-154658-mp-d57165661acd): the route took a nearer door of the house
-            -- (10675,10106, locked, opened with the key) than the door of the site probe: any door counts.
-            local doors = doorEdgesNear(site.e.a, 16)
-            local watched = { site.e, door }
-            for _, d in ipairs(doors) do watched[#watched + 1] = d end
-            trip(t2, id, site.target, label, false, function(t3, info, e)
-                measure(string.format(label .. ": %d step(s), route search %s ms, %s square(s)",
-                    e and type(e.w) == "table" and #e.w or 0, tostring(o.stats.routeMs), tostring(o.stats.routeNodes)))
-                t3:eq(routed + 1, o.stats.routedByDoor or 0, "moves routed through a door")
-                t3:ok(e ~= nil and type(e.w) == "table" and #e.w > 0, "move without waypoints")
-                -- Through the window: crossing of its edge measured on a server only; on a client (solo), the
-                -- "climbwindow" state seen (below), the position alone being ambiguous near a corner (2026-10-11 23:58).
-                if isServer() then
-                    t3:ok(not info.through[site.e.key], "the body went through the window " .. site.e.key)
-                end
-                local via = info.through[door.key] == true
-                for _, d in ipairs(doors) do via = via or info.through[d.key] == true end
-                t3:ok(via, "the body never went through a door (" .. door.key .. " or " .. #doors .. " near)")
-                if not isServer() then t3:ok(info.seen.climbwindow ~= true, "climbwindow state seen") end
-            end, nil, watched)
-        end, "npc still on the floor")
-    end
-    return test
 end
 
 RST.suite("lk.traversal", { tags = { "world", "server" }, testTimeoutMs = 300000, timeoutMs = 2400000 }, function(s)
@@ -1629,7 +1377,6 @@ RST.suite("lk.traversal", { tags = { "world", "server" }, testTimeoutMs = 300000
     end, true), { timeoutMs = 300000 })
 
     s.test("low fence: climbed over", function(t0)
-        rawCrossing(t0)
         atSite(t0, "low fence with a free lane and no door next to it",
             function(p) return findSite(p, rawPick(pickFence)) end, function(t, site)
         print("[LKT] low fence " .. site.e.key)
@@ -1644,9 +1391,8 @@ RST.suite("lk.traversal", { tags = { "world", "server" }, testTimeoutMs = 300000
     end, { timeoutMs = 300000 })
 
     s.test("refused door next to a low fence: around it, never through it", function(t0)
-        local o0 = O()
-        t0:ok(o0 ~= nil and o0.doorRefusal ~= nil and o0.AVOID_REFUSED == true,
-            "LivingKnox.Obstacles.doorRefusal is not loaded here, or the detour around refused doors is off")
+        t0:ok(O() ~= nil and DT() ~= nil and DT().doorRefusal ~= nil and O().onRefusal ~= nil,
+            "LivingKnox.Detour (detour after a refusal) is not loaded here")
         atSite(t0, "low fence with a free lane next to a refused door",
             function(p) return findSite(p, pickFenceByRefusedDoor) or planFenceByDoor(p) end, function(t, site)
         local o = O()
@@ -1656,6 +1402,9 @@ RST.suite("lk.traversal", { tags = { "world", "server" }, testTimeoutMs = 300000
         t:ok(#doors > 0, "no refused door next to the low fence " .. site.e.key)
         local watch, keys = {}, {}
         for i, d in ipairs(doors) do
+            -- LK17-T01: the game path climbs the fence right next to the door: a crossing counts only within the
+            -- span of the door itself (half a square from its middle), not one square beside it.
+            d.e.lat = 0.5
             watch[i], keys[i] = d.e, d.key
         end
         print("[LKT] refused door next to a low fence: fence " .. site.e.key .. ", refused door(s) "
@@ -1669,20 +1418,20 @@ RST.suite("lk.traversal", { tags = { "world", "server" }, testTimeoutMs = 300000
             for i, d in ipairs(doors) do
                 before[i] = tostring(o.isOpen(d.door)) .. " " .. tostring(o.isLocked(d.door))
             end
-            local refused = o.stats.refused or 0
-            local zb = B().find(id)
-            local _, pinfo = o.planDoorRoute(id, zb:getX(), zb:getY(), site.target:getX(), site.target:getY(),
-                site.e.a:getZ())
-            measure("refused door next to a low fence: route " .. tostring(pinfo and pinfo.reason))
+            local refused, detoured = o.stats.refused or 0, o.stats.detoured or 0
             trip(t2, id, site.target, "refused door next to a low fence", false, function(t3, info, e)
-                measure(string.format("refused door next to a low fence: %d step(s), through the fence %s",
-                    e and type(e.w) == "table" and #e.w or 0, tostring(info.through[site.e.key] == true)))
+                measure(string.format("refused door next to a low fence: %d step(s), through the fence %s, "
+                    .. "%d refusal(s), %d detour(s)", e and type(e.w) == "table" and #e.w or 0,
+                    tostring(info.through[site.e.key] == true), (o.stats.refused or 0) - refused,
+                    (o.stats.detoured or 0) - detoured))
                 for i, d in ipairs(doors) do
                     t3:ok(not info.through[d.key], "the body went through the refused door " .. d.key)
                     t3:eq(before[i], tostring(o.isOpen(d.door)) .. " " .. tostring(o.isLocked(d.door)),
                         "state of the refused door " .. d.key)
                 end
-                t3:eq(refused, o.stats.refused or 0, "refusals by the authority")
+                -- LK17-T01: the game path may meet the refused door; every refusal must have given a detour.
+                t3:eq((o.stats.refused or 0) - refused, (o.stats.detoured or 0) - detoured,
+                    "refusals by the authority without a detour")
             end, nil, watch)
         end, "npc still on the floor")
         end, true, 2 * PLACE_TRIES)
@@ -1763,12 +1512,9 @@ RST.suite("lk.traversal", { tags = { "world", "server" }, testTimeoutMs = 300000
         w:setIsLocked(true)
         t:ok(w:isLocked() and not w:IsOpen(), "window not closed and locked")
         groupOf(t, id, "settlers")
-        -- A way around by the doors of the house is the right move (solo campaign of 2026-11-07, door 10910,10035): cut
-        -- here, so that the refusal itself is what this test sees.
-        local o = O()
-        local was = o.AVOID_REFUSED
-        o.AVOID_REFUSED = false
-        t:defer(function() o.AVOID_REFUSED = was end, "restore the way around refused openings")
+        -- A detour through a door of the house is the right move (its own test below): cut here, so that the refusal
+        -- itself is what this test sees.
+        noDetour(t)
     end, "locked window", true, function(t, w, info, e, ctx, was, site)
         t:eq(ctx.toggles, O().stats.windowToggles or 0, "window toggles by the authority")
         t:ok(not w:IsOpen() and w:isLocked() and not w:isSmashed(), "window changed")
@@ -1778,14 +1524,7 @@ RST.suite("lk.traversal", { tags = { "world", "server" }, testTimeoutMs = 300000
         t:eq("locked window", r and r.why, "reason of the refusal")
     end), { timeoutMs = 300000 })
 
-    s.test("open door next to an open window: through the door", doorFirstTest(findDoorSite, "door first",
-        "no window with a free lane routed through a door"), { timeoutMs = 300000 })
-
-    s.test("window of a house, far door: out through the door", doorFirstTest(findExitSite, "out through a door",
-        "no window of a house whose lane is routed through a door beyond the usual detour"), { timeoutMs = 300000 })
-
-    s.test("window of a house, destination behind a locked door elsewhere: out through the door", looseExitTest,
-        { timeoutMs = 300000 })
+    s.test("locked window: refused, detour through a door of the house", detourTest, { timeoutMs = 300000 })
 
     s.test("open exterior door of a home: closed and locked on arrival, left open once reopened", function(tt)
         local o0 = O()
@@ -1848,6 +1587,6 @@ RST.suite("lk.traversal", { tags = { "world", "server" }, testTimeoutMs = 300000
     s.test("locked interior home door: opened from inside, left unlocked without the home key",
         interiorKeyTest(false), { timeoutMs = 300000 })
 
-    s.test("npc trapped in the home of another group: out by the last resort route", trappedTest,
+    s.test("npc trapped in the home of another group: out by the last resort", trappedTest,
         { timeoutMs = 300000 })
 end)
