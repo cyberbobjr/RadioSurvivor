@@ -9,7 +9,7 @@ Suites (tag "server": CA_NotebookServer.lua starts with "if isClient() then retu
                                 known. Tests about online players are SKIP without players.
     rs.identity.before          (opt-in tag "manual") snapshot of every online account: identity, notes, missions
                                 where it is engaged or invited, their clocks, world, session, time. Written to
-                                Zomboid/Lua/batman_RadioSurvivor/tests/identity-snapshot.txt of the server (a test
+                                Zomboid/Lua/batman_CoreAITests/tests/identity-snapshot.txt of the server (a test
                                 file, not the notebook state). Run it again before each manual action.
     rs.identity.after-reconnect same session: same identity (server modData and binding), notes, engagements; the
                                 mission clock ran with the game time during the disconnection (E11-T20: play
@@ -36,6 +36,8 @@ before the world loads: a looser bound, never a tighter one).
 ]]
 
 require "RST/RST"
+require "RST/RST_ModRadioSurvivor"
+require "RST/RST_ModLivingKnox"
 require "RST/RST_Fixtures"
 
 RST.IdentitySuite = RST.IdentitySuite or {}

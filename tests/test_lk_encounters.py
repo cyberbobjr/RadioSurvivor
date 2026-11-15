@@ -3,7 +3,7 @@
 avec LK_Hostility.lua (action "warn" de chooseTarget, provocation), LK_Combat.lua (coup de semonce par shotEffects,
 engagement), LK_Ammo.lua (cartouche retirée) et LK_Speech.lua (répliques traduites IGUI_LK_Warn_*, EN et FR).
 
-    python RadioSurvivor/tests/test_lk_encounters.py
+    python tests/test_lk_encounters.py
 
 Bancs :
 - logique pure (séquence graduée, délai de tolérance, distance de sécurité, repli et reprise, coup de semonce permis,
@@ -30,7 +30,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from phase_sweep import WORLDS, other_groups, sweep  # noqa: E402
 from harness import LK_LUA  # noqa: E402  (E18-T07)
 from harness import lua_src  # noqa: E402  (E18-T07)
-from test_lk_bodies import LUA, DEV_LUA, lua_list  # noqa: E402
+from test_lk_bodies import DEV_LUA, lua_list  # noqa: E402
 from test_lk_decisions import PureBase  # noqa: E402
 from test_lk_defense import DefenseStack  # noqa: E402
 

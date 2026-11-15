@@ -1,0 +1,6 @@
+name=batman_LivingKnox Tests (dev only)
+id=batman_LivingKnoxTests
+description=In-game test suites of batman_LivingKnox (lk.*) and their helpers, run by the RST engine of batman_CoreAITests. Development only, never publish.
+versionMin=42.21
+modversion=0.1.0
+require=\batman_CoreAITests,\batman_LivingKnox

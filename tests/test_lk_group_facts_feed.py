@@ -2,7 +2,7 @@
 the public events of LK_API (OnLivingKnoxMemberDied, GroupGone, GroupCreated) and emits CA_GroupFacts member_died,
 group_gone and group_created with the readable name of the group.
 
-    python RadioSurvivor/tests/test_lk_group_facts_feed.py
+    python tests/test_lk_group_facts_feed.py
 
 Bench of tests/test_lk_api.py (tests/harness.py, dedicated server and two clients): the doubles of the engine do NOT
 prove the real API, only the logic of the mods.

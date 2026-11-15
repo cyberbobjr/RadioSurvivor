@@ -31,7 +31,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from harness import ROOT, Harness  # noqa: E402
 from signalsmoke_double import SIGNAL_SMOKE  # noqa: E402
 
-DEV_LUA = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua'
+from harness import tests_lua  # noqa: E402  (E21-T07: media/lua of the test mods)
+DEV_LUA = tests_lua()
 TICK_MS = 100
 TEST_NAME = 'countdown stopped while paused, faster at fast-forward (E11-T20)'
 

@@ -3,7 +3,7 @@ Q01) : tâches « dig » (creuser un sillon, Jobs/LK_Job_Dig.lua), « sow » (se
 (graines reçues, Jobs/LK_Job_SeedSupply.lua), aides de domaine de LK_Garden.lua, moteur LK_Upkeep.lua (durée propre à
 une tâche : champ générique duration), et la suite en jeu lk.garden (dev/.../RST_LKGarden.lua).
 
-    python RadioSurvivor/tests/test_lk_garden.py
+    python tests/test_lk_garden.py
 
 Bancs : pile de l'entretien et du potager (test_lk_food.WaterStack : groupe « deciders » dans la maison HOUSE
 105..115, caisse PANTRY en 112,112, système de cultures doublé) ; solo et serveur dédié + deux clients.
@@ -58,7 +58,8 @@ GARDEN = 'server/LivingKnox/LK_Garden.lua'
 JOBS = ['server/LivingKnox/Jobs/LK_Job_Dig.lua', 'server/LivingKnox/Jobs/LK_Job_Sow.lua',
         'server/LivingKnox/Jobs/LK_Job_SeedSupply.lua']
 SUITE = 'shared/RST/suites/RST_LKGarden.lua'
-SUITE_FILE = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua' / SUITE
+from harness import tests_lua  # noqa: E402  (E21-T07: media/lua of the test mods)
+SUITE_FILE = tests_lua('lk') / SUITE
 
 # Doublures du système de cultures et du sol (anciennes doublures ; la classe « vanilla réel » charge le vrai Lua à la
 # place : test_lk_vanilla_farming.py).

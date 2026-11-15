@@ -1,7 +1,7 @@
 """Tests hors jeu de la mort unique et du cadavre des PNJ Living Knox (LK07-T04) : LK_Health.kill (chemin unique),
 LK_Bodies.deathCause / examine / layDown / onZombieDead (fait "npcDied"), causes "zombie" et "bleeding".
 
-    python RadioSurvivor/tests/test_lk_death.py
+    python tests/test_lk_death.py
 
 Banc de tests/test_lk_health.py (serveur dédié et deux clients, ou solo), complété des doublures ci-dessous, qui
 reproduisent le Java 42.21.0 relevé et NE PROUVENT PAS l'API réelle :
@@ -24,7 +24,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from harness import lua_src  # noqa: E402  (E18-T07)
 import test_lk_health as th  # noqa: E402
-from test_lk_bodies import LUA, DEV_LUA, lua_list  # noqa: E402
+from test_lk_bodies import DEV_LUA, lua_list  # noqa: E402
 
 SUITE = 'shared/RST/suites/RST_LKDeath.lua'
 SUITE_FILE = DEV_LUA / SUITE

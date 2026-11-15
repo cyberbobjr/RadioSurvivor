@@ -20,11 +20,12 @@ No step after reconnect2: its .before would run in the last run of step 0, with 
 Run again, .before first removes the lines of an earlier run (prefix MARK). Without a second client the requester is
 checked alone (noted); solo: SKIP (no reconnection without the launcher).
 Tags "server", "world", "manual": authority only, test saves rstest*, exact names only. Snapshot:
-Zomboid/Lua/batman_RadioSurvivor/tests/radiotab-persist.txt of the server (RST_Persist).
+Zomboid/Lua/batman_CoreAITests/tests/radiotab-persist.txt of the server (RST_Persist).
 Outside the game: tests/test_persist_suites.py.
 ]]
 
 require "RST/RST"
+require "RST/RST_ModRadioSurvivor"
 require "RST/RST_Fixtures"
 require "RST/RST_Steps"
 require "RST/RST_Persist"

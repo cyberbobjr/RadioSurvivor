@@ -4,7 +4,7 @@ dans LK_Simulation.lua (heure hors écran, retour de l'équipe), LK_Decisions.lu
 options sandbox LivingKnox.RaidsEnabled / RaidDays (LK_Config.lua), et la suite en jeu lk.raid
 (dev/.../RST_LKRaid.lua) dans le banc.
 
-    python RadioSurvivor/tests/test_lk_raids.py
+    python tests/test_lk_raids.py
 
 Bancs tests/harness.py :
 - repérage : bâtiments (BuildingDef : getIDString, getX/getY, getX2/getY2 exclusifs, getMaxLevel ; case ->
@@ -32,7 +32,6 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from harness import LK_LUA  # noqa: E402  (E18-T07)
 from harness import lua_src  # noqa: E402  (E18-T07)
-from harness import LUA  # noqa: E402
 from test_lk_bodies import lua_list  # noqa: E402
 from test_lk_decisions import DECIDERS, DUMP  # noqa: E402
 from test_lk_materialize import MatBase  # noqa: E402
@@ -47,7 +46,8 @@ RELATIONS = 'server/LivingKnox/LK_Relations.lua'
 RAIDS = 'server/LivingKnox/LK_Raids.lua'
 ROOT = Path(__file__).resolve().parents[1]
 MEDIA = ROOT / 'Contents' / 'mods' / 'batman_LivingKnox' / '42.21' / 'media'
-SUITE_FILE = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua' / 'shared' / 'RST' / 'suites' \
+from harness import tests_lua  # noqa: E402  (E21-T07: media/lua of the test mods)
+SUITE_FILE = tests_lua('lk') / 'shared' / 'RST' / 'suites' \
     / 'RST_LKRaid.lua'
 KEY_A, KEY_B = 'c-alpha', 'c-bravo'
 CANON = ('require("CoreAI/CA_Codec").hexBytes(require("CoreAI/CA_Codec").encodeBytes('

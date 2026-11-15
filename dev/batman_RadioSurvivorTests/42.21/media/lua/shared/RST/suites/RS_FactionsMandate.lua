@@ -18,6 +18,7 @@ removed from Faction.getFactions() by the server if still there). Outside the ga
 ]]
 
 require "RST/RST"
+require "RST/RST_ModRadioSurvivor"
 require "RST/RST_Fixtures"
 require "RST/RST_Steps"
 require "RST/RST_PeerChecksRadio"

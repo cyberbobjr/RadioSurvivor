@@ -3,7 +3,7 @@ IGUI_LK_Surrender_<n>, LivingKnox.Speech.say) et lève les mains (geste "surrend
 clip vanilla Bob_EmoteSurrender) ; mains baissées à la fin de la reddition, à la trahison (réplique
 IGUI_LK_Surrender_Betrayed_<n>) et quand le membre est oublié (mort, corps parti).
 
-    python RadioSurvivor/tests/test_lk_surrender.py
+    python tests/test_lk_surrender.py
 
 Banc de la pile complète de test_lk_combat.py (DefenceStackTests : serveur dédié et deux clients, puis solo). La
 parole est la doublure de test_lk_contest.py (répliques notées, un auditeur fictif) : la règle d'audition et la
@@ -18,7 +18,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import test_lk_combat as tlc  # noqa: E402  (module importé : ses classes ne sont pas rejouées ici)
-from test_lk_bodies import LUA, DEV_LUA, lua_list  # noqa: E402
+from test_lk_bodies import DEV_LUA, lua_list  # noqa: E402
 from harness import LK_LUA  # noqa: E402  (E18-T07)
 from test_lk_contest import SPEECH_DOUBLE, TRANSLATE  # noqa: E402
 

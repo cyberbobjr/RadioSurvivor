@@ -2,7 +2,7 @@
 server/LivingKnox/LK_Decisions.lua et les fournisseurs de contexte inscrits par les modules
 (Decisions.registerContext).
 
-    python RadioSurvivor/tests/test_lk_decision_context.py
+    python tests/test_lk_decision_context.py
 
 Bancs :
 - gel : sur une grille de situations (rôles, foyer, perception, cible, coup reçu, reddition, trahison, demande d'aide,

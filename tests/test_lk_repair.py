@@ -3,7 +3,7 @@ server/LivingKnox/LK_Fortify.lua (relevé des barricades et ouvrages abîmés, c
 une attaque marquée par LivingKnox.Defense.after, Fortify.repair, besoin de matériaux Fortify.needOf et journal du
 groupe), et la suite en jeu lk.repair (dev/.../RST_LKRepair.lua).
 
-    python RadioSurvivor/tests/test_lk_repair.py
+    python tests/test_lk_repair.py
 
 Banc : piles de test_lk_barricade.py (maison HOUSE 105..115, foyer 110,110, fenêtres nord 112,105 et ouest 105,110,
 entrée sud 110,116, caisse : marteau, 8 planches, une boîte de clous) et de test_lk_walls.py (entrée seule, pourtour
@@ -34,7 +34,8 @@ from test_lk_walls import WallStack  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 SUITE = 'shared/RST/suites/RST_LKRepair.lua'
-SUITE_FILE = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua' / SUITE
+from harness import tests_lua  # noqa: E402  (E21-T07: media/lua of the test mods)
+SUITE_FILE = tests_lua('lk') / SUITE
 
 REPAIR_DOUBLES = r'''
 local H = HARNESS

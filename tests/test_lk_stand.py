@@ -1,7 +1,7 @@
 """Tests hors jeu de la remise debout des corps de PNJ Living Knox (LK02-T14) : LK_Stand.lua, LK_Bodies.createBody,
 LK_ZombieGuard.adopt.
 
-    python RadioSurvivor/tests/test_lk_stand.py
+    python tests/test_lk_stand.py
 
 Banc tests/harness.py, doublures de tests/test_lk_bodies.py (création B réelle par LivingKnox.Bodies) et de
 tests/test_lk_guard.py (copies reçues par le réseau). Les doublures reproduisent le Java 42.21.0 relevé ; elles NE

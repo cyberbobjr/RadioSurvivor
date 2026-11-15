@@ -4,6 +4,7 @@
 -- after the delay (goods gone, quantity reached, report due). The game clock is moved forward with
 -- GameTime.setTimeOfDay (world age = nights * 24 + hours since 7:00, GameTime.java:824-827).
 require 'RST/RST'
+require "RST/RST_ModRadioSurvivor"
 require 'RST/RST_Fixtures'
 require 'RST/RST_RSHelpers'
 local F = RST.Fixtures

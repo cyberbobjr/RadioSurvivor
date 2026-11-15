@@ -30,6 +30,8 @@ Each test removes its npc, its missions and its pending requests.
 ]]
 
 require "RST/RST"
+require "RST/RST_ModRadioSurvivor"
+require "RST/RST_ModLivingKnox"
 require "RST/RST_Fixtures"
 require "RST/RST_RSHelpers"
 

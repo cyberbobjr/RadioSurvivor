@@ -1,4 +1,4 @@
-"""Tests hors jeu des suites RST de batman_RadioSurvivor : rs.env, rs.codec, rs.missions (E01-T08), rs.voices et
+"""Tests hors jeu des suites RST de batman_RadioSurvivor : rs.env, ca.codec, rs.missions (E01-T08), rs.voices et
 rs.voices.world (E05-T06, sur le serveur simulé de tests/test_personas_server.py : six fiches livrées, chaînes,
 routage réel de RadioSurvivor_Server.lua), rs.radiomodule (E06-T02, interface simulée de tests/test_radio_module.py).
 
@@ -21,7 +21,8 @@ from pathlib import Path
 import lupa.lua51 as lupa
 
 ROOT = Path(__file__).resolve().parents[1]
-TESTS_LUA = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua'
+from harness import tests_lua  # noqa: E402  (E21-T07: media/lua of the test mods)
+TESTS_LUA = tests_lua()
 MOD_LUA = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivor' / '42.21' / 'media' / 'lua'
 CORE_LUA = ROOT / 'Contents' / 'mods' / 'batman_CoreAI' / '42.21' / 'media' / 'lua'  # mod commun (E18)
 LK_LUA = ROOT / 'Contents' / 'mods' / 'batman_LivingKnox' / '42.21' / 'media' / 'lua'  # moteur des PNJ (E18-T07)
@@ -147,7 +148,7 @@ class CodecSuiteTests(SuiteHarness):
 
     def test_all_pass_on_real_module(self):
         self.load_suite('CA_Codec')
-        rep = self.run_filter('"rs.codec"')
+        rep = self.run_filter('"ca.codec"')
         self.assert_all('PASS', rep)
         self.assertTrue(rep.ok)
         self.assertEqual(rep.total, 15)
@@ -157,7 +158,7 @@ class CodecSuiteTests(SuiteHarness):
     def test_suite_detects_a_broken_codec(self):
         self.load_suite('CA_Codec')
         self.lua('local C = require "CoreAI/CA_Codec"; C.hex = function(s) return "zz" end')
-        self.run_filter('"rs.codec"')
+        self.run_filter('"ca.codec"')
         st, msg = self.results()['hex and unhex on ASCII']
         self.assertEqual(st, 'FAIL')
         self.assertIn('zz', msg)

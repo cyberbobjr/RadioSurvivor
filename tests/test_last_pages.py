@@ -37,7 +37,8 @@ import npc_protocol as npc  # noqa: E402
 import radio_bridge as rb  # noqa: E402
 
 TRANSLATE = ROOT / 'Contents/mods/batman_RadioSurvivor/42.21/media/lua/shared/Translate'
-DEV_LUA = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua'
+from harness import tests_lua  # noqa: E402  (E21-T07: media/lua of the test mods)
+DEV_LUA = tests_lua()
 
 
 def lua_str(s: str) -> str:

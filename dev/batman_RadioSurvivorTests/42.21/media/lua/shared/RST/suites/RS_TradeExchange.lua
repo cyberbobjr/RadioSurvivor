@@ -28,6 +28,7 @@ python tools/autoclient/autoclient.py --mp --clients 2 --server-suite rs.trade_r
 ]]
 
 require "RST/RST"
+require "RST/RST_ModRadioSurvivor"
 require "RST/RST_Fixtures"
 
 local F = RST.Fixtures

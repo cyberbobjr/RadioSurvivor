@@ -2,7 +2,7 @@
 lk.ownerreports (LK03-T02), lk.handover (LK03-T03), lk.relay (LK03-T05), lk.spawnclean (LK03-T06),
 lk.deathswing (LK06-T13), et des étapes client de RST_PeerChecksLK.lua.
 
-    python RadioSurvivor/tests/test_lk_peer_suites.py
+    python tests/test_lk_peer_suites.py
 
 Un serveur dédié et deux clients (rs_mp1 demandeur, rs_mp2 second client), chacun dans sa machine lupa (doublures de
 test_rst.py : réseau en file, tables copiées comme TableNetworkUtils), ou un solo. Les suites tournent sur le serveur
@@ -23,12 +23,15 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from test_rst import CLIENT_GAME, LUA as DEV_LUA, ROOT, SERVER_GAME, Machine, to_py  # noqa: E402
+from test_rst import CLIENT_GAME, ROOT, SERVER_GAME, Machine, to_py  # noqa: E402
+from harness import tests_lua  # noqa: E402  (E21-T07: core and Living Knox test mods)
 
-MOD_LUA = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivor' / '42.21' / 'media' / 'lua'
+DEV_LUA = tests_lua('lk')
+CORE_LUA = ROOT / 'Contents' / 'mods' / 'batman_CoreAI' / '42.21' / 'media' / 'lua'   # mod commun (E18)
 LK_LUA = ROOT / 'Contents' / 'mods' / 'batman_LivingKnox' / '42.21' / 'media' / 'lua'  # moteur des PNJ (E18-T07)
 STEPS_FILE = DEV_LUA / 'shared' / 'RST' / 'RST_Steps.lua'
 PEER_FILE = DEV_LUA / 'shared' / 'RST' / 'RST_PeerChecksLK.lua'
+DEV_PATH = f'package.path = [[{(DEV_LUA / "shared").as_posix()}/?.lua;]] .. package.path'
 SUITES = DEV_LUA / 'shared' / 'RST' / 'suites'
 SUITE_FILES = {
     'lk.ownerreports': SUITES / 'RST_LKOwnerReports.lua',
@@ -106,7 +109,7 @@ end
 function dist(x1, y1, x2, y2) return math.sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2)) end
 """
 
-PLAYERS_SERVER = r"""
+SERVER_PLAYERS = r"""
 function mkplayer(name, role, x, y)
     local p = login(name, role)
     p.x, p.y, p.z, p.god = x, y, 0, false
@@ -235,16 +238,16 @@ class LKNet:
         self.root, self.solo, self.queue, self.later, self.clock, self.n = root, solo, [], [], 1000, 0
         self.clients = {}
         if solo:
-            self.server = Machine(root / 'solo', SOLO_PLAYER, [WORLD, STEPS_FILE, PEER_FILE, FIXTURES, LK_BASE])
+            self.server = Machine(root / 'solo', SOLO_PLAYER, [DEV_PATH, WORLD, STEPS_FILE, PEER_FILE, FIXTURES, LK_BASE])
         else:
-            self.server = Machine(root / 'server', SERVER_GAME + PLAYERS_SERVER,
-                                  [WORLD, STEPS_FILE, PEER_FILE, FIXTURES, LK_BASE])
+            self.server = Machine(root / 'server', SERVER_GAME + SERVER_PLAYERS,
+                                  [DEV_PATH, WORLD, STEPS_FILE, PEER_FILE, FIXTURES, LK_BASE])
             self.server.g.PY_SERVER_SEND = lambda user, m, c, a: self.queue.append(('to_client', user, m, c, to_py(a)))
             for i, name in enumerate(clients):
                 self.add_client(name, 100, 100 + 2 * i)
 
     def add_client(self, name, x, y):
-        c = Machine(self.root / name, CLIENT_GAME + CLIENT_PLAYER, [WORLD, STEPS_FILE, PEER_FILE])
+        c = Machine(self.root / name, CLIENT_GAME + CLIENT_PLAYER, [DEV_PATH, WORLD, STEPS_FILE, PEER_FILE])
         c.lua(f'PLAYER = {{ name = "{name}" }}; function PLAYER:getUsername() return self.name end')
         c.g.PY_CLIENT_SEND = lambda user, m, cmd, a: self.queue.append(('to_server', user, m, cmd, to_py(a)))
         self.server.lua(f'mkplayer("{name}", "admin", {x}, {y})')
@@ -338,7 +341,7 @@ class Base(unittest.TestCase):
 # ------------------------------------------------------------------------------------------------ lk.ownerreports
 
 REPORTS_SERVER = r"""
-package.path = [[{lk}/shared/?.lua;{lk}/server/?.lua;{mod}/shared/?.lua;{mod}/server/?.lua;]] .. package.path
+package.path = [[{dev}/shared/?.lua;{lk}/shared/?.lua;{lk}/server/?.lua;{core}/shared/?.lua;{core}/server/?.lua;]] .. package.path
 LivingKnox = nil
 package.loaded["LivingKnox/LK_Bodies"] = true
 package.loaded["LivingKnox/LK_Directives"] = true
@@ -366,7 +369,7 @@ class OwnerReportsSuiteTests(Base):
     SUITE = 'lk.ownerreports'
 
     def make(self, solo=False, defect=''):
-        code = REPORTS_SERVER.replace('{mod}', MOD_LUA.as_posix()).replace('{lk}', LK_LUA.as_posix()).replace('{owner}', '' if solo else REQUESTER)
+        code = REPORTS_SERVER.replace('{dev}', DEV_LUA.as_posix()).replace('{core}', CORE_LUA.as_posix()).replace('{lk}', LK_LUA.as_posix()).replace('{owner}', '' if solo else REQUESTER)
         if solo:
             code = code.replace('OWNER = ""', 'OWNER = nil')
         return self.net(solo=solo, server_code=code, after_load=defect)
@@ -420,7 +423,7 @@ class OwnerReportsSuiteTests(Base):
         self.assertIn('two clients', msg)
 
     def test_single_client_skips_the_non_owner_part(self):
-        code = REPORTS_SERVER.replace('{mod}', MOD_LUA.as_posix()).replace('{lk}', LK_LUA.as_posix()).replace('{owner}', REQUESTER)
+        code = REPORTS_SERVER.replace('{dev}', DEV_LUA.as_posix()).replace('{core}', CORE_LUA.as_posix()).replace('{lk}', LK_LUA.as_posix()).replace('{owner}', REQUESTER)
         net = self.net(clients=(REQUESTER,), server_code=code)
         rep = net.run('{ suite = "lk.ownerreports", tags = "world", test = "does not simulate" }')
         self.assertEqual(list(results(rep).values())[0][0], 'SKIP')

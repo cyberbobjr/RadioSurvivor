@@ -3,7 +3,7 @@
 au-dessus des seules doublures Java qu'il touche, et sa pile réutilisée par les bancs du potager (test_lk_garden.py)
 et la suite lk.upkeep jouée au banc (test_lk_upkeep.py).
 
-    python RadioSurvivor/tests/test_lk_vanilla_farming.py
+    python tests/test_lk_vanilla_farming.py
 
 Fichiers vanilla chargés (VANILLA_FARMING, ordre du jeu : shared puis server, chemins triés sans casse,
 LuaManager.java:1195-1198 ; require marqués chargés) : lus dans l'installation du jeu (tools/pz_paths.py) ou, à défaut,
@@ -344,7 +344,7 @@ class VanillaFarmingTests(unittest.TestCase):
     """Vrai Lua vanilla du potager sur les seules doublures Java (« vanilla réel »)."""
 
     def setUp(self):
-        self.h = Harness(mode='solo')
+        self.h = Harness(with_rs=False, mode='solo')
         self.addCleanup(self.h.close)
         load_vanilla_farming(self.h, 'solo')
 
@@ -438,7 +438,7 @@ class VanillaPathTests(unittest.TestCase):
         saved = harness.vanilla_lua_dir
         harness.vanilla_lua_dir = lambda: None
         try:
-            with Harness(mode='solo') as h:
+            with Harness(with_rs=False, mode='solo') as h:
                 with self.assertRaises(unittest.SkipTest) as cm:
                     h.load_vanilla('solo', 'shared/ISBaseObject.lua')
                 self.assertIn('PZ_STEAM_LIBRARY', str(cm.exception))
@@ -446,7 +446,7 @@ class VanillaPathTests(unittest.TestCase):
             harness.vanilla_lua_dir = saved
 
     def test_vanilla_path_must_name_a_side(self):
-        with Harness(mode='solo') as h:
+        with Harness(with_rs=False, mode='solo') as h:
             if vanilla_lua_dir() is None:
                 self.skipTest(VANILLA_MISSING)
             with self.assertRaises(HarnessError):

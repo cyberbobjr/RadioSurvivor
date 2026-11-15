@@ -13,6 +13,8 @@ ROOT = Path(__file__).resolve().parents[1]
 MODS = ROOT / 'Contents' / 'mods'
 CORE = MODS / 'batman_CoreAI'
 CORE_ID = 'batman_CoreAI'
+LAUNCH_ORDER = [CORE_ID, 'batman_LivingKnox', 'batman_RadioSurvivor', 'batman_CoreAITests',
+                'batman_LivingKnoxTests', 'batman_RadioSurvivorTests']
 
 
 def mod_info(path):
@@ -43,17 +45,32 @@ class CoreModTests(unittest.TestCase):
         info = mod_info(MODS / 'batman_RadioSurvivor' / '42.21' / 'mod.info')
         self.assertIn(CORE_ID, listed(info.get('require', '')))
 
-    def test_launchers_load_the_core_mod_before_radiosurvivor(self):
+    def test_launchers_load_the_mods_then_their_test_mods(self):
+        # E18-T07, E21-T07: core, Living Knox, RadioSurvivor, then the test mods in the same order (each test mod
+        # requires its mod and the core test mod) in autoclient.py, autotest.json and the dedicated smoke script.
+        def ours(ids):
+            return [i for i in ids if i in LAUNCH_ORDER]
         text = (ROOT / 'tools' / 'autoclient' / 'autoclient.py').read_text(encoding='utf-8')
         ids = re.findall(r"^\s*\('(\w+)',", text[text.index('MODS = ['):text.index('IGNORE =')], re.M)
-        self.assertLess(ids.index(CORE_ID), ids.index('batman_RadioSurvivor'))
+        self.assertEqual(ours(ids), LAUNCH_ORDER)
         conf = json.loads(re.sub(r'^\s*//.*$', '', (ROOT / 'autotest.json').read_text(encoding='utf-8'), flags=re.M))
-        paths = [m.get('path', '') for m in conf['mods']]
-        self.assertLess(paths.index('Contents/mods/' + CORE_ID), paths.index('Contents/mods/batman_RadioSurvivor'))
+        self.assertEqual(ours([m.get('path', '').rsplit('/', 1)[-1] for m in conf['mods']]), LAUNCH_ORDER)
         smoke = (ROOT / 'tests' / 'run_dedicated_smoke.ps1').read_text(encoding='utf-8')
         mods_line = re.search(r'^Mods=(.*)$', smoke, re.M).group(1).split(';')
-        self.assertLess(mods_line.index('\\' + CORE_ID), mods_line.index('\\batman_RadioSurvivor'))
+        self.assertEqual(ours([m.lstrip('\\') for m in mods_line]), LAUNCH_ORDER)
         self.assertIn("Contents/mods/" + CORE_ID, smoke)
+
+    def test_test_mods_require_their_mod_and_the_core_test_mod(self):
+        # E21-T07 (ADR adr-coreai-separation.md D06): one development test mod per mod of the item.
+        expected = {'batman_CoreAITests': [CORE_ID],
+                    'batman_LivingKnoxTests': ['batman_CoreAITests', 'batman_LivingKnox'],
+                    'batman_RadioSurvivorTests': ['batman_CoreAITests', 'batman_RadioSurvivor']}
+        for mod_id, require in expected.items():
+            folder = ROOT / 'dev' / mod_id
+            self.assertTrue((folder / 'common').is_dir(), f'{mod_id}: common/ is required by Build 42')
+            info = mod_info(folder / '42.21' / 'mod.info')
+            self.assertEqual(info.get('id'), mod_id)
+            self.assertEqual(listed(info.get('require', '')), require, mod_id)
 
     def test_core_module_loads_alone(self):
         lua = LuaRuntime(unpack_returned_tuples=True)

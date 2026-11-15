@@ -1,7 +1,7 @@
 """Panneau de debug des PNJ (LK13-T14) : journal d'activité en mémoire server/LivingKnox/LK_Activity.lua, opération
 « activity » de LK_Admin.lua (autorité) et panneau client client/LivingKnox/LK_DebugView.lua.
 
-    python RadioSurvivor/tests/test_lk_debugview.py
+    python tests/test_lk_debugview.py
 
 Banc tests/harness.py, pile de tests/test_lk_npcsheet.py (SheetBase : groupe « deciders » matérialisé, cascade,
 besoins, santé, droits simulés) :
@@ -25,7 +25,6 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from harness import LUA  # noqa: E402
 from harness import LK_LUA  # noqa: E402  (E18-T07)
 from test_lk_bodies import lua_list  # noqa: E402
 from test_lk_npcsheet import SheetBase  # noqa: E402
@@ -35,7 +34,8 @@ ACTIVITY_FILE = LK_LUA / 'server' / 'LivingKnox' / 'LK_Activity.lua'
 VIEW_FILE = LK_LUA / 'client' / 'LivingKnox' / 'LK_DebugView.lua'
 TRANSLATE = LK_LUA / 'shared' / 'Translate'
 SUITE = 'shared/RST/suites/RST_LKDebugView.lua'
-SUITE_FILE = Path(__file__).resolve().parents[1] / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua' / SUITE
+from harness import tests_lua  # noqa: E402  (E21-T07: media/lua of the test mods)
+SUITE_FILE = tests_lua('lk') / SUITE
 A = 'LivingKnox.Admin'
 AC = 'LivingKnox.Activity'
 V = 'LivingKnox.DebugView'

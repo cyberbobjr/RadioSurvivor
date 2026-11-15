@@ -29,7 +29,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from test_rs_trade_run import EN, FR, LUA, ROOT, RunHarness, lua_list  # noqa: E402
 
 EXCHANGE_LUA = LUA / 'server/RadioSurvivor/RS_TradeExchange.lua'
-SUITE = ROOT / 'dev/batman_RadioSurvivorTests/42.21/media/lua/shared/RST/suites/RS_TradeExchange.lua'
+from harness import tests_lua  # noqa: E402  (E21-T07: media/lua of the test mods)
+SUITE = tests_lua() / 'shared' / 'RST' / 'suites' / 'RS_TradeExchange.lua'
 
 WORLD = r"""
 NEXT_ID = 100

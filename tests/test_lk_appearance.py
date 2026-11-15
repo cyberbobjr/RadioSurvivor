@@ -1,7 +1,7 @@
 """Tests hors jeu de l'apparence des PNJ Living Knox (LK02-T03, LK02-T12) : profils, tirage, application, registre
 schéma 2, vêtements concrets rejoués quand la liste des tenues change.
 
-    python RadioSurvivor/tests/test_lk_appearance.py
+    python tests/test_lk_appearance.py
 
 Banc tests/harness.py et doublures de tests/test_lk_bodies.py (création B), complétées ici. Les doublures reproduisent
 le Java 42.21.0 relevé ; elles NE PROUVENT PAS l'API réelle, seulement la logique du mod :
@@ -25,7 +25,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from test_lk_bodies import Base, lua_list, LUA, DEV_LUA  # noqa: E402
+from test_lk_bodies import Base, lua_list, DEV_LUA  # noqa: E402
 from harness import LK_LUA  # noqa: E402  (E18-T07)
 
 MOD_FILES = [LK_LUA / 'shared' / 'LivingKnox' / 'LK_Appearance.lua']
@@ -70,7 +70,7 @@ function C.IsoZombie:DoZombieInventory()
     self.worn = H.list(kept)
 end
 -- Mods actifs (getActivatedMods, liste Java) : MODS modifiable entre deux passes.
-MODS = { 'batman_CoreAI', 'batman_LivingKnox', 'batman_RadioSurvivor', 'batman_RadioSurvivorTests' }
+MODS = { 'batman_CoreAI', 'batman_LivingKnox', 'batman_CoreAITests', 'batman_LivingKnoxTests' }
 getActivatedMods = function() return H.list(MODS) end
 function C.IsoZombie:getWornItems()  -- WornItems.addItemsToItemContainer : état = max - 3 x trous
     local out = H.list()
@@ -551,7 +551,7 @@ class SoloSuiteTests(AppearanceBase):
         return results[0]
 
     def record(self):
-        path = self.h.file_root('solo') / 'batman_RadioSurvivor' / 'tests' / 'lk-appearance-restart.txt'
+        path = self.h.file_root('solo') / 'batman_CoreAITests' / 'tests' / 'lk-appearance-restart.txt'
         return path.read_text(encoding='utf-8') if path.exists() else None
 
     def test_restart_with_reordered_body_locations_passes_and_reports_garment_by_garment(self):
@@ -607,7 +607,7 @@ class SoloSuiteTests(AppearanceBase):
         # Essai du 2026-10-13 : la fiche de la passe 1 a été vidée par l'échec de la passe 2.
         self.h.fire('solo', 'OnInitGlobalModData', True)
         self.h.load('solo', 'shared/RST/suites/RST_LKAppearance.lua')
-        self.h.load('solo', 'local w = getFileWriter("batman_RadioSurvivor/tests/lk-appearance-restart.txt", true, '
+        self.h.load('solo', 'local w = getFileWriter("batman_CoreAITests/tests/lk-appearance-restart.txt", true, '
                             'false); w:close(); return true')
         status, message, _ = self.run_restart()
         self.assertEqual(status, 'SKIP')

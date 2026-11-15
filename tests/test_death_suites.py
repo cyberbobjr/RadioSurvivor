@@ -25,7 +25,8 @@ from pathlib import Path
 import lupa.lua51 as lupa
 
 ROOT = Path(__file__).resolve().parents[1]
-DEV = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua'
+from harness import tests_lua  # noqa: E402  (E21-T07: media/lua of the test mods)
+DEV = tests_lua()
 RST_DIR = DEV / 'shared' / 'RST'
 SUITE = RST_DIR / 'suites' / 'RS_Death.lua'
 PEER = RST_DIR / 'RST_PeerChecksDeath.lua'
@@ -206,6 +207,9 @@ end
 package.loaded["RadioSurvivor/RS_Config"] = { VERSION = 2, MODULE = "CoreAI", OFFER_TTL_MS = 3600000,
     Missions = { deliver = { id = "first_aid_v1", titleKey = "IGUI_CA_Mission_FirstAid", quantity = 6, durationMs = 7200000,
         accepted = { ["Base.Bandage"] = true }, rewardType = "Base.Bullets9mm", rewardCount = 20 } } }
+-- E21-T07: the test helpers read the constants of the core mod (same values as RS_Config re-exports).
+package.loaded["CoreAI/CA_MissionConfig"] = package.loaded["RadioSurvivor/RS_Config"]
+package.loaded["CoreAI/CA_NotebookConfig"] = package.loaded["RadioSurvivor/RS_Config"]
 KEY = "CA_Character"
 DATA = { world = "w1", characters = {}, missions = {}, npcs = {} }
 -- Living Knox test NPC (LivingKnox.API.testSpawnNpc) seen by the provider (CA_NPCProvider) at once.
@@ -287,6 +291,7 @@ Events.OnCharacterDeath.Add(Server.characterDeath)
 
 CLIENT = r'''
 package.loaded["RadioSurvivor/RS_Config"] = { VERSION = 2, MODULE = "CoreAI" }
+package.loaded["CoreAI/CA_NotebookConfig"] = package.loaded["RadioSurvivor/RS_Config"]   -- E21-T07 (carnet.claim)
 LOCAL_PLAYER = makePlayer(USER, 1000.5, 1000.5, 0)
 getPlayer = function() return LOCAL_PLAYER end
 getSpecificPlayer = function() return LOCAL_PLAYER end
@@ -532,7 +537,7 @@ class DeathSuiteTests(Bench):
         notes = ' '.join(pick(res, NEWCHAR)[2])
         self.assertIn('char-2 (dead) -> char-3', notes)
         # Respawn lines of the driver keep the state "idle".
-        status = net.root / 'rs_mp2' / 'batman_RadioSurvivor' / 'tests' / 'autoclient-status.txt'
+        status = net.root / 'rs_mp2' / 'batman_CoreAITests' / 'tests' / 'autoclient-status.txt'
         self.assertTrue(status.exists(), status)
         lines = status.read_text(encoding='utf-8').splitlines()
         self.assertTrue(any('tok idle respawn: new character' in line for line in lines), lines)

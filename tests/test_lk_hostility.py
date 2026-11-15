@@ -1,6 +1,6 @@
 """Tests hors jeu de l'attitude d'un groupe envers un joueur (LK11-T03) : LK_Hostility.lua (autorité).
 
-    python RadioSurvivor/tests/test_lk_hostility.py
+    python tests/test_lk_hostility.py
 
 Banc tests/harness.py (serveur dédié + deux clients, ou solo). Doublures : getFileWriter / getFileReader du banc,
 getWorld (mode et nom de la partie), horloge du banc (getWorldAgeHours). Elles NE PROUVENT PAS l'API réelle,
@@ -16,7 +16,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from harness import Harness, LUA  # noqa: E402
+from harness import Harness  # noqa: E402
 from harness import LK_LUA  # noqa: E402  (E18-T07)
 
 HOSTILITY_FILE = LK_LUA / 'server' / 'LivingKnox' / 'LK_Hostility.lua'
@@ -32,7 +32,7 @@ end
 '''
 
 H = 'LivingKnox.Hostility'
-# Clés de joueur : identités de personnage du carnet (forme de RS_State.uid).
+# Clés de joueur : identités de personnage du carnet.
 P1, P2 = 'character-1700000000000-1-123456', 'character-1700000000000-2-654321'
 SEEN = '{ witnessed = true }'
 
@@ -50,7 +50,7 @@ class Base(unittest.TestCase):
         self.h.close()
 
     def make(self, root=None):
-        h = Harness(mode=self.mode, root=root)
+        h = Harness(with_rs=False, mode=self.mode, root=root)
         self.srv = 'solo' if self.mode == 'solo' else 'server'
         machines = ('solo',) if self.mode == 'solo' else ('server', 'A', 'B')
         for m in machines:

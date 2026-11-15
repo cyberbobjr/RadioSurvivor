@@ -1,6 +1,6 @@
 """Tests hors jeu des besoins individuels des PNJ Living Knox (LK05-T06) : server/LivingKnox/LK_Needs.lua.
 
-    python RadioSurvivor/tests/test_lk_needs.py
+    python tests/test_lk_needs.py
 
 Bancs :
 - logique pure (Needs.step, scheduleActivity, bumpOf, advanceMember) sur le serveur d'un banc tests/harness.py chargé

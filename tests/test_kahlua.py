@@ -6,7 +6,7 @@ Compile `tests/kahlua/KRun.java` avec ECJ (compilateur Eclipse, un seul jar : le
 puis lance une seule JVM qui charge les fichiers Lua comme le jeu (UTF-8 vers le lexeur Kahlua), injecte une horloge
 simulée (`RST.clock`) et fait avancer les ticks depuis Java (`KahluaThread.pcall` par tick, comme un événement du
 jeu). Vérifie : `rst.selftest` PASS ; `rst.failures` donne les FAIL / ERROR attendus et le passage se termine
-(`onDone` appelé) ; `rs.codec` (15/15, E00-T08) et `rs.missions` exécutés ; logique d'identité Living Knox (`LK_Identity.lua`, LK02-T02) registre des groupes (`LK_Groups.lua`, LK08-T01) et types de groupes en données (`LK_GroupTypes.lua`, LK08-T02), simulation hors écran (`LK_Simulation.lua`, LK09-T01). Échanges avec le pont (E00-T09) :
+(`onDone` appelé) ; `ca.codec` (15/15, E00-T08) et `rs.missions` exécutés ; logique d'identité Living Knox (`LK_Identity.lua`, LK02-T02) registre des groupes (`LK_Groups.lua`, LK08-T01) et types de groupes en données (`LK_GroupTypes.lua`, LK08-T02), simulation hors écran (`LK_Simulation.lua`, LK09-T01). Échanges avec le pont (E00-T09) :
 une demande RSV2 accentuée encodée par la VM Kahlua est décodée par `bridge/npc_protocol.py`, et une réponse encodée
 par Python est relue par la VM Kahlua, sans mojibake.
 Fiches de voix (E05-T01) : `RS_Persona` lit dans la VM réelle les lignes que rendrait `getFileReader` (accents, hors BMP,
@@ -34,7 +34,8 @@ import pz_paths  # noqa: E402  (vanilla folders: PZ_STEAM_LIBRARY, PZ_MEDIA or S
 
 ROOT = Path(__file__).resolve().parents[1]
 BENCH = ROOT / 'tests' / 'kahlua'
-TESTS_LUA = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua'
+from harness import tests_lua  # noqa: E402  (E21-T07: media/lua of the test mods)
+TESTS_LUA = tests_lua()
 MOD_LUA = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivor' / '42.21' / 'media' / 'lua'
 CORE_LUA = ROOT / 'Contents' / 'mods' / 'batman_CoreAI' / '42.21' / 'media' / 'lua'  # mod commun (E18)
 LK_LUA = ROOT / 'Contents' / 'mods' / 'batman_LivingKnox' / '42.21' / 'media' / 'lua'  # moteur des PNJ (E18-T07)
@@ -54,6 +55,9 @@ EVENTS_ADD_AT_LOAD = {'CoreAI/CA_WorldStart', 'CoreAI/CA_Identity'}
 LUA_FILES = [
     ('driver', BENCH / 'driver.lua'),
     ('RST/RST', TESTS_LUA / 'shared' / 'RST' / 'RST.lua'),
+    # E21-T07: mods guard of each test mod (the suites require their registration).
+    ('RST/RST_ModLivingKnox', TESTS_LUA / 'shared' / 'RST' / 'RST_ModLivingKnox.lua'),
+    ('RST/RST_ModRadioSurvivor', TESTS_LUA / 'shared' / 'RST' / 'RST_ModRadioSurvivor.lua'),
     ('RST/RST_LKHelpers', TESTS_LUA / 'shared' / 'RST' / 'RST_LKHelpers.lua'),
     ('RST/RST_LKProbe', TESTS_LUA / 'shared' / 'RST' / 'RST_LKProbe.lua'),
     # E18-T05 : catalogue des missions du mod commun (requis par RS_Config et CA_Missions).
@@ -174,7 +178,7 @@ LUA_FILES = [
     # E03-T02 : déclaration seule (interface du client : exécutée en jeu et sous lupa, tests/test_notebook_visual.py).
     ('suite/notebookvisual', TESTS_LUA / 'shared' / 'RST' / 'suites' / 'RS_NotebookVisual.lua'),
 ]
-RUNS = ['rst', 'rst.failures', 'rs.codec', 'rs.missions', 'ca.journal']
+RUNS = ['rst', 'rst.failures', 'ca.codec', 'rs.missions', 'ca.journal']
 MAX_TICKS = 5000
 sys.path.insert(0, str(ROOT / 'bridge'))
 sys.path.insert(0, str(ROOT / 'tests'))
@@ -898,7 +902,7 @@ class KahluaBench(unittest.TestCase):
         self.assertTrue(self.run_of('rst.failures')['lines'][-1].startswith('FAILED - 13 test(s): 1 pass'))
 
     def test_codec_passes(self):
-        res = self.statuses('rs.codec')
+        res = self.statuses('ca.codec')
         self.assertEqual(len(res), 15)
         bad = {test: v for (_s, test), v in res.items() if v[0] != 'PASS'}
         self.assertEqual(bad, {})  # E00-T08 : « hex round trip of characters above U+00FF » passe en Kahlua

@@ -2,7 +2,7 @@
 Stock.takeItem (LK_Stock.lua), le menu client/LivingKnox/LK_RelationsView.lua et la suite en jeu lk.aid
 (dev/.../RST_LKAid.lua) dans le banc.
 
-    python RadioSurvivor/tests/test_lk_aid.py
+    python tests/test_lk_aid.py
 
 Banc tests/harness.py (solo, ou serveur dédié + deux clients) avec le vrai registre des groupes, le vrai aménagement
 des foyers (LK_Homes), le vrai stock (LK_Stock, doublures de tests/test_lk_stock.py) et le vrai registre des
@@ -25,7 +25,6 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from harness import LK_LUA  # noqa: E402  (E18-T07)
-from harness import LUA  # noqa: E402
 from harness import lua_src  # noqa: E402  (E18-T07)
 from test_lk_stock import Base as StockBase, KITCHEN, OFFSCREEN_DOUBLES  # noqa: E402
 from test_lk_homes import HOUSE  # noqa: E402

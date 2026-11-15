@@ -1,9 +1,9 @@
 """Tests hors jeu de l'essai comparatif LK02-T10 (corps A = zombie ordinaire, B = joueur réanimé).
 
-    python RadioSurvivor/tests/test_lk_essai.py
+    python tests/test_lk_essai.py
 
 Banc tests/harness.py (serveur dédié + deux clients, ou solo) sur le code du mod de développement
-(dev/batman_RadioSurvivorTests : RST_LKEssai*.lua et la suite lk.essai). Les doublures ci-dessous reproduisent le
+(dev/batman_LivingKnoxTests : RST_LKEssai*.lua et la suite lk.essai). Les doublures ci-dessous reproduisent le
 Java 42.21.0 relevé (références en commentaire), mais le banc NE PROUVE PAS l'API réelle : il vérifie le routage
 des commandes, les refus (debug, sauvegarde rstest*, capacité), l'autorité (un client ne crée rien en MP), le côté
 d'application de chaque réglage, l'exécution de la marche par le seul propriétaire, le nettoyage et le journal
@@ -25,7 +25,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from harness import Harness  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
-DEV_LUA = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua'
+from harness import tests_lua  # noqa: E402  (E21-T07: media/lua of the test mods)
+DEV_LUA = tests_lua('lk')
 FILES = [
     DEV_LUA / 'shared' / 'RST' / 'RST_LKEssai.lua',
     DEV_LUA / 'server' / 'RST' / 'RST_LKEssaiServer.lua',
@@ -216,7 +217,7 @@ class Base(unittest.TestCase):
     debug = True
 
     def setUp(self):
-        self.h = Harness(mode=self.mode, debug=self.debug, lua_roots=[DEV_LUA])
+        self.h = Harness(with_rs=False, mode=self.mode, debug=self.debug, lua_roots=[DEV_LUA])
         names = ['solo'] if self.mode == 'solo' else ['server', 'A', 'B']
         for m in names:
             self.h.load(m, DOUBLES)
@@ -432,7 +433,7 @@ class MultiplayerTests(Base):
         for m in ('server', 'A', 'B'):
             for line in self.lke(m):
                 self.assertRegex(line, r'^\[LKE\] [\x20-\x7e]*$', m)
-        log = self.h.file_root('server') / 'batman_RadioSurvivor' / 'tests' / 'lke-essai.log'
+        log = self.h.file_root('server') / 'batman_CoreAITests' / 'tests' / 'lke-essai.log'
         self.assertTrue(log.exists())
         self.assertIn('spawned LKE-1 kind A', log.read_text(encoding='utf-8'))
 

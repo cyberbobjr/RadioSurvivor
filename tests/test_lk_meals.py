@@ -3,7 +3,7 @@ server/LivingKnox/LK_Routines.lua (section « repas réels », comportement « m
 reportShortage, consumable), LK_Needs.lua (relieve, realMeals), LK_Decisions.lua (règles hunger/thirst, ctx.meals,
 ctx.unfed) et la suite en jeu lk.meals (dev/.../RST_LKMeals.lua) dans le banc.
 
-    python RadioSurvivor/tests/test_lk_meals.py
+    python tests/test_lk_meals.py
 
 Bancs :
 - logique pure (cascade : faim et soif -> « meal » au foyer, « home » loin du foyer ou sans routine des repas, besoin mis
@@ -44,7 +44,8 @@ ST = 'LivingKnox.Stock'
 N = 'LivingKnox.Needs'
 ROOT = Path(__file__).resolve().parents[1]
 SUITE = 'shared/RST/suites/RST_LKMeals.lua'
-SUITE_FILE = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua' / SUITE
+from harness import tests_lua  # noqa: E402  (E21-T07: media/lua of the test mods)
+SUITE_FILE = tests_lua('lk') / SUITE
 
 MEAL_DOUBLES = r'''
 local H = HARNESS

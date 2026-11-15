@@ -5,7 +5,7 @@ lk.health et lk.loot appelaient LivingKnox.Bodies.spawn à 2 ou 3 cases du joueu
 précédente : « npc spawn refused: square 11316,6942,0 is not loaded » (12 tests). K.whenLoaded attend les cases de
 K.SPAWN_RADIUS autour du joueur (au plus K.SPAWN_LOAD_MS, puis un échec qui le dit).
 
-Lancer : python RadioSurvivor/tests/test_lk_spawn_area.py
+Lancer : python tests/test_lk_spawn_area.py
 """
 import re
 import sys
@@ -42,7 +42,7 @@ end)
 
 class WhenLoadedTests(unittest.TestCase):
     def setUp(self):
-        self.h = Harness(mode='solo', lua_roots=[DEV_LUA])
+        self.h = Harness(with_rs=False, mode='solo', lua_roots=[DEV_LUA])
         self.h.load('solo', SUITE)
         self.h.load('solo', 'HARNESS.place(getPlayer(), 100.5, 100.5, 0)')
 

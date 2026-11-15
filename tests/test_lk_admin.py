@@ -1,6 +1,6 @@
 """Outils d'administration de Living Knox (LK13-T01) : LK_Admin.lua (autorité) et LK_AdminView.lua (fenêtre client).
 
-    python RadioSurvivor/tests/test_lk_admin.py
+    python tests/test_lk_admin.py
 
 Trois bancs :
 - lupa direct de tests/test_lk_relief.py (carte de test, vrai registre, vraie population, vrais sites et relève) :
@@ -20,7 +20,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from harness import Harness, LUA  # noqa: E402
+from harness import Harness  # noqa: E402
 from harness import LK_LUA  # noqa: E402  (E18-T07)
 from test_lk_api import POPULATE, SERVER as API_SERVER, SHARED as API_SHARED, WORLD as API_WORLD  # noqa: E402
 from test_lk_population import lua_list  # noqa: E402
@@ -414,7 +414,7 @@ class HarnessBase(unittest.TestCase):
     mode = 'mp'
 
     def setUp(self):
-        self.h = Harness(mode=self.mode)
+        self.h = Harness(with_rs=False, mode=self.mode)
         self.srv = 'solo' if self.mode == 'solo' else 'server'
         machines = ('solo',) if self.mode == 'solo' else ('server', 'A', 'B')
         for m in machines:

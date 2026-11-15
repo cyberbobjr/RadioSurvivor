@@ -14,11 +14,12 @@ RS_Caches.lua). Played by autoclient.py --mp --phases restart --server-campaign 
                                       (record copy with placing = true, placed = false) adopts the saved bag: still
                                       one bag. Then the bag is removed and the snapshot consumed.
 Tags "server", "world", "manual": authority only, test saves rstest* only, exact names only.
-Snapshot: Zomboid/Lua/batman_RadioSurvivor/tests/recover-persist.txt of the server (RST_Persist).
+Snapshot: Zomboid/Lua/batman_CoreAITests/tests/recover-persist.txt of the server (RST_Persist).
 Outside the game: tests/test_persist_suites.py (doubles of tests/test_mission_recover.py).
 ]]
 
 require "RST/RST"
+require "RST/RST_ModRadioSurvivor"
 require "RST/RST_Persist"
 
 RST.RecoverPersist = RST.RecoverPersist or {}

@@ -28,6 +28,8 @@ Outside the game: tests/test_reputation.py, tests/test_rs_trade.py, tests/test_l
 ]]
 
 require "RST/RST"
+require "RST/RST_ModRadioSurvivor"
+require "RST/RST_ModLivingKnox"
 require "RST/RST_Fixtures"
 require "RST/RST_Steps"
 require "RST/RST_RSHelpers"

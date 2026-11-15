@@ -1,8 +1,8 @@
 """Agreements kept by Living Knox, team ids kept by the core mod (E18-T20, decision of 2026-11-06).
 
-    python RadioSurvivor/tests/test_lk_agreements.py
+    python tests/test_lk_agreements.py
 
-Living Knox alone (no module of RadioSurvivor loaded): a truce concluded for the team of a player (CA_Teams of the core
+Living Knox alone (core mod and Living Knox only on the module path): a truce concluded for the team of a player (CA_Teams of the core
 mod: personal team in solo) with one of its groups makes the character covered by the hook of Living Knox
 (LivingKnox.Hooks.covered), is written in the private file of Living Knox (agreements-*.txt, header LKAGR1) and read
 back after a restart; the team id is written in the private file of the core mod (teams-*.txt, header RCTEAMS1) and
@@ -38,7 +38,6 @@ class LivingKnoxAgreementsTests(LivingKnoxAloneTests):
                      'PLAYER = {getUsername = function() return "ann" end}')
 
     def test_truce_covered_and_kept_after_a_restart(self):
-        self.no_radiosurvivor()
         team = self.ev('require("CoreAI/CA_Teams").idOf(PLAYER)')
         self.assertRegex(team, r'^fac-\d+$')
         self.assertFalse(self.ev('LivingKnox.Hooks.covered(GID, "c-ann")'))
@@ -64,7 +63,6 @@ class LivingKnoxAgreementsTests(LivingKnoxAloneTests):
         self.assertEqual(self.ev('require("CoreAI/CA_Teams").idOf(PLAYER)'), team)
         self.assertEqual(self.ev(f'LivingKnox.Agreements.agreementOf(GID, "{team}").kind'), 'truce')
         self.assertTrue(self.ev('LivingKnox.Hooks.covered(GID, "c-ann")'), 'truce lost by the restart')
-        self.no_radiosurvivor()
 
 
 # Client doubles of the notice view: halos and translated text "key|arg1|arg2" (vanilla getText formatting not needed).
@@ -124,8 +122,6 @@ class AgreementNoticesTests(relation_bench.Base):
         self.assertEqual(self.halos('A')[1:], ['good:IGUI_LK_Incident_repair|Farm|IGUI_LK_RepairCategory_food',
                                                'bad:IGUI_LK_Incident_break|IGUI_LK_IncidentGroup'])
         self.assertEqual(self.halos('B'), [])
-        self.assertFalse(self.ev('(function() for name in pairs(package.loaded) do '
-                                 'if string.find(name, "^RadioSurvivor/") then return true end end return false end)()'))
 
 
 del LivingKnoxAloneTests  # base bench: collected by its own file only

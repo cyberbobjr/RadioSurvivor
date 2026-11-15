@@ -2,7 +2,7 @@
 (autorité), client/LivingKnox/LK_ZombiesClient.lua (client qui simule le zombie), branchement dans LK_Combat.lua
 (cible zombie), LK_CombatClient.lua (cible retrouvée par son identifiant réseau) et LK_Decisions.lua (« fight zombie »).
 
-    python RadioSurvivor/tests/test_lk_zombies.py
+    python tests/test_lk_zombies.py
 
 Banc tests/harness.py (serveur dédié et deux clients, ou solo), pile de test_lk_combat.py (corps, consignes, rapports,
 armes, mêlée, tir) complétée de LK_Health.lua et des doublures ci-dessous, qui reproduisent le Java 42.21.0 relevé et
@@ -25,7 +25,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from harness import lua_src  # noqa: E402  (E18-T07)
-from test_lk_bodies import LUA, DEV_LUA, lua_list  # noqa: E402
+from test_lk_bodies import DEV_LUA, lua_list  # noqa: E402
 from test_lk_combat import CombatBase  # noqa: E402
 
 ZOMBIES = 'server/LivingKnox/LK_Zombies.lua'

@@ -1,6 +1,6 @@
 """Tests hors jeu du squelette Living Knox (LK01-T02) : espace de noms, options, journal, entrées serveur/client.
 
-    python RadioSurvivor/tests/test_lk_core.py
+    python tests/test_lk_core.py
 
 Banc tests/harness.py (simulation, pas validation de l'API Java). Les options sandbox sont simulées ici :
 getSandboxOptions():getOptionByName(nom) rend nil pour une option inconnue (SandboxOptions.java), sinon un objet
@@ -40,7 +40,7 @@ class Base(unittest.TestCase):
     mode = 'mp'
 
     def setUp(self):
-        self.h = Harness(mode=self.mode)
+        self.h = Harness(with_rs=False, mode=self.mode)
         for m in self.machines():
             self.h.load(m, SANDBOX)
 

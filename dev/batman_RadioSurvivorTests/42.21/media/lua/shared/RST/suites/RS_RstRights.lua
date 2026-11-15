@@ -19,9 +19,11 @@ client's notebook are put back at the end (a "hello" sent by the server for it).
 ]]
 
 require "RST/RST"
+require "RST/RST_ModRadioSurvivor"
 require "RST/RST_Steps"
 require "RST/RST_PeerChecks"
 require "RST/RST_PeerChecks2"
+require "RST/RST_PeerChecksRadio"
 
 local FILTER = { suite = "rst.selftest" }
 
@@ -104,7 +106,7 @@ RST.suite("rs.claim", { tags = { "server" } }, function(s)
             server.command(C.MODULE, "hello", peer, {})   -- identity sent again to the client
         end, "binding of " .. peerName .. " restored")
         RST.Steps.ask(t, "carnet.claim", { character = claimed }, { target = { peerName },
-            timeoutMs = RST.PeerChecks2.CLAIM_MS }, function(t2, res)
+            timeoutMs = RST.PeerRadio.CLAIM_MS }, function(t2, res)
             local e = res.by[peerName]
             local answered = e and e.data and e.data.character or nil
             local now = server.bound[peer]

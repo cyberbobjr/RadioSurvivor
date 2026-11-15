@@ -3,7 +3,7 @@ file Fortify.minuteJobs, trois étapes par relevé, une par image, et relecture 
 groupe) et lecture en place des types de groupe (shared/LivingKnox/LK_GroupTypes.lua,
 GroupTypes.peek ; appelants LK_Decisions.lua, LK_Hostility.lua).
 
-    python RadioSurvivor/tests/test_lk_peaks.py
+    python tests/test_lk_peaks.py
 
 Banc : pile de test_lk_fortify_offscreen.py (maison HOUSE, foyer 110,110, caisse garnie, ouvrier m-2) pour la file
 d'un groupe ; banc de charge complet tools/load_bench.py (5 groupes, 4 joueurs) pour la file de plusieurs groupes et

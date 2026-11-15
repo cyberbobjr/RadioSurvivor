@@ -1,7 +1,7 @@
 """Mesure de charge de Living Knox (LK13-T02) : shared/LivingKnox/LK_Load.lua, requête d'administration « load » de
 server/LivingKnox/LK_Admin.lua, suite en jeu lk.load et banc tools/load_bench.py.
 
-    python RadioSurvivor/tests/test_lk_load.py
+    python tests/test_lk_load.py
 
 Bancs :
 - tests/harness.py en MP (serveur dédié + deux clients) et en solo, moteur réduit (LK_Core, LK_Config, LK_Log,
@@ -23,7 +23,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from harness import Harness, LUA  # noqa: E402
+from harness import Harness  # noqa: E402
 from harness import LK_LUA  # noqa: E402  (E18-T07)
 from test_lk_admin import API_SERVER, API_SHARED, API_WORLD, NO_GRID, PERMISSIONS, POPULATE, role_for  # noqa: E402
 from test_lk_bodies import DEV_LUA, lua_list  # noqa: E402
@@ -59,7 +59,7 @@ class LoadBase(unittest.TestCase):
     mode = 'mp'
 
     def setUp(self):
-        self.h = Harness(mode=self.mode)
+        self.h = Harness(with_rs=False, mode=self.mode)
         self.srv = 'solo' if self.mode == 'solo' else 'server'
         self.machines = ('solo',) if self.mode == 'solo' else ('server', 'A', 'B')
         for m in self.machines:
@@ -270,7 +270,7 @@ class StateAndSaveTests(unittest.TestCase):
     """Taille de l'état et écritures sur le vrai registre des groupes (pile de test_lk_admin.py)."""
 
     def setUp(self):
-        self.h = Harness(mode='mp')
+        self.h = Harness(with_rs=False, mode='mp')
         for m in ('server', 'A', 'B'):
             self.h.load(m, API_WORLD + NO_GRID)
             self.h.load(m, PERMISSIONS)
@@ -321,7 +321,7 @@ class AdminTests(unittest.TestCase):
     """Requête d'administration « load » : droit vérifié d'abord, puis départ, rapport et arrêt."""
 
     def setUp(self):
-        self.h = Harness(mode='mp')
+        self.h = Harness(with_rs=False, mode='mp')
         for m in ('server', 'A', 'B'):
             self.h.load(m, API_WORLD + NO_GRID)
             self.h.load(m, PERMISSIONS)
@@ -399,7 +399,7 @@ class SuiteTests(unittest.TestCase):
     """Suite en jeu lk.load jouée par le vrai moteur RST sur le banc solo (pile d'administration)."""
 
     def setUp(self):
-        self.h = Harness(mode='solo', lua_roots=[DEV_LUA], tick_ms=100)
+        self.h = Harness(with_rs=False, mode='solo', lua_roots=[DEV_LUA], tick_ms=100)
         self.h.load('solo', API_WORLD + NO_GRID)
         self.h.load('solo', PERMISSIONS)
         for path in API_SHARED + API_SERVER:

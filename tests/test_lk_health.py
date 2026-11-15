@@ -1,6 +1,6 @@
 """Tests hors jeu de la santé de référence Living Knox (LK07-T02) : LK_Health.lua (autorité), LK_HealthClient.lua.
 
-    python RadioSurvivor/tests/test_lk_health.py
+    python tests/test_lk_health.py
 
 Banc tests/harness.py (serveur dédié et deux clients, ou solo), pile de test_lk_reports.py (corps, garde, consignes,
 rapports) complétée des doublures ci-dessous, qui reproduisent le Java 42.21.0 relevé et NE PROUVENT PAS l'API réelle :
@@ -22,14 +22,14 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from harness import lua_src  # noqa: E402  (E18-T07)
-from test_lk_bodies import LUA, DEV_LUA, lua_list  # noqa: E402
+from test_lk_bodies import DEV_LUA, lua_list  # noqa: E402
 from test_lk_reports import ReportBase  # noqa: E402
 
 HEALTH = 'server/LivingKnox/LK_Health.lua'
 HEALTH_CLIENT = 'client/LivingKnox/LK_HealthClient.lua'
 MOD_FILES = [lua_src(HEALTH), lua_src(HEALTH_CLIENT)]
 DEV_FILES = [DEV_LUA / 'shared' / 'RST' / 'suites' / 'RST_LKHealth.lua',
-             DEV_LUA / 'shared' / 'RST' / 'suites' / 'RS_Killer.lua']
+             DEV_LUA / 'shared' / 'RST' / 'suites' / 'RST_LKKiller.lua']
 
 HEALTH_DOUBLES = r'''
 local H = HARNESS
@@ -363,7 +363,7 @@ class SoloHealthTests(HealthBase):
 
     def run_suite(self, name, count, setup=''):
         self.init()
-        self.h.load('solo', f'shared/RST/suites/{"RST_LKHealth" if name == "lk.health" else "RS_Killer"}.lua')
+        self.h.load('solo', f'shared/RST/suites/{"RST_LKHealth" if name == "lk.health" else "RST_LKKiller"}.lua')
         listed = self.h.eval('solo', f'RST.list({{ suite = "{name}", tags = "world" }}, true)[1]')
         self.assertEqual(listed.name, name)
         self.assertEqual(listed.count, count)
@@ -387,9 +387,9 @@ class SoloHealthTests(HealthBase):
         measures = [line for line in self.h.logs('solo') if line.startswith('[LKH] measure')]
         self.assertTrue(any('deaths +1, engine deaths +0, listener calls 1' in line for line in measures), measures)
 
-    def test_suite_rs_killer_passes_with_the_reference_health(self):
-        self.run_suite('rs.killer', 5)
-        measures = [line for line in self.h.logs('solo') if line.startswith('[RSK] measure')]
+    def test_suite_lk_killer_passes_with_the_reference_health(self):
+        self.run_suite('lk.killer', 5)
+        measures = [line for line in self.h.logs('solo') if line.startswith('[LKK] measure')]
         self.assertTrue(any('fire with reference health: on fire false, npc embodied' in line for line in measures),
                         measures)
 

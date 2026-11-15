@@ -2,7 +2,7 @@
 successifs par CA_TextCut.pieces) et bridge/npc_protocol.py (clean_speech : coupe d'une réplique trop longue, consigne
 de longueur au modèle).
 
-    python RadioSurvivor/tests/test_lk_speech_pieces.py
+    python tests/test_lk_speech_pieces.py
 
 Constat du 2026-10-14 : des répliques de PNJ se lisaient coupées au milieu d'une phrase dans les bulles. Chemins
 prouvés (ancien code) :

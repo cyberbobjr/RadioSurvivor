@@ -4,7 +4,7 @@ retour), LK_Materialize.lua (corps retiré -> Expeditions.onReleased), LK_Simula
 Expeditions.resolveAbstract) et LK_Needs.lua (activité « travel »), et la suite en jeu lk.expedition
 (dev/.../RST_LKExpedition.lua) : liste et forme.
 
-    python RadioSurvivor/tests/test_lk_expeditions.py
+    python tests/test_lk_expeditions.py
 
 Bancs :
 - logique pure (classement des bâtiments selon les manques et la distance, foyers et bâtiments récents écartés ;
@@ -41,7 +41,8 @@ ROOT = Path(__file__).resolve().parents[1]
 MODULE = 'server/LivingKnox/LK_Expeditions.lua'
 MODULE_FILE = lua_src(MODULE)
 SUITE = 'shared/RST/suites/RST_LKExpedition.lua'
-SUITE_FILE = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua' / SUITE
+from harness import tests_lua  # noqa: E402  (E21-T07: media/lua of the test mods)
+SUITE_FILE = tests_lua('lk') / SUITE
 
 # Métagrille doublée : bâtiments META (bornes incluses, comme BUILDINGS) ; bâtiment visé n° 9 (cuisine) à 20 cases du
 # foyer 110,110 avec un comptoir 134,107 garni ; instanceItem compté (aucun objet créé à l'écran).

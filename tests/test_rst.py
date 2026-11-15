@@ -20,8 +20,13 @@ import pz_paths  # noqa: E402  (vanilla folders: PZ_STEAM_LIBRARY, PZ_MEDIA or S
 import lupa.lua51 as lupa
 
 ROOT = Path(__file__).resolve().parents[1]
-MOD = ROOT / 'dev' / 'batman_RadioSurvivorTests'
+MOD = ROOT / 'dev' / 'batman_CoreAITests'   # E21-T07: RST engine, campaign registry and core suites
 LUA = MOD / '42.21' / 'media' / 'lua'
+CAMPAIGN_FILE = LUA / 'client' / 'RST' / 'RST_Campaign.lua'
+LK_TESTS = ROOT / 'dev' / 'batman_LivingKnoxTests' / '42.21' / 'media' / 'lua'
+RS_TESTS = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua'
+MOD_FILES = {'lk': LK_TESTS / 'shared' / 'RST' / 'RST_ModLivingKnox.lua',
+             'rs': RS_TESTS / 'shared' / 'RST' / 'RST_ModRadioSurvivor.lua'}
 RST_FILE = LUA / 'shared' / 'RST' / 'RST.lua'
 CLIENT_FILE = LUA / 'client' / 'RST' / 'RST_Client.lua'
 SELFTEST_FILE = LUA / 'shared' / 'RST' / 'suites' / 'RST_SelfTest.lua'
@@ -31,6 +36,8 @@ FIXTURES_FILE = LUA / 'shared' / 'RST' / 'RST_Fixtures.lua'
 FIXTURES_SUITE_FILE = LUA / 'shared' / 'RST' / 'suites' / 'RST_FixturesSuite.lua'
 sys.path.insert(0, str(ROOT / 'tools'))
 import install_tests  # noqa: E402
+sys.path.insert(0, str(ROOT / 'tests'))
+from harness import tests_lua  # noqa: E402  (E21-T07: media/lua of the three test mods, for the Machine below)
 
 PRELUDE = r"""
 LOGS = {}
@@ -49,7 +56,8 @@ class LuaHarness(unittest.TestCase):
         g = self.rt.globals()
         g.next = None  # absent de Kahlua
         self.rt.execute(PRELUDE)
-        self.rt.execute(f'package.path = [[{(LUA / "shared").as_posix()}/?.lua;]] .. package.path')
+        self.rt.execute(f'package.path = [[{(LUA / "shared").as_posix()}/?.lua;'
+                        f'{(tests_lua() / "shared").as_posix()}/?.lua;]] .. package.path')
         self.rt.execute('getTimestampMs = function() return CLOCK end')
         self.rt.execute('RST_MODULE = require "RST/RST"')
         self.g = g
@@ -848,7 +856,7 @@ FAKE_GAME = r"""
 DEBUG = true
 isDebugEnabled = function() return DEBUG end
 getCore = function() return { getVersion = function(self) return "42.21.0 abcdef1234" end } end
-MODS = { "batman_CoreAI", "batman_LivingKnox", "batman_RadioSurvivor", "batman_RadioSurvivorTests" }
+MODS = { "batman_CoreAI", "batman_LivingKnox", "batman_RadioSurvivor", "batman_CoreAITests" }
 getActivatedMods = function()
     return { size = function(self) return #MODS end, get = function(self, i) return MODS[i + 1] end }
 end
@@ -925,7 +933,7 @@ class ClientTests(LuaHarness):
         self.fail('le passage ne se termine pas')
 
     def report_files(self):
-        folder = self.root / 'batman_RadioSurvivor' / 'tests'
+        folder = self.root / 'batman_CoreAITests' / 'tests'
         return sorted(folder.glob('*.txt')) if folder.is_dir() else []
 
     def names(self, flt):
@@ -988,13 +996,13 @@ class ClientTests(LuaHarness):
         self.assertEqual(len(files), 1)
         self.assertRegex(files[0].name, r'^\d{8}-\d{6}-solo\.txt$')
         text = files[0].read_text(encoding='utf-8').splitlines()
-        self.assertTrue(text[0].startswith('RST report (batman_RadioSurvivorTests, RST '))
+        self.assertTrue(text[0].startswith('RST report (batman_CoreAITests, RST '))
         self.assertIn('game version: 42.21.0 abcdef1234', text)
         self.assertIn('side: solo', text)
         self.assertIn('save: rstest-solo', text)
         self.assertIn('filter: "rst" -> {exclude={"server", "world"}, suite="rst"}', text)
         self.assertIn('active mods (4): batman_CoreAI;batman_LivingKnox;batman_RadioSurvivor;'
-                      'batman_RadioSurvivorTests', text)
+                      'batman_CoreAITests', text)
         self.assertTrue(any(re.match(r'^date \(UTC\): \d{8}-\d{6}$', line) for line in text))
         self.assertTrue(any(line.startswith('PASS   rst.selftest :: sleep 2 s measured by RST.now') for line in text))
         self.assertTrue(text[-1].startswith('OK - 6 test(s): 6 pass, 0 fail'))
@@ -1002,8 +1010,8 @@ class ClientTests(LuaHarness):
         self.assertTrue(w.closed)
         self.assertTrue(w.createIfNull)
         self.assertFalse(w.append)
-        self.assertEqual(w.name, 'batman_RadioSurvivor/tests/' + files[0].name)
-        self.assertTrue(self.lua(f'return logged("report written: Zomboid/Lua/batman_RadioSurvivor/tests/'
+        self.assertEqual(w.name, 'batman_CoreAITests/tests/' + files[0].name)
+        self.assertTrue(self.lua(f'return logged("report written: Zomboid/Lua/batman_CoreAITests/tests/'
                                  f'{files[0].name[:8]}")'))
         self.assertTrue(self.lua('return logged("%[RST%] OK %- 6 test")'))
         self.assertEqual((self.g.HALO.kind, self.g.HALO.text), ('good', 'RST OK: 6/6 pass, 0 fail, 0 error, 0 empty'))
@@ -1011,7 +1019,7 @@ class ClientTests(LuaHarness):
         self.lua('LOGS = {}')
         self.assertTrue(self.lua('return RST.last() == RST._last'))
         self.assertTrue(self.lua('return logged("game version: 42.21.0")'))
-        self.assertTrue(self.lua('return logged("file: Zomboid/Lua/batman_RadioSurvivor/tests/")'))
+        self.assertTrue(self.lua('return logged("file: Zomboid/Lua/batman_CoreAITests/tests/")'))
 
     def test_selftest_sleep_measured(self):
         self.assertTrue(self.lua('return RST.run({ suite = "rst.selftest", test = "^sleep" })'))
@@ -1256,7 +1264,8 @@ class Machine:
         self.g = self.rt.globals()
         self.g.next = None
         self.rt.execute(PRELUDE)
-        self.rt.execute(f'package.path = [[{(LUA / "shared").as_posix()}/?.lua;]] .. package.path')
+        self.rt.execute(f'package.path = [[{(LUA / "shared").as_posix()}/?.lua;'
+                        f'{(tests_lua() / "shared").as_posix()}/?.lua;]] .. package.path')
         self.rt.execute('getTimestampMs = function() return CLOCK end')
         root.mkdir(parents=True, exist_ok=True)
         self.root = root
@@ -1278,7 +1287,7 @@ class Machine:
         return data
 
     def files(self):
-        folder = self.root / 'batman_RadioSurvivor' / 'tests'
+        folder = self.root / 'batman_CoreAITests' / 'tests'
         return sorted(folder.glob('*.txt')) if folder.is_dir() else []
 
 
@@ -1393,7 +1402,7 @@ class ServerTests(unittest.TestCase):
         files = s.files()
         self.assertEqual(len(files), 1)
         self.assertRegex(files[0].name, r'^\d{8}-\d{6}-server\.txt$')
-        self.assertEqual(rep.file, 'batman_RadioSurvivor/tests/' + files[0].name)
+        self.assertEqual(rep.file, 'batman_CoreAITests/tests/' + files[0].name)
         self.assertTrue(rep.written)
         self.assertNotIn(':', rep.file)  # aucun chemin absolu de la machine serveur
         text = files[0].read_text(encoding='utf-8').splitlines()
@@ -1405,7 +1414,7 @@ class ServerTests(unittest.TestCase):
         self.assertIsNone(self.user.lua('return RST.Client.lastServerReport'))  # seul le demandeur reçoit
         self.admin.lua('LOGS = {}')
         self.assertTrue(self.admin.lua('return RST.lastServer().id == 1'))
-        self.assertTrue(self.logged(self.admin, 'server file: Zomboid/Lua/batman_RadioSurvivor/tests/'))
+        self.assertTrue(self.logged(self.admin, 'server file: Zomboid/Lua/batman_CoreAITests/tests/'))
 
     def test_second_request_during_run_is_busy(self):
         self.assertTrue(self.admin.lua('return RST.server("rst")'))
@@ -1535,7 +1544,7 @@ class AutorunTests(unittest.TestCase):
         self.net = Network(Path(self.tmp.name))
         self.s = self.net.server
         self.s.lua('getWorld = function() return { getWorld = function() return "rstest_smoke" end } end')
-        self.tests_dir = self.s.root / 'batman_RadioSurvivor' / 'tests'
+        self.tests_dir = self.s.root / 'batman_CoreAITests' / 'tests'
 
     def tearDown(self):
         self.tmp.cleanup()
@@ -1567,14 +1576,14 @@ class AutorunTests(unittest.TestCase):
         path = self.write_autorun(src)
         self.start_server()
         self.assertTrue(self.s.lua('return RST.running()'))
-        self.assertTrue(self.s.lua('return logged("autorun started from Zomboid/Lua/batman_RadioSurvivor/tests/'
+        self.assertTrue(self.s.lua('return logged("autorun started from Zomboid/Lua/batman_CoreAITests/tests/'
                                    'autorun.txt")'))
         self.assertFalse((self.tests_dir / 'autorun-result.txt').exists())  # écrit à la fin seulement
         self.net.run_server_to_end()
         lines = self.result_lines()
         first = lines[0]
         self.assertRegex(first, r'^RST-RESULT ok=true total=6 pass=6 fail=0 error=0 skip=0 empty=0 '
-                                r'durationMs=\d+ report=batman_RadioSurvivor/tests/\d{8}-\d{6}-server\.txt$')
+                                r'durationMs=\d+ report=batman_CoreAITests/tests/\d{8}-\d{6}-server\.txt$')
         self.assertEqual(lines[-1], 'RST-END')
         self.assertIn('side: server', lines)
         self.assertIn('requested by: autorun.txt', lines)
@@ -1635,7 +1644,7 @@ class AutorunTests(unittest.TestCase):
             "reason=autorun.txt line 2: one suite name per line, got 'rs codec'", 'RST-END'])
         net = Network(Path(self.tmp.name) / 'second')
         net.server.lua('getWorld = function() return { getWorld = function() return "rstest_smoke" end } end')
-        folder = net.server.root / 'batman_RadioSurvivor' / 'tests'
+        folder = net.server.root / 'batman_CoreAITests' / 'tests'
         folder.mkdir(parents=True)
         (folder / 'autorun.txt').write_text('nothing.here\n', encoding='utf-8')
         net.server.g.Events.OnServerStarted.fire()
@@ -1817,8 +1826,8 @@ class ModInfoTests(unittest.TestCase):
     def test_mod_info(self):
         info = dict(line.split('=', 1) for line in (MOD / '42.21' / 'mod.info').read_text(encoding='utf-8').splitlines()
                     if '=' in line)
-        self.assertEqual(info['id'], 'batman_RadioSurvivorTests')
-        self.assertEqual(info['require'], '\\batman_CoreAI')   # E18-T14: the other mods are detected
+        self.assertEqual(info['id'], 'batman_CoreAITests')
+        self.assertEqual(info['require'], '\\batman_CoreAI')   # E21-T07: the test mods of each mod require this one
         self.assertEqual(info['versionMin'], '42.21')
         self.assertIn('never publish', info['description'])
         self.assertTrue((MOD / 'common').is_dir())
@@ -2889,7 +2898,7 @@ function LivingKnox.API.testNpcs()
 end
 """
 
-NPC_SUITE_FILE = LUA / 'shared' / 'RST' / 'suites' / 'RST_FixturesNpc.lua'
+NPC_SUITE_FILE = LK_TESTS / 'shared' / 'RST' / 'suites' / 'RST_FixturesNpc.lua'
 
 
 class NpcFixtureTests(AsyncHarness):
@@ -3047,7 +3056,13 @@ class NpcFixtureTests(AsyncHarness):
 
 class ModsGuardTests(AsyncHarness):
     """E18-T14: each suite needs mods (opts.mods, else by its name: lk.* Living Knox, rs.* RadioSurvivor); a suite
-    whose mods are not all active is SKIP without running, with the missing mods in the reason."""
+    whose mods are not all active is SKIP without running, with the missing mods in the reason. E21-T07: the short
+    names and prefixes are registered by the test mod of each mod (RST_ModLivingKnox.lua, RST_ModRadioSurvivor.lua)."""
+
+    def setUp(self):
+        super().setUp()
+        for path in MOD_FILES.values():
+            self.lua(path.read_text(encoding='utf-8'))
 
     SUITES = r'''
     RAN = {}
@@ -3083,10 +3098,79 @@ class ModsGuardTests(AsyncHarness):
         self.assertEqual({self.status(s, 'a')[0] for s in ('lk.x', 'rs.x', 'rs.mixed', 'ca.x')}, {'PASS'})
         self.assertEqual(lua_list(self.lua('return RST.suiteMods(RST._suites[3])')), ['rs', 'lk'])
 
+    def test_a_short_name_nobody_registered_counts_as_an_inactive_mod(self):
+        # The Living Knox setup: batman_RadioSurvivorTests is absent, "rs" is not registered.
+        self.lua('RST.MOD_IDS.rs = nil; RST.MOD_PREFIXES["rs."] = nil')
+        self.lua(self.SUITES)
+        self.mods('batman_CoreAI', 'batman_LivingKnox')
+        self.lua('RAN = {}; REPORT = RST.runSync()')
+        self.assertEqual(self.status('lk.x', 'a')[0], 'PASS')
+        self.assertEqual(self.status('rs.mixed', 'a'), ('SKIP', 'needs mod(s) rs (not active)'))
+
+    def test_registered_mods(self):
+        self.assertEqual(self.lua('return RST.MOD_IDS.core'), 'batman_CoreAI')
+        self.assertEqual(self.lua('return RST.MOD_IDS.lk'), 'batman_LivingKnox')
+        self.assertEqual(self.lua('return RST.MOD_IDS.rs'), 'batman_RadioSurvivor')
+        self.assertEqual(lua_list(self.lua('return RST.suiteMods({ name = "lk.a.b" })')), ['lk'])
+        self.assertEqual(lua_list(self.lua('return RST.suiteMods({ name = "ca.notebook" })')), [])
+
     def test_outside_the_game_every_mod_counts_as_active(self):
         self.lua(self.SUITES)
         self.lua('getActivatedMods = nil; RAN = {}; REPORT = RST.runSync()')
         self.assertEqual(self.status('rs.mixed', 'a')[0], 'PASS')
+
+
+class CampaignRegistryTests(LuaHarness):
+    """E21-T07: each test mod registers its parts of the campaigns (RST.Campaigns.add in RST_Campaign.lua of
+    batman_CoreAITests); RST.CAMPAIGNS[name] merges them by rank, then by registration, without repeating an entry."""
+
+    def setUp(self):
+        super().setUp()
+        self.lua('Events = { OnServerCommand = { Add = function() end }, OnTick = { Add = function() end, '
+                 'Remove = function() end } }')
+        self.lua(f'package.path = [[{(LUA / "client").as_posix()}/?.lua;]] .. package.path')
+        self.lua('package.loaded["RST/RST_Client"] = true')
+        self.lua('require "RST/RST_Campaign"')
+
+    def campaign(self, name):
+        return lua_list(self.lua(f'return RST.CAMPAIGNS["{name}"]'))
+
+    def test_parts_are_merged_by_rank_then_registration(self):
+        self.lua('RST.Campaigns.add({ "x", "both" }, 30, { "rs.a", "ca.shared" })')
+        self.lua('RST.Campaigns.add({ "y", "both" }, 20, { "lk.a", "ca.shared" })')
+        self.lua('RST.Campaigns.add("both", 90, { "lk.last" })')
+        self.lua('RST.Campaigns.add("both", 20, { "lk.b" })')
+        self.assertEqual(self.campaign('x'), ['rs.a', 'ca.shared'])
+        self.assertEqual(self.campaign('y'), ['lk.a', 'ca.shared'])
+        self.assertEqual(self.campaign('both'), ['lk.a', 'ca.shared', 'lk.b', 'rs.a', 'lk.last'])
+
+    def test_core_suites_open_every_solo_campaign(self):
+        for name in ('solo-lk', 'solo-rs', 'solo'):
+            self.assertEqual(self.campaign(name), ['rst.guard', 'ca.codec', 'ca.notebook'], name)
+
+    def test_living_knox_alone_runs_core_and_living_knox_suites(self):
+        # The Living Knox setup loads the core and Living Knox test mods only.
+        self.lua((LK_TESTS / 'client' / 'RST' / 'RST_CampaignLK.lua').read_text(encoding='utf-8'))
+        lk = self.campaign('solo-lk')
+        self.assertEqual(lk[:4], ['rst.guard', 'ca.codec', 'ca.notebook', 'lk.fitness'])
+        self.assertEqual(lk, self.campaign('solo'))
+        self.assertEqual(self.campaign('mp')[-1], 'lk.routines')
+        self.assertTrue(all(n.split('.')[0] in ('rst', 'ca', 'lk') for n in lk + self.campaign('mp')))
+
+    def test_both_mods_living_knox_first_then_radiosurvivor(self):
+        self.lua((RS_TESTS / 'client' / 'RST' / 'RST_CampaignRS.lua').read_text(encoding='utf-8'))
+        self.lua((LK_TESTS / 'client' / 'RST' / 'RST_CampaignLK.lua').read_text(encoding='utf-8'))
+        solo = self.campaign('solo')
+        self.assertEqual(solo, self.campaign('solo-lk') + self.campaign('solo-rs')[3:])
+        mp = self.campaign('mp')
+        self.assertEqual(mp[:3], ['rst.selftest', 'ca.codec', 'ca.journal'])
+        self.assertEqual(mp[-2:], ['rs.death', 'lk.routines'])
+        self.assertEqual(self.campaign('mp-persist')[-2:], ['rst.disconnect', 'lk.rejoin'])
+
+    def test_unknown_campaign_refused(self):
+        ok, reason = self.lua('return RST.campaign("nope")')
+        self.assertFalse(ok)
+        self.assertEqual(reason, 'unknown or empty campaign')
 
 
 if __name__ == '__main__':

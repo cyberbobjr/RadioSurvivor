@@ -5,7 +5,7 @@ joueur était remis à sa place par le nettoyage du test, mais la suite suivante
 rechargée : « npc spawn refused: square 11316,6942,0 is not loaded » (11 tests). Pl.areaBack fait attendre le
 nettoyage jusqu'au chargement des cases autour de la place de départ (RST.Fixtures.areaBack, au plus F.BACK_LOAD_MS, puis une note).
 
-Lancer : python RadioSurvivor/tests/test_lk_places.py
+Lancer : python tests/test_lk_places.py
 """
 import sys
 import unittest
@@ -49,7 +49,7 @@ end)
 
 class PlacesBackTests(unittest.TestCase):
     def setUp(self):
-        self.h = Harness(mode='solo', lua_roots=[DEV_LUA])
+        self.h = Harness(with_rs=False, mode='solo', lua_roots=[DEV_LUA])
         self.h.load('solo', SUITE)
 
     def tearDown(self):

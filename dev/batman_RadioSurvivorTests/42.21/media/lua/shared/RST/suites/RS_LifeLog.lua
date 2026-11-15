@@ -9,6 +9,7 @@ player: player checks are SKIP). Outside the game: tests/test_lifelog.py.
 ]]
 
 require "RST/RST"
+require "RST/RST_ModRadioSurvivor"
 
 local function module(t)
     if type(isClient) == "function" and isClient() then

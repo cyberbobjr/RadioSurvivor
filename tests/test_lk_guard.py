@@ -1,6 +1,6 @@
 """Tests hors jeu de la neutralisation des corps de PNJ Living Knox (LK02-T04) : LK_ZombieGuard.lua.
 
-    python RadioSurvivor/tests/test_lk_guard.py
+    python tests/test_lk_guard.py
 
 Banc tests/harness.py et doublures de tests/test_lk_bodies.py (création B réelle par LivingKnox.Bodies), complétées
 ici. Les doublures reproduisent le Java 42.21.0 relevé ; elles NE PROUVENT PAS l'API réelle, seulement la logique :
@@ -30,7 +30,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from harness import lua_src  # noqa: E402  (E18-T07)
-from test_lk_bodies import Base, lua_list, LUA, DEV_LUA  # noqa: E402
+from test_lk_bodies import Base, lua_list, DEV_LUA  # noqa: E402
 
 GUARD = 'shared/LivingKnox/LK_ZombieGuard.lua'
 MOD_FILES = [lua_src(GUARD)]

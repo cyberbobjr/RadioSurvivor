@@ -1,7 +1,7 @@
 """Tests hors jeu du plan de fortification des foyers Living Knox (LK14-T02) : server/LivingKnox/LK_Fortify.lua et son
 branchement dans le cadre de décision (LK_Decisions : fortificationOf, fortifyWorkOf, scoreObjectives).
 
-    python RadioSurvivor/tests/test_lk_fortify.py
+    python tests/test_lk_fortify.py
 
 Banc tests/harness.py (solo, ou serveur + deux clients) avec le vrai registre des groupes (LK_Groups) et LK_Homes
 (Homes.ready). Doublures relevées dans le Java et les scripts vanilla 42.21.0 :
@@ -172,7 +172,7 @@ class Base(unittest.TestCase):
     stub_stock = True
 
     def setUp(self):
-        self.h = Harness(mode=self.mode)
+        self.h = Harness(with_rs=False, mode=self.mode)
         self.srv = 'solo' if self.mode == 'solo' else 'server'
         machines = ('solo',) if self.mode == 'solo' else ('server', 'A', 'B')
         for m in machines:

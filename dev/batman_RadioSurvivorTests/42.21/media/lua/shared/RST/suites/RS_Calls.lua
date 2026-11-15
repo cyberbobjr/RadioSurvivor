@@ -13,6 +13,7 @@ Tags "world" and "server", solo only. RST.run({ suite = "rs.calls", tags = { "wo
 ]]
 
 require "RST/RST"
+require "RST/RST_ModRadioSurvivor"
 require "RST/RST_Fixtures"
 require "RST/RST_RSHelpers"
 

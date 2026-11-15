@@ -1,6 +1,6 @@
 """Tests hors jeu de la contestation et du refus d'un membre incarné (E10-T03).
 
-    python RadioSurvivor/tests/test_lk_contest.py
+    python tests/test_lk_contest.py
 
 Trois bancs :
 - logique pure de LK_Decisions (loyalté dérivée du moral et de l'ancienneté, règles de refus d'un ordre du moteur) ;
@@ -26,6 +26,9 @@ from test_lk_bodies import lua_list  # noqa: E402
 from test_lk_decisions import D, DECIDERS, DUMP, PureBase, FINISH_HOUR  # noqa: E402
 from test_lk_materialize import MatBase  # noqa: E402
 import test_carnet as carnet  # noqa: E402
+from test_protocol import Game  # noqa: E402
+
+Game.WITH_RS = False   # E21-T08: core mod and Living Knox only on the module path (one bench per process)
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'bridge'))
@@ -265,7 +268,7 @@ class SoloEngineOrderRefusalTests(EngineOrderRefusalTests):
 
 class MemberReactionTests(unittest.TestCase):
     """Carnet : décision collective du chef née d'une conversation, réactions des membres incarnés jouées par le
-    modèle (pont hors ligne : RS_OFFLINE_INTENT=member:<choix>), quota par décision, journal et réplique."""
+    modèle (pont hors ligne : intention imposée member:<choix>), quota par décision, journal et réplique."""
 
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory(prefix='rs-contest-')
@@ -279,7 +282,7 @@ class MemberReactionTests(unittest.TestCase):
         self.tmp.cleanup()
 
     def world(self, name, intent='', extra_members=0):
-        sim = carnet.Simulation(self.path / name, living_knox=True)
+        sim = carnet.Simulation(self.path / name, living_knox=True, rs_hooks=False)
         sim.server.rt.execute(carnet.LK_WORLD)
         for i in range(extra_members):
             sim.server.rt.execute(f'LK_EXTRA_{i} = lkNpc({20 + i}, LK_GROUP, "worker")')

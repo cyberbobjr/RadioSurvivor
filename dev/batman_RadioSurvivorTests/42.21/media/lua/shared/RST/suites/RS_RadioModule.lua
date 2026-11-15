@@ -30,6 +30,7 @@ MP client: RST.run("rs.radiomodule") (the world suite is skipped there).
 ]]
 
 require "RST/RST"
+require "RST/RST_ModRadioSurvivor"
 
 local TWO_WAY = { "Base.WalkieTalkie1", "Base.WalkieTalkie2", "Base.WalkieTalkie3", "Base.WalkieTalkie4",
     "Base.WalkieTalkie5", "Base.WalkieTalkieMakeShift", "Base.ManPackRadio", "Base.HamRadio1", "Base.HamRadio2" }

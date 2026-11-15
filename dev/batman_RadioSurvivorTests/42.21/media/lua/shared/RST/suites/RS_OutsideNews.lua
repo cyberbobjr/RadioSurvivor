@@ -15,6 +15,7 @@ by the test.
 ]]
 
 require "RST/RST"
+require "RST/RST_ModRadioSurvivor"
 
 local function authority(t)
     if type(isClient) == "function" and isClient() then

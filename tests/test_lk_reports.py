@@ -1,6 +1,6 @@
 """Tests hors jeu des rapports d'état Living Knox (LK03-T02) : LK_Reports.lua (autorité), envoi par LK_Executor.lua.
 
-    python RadioSurvivor/tests/test_lk_reports.py
+    python tests/test_lk_reports.py
 
 Banc tests/harness.py (serveur et deux clients, ou solo), doublures des consignes (test_lk_directives.py) complétées
 de getHealth (IsoGameCharacter.java:2898) et isCrawling (IsoZombie.java:3998). Les doublures NE PROUVENT PAS l'API
@@ -15,7 +15,6 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from harness import lua_src  # noqa: E402  (E18-T07)
-from test_lk_bodies import LUA  # noqa: E402
 from test_lk_directives import DirectiveBase, TARGET  # noqa: E402
 from test_lk_milestone import MilestoneBase  # noqa: E402
 from test_lk_bodies import lua_list  # noqa: E402

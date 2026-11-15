@@ -10,6 +10,7 @@ Outside the game: tests/test_carnet.py (ScoutMissionTests, metagrid double).
 ]]
 
 require "RST/RST"
+require "RST/RST_ModRadioSurvivor"
 require "RST/RST_Fixtures"
 
 local F = RST.Fixtures

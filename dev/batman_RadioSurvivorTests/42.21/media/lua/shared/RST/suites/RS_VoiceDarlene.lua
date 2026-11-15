@@ -20,6 +20,7 @@
 -- (rewards: rs.missionrewards). The wait between two missions of a voice (play time) is cleared before each start.
 -- Cleanup: zombie and corpse, barricades, drop goods, players back.
 require 'RST/RST'
+require "RST/RST_ModRadioSurvivor"
 require 'RST/RST_Fixtures'
 local F = RST.Fixtures
 

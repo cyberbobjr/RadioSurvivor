@@ -13,6 +13,10 @@ What a client sees from the server is read on the client itself:
                 inbox (the wrapped functions are called first and unchanged).
 
 Client handlers (RST.Steps.on)
+    carnet.claim   { character, waitMs }: this client sends the notebook "hello" claiming the character id given (the
+                   identity of ANOTHER account, E00-T01) and returns the character of the "identity" answer of the
+                   server in data { character } (RST.PeerRadio inbox; solo: the client module is tapped). FAIL when no
+                   answer comes.
     rs.talk        { args, waitMs }: sends the real radio command "talk" (module RadioSurvivor) with args (text,
                    channel, itemId, or source = "world" x y z index, or source = "vehicle" vehicleId part) and returns
                    the first answer of the server (accepted or rejected) in data { command, reason, text }.
@@ -133,6 +137,31 @@ local function localPlayer()
 end
 
 -- ---------------------------------------------------------------- client handlers
+
+-- ---------------------------------------------------------------- carnet.claim (E21-T07: from RST_PeerChecks2.lua)
+
+PR.CLAIM_MS = 5000
+
+Steps.on("carnet.claim", function(args)
+    local C = CoreAI.notebookClient
+    if C == nil or type(C.send) ~= "function" then return Steps.fail("notebook client (CoreAI.notebookClient) not loaded") end
+    if type(args.character) ~= "string" or args.character == "" then return Steps.fail("no character to claim") end
+    PR.tapSolo()
+    local mark = PR.seq
+    local Config = require "CoreAI/CA_NotebookConfig"
+    C.send("hello", { v = Config.VERSION, character = args.character })
+    return function(ctx)
+        local got = PR.since(mark, PR.CARNET_MODULE, { identity = true })
+        if #got > 0 then
+            local character = got[#got].character
+            return Steps.pass("claimed " .. tostring(args.character) .. ", identity answered " .. tostring(character),
+                { character = character })
+        end
+        if ctx.final then return Steps.fail("no identity answer to the claim of " .. tostring(args.character)) end
+        return nil
+    end
+end)
+
 
 local ANSWERS = { accepted = true, rejected = true }
 

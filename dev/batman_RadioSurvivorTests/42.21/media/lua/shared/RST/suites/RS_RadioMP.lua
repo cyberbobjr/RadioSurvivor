@@ -20,6 +20,7 @@ again, test sentences removed from the histories. Outside the game: tests/test_r
 ]]
 
 require "RST/RST"
+require "RST/RST_ModRadioSurvivor"
 require "RST/RST_Fixtures"
 require "RST/RST_Steps"
 require "RST/RST_PeerChecksRadio"

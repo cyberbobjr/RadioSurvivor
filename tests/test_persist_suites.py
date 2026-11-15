@@ -24,7 +24,8 @@ sys.path.insert(0, str(ROOT / 'tools' / 'autoclient'))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import autoclient  # noqa: E402
 
-LUA = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua'
+from harness import tests_lua  # noqa: E402  (E21-T07: media/lua of the test mods)
+LUA = tests_lua()
 SUITES = LUA / 'shared' / 'RST' / 'suites'
 MOD_SHARED = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivor' / '42.21' / 'media' / 'lua' / 'shared'
 CORE_SHARED = ROOT / 'Contents' / 'mods' / 'batman_CoreAI' / '42.21' / 'media' / 'lua' / 'shared'  # mod commun (E18)
@@ -94,13 +95,13 @@ class ListingTests(unittest.TestCase):
         self.assertEqual(plain, '')   # RST_LKWalls.lua (the plain suite) is not loaded here
 
     def test_mp_persist_campaign_plan(self):
-        lua = autoclient.CAMPAIGN_FILE.read_text(encoding='utf-8')
+        lua = autoclient.campaign_text()
         bases = autoclient.campaign_suites(lua, 'mp-persist')
         for base in ('rs.identity', 'lk.homes', 'lk.leave', 'rs.mission.recover', 'rs.rescue.missed', 'lk.walls',
                      'rs.radiotab', 'rs.actions.map', 'rs.state', 'rst.disconnect', 'lk.rejoin'):
             self.assertIn(base, bases)
         self.assertEqual(bases[-1], 'lk.rejoin')   # its before step moves the requester away: last of step 0
-        declared = autoclient.declared_suite_names(autoclient.CAMPAIGN_FILE.parents[2])
+        declared = autoclient.declared_suite_names(autoclient.test_lua_dirs())
         steps = autoclient.phase_plan(bases, ['reconnect2', 'reconnect', 'restart'], declared)
         # RST runs the suites of one run in their declaration order, not in the order of the list: lk.rejoin.before
         # needs its own last run (run 20261015-043927: it ran before lk.walls.before, whose wall went 100 squares north).
@@ -108,9 +109,11 @@ class ListingTests(unittest.TestCase):
         self.assertNotIn('lk.rejoin.before', steps[0][0])
         self.assertEqual(steps[1], [['rst.disconnect.after-reconnect2', 'lk.rejoin.after-reconnect2']])
         self.assertIn('rs.radiotab.before', steps[0][0])   # at the players' place, before lk.rejoin moves them
-        self.assertEqual(steps[2], [['rs.identity.after-reconnect', 'lk.walls.after-reconnect',
-                                     'rs.radiotab.after-reconnect', 'rs.actions.map.after-reconnect'],
-                                    ['rs.identity.before', 'lk.walls.before']])
+        # E21-T07: the order inside a run follows the campaign parts (Living Knox, then RadioSurvivor).
+        self.assertEqual([sorted(run) for run in steps[2]],
+                         [sorted(['rs.identity.after-reconnect', 'lk.walls.after-reconnect',
+                                  'rs.radiotab.after-reconnect', 'rs.actions.map.after-reconnect']),
+                          sorted(['rs.identity.before', 'lk.walls.before'])])
         self.assertEqual(sorted(steps[3][0]), sorted(['rs.identity.after-restart', 'lk.homes.after-restart',
                                                       'lk.leave.after-restart', 'rs.mission.recover.after-restart',
                                                       'rs.rescue.missed.after-restart', 'lk.walls.after-restart',
@@ -456,7 +459,7 @@ class RstDisconnectTests(unittest.TestCase):
                 self.rt.execute('ONLINE = { PA }')
         out = self.run_named('rst.disconnect.slow', 'PB', each)
         self.rt.execute('ONLINE = { PA, PB }; RST.Server = { lastResult = { report = RST.last(), written = true, '
-                        'file = "batman_RadioSurvivor/tests/x-server.txt" } }')
+                        'file = "batman_CoreAITests/tests/x-server.txt" } }')
         return out
 
     def test_before_cut_run_then_after_reconnect2(self):

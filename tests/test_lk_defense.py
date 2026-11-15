@@ -3,7 +3,7 @@
 LK_Combat.lua (engagement), LK_Zombies.lua (zombies vanilla), LK_Alert.lua (déclenchement) et LK_Routines.lua
 (postes relevés au foyer).
 
-    python RadioSurvivor/tests/test_lk_defense.py
+    python tests/test_lk_defense.py
 
 Bancs :
 - logique pure (rapport de forces et hystérésis, classement des postes face à la menace, affectations déterministes
@@ -27,7 +27,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from harness import lua_src  # noqa: E402  (E18-T07)
-from test_lk_bodies import LUA, DEV_LUA, lua_list  # noqa: E402
+from test_lk_bodies import DEV_LUA, lua_list  # noqa: E402
 from test_lk_decisions import PureBase  # noqa: E402
 from test_lk_alert import AlertStack  # noqa: E402
 from test_lk_combat import COMBAT, COMBAT_CLIENT, COMBAT_DOUBLES, RANGED_DOUBLES  # noqa: E402

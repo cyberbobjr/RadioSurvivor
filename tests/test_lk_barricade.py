@@ -3,7 +3,7 @@
 « builder »), matériaux pris par LK_Stock.lua (findItem, takeItem, check), et la suite en jeu lk.barricade
 (dev/.../RST_LKBarricade.lua).
 
-    python RadioSurvivor/tests/test_lk_barricade.py
+    python tests/test_lk_barricade.py
 
 Banc : pile complète des repas (groupe « deciders » de test_lk_routines.py dans la maison HOUSE 105..115, vrais
 LK_Homes et LK_Stock, foyer marqué aménagé sans pose par LivingKnox.Homes.skip), ouvrier m-2 mis au poste « builder »
@@ -41,7 +41,8 @@ ST = 'LivingKnox.Stock'
 ROOT = Path(__file__).resolve().parents[1]
 FORTIFY = 'server/LivingKnox/LK_Fortify.lua'
 SUITE = 'shared/RST/suites/RST_LKBarricade.lua'
-SUITE_FILE = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua' / SUITE
+from harness import tests_lua  # noqa: E402  (E21-T07: media/lua of the test mods)
+SUITE_FILE = tests_lua('lk') / SUITE
 
 BARRICADE_DOUBLES = r'''
 local H = HARNESS

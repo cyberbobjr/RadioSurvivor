@@ -2,7 +2,7 @@
 rationnement au journal, besoins ordonnés lus par LK_Decisions) : server/LivingKnox/LK_Stock.lua et la suite en
 jeu lk.stock (dev/.../RST_LKStock.lua) dans le banc.
 
-    python RadioSurvivor/tests/test_lk_stock.py
+    python tests/test_lk_stock.py
 
 Banc tests/harness.py (solo, ou serveur dédié + deux clients) avec le vrai registre des groupes, le vrai
 aménagement des foyers (LK_Homes, doublures de tests/test_lk_homes.py) et le vrai registre des attitudes
@@ -30,7 +30,8 @@ from harness import Harness, homes_files  # noqa: E402  (LK16-T10)
 from test_lk_homes import DOUBLES as HOME_DOUBLES, HOUSE  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
-DEV_LUA = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua'
+from harness import tests_lua  # noqa: E402  (E21-T07: media/lua of the test mods)
+DEV_LUA = tests_lua('lk')
 
 SHARED = ('shared/LivingKnox/LK_Core.lua', 'shared/LivingKnox/LK_Config.lua', 'shared/LivingKnox/LK_Log.lua',
           'shared/LivingKnox/Data/LK_Type_neutrals.lua', 'shared/LivingKnox/Data/LK_Type_raiders.lua',
@@ -227,15 +228,15 @@ CUPBOARD = FURNITURE(109, 102, { 'counter' }, { 'Base.Bandage', 'Base.Plank' })
 BIN = FURNITURE(98, 95, { 'bin' }, { 'Base.TinnedBeans' })
 '''
 
-SETTLERS_KIT = 18
-RAIDERS_KIT = 15
+KIT_SETTLERS = 18
+KIT_RAIDERS = 15
 
 
 class Base(unittest.TestCase):
     mode = 'solo'
 
     def setUp(self):
-        self.h = Harness(mode=self.mode, lua_roots=[DEV_LUA])
+        self.h = Harness(with_rs=False, mode=self.mode, lua_roots=[DEV_LUA])
         self.srv = 'solo' if self.mode == 'solo' else 'server'
         machines = ('solo',) if self.mode == 'solo' else ('server', 'A', 'B')
         for m in machines:
@@ -330,7 +331,7 @@ class PureTests(Base):
         self.assertEqual(out, '')
         sizes = self.run_lua(f'local s = {{}} for k, kit in pairs({ST}.KITS) do local n = 0 '
                              f'for _, e in ipairs(kit) do n = n + e[2] end s[k] = n end return s')
-        self.assertEqual(dict(sizes.items()), {'settlers': SETTLERS_KIT, 'raiders': RAIDERS_KIT, 'neutrals': 14})
+        self.assertEqual(dict(sizes.items()), {'settlers': KIT_SETTLERS, 'raiders': KIT_RAIDERS, 'neutrals': 14})
 
     def test_valid_reference(self):
         home = '{ x = 5, y = 6, z = 0 }'
@@ -372,7 +373,7 @@ class BuildingTests(Base):
         gid = self.filled()
         s = self.ev(f'LivingKnox.Groups.get("{gid}").stock')
         self.assertEqual((s.v, s.fill, s.hx, s.hy, s.hz), (1, 'done', 103, 104, 0))
-        self.assertEqual(self.ev(f'STOCKED("{gid}")'), SETTLERS_KIT)
+        self.assertEqual(self.ev(f'STOCKED("{gid}")'), KIT_SETTLERS)
         # Kit + frigo (haricots ; marteau ignoré) + congélateur (soda = nourriture) + placard (bandage, planche) ;
         # poubelle hors du bâtiment ignorée.
         self.assertEqual(self.totals(gid), {'food': 6 + 2, 'water': 3, 'medical': 5 + 1, 'ammo': 1,
@@ -389,7 +390,7 @@ class BuildingTests(Base):
         before = list(self.ev(f'REF_IDS("{gid}")').values())
         for _ in range(3):
             self.minute()
-        self.assertEqual(self.ev(f'STOCKED("{gid}")'), SETTLERS_KIT)
+        self.assertEqual(self.ev(f'STOCKED("{gid}")'), KIT_SETTLERS)
         self.assertEqual(list(self.ev(f'REF_IDS("{gid}")').values()), before)
 
     def test_restart_does_not_fill_again(self):
@@ -400,7 +401,7 @@ class BuildingTests(Base):
         self.minute()
         r = self.check(gid)
         self.assertEqual((r.action, r.missing, r.added), ('checked', 0, 0))
-        self.assertEqual(self.ev(f'STOCKED("{gid}")'), SETTLERS_KIT)
+        self.assertEqual(self.ev(f'STOCKED("{gid}")'), KIT_SETTLERS)
         self.assertEqual(list(self.ev(f'REF_IDS("{gid}")').values()), before)
 
     def test_interrupted_filling_is_never_redone(self):
@@ -420,7 +421,7 @@ class BuildingTests(Base):
         self.run_lua(f'assert(LivingKnox.Groups.update(function(d) d.groups["{gid}"].stock = nil return true end))')
         r = self.check(gid)
         self.assertEqual(r.action, 'restored')
-        self.assertEqual(self.ev(f'STOCKED("{gid}")'), SETTLERS_KIT)
+        self.assertEqual(self.ev(f'STOCKED("{gid}")'), KIT_SETTLERS)
         self.assertTrue(any('reference restored, nothing created' in line for line in self.lk()))
 
     def test_theft_is_detected_and_reported_once(self):
@@ -528,7 +529,7 @@ class CampTests(Base):
         self.run_lua('SPRITES.camping_01_0.props.container = "tent" SPRITES.camping_01_3.props.container = "tent"')
         gid = self.group('raiders', home=(200, 200, 0), members=5, name='Crows')
         self.minute()
-        self.assertEqual(self.ev(f'STOCKED("{gid}")'), RAIDERS_KIT)
+        self.assertEqual(self.ev(f'STOCKED("{gid}")'), KIT_RAIDERS)
         counts = self.run_lua(f'local out = {{}} for _, c in ipairs(OWNED("{gid}")) do out[#out + 1] = c:getItems():size() end '
                               f'return out')
         counts = [n for n in counts.values() if n > 0]
@@ -544,8 +545,8 @@ class MultiplayerTests(Base):
         self.run_lua(HOUSE)
         gid = self.group()
         self.minute()
-        self.assertEqual(self.ev(f'STOCKED("{gid}")'), SETTLERS_KIT)
-        self.assertEqual(self.ev('COUNT.sent'), SETTLERS_KIT)
+        self.assertEqual(self.ev(f'STOCKED("{gid}")'), KIT_SETTLERS)
+        self.assertEqual(self.ev('COUNT.sent'), KIT_SETTLERS)
         self.run_lua('BIND("B", "c-bravo")')
         self.take(gid, 'Base.Pills', player='B')
         r = self.check(gid)
@@ -686,7 +687,7 @@ class SupplyTests(Base):
         self.run_lua(f'assert(LivingKnox.Groups.update(function(d) d.groups["{gid}"].stock.ration = "x" return true end))')
         r = self.check(gid)
         self.assertEqual((r.action, r.ration), ('checked', 2))
-        self.assertEqual(self.ev(f'STOCKED("{gid}")'), SETTLERS_KIT)
+        self.assertEqual(self.ev(f'STOCKED("{gid}")'), KIT_SETTLERS)
 
     def test_no_reference_means_no_needs(self):
         gid = self.group()
@@ -852,7 +853,7 @@ class OffscreenTests(Base):
         self.same(gid)
         self.assertEqual(self.totals(gid), {'food': 13, 'water': 4, 'medical': 6, 'ammo': 3, 'materials': 4})
         # Objets marqués du groupe, rangés dans la caisse posée, marque d'application effacée ; eau vraiment remplie.
-        self.assertEqual(self.ev(f'STOCKED("{gid}")'), SETTLERS_KIT + 8)
+        self.assertEqual(self.ev(f'STOCKED("{gid}")'), KIT_SETTLERS + 8)
         self.assertEqual(self.ev(f'select(2, COUNT_TYPE("{gid}"))'), 0)
         self.assertEqual(self.run_lua('local n = 0 for _, c in ipairs(OWNED("' + gid + '")) do '
                                       'for _, it in ipairs(c.items.items) do if it.type == "Base.WaterBottle" '
@@ -861,7 +862,7 @@ class OffscreenTests(Base):
         # Plus rien en attente : relectures sans changement.
         for _ in range(2):
             self.assertEqual(self.check(gid).applied, None)
-        self.assertEqual(self.ev(f'STOCKED("{gid}")'), SETTLERS_KIT + 8)
+        self.assertEqual(self.ev(f'STOCKED("{gid}")'), KIT_SETTLERS + 8)
 
     def test_meal_cancels_pending_loot_first(self):
         gid = self.filled()
@@ -915,7 +916,7 @@ class OffscreenTests(Base):
         self.same(gid)
         # Objets marqués du groupe : kit - 2 bouteilles prises + 3 créés (les 2 vivres pris viennent du frigo et du
         # congélateur, premiers dans l'ordre des conteneurs).
-        self.assertEqual(self.ev(f'STOCKED("{gid}")'), SETTLERS_KIT - 2 + 3)
+        self.assertEqual(self.ev(f'STOCKED("{gid}")'), KIT_SETTLERS - 2 + 3)
 
     def test_change_added_during_application_stays_pending(self):
         gid = self.filled()
@@ -969,7 +970,7 @@ class OffscreenTests(Base):
         self.assertEqual(self.ev(f'PENDING("{gid}")'), 0)
         r = self.check(gid)
         self.assertEqual((r.action, r.applied), ('checked', None))
-        self.assertEqual(self.ev(f'STOCKED("{gid}")'), SETTLERS_KIT)
+        self.assertEqual(self.ev(f'STOCKED("{gid}")'), KIT_SETTLERS)
         for bad in ('{ n = -1, ops = {} }', '{ n = 2, ops = { { u = 1, o = "add", t = "Base.Rope", c = "x" } } }',
                     '{ n = 2, ops = { { u = 1, o = "take", t = "Base.Rope", c = "materials" } } }',
                     '{ n = 2, ops = { { u = 1, o = "add", t = "Base.Rope", c = "materials" }, '

@@ -10,6 +10,7 @@
 -- accepted. The facts seen meanwhile (helicopter, horde) are noted, not required. In-memory state (store whose save
 -- does nothing): no notebook state. The player is moved back by the undo of RST.Fixtures.movePlayer.
 require 'RST/RST'
+require "RST/RST_ModRadioSurvivor"
 require 'RST/RST_Fixtures'
 local F = RST.Fixtures
 

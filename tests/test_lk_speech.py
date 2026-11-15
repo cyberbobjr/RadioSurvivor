@@ -1,7 +1,7 @@
 """Tests hors jeu de la parole de proximité des PNJ Living Knox (LK11-T04) : LK_Speech.lua (autorité),
 LK_SpeechView.lua (clients), catalogue Data/Speech.lua et traductions IGUI_LK_Speech_* (EN, FR).
 
-    python RadioSurvivor/tests/test_lk_speech.py
+    python tests/test_lk_speech.py
 
 Banc tests/harness.py (serveur dédié + clients, ou solo) et doublures de test_lk_bodies.py, test_lk_guard.py,
 test_lk_anim.py et test_lk_directives.py, complétées ici. Les doublures reproduisent le Java 42.21.0 relevé ; elles NE
@@ -30,7 +30,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from harness import LK_LUA  # noqa: E402  (E18-T07)
 from harness import lua_src  # noqa: E402  (E18-T07)
-from test_lk_bodies import lua_list, LUA, DEV_LUA, DOUBLES, SHARED  # noqa: E402
+from test_lk_bodies import lua_list, DEV_LUA, DOUBLES, SHARED  # noqa: E402
 from test_lk_guard import GUARD, GUARD_DOUBLES  # noqa: E402
 from test_lk_anim import ANIM, ANIM_DOUBLES  # noqa: E402
 from test_lk_directives import DirectiveBase  # noqa: E402

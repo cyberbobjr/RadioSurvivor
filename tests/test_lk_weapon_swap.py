@@ -2,7 +2,7 @@
 LK_Equipment.adoptForeign (arme réellement accrochée relue et adoptée), LK_Ammo.convert (munitions reportées),
 LK_Combat.step (ordre renouvelé quand l'arme change), LK_Loot.onDeath (adoption avant le butin).
 
-    python RadioSurvivor/tests/test_lk_weapon_swap.py
+    python tests/test_lk_weapon_swap.py
 
 Banc du butin (test_lk_loot.LootBase : corps, santé, mort, armes, munitions) complété de la mêlée et du tir
 (test_lk_combat), et de SWAP_DOUBLES ci-dessous. Les doublures reproduisent le Java 42.21.0 relevé (objets accrochés
@@ -21,7 +21,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from harness import lua_src  # noqa: E402  (E18-T07)
-from test_lk_bodies import LUA, DEV_LUA, lua_list  # noqa: E402
+from test_lk_bodies import DEV_LUA, lua_list  # noqa: E402
 from test_lk_loot import LootBase  # noqa: E402
 from test_lk_combat import (COMBAT_DOUBLES, COMBAT, COMBAT_CLIENT, AMMO,  # noqa: E402
                             MultiplayerCombatTests, RangedMultiplayerTests)

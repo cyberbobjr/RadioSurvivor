@@ -12,6 +12,7 @@ RST.run({ suite = "rs.personas.update", tags = { "world", "server" } }).
 ]]
 
 require "RST/RST"
+require "RST/RST_ModRadioSurvivor"
 
 local TEST_MOD = "batman_RadioSurvivorTests"
 local OLD = "rstdata/gus-24832ea.txt"

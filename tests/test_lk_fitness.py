@@ -4,7 +4,7 @@ sandbox-options.txt et leurs traductions, lecture par LK_Config.lua (Config.FITN
 LK_Decisions.lua (Decisions.woundRatio, fearHigh, needHigh : inaptitude, repos du blessé, fuite apeurée, cascade de la
 peur) et LK_Expeditions.lua (Ex.needBlocker).
 
-    python RadioSurvivor/tests/test_lk_fitness.py
+    python tests/test_lk_fitness.py
 
 Bancs :
 - fichiers : options entières de la page LivingKnox (bornes, défaut = valeur d'avant LK05-T16), table Config.FITNESS

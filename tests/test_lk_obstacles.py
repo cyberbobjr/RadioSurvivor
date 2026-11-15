@@ -2,7 +2,7 @@
 LK_Obstacles.lua (autorité),
 Directives.abort (LK_Directives.lua), attente devant une porte et arrêt sur consigne close (LK_Executor.lua).
 
-    python RadioSurvivor/tests/test_lk_obstacles.py
+    python tests/test_lk_obstacles.py
 
 Banc tests/harness.py (serveur dédié et deux clients, ou solo), doublures de test_lk_directives.py complétées ici.
 Les doublures reproduisent le Java 42.21.0 relevé ; elles NE PROUVENT PAS l'API réelle, seulement la logique :
@@ -39,7 +39,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from test_lk_bodies import LUA, DEV_LUA, lua_list  # noqa: E402
+from test_lk_bodies import DEV_LUA, lua_list  # noqa: E402
 from harness import LK_LUA  # noqa: E402  (E18-T07)
 from harness import lua_src  # noqa: E402  (E18-T07)
 from test_lk_directives import DirectiveBase  # noqa: E402

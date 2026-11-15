@@ -3,7 +3,7 @@
 (blessés, soigneur, objet pris au stock, gestes, soin appliqué une fois, Care.afterAttack) et le point d'appel de
 LivingKnox.Decisions.apply.
 
-    python RadioSurvivor/tests/test_lk_care.py
+    python tests/test_lk_care.py
 
 Pile complète des repas réels (test_lk_meals.MealStack : groupe « deciders » dans la maison HOUSE, vrais LK_Homes et
 LK_Stock, caisse de la cuisine en 112,112) + LK_Health et LK_Care, en solo (marche simulée). Doublures ajoutées,
@@ -34,9 +34,10 @@ ST = 'LivingKnox.Stock'
 ROOT = Path(__file__).resolve().parents[1]
 HEALTH = 'server/LivingKnox/LK_Health.lua'
 CARE = 'server/LivingKnox/LK_Care.lua'
-LUA_ROOT = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivor' / '42.21' / 'media' / 'lua'
+LUA_ROOT = ROOT / 'Contents' / 'mods' / 'batman_LivingKnox' / '42.21' / 'media' / 'lua'
 SUITE = 'shared/RST/suites/RST_LKCare.lua'
-SUITE_FILE = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua' / SUITE
+from harness import tests_lua  # noqa: E402  (E21-T07: media/lua of the test mods)
+SUITE_FILE = tests_lua('lk') / SUITE
 
 CARE_DOUBLES = r'''
 local HH = HARNESS

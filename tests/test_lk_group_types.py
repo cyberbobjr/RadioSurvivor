@@ -1,6 +1,6 @@
 """Tests hors jeu des types de groupes Living Knox en données (LK08-T02) : LK_GroupTypes.lua et Data/LK_Type_*.lua.
 
-    python RadioSurvivor/tests/test_lk_group_types.py
+    python tests/test_lk_group_types.py
 
 Banc tests/harness.py (serveur dédié + deux clients, ou solo). Les fichiers de données sont chargés comme le jeu les
 exécute (balayage de media/lua/shared, LuaManager.LoadDirBase) : un par un, chacun tirant le registre par require.
@@ -21,7 +21,7 @@ sys.path.append(str(Path(__file__).resolve().parents[1] / 'tools'))
 import pz_paths  # noqa: E402  (vanilla folders: PZ_STEAM_LIBRARY, PZ_MEDIA or Steam detection)
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from harness import LUA, Harness  # noqa: E402
+from harness import Harness  # noqa: E402
 from harness import lua_src  # noqa: E402  (E18-T07)
 from harness import LK_LUA  # noqa: E402  (E18-T07)
 
@@ -118,7 +118,7 @@ class Base(unittest.TestCase):
     extra_root: Path | None = None
 
     def setUp(self):
-        self.h = Harness(mode=self.mode, lua_roots=[self.extra_root] if self.extra_root else ())
+        self.h = Harness(with_rs=False, mode=self.mode, lua_roots=[self.extra_root] if self.extra_root else ())
         self.srv = 'solo' if self.mode == 'solo' else 'server'
         self.machines = ('solo',) if self.mode == 'solo' else ('server', 'A', 'B')
 
@@ -248,7 +248,7 @@ class NewTypeWithoutCode(Base):
         self.h.close()
         self.addCleanup(shutil.rmtree, root, True)
         # Redémarrage sans le mod qui livrait « nomads » : son groupe est écarté et journalisé, l'autre est gardé.
-        self.h = Harness(mode=self.mode, root=root)
+        self.h = Harness(with_rs=False, mode=self.mode, root=root)
         self.boot()
         self.h.fire(self.srv, 'OnInitGlobalModData', False)
         self.assertEqual(list(self.ev('LivingKnox.Groups.list()').values()), ['grp-2'])

@@ -55,6 +55,7 @@ getText = function(key, ...)
     return text
 end
 '''
+from harness import tests_lua  # noqa: E402  (E21-T07: media/lua of the test mods)
 
 
 def en(key: str) -> str:
@@ -358,11 +359,11 @@ class BulletinTests(unittest.TestCase):
         self.sim, self.g, self.rt = sim, sim.server.g, sim.server.rt
         sim.add_client('alice')
         self.die('alice')
-        tests_lua = ROOT / 'dev/batman_RadioSurvivorTests/42.21/media/lua/shared'
-        self.rt.execute(f'package.path = [[{tests_lua.as_posix()}/?.lua;]] .. package.path')
+        shared = tests_lua() / 'shared'
+        self.rt.execute(f'package.path = [[{shared.as_posix()}/?.lua;]] .. package.path')
         # RST.saveName checks type(getWorld) == "function": a Lua function, as the Java global is for Kahlua.
         self.rt.execute('local base = getWorld; getWorld = function() return base() end')
-        self.rt.execute((tests_lua / 'RST/suites/RS_Facts.lua').read_text(encoding='utf-8'))
+        self.rt.execute((shared / 'RST/suites/RS_Facts.lua').read_text(encoding='utf-8'))
         RST = self.g.RST
         started = RST.start('rs.bulletin', self.rt.table_from({'attach': False}))
         self.assertTrue(started)

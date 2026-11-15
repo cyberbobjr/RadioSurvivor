@@ -3,7 +3,7 @@
 //   python PZDevKit/pzdev.py sp RadioSurvivor -P suite=rs.env
 //   python PZDevKit/pzdev.py sp RadioSurvivor -P campaign=solo-rs --timeout 1800
 //   python PZDevKit/pzdev.py sp RadioSurvivor -P suite=rs.npctalk -P tags=world
-//   python PZDevKit/pzdev.py server RadioSurvivor -P suite=rst,rs.codec
+//   python PZDevKit/pzdev.py server RadioSurvivor -P suite=rst,ca.codec
 //   python PZDevKit/pzdev.py mp RadioSurvivor -P suite=rs.identity,rs.facts
 {
   "name": "RadioSurvivor",
@@ -16,13 +16,16 @@
     {"path": "Contents/mods/batman_CoreAI"},
     {"path": "Contents/mods/batman_LivingKnox"},
     {"path": "Contents/mods/batman_RadioSurvivor"},
+    // E21-T07: RST engine and core suites, then the suites of each mod (suites of an absent mod are SKIP).
+    {"path": "dev/batman_CoreAITests"},
+    {"path": "dev/batman_LivingKnoxTests"},
     {"path": "dev/batman_RadioSurvivorTests"}
   ],
   // RST: client hooks call RST.run / RST.campaign, server hooks RST.Server.runSuites.
   "hooks": "autotest/rst_hooks.lua",
   "params": {},
   // RST reports, autoclient-style results and the token counters of the bridge (no text, no key).
-  "collect": ["batman_RadioSurvivor/tests/*.txt", "batman_RadioSurvivor/token_usage.jsonl"],
+  "collect": ["batman_CoreAITests/tests/*.txt", "batman_CoreAI/token_usage.jsonl"],
   "redactEnv": ["OPENAI_KEY", "DEEPSEEK_API_KEY"],
   "sp": {
     // Test saves are named rstest* (RST world suites refuse other saves); the most recent one is copied.
@@ -59,7 +62,7 @@
     "cwd": "bridge",
     "ready": "Bridge ready",
     "readyTimeoutSec": 60,
-    "exchange": "batman_RadioSurvivor",
+    "exchange": "batman_CoreAI",
     "offlineArgs": ["--offline"],
     "default": "auto",
     "auto": {

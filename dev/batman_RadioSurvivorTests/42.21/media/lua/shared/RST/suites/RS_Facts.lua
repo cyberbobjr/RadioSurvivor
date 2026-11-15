@@ -14,6 +14,7 @@ frequency of the Night Owl to hear it. Outside the game: tests/test_bulletin.py.
 ]]
 
 require "RST/RST"
+require "RST/RST_ModRadioSurvivor"
 
 local function module(t)
     if type(isClient) == "function" and isClient() then

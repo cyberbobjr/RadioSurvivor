@@ -1,7 +1,7 @@
 """Tests hors jeu des consignes de déplacement Living Knox (LK02-T07) : LK_Directives.lua (autorité),
 LK_Executor.lua (machine qui simule le corps), LK_Presentation.lua (autres clients).
 
-    python RadioSurvivor/tests/test_lk_directives.py
+    python tests/test_lk_directives.py
 
 Banc tests/harness.py (serveur et deux clients, ou solo) et doublures de test_lk_bodies.py, test_lk_guard.py et
 test_lk_anim.py, complétées ici. Les doublures reproduisent le Java 42.21.0 relevé ; elles NE PROUVENT PAS l'API
@@ -26,7 +26,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from harness import lua_src  # noqa: E402  (E18-T07)
-from test_lk_bodies import lua_list, LUA, DEV_LUA  # noqa: E402
+from test_lk_bodies import lua_list, DEV_LUA  # noqa: E402
 from test_lk_anim import AnimBase  # noqa: E402
 
 DIRECTIVES = 'server/LivingKnox/LK_Directives.lua'

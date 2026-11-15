@@ -2,7 +2,7 @@
 refuel, repair, clean, glass ; lumières), branché dans LK_Routines.lua (comportement « chore »), matériaux pris par
 LK_Stock.lua (findItem, findFluid, drawFluid, takeItem), et la suite en jeu lk.upkeep (dev/.../RST_LKUpkeep.lua).
 
-    python RadioSurvivor/tests/test_lk_upkeep.py
+    python tests/test_lk_upkeep.py
 
 Bancs :
 - logique pure (plage éclairée) ;
@@ -46,7 +46,8 @@ UPKEEP = 'server/LivingKnox/LK_Upkeep.lua'
 GARDEN = 'server/LivingKnox/LK_Garden.lua'
 JOBS_DIR = LK_LUA / 'server' / 'LivingKnox' / 'Jobs'
 SUITE = 'shared/RST/suites/RST_LKUpkeep.lua'
-SUITE_FILE = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua' / SUITE
+from harness import tests_lua  # noqa: E402  (E21-T07: media/lua of the test mods)
+SUITE_FILE = tests_lua('lk') / SUITE
 
 
 def upkeep_files():

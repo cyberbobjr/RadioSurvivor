@@ -26,6 +26,7 @@ kind ('npc', registered by RadioSurvivor or Living Knox). Outside the game: test
 ]]
 
 require "RST/RST"
+require "RST/RST_ModRadioSurvivor"
 
 local MISSION_MS = 7200000 -- 2 h of play: far from expiring during the test
 local WINDOW_MS, PAUSE_MS = 3000, 3000

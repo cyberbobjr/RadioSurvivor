@@ -1,7 +1,7 @@
 """Tests hors jeu de la perception des PNJ Living Knox (LK05-T01) : shared/LivingKnox/LK_Senses.lua (calcul chez
 l'exécutant, mémoire de l'autorité), envoi par LK_Executor.lua dans le rapport d'état de LK_Reports.lua.
 
-    python RadioSurvivor/tests/test_lk_senses.py
+    python tests/test_lk_senses.py
 
 Banc tests/harness.py. Doublures (SENSES_DOUBLES) : LosUtil.lineClear sur des murs, portes et fenêtres déclarés par
 le test (même parcours de cases que J/iso/LosUtil.java:28-152, résultat nommé comme LosUtil.TestResults), niveau de
@@ -19,7 +19,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from harness import Harness  # noqa: E402
 from harness import lua_src  # noqa: E402  (E18-T07)
-from test_lk_bodies import LUA, DEV_LUA, lua_list  # noqa: E402
+from test_lk_bodies import DEV_LUA, lua_list  # noqa: E402
 from test_lk_reports import ReportBase, REPORT_DOUBLES, REPORTS, EXECUTOR  # noqa: E402
 from test_lk_milestone import MilestoneBase  # noqa: E402
 
@@ -168,7 +168,7 @@ class UnitBase(unittest.TestCase):
         self.h.close()
 
     def make(self):
-        h = Harness(mode='solo', clients=('A',), debug=True)
+        h = Harness(with_rs=False, mode='solo', clients=('A',), debug=True)
         for path in CORE:
             h.load('solo', path)
         h.load('solo', SENSES_DOUBLES)
@@ -425,7 +425,7 @@ class DeterminismAndCostTests(unittest.TestCase):
     ]
 
     def run_script(self):
-        h = Harness(mode='solo', clients=('A',), debug=False)
+        h = Harness(with_rs=False, mode='solo', clients=('A',), debug=False)
         try:
             for path in CORE:
                 h.load('solo', path)
@@ -454,7 +454,7 @@ class DeterminismAndCostTests(unittest.TestCase):
         self.assertTrue(any(':true:' in d for d in first), first)   # le scénario voit bien quelque chose
 
     def test_cost_bounded_per_pass(self):
-        h = Harness(mode='solo', clients=('A',), debug=False)
+        h = Harness(with_rs=False, mode='solo', clients=('A',), debug=False)
         try:
             for path in CORE:
                 h.load('solo', path)

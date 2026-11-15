@@ -36,8 +36,11 @@ Outside the game: tests/test_death_suites.py.
 ]]
 
 require "RST/RST"
+require "RST/RST_ModRadioSurvivor"
+require "RST/RST_ModLivingKnox"
 require "RST/RST_Steps"
 require "RST/RST_PeerChecks2"
+require "RST/RST_PeerChecksRadio"
 require "RST/RST_PeerChecksDeath"
 require "RST/RST_Fixtures"
 

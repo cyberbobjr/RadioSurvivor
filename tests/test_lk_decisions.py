@@ -1,6 +1,6 @@
 """Tests hors jeu du cadre de décision des PNJ Living Knox (LK05-T02) : server/LivingKnox/LK_Decisions.lua.
 
-    python RadioSurvivor/tests/test_lk_decisions.py
+    python tests/test_lk_decisions.py
 
 Deux bancs :
 - logique pure (Decisions.decide, scoreObjectives, assignDuties, threatsOf, needsOf) sur le serveur d'un banc
@@ -98,7 +98,7 @@ class PureBase(unittest.TestCase):
     mode = 'solo'
 
     def setUp(self):
-        self.h = Harness(mode=self.mode)
+        self.h = Harness(with_rs=False, mode=self.mode)
         self.srv = 'solo' if self.mode == 'solo' else 'server'
         machines = ('solo',) if self.mode == 'solo' else ('server', 'A', 'B')
         for m in machines:
@@ -368,7 +368,7 @@ class MultiplayerDecisionTests(MatBase):
 
     def dpass(self, n=1):
         """n passages des décisions (au plus un par PASS_MS), membres évalués sur les images qui suivent."""
-        # LK13-T11 : les membres d'un passage sont évalués un par image (MEMBERS_PER_FRAME) : quatre images.
+        # LK13-T11 : les membres d'un passage sont évalués un par image : quatre images.
         for _ in range(n):
             self.h.advance_ms(1000)
             self.h.tick(4)

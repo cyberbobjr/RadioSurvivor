@@ -1652,7 +1652,8 @@ class PlayerSpeechTests(unittest.TestCase):
         self.assertEqual((lua_list(player.said), lua_list(game.g.SAID_CHAT)), (['Bonjour.'], []))
 
 
-TESTS_SHARED = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua' / 'shared'
+from harness import tests_lua  # noqa: E402  (E21-T07: media/lua of the test mods)
+TESTS_SHARED = tests_lua() / 'shared'
 IDENTITY_SUITE =TESTS_SHARED / 'RST' / 'suites' / 'RS_Identity.lua'
 
 
@@ -1911,7 +1912,7 @@ class LivingKnoxCarnetTests(unittest.TestCase):
         sim = Simulation(self.path / 'suite', living_knox=True)
         sim.server.rt.execute(LK_WORLD)
         sim.add_client('alice')
-        shared = (ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua' / 'shared').as_posix()
+        shared = (tests_lua() / 'shared').as_posix()
         sim.server.rt.execute(f'package.path = [[{shared}/?.lua;]] .. package.path')
         sim.server.rt.execute("""
             getScriptManager = function() return {FindItem = function(_, t)
@@ -1922,7 +1923,7 @@ class LivingKnoxCarnetTests(unittest.TestCase):
             require 'RST/RST_Fixtures'
             RST.Fixtures.WAIT_LOADED = false   -- no cell squares in this double: moves do not wait for them
         """)
-        suite = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua' / 'shared' / 'RST' / 'suites'
+        suite = tests_lua() / 'shared' / 'RST' / 'suites'
         sim.server.rt.execute((suite / 'RS_CarnetLK.lua').read_text(encoding='utf-8'))
         report = sim.server.rt.eval('RST.runSync("rs.carnet.lk")')
         results = {(r.suite, r.test): r.status for r in report.results.values()}

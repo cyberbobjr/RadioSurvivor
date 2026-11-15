@@ -16,6 +16,7 @@ Outside the game: tests/test_mission_recover.py (metagrid, cell and floor double
 ]]
 
 require "RST/RST"
+require "RST/RST_ModRadioSurvivor"
 require "RST/RST_Fixtures"
 
 local F = RST.Fixtures

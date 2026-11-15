@@ -23,7 +23,8 @@ from test_persona_sections import BASE, PROMPT
 import npc_protocol as protocol
 
 ROOT = Path(__file__).resolve().parents[1]
-TESTS_LUA = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua'
+from harness import tests_lua  # noqa: E402  (E21-T07: media/lua of the test mods)
+TESTS_LUA = tests_lua()
 SUITE = TESTS_LUA / 'shared' / 'RST' / 'suites' / 'RS_MissionBarricade.lua'
 
 # Doublures du monde, fidèles au Java 42.22 (E:\pz-source-42.22\java\zombie, relevé du 2026-11-15) :

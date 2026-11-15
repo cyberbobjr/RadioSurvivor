@@ -3,7 +3,7 @@
 LK_Routines.lua (comportement « chore » d'un membre de poste « builder »), matériaux pris par LK_Stock.lua (findItem,
 takeItem, check), et la suite en jeu lk.walls (dev/.../RST_LKWalls.lua).
 
-    python RadioSurvivor/tests/test_lk_walls.py
+    python tests/test_lk_walls.py
 
 Banc : pile de test_lk_barricade.py (groupe « deciders » dans la maison HOUSE 105..115, foyer 110,110, vrais LK_Homes
 et LK_Stock, foyer aménagé sans pose par LivingKnox.Homes.skip, ouvrier m-2 au poste « builder ») sans les deux
@@ -43,7 +43,8 @@ from test_lk_meals import MealStack  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 SUITE = 'shared/RST/suites/RST_LKWalls.lua'
-SUITE_FILE = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua' / SUITE
+from harness import tests_lua  # noqa: E402  (E21-T07: media/lua of the test mods)
+SUITE_FILE = tests_lua('lk') / SUITE
 
 WALL_DOUBLES = r'''
 local H = HARNESS

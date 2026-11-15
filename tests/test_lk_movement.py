@@ -2,7 +2,7 @@
 shared/LivingKnox/LK_Movement.lua, branché dans client/LivingKnox/LK_Executor.lua (exécutant), server/LivingKnox/
 LK_Directives.lua (raison « stuck », case évitée) et server/LivingKnox/LK_Decisions.lua (échéance avancée).
 
-    python RadioSurvivor/tests/test_lk_movement.py
+    python tests/test_lk_movement.py
 
 Banc tests/harness.py (serveur et deux clients, ou solo) et doublures de test_lk_directives.py (pathToLocation, mode
 pathfind, marche), complétées ici. Les doublures reproduisent le Java 42.21.0 relevé ; elles NE PROUVENT PAS l'API
@@ -22,7 +22,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from harness import lua_src  # noqa: E402  (E18-T07)
-from test_lk_bodies import lua_list, LUA, DEV_LUA  # noqa: E402
+from test_lk_bodies import lua_list, DEV_LUA  # noqa: E402
 import test_lk_directives as TD  # noqa: E402
 import test_lk_decisions as TDEC  # noqa: E402
 

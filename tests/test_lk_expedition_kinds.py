@@ -2,7 +2,7 @@
 server/LivingKnox/LK_Expeditions.lua (moteur) et les genres inscrits par Expeditions.registerKind (bâtiment, cueillette,
 pêche : dossier server/LivingKnox/Expeditions/).
 
-    python RadioSurvivor/tests/test_lk_expedition_kinds.py
+    python tests/test_lk_expedition_kinds.py
 
 Bancs (pile de la pêche de test_lk_food.py : bâtiment visé n° 9, forêt DeepForest et lac proches, caisse garnie hors
 nourriture) :

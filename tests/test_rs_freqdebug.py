@@ -37,7 +37,8 @@ SERVER_FILE = LUA / 'server' / 'RadioSurvivor' / 'RS_FreqDebug.lua'
 VIEW_FILE = LUA / 'client' / 'RadioSurvivor' / 'RS_FreqDebugView.lua'
 LK_ADMIN_FILE = LK_LUA / 'server' / 'LivingKnox' / 'LK_Admin.lua'
 TRANSLATE = LUA / 'shared' / 'Translate'
-TESTS_LUA = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua'
+from harness import tests_lua  # noqa: E402  (E21-T07: media/lua of the test mods)
+TESTS_LUA = tests_lua()
 SUITE_FILE = TESTS_LUA / 'shared' / 'RST' / 'suites' / 'RS_FreqDebug.lua'
 lua_list = tps.lua_list
 

@@ -2,7 +2,7 @@
 (autorité), server/LivingKnox/LK_Ammo.lua (munitions), client/LivingKnox/LK_CombatClient.lua (machine qui simule le
 corps, son et éclair des tirs), branchement dans LK_Decisions.lua. Doublures du tir : RANGED_DOUBLES.
 
-    python RadioSurvivor/tests/test_lk_combat.py
+    python tests/test_lk_combat.py
 
 Banc tests/harness.py (serveur dédié et deux clients, ou solo), pile des corps, consignes, rapports et armes (banc
 ReleaseBase de test_lk_reports.py), complétée des doublures ci-dessous, qui reproduisent le Java 42.21.0 relevé et NE
@@ -20,7 +20,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from test_lk_bodies import LUA, DEV_LUA, lua_list  # noqa: E402
+from test_lk_bodies import DEV_LUA, lua_list  # noqa: E402
 from harness import LK_LUA  # noqa: E402  (E18-T07)
 from harness import lua_src  # noqa: E402  (E18-T07)
 from test_lk_reports import ReleaseBase  # noqa: E402
@@ -680,7 +680,7 @@ class DecisionCombatTests(MatBase):
         return gid
 
     def dpass(self, n=1):
-        # LK13-T11 : les membres d'un passage sont évalués un par image (MEMBERS_PER_FRAME) : quatre images.
+        # LK13-T11 : les membres d'un passage sont évalués un par image : quatre images.
         for _ in range(n):
             self.h.advance_ms(1000)
             self.h.tick(4)

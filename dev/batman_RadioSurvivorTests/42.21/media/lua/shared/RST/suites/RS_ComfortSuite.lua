@@ -38,6 +38,7 @@ local player (no other client: noted). Outside the game: tests/test_rs_comfort_s
 ]]
 
 require "RST/RST"
+require "RST/RST_ModRadioSurvivor"
 require "RST/RST_Steps"
 require "RST/RST_PeerChecksRadio"
 require "RST/RST_PeerChecksComfort"

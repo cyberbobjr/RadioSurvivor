@@ -10,6 +10,7 @@ Cleanup: the notebook is closed again when it was closed before, back on its for
 ]]
 
 require "RST/RST"
+require "RST/RST_ModRadioSurvivor"
 
 local TABS = { "Radio", "Contacts", "Missions", "Reputation", "Team" }
 local SHOW_MS = 2000

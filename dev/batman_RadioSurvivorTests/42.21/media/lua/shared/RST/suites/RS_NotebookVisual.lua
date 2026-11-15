@@ -29,6 +29,7 @@ Left to the eye on the captures: docs/annexes/tests/carnet-validation-04221.md (
 ]]
 
 require "RST/RST"
+require "RST/RST_ModRadioSurvivor"
 
 local V = {}
 RST.NotebookVisual = V -- read by tests/test_notebook_visual.py

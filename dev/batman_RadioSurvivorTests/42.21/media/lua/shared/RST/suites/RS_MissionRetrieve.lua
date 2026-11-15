@@ -14,6 +14,7 @@ Outside the game: tests/test_mission_retrieve.py (metagrid, cell and corpse doub
 ]]
 
 require "RST/RST"
+require "RST/RST_ModRadioSurvivor"
 require "RST/RST_Fixtures"
 require "RST/RST_PeerChecks"
 

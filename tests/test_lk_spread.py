@@ -1,7 +1,7 @@
 """Tests hors jeu du pas horaire étalé et de la relecture du stock étalée (LK13-T09) : LK_Simulation.lua (file des
 passes horaires), LK_Groups.lua (écriture retenue), LK_Server.lua (abonnés), LK_Stock.lua (un groupe par image).
 
-    python RadioSurvivor/tests/test_lk_spread.py
+    python tests/test_lk_spread.py
 
 Banc tests/harness.py. EveryHours et EveryOneMinute viennent de l'horloge du banc (advance, ordre de GameTime.update) :
 l'ordre réel « EveryHours avant OnTick dans la même image » est rejoué à la main (OnTickEvenPaused, advance,

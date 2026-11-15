@@ -16,6 +16,7 @@ Walt is only read, never changed.
 ]]
 
 require "RST/RST"
+require "RST/RST_ModRadioSurvivor"
 require "RST/RST_Fixtures"
 
 local DIR = "batman_RadioSurvivor/personas"

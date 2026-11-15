@@ -28,7 +28,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from test_rs_mp_suites import Machine, Report, to_py  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
-DEV = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua'
+from harness import tests_lua  # noqa: E402  (E21-T07: media/lua of the test mods)
+DEV = tests_lua()
 SUITES = DEV / 'shared' / 'RST' / 'suites'
 SUITE_FILES = [SUITES / f'{n}.lua' for n in ('RS_Relation', 'RS_FactionsAccord', 'RS_FactionsIncident', 'RS_CarnetLK')]
 

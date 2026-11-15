@@ -1,7 +1,7 @@
 """Tests hors jeu du butin réel du cadavre des PNJ Living Knox (LK07-T05) : server/LivingKnox/LK_Loot.lua (autorité),
 LK_Ammo.setLoaded / addReserve / unload, branchement dans LK_Bodies.onZombieDead.
 
-    python RadioSurvivor/tests/test_lk_loot.py
+    python tests/test_lk_loot.py
 
 Banc tests/harness.py (serveur dédié et deux clients, ou solo), pile des corps, rapports, armes et groupes (banc
 ReleaseBase de test_lk_reports.py), santé et mort (test_lk_health.py, test_lk_death.py), munitions (RANGED_DOUBLES de
@@ -27,7 +27,7 @@ import pz_paths  # noqa: E402  (vanilla folders: PZ_STEAM_LIBRARY, PZ_MEDIA or S
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from harness import lua_src  # noqa: E402  (E18-T07)
-from test_lk_bodies import LUA, DEV_LUA, lua_list  # noqa: E402
+from test_lk_bodies import DEV_LUA, lua_list  # noqa: E402
 from test_lk_reports import ReleaseBase  # noqa: E402
 from test_lk_health import HEALTH, HEALTH_CLIENT, HEALTH_DOUBLES  # noqa: E402
 from test_lk_death import DEATH_DOUBLES  # noqa: E402

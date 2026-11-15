@@ -44,6 +44,7 @@ import radio_bridge as rb  # noqa: E402
 
 EN = json.loads((TRANSLATE / 'EN/IG_UI.json').read_text(encoding='utf-8'))
 FR = json.loads((TRANSLATE / 'FR/IG_UI.json').read_text(encoding='utf-8'))
+from harness import tests_lua  # noqa: E402  (E21-T07: media/lua of the test mods)
 
 
 def lua_list(t) -> list:
@@ -541,7 +542,7 @@ class StaticTests(unittest.TestCase):
         self.assertNotIn('getText', re.sub(r'--[^\n]*', '', TRADE_LUA.read_text(encoding='utf-8')))
 
     def test_in_game_suite_compiles(self):
-        suite = ROOT / 'dev/batman_RadioSurvivorTests/42.21/media/lua/shared/RST/suites/RS_TradeRun.lua'
+        suite = tests_lua() / 'shared' / 'RST' / 'suites' / 'RS_TradeRun.lua'
         rt = lupa.LuaRuntime(unpack_returned_tuples=True)
         check = rt.eval('function(s) local f, e = loadstring(s, "=RS_TradeRun") return f ~= nil, e end')
         ok, err = check(suite.read_text(encoding='utf-8'))

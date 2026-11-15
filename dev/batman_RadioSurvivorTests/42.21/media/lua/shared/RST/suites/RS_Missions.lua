@@ -13,6 +13,7 @@ Times: release() stamps closedAt with the real getTimestampMs(); tests compare d
 ]]
 
 require "RST/RST"
+require "RST/RST_ModRadioSurvivor"
 
 local function modules(t)
     if type(isClient) == "function" and isClient() then

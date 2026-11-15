@@ -3,7 +3,7 @@ sandbox-options.txt et leurs traductions, lecture centralisée de LK_Config.lua 
 Config.zombieAlertDistance) et leur emploi par LK_Alert.lua, LK_Decisions.lua, LK_Defense.lua, LK_Zombies.lua et
 LK_Encounters.lua.
 
-    python RadioSurvivor/tests/test_lk_thresholds.py
+    python tests/test_lk_thresholds.py
 
 Bancs :
 - fichiers : chaque option de Config.DANGER déclarée dans sandbox-options.txt (entier, bornes, défaut, page), libellé

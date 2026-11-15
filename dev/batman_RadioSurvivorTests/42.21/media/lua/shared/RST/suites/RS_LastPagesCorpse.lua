@@ -33,6 +33,7 @@ Manual protocol on a real death (opt-in suites, tag "manual", named exactly):
 ]]
 
 require "RST/RST"
+require "RST/RST_ModRadioSurvivor"
 require "RST/RST_Fixtures"
 
 local MARK = "rsLastPagesWitness"

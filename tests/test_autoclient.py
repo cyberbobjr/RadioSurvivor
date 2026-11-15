@@ -20,7 +20,8 @@ from pathlib import Path
 import lupa.lua51 as lupa
 
 ROOT = Path(__file__).resolve().parents[1]
-LUA = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua'
+LUA = ROOT / 'dev' / 'batman_CoreAITests' / '42.21' / 'media' / 'lua'   # E21-T07: RST engine and its driver
+LK_TESTS = ROOT / 'dev' / 'batman_LivingKnoxTests' / '42.21' / 'media' / 'lua'
 DRIVER = LUA / 'client' / 'RST' / 'RST_AutoClient.lua'
 SELFTEST = LUA / 'shared' / 'RST' / 'suites' / 'RST_SelfTest.lua'
 sys.path.insert(0, str(ROOT / 'tools' / 'autoclient'))
@@ -112,7 +113,7 @@ class DriverTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.root = Path(self.tmp.name)
-        self.tests = self.root / 'batman_RadioSurvivor' / 'tests'
+        self.tests = self.root / 'batman_CoreAITests' / 'tests'
 
     def tearDown(self):
         self.tmp.cleanup()
@@ -169,7 +170,7 @@ class DriverTests(unittest.TestCase):
         lines = self.result()
         self.assertTrue(autoclient.result_complete('\n'.join(lines)))
         self.assertRegex(lines[0], r'^RST-RESULT ok=(true|false) total=\d+ ')
-        self.assertIn('report=batman_RadioSurvivor/tests/', lines[0])
+        self.assertIn('report=batman_CoreAITests/tests/', lines[0])
         self.assertEqual(d.lua('return QUITS'), 0)
         d.fire('OnTickEvenPaused', 6)
         self.assertEqual(d.lua('return SHOTS[1]'), 'autoclient-abc123.png')
@@ -785,13 +786,13 @@ class PhaseTests(unittest.TestCase):
 
     def test_mp_persist_campaign_is_playable(self):
         # Bases come from the real campaign (other agents add some): invariants of the plan, not a fixed list.
-        lua = autoclient.CAMPAIGN_FILE.read_text(encoding='utf-8')
+        lua = autoclient.campaign_text()
         bases = autoclient.campaign_suites(lua, 'mp-persist')
         self.assertEqual(len(bases), len(set(bases)), bases)
         for known in ('rs.identity', 'lk.walls', 'rs.radiotab', 'rst.disconnect', 'lk.rejoin'):
             self.assertIn(known, bases)
         self.assertEqual('lk.rejoin', bases[-1])   # its before step moves the requester away
-        declared = autoclient.declared_suite_names(autoclient.CAMPAIGN_FILE.parents[2])
+        declared = autoclient.declared_suite_names(autoclient.test_lua_dirs())
         phases = ['reconnect2', 'reconnect', 'restart']
         stages = ['after-' + a for a in phases]
         for base in bases:
@@ -985,7 +986,7 @@ class PhaseTests(unittest.TestCase):
     def test_driver_successive_server_runs_and_existing_character(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            tests = root / 'batman_RadioSurvivor' / 'tests'
+            tests = root / 'batman_CoreAITests' / 'tests'
             tests.mkdir(parents=True)
             (tests / 'autoclient.txt').write_text(
                 'token=mp1p1\nconnect=127.0.0.1:17391\nuser=rs_mp1\npassword=pw\ncontrol=true\n'
@@ -1035,7 +1036,7 @@ class PhaseTests(unittest.TestCase):
     def test_driver_new_account_ignores_on_connected(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            tests = root / 'batman_RadioSurvivor' / 'tests'
+            tests = root / 'batman_CoreAITests' / 'tests'
             tests.mkdir(parents=True)
             (tests / 'autoclient.txt').write_text('token=mp1\nconnect=h:1\nuser=u\ncontrol=true\n', encoding='utf-8')
             (tests / 'autoclient-status.txt').write_text('mp1 connect x\n', encoding='utf-8')
@@ -1168,7 +1169,7 @@ class Reconnect2Tests(unittest.TestCase):
     def test_driver_reload_starts_the_new_command_on_the_same_connection(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            tests = root / 'batman_RadioSurvivor' / 'tests'
+            tests = root / 'batman_CoreAITests' / 'tests'
             tests.mkdir(parents=True)
             base = ('connect=127.0.0.1:17391\nuser=rs_mp1\npassword=pw\ncontrol=true\nserverTags=server,shared,world\n'
                     'serverExclude=\nstartDelaySec=0\nscreenshot=false\n')
@@ -1224,7 +1225,7 @@ class Reconnect2Tests(unittest.TestCase):
     def test_driver_reload_refuses_an_invalid_command(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            tests = root / 'batman_RadioSurvivor' / 'tests'
+            tests = root / 'batman_CoreAITests' / 'tests'
             tests.mkdir(parents=True)
             (tests / 'autoclient.txt').write_text('token=mp1\nconnect=h:1\nuser=u\ncontrol=true\npeer=true\n'
                                                   'screenshot=false\nstartDelaySec=0\n', encoding='utf-8')
@@ -1250,9 +1251,10 @@ class HomesPersistCodecTests(unittest.TestCase):
     def test_round_trip_and_refusals(self):
         rt = lupa.LuaRuntime(unpack_returned_tuples=True)
         rt.globals().next = None
-        rt.execute(f'package.path = [[{(LUA / "shared").as_posix()}/?.lua;]] .. package.path')
+        rt.execute(f'package.path = [[{(LUA / "shared").as_posix()}/?.lua;{(LK_TESTS / "shared").as_posix()}/?.lua;]] '
+                   '.. package.path')
         rt.execute('print = function() end; require "RST/RST"')
-        rt.execute(f'dofile([[{(LUA / "shared" / "RST" / "suites" / "RST_LKHomes.lua").as_posix()}]])')
+        rt.execute(f'dofile([[{(LK_TESTS / "shared" / "RST" / "suites" / "RST_LKHomes.lua").as_posix()}]])')
         lines = rt.execute('return table.concat(RST.LKHomesPersist.encode({ gid = "g12", home = { x = 10, y = -3, '
                            'z = 0 }, counts = { lamp = 1, bed = 6, crate = 1 } }), "|")')
         self.assertEqual(lines, 'LKHOMES1|gid=g12|home=10,-3,0|kind=bed:6|kind=crate:1|kind=lamp:1|end')
@@ -1318,7 +1320,7 @@ class BridgeTests(unittest.TestCase):
         self.tmp.cleanup()
 
     def test_needs_bridge_by_suite_and_campaign(self):
-        lua = autoclient.CAMPAIGN_FILE.read_text(encoding='utf-8')
+        lua = autoclient.campaign_text()
         self.assertTrue(autoclient.needs_bridge(None, ['rs.npctalk']))
         self.assertTrue(autoclient.needs_bridge(None, ['rs.radiomodule.world']))
         self.assertTrue(autoclient.needs_bridge(None, ['rs']))
@@ -1397,13 +1399,13 @@ class BridgeTests(unittest.TestCase):
         self.assertIsNone(re.search(r"""['"]\.env['"]|DEFAULT_ENV|--env""", code))
 
 
-SUITES_DIR = LUA / 'shared' / 'RST' / 'suites'
+SUITES_DIRS = [lua / 'shared' / 'RST' / 'suites' for lua in autoclient.test_lua_dirs()]
 
 
 def declared_suites() -> dict[str, set[str]]:
-    """Name -> tags of every RST.suite declared by the development mod (RST.suite("name", { tags = { ... } }))."""
+    """Name -> tags of every RST.suite declared by the test mods (RST.suite("name", { tags = { ... } }))."""
     out = {}
-    for path in SUITES_DIR.glob('*.lua'):
+    for path in [p for d in SUITES_DIRS for p in d.glob('*.lua')]:
         text = path.read_text(encoding='utf-8')
         # E18-T14: an optional "mods = { ... }," before the tags.
         for m in re.finditer(r'RST\.suite\(\s*"([^"]+)"\s*,\s*\{\s*(?:mods\s*=\s*\{[^}]*\}\s*,\s*)?tags\s*=\s*\{([^}]*)\}',
@@ -1431,7 +1433,7 @@ class CampaignContentTests(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.lua = autoclient.CAMPAIGN_FILE.read_text(encoding='utf-8')
+        cls.lua = autoclient.campaign_text()
         cls.suites = declared_suites()
 
     def campaign(self, name):
@@ -1482,24 +1484,46 @@ class CampaignContentTests(unittest.TestCase):
         self.assertEqual(sorted(ambient), sorted(['lk.load', 'lk.zombies', 'lk.alert', 'lk.defense', 'rs.identity',
                                                   'rs.facts']))
         self.assertFalse(autoclient.needs_bridge('mp-ambient', None, self.lua))
-        self.assertIn('"mp-ambient"', self.lua.split('function RST.campaigns()', 1)[1])
 
 
 class LoadAndSignalSmokeTests(unittest.TestCase):
     """LK13-T02 (up to 4 clients, load campaign) and E11-T07 / E11-T13 (Signal Smoke in the campaign mods)."""
 
     def test_three_setups_of_the_workshop_item(self):
-        # E18-T14: --mods rs|lk|both picks the mods of the run (core mod and the test mod always there).
+        # E18-T14, E21-T07: --mods rs|lk|both picks the mods of the run and their test mods (core mod, its test
+        # mod and Signal Smoke always there).
         ids = {s: [m for m, _ in autoclient.selected_mods(s)] for s in ('rs', 'lk', 'both')}
         self.assertEqual(ids['both'], [m for m, _ in autoclient.MODS])
-        self.assertNotIn('batman_LivingKnox', ids['rs'])
-        self.assertIn('batman_RadioSurvivor', ids['rs'])
-        self.assertEqual(ids['lk'], ['batman_SignalSmoke', 'batman_CoreAI', 'batman_LivingKnox',
-                                     'batman_RadioSurvivorTests'])
+        self.assertEqual(ids['lk'], ['batman_SignalSmoke', 'batman_CoreAI', 'batman_LivingKnox', 'batman_CoreAITests',
+                                     'batman_LivingKnoxTests'])
+        self.assertEqual(ids['rs'], ['TooltipLib', 'batman_BeltRadio', 'batman_SignalSmoke', 'batman_CoreAI',
+                                     'batman_RadioSurvivor', 'batman_CoreAITests', 'batman_RadioSurvivorTests'])
         self.assertEqual(autoclient.selected_mods(), autoclient.selected_mods('both'))
         args = autoclient.parse_args(['--mods', 'lk', '--suite', 'lk.sites'])
         self.assertEqual(args.mods, 'lk')
         self.assertEqual(autoclient.parse_args(['--suite', 'lk.sites']).mods, 'both')
+
+    def test_campaign_of_one_mod_runs_its_setup(self):
+        # E21-T07: --campaign solo-lk runs Living Knox alone (solo-rs: RadioSurvivor alone) unless --mods says else.
+        self.assertEqual(autoclient.parse_args(['--campaign', 'solo-lk']).mods, 'lk')
+        self.assertEqual(autoclient.parse_args(['--campaign', 'solo-rs']).mods, 'rs')
+        self.assertEqual(autoclient.parse_args(['--campaign', 'solo']).mods, 'both')
+        self.assertEqual(autoclient.parse_args(['--campaign', 'solo-lk', '--mods', 'both']).mods, 'both')
+
+    def test_campaigns_read_from_the_test_mods_of_the_setup(self):
+        # E21-T07: each test mod registers its parts; a setup reads only the campaign files of its test mods.
+        lk = autoclient.campaign_text('lk')
+        self.assertEqual(autoclient.campaign_suites(lk, 'solo-lk'), autoclient.campaign_suites(lk, 'solo'))
+        self.assertEqual(autoclient.campaign_suites(lk, 'solo-lk')[:4],
+                         ['rst.guard', 'ca.codec', 'ca.notebook', 'lk.fitness'])
+        self.assertEqual(autoclient.test_lua_dirs('lk'), [ROOT / 'dev' / m / '42.21' / 'media' / 'lua'
+                                                          for m in ('batman_CoreAITests', 'batman_LivingKnoxTests')])
+        both = autoclient.campaign_text()
+        solo_lk, solo_rs = (autoclient.campaign_suites(both, n) for n in ('solo-lk', 'solo-rs'))
+        self.assertEqual(autoclient.campaign_suites(both, 'solo'), solo_lk + solo_rs[3:])
+        self.assertEqual(autoclient.campaign_suites(both, 'mp')[-2:], ['rs.death', 'lk.routines'])
+        self.assertEqual(autoclient.declared_campaigns(lk), {'solo-lk', 'solo-rs', 'solo', 'solo-retry', 'mp',
+                                                             'mp-ambient', 'mp-load', 'mp-persist'})
 
     def test_signal_smoke_always_in_the_mods_before_radio_survivor(self):
         ids = [m for m, _ in autoclient.selected_mods()]
@@ -1586,7 +1610,7 @@ class LoadAndSignalSmokeTests(unittest.TestCase):
         self.assertEqual((args.clients, args.group_count, args.server_campaign, args.server_suite, args.server_tags),
                          (4, 5, None, 'lk.load', 'server'))
         args = argparse.Namespace(**base)
-        autoclient.apply_load_preset(args, 'RST.CAMPAIGNS["mp-load"] = {\n    "lk.load",\n}\n')
+        autoclient.apply_load_preset(args, 'RST.Campaigns.add("mp-load", 20, {\n    "lk.load",\n})\n')
         self.assertEqual((args.server_campaign, args.server_suite, args.server_tags), ('mp-load', None, None))
         # Explicit options win.
         args = argparse.Namespace(**dict(base, clients=2, group_count=3, server_suite='lk.load,rs.facts'))
@@ -1625,7 +1649,7 @@ class LoadAndSignalSmokeTests(unittest.TestCase):
                 self.assertIn('peer=true', command)
             first = (caches[1] / autoclient.TESTS_DIR / 'autoclient.txt').read_text(encoding='utf-8')
             self.assertIn('user=rs_mp1', first)
-            if 'RST.CAMPAIGNS["mp-load"]' in autoclient.read_text(autoclient.CAMPAIGN_FILE):
+            if 'mp-load' in autoclient.declared_campaigns(autoclient.campaign_text()):
                 self.assertIn('serverCampaign=mp-load', first)
             else:
                 self.assertIn('serverSuite=lk.load', first)
@@ -1730,8 +1754,8 @@ class ParallelRunTests(unittest.TestCase):
 
     def test_apply_shard(self):
         import argparse
-        lua = ('RST.CAMPAIGNS["mp"] = {\n    "rs.env",\n    "rs.codec",\n    "lk.load",\n}\n'
-               'RST.CAMPAIGNS["mp-persist"] = {\n    "rs.identity",\n}\n')
+        lua = ('RST.Campaigns.add("mp", 30, {\n    "rs.env",\n    "rs.codec",\n    "lk.load",\n})\n'
+               'RST.Campaigns.add({ "mp-persist" }, 30, {\n    "rs.identity",\n})\n')
         empty = Path(tempfile.mkdtemp())
         base = dict(campaign=None, suite=None, tags=None, exclude=None, server_campaign='mp', server_suite=None,
                     server_tags=None, server_exclude=None, phases=None, shard='1/2')
@@ -2085,7 +2109,7 @@ class ModswapAndLoadTests(unittest.TestCase):
     --load-phase-ms (LK13-T02)."""
 
     def test_modswap_plan(self):
-        declared = autoclient.declared_suite_names(autoclient.CAMPAIGN_FILE.parents[2])
+        declared = autoclient.declared_suite_names(autoclient.test_lua_dirs('lk'))
         self.assertIn('lk.appearance', declared)
         self.assertEqual(autoclient.phase_plan(['lk.appearance'], ['modswap'], declared),
                          [[['lk.appearance']], [['lk.appearance']]])
@@ -2098,7 +2122,7 @@ class ModswapAndLoadTests(unittest.TestCase):
                       (autoclient.MODSWAP_MOD[1] / 'common' / 'mod.info').read_text(encoding='utf-8')
                       if (autoclient.MODSWAP_MOD[1] / 'common' / 'mod.info').exists()
                       else (autoclient.MODSWAP_MOD[1] / '42.21' / 'mod.info').read_text(encoding='utf-8'))
-        suite = (SUITES_DIR / 'RST_LKAppearance.lua').read_text(encoding='utf-8')
+        suite = (LK_TESTS / 'shared' / 'RST' / 'suites' / 'RST_LKAppearance.lua').read_text(encoding='utf-8')
         self.assertIn(autoclient.MODSWAP_MOD[0], suite)
 
     def test_ini_and_caches_get_the_mod(self):
@@ -2135,7 +2159,7 @@ class ModswapAndLoadTests(unittest.TestCase):
                 self.cache, self.proc, self.log_path = cache, Proc(), cache / 'server-stdout.log'
 
             def launch(self, timeout):
-                events.append(('launch', 'batman_RadioSurvivorTestClothes' in
+                events.append(('launch', 'batman_LivingKnoxTestClothes' in
                                (self.cache / 'Server' / 'rstest_mp.ini').read_text(encoding='utf-8')))
 
         def fake_run(clients, ccmds, server, bridge, started, args, keep=(), quit_wait=None):
@@ -2160,7 +2184,7 @@ class ModswapAndLoadTests(unittest.TestCase):
                     ['modswap'], lambda i, k: ('cmd', 'run', f'tok-p{k}'), ['A'])
                 self.assertEqual((code, why), (0, ''))
                 self.assertEqual(events, [('run', ['tok']), ('stop',), ('launch', True), ('run', ['tok-p1'])])
-                self.assertIn('batman_RadioSurvivorTestClothes', (c.cache / 'mods' / 'default.txt').read_text(
+                self.assertIn('batman_LivingKnoxTestClothes', (c.cache / 'mods' / 'default.txt').read_text(
                     encoding='utf-8'))
         finally:
             autoclient.run_mp_clients, autoclient.stop_server, autoclient.copy_mods = saved
@@ -2171,7 +2195,7 @@ class ModswapAndLoadTests(unittest.TestCase):
         for bad in ({'bad name': 1}, {'X': '1; os.exit()'}):
             with self.assertRaises(ValueError):
                 autoclient.launch_globals_lua(bad)
-        suite = (SUITES_DIR / 'RST_LKLoadMP.lua').read_text(encoding='utf-8')
+        suite = (LK_TESTS / 'shared' / 'RST' / 'suites' / 'RST_LKLoadMP.lua').read_text(encoding='utf-8')
         self.assertIn('tonumber(' + autoclient.LOAD_PHASE_GLOBAL + ')', suite)
         self.assertTrue((ROOT / 'dev' / autoclient.LAUNCH_GLOBALS_FILE.parent).is_dir())
 

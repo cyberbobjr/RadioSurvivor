@@ -24,6 +24,7 @@ tests/test_rs_notebook_voices_suite.py.
 ]]
 
 require "RST/RST"
+require "RST/RST_ModRadioSurvivor"
 require "RST/RST_Fixtures"
 require "RST/RST_Steps"
 require "RST/RST_RSHelpers"

@@ -3,7 +3,8 @@
 # nothing is written to the Steam Workshop folder (TooltipLib, required by batman_BeltRadio, is only read from it).
 #
 # Default (automatic): copies batman_BeltRadio (required mod, from the sibling repository Workshop/BeltRadio),
-# batman_RadioSurvivor and the development mod batman_RadioSurvivorTests into <cache>/mods, writes <cache>/Lua/batman_RadioSurvivor/tests/autorun.txt (one suite
+# batman_RadioSurvivor and the development test mods batman_CoreAITests, batman_LivingKnoxTests and
+# batman_RadioSurvivorTests into <cache>/mods, writes <cache>/Lua/batman_CoreAITests/tests/autorun.txt (one suite
 # name or prefix per line, from -Filters), starts the server "rstest_smoke" (test save name: world suites allowed)
 # in the background with a redirected stdin, waits for autorun-result.txt (written by RST_Server.lua when the run
 # ends), prints the summary, sends "quit" to the server console and waits for the process to end (killed after
@@ -15,7 +16,7 @@
 # -CacheDir <path> (with -Manual only): restarts the server on an existing cache printed by a former run
 # (RS_SMOKE_CACHE=...), same world and same mod copies (nothing copied again): restart protocols (E03-T04).
 #
-#   powershell -ExecutionPolicy Bypass -File RadioSurvivor/tests/run_dedicated_smoke.ps1 [-Filters rst,rs.codec]
+#   powershell -ExecutionPolicy Bypass -File RadioSurvivor/tests/run_dedicated_smoke.ps1 [-Filters rst,ca.codec]
 #       [-TimeoutSec 600] [-QuitTimeoutSec 90] [-KeepCache] [-Manual [-CacheDir <path>]]
 param(
     [string[]]$Filters = @('rst'),
@@ -100,7 +101,9 @@ if (-not (Test-Path -LiteralPath (Join-Path $tooltipRoot 'mod.info'))) {
     exit 2
 }
 Copy-Item -LiteralPath $tooltipRoot -Destination $modsDir -Recurse
-Copy-Item -LiteralPath (Join-Path $projectRoot 'dev/batman_RadioSurvivorTests') -Destination $modsDir -Recurse
+foreach ($testMod in @('batman_CoreAITests', 'batman_LivingKnoxTests', 'batman_RadioSurvivorTests')) {
+    Copy-Item -LiteralPath (Join-Path $projectRoot ('dev/' + $testMod)) -Destination $modsDir -Recurse
+}
 $config = @'
 Public=false
 UPnP=false
@@ -108,7 +111,7 @@ PauseEmpty=true
 DefaultPort=17381
 UDPPort=17382
 MaxPlayers=2
-Mods=\TooltipLib;\batman_BeltRadio;\batman_CoreAI;\batman_LivingKnox;\batman_RadioSurvivor;\batman_RadioSurvivorTests
+Mods=\TooltipLib;\batman_BeltRadio;\batman_CoreAI;\batman_LivingKnox;\batman_RadioSurvivor;\batman_CoreAITests;\batman_LivingKnoxTests;\batman_RadioSurvivorTests
 WorkshopItems=
 Map=Muldraugh, KY
 ChatStreams=s,r,a,w,y,sh,f,all
@@ -137,7 +140,7 @@ if ($Manual) {
 }
 
 # ------------------------------------------------------------------ automatic run
-$testsDir = Join-Path $cacheRoot 'Lua/batman_RadioSurvivor/tests'
+$testsDir = Join-Path $cacheRoot 'Lua/batman_CoreAITests/tests'
 New-Item -ItemType Directory -Path $testsDir -Force | Out-Null
 $autorun = @('# Written by run_dedicated_smoke.ps1: one suite name or dot-separated prefix per line.') + $Filters
 [IO.File]::WriteAllText((Join-Path $testsDir 'autorun.txt'), (($autorun -join "`n") + "`n"), $utf8)
@@ -159,14 +162,14 @@ function Show-ModErrors {
     # Kahlua logs every error() as "ERROR: ... Lua((MOD:<mod name>)).<function>> Exception thrown", even when a
     # pcall catches it. Ignored:
     # - known load noise (AnimSets / actiongroups folders missing, AdvancedAnimator);
-    # - the RST assertion signals raised on purpose by the development mod (dev/.../shared/RST/RST.lua): T:fail and
+    # - the RST assertion signals raised on purpose by the core test mod (dev/batman_CoreAITests/.../RST/RST.lua): T:fail and
     #   T:skip raise a signal table, logged as "...).fail> Exception thrown" / "...).skip> Exception thrown" followed
     #   by "KahluaException: table 0x...". RST catches them and reports the test as FAIL / SKIP in
     #   autorun-result.txt (printed above), so a failed test is not lost;
     # - the error that T:fails catches on purpose in the function it was given ("...).fails> Exception thrown").
-    # Only lines of the development mod ("batman_RadioSurvivor Tests (dev only)") are ignored, and only for these
-    # three functions: any other error of our mods (main mod, or another function of the development mod) is shown.
-    $devMod = [regex]::Escape('Lua((MOD:batman_RadioSurvivor Tests (dev only)))')
+    # Only lines of the core test mod ("batman_CoreAI Tests (dev only)", which holds RST.lua) are ignored, and only for
+    # these three functions: any other error of our mods (main mods, or another function of a test mod) is shown.
+    $devMod = [regex]::Escape('Lua((MOD:batman_CoreAI Tests (dev only)))')
     $signalLine = '^ERROR:.*' + $devMod + '\.(fail|skip)> Exception thrown'
     $failsLine = '^ERROR:.*' + $devMod + '\.fails> Exception thrown'
     $hits = Select-String -LiteralPath $consoleLog -CaseSensitive -Context 0, 1 -Pattern '^ERROR.*batman_', '\[RS[^\]]*\].*ERROR' |

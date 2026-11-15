@@ -2,7 +2,7 @@
 restent attirés par les bruits des PNJ. Code : shared/LivingKnox/LK_ZombieGuard.lua (useless gardé pendant un trajet),
 bruits de server/LivingKnox/LK_Zombies.lua (pas, attrait ; source nil depuis LK06-T08).
 
-    python RadioSurvivor/tests/test_lk_hearing.py
+    python tests/test_lk_hearing.py
 
 Constat en jeu du 2026-10-12 (lk.anims, PNJ lk-109 au geste walk) : 7 s dans l'état turnalerted, 0,52 case parcourue.
 Banc tests/harness.py et pile de test_lk_zombies.py (corps, consignes, exécutant, garde, gestes, combat, santé), plus
@@ -27,7 +27,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from test_lk_bodies import LUA, DEV_LUA, lua_list  # noqa: E402
+from test_lk_bodies import DEV_LUA, lua_list  # noqa: E402
 from harness import LK_LUA  # noqa: E402  (E18-T07)
 from test_lk_zombies import ZombieBase  # noqa: E402
 

@@ -25,7 +25,8 @@ import pz_paths  # noqa: E402  (vanilla folders: PZ_STEAM_LIBRARY, PZ_MEDIA or S
 from test_carnet import Simulation, NOTEBOOK_UI, ROOT
 
 FONTS = pz_paths.media_dir() / 'fonts/EN/1x'
-TESTS_LUA = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua'
+from harness import tests_lua  # noqa: E402  (E21-T07: media/lua of the test mods)
+TESTS_LUA = tests_lua()
 SUITE = TESTS_LUA / 'shared' / 'RST' / 'suites' / 'RS_NotebookVisual.lua'
 MOD = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivor' / '42.21'
 TABLES = {lang: MOD / 'media' / 'lua' / 'shared' / 'Translate' / lang / 'IG_UI.json' for lang in ('EN', 'FR')}
@@ -604,9 +605,9 @@ class SourceTests(unittest.TestCase):
         self.assertIsNone(re.search(r'[~&|]\s*\d|<<|>>|//', code.replace('~=', '')))
 
     def test_suite_in_the_solo_rs_campaign(self):
-        campaign = (TESTS_LUA / 'client' / 'RST' / 'RST_Campaign.lua').read_text(encoding='utf-8')
-        block = campaign.split('RST.CAMPAIGNS["solo-rs"]', 1)[1].split('}', 1)[0]
-        self.assertIn('"rs.notebook.visual"', block)
+        sys.path.insert(0, str(ROOT / 'tools' / 'autoclient'))
+        import autoclient   # E21-T07: campaigns registered by each test mod (RST_Campaign*.lua)
+        self.assertIn('rs.notebook.visual', autoclient.campaign_suites(autoclient.campaign_text('rs'), 'solo-rs'))
 
 
 if __name__ == '__main__':

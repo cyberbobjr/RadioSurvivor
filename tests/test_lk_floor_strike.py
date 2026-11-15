@@ -3,7 +3,7 @@ le sol) : server/LivingKnox/LK_Combat.lua (geste selon l'arme et l'état du zomb
 réaction « Floor » qui le garde à terre), client/LivingKnox/LK_ZombiesClient.lua (réaction posée par le client qui
 simule le zombie). Repris de test_lk_window_kill.py, retiré avec l'offensive à la fenêtre (E18-T34).
 
-    python RadioSurvivor/tests/test_lk_floor_strike.py
+    python tests/test_lk_floor_strike.py
 
 Pile de test_lk_zombies.py (solo et serveur + deux clients) ; doublures IsoZombie.setHitReaction / getHitReaction,
 HandWeapon.getCriticalDamageMultiplier : NE PROUVENT PAS l'API réelle.

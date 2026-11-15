@@ -1,7 +1,7 @@
 """Tests hors jeu du registre des sortes de chantier de la fortification (LK16-T02, chantier C1) :
 server/LivingKnox/LK_Fortify.lua (Fortify.registerKind) et un fichier par sorte sous server/LivingKnox/Fortify/.
 
-    python RadioSurvivor/tests/test_lk_fortify_kinds.py
+    python tests/test_lk_fortify_kinds.py
 
 Banc : pile du rattrapage hors écran (test_lk_fortify_offscreen.py : maison HOUSE 105..115, foyer 110,110, deux
 fenêtres, porte d'entrée sud, caisse avec un marteau, 8 planches et une boîte de clous ; ouvrier m-2 « builder »).

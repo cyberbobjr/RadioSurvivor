@@ -14,6 +14,7 @@ Cleanup: reward items removed, test missions removed from the notebook state, np
 ]]
 
 require "RST/RST"
+require "RST/RST_ModRadioSurvivor"
 require "RST/RST_Fixtures"
 require "RST/RST_RSHelpers"
 

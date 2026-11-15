@@ -11,7 +11,7 @@
   persistance par RS_State après redémarrage.
 - DeathTests : à la mort, dernier sondage, missions ouvertes notées « open », relevé figé puis libéré (E15-T03) ;
   indépendant de l'ordre des abonnés à OnCharacterDeath ; solo.
-- SuiteTests : la suite en jeu rs.lifelog (dev/batman_RadioSurvivorTests, moteur RST) passe sur ce banc.
+- SuiteTests : la suite en jeu rs.lifelog (dev/batman_RadioSurvivorTests, moteur RST de batman_CoreAITests) passe sur ce banc.
 - CarnetIntegrationTests : vrai CA_NotebookServer (simulation de tests/test_carnet.py), chargé AVANT le relevé : son
   abonné à OnCharacterDeath passe le premier et efface la liaison, l'identité en ModData et l'historique radio.
 Simulation, PAS validation en jeu.
@@ -415,7 +415,8 @@ class SoloTests(Bench):
         self.assertTrue(self.log('char-s')['dead'])
 
 
-DEV_LUA = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua'
+from harness import tests_lua  # noqa: E402  (E21-T07: media/lua of the test mods)
+DEV_LUA = tests_lua()
 
 
 class SuiteTests(unittest.TestCase):

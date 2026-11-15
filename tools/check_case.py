@@ -49,7 +49,10 @@ MAIN_MOD = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivor'
 CORE_MOD = ROOT / 'Contents' / 'mods' / 'batman_CoreAI'
 # NPC engine (E18-T07), requires the core mod; RadioSurvivor works with or without it (E18-T09).
 LK_MOD = ROOT / 'Contents' / 'mods' / 'batman_LivingKnox'
-DEV_MOD = ROOT / 'dev' / 'batman_RadioSurvivorTests'
+# Development test mods (E21-T07): RST engine and core suites, then the suites of each mod.
+CORE_TESTS_MOD = ROOT / 'dev' / 'batman_CoreAITests'
+LK_TESTS_MOD = ROOT / 'dev' / 'batman_LivingKnoxTests'
+RS_TESTS_MOD = ROOT / 'dev' / 'batman_RadioSurvivorTests'
 # Required mod (require=batman_BeltRadio), from the sibling repository: dependency of both checked mods.
 BELT_MOD = ROOT.parent / 'BeltRadio' / 'Contents' / 'mods' / 'batman_BeltRadio'
 # Required mod (require=batman_SignalSmoke, 2026-10-15), from the sibling repository: dependency of both checked mods.
@@ -598,7 +601,11 @@ def main(argv: list[str] | None = None) -> int:
         # E18-T08, E21-T05: Living Knox needs the core mod and Signal Smoke only.
         (LK_MOD, [CORE_MOD, SIGNAL_MOD]),
         (MAIN_MOD, [CORE_MOD, BELT_MOD, SIGNAL_MOD]),   # E18-T09: RadioSurvivor alone
-        (DEV_MOD, [MAIN_MOD, LK_MOD, CORE_MOD, BELT_MOD, SIGNAL_MOD])]
+        (CORE_TESTS_MOD, [CORE_MOD, SIGNAL_MOD]),
+        (LK_TESTS_MOD, [CORE_TESTS_MOD, LK_MOD, CORE_MOD, SIGNAL_MOD]),   # E21-T07: no RadioSurvivor
+        # The RadioSurvivor suites that need both mods (opts.mods = lk and rs, SKIP without Living Knox) require
+        # Living Knox modules and helpers: checked in the setup with both mods.
+        (RS_TESTS_MOD, [CORE_TESTS_MOD, LK_TESTS_MOD, MAIN_MOD, LK_MOD, CORE_MOD, BELT_MOD, SIGNAL_MOD])]
     for path, deps in targets:
         for p in [path] + deps:
             if not p.is_dir():

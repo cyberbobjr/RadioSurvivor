@@ -19,7 +19,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from test_rs_state import runtime  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
-RST_SHARED = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua' / 'shared'
+from harness import tests_lua  # noqa: E402  (E21-T07: media/lua of the test mods)
+RST_SHARED = tests_lua() / 'shared'
 SUITE = RST_SHARED / 'RST' / 'suites' / 'RS_StatePersist.lua'
 
 # Server of the bench: RST engine over the real modules of tests/test_rs_state.py, RST_Persist writes lines.

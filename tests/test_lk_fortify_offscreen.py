@@ -5,7 +5,7 @@ LK_Simulation.lua (Simulation.advance, après chaque heure de chaque groupe), ma
 lk.fortify_offscreen (dev/.../RST_LKFortifyOffscreen.lua). LK13-T07 : forme compacte du relevé au registre et
 migration de l'ancienne forme (CompactFormTests).
 
-    python RadioSurvivor/tests/test_lk_fortify_offscreen.py
+    python tests/test_lk_fortify_offscreen.py
 
 Banc : pile de test_lk_barricade.py et test_lk_walls.py (groupe « deciders » dans la maison HOUSE 105..115, foyer
 110,110, deux fenêtres, porte d'entrée sud, caisse de la cuisine avec un marteau, 8 planches et une boîte de clous ;
@@ -34,7 +34,8 @@ from harness import sim_event_files  # noqa: E402  (LK16-T09)
 
 ROOT = Path(__file__).resolve().parents[1]
 SUITE = 'shared/RST/suites/RST_LKFortifyOffscreen.lua'
-SUITE_FILE = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua' / SUITE
+from harness import tests_lua  # noqa: E402  (E21-T07: media/lua of the test mods)
+SUITE_FILE = tests_lua('lk') / SUITE
 SIM = 'server/LivingKnox/LK_Simulation.lua'
 
 OFF_DOUBLES = r'''

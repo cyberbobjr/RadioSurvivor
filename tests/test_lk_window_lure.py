@@ -2,7 +2,7 @@
 l'ouverture) : server/LivingKnox/LK_Zombies.lua (attrait, pas, contact) et server/LivingKnox/LK_Combat.lua (ligne de
 coup, attente derrière une vitre, tir qui casse la vitre).
 
-    python RadioSurvivor/tests/test_lk_window_lure.py
+    python tests/test_lk_window_lure.py
 
 Pile de test_lk_zombies.py (solo), complétée des doublures ci-dessous, qui reproduisent le Java 42.21.0 relevé et NE
 PROUVENT PAS l'API réelle :
@@ -30,7 +30,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from test_lk_bodies import DEV_LUA, LUA, lua_list  # noqa: E402
+from test_lk_bodies import DEV_LUA, lua_list  # noqa: E402
 from harness import LK_LUA  # noqa: E402  (E18-T07)
 from harness import lua_src  # noqa: E402  (E18-T07)
 from test_lk_combat import PISTOL, RangedBase  # noqa: E402

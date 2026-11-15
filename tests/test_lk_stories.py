@@ -1,7 +1,7 @@
 """Tests hors jeu des histoires de groupe Living Knox (LK10-T01) : gabarits Data/Stories.lua, combineur LK_Stories.lua.
 
-    python RadioSurvivor/tests/test_lk_stories.py            # banc
-    python RadioSurvivor/tests/test_lk_stories.py --sample   # trois histoires par type, en anglais et en français
+    python tests/test_lk_stories.py            # banc
+    python tests/test_lk_stories.py --sample   # trois histoires par type, en anglais et en français
 
 Banc tests/harness.py (lupa, Lua 5.1). Les longueurs sont comptées en octets UTF-8 : en Kahlua, une chaîne compte
 en unités UTF-16 (base kahlua-lua.md), jamais plus que ses octets, donc une borne tenue ici l'est aussi en jeu.
@@ -15,7 +15,7 @@ from itertools import combinations
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from harness import Harness, LUA  # noqa: E402
+from harness import Harness  # noqa: E402
 from harness import LK_LUA  # noqa: E402  (E18-T07)
 
 DATA_FILE = LK_LUA / 'shared' / 'LivingKnox' / 'Data' / 'Stories.lua'
@@ -42,7 +42,7 @@ def nbytes(text: str) -> int:
 
 
 def make(mode='solo'):
-    h = Harness(mode=mode)
+    h = Harness(with_rs=False, mode=mode)
     machines = ('solo',) if mode == 'solo' else ('server', 'A')
     for m in machines:
         for path in SHARED:
@@ -96,7 +96,7 @@ class DataTests(Base):
 
     def test_registry_types_covered(self):
         # Registre LK08-T02 chargé comme en jeu (fichiers partagés, dont les types livrés) : mêmes types couverts.
-        h = Harness(mode='solo')
+        h = Harness(with_rs=False, mode='solo')
         try:
             for path in SHARED + ('shared/LivingKnox/LK_GroupTypes.lua',):
                 h.load('solo', path)

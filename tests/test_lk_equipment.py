@@ -1,6 +1,6 @@
 """Tests hors jeu de l'arme visible des corps de PNJ Living Knox (LK02-T06) : LK_Equipment.lua.
 
-    python RadioSurvivor/tests/test_lk_equipment.py
+    python tests/test_lk_equipment.py
 
 Banc tests/harness.py et doublures de tests/test_lk_bodies.py, test_lk_guard.py et test_lk_anim.py, complétées ici.
 Les doublures reproduisent le Java et le Lua vanilla 42.21.0 relevés ; elles NE PROUVENT PAS l'API réelle, seulement
@@ -36,7 +36,7 @@ sys.path.append(str(Path(__file__).resolve().parents[1] / 'tools'))
 import pz_paths  # noqa: E402  (vanilla folders: PZ_STEAM_LIBRARY, PZ_MEDIA or Steam detection)
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from test_lk_bodies import lua_list, LUA, DEV_LUA, ROOT  # noqa: E402
+from test_lk_bodies import lua_list, DEV_LUA, ROOT  # noqa: E402
 from harness import LK_LUA  # noqa: E402  (E18-T07)
 from harness import lua_src  # noqa: E402  (E18-T07)
 from test_lk_anim import AnimBase  # noqa: E402

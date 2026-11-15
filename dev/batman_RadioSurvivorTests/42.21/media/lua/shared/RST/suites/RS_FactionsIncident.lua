@@ -25,6 +25,8 @@ Outside the game: tests/test_incidents.py, tests/test_e09_suites.py.
 ]]
 
 require "RST/RST"
+require "RST/RST_ModRadioSurvivor"
+require "RST/RST_ModLivingKnox"
 require "RST/RST_Fixtures"
 require "RST/RST_LKGroupFixture"
 require "RST/RST_RSHelpers"

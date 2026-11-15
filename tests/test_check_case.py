@@ -244,7 +244,12 @@ class RepositoryTest(unittest.TestCase):
         deps = [cc.CORE_MOD, cc.BELT_MOD, cc.SIGNAL_MOD]   # mod commun exigé (E18) ; RadioSurvivor seul (E18-T09)
         vanilla = cc.load_vanilla(cc.DEFAULT_VANILLA)
         self.assertEqual([str(p) for p in cc.check_mod(cc.MAIN_MOD, deps, vanilla)], [])
-        self.assertEqual([str(p) for p in cc.check_mod(cc.DEV_MOD, [cc.MAIN_MOD, cc.LK_MOD] + deps, vanilla)], [])
+        # E21-T07: each test mod with its setup; the Living Knox one without RadioSurvivor.
+        self.assertEqual([str(p) for p in cc.check_mod(cc.CORE_TESTS_MOD, [cc.CORE_MOD, cc.SIGNAL_MOD], vanilla)], [])
+        self.assertEqual([str(p) for p in cc.check_mod(cc.LK_TESTS_MOD, [cc.CORE_TESTS_MOD, cc.LK_MOD, cc.CORE_MOD,
+                                                                         cc.SIGNAL_MOD], vanilla)], [])
+        self.assertEqual([str(p) for p in cc.check_mod(cc.RS_TESTS_MOD, [cc.CORE_TESTS_MOD, cc.LK_TESTS_MOD,
+                                                                         cc.MAIN_MOD, cc.LK_MOD] + deps, vanilla)], [])
         # Sans Belt Walkie-Talkie, le require du récepteur commun n'est pas résolu.
         problems = [str(p) for p in cc.check_mod(cc.MAIN_MOD, [cc.CORE_MOD, cc.SIGNAL_MOD], vanilla)]
         self.assertEqual(len(problems), 1, problems)

@@ -13,6 +13,7 @@
 -- marked locket is gone, the decoy stays, the objective is met and the radio report succeeds. In-memory state (store
 -- whose save does nothing): no notebook state.
 require 'RST/RST'
+require "RST/RST_ModRadioSurvivor"
 require 'RST/RST_Fixtures'
 local F = RST.Fixtures
 

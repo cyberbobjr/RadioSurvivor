@@ -15,6 +15,7 @@ The document test opens each note in the real document window (solo, 3 s each, c
 ]]
 
 require "RST/RST"
+require "RST/RST_ModRadioSurvivor"
 
 local function authority(t)
     if type(isClient) == "function" and isClient() then

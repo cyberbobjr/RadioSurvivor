@@ -1,7 +1,7 @@
 """Tests hors jeu des corvées des PNJ Living Knox au foyer (LK05-T04) : server/LivingKnox/LK_Routines.lua (section
 « corvées »), comportement « chore » de LK_Decisions.lua, gestes de LK_Anim.lua.
 
-    python RadioSurvivor/tests/test_lk_chores.py
+    python tests/test_lk_chores.py
 
 Bancs :
 - logique pure : poids des corvées selon poste, rôle et traits (liste fermée CHORES), tirage déterministe par identité et
@@ -489,7 +489,8 @@ class MultiplayerChoreTests(ChoreStack):
 
 
 SUITE = 'shared/RST/suites/RST_LKChores.lua'
-SUITE_FILE = Path(__file__).resolve().parents[1] / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua' / SUITE
+from harness import tests_lua  # noqa: E402  (E21-T07: media/lua of the test mods)
+SUITE_FILE = tests_lua('lk') / SUITE
 
 
 class SuiteTests(ChoreStack):

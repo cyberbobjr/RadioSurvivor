@@ -24,7 +24,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from harness import ROOT, Harness  # noqa: E402
 from net_disorder import disorder  # noqa: E402
 
-DEV_LUA = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua'
+from harness import tests_lua  # noqa: E402  (E21-T07: media/lua of the test mods)
+DEV_LUA = tests_lua()
 REQUESTER = 'A'
 RST_FILES = 'require "RST/RST"; require "RST/RST_Steps"; require "RST/RST_PeerChecks"; require "RST/RST_RSHelpers"'
 

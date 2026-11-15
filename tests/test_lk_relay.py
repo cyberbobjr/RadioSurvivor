@@ -1,7 +1,7 @@
 """Tests hors jeu du relais des gestes et des poses Living Knox (LK03-T05) : LK_Relay.lua (serveur), LK_Anim.lua et
 LK_Presentation.lua (clients).
 
-    python RadioSurvivor/tests/test_lk_relay.py
+    python tests/test_lk_relay.py
 
 Banc tests/harness.py et doublures de test_lk_bodies.py, test_lk_guard.py, test_lk_anim.py et test_lk_directives.py.
 Images du serveur de 100 ms comme un serveur dédié (J/network/GameServer.java:261, 835-836). Simulation : le banc
@@ -16,7 +16,6 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from harness import lua_src  # noqa: E402  (E18-T07)
-from test_lk_bodies import LUA  # noqa: E402
 from test_lk_directives import DirectiveBase, TARGET  # noqa: E402
 from net_disorder import disorder  # noqa: E402  (E19-T06)
 

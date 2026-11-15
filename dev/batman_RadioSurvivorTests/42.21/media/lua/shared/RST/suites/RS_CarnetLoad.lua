@@ -21,6 +21,8 @@ Outside the game: tests/test_rs_mp_suites.py.
 ]]
 
 require "RST/RST"
+require "RST/RST_ModRadioSurvivor"
+require "RST/RST_ModLivingKnox"
 require "RST/RST_RSHelpers"
 require "RST/RST_Fixtures"
 require "RST/RST_Steps"

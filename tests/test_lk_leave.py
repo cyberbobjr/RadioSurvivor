@@ -2,10 +2,10 @@
 
     python tests/test_lk_leave.py
 
-Banc lupa (Lua 5.1, `next` retiré comme dans Kahlua) : vrai serveur du carnet (`CA_NotebookServer.lua`), vrais
-`RS_Factions.lua` et fournisseur `LK_NotebookProvider.lua`, moteur Living Knox réel (registre des groupes, `LK_API`,
-population) et vrai pont hors ligne (`RS_OFFLINE_INTENT=leave_group`, drapeau du banc qui tient lieu d'un modèle qui
-décide de partir, jamais tiré des mots du joueur). Doublures : `LivingKnox.Sites.pick` (site fixe loin du foyer : la
+Banc lupa (Lua 5.1, `next` retiré comme dans Kahlua) : vrai serveur du carnet (`CA_NotebookServer.lua`), vrai
+fournisseur `LK_NotebookProvider.lua`, moteur Living Knox réel (registre des groupes, accords, `LK_API`, population),
+mod commun et Living Knox seuls sur le chemin des modules (E21-T08), et vrai pont hors ligne (intention imposée
+`leave_group`, drapeau du banc qui tient lieu d'un modèle qui décide de partir, jamais tiré des mots du joueur). Doublures : `LivingKnox.Sites.pick` (site fixe loin du foyer : la
 recherche réelle est prouvée par test_lk_sites.py) et, pour le départ physique, `LivingKnox.Directives.moveTo` (la
 consigne réelle est prouvée par test_lk_directives.py). Ne prouve ni l'API Java ni le réseau.
 """
@@ -17,7 +17,9 @@ from pathlib import Path
 
 from test_factions import AGREEMENTS_FACADE  # noqa: E402
 from test_carnet import Simulation, LK_WORLD, convert, count, talk_requests, protocol
-from test_protocol import start_bridge, pump, lua_list
+from test_protocol import Game, start_bridge, pump, lua_list
+
+Game.WITH_RS = False   # E21-T08: core mod and Living Knox only on the module path (one bench per process)
 from test_lk_materialize import MatBase
 
 # Type « loners » (fichier de données livré) chargé comme le jeu le fait pour media/lua/shared ; site et consigne
@@ -52,7 +54,7 @@ class LeaveGroupTests(unittest.TestCase):
         self.tmp.cleanup()
 
     def world(self, name, intent='leave_group'):
-        sim = Simulation(self.path / name, living_knox=True)
+        sim = Simulation(self.path / name, living_knox=True, rs_hooks=False)
         sim.server.rt.execute(LK_WORLD)
         sim.server.rt.execute(LEAVE_DOUBLES)
         sim.add_client('alice')

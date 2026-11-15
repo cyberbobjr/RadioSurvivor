@@ -16,9 +16,11 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from test_rst import CLIENT_GAME, LUA, SERVER_FILE, Machine, Network  # noqa: E402
+from test_rst import CLIENT_GAME, SERVER_FILE, Machine, Network  # noqa: E402
+from harness import tests_lua  # noqa: E402  (E21-T07: media/lua of the three test mods)
 from test_rst_steps import PEER_GAME  # noqa: E402
 
+LUA = tests_lua()
 STEPS_FILE = LUA / 'shared' / 'RST' / 'RST_Steps.lua'
 PEER_FILE = LUA / 'shared' / 'RST' / 'RST_PeerChecks.lua'
 RADIO_FILE = LUA / 'shared' / 'RST' / 'RST_PeerChecksRadio.lua'
@@ -26,7 +28,7 @@ PC2_FILE = LUA / 'shared' / 'RST' / 'RST_PeerChecks2.lua'
 LK2_FILE = LUA / 'shared' / 'RST' / 'RST_PeerChecksLK2.lua'
 
 RS_GAME = PEER_GAME + r"""
-package.loaded["RadioSurvivor/RS_Config"] = { VERSION = 2, MODULE = "CoreAI" }
+package.loaded["CoreAI/CA_NotebookConfig"] = { VERSION = 2, MODULE = "CoreAI" }   -- E21-T07: read by the steps
 getText = function(key, arg)
     if key == "IGUI_CA_RetrieveFound" then return "Card found (" .. tostring(arg) .. ")" end
     return key

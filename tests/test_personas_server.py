@@ -1530,7 +1530,8 @@ class SpontaneousCallTests(ServerHarness):
         self.assertTrue(any(len([t for t in times[i:] if t - s < 3600000]) == 12 for i, s in enumerate(times)))
 
 
-DEV_LUA = ROOT / 'dev/batman_RadioSurvivorTests/42.21/media/lua'
+from harness import tests_lua  # noqa: E402  (E21-T07: media/lua of the test mods)
+DEV_LUA = tests_lua()
 
 
 class InGameSuiteTests(ServerHarness):

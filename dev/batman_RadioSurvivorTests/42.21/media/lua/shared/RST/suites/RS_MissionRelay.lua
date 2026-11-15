@@ -12,6 +12,7 @@
 -- turned on again: radio report accepted. The radio and its item are removed at the end. In-memory state (store whose
 -- save does nothing): no notebook state.
 require 'RST/RST'
+require "RST/RST_ModRadioSurvivor"
 require 'RST/RST_Fixtures'
 local F = RST.Fixtures
 

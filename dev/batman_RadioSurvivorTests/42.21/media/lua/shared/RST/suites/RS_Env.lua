@@ -18,6 +18,7 @@ getActivatedMods(): Java List<String> of the loaded IDs; Mods= (GameServer.java:
 ]]
 
 require "RST/RST"
+require "RST/RST_ModRadioSurvivor"
 
 local MOD_ID = "batman_RadioSurvivor"
 local PREFIX = "media/lua/"

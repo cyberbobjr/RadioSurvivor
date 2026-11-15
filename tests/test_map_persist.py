@@ -17,8 +17,8 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from test_rst import LUA, ROOT, Machine, SERVER_GAME, to_py  # noqa: E402
-from test_rst_steps import STEPS_FILE, VIEW_FILE, VIEW_GAME, StepsNetwork  # noqa: E402
+from test_rst import ROOT, Machine, SERVER_GAME, to_py  # noqa: E402
+from test_rst_steps import LUA, STEPS_FILE, VIEW_FILE, RS_VIEW_FILE, VIEW_GAME, StepsNetwork  # noqa: E402
 
 SUITE_FILE = LUA / 'shared' / 'RST' / 'suites' / 'RS_MapActions.lua'
 CORE_SHARED = ROOT / 'Contents' / 'mods' / 'batman_CoreAI' / '42.21' / 'media' / 'lua' / 'shared'
@@ -89,7 +89,7 @@ class MapNetwork(StepsNetwork):
 
     def add_client(self, name, role='admin', handlers=True, symbols=None):
         self.sessions += 1
-        c = Machine(self.root / f'{name}-{self.sessions}', VIEW_GAME, [STEPS_FILE, VIEW_FILE])
+        c = Machine(self.root / f'{name}-{self.sessions}', VIEW_GAME, [STEPS_FILE, VIEW_FILE, RS_VIEW_FILE])
         c.lua(f'PLAYER.name = "{name}"; MAP_SESSION = {self.sessions}; '
               'sendClientCommand = function(p, m, cmd, a) PY_CLIENT_SEND(p.name, m, cmd, a) end')
         c.lua(MAP_CLIENT)

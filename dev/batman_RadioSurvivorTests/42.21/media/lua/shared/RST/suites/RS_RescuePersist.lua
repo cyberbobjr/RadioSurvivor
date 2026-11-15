@@ -22,11 +22,12 @@ Tags "server", "world", "manual": authority only, test saves rstest* only, exact
 INSIDE a building of the map, with a few free squares around the room centre; the background polls of
 RS_RescueVisit and RS_RescueLost are paused during each step. The players are next to awake zombies between the steps
 (the launcher puts them in god mode).
-Snapshot: Zomboid/Lua/batman_RadioSurvivor/tests/rescue-persist.txt of the server (RST_Persist).
+Snapshot: Zomboid/Lua/batman_CoreAITests/tests/rescue-persist.txt of the server (RST_Persist).
 Outside the game: tests/test_persist_suites.py (listing; the placement itself: tests/test_rescue_lost.py).
 ]]
 
 require "RST/RST"
+require "RST/RST_ModRadioSurvivor"
 require "RST/RST_Persist"
 
 RST.RescuePersist = RST.RescuePersist or {}

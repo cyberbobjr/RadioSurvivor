@@ -16,6 +16,7 @@ Outside the game: tests/test_rs_freqdebug.py.
 ]]
 
 require "RST/RST"
+require "RST/RST_ModRadioSurvivor"
 require "RST/RST_PeerChecks"
 
 local function module(t)

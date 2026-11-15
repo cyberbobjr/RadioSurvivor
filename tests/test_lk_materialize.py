@@ -1,7 +1,7 @@
 """Tests hors jeu de la matérialisation des groupes Living Knox (LK09-T03) : LK_Materialize.lua, avec LK_Bodies.lua
 (création, retrait LK03-T04, mort), LK_Groups.lua et LK_Simulation.lua.
 
-    python RadioSurvivor/tests/test_lk_materialize.py
+    python tests/test_lk_materialize.py
 
 Banc tests/harness.py (serveur dédié + deux clients, ou solo), pile complète des corps (doublures de
 test_lk_bodies.py, consignes, rapports d'état, équipement : banc ReleaseBase de test_lk_reports.py). Doublure ajoutée :
@@ -18,12 +18,13 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from test_lk_bodies import LUA, lua_list  # noqa: E402
+from test_lk_bodies import lua_list  # noqa: E402
 from harness import LK_LUA  # noqa: E402  (E18-T07)
 from test_lk_reports import ReleaseBase  # noqa: E402
 
 MATERIALIZE = LK_LUA / 'server' / 'LivingKnox' / 'LK_Materialize.lua'
-SUITE = (Path(__file__).resolve().parents[1] / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua'
+from harness import tests_lua  # noqa: E402  (E21-T07: media/lua of the test mods)
+SUITE = (tests_lua('lk')
          / 'shared' / 'RST' / 'suites' / 'RST_LKMaterialize.lua')
 HOME = (110, 110, 0)
 

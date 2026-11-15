@@ -10,6 +10,8 @@ Utilisation
     h.server, h.clients['A']                # objets Machine (h.server est la machine solo en mode solo)
     h.load('server', 'shared/LivingKnox/LK_Core.lua')   # fichier relatif à .../42.21/media/lua
     Harness(lua_roots=[DEV_LUA])            # racines media/lua supplémentaires (mod de dev) : require et load
+    Harness(with_rs=False)                  # E21-T08 : mod commun et Living Knox seuls (RadioSurvivor hors du chemin)
+    tests_lua_src('shared/RST/RST.lua')     # fichier d'un mod de test (E21-T07 : CoreAITests, LivingKnoxTests, RS…)
     h.load('A', 'X = 1')                    # ou une chaîne Lua ; rend les valeurs du bloc
     h.eval('A', 'X')                        # valeur d'une expression Lua
     h.spawn_zombie(1001, 10, 20, 0, owner='A')   # zombie chargé sur toutes les machines ; owner : 'server', 'A', 'B'
@@ -129,6 +131,12 @@ HELPER_SUFFIX = 'Double'  # classe d'aide de test : nom suffixé, jamais contrô
 LUA = ROOT / 'Contents/mods/batman_RadioSurvivor/42.21/media/lua'
 CORE_LUA = ROOT / 'Contents/mods/batman_CoreAI/42.21/media/lua'  # mod commun exigé (E18)
 LK_LUA = ROOT / 'Contents/mods/batman_LivingKnox/42.21/media/lua'  # moteur des PNJ (E18-T07)
+# Mods de test de dev (E21-T07) : moteur RST et suites du commun, suites de Living Knox, suites de RadioSurvivor.
+CORE_TESTS_LUA = ROOT / 'dev/batman_CoreAITests/42.21/media/lua'
+LK_TESTS_LUA = ROOT / 'dev/batman_LivingKnoxTests/42.21/media/lua'
+RS_TESTS_LUA = ROOT / 'dev/batman_RadioSurvivorTests/42.21/media/lua'
+TESTS_LUA_ROOTS = (CORE_TESTS_LUA, LK_TESTS_LUA, RS_TESTS_LUA)
+LK_TESTS_LUA_ROOTS = (CORE_TESTS_LUA, LK_TESTS_LUA)   # montage Living Knox seul (bancs test_lk_*)
 LuaError = lupa.LuaError
 
 # Réseau du serveur dédié (E19-T06, sources 42.22, java/zombie/...). Zone d'envoi d'une connexion : rayon en cases de
@@ -1042,6 +1050,35 @@ def lua_src(rel, base=None):
     return base / rel
 
 
+TESTS_SETUPS = {'core': (CORE_TESTS_LUA,), 'lk': LK_TESTS_LUA_ROOTS, 'rs': (CORE_TESTS_LUA, RS_TESTS_LUA),
+                'both': TESTS_LUA_ROOTS}
+_MERGED: dict[str, Path] = {}
+
+
+def tests_lua(setup: str = 'both') -> Path:
+    """media/lua of the test mods of a setup (TESTS_SETUPS) as the game sees it (E21-T07): the game merges the media/lua
+    folders of the active mods, so a require or a path of one test mod finds the files of the others. One temporary
+    folder per setup and process holds a copy of their files (removed at exit); 'lk' never holds a RadioSurvivor
+    file."""
+    if setup not in _MERGED:
+        import atexit
+        out = Path(tempfile.mkdtemp(prefix=f'rst_lua_{setup}_'))
+        atexit.register(shutil.rmtree, out, True)
+        for root in TESTS_SETUPS[setup]:
+            shutil.copytree(root, out, dirs_exist_ok=True)
+        _MERGED[setup] = out
+    return _MERGED[setup]
+
+
+def tests_lua_src(rel, roots=TESTS_LUA_ROOTS):
+    """File of a test mod for a path relative to .../media/lua ('shared/RST/suites/RST_LKHomes.lua'): first test mod
+    of roots that holds it (E21-T07), else roots[0] / rel."""
+    for root in roots:
+        if (root / rel).exists():
+            return root / rel
+    return roots[0] / rel
+
+
 MISSION_VIEWS_DIR = CORE_LUA / 'client' / 'CoreAI' / 'MissionViews'
 
 
@@ -1341,7 +1378,8 @@ class Machine:
 
     def __init__(self, harness: 'Harness', name: str, mode: str, files: Path):
         self.harness, self.name, self.mode = harness, name, mode
-        self.roots = [CORE_LUA, LK_LUA, LUA] + [Path(r) for r in harness.lua_roots]
+        mods = [CORE_LUA, LK_LUA, LUA] if harness.with_rs else [CORE_LUA, LK_LUA]
+        self.roots = mods + [Path(r) for r in harness.lua_roots]
         self.files = files
         files.mkdir(parents=True, exist_ok=True)
         self.log_lines: list[str] = []
@@ -1366,7 +1404,8 @@ class Machine:
     # Lua --------------------------------------------------------------------------------------------
     def load(self, path_or_code: str):
         if '\n' not in path_or_code and path_or_code.endswith('.lua'):
-            path = next((r / path_or_code for r in self.roots if (r / path_or_code).exists()), LUA / path_or_code)
+            path = next((r / path_or_code for r in self.roots if (r / path_or_code).exists()),
+                        self.roots[-1] / path_or_code)
             return self.H.run(path.read_text(encoding='utf-8'), '@' + path_or_code)
         return self.H.run(path_or_code, '=' + self.name)
 
@@ -1464,12 +1503,13 @@ class Harness:
     def __init__(self, mode: str = 'mp', clients=('A', 'B'), order: str = 'fifo', seed: int = 0,
                  debug: bool = False, strict: bool = True, tick_ms: int = 16,
                  start=(1993, 7, 9, 9, 0), root: Path | None = None, lua_roots=(), java_api: bool | None = None,
-                 relevant_range: int = RELEVANT_RANGE, delay: int = 0):
+                 relevant_range: int = RELEVANT_RANGE, delay: int = 0, with_rs: bool = True):
         if mode not in ('mp', 'solo'):
             raise ValueError("mode must be 'mp' or 'solo'")
         self.java_api = java_api_table(java_api)  # avant les machines : leurs classes en dépendent
         self.mode, self.order, self.debug, self.strict, self.tick_ms = mode, order, debug, strict, tick_ms
         self.lua_roots = list(lua_roots)  # racines media/lua supplémentaires, après celle du mod publié
+        self.with_rs = with_rs  # E21-T08 : False = mod commun et Living Knox seuls (bancs de Living Knox)
         self.rng = random.Random(seed)
         self.zone = SendZone(relevant_range)   # serveur : zone d'envoi de chaque client
         self.delay = delay              # order='random' : pompes de retard au plus d'un message (renvoi après perte)

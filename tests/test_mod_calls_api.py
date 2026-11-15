@@ -5,7 +5,7 @@
                                                          # écarts résolus (la crée si absente ; n'ajoute jamais)
 
 Fichiers contrôlés : les .lua de Contents/mods/*/42.21/media/lua, Contents/mods/*/common et
-dev/batman_RadioSurvivorTests. Analyse lexicale Lua d'abord (tools/pz_api.lua_tokens : commentaires, chaînes,
+dev/batman_*Tests. Analyse lexicale Lua d'abord (tools/pz_api.lua_tokens : commentaires, chaînes,
 crochets longs, échappements), puis :
     appel de méthode  expr:nom(  expr:nom"..."  expr:nom{  -> nom connu de l'union : méthodes publiques de toutes les
         classes exposées (héritage compris), fonctions du Lua vanilla (dernier segment), méthodes de valeurs de la
@@ -37,7 +37,7 @@ from test_doubles_api import compare, read_baseline  # noqa: E402  (cliquet comm
 
 BASELINE = TESTS / 'fixtures' / 'mod-calls-api-baseline.txt'
 SOURCE_GLOBS = ('Contents/mods/*/42.21/media/lua/**/*.lua', 'Contents/mods/*/common/**/*.lua',
-                'dev/batman_RadioSurvivorTests/**/*.lua')
+                'dev/batman_*Tests/**/*.lua')   # E21-T07: the three test mods
 METHOD, GLOBAL = 'méthode', 'globale'
 CALL_OPENERS = ('(', '{')
 BLOCK_OPENERS = ('function', 'if', 'do', 'repeat')

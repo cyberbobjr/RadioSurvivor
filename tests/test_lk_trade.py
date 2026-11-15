@@ -2,7 +2,7 @@
 partagé shared/CoreAI/CA_TradeValues.lua, la fenêtre client/LivingKnox/LK_TradeView.lua et la suite en jeu
 lk.trade (dev/.../RST_LKTrade.lua) dans le banc.
 
-    python RadioSurvivor/tests/test_lk_trade.py
+    python tests/test_lk_trade.py
 
 Banc tests/harness.py (solo, ou serveur dédié + deux clients) avec le vrai registre des groupes, le vrai aménagement
 des foyers (LK_Homes), le vrai stock (LK_Stock, doublures de tests/test_lk_stock.py et tests/test_lk_aid.py) et le
@@ -27,7 +27,7 @@ import pz_paths  # noqa: E402  (vanilla folders: PZ_STEAM_LIBRARY, PZ_MEDIA or S
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from harness import LK_LUA  # noqa: E402  (E18-T07)
-from harness import LUA, CORE_LUA  # noqa: E402
+from harness import CORE_LUA  # noqa: E402
 from harness import lua_src  # noqa: E402  (E18-T07)
 from test_lk_stock import Base as StockBase, KITCHEN, OFFSCREEN_DOUBLES  # noqa: E402
 from test_lk_homes import HOUSE  # noqa: E402

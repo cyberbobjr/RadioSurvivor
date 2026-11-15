@@ -1,7 +1,7 @@
 --[[
 rs.initiatives - NPC initiatives (E08-T03, server/LivingKnox/LK_Initiatives.lua): a Living Knox npc
 created next to the player (E08-T11: on a square heard by the player, RST.RSHelpers.heardSquares), given a
-fiche of the speech host (E18-T27: RadioSurvivor's notebook, or Living Knox alone: RST.RSHelpers.speech), notices a
+fiche of the speech host (E18-T27: RadioSurvivor's notebook, or Living Knox alone: RST.LKHelpers.speech), notices a
 storm (observation recorded here, LK_Observations) and speaks up on its
 own, once; a busy npc (hit less than 30 s ago) says nothing. Tags "world" and "server": the authority (solo or
 dedicated server), a save named rstest*, with a target player (t.ctx.player); Living Knox enabled; option
@@ -17,16 +17,19 @@ Every test removes its npc and its pending request with t:defer.
 ]]
 
 require "RST/RST"
+require "RST/RST_ModRadioSurvivor"
+require "RST/RST_ModLivingKnox"
 require "RST/RST_Fixtures"
 require "RST/RST_PeerChecks"
 require "RST/RST_RSHelpers"
+require "RST/RST_LKHelpers"
 
 RST.RSInitiatives = RST.RSInitiatives or {}
 
 local function B() return LivingKnox and LivingKnox.Bodies end
 
 local function setup(t)
-    local H = RST.RSHelpers.speech(t)
+    local H = RST.LKHelpers.speech(t)
     local I = require "LivingKnox/LK_Initiatives"
     if I.LEVELS[I.level()] == nil then t:skip("option LivingKnox.InitiativeFrequency is Off") end
     return H, I, LivingKnox.Observations

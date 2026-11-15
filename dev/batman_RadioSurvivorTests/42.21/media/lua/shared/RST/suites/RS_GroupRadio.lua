@@ -23,6 +23,8 @@ settlers group in the world needed for this test).
 ]]
 
 require "RST/RST"
+require "RST/RST_ModRadioSurvivor"
+require "RST/RST_ModLivingKnox"
 require "RST/RST_Fixtures"
 require "RST/RST_LKGroupFixture"
 require "RST/RST_RSHelpers"

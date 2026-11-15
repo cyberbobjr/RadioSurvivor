@@ -6,6 +6,7 @@
 # Lignes « anonymes <fichier> <nombre> » (E19-T03) : plafond, par fichier, des méthodes définies sur des faux objets
 # anonymes (function r:m( sur une table rattachée à aucune classe), non contrôlées ; à rattacher par
 # HARNESS.fake('Classe', {...}). Un plafond ne peut que BAISSER (--write-baseline l'abaisse, ne le relève jamais).
+anonymes metagrid_doubles.py 23
 anonymes test_belt_radio.py 32
 anonymes test_carnet.py 101
 anonymes test_comfort.py 4
@@ -48,7 +49,6 @@ anonymes test_personas_server.py 27
 anonymes test_protocol.py 88
 anonymes test_radio_history.py 7
 anonymes test_radio_module.py 75
-anonymes test_rescue.py 23
 anonymes test_rescue_lost.py 39
 anonymes test_rescue_scene.py 23
 anonymes test_rescue_visit.py 20

@@ -29,7 +29,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import harness as harness_module  # noqa: E402
 from harness import ROOT, Harness  # noqa: E402
 
-DEV_LUA = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua'
+from harness import tests_lua  # noqa: E402  (E21-T07: media/lua of the test mods)
+DEV_LUA = tests_lua()
 REQUESTER, OTHER = 'A', 'B'
 TEST_NAME = 'an answer on the air eases the requester only: gauges and halo on his client (E05-T15)'
 # SyncPlayerStatsPacket.java:19 : reliability 2 (fiable, non ordonné), aucun flux ordonné.

@@ -3,7 +3,7 @@ rs.actions.map - action mark_map of the radio voices (E07-T04): a place of the v
 caller. Solo: the executor (server/RadioSurvivor/RS_MapMarks.lua) and the map of the player
 (client/RadioSurvivor/RS_MapActions.lua) live in the same Lua state. Dedicated server (E01-T19, tags "world" and
 "server", campaign mp): the server decides and executes, and the REQUESTER client (the caller) checks its own map and
-radio history through RST.Steps (RST_ViewSteps.lua: map.symbols, map.known, radio.history; the symbols and blocks of
+radio history through RST.Steps (RST_RSViewSteps.lua: map.symbols, map.known, radio.history; the symbols and blocks of
 the test are removed there by the same steps); the notebook character of the caller is bound when missing
 ("hello", RST.RSHelpers.character). On an MP client the suites are skipped. The manual step before has a dedicated
 server branch (base rs.actions.map of the phased MP run, below); after-reload stays solo only.
@@ -54,9 +54,10 @@ Solo: RST.run({ suite = "rs.actions.map", tags = { "world" } })
 ]]
 
 require "RST/RST"
+require "RST/RST_ModRadioSurvivor"
 require "RST/RST_Fixtures"
 require "RST/RST_Steps"
-require "RST/RST_ViewSteps"
+require "RST/RST_RSViewSteps"
 require "RST/RST_RSHelpers"
 require "RST/RST_Persist"
 
@@ -83,7 +84,7 @@ local function server(t)
     return Actions, MapMarks, player
 end
 
--- A check of the requester client (RST_ViewSteps.lua), then after(t2, answer) (answer: { status, message, data }).
+-- A check of the requester client (RST_RSViewSteps.lua), then after(t2, answer) (answer: { status, message, data }).
 local function ask(t, step, args, after)
     RST.Steps.ask(t, step, args, { target = "requester", timeoutMs = ASK_MS, none = "skip" }, function(t2, res)
         if after then return after(t2, res.list[1] or {}) end

@@ -2,45 +2,37 @@
 
     python tests/test_lk_talk.py
 
-Banc lupa (Lua 5.1) sur le vrai `CA_NotebookServer.lua` et le vrai `LK_Talk.lua` : le code de la parole est chez Living
-Knox et ne requiert aucun module de RadioSurvivor ; voies `npc` et `acks` à leur place dans le fichier ; acquittements
-et délais des initiatives relus après un redémarrage dans le fichier privé de Living Knox, plus dans l'état du carnet ;
-numéros d'ordre tenus par la file ; RadioSurvivor seul n'a aucune file. Doublures : ne prouve ni le réseau ni Java.
+Banc lupa (Lua 5.1) sur le vrai `CA_NotebookServer.lua` et le vrai `LK_Talk.lua`, mod commun et Living Knox seuls sur
+le chemin des modules (E21-T08, Game.WITH_RS = False) : voies `npc` et `acks` à leur place dans le fichier ;
+acquittements et délais des initiatives relus après un redémarrage dans le fichier privé de Living Knox, plus dans
+l'état du carnet ; numéros d'ordre tenus par la file ; le carnet sans Living Knox n'a aucune file. Doublures : ne
+prouve ni le réseau ni Java.
 """
 from __future__ import annotations
 
-import re
 import tempfile
 import unittest
 from pathlib import Path
 
 from test_carnet import Simulation, Clock, protocol
+from test_protocol import Game
+
+Game.WITH_RS = False   # E21-T08: core mod and Living Knox only on the module path (one bench per process)
 
 ROOT = Path(__file__).resolve().parents[1]
 LK = ROOT / 'Contents/mods/batman_LivingKnox/42.21/media/lua/server/LivingKnox'
-RS = ROOT / 'Contents/mods/batman_RadioSurvivor/42.21/media/lua/server'
 FILES = ('LK_TalkHost.lua', 'LK_Talk.lua', 'LK_Initiatives.lua', 'LK_Conversations.lua', 'LK_Incidents.lua')
 
 
 class SourceTests(unittest.TestCase):
-    def test_speech_code_requires_nothing_of_radiosurvivor(self):
+    def test_speech_code_reaches_the_notebook_through_its_host(self):
         for name in FILES:
-            text = (LK / name).read_text(encoding='utf-8')
-            self.assertEqual(re.findall(r'''require\s*\(?\s*['"]RadioSurvivor/[^'"]+''', text), [], name)
-            self.assertNotIn('CoreAI.notebookServer', text, name)
-
-    def test_old_modules_are_gone_from_radiosurvivor(self):
-        for name in ('RS_Conversations.lua', 'RS_Initiatives.lua', 'RS_Incidents.lua'):
-            self.assertFalse((RS / 'RadioSurvivor' / name).exists(), name)
+            self.assertNotIn('CoreAI.notebookServer', (LK / name).read_text(encoding='utf-8'), name)
 
     def test_lanes_keep_their_place_in_the_requests_file(self):
         text = (LK / 'LK_Talk.lua').read_text(encoding='utf-8')
         self.assertIn('Transport.register("npc", { order = 20 })', text)
         self.assertIn('Transport.register("acks", { order = 30 })', text)
-        lanes = (RS / 'RadioSurvivor/RS_BridgeLanes.lua').read_text(encoding='utf-8')
-        self.assertIn("T.register('radio', { order = 10", lanes)
-        self.assertIn("T.register('lastPages', { order = 40 })", lanes)
-        self.assertNotIn("T.register('npc'", lanes)
 
 
 class StateTests(unittest.TestCase):
@@ -53,7 +45,7 @@ class StateTests(unittest.TestCase):
         self.tmp.cleanup()
 
     def world(self, new_world=False):
-        return Simulation(self.path, clock=self.clock, new_world=new_world)
+        return Simulation(self.path, clock=self.clock, new_world=new_world, rs_hooks=False)
 
     def test_acknowledgements_and_delays_survive_a_restart_outside_the_notebook(self):
         sim = self.world(True)
@@ -78,7 +70,7 @@ class StateTests(unittest.TestCase):
         sim.talk().data.initiatives.last['npc-1'] = 12
         sim.talk().dirty = True
         self.assertTrue(sim.talk().save())
-        fresh = Simulation(Path(self.tmp.name) / 'w', clock=self.clock, new_world=True)
+        fresh = Simulation(Path(self.tmp.name) / 'w', clock=self.clock, new_world=True, rs_hooks=False)
         self.assertIsNone(fresh.talk().data.initiatives.last['npc-1'])
 
     def test_order_of_a_speaker_is_numbered_by_the_queue(self):
@@ -95,7 +87,7 @@ class ReplyKindTests(unittest.TestCase):
 
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory(prefix='lk-talk-')
-        self.sim = Simulation(Path(self.tmp.name) / 'w', clock=Clock(), new_world=True)
+        self.sim = Simulation(Path(self.tmp.name) / 'w', clock=Clock(), new_world=True, rs_hooks=False)
         self.rt = self.sim.server.rt
         self.rt.execute('''
             local Talk = CoreAI.notebookServer.talk
@@ -140,7 +132,7 @@ class ReplyKindTests(unittest.TestCase):
 class AloneTests(unittest.TestCase):
     def test_notebook_without_living_knox_has_no_queue(self):
         with tempfile.TemporaryDirectory(prefix='lk-talk-') as tmp:
-            sim = Simulation(Path(tmp) / 'alone', provider=False)
+            sim = Simulation(Path(tmp) / 'alone', provider=False, rs_hooks=False)
             self.assertIsNone(sim.server.g.CoreAI.notebookServer.talk)
             sim.clock.offset += 2000
             sim.tick()

@@ -117,7 +117,7 @@ class SiteParseTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             d = Path(d)
             env_file, fixture, runs = d / 'env.txt', d / 'fixture' / 'site-export.txt', d / 'runs'
-            game = d / 'home' / 'Zomboid' / 'Lua' / 'batman_RadioSurvivor' / 'tests' / 'site-export.txt'
+            game = d / 'home' / 'Zomboid' / 'Lua' / 'batman_CoreAITests' / 'tests' / 'site-export.txt'
             old, new = runs / 'r1' / 'site-export.txt', runs / 'r2' / 'site-export.txt'
             kw = dict(environ={site_world.ENV_VAR: str(env_file), 'USERPROFILE': str(d / 'home')},
                       runs=runs, fixture=fixture)

@@ -4,7 +4,7 @@ monde des bancs d'obstacles (tests/test_lk_obstacles.py : DOOR_DOUBLES, WINDOW_D
 
 L'export décrit un bâtiment du jeu : il reste local, jamais versionné. Recherche (find_export) :
     1. variable d'environnement RS_SITE_EXPORT ;
-    2. %USERPROFILE%/Zomboid/Lua/batman_RadioSurvivor/tests/site-export.txt (suite jouée dans la partie de l'auteur) ;
+    2. %USERPROFILE%/Zomboid/Lua/batman_CoreAITests/tests/site-export.txt (suite jouée dans la partie de l'auteur) ;
     3. tests/fixtures/local/site-export.txt (copie locale, ignorée par git) ;
     4. le plus récent tools/autoclient/runs/*/site-export.txt (suite jouée par autoclient : le cache y est recopié).
 available() dit si un export existe ; les bancs qui en dépendent sont sautés sinon.
@@ -32,7 +32,7 @@ ENV_VAR = 'RS_SITE_EXPORT'
 FILE_NAME = 'site-export.txt'
 LOCAL_FIXTURE = Path(__file__).resolve().parent / 'fixtures' / 'local' / FILE_NAME
 RUNS_DIR = ROOT / 'tools' / 'autoclient' / 'runs'
-GAME_TESTS_DIR = Path('Zomboid') / 'Lua' / 'batman_RadioSurvivor' / 'tests'
+GAME_TESTS_DIR = Path('Zomboid') / 'Lua' / 'batman_CoreAITests' / 'tests'
 
 
 # ---------------------------------------------------------------- format

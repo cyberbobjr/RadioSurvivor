@@ -23,7 +23,8 @@ from pathlib import Path
 import lupa.lua51 as lupa
 
 ROOT = Path(__file__).resolve().parents[1]
-TESTS_LUA = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua'
+from harness import tests_lua  # noqa: E402  (E21-T07: media/lua of the test mods)
+TESTS_LUA = tests_lua()
 SUITE = TESTS_LUA / 'shared' / 'RST' / 'suites' / 'RS_LastPagesCorpse.lua'
 
 DOUBLES = r"""

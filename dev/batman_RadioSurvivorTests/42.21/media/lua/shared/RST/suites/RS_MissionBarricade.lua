@@ -11,6 +11,7 @@
 -- second opening counts 1; a metal sheet on a third counts 2, objective met, radio report accepted. Every barricade
 -- put up by the suite is removed at the end. In-memory state (store whose save does nothing): no notebook state.
 require 'RST/RST'
+require "RST/RST_ModRadioSurvivor"
 require 'RST/RST_Fixtures'
 local F = RST.Fixtures
 

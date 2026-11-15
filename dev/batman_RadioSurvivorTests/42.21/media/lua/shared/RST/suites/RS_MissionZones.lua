@@ -15,6 +15,7 @@ notebook state: FAIL on a server, SKIP in solo (RST.PeerChecks2.checkZones).
 ]]
 
 require "RST/RST"
+require "RST/RST_ModRadioSurvivor"
 require "RST/RST_Fixtures"
 require "RST/RST_PeerChecks2"
 

@@ -1,7 +1,7 @@
 --[[
 Hooks of the generic launcher pzdev (PZDevKit) for the RST test engine of RadioSurvivor.
 Configuration: RadioSurvivor/autotest.json. Loaded by batman_PZDevKit with loadstring (global environment,
-RST already loaded by batman_RadioSurvivorTests). Parameters (ctx.params, all text, "-P name=value"):
+RST already loaded by batman_CoreAITests). Parameters (ctx.params, all text, "-P name=value"):
     suite=a,b       RST suite names or dot prefixes (client: RST.run, server: RST.Server.runSuites)
     campaign=name   client only: RST.campaign(name) (exclusive with suite)
     tags=a,b        explicit RST filter tags (e.g. world); replaces the default exclusion
@@ -48,9 +48,9 @@ function H.client.result()
 end
 
 function H.server.start(ctx)
-    if ctx.params.campaign then return false, "campaign= is client side only (RST_Campaign.lua): use suite=" end
+    if ctx.params.campaign then return false, "campaign= is client side only (RST_Campaign.lua of batman_CoreAITests): use suite=" end
     if not ctx.params.suite or ctx.params.suite == "" then return false, "parameter suite= is needed" end
-    if not RST.Server then return false, "RST.Server missing (server Lua of batman_RadioSurvivorTests not loaded)" end
+    if not RST.Server then return false, "RST.Server missing (server Lua of batman_CoreAITests not loaded)" end
     H.server.res = nil
     local player = ctx.players()[1]
     return RST.Server.runSuites(filter(ctx), function(res) H.server.res = res end,

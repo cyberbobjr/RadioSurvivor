@@ -37,9 +37,6 @@ Load with: require "RST/RST_RSHelpers". No side effect at load time (definitions
                                      request of the authority; after(t, req). No request within TALK_REQUEST_MS: FAIL
                                      with the last notebook refusal read on the client (RST.Steps "carnet.state")
     R.label(khz)                     "145.0"
-    R.speech(t)                      E18-T27, E21-T05: speech of the NPCs hosted by the notebook server of the core mod:
-                                     { talk = LivingKnox.Talk, P = its provider, ensure(id), objects(), bound(),
-                                     HEARING }; skip on an MP client or without a started host
     R.bridgeCause(Server, since)     E17-T15: failure message of a wait for a bridge answer: the latest request refused
                                      by the notebook server since `since` (getTimestampMs) with its cause (bridge error
                                      `timeout`, `http_503`..., no reply), else "no request refused: is the bridge
@@ -418,17 +415,6 @@ function R.language()
     local lang = Translator and Translator.getLanguage and Translator.getLanguage()
     if lang ~= nil and tostring(lang:name()) == "FR" then return "FR" end
     return "EN"
-end
-
-function R.speech(t)
-    if not (LivingKnox and LivingKnox.isAuthority()) then t:skip("authority only (solo or dedicated server)") end
-    local Talk = LivingKnox.Talk
-    t:ok(Talk ~= nil and Talk.host ~= nil and Talk.data ~= nil, "speech of the NPCs not started (no host)")
-    local Speech = require "CoreAI/CA_SpeechConfig"
-    return { talk = Talk, P = Talk.provider, HEARING = Speech.HEARING_RANGE,
-        ensure = function(id) return Talk.ensure(id) end,
-        objects = function() return Talk.objects() or {} end,
-        bound = function() return Talk.bound() or {} end }
 end
 
 function R.bridgeCause(Server, since)

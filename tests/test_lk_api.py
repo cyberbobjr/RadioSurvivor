@@ -1,6 +1,6 @@
 """Tests hors jeu de l'API publique en lecture de Living Knox (LK12-T01) : LK_API.lua (autorité).
 
-    python RadioSurvivor/tests/test_lk_api.py
+    python tests/test_lk_api.py
 
 Banc tests/harness.py (serveur dédié + deux clients, ou solo). Groupes construits par LivingKnox.Groups, PNJ par
 LivingKnox.Identity sur le registre de LK_Store, corps liés par LivingKnox.Bodies.bound (zombies du banc). Les
@@ -16,7 +16,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from harness import Harness, LUA  # noqa: E402
+from harness import Harness  # noqa: E402
 from harness import LK_LUA  # noqa: E402  (E18-T07)
 
 API_FILE = LK_LUA / 'server' / 'LivingKnox' / 'LK_API.lua'
@@ -123,7 +123,7 @@ class Base(unittest.TestCase):
     mode = 'mp'
 
     def setUp(self):
-        self.h = Harness(mode=self.mode)
+        self.h = Harness(with_rs=False, mode=self.mode)
         self.srv = 'solo' if self.mode == 'solo' else 'server'
         machines = ('solo',) if self.mode == 'solo' else ('server', 'A', 'B')
         for m in machines:
@@ -801,7 +801,7 @@ class ThirdPartyEventTests(unittest.TestCase):
 
     def test_subscriber_loaded_before_or_without_living_knox(self):
         for with_lk in (True, False):
-            with Harness(mode='mp') as h:
+            with Harness(with_rs=False, mode='mp') as h:
                 h.load('server', WORLD)
                 h.load('server', RECORDER)  # avant le moteur : déclare les noms lui-même
                 if with_lk:

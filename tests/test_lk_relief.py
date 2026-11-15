@@ -1,7 +1,7 @@
 """Décimation et relève des groupes (LK09-T04) : LK_Population.lua (constat, délai, relève), marque `gone` de
 LK_Groups.lua, foyer abandonné jamais aménagé (LK_Homes.pending).
 
-    python RadioSurvivor/tests/test_lk_relief.py
+    python tests/test_lk_relief.py
 
 Banc lupa de tests/test_lk_population.py (carte de test, vrai registre, vrais types, histoires et sites ; un
 « redémarrage » = nouvelle VM, mêmes fichiers). Les heures sont passées explicitement à `Population.reliefStep(now)`,
@@ -244,7 +244,8 @@ class ReliefTests(ReliefBench):
         self.assertEqual(self.group('grp-1').gone.relief, 'grp-5')
 
 
-TESTS_LUA = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua'
+from harness import tests_lua  # noqa: E402  (E21-T07: media/lua of the test mods)
+TESTS_LUA = tests_lua('lk')
 SUITE = TESTS_LUA / 'shared' / 'RST' / 'suites' / 'RST_LKRelief.lua'
 
 

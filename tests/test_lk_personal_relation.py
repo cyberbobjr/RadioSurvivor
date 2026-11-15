@@ -1,11 +1,11 @@
 """Personal relation of the NPCs kept by Living Knox (E18-T21, confirmed by default on 2026-11-06).
 
-    python RadioSurvivor/tests/test_lk_personal_relation.py
+    python tests/test_lk_personal_relation.py
 
 LivingKnox.PersonalRelation (authority, rules of E09-T04 unchanged): one relation per Living Knox NPC and character,
 one private file Zomboid/Lua/batman_LivingKnox/personal-relations-<world>-<0|1>.txt (CA_SlotFile, header LKPREL1),
-read through LivingKnox.API.relation* (RadioSurvivor's notebook adds its own citable facts as `extra`). Living Knox
-alone: no module of RadioSurvivor is loaded. No take-over of a game saved before the split (user decision of
+read through LivingKnox.API.relation*. Living Knox
+alone: core mod and Living Knox only on the module path. No take-over of a game saved before the split (user decision of
 2026-11-06: the mod was never published, every game starts from scratch). Bench tests/harness.py (solo authority),
 real LK_Store, LK_Bodies, LK_Groups, LK_Hostility, LK_API; doubles only for the Java API.
 """
@@ -84,10 +84,6 @@ class LivingKnoxAloneTests(Base):
         return self.ev(f'(function() local v = LivingKnox.API.relation("{self.npc}", "{character}") '
                        'return v.level .. "|" .. v.trend .. "|" .. v.group end)()')
 
-    def no_radiosurvivor(self):
-        self.assertFalse(self.ev('(function() for name in pairs(package.loaded) do '
-                                 'if string.find(name, "^RadioSurvivor/") then return true end end return false end)()'))
-
     def test_real_fact_cited_changes_the_relation_kept_after_a_restart(self):
         group = self.ev(f'LivingKnox.API.attitude(GID, "c-ann").level')
         self.assertEqual(self.view('c-ann'), f'{group}|stable|{group}')
@@ -114,7 +110,6 @@ class LivingKnoxAloneTests(Base):
         self.assertTrue(files)
         self.assertTrue(files[-1].read_text(encoding='utf-8').startswith('LKPREL1='))
         self.run_lua('LivingKnox.Store.flush() LivingKnox.Groups.flush() LivingKnox.Hostility.save()')
-        self.no_radiosurvivor()
         # Restart: new Lua state on the same files.
         self.h.close()
         self.h = self.make(root=Path(self.tmp.name))
@@ -124,7 +119,6 @@ class LivingKnoxAloneTests(Base):
         self.assertEqual(self.ev(f'LivingKnox.PersonalRelation.debugPair("{self.npc}", "c-ann").gap'), 1)
         # The used fact is no longer offered.
         self.assertIsNone(self.ev(f'select(2, LivingKnox.API.relationOffer("{self.npc}", "c-ann"))'))
-        self.no_radiosurvivor()
 
     def test_extra_facts_of_the_caller_and_panel(self):
         extra = ('{{key = "mis:m-1", fact = "mission_success", sign = 1, source = "mission", kind = "scout"}, '
@@ -148,7 +142,7 @@ class LivingKnoxAloneTests(Base):
     def test_notebook_relations_of_living_knox_alone(self):
         """E21-T04: the relation operations Living Knox gives the shared notebook (LK_NotebookRelations): the
         notebook's citable facts read in the mission store of the core mod, offer, change and panel of a fiche, its
-        hidden copy and the NPCs a character knows through a relation, without any RadioSurvivor module."""
+        hidden copy and the NPCs a character knows through a relation, with the core mod and Living Knox only."""
         self.h.load('solo', 'server/LivingKnox/LK_NotebookRelations.lua')
         out = self.ev(f'''(function()
             local R = require("LivingKnox/LK_NotebookRelations")
@@ -169,7 +163,6 @@ class LivingKnoxAloneTests(Base):
         group = self.ev('LivingKnox.API.attitude(GID, "c-ann").level')
         levels = ['hostile', 'wary', 'cautious', 'favorable', 'trusting']
         self.assertEqual(out, f'mission_success:mission|true|1|{self.npc}|0|{levels[min(4, levels.index(group) + 1)]}')
-        self.no_radiosurvivor()
 
     def test_purge_dead_character_and_gone_npc(self):
         self.fact('c-ann', 'gift')

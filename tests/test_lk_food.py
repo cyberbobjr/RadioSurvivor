@@ -6,7 +6,7 @@ LK_Expeditions.lua (expédition de genre « forage » : départ, cueillette tour
 SFarmingSystem:harvest sans joueur), la pêche (expédition de genre « fish » à l'aube et au crépuscule, tables du filet
 vanilla Fishing.fishNet / fishNetWithBait) et la suite en jeu lk.forage (dev/.../RST_LKForage.lua).
 
-    python RadioSurvivor/tests/test_lk_food.py
+    python tests/test_lk_food.py
 
 Bancs :
 - logique (pile solo des expéditions de test_lk_expeditions.py) : poids des catégories et des objets comme
@@ -52,7 +52,8 @@ ROOT = Path(__file__).resolve().parents[1]
 MODULE = 'server/LivingKnox/LK_Food.lua'
 MODULE_FILE = lua_src(MODULE)
 SUITE = 'shared/RST/suites/RST_LKForage.lua'
-SUITE_FILE = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua' / SUITE
+from harness import tests_lua  # noqa: E402  (E21-T07: media/lua of the test mods)
+SUITE_FILE = tests_lua('lk') / SUITE
 VANILLA_FORAGE = pz_paths.media_dir() / \
     'lua' / 'shared' / 'Foraging' / 'forageSystem.lua'
 

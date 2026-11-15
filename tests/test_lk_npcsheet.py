@@ -1,7 +1,7 @@
 """Fiche d'un PNJ par clic droit, besoins et santé modifiables (LK13-T13) : opérations npc / npcSet de LK_Admin.lua
 (autorité) et fenêtre client LK_NpcSheet.lua.
 
-    python RadioSurvivor/tests/test_lk_npcsheet.py
+    python tests/test_lk_npcsheet.py
 
 Banc tests/harness.py, pile complète des corps (MatBase de test_lk_materialize.py, type « deciders » de
 test_lk_decisions.py : groupes, matérialisation, consignes, rapports, santé, besoins, cascade) :
@@ -24,7 +24,6 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from harness import LUA  # noqa: E402
 from harness import LK_LUA  # noqa: E402  (E18-T07)
 from test_lk_admin import CLIENT_TEXT, PERMISSIONS, role_for  # noqa: E402
 from test_lk_bodies import lua_list  # noqa: E402
@@ -36,7 +35,8 @@ ADMIN_FILE = LK_LUA / 'server' / 'LivingKnox' / 'LK_Admin.lua'
 SHEET_FILE = LK_LUA / 'client' / 'LivingKnox' / 'LK_NpcSheet.lua'
 TRANSLATE = LK_LUA / 'shared' / 'Translate'
 SUITE = 'shared/RST/suites/RST_LKNpcSheet.lua'
-SUITE_FILE = Path(__file__).resolve().parents[1] / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua' / SUITE
+from harness import tests_lua  # noqa: E402  (E21-T07: media/lua of the test mods)
+SUITE_FILE = tests_lua('lk') / SUITE
 A = 'LivingKnox.Admin'
 S = 'LivingKnox.NpcSheet'
 D = 'LivingKnox.Decisions'
@@ -103,7 +103,7 @@ class SheetBase(MatBase):
         return self.member(gid, mid, 'npc')
 
     def dpass(self, n=1):
-        # LK13-T11 : les membres d'un passage sont évalués un par image (MEMBERS_PER_FRAME) : quatre images.
+        # LK13-T11 : les membres d'un passage sont évalués un par image : quatre images.
         for _ in range(n):
             self.h.advance_ms(1000)
             self.h.tick(4)

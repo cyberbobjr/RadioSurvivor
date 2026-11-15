@@ -20,6 +20,7 @@ Outside the game: tests/test_rs_injection_suite.py (simulated server, real bridg
 ]]
 
 require "RST/RST"
+require "RST/RST_ModRadioSurvivor"
 require "RST/RST_Fixtures"
 require "RST/RST_RSHelpers"
 

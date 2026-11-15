@@ -248,6 +248,8 @@ class Game:
                 return exchange / "_core" / rel.relative_to("batman_CoreAI")
             if rel.parts and rel.parts[0] == "batman_LivingKnox":   # registres de Living Knox (E18-T10)
                 return exchange / "_livingknox" / rel.relative_to("batman_LivingKnox")
+            if rel.parts and rel.parts[0] == "batman_CoreAITests":   # fichiers du moteur RST (E21-T07)
+                return exchange / "_coretests" / rel.relative_to("batman_CoreAITests")
             return exchange / rel.relative_to("batman_RadioSurvivor")
         g.getFileWriter = lambda name, create, append: file_writer(lua_path(name), name, append)
         g.getFileReader = lambda name, create: Reader(lua_path(name))

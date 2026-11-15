@@ -4,7 +4,7 @@ LK_ProvisionMeal.lua (extension de la cascade « provision » : règles, décroc
 extensions de LK_Decisions.lua (Decisions.registerExtension) et celui du contenu du butin de LK_Loot.lua
 (Loot.registerContent), et la suite en jeu lk.provisions (dev/.../RST_LKProvisions.lua) jouée sur les doublures.
 
-    python RadioSurvivor/tests/test_lk_provisions.py
+    python tests/test_lk_provisions.py
 
 Décision de l'utilisateur du 2026-11-04 (plan LK05) : deux vrais aliments non périssables dans l'inventaire du corps,
 remplacés sur le stock du foyer ; une gourde jamais vidée ; repas d'une provision loin du foyer ; en combat, faim >= 90
@@ -47,7 +47,8 @@ ROOT = Path(__file__).resolve().parents[1]
 PROVISIONS = 'server/LivingKnox/LK_Provisions.lua'
 PROVISION_MEAL = 'server/LivingKnox/LK_ProvisionMeal.lua'
 SUITE = 'shared/RST/suites/RST_LKProvisions.lua'
-SUITE_FILE = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua' / SUITE
+from harness import tests_lua  # noqa: E402  (E21-T07: media/lua of the test mods)
+SUITE_FILE = tests_lua('lk') / SUITE
 FOODS = ('Base.GranolaBar', 'Base.BeefJerky', 'Base.DriedApricots')
 CANTEEN = 'Base.CanteenMilitaryFull'
 

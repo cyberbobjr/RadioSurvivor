@@ -1,6 +1,6 @@
 """Tests hors jeu du registre des groupes Living Knox (LK08-T01) : LK_Groups.lua (autorité), persistance privée.
 
-    python RadioSurvivor/tests/test_lk_groups.py
+    python tests/test_lk_groups.py
 
 Banc tests/harness.py (serveur dédié + deux clients, ou solo). Doublures : getFileWriter / getFileReader du banc
 (fidèles au Java : extension admise, troncature à l'ouverture, lignes relues sans fin de ligne), getWorld (mode et
@@ -45,7 +45,7 @@ class Base(unittest.TestCase):
         self.h.close()
 
     def make(self, root=None):
-        h = Harness(mode=self.mode, root=root)
+        h = Harness(with_rs=False, mode=self.mode, root=root)
         self.srv = 'solo' if self.mode == 'solo' else 'server'
         machines = ('solo',) if self.mode == 'solo' else ('server', 'A', 'B')
         for m in machines:

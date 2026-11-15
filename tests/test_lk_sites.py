@@ -1,10 +1,11 @@
 """Sites des foyers de groupes (LK08-T03) : LK_Sites.lua et la suite en jeu lk.sites dans lupa.
 
-    python RadioSurvivor/tests/test_lk_sites.py
+    python tests/test_lk_sites.py
 
 Vrai Lua du mod (Lua 5.1, `next` retiré comme dans Kahlua) : LK_Core, LK_Config, LK_Log, types de groupes livrés
 (LK_GroupTypes et Data/LK_Type_*.lua), vrai registre LK_Groups (fichiers getFileReader / getFileWriter en mémoire),
-RS_Rescue et vrai moteur RST. Doublures de la métagrille 42.21 reprises de tests/test_rescue.py (IsoMetaGrid,
+sites du mod commun (CA_Sites) et vrai moteur RST ; mod commun et Living Knox seuls sur le chemin des modules (E21-T08).
+Doublures de la métagrille 42.21 de tests/metagrid_doubles.py (IsoMetaGrid,
 IsoMetaCell:getBuildingsIntersecting, BuildingDef, RoomDef, SafeHouse, joueurs, cases comptées), complétées ici
 d'après le Java décompilé : IsoMetaGrid:getMinX/getMaxX/getMinY/getMaxY (bornes en cellules),
 IsoMetaGrid:getZonesIntersecting (cellules de x / 256 à (x + w) / 256, résultat partagé) et
@@ -25,13 +26,13 @@ from pathlib import Path
 import lupa.lua51 as lupa
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from test_rescue import DOUBLES, WORLD  # noqa: E402  (doublures fidèles de la métagrille, E12-T01)
+from metagrid_doubles import DOUBLES, WORLD  # noqa: E402  (doublures fidèles de la métagrille, E12-T01)
 
 ROOT = Path(__file__).resolve().parents[1]
-MOD_LUA = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivor' / '42.21' / 'media' / 'lua'
 CORE_LUA = ROOT / 'Contents' / 'mods' / 'batman_CoreAI' / '42.21' / 'media' / 'lua'  # mod commun (E18)
 LK_LUA = ROOT / 'Contents' / 'mods' / 'batman_LivingKnox' / '42.21' / 'media' / 'lua'  # moteur des PNJ (E18-T07)
-TESTS_LUA = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua'
+from harness import tests_lua  # noqa: E402  (E21-T07: media/lua of the test mods)
+TESTS_LUA = tests_lua('lk')
 MODULE = LK_LUA / 'server' / 'LivingKnox' / 'LK_Sites.lua'
 SUITE = TESTS_LUA / 'shared' / 'RST' / 'suites' / 'RST_LKSites.lua'
 SHARED = ['LivingKnox/LK_Core', 'LivingKnox/LK_Config', 'LivingKnox/LK_Log', 'LivingKnox/LK_GroupTypes',
@@ -256,7 +257,7 @@ class SitesHarness(unittest.TestCase):
         self.g.next = None  # absent de Kahlua
         self.rt.execute(DOUBLES)
         self.rt.execute(EXTRA)
-        paths = [TESTS_LUA / 'shared', CORE_LUA / 'shared', CORE_LUA / 'server', LK_LUA / 'shared', LK_LUA / 'server', MOD_LUA / 'shared', MOD_LUA / 'server']
+        paths = [TESTS_LUA / 'shared', CORE_LUA / 'shared', CORE_LUA / 'server', LK_LUA / 'shared', LK_LUA / 'server']
         self.rt.execute('package.path = [[' + ''.join(f'{p.as_posix()}/?.lua;' for p in paths) + ']] .. package.path')
 
     def world(self, forests: bool = True, realistic: bool = False, town_only: bool = False):
@@ -296,7 +297,7 @@ class SitesHarness(unittest.TestCase):
 
 
 def gap(a, b) -> float:
-    """Écart entre deux rectangles (x1, y1, x2, y2) à fin exclusive, comme RS_Rescue.gap."""
+    """Écart entre deux rectangles (x1, y1, x2, y2) à fin exclusive."""
     gx = max(0, b[0] - a[2], a[0] - b[2])
     gy = max(0, b[1] - a[3], a[1] - b[3])
     return (gx * gx + gy * gy) ** 0.5
@@ -393,26 +394,19 @@ class BuildingTests(SitesHarness):
         self.assertEqual(self.pick('settlers'), (None, 'no metagrid'))
 
 
-class WithoutRadioSurvivorTests(SitesHarness):
-    """E18-T08: Living Knox alone (core mod and Living Knox on the package path, no RadioSurvivor module): sites and
-    known bases come from the core mod (CA_Sites), with the same bases as RS_Rescue when RadioSurvivor is there."""
+class CoreSitesTests(SitesHarness):
+    """E18-T08: sites and known bases come from the core mod (CA_Sites)."""
 
     def setUp(self):
         super().setUp()
-        paths = [TESTS_LUA / 'shared', CORE_LUA / 'shared', CORE_LUA / 'server', LK_LUA / 'shared', LK_LUA / 'server']
-        self.rt.execute('package.path = [[' + ''.join(f'{p.as_posix()}/?.lua;' for p in paths) + ']]')
         self.world()
 
-    def test_sites_drawn_without_radiosurvivor(self):
+    def test_sites_drawn_for_each_group_type(self):
         for gtype in ('settlers', 'raiders'):
             site, why = self.pick(gtype, '{ seed = 3 }')
             self.assertIsNotNone(site, why)
-        loaded = self.ev('local out = {} for k in pairs(package.loaded) do '
-                         'if string.find(k, "^RadioSurvivor/") then out[#out + 1] = k end end '
-                         'return table.concat(out, ",")')
-        self.assertEqual(loaded, '')
 
-    def test_known_bases_for_raids_without_radiosurvivor(self):
+    def test_known_bases_for_raids(self):
         self.rt.execute('require "LivingKnox/LK_Simulation"')
         n = self.ev('local b = LivingKnox.Simulation.knownBases() return b and #b or -1')
         self.assertGreaterEqual(n, 1)   # the local player of the doubles

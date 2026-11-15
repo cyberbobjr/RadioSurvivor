@@ -51,6 +51,7 @@ Server: same commands from an admin client (DebugConsole).
 ]]
 
 require "RST/RST"
+require "RST/RST_ModRadioSurvivor"
 
 local PROBE_ID = "rstest_voices"
 local BACKUP_PREFIX = "batman_RadioSurvivor/rstest_voices_backup_"

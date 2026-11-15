@@ -1,7 +1,7 @@
 """Tests hors jeu des traces lisibles des groupes Living Knox (LK10-T04) : server/LivingKnox/LK_Traces.lua (carnet du
 foyer d'un groupe disparu, notes sur le chef mort) et la suite en jeu lk.traces (dev/.../RST_LKTraces.lua).
 
-    python RadioSurvivor/tests/test_lk_traces.py
+    python tests/test_lk_traces.py
 
 Banc tests/harness.py (solo, ou serveur dédié + deux clients) avec le vrai registre des groupes, le vrai journal de
 récit, les vraies histoires et l'aménagement des foyers (doublures de tests/test_lk_homes.py), complétés des doublures
@@ -32,7 +32,6 @@ from harness import LK_LUA  # noqa: E402  (E18-T07)
 from test_lk_homes import DOUBLES, HOUSE, SHARED, DEV_LUA  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
-LUA = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivor' / '42.21' / 'media' / 'lua'
 TRANSLATE = LK_LUA / 'shared' / 'Translate'
 MODULE = 'server/LivingKnox/LK_Traces.lua'
 SUITE = 'shared/RST/suites/RST_LKTraces.lua'
@@ -192,7 +191,7 @@ class Base(unittest.TestCase):
     loaded = True
 
     def setUp(self):
-        self.h = Harness(mode=self.mode, lua_roots=[DEV_LUA])
+        self.h = Harness(with_rs=False, mode=self.mode, lua_roots=[DEV_LUA])
         self.srv = 'solo' if self.mode == 'solo' else 'server'
         machines = ('solo',) if self.mode == 'solo' else ('server', 'A', 'B')
         for m in machines:

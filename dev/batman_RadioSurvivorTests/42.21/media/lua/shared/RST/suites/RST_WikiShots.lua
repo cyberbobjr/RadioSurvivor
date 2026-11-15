@@ -27,6 +27,8 @@ Tags "world" (solo only: every test is SKIP on a server or an MP client).
 ]]
 
 require "RST/RST"
+require "RST/RST_ModRadioSurvivor"
+require "RST/RST_ModLivingKnox"
 require "RST/RST_Fixtures"
 require "RST/RST_RSHelpers"
 require "RST/RST_LKHelpers"

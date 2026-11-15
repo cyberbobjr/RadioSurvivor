@@ -1,0 +1,6 @@
+name=batman_CoreAI Tests (dev only)
+id=batman_CoreAITests
+description=In-game test engine (RST), its campaign registry, common helpers and the suites of batman_CoreAI. Development only, never publish.
+versionMin=42.21
+modversion=0.1.0
+require=\batman_CoreAI

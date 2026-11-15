@@ -2,7 +2,7 @@
 branchée dans LK_Decisions.lua (comportement « alert », règle threat), et client/LivingKnox/LK_AlertView.lua (cri
 joué par chaque client proche).
 
-    python RadioSurvivor/tests/test_lk_alert.py
+    python tests/test_lk_alert.py
 
 Bancs :
 - logique pure (menaces d'alerte, une seule fois par menace, niveau qui retombe, écouteurs, attitude « inconnu »,
@@ -27,7 +27,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from phase_sweep import WORLDS, other_groups, sweep  # noqa: E402
-from test_lk_bodies import LUA, DEV_LUA, lua_list  # noqa: E402
+from test_lk_bodies import DEV_LUA, lua_list  # noqa: E402
 from harness import LK_LUA  # noqa: E402  (E18-T07)
 from test_lk_decisions import PureBase  # noqa: E402
 from test_lk_routines import RoutineStack  # noqa: E402
@@ -595,7 +595,7 @@ class ViewTests(unittest.TestCase):
     def setUp(self):
         from harness import Harness
         from test_lk_simulation import SHARED, WORLD
-        self.h = Harness(mode='solo', lua_roots=[DEV_LUA])
+        self.h = Harness(with_rs=False, mode='solo', lua_roots=[DEV_LUA])
         self.h.load('solo', WORLD)
         for path in SHARED:
             self.h.load('solo', path)

@@ -19,7 +19,8 @@ from pathlib import Path
 import test_bulletin as tb
 from test_protocol import lua_list
 
-TESTS_LUA = tb.ROOT / 'dev/batman_RadioSurvivorTests/42.21/media/lua/shared'
+from harness import tests_lua  # noqa: E402  (E21-T07: media/lua of the test mods)
+TESTS_LUA = tests_lua() / 'shared'
 SUITES = TESTS_LUA / 'RST/suites'
 
 # Animal of the game reduced to what rs.memorial.animals calls (Java references in the comments). Helper classes of

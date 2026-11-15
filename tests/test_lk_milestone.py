@@ -1,6 +1,6 @@
 """Tests hors jeu de la suite de jalon Living Knox lk.milestone1 (LK02-T08) et de la sonde de mesure RST_LKProbe.lua.
 
-    python RadioSurvivor/tests/test_lk_milestone.py
+    python tests/test_lk_milestone.py
 
 Banc tests/harness.py en solo et doublures de test_lk_bodies.py, test_lk_guard.py, test_lk_anim.py,
 test_lk_directives.py, test_lk_equipment.py et test_lk_appearance.py, complétées ici. Les doublures NE PROUVENT PAS
@@ -296,7 +296,7 @@ class ProbeTests(MilestoneBase):
 
 class ServerProbeTests(unittest.TestCase):
     def setUp(self):
-        self.h = Harness(mode='mp', debug=True, lua_roots=[DEV_LUA])
+        self.h = Harness(with_rs=False, mode='mp', debug=True, lua_roots=[DEV_LUA])
         for m in ('server', 'A', 'B'):
             self.h.load(m, 'shared/LivingKnox/LK_Core.lua')
             self.h.load(m, PROBE)
@@ -341,7 +341,7 @@ class ServerProbeTests(unittest.TestCase):
 
 class ReportNoteTests(unittest.TestCase):
     def test_notes_are_kept_under_the_test_line(self):
-        with Harness(mode='solo', lua_roots=[DEV_LUA]) as h:
+        with Harness(with_rs=False, mode='solo', lua_roots=[DEV_LUA]) as h:
             h.load('solo', 'require "RST/RST"\n'
                            'RST.suite("x.notes", function(s) s.test("a", function(t) t:note("m 1") t:ok(true) '
                            't:note("m 2") end) s.test("b", function(t) t:ok(true) end) end)')

@@ -20,6 +20,8 @@ line only when it differs, the truce line if the save holds one, the remembered 
 ]]
 
 require "RST/RST"
+require "RST/RST_ModRadioSurvivor"
+require "RST/RST_ModLivingKnox"
 require "RST/RST_Fixtures"
 require "RST/RST_RSHelpers"
 

@@ -1,10 +1,10 @@
 """Population initiale des groupes et réglages (LK08-T05) : LK_Population.lua, options de LK_Config.lua,
 sandbox-options.txt et leurs traductions.
 
-    python RadioSurvivor/tests/test_lk_population.py
+    python tests/test_lk_population.py
 
 Deux bancs :
-- lupa direct (Lua 5.1, `next` retiré comme dans Kahlua) avec les doublures de la métagrille de tests/test_rescue.py et
+- lupa direct (Lua 5.1, `next` retiré comme dans Kahlua) avec les doublures de la métagrille de tests/metagrid_doubles.py et
   tests/test_lk_sites.py (bâtiments, zones de forêt des cellules approchées, refuges, joueurs), le vrai registre
   LK_Groups (fichiers getFileReader / getFileWriter en mémoire), les vrais types, histoires (LK_Stories) et sites
   (LK_Sites) ; un « redémarrage » = nouvelle VM, mêmes fichiers ;
@@ -28,11 +28,10 @@ import lupa.lua51 as lupa
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from harness import Harness  # noqa: E402
 from test_lk_sites import EXTRA, FORESTS  # noqa: E402
-from test_rescue import DOUBLES, WORLD  # noqa: E402
+from metagrid_doubles import DOUBLES, WORLD  # noqa: E402  (doublures fidèles de la métagrille, E12-T01)
 
 ROOT = Path(__file__).resolve().parents[1]
 MEDIA = ROOT / 'Contents' / 'mods' / 'batman_LivingKnox' / '42.21' / 'media'
-MOD_LUA = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivor' / '42.21' / 'media' / 'lua'
 CORE_LUA = ROOT / 'Contents' / 'mods' / 'batman_CoreAI' / '42.21' / 'media' / 'lua'  # mod commun (E18)
 LK_LUA = ROOT / 'Contents' / 'mods' / 'batman_LivingKnox' / '42.21' / 'media' / 'lua'  # moteur des PNJ (E18-T07)
 MODULE = LK_LUA / 'server' / 'LivingKnox' / 'LK_Population.lua'
@@ -84,7 +83,7 @@ class Bench(unittest.TestCase):
         self.rt.execute(DOUBLES)
         self.rt.execute(EXTRA)
         self.rt.execute(SANDBOX + option_defaults())
-        paths = [CORE_LUA / 'shared', CORE_LUA / 'server', LK_LUA / 'shared', LK_LUA / 'server', MOD_LUA / 'shared', MOD_LUA / 'server']
+        paths = [CORE_LUA / 'shared', CORE_LUA / 'server', LK_LUA / 'shared', LK_LUA / 'server']
         self.rt.execute('package.path = [[' + ''.join(f'{p.as_posix()}/?.lua;' for p in paths) + ']] .. package.path')
         self.rt.execute(WORLD + (FORESTS if forests else ''))
         for path, text in self.files.items():
@@ -420,7 +419,7 @@ class ClientTests(unittest.TestCase):
         rt.execute(DOUBLES)
         rt.execute(SANDBOX + option_defaults())
         rt.execute('SIDE = "client"')
-        paths = [CORE_LUA / 'shared', CORE_LUA / 'server', LK_LUA / 'shared', LK_LUA / 'server', MOD_LUA / 'shared', MOD_LUA / 'server']
+        paths = [CORE_LUA / 'shared', CORE_LUA / 'server', LK_LUA / 'shared', LK_LUA / 'server']
         rt.execute('package.path = [[' + ''.join(f'{p.as_posix()}/?.lua;' for p in paths) + ']] .. package.path')
         for name in SHARED:
             rt.execute(f'require "{name}"')
@@ -455,7 +454,7 @@ class EventTests(unittest.TestCase):
         self.h.close()
 
     def make(self, root=None):
-        h = Harness(mode=self.mode, root=root)
+        h = Harness(with_rs=False, mode=self.mode, root=root)
         self.srv = 'solo' if self.mode == 'solo' else 'server'
         self.machines = ('solo',) if self.mode == 'solo' else ('server', 'A', 'B')
         for m in self.machines:
@@ -566,7 +565,7 @@ class FileTests(unittest.TestCase):
                     self.assertTrue(lang[f'Sandbox_LivingKnox_{name}'].strip())
                     self.assertTrue(lang[f'Sandbox_LivingKnox_{name}_tooltip'].strip())
                     self.assertNotIn('%', lang[f'Sandbox_LivingKnox_{name}_tooltip'])
-        # Une seule option enum dans la page Living Knox : la fréquence des initiatives (E18-T27, venue de RadioSurvivor).
+        # Une seule option enum dans la page Living Knox : la fréquence des initiatives (E18-T27).
         self.assertEqual([n for n, o in options.items() if n.startswith('LivingKnox.') and o.get('type') == 'enum'],
                          ['LivingKnox.InitiativeFrequency'])
 

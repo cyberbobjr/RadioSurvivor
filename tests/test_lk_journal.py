@@ -1,6 +1,6 @@
 """Tests hors jeu du journal de récit des groupes (LK10-T02) : LK_Journal.lua, API.journal, détail admin.
 
-    python RadioSurvivor/tests/test_lk_journal.py
+    python tests/test_lk_journal.py
 
 Banc tests/harness.py (serveur dédié + deux clients, ou solo). Doublures : getWorld, horloge du banc
 (getWorldAgeHours, 0 à 7 h le premier jour), fichiers getFileWriter / getFileReader du banc, getText / getTextOrNull
@@ -22,7 +22,6 @@ from harness import Harness  # noqa: E402
 from harness import LK_LUA  # noqa: E402  (E18-T07)
 
 ROOT = Path(__file__).resolve().parents[1]
-LUA = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivor' / '42.21' / 'media' / 'lua'
 TRANSLATE = LK_LUA / 'shared' / 'Translate'
 SHARED = ('shared/LivingKnox/LK_Core.lua', 'shared/LivingKnox/LK_Config.lua', 'shared/LivingKnox/LK_Log.lua',
           'shared/LivingKnox/LK_Appearance.lua', 'shared/LivingKnox/LK_Identity.lua',
@@ -98,7 +97,7 @@ class Base(unittest.TestCase):
         self.h.close()
 
     def make(self, root=None):
-        h = Harness(mode=self.mode, root=root)
+        h = Harness(with_rs=False, mode=self.mode, root=root)
         self.srv = 'solo' if self.mode == 'solo' else 'server'
         machines = ('solo',) if self.mode == 'solo' else ('server', 'A', 'B')
         for m in machines:

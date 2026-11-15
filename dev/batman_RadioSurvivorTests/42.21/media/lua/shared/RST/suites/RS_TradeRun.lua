@@ -14,6 +14,7 @@ books or cancels and put back after it; the announcement is captured (RS_RadioSe
 ]]
 
 require "RST/RST"
+require "RST/RST_ModRadioSurvivor"
 
 local VOICE = "gus"     -- the delivered trader whose run is checked
 

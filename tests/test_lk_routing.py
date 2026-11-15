@@ -1,7 +1,7 @@
 """Tests hors jeu des modèles d'itinéraire de LK_Obstacles (LK16-T11, constat D-OBS-01) : registre
 LivingKnox.Obstacles.Routing (un fichier par modèle) et gel des sorties du routage.
 
-    python RadioSurvivor/tests/test_lk_routing.py
+    python tests/test_lk_routing.py
 
 Gel (FROZEN) : empreintes sha256 relevées sur le code d'avant le registre des modèles. Pour chaque carte du banc
 (portes ouvertes, fermées, verrouillées, blindées, barricadées, du foyer du PNJ ou d'un autre groupe ; fenêtres

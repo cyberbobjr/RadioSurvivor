@@ -1,6 +1,6 @@
 """Tests hors jeu de la simulation abstraite hors écran (LK09-T01), des expéditions (LK09-T02) et des événements de groupe (LK09-T05) : LK_Simulation.lua.
 
-    python RadioSurvivor/tests/test_lk_simulation.py
+    python tests/test_lk_simulation.py
 
 Banc tests/harness.py (serveur dédié + deux clients, ou solo). Doublures : getWorld (mode et nom de la partie),
 getGameTime():getWorldAgeHours() de l'horloge du banc (0 à 7 h le premier jour), fichiers getFileWriter /
@@ -53,7 +53,7 @@ class Base(unittest.TestCase):
         self.h.close()
 
     def make(self, root=None):
-        h = Harness(mode=self.mode, root=root)
+        h = Harness(with_rs=False, mode=self.mode, root=root)
         self.srv = 'solo' if self.mode == 'solo' else 'server'
         machines = ('solo',) if self.mode == 'solo' else ('server', 'A', 'B')
         for m in machines:

@@ -2,6 +2,7 @@
 -- E20-T04: rewards drawn at random in the [rewards] pool (RS_Rewards, kinds in server/RadioSurvivor/Rewards/); a voice
 -- reward cache holds contents drawn in its category (catalogue personas/_categories.txt or a section of the sheet).
 require 'RST/RST'
+require "RST/RST_ModRadioSurvivor"
 require 'RST/RST_Fixtures'
 require 'RST/RST_Steps'
 require 'RST/RST_RSHelpers'

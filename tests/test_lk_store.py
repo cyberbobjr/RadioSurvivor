@@ -1,6 +1,6 @@
 """Tests hors jeu de l'écriture regroupée du registre des PNJ (LK13-T10, LK_Store) et du tri des clés de CA_Codec.
 
-    python RadioSurvivor/tests/test_lk_store.py
+    python tests/test_lk_store.py
 
 Banc tests/harness.py (serveur dédié + deux clients), doublures du banc des corps (tests/test_lk_bodies.py). Une
 image du banc = OnTickEvenPaused puis OnTick (IngameState.java:1380, 1681). Règles vérifiées (fiche

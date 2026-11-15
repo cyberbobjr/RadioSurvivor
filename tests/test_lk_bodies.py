@@ -1,6 +1,6 @@
 """Tests hors jeu des corps de PNJ Living Knox (LK02-T02) : registre, persistance, création, liaison, doublons, orphelins.
 
-    python RadioSurvivor/tests/test_lk_bodies.py
+    python tests/test_lk_bodies.py
 
 Banc tests/harness.py (serveur dédié + deux clients, ou solo). Les doublures ci-dessous reproduisent le Java 42.21.0
 relevé (références en commentaire) ; elles NE PROUVENT PAS l'API réelle, seulement la logique du mod :
@@ -27,19 +27,20 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from harness import Harness, LUA  # noqa: E402
+from harness import Harness  # noqa: E402
 from harness import lua_src  # noqa: E402  (E18-T07)
 from harness import LK_LUA  # noqa: E402  (E18-T07)
 from harness import sim_event_files  # noqa: E402  (LK16-T09)
 
 ROOT = Path(__file__).resolve().parents[1]
-DEV_LUA = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua'
+from harness import tests_lua  # noqa: E402  (E21-T07: media/lua of the test mods)
+DEV_LUA = tests_lua('lk')
 SHARED = ('shared/LivingKnox/LK_Core.lua', 'shared/LivingKnox/LK_Config.lua', 'shared/LivingKnox/LK_Log.lua',
           'shared/LivingKnox/LK_Appearance.lua', 'shared/LivingKnox/LK_Identity.lua')
 MOD_FILES = [lua_src(p) for p in SHARED[3:]] + [LK_LUA / 'server' / 'LivingKnox' / n
                                               for n in ('LK_Store.lua', 'LK_Bodies.lua', 'LK_Server.lua')]
 DEV_FILES = [DEV_LUA / 'server' / 'RST' / 'RST_LKBodiesServer.lua', DEV_LUA / 'client' / 'RST' / 'RST_LKBodiesClient.lua',
-             DEV_LUA / 'shared' / 'RST' / 'suites' / 'RST_LKBodies.lua', DEV_LUA / 'shared' / 'RST' / 'suites' / 'RS_Killer.lua']
+             DEV_LUA / 'shared' / 'RST' / 'suites' / 'RST_LKBodies.lua', DEV_LUA / 'shared' / 'RST' / 'suites' / 'RST_LKKiller.lua']
 
 DOUBLES = r'''
 local H = HARNESS
@@ -528,7 +529,7 @@ class Base(unittest.TestCase):
         self.h.close()
 
     def make(self, root=None):
-        h = Harness(mode=self.mode, clients=getattr(self, 'clients', ('A', 'B')), debug=self.debug, root=root,
+        h = Harness(with_rs=False, mode=self.mode, clients=getattr(self, 'clients', ('A', 'B')), debug=self.debug, root=root,
                     lua_roots=[DEV_LUA])
         names = ['solo'] if self.mode == 'solo' else ['server', 'A', 'B']
         for m in names:
@@ -688,7 +689,7 @@ class CreationTests(Base):
             self.assertEqual(self.calls(c), [])
             self.assertIsNone(self.h.eval(c, 'LivingKnox.Server'))
             self.h.fire(c, 'OnInitGlobalModData', False)  # aucun abonné côté client
-            self.assertFalse((self.h.file_root(c) / 'batman_RadioSurvivor').exists(), c)
+            self.assertFalse((self.h.file_root(c) / 'batman_LivingKnox').exists(), c)
         self.h.tick(40)
         for c in ('A', 'B'):
             self.assertEqual(self.calls(c), [], c)
@@ -1021,20 +1022,20 @@ class KillerTests(Base):
         self.assertIn('bad death cause', why)
 
 
-    def test_suite_rs_killer_passes_on_the_doubles(self):
+    def test_suite_lk_killer_passes_on_the_doubles(self):
         if self.mode != 'solo':
             return
         self.run_lua('LivingKnox.Bodies.onDied = nil')
-        self.h.load('solo', 'shared/RST/suites/RS_Killer.lua')
-        listed = self.h.eval('solo', 'RST.list({ suite = "rs.killer", tags = "world" }, true)[1]')
-        self.assertEqual(listed.name, 'rs.killer')
+        self.h.load('solo', 'shared/RST/suites/RST_LKKiller.lua')
+        listed = self.h.eval('solo', 'RST.list({ suite = "lk.killer", tags = "world" }, true)[1]')
+        self.assertEqual(listed.name, 'lk.killer')
         self.assertEqual(lua_list(listed.tags), ['world', 'server'])
         self.assertEqual(listed.count, 5)
         self.assertIsNone(listed.error)
         # Les corps réanimés des doublures restent couchés : debout dès l'image suivante.
         self.run_lua('Events.OnTick.Add(function() for _, zb in ipairs(HARNESS.zombieList.items) do '
                      'zb.onFloor = false end end)')
-        self.assertIs(self.h.load('solo', 'return (RST.start({ suite = "rs.killer", tags = "world" }, '
+        self.assertIs(self.h.load('solo', 'return (RST.start({ suite = "lk.killer", tags = "world" }, '
                                           '{ ctx = { player = getPlayer() } }))'), True)
         for _ in range(3000):
             self.h.tick()
@@ -1046,7 +1047,7 @@ class KillerTests(Base):
         self.assertTrue(report.ok, results)
         self.assertIsNone(self.ev('LivingKnox.Bodies.onDied'))  # écouteur rendu
         self.assertEqual(self.ev('#LivingKnox.Bodies.list()'), 1)  # seul le PNJ du setUp reste
-        measures = [line for line in self.h.logs('solo') if line.startswith('[RSK] measure')]
+        measures = [line for line in self.h.logs('solo') if line.startswith('[LKK] measure')]
         self.assertTrue(any('stale: cause other, killer nil' in line for line in measures), measures)
 
 class KillerSoloTests(KillerTests):

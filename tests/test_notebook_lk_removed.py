@@ -1,0 +1,158 @@
+"""A game played with RadioSurvivor and Living Knox, then reopened without Living Knox (golden rule of 2026-11-06).
+
+    python RadioSurvivor/tests/test_notebook_lk_removed.py
+
+Real notebook server and client (CA_NotebookServer, CA_NotebookClient), real Living Knox engine in the first session (registries,
+API, LK_PersonalRelation, provider LK_NotebookProvider.lua), same save folder for every session. Second session: Living Knox
+is not on the module path (as when the player unticks it): the notebook must start, keep its character, show its
+contacts (the fiche of a Living Knox NPC stays, without relation level), refuse to talk to an NPC that no longer
+exists, and run its ticks and daily purge without a Lua error. E18-T26: its contact is hidden, its fiche kept, and
+listed again with its relation once Living Knox is back. E18-T25: the mission of a Living Knox NPC is hidden
+(snapshot and core list), frozen and never failed while Living Knox is unticked, and listed again as it was after. Third session: Living Knox ticked again, its relation
+is still there (its own file was never touched). Doubles only: proves neither the Java API nor the network.
+"""
+from __future__ import annotations
+
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from test_carnet import Simulation, LK_WORLD, convert  # noqa: E402
+from test_protocol import Game, start_bridge, pump  # noqa: E402
+
+
+class LivingKnoxRemovedTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory(prefix='rs-lk-removed-')
+        self.path = Path(self.tmp.name) / 'game'
+        self.process = None
+
+    def tearDown(self):
+        if self.process:
+            self.process.terminate()
+            self.process.communicate(timeout=10)
+        Game.WITH_LK = True
+        self.tmp.cleanup()
+
+    def errors(self, sim):
+        lines = []
+        for machine in [sim.server] + list(sim.clients.values()):
+            logs = machine.g.LOGS
+            lines += [logs[i] for i in range(1, len(logs) + 1) if 'ERROR' in str(logs[i]) or 'rror' in str(logs[i])]
+        return lines
+
+    def played_with_both(self):
+        sim = Simulation(self.path, living_knox=True)
+        sim.server.rt.execute(LK_WORLD)
+        sim.add_client('alice')
+        g, rt = sim.server.g, sim.server.rt
+        leader = g.LK_LEADER
+        g.LivingKnox.Bodies.bound[leader].x = 12
+        sim.command('alice', 'select', incarnation=leader)
+        sim.acquaint('alice')
+        fiche = g.CoreAI.notebookServer.ensure(leader)
+        cid = sim.character('alice')
+        self.assertIsNotNone(rt.eval('LivingKnox.Hostility').record(g.LK_GROUP, cid, 'gift',
+                                                                   rt.table_from({'witnessed': True})))
+        R = rt.eval("require('LivingKnox/LK_NotebookRelations')")
+        _, binding = R.offer(fiche, cid)
+        view, _ = R.apply(fiche, cid, binding, 'up', 'f1')
+        self.assertIsNotNone(view)
+        level = view.level
+        # A mission of this NPC in progress (supply offer drawn from the real food need, accepted, one delivery).
+        self.process = start_bridge(sim.path)
+        sim.say('alice', '/say Bonjour, avez-vous besoin de quelque chose ?')
+        self.assertTrue(pump(lambda: len(list(sim.state().missions.keys())) == 1, [sim.tick]), 'no mission offer')
+        sim.request_mission('alice', 'accept')
+        m = sim.mission()
+        self.assertEqual(m.state, 'active')
+        sim.confirm('alice', sim.quote('alice', sim.items('alice', *(['Base.TinnedBeans'] * 5))))
+        self.assertEqual(m.delivered, 10)
+        self.process.terminate()
+        self.process.communicate(timeout=10)
+        self.process = None
+        self.mission_id = m.id
+        sim.command('alice', 'snapshot')
+        rt.execute("require('RadioSurvivor/RS_State').dirty = true require('RadioSurvivor/RS_State').save() "
+                   "LivingKnox.Store.flush() LivingKnox.Groups.flush() LivingKnox.Hostility.save()")
+        return sim, leader, fiche.id, cid, level
+
+    def test_living_knox_removed_then_added_back(self):
+        first, leader, fiche_id, cid, level = self.played_with_both()
+        self.assertEqual(self.errors(first), [])
+        # Second session: Living Knox unticked (not on the module path), same save.
+        first.clock.stop(600000)
+        Game.WITH_LK = False
+        try:
+            alone = Simulation(self.path, first.clock, saved_players=first.saved(), provider=False)
+            alone.add_client('alice')
+        finally:
+            Game.WITH_LK = True
+        srv = alone.server
+        self.assertEqual(srv.rt.eval('(function() local n = 0 for k in pairs(package.loaded) do '
+                                     'if string.find(k, "LivingKnox") then n = n + 1 end end return n end)()'), 0)
+        self.assertIsNone(srv.g.LivingKnox)
+        self.assertEqual(alone.character('alice'), cid, 'same character after Living Knox was removed')
+        # E18-T26: the contact of the Living Knox NPC is hidden (snapshot and contacts of the core mod), its fiche kept.
+        alone.command('alice', 'snapshot')
+        contacts = alone.clients['alice'].g.CoreAI.notebookClient.snapshot.contacts
+        self.assertEqual([c for c in contacts.values() if c.id == fiche_id], [])
+        core_rows = srv.rt.eval("require('CoreAI/CA_Contacts')").rows(cid, None)
+        self.assertEqual([r for r in core_rows.values() if r.id == fiche_id], [])
+        self.assertIsNotNone(alone.state().npcs[fiche_id])
+        self.assertIsNone(srv.rt.eval("require('CoreAI/CA_NPCProvider')").relationPanel(
+            alone.state().npcs[fiche_id], cid, None))
+        # Talking to the NPC that no longer exists: refused cleanly, nothing sent to the bridge.
+        alone.command('alice', 'select', incarnation=leader)
+        alone.command('alice', 'talk', channel='say', text='Tu es encore la ?', language='FR')
+        for _ in range(30):
+            alone.tick()
+        srv.g.fire('EveryHours')
+        srv.g.fire('EveryDays')
+        alone.say('alice', 'Bonjour')
+        # E18-T25: the mission of a Living Knox NPC is hidden while Living Knox is unticked, never failed nor erased:
+        # no row in the notebook nor in the core list, its delay frozen, delivery and abandon refused without effect.
+        m = alone.state().missions[self.mission_id]
+        self.assertIsNotNone(m)
+        remaining, revision = m.remainingMs, m.revision
+        alone.command('alice', 'snapshot')
+        self.assertFalse(any(v.id == self.mission_id for v in
+                             alone.clients['alice'].g.CoreAI.notebookClient.snapshot.missions.values()))
+        journal = srv.rt.eval("require('CoreAI/CA_MissionJournal')")
+        self.assertEqual(len(list(journal.rows(cid).values())), 0)
+        quote = alone.quote('alice', alone.items('alice', *(['Base.TinnedBeans'] * 5)))
+        if quote:
+            alone.confirm('alice', quote)
+        self.assertEqual(m.delivered, 10, 'delivery to a group that no longer exists')
+        self.refused = alone.clients['alice'].g.CoreAI.notebookClient.lastError
+        alone.request_mission('alice', 'abandon')
+        for _ in range(30):
+            alone.tick()
+        srv.g.fire('EveryDays')
+        self.assertEqual((m.state, m.remainingMs, m.revision), ('active', remaining, revision),
+                         'mission failed, abandoned or timed while Living Knox was unticked')
+        self.assertIsNotNone(alone.state().npcs[fiche_id], 'fiche of the Living Knox NPC dropped')
+        self.assertEqual(self.errors(alone), [])
+        srv.rt.execute("require('RadioSurvivor/RS_State').dirty = true require('RadioSurvivor/RS_State').save()")
+        # Third session: Living Knox ticked again, its relation is still there.
+        alone.clock.stop(600000)
+        back = Simulation(self.path, alone.clock, saved_players=alone.saved(), living_knox=True)
+        back.add_client('alice')
+        fiche = back.state().npcs[fiche_id]
+        self.assertIsNotNone(fiche)
+        view = back.server.rt.eval("require('LivingKnox/LK_NotebookRelations')").view(fiche, cid)
+        self.assertEqual(view.level, level, 'relation kept by Living Knox while it was removed')
+        # E18-T26: the contact is listed again with its relation; E18-T25: the mission is listed again as it was.
+        back.command('alice', 'snapshot')
+        [row] = [c for c in back.clients['alice'].g.CoreAI.notebookClient.snapshot.contacts.values() if c.id == fiche_id]
+        self.assertEqual(convert(row.relation).get('level'), level)
+        rows = [v for v in back.clients['alice'].g.CoreAI.notebookClient.snapshot.missions.values() if v.id == self.mission_id]
+        self.assertEqual(len(rows), 1, 'mission of the Living Knox NPC found again')
+        self.assertEqual((rows[0].state, rows[0].delivered), ('active', 10))
+        self.assertEqual(self.errors(back), [])
+
+
+if __name__ == '__main__':
+    unittest.main()

@@ -17,10 +17,15 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from test_rst import CLIENT_GAME, LUA, SERVER_GAME, Machine, to_py  # noqa: E402
+from test_rst import CLIENT_GAME, SERVER_GAME, Machine, to_py  # noqa: E402
+from harness import tests_lua  # noqa: E402  (E21-T07: media/lua of the three test mods)
+
+LUA = tests_lua()
 
 STEPS_FILE = LUA / 'shared' / 'RST' / 'RST_Steps.lua'
 PEER_FILE = LUA / 'shared' / 'RST' / 'RST_PeerChecks.lua'
+# E21-T07: each test mod registers its tools (PC.MODULES) and its group refresh (RST.GroupRefresh).
+MOD_FILES = [LUA / 'shared' / 'RST' / 'RST_ModLivingKnox.lua', LUA / 'shared' / 'RST' / 'RST_ModRadioSurvivor.lua']
 
 # Server suites asking steps (t.ctx.player = requester alice).
 SERVER_SUITES = r"""
@@ -172,7 +177,7 @@ class StepsTests(unittest.TestCase):
         self.assertEqual(self.bob.lua('return RST.Steps.records[1].status .. " " .. RST.Steps.records[1].step'),
                          'PASS echo')
         self.assertIn('client bob: echo: echo 3', notes(rep, 'echo others'))
-        files = sorted((self.net.root / 'bob' / 'batman_RadioSurvivor' / 'tests').glob('*-steps.txt'))
+        files = sorted((self.net.root / 'bob' / 'batman_CoreAITests' / 'tests').glob('*-steps.txt'))
         self.assertEqual(len(files), 1)
         text = files[0].read_text(encoding='utf-8').splitlines()
         self.assertEqual(text[0], 'RST steps answered by bob (client)')
@@ -289,7 +294,7 @@ class SoloTests(unittest.TestCase):
                                                                                   'others: nobody in solo'))
             self.assertEqual(r['others required'][0], 'SKIP')
             self.assertEqual(m.lua('return #RST.Steps.records'), 2)
-            files = sorted((Path(tmp) / 'solo' / 'batman_RadioSurvivor' / 'tests').glob('*-steps.txt'))
+            files = sorted((Path(tmp) / 'solo' / 'batman_CoreAITests' / 'tests').glob('*-steps.txt'))
             self.assertEqual(files[0].read_text(encoding='utf-8').splitlines()[0],
                              'RST steps answered by local (solo)')
 
@@ -315,7 +320,7 @@ class PeerCheckTests(unittest.TestCase):
 
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
-        self.m = Machine(Path(self.tmp.name) / 'c', PEER_GAME, [STEPS_FILE, PEER_FILE])
+        self.m = Machine(Path(self.tmp.name) / 'c', PEER_GAME, [STEPS_FILE, PEER_FILE, *MOD_FILES])
 
     def tearDown(self):
         self.tmp.cleanup()
@@ -449,6 +454,8 @@ end
 # ---------------------------------------------------------------------------------------------------- E01-T19
 
 VIEW_FILE = LUA / 'shared' / 'RST' / 'RST_ViewSteps.lua'
+LK_VIEW_FILE = LUA / 'shared' / 'RST' / 'RST_LKViewSteps.lua'   # E21-T07: steps of each test mod
+RS_VIEW_FILE = LUA / 'shared' / 'RST' / 'RST_RSViewSteps.lua'
 GROUP_FILE = LUA / 'shared' / 'RST' / 'RST_LKGroupFixture.lua'
 
 # Client of an MP game (requester): world map, radio history, npc bodies and views as doubles of the shape the
@@ -535,7 +542,7 @@ class ViewStepTests(unittest.TestCase):
 
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
-        self.m = Machine(Path(self.tmp.name) / 'c', VIEW_GAME, [STEPS_FILE, VIEW_FILE])
+        self.m = Machine(Path(self.tmp.name) / 'c', VIEW_GAME, [STEPS_FILE, VIEW_FILE, LK_VIEW_FILE, RS_VIEW_FILE])
         self.m.g.CLOCK = 10000
 
     def tearDown(self):
@@ -788,7 +795,7 @@ class GroupFixtureTests(unittest.TestCase):
 
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
-        self.m = Machine(Path(self.tmp.name) / 'solo', GROUP_GAME, [STEPS_FILE, GROUP_FILE, GROUP_SUITES])
+        self.m = Machine(Path(self.tmp.name) / 'solo', GROUP_GAME, [STEPS_FILE, *MOD_FILES, GROUP_FILE, GROUP_SUITES])
 
     def tearDown(self):
         self.tmp.cleanup()

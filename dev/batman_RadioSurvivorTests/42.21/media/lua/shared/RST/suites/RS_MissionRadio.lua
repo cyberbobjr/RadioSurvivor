@@ -19,6 +19,7 @@ Outside the game: tests/test_carnet.py (VoiceMissionTests, metagrid double).
 ]]
 
 require "RST/RST"
+require "RST/RST_ModRadioSurvivor"
 require "RST/RST_Fixtures"
 
 local F = RST.Fixtures

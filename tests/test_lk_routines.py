@@ -2,7 +2,7 @@
 LK_Decisions.lua (cascade), LK_Directives.lua (vigilance vg portée par la consigne) et LK_Senses.lua (lecture de vg
 chez un client MP).
 
-    python RadioSurvivor/tests/test_lk_routines.py
+    python tests/test_lk_routines.py
 
 Bancs :
 - logique pure (heures, quarts, affectation des postes, des rondes et des couchages, contrôle du relevé sauvegardé) ;
@@ -535,7 +535,8 @@ class SoloRoutineTests(RoutineStack):
 
 
 SUITE = 'shared/RST/suites/RST_LKRoutines.lua'
-SUITE_FILE = Path(__file__).resolve().parents[1] / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua' / SUITE
+from harness import tests_lua  # noqa: E402  (E21-T07: media/lua of the test mods)
+SUITE_FILE = tests_lua('lk') / SUITE
 
 # Heure du jour réglable (GameTime.setTimeOfDay, GameTime.java:770) : l'âge du monde suit (nuits x 24 + heure - 7, ou
 # + 17 avant 7 h ; base api-42-21.md), modélisé par un décalage ajouté à l'horloge du banc.

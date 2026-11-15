@@ -1,7 +1,7 @@
 --[[
 rs.conversations - conversations between two nearby NPCs (E08-T04, server/LivingKnox/LK_Conversations.lua): two
 Living Knox npcs created next to the player, both given a fiche of the speech host (E18-T27: RadioSurvivor's notebook,
-or Living Knox alone: RST.RSHelpers.speech); the first one noticed a storm (observation recorded here, LK_Observations);
+or Living Knox alone: RST.LKHelpers.speech); the first one noticed a storm (observation recorded here, LK_Observations);
 E08-T11: their spots are searched around the player (RST.RSHelpers.pairSquares, bounded) where the
 bodies see each other and the player hears the teller.
 Heard by the player: a conversation opens and the second npc learns the story only once the first line is said
@@ -20,16 +20,19 @@ removes its npcs and their pending requests with t:defer.
 ]]
 
 require "RST/RST"
+require "RST/RST_ModRadioSurvivor"
+require "RST/RST_ModLivingKnox"
 require "RST/RST_Fixtures"
 require "RST/RST_PeerChecks"
 require "RST/RST_RSHelpers"
+require "RST/RST_LKHelpers"
 
 RST.RSConversations = RST.RSConversations or {}
 
 local function B() return LivingKnox and LivingKnox.Bodies end
 
 local function setup(t)
-    local H = RST.RSHelpers.speech(t)
+    local H = RST.LKHelpers.speech(t)
     local V = require "LivingKnox/LK_Conversations"
     V.reset()
     local every = V.CFG.EVERY_MS

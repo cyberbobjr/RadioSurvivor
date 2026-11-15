@@ -1,9 +1,9 @@
 """Reward of a mission given by a Living Knox NPC (LK_MissionRewards, E18-T29; E11-T21, decision D09).
 
 Each mod pays its missions: the lot of a Living Knox NPC is Living Knox's (household surplus, else the announced lot,
-else the created lot), alone or with RadioSurvivor. With both mods the "npc" giver of RadioSurvivor (RS_MissionHooks)
-delegates the claim of an engine NPC fiche to the reward source Living Knox registers in the core engine
-(CA_Missions.registerNpcReward).
+else the created lot). The "npc" giver of the core notebook (CA_NotebookGiver, E21-T04) delegates the claim of an
+engine NPC fiche to the reward source Living Knox registers in the core engine (CA_Missions.registerNpcReward).
+E21-T08: the core mod and Living Knox only.
 """
 from pathlib import Path
 import unittest
@@ -118,9 +118,9 @@ class AloneRewardTests(unittest.TestCase):
         self.assertEqual(self.g.taken, 0)
 
 
-# Real core engine, real Living Knox lot and real RadioSurvivor givers; Living Knox groups and stock are doubles
+# Real core engine, real Living Knox lot and real notebook giver of the core mod; Living Knox groups and stock are doubles
 # (one living member 'm' of 'grp-1', engine id 'lk-1', the incarnation of the notebook fiche 'n').
-BOTH_MODS = r"""
+ENGINE = r"""
 function isClient() return false end
 function isServer() return false end
 nextId = 100
@@ -143,7 +143,7 @@ function makePlayer() local added = {}
 alice, bob = makePlayer(), makePlayer()
 modules = {['CoreAI/CA_NPCProvider'] = {available=function() return true end}}
 local roots = {}
-for _, mod in ipairs({'batman_CoreAI', 'batman_RadioSurvivor', 'batman_LivingKnox'}) do
+for _, mod in ipairs({'batman_CoreAI', 'batman_LivingKnox'}) do
   for _, side in ipairs({'shared', 'server'}) do roots[#roots+1] = MODS .. '/' .. mod .. '/42.21/media/lua/' .. side .. '/' end
 end
 function require(name)
@@ -166,14 +166,13 @@ m = {id='n-d1', npc='n', state='success', participants={a={name='Ann'}, b={name=
 """
 
 
-class BothModsRewardTests(unittest.TestCase):
-    """RadioSurvivor and Living Knox active: a Living Knox NPC mission is paid by Living Knox, as without
-    RadioSurvivor (E11-T21)."""
+class EngineRewardTests(unittest.TestCase):
+    """A Living Knox NPC mission claimed through the giver of the core notebook is paid by Living Knox (E11-T21)."""
 
     def setUp(self):
         self.lua = LuaRuntime(unpack_returned_tuples=True)
         self.lua.execute(f'MODS = [[{MODS.as_posix()}]]')
-        self.lua.execute(BOTH_MODS)
+        self.lua.execute(ENGINE)
         self.g = self.lua.globals()
 
     def claim(self, player, who, token):

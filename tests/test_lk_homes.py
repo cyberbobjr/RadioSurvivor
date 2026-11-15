@@ -1,7 +1,7 @@
 """Tests hors jeu de l'aménagement des foyers Living Knox (LK08-T04) : server/LivingKnox/LK_Homes.lua et la suite en
 jeu lk.homes (dev/.../RST_LKHomes.lua) dans le banc.
 
-    python RadioSurvivor/tests/test_lk_homes.py
+    python tests/test_lk_homes.py
 
 Banc tests/harness.py (solo, ou serveur dédié + deux clients) avec le vrai registre des groupes (LK_Groups, fichiers
 en mémoire). Doublures relevées dans le Java et le Lua vanilla 42.21.0 :
@@ -33,7 +33,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from harness import Harness, homes_files  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
-DEV_LUA = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua'
+from harness import tests_lua  # noqa: E402  (E21-T07: media/lua of the test mods)
+DEV_LUA = tests_lua('lk')
 SUITE = DEV_LUA / 'shared' / 'RST' / 'suites' / 'RST_LKHomes.lua'
 
 SHARED = ('shared/LivingKnox/LK_Core.lua', 'shared/LivingKnox/LK_Config.lua', 'shared/LivingKnox/LK_Log.lua',
@@ -347,7 +348,7 @@ class Base(unittest.TestCase):
     mode = 'solo'
 
     def setUp(self):
-        self.h = Harness(mode=self.mode, lua_roots=[DEV_LUA])
+        self.h = Harness(with_rs=False, mode=self.mode, lua_roots=[DEV_LUA])
         self.srv = 'solo' if self.mode == 'solo' else 'server'
         machines = ('solo',) if self.mode == 'solo' else ('server', 'A', 'B')
         for m in machines:

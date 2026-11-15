@@ -18,6 +18,7 @@ docs/annexes/conception/dernieres-pages.md.
 ]]
 
 require "RST/RST"
+require "RST/RST_ModRadioSurvivor"
 require "RST/RST_Fixtures"
 
 local function authority(t)

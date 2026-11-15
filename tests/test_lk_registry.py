@@ -1,7 +1,7 @@
 """Tests hors jeu du socle des registres Living Knox (LK16-T01, ADR remise en ordre SOLID D02) :
 shared/LivingKnox/LK_Registry.lua (LivingKnox.Registry.new).
 
-    python RadioSurvivor/tests/test_lk_registry.py
+    python tests/test_lk_registry.py
 
 Vrai Lua du mod sous lupa (Lua 5.1, `next` retiré comme dans Kahlua). Inscription, tri par order puis clé,
 remplacement d'une inscription de même clé (rechargement), refus par validate avec un message qui nomme le registre,

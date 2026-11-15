@@ -37,6 +37,7 @@ client): SKIP with the reason; no loaded square outside the circle: FAIL.
 ]]
 
 require "RST/RST"
+require "RST/RST_ModRadioSurvivor"
 require "RST/RST_Fixtures"
 require "RST/RST_Steps"
 require "RST/RST_RSHelpers"

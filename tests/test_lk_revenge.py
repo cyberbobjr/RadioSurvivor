@@ -3,7 +3,7 @@ server/LivingKnox/LK_Relations.lua, branchée dans LK_Simulation.lua (heure hors
 LK_Decisions.lua (comportement « revenge ») et LK_Hostility.lua (raison de cible « revenge »), et la suite en jeu
 lk.revenge (dev/.../RST_LKRevenge.lua) dans le banc.
 
-    python RadioSurvivor/tests/test_lk_revenge.py
+    python tests/test_lk_revenge.py
 
 Bancs tests/harness.py :
 - hors écran (serveur dédié + deux clients, registres réels des groupes et des attitudes, simulation réelle) :
@@ -24,7 +24,6 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from harness import LUA  # noqa: E402
 from harness import lua_src  # noqa: E402  (E18-T07)
 from harness import LK_LUA  # noqa: E402  (E18-T07)
 from test_lk_bodies import lua_list  # noqa: E402
@@ -38,7 +37,8 @@ SIM = 'LivingKnox.Simulation'
 D = 'LivingKnox.Decisions'
 RELATIONS = 'server/LivingKnox/LK_Relations.lua'
 ROOT = Path(__file__).resolve().parents[1]
-SUITE_FILE = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua' / 'shared' / 'RST' / 'suites' \
+from harness import tests_lua  # noqa: E402  (E21-T07: media/lua of the test mods)
+SUITE_FILE = tests_lua('lk') / 'shared' / 'RST' / 'suites' \
     / 'RST_LKRevenge.lua'
 KEY_A, KEY_B = 'c-alpha', 'c-bravo'
 CANON = ('require("CoreAI/CA_Codec").hexBytes(require("CoreAI/CA_Codec").encodeBytes('
@@ -196,7 +196,7 @@ class OathTests(OffscreenBase):
         self.run_lua(f'LivingKnox.publish("npcDied", {{ group = "{gid}", member = "m-4", npc = "lk-9", '
                      'killer = "A", x = 1000, y = 1600, z = 0 })')
         self.assertEqual(self.rev(gid).key, KEY_A)
-        # E09-T06: RS_Factions also listens to npcDied (incidents of a truce): one listener of Relations.
+        # E09-T06: other listeners of npcDied (incidents of a truce) may exist: one listener of Relations.
         self.assertEqual(self.ev('(function() local n = 0 for _, e in ipairs(LivingKnox.listeners.npcDied) do '
                                  'if e.key == "Relations.revenge" then n = n + 1 end end return n end)()'), 1)
 

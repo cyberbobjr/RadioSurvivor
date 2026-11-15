@@ -20,6 +20,7 @@ and clues so that the tester can teleport there and judge the clues (docs/specif
 ]]
 
 require "RST/RST"
+require "RST/RST_ModRadioSurvivor"
 require "RST/RST_PeerChecks"
 
 local SEEDS = { 11, 23, 37, 41, 59 }

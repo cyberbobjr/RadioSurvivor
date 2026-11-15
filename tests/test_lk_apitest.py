@@ -1,7 +1,7 @@
 """Tests hors jeu des fonctions de test de l'API Living Knox (E01-T10) : LK_APITest.lua, et de bout en bout la
 fixture PNJ du moteur de tests en jeu (RST.Fixtures.spawnNpc) et sa suite rst.fixtures.npc.
 
-    python RadioSurvivor/tests/test_lk_apitest.py
+    python tests/test_lk_apitest.py
 
 Banc tests/harness.py (solo, ou serveur dédié + deux clients) avec les doublures du Java de tests/test_lk_bodies.py
 (création par addZombiesInOutfit -> createCorpse -> reanimate, retrait, liste des zombies). Le moteur est réel :
@@ -16,7 +16,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from harness import Harness, LUA  # noqa: E402
+from harness import Harness  # noqa: E402
 from harness import LK_LUA  # noqa: E402  (E18-T07)
 import test_lk_bodies as tb  # noqa: E402
 

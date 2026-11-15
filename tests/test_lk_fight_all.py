@@ -3,7 +3,7 @@ zombie à portée ; la fuite, l'abri et la retraite ne restent qu'aux constantes
 >= NEED_HIGH.fear) et au groupe débordé. Code : server/LivingKnox/LK_Decisions.lua (Decisions.unfitOf,
 overwhelmedOf, threatWeight, ableNear, règle threat), LK_Defense.lua (membres valides de tout rôle aux postes).
 
-    python RadioSurvivor/tests/test_lk_fight_all.py
+    python tests/test_lk_fight_all.py
 
 Bancs :
 - logique pure de la cascade (constantes, débordement et hystérésis, combat d'un ouvrier, cible joueur réservée aux

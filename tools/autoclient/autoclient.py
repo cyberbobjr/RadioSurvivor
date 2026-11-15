@@ -1,7 +1,10 @@
 """Lanceur client automatique (E01-T14) : vrai client Project Zomboid 42.21, partie rstest*, suites RST, rapport.
 
     python RadioSurvivor/tools/autoclient/autoclient.py --suite rs.env
-    python RadioSurvivor/tools/autoclient/autoclient.py --campaign solo-rs --timeout 1800
+    python RadioSurvivor/tools/autoclient/autoclient.py --campaign solo-rs --timeout 1800      RadioSurvivor seul
+    python RadioSurvivor/tools/autoclient/autoclient.py --campaign solo-lk --timeout 1800      Living Knox seul
+    python RadioSurvivor/tools/autoclient/autoclient.py --campaign solo --timeout 3600         les deux mods
+    (E21-T07 : sans --mods, solo-lk prend le montage lk, solo-rs le montage rs, toute autre campagne both)
     python RadioSurvivor/tools/autoclient/autoclient.py --suite rs.npctalk --tags world     pont lancé (auto)
     python RadioSurvivor/tools/autoclient/autoclient.py --save rstest-2026-10-13 --suite rst.guard,rs.env --keep-cache
     python RadioSurvivor/tools/autoclient/autoclient.py --dry-run --suite rs.env     prépare le cache, ne lance rien
@@ -10,10 +13,10 @@ Tout se passe dans un nouveau dossier de cache temporaire (`-cachedir=`) : COPIE
 copie modifiée de options.ini. Rien n'est écrit dans le jeu, dans `%USERPROFILE%\\Zomboid` ni dans le Workshop Steam
 (TooltipLib y est seulement lu pour être copié). Étapes :
   1. refus si un processus java.exe ou ProjectZomboid64.exe tourne déjà (attente possible : --wait-idle) ;
-  2. cache : Saves/<mode>/<partie> (mods.txt réécrit avec la liste minimale), mods/ (TooltipLib, batman_BeltRadio,
-     batman_SignalSmoke, batman_RadioSurvivor, batman_RadioSurvivorTests) et
+  2. cache : Saves/<mode>/<partie> (mods.txt réécrit avec la liste minimale), mods/ (mods du montage --mods : MODS
+     moins SETUP_DROPS ; mods de test batman_CoreAITests, batman_LivingKnoxTests, batman_RadioSurvivorTests) et
      mods/default.txt (même liste : pas de rechargement Lua au chargement), options.ini (fenêtré),
-     Lua/batman_RadioSurvivor/tests/autoclient.txt ; les mods requis Belt Walkie-Talkie et Signal Smoke sont toujours
+     Lua/batman_CoreAITests/tests/autoclient.txt ; les mods requis Belt Walkie-Talkie et Signal Smoke sont toujours
      copiés de leurs dépôts locaux Workshop/BeltRadio et Workshop/SignalSmoke (lus seulement), en solo comme en MP ;
   2 bis. pont Python (--bridge auto|on|off|offline ; auto = lancé si une suite choisie en a besoin, BRIDGE_SUITES) :
      bridge/radio_bridge.py --exchange <cache>\\Lua\\batman_CoreAI, attendu jusqu'à « Bridge ready »
@@ -87,7 +90,7 @@ Lancements parallèles (2026-10-15) : plusieurs commandes de cet outil peuvent t
 
 Campagne de charge (LK13-T02, docs/annexes/tests/validation/charge-protocole.md) : --mp --load
     python RadioSurvivor/tools/autoclient/autoclient.py --mp --load --bridge off --timeout 3600 --wait-idle 3600
-  = 4 clients, LivingKnox.GroupCount = 5, campagne serveur mp-load si RST_Campaign.lua la déclare, sinon
+  = 4 clients, LivingKnox.GroupCount = 5, campagne serveur mp-load si un fichier de campagne la déclare, sinon
   --server-suite lk.load --server-tags server ; les options explicites (--clients, --group-count, --server-*) priment.
 
 Reconnexion et redémarrage (E01-T17) : --mp --phases reconnect,restart --server-campaign mp-persist
@@ -111,7 +114,7 @@ Reconnexion et redémarrage (E01-T17) : --mp --phases reconnect,restart --server
   Mort réelle d'un client (rs.death) : à chaque ligne d'état « respawn: new character … », godmodeplayer de nouveau
   (sauf --no-godmode) ; un état « load » après une reprise est cliqué comme d'habitude.
   Action « modswap » (seule, LK02-T12) : mêmes suites avant et après un redémarrage (clients puis serveur arrêtés
-  comme pour restart) où batman_RadioSurvivorTestClothes (dev/) est ajouté aux mods du serveur (Mods= de l'ini) et
+  comme pour restart) où batman_LivingKnoxTestClothes (dev/) est ajouté aux mods du serveur (Mods= de l'ini) et
   des clients (mods/, default.txt) : --mp --clients 2 --phases modswap --server-suite lk.appearance.
   --load : --timeout 3600 par défaut ; --load-phase-ms N écrit la globale Lua RST_LK_LOADMP_PHASE_MS = N dans la
   copie du mod de test de chaque cache (Kahlua n'a pas os.getenv).
@@ -147,7 +150,7 @@ GAME = pz_paths.game_dir()
 STEAM_WORKSHOP = pz_paths.workshop_dir()
 ZOMBOID = Path(os.environ.get('USERPROFILE') or str(Path.home())) / 'Zomboid'
 RUNS = Path(os.environ.get('RS_AUTOCLIENT_RUNS') or Path(__file__).resolve().parent / 'runs')
-TESTS_DIR = 'Lua/batman_RadioSurvivor/tests'
+TESTS_DIR = 'Lua/batman_CoreAITests/tests'  # E21-T07: results of the RST engine (batman_CoreAITests)
 
 # (id, source) in load order: requirements first.
 MODS = [
@@ -160,8 +163,12 @@ MODS = [
     # NPC engine (E18-T07): requires the core mod; loaded with RadioSurvivor (both mods together), before it.
     ('batman_LivingKnox', ROOT / 'Contents' / 'mods' / 'batman_LivingKnox'),
     ('batman_RadioSurvivor', ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivor'),
+    # E21-T07: one test mod per mod of the item; the core one holds the RST engine and the campaign registry.
+    ('batman_CoreAITests', ROOT / 'dev' / 'batman_CoreAITests'),
+    ('batman_LivingKnoxTests', ROOT / 'dev' / 'batman_LivingKnoxTests'),
     ('batman_RadioSurvivorTests', ROOT / 'dev' / 'batman_RadioSurvivorTests'),
 ]
+TEST_MOD_SUFFIX = 'Tests'   # ids of the development test mods in MODS
 IGNORE = shutil.ignore_patterns('__pycache__', '*.pyc', '*.bak', '*.tmp', '.git')
 # Python bridge (step 2): started on the exchange folder of the cache, never on %USERPROFILE%\Zomboid. It reads its
 # own configuration (bridge/.env or environment variables): this tool never opens that file.
@@ -169,9 +176,9 @@ BRIDGE_SCRIPT = ROOT / 'bridge' / 'radio_bridge.py'
 EXCHANGE_DIR = 'Lua/batman_CoreAI'
 BRIDGE_READY = 'Bridge ready'
 BRIDGE_SUITES = ('rs.npctalk', 'rs.radiomodule', 'rs.relation', 'rs.conversations', 'rs.initiatives',
-                 'rs.groupradio', 'lk.talk.alone')
-CAMPAIGN_FILE = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua' / 'client' / 'RST' / \
-    'RST_Campaign.lua'
+                 'rs.groupradio', 'lk.talk')
+# E21-T07: each test mod registers its parts of the campaigns in client/RST/RST_Campaign*.lua (RST.Campaigns.add).
+CAMPAIGN_GLOB = 'RST_Campaign*.lua'
 # Credential shapes searched in the stored bridge journal (the key itself is never read by this tool).
 SECRET_PATTERNS = (r'\b(?:sk|gsk|xai)[-_][A-Za-z0-9_-]{16,}', r'\bAIza[A-Za-z0-9_-]{30,}', r'Bearer\s+[A-Za-z0-9._-]{8,}',
                    r'OPENAI_KEY\s*[=:]\s*\S+', r'(?i)authorization\s*[=:]\s*\S+')
@@ -197,16 +204,16 @@ MAX_CLIENTS = 4  # LK13-T02: 4 players (MaxPlayers of the test server)
 # native buffers, textures, LWJGL; server: much less). Rough figures, only used for the warning.
 CLIENT_NATIVE_MB, SERVER_NATIVE_MB = 1536, 768
 # Load measure (LK13-T02, docs/annexes/tests/validation/charge-protocole.md): 4 clients, 5 groups (LivingKnox.GroupCount), server
-# campaign mp-load when RST_Campaign.lua declares it, else the suite lk.load alone.
+# campaign mp-load when a campaign file declares it, else the suite lk.load alone.
 LOAD_CLIENTS, LOAD_GROUPS, LOAD_CAMPAIGN, LOAD_SUITE = 4, 5, 'mp-load', 'lk.load'
 DEFAULT_TIMEOUT, LOAD_TIMEOUT = 900, 3600   # --timeout when not given (mp-load: about 20 min of server run)
 # --load-phase-ms: Lua global RST_LK_LOADMP_PHASE_MS read by lk.loadmp (Kahlua has no os.getenv: a Lua file written
 # into the copies of the development mod of every cache of the run, never into the repository).
 LOAD_PHASE_GLOBAL, LOAD_PHASE_MIN_MS = 'RST_LK_LOADMP_PHASE_MS', 30000
-LAUNCH_GLOBALS_FILE = Path('batman_RadioSurvivorTests') / '42.21' / 'media' / 'lua' / 'shared' / 'RST' / \
+LAUNCH_GLOBALS_FILE = Path('batman_CoreAITests') / '42.21' / 'media' / 'lua' / 'shared' / 'RST' / \
     'RST_LaunchGlobals.lua'
 # Phase "modswap" (LK02-T12, lk.appearance): restart with this mod added to the mod lists of the server and clients.
-MODSWAP_MOD = ('batman_RadioSurvivorTestClothes', ROOT / 'dev' / 'batman_RadioSurvivorTestClothes')
+MODSWAP_MOD = ('batman_LivingKnoxTestClothes', ROOT / 'dev' / 'batman_LivingKnoxTestClothes')
 
 
 def log(message: str) -> None:
@@ -216,16 +223,37 @@ def log(message: str) -> None:
 # ---------------------------------------------------------------- pure helpers (tests/test_autoclient.py)
 
 # E18-T14: mods left out of each setup of the Workshop item (--mods); the core mod, its requirement Signal Smoke and
-# the test mod are always in the run. Belt Walkie-Talkie (and its TooltipLib) is needed by RadioSurvivor
-# only.
-SETUP_DROPS = {'both': (), 'rs': ('batman_LivingKnox',),
-               'lk': ('batman_RadioSurvivor', 'batman_BeltRadio', 'TooltipLib')}
+# the core test mod are always in the run. Belt Walkie-Talkie (and its TooltipLib) is needed by RadioSurvivor only.
+# E21-T07: the test mod of a mod goes with it.
+SETUP_DROPS = {'both': (), 'rs': ('batman_LivingKnox', 'batman_LivingKnoxTests'),
+               'lk': ('batman_RadioSurvivor', 'batman_RadioSurvivorTests', 'batman_BeltRadio', 'TooltipLib')}
+# E21-T07: setup of a campaign when --mods is not given (a campaign of one mod runs without the other one).
+CAMPAIGN_SETUPS = {'solo-lk': 'lk', 'solo-rs': 'rs'}
 
 
 def selected_mods(setup: str = 'both') -> list[tuple[str, Path]]:
     """MODS of a setup (rs, lk, both) in load order (Signal Smoke, required by the core mod, always copied)."""
     drop = SETUP_DROPS[setup]
     return [(m, src) for m, src in MODS if m not in drop]
+
+
+def default_setup(campaign: str | None) -> str:
+    """--mods of a run that does not give it: the setup of its campaign (CAMPAIGN_SETUPS), else both."""
+    return CAMPAIGN_SETUPS.get(campaign or '', 'both')
+
+
+def test_lua_dirs(setup: str = 'both') -> list[Path]:
+    """media/lua folders of the test mods of a setup, in load order."""
+    return [src / '42.21' / 'media' / 'lua' for m, src in selected_mods(setup) if m.endswith(TEST_MOD_SUFFIX)]
+
+
+def campaign_text(setup: str = 'both') -> str:
+    """Lua of every campaign file (client/RST/RST_Campaign*.lua) of the test mods of a setup, in load order."""
+    parts = []
+    for lua in test_lua_dirs(setup):
+        for path in sorted((lua / 'client' / 'RST').glob(CAMPAIGN_GLOB)):
+            parts.append(read_text(path))
+    return '\n'.join(parts)
 
 
 def missing_mod_sources(mods: list[tuple[str, Path]]) -> list[str]:
@@ -462,11 +490,12 @@ def stage_of(action: str) -> str:
     return 'after-' + action
 
 
-def declared_suite_names(lua_dir: Path) -> set[str]:
-    """Names of every RST.suite("name", ...) declared under the Lua folder of the development mod."""
+def declared_suite_names(lua_dirs: list[Path]) -> set[str]:
+    """Names of every RST.suite("name", ...) declared under the Lua folders of the test mods."""
     names = set()
-    for path in lua_dir.rglob('*.lua'):
-        names.update(re.findall(r'RST\.suite\(\s*"([^"]+)"', read_text(path)))
+    for lua_dir in lua_dirs:
+        for path in lua_dir.rglob('*.lua'):
+            names.update(re.findall(r'RST\.suite\(\s*"([^"]+)"', read_text(path)))
     return names
 
 
@@ -668,15 +697,31 @@ def memory_need_mb(clients: int, client_xmx: str, server_xmx: str) -> tuple[int,
 
 
 def load_plan(declared_campaigns: set[str]) -> tuple[str | None, str | None, str | None]:
-    """Server run of --load: (server_campaign, server_suite, server_tags). mp-load when RST_Campaign.lua declares it,
+    """Server run of --load: (server_campaign, server_suite, server_tags). mp-load when a campaign file declares it,
     else lk.load alone (tag "server": no test save needed)."""
     if LOAD_CAMPAIGN in declared_campaigns:
         return LOAD_CAMPAIGN, None, None
     return None, LOAD_SUITE, 'server'
 
 
+# One part of a campaign in a campaign file: RST.Campaigns.add(<name or { names }>, <rank>, { entries }) (E21-T07).
+# (RST_Campaign.lua itself calls its local Campaigns.add; block comments, examples included, are left out first.)
+CAMPAIGN_PART = re.compile(r'(?:\bRST\.)?\bCampaigns\.add\(\s*(\{[^}]*\}|"[^"]*")\s*,\s*(-?\d+(?:\.\d+)?)\s*,\s*'
+                           r'\{(.*?)\n\}\)', re.S)
+
+
+def campaign_parts(lua_text: str) -> dict[str, list[tuple[float, int, list[str]]]]:
+    """name -> [(rank, order, entries)] of every RST.Campaigns.add of the campaign files (comments left out)."""
+    parts: dict[str, list[tuple[float, int, list[str]]]] = {}
+    for order, m in enumerate(CAMPAIGN_PART.finditer(re.sub(r'--\[\[.*?\]\]', '', lua_text, flags=re.S))):
+        entries = re.findall(r'"([^"]+)"', re.sub(r'--[^\n]*', '', m.group(3)))
+        for name in re.findall(r'"([^"]+)"', m.group(1)):
+            parts.setdefault(name, []).append((float(m.group(2)), order, entries))
+    return parts
+
+
 def declared_campaigns(lua_text: str) -> set[str]:
-    return set(re.findall(r'RST\.CAMPAIGNS\["([^"]+)"\]\s*=', lua_text))
+    return set(campaign_parts(lua_text))
 
 
 def java_command(game: Path, cache: Path) -> list[str]:
@@ -702,15 +747,15 @@ def latest_test_save(saves: Path) -> str | None:
 
 
 def campaign_suites(lua_text: str, name: str) -> list[str] | None:
-    """Suite names of RST.CAMPAIGNS[name] in RST_Campaign.lua; "solo" = solo-lk + solo-rs; None if unknown."""
-    if name == 'solo' and not re.search(r'RST\.CAMPAIGNS\["solo"\]', lua_text):
-        parts = [campaign_suites(lua_text, n) for n in ('solo-lk', 'solo-rs')]
-        return None if None in parts else parts[0] + parts[1]
-    m = re.search(r'RST\.CAMPAIGNS\["' + re.escape(name) + r'"\]\s*=\s*\{(.*?)\n\}', lua_text, re.S)
-    if not m:
+    """Entries of RST.CAMPAIGNS[name] as RST_Campaign.lua merges them: parts sorted by rank then order, an entry
+    already listed not repeated; None if no part names the campaign."""
+    parts = campaign_parts(lua_text).get(name)
+    if not parts:
         return None
-    body = re.sub(r'--[^\n]*', '', m.group(1))
-    return re.findall(r'"([^"]+)"', body)
+    out: list[str] = []
+    for _, _, entries in sorted(parts, key=lambda p: (p[0], p[1])):
+        out += [e for e in entries if e not in out]
+    return out
 
 
 def needs_bridge(campaign: str | None, suites: list[str] | None, lua_text: str = '') -> bool:
@@ -1263,9 +1308,10 @@ def main(argv=None) -> int:
 
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    p.add_argument('--mods', choices=('rs', 'lk', 'both'), default='both',
+    p.add_argument('--mods', choices=('rs', 'lk', 'both'), default=None,
                    help='E18-T14: mods of the Workshop item in the run: rs = RadioSurvivor alone, lk = Living Knox alone,'
-                        ' both (default); the core mod and the test mod always (suites of an absent mod are SKIP)')
+                        ' both; the core mod and its test mod always (suites of an absent mod are SKIP). Default '
+                        '(E21-T07): lk for --campaign solo-lk, rs for --campaign solo-rs, both otherwise')
     what = p.add_mutually_exclusive_group()
     what.add_argument('--campaign', help='RST.campaign(name), e.g. solo-rs')
     what.add_argument('--suite', help='RST.run({ suite = {...} }): comma-separated suite names or prefixes')
@@ -1313,7 +1359,7 @@ def build_parser() -> argparse.ArgumentParser:
                     help='sandbox option LivingKnox.Debug of the new test world: DEBUG lines of Living Knox everywhere')
     mp.add_argument('--load', action='store_true',
                     help=f'LK13-T02 load campaign: {LOAD_CLIENTS} clients, {LOAD_GROUPS} groups, server campaign '
-                         f'{LOAD_CAMPAIGN} when RST_Campaign.lua declares it, else --server-suite {LOAD_SUITE} '
+                         f'{LOAD_CAMPAIGN} when a campaign file declares it, else --server-suite {LOAD_SUITE} '
                          '--server-tags server (explicit --clients/--group-count/--server-* options win)')
     srv = mp.add_mutually_exclusive_group()
     srv.add_argument('--server-suite', help='client 1 asks RST.server({ suite = {...} }) (comma-separated)')
@@ -1340,7 +1386,7 @@ def build_parser() -> argparse.ArgumentParser:
                                      '--server-suite/--server-campaign then name BASES B run as B.before, '
                                      'B.after-reconnect, B.after-reconnect2, B.after-restart (e.g. --server-campaign '
                                      'mp-persist); "modswap" alone (LK02-T12): the same suites before and after a '
-                                     'restart with batman_RadioSurvivorTestClothes added to the mods of the server and '
+                                     'restart with batman_LivingKnoxTestClothes added to the mods of the server and '
                                      'clients (e.g. --server-suite lk.appearance)')
     mp.add_argument('--restart-pause', type=int, default=120,
                     help='with --phases restart: seconds the server stays down before its relaunch (default 120: rs.identity checks that a mission clock does not run while the server is down, margin RESTART_MARGIN_MS = 120 s)')
@@ -1353,12 +1399,14 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def parse_args(argv=None) -> argparse.Namespace:
-    return build_parser().parse_args(argv)
+    args = build_parser().parse_args(argv)
+    if args.mods is None:
+        args.mods = default_setup(args.campaign or args.server_campaign)
+    return args
 
 
 def _main(argv=None) -> int:
-    p = build_parser()
-    args = p.parse_args(argv)
+    args = parse_args(argv)
     if args.timeout is None:
         args.timeout = LOAD_TIMEOUT if args.load else DEFAULT_TIMEOUT
     if args.load_phase_ms is not None and not args.mp:
@@ -1383,7 +1431,7 @@ def _main(argv=None) -> int:
         log('ERROR: --tags and --exclude go with --suite only')
         return 2
     if args.shard:
-        error = apply_shard(args, read_text(CAMPAIGN_FILE))
+        error = apply_shard(args, campaign_text(getattr(args, 'mods', 'both')))
         if error:
             log('ERROR: ' + error)
             return 2
@@ -1412,7 +1460,7 @@ def _main(argv=None) -> int:
     build_cache(cache, save, args.mode, command, mods, calm=not args.ambient_zombies)
     cmd = java_command(GAME, cache)
     use_bridge = args.bridge in ('on', 'offline') or (args.bridge == 'auto' and needs_bridge(
-        args.campaign, suites, read_text(CAMPAIGN_FILE) if args.campaign else ''))
+        args.campaign, suites, campaign_text(getattr(args, 'mods', 'both')) if args.campaign else ''))
     bcmd = bridge_command(sys.executable, BRIDGE_SCRIPT, cache / EXCHANGE_DIR, args.bridge == 'offline') \
         if use_bridge else None
     if args.dry_run:
@@ -1679,7 +1727,7 @@ def apply_shard(args, lua_text: str, runs: Path | None = None) -> str | None:
         return '--shard: mp-persist is a list of phase bases, never split'
     entries = campaign_suites(lua_text, name)
     if not entries:
-        return f'unknown or empty campaign {name!r} in {CAMPAIGN_FILE.name}'
+        return f'unknown or empty campaign {name!r} in the campaign files of the test mods'
     part = shard_entries(entries, k, n, report_durations(runs if runs is not None else RUNS))
     if not part:
         return f'shard {k}/{n} of {name} is empty ({len(entries)} entries)'
@@ -1695,7 +1743,8 @@ def apply_shard(args, lua_text: str, runs: Path | None = None) -> str | None:
 
 def main_mp(args) -> int:
     started = time.monotonic()
-    lua_text = read_text(CAMPAIGN_FILE)
+    setup = getattr(args, 'mods', 'both')
+    lua_text = campaign_text(setup)
     error = apply_load_preset(args, lua_text)
     if error:
         log('ERROR: ' + error)
@@ -1731,13 +1780,13 @@ def main_mp(args) -> int:
             return 2
         bases = server_suites or campaign_suites(lua_text, args.server_campaign or '')
         if bases is None:
-            log(f'ERROR: unknown campaign {args.server_campaign!r} in {CAMPAIGN_FILE.name}')
+            log(f'ERROR: unknown campaign {args.server_campaign!r} in the campaign files of the test mods')
             return 2
         if any(kept_clients(a) for a in phases) and args.clients < 2:
             log('ERROR: --phases reconnect2 needs --clients 2 (client 2 reconnects while client 1 stays)')
             return 2
         try:
-            steps = phase_plan(bases, phases, declared_suite_names(CAMPAIGN_FILE.parents[2]))
+            steps = phase_plan(bases, phases, declared_suite_names(test_lua_dirs(setup)))
         except ValueError as e:
             log(f'ERROR: --phases: {e}')
             return 2

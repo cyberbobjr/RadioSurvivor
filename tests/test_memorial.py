@@ -25,6 +25,7 @@ MEMORIAL = en('IGUI_RS_Bulletin_Memorial')
 # Helpers of the bulletin bench without its tests.
 Base = type('Base', (unittest.TestCase,),
             {k: v for k, v in tb.BulletinTests.__dict__.items() if not k.startswith('test_')})
+from harness import tests_lua  # noqa: E402  (E21-T07: media/lua of the test mods)
 
 
 class MemorialTests(Base):
@@ -135,10 +136,10 @@ class MemorialTests(Base):
         self.boot(sim)
         sim.server.g.WORLD_HOURS = 50
         self.sim, self.g, self.rt = sim, sim.server.g, sim.server.rt
-        tests_lua = tb.ROOT / 'dev/batman_RadioSurvivorTests/42.21/media/lua/shared'
-        self.rt.execute(f'package.path = [[{tests_lua.as_posix()}/?.lua;]] .. package.path')
+        shared = tests_lua() / 'shared'
+        self.rt.execute(f'package.path = [[{shared.as_posix()}/?.lua;]] .. package.path')
         self.rt.execute('local base = getWorld; getWorld = function() return base() end')
-        self.rt.execute((tests_lua / 'RST/suites/RS_Facts.lua').read_text(encoding='utf-8'))
+        self.rt.execute((shared / 'RST/suites/RS_Facts.lua').read_text(encoding='utf-8'))
         RST = self.g.RST
         self.assertTrue(RST.start('rs.facts', self.rt.table_from({'attach': False})))
         for _ in range(100):
