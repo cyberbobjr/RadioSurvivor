@@ -848,7 +848,7 @@ FAKE_GAME = r"""
 DEBUG = true
 isDebugEnabled = function() return DEBUG end
 getCore = function() return { getVersion = function(self) return "42.21.0 abcdef1234" end } end
-MODS = { "batman_RadioSurvivorCore", "batman_LivingKnox", "batman_RadioSurvivor", "batman_RadioSurvivorTests" }
+MODS = { "batman_CoreAI", "batman_LivingKnox", "batman_RadioSurvivor", "batman_RadioSurvivorTests" }
 getActivatedMods = function()
     return { size = function(self) return #MODS end, get = function(self, i) return MODS[i + 1] end }
 end
@@ -993,7 +993,7 @@ class ClientTests(LuaHarness):
         self.assertIn('side: solo', text)
         self.assertIn('save: rstest-solo', text)
         self.assertIn('filter: "rst" -> {exclude={"server", "world"}, suite="rst"}', text)
-        self.assertIn('active mods (4): batman_RadioSurvivorCore;batman_LivingKnox;batman_RadioSurvivor;'
+        self.assertIn('active mods (4): batman_CoreAI;batman_LivingKnox;batman_RadioSurvivor;'
                       'batman_RadioSurvivorTests', text)
         self.assertTrue(any(re.match(r'^date \(UTC\): \d{8}-\d{6}$', line) for line in text))
         self.assertTrue(any(line.startswith('PASS   rst.selftest :: sleep 2 s measured by RST.now') for line in text))
@@ -1818,7 +1818,7 @@ class ModInfoTests(unittest.TestCase):
         info = dict(line.split('=', 1) for line in (MOD / '42.21' / 'mod.info').read_text(encoding='utf-8').splitlines()
                     if '=' in line)
         self.assertEqual(info['id'], 'batman_RadioSurvivorTests')
-        self.assertEqual(info['require'], '\\batman_RadioSurvivorCore')   # E18-T14: the other mods are detected
+        self.assertEqual(info['require'], '\\batman_CoreAI')   # E18-T14: the other mods are detected
         self.assertEqual(info['versionMin'], '42.21')
         self.assertIn('never publish', info['description'])
         self.assertTrue((MOD / 'common').is_dir())
@@ -3056,7 +3056,7 @@ class ModsGuardTests(AsyncHarness):
     RST.suite("rs.mixed", { tags = { "shared" }, mods = { "rs", "lk" } }, function(s)
         s.test("a", function(t) RAN.mixed = true; t:ok(true) end)
     end)
-    RST.suite("rc.x", { tags = { "shared" } }, function(s) s.test("a", function(t) RAN.rc = true; t:ok(true) end) end)
+    RST.suite("ca.x", { tags = { "shared" } }, function(s) s.test("a", function(t) RAN.rc = true; t:ok(true) end) end)
     '''
 
     def mods(self, *ids):
@@ -3066,10 +3066,10 @@ class ModsGuardTests(AsyncHarness):
 
     def test_suites_of_an_absent_mod_are_skipped(self):
         self.lua(self.SUITES)
-        self.mods('batman_RadioSurvivorCore', '\\batman_LivingKnox')   # leading "\" of some B42 lists
+        self.mods('batman_CoreAI', '\\batman_LivingKnox')   # leading "\" of some B42 lists
         self.lua('RAN = {}; REPORT = RST.runSync()')
         self.assertEqual(self.status('lk.x', 'a')[0], 'PASS')
-        self.assertEqual(self.status('rc.x', 'a')[0], 'PASS')
+        self.assertEqual(self.status('ca.x', 'a')[0], 'PASS')
         self.assertEqual(self.status('rs.x', 'a'), ('SKIP', 'needs mod(s) batman_RadioSurvivor (not active)'))
         self.assertEqual(self.status('rs.mixed', 'a'), ('SKIP', 'needs mod(s) batman_RadioSurvivor (not active)'))
         self.assertIsNone(self.g.RAN.rs)
@@ -3078,9 +3078,9 @@ class ModsGuardTests(AsyncHarness):
 
     def test_both_mods_run_everything(self):
         self.lua(self.SUITES)
-        self.mods('batman_RadioSurvivorCore', 'batman_LivingKnox', 'batman_RadioSurvivor')
+        self.mods('batman_CoreAI', 'batman_LivingKnox', 'batman_RadioSurvivor')
         self.lua('RAN = {}; REPORT = RST.runSync()')
-        self.assertEqual({self.status(s, 'a')[0] for s in ('lk.x', 'rs.x', 'rs.mixed', 'rc.x')}, {'PASS'})
+        self.assertEqual({self.status(s, 'a')[0] for s in ('lk.x', 'rs.x', 'rs.mixed', 'ca.x')}, {'PASS'})
         self.assertEqual(lua_list(self.lua('return RST.suiteMods(RST._suites[3])')), ['rs', 'lk'])
 
     def test_outside_the_game_every_mod_counts_as_active(self):

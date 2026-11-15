@@ -98,7 +98,7 @@ class Bench(unittest.TestCase):
         return lua_list(self.h.eval(client, f'texts({khz})'))
 
     def record(self, cid):
-        return py(self.h.eval('server', f'require("RadioSurvivorCore/RC_History").radio("{cid}")'))
+        return py(self.h.eval('server', f'require("CoreAI/CA_History").radio("{cid}")'))
 
 
 class LogTests(Bench):
@@ -152,7 +152,7 @@ class LogTests(Bench):
             restart.load('server', SERVER_SETUP)
             restart.load('A', CLIENT_SETUP)
             restart.load('server', "bind('A', 'char-a')")
-            lines = py(restart.eval('server', 'require("RadioSurvivorCore/RC_History").radio("char-a").frequencies[1].lines'))
+            lines = py(restart.eval('server', 'require("CoreAI/CA_History").radio("char-a").frequencies[1].lines'))
             self.assertEqual([(l['kind'], l['text']) for l in lines.values()],
                              [('said', 'Anyone?'), ('reply', 'Walt here.')])
             restart.load('A', 'History.request()')
@@ -476,7 +476,7 @@ class IntegrationTests(unittest.TestCase):
         state = sim.state()
         alice_id, bob_id = sim.character('alice'), sim.character('bob')
         self.assertNotEqual(alice_id, bob_id)
-        self.assertEqual(sim.server.rt.eval("require('RadioSurvivorCore/RC_History')").radio(bob_id).frequencies[1].lines[1].kind, 'heard')
+        self.assertEqual(sim.server.rt.eval("require('CoreAI/CA_History')").radio(bob_id).frequencies[1].lines[1].kind, 'heard')
         self.assertTrue(alice.rt.eval('History.unread'))
         self.assertTrue(sim.server.g.RS_CarnetServer.store.save())
 
@@ -488,7 +488,7 @@ class IntegrationTests(unittest.TestCase):
         self.assertEqual(self.texts(alice2), ['said:Walt, are you there?', 'reply:Walt here, loud and clear.'])
 
         restart.server.g.RS_CarnetServer.characterDeath(restart.server.g.PLAYERS['alice'])
-        self.assertIsNone(restart.server.rt.eval("require('RadioSurvivorCore/RC_History')").radio(alice_id))
+        self.assertIsNone(restart.server.rt.eval("require('CoreAI/CA_History')").radio(alice_id))
 
     def test_silence_on_a_frequency_without_voice_is_still_said(self):
         sim = self.simulation(self.tmp / 'silence')
@@ -724,9 +724,9 @@ class IntegrationTests(unittest.TestCase):
                     self.assertLessEqual(window.sendRadio.x + window.sendRadio.width, geo.paperRight)
                 tiled = self.draws(alice, 'tiled', window)
                 self.assertEqual(len(tiled), 2 if textures else 0, 'paper and binding tiled only when present')
-            mine = [a for a in alice.g.TEXTURES_ASKED.values() if 'RadioSurvivor' in a]
+            mine = [a for a in alice.g.TEXTURES_ASKED.values() if 'CoreAI' in a]
             self.assertEqual(len(mine), 5)
-            self.assertTrue(all('/RC_Notebook_' in a for a in mine), mine)
+            self.assertTrue(all('/CA_Notebook_' in a for a in mine), mine)
 
     def check_scrolling_and_widths(self, c, window, label):
         """One frame (Java update, then render), then: no vanilla scroll bar, texts inside what the player sees, the
@@ -867,7 +867,7 @@ class VoiceKnownTests(unittest.TestCase):
                          '19:00-22:00, 23:00-03:00')
         # Kept by the private state (restart).
         cid = self.sim.character('alice')
-        self.assertEqual(self.sim.server.rt.eval("require('RadioSurvivorCore/RC_History')").radio(cid).frequencies[1].voice, 'walt')
+        self.assertEqual(self.sim.server.rt.eval("require('CoreAI/CA_History')").radio(cid).frequencies[1].voice, 'walt')
 
     def test_heard_voice_line_tells_the_voice_a_player_line_does_not(self):
         self.assertTrue(self.alice.rt.eval("Talk.send(getPlayer(), getPlayer().radio, 'Anyone here?')"))
@@ -1019,7 +1019,7 @@ class SoloScenarioTests(unittest.TestCase):
         characters = self.characters()
         self.assertEqual(len(characters), 1, 'no notebook character after the first hello (empty args -> nil)')
         cid = next(iter(characters))
-        self.assertEqual(self.player.md.RS_CarnetCharacter, cid)
+        self.assertEqual(self.player.md.CA_Character, cid)
 
         # Notebook never opened: talk with Walt, he answers.
         self.assertTrue(self.g.Talk.send(self.player, self.player.radio, 'Walt, are you there?'))
@@ -1055,7 +1055,7 @@ class SoloScenarioTests(unittest.TestCase):
         self.assertTrue(self.g.RS_CarnetServer.store.save())
 
         # Reload: same character (player modData saved with the player), history read again.
-        saved = {'RS_CarnetCharacter': self.player.md.RS_CarnetCharacter}
+        saved = {'CA_Character': self.player.md.CA_Character}
         self.boot(False, saved)
         self.assertEqual(list(self.characters()), [cid])
         self.assertEqual(self.g.RS_CarnetClient.character, cid)

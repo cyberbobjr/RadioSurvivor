@@ -46,7 +46,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 MAIN_MOD = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivor'
 # Shared core mod (E18), required by RadioSurvivor: checked alone, then as a dependency.
-CORE_MOD = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivorCore'
+CORE_MOD = ROOT / 'Contents' / 'mods' / 'batman_CoreAI'
 # NPC engine (E18-T07), requires the core mod; RadioSurvivor works with or without it (E18-T09).
 LK_MOD = ROOT / 'Contents' / 'mods' / 'batman_LivingKnox'
 DEV_MOD = ROOT / 'dev' / 'batman_RadioSurvivorTests'

@@ -65,8 +65,8 @@ RST.suite("lk.chatter", { tags = { "world", "server" }, testTimeoutMs = 240000, 
             -- Why no chatter opens yet (printed every 5 s, the failure case too).
             local function diagnose()
                 local I = require "LivingKnox/LK_Initiatives"
-                local Speech = require "RadioSurvivorCore/RC_SpeechConfig"
-                local T = require "RadioSurvivorCore/RC_Transport"
+                local Speech = require "CoreAI/CA_SpeechConfig"
+                local T = require "CoreAI/CA_Transport"
                 local Talk, now = H.talk, getTimestampMs()
                 local calls, mine = 0, 0
                 for _, at in ipairs(Talk.times or {}) do if now - at < 3600000 then calls = calls + 1 end end
@@ -89,7 +89,7 @@ RST.suite("lk.chatter", { tags = { "world", "server" }, testTimeoutMs = 240000, 
                     tostring(ba and bb and H.P.near(ba, bb, Ch.CFG.RANGE)),
                     ba and bb and math.sqrt((ba:getX() - bb:getX()) ^ 2 + (ba:getY() - bb:getY()) ^ 2) or -1,
                     tostring(ra and ra.group), tostring(rb and rb.group), tostring(topic and topic.subject),
-                    tostring((require "RadioSurvivorCore/RC_WorldFacts").hour()), ticks)
+                    tostring((require "CoreAI/CA_WorldFacts").hour()), ticks)
                 print(string.format("[RST] lk.chatter waiting: level %d, bridge down %s, canSpeak %s, pending %d/%d, "
                     .. "calls %d/%d, conversation lines %d, acks %d, last %s; %s", I.level(), tostring(I.bridge.down),
                     tostring(V.canSpeak(Talk, now)), #Talk.pending, Speech.MAX_PENDING, calls, Speech.MAX_PER_HOUR,

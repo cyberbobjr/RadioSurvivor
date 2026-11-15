@@ -59,8 +59,8 @@ python radio_bridge.py
 Le bandeau affiche la configuration effective (la clé reste masquée), puis `Bridge ready, model …, directory …` et
 `Waiting for game requests (Ctrl+C to stop)`. Chargez votre partie ; l'ordre (jeu ou pont d'abord) est indifférent.
 
-- Dossier d'échange par défaut : `%USERPROFILE%\Zomboid\Lua\batman_RadioSurvivorCore` (le pont le crée au besoin). Si
-  vous lancez le jeu avec `-cachedir=X`, ajoutez `--exchange "X\Lua\batman_RadioSurvivorCore"`.
+- Dossier d'échange par défaut : `%USERPROFILE%\Zomboid\Lua\batman_CoreAI` (le pont le crée au besoin). Si
+  vous lancez le jeu avec `-cachedir=X`, ajoutez `--exchange "X\Lua\batman_CoreAI"`.
 - Tant qu'il tourne, le pont rafraîchit `bridge-alive.txt` dans ce dossier toutes les 5 s ; le jeu attend alors
   jusqu'à 150 s une réponse lente au lieu de passer au secours après 90 s.
 - Arrêt par **Ctrl+C** (`Bridge stopped`).

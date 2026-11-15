@@ -1,14 +1,14 @@
 ﻿"""Closed mission rewards, private delivery and write-ahead boundaries (E11), drawn at random since E20-T04.
 
 Real RS_Rewards (draw engine), real reward kinds of server/RadioSurvivor/Rewards/ (one file per kind, loaded as the
-game loads them), real RS_Persona and real RC_Caches; game doubles for the rest.
+game loads them), real RS_Persona and real CA_Caches; game doubles for the rest.
 """
 from pathlib import Path
 import unittest
 from lupa.lua51 import LuaRuntime
 ROOT=Path(__file__).resolve().parents[1]
 SERVER=ROOT/'Contents/mods/batman_RadioSurvivor/42.21/media/lua/server/RadioSurvivor'
-CORE_SERVER=ROOT/'Contents/mods/batman_RadioSurvivorCore/42.21/media/lua/server/RadioSurvivorCore'
+CORE_SERVER=ROOT/'Contents/mods/batman_CoreAI/42.21/media/lua/server/CoreAI'
 MODULE=SERVER/'RS_Rewards.lua'
 KINDS_DIR=SERVER/'Rewards'
 
@@ -33,7 +33,7 @@ def runtime():
     g=lua.globals()
     g.PARAMS_LUA=str(SERVER/'RS_PersonaParams.lua')
     g.PERSONA_LUA=str(SERVER/'RS_Persona.lua')
-    g.CACHES_LUA=str(CORE_SERVER/'RC_Caches.lua')
+    g.CACHES_LUA=str(CORE_SERVER/'CA_Caches.lua')
     g.CATEGORIES_LUA=str(SERVER/'RS_Categories.lua')
     g.next=None  # absent from Kahlua
     lua.execute(SEEDED)
@@ -62,8 +62,8 @@ def runtime():
     function getWorld() return {getMetaGrid=function() return {getRoomAt=function() return {
       getBuilding=function() return {isHasBeenVisited=function() return visited end} end} end} end} end
     voices={silent={state='silent'},dead={state='dead'},cody={state='active',name='Cody'}}
-    modules={['RadioSurvivor/RS_Config']=cfg,['RadioSurvivorCore/RC_Reputation']={today=function() return day end},
-      ['RadioSurvivorCore/RC_MissionConfig']=missionCfg,['RadioSurvivorCore/RC_Missions']={},
+    modules={['RadioSurvivor/RS_Config']=cfg,['CoreAI/CA_Reputation']={today=function() return day end},
+      ['CoreAI/CA_MissionConfig']=missionCfg,['CoreAI/CA_Missions']={},
       ['RadioSurvivor/RS_Personas']={get=function(id) return voices[id] end,served=function(id) return {88000} end,
         ids=function() return {'silent','cody'} end,rules=function() return {categories=catalogue} end},
       ['RadioSurvivor/RS_GroupRadio']={voiceId=function() return 'grp_1' end},
@@ -75,8 +75,8 @@ def runtime():
     modules['RadioSurvivor/RS_Persona']=dofile(PERSONA_LUA)
     modules['RadioSurvivor/RS_Categories']=dofile(CATEGORIES_LUA)  -- E20-T16: real resolver of the categories
     -- Real caches of the core mod; placement in the world is the double (counted).
-    modules['RadioSurvivorCore/RC_Caches']=dofile(CACHES_LUA)
-    modules['RadioSurvivorCore/RC_Caches'].place=function() placed=placed+1;return true end
+    modules['CoreAI/CA_Caches']=dofile(CACHES_LUA)
+    modules['CoreAI/CA_Caches'].place=function() placed=placed+1;return true end
     store={data={},save=function() saves=saves+1;return saveOK end}
     source={id='darlene',rewards={{kind='cache',param='medical',weight=1},{kind='frequency',weight=1},
         {kind='stashmap',weight=1},{kind='lesson',param='Doctor',weight=1}},

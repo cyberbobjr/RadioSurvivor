@@ -1,4 +1,4 @@
-"""Server guards against a modified client (review points C21, C22, C31): RC_RateLimit.lua (per-account token
+"""Server guards against a modified client (review points C21, C22, C31): CA_RateLimit.lua (per-account token
 buckets of client commands) and RadioSurvivor_Const.oneLine (linear trim).
 
     python RadioSurvivor/tests/test_server_guards.py
@@ -17,7 +17,7 @@ import lupa.lua51 as lupa
 
 ROOT = Path(__file__).resolve().parents[1]
 LUA = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivor' / '42.21' / 'media' / 'lua'
-CORE_LUA = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivorCore' / '42.21' / 'media' / 'lua'  # mod commun (E18)
+CORE_LUA = ROOT / 'Contents' / 'mods' / 'batman_CoreAI' / '42.21' / 'media' / 'lua'  # mod commun (E18)
 
 
 def runtime(server=True):
@@ -38,7 +38,7 @@ def load(rt, rel, root=None):
 class RateLimitTests(unittest.TestCase):
     def setUp(self):
         self.rt = runtime()
-        self.rt.globals().RL = load(self.rt, 'shared/RadioSurvivorCore/RC_RateLimit.lua', CORE_LUA)
+        self.rt.globals().RL = load(self.rt, 'shared/CoreAI/CA_RateLimit.lua', CORE_LUA)
 
     def allow(self, name='A', key='k', cap=3, rate=0.5):
         return self.rt.eval(f'RL.allow(PLAYER("{name}"), "{key}", {cap}, {rate})')
@@ -83,7 +83,7 @@ class RateLimitTests(unittest.TestCase):
 
     def test_solo_is_never_limited(self):
         rt = runtime(server=False)
-        rt.globals().RL = load(rt, 'shared/RadioSurvivorCore/RC_RateLimit.lua', CORE_LUA)
+        rt.globals().RL = load(rt, 'shared/CoreAI/CA_RateLimit.lua', CORE_LUA)
         self.assertTrue(all(rt.eval('RL.allow(PLAYER("A"), "k", 1, 0)') for _ in range(100)))
 
 

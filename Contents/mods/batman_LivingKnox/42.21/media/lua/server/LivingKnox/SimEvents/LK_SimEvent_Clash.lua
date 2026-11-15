@@ -1,7 +1,7 @@
 -- Living Knox : événement de groupe « clash » de la simulation hors écran (LK09-T05, I9.1 ; un fichier par événement,
 -- LK16-T09). Fiche : docs/annexes/conception/simulation.md. Ordre du tirage 50 (le dernier).
 -- Combat abstrait entre un groupe d'un type ATTACKERS et un groupe d'un autre type, foyers connus proches l'un de
--- l'autre et loin des bases connues des joueurs (RC_Sites.knownBases, lue une fois par pas) ; morts consignés avec un
+-- l'autre et loin des bases connues des joueurs (CA_Sites.knownBases, lue une fois par pas) ; morts consignés avec un
 -- lieu approximatif (entrée remains), aucun cadavre posé dans le monde. La cible compte comme ayant eu son événement
 -- du jour ; un groupe matérialisé n'est la cible d'aucun combat.
 if isClient() then return end
@@ -18,7 +18,7 @@ local function signed(v)
     return tostring(v)
 end
 
--- Écart entre le foyer (case) et une base (rectangle à fin exclusive), même mesure que RC_Sites.gap.
+-- Écart entre le foyer (case) et une base (rectangle à fin exclusive), même mesure que CA_Sites.gap.
 local function baseGap(home, b)
     local gx = math.max(0, b.x1 - (home.x + 1), home.x - b.x2)
     local gy = math.max(0, b.y1 - (home.y + 1), home.y - b.y2)

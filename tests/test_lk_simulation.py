@@ -34,7 +34,7 @@ getWorld = function()
 end
 '''
 
-CANON = ('require("RadioSurvivorCore/RC_Codec").hexBytes(require("RadioSurvivorCore/RC_Codec").encodeBytes('
+CANON = ('require("CoreAI/CA_Codec").hexBytes(require("CoreAI/CA_Codec").encodeBytes('
          'LivingKnox.Groups.state.data))')
 SIM = 'LivingKnox.Simulation'
 G = 'LivingKnox.Groups'
@@ -191,7 +191,7 @@ class ReproducibilityTests(Base):
         self.assertIsNotNone(start)
         script = (f'local d = {G}.copy(_SNAP) LivingKnox.Config.SIMULATION.SEED = %s '
                   f'{SIM}.advance(d, d.simHour + 48) LivingKnox.Config.SIMULATION.SEED = nil '
-                  'return require("RadioSurvivorCore/RC_Codec").hexBytes(require("RadioSurvivorCore/RC_Codec").encodeBytes(d))')
+                  'return require("CoreAI/CA_Codec").hexBytes(require("CoreAI/CA_Codec").encodeBytes(d))')
         self.run_lua(f'_SNAP = {G}.copy({G}.state.data)')
         r1, r1b, r2 = (self.run_lua(script % s) for s in ('1234', '1234', '98765'))
         self.assertEqual(r1, r1b)
@@ -212,8 +212,8 @@ class CatchUpTests(Base):
         # Les 72 heures simulées sont les plus récentes : même résultat qu'un registre parti de now - 72.
         expected = self.run_lua(f'local d = {G}.copy(_SNAP) d.simHour = {now - 72} {SIM}.advance(d, {now}, nil, '
                                 'LivingKnox.Needs.advanceGroup) '
-                                'return require("RadioSurvivorCore/RC_Codec").hexBytes('
-                                'require("RadioSurvivorCore/RC_Codec").encodeBytes(d))')
+                                'return require("CoreAI/CA_Codec").hexBytes('
+                                'require("CoreAI/CA_Codec").encodeBytes(d))')
         self.assertEqual(self.ev(CANON), expected)
         # Configurable.
         self.run_lua('LivingKnox.Config.SIMULATION.MAX_CATCHUP_HOURS = 3')
@@ -354,10 +354,10 @@ class RulesTests(Base):
     def test_dead_group_is_untouched(self):
         self.group([('worker', None)])
         self.run_lua(f'{G}.state.data.groups["grp-1"].members["m-1"].alive = false {G}.state.data.simHour = 0')
-        before = self.run_lua('return require("RadioSurvivorCore/RC_Codec").hexBytes(require("RadioSurvivorCore/RC_Codec")'
+        before = self.run_lua('return require("CoreAI/CA_Codec").hexBytes(require("CoreAI/CA_Codec")'
                               f'.encodeBytes({G}.state.data.groups["grp-1"]))')
         self.run_lua(f'{SIM}.advance({G}.state.data, 50)')
-        after = self.run_lua('return require("RadioSurvivorCore/RC_Codec").hexBytes(require("RadioSurvivorCore/RC_Codec")'
+        after = self.run_lua('return require("CoreAI/CA_Codec").hexBytes(require("CoreAI/CA_Codec")'
                              f'.encodeBytes({G}.state.data.groups["grp-1"]))')
         self.assertEqual(before, after)
 
@@ -1122,7 +1122,7 @@ class EventTests(EventWorld):
             _SNAP = {G}.copy({G}.state.data)
         ''')
         out = self.run_lua(f'''
-            local C = require("RadioSurvivorCore/RC_Codec")
+            local C = require("CoreAI/CA_Codec")
             local a, b, c = {G}.copy(_SNAP), {G}.copy(_SNAP), {G}.copy(_SNAP)
             local clashes, append = 0, {G}.appendLog
             {G}.appendLog = function(g, kind, text, day)
@@ -1163,7 +1163,7 @@ class EventTests(EventWorld):
         self.assertIsNone(self.ev(f'{SIM}.eventSettings()'))
 
     def test_step_reads_the_known_bases(self):
-        self.run_lua(f'_KB = 0 local R = require("RadioSurvivorCore/RC_Sites") local kb = R.knownBases '
+        self.run_lua(f'_KB = 0 local R = require("CoreAI/CA_Sites") local kb = R.knownBases '
                      'R.knownBases = function(o) _KB = _KB + 1 return kb(o) end')
         self.setup_world()
         self.h.skip(3 * 60)

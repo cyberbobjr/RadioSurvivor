@@ -3,7 +3,7 @@
 Each mod pays its missions: the lot of a Living Knox NPC is Living Knox's (household surplus, else the announced lot,
 else the created lot), alone or with RadioSurvivor. With both mods the "npc" giver of RadioSurvivor (RS_MissionHooks)
 delegates the claim of an engine NPC fiche to the reward source Living Knox registers in the core engine
-(RC_Missions.registerNpcReward).
+(CA_Missions.registerNpcReward).
 """
 from pathlib import Path
 import unittest
@@ -26,8 +26,8 @@ class AloneRewardTests(unittest.TestCase):
         registered=nil
         missions={registerNpcReward=function(source) registered=source end}
         function require(name)
-          if name=='RadioSurvivorCore/RC_MissionConfig' then return config end
-          if name=='RadioSurvivorCore/RC_Missions' then return missions end
+          if name=='CoreAI/CA_MissionConfig' then return config end
+          if name=='CoreAI/CA_Missions' then return missions end
           return nil
         end
         nextId=100
@@ -143,7 +143,7 @@ function makePlayer() local added = {}
 alice, bob = makePlayer(), makePlayer()
 modules = {['RadioSurvivor/RS_NPCProvider'] = {available=function() return true end}}
 local roots = {}
-for _, mod in ipairs({'batman_RadioSurvivorCore', 'batman_RadioSurvivor', 'batman_LivingKnox'}) do
+for _, mod in ipairs({'batman_CoreAI', 'batman_RadioSurvivor', 'batman_LivingKnox'}) do
   for _, side in ipairs({'shared', 'server'}) do roots[#roots+1] = MODS .. '/' .. mod .. '/42.21/media/lua/' .. side .. '/' end
 end
 function require(name)
@@ -154,7 +154,7 @@ function require(name)
   end
   error('module not found: ' .. name)
 end
-M = require 'RadioSurvivorCore/RC_Missions'
+M = require 'CoreAI/CA_Missions'
 require 'LivingKnox/LK_MissionRewards'
 store = {data={npcs={n={id='n', incarnation='lk-1'}}, characters={a={name='Ann'}, b={name='Bob'}}},
          save=function() return true end}
@@ -198,7 +198,7 @@ class BothModsRewardTests(unittest.TestCase):
         self.lua.execute('assessment.ration = 1')
         self.assertEqual(self.g.M.projection(self.g.m, 'a').rewardTable, 'tools')
         self.assertEqual(self.claim(self.g.alice, 'a', 't'), (True, None))
-        table = self.lua.eval("require('RadioSurvivorCore/RC_MissionConfig').Caches.tables.tools")
+        table = self.lua.eval("require('CoreAI/CA_MissionConfig').Caches.tables.tools")
         expected = sorted(e[1] for e in table.values() for _ in range(e[2]))
         self.assertEqual(sorted(it.getFullType() for it in self.g.alice.added.values()), expected)
         self.assertEqual(self.g.m.createdLot, 'tools')

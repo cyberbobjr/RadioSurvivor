@@ -173,8 +173,8 @@ end
 -- Squares (same level, at most r squares away, never next to the player) where a new body may stand and be heard by
 -- the player p, nearest first.
 function R.heardSquares(p, r)
-    local P = require "RadioSurvivorCore/RC_Hearing" -- E18-T27: rule of every speech host, any mod setup
-    local C = require "RadioSurvivorCore/RC_SpeechConfig"
+    local P = require "CoreAI/CA_Hearing" -- E18-T27: rule of every speech host, any mod setup
+    local C = require "CoreAI/CA_SpeechConfig"
     local Bodies = LivingKnox and LivingKnox.Bodies
     local cell = getCell()
     local out = {}
@@ -243,8 +243,8 @@ function R.talkSquare(p, dx, r)
     local function fits(sq)
         return sq ~= nil and not blocked(ps, sq) and not blocked(sq, ps)
     end
-    local P = require "RadioSurvivorCore/RC_Hearing" -- E18-T27: rule of every speech host, any mod setup
-    local C = require "RadioSurvivorCore/RC_SpeechConfig"
+    local P = require "CoreAI/CA_Hearing" -- E18-T27: rule of every speech host, any mod setup
+    local C = require "CoreAI/CA_SpeechConfig"
     local east = cell:getGridSquare(ps:getX() + dx, ps:getY(), ps:getZ())
     if east ~= nil and Bodies.freeSquare(east) and P.hears(standIn(east), p, C.HEARING_RANGE) and fits(east) then
         return east
@@ -424,7 +424,7 @@ function R.speech(t)
     if not (LivingKnox and LivingKnox.isAuthority()) then t:skip("authority only (solo or dedicated server)") end
     local Talk = LivingKnox.Talk
     t:ok(Talk ~= nil and Talk.host ~= nil and Talk.data ~= nil, "speech of the NPCs not started (no host)")
-    local Speech = require "RadioSurvivorCore/RC_SpeechConfig"
+    local Speech = require "CoreAI/CA_SpeechConfig"
     return { talk = Talk, P = Talk.provider, alone = RS_CarnetServer == nil, HEARING = Speech.HEARING_RANGE,
         ensure = function(id) return Talk.ensure(id) end,
         objects = function() return Talk.objects() or {} end,

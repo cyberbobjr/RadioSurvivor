@@ -1,4 +1,4 @@
-"""RS_State / RC_Codec / RS_StatePurge under Lua 5.1 (lupa): codec bounds (C18), write retry (C19), purge of dead
+"""RS_State / CA_Codec / RS_StatePurge under Lua 5.1 (lupa): codec bounds (C18), write retry (C19), purge of dead
 characters (C17), fast hex and checksum (C20). Simulated file API, NOT an in-game validation.
 
     python RadioSurvivor/tests/test_rs_state.py
@@ -12,7 +12,7 @@ import lupa.lua51 as lua
 
 LUA = Path(__file__).resolve().parents[1] / 'Contents' / 'mods' / 'batman_RadioSurvivor' / '42.21' / 'media' / 'lua'
 LK_LUA = Path(__file__).resolve().parents[1] / 'Contents' / 'mods' / 'batman_LivingKnox' / '42.21' / 'media' / 'lua'  # moteur des PNJ (E18)
-CORE_LUA = Path(__file__).resolve().parents[1] / 'Contents' / 'mods' / 'batman_RadioSurvivorCore' / '42.21' / 'media' / 'lua'  # mod commun (E18)
+CORE_LUA = Path(__file__).resolve().parents[1] / 'Contents' / 'mods' / 'batman_CoreAI' / '42.21' / 'media' / 'lua'  # mod commun (E18)
 
 BOOT = r'''
 FILES, WRITE_FAIL, CORRUPT_WRITE, PRINTS, DAY = {}, false, false, {}, 10
@@ -36,9 +36,9 @@ getFileReader = function(path)
     local i = 0
     return {readLine = function() i = i + 1; return lines[i] end, close = function() end}
 end
--- RC_Reputation (E18-T22): reputation entries live in the core mod's state, Rep.data.reputation[cid].
+-- CA_Reputation (E18-T22): reputation entries live in the core mod's state, Rep.data.reputation[cid].
 REP_DATA = {}
-package.preload['RadioSurvivorCore/RC_Reputation'] = function() return {today = function() return DAY end, data = REP_DATA} end
+package.preload['CoreAI/CA_Reputation'] = function() return {today = function() return DAY end, data = REP_DATA} end
 package.preload['RadioSurvivor/RS_LifeLog'] = function() return {get = function(cid) return LIFELOG and LIFELOG[cid] end} end
 for name, src in pairs(loaders) do
     if package.preload[name] == nil then  -- the doubles above win
@@ -64,11 +64,11 @@ def runtime():
 class CodecBoundsTests(unittest.TestCase):
     def setUp(self):
         self.rt = runtime()
-        self.C = self.rt.eval("require('RadioSurvivorCore/RC_Codec')")
+        self.C = self.rt.eval("require('CoreAI/CA_Codec')")
 
     def test_encoder_refuses_what_the_decoder_refuses(self):
         ok, why = self.rt.execute('''
-            local C = require('RadioSurvivorCore/RC_Codec')
+            local C = require('CoreAI/CA_Codec')
             C.MAX_NODES = 50
             local t = {}
             for i = 1, 30 do t[i] = i end           -- 1 + 60 nodes
@@ -79,7 +79,7 @@ class CodecBoundsTests(unittest.TestCase):
         self.assertIn('complexity', why)
         # Exactly at the limit: encoded and decoded.
         self.assertTrue(self.rt.execute('''
-            local C = require('RadioSurvivorCore/RC_Codec')
+            local C = require('CoreAI/CA_Codec')
             C.MAX_NODES = 61
             local t = {}
             for i = 1, 30 do t[i] = i end
@@ -87,7 +87,7 @@ class CodecBoundsTests(unittest.TestCase):
         '''))
         # Same counting with cached keys (the same key in several tables) and with the decoder.
         self.assertTrue(self.rt.execute('''
-            local C = require('RadioSurvivorCore/RC_Codec')
+            local C = require('CoreAI/CA_Codec')
             C.MAX_NODES = 200000
             local t = {}
             for i = 1, 20 do t['k' .. i] = {name = 'x', id = i} end
@@ -102,12 +102,12 @@ class CodecBoundsTests(unittest.TestCase):
                         'return {x = 0/0}', 'return {x = 1/0}',
                         'local t = {} local c = t for i = 1, 13 do c[1] = {} c = c[1] end return t'):
             value = self.rt.execute(snippet)
-            ok = self.rt.eval('function(v) return (pcall(require("RadioSurvivorCore/RC_Codec").encodeBytes, v)) end')(value)
+            ok = self.rt.eval('function(v) return (pcall(require("CoreAI/CA_Codec").encodeBytes, v)) end')(value)
             self.assertFalse(ok, snippet)
 
     def test_fast_hex_and_checksum_match_the_historical_ones(self):
         same = self.rt.execute(r'''
-            local C = require('RadioSurvivorCore/RC_Codec')
+            local C = require('CoreAI/CA_Codec')
             local function oldSum(s)
                 local a, b = 1, 0
                 for i = 1, #s do a = (a + s:byte(i)) % 65521; b = (b + a) % 65521 end
@@ -172,7 +172,7 @@ class StateTests(unittest.TestCase):
         S = self.S
         self.assertTrue(S.init(False))
         good = self.files()
-        C = self.rt.eval("require('RadioSurvivorCore/RC_Codec')")
+        C = self.rt.eval("require('CoreAI/CA_Codec')")
         C.MAX_NODES = 200
         # Exchange histories live in the core mod (E18-T11) and are not encoded in the notebook file: the bulk that
         # can overflow the codec bounds here is the known missions of the records.

@@ -5,21 +5,21 @@ require 'ISUI/ISTextEntryBox'
 require 'ISUI/ISComboBox'
 --[[
 RadioSurvivor's pages of the notebook (E18-T24, user decision of 2026-11-06). The notebook itself (frame, bookmarks,
-sidebar button, registry of tabs) belongs to the core mod (RadioSurvivorCore/RC_Notebook); this file registers the
+sidebar button, registry of tabs) belongs to the core mod (CoreAI/CA_Notebook); this file registers the
 Radio tab and fills the common Contacts, Missions and Reputation tabs with RadioSurvivor's notebook data (snapshot of
 RS_CarnetServer). The Team tab is Living Knox's since E18-T20 (LK_NotebookPages).
 ]]
 local Client = require 'RadioSurvivor/RS_Client'
 if Client.notebookInstalled then return RS_Notebook end
 Client.notebookInstalled = true
-local Notebook = require 'RadioSurvivorCore/RC_Notebook'
+local Notebook = require 'CoreAI/CA_Notebook'
 local UI = Notebook.ui
 local Const = require 'RadioSurvivor/RadioSurvivor_Const'
 -- Radio tab (E06-T04): per-frequency history kept by the authority, unread indicator, one-click tuning.
 local History = require 'RadioSurvivor/RS_RadioHistory'
 -- "Say" line of the Radio tab (E06-T06): same send path, checks and delay as the radio window module.
 local Talk = require 'RadioSurvivor/RS_RadioTalk'
-local MissionList = require 'RadioSurvivorCore/RC_MissionList' -- E18-T06: state shown, as in the core mod
+local MissionList = require 'CoreAI/CA_MissionList' -- E18-T06: state shown, as in the core mod
 local Views = require 'RadioSurvivor/RS_MissionViews' -- E20-T01: lines of each mission template
 
 local RS_MOD = 'batman_RadioSurvivor'
@@ -81,7 +81,7 @@ local function relationLines(rel)
     return {}
 end
 
--- Reputation tab (E04-T04): the core mod draws the reputation of the reader's character (RC_Notebook.reputationLines,
+-- Reputation tab (E04-T04): the core mod draws the reputation of the reader's character (CA_Notebook.reputationLines,
 -- E18-T25); RadioSurvivor adds the texts of its own acts and, apart, the personal relation of each known NPC: it is not
 -- the reputation.
 local REP_LEVELS = Rep.LEVELS
@@ -114,7 +114,7 @@ local function reputationAdminLines(view)
     for _, c in ipairs(type(view.characters) == 'table' and view.characters or {}) do
         out[#out + 1] = tr('RepAdminLine', clean(c.name), repLevel(c.level), repTrend(c.trend))
         for _, r in ipairs(type(c.reasons) == 'table' and c.reasons or {}) do
-            out[#out + 1] = '   - ' .. getText('IGUI_RC_RepAct', relWhen(view.today, r.day), repReason(r))
+            out[#out + 1] = '   - ' .. getText('IGUI_CA_RepAct', relWhen(view.today, r.day), repReason(r))
         end
     end
     return out
@@ -540,7 +540,7 @@ end
 
 Notebook.extendTab('Missions', {
     rows = function() return Client.snapshot.missions or {} end,
-    rowLabel = function(row) return getText(row.titleKey or 'IGUI_RC_Mission') .. ' - ' .. row.requester end,
+    rowLabel = function(row) return getText(row.titleKey or 'IGUI_CA_Mission') .. ' - ' .. row.requester end,
     secondLine = RSN.rowSecondLine,
     create = createMissions,
     detail = missionDetail,
@@ -554,7 +554,7 @@ Notebook.extendTab('Reputation', {
         -- E04-T14 (Q17): read-only view of every character's reputation, administrators only (checked by the server).
         w.repAdmin = w:addAction(stamp(w, tr('RepAdminButton'), function() Client.send('rep_admin') end))
     end,
-    -- The snapshot carries the same projection of the core mod (RC_Reputation.projection), pushed on change.
+    -- The snapshot carries the same projection of the core mod (CA_Reputation.projection), pushed on change.
     reputation = 'rs', onOpen = false, update = false,
     detail = function(w, _, line)
         for _, s in ipairs(RSN.reputationLines(Client.snapshot.reputation, Client.snapshot.contacts)) do line(s) end

@@ -12,7 +12,7 @@ vérifie l'objet marqué ». Les choix ci-dessous sont les plus simples et les p
 confirmer par l'utilisateur.
 
 1. **La cache est un sac de sport vanilla** (`Base.Bag_DuffelBag`) posé au sol dans le bâtiment tiré, marqué par une
-   ModData `RS_Cache = <mission>` et rempli d'une des quatre tables fermées de `RS_Config.Caches` (`food`, `medical`,
+   ModData `CA_Cache = <mission>` et rempli d'une des quatre tables fermées de `RS_Config.Caches` (`food`, `medical`,
    `ammo`, `tools`, contenus fixes). Un sac se porte sans outil ; une caisse (meuble) demanderait le démontage.
    La table est tirée par le serveur (même graine que le lieu) et annoncée dans l'offre (`cache`).
 2. **Dépôt = le foyer du groupe du demandeur**, lu par `RS_NPCProvider.presence(id)` (Living Knox : `home` du

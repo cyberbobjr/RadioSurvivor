@@ -1,8 +1,8 @@
-"""Shared tools of the core mod batman_RadioSurvivorCore (E18-T02).
+"""Shared tools of the core mod batman_CoreAI (E18-T02).
 
     python RadioSurvivor/tests/test_core_tools.py
 
-- one copy of each tool, as an RC_* module of the core mod (shared/RadioSurvivorCore/), none left in RadioSurvivor;
+- one copy of each tool, as an CA_* module of the core mod (shared/CoreAI/), none left in RadioSurvivor;
 - no old module name left in the code, the in-game suites, the benches or the tools (Living Knox included);
 - files written by the code before the move (fixtures/e18-t02, written with the old RadioSurvivor codec) are read back
   by the moved codec and by the real readers (RS_State, LK_Store), and written again byte for byte (RSV2 unchanged).
@@ -20,7 +20,7 @@ from harness import Harness  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 MODS = ROOT / 'Contents' / 'mods'
-CORE_LUA = MODS / 'batman_RadioSurvivorCore' / '42.21' / 'media' / 'lua'
+CORE_LUA = MODS / 'batman_CoreAI' / '42.21' / 'media' / 'lua'
 RS_LUA = MODS / 'batman_RadioSurvivor' / '42.21' / 'media' / 'lua'
 FIXTURES = Path(__file__).resolve().parent / 'fixtures' / 'e18-t02'
 
@@ -42,7 +42,7 @@ def scanned_files():
 class LayoutTests(unittest.TestCase):
     def test_each_tool_lives_once_in_the_core(self):
         for tool in TOOLS:
-            core = CORE_LUA / 'shared' / 'RadioSurvivorCore' / f'RC_{tool}.lua'
+            core = CORE_LUA / 'shared' / 'CoreAI' / f'CA_{tool}.lua'
             self.assertTrue(core.is_file(), core)
             copies = [p for p in MODS.rglob(f'*_{tool}.lua') if p != core]
             self.assertEqual(copies, [], f'second copy of {tool}')
@@ -91,7 +91,7 @@ class OldFilesTests(unittest.TestCase):
         _, raw, checksum, finish, _ = self.lines(name)
         self.assertEqual(finish, 'end')
         self.h.machine('server').g.RAW = raw
-        ok = self.h.eval('server', '(function() local C = require("RadioSurvivorCore/RC_Codec") '
+        ok = self.h.eval('server', '(function() local C = require("CoreAI/CA_Codec") '
                                    'local b = C.unhexBytes(RAW) local d = C.decodeBytes(b) '
                                    'return tostring(C.checksumBytes(b)) .. "|" .. C.hexOfBytes(C.encodeBytes(d)) end)()')
         sum_, again = ok.split('|')
@@ -107,7 +107,7 @@ class OldFilesTests(unittest.TestCase):
         self.put('rs-state-0.txt', 'batman_RadioSurvivor/e18-old-0.txt')
         raw = self.lines('rs-state-0.txt')[1]
         out = self.h.eval('server', '(function() local S = require("RadioSurvivor/RS_State") '
-                                    'local C = require("RadioSurvivorCore/RC_Codec") '
+                                    'local C = require("CoreAI/CA_Codec") '
                                     'local r = S._read("batman_RadioSurvivor/e18-old-0.txt") '
                                     'if not r then return "unread" end '
                                     'return r.generation .. "|" .. C.hexOfBytes(C.encodeBytes(r.data)) end)()')
@@ -119,7 +119,7 @@ class OldFilesTests(unittest.TestCase):
         self.put('lk-registry-0.txt', 'batman_RadioSurvivor/livingknox/e18-old-0.txt')
         raw = self.lines('lk-registry-0.txt')[1]
         out = self.h.eval('server', '(function() require("LivingKnox/LK_Store") local St = LivingKnox.Store '
-                                    'local C = require("RadioSurvivorCore/RC_Codec") '
+                                    'local C = require("CoreAI/CA_Codec") '
                                     'local r = St.readSlotFile("batman_RadioSurvivor/livingknox/e18-old-0.txt", "LKREG1") '
                                     'if not r then return "unread" end '
                                     'return r.seq .. "|" .. St.hexOfBytes(C.encodeBytes(r.data)) end)()')

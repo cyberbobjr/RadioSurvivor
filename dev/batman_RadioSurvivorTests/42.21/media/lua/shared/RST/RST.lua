@@ -728,7 +728,7 @@ end
 -- given, else the mod of its name: "lk.*" Living Knox, "rs.*" RadioSurvivor, any other name the core mod only.
 -- A suite whose mods are not all active is SKIP without running (same as a refused world suite), so the same
 -- campaigns run with RadioSurvivor alone, Living Knox alone or both (tests/test_suite_mods.py checks declarations).
-RST.MOD_IDS = { core = "batman_RadioSurvivorCore", lk = "batman_LivingKnox", rs = "batman_RadioSurvivor" }
+RST.MOD_IDS = { core = "batman_CoreAI", lk = "batman_LivingKnox", rs = "batman_RadioSurvivor" }
 
 function RST.suiteMods(suite)
     local declared = suite.opts and toList(suite.opts.mods)
@@ -1463,9 +1463,9 @@ end
 
 
 -- E18-T20: agreements, truces and incidents are Living Knox's (LK_Agreements), team ids and mandates the core mod's
--- (RC_Teams): one table over both for the suites (authority only; nil fields when Living Knox is not active).
+-- (CA_Teams): one table over both for the suites (authority only; nil fields when Living Knox is not active).
 function RST.factions()
-    local Teams = require "RadioSurvivorCore/RC_Teams"
+    local Teams = require "CoreAI/CA_Teams"
     return setmetatable({}, { __index = function(_, k)
         local A = type(LivingKnox) == "table" and LivingKnox.Agreements or nil
         if A ~= nil and A[k] ~= nil then return A[k] end
@@ -1473,12 +1473,12 @@ function RST.factions()
     end })
 end
 
--- E18-T19: radio history of a character, kept by the core mod (RC_History.radio), read and put back by the suites.
+-- E18-T19: radio history of a character, kept by the core mod (CA_History.radio), read and put back by the suites.
 function RST.radioOf(cid)
-    return require("RadioSurvivorCore/RC_History").radio(cid, false)
+    return require("CoreAI/CA_History").radio(cid, false)
 end
 function RST.setRadio(cid, radio)
-    local H = require "RadioSurvivorCore/RC_History"
+    local H = require "CoreAI/CA_History"
     if type(H.data) ~= "table" or type(cid) ~= "string" then return end
     if type(H.data.radio) ~= "table" then H.data.radio = {} end
     H.data.radio[cid], H.dirty = radio, true

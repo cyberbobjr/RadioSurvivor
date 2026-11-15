@@ -123,7 +123,7 @@ end
 -- Delay of the notebook server between two sentences of a character (LK_Talk: COOLDOWN_MS, or the chat slow mode of a
 -- dedicated server when longer).
 local function talkCooldown()
-    local C = require "RadioSurvivorCore/RC_SpeechConfig"
+    local C = require "CoreAI/CA_SpeechConfig"
     local slow = isServer() and getServerOptions():getInteger("ChatMessageSlowModeTime") * 1000 or 0
     return math.max(C.COOLDOWN_MS, slow)
 end

@@ -7,7 +7,7 @@
 -- (UdpConnection.isRelevantTo, java 42.22 UdpConnection.java:216-232), relevantRange = clamp(view, 12, 20) / 2 + 2
 -- chunks (GameServer.java:2638-2639): 96 tiles at most; VIEW_TILES adds a margin. A square not loaded on the authority
 -- is out of view (nobody stands near enough to load it).
--- Delay: game hours (RC_GameClock.hours, world age): stops while paused, runs faster at speed x2/x3 or asleep, does not
+-- Delay: game hours (CA_GameClock.hours, world age): stops while paused, runs faster at speed x2/x3 or asleep, does not
 -- run while the server is stopped. A player back in view resets it to zero.
 --
 -- Ports (injected; Sight.engine() binds the game): positions() -> list of {x, y} of the possible witnesses,
@@ -15,7 +15,7 @@
 -- Record (saved by the caller with its own state): hiddenSince = game hour the point left everyone's view, nil while
 -- seen. ASCII only (Kahlua lexer).
 if isClient() then return end
-local Clock = require 'RadioSurvivorCore/RC_GameClock'
+local Clock = require 'CoreAI/CA_GameClock'
 
 local Sight = {}
 

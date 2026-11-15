@@ -592,9 +592,9 @@ class Simulation:
             # E18-T17: the speech of the NPCs is Living Knox's; a fake provider stands for its engine, LK_Talk is real.
             self.server.rt.execute("require 'LivingKnox/LK_Talk'")
         self.server.load('server/RS_Carnet_Server.lua')
-        # E18-T20: the game loads every server file of the core mod, among them the events of the team ids (RC_Teams:
+        # E18-T20: the game loads every server file of the core mod, among them the events of the team ids (CA_Teams:
         # state read at the world start, commands "team" and "mandate").
-        self.server.load('server/RadioSurvivorCore/RC_TeamsEvents.lua')
+        self.server.load('server/CoreAI/CA_TeamsEvents.lua')
         if radio_new_world is not None:   # real order of IsoWorld.init: ZomboidRadio.Init, then GlobalModData.init
             self.server.g.fire('OnLoadRadioScripts', None, radio_new_world)
         self.server.g.fire('OnInitGlobalModData', new_world)
@@ -630,7 +630,7 @@ class Simulation:
         c.g.getPlayer = lambda: local
         c.g.getSpecificPlayer = lambda n: local
         if saved_id:
-            local.md.RS_CarnetCharacter = saved_id
+            local.md.CA_Character = saved_id
         c.g.sendClientCommand = lambda p, module, cmd, args: self.server.g.fire(
             'OnClientCommand', module, cmd, remote, network_args(self.server, args))
         self.clients[name] = c
@@ -683,7 +683,7 @@ class Simulation:
 
     def reputation(self):
         """Private state of the reputation of the core mod (E18-T22): { reputation, outcomes }."""
-        return self.server.rt.eval("require('RadioSurvivorCore/RC_Reputation').data")
+        return self.server.rt.eval("require('CoreAI/CA_Reputation').data")
 
     def character(self, name):
         return self.clients[name].g.RS_CarnetClient.character
@@ -888,7 +888,7 @@ class CarnetTests(unittest.TestCase):
         sim.server.g.PLAYERS.alice.x = 10
         sim.select('alice')
         npc = next(iter(sim.state().npcs.values()))
-        m = sim.server.rt.eval("require('RadioSurvivorCore/RC_Missions')").create(sim.state(), npc, sim.character('alice'))
+        m = sim.server.rt.eval("require('CoreAI/CA_Missions')").create(sim.state(), npc, sim.character('alice'))
         sim.request_mission('alice', 'accept')
         sim.server.g.ZOMBIES = sim.server.rt.table()
         sim.clock.offset += 1001; sim.tick()
@@ -923,14 +923,14 @@ class CarnetTests(unittest.TestCase):
         self.assertAlmostEqual(restart.mission().remainingMs, remaining - 5000, delta=200)
         unrelated = restart.server.g.enhance(restart.server.g.makePlayer('mallory'))
         unrelated.isPlayer = True
-        unrelated.md.RS_CarnetCharacter = old_char
+        unrelated.md.CA_Character = old_char
         restart.server.g.fire('OnCharacterDeath', unrelated) # another account cannot retire this identity
         restart.server.g.fire('OnCharacterDeath', restart.zombie) # zombies also raise OnCharacterDeath
         self.assertFalse(bool(restart.state().characters[old_char].retired))
         actual.dead = True
         restart.server.g.fire('OnCharacterDeath', actual)
         self.assertTrue(restart.state().characters[old_char].retired)
-        self.assertIsNone(actual.md.RS_CarnetCharacter)
+        self.assertIsNone(actual.md.CA_Character)
         restart.add_client('alice', old_char) # a stale client claim cannot revive a retired identity
         self.assertNotEqual(restart.character('alice'), old_char)
         other = Simulation(sim.path, sim.clock, 'another-world')
@@ -965,7 +965,7 @@ class CarnetTests(unittest.TestCase):
         self.assertEqual(count(sim.state().missions), 0)
         self.assertEqual(c.g.RS_CarnetClient.lastError, 'NoAnswer')
         npc = next(iter(sim.state().npcs.values()))
-        m = sim.server.rt.eval("require('RadioSurvivorCore/RC_Missions')").create(sim.state(), npc, sim.character('alice'))
+        m = sim.server.rt.eval("require('CoreAI/CA_Missions')").create(sim.state(), npc, sim.character('alice'))
         sim.request_mission('alice', 'accept')
         good, dirty = sim.items('alice', 'Base.Bandage', 'Base.BandageDirty')
         sim.request_mission('alice', 'prepare_delivery', items=[good, good])
@@ -1022,7 +1022,7 @@ class CarnetTests(unittest.TestCase):
         sim = Simulation(self.path / 'transactions'); a = sim.add_client('alice'); sim.add_client('bob')
         sim.select('alice')
         npc = next(iter(sim.state().npcs.values()))
-        missions = sim.server.rt.eval("require('RadioSurvivorCore/RC_Missions')")
+        missions = sim.server.rt.eval("require('CoreAI/CA_Missions')")
         m = missions.create(sim.state(), npc, sim.character('alice'))
         sim.request_mission('alice', 'accept')
         first, second = sim.items('alice', 'Base.Bandage', 'Base.RippedSheets')
@@ -1045,7 +1045,7 @@ class CarnetTests(unittest.TestCase):
         # A clean separate mission verifies runtime timeout and terminal evidence exactly once.
         sim2 = Simulation(self.path / 'deadline'); sim2.add_client('alice'); sim2.select('alice')
         npc2 = next(iter(sim2.state().npcs.values()))
-        m2 = sim2.server.rt.eval("require('RadioSurvivorCore/RC_Missions')").create(sim2.state(), npc2, sim2.character('alice'))
+        m2 = sim2.server.rt.eval("require('CoreAI/CA_Missions')").create(sim2.state(), npc2, sim2.character('alice'))
         sim2.request_mission('alice', 'accept')
         sim2.clock.offset += 7200001; sim2.tick(); sim2.tick()
         self.assertEqual(m2.state, 'failed')
@@ -1059,7 +1059,7 @@ class CarnetTests(unittest.TestCase):
         self.assertIsNone(stopped.state(), 'corrupt world silently replaced')
         sim2 = Simulation(self.path / 'capacity'); c = sim2.add_client('alice'); sim2.select('alice')
         npc = next(iter(sim2.state().npcs.values()))
-        m = sim2.server.rt.eval("require('RadioSurvivorCore/RC_Missions')").create(sim2.state(), npc, sim2.character('alice'))
+        m = sim2.server.rt.eval("require('CoreAI/CA_Missions')").create(sim2.state(), npc, sim2.character('alice'))
         sim2.request_mission('alice', 'accept')
         sim2.confirm('alice', sim2.quote('alice', sim2.items('alice', *(['Base.Bandage'] * 6))))
         sim2.server.g.PLAYERS.alice.inv.capacity = 0
@@ -1087,7 +1087,7 @@ class CarnetTests(unittest.TestCase):
     def test_offer_expiry_cooldown_and_second_mission(self):
         sim = Simulation(self.path / 'repeat'); sim.add_client('alice'); sim.select('alice')
         npc = next(iter(sim.state().npcs.values()))
-        missions = sim.server.rt.eval("require('RadioSurvivorCore/RC_Missions')")
+        missions = sim.server.rt.eval("require('CoreAI/CA_Missions')")
         first = missions.create(sim.state(), npc, sim.character('alice'))
         sim.clock.offset += 3600001; sim.tick()
         self.assertEqual(first.state, 'expired')
@@ -1610,7 +1610,7 @@ IDENTITY_SUITE =TESTS_SHARED / 'RST' / 'suites' / 'RS_Identity.lua'
 
 PROBE_TEMPLATE = """
 local Config = require('RadioSurvivor/RS_Config')
-local M = require('RadioSurvivorCore/RC_Missions')
+local M = require('CoreAI/CA_Missions')
 Config.Missions.probe = {id = 'probe_v1', titleKey = 'IGUI_RS_Probe', durationMs = 1000, needed = 2,
     rewardType = 'Base.Bullets9mm', rewardCount = 2}
 PROBE_CALLS = {}
@@ -1746,7 +1746,7 @@ class LivingKnoxCarnetTests(unittest.TestCase):
         self.assertIn('manque de nourriture', speech[0], 'offline bridge text of a supply offer')
         m = sim.mission()
         self.assertEqual((m.template, m.unit, m.quantity, m.delivered, m.titleKey),
-                         ('deliver', 'value', 60, 0, 'IGUI_RC_Mission_Supply_food'))
+                         ('deliver', 'value', 60, 0, 'IGUI_CA_Mission_Supply_food'))
         self.assertEqual((m.supply.ref, m.supply.offer, m.rewardType, m.rewardCount),
                          (self.g.LK_GROUP, self.g.LK_GROUP + '-food-1', 'Base.Antibiotics', 2))
         sim.request_mission('alice', 'accept')
@@ -1765,7 +1765,7 @@ class LivingKnoxCarnetTests(unittest.TestCase):
         replay = self.api.deliver(self.g.LK_GROUP, m.supply.offer, self.rt.table_from({'Base.TinnedBeans': 10}),
                                   quote['token'], alice)
         self.assertEqual((replay.duplicate, replay.applied, self.food()), (True, False, 25), 'receipt replayed')
-        missions = self.rt.eval("require('RadioSurvivorCore/RC_Missions')")
+        missions = self.rt.eval("require('CoreAI/CA_Missions')")
         self.assertTrue(missions.deliver(sim.server.g.RS_CarnetServer.store, m, sim.server.g.PLAYERS.alice, alice,
                                          self.rt.table_from(beans[10:20]), quote['token']))
         self.assertEqual((m.delivered, self.food(), len(sim.server.g.REMOVALS)), (20, 25, 10), 'notebook replay')
@@ -1898,7 +1898,7 @@ class LivingKnoxCarnetTests(unittest.TestCase):
         self.rt.execute('assert(LivingKnox.Groups.setNeed(LK_GROUP, "food", 50))')
         fiche = server.ensure(self.g.LK_LEADER)
         self.assertNotIn('first_aid_v1', convert(server.offerCatalogFor(fiche, provider.npc(self.g.LK_LEADER), alice)) or {})
-        missions = self.rt.eval("require('RadioSurvivorCore/RC_Missions')")
+        missions = self.rt.eval("require('CoreAI/CA_Missions')")
         self.assertIsNone(missions.create(sim.state(), fiche, alice, 'first_aid_v1'))
         # Context of a groupless NPC: nothing about a group.
         self.assertEqual(convert(provider.context(self.g.LK_LONER, alice, 'EN')), {'member': False})
@@ -1911,7 +1911,7 @@ class LivingKnoxCarnetTests(unittest.TestCase):
         provider = self.rt.eval("require('RadioSurvivor/RS_NPCProvider')")
         fiche = server.ensure(self.g.LK_LEADER)
         terms = server.offerCatalogFor(fiche, provider.npc(self.g.LK_LEADER), alice).first_aid_v1
-        missions = self.rt.eval("require('RadioSurvivorCore/RC_Missions')")
+        missions = self.rt.eval("require('CoreAI/CA_Missions')")
         m = missions.create(sim.state(), fiche, alice, 'first_aid_v1', terms)
         sim.state().characters[alice].knownMissions[m.id] = True
         sim.request_mission('alice', 'accept')
@@ -2074,7 +2074,7 @@ class AcquaintanceTests(unittest.TestCase):
         known = self.known()
         known.stage, known.exchanges = None, None
         npc = next(iter(sim.state().npcs.values()))
-        missions = sim.server.rt.eval("require('RadioSurvivorCore/RC_Missions')")
+        missions = sim.server.rt.eval("require('CoreAI/CA_Missions')")
         record = sim.server.rt.eval("require('RadioSurvivor/RS_NPCProvider')").npc(2001)
         terms = sim.server.g.RS_CarnetServer.offerCatalogFor(npc, record).first_aid_v1
         missions.create(sim.state(), npc, sim.character('alice'), 'first_aid_v1', terms)
@@ -2291,7 +2291,7 @@ class MissionTemplateTests(unittest.TestCase):
         same = sim.server.rt.eval('rawequal')
         self.assertTrue(same(config.Delivery, config.Missions.deliver), 'historical alias of the M01 entry')
         npc = next(iter(sim.state().npcs.values()))
-        missions = sim.server.rt.eval("require('RadioSurvivorCore/RC_Missions')")
+        missions = sim.server.rt.eval("require('CoreAI/CA_Missions')")
         m = missions.create(sim.state(), npc, sim.character('alice'), 'first_aid_v1')
         self.assertEqual((m.template, m.offer, m.id), ('deliver', 'first_aid_v1', npc.id + '-delivery1'))
         self.assertTrue(same(missions.template(m), missions.template(sim.server.rt.eval('{}'))), 'missing template = deliver')
@@ -2303,7 +2303,7 @@ class MissionTemplateTests(unittest.TestCase):
     def test_mission_saved_without_template_still_completes_after_restart(self):
         sim = Simulation(self.path / 'legacy'); sim.add_client('alice'); sim.select('alice')
         npc = next(iter(sim.state().npcs.values()))
-        m = sim.server.rt.eval("require('RadioSurvivorCore/RC_Missions')").create(sim.state(), npc, sim.character('alice'))
+        m = sim.server.rt.eval("require('CoreAI/CA_Missions')").create(sim.state(), npc, sim.character('alice'))
         sim.request_mission('alice', 'accept')
         sim.server.rt.eval('function(m) m.template = nil end')(m)  # schema written before E11-T02
         self.assertTrue(sim.server.g.RS_CarnetServer.store.save())
@@ -2324,7 +2324,7 @@ class MissionTemplateTests(unittest.TestCase):
     def test_registered_template_uses_the_common_engine(self):
         sim = Simulation(self.path / 'probe'); sim.add_client('alice'); sim.select('alice')
         sim.server.rt.execute(PROBE_TEMPLATE)
-        missions = sim.server.rt.eval("require('RadioSurvivorCore/RC_Missions')")
+        missions = sim.server.rt.eval("require('CoreAI/CA_Missions')")
         server, state = sim.server.g.RS_CarnetServer, sim.state()
         npc = next(iter(state.npcs.values()))
         record = sim.server.rt.eval("require('RadioSurvivor/RS_NPCProvider')").npc(2001)
@@ -2443,7 +2443,7 @@ class ScoutMissionTests(unittest.TestCase):
         sim.add_client('alice'); sim.add_client('bob'); sim.select('alice')
         npc = next(iter(sim.state().npcs.values()))
         record = sim.server.rt.eval("require('RadioSurvivor/RS_NPCProvider')").npc(2001)
-        missions = sim.server.rt.eval("require('RadioSurvivorCore/RC_Missions')")
+        missions = sim.server.rt.eval("require('CoreAI/CA_Missions')")
         return sim, npc, record, missions
 
     def catalog(self, sim, npc, record):
@@ -2607,7 +2607,7 @@ class ScoutMissionTests(unittest.TestCase):
         self.assertNotIn('IGUI_RS_Progress', window.detail.text)
         # E11-T09: title of the template (list and sheet), clues translated by the client, no technical line.
         label = c.rt.eval('RS_CarnetClient.window.list.items[1].text')
-        self.assertTrue(label.startswith('IGUI_RC_Mission_Scout - '), label)
+        self.assertTrue(label.startswith('IGUI_CA_Mission_Scout - '), label)
         self.assertIn('IGUI_RS_ScoutClues', window.detail.text)
         self.assertIn('- IGUI_RS_Clue_Kind|IGUI_RS_Place_house', window.detail.text)  # stub: first argument only
         self.assertIn('IGUI_RS_Clue_FewHouses', window.detail.text)
@@ -2667,7 +2667,7 @@ class ScoutMissionTests(unittest.TestCase):
 
     def test_map_area_holds_the_building_off_centre(self):
         sim, npc, record, missions = self.scout_sim('area-draw')
-        scout = sim.server.rt.eval("require('RadioSurvivorCore/RC_MissionScout')")
+        scout = sim.server.rt.eval("require('CoreAI/CA_MissionScout')")
         c = sim.server.rt.eval("require('RadioSurvivor/RS_Config').Missions.scout")
         self.assertEqual(c.mapZoneRadius, 30)
         t = sim.server.rt.table_from
@@ -3197,7 +3197,7 @@ class VoiceMissionTests(unittest.TestCase):
         self.assertFalse([r for r in parsed[1] if r['id'].endswith('-brief')], 'briefing still pending')
         # Notebook row: clues as translatable data, title of the template.
         row = sim.clients['alice'].g.RS_CarnetClient.snapshot.missions[1]
-        self.assertEqual(row.titleKey, 'IGUI_RC_Mission_Scout')
+        self.assertEqual(row.titleKey, 'IGUI_CA_Mission_Scout')
         self.assertEqual(row.clues[1].key, 'Kind')
         # History line "Mission received" (kind of place only) on the voice's frequency, for alice only.
         texts = lua_list(sim.clients['alice'].rt.eval('texts(160000)'))
@@ -3370,7 +3370,7 @@ class VoiceMissionTests(unittest.TestCase):
                     '- IGUI_RS_Clue_FewHouses'):
             self.assertIn(key, text)
         self.assertNotIn('ReputationUnavailable', text)
-        self.assertEqual(c.rt.eval('RS_CarnetClient.window.list.items[1].text'), 'IGUI_RC_Mission_Scout - Scout Voice')
+        self.assertEqual(c.rt.eval('RS_CarnetClient.window.list.items[1].text'), 'IGUI_CA_Mission_Scout - Scout Voice')
         self.assertTrue(window.abandon.isVisible(window.abandon))
         for button in (window.deliver, window.claim, window.invite, window.accept):
             self.assertFalse(button.isVisible(button))
@@ -3468,7 +3468,7 @@ class IdentitySuiteTests(unittest.TestCase):
         sim.add_client('alice'); sim.add_client('bob')
         sim.select('alice'); sim.select('bob')
         npc = next(iter(sim.state().npcs.values()))
-        sim.server.rt.eval("require('RadioSurvivorCore/RC_Missions')").create(sim.state(), npc, sim.character('alice'))
+        sim.server.rt.eval("require('CoreAI/CA_Missions')").create(sim.state(), npc, sim.character('alice'))
         sim.request_mission('alice', 'accept')
         sim.request_mission('alice', 'invite', character=sim.character('bob'))
         sim.request_mission('bob', 'accept')
@@ -3493,7 +3493,7 @@ class IdentitySuiteTests(unittest.TestCase):
         sim.add_client('alice'); sim.add_client('bob')
         self.assertEqual({v[0] for v in self.live_statuses(sim).values()}, {'PASS'})
         # Bob's server modData claims Alice's identity: both invariants catch it.
-        sim.server.g.PLAYERS.bob.md.RS_CarnetCharacter = sim.character('alice')
+        sim.server.g.PLAYERS.bob.md.CA_Character = sim.character('alice')
         broken = self.live_statuses(sim)
         self.assertEqual(broken['online players carry a usable identity of their own account'][0], 'FAIL')
         self.assertIn('bob/0 modData', broken['online players carry a usable identity of their own account'][1])
@@ -3535,7 +3535,7 @@ class IdentitySuiteTests(unittest.TestCase):
     def test_reconnect_detects_a_lost_server_identity(self):
         sim = self.engaged('lost')
         self.disconnect(sim, 'alice')
-        del sim.player_data['alice'].RS_CarnetCharacter  # E00-T01 regression: server copy not kept
+        del sim.player_data['alice'].CA_Character  # E00-T01 regression: server copy not kept
         sim.add_client('alice')
         results = self.run_suite(sim, 'rs.identity.after-reconnect')
         self.assertEqual(results['same identity for each account'][0], 'FAIL')
@@ -3664,7 +3664,7 @@ class ProtocolTests(unittest.TestCase):
     def test_codec_lua_python_and_incomplete_files(self):
         import lupa.lua51 as lua
         runtime = lua.LuaRuntime(unpack_returned_tuples=True)
-        codec = runtime.execute((CORE_LUA / 'shared/RadioSurvivorCore/RC_Codec.lua').read_text(encoding='utf-8'))
+        codec = runtime.execute((CORE_LUA / 'shared/CoreAI/CA_Codec.lua').read_text(encoding='utf-8'))
         value = {'nested': {1: 'é=漢字\nend', 'false': False}, 'number': 1790959902158, 'empty': {}}
         raw = protocol.encode(value)
         self.assertEqual(convert(codec.decode(raw.decode('utf-8'))), value)
@@ -3742,7 +3742,7 @@ class ProtocolTests(unittest.TestCase):
                 released.set(); worker.pool.shutdown(wait=True)
 
 
-# Writer side of RC_Codec before E00-T08 (hex per string unit, lengths and checksum per unit), kept verbatim to
+# Writer side of CA_Codec before E00-T08 (hex per string unit, lengths and checksum per unit), kept verbatim to
 # prove that the states it wrote are still read.
 LEGACY_CODEC = rb'''
 local C = {}
@@ -3793,7 +3793,7 @@ class CodecUtf8Tests(unittest.TestCase):
     def setUp(self):
         import lupa.lua51 as lua
         self.lua = lua
-        self.source = (CORE_LUA / 'shared/RadioSurvivorCore/RC_Codec.lua').read_bytes()
+        self.source = (CORE_LUA / 'shared/CoreAI/CA_Codec.lua').read_bytes()
 
     def byte_runtime(self, utf16=None):
         """Runtime without string conversion (Lua strings <-> bytes), optionally forcing the UTF-16 branch."""
@@ -4092,7 +4092,7 @@ class GameClockTests(unittest.TestCase):
         sim = Simulation(self.path / name, server_globals={'MINUTES_PER_DAY': minutes, 'WORLD_AGE_HOURS': 100})
         sim.add_client('alice'); sim.select('alice')
         npc = next(iter(sim.state().npcs.values()))
-        missions = sim.server.rt.eval("require('RadioSurvivorCore/RC_Missions')")
+        missions = sim.server.rt.eval("require('CoreAI/CA_Missions')")
         return sim, npc, missions
 
     @staticmethod
@@ -4104,7 +4104,7 @@ class GameClockTests(unittest.TestCase):
     def test_clock_unit_and_meter(self):
         sim = Simulation(self.path / 'unit')
         g = sim.server.g
-        clock = sim.server.rt.eval("require('RadioSurvivorCore/RC_GameClock')")
+        clock = sim.server.rt.eval("require('CoreAI/CA_GameClock')")
         g.MINUTES_PER_DAY, g.WORLD_AGE_HOURS = 90, 10
         self.assertEqual(clock.msPerHour(), 225000)  # 90 real minutes per game day: 3.75 min per game hour
         self.assertEqual(clock.after(7200000), 10 + 32)  # 2 h at normal speed = 32 game hours

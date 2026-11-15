@@ -1,6 +1,6 @@
 -- Radio Survivor : échange sans contact au lieu du rendez-vous (E13-T04 ; E20-T07 : un passage par marchand, règle
 -- hors de vue et délai de jeu d'E20-T05, ADR D06/D07). Fiche : docs/annexes/conception/passeur-echange.md ; barème
--- docs/specifications-techniques/passeur-table.md (sections 1 et 2), code shared/RadioSurvivorCore/RC_TradeValues.lua.
+-- docs/specifications-techniques/passeur-table.md (sections 1 et 2), code shared/CoreAI/CA_TradeValues.lua.
 -- Autorité seulement (serveur MP, jeu local en solo).
 --
 -- Après le signal (RS_TradeRun : state arrived), le joueur dépose un sac au lieu du rendez-vous (DROP_RADIUS cases
@@ -32,10 +32,10 @@ local Config = require "RadioSurvivor/RS_Config"
 local S = require "RadioSurvivor/RS_State"
 local Trade = require "RadioSurvivor/RS_Trade"
 local Run = require "RadioSurvivor/RS_TradeRun"
-local TV = require "RadioSurvivorCore/RC_TradeValues"
+local TV = require "CoreAI/CA_TradeValues"
 local News = require "RadioSurvivor/RS_OutsideNews"
 local NewsServer = require "RadioSurvivor/RS_OutsideNewsServer"
-local Rep = require "RadioSurvivorCore/RC_Reputation"
+local Rep = require "CoreAI/CA_Reputation"
 local OutOfSight = require "RadioSurvivor/RS_OutOfSight"
 local Arrivals = require "RadioSurvivor/RS_TradeArrivals"
 local Holds = require "RadioSurvivor/RS_TradeHolds"
@@ -50,7 +50,7 @@ Ex.CAP_POINTS = 120            -- points pris au plus par passage (section 1)
 Ex.CAP_KG = 20                 -- poids pris au plus (place dans la barque, section 1)
 Ex.MARK = "RS_TradeGiven"      -- ModData de la contrepartie : révision de l'offre
 -- Clés de ModData posées par ce mod sur des objets (objets de quête, preuves, butin des PNJ) : objet refusé.
-Ex.MOD_PREFIXES = { "RS_", "RadioSurvivor", "LK" }
+Ex.MOD_PREFIXES = { "RS_", "RadioSurvivor", "CA_", "LK" }
 Ex.USES_MIN = { ["Base.GasmaskFilter"] = 0.5 }               -- filtre à moitié plein au moins (section 2.4)
 Ex.EMPTY = { ["Base.Bag_ALICEpack_Army"] = true }             -- sac militaire pris vide seulement
 Ex.WALLETS = { ["Base.Wallet"] = true, ["Base.Wallet_Male"] = true, ["Base.Wallet_Female"] = true }

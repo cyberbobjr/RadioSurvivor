@@ -146,13 +146,13 @@ class ShippedSheetsTests(TownTradersHarness):
         items = vanilla_items()
         mod_items = {f'RadioSurvivor.{n}' for n in re.findall(
             r'(?m)^\s*item\s+(\w+)', '\n'.join(p.read_text(encoding='utf-8') for p in (MOD / 'media/scripts').glob('*.txt')))}
-        tv = self.rt.eval('require("RadioSurvivorCore/RC_TradeValues")')
+        tv = self.rt.eval('require("CoreAI/CA_TradeValues")')
         for vid in ['gus', *NEW_TRADERS]:
             sheet = self.gus if vid == 'gus' else self.sheets[vid]
             for e in lua_list(sheet.trade['items']):
                 with self.subTest(vid=vid, item=e.t):
                     self.assertTrue(e.t in items or e.t in mod_items, f'{e.t} is not an item of the 42.22 scripts')
-                    self.assertGreater(tv.sellValue(e.t), 0, f'{e.t} has no value in RC_TradeValues')
+                    self.assertGreater(tv.sellValue(e.t), 0, f'{e.t} has no value in CA_TradeValues')
                     if e.t in items:
                         self.assertGreaterEqual(e.w + 1e-9, items[e.t], f'{e.t} lighter than its script')
 

@@ -126,7 +126,7 @@ RST.suite("rs.memorial.animals", { tags = { "server", "world" } }, function(s)
         t:ok(ok, "bulletin not built: " .. tostring(why))
         t:ok(sent ~= nil and flight ~= nil, "no request for the bridge")
 
-        local Codec = require "RadioSurvivorCore/RC_Codec"
+        local Codec = require "CoreAI/CA_Codec"
         local texts = Codec.decodeBytes(Codec.unhexBytes(sent.facts))
         local _, deaths = F.split(flight.facts)
         local sentence = texts[1]

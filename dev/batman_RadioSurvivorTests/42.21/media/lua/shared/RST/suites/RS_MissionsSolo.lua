@@ -22,7 +22,7 @@ local REWARD, COUNT = "Base.Antibiotics", 2
 
 -- E18-T22: facts of the missions in the reputation of the core mod.
 local function repOutcomes()
-    local Rep = require "RadioSurvivorCore/RC_Reputation"
+    local Rep = require "CoreAI/CA_Reputation"
     Rep.ensure()
     return Rep.data and Rep.data.outcomes or {}
 end
@@ -35,7 +35,7 @@ local function ids(inv, fullType)
 end
 
 local function modules()
-    return require "RadioSurvivorCore/RC_Missions", require "RadioSurvivor/RS_Config", require "RadioSurvivorCore/RC_MissionScout"
+    return require "CoreAI/CA_Missions", require "RadioSurvivor/RS_Config", require "CoreAI/CA_MissionScout"
 end
 
 -- Projection of mission id in the client snapshot, or nil.

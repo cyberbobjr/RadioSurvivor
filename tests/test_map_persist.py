@@ -21,7 +21,7 @@ from test_rst import LUA, ROOT, Machine, SERVER_GAME, to_py  # noqa: E402
 from test_rst_steps import STEPS_FILE, VIEW_FILE, VIEW_GAME, StepsNetwork  # noqa: E402
 
 SUITE_FILE = LUA / 'shared' / 'RST' / 'suites' / 'RS_MapActions.lua'
-CORE_SHARED = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivorCore' / '42.21' / 'media' / 'lua' / 'shared'
+CORE_SHARED = ROOT / 'Contents' / 'mods' / 'batman_CoreAI' / '42.21' / 'media' / 'lua' / 'shared'
 
 # Server side: the voice sheet parser and the mark_map decision as doubles. The decision sends the place to the
 # caller, as RS_MapMarks.give does (Const.toClient -> sendServerCommand to that player only).

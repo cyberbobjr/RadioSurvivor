@@ -5,7 +5,7 @@ the hooks). With RadioSurvivor the notebook is the host and nothing here runs. A
 
 A sentence said near an NPC (client: LK_TalkView, command "npcSay" of the module "LivingKnox") goes to the bridge with
 the context of the NPC (group, role, needs, attitude, relation, reputation) and comes back as a bubble. The bridge keeps
-the memory of an NPC; the lines also go to the history of the core mod (RC_History, peer "lk:<id>"), read by the Contacts
+the memory of an NPC; the lines also go to the history of the core mod (CA_History, peer "lk:<id>"), read by the Contacts
 tab of the common notebook.
 
 Speakers: one record per NPC spoken to, in the private speech file of Living Knox (LK_Talk, Talk.data):
@@ -16,9 +16,9 @@ Speakers: one record per NPC spoken to, in the private speech file of Living Kno
     world                                                  identifier of the requests
 The id of a speaker is the Living Knox NPC id, so a mission of an NPC reads "lk-3-<template><n>".
 
-Missions: engine of the core mod on its private state (RC_MissionStore), giver "npc" registered here (RC_MissionTalk:
+Missions: engine of the core mod on its private state (CA_MissionStore), giver "npc" registered here (CA_MissionTalk:
 offer, acceptance and report by speech). Hand-over and claim (E18-T29): buttons of the Missions tab of the common
-notebook (RC_MissionJournal, command "mission"), next to the requester's body (giver.near, DELIVERY_RANGE); the lot is
+notebook (CA_MissionJournal, command "mission"), next to the requester's body (giver.near, DELIVERY_RANGE); the lot is
 an item of the household surplus (LK_MissionRewards), else the common lot of the engine.
 Observations (LK_Observations, LK_ObservationTriggers), initiatives and conversations run alone too (E18-T27): each
 pass of the authority calls LK_Talk.turns (the decisions of a leader on an incident of a truce as well: agreements are
@@ -28,17 +28,17 @@ require "LivingKnox/LK_Core"
 require "LivingKnox/LK_TalkHost"
 require "LivingKnox/LK_MissionRewards"
 
-local Hearing = require "RadioSurvivorCore/RC_Hearing"
-local History = require "RadioSurvivorCore/RC_History"
-local Identity = require "RadioSurvivorCore/RC_Identity"
-local M = require "RadioSurvivorCore/RC_Missions"
-local MissionConfig = require "RadioSurvivorCore/RC_MissionConfig"
-local MissionStore = require "RadioSurvivorCore/RC_MissionStore"
-local MissionTalk = require "RadioSurvivorCore/RC_MissionTalk"
-local Speech = require "RadioSurvivorCore/RC_SpeechConfig"
-local Transport = require "RadioSurvivorCore/RC_Transport"
-local WorldStart = require "RadioSurvivorCore/RC_WorldStart"
-local playMeter = require("RadioSurvivorCore/RC_GameClock").meter()
+local Hearing = require "CoreAI/CA_Hearing"
+local History = require "CoreAI/CA_History"
+local Identity = require "CoreAI/CA_Identity"
+local M = require "CoreAI/CA_Missions"
+local MissionConfig = require "CoreAI/CA_MissionConfig"
+local MissionStore = require "CoreAI/CA_MissionStore"
+local MissionTalk = require "CoreAI/CA_MissionTalk"
+local Speech = require "CoreAI/CA_SpeechConfig"
+local Transport = require "CoreAI/CA_Transport"
+local WorldStart = require "CoreAI/CA_WorldStart"
+local playMeter = require("CoreAI/CA_GameClock").meter()
 
 local Talk = LivingKnox.Talk
 

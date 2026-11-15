@@ -649,7 +649,7 @@ function F.engagedMission(t, store, npc, members, opts)
     if isClientSide() then error("engagedMission: the notebook state lives on the authority, not an MP client", 0) end
     t:ok(type(store) == "table" and type(store.data) == "table", "engagedMission: notebook state not ready")
     t:ok(type(npc) == "table" and type(npc.id) == "string", "engagedMission: no npc fiche")
-    local M = require "RadioSurvivorCore/RC_Missions"
+    local M = require "CoreAI/CA_Missions"
     local Config = require "RadioSurvivor/RS_Config"
     local c = Config.Missions and Config.Missions.deliver
     t:ok(type(c) == "table", "engagedMission: no deliver entry in RS_Config.Missions")

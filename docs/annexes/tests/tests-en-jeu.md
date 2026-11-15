@@ -641,7 +641,7 @@ ce test est `SKIP`.
 
 `mp-persist` n'utilise pas `--restart-pause` : `rs.identity` y reste sans mission (chrono `SKIP`).
 
-Instantanés : `RST_Persist.lua` (`RST.Persist.write/read/consume`, octets `RC_Codec` en hexadécimal avec somme de
+Instantanés : `RST_Persist.lua` (`RST.Persist.write/read/consume`, octets `CA_Codec` en hexadécimal avec somme de
 contrôle, dans `Zomboid/Lua/batman_RadioSurvivor/tests/<nom>` du serveur, consommé par l'étape `after-restart`).
 Quand le test travaille sur un état en mémoire (magasin de travail des secours, fiche de cache), l'instantané tient
 lieu de l'état privé du carnet (`RS_State`), dont la persistance elle-même est prouvée par `rs.identity` ; le vrai
@@ -1213,7 +1213,7 @@ Walkie Talkies actif en MP (aucune bulle ajoutée, ⚠ non vérifié).
 
 Refonte visuelle du carnet selon la maquette A (`docs/annexes/maquettes/carnet-papier.dc.html`) : papier crème, reliure à
 anneaux, marque-pages colorés à droite, onglet Radio en deux colonnes avec la ligne « Dire : ». Textures du mod
-`media/textures/RadioSurvivorCore/RC_Notebook_*.png` (mod commun), produites par `python RadioSurvivor/tools/gen_notebook_textures.py`
+`media/textures/CoreAI/CA_Notebook_*.png` (mod commun), produites par `python RadioSurvivor/tools/gen_notebook_textures.py`
 (`--preview FICHIER.png` : aperçu composé hors jeu, polices Windows et non celles du jeu). Hors jeu :
 `tests/test_radio_history.py` (`IntegrationTests` : sélection, point par fréquence, saisie par `Talk.send`, grisé,
 focus, dessin avec et sans texture, aucun texte hors de sa page à la taille minimale), `tests/test_carnet.py`
@@ -1387,7 +1387,7 @@ disparu » (ou l'accepter au carnet) ; carte : cercle « Zone de recherche (<PNJ
 trouvée » ; revenir près du PNJ, « Livrer » : la fenêtre liste toutes vos cartes d'identité ; une autre carte →
 refus « Ce n'est pas la carte d'identité prise sur le corps », la bonne → réussite, cercle retiré, lot commun.
 Écart à signaler : aucun corps après plusieurs secondes sur place (`console.txt` : `retrieve:`), deux corps, carte
-absente du corps, autre carte acceptée, erreur Lua de `RC_MissionRetrieve`.
+absente du corps, autre carte acceptée, erreur Lua de `CA_MissionRetrieve`.
 
 ### Mission « nettoyer » (E11-T04, solo, court)
 
@@ -1400,7 +1400,7 @@ autour d'un bâtiment tiré, décompte par le serveur avec l'attribution d'E04-T
 2, compte rendu avant le décompte refusé, joueur déplacé au centre du cercle en mode dieu, trois zombies créés à
 côté : coup de batte mortel compté une fois, second décompte du même zombie sans effet, `Kill(nil)` non compté, second
 coup mortel : objectif rempli, mission encore active « à rapporter » (E11-T13), compte rendu au demandeur
-(`RC_Missions.spoken`) : réussite, événement `mission.success` ; nettoyage : zombies et cadavres retirés, joueur
+(`CA_Missions.spoken`) : réussite, événement `mission.success` ; nettoyage : zombies et cadavres retirés, joueur
 ramené). Note « no building with enough zombies »
 (SKIP) : se placer en ville.
 
@@ -1413,7 +1413,7 @@ est nettoyée ») : réussite, cercle retiré, « Réclamer » près du PNJ ; va
 de lui (grisé loin de lui). Le dire à un autre PNJ, ou avant le N-ième : rien (E11-T13).
 MP (séance finale) : deux participants, même décompte chez les deux, parts justes, aucun double compte. Écart à
 signaler : décompte qui saute de deux, zombie hors cercle compté, mort par le feu comptée, erreur Lua de
-`RC_MissionClear`.
+`CA_MissionClear`.
 
 ### Mission « récupérer » et caches (E11-T06, solo, court)
 
@@ -1436,7 +1436,7 @@ cercle du dépôt : sac disparu, page Missions « Objectif rempli — à rapport
 « Rendre compte » près de lui) : réussite, cercles retirés, « Réclamer » près du PNJ (E11-T13). Un autre sac de sport déposé ne
 compte pas. MP (séance finale) : sac visible des deux clients, réussite pour les deux participants. Écart à signaler :
 aucun sac après plusieurs secondes sur place (`console.txt` : `cache:`), deux sacs, réussite avec un autre sac, erreur
-Lua de `RC_Caches` ou `RC_MissionRecover`.
+Lua de `CA_Caches` ou `CA_MissionRecover`.
 
 ### Mission « signaler » (E11-T07, solo, court)
 
@@ -1451,12 +1451,12 @@ autre couleur au centre et bonne couleur hors du cercle sans effet, bonne couleu
 encore active « à rapporter » (E11-T13 ; compte rendu refusé avant le signal), compte rendu au demandeur : réussite).
 Module de Signal Smoke inutilisable (installation cassée) : FAIL.
 
-**Manuel** (pont connecté, PNJ Living Knox connu) : aucune erreur `RC_MissionSignal` dans `console.txt` ; offre « Faire un signal sur un lieu » (couleur et heures
+**Manuel** (pont connecté, PNJ Living Knox connu) : aucune erreur `CA_MissionSignal` dans `console.txt` ; offre « Faire un signal sur un lieu » (couleur et heures
 annoncées), l'accepter ; carte : cercle « Zone du signal (<PNJ>) » ; page Missions : couleur, heures, « Aucun signal
 vu ». Lancer un fumigène d'une autre couleur dans le cercle : rien ; de la bonne couleur hors des heures : rien ; dans
 les heures : « Objectif rempli — à rapporter au demandeur » ; revenir le dire au PNJ (ou « Rendre compte » près de
 lui) : réussite, cercle retiré, « Réclamer » près du PNJ (E11-T13). Écart à signaler : réussite avec une mauvaise couleur,
-hors du cercle ou hors des heures, erreur Lua de `RC_MissionSignal`.
+hors du cercle ou hors des heures, erreur Lua de `CA_MissionSignal`.
 
 ### Journal du dehors (E13-T05, solo, court)
 
@@ -1516,7 +1516,7 @@ objets réels ; note `grp-<n>-food-<k>: food level 20, 60 V left`).
 
 Écart à signaler : une réserve qui monte deux fois pour une même livraison, un objet retiré sans progression, une
 offre `first_aid_v1` statique (bandages) chez un PNJ Living Knox, un secret de l'histoire ou une coordonnée dans
-`requests.txt` (pont réel : prompt du journal du pont), une erreur Lua de `RS_LivingKnox`, `RC_Missions` ou
+`requests.txt` (pont réel : prompt du journal du pont), une erreur Lua de `RS_LivingKnox`, `CA_Missions` ou
 `RS_Carnet_Server`. À deux clients (sélection sur la copie cliente, offre propre à chaque personnage, livraison
 commune) : séance MP finale.
 

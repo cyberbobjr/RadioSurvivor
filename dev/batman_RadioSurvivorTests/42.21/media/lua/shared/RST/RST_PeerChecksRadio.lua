@@ -257,20 +257,20 @@ Steps.on("rs.faction", function(args)
     end
 end)
 
--- E18-T20: answers of the core mod to the command "mandate" (RC_Teams): its "error" reason, read by carnet.mandate.
+-- E18-T20: answers of the core mod to the command "mandate" (CA_Teams): its "error" reason, read by carnet.mandate.
 local CoreAnswer = { lastError = nil }
 if Events ~= nil and Events.OnServerCommand ~= nil then
     Events.OnServerCommand.Add(function(module, command, a)
-        if module == "RadioSurvivorCore" and command == "error" and type(a) == "table" then CoreAnswer.lastError = a.reason end
+        if module == "CoreAI" and command == "error" and type(a) == "table" then CoreAnswer.lastError = a.reason end
     end)
 end
 
 Steps.on("carnet.mandate", function(args)
-    -- E18-T20: command "mandate" of the core mod (RC_Teams).
+    -- E18-T20: command "mandate" of the core mod (CA_Teams).
     local C = CoreAnswer
     if args.action ~= "grant" and args.action ~= "revoke" then return Steps.fail("refused: action " .. tostring(args.action)) end
     C.lastError = nil
-    sendClientCommand(getPlayer(), "RadioSurvivorCore", "mandate", { member = tostring(args.member), action = args.action })
+    sendClientCommand(getPlayer(), "CoreAI", "mandate", { member = tostring(args.member), action = args.action })
     local waitMs = tonumber(args.waitMs) or PR.MANDATE_MS
     local started = RST.now()
     return function(ctx)
@@ -326,7 +326,7 @@ function PR.stripHistory(prefix)
     local S = safe(require, "RadioSurvivor/RS_State")
     if type(S) ~= "table" or type(S.data) ~= "table" or type(S.data.characters) ~= "table" then return 0 end
     local n = 0
-    local H = require "RadioSurvivorCore/RC_History" -- E18-T19: radio history kept by the core mod
+    local H = require "CoreAI/CA_History" -- E18-T19: radio history kept by the core mod
     for _, radio in pairs(H.data and H.data.radio or {}) do
         for _, f in ipairs(radio and radio.frequencies or {}) do
             local kept = {}

@@ -3,7 +3,7 @@
     python RadioSurvivor/tests/test_lk_personal_relation.py
 
 LivingKnox.PersonalRelation (authority, rules of E09-T04 unchanged): one relation per Living Knox NPC and character,
-one private file Zomboid/Lua/batman_LivingKnox/personal-relations-<world>-<0|1>.txt (RC_SlotFile, header LKPREL1),
+one private file Zomboid/Lua/batman_LivingKnox/personal-relations-<world>-<0|1>.txt (CA_SlotFile, header LKPREL1),
 read through LivingKnox.API.relation* (RadioSurvivor's notebook adds its own citable facts as `extra`). Living Knox
 alone: no module of RadioSurvivor is loaded. No take-over of a game saved before the split (user decision of
 2026-11-06: the mod was never published, every game starts from scratch). Bench tests/harness.py (solo authority),
@@ -33,7 +33,7 @@ class ModuleTests(unittest.TestCase):
         text = (LK_SERVER / 'LK_PersonalRelation.lua').read_text(encoding='utf-8')
         self.assertTrue(text.isascii())
         for name in re.findall(r'require\s*\(?\s*"([^"]+)"', text):
-            self.assertTrue(name.startswith(('RadioSurvivorCore/', 'LivingKnox/')), name)
+            self.assertTrue(name.startswith(('CoreAI/', 'LivingKnox/')), name)
         self.assertNotIn('IGUI_RS_', text)
 
     def test_notebook_keeps_no_relation_rule(self):
@@ -79,7 +79,7 @@ class LivingKnoxAloneTests(Base):
             local g = assert(G.create({{type = "settlers", name = "Farm", home = {{x = 100, y = 100, z = 0}}, day = 2}}))
             GID = g.id
             assert(G.addMember(g.id, {{role = "worker", npc = "{self.npc}", day = 2}}))
-            local I = require("RadioSurvivorCore/RC_Identity")
+            local I = require("CoreAI/CA_Identity")
             assert(I.ensure())
             I.state.data.characters["c-ann"] = {{owner = "ann", slot = 1}}
             I.state.data.characters["c-bob"] = {{owner = "bob", slot = 1}}
@@ -161,7 +161,7 @@ class LivingKnoxAloneTests(Base):
             self.run_lua(f'local _, b = LivingKnox.API.relationOffer("{self.npc}", "{c}") '
                          f'assert(LivingKnox.API.relationApply("{self.npc}", "{c}", b, "up", "f1"))')
         self.assertFalse(self.ev('LivingKnox.PersonalRelation.prune()'))
-        self.run_lua('require("RadioSurvivorCore/RC_Identity").state.data.characters["c-ann"].retired = true')
+        self.run_lua('require("CoreAI/CA_Identity").state.data.characters["c-ann"].retired = true')
         self.assertTrue(self.ev('LivingKnox.PersonalRelation.prune()'))
         self.assertIsNone(self.ev(f'LivingKnox.PersonalRelation.debugPair("{self.npc}", "c-ann")'))
         self.run_lua(f'LivingKnox.Store.data().npcs["{self.npc}"] = nil')

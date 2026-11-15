@@ -15,9 +15,9 @@ local Transport = require "RadioSurvivor/RS_BridgeLanes"
 local Personas = require "RadioSurvivor/RS_Personas"
 -- Historique radio par personnage du carnet (E06-T04) : phrases dites, réponses, lignes entendues.
 local Log = require "RadioSurvivor/RS_RadioLog"
-local RateLimit = require "RadioSurvivorCore/RC_RateLimit" -- C21: per-account limit of the radio commands
+local RateLimit = require "CoreAI/CA_RateLimit" -- C21: per-account limit of the radio commands
 -- Réponse radio structurée (E07-T01) : RSV2 comme les PNJ, actions jugées par RS_Actions.
-local Codec = require "RadioSurvivorCore/RC_Codec"
+local Codec = require "CoreAI/CA_Codec"
 local Actions = require "RadioSurvivor/RS_Actions"
 -- Mémoire des voix (E07-T03) : exécuteur remember enregistré au chargement ; faits joints aux demandes (memory=).
 local Memory = require "RadioSurvivor/RS_Memory"
@@ -35,7 +35,7 @@ require "RadioSurvivor/Rewards/RS_Reward_Cache"; require "RadioSurvivor/Rewards/
 require "RadioSurvivor/Rewards/RS_Reward_Stashmap"; require "RadioSurvivor/Rewards/RS_Reward_Lesson" -- kinds, before any sheet
 -- Livre du passeur (E13-T02) : exécuteur propose_trade enregistré au chargement ; contexte joint (trade=).
 local Trade = require "RadioSurvivor/RS_Trade"; local GroupRadio = require "RadioSurvivor/RS_GroupRadio" -- E08-T06
-local Rep = require "RadioSurvivorCore/RC_Reputation" -- E04-T10: reputation of the caller in the voice request
+local Rep = require "CoreAI/CA_Reputation" -- E04-T10: reputation of the caller in the voice request
 local Comfort = require "RadioSurvivor/RS_Comfort" -- E05-T15: an answer on the air eases boredom and unhappiness
 local Bonds = require "RadioSurvivor/RS_VoiceBonds" -- E07-T10: answers counted for an exceptional share_frequency
 
@@ -510,7 +510,7 @@ local function onTalk(player, args)
     Const.toClient(player, Const.CMD.ACCEPTED, { text = text })
 end
 
--- C21: per-account token buckets {capacity, per second} (RC_RateLimit, MP server only). history sends up to one
+-- C21: per-account token buckets {capacity, per second} (CA_RateLimit, MP server only). history sends up to one
 -- packet per frequency and is asked when the history window opens; heard is one report per line a radio of the
 -- client receives. A dropped command gets no reply.
 local RATE_HISTORY = { 3, 0.2 }

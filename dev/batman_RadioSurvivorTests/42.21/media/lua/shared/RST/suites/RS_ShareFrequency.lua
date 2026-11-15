@@ -11,7 +11,7 @@ may lack share_frequency and shares=, so the suite relies on its own sheet only.
 Decisions go through the REAL decision path (RS_Actions.decide, the function the bridge answer goes through in
 RadioSurvivor_Server); exchanges are recorded by the REAL bond path (RS_VoiceBonds.answered, called by
 RadioSurvivor_Server for every answer on the air). Game days: the bond counts distinct game days and the delays are 7
-and 3 game days; a test cannot wait for them, so the game day read by the bond (RC_Reputation.today, the only clock of
+and 3 game days; a test cannot wait for them, so the game day read by the bond (CA_Reputation.today, the only clock of
 RS_VoiceBonds) is shifted for the time of the server decisions, then put back before any client step.
 
 rs.actions.share (tags "server" and "world": the authority, solo or dedicated server, save rstest*)
@@ -21,7 +21,7 @@ rs.actions.share (tags "server" and "world": the authority, solo or dedicated se
       (MP) does not (server state and client copy);
     - the same voice again within 7 days: voice_too_soon; another bonded voice within 3 days: too_soon; that voice
       after 3 days, and the first one after 7 days: nothing_new (the target is already known: never given twice).
-    - with a good reputation (RC_Reputation.testSetLevel, debug mode and rstest* save), no exchange at all: accepted.
+    - with a good reputation (CA_Reputation.testSetLevel, debug mode and rstest* save), no exchange at all: accepted.
 Cleanup (t:defer): game day put back, bonds and last share day of both characters, action counters of the test voices
 (unique ids per run), radio histories of both characters (the frequencies of the target are emptied first so that the
 checks start from an unknown voice, then put back and sent again to the clients), reputation entry.
@@ -97,7 +97,7 @@ local function authority(t)
     local Personas = require "RadioSurvivor/RS_Personas"
     local c = { Actions = require "RadioSurvivor/RS_Actions", Bonds = require "RadioSurvivor/RS_VoiceBonds",
         Voice = require "RadioSurvivor/RS_MissionVoice", Log = require "RadioSurvivor/RS_RadioLog",
-        S = require "RadioSurvivor/RS_State", Rep = require "RadioSurvivorCore/RC_Reputation", Personas = Personas }
+        S = require "RadioSurvivor/RS_State", Rep = require "CoreAI/CA_Reputation", Personas = Personas }
     if c.S.blocked or c.S.data == nil then t:skip("private state of the notebook not loaded or blocked") end
     local p = RST.Fixtures.player(t)
     t:ok(p ~= nil, "no target player (t.ctx.player)")
@@ -113,10 +113,10 @@ local function authority(t)
     end
     c.target, c.khz, c.sheet = targetVoice(Personas)
     if c.target == nil then t:skip("no active voice served in this game") end
-    -- Game day of the bond (RC_Reputation.today): shifted by c.at(offset), put back by c.realDay() and at the end.
+    -- Game day of the bond (CA_Reputation.today): shifted by c.at(offset), put back by c.realDay() and at the end.
     local today = c.Rep.today
     c.day = today()
-    t:ok(type(c.day) == "number", "no game day (RC_Reputation.today)")
+    t:ok(type(c.day) == "number", "no game day (CA_Reputation.today)")
     c.at = function(offset) c.Rep.today = function() return c.day + offset end end
     c.realDay = function() c.Rep.today = today end
     t:defer(c.realDay, "game day of the bonds put back")

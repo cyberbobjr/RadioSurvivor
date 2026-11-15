@@ -1494,7 +1494,7 @@ class LoadAndSignalSmokeTests(unittest.TestCase):
         self.assertEqual(ids['both'], [m for m, _ in autoclient.MODS])
         self.assertNotIn('batman_LivingKnox', ids['rs'])
         self.assertIn('batman_RadioSurvivor', ids['rs'])
-        self.assertEqual(ids['lk'], ['batman_SignalSmoke', 'batman_RadioSurvivorCore', 'batman_LivingKnox',
+        self.assertEqual(ids['lk'], ['batman_SignalSmoke', 'batman_CoreAI', 'batman_LivingKnox',
                                      'batman_RadioSurvivorTests'])
         self.assertEqual(autoclient.selected_mods(), autoclient.selected_mods('both'))
         args = autoclient.parse_args(['--mods', 'lk', '--suite', 'lk.sites'])
@@ -1516,13 +1516,14 @@ class LoadAndSignalSmokeTests(unittest.TestCase):
             encoding='utf-8')
         require = [l for l in rs_info.splitlines() if l.startswith('require=')][0]
         self.assertEqual([r.lstrip('\\') for r in require[len('require='):].split(',')],
-                         ['batman_RadioSurvivorCore', 'batman_BeltRadio', 'batman_SignalSmoke'])   # E18-T01, E18-T09
+                         ['batman_CoreAI', 'batman_BeltRadio', 'batman_SignalSmoke'])   # E18-T01, E18-T09
         import contextlib
         import io
         with self.assertRaises(SystemExit), contextlib.redirect_stderr(io.StringIO()):   # option removed
             autoclient.main(['--no-signal-smoke', '--dry-run'])
         ini = autoclient.mp_server_ini(ids)
-        self.assertIn('\\batman_SignalSmoke;\\batman_RadioSurvivor', ini)
+        mods = ini.split('Mods=')[1].splitlines()[0].split(';')
+        self.assertLess(mods.index('\\batman_SignalSmoke'), mods.index('\\batman_RadioSurvivor'))
 
     def test_copy_uses_the_selected_mods(self):
         with tempfile.TemporaryDirectory() as tmp:

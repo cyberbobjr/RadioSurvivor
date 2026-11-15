@@ -17,7 +17,7 @@ end
 
 function Client.hello()
     local p = getSpecificPlayer(0)
-    if p then Client.send('hello', {v = C.VERSION, character = p:getModData().RS_CarnetCharacter}) end -- never empty
+    if p then Client.send('hello', {v = C.VERSION, character = p:getModData().CA_Character}) end -- never empty
 end
 
 -- Speech to the selected NPC (E17-T06): ONE path for the local "say" chat (MP only, captured by the ISChat wrapper
@@ -184,7 +184,7 @@ function Client.receive(command, args)
             Client.inbox, Client.seen, Client.seenOrder = {}, {}, {}
         end
         Client.character, Client.world, Client.run = args.character, args.world, args.run
-        if p then p:getModData().RS_CarnetCharacter = args.character end
+        if p then p:getModData().CA_Character = args.character end
     elseif command == 'snapshot' then
         if args.world ~= Client.world or args.run ~= Client.run then return end
         local previous = Client.snapshot.selected

@@ -4,11 +4,11 @@ routage réel de RadioSurvivor_Server.lua), rs.radiomodule (E06-T02, interface s
 
     python RadioSurvivor/tests/test_rs_suites.py
 
-Charge le vrai `RST.lua`, les vrais fichiers de suites et les vrais modules du mod principal (`RC_Codec`,
+Charge le vrai `RST.lua`, les vrais fichiers de suites et les vrais modules du mod principal (`CA_Codec`,
 `RS_Config`, `RS_Missions`, `RS_Reputation`) dans `lupa.lua51` (`next` retiré comme dans Kahlua), avec des doublures
 minimales de l'API Java, puis exécute les suites par le moteur RST (`RST.runSync`). Ne prouve pas l'API Java du jeu :
 l'exécution en jeu (serveur dédié de test, solo) reste nécessaire. Sous lupa les chaînes sont des octets UTF-8, en
-Kahlua des unités UTF-16 : voir l'en-tête de `RC_Codec.lua` (suite).
+Kahlua des unités UTF-16 : voir l'en-tête de `CA_Codec.lua` (suite).
 """
 from __future__ import annotations
 
@@ -23,10 +23,10 @@ import lupa.lua51 as lupa
 ROOT = Path(__file__).resolve().parents[1]
 TESTS_LUA = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua'
 MOD_LUA = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivor' / '42.21' / 'media' / 'lua'
-CORE_LUA = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivorCore' / '42.21' / 'media' / 'lua'  # mod commun (E18)
+CORE_LUA = ROOT / 'Contents' / 'mods' / 'batman_CoreAI' / '42.21' / 'media' / 'lua'  # mod commun (E18)
 LK_LUA = ROOT / 'Contents' / 'mods' / 'batman_LivingKnox' / '42.21' / 'media' / 'lua'  # moteur des PNJ (E18-T07)
 SUITES = TESTS_LUA / 'shared' / 'RST' / 'suites'
-SUITE_FILES = {name: SUITES / f'{name}.lua' for name in ('RS_Env', 'RC_Codec', 'RS_Missions', 'RS_Identity',
+SUITE_FILES = {name: SUITES / f'{name}.lua' for name in ('RS_Env', 'CA_Codec', 'RS_Missions', 'RS_Identity',
                                                        'RS_Voices', 'RS_RadioModule')}
 
 
@@ -46,7 +46,7 @@ getTimestampMs = function() return CLOCK end
 SIDE = "solo"
 isServer = function() return SIDE == "server" end
 isClient = function() return SIDE == "client" end
--- GameTime double (GameTime.java:830, 867) read by RC_GameClock (E11-T20): fixed world age, vanilla day of 90 minutes.
+-- GameTime double (GameTime.java:830, 867) read by CA_GameClock (E11-T20): fixed world age, vanilla day of 90 minutes.
 getGameTime = function()
     return { getWorldAgeHours = function() return 100 end, getMinutesPerDay = function() return 90 end }
 end
@@ -59,7 +59,7 @@ local function javaList(items)
     return { size = function() return #items end, get = function(_, i) return items[i + 1] end }
 end
 VERSION = "42.22.2 abcdef"
-MOD_IDS = { "batman_RadioSurvivorCore", "batman_LivingKnox", "batman_RadioSurvivor", "batman_RadioSurvivorTests" }
+MOD_IDS = { "batman_CoreAI", "batman_LivingKnox", "batman_RadioSurvivor", "batman_RadioSurvivorTests" }
 getCore = function() return { getVersion = function() return VERSION end } end
 getActivatedMods = function() return javaList(MOD_IDS) end
 for _, name in ipairs({ "getSandboxOptions", "getPlayer", "sendServerCommand", "getOnlinePlayers", "addSound",
@@ -146,17 +146,17 @@ class SuiteHarness(unittest.TestCase):
 class CodecSuiteTests(SuiteHarness):
 
     def test_all_pass_on_real_module(self):
-        self.load_suite('RC_Codec')
+        self.load_suite('CA_Codec')
         rep = self.run_filter('"rs.codec"')
         self.assert_all('PASS', rep)
         self.assertTrue(rep.ok)
         self.assertEqual(rep.total, 15)
         # La limite modifiée par la suite est restaurée.
-        self.assertEqual(self.lua('return require("RadioSurvivorCore/RC_Codec").MAX_BYTES'), 4194304)
+        self.assertEqual(self.lua('return require("CoreAI/CA_Codec").MAX_BYTES'), 4194304)
 
     def test_suite_detects_a_broken_codec(self):
-        self.load_suite('RC_Codec')
-        self.lua('local C = require "RadioSurvivorCore/RC_Codec"; C.hex = function(s) return "zz" end')
+        self.load_suite('CA_Codec')
+        self.lua('local C = require "CoreAI/CA_Codec"; C.hex = function(s) return "zz" end')
         self.run_filter('"rs.codec"')
         st, msg = self.results()['hex and unhex on ASCII']
         self.assertEqual(st, 'FAIL')
@@ -187,7 +187,7 @@ class MissionsSuiteTests(SuiteHarness):
 
     def test_suite_detects_a_broken_expiry(self):
         self.load_suite('RS_Missions')
-        self.lua('local M = require "RadioSurvivorCore/RC_Missions"; local old = M.advance;'
+        self.lua('local M = require "CoreAI/CA_Missions"; local old = M.advance;'
                  'M.advance = function(state, ms) return old(state, ms * 2) end')
         self.run_filter('"rs.missions"')
         self.assertEqual(self.results()['offer expires after OFFER_TTL_MS and starts the cooldown'][0], 'FAIL')
@@ -222,7 +222,7 @@ class EnvSuiteTests(SuiteHarness):
         self.assertIn('missing Java global RadioLine.new '
                       f'(used by {env_ref("RadioLine.new", "RadioSurvivor_Server.lua")})', msg)
         self.assertIn('missing Java global instanceItem '
-                      f'(used by {env_ref("instanceItem", "RC_Missions.lua")})', msg)
+                      f'(used by {env_ref("instanceItem", "CA_Missions.lua")})', msg)
 
     def test_missing_client_global(self):
         self.lua('checkPlayerCanUseChat = nil')
@@ -263,7 +263,7 @@ class EnvSuiteTests(SuiteHarness):
         st, msg = self.results()['ItemContainer methods used by the missions']
         self.assertEqual(st, 'FAIL')
         self.assertIn('missing method ItemContainer:AddItem (used by '
-                      f'{env_ref("AddItem", "RC_Missions.lua")})',
+                      f'{env_ref("AddItem", "CA_Missions.lua")})',
                       msg)
 
     def test_no_container_at_all_is_skip(self):
@@ -356,7 +356,7 @@ class VoicesSuiteTests(tps.ServerHarness):
         return '\n'.join(out)
 
     def requests(self) -> str:
-        path = self.lua_dir / 'batman_RadioSurvivorCore' / 'requests.txt'
+        path = self.lua_dir / 'batman_CoreAI' / 'requests.txt'
         return path.read_text(encoding='utf-8') if path.exists() else ''
 
     def assert_clean(self, probe=True):

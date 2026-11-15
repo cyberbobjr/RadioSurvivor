@@ -1,7 +1,7 @@
 # Delphine Arnett : marchande de Louisville (E20-T11, ADR D08 ; format docs/specifications-techniques/persona-format.md).
 # - fréquence tirée au hasard dans 65.0-74.8 MHz à chaque nouvelle partie (bande libre, sans recouvrement) ;
 # - écoute 16:00-20:00 (heure du jeu) ; hors carte ; arrivée en barque (mode boat, son de moteur coupé puis relancé) ;
-# - troc : action propose_trade et section [trade] (stock du barème RC_TradeValues, poids du script vanilla
+# - troc : action propose_trade et section [trade] (stock du barème CA_TradeValues, poids du script vanilla
 #   42.22, plus le fluide d'un récipient plein) ; share_frequency vers les marchands voisins ; note de fréquence
 #   trouvée dans le butin (section [note]).
 format=1

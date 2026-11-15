@@ -12,7 +12,7 @@
 if isClient() then return end
 
 local S = require "RadioSurvivor/RS_State"
-local Rep = require "RadioSurvivorCore/RC_Reputation"
+local Rep = require "CoreAI/CA_Reputation"
 
 local B = {}
 B.MIN_ANSWERS = 4

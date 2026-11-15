@@ -14,7 +14,7 @@ if isClient() then return end
 -- suspension (Living Knox's LK_Agreements since E18-T20, read through LivingKnox.Agreements).
 local S = require 'RadioSurvivor/RS_State'
 local P = require 'RadioSurvivor/RS_NPCProvider'
-local World = require 'RadioSurvivorCore/RC_WorldFacts'
+local World = require 'CoreAI/CA_WorldFacts'
 -- E18-T27: the observation log is Living Knox's (LK_Observations); without Living Knox there is no NPC to cite.
 local function Observations() return type(LivingKnox) == 'table' and LivingKnox.Observations or nil end
 local function Factions() return type(LivingKnox) == 'table' and LivingKnox.Agreements or nil end
@@ -119,7 +119,7 @@ local function panelAgreements(npc, gid, team, personalTeam)
     return out
 end
 
--- team: team of the reader (RC_Teams.projection of its player: { id, kind }); nil: no agreement listed.
+-- team: team of the reader (CA_Teams.projection of its player: { id, kind }); nil: no agreement listed.
 function R.panel(npc, character, team)
     local API, id = api(), npcOf(npc)
     local out = API and id and API.relationPanel(id, character) or {today = World.today(), facts = {}}

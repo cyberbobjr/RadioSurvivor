@@ -2,8 +2,8 @@
 
     python RadioSurvivor/tests/test_core_history.py
 
-RC_History (core mod, authority): one private file Zomboid/Lua/batman_RadioSurvivorCore/history-<world>-<0|1>.txt
-(RC_SlotFile, header RCHISTORY1), lines per character and per interlocutor, bounded like before (MAX_HISTORY). The
+CA_History (core mod, authority): one private file Zomboid/Lua/batman_CoreAI/history-<world>-<0|1>.txt
+(CA_SlotFile, header RCHISTORY1), lines per character and per interlocutor, bounded like before (MAX_HISTORY). The
 notebook state (RS_State) no longer writes them: each contact's history is the table of the core mod (same table in
 memory, so every existing writer is unchanged).
 """
@@ -35,13 +35,13 @@ class Base(unittest.TestCase):
         return self.h.eval('server', '(function() ' + code + ' end)()')
 
     def texts(self, character, peer):
-        return self.ev(f'local H = require("RadioSurvivorCore/RC_History") local out = {{}} '
+        return self.ev(f'local H = require("CoreAI/CA_History") local out = {{}} '
                        f'for _, l in ipairs(H.lines("{character}", "{peer}")) do out[#out + 1] = l.author .. ": " .. l.text end '
                        'return table.concat(out, "|")')
 
     def state_text(self):
         """Decoded notebook state of the newest slot, as one string (to look for history lines)."""
-        return self.ev('local S = require("RadioSurvivor/RS_State") local C = require("RadioSurvivorCore/RC_Codec") '
+        return self.ev('local S = require("RadioSurvivor/RS_State") local C = require("CoreAI/CA_Codec") '
                        'local best for slot = 0, 1 do local r = S._read(S.path .. "-" .. slot .. ".txt") '
                        'if r and (not best or r.generation > best.generation) then best = r end end '
                        'local out = {} local function walk(v) if type(v) == "table" then for k, x in pairs(v) do '
@@ -51,7 +51,7 @@ class Base(unittest.TestCase):
 
 class ModuleTests(unittest.TestCase):
     def test_module_in_the_core_and_ascii(self):
-        path = CORE_LUA / 'server' / 'RadioSurvivorCore' / 'RC_History.lua'
+        path = CORE_LUA / 'server' / 'CoreAI' / 'CA_History.lua'
         self.assertTrue(path.is_file())
         self.assertTrue(path.read_bytes().isascii())
 
@@ -61,7 +61,7 @@ class StateTests(Base):
         self.ev('local S = require("RadioSurvivor/RS_State") assert(S.init(true)) '
                 'S.data.characters["c-ann"] = {contacts = {["lk:lk-1"] = {}, ["lk:lk-2"] = {}}} '
                 'S.data.characters["c-bob"] = {contacts = {["lk:lk-1"] = {}}} '
-                'local H = require("RadioSurvivorCore/RC_History") '
+                'local H = require("CoreAI/CA_History") '
                 'for c, peer in pairs({["c-ann"] = "lk:lk-1", ["c-bob"] = "lk:lk-1"}) do '
                 'H.append(c, peer, {id = "1", author = "Ruth", text = "Again you."}, 40) end '
                 'H.append("c-ann", "lk:lk-2", {id = "2", author = "Ruth", text = "Hello."}, 40) '
@@ -78,7 +78,7 @@ class StateTests(Base):
         self.seed()
         self.ev('local S = require("RadioSurvivor/RS_State") '
                 'S.data.characters["c-bob"] = nil S.data.characters["c-ann"].contacts["lk:lk-2"] = nil assert(S.save())')
-        self.assertTrue(self.ev('local H = require("RadioSurvivorCore/RC_History") '
+        self.assertTrue(self.ev('local H = require("CoreAI/CA_History") '
                                 'return H.find("c-bob", "lk:lk-1") == nil and H.find("c-ann", "lk:lk-2") == nil '
                                 'and H.find("c-ann", "lk:lk-1") ~= nil'))
 
@@ -91,7 +91,7 @@ class StateTests(Base):
 class BoundsTests(Base):
     def test_append_keeps_the_last_lines(self):
         self.ev('local S = require("RadioSurvivor/RS_State") assert(S.init(true))')
-        out = self.ev('local H = require("RadioSurvivorCore/RC_History") '
+        out = self.ev('local H = require("CoreAI/CA_History") '
                       'for i = 1, 5 do H.append("c", "p", {id = tostring(i), author = "a", text = "t" .. i}, 3) end '
                       'local t = {} for _, l in ipairs(H.lines("c", "p")) do t[#t + 1] = l.text end '
                       'return table.concat(t, ",") .. "|" .. H.MAX')

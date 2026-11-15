@@ -1,6 +1,6 @@
 -- Voice mission `watch` (E20-T14, ADR D10) at the square of the player. Real start path of a voice
 -- (RS_MissionVoice.start, sheet with one [mission] of type watch and one place use=target where the player stands),
--- real set-up of the target place (RS_MissionTarget), real engine poll (RC_Missions.observe: the template reads the
+-- real set-up of the target place (RS_MissionTarget), real engine poll (CA_Missions.observe: the template reads the
 -- server copy of the player and the world age), real radio report (RS_MissionVoice.report).
 -- The game clock is moved forward by GameTime.setTimeOfDay (world age = nights * 24 + hours since 7:00,
 -- GameTime.java:824-827 in 42.22), in steps shorter than the gap the watch tolerates between two readings, with a poll
@@ -16,7 +16,7 @@ local F = RST.Fixtures
 local KHZ = 199900
 local HOURS = 1        -- game hours of the test watch
 local AWAY = 40        -- tiles east of the spot: beyond the watch radius, the area stays loaded
-local STEP = 0.25      -- game hours per step of the clock (below gapHours of RC_MissionConfig)
+local STEP = 0.25      -- game hours per step of the clock (below gapHours of CA_MissionConfig)
 
 -- Moves the game clock forward by `hours` in steps, calling poll after each (never across 7:00: the world age would
 -- go back).
@@ -44,9 +44,9 @@ end
 
 local function run(t)
     if isClient() then t:skip('authority only') end
-    local M = require 'RadioSurvivorCore/RC_Missions'
+    local M = require 'CoreAI/CA_Missions'
     local V = require 'RadioSurvivor/RS_MissionVoice'
-    local W = require 'RadioSurvivorCore/RC_MissionWatch'
+    local W = require 'CoreAI/CA_MissionWatch'
     local p = F.player(t)
     if not p then t:skip('no target player') end
     local gt = getGameTime()

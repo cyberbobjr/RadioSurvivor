@@ -47,11 +47,11 @@
 if isClient() then return end
 
 local Talk = require 'LivingKnox/LK_TalkHost'
-local C = require 'RadioSurvivorCore/RC_SpeechConfig'
+local C = require 'CoreAI/CA_SpeechConfig'
 local I = require 'LivingKnox/LK_Initiatives'
-local T = require 'RadioSurvivorCore/RC_Transport'
-local Codec = require 'RadioSurvivorCore/RC_Codec'
-local TextCut = require 'RadioSurvivorCore/RC_TextCut'
+local T = require 'CoreAI/CA_Transport'
+local Codec = require 'CoreAI/CA_Codec'
+local TextCut = require 'CoreAI/CA_TextCut'
 local P, Obs = Talk.provider, Talk.observations
 
 local V = {}
@@ -232,7 +232,7 @@ local function speakerOf(conv)
 end
 
 -- Texte borné à max octets UTF-8 (Kahlua : caractères UTF-16, Codec.toUtf8 compte les octets), coupé comme une bulle
--- (E17-T13, RC_TextCut.pieces : fin de phrase, sinon virgule, sinon entre deux mots ; jamais dans un mot quand une
+-- (E17-T13, CA_TextCut.pieces : fin de phrase, sinon virgule, sinon entre deux mots ; jamais dans un mot quand une
 -- coupe entre deux mots est possible) : une réponse au joueur (jusqu'à C.MAX_REPLY_BYTES) jointe au contexte d'un
 -- tour n'arrive plus au modèle coupée au milieu d'un mot.
 local function cut(text, max)

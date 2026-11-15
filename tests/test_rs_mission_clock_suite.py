@@ -4,7 +4,7 @@ de jeu, chrono arrêté pendant la pause et accéléré en avance rapide, en sol
     python tests/test_rs_mission_clock_suite.py
 
 Solo du banc (tests/harness.py, mode='solo', une image = TICK_MS ms réelles). Réels : moteur RST (RST.lua), la suite,
-RC_Missions.advance et RC_GameClock (compteur de temps de jeu) du mod commun. Doublures fidèles au Java 42.22 :
+CA_Missions.advance et CA_GameClock (compteur de temps de jeu) du mod commun. Doublures fidèles au Java 42.22 :
 - SpeedControls par les globales setGameSpeed / getGameSpeed / isGamePaused (LuaManager.java:6420-6450,
   SpeedControls.java:100-147, GameTime.java:191-200) : SetCurrentGameSpeed remet le multiplicateur de GameTime à 1,
   la vitesse 0 garde vitesse et multiplicateur d'avant la pause, la vitesse 5 les rend ; en solo getGameSpeed rend la
@@ -17,7 +17,7 @@ RC_Missions.advance et RC_GameClock (compteur de temps de jeu) du mod commun. Do
 - donneur 'npc' du moteur réduit à find (comme RS_MissionHooks pour une fiche sans moteur : toujours présente).
 La suite passe sur ces doublures, rend la vitesse trouvée au départ (jamais une partie en pause), retire ses abonnés,
 et échoue sur chaque défaut injecté (DEFECTS) : décompte en temps réel, décompte en temps réel arrêté seulement par la
-pause (vitesse ignorée), RC_Missions.advance en erreur pendant la pause (la partie reprend quand même).
+pause (vitesse ignorée), CA_Missions.advance en erreur pendant la pause (la partie reprend quand même).
 Ne prouve ni l'API Java réelle (SpeedControls présent, facteur réel de l'avance rapide) ni la cadence réelle du jeu :
 la campagne solo-rs en jeu reste nécessaire.
 """
@@ -74,14 +74,14 @@ for _, name in ipairs({ "OnTick", "OnTickEvenPaused" }) do
     e.Remove = function(f) LISTENERS[name] = LISTENERS[name] - 1 return remove(f) end
 end
 -- Giver 'npc' of the engine (RS_MissionHooks npcGiver: a fiche of no engine is always present).
-require('RadioSurvivorCore/RC_Missions').registerDonor('npc', {
+require('CoreAI/CA_Missions').registerDonor('npc', {
     find = function(state, id) return state.npcs and state.npcs[id] or nil end })
 ''' % TICK_MS
 
 DEFECTS = {
     # Countdown in real time (getTimestampMs): runs on while paused.
     'real_time': ('countdown moved while paused', r'''
-require('RadioSurvivorCore/RC_GameClock').meter = function()
+require('CoreAI/CA_GameClock').meter = function()
     local last
     return function()
         local now = getTimestampMs()
@@ -92,7 +92,7 @@ require('RadioSurvivorCore/RC_GameClock').meter = function()
 end'''),
     # Countdown in real time, stopped by the pause only: the game speed is ignored.
     'speed_ignored': ('fast: countdown = world age elapsed x msPerHour', r'''
-require('RadioSurvivorCore/RC_GameClock').meter = function()
+require('CoreAI/CA_GameClock').meter = function()
     local last
     return function()
         local now = getTimestampMs()
@@ -102,8 +102,8 @@ require('RadioSurvivorCore/RC_GameClock').meter = function()
     end
 end'''),
     # The engine raises while the game is paused: the test fails, the game still resumes.
-    'advance_error': ('RC_Missions.advance raised in the driver', r'''
-local M = require('RadioSurvivorCore/RC_Missions')
+    'advance_error': ('CA_Missions.advance raised in the driver', r'''
+local M = require('CoreAI/CA_Missions')
 local real = M.advance
 M.advance = function(state, ms)
     if isGamePaused() then error("advance broken while paused") end

@@ -4,7 +4,7 @@
 # A sheet cites these categories (cache:<category> in [rewards] pool=, items=<category> of a mission) and may add its
 # own [category <id>] sections, with ids not used here.
 # Format: one [category <id>] section per category, one line item=Module.Type:quantity per item, quantity a whole
-# number or a range lowest first (2-4). Contents: the fixed cache tables of RC_MissionConfig.Caches.tables.
+# number or a range lowest first (2-4). Contents: the fixed cache tables of CA_MissionConfig.Caches.tables.
 
 [category food]
 item=Base.TinnedBeans:2

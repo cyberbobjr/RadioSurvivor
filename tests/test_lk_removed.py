@@ -99,7 +99,7 @@ class LivingKnoxRemovedTests(unittest.TestCase):
         alone.command('alice', 'snapshot')
         contacts = alone.clients['alice'].g.RS_CarnetClient.snapshot.contacts
         self.assertEqual([c for c in contacts.values() if c.id == fiche_id], [])
-        core_rows = srv.rt.eval("require('RadioSurvivorCore/RC_Contacts')").rows(cid, None)
+        core_rows = srv.rt.eval("require('CoreAI/CA_Contacts')").rows(cid, None)
         self.assertEqual([r for r in core_rows.values() if r.id == fiche_id], [])
         self.assertIsNotNone(alone.state().npcs[fiche_id])
         self.assertIsNone(srv.rt.eval("require('RadioSurvivor/RS_Relations')").view(
@@ -120,7 +120,7 @@ class LivingKnoxRemovedTests(unittest.TestCase):
         alone.command('alice', 'snapshot')
         self.assertFalse(any(v.id == self.mission_id for v in
                              alone.clients['alice'].g.RS_CarnetClient.snapshot.missions.values()))
-        journal = srv.rt.eval("require('RadioSurvivorCore/RC_MissionJournal')")
+        journal = srv.rt.eval("require('CoreAI/CA_MissionJournal')")
         self.assertEqual(len(list(journal.rows(cid).values())), 0)
         quote = alone.quote('alice', alone.items('alice', *(['Base.TinnedBeans'] * 5)))
         if quote:

@@ -8,9 +8,9 @@ One Workshop item holds **three mods**. Subscribe once, then tick in the **Mods*
 
 | Mod | Mod ID | What it brings | Needs |
 |---|---|---|---|
-| Radio Survivor | `batman_RadioSurvivor` | The radio: sixteen AI voices (a trader per town among them) on real frequencies, their missions, the Radio tab of the notebook, factions | Radio Survivor Core, Belt Walkie-Talkie, Signal Smoke |
-| Living Knox | `batman_LivingKnox` | Groups of NPC survivors with homes, needs, routines, fights and fortifications | Radio Survivor Core. **Not compatible** with Bandits! and Project A-Life |
-| Radio Survivor Core | `batman_RadioSurvivorCore` | What the two others share: missions and the mission journal, the link with the bridge, character identity, the history of conversations, reputation, the notebook | Signal Smoke |
+| Radio Survivor | `batman_RadioSurvivor` | The radio: sixteen AI voices (a trader per town among them) on real frequencies, their missions, the Radio tab of the notebook, factions | Core AI, Belt Walkie-Talkie, Signal Smoke |
+| Living Knox | `batman_LivingKnox` | Groups of NPC survivors with homes, needs, routines, fights and fortifications | Core AI. **Not compatible** with Bandits! and Project A-Life |
+| Core AI | `batman_CoreAI` | What the two others share: missions and the mission journal, the link with the bridge, character identity, the history of conversations, reputation, the notebook | Signal Smoke |
 
 - **What to tick**: Radio Survivor, Living Knox, or both. Each one works without the other.
 - **The Core** is required by both: the game enables it for you. Enabled alone it adds nothing you can play.
@@ -48,7 +48,7 @@ one NPC engine per game. The Build 42 mod selector shows the conflict.
 1. Subscribe to the Radio Survivor item and to the required mods (Belt Walkie-Talkie, TooltipLib and Signal Smoke) on
    the Steam Workshop.
 2. In the main menu, **Mods**: enable the mods you chose. Order for all of them: **TooltipLib, Belt Walkie-Talkie,
-   Signal Smoke, Radio Survivor Core, Radio Survivor, Living Knox**.
+   Signal Smoke, Core AI, Radio Survivor, Living Knox**.
 3. Restart the game completely after installing or updating the mods.
 4. Start a **new game** (recommended for this test version). The sandbox pages **Radio Survivor** and **Living Knox**
    hold the options of the mods you enabled ([Sandbox options](09-sandbox-options.md)).

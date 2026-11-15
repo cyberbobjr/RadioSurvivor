@@ -22,12 +22,12 @@ local PC2 = RST.PeerChecks2
 
 local function modules(t, which)
     if type(isClient) == "function" and isClient() then t:skip("missions live on the authority") end
-    local M = require "RadioSurvivorCore/RC_Missions"
+    local M = require "CoreAI/CA_Missions"
     local T
     if which == "retrieve" then
-        T = require "RadioSurvivorCore/RC_MissionRetrieve"
+        T = require "CoreAI/CA_MissionRetrieve"
     else
-        T = require "RadioSurvivorCore/RC_MissionRecover"
+        T = require "CoreAI/CA_MissionRecover"
     end
     if type(M) ~= "table" or type(T) ~= "table" then t:skip("mission modules did not return their table here") end
     return M, T, require "RadioSurvivor/RS_Config"

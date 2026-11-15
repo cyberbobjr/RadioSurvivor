@@ -190,10 +190,10 @@ class AgreementCarnetTests(unittest.TestCase):
         self.assertEqual(count(self.sim.state().npcs[self.server.find(self.g.LK_LEADER).id].agreements), 0)
 
     def mandate(self, name, action, member):
-        """E18-T20: the owner designates or withdraws a negotiator by the command of the core mod (RC_Teams)."""
+        """E18-T20: the owner designates or withdraws a negotiator by the command of the core mod (CA_Teams)."""
         c = self.sim.clients[name]
         self.sim.clock.offset += 1000
-        c.g.sendClientCommand(c.g.getPlayer(), 'RadioSurvivorCore', 'mandate',
+        c.g.sendClientCommand(c.g.getPlayer(), 'CoreAI', 'mandate',
                               native_table(c, {'action': action, 'member': member}))
 
     def test_member_without_mandate_or_ordinary_npc_do_not_conclude(self):
@@ -286,7 +286,7 @@ class AgreementCarnetTests(unittest.TestCase):
         self.rt.execute('RS_CarnetServer.store.data.characters["char-s"] = {id = "char-s", owner = "solo", slot = 0, '
                         'name = "S", contacts = {}, knownMissions = {}} '
                         # E18-T20: Living Knox reads the owner of a character in the identity of the core mod.
-                        'local I = require("RadioSurvivorCore/RC_Identity") I.ensure() '
+                        'local I = require("CoreAI/CA_Identity") I.ensure() '
                         'I.state.data.characters["char-s"] = {owner = "solo", slot = 0}')
         neg = self.F.negotiation(p, self.g.LK_GROUP)
         self.assertEqual((neg.role, neg.personal, neg.revision), ('owner', True, 0))
@@ -294,7 +294,7 @@ class AgreementCarnetTests(unittest.TestCase):
         self.assertTrue(ok, why)
         self.assertTrue(self.F.covered(self.g.LK_GROUP, 'char-s'))
         # A solo target is named by the player's username: still the solo team.
-        self.assertEqual(self.rt.eval(f'(function() local d = require("RadioSurvivorCore/RC_Teams").data '
+        self.assertEqual(self.rt.eval(f'(function() local d = require("CoreAI/CA_Teams").data '
                                       f'return d.personal.solo end)()'), neg.team)
 
     def test_bridge_contract_for_negotiate(self):
@@ -334,9 +334,9 @@ class AgreementDecisionTests(test_lk_combat.DecisionCombatTests):
     def test_covered_player_dropped_at_the_next_decision_and_seen_by_aims(self):
         gid = self.mk()
         fighter = self.ev(f'MEMBER_NPC("{gid}", "m-1")')
-        # Identity of the players (core mod RC_Identity, read by LK_Hostility.keyOf) and a covered hook driven by the
+        # Identity of the players (core mod CA_Identity, read by LK_Hostility.keyOf) and a covered hook driven by the
         # bench.
-        self.run_lua('require("RadioSurvivorCore/RC_Identity").bound = setmetatable({}, { __index = function(_, p) '
+        self.run_lua('require("CoreAI/CA_Identity").bound = setmetatable({}, { __index = function(_, p) '
                      'return "char-" .. p:getUsername() end }) '
                      'COVER = false; LivingKnox.Hooks = { covered = function() return COVER end }')
         x, y = self.run_lua(f'local z = LivingKnox.Bodies.find("{fighter}") return z:getX(), z:getY()')

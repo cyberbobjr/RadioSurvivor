@@ -5,7 +5,7 @@
 RS_OutOfSight decides when nobody can see a point: for every connected player (server copies; solo: the local
 player), Chebyshev distance > 100 tiles (UdpConnection.isRelevantTo, java 42.22 UdpConnection.java:216-232, range
 GameServer.java:2638-2639: at most (20 / 2 + 2) * 8 = 96 tiles, levels ignored), or the square not loaded on the
-authority. The delay counts game hours (RC_GameClock: world age), never real time: a paused game stops it, a faster
+authority. The delay counts game hours (CA_GameClock: world age), never real time: a paused game stops it, a faster
 game speeds it up. A player back in view resets it; the start of the wait is saved in the record, so a restart keeps it.
 """
 import unittest

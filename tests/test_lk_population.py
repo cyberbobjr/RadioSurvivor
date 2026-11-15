@@ -33,7 +33,7 @@ from test_rescue import DOUBLES, WORLD  # noqa: E402
 ROOT = Path(__file__).resolve().parents[1]
 MEDIA = ROOT / 'Contents' / 'mods' / 'batman_LivingKnox' / '42.21' / 'media'
 MOD_LUA = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivor' / '42.21' / 'media' / 'lua'
-CORE_LUA = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivorCore' / '42.21' / 'media' / 'lua'  # mod commun (E18)
+CORE_LUA = ROOT / 'Contents' / 'mods' / 'batman_CoreAI' / '42.21' / 'media' / 'lua'  # mod commun (E18)
 LK_LUA = ROOT / 'Contents' / 'mods' / 'batman_LivingKnox' / '42.21' / 'media' / 'lua'  # moteur des PNJ (E18-T07)
 MODULE = LK_LUA / 'server' / 'LivingKnox' / 'LK_Population.lua'
 SANDBOX_FILE = MEDIA / 'sandbox-options.txt'
@@ -54,7 +54,7 @@ end
 getSandboxOptions = function() return stub end
 '''
 
-CANON = ('return require("RadioSurvivorCore/RC_Codec").hexBytes(require("RadioSurvivorCore/RC_Codec").encodeBytes('
+CANON = ('return require("CoreAI/CA_Codec").hexBytes(require("CoreAI/CA_Codec").encodeBytes('
          'LivingKnox.Groups.state.data))')
 POP = 'LivingKnox.Population'
 

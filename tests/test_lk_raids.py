@@ -50,7 +50,7 @@ MEDIA = ROOT / 'Contents' / 'mods' / 'batman_LivingKnox' / '42.21' / 'media'
 SUITE_FILE = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua' / 'shared' / 'RST' / 'suites' \
     / 'RST_LKRaid.lua'
 KEY_A, KEY_B = 'c-alpha', 'c-bravo'
-CANON = ('require("RadioSurvivorCore/RC_Codec").hexBytes(require("RadioSurvivorCore/RC_Codec").encodeBytes('
+CANON = ('require("CoreAI/CA_Codec").hexBytes(require("CoreAI/CA_Codec").encodeBytes('
          'LivingKnox.Groups.state.data))')
 
 # Type de test : rôles "raid" (combattants, éclaireurs) et ouvriers ; hostilité 90 -> pillards hostiles (-50).
@@ -76,8 +76,8 @@ end
 SURVEY = r'''
 local H = HARNESS
 local C = H.classes
-RC_Identity = RC_Identity or { bound = {} }   -- identité du mod commun (E18-T03)
-function BIND(name, key) RC_Identity.bound[HARNESS.players[name]] = key end
+CA_Identity = CA_Identity or { bound = {} }   -- identité du mod commun (E18-T03)
+function BIND(name, key) CA_Identity.bound[HARNESS.players[name]] = key end
 RAID_FACTS = {}
 for _, n in ipairs({ "raidScouting", "raidAnnounced", "raidLaunched", "raidEnded" }) do
     LivingKnox.listen(n, "test", function(info) RAID_FACTS[#RAID_FACTS + 1] = { name = n, info = info } end)

@@ -1,6 +1,6 @@
 # Défense ciblée et décision sur la trêve (E09-T06)
 
-Brouillon du 2026-10-13. Code : `server/LivingKnox/LK_Agreements.lua` (Living Knox depuis E18-T20 ; identifiants d'équipe et mandats : `server/RadioSurvivorCore/RC_Teams.lua` du mod commun ; avant : `LivingKnox.Agreements.lua` de RadioSurvivor) (fin du fichier : registre des incidents,
+Brouillon du 2026-10-13. Code : `server/LivingKnox/LK_Agreements.lua` (Living Knox depuis E18-T20 ; identifiants d'équipe et mandats : `server/CoreAI/CA_Teams.lua` du mod commun ; avant : `LivingKnox.Agreements.lua` de RadioSurvivor) (fin du fichier : registre des incidents,
 crochets, `decideIncident`), `server/LivingKnox/LK_Incidents.lua` (demande au modèle et réponse),
 `server/RS_Carnet_Server.lua` (passage du `tick`, aiguillage de `reply`, annonce), `server/LivingKnox/LK_Bodies.lua`
 (fait `memberHit`), `client/RadioSurvivor/RS_Client.lua` (annonce), `bridge/npc_protocol.py` (genre `npc_incident`).

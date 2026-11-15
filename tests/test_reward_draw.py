@@ -3,7 +3,7 @@ pool, cache contents drawn in the category (shared catalogue or section of the s
 
     python RadioSurvivor/tests/test_reward_draw.py
 
-Real RS_Rewards, real kinds (server/RadioSurvivor/Rewards/), real RS_Persona and RC_Caches (runtime of
+Real RS_Rewards, real kinds (server/RadioSurvivor/Rewards/), real RS_Persona and CA_Caches (runtime of
 test_mission_rewards.py); seeded generator injected in place of ZombRand.
 """
 from __future__ import annotations
@@ -115,7 +115,7 @@ class RewardDrawTests(unittest.TestCase):
             return {getModData = function() return md end, getItemContainer = function() return inside end,
                 inside = inside}
         end
-        local bag = require('RadioSurvivorCore/RC_Caches').make(m.cache)
+        local bag = require('CoreAI/CA_Caches').make(m.cache)
         return table.concat(bag.inside.list, ',')
         ''')
         self.assertEqual(made, 'Base.TinnedBeans,Base.TinnedBeans')

@@ -1,5 +1,5 @@
 --[[
-lk.agreements - agreements kept by Living Knox (E18-T20, LK_Agreements) on the team ids of the core mod (RC_Teams),
+lk.agreements - agreements kept by Living Knox (E18-T20, LK_Agreements) on the team ids of the core mod (CA_Teams),
 with or without RadioSurvivor. Tag "server" (solo or dedicated server, authority only). The truce is concluded
 directly (the model's decision is the bridge's part), with a test group id (form checked only, never a group of the
 engine): the player's team is covered by the hook of Living Knox at once, the agreement is kept in the private file of
@@ -17,8 +17,8 @@ RST.suite("lk.agreements", { tags = { "server" } }, function(s)
         if type(isClient) == "function" and isClient() then t:skip("authority only") end
         local A = type(LivingKnox) == "table" and LivingKnox.Agreements or nil
         t:ok(A ~= nil and type(A.conclude) == "function", "LivingKnox.Agreements not loaded")
-        local Teams = require "RadioSurvivorCore/RC_Teams"
-        local Identity = require "RadioSurvivorCore/RC_Identity"
+        local Teams = require "CoreAI/CA_Teams"
+        local Identity = require "CoreAI/CA_Identity"
         local p = RST.Fixtures.player(t)
         if not p then t:skip("no target player") end
         local cid = Identity.of(p)

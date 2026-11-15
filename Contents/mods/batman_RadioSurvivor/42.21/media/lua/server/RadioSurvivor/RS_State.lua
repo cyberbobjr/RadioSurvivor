@@ -9,14 +9,14 @@ Private notebook state (authority only), two slots written in turn: batman_Radio
   memory with S.dirty, the slot of the failed generation is written again at the next save (the other slot keeps the
   last good file), S.failures counts the streak. Over the bounds (C18), S.reducers (registered by the server, e.g.
   the purge of dead characters) are run once with force, then the save is refused: never a file the decoder refuses.
-- Verification read: at the first write of the session and after a failure (C20); fast hex and checksum (RC_Codec).
+- Verification read: at the first write of the session and after a failure (C20); fast hex and checksum (CA_Codec).
 - Schema: S.SCHEMA; S.MIGRATIONS[n](data) turns schema n into n + 1 (S.upgrade). None yet: schema 2 is current.
-- Missions (E18-T05): S.data.missions is the mission table of the core mod (RC_MissionStore, its own private file),
+- Missions (E18-T05): S.data.missions is the mission table of the core mod (CA_MissionStore, its own private file),
   shared in memory, never written here. S.save encodes this file, writes the mission file, then this file.
 ]]
-local Codec = require 'RadioSurvivorCore/RC_Codec'
-local MissionStore = require 'RadioSurvivorCore/RC_MissionStore'
-local History = require 'RadioSurvivorCore/RC_History'
+local Codec = require 'CoreAI/CA_Codec'
+local MissionStore = require 'CoreAI/CA_MissionStore'
+local History = require 'CoreAI/CA_History'
 local S = {data = nil, generation = 0, blocked = false, dirty = false, failures = 0, verified = false}
 S.SCHEMA = 2
 S.MIGRATIONS = {}
@@ -94,7 +94,7 @@ function S.init(newWorld)
         return false
     end
     S.data.missions = MissionStore.data.missions
-    -- E18-T11: exchange histories with the NPCs in the core mod's private state (RC_History); each contact's history
+    -- E18-T11: exchange histories with the NPCs in the core mod's private state (CA_History); each contact's history
     -- is the core table (same table: writers unchanged).
     if not History.init(newWorld) then
         S.blocked = true

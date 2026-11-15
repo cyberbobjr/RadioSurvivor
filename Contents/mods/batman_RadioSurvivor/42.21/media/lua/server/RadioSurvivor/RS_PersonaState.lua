@@ -17,7 +17,7 @@
 if isClient() then return end
 
 local Const = require "RadioSurvivor/RadioSurvivor_Const"
-local Codec = require "RadioSurvivorCore/RC_Codec"
+local Codec = require "CoreAI/CA_Codec"
 local S = require "RadioSurvivor/RS_State"
 local Actions = require "RadioSurvivor/RS_Actions"
 local Memory = require "RadioSurvivor/RS_Memory"

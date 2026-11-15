@@ -164,7 +164,7 @@ end
 -- left it there). after(t, faction). Dedicated server only.
 E9.FACTION_MS = 10000
 function E9.faction(t, p1, u2, after)
-    local F = RST.factions() -- E18-T20: LK_Agreements and RC_Teams
+    local F = RST.factions() -- E18-T20: LK_Agreements and CA_Teams
     local u1 = p1:getUsername()
     t:ok(Faction.getPlayerFaction(u1) == nil and Faction.getPlayerFaction(u2) == nil,
         "a test account is already in a faction (left by a former suite?)")

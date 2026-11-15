@@ -6,8 +6,8 @@ RS_ShareFrequency.lua).
 La suite est jouée par le VRAI moteur RST (RST.lua, RST_Steps.lua, RST_PeerChecksRadio.lua, RST_PeerChecksVoices.lua)
 sur le serveur dédié simulé de tests/test_carnet.py (Simulation) avec deux clients : vrai RadioSurvivor_Server, vrais
 RS_Actions, RS_MissionVoice (exécuteur share_frequency), RS_VoiceBonds, RS_RadioLog, RS_Personas (Walt et Darlene
-installés et servis), vrai RC_Reputation, vrai RS_Carnet_Server, vrai RS_RadioHistory sur chaque client. Doublure
-propre à ce banc : le mode debug (isDebugEnabled, exigé par RC_Reputation.testSetLevel). Chaque critère est contredit
+installés et servis), vrai CA_Reputation, vrai RS_Carnet_Server, vrai RS_RadioHistory sur chaque client. Doublure
+propre à ce banc : le mode debug (isDebugEnabled, exigé par CA_Reputation.testSetLevel). Chaque critère est contredit
 par un défaut injecté que la suite doit faire échouer : partage sans lien, voix livrée aussi au second client, voix
 absente de la copie du client demandeur, voix déjà connue redonnée. Ce banc ne prouve ni l'API Java ni le réseau réel : la campagne MP à deux clients reste
 nécessaire.
@@ -93,9 +93,9 @@ class ShareSuiteTests(unittest.TestCase):
                          radio_history.convert(rec.voiceBonds) if rec.voiceBonds is not None else None,
                          rec.lastShareDay)
         out['rep'] = self.server.rt.eval(
-            "function(cid) local R = require('RadioSurvivorCore/RC_Reputation'); R.ensure(); "
+            "function(cid) local R = require('CoreAI/CA_Reputation'); R.ensure(); "
             "return R.scoreOf(cid) end")(self.sim.character('alice'))
-        out['today'] = self.server.rt.eval("require('RadioSurvivorCore/RC_Reputation').today()")
+        out['today'] = self.server.rt.eval("require('CoreAI/CA_Reputation').today()")
         out['counters'] = self.server.rt.eval(
             "function() local n = 0 for id in pairs(require('RadioSurvivor/RS_State').data.actionCounters or {}) do "
             "if string.find(id, 'rstest_share_', 1, true) then n = n + 1 end end return n end")()

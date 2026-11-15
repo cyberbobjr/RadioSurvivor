@@ -30,7 +30,7 @@ local Const = require "RadioSurvivor/RadioSurvivor_Const"
 local Trade = require "RadioSurvivor/RS_Trade"
 local Arrivals = require "RadioSurvivor/RS_TradeArrivals"
 local MapMarks = require "RadioSurvivor/RS_MapMarks"
-local Factions = require "RadioSurvivorCore/RC_Teams" -- E18-T20: team ids kept by the core mod
+local Factions = require "CoreAI/CA_Teams" -- E18-T20: team ids kept by the core mod
 local Sound = require "RadioSurvivor/RS_TradeSound"
 
 local Run = {}

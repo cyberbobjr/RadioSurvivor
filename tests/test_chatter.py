@@ -213,7 +213,7 @@ class ChatterTests(unittest.TestCase):
         self.world()
         topics = self.rt.eval('''function(stock, morale, weather)
             local Ch = require('LivingKnox/LK_Chatter')
-            local World = require('RadioSurvivorCore/RC_WorldFacts')
+            local World = require('CoreAI/CA_WorldFacts')
             LivingKnox.Stock = {needs = function() return stock end}
             World.weather = function() return weather end
             local g = LivingKnox.Groups.get(LK_GROUP)

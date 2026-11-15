@@ -1,4 +1,4 @@
-"""Banc hors jeu du mod commun batman_RadioSurvivorCore (E18-T01, ADR adr-separation-mods.md, D03) : métadonnées
+"""Banc hors jeu du mod commun batman_CoreAI (E18-T01, ADR adr-separation-mods.md, D03) : métadonnées
 Build 42, exigé par RadioSurvivor, chargé avant lui par tous les lanceurs de test, module de base en Lua."""
 from __future__ import annotations
 
@@ -11,8 +11,8 @@ from lupa import LuaRuntime
 
 ROOT = Path(__file__).resolve().parents[1]
 MODS = ROOT / 'Contents' / 'mods'
-CORE = MODS / 'batman_RadioSurvivorCore'
-CORE_ID = 'batman_RadioSurvivorCore'
+CORE = MODS / 'batman_CoreAI'
+CORE_ID = 'batman_CoreAI'
 
 
 def mod_info(path):
@@ -57,11 +57,11 @@ class CoreModTests(unittest.TestCase):
 
     def test_core_module_loads_alone(self):
         lua = LuaRuntime(unpack_returned_tuples=True)
-        src = CORE / '42.21' / 'media' / 'lua' / 'shared' / 'RadioSurvivorCore' / 'RC_Core.lua'
+        src = CORE / '42.21' / 'media' / 'lua' / 'shared' / 'CoreAI' / 'CA_Core.lua'
         core = lua.execute(src.read_text(encoding='utf-8'))
-        self.assertEqual(lua.eval('RadioSurvivorCore.MOD_ID'), CORE_ID)
+        self.assertEqual(lua.eval('CoreAI.MOD_ID'), CORE_ID)
         self.assertEqual(core.MOD_ID, CORE_ID)
-        self.assertIsInstance(lua.eval('RadioSurvivorCore.VERSION'), int)
+        self.assertIsInstance(lua.eval('CoreAI.VERSION'), int)
         for p in src.parent.rglob('*.lua'):
             raw = p.read_bytes()
             self.assertTrue(all(b < 128 for b in raw), f'{p.name}: non-ASCII byte (Kahlua lexer)')

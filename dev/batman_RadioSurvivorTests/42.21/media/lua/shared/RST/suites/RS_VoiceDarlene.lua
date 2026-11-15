@@ -3,7 +3,7 @@
 -- voice (RS_MissionVoice.start: section ids, after=, target=) and the real radio report (RS_MissionVoice.report).
 -- Every player is moved in front of the clinic (front door, outside: 11884,6888,0) and brought back at the end.
 -- Steps, each one refused before its predecessor succeeded (locked), then started, met and reported:
---   1. scout_clinic: the zone of the clinic building, reached by the server poll (RC_Missions.observe);
+--   1. scout_clinic: the zone of the clinic building, reached by the server poll (CA_Missions.observe);
 --   2. clear_clinic: one real zombie next to the player, lethal bat hit, counted by the template inside the real
 --      circle around the clinic (Clear.noteHit / Clear.count on test subscribers, as rs.missions.voicetemplates); the
 --      kills asked by the density are lowered to 1 (noted);
@@ -83,10 +83,10 @@ end
 
 local function run(t)
     if isClient() then t:skip('authority only') end
-    local M = require 'RadioSurvivorCore/RC_Missions'
+    local M = require 'CoreAI/CA_Missions'
     local V = require 'RadioSurvivor/RS_MissionVoice'
-    local B = require 'RadioSurvivorCore/RC_MissionBarricade'
-    local Clear = require 'RadioSurvivorCore/RC_MissionClear'
+    local B = require 'CoreAI/CA_MissionBarricade'
+    local Clear = require 'CoreAI/CA_MissionClear'
     local real = require('RadioSurvivor/RS_Personas').get('darlene')
     if not real then t:skip('darlene.txt not loaded by the server (modified or refused: see the server log)') end
     local p = F.player(t)
@@ -110,7 +110,7 @@ local function run(t)
     local function start(name)
         d.nextOfferHour, d.nextOfferAt = nil, nil
         Clear.resetForTests()
-        require('RadioSurvivorCore/RC_MissionScout').resetForTests()
+        require('CoreAI/CA_MissionScout').resetForTests()
         return V.start(store, sheet, 'char1', p, KHZ, name)
     end
     -- place: label of the sheet place the mission aims at, or nil (deliver: the drops of the section).

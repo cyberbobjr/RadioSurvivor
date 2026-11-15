@@ -1,7 +1,7 @@
 # Loretta Royce : marchande de March Ridge (E20-T11, ADR D08 ; format docs/specifications-techniques/persona-format.md).
 # - fréquence tirée au hasard dans 210.0-219.8 MHz à chaque nouvelle partie (bande libre, sans recouvrement) ;
 # - écoute 12:00-15:00 (heure du jeu) ; hors carte ; arrivée par la route (mode road, portière puis hayon d'un fourgon) ;
-# - troc : action propose_trade et section [trade] (stock du barème RC_TradeValues, poids du script vanilla
+# - troc : action propose_trade et section [trade] (stock du barème CA_TradeValues, poids du script vanilla
 #   42.22, plus le fluide d'un récipient plein) ; share_frequency vers les marchands voisins ; note de fréquence
 #   trouvée dans le butin (section [note]).
 format=1

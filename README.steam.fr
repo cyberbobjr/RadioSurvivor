@@ -13,7 +13,7 @@ Abonnez-vous une fois, puis cochez dans la liste des mods ce que vous voulez. Ra
 [list]
 [*][b]Radio Survivor[/b] (batman_RadioSurvivor) : la radio, six voix d'IA, l'onglet Radio du carnet, les factions.
 [*][b]Living Knox[/b] (batman_LivingKnox) : des groupes de survivants PNJ avec foyers, besoins, routines et combats.
-[*][b]Radio Survivor Core[/b] (batman_RadioSurvivorCore) : ce que les deux partagent : missions et leur journal, lien avec le pont, identité des personnages, historique des échanges, réputation, carnet. Le jeu l'active pour vous ; seul, il n'apporte rien de jouable.
+[*][b]Core AI[/b] (batman_CoreAI) : ce que les deux partagent : missions et leur journal, lien avec le pont, identité des personnages, historique des échanges, réputation, carnet. Le jeu l'active pour vous ; seul, il n'apporte rien de jouable.
 [/list]
 
 [b]Radio Survivor seul :[/b] voix, radio, carnet. [b]Living Knox seul :[/b] vous parlez à un PNJ dans le chat normal (/say) près de lui, ou par le menu du clic droit [b]Parler[/b] ; il répond dans une bulle, et ses missions vont dans le carnet. [b]Les deux :[/b] vous parlez aux PNJ par le carnet (Ctrl+G) et Radio Survivor ajoute les relations et les accords avec les groupes.
@@ -40,7 +40,7 @@ Le serveur décide de tout : l'IA n'écrit que des paroles et choisit dans des l
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3811010882]Signal Smoke[/url] (batman_SignalSmoke) : les trois mods.
 [*][url=https://steamcommunity.com/sharedfiles/filedetails/?id=3817018338]Belt Walkie-Talkie[/url] (batman_BeltRadio), qui requiert lui-même [url=https://steamcommunity.com/sharedfiles/filedetails/?id=3694097672]TooltipLib[/url] : Radio Survivor seulement.
 [/list]
-Ordre de chargement : TooltipLib, Belt Walkie-Talkie, Signal Smoke, Radio Survivor Core, Radio Survivor, Living Knox.
+Ordre de chargement : TooltipLib, Belt Walkie-Talkie, Signal Smoke, Core AI, Radio Survivor, Living Knox.
 
 [b]Incompatible[/b] (Living Knox) avec Bandits! et Project A-Life : un seul moteur de PNJ par partie.
 
@@ -57,8 +57,8 @@ Le Lua de Project Zomboid n'a aucun accès réseau : le jeu et le pont s'échang
 [b]3. Lancer.[/b] [i]python radio_bridge.py[/i] et laissez la fenêtre ouverte pendant la partie. Attendez [i]Bridge ready[/i]. L'ordre de démarrage (jeu ou pont d'abord) est indifférent.
 
 [list]
-[*][b]Solo et partie hébergée depuis le menu :[/b] rien d'autre ; le dossier d'échange par défaut est %USERPROFILE%\Zomboid\Lua\batman_RadioSurvivorCore.
-[*][b]Serveur dédié (Windows ou Linux) :[/b] lancez le pont sous le compte du serveur. Avec -cachedir=X, ajoutez [i]--exchange X/Lua/batman_RadioSurvivorCore[/i]. Démarrez-le avec le serveur (Planificateur de tâches, service systemd, ou second conteneur qui partage le volume du serveur). Tant que le pont tourne, ce dossier contient bridge-alive.txt : sinon, ce n'est pas le bon dossier.
+[*][b]Solo et partie hébergée depuis le menu :[/b] rien d'autre ; le dossier d'échange par défaut est %USERPROFILE%\Zomboid\Lua\batman_CoreAI.
+[*][b]Serveur dédié (Windows ou Linux) :[/b] lancez le pont sous le compte du serveur. Avec -cachedir=X, ajoutez [i]--exchange X/Lua/batman_CoreAI[/i]. Démarrez-le avec le serveur (Planificateur de tâches, service systemd, ou second conteneur qui partage le volume du serveur). Tant que le pont tourne, ce dossier contient bridge-alive.txt : sinon, ce n'est pas le bon dossier.
 [*][b]Un seul pont par dossier :[/b] un second refuse de démarrer (réponses et coût en double).
 [*][i]--offline[/i] : sans IA ni coût, les voix répètent votre phrase (pour tester l'installation). [i]--debug[/i] : journal complet (il contient les dialogues, ne pas le partager tel quel).
 [/list]

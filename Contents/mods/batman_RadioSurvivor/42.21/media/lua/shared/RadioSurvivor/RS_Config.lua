@@ -1,4 +1,4 @@
-local MissionConfig = require 'RadioSurvivorCore/RC_MissionConfig'
+local MissionConfig = require 'CoreAI/CA_MissionConfig'
 local C = {
     MODULE = 'RS_Carnet',
     DeadDrops = {radius = 3, collectDelayHours = 6, maxItems = 512}, -- E20-T05: game hours out of sight
@@ -150,18 +150,18 @@ local C = {
     -- down to RS_Trade.MARGIN_MIN, a cheat sets RS_Trade.MARGIN_MAX.
     TradeMargin = {good = 0.10, neutral = 0.25, bad = 0.40},
 }
--- E18-T05: mission catalogue, caches and mission delays live in the core mod (RC_MissionConfig); same tables.
+-- E18-T05: mission catalogue, caches and mission delays live in the core mod (CA_MissionConfig); same tables.
 for _, key in ipairs({'OFFER_TTL_MS', 'OFFER_COOLDOWN_MS', 'MAX_OFFERS', 'MISSION_RETENTION_MS',
         'UNCLAIMED_RETENTION_HOURS', 'UNCLAIMED_RETENTION_MS', 'Missions', 'Caches'}) do
     C[key] = MissionConfig[key]
 end
--- E18-T22: rules of the reputation live in the core mod (RC_ReputationConfig); same table.
-C.Reputation = require 'RadioSurvivorCore/RC_ReputationConfig'
+-- E18-T22: rules of the reputation live in the core mod (CA_ReputationConfig); same table.
+C.Reputation = require 'CoreAI/CA_ReputationConfig'
 -- Historical name of the M01 entry (same table).
 C.Delivery = C.Missions.deliver
 
--- E18-T17: bounds of the NPC speech and game language code: core mod (RC_SpeechConfig); same values.
-local Speech = require 'RadioSurvivorCore/RC_SpeechConfig'
+-- E18-T17: bounds of the NPC speech and game language code: core mod (CA_SpeechConfig); same values.
+local Speech = require 'CoreAI/CA_SpeechConfig'
 for _, key in ipairs({'HEARING_RANGE', 'NOISE_RANGE', 'REQUEST_TIMEOUT_MS', 'COOLDOWN_MS', 'MAX_PENDING', 'MAX_PER_HOUR',
         'ENRICH_PER_HOUR', 'ENRICH_RETRY_MS', 'ENRICH_MAX_ATTEMPTS', 'NARRATIVE_LANGUAGE', 'MAX_TEXT_BYTES',
         'MAX_REPLY_BYTES', 'languageCode', 'SELECT_RANGE', 'MAX_HISTORY', 'ACQUAINT_HOURS',

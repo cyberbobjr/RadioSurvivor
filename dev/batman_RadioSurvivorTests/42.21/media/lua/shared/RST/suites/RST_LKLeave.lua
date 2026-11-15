@@ -1,6 +1,6 @@
 --[[
 lk.leave - individual departure of an embodied Living Knox member (E10-T04, shared/RadioSurvivor/RS_LivingKnox.lua:
-LK.leave, LK.canLeave; LK_Agreements.lua (Living Knox) and RC_Teams.lua (core mod): keepTruces, covered). Tags "world" and
+LK.leave, LK.canLeave; LK_Agreements.lua (Living Knox) and CA_Teams.lua (core mod): keepTruces, covered). Tags "world" and
 "server": the
 authority only, on a save named rstest*, with a target player (t.ctx.player), the Living Knox option Enabled on.
 Solo: RST.run({ suite = "lk.leave", tags = "world" }); dedicated server: RST.server({ suite = "lk.leave",
@@ -106,7 +106,7 @@ RST.suite("lk.leave", { mods = { "rs", "lk" },
         t:ok(P ~= nil and P.leave ~= nil, "RS_LivingKnox.leave (E10-T04) is not loaded")
         t:ok(E.GroupTypes.isKnown(P.LONER_TYPE), "group type loners not registered")
         t:ok(E.Groups.ensure(), "group registry not ready")
-        local F = RST.factions() -- E18-T20: LK_Agreements and RC_Teams
+        local F = RST.factions() -- E18-T20: LK_Agreements and CA_Teams
         local p = RST.Fixtures.player(t)
         t:ok(p ~= nil, "no target player (t.ctx.player)")
         local sq = p:getCurrentSquare()

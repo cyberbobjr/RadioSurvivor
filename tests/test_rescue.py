@@ -25,7 +25,7 @@ import lupa.lua51 as lupa
 
 ROOT = Path(__file__).resolve().parents[1]
 MOD_LUA = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivor' / '42.21' / 'media' / 'lua'
-CORE_LUA = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivorCore' / '42.21' / 'media' / 'lua'  # mod commun (E18)
+CORE_LUA = ROOT / 'Contents' / 'mods' / 'batman_CoreAI' / '42.21' / 'media' / 'lua'  # mod commun (E18)
 LK_LUA = ROOT / 'Contents' / 'mods' / 'batman_LivingKnox' / '42.21' / 'media' / 'lua'  # moteur des PNJ (E18-T07)
 TESTS_LUA = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua'
 MODULE = MOD_LUA / 'server' / 'RadioSurvivor' / 'RS_Rescue.lua'
@@ -360,7 +360,7 @@ class ChoiceTests(RescueHarness):
         self.g.COUNT.get = 0
         site, why = self.pick('{ seed = 3, maxAttempts = 5, minDistance = 1000000 }')
         self.assertEqual(self.g.COUNT.get, 5)
-        self.assertIn('[RadioSurvivorCore] sites: no suitable building after 5 draw(s)', lua_list(self.g.LOGS)[-1])
+        self.assertIn('[CoreAI] sites: no suitable building after 5 draw(s)', lua_list(self.g.LOGS)[-1])
 
     def test_seed_is_reproducible(self):
         keys = [self.pick(f'{{ seed = {s}, noClues = true }}')[0].key for s in range(1, 31)]
@@ -531,7 +531,7 @@ class RunTests(RescueHarness):
     OUTCOMES = {}
     STATE = require("RadioSurvivor/RS_State")
     STATE.data = { schema = 2, world = "w" }
-    require("RadioSurvivorCore/RC_Teams").useData({ schema = 1, counter = 0, records = {}, personal = {} }) -- E18-T20
+    require("CoreAI/CA_Teams").useData({ schema = 1, counter = 0, records = {}, personal = {} }) -- E18-T20
     R = require("RadioSurvivor/RS_Rescue")
     R.onOutcome = function(rescue, result) OUTCOMES[#OUTCOMES + 1] = { id = rescue.id, result = result } end
     function poll() return R.poll(true) end
@@ -644,7 +644,7 @@ class RunTests(RescueHarness):
             isOwner = function(_, n) return n == "alice" end,
             isMember = function(_, n) return n == "alice" or n == "bob" end }
         Faction = { getFactions = function() return JList({ f }) end }
-        require("RadioSurvivorCore/RC_Teams").reset()
+        require("CoreAI/CA_Teams").reset()
         """)
         ida = self.rt.execute('local id = R.start(A, { seed = 4 }) return id')
         self.assertIsNotNone(ida)

@@ -8,7 +8,7 @@ Chaque suite est jouée par le VRAI moteur RST (RST.lua, RST_Steps.lua, RST_Fixt
 et deux clients (une machine lupa chacun, `next` retiré comme dans Kahlua ; réseau en file, tables copiées comme le
 réseau, livrées au tick suivant), puis en solo (une seule machine, sendClientCommand traité au tick suivant comme le
 jeu, réponses de l'autorité remises directement aux modules client). Ce qui est réel ici : RadioSurvivor_Const,
-RS_State, RC_Codec, RS_Config, RS_RadioLog (historique radio, côté serveur), RS_RadioHistory (copie client),
+RS_State, CA_Codec, RS_Config, RS_RadioLog (historique radio, côté serveur), RS_RadioHistory (copie client),
 RS_Factions (avec la doublure de zombie.characters.Faction de tests/test_factions.py), LK_Observations et
 LK_ObservationTriggers, LK_Core (listen / publish). Doublures : monde Java (cases, IsoRadio sans sprite, DeviceData,
 inventaire, véhicule et sièges, paquets VehicleEnter et Faction*), juge de la commande talk (même ordre de contrôles
@@ -36,7 +36,7 @@ ROOT = Path(__file__).resolve().parents[1]
 DEV = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua'
 MOD = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivor' / '42.21' / 'media' / 'lua'
 LK_LUA = ROOT / 'Contents' / 'mods' / 'batman_LivingKnox' / '42.21' / 'media' / 'lua'  # moteur des PNJ (E18-T07)
-CORE_LUA = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivorCore' / '42.21' / 'media' / 'lua'  # mod commun (E18)
+CORE_LUA = ROOT / 'Contents' / 'mods' / 'batman_CoreAI' / '42.21' / 'media' / 'lua'  # mod commun (E18)
 SUITES = DEV / 'shared' / 'RST' / 'suites'
 STEPS_FILES = [DEV / 'shared' / 'RST' / name for name in ('RST_Steps.lua', 'RST_Fixtures.lua', 'RST_PeerChecksRadio.lua')]
 SUITE_FILES = {name: SUITES / f'{name}.lua' for name in ('RS_WorldRadio', 'RS_RadioMP', 'RS_CarnetLoad',
@@ -59,7 +59,7 @@ WORLD_NAME = "rstest_bench"
 getWorld = function() return { getWorld = function() return WORLD_NAME end,
     getGameMode = function() return setmetatable({}, {__tostring = function() return ROLE == "solo" and "Sandbox" or "Multiplayer" end}) end } end
 getCore = function() return { getVersion = function() return "42.21.0 bench" end } end
-getActivatedMods = function() return JList({ "batman_RadioSurvivorCore", "batman_LivingKnox", "batman_RadioSurvivor", "batman_RadioSurvivorTests" }) end
+getActivatedMods = function() return JList({ "batman_CoreAI", "batman_LivingKnox", "batman_RadioSurvivor", "batman_RadioSurvivorTests" }) end
 local seed = 0
 ZombRand = function(a, b) seed = seed + 1 if b then return a + (seed % (b - a)) end return seed % a end
 Events = setmetatable({}, { __index = function(t, k)
@@ -517,7 +517,7 @@ P = {
 package.loaded["RadioSurvivor/RS_NPCProvider"] = P
 
 -- RS_Missions reduced to create / accept / finish and its optional listener (RS_Missions.lua:87-160).
--- Result listeners heard once per participant of a closed mission (RC_Missions, E18-T05), not for a cancellation.
+-- Result listeners heard once per participant of a closed mission (CA_Missions, E18-T05), not for a cancellation.
 M = { onFinished = nil, results = {} }
 function M.addResultListener(fn) M.results[#M.results + 1] = fn end
 function M.create(state, npc, cid)
@@ -543,11 +543,11 @@ function M.finish(state, m, result)
     end
     return true
 end
-package.loaded["RadioSurvivorCore/RC_Missions"] = M
+package.loaded["CoreAI/CA_Missions"] = M
 
 -- Notebook server reduced to what the suites read (RS_Carnet_Server.lua: hello, snapshot, select, scan,
 -- prune, conditional save, enrichment of a contacted fiche).
-F = (function() local A, T = require("LivingKnox/LK_Agreements"), require("RadioSurvivorCore/RC_Teams") return setmetatable({}, {__index = function(_, k) if A[k] ~= nil then return A[k] end return T[k] end}) end)()
+F = (function() local A, T = require("LivingKnox/LK_Agreements"), require("CoreAI/CA_Teams") return setmetatable({}, {__index = function(_, k) if A[k] ~= nil then return A[k] end return T[k] end}) end)()
 Server = { talk = { pending = {}, enrichTimes = {}, times = {} }, store = S, bound = {}, selected = {}, objects = {}, pending = {}, enrichTimes = {}, times = {} }
 RS_CarnetServer = Server
 local function players()
@@ -613,8 +613,8 @@ function Server.command(module, command, player, args)
     end
 end
 Events.OnClientCommand.Add(Server.command)
--- E18-T20: commands "team" and "mandate" of the core mod (RC_Teams), loaded with every server file in the game.
-require "RadioSurvivorCore/RC_TeamsEvents"
+-- E18-T20: commands "team" and "mandate" of the core mod (CA_Teams), loaded with every server file in the game.
+require "CoreAI/CA_TeamsEvents"
 local function prune(now)
     local kept = {}
     if not DEFECT.pruneContacts then
@@ -968,7 +968,7 @@ class WorldRadioTests(Bench):
         self.assertIsNone(net.server.g.PLAYERS['rs_mp1'].vehicle)
         self.assertEqual(net.server.lua('local n = 0 for _ in pairs(VEHICLES) do n = n + 1 end return n'), 0)
         self.assertEqual(net.server.lua('return CELL:getGridSquare(1001, 1000, 0):getObjects():size()'), 0)
-        self.assertFalse(net.server.lua('for _, r in pairs(require("RadioSurvivorCore/RC_History").data.radio or {}) do for _, f in ipairs('
+        self.assertFalse(net.server.lua('for _, r in pairs(require("CoreAI/CA_History").data.radio or {}) do for _, f in ipairs('
                                         'r.frequencies or {}) do if #f.lines > 0 then return true end end end '
                                         'return false'))
 
@@ -1106,7 +1106,7 @@ class ObservationTests(Bench):
 FACTION_DEFECTS = {
     # A member without mandate allowed to conclude (mandate ignored).
     'mandateIgnored': r'''
-        local T = require "RadioSurvivorCore/RC_Teams" -- E18-T20: mandates of the core mod
+        local T = require "CoreAI/CA_Teams" -- E18-T20: mandates of the core mod
         local orig = T.canConclude
         T.canConclude = function(p)
             local ok, r, team = orig(p)
@@ -1115,7 +1115,7 @@ FACTION_DEFECTS = {
         end''',
     # Agreements looked up by the name of the team at their conclusion (lost by a rename).
     'agreementByName': r'''
-        local A, T = require "LivingKnox/LK_Agreements", require "RadioSurvivorCore/RC_Teams" -- E18-T20
+        local A, T = require "LivingKnox/LK_Agreements", require "CoreAI/CA_Teams" -- E18-T20
         local orig, names = A.agreementOf, {}
         local conclude = A.conclude
         A.conclude = function(p, gid, kind, expect, signer)

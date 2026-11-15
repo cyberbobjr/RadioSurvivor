@@ -3,7 +3,7 @@
 -- Autorité seulement (serveur dédié ou hébergé, solo) : un client MP charge aussi media/lua/server, il s'arrête ici.
 --
 -- Clé d'une attitude : groupe (grp-<n> du registre des groupes) + clé de joueur. La clé de joueur est l'identité de
--- personnage du mod commun (RC_Identity, clé de ModData RS_CarnetCharacter : liée au compte en MP, nouvelle pour chaque
+-- personnage du mod commun (CA_Identity, clé de ModData CA_Character : liée au compte en MP, nouvelle pour chaque
 -- personnage, retirée à sa mort) : deux personnages d'un même compte ont deux attitudes distinctes. Hostility.keyOf(player) la
 -- retrouve ; le module accepte toute clé bien formée (PLAYER_KEY_MAX caractères de [%w_.:-]).
 --
@@ -27,7 +27,7 @@
 -- générale fausse ou deux fichiers illisibles -> registre BLOQUÉ (aucune écriture, fichiers conservés) ; une paire
 -- ou un groupe invalide est écarté et journalisé. Sauvegarde à chaque fait et à chaque déclin effectif.
 if isClient() then return end
-local Identity = require "RadioSurvivorCore/RC_Identity"   -- E18-T03 : identité des personnages (mod commun)
+local Identity = require "CoreAI/CA_Identity"   -- E18-T03 : identité des personnages (mod commun)
 
 require "LivingKnox/LK_Core"
 require "LivingKnox/LK_Config"
@@ -182,13 +182,13 @@ function Hostility.startFor(groupType)
 end
 
 -- E04-T11 (Q14, confirmé par défaut le 2026-10-15) : niveau de réputation interne d'un personnage (« good », « neutral »,
--- « bad ») de la réputation du mod commun (RC_Reputation, E18-T22), ou du crochet facultatif
+-- « bad ») de la réputation du mod commun (CA_Reputation, E18-T22), ou du crochet facultatif
 -- LivingKnox.Hooks.reputation(playerKey) s'il est posé (bancs). En erreur ou valeur inconnue : nil (aucun effet).
 local REPUTATION_LEVELS = { good = true, neutral = true, bad = true }
 
 function Hostility.reputationOf(playerKey)
     local hooks = LivingKnox.Hooks
-    local fn = type(hooks) == "table" and hooks.reputation or require("RadioSurvivorCore/RC_Reputation").level
+    local fn = type(hooks) == "table" and hooks.reputation or require("CoreAI/CA_Reputation").level
     if type(fn) ~= "function" or not Hostility.validPlayerKey(playerKey) then return nil end
     local ok, level = pcall(fn, playerKey)
     if not ok then
@@ -584,7 +584,7 @@ function Hostility.onEveryHours()
     Hostility.decay()
 end
 
--- Clé de joueur d'un IsoPlayer : identité de personnage du mod commun liée à ce joueur (RC_Identity, E18-T03 :
+-- Clé de joueur d'un IsoPlayer : identité de personnage du mod commun liée à ce joueur (CA_Identity, E18-T03 :
 -- commande hello à l'entrée en jeu, avec ou sans RadioSurvivor), ou nil et une raison s'il n'en a pas encore.
 function Hostility.keyOf(player)
     local cid = Identity.of(player)

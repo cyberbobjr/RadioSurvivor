@@ -4,7 +4,7 @@
 
     python RadioSurvivor/tests/test_mission_route.py
 
-Vrai RadioSurvivor_Server, vrai RS_Carnet_Server (gabarit RC_MissionRoute inscrit au chargement), vrai RS_MissionVoice
+Vrai RadioSurvivor_Server, vrai RS_Carnet_Server (gabarit CA_MissionRoute inscrit au chargement), vrai RS_MissionVoice
 (départ et compte rendu d'une voix), vrai RS_MissionWaypoints (points de la section), vrai RS_Persona et
 RS_PersonaParams (lecture de la fiche, nature de paramètre `places`), vrai client du carnet (page, cercles de la carte) ;
 doublures fidèles au Java 42.22 relevé (ROUTE_WORLD). Preuve de la logique Lua, pas de l'API Java réelle ni du réseau :
@@ -76,7 +76,7 @@ class RouteMissionTests(unittest.TestCase):
         rt.execute(ROUTE_WORLD)
         # The game loads every server file of the mod: the set-up of the route points registers itself (no require).
         rt.eval("require('RadioSurvivor/RS_MissionWaypoints')")
-        rt.eval("require('RadioSurvivorCore/RC_MissionRoute')").resetForTests()
+        rt.eval("require('CoreAI/CA_MissionRoute')").resetForTests()
         return sim, rt.eval("require('RadioSurvivor/RS_MissionVoice')"), rt.eval("require('RadioSurvivor/RS_State')")
 
     def sheet(self, sim, points=('a', 'b', 'c')):
@@ -92,7 +92,7 @@ class RouteMissionTests(unittest.TestCase):
         return voice.start(store, sheet, sim.character('alice'), sim.server.g.PLAYERS.alice, 160000, 'route')
 
     def go(self, sim, store, where):
-        """alice moves to the point (or x, y), then the server poll of the engine (RC_Missions.observe)."""
+        """alice moves to the point (or x, y), then the server poll of the engine (CA_Missions.observe)."""
         alice = sim.server.g.PLAYERS.alice
         alice.x, alice.y = POINTS[where] if isinstance(where, str) else where
         return self.poll(sim, store)
@@ -101,13 +101,13 @@ class RouteMissionTests(unittest.TestCase):
         sim.clock.offset += 1000
         present = sim.server.rt.table_from([sim.server.rt.table_from(
             {'player': sim.server.g.PLAYERS.alice, 'character': sim.character('alice')})])
-        return sim.server.rt.eval("require('RadioSurvivorCore/RC_Missions')").observe(store.data, present, store)
+        return sim.server.rt.eval("require('CoreAI/CA_Missions')").observe(store.data, present, store)
 
     def report(self, sim, voice, store, sheet):
         return voice.report(store, sheet, sim.character('alice'), sim.server.g.PLAYERS.alice, 160000)
 
     def ready(self, sim, m):
-        return sim.server.rt.eval("require('RadioSurvivorCore/RC_Missions')").reportReady(m)
+        return sim.server.rt.eval("require('CoreAI/CA_Missions')").reportReady(m)
 
     def started(self, name, points=('a', 'b', 'c')):
         sim, voice, store = self.world(name)
@@ -195,8 +195,8 @@ class RouteMissionTests(unittest.TestCase):
     def test_npc_fiches_are_never_offered_a_route(self):
         sim, _, _ = self.world('route-npc')
         offer = sim.server.rt.eval("""(function()
-            local c = require('RadioSurvivorCore/RC_MissionConfig').Missions.route
-            return require('RadioSurvivorCore/RC_MissionRoute').offer(c, {id = 'npc1', incarnation = 1}, {}, nil)
+            local c = require('CoreAI/CA_MissionConfig').Missions.route
+            return require('CoreAI/CA_MissionRoute').offer(c, {id = 'npc1', incarnation = 1}, {}, nil)
         end)()""")
         self.assertIsNone(offer)
 
@@ -278,7 +278,7 @@ class RouteSheetTests(unittest.TestCase):
         cls.tmp = tempfile.TemporaryDirectory()
         cls.folder = Path(cls.tmp.name)
         cls.lua = LuaPersona(cls.folder)
-        cls.lua.rt.eval('require("RadioSurvivorCore/RC_MissionRoute")')
+        cls.lua.rt.eval('require("CoreAI/CA_MissionRoute")')
 
     @classmethod
     def tearDownClass(cls):

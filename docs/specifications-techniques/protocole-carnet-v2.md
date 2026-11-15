@@ -1,13 +1,13 @@
 # Contrat RadioSurvivor Lua ↔ Python v2
 
-Cible 42.21.0. Implémentation : `RC_Codec.lua`, `RC_Transport.lua` (mod commun), `RS_BridgeLanes.lua` (voix radio),
+Cible 42.21.0. Implémentation : `CA_Codec.lua`, `CA_Transport.lua` (mod commun), `RS_BridgeLanes.lua` (voix radio),
 `LK_Talk.lua` (parole des PNJ, voies `npc` et `acks`, E18-T17 : file, ordre et révision par PNJ, délais, refus,
 acquittements ; le carnet n'ajoute que son contexte et ses actions par les crochets de `LK_TalkHost.lua`),
 `bridge/npc_protocol.py`, `bridge/radio_bridge.py`. Le bridge unique garde le verrou `bridge.lock`,
-sa configuration et le transport par fichiers dans `<cachedir>/Lua/batman_RadioSurvivorCore`.
+sa configuration et le transport par fichiers dans `<cachedir>/Lua/batman_CoreAI`.
 Python ne modifie aucun inventaire, état du moteur de PNJ, accord ou score de réputation.
 
-**File commune (E18-T04, décision du 2026-11-05).** Un seul fichier de demandes et un seul fichier de réponses pour tous les mods : chaque mod inscrit ses sortes de demandes comme **voies** de la file du mod commun (`RC_Transport.register(nom, { order, format })`) ; le fichier écrit les voies par ordre croissant (RadioSurvivor : `radio` 10, `npc` 20, `acks` 30, `lastPages` 40, `RS_BridgeLanes`), puis par ordre d'inscription ; format par défaut `kind=` et `payload=` (RSV2), la voie `radio` garde ses lignes `clé=valeur`. Les réponses de toutes les voies sont lues par `RC_Transport.readResponses`. Chaque mod garde ses plafonds (`MAX_PENDING`, plafond horaire). Fichiers et signal de vie : `RC_Bridge` (dossier `batman_RadioSurvivor/` inchangé jusqu'à `E18-T12`). Octets du fichier de demandes inchangés (banc `tests/test_core_bridge.py`).
+**File commune (E18-T04, décision du 2026-11-05).** Un seul fichier de demandes et un seul fichier de réponses pour tous les mods : chaque mod inscrit ses sortes de demandes comme **voies** de la file du mod commun (`CA_Transport.register(nom, { order, format })`) ; le fichier écrit les voies par ordre croissant (RadioSurvivor : `radio` 10, `npc` 20, `acks` 30, `lastPages` 40, `RS_BridgeLanes`), puis par ordre d'inscription ; format par défaut `kind=` et `payload=` (RSV2), la voie `radio` garde ses lignes `clé=valeur`. Les réponses de toutes les voies sont lues par `CA_Transport.readResponses`. Chaque mod garde ses plafonds (`MAX_PENDING`, plafond horaire). Fichiers et signal de vie : `CA_Bridge` (dossier `batman_RadioSurvivor/` inchangé jusqu'à `E18-T12`). Octets du fichier de demandes inchangés (banc `tests/test_core_bridge.py`).
 
 ## Enveloppe et compatibilité
 
@@ -244,8 +244,8 @@ payload=<RSV2 hexadécimal de { version = 2, kind = "radio_reply", id = <id>, sa
 Chaque action est une table `{ type = "signal", color = "green", ... }` : `type` puis les paramètres à plat.
 
 **Lecture par le serveur** : `readResponses` accepte `line=` (inchangé) et `payload=` pour un identifiant radio :
-corps décodé par `RC_Codec`, `version == 2`, `kind == "radio_reply"` et `id` égal à celui de `resp=`, sinon ignoré
-(les réponses `npc_reply` et `ack_reply` du même fichier restent à `RC_Transport.readResponses` (mod commun), qui ignore à son tour les
+corps décodé par `CA_Codec`, `version == 2`, `kind == "radio_reply"` et `id` égal à celui de `resp=`, sinon ignoré
+(les réponses `npc_reply` et `ack_reply` du même fichier restent à `CA_Transport.readResponses` (mod commun), qui ignore à son tour les
 réponses radio). Les lignes `say` repassent par le filtrage de `line=` (balises, 140 caractères, 8 lignes), puis la
 diffusion est mise en file comme une réponse texte ; ensuite seulement, `RS_Actions.decide` juge les actions contre la
 fiche **actuelle** de la voix.
@@ -332,7 +332,7 @@ deux fichiers, soit environ deux fois les seuils sur le disque.
 Action `remember` : la voix retient un fait court sur l'appelant (nom de personnage, lieu déclaré, service rendu). Le
 pont la propose, le serveur l'accepte et range le fait ; la mémoire vit **côté autorité**, jamais dans le pont ni en
 ModData globale. Implémentation : `server/RadioSurvivor/RS_Memory.lua` (exécuteur, bornes, champ de demande),
-`RadioSurvivor_Server.lua` (champ joint à la demande), `RC_Transport.lua` (mod commun) et `RS_BridgeLanes.lua`, `bridge/radio_bridge.py`
+`RadioSurvivor_Server.lua` (champ joint à la demande), `CA_Transport.lua` (mod commun) et `RS_BridgeLanes.lua`, `bridge/radio_bridge.py`
 (`memory_facts`, `memory_prompt`).
 
 **Exécuteur** (jugé par `RS_Actions.decide` comme toute action : catalogue, `actions=` de la fiche, paramètres,
@@ -393,7 +393,7 @@ et refuse `remember` `not_available`.
 Action `persona_state` : la voix fait évoluer **son propre** état au fil du récit (moral, réserves, lieu dit). Le
 pont la propose, le serveur l'accepte et range l'état ; il vit **côté autorité**, dans l'état privé, jamais dans le
 fichier de fiche édité par l'admin ni en ModData globale. Implémentation : `server/RadioSurvivor/RS_PersonaState.lua`
-(exécuteur, bornes, champ de demande), `RadioSurvivor_Server.lua` (champ joint à la demande), `RC_Transport.lua` (mod commun) et `RS_BridgeLanes.lua`,
+(exécuteur, bornes, champ de demande), `RadioSurvivor_Server.lua` (champ joint à la demande), `CA_Transport.lua` (mod commun) et `RS_BridgeLanes.lua`,
 `bridge/radio_bridge.py` (`persona_state`, `persona_prompt`).
 
 **Exécuteur** (jugé par `RS_Actions.decide` comme toute action : catalogue, `actions=` de la fiche, paramètres,
@@ -603,7 +603,7 @@ l'identifiant d'une section `[mission <id>]` de la fiche **disponible pour l'app
 mission citée a pour dernier résultat une réussite de ce personnage, ou de son équipe avec `scope=team` ; une fiche
 sans section : `scout`). Un nom qui n'est pas un identifiant de section est lu comme un type de mission : le serveur
 tire parmi les sections disponibles de ce type selon leur `weight=` (`RS_MissionChain.choose`, générateur injectable).
-Le type de la section doit être inscrit au registre des gabarits (`RC_Missions`, déclaration `voiceName` ;
+Le type de la section doit être inscrit au registre des gabarits (`CA_Missions`, déclaration `voiceName` ;
 aujourd'hui `scout`, `deliver`, `retrieve`, `clear`, `signal`). Refus : `locked` (section, ou toutes celles du type,
 en attente de leur `after=`), `bad_template` (ni section ni type de ce nom, ou type sans gabarit) ; le paramètre doit
 suivre la syntaxe `[a-z][a-z0-9_]*` (32 caractères au plus), sinon `bad_params`. La mission garde `section`, `team` et
@@ -626,8 +626,8 @@ par un gabarit inscrit ; `name` est l'identifiant de la section, `text` la descr
 le gabarit (`voiceText`), suivie de `. ` et du `story=` de la section s'il y en a un (200 octets au plus). Un type de
 la fiche sans gabarit est omis et journalisé une fois
 (`voice sheet <id> lists unknown mission type '<nom>'`) ; `V.start` le refuse aussi (`bad_template`). `caches` donne
-les tables de cache de `place_cache`, de leur seul propriétaire (`RC_Caches.tableNames`, ordre de
-`RC_MissionConfig.Caches.order`). Le pont (`voice_jobs`) borne le champ à 16 384 caractères, 16 missions (texte de
+les tables de cache de `place_cache`, de leur seul propriétaire (`CA_Caches.tableNames`, ordre de
+`CA_MissionConfig.Caches.order`). Le pont (`voice_jobs`) borne le champ à 16 384 caractères, 16 missions (texte de
 400 octets UTF-8 au plus) et 16 tables ;
 un nom hors syntaxe `[a-z][a-z0-9_]*`, en double, ou un texte illisible ou qui cite un secret est retiré. La
 description de `start_mission`, son exemple et sa validation prennent la liste `jobs` ; ceux de `place_cache`, la
@@ -659,8 +659,8 @@ ou « PNJ seulement » qui y figurent sont remplacées par le présent contrat p
 
 Action `start_mission` : une voix radio confie une mission « reconnaître » (gabarit `scout` d'E11-T03) à son
 appelant ; le compte rendu se fait **à la radio**, sur la fréquence de la voix. La voix n'a ni fiche de PNJ du carnet
-ni corps. Implémentation : `server/RadioSurvivorCore/RC_MissionVoice.lua (mod commun)` (exécuteur, donneur « voix », contexte),
-`RC_Missions.lua` (moteur commun, `M.donorOf`), `RC_MissionScout.lua` (lieu, sondage), `RadioSurvivor_Server.lua`
+ni corps. Implémentation : `server/CoreAI/CA_MissionVoice.lua (mod commun)` (exécuteur, donneur « voix », contexte),
+`CA_Missions.lua` (moteur commun, `M.donorOf`), `CA_MissionScout.lua` (lieu, sondage), `RadioSurvivor_Server.lua`
 (compte rendu et champ `mission=`), `bridge/radio_bridge.py` (`EXECUTABLE_ACTIONS`, `mission_context`,
 `mission_prompt`).
 
@@ -671,7 +671,7 @@ voix, tous appelants confondus) :
 - paramètre unique `template`, liste fermée `RS_MissionVoice.TEMPLATES` (seulement `scout`) ; autre valeur, paramètre
   absent ou en trop : `bad_params` (historique : la liste a été remplacée par le registre des gabarits, E20-T01, et le
   champ `jobs=`, E20-T02 ; contrat courant ci-dessus) ;
-- le serveur choisit le lieu avec l'offre du gabarit (`RC_MissionScout` : bâtiment habitable de la métagrille à 60–250
+- le serveur choisit le lieu avec l'offre du gabarit (`CA_MissionScout` : bâtiment habitable de la métagrille à 60–250
   cases de la **copie serveur** de l'appelant, à 60 cases au moins de toute base connue, mêmes règles qu'E11-T03) ;
 - refus motivés (raison de l'exécuteur, aucun usage compté) : `no_player` (appelant déconnecté : pas de position
   serveur), `storage` (état privé non chargé ou bloqué), `no_character` (aucun personnage du carnet lié),
@@ -705,7 +705,7 @@ barème de réputation de M01) ; une seule mission ouverte par appelant et par v
 **Compte rendu (E11-T13, décision de l'utilisateur du 2026-10-14)** : à chaque phrase admise de l'appelant pour
 cette voix (commande `talk`, voix choisie par la fréquence, demande transmise au pont), `RS_MissionVoice.heard` ne juge
 rien et dit seulement à la voix où en est la mission : avant la visite `turn = not_yet` ; après la visite (objectif
-rempli, `RC_Missions.reportReady`) `turn = report_due`. C'est le **modèle** qui reconnaît le compte rendu (dans
+rempli, `CA_Missions.reportReady`) `turn = report_due`. C'est le **modèle** qui reconnaît le compte rendu (dans
 n'importe quelle langue, aucune liste de mots) et rend l'action `report_mission` (sans paramètre) ; elle est permise à
 toute voix dont la fiche autorise `start_mission` sans être listée (`RS_Actions.IMPLIED`, `radio_bridge.IMPLIED_ACTIONS`).
 Son exécuteur (`RS_MissionVoice.report`) revérifie les faits : mission ouverte de **cette** voix pour **cet** appelant
@@ -721,7 +721,7 @@ sans lieu, ou tous déjà donnés : réputation seule (journal anglais `no place
 part après la sauvegarde de la réussite : un arrêt entre les deux perd le repère, jamais la réussite. Pas de cache
 (E11-T06).
 
-**Champ `mission=` de la demande radio** (hexadécimal RSV2, `RS_MissionVoice.field`, écrit par `RS_BridgeLanes` (file `RC_Transport` du mod commun) après
+**Champ `mission=` de la demande radio** (hexadécimal RSV2, `RS_MissionVoice.field`, écrit par `RS_BridgeLanes` (file `CA_Transport` du mod commun) après
 `persona=`) : présent seulement quand cet appelant a une mission ouverte de cette voix.
 
 | Clé | Contenu |
@@ -774,18 +774,18 @@ traduit par le serveur. Le client compose le texte dans sa langue :
 | `TownIn`, `TownOutskirts`, `TownCountry` | nom de la ville (nom propre, non traduit) | |
 
 Clé inconnue (serveur plus récent) : indice omis. Mission enregistrée avant E11-T09 : aucun indice affiché. Le titre de
-la liste et de la fiche est celui du gabarit (`titleKey` : `IGUI_RC_Mission_Scout` pour `scout`,
-`IGUI_RC_Mission_FirstAid` pour M01, `IGUI_RC_Mission_Supply_*` pour un ravitaillement ; clés du mod commun depuis
+la liste et de la fiche est celui du gabarit (`titleKey` : `IGUI_CA_Mission_Scout` pour `scout`,
+`IGUI_CA_Mission_FirstAid` pour M01, `IGUI_CA_Mission_Supply_*` pour un ravitaillement ; clés du mod commun depuis
 E18-T13, une mission enregistrée avant sous `IGUI_RS_<nom>` est projetée avec la nouvelle clé par
-`RC_MissionConfig.titleKey`, sans réécrire l'état) ; la fiche n'affiche aucune ligne de réputation (onglet Réputation,
+`CA_MissionConfig.titleKey`, sans réécrire l'état) ; la fiche n'affiche aucune ligne de réputation (onglet Réputation,
 E04-T04).
 
 **Instantané du carnet, champ `reputation`** (E04-T04, E04-T12) : `{ available = true, level, trend, reasons = {
 { action, reasonArgs, sign, capped?, day } } (5 au plus, le plus récent d'abord), change? = { from, to, day,
 n }, today }` du seul personnage du lecteur, ou `{ available = false }` ; jamais de score ni de texte (E18-T25 : le
 client traduit chaque action par le mod qui la connaît). Le mod commun répond la même projection à sa commande
-`reputation` (module `RadioSurvivorCore`, même limite que `missions`) ; ses listes de missions (`missions` et cet
-instantané) laissent de côté les missions d'un donneur dont le mod n'est pas actif (`RC_Missions.present`), gelées
+`reputation` (module `CoreAI`, même limite que `missions`) ; ses listes de missions (`missions` et cet
+instantané) laissent de côté les missions d'un donneur dont le mod n'est pas actif (`CA_Missions.present`), gelées
 jusqu'à son retour. L'ancienne liste
 `events` (faits « non appliqués ») est retirée. Un instantané **poussé** (publication après un changement) n'est envoyé à
 un joueur que si son contenu a changé depuis le dernier qu'il a reçu ; une réponse à sa propre commande part toujours
@@ -838,7 +838,7 @@ interne de chaque personnage du carnet ; le pont n'en reçoit que le **niveau** 
   E04-T10). Le pont la borne (`npc_protocol.reputation_context` : niveau ou acte hors liste, nom trop long = retiré ;
   ancien mot `unavailable` = champ retiré) et ajoute la consigne `npc_protocol.reputation_prompt`.
 - **Voix radio** (demande sans `kind`) : champ `reputation=` (hexadécimal RSV2 de la même table, écrit par
-  `RS_BridgeLanes` (file `RC_Transport` du mod commun) après `trade=`, 1 024 caractères au plus ; `radio_bridge.reputation_field`, `reputation_prompt`).
+  `RS_BridgeLanes` (file `CA_Transport` du mod commun) après `trade=`, 1 024 caractères au plus ; `radio_bridge.reputation_field`, `reputation_prompt`).
 
 **Consigne** (`npc_protocol.reputation_sentence`, partagée) : le PNJ ou la voix peut en tenir compte et en parler, sans
 jamais inventer d'autres actes, annoncer un autre niveau, prétendre la changer ni donner de nombre. Aucune réponse du
@@ -861,11 +861,11 @@ ni parseur JSON Lua inventé. Longueurs en **octets UTF-8** :
 
 Chaînes : le contenu est l'encodage **UTF-8** du texte et la taille compte ses **octets**, jamais
 des caractères ni des unités UTF-16 ; le Python décode en UTF-8 strict et refuse une séquence invalide.
-Côté Lua, `RC_Codec` distingue chaîne Lua et chaîne d'octets (un caractère par octet, codes 0-255) :
+Côté Lua, `CA_Codec` distingue chaîne Lua et chaîne d'octets (un caractère par octet, codes 0-255) :
 en Kahlua (jeu), une chaîne est une `String` Java en unités UTF-16, convertie par `C.toUtf8` /
 `C.fromUtf8` (paires de substitution regroupées en un point de code de 4 octets, substitution isolée
 remplacée par U+FFFD) ; sous Lua 5.1 (bancs `lupa`), la conversion est l'identité. Le transport
-(`RS_BridgeLanes` (file `RC_Transport` du mod commun)) et l'état privé (`RS_State`) passent par la couche octets (`encodeBytes`,
+(`RS_BridgeLanes` (file `CA_Transport` du mod commun)) et l'état privé (`RS_State`) passent par la couche octets (`encodeBytes`,
 `hexBytes`, `unhexBytes`, `decodeBytes`, `checksumBytes`) ; les limites (256 Kio d'échange, 4 Mio
 d'état) comptent ces octets. À la lecture, un octet qui n'ouvre pas une séquence UTF-8 valide est
 gardé comme caractère de même code (U+0000-U+00FF) : un état privé écrit avant cette conversion
@@ -968,7 +968,7 @@ lieu en maille `area-<x>-<y>` (ou `unknown place`), jour = jour de jeu de l'âge
 | Fait | Source | Témoins | Sujet | Lieu |
 |---|---|---|---|---|
 | `player_return` | sondage du carnet (1 s, après `scan`) : contact existant, joueur à portée d'audition du corps (`Provider.hears`, le PNJ écoute) après au moins `returnHours` = 24 h de jeu hors de portée ; dernière heure à portée gardée dans le contact (`nearHour`) ; la première rencontre n'est pas un retour | la fiche qui connaît le personnage | personnage | corps du PNJ |
-| `mission_done` | `RC_Missions.onFinished`, mission **réussie** (échec, abandon, mort du demandeur : rien) | fiche demandeuse (une voix radio n'a pas de fiche) | chaque participant | corps du demandeur s'il est chargé |
+| `mission_done` | `CA_Missions.onFinished`, mission **réussie** (échec, abandon, mort du demandeur : rien) | fiche demandeuse (une voix radio n'a pas de fiche) | chaque participant | corps du demandeur s'il est chargé |
 | `group_death` | fait `memberDied` de Living Knox (`LK_Core.publish`) | corps présent : fiches du même groupe (`Provider.npc(...).group`) dont le corps voit le mort (règle de `Provider.near` sans le refus d'une cible morte : même étage, `witnessRange` = 20 cases, `CanSee`) ; mort hors écran : fiches des membres présents au foyer (liste du moteur) | fiche du mort, sinon `<groupe>-<membre>` | corps du mort ; foyer pour une mort hors écran |
 | `assault_seen` | fait `assaultSeen` de Living Knox (`LK_Hostility.record` avec `witnessed = true`, faits `hit`, `shot`, `kill`) | fiches des témoins nommés par l'appelant (`opts.witnesses`) | personnage (clé de joueur) | scène (`opts.x`, `opts.y`), sinon premier témoin chargé ; un seul lieu pour tous |
 
@@ -1094,7 +1094,7 @@ ci-dessus (mêmes plafonds, même intervention d'un joueur, même historique), a
 
 Sujet tiré par le serveur de l'état réel du groupe : besoin le plus pressant (`LivingKnox.Stock.needs` : catégorie et
 état, par exemple `food critical` ; vide ou critique : ce sujet d'abord), moral (`low` sous 35, `steady`, `high` dès
-70), temps qu'il fait (`RC_WorldFacts.weather` : orage, `snow`, `rain`, `fog`, `hot`, `cold`, `mild`), nom du chef
+70), temps qu'il fait (`CA_WorldFacts.weather` : orage, `snow`, `rain`, `fog`, `hot`, `cold`, `mild`), nom du chef
 vivant. Le bavardage dure tant que les deux restent au foyer (ils vaquent chez eux ; ni distance ni vue exigées après
 l'ouverture) ; il s'arrête si l'un en sort (`left home`), meurt ou est occupé. Pont : `converse_prompt` sans carte
 d'événement, ligne `Topic of the chat: …` et consigne de bavardage (rien d'inventé hors de son contexte). Pont arrêté,
@@ -1103,7 +1103,7 @@ hors budget ou option « Désactivées » : aucun bavardage, rien consommé.
 ### Offres de missions et contexte `mission` (E11-T02, E11-T03)
 
 `offers` associe à chaque identifiant d'offre admissible ses conditions, calculées par le gabarit côté serveur
-(`RC_Missions`, catalogue `RS_Config.Missions`) ; le pont ne les modifie jamais et ne les valide que comme table.
+(`CA_Missions`, catalogue `RS_Config.Missions`) ; le pont ne les modifie jamais et ne les valide que comme table.
 
 | Offre | Gabarit | Conditions |
 | --- | --- | --- |
@@ -1138,11 +1138,11 @@ L'objectif est rempli quand le serveur trouve le sac, par son identifiant, dans 
 réussit au compte rendu (E11-T13). Une mission `signal` (E11-T07) : objectif rempli au premier bon signal, réussite au
 compte rendu.
 
-**Conservation des missions closes** (`RC_Missions.prune`, passe de `RS_Carnet_Server` toutes les
+**Conservation des missions closes** (`CA_Missions.prune`, passe de `RS_Carnet_Server` toutes les
 `PRUNE_INTERVAL_MS`) : une mission close est retirée de l'état 24 h réelles après sa clôture (`MISSION_RETENTION_MS`,
 `closedAt` en temps réel, simple ménage). Un **lot réussi non réclamé** (`state = success`, `claimedBy = ''`,
 `rewardCount > 0`) est gardé **7 jours de jeu** (décision de l'utilisateur du 2026-10-21, tâche E16-T10) : échéance
-`unclaimedUntilHour` = âge du monde (`RC_GameClock.hours`, `getWorldAgeHours`) à la réussite + `UNCLAIMED_RETENTION_HOURS`
+`unclaimedUntilHour` = âge du monde (`CA_GameClock.hours`, `getWorldAgeHours`) à la réussite + `UNCLAIMED_RETENTION_HOURS`
 (168 h de jeu), arrêtée en pause solo et sur un serveur vide en `PauseEmpty`, jamais plus de 168 h au-delà de l'âge
 actuel (âge reculé par un admin). Migration : un lot enregistré avant cette décision (`closedAt` seul, ancienne
 rétention de 7 jours réels `UNCLAIMED_RETENTION_MS`) reçoit une fois une échéance de jeu égale au temps réel qui lui
@@ -1249,7 +1249,7 @@ carte (E11-T10, E11-T11), comme après le bouton.
 ### Compte rendu au demandeur (E11-T13)
 
 Décision de l'utilisateur du 2026-10-14 : les gabarits `scout`, `clear`, `recover` et `signal` ne réussissent plus
-d'eux-mêmes. L'objectif rempli (lieu visité, décompte atteint, sac déposé, signal vu ; `RC_Missions.reportReady`, fait
+d'eux-mêmes. L'objectif rempli (lieu visité, décompte atteint, sac déposé, signal vu ; `CA_Missions.reportReady`, fait
 du serveur) laisse la mission `active` « à rapporter » (`toReport = true` dans la projection du carnet et le contexte
 `mission`) ; elle ne réussit que lorsqu'un participant revient le dire au PNJ demandeur. Le délai continue de courir
 (même règle que `scout` depuis E11-T03) ; un demandeur mort avant le compte rendu clôt la mission en `cancelled_dead`
@@ -1591,14 +1591,14 @@ Une mission de dépôt d'une voix propose **toutes ses planques à la fois** (cl
 
 Dans une boîte, seuls les objets demandés disparaissent, jamais plus que la quantité restante : boîte, autres objets et surplus restent. Pour un sac, sac et contenu disparaissent ; un sac qui contient des objets étrangers au lot, ou plus que la quantité restante, est refusé pour éviter leur perte. Chaque objet n'est compté qu'une fois, même après un redémarrage. Avant la collecte, vous pouvez reprendre le dépôt et rien n'est validé. **Une fois toute la quantité collectée seulement, rendez compte à la radio**. Validation en jeu solo et MP de cette collecte : **en attente**.
 
-E20-T05 (ADR D06 et sa précision du 2026-11-14) : état de la mission `m.drops` (une entrée par planque : `id`, `label`, `x`, `y`, `z`, `mode`, `ready`, `baseline`, `box`, `hiddenSince`, `due`, `pickup`), `m.credited` (identifiants d'objets déjà comptés), `m.collectHours`. La règle « hors de vue » et le délai en heures de jeu forment une seule unité, `RS_OutOfSight` (positions, chargement et horloge injectés ; horloge `RC_GameClock.hours`) : en vue = un joueur connecté vivant à au plus 100 cases sur chaque axe, étages ignorés (portée d'envoi du jeu : `relevantRange` = vue bornée à 12-20, divisée par 2, plus 2 morceaux de 8 cases, soit 96 cases au plus, `GameServer.java:2638-2639` et `UdpConnection.isRelevantTo`, `UdpConnection.java:216-232`, Java 42.22), ou case non chargée sur l'autorité. `hiddenSince` (heure de jeu où le dernier témoin est sorti de vue) est sauvegardé avec la mission. La collecte de toute la quantité rend l'objectif rapportable ; `report_mission` reste obligatoire sur la fréquence du donneur. Une affirmation avant collecte ne valide rien. Le carnet du seul participant reçoit `drops` (`label`, `mode`, `ready`), `dropZones` (une zone `{x, y, r, label}` par planque, cercle « Dépôt (nom) » sur sa carte) et `collectHours` ; le modèle reçoit les noms des planques et la règle de collecte (`RS_DeadDrops.where` et `.rule`), jamais une coordonnée ni une fréquence. Un journal de retrait interrompu n'est jamais crédité.
+E20-T05 (ADR D06 et sa précision du 2026-11-14) : état de la mission `m.drops` (une entrée par planque : `id`, `label`, `x`, `y`, `z`, `mode`, `ready`, `baseline`, `box`, `hiddenSince`, `due`, `pickup`), `m.credited` (identifiants d'objets déjà comptés), `m.collectHours`. La règle « hors de vue » et le délai en heures de jeu forment une seule unité, `RS_OutOfSight` (positions, chargement et horloge injectés ; horloge `CA_GameClock.hours`) : en vue = un joueur connecté vivant à au plus 100 cases sur chaque axe, étages ignorés (portée d'envoi du jeu : `relevantRange` = vue bornée à 12-20, divisée par 2, plus 2 morceaux de 8 cases, soit 96 cases au plus, `GameServer.java:2638-2639` et `UdpConnection.isRelevantTo`, `UdpConnection.java:216-232`, Java 42.22), ou case non chargée sur l'autorité. `hiddenSince` (heure de jeu où le dernier témoin est sorti de vue) est sauvegardé avec la mission. La collecte de toute la quantité rend l'objectif rapportable ; `report_mission` reste obligatoire sur la fréquence du donneur. Une affirmation avant collecte ne valide rien. Le carnet du seul participant reçoit `drops` (`label`, `mode`, `ready`), `dropZones` (une zone `{x, y, r, label}` par planque, cercle « Dépôt (nom) » sur sa carte) et `collectHours` ; le modèle reçoit les noms des planques et la règle de collecte (`RS_DeadDrops.where` et `.rule`), jamais une coordonnée ni une fréquence. Un journal de retrait interrompu n'est jamais crédité.
 
 E20-T06 (ADR D06) : l'unité des planques, `RS_DeadDrops` (ex-`RS_VoiceDelivery`), sert tout gabarit qui déclare la
 stratégie `dropAccepts(m, item)` (« ce qui compte ») : `deliver` accepte les types demandés en état d'usage,
 `retrieve_id` seulement l'objet dont l'identifiant est `m.cardId` (une autre carte d'identité n'est jamais prise). La mise
 en place est inscrite pour cette déclaration (`RS_MissionVoice.registerDeclaredSetup('dropAccepts', …)`) ; le moteur
-appelle les crochets du donneur (`observeDrops`, `projectDrops`, `dropsWhere`, `dropsRule` ; `RC_Missions.dropsWhere`,
-`RC_Missions.dropsRule` pour les `voiceBrief`). Une mission sans lieu propre (`deliver`) prend pour lieu ses planques ;
+appelle les crochets du donneur (`observeDrops`, `projectDrops`, `dropsWhere`, `dropsRule` ; `CA_Missions.dropsWhere`,
+`CA_Missions.dropsRule` pour les `voiceBrief`). Une mission sans lieu propre (`deliver`) prend pour lieu ses planques ;
 `retrieve_id` garde le bâtiment à fouiller et sa zone de recherche, ses planques s'ajoutent sur la carte. Pour une voix,
 la carte trouvée sur le corps se dépose dans la boîte désignée (ou, sans boîte, seule dans un sac au sol) ; ramassée hors
 de vue après `collect_hours` (défaut 6 h de jeu), elle compte `m.delivered = 1` : l'objectif est atteint et

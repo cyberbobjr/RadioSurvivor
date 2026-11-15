@@ -28,7 +28,7 @@ end
 local function run(t)
     if isClient() then t:skip('authority only') end
     local D = require 'RadioSurvivor/RS_DeadDrops'
-    local M = require 'RadioSurvivorCore/RC_Missions'
+    local M = require 'CoreAI/CA_Missions'
     local gt = getGameTime()
     if (gt:getTimeOfDay() - 7) % 24 > 20 then
         -- Close to 7:00: start the day again at 8:00 so the later moves never cross it.

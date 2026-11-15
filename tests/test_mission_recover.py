@@ -1,4 +1,4 @@
-"""Gabarit « récupérer » et caches (E11-T06, RC_MissionRecover.lua, RC_Caches.lua) sur le banc du carnet : vrai Lua
+"""Gabarit « récupérer » et caches (E11-T06, CA_MissionRecover.lua, CA_Caches.lua) sur le banc du carnet : vrai Lua
 serveur et client, pont absent, doublures de la métagrille, des cases chargées, des objets au sol et des conteneurs.
 
 Doublures seulement (aucune API Java prouvée ici) : IsoGridSquare.AddWorldInventoryItem(item, x, y, z, true) pose
@@ -158,7 +158,7 @@ class RecoverMissionTests(unittest.TestCase):
         sim.server.g.scoutHouse(5001, 20, 12, 8, 8)    # too close to the requester
         sim.server.g.scoutHouse(5002, 100, 10, 10, 10)  # reachable
         sim.server.rt.execute(RECOVER_WORLD)
-        sim.server.rt.eval("require('RadioSurvivorCore/RC_MissionRecover')").resetForTests()
+        sim.server.rt.eval("require('CoreAI/CA_MissionRecover')").resetForTests()
         sim.server.rt.eval("require('RadioSurvivor/RS_CacheAction')").resetForTests()
 
     def recover_sim(self, name='recover'):
@@ -167,7 +167,7 @@ class RecoverMissionTests(unittest.TestCase):
         sim.add_client('alice'); sim.add_client('bob'); sim.select('alice')
         npc = next(iter(sim.state().npcs.values()))
         record = sim.server.rt.eval("require('RadioSurvivor/RS_NPCProvider')").npc(2001)
-        missions = sim.server.rt.eval("require('RadioSurvivorCore/RC_Missions')")
+        missions = sim.server.rt.eval("require('CoreAI/CA_Missions')")
         return sim, npc, record, missions
 
     def catalog(self, sim, npc, record):
@@ -207,7 +207,7 @@ class RecoverMissionTests(unittest.TestCase):
         self.assertFalse(any(ch.isdigit() for line in clues for ch in line), 'a clue carries a number')
         self.assertEqual(self.catalog(sim, npc, record)['recover_v1'], offer, 'the kept place changed')
         # A radio voice donor (no fiche), and an NPC whose provider knows no home, get no recover offer.
-        recover = sim.server.rt.eval("require('RadioSurvivorCore/RC_MissionRecover')")
+        recover = sim.server.rt.eval("require('CoreAI/CA_MissionRecover')")
         c = sim.server.rt.eval("require('RadioSurvivor/RS_Config').Missions.recover")
         donor = sim.server.rt.table_from({'id': 'voice:walt:c1', 'missionCount': 0})
         self.assertIsNone(recover.offer(c, donor, None, sim.server.g.PLAYERS.alice))
@@ -268,7 +268,7 @@ class RecoverMissionTests(unittest.TestCase):
         [bag] = list(lua_list(g.RECOVER.placed))
         at = convert(m.cache.at)
         self.assertEqual(max(abs(at['x'] - 104), abs(at['y'] - 14)), 1)
-        self.assertEqual((bag.kind, bag.md.RS_Cache, m.cache.itemId), ('Base.Bag_DuffelBag', m.id, bag.id))
+        self.assertEqual((bag.kind, bag.md.CA_Cache, m.cache.itemId), ('Base.Bag_DuffelBag', m.id, bag.id))
         self.assertTrue(bag.worldItem.transmit, 'not sent to the clients')
         table = sim.server.rt.eval("require('RadioSurvivor/RS_Config').Caches.tables")[m.cache.table]
         expected = sorted(kind for line in lua_list(table) for kind in [lua_list(line)[0]] * lua_list(line)[1])
@@ -299,7 +299,7 @@ class RecoverMissionTests(unittest.TestCase):
         # A floor bag of the same type without this mark is not the cache; the chunk saved without the bag: again.
         g.recoverTake(bag, g.inventory())
         other = g.instanceItem('Base.Bag_DuffelBag')
-        other.getModData(other).RS_Cache = 'another-mission'
+        other.getModData(other).CA_Cache = 'another-mission'
         g.recoverDrop(other, 104, 14, 0)
         m.cache.placed, m.cache.placing, m.cache.itemId = False, True, None
         self.poll(sim, 6000)
@@ -326,7 +326,7 @@ class RecoverMissionTests(unittest.TestCase):
         alice = g.PLAYERS.alice
         # Another bag, same type, same mark and same contents, left at the depot: not the cache.
         forged = g.instanceItem('Base.Bag_DuffelBag')
-        forged.getModData(forged).RS_Cache = m.id
+        forged.getModData(forged).CA_Cache = m.id
         g.recoverDrop(forged, 14, 10, 0)
         self.poll(sim)
         self.assertEqual((m.state, m.found), ('active', False))
@@ -402,7 +402,7 @@ class RecoverMissionTests(unittest.TestCase):
     def test_offer_cap_shared_by_the_server_and_the_bridge(self):
         sim, npc, record, missions = self.recover_sim('cap')
         # E18-T05: the cap lives in the mission catalogue of the core mod (RS_Config holds a copy of the number).
-        config = sim.server.rt.eval("require('RadioSurvivorCore/RC_MissionConfig')")
+        config = sim.server.rt.eval("require('CoreAI/CA_MissionConfig')")
         self.assertEqual(config.MAX_OFFERS, protocol.MAX_OFFERS)
         config.MAX_OFFERS = 2
         try:
@@ -464,7 +464,7 @@ class RecoverMissionTests(unittest.TestCase):
             self.poll(sim, 6000)
         self.assertTrue(m.cache.placed)
         [bag] = list(lua_list(g.RECOVER.placed))
-        self.assertEqual(bag.md.RS_Cache, m.id)
+        self.assertEqual(bag.md.CA_Cache, m.id)
         at = convert(m.cache.at)
         self.assertTrue(100 <= at['x'] < 110 and 10 <= at['y'] < 20, at)
 
@@ -487,7 +487,7 @@ class RecoverMissionTests(unittest.TestCase):
         window = c.g.RS_CarnetClient.window
         window.changeTab(window, 'Missions')
         label = c.rt.eval('RS_CarnetClient.window.list.items[1].text')
-        self.assertTrue(label.startswith('IGUI_RC_Mission_Recover - '), label)
+        self.assertTrue(label.startswith('IGUI_CA_Mission_Recover - '), label)
         for key in ('IGUI_RS_ScoutPlace', 'IGUI_RS_ScoutClues', 'IGUI_RS_RecoverMapZone', 'IGUI_RS_RecoverCache',
                     'IGUI_RS_Cache_' + m.cache.table, 'IGUI_RS_RecoverNotFound', 'IGUI_RS_RecoverDepotZone',
                     'IGUI_RS_RecoverReport'):

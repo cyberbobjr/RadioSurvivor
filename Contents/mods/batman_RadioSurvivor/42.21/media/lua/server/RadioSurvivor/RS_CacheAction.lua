@@ -1,7 +1,7 @@
 if isClient() then return end
 --[[
-Voice action place_cache (E11-T06; the caches themselves live in the core mod since E18-T05: RC_Caches). Authority
-only. Required by RadioSurvivor_Server (executor of place_cache). Returns the core module RC_Caches, completed by
+Voice action place_cache (E11-T06; the caches themselves live in the core mod since E18-T05: CA_Caches). Authority
+only. Required by RadioSurvivor_Server (executor of place_cache). Returns the core module CA_Caches, completed by
 Caches.voiceMission and Caches.register.
 
 Voice action place_cache { table } is a compatibility retry only: the mission must already have succeeded and
@@ -9,7 +9,7 @@ RS_Rewards must have drawn and reserved its cache. The parameter must match that
 selects contents, creates an active-mission reward, or replaces the reward draw. New reward sites come from the
 voice's allowed places. Refusals include not_done, no_reward and bad_table.
 ]]
-local Caches = require 'RadioSurvivorCore/RC_Caches'
+local Caches = require 'CoreAI/CA_Caches'
 local S = require 'RadioSurvivor/RS_State'
 local Actions = require 'RadioSurvivor/RS_Actions'
 local V = require 'RadioSurvivor/RS_MissionVoice'

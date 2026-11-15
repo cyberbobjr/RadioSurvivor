@@ -1,5 +1,5 @@
 --[[
-rs.notebook.visual - visual protocol of the notebook, scripted (E03-T02; frame RC_Notebook.lua, pages RS_Notebook.lua).
+rs.notebook.visual - visual protocol of the notebook, scripted (E03-T02; frame CA_Notebook.lua, pages RS_Notebook.lua).
 No gesture needed: the suite fills the REAL notebook with a fixed client snapshot and radio history (no server data
 changed: the server snapshots and history answers are ignored while it runs, then asked again), opens it, shows
 every page and dialog, checks by script what can be checked and takes one screenshot per view
@@ -35,7 +35,7 @@ RST.NotebookVisual = V -- read by tests/test_notebook_visual.py
 V.MOD_ID = "batman_RadioSurvivor"
 -- E18-T13: the notebook also shows keys of the core mod (mission titles, journal); its table is read first.
 -- E18-T26: and of Living Knox when it is active (relation panel of a contact): absent table skipped.
-V.MOD_IDS = { "batman_RadioSurvivorCore", "batman_LivingKnox", V.MOD_ID }
+V.MOD_IDS = { "batman_CoreAI", "batman_LivingKnox", V.MOD_ID }
 V.LANGS = { "EN", "FR" }
 V.SHOW_MS = 450
 V.AFTER_MS = 150
@@ -190,11 +190,11 @@ function V.fixture(Client, player)
             revision = 1, history = history, note = i == 1 and "Asked for bandages twice." or "", relation = relation() }
     end
     local missions = {
-        { id = "rsv_m1", npc = "rsv_c01", titleKey = "IGUI_RC_Mission_FirstAid", state = "active", revision = 3,
+        { id = "rsv_m1", npc = "rsv_c01", titleKey = "IGUI_CA_Mission_FirstAid", state = "active", revision = 3,
             remainingMs = 5400000, durationMs = 7200000, rewardType = "Base.Bullets9mm", rewardCount = 20,
             claimedName = "", engaged = true, invited = true, recovery = false, participants = { "Alice", "Bartholomew" },
             requester = NAMES[1], near = true, quantity = 10, delivered = 3, accepted = ownTypes(player) },
-        { id = "rsv_m2", npc = "rsv_c02", titleKey = "IGUI_RC_Mission_FirstAid", state = "offer", revision = 1,
+        { id = "rsv_m2", npc = "rsv_c02", titleKey = "IGUI_CA_Mission_FirstAid", state = "offer", revision = 1,
             remainingMs = 3600000, durationMs = 3600000, rewardType = "", rewardCount = 0, claimedName = "",
             engaged = false, invited = true, recovery = false, participants = {}, requester = NAMES[2], near = false,
             quantity = 40, delivered = 12, unit = "value",
@@ -633,7 +633,7 @@ end
 -- One language and font: off-screen notebook at its minimum size, every page, the delivery window, the four
 -- confirmations and every string. Returns the count of strings measured.
 function V.auditLanguage(Notebook, Client, T, label, out)
-    local w = V.offscreen(require "RadioSurvivorCore/RC_Notebook")
+    local w = V.offscreen(require "CoreAI/CA_Notebook")
     for _, page in ipairs(V.PAGES) do
         V.showPage(w, page)
         V.auditNotebook(w, label .. " " .. page.name, out, false)
@@ -745,7 +745,7 @@ local function install(t)
     end
     if saved.window then saved.window:close() end
     Client.window, Client.deliveryWindow = nil, nil
-    RC_UI_Notebook.window = nil -- the core mod's notebook (E18-T24) creates a fresh one at the next toggle
+    CA_UI_Notebook.window = nil -- the core mod's notebook (E18-T24) creates a fresh one at the next toggle
     t:defer(function()
         for _, e in ipairs(ctx.dialogs or {}) do e:setVisible(false); e:removeFromUIManager() end
         if Client.deliveryWindow then Client.deliveryWindow:setVisible(false); Client.deliveryWindow:removeFromUIManager() end
@@ -756,7 +756,7 @@ local function install(t)
         end
         Client.receive, History.receive, History.request = saved.receive, saved.hreceive, saved.hrequest
         Client.snapshot, Client.window, Client.deliveryWindow = saved.snapshot, saved.window, saved.delivery
-        RC_UI_Notebook.window = saved.window
+        CA_UI_Notebook.window = saved.window
         History.frequencies, History.unread = saved.frequencies, saved.unread
         if saved.window and saved.open then
             saved.window:setVisible(true)
@@ -777,7 +777,7 @@ local function freshWindow(ctx)
         Client.window:removeFromUIManager()
         Client.window = nil
     end
-    RC_UI_Notebook.window = nil
+    CA_UI_Notebook.window = nil
     ctx.Notebook.toggle()
     return Client.window
 end

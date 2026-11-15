@@ -47,7 +47,7 @@ end
 
 -- Text of the Radio page of khz in the real notebook window; the window is left as it was found.
 function PV.pageText(khz)
-    local ok, Notebook = pcall(require, "RadioSurvivorCore/RC_Notebook")
+    local ok, Notebook = pcall(require, "CoreAI/CA_Notebook")
     if not ok or type(Notebook) ~= "table" or type(Notebook.toggle) ~= "function" then return nil, "no notebook" end
     local w = Notebook.window
     local wasOpen = w ~= nil and w:isVisible()

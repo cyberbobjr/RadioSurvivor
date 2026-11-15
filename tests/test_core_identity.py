@@ -1,12 +1,12 @@
-"""Identity of the player characters in the core mod batman_RadioSurvivorCore (E18-T03).
+"""Identity of the player characters in the core mod batman_CoreAI (E18-T03).
 
     python RadioSurvivor/tests/test_core_identity.py
 
-Rules kept from E00-T01 / E00-T02, now owned by RC_Identity (shared/RadioSurvivorCore/RC_Identity.lua):
-- the server writes the identity into its copy of the player modData (key RS_CarnetCharacter, the only copy saved in
+Rules kept from E00-T01 / E00-T02, now owned by CA_Identity (shared/CoreAI/CA_Identity.lua):
+- the server writes the identity into its copy of the player modData (key CA_Character, the only copy saved in
   MP); the client value is only a fallback, accepted for the same account and slot, never for a retired character;
 - a new character gets a new identity; OnCharacterDeath (players only) retires it for good;
-- private registry of the core mod (Zomboid/Lua/batman_RadioSurvivorCore/identity-*.txt), kept across restarts;
+- private registry of the core mod (Zomboid/Lua/batman_CoreAI/identity-*.txt), kept across restarts;
 - Living Knox keys its attitudes on it without RadioSurvivor (LK_Hostility.keyOf).
 """
 from __future__ import annotations
@@ -20,7 +20,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from harness import Harness  # noqa: E402
 
-ID = 'require("RadioSurvivorCore/RC_Identity")'
+ID = 'require("CoreAI/CA_Identity")'
 # Engine globals the bench does not provide (IsoWorld, ZombRand); fixed values.
 WORLD = ('getWorld = getWorld or function() return { getWorld = function() return "rstest-identity" end, '
          'getGameMode = function() return setmetatable({}, {__tostring = function() return "Multiplayer" end}) end } end; '
@@ -47,7 +47,7 @@ class Base(unittest.TestCase):
             for name, cid in server_md.items():
                 h.machine('server' if self.mode == 'mp' else 'solo').g.SET_MD = cid
                 h.load('server' if self.mode == 'mp' else 'solo',
-                       f'HARNESS.players["{name}"]:getModData().RS_CarnetCharacter = SET_MD')
+                       f'HARNESS.players["{name}"]:getModData().CA_Character = SET_MD')
         h.fire(self.srv, 'OnInitGlobalModData', new_world)
         return h
 
@@ -65,10 +65,10 @@ class Base(unittest.TestCase):
         return self.h.eval(self.srv, f'IDENTITY.of(HARNESS.players["{name}"])')
 
     def server_md(self, name):
-        return self.h.eval(self.srv, f'HARNESS.players["{name}"]:getModData().RS_CarnetCharacter')
+        return self.h.eval(self.srv, f'HARNESS.players["{name}"]:getModData().CA_Character')
 
     def client_md(self, name):
-        return self.h.eval(name if self.mode == 'mp' else 'solo', 'getPlayer():getModData().RS_CarnetCharacter')
+        return self.h.eval(name if self.mode == 'mp' else 'solo', 'getPlayer():getModData().CA_Character')
 
 
 class IdentityMP(Base):
@@ -80,13 +80,13 @@ class IdentityMP(Base):
         self.assertNotEqual(a, b)
         self.assertEqual(self.server_md('A'), a)
         self.assertEqual(self.client_md('A'), a)
-        files = sorted(p.name for p in (self.h.file_root('server') / 'batman_RadioSurvivorCore').glob('identity-*'))
+        files = sorted(p.name for p in (self.h.file_root('server') / 'batman_CoreAI').glob('identity-*'))
         self.assertTrue(files, 'private registry file of the core mod')
 
     def test_reconnection_without_client_modData_keeps_the_identity(self):
         self.join('A')
         a = self.server_id('A')
-        self.h.load('A', 'getPlayer():getModData().RS_CarnetCharacter = nil')
+        self.h.load('A', 'getPlayer():getModData().CA_Character = nil')
         self.h.load('server', 'IDENTITY.bound = {}')   # new connection: no binding yet
         self.join('A')
         self.assertEqual(self.server_id('A'), a)
@@ -96,7 +96,7 @@ class IdentityMP(Base):
         self.join('A')
         a = self.server_id('A')
         self.h.machine('B').g.CLAIM = a
-        self.h.load('B', 'getPlayer():getModData().RS_CarnetCharacter = CLAIM')
+        self.h.load('B', 'getPlayer():getModData().CA_Character = CLAIM')
         self.join('B')
         self.assertNotEqual(self.server_id('B'), a)
 
@@ -111,7 +111,7 @@ class IdentityMP(Base):
         # The next character of the account claims the dead one: refused, new identity.
         self.h.load('server', 'HARNESS.players.A.dead = false; IDENTITY.bound = {}')
         self.h.machine('A').g.CLAIM = a
-        self.h.load('A', 'getPlayer():getModData().RS_CarnetCharacter = CLAIM')
+        self.h.load('A', 'getPlayer():getModData().CA_Character = CLAIM')
         self.join('A')
         self.assertNotEqual(self.server_id('A'), a)
 
@@ -132,7 +132,7 @@ class IdentityMP(Base):
         self.join('A')
         self.assertEqual(self.server_id('A'), a)
         self.h.machine('B').g.CLAIM = b
-        self.h.load('B', 'getPlayer():getModData().RS_CarnetCharacter = CLAIM')
+        self.h.load('B', 'getPlayer():getModData().CA_Character = CLAIM')
         self.join('B')
         self.assertNotEqual(self.server_id('B'), b)
 
@@ -144,7 +144,7 @@ class IdentityMP(Base):
         self.h.advance_ms(5000)
         self.assertIsNone(self.h.eval('server', f'IDENTITY.record("{a}")'))
         self.h.machine('A').g.CLAIM = a
-        self.h.load('A', 'getPlayer():getModData().RS_CarnetCharacter = CLAIM')
+        self.h.load('A', 'getPlayer():getModData().CA_Character = CLAIM')
         self.join('A')
         self.assertNotEqual(self.server_id('A'), a)
 

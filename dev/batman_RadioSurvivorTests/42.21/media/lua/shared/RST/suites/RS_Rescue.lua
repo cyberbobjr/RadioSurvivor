@@ -546,7 +546,7 @@ local function forgetTestVoice(t)
     end, "forget the test voice")
 end
 
--- Floor items of the bounds (floor z) marked RS_Cache = key: list of { item, square, object }.
+-- Floor items of the bounds (floor z) marked CA_Cache = key: list of { item, square, object }.
 local function markedBags(b, z, key)
     local out = {}
     local cell = getCell()
@@ -557,7 +557,7 @@ local function markedBags(b, z, key)
             for i = 0, (objects and objects:size() or 0) - 1 do
                 local wo = objects:get(i)
                 local item = wo:getItem()
-                if item and item:hasModData() and item:getModData().RS_Cache == key then
+                if item and item:hasModData() and item:getModData().CA_Cache == key then
                     out[#out + 1] = { item = item, square = sq, object = wo }
                 end
             end
@@ -652,7 +652,7 @@ RST.suite("rs.rescue.saved", { tags = { "server" }, testTimeoutMs = 60000 }, fun
             if items:get(i):getFullType() == "Base.SheetPaper2" then note = items:get(i) end
         end
         t:ok(note ~= nil, "no note in the bag")
-        t:eq("RadioSurvivor", note and note:getLockedBy(), "note locked")
+        t:eq("CoreAI", note and note:getLockedBy(), "note locked")
         Sc.resetForTests()
         t:ok(not poll(true), "second poll placed something")
         t:eq(1, #markedBags(rec.site.bounds, rec.cache.spot.z, id), "bags after a second poll")

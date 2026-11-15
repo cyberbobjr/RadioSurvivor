@@ -1,9 +1,9 @@
 --[[
-Living Knox's part of the notebook of the core mod (RadioSurvivorCore/RC_Notebook). Client only, presentation only.
+Living Knox's part of the notebook of the core mod (CoreAI/CA_Notebook). Client only, presentation only.
 
 - E18-T25: the text of the acts of the reputation that Living Knox reports (LK_Reputation: a member of a group killed).
 - E18-T20: the Team tab (E09-T03): the player's team (vanilla faction or alone, ids and mandates of the core mod,
-  command "team" of the module RadioSurvivorCore), the owner designates or withdraws a negotiator (command "mandate",
+  command "team" of the module CoreAI), the owner designates or withdraws a negotiator (command "mandate",
   checked again by the server). Shown with Living Knox only: it is the tab of the agreements.
 - E18-T26: the relation panel of one of its NPCs toward the reader's character (LK_PersonalRelation.panel, kept by
   Living Knox since E18-T21): the server sends identifiers and game days only, every word is translated here
@@ -11,7 +11,7 @@ Living Knox's part of the notebook of the core mod (RadioSurvivorCore/RC_Noteboo
   Contacts page of a Living Knox NPC (Notebook.contactPages.lk) and by RadioSurvivor's notebook pages
   (Notebook.relationLines, Notebook.relationLevel).
 ]]
-local Notebook = require 'RadioSurvivorCore/RC_Notebook'
+local Notebook = require 'CoreAI/CA_Notebook'
 
 Notebook.reputationReasons['npc.memberKilled'] = 'IGUI_LK_RepReason_MemberKilled'
 
@@ -76,7 +76,7 @@ end
 local UI = Notebook.ui
 local function teamRequest(command, args)
     local p = getSpecificPlayer(0)
-    if p ~= nil then sendClientCommand(p, 'RadioSurvivorCore', command, args or {}) end
+    if p ~= nil then sendClientCommand(p, 'CoreAI', command, args or {}) end
 end
 
 local function showTeam(w, row, line)

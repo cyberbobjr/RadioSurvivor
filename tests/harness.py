@@ -127,7 +127,7 @@ import pz_paths  # noqa: E402  (installation du jeu : Lua vanilla, E19-T04)
 
 HELPER_SUFFIX = 'Double'  # classe d'aide de test : nom suffixé, jamais contrôlé contre l'API Java
 LUA = ROOT / 'Contents/mods/batman_RadioSurvivor/42.21/media/lua'
-CORE_LUA = ROOT / 'Contents/mods/batman_RadioSurvivorCore/42.21/media/lua'  # mod commun exigé (E18)
+CORE_LUA = ROOT / 'Contents/mods/batman_CoreAI/42.21/media/lua'  # mod commun exigé (E18)
 LK_LUA = ROOT / 'Contents/mods/batman_LivingKnox/42.21/media/lua'  # moteur des PNJ (E18-T07)
 LuaError = lupa.LuaError
 
@@ -753,7 +753,7 @@ function GameTimeClass:getWorldAgeHours() return H.clock.ageHours end
 function GameTimeClass:getNightsSurvived() return H.clock.nights end
 -- GameTime.java:764-766 : heure du jour seule ; l'horloge du banc est commune aux machines (synchronisation).
 function GameTimeClass:setTimeOfDay(h) PY.set_time_of_day(num(h, 'setTimeOfDay')) end
--- GameTime.java:867: real minutes of one game day (DayLength, vanilla default 90), read by RC_GameClock (E11-T20).
+-- GameTime.java:867: real minutes of one game day (DayLength, vanilla default 90), read by CA_GameClock (E11-T20).
 function GameTimeClass:getMinutesPerDay() return H.clock.minutesPerDay or 90 end
 function GameTimeClass:getMultiplier() return H.clock.multiplier end
 getGameTime = function() return gameTime end

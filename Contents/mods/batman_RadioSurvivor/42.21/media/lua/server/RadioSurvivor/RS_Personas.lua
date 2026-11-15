@@ -36,7 +36,7 @@ if isClient() then return end
 
 local Const = require "RadioSurvivor/RadioSurvivor_Const"
 local Persona = require "RadioSurvivor/RS_Persona"
-local Codec = require "RadioSurvivorCore/RC_Codec"
+local Codec = require "CoreAI/CA_Codec"
 
 local Personas = {}
 
@@ -203,7 +203,7 @@ end
 
 -- Installation des fiches livrées --------------------------------------------------------------
 
--- Empreintes (E05-T11). Empreinte d'une fiche : Adler-32 (RC_Codec.checksum, décimal) de ses octets UTF-8, lignes
+-- Empreintes (E05-T11). Empreinte d'une fiche : Adler-32 (CA_Codec.checksum, décimal) de ses octets UTF-8, lignes
 -- rejointes par "\n" telles que readLine les rend : indépendante des fins de ligne, égale pour la fiche livrée et
 -- pour sa copie (écrite ligne par ligne). Fichier FINGERPRINTS : en-tête FINGERPRINTS_HEADER puis une ligne
 -- « nom.txt empreinte » par fiche livrée installée, l'empreinte du texte écrit par le serveur.
@@ -369,7 +369,7 @@ end
 -- récompense et compétences (RS_Rewards), catégories, modes d'arrivée (RS_TradeArrivals). Lu à l'appel : le jeu a tout
 -- chargé (gabarits, natures et modes inscrits) avant la lecture des fiches (OnLoadRadioScripts).
 function Personas.rules()
-    local Missions = require "RadioSurvivorCore/RC_Missions"
+    local Missions = require "CoreAI/CA_Missions"
     local Rewards, Arrivals = require "RadioSurvivor/RS_Rewards", require "RadioSurvivor/RS_TradeArrivals"
     return { template = Missions.voiceTemplate, rewards = Rewards.KINDS, skills = Rewards.SKILLS,
         categories = loadCatalogue(), arrivals = Arrivals.NAMES }

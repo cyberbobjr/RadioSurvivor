@@ -19,7 +19,7 @@ MODS = ROOT / 'Contents' / 'mods'
 LK = MODS / 'batman_LivingKnox'
 RS = MODS / 'batman_RadioSurvivor'
 LK_ID = 'batman_LivingKnox'
-CORE_ID = 'batman_RadioSurvivorCore'
+CORE_ID = 'batman_CoreAI'
 
 
 def mod_info(path):
@@ -105,7 +105,7 @@ class LivingKnoxModTests(unittest.TestCase):
                 continue   # notebook adapter: requires RadioSurvivor only when it is active (E18-T09)
             for m in re.finditer(r'require\s*\(?\s*["\'](RadioSurvivor/[\w/]+)', path.read_text(encoding='utf-8')):
                 bad.append(f'{path.name}: {m.group(1)}')
-        self.assertEqual(bad, [])   # E18-T08: sites and known bases from the core mod (RC_Sites)
+        self.assertEqual(bad, [])   # E18-T08: sites and known bases from the core mod (CA_Sites)
 
     def test_notebook_adapter_only_with_radiosurvivor(self):
         # E18-T09: the provider adapter ships with Living Knox and stays silent unless RadioSurvivor is an active mod.
@@ -123,7 +123,7 @@ class LivingKnoxModTests(unittest.TestCase):
                 'package.preload["LivingKnox/LK_Names"] = function() return {} end; '
                 'Events = setmetatable({}, {__index = function() return {Add = function() end} end}); ')
         lua = LuaRuntime(unpack_returned_tuples=True)
-        lua.execute(base + mods % r'"\\batman_RadioSurvivorCore", "batman_LivingKnox"')
+        lua.execute(base + mods % r'"\\batman_CoreAI", "batman_LivingKnox"')
         lua.execute(src)
         self.assertIsNone(lua.eval('RS_LivingKnox'))
         self.assertEqual(lua.eval('LivingKnox.NpcProvider.name'), 'livingknox')

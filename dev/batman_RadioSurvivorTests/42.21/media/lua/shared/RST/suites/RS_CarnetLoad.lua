@@ -171,7 +171,7 @@ RST.suite("rs.carnet.load", { mods = { "rs", "lk" },
         -- A save is "of an unchanged state" when the encoded state equals the one of the previous save (or of the start
         -- of the window): other modules save after a real change (fiche seen again: seenAt once a minute, npcs of
         -- other suites), which is not a save of an idle state. Encoding as RS_State.save does.
-        local Codec = require "RadioSurvivorCore/RC_Codec"
+        local Codec = require "CoreAI/CA_Codec"
         local function encoded()
             local ok, body = pcall(Codec.encodeBytes, c.S.data)
             return ok and body or nil

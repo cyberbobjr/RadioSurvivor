@@ -1,5 +1,5 @@
 -- Radio Survivor : kinds of the values a voice sheet section may carry (E20-T03, ADR D02/D04).
--- A mission template declares its own parameters (RC_Missions, declaration params = { key = '<kind>' }) and a reward
+-- A mission template declares its own parameters (CA_Missions, declaration params = { key = '<kind>' }) and a reward
 -- kind its parameter (RS_Rewards.KINDS); RS_Persona checks every such value here, one validator per kind. Adding a
 -- kind = one Params.register call, without touching the sheet reader.
 -- validator(value, ctx) -> parsed value, or nil and the reason (English, logged with the line of the sheet).

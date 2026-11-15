@@ -41,7 +41,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SUITE_FILE = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua' / 'shared' / 'RST' / 'suites' \
     / 'RST_LKRevenge.lua'
 KEY_A, KEY_B = 'c-alpha', 'c-bravo'
-CANON = ('require("RadioSurvivorCore/RC_Codec").hexBytes(require("RadioSurvivorCore/RC_Codec").encodeBytes('
+CANON = ('require("CoreAI/CA_Codec").hexBytes(require("CoreAI/CA_Codec").encodeBytes('
          'LivingKnox.Groups.state.data))')
 
 # Type de test : combattants (fight, defend) et ouvriers ; hostilité 60 -> départ prudent (-12), meurtre -> hostile.
@@ -62,8 +62,8 @@ end
 
 # Identité du carnet (RS_Carnet_Server.bound) et faits publiés relevés.
 CARNET = r'''
-RC_Identity = RC_Identity or { bound = {} }   -- identité du mod commun (E18-T03)
-function BIND(name, key) RC_Identity.bound[HARNESS.players[name]] = key end
+CA_Identity = CA_Identity or { bound = {} }   -- identité du mod commun (E18-T03)
+function BIND(name, key) CA_Identity.bound[HARNESS.players[name]] = key end
 REV_FACTS = {}
 for _, n in ipairs({ "revengeSworn", "revengeStarted", "revengeEnded" }) do
     LivingKnox.listen(n, "test", function(info) REV_FACTS[#REV_FACTS + 1] = { name = n, info = info } end)

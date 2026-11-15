@@ -1,6 +1,6 @@
 -- Voice mission `relay` (E20-T12, ADR D10) on a real building with an upper floor near the player. Real start path of
 -- a voice (RS_MissionVoice.start, sheet with one [mission] of type relay and one place use=target on the upper floor),
--- real set-up of the target place (RS_MissionTarget), real engine poll (RC_Missions.observe: the template reads the
+-- real set-up of the target place (RS_MissionTarget), real engine poll (CA_Missions.observe: the template reads the
 -- radios of the spot on the server), real radio report (RS_MissionVoice.report).
 -- The radio is placed as the server part of the player's placement does (vanilla ISDropWorldItemAction:complete,
 -- media/lua/shared/TimedActions/ISDropWorldItemAction.lua:81-108 in 42.22): AddWorldInventoryItem, then an IsoRadio
@@ -53,9 +53,9 @@ end
 
 local function run(t)
     if isClient() then t:skip('authority only') end
-    local M = require 'RadioSurvivorCore/RC_Missions'
+    local M = require 'CoreAI/CA_Missions'
     local V = require 'RadioSurvivor/RS_MissionVoice'
-    local R = require 'RadioSurvivorCore/RC_MissionRelay'
+    local R = require 'CoreAI/CA_MissionRelay'
     local p = F.player(t)
     if not p then t:skip('no target player') end
     local sq = findUpperFloor(p)

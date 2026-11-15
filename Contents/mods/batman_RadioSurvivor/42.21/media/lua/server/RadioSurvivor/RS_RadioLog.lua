@@ -1,5 +1,5 @@
 -- Radio Survivor : historique radio par personnage (E06-T04), gardé par l'autorité dans l'historique des échanges du
--- mod commun depuis E18-T19 (RC_History.radio(<personnage>), fichier privé history-*), persistant (redémarrage,
+-- mod commun depuis E18-T19 (CA_History.radio(<personnage>), fichier privé history-*), persistant (redémarrage,
 -- reconnexion), jamais envoyé qu'à son personnage. Lignes typées par fréquence (kHz) :
 --   said  : phrase acceptée de ce joueur (commande talk, réponse de voix ou silence) ;
 --   reply : réponse d'une voix à ce joueur, inscrite quand elle passe à l'antenne ;
@@ -30,7 +30,7 @@ local S = require "RadioSurvivor/RS_State"
 local Const = require "RadioSurvivor/RadioSurvivor_Const"
 local Personas = require "RadioSurvivor/RS_Personas"
 local Notes = require "RadioSurvivor/RS_Notes"
-local History = require "RadioSurvivorCore/RC_History" -- E18-T19: radio history kept by the core mod
+local History = require "CoreAI/CA_History" -- E18-T19: radio history kept by the core mod
 
 local Log = {}
 Log.MAX_LINES = 40

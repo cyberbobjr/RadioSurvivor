@@ -12,14 +12,14 @@ RS_Rescue.town (vanilla map only; otherwise no place). No conversation text is r
 Sources (closed list, Facts.KINDS):
     death        OnCharacterDeath of an IsoPlayer (fires on the dedicated server, OnPlayerDeath does not): name of the
                  character (descriptor), place of the body.
-    mission      RC_Missions.onFinished (chained): success, failed, abandoned (no
+    mission      CA_Missions.onFinished (chained): success, failed, abandoned (no
                  cancellation): template, requester name, participant names, place of the requester body if loaded.
     rescue       reserved for E12-T04/T05: Facts.record('rescue', { result, requester, participants, place }).
     passage      reserved for E13 (smuggler): Facts.record('passage', { event, name, place }).
     power_cut    EveryHours poll of SandboxOptions.doesPowerGridExist: present -> absent (no Lua event exists).
     water_cut    EveryHours poll: GameTime.getWorldAgeDaysSinceBegin() < SandboxOptions.getWaterShutModifier() goes
                  from true to false (same test as IsoObject.java:2544 and ParameterWaterSupply.java:18).
-    weather      EveryHours poll (RC_WorldFacts.weatherNow): start of a storm, tropical storm or blizzard.
+    weather      EveryHours poll (CA_WorldFacts.weatherNow): start of a storm, tropical storm or blizzard.
     group_death  public event OnLivingKnoxMemberDied: group name, role, cause, byPlayer, offscreen, place.
     group_gone   public event OnLivingKnoxGroupGone: group name, reason.
     group_new    public event OnLivingKnoxGroupCreated: group name, type key, place (at most CAPS.group_new a day).
@@ -53,11 +53,11 @@ since), Facts.drop(book, through), Facts.expireBook(book, today).
 Console messages in English.
 ]]
 local S = require 'RadioSurvivor/RS_State'
-local M = require 'RadioSurvivorCore/RC_Missions'
+local M = require 'CoreAI/CA_Missions'
 local Rescue = require 'RadioSurvivor/RS_Rescue'
-local World = require 'RadioSurvivorCore/RC_WorldFacts' -- E18-T27: world readings of the core mod
+local World = require 'CoreAI/CA_WorldFacts' -- E18-T27: world readings of the core mod
 local Const = require 'RadioSurvivor/RadioSurvivor_Const'
-local Codec = require 'RadioSurvivorCore/RC_Codec'
+local Codec = require 'CoreAI/CA_Codec'
 
 local Facts = {pending = {}}
 
@@ -352,7 +352,7 @@ function Facts.characterDeath(character)
         'death|' .. tostring(owner) .. '|' .. name .. '|' .. tostring(day))
 end
 
--- RC_Missions.onFinished (chained).
+-- CA_Missions.onFinished (chained).
 function Facts.missionFinished(state, mission, result)
     if type(mission) ~= 'table' or not Facts.MISSION_RESULTS[result] then return end
     local donor = type(state) == 'table' and M.donorOf(state, mission) or nil
@@ -369,7 +369,7 @@ function Facts.missionFinished(state, mission, result)
 end
 
 local chained
--- Installs Facts.missionFinished after the current listener of RC_Missions.onFinished (none since E18-T27: the
+-- Installs Facts.missionFinished after the current listener of CA_Missions.onFinished (none since E18-T27: the
 -- observations of Living Knox use a result listener). Called again at each poll: a listener set later is wrapped too.
 function Facts.chain()
     if chained and M.onFinished == chained then return end

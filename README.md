@@ -5,7 +5,7 @@
 **Voices on the radio and very much alive survivors in Knox County.**
 Mods for Project Zomboid **Build 42.21**, singleplayer and multiplayer (dedicated servers included).
 One Workshop item, **three mods**: Radio Survivor (`batman_RadioSurvivor`, 0.3.0), Living Knox (`batman_LivingKnox`,
-0.1.0) and their shared core (`batman_RadioSurvivorCore`, 0.1.0). Test build.
+0.1.0) and their shared core (`batman_CoreAI`, 0.1.0). Test build.
 
 Knox County, July 1993. The Exclusion Zone is sealed off and survivors are on their own. These mods give them what
 the base game lacks: **voices on the other end of the radio**, played by an artificial intelligence, and **other
@@ -37,9 +37,9 @@ works without the other.
 
 | Mod | Mod ID | What it brings | Needs |
 |---|---|---|---|
-| Radio Survivor | `batman_RadioSurvivor` | The radio: six AI voices on real frequencies, the Radio tab of the notebook, factions | Radio Survivor Core, Belt Walkie-Talkie, Signal Smoke |
-| Living Knox | `batman_LivingKnox` | Groups of NPC survivors: homes, needs, routines, fights, fortifications | Radio Survivor Core. Not compatible with Bandits! and Project A-Life |
-| Radio Survivor Core | `batman_RadioSurvivorCore` | What both share: missions and the mission journal, link with the AI bridge, character identity, history of conversations, reputation, tools, the notebook | Signal Smoke |
+| Radio Survivor | `batman_RadioSurvivor` | The radio: six AI voices on real frequencies, the Radio tab of the notebook, factions | Core AI, Belt Walkie-Talkie, Signal Smoke |
+| Living Knox | `batman_LivingKnox` | Groups of NPC survivors: homes, needs, routines, fights, fortifications | Core AI. Not compatible with Bandits! and Project A-Life |
+| Core AI | `batman_CoreAI` | What both share: missions and the mission journal, link with the AI bridge, character identity, history of conversations, reputation, tools, the notebook | Signal Smoke |
 
 - **The Core** is required by the two others, so the game enables it for you. Enabled alone it adds nothing you can
   play.
@@ -141,7 +141,7 @@ not want among `batman_RadioSurvivor` and `batman_LivingKnox`:
 
 ```ini
 WorkshopItems=<Radio Survivor Workshop ID>;3817018338;3694097672;3811010882
-Mods=TooltipLib;batman_BeltRadio;batman_SignalSmoke;batman_RadioSurvivorCore;batman_RadioSurvivor;batman_LivingKnox
+Mods=TooltipLib;batman_BeltRadio;batman_SignalSmoke;batman_CoreAI;batman_RadioSurvivor;batman_LivingKnox
 ```
 
 Players have nothing else to install besides the mods. The bridge runs **on the server machine**: see
@@ -159,8 +159,8 @@ game ──requests.txt──▶ bridge ──HTTPS──▶ AI API
 game ◀─responses.txt── bridge ◀─────────
 ```
 
-- Exchange folder: `<Zomboid folder>/Lua/batman_RadioSurvivorCore/` (in singleplayer on Windows:
-  `%USERPROFILE%\Zomboid\Lua\batman_RadioSurvivorCore`).
+- Exchange folder: `<Zomboid folder>/Lua/batman_CoreAI/` (in singleplayer on Windows:
+  `%USERPROFILE%\Zomboid\Lua\batman_CoreAI`).
 - The bridge shows it is alive by rewriting `bridge-alive.txt` every 5 s. While it is alive, the game waits up to 150 s
   for a slow answer; without a bridge, it falls back after 90 s.
 - The server never sends secrets to the AI (exact base positions, hidden frequencies…) and checks every action it
@@ -232,8 +232,8 @@ python radio_bridge.py
 The banner shows the effective configuration, then `Bridge ready, model …, directory …`. **Keep the window open**
 while you play; the order (game or bridge first) does not matter. Stop it with **Ctrl+C**.
 
-- Default exchange folder: `%USERPROFILE%\Zomboid\Lua\batman_RadioSurvivorCore` (created if needed).
-- Game started with `-cachedir=X`: add `--exchange "X\Lua\batman_RadioSurvivorCore"`.
+- Default exchange folder: `%USERPROFILE%\Zomboid\Lua\batman_CoreAI` (created if needed).
+- Game started with `-cachedir=X`: add `--exchange "X\Lua\batman_CoreAI"`.
 - To keep the log in a file: `python radio_bridge.py > bridge.log 2>&1`.
 
 ### Bridge in a hosted game
@@ -247,9 +247,9 @@ game.
 
    | Case | Exchange folder |
    |---|---|
-   | Windows, no `-cachedir` | `%USERPROFILE%\Zomboid\Lua\batman_RadioSurvivorCore` |
-   | Linux, no `-cachedir` | `/home/<server account>/Zomboid/Lua/batman_RadioSurvivorCore` |
-   | Server started with `-cachedir=X` | `X/Lua/batman_RadioSurvivorCore` |
+   | Windows, no `-cachedir` | `%USERPROFILE%\Zomboid\Lua\batman_CoreAI` |
+   | Linux, no `-cachedir` | `/home/<server account>/Zomboid/Lua/batman_CoreAI` |
+   | Server started with `-cachedir=X` | `X/Lua/batman_CoreAI` |
 
    Without `--exchange`, the bridge uses the `Zomboid` folder of **its own** account: pass `--exchange` as soon as the
    server runs under another account or with `-cachedir`. The bridge creates the folder if it is missing, so a typo
@@ -260,7 +260,7 @@ game.
 
    ```sh
    python3 /opt/radiosurvivor-bridge/radio_bridge.py --env /etc/radiosurvivor/bridge.env \
-     --exchange /srv/pz/cache/Lua/batman_RadioSurvivorCore
+     --exchange /srv/pz/cache/Lua/batman_CoreAI
    ```
 
    and wait for `Bridge ready`.
@@ -275,7 +275,7 @@ game.
 
    [Service]
    User=<PZ server account>
-   ExecStart=/usr/bin/python3 /opt/radiosurvivor-bridge/radio_bridge.py --env /etc/radiosurvivor/bridge.env --exchange /srv/pz/cache/Lua/batman_RadioSurvivorCore
+   ExecStart=/usr/bin/python3 /opt/radiosurvivor-bridge/radio_bridge.py --env /etc/radiosurvivor/bridge.env --exchange /srv/pz/cache/Lua/batman_CoreAI
    Restart=on-failure
    RestartSec=10
    KillSignal=SIGINT
@@ -375,7 +375,7 @@ in singleplayer, the admin panel in multiplayer).
 | The bridge refuses to start | Another bridge is already watching this folder (`bridge.lock`). |
 | No voice on a frequency | Nobody holds it this game, outside its hours, or the radio is not powerful enough (shortwave). |
 | `Expired request ignored` | Request older than 75 s: bridge started late or clocks differ (bridge on another machine). |
-| Radio Survivor or Living Knox missing from the game | A required mod is missing (Radio Survivor Core, Signal Smoke; for Radio Survivor also Belt Walkie-Talkie and TooltipLib) or not in `WorkshopItems=` / `Mods=`. |
+| Radio Survivor or Living Knox missing from the game | A required mod is missing (Core AI, Signal Smoke; for Radio Survivor also Belt Walkie-Talkie and TooltipLib) or not in `WorkshopItems=` / `Mods=`. |
 
 Logs: bridge output (`bridge.log` if redirected), `token_usage.jsonl`, `%USERPROFILE%\Zomboid\console.txt`
 (singleplayer), the server's `server-console.txt`. More cases: [docs/wiki/en/11-troubleshooting.md](docs/wiki/en/11-troubleshooting.md).
@@ -395,7 +395,7 @@ Test build, not published on the Workshop. The three mods are tested together as
 ## Development
 
 ```text
-Contents/mods/batman_RadioSurvivorCore/42.21/   shared core (missions, bridge link, identity, notebook)
+Contents/mods/batman_CoreAI/42.21/   shared core (missions, bridge link, identity, notebook)
 Contents/mods/batman_RadioSurvivor/42.21/   radio, voices, factions (Lua; personas; EN/FR translations)
 Contents/mods/batman_LivingKnox/42.21/      NPC engine (Lua; EN/FR translations)
 bridge/                                     the Python bridge

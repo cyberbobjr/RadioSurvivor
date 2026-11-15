@@ -1,10 +1,10 @@
 if isClient() then return end
 --[[
-Living Knox: its NPCs in the Contacts tab of the notebook of the core mod (E18-T26, RC_Contacts source "lk"). Authority
+Living Knox: its NPCs in the Contacts tab of the notebook of the core mod (E18-T26, CA_Contacts source "lk"). Authority
 only.
 
 The NPCs a character knows: those with a personal relation toward it (LK_PersonalRelation) or an exchange history with
-it (RC_History, peer "lk:<npc id>"), still in the Living Knox registry. A row: id "lk:<npc id>" (the history key of
+it (CA_History, peer "lk:<npc id>"), still in the Living Knox registry. A row: id "lk:<npc id>" (the history key of
 the core mod), name (LivingKnox.Names), groupName, alive, relation = panel of the personal relation (identifiers and game
 days, translated by Living Knox's page of the notebook).
 With RadioSurvivor active, its notebook fiches already list these NPCs (with their relation through the API): the
@@ -13,8 +13,8 @@ source is not registered, so a contact is never listed twice.
 require "LivingKnox/LK_Core"
 require "LivingKnox/LK_PersonalRelation"
 local Names = require "LivingKnox/LK_Names"
-local History = require "RadioSurvivorCore/RC_History"
-local Contacts = require "RadioSurvivorCore/RC_Contacts"
+local History = require "CoreAI/CA_History"
+local Contacts = require "CoreAI/CA_Contacts"
 
 local LKC = {}
 LivingKnox.Contacts = LKC

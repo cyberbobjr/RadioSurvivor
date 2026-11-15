@@ -39,7 +39,7 @@ import beltradio_lib  # noqa: E402
 ROOT = Path(__file__).resolve().parents[1]
 MOD = ROOT / 'Contents/mods/batman_RadioSurvivor/42.21'
 LUA = MOD / 'media/lua'
-CORE_LUA = Path(__file__).resolve().parents[1] / 'Contents' / 'mods' / 'batman_RadioSurvivorCore' / '42.21' / 'media' / 'lua'  # mod commun (E18)
+CORE_LUA = Path(__file__).resolve().parents[1] / 'Contents' / 'mods' / 'batman_CoreAI' / '42.21' / 'media' / 'lua'  # mod commun (E18)
 LK_LUA = Path(__file__).resolve().parents[1] / 'Contents' / 'mods' / 'batman_LivingKnox' / '42.21' / 'media' / 'lua'  # moteur des PNJ (E18-T07)
 BUNDLED = MOD / 'personas'
 BOM_BYTES = bytes([0xEF, 0xBB, 0xBF])
@@ -881,7 +881,7 @@ class DeliveredVoicesServerTests(ServerHarness):
               'virgil': [220000], 'boone': [230000], 'odessa': [240000], 'ezra': [250000], 'maxine': [260000]}
 
     def requests(self) -> str:
-        path = self.lua_dir / 'batman_RadioSurvivorCore' / 'requests.txt'
+        path = self.lua_dir / 'batman_CoreAI' / 'requests.txt'
         return path.read_text(encoding='utf-8') if path.exists() else ''
 
     def test_six_sheets_installed_with_one_channel_per_frequency(self):
@@ -1161,7 +1161,7 @@ class ServerTests(ServerHarness):
         self.g.fire('OnTickEvenPaused')
 
     def requests(self) -> str:
-        path = self.lua_dir / 'batman_RadioSurvivorCore' / 'requests.txt'
+        path = self.lua_dir / 'batman_CoreAI' / 'requests.txt'
         return path.read_text(encoding='utf-8') if path.exists() else ''
 
     def test_active_walt_answers_on_his_frequency(self):
@@ -1287,7 +1287,7 @@ class ServerTests(ServerHarness):
 
     def test_bridge_text_of_the_call(self):
         """Texte écrit par le pont (LLM simulé) ; parasites seuls ou réponse vide : texte fixe de la fiche."""
-        out = self.lua_dir / 'batman_RadioSurvivorCore' / 'responses.txt'
+        out = self.lua_dir / 'batman_CoreAI' / 'responses.txt'
         for lines, expected in ((['Anyone listening? Walt here. Over.'], ['Anyone listening? Walt here. Over.']),
                                 (['<fzzt>'], ['IGUI_RadioSurvivor_Call|145.0']),
                                 ([], ['IGUI_RadioSurvivor_Call|145.0']),
@@ -1455,7 +1455,7 @@ class SpontaneousCallTests(ServerHarness):
         self.sheets = {vid: store.load_file(BUNDLED / f'{vid}.txt') for vid in DeliveredVoicesServerTests.VOICES}
 
     def requests(self) -> str:
-        path = self.lua_dir / 'batman_RadioSurvivorCore' / 'requests.txt'
+        path = self.lua_dir / 'batman_CoreAI' / 'requests.txt'
         return path.read_text(encoding='utf-8') if path.exists() else ''
 
     def listening(self, vid: str, hour: int) -> bool:
@@ -1658,7 +1658,7 @@ class WorldRadioServerTests(ServerHarness):
         self.rt.execute(WORLD_STUBS)
 
     def requests(self) -> str:
-        path = self.lua_dir / 'batman_RadioSurvivorCore' / 'requests.txt'
+        path = self.lua_dir / 'batman_CoreAI' / 'requests.txt'
         return path.read_text(encoding='utf-8') if path.exists() else ''
 
     def world(self, x=102, y=200, z=0, khz=145000, before=0):

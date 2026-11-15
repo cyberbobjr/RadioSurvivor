@@ -29,7 +29,7 @@ TESTS_LUA = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lu
 SUITE = TESTS_LUA / 'shared' / 'RST' / 'suites' / 'RS_NotebookVisual.lua'
 MOD = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivor' / '42.21'
 TABLES = {lang: MOD / 'media' / 'lua' / 'shared' / 'Translate' / lang / 'IG_UI.json' for lang in ('EN', 'FR')}
-CORE = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivorCore' / '42.21'
+CORE = ROOT / 'Contents' / 'mods' / 'batman_CoreAI' / '42.21'
 CORE_TABLES = {lang: CORE / 'media' / 'lua' / 'shared' / 'Translate' / lang / 'IG_UI.json' for lang in ('EN', 'FR')}
 LK = ROOT / 'Contents' / 'mods' / 'batman_LivingKnox' / '42.21'
 LK_TABLES = {lang: LK / 'media' / 'lua' / 'shared' / 'Translate' / lang / 'IG_UI.json' for lang in ('EN', 'FR')}
@@ -286,7 +286,7 @@ class NotebookVisualTests(unittest.TestCase):
         c.g.PY_HEIGHT = lambda font: fonts[str(font)].line_height
         tables = {('batman_RadioSurvivor', lang): path.read_text(encoding='utf-8').splitlines()
                   for lang, path in TABLES.items()}
-        tables.update({('batman_RadioSurvivorCore', lang): path.read_text(encoding='utf-8').splitlines()
+        tables.update({('batman_CoreAI', lang): path.read_text(encoding='utf-8').splitlines()
                        for lang, path in CORE_TABLES.items()})
         tables.update({('batman_LivingKnox', lang): path.read_text(encoding='utf-8').splitlines()
                        for lang, path in LK_TABLES.items()})
@@ -408,7 +408,7 @@ class NotebookVisualTests(unittest.TestCase):
         out = self.c.rt.eval('''function()
             SCREEN.borderless = false
             CORE:setResolutionAndFullScreen(1920, 1080, false)
-            local w = RC_UI_Notebook.toggle(0, false)
+            local w = CA_UI_Notebook.toggle(0, false)
             local before = w:getHeight()
             CORE:setResolutionAndFullScreen(1280, 720, false)
             local r = {before, w:getX(), w:getY(), w:getWidth(), w:getHeight()}
@@ -424,8 +424,8 @@ class NotebookVisualTests(unittest.TestCase):
 
     def test_detects_a_button_outside_the_window(self):
         self.c.rt.execute('''
-            local layout = RC_UI_Notebook.layout
-            RC_UI_Notebook.layout = function(self) layout(self); if self.saveNote then self.saveNote:setX(self.width) end end
+            local layout = CA_UI_Notebook.layout
+            CA_UI_Notebook.layout = function(self) layout(self); if self.saveNote then self.saveNote:setX(self.width) end end
         ''')
         status, message, notes = self.only(self.run_async('views'))
         self.assertEqual(status, 'FAIL')
@@ -435,8 +435,8 @@ class NotebookVisualTests(unittest.TestCase):
 
     def test_detects_a_text_wider_than_its_button(self):
         self.c.rt.execute('''
-            local layout = RC_UI_Notebook.layout
-            RC_UI_Notebook.layout = function(self) layout(self); if self.talk then self.talk:setWidth(20) end end
+            local layout = CA_UI_Notebook.layout
+            CA_UI_Notebook.layout = function(self) layout(self); if self.talk then self.talk:setWidth(20) end end
         ''')
         status, _, notes = self.only(self.run_sync('translation tables'))
         self.assertEqual(status, 'FAIL')
@@ -459,8 +459,8 @@ class NotebookVisualTests(unittest.TestCase):
     def test_detects_controls_pushed_out_by_a_larger_font_at_the_former_minimum(self):
         # Minimum size before E03-T02 (660 x 480 whatever the font): the Contacts buttons leave the window.
         self.c.rt.execute('''
-            local new = RC_UI_Notebook.new
-            RC_UI_Notebook.new = function(self)
+            local new = CA_UI_Notebook.new
+            CA_UI_Notebook.new = function(self)
                 local o = new(self); o.minimumWidth, o.minimumHeight = 660, 480; return o
             end
         ''')
@@ -582,8 +582,8 @@ class NotebookVisualTests(unittest.TestCase):
 
     def test_detects_a_detail_that_jumps_on_refresh(self):
         self.c.rt.execute('''
-            local refresh = RC_UI_Notebook.refresh
-            RC_UI_Notebook.refresh = function(self) refresh(self); self.detail:setYScroll(0) end
+            local refresh = CA_UI_Notebook.refresh
+            CA_UI_Notebook.refresh = function(self) refresh(self); self.detail:setYScroll(0) end
         ''')
         status, _, notes = self.only(self.run_async('scroll'))
         self.assertEqual(status, 'FAIL')

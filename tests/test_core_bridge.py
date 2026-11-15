@@ -1,15 +1,15 @@
-"""Link with the Python bridge in the core mod batman_RadioSurvivorCore (E18-T04).
+"""Link with the Python bridge in the core mod batman_CoreAI (E18-T04).
 
     python RadioSurvivor/tests/test_core_bridge.py
 
 Decision of 2026-11-05 (plan E18): ONE exchange queue for both mods, separate caps (each mod counts its own requests).
-- one copy of the transport (RC_Transport: requests and responses files) and of the bridge heartbeat (RC_Bridge),
+- one copy of the transport (CA_Transport: requests and responses files) and of the bridge heartbeat (CA_Bridge),
   in the core mod; no RadioSurvivor/RS_Transport left;
 - a mod registers its kinds of requests as lanes of the queue (RadioSurvivor: radio, npc, acks, lastPages, in this
   order, RS_BridgeLanes); the requests file of the moved code is byte for byte the file of the old code
   (fixtures/e18-t04/requests.txt, written by the old RS_Transport from fixtures/e18-t04/requests.lua);
 - a lane of another mod goes in the same file, after the lanes registered before it, and is read back by the bridge;
-- answers of every lane are read by one reader (RC_Transport.readResponses);
+- answers of every lane are read by one reader (CA_Transport.readResponses);
 - heartbeat: RadioSurvivor_Const reads the state of the bridge through the core (same file, same delays).
 """
 from __future__ import annotations
@@ -28,11 +28,11 @@ import npc_protocol  # noqa: E402
 import radio_bridge  # noqa: E402
 
 MODS = ROOT / 'Contents' / 'mods'
-CORE_LUA = MODS / 'batman_RadioSurvivorCore' / '42.21' / 'media' / 'lua'
+CORE_LUA = MODS / 'batman_CoreAI' / '42.21' / 'media' / 'lua'
 RS_LUA = MODS / 'batman_RadioSurvivor' / '42.21' / 'media' / 'lua'
 FIX = Path(__file__).resolve().parent / 'fixtures' / 'e18-t04'
-REQUESTS = 'batman_RadioSurvivorCore/requests.txt'
-RESPONSES = 'batman_RadioSurvivorCore/responses.txt'
+REQUESTS = 'batman_CoreAI/requests.txt'
+RESPONSES = 'batman_CoreAI/responses.txt'
 
 STUBS = r'''
 isClient = function() return false end
@@ -62,8 +62,8 @@ def runtime():
 
 class LayoutTests(unittest.TestCase):
     def test_one_copy_in_the_core(self):
-        for name in ('RC_Transport', 'RC_Bridge'):
-            self.assertTrue((CORE_LUA / 'shared' / 'RadioSurvivorCore' / f'{name}.lua').is_file(), name)
+        for name in ('CA_Transport', 'CA_Bridge'):
+            self.assertTrue((CORE_LUA / 'shared' / 'CoreAI' / f'{name}.lua').is_file(), name)
         self.assertEqual(list(MODS.rglob('RS_Transport.lua')), [])
 
     def test_no_require_of_the_old_transport(self):
@@ -110,7 +110,7 @@ class QueueTests(unittest.TestCase):
         self.assertEqual(self.T.order[len(self.T.order)], 'lkTalk')
 
     def test_one_reader_for_the_answers_of_every_lane(self):
-        codec = self.rt.eval('require("RadioSurvivorCore/RC_Codec")')
+        codec = self.rt.eval('require("CoreAI/CA_Codec")')
         lines = []
         for rid in ('rs-1', 'lk-1'):
             payload = self.rt.eval(f'function(c) return c.hexBytes(c.encodeBytes({{ id = "{rid}", text = "ok" }})) end')(codec)
@@ -125,7 +125,7 @@ class QueueTests(unittest.TestCase):
 class HeartbeatTests(unittest.TestCase):
     def setUp(self):
         self.rt = runtime()
-        self.B = self.rt.eval('require("RadioSurvivorCore/RC_Bridge")')
+        self.B = self.rt.eval('require("CoreAI/CA_Bridge")')
         self.C = self.rt.eval('require("RadioSurvivor/RadioSurvivor_Const")')
 
     def test_constants_read_from_the_core(self):
@@ -135,7 +135,7 @@ class HeartbeatTests(unittest.TestCase):
         self.assertEqual(self.B.REQUESTS_FILE, REQUESTS)
 
     def test_alive_and_wait_follow_the_heartbeat(self):
-        self.assertFalse(self.rt.eval('require("RadioSurvivorCore/RC_Bridge").alive(nil, true)'))
+        self.assertFalse(self.rt.eval('require("CoreAI/CA_Bridge").alive(nil, true)'))
         self.assertEqual(self.C.waitMs(90000), 90000)
         self.rt.globals().FILES[self.B.BRIDGE_ALIVE_FILE] = 'alive=1790000000000\n'
         self.assertTrue(self.B.alive(None, True))
@@ -153,16 +153,16 @@ class ExchangeFolderTests(unittest.TestCase):
     def test_default_folder_and_voice_sheets(self):
         sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'bridge'))
         import radio_bridge as rb
-        self.assertEqual(rb.DEFAULT_EXCHANGE.name, 'batman_RadioSurvivorCore')
+        self.assertEqual(rb.DEFAULT_EXCHANGE.name, 'batman_CoreAI')
         lua = Path('Zomboid') / 'Lua'
-        self.assertEqual(rb.personas_folder(lua / 'batman_RadioSurvivorCore'), lua / 'batman_RadioSurvivor' / 'personas')
+        self.assertEqual(rb.personas_folder(lua / 'batman_CoreAI'), lua / 'batman_RadioSurvivor' / 'personas')
         self.assertEqual(rb.personas_folder(Path('other')), Path('other') / 'personas')
 
     def test_nothing_is_created_for_a_mod_that_is_absent(self):
         sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'bridge'))
         import radio_bridge as rb
         with tempfile.TemporaryDirectory() as tmp:
-            exchange = Path(tmp) / 'Lua' / 'batman_RadioSurvivorCore'
+            exchange = Path(tmp) / 'Lua' / 'batman_CoreAI'
             exchange.mkdir(parents=True)
             rb.Bridge({'OFFLINE': '1', 'OPENAI_MODEL': 'offline'}, exchange)
             self.assertFalse((Path(tmp) / 'Lua' / 'batman_RadioSurvivor').exists())

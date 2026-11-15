@@ -208,7 +208,7 @@ class IncidentTests(unittest.TestCase):
 
     def test_bridge_unavailable_keeps_defence_without_break(self):
         self.world('nobridge', bridge=False)
-        self.rt.execute("require('RadioSurvivorCore/RC_SpeechConfig').REQUEST_TIMEOUT_MS = 1000")
+        self.rt.execute("require('CoreAI/CA_SpeechConfig').REQUEST_TIMEOUT_MS = 1000")
         self.hit('bob')
         self.poll(SETTLE)
         self.assertEqual(len(self.incident_requests()), 1)
@@ -225,7 +225,7 @@ class IncidentTests(unittest.TestCase):
         self.assertEqual(self.incident_requests(), [], 'asked again before the retry delay')
         self.poll(RETRY)
         self.assertEqual(len(self.incident_requests()), 1, 'not asked again once the delay is over')
-        self.rt.execute("require('RadioSurvivorCore/RC_SpeechConfig').REQUEST_TIMEOUT_MS = 150000")
+        self.rt.execute("require('CoreAI/CA_SpeechConfig').REQUEST_TIMEOUT_MS = 150000")
         # The bridge comes back: the pending request is answered, one decision.
         self.process = start_bridge(self.sim.path, 'incident:repair:medical')
         self.answered()

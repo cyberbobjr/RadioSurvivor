@@ -94,9 +94,9 @@ def lua_set(t):
     return sorted(k for k in t.keys()) if t is not None else []
 
 
-# E18-T20: agreements are Living Knox's (LK_Agreements), team ids the core mod's (RC_Teams): one view of both for
+# E18-T20: agreements are Living Knox's (LK_Agreements), team ids the core mod's (CA_Teams): one view of both for
 # the benches written against the former RS_Factions.
-AGREEMENTS_FACADE = "(function() local A, T = require('LivingKnox/LK_Agreements'), require('RadioSurvivorCore/RC_Teams') return setmetatable({}, {__index = function(_, k) if A[k] ~= nil then return A[k] end return T[k] end}) end)()"
+AGREEMENTS_FACADE = "(function() local A, T = require('LivingKnox/LK_Agreements'), require('CoreAI/CA_Teams') return setmetatable({}, {__index = function(_, k) if A[k] ~= nil then return A[k] end return T[k] end}) end)()"
 
 
 class FactionTests(unittest.TestCase):
@@ -115,7 +115,7 @@ class FactionTests(unittest.TestCase):
         for name in clients:
             sim.add_client(name)
         self.sim, self.g = sim, sim.server.g
-        self.F = sim.server.rt.eval("require('RadioSurvivorCore/RC_Teams')")
+        self.F = sim.server.rt.eval("require('CoreAI/CA_Teams')")
         return sim
 
     def restart(self, rebuild):
@@ -144,19 +144,19 @@ class FactionTests(unittest.TestCase):
         return self.F.data.records[rid]
 
     def core(self, name, command, **args):
-        """E18-T20: command of the core mod (team ids and mandates, RC_Teams), answered to the notebook of the core
-        mod (RC_Notebook: team, lastError)."""
+        """E18-T20: command of the core mod (team ids and mandates, CA_Teams), answered to the notebook of the core
+        mod (CA_Notebook: team, lastError)."""
         c = self.sim.clients[name]
-        if c.g.RadioSurvivorCore is None or c.g.RadioSurvivorCore.notebook is None:
+        if c.g.CoreAI is None or c.g.CoreAI.notebook is None:
             c.rt.execute(NOTEBOOK_UI)
-            c.rt.execute('require "RadioSurvivorCore/RC_Notebook"')
-        c.g.RadioSurvivorCore.notebook.lastError = None
-        self.sim.clock.offset += 1000  # a player clicks: within the limit of the core commands (RC_RateLimit)
-        c.g.sendClientCommand(c.g.getPlayer(), 'RadioSurvivorCore', command, native_table(c, args))
-        return c.g.RadioSurvivorCore.notebook
+            c.rt.execute('require "CoreAI/CA_Notebook"')
+        c.g.CoreAI.notebook.lastError = None
+        self.sim.clock.offset += 1000  # a player clicks: within the limit of the core commands (CA_RateLimit)
+        c.g.sendClientCommand(c.g.getPlayer(), 'CoreAI', command, native_table(c, args))
+        return c.g.CoreAI.notebook
 
     def last_error(self, name):
-        return self.sim.clients[name].g.RadioSurvivorCore.notebook.lastError
+        return self.sim.clients[name].g.CoreAI.notebook.lastError
 
     def team(self, name):
         return self.core(name, 'team').team
@@ -172,7 +172,7 @@ class FactionTests(unittest.TestCase):
         self.poll()
         self.assertEqual(self.id_of('alice'), rid, 'rename lost the id')
         self.assertEqual(self.record(rid).name, 'Beta')
-        # Private state only: the file of the core mod (RC_Teams), never a global ModData; written at each change.
+        # Private state only: the file of the core mod (CA_Teams), never a global ModData; written at each change.
         self.assertTrue(self.F.save())
         # Restart: new Java objects, renamed again while the server was down (only the owner identifies it).
 

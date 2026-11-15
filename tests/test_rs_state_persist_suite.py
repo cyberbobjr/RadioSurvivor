@@ -6,7 +6,7 @@ RS_StatePurge.
 
 Redémarrage simulé : nouvel état Lua sur les mêmes fichiers (emplacements d'état, fichiers du mod commun, instantané
 RST_Persist), S.init(false) comme au démarrage du serveur, puis l'étape after-restart. Doublures d'API reprises de
-tests/test_rs_state.py (fichiers, monde, horloge RC_Reputation.today). Ne prouve rien sur le Java du jeu : le vrai
+tests/test_rs_state.py (fichiers, monde, horloge CA_Reputation.today). Ne prouve rien sur le Java du jeu : le vrai
 redémarrage du serveur dédié reste la campagne MP (autoclient.py --phases restart --server-campaign mp-persist).
 """
 from __future__ import annotations
@@ -95,7 +95,7 @@ class StatePersistSuiteTests(unittest.TestCase):
         rt = self.before()
         ids = test_ids(rt)
         self.assertEqual([c.rsplit('-', 1)[1] for c in ids], ['alive2', 'busy', 'living', 'recent'])
-        self.assertEqual(rt.eval('DAY'), rt.eval('require("RadioSurvivorCore/RC_Reputation").today()'),
+        self.assertEqual(rt.eval('DAY'), rt.eval('require("CoreAI/CA_Reputation").today()'),
                          'purge clock not restored')
         self.assertIsNone(rt.eval('REP_DATA.reputation'), 'reputation entry of the in-use record left behind')
         rt2 = self.restart(rt)

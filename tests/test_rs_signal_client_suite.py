@@ -6,7 +6,7 @@
 Serveur dédié et deux clients du banc du carnet (test_carnet.Simulation : machines lupa séparées, réseau direct) :
 alice est le demandeur, bob le second client. Réels : moteur RST (RST.lua, RST_Steps.lua), la suite et ses étapes
 (RST_PeerChecks.lua carnet.send, RST_PeerChecks2.lua map.zones, RST_PeerChecksSignal.lua), RS_Carnet_Server.lua et
-RS_Client.lua (commandes accept, report, claim du carnet), gabarit RC_MissionSignal.lua et son écouteur, RS_MapActions.lua
+RS_Client.lua (commandes accept, report, claim du carnet), gabarit CA_MissionSignal.lua et son écouteur, RS_MapActions.lua
 sur les clients. Doublures : Signal Smoke (tests/signalsmoke_double.py), métagrille et carte (SCOUT_GRID, MAP_DOUBLE de
 test_carnet), PNJ du faux fournisseur (corps 2001) à la place du PNJ de test Living Knox (RST.SignalClientSuite.requester
 remplacé), paquets d'objets (sendAddItemToContainer / sendRemoveItemFromContainer : copie de l'objet dans l'inventaire
@@ -62,7 +62,7 @@ end
 LK_SOURCE = r'''
 package.path = [[%s/?.lua;%s/?.lua;]] .. package.path
 require "LivingKnox/LK_MissionRewards"
-local M = require 'RadioSurvivorCore/RC_Missions'
+local M = require 'CoreAI/CA_Missions'
 local source = M.npcReward()
 LK_DELEGATED = {}
 M.registerNpcReward({ lot = source.lot, claim = function(store, m, player, character, token, npcId)
@@ -72,10 +72,10 @@ end })
 ''' % ((ROOT_LK / 'shared').as_posix(), (ROOT_LK / 'server').as_posix())
 
 DEFECT_LUA = {
-    'any_hour': ('server', "require('RadioSurvivorCore/RC_MissionSignal').inWindow = function() return true end"),
+    'any_hour': ('server', "require('CoreAI/CA_MissionSignal').inWindow = function() return true end"),
     'no_circle': (REQUESTER, "require('RadioSurvivor/RS_MapActions').zones = function() return {added = 0, removed = 0} end"),
     'empty_claim': ('server', r'''
-        local M = require 'RadioSurvivorCore/RC_Missions'
+        local M = require 'CoreAI/CA_Missions'
         M.claim = function(store, m, player, character)
             m.claimedBy, m.claimedName, m.revision = character, 'nobody', m.revision + 1
             return true

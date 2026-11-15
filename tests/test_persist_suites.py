@@ -27,7 +27,7 @@ import autoclient  # noqa: E402
 LUA = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua'
 SUITES = LUA / 'shared' / 'RST' / 'suites'
 MOD_SHARED = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivor' / '42.21' / 'media' / 'lua' / 'shared'
-CORE_SHARED = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivorCore' / '42.21' / 'media' / 'lua' / 'shared'  # mod commun (E18)
+CORE_SHARED = ROOT / 'Contents' / 'mods' / 'batman_CoreAI' / '42.21' / 'media' / 'lua' / 'shared'  # mod commun (E18)
 CORE_SERVER = CORE_SHARED.parent / 'server'
 FILES = {
     'RS_MissionRecoverPersist.lua': {'rs.mission.recover.before': 'restart', 'rs.mission.recover.after-restart': None},
@@ -63,7 +63,7 @@ def engine() -> lupa.LuaRuntime:
     rt = lupa.LuaRuntime(unpack_returned_tuples=True)
     rt.globals().next = None
     rt.execute(f'package.path = [[{(LUA / "shared").as_posix()}/?.lua;{MOD_SHARED.as_posix()}/?.lua;{CORE_SHARED.as_posix()}/?.lua;'
-               f'{CORE_SERVER.as_posix()}/?.lua;]] .. package.path')  # E18-T19: RC_History of the core mod
+               f'{CORE_SERVER.as_posix()}/?.lua;]] .. package.path')  # E18-T19: CA_History of the core mod
     rt.execute('print = function() end')
     rt.execute(FILE_DOUBLES)
     rt.execute('require "RST/RST"')
@@ -119,7 +119,7 @@ class ListingTests(unittest.TestCase):
 
 
 class PersistFileTests(unittest.TestCase):
-    """RST_Persist: snapshot written with RC_Codec, read back, refused when absent, corrupt, foreign or consumed."""
+    """RST_Persist: snapshot written with CA_Codec, read back, refused when absent, corrupt, foreign or consumed."""
 
     def setUp(self):
         self.rt = engine()
@@ -189,7 +189,7 @@ class RecoverPersistTests(unittest.TestCase):
 
     def bags(self, sim):
         return sim.server.rt.eval('(function() local n = 0 for _, it in ipairs(RECOVER.placed) do '
-                                  'if it.md and it.md.RS_Cache then n = n + 1 end end return n end)()')
+                                  'if it.md and it.md.CA_Cache then n = n + 1 end end return n end)()')
 
     def test_before_then_after_restart(self):
         sim, alice = self.bench()
@@ -276,9 +276,9 @@ RST.Fixtures.giveItem = function(t, p, ft)
     return { item }
 end
 -- Radio history kept by the server double: the speaker says, every other player tuned there hears.
--- E18-T19: the radio history is kept by the core mod (RC_History.radio).
+-- E18-T19: the radio history is kept by the core mod (CA_History.radio).
 local function addLine(cid, khz, kind, text)
-    local H = require("RadioSurvivorCore/RC_History")
+    local H = require("CoreAI/CA_History")
     H.data = H.data or { schema = 1, characters = {}, radio = {} }
     local radio = H.radio(cid, true)
     local f
@@ -305,7 +305,7 @@ RST.Steps.ask = function(t, step, args, opts, after)
         elseif step == "rs.history" then
             local found = {}
             for _, text in ipairs(args.texts or {}) do found[text] = {} end
-            local radio = require("RadioSurvivorCore/RC_History").radio(cid, false)
+            local radio = require("CoreAI/CA_History").radio(cid, false)
             for _, f in ipairs(radio and radio.frequencies or {}) do
                 for _, l in ipairs(f.lines) do
                     if found[l.text] then table.insert(found[l.text], f.khz .. ":" .. l.kind) end
@@ -341,7 +341,7 @@ class RadioTabPersistTests(unittest.TestCase):
         return list((r.status, r.message) for r in report.results.values())
 
     def lines(self, cid):
-        return self.rt.eval(f'(function() local out = {{}} local r = require("RadioSurvivorCore/RC_History").radio("{cid}", false) '
+        return self.rt.eval(f'(function() local out = {{}} local r = require("CoreAI/CA_History").radio("{cid}", false) '
                             'for _, f in ipairs(r and r.frequencies or {}) do for _, l in ipairs(f.lines) do '
                             'out[#out + 1] = f.khz .. ":" .. l.kind end end table.sort(out) '
                             'return table.concat(out, ",") end)()')
@@ -357,7 +357,7 @@ class RadioTabPersistTests(unittest.TestCase):
 
     def test_a_line_lost_by_the_reconnection_fails(self):
         self.run_named('rs.radiotab.before')
-        self.rt.execute('table.remove(require("RadioSurvivorCore/RC_History").radio("c-b").frequencies[2].lines, 1)')
+        self.rt.execute('table.remove(require("CoreAI/CA_History").radio("c-b").frequencies[2].lines, 1)')
         (status, message), = self.run_named('rs.radiotab.after-reconnect')
         self.assertEqual(status, 'FAIL')
         self.assertIn('after the reconnection', message)

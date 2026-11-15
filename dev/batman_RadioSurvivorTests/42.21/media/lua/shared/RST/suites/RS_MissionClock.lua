@@ -3,9 +3,9 @@ rs.missions.clock - mission delays count game time in a real solo game (E11-T20,
 2026-10-21): the countdown stops while the game is paused and runs faster at fast-forward.
 An active mission of the real engine lives in an in-memory notebook state (as rs.missions.unclaimed and
 rs.missions.solo); its countdown is driven exactly like RS_Carnet_Server.tick drives the real ones: on
-OnTickEvenPaused, RC_Missions.advance(state, meter()) with a real RC_GameClock.meter. Three windows of real time:
+OnTickEvenPaused, CA_Missions.advance(state, meter()) with a real CA_GameClock.meter. Three windows of real time:
     x1     normal speed (setGameSpeed(1), multiplier 1) for WINDOW_MS: the countdown runs at about one play ms per real
-           ms and drops by exactly the world age elapsed times RC_GameClock.msPerHour.
+           ms and drops by exactly the world age elapsed times CA_GameClock.msPerHour.
     pause  the vanilla pause, setGameSpeed(0) (Esc menu: MainScreen.lua:1728; pause key: SpeedControlsHandler.lua) for
            PAUSE_MS: remainingMs and the world age do not move although real time passes.
     fast   the vanilla fast-forward FAST (SpeedControlsHandler.lua key FAST_FORWARD_X2 / SpeedControls button
@@ -21,7 +21,7 @@ any other work of the frame. The RST waits only start again once the game runs. 
 multiplier found at the start (never a paused game) and removes the listeners, on success and failure alike.
 Tags "world" (the game speed and the world age move): solo only (MP client: getGameSpeed is always 1 and the pause
 belongs to the server; dedicated server: no SpeedControls), save named rstest*. Selected by the prefix "rs.missions"
-of the campaign solo-rs. The in-memory mission is never saved; RC_Missions.advance only reads the mission's giver
+of the campaign solo-rs. The in-memory mission is never saved; CA_Missions.advance only reads the mission's giver
 kind ('npc', registered by RadioSurvivor or Living Knox). Outside the game: tests/test_rs_mission_clock_suite.py.
 ]]
 
@@ -47,7 +47,7 @@ end
 
 local function modules(t)
     solo(t)
-    local M, Clock = require "RadioSurvivorCore/RC_Missions", require "RadioSurvivorCore/RC_GameClock"
+    local M, Clock = require "CoreAI/CA_Missions", require "CoreAI/CA_GameClock"
     if Clock.hours() == nil then t:skip("no game time (GameTime not ready)") end
     if M.donor("npc") == nil then t:skip("no mission giver 'npc' registered (RadioSurvivor or Living Knox)") end
     return M, Clock
@@ -78,7 +78,7 @@ end
 --[[ Driver: one OnTickEvenPaused listener (fires paused or not, before GameTime.update of the frame) that
     1. ends a pause it was asked to hold once its real time is over (first, so that nothing below can keep the game
        paused);
-    2. counts the play time of the mission like RS_Carnet_Server.tick (RC_Missions.advance with a RC_GameClock meter);
+    2. counts the play time of the mission like RS_Carnet_Server.tick (CA_Missions.advance with a CA_GameClock meter);
     3. records the start and end readings of the current phase.
 A second listener on OnTick only counts the frames that reach OnTick (none while paused in solo). ]]
 local function newDriver(M, Clock, state, m)
@@ -141,7 +141,7 @@ local function span(p)
 end
 
 local function noDriverError(t, d)
-    if d.error then t:fail("RC_Missions.advance raised in the driver: " .. d.error) end
+    if d.error then t:fail("CA_Missions.advance raised in the driver: " .. d.error) end
 end
 
 -- The countdown follows the world age exactly (whole ms, the meter carries the fraction).

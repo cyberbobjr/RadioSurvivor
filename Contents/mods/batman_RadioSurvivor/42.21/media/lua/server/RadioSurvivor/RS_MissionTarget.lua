@@ -1,5 +1,5 @@
 -- Target place of a radio voice mission (E20-T09, ADR D02, D04). Authority only.
--- Any mission template that declares the strategy aimAt(m, place, params) -> ok, reason (RC_Missions; barricade: the
+-- Any mission template that declares the strategy aimAt(m, place, params) -> ok, reason (CA_Missions; barricade: the
 -- building to barricade) works on the place named by the common key target= of its sheet section (RS_Persona: a
 -- place of the sheet with use=target). The set-up is registered for that declaration
 -- (RS_MissionVoice.registerDeclaredSetup): check refuses the start before any mission exists (no_target: the section
@@ -9,7 +9,7 @@
 if isClient() then return end
 local Voice = require 'RadioSurvivor/RS_MissionVoice'
 local Persona = require 'RadioSurvivor/RS_Persona'
-local Missions = require 'RadioSurvivorCore/RC_Missions'
+local Missions = require 'CoreAI/CA_Missions'
 
 local T = {}
 

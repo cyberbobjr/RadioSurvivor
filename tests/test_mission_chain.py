@@ -6,7 +6,7 @@ Vrai RadioSurvivor_Server, vrai RS_Carnet_Server, vrai RS_Persona (fiche lue dep
 (métagrille et joueurs de VoiceMissionTests). Une mission de voix est désignée par l'identifiant de sa section
 [mission <id>] ; after= la réserve à qui a réussi la mission citée ; weight= départage les sections d'un même type ;
 sets_state= pose l'état de récit de la voix (sauvegardé, relu, dit au modèle, exposé par RadioSurvivor.API).
-Les réussites et les échecs passent par la clôture du moteur commun (RC_Missions.finish), comme un compte rendu
+Les réussites et les échecs passent par la clôture du moteur commun (CA_Missions.finish), comme un compte rendu
 accepté ou un délai écoulé.
 """
 from __future__ import annotations
@@ -62,7 +62,7 @@ class MissionChainTests(unittest.TestCase):
         sim = self.voice_sim(name, sheet=sheet)
         self.voice = sim.server.rt.eval("require('RadioSurvivor/RS_MissionVoice')")
         self.chain = sim.server.rt.eval("require('RadioSurvivor/RS_MissionChain')")
-        self.engine = sim.server.rt.eval("require('RadioSurvivorCore/RC_Missions')")
+        self.engine = sim.server.rt.eval("require('CoreAI/CA_Missions')")
         self.store = sim.server.rt.eval("require('RadioSurvivor/RS_State')")
         return sim
 

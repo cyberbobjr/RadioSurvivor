@@ -12,7 +12,7 @@ Un projet, un article Workshop, **trois mods** sous `Contents/mods/` (décision 
 
 | Mod | Rôle | `require=` |
 |---|---|---|
-| `batman_RadioSurvivorCore` | mod commun : moteur et journal des missions, lien avec le pont Python LLM, identité des personnages, historique des échanges, réputation, outils, carnet (cadre et onglets Contacts, Missions, Réputation) | `batman_SignalSmoke` |
+| `batman_CoreAI` | mod commun : moteur et journal des missions, lien avec le pont Python LLM, identité des personnages, historique des échanges, réputation, outils, carnet (cadre et onglets Contacts, Missions, Réputation) | `batman_SignalSmoke` |
 | `batman_RadioSurvivor` | radio, voix, onglet Radio du carnet, factions ; fiches de voix | Core, `batman_BeltRadio`, `batman_SignalSmoke` |
 | `batman_LivingKnox` | moteur de PNJ : groupes, foyers, besoins, routines, parole de proximité ; `incompatible=` Bandits2, ProjectALifeNPCs | Core |
 
@@ -20,7 +20,7 @@ Montages valides : RadioSurvivor seul, Living Knox seul, ou les deux, toujours a
 le Core activé seul n'apporte rien de jouable. Le code commun n'existe qu'une fois, dans le Core. Aucun `require` ni
 appel de Living Knox vers RadioSurvivor : les liens passent par le Core, l'API publique de Living Knox ou
 `RS_NPCProvider`. Le pont est un seul programme, sans option selon le montage ; son dossier d'échange est
-`Zomboid/Lua/batman_RadioSurvivorCore/`, les fiches de voix restent dans `Zomboid/Lua/batman_RadioSurvivor/personas`
+`Zomboid/Lua/batman_CoreAI/`, les fiches de voix restent dans `Zomboid/Lua/batman_RadioSurvivor/personas`
 (RadioSurvivor actif seulement). Le mod de tests `dev/batman_RadioSurvivorTests` n'est jamais publié.
 
 Pas de reprise des anciennes sauvegardes : les mods ne sont pas publiés avec une sauvegarde à reprendre, et aucune

@@ -196,7 +196,7 @@ function FreqView.closed(win)
 end
 
 if ISCollapsableWindow ~= nil then
-    local Table = require "RadioSurvivorCore/RC_Table"   -- E18-T09: table of the core mod (works without Living Knox)
+    local Table = require "CoreAI/CA_Table"   -- E18-T09: table of the core mod (works without Living Knox)
     local Window = ISCollapsableWindow:derive("RSFreqDebugWindow")
     FreqView.Window = Window
 

@@ -25,7 +25,7 @@ LK = ROOT / 'Contents/mods/batman_LivingKnox/42.21/media/lua'
 
 MODS = r'''
 getActivatedMods = function()
-    local l = {'batman_RadioSurvivorCore', '\\batman_LivingKnox'}
+    local l = {'batman_CoreAI', '\\batman_LivingKnox'}
     return {size = function() return #l end, get = function(_, i) return l[i + 1] end}
 end
 '''
@@ -46,7 +46,7 @@ class World:
         self.rt.execute(LK_SERVER_LOAD)
         self.sent = []
         self.g.sendServerCommand = lambda *call: self.sent.append(call)
-        self.server.load('server/RadioSurvivorCore/RC_HistoryEvents.lua')
+        self.server.load('server/CoreAI/CA_HistoryEvents.lua')
         self.g.fire('OnInitGlobalModData', new_world)
         self.alone = self.rt.eval('LivingKnox.TalkAlone')
         self.talk = self.rt.eval('LivingKnox.Talk')
@@ -55,7 +55,7 @@ class World:
         p = self.g.enhance(self.g.makePlayer(name))
         p.isPlayer = True
         self.g.PLAYERS_ONLINE = None
-        identity = self.rt.eval("require('RadioSurvivorCore/RC_Identity')")
+        identity = self.rt.eval("require('CoreAI/CA_Identity')")
         bound = identity.bind(p, None)
         return p, bound[0] if isinstance(bound, tuple) else bound
 
@@ -119,7 +119,7 @@ class AloneTests(unittest.TestCase):
         said = self.w.commands('talkSpeech')
         self.assertEqual(len(said), 1)
         self.assertEqual(said[0][3].text, 'Noted.')
-        history = self.w.rt.eval("require('RadioSurvivorCore/RC_History')").find(self.character, 'lk:' + req.npc)
+        history = self.w.rt.eval("require('CoreAI/CA_History')").find(self.character, 'lk:' + req.npc)
         self.assertEqual([h.author != 'x' and h.text for h in history.values()], ['Bonjour', 'Noted.'])
 
     def test_nobody_near_is_silent_in_the_chat_and_refused_by_the_menu(self):
@@ -140,13 +140,13 @@ class AloneTests(unittest.TestCase):
         self.assertTrue(offers, 'no offer')
         self.w.answer('offer', offers[0])
         self.assertEqual(len(self.w.commands('talkOffer')), 1)
-        rows = self.w.rt.eval("require('RadioSurvivorCore/RC_MissionJournal')").rows(self.character)
+        rows = self.w.rt.eval("require('CoreAI/CA_MissionJournal')").rows(self.character)
         self.assertEqual(len(rows), 1)
         self.assertEqual(rows[1].state, 'offer')
         accept = self.w.say(self.p, "D'accord", npc=npc)
         self.assertIsNotNone(accept.context.acceptable)
         self.w.answer('accept')
-        rows = self.w.rt.eval("require('RadioSurvivorCore/RC_MissionJournal')").rows(self.character)
+        rows = self.w.rt.eval("require('CoreAI/CA_MissionJournal')").rows(self.character)
         self.assertEqual(rows[1].state, 'active')
 
     def accepted_supply(self):
@@ -158,16 +158,16 @@ class AloneTests(unittest.TestCase):
         self.w.answer('offer', list(req.offers.keys())[0])
         self.w.say(self.p, "D'accord", npc=npc)
         self.w.answer('accept')
-        store = self.w.rt.eval("require('RadioSurvivorCore/RC_MissionStore')")
+        store = self.w.rt.eval("require('CoreAI/CA_MissionStore')")
         m = list(store.data.missions.values())[0]
         self.assertEqual((m.state, m.unit), ('active', 'value'))
         return m
 
     def gesture(self, m, action, **args):
-        journal = self.w.rt.eval("require('RadioSurvivorCore/RC_MissionJournal')")
+        journal = self.w.rt.eval("require('CoreAI/CA_MissionJournal')")
         table = self.w.rt.table_from({'action': action, 'mission': m.id, 'revision': m.revision, **args})
         self.w.sent.clear()
-        journal.onClientCommand('RadioSurvivorCore', 'mission', self.p, table)
+        journal.onClientCommand('CoreAI', 'mission', self.p, table)
         errors = [c[3].reason for c in self.w.sent if c[2] == 'error']
         rows = [c[3].missions for c in self.w.sent if c[2] == 'missions']
         return errors, rows[-1] if rows else None
@@ -215,7 +215,7 @@ class AloneTests(unittest.TestCase):
         errors, rows = self.gesture(m, 'deliver', items=self.w.rt.table_from(ids))
         self.assertEqual(errors, [])
         self.assertEqual(rows[1].toClaim, True)
-        cfg = self.w.rt.eval("require('RadioSurvivorCore/RC_MissionConfig')")
+        cfg = self.w.rt.eval("require('CoreAI/CA_MissionConfig')")
         group = self.w.rt.eval('function(id) local G = LivingKnox.Groups; return G.get(G.findNpc(id)) end')(m.npc)
         name = cfg.NPC_REWARD_TABLES[group.type] or 'food'
         self.assertEqual(rows[1].rewardTable, name)
@@ -322,7 +322,7 @@ class AloneTests(unittest.TestCase):
     def test_a_player_who_never_spoke_is_bound_and_hears_initiatives(self):
         """E18-T27 (campagne MP du 2026-11-07, « listeners 0 ») : le hello du client arrivé avant son joueur serveur est
         perdu ; chaque passage lie les joueurs vivants sans identité."""
-        identity = self.w.rt.eval("require('RadioSurvivorCore/RC_Identity')")
+        identity = self.w.rt.eval("require('CoreAI/CA_Identity')")
         identity.bound[self.p] = None
         self.assertIsNone(identity.bound[self.p])
         self.w.answer()

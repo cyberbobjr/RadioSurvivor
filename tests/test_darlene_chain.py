@@ -7,7 +7,7 @@ fiches livrées et le catalogue des catégories dans le dossier de travail du ba
 carnet (SCOUT_GRID) avec le bâtiment de la clinique de West Point aux coordonnées de la carte 42.22 (bâtiment 43 du
 lotheader 46_26 : x 11854-11888, y 6857-6886, relevé par .claude/tools/lotheader_parser.py) et
 IsoMetaGrid.getBuildingAt(x, y, z) (IsoMetaGrid.java:271-280 : le bâtiment de la pièce de la case). Les réussites et
-les échecs passent par la clôture du moteur commun (RC_Missions.finish), comme dans tests/test_mission_chain.py ; la
+les échecs passent par la clôture du moteur commun (CA_Missions.finish), comme dans tests/test_mission_chain.py ; la
 suite en jeu rs.voicedarlene joue les vrais objectifs sur la vraie carte.
 Preuve de la logique Lua avec la vraie fiche, pas de l'API Java ni du réseau.
 """
@@ -72,7 +72,7 @@ class DarleneChainTests(unittest.TestCase):
         for user in ('alice', 'bob'):
             sim.add_client(user)
         self.voice = rt.eval("require('RadioSurvivor/RS_MissionVoice')")
-        self.engine = rt.eval("require('RadioSurvivorCore/RC_Missions')")
+        self.engine = rt.eval("require('CoreAI/CA_Missions')")
         self.store = rt.eval("require('RadioSurvivor/RS_State')")
         self.api = sim.server.g.RadioSurvivor.API
         return sim
@@ -244,7 +244,7 @@ You are Scout Voice, a voice of the offline test bench.
         self.assertEqual((sweep.place, sweep.mapZone.x, sweep.mapZone.y), ('Old home', 3006, 3005))
 
     def engine_finish(self, sim, m):
-        self.assertTrue(sim.server.rt.eval("require('RadioSurvivorCore/RC_Missions')").finish(sim.state(), m,
+        self.assertTrue(sim.server.rt.eval("require('CoreAI/CA_Missions')").finish(sim.state(), m,
                                                                                              'failed'))
 
     def test_target_without_building_gives_no_mission_and_no_draw_replaces_it(self):

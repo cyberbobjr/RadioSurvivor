@@ -4,7 +4,7 @@ RS_TradeExchange.lua avec RS_Trade.lua et RS_TradeRun.lua dans lupa.
     python RadioSurvivor/tests/test_rs_trade_exchange.py
 
 Vrai Lua du mod (Lua 5.1, `next` retiré comme dans Kahlua) : RS_TradeExchange, RS_Trade, RS_TradeRun, RS_Actions,
-RC_TradeValues, RS_Reputation, RS_OutsideNews ; doublures (celles de test_rs_trade_run.py, plus) : objets
+CA_TradeValues, RS_Reputation, RS_OutsideNews ; doublures (celles de test_rs_trade_run.py, plus) : objets
 d'inventaire (type, nom affiché et nom du script, état, utilisations, poids, ModData, contenu), sacs au sol et cellule
 (cases chargées ou non), instanceItem, envois sendAddItemToContainer / sendRemoveItemFromContainer, création du
 journal du dehors. Couvre : barème et conditions de la table (état, filtre, sac vide, papiers nominatifs, nom d'un
@@ -108,7 +108,7 @@ class ExchangeHarness(RunHarness):
         self.Ex = self.rt.eval('require("RadioSurvivor/RS_TradeExchange")')
         self.g.STATE.data.outcomes = self.rt.table_from({})
         # E18-T22: reputation of the core mod on this table (its facts read below).
-        self.rt.eval('require("RadioSurvivorCore/RC_Reputation")').useData(self.g.STATE.data)
+        self.rt.eval('require("CoreAI/CA_Reputation")').useData(self.g.STATE.data)
         self.item = self.g.makeItem
 
     def it(self, full, **o):
@@ -156,7 +156,7 @@ class AppraiseTests(ExchangeHarness):
             ([self.it('GasmaskFilter', uses=0.4)], 0), ([self.it('GasmaskFilter', uses=0.5)], 2),
             ([self.it('Bag_ALICEpack_Army', items=[self.it('Hammer')])], 0), ([self.it('Bag_ALICEpack_Army', items=[])], 5),
             ([self.it('CreditCard', name='Credit Card: Ann Lee', base='Credit Card')], 1),
-            ([self.it('MoneyBundle', md={'RS_Cache': 'x'})], 0),                                # marque du mod
+            ([self.it('MoneyBundle', md={'CA_Cache': 'x'})], 0),                                # marque du mod
             ([self.it('MoneyBundle', md={'LKStock': 'g1'})], 0),
             ([self.it('MoneyBundle', md={'customName': 'x'})], 10),                             # ModData vanilla
             ([self.it('RadioSurvivor.OutsideNews')], 0), ([self.it('Hammer'), self.it('Photo')], 0),
@@ -267,7 +267,7 @@ class ExchangeTests(ExchangeHarness):
 
     def test_bag_without_value_means_no_drop(self):
         kate = self.arrived()
-        self.g.dropBag(6041, 5217, self.t([self.it('Hammer'), self.it('MoneyBundle', md={'RS_Cache': 'm1'})]))
+        self.g.dropBag(6041, 5217, self.t([self.it('Hammer'), self.it('MoneyBundle', md={'CA_Cache': 'm1'})]))
         self.leave(kate)
         self.assertEqual(self.poll(), 'no_drop')                            # rien que le passeur prenne
         run = self.T.lastRun()

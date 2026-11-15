@@ -5,7 +5,7 @@
 **Des voix à la radio et des survivants bien vivants dans le comté de Knox.**
 Mods pour Project Zomboid **Build 42.21**, solo et multijoueur (serveur dédié compris).
 Un objet Workshop, **trois mods** : Radio Survivor (`batman_RadioSurvivor`, 0.3.0), Living Knox (`batman_LivingKnox`,
-0.1.0) et leur socle commun (`batman_RadioSurvivorCore`, 0.1.0). Version de test.
+0.1.0) et leur socle commun (`batman_CoreAI`, 0.1.0). Version de test.
 
 Knox County, juillet 1993. La zone est bouclée, les survivants sont seuls. Ces mods leur donnent ce que le jeu de
 base n'a pas : **des voix de l'autre côté de la radio**, jouées par une intelligence artificielle, et **d'autres
@@ -37,9 +37,9 @@ les deux. Chacun fonctionne sans l'autre.
 
 | Mod | Mod ID | Ce qu'il apporte | Demande |
 |---|---|---|---|
-| Radio Survivor | `batman_RadioSurvivor` | La radio : six voix d'IA sur de vraies fréquences, l'onglet Radio du carnet, les factions | Radio Survivor Core, Belt Walkie-Talkie, Signal Smoke |
-| Living Knox | `batman_LivingKnox` | Des groupes de survivants PNJ : foyers, besoins, routines, combats, fortifications | Radio Survivor Core. Incompatible avec Bandits! et Project A-Life |
-| Radio Survivor Core | `batman_RadioSurvivorCore` | Ce que les deux partagent : missions et journal des missions, lien avec le pont d'IA, identité des personnages, historique des échanges, réputation, outils, carnet | Signal Smoke |
+| Radio Survivor | `batman_RadioSurvivor` | La radio : six voix d'IA sur de vraies fréquences, l'onglet Radio du carnet, les factions | Core AI, Belt Walkie-Talkie, Signal Smoke |
+| Living Knox | `batman_LivingKnox` | Des groupes de survivants PNJ : foyers, besoins, routines, combats, fortifications | Core AI. Incompatible avec Bandits! et Project A-Life |
+| Core AI | `batman_CoreAI` | Ce que les deux partagent : missions et journal des missions, lien avec le pont d'IA, identité des personnages, historique des échanges, réputation, outils, carnet | Signal Smoke |
 
 - **Le Core** est exigé par les deux autres : le jeu l'active pour vous. Activé seul, il n'apporte rien de jouable.
 - **Radio Survivor seul** : voix, radio, carnet ; pas de groupes de PNJ.
@@ -141,7 +141,7 @@ fois ; retirez celui que vous ne voulez pas parmi `batman_RadioSurvivor` et `bat
 
 ```ini
 WorkshopItems=<ID Workshop de Radio Survivor>;3817018338;3694097672;3811010882
-Mods=TooltipLib;batman_BeltRadio;batman_SignalSmoke;batman_RadioSurvivorCore;batman_RadioSurvivor;batman_LivingKnox
+Mods=TooltipLib;batman_BeltRadio;batman_SignalSmoke;batman_CoreAI;batman_RadioSurvivor;batman_LivingKnox
 ```
 
 Les joueurs n'ont rien d'autre à installer que les mods. Le pont tourne **sur la machine du serveur** : voir
@@ -159,8 +159,8 @@ jeu ──requests.txt──▶ pont ──HTTPS──▶ API de l'IA
 jeu ◀─responses.txt── pont ◀─────────
 ```
 
-- Dossier d'échange : `<dossier Zomboid>/Lua/batman_RadioSurvivorCore/` (en solo sous Windows :
-  `%USERPROFILE%\Zomboid\Lua\batman_RadioSurvivorCore`).
+- Dossier d'échange : `<dossier Zomboid>/Lua/batman_CoreAI/` (en solo sous Windows :
+  `%USERPROFILE%\Zomboid\Lua\batman_CoreAI`).
 - Le pont signale qu'il est vivant en réécrivant `bridge-alive.txt` toutes les 5 s. Tant qu'il est vivant, le jeu attend
   une réponse lente jusqu'à 150 s ; sans pont, il passe au secours après 90 s.
 - Le serveur ne transmet jamais de secret à l'IA (position exacte des bases, fréquences cachées…) et vérifie chaque
@@ -232,8 +232,8 @@ python radio_bridge.py
 Le bandeau affiche la configuration effective, puis `Bridge ready, model …, directory …`. **Laissez la fenêtre ouverte**
 pendant la partie ; l'ordre (jeu ou pont d'abord) est indifférent. Arrêt par **Ctrl+C**.
 
-- Dossier d'échange par défaut : `%USERPROFILE%\Zomboid\Lua\batman_RadioSurvivorCore` (créé au besoin).
-- Jeu lancé avec `-cachedir=X` : ajoutez `--exchange "X\Lua\batman_RadioSurvivorCore"`.
+- Dossier d'échange par défaut : `%USERPROFILE%\Zomboid\Lua\batman_CoreAI` (créé au besoin).
+- Jeu lancé avec `-cachedir=X` : ajoutez `--exchange "X\Lua\batman_CoreAI"`.
 - Pour garder le journal dans un fichier : `python radio_bridge.py > bridge.log 2>&1`.
 
 ### Pont en partie hébergée
@@ -246,9 +246,9 @@ Comme en solo, sur le PC de l'hôte : le serveur lancé par le jeu utilise le m�
 
    | Cas | Dossier d'échange |
    |---|---|
-   | Windows, sans `-cachedir` | `%USERPROFILE%\Zomboid\Lua\batman_RadioSurvivorCore` |
-   | Linux, sans `-cachedir` | `/home/<compte du serveur>/Zomboid/Lua/batman_RadioSurvivorCore` |
-   | Serveur lancé avec `-cachedir=X` | `X/Lua/batman_RadioSurvivorCore` |
+   | Windows, sans `-cachedir` | `%USERPROFILE%\Zomboid\Lua\batman_CoreAI` |
+   | Linux, sans `-cachedir` | `/home/<compte du serveur>/Zomboid/Lua/batman_CoreAI` |
+   | Serveur lancé avec `-cachedir=X` | `X/Lua/batman_CoreAI` |
 
    Sans `--exchange`, le pont prend le dossier `Zomboid` de **son propre** compte : passez `--exchange` dès que le
    serveur tourne sous un autre compte ou avec `-cachedir`. Le pont crée le dossier s'il manque, donc une faute de
@@ -260,7 +260,7 @@ Comme en solo, sur le PC de l'hôte : le serveur lancé par le jeu utilise le m�
 
    ```sh
    python3 /opt/radiosurvivor-bridge/radio_bridge.py --env /etc/radiosurvivor/bridge.env \
-     --exchange /srv/pz/cache/Lua/batman_RadioSurvivorCore
+     --exchange /srv/pz/cache/Lua/batman_CoreAI
    ```
 
    et attendre `Bridge ready`.
@@ -275,7 +275,7 @@ Comme en solo, sur le PC de l'hôte : le serveur lancé par le jeu utilise le m�
 
    [Service]
    User=<compte du serveur PZ>
-   ExecStart=/usr/bin/python3 /opt/radiosurvivor-bridge/radio_bridge.py --env /etc/radiosurvivor/bridge.env --exchange /srv/pz/cache/Lua/batman_RadioSurvivorCore
+   ExecStart=/usr/bin/python3 /opt/radiosurvivor-bridge/radio_bridge.py --env /etc/radiosurvivor/bridge.env --exchange /srv/pz/cache/Lua/batman_CoreAI
    Restart=on-failure
    RestartSec=10
    KillSignal=SIGINT
@@ -378,7 +378,7 @@ Admins et mode debug : fenêtre d'administration des groupes, fiche d'un PNJ par
 | Le pont refuse de démarrer | Un autre pont surveille déjà ce dossier (`bridge.lock`). |
 | Aucune voix sur une fréquence | Personne ne la tient cette partie, hors de ses horaires, ou radio pas assez puissante (ondes courtes). |
 | `Expired request ignored` | Demande de plus de 75 s : pont lancé en retard ou horloges différentes (pont sur une autre machine). |
-| Radio Survivor ou Living Knox absent du jeu | Un mod requis manque (Radio Survivor Core, Signal Smoke ; pour Radio Survivor aussi Belt Walkie-Talkie et TooltipLib) ou n'est pas dans `WorkshopItems=` / `Mods=`. |
+| Radio Survivor ou Living Knox absent du jeu | Un mod requis manque (Core AI, Signal Smoke ; pour Radio Survivor aussi Belt Walkie-Talkie et TooltipLib) ou n'est pas dans `WorkshopItems=` / `Mods=`. |
 
 Journaux : sortie du pont (`bridge.log` si redirigée), `token_usage.jsonl`, `%USERPROFILE%\Zomboid\console.txt` (solo),
 `server-console.txt` du serveur. Plus de cas : [docs/wiki/fr/11-depannage.md](docs/wiki/fr/11-depannage.md).
@@ -399,7 +399,7 @@ Version de test, non publiée sur le Workshop. Les trois mods sont testés ensem
 ## Développement
 
 ```text
-Contents/mods/batman_RadioSurvivorCore/42.21/   socle commun (missions, lien avec le pont, identité, carnet)
+Contents/mods/batman_CoreAI/42.21/   socle commun (missions, lien avec le pont, identité, carnet)
 Contents/mods/batman_RadioSurvivor/42.21/   radio, voix, factions (Lua ; personas ; traductions EN/FR)
 Contents/mods/batman_LivingKnox/42.21/      moteur de PNJ (Lua ; traductions EN/FR)
 bridge/                                     le pont Python

@@ -10,7 +10,7 @@
 if isClient() then return end
 
 local Const = require "RadioSurvivor/RadioSurvivor_Const"
-local Codec = require "RadioSurvivorCore/RC_Codec"
+local Codec = require "CoreAI/CA_Codec"
 
 local Log = {}
 

@@ -1,9 +1,9 @@
-"""Mission engine of the core mod batman_RadioSurvivorCore (E18-T05).
+"""Mission engine of the core mod batman_CoreAI (E18-T05).
 
     python RadioSurvivor/tests/test_core_missions.py
 
 - one copy of the engine, of its templates (deliver, scout, clear, recover, retrieve_id, signal), of the site draw and
-  of the caches, as RC_* modules of the core mod; none left in RadioSurvivor; old names gone from the code, the
+  of the caches, as CA_* modules of the core mod; none left in RadioSurvivor; old names gone from the code, the
   in-game suites, the benches and the tools; Living Knox requires no mission module of RadioSurvivor;
 - the core mod requires Signal Smoke (template "signal", user decision of 2026-11-05);
 - a giver registered without RadioSurvivor (no RadioSurvivor module loaded) offers, opens, closes and releases a
@@ -23,13 +23,13 @@ from signalsmoke_double import SIGNAL_SMOKE  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 MODS = ROOT / 'Contents' / 'mods'
-CORE = MODS / 'batman_RadioSurvivorCore' / '42.21'
+CORE = MODS / 'batman_CoreAI' / '42.21'
 CORE_LUA = CORE / 'media' / 'lua'
 RS_LUA = MODS / 'batman_RadioSurvivor' / '42.21' / 'media' / 'lua'
 
-SERVER_MODULES = ('RC_Missions', 'RC_MissionStore', 'RC_MissionScout', 'RC_MissionClear', 'RC_MissionRecover',
-                  'RC_MissionRetrieve', 'RC_MissionSignal', 'RC_Caches', 'RC_Sites')
-SHARED_MODULES = ('RC_MissionConfig',)
+SERVER_MODULES = ('CA_Missions', 'CA_MissionStore', 'CA_MissionScout', 'CA_MissionClear', 'CA_MissionRecover',
+                  'CA_MissionRetrieve', 'CA_MissionSignal', 'CA_Caches', 'CA_Sites')
+SHARED_MODULES = ('CA_MissionConfig',)
 MOVED = ('Missions', 'MissionScout', 'MissionClear', 'MissionRecover', 'MissionRetrieve', 'MissionSignal', 'Caches')
 # Built by concatenation so that this file does not match its own search.
 OLD_REQUIRE = re.compile(r'RadioSurvivor/RS' + r'_(' + '|'.join(MOVED) + r')\b')
@@ -53,7 +53,7 @@ class LayoutTests(unittest.TestCase):
     def test_each_module_lives_once_in_the_core(self):
         for side, names in (('server', SERVER_MODULES), ('shared', SHARED_MODULES)):
             for name in names:
-                path = CORE_LUA / side / 'RadioSurvivorCore' / f'{name}.lua'
+                path = CORE_LUA / side / 'CoreAI' / f'{name}.lua'
                 self.assertTrue(path.is_file(), path)
         for name in MOVED:
             self.assertEqual([p for p in MODS.rglob(f'RS_{name}.lua')], [], name)
@@ -138,9 +138,9 @@ class StorageTests(unittest.TestCase):
 
 
 PROBE = r"""
-local M = require('RadioSurvivorCore/RC_Missions')
-local MC = require('RadioSurvivorCore/RC_MissionConfig')
-MC.Missions.probe = {id = 'probe_v1', titleKey = 'IGUI_RC_Probe', durationMs = 1000, rewardType = 'Base.Nails',
+local M = require('CoreAI/CA_Missions')
+local MC = require('CoreAI/CA_MissionConfig')
+MC.Missions.probe = {id = 'probe_v1', titleKey = 'IGUI_CA_Probe', durationMs = 1000, rewardType = 'Base.Nails',
     rewardCount = 3}
 M.register('probe', {idPrefix = 'probe',
     offer = function(c) return {durationMs = c.durationMs} end,
@@ -176,7 +176,7 @@ class GiverWithoutRadioSurvivorTests(unittest.TestCase):
 
     def test_offer_accept_report_release(self):
         out = self.ev(
-            'local M = require("RadioSurvivorCore/RC_Missions") local g = GIVERS["lk:1"] '
+            'local M = require("CoreAI/CA_Missions") local g = GIVERS["lk:1"] '
             'local offers = M.offers(g, {hostile = false}, nil, "c1") '
             'if not offers.probe_v1 then return "no offer" end '
             'local m = M.create(STATE, g, "c1", "probe_v1", offers.probe_v1) '
@@ -188,10 +188,10 @@ class GiverWithoutRadioSurvivorTests(unittest.TestCase):
         self.assertEqual(out, 'lk:1-probe1|success|true|nil|true|true|lk:1-probe1:success:c1:Ruth')
 
     def test_no_radiosurvivor_module_loaded(self):
-        self.ev('local M = require("RadioSurvivorCore/RC_Missions") '
-                'for _, n in ipairs({"RC_MissionScout", "RC_MissionClear", "RC_MissionRecover", '
-                '"RC_MissionRetrieve", "RC_MissionSignal", "RC_Caches", "RC_Sites", "RC_MissionStore"}) do '
-                'require("RadioSurvivorCore/" .. n) end')
+        self.ev('local M = require("CoreAI/CA_Missions") '
+                'for _, n in ipairs({"CA_MissionScout", "CA_MissionClear", "CA_MissionRecover", '
+                '"CA_MissionRetrieve", "CA_MissionSignal", "CA_Caches", "CA_Sites", "CA_MissionStore"}) do '
+                'require("CoreAI/" .. n) end')
         loaded = self.ev('local out = {} for k in pairs(package.loaded) do '
                          'if string.find(k, "^RadioSurvivor/") or string.find(k, "^LivingKnox/") then '
                          'out[#out + 1] = k end end table.sort(out) return table.concat(out, ",")')

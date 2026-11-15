@@ -1,4 +1,4 @@
-"""Gabarit « retrouver » (E11-T05, RC_MissionRetrieve.lua) sur le banc du carnet : vrai Lua serveur et client,
+"""Gabarit « retrouver » (E11-T05, CA_MissionRetrieve.lua) sur le banc du carnet : vrai Lua serveur et client,
 pont absent, doublures de la métagrille, des cases chargées et des cadavres.
 
 Doublures seulement (aucune API Java prouvée ici) : RandomizedWorldBase.createRandomDeadBody rend un cadavre dont le
@@ -117,7 +117,7 @@ class RetrieveMissionTests(unittest.TestCase):
         sim.server.g.scoutHouse(5001, 20, 12, 8, 8)    # too close to the requester
         sim.server.g.scoutHouse(5002, 100, 10, 10, 10)  # reachable
         sim.server.rt.execute(RETRIEVE_WORLD)
-        sim.server.rt.eval("require('RadioSurvivorCore/RC_MissionRetrieve')").resetForTests()
+        sim.server.rt.eval("require('CoreAI/CA_MissionRetrieve')").resetForTests()
 
     def retrieve_sim(self, name='retrieve'):
         sim = Simulation(self.path / name)
@@ -125,7 +125,7 @@ class RetrieveMissionTests(unittest.TestCase):
         sim.add_client('alice'); sim.add_client('bob'); sim.select('alice')
         npc = next(iter(sim.state().npcs.values()))
         record = sim.server.rt.eval("require('RadioSurvivor/RS_NPCProvider')").npc(2001)
-        missions = sim.server.rt.eval("require('RadioSurvivorCore/RC_Missions')")
+        missions = sim.server.rt.eval("require('CoreAI/CA_Missions')")
         return sim, npc, record, missions
 
     def catalog(self, sim, npc, record):
@@ -171,7 +171,7 @@ class RetrieveMissionTests(unittest.TestCase):
         self.assertFalse(any(ch.isdigit() for line in clues for ch in line), 'a clue carries a number')
         self.assertEqual(self.catalog(sim, npc, record)['retrieve_id_v1'], offer, 'the kept place changed')
         # A radio voice donor (no fiche) and a machine without RandomizedWorldBase get no retrieve_id offer.
-        retrieve = sim.server.rt.eval("require('RadioSurvivorCore/RC_MissionRetrieve')")
+        retrieve = sim.server.rt.eval("require('CoreAI/CA_MissionRetrieve')")
         c = sim.server.rt.eval("require('RadioSurvivor/RS_Config').Missions.retrieve_id")
         donor = sim.server.rt.table_from({'id': 'voice:walt:c1', 'missionCount': 0})
         self.assertIsNone(retrieve.offer(c, donor, None, sim.server.g.PLAYERS.alice))
@@ -227,7 +227,7 @@ class RetrieveMissionTests(unittest.TestCase):
         self.assertEqual(max(abs(at['x'] - 104), abs(at['y'] - 14)), 1)
         self.assertEqual((body.square.x, body.square.y), (at['x'], at['y']))
         self.assertFalse(body.fake, 'fake dead body')
-        self.assertEqual((body.crawler, body.md.RS_RetrieveMission), (0, m.id))
+        self.assertEqual((body.crawler, body.md.CA_RetrieveMission), (0, m.id))
         [card] = list(lua_list(body.inv['items']))
         self.assertEqual((card.kind, card.name, m.cardId, m.person), ('Base.IDcard', 'ID Card: Jane1 Roe', card.id,
                                                                        'Jane1 Roe'))
@@ -265,7 +265,7 @@ class RetrieveMissionTests(unittest.TestCase):
         # The right id while the card is still in the body: no item of the player, refused.
         quote = convert(g.RS_CarnetServer.quotes[char]) if g.RS_CarnetServer.quotes[char] else None
         self.assertIsNone(quote)
-        missions_mod = sim.server.rt.eval("require('RadioSurvivorCore/RC_Missions')")
+        missions_mod = sim.server.rt.eval("require('CoreAI/CA_Missions')")
         store = g.RS_CarnetServer.store
         ok, reason = missions_mod.report(store, m, g.PLAYERS.alice, char,
                                          sim.server.rt.table_from([m.cardId]), 'forged-token')
@@ -332,7 +332,7 @@ class RetrieveMissionTests(unittest.TestCase):
         window = c.g.RS_CarnetClient.window
         window.changeTab(window, 'Missions')
         label = c.rt.eval('RS_CarnetClient.window.list.items[1].text')
-        self.assertTrue(label.startswith('IGUI_RC_Mission_Retrieve - '), label)
+        self.assertTrue(label.startswith('IGUI_CA_Mission_Retrieve - '), label)
         for key in ('IGUI_RS_ScoutPlace', 'IGUI_RS_ScoutClues', 'IGUI_RS_RetrieveMapZone', 'IGUI_RS_RetrieveNotFound',
                     'IGUI_RS_RetrieveReport'):
             self.assertIn(key, window.detail.text)

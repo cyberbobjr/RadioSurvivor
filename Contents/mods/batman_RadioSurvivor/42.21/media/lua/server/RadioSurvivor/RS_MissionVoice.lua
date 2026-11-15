@@ -5,7 +5,7 @@ Required by RadioSurvivor_Server (executor registered at load, context joined to
 
 Requester ("donor"): no notebook NPC fiche and no body. One donor record per voice and per notebook character, in
 the private state (RS_State: data.voiceDonors['voice:<voice>:<character>'] = { id, voice, character, mission,
-missionCount, nextOfferHour, given }), never in global ModData. The common engine (RC_Missions) runs the mission as any
+missionCount, nextOfferHour, given }), never in global ModData. The common engine (CA_Missions) runs the mission as any
 other: clock and delay, collective result, reputation scale of M01 (RS_Config.Reputation), purge; the mission keeps
 m.npc = donor id and m.donor = 'voice', m.voice, m.requesterName (name of the sheet), m.khz (frequency of the reply),
 m.report = 'radio', and no reward lot (rewardType '', rewardCount 0).
@@ -16,7 +16,7 @@ game day, START_MISSION_COOLDOWN_MS per voice.
 start_mission { template }: E20-T08, the id of a [mission] section of the sheet (RS_Persona, E20-T03) available to
 the caller (after=, scope=), or a mission type: the server then draws among the available sections of that type by
 weight= (RS_MissionChain.choose; a sheet without any section: section 'scout'). The type of the section must be
-declared by a registered template (RC_Missions, declaration voiceName: V.allowed, looked up when the action runs).
+declared by a registered template (CA_Missions, declaration voiceName: V.allowed, looked up when the action runs).
 The mission keeps m.section, m.team (team of the caller) and m.setsState (sets_state= of the section): its result is
 recorded by RS_MissionChain.record (result listener, RS_MissionHooks). A voice-specific set-up of the mission is
 registered by its own file, for one voice name:
@@ -26,7 +26,7 @@ dropAccepts, RS_DeadDrops; E20-T16: goods of the templates declaring askFor, RS_
 replaces them, else every declared set-up of the template applies, in order of registration. Each is checked before
 the mission is created and applied before it is accepted and saved; section = the chosen [mission] section (drops,
 params). The server draws the place
-with the template's offer (RC_MissionScout: habitable building at 60-250 tiles of the caller's server position, same
+with the template's offer (CA_MissionScout: habitable building at 60-250 tiles of the caller's server position, same
 rules as E11-T03; E20-T10: the offer also receives the place named by the section's target=, RS_Persona.targetOf,
 and scout and clear then take the building at that place, wherever the caller is), creates and accepts the mission
 for the caller, writes the history line "mission" (kind of place,
@@ -36,13 +36,13 @@ has an open mission from this voice), recent_mission (OFFER_COOLDOWN_MS after th
 section nor type of that name, or a type without template), locked (waits for its after=), no_place, reputation
 (E04-T05: sensitive template refused to a bad reputation; scout is a simple mission, always allowed).
 
-Visit: the same server poll as E11-T03 (RC_Missions.observe from the notebook loop, server copy of the player).
-Report (E11-T13, user decision of 2026-10-14): once the objective is met (RC_Missions.reportReady: zone reached), the
+Visit: the same server poll as E11-T03 (CA_Missions.observe from the notebook loop, server copy of the player).
+Report (E11-T13, user decision of 2026-10-14): once the objective is met (CA_Missions.reportReady: zone reached), the
 mission waits "to report". The participant announces it to this voice on its frequency (command talk, voice routed
 by the frequency, request sent to the bridge with turn 'report_due'); the model playing the voice judges whether the
 call is that report (any language, no word list) and then returns the action report_mission (no parameter), allowed
 to every voice whose sheet allows start_mission (RS_Actions.IMPLIED). Its executor checks the facts again: an open
-mission of this voice for this caller, objective met, caller a participant (RC_Missions.spoken: template check,
+mission of this voice for this caller, objective met, caller a participant (CA_Missions.spoken: template check,
 write-ahead transaction), then success. Before the objective, a call is never a report (turn 'not_yet') and the
 action is refused (not_done). Another frequency reaches another voice (or none): never this mission. Reward
 (V.reward): with a [rewards] pool, RS_Rewards; else reputation by the engine, plus a mark_map of the first place
@@ -60,22 +60,22 @@ Bridge context (V.context, field mission= of the radio request, hex RSV2; generi
 to be given at the report), job and facts (English, composed by the template's voiceBrief from server facts). Never a
 coordinate nor the zone. Jobs this voice may give (V.jobs, field jobs=, hex RSV2, only for a sheet that allows
 start_mission): jobs = ordered list of { name, text } (E20-T08: sections available to this caller, name = section
-id, text = voiceText of its template, then its story=) and caches = the cache tables of place_cache (RC_Caches.tableNames).
+id, text = voiceText of its template, then its story=) and caches = the cache tables of place_cache (CA_Caches.tableNames).
 Briefing (E11-T09): the reply that proposes start_mission is aired before the action is judged, so it cannot know the
 place. Once the mission is created, V.onStarted(m, ctx) (set by RadioSurvivor_Server) queues one more request to the
 bridge for this caller and this voice, with turn = 'briefing': the voice then says the kind of place and its clues on
-its frequency. The clues are also shown, translated, by the notebook (RC_MissionScout, p.clues).
+its frequency. The clues are also shown, translated, by the notebook (CA_MissionScout, p.clues).
 ]]
 local Const = require "RadioSurvivor/RadioSurvivor_Const"
 local Config = require "RadioSurvivor/RS_Config"
-local Codec = require "RadioSurvivorCore/RC_Codec"
-local M = require "RadioSurvivorCore/RC_Missions"
-local Rep = require "RadioSurvivorCore/RC_Reputation"
+local Codec = require "CoreAI/CA_Codec"
+local M = require "CoreAI/CA_Missions"
+local Rep = require "CoreAI/CA_Reputation"
 local S = require "RadioSurvivor/RS_State"
 local Actions = require "RadioSurvivor/RS_Actions"
 local Log = require "RadioSurvivor/RS_RadioLog"
 local Bonds = require "RadioSurvivor/RS_VoiceBonds" -- E07-T10: exceptional share_frequency
-local Caches = require "RadioSurvivorCore/RC_Caches" -- E20-T02: cache tables told to the voice (jobs=)
+local Caches = require "CoreAI/CA_Caches" -- E20-T02: cache tables told to the voice (jobs=)
 local MapMarks = require "RadioSurvivor/RS_MapMarks"
 local Persona = require "RadioSurvivor/RS_Persona"
 local Chain = require "RadioSurvivor/RS_MissionChain" -- E20-T08: sections available to a caller (after=, weight=)

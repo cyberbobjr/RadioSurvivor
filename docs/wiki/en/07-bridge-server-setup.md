@@ -44,19 +44,19 @@ update.
 
 ## 3. The exchange folder
 
-The server writes into `<server Zomboid folder>/Lua/batman_RadioSurvivorCore/`. The bridge must watch **exactly that
+The server writes into `<server Zomboid folder>/Lua/batman_CoreAI/`. The bridge must watch **exactly that
 folder**.
 
 | Case | Server `Zomboid` folder | Exchange folder |
 |---|---|---|
-| Windows, no `-cachedir` | `%USERPROFILE%\Zomboid` | `%USERPROFILE%\Zomboid\Lua\batman_RadioSurvivorCore` |
-| Linux, no `-cachedir` | `/home/<account>/Zomboid` (`~/Zomboid`) | `~/Zomboid/Lua/batman_RadioSurvivorCore` |
-| Server started with `-cachedir=X` | `X` | `X/Lua/batman_RadioSurvivorCore` |
+| Windows, no `-cachedir` | `%USERPROFILE%\Zomboid` | `%USERPROFILE%\Zomboid\Lua\batman_CoreAI` |
+| Linux, no `-cachedir` | `/home/<account>/Zomboid` (`~/Zomboid`) | `~/Zomboid/Lua/batman_CoreAI` |
+| Server started with `-cachedir=X` | `X` | `X/Lua/batman_CoreAI` |
 | Game hosted from the game menu | the host's game folder | as above, for the host's account |
 
 `<account>` is the system account **that runs the server**, not necessarily yours.
 
-- Without options, the bridge uses `~/Zomboid/Lua/batman_RadioSurvivorCore` **of the account that runs the bridge**. If the
+- Without options, the bridge uses `~/Zomboid/Lua/batman_CoreAI` **of the account that runs the bridge**. If the
   server runs under another account or with `-cachedir`, pass the path with `--exchange`.
 - The bridge creates the folder if it does not exist: a typo gives no error, the bridge just waits in an empty folder.
   To check the path: while the bridge runs, the folder holds `bridge-alive.txt` and the game's own files appear in it
@@ -129,12 +129,12 @@ Example commands (adapt the paths):
 
 ```powershell
 # Windows
-python C:\RadioSurvivorBridge\radio_bridge.py --env C:\RadioSurvivorBridge-secret\bridge.env --exchange "D:\PZServer\cache\Lua\batman_RadioSurvivorCore"
+python C:\RadioSurvivorBridge\radio_bridge.py --env C:\RadioSurvivorBridge-secret\bridge.env --exchange "D:\PZServer\cache\Lua\batman_CoreAI"
 ```
 
 ```sh
 # Linux
-python3 /opt/radiosurvivor-bridge/radio_bridge.py --env /etc/radiosurvivor/bridge.env --exchange /srv/pz/cache/Lua/batman_RadioSurvivorCore
+python3 /opt/radiosurvivor-bridge/radio_bridge.py --env /etc/radiosurvivor/bridge.env --exchange /srv/pz/cache/Lua/batman_CoreAI
 ```
 
 At startup the bridge prints a banner: mode, model, API address (without credentials), `API key: configured
@@ -168,7 +168,7 @@ Options checked in `radio_bridge.py`:
 
 | Option | Role |
 |---|---|
-| `--exchange PATH` | Exchange folder (section 3). Default: `~/Zomboid/Lua/batman_RadioSurvivorCore` of the bridge account. |
+| `--exchange PATH` | Exchange folder (section 3). Default: `~/Zomboid/Lua/batman_CoreAI` of the bridge account. |
 | `--env PATH` | Settings file (section 4). Ignored with `--offline`. |
 | `--offline` | No LLM call, no key read, no cost: the voice echoes the sentence (in French: "Walt, hors ligne. Je reçois …"). |
 | `--debug` | Full log in the terminal (see below). |
@@ -208,7 +208,7 @@ start. Always test by hand first.
 In an **administrator** command prompt (a single line):
 
 ```bat
-schtasks /Create /TN "RadioSurvivor bridge" /SC ONSTART /RU <account> /RP * /TR "\"C:\Program Files\Python312\python.exe\" C:\RadioSurvivorBridge\radio_bridge.py --env C:\RadioSurvivorBridge-secret\bridge.env --exchange D:\PZServer\cache\Lua\batman_RadioSurvivorCore"
+schtasks /Create /TN "RadioSurvivor bridge" /SC ONSTART /RU <account> /RP * /TR "\"C:\Program Files\Python312\python.exe\" C:\RadioSurvivorBridge\radio_bridge.py --env C:\RadioSurvivorBridge-secret\bridge.env --exchange D:\PZServer\cache\Lua\batman_CoreAI"
 ```
 
 `/RP *` prompts for the account password. In the task properties, untick "Stop the task if it runs longer than
@@ -230,7 +230,7 @@ Wants=network-online.target
 
 [Service]
 User=<PZ server account>
-ExecStart=/usr/bin/python3 /opt/radiosurvivor-bridge/radio_bridge.py --env /etc/radiosurvivor/bridge.env --exchange /srv/pz/cache/Lua/batman_RadioSurvivorCore
+ExecStart=/usr/bin/python3 /opt/radiosurvivor-bridge/radio_bridge.py --env /etc/radiosurvivor/bridge.env --exchange /srv/pz/cache/Lua/batman_CoreAI
 Restart=on-failure
 RestartSec=10
 KillSignal=SIGINT
@@ -254,7 +254,7 @@ docker run -d --name rs-bridge --restart unless-stopped \
   -v /opt/radiosurvivor-bridge:/bridge:ro \
   -v /etc/radiosurvivor/bridge.env:/run/bridge.env:ro \
   python:3.12-slim \
-  python /bridge/radio_bridge.py --env /run/bridge.env --exchange /zomboid/Lua/batman_RadioSurvivorCore
+  python /bridge/radio_bridge.py --env /run/bridge.env --exchange /zomboid/Lua/batman_CoreAI
 ```
 
 - The path of the `Zomboid` folder inside the server container depends on the image (read its documentation or look

@@ -1,15 +1,15 @@
 -- Goods asked by a radio voice mission (E20-T16, ADR D04). Authority only.
--- Any mission template that declares the strategy askFor(m, types, quantity) (RC_Missions: deliver) takes the goods
+-- Any mission template that declares the strategy askFor(m, types, quantity) (CA_Missions: deliver) takes the goods
 -- of its sheet section: items=<category> (the item types of that category, RS_Categories: [category] section of the
 -- sheet first, else the shared catalogue) and quantity= (a number or a range, drawn here when the mission starts and
 -- kept on the mission). A key left out hands nil to the template, which keeps its own value (deliver: the list and
--- the quantity of RC_MissionConfig). The set-up is registered for that declaration
+-- the quantity of CA_MissionConfig). The set-up is registered for that declaration
 -- (RS_MissionVoice.registerDeclaredSetup): check refuses the start when the category gives no item type (no_goods),
 -- apply hands the goods to the template on the new mission, before it is accepted and saved.
 -- ASCII only (Kahlua lexer).
 if isClient() then return end
 local Voice = require 'RadioSurvivor/RS_MissionVoice'
-local Missions = require 'RadioSurvivorCore/RC_Missions'
+local Missions = require 'CoreAI/CA_Missions'
 local Categories = require 'RadioSurvivor/RS_Categories'
 
 local G = {}

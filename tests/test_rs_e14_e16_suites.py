@@ -88,7 +88,7 @@ RS_Facts.deathsText = function(count)
     return count .. ' survivors died since the last bulletin; do not name them.'
 end
 '''
-LOT_DROPPED_EARLY = "require('RadioSurvivorCore/RC_MissionConfig').UNCLAIMED_RETENTION_HOURS = 120"
+LOT_DROPPED_EARLY = "require('CoreAI/CA_MissionConfig').UNCLAIMED_RETENTION_HOURS = 120"
 
 Base = type('Base', (unittest.TestCase,),
             {k: v for k, v in tb.BulletinTests.__dict__.items() if not k.startswith('test_')})
@@ -173,7 +173,7 @@ class UnclaimedLotTests(SuiteBench):
         self.assertEqual(self.fact_rows(), before, 'mission fact left in the fact log')
         self.assertEqual(len(lua_list(alice.inv['items'])), items, 'claimed reward left in the inventory')
         self.assertEqual(self.g.WORLD_HOURS, 50, 'world age changed')
-        clock = self.rt.eval("require('RadioSurvivorCore/RC_GameClock')")
+        clock = self.rt.eval("require('CoreAI/CA_GameClock')")
         self.assertEqual(clock.hours(), 50, 'game clock of the engine left shifted')
 
     def test_fails_when_the_lot_is_gone_after_six_game_days(self):

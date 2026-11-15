@@ -1,6 +1,6 @@
 --[[
 lk.missions.alone - lot of a mission of an NPC claimed from the journal of the core mod with Living Knox alone
-(E18-T29: RC_MissionJournal "mission", giver "npc" of LK_TalkAlone, LK_MissionRewards).
+(E18-T29: CA_MissionJournal "mission", giver "npc" of LK_TalkAlone, LK_MissionRewards).
 Tags "world" and "server": a save named rstest*, with a target player. SKIP when RadioSurvivor is active: its notebook
 holds the buttons then. Run:
     python tools/autoclient/autoclient.py --mods lk --mp --clients 1 --server-suite lk.missions.alone --server-tags world
@@ -12,7 +12,7 @@ requester client sends the gesture of the Claim button (step core.journal.act), 
 authority directly. The test group has no household stock: the lot is the common lot of the engine (rewardType x
 rewardCount), checked in the player's inventory; a second claim is refused.
 E18-T33: the same mission without an announced lot (rewardCount 0): the lot created by the type of the member's group
-(RC_MissionConfig.NPC_REWARD_TABLES -> Caches.tables), announced by the journal row (rewardTable), every item of the
+(CA_MissionConfig.NPC_REWARD_TABLES -> Caches.tables), announced by the journal row (rewardTable), every item of the
 table in the inventory.
 ]]
 require "RST/RST"
@@ -34,8 +34,8 @@ end
 -- A mission of npc id for the character, accepted and closed in success; a template with a common lot, removed when
 -- noLot (E18-T33: the giver then creates the lot of its group).
 local function successfulMission(t, id, character, name, noLot)
-    local M = require "RadioSurvivorCore/RC_Missions"
-    local Store = require "RadioSurvivorCore/RC_MissionStore"
+    local M = require "CoreAI/CA_Missions"
+    local Store = require "CoreAI/CA_MissionStore"
     local npc = LivingKnox.Talk.host.ensure(id)
     t:ok(npc ~= nil, "no speaker record for " .. tostring(id))
     npc.mission, npc.nextOfferHour = nil, nil
@@ -74,9 +74,9 @@ RST.suite("lk.missions.alone", { tags = { "world", "server" }, testTimeoutMs = 1
 
     -- The claim of mission m by the journal gesture, then check(t) once the lot is claimed.
     local function claimFromJournal(t, p, id, character, m, check)
-        local Journal = require "RadioSurvivorCore/RC_MissionJournal"
-        local MissionConfig = require "RadioSurvivorCore/RC_MissionConfig"
-        local Hearing = require "RadioSurvivorCore/RC_Hearing"
+        local Journal = require "CoreAI/CA_MissionJournal"
+        local MissionConfig = require "CoreAI/CA_MissionConfig"
+        local Hearing = require "CoreAI/CA_Hearing"
         t:waitUntil(function()
             return Hearing.near(p, Alone().provider.objects()[id], MissionConfig.DELIVERY_RANGE)
         end, 60000, function(t3)
@@ -101,7 +101,7 @@ RST.suite("lk.missions.alone", { tags = { "world", "server" }, testTimeoutMs = 1
 
     -- Journal row of mission m for the character (nil when not listed).
     local function row(character, m)
-        for _, r in ipairs((require "RadioSurvivorCore/RC_MissionJournal").rows(character)) do
+        for _, r in ipairs((require "CoreAI/CA_MissionJournal").rows(character)) do
             if r.id == m.id then return r end
         end
     end
@@ -111,7 +111,7 @@ RST.suite("lk.missions.alone", { tags = { "world", "server" }, testTimeoutMs = 1
         local p = RST.Fixtures.player(t)
         t:ok(p ~= nil, "no target player")
         RST.LKGroup.ensure(t, p, function(t2, _, id)
-            local character = (require "RadioSurvivorCore/RC_Identity").bind(p)
+            local character = (require "CoreAI/CA_Identity").bind(p)
             t2:ok(character ~= nil, "player without an identity")
             local m = successfulMission(t2, id, character, "RST")
             local r = row(character, m)
@@ -129,8 +129,8 @@ RST.suite("lk.missions.alone", { tags = { "world", "server" }, testTimeoutMs = 1
         local p = RST.Fixtures.player(t)
         t:ok(p ~= nil, "no target player")
         RST.LKGroup.ensure(t, p, function(t2, _, id)
-            local MissionConfig = require "RadioSurvivorCore/RC_MissionConfig"
-            local character = (require "RadioSurvivorCore/RC_Identity").bind(p)
+            local MissionConfig = require "CoreAI/CA_MissionConfig"
+            local character = (require "CoreAI/CA_Identity").bind(p)
             t2:ok(character ~= nil, "player without an identity")
             local m = successfulMission(t2, id, character, "RST", true)
             local Groups = LivingKnox.Groups

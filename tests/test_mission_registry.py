@@ -23,8 +23,8 @@ from test_protocol import lua_list
 
 # Faux gabarit du banc : une place fixe, une zone sur la carte, aucun compte rendu.
 FAKE_TEMPLATE = r'''
-local M = require 'RadioSurvivorCore/RC_Missions'
-require('RadioSurvivorCore/RC_MissionConfig').Missions.fake = {id = 'fake_v1', titleKey = 'IGUI_RS_FakeTitle',
+local M = require 'CoreAI/CA_Missions'
+require('CoreAI/CA_MissionConfig').Missions.fake = {id = 'fake_v1', titleKey = 'IGUI_RS_FakeTitle',
     durationMs = 3600000, rewardType = '', rewardCount = 0}
 local Fake = {idPrefix = 'fake', voiceName = 'fake', handover = false, mapStyle = 'Fake',
     voiceText = 'check the old water tower'}
@@ -77,7 +77,7 @@ class MissionRegistryTests(unittest.TestCase):
         self.assertFalse(isinstance(m, tuple), str(m))
         self.assertEqual((m.template, m.donor, m.report, m.state), ('fake', 'voice', 'radio', 'active'))
         self.assertTrue(voice.allowed('fake'))
-        engine = sim.server.rt.eval("require('RadioSurvivorCore/RC_Missions')")
+        engine = sim.server.rt.eval("require('CoreAI/CA_Missions')")
         self.assertIn('fake', list(lua_list(engine.voiceNames())))
         self.assertEqual(engine.voiceTemplate('fake')[0], 'fake')
         p = convert(engine.projection(m, sim.character('alice')))
@@ -149,7 +149,7 @@ class MissionRegistryTests(unittest.TestCase):
         jobs = convert(protocol.decode(bytes.fromhex(req['jobs'])))
         self.assertEqual([jobs['jobs'][i] for i in sorted(jobs['jobs'])],
                          [{'name': 'tower', 'text': 'check the old water tower'}])
-        order = rt.eval("require('RadioSurvivorCore/RC_MissionConfig').Caches.order")
+        order = rt.eval("require('CoreAI/CA_MissionConfig').Caches.order")
         self.assertEqual([jobs['caches'][i] for i in sorted(jobs['caches'])], list(lua_list(order)))
         start = json.dumps({'say': 'Go check the tower.', 'actions': [{'type': 'start_mission', 'template': 'tower'}]})
         system, result = self.answer(sim, req, start)

@@ -4,7 +4,7 @@ faits vus pendant le guet (hélicoptère vanilla entendu, groupe de morts proche
 
     python RadioSurvivor/tests/test_mission_watch.py
 
-Vrai RadioSurvivor_Server, vrai RS_Carnet_Server (gabarit RC_MissionWatch et ses sources de faits inscrits au
+Vrai RadioSurvivor_Server, vrai RS_Carnet_Server (gabarit CA_MissionWatch et ses sources de faits inscrits au
 chargement), vrai RS_MissionVoice (départ et compte rendu d'une voix), vrai RS_MissionTarget (lieu target), vrai
 RS_Persona (lecture de la fiche), vrai client du carnet ; doublures fidèles au Java 42.22 relevé (WATCH_WORLD). Preuve
 de la logique Lua, pas de l'API Java réelle ni du réseau : la suite en jeu rs.voicewatch le confirme sur un serveur
@@ -67,7 +67,7 @@ SHEET_PLACES = [
     {'id': 'post', 'x': 60, 'y': 60, 'z': 0, 'label': 'Water tower', 'uses': ['target'], 'use': {'target': True}},
 ]
 POST = (60, 60)
-FACT_SOURCES = ('RC_WatchHelicopter', 'RC_WatchHorde')
+FACT_SOURCES = ('CA_WatchHelicopter', 'CA_WatchHorde')
 HELICOPTER = (500, 500)   # rayon et volume du son de l'hélicoptère vanilla (Helicopter.java:218)
 
 
@@ -81,9 +81,9 @@ class WatchMissionTests(unittest.TestCase):
         rt.execute(WATCH_WORLD)
         # The game loads every server file of the mod: the set-up of the target place registers itself (no require).
         rt.eval("require('RadioSurvivor/RS_MissionTarget')")
-        # Same for the fact sources of the watches (server/RadioSurvivorCore/WatchFacts/).
+        # Same for the fact sources of the watches (server/CoreAI/WatchFacts/).
         for source in FACT_SOURCES:
-            rt.eval(f"require('RadioSurvivorCore/WatchFacts/{source}')")
+            rt.eval(f"require('CoreAI/WatchFacts/{source}')")
         return sim, rt.eval("require('RadioSurvivor/RS_MissionVoice')"), rt.eval("require('RadioSurvivor/RS_State')")
 
     def sheet(self, sim, section):
@@ -105,12 +105,12 @@ class WatchMissionTests(unittest.TestCase):
         p.x, p.y = x, y
 
     def poll(self, sim, store, real_ms=5000, who=('alice',)):
-        """Server poll of the engine (RC_Missions.observe) with the server copies of the players, after real_ms."""
+        """Server poll of the engine (CA_Missions.observe) with the server copies of the players, after real_ms."""
         sim.clock.offset += real_ms
         rt = sim.server.rt
         present = rt.table_from([rt.table_from({'player': sim.server.g.PLAYERS[name],
                                                 'character': sim.character(name)}) for name in who])
-        return rt.eval("require('RadioSurvivorCore/RC_Missions')").observe(store.data, present, store)
+        return rt.eval("require('CoreAI/CA_Missions')").observe(store.data, present, store)
 
     def advance(self, sim, store, hours, steps=1, **kw):
         """The game clock moves `hours` game hours in `steps` equal steps, one engine poll after each."""
@@ -122,7 +122,7 @@ class WatchMissionTests(unittest.TestCase):
         return voice.report(store, sheet, sim.character('alice'), sim.server.g.PLAYERS.alice, 160000)
 
     def ready(self, sim, m):
-        return sim.server.rt.eval("require('RadioSurvivorCore/RC_Missions')").reportReady(m)
+        return sim.server.rt.eval("require('CoreAI/CA_Missions')").reportReady(m)
 
     def started(self, name, params=None):
         sim, voice, store = self.world(name)
@@ -265,8 +265,8 @@ class WatchMissionTests(unittest.TestCase):
     def test_npc_fiches_are_never_offered_a_watch(self):
         sim, _, _ = self.world('watch-npc')
         offer = sim.server.rt.eval("""(function()
-            local c = require('RadioSurvivorCore/RC_MissionConfig').Missions.watch
-            return require('RadioSurvivorCore/RC_MissionWatch').offer(c, {id = 'npc1', incarnation = 1}, {}, nil)
+            local c = require('CoreAI/CA_MissionConfig').Missions.watch
+            return require('CoreAI/CA_MissionWatch').offer(c, {id = 'npc1', incarnation = 1}, {}, nil)
         end)()""")
         self.assertIsNone(offer)
 
@@ -349,7 +349,7 @@ class WatchSheetTests(unittest.TestCase):
         cls.tmp = tempfile.TemporaryDirectory()
         cls.folder = Path(cls.tmp.name)
         cls.lua = LuaPersona(cls.folder)
-        cls.lua.rt.eval('require("RadioSurvivorCore/RC_MissionWatch")')
+        cls.lua.rt.eval('require("CoreAI/CA_MissionWatch")')
 
     @classmethod
     def tearDownClass(cls):

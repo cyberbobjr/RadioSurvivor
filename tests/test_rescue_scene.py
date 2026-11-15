@@ -4,7 +4,7 @@ RS_RescueScene (cache, note, nouvel endroit de la voix, mémoire) dans lupa.
     python RadioSurvivor/tests/test_rescue_scene.py
 
 Vrai Lua du mod (RS_Rescue, RS_RescueVisit, RS_RescueScene, RS_Caches, RS_Memory, RS_PersonaState, RS_RadioLog,
-RS_Config, RC_Codec, RS_State ; `next` retiré comme dans Kahlua) sur la métagrille et les doublures de
+RS_Config, CA_Codec, RS_State ; `next` retiré comme dans Kahlua) sur la métagrille et les doublures de
 tests/test_rescue.py et tests/test_rescue_visit.py, plus : cases de sol pour la pose (isFree, HasStairs,
 getWorldObjects, AddWorldInventoryItem), instanceItem (sac à ModData et conteneur, feuille de papier Literature :
 addPage, setLockedBy, setName, setCustomName), descripteurs de joueurs, RS_CarnetServer.bound ; RS_Actions,
@@ -181,7 +181,7 @@ class OutcomeTests(SceneHarness):
         self.g.SIDE = 'server'
         self.rt.execute('ME.getUsername = function() return "kate" end; RS_CarnetServer.bound[ME] = "c1"'
                         '; BOB = Member(5003, 4995, "bob")')
-        self.rt.execute('R.teamOf = function() return "fac-1" end; package.loaded["RadioSurvivorCore/RC_Teams"].idOf'
+        self.rt.execute('R.teamOf = function() return "fac-1" end; package.loaded["CoreAI/CA_Teams"].idOf'
                         ' = function() return "fac-1" end')
         self.start()
         self.deliver()
@@ -341,12 +341,12 @@ class PlacementTests(SceneHarness):
         bags = self.bags()
         self.assertEqual(len(bags), 1)
         bag = bags[0]
-        self.assertEqual(bag.md.RS_Cache, 'rsc-1')
+        self.assertEqual(bag.md.CA_Cache, 'rsc-1')
         inside = lua_list(bag._bag['items'])
         notes = [it for it in inside if it.full == 'Base.SheetPaper2']
         self.assertEqual(len(notes), 1)
         note = notes[0]
-        self.assertEqual((note.locked, note.custom, note.name), ('RadioSurvivor', True, 'A note from Darlene'))
+        self.assertEqual((note.locked, note.custom, note.name), ('CoreAI', True, 'A note from Darlene'))
         self.assertEqual(note.pages[1], raw.cache.note.text)
         self.assertGreater(len(inside), 1)                    # the table contents too
         self.assertEqual(raw.cache.itemId, bag.id)

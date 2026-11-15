@@ -1,5 +1,5 @@
 --[[
-rs.factions.incident - targeted defence and decision on a truce (E09-T06, LK_Agreements.lua (Living Knox) and RC_Teams.lua (core
+rs.factions.incident - targeted defence and decision on a truce (E09-T06, LK_Agreements.lua (Living Knox) and CA_Teams.lua (core
 mod) and
 RS_Incidents.lua) on the running engine: a truce of the player's team with a group whose body is loaded near the player
 is concluded (directly by LK_Agreements.conclude), then a member of that group is HIT by the player (E01-T19: simulated on
@@ -43,7 +43,7 @@ local function modules(t)
     if type(E.Hostility) ~= "table" or type(E.Decisions) ~= "table" or type(E.Decisions.aims) ~= "function" then
         t:skip("Living Knox server part not loaded here")
     end
-    local F = RST.factions() -- E18-T20: LK_Agreements and RC_Teams
+    local F = RST.factions() -- E18-T20: LK_Agreements and CA_Teams
     local Server = RS_CarnetServer
     if type(F) ~= "table" or type(F.incidentFact) ~= "function" or type(Server) ~= "table" or not Server.store
             or not Server.store.data then

@@ -47,7 +47,7 @@ objet ou une récompense.
 
 ## Fichiers et persistance
 
-Dossier d'échange : `Zomboid/Lua/batman_RadioSurvivorCore/` (ou `<cachedir>/Lua/batman_RadioSurvivorCore` pour un serveur
+Dossier d'échange : `Zomboid/Lua/batman_CoreAI/` (ou `<cachedir>/Lua/batman_CoreAI` pour un serveur
 lancé avec `-cachedir`).
 
 | Fichier | Format |

@@ -12,8 +12,8 @@ Const.CHANNEL_UUID = "batman_RadioSurvivor-channel-0001"
 -- Belt Walkie-Talkie (client/RadioSurvivor/RS_BeltRadio.lua).
 Const.VOICE_CHANNEL_PREFIX = "batman_RadioSurvivor-voice-"
 
--- Fichiers d'échange et battement du pont : mod commun (E18-T04, RadioSurvivorCore/RC_Bridge), lus ici par référence.
-local Bridge = require "RadioSurvivorCore/RC_Bridge"
+-- Fichiers d'échange et battement du pont : mod commun (E18-T04, CoreAI/CA_Bridge), lus ici par référence.
+local Bridge = require "CoreAI/CA_Bridge"
 Const.REQUESTS_FILE = Bridge.REQUESTS_FILE
 Const.RESPONSES_FILE = Bridge.RESPONSES_FILE
 -- Journal admin des actions (E07-T02, server/RadioSurvivor/RS_ActionLog.lua) : au-delà de ces seuils, le fichier
@@ -321,7 +321,7 @@ Const.NO_BRIDGE_TIMEOUT_MS = Bridge.NO_BRIDGE_TIMEOUT_MS  -- radio de Walt sans 
 Const.ALIVE_STALE_MS = Bridge.ALIVE_STALE_MS
 Const.ALIVE_READ_MS = Bridge.ALIVE_READ_MS
 
--- Vrai si le pont a écrit son battement depuis moins de ALIVE_STALE_MS (mod commun, RC_Bridge.alive ; force = relire
+-- Vrai si le pont a écrit son battement depuis moins de ALIVE_STALE_MS (mod commun, CA_Bridge.alive ; force = relire
 -- tout de suite).
 function Const.bridgeAlive(now, force)
     return Bridge.alive(now, force)

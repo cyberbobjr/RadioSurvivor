@@ -3,7 +3,7 @@ d'un lieu `target` de la fiche d'une voix, compte vérifié par le serveur dans 
 
     python RadioSurvivor/tests/test_mission_barricade.py
 
-Vrai RadioSurvivor_Server, vrai RS_Carnet_Server (gabarit RC_MissionBarricade inscrit au chargement), vrai
+Vrai RadioSurvivor_Server, vrai RS_Carnet_Server (gabarit CA_MissionBarricade inscrit au chargement), vrai
 RS_MissionVoice (départ et compte rendu d'une voix), vrai RS_Persona (lecture de la fiche), vrai client du carnet ;
 doublures du monde fidèles au Java 42.22 relevé (BARRICADE_WORLD). Preuve de la logique Lua, pas de l'API Java réelle
 ni du réseau : la suite en jeu rs.voicebarricade le confirme sur un serveur dédié.
@@ -254,11 +254,11 @@ class BarricadeMissionTests(unittest.TestCase):
         return voice.start(store, sheet, sim.character('alice'), sim.server.g.PLAYERS.alice, 160000, 'barricade')
 
     def poll(self, sim, store):
-        """Server poll of the engine (RC_Missions.observe) with the server copy of alice, after the scan delay."""
+        """Server poll of the engine (CA_Missions.observe) with the server copy of alice, after the scan delay."""
         sim.clock.offset += 5000
         present = sim.server.rt.table_from([sim.server.rt.table_from(
             {'player': sim.server.g.PLAYERS.alice, 'character': sim.character('alice')})])
-        return sim.server.rt.eval("require('RadioSurvivorCore/RC_Missions')").observe(store.data, present, store)
+        return sim.server.rt.eval("require('CoreAI/CA_Missions')").observe(store.data, present, store)
 
     def report(self, sim, voice, store, sheet):
         return voice.report(store, sheet, sim.character('alice'), sim.server.g.PLAYERS.alice, 160000)
@@ -276,7 +276,7 @@ class BarricadeMissionTests(unittest.TestCase):
         self.assertEqual((m.template, m.donor, m.report, m.state), ('barricade', 'voice', 'radio', 'active'))
         self.assertEqual((m.place, m.count, m.barricaded), ('West Point clinic', 2, 0))
         self.assertEqual((m.site.x1, m.site.y1, m.site.x2, m.site.y2), (200, 200, 206, 205))
-        engine = sim.server.rt.eval("require('RadioSurvivorCore/RC_Missions')")
+        engine = sim.server.rt.eval("require('CoreAI/CA_Missions')")
         self.assertFalse(engine.reportReady(m))
         self.assertEqual(self.report(sim, voice, store, sheet), (None, 'not_done'))
 
@@ -293,7 +293,7 @@ class BarricadeMissionTests(unittest.TestCase):
         g.barricade('east', False, False)              # empty window frame, east wall carried outside
         self.poll(sim, store)
         self.assertEqual(m.barricaded, 3)
-        self.assertTrue(sim.server.rt.eval("require('RadioSurvivorCore/RC_Missions')").reportReady(m))
+        self.assertTrue(sim.server.rt.eval("require('CoreAI/CA_Missions')").reportReady(m))
 
     def test_interior_and_pre_existing_barricades_never_count(self):
         sim, voice, store, sheet, m = self.started('barricade-pre')
@@ -364,8 +364,8 @@ class BarricadeMissionTests(unittest.TestCase):
     def test_npc_fiches_are_never_offered_a_barricade(self):
         sim, _, _ = self.world('barricade-npc')
         offer = sim.server.rt.eval("""(function()
-            local c = require('RadioSurvivorCore/RC_MissionConfig').Missions.barricade
-            return require('RadioSurvivorCore/RC_MissionBarricade').offer(c, {id = 'npc1', incarnation = 1}, {}, nil)
+            local c = require('CoreAI/CA_MissionConfig').Missions.barricade
+            return require('CoreAI/CA_MissionBarricade').offer(c, {id = 'npc1', incarnation = 1}, {}, nil)
         end)()""")
         self.assertIsNone(offer)
 
@@ -462,7 +462,7 @@ class BarricadeSheetTests(unittest.TestCase):
         cls.folder = Path(cls.tmp.name)
         cls.lua = LuaPersona(cls.folder)
         # Registered as at game load (every server file before the sheets): the reader looks the type up when it reads.
-        cls.lua.rt.eval('require("RadioSurvivorCore/RC_MissionBarricade")')
+        cls.lua.rt.eval('require("CoreAI/CA_MissionBarricade")')
 
     @classmethod
     def tearDownClass(cls):

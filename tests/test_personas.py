@@ -25,13 +25,13 @@ import lupa.lua51 as lupa
 ROOT = Path(__file__).resolve().parents[1]
 MOD = ROOT / 'Contents/mods/batman_RadioSurvivor/42.21'
 LUA = MOD / 'media/lua'
-CORE_LUA = ROOT / 'Contents/mods/batman_RadioSurvivorCore/42.21/media/lua'
+CORE_LUA = ROOT / 'Contents/mods/batman_CoreAI/42.21/media/lua'
 PERSONA_LUA = LUA / 'server/RadioSurvivor/RS_Persona.lua'
 LUA_PATH = ';'.join(f'{(root / side).as_posix()}/?.lua' for root in (CORE_LUA, LUA) for side in ('shared', 'server'))
-# Gabarits de mission qui s'inscrivent dans RC_Missions (deliver est déclaré par RC_Missions même).
-TEMPLATE_MODULES = ('RadioSurvivorCore/RC_MissionScout', 'RadioSurvivorCore/RC_MissionClear',
-                    'RadioSurvivorCore/RC_MissionRetrieve', 'RadioSurvivorCore/RC_MissionSignal',
-                    'RadioSurvivorCore/RC_MissionBarricade')  # E20-T10: secure_clinic of darlene.txt
+# Gabarits de mission qui s'inscrivent dans CA_Missions (deliver est déclaré par CA_Missions même).
+TEMPLATE_MODULES = ('CoreAI/CA_MissionScout', 'CoreAI/CA_MissionClear',
+                    'CoreAI/CA_MissionRetrieve', 'CoreAI/CA_MissionSignal',
+                    'CoreAI/CA_MissionBarricade')  # E20-T10: secure_clinic of darlene.txt
 # Natures de récompense qui s'inscrivent dans RS_Rewards (E20-T04 : un fichier par nature, server/RadioSurvivor/Rewards/).
 REWARD_KIND_MODULES = tuple(f'RadioSurvivor/Rewards/{p.stem}' for p in sorted(
     (LUA / 'server/RadioSurvivor/Rewards').glob('*.lua'), key=lambda p: p.name.lower()))

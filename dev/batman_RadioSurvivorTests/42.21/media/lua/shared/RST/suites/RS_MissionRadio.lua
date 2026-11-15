@@ -26,7 +26,7 @@ local F = RST.Fixtures
 -- E11-T10: client map module beside the authority (solo), or nil (dedicated server).
 -- E18-T22: facts of the missions in the reputation of the core mod.
 local function repOutcomes()
-    local Rep = require "RadioSurvivorCore/RC_Reputation"
+    local Rep = require "CoreAI/CA_Reputation"
     Rep.ensure()
     return Rep.data and Rep.data.outcomes or {}
 end
@@ -63,7 +63,7 @@ local function modules(t)
     if type(isClient) == "function" and isClient() then
         t:skip("RS_MissionVoice is not loaded on an MP client (authority only)")
     end
-    local M = require "RadioSurvivorCore/RC_Missions"
+    local M = require "CoreAI/CA_Missions"
     local V = require "RadioSurvivor/RS_MissionVoice"
     local Actions = require "RadioSurvivor/RS_Actions"
     if type(M) ~= "table" or type(V) ~= "table" or type(Actions) ~= "table" then
@@ -85,7 +85,7 @@ RST.suite("rs.missions.radio", { tags = { "server", "world" }, testTimeoutMs = 6
         local state = { missions = {}, npcs = {}, characters = {}, outcomes = {} }
         state.characters.char1 = { name = "Tester", contacts = {}, knownMissions = {} }
         local store = { data = state, save = function() return true end }
-        require("RadioSurvivorCore/RC_MissionScout").resetForTests()
+        require("CoreAI/CA_MissionScout").resetForTests()
         local m, why = V.start(store, sheet, "char1", p, 199800, "scout")
         if not m and why == "no_place" then
             t:skip("no building fits around the player (60-250 tiles): move to a town and run again")
@@ -105,7 +105,7 @@ RST.suite("rs.missions.radio", { tags = { "server", "world" }, testTimeoutMs = 6
         for _, clue in ipairs(before.clues) do t:ok(not string.find(clue, "%d"), "clue with a digit: " .. clue) end
         -- E11-T09: title of the template; clues projected to the notebook as keys (one per English clue).
         local row = M.projection(m, "char1")
-        t:eq("IGUI_RC_Mission_Scout", row.titleKey)
+        t:eq("IGUI_CA_Mission_Scout", row.titleKey)
         t:eq(#before.clues, #row.clues, "notebook clues out of step with the bridge clues")
         t:eq("Kind", row.clues[1] and row.clues[1].key)
         t:eq("briefing", V.context(m, "briefing").turn)
@@ -314,7 +314,7 @@ RST.suite("rs.missionreport.llm", { tags = { "server", "world" }, testTimeoutMs 
         local cid = R.character(t, p)
         R.god(t, p)
         local Config = require "RadioSurvivor/RS_Config"
-        local Scout = require "RadioSurvivorCore/RC_MissionScout"
+        local Scout = require "CoreAI/CA_MissionScout"
         R.npcWithFiche(t, p, 2, function(t2, id, fiche)
             local c = { Server = Server, cid = cid, fiche = fiche, id = id, p = p, C = Config }
             local old = fiche.mission and S.data.missions[fiche.mission]
@@ -429,10 +429,10 @@ local function voiceMission(t, template)
     state.characters.char1 = { name = "Tester", contacts = {}, knownMissions = {} }
     state.characters.char2 = { name = "Mate", contacts = {}, knownMissions = {} }
     local store = { data = state, save = function() return true end }
-    require("RadioSurvivorCore/RC_MissionScout").resetForTests()
-    require("RadioSurvivorCore/RC_MissionClear").resetForTests()
-    require("RadioSurvivorCore/RC_MissionRetrieve").resetForTests()
-    require("RadioSurvivorCore/RC_MissionSignal").resetForTests()
+    require("CoreAI/CA_MissionScout").resetForTests()
+    require("CoreAI/CA_MissionClear").resetForTests()
+    require("CoreAI/CA_MissionRetrieve").resetForTests()
+    require("CoreAI/CA_MissionSignal").resetForTests()
     local m, why = V.start(store, sheet, "char1", p, VOICE_KHZ, template)
     if not m and why == "no_place" and template == "clear" then
         -- Same rule as rs.mission.clear: a quiet spawn area has no building above minDensity; the draw is made again
@@ -440,7 +440,7 @@ local function voiceMission(t, template)
         local c = require("RadioSurvivor/RS_Config").Missions.clear
         local minDensity = c.minDensity
         c.minDensity = 0
-        require("RadioSurvivorCore/RC_MissionClear").resetForTests()
+        require("CoreAI/CA_MissionClear").resetForTests()
         m, why = V.start(store, sheet, "char1", p, VOICE_KHZ, template)
         c.minDensity = minDensity
         t:note("no building above minDensity " .. tostring(minDensity) .. ": drawn again without minimum density")
@@ -515,7 +515,7 @@ end
 
 -- Clear: one real zombie next to the player, lethal bat hit of the player, counted by the template.
 local function playClear(t, c)
-    local Clear = require "RadioSurvivorCore/RC_MissionClear"
+    local Clear = require "CoreAI/CA_MissionClear"
     local m, p = c.m, c.p
     local px, py, pz = math.floor(p:getX()), math.floor(p:getY()), math.floor(p:getZ())
     t:note("clear target " .. tostring(m.target) .. " lowered to 1, circle moved onto the player")
@@ -559,7 +559,7 @@ end
 
 -- Signal: another colour, then the asked colour at the centre of the circle, lit by the player in the window.
 local function playSignal(t, c)
-    local Signal = require "RadioSurvivorCore/RC_MissionSignal"
+    local Signal = require "CoreAI/CA_MissionSignal"
     local lib = Signal.library()
     if not lib then t:fail("required mod Signal Smoke (batman_SignalSmoke) unusable: Signal.library() returned nil") end
     local m, p = c.m, c.p

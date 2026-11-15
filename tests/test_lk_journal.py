@@ -38,7 +38,7 @@ end
 '''
 
 J, G, SIM = 'LivingKnox.Journal', 'LivingKnox.Groups', 'LivingKnox.Simulation'
-CANON = ('require("RadioSurvivorCore/RC_Codec").hexBytes(require("RadioSurvivorCore/RC_Codec").encodeBytes('
+CANON = ('require("CoreAI/CA_Codec").hexBytes(require("CoreAI/CA_Codec").encodeBytes('
          'LivingKnox.Groups.state.data))')
 
 # Vérité de terrain : départs et retours d'expédition abstraite tirés par la simulation (enveloppes posées après le

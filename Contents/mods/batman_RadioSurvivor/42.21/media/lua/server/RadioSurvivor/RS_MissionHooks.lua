@@ -1,6 +1,6 @@
 if isClient() then return end
 --[[
-RadioSurvivor's givers and hooks of the common mission engine (E18-T05, RC_Missions of the core mod; user decision of
+RadioSurvivor's givers and hooks of the common mission engine (E18-T05, CA_Missions of the core mod; user decision of
 2026-11-05: registration and hooks). Attached once by RS_State (RS_MissionHooks.attach(S)), before any mission is read.
 
 - store: the notebook state RS_State (its S.save writes the mission file of the core mod first, then the notebook);
@@ -17,7 +17,7 @@ RadioSurvivor's givers and hooks of the common mission engine (E18-T05, RC_Missi
   the notebook (RS_CarnetServer.publish).
 Requires of modules that require RS_State are made at call time (RS_State requires this file).
 ]]
-local M = require 'RadioSurvivorCore/RC_Missions'
+local M = require 'CoreAI/CA_Missions'
 local P = require 'RadioSurvivor/RS_NPCProvider'
 
 local H = {}

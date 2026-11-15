@@ -30,7 +30,7 @@ import lupa.lua51 as lupa
 ROOT = Path(__file__).resolve().parents[1]
 MOD = ROOT / 'Contents/mods/batman_RadioSurvivor/42.21'
 LUA = MOD / 'media/lua'
-CORE_LUA = Path(__file__).resolve().parents[1] / 'Contents' / 'mods' / 'batman_RadioSurvivorCore' / '42.21' / 'media' / 'lua'  # mod commun (E18)
+CORE_LUA = Path(__file__).resolve().parents[1] / 'Contents' / 'mods' / 'batman_CoreAI' / '42.21' / 'media' / 'lua'  # mod commun (E18)
 LK_LUA = Path(__file__).resolve().parents[1] / 'Contents' / 'mods' / 'batman_LivingKnox' / '42.21' / 'media' / 'lua'  # moteur des PNJ (E18-T07)
 TRANSLATE = LUA / 'shared/Translate'
 SCRIPT = MOD / 'media/scripts/RadioSurvivor_outsidenews.txt'
@@ -360,7 +360,7 @@ class TradeTests(unittest.TestCase):
 
     def test_sold_by_the_smuggler_never_bought_back(self):
         rt = lupa.LuaRuntime(unpack_returned_tuples=True)
-        tv = rt.execute((CORE_LUA / 'shared/RadioSurvivorCore/RC_TradeValues.lua').read_text(encoding='utf-8'))
+        tv = rt.execute((CORE_LUA / 'shared/CoreAI/CA_TradeValues.lua').read_text(encoding='utf-8'))
         self.assertEqual(tv.value('RadioSurvivor.OutsideNews')[0], 0)
         self.assertFalse(tv.isBase('RadioSurvivor.OutsideNews'))
         self.assertIsNone(tv.entry('RadioSurvivor.OutsideNews'))

@@ -33,7 +33,7 @@ ZombRand = function(a, b) return a end
 SandboxVars = { RadioSurvivor = { Enabled = true } }
 S = require 'RadioSurvivor/RS_State'
 Log = require 'RadioSurvivor/RS_RadioLog'
-Codec = require 'RadioSurvivorCore/RC_Codec'
+Codec = require 'CoreAI/CA_Codec'
 assert(S.init(NEW_WORLD ~= false))
 RS_CarnetServer = { bound = {} }
 -- getLotDirectories (LuaManager) : ArrayList<String> des dossiers de carte chargés.
@@ -63,7 +63,7 @@ function bind(username, cid, owner)
             knownMissions = {} }
     end
     RS_CarnetServer.bound[p] = cid
-    p:getModData().RS_CarnetCharacter = cid
+    p:getModData().CA_Character = cid
     return p
 end
 function count(t) local n = 0 for _ in pairs(t or {}) do n = n + 1 end return n end
@@ -375,9 +375,9 @@ class DeathTests(Bench):
         self.lua(r'''
         local p = HARNESS.players.A
         RS_CarnetServer.bound[p] = nil
-        p:getModData().RS_CarnetCharacter = nil
+        p:getModData().CA_Character = nil
         S.data.characters['char-a'].retired = true
-        require('RadioSurvivorCore/RC_History').data.radio['char-a'] = nil
+        require('CoreAI/CA_History').data.radio['char-a'] = nil
         p.kills = 5
         p.dead = true
         LifeLog.characterDeath(p)
@@ -393,7 +393,7 @@ class DeathTests(Bench):
         self.poll()
         self.h.spawn_zombie(1001, 5, 5)
         self.h.kill_zombie(1001)
-        self.lua("local p = HARNESS.players.B; p:getModData().RS_CarnetCharacter = 'char-a'; "
+        self.lua("local p = HARNESS.players.B; p:getModData().CA_Character = 'char-a'; "
                  "RS_CarnetServer.bound[p] = nil; LifeLog.characterDeath(p)")
         self.assertFalse(self.log('char-a')['dead'])
         self.assertEqual(values(py(self.ev('FROZEN'))), [])
@@ -472,7 +472,7 @@ class CarnetIntegrationTests(unittest.TestCase):
         g.fire('OnCharacterDeath', g.PLAYERS.alice)
         state = sim.state()
         self.assertTrue(state.characters[cid].retired)
-        self.assertIsNone(sim.server.rt.eval("require('RadioSurvivorCore/RC_History')").radio(cid))
+        self.assertIsNone(sim.server.rt.eval("require('CoreAI/CA_History')").radio(cid))
         log = LifeLog.get(cid)
         self.assertTrue(log.dead)
         self.assertEqual(log.phrases[1].text, 'Alice to anyone.')

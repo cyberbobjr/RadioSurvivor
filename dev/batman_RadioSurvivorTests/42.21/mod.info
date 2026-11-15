@@ -3,4 +3,4 @@ id=batman_RadioSurvivorTests
 description=In-game test engine (RST) and test suites for batman_RadioSurvivor and batman_LivingKnox (each suite is skipped when its mods are not active). Development only, never publish.
 versionMin=42.21
 modversion=0.1.0
-require=\batman_RadioSurvivorCore
+require=\batman_CoreAI

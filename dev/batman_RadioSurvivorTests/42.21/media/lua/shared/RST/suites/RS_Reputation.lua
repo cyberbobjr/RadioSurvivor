@@ -1,5 +1,5 @@
 --[[
-rs.reputation - internal reputation of RadioSurvivor in game (E04-T14; server/RadioSurvivorCore/RC_Reputation.lua, design
+rs.reputation - internal reputation of RadioSurvivor in game (E04-T14; server/CoreAI/CA_Reputation.lua, design
 docs/annexes/conception/reputation-interne.md). Tags "server" and "world": the authority only (solo, or RST.server from an
 admin client), save rstest* in debug mode (the test baseline RS_Reputation.testSetLevel refuses anything else).
 Solo campaign solo-rs and MP campaign mp; persistence base of mp-persist (rs.reputation.before / .after-restart).
@@ -62,13 +62,13 @@ local function setup(t)
     local Server = R.notebook(t)
     local S = Server.store
     if S.blocked then t:skip("notebook storage blocked") end
-    local Rep = require "RadioSurvivorCore/RC_Reputation"
-    t:ok(type(Rep) == "table" and type(Rep.testSetLevel) == "function", "RC_Reputation (E04, core mod) not loaded")
+    local Rep = require "CoreAI/CA_Reputation"
+    t:ok(type(Rep) == "table" and type(Rep.testSetLevel) == "function", "CA_Reputation (E04, core mod) not loaded")
     t:ok(Rep.ensure(), "reputation state of the core mod not loaded")
     local p = RST.Fixtures.player(t)
     t:ok(p ~= nil, "no target player (t.ctx.player)")
     local cid = R.character(t, p)
-    return { Server = Server, S = S, Rep = Rep, p = p, cid = cid, M = require "RadioSurvivorCore/RC_Missions" }
+    return { Server = Server, S = S, Rep = Rep, p = p, cid = cid, M = require "CoreAI/CA_Missions" }
 end
 
 -- The reputation entry of cid is restored at the end; outcomes created during the test are dropped.
@@ -112,7 +112,7 @@ end
 -- Active test mission of `npcId` with participants { [cid] = name }, inserted in the state (removed at the end).
 local function testMission(t, c, npcId, participants)
     local id = "rst-rep-" .. string.format("%.0f", RST.now())
-    local m = { id = id, npc = npcId, template = "deliver", offer = "first_aid_v1", titleKey = "IGUI_RC_Mission_FirstAid",
+    local m = { id = id, npc = npcId, template = "deliver", offer = "first_aid_v1", titleKey = "IGUI_CA_Mission_FirstAid",
         state = "active", revision = 1, durationMs = 3600000, remainingMs = 3600000, participants = {}, invited = {},
         rewardType = "", rewardCount = 0, claimedBy = "", receipts = {}, quantity = 1, delivered = 0, accepted = {},
         requesterName = RP.REQUESTER }

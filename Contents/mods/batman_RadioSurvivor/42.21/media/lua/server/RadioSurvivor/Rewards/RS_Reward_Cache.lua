@@ -1,12 +1,12 @@
 -- Reward kind `cache` (pool entry cache:<category>:<weight>, E20-T04, ADR D05): a marked bag left at a place of the
 -- sheet, filled with contents drawn in the category (shared catalogue personas/_categories.txt or a [category]
 -- section of the sheet): each item line gives a quantity drawn in its range (a fixed number gives that number).
--- The drawn contents are saved in the mission cache record (RC_Caches.attachContents), which is the deferred outbox
--- placed by RC_Caches.poll: a restart places the same contents.
+-- The drawn contents are saved in the mission cache record (CA_Caches.attachContents), which is the deferred outbox
+-- placed by CA_Caches.poll: a restart places the same contents.
 if isClient() then return end
 local Rewards = require 'RadioSurvivor/RS_Rewards'
 local Persona = require 'RadioSurvivor/RS_Persona'
-local Caches = require 'RadioSurvivorCore/RC_Caches'
+local Caches = require 'CoreAI/CA_Caches'
 local Categories = require 'RadioSurvivor/RS_Categories'
 
 local Cache = {}

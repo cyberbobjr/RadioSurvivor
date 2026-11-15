@@ -4,7 +4,7 @@ Chained missions of a radio voice (E20-T08, ADR D04, D09). Authority only.
 
 A voice mission is identified by the id of its [mission <id>] section of the sheet (RS_Persona). A section with
 after=<id> is available to a caller only once the cited section's last outcome is a success for that caller: per
-notebook character by default, per team (RC_Teams.idOf: vanilla faction, or the lone player's personal team) when the
+notebook character by default, per team (CA_Teams.idOf: vanilla faction, or the lone player's personal team) when the
 section says scope=team. A failed (or expired, abandoned) mission of the cited section blocks its successors again
 until a new success of it. A sheet without any [mission] section gives one scout job (section id 'scout').
 
@@ -38,12 +38,12 @@ end
 
 local function defaultTeamOf(player)
     if not player then return nil end
-    return require("RadioSurvivorCore/RC_Teams").idOf(player)
+    return require("CoreAI/CA_Teams").idOf(player)
 end
 
 local teamOf = defaultTeamOf
 
--- Team of a player (stable id of RC_Teams), injectable for the benches; nil restores RC_Teams.
+-- Team of a player (stable id of CA_Teams), injectable for the benches; nil restores CA_Teams.
 function Chain.setTeamOf(fn)
     teamOf = fn or defaultTeamOf
 end

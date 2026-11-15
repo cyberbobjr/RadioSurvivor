@@ -1,5 +1,5 @@
 --[[
-rs.mission.clear - mission template "clear" (E11-T04, server/RadioSurvivorCore/RC_MissionClear.lua) on the real metagrid
+rs.mission.clear - mission template "clear" (E11-T04, server/CoreAI/CA_MissionClear.lua) on the real metagrid
 and the real world: a building drawn around the player, a number of kills from the zombie density of the lot headers,
 a counting circle centred on the building; three real zombies spawned in the circle next to the player: a lethal bat
 hit of the player counts once (a second count of the same zombie changes nothing), a death without an attributed
@@ -49,7 +49,7 @@ local DEATH_MS = 5000
 
 -- E18-T22: facts of the missions in the reputation of the core mod.
 local function repOutcomes()
-    local Rep = require "RadioSurvivorCore/RC_Reputation"
+    local Rep = require "CoreAI/CA_Reputation"
     Rep.ensure()
     return Rep.data and Rep.data.outcomes or {}
 end
@@ -58,8 +58,8 @@ local function modules(t)
     if type(isClient) == "function" and isClient() then
         t:skip("RS_MissionClear is not loaded on an MP client (authority only)")
     end
-    local M = require "RadioSurvivorCore/RC_Missions"
-    local Clear = require "RadioSurvivorCore/RC_MissionClear"
+    local M = require "CoreAI/CA_Missions"
+    local Clear = require "CoreAI/CA_MissionClear"
     if type(M) ~= "table" or type(Clear) ~= "table" then
         t:skip("mission modules did not return their table here")
     end

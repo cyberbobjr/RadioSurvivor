@@ -5,8 +5,8 @@ Living Knox: reward of a mission given by one of its NPCs (E18-T29). Authority o
 The lot of an NPC is a real item of its household surplus, handed to the player who claims it: an item of a tracked
 category the group holds above its target reserve, never while the group rations (Stock.needs: ration and next level
 both 0), and only when it fits in the player's inventory. Without such an item, the lot announced with the mission
-(RC_Missions.claim: rewardType x rewardCount); without an announced lot either, a lot created on the spot from the
-closed table of the group's type (E18-T33: RC_MissionConfig.NPC_REWARD_TABLES -> Caches.tables), announced by the
+(CA_Missions.claim: rewardType x rewardCount); without an announced lot either, a lot created on the spot from the
+closed table of the group's type (E18-T33: CA_MissionConfig.NPC_REWARD_TABLES -> Caches.tables), announced by the
 notebook (R.lot, projected as rewardTable).
 
     R.resolve(npcId)                         -> { group, member, data, role } | nil, reason   living member of a group
@@ -18,7 +18,7 @@ notebook (R.lot, projected as rewardTable).
 
 Each mod pays its missions (E11-T21, decision D09): R.claim and R.lot are the reward path of the giver "npc" of
 Living Knox alone (LK_TalkAlone) and the reward source registered in the core engine at load
-(RC_Missions.registerNpcReward), through which RadioSurvivor's notebook pays a mission of a Living Knox NPC.
+(CA_Missions.registerNpcReward), through which RadioSurvivor's notebook pays a mission of a Living Knox NPC.
 ]]
 require "LivingKnox/LK_Core"
 -- LivingKnox.Groups and LivingKnox.Stock are read at call time (loaded with every server file of the engine).
@@ -64,7 +64,7 @@ local function give(player, item)
     return true
 end
 
-local function config() return require "RadioSurvivorCore/RC_MissionConfig" end
+local function config() return require "CoreAI/CA_MissionConfig" end
 
 -- Name of the lot created for mission m (a table of Caches.tables), or nil when the mission announces its own lot.
 -- The group's type is read now (unknown type: food); a dead requester gives nothing.
@@ -161,7 +161,7 @@ function R.claim(store, m, player, character, token, npcId)
 end
 
 -- Reward source of Living Knox in the core engine (read at call time, so a wrapper of R.claim or R.lot applies).
-require("RadioSurvivorCore/RC_Missions").registerNpcReward({
+require("CoreAI/CA_Missions").registerNpcReward({
     claim = function(store, m, player, character, token, npcId)
         return R.claim(store, m, player, character, token, npcId)
     end,

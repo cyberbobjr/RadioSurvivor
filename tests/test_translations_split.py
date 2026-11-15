@@ -2,7 +2,7 @@
 
     python RadioSurvivor/tests/test_translations_split.py
 
-Each mod ships its own keys and its own options page: the core mod batman_RadioSurvivorCore (IGUI_RC_: missions journal
+Each mod ships its own keys and its own options page: the core mod batman_CoreAI (IGUI_CA_: missions journal
 and mission titles; no sandbox option, none of the existing options is about the missions or the bridge), Living Knox
 (IGUI_LK_, Sandbox_LivingKnox_, page LivingKnox) and RadioSurvivor (the rest, page RadioSurvivor). Checks:
 
@@ -13,7 +13,7 @@ and mission titles; no sandbox option, none of the existing options is about the
 - every literal key used by the Lua of a mod is shipped by that mod, by a mod it requires or by the game;
 - every sandbox option kept with the same name (settings of an existing game read again), on its mod's page, with its
   label in that mod;
-- mission titles saved by an older game (IGUI_RS_<name>) shown with the new key (RC_MissionConfig.titleKey).
+- mission titles saved by an older game (IGUI_RS_<name>) shown with the new key (CA_MissionConfig.titleKey).
 """
 from __future__ import annotations
 
@@ -31,7 +31,7 @@ import pz_paths  # noqa: E402  (vanilla folders)
 ROOT = Path(__file__).resolve().parents[1]
 MODS_DIR = ROOT / 'Contents' / 'mods'
 MODS = {
-    'core': 'batman_RadioSurvivorCore',
+    'core': 'batman_CoreAI',
     'lk': 'batman_LivingKnox',
     'rs': 'batman_RadioSurvivor',
 }
@@ -39,39 +39,39 @@ DEPS = {'core': (), 'lk': ('core',), 'rs': ('core',)}
 FIXTURE = ROOT / 'tests' / 'fixtures' / 'e18-t13' / 'keys-before.json'
 
 # Mission titles moved from RadioSurvivor to the core mod (old key -> new key).
-RENAMED = {f'IGUI_RS_{n}': f'IGUI_RC_Mission_{n}' for n in (
+RENAMED = {f'IGUI_RS_{n}': f'IGUI_CA_Mission_{n}' for n in (
     'FirstAid', 'Scout', 'Supply', 'Supply_food', 'Supply_medical', 'Supply_ammo',
     'Retrieve', 'Clear', 'Recover', 'Signal')}
 # E18-T24: labels of the common tabs of the notebook, now in the core mod.
-RENAMED.update({f'IGUI_RS_{n}': f'IGUI_RC_{n}' for n in ('Contacts', 'Missions', 'Reputation', 'Empty_Reputation')})
+RENAMED.update({f'IGUI_RS_{n}': f'IGUI_CA_{n}' for n in ('Contacts', 'Missions', 'Reputation', 'Empty_Reputation')})
 # E18-T24: frame of the notebook in the core mod; the journal window and its button are gone.
-NOTEBOOK = {'IGUI_RC_Notebook', 'IGUI_RC_NotebookHint', 'IGUI_RC_Empty_Contacts'}
-REMOVED = {'IGUI_RC_Journal', 'IGUI_RC_JournalButton', 'IGUI_RC_JournalHint'}
+NOTEBOOK = {'IGUI_CA_Notebook', 'IGUI_CA_NotebookHint', 'IGUI_CA_Empty_Contacts'}
+REMOVED = {'IGUI_CA_Journal', 'IGUI_CA_JournalButton', 'IGUI_CA_JournalHint'}
 # E18-T25: the reputation page is drawn by the core mod; the act of a killed group member is Living Knox's text.
-RENAMED.update({f'IGUI_RS_{n}': f'IGUI_RC_{n}' for n in (
+RENAMED.update({f'IGUI_RS_{n}': f'IGUI_CA_{n}' for n in (
     'GlobalReputation', 'ReputationUnavailable', 'RepLevelLine', 'RepTrendLine', 'RepLevel_bad', 'RepLevel_neutral',
     'RepLevel_good', 'RepTrend_up', 'RepTrend_down', 'RepTrend_stable', 'RepChanged', 'RepNoActs', 'RepLastActs',
     'RepAct', 'RepCapped', 'RepReason_good', 'RepReason_bad', 'RelWhen_today', 'RelWhen_yesterday', 'RelWhen_week',
     'RelWhen_earlier', 'RepReason_MissionSuccess', 'RepReason_MissionFailed', 'RepReason_MissionAbandoned')})
 RENAMED['IGUI_RS_RepReason_MemberKilled'] = 'IGUI_LK_RepReason_MemberKilled'
-REMOVED.add('IGUI_RC_Empty_Reputation')  # E18-T25: the core page shows the reputation (or that it is unavailable)
+REMOVED.add('IGUI_CA_Empty_Reputation')  # E18-T25: the core page shows the reputation (or that it is unavailable)
 # E18-T26: the relation panel of an NPC is drawn by Living Knox; the core Contacts page has its own words.
 RENAMED.update({k: 'IGUI_LK_' + k[len('IGUI_RS_'):] for k in json.loads(FIXTURE.read_text(encoding='utf-8'))['keys']['EN']
                 ['IG_UI'] if k.startswith('IGUI_RS_Rel') and not k.startswith('IGUI_RS_RelWhen_')})
-NOTEBOOK |= {'IGUI_RC_Group', 'IGUI_RC_KnownConversations', 'IGUI_RC_Contact', 'IGUI_RC_Dead'}
-# E18-T20: the Team tab is Living Knox's; the errors of the mandates come from the core mod (RC_Teams).
+NOTEBOOK |= {'IGUI_CA_Group', 'IGUI_CA_KnownConversations', 'IGUI_CA_Contact', 'IGUI_CA_Dead'}
+# E18-T20: the Team tab is Living Knox's; the errors of the mandates come from the core mod (CA_Teams).
 RENAMED.update({k: 'IGUI_LK_' + k[len('IGUI_RS_'):] for k in json.loads(FIXTURE.read_text(encoding='utf-8'))['keys']['EN']
                 ['IG_UI'] if any(k.startswith('IGUI_RS_' + p) for p in ('Team', 'Role_', 'Mandate', 'Empty_Team'))})
-RENAMED.update({f'IGUI_RS_Error_{n}': f'IGUI_RC_Error_{n}' for n in ('MandateOwner', 'MandateMember', 'MandateFull')})
-NOTEBOOK |= {'IGUI_RC_Error_State'}
+RENAMED.update({f'IGUI_RS_Error_{n}': f'IGUI_CA_Error_{n}' for n in ('MandateOwner', 'MandateMember', 'MandateFull')})
+NOTEBOOK |= {'IGUI_CA_Error_State'}
 JOURNAL = {
-    'IGUI_RC_Journal', 'IGUI_RC_JournalButton', 'IGUI_RC_JournalEmpty', 'IGUI_RC_JournalHint', 'IGUI_RC_Mission',
-    'IGUI_RC_Participants', 'IGUI_RC_ReportHint', 'IGUI_RC_Requester', 'IGUI_RC_Reward', 'IGUI_RC_TimeLeft',
-    'IGUI_RC_State_abandoned', 'IGUI_RC_State_active', 'IGUI_RC_State_cancelled_closed',
-    'IGUI_RC_State_cancelled_dead', 'IGUI_RC_State_expired', 'IGUI_RC_State_failed', 'IGUI_RC_State_offer',
-    'IGUI_RC_State_success', 'IGUI_RC_State_toReport'}
+    'IGUI_CA_Journal', 'IGUI_CA_JournalButton', 'IGUI_CA_JournalEmpty', 'IGUI_CA_JournalHint', 'IGUI_CA_Mission',
+    'IGUI_CA_Participants', 'IGUI_CA_ReportHint', 'IGUI_CA_Requester', 'IGUI_CA_Reward', 'IGUI_CA_TimeLeft',
+    'IGUI_CA_State_abandoned', 'IGUI_CA_State_active', 'IGUI_CA_State_cancelled_closed',
+    'IGUI_CA_State_cancelled_dead', 'IGUI_CA_State_expired', 'IGUI_CA_State_failed', 'IGUI_CA_State_offer',
+    'IGUI_CA_State_success', 'IGUI_CA_State_toReport'}
 PREFIX_OF = {
-    'core': ('IGUI_RC_',),
+    'core': ('IGUI_CA_',),
     'lk': ('IGUI_LK_', 'Sandbox_LivingKnox'),
 }
 KEY_IN_LUA = re.compile(r"""["']((?:IGUI|Sandbox|ContextMenu|Tooltip|UI|Print_Media|Print_Text|Challenge)_[A-Za-z0-9_]+)["']""")
@@ -121,32 +121,32 @@ SANDBOX_RENAMED = ({k: 'Sandbox_LivingKnox_' + k[len('Sandbox_RadioSurvivor_'):]
                 if k.startswith('Sandbox_RadioSurvivor_InitiativeFrequency')})
 
 # E18-T29: hand-over and claim from the journal of the core mod.
-JOURNAL_GESTURES = {'IGUI_RC_' + k for k in ('Deliver', 'Claim', 'Delivery', 'DeliverSend', 'DeliverEmpty',
+JOURNAL_GESTURES = {'IGUI_CA_' + k for k in ('Deliver', 'Claim', 'Delivery', 'DeliverSend', 'DeliverEmpty',
                                              'State_toClaim', 'ClaimHint', 'DeliverHint', 'Delivered',
                                              'RewardLot')} | {
-    'IGUI_RC_Error_' + k for k in ('Range', 'Items', 'Storage', 'Recovery', 'Capacity', 'TooMany', 'SupplyClosed',
+    'IGUI_CA_Error_' + k for k in ('Range', 'Items', 'Storage', 'Recovery', 'Capacity', 'TooMany', 'SupplyClosed',
                                    'SupplyRefused', 'WrongCard')}
 
 # E20-T05: the drop points of a voice mission listed by the notebook (RadioSurvivor); E20-T06: card left at a drop.
 ADDED = {'IGUI_RS_DeadDropPoints', 'IGUI_RS_RetrieveDropCard',
          # E20-T09: template barricade (title, notebook view, map label).
-         'IGUI_RC_Mission_Barricade', 'IGUI_RS_MapZoneBarricade', 'IGUI_RS_MapZoneBarricadeAnon',
+         'IGUI_CA_Mission_Barricade', 'IGUI_RS_MapZoneBarricade', 'IGUI_RS_MapZoneBarricadeAnon',
          'IGUI_RS_BarricadePlace', 'IGUI_RS_BarricadeMapZone', 'IGUI_RS_BarricadeProgress', 'IGUI_RS_BarricadeRule',
          'IGUI_RS_BarricadeReport',
          # E20-T12: template relay (title, notebook view, map label).
-         'IGUI_RC_Mission_Relay', 'IGUI_RS_MapZoneRelay', 'IGUI_RS_MapZoneRelayAnon', 'IGUI_RS_RelayPlace',
+         'IGUI_CA_Mission_Relay', 'IGUI_RS_MapZoneRelay', 'IGUI_RS_MapZoneRelayAnon', 'IGUI_RS_RelayPlace',
          'IGUI_RS_RelayMapZone', 'IGUI_RS_RelayLevel', 'IGUI_RS_RelayOn', 'IGUI_RS_RelayOff', 'IGUI_RS_RelayRule',
          'IGUI_RS_RelayReport'}
 # E20-T13: template route (title, notebook view, map label).
-ADDED |= {'IGUI_RC_Mission_Route', 'IGUI_RS_MapZoneRoute', 'IGUI_RS_MapZoneRouteAnon', 'IGUI_RS_RouteProgress',
+ADDED |= {'IGUI_CA_Mission_Route', 'IGUI_RS_MapZoneRoute', 'IGUI_RS_MapZoneRouteAnon', 'IGUI_RS_RouteProgress',
           'IGUI_RS_RouteNext', 'IGUI_RS_RouteAllCrossed', 'IGUI_RS_RouteMapZone', 'IGUI_RS_RouteRule',
           'IGUI_RS_RouteReport'}
 # E20-T14: template watch (title, notebook view, map label).
-ADDED |= {'IGUI_RC_Mission_Watch', 'IGUI_RS_MapZoneWatch', 'IGUI_RS_MapZoneWatchAnon', 'IGUI_RS_WatchPlace',
+ADDED |= {'IGUI_CA_Mission_Watch', 'IGUI_RS_MapZoneWatch', 'IGUI_RS_MapZoneWatchAnon', 'IGUI_RS_WatchPlace',
           'IGUI_RS_WatchMapZone', 'IGUI_RS_WatchProgress', 'IGUI_RS_WatchDone', 'IGUI_RS_WatchRule',
           'IGUI_RS_WatchReport'}
 # E20-T15: template item (title, notebook view, map label).
-ADDED |= {'IGUI_RC_Mission_Item', 'IGUI_RS_MapZoneItem', 'IGUI_RS_MapZoneItemAnon', 'IGUI_RS_ItemWhat',
+ADDED |= {'IGUI_CA_Mission_Item', 'IGUI_RS_MapZoneItem', 'IGUI_RS_MapZoneItemAnon', 'IGUI_RS_ItemWhat',
           'IGUI_RS_ItemPlace', 'IGUI_RS_ItemMapZone', 'IGUI_RS_ItemFound', 'IGUI_RS_ItemNotFound', 'IGUI_RS_ItemDropIt',
           'IGUI_RS_ItemOnlyThis', 'IGUI_RS_ItemReport'}
 
@@ -245,7 +245,7 @@ class TranslationSplitTests(unittest.TestCase):
 
     def test_mission_titles_in_the_core_mod(self):
         lua = LuaRuntime(unpack_returned_tuples=True)
-        path = media('core') / 'lua' / 'shared' / 'RadioSurvivorCore' / 'RC_MissionConfig.lua'
+        path = media('core') / 'lua' / 'shared' / 'CoreAI' / 'CA_MissionConfig.lua'
         mc = lua.execute(path.read_text(encoding='utf-8'))
         titles = {t.titleKey for t in mc.Missions.values()}
         # Renamed titles of an older game, or titles of templates added since (ADDED).

@@ -397,8 +397,8 @@ class RelationTests(unittest.TestCase):
         prune = self.rt.eval('LivingKnox.PersonalRelation.prune')
         self.assertTrue(prune() is False)
         # E18-T21: Living Knox drops the relations of a dead character at its death (identity retired).
-        # Death event: the core mod retires the identity (RC_Identity, OnCharacterDeath), then the notebook.
-        self.rt.eval("require('RadioSurvivorCore/RC_Identity')").characterDeath(self.g.PLAYERS['alice'])
+        # Death event: the core mod retires the identity (CA_Identity, OnCharacterDeath), then the notebook.
+        self.rt.eval("require('CoreAI/CA_Identity')").characterDeath(self.g.PLAYERS['alice'])
         self.g.RS_CarnetServer.characterDeath(self.g.PLAYERS['alice'])
         self.assertIsNone(self.rt.eval('LivingKnox.PersonalRelation.debugPair')(leader, self.cid('alice')))
         # An NPC gone from the Living Knox registry: its relations dropped at the next purge.

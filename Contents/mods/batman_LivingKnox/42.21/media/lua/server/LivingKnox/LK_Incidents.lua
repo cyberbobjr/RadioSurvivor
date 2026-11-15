@@ -5,7 +5,7 @@ if isClient() then return end
 -- docs/annexes/conception/incidents.md.
 --
 -- Once the facts of an open incident settled (LivingKnox.Agreements.INCIDENT.SETTLE_MS), one request per pass, within the bridge
--- quotas (RC_SpeechConfig.MAX_PENDING, MAX_PER_HOUR) and not while the bridge is considered stopped (LK_Initiatives): an
+-- quotas (CA_SpeechConfig.MAX_PENDING, MAX_PER_HOUR) and not while the bridge is considered stopped (LK_Initiatives): an
 -- npc_incident request in the queue of the leader's fiche (LivingKnox.API.composition(group).leaderNpc), character
 -- 'group', text = the established facts composed here in English, context.incident = facts, agreement, earlier
 -- decisions, context.choices = the decisions the server allows (maintain, repair with the stock categories and the
@@ -15,7 +15,7 @@ if isClient() then return end
 -- LivingKnox.Agreements.decideIncident. A refused or unanswered request leaves the incident open (defence kept, no automatic
 -- break): asked again after LivingKnox.Agreements.INCIDENT.RETRY_MS.
 local Talk = require 'LivingKnox/LK_TalkHost'
-local C = require 'RadioSurvivorCore/RC_SpeechConfig'
+local C = require 'CoreAI/CA_SpeechConfig'
 local P = Talk.provider
 -- E18-T20: the agreements and their incidents; read when used, LK_Agreements may load after this file.
 local F = {}

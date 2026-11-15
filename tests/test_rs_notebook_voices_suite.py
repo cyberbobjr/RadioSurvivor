@@ -165,7 +165,7 @@ class NotebookVoicesSuiteTests(unittest.TestCase):
     def test_fails_when_the_page_does_not_show_the_hours(self):
         # Defect: the Radio page of the client loses the hours line (History.hoursText always nil on the page).
         self.alice.rt.execute("""
-            local Notebook = require('RadioSurvivorCore/RC_Notebook')
+            local Notebook = require('CoreAI/CA_Notebook')
             local showRadio = Notebook.showRadio
             Notebook.showRadio = function(self, row, text)
                 local voice = row.voice

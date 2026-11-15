@@ -9,9 +9,9 @@ voulez jouer.
 
 | Mod | Mod ID | Ce qu'il apporte | Demande |
 |---|---|---|---|
-| Radio Survivor | `batman_RadioSurvivor` | La radio : seize voix d'IA (dont un marchand par ville) sur de vraies fréquences, leurs missions, l'onglet Radio du carnet, les factions | Radio Survivor Core, Belt Walkie-Talkie, Signal Smoke |
-| Living Knox | `batman_LivingKnox` | Des groupes de survivants PNJ avec foyers, besoins, routines, combats et fortifications | Radio Survivor Core. **Incompatible** avec Bandits! et Project A-Life |
-| Radio Survivor Core | `batman_RadioSurvivorCore` | Ce que les deux autres partagent : missions et journal des missions, lien avec le pont, identité des personnages, historique des échanges, réputation, carnet | Signal Smoke |
+| Radio Survivor | `batman_RadioSurvivor` | La radio : seize voix d'IA (dont un marchand par ville) sur de vraies fréquences, leurs missions, l'onglet Radio du carnet, les factions | Core AI, Belt Walkie-Talkie, Signal Smoke |
+| Living Knox | `batman_LivingKnox` | Des groupes de survivants PNJ avec foyers, besoins, routines, combats et fortifications | Core AI. **Incompatible** avec Bandits! et Project A-Life |
+| Core AI | `batman_CoreAI` | Ce que les deux autres partagent : missions et journal des missions, lien avec le pont, identité des personnages, historique des échanges, réputation, carnet | Signal Smoke |
 
 - **Quoi cocher** : Radio Survivor, Living Knox, ou les deux. Chacun fonctionne sans l'autre.
 - **Le Core** est exigé par les deux : le jeu l'active pour vous. Activé seul, il n'apporte rien de jouable.
@@ -50,7 +50,7 @@ seul moteur de PNJ par partie. Le sélecteur de mods de Build 42 signale le conf
 1. Abonnez-vous à l'objet Radio Survivor et aux mods requis (Belt Walkie-Talkie, TooltipLib et Signal Smoke) sur le
    Workshop Steam.
 2. Au menu principal, **Mods** : activez les mods choisis. Ordre pour tous : **TooltipLib, Belt Walkie-Talkie, Signal
-   Smoke, Radio Survivor Core, Radio Survivor, Living Knox**.
+   Smoke, Core AI, Radio Survivor, Living Knox**.
 3. Redémarrez complètement le jeu après une installation ou une mise à jour des mods.
 4. Commencez une **nouvelle partie** (conseillé pour cette version de test). Les pages sandbox **Radio Survivor** et
    **Living Knox** regroupent les options des mods activés ([Options sandbox](09-options-sandbox.md)).

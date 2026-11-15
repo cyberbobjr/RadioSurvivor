@@ -3,8 +3,8 @@
 For a mission given by a radio voice, the card taken from the body is deposited at one of the mission's drops and
 collected by the same rule as the goods of `deliver` (out of everyone's view, after a delay in game hours), recognised
 only by its item id (m.cardId). The objective is met once that card is collected; the radio report then succeeds and
-never removes anything from the inventory. Real modules: RC_Missions (engine poll, report), RC_MissionRetrieve
-(template and its "what counts" strategy), the dead-drop unit of RadioSurvivor, RS_OutOfSight, RC_GameClock. The giver
+never removes anything from the inventory. Real modules: CA_Missions (engine poll, report), CA_MissionRetrieve
+(template and its "what counts" strategy), the dead-drop unit of RadioSurvivor, RS_OutOfSight, CA_GameClock. The giver
 double wires the drop hooks as RS_MissionHooks does. Server logic only: no proof of the Java API nor of the network.
 """
 import unittest
@@ -15,8 +15,8 @@ RETRIEVE = r'''
 RandomizedWorldBase = {}
 -- LuaEventManager: Events.<name>.Add, read at load by the reputation of the core mod (success of the report).
 Events = setmetatable({}, {__index = function(t, k) t[k] = {Add = function() end}; return t[k] end})
-M = require 'RadioSurvivorCore/RC_Missions'
-R = require 'RadioSurvivorCore/RC_MissionRetrieve'
+M = require 'CoreAI/CA_Missions'
+R = require 'CoreAI/CA_MissionRetrieve'
 -- Voice giver as RS_MissionHooks registers it: dead drops polled and projected by the dead-drop unit (global D).
 M.registerDonor('voice', {
     find = function(state, id) return state.voiceDonors and state.voiceDonors[id] end,
@@ -30,7 +30,7 @@ STORE.data = STATE
 sq = square(100, 100, 0); inv = container(); obj = box(sq, inv)
 m = {id = 'voice:v:c1-retrieve1', template = 'retrieve_id', donor = 'voice', npc = 'voice:v:c1', voice = 'v',
     state = 'active', revision = 0, remainingMs = 7200000, durationMs = 7200000, rewardType = '', rewardCount = 0,
-    titleKey = 'IGUI_RC_Mission_Retrieve', report = 'radio', place = 'Drop A', placeKind = 'house',
+    titleKey = 'IGUI_CA_Mission_Retrieve', report = 'radio', place = 'Drop A', placeKind = 'house',
     quantity = 1, delivered = 0, accepted = {['Base.IDcard'] = true}, cardId = 777, placed = true, found = false,
     participants = {c1 = {name = 'alice'}}, invited = {}, receipts = {}, collectHours = 6, credited = {},
     drops = {{id = 'a', label = 'Drop A', x = 100, y = 100, z = 0, mode = 'box'}}}

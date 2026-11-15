@@ -6,7 +6,7 @@ rs.factions.incident, rs.carnet.leader) et de leurs aides d'autorité (RST_PeerC
 Chaque suite est jouée par le VRAI moteur RST (RST.lua, RST_Steps.lua, RST_Fixtures.lua, RST_PeerChecks.lua,
 RST_RSHelpers.lua, RST_LKGroupFixture.lua) en solo et sur un serveur dédié simulé avec deux clients (machines lupa,
 `next` retiré comme dans Kahlua, réseau en file livré au tick suivant ; doublures Java de tests/test_rs_mp_suites.py).
-Réels ici : RS_State, RS_Config, RC_Codec, RS_Relations, LK_Observations, RS_Factions (accords et incidents, doublure
+Réels ici : RS_State, RS_Config, CA_Codec, RS_Relations, LK_Observations, RS_Factions (accords et incidents, doublure
 de Faction de tests/test_factions.py), RS_Incidents, LK_Core. Doublures : moteur Living Knox réduit (groupes, corps,
 attitude et faits, choix de cible réduit aux règles incident / couvert), serveur du carnet réduit à ce que lisent les
 tests (hello, select, talk avec contexte relation / collectif / accord, file de requêtes, lecture du fichier de
@@ -237,7 +237,7 @@ end
 local PR = require "LivingKnox/LK_PersonalRelation"
 LK.API.relation, LK.API.relationPanel = PR.view, PR.panel
 LK.API.relationOffer, LK.API.relationApply = PR.offer, PR.apply
-F = (function() local A, T = require("LivingKnox/LK_Agreements"), require("RadioSurvivorCore/RC_Teams") return setmetatable({}, {__index = function(_, k) if A[k] ~= nil then return A[k] end return T[k] end}) end)()
+F = (function() local A, T = require("LivingKnox/LK_Agreements"), require("CoreAI/CA_Teams") return setmetatable({}, {__index = function(_, k) if A[k] ~= nil then return A[k] end return T[k] end}) end)()
 Rel = require "RadioSurvivor/RS_Relations"
 F.installHook()
 
@@ -319,7 +319,7 @@ function Server.command(module, command, player, args)
             owner = F.keyOf(player), name = player:getUsername() }
         Server.bound[player] = cid
         -- E18-T21: a living identity of the core mod (read by Living Knox's relation).
-        local I = require "RadioSurvivorCore/RC_Identity"
+        local I = require "CoreAI/CA_Identity"
         if I.ensure() then I.state.data.characters[cid] = { owner = F.keyOf(player), slot = 1 } end
         send(player, "identity", { character = cid })
         return

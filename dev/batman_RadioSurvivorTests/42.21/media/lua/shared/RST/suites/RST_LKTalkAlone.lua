@@ -62,8 +62,8 @@ local function spawnNear(t, after)
         Talk.pending = kept
         B().despawn(id, true)
     end, "forget " .. id)
-    local Hearing = require "RadioSurvivorCore/RC_Hearing"
-    local Speech = require "RadioSurvivorCore/RC_SpeechConfig"
+    local Hearing = require "CoreAI/CA_Hearing"
+    local Speech = require "CoreAI/CA_SpeechConfig"
     t:waitUntil(function() return Hearing.near(p, body, Speech.SELECT_RANGE) end, 8000,
         function(t2) after(t2, id, p) end, "body of the npc never near the player")
 end
@@ -104,13 +104,13 @@ RST.suite("lk.talk.alone", { tags = { "world", "server" }, testTimeoutMs = 15000
     s.test("a sentence said near an npc comes back as a bubble and stays in the history", function(t)
         setup(t)
         spawnNear(t, function(t2, id, p)
-            local Identity = require "RadioSurvivorCore/RC_Identity"
+            local Identity = require "CoreAI/CA_Identity"
             local character = Identity.bind(p)
             t2:ok(character ~= nil, "player without an identity")
             say(t2, id, p, "RST hello " .. tostring(getTimestampMs() % 100000), function(t3)
                 t3:waitUntil(function() return answered(id) end, REPLY_MS, function(t4)
                     t4:eq(1, exchanges(id, character), "answered exchanges")
-                    local History = require "RadioSurvivorCore/RC_History"
+                    local History = require "CoreAI/CA_History"
                     local lines = History.find(character, "lk:" .. id)
                     t4:ok(lines ~= nil and #lines == 2, "history of the exchange: " .. tostring(lines and #lines))
                     if multiplayer() then
@@ -129,16 +129,16 @@ RST.suite("lk.talk.alone", { tags = { "world", "server" }, testTimeoutMs = 15000
         local p = RST.Fixtures.player(t)
         t:ok(p ~= nil, "no target player")
         RST.LKGroup.ensure(t, p, function(t2, _, id)
-            local Identity = require "RadioSurvivorCore/RC_Identity"
-            local Journal = require "RadioSurvivorCore/RC_MissionJournal"
+            local Identity = require "CoreAI/CA_Identity"
+            local Journal = require "CoreAI/CA_MissionJournal"
             local character = Identity.bind(p)
             local Talk = LivingKnox.Talk
             Talk.data.contacts[character] = Talk.data.contacts[character] or {}
             Talk.data.contacts[character][id] = { stage = "acquainted", exchanges = 4 }
             Talk.lastTalk[character] = nil -- cooldown of the previous test
             local before = #Journal.rows(character)
-            local Hearing = require "RadioSurvivorCore/RC_Hearing"
-            local Speech = require "RadioSurvivorCore/RC_SpeechConfig"
+            local Hearing = require "CoreAI/CA_Hearing"
+            local Speech = require "CoreAI/CA_SpeechConfig"
             -- The member goes about its routine: asked once it stands in sight (MP campaign of 2026-11-07, "Range").
             t2:waitUntil(function() return Hearing.near(p, B().find(id), Speech.SELECT_RANGE) end, TALK_MS, function(t2b)
                 -- The menu entry: this NPC, whoever stands nearer.

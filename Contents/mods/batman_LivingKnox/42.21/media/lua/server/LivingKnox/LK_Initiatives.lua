@@ -29,8 +29,8 @@
 if isClient() then return end
 
 local Talk = require 'LivingKnox/LK_TalkHost'
-local C = require 'RadioSurvivorCore/RC_SpeechConfig'
-local T = require 'RadioSurvivorCore/RC_Transport'
+local C = require 'CoreAI/CA_SpeechConfig'
+local T = require 'CoreAI/CA_Transport'
 local P, Obs = Talk.provider, Talk.observations
 
 local I = {}

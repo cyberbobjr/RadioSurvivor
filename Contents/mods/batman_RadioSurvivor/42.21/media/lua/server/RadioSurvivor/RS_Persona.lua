@@ -6,7 +6,7 @@
 -- (« line N: raison », en anglais) et passe les autres sections sans les lire ; tests/test_personas.py compare les deux
 -- lecteurs, tests/test_persona_sections.py couvre ce que seul le serveur valide.
 -- Regles injectees (RS_Personas.rules, racine de composition) : template(nom) -> gabarit de mission donne par une
--- voix (RC_Missions.voiceTemplate, schema `params` declare par le gabarit), rewards (natures de recompense de
+-- voix (CA_Missions.voiceTemplate, schema `params` declare par le gabarit), rewards (natures de recompense de
 -- RS_Rewards.KINDS), skills (RS_Rewards.SKILLS), categories (catalogue partage personas/_categories.txt), arrivals
 -- (modes d'arrivee des marchands, RS_TradeArrivals.NAMES).
 -- Valeurs des parametres : RS_PersonaParams, un validateur par genre.

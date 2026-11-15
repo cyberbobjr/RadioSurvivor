@@ -1,7 +1,7 @@
 -- Voice mission `item` (E20-T15, ADR D06, D10) on a real building near the player. Real start path of a voice
 -- (RS_MissionVoice.start, sheet with one [mission] of type item, a place use=target in the nearest building and a
 -- place use=drop on the player's square, next to a real crate), real set-ups (RS_MissionTarget, RS_DeadDrops), real
--- engine poll (RC_Missions.observe: the template places the item through RC_Caches, then the drop hooks collect it),
+-- engine poll (CA_Missions.observe: the template places the item through CA_Caches, then the drop hooks collect it),
 -- real radio report (RS_MissionVoice.report).
 -- The personal item (Base.Locket, media/scripts/generated/items/clothing.txt:6937 in 42.22) is spawned by the server
 -- on the floor of the building; the suite picks it up as the server part of a transfer does (removed from the square
@@ -80,9 +80,9 @@ end
 
 local function run(t)
     if isClient() then t:skip('authority only') end
-    local M = require 'RadioSurvivorCore/RC_Missions'
+    local M = require 'CoreAI/CA_Missions'
     local V = require 'RadioSurvivor/RS_MissionVoice'
-    local Caches = require 'RadioSurvivorCore/RC_Caches'
+    local Caches = require 'CoreAI/CA_Caches'
     local gt = getGameTime()
     if (gt:getTimeOfDay() - 7) % 24 > 20 then
         gt:setTimeOfDay(8)
@@ -141,7 +141,7 @@ local function run(t)
         local w, square = floorObject(m)
         t2:ok(w ~= nil, 'placed item not on the floor at ' .. tostring(m.personal.at and m.personal.at.x))
         item = w:getItem()
-        t2:eq(m.personal.key, item:getModData().RS_Cache, 'placed item not marked')
+        t2:eq(m.personal.key, item:getModData().CA_Cache, 'placed item not marked')
         poll()
         t2:eq(true, m.personal.placed and floorObject(m) == w, 'placed twice')
         square:transmitRemoveItemFromSquare(w)

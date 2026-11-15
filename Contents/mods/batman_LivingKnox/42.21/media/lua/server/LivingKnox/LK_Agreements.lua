@@ -1,15 +1,15 @@
 if isClient() then return end
 --[==[
-Living Knox: agreements between one of its groups ('grp-<n>') and a team of players ('fac-<n>', RC_Teams of the core
+Living Knox: agreements between one of its groups ('grp-<n>') and a team of players ('fac-<n>', CA_Teams of the core
 mod), personal truces kept by an NPC who left its group, and incidents of an agreement (E09-T05, E09-T06, E10-T04;
 kept by Living Knox since E18-T20, user decision of 2026-11-06, moved from RadioSurvivor's RS_Factions, rules
 unchanged). Authority only. Fiches: docs/annexes/conception/accords.md, incidents.md, depart.md.
 
 Kinds, from the weakest: truce, alliance; both impose non-aggression in their scope (ADR B08), neither changes the
 attitude of LK_Hostility. Scope (explicit, same for every agreement): every member of the group, every CURRENT member
-of the team (vanilla faction read again by RC_Teams; a player who joins is covered, one who leaves is not) or the owner
+of the team (vanilla faction read again by CA_Teams; a player who joins is covered, one who leaves is not) or the owner
 of a personal team. Offer issued by the server (A.negotiation: fixed terms, kinds above the current one, only for a
-player who may conclude now: owner or negotiator, RC_Teams.canConclude), conclusion by A.conclude (mandate read again,
+player who may conclude now: owner or negotiator, CA_Teams.canConclude), conclusion by A.conclude (mandate read again,
 same team, same revision of the agreement: two conclusions built on the same revision, only the first one is applied).
 The group side (leader, composition) is checked by the caller before A.conclude.
 Application: the hook LivingKnox.Hooks.covered (LK_Hostility.chooseTarget, LK_Decisions.helpTarget) is A.covered, the
@@ -19,17 +19,17 @@ embodied member of the group (LivingKnox.Decisions.aims), that none of them aims
 Until E18-T17 the speech of the NPCs (offer in the context, intent of the model, incident decision asked to the leader)
 is still carried by RadioSurvivor's notebook, which calls this module through LivingKnox.Agreements.
 
-Private state, two slot files written in turn (RC_SlotFile): Zomboid/Lua/batman_LivingKnox/agreements-<hex of
+Private state, two slot files written in turn (CA_SlotFile): Zomboid/Lua/batman_LivingKnox/agreements-<hex of
 "mode/world">-<0|1>.txt, header LKAGR1, data = { schema = 1, agreementCounter, agreements = { ['<group>|<team>'] =
 agreement }, truces = { [npc] = { [team] = truce } }, incidents = { counter, open, closed } }, written within a game
 minute of a change. Never in a global ModData nor sent to a client. A team record dropped for good by the core mod
-takes its agreements away (RC_Teams.onDrop). No hand-over of games saved before the split (user decision of
+takes its agreements away (CA_Teams.onDrop). No hand-over of games saved before the split (user decision of
 2026-11-06). Console messages in English.
 ]==]
 require 'LivingKnox/LK_Core'
-local SlotFile = require 'RadioSurvivorCore/RC_SlotFile'
-local Identity = require 'RadioSurvivorCore/RC_Identity'
-local Teams = require 'RadioSurvivorCore/RC_Teams'
+local SlotFile = require 'CoreAI/CA_SlotFile'
+local Identity = require 'CoreAI/CA_Identity'
+local Teams = require 'CoreAI/CA_Teams'
 
 local F = LivingKnox.Agreements or {}
 LivingKnox.Agreements = F
@@ -54,7 +54,7 @@ end
 function F.init(newWorld)
     if F.data ~= nil or store_.blocked then return F.data ~= nil end
     store_.base = SlotFile.worldBase(F.DIR, 'agreements')
-    if require('RadioSurvivorCore/RC_WorldStart').isNewWorld(newWorld == true) then
+    if require('CoreAI/CA_WorldStart').isNewWorld(newWorld == true) then
         F.data, store_.seq = fresh(), 0
         return F.save()
     end
@@ -132,7 +132,7 @@ local function agreementKey(gid, team) return gid .. '|' .. team end
 
 local function validGroup(gid) return type(gid) == 'string' and gid:match('^grp%-%d+$') ~= nil end
 
--- Team id of an account without creating anything (core mod, RC_Teams).
+-- Team id of an account without creating anything (core mod, CA_Teams).
 local function teamOfAccount(_, account) return Teams.teamOfAccount(account) end
 
 -- Evaluation number reached by the decision frame of Living Knox (nil without the engine part).

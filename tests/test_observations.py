@@ -393,7 +393,7 @@ class TriggerTests(unittest.TestCase):
         sim.select('alice')
         other = self.npc(3001)
         state = sim.state()
-        M = self.rt.eval("require('RadioSurvivorCore/RC_Missions')")
+        M = self.rt.eval("require('CoreAI/CA_Missions')")
         m = M.create(state, state.npcs[self.fid], alice, None)
         state.characters[alice].knownMissions[m.id] = True
         sim.request_mission('alice', 'accept')

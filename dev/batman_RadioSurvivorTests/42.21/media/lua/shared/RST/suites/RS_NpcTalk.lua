@@ -15,7 +15,7 @@ on a leader without body; given back at the end), selected and spoken to with th
              tried (noted).
     E17-T09  "maybe later?" after an offer: the offer stays an offer; the notebook Accept button still accepts it.
     E17-T13  a long answer asked for: its speech bubble (LK_SpeechView) is cut in pieces of whole sentences
-             (RC_TextCut.pieces, PIECE characters at most, never inside a word), shown one after another, each one
+             (CA_TextCut.pieces, PIECE characters at most, never inside a word), shown one after another, each one
              only after the previous one had its reading time (View.pieceLog). Pieces noted in the report.
 Results that depend on the model (offer made, acceptance understood) are FAIL with an explicit "model" message: read
 them with the answers noted in the report.
@@ -203,8 +203,8 @@ end
 
 -- Scout offer of the fiche made by the suite (the model made none); nil when no building fits around.
 local function directOffer(c)
-    local M = require "RadioSurvivorCore/RC_Missions"
-    local Scout = require "RadioSurvivorCore/RC_MissionScout"
+    local M = require "CoreAI/CA_Missions"
+    local Scout = require "CoreAI/CA_MissionScout"
     local cfg = c.C.Missions.scout
     Scout.resetForTests()
     c.fiche.nextOfferAt = nil
@@ -218,7 +218,7 @@ end
 -- Scout offer possible around the player (probe npc, nothing created), for R.place.
 local function scoutFits(pl)
     local C = require "RadioSurvivor/RS_Config"
-    local Scout = require "RadioSurvivorCore/RC_MissionScout"
+    local Scout = require "CoreAI/CA_MissionScout"
     local x, y = pl:getX(), pl:getY()
     Scout.resetForTests()
     return Scout.offer(C.Missions.scout, { id = "rst-npctalk-probe" }, nil,
@@ -294,10 +294,10 @@ RST.suite("rs.npctalk", { mods = { "rs", "lk" },
     end)
 
     -- The bubble is read on the requester client (RST.Steps "lk.speech.pieces": View.lastPieces and View.pieceLog of
-    -- its LK_SpeechView); the cut is judged here with the same RC_TextCut.
+    -- its LK_SpeechView); the cut is judged here with the same CA_TextCut.
     s.test("a long answer is shown in bubble pieces of whole sentences, one after another (E17-T13)", function(t)
         setup(t, function(t2, c)
-            local TextCut = require "RadioSurvivorCore/RC_TextCut"
+            local TextCut = require "CoreAI/CA_TextCut"
             say(t2, c, c.words.long, function() end, function(t3, _, answer)
                 RST.Steps.ask(t3, "lk.speech.pieces", { answer = answer }, { target = "requester", timeoutMs = 240000,
                     assert = false }, function(t4, res)

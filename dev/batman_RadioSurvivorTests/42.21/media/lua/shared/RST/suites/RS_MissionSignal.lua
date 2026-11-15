@@ -1,5 +1,5 @@
 --[[
-rs.mission.signal - mission template "signal" (E11-T07, server/RadioSurvivorCore/RC_MissionSignal.lua) with the real
+rs.mission.signal - mission template "signal" (E11-T07, server/CoreAI/CA_MissionSignal.lua) with the real
 required mod Signal Smoke: a building drawn around the player on the real metagrid, a colour and an hour, a circle
 centred on the building; real signals started through the public Signal Smoke API (SignalSmoke.start, as a thrown
 grenade of the player: source "grenade", player = the target player) at the centre of the circle: a signal of another
@@ -19,7 +19,7 @@ with the real notebook state and the real listener of the template. Tags "server
 entry "rs.mission" (mp) and by its own name (solo). The requester of the mission is a Living Knox test npc with its
 notebook fiche next to the player (RST.RSHelpers.npcWithFiche; moved to the nearest town when no building fits, player
 in god mode: RST.SignalClientSuite.requester). The authority creates the offer from the real draw of the template
-(Signal.offer around the npc body, then RC_Missions.create), its hour window set OUTSIDE the current game hour; then
+(Signal.offer around the npc body, then CA_Missions.create), its hour window set OUTSIDE the current game hour; then
 every player gesture goes through the requester client (RST.Steps, RST_PeerChecks / RST_PeerChecks2 /
 RST_PeerChecksSignal: the real network path in MP, the same code in one Lua state in solo):
     accept       notebook command "accept" (RST.Steps "carnet.send", the Accept button): the mission is active and
@@ -56,8 +56,8 @@ local function modules(t)
     if type(isClient) == "function" and isClient() then
         t:skip("RS_MissionSignal is not loaded on an MP client (authority only)")
     end
-    local M = require "RadioSurvivorCore/RC_Missions"
-    local Signal = require "RadioSurvivorCore/RC_MissionSignal"
+    local M = require "CoreAI/CA_Missions"
+    local Signal = require "CoreAI/CA_MissionSignal"
     if type(M) ~= "table" or type(Signal) ~= "table" then
         t:skip("mission modules did not return their table here")
     end
@@ -215,9 +215,9 @@ local function size(map)
 end
 
 -- The test mission, the fiche fields it changes, the contact, the outcome and the reputation entry of the character
--- put back at the end (notebook state, RC_Reputation).
+-- put back at the end (notebook state, CA_Reputation).
 local function guardMission(t, Server, m, cid, fiche, saved)
-    local Rep = require "RadioSurvivorCore/RC_Reputation"
+    local Rep = require "CoreAI/CA_Reputation"
     Rep.ensure()
     local record = Server.store.data.characters[cid]
     local hadContact = record.contacts[fiche.id] ~= nil

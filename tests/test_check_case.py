@@ -259,7 +259,7 @@ class RepositoryTest(unittest.TestCase):
         self.assertEqual([str(p) for p in cc.check_mod(cc.CORE_MOD, [cc.SIGNAL_MOD], vanilla)], [])
         problems = [str(p) for p in cc.check_mod(cc.CORE_MOD, [], vanilla)]
         self.assertEqual(len(problems), 1, problems)
-        self.assertIn('RC_MissionSignal.lua', problems[0])
+        self.assertIn('CA_MissionSignal.lua', problems[0])
         self.assertIn('require "SignalSmoke/SignalSmoke" not found', problems[0])
 
 

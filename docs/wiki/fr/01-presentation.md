@@ -8,8 +8,8 @@ survivants humains qui vivent, se battent et fortifient leur foyer. Solo et mult
 **Build 42.21**.
 
 C'est un seul objet Workshop avec **trois mods** : **Radio Survivor** (`batman_RadioSurvivor` : la radio et ses
-voix), **Living Knox** (`batman_LivingKnox` : les groupes de PNJ) et **Radio Survivor Core**
-(`batman_RadioSurvivorCore` : ce que les deux partagent, activé pour vous). Vous pouvez jouer avec Radio Survivor,
+voix), **Living Knox** (`batman_LivingKnox` : les groupes de PNJ) et **Core AI**
+(`batman_CoreAI` : ce que les deux partagent, activé pour vous). Vous pouvez jouer avec Radio Survivor,
 avec Living Knox, ou avec les deux ([quels mods cocher](04-installation.md)). Cette page décrit tout ; chaque partie
 dit quel mod l'apporte.
 

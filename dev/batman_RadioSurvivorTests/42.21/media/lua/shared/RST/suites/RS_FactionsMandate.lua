@@ -1,6 +1,6 @@
 --[[
 rs.factions.mandate - team identifier of the mod and negotiation mandates (E09-T03, server/RadioSurvivor/
-RC_Teams.lua) with real clients of a dedicated server:
+CA_Teams.lua) with real clients of a dedicated server:
     MP  the requester client creates a vanilla faction through the faction panel packet (RST.Steps "rs.faction":
         sendFactionCreate), the server adds the second client as a member (Faction:addPlayer, what an accepted
         invitation does on the server; the invitation dialog itself is not driven). Both players share one team id.
@@ -28,8 +28,8 @@ local GID = "grp-990001"   -- test group id: LK_Agreements checks its form only;
 
 local function modules(t)
     if type(isClient) == "function" and isClient() then t:skip("agreements are authority only (solo or server)") end
-    local F = RST.factions() -- E18-T20: RC_Teams (ids, mandates) and LK_Agreements
-    t:ok(type(F.canConclude) == "function", "RadioSurvivorCore/RC_Teams not loaded")
+    local F = RST.factions() -- E18-T20: CA_Teams (ids, mandates) and LK_Agreements
+    t:ok(type(F.canConclude) == "function", "CoreAI/CA_Teams not loaded")
     local Server = RS_CarnetServer
     if type(Server) ~= "table" or type(Server.store) ~= "table" or Server.store.data == nil then
         t:skip("notebook server state not ready (RS_CarnetServer)")

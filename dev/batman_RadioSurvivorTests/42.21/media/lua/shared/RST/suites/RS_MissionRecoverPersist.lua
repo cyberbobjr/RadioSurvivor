@@ -37,7 +37,7 @@ local function modules(t)
     return Caches, require "RadioSurvivor/RS_Config"
 end
 
--- Floor items of the bounds marked RS_Cache = key: list of { item, square, object }.
+-- Floor items of the bounds marked CA_Cache = key: list of { item, square, object }.
 function RP.markedBags(Caches, b, z, key)
     local out = {}
     local cell = getCell()

@@ -15,26 +15,26 @@ Survivor item holds all three mods, so it is listed once:
 
 ```ini
 WorkshopItems=<Radio Survivor Workshop ID>;3817018338;3694097672;3811010882
-Mods=TooltipLib;batman_BeltRadio;batman_SignalSmoke;batman_RadioSurvivorCore;batman_RadioSurvivor;batman_LivingKnox
+Mods=TooltipLib;batman_BeltRadio;batman_SignalSmoke;batman_CoreAI;batman_RadioSurvivor;batman_LivingKnox
 ```
 
-Keep `batman_RadioSurvivorCore`, then `batman_RadioSurvivor` and/or `batman_LivingKnox`: drop the one you do not want
+Keep `batman_CoreAI`, then `batman_RadioSurvivor` and/or `batman_LivingKnox`: drop the one you do not want
 (Living Knox alone does not need `batman_BeltRadio` or `TooltipLib`). Keep your other entries; separate them with `;`.
 The Radio Survivor Workshop ID is shown at the bottom of its Workshop page. Remove Bandits! and Project A-Life if they are listed (one NPC engine per game).
 
 ## 2. The exchange folder
 
-The server writes to `<server Zomboid folder>/Lua/batman_RadioSurvivorCore/`. The bridge must watch **exactly that
+The server writes to `<server Zomboid folder>/Lua/batman_CoreAI/`. The bridge must watch **exactly that
 folder**.
 
 | Case | Exchange folder |
 |---|---|
-| Windows, no `-cachedir` | `C:\Users\<account>\Zomboid\Lua\batman_RadioSurvivorCore` |
-| Linux, no `-cachedir` | `/home/<account>/Zomboid/Lua/batman_RadioSurvivorCore` |
-| Server started with `-cachedir=X` | `X/Lua/batman_RadioSurvivorCore` |
+| Windows, no `-cachedir` | `C:\Users\<account>\Zomboid\Lua\batman_CoreAI` |
+| Linux, no `-cachedir` | `/home/<account>/Zomboid/Lua/batman_CoreAI` |
+| Server started with `-cachedir=X` | `X/Lua/batman_CoreAI` |
 
 `<account>` is the account **that runs the server**. Without `--exchange`, the bridge uses
-`~/Zomboid/Lua/batman_RadioSurvivorCore` of **its own** account: pass `--exchange` as soon as the server runs under
+`~/Zomboid/Lua/batman_CoreAI` of **its own** account: pass `--exchange` as soon as the server runs under
 another account or with `-cachedir`.
 
 - The bridge creates the folder if it is missing, so a typo gives no error. Check: while the bridge runs, the folder
@@ -57,7 +57,7 @@ another account or with `-cachedir`.
 
 ```sh
 python3 /opt/radiosurvivor-bridge/radio_bridge.py --env /etc/radiosurvivor/bridge.env \
-  --exchange /srv/pz/cache/Lua/batman_RadioSurvivorCore \
+  --exchange /srv/pz/cache/Lua/batman_CoreAI \
   --test "Hello?" --personas /srv/pz/cache/Lua/batman_RadioSurvivor/personas
 ```
 
@@ -70,7 +70,7 @@ Then the same command without `--test` and `--personas`, and wait for `Bridge re
 In an administrator command prompt (one line):
 
 ```bat
-schtasks /Create /TN "RadioSurvivor bridge" /SC ONSTART /RU <account> /RP * /TR "\"C:\Program Files\Python312\python.exe\" C:\RadioSurvivorBridge\radio_bridge.py --env C:\RadioSurvivorBridge-secret\bridge.env --exchange D:\PZServer\cache\Lua\batman_RadioSurvivorCore"
+schtasks /Create /TN "RadioSurvivor bridge" /SC ONSTART /RU <account> /RP * /TR "\"C:\Program Files\Python312\python.exe\" C:\RadioSurvivorBridge\radio_bridge.py --env C:\RadioSurvivorBridge-secret\bridge.env --exchange D:\PZServer\cache\Lua\batman_CoreAI"
 ```
 
 In the task properties, untick "Stop the task if it runs longer than 3 days" and enable restart on failure. Or start
@@ -88,7 +88,7 @@ Wants=network-online.target
 
 [Service]
 User=<PZ server account>
-ExecStart=/usr/bin/python3 /opt/radiosurvivor-bridge/radio_bridge.py --env /etc/radiosurvivor/bridge.env --exchange /srv/pz/cache/Lua/batman_RadioSurvivorCore
+ExecStart=/usr/bin/python3 /opt/radiosurvivor-bridge/radio_bridge.py --env /etc/radiosurvivor/bridge.env --exchange /srv/pz/cache/Lua/batman_CoreAI
 Restart=on-failure
 RestartSec=10
 KillSignal=SIGINT
@@ -111,7 +111,7 @@ docker run -d --name rs-bridge --restart unless-stopped \
   -v /opt/radiosurvivor-bridge:/bridge:ro \
   -v /etc/radiosurvivor/bridge.env:/run/bridge.env:ro \
   python:3.12-slim \
-  python /bridge/radio_bridge.py --env /run/bridge.env --exchange /zomboid/Lua/batman_RadioSurvivorCore
+  python /bridge/radio_bridge.py --env /run/bridge.env --exchange /zomboid/Lua/batman_CoreAI
 ```
 
 `--user` must be the owner of the server files so both processes can read and write each other's files. The path of

@@ -286,7 +286,7 @@ class StateAndSaveTests(unittest.TestCase):
 
     def test_state_size_matches_the_encoded_registries_and_fields(self):
         st = self.h.eval('server', f'{L}.stateSize()')
-        codec = 'local C = require "RadioSurvivorCore/RC_Codec" '
+        codec = 'local C = require "CoreAI/CA_Codec" '
         groups = self.h.load('server', codec + 'return #C.encodeBytes(LivingKnox.Groups.state.data) * 2')
         self.assertEqual(st.groups, groups)
         self.assertEqual(st.registry, self.h.load('server', codec + 'return #C.encodeBytes(LivingKnox.Store.state.data) * 2'))

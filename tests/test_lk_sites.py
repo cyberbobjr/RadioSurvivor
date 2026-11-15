@@ -29,7 +29,7 @@ from test_rescue import DOUBLES, WORLD  # noqa: E402  (doublures fidèles de la 
 
 ROOT = Path(__file__).resolve().parents[1]
 MOD_LUA = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivor' / '42.21' / 'media' / 'lua'
-CORE_LUA = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivorCore' / '42.21' / 'media' / 'lua'  # mod commun (E18)
+CORE_LUA = ROOT / 'Contents' / 'mods' / 'batman_CoreAI' / '42.21' / 'media' / 'lua'  # mod commun (E18)
 LK_LUA = ROOT / 'Contents' / 'mods' / 'batman_LivingKnox' / '42.21' / 'media' / 'lua'  # moteur des PNJ (E18-T07)
 TESTS_LUA = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua'
 MODULE = LK_LUA / 'server' / 'LivingKnox' / 'LK_Sites.lua'
@@ -395,7 +395,7 @@ class BuildingTests(SitesHarness):
 
 class WithoutRadioSurvivorTests(SitesHarness):
     """E18-T08: Living Knox alone (core mod and Living Knox on the package path, no RadioSurvivor module): sites and
-    known bases come from the core mod (RC_Sites), with the same bases as RS_Rescue when RadioSurvivor is there."""
+    known bases come from the core mod (CA_Sites), with the same bases as RS_Rescue when RadioSurvivor is there."""
 
     def setUp(self):
         super().setUp()

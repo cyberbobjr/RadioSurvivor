@@ -5,7 +5,7 @@ test (development mod only). Load with: require "RST/RST_FactsBook". No side eff
     local Facts = RST.FactsBook.keep(t)
         RS_Facts when it is loaded here (authority of a game with RadioSurvivor active) and its book exists, else nil.
         The book is copied now; a cleanup (t:defer) puts that copy back and saves the private state, whatever the
-        test recorded meanwhile (deaths, a mission closed through RC_Missions.finish...).
+        test recorded meanwhile (deaths, a mission closed through CA_Missions.finish...).
 ]]
 
 require "RST/RST"

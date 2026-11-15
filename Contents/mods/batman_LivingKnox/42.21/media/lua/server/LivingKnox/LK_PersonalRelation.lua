@@ -5,7 +5,7 @@ decision confirmed by default on 2026-11-06; moved from RadioSurvivor's RS_Relat
 only. Design: docs/annexes/conception/relations.md. Decision of 2026-10-13: personal gap bounded to one level above
 or below the attitude of the NPC's group.
 
-Key: Living Knox NPC id ('lk-<n>') + character id (identity of the core mod, RC_Identity; = LK_Hostility.keyOf).
+Key: Living Knox NPC id ('lk-<n>') + character id (identity of the core mod, CA_Identity; = LK_Hostility.keyOf).
 Shown level = level of the group attitude (LivingKnox.API.attitude, 5 levels of E09-T01) moved by the personal gap
 (-1, 0, +1), clamped to hostile..trusting. Without a group basis the level starts from the start attitude of the
 group type (hostile, else cautious). Trend (E09-T01 rule): sign of the sum of the senses of the three last relation
@@ -24,7 +24,7 @@ Citable facts (all with a known nature):
             observations this NPC saw ('obs:<key>', source 'seen') and the closed missions of this NPC the character
             took part in ('mis:<id>', source 'mission'). Golden rule of 2026-11-06: each mod brings its own context.
 
-Private state, two slot files written in turn (RC_SlotFile): Zomboid/Lua/batman_LivingKnox/personal-relations-<hex of
+Private state, two slot files written in turn (CA_SlotFile): Zomboid/Lua/batman_LivingKnox/personal-relations-<hex of
 "mode/world">-<0|1>.txt, header LKPREL1, never a global ModData:
   data = { relations = { [npc id] = { [character] = { gap = -1..1, revision = n,
            changes = { { sign, day, fact, what }, ... } (TREND_FACTS last), used = { fact key, ... } (MAX_USED last,
@@ -34,9 +34,9 @@ game starts from scratch). Purge (R.prune, at start, every game day and at the
 death of a character): relations of NPCs gone from the Living Knox registry and of retired characters.
 Console messages in English.
 ]==]
-local SlotFile = require "RadioSurvivorCore/RC_SlotFile"
-local Identity = require "RadioSurvivorCore/RC_Identity"
-local WorldStart = require "RadioSurvivorCore/RC_WorldStart"
+local SlotFile = require "CoreAI/CA_SlotFile"
+local Identity = require "CoreAI/CA_Identity"
+local WorldStart = require "CoreAI/CA_WorldStart"
 require "LivingKnox/LK_Core"
 require "LivingKnox/LK_Store"
 require "LivingKnox/LK_Groups"

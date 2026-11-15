@@ -1,6 +1,6 @@
 -- Voice mission `barricade` (E20-T09, ADR D10) on a real building near the player. Real start path of a voice
 -- (RS_MissionVoice.start, sheet with one [mission] of type barricade, count 2, and one place use=target inside the
--- building), real set-up of the target place (RS_MissionTarget), real engine poll (RC_Missions.observe: the template
+-- building), real set-up of the target place (RS_MissionTarget), real engine poll (CA_Missions.observe: the template
 -- reads the building's openings on the server), real radio report (RS_MissionVoice.report).
 -- The barricades are put up as the server part of the player's gesture does (vanilla ISBarricadeAction:complete,
 -- media/lua/shared/TimedActions/ISBarricadeAction.lua:109-160 in 42.22): IsoBarricade.AddBarricadeToObject(opening,
@@ -65,9 +65,9 @@ end
 
 local function run(t)
     if isClient() then t:skip('authority only') end
-    local M = require 'RadioSurvivorCore/RC_Missions'
+    local M = require 'CoreAI/CA_Missions'
     local V = require 'RadioSurvivor/RS_MissionVoice'
-    local B = require 'RadioSurvivorCore/RC_MissionBarricade'
+    local B = require 'CoreAI/CA_MissionBarricade'
     local p = F.player(t)
     if not p then t:skip('no target player') end
     local openings = findBuilding(p)

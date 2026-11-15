@@ -24,7 +24,7 @@ soit, et sans désaccorder l'attitude collective du groupe (`LK_Hostility`), qui
 | Fait | Preuve | Statut |
 |---|---|---|
 | Aucune ModData globale pour un état privé (lisible par tout client). | base `multiplayer.md` | confirmé statiquement |
-| L'état privé (Living Knox depuis E18-T21) est un fichier du serveur, sauvegardé à deux emplacements. | `RC_SlotFile.lua` | confirmé (bancs) |
+| L'état privé (Living Knox depuis E18-T21) est un fichier du serveur, sauvegardé à deux emplacements. | `CA_SlotFile.lua` | confirmé (bancs) |
 | Clé de personnage : identité du carnet, la même que `LK_Hostility.keyOf`. | [attitude.md](attitude.md) | confirmé (bancs) |
 | Un client MP charge `media/lua/server` : garde `isClient()` en tête. | base `mod-loading.md` | confirmé statiquement |
 
@@ -37,7 +37,7 @@ du groupe** (option recommandée).
 
 État privé de **Living Knox** (E18-T21, décision confirmée par défaut le 2026-11-06 : la relation appartient au moteur
 des PNJ, règle d'or « RadioSurvivor et Living Knox vivent l'un sans l'autre ») :
-`Zomboid/Lua/batman_LivingKnox/personal-relations-<partie>-<0|1>.txt` (deux emplacements `RC_SlotFile`, en-tête
+`Zomboid/Lua/batman_LivingKnox/personal-relations-<partie>-<0|1>.txt` (deux emplacements `CA_SlotFile`, en-tête
 `LKPREL1`), `relations[<PNJ Living Knox lk-n>][<personnage>] = { gap = -1..1, revision, changes = { { sign, day, fact,
 what } } (3 derniers), used = { clé de fait, ... } (64 derniers) }` ; créé au premier changement seulement, écrit à
 chaque changement. Purgé au démarrage, chaque jour de jeu et à la mort d'un personnage (identité retirée du mod

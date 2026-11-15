@@ -1,5 +1,5 @@
 --[[
-rs.factions.accord - faction agreements with a Living Knox group (E09-T05, LK_Agreements.lua (Living Knox) and RC_Teams.lua
+rs.factions.accord - faction agreements with a Living Knox group (E09-T05, LK_Agreements.lua (Living Knox) and CA_Teams.lua
 (core mod)) on
 the running engine: the server offers fixed terms to a player who may conclude for its team (here the player's own
 team: owner of its faction, or of its personal team in solo), a truce is concluded with a group whose body is loaded
@@ -40,7 +40,7 @@ local function modules(t)
     if type(E.Hostility) ~= "table" or type(E.Decisions) ~= "table" or type(E.Decisions.aims) ~= "function" then
         t:skip("Living Knox server part not loaded here")
     end
-    local F = RST.factions() -- E18-T20: LK_Agreements and RC_Teams
+    local F = RST.factions() -- E18-T20: LK_Agreements and CA_Teams
     local Server = RS_CarnetServer
     if type(F) ~= "table" or type(Server) ~= "table" or not Server.store or not Server.store.data then
         t:skip("notebook server state not ready")

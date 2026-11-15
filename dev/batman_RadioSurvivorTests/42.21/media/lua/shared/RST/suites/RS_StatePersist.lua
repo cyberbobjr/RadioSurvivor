@@ -5,7 +5,7 @@ RS_State.lua and RS_StatePurge.lua). Played by autoclient.py --mp --phases resta
     rs.state.before         (opt-in "manual") five test character records added to the real notebook store
                             (RS_CarnetServer.store = RS_State), saved once at the real game day, then saved again
                             through the real S.save -> S.maintenance -> Purge.run path with the purge clock moved
-                            DROP_DAYS + 1 game days ahead (RC_Reputation.today, the clock the purge reads, replaced
+                            DROP_DAYS + 1 game days ahead (CA_Reputation.today, the clock the purge reads, replaced
                             for that one save and restored at once; GameTime untouched):
                               living  never retired                  -> kept as is
                               old     retired, not in use            -> stripped then dropped
@@ -43,8 +43,8 @@ local function setup(t)
     local S = R.notebook(t).store
     if S.blocked then t:skip("notebook storage blocked") end
     local Purge = require "RadioSurvivor/RS_StatePurge"
-    local Rep = require "RadioSurvivorCore/RC_Reputation"
-    t:ok(type(Rep) == "table" and type(Rep.today) == "function", "RC_Reputation (purge clock) not loaded")
+    local Rep = require "CoreAI/CA_Reputation"
+    t:ok(type(Rep) == "table" and type(Rep.today) == "function", "CA_Reputation (purge clock) not loaded")
     return S, Purge, Rep
 end
 
@@ -84,7 +84,7 @@ local function record(cid, name, retiredDay, retired)
         contacts = { ["rst-state-npc"] = { name = "RST" } }, knownMissions = { ["rst-state-mission"] = true } }
 end
 
--- One S.save with the purge clock (RC_Reputation.today) at `day`; restored before returning, error or not.
+-- One S.save with the purge clock (CA_Reputation.today) at `day`; restored before returning, error or not.
 local function saveAt(S, Rep, day)
     local real = Rep.today
     Rep.today = function() return day end
@@ -123,7 +123,7 @@ RST.suite("rs.state.before", { tags = { "server", "world", "manual" }, testTimeo
     s.test("purge after some game weeks through the real save, kept records snapshotted", function(t)
         local S, Purge, Rep = setup(t)
         local today = Rep.today()
-        if type(today) ~= "number" then t:skip("no game clock (RC_Reputation.today)") end
+        if type(today) ~= "number" then t:skip("no game clock (CA_Reputation.today)") end
         local stale = removeTestRecords(S)
         if stale > 0 then t:note(stale .. " test record(s) of a previous run removed") end
         local stamp = string.format("%.0f", RST.now())

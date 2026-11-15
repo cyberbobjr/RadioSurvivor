@@ -204,9 +204,9 @@ end
 
 -- Notebook server double: identity(), hello and characterDeath with the rules of RS_Carnet_Server.lua.
 package.loaded["RadioSurvivor/RS_Config"] = { VERSION = 2, MODULE = "RS_Carnet", OFFER_TTL_MS = 3600000,
-    Missions = { deliver = { id = "first_aid_v1", titleKey = "IGUI_RC_Mission_FirstAid", quantity = 6, durationMs = 7200000,
+    Missions = { deliver = { id = "first_aid_v1", titleKey = "IGUI_CA_Mission_FirstAid", quantity = 6, durationMs = 7200000,
         accepted = { ["Base.Bandage"] = true }, rewardType = "Base.Bullets9mm", rewardCount = 20 } } }
-KEY = "RS_CarnetCharacter"
+KEY = "CA_Character"
 DATA = { world = "w1", characters = {}, missions = {}, npcs = {} }
 -- Living Knox test NPC (LivingKnox.API.testSpawnNpc) seen by the provider (RS_NPCProvider) at once.
 NPCS, NPC_SEQ = {}, 0
@@ -217,7 +217,7 @@ LivingKnox = { API = {
 package.loaded["RadioSurvivor/RS_NPCProvider"] = { active = function() return { name = "livingknox" } end,
     available = function() return true end, objects = function() return NPCS end, id = function(b) return b.id end }
 -- RS_Missions.accept with the rules of RS_Missions.lua.
-package.loaded["RadioSurvivorCore/RC_Missions"] = { accept = function(state, m, character, name)
+package.loaded["CoreAI/CA_Missions"] = { accept = function(state, m, character, name)
     if not m or not m.invited[character] or m.transaction or (m.state ~= "offer" and m.state ~= "active") then
         return false end
     if m.participants[character] then return true end
@@ -299,7 +299,7 @@ local CC = RS_CarnetClient
 function CC.send(command, args) sendClientCommand(getPlayer(), "RS_Carnet", command, args or {}) end
 function CC.receive(command, args) if command == "identity" then CC.character = args.character end end
 function CC.hello() CC.send("hello", { v = 2, character = getPlayer():getModData()[KEY] }) end
-KEY = "RS_CarnetCharacter"
+KEY = "CA_Character"
 Events.OnServerCommand.Add(function(m, c, a) if m == "RS_Carnet" then CC.receive(c, a or {}) end end)
 Events.OnCreatePlayer.Add(function(num) if num == 0 then CC.hello() end end)
 -- Death packet (PlayerDeath): the client copy dies, its corpse holds the inventory of the server corpse.

@@ -46,7 +46,7 @@ local D = RST.DeathSuite
 local PD = RST.PeerDeath
 local Steps = RST.Steps
 
-D.KEY = "RS_CarnetCharacter"     -- RS_Carnet_Server.lua IDENTITY_KEY
+D.KEY = "CA_Character"     -- RS_Carnet_Server.lua IDENTITY_KEY
 D.BOUND_MS = 20000                -- identity of a connected client (hello at game start)
 D.GOD_MS = 10000                  -- ExtraInfo packet of the client applied on the server
 D.DEATH_MS = 15000                -- OnCharacterDeath, then the corpse

@@ -2,7 +2,7 @@
 
 A voice `deliver` mission carries all its drops; deposits at several drops add up, each item credited once. A drop is
 collected only out of everyone's view (RS_OutOfSight: 100 tiles, or square not loaded) and after a delay in game hours
-(RC_GameClock, real modules). These tests prove server logic, not Java API compatibility or network delivery; the
+(CA_GameClock, real modules). These tests prove server logic, not Java API compatibility or network delivery; the
 doubles only define methods that exist in the game (GameTime.getWorldAgeHours, getMinutesPerDay, ItemContainer...).
 """
 from pathlib import Path
@@ -13,7 +13,7 @@ import lupa.lua51 as lupa
 ROOT = Path(__file__).resolve().parents[1]
 SERVER = ROOT / 'Contents/mods/batman_RadioSurvivor/42.21/media/lua/server'
 MODULE = SERVER / 'RadioSurvivor/RS_DeadDrops.lua'
-CORE = ROOT / 'Contents/mods/batman_RadioSurvivorCore/42.21/media/lua'
+CORE = ROOT / 'Contents/mods/batman_CoreAI/42.21/media/lua'
 
 WORLD = r'''
 NOW, HOURS, SAVES, SAVE_OK, SYNC, REMOVED = 100000, 50, 0, true, 0, 0

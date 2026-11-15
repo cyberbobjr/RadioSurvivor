@@ -177,7 +177,7 @@ local function setup(t)
     t:ok(type(cid) == "string", "no notebook character bound to the requester")
     return { Server = Server, S = Server.store, C = C, E = E, API = E.API, p = p, cid = cid,
         Obs = require "LivingKnox/LK_Observations", P = require "RadioSurvivor/RS_NPCProvider",
-        M = require "RadioSurvivorCore/RC_Missions" }
+        M = require "CoreAI/CA_Missions" }
 end
 
 local function count(tbl)
@@ -453,7 +453,7 @@ RST.suite("rs.observations", { mods = { "rs", "lk" },
                 sc.c.S.dirty = true
             end, "test contacts removed")
             local before = count(sc.c.S.data.npcs)
-            -- The trigger needs A to hear the player (RC_Hearing: no hearing through a building the other one is not
+            -- The trigger needs A to hear the player (CA_Hearing: no hearing through a building the other one is not
             -- in). The default spots follow the player's square (solo campaign of 2026-11-13: A 3 squares away across
             -- a wall, never heard): a layout where A does not hear is not a case of this test.
             local bodyA = sc.c.Server.objects[sc.fiches.A.id]

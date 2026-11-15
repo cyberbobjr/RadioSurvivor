@@ -7,7 +7,7 @@ keeps track of everyone you meet, and **Living Knox**, groups of human survivors
 homes. Singleplayer and multiplayer, Project Zomboid **Build 42.21**.
 
 It is one Workshop item with **three mods**: **Radio Survivor** (`batman_RadioSurvivor`: the radio and its voices),
-**Living Knox** (`batman_LivingKnox`: the NPC groups) and **Radio Survivor Core** (`batman_RadioSurvivorCore`: what the
+**Living Knox** (`batman_LivingKnox`: the NPC groups) and **Core AI** (`batman_CoreAI`: what the
 two share, enabled for you). You can play with Radio Survivor, with Living Knox, or with both
 ([which mods to tick](04-installation.md)). This page describes everything; each part tells which mod brings it.
 

@@ -39,7 +39,7 @@ from signalsmoke_double import SIGNAL_SMOKE  # noqa: E402
 ROOT = Path(__file__).resolve().parents[1]
 MOD = ROOT / "Contents/mods/batman_RadioSurvivor/42.21"
 LUA = MOD / "media/lua"
-CORE_LUA = Path(__file__).resolve().parents[1] / 'Contents' / 'mods' / 'batman_RadioSurvivorCore' / '42.21' / 'media' / 'lua'  # mod commun (E18)
+CORE_LUA = Path(__file__).resolve().parents[1] / 'Contents' / 'mods' / 'batman_CoreAI' / '42.21' / 'media' / 'lua'  # mod commun (E18)
 LK_LUA = Path(__file__).resolve().parents[1] / 'Contents' / 'mods' / 'batman_LivingKnox' / '42.21' / 'media' / 'lua'  # moteur des PNJ (E18-T07)
 BRIDGE = ROOT / "bridge/radio_bridge.py"
 # Fiche livrée de Walt, sa plage de tirage remplacée par la fréquence d'exemple 145.0 (E05-T07) : ces scénarios
@@ -77,7 +77,7 @@ getGameTime = function() return {
     getHour = function() return HOUR end, getMinutes = function() return 5 end,
     -- E11-T20: without WORLD_AGE_HOURS, the world age follows the play clock of the bench Clock (PLAY_MS: real ms
     -- minus the simulated downtime and pauses) over a day of MINUTES_PER_DAY real minutes. The default day of 1000
-    -- real days keeps the world age near 0 (the other game-hour rules see no time pass) while RC_GameClock still
+    -- real days keeps the world age near 0 (the other game-hour rules see no time pass) while CA_GameClock still
     -- counts one play ms per bench ms.
     getWorldAgeHours = function()
         if WORLD_AGE_HOURS then return WORLD_AGE_HOURS end
@@ -237,14 +237,14 @@ class Game:
         if hasattr(clock, 'play_ms'):
             g.PLAY_MS = clock.play_ms
         # Zomboid/Lua/batman_RadioSurvivor/<x> -> exchange/<x> (dossier des fiches) ; fichiers d'échange du commun -> exchange/<x> ;
-        # Zomboid/Lua/batman_RadioSurvivorCore/<x> -> exchange/_core/<x> (registres du mod commun, E18-T03) ;
+        # Zomboid/Lua/batman_CoreAI/<x> -> exchange/_core/<x> (registres du mod commun, E18-T03) ;
         # Zomboid/Lua/batman_LivingKnox/<x> -> exchange/_livingknox/<x>.
         def lua_path(name):
             rel = Path(name)
-            if rel.parts and rel.parts[0] == "batman_RadioSurvivorCore":
+            if rel.parts and rel.parts[0] == "batman_CoreAI":
                 if rel.name in ("requests.txt", "responses.txt", "bridge-alive.txt"):   # E18-T12
                     return exchange / rel.name
-                return exchange / "_core" / rel.relative_to("batman_RadioSurvivorCore")
+                return exchange / "_core" / rel.relative_to("batman_CoreAI")
             if rel.parts and rel.parts[0] == "batman_LivingKnox":   # registres de Living Knox (E18-T10)
                 return exchange / "_livingknox" / rel.relative_to("batman_LivingKnox")
             return exchange / rel.relative_to("batman_RadioSurvivor")
@@ -1134,7 +1134,7 @@ def byte_reader(path: Path, encoding: str):
 def npc_exchange(exchange: Path, utf16: bool) -> None:
     """Accented player text: RS_Transport (Lua) -> bridge --offline -> RS_Transport, without refusal or mojibake.
 
-    utf16=False: lupa as is (Lua strings = UTF-8 bytes). utf16=True: RC_Codec forced into its Kahlua branch, where a
+    utf16=False: lupa as is (Lua strings = UTF-8 bytes). utf16=True: CA_Codec forced into its Kahlua branch, where a
     Lua string holds one character per UTF-16 unit; under lupa only U+0000-U+00FF exist, so the game text is given
     in Latin-1 (one byte per character) and must come back in Latin-1. Units above U+00FF: tests/test_kahlua.py.
     """
@@ -1150,7 +1150,7 @@ def npc_exchange(exchange: Path, utf16: bool) -> None:
     paths = ";".join((LUA / side).as_posix() + "/?.lua" for side in ("shared", "server"))
     paths = (CORE_LUA / "shared").as_posix() + "/?.lua;" + (CORE_LUA / "server").as_posix() + "/?.lua;" + (CORE_LUA / "client").as_posix() + "/?.lua;" + (LK_LUA / "shared").as_posix() + "/?.lua;" + (LK_LUA / "server").as_posix() + "/?.lua;" + (LK_LUA / "client").as_posix() + "/?.lua;" + paths  # mod commun (E18)
     rt.execute(f"package.path = [[{paths};]] .. package.path".encode())
-    codec = rt.eval(b'require("RadioSurvivorCore/RC_Codec")')
+    codec = rt.eval(b'require("CoreAI/CA_Codec")')
     codec[b"_utf16"] = True if utf16 else None
     try:
         transport = rt.eval(b'(function() local T = require("RadioSurvivor/RS_BridgeLanes"); T.register("npc", {order = 20}); return T end)()')
@@ -3440,7 +3440,7 @@ def scenario_voice_mission_bridge(tmp: Path) -> None:
     paths = ";".join((LUA / side).as_posix() + "/?.lua" for side in ("shared", "server"))
     paths = (CORE_LUA / "shared").as_posix() + "/?.lua;" + (CORE_LUA / "server").as_posix() + "/?.lua;" + (CORE_LUA / "client").as_posix() + "/?.lua;" + (LK_LUA / "shared").as_posix() + "/?.lua;" + (LK_LUA / "server").as_posix() + "/?.lua;" + (LK_LUA / "client").as_posix() + "/?.lua;" + paths  # mod commun (E18)
     rt.execute(f"package.path = [[{paths};]] .. package.path")
-    codec = rt.eval('require("RadioSurvivorCore/RC_Codec")')
+    codec = rt.eval('require("CoreAI/CA_Codec")')
     transport = rt.eval('(function() local T = require("RadioSurvivor/RS_BridgeLanes"); T.register("npc", {order = 20}); T.register("acks", {order = 30}); return T end)()')
     job = "Go and look at a building (kind: house), then call you back on this frequency to report."
     context = rt.eval("""{ state = "active", remainingMs = 5400000, kind = "scout", place = "house",
@@ -4012,7 +4012,7 @@ def scenario_provider_errors(tmp: Path) -> None:
         worker.pool.shutdown(wait=True)
 
     # (4) Every answer of the bridge (start <= MAX_AGE_S, call <= LLM_BUDGET_S) is written before the server gives up.
-    config_lua = ROOT / "Contents/mods/batman_RadioSurvivorCore/42.21/media/lua/shared/RadioSurvivorCore/RC_SpeechConfig.lua"
+    config_lua = ROOT / "Contents/mods/batman_CoreAI/42.21/media/lua/shared/CoreAI/CA_SpeechConfig.lua"
     timeout_ms = int(re.search(r"REQUEST_TIMEOUT_MS = (\d+)", config_lua.read_text(encoding="utf-8")).group(1))
     assert (rb.MAX_AGE_S + rb.LLM_BUDGET_S) * 1000 + 5000 <= timeout_ms, (rb.MAX_AGE_S, rb.LLM_BUDGET_S, timeout_ms)
 

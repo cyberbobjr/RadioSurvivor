@@ -1,5 +1,5 @@
 """Tests hors jeu du troc direct avec un groupe Living Knox (LK11-T08) : server/LivingKnox/LK_Trade.lua, le barème
-partagé shared/RadioSurvivorCore/RC_TradeValues.lua, la fenêtre client/LivingKnox/LK_TradeView.lua et la suite en jeu
+partagé shared/CoreAI/CA_TradeValues.lua, la fenêtre client/LivingKnox/LK_TradeView.lua et la suite en jeu
 lk.trade (dev/.../RST_LKTrade.lua) dans le banc.
 
     python RadioSurvivor/tests/test_lk_trade.py
@@ -36,7 +36,7 @@ from test_lk_aid import AID_DOUBLES, ENGINE_STUBS, MENU_DOUBLES  # noqa: E402
 T = 'LivingKnox.Trade'
 ST = 'LivingKnox.Stock'
 TRADE = 'server/LivingKnox/LK_Trade.lua'
-VALUES = 'shared/RadioSurvivorCore/RC_TradeValues.lua'
+VALUES = 'shared/CoreAI/CA_TradeValues.lua'
 VIEW = 'client/LivingKnox/LK_TradeView.lua'
 RVIEW = 'client/LivingKnox/LK_RelationsView.lua'
 KEY_A, KEY_B = 'c-alpha', 'c-bravo'
@@ -455,7 +455,7 @@ class TradeTests(Base):
         self.run_lua('HARNESS.place(HARNESS.players.A, 110, 104, 0)')
         self.assertEqual(self.run_lua(f'return select(2, {req})'), 'too far')
         self.run_lua('HARNESS.place(HARNESS.players.A, 103, 104, 0)')
-        self.run_lua('RC_Identity.bound[HARNESS.players.A] = nil')
+        self.run_lua('CA_Identity.bound[HARNESS.players.A] = nil')
         out = self.ev(req)
         self.assertEqual((out.ok, out.reason, out.line), (False, 'stranger', 'IGUI_LK_Trade_Refuse_stranger'))
         for bad in ('{ op = "steal", n = 1, npc = "lk-1" }', '{ op = "open", npc = "lk-1" }',

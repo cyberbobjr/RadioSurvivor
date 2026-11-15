@@ -7,7 +7,7 @@ pour chaque nouvelle demande (plusieurs en parallèle) et écrit responses.txt, 
 puis diffuse sur la fréquence du survivant.
 
 À lancer sur la machine qui exécute le Lua serveur : le serveur dédié en multijoueur, le PC du
-joueur en solo. Pour un serveur lancé avec -cachedir, passer --exchange <cachedir>\\Lua\\batman_RadioSurvivorCore.
+joueur en solo. Pour un serveur lancé avec -cachedir, passer --exchange <cachedir>\\Lua\\batman_CoreAI.
 
 Configuration (variables d'environnement, sinon fichier .env, par défaut bridge/.env à côté de ce script, modèle
 .env.example) : OPENAI_KEY, OPENAI_BASE_URL, OPENAI_MODEL.
@@ -100,7 +100,7 @@ import bulletin  # E14-T02: kind=bulletin (evening bulletin of the chronicler)
 
 HERE = Path(__file__).resolve().parent
 DEFAULT_ENV = HERE / ".env"      # à côté du pont, ignoré par Git (modèle : .env.example)
-DEFAULT_EXCHANGE = Path.home() / "Zomboid" / "Lua" / "batman_RadioSurvivorCore"
+DEFAULT_EXCHANGE = Path.home() / "Zomboid" / "Lua" / "batman_CoreAI"
 # Fiches livrées par le mod, seul exemplaire du dépôt (E05-T10) : lues par --test et les tests, jamais en jeu (le pont
 # lit alors celles que RadioSurvivor installe : personas_folder).
 BUNDLED_PERSONAS = HERE.parent / "Contents" / "mods" / "batman_RadioSurvivor" / "42.21" / "personas"

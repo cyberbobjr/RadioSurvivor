@@ -21,7 +21,7 @@ require "LivingKnox/Decisions/LK_Decide_Post"      -- LK16-T06 : guet et ronde
 require "LivingKnox/LK_Routines"      -- LK05-T03 : postes, rondes, relèves et sommeil (appelé par LK_Decisions)
 require "LivingKnox/LK_Talk"          -- E18-T17 : file des demandes de parole des PNJ
 require "LivingKnox/LK_TalkAlone"     -- E18-T18 : hôte de la parole sans RadioSurvivor
-local WorldStart = require "RadioSurvivorCore/RC_WorldStart"   -- monde neuf : signal de la radio (serveur dédié)
+local WorldStart = require "CoreAI/CA_WorldStart"   -- monde neuf : signal de la radio (serveur dédié)
 
 local Server = LivingKnox.Server or {}
 LivingKnox.Server = Server
@@ -42,7 +42,7 @@ LivingKnox.subscribe(isServer() and "OnServerStarted" or "OnGameStart", "Server.
 
 -- Registre des PNJ : relu à l'initialisation de la partie (GlobalModData.java:56, avant la cellule). Monde neuf :
 -- registre vide, même si un ancien fichier porte le même nom. isNewGame (WorldDictionary.isIsNewGame()) est toujours
--- vrai sur un serveur dédié : le monde neuf se lit par RC_WorldStart (signal d'OnLoadRadioScripts).
+-- vrai sur un serveur dédié : le monde neuf se lit par CA_WorldStart (signal d'OnLoadRadioScripts).
 local function onInitGlobalModData(isNewGame)
     LivingKnox.Store.init(WorldStart.isNewWorld(isNewGame))
 end

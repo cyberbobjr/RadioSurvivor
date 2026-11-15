@@ -1,4 +1,4 @@
-"""Découpe d'une réplique en morceaux affichés l'un après l'autre (E17-T12) : RC_TextCut.lua (Lua, lupa / Lua 5.1),
+"""Découpe d'une réplique en morceaux affichés l'un après l'autre (E17-T12) : CA_TextCut.lua (Lua, lupa / Lua 5.1),
 RS_GroupRadio.lines (réplique d'un PNJ de groupe à la radio) et radio_bridge.cut_pieces / radio_lines (pont, voix
 radio).
 
@@ -22,7 +22,7 @@ import lupa.lua51 as lupa
 
 ROOT = Path(__file__).resolve().parents[1]
 LUA = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivor' / '42.21' / 'media' / 'lua'
-CORE_LUA = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivorCore' / '42.21' / 'media' / 'lua'  # mod commun (E18)
+CORE_LUA = ROOT / 'Contents' / 'mods' / 'batman_CoreAI' / '42.21' / 'media' / 'lua'  # mod commun (E18)
 sys.path.insert(0, str(ROOT / 'bridge'))
 import radio_bridge  # noqa: E402
 
@@ -127,12 +127,12 @@ class Checks:
 
 
 class LuaTextCutTests(Checks, unittest.TestCase):
-    """RC_TextCut.lua sous Lua 5.1 : longueurs en octets UTF-8."""
+    """CA_TextCut.lua sous Lua 5.1 : longueurs en octets UTF-8."""
 
     @classmethod
     def setUpClass(cls):
         cls.rt = lupa.LuaRuntime(unpack_returned_tuples=True)
-        cls.cut = cls.rt.execute((CORE_LUA / 'shared' / 'RadioSurvivorCore' / 'RC_TextCut.lua').read_text(encoding='utf-8'))
+        cls.cut = cls.rt.execute((CORE_LUA / 'shared' / 'CoreAI' / 'CA_TextCut.lua').read_text(encoding='utf-8'))
 
     @staticmethod
     def measure(p):
@@ -175,7 +175,7 @@ class BridgeTextCutTests(Checks, unittest.TestCase):
 
 
 class GroupRadioLinesTests(unittest.TestCase):
-    """RS_GroupRadio.lines (réplique d'un PNJ de groupe à l'antenne) : vrais RadioSurvivor_Const et RC_TextCut."""
+    """RS_GroupRadio.lines (réplique d'un PNJ de groupe à l'antenne) : vrais RadioSurvivor_Const et CA_TextCut."""
 
     @classmethod
     def setUpClass(cls):
@@ -184,7 +184,7 @@ class GroupRadioLinesTests(unittest.TestCase):
         rt.globals().package.path = (str(CORE_LUA / 'shared') + '/?.lua;' + str(CORE_LUA / 'server') + '/?.lua;' + str(LUA / 'shared') + '/?.lua;' + str(LUA / 'server') + '/?.lua;'
                                      + rt.globals().package.path)
         rt.execute('for _, m in ipairs({"RadioSurvivor/RS_Personas", "RadioSurvivor/RS_NPCProvider", '
-                   '"RadioSurvivor/RS_Config", "RadioSurvivorCore/RC_Codec", "RadioSurvivor/RS_BridgeLanes"}) do '
+                   '"RadioSurvivor/RS_Config", "CoreAI/CA_Codec", "RadioSurvivor/RS_BridgeLanes"}) do '
                    'package.preload[m] = function() return {} end end')
         cls.const = rt.eval('require("RadioSurvivor/RadioSurvivor_Const")')
         cls.radio = rt.eval('require("RadioSurvivor/RS_GroupRadio")')

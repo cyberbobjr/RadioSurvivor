@@ -4,8 +4,8 @@ marchand, causes et signal du mode d'arrivée `boat`) : RS_Trade.lua et RS_Trade
 
     python RadioSurvivor/tests/test_rs_trade_run.py
 
-Vrai Lua du mod (Lua 5.1, `next` retiré comme dans Kahlua) : RS_Trade, RS_TradeRun, RS_Actions, RS_Persona, RC_Codec,
-RC_TradeValues, RS_OutsideNews, RadioSurvivor_Const ; doublures : GameTime (âge du monde), joueurs en ligne (serveur
+Vrai Lua du mod (Lua 5.1, `next` retiré comme dans Kahlua) : RS_Trade, RS_TradeRun, RS_Actions, RS_Persona, CA_Codec,
+CA_TradeValues, RS_OutsideNews, RadioSurvivor_Const ; doublures : GameTime (âge du monde), joueurs en ligne (serveur
 MP), équipes (RS_Factions.idOf), repère sur la carte (RS_MapMarks.give), serveur radio (RS_RadioServer.frequency/air),
 traducteur fidèle (table anglaise du mod, nil pour une clé inconnue), ClimateManager, Signal Smoke (module public du
 mod requis), état privé RS_State en mémoire, journal admin. Couvre : nuit du rendez-vous (01:00 à 03:00,
@@ -29,7 +29,7 @@ import lupa.lua51 as lupa
 ROOT = Path(__file__).resolve().parents[1]
 MOD = ROOT / 'Contents/mods/batman_RadioSurvivor/42.21'
 LUA = MOD / 'media/lua'
-CORE_LUA = Path(__file__).resolve().parents[1] / 'Contents' / 'mods' / 'batman_RadioSurvivorCore' / '42.21' / 'media' / 'lua'  # mod commun (E18)
+CORE_LUA = Path(__file__).resolve().parents[1] / 'Contents' / 'mods' / 'batman_CoreAI' / '42.21' / 'media' / 'lua'  # mod commun (E18)
 LK_LUA = Path(__file__).resolve().parents[1] / 'Contents' / 'mods' / 'batman_LivingKnox' / '42.21' / 'media' / 'lua'  # moteur des PNJ (E18-T07)
 RUN_LUA = LUA / 'server/RadioSurvivor/RS_TradeRun.lua'
 TRADE_LUA = LUA / 'server/RadioSurvivor/RS_Trade.lua'
@@ -71,8 +71,8 @@ ACTION_LOG = {}
 package.preload["RadioSurvivor/RS_ActionLog"] = function() return {
     format = function(d, voice, caller, name) return name .. ":" .. tostring(d.reason) end,
     append = function(lines) for _, l in ipairs(lines) do ACTION_LOG[#ACTION_LOG + 1] = l end end } end
--- Équipes : champ team du joueur (doublure de RC_Teams.idOf, E18-T20) ; compte = name.
-package.preload["RadioSurvivorCore/RC_Teams"] = function() return {
+-- Équipes : champ team du joueur (doublure de CA_Teams.idOf, E18-T20) ; compte = name.
+package.preload["CoreAI/CA_Teams"] = function() return {
     idOf = function(p) return p.team end, keyOf = function(p) return p.name end } end
 MARKS = {}
 package.preload["RadioSurvivor/RS_MapMarks"] = function() return {

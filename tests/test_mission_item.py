@@ -5,9 +5,9 @@ seul l'objet marqué compte, un objet du même type non marqué est laissé ; co
 
     python RadioSurvivor/tests/test_mission_item.py
 
-Vrai RadioSurvivor_Server, vrai RS_Carnet_Server (gabarit RC_MissionItem inscrit au chargement), vrai RS_MissionVoice
+Vrai RadioSurvivor_Server, vrai RS_Carnet_Server (gabarit CA_MissionItem inscrit au chargement), vrai RS_MissionVoice
 (départ et compte rendu d'une voix), vrais RS_MissionTarget (lieu target) et RS_DeadDrops (planques), vraie pose
-différée de RC_Caches, vrai RS_Persona (lecture de la fiche), vrai client du carnet ; doublures du monde rattachées à
+différée de CA_Caches, vrai RS_Persona (lecture de la fiche), vrai client du carnet ; doublures du monde rattachées à
 leur classe Java et fidèles au Java 42.22 relevé (ITEM_WORLD). Preuve de la logique Lua, pas de l'API Java réelle ni du
 réseau : la suite en jeu rs.voiceitem le confirme sur un serveur dédié.
 """
@@ -198,11 +198,11 @@ function floorItems(fullType)
     end
     return out
 end
--- Same, as plain records { id, mark (mod data RS_Cache), x, y, z } for the Python side.
+-- Same, as plain records { id, mark (mod data CA_Cache), x, y, z } for the Python side.
 function floorList(fullType)
     local out = {}
     for i, e in ipairs(floorItems(fullType)) do
-        out[i] = {id = e.item.id, mark = e.item.md.RS_Cache, x = e.square.x, y = e.square.y, z = e.square.z}
+        out[i] = {id = e.item.id, mark = e.item.md.CA_Cache, x = e.square.x, y = e.square.y, z = e.square.z}
     end
     return out
 end
@@ -240,7 +240,7 @@ class ItemMissionTests(unittest.TestCase):
         rt.execute(ITEM_WORLD)
         # The game loads every server file of the mod: the set-up of the target place registers itself (no require).
         rt.eval("require('RadioSurvivor/RS_MissionTarget')")
-        rt.eval("require('RadioSurvivorCore/RC_Caches')").resetForTests()
+        rt.eval("require('CoreAI/CA_Caches')").resetForTests()
         self.box = rt.eval(f'crate({DROP[0]}, {DROP[1]}, 0)')
         g = sim.server.g
         for who in ('alice', 'bob'):
@@ -263,17 +263,17 @@ class ItemMissionTests(unittest.TestCase):
         return voice.start(store, sheet, sim.character('alice'), sim.server.g.PLAYERS.alice, 160000, 'locket')
 
     def poll(self, sim, store):
-        """Server poll of the engine (RC_Missions.observe) with the server copy of alice, after the retry delay."""
+        """Server poll of the engine (CA_Missions.observe) with the server copy of alice, after the retry delay."""
         sim.clock.offset += 6000
         present = sim.server.rt.table_from([sim.server.rt.table_from(
             {'player': sim.server.g.PLAYERS.alice, 'character': sim.character('alice')})])
-        return sim.server.rt.eval("require('RadioSurvivorCore/RC_Missions')").observe(store.data, present, store)
+        return sim.server.rt.eval("require('CoreAI/CA_Missions')").observe(store.data, present, store)
 
     def report(self, sim, voice, store, sheet):
         return voice.report(store, sheet, sim.character('alice'), sim.server.g.PLAYERS.alice, 160000)
 
     def ready(self, sim, m):
-        return sim.server.rt.eval("require('RadioSurvivorCore/RC_Missions')").reportReady(m)
+        return sim.server.rt.eval("require('CoreAI/CA_Missions')").reportReady(m)
 
     def started(self, name, **section):
         sim, voice, store = self.world(name)
@@ -383,7 +383,7 @@ class ItemMissionTests(unittest.TestCase):
         rt.eval('function(m) m.personal.placing, m.personal.placed, m.personal.itemId, m.itemId = true, false, nil, '
                 'nil end')(m)
         self.assertTrue(store.save())
-        caches = rt.eval("require('RadioSurvivorCore/RC_Caches')")
+        caches = rt.eval("require('CoreAI/CA_Caches')")
         caches.resetForTests()
         self.assertTrue(store.init(False))
         again = store.data.missions[m.id]
@@ -421,14 +421,14 @@ class ItemMissionTests(unittest.TestCase):
     def test_npc_fiches_are_never_offered_an_item_mission(self):
         sim, _, _ = self.world('item-npc')
         offer = sim.server.rt.eval("""(function()
-            local c = require('RadioSurvivorCore/RC_MissionConfig').Missions.item
-            return require('RadioSurvivorCore/RC_MissionItem').offer(c, {id = 'npc1', incarnation = 1}, {}, nil)
+            local c = require('CoreAI/CA_MissionConfig').Missions.item
+            return require('CoreAI/CA_MissionItem').offer(c, {id = 'npc1', incarnation = 1}, {}, nil)
         end)()""")
         self.assertIsNone(offer)
 
     def test_projection_never_leaks_the_item_id(self):
         sim, voice, store, sheet, m, item = self.placed('item-projection')
-        p = sim.server.rt.eval("require('RadioSurvivorCore/RC_Missions')").projection(m, sim.character('alice'))
+        p = sim.server.rt.eval("require('CoreAI/CA_Missions')").projection(m, sim.character('alice'))
         values = {k: convert(v) for k, v in p.items()}
         self.assertEqual((values['template'], values['itemType'], values['itemLabel']),
                          ('item', 'Base.Locket', "Ellen's locket"))
@@ -470,7 +470,7 @@ class ItemMissionTests(unittest.TestCase):
         sim, voice, store = self.world('item-unlabelled')
         m = self.start(sim, voice, store, self.sheet(sim, {'item': 'Base.Photo'}))
         self.assertEqual((m.itemType, m.itemLabel, m.itemName), ('Base.Photo', '', 'Photo'))
-        brief = sim.server.rt.eval("require('RadioSurvivorCore/RC_Missions')").voiceBrief(m)
+        brief = sim.server.rt.eval("require('CoreAI/CA_Missions')").voiceBrief(m)
         self.assertIn('Find the Photo at Old farmhouse', brief.job)
 
 
@@ -539,7 +539,7 @@ class ItemSheetTests(unittest.TestCase):
         cls.tmp = tempfile.TemporaryDirectory()
         cls.folder = Path(cls.tmp.name)
         cls.lua = LuaPersona(cls.folder)
-        cls.lua.rt.eval('require("RadioSurvivorCore/RC_MissionItem")')
+        cls.lua.rt.eval('require("CoreAI/CA_MissionItem")')
         cls.lua.rt.execute(SHEET_SCRIPTS)
 
     @classmethod

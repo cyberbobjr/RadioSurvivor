@@ -4,7 +4,7 @@
 if isClient() then return end
 local Rewards = require 'RadioSurvivor/RS_Rewards'
 local Config = require 'RadioSurvivor/RS_Config'
-local Rep = require 'RadioSurvivorCore/RC_Reputation'
+local Rep = require 'CoreAI/CA_Reputation'
 
 local Lesson = {}
 

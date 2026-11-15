@@ -1,6 +1,6 @@
 # Architecture de Radio Survivor, Living Knox et du mod commun
 
-Synthèse de l'architecture logicielle des **trois mods** de l'article Workshop (Build 42.21) : `batman_RadioSurvivorCore`
+Synthèse de l'architecture logicielle des **trois mods** de l'article Workshop (Build 42.21) : `batman_CoreAI`
 (mod commun, 0.1.0), `batman_RadioSurvivor` (radio, voix, factions, 0.3.0) et `batman_LivingKnox` (moteur de PNJ, 0.1.0).
 Les détails vivent dans les pages liées ; ce document ne les répète pas.
 
@@ -24,7 +24,7 @@ Les détails vivent dans les pages liées ; ce document ne les répète pas.
                                                  │ historique, réputation, file du pont       │
                                                  └───────────────┬────────────────────────────┘
                                                                  │ requests.txt / responses.txt
-                                                                 ▼ (Zomboid/Lua/batman_RadioSurvivorCore)
+                                                                 ▼ (Zomboid/Lua/batman_CoreAI)
                                                  ┌────────────────────────────────────────────┐
                                                  │ pont Python (bridge/radio_bridge.py) ─▶ LLM │
                                                  └────────────────────────────────────────────┘
@@ -61,21 +61,21 @@ Contents/mods/batman_RadioSurvivor/
 Contents/mods/batman_LivingKnox/   moteur des PNJ depuis E18-T07
 ├── common/                     media/AnimSets (nœuds d'animation des corps de PNJ, générés par tools/gen_animsets.py)
 └── 42.21/
-    ├── mod.info                id=batman_LivingKnox, require=\batman_RadioSurvivorCore
+    ├── mod.info                id=batman_LivingKnox, require=\batman_CoreAI
     └── media/
         ├── sandbox-options.txt page LivingKnox
         └── lua/{client,server,shared}/LivingKnox/ + Translate/{EN,FR} (IGUI_LK_, Sandbox_LivingKnox_)
-Contents/mods/batman_RadioSurvivorCore/   mod commun, activé par le jeu avec l'un ou l'autre
+Contents/mods/batman_CoreAI/   mod commun, activé par le jeu avec l'un ou l'autre
 ├── common/
 └── 42.21/
-    ├── mod.info                id=batman_RadioSurvivorCore, require=\batman_SignalSmoke, modversion=0.1.0
-    └── media/lua/{client,server,shared}/RadioSurvivorCore/ + Translate/{EN,FR} (IGUI_RC_)
+    ├── mod.info                id=batman_CoreAI, require=\batman_SignalSmoke, modversion=0.1.0
+    └── media/lua/{client,server,shared}/CoreAI/ + Translate/{EN,FR} (IGUI_CA_)
 ```
 
 Montages valides : RadioSurvivor seul, Living Knox seul, ou les deux, toujours avec le mod commun, qui seul n'apporte
 rien de jouable. Le pont Python est un seul programme, sans option selon le montage.
 
-`mod.info` de RadioSurvivor : `require=\batman_RadioSurvivorCore,\batman_BeltRadio,\batman_SignalSmoke`
+`mod.info` de RadioSurvivor : `require=\batman_CoreAI,\batman_BeltRadio,\batman_SignalSmoke`
 (Living Knox facultatif depuis `E18-T09` : l'adaptateur du carnet `shared/RadioSurvivor/RS_LivingKnox.lua` est livré par Living Knox et ne s'active qu'avec RadioSurvivor). Living Knox : `incompatible=\Bandits2,\ProjectALifeNPCs`. Le mod de tests
 `dev/batman_RadioSurvivorTests` n'est jamais publié.
 
@@ -83,14 +83,14 @@ rien de jouable. Le pont Python est un seul programme, sans option selon le mont
 
 | Côté | Dossier | Responsabilités |
 |---|---|---|
-| shared (mod commun `batman_RadioSurvivorCore`) | `RadioSurvivorCore/` | outils partagés depuis `E18-T02` : codec RSV2 (`RC_Codec`), limite de débit des commandes (`RC_RateLimit`), coupe des textes (`RC_TextCut`), valeurs de troc (`RC_TradeValues`), monde neuf ou relancé (`RC_WorldStart`), horloge de jeu des délais (`RC_GameClock`) ; depuis `E18-T03`, identité des personnages (`RC_Identity` : identité décidée par l'autorité, écrite dans sa copie de la ModData du joueur sous la clé `RS_CarnetCharacter`, retirée à la mort, registre privé `Zomboid/Lua/batman_RadioSurvivorCore/identity-*.txt` ; lue par le carnet et par `LK_Hostility.keyOf`) et fichiers privés à deux emplacements (`RC_SlotFile`) |
+| shared (mod commun `batman_CoreAI`) | `CoreAI/` | outils partagés depuis `E18-T02` : codec RSV2 (`CA_Codec`), limite de débit des commandes (`CA_RateLimit`), coupe des textes (`CA_TextCut`), valeurs de troc (`CA_TradeValues`), monde neuf ou relancé (`CA_WorldStart`), horloge de jeu des délais (`CA_GameClock`) ; depuis `E18-T03`, identité des personnages (`CA_Identity` : identité décidée par l'autorité, écrite dans sa copie de la ModData du joueur sous la clé `CA_Character`, retirée à la mort, registre privé `Zomboid/Lua/batman_CoreAI/identity-*.txt` ; lue par le carnet et par `LK_Hostility.keyOf`) et fichiers privés à deux emplacements (`CA_SlotFile`) |
 | shared | `RadioSurvivor/` | constantes et noms de commandes (`RadioSurvivor_Const.lua`), interface `RS_NPCProvider` (implémentation Living Knox `RS_LivingKnox` livrée par `batman_LivingKnox` depuis `E18-T09`), notes |
 | shared (mod `batman_LivingKnox`) | `LivingKnox/` | cœur (`LK_Core`, `LK_Config`), identité et apparence, équipement, sens, mouvement, garde des corps (`LK_ZombieGuard`), types de groupes et textes (`Data/`) |
-| server (mod commun `batman_RadioSurvivorCore`) | `RadioSurvivorCore/` | depuis `E18-T05`, moteur de missions commun (`RC_Missions` : offres, acceptation, délais, compte rendu, lot de récompense ; donneurs inscrits par `registerDonor` et crochets de résultat, d'oubli, de filtre des offres ; depuis `E11-T21`, source de récompense du moteur de PNJ inscrite par `registerNpcReward` : Living Knox y déclare `LK_MissionRewards`, la fiche d'un PNJ du moteur dans le carnet est payée par elle), gabarits `RC_MissionScout`, `RC_MissionClear`, `RC_MissionRecover`, `RC_MissionRetrieve`, `RC_MissionSignal` (exige Signal Smoke), tirage des lieux (`RC_Sites`), caches (`RC_Caches`), catalogue (`shared/RC_MissionConfig`), état privé des missions (`RC_MissionStore`, `Zomboid/Lua/batman_RadioSurvivorCore/missions-*.txt` ) ; RadioSurvivor y inscrit ses donneurs (fiches PNJ, voix) et ses crochets dans `RS_MissionHooks` ; depuis `E18-T06`, lignes du journal des missions (`RC_MissionJournal`, commande `missions` du module `RadioSurvivorCore`, même liste que le carnet par `shared/RC_MissionList`) |
+| server (mod commun `batman_CoreAI`) | `CoreAI/` | depuis `E18-T05`, moteur de missions commun (`CA_Missions` : offres, acceptation, délais, compte rendu, lot de récompense ; donneurs inscrits par `registerDonor` et crochets de résultat, d'oubli, de filtre des offres ; depuis `E11-T21`, source de récompense du moteur de PNJ inscrite par `registerNpcReward` : Living Knox y déclare `LK_MissionRewards`, la fiche d'un PNJ du moteur dans le carnet est payée par elle), gabarits `CA_MissionScout`, `CA_MissionClear`, `CA_MissionRecover`, `CA_MissionRetrieve`, `CA_MissionSignal` (exige Signal Smoke), tirage des lieux (`CA_Sites`), caches (`CA_Caches`), catalogue (`shared/CA_MissionConfig`), état privé des missions (`CA_MissionStore`, `Zomboid/Lua/batman_CoreAI/missions-*.txt` ) ; RadioSurvivor y inscrit ses donneurs (fiches PNJ, voix) et ses crochets dans `RS_MissionHooks` ; depuis `E18-T06`, lignes du journal des missions (`CA_MissionJournal`, commande `missions` du module `CoreAI`, même liste que le carnet par `shared/CA_MissionList`) |
 | server | `RadioSurvivor_Server.lua`, `RS_Carnet_Server.lua` | points d'entrée : commandes client, carnet, livraisons |
-| server | `RadioSurvivor/` (47 fichiers) | état privé (`RS_State`), transport vers le pont (`RS_BridgeLanes` (file `RC_Transport` du mod commun)), voix (`RS_Persona*`), actions et missions des voix (`RS_Actions`, `RS_MissionVoice`, `RS_MissionHooks`, `RS_CacheAction`), secours (`RS_Rescue*`), troc (`RS_Trade*`), chronique et faits, dernières pages, réputation ; depuis `E18-T20`, les identifiants d'équipe sont au mod commun (`RC_Teams`) et les accords à Living Knox (`LK_Agreements`, lus par `LivingKnox.Agreements`) |
+| server | `RadioSurvivor/` (47 fichiers) | état privé (`RS_State`), transport vers le pont (`RS_BridgeLanes` (file `CA_Transport` du mod commun)), voix (`RS_Persona*`), actions et missions des voix (`RS_Actions`, `RS_MissionVoice`, `RS_MissionHooks`, `RS_CacheAction`), secours (`RS_Rescue*`), troc (`RS_Trade*`), chronique et faits, dernières pages, réputation ; depuis `E18-T20`, les identifiants d'équipe sont au mod commun (`CA_Teams`) et les accords à Living Knox (`LK_Agreements`, lus par `LivingKnox.Agreements`) |
 | server (mod `batman_LivingKnox`) | `LivingKnox/` (43 fichiers) | groupes et foyers, population, décisions, routines, alerte, défense, combat, santé, mort et butin, stock, fortification, simulation hors écran, récits, relations, raids, API publique (`LK_API`), registre (`LK_Store`) |
-| client (mod commun `batman_RadioSurvivorCore`) | `RadioSurvivorCore/` | depuis `E18-T24`, le carnet (`RC_Notebook` : cadre papier, marque-pages, bouton de la barre latérale, tranche de la roue droite de la manette, registre d'onglets `registerTab` / `extendTab`) ; chaque onglet appartient à un mod et n'existe que si ce mod est actif : Radio (RadioSurvivor), Équipe (inscrit par RadioSurvivor avec Living Knox actif, passe à Living Knox avec `E18-T20`), Contacts, Missions et Réputation communs ; sans mod pour les remplir, Missions liste les missions ouvertes du personnage (commande `missions`, ancien journal des missions de `E18-T06`) ; textes `IGUI_RC_` (EN, FR) |
+| client (mod commun `batman_CoreAI`) | `CoreAI/` | depuis `E18-T24`, le carnet (`CA_Notebook` : cadre papier, marque-pages, bouton de la barre latérale, tranche de la roue droite de la manette, registre d'onglets `registerTab` / `extendTab`) ; chaque onglet appartient à un mod et n'existe que si ce mod est actif : Radio (RadioSurvivor), Équipe (inscrit par RadioSurvivor avec Living Knox actif, passe à Living Knox avec `E18-T20`), Contacts, Missions et Réputation communs ; sans mod pour les remplir, Missions liste les missions ouvertes du personnage (commande `missions`, ancien journal des missions de `E18-T06`) ; textes `IGUI_CA_` (EN, FR) |
 | client | `RadioSurvivor_Client.lua`, `RS_Carnet_Client.lua`, `RadioSurvivor/` | module « Émettre » de la fenêtre radio, pages du carnet (`RS_Notebook` : onglet Radio, contenu des onglets communs, onglet Équipe), historique radio, lecture des notes, actions de carte, vue de debug des fréquences |
 | client (mod `batman_LivingKnox`) | `LivingKnox/` | exécuteur des consignes sur le client propriétaire (`LK_Executor`), relais combat, santé, zombies, mort ; vues : fiche PNJ, administration, relations, troc, bulles |
 
@@ -121,8 +121,8 @@ serveur se gardent par `isClient()` ; les fiches de conception de chaque sous-sy
 |---|---|---|
 | État RadioSurvivor (voix, missions, fréquences, réputation interne, équipes…) | `Zomboid/Lua/batman_RadioSurvivor/state-<partie>-<0\|1>.txt` (en-tête `RSSTATE2`, RSV2 en hex, somme de contrôle, double emplacement) | `RS_State` |
 | Registre des PNJ et des groupes | `Zomboid/Lua/batman_LivingKnox/registry-<partie>-<0\|1>.txt` (`LKREG1`), une écriture par image au plus | `LK_Store` ([corps-registre.md](../annexes/conception/corps-registre.md)) |
-| État du mod commun (missions, identités, historique des échanges) | `Zomboid/Lua/batman_RadioSurvivorCore/` : `missions-*`, `identity-*`, `history-*` (fichiers privés à deux emplacements, `RC_SlotFile`) | `RC_MissionStore`, `RC_Identity`, `RC_History` |
-| Échange avec le pont | `Zomboid/Lua/batman_RadioSurvivorCore/` : `requests.txt`, `responses.txt`, `bridge-alive.txt`, `bridge.lock` | serveur / pont |
+| État du mod commun (missions, identités, historique des échanges) | `Zomboid/Lua/batman_CoreAI/` : `missions-*`, `identity-*`, `history-*` (fichiers privés à deux emplacements, `CA_SlotFile`) | `CA_MissionStore`, `CA_Identity`, `CA_History` |
+| Échange avec le pont | `Zomboid/Lua/batman_CoreAI/` : `requests.txt`, `responses.txt`, `bridge-alive.txt`, `bridge.lock` | serveur / pont |
 | Fiches de voix | `Zomboid/Lua/batman_RadioSurvivor/personas/` (RadioSurvivor actif seulement) | `RS_Personas` |
 | Données d'objets et de PNJ | ModData d'objet et de corps (marques d'idempotence, identité) | serveur |
 

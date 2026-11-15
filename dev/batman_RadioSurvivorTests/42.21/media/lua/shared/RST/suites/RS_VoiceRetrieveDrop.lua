@@ -1,6 +1,6 @@
 -- ID card of a voice `retrieve` mission left at a dead drop (E20-T06, ADR D06). Real start path of a voice
 -- (RS_MissionVoice.start, sheet with one [mission] of type retrieve and one place use=drop on the player's square,
--- next to a real crate), real engine poll (RC_Missions.observe: drop hooks of the voice giver, RS_DeadDrops), real
+-- next to a real crate), real engine poll (CA_Missions.observe: drop hooks of the voice giver, RS_DeadDrops), real
 -- radio report (RS_MissionVoice.report). The body is not placed (its building is far away): the card is given to the
 -- player and recorded as the card of the mission (m.cardId), as Retrieve.place does; a second ID card is the decoy.
 -- Steps: report while holding the card refused (card kept); both cards left in the crate; every online player leaves
@@ -46,9 +46,9 @@ end
 
 local function run(t)
     if isClient() then t:skip('authority only') end
-    local M = require 'RadioSurvivorCore/RC_Missions'
+    local M = require 'CoreAI/CA_Missions'
     local V = require 'RadioSurvivor/RS_MissionVoice'
-    require('RadioSurvivorCore/RC_MissionRetrieve').resetForTests()
+    require('CoreAI/CA_MissionRetrieve').resetForTests()
     local gt = getGameTime()
     if (gt:getTimeOfDay() - 7) % 24 > 20 then
         gt:setTimeOfDay(8)

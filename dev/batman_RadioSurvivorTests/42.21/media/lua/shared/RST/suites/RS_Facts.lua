@@ -115,7 +115,7 @@ RST.suite("rs.facts", { tags = { "server" } }, function(s)
 
     s.test("real readers of the world", function(t)
         local F = module(t)
-        local Triggers = require "RadioSurvivorCore/RC_WorldFacts"
+        local Triggers = require "CoreAI/CA_WorldFacts"
         t:eq("boolean", type(Triggers.gridPower()), "doesPowerGridExist")
         t:eq("boolean", type(F.waterOn()), "getWaterShutModifier / getWorldAgeDaysSinceBegin")
         local day, hour = F.now()
@@ -127,7 +127,7 @@ RST.suite("rs.facts", { tags = { "server" } }, function(s)
 
     s.test("live log: chained listener and no coordinate", function(t)
         local F = module(t)
-        local M = require "RadioSurvivorCore/RC_Missions"
+        local M = require "CoreAI/CA_Missions"
         F.chain()
         t:eq("function", type(M.onFinished), "facts listener not chained")
         local live = F.list()

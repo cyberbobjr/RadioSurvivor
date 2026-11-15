@@ -15,7 +15,7 @@ Chaque groupe de Living Knox doit savoir ce qu'il pense de **chaque personnage j
 |---|---|---|
 | Aucune ModData globale pour un état privé (lisible par tout client). | base `multiplayer.md` | confirmé statiquement |
 | Clé de joueur côté serveur : `getUsername` (SteamID imprécis en Lua) ; une faction vanilla n'a pas d'identifiant stable. | base `multiplayer.md` | confirmé statiquement |
-| Seule la ModData du joueur côté serveur est sauvegardée en MP : l'identité de personnage du carnet (`RS_CarnetCharacter`) y est écrite par le serveur, liée au compte et au slot, retirée à la mort (`OnCharacterDeath`). | `RS_Carnet_Server.lua` (`identity`, `characterDeath`), E00-T01, E00-T02 | confirmé statiquement (banc) |
+| Seule la ModData du joueur côté serveur est sauvegardée en MP : l'identité de personnage du carnet (`CA_Character`) y est écrite par le serveur, liée au compte et au slot, retirée à la mort (`OnCharacterDeath`). | `RS_Carnet_Server.lua` (`identity`, `characterDeath`), E00-T01, E00-T02 | confirmé statiquement (banc) |
 | Un client MP charge aussi `media/lua/server` : garde `isClient()` en tête de fichier. | base `mod-loading.md` | confirmé statiquement |
 | `OnInitGlobalModData(isNewGame)` part avant la cellule : moment de relecture et détection d'un monde neuf ; fichiers `getFileWriter` du serveur qui survivent à l'effacement du monde. | [groupes.md](groupes.md), base `world-placement.md`, `kahlua-lua.md` | confirmé statiquement |
 | Le jour de jeu (`getWorldAgeHours() / 24`) change à 7 h, pas à minuit. | base `api-42-21.md` | confirmé statiquement |
@@ -27,7 +27,7 @@ Retenu le 2026-10-10 (LK11-T03), dans le cadre des décisions E09-T01 (5 niveaux
 ### Clé : groupe + personnage
 
 - Groupe : identifiant `grp-<n>` du registre des groupes ([groupes.md](groupes.md)) ; un fait sur un groupe inconnu est refusé.
-- Joueur : **identité de personnage du carnet** (`RS_CarnetCharacter`, par exemple `character-<ms>-<n>-<tirage>`), retrouvée par `Hostility.keyOf(player)` dans `RS_CarnetServer.bound` (lié à la commande `hello` envoyée par le client à l'entrée en jeu). Elle est propre au compte en MP et **nouvelle pour chaque personnage** : deux personnages successifs d'un même compte ont deux attitudes distinctes ; un personnage mort ne garde rien (son identité est retirée, ses attitudes deviennent orphelines et sont oubliées avec le temps). Sans identité liée, `keyOf` rend `nil, "no notebook character bound"` et aucun fait n'est enregistré.
+- Joueur : **identité de personnage du carnet** (`CA_Character`, par exemple `character-<ms>-<n>-<tirage>`), retrouvée par `Hostility.keyOf(player)` dans `RS_CarnetServer.bound` (lié à la commande `hello` envoyée par le client à l'entrée en jeu). Elle est propre au compte en MP et **nouvelle pour chaque personnage** : deux personnages successifs d'un même compte ont deux attitudes distinctes ; un personnage mort ne garde rien (son identité est retirée, ses attitudes deviennent orphelines et sont oubliées avec le temps). Sans identité liée, `keyOf` rend `nil, "no notebook character bound"` et aucun fait n'est enregistré.
 - Le module accepte toute clé bien formée (1 à 96 caractères de `[%w_.:-]`) pour rester utilisable par un autre fournisseur d'identité.
 - Un **compte** seul (`getUsername`) n'a pas été retenu : il confondrait les personnages successifs d'un compte, contraire à la décision « relations personnelles par personnage ».
 

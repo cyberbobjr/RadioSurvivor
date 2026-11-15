@@ -10,7 +10,7 @@
 --                  au moins returnHours heures de jeu hors de portée. Témoin : cette fiche. Sujet : le personnage.
 --                  Dernière heure de jeu à portée gardée dans l'état privé de la parole (Talk.data.nearHours) ; le
 --                  premier passage à portée n'est pas un retour.
---   mission_done   écouteur de résultat du moteur des missions (RC_Missions.addResultListener), mission réussie :
+--   mission_done   écouteur de résultat du moteur des missions (CA_Missions.addResultListener), mission réussie :
 --                  chez le PNJ demandeur (fiche de l'hôte ; une voix radio n'en a pas, rien n'est enregistré). Un fait
 --                  par participant (sujet = personnage) ; lieu = corps du demandeur s'il est chargé.
 --   group_death    fait "memberDied" de Living Knox (LK_Core.publish). Corps présent (offscreen = false) : fiches des
@@ -45,9 +45,9 @@ if isClient() then return end
 
 require 'LivingKnox/LK_Core'
 local Talk = require 'LivingKnox/LK_TalkHost'
-local Speech = require 'RadioSurvivorCore/RC_SpeechConfig'
-local M = require 'RadioSurvivorCore/RC_Missions'
-local World = require 'RadioSurvivorCore/RC_WorldFacts'
+local Speech = require 'CoreAI/CA_SpeechConfig'
+local M = require 'CoreAI/CA_Missions'
+local World = require 'CoreAI/CA_WorldFacts'
 require 'LivingKnox/LK_Observations'
 local Obs = LivingKnox.Observations
 local P = Talk.provider

@@ -4,8 +4,8 @@ de la fiche de Gus, état par marchand) : RS_Trade.lua dans lupa, le pont (radio
 
     python RadioSurvivor/tests/test_rs_trade.py
 
-Vrai Lua du mod (Lua 5.1, `next` retiré comme dans Kahlua) : RS_Trade, RS_Actions, RS_Persona, RC_Codec,
-RC_TradeValues, RS_OutsideNews, RadioSurvivor_Const ; doublures : GameTime (âge du monde), ZombRand, état privé
+Vrai Lua du mod (Lua 5.1, `next` retiré comme dans Kahlua) : RS_Trade, RS_Actions, RS_Persona, CA_Codec,
+CA_TradeValues, RS_OutsideNews, RadioSurvivor_Const ; doublures : GameTime (âge du monde), ZombRand, état privé
 RS_State (table en mémoire), journal admin RS_ActionLog. Couvre : catalogue d'apport conforme à la table validée
 (docs/specifications-techniques/passeur-table.md, section 3 ; poids relus dans les scripts vanilla 42.21), tirage du stock reproductible et dans
 les fourchettes, prix ligne par ligne (exemples de la table), offre figée avec révision, réserve et remplacement,
@@ -33,7 +33,7 @@ import lupa.lua51 as lupa
 ROOT = Path(__file__).resolve().parents[1]
 MOD = ROOT / 'Contents/mods/batman_RadioSurvivor/42.21'
 LUA = MOD / 'media/lua'
-CORE_LUA = Path(__file__).resolve().parents[1] / 'Contents' / 'mods' / 'batman_RadioSurvivorCore' / '42.21' / 'media' / 'lua'  # mod commun (E18)
+CORE_LUA = Path(__file__).resolve().parents[1] / 'Contents' / 'mods' / 'batman_CoreAI' / '42.21' / 'media' / 'lua'  # mod commun (E18)
 LK_LUA = Path(__file__).resolve().parents[1] / 'Contents' / 'mods' / 'batman_LivingKnox' / '42.21' / 'media' / 'lua'  # moteur des PNJ (E18-T07)
 TRADE_LUA = LUA / 'server/RadioSurvivor/RS_Trade.lua'
 DOC = ROOT / 'docs/specifications-techniques/passeur-table.md'
@@ -97,8 +97,8 @@ class TradeHarness(unittest.TestCase):
         self.Trade.useVoices(self.g.VOICE_PORT)
         self.T = TraderProxy(self.Trade, 'gus')
         self.Actions = self.rt.eval('require("RadioSurvivor/RS_Actions")')
-        self.Codec = self.rt.eval('require("RadioSurvivorCore/RC_Codec")')
-        self.TV = self.rt.eval('require("RadioSurvivorCore/RC_TradeValues")')
+        self.Codec = self.rt.eval('require("CoreAI/CA_Codec")')
+        self.TV = self.rt.eval('require("CoreAI/CA_TradeValues")')
         self.g.STATE.data = self.rt.table_from({'schema': 2})
         self.T.resetForTests()
         # E13-T03 : cordon tiré par passage ; les exemples de la table supposent une semaine calme au passage 1.
@@ -356,7 +356,7 @@ class MemoryTests(TradeHarness):
         state.reputation = self.t({'cg': {'score': 40}, 'cb': {'score': -40}, 'cn': {'score': 0},
                                    'dead': {'score': -40}})
         # E18-T22: reputation of the core mod on this table (characters living by its records).
-        self.rt.eval("require('RadioSurvivorCore/RC_Reputation')").useData(state)
+        self.rt.eval("require('CoreAI/CA_Reputation')").useData(state)
         self.assertAlmostEqual(self.T.marginRange('kate', 'cg')[0], 0.10)
         self.assertAlmostEqual(self.T.marginRange('kate', 'cn')[0], 0.25)
         self.assertAlmostEqual(self.T.marginRange('kate', 'cb')[0], 0.40)

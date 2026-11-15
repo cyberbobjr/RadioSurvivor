@@ -22,7 +22,7 @@ require "RST/RST_Client"
 RST.CAMPAIGNS = RST.CAMPAIGNS or {}
 
 RST.CAMPAIGNS["solo-lk"] = {
-    "rc.notebook",      -- E18-T24 (bookmarks of the active mods)
+    "ca.notebook",      -- E18-T24 (bookmarks of the active mods)
     "lk.fitness",       -- LK05-T16
     "lk.teamneeds",     -- LK05-T15
     "lk.health",        -- LK07-T06
@@ -72,7 +72,7 @@ RST.CAMPAIGNS["solo-rs"] = {
     "rs.mission.signal.client", -- E11-T07 (requester notebook and map: accept, circle, hours, report, claim)
     "rs.comfort",       -- E05-T15 (gauges and halo of the local player)
     "rs.memorial",      -- E14-T04 (animal death kept out, bulletin announces the names)
-    "rc.notebook",      -- E18-T24 (bookmarks of the active mods)
+    "ca.notebook",      -- E18-T24 (bookmarks of the active mods)
     "rs.notebook.ink",  -- E00-T12
     "rs.notebook.relation", -- E09-T07
     "rs.notebook.visual", -- E03-T02 (changes the display mode for a while, restored after)
@@ -149,7 +149,7 @@ RST.CAMPAIGNS["mp"] = {
     "rs.voices",        -- E05-T06
     "rs.comfort",       -- E05-T15 (requester client: gauges and halo; second client: no drop)
     "rs.missions",      -- E11-T03, E11-T08 (prefix: radio, scout, solo; NOT the templates rs.mission.*)
-    "rc.journal",       -- E18-T06 (rows of the mission journal of the core mod)
+    "ca.journal",       -- E18-T06 (rows of the mission journal of the core mod)
     "rs.mission",       -- E11-T04..T07, E01-T19 (prefix: clear, retrieve, recover, signal, signal.client)
     "rs.carnet.lk",     -- E10-T02, E17-T03 (prefix: supply; fixture group, E01-T19)
     "rs.carnet.leader", -- E10-T02 (non-leader member, reply after a death or a succession)

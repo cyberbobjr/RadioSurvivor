@@ -2,7 +2,7 @@ if isClient() then return end
 --[[
 Living Knox: the queue of the NPC speech requests (E18-T17; contract docs/specifications-techniques/protocole-carnet-v2.md).
 Authority only. Decision of 2026-11-06: an NPC of the world has Living Knox as its origin; the core mod only carries the
-requests (RC_Transport, lanes npc and acks) and gives each answer back to this module.
+requests (CA_Transport, lanes npc and acks) and gives each answer back to this module.
 
 Here: the admitted sentence of a player (Talk.speak), the requests npc_talk, npc_enrich, npc_member, npc_incident,
 npc_initiative and npc_converse, their order and revision per speaker, delays, refusals, acknowledgements, the checks
@@ -11,7 +11,7 @@ The host (LK_TalkHost) gives the speakers and adds its context and its actions.
 
 One request per speaker at the bridge: heads of the queue only (Talk.sync); the others wait.
 
-Private state, two slot files written in turn (RC_SlotFile): Zomboid/Lua/batman_LivingKnox/talk-<hex of
+Private state, two slot files written in turn (CA_SlotFile): Zomboid/Lua/batman_LivingKnox/talk-<hex of
 "mode/world">-<0|1>.txt, header LKTALK1, never a global ModData:
   data = { acks = bounded outbox of acknowledgements, a restart must not lose them,
            initiatives = { done, last } (LK_Initiatives), conversations = { pairs } (LK_Conversations),
@@ -20,12 +20,12 @@ The requests in the queue live in memory only: after a restart the bridge answer
 Console messages in English.
 ]]
 local Talk = require "LivingKnox/LK_TalkHost"
-local Speech = require "RadioSurvivorCore/RC_SpeechConfig"
-local Transport = require "RadioSurvivorCore/RC_Transport"
-local Codec = require "RadioSurvivorCore/RC_Codec"
-local Rep = require "RadioSurvivorCore/RC_Reputation"
-local SlotFile = require "RadioSurvivorCore/RC_SlotFile"
-local WorldStart = require "RadioSurvivorCore/RC_WorldStart"
+local Speech = require "CoreAI/CA_SpeechConfig"
+local Transport = require "CoreAI/CA_Transport"
+local Codec = require "CoreAI/CA_Codec"
+local Rep = require "CoreAI/CA_Reputation"
+local SlotFile = require "CoreAI/CA_SlotFile"
+local WorldStart = require "CoreAI/CA_WorldStart"
 require "LivingKnox/LK_Incidents"
 require "LivingKnox/LK_Initiatives"
 require "LivingKnox/LK_Conversations"
@@ -241,7 +241,7 @@ function Talk.speak(player, character, npc, args)
     -- E17-T11: real game language of the client (any code of the right form; invalid -> EN), only a hint for the model.
     local language = Speech.languageCode(args.language)
     local host = Talk.host
-    -- E04-T10 (Q10): reputation of the speaker as the NPC knows it (level and last public act, RC_Reputation
+    -- E04-T10 (Q10): reputation of the speaker as the NPC knows it (level and last public act, CA_Reputation
     -- publicContext); never a score. The model may speak about it, never change it.
     local context = { name = npc.name, background = npc.background, reputation = Rep.publicContext(character),
         agreements = npc.agreements, caller = host.characterName(character) }

@@ -1,6 +1,6 @@
 -- Radio Survivor : livre des marchands radio (E13-T02, E13-T03 ; E20-T07, ADR D07 : troc declare dans la fiche, un
 -- etat par marchand). Barème : docs/specifications-techniques/passeur-table.md (sections 1 et 3), code
--- shared/RadioSurvivorCore/RC_TradeValues.lua (valeur V de chaque objet). Format de la section [trade] :
+-- shared/CoreAI/CA_TradeValues.lua (valeur V de chaque objet). Format de la section [trade] :
 -- docs/specifications-techniques/persona-format.md.
 --
 -- Marchand = voix dont la fiche a une section [trade] (RS_Persona : sheet.trade = spec) : lieux de rendez-vous
@@ -25,7 +25,7 @@
 -- bornee aux marges de la fiche ; la plus haute apres une tricherie).
 --
 -- Passage reserve (E13-T03) : un passage par periode de every_days jours de jeu et par marchand ; la premiere offre
--- figee d'un passage le reserve pour l'equipe de l'appelant (RC_Teams.idOf ; sans joueur « caller:<compte> »). Une
+-- figee d'un passage le reserve pour l'equipe de l'appelant (CA_Teams.idOf ; sans joueur « caller:<compte> »). Une
 -- autre equipe est refusee (booked) ; annule, fait ou trop tard dans la periode : run_over. Rendez-vous : un lieu
 -- landing de la fiche (tire par passage s'il y en a plusieurs), la premiere fenetre au moins LEAD_HOURS apres la
 -- reservation, dans la periode. Cordon (multiplicateur de prix) : tire par passage, monte d'un cran par un
@@ -39,12 +39,12 @@
 if isClient() then return end
 
 local Const = require "RadioSurvivor/RadioSurvivor_Const"
-local Codec = require "RadioSurvivorCore/RC_Codec"
+local Codec = require "CoreAI/CA_Codec"
 local S = require "RadioSurvivor/RS_State"
 local Actions = require "RadioSurvivor/RS_Actions"
-local TV = require "RadioSurvivorCore/RC_TradeValues"
-local Factions = require "RadioSurvivorCore/RC_Teams" -- E18-T20: team ids kept by the core mod
-local Rep = require "RadioSurvivorCore/RC_Reputation"
+local TV = require "CoreAI/CA_TradeValues"
+local Factions = require "CoreAI/CA_Teams" -- E18-T20: team ids kept by the core mod
+local Rep = require "CoreAI/CA_Reputation"
 local Config = require "RadioSurvivor/RS_Config"
 local Arrivals = require "RadioSurvivor/RS_TradeArrivals"
 
@@ -455,7 +455,7 @@ local function playerOf(caller)
     return nil
 end
 
--- Equipe d'un appelant : identifiant RC_Teams de son joueur ; sans joueur ni etat, « caller:<compte> ».
+-- Equipe d'un appelant : identifiant CA_Teams de son joueur ; sans joueur ni etat, « caller:<compte> ».
 function Trade.teamOf(caller, player)
     if type(caller) ~= "string" or caller == "" then return nil end
     player = player or playerOf(caller)
@@ -832,7 +832,7 @@ local function allowsTrade(sheet)
     return false
 end
 
--- Ce que le marchand prend, par classe : texte « Nom V, Nom V » trie par nom (bareme RC_TradeValues).
+-- Ce que le marchand prend, par classe : texte « Nom V, Nom V » trie par nom (bareme CA_TradeValues).
 local takesCache = nil
 local function takes()
     if takesCache then return takesCache end

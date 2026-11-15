@@ -71,7 +71,7 @@ class StateTests(unittest.TestCase):
         self.assertEqual(talk.data.acks[1].request, 'r-1')
         self.assertEqual(talk.data.initiatives.last['npc-1'], 12)
         self.assertEqual(talk.data.conversations.pairs['a|b'], 3)
-        self.assertEqual(again.server.rt.eval('#require("RadioSurvivorCore/RC_Transport").acks'), 1)
+        self.assertEqual(again.server.rt.eval('#require("CoreAI/CA_Transport").acks'), 1)
 
     def test_a_new_world_starts_empty(self):
         sim = self.world(True)

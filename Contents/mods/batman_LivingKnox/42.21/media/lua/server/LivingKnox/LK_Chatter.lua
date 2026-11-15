@@ -14,14 +14,14 @@
 -- Sans réponse possible du modèle (pont réputé arrêté, budget) : rien ne s'ouvre et rien n'est consommé.
 --
 -- Sujet tiré de l'état réel du groupe : besoin le plus pressant (LivingKnox.Stock.needs : catégorie et état ; vide
--- ou critique : ce sujet d'abord), moral (g.morale : low, steady, high), temps qu'il fait (RC_WorldFacts.weather),
+-- ou critique : ce sujet d'abord), moral (g.morale : low, steady, high), temps qu'il fait (CA_WorldFacts.weather),
 -- chef (nom du chef vivant). Longueur selon le sujet (TURNS : 2 à 4 répliques). Le bavardage dure tant que les deux
 -- restent au foyer (ils vaquent chez eux) ; il s'arrête si l'un en sort, meurt ou est occupé. Le reste (tours, réponse,
 -- intervention d'un joueur, historique des contacts existants) est celui des conversations.
 if isClient() then return end
 
 local Talk = require 'LivingKnox/LK_TalkHost'
-local World = require 'RadioSurvivorCore/RC_WorldFacts'
+local World = require 'CoreAI/CA_WorldFacts'
 local I = require 'LivingKnox/LK_Initiatives'
 local V = require 'LivingKnox/LK_Conversations'
 local P = Talk.provider

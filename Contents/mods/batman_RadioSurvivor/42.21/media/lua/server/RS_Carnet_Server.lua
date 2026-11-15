@@ -1,36 +1,36 @@
 if isClient() then return end
 if RS_CarnetServer then return RS_CarnetServer end
 local C = require 'RadioSurvivor/RS_Config'
-local Codec = require 'RadioSurvivorCore/RC_Codec'
-local P = require 'RadioSurvivor/RS_NPCProvider'; local WorldStart = require 'RadioSurvivorCore/RC_WorldStart'
-local S = require 'RadioSurvivor/RS_State'; require 'RadioSurvivorCore/RC_MissionClear' -- E11-T04: template clear
-local Identity = require 'RadioSurvivorCore/RC_Identity' -- E18-T03: identity of the characters (core mod)
-local M = require 'RadioSurvivorCore/RC_Missions'
-local MissionList = require 'RadioSurvivorCore/RC_MissionList' -- E18-T06
-local History = require 'RadioSurvivorCore/RC_History' -- E18-T11: exchange history of the core mod
-require 'RadioSurvivorCore/RC_MissionScout'; require 'RadioSurvivorCore/RC_MissionRetrieve'
-local Rep = require 'RadioSurvivorCore/RC_Reputation' -- E18-T22: reputation kept by the core mod
-local Contacts = require 'RadioSurvivorCore/RC_Contacts' -- E18-T26: contacts given to the core notebook
+local Codec = require 'CoreAI/CA_Codec'
+local P = require 'RadioSurvivor/RS_NPCProvider'; local WorldStart = require 'CoreAI/CA_WorldStart'
+local S = require 'RadioSurvivor/RS_State'; require 'CoreAI/CA_MissionClear' -- E11-T04: template clear
+local Identity = require 'CoreAI/CA_Identity' -- E18-T03: identity of the characters (core mod)
+local M = require 'CoreAI/CA_Missions'
+local MissionList = require 'CoreAI/CA_MissionList' -- E18-T06
+local History = require 'CoreAI/CA_History' -- E18-T11: exchange history of the core mod
+require 'CoreAI/CA_MissionScout'; require 'CoreAI/CA_MissionRetrieve'
+local Rep = require 'CoreAI/CA_Reputation' -- E18-T22: reputation kept by the core mod
+local Contacts = require 'CoreAI/CA_Contacts' -- E18-T26: contacts given to the core notebook
 -- Reputation of the snapshot: the core projection as it is (E18-T25: actions only, each notebook page translates the
 -- acts its mod knows).
 local function repProjection(character) return Rep.projection(character) end
 local Radio = require 'RadioSurvivor/RadioSurvivor_Const'
 -- E18-T27: observations of the NPCs and their triggers are Living Knox's (LK_Observations, LK_ObservationTriggers).
-local Teams = require 'RadioSurvivorCore/RC_Teams' -- E09-T03, E18-T20: team ids and mandates of the core mod
+local Teams = require 'CoreAI/CA_Teams' -- E09-T03, E18-T20: team ids and mandates of the core mod
 -- E18-T20: agreements, personal truces and incidents are Living Knox's (LK_Agreements), read through its global; nil
 -- without Living Knox (no agreement offered, none applied). E18-T17: so is the speech of the NPCs (LK_Talk).
 local function Agreements() return type(LivingKnox) == 'table' and LivingKnox.Agreements or nil end
-local MissionTalk = require 'RadioSurvivorCore/RC_MissionTalk'
+local MissionTalk = require 'CoreAI/CA_MissionTalk'
 local Relations = require 'RadioSurvivor/RS_Relations' -- E09-T04, E18-T21: relation kept by Living Knox, read by its API
-local RateLimit = require 'RadioSurvivorCore/RC_RateLimit' -- C21: per-account limit of the notebook commands
+local RateLimit = require 'CoreAI/CA_RateLimit' -- C21: per-account limit of the notebook commands
 -- E18-T17: Server.talk = the speech of the NPCs (LivingKnox.Talk), set when the world starts; nil without Living Knox.
 local Server = {store = S, bound = {}, selected = {}, objects = {}, quotes = {}}
 -- Export only on the authority, also used by the real-Lua simulation tests.
 RS_CarnetServer = Server
 local saveAt, checkAt, pruneAt = 0, 0, 0
--- E11-T20 (C27): mission and offer delays count play time (RC_GameClock: stopped while paused, faster at x2/x3),
+-- E11-T20 (C27): mission and offer delays count play time (CA_GameClock: stopped while paused, faster at x2/x3),
 -- not the real time of OnTickEvenPaused; one meter for every caller of M.advance.
-local playMeter = require('RadioSurvivorCore/RC_GameClock').meter()
+local playMeter = require('CoreAI/CA_GameClock').meter()
 
 local function send(player, command, args)
     args = args or {}
@@ -57,13 +57,13 @@ local function displayName(player)
     return Radio.oneLine(d:getForename() .. ' ' .. d:getSurname())
 end
 
-local IDENTITY_KEY = Identity.KEY -- 'RS_CarnetCharacter'
+local IDENTITY_KEY = Identity.KEY -- 'CA_Character'
 
 local function ownerOf(player)
     return Identity.ownerOf(player)
 end
 
--- E18-T03: the identity of the character is decided by the core mod (RC_Identity: server modData copy, client claim
+-- E18-T03: the identity of the character is decided by the core mod (CA_Identity: server modData copy, client claim
 -- as a checked fallback, new identity, retirement at death; rules of E00-T01/E00-T02). The notebook keeps its own
 -- record of the character (name, contacts, missions) under the same id, created at the first hello.
 local function identity(player, claimed)
@@ -163,7 +163,7 @@ local function contact(character, npc)
     return record.contacts[npc.id]
 end
 
--- E17-T08: acquaintance of a character with an NPC, kept on its contact (stage, exchanges, firstHour; RC_MissionTalk).
+-- E17-T08: acquaintance of a character with an NPC, kept on its contact (stage, exchanges, firstHour; CA_MissionTalk).
 local function acquaintance(character, npc, known)
     return MissionTalk.acquaintance(S.data.missions, character, npc, known)
 end
@@ -221,7 +221,7 @@ local function projection(player, pushed)
     local missions, inviteTargets = {}, {}
     local team = Teams.projection(player) -- E09-T03: own team (agreements of the relation panel)
     local contacts = contactRows(player, character, team)
-    -- E18-T06: the same list as the mission journal of the core mod (RC_MissionList: who sees it, order, state).
+    -- E18-T06: the same list as the mission journal of the core mod (CA_MissionList: who sees it, order, state).
     for _, m in pairs(S.data.missions) do
         if M.present(m) and MissionList.visible(m, character, record.knownMissions) then
             local p = M.projection(m, character)
@@ -268,7 +268,7 @@ local function activeNpc(player, character, id, range)
     return npc, object
 end
 
--- Server-configured mission allocations (RC_Missions templates), not fabricated by the model or the client.
+-- Server-configured mission allocations (CA_Missions templates), not fabricated by the model or the client.
 -- character: notebook character the offers are computed for (engine supplies depend on its attitude, E17-T03).
 local function offerCatalog(npc, record, character)
     return M.offers(npc, record, Server.objects[npc.id], character) -- body: where a scout place is drawn around
@@ -289,7 +289,7 @@ local function talk(player, character, args)
     send(player, 'queued', {id = req.id})
 end
 
--- E17-T09, E17-T10: acceptance spoken to the NPC (RC_MissionTalk), for a character of the notebook still alive.
+-- E17-T09, E17-T10: acceptance spoken to the NPC (CA_MissionTalk), for a character of the notebook still alive.
 local function spokenAcceptance(req, result, npc)
     local record = S.data.characters[req.character]
     if not record or record.retired then return nil end
@@ -298,7 +298,7 @@ local function spokenAcceptance(req, result, npc)
     return m
 end
 
--- E11-T13: report spoken to the requester (RC_MissionTalk).
+-- E11-T13: report spoken to the requester (CA_MissionTalk).
 function Server.spokenReport(req, result, npc) return MissionTalk.report(S, req, result, npc, Server.bound) end
 
 local function missionFor(player, character, args, range)
@@ -370,7 +370,7 @@ end
 -- An empty argument table arrives as nil (SinglePlayerClient.java:126, GameClient.java:1760: args sent only when not
 -- empty): the first hello of a new character ({character = nil}) used to be dropped here, so no notebook character
 -- was ever created and the radio history (RS_RadioLog) stayed empty. nil is read as {}.
--- C21: per-account token buckets {capacity, per second} (RC_RateLimit, MP server only). hello and snapshot rebuild
+-- C21: per-account token buckets {capacity, per second} (CA_RateLimit, MP server only). hello and snapshot rebuild
 -- and send the whole projection, rep_admin logs its refusals; every other command shares one bucket. The client polls
 -- every 3 s with the notebook open: far below these limits. A dropped command gets no reply.
 Server.RATE_LIMITS = {hello = {4, 0.5}, snapshot = {6, 1}, rep_admin = {3, 0.2}}
@@ -542,11 +542,11 @@ local function clockRunning()
     return false
 end
 
-local Caches = require 'RadioSurvivor/RS_CacheAction' -- E11-T06: caches (core RC_Caches with the voice action)
-require 'RadioSurvivorCore/RC_MissionRecover' -- E11-T06: template recover
-require 'RadioSurvivorCore/RC_MissionSignal'; require 'RadioSurvivorCore/RC_MissionBarricade' -- E11-T07 signal, E20-T09
-require 'RadioSurvivorCore/RC_MissionRelay'; require 'RadioSurvivorCore/RC_MissionWatch' -- E20-T12 relay, E20-T14 watch
-require 'RadioSurvivorCore/RC_MissionRoute'; require 'RadioSurvivorCore/RC_MissionItem' -- E20-T13 route, E20-T15 item
+local Caches = require 'RadioSurvivor/RS_CacheAction' -- E11-T06: caches (core CA_Caches with the voice action)
+require 'CoreAI/CA_MissionRecover' -- E11-T06: template recover
+require 'CoreAI/CA_MissionSignal'; require 'CoreAI/CA_MissionBarricade' -- E11-T07 signal, E20-T09
+require 'CoreAI/CA_MissionRelay'; require 'CoreAI/CA_MissionWatch' -- E20-T12 relay, E20-T14 watch
+require 'CoreAI/CA_MissionRoute'; require 'CoreAI/CA_MissionItem' -- E20-T13 route, E20-T15 item
 local function tick()
     if not S.data or S.blocked then return end
     local now = getTimestampMs()
@@ -604,7 +604,7 @@ local function tick()
     if Server.talk then Server.talk.enrich(now) end
 end
 
-local function init(newWorld) -- OnInitGlobalModData arg: always true on a dedicated server (RC_WorldStart)
+local function init(newWorld) -- OnInitGlobalModData arg: always true on a dedicated server (CA_WorldStart)
     if S.data then return end
     if S.init(newWorld == true and WorldStart.isNewWorld(true)) then
         Identity.init(newWorld) -- E18-T03: core registry first (same OnInitGlobalModData argument)
@@ -655,7 +655,7 @@ local function talkQueued(req, player, npc, character, text)
     S.save()
 end
 
--- Missions of a reply (RC_MissionTalk).
+-- Missions of a reply (CA_MissionTalk).
 local function talkActions(req, result, npc, binding, ignored)
     return MissionTalk.actions({state = S.data, store = S, bound = function() return Server.bound end,
         catalog = function(n, character) return offerCatalog(n, P.npc(n.incarnation), character) end,
@@ -813,7 +813,7 @@ function Server.characterDeath(character)
     if not record or record.owner ~= ownerOf(character) or record.retired then return end
     record.retired = true
     -- radio history of a dead character (E06-T04): never shown again, frees the private state (core mod, E18-T19)
-    local H = require 'RadioSurvivorCore/RC_History'
+    local H = require 'CoreAI/CA_History'
     if H.data and type(H.data.radio) == 'table' and H.data.radio[id] ~= nil then
         H.data.radio[id], H.dirty = nil, true
     end

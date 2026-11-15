@@ -2,11 +2,11 @@
 
     python RadioSurvivor/tests/test_lk_contacts.py
 
-Living Knox alone (no module of RadioSurvivor loaded): the source "lk" of RC_Contacts lists the NPCs a character knows
+Living Knox alone (no module of RadioSurvivor loaded): the source "lk" of CA_Contacts lists the NPCs a character knows
 (personal relation or exchange history kept by the core mod), with their name (LivingKnox.Names), group, relation
 panel and history; another character sees none of them; with RadioSurvivor active the source is not registered (its
 fiches already list these NPCs). Bench tests/harness.py (solo authority), real LK_Store, LK_Groups, LK_Hostility,
-LK_API, LK_PersonalRelation, RC_History, RC_Contacts; doubles only for the Java API.
+LK_API, LK_PersonalRelation, CA_History, CA_Contacts; doubles only for the Java API.
 """
 from __future__ import annotations
 
@@ -33,19 +33,19 @@ class LivingKnoxContactsTests(LivingKnoxAloneTests):
 
     def setUp(self):
         super().setUp()
-        self.run_lua(mods_double('batman_SignalSmoke', 'batman_RadioSurvivorCore', 'batman_LivingKnox'))
-        self.run_lua('assert(require("RadioSurvivorCore/RC_History").init(true)) '
+        self.run_lua(mods_double('batman_SignalSmoke', 'batman_CoreAI', 'batman_LivingKnox'))
+        self.run_lua('assert(require("CoreAI/CA_History").init(true)) '
                      'LKC = require("LivingKnox/LK_Contacts") assert(LKC.registered)')
 
     def rows(self, character):
-        return self.ev(f'(function() local out = {{}} for _, r in ipairs(require("RadioSurvivorCore/RC_Contacts")'
+        return self.ev(f'(function() local out = {{}} for _, r in ipairs(require("CoreAI/CA_Contacts")'
                        f'.rows("{character}", nil)) do out[#out + 1] = table.concat({{r.id, r.source, r.name, '
                        'tostring(r.alive), tostring(r.groupName), tostring(r.relation and r.relation.level), '
                        'tostring(#r.history)}, "|") end return table.concat(out, ";") end)()')
 
     def test_npcs_met_with_history_and_relation(self):
         self.assertEqual(self.rows('c-ann'), '')
-        self.run_lua(f'require("RadioSurvivorCore/RC_History").append("c-ann", "lk:{self.npc}", '
+        self.run_lua(f'require("CoreAI/CA_History").append("c-ann", "lk:{self.npc}", '
                      '{id = "h1", author = "Ann", text = "Hello"})')
         name = self.ev(f'LivingKnox.Names.of("{self.npc}").name')
         group = self.ev('LivingKnox.API.attitude(GID, "c-ann").level')
@@ -61,11 +61,11 @@ class LivingKnoxContactsTests(LivingKnoxAloneTests):
         self.no_radiosurvivor()
 
     def test_not_registered_with_radiosurvivor(self):
-        self.run_lua(mods_double('batman_RadioSurvivorCore', 'batman_LivingKnox', 'batman_RadioSurvivor'))
+        self.run_lua(mods_double('batman_CoreAI', 'batman_LivingKnox', 'batman_RadioSurvivor'))
         self.run_lua('LKC.registered = false '
-                     'local C = require("RadioSurvivorCore/RC_Contacts") C.sources.lk = nil C.order = {}')
+                     'local C = require("CoreAI/CA_Contacts") C.sources.lk = nil C.order = {}')
         self.assertFalse(self.ev('LKC.register()'))
-        self.assertIsNone(self.ev('require("RadioSurvivorCore/RC_Contacts").sources.lk'))
+        self.assertIsNone(self.ev('require("CoreAI/CA_Contacts").sources.lk'))
 
 
 del LivingKnoxAloneTests  # base bench: collected by its own file only

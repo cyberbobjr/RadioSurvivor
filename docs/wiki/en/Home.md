@@ -14,7 +14,7 @@ and fortify in the county.
 |---|---|---|
 | Radio Survivor | `batman_RadioSurvivor` | The radio: sixteen AI voices (a trader per town among them), the Radio tab of the notebook, factions |
 | Living Knox | `batman_LivingKnox` | Groups of NPC survivors: homes, needs, routines, fights |
-| Radio Survivor Core | `batman_RadioSurvivorCore` | What both share: missions and their journal, link with the bridge, identity, conversation history, reputation, the notebook. Enabled for you; useless alone |
+| Core AI | `batman_CoreAI` | What both share: missions and their journal, link with the bridge, identity, conversation history, reputation, the notebook. Enabled for you; useless alone |
 
 Tick **Radio Survivor**, **Living Knox** or **both**: each works without the other (the Core is always added). Details
 and the load order: [Installation](04-installation.md).

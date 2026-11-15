@@ -1,13 +1,13 @@
 if isClient() then return end
 --[[
-RadioSurvivor: its lanes in the queue of the core mod (E18-T04, RadioSurvivorCore/RC_Transport). Returns the
+RadioSurvivor: its lanes in the queue of the core mod (E18-T04, CoreAI/CA_Transport). Returns the
 transport. Order of the requests file: radio (10), then the lanes npc (20) and acks (30) of Living Knox (LK_Talk,
 E18-T17), then lastPages (40).
 - radio: requests of the radio voices (RadioSurvivor_Server.lua), written as key=value lines (format below);
 - lastPages (E15-T03): kind=last_pages requests of RS_LastPages, written as RSV2 (kind=, payload=).
 Caps stay in RadioSurvivor (decision of 2026-11-05).
 ]]
-local T = require "RadioSurvivorCore/RC_Transport"
+local T = require "CoreAI/CA_Transport"
 
 -- voice (E05-T03): id of the voice sheet chosen by the frequency; absent = walt for the bridge.
 -- kind=radio_call (E05-T05): spontaneous call of the voice, with voice, date and language only; a bridge

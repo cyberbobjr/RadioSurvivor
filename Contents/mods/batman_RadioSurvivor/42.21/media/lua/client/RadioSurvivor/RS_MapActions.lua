@@ -36,7 +36,7 @@
 --
 -- Zone approximative d'une mission de reconnaissance (E11-T10, MapActions.zones, plus bas) : le serveur ne l'envoie
 -- que dans l'instantané du carnet (champ mapZone { x, y, r } d'une mission active dont le joueur est participant,
--- RC_MissionScout) ; jamais la position du bâtiment. Dessin : symbole vanilla « Circle » (map_o.png, cercle tracé à la
+-- CA_MissionScout) ; jamais la position du bâtiment. Dessin : symbole vanilla « Circle » (map_o.png, cercle tracé à la
 -- main) centré sur (x, y), agrandi pour que son anneau ait un rayon de r cases : avec applyZoom (vrai par défaut), la
 -- taille affichée vaut largeur x échelle x worldScale pixels, worldScale = pixels par case
 -- (WorldMapBaseSymbol.getDisplayScale, WorldMapRenderer.getWorldScale : 1 / metersPerPixel) ; la largeur d'une icône
@@ -207,7 +207,7 @@ local function wantedZones(missions)
     for _, p in ipairs(type(missions) == "table" and missions or {}) do
         if type(p) == "table" and p.state == "active" and p.engaged then
             local id = tostring(p.id)
-            -- E20-T01: label style declared by the template (RC_Missions, mapStyle), projected by the engine.
+            -- E20-T01: label style declared by the template (CA_Missions, mapStyle), projected by the engine.
             local style = type(p.mapStyle) == "string" and p.mapStyle or nil
             addCircle(out, id, p.mapZone, p.requester, style)
             -- E11-T06: depot circle of a recover mission, drawn next to its search area.

@@ -1,5 +1,5 @@
 -- Dead drops of a radio voice mission (E20-T01, E20-T05, E20-T06, ADR D06). Authority only.
--- Any mission template that declares the strategy dropAccepts(m, item) (RC_Missions: deliver = accepted goods,
+-- Any mission template that declares the strategy dropAccepts(m, item) (CA_Missions: deliver = accepted goods,
 -- retrieve_id = the card of the mission by item id) gets dead drops when a voice gives it: the set-up is registered for
 -- that declaration (RS_MissionVoice.registerDeclaredSetup), the poll and projection are the voice giver's drop hooks
 -- (RS_MissionHooks: observeDrops, projectDrops, dropsWhere, dropsRule, called by the engine).
@@ -18,7 +18,7 @@ local Config = require 'RadioSurvivor/RS_Config'
 local Const = require 'RadioSurvivor/RadioSurvivor_Const'
 local Voice = require 'RadioSurvivor/RS_MissionVoice'
 local Persona = require 'RadioSurvivor/RS_Persona'
-local Missions = require 'RadioSurvivorCore/RC_Missions'
+local Missions = require 'CoreAI/CA_Missions'
 local OutOfSight = require 'RadioSurvivor/RS_OutOfSight'
 local D = {}
 local nextBox = 0
@@ -255,7 +255,7 @@ local function observeDrop(m, d, store)
     return changed or collected
 end
 
--- Poll of the voice giver (hook observeDrops, called by RC_Missions.observe): every drop, in the order of the mission.
+-- Poll of the voice giver (hook observeDrops, called by CA_Missions.observe): every drop, in the order of the mission.
 function D.observe(m, _player, _name, _state, store)
     if m.donor ~= 'voice' or m.state ~= 'active' or type(m.drops) ~= 'table' or not store then return false end
     local changed = false
@@ -266,7 +266,7 @@ function D.observe(m, _player, _name, _state, store)
     return changed
 end
 
--- Notebook projection (hook projectDrops, called by RC_Missions.projection): drops with their label and mode, whether
+-- Notebook projection (hook projectDrops, called by CA_Missions.projection): drops with their label and mode, whether
 -- everything was collected; map zones for a participant.
 function D.project(m, p)
     p.drops, p.collectHours = {}, delayOf(m)
@@ -288,7 +288,7 @@ function D.where(m)
     return table.concat(labels, ', ')
 end
 
--- Collection rule told to the voice (hook dropsRule, read by the template's voiceBrief through RC_Missions.dropsRule).
+-- Collection rule told to the voice (hook dropsRule, read by the template's voiceBrief through CA_Missions.dropsRule).
 function D.rule(m)
     return 'Collection rule: the caller may use any of the drop points and split the goods between them; deposits '
         .. 'add up. A drop is collected only out of sight of everyone (nobody within about '

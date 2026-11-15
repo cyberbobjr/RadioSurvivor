@@ -36,7 +36,7 @@ ROOT = Path(__file__).resolve().parents[1]
 BENCH = ROOT / 'tests' / 'kahlua'
 TESTS_LUA = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua'
 MOD_LUA = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivor' / '42.21' / 'media' / 'lua'
-CORE_LUA = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivorCore' / '42.21' / 'media' / 'lua'  # mod commun (E18)
+CORE_LUA = ROOT / 'Contents' / 'mods' / 'batman_CoreAI' / '42.21' / 'media' / 'lua'  # mod commun (E18)
 LK_LUA = ROOT / 'Contents' / 'mods' / 'batman_LivingKnox' / '42.21' / 'media' / 'lua'  # moteur des PNJ (E18-T07)
 PZ_DIR = pz_paths.game_dir()
 ECJ = Path(os.environ['RS_ECJ_JAR']) if os.environ.get('RS_ECJ_JAR') else BENCH / 'ecj.jar'
@@ -50,40 +50,40 @@ STDLIB = PZ_DIR / 'stdlib.lua'
 EVENTS_AT_LOAD = {'LivingKnox/LK_Decisions'}
 # E18-T03 : modules du mod commun qui s'abonnent par Events.X.Add au chargement : charges avec une table Events dont
 # chaque evenement accepte Add sans rien inscrire.
-EVENTS_ADD_AT_LOAD = {'RadioSurvivorCore/RC_WorldStart', 'RadioSurvivorCore/RC_Identity', 'RadioSurvivorCore/RC_MissionJournal'}
+EVENTS_ADD_AT_LOAD = {'CoreAI/CA_WorldStart', 'CoreAI/CA_Identity', 'CoreAI/CA_MissionJournal'}
 LUA_FILES = [
     ('driver', BENCH / 'driver.lua'),
     ('RST/RST', TESTS_LUA / 'shared' / 'RST' / 'RST.lua'),
     ('RST/RST_LKHelpers', TESTS_LUA / 'shared' / 'RST' / 'RST_LKHelpers.lua'),
     ('RST/RST_LKProbe', TESTS_LUA / 'shared' / 'RST' / 'RST_LKProbe.lua'),
-    # E18-T05 : catalogue des missions du mod commun (requis par RS_Config et RC_Missions).
-    ('RadioSurvivorCore/RC_ReputationConfig', CORE_LUA / 'shared' / 'RadioSurvivorCore' / 'RC_ReputationConfig.lua'),  # E18-T22
-    ('RadioSurvivorCore/RC_MissionConfig', CORE_LUA / 'shared' / 'RadioSurvivorCore' / 'RC_MissionConfig.lua'),
-    ('RadioSurvivorCore/RC_SpeechConfig', CORE_LUA / 'shared' / 'RadioSurvivorCore' / 'RC_SpeechConfig.lua'),  # E18-T17
-    ('RadioSurvivorCore/RC_Hearing', CORE_LUA / 'shared' / 'RadioSurvivorCore' / 'RC_Hearing.lua'),  # E18-T18
+    # E18-T05 : catalogue des missions du mod commun (requis par RS_Config et CA_Missions).
+    ('CoreAI/CA_ReputationConfig', CORE_LUA / 'shared' / 'CoreAI' / 'CA_ReputationConfig.lua'),  # E18-T22
+    ('CoreAI/CA_MissionConfig', CORE_LUA / 'shared' / 'CoreAI' / 'CA_MissionConfig.lua'),
+    ('CoreAI/CA_SpeechConfig', CORE_LUA / 'shared' / 'CoreAI' / 'CA_SpeechConfig.lua'),  # E18-T17
+    ('CoreAI/CA_Hearing', CORE_LUA / 'shared' / 'CoreAI' / 'CA_Hearing.lua'),  # E18-T18
     ('RadioSurvivor/RS_Config', MOD_LUA / 'shared' / 'RadioSurvivor' / 'RS_Config.lua'),
-    ('RadioSurvivorCore/RC_Bridge', CORE_LUA / 'shared' / 'RadioSurvivorCore' / 'RC_Bridge.lua'),  # E18-T04 : RadioSurvivor_Const
-    ('RadioSurvivorCore/RC_Codec', CORE_LUA / 'shared' / 'RadioSurvivorCore' / 'RC_Codec.lua'),
+    ('CoreAI/CA_Bridge', CORE_LUA / 'shared' / 'CoreAI' / 'CA_Bridge.lua'),  # E18-T04 : RadioSurvivor_Const
+    ('CoreAI/CA_Codec', CORE_LUA / 'shared' / 'CoreAI' / 'CA_Codec.lua'),
     ('RadioSurvivor/RS_NPCProvider', MOD_LUA / 'shared' / 'RadioSurvivor' / 'RS_NPCProvider.lua'),  # RS_MissionHooks
-    ('RadioSurvivorCore/RC_GameClock', CORE_LUA / 'shared' / 'RadioSurvivorCore' / 'RC_GameClock.lua'),  # RC_Missions (E11-T20)
+    ('CoreAI/CA_GameClock', CORE_LUA / 'shared' / 'CoreAI' / 'CA_GameClock.lua'),  # CA_Missions (E11-T20)
     # E18-T03 : identité des personnages du mod commun (LK_Hostility.keyOf) et ses dépendances.
-    ('RadioSurvivorCore/RC_RateLimit', CORE_LUA / 'shared' / 'RadioSurvivorCore' / 'RC_RateLimit.lua'),
-    ('RadioSurvivorCore/RC_WorldStart', CORE_LUA / 'shared' / 'RadioSurvivorCore' / 'RC_WorldStart.lua'),
-    ('RadioSurvivorCore/RC_SlotFile', CORE_LUA / 'shared' / 'RadioSurvivorCore' / 'RC_SlotFile.lua'),
-    ('RadioSurvivorCore/RC_Identity', CORE_LUA / 'shared' / 'RadioSurvivorCore' / 'RC_Identity.lua'),
-    ('RadioSurvivorCore/RC_Missions', CORE_LUA / 'server' / 'RadioSurvivorCore' / 'RC_Missions.lua'),
+    ('CoreAI/CA_RateLimit', CORE_LUA / 'shared' / 'CoreAI' / 'CA_RateLimit.lua'),
+    ('CoreAI/CA_WorldStart', CORE_LUA / 'shared' / 'CoreAI' / 'CA_WorldStart.lua'),
+    ('CoreAI/CA_SlotFile', CORE_LUA / 'shared' / 'CoreAI' / 'CA_SlotFile.lua'),
+    ('CoreAI/CA_Identity', CORE_LUA / 'shared' / 'CoreAI' / 'CA_Identity.lua'),
+    ('CoreAI/CA_Missions', CORE_LUA / 'server' / 'CoreAI' / 'CA_Missions.lua'),
     # E18-T05 : etat prive des missions du mod commun et crochets de RadioSurvivor (attaches par RS_State).
-    ('RadioSurvivorCore/RC_MissionStore', CORE_LUA / 'server' / 'RadioSurvivorCore' / 'RC_MissionStore.lua'),
-    ('RadioSurvivorCore/RC_History', CORE_LUA / 'server' / 'RadioSurvivorCore' / 'RC_History.lua'),  # E18-T11 : RS_State
-    ('RadioSurvivorCore/RC_Reputation', CORE_LUA / 'server' / 'RadioSurvivorCore' / 'RC_Reputation.lua'),  # E18-T22 : RS_State
+    ('CoreAI/CA_MissionStore', CORE_LUA / 'server' / 'CoreAI' / 'CA_MissionStore.lua'),
+    ('CoreAI/CA_History', CORE_LUA / 'server' / 'CoreAI' / 'CA_History.lua'),  # E18-T11 : RS_State
+    ('CoreAI/CA_Reputation', CORE_LUA / 'server' / 'CoreAI' / 'CA_Reputation.lua'),  # E18-T22 : RS_State
     ('RadioSurvivor/RS_MissionHooks', MOD_LUA / 'server' / 'RadioSurvivor' / 'RS_MissionHooks.lua'),
     ('RadioSurvivor/RS_StatePurge', MOD_LUA / 'server' / 'RadioSurvivor' / 'RS_StatePurge.lua'),
     ('RadioSurvivor/RS_State', MOD_LUA / 'server' / 'RadioSurvivor' / 'RS_State.lua'),
     ('RadioSurvivor/RS_PersonaParams', MOD_LUA / 'server' / 'RadioSurvivor' / 'RS_PersonaParams.lua'),  # E20-T03
     ('RadioSurvivor/RS_Persona', MOD_LUA / 'server' / 'RadioSurvivor' / 'RS_Persona.lua'),
     ('RadioSurvivor/RS_Rewards', MOD_LUA / 'server' / 'RadioSurvivor' / 'RS_Rewards.lua'),  # E20-T03 : RS_Personas.rules
-    # E20-T04 : natures de récompense inscrites dans RS_Rewards (une par fichier, Rewards/), la cache sur RC_Caches.
-    ('RadioSurvivorCore/RC_Caches', CORE_LUA / 'server' / 'RadioSurvivorCore' / 'RC_Caches.lua'),
+    # E20-T04 : natures de récompense inscrites dans RS_Rewards (une par fichier, Rewards/), la cache sur CA_Caches.
+    ('CoreAI/CA_Caches', CORE_LUA / 'server' / 'CoreAI' / 'CA_Caches.lua'),
     # E20-T16 : résolution des catégories partagée par la cache et les biens d'une mission de voix.
     ('RadioSurvivor/RS_Categories', MOD_LUA / 'server' / 'RadioSurvivor' / 'RS_Categories.lua'),
     *[(f'RadioSurvivor/Rewards/{p.stem}', p)
@@ -155,12 +155,12 @@ LUA_FILES = [
     ('LivingKnox/LK_Load', LK_LUA / 'shared' / 'LivingKnox' / 'LK_Load.lua'),
     ('suite/selftest', TESTS_LUA / 'shared' / 'RST' / 'suites' / 'RST_SelfTest.lua'),
     ('suite/failures', TESTS_LUA / 'shared' / 'RST' / 'suites' / 'RST_Failures.lua'),
-    ('suite/codec', TESTS_LUA / 'shared' / 'RST' / 'suites' / 'RC_Codec.lua'),
+    ('suite/codec', TESTS_LUA / 'shared' / 'RST' / 'suites' / 'CA_Codec.lua'),
     ('suite/missions', TESTS_LUA / 'shared' / 'RST' / 'suites' / 'RS_Missions.lua'),
     # E18-T06 : journal des missions du mod commun (lignes envoyees au joueur).
-    ('RadioSurvivorCore/RC_MissionList', CORE_LUA / 'shared' / 'RadioSurvivorCore' / 'RC_MissionList.lua'),
-    ('RadioSurvivorCore/RC_MissionJournal', CORE_LUA / 'server' / 'RadioSurvivorCore' / 'RC_MissionJournal.lua'),
-    ('suite/journal', TESTS_LUA / 'shared' / 'RST' / 'suites' / 'RC_Journal.lua'),
+    ('CoreAI/CA_MissionList', CORE_LUA / 'shared' / 'CoreAI' / 'CA_MissionList.lua'),
+    ('CoreAI/CA_MissionJournal', CORE_LUA / 'server' / 'CoreAI' / 'CA_MissionJournal.lua'),
+    ('suite/journal', TESTS_LUA / 'shared' / 'RST' / 'suites' / 'CA_Journal.lua'),
     # E05-T06 : déclaration seule (compilée et déclarée dans la VM réelle ; exécutée en jeu et sous lupa).
     ('suite/voices', TESTS_LUA / 'shared' / 'RST' / 'suites' / 'RS_Voices.lua'),
     # E06-T02 : déclaration seule (interface du client : exécutée en jeu et sous lupa, tests/test_rs_suites.py).
@@ -168,7 +168,7 @@ LUA_FILES = [
     # E03-T02 : déclaration seule (interface du client : exécutée en jeu et sous lupa, tests/test_notebook_visual.py).
     ('suite/notebookvisual', TESTS_LUA / 'shared' / 'RST' / 'suites' / 'RS_NotebookVisual.lua'),
 ]
-RUNS = ['rst', 'rst.failures', 'rs.codec', 'rs.missions', 'rc.journal']
+RUNS = ['rst', 'rst.failures', 'rs.codec', 'rs.missions', 'ca.journal']
 MAX_TICKS = 5000
 sys.path.insert(0, str(ROOT / 'bridge'))
 sys.path.insert(0, str(ROOT / 'tests'))
@@ -227,18 +227,18 @@ EXCHANGE_EVALS = [
     # Runtime detected by the codec, UTF-16 string length of the sample.
     r'eval:return "KR-CODEC utf16=" .. tostring(#"\195\169" == 1) .. " len=" .. #' + lua_literal(ACCENTED),
     # Lua -> Python: request payload exactly as RS_Transport writes it.
-    'eval:local C = require("RadioSurvivorCore/RC_Codec"); return "KR-PAYLOAD " .. C.hexBytes(C.encodeBytes({version = 2, '
+    'eval:local C = require("CoreAI/CA_Codec"); return "KR-PAYLOAD " .. C.hexBytes(C.encodeBytes({version = 2, '
     'kind = "npc_talk", text = ' + lua_literal(ACCENTED) + '}))',
     # Python -> Lua: reply payload read as RS_Transport reads it.
-    'eval:local C = require("RadioSurvivorCore/RC_Codec"); local v = C.decodeBytes(C.unhexBytes("'
+    'eval:local C = require("CoreAI/CA_Codec"); local v = C.decodeBytes(C.unhexBytes("'
     + protocol.encode(REPLY).hex() + '")); return "KR-REPLY " .. tostring(v ~= nil and v.text == '
     + lua_literal(ACCENTED) + ') .. " " .. C.hex(v and v.text or "")',
     # Old Latin-1 state (U+00E9 written as the byte e9 before E00-T08): same checksum, decoded as U+00E9.
-    'eval:local C = require("RadioSurvivorCore/RC_Codec"); local b = C.unhexBytes("74313a73343a6e616d6573343a636166e9"); '
+    'eval:local C = require("CoreAI/CA_Codec"); local b = C.unhexBytes("74313a73343a6e616d6573343a636166e9"); '
     'local v = C.decodeBytes(b); return "KR-LEGACY " .. C.checksumBytes(b) .. " " .. tostring(v ~= nil and v.name == '
     + lua_literal('café') + ')',
     # LK02-T02 : identité des PNJ (logique pure) dans la VM réelle : identifiants, classement, registre relu en RSV2.
-    'eval:local I = LivingKnox.Identity; local C = require("RadioSurvivorCore/RC_Codec"); local r = I.newRegistry(); '
+    'eval:local I = LivingKnox.Identity; local C = require("CoreAI/CA_Codec"); local r = I.newRegistry(); '
     'local a = I.create(r, {}, 10, 20, 0); local b = I.create(r, { female = true, outfit = "Generic02" }, 1.5, 2, 0); '
     'I.markEmbodied(a, I.nextGeneration(a)); I.markEmbodied(a, I.nextGeneration(a)); '
     'local md = {}; I.writeTag(md, a.id, 2); local id, gen = I.readTag(md); '
@@ -264,7 +264,7 @@ EXCHANGE_EVALS = [
     'return "KR-APPEARANCE " .. table.concat(out, " ")',
     # LK02-T12 : vêtements concrets dans le registre (champ facultatif npc.clothes) : contrôle, aller-retour RSV2 d'un
     # décalage de teinte flottant (float32 vu en double), refus d'une entrée fausse par Identity.validate.
-    'eval:local A = LivingKnox.Appearance; local I = LivingKnox.Identity; local C = require("RadioSurvivorCore/RC_Codec"); '
+    'eval:local A = LivingKnox.Appearance; local I = LivingKnox.Identity; local C = require("CoreAI/CA_Codec"); '
     'local r = I.newRegistry(); local npc = I.create(r, { look = "womanTanBob" }, 1, 2, 0); '
     'npc.clothes = { { type = "Base.Tshirt_DefaultTEXTURE_TINT", item = "Tshirt_DefaultTEXTURE_TINT", '
     'tint = { r = 31, g = 166, b = 127 }, hue = -0.3799999952316284, base = 0, choice = 2, decal = "TShirtDecal" }, '
@@ -291,7 +291,7 @@ EXCHANGE_EVALS = [
     # LK08-T01 : registre des groupes dans la VM réelle (API sur un registre en mémoire, écriture de fichier
     # neutralisée : getFileWriter n'existe pas hors du jeu) : succession, bornes, journal, aller-retour RSV2 validé,
     # groupe invalide écarté, schéma futur refusé.
-    'eval:local G = LivingKnox.Groups; local C = require("RadioSurvivorCore/RC_Codec"); '
+    'eval:local G = LivingKnox.Groups; local C = require("CoreAI/CA_Codec"); '
     'G.state.data, G.state.blocked = G.newRegistry(), false; G.save = function() return true end; '
     'local g = G.create({ type = "settlers", name = "Mill", home = { x = 10600, y = 9400, z = -1 }, day = 2 }); '
     'local m1 = G.addMember(g.id, { role = "worker", npc = "lk-3" }); local m2 = G.addMember(g.id, { role = "fighter" }); '
@@ -308,7 +308,7 @@ EXCHANGE_EVALS = [
     # LK09-T01 : simulation hors écran dans la VM réelle : 24 pas d'une heure = un rattrapage de 24 h (mêmes octets),
     # valeurs identiques à celles de lupa (tirages Park-Miller, arrondi aléatoire, blessures, succession) ;
     # LK09-T02 : une expédition partie et revenue pendant les 24 h (dernier nombre : entrées « return »).
-    'eval:local G = LivingKnox.Groups; local S = LivingKnox.Simulation; local C = require("RadioSurvivorCore/RC_Codec"); '
+    'eval:local G = LivingKnox.Groups; local S = LivingKnox.Simulation; local C = require("CoreAI/CA_Codec"); '
     'LivingKnox.Config.SIMULATION.SEED = 4242; G.state.data, G.state.blocked = G.newRegistry(), false; '
     'G.save = function() return true end; local g = G.create({ type = "settlers", name = "Mill", day = 1 }); '
     'for _ = 1, 5 do G.addMember(g.id, { role = "worker" }) end; G.setLeader(g.id, "m-2", 1); local d = G.state.data; '
@@ -323,7 +323,7 @@ EXCHANGE_EVALS = [
     '.. " " .. s .. " " .. rets',
     # LK09-T05 : événements de groupe (combat compris) dans la VM réelle : 240 pas d'une heure = rattrapages de 72 h
     # (mêmes octets), nombre d'événements et valeurs identiques à lupa (tests/test_lk_simulation.py, CrossVmTests).
-    'eval:local G = LivingKnox.Groups; local S = LivingKnox.Simulation; local C = require("RadioSurvivorCore/RC_Codec"); '
+    'eval:local G = LivingKnox.Groups; local S = LivingKnox.Simulation; local C = require("CoreAI/CA_Codec"); '
     'local E = LivingKnox.Config.SIMULATION.EVENTS; LivingKnox.Config.SIMULATION.SEED = 777; E.MAX_DAILY = 1; '
     'E.CLASH.CHANCE = 0.8; G.state.data, G.state.blocked = G.newRegistry(), false; G.save = function() return true end; '
     'local a = G.create({ type = "settlers", name = "Mill", day = 1, home = { x = 1000, y = 1000, z = 0 } }); '
@@ -354,7 +354,7 @@ EXCHANGE_EVALS = [
     '.. " " .. tostring(near[1].inWorld) .. " " .. p.area.x .. " " .. tostring(p.home) .. " " .. p.members[1].role',
     # LK11-T03 : attitudes dans la VM reelle (ecriture neutralisee) : deux joueurs distincts, tendance, declin borne,
     # plafond apres un meurtre, aller-retour RSV2 valide ; memes valeurs que sous lupa (tests/test_lk_hostility.py).
-    'eval:local G, H = LivingKnox.Groups, LivingKnox.Hostility; local C = require("RadioSurvivorCore/RC_Codec"); '
+    'eval:local G, H = LivingKnox.Groups, LivingKnox.Hostility; local C = require("CoreAI/CA_Codec"); '
     'G.state.data, G.state.blocked = G.newRegistry(), false; G.save = function() return true end; '
     'H.state.data, H.state.blocked = H.newRegistry(), false; H.save = function() return true end; '
     'local g = G.create({ type = "settlers", name = "Mill", day = 1 }).id; local o = { witnessed = true, day = 1 }; '
@@ -367,7 +367,7 @@ EXCHANGE_EVALS = [
     '.. " " .. #H.forGroup(g)',
     # LK12-T03 : offres et livraison idempotente dans la VM reelle (ecriture et horloge neutralisees) ; memes valeurs
     # que sous lupa (tests/test_lk_api.py, SupplyTests) : food 20 -> +5 -> rejeu sans effet -> +10, recompense.
-    'eval:local G, A = LivingKnox.Groups, LivingKnox.API; local C = require("RadioSurvivorCore/RC_Codec"); '
+    'eval:local G, A = LivingKnox.Groups, LivingKnox.API; local C = require("CoreAI/CA_Codec"); '
     'G.state.data, G.state.blocked = G.newRegistry(), false; G.save = function() return true end; '
     'A.currentHour = function() return 10 end; '
     'local g = G.create({ type = "settlers", name = "Mill", day = 1, needs = { food = 20, medical = 35, ammo = 60 } }).id; '
@@ -473,7 +473,7 @@ def persona_expected(raw: bytes, expected_id: str) -> str:
 def persona_eval(name: str, raw: bytes, expected_id: str) -> str:
     lines = ', '.join(lua_literal(line) for line in persona_lines(raw))
     canon = ' '.join(test_personas.LUA_CANONICAL.split())
-    return ('eval:local P = require("RadioSurvivor/RS_Persona"); local C = require("RadioSurvivorCore/RC_Codec"); '
+    return ('eval:local P = require("RadioSurvivor/RS_Persona"); local C = require("CoreAI/CA_Codec"); '
             f'local canon = (function() {canon} end)(); local p, why = P.parseLines({{ {lines} }}, "{expected_id}"); '
             f'return "KR-PERSONA-{name} " .. (p and ("OK " .. C.hex(canon(p))) or ("ERR " .. C.hex(why)))')
 
@@ -634,7 +634,7 @@ EXCHANGE_EVALS.append(LOAD_EVAL)
 # rapide (St.unhexOfBytes), dans la VM reelle ; ecriture differee du registre des groupes (writeSlotFile de test) : rien ecrit avant
 # la fin de l'image, une ecriture pour trois changements, premiere ecriture relue, flush sans changement sans effet.
 GFLUSH_EVAL = (
-    'eval:local C = require("RadioSurvivorCore/RC_Codec"); local St = LivingKnox.Store; local G = LivingKnox.Groups; '
+    'eval:local C = require("CoreAI/CA_Codec"); local St = LivingKnox.Store; local G = LivingKnox.Groups; '
     'local all = {} for i = 0, 255 do all[#all + 1] = string.char(i) end local bytes = table.concat(all); '
     'local s = C.encodeBytes({ t = "\\195\\169t\\195\\169 \\226\\128\\153", n = 1.5, b = true }); '
     'local long = string.rep(bytes, 40) .. s; local same = St.hexOfBytes(bytes) == C.hexBytes(bytes) and '
@@ -686,12 +686,12 @@ FORT_EVAL = (
 )
 EXCHANGE_EVALS.append(FORT_EVAL)
 
-# LK13-T10 : tri des cles de RC_Codec (textes de tri calcules une fois) = comparateur historique, octet pour octet, sur
+# LK13-T10 : tri des cles de CA_Codec (textes de tri calcules une fois) = comparateur historique, octet pour octet, sur
 # 300 tables tirees (cles chaines, entieres, flottantes, negatives, non ASCII, tables imbriquees) dans la VM reelle
 # (table.sort de stdlib.lua) ; ecriture differee du registre des PNJ (writeSlotFile de test) : rien ecrit avant la fin
 # de l'image, une ecriture pour trois changements, premiere ecriture relue, flush sans changement sans effet.
 RFLUSH_EVAL = (
-    'eval:local C = require("RadioSurvivorCore/RC_Codec"); local St = LivingKnox.Store; local pack; pack = '
+    'eval:local C = require("CoreAI/CA_Codec"); local St = LivingKnox.Store; local pack; pack = '
     'function(v) local kind = type(v) if kind == "boolean" then return v and "b1" or "b0" end if kind == "string" '
     'then local s = C.toUtf8(v) return "s" .. #s .. ":" .. s end if kind == "number" then local s = tostring(v) '
     'return "n" .. #s .. ":" .. s end local keys = {} for k in pairs(v) do keys[#keys + 1] = k end '
@@ -716,15 +716,15 @@ RFLUSH_EVAL = (
 )
 EXCHANGE_EVALS.append(RFLUSH_EVAL)
 
-# E17-T12 : découpe d'une réplique (RC_TextCut.pieces) dans la VM réelle, longueurs en unités UTF-16 : mêmes morceaux
+# E17-T12 : découpe d'une réplique (CA_TextCut.pieces) dans la VM réelle, longueurs en unités UTF-16 : mêmes morceaux
 # que radio_bridge.cut_pieces (caractères) sur un texte accentué avec points de suspension (U+2026) et un décimal.
 TEXTCUT_TEXT = ("Oui, j'ai du travail pour toi. Il s'agit d'aller repérer une maison à West Point, une expédition de "
                 "deux heures, avec 9.5 litres d'essence et un sac bien rempli… Le rapport se fait en personne ; "
                 "la récompense : vingt cartouches de 9 mm. Est-ce que ça t'intéresse ?")
 TEXTCUT_LIMITS = (20, 30, 60, 100, 140)
 EXCHANGE_EVALS += [
-    'load:RadioSurvivorCore/RC_TextCut=' + str(CORE_LUA / 'shared' / 'RadioSurvivorCore' / 'RC_TextCut.lua'),
-    'eval:local C = require("RadioSurvivorCore/RC_Codec"); local T = require("RadioSurvivorCore/RC_TextCut"); local out = {} '
+    'load:CoreAI/CA_TextCut=' + str(CORE_LUA / 'shared' / 'CoreAI' / 'CA_TextCut.lua'),
+    'eval:local C = require("CoreAI/CA_Codec"); local T = require("CoreAI/CA_TextCut"); local out = {} '
     'for _, n in ipairs({' + ', '.join(str(n) for n in TEXTCUT_LIMITS) + '}) do out[#out + 1] = '
     'table.concat(T.pieces(' + lua_literal(TEXTCUT_TEXT) + ', n), "|") end return "KR-TEXTCUT " .. '
     'C.hex(table.concat(out, "#"))',
@@ -1059,7 +1059,7 @@ class KahluaBench(unittest.TestCase):
 
     def test_journal_suite_runs_in_kahlua(self):
         # E18-T06: no online player bound in the bench (SKIP), but the suite and the journal load in the real VM.
-        res = self.statuses('rc.journal')
+        res = self.statuses('ca.journal')
         self.assertEqual(len(res), 2)  # E18-T25: + hidden mission of a giver whose mod is not active
         self.assertTrue(all(v[0] in ('PASS', 'SKIP') for v in res.values()), res)
 

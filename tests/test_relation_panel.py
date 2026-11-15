@@ -23,7 +23,7 @@ from test_factions import FACTION_DOUBLE, AGREEMENTS_FACADE
 LEVELS = ['hostile', 'wary', 'cautious', 'favorable', 'trusting']
 EN = ROOT / 'Contents/mods/batman_RadioSurvivor/42.21/media/lua/shared/Translate/EN/IG_UI.json'
 FR = ROOT / 'Contents/mods/batman_RadioSurvivor/42.21/media/lua/shared/Translate/FR/IG_UI.json'
-CORE_EN = ROOT / 'Contents/mods/batman_RadioSurvivorCore/42.21/media/lua/shared/Translate/EN/IG_UI.json'
+CORE_EN = ROOT / 'Contents/mods/batman_CoreAI/42.21/media/lua/shared/Translate/EN/IG_UI.json'
 LK_EN = ROOT / 'Contents/mods/batman_LivingKnox/42.21/media/lua/shared/Translate/EN/IG_UI.json'
 LK_FR = ROOT / 'Contents/mods/batman_LivingKnox/42.21/media/lua/shared/Translate/FR/IG_UI.json'
 
@@ -125,7 +125,7 @@ class RelationPanelTests(unittest.TestCase):
         c = self.sim.clients[name]
         if not getattr(c, 'rel_ui', False):
             c.rt.execute(NOTEBOOK_UI)
-            # E18-T25: the words of the days are the core mod's (RC_Notebook): both tables, as the game merges them.
+            # E18-T25: the words of the days are the core mod's (CA_Notebook): both tables, as the game merges them.
             texts = json.loads(EN.read_text(encoding='utf-8-sig'))
             texts.update(json.loads(CORE_EN.read_text(encoding='utf-8-sig')))
             texts.update(json.loads(LK_EN.read_text(encoding='utf-8-sig')))  # E18-T26: words of the relation panel

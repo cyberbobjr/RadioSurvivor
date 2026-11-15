@@ -1,4 +1,4 @@
-"""Réputation interne côté serveur (E04-T07, E04-T08, E04-T09, E04-T12 ; mod commun depuis E18-T22) : RC_Reputation.lua seul (lupa, Lua 5.1,
+"""Réputation interne côté serveur (E04-T07, E04-T08, E04-T09, E04-T12 ; mod commun depuis E18-T22) : CA_Reputation.lua seul (lupa, Lua 5.1,
 `next` retiré comme dans Kahlua), puis dans le vrai serveur du carnet (doublures de tests/test_carnet.py, deux
 clients).
 
@@ -7,7 +7,7 @@ clients).
 Couvre : barème (+5, −5, −50, −10), bornes −100..+100, seuils ±20 (quatre réussites de neutre à bonne, quatre
 échecs à mauvaise), plafond de gain de +10 par jour de jeu (surplus noté sans effet), pertes jamais plafonnées, acte
 grave non effacé le même jour, tendance sur trois actes, liste fermée d'actions, personnage inconnu ou mort sans
-effet, idempotence par eventId (rejeu, rechargement de l'état par RC_Codec, redémarrage du serveur simulé, double
+effet, idempotence par eventId (rejeu, rechargement de l'état par CA_Codec, redémarrage du serveur simulé, double
 événement de mort), mission de groupe (même montant pour chaque participant, joueur hors ligne compris), sanction du
 seul tueur participant (E04-T07), membre de groupe tué par un non-participant (npc.memberKilled), aucune commande
 client qui écrit, projection sans chiffre et réservée au personnage, purge (30 jours, personnage mort après 7 jours).
@@ -30,7 +30,7 @@ import lupa.lua51 as lupa
 
 ROOT = Path(__file__).resolve().parents[1]
 LUA = ROOT / 'Contents/mods/batman_RadioSurvivor/42.21/media/lua'
-CORE_LUA = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivorCore' / '42.21' / 'media' / 'lua'  # mod commun (E18)
+CORE_LUA = ROOT / 'Contents' / 'mods' / 'batman_CoreAI' / '42.21' / 'media' / 'lua'  # mod commun (E18)
 LK_SERVER = ROOT / 'Contents' / 'mods' / 'batman_LivingKnox' / '42.21' / 'media' / 'lua' / 'server' / 'LivingKnox'
 LK_STUBS = r"""
 LivingKnox = LivingKnox or {}
@@ -55,9 +55,9 @@ print = function(...) local t = {} for i = 1, select('#', ...) do t[#t + 1] = to
 '''
 
 
-# E18-T22: a character lives while the record of the table says so (benches of the rules, no RC_Identity).
+# E18-T22: a character lives while the record of the table says so (benches of the rules, no CA_Identity).
 LIVENESS_BY_RECORDS = r'''
-require('RadioSurvivorCore/RC_Reputation').setLiveness(function(c, st)
+require('CoreAI/CA_Reputation').setLiveness(function(c, st)
     local r = type(st.characters) == 'table' and st.characters[c] or nil
     if type(r) ~= 'table' then return 'no_character' end
     if r.retired then return 'retired' end
@@ -77,7 +77,7 @@ def py(value):
 
 
 class Unit(unittest.TestCase):
-    """RS_Reputation alone, real RS_Config, RS_State and RC_Codec."""
+    """RS_Reputation alone, real RS_Config, RS_State and CA_Codec."""
 
     def setUp(self):
         self.rt = lupa.LuaRuntime(unpack_returned_tuples=True)
@@ -85,7 +85,7 @@ class Unit(unittest.TestCase):
         self.rt.execute(UNIT_STUBS)
         roots = ';'.join(f'{(LUA / side).as_posix()}/?.lua' for side in ('server', 'shared')) + f';{(CORE_LUA / "shared").as_posix()}/?.lua;{(CORE_LUA / "server").as_posix()}/?.lua'
         self.rt.execute(f'package.path = [[{roots};]] .. package.path')
-        self.R = self.rt.eval("require('RadioSurvivorCore/RC_Reputation')")
+        self.R = self.rt.eval("require('CoreAI/CA_Reputation')")
         self.S = self.rt.eval("require('RadioSurvivor/RS_State')")
         self.state = self.rt.eval("{characters = {alice = {id = 'alice'}, bob = {id = 'bob'}, "
                                   "dead = {id = 'dead', retired = true}}, outcomes = {}}")
@@ -181,7 +181,7 @@ class Unit(unittest.TestCase):
         self.assertTrue(self.rt.eval('rawequal')(again, o))
         self.assertEqual((self.score(), self.state.reputation['alice'].revision), (5, 1))
         # Restart: the private state goes through the real codec of RS_State.save / read.
-        codec = self.rt.eval("require('RadioSurvivorCore/RC_Codec')")
+        codec = self.rt.eval("require('CoreAI/CA_Codec')")
         reloaded = codec.decodeBytes(codec.encodeBytes(self.state))
         self.S.data = reloaded
         self.R.useData(reloaded)
@@ -302,8 +302,8 @@ class Server(unittest.TestCase):
             sim.add_client(c)
         sim.select(clients[0])
         self.sim, self.g, self.rt = sim, sim.server.g, sim.server.rt
-        self.R = self.rt.eval("require('RadioSurvivorCore/RC_Reputation')")
-        self.M = self.rt.eval("require('RadioSurvivorCore/RC_Missions')")
+        self.R = self.rt.eval("require('CoreAI/CA_Reputation')")
+        self.M = self.rt.eval("require('CoreAI/CA_Missions')")
         self.npc = next(iter(sim.state().npcs.values()))
         return sim
 
@@ -349,7 +349,7 @@ class Server(unittest.TestCase):
         self.assertFalse(self.M.finish(sim.state(), m, 'success'), 'second finish')
         # Restart of the server: same scores, a replayed fact is a duplicate.
         restart = self.Simulation(sim.path, sim.clock, saved_players=sim.saved())
-        R2 = restart.server.rt.eval("require('RadioSurvivorCore/RC_Reputation')")
+        R2 = restart.server.rt.eval("require('CoreAI/CA_Reputation')")
         self.assertEqual((R2.scoreOf(sim.character('alice')), R2.scoreOf(bob)), (5, 5))
         state = restart.state()
         _, dup = R2.record(None, m.id + '-' + bob + '-result', bob, 'mission.success', 5, None, None)
@@ -410,7 +410,7 @@ class Server(unittest.TestCase):
         outcomes = len(list(self.R.data.outcomes.values()))
         for command in ('reputation', 'record', 'rep_record', 'set_reputation'):
             sim.command('bob', command, character=sim.character('bob'), action='mission.success', delta=100,
-                        reasonKey='IGUI_RC_RepReason_MissionSuccess', eventId='forged')
+                        reasonKey='IGUI_CA_RepReason_MissionSuccess', eventId='forged')
         self.assertEqual(py(self.R.data.reputation), before)
         self.assertEqual(len(list(self.R.data.outcomes.values())), outcomes)
         sim.command('alice', 'snapshot'); sim.command('bob', 'snapshot')
@@ -438,7 +438,7 @@ class Server(unittest.TestCase):
         publish = rt.eval('LivingKnox.publish')
         publish('npcDied', info)
         publish('npcDied', info)
-        R = rt.eval("require('RadioSurvivorCore/RC_Reputation')")
+        R = rt.eval("require('CoreAI/CA_Reputation')")
         alice = sim.character('alice')
         self.assertEqual((R.scoreOf(alice), R.level(alice), R.trend(alice)), (-10, 'neutral', 'down'))
         self.assertEqual(R.reasons(alice)[1].action, 'npc.memberKilled')
@@ -458,7 +458,7 @@ class Effects(unittest.TestCase):
     def test_bad_reputation_keeps_simple_offers_only(self):
         sim = self.world('offers')
         self.rt.execute("""
-            local M = require 'RadioSurvivorCore/RC_Missions'
+            local M = require 'CoreAI/CA_Missions'
             local function fake(kind)
                 return {idPrefix = 'f', offer = function() return {kind = kind} end, create = function() end}
             end
@@ -570,8 +570,8 @@ class Effects(unittest.TestCase):
         sim.command('alice', 'snapshot')
         window.changeTab(window, 'Reputation')
         text = window.detail.text
-        self.assertIn('IGUI_RC_RepLevelLine|IGUI_RC_RepLevel_neutral <LINE> <LINE> IGUI_RC_RepTrendLine|IGUI_RC_RepTrend_stable', text)
-        self.assertIn('IGUI_RC_RepNoActs', text)
+        self.assertIn('IGUI_CA_RepLevelLine|IGUI_CA_RepLevel_neutral <LINE> <LINE> IGUI_CA_RepTrendLine|IGUI_CA_RepTrend_stable', text)
+        self.assertIn('IGUI_CA_RepNoActs', text)
         self.assertIn('IGUI_RS_PersonalTrustSeparate', text)
         for gone in ('NotApplied', 'Event_', 'ReputationUnavailable'):
             self.assertNotIn(gone, text)
@@ -579,11 +579,11 @@ class Effects(unittest.TestCase):
         self.bad('alice')
         sim.server.g.RS_CarnetServer.publish()
         text = window.detail.text
-        self.assertIn('IGUI_RC_RepLevelLine|IGUI_RC_RepLevel_bad <LINE> <LINE> IGUI_RC_RepTrendLine|IGUI_RC_RepTrend_down', text)
-        self.assertIn('IGUI_RC_RepChanged|IGUI_RC_RelWhen_today|IGUI_RC_RepLevel_neutral|IGUI_RC_RepLevel_bad', text)
-        self.assertIn('- IGUI_RC_RepAct|IGUI_RC_RelWhen_today|IGUI_RC_RepReason_MissionFailed|Real Bandit', text)
+        self.assertIn('IGUI_CA_RepLevelLine|IGUI_CA_RepLevel_bad <LINE> <LINE> IGUI_CA_RepTrendLine|IGUI_CA_RepTrend_down', text)
+        self.assertIn('IGUI_CA_RepChanged|IGUI_CA_RelWhen_today|IGUI_CA_RepLevel_neutral|IGUI_CA_RepLevel_bad', text)
+        self.assertIn('- IGUI_CA_RepAct|IGUI_CA_RelWhen_today|IGUI_CA_RepReason_MissionFailed|Real Bandit', text)
         self.assertIsNone(re.search(r'\d', re.sub(r'<[^>]*>', '', text)), 'a number is shown: ' + text)
-        self.assertEqual(lua_list(c.g.HALOS), ['bad:IGUI_RS_RepWarn|IGUI_RC_RepLevel_bad'])
+        self.assertEqual(lua_list(c.g.HALOS), ['bad:IGUI_RS_RepWarn|IGUI_CA_RepLevel_bad'])
         # Same change seen again (poll): no second warning.
         sim.command('alice', 'snapshot')
         self.assertEqual(len(lua_list(c.g.HALOS)), 1)

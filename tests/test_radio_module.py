@@ -26,7 +26,7 @@ import beltradio_lib  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 LUA = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivor' / '42.21' / 'media' / 'lua'
-CORE_LUA = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivorCore' / '42.21' / 'media' / 'lua'  # mod commun (E18)
+CORE_LUA = ROOT / 'Contents' / 'mods' / 'batman_CoreAI' / '42.21' / 'media' / 'lua'  # mod commun (E18)
 TALK = LUA / 'client' / 'RadioSurvivor' / 'RS_RadioTalk.lua'
 MODULE = LUA / 'client' / 'RadioSurvivor' / 'RS_RadioModule.lua'
 MENU = LUA / 'client' / 'RadioSurvivor_Client.lua'
@@ -587,7 +587,7 @@ class SourceTests(unittest.TestCase):
         keys |= {'IGUI_RS_' + k for k in ('Radio',)}  # E18-T20: the Team tab is Living Knox's
         keys |= {'IGUI_RS_Radio_' + k for k in ('said', 'reply', 'heard')}
         keys |= set(re.findall(r"getText\('(IGUI_\w+)'\s*[,)]", NOTEBOOK.read_text(encoding='utf-8')))
-        keys = {k for k in keys if not k.startswith('IGUI_RC_')}  # E18-T25: words of the core notebook, its own bench
+        keys = {k for k in keys if not k.startswith('IGUI_CA_')}  # E18-T25: words of the core notebook, its own bench
         for lang in ('EN', 'FR'):
             data = json.loads((LUA / 'shared' / 'Translate' / lang / 'IG_UI.json').read_text(encoding='utf-8-sig'))
             self.assertEqual(sorted(k for k in keys if k not in data), [], lang)

@@ -16,7 +16,7 @@ aménagement des foyers (LK_Homes, doublures de tests/test_lk_homes.py) et le vr
   isEmpty, getPrimaryFluid ; bouteille d'eau créée avec un fluide tiré au hasard (PickRandomFluid) ;
 - instanceItem (LuaManager.java:4669) : nil pour un type inconnu ; sendAddItemToContainer (:9700) compté sur le
   serveur seulement ;
-- inventaire du joueur (IsoPlayer.getInventory) ; clé de joueur de LK_Hostility = RC_Identity.bound[joueur].
+- inventaire du joueur (IsoPlayer.getInventory) ; clé de joueur de LK_Hostility = CA_Identity.bound[joueur].
 Elles NE PROUVENT PAS l'API réelle, seulement la logique : suite en jeu lk.stock.
 """
 from __future__ import annotations
@@ -174,8 +174,8 @@ function C.IsoPlayer:getInventory()
     if not inv then inv = NEW_CONTAINER('none') self.inv = inv end
     return inv
 end
-RC_Identity = RC_Identity or { bound = {} }   -- identité du mod commun (E18-T03)
-function BIND(name, key) RC_Identity.bound[HARNESS.players[name]] = key end
+CA_Identity = CA_Identity or { bound = {} }   -- identité du mod commun (E18-T03)
+function BIND(name, key) CA_Identity.bound[HARNESS.players[name]] = key end
 
 -- Aides ---------------------------------------------------------------------------------------------------------------
 function OWNED(gid)
@@ -992,7 +992,7 @@ class OffscreenTests(Base):
     def test_simulation_drives_the_stock_reproducibly(self):
         gid = self.filled()
         out = self.run_lua(f'''
-            local C = require("RadioSurvivorCore/RC_Codec")
+            local C = require("CoreAI/CA_Codec")
             local S = LivingKnox.Simulation
             LivingKnox.Config.SIMULATION.EXPEDITIONS.DEPART_CHANCE = 1
             local d = LivingKnox.Groups.state.data

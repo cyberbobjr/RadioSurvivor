@@ -25,7 +25,7 @@ require "RST/RST_PeerChecks2"
 
 local FILTER = { suite = "rst.selftest" }
 
-local KEY = "RS_CarnetCharacter"   -- RS_Carnet_Server.lua IDENTITY_KEY
+local KEY = "CA_Character"   -- RS_Carnet_Server.lua IDENTITY_KEY
 
 local function notebook(t)
     local server = RS_CarnetServer

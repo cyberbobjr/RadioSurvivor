@@ -405,10 +405,10 @@ class SideTests(Base):
 
     def test_key_of_player_uses_the_notebook_identity(self):
         self.init()
-        self.run_lua(f'require("RadioSurvivorCore/RC_Identity").bound = {{ [HARNESS.players.A] = "{P1}" }}')
+        self.run_lua(f'require("CoreAI/CA_Identity").bound = {{ [HARNESS.players.A] = "{P1}" }}')
         self.assertEqual(self.ev(f'{H}.keyOf(HARNESS.players.A)'), P1)
         self.assertEqual(self.run_lua(f'return {H}.keyOf(HARNESS.players.B)'), (None, 'no character identity bound'))
-        self.run_lua('require("RadioSurvivorCore/RC_Identity").bound = {}')
+        self.run_lua('require("CoreAI/CA_Identity").bound = {}')
         self.assertEqual(self.run_lua(f'return {H}.keyOf(HARNESS.players.A)'), (None, 'no character identity bound'))
 
 
@@ -571,7 +571,7 @@ class TargetTests(Base):
 
     def test_candidates_of_perception(self):
         """Joueurs VUS seulement, vivants, connus du serveur, avec la clé du carnet ; perception périmée : aucun."""
-        self.run_lua(f'require("RadioSurvivorCore/RC_Identity").bound = {{ [HARNESS.players.A] = "{P1}" }}')
+        self.run_lua(f'require("CoreAI/CA_Identity").bound = {{ [HARNESS.players.A] = "{P1}" }}')
         per = ('{ stale = false, p = { { u = "A", s = true, d = 4 }, { u = "B", s = true, d = 2 }, '
                '{ u = "C", s = true, d = 1 }, { u = "B", h = true, d = 2 } } }')
         rows = self.ev(f'{H}.candidatesOf({per}, {{ HARNESS.players.A, HARNESS.players.B }})')

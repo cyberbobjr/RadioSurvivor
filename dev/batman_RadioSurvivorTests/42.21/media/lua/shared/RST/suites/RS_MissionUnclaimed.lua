@@ -1,9 +1,9 @@
 --[[
 rs.missions.unclaimed - reward lot of a succeeded mission left unclaimed (E16-T10, user decision of 2026-10-21): kept 7
 game days (168 hours of world age), real time alone never counts.
-The mission is closed as a success by the real engine (RC_Missions.finish: the deadline unclaimedUntilHour is set by
+The mission is closed as a success by the real engine (CA_Missions.finish: the deadline unclaimedUntilHour is set by
 its release from the world age) on an in-memory notebook state, as rs.missions.solo does; the real M.prune and M.claim
-then run on it. Game time: RC_Missions reads the world age only through RC_GameClock.hours (RC_Missions.lua:284, 371);
+then run on it. Game time: CA_Missions reads the world age only through CA_GameClock.hours (CA_Missions.lua:284, 371);
 the suite shifts that function of the shared module ahead for the duration of ONE call to M.prune and puts it back in
 the same step (no tick runs meanwhile, so no meter of the game counts the jump; the real GameTime is never changed).
     kept    6 game days later (and 30 real days later) the lot is still there; it is then claimed by the real M.claim
@@ -11,7 +11,7 @@ the same step (no tick runs meanwhile, so no meter of the game counts the jump; 
     purged  0.1 game hour before the deadline the lot is kept; 0.1 game hour after it, M.prune drops it.
 Tags "server" and "world" (the claim fills a real inventory): authority only (solo or dedicated server), save named
 rstest*, target player t.ctx.player. Selected by the prefix "rs.missions" of the campaigns solo-rs and mp.
-Cleanup: claimed items removed, fact log put back (RST.FactsBook: RC_Missions.finish tells RS_Facts), clock function
+Cleanup: claimed items removed, fact log put back (RST.FactsBook: CA_Missions.finish tells RS_Facts), clock function
 restored. Outside the game: tests/test_rs_e14_e16_suites.py.
 ]]
 
@@ -29,12 +29,12 @@ end
 
 local function modules(t)
     authority(t)
-    local M, Clock = require "RadioSurvivorCore/RC_Missions", require "RadioSurvivorCore/RC_GameClock"
+    local M, Clock = require "CoreAI/CA_Missions", require "CoreAI/CA_GameClock"
     if Clock.hours() == nil then t:skip("no game time (GameTime not ready)") end
     return M, Clock
 end
 
--- Result of fn() while RC_GameClock.hours reads `hours` game hours ahead; the real function is back before returning.
+-- Result of fn() while CA_GameClock.hours reads `hours` game hours ahead; the real function is back before returning.
 local function ahead(Clock, hours, fn)
     local real = Clock.hours
     Clock.hours = function()

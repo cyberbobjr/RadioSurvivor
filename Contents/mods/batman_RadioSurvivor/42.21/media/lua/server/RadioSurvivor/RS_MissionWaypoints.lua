@@ -1,5 +1,5 @@
 -- Ordered points of a radio voice mission (E20-T13, ADR D02, D04). Authority only.
--- Any mission template that declares the strategy alongPoints(m, points) -> ok, reason (RC_Missions; route: places
+-- Any mission template that declares the strategy alongPoints(m, points) -> ok, reason (CA_Missions; route: places
 -- to cross in order) works on the places named in order by the parameter points= of its sheet section (kind `places`
 -- of RS_PersonaParams: places of the sheet with use=target). The set-up is registered for that declaration
 -- (RS_MissionVoice.registerDeclaredSetup): check refuses the start before any mission exists (no_points: a name of
@@ -9,7 +9,7 @@
 if isClient() then return end
 local Voice = require 'RadioSurvivor/RS_MissionVoice'
 local Persona = require 'RadioSurvivor/RS_Persona'
-local Missions = require 'RadioSurvivorCore/RC_Missions'
+local Missions = require 'CoreAI/CA_Missions'
 
 local W = {}
 

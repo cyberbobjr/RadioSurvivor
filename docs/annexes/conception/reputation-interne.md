@@ -10,21 +10,21 @@
 
 > **Depuis E18-T22 (2026-11-06, décision de l'utilisateur : une seule réputation par personnage, dans le mod commun).**
 > Les règles ci-dessous sont inchangées, mais le code et l'état ont changé de place :
-> - module `server/RadioSurvivorCore/RC_Reputation.lua` du mod `batman_RadioSurvivorCore` (API publique en tête),
->   barème `shared/RadioSurvivorCore/RC_ReputationConfig.lua` (`RS_Config.Reputation` est la même table), abonnements
->   `server/RadioSurvivorCore/RC_ReputationEvents.lua` (chargement, mort d'un personnage par `RC_Identity`, purge
+> - module `server/CoreAI/CA_Reputation.lua` du mod `batman_CoreAI` (API publique en tête),
+>   barème `shared/CoreAI/CA_ReputationConfig.lua` (`RS_Config.Reputation` est la même table), abonnements
+>   `server/CoreAI/CA_ReputationEvents.lua` (chargement, mort d'un personnage par `CA_Identity`, purge
 >   chaque jour de jeu) ;
-> - état privé à lui, `Zomboid/Lua/batman_RadioSurvivorCore/reputation-<monde>-<0|1>.txt` (`RC_SlotFile`, en-tête
+> - état privé à lui, `Zomboid/Lua/batman_CoreAI/reputation-<monde>-<0|1>.txt` (`CA_SlotFile`, en-tête
 >   `RCREP1`) : `{ schema, reputation, outcomes }` ; l'état du carnet (`RS_State`) ne les porte plus ; ceux d'une partie
->   d'avant la séparation sont repris une fois (`RC_Reputation.adopt`, une entrée déjà présente l'emporte) ;
-> - personnage vivant : identité non retirée de `RC_Identity` (plus la fiche du carnet) ;
-> - faits : résultats des missions et refus des offres sensibles par le moteur commun (`RC_Missions`, quel que soit le
+>   d'avant la séparation sont repris une fois (`CA_Reputation.adopt`, une entrée déjà présente l'emporte) ;
+> - personnage vivant : identité non retirée de `CA_Identity` (plus la fiche du carnet) ;
+> - faits : résultats des missions et refus des offres sensibles par le moteur commun (`CA_Missions`, quel que soit le
 >   donneur, avec ou sans RadioSurvivor) ; `npc.memberKilled` par Living Knox (`LK_Reputation`, fait `npcDied`, sauf si
->   `npc.requesterKilled` a déjà compté la même mort : `RC_Reputation.chargedFor`) ; `trade.cheated` et
+>   `npc.requesterKilled` a déjà compté la même mort : `CA_Reputation.chargedFor`) ; `trade.cheated` et
 >   `npc.requesterKilled` par RadioSurvivor ; Living Knox lit le niveau directement (`LK_Hostility.reputationOf`) ;
 > - un motif garde l'action, pas le texte : depuis `E18-T25`, l'onglet Réputation est dessiné par le carnet du mod
->   commun (`RC_Notebook.reputationLines`, données par la commande `reputation` du module `RadioSurvivorCore`) et chaque
->   mod y inscrit le texte des actes qu'il connaît (`Notebook.reputationReasons[action]` : missions `IGUI_RC_`, troc,
+>   commun (`CA_Notebook.reputationLines`, données par la commande `reputation` du module `CoreAI`) et chaque
+>   mod y inscrit le texte des actes qu'il connaît (`Notebook.reputationReasons[action]` : missions `IGUI_CA_`, troc,
 >   donneur tué et sauvetage `IGUI_RS_`, membre d'un groupe tué `IGUI_LK_`) ; un acte d'un mod décoché se lit « une
 >   bonne / mauvaise action » ; la marge du passeur par niveau est `RS_Config.TradeMargin` (`RS_Trade`).
 
@@ -37,7 +37,7 @@ Les numéros de ligne ci-dessous sont ceux de la branche `dev` au 2026-10-14 (ch
 |---|---|---|
 | Adaptateur | `RS_Reputation.lua` n'a que `descriptor`, `projection` (toujours « indisponible ») et `record`, qui écrit un fait `applied=false`, `status='api_unavailable'` dans `state.outcomes[eventId]`, une seule fois par `eventId` | `server/RadioSurvivor/RS_Reputation.lua:4-22` |
 | Montants | `Reputation = {success = 5, failure = -5, requesterKilled = -50}`, « provisoires » | `shared/RadioSurvivor/RS_Config.lua:59-60` |
-| Résultats de mission | `M.finish` : un `Rep.record` par participant, identifiant `<mission>-<personnage>-result`, actions `mission.success`/`mission.failed`/`mission.abandoned` ; annulations (`cancelled_*`) sans effet | `server/RadioSurvivorCore/RC_Missions.lua (mod commun):120-145` (appel ligne 140, filtre 130-131) |
+| Résultats de mission | `M.finish` : un `Rep.record` par participant, identifiant `<mission>-<personnage>-result`, actions `mission.success`/`mission.failed`/`mission.abandoned` ; annulations (`cancelled_*`) sans effet | `server/CoreAI/CA_Missions.lua (mod commun):120-145` (appel ligne 140, filtre 130-131) |
 | Tricherie au passeur | `Rep.record(..., "trade-<rév>-cheated", who, "trade.cheated", failure)` | `server/RadioSurvivor/RS_TradeExchange.lua:291-302` (appel ligne 297) |
 | Mort du demandeur | `Server.dead` annule les missions (`cancelled_dead`) et pose `deathAttribution = 'unavailable_server_evidence'` ; commentaire « attribution bloquée » devenu faux depuis E04-T06 | `server/RS_Carnet_Server.lua:963-977` (commentaire 972-974) |
 | Cause de la mort d'un PNJ | `Bodies.deathCause` (dernier coup d'un joueur ≤ 5 s, conducteur, feu jamais attribué) passée à `Bodies.onDied`, relayée en événement fournisseur `'death' (id, object, cause)` | `server/LivingKnox/LK_Bodies.lua:941-974`, `1013-1014` ; `shared/RadioSurvivor/RS_LivingKnox.lua:618` ; `shared/RadioSurvivor/RS_NPCProvider.lua:88` |
@@ -64,7 +64,7 @@ du carnet, action, montant, preuve). La chronique reste le récit public ; la r�
 
 | Action | Quand | Qui | Montant proposé | Source |
 |---|---|---|---|---|
-| `mission.success` | `M.finish(..., 'success')` | chaque participant inscrit | +5 | `RC_Missions.lua:140` (existant) |
+| `mission.success` | `M.finish(..., 'success')` | chaque participant inscrit | +5 | `CA_Missions.lua:140` (existant) |
 | `mission.failed` / `mission.abandoned` | `M.finish` | chaque participant inscrit | −5 | idem (existant) |
 | `trade.cheated` | sac insuffisant au ponton | l'appelant du passage | −5 | `RS_TradeExchange.lua:297` (existant) |
 | `npc.requesterKilled` | mort d'un PNJ dont une mission est ouverte, `cause.killer` attribué **et** participant de cette mission | ce seul personnage | −50 | `RS_Carnet_Server.lua:963` + cause de `'death'` (E04-T07) |
@@ -102,7 +102,7 @@ mort non attribuée : aucun effet (règle d'E04-T06).
 | PNJ en face (carnet, proximité) | `reputation = 'bad' / 'neutral' / 'good'` (+ dernier motif public si décidé) | `RS_Carnet_Server.lua:356` |
 | Radio de groupe | idem | `RS_GroupRadio.lua:144` |
 | Voix radio (Walt…) | idem, nouveau champ de la requête | `RadioSurvivor_Server.lua:445-463` ; contrat `docs/specifications-techniques/protocole-carnet-v2.md` à mettre à jour |
-| Offres de missions | filtre serveur par niveau (simples / sensibles) | `M.offers`, `RC_Missions.lua:75-85` (E04-T05) |
+| Offres de missions | filtre serveur par niveau (simples / sensibles) | `M.offers`, `CA_Missions.lua:75-85` (E04-T05) |
 | Passeur | plancher de marge par niveau | `RS_Trade.lua:340-356` (E04-T11) |
 | Groupes Living Knox | éventuel décalage du départ de l'attitude (question Q14, E04-T11) | `LK_Hostility` (départ, [attitude.md](attitude.md)) |
 
@@ -156,7 +156,7 @@ existant).
 ## 10. Mise en œuvre (2026-10-15)
 
 Code : `server/RadioSurvivor/RS_Reputation.lua` (en-tête : API publique), `shared/RadioSurvivor/RS_Config.lua`
-(`Reputation`, valeurs de la section 9), points de capture `RC_Missions.finish`, `RS_TradeExchange` (`finish`),
+(`Reputation`, valeurs de la section 9), points de capture `CA_Missions.finish`, `RS_TradeExchange` (`finish`),
 `RS_Carnet_Server.lua` (`Server.dead`, `Server.npcDied`, `killerCharacter`, instantané, `prune`, `characterDeath`).
 Banc : `tests/test_reputation.py`.
 
@@ -198,13 +198,13 @@ Banc : `tests/test_reputation.py`.
   seulement : `R.change` garde `{from, to, day, n}` ; le client (enveloppe de `RS_CarnetClient.receive` dans
   `RS_Notebook.lua`) affiche « Réputation : bonne » au-dessus du personnage une fois par `n` ; le premier instantané
   après le chargement ne fait que noter la référence. L'ancienne liste `events` « non appliqués » est retirée.
-- **Offres (E04-T05, Q11, Q12)** : `RC_Missions.offers` filtre par `R.offerAllowed(level, template, offer)` :
+- **Offres (E04-T05, Q11, Q12)** : `CA_Missions.offers` filtre par `R.offerAllowed(level, template, offer)` :
   mauvaise réputation = `deliver`, `signal`, `scout`, `clear` seulement ; `retrieve_id`, `recover` et les missions de
   groupe (offre `kind = supply`) fermées (`RS_Config.Reputation.sensitive`) ; neutre et bonne gardent tout. Même
   garde dans `RS_MissionVoice.start` (refus `reputation`). L'acceptation revalide le même catalogue.
 - **Contexte LLM (E04-T10, Q10)** : `R.publicContext` = `{level, last = {act, about}}` dans `context.reputation` du
   PNJ en face (`RS_Carnet_Server.talk`) et des groupes à la radio (`RS_GroupRadio.talk`), et champ `reputation=` des
-  voix (`RadioSurvivor_Server`, écrit par `RS_BridgeLanes` (file `RC_Transport` du mod commun)) ; consigne `npc_protocol.reputation_sentence` (peut en
+  voix (`RadioSurvivor_Server`, écrit par `RS_BridgeLanes` (file `CA_Transport` du mod commun)) ; consigne `npc_protocol.reputation_sentence` (peut en
   parler, ne l'invente ni ne la change). Protocole : [protocole-carnet-v2.md](../../specifications-techniques/protocole-carnet-v2.md).
 - **Marge du passeur (E04-T11, Q13)** : `RS_Trade` (`marginFloor`) : base du niveau (0,10 / 0,25 / 0,40), rabais
   d'historique, tricherie 0,50 ([passeur-table.md](../../specifications-techniques/passeur-table.md)).

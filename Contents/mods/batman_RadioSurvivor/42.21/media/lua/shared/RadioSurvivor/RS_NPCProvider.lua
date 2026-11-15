@@ -100,7 +100,7 @@ Shared rules, engine-independent (vanilla behaviour only), usable by every provi
   Provider.hears(source, listener, range) -> boolean  intelligible speech (ChatUtility.getScrambleValue).
   Provider.personality(signature) -> table     base personality derived from the signature only.
 ]]
-local Hearing = require 'RadioSurvivorCore/RC_Hearing'
+local Hearing = require 'CoreAI/CA_Hearing'
 
 local Provider = {}
 

@@ -524,7 +524,7 @@ par `Talk.attach(host)` : `host` donne les fiches et ajoute son contexte et ses 
 raison `Text`, `Chat`, `Cooldown`, `Busy`, `Bridge`) ; `Talk.turns`, `Talk.poll`, `Talk.enrich` sont appelés par le tic
 de l'hôte. État privé : `Zomboid/Lua/batman_LivingKnox/talk-*.txt` (en-tête `LKTALK1`). Avec RadioSurvivor, le carnet
 est l'hôte. Sans RadioSurvivor, Living Knox est son propre hôte (`LK_TalkAlone.lua`, `E18-T18`) : interlocuteurs et
-connaissance des personnages dans le fichier privé, historique dans `RC_History` (pair `lk:<id>`), missions par le moteur
-du commun (`RC_MissionTalk`, `RC_MissionStore`). Côté client (`LK_TalkView.lua`) : une phrase dite dans le chat près d'un
+connaissance des personnages dans le fichier privé, historique dans `CA_History` (pair `lk:<id>`), missions par le moteur
+du commun (`CA_MissionTalk`, `CA_MissionStore`). Côté client (`LK_TalkView.lua`) : une phrase dite dans le chat près d'un
 PNJ va au plus proche, le menu « Parler » du monde sert aussi en solo, sans chat. Les observations, les initiatives et
 les conversations n'y tournent pas encore (`E18-T27`).

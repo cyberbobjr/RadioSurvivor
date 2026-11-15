@@ -1,6 +1,6 @@
 -- Voice mission `route` (E20-T13, ADR D10): three places around the player crossed in order. Real start path of a
 -- voice (RS_MissionVoice.start, sheet with one [mission] of type route, points=a,b,c, three places use=target), real
--- set-up of the points (RS_MissionWaypoints), real engine poll (RC_Missions.observe: the template reads the server
+-- set-up of the points (RS_MissionWaypoints), real engine poll (CA_Missions.observe: the template reads the server
 -- copy of the player), real radio report (RS_MissionVoice.report).
 -- The server copy of the player is moved point by point (IsoMovingObject setX/setY) and read at once by the poll, in
 -- the same server call: no update of the client comes in between. It is put back where it was at the end.
@@ -15,9 +15,9 @@ local SIDE = 30        -- tiles between two points of the square route around th
 
 local function run(t)
     if isClient() then t:skip('authority only') end
-    local M = require 'RadioSurvivorCore/RC_Missions'
+    local M = require 'CoreAI/CA_Missions'
     local V = require 'RadioSurvivor/RS_MissionVoice'
-    local R = require 'RadioSurvivorCore/RC_MissionRoute'
+    local R = require 'CoreAI/CA_MissionRoute'
     local p = F.player(t)
     if not p then t:skip('no target player') end
     local x0, y0, z0 = p:getX(), p:getY(), math.floor(p:getZ())

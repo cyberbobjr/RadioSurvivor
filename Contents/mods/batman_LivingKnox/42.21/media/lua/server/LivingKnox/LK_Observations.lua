@@ -22,7 +22,7 @@ if isClient() then return end
 
 require 'LivingKnox/LK_Core'
 local Talk = require 'LivingKnox/LK_TalkHost'
-local World = require 'RadioSurvivorCore/RC_WorldFacts'
+local World = require 'CoreAI/CA_WorldFacts'
 
 local Obs = LivingKnox.Observations or {}
 LivingKnox.Observations = Obs

@@ -6,7 +6,7 @@ Vrai RS_Persona avec les vraies règles du serveur (RS_Personas.rules : registre
 récompense de RS_Rewards, catalogue livré personas/_categories.txt), dans lupa. Couvre les sections [mission],
 [rewards] et [category] (le pont les passe sans les lire : chaque cas refusé ici est accepté par persona_store), un
 faux type de mission inscrit par le banc avec ses propres paramètres (aucune modification du lecteur), le catalogue
-livré (les tables de cache figées de RC_MissionConfig, objet par objet), les six fiches livrées (ce que propose chaque
+livré (les tables de cache figées de CA_MissionConfig, objet par objet), les six fiches livrées (ce que propose chaque
 voix) et les exemples de fiche des pages 10 du wiki FR et EN, chargés tels quels.
 Les cas communs aux deux lecteurs (tête, [place], en-têtes de section) sont dans tests/test_personas.py.
 """
@@ -182,13 +182,13 @@ CASES += [
 
 # Faux type de mission du banc : chaque genre de paramètre, déclaré par le gabarit seul.
 FAKE_TEMPLATE = r'''
-require('RadioSurvivorCore/RC_Missions').register('watchtower', {voiceName = 'watch_tower',
+require('CoreAI/CA_Missions').register('watchtower', {voiceName = 'watch_tower',
     voiceText = 'watch from a tower',
     params = {count = 'count', note = 'text', spot = 'place', quantity = 'range', items = 'category'}})
 '''
 FAKE_MISSION = mission('type=watch_tower\ncount=3\nnote=Count the crows.\nspot=church\nquantity=1-2\nitems=food\n')
 
-# Natures de récompense du catalogue, dans l'ordre de RC_MissionConfig.Caches.order.
+# Natures de récompense du catalogue, dans l'ordre de CA_MissionConfig.Caches.order.
 CATALOGUE = MOD / 'personas/_categories.txt'
 WIKI_PAGES = (ROOT / 'docs/wiki/fr/10-creer-une-voix-radio.md', ROOT / 'docs/wiki/en/10-creating-radio-voices.md')
 
@@ -272,8 +272,8 @@ class SectionTests(unittest.TestCase):
                          (None, "line 15: unknown key 'colour' for mission type 'watch_tower'"))
 
     def test_catalogue_holds_the_fixed_cache_tables(self):
-        # Contenu exact des tables figées de RC_MissionConfig.Caches.tables (caches des voix : catalogue, E20-T04).
-        tables = self.lua.rt.eval('require("RadioSurvivorCore/RC_MissionConfig").Caches')
+        # Contenu exact des tables figées de CA_MissionConfig.Caches.tables (caches des voix : catalogue, E20-T04).
+        tables = self.lua.rt.eval('require("CoreAI/CA_MissionConfig").Caches')
         lines = store.split_lines(CATALOGUE.read_text(encoding='utf-8'))
         catalogue = self.lua.module.parseCatalogue(self.lua.rt.table_from(lines))
         self.assertFalse(isinstance(catalogue, tuple), catalogue)

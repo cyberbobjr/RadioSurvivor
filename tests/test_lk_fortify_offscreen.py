@@ -352,7 +352,7 @@ class CompactFormTests(OffscreenStack):
         return self.ev(f'LivingKnox.Groups.get("{gid}").fort')
 
     def size(self, gid):
-        return self.run_lua('local C = require "RadioSurvivorCore/RC_Codec" '
+        return self.run_lua('local C = require "CoreAI/CA_Codec" '
                             f'return #C.encodeBytes(LivingKnox.Groups.get("{gid}").fort)')
 
     def to_old(self, gid):

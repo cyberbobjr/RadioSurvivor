@@ -23,9 +23,9 @@ local Const = require "RadioSurvivor/RadioSurvivor_Const"
 local Personas = require "RadioSurvivor/RS_Personas"
 local P = require "RadioSurvivor/RS_NPCProvider"
 local C = require "RadioSurvivor/RS_Config"
-local Codec = require "RadioSurvivorCore/RC_Codec"
-local TextCut = require "RadioSurvivorCore/RC_TextCut"
-local Rep = require "RadioSurvivorCore/RC_Reputation"
+local Codec = require "CoreAI/CA_Codec"
+local TextCut = require "CoreAI/CA_TextCut"
+local Rep = require "CoreAI/CA_Reputation"
 
 local GroupRadio = {}
 
@@ -95,7 +95,7 @@ end
 
 -- Réplique d'une ligne en lignes de radio de Const.MAX_LINE_CHARS au plus, Const.MAX_LINES - 1 au plus (la première
 -- ligne diffusée est un parasite). E17-T12 : chaque ligne s'affiche seule sur le récepteur, l'une après l'autre ;
--- coupée à une fin de phrase, sinon à une virgule, sinon entre deux mots (RC_TextCut.pieces), jamais dans un mot.
+-- coupée à une fin de phrase, sinon à une virgule, sinon entre deux mots (CA_TextCut.pieces), jamais dans un mot.
 function GroupRadio.lines(text)
     local out = {}
     local pieces = TextCut.pieces(Const.oneLine((string.gsub(text, "[<>]", ""))), Const.MAX_LINE_CHARS)

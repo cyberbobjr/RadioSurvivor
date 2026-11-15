@@ -15,26 +15,26 @@ choisis. L'objet Radio Survivor contient les trois mods : il n'est listé qu'une
 
 ```ini
 WorkshopItems=<ID Workshop de Radio Survivor>;3817018338;3694097672;3811010882
-Mods=TooltipLib;batman_BeltRadio;batman_SignalSmoke;batman_RadioSurvivorCore;batman_RadioSurvivor;batman_LivingKnox
+Mods=TooltipLib;batman_BeltRadio;batman_SignalSmoke;batman_CoreAI;batman_RadioSurvivor;batman_LivingKnox
 ```
 
-Gardez `batman_RadioSurvivorCore`, puis `batman_RadioSurvivor` et/ou `batman_LivingKnox` : retirez celui que vous ne
+Gardez `batman_CoreAI`, puis `batman_RadioSurvivor` et/ou `batman_LivingKnox` : retirez celui que vous ne
 voulez pas (Living Knox seul n'a besoin ni de `batman_BeltRadio` ni de `TooltipLib`). Gardez vos autres entrées,
 séparées par `;`. L'ID Workshop de Radio Survivor figure en bas de sa page Workshop.
 Retirez Bandits! et Project A-Life s'ils y sont (un seul moteur de PNJ par partie).
 
 ## 2. Le dossier d'échange
 
-Le serveur écrit dans `<dossier Zomboid du serveur>/Lua/batman_RadioSurvivorCore/`. Le pont doit surveiller **exactement
+Le serveur écrit dans `<dossier Zomboid du serveur>/Lua/batman_CoreAI/`. Le pont doit surveiller **exactement
 ce dossier**.
 
 | Cas | Dossier d'échange |
 |---|---|
-| Windows, sans `-cachedir` | `C:\Users\<compte>\Zomboid\Lua\batman_RadioSurvivorCore` |
-| Linux, sans `-cachedir` | `/home/<compte>/Zomboid/Lua/batman_RadioSurvivorCore` |
-| Serveur lancé avec `-cachedir=X` | `X/Lua/batman_RadioSurvivorCore` |
+| Windows, sans `-cachedir` | `C:\Users\<compte>\Zomboid\Lua\batman_CoreAI` |
+| Linux, sans `-cachedir` | `/home/<compte>/Zomboid/Lua/batman_CoreAI` |
+| Serveur lancé avec `-cachedir=X` | `X/Lua/batman_CoreAI` |
 
-`<compte>` est le compte **qui lance le serveur**. Sans `--exchange`, le pont prend `~/Zomboid/Lua/batman_RadioSurvivorCore`
+`<compte>` est le compte **qui lance le serveur**. Sans `--exchange`, le pont prend `~/Zomboid/Lua/batman_CoreAI`
 de **son propre** compte : passez `--exchange` dès que le serveur tourne sous un autre compte ou avec `-cachedir`.
 
 - Le pont crée le dossier s'il manque : une faute de frappe ne donne aucune erreur. Vérification : tant que le pont
@@ -57,7 +57,7 @@ de **son propre** compte : passez `--exchange` dès que le serveur tourne sous u
 
 ```sh
 python3 /opt/radiosurvivor-bridge/radio_bridge.py --env /etc/radiosurvivor/bridge.env \
-  --exchange /srv/pz/cache/Lua/batman_RadioSurvivorCore \
+  --exchange /srv/pz/cache/Lua/batman_CoreAI \
   --test "Allô ?" --personas /srv/pz/cache/Lua/batman_RadioSurvivor/personas
 ```
 
@@ -70,7 +70,7 @@ Puis la même commande sans `--test` ni `--personas`, et attendez `Bridge ready`
 Dans une invite de commandes administrateur (une seule ligne) :
 
 ```bat
-schtasks /Create /TN "RadioSurvivor bridge" /SC ONSTART /RU <compte> /RP * /TR "\"C:\Program Files\Python312\python.exe\" C:\RadioSurvivorBridge\radio_bridge.py --env C:\RadioSurvivorBridge-secret\bridge.env --exchange D:\PZServer\cache\Lua\batman_RadioSurvivorCore"
+schtasks /Create /TN "RadioSurvivor bridge" /SC ONSTART /RU <compte> /RP * /TR "\"C:\Program Files\Python312\python.exe\" C:\RadioSurvivorBridge\radio_bridge.py --env C:\RadioSurvivorBridge-secret\bridge.env --exchange D:\PZServer\cache\Lua\batman_CoreAI"
 ```
 
 Dans les propriétés de la tâche, décochez « Arrêter la tâche si elle s'exécute plus de 3 jours » et activez le
@@ -88,7 +88,7 @@ Wants=network-online.target
 
 [Service]
 User=<compte du serveur PZ>
-ExecStart=/usr/bin/python3 /opt/radiosurvivor-bridge/radio_bridge.py --env /etc/radiosurvivor/bridge.env --exchange /srv/pz/cache/Lua/batman_RadioSurvivorCore
+ExecStart=/usr/bin/python3 /opt/radiosurvivor-bridge/radio_bridge.py --env /etc/radiosurvivor/bridge.env --exchange /srv/pz/cache/Lua/batman_CoreAI
 Restart=on-failure
 RestartSec=10
 KillSignal=SIGINT
@@ -111,7 +111,7 @@ docker run -d --name rs-bridge --restart unless-stopped \
   -v /opt/radiosurvivor-bridge:/bridge:ro \
   -v /etc/radiosurvivor/bridge.env:/run/bridge.env:ro \
   python:3.12-slim \
-  python /bridge/radio_bridge.py --env /run/bridge.env --exchange /zomboid/Lua/batman_RadioSurvivorCore
+  python /bridge/radio_bridge.py --env /run/bridge.env --exchange /zomboid/Lua/batman_CoreAI
 ```
 
 `--user` doit être le propriétaire des fichiers du serveur, pour que chaque processus lise et écrive les fichiers de
