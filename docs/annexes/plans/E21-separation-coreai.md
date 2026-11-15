@@ -2,12 +2,12 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 0 / 10 tâche(s) terminée(s).
+**Avancement.** en cours — 1 / 10 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
 | ☐ | E21-T01 | Renommer le mod commun en batman_CoreAI | `testé hors jeu` | solo | — |
-| ☐ | E21-T02 | Living Knox sans nom de RadioSurvivor dans ses journaux et ses dossiers | `à faire` | hors jeu | E21-T01 |
+| ☑ | E21-T02 | Living Knox sans nom de RadioSurvivor dans ses journaux et ses dossiers | `testé hors jeu` | hors jeu | E21-T01 |
 | ☐ | E21-T03 | Carnet client et interfaces dans batman_CoreAI | `à faire` | solo | E21-T01 |
 | ☐ | E21-T04 | Carnet serveur dans batman_CoreAI | `à faire` | MP | E21-T03 |
 | ☐ | E21-T05 | Living Knox fournisseur du carnet commun | `à faire` | solo | E21-T04 |
@@ -74,16 +74,16 @@ qui porte le carnet et les méthodes factorisées. Les tests de Living Knox ne c
   - Preuve : commit `d8954ee` (renommage scripté, 60 fichiers déplacés, 367 retouchés) ; `python RadioSurvivor/tests/run_all.py --keep-going` le 2026-11-15 : `Summary: 185 passed, 0 failed, 0 skipped` (avant : 185 passed), luacheck Contents 8 avertissements (référence 8), `case` PASS, plan 0 erreur ; 5 bancs qui lisaient l'ancien nom par accident corrigés (ordre des mods de `test_autoclient`, verrou des notes `CoreAI`, textures du carnet, marque `CA_` reconnue par le troc)
   - Reste : démarrage en jeu et campagne solo des deux mods
 
-- [ ] **E21-T02** — Living Knox sans nom de RadioSurvivor dans ses journaux et ses dossiers
-  - État : `à faire`
+- [x] **E21-T02** — Living Knox sans nom de RadioSurvivor dans ses journaux et ses dossiers
+  - État : `testé hors jeu`
   - Cible : `hors jeu`
   - Dépend de : E21-T01
   - Fichiers : `LK_Conversations.lua`, `LK_Incidents.lua`, `LK_Initiatives.lua`, bancs qui lisent ces journaux
   - Faire : journaux `[LK_Conversations]`, `[LK_Incidents]`, `[LK_Initiatives]` ; commentaires qui décrivent un lien vers RadioSurvivor réécrits ou retirés à mesure des tâches suivantes.
   - Accepté si : aucun `[RS_` dans `batman_LivingKnox`.
   - Tests : bancs LK concernés.
-  - Preuve : —
-  - Reste : —
+  - Preuve : commit `e3b2914` : journaux `[LK_Conversations]`, `[LK_Incidents]`, `[LK_Initiatives]` ; aucun `[RS_` dans le code de `batman_LivingKnox` hors l'adaptateur que retire E21-T05 ; `run_all.py --only conversations --only initiatives --only incidents --only lk_speech --only luacheck-contents` : `Summary: 5 passed, 0 failed`
+  - Reste : commentaires qui décrivent RadioSurvivor : réécrits par E21-T05
 
 - [ ] **E21-T03** — Carnet client et interfaces dans batman_CoreAI
   - État : `à faire`
