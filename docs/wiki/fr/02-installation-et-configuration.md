@@ -43,8 +43,8 @@ Une fois dans le monde :
 
 1. avec Radio Survivor : prenez un talkie-walkie en main, réglez-le sur la fréquence de Walt (note trouvée dans le
    butin) et écrivez une phrase dans la section **Émettre** : Walt répond en quelques secondes ;
-2. avec Living Knox : dites une phrase dans le chat local près d'un survivant, ou utilisez **Parler** dans le menu du
-   clic droit : une bulle répond ;
+2. avec Living Knox : appuyez sur **Ctrl+G** près d'un survivant et écrivez sur la ligne **Dire** du carnet, dites une
+   phrase dans le chat local près de lui, ou utilisez **Parler** dans le menu du clic droit : une bulle répond ;
 3. le bouton **Carnet** de la barre de gauche ouvre le carnet.
 
 ![Section Émettre et réponse de Walt](../../images/screenshots/fr-radio-transmit.png)

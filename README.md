@@ -38,20 +38,19 @@ works without the other.
 | Mod | Mod ID | What it brings | Needs |
 |---|---|---|---|
 | Radio Survivor | `batman_RadioSurvivor` | The radio: six AI voices on real frequencies, the Radio tab of the notebook, factions | Core AI, Belt Walkie-Talkie, Signal Smoke |
-| Living Knox | `batman_LivingKnox` | Groups of NPC survivors: homes, needs, routines, fights, fortifications | Core AI. Not compatible with Bandits! and Project A-Life |
-| Core AI | `batman_CoreAI` | What both share: missions and the mission journal, link with the AI bridge, character identity, history of conversations, reputation, tools, the notebook | Signal Smoke |
+| Living Knox | `batman_LivingKnox` | Groups of NPC survivors: homes, needs, routines, fights, fortifications; their relations and agreements, the Team tab of the notebook | Core AI. Not compatible with Bandits! and Project A-Life |
+| Core AI | `batman_CoreAI` | What both share: link with the AI bridge, the whole notebook (window, Contacts, Missions and Reputation tabs, mission views, map areas), missions engine, character identity, history of conversations, reputation, contacts, teams, small tools | Signal Smoke |
 
 - **The Core** is required by the two others, so the game enables it for you. Enabled alone it adds nothing you can
   play.
-- **Radio Survivor alone**: voices, radio, notebook; no NPC groups.
-- **Living Knox alone**: NPC groups. You talk to an NPC in the normal chat (`/say`) when you are close to it, or with
-  the right-click menu **Talk**; it answers in a speech bubble. The missions it offers go to the Missions tab of the
-  notebook, where you deliver items and claim the reward next to the NPC.
-- **Both**: you talk to the NPCs through the notebook (**Ctrl+G**), and Radio Survivor adds relations, reputation
-  effects and agreements with the groups.
+- **Radio Survivor alone**: voices, radio, the notebook with its Radio tab; no NPC groups.
+- **Living Knox alone**: NPC groups with the full notebook (contacts, missions, reputation, team). You talk to an NPC
+  with **Ctrl+G** and the notebook, in the local chat (`/say`) when you are close to it (a sentence with no NPC
+  selected goes to the nearest one within 8 squares), or with the right-click menu **Talk**; it answers in a speech
+  bubble. Its missions are delivered and claimed from the notebook; relations and agreements with the groups come with
+  Living Knox.
+- **Both**: everything above in the same notebook.
 - **The AI bridge** is one program, with no setting that depends on your choice of mods.
-- **Known limit**: without Radio Survivor, delivering and claiming the reward of a mission given by an NPC is not
-  possible yet, and the NPCs do not speak first nor talk to each other.
 
 ## Features
 
@@ -78,12 +77,14 @@ works without the other.
 
 ### The notebook and the NPCs
 
-Some of what follows needs Radio Survivor (radio tab, Ctrl+G, faction relations); see [The three mods](#the-three-mods).
+The notebook comes with either mod; the radio tab needs Radio Survivor, the NPCs need Living Knox. See [The three mods](#the-three-mods).
 
 - **Field notebook** (**Notebook** button on the sidebar): contacts, Radio tab (history per frequency, with who speaks there and when they listen once you have reached them or read their note), missions,
   reputation, notes.
-- **Talking to an NPC**: walk up to them, press **Ctrl+G** to select them, then speak in local chat (`/say`). They
-  answer in speech bubbles and remember you.
+- **Talking to an NPC**: walk up to them, press **Ctrl+G** (key "Select the nearest NPC") to select them, then speak
+  on the notebook's **Say** line or in local chat (`/say`); a chat sentence with no NPC selected goes to the nearest one
+  within 8 squares, or to nobody. The right-click menu **Talk** works too. They answer in speech bubbles and remember
+  you.
 - **Missions**: deliver, scout, recover a missing person's papers, clear a location, retrieve a stash, make a signal
   (smoke grenade or flare, Signal Smoke mod). Once the objective is done you must **go back and report it** to whoever
   gave you the mission (or over the radio for a mission given by a voice), then **claim** the reward.
@@ -127,8 +128,8 @@ Some of what follows needs Radio Survivor (radio tab, Ctrl+G, faction relations)
 1. Subscribe to the required mods and to the Radio Survivor item (it holds the three mods) on the Workshop, **or** copy the mod folders into
    `%USERPROFILE%\Zomboid\mods\` (install without the Workshop, for example from the test zip: see its
    `LISEZMOI.md`).
-2. In **Mods**, enable the mods you chose, in this order: TooltipLib, Belt Walkie-Talkie, Signal Smoke, Radio
-   Survivor Core, Radio Survivor, Living Knox (Living Knox alone needs neither TooltipLib nor Belt Walkie-Talkie).
+2. In **Mods**, enable the mods you chose, in this order: TooltipLib, Belt Walkie-Talkie, Signal Smoke, Core
+   AI, Radio Survivor, Living Knox (Living Knox alone needs neither TooltipLib nor Belt Walkie-Talkie).
 3. Fully restart the game after an install or an update.
 4. **Start a new game**: the survivor groups settle in when the world is created.
 5. Install and start the [AI bridge](#the-ai-bridge).
@@ -356,8 +357,8 @@ never overwritten by a mod update. Guide: [docs/wiki/en/10-creating-radio-voices
 2. **Talk to a voice**: a walkie-talkie turned on **in hand or on your back** (never from the belt), mic on, tuned to the
    frequency; in the radio window, **Transmit** section: type your sentence, press Enter. A placed HAM radio (within 5
    tiles) and a vehicle radio that can transmit work too.
-3. **Meet a group**: approach without aiming a weapon, then talk in local chat (with Radio Survivor, press **Ctrl+G**
-   to select the NPC first; with Living Knox alone, you can also right click → **Talk**). Get to know them before
+3. **Meet a group**: approach without aiming a weapon, press **Ctrl+G** to select the NPC, then talk on the
+   notebook's **Say** line or in local chat (or right click → **Talk**). Get to know them before
    asking for work.
 4. **Mission**: accept it in the notebook (**Missions**), complete the objective (circle on the map), go back and report
    to whoever gave it, then claim the reward (**Claim shared reward**).
@@ -389,17 +390,19 @@ Test build, not published on the Workshop. The three mods are tested together as
   clients). Detailed status and development log (in French): [docs/annexes/maquettes/fonctionnalites.html](docs/annexes/maquettes/fonctionnalites.html);
   plan: [docs/annexes/plans/SUIVI.md](docs/annexes/plans/SUIVI.md).
 - The tests run in a quiet test game; a long game with normal zombie population still has to be put through its paces.
-- Known limits: without Radio Survivor, NPC missions cannot be delivered or claimed yet and NPCs do not speak first; NPC assaults through a window are still unreliable in multiplayer; NPC fishing is unverified; the voices
+- Known limits: NPC assaults through a window are still unreliable in multiplayer; NPC fishing is unverified; the voices
   only give scouting missions; text beyond Latin-1 ("’", "€") is not transmitted correctly.
 
 ## Development
 
 ```text
-Contents/mods/batman_CoreAI/42.21/   shared core (missions, bridge link, identity, notebook)
+Contents/mods/batman_CoreAI/42.21/          shared core (bridge link, notebook, missions, identity, reputation)
 Contents/mods/batman_RadioSurvivor/42.21/   radio, voices, factions (Lua; personas; EN/FR translations)
 Contents/mods/batman_LivingKnox/42.21/      NPC engine (Lua; EN/FR translations)
 bridge/                                     the Python bridge
-dev/batman_RadioSurvivorTests/              in-game test mod (RST), never published
+dev/batman_CoreAITests/                     in-game test engine (RST) and core suites, never published
+dev/batman_LivingKnoxTests/                 in-game suites of Living Knox, never published
+dev/batman_RadioSurvivorTests/              in-game suites of Radio Survivor, never published
 tests/                                      offline test benches (lupa, Kahlua VM)
 tools/                                      plan, in-game campaigns (autoclient), test zip
 docs/                                       documentation index: docs/README.md (architecture, specs, wiki, annexes)

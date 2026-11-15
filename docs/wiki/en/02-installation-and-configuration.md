@@ -45,8 +45,8 @@ Once in the world:
 
 1. with Radio Survivor: take a walkie-talkie in hand, tune it to the frequency of Walt (note found in the loot) and
    type a sentence in the **Transmit** section: Walt answers within a few seconds;
-2. with Living Knox: say a sentence in the local chat near a survivor, or use **Talk** in the right-click menu: a
-   speech bubble answers;
+2. with Living Knox: press **Ctrl+G** near a survivor and write on the **Say** line of the notebook, say a sentence in
+   the local chat near them, or use **Talk** in the right-click menu: a speech bubble answers;
 3. the **Notebook** button of the left bar opens the notebook.
 
 ![Transmit section and the answer of Walt](../../images/screenshots/en-radio-transmit.png)

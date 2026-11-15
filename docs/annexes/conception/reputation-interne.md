@@ -15,17 +15,19 @@
 >   `server/CoreAI/CA_ReputationEvents.lua` (chargement, mort d'un personnage par `CA_Identity`, purge
 >   chaque jour de jeu) ;
 > - état privé à lui, `Zomboid/Lua/batman_CoreAI/reputation-<monde>-<0|1>.txt` (`CA_SlotFile`, en-tête
->   `RCREP1`) : `{ schema, reputation, outcomes }` ; l'état du carnet (`RS_State`) ne les porte plus ; ceux d'une partie
+>   `RCREP1`) : `{ schema, reputation, outcomes }` ; ni le stock du carnet (`CA_NotebookStore`) ni l'état des voix (`RS_State`) ne les portent ; ceux d'une partie
 >   d'avant la séparation sont repris une fois (`CA_Reputation.adopt`, une entrée déjà présente l'emporte) ;
 > - personnage vivant : identité non retirée de `CA_Identity` (plus la fiche du carnet) ;
 > - faits : résultats des missions et refus des offres sensibles par le moteur commun (`CA_Missions`, quel que soit le
 >   donneur, avec ou sans RadioSurvivor) ; `npc.memberKilled` par Living Knox (`LK_Reputation`, fait `npcDied`, sauf si
->   `npc.requesterKilled` a déjà compté la même mort : `CA_Reputation.chargedFor`) ; `trade.cheated` et
->   `npc.requesterKilled` par RadioSurvivor ; Living Knox lit le niveau directement (`LK_Hostility.reputationOf`) ;
+>   `npc.requesterKilled` a déjà compté la même mort : `CA_Reputation.chargedFor`) ; `trade.cheated` par RadioSurvivor ;
+>   `npc.requesterKilled` par le serveur du carnet du mod commun (`CA_NotebookServer.dead`, tueur par
+>   `killerCharacter` : `CA_Identity` et joueurs connectés) ; Living Knox lit le niveau directement (`LK_Hostility.reputationOf`) ;
 > - un motif garde l'action, pas le texte : depuis `E18-T25`, l'onglet Réputation est dessiné par le carnet du mod
->   commun (`CA_Notebook.reputationLines`, données par la commande `reputation` du module `CoreAI`) et chaque
+>   commun (`CA_NotebookReputation`, `Notebook.reputationLines`, données par l'instantané du carnet, module `CoreAI`) et chaque
 >   mod y inscrit le texte des actes qu'il connaît (`Notebook.reputationReasons[action]` : missions `IGUI_CA_`, troc,
->   donneur tué et sauvetage `IGUI_RS_`, membre d'un groupe tué `IGUI_LK_`) ; un acte d'un mod décoché se lit « une
+>   donneur tué et sauvetage `IGUI_RS_`, membre d'un groupe tué `IGUI_LK_`) et ses lignes à part par
+>   `Notebook.reputationExtras` (confiance personnelle des PNJ connus : `RS_NotebookReputation`) ; un acte d'un mod décoché se lit « une
 >   bonne / mauvaise action » ; la marge du passeur par niveau est `RS_Config.TradeMargin` (`RS_Trade`).
 
 Les numéros de ligne ci-dessous sont ceux de la branche `dev` au 2026-10-14 (chemins relatifs à

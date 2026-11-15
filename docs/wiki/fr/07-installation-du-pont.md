@@ -116,7 +116,7 @@ S'y ajoutent, sans option sandbox :
   heure réelle, `0` = seul `MaxPerHour`).
 - Une demande de consigne de mission juste après l'attribution d'une mission par une voix, hors plafond horaire.
 - Les dialogues du carnet avec les PNJ (seulement si un moteur de PNJ est actif) : plafond fixe de 60 dialogues et
-  12 biographies par heure réelle (`RS_Config.lua`).
+  12 biographies par heure réelle (`CA_SpeechConfig.lua` de Core AI).
 
 **Mesurer** : chaque appel est ajouté à `<dossier d'échange>/token_usage.jsonl` (ou au fichier de `--usage-log`) :
 date UTC, modèle, tokens d'entrée, de sortie et total, cumuls de la session du pont. Un compteur absent vaut `null`
@@ -285,7 +285,7 @@ docker run -d --name rs-bridge --restart unless-stopped \
    - le terminal du pont affiche `<appelant> -> walt : <phrase>` ;
    - le pont écrit `responses.txt` et la réponse passe à l'antenne quelques secondes plus tard ;
    - `token_usage.jsonl` reçoit une ligne (sauf `--offline`).
-4. **Option, pour les testeurs du mod** : avec le mod de développement `batman_RadioSurvivorTests` et le jeu en mode
+4. **Option, pour les testeurs du mod** : avec les mods de développement `batman_CoreAITests` et `batman_RadioSurvivorTests` et le jeu en mode
    `-debug` (il n'est pas publié), `RST.server("rs.voices")` vérifie les fiches installées et
    `RST.server({ suite = "rs.personas", tags = { "world", "server" } })` leur installation et leur relecture dans le
    dossier d'échange (voir [tests-en-jeu.md](../../annexes/tests/tests-en-jeu.md)).
@@ -297,7 +297,7 @@ docker run -d --name rs-bridge --restart unless-stopped \
 | « Rien que des parasites… » après environ 90 s, et `[RadioSurvivor] no answer from the bridge for <id> (is bridge\radio_bridge.py running?)` | joueur ; journal du serveur | Pont arrêté, ou lancé sur un **autre dossier** que celui du serveur (section 3) : le serveur n'y lit aucun `bridge-alive.txt` récent. Vérifier `Exchange directory` dans le bandeau du pont et la présence de `bridge-alive.txt` dans le dossier d'échange du serveur. |
 | « Rien que des parasites… » après environ 150 s, pont en marche | joueur | Le LLM n'a pas répondu dans son budget de 60 s, ou la demande a attendu plus de 75 s (file saturée) : voir `LLM error` ou `Expired request ignored` dans le terminal du pont. |
 | « Rien que des parasites… » immédiatement | joueur | Le serveur n'a pas pu écrire `requests.txt` (droits du dossier `Zomboid/Lua`, disque plein). |
-| « Bridge absent, réponse invalide ou périmée. Aucune décision appliquée. » (EN : « Bridge missing, invalid or expired reply… »), et `[RS_Carnet] npc_talk <id> refused: …` | carnet ; journal du serveur | Même chose pour un dialogue avec un PNJ : pont absent (`no reply after 150000 ms`), erreur du fournisseur nommée (`bridge error timeout`, `bridge error http_503`, `unreachable`, `bad_response`), réponse du LLM inutilisable (`bridge error invalid_or_unavailable`) ou demande trop vieille (`bridge error expired`). |
+| « Bridge absent, réponse invalide ou périmée. Aucune décision appliquée. » (EN : « Bridge missing, invalid or expired reply… »), et `[LK_Talk] npc_talk <id> refused: …` | carnet ; journal du serveur | Même chose pour un dialogue avec un PNJ : pont absent (`no reply after 150000 ms`), erreur du fournisseur nommée (`bridge error timeout`, `bridge error http_503`, `unreachable`, `bad_response`), réponse du LLM inutilisable (`bridge error invalid_or_unavailable`) ou demande trop vieille (`bridge error expired`). |
 | « Impossible de transmettre au bridge. » | carnet | Écriture de `requests.txt` impossible, comme ci-dessus. |
 | « Trop de monde sur la fréquence, réessayez plus tard. » | joueur | `MaxPerHour` atteint ou 8 demandes en attente. Normal en cas d'affluence ; sinon augmenter `MaxPerHour`. |
 | `Missing configuration: OPENAI_KEY, … (file … or environment variables)` | pont | Réglage absent : chemin `--env` faux ou variable vide (section 4). |

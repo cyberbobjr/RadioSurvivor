@@ -114,7 +114,7 @@ Also, with no sandbox option:
   hour, `0` = `MaxPerHour` only).
 - One mission briefing request right after a voice gives a mission, outside the hourly cap.
 - Notebook dialogues with NPCs (only when an NPC engine is active): fixed cap of 60 dialogues and 12 biographies per
-  real hour (`RS_Config.lua`).
+  real hour (`CA_SpeechConfig.lua` of Core AI).
 
 **Measure**: every call is appended to `<exchange folder>/token_usage.jsonl` (or the `--usage-log` file): UTC date,
 model, input, output and total tokens, totals of the bridge session. A missing counter is `null` (unknown, not zero).
@@ -281,7 +281,7 @@ docker run -d --name rs-bridge --restart unless-stopped \
    - the bridge terminal shows `<caller> -> walt : <sentence>`;
    - the bridge writes `responses.txt` and the reply goes on air a few seconds later;
    - `token_usage.jsonl` gets a line (except `--offline`).
-4. **Optional, for the mod testers**: with the development mod `batman_RadioSurvivorTests` and the game in `-debug`
+4. **Optional, for the mod testers**: with the development mods `batman_CoreAITests` and `batman_RadioSurvivorTests` and the game in `-debug`
    mode (it is not published), `RST.server("rs.voices")` checks the installed sheets and
    `RST.server({ suite = "rs.personas", tags = { "world", "server" } })` their installation and reload in the
    exchange folder (see [tests-en-jeu.md](../../annexes/tests/tests-en-jeu.md), in French).
@@ -293,7 +293,7 @@ docker run -d --name rs-bridge --restart unless-stopped \
 | "Only static..." after about 90 s, and `[RadioSurvivor] no answer from the bridge for <id> (is bridge\radio_bridge.py running?)` | player; server log | Bridge stopped, or started on **another folder** than the server's (section 3): the server reads no recent `bridge-alive.txt` there. Check `Exchange directory` in the bridge banner and that `bridge-alive.txt` exists in the server's exchange folder. |
 | "Only static..." after about 150 s, bridge running | player | The LLM did not answer within its 60 s budget, or the request waited more than 75 s (queue full): look for `LLM error` or `Expired request ignored` in the bridge terminal. |
 | "Only static..." immediately | player | The server could not write `requests.txt` (rights on the `Zomboid/Lua` folder, disk full). |
-| "Bridge missing, invalid or expired reply. No decision applied.", and `[RS_Carnet] npc_talk <id> refused: …` | notebook; server log | Same for an NPC dialogue: bridge missing (`no reply after 150000 ms`), provider error named (`bridge error timeout`, `bridge error http_503`, `unreachable`, `bad_response`), unusable LLM output (`bridge error invalid_or_unavailable`) or request too old (`bridge error expired`). |
+| "Bridge missing, invalid or expired reply. No decision applied.", and `[LK_Talk] npc_talk <id> refused: …` | notebook; server log | Same for an NPC dialogue: bridge missing (`no reply after 150000 ms`), provider error named (`bridge error timeout`, `bridge error http_503`, `unreachable`, `bad_response`), unusable LLM output (`bridge error invalid_or_unavailable`) or request too old (`bridge error expired`). |
 | "Unable to send to the bridge." | notebook | `requests.txt` cannot be written, as above. |
 | "Too much chatter on the frequency, try again later." | player | `MaxPerHour` reached or 8 pending requests. Normal when busy; otherwise raise `MaxPerHour`. |
 | `Missing configuration: OPENAI_KEY, … (file … or environment variables)` | bridge | Setting missing: wrong `--env` path or empty variable (section 4). |

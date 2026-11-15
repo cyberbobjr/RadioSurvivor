@@ -1,8 +1,8 @@
 # Accords de faction avec un groupe Living Knox : trêve et alliance (E09-T05)
 
 Brouillon du 2026-10-12. Code : `server/LivingKnox/LK_Agreements.lua` (Living Knox depuis E18-T20 ; identifiants d'équipe et mandats : `server/CoreAI/CA_Teams.lua` du mod commun ; avant : `LivingKnox.Agreements.lua` de RadioSurvivor) (registre des accords, `negotiation`,
-`conclude`, `covered`, `pollApplications`), `server/RS_Carnet_Server.lua` (`talk`, `reply`, `tick`),
-`client/RadioSurvivor/RS_Client.lua` (annonce), `server/LivingKnox/LK_Decisions.lua` (point de lecture
+`conclude`, `covered`, `pollApplications`), `server/LivingKnox/LK_Talk.lua` (`talk`, `reply`, `tick`), `server/LivingKnox/LK_AgreementNotices.lua` et
+`client/LivingKnox/LK_AgreementNoticesView.lua` (annonce, module `LivingKnox`), `server/LivingKnox/LK_Decisions.lua` (point de lecture
 `Decisions.markEvaluated`, `Decisions.aims`), `bridge/npc_protocol.py` (intention `negotiate`). Contrat :
 [protocole-carnet-v2.md](../../specifications-techniques/protocole-carnet-v2.md), « Accords de faction (E09-T05) ». Équipes et mandats :
 [factions.md](../../specifications-techniques/factions.md). Choix de cible : [cibles.md](cibles.md). ADR B07 à B09 de
@@ -48,7 +48,7 @@ combat. Une trêve ne change pas l'attitude du groupe (ADR B08).
    groupe (`Server.collectiveCheck`), joueur connecté, mandat relu sur la faction vanilla (`canConclude`), même
    équipe, même révision de l'accord, type encore au-dessus de l'accord courant. Sinon, depuis E09-T09 (décision de
    l'utilisateur du 2026-10-14), **seul l'accord est ignoré** : la réplique du chef est dite et gardée dans
-   l'historique, aucun accord ni réaction des membres ; journal `[RS_Carnet] agreement of <fiche> toward <personnage>
+   l'historique, aucun accord ni réaction des membres ; journal `[LK_Talk] agreement of <fiche> toward <personnage>
    in <demande> ignored, reply kept: <motif>` (`no mandate`, `team changed`, `agreement revision changed`, `NPC no
    longer the group leader`, `group composition changed`, `negotiator not connected`, `agreement not offered`), comme
    les intentions collectives d'E10-T02. Deux conclusions bâties sur la même révision : la première passe, la seconde
@@ -87,7 +87,7 @@ combat. Une trêve ne change pas l'attitude du groupe (ADR B08).
 
 ## Limites
 
-- Pas de journal du groupe pour un accord (`RS_NPCProvider.decide` ne connaît que les missions de groupe) ; pas de
+- Pas de journal du groupe pour un accord (`CA_NPCProvider.decide` ne connaît que les missions de groupe) ; pas de
   panneau des accords dans le carnet (E09-T07) ; incidents et rupture : [incidents.md](incidents.md) (E09-T06).
 - Le constat exige un passage de décision de chaque membre actif : un membre engagé par l'API (suite de test) contre
   un joueur couvert garde l'accord en attente jusqu'à la fin de cet engagement.

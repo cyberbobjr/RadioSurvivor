@@ -38,19 +38,18 @@ les deux. Chacun fonctionne sans l'autre.
 | Mod | Mod ID | Ce qu'il apporte | Demande |
 |---|---|---|---|
 | Radio Survivor | `batman_RadioSurvivor` | La radio : six voix d'IA sur de vraies fréquences, l'onglet Radio du carnet, les factions | Core AI, Belt Walkie-Talkie, Signal Smoke |
-| Living Knox | `batman_LivingKnox` | Des groupes de survivants PNJ : foyers, besoins, routines, combats, fortifications | Core AI. Incompatible avec Bandits! et Project A-Life |
-| Core AI | `batman_CoreAI` | Ce que les deux partagent : missions et journal des missions, lien avec le pont d'IA, identité des personnages, historique des échanges, réputation, outils, carnet | Signal Smoke |
+| Living Knox | `batman_LivingKnox` | Des groupes de survivants PNJ : foyers, besoins, routines, combats, fortifications ; leurs relations et accords, l'onglet Équipe du carnet | Core AI. Incompatible avec Bandits! et Project A-Life |
+| Core AI | `batman_CoreAI` | Ce que les deux partagent : lien avec le pont d'IA, carnet entier (fenêtre, onglets Contacts, Missions et Réputation, vues des missions, zones sur la carte), moteur des missions, identité des personnages, historique des échanges, réputation, contacts, équipes, petits outils | Signal Smoke |
 
 - **Le Core** est exigé par les deux autres : le jeu l'active pour vous. Activé seul, il n'apporte rien de jouable.
-- **Radio Survivor seul** : voix, radio, carnet ; pas de groupes de PNJ.
-- **Living Knox seul** : groupes de PNJ. Vous parlez à un PNJ dans le chat normal (`/say`) quand vous êtes près de
-  lui, ou par le menu du clic droit **Parler** ; il répond dans une bulle. Les missions qu'il propose vont dans
-  l'onglet Missions du carnet, où vous livrez les objets et récupérez la récompense à côté du PNJ.
-- **Les deux** : vous parlez aux PNJ par le carnet (**Ctrl+G**), et Radio Survivor ajoute les relations, les effets de
-  la réputation et les accords avec les groupes.
+- **Radio Survivor seul** : voix, radio, le carnet avec son onglet Radio ; pas de groupes de PNJ.
+- **Living Knox seul** : groupes de PNJ avec le carnet complet (contacts, missions, réputation, équipe). Vous parlez à
+  un PNJ avec **Ctrl+G** et le carnet, dans le chat local (`/say`) quand vous êtes près de lui (une phrase dite sans PNJ
+  sélectionné va au plus proche à 8 cases), ou par le menu du clic droit **Parler** ; il répond dans une bulle. Ses
+  missions se livrent et se réclament depuis le carnet ; les relations et les accords avec les groupes viennent avec
+  Living Knox.
+- **Les deux** : tout ce qui précède, dans le même carnet.
 - **Le pont d'IA** est un seul programme, sans réglage qui dépende du choix des mods.
-- **Limite connue** : sans Radio Survivor, livrer et réclamer la récompense d'une mission donnée par un PNJ n'est pas
-  encore possible, et les PNJ ne prennent pas la parole d'eux-mêmes ni ne se parlent entre eux.
 
 ## Fonctionnalités
 
@@ -77,12 +76,14 @@ les deux. Chacun fonctionne sans l'autre.
 
 ### Le carnet et les PNJ
 
-Une partie de ce qui suit demande Radio Survivor (onglet Radio, Ctrl+G, relations de factions) ; voir [Les trois mods](#les-trois-mods).
+Le carnet vient avec l'un ou l'autre mod ; l'onglet Radio demande Radio Survivor, les PNJ demandent Living Knox. Voir [Les trois mods](#les-trois-mods).
 
 - **Carnet de terrain** (bouton **Carnet** de la barre latérale) : contacts, onglet Radio (historique par fréquence, avec qui y parle et ses heures d'écoute dès le premier contact ou la note lue),
   missions, réputation, notes.
-- **Parler à un PNJ** : s'en approcher, **Ctrl+G** pour le sélectionner, puis parler dans le chat local (`/say`). Il
-  répond en bulles et se souvient de vous.
+- **Parler à un PNJ** : s'en approcher, **Ctrl+G** (touche « Choisir le PNJ le plus proche ») pour le sélectionner,
+  puis parler sur la ligne **Dire** du carnet ou dans le chat local (`/say`) ; une phrase du chat sans PNJ sélectionné
+  va au plus proche à 8 cases, ou à personne. Le menu du clic droit **Parler** marche aussi. Il répond en bulles et se
+  souvient de vous.
 - **Missions** : livrer, reconnaître, retrouver les papiers d'un disparu, nettoyer un lieu, récupérer une cache, faire un
   signal (fumigène ou fusée, mod Signal Smoke). L'objectif rempli, il faut **revenir le dire** au demandeur (ou à la
   radio pour une mission donnée par une voix), puis **Récupérer le lot commun** (la récompense).
@@ -127,8 +128,8 @@ Une partie de ce qui suit demande Radio Survivor (onglet Radio, Ctrl+G, relation
 1. Abonnez-vous aux mods requis et à l'objet Radio Survivor (il contient les trois mods) sur le Workshop, **ou** copiez les dossiers de mods dans
    `%USERPROFILE%\Zomboid\mods\` (installation sans Workshop, par exemple à partir du zip de test : voir son
    `LISEZMOI.md`).
-2. Dans **Mods**, activez les mods choisis, dans cet ordre : TooltipLib, Belt Walkie-Talkie, Signal Smoke, Radio
-   Survivor Core, Radio Survivor, Living Knox (Living Knox seul n'a besoin ni de TooltipLib ni de Belt Walkie-Talkie).
+2. Dans **Mods**, activez les mods choisis, dans cet ordre : TooltipLib, Belt Walkie-Talkie, Signal Smoke, Core
+   AI, Radio Survivor, Living Knox (Living Knox seul n'a besoin ni de TooltipLib ni de Belt Walkie-Talkie).
 3. Redémarrez complètement le jeu après une installation ou une mise à jour.
 4. **Créez une nouvelle partie** : les groupes de survivants s'installent au démarrage du monde.
 5. Installez et lancez le [pont d'IA](#le-pont-dia).
@@ -359,9 +360,8 @@ l'admin n'est jamais écrasée par une mise à jour du mod. Guide : [docs/wiki/f
 2. **Parler à une voix** : talkie allumé **en main ou sur le dos** (jamais depuis la ceinture), micro ouvert, réglé sur
    la fréquence ; dans la fenêtre de la radio, section **Émettre** : tapez votre phrase, Entrée. La radio de
    radioamateur posée (à moins de 5 cases) et l'autoradio émettrice d'un véhicule marchent aussi.
-3. **Rencontrer un groupe** : approchez sans arme pointée, puis parlez dans le chat local (avec Radio Survivor,
-   **Ctrl+G** pour sélectionner le PNJ d'abord ; avec Living Knox seul, vous pouvez aussi faire un clic droit →
-   **Parler**). Faites connaissance avant de demander du travail.
+3. **Rencontrer un groupe** : approchez sans arme pointée, **Ctrl+G** pour sélectionner le PNJ, puis parlez sur
+   la ligne **Dire** du carnet ou dans le chat local (ou clic droit → **Parler**). Faites connaissance avant de demander du travail.
 4. **Mission** : acceptez-la dans le carnet (**Missions**), remplissez l'objectif (cercle sur la carte), revenez le
    dire au demandeur, puis **Récupérer le lot commun**.
 5. **Carnet** : onglet Radio pour relire les conversations, Contacts pour ce que chaque PNJ pense de vous, Réputation
@@ -393,17 +393,19 @@ Version de test, non publiée sur le Workshop. Les trois mods sont testés ensem
   [docs/annexes/maquettes/fonctionnalites.html](docs/annexes/maquettes/fonctionnalites.html) ; plan : [docs/annexes/plans/SUIVI.md](docs/annexes/plans/SUIVI.md).
 - Les tests tournent dans une partie de test calme ; une longue partie avec la densité de zombies normale reste à
   éprouver.
-- Limites connues : sans Radio Survivor, les missions des PNJ ne peuvent pas encore être livrées ni réclamées et les PNJ ne prennent pas la parole d'eux-mêmes ; offensive des PNJ par une fenêtre encore irrégulière en multijoueur ; pêche des PNJ non vérifiée ;
+- Limites connues : offensive des PNJ par une fenêtre encore irrégulière en multijoueur ; pêche des PNJ non vérifiée ;
   les voix ne donnent que des missions de reconnaissance ; texte au-delà du Latin-1 (« ’ », « € ») mal transmis.
 
 ## Développement
 
 ```text
-Contents/mods/batman_CoreAI/42.21/   socle commun (missions, lien avec le pont, identité, carnet)
+Contents/mods/batman_CoreAI/42.21/          socle commun (lien avec le pont, carnet, missions, identité, réputation)
 Contents/mods/batman_RadioSurvivor/42.21/   radio, voix, factions (Lua ; personas ; traductions EN/FR)
 Contents/mods/batman_LivingKnox/42.21/      moteur de PNJ (Lua ; traductions EN/FR)
 bridge/                                     le pont Python
-dev/batman_RadioSurvivorTests/              mod de tests en jeu (RST), jamais publié
+dev/batman_CoreAITests/                     moteur de tests en jeu (RST) et suites du commun, jamais publié
+dev/batman_LivingKnoxTests/                 suites en jeu de Living Knox, jamais publié
+dev/batman_RadioSurvivorTests/              suites en jeu de Radio Survivor, jamais publié
 tests/                                      bancs hors jeu (lupa, VM Kahlua)
 tools/                                      plan, campagnes en jeu (autoclient), zip de test
 docs/                                       index de la documentation : docs/README.md (architecture, spécifications, wiki, annexes)

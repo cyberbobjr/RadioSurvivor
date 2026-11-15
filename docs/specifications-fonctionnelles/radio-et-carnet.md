@@ -29,15 +29,20 @@ Vue joueur des fonctionnalités de la partie « radio » du mod. Contrats techni
 
 ## F04 — Carnet de terrain
 
-- Bouton **Carnet** de la barre de gauche. Onglets **Radio** (historique par fréquence, voyant de réception ; 40 lignes
-  par fréquence, 8 fréquences au plus, gardé côté serveur), **Contacts** (personnes rencontrées, note privée, « Ce qu'on
-  pense de vous »), **Missions**, **Réputation**, **Équipe** (faction et négociateurs, multijoueur).
+- Bouton **Carnet** de la barre de gauche. Le carnet appartient au mod commun Core AI : il est complet avec
+  RadioSurvivor seul, Living Knox seul ou les deux. Onglets communs **Contacts** (personnes rencontrées, note privée,
+  « Ce qu'on pense de vous »), **Missions**, **Réputation** ; chaque mod ajoute les siens : **Radio** avec
+  RadioSurvivor (historique par fréquence, voyant de réception ; 40 lignes par fréquence, 8 fréquences au plus, gardé
+  côté serveur), **Équipe** avec Living Knox (faction et négociateurs des accords, multijoueur).
 - Maquette : [carnet-unique.html](../annexes/maquettes/carnet-unique.html) ; historique : [carnet-implementation-04221.md](../annexes/conception/carnet-implementation-04221.md).
 
 ## F05 — Dialogue de proximité avec un PNJ (Ctrl+G)
 
-- **Ctrl+G** (touche réglable) sélectionne le PNJ visible le plus proche ; on écrit sur la ligne **Dire** du carnet ou,
-  en MP, dans le chat local. Réponse dans une bulle, en plusieurs bulles si elle est longue.
+- **Ctrl+G** (touche réglable « Choisir le PNJ le plus proche ») sélectionne le PNJ visible le plus proche ; on écrit
+  sur la ligne **Dire** du carnet ou, en MP, dans le chat local. Une phrase du chat sans cible sélectionnée va au PNJ
+  le plus proche, à 8 cases au plus ; personne à portée : elle ne part vers aucun PNJ, sans message. Le clic droit
+  **Parler** sur un PNJ ouvre une boîte de texte (seul moyen sans chat, en solo). Réponse dans une bulle, en plusieurs
+  bulles si elle est longue. Même comportement avec ou sans RadioSurvivor.
 - Un inconnu ne dit pas tout : nom, histoire et demandes viennent après quelques échanges. Origine :
   [ADR B17](../architecture/decisions/adr-b17-chat-proximite-pnj.md) ; conception : [parole.md](../annexes/conception/parole.md).
 

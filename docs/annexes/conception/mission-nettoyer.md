@@ -35,7 +35,7 @@ les plus proches du vanilla ; ils restent à confirmer par l'utilisateur.
    conducteur d'un véhicule à cet instant. Feu, Molotov, piège sans lanceur, chute, `Kill(nil)` : jamais comptés.
    Chaque brûlure remet l'attaquant à `nil` : un zombie qui meurt de ses brûlures ne compte pas, même frappé avant ;
    un zombie en feu achevé par un coup du participant compte.
-7. **Jamais comptés** : corps d'un PNJ du fournisseur (`RS_NPCProvider.id`) ou étiqueté par Living Knox (ModData
+7. **Jamais comptés** : corps d'un PNJ du fournisseur (`CA_NPCProvider.id`, `CA_NPCProvider.isBody`) ou étiqueté par Living Knox (ModData
    `lkNpcId`, toute génération), zombie déjà compté (ModData `CA_ClearCounted` : double `OnZombieDead` du feu,
    cadavre traîné puis lâché, ModData recopiées), zombie hors du cercle, tueur non participant ou sans fiche du
    carnet.

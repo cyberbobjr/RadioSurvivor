@@ -94,13 +94,13 @@ Retenu le 2026-10-09 (LK02-T03), dans le cadre de la décision LK02 (base B).
 
 ### Protocole solo LK02-T12 bis (suite en deux passes)
 
-1. Mods de vêtements **désactivés** (menu Mods), partie `rstest…`, console : `RST.run({ suite = "lk.appearance", tags = "world" })` ; le test de redémarrage est SKIP « phase 1 done », la fiche `Zomboid/Lua/batman_RadioSurvivor/tests/lk-appearance-restart.txt` liste `body=` et les `item=`.
+1. Mods de vêtements **désactivés** (menu Mods), partie `rstest…`, console : `RST.run({ suite = "lk.appearance", tags = "world" })` ; le test de redémarrage est SKIP « phase 1 done », la fiche `Zomboid/Lua/batman_CoreAITests/tests/lk-appearance-restart.txt` liste `body=` et les `item=`.
 2. Sauvegarder, quitter vers le menu, **activer** les mods de vêtements, recharger la partie, relancer la même commande (ou `RST.run({ suite = "lk.appearance", tags = "world", test = "restart" })`).
 3. Attendu : PASS, note « body same, clothes N recorded, 0 difference(s), 0 left out, mods added {…} ». Un échec liste chaque écart en note et garde la fiche : la passe 2 peut être relancée telle quelle.
 
 ### Protocole solo LK02-T12 avec un mod de vêtements (manuel)
 
-1. Partie solo `rstest…` avec `batman_RadioSurvivor` et `batman_RadioSurvivorTests`, **sans** mod de vêtements. Console : `LKB.spawn("womanTanBob")` ; noter dans `console.txt` `npc lk-1 clothes recorded (N item(s))` ; capture du PNJ.
+1. Partie solo `rstest…` avec `batman_LivingKnox`, `batman_CoreAITests` et `batman_LivingKnoxTests`, **sans** mod de vêtements. Console : `LKB.spawn("womanTanBob")` ; noter dans `console.txt` `npc lk-1 clothes recorded (N item(s))` ; capture du PNJ.
 2. `LKB.despawn(1)` (le PNJ redevient virtuel), sauvegarder, quitter.
 3. Activer un mod de vêtements Build 42 qui ajoute des tenues ou des sous-vêtements (`clothing.xml`, `UnderwearDefinition`), relancer **le jeu** (les listes se lisent au démarrage), recharger la partie.
 4. `LKB.embody(1)` : mêmes vêtements, couleurs et motifs que la capture 1 ; aucun `WARN … no longer exist`.

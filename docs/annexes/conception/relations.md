@@ -6,9 +6,10 @@
 Code (depuis E18-T21) : `server/LivingKnox/LK_PersonalRelation.lua` du mod `batman_LivingKnox` (registre, faits du
 groupe, vérification, panneau, purge ; état privé de Living Knox), `server/LivingKnox/LK_API.lua` (`API.relation`,
 `API.relationPanel`, `API.relationOffer`, `API.relationApply`, `API.attitudeFacts`), `server/LivingKnox/LK_Hostility.lua`
-(numéro `n` des faits, `Hostility.facts`) ; côté RadioSurvivor, `server/RadioSurvivor/RS_Relations.lua` (lecture par
-l'API de Living Knox, faits citables propres au carnet, accords du panneau) et `server/RS_Carnet_Server.lua` (`talk` :
-contexte `relation` et liaison `Server.relations` ; `reply` : intention `change_relation` ; `projection`),
+(numéro `n` des faits, `Hostility.facts`) ; `server/LivingKnox/LK_NotebookRelations.lua` (relation servie au carnet par les opérations `relationOffer`,
+`relationApply`, `relationPanel`, `contacts` du fournisseur : faits citables, accords du panneau),
+`server/LivingKnox/LK_Talk.lua` (contexte `relation` de la demande ; `reply` : intention `change_relation`) et
+`server/CoreAI/CA_NotebookServer.lua` (`projection` : `contacts[i].relation`),
 `bridge/npc_protocol.py` (`relation_facts`, `relation_prompt`, `bounded_reply`). Contrat :
 [protocole-carnet-v2.md](../../specifications-techniques/protocole-carnet-v2.md), « Relation personnelle (E09-T04) ». Socle collectif :
 [attitude.md](attitude.md). ADR B07, B08, B11, B15 de [bandits-llm-specifications.md](../recherches/bandits-llm-specifications.md).
@@ -78,7 +79,7 @@ pour cette relation, faits dans un sens que l'écart ne permet plus. Au plus 8 f
 3. `reply` → `RS_Relations.apply` revérifie : personnage, révision de la relation (révision de la fiche déjà vérifiée),
    fait offert, jamais utilisé, toujours connu du PNJ, sens, borne ±1. Appliqué : écart ±1, révision +1, fait marqué
    utilisé. Refusé (E09-T08) : seul le changement est ignoré, la réplique est dite comme une réponse `none` et le
-   motif est journalisé (`[RS_Carnet] relation change of <fiche> toward <personnage> in <demande> ignored, reply
+   motif est journalisé (`[LK_Talk] relation change of <fiche> toward <personnage> in <demande> ignored, reply
    kept: <motif>`, anglais).
 
 **Décision E09-T08 (2026-10-14, utilisateur)** : un `change_relation` refusé par le serveur (fait inventé ou non
@@ -96,10 +97,11 @@ relation.
 
 ## Panneau du carnet (E09-T07)
 
-Code : `RS_Relations.panel` (serveur), `RS_Carnet_Server` (`projection` : `contacts[i].relation`) ; depuis `E18-T26`,
-le panneau est dessiné par Living Knox (`client/LivingKnox/LK_NotebookPages.lua` : `Notebook.relationLines`, fiche de
-l'onglet Contacts du carnet commun, section « Ce qu'on pense de vous »), clés `IGUI_LK_Rel*` (EN, FR) ; avec Living Knox
-seul, ses PNJ connus arrivent par la source `lk` du commun (`LK_Contacts`, `LK_PersonalRelation.panel`).
+Code : `LK_NotebookRelations.panel` (serveur, opération `relationPanel` du fournisseur), `CA_NotebookServer`
+(`projection` : `contacts[i].relation`) ; le panneau est dessiné par Living Knox (`client/LivingKnox/LK_NotebookPages.lua` :
+`Notebook.relationLines`, page de contact du fournisseur dans l'onglet Contacts du carnet commun, section « Ce qu'on
+pense de vous »), clés `IGUI_LK_Rel*` (EN, FR). Les PNJ connus seulement par une relation personnelle restent dans les
+contacts (opération `contacts` du fournisseur), avec ou sans RadioSurvivor.
 
 - **Projection par personnage** : chaque instantané n'est construit que pour le personnage lié au joueur qui le
   reçoit (`Server.bound[player]`) ; la relation lue est la paire (fiche du PNJ, ce personnage) et les accords sont

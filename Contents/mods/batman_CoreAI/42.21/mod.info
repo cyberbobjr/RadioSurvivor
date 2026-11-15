@@ -1,6 +1,6 @@
 name=batman_Core AI
 id=batman_CoreAI
-description=Shared core of Radio Survivor and Living Knox: missions, link with the AI bridge, character identity and common tools. Enabled automatically by Radio Survivor or Living Knox; nothing to enable by hand.
+description=Shared core of Radio Survivor and Living Knox: the link with the AI bridge, the field notebook (contacts, missions, reputation, map areas), the missions, character identity, history, reputation and common tools. Enabled automatically by Radio Survivor or Living Knox; nothing to enable by hand.
 require=\batman_SignalSmoke
 versionMin=42.21
 modversion=0.1.0

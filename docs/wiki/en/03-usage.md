@@ -45,18 +45,20 @@ defends its home, and raiders attack.
 
 ## 4. Speak to a survivor (Ctrl+G)
 
-*This section describes Radio Survivor and Living Knox enabled together. With Living Knox alone there is no Ctrl+G and
-no **Talk** button in the notebook: say a sentence in the local chat (`/say`) while you are close to a survivor, or
-right click them and choose **Talk**; the nearest survivor answers in a speech bubble, and the missions it offers
-appear in the Missions tab of the notebook. Next to the survivor who gave the mission, the **Deliver** button of that
-tab hands over the items asked for, and **Claim the reward** collects the reward once the mission has succeeded: an item
-the group has to spare, else the reward announced with the mission, else a lot that depends on the group (tools from
-settlers, food from neutrals, ammunition from raiders), shown in the notebook.*
+*Living Knox is needed for the survivors; it works the same with or without Radio Survivor.*
 
-1. Near a survivor you can see, press **Ctrl+G**: the nearest visible NPC is selected (key **Select a RadioSurvivor
-   NPC** in the game options). The **Talk** button of a contact in the notebook does the same.
-2. Write on the **Say** line of the notebook (**Contacts** tab). In multiplayer, the local chat (`/say`) works too.
+1. Near a survivor you can see, press **Ctrl+G**: the nearest visible NPC (8 squares at most) is selected (key
+   **Select the nearest NPC** in the game options). The **Talk** button of a contact in the notebook does the same.
+2. Write on the **Say** line of the notebook (**Contacts** tab). In multiplayer, the local chat (`/say`) works too: a
+   sentence said with no survivor selected goes to the nearest one within 8 squares, and to nobody if none is that
+   close. You can also right click a survivor and choose **Talk** (the way to speak without the chat in
+   singleplayer).
 3. The survivor answers in a speech bubble above their head. A long answer comes in several bubbles.
+
+The missions a survivor offers appear in the Missions tab of the notebook. Next to the survivor who gave the mission,
+the **Deliver** button of that tab hands over the items asked for, and **Claim the reward** collects the reward once
+the mission has succeeded: an item the group has to spare, else the reward announced with the mission, else a lot that
+depends on the group (tools from settlers, food from neutrals, ammunition from raiders), shown in the notebook.
 
 ![A survivor answering in a speech bubble](../../images/screenshots/en-npc-bubble.png)
 
@@ -157,11 +159,11 @@ The **Notebook** button of the left bar opens it.
 
 | Tab | Content |
 |---|---|
-| **Radio** | History of each frequency you listened to. |
+| **Radio** (Radio Survivor) | History of each frequency you listened to. |
 | **Contacts** | People you met: group, temperament, conversations heard, your private note (**Save my private note**), and **What they think of you** (attitude, trend, agreements with your side). |
 | **Missions** | Offers and missions: objective, deadline, reward, participants. |
 | **Reputation** | Your reputation among the survivors and what people remember of your acts. |
-| **Team** | Your faction and its negotiators (multiplayer). |
+| **Team** (Living Knox) | Your faction and its negotiators for the agreements with the groups (multiplayer). |
 
 ![Contacts tab and what they think of you](../../images/screenshots/en-notebook-contacts.png)
 

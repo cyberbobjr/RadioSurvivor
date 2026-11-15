@@ -21,6 +21,9 @@ Guides joueur et administrateur pas à pas : [wiki](../wiki/fr/Home.md). Contrat
 - **Sans le pont**, le jeu reste jouable : les voix répondent « Rien que des parasites... », les PNJ restent muets,
   mais les groupes Living Knox vivent normalement.
 - **Solo et multijoueur** : même comportement ; en multijoueur, l'autorité est le serveur dédié (ou l'hôte).
+- **Trois mods, un article** : Radio Survivor et Living Knox se cochent séparément et vivent l'un sans l'autre ; le
+  mod commun Core AI (carnet, missions, lien avec le pont) les accompagne toujours. Le carnet est complet dans chaque
+  montage ; Radio Survivor y ajoute l'onglet Radio, Living Knox l'onglet Équipe.
 
 ## Fonctionnalités
 

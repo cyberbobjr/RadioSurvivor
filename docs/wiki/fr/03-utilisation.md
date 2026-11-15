@@ -44,19 +44,22 @@ ne pointez pas d'arme : un groupe défend son foyer, et les pillards attaquent.
 
 ## 4. Parler à un survivant (Ctrl+G)
 
-*Cette section décrit Radio Survivor et Living Knox activés ensemble. Avec Living Knox seul, il n'y a ni Ctrl+G ni
-bouton **Parler** dans le carnet : dites une phrase dans le chat local (`/say`) près d'un survivant, ou faites un clic
-droit sur lui et choisissez **Parler** ; le survivant le plus proche répond dans une bulle, et les missions qu'il
-propose apparaissent dans l'onglet Missions du carnet. À côté du survivant qui a donné la mission, le bouton **Livrer**
-de cet onglet remet les objets demandés, et **Récupérer la récompense** prend la récompense une fois la mission
-réussie : un objet que le groupe a en trop, sinon la récompense annoncée avec la mission, sinon un lot selon le groupe
-(outils chez les colons, vivres chez les neutres, munitions chez les pillards), annoncé dans le carnet.*
+*Il faut Living Knox pour les survivants ; tout marche de même avec ou sans Radio Survivor.*
 
-1. Près d'un survivant que vous voyez, appuyez sur **Ctrl+G** : le PNJ visible le plus proche est sélectionné (touche
-   **Sélectionner un PNJ RadioSurvivor** dans les options du jeu). Le bouton **Parler** d'un contact du carnet fait
-   de même.
-2. Écrivez sur la ligne **Dire** du carnet (onglet **Contacts**). En multijoueur, le chat local (`/say`) marche aussi.
+1. Près d'un survivant que vous voyez, appuyez sur **Ctrl+G** : le PNJ visible le plus proche (8 cases au plus) est
+   sélectionné (touche **Choisir le PNJ le plus proche** dans les options du jeu). Le bouton **Parler** d'un contact
+   du carnet fait de même.
+2. Écrivez sur la ligne **Dire** du carnet (onglet **Contacts**). En multijoueur, le chat local (`/say`) marche aussi :
+   une phrase dite sans survivant sélectionné va au plus proche à 8 cases, et à personne si aucun n'est assez près.
+   Vous pouvez aussi faire un clic droit sur un survivant et choisir **Parler** (le moyen de parler sans chat, en
+   solo).
 3. Le survivant répond dans une bulle au-dessus de sa tête. Une longue réponse arrive en plusieurs bulles.
+
+Les missions qu'un survivant propose apparaissent dans l'onglet Missions du carnet. À côté du survivant qui a donné la
+mission, le bouton **Livrer** de cet onglet remet les objets demandés, et **Récupérer la récompense** prend la
+récompense une fois la mission réussie : un objet que le groupe a en trop, sinon la récompense annoncée avec la
+mission, sinon un lot selon le groupe (outils chez les colons, vivres chez les neutres, munitions chez les pillards),
+annoncé dans le carnet.
 
 ![Un survivant répond dans une bulle](../../images/screenshots/fr-npc-bubble.png)
 
@@ -159,11 +162,11 @@ Le bouton **Carnet** de la barre de gauche l'ouvre.
 
 | Onglet | Contenu |
 |---|---|
-| **Radio** | Historique de chaque fréquence écoutée. |
+| **Radio** (Radio Survivor) | Historique de chaque fréquence écoutée. |
 | **Contacts** | Les personnes rencontrées : groupe, tempérament, conversations entendues, votre note privée (**Enregistrer ma note privée**), et **Ce qu'on pense de vous** (attitude, tendance, accords avec votre camp). |
 | **Missions** | Offres et missions : objectif, délai, récompense, participants. |
 | **Réputation** | Votre réputation parmi les survivants et ce qu'on retient de vos actes. |
-| **Équipe** | Votre faction et ses négociateurs (multijoueur). |
+| **Équipe** (Living Knox) | Votre faction et ses négociateurs pour les accords avec les groupes (multijoueur). |
 
 ![Onglet Contacts et ce qu'on pense de vous](../../images/screenshots/fr-notebook-contacts.png)
 

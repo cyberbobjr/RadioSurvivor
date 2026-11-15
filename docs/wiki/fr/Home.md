@@ -15,7 +15,7 @@ survivants humains vivent, se battent et se fortifient dans le comté.
 |---|---|---|
 | Radio Survivor | `batman_RadioSurvivor` | La radio : seize voix d'IA (dont un marchand par ville), l'onglet Radio du carnet, les factions |
 | Living Knox | `batman_LivingKnox` | Des groupes de survivants PNJ : foyers, besoins, routines, combats |
-| Core AI | `batman_CoreAI` | Ce que les deux partagent : missions et leur journal, lien avec le pont, identité, historique des échanges, réputation, carnet. Activé pour vous ; inutile seul |
+| Core AI | `batman_CoreAI` | Ce que les deux partagent : lien avec le pont, carnet entier (contacts, missions, réputation), missions, identité, historique des échanges, réputation. Activé pour vous ; inutile seul |
 
 Cochez **Radio Survivor**, **Living Knox** ou **les deux** : chacun fonctionne sans l'autre (le Core s'ajoute
 toujours). Détails et ordre de chargement : [Installation](04-installation.md).
@@ -26,8 +26,8 @@ toujours). Détails et ordre de chargement : [Installation](04-installation.md).
   pirate et un passeur, chacun sur une vraie fréquence tirée à chaque partie. Leurs fréquences se trouvent sur des
   notes dans le butin. On leur parle avec n'importe quelle radio émettrice tenue en main ou portée sur le dos (section
   **Émettre** de la fenêtre de la radio). Elles sont jouées par une IA et se souviennent de vous.
-- **Carnet de terrain** (bouton **Carnet**) : contacts, missions, récompenses, réputation, et avec Radio Survivor
-  l'historique radio par fréquence.
+- **Carnet de terrain** (bouton **Carnet**) : contacts, missions, récompenses, réputation, avec l'un ou l'autre mod ;
+  Radio Survivor y ajoute l'historique radio par fréquence, Living Knox l'onglet Équipe.
 - **Groupes de survivants Living Knox** (Living Knox) : 3 à 5 groupes de PNJ humains avec un foyer, un chef, de
   vraies réserves, des besoins et des routines. Ils défendent et fortifient leur foyer, combattent les zombies et
   vivent hors écran. Colons, neutres et pillards.

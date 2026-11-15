@@ -17,9 +17,9 @@ mémorial (E14-T03) lira les morts. Il ne contient ni coordonnée, ni texte de c
 | `power_cut` | sondage `EveryHours` de `SandboxOptions.doesPowerGridExist()` (aucun événement Lua : base `power-and-lights.md`) : passage de présent à absent | — |
 | `water_cut` | sondage `EveryHours` : `GameTime.getWorldAgeDaysSinceBegin() < SandboxOptions.getWaterShutModifier()` passe de vrai à faux (même test que `IsoObject.java:2544`, `ParameterWaterSupply.java:18`) | — |
 | `weather` | sondage `EveryHours` (`CA_WorldFacts.weatherNow` du mod commun) : début d'un orage, d'une tempête tropicale ou d'un blizzard | `weather` |
-| `group_death` | événement public `OnLivingKnoxMemberDied` | `group` (nom lu par `LivingKnox.API.getGroup`), `role`, `cause`, `byPlayer`, `offscreen`, `place` (maille `area`) |
-| `group_gone` | `OnLivingKnoxGroupGone` | `group`, `reason` |
-| `group_new` | `OnLivingKnoxGroupCreated` | `group`, `typeKey`, `place` |
+| `group_death` | fait de groupe `member_died` du mod commun (`CA_GroupFacts`, alimenté par un moteur de PNJ : Living Knox, `LK_GroupFactsFeed`) | `group` (nom lisible fourni avec le fait), `role`, `cause`, `byPlayer`, `offscreen`, `place` (maille `area`) |
+| `group_gone` | fait `group_gone` (`CA_GroupFacts`) | `group`, `reason` |
+| `group_new` | fait `group_created` (`CA_GroupFacts`) | `group`, `typeKey`, `place` |
 
 Non retenus : rencontres, attitudes et besoins de Living Knox (ils ne concernent qu'un joueur ou sont internes),
 brouillard (dépend du réglage graphique). Une coupure déjà en place au premier sondage n'est pas un fait (aucun passage
@@ -46,7 +46,7 @@ lisible sans chargement) : reste de la tâche.
 
 ## Stockage
 
-État privé du carnet (`RS_State`, fichier serveur `state-<monde>-<0|1>.txt`), champ `facts` : jamais de ModData
+État privé des voix (`RS_State`, fichier serveur `state-<monde>-<0|1>.txt`), champ `facts` : jamais de ModData
 globale (base `multiplayer.md` : lisible par tout client). Le fait est écrit dès qu'il est consigné (`S.save()`).
 Avant le chargement de l'état (`OnInitGlobalModData`), les faits attendent en mémoire et sont versés au premier accès.
 

@@ -1,8 +1,8 @@
 # Chef du groupe et intentions collectives du carnet (E10-T02)
 
-Brouillon du 2026-10-12. Code : `server/RS_Carnet_Server.lua` (`talk`, `reply`, `Server.collectiveBinding`,
-`Server.collectiveCheck`), `shared/RadioSurvivor/RS_LivingKnox.lua` (`composition`, `decide`, décisions du contexte),
-`shared/RadioSurvivor/RS_NPCProvider.lua` (opérations facultatives), `server/LivingKnox/LK_API.lua`
+Brouillon du 2026-10-12. Code : `server/LivingKnox/LK_Talk.lua` (`talk`, `reply`, `Talk.collectiveBinding`,
+`Talk.collectiveCheck`), `server/CoreAI/CA_MissionTalk.lua` (offre et acceptation collectives), `shared/LivingKnox/LK_NotebookProvider.lua` (`composition`, `decide`, décisions du contexte),
+`shared/CoreAI/CA_NPCProvider.lua` (opérations facultatives), `server/LivingKnox/LK_API.lua`
 (`API.composition`), `bridge/npc_protocol.py` (`collective_prompt`). Contrat : [protocole-carnet-v2.md](../../specifications-techniques/protocole-carnet-v2.md),
 « Chef du groupe et intentions collectives (E10-T02) » ; API : [api-living-knox.md](../../specifications-techniques/api-living-knox.md), `API.composition`.
 
@@ -28,7 +28,7 @@ succession ne doit rien appliquer (E10-T02 ; points d'appel pour E09-T05 et E10-
 4. **Revalidation** : à la réponse, une intention collective exige le même groupe, le PNJ toujours chef et la même
    empreinte ; sinon, depuis E09-T09 (décision de l'utilisateur du 2026-10-14), **seule l'intention est ignorée** :
    la réplique est dite et gardée dans l'historique, aucune mission n'est créée ni acceptée, rien n'est inscrit au
-   journal du groupe ni demandé aux membres ; journal console en anglais `[RS_Carnet] collective offer|collective
+   journal du groupe ni demandé aux membres ; journal console en anglais `[LK_Talk] collective offer|collective
    acceptance of <fiche> toward <personnage> in <demande> ignored, reply kept: <motif>`. (Avant E09-T09 la réponse
    entière était refusée et le joueur voyait `NoAnswer`.) Une réplique sans intention collective passe.
 5. **Journal** : une offre créée ou une acceptation conclue écrit une entrée `decision` au journal technique du groupe

@@ -36,14 +36,15 @@ National Guard notice, scribbled note, flyer). Read the note to learn where to l
 
 ## The notebook
 
-The **Notebook** button of the left bar opens the field notebook of your character. The Core holds the notebook, so it
-exists with either mod. It keeps:
+The **Notebook** button of the left bar opens the field notebook of your character. Core AI holds the notebook, so it
+is complete with Radio Survivor alone, Living Knox alone or both. It keeps:
 
 - **Contacts**: everyone you spoke to, their group, their temperament, the conversations your character heard, your
   private note, and **what they think of you**;
 - **Missions**: offers and missions in progress, their objective, deadline and reward;
 - **Radio** (Radio Survivor): the history of each frequency you listened to;
-- **Reputation**: your reputation among the survivors and what people remember of your acts.
+- **Reputation**: your reputation among the survivors and what people remember of your acts;
+- **Team** (Living Knox): your faction and its negotiators for the agreements with the groups.
 
 ![Notebook, Contacts tab](../../images/screenshots/en-notebook-contacts.png)
 
@@ -56,8 +57,9 @@ expeditions and keep living while you are far away.
 ![A Living Knox group at its home](../../images/screenshots/en-group-home.png)
 
 Walk up to a survivor and talk: they answer in a speech bubble, in their own voice, and remember the conversation.
-With Radio Survivor you select them with **Ctrl+G** and speak through the notebook; with Living Knox alone you speak
-in the local chat (`/say`) or with the right-click menu **Talk**.
+Press **Ctrl+G** to select the nearest one, or just speak in the local chat (`/say`): a sentence without a selected
+survivor goes to the nearest one, 8 squares at most. The right-click menu **Talk** works too, also in singleplayer.
+It is the same with or without Radio Survivor.
 
 ![A survivor answering in a speech bubble](../../images/screenshots/en-npc-bubble.png)
 

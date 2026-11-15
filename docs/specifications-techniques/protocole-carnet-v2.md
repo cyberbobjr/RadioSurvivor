@@ -116,8 +116,8 @@ puis purge les faits lus. Hors plafond horaire et budget de voix (un bulletin pa
 antérieur à E14-T02 ignore la demande (comme `radio_call` avant E05-T05) ; le serveur lit son bulletin de secours.
 
 **Historique radio du carnet (E06-T04).** Hors pont : tenu par l'autorité (`server/RadioSurvivor/RS_RadioLog.lua`)
-dans l'état privé du carnet, `characters[<personnage>].radio = { seq, frequencies = { { khz, last, lines } } }`,
-sauvegardé avec lui (`RS_State`, toutes les 5 s s'il a changé, à `OnSave`) : il survit au redémarrage du serveur et
+dans l'historique des échanges du mod commun (`CA_History.radio(<personnage>)`, `{ seq, frequencies = { { khz, last,
+lines } } }`, fichier privé `Zomboid/Lua/batman_CoreAI/history-*`, sauvegardé avec le carnet) : il survit au redémarrage du serveur et
 à la reconnexion, et disparaît à la mort du personnage (`characterDeath`). Bornes : 40 lignes par fréquence,
 8 fréquences par personnage (la moins récemment active est oubliée), 200 caractères par ligne (texte sur une ligne,
 sans `<>[]`, parasites `<bzzt>` exclus) ; au pire environ 8 × 40 × 250 o = 80 Kio par personnage vivant, sous la
@@ -148,9 +148,31 @@ Commandes (module `RadioSurvivor`) :
 | serveur → client | `history_lines` | `character`, `khz`, `last`, `lines` (la fréquence entière, 40 lignes au plus) |
 | serveur → client | `history_add` | `character`, `khz`, `last`, `line` (une ligne nouvelle, au joueur connecté de ce personnage) |
 
-Le serveur n'envoie jamais que l'historique du personnage lié au joueur (`RS_CarnetServer.bound`, commande `hello`
-du carnet) ; sans personnage lié ni état privé lisible, aucune ligne n'est tenue ni envoyée. Le client remplace ses
+Le serveur n'envoie jamais que l'historique du personnage lié au joueur (`CoreAI.notebookServer.bound`, commande `hello`
+du module `CoreAI`) ; sans personnage lié ni état privé lisible, aucune ligne n'est tenue ni envoyée. Le client remplace ses
 données si `character` change. Rien de cet historique ne part vers le pont.
+
+**Carnet : module `CoreAI`** (E21-T03). Le carnet du mod commun parle sur un seul module réseau, `CoreAI`
+(`CA_NotebookConfig.MODULE`). Chaque commande est inscrite par `CA_NotebookServer.registerCommand(nom, fn, limite,
+ouverte)` ; une commande que personne n'a inscrite est ignorée (aucun jeton pris, aucune réponse). Une commande
+ouverte (`hello`, `rep_admin`) est servie avant le contrôle d'identité et de session ; les autres exigent un personnage
+lié et les champs `world` et `run` de la session, sinon refus `Identity` ou `Session`.
+
+| Sens | Commande | Rôle |
+|---|---|---|
+| client → serveur | `hello` | identité du personnage, puis instantané (ouverte ; 4 d'un coup, puis 0,5 par seconde) |
+| client → serveur | `snapshot` | instantané du carnet (6 d'un coup, puis 1 par seconde) |
+| client → serveur | `select`, `deselect` | cible de la parole (refus `Range` hors portée) |
+| client → serveur | `talk` | phrase au PNJ choisi ; sans cible, au plus proche à 8 cases, sinon rien |
+| client → serveur | `note` | note privée d'un contact (2000 octets au plus) |
+| client → serveur | `report`, `accept`, `invite`, `abandon`, `prepare_delivery`, `confirm_delivery`, `claim` | gestes sur une mission (transaction du carnet) |
+| client → serveur | `rep_admin` | vue des réputations pour un administrateur (ouverte, règle `CA_AdminAccess`) |
+| client → serveur | `team`, `mandate` | équipe et mandats de négociation (`CA_Teams`) |
+| serveur → client | `identity`, `snapshot`, `error`, `speech`, `queued`, `offer`, `quote`, `team`, `rep_admin` | réponses, reçues par le registre `CA_NotebookClient.registerCommand` |
+
+Limite par défaut, par compte et sur un serveur MP seulement (`CA_RateLimit`) : 20 commandes d'un coup, puis 4 par
+seconde. Accords et incidents ne
+passent pas par ce module : Living Knox les annonce sur le module `LivingKnox` (commandes `agreement`, `incident`).
 
 L'ancien fichier sans `protocol/generation/commit` reste lisible par ce Python ; **l'ancien Python n'est pas compatible avec les demandes PNJ**.
 Mettre à jour le bridge avec le Lua 0.2, sans lancer un deuxième processus.
@@ -278,8 +300,8 @@ dynamique des voix » ci-dessous), `mark_map` (E07-T04, « Repère sur la carte 
 `not_available` tant que sa tâche (E11, E12, E13) n'a pas branché le sien.
 
 **Compteurs** (budget du jour, dernier usage) : état privé du serveur, jamais en ModData globale. Rangés dans l'état
-privé du carnet (`RS_State`, `data.actionCounters[<voix>][<action>] = { day, used, lastMs }`, sauvegardé par la
-boucle du carnet) dès qu'il est chargé ; sinon en mémoire, perdus au redémarrage du serveur.
+privé des voix (`RS_State`, `data.actionCounters[<voix>][<action>] = { day, used, lastMs }`, écrit après le stock du
+carnet) dès qu'il est chargé ; sinon en mémoire, perdus au redémarrage du serveur.
 
 **Compatibilité** : un serveur antérieur à E07 lit `payload=` d'un identifiant radio comme une réponse sans ligne
 (parasites seuls) ; les fiches livrées étant `say` seul, ce cas ne se produit pas sans fiche modifiée. Un pont
@@ -347,7 +369,7 @@ ModData globale. Implémentation : `server/RadioSurvivor/RS_Memory.lua` (exécut
 - **aucun effet de jeu** : seulement la mémoire (`S.dirty = true` quand l'état privé est chargé).
 
 **Rangement** : `RS_State`, `data.memory[<voix>] = { seq, callers = { [<clé>] = { caller, cid, seq, facts = { { text,
-seq } } } } }`, sauvegardé avec l'état du carnet ; sans état chargé (pas encore initialisé ou bloqué), table en
+seq } } } } }`, sauvegardé avec l'état des voix ; sans état chargé (pas encore initialisé ou bloqué), table en
 mémoire perdue au redémarrage du serveur, comme les compteurs d'actions. Clé = voix + appelant (`callerKey` : compte
 en MP, `solo` en solo) + personnage du carnet (`cid` de la demande, `-` sans carnet lié) : un nouveau personnage en
 solo n'hérite pas des souvenirs du précédent.
@@ -357,7 +379,7 @@ ancien évincé ; un fait identique après normalisation (casse, espaces) est ra
 dupliqué ; au plus `MEMORY_MAX_CALLERS = 50` appelants par voix, le moins récemment servi par `remember` évincé ; au
 pire 50 × 5 × 64 caractères par voix. Aucun souvenir entre voix, aucun pour les appels spontanés.
 
-**Purge** : la mort d'un personnage (`RS_Carnet_Server.characterDeath`, identité retirée, E00-T02) appelle
+**Purge** : la mort d'un personnage (`CA_NotebookServer.characterDeath`, identité retirée, E00-T02) appelle
 `RS_Memory.forgetCharacter` : ses souvenirs sont effacés de toutes les voix. Un personnage marqué `retired` n'est de
 toute façon jamais relu.
 
@@ -416,7 +438,7 @@ moins un ; tout autre paramètre, ou aucun : `bad_params` (l'action entière est
 - Délai `cooldownMs = 0` (le budget du jour suffit) ; **aucun effet de jeu** (`S.dirty = true` quand l'état privé est
   chargé).
 
-**Rangement** : `RS_State`, `data.personaState[<voix>] = { morale, supplies, place }`, sauvegardé avec l'état du carnet ;
+**Rangement** : `RS_State`, `data.personaState[<voix>] = { morale, supplies, place }`, sauvegardé avec l'état des voix ;
 sans état chargé (pas encore initialisé ou bloqué), table en mémoire perdue au redémarrage du serveur, comme les
 compteurs d'actions. Réinitialisation : supprimer l'entrée de l'état privé (aucune commande dédiée).
 
@@ -783,15 +805,13 @@ E04-T04).
 **Instantané du carnet, champ `reputation`** (E04-T04, E04-T12) : `{ available = true, level, trend, reasons = {
 { action, reasonArgs, sign, capped?, day } } (5 au plus, le plus récent d'abord), change? = { from, to, day,
 n }, today }` du seul personnage du lecteur, ou `{ available = false }` ; jamais de score ni de texte (E18-T25 : le
-client traduit chaque action par le mod qui la connaît). Le mod commun répond la même projection à sa commande
-`reputation` (module `CoreAI`, même limite que `missions`) ; ses listes de missions (`missions` et cet
-instantané) laissent de côté les missions d'un donneur dont le mod n'est pas actif (`CA_Missions.present`), gelées
+client traduit chaque action par le mod qui la connaît). L'instantané du carnet (module `CoreAI`) laisse de côté les missions d'un donneur dont le mod n'est pas actif (`CA_Missions.present`), gelées
 jusqu'à son retour. L'ancienne liste
 `events` (faits « non appliqués ») est retirée. Un instantané **poussé** (publication après un changement) n'est envoyé à
 un joueur que si son contenu a changé depuis le dernier qu'il a reçu ; une réponse à sa propre commande part toujours
 (E00-T04). Commande `rep_admin` (E04-T14, Q17) : vue en lecture seule des réputations de tous les personnages vivants
 (nom, niveau, tendance, derniers actes), réponse `rep_admin` au seul demandeur, `{ ok = false, err = "denied" }` sans
-donnée si le droit manque (même règle que `RS_FreqDebug.isAllowed`).
+donnée si le droit manque (règle `CA_AdminAccess`, la même que `RS_FreqDebug.isAllowed`).
 
 **Compatibilité** : un serveur antérieur refuse `start_mission` `not_available` ; un pont antérieur ignore le champ
 `mission=` et ne propose jamais l'action ; un état sans `voiceDonors` est complété à la première mission. Living Knox
@@ -935,9 +955,9 @@ jamais pour chaque spawn) a vu lui-même ou entendu d'un autre PNJ (ADR B11, auc
 privé de la parole `Talk.data.observations`, fichier `talk-*`), `LK_Talk.lua` (champ joint), `bridge/npc_protocol.py`
 (`observations`, `observations_prompt`).
 
-**Modèle** (autorité seulement, état privé `RS_State` : `data.observations = { seq, npcs = { [<fiche>] = { touched,
-items = { { key, fact, subject, day, place, source, chain } } } } }`, jamais en ModData globale ; `S.dirty` à chaque
-changement, sauvegardé par le carnet ; sans état chargé ou bloqué, rien n'est enregistré). Entrée : `fact` dans la liste
+**Modèle** (autorité seulement, `LK_Observations`, état privé de la parole de Living Knox : `Talk.data.observations =
+{ seq, npcs = { [<fiche>] = { touched, items = { { key, fact, subject, day, place, source, chain } } } } }`, fichier
+`talk-*` de Living Knox, jamais en ModData globale ; `Talk.dirty` à chaque changement ; sans état chargé ou bloqué, rien n'est enregistré). Entrée : `fact` dans la liste
 fermée des déclencheurs d'E08-T01 (`player_return`, `mission_done`, `group_death`, `assault_seen`, `weather`,
 `power_cut`, `helicopter`) ; `subject` identifiant court `[A-Za-z0-9_-]`, 48 caractères au plus (personnage du carnet,
 fiche, mission, `storm`...) ; `day` jour de jeu entier (`Obs.today()` : 1 = premier jour) ; `place` libellé court
@@ -953,8 +973,8 @@ suite refusés** (aucune coordonnée exacte) ; `source` = `seen` (défaut) ou `h
 - **Pas de boucle** : un PNJ qui figure déjà dans la chaîne (il l'a racontée) ne la réapprend pas, même si son entrée
   a été évincée depuis (`loop`) ; un PNJ ne se la raconte pas à lui-même (`self`).
 - **Bornes** : 12 observations par PNJ (la plus ancienne évincée), 64 PNJ suivis (le moins récemment mis à jour
-  évincé). **Purge** : mort d'une fiche (`RS_Carnet_Server.dead` → `forget` ; ce qu'elle a raconté reste chez les
-  autres) et fiches retirées par le `prune` du carnet (`Obs.prune`).
+  évincé). **Purge** : fiches mortes ou retirées par l'hôte (`Obs.prune`, appelé par `LK_Talk.turns` ; ce qu'une fiche
+  morte a raconté reste chez les autres).
 - **API** : `record(npc, obs)` → clé et `ok` | `duplicate` | `upgraded`, ou `nil` et le motif (`storage`, `fiche`,
   `bad_obs`, `fact`, `subject`, `day`, `place`, `source`) ; `list(npc)` (copies, de la plus ancienne à la plus
   récente) ; `transmit(from, to, key)` → crée l'entrée `heard_from:<from>` chez le destinataire (`ok` | `duplicate`,
@@ -1111,7 +1131,7 @@ hors budget ou option « Désactivées » : aucun bavardage, rien consommé.
 | `scout_v1` | `scout` | `kind` = `scout`, `place` (type du bâtiment en anglais : `house`, `church`...), `clues` (liste de phrases anglaises sans aucun chiffre, `RS_Rescue.clues`), `report` = `in_person`, `durationMs`, `rewardType`, `rewardCount` |
 | `retrieve_id_v1` | `retrieve_id` (E11-T05) | `kind` = `retrieve_id`, `item` = `ID card`, `place`, `clues` (mêmes règles que `scout_v1`), `report` = `in_person`, `durationMs`, `rewardType`, `rewardCount` ; offerte par une fiche de PNJ seulement (jamais par une voix radio) et seulement là où le jeu sait créer un cadavre (`RandomizedWorldBase` exposée) |
 | `clear_v1` | `clear` (E11-T04) | `kind` = `clear`, `place`, `clues` (mêmes règles que `scout_v1`), `kills` (nombre de zombies à tuer, 6 à 25 selon la densité de la zone), `report` = `in_person` (E11-T13 ; `none` avant), `durationMs`, `rewardType`, `rewardCount` ; offerte par une fiche de PNJ seulement, et seulement si la métagrille donne une densité de zombies suffisante autour du lieu |
-| `recover_v1` | `recover` (E11-T06) | `kind` = `recover`, `item` = `bag`, `cache` (table fermée du contenu : `food`, `medical`, `ammo`, `tools`), `place`, `clues` (mêmes règles que `scout_v1`), `report` = `in_person` (E11-T13 ; `depot` avant), `durationMs`, `rewardType`, `rewardCount` ; offerte par une fiche de PNJ seulement, et seulement si le fournisseur de PNJ connaît le foyer de son groupe (`RS_NPCProvider.presence`, le dépôt) |
+| `recover_v1` | `recover` (E11-T06) | `kind` = `recover`, `item` = `bag`, `cache` (table fermée du contenu : `food`, `medical`, `ammo`, `tools`), `place`, `clues` (mêmes règles que `scout_v1`), `report` = `in_person` (E11-T13 ; `depot` avant), `durationMs`, `rewardType`, `rewardCount` ; offerte par une fiche de PNJ seulement, et seulement si le fournisseur de PNJ connaît le foyer de son groupe (`CA_NPCProvider.presence`, le dépôt) |
 | `signal_v1` | `signal` (E11-T07) | `kind` = `signal`, `place`, `clues` (mêmes règles que `scout_v1`), `color` (`green`, `red`, `yellow` ou `purple`), `hour` (heure de jeu 0..23 du début de la fenêtre), `windowHours` (durée de la fenêtre, n'importe quel jour), `report` = `in_person` (E11-T13 ; `none` avant), `durationMs`, `rewardType`, `rewardCount` ; offerte par une fiche de PNJ seulement (mod requis Signal Smoke ; module cassé : aucune offre) |
 
 `scout_v1` n'est proposée que si le serveur a trouvé un bâtiment admissible autour du corps du demandeur ; aucune
@@ -1138,7 +1158,7 @@ L'objectif est rempli quand le serveur trouve le sac, par son identifiant, dans 
 réussit au compte rendu (E11-T13). Une mission `signal` (E11-T07) : objectif rempli au premier bon signal, réussite au
 compte rendu.
 
-**Conservation des missions closes** (`CA_Missions.prune`, passe de `RS_Carnet_Server` toutes les
+**Conservation des missions closes** (`CA_Missions.prune`, passe de `CA_NotebookServer` toutes les
 `PRUNE_INTERVAL_MS`) : une mission close est retirée de l'état 24 h réelles après sa clôture (`MISSION_RETENTION_MS`,
 `closedAt` en temps réel, simple ménage). Un **lot réussi non réclamé** (`state = success`, `claimedBy = ''`,
 `rewardCount > 0`) est gardé **7 jours de jeu** (décision de l'utilisateur du 2026-10-21, tâche E16-T10) : échéance
@@ -1151,8 +1171,8 @@ retiré. Sans horloge de jeu, le lot est gardé.
 
 ### Contexte du groupe (E17-T03)
 
-`context.group` est rempli par le fournisseur de PNJ (`RS_NPCProvider.context`, fournisseur Living Knox
-`RS_LivingKnox.lua`) pour `npc_talk` (avec l'attitude envers l'appelant) et pour `npc_enrich` (sans attitude) ; absent
+`context.group` est rempli par le fournisseur de PNJ (`CA_NPCProvider.context`, fournisseur Living Knox
+`LK_NotebookProvider.lua`) pour `npc_talk` (avec l'attitude envers l'appelant) et pour `npc_enrich` (sans attitude) ; absent
 avec un fournisseur qui n'en a pas. PNJ sans groupe : `{ member = false }`. Sinon :
 
 | Champ | Sens |
@@ -1172,7 +1192,7 @@ comme table (comme tout `context`) ; un pont antérieur le passe tel quel au pro
 
 Décision du 2026-10-11 : aucune mission au premier contact, et un inconnu ne dit ni son groupe ni le lieu de son foyer.
 
-**Stade, tenu par le serveur** (`RS_Carnet_Server.lua`, fonction `acquaintance`), par PNJ et par personnage, sauvegardé
+**Stade, tenu par le serveur** (`CA_NotebookServer.lua` et `CA_MissionTalk.acquaintance`), par PNJ et par personnage, sauvegardé
 avec le contact (`contacts[<pnj>]` : `stage` = `stranger` puis `acquainted`, `exchanges` = échanges répondus,
 `firstHour` = âge du monde en heures de jeu au premier échange répondu). Un échange compte quand une réplique
 `npc_talk` du PNJ est acceptée par `reply`, pour le personnage qui a parlé seulement (pas pour les autres auditeurs).
@@ -1217,7 +1237,7 @@ Décision du 2026-10-11 : une mission proposée par un PNJ s'accepte **des deux 
 PNJ dans la conversation ou par le bouton « Accepter » du carnet (commande `accept`, inchangée) ; chaque nouvelle offre est signalée
 à l'écran. Une mission donnée par une voix radio reste acceptée d'office (`RS_MissionVoice`).
 
-**Offre ouverte** (`RS_Carnet_Server.lua`, `openOffer`) : la mission courante du PNJ (`npc.mission`) en état `offer`,
+**Offre ouverte** (`CA_MissionTalk.openOffer`) : la mission courante du PNJ (`npc.mission`) en état `offer`,
 sans transaction, à laquelle l'appelant est invité (`invited`) sans y participer encore. Seul le personnage à qui
 l'offre est faite peut l'accepter ainsi ; une offre d'un autre PNJ n'est jamais concernée.
 
@@ -1282,13 +1302,13 @@ demandeur (`DELIVERY_RANGE`, `missionFor`) ; le serveur revérifie objectif remp
 Jamais pour une voix radio (pas de corps ; voir « Mission donnée par une voix »).
 
 **Message d'offre** : à la création d'une offre par `reply`, le serveur envoie au personnage invité la commande client
-`offer` (`{ mission = <id> }`, plus `world`, `run`) ; `RS_Client.lua` affiche une fois par mission
-`HaloTextHelper.addGoodText(joueur, getText('IGUI_RS_NewOffer'))` (« New offer in the notebook », « Nouvelle offre dans
+`offer` (`{ mission = <id> }`, plus `world`, `run`) ; `CA_NotebookClient.lua` affiche une fois par mission
+`HaloTextHelper.addGoodText(joueur, getText('IGUI_CA_NewOffer'))` (« New offer in the notebook », « Nouvelle offre dans
 le carnet »). Une acceptation n'affiche pas ce message.
 
 ### Chef du groupe et intentions collectives (E10-T02)
 
-**Chef** : celui du registre du fournisseur (`RS_NPCProvider.composition`, fournisseur Living Knox : chef de
+**Chef** : celui du registre du fournisseur (`CA_NPCProvider.composition`, fournisseur Living Knox : chef de
 `LivingKnox.Groups`, succession par `pickSuccessor` / `succeed`, empreinte `LivingKnox.API.composition`). Sans
 fournisseur qui la définit (ou PNJ sans groupe), rien ne change.
 
@@ -1315,12 +1335,12 @@ elle est construite. À la réponse, une intention collective (`offer` d'une off
 `supply`) n'est appliquée que si le PNJ est toujours dans ce groupe, toujours chef, et si l'empreinte n'a pas changé ;
 sinon seule l'intention est ignorée (E09-T09, décision de l'utilisateur du 2026-10-14) : la réplique est dite et
 gardée dans l'historique comme une réponse `none`, aucune mission n'est créée ni acceptée, rien n'est inscrit au journal
-du groupe, et le serveur journalise `[RS_Carnet] collective offer|collective acceptance of <fiche> toward <personnage>
+du groupe, et le serveur journalise `[LK_Talk] collective offer|collective acceptance of <fiche> toward <personnage>
 in <demande> ignored, reply kept: group composition changed` (ou `NPC no longer the group leader`, `NPC no longer in the
 group`). Une réplique sans intention collective n'est pas concernée.
 
 **Décision** : après la sauvegarde, une offre créée ou une acceptation conclue s'inscrit au journal du groupe
-(`RS_NPCProvider.decide` → `LivingKnox.Groups.addLog(groupe, "decision", fait)`), puis se lit dans le contexte des
+(`CA_NPCProvider.decide` → `LivingKnox.Groups.addLog(groupe, "decision", fait)`), puis se lit dans le contexte des
 fiches de tous les membres. Le journal de récit public (`LK_Journal`) ignore ce genre d'entrée.
 
 ### Réaction des membres (E10-T03)
@@ -1335,7 +1355,7 @@ anglais composé par le serveur>, leaderName } }` ; pas d'`observations`. Liée 
 (`Server.reactions[<id>] = { ref, about }`), jamais envoyée au pont.
 
 **Loyauté** (toute demande `npc_talk` ou `npc_member` d'un PNJ dont le fournisseur la connaît) :
-`personality.loyalty` = `loyal` | `steady` | `wavering` (`RS_NPCProvider.loyalty`, Living Knox : moral du groupe et
+`personality.loyalty` = `loyal` | `steady` | `wavering` (`CA_NPCProvider.loyalty`, Living Knox : moral du groupe et
 ancienneté), copie de la requête seulement ; sinon la valeur de base `current_group`.
 
 **Prompt** (`npc_protocol.member_prompt`) : membre (non chef) qui réagit à la décision selon sa personnalité, son rôle,
@@ -1345,7 +1365,7 @@ annulée ; `Speak in <langue de la demande>`.
 
 **Réponse** : `intent` parmi `accept`, `contest`, `refuse`, `none` (= `accept`) ; `offer` vide ; `text` au plus
 200 octets (limite de `LivingKnox.Speech`). Le serveur refuse avant tout effet un membre sorti du groupe ou devenu chef.
-`accept` : rien d'appliqué. `contest` / `refuse` (corps chargé exigé) : `RS_NPCProvider.dissent` écrit le fait au
+`accept` : rien d'appliqué. `contest` / `refuse` (corps chargé exigé) : `CA_NPCProvider.dissent` écrit le fait au
 journal du groupe (kind `contest` / `refusal`, jamais la réplique) et fait dire la réplique par la parole de proximité
 (LK11-T04) ; l'historique du carnet des personnages qui connaissent déjà ce membre la garde. `ack.applied` vide.
 **Hors ligne** : `RS_OFFLINE_INTENT=member:<accept|contest|refuse>` du banc (défaut `accept`).
@@ -1369,15 +1389,15 @@ langue ; il ne dit jamais l'accord déjà en vigueur. Sans `negotiation`, prompt
 sans effet, « inadmissible agreement »). Le serveur revalide au moment de conclure : chef et empreinte de composition
 (`collectiveCheck`), joueur connecté, mandat relu (`RS_Factions.canConclude`), même équipe, même révision de l'accord ;
 sinon seul l'accord est ignoré (E09-T09) : la réplique est dite comme une réponse `none`, aucun accord ni réaction des
-membres, journal `[RS_Carnet] agreement of <fiche> toward <personnage> in <demande> ignored, reply kept: <motif>`
+membres, journal `[LK_Talk] agreement of <fiche> toward <personnage> in <demande> ignored, reply kept: <motif>`
 (`agreement not offered`, `NPC no longer the group leader`, `group composition changed`, `negotiator not connected`,
 `no mandate`, `team changed`, `agreement revision changed`…). L'accusé `ack.applied` reste **vide** pour `negotiate` (le pont
 n'y admet que `offer` et `accept`) : l'accord est un fait du serveur.
 
 **Annonce** : l'accord conclu est `pending` ; le serveur le passe `applicable` au constat (passage de décision suivant
 de chaque membre actif, aucun membre ne vise un joueur couvert), puis envoie la commande client `agreement`
-(`{ id, revision, kind, state, groupName }`, plus `world`, `run`) aux joueurs connectés de l'équipe ;
-`RS_Client.lua` affiche une fois par révision `IGUI_RS_Agreement_<kind>` (« Truce with %1 now in force »).
+(`{ id, revision, kind, state, groupName }`, plus `world`, `run`) aux joueurs connectés de l'équipe, par Living Knox (`LK_AgreementNotices`, module `LivingKnox`) ;
+`LK_AgreementNoticesView.lua` affiche une fois par révision `IGUI_LK_Agreement_<kind>` (« Truce with %1 now in force »).
 
 **Hors ligne** : `RS_OFFLINE_INTENT=negotiate` (type le plus faible offert) ou `negotiate:<type>` du banc, jamais tiré
 des mots du joueur.
@@ -1399,8 +1419,8 @@ ligne, 400 octets au plus. Le serveur revalide (même chef, même révision de l
 catégorie du stock) et applique une seule fois ; sinon la réponse est refusée (`incident revision changed`,
 `agreement revision changed`, `incident closed`, `NPC no longer the group leader`, `no incident decision`) et la
 décision est redemandée plus tard. `ack.applied` reste vide. **Annonce** : commande client `incident` (`{ id,
-decision, category, revision, groupName }`, plus `world`, `run`) aux joueurs connectés de l'équipe ; `RS_Client.lua`
-affiche une fois par incident `IGUI_RS_Incident_<décision>` (réparation : `IGUI_RS_RepairCategory_<catégorie>`).
+decision, category, revision, groupName }`, plus `world`, `run`) aux joueurs connectés de l'équipe, par Living Knox (`LK_AgreementNotices`, module `LivingKnox`) ; `LK_AgreementNoticesView.lua`
+affiche une fois par incident `IGUI_LK_Incident_<décision>` (réparation : `IGUI_LK_RepairCategory_<catégorie>`).
 
 **Hors ligne** : `RS_OFFLINE_INTENT=incident:<maintain|repair|break|none>[:<catégorie>]` du banc (défaut
 `maintain`), jamais tiré d'un texte.
@@ -1449,9 +1469,9 @@ même personnage, même révision de la relation (`relation revision changed`), 
 jamais utilisé (`relation fact already used`), toujours connu de ce PNJ (`relation fact unknown to this NPC`), sens de sa
 nature (`relation direction contradicts the fact`), écart dans −1..+1 (`relation gap at its bound`) ; sinon seul le
 changement est ignoré (E09-T08) : la réplique est dite comme une réponse `none` et le serveur journalise
-`[RS_Carnet] relation change of <fiche> toward <personnage> in <demande> ignored, reply kept: <motif>`. `ack.applied`
+`[LK_Talk] relation change of <fiche> toward <personnage> in <demande> ignored, reply kept: <motif>`. `ack.applied`
 reste **vide** (fait du serveur) ; un changement appliqué est journalisé
-`[RS_Carnet] relation of <fiche> toward <personnage> <dir> (<clé>): <niveau>, group <niveau>`.
+`[LK_Talk] relation of <fiche> toward <personnage> <dir> (<clé>): <niveau>, group <niveau>`.
 
 **Projection** (E09-T07) : chaque contact du `snapshot` porte `relation = { level, trend, group, today, facts =
 { { fact, nature, source, day } } (3 derniers), agreements = { { kind, state, scope = { group, team } } }, suspended }`
@@ -1509,11 +1529,11 @@ Le détail (corps de l'erreur HTTP, exception) reste dans le journal du pont, `L
 le code seul part au jeu.
 
 **Refus côté jeu** : `reply` rend `false` et une raison ; `poll` écrit une ligne par demande refusée,
-`[RS_Carnet] <kind> <id> refused: <raison>` (erreur du pont, champ différent de la demande, PNJ mort ou révision
+`[LK_Talk] <kind> <id> refused: <raison>` (erreur du pont, champ différent de la demande, PNJ mort ou révision
 changée, texte vide, trop long ou avec contrôle/balise, intention ou offre invalide, corps non chargé, état non
 sauvegardé, aucune réponse après 150 s). Une erreur du pont est journalisée avec son code :
-`[RS_Carnet] npc_talk <id> refused: bridge error http_503`. Le serveur garde aussi les 16 derniers refus dans
-`RS_CarnetServer.refusals` (`{id, kind, npc, character, reason, at}`), lus par les suites de test pour nommer la cause
+`[LK_Talk] npc_talk <id> refused: bridge error http_503`. Le serveur garde aussi les 16 derniers refus dans
+`LivingKnox.Talk.refusals` (`{id, kind, npc, character, reason, at}`), lus par les suites de test pour nommer la cause
 d'une réponse manquante. Le joueur voit toujours `NoAnswer` ; le refus défensif reste.
 
 Python exige une sortie de modèle structurée et bornée ; il utilise JSON seulement dans son propre

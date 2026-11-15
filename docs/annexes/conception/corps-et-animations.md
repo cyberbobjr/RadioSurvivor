@@ -119,7 +119,7 @@ Aucun choix arrêté : les options ci-dessous sont présentées pour les tâches
 
 ## Essai comparatif — protocole
 
-Tâche LK02-T10. Code d'essai dans le **mod de dev seulement** (`dev/batman_RadioSurvivorTests/42.21/media/lua/`, jamais publié) : `shared/RST/RST_LKEssai.lua` (noyau), `server/RST/RST_LKEssaiServer.lua` (autorité), `client/RST/RST_LKEssaiClient.lua` (console), `shared/RST/suites/RST_LKEssaiSuite.lua` (suite `lk.essai`). Mode d'emploi détaillé en tête de chaque fichier ; moteur RST : `docs/annexes/tests/tests-en-jeu.md`.
+Tâche LK02-T10. Code d'essai dans le **mod de dev seulement** (`dev/batman_LivingKnoxTests/42.21/media/lua/`, jamais publié) : `shared/RST/RST_LKEssai.lua` (noyau), `server/RST/RST_LKEssaiServer.lua` (autorité), `client/RST/RST_LKEssaiClient.lua` (console), `shared/RST/suites/RST_LKEssaiSuite.lua` (suite `lk.essai`). Mode d'emploi détaillé en tête de chaque fichier ; moteur RST : `docs/annexes/tests/tests-en-jeu.md`.
 
 ### Chemins réels utilisés (Java 42.21.0)
 
@@ -131,8 +131,8 @@ Tâche LK02-T10. Code d'essai dans le **mod de dev seulement** (`dev/batman_Radi
 
 ### Préparation
 
-1. `python RadioSurvivor/tools/install_tests.py` (copie le mod de dev), jeu lancé avec `-debug`, mods `batman_RadioSurvivor` et `batman_RadioSurvivorTests` actifs.
-2. Journaux à relever après chaque séance : `console.txt` de chaque machine ; `Zomboid/Lua/batman_RadioSurvivor/tests/lke-essai.log` (lignes `[LKE]`, une copie par machine ; sur le serveur de test, dans le cache affiché par `RS_SMOKE_CACHE=`) ; rapports RST `<horodatage>-solo.txt` / `-server.txt` dans le même dossier. Ranger captures et copies des journaux dans `RadioSurvivor/docs/essais/lk02-t10/` (à créer), un sous-dossier par séance.
+1. `python RadioSurvivor/tools/install_tests.py` (copie le mod de dev), jeu lancé avec `-debug`, mods `batman_LivingKnox`, `batman_CoreAITests` et `batman_LivingKnoxTests` actifs.
+2. Journaux à relever après chaque séance : `console.txt` de chaque machine ; `Zomboid/Lua/batman_CoreAITests/tests/lke-essai.log` (lignes `[LKE]`, une copie par machine ; sur le serveur de test, dans le cache affiché par `RS_SMOKE_CACHE=`) ; rapports RST `<horodatage>-solo.txt` / `-server.txt` dans le même dossier. Ranger captures et copies des journaux dans `RadioSurvivor/docs/essais/lk02-t10/` (à créer), un sous-dossier par séance.
 
 ### Solo (`rstest-solo`) d'abord
 
@@ -150,7 +150,7 @@ Tâche LK02-T10. Code d'essai dans le **mod de dev seulement** (`dev/batman_Radi
 
 1. `powershell -ExecutionPolicy Bypass -File RadioSurvivor/tests/run_dedicated_smoke.ps1 -Manual` : serveur `rstest_smoke` (nom de sauvegarde accepté par la garde `rstest*`), `127.0.0.1`, ports 17381/17382, cache temporaire conservé (noter `RS_SMOKE_CACHE=`), compte admin `rs_smoke_admin` / `local-smoke-only`. Le mod de dev doit aussi être actif chez chaque client.
 2. Client 1 : `rs_smoke_admin` ; client 2 (seconde instance ou second PC, `-debug`) : compte créé à la connexion, puis `grantadmin <compte>` dans la console du serveur si ce client doit lancer des commandes.
-3. Suite : depuis le client 1, `RST.server({ suite = "lk.essai", tags = "world" })` ; rapport complet dans `<cache>/Lua/batman_RadioSurvivor/tests/`.
+3. Suite : depuis le client 1, `RST.server({ suite = "lk.essai", tags = "world" })` ; rapport complet dans `<cache>/Lua/batman_CoreAITests/tests/`.
 4. Console (client 1) : mêmes commandes qu'en solo ; la réponse du serveur s'affiche en `[LKE] server: ...`. **Chez chaque client**, `LKE.here()` donne ce que ce client voit (peau, voix, propriétaire, drapeaux) ; captures simultanées des deux clients.
 5. Propriétaire : `LKE.list()` donne `owner=<compte>|server` ; la marche est exécutée par le client propriétaire, qui le signale (`client X reports: walk #n ...` dans le journal du serveur). Rapprocher le client 2 du corps pour forcer un changement de propriétaire pendant une marche.
 6. Arme : `hand` (posé par chaque client) ; `serverHand` **une seule fois, sur un corps à retirer aussitôt** : relever dans `server-console.txt` l'exception attendue de `IsoGameCharacter.preupdate` ; `attached` avec les deux clients présents, puis client 2 déconnecté, `attached` changé, client 2 reconnecté.

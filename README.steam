@@ -12,11 +12,11 @@ Subscribe once, then tick in the Mods list what you want. Radio Survivor and Liv
 
 [list]
 [*][b]Radio Survivor[/b] (batman_RadioSurvivor): the radio, six AI voices, the Radio tab of the notebook, factions.
-[*][b]Living Knox[/b] (batman_LivingKnox): groups of NPC survivors with homes, needs, routines and fights.
-[*][b]Core AI[/b] (batman_CoreAI): what both share: missions and their journal, the link with the bridge, character identity, conversation history, reputation, the notebook. The game enables it for you; on its own it adds nothing playable.
+[*][b]Living Knox[/b] (batman_LivingKnox): groups of NPC survivors with homes, needs, routines and fights; relations and agreements with them.
+[*][b]Core AI[/b] (batman_CoreAI): what both share: the link with the bridge, the whole notebook (contacts, missions, reputation), missions, character identity, conversation history. The game enables it for you; on its own it adds nothing playable.
 [/list]
 
-[b]Radio Survivor alone:[/b] voices, radio, notebook. [b]Living Knox alone:[/b] you talk to an NPC in the normal chat (/say) near them, or with the right-click menu [b]Talk[/b]; it answers in a speech bubble, and its missions go to the notebook. [b]Both:[/b] you talk to NPCs through the notebook (Ctrl+G) and Radio Survivor adds relations and agreements with the groups.
+[b]Radio Survivor alone:[/b] voices, radio, notebook with its Radio tab. [b]Living Knox alone:[/b] the full notebook. Press Ctrl+G near an NPC to select them, or speak in the normal chat (/say): with no NPC selected, the sentence goes to the nearest one within 8 squares. The right-click menu [b]Talk[/b] works too; they answer in a speech bubble. [b]Both:[/b] everything, in the same notebook.
 
 The bridge is one program whatever you tick.
 

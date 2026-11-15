@@ -1,7 +1,7 @@
 # Mission « signaler » (gabarit `signal`, E11-T07)
 
 Brouillon du 2026-10-13. Code : `server/RadioSurvivor/RS_MissionSignal.lua` ; catalogue `RS_Config.Missions.signal`
-(offre `signal_v1`) ; carnet `client/RadioSurvivor/RS_Notebook.lua` ; carte `client/RadioSurvivor/RS_MapActions.lua` ;
+(offre `signal_v1`) ; carnet `client/CoreAI/CA_NotebookMissions.lua` et `client/CoreAI/MissionViews/CA_View_Signal.lua` ; carte `client/RadioSurvivor/RS_MapActions.lua` ;
 banc `tests/test_mission_signal.py` ; suite en jeu `rs.mission.signal`.
 
 Le plan dit : « lancer la couleur demandée à un lieu et une heure ; RadioSurvivor écoute l'événement si Signal Smoke

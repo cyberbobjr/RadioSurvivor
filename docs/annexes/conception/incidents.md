@@ -2,8 +2,8 @@
 
 Brouillon du 2026-10-13. Code : `server/LivingKnox/LK_Agreements.lua` (Living Knox depuis E18-T20 ; identifiants d'équipe et mandats : `server/CoreAI/CA_Teams.lua` du mod commun ; avant : `LivingKnox.Agreements.lua` de RadioSurvivor) (fin du fichier : registre des incidents,
 crochets, `decideIncident`), `server/LivingKnox/LK_Incidents.lua` (demande au modèle et réponse),
-`server/RS_Carnet_Server.lua` (passage du `tick`, aiguillage de `reply`, annonce), `server/LivingKnox/LK_Bodies.lua`
-(fait `memberHit`), `client/RadioSurvivor/RS_Client.lua` (annonce), `bridge/npc_protocol.py` (genre `npc_incident`).
+`server/LivingKnox/LK_Talk.lua` (passage du `tick`, aiguillage de `reply`), `server/LivingKnox/LK_AgreementNotices.lua` (annonce), `server/LivingKnox/LK_Bodies.lua`
+(fait `memberHit`), `client/LivingKnox/LK_AgreementNoticesView.lua` (annonce), `bridge/npc_protocol.py` (genre `npc_incident`).
 Accords : [accords.md](accords.md). Choix de cible : [cibles.md](cibles.md). ADR B08 et B10 de
 [bandits-llm-specifications.md](../recherches/bandits-llm-specifications.md).
 

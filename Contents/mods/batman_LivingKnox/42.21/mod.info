@@ -1,6 +1,6 @@
 name=batman_Living Knox
 id=batman_LivingKnox
-description=Living survivor groups in Knox County: 3 to 5 groups of human survivors with homes, leaders, needs, routines, fights, fortifications and life off screen. Talk to them near you; with the separate Python bridge (see the README) an AI gives them their words. Server authoritative, solo and multiplayer. Works alone or with Radio Survivor (voices on the radio, field notebook). Requires Signal Smoke (batman_SignalSmoke). Not compatible with Bandits or Project A-Life.
+description=Living survivor groups in Knox County: 3 to 5 groups of human survivors with homes, leaders, needs, routines, fights, fortifications and life off screen. Talk to them near you (Ctrl+G, the local chat or the Talk menu) and keep their contacts, missions and agreements in the field notebook; with the separate Python bridge (see the README) an AI gives them their words. Server authoritative, solo and multiplayer. Works alone or with Radio Survivor (voices on the radio, optional). Requires Signal Smoke (batman_SignalSmoke). Not compatible with Bandits or Project A-Life.
 versionMin=42.21
 modversion=0.1.0
 require=\batman_CoreAI

@@ -37,8 +37,11 @@ Vue administrateur. Guides pas à pas : [wiki](../wiki/fr/Home.md).
 
 ## F44 — Compatibilité et prérequis
 
-- Prérequis : Belt Walkie-Talkie (`batman_BeltRadio`, lui-même dépendant de TooltipLib) et Signal Smoke
-  (`batman_SignalSmoke`).
+- Trois mods dans un article : Radio Survivor et Living Knox se cochent séparément ; le mod commun Core AI
+  (`batman_CoreAI` : lien avec le pont, carnet, missions, identité, réputation) est activé par le jeu avec l'un ou
+  l'autre et n'apporte rien de jouable seul.
+- Prérequis : Signal Smoke (`batman_SignalSmoke`, les trois mods) ; Belt Walkie-Talkie (`batman_BeltRadio`, lui-même
+  dépendant de TooltipLib) pour Radio Survivor seulement.
 - Incompatibles : Bandits! (`Bandits2`) et Project A-Life (`ProjectALifeNPCs`).
 - Installation : [Installation](../wiki/fr/04-installation.md).
 

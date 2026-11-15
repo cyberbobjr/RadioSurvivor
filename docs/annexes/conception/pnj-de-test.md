@@ -4,7 +4,7 @@
 
 ## Besoin
 
-La fixture `RST.Fixtures.spawnNpc` du mod de développement doit faire apparaître un PNJ près du joueur **par l'API publique de Living Knox**, le retrouver par l'interface du carnet `RS_NPCProvider`, puis le retirer. L'API publique (`LK_API.lua`, [api-living-knox.md](../../specifications-techniques/api-living-knox.md)) n'avait aucune fonction de création : les suites `lk.*` appellent directement `LivingKnox.Bodies.spawn`.
+La fixture `RST.Fixtures.spawnNpc` du mod de développement doit faire apparaître un PNJ près du joueur **par l'API publique de Living Knox**, le retrouver par l'interface du carnet `CA_NPCProvider`, puis le retirer. L'API publique (`LK_API.lua`, [api-living-knox.md](../../specifications-techniques/api-living-knox.md)) n'avait aucune fonction de création : les suites `lk.*` appellent directement `LivingKnox.Bodies.spawn`.
 
 ## Choix retenu (le plus simple, proche du moteur existant)
 
@@ -16,7 +16,7 @@ La fixture `RST.Fixtures.spawnNpc` du mod de développement doit faire apparaît
 
 ## Côté fixture
 
-- `F.npcReady()` dit pourquoi la fixture ne peut pas agir : client MP, `RS_NPCProvider` absent, fournisseur vide (`none`), autre fournisseur que Living Knox, API de test absente.
+- `F.npcReady()` dit pourquoi la fixture ne peut pas agir : client MP, `CA_NPCProvider` absent, fournisseur vide (`none`), autre fournisseur que Living Knox, API de test absente.
 - `F.spawnNpc(t, player[, suite])` exige une suite `world` autorisée (`RST.worldGuard()`), crée le PNJ à 2 cases à l'est du joueur, enregistre le retrait (`t:defer`) aussitôt, puis attend (`t:waitQuiet`, 10 s) que le fournisseur voie le corps sous cet identifiant.
 - La suite `rst.fixtures.npc` est SKIP avec la raison de `F.npcReady()` quand Living Knox n'est pas le fournisseur actif.
 

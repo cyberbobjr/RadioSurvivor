@@ -4,7 +4,7 @@ Matière première des « dernières pages » (étape E15) : ce que le serveur s
 
 ## Règles
 
-- **Identité obligatoire** : seul un personnage du carnet (identité E00-T01 : `RS_CarnetServer.bound[joueur]`, fiche de `S.data.characters` du même compte, non retirée) a un relevé. Un joueur sans identité, un personnage d'un autre compte ou retiré n'en a aucun. En solo, la clé de propriétaire est `solo` (comme `RS_Carnet_Server`).
+- **Identité obligatoire** : seul un personnage du carnet (identité E00-T01 : `CoreAI.notebookServer.bound[joueur]`, fiche de `S.data.characters` du même compte, non retirée) a un relevé. Un joueur sans identité, un personnage d'un autre compte ou retiré n'en a aucun. En solo, la clé de propriétaire est `solo` (comme `RS_Carnet_Server`).
 - **Autorité serveur** : toutes les valeurs viennent de la copie serveur du joueur (`IsoPlayer`) ou de l'état privé. Rien n'est lu d'un client.
 - **Stockage** : état privé du carnet (`RS_State`, `S.data.lifelogs = { seq, logs = { [id] = relevé } }`), sauvegardé avec lui. Jamais en ModData globale ni dans la ModData du joueur (lisibles par les clients).
 
@@ -30,7 +30,7 @@ Toutes les 15 s réelles (`POLL_MS`, `OnTickEvenPaused`), pour chaque joueur li�
 
 Abonné propre à `OnCharacterDeath` (joueurs seulement). Dernier sondage du corps, missions ouvertes notées, puis le relevé est **figé** (`dead = true`, heure de la mort, numéro d'ordre) et sauvegardé. Il est gardé pour E15-T03, qui le lit (`LifeLog.get`, `LifeLog.frozen`, écouteur facultatif `LifeLog.onFrozen(id, relevé, corps)`), écrit les dernières pages, puis appelle `LifeLog.release(id)`. Au plus 8 relevés figés (`MAX_FROZEN`), la plus ancienne mort oubliée.
 
-L'ordre des abonnés n'a pas d'importance : `RS_Carnet_Server.characterDeath` efface la liaison, l'identité en ModData et l'historique radio du mort. Le relevé retrouve le personnage par la liaison, la ModData serveur ou la liaison vue au dernier sondage ; les phrases déjà copiées restent. En jeu, `server/RadioSurvivor/RS_LifeLog.lua` s'exécute avant `server/RS_Carnet_Server.lua` (chemins triés sans casse, base `mod-loading.md`) : son abonné passe le premier. Le banc couvre les deux ordres.
+L'ordre des abonnés n'a pas d'importance : `CA_NotebookServer.characterDeath` efface la liaison, l'identité en ModData et l'historique radio du mort. Le relevé retrouve le personnage par la liaison, la ModData serveur ou la liaison vue au dernier sondage ; les phrases déjà copiées restent. En jeu, `server/CoreAI/CA_NotebookServer.lua` (mod commun, chargé avant RadioSurvivor qui l'exige : fichiers exécutés mod par mod, base `mod-loading.md`) s'exécute avant `server/RadioSurvivor/RS_LifeLog.lua` : son abonné passe le premier. Le banc couvre les deux ordres.
 
 Un relevé vivant dont le personnage disparaît ou est retiré sans mort vue est retiré au sondage suivant.
 

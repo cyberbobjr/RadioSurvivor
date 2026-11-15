@@ -93,7 +93,7 @@ Ajout E10-T02. Composition **calculée** à chaque appel (aucun champ stocké) p
 | `alive`, `members` | nombre et liste des membres vivants (`m-<k>`, triés par numéro) |
 | `key` | empreinte `"<chef ou ->|<m-a>,<m-b>,..."` |
 
-Deux appels rendent la même `key` tant que ni le chef ni l'ensemble des membres vivants n'ont changé ; une mort, un départ, une arrivée ou une succession la changent. Un consommateur garde `key` avec une intention collective et la compare au moment de l'appliquer : une réponse fondée sur une ancienne composition est rejetée (carnet : `RS_Carnet_Server.collectiveCheck`). Raisons : `group registry not ready`, `unknown group <id>`. Serveur seulement ; l'empreinte nomme des membres, elle ne s'envoie pas à un client.
+Deux appels rendent la même `key` tant que ni le chef ni l'ensemble des membres vivants n'ont changé ; une mort, un départ, une arrivée ou une succession la changent. Un consommateur garde `key` avec une intention collective et la compare au moment de l'appliquer : une réponse fondée sur une ancienne composition est rejetée (carnet : `LivingKnox.Talk.collectiveCheck`, appelé par `CA_MissionTalk`). Raisons : `group registry not ready`, `unknown group <id>`. Serveur seulement ; l'empreinte nomme des membres, elle ne s'envoie pas à un client.
 
 ### `API.attitude(groupId, playerKey) -> { level, trend } | nil, reason`
 
@@ -166,8 +166,8 @@ ordre : `hit` (coup d'un joueur reçu depuis moins de `API.ENGAGED_MS` = 30 s, `
 `warning` (sommation de LK11-T02 en cours menée par ce PNJ : rencontre de `LK_Encounters` à une étape ≥ 1), `alert`
 (alerte de LK05-T08 active pour son groupe, `LK_Alert.isActive` à la minute de `LK_Decisions.currentMinute`). Un
 module absent ne compte pas. Mémoire seulement (rien de sauvegardé), autorité seulement. Prédicat **provisoire**
-jusqu'à LK05-T08 et LK06-T01 ; sert aux initiatives du carnet (`RS_NPCProvider.engaged`, fournisseur
-`RS_LivingKnox.lua`).
+jusqu'à LK05-T08 et LK06-T01 ; sert aux initiatives du carnet (`CA_NPCProvider.engaged`, fournisseur
+`LK_NotebookProvider.lua`).
 
 ```lua
 local busy, why = LivingKnox.API.engaged("lk-3")   -- true, "warning" | false
@@ -350,7 +350,7 @@ end
 
 ### Chemin prévu côté carnet (non branché)
 
-1. Serveur, `RS_LivingKnox.context` (autorité) : lire `API.story(gid, langue de la requête, membre)` au lieu du seul
+1. Serveur, `LivingKnox.NpcProvider.context` (autorité) : lire `API.story(gid, langue de la requête, membre)` au lieu du seul
    `Stories.publicView` ; transmettre au pont `text` (public) et garder `version` côté serveur avec la requête.
 2. Pont et LLM (`bridge/`, contrat RSV2) : un champ fermé facultatif de la réponse porte le texte proposé (une
    histoire du groupe ou du membre interrogé), sans autre effet.
@@ -487,7 +487,7 @@ Ces fonctions **écrivent** (registre des PNJ et corps, par `LivingKnox.Bodies.s
 | `API.testRemoveNpc(id)` | `true` et le nombre de corps retirés, ou `false` et une raison | retire le corps et oublie le PNJ (`Bodies.despawn(id, true)`, consignes du PNJ effacées) ; **seulement un PNJ créé par `testSpawnNpc` dans cette session Lua** ; un corps hors zone chargée (0 retiré) est retiré comme orphelin à son retour |
 | `API.testNpcs()` | liste triée (copie) | PNJ de test encore présents |
 
-Aucun objet Java n'est rendu : le corps se retrouve par le fournisseur du carnet (`RS_NPCProvider.objects()`, identifiant = id du PNJ) ou par `LivingKnox.Bodies.find(id)` côté autorité. La liste des PNJ de test n'est pas sauvegardée : après un rechargement du Lua, un PNJ de test oublié reste un PNJ ordinaire du registre (`LivingKnox.Bodies.despawn(id, true)` pour le retirer).
+Aucun objet Java n'est rendu : le corps se retrouve par le fournisseur du carnet (`CA_NPCProvider.objects()`, identifiant = id du PNJ) ou par `LivingKnox.Bodies.find(id)` côté autorité. La liste des PNJ de test n'est pas sauvegardée : après un rechargement du Lua, un PNJ de test oublié reste un PNJ ordinaire du registre (`LivingKnox.Bodies.despawn(id, true)` pour le retirer).
 
 ## Volontairement absent
 
@@ -498,7 +498,7 @@ Aucun objet Java n'est rendu : le corps se retrouve par le fournisseur du carnet
 | Journal technique du groupe (`log`) | privé (textes libres, coordonnées, comptes de joueurs) ; le récit public passe par `API.journal` (LK10-T02). |
 | Blessures (`wound`), repos (`rest`), heure simulée, compteurs internes (`nextMember`, `nextId`) | état interne de la simulation, sans sens stable pour un consommateur ; leur forme peut changer sans nouvelle version de l'API. |
 | Noms des membres et du chef | non tenus par le registre en version 1 (`leader.name` = nil) ; un ajout futur sera un champ nouveau, compatible. |
-| Profil d'apparence, vêtements, arme, cause de mort d'un PNJ | relèvent du registre des corps et du carnet (`RS_NPCProvider`) ; hors de cette tâche. |
+| Profil d'apparence, vêtements, arme, cause de mort d'un PNJ | relèvent du registre des corps et du carnet (`CA_NPCProvider`) ; hors de cette tâche. |
 | Objets Java (corps, joueurs, cases) | jamais rendus : un consommateur retrouve un corps par son identifiant côté autorité, par le fournisseur du carnet (E17-T03). |
 | Valeur numérique de l'attitude, faits, marqueur de meurtre, liste des joueurs d'un groupe | internes (E09-T01 : aucun score affiché) ; seuls `level` et `trend` sortent, pour un joueur donné. `LivingKnox.Hostility.forGroup` (clés de joueurs) reste réservé au serveur. |
 | Tueur, arme, témoins, case exacte d'une mort | dans les faits internes seulement (`LivingKnox.listen`) ; l'événement public dit `cause`, `byPlayer` et la maille. |
@@ -511,20 +511,65 @@ Aucun objet Java n'est rendu : le corps se retrouve par le fournisseur du carnet
 - Hors jeu seulement : banc lupa (doublures du moteur) et VM Kahlua réelle pour la logique. Aucun test en jeu propre à cette tâche ; à observer avec E17-T03.
 - Événements (LK12-T02) : mémoire de session (clés de fait, état critique) ; un besoin devenu critique pendant un arrêt du serveur n'est pas annoncé ; la mort d'un PNJ hors groupe n'est pas un « membre mort » (fait interne `npcDied` seulement) ; un groupe créé puis retiré avant le pas suivant n'annonce que sa disparition (`removed`) ; `alive` et `groupAlive` sont lus au déclenchement (pas suivant), pas à l'instant exact du fait.
 - `npcsNear` s'appuie sur la dernière position vue pour un corps non lié (hors zone chargée, ou pas encore relié après un redémarrage) : elle date du dernier balayage qui l'a vu et peut être ancienne ; un corps lié donne sa position courante (`inWorld` distingue les deux).
-- Le rayon est comparé en distance horizontale ; l'étage n'est pas filtré (`floor` le rend au consommateur, qui applique sa propre règle, par exemple `RS_NPCProvider.near`).
+- Le rayon est comparé en distance horizontale ; l'étage n'est pas filtré (`floor` le rend au consommateur, qui applique sa propre règle, par exemple `CA_NPCProvider.near`).
 - Offres (LK12-T03) : aucun stock réel d'objets (LK08-T07, LK09-T06 à venir) ; la récompense est prise sur une réserve abstraite, l'objet est créé par l'appelant. Le multiplicateur de besoin du barème (× 1,5 sous 25…) ne s'applique qu'au troc (LK11-T08), pas à la conversion en réserve. Un état `supply` malformé (édition manuelle du fichier) est remis à neuf : offres ouvertes et reçus perdus, numérotation gardée si lisible. Seuils et valeurs à recalibrer en jeu avec E17-T03.
 
-## Parole des PNJ (`LivingKnox.Talk`, E18-T17)
+## Parole des PNJ (`LivingKnox.Talk`, E18-T17, E21-T05)
 
 Autorité seulement, serveur `LK_Talk.lua` (file), `LK_Initiatives.lua`, `LK_Conversations.lua`, `LK_Incidents.lua`. La
 file, l'ordre et la révision par PNJ, les délais, les refus, les acquittements, les liaisons de groupe, les accords, le
-départ d'un groupe et les réactions des membres sont à Living Knox. Un mod qui parle pour ses PNJ s'attache une fois
-par `Talk.attach(host)` : `host` donne les fiches et ajoute son contexte et ses actions (liste des crochets en tête de
-`LK_TalkHost.lua`). `Talk.speak(player, character, npc, args)` admet une phrase (rend la demande, ou `nil` et la
-raison `Text`, `Chat`, `Cooldown`, `Busy`, `Bridge`) ; `Talk.turns`, `Talk.poll`, `Talk.enrich` sont appelés par le tic
-de l'hôte. État privé : `Zomboid/Lua/batman_LivingKnox/talk-*.txt` (en-tête `LKTALK1`). Avec RadioSurvivor, le carnet
-est l'hôte. Sans RadioSurvivor, Living Knox est son propre hôte (`LK_TalkAlone.lua`, `E18-T18`) : interlocuteurs et
-connaissance des personnages dans le fichier privé, historique dans `CA_History` (pair `lk:<id>`), missions par le moteur
-du commun (`CA_MissionTalk`, `CA_MissionStore`). Côté client (`LK_TalkView.lua`) : une phrase dite dans le chat près d'un
-PNJ va au plus proche, le menu « Parler » du monde sert aussi en solo, sans chat. Les observations, les initiatives et
-les conversations n'y tournent pas encore (`E18-T27`).
+départ d'un groupe et les réactions des membres sont à Living Knox. Un seul chemin : le serveur du carnet du mod commun
+(`CA_NotebookServer`) héberge toujours la parole des PNJ, que RadioSurvivor soit actif ou non. Il obtient le moteur par
+l'opération `speech()` du fournisseur (`LivingKnox.Talk`) et s'y attache une fois par `Talk.attach(host)` : `host`
+donne les fiches et ajoute son contexte et ses actions (liste des crochets en tête de `LK_TalkHost.lua`).
+`Talk.speak(player, character, npc, args)` admet une phrase (rend la demande, ou `nil` et la raison `Text`, `Chat`,
+`Cooldown`, `Busy`, `Bridge`) ; `Talk.turns`, `Talk.poll`, `Talk.enrich` sont appelés par le tic de l'hôte. État
+privé : `Zomboid/Lua/batman_LivingKnox/talk-*.txt` (en-tête `LKTALK1`) ; historique dans `CA_History`, missions par le
+moteur du commun (`CA_MissionTalk`, `CA_MissionStore`).
+
+Côté client : une phrase du chat « dire » va au PNJ sélectionné dans le carnet ; sans cible, au PNJ le plus proche à
+8 cases au plus, sinon nulle part (sans message). Le raccourci « Choisir le PNJ le plus proche » (`CoreAISelect`,
+Ctrl+G) sélectionne ce PNJ. Le menu « Parler » du monde (`LK_TalkView.lua`) passe par `CoreAI.notebookClient.talkTo`
+et sert aussi en solo, sans chat. Accords et incidents sont annoncés par Living Knox lui-même : `LK_AgreementNotices`
+envoie `agreement` et `incident` (module `LivingKnox`) aux joueurs connectés de l'équipe, `LK_AgreementNoticesView`
+les affiche en halo (`IGUI_LK_Agreement_*`, `IGUI_LK_Incident_*`).
+
+## Fournisseur du carnet (`LK_NotebookProvider`)
+
+`shared/LivingKnox/LK_NotebookProvider.lua`, global `LivingKnox.NpcProvider`, nom `livingknox`. Implémente l'interface
+`CA_NPCProvider` du mod commun (contrat complet en tête de `CA_NPCProvider.lua`). Inscrit **toujours** quand Living
+Knox est actif (option `LivingKnox.Enabled`), à `OnInitGlobalModData` (avant l'initialisation du serveur du carnet), à
+`OnGameStart` et `OnServerStarted` (idempotent). Un seul moteur de PNJ par serveur : un second fournisseur est refusé
+avec un message console. Living Knox seul a donc le carnet complet (Contacts, Missions, Réputation, Équipe).
+
+| Opération | Côté | Rôle (Living Knox) |
+|---|---|---|
+| `available`, `objects`, `id`, `npc`, `bubble` | tous / autorité | PNJ `lk-<n>` et leurs corps ; fiche (nom, groupe, nom du groupe, hostilité, traits) ; bulle de `LK_SpeechView` |
+| `context`, `presence`, `composition`, `decide`, `loyalty`, `dissent`, `leave`, `relation`, `engaged`, `say`, `bark` | autorité | contexte public pour le LLM, foyer, chef et décisions collectives, loyauté, contestation, départ, base de la relation, occupation, parole de proximité (`LivingKnox.Speech`) |
+| `supplies`, `supplyOpen`, `supplyDeliver` | autorité | offres et livraisons de ressources (`API.missionOffers`, `API.deliver`) ; leur présence rend `CA_NPCProvider.hasSupplies()` vrai |
+| `name` | tous | `livingknox` : clé de la page de contact de ses PNJ (`LK_NotebookPages`) |
+| `isBody(object, modData)` | tous | corps d'un PNJ Living Knox, vivant ou mort, de toute incarnation (étiquette du corps) ; lu par `CA_MissionClear` |
+| `speech()` | autorité | moteur de parole `LivingKnox.Talk`, hébergé par le serveur du carnet |
+| `relationOffer`, `relationApply`, `relationPanel`, `debugPair` | autorité | relation personnelle d'un PNJ envers un personnage (`LK_NotebookRelations`, sur `LK_PersonalRelation`) |
+| `contacts(character)` | autorité | PNJ connus du personnage par une relation personnelle : le carnet les garde dans ses contacts |
+| `radios` | autorité | groupes qui tiennent un émetteur utilisable (radio de groupe) |
+
+Événements émis vers le carnet : `death` (`LivingKnox.Bodies.onDied`, cause sur l'autorité) ; jamais `reincarnated`
+(l'identifiant `lk-<n>` survit aux réincarnations).
+
+## Faits publics des groupes (`LK_GroupFactsFeed`)
+
+`server/LivingKnox/LK_GroupFactsFeed.lua`, autorité seulement. Living Knox alimente le registre neutre
+`CA_GroupFacts` du mod commun avec trois de ses événements publics (abonnement par `LivingKnox.subscribe`, remplacé
+et jamais doublé au rechargement du Lua). Le nom lisible du groupe est résolu ici (`API.getGroup`), pour qu'un lecteur
+n'interroge jamais Living Knox. RadioSurvivor (`RS_Facts`) lit ces faits par `CA_GroupFacts.on` sans savoir qui les
+écrit.
+
+| Événement Living Knox | Fait `CA_GroupFacts` | Champs |
+|---|---|---|
+| `memberDied` | `member_died` | `id`, `member`, `group`, `role`, `cause`, `byPlayer`, `offscreen`, `area` |
+| `groupGone` | `group_gone` | `id`, `group` (nil une fois le groupe sorti du registre), `reason` |
+| `groupCreated` | `group_created` | `id`, `group`, `typeKey`, `area` |
+
+`id` = identifiant du groupe dans le moteur, `member` = identifiant du membre (clés d'un lecteur qui compte un fait une
+fois), `group` = nom lisible ou nil ; valeurs simples, aucune coordonnée exacte.

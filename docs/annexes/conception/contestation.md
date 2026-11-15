@@ -2,8 +2,8 @@
 
 Brouillon du 2026-10-13. Code : `server/LivingKnox/LK_Decisions.lua` (bloc « E10-T03 » : `loyaltyOf`,
 `loyaltyOfMember`, `refusalOf`, `judgeOrder`, `refuseDuties`, `judgeDefense`, `flushRefusals`),
-`server/LivingKnox/LK_Expeditions.lua` (`teamOf`), `server/RS_Carnet_Server.lua` (`Server.memberReactions`,
-`memberReply`), `shared/RadioSurvivor/RS_LivingKnox.lua` (`loyalty`, `dissent`), `shared/RadioSurvivor/RS_NPCProvider.lua`
+`server/LivingKnox/LK_Expeditions.lua` (`teamOf`), `server/LivingKnox/LK_Talk.lua` (`Talk.memberReactions`,
+`memberReply`), `shared/LivingKnox/LK_NotebookProvider.lua` (`loyalty`, `dissent`), `shared/CoreAI/CA_NPCProvider.lua`
 (opérations facultatives `loyalty`, `dissent`), `bridge/npc_protocol.py` (genre `npc_member`). Contrat :
 [protocole-carnet-v2.md](../../specifications-techniques/protocole-carnet-v2.md), « Réaction des membres (E10-T03) ». Banc : `tests/test_lk_contest.py` ;
 suite en jeu `lk.contest`.

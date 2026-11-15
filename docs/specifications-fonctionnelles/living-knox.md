@@ -71,7 +71,8 @@ Vue joueur du moteur de PNJ Living Knox intégré au mod. Fiches de conception p
 
 - Attitude par groupe et par joueur, sommations avant tout tir, demandes d'aide, troc direct, vengeance après un
   meurtre (`RevengeDelayHours`), raids annoncés des pillards (`RaidsEnabled`, `RaidDays`), parole de proximité (F05) et
-  missions (F07).
+  missions (F07). Living Knox seul a le carnet complet (Contacts, Missions, Réputation, Équipe) ; il annonce lui-même
+  les accords conclus et les incidents (halo au-dessus du joueur).
 - Conception : [attitude.md](../annexes/conception/attitude.md), [sommations.md](../annexes/conception/sommations.md),
   [aide.md](../annexes/conception/aide.md), [troc.md](../annexes/conception/troc.md), [vengeance.md](../annexes/conception/vengeance.md),
   [raids.md](../annexes/conception/raids.md).
@@ -79,7 +80,9 @@ Vue joueur du moteur de PNJ Living Knox intégré au mod. Fiches de conception p
 ## F30 — API pour RadioSurvivor
 
 - Lecture des groupes, événements publics, demandes de ressources pour les missions, journal de récit lisible par la
-  radio. Contrat : [api-living-knox.md](../specifications-techniques/api-living-knox.md).
+  radio. RadioSurvivor ne lit jamais Living Knox directement : les morts, disparitions et arrivées de groupes lui
+  parviennent par le mod commun (faits de groupe), sans savoir qui les écrit. Contrat :
+  [api-living-knox.md](../specifications-techniques/api-living-knox.md).
 
 ## F31 — Fortification progressive
 

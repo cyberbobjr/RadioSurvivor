@@ -35,7 +35,9 @@ Noms définis dans le code ; arguments et contrôles serveur dans les documents 
 |---|---|---|---|
 | `RadioSurvivor` | `talk`, `heard`, `history`, `note_read` | client → serveur | `RadioSurvivor_Const.lua` (`Const.CMD`), traitées dans `RadioSurvivor_Server.lua` |
 | `RadioSurvivor` | `accepted`, `rejected`, `done`, `history_lines`, `history_add`, `map_mark`, `map_reveal`, `comfort` | serveur → client | idem |
-| `RS_Carnet` | `report`, `accept`, `invite`, `abandon`, `prepare_delivery`… | client → serveur | `RS_Carnet_Server.lua` ([protocole-carnet-v2.md](protocole-carnet-v2.md)) |
+| `CoreAI` | `hello`, `snapshot`, `select`, `deselect`, `talk`, `note`, `report`, `accept`, `invite`, `abandon`, `prepare_delivery`, `confirm_delivery`, `claim`, `rep_admin` ; `team`, `mandate` | client → serveur | inscrites par `CA_NotebookServer.registerCommand` (mod commun) ; `team` et `mandate` : `CA_Teams` ([protocole-carnet-v2.md](protocole-carnet-v2.md), « Carnet : module CoreAI ») |
+| `CoreAI` | `identity`, `snapshot`, `error`, `speech`, `queued`, `offer`, `quote`, `team`, `rep_admin` | serveur → client | registre `CA_NotebookClient.registerCommand` |
+| `LivingKnox` | `agreement`, `incident` | serveur → joueurs de l'équipe | `LK_AgreementNotices` (halos de `LK_AgreementNoticesView`) |
 | `RadioSurvivorDebug` | `freqRequest` / `freqReply` | client admin ↔ serveur | `RS_FreqDebug.lua` ([persona-format.md](persona-format.md), « Panneau de debug ») |
 | `LivingKnox` | `dirAsk`, `dirClaim`, `dirReport` / `dirState`, `npcHand` (passage à un nouveau propriétaire) | client propriétaire ↔ serveur | `LK_Directives`, `LK_Executor` |
 | `LivingKnox` | `combatState`, `combatHit`, `combatShot`, `combatMelee`, `zombieHurt`, `zombieFloor`, `bodyReport`, `bodyGone`, `corpseCheck`, `corpseMissing` | client ↔ serveur | `LK_CombatClient`, `LK_ZombiesClient`, `LK_DeathClient`, `LK_Senses` |
@@ -54,9 +56,10 @@ lancé avec `-cachedir`).
 |---|---|
 | `requests.txt`, `responses.txt` | demandes et réponses du pont ([protocole-carnet-v2.md](protocole-carnet-v2.md)) |
 | `bridge-alive.txt`, `bridge.lock` | battement de cœur et verrou du pont |
-| `personas/<voix>.txt` | fiches des voix installées par le serveur ([persona-format.md](persona-format.md)) |
-| `state-<partie>-<0\|1>.txt` | état `RS_State` : `RSSTATE2=<génération>`, octets RSV2 en hex, somme de contrôle, `end` ; `schema = 2` |
-| `livingknox/registry-<partie>-<0\|1>.txt` | registre Living Knox : `LKREG1=<n>`, même enveloppe ; migration par `Identity.upgrade` |
+| `../batman_RadioSurvivor/personas/<voix>.txt` | fiches des voix installées par le serveur ([persona-format.md](persona-format.md)) |
+| `notebook-<partie>-<0\|1>.txt` | stock du carnet `CA_NotebookStore` (en-tête `CANOTEBOOK1`) : personnages, fiches des PNJ, liaisons ; `missions-*`, `history-*`, `identity-*`, `reputation-*` à côté |
+| `../batman_RadioSurvivor/state-<partie>-<0\|1>.txt` | état des voix `RS_State` : `RSSTATE2=<génération>`, octets RSV2 en hex, somme de contrôle, `end` ; `schema = 2` |
+| `../batman_LivingKnox/registry-<partie>-<0\|1>.txt` | registre Living Knox : `LKREG1=<n>`, même enveloppe ; migration par `Identity.upgrade` |
 
 `<partie>` = hex du « mode/nom » de la partie. Aucune donnée secrète en ModData globale.
 
@@ -117,10 +120,10 @@ Pages `RadioSurvivor` et `LivingKnox` de `media/sandbox-options.txt` (47 options
 
 ## Traductions
 
-`media/lua/shared/Translate/EN` et `FR` (JSON seulement en 42.21) : `IG_UI.json` (préfixes `IGUI_RS_`, `IGUI_LK_`,
-`IGUI_RadioSurvivor_`), `Sandbox.json` (`Sandbox_RadioSurvivor_`, `Sandbox_LivingKnox_`), `Print_Media.json` et
-`Print_Text.json` (documents des notes et des dernières pages), `ItemName.json`, `UI.json` (`UI_optionscreen_`, touche
-de sélection d'un PNJ). Les textes destinés au joueur passent par ces clés ; les messages de journal sont en anglais.
+`media/lua/shared/Translate/EN` et `FR` (JSON seulement en 42.21) : `IG_UI.json` (préfixes `IGUI_CA_` du mod commun, `IGUI_RS_`,
+`IGUI_LK_`, `IGUI_RadioSurvivor_`), `Sandbox.json` (`Sandbox_RadioSurvivor_`, `Sandbox_LivingKnox_`), `Print_Media.json` et
+`Print_Text.json` (documents des notes et des dernières pages), `ItemName.json`, `UI.json` du mod commun
+(`UI_optionscreen_binding_CoreAISelect`, « Choisir le PNJ le plus proche », Ctrl+G par défaut). Les textes destinés au joueur passent par ces clés ; les messages de journal sont en anglais.
 La langue des voix suit `CallLanguage` (langue du serveur, anglais, français).
 
 ## Dépendances et compatibilité

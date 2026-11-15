@@ -42,23 +42,25 @@ ceinture peut écouter (avec Belt Walkie-Talkie) mais pas émettre.
 
 **Comment parler à un PNJ ?**
 Approchez-vous, appuyez sur **Ctrl+G** pour sélectionner le PNJ visible le plus proche (8 cases au plus), puis parlez
-dans le chat local (`/say`). Les chats général, de faction et privé n'atteignent pas les PNJ.
+sur la ligne **Dire** du carnet ou dans le chat local (`/say`). Une phrase du chat sans PNJ sélectionné va au plus
+proche à 8 cases, ou à personne. Le menu du clic droit **Parler** marche aussi. Les chats général, de faction et privé
+n'atteignent pas les PNJ.
 
 **Quels mods cocher ?**
 Radio Survivor, Living Knox, ou les deux ; le Core s'ajoute tout seul. Chacun fonctionne sans l'autre. Voir
 [Installation](04-installation.md).
 
 **À quoi sert le Core ?**
-Il porte ce que Radio Survivor et Living Knox partagent : missions et leur journal, lien avec le pont, identité des
-personnages, historique des échanges, réputation et carnet. Activé seul, il n'apporte rien de jouable.
+Il porte ce que Radio Survivor et Living Knox partagent : lien avec le pont, carnet entier (contacts, missions,
+réputation), missions, identité des personnages, historique des échanges et réputation. Activé seul, il n'apporte rien
+de jouable.
 
 **Le pont change-t-il selon les mods cochés ?**
 Non. C'est un seul programme, sans option selon le montage. Il sert les voix de la radio, les PNJ, ou les deux.
 
 **Puis-je jouer Living Knox sans la radio ?**
-Oui. Parlez à un survivant dans le chat local (`/say`) près de lui, ou utilisez **Parler** dans le menu du clic droit.
-Limite connue : sans Radio Survivor, vous ne pouvez pas encore livrer ni réclamer la récompense d'une mission donnée
-par un PNJ.
+Oui. Living Knox seul a le carnet complet : parlez à un survivant avec **Ctrl+G**, dans le chat local (`/say`) près
+de lui ou par **Parler** dans le menu du clic droit, et livrez ou réclamez ses missions depuis le carnet.
 
 **Puis-je l'utiliser avec Bandits! ou Project A-Life ?**
 Pas avec Living Knox : c'est un moteur de PNJ à part entière, et il n'y a qu'un moteur de PNJ par partie.

@@ -1,10 +1,10 @@
 # Départ individuel d'un PNJ incarné (E10-T04, E10-T05)
 
-Brouillon du 2026-10-13. Code : `shared/RadioSurvivor/RS_LivingKnox.lua` (section « individual departure » :
-`LK.canLeave`, `LK.leave`, marche de départ ; `LK.composition` donne `canLeave` ; `LK.npc` nomme un solitaire d'après
-son groupe), `shared/RadioSurvivor/RS_NPCProvider.lua` (opération facultative `Provider.leave`),
-`server/RS_Carnet_Server.lua` (`context.leave` dans `talk`, intention `leave_group` dans `reply`),
-`server/LivingKnox/LK_Agreements.lua` (Living Knox depuis E18-T20 ; identifiants d'équipe et mandats : `server/CoreAI/CA_Teams.lua` du mod commun ; avant : `LivingKnox.Agreements.lua` de RadioSurvivor) (`keepTruces`, `trucesOf`, `dropTruces`, `covered` avec `npcId`),
+Brouillon du 2026-10-13. Code : `shared/LivingKnox/LK_NotebookProvider.lua` (fournisseur du carnet, section
+« individual departure » : `LK.canLeave`, `LK.leave`, marche de départ ; `LK.composition` donne `canLeave` ; `LK.npc`
+nomme un solitaire d'après son groupe), `shared/CoreAI/CA_NPCProvider.lua` du mod commun (opération facultative
+`Provider.leave`), `server/LivingKnox/LK_Talk.lua` (`context.leave` à la demande, intention `leave_group` à la réponse),
+`server/LivingKnox/LK_Agreements.lua` (identifiants d'équipe et mandats : `server/CoreAI/CA_Teams.lua` du mod commun) (`keepTruces`, `trucesOf`, `dropTruces`, `covered` avec `npcId`),
 `shared/LivingKnox/Data/LK_Type_loners.lua` (type `loners`), `server/LivingKnox/LK_Population.lua` (`dueReliefs` : aucune
 relève d'un type jamais tiré), `bridge/npc_protocol.py` (`leavable`, `leave_prompt`, mode hors ligne). Contrat :
 [protocole-carnet-v2.md](../../specifications-techniques/protocole-carnet-v2.md), « Départ individuel (E10-T04) ». Banc : `tests/test_lk_leave.py` ;

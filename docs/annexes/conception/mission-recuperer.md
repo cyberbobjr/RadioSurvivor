@@ -15,7 +15,7 @@ confirmer par l'utilisateur.
    ModData `CA_Cache = <mission>` et rempli d'une des quatre tables fermées de `RS_Config.Caches` (`food`, `medical`,
    `ammo`, `tools`, contenus fixes). Un sac se porte sans outil ; une caisse (meuble) demanderait le démontage.
    La table est tirée par le serveur (même graine que le lieu) et annoncée dans l'offre (`cache`).
-2. **Dépôt = le foyer du groupe du demandeur**, lu par `RS_NPCProvider.presence(id)` (Living Knox : `home` du
+2. **Dépôt = le foyer du groupe du demandeur**, lu par `CA_NPCProvider.presence(id)` (Living Knox : `home` du
    groupe), zone carrée de 7 × 7 cases autour du point (`depotRadius = 3`), même étage (0 si le moteur ne le dit
    pas). Le sac compte posé au sol dans la zone ou rangé dans un conteneur d'un objet de la zone (caisse, étagère,
    autre sac). Un PNJ sans foyer connu ne propose pas cette mission. **Conséquence** : le cercle « Dépôt » tracé sur

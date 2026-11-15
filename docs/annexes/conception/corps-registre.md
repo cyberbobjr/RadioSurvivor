@@ -84,7 +84,7 @@ Tâche E04-T06 (2026-10-09). Code : `LK_Bodies.lua` (`onHitZombie`, `deathCause`
    - sinon corps en feu → `fire`, sans tueur ; sinon `k` joueur → `other`, sans tueur (attaquant périmé) ;
    - `k` non joueur (faux zombie, zombie) → `other` ; `k` absent → `fire` si le corps brûle, sinon `unknown`.
    `burning = true` est ajouté si le corps brûlait. Le dernier coup relevé est consommé.
-3. La cause est écrite dans `npc.death` (`{ cause, killer, weapon, burning }`, contrôlée à la relecture par `Identity.validDeath`), journalisée (`npc lk-<n> died ... cause ...`) et passée en copie à l'écouteur facultatif `Bodies.onDied(id, zombie, cause)` (erreur de l'écouteur journalisée, mort gardée). Le fournisseur Living Knox du carnet (E17-T03) s'y branchera pour émettre `death(id, objet, cause)` de `RS_NPCProvider`. Aucune sanction ici (E04-T07).
+3. La cause est écrite dans `npc.death` (`{ cause, killer, weapon, burning }`, contrôlée à la relecture par `Identity.validDeath`), journalisée (`npc lk-<n> died ... cause ...`) et passée en copie à l'écouteur facultatif `Bodies.onDied(id, zombie, cause)` (erreur de l'écouteur journalisée, mort gardée). Le fournisseur Living Knox du carnet (`LK_NotebookProvider`) s'y branche pour émettre `death(id, objet, cause)` de `CA_NPCProvider`. Aucune sanction ici (E04-T07).
 4. Second `OnZombieDead` (feu) : le PNJ n'est plus courant, rien n'est refait.
 5. LK07-T04 ([sante.md](sante.md), « Mort unique et cadavre ») : causes `zombie` (attaque d'un zombie vanilla décidée par `LK_Zombies`) et `bleeding` (perte de sang), décidées par `Health.kill` avant la règle ci-dessus, sans tueur ; fait `npcDied` pour toute mort ; cadavre traîné jamais retiré, cadavre relevé remis à terre.
 

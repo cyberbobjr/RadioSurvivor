@@ -1,7 +1,7 @@
 # Demandes d'aide à un groupe
 
 - Tâche : LK11-T06 (création) ; s'appuie sur LK11-T03 (attitude, [attitude.md](attitude.md)), LK08-T06 et LK08-T07 (stock réel et seuils, [stock.md](stock.md)), LK11-T04 (répliques, [parole.md](parole.md)) ; servira LK11-T05 (vengeance, même module) et le dialogue du carnet (intention d'aide, voir « Point d'entrée du carnet »)
-- Code : `media/lua/server/LivingKnox/LK_Relations.lua` (`LivingKnox.Relations`, autorité), menu `media/lua/client/LivingKnox/LK_RelationsView.lua` (`LivingKnox.RelationsView`, client MP et solo), retrait par `Stock.takeItem` (`LK_Stock.lua`), textes `Translate/EN|FR/IG_UI.json` (`IGUI_LK_Aid_*`) ; banc `tests/test_lk_aid.py` ; suite en jeu `lk.aid` (`dev/batman_RadioSurvivorTests/42.21/media/lua/shared/RST/suites/RST_LKAid.lua`)
+- Code : `media/lua/server/LivingKnox/LK_Relations.lua` (`LivingKnox.Relations`, autorité), menu `media/lua/client/LivingKnox/LK_RelationsView.lua` (`LivingKnox.RelationsView`, client MP et solo), retrait par `Stock.takeItem` (`LK_Stock.lua`), textes `Translate/EN|FR/IG_UI.json` (`IGUI_LK_Aid_*`) ; banc `tests/test_lk_aid.py` ; suite en jeu `lk.aid` (`dev/batman_LivingKnoxTests/42.21/media/lua/shared/RST/suites/RST_LKAid.lua`)
 - Build : 42.21.0 (Java décompilé **J/** = `<decompiled>\42.21.0\java\zombie\`, Lua vanilla **M/** = `media/lua`) — Date : 2026-10-12 — Statut : brouillon, testé hors jeu seulement
 
 Idée de jeu : I5.3 ([idees-bandits-alife.md](../recherches/idees-bandits-alife.md)). Aucune ligne de Bandits! ni de Project A-Life n'a été lue. Décision du 2026-10-08 (LK11-T01) : avec un groupe ami, un joueur peut demander de l'aide.
@@ -55,7 +55,7 @@ Le PNJ `opts.npc` répond par `LivingKnox.Speech.say(npc, { key }, { player, ban
 
 ### Point d'entrée du carnet (LLM)
 
-Le chemin d'intentions existe (intention `accept` d'E17-T09, revérifiée par le serveur), mais le pont n'admet que `none`, `offer` et `accept` (`bridge/npc_protocol.py:313`, `RS_Carnet_Server.lua:389`) et ce dossier n'est pas modifiable dans cette tâche. Le branchement se fera ainsi : le pont admet une intention fermée `aid` avec `kind` ∈ `food`, `water`, `care`, sans jamais lire la phrase du joueur lui-même ; `RS_Carnet_Server` la revérifie (même PNJ, même personnage, joueur à portée) puis appelle `LivingKnox.Relations.requestAid(gid, clé du carnet, kind, { npc })` une fois ; la réponse du LLM est remplacée ou complétée par la réplique du serveur si la décision diffère. Reste à faire (pont et serveur du carnet).
+Le chemin d'intentions existe (intention `accept` d'E17-T09, revérifiée par le serveur), mais le pont n'admet que `none`, `offer` et `accept` (`bridge/npc_protocol.py:313`, `LK_Talk.lua`, validation des intentions) et ce dossier n'est pas modifiable dans cette tâche. Le branchement se fera ainsi : le pont admet une intention fermée `aid` avec `kind` ∈ `food`, `water`, `care`, sans jamais lire la phrase du joueur lui-même ; `LK_Talk` la revérifie (même PNJ, même personnage, joueur à portée) puis appelle `LivingKnox.Relations.requestAid(gid, clé du carnet, kind, { npc })` une fois ; la réponse du LLM est remplacée ou complétée par la réplique du serveur si la décision diffère. Reste à faire (pont et serveur du carnet).
 
 ## Alternatives écartées
 

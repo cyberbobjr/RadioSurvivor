@@ -8,7 +8,7 @@ Ce dossier rassemble les **fiches de conception** du moteur de PNJ Living Knox (
 - **Autorisé** : reprendre une **idée de jeu** (un comportement, un mécanisme ou un enchaînement visible par le joueur), à condition qu'elle soit relevée avec sa source dans [docs/annexes/recherches/idees-bandits-alife.md](../recherches/idees-bandits-alife.md) (identifiant `I…`) et citée par le champ « Idées » de la tâche.
 - **Valeurs chiffrées** (rayons, délais, probabilités) : seulement des points de départ, à recalibrer par nos propres mesures ; la fiche note d'où vient la valeur retenue.
 - **Pendant le travail** : le code de ces deux mods sert seulement à vérifier une idée relevée (en-tête de `idees-bandits-alife.md`). Une fonction de Living Knox se conçoit à partir des sources de la section 2.
-- **Historique** : l'ancien adaptateur `RS_Bandits.lua` du carnet appelait l'API publique de Bandits! sans en reprendre le code ; il a été retiré le 2026-10-08 (`E17-T02`) au profit de l'interface `RS_NPCProvider`. Ce n'est pas un modèle pour Living Knox.
+- **Historique** : l'ancien adaptateur `RS_Bandits.lua` du carnet appelait l'API publique de Bandits! sans en reprendre le code ; il a été retiré le 2026-10-08 (`E17-T02`) au profit de l'interface du fournisseur de PNJ (aujourd'hui `CA_NPCProvider` du mod commun). Ce n'est pas un modèle pour Living Knox.
 
 ## 2. Sources autorisées
 
@@ -18,7 +18,7 @@ Ce dossier rassemble les **fiches de conception** du moteur de PNJ Living Knox (
 | Lua vanilla 42.21 | `<PZ>\media\lua` | API exposée, actions chronométrées, événements |
 | Base de connaissances | [.claude/pz-knowledge](../../../../.claude/pz-knowledge/README.md) | Faits déjà établis ; à chercher **avant** toute investigation |
 | Nos bancs hors jeu | `tests/harness.py` (serveur et deux clients simulés sous lupa), `tests/test_kahlua.py` (VM Kahlua réelle du jeu) | Logique, protocole réseau, comportement de la VM |
-| Nos tests en jeu | moteur RST (`dev/batman_RadioSurvivorTests`, étape E01), serveur dédié de test `tests/run_dedicated_smoke.ps1` | Mesures réelles en solo et en MP |
+| Nos tests en jeu | moteur RST (`dev/batman_CoreAITests`, suites dans `dev/batman_LivingKnoxTests` et `dev/batman_RadioSurvivorTests`, étape E01), serveur dédié de test `tests/run_dedicated_smoke.ps1` | Mesures réelles en solo et en MP |
 | Nos mesures | fichiers de résultat RST, journaux `console.txt` datés | Calibrage des valeurs, preuve d'un comportement |
 
 Le banc `harness.py` simule le Java d'après le code décompilé : il ne **valide** pas l'API réelle. Une contrainte du moteur qui décide d'un choix se prouve par une ligne du Java ou du Lua vanilla, ou par une mesure en jeu.

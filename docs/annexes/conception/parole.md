@@ -75,29 +75,46 @@ Situations : `greet` (salut), `warn` (avertissement : trop près), `alert` (dang
   (`clean_speech`) coupe une réplique trop longue à sa dernière fin de phrase qui tient, même courte (avant : coupe au
   dernier mot avec « ... » dès que cette fin de phrase tombait dans le premier tiers), sinon à une virgule, sinon entre
   deux mots, suivie de « ... ». La fin d'une réplique trop longue est perdue, jamais affichée au milieu d'une phrase.
-- Réponse du carnet à une phrase du joueur (E17-T14, 2026-10-15, `RS_Client.lua` `inject`) : la bulle est posée dès
-  la réception de l'événement `speech`, en solo comme en MP. Seule la ligne de chat locale attend que le canal « dire »
-  soit connu (découvert par le premier `OnAddMessage` de ce canal, qui peut ne jamais venir si personne ne parle) ;
-  l'événement reste alors dans la boîte de réception pour la ligne de chat seulement, sans redessiner la bulle. Avant
-  E17-T14, en MP, la bulle attendait elle aussi le canal, et le canal n'était **jamais** reconnu :
-  `chat:getType():getValue()` levait « attempted index: getValue of non-table: say » à chaque message (`ChatType`
-  n'est pas exposé à Lua ; journal client de l'essai MP du 2026-10-15, `rs.npctalk`) ; ni bulle ni ligne de chat
-  n'étaient affichées. Reconnaissance par `tostring(chat:getType()) == "say"` dans `RS_Client.isSayChat` et
-  `LK_SpeechView.observeMessage`.
+- Réponse du carnet à une phrase du joueur (`CA_NotebookClient.lua`, `inject`) : la bulle est posée dès la réception
+  de la commande `speech` du module `CoreAI`, en solo comme en MP. Seule la ligne de chat locale attend que le canal
+  « dire » soit connu (découvert par le premier `OnAddMessage` de ce canal, qui peut ne jamais venir si personne ne
+  parle) ; l'événement reste alors dans la boîte de réception pour la ligne de chat seulement, sans redessiner la
+  bulle. Le canal se reconnaît par `tostring(chat:getType()) == "say"` (`CA_NotebookClient.isSayChat` et
+  `LK_SpeechView.observeMessage`) : `ChatType` n'est pas exposé à Lua, `chat:getType():getValue()` lève une erreur.
 - Contexte d'une conversation (E08-T05) : une ligne jointe (phrase du joueur, réponse au joueur) est bornée à 200 octets
   par la même découpe (`LK_Conversations` `cut`, avant : coupe à l'octet, au milieu d'un mot).
 - Trace lisible depuis Lua : `stats.drawn` (dessins), `stats.pieces`, `lastDraw = { npc, text, x, y, player }`,
   `bubbles` (`rest` : morceaux en attente), `lastPieces = { npc, text, pieces }`, `pieceLog` (32 derniers morceaux
   affichés : `{ npc, text, at, ms }`).
-- Les réponses du carnet (`RS_CarnetClient` → `RS_NPCProvider.bubble`) passent par `RS_LivingKnox.bubble` → même bulle (couleur de l'ancienne bulle du carnet) ; sans la vue (machine qui ne la charge pas), repli `addLineChatElement`.
+- Les réponses du carnet (`CoreAI.notebookClient` → `CA_NPCProvider.bubble`) passent par `LivingKnox.NpcProvider.bubble` (`LK_NotebookProvider`) → même bulle ; sans la vue (machine qui ne la charge pas), repli `addLineChatElement`.
 - Pourquoi abandonner `addLineChatElement` sans cause prouvée : la bulle n'a pas été vue en jeu ; le dessin par le mod ne dépend plus de l'état du `ChatElement` du zombie (une ligne, durée liée à la vitesse du jeu), et la suite en jeu peut constater le dessin (coordonnées à l'écran).
 
-### Phrase du joueur (LK11-T09)
+### Phrase du joueur (LK11-T09, E21-T05)
 
-- Ligne « Dire » de l'onglet Radio (`RS_RadioTalk.send`) : la phrase n'est prononcée qu'à l'acceptation du serveur (`accepted`) : `player:Say` en solo, `processSayMessage` sur un client MP (bulle locale du chat « dire », jamais `Say` en plus). Refus : seulement le motif en rouge.
-- Ligne « Dire » de l'onglet Contacts (`RS_CarnetClient.talk`, E17-T06) : même règle à l'accusé `queued` (`speakAloud`), une seule fois (texte effacé après usage) ; une phrase venue du chat n'est pas redite. Refus (`error`) : rien.
-- Aucun code ajouté : les deux chemins existaient (E06-T02, E17-T06) ; le banc le vérifie (`tests/test_carnet.py`, `PlayerSpeechTests`). L'essai du 2026-10-11 précédait la publication d'E17-T06 (Contacts).
-- Aucun bruit pour les zombies (effet distinct, à l'appelant : ADR B17).
+Un seul chemin, avec ou sans RadioSurvivor : le serveur du carnet du mod commun (`CA_NotebookServer`) reçoit la
+commande `talk` du module `CoreAI` et confie la phrase au moteur de parole du fournisseur (`CA_NPCProvider.speech()`,
+Living Knox : `LivingKnox.Talk`). Trois entrées côté client (`CA_NotebookClient`), mêmes contrôles côté serveur (cible,
+portée, règles du chat, délai, budget) :
+
+- **Chat « dire »** (MP seulement, capté par l'enveloppe d'`ISChat`) : la phrase va au PNJ sélectionné dans le carnet ;
+  sans cible sélectionnée, au PNJ du fournisseur le plus proche à 8 cases au plus (`CA_SpeechConfig.SELECT_RANGE`),
+  choisi par le serveur ; personne à portée : la phrase ne part vers aucun PNJ, sans message. Une phrase venue du chat
+  n'est pas redite.
+- **Ligne « Dire » de l'onglet Contacts** (`CoreAI.notebookClient.talk`, solo et MP) : prononcée à l'accusé `queued`
+  (`speakAloud` : `player:Say` en solo, `processSayMessage` sur un client MP), une seule fois (texte effacé après
+  usage). Refus (`error`) : rien.
+- **Menu « Parler » du monde** (`LK_TalkView`, `CoreAI.notebookClient.talkTo`) : boîte de texte sur un PNJ ; le serveur
+  le sélectionne (mêmes contrôles que `select`) puis lui parle. Seul moyen sans chat en solo.
+
+La touche « Choisir le PNJ le plus proche » (`CoreAISelect`, Ctrl+G par défaut, `CA_NotebookContacts`) sélectionne le
+PNJ visible le plus proche à 8 cases ; personne : désélection et halo `IGUI_CA_Error_NpcRange`.
+
+Ligne « Dire » de l'onglet Radio (`RS_RadioTalk.send`, RadioSurvivor) : la phrase n'est prononcée qu'à l'acceptation
+du serveur (`accepted`) : `player:Say` en solo, `processSayMessage` sur un client MP (bulle locale du chat « dire »,
+jamais `Say` en plus). Refus : seulement le motif en rouge.
+
+Bancs : `tests/test_carnet.py` (`PlayerSpeechTests`), `tests/test_lk_speech_single_path.py`. Aucun bruit pour les zombies (effet distinct, à l'appelant :
+ADR B17).
 
 ### Conversation entre membres pendant une pause (I3.8)
 
@@ -131,11 +148,11 @@ Situations : `greet` (salut), `warn` (avertissement : trop près), `alert` (dang
 - VM Kahlua : non couvert (aucune chaîne non ASCII dans le Lua de la tâche ; `CA_TextCut` est vérifié en Kahlua réelle
   par `tests/test_kahlua.py`).
 - En jeu, solo : `RST.run({ suite = "lk.speech", tags = "world" })` (bulle posée sur un PNJ créé et **dessinée** au moins une fois à un point de l'écran, doublon ignoré, délai, texte rédigé, PNJ à 30 cases inaudible). MP à la séance finale.
-- Phrase du joueur : `tests/test_carnet.py`, `PlayerSpeechTests` (Radio : solo `Say`, MP `processSayMessage`, jamais sur refus ; Contacts : une fois à `queued`, jamais sur `error`, pas de redite d'une phrase du chat).
+- Phrase du joueur : `tests/test_carnet.py`, `PlayerSpeechTests` (Radio : solo `Say`, MP `processSayMessage`, jamais sur refus ; Contacts : une fois à `queued`, jamais sur `error`, pas de redite d'une phrase du chat) ; un seul chemin de parole, phrase du chat sans cible : `tests/test_lk_speech_single_path.py`.
 
 ### Protocole en jeu
 
-1. Solo (`rstest-solo`, mod de dev, option Living Knox activée) : `RST.run({ suite = "lk.speech", tags = "world" })` ; puis `LKB.spawn(2, 0)` et, dans la console, `LivingKnox.Speech.bark("lk-1", "greet", { player = getPlayer() })` puis **fermer la console** : une bulle au-dessus de la tête du PNJ, lisible, de la couleur de l'attitude, pendant 5 à 8 s (`LivingKnox.SpeechView.stats.drawn` augmente) ; `LivingKnox.Speech.say("lk-1", "Testing.")` : la bulle est remplacée ; zoomer et dézoomer : elle reste au-dessus de la tête ; carnet, onglet Contacts, ligne « Dire » vers ce PNJ : la phrase du joueur au-dessus de son personnage, puis la réponse au-dessus du PNJ ; onglet Radio, ligne « Dire » sur une fréquence : la phrase au-dessus du joueur, rien sur un refus ; s'éloigner à 20 cases : `say` rend `nil, "nobody hears"`.
+1. Solo (`rstest-solo`, mods de test `batman_CoreAITests` et `batman_LivingKnoxTests`, option Living Knox activée) : `RST.run({ suite = "lk.speech", tags = "world" })` ; puis `LKB.spawn(2, 0)` et, dans la console, `LivingKnox.Speech.bark("lk-1", "greet", { player = getPlayer() })` puis **fermer la console** : une bulle au-dessus de la tête du PNJ, lisible, de la couleur de l'attitude, pendant 5 à 8 s (`LivingKnox.SpeechView.stats.drawn` augmente) ; `LivingKnox.Speech.say("lk-1", "Testing.")` : la bulle est remplacée ; zoomer et dézoomer : elle reste au-dessus de la tête ; carnet, onglet Contacts, ligne « Dire » vers ce PNJ : la phrase du joueur au-dessus de son personnage, puis la réponse au-dessus du PNJ ; onglet Radio, ligne « Dire » sur une fréquence : la phrase au-dessus du joueur, rien sur un refus ; s'éloigner à 20 cases : `say` rend `nil, "nobody hears"`.
 2. MP (séance finale, serveur dédié + 2 clients) : A et B à moins de 10 cases du PNJ, un troisième joueur à 20 cases (ou B s'éloigne) ; sur le serveur `LivingKnox.Speech.bark("lk-1", "greet")` : A et B voient la bulle une fois (B en français si son jeu l'est), le joueur éloigné rien ; journal serveur en Debug : `speech sp-… by lk-1 heard by 2 player(s)` ; `LivingKnox.Speech.say("lk-1", "Hello.", { name = "Kate" })` après qu'un joueur a parlé dans le chat : ligne « Kate » dans son chat.
 
 ## Points ouverts
@@ -143,6 +160,6 @@ Situations : `greet` (salut), `warn` (avertissement : trop près), `alert` (dang
 - ⚠ Rendu réel de la bulle dessinée (position au-dessus de la tête, lisibilité de l'ombre sans fond, durée) à voir en jeu ; écran partagé non découpé (bulle d'un joueur visible hors de sa moitié d'écran) ; ligne de chat MP non vérifiée en jeu.
 - ⚠ Cause de l'absence de bulle `addLineChatElement` sur un zombie non établie (aucun obstacle trouvé dans le Java 42.21.0).
 - ⚠ Aucun appelant automatique encore : sommations (LK11-T02), routines (LK05), blessures (LK07), initiatives (E08-T03) appelleront `bark` ou `say`.
-- ⚠ Le carnet (ADR B17) envoie toujours ses propres répliques LLM (`RS_Carnet_Server` commande `speech` du module RadioSurvivor) ; son passage par `Speech.say` relève d'E08-T03 (ne pas afficher les deux).
+- ⚠ Le carnet envoie ses répliques LLM par sa propre commande `speech` (module `CoreAI`), distincte de `Speech.say` (module `LivingKnox`) : une même réplique ne passe que par l'une des deux.
 - ⚠ Délais en mémoire seulement (remis à zéro au redémarrage) ; valeurs (portée 25, 6 s, 90 s) à recalibrer.
 - ⚠ Textes à relire par l'utilisateur.

@@ -3,7 +3,7 @@
 - Tâche : E08-T06 (décision Q1 du 2026-10-10 : option A, radio du groupe)
 - Build : 42.21.0 — Date : 2026-10-13 — Statut : brouillon (banc hors jeu seulement)
 
-Code : `media/lua/server/RadioSurvivor/RS_GroupRadio.lua` (autorité) ; voix engendrées `RS_Personas.setGenerated` ; routage dans `RadioSurvivor_Server.lua` (`onTalk`, `hasPending`, `onTickEvenPaused`) ; file et réponse dans `RS_Carnet_Server.lua` (`reply` délègue les demandes radio) ; fournisseur `Provider.radios` (`RS_NPCProvider.lua`, implémenté par `RS_LivingKnox.lua`) ; types au format 2 (`LK_GroupTypes.lua`, [groupes.md](groupes.md) « Format 2 »). Tests : `tests/test_group_radio.py` ; suite en jeu `rs.groupradio` (`dev/.../shared/RST/suites/RS_GroupRadio.lua`).
+Code : `media/lua/server/RadioSurvivor/RS_GroupRadio.lua` (autorité) ; voix engendrées `RS_Personas.setGenerated` ; routage dans `RadioSurvivor_Server.lua` (`onTalk`, `hasPending`, `onTickEvenPaused`) ; file et réponse dans `CA_NotebookServer.lua` et le moteur de parole du fournisseur (`reply` délègue les demandes radio) ; fournisseur `Provider.radios` (`CA_NPCProvider.lua`, implémenté par `LK_NotebookProvider.lua`) ; types au format 2 (`LK_GroupTypes.lua`, [groupes.md](groupes.md) « Format 2 »). Tests : `tests/test_group_radio.py` ; suite en jeu `rs.groupradio` (`dev/.../shared/RST/suites/RS_GroupRadio.lua`).
 
 ## Règle
 

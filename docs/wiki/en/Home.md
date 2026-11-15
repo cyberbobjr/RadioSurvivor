@@ -14,7 +14,7 @@ and fortify in the county.
 |---|---|---|
 | Radio Survivor | `batman_RadioSurvivor` | The radio: sixteen AI voices (a trader per town among them), the Radio tab of the notebook, factions |
 | Living Knox | `batman_LivingKnox` | Groups of NPC survivors: homes, needs, routines, fights |
-| Core AI | `batman_CoreAI` | What both share: missions and their journal, link with the bridge, identity, conversation history, reputation, the notebook. Enabled for you; useless alone |
+| Core AI | `batman_CoreAI` | What both share: the link with the bridge, the whole notebook (contacts, missions, reputation), missions, identity, conversation history, reputation. Enabled for you; useless alone |
 
 Tick **Radio Survivor**, **Living Knox** or **both**: each works without the other (the Core is always added). Details
 and the load order: [Installation](04-installation.md).
@@ -25,8 +25,8 @@ and the load order: [Installation](04-installation.md).
   smuggler, each on a real frequency drawn for each game. Their frequencies are found on notes in the loot. You talk
   to them with any transmitting radio held in hand or worn on the back (**Transmit** section of the radio window).
   They are played by an AI and remember you.
-- **Field notebook** (**Notebook** button): contacts, missions, rewards, reputation, and with Radio Survivor the radio
-  history by frequency.
+- **Field notebook** (**Notebook** button): contacts, missions, rewards, reputation, with either mod; Radio Survivor
+  adds the radio history by frequency, Living Knox the team tab.
 - **Living Knox survivor groups** (Living Knox): 3 to 5 groups of human NPCs with a home, a leader, real supplies,
   needs and routines. They defend and fortify their home, fight zombies and keep living off screen. Settlers,
   neutrals and raiders.

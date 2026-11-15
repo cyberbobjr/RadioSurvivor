@@ -7,7 +7,7 @@
 | Journal | Où |
 |---|---|
 | Pont | Sa fenêtre de terminal. Pour le garder : `python radio_bridge.py > bridge.log 2>&1` ; systemd : `journalctl -u radiosurvivor-bridge`. Relancez avec `--debug` pour le détail complet (il contient les dialogues : ne pas le partager tel quel). |
-| Jeu (solo, hôte) | `%USERPROFILE%\Zomboid\console.txt`, lignes `[RadioSurvivor]`, `[RS_Carnet]`, `[LK…]`. |
+| Jeu (solo, hôte) | `%USERPROFILE%\Zomboid\console.txt`, lignes `[RadioSurvivor]`, `[CoreAI]`, `[CA_…]`, `[LivingKnox]`, `[LK…]`. |
 | Serveur dédié | Le journal console du serveur (`<Zomboid>/server-console.txt` ou le journal de votre service). |
 | Dossier d'échange (`Lua/batman_CoreAI`) | `requests.txt`, `responses.txt`, `bridge-alive.txt`, `token_usage.jsonl`. Les fiches des voix sont dans `Lua/batman_RadioSurvivor/personas/` (Radio Survivor seulement). |
 

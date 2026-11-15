@@ -356,7 +356,7 @@ de `memberDied` (`applyDeath`). `LK_API.lua` les relaie en événements Lua publ
   d'écriture unique des réserves), relevé silencieux au premier passage d'une session.
 - **Rencontre** : début d'une sommation (`start`), pas ses étapes ni ses reprises.
 - **Membre parti** : membre vivant retiré par `applyLeave` ; `reason` nil pour LK09-T05 (aucun appelant modifié) ; E10-T04
-  passe `"leave_group"` (RS_LivingKnox.leave, [depart.md](depart.md)).
+  passe `"leave_group"` (`LivingKnox.NpcProvider.leave`, [depart.md](depart.md)).
 
 ## Alternatives écartées
 

@@ -193,8 +193,8 @@ opérations `npcRole`, `npcName`, `npcGoto` de `LK_Admin.lua`. Traductions `IGUI
   apostrophe, point et tiret, commençant par une lettre, 1 à 24 caractères ; sinon « bad name ». Rangés dans le
   membre du registre des groupes (`firstName`, `lastName`, champs facultatifs, schéma inchangé, lus par
   `Admin.ownName` qui ignore une valeur mal formée). Jamais interprétés : affichés par `drawText`, infobulle avec « < »
-  remplacé. Propagation : enveloppes posées une fois par `Admin.hookNames` sur `RS_LivingKnox.npc` (nom du carnet,
-  des dernières pages, des missions, du chef de `LK.composition`) et `RS_LivingKnox.context` (nom du chef pour le LLM).
+  remplacé. Propagation : enveloppes posées une fois par `Admin.hookNames` sur `LivingKnox.NpcProvider.npc` (nom du carnet,
+  des dernières pages, des missions, du chef de `LK.composition`) et `LivingKnox.NpcProvider.context` (nom du chef pour le LLM).
   Limites : le résumé d'histoire déjà composé (et donc le récit du chef) garde le nom d'origine ; les accents sont
   refusés ; aucun retour au nom d'origine par la fiche.
 - **Se téléporter** (`npcGoto`) : destination choisie par l'autorité : première case voisine libre du corps

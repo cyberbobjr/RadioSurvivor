@@ -39,14 +39,15 @@ radio, fiche de patient, avis de la Garde nationale, note griffonnée, prospectu
 
 ## Le carnet
 
-Le bouton **Carnet** de la barre de gauche ouvre le carnet de terrain de votre personnage. Le Core tient le carnet :
-il existe avec l'un ou l'autre mod. Il garde :
+Le bouton **Carnet** de la barre de gauche ouvre le carnet de terrain de votre personnage. Core AI tient le carnet :
+il est complet avec Radio Survivor seul, Living Knox seul ou les deux. Il garde :
 
 - **Contacts** : tous ceux à qui vous avez parlé, leur groupe, leur tempérament, les conversations entendues par
   votre personnage, votre note privée, et **ce qu'on pense de vous** ;
 - **Missions** : les offres et les missions en cours, leur objectif, leur délai et leur récompense ;
 - **Radio** (Radio Survivor) : l'historique de chaque fréquence écoutée ;
-- **Réputation** : votre réputation parmi les survivants et ce qu'on retient de vos actes.
+- **Réputation** : votre réputation parmi les survivants et ce qu'on retient de vos actes ;
+- **Équipe** (Living Knox) : votre faction et ses négociateurs pour les accords avec les groupes.
 
 ![Carnet, onglet Contacts](../../images/screenshots/fr-notebook-contacts.png)
 
@@ -59,8 +60,9 @@ combattent les zombies, partent en expédition et continuent de vivre quand vous
 ![Un groupe Living Knox à son foyer](../../images/screenshots/fr-group-home.png)
 
 Approchez-vous d'un survivant et parlez : il répond dans une bulle, avec sa propre voix, et se souvient de la
-conversation. Avec Radio Survivor, vous le sélectionnez avec **Ctrl+G** et parlez par le carnet ; avec Living Knox
-seul, vous parlez dans le chat local (`/say`) ou par le menu du clic droit **Parler**.
+conversation. Appuyez sur **Ctrl+G** pour sélectionner le plus proche, ou parlez simplement dans le chat
+local (`/say`) : une phrase dite sans survivant sélectionné va au plus proche, à 8 cases au plus. Le menu du clic droit
+**Parler** marche aussi, en solo compris. C'est pareil avec ou sans Radio Survivor.
 
 ![Un survivant répond dans une bulle](../../images/screenshots/fr-npc-bubble.png)
 

@@ -35,23 +35,25 @@ Transmitting needs a radio in hand or worn on the back (or set down nearby, or a
 belt can listen (with Belt Walkie-Talkie) but not transmit.
 
 **How do I talk to an NPC?**
-Get close, press **Ctrl+G** to select the nearest visible NPC (8 squares at most), then speak in the local chat
-(`/say`). General, faction and private chat do not reach NPCs.
+Get close, press **Ctrl+G** to select the nearest visible NPC (8 squares at most), then speak on the **Say** line of
+the notebook or in the local chat (`/say`). A chat sentence with no NPC selected goes to the nearest one within 8
+squares, or to nobody. The right-click menu **Talk** works too. General, faction and private chat do not reach NPCs.
 
 **Which mods do I tick?**
 Radio Survivor, Living Knox, or both; the Core is added for you. Each works without the other. See
 [Installation](04-installation.md).
 
 **What does the Core do?**
-It holds what Radio Survivor and Living Knox share: missions and their journal, the link with the bridge, character
-identity, conversation history, reputation and the notebook. Enabled alone, it adds nothing you can play.
+It holds what Radio Survivor and Living Knox share: the link with the bridge, the whole notebook (contacts, missions,
+reputation), the missions, character identity, conversation history and reputation. Enabled alone, it adds nothing
+you can play.
 
 **Does the bridge change with the mods I tick?**
 No. It is one program with no option for the setup. It serves the radio voices, the NPCs, or both.
 
 **Can I play Living Knox without the radio?**
-Yes. Speak to a survivor in the local chat (`/say`) near them, or use **Talk** in the right-click menu. Known limit:
-without Radio Survivor you cannot yet deliver or claim the reward of a mission an NPC gave you.
+Yes. Living Knox alone has the full notebook: speak to a survivor with **Ctrl+G**, in the local chat (`/say`) near
+them or with **Talk** in the right-click menu, and deliver and claim their missions from the notebook.
 
 **Can I use it with Bandits! or Project A-Life?**
 Not with Living Knox: it is an NPC engine of its own, and only one NPC engine per game.

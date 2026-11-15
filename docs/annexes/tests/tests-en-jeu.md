@@ -1,9 +1,17 @@
 # Tests en jeu (moteur RST)
 
-Mode d'emploi du moteur de tests en jeu **RST** et de ses suites. Le moteur et les suites vivent dans un mod de
-développement séparé, `batman_RadioSurvivorTests`, rangé dans le dépôt sous `dev/batman_RadioSurvivorTests/`
-(structure B42 : `common/`, `42.21/mod.info`, `42.21/media/lua/`). Il exige `batman_RadioSurvivor`
-(`require=\batman_RadioSurvivor`) et n'est **jamais publié** : le mod publié ne contient aucun code de test.
+Mode d'emploi du moteur de tests en jeu **RST** et de ses suites. Ils vivent dans trois mods de développement,
+rangés dans le dépôt sous `dev/` (structure B42 : `common/`, `42.21/mod.info`, `42.21/media/lua/`), **jamais
+publiés** : les mods publiés ne contiennent aucun code de test.
+
+| Mod de test | Contenu | `require=` |
+|---|---|---|
+| `batman_CoreAITests` | moteur `RST`, registre des campagnes, aides communes (fixtures, étapes, instantanés), suites `rst.*` et `ca.*` | `batman_CoreAI` |
+| `batman_LivingKnoxTests` | suites `lk.*` et leurs aides, part Living Knox des campagnes (`RST_CampaignLK.lua`) | `batman_CoreAITests`, `batman_LivingKnox` |
+| `batman_RadioSurvivorTests` | suites `rs.*` et leurs aides, part RadioSurvivor des campagnes (`RST_CampaignRS.lua`) | `batman_CoreAITests`, `batman_RadioSurvivor` |
+
+Aucun mod de test ne nomme l'autre : chacun inscrit sa part d'une campagne (`RST.Campaigns.add`). Une suite d'un mod
+inactif est `SKIP`. Living Knox se teste sans RadioSurvivor (campagne `solo-lk`).
 
 Référence détaillée (en anglais) dans les en-têtes des fichiers Lua :
 `shared/RST/RST.lua` (moteur, assertions, filtres, attente par étapes), `client/RST/RST_Client.lua` (commandes
@@ -16,7 +24,8 @@ Depuis `%USERPROFILE%\Zomboid\Workshop` :
 
 ```powershell
 python RadioSurvivor/tools/install_tests.py --dry-run   # affiche seulement ce qui serait copié
-python RadioSurvivor/tools/install_tests.py             # copie vers %USERPROFILE%\Zomboid\mods\batman_RadioSurvivorTests
+python RadioSurvivor/tools/install_tests.py             # copie les trois mods de test vers %USERPROFILE%\Zomboid\mods
+python RadioSurvivor/tools/install_tests.py --mods lk   # mod de test du commun et de Living Knox seulement
 python RadioSurvivor/tools/install_tests.py --dest D:\autre\mods
 ```
 
@@ -37,8 +46,9 @@ travail du dépôt `BeltRadio`, celle que les tests hors jeu chargent aussi). `i
 ## 2. Lancer le jeu en mode debug
 
 1. Steam → Project Zomboid → Propriétés → Options de lancement : ajouter `-debug`.
-2. Dans **Mods**, activer `batman_BeltRadio` (« Belt Walkie-Talkie », activé d'office par le `require=`),
-   `batman_RadioSurvivor` et `batman_RadioSurvivorTests` (« batman_RadioSurvivor Tests (dev only) »).
+2. Dans **Mods**, activer le ou les mods à tester (`batman_RadioSurvivor`, `batman_LivingKnox` ; `batman_CoreAI`,
+   `batman_SignalSmoke` et, pour RadioSurvivor, `batman_BeltRadio` sont activés d'office par les `require=`) et leurs
+   mods de test (`batman_CoreAITests`, `batman_LivingKnoxTests`, `batman_RadioSurvivorTests`).
 3. Charger ou créer une partie (voir § 5 pour une partie de test), puis ouvrir la **console Lua** :
    touche `²` en AZERTY (`` ` `` en QWERTY). La console n'existe qu'en mode debug.
 
@@ -113,9 +123,9 @@ RST.run("rst.failures")                        -- échecs volontaires : le rappo
 À la fin d'un passage, le rapport s'affiche ligne par ligne dans la console (préfixe `[RST]`), un résumé apparaît
 au-dessus du joueur, et un fichier est écrit :
 
-- client ou solo : `Zomboid\Lua\batman_RadioSurvivor\tests\<AAAAMMJJ-HHMMSS>-client.txt` (client MP) ou
+- client ou solo : `Zomboid\Lua\batman_CoreAITests\tests\<AAAAMMJJ-HHMMSS>-client.txt` (client MP) ou
   `...-solo.txt` (partie solo) ;
-- serveur : `<cache du serveur>\Lua\batman_RadioSurvivor\tests\<AAAAMMJJ-HHMMSS>-server.txt` (le dossier
+- serveur : `<cache du serveur>\Lua\batman_CoreAITests\tests\<AAAAMMJJ-HHMMSS>-server.txt` (le dossier
   `-cachedir` d'un serveur dédié, le `Zomboid\Lua` local en solo).
 
 L'horodatage est en **UTC** (pas l'heure locale). Le chemin écrit est rappelé dans la console.
@@ -177,10 +187,10 @@ powershell -ExecutionPolicy Bypass -File RadioSurvivor/tests/run_dedicated_smoke
 Déroulement :
 
 1. Nouveau cache temporaire `%TEMP%\rs-dedicated-<guid>` (affiché par `RS_SMOKE_CACHE=`) : copie de
-   `batman_RadioSurvivor` et `batman_RadioSurvivorTests` dans `<cache>\mods`,
+   `batman_CoreAI`, `batman_LivingKnox`, `batman_RadioSurvivor` et des trois mods de test dans `<cache>\mods`,
    configuration `Server\rstest_smoke.ini` (ports 17381/17382, `PauseEmpty=true`). Aucun cache, aucune
    sauvegarde ni aucun dossier de mods existant n'est touché.
-2. Écriture de `<cache>\Lua\batman_RadioSurvivor\tests\autorun.txt` : une suite ou un préfixe par ligne, lignes
+2. Écriture de `<cache>\Lua\batman_CoreAITests\tests\autorun.txt` : une suite ou un préfixe par ligne, lignes
    `#` ignorées, aucune ligne avec espace. Le serveur le lit à `OnServerStarted` (lecture seule), lance les suites
    (filtre serveur par défaut, donc sans `world`) et avance sur `OnTickEvenPaused`, qui tourne même serveur vide
    et en pause.
@@ -207,7 +217,9 @@ Depuis `%USERPROFILE%\Zomboid\Workshop` :
 
 ```powershell
 python RadioSurvivor/tools/autoclient/autoclient.py --suite rs.env                    # preuve courte (~50 s)
-python RadioSurvivor/tools/autoclient/autoclient.py --campaign solo-rs --timeout 1800   # pont lancé (auto)
+python RadioSurvivor/tools/autoclient/autoclient.py --campaign solo-lk --bridge on --llm fake --wait-idle 3600  # Living Knox seul
+python RadioSurvivor/tools/autoclient/autoclient.py --campaign solo-rs --bridge on --llm fake --wait-idle 3600  # RadioSurvivor seul
+python RadioSurvivor/tools/autoclient/autoclient.py --campaign solo --bridge on --llm fake --wait-idle 3600     # les deux
 python RadioSurvivor/tools/autoclient/autoclient.py --suite rs.npctalk --tags world --wait-idle 3600  # pont, vrai modèle
 python RadioSurvivor/tools/autoclient/autoclient.py --save rstest-solo --suite rs.codec,rs.missions --keep-cache
 python RadioSurvivor/tools/autoclient/autoclient.py --dry-run --suite rs.env          # prépare le cache seulement
@@ -230,14 +242,17 @@ python RadioSurvivor/tools/autoclient/autoclient.py --dry-run --suite rs.env    
 Déroulement :
 
 1. Cache temporaire `%TEMP%\rs-autoclient-*` (`RS_AUTOCLIENT_CACHE=`) : copie de la partie (son `mods.txt` est
-   réécrit avec la liste minimale `TooltipLib`, `batman_BeltRadio`,
-   `batman_SignalSmoke`, `batman_RadioSurvivor`, `batman_RadioSurvivorTests`), copie de ces mods dans `mods\`
+   réécrit avec la liste minimale du montage : `--mods both` (défaut) `TooltipLib`, `batman_BeltRadio`,
+   `batman_SignalSmoke`, `batman_CoreAI`, `batman_LivingKnox`, `batman_RadioSurvivor` et les trois mods de test ;
+   `--mods lk` (défaut de `--campaign solo-lk`) sans RadioSurvivor, son mod de test, Belt Walkie-Talkie ni
+   TooltipLib ; `--mods rs` (défaut de `--campaign solo-rs`) sans Living Knox ni son mod de test), copie de ces mods
+   dans `mods\`
    (TooltipLib lu dans le Workshop Steam `3694097672` ; les mods requis Belt Walkie-Talkie et Signal Smoke lus dans
    leurs dépôts locaux `Workshop\BeltRadio` et `Workshop\SignalSmoke\Contents\mods\batman_SignalSmoke`, sans rien y
    écrire, toujours copiés, en solo comme en MP), `mods\default.txt` (même liste : pas de rechargement Lua),
    `mods\reset-mods-42_00.txt` (sans lui le jeu vide `default.txt` au premier lancement d'un cache),
    `options.ini` copié de `Zomboid\options.ini` en fenêtré 1280 × 720, et la commande
-   `Lua\batman_RadioSurvivor\tests\autoclient.txt`. Rien n'est écrit dans le jeu ni dans `%USERPROFILE%\Zomboid`.
+   `Lua\batman_CoreAITests\tests\autoclient.txt`. Rien n'est écrit dans le jeu ni dans `%USERPROFILE%\Zomboid`.
    Pont (si `--bridge` le demande) : `python -u bridge/radio_bridge.py --exchange <cache>\Lua\batman_RadioSurvivor`
    (option existante du pont : il surveille le dossier Lua du **cache**, jamais `%USERPROFILE%\Zomboid`), lancé avant
    le jeu et attendu jusqu'à « Bridge ready ». Le pont lit lui-même sa configuration (`bridge/.env` ou variables
@@ -410,7 +425,7 @@ message du client, SKIP = note (un client qui ne peut pas vérifier, par exemple
 réponse d'un compte non interrogé est ignorée (journal `[RST-STEP]`). En solo, même code sans réseau : `requester`
 et `all` = le joueur local, `others` = personne (étape notée, la suite continue).
 
-Rapports : chaque client écrit `Zomboid/Lua/batman_RadioSurvivor/tests/<stamp>-steps.txt` (une ligne par étape
+Rapports : chaque client écrit `Zomboid/Lua/batman_CoreAITests/tests/<stamp>-steps.txt` (une ligne par étape
 répondue), copié dans `runs/<passage>/client<N>/` ; le client 2 (`peer=true` dans sa commande) écrit en plus, au
 « quit », son `autoclient-result.txt` (`RST-RESULT ok=… total=<étapes> pass= fail= error= skip=` puis une ligne
 `STEP …` par étape), exigé par le lanceur comme celui du client 1.
@@ -445,8 +460,8 @@ suites sur doublures (serveur + deux clients, solo, défauts injectés) : `pytho
 
 Étapes radio, carnet et factions à deux clients (`shared/RST/RST_PeerChecksRadio.lua`, requis par les suites qui les
 posent, donc chargé sur chaque machine qui charge les suites ; client MP : un écouteur `OnServerCommand` unique garde
-les dernières commandes des modules `RadioSurvivor` et `RS_Carnet` ; solo : `RadioSurvivor_Const.clientHandler` et
-`RS_CarnetClient.receive` enveloppés à la première étape qui en a besoin) :
+les dernières commandes des modules `RadioSurvivor` et `CoreAI` ; solo : `RadioSurvivor_Const.clientHandler` et
+`CoreAI.notebookClient.receive` enveloppés à la première étape qui en a besoin) :
 
 | Étape | Vérification ou action côté client | Suites |
 |---|---|---|
@@ -529,7 +544,7 @@ Listes nommées de `client/RST/RST_Campaign.lua` (`RST.campaigns()` les affiche 
 
 | Campagne | Où | Contenu et remarques |
 |---|---|---|
-| `solo-lk`, `solo-rs`, `solo` (= les deux) | `RST.campaign` (client solo, `--campaign`) | Ajouts E01-T19 : `lk.revenge`, `lk.traversal` (environ 7 min), `lk.upkeep` ; `rs.rescue` (cinq suites), `rs.conversations`, `rs.initiatives`, `rs.groupradio` (pont). |
+| `solo-lk`, `solo-rs`, `solo` (= les deux) | `RST.campaign` (client solo, `--campaign`) | `solo-lk` : suites du commun (`rst.guard`, `ca.*`…) puis `lk.*`, montage sans RadioSurvivor ni Belt Walkie-Talkie (E21-T07) ; `solo-rs` : suites du commun puis `rs.*`, sans Living Knox ; `solo` : les trois mods de test, commun d'abord, puis Living Knox, puis RadioSurvivor. Ajouts E01-T19 : `lk.revenge`, `lk.traversal` (environ 7 min), `lk.upkeep` ; `rs.rescue` (cinq suites), `rs.conversations`, `rs.initiatives`, `rs.groupradio` (pont). |
 | `mp` | serveur dédié (`--server-campaign mp`) | Le serveur ne garde que les suites étiquetées `server` ou `shared` de la liste (`RST_Server.lua` : étiquettes par défaut, `client` toujours exclu, `manual` exclu par le pilote) : une suite étiquetée seulement `world` n'y tourne **jamais** (contrôlé par le banc). Ajouts E01-T19 : `rs.mission` (cinq gabarits), `rs.factions.accord`, `rs.factions.incident`, `rs.trade_exchange`, `rs.trade_run`, `rs.actions.map`, `rs.actions.reveal`, `rs.groupradio`, `lk.equipment`, `lk.ranged`, `lk.speech`, `lk.traversal`, `lk.force`, `lk.stuck`, `lk.milestone1`, `lk.essai`, puis `lk.meals`, `lk.repair`, `lk.expedition`, `lk.forage` et **`lk.routines` en dernier** (elle met l'horloge à 23 h puis à l'aube ; les quatre précédentes la mettent à 6 h 59 ou 9 h hors de leur fenêtre). |
 | `mp-ambient` | serveur dédié, zombies vanilla, joueurs mortels | `rs.identity`, `rs.facts`, `lk.load`, `lk.zombies`, `lk.alert`, `lk.defense`. La liste ne change pas le monde : c'est le lanceur qui le fait (commande ci-dessous). |
 
@@ -618,7 +633,7 @@ simple) :
 |---|---|---|
 | `rs.identity` | E00-T01 : même identité, notes et engagements après reconnexion et redémarrage | `before`, `after-reconnect`, `after-restart` (§ 11) |
 | `lk.homes` | LK08-T04 : aucun second aménagement après redémarrage | `lk.homes.before` (groupe « settlers » au foyer sur la case du demandeur, dans la maison du point d'apparition, aménagé, relevé `lk-homes-persist.txt` par type d'objet marqué), `lk.homes.after-restart` (même groupe et marque « done » dans le registre, un contrôle ne pose rien, mêmes objets marqués par type ; puis groupe et aménagement retirés) |
-| `lk.leave` | E10-T04 : groupe `loners` et départ conservés après redémarrage | `before` (`RST_LKLeavePersist.lua` : groupe « settlers » à deux membres au foyer du demandeur, corps matérialisés, départ de m-2 par `RS_LivingKnox.leave`, relevé `leave-persist.txt`), `after-restart` (depuis le registre relu : groupe « loners » d'un membre vivant lié au même PNJ, ancien groupe sans m-2 et chef m-1, même départ sur l'ancienne composition refusé, jamais tiré par la population ; puis groupes, corps et consignes retirés) |
+| `lk.leave` | E10-T04 : groupe `loners` et départ conservés après redémarrage | `before` (`RST_LKLeavePersist.lua` : groupe « settlers » à deux membres au foyer du demandeur, corps matérialisés, départ de m-2 par `LivingKnox.NpcProvider.leave`, relevé `leave-persist.txt`), `after-restart` (depuis le registre relu : groupe « loners » d'un membre vivant lié au même PNJ, ancien groupe sans m-2 et chef m-1, même départ sur l'ancienne composition refusé, jamais tiré par la population ; puis groupes, corps et consignes retirés) |
 | `rs.radiotab`, `rst.disconnect`, `rs.reputation` | E06-T05, E01-T05, E04-T14 | voir leurs fichiers de suite ; `rst.disconnect` : le client 2 lance sa propre exécution à la fin de l'étape 0 et quitte (`reconnect2`) pendant qu'elle tourne (attente de la ligne serveur ci-dessus) |
 | `rs.mission.recover` | E11-T06 : un seul sac après redémarrage | `before` (`RS_MissionRecoverPersist.lua` : fiche de cache `Caches.attach` sur la case du demandeur, posée par `Caches.place` ; le magasin du test écrit la fiche dans `recover-persist.txt` à chaque sauvegarde, à la place de l'état privé), `after-restart` (un seul sac marqué dans les bornes, même identifiant d'objet, aucune nouvelle pose, arrêt simulé entre « placing » et « placed » : le sac sauvegardé est adopté ; puis sac retiré) |
 | `rs.rescue.missed` | E12-T05 : aucun doublon de zombies ni de cahier après un vrai redémarrage | `before` (`RS_RescuePersist.lua` : secours de l'équipe du demandeur dans un magasin de travail, sur le bâtiment où il se tient, issue « missed », scène posée : un zombie (joueur réanimé) par survivant, cahier dans l'inventaire du demandeur ; magasin entier dans `rescue-persist.txt`, zombies laissés au monde), `after-restart` (magasin remis, zombies marqués revenus avec leur morceau, attendus 60 s : exactement un par survivant, un seul cahier, porté par le demandeur, aucune pose au sondage, adoption après un arrêt simulé ; puis zombies et cadavres retirés) |
@@ -642,9 +657,9 @@ ce test est `SKIP`.
 `mp-persist` n'utilise pas `--restart-pause` : `rs.identity` y reste sans mission (chrono `SKIP`).
 
 Instantanés : `RST_Persist.lua` (`RST.Persist.write/read/consume`, octets `CA_Codec` en hexadécimal avec somme de
-contrôle, dans `Zomboid/Lua/batman_RadioSurvivor/tests/<nom>` du serveur, consommé par l'étape `after-restart`).
+contrôle, dans `Zomboid/Lua/batman_CoreAITests/tests/<nom>` du serveur, consommé par l'étape `after-restart`).
 Quand le test travaille sur un état en mémoire (magasin de travail des secours, fiche de cache), l'instantané tient
-lieu de l'état privé du carnet (`RS_State`), dont la persistance elle-même est prouvée par `rs.identity` ; le vrai
+lieu de l'état privé (stock du carnet `CA_NotebookStore`, état des voix `RS_State`), dont la persistance elle-même est prouvée par `rs.identity` ; le vrai
 redémarrage prouve le monde (sacs, zombies réanimés, murs) et le registre des groupes Living Knox. `lk.rejoin` garde
 son état dans le Lua du serveur (action `reconnect2` seulement : un redémarrage le perd).
 Bancs : `tests/test_persist_suites.py` (listage, instantanés, plan de `mp-persist`, `rs.mission.recover.*` et
@@ -687,7 +702,9 @@ restent nécessaires.
 
 ## 8. Écrire une suite
 
-Un fichier par suite dans `dev/batman_RadioSurvivorTests/42.21/media/lua/shared/RST/suites/`. Le jeu exécute les
+Un fichier par suite dans `dev/<mod de test>/42.21/media/lua/shared/RST/suites/` : `batman_CoreAITests` pour une
+suite du mod commun (`ca.*`), `batman_LivingKnoxTests` pour Living Knox (`lk.*`), `batman_RadioSurvivorTests` pour
+RadioSurvivor (`rs.*`) ; une suite de Living Knox n'utilise que CoreAI, Living Knox et leurs aides. Le jeu exécute les
 fichiers `shared` avant `client` et `server` ; chaque fichier fait `require "RST/RST"`. Redéclarer une suite
 (rechargement) la remplace.
 
@@ -772,16 +789,18 @@ ne prouve pas la résolution par le moteur (chemins calculés en Java, `x_extend
 1. Serveur dédié Project Zomboid **42.21** (SteamCMD, application 380870) sur une machine Linux de test ; noter la
    version affichée au démarrage du journal (`42.21.x`), le chemin du serveur et celui de `~/Zomboid`.
 2. Mods, avec leur casse intacte (copie depuis le dépôt Git ou une archive, jamais par un outil qui renomme) :
-   - `batman_RadioSurvivor` **par le Workshop**, comme sur le serveur de
+   - `batman_CoreAI`, `batman_RadioSurvivor` et `batman_LivingKnox` **par le Workshop**, comme sur le serveur de
      l'utilisateur : `WorkshopItems=` dans l'`.ini`, donc dans `<serveur>/steamapps/workshop/content/108600/`,
      **dans** le dossier du jeu (cas où un chemin relatif peut passer en minuscules, base `file-path-case.md`). Si
      la version à essayer n'est pas encore publiée, une copie sous `~/Zomboid/mods/` est acceptable, mais ce cas
      n'est alors pas couvert : le noter dans le relevé ;
-   - `batman_RadioSurvivorTests` (jamais publié) copié dans `~/Zomboid/mods/batman_RadioSurvivorTests`.
+   - les mods de test (jamais publiés) `batman_CoreAITests`, `batman_LivingKnoxTests` et `batman_RadioSurvivorTests`
+     copiés dans `~/Zomboid/mods/`.
    Vérifier la casse sur place : `find <dossier du mod> -path '*media*' -type d | sort` doit montrer `media`,
    `AnimSets/zombie/idle`, `pathfind`, `walktoward`, `walktoward-network`, `lua/shared/Translate/EN`, `FR`…
 3. Configuration `rstest_linux.ini`, sur le modèle de `tests/run_dedicated_smoke.ps1` :
-   `Mods=\batman_RadioSurvivor;\batman_RadioSurvivorTests` (plus les IDs Workshop
+   `Mods=\batman_CoreAI;\batman_LivingKnox;\batman_RadioSurvivor;\batman_CoreAITests;\batman_LivingKnoxTests;\batman_RadioSurvivorTests`
+   (précédés des mods requis ; plus les IDs Workshop
    dans `WorkshopItems=`), `PauseEmpty=true`, sandbox par défaut. Le nom du serveur doit commencer par `rstest`
    (suites `world`, § 5) : lancer avec `-servername rstest_linux`. Donner au compte de test le rôle `admin`
    (capacité `DebugConsole`, § 3) ; le mode debug est exigé du client (§ 2).
@@ -831,7 +850,7 @@ Les vérifications sont faites **par le serveur**, sur l'état réel du carnet e
 | Suite | Quand | Ce qu'elle vérifie |
 |---|---|---|
 | `rs.identity` | à tout moment (aussi dans `"rs"` et l'exécution automatique) | fiches bien formées ; chaque joueur en ligne lié à une identité utilisable de son compte ; aucune identité partagée ni retirée en usage ; membres des missions connus |
-| `rs.identity.before` | avant chaque action manuelle | relève, pour chaque compte en ligne, l'identité, les notes, les missions engagées ou invitées et leur chrono, le monde, la session et l'heure, dans `<cache>\Lua\batman_RadioSurvivor\tests\identity-snapshot.txt` (fichier de test, pas l'état du carnet) |
+| `rs.identity.before` | avant chaque action manuelle | relève, pour chaque compte en ligne, l'identité, les notes, les missions engagées ou invitées et leur chrono, le monde, la session et l'heure, dans `<cache>\Lua\batman_CoreAITests\tests\identity-snapshot.txt` (fichier de test, pas l'état du carnet) |
 | `rs.identity.after-reconnect` | après une reconnexion | même session ; même identité (ModData serveur et liaison) ; notes et engagements ; chrono écoulé pendant la déconnexion (± 5 s) |
 | `rs.identity.after-restart` | après un redémarrage | nouvelle session du même monde ; même identité, notes, engagements ; chrono sans le temps d'arrêt |
 | `rs.identity.after-death` | après la mort de A et son nouveau personnage | ancienne identité retirée et inutilisée ; nouvelle identité du même compte sans les anciennes missions ni notes ; B garde identité et missions |
@@ -848,7 +867,7 @@ relevé et `quit` : un arrêt de plus de 2 minutes est donc nécessaire pour le 
    `powershell -ExecutionPolicy Bypass -File RadioSurvivor/tests/run_dedicated_smoke.ps1 -Manual`. Noter le chemin
    `RS_SMOKE_CACHE=`. Le serveur est en `-nosteam` et n'écoute que `127.0.0.1` : les deux clients tournent sur ce PC,
    lancés en `-debug -nosteam`, le second avec un `-cachedir` distinct (deux instances sur un PC : non essayé).
-2. Clients : mêmes versions de `batman_RadioSurvivor` et `batman_RadioSurvivorTests`
+2. Clients : mêmes versions des trois mods et des trois mods de test
    (§ 1) que le dépôt. A = `rs_smoke_admin` / `local-smoke-only` (rôle admin, donc `RST.server`) ; B = un nouveau
    compte.
 3. A et B créent un personnage. Console Lua de A : `RST.server('rs.identity')` → `OK`.
@@ -873,9 +892,9 @@ relevé et `quit` : un arrêt de plus de 2 minutes est donc nécessaire pour le 
 ### Relever
 
 - Le résumé de chaque passage (console de A) et le rapport complet
-  `<cache>\Lua\batman_RadioSurvivor\tests\<horodatage>-server.txt` avec ses lignes `note:` (identités avant et après,
+  `<cache>\Lua\batman_CoreAITests\tests\<horodatage>-server.txt` avec ses lignes `note:` (identités avant et après,
   temps consommé, durée d'arrêt), ainsi que `identity-snapshot.txt`.
-- `<cache>\server-console.txt` : version `42.21.x`, `[RS_Carnet] authoritative state ready` à chaque démarrage,
+- `<cache>\server-console.txt` : version `42.21.x`, `[CoreAI] notebook: authoritative state ready, NPC provider=…` à chaque démarrage,
   aucune erreur Lua de `RadioSurvivor/` ou `RST/`.
 - Avec un fournisseur : dans le carnet de B, la mission commune reste active après la mort de A.
 
@@ -1195,7 +1214,7 @@ ligne `[RadioSurvivor] WARN: Belt Walkie-Talkie`).
 
 Écart à signaler : une clé `IGUI_RS_…` affichée telle quelle, une ligne en double, une fréquence jamais réglée dans la
 liste, le point orange qui reste allumé après lecture de l'onglet Radio, une erreur Lua de `RS_RadioLog`,
-`RS_RadioHistory` ou `RS_Notebook`, un refus rouge « Laissez-lui le temps de répondre. » en parlant normalement.
+`RS_RadioHistory`, `RS_NotebookRadio` ou `CA_Notebook`, un refus rouge « Laissez-lui le temps de répondre. » en parlant normalement.
 Différé (cas limites) : radio portée sur le dos (réglage par l'action vanilla,
 ⚠ non vérifié en jeu), plus de 8 fréquences, réception brouillée (texte altéré : ligne non reconnue, ⚠ attendu). MP
 (séance finale, E06-T05) : deux joueurs sur la même fréquence et sur deux fréquences, reconnexion, aucun historique de
@@ -1246,7 +1265,7 @@ couleurs, textures chargées) n'est vérifiable qu'en jeu.
 
 Écart à signaler : texte clair illisible sur le papier, texte qui sort de sa colonne ou d'un marque-page, clé
 `IGUI_RS_…` affichée telle quelle, touches du jeu bloquées après un envoi, point orange qui ne s'éteint pas à la
-sélection, erreur Lua de `RS_Notebook`. Différé (cas limites) : manette (le carnet n'a pas de navigation manette,
+sélection, erreur Lua de `CA_Notebook` ou d'un onglet (`CA_Notebook*`, `RS_NotebookRadio`). Différé (cas limites) : manette (le carnet n'a pas de navigation manette,
 ⚠ inchangé), fenêtre de livraison et liste d'invitation restées au style vanilla (⚠), radio posée ou autoradio
 (la ligne « Dire : » n'utilise que le talkie porté, ⚠).
 
@@ -1481,7 +1500,7 @@ après le passage en anglais, une ligne qui sort de la page ou chevauche la suiv
 
 ## 14. Carnet avec un PNJ Living Knox (E17-T03)
 
-Fournisseur `shared/RadioSurvivor/RS_LivingKnox.lua` ([carnet-implementation-04221.md](../conception/carnet-implementation-04221.md),
+Fournisseur `shared/LivingKnox/LK_NotebookProvider.lua` de Living Knox, interface `CA_NPCProvider` du mod commun ([carnet-implementation-04221.md](../conception/carnet-implementation-04221.md),
 « Fournisseur Living Knox »). Hors jeu : `tests/test_carnet.py` (`LivingKnoxCarnetTests` : vrai moteur, vrai pont
 hors ligne), `tests/test_observations.py`, `tests/test_protocol.py` (`scenario_supply_offer`).
 
@@ -1490,7 +1509,7 @@ pas fait : l'essai relie à la main un PNJ créé par `LKB.spawn` à un membre v
 
 **Préparation** (solo, partie `rstest*` neuve, options Living Knox `Enabled` et sandbox par défaut, mod de
 développement, jeu en `-debug`, pont lancé, `--offline` suffit). Journal au chargement :
-`[RS_NPCProvider] provider livingknox registered` puis `NPC provider=livingknox, available=true`, et
+`[CA_NPCProvider] provider livingknox registered` puis `[CoreAI] notebook: authoritative state ready, NPC provider=livingknox`, et
 `population: N group(s) created`. Console Lua :
 
 1. `LKB.spawn(2, 0)` puis `LKB.list()` : relever l'identifiant `lk-<n>` du PNJ créé à 2 cases.
@@ -1510,14 +1529,14 @@ objets réels ; note `grp-<n>-food-<k>: food level 20, 60 V left`).
 3. Accepter, puis livrer 31 conserves : refus « Trop d'objets », rien ne disparaît. Livrer 10 conserves : confirmation
    « 10 objet(s) d'une valeur de 20 points », progression `20 / 60` ; console : `print(LivingKnox.API.getGroup("grp-<n>").needs.food)` → 25.
 4. Livrer 20 conserves : mission réussie, réserve 35 ; « Réclamer » donne 2 antibiotiques ; journal du groupe :
-   `supply food +10 (..., 40 V), gives 2 Base.Antibiotics, done` ; `print(LivingKnox.API.attitude("grp-<n>", RS_CarnetServer.bound[getPlayer()]).trend)` → `up`.
+   `supply food +10 (..., 40 V), gives 2 Base.Antibiotics, done` ; `print(LivingKnox.API.attitude("grp-<n>", CoreAI.notebookServer.bound[getPlayer()]).trend)` → `up`.
 5. Tuer le PNJ : ligne `[LivingKnox] INFO npc lk-<n> died ...` ; dans le carnet, contact « Mort », Ctrl+G ne le
    sélectionne plus.
 
 Écart à signaler : une réserve qui monte deux fois pour une même livraison, un objet retiré sans progression, une
 offre `first_aid_v1` statique (bandages) chez un PNJ Living Knox, un secret de l'histoire ou une coordonnée dans
-`requests.txt` (pont réel : prompt du journal du pont), une erreur Lua de `RS_LivingKnox`, `CA_Missions` ou
-`RS_Carnet_Server`. À deux clients (sélection sur la copie cliente, offre propre à chaque personnage, livraison
+`requests.txt` (pont réel : prompt du journal du pont), une erreur Lua de `LK_NotebookProvider`, `CA_Missions` ou
+`CA_NotebookServer`. À deux clients (sélection sur la copie cliente, offre propre à chaque personnage, livraison
 commune) : séance MP finale.
 
 ### Accord de faction avec un groupe (E09-T05, solo, court)
