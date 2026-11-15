@@ -1,5 +1,5 @@
 --[[
-rs.carnet.lk - Living Knox provider of the notebook (E17-T03, shared/RadioSurvivor/RS_LivingKnox.lua) on the running
+rs.carnet.lk - Living Knox provider of the notebook (E17-T03, shared/LivingKnox/LK_NotebookProvider.lua) on the running
 engine: provider registered when Living Knox is enabled, bodies loaded here named by their stable NPC id "lk-<n>",
 records of the authority (signature, group "grp-<n>", name), public context for the LLM without any story secret or
 home, and (suite rs.carnet.lk.supply) the supply offers of the groups checked against the real item scripts.

@@ -3,7 +3,7 @@
     python tests/test_lk_leave.py
 
 Banc lupa (Lua 5.1, `next` retiré comme dans Kahlua) : vrai serveur du carnet (`CA_NotebookServer.lua`), vrais
-`RS_Factions.lua` et fournisseur `RS_LivingKnox.lua`, moteur Living Knox réel (registre des groupes, `LK_API`,
+`RS_Factions.lua` et fournisseur `LK_NotebookProvider.lua`, moteur Living Knox réel (registre des groupes, `LK_API`,
 population) et vrai pont hors ligne (`RS_OFFLINE_INTENT=leave_group`, drapeau du banc qui tient lieu d'un modèle qui
 décide de partir, jamais tiré des mots du joueur). Doublures : `LivingKnox.Sites.pick` (site fixe loin du foyer : la
 recherche réelle est prouvée par test_lk_sites.py) et, pour le départ physique, `LivingKnox.Directives.moveTo` (la
@@ -118,7 +118,7 @@ class LeaveGroupTests(unittest.TestCase):
         # The loner group is named after the NPC (name kept), never drawn by the population.
         fiche = self.server.find(self.g.LK_MATE)
         self.assertEqual(g.name, fiche.name)
-        self.assertEqual(self.g.RS_LivingKnox.npc(self.g.LK_MATE).name, fiche.name)
+        self.assertEqual(self.g.LivingKnox.NpcProvider.npc(self.g.LK_MATE).name, fiche.name)
         weights = self.rt.eval('LivingKnox.Population.typeWeights(LivingKnox.Config.population())')
         self.assertNotIn('loners', [w.id for w in lua_list(weights)])
         # Site far from the old home (Sites.pick with the loners type), physical departure toward it.
@@ -192,7 +192,7 @@ class LeaveGroupTests(unittest.TestCase):
         self.g.SITE_FAIL, self.g.MOVE_FAIL = False, True
         self.talk(self.g.LK_MATE, 'Pars.')
         self.assertNotEqual(self.G.findNpc(self.g.LK_MATE)[0], old)
-        self.assertEqual(count(self.g.MOVES), len(lua_list(self.rt.eval('RS_LivingKnox.WALK_STEPS'))))
+        self.assertEqual(count(self.g.MOVES), len(lua_list(self.rt.eval('LivingKnox.NpcProvider.WALK_STEPS'))))
         self.assertTrue(any('walk away failed: target square is not loaded' in line for line in self.logs()))
 
     def test_truces_kept_without_renegotiation(self):
@@ -232,7 +232,7 @@ class LeaveGroupTests(unittest.TestCase):
     def test_home_options_ring_around_the_old_home(self):
         # E10-T05: ring around the old home, values read from LivingKnox.Config.LEAVE at each departure.
         self.world('opts')
-        options = self.rt.eval('RS_LivingKnox.homeOptions')
+        options = self.rt.eval('LivingKnox.NpcProvider.homeOptions')
         o = convert(options('npc-9', self.G.get(self.g.LK_GROUP)))
         self.assertEqual(o, {'seed': 'leave/npc-9', 'near': {'x': 10637, 'y': 9412, 'min': 400, 'max': 1200}})
         self.rt.execute('LivingKnox.Config.LEAVE = {HOME_MIN = 150, HOME_MAX = 600}')

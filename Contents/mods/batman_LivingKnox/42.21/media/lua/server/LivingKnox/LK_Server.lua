@@ -20,7 +20,7 @@ require "LivingKnox/Decisions/LK_Decide_Defence"   -- LK16-T06 : reddition, retr
 require "LivingKnox/Decisions/LK_Decide_Post"      -- LK16-T06 : guet et ronde
 require "LivingKnox/LK_Routines"      -- LK05-T03 : postes, rondes, relèves et sommeil (appelé par LK_Decisions)
 require "LivingKnox/LK_Talk"          -- E18-T17 : file des demandes de parole des PNJ
-require "LivingKnox/LK_TalkAlone"     -- E18-T18 : hôte de la parole sans RadioSurvivor
+require "LivingKnox/LK_MissionRewards" -- E18-T29 : lot des missions de ses PNJ (source inscrite dans le moteur commun)
 local WorldStart = require "CoreAI/CA_WorldStart"   -- monde neuf : signal de la radio (serveur dédié)
 
 local Server = LivingKnox.Server or {}

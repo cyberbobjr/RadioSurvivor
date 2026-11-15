@@ -1,5 +1,5 @@
 """Bavardages entre membres d'un groupe à leur foyer (E18-T32) : vrai serveur du carnet, vrai moteur Living Knox
-(registres, corps, parole), vrai fournisseur RS_LivingKnox.lua, vraies conversations (LK_Conversations), vrai pont hors
+(registres, corps, parole), vrai fournisseur LK_NotebookProvider.lua, vraies conversations (LK_Conversations), vrai pont hors
 ligne ; lupa, Lua 5.1.
 
     python tests/test_chatter.py

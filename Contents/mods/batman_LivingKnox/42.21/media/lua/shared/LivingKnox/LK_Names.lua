@@ -1,6 +1,6 @@
 --[[
 Living Knox: name of an NPC as players read it (E18-T26; drawn the same way since E17, formerly inside the notebook
-adapter RS_LivingKnox). Read only, any machine that holds the registries (the authority).
+provider LK_NotebookProvider). Read only, any machine that holds the registries (the authority).
 
     Names.of(id) -> { name, group = group id or '', groupName, female, g, mid } | nil (unknown NPC)
 

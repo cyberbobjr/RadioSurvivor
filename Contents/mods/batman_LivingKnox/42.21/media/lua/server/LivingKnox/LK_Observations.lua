@@ -1,6 +1,6 @@
 -- Living Knox : observations personnelles des PNJ (E08-T02, ADR B11 ; dans Living Knox depuis E18-T27).
--- Journal borné par interlocuteur de la parole des PNJ (fiche de l'hôte de LK_Talk : fiche du carnet de RadioSurvivor,
--- ou interlocuteur de Living Knox seul, LK_TalkAlone ; créée au contact seulement) : ce que le PNJ a vu lui-même ou
+-- Journal borné par interlocuteur de la parole des PNJ (fiche de l'hôte de LK_Talk : fiche du carnet du mod
+-- commun ; créée au contact seulement) : ce que le PNJ a vu lui-même ou
 -- entendu d'un autre PNJ. Une observation n'est jamais une preuve d'action : elle est jointe aux demandes PNJ (champ
 -- observations=, docs/specifications-techniques/protocole-carnet-v2.md « Observations des PNJ ») et le pont la présente
 -- comme un souvenir non vérifié, comme les propos des joueurs. Aucun système de rumeurs.

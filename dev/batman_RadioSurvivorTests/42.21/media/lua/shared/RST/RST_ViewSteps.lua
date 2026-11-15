@@ -172,11 +172,14 @@ end)
 
 -- ---------------------------------------------------------------- lk.talk.say, lk.talk.bubble (E18-T18)
 
--- The real say chat of this client: the sentence reaches the server through LK_TalkView (OnAddMessage).
+-- A sentence of the say chat of this client (E21-T05): said by the vanilla say chat, then sent by the notebook client
+-- of the core mod as its chat wrapper does (no selected target: the nearest NPC).
 Steps.on("lk.talk.say", function(args)
-    if LivingKnox == nil or LivingKnox.TalkView == nil then return Steps.fail("LivingKnox.TalkView is not loaded here") end
+    local Client = CoreAI and CoreAI.notebookClient
+    if Client == nil or Client.talk == nil then return Steps.fail("notebook client of the core mod not loaded here") end
     if type(processSayMessage) ~= "function" then return Steps.fail("no say chat here") end
     processSayMessage(tostring(args.text))
+    if not Client.talk(tostring(args.text), false, true) then return Steps.fail("sentence not sent") end
     return Steps.pass("said")
 end)
 

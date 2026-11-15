@@ -145,7 +145,7 @@ RST.suite("lk.debugview", { tags = { "world", "server" }, testTimeoutMs = 120000
             t2:eq(true, m2.embodied, "m-2 embodied")
             t2:ok(type(m2.needs) == "table" and type(m2.needs.hunger) == "number", "needs missing")
             -- LK13-T15: displayed name of each member and table cells of the panel (client module, solo only).
-            if RS_LivingKnox ~= nil then t2:ok(type(m2.name) == "string", "displayed name of m-2 missing") end
+            if LivingKnox.NpcProvider ~= nil then t2:ok(type(m2.name) == "string", "displayed name of m-2 missing") end
             local V = E.DebugView
             if V ~= nil and V.memberCells ~= nil then
                 local cells = V.memberCells(m2)

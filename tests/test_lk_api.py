@@ -987,8 +987,6 @@ class StoryEnrichTests(Base):
 
     def test_without_radiosurvivor_no_call_no_error(self):
         # Le banc ne charge aucun fichier de RadioSurvivor : le moteur seul lit le gabarit et n'écrit rien.
-        self.assertIsNone(self.ev('RS_LivingKnox'))
-        self.assertIsNone(self.ev('RS_NPCProvider'))
         self.h.advance(24 * 60)
         for _ in range(3):
             self.h.fire(self.srv, 'OnTickEvenPaused', 0.0)  # h.tick lancerait les OnTick d'autres modules

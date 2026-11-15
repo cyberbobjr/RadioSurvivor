@@ -3,7 +3,7 @@
     python RadioSurvivor/tests/test_lk_removed.py
 
 Real notebook server and client (CA_NotebookServer, CA_NotebookClient), real Living Knox engine in the first session (registries,
-API, LK_PersonalRelation, provider RS_LivingKnox.lua), same save folder for every session. Second session: Living Knox
+API, LK_PersonalRelation, provider LK_NotebookProvider.lua), same save folder for every session. Second session: Living Knox
 is not on the module path (as when the player unticks it): the notebook must start, keep its character, show its
 contacts (the fiche of a Living Knox NPC stays, without relation level), refuse to talk to an NPC that no longer
 exists, and run its ticks and daily purge without a Lua error. E18-T26: its contact is hidden, its fiche kept, and

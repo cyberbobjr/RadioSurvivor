@@ -17,7 +17,7 @@
 -- choisi les auditeurs : aucune règle d'audition refaite ici. L'ancienne bulle addLineChatElement (ChatElement du
 -- zombie) n'a pas été vue en jeu le 2026-10-11 ; aucune cause trouvée dans le Java (fiche parole.md) : le dessin par le
 -- mod ne dépend plus de cet état, et sa trace (stats.drawn, lastDraw) se lit depuis Lua.
--- View.show(corps, texte, couleur) sert aussi aux réponses du carnet (RS_LivingKnox.bubble).
+-- View.show(corps, texte, couleur) sert aussi aux réponses du carnet (LivingKnox.NpcProvider.bubble).
 -- Morceaux (E17-T13) : un texte de plus de PIECE caractères (réponse du carnet : jusqu'à 1600 octets) est découpé par
 -- CA_TextCut.pieces (fin de phrase, sinon virgule, sinon entre deux mots, jamais dans un mot) et ses morceaux sont
 -- affichés l'un après l'autre sur le même corps, chacun pendant sa durée de lecture. Un texte reçu pour un corps

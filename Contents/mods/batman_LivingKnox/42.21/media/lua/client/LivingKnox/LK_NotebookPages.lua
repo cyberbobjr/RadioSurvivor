@@ -8,10 +8,11 @@ Living Knox's part of the notebook of the core mod (CoreAI/CA_Notebook). Client 
 - E18-T26: the relation panel of one of its NPCs toward the reader's character (LK_PersonalRelation.panel, kept by
   Living Knox since E18-T21): the server sends identifiers and game days only, every word is translated here
   (IGUI_LK_Rel*); an unknown identifier (newer server) falls back to a generic word, never a raw key. Used by the
-  Contacts page of a Living Knox NPC (Notebook.contactPages.lk) and by RadioSurvivor's notebook pages
-  (Notebook.relationLines, Notebook.relationLevel).
+  Contacts page of a Living Knox NPC (Notebook.contactPages[name of the provider], E21-T05) and by the other notebook
+  pages that show a relation (Notebook.relationLines, Notebook.relationLevel).
 ]]
 local Notebook = require 'CoreAI/CA_Notebook'
+local Provider = require 'LivingKnox/LK_NotebookProvider'
 
 Notebook.reputationReasons['npc.memberKilled'] = 'IGUI_LK_RepReason_MemberKilled'
 
@@ -65,8 +66,8 @@ function Notebook.relationLines(rel)
     return out
 end
 
--- Contacts page of a Living Knox NPC (source "lk" of the core contacts, Living Knox without RadioSurvivor).
-Notebook.contactPages.lk = function(_, row, line)
+-- Contacts page of a Living Knox NPC (row.page = name of the active NPC provider, CA_NotebookServer).
+Notebook.contactPages[Provider.name] = function(_, row, line)
     line(tr('RelTitle'))
     for _, s in ipairs(Notebook.relationLines(row.relation)) do line(s) end
 end

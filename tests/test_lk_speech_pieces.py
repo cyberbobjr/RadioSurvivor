@@ -90,8 +90,8 @@ class BubblePiecesTests(SpeechBase):
 
     def test_notebook_answer_goes_through_the_same_pieces(self):
         self.h.load('solo', 'shared/CoreAI/CA_NPCProvider.lua')
-        self.h.load('solo', 'shared/RadioSurvivor/RS_LivingKnox.lua')
-        self.run_lua(f'RS_LivingKnox.bubble(LivingKnox.Bodies.find("lk-1"), {lua_str(ANSWER)}, 25)')
+        self.h.load('solo', 'shared/LivingKnox/LK_NotebookProvider.lua')
+        self.run_lua(f'LivingKnox.NpcProvider.bubble(LivingKnox.Bodies.find("lk-1"), {lua_str(ANSWER)}, 25)')
         pieces = [p for p, _ in self.read_all()]
         self.assertGreater(len(pieces), 2, pieces)
         self.assertTrue(all(ends_sentence(p) for p in pieces), pieces)

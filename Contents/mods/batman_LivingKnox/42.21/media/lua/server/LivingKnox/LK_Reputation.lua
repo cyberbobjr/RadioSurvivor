@@ -6,7 +6,7 @@ character in the core mod, each mod reports its own facts). Authority only.
 npc.memberKilled (E04-T09, Q5): a member of a group killed by a player the server attributes (fact npcDied of
 LK_Bodies.onZombieDead: killer account from the death cause) costs CA_ReputationConfig.memberKilled to this character
 only, once per death (eventId lk-<npc>-g<generation>-memberKilled-<character>), unless the death of the same body was
-already charged as npc.requesterKilled (RadioSurvivor, provider 'death' event of the same call: CA_Reputation
+already charged as npc.requesterKilled (notebook of the core mod, provider 'death' event of the same call: CA_Reputation
 .chargedFor). Killer: living player of the account (LK_Bodies.livingPlayers, as LK_Relations.playerByName), then its
 bound identity (CA_Identity.of, as LK_Hostility.keyOf). Never a client claim, no penalty by proximity.
 ]]

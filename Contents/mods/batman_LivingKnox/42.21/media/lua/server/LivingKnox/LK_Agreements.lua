@@ -2,7 +2,7 @@ if isClient() then return end
 --[==[
 Living Knox: agreements between one of its groups ('grp-<n>') and a team of players ('fac-<n>', CA_Teams of the core
 mod), personal truces kept by an NPC who left its group, and incidents of an agreement (E09-T05, E09-T06, E10-T04;
-kept by Living Knox since E18-T20, user decision of 2026-11-06, moved from RadioSurvivor's RS_Factions, rules
+kept by Living Knox since E18-T20, user decision of 2026-11-06, moved from the radio mod, rules
 unchanged). Authority only. Fiches: docs/annexes/conception/accords.md, incidents.md, depart.md.
 
 Kinds, from the weakest: truce, alliance; both impose non-aggression in their scope (ADR B08), neither changes the
@@ -17,7 +17,7 @@ only implementation; a concluded agreement is 'pending' until A.pollApplications
 embodied member of the group (LivingKnox.Decisions.aims), that none of them aims at a covered player; it is then
 'applicable' and only then announced (by the caller).
 Until E18-T17 the speech of the NPCs (offer in the context, intent of the model, incident decision asked to the leader)
-is still carried by RadioSurvivor's notebook, which calls this module through LivingKnox.Agreements.
+was carried by the notebook, which calls this module through LivingKnox.Agreements.
 
 Private state, two slot files written in turn (CA_SlotFile): Zomboid/Lua/batman_LivingKnox/agreements-<hex of
 "mode/world">-<0|1>.txt, header LKAGR1, data = { schema = 1, agreementCounter, agreements = { ['<group>|<team>'] =
@@ -376,7 +376,7 @@ end
 -- rule 1 of the target choice; every other member of the team stays covered, a third player is not concerned.
 -- A member's riposte is never an initial aggression: a member's own attack writes no fact here, and the hit of a
 -- covered player on a member that is aiming at that player right now (LivingKnox.Decisions.aims) opens nothing.
--- Decision: asked to the model through the fiche of the group leader by the notebook (RS_Incidents.lua) once the facts
+-- Decision: asked to the model through the fiche of the group leader by the speech of the NPCs (LK_Incidents) once the facts
 -- settled (SETTLE_MS), bound to the incident revision and to the agreement revision; F.decideIncident applies a valid
 -- decision once (maintain, repair in a stock category allowed by the server, break): the agreement revision goes up
 -- by one, the incident is closed. A reply built on an older revision (new aggression meanwhile) is refused and the
@@ -713,9 +713,9 @@ Teams.onDrop(function(team)
     if #gone > 0 then F.dirty = true end
 end)
 
--- Application poll of Living Knox itself (E18-T20: with or without RadioSurvivor), once a second: every agreement
--- that became applicable is handed to the listeners (F.onApplied(fn): fn(agreement copy)), e.g. RadioSurvivor's
--- notebook that announces it to the online players of the team.
+-- Application poll of Living Knox itself (E18-T20: whatever the other mods), once a second: every agreement
+-- that became applicable is handed to the listeners (F.onApplied(fn): fn(agreement copy)), e.g. the
+-- notices that announce it to the online players of the team.
 F.appliedListeners = F.appliedListeners or {}
 function F.onApplied(fn)
     for _, f in ipairs(F.appliedListeners) do if f == fn then return end end

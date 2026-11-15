@@ -1,10 +1,12 @@
---[[ Living Knox provider of the notebook (E17-T03): implements CA_NPCProvider on the Living Knox engine of this mod.
+--[[ Living Knox provider of the notebook of the core mod (E17-T03, E21-T05): implements CA_NPCProvider on the Living
+Knox engine of this mod. Global LivingKnox.NpcProvider.
 
-Registration: when Living Knox is enabled (sandbox LivingKnox.Enabled), at OnInitGlobalModData (authority: sandbox
-already read, before CA_NotebookServer.init, which is subscribed later because server files load after shared ones),
-OnGameStart and OnServerStarted (idempotent). Disabled: nothing is registered, the notebook keeps its empty provider
-("No NPC engine active"). One NPC engine per server (decision of 2026-10-03): when another provider already holds
-CA_NPCProvider, Living Knox is NOT registered a second time; a console warning names the active provider.
+Registration: always, whatever the other active mods, when Living Knox is enabled (sandbox LivingKnox.Enabled), at
+OnInitGlobalModData (authority: sandbox already read, before CA_NotebookServer.init, which is subscribed later because
+server files load after shared ones), OnGameStart and OnServerStarted (idempotent). Disabled: nothing is registered, the
+notebook keeps its empty provider ("No NPC engine active"). One NPC engine per server (decision of 2026-10-03): when
+another provider already holds CA_NPCProvider, Living Knox is NOT registered a second time; a console warning names the
+active provider.
 
 Identity: the provider id IS the Living Knox NPC id "lk-<n>" (never reused, LK_Identity), the same on the server and
 on every client; it survives re-embodiments (a new body of the same NPC keeps its id), so no 'reincarnated' event is
@@ -14,8 +16,9 @@ ever emitted. signature = "lk:" .. id. A body is the current zombie of the NPC:
                             server (same onlineId, reanimated player): zombie ModData never reach a client.
 Record (Provider.npc, authority): name = story leader name for the current leader of a group with a story, otherwise
 a name drawn from the story name lists with the NPC number as seed (registry keeps no member name in API version 1);
-group = "grp-<n>" ('' without group); groupName = name of the group (nil without group); hostile = start attitude level of the group type is "hostile" (nil without
-group: unknown, no offer); traits from the group member (smoker, drinker -> alcoholic, tidy -> compulsiveCleaner).
+group = "grp-<n>" ('' without group); groupName = name of the group (nil without group); hostile = start attitude
+level of the group type is "hostile" (nil without group: unknown, no offer); traits from the group member (smoker,
+drinker -> alcoholic, tidy -> compulsiveCleaner).
 Death: LivingKnox.Bodies.onDied (authority) emits Provider 'death' (id, body, cause).
 
 Supplies (optional provider operations, CA_NPCProvider header): offers of LivingKnox.API.missionOffers for the
@@ -42,22 +45,15 @@ its last attitude facts (LivingKnox.API.attitude, API.attitudeFacts), keys 'att:
 Shared notebook (E21-T04): isBody, speech and the relation operations (LK_NotebookRelations), section below.
 Group radios (E08-T06, authority): Provider.radios = groups holding a transmitter a living member can use now (group
 type format 2: homeRadio, profile radio), with the NPC who answers; never a home nor a position.
-
-Shipped by Living Knox (E18-T09): this file lives in batman_LivingKnox and registers in the notebook only when
-RadioSurvivor (batman_RadioSurvivor) is an active mod; without it no RadioSurvivor module is required, RS_LivingKnox
-stays nil and the same functions serve the speech of Living Knox alone (LivingKnox.NpcProvider, LK_TalkAlone, E18-T18).
 ]]
 require 'LivingKnox/LK_Core'
 require 'LivingKnox/LK_Config'
+local P = require 'CoreAI/CA_NPCProvider'
 
--- Without RadioSurvivor: no RadioSurvivor module is required, RS_LivingKnox stays nil and nothing is registered.
-local P = LivingKnox.radioSurvivorActive() and require('CoreAI/CA_NPCProvider') or nil
+local LK = {name = 'livingknox'} -- name: key of the contact page of its NPCs in the notebook (LK_NotebookPages)
+LivingKnox.NpcProvider = LK
 
-local LK = {name = 'livingknox'}
-LivingKnox.NpcProvider = LK -- E18-T18: provider of the speech of Living Knox alone
-if P then RS_LivingKnox = LK end
-
-local TAG = '[RS_LivingKnox] '
+local TAG = '[LK_NotebookProvider] '
 LK.LONER_TYPE = 'loners' -- E10-T04: group type of an NPC who left its group (Data/LK_Type_loners.lua)
 local ID_PATTERN = '^lk%-%d+$'
 local TRAITS = {smoker = 'smoker', drinker = 'alcoholic', tidy = 'compulsiveCleaner'}
@@ -593,7 +589,6 @@ LK.state = state
 
 -- Registers the provider once Living Knox is enabled. Returns true when Living Knox is the active provider.
 function LK.install()
-    if not P then return false end
     if state.installed then return P.active() == LK end
     local E = engine()
     if type(E) ~= 'table' or type(E.Config) ~= 'table' or not E.Config.isEnabled() then return false end

@@ -1,5 +1,5 @@
 """Conversations entre deux PNJ proches (E08-T04, ADR B11) : vrai serveur du carnet, vrai moteur Living Knox (registres,
-API, corps, parole LK11-T04), vrai fournisseur RS_LivingKnox.lua, deux clients, vrai pont hors ligne ; lupa, Lua 5.1.
+API, corps, parole LK11-T04), vrai fournisseur LK_NotebookProvider.lua, deux clients, vrai pont hors ligne ; lupa, Lua 5.1.
 
     python tests/test_conversations.py
 

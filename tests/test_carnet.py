@@ -452,7 +452,7 @@ ISDPadWheels = ISDPadWheels or {onDisplayRight = function() end}
 
 
 # Living Knox in the notebook bench (E17-T03). Server: the REAL engine (LK_Server and its registries in the exchange
-# folder, LK_Stories, LK_API) and the real provider RS_LivingKnox.lua; bodies are tagged reanimated-player doubles put
+# folder, LK_Stories, LK_API) and the real provider LK_NotebookProvider.lua; bodies are tagged reanimated-player doubles put
 # in the cell zombie list and bound like LK_Bodies.examine does (no scan). Client: the real provider over a roster
 # double of LK_ZombieGuard (server roster onlineId -> NPC id, local copies found by the guard). Game clock: world age
 # in hours (WORLD_HOURS). Doubles only: no Java API is proven here.
@@ -504,7 +504,7 @@ LK_SERVER_LOAD = r'''
 for _, m in ipairs({'LivingKnox/LK_Core', 'LivingKnox/LK_Config', 'LivingKnox/LK_Log', 'LivingKnox/LK_Appearance',
         'LivingKnox/LK_Identity', 'LivingKnox/LK_GroupTypes', 'LivingKnox/Data/LK_Type_neutrals',
         'LivingKnox/Data/LK_Type_raiders', 'LivingKnox/Data/LK_Type_settlers', 'LivingKnox/Data/Stories',
-        'RadioSurvivor/RS_LivingKnox', 'LivingKnox/LK_Server', 'LivingKnox/LK_Stories', 'LivingKnox/LK_API',
+        'LivingKnox/LK_NotebookProvider', 'LivingKnox/LK_Server', 'LivingKnox/LK_Stories', 'LivingKnox/LK_API',
         'LivingKnox/LK_Agreements', -- E18-T20: agreements of Living Knox (loaded with every server file in the game)
         'LivingKnox/LK_AgreementNotices', -- E21-T04: their notices to the team
         'LivingKnox/LK_Reputation', 'LivingKnox/LK_PersonalRelation'}) do
@@ -531,7 +531,7 @@ require 'LivingKnox/LK_Core'
 require 'LivingKnox/LK_Config'
 require 'LivingKnox/LK_Log'
 LivingKnox.ZombieGuard = {roster = {rev = 1, count = 0, byId = {}, byOnline = {}, byOutfit = {}}, cache = {}}
-require 'RadioSurvivor/RS_LivingKnox'
+require 'LivingKnox/LK_NotebookProvider'
 '''
 
 
@@ -567,7 +567,7 @@ class Simulation:
                  radio_new_world=None,
                  provider=True, living_knox=False, server_globals=None, speech=True, rs_hooks=True):
         """living_knox=True (E17-T03): no fake provider; the real Living Knox engine (registries, API, bodies) and its
-        notebook provider RS_LivingKnox.lua are loaded on the server, the provider and a roster double of
+        notebook provider LK_NotebookProvider.lua are loaded on the server, the provider and a roster double of
         LK_ZombieGuard on each client (see LK_SERVER_STUBS / LK_CLIENT_STUBS). speech=False (E21-T04): the fake
         provider has no speech engine (LK_Talk not loaded, no LivingKnox global). rs_hooks=False (E21-T04): the notebook
         server without what RadioSurvivor registers in it (RS_NotebookHooks)."""
@@ -647,7 +647,7 @@ class Simulation:
         if self.living_knox:
             c.rt.execute(LK_CLIENT_STUBS)
             c.rt.execute(LK_CLIENT_LOAD)
-            c.g.RS_LivingKnox.install()
+            c.g.LivingKnox.NpcProvider.install()
             c.load('client/LivingKnox/LK_AgreementNoticesView.lua')  # E21-T04: notices of the agreements and incidents
         c.load('client/CoreAI/CA_NotebookClient.lua')
         c.g.CoreAI.notebookClient.installChat()
@@ -1700,7 +1700,7 @@ LK_LONER = lkNpc(18)
 
 class LivingKnoxCarnetTests(unittest.TestCase):
     """E17-T03 : parcours du carnet 0.2 rejoué avec un PNJ de Living Knox (vrai moteur : registres, API, corps,
-    histoires, attitudes ; vrai fournisseur RS_LivingKnox.lua ; vrai pont hors ligne) : sélection Ctrl+G sur la copie
+    histoires, attitudes ; vrai fournisseur LK_NotebookProvider.lua ; vrai pont hors ligne) : sélection Ctrl+G sur la copie
     cliente, conversation avec le contexte public du groupe, offre M01 tirée d'un besoin réel, acceptation, livraisons
     en points de valeur qui remontent la réserve une seule fois, réputation et fait d'attitude, lot du moteur, mort du
     PNJ qui ferme la fiche ; aucun secret ni foyer exact dans les requêtes. Doublures : ne prouve pas l'API Java."""
@@ -2001,7 +2001,6 @@ class LivingKnoxCarnetTests(unittest.TestCase):
                                      'if string.find(k, "LivingKnox") then out[#out + 1] = k end end '
                                      'return table.concat(out, ",") end)()')
             self.assertEqual(loaded, '')
-            self.assertIsNone(machine.g.RS_LivingKnox)
 
     def test_one_npc_engine_disabled_or_other_provider(self):
         # Disabled in the sandbox: nothing registered, the notebook keeps "No NPC engine active".
@@ -2022,7 +2021,7 @@ class LivingKnoxCarnetTests(unittest.TestCase):
         other.g.fire('OnInitGlobalModData', False)
         provider = other.rt.eval("require('CoreAI/CA_NPCProvider')")
         self.assertEqual(provider.active().name, 'fake')
-        self.assertIn('[RS_LivingKnox] another NPC provider (fake) is active: Living Knox is not registered in the '
+        self.assertIn('[LK_NotebookProvider] another NPC provider (fake) is active: Living Knox is not registered in the '
                       'notebook (one NPC engine per server)', lua_list(other.g.LOGS))
         self.assertFalse(other.g.LivingKnox.Bodies.onDied)
 

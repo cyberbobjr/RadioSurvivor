@@ -250,7 +250,7 @@ local function contactRows(player, character, team)
             contacts[#contacts + 1] = {id = id, name = npc.name, alive = npc.alive,
                 groupName = groupName(npc), personality = npc.personality, background = npc.background,
                 revision = npc.revision, near = P.near(player, Server.objects[id], Speech.SELECT_RANGE),
-                history = known.history, note = known.note,
+                history = known.history, note = known.note, page = P.name(),
                 -- E09-T07: relation panel of THIS character only (identifiers and game days, translated by the client;
                 -- agreements of the NPC's group with this character's team), given by the NPC provider (E21-T04).
                 relation = P.relationPanel(npc, character, team)}
@@ -332,7 +332,68 @@ end
 
 Server.offerCatalogFor = offerCatalog
 
+-- Fiche of the provider NPC with this id (incarnation), next to the player (SELECT_RANGE), made a contact of the
+-- character; nil when it is not near. A fiche created now has no mapped body yet: scanned again.
+local function reach(player, character, incarnation)
+    local npc = Server.ensure(incarnation)
+    if not npc or npc.incarnation ~= incarnation then return nil end
+    if not Server.objects[npc.id] then scan() end
+    if not npc.alive or not P.near(player, Server.objects[npc.id], Speech.SELECT_RANGE) then return nil end
+    contact(character, npc)
+    return npc
+end
+
+-- E17-T06: target of the local chat. args.incarnation: the NPC of the provider with this id, else args.npc: a fiche id.
+-- Returns the selected fiche, or nil (target cleared) when it is not near.
+local function selectTarget(player, character, args)
+    local npc
+    if type(args.incarnation) == 'number' or type(args.incarnation) == 'string' then
+        npc = reach(player, character, args.incarnation)
+    else
+        local known = type(args.npc) == 'string' and S.data.npcs[args.npc] or nil
+        if known and known.alive and P.near(player, Server.objects[known.id], Speech.SELECT_RANGE) then
+            contact(character, known)
+            npc = known
+        end
+    end
+    Server.selected[character] = npc and npc.id or nil
+    return npc
+end
+
+-- Decision 1 of carnet-commun-e21.md: fiche of the nearest provider NPC next to the player (SELECT_RANGE), made a
+-- contact of the character, or nil.
+local function nearestNpc(player, character)
+    local nearest, distance
+    for id, body in pairs(P.available() and P.objects() or {}) do
+        if P.near(player, body, Speech.SELECT_RANGE) then
+            local dx, dy = body:getX() - player:getX(), body:getY() - player:getY()
+            local d = dx * dx + dy * dy
+            if not distance or d < distance then nearest, distance = id, d end
+        end
+    end
+    return nearest and reach(player, character, nearest) or nil
+end
+
+local function speak(player, character, npc, args)
+    local req, reason = Server.talk.speak(player, character, npc, args)
+    if not req then return reject(player, reason) end
+    send(player, 'queued', {id = req.id})
+end
+
+-- A sentence of a character. args.incarnation (menu of an NPC engine on a body): that NPC is selected first, then
+-- spoken to. args.chat (say chat) without a selected target: the nearest NPC, nothing and no message when none is near.
 local function talk(player, character, args)
+    if args.incarnation ~= nil then
+        if not Server.talk or not selectTarget(player, character, args) then
+            projection(player)
+            return reject(player, 'Range')
+        end
+        S.save(); projection(player)
+    elseif args.chat == true and (Server.selected[character] or '') == '' then
+        local nearest = Server.talk and nearestNpc(player, character) or nil
+        if nearest then speak(player, character, nearest, args) end
+        return
+    end
     local id = Server.selected[character]
     local npc = activeNpc(player, character, id, Speech.SELECT_RANGE)
     if not npc or not Server.talk then
@@ -340,9 +401,7 @@ local function talk(player, character, args)
         Server.selected[character] = nil; projection(player)
         return reject(player, 'Range')
     end
-    local req, reason = Server.talk.speak(player, character, npc, args)
-    if not req then return reject(player, reason) end
-    send(player, 'queued', {id = req.id})
+    speak(player, character, npc, args)
 end
 
 -- E17-T09, E17-T10: acceptance spoken to the NPC (CA_MissionTalk), for a character of the notebook still alive.
@@ -357,25 +416,26 @@ end
 -- E11-T13: report spoken to the requester (CA_MissionTalk).
 function Server.spokenReport(req, result, npc) return MissionTalk.report(S, req, result, npc, Server.bound) end
 
+-- Mission of a gesture, or nil and the reason of the refusal (State; Range: the requester is not next to the player).
 local function missionFor(player, character, args, ranged)
     local m = type(args.mission) == 'string' and S.data.missions[args.mission]
-    if not m or (not m.invited[character] and not m.participants[character]) then return nil end
-    if not M.present(m) then return nil end -- E18-T25: giver of a mod not active, mission hidden
+    if not m or (not m.invited[character] and not m.participants[character]) then return nil, 'State' end
+    if not M.present(m) then return nil, 'State' end -- E18-T25: giver of a mod not active, mission hidden
     local giver = M.donor(m.donor or 'npc')
     -- E11-T08, E21-T04: a remote giver (radio voice) has no body to join: only accept and abandon (no range), never
     -- invite or claim.
     if giver.remote then
-        if ranged or m.transaction then return nil end
+        if ranged or m.transaction then return nil, 'State' end
         return m
     end
     local requester = M.donorOf(S.data, m)
-    if not requester or requester.alive == false then return nil end
+    if not requester or requester.alive == false then return nil, 'State' end
     if ranged then
-        if not nearRequester(m, player) then return nil end
+        if not nearRequester(m, player) then return nil, 'Range' end
         -- A fiche of the notebook speaks only to the characters that know it (contact).
-        if S.data.npcs[m.npc] and not S.data.characters[character].contacts[m.npc] then return nil end
+        if S.data.npcs[m.npc] and not S.data.characters[character].contacts[m.npc] then return nil, 'State' end
     end
-    if m.transaction then return nil end
+    if m.transaction then return nil, 'State' end
     return m
 end
 
@@ -437,8 +497,9 @@ gestures.claim = {ranged = true, apply = function(player, character, m)
 end}
 
 local function transact(player, character, gesture, args)
-    local m = missionFor(player, character, args, gesture.ranged)
-    if not m or m.revision ~= args.revision then return reject(player, 'State') end
+    local m, why = missionFor(player, character, args, gesture.ranged)
+    if not m then return reject(player, why) end
+    if m.revision ~= args.revision then return reject(player, 'State') end
     local ok, reason = gesture.apply(player, character, m, args)
     if ok == ANSWERED then return end
     if not ok then return reject(player, reason) end
@@ -496,18 +557,8 @@ Server.registerCommand('rep_admin', function(player) send(player, 'rep_admin', S
     {3, 0.2}, true)
 Server.registerCommand('snapshot', function(player) projection(player) end, {6, 1})
 Server.registerCommand('select', function(player, args, character)
-    local id = args.npc
-    if type(args.incarnation) == 'number' or type(args.incarnation) == 'string' then
-        local npc = Server.ensure(args.incarnation)
-        id = npc and npc.incarnation == args.incarnation and npc.id or nil
-        if id and not Server.objects[id] then scan() end -- a fiche created now has no mapped body yet
-    end
-    local npc = type(id) == 'string' and S.data.npcs[id]
-    if npc and npc.alive and P.near(player, Server.objects[id], Speech.SELECT_RANGE) then
-        contact(character, npc)
-        Server.selected[character] = id
-        S.save(); projection(player)
-    else Server.selected[character] = nil; projection(player); reject(player, 'Range') end
+    if selectTarget(player, character, args) then S.save(); projection(player)
+    else projection(player); reject(player, 'Range') end
 end)
 Server.registerCommand('deselect', function(player, _, character)
     Server.selected[character] = nil; projection(player)

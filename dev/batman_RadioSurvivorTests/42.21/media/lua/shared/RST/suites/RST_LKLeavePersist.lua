@@ -1,9 +1,9 @@
 --[[
 lk.leave persistence steps (E10-T04, E01-T17: "groupe loners et depart conserves apres redemarrage";
-shared/RadioSurvivor/RS_LivingKnox.lua: leave, composition). Played by autoclient.py --mp --phases restart
+shared/LivingKnox/LK_NotebookProvider.lua: leave, composition). Played by autoclient.py --mp --phases restart
 --server-campaign mp-persist (base lk.leave):
     lk.leave.before         (opt-in "manual") a "settlers" group (leader m-1, fighter m-2) at home on the requester's
-                            square; once both members have bodies, m-2 leaves (RS_LivingKnox.leave with the composition
+                            square; once both members have bodies, m-2 leaves (LivingKnox.NpcProvider.leave with the composition
                             read now): one "loners" group of one member linked to the same NPC, written at once.
                             Group ids, NPC ids and the old composition written to the snapshot. Nothing removed.
                             Run again: the groups of the previous snapshot are removed first.
@@ -35,9 +35,9 @@ local function LK() return LivingKnox end
 local function modules(t)
     if type(isClient) == "function" and isClient() then t:skip("authority only (not on an MP client)") end
     local E = LK()
-    local P = RS_LivingKnox
+    local P = LivingKnox.NpcProvider
     t:ok(E ~= nil and E.Groups ~= nil and E.Sites ~= nil, "Living Knox server part is not loaded on this side")
-    t:ok(P ~= nil and P.leave ~= nil and P.composition ~= nil, "RS_LivingKnox.leave (E10-T04) is not loaded")
+    t:ok(P ~= nil and P.leave ~= nil and P.composition ~= nil, "LivingKnox.NpcProvider.leave (E10-T04) is not loaded")
     t:ok(E.Groups.ensure(), "group registry not ready")
     return E, P
 end

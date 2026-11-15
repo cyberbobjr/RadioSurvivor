@@ -3,7 +3,7 @@
     python tests/test_relations.py
 
 Banc lupa (Lua 5.1, `next` retiré comme dans Kahlua) : vrai serveur du carnet (`CA_NotebookServer.lua`), relation
-tenue par Living Knox (`LK_PersonalRelation.lua`, E18-T21) et lue par `LK_NotebookRelations.lua` (opérations du fournisseur, E21-T04), moteur Living Knox réel (registres, `LK_Hostility`, API, fournisseur `RS_LivingKnox.lua`) et vrai
+tenue par Living Knox (`LK_PersonalRelation.lua`, E18-T21) et lue par `LK_NotebookRelations.lua` (opérations du fournisseur, E21-T04), moteur Living Knox réel (registres, `LK_Hostility`, API, fournisseur `LK_NotebookProvider.lua`) et vrai
 pont hors ligne (`RS_OFFLINE_INTENT=relation[...]`, drapeau du banc qui tient lieu d'un modèle qui cite un fait, jamais
 tiré des mots du joueur). Doublures seulement : ne prouve ni l'API Java ni le réseau.
 """

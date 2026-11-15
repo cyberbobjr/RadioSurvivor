@@ -436,9 +436,10 @@ Config.RELAY = Config.RELAY or {
     MAX_KEPT = 4,
 }
 
--- Foyer d'un membre parti (E10-T05, fiche docs/annexes/conception/depart.md, « Foyer du solitaire ») : RS_LivingKnox.leave tire
--- le foyer dans l'anneau HOME_MIN..HOME_MAX cases (distance euclidienne) autour de l'ancien foyer, élargi par paliers
--- (LivingKnox.Sites.CONFIG.NEAR_WIDEN : x 2, puis x 4) avant la carte entière. Lus à chaque départ.
+-- Foyer d'un membre parti (E10-T05, fiche docs/annexes/conception/depart.md, « Foyer du solitaire ») :
+-- LivingKnox.NpcProvider.leave tire le foyer dans l'anneau HOME_MIN..HOME_MAX cases (distance euclidienne) autour de
+-- l'ancien foyer, élargi par paliers (LivingKnox.Sites.CONFIG.NEAR_WIDEN : x 2, puis x 4) avant la carte entière. Lus
+-- à chaque départ.
 --   HOME_MIN = Sites.CONFIG.GROUP_DISTANCE (400) : l'ancien foyer reste soumis à la règle commune des foyers.
 --   HOME_MAX = 2 x Sites.CONFIG.BASE_DISTANCE (600) : le joueur qui parle au PNJ, près de l'ancien foyer, est une base
 --   (Rescue.knownBases) ; l'anneau garde au moins 600 cases de large au-delà de ce rayon, à l'échelle d'une ville.

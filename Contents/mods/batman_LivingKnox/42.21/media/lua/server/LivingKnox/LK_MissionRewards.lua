@@ -14,11 +14,11 @@ notebook (R.lot, projected as rewardTable).
     R.lot(m, npcId)                          -> name of the created lot table, or nil (a lot is announced)
     R.claim(store, m, player, character, token, npcId) -> true | false, reason | nil (common lot)
         write-ahead marker on the mission before the item leaves the household, so an interrupted claim is never paid
-        twice. npcId: Living Knox id of the requester, m.npc by default (Living Knox alone: the mission's NPC id).
+        twice. npcId: Living Knox id of the requester, m.npc by default.
 
-Each mod pays its missions (E11-T21, decision D09): R.claim and R.lot are the reward path of the giver "npc" of
-Living Knox alone (LK_TalkAlone) and the reward source registered in the core engine at load
-(CA_Missions.registerNpcReward), through which RadioSurvivor's notebook pays a mission of a Living Knox NPC.
+Each mod pays its missions (E11-T21, decision D09): R.claim and R.lot are the reward source registered in the core
+engine at load (CA_Missions.registerNpcReward), through which the notebook of the core mod pays a mission of a Living
+Knox NPC (giver "npc" of CA_NotebookGiver).
 ]]
 require "LivingKnox/LK_Core"
 -- LivingKnox.Groups and LivingKnox.Stock are read at call time (loaded with every server file of the engine).

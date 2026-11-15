@@ -227,6 +227,7 @@ end
 class Game:
     """Une machine Lua : solo, serveur ou client."""
     WITH_LK = True   # E18-T09 : False = RadioSurvivor seul (Living Knox absent du chemin des modules)
+    WITH_RS = True   # E21-T05 : False = mod commun et Living Knox seuls (RadioSurvivor absent du chemin des modules)
 
     def __init__(self, mode: str, exchange: Path, clock, drawn: bool = False):
         self.rt = lupa.LuaRuntime(unpack_returned_tuples=True)
@@ -260,7 +261,7 @@ class Game:
         # drawn : vraie fiche de Walt (plage de tirage) ; sinon sa fréquence d'exemple fixe (WALT_FIXED).
         g.getModFileReader = lambda mod, name, create: (
             TextReader(WALT_FIXED) if name == "personas/walt.txt" and not drawn else Reader(MOD / name))
-        paths = ';'.join((LUA / side).as_posix() + '/?.lua' for side in ('shared', 'server', 'client'))
+        paths = ';'.join((LUA / side).as_posix() + '/?.lua' for side in ('shared', 'server', 'client')) if self.WITH_RS else ''
         paths = (CORE_LUA / 'shared').as_posix() + '/?.lua;' + (CORE_LUA / 'server').as_posix() + '/?.lua;' + (CORE_LUA / 'client').as_posix() + '/?.lua;' + ((LK_LUA / 'shared').as_posix() + '/?.lua;' + (LK_LUA / 'server').as_posix() + '/?.lua;' + (LK_LUA / 'client').as_posix() + '/?.lua;' if self.WITH_LK else '') + paths  # mod commun (E18)
         self.rt.execute(f'package.path = [[{paths};]] .. package.path')
         # Mod requis Belt Walkie-Talkie : vraie partie partagée (BatmanRadioSupport.canTransmitWith), chargée en solo,
@@ -284,7 +285,8 @@ class Game:
         self.load(*core_notebook_files())
         if self.WITH_LK:
             self.rt.execute('require "LivingKnox/LK_NotebookPages"')
-        self.load(*rs_notebook_files())
+        if self.WITH_RS:
+            self.load(*rs_notebook_files())
 
     def table(self, value):
         """Copie (récursive) d'une table d'une autre machine Lua, comme le réseau."""

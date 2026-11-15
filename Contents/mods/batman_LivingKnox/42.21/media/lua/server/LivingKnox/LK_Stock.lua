@@ -67,7 +67,7 @@
 --   - besoins = catégories sous leur visée, ordre fixe et reproductible : épuisé, critique (niveau < CRITICAL), bas,
 --     puis niveau croissant, puis ordre de CATEGORIES. Stock.needs(gid) (copie) ; Stock.assessGroup(g) pour le
 --     cadre de décision (LK_Decisions.groupInput lit les niveaux à chaque notation horaire).
---   Points d'appel des consommateurs à venir : expéditions (LK05-T05) et missions RadioSurvivor = Stock.needs(gid)
+--   Points d'appel des consommateurs à venir : expéditions (LK05-T05) et missions des PNJ = Stock.needs(gid)
 --   .needs (premier = ce qui manque le plus) ; fortification (LK14) = entrée « materials » ; repas réels (LK05-T07) et
 --   stock hors écran (LK09-T06) = Stock.portion(gid) (part d'une ration normale).
 --

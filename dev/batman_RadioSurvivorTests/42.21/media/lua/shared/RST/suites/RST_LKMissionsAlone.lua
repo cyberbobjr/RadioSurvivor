@@ -1,8 +1,8 @@
 --[[
-lk.missions.alone - lot of a mission of an NPC claimed from the journal of the core mod with Living Knox alone
-(E18-T29, E21-T04: command "claim" of the notebook server, giver "npc" of LK_TalkAlone, LK_MissionRewards).
-Tags "world" and "server": a save named rstest*, with a target player. SKIP when RadioSurvivor is active: its notebook
-holds the buttons then. Run:
+lk.missions.alone - lot of a mission of an NPC of Living Knox claimed from the notebook of the core mod (E18-T29,
+E21-T04, E21-T05: command "claim" of the notebook server, giver "npc" of CA_NotebookGiver, reward source
+LK_MissionRewards; with or without the other mods).
+Tags "world" and "server": a save named rstest*, with a target player. Run:
     python tools/autoclient/autoclient.py --mods lk --mp --clients 1 --server-suite lk.missions.alone --server-tags world
     python tools/autoclient/autoclient.py --mods lk --suite lk.missions.alone --tags world
 
@@ -23,23 +23,23 @@ require "RST/RST_ViewSteps"
 local CLAIM_MS = 20000
 
 local function multiplayer() return type(isServer) == "function" and isServer() end
-local function Alone() return LivingKnox and LivingKnox.TalkAlone end
+local function Notebook() return CoreAI and CoreAI.notebookServer end
 
 local function setup(t)
     if not (LivingKnox and LivingKnox.isAuthority()) then t:skip("authority only (solo or dedicated server)") end
-    if LivingKnox.radioSurvivorActive() then t:skip("RadioSurvivor active: its notebook holds the mission buttons") end
-    t:ok(Alone() ~= nil and Alone().started, "speech of Living Knox alone not started")
+    t:ok(Notebook() ~= nil and Notebook().store.data ~= nil, "notebook server of the core mod not started")
 end
 
 -- A mission of npc id for the character, accepted and closed in success; a template with a common lot, removed when
 -- noLot (E18-T33: the giver then creates the lot of its group).
 local function successfulMission(t, id, character, name, noLot)
     local M = require "CoreAI/CA_Missions"
-    local Store = require "CoreAI/CA_MissionStore"
-    local npc = LivingKnox.Talk.host.ensure(id)
-    t:ok(npc ~= nil, "no speaker record for " .. tostring(id))
+    local Store = M.store()
+    local P = LivingKnox.NpcProvider
+    local npc = Notebook().ensure(id)
+    t:ok(npc ~= nil, "no notebook fiche for " .. tostring(id))
     npc.mission, npc.nextOfferHour = nil, nil
-    local offers = M.offers(npc, Alone().provider.npc(id), Alone().provider.objects()[id], character)
+    local offers = M.offers(npc, P.npc(id), P.objects()[id], character)
     local m
     for offerId, terms in pairs(offers) do
         if m == nil and type(terms) == "table" and terms.kind ~= "supply" then
@@ -56,9 +56,7 @@ local function successfulMission(t, id, character, name, noLot)
     end, "forget " .. m.id)
     t:ok(M.accept(Store.data, m, character, name), "acceptance refused")
     t:ok(M.finish(Store.data, m, "success"), "success refused")
-    local known = LivingKnox.Talk.data.known
-    known[character] = known[character] or {}
-    known[character][m.id] = true
+    Notebook().store.data.characters[character].knownMissions[m.id] = true
     t:ok(Store.save(), "mission state not written")
     return m
 end
@@ -84,7 +82,7 @@ RST.suite("lk.missions.alone", { tags = { "world", "server" }, testTimeoutMs = 1
         local MissionConfig = require "CoreAI/CA_MissionConfig"
         local Hearing = require "CoreAI/CA_Hearing"
         t:waitUntil(function()
-            return Hearing.near(p, Alone().provider.objects()[id], MissionConfig.DELIVERY_RANGE)
+            return Hearing.near(p, LivingKnox.NpcProvider.objects()[id], MissionConfig.DELIVERY_RANGE)
         end, 60000, function(t3)
             local function claimed(t4)
                 t4:waitUntil(function() return m.claimedBy == character end, CLAIM_MS, function(t5)
@@ -116,8 +114,8 @@ RST.suite("lk.missions.alone", { tags = { "world", "server" }, testTimeoutMs = 1
         local p = RST.Fixtures.player(t)
         t:ok(p ~= nil, "no target player")
         RST.LKGroup.ensure(t, p, function(t2, _, id)
-            local character = (require "CoreAI/CA_Identity").bind(p)
-            t2:ok(character ~= nil, "player without an identity")
+            local character = Notebook().bound[p]
+            t2:ok(character ~= nil, "player without a notebook character")
             local m = successfulMission(t2, id, character, "RST")
             local r = row(character, m)
             t2:ok(r ~= nil and r.toClaim == true, "mission " .. m.id .. " not listed to claim in the journal")
@@ -135,8 +133,8 @@ RST.suite("lk.missions.alone", { tags = { "world", "server" }, testTimeoutMs = 1
         t:ok(p ~= nil, "no target player")
         RST.LKGroup.ensure(t, p, function(t2, _, id)
             local MissionConfig = require "CoreAI/CA_MissionConfig"
-            local character = (require "CoreAI/CA_Identity").bind(p)
-            t2:ok(character ~= nil, "player without an identity")
+            local character = Notebook().bound[p]
+            t2:ok(character ~= nil, "player without a notebook character")
             local m = successfulMission(t2, id, character, "RST", true)
             local Groups = LivingKnox.Groups
             local g = Groups.get(Groups.findNpc(id))

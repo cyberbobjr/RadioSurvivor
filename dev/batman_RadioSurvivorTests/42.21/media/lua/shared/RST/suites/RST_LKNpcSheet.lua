@@ -322,8 +322,8 @@ RST.suite("lk.npcsheet", { tags = { "world", "server" }, testTimeoutMs = 120000,
             t2:ok(r.ok, "renaming refused: " .. tostring(r.err))
             t2:eq("Jane Doe", r.npc.name, "name of the sheet")
             t2:ok(adminLog(gid, "name m-2"), "no admin log entry for the name")
-            if RS_LivingKnox ~= nil then
-                t2:eq("Jane Doe", RS_LivingKnox.npc(npc).name, "name read by the notebook provider")
+            if LivingKnox.NpcProvider ~= nil then
+                t2:eq("Jane Doe", LivingKnox.NpcProvider.npc(npc).name, "name read by the notebook provider")
             end
             r = A.request(p, { op = "npcName", n = 4, npc = npc, first = "J4ne", last = "Doe" })
             t2:eq("bad name", r.err, "name with a digit accepted")

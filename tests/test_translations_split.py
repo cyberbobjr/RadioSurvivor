@@ -123,8 +123,7 @@ def options(mod: str) -> list[tuple[str, str, str]]:
 
 
 # E18-T18: speech of Living Knox alone.
-TALK = {'IGUI_LK_Talk_' + k for k in ('Menu', 'Prompt', 'Offer', 'Range', 'Text', 'Chat', 'Cooldown', 'Busy',
-                                           'Bridge', 'NoAnswer')}
+TALK = {'IGUI_LK_Talk_' + k for k in ('Menu', 'Prompt')}   # E21-T05: refusals and offers read by the notebook
 
 # E18-T27: the option of the NPC initiatives belongs to Living Knox (its labels too).
 OPTIONS_RENAMED = {'RadioSurvivor.InitiativeFrequency': 'LivingKnox.InitiativeFrequency'}

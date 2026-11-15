@@ -4,7 +4,7 @@
 
 Banc lupa (Lua 5.1, `next` retiré comme dans Kahlua) : vrai serveur du carnet (`CA_NotebookServer.lua`), vrais
 `LK_NotebookRelations.lua` et `RS_Factions.lua` (doublure fidèle de la faction vanilla de `tests/test_factions.py`), moteur
-Living Knox réel (registres, `LK_Hostility`, API, fournisseur `RS_LivingKnox.lua`), vrai client du carnet
+Living Knox réel (registres, `LK_Hostility`, API, fournisseur `LK_NotebookProvider.lua`), vrai client du carnet
 (`CA_NotebookContacts.lua` avec les doublures ISUI de `NOTEBOOK_UI`) et table anglaise réelle du mod pour le rendu. Les changements
 personnels passent par l'API d'E09-T04 (`Relations.offer` puis `Relations.apply`, faits réels enregistrés par
 `LK_Hostility.record`). Doublures seulement : ne prouve ni l'API Java ni le réseau ni l'affichage en jeu.

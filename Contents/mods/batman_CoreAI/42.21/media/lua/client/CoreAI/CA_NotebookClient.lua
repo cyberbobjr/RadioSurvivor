@@ -37,11 +37,12 @@ function Client.hello()
     if p then Client.send('hello', {v = Config.VERSION, character = p:getModData().CA_Character}) end -- never empty
 end
 
--- Speech to the selected NPC (E17-T06): ONE path for the local "say" chat (MP only, captured by the ISChat wrapper
--- below) and the Say line of the notebook Contacts tab (solo and MP, no chat in solo). Both send the same 'talk'
--- command; the server applies the same checks to both (selection, range, chat rules, delay, budget) and builds the
--- same npc_talk request. The client only greys the notebook line while an answer is awaited or too soon after a
--- sentence (the server decides anyway).
+-- Speech to an NPC (E17-T06, E21-T05): ONE path for the local "say" chat (MP only, captured by the ISChat wrapper
+-- below), the Say line of the notebook Contacts tab (solo and MP, no chat in solo) and the menu of an NPC engine on a
+-- body (Client.talkTo). All send the same 'talk' command; the server applies the same checks (target, range, chat
+-- rules, delay, budget) and builds the same npc_talk request. A chat sentence without a selected target goes to the
+-- nearest NPC in range, and to nobody, silently, when none is near (decision 1 of carnet-commun-e21.md). The client
+-- only greys the notebook line while an answer is awaited or too soon after a sentence (the server decides anyway).
 Client.TALK_WAIT_MS = Speech.REQUEST_TIMEOUT_MS + 5000
 -- Server rejections that end the wait of a sentence (notebook server: talk and poll).
 local TALK_ERRORS = {Range = true, Text = true, Chat = true, Cooldown = true, Busy = true, Bridge = true, NoAnswer = true,
@@ -68,16 +69,34 @@ function Client.isWaiting()
     return w ~= nil
 end
 
--- Sends one sentence to the selected NPC. spoken: the notebook line (said aloud after the server queued it).
-function Client.talk(text, spoken)
+-- Sends one 'talk' command (fields: its extra arguments). awaited: {npc = fiche id of the target or nil} to wait for the
+-- answer, nil for a chat sentence without a target; spoken: said aloud once the server queued it (not a chat line).
+local function sendTalk(text, fields, awaited, spoken)
     text = tostring(text or ''):match('^%s*(.-)%s*$')
     if text == '' then return false end
     local now = getTimestampMs()
     -- Set before sending: in solo the command is queued and handled at the next update, which may answer at once.
-    Client.waiting = {at = now, npc = Client.snapshot.selected, text = spoken and text or nil}
+    if awaited then Client.waiting = {at = now, npc = awaited.npc, text = spoken and text or nil} end
     Client.lastTalkAt = now
-    Client.send('talk', {text = text, channel = 'say', language = language()})
+    local args = fields or {}
+    args.text, args.channel, args.language = text, 'say', language()
+    Client.send('talk', args)
     return true
+end
+
+-- Sends one sentence to the selected NPC. spoken: the notebook line (said aloud after the server queued it). chat: a
+-- sentence of the say chat, which goes to the nearest NPC when no target is selected.
+function Client.talk(text, spoken, chat)
+    local selected = Client.snapshot.selected
+    if chat and (selected == nil or selected == '') then return sendTalk(text, {chat = true}, nil, false) end
+    return sendTalk(text, chat and {chat = true} or nil, {npc = selected}, spoken)
+end
+
+-- Sends one sentence to the NPC of the provider with this id (menu of an NPC engine on a body): the server selects it
+-- (same checks as the 'select' command), then speaks to it; said aloud once queued.
+function Client.talkTo(incarnation, text)
+    if incarnation == nil then return false end
+    return sendTalk(text, {incarnation = incarnation}, {}, true)
 end
 
 -- Why the notebook cannot speak to this contact now (IGUI_CA_<key>, problem flag), or nil.
@@ -153,7 +172,7 @@ function Client.installChat()
             local admitted = Client.admitted
             Client.inSay = false
             if not result[1] then error(result[2]) end
-            if inEntry and admitted and Client.snapshot.selected and Client.snapshot.selected ~= '' then
+            if inEntry and admitted then
                 local text = select(1, ...)
                 if type(text) == 'string' and checkPlayerCanUseChat('/say') then Client.submitted = text end
             end
@@ -170,7 +189,7 @@ function Client.installChat()
             local submitted = Client.submitted
             Client.inEntry, Client.submitted = wasInEntry, nil
             if not result[1] then error(result[2]) end
-            if submitted then Client.talk(submitted, false) end
+            if submitted then Client.talk(submitted, false, true) end
             return unpack(result, 2, result.n)
         end
         wrappedChat = true
@@ -262,8 +281,11 @@ Client.registerCommand('speech', function(args)
     if type(args.id) ~= 'string' or Client.seen[args.id] then return end
     -- The answer of the awaited NPC ends the wait of the Say line. E08-T05: only the answer to this character's own
     -- sentence (request id given by 'queued'), not another player's intervention answered by the same NPC.
+    -- A sentence of the menu (talkTo) knows its answer by the request id only.
     local w = Client.waiting
-    if w and w.npc == args.npc and (not w.id or w.id == args.id) then Client.waiting = nil end
+    if w and ((w.id and w.id == args.id) or (not w.id and w.npc ~= nil and w.npc == args.npc)) then
+        Client.waiting = nil
+    end
     Client.seen[args.id] = true
     Client.seenOrder[#Client.seenOrder + 1] = args.id
     if #Client.seenOrder > 256 then Client.seen[table.remove(Client.seenOrder, 1)] = nil end

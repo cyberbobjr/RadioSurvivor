@@ -48,7 +48,7 @@ require "LivingKnox/LK_Core"
 require "LivingKnox/LK_Log"
 require "LivingKnox/LK_GroupTypes"
 require "LivingKnox/LK_Groups"
--- E18-T08 : tirage, classement et bases connues du mod commun (CA_Sites, mêmes fonctions que RS_Rescue).
+-- E18-T08 : tirage, classement et bases connues du mod commun (CA_Sites, fonctions partagées avec les autres mods).
 local Rescue = require "CoreAI/CA_Sites"
 
 local Sites = LivingKnox.Sites or {}

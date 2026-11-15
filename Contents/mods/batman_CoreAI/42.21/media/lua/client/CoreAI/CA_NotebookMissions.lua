@@ -80,6 +80,11 @@ function Missions.secondLine(row)
     return getTextOrNull('IGUI_CA_StateShort_' .. tostring(state)) or tr('MissionState_' .. tostring(state))
 end
 
+-- E18-T33: the mission announces no lot and its giver creates one when it is claimed (projected rewardTable).
+function Missions.createdLot(row)
+    return (row.rewardCount or 0) <= 0 and type(row.rewardTable) == 'string'
+end
+
 -- E18-T33: items of a lot created by the requester's group (table of CA_MissionConfig.Caches), "2 x Name, ...".
 function Missions.lotText(name)
     local entries = (require 'CoreAI/CA_MissionConfig').Caches.tables[name] or {}
@@ -200,6 +205,7 @@ local function missionDetail(self, row, line)
     if view then view.detail(row, line, VIEW_CTX) end
     line(tr('Time', math.ceil(row.remainingMs / 60000)))
     if row.rewardCount > 0 then line(tr('RewardShared', row.rewardCount, Missions.itemName(row.rewardType)))
+    elseif Missions.createdLot(row) then line(tr('RewardLot', Missions.lotText(row.rewardTable)))
     elseif row.unit == 'value' then line(tr('RewardGoodwill'))
     else line(tr('RewardInformation')) end
     line(tr('Participants', table.concat(row.participants, ', ')))
@@ -215,7 +221,7 @@ local function missionDetail(self, row, line)
     enable(self.deliver, row.near and not row.recovery)
     self.report:setVisible(row.engaged and row.state == 'active' and row.toReport == true and not remote)
     enable(self.report, row.near and not row.recovery)
-    self.claim:setVisible(row.engaged and row.state == 'success' and row.rewardCount > 0)
+    self.claim:setVisible(row.engaged and row.state == 'success' and (row.rewardCount > 0 or Missions.createdLot(row)))
     enable(self.claim, row.near and row.claimedName == '' and not row.recovery)
     self.abandon:setVisible(row.engaged and row.state == 'active')
     enable(self.abandon, not row.recovery)

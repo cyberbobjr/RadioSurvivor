@@ -1,6 +1,6 @@
 --[[
-Living Knox: on-screen notices of its agreements and incidents, player side (E09-T05, E09-T06; moved from
-RadioSurvivor's notebook by E21-T04). Commands "agreement" and "incident" of the network module LivingKnox, sent by
+Living Knox: on-screen notices of its agreements and incidents, player side (E09-T05, E09-T06; moved out of
+the notebook by E21-T04). Commands "agreement" and "incident" of the network module LivingKnox, sent by
 server/LivingKnox/LK_AgreementNotices.lua to the connected players of the team (solo: View.receive called directly).
 
   agreement   halo "truce / alliance with <group> now in force", once per agreement revision;

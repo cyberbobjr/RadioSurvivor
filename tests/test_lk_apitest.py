@@ -5,7 +5,7 @@ fixture PNJ du moteur de tests en jeu (RST.Fixtures.spawnNpc) et sa suite rst.fi
 
 Banc tests/harness.py (solo, ou serveur dédié + deux clients) avec les doublures du Java de tests/test_lk_bodies.py
 (création par addZombiesInOutfit -> createCorpse -> reanimate, retrait, liste des zombies). Le moteur est réel :
-LK_Store, LK_Bodies, LK_Server, LK_API, LK_APITest, le fournisseur du carnet CA_NPCProvider + RS_LivingKnox, le
+LK_Store, LK_Bodies, LK_Server, LK_API, LK_APITest, le fournisseur du carnet CA_NPCProvider + LK_NotebookProvider, le
 moteur RST, ses fixtures et la suite en jeu. Les doublures NE PROUVENT PAS l'API réelle, seulement la logique.
 """
 from __future__ import annotations
@@ -23,7 +23,7 @@ import test_lk_bodies as tb  # noqa: E402
 API_TEST_FILE = LK_LUA / 'server' / 'LivingKnox' / 'LK_APITest.lua'
 
 LOAD = r'''
-for _, m in ipairs({ 'LivingKnox/LK_APITest', 'CoreAI/CA_NPCProvider', 'RadioSurvivor/RS_LivingKnox' }) do
+for _, m in ipairs({ 'LivingKnox/LK_APITest', 'CoreAI/CA_NPCProvider', 'LivingKnox/LK_NotebookProvider' }) do
     require(m)
 end
 '''

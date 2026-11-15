@@ -478,16 +478,16 @@ class ActionsSoloTests(SheetBase):
     def test_given_name_reaches_the_notebook_provider(self):
         gid = self.mk()
         npc = self.npc_of(gid, 'm-2')
-        self.h.load('solo', 'shared/RadioSurvivor/RS_LivingKnox.lua')
+        self.h.load('solo', 'shared/LivingKnox/LK_NotebookProvider.lua')
         self.assertTrue(self.ev(f'{A}.hookNames()'))
         self.assertTrue(self.ev(f'{A}.hookNames()'))                      # une seule enveloppe
-        drawn = self.ev(f'RS_LivingKnox.npc("{npc}").name')
+        drawn = self.ev(f'LivingKnox.NpcProvider.npc("{npc}").name')
         self.assertIsInstance(drawn, str)
         view = self.ev(f'{A}.npcView("{npc}").npc')
         self.assertEqual((view.name, view.named), (drawn, False))
         self.assertEqual(f'{view.firstName} {view.lastName}', drawn)
         self.run_lua(f'{S}.state.npc = "{npc}" {S}.rename("Jane", "Doe")')
-        self.assertEqual(self.ev(f'RS_LivingKnox.npc("{npc}").name'), 'Jane Doe')
+        self.assertEqual(self.ev(f'LivingKnox.NpcProvider.npc("{npc}").name'), 'Jane Doe')
         self.assertEqual(self.ev(f'{A}.npcView("{npc}").npc.name'), 'Jane Doe')
         self.assertEqual(self.ev(f'{A}.activity("{gid}", 0).group.members[2].name'), 'Jane Doe')
 

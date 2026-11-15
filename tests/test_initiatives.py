@@ -1,5 +1,5 @@
 """Initiatives de parole des PNJ (E08-T03) : vrai serveur du carnet, vrai moteur Living Knox (registres, API, corps,
-parole LK11-T04), vrai fournisseur RS_LivingKnox.lua, deux clients, vrai pont hors ligne (pont factice) ; lupa, Lua 5.1.
+parole LK11-T04), vrai fournisseur LK_NotebookProvider.lua, deux clients, vrai pont hors ligne (pont factice) ; lupa, Lua 5.1.
 
     python tests/test_initiatives.py
 

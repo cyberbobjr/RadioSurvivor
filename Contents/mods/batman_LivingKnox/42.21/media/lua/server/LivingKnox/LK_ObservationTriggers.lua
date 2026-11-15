@@ -1,7 +1,7 @@
 -- Living Knox : déclencheurs des observations des PNJ (E08-T07, E08-T08 ; dans Living Knox depuis E18-T27).
 -- Autorité seulement. Chaque déclencheur enregistre un fait de la liste fermée d'E08-T01 par LK_Observations.record,
 -- chez les seuls témoins admissibles, et seulement pour des fiches existantes et vivantes de l'hôte de la parole
--- (Talk.host : carnet de RadioSurvivor ou Living Knox seul ; record refuse une fiche inconnue : aucun déclencheur ne
+-- (Talk.host : carnet du mod commun ; record refuse une fiche inconnue : aucun déclencheur ne
 -- crée de fiche). Lieu = maille Obs.area (jamais de coordonnée exacte) ; jour = jour de jeu (1 = premier jour). La clé
 -- fait|sujet|jour|lieu de LK_Observations évite tout doublon par témoin.
 --

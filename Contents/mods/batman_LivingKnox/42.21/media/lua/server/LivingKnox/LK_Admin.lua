@@ -515,12 +515,12 @@ function Admin.ownName(m)
 end
 
 -- Nom affiché d'un membre m (table du registre) : prénom et nom donnés par un administrateur (Admin.ownName), sinon
--- celui du carnet (RS_LivingKnox.npc : nom du chef de l'histoire, ou nom tiré avec le numéro du PNJ), ou nil.
+-- celui du carnet (LivingKnox.NpcProvider.npc : nom du chef de l'histoire, ou nom tiré avec le numéro du PNJ), ou nil.
 function Admin.memberDisplayName(m)
     if type(m) ~= "table" then return nil end
     local own = Admin.ownName(m)
     if own ~= nil then return own end
-    local P = RS_LivingKnox
+    local P = LivingKnox.NpcProvider
     if type(m.npc) ~= "string" or type(P) ~= "table" or type(P.npc) ~= "function" then return nil end
     local r = P.npc(m.npc)
     return r ~= nil and type(r.name) == "string" and r.name or nil
@@ -689,7 +689,7 @@ function Admin.npcRole(id, role, who)
 end
 
 -- Prénom et nom du membre du PNJ id (textes saisis, nettoyés par cleanNamePart). Rangés dans le membre (firstName,
--- lastName) : le carnet (RS_LivingKnox.npc, enveloppé par Admin.hookNames) et cette fiche les lisent ; le résumé
+-- lastName) : le carnet (LivingKnox.NpcProvider.npc, enveloppé par Admin.hookNames) et cette fiche les lisent ; le résumé
 -- d'histoire déjà composé garde le nom d'origine. Rend { npc = vue, field, value, old }, ou nil et la raison.
 function Admin.npcName(id, first, last, who)
     local g, m, gid, mid = memberOfNpc(id)
@@ -788,8 +788,8 @@ function Admin.homeGoto(gid, who, player)
 end
 
 -- Nom donné repris par le carnet (LK13-T15) : enveloppes posées une fois sur le fournisseur du carnet
--- (shared/RadioSurvivor/RS_LivingKnox.lua, chargé avant ce fichier) : RS_LivingKnox.npc rend le nom donné (carnet,
--- dernières pages, missions, nom du chef de LK.composition qui l'appelle) et RS_LivingKnox.context le nom du chef
+-- (LivingKnox.NpcProvider, shared/LivingKnox/LK_NotebookProvider.lua, chargé avant ce fichier) : son npc rend le nom
+-- donné (carnet, dernières pages, missions, nom du chef de LK.composition qui l'appelle) et son context le nom du chef
 -- donné (contexte du LLM). Le résumé d'histoire déjà composé garde le nom d'origine. Rend vrai si posées.
 local function groupMemberOfNpc(id)
     local G = Groups()
@@ -801,7 +801,7 @@ local function groupMemberOfNpc(id)
 end
 
 function Admin.hookNames()
-    local P = RS_LivingKnox
+    local P = LivingKnox.NpcProvider
     if type(P) ~= "table" or type(P.npc) ~= "function" then return false end
     if P.lkAdminNames then return true end   -- rechargement du fichier : enveloppes non empilées
     P.lkAdminNames = true

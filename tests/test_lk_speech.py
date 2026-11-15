@@ -618,8 +618,8 @@ class DrawTests(SpeechBase):
 
     def test_notebook_answer_uses_the_same_bubble(self):
         self.h.load('solo', 'shared/CoreAI/CA_NPCProvider.lua')
-        self.h.load('solo', 'shared/RadioSurvivor/RS_LivingKnox.lua')
-        self.run_lua('RS_LivingKnox.bubble(LivingKnox.Bodies.find("lk-1"), "From the notebook.", 25)')
+        self.h.load('solo', 'shared/LivingKnox/LK_NotebookProvider.lua')
+        self.run_lua('LivingKnox.NpcProvider.bubble(LivingKnox.Bodies.find("lk-1"), "From the notebook.", 25)')
         line = self.h.eval('solo', 'SHOWN[#SHOWN]')
         self.assertEqual((line.text, line.npc), ('From the notebook.', 'lk-1'))
         self.assertEqual((line.r, line.g, line.b), (0.95, 0.9, 0.7))

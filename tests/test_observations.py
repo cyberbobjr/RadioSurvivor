@@ -492,7 +492,7 @@ class TriggerTests(unittest.TestCase):
         self.assert_no_coordinates()
 
     def test_living_knox_npcs_with_the_real_engine(self):
-        """E17-T03 : fiches de PNJ Living Knox (fournisseur RS_LivingKnox, identifiant lk-<n>, groupe grp-<n>) et faits
+        """E17-T03 : fiches de PNJ Living Knox (fournisseur LK_NotebookProvider, identifiant lk-<n>, groupe grp-<n>) et faits
         publiés par le vrai moteur : agression vue (LK_Hostility.record avec témoins) et mort hors écran
         (LK_Groups.markDead : témoins = membres présents au foyer, lieu = maille du foyer)."""
         sim = Simulation(self.path / 'lk', living_knox=True)
@@ -730,7 +730,7 @@ class WorldTriggerTests(unittest.TestCase):
                 self.assertRegex(o['place'], r'^(area-\d{1,2}-\d{1,2}|everywhere)$')
 
     def test_living_knox_presence_and_expedition(self):
-        """Vrai fournisseur RS_LivingKnox : presence = équipe d'expédition et foyer du groupe (mémoire serveur)."""
+        """Vrai fournisseur LK_NotebookProvider : presence = équipe d'expédition et foyer du groupe (mémoire serveur)."""
         sim = Simulation(self.path / 'lk', living_knox=True)
         sim.server.rt.execute(GAME_CLOCK)
         sim.server.rt.execute(WORLD_STUBS)

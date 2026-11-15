@@ -238,7 +238,7 @@ end
 
 -- Enrichissement des histoires (LK10-T03, ajout compatible de la version 1 ; docs/specifications-techniques/api-living-knox.md,
 -- conception recits.md) ------
--- Un autre mod (le carnet de RadioSurvivor, par son LLM) remplace ou complète le résumé public composé par LK_Stories,
+-- Un autre mod (un carnet, par son LLM) remplace ou complète le résumé public composé par LK_Stories,
 -- pour un groupe ou pour un membre, dans une langue (en, fr). Le texte est contrôlé ici (longueur, lignes,
 -- caractères), gardé au registre privé des groupes avec la VERSION du gabarit qu'il remplace (empreinte du type, de
 -- la graine et des résumés composés) : un gabarit changé (graine, type, données mises à jour) rend le texte périmé,

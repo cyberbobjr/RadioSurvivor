@@ -1,5 +1,5 @@
 --[[
-lk.leave - individual departure of an embodied Living Knox member (E10-T04, shared/RadioSurvivor/RS_LivingKnox.lua:
+lk.leave - individual departure of an embodied Living Knox member (E10-T04, shared/LivingKnox/LK_NotebookProvider.lua:
 LK.leave, LK.canLeave; LK_Agreements.lua (Living Knox) and CA_Teams.lua (core mod): keepTruces, covered). Tags "world" and
 "server": the
 authority only, on a save named rstest*, with a target player (t.ctx.player), the Living Knox option Enabled on.
@@ -11,7 +11,7 @@ What is done (stay next to the two members, in their sight):
       bodies near the player;
     - when the player has a notebook character (Ctrl+G once on any NPC), a truce is concluded between the group and
       the player's team (LK_Agreements.conclude, as the leader would);
-    - m-2 leaves its group (RS_LivingKnox.leave with the composition read now, as the notebook does after a model
+    - m-2 leaves its group (LivingKnox.NpcProvider.leave with the composition read now, as the notebook does after a model
       reply leave_group): one group "loners" of one member linked to the same NPC, home in the ring around the old
       one (E10-T05: real LivingKnox.Sites.pick with LivingKnox.Config.LEAVE HOME_MIN..HOME_MAX squares, or a widened
       tier of Sites.CONFIG.NEAR_WIDEN; the measured distance and the tier are printed), written at once; the old
@@ -101,9 +101,9 @@ RST.suite("lk.leave", { mods = { "rs", "lk" },
     tags = { "world", "server" }, testTimeoutMs = 120000, timeoutMs = 300000 }, function(s)
     s.test("a member leaves its group: one loner group, home far away, walk away, truce kept", function(t)
         local E = LK()
-        local P = RS_LivingKnox
+        local P = LivingKnox.NpcProvider
         t:ok(E ~= nil and E.Groups ~= nil and E.Sites ~= nil, "Living Knox server part is not loaded on this side")
-        t:ok(P ~= nil and P.leave ~= nil, "RS_LivingKnox.leave (E10-T04) is not loaded")
+        t:ok(P ~= nil and P.leave ~= nil, "LivingKnox.NpcProvider.leave (E10-T04) is not loaded")
         t:ok(E.GroupTypes.isKnown(P.LONER_TYPE), "group type loners not registered")
         t:ok(E.Groups.ensure(), "group registry not ready")
         local F = RST.factions() -- E18-T20: LK_Agreements and CA_Teams

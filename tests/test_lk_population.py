@@ -591,9 +591,9 @@ class FileTests(unittest.TestCase):
             body = '\n'.join(line.split('--')[0] for line in path.read_text(encoding='utf-8').splitlines())
             if re.search(r'Groups\(?\)?\.(create|applyCreate)\s*\(|\bG\.applyCreate\s*\(', body):
                 callers.add(path.name)
-        # E10-T04 : RS_LivingKnox.leave crée le groupe « loners » d'un PNJ qui quitte le sien (décision du LLM revalidée
+        # E10-T04 : LivingKnox.NpcProvider.leave crée le groupe « loners » d'un PNJ qui quitte le sien (décision du LLM revalidée
         # par le serveur, jamais une apparition : aucun nouveau PNJ, aucun tirage de la population).
-        self.assertEqual(callers, {'LK_Population.lua', 'RS_LivingKnox.lua'})
+        self.assertEqual(callers, {'LK_Population.lua', 'LK_NotebookProvider.lua'})
 
 
 if __name__ == '__main__':

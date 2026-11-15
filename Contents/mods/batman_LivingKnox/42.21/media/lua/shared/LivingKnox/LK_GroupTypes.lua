@@ -20,8 +20,8 @@
 --                    outfits = { <tenue LK_Appearance.OUTFITS> } (facultatif : toutes),
 --                    weapons = { "<Module>.<Objet>" } (facultatif : sans arme),
 --                    traits = { { id = <nom de TRAITS>, chance = 1..100 (pour cent) } } (facultatif) }, ... } }
--- Format 2 (E08-T06) = format 1 plus deux champs facultatifs de poste émetteur (radio du groupe, voix du réseau radio
--- de RadioSurvivor) : homeRadio = booléen au niveau du type (le foyer porte un poste : tout membre vivant présent au
+-- Format 2 (E08-T06) = format 1 plus deux champs facultatifs de poste émetteur (radio du groupe, voix d'un réseau radio
+-- par CA_NPCProvider.radios) : homeRadio = booléen au niveau du type (le foyer porte un poste : tout membre vivant présent au
 -- foyer peut répondre) et radio = booléen dans un profil (chaque membre de ce profil porte un talkie, même en
 -- expédition). En format 1, ces champs sont inconnus, donc refusés comme tout autre champ. Les deux formats sont lus.
 -- Un rôle = la liste de ses comportements permis (I1.2), par leur nom seulement : LK05-T02 les implémentera. Les

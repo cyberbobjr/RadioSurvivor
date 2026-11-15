@@ -1,5 +1,5 @@
 """Radio des groupes équipés (E08-T06) : vrai RadioSurvivor_Server, vrai CA_NotebookServer, vrai moteur Living Knox
-(registres, API, corps), vrai fournisseur RS_LivingKnox.lua, deux clients avec le vrai client radio ; lupa, Lua 5.1.
+(registres, API, corps), vrai fournisseur LK_NotebookProvider.lua, deux clients avec le vrai client radio ; lupa, Lua 5.1.
 
     python tests/test_group_radio.py
 

@@ -101,37 +101,9 @@ class LivingKnoxModTests(unittest.TestCase):
     def test_no_radiosurvivor_module_required(self):
         bad = []
         for path in (LK / '42.21' / 'media' / 'lua').rglob('*.lua'):
-            if path.name == 'RS_LivingKnox.lua':
-                continue   # notebook adapter: requires RadioSurvivor only when it is active (E18-T09)
             for m in re.finditer(r'require\s*\(?\s*["\'](RadioSurvivor/[\w/]+)', path.read_text(encoding='utf-8')):
                 bad.append(f'{path.name}: {m.group(1)}')
         self.assertEqual(bad, [])   # E18-T08: sites and known bases from the core mod (CA_Sites)
-
-    def test_notebook_adapter_only_with_radiosurvivor(self):
-        # E18-T09: the provider adapter ships with Living Knox and stays silent unless RadioSurvivor is an active mod.
-        from lupa.lua51 import LuaRuntime, LuaError
-        src = (LK / '42.21' / 'media' / 'lua' / 'shared' / 'RadioSurvivor' / 'RS_LivingKnox.lua').read_text(
-            encoding='utf-8')
-        self.assertFalse((RS / '42.21' / 'media' / 'lua' / 'shared' / 'RadioSurvivor' / 'RS_LivingKnox.lua').exists())
-        mods = (r'getActivatedMods = function() local l = {%s} return {size = function() return #l end, '
-                r'get = function(_, i) return l[i + 1] end} end ')
-        # E18-T18: alone the file only gives Living Knox its provider (LivingKnox.NpcProvider, LK_TalkAlone).
-        core = (LK / '42.21' / 'media' / 'lua' / 'shared' / 'LivingKnox' / 'LK_Core.lua').read_text(encoding='utf-8')
-        active = re.search(r'function LivingKnox\.radioSurvivorActive\(\).*?\nend\n', core, re.S).group(0)
-        base = ('package.path = ""; package.cpath = ""; LivingKnox = {}; package.preload["LivingKnox/LK_Core"] = '
-                'function() ' + active + ' end; package.preload["LivingKnox/LK_Config"] = function() end; '
-                'package.preload["LivingKnox/LK_Names"] = function() return {} end; '
-                'Events = setmetatable({}, {__index = function() return {Add = function() end} end}); ')
-        lua = LuaRuntime(unpack_returned_tuples=True)
-        lua.execute(base + mods % r'"\\batman_CoreAI", "batman_LivingKnox"')
-        lua.execute(src)
-        self.assertIsNone(lua.eval('RS_LivingKnox'))
-        self.assertEqual(lua.eval('LivingKnox.NpcProvider.name'), 'livingknox')
-        self.assertIs(lua.eval('LivingKnox.NpcProvider.install()'), False)
-        lua = LuaRuntime(unpack_returned_tuples=True)
-        lua.execute(base + mods % r'"batman_LivingKnox", "\\batman_RadioSurvivor"')
-        with self.assertRaisesRegex(LuaError, 'CoreAI/CA_NPCProvider'):
-            lua.execute(src)
 
     def test_no_non_ascii_literal(self):
         # Kahlua lexer: no non-ASCII byte inside a string literal (comments may hold French text).

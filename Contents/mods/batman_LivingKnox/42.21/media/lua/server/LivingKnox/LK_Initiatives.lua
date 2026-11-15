@@ -263,7 +263,7 @@ function I.reset()
     I.stats = {opened = 0, llm = 0, silent = 0, said = 0, stale = 0}
 end
 
--- E08-T04: helpers shared with the NPC conversations (RS_Conversations).
+-- E08-T04: helpers shared with the NPC conversations (LK_Conversations).
 I.listeners, I.language, I.card, I.hasPending = listeners, language, card, hasPending
 Talk.initiatives = I
 

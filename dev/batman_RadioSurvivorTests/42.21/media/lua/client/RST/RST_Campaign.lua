@@ -210,8 +210,8 @@ RST.CAMPAIGNS["mp"] = {
     "lk.equipment",     -- LK02-T06, LK02-T13 (E01-T19: requester client checks)
     "lk.ranged",        -- LK06-T03 (E01-T19: shots played by the requester client)
     "lk.speech",        -- LK11-T04, LK11-T09 (E01-T19: bubble checked by the requester client)
-    "lk.talk.alone",    -- E18-T18 (SKIP with RadioSurvivor)
-    "lk.missions.alone", -- E18-T29 (SKIP with RadioSurvivor)
+    "lk.talk.alone",    -- E18-T18, E21-T05
+    "lk.missions.alone", -- E18-T29, E21-T05
     "lk.chatter",       -- E18-T32
     "lk.zombies",       -- LK06-T04
     "lk.traversal",     -- LK04-T03..T18 (E01-T19; sites missing near the spawn house: SKIP per test)

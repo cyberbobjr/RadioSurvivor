@@ -330,7 +330,7 @@ class NotebookCoreOnlyTests(unittest.TestCase):
                  f'H.append("{cid}", "lk:lk-1", {{id = "h1", author = "Ann", text = "Hi"}}) '
                  'require("CoreAI/CA_Contacts").registerSource("lk", {list = function(c) '
                  f'if c ~= "{cid}" then return {{}} end '
-                 'return {{id = "lk:lk-1", name = "Ruth", alive = true, groupName = "Farm", '
+                 'return {{id = "lk:lk-1", name = "Ruth", alive = true, groupName = "Farm", page = "livingknox", '
                  'relation = {level = "favorable", trend = "up", group = "cautious", today = 3, facts = {}}}} end})')
         self.open('A', 'Contacts')
         self.assertEqual(lua_rows(self.h.machine('A')), 'Ruth (IGUI_CA_Contact)')

@@ -585,7 +585,7 @@ function Hostility.onEveryHours()
 end
 
 -- Clé de joueur d'un IsoPlayer : identité de personnage du mod commun liée à ce joueur (CA_Identity, E18-T03 :
--- commande hello à l'entrée en jeu, avec ou sans RadioSurvivor), ou nil et une raison s'il n'en a pas encore.
+-- commande hello à l'entrée en jeu), ou nil et une raison s'il n'en a pas encore.
 function Hostility.keyOf(player)
     local cid = Identity.of(player)
     if not Hostility.validPlayerKey(cid) then return nil, "no character identity bound" end

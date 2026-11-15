@@ -1,7 +1,7 @@
 if isClient() then return end
 --[==[
 Living Knox: personal relation of an NPC toward a player character (E09-T04, kept by Living Knox since E18-T21,
-decision confirmed by default on 2026-11-06; moved from RadioSurvivor's RS_Relations, rules unchanged). Authority
+decision confirmed by default on 2026-11-06; moved from the radio mod, rules unchanged). Authority
 only. Design: docs/annexes/conception/relations.md. Decision of 2026-10-13: personal gap bounded to one level above
 or below the attitude of the NPC's group.
 
@@ -20,9 +20,10 @@ Citable facts (all with a known nature):
   group     facts of LK_Hostility of the NPC's group toward the character (seen by a member or attributable):
             'att:<group>:<n>', sign of the fact (Living Knox);
   extra     facts the caller knows and passes in `extra` (same list at the offer and at the reply), each
-            { key, fact, sign = 1 | -1, day (or nil), source, kind (or nil) }: RadioSurvivor's notebook adds the
-            observations this NPC saw ('obs:<key>', source 'seen') and the closed missions of this NPC the character
-            took part in ('mis:<id>', source 'mission'). Golden rule of 2026-11-06: each mod brings its own context.
+            { key, fact, sign = 1 | -1, day (or nil), source, kind (or nil) }: the notebook relations
+            (LK_NotebookRelations) add the observations this NPC saw ('obs:<key>', source 'seen') and the closed
+            missions of this NPC the character took part in ('mis:<id>', source 'mission'). Golden rule of
+            2026-11-06: each mod brings its own context.
 
 Private state, two slot files written in turn (CA_SlotFile): Zomboid/Lua/batman_LivingKnox/personal-relations-<hex of
 "mode/world">-<0|1>.txt, header LKPREL1, never a global ModData:

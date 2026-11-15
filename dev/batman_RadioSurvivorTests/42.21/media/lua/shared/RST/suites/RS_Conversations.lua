@@ -12,7 +12,7 @@ tags = "world" }) from an admin client (campaign mp). E01-T16: the lines said by
 client (RST.Steps "lk.speech.seen", its speech view) in solo and in MP.
 E08-T05: "a player line joins the conversation in order" selects the teller and says one sentence through the notebook
 of the REQUESTER client (RST.Steps "carnet.send" / "carnet.talk": same command as the local chat; the real network path
-in MP); SKIP with Living Knox alone (no notebook selection).
+in MP).
 The heard conversations need the bridge program running (bridge/radio_bridge.py): the lines are written by the
 model. E08-T09: without an answer of the model two npcs do not talk (no template line): "a stopped bridge: no
 conversation, no story" marks the bridge as stopped (RS_Initiatives.bridge, no bridge program needed). Every test
@@ -73,8 +73,7 @@ local function pair(t, Server, Obs, subject, after, needSelect)
     t:ok(#spots > 0, "no pair of free squares in sight of each other, the first heard by the player, within "
         .. R.SPOT_RADIUS .. " squares of " .. R.at(p))
     local tried = {}
-    -- RS_Config ships with Radio Survivor only (Living Knox alone: no notebook, no select range)
-    local selectRange = needSelect and require("RadioSurvivor/RS_Config").SELECT_RANGE or nil
+    local selectRange = needSelect and require("CoreAI/CA_SpeechConfig").SELECT_RANGE or nil
     local function ready(tb, pb)
         return P.near(tb, pb, V.CFG.RANGE) and P.hears(tb, p, Server.HEARING)
             and (not needSelect or P.near(p, tb, selectRange))
@@ -201,7 +200,6 @@ RST.suite("rs.conversations", { mods = { "lk" },
     -- the sentence joins the conversation in order; no conversation line is asked while the answer is awaited.
     s.test("a player line joins the conversation in order", function(t)
         local Server, V, Obs = setup(t)
-        if Server.alone then t:skip("Living Knox alone: no notebook selection (the chat path is lk.talk.alone)") end
         -- The notebook server refuses a sentence of the same character within C.COOLDOWN_MS of its previous one
         -- (Server.talk.lastTalk, 'Cooldown'; slow mode of the chat in MP): the previous suites talk a few seconds before
         -- (campaign 2026-10-15: refused 9 s after rs.relation). Wait for it BEFORE the pair is made: the observation
