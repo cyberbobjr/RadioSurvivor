@@ -644,7 +644,7 @@ end
 -- engine: rewardCount 0), claimed by the common lot mechanism (M.claim).
 local Deliver = {idPrefix = 'delivery', handover = true, voiceName = 'deliver',
     voiceText = 'leave requested goods at a dead drop',
-    -- E20-T03: sheet values of its mission section (items, quantity: not used yet; collect_hours: E20-T05 drops).
+    -- E20-T03: sheet values of its mission section (items, quantity: E20-T16 goods; collect_hours: E20-T05 drops).
     params = {items = 'category', quantity = 'range', collect_hours = 'count'}}
 
 -- E20-T06: strategy of the dead drops, the goods a drop may collect (an accepted type in usable state).
@@ -857,6 +857,18 @@ function Deliver.voiceBrief(m)
                 .. '; collection complete: ' .. M.yesNo(Deliver.voiceReportReady(m)) .. '.',
         },
     }
+end
+
+-- E20-T16 (ADR D04): declaration askFor(m, types, quantity), the goods of a voice mission's sheet section, handed by
+-- the voice set-up of the templates declaring it (RadioSurvivor's RS_MissionGoods). types: list of the full types of
+-- its items= category, replacing the configured list (nil: kept); quantity: number drawn in its quantity=, at least 1
+-- (nil: the configured quantity kept).
+function Deliver.askFor(m, types, quantity)
+    if type(types) == 'table' then
+        m.accepted = {}
+        for _, fullType in ipairs(types) do m.accepted[fullType] = true end
+    end
+    if type(quantity) == 'number' then m.quantity = math.max(1, math.floor(quantity)) end
 end
 
 M.register('deliver', Deliver)

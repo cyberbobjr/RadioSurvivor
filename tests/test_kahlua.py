@@ -84,6 +84,8 @@ LUA_FILES = [
     ('RadioSurvivor/RS_Rewards', MOD_LUA / 'server' / 'RadioSurvivor' / 'RS_Rewards.lua'),  # E20-T03 : RS_Personas.rules
     # E20-T04 : natures de récompense inscrites dans RS_Rewards (une par fichier, Rewards/), la cache sur RC_Caches.
     ('RadioSurvivorCore/RC_Caches', CORE_LUA / 'server' / 'RadioSurvivorCore' / 'RC_Caches.lua'),
+    # E20-T16 : résolution des catégories partagée par la cache et les biens d'une mission de voix.
+    ('RadioSurvivor/RS_Categories', MOD_LUA / 'server' / 'RadioSurvivor' / 'RS_Categories.lua'),
     *[(f'RadioSurvivor/Rewards/{p.stem}', p)
       for p in sorted((MOD_LUA / 'server' / 'RadioSurvivor' / 'Rewards').glob('*.lua'), key=lambda p: p.name.lower())],
     # E20-T07 : registre des modes d'arrivée des marchands (RS_Personas.rules) et un fichier par mode (TradeArrivals/).

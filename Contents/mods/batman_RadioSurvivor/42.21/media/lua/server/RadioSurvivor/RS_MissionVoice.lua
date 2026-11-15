@@ -22,8 +22,10 @@ recorded by RS_MissionChain.record (result listener, RS_MissionHooks). A voice-s
 registered by its own file, for one voice name:
 V.registerSetup(voiceName, { check(sheet, section) -> ok, reason, apply(m, sheet, donor, section) }), or for every
 template that declares a field: V.registerDeclaredSetup(field, setup) (E20-T06: dead drops of the templates declaring
-dropAccepts, RS_DeadDrops); a set-up by name comes first. It is checked before the mission is created and applied
-before it is accepted and saved; section = the chosen [mission] section (drops, params). The server draws the place
+dropAccepts, RS_DeadDrops; E20-T16: goods of the templates declaring askFor, RS_MissionGoods); a set-up by name
+replaces them, else every declared set-up of the template applies, in order of registration. Each is checked before
+the mission is created and applied before it is accepted and saved; section = the chosen [mission] section (drops,
+params). The server draws the place
 with the template's offer (RC_MissionScout: habitable building at 60-250 tiles of the caller's server position, same
 rules as E11-T03; E20-T10: the offer also receives the place named by the section's target=, RS_Persona.targetOf,
 and scout and clear then take the building at that place, wherever the caller is), creates and accepts the mission
@@ -96,12 +98,14 @@ function V.registerDeclaredSetup(field, setup)
     return setup
 end
 
-local function setupOf(voiceName, t)
-    if setups[voiceName] then return setups[voiceName] end
+-- E20-T16: every set-up of the mission, in order (a template may declare several fields: deliver, drops and goods).
+local function setupsOf(voiceName, t)
+    if setups[voiceName] then return {setups[voiceName]} end
+    local out = {}
     for _, entry in ipairs(declared) do
-        if t[entry.field] ~= nil then return entry.setup end
+        if t[entry.field] ~= nil then out[#out + 1] = entry.setup end
     end
-    return nil
+    return out
 end
 
 -- True when a registered template is given by a voice under this name (start_mission parameter `template`).
@@ -178,8 +182,8 @@ function V.start(store, sheet, cid, player, khz, template)
     -- E20-T10: or takes the building of the section's target place (aim), for the templates that can (scout, clear).
     local terms = c and t.offer(c, d, nil, player, cid, Persona.targetOf(sheet, section))
     if not terms then return nil, "no_place" end
-    local setup = setupOf(section.type, t)
-    if setup then
+    local setupList = setupsOf(section.type, t)
+    for _, setup in ipairs(setupList) do
         local ok, reason = setup.check(sheet, section)
         if not ok then return nil, reason end
     end
@@ -189,7 +193,7 @@ function V.start(store, sheet, cid, player, khz, template)
     m.rewardType, m.rewardCount = "", 0
     m.section, m.team, m.setsState = section.id, team, section.sets_state -- E20-T08: RS_MissionChain.record
     -- Saved atomically with acceptance below; a set-up never persists a half-created mission.
-    if setup then setup.apply(m, sheet, d, section) end
+    for _, setup in ipairs(setupList) do setup.apply(m, sheet, d, section) end
     M.accept(state, m, cid, record.name or "")
     if type(record.knownMissions) == "table" then record.knownMissions[m.id] = true end
     if not store.save() then

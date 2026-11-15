@@ -21,7 +21,7 @@
 | ☐ | E20-T13 | Type de mission `route` (itinéraire) | `à faire` | MP | E20-T01, E20-T03 |
 | ☐ | E20-T14 | Type de mission `watch` (guet) | `à faire` | MP | E20-T01, E20-T03 |
 | ☐ | E20-T15 | Type de mission `item` (objet personnel) | `à faire` | MP | E20-T01, E20-T03, E20-T05 |
-| ☐ | E20-T16 | `deliver` lit la catégorie et la quantité de sa section | `à faire` | MP | E20-T03, E20-T05 |
+| ☐ | E20-T16 | `deliver` lit la catégorie et la quantité de sa section | `testé hors jeu` | MP | E20-T03, E20-T05 |
 
 <!-- fin du tableau de bord -->
 
@@ -216,12 +216,12 @@ chaque tâche avant son code.
   - Preuve : —
   - Reste : —
 - [ ] **E20-T16** — `deliver` lit la catégorie et la quantité de sa section
-  - État : `à faire`
+  - État : `testé hors jeu`
   - Cible : `MP`
   - Dépend de : E20-T03, E20-T05
   - Fichiers : `RC_Missions.lua` (gabarit `deliver`) ; `RS_DeadDrops.lua` si besoin ; bancs ; suite en jeu
   - Faire : ADR D04. Une mission `deliver` donnée par une voix lit `items=<catégorie>` (objets acceptés : ceux de la catégorie du catalogue ou de la fiche) et `quantity=` (nombre ou fourchette tirée au départ), au lieu de la liste fixe et des 6 objets de `RC_MissionConfig`. Sans ces clés, comportement actuel. Constat de E20-T10 : la mission `meds` de Darlene demande toujours 6 objets de soins.
   - Accepté si : banc : catégorie de la fiche et fourchette respectées, objet hors catégorie refusé, sans clé = comportement actuel ; suite MP : dépôt d'objets de la catégorie compté jusqu'à la quantité tirée.
   - Tests : bancs `deliver` ; campagne MP.
-  - Preuve : —
-  - Reste : —
+  - Preuve : 2026-11-15 : une mission `deliver` de voix n'accepte que les objets de la catégorie `items=` (catalogue ou section de la fiche) et tire sa quantité dans `quantity=` au départ (générateur injectable) ; sans ces clés, comportement d'avant (Bandage, RippedSheets, 6). Résolution des catégories en un seul endroit (`RS_Categories.lua`), partagée avec la cache de récompense ; mise en place déclarée `askFor` (`RS_MissionGoods.lua`) ; `RS_MissionVoice` applique désormais toutes les mises en place déclarées par un gabarit (`setupsOf`). La mission `meds` de Darlene demande 2 à 4 objets de la catégorie `medical` (Bandage, Disinfectant, Pills). Rouge d'abord : `test_deliver_goods.py` `FAILED (errors=8)`, `test_darlene_chain.py` `FAILED (failures=1)`. Vert : `test_deliver_goods.py` 8 OK (catégorie et fourchette, objet hors catégorie laissé, sans clé = avant), `test_voice_delivery.py` 30, `test_darlene_chain.py` 8, `test_reward_draw.py` 7, `test_mission_rewards.py` 8, `test_kahlua.py` 40, `test_doubles_api.py`, `test_rs_suites.py` 48, `test_voice_templates.py` 12 OK. luacheck inchangé pour ce dépôt, `dev` 0. `persona-format.md`, wiki FR/EN 03 et 10 mis à jour. Test en jeu ajouté à `rs.voicedelivery` (objets de la catégorie comptés jusqu'à la quantité tirée, les autres laissés).
+  - Reste : campagne MP de `rs.voicedelivery`. La doublure `ZombRand` de `tests/test_protocol.py:58` rend toujours 1 (le jeu rend [0, n[) : à corriger hors de cette tâche.

@@ -34,6 +34,7 @@ def runtime():
     g.PARAMS_LUA=str(SERVER/'RS_PersonaParams.lua')
     g.PERSONA_LUA=str(SERVER/'RS_Persona.lua')
     g.CACHES_LUA=str(CORE_SERVER/'RC_Caches.lua')
+    g.CATEGORIES_LUA=str(SERVER/'RS_Categories.lua')
     g.next=None  # absent from Kahlua
     lua.execute(SEEDED)
     lua.execute('''
@@ -72,6 +73,7 @@ def runtime():
     function require(n) assert(modules[n],n);return modules[n] end
     modules['RadioSurvivor/RS_PersonaParams']=dofile(PARAMS_LUA)
     modules['RadioSurvivor/RS_Persona']=dofile(PERSONA_LUA)
+    modules['RadioSurvivor/RS_Categories']=dofile(CATEGORIES_LUA)  -- E20-T16: real resolver of the categories
     -- Real caches of the core mod; placement in the world is the double (counted).
     modules['RadioSurvivorCore/RC_Caches']=dofile(CACHES_LUA)
     modules['RadioSurvivorCore/RC_Caches'].place=function() placed=placed+1;return true end

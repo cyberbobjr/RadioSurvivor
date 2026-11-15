@@ -322,8 +322,8 @@ pool=cache:medical:3, cache:snacks:1, frequency:1, stashmap:1, lesson:Doctor:2
 | others | Parameters of the type: `deliver` takes `items` (an item category), `quantity` (`4` or `2-4`) and `collect_hours` (game hours before a dead drop is collected, 6 by default); `retrieve` takes `collect_hours` (the ID card is left at a dead drop); `barricade` takes `count` (outside windows and doors to barricade, 4 by default, at least 1); `relay` takes none. |
 
 Every key is **read and checked** when the sheet loads. `weight`, `after`, `scope`, `sets_state`, `story`, `drops`,
-`collect_hours` and `target` (`scout`, `clear`, `barricade`) are already used; `items` and `quantity` will be over the
-next versions (requested quantities).
+`collect_hours`, `target` (`scout`, `clear`, `barricade`), `items` and `quantity` (`deliver`: accepted items and
+requested number, drawn when the mission starts) are all used.
 
 ##### Chained missions and story state
 
@@ -407,6 +407,8 @@ places and the prompt: it does not see these errors. In-game solo and MP validat
 #### Radio deliveries: discreet collection
 
 A delivery mission of a voice offers **all its dead drops at once** (key `drops=` of its section; without it, every `use=drop` place of the sheet), each circled on your map with its name. Leave the goods wherever you want: items left at several drops add up toward the requested quantity. At each drop, the server designates a suitable existing box (every other mission) or, without one, requests a bag on the ground. The voice collects a drop only **out of everyone's sight** (no player within 100 tiles on x and on y, whatever the floor, or the square unloaded) **and after about 6 game hours** (`collect_hours=` of the `[mission]` section). The wait follows the game clock: it stops while paused, runs faster at higher speed or while sleeping, and does not count while the server is stopped. A player back in sight before the end resets it. A drop whose wait ran out while its square was unloaded is emptied as soon as the square loads again.
+
+**Requested items.** With `items=<category>`, the mission accepts only the items of that category (a `[category]` section of the sheet, else the shared catalogue); with `quantity=`, the requested number is drawn when the mission starts (`2-4`: 2, 3 or 4; `3`: always 3) and then stays the same. Without these keys, the mission asks for 6 bandages or ripped sheets. The notebook and the voice tell the accepted items and the requested number; an item outside the category is never collected.
 
 From a box, only requested items disappear, never more than the remaining quantity: the box, other items and the surplus remain. For a bag, the bag and contents disappear; a bag containing unrelated items, or more than the remaining quantity, is refused to prevent their loss. Each item counts only once, even after a restart. Until collection, you can take the drop back and nothing is validated. **Only once the whole quantity is collected, report over the radio**. Solo and MP in-game validation of this collection is **pending**.
 

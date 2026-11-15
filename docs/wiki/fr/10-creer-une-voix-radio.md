@@ -299,6 +299,8 @@ Toujours permise, même si vous ne l'écrivez pas. La voix vous répond à la ra
 
 Une mission de dépôt d'une voix propose **toutes ses planques à la fois** (clé `drops=` de sa section ; sans elle, tous les lieux `use=drop` de la fiche), chacune entourée sur votre carte avec son nom. Déposez où vous voulez : les objets laissés à plusieurs planques s'additionnent jusqu'à la quantité demandée. À chaque planque, le serveur désigne une boîte existante adaptée (une mission sur deux) ou, à défaut, demande un sac au sol. La voix ne ramasse une planque que **hors de vue de tout le monde** (aucun joueur à moins de 100 cases en x comme en y, quel que soit l'étage, ou la case déchargée) **et après environ 6 heures de jeu** (`collect_hours=` de la section `[mission]`). Le délai suit l'horloge du jeu : il s'arrête en pause, va plus vite en vitesse accélérée ou pendant le sommeil, et ne compte pas serveur arrêté. Un joueur revenu en vue avant la fin remet le délai à zéro. Une planque dont le délai s'est écoulé pendant que sa case était déchargée est vidée dès que la case se charge de nouveau.
 
+**Objets demandés.** Avec `items=<catégorie>`, la mission n'accepte que les objets de cette catégorie (une section `[category]` de la fiche, sinon le catalogue partagé) ; avec `quantity=`, le nombre demandé est tiré au départ de la mission (`2-4` : 2, 3 ou 4 ; `3` : toujours 3) puis ne change plus. Sans ces clés, la mission demande 6 bandages ou draps déchirés. Le carnet et la voix disent les objets acceptés et le nombre demandé ; un objet hors de la catégorie n'est jamais ramassé.
+
 Dans une boîte, seuls les objets demandés disparaissent, jamais plus que la quantité restante : boîte, autres objets et surplus restent. Pour un sac, sac et contenu disparaissent ; un sac qui contient des objets étrangers au lot, ou plus que la quantité restante, est refusé pour éviter leur perte. Chaque objet n'est compté qu'une fois, même après un redémarrage. Avant la collecte, vous pouvez reprendre le dépôt et rien n'est validé. **Une fois toute la quantité collectée seulement, rendez compte à la radio**. Validation en jeu solo et MP de cette collecte : **en attente**.
 
 **Barricader pour une voix.** Le bâtiment du lieu `target=` est entouré sur votre carte. Barricadez le nombre demandé (`count=`) de ses fenêtres et portes **extérieures**, avec des planches ou de la tôle, de l'intérieur ou de l'extérieur : chaque ouverture compte une fois. Le serveur compte lui-même les barricades du bâtiment ; celles déjà en place au début de la mission ne comptent pas, et une barricade retirée ne compte plus. Une fois le compte atteint, rappelez la voix. Validation en jeu MP : **en attente**.
@@ -344,8 +346,8 @@ pool=cache:medical:3, cache:snacks:1, frequency:1, stashmap:1, lesson:Doctor:2
 | autres | Les paramètres propres au type : `deliver` accepte `items` (une catégorie d'objets), `quantity` (`4` ou `2-4`) et `collect_hours` (heures de jeu avant le ramassage d'une planque, 6 par défaut) ; `retrieve` accepte `collect_hours` (la carte d'identité se dépose à une planque) ; `barricade` accepte `count` (fenêtres et portes extérieures à barricader, 4 par défaut, au moins 1) ; `relay` n'en accepte aucun. |
 
 Toutes ces clés sont **lues et vérifiées** au chargement. `weight`, `after`, `scope`, `sets_state`, `story`, `drops`,
-`collect_hours` et `target` (`scout`, `clear`, `barricade`) servent déjà ; `items` et `quantity` serviront au fil des
-prochaines versions (quantités demandées).
+`collect_hours`, `target` (`scout`, `clear`, `barricade`), `items` et `quantity` (`deliver` : objets acceptés et
+nombre demandé, tiré au départ de la mission) servent tous.
 
 ##### Missions enchaînées et état de récit
 

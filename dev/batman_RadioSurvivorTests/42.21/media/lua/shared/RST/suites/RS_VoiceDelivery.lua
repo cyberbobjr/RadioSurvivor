@@ -129,6 +129,71 @@ local function run(t)
     end)
 end
 
+-- E20-T16: goods of a sheet section (items=medical of the shared catalogue, quantity=2-4 drawn at 3) on a real
+-- crate holding medical goods beyond the quantity and a hammer. The out-of-sight rule is the first test's: here the
+-- watcher says ready at once (RS_DeadDrops.useSight), the real catalogue, set-up, template and container are used.
+local CATEGORY_GOODS = {'Base.Bandage', 'Base.Pills', 'Base.Hammer', 'Base.Disinfectant', 'Base.Bandage'}
+
+local function runCategory(t)
+    if isClient() then t:skip('authority only') end
+    local D = require 'RadioSurvivor/RS_DeadDrops'
+    local G = require 'RadioSurvivor/RS_MissionGoods'
+    local OutOfSight = require 'RadioSurvivor/RS_OutOfSight'
+    local p = F.player(t)
+    local sq = p:getSquare()
+    t:ok(sq ~= nil, 'requester square unavailable')
+    local x, y, z = sq:getX(), sq:getY(), sq:getZ()
+    local crate = IsoObject.new(getCell(), sq, 'location_military_generic_01_0')
+    crate:createContainersFromSpriteProperties()
+    sq:transmitAddObjectToSquare(crate, -1)
+    local inv
+    local added = {}
+    t:defer(function()
+        G.setRandom(nil)
+        D.useSight(OutOfSight.engine())
+        for _, it in ipairs(added) do
+            if inv and inv:getItemWithIDRecursiv(it:getID()) then
+                inv:DoRemoveItem(it)
+                if isServer() then sendRemoveItemFromContainer(inv, it) end
+            end
+        end
+        if crate:getSquare() then crate:getSquare():transmitRemoveItemFromSquare(crate) end
+    end, 'remove the category drop fixtures')
+    G.setRandom(function() return 1 end)
+    D.useSight({watch = function() return true, false end})
+    local m = {id = 'rst-goods-' .. tostring(RST.now()), template = 'deliver', donor = 'voice', state = 'active',
+        quantity = 6, delivered = 0, collectHours = DELAY, credited = {}, accepted = {['Base.RippedSheets'] = true},
+        drops = {{id = 'crate', label = 'RST crate', x = x, y = y, z = z, mode = 'box'}}}
+    local section = {type = 'deliver', params = {items = 'medical', quantity = {min = 2, max = 4}}}
+    t:eq(true, G.check({id = 'rst'}, section), 'category medical of the shared catalogue not found')
+    G.apply(m, {id = 'rst'}, {missionCount = 1}, section)
+    t:eq(3, m.quantity, 'quantity not drawn in the range')
+    local told = {}
+    for _, kind in ipairs({'Base.Bandage', 'Base.Disinfectant', 'Base.Pills', 'Base.RippedSheets'}) do
+        told[#told + 1] = tostring(m.accepted[kind])
+    end
+    t:eq('true,true,true,nil', table.concat(told, ','), 'accepted types are not the medical category')
+    local store = {save = function() return true end}
+    t:eq(true, D.prepare(m, m.drops[1], store), 'prepare the crate drop')
+    t:eq('box', m.drops[1].mode, 'real crate not selected')
+    local b = m.drops[1].box
+    inv = getCell():getGridSquare(b.x, b.y, z):getObjects():get(b.object):getContainerByIndex(b.container)
+    for _, kind in ipairs(CATEGORY_GOODS) do
+        local it = inv:AddItem(kind)
+        t:ok(it ~= nil, kind .. ' script unavailable')
+        if isServer() then sendAddItemToContainer(inv, it) end
+        added[#added + 1] = it
+    end
+    D.observe(m, p, 'Tester', {}, store)
+    t:eq(3, m.delivered, 'medical goods not counted up to the drawn quantity')
+    local hammer = added[3]
+    t:ok(inv:getItemWithIDRecursiv(hammer:getID()) ~= nil, 'item outside the category taken')
+    t:ok(inv:getItemWithIDRecursiv(added[5]:getID()) ~= nil, 'item beyond the quantity taken')
+    D.observe(m, p, 'Tester', {}, store)
+    t:eq(3, m.delivered, 'credited beyond the quantity')
+end
+
 RST.suite("rs.voicedelivery", {tags = {"server", "world"}, testTimeoutMs = 120000}, function(s)
     s.test('two drops collected only out of view after the game-hour delay, return resets it', run)
+    s.test('goods of the category counted up to the drawn quantity, others left', runCategory)
 end)

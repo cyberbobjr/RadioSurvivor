@@ -150,6 +150,10 @@ class DarleneChainTests(unittest.TestCase):
         self.assertEqual([(d.id, d.x, d.y) for d in (meds.drops[i] for i in sorted(meds.drops))],
                          [('drop_dumpsters', 11874, 6870), ('drop_bookstore', 11894, 6870)])
         self.assertEqual(meds.setsState, 'returned')
+        # E20-T16: items=medical of the shared catalogue, quantity=2-4 drawn at the start.
+        self.assertEqual(sorted(k for k, v in meds.accepted.items() if v is True),
+                         ['Base.Bandage', 'Base.Disinfectant', 'Base.Pills'])
+        self.assertIn(meds.quantity, (2, 3, 4))
         self.close(sim, meds, 'success')
         self.assertEqual(self.api.voiceStoryState('darlene'), 'returned')
         self.assertEqual(sim.state().voiceStory.darlene, 'returned')

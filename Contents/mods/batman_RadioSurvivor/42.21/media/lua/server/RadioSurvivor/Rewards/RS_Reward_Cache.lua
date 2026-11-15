@@ -7,6 +7,7 @@ if isClient() then return end
 local Rewards = require 'RadioSurvivor/RS_Rewards'
 local Persona = require 'RadioSurvivor/RS_Persona'
 local Caches = require 'RadioSurvivorCore/RC_Caches'
+local Categories = require 'RadioSurvivor/RS_Categories'
 
 local Cache = {}
 
@@ -15,12 +16,9 @@ function Cache.place(source)
     return Persona.placeFor(source, 'drop') or (type(source.places) == 'table' and source.places[1]) or nil
 end
 
--- Category of this id for the sheet: its own [category] section first, else the shared catalogue.
-function Cache.category(source, id)
-    local own = type(source.categories) == 'table' and source.categories[id] or nil
-    if own then return own end
-    return require('RadioSurvivor/RS_Personas').rules().categories[id]
-end
+-- Category of this id for the sheet: its own [category] section first, else the shared catalogue (E20-T16: the
+-- resolver shared with the goods of a voice mission, RS_Categories).
+Cache.category = Categories.of
 
 -- Contents drawn in the category: list of {fullType, count}, item lines drawn at 0 left out.
 function Cache.contents(category, random)
