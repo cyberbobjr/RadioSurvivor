@@ -552,7 +552,7 @@ class StaticTests(unittest.TestCase):
         admin = ADMIN_FILE.read_text(encoding='utf-8')
         activity = ACTIVITY_FILE.read_text(encoding='utf-8')
         view = VIEW_FILE.read_text(encoding='utf-8')
-        for name in ('MODULE', 'CMD_REQUEST', 'CMD_REPLY', 'CAPABILITY'):
+        for name in ('MODULE', 'CMD_REQUEST', 'CMD_REPLY'):   # CAPABILITY: one source, CA_AdminAccess (E21-T04)
             a = re.search(rf'^Admin\.{name} = "([^"]+)"', admin, re.M).group(1)
             v = re.search(rf'^DebugView\.{name} = "([^"]+)"', view, re.M).group(1)
             self.assertEqual(a, v, name)

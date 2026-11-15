@@ -1,5 +1,6 @@
-"""RS_State / CA_Codec / RS_StatePurge under Lua 5.1 (lupa): codec bounds (C18), write retry (C19), purge of dead
-characters (C17), fast hex and checksum (C20). Simulated file API, NOT an in-game validation.
+"""RS_State / CA_Codec under Lua 5.1 (lupa): codec bounds (C18), write retry (C19), fast hex and checksum (C20), the
+RadioSurvivor file holding the data of the voices only (E21-T04; the notebook store and the purge of dead characters
+are the core mod's: tests/test_core_notebook_store.py). Simulated file API, NOT an in-game validation.
 
     python RadioSurvivor/tests/test_rs_state.py
 """
@@ -39,7 +40,6 @@ end
 -- CA_Reputation (E18-T22): reputation entries live in the core mod's state, Rep.data.reputation[cid].
 REP_DATA = {}
 package.preload['CoreAI/CA_Reputation'] = function() return {today = function() return DAY end, data = REP_DATA} end
-package.preload['RadioSurvivor/RS_LifeLog'] = function() return {get = function(cid) return LIFELOG and LIFELOG[cid] end} end
 for name, src in pairs(loaders) do
     if package.preload[name] == nil then  -- the doubles above win
         package.preload[name] = function() return assert(loadstring(src, name))() end
@@ -168,41 +168,6 @@ class StateTests(unittest.TestCase):
         self.assertTrue(S2.init(False))
         self.assertEqual(S2.data.note, 'second')
 
-    def test_over_the_bounds_never_writes_an_unreadable_file(self):
-        S = self.S
-        self.assertTrue(S.init(False))
-        good = self.files()
-        C = self.rt.eval("require('CoreAI/CA_Codec')")
-        C.MAX_NODES = 200
-        # Exchange histories live in the core mod (E18-T11) and are not encoded in the notebook file: the bulk that
-        # can overflow the codec bounds here is the known missions of the records.
-        self.rt.execute('''
-            local S = require('RadioSurvivor/RS_State')
-            S.data.characters.alive = {id = 'alive', owner = 'a', name = 'A', contacts = {}, knownMissions = {}}
-            local missions = {}
-            for i = 1, 300 do missions['m' .. i] = true end
-            S.data.characters.dead = {id = 'dead', owner = 'b', name = 'B', retired = true,
-                contacts = {npc1 = {}}, knownMissions = missions}
-        ''')
-        # Reducer: the dead character is stripped, the state fits again.
-        self.assertTrue(S.save())
-        self.assertEqual(len(list(S.data.characters.dead.contacts.keys())), 0)
-        self.assertEqual(len(list(S.data.characters.dead.knownMissions.keys())), 0)
-        self.assertIsNotNone(S.data.characters.alive)
-        # Still too big with living data only: refused, nothing written, not blocked.
-        self.rt.execute('''
-            local S = require('RadioSurvivor/RS_State')
-            local missions = {}
-            for i = 1, 300 do missions['m' .. i] = true end
-            S.data.characters.alive.knownMissions = missions
-        ''')
-        before = self.files()
-        self.assertFalse(S.save())
-        self.assertFalse(S.blocked)
-        self.assertEqual(self.files(), before)
-        self.assertEqual(len(list(S.data.characters.alive.knownMissions.keys())), 300, 'living data reduced')
-        self.assertNotEqual(good, before)
-
     def test_schema_upgrade_and_newer_schema_blocked(self):
         S = self.S
         self.assertTrue(S.init(False))
@@ -220,76 +185,43 @@ class StateTests(unittest.TestCase):
         self.assertTrue(S.blocked)
 
 
-class PurgeTests(unittest.TestCase):
+class VoiceStateTests(unittest.TestCase):
+    """E21-T04: the RadioSurvivor file holds the data of the voices only; the characters, fiches and bindings are the
+    notebook store's (CA_NotebookStore, batman_CoreAI file), saved with it (RS_State is one of its companions)."""
+
     def setUp(self):
         self.rt = runtime()
-        self.P = self.rt.eval("require('RadioSurvivor/RS_StatePurge')")
-        self.data = self.rt.execute('''
-            return {characters = {
-                alive = {id = 'alive', contacts = {n1 = {history = {}}}, knownMissions = {m1 = true}},
-                dead = {id = 'dead', retired = true, contacts = {n1 = {history = {}}}, knownMissions = {m1 = true}},
-                busy = {id = 'busy', retired = true, contacts = {}, knownMissions = {}},
-            }, missions = {m1 = {participants = {busy = true}, invited = {}}}}
-        ''')
+        self.g = self.rt.globals()
 
-    def test_dated_then_stripped_then_dropped(self):
-        P, d = self.P, self.data
-        self.assertTrue(P.run(d, 10))
-        self.assertEqual(d.characters.dead.retiredDay, 10)
-        self.assertIsNotNone(d.characters.dead.contacts.n1, 'stripped before STRIP_DAYS')
-        self.assertTrue(P.run(d, 17))
-        self.assertIsNone(d.characters.dead.contacts.n1)
-        self.assertIsNotNone(d.characters.dead)
-        self.assertFalse(P.run(d, 20))
-        self.assertTrue(P.run(d, 40))
-        self.assertIsNone(d.characters.dead)
-        self.assertIsNotNone(d.characters.busy, 'character of an open mission dropped')
-        self.assertIsNotNone(d.characters.alive.contacts.n1)
-        self.assertTrue(d.characters.alive.knownMissions.m1)
-        d.missions.m1 = None
-        self.assertTrue(P.run(d, 40))
-        self.assertIsNone(d.characters.busy)
+    def decoded(self, prefix):
+        """Content and header of the last slot written among the files of this prefix."""
+        slots = [text.split('\n') for path, text in self.g.FILES.items() if path.startswith(prefix)]
+        if not slots:
+            return None, None
+        lines = max(slots, key=lambda ls: int(ls[0].split('=')[1]))
+        return self.rt.eval("function(h) local C = require('CoreAI/CA_Codec') "
+                            "return C.decodeBytes(C.unhexBytes(h)) end")(lines[1]), lines[0]
 
-    def test_frozen_life_log_and_reputation_keep_the_record(self):
-        P, d = self.P, self.data
-        self.rt.execute("LIFELOG = {dead = {dead = true}}")
-        P.run(d, 1)
-        P.run(d, 100)
-        self.assertIsNotNone(d.characters.dead, 'record of a pending last pages dropped')
-        self.rt.execute("LIFELOG = nil")
-        self.rt.execute("REP_DATA.reputation = {dead = {}}")
-        P.run(d, 100)
-        self.assertIsNotNone(d.characters.dead)
-        self.rt.execute("REP_DATA.reputation = nil")
-        P.run(d, 100)
-        self.assertIsNone(d.characters.dead)
-
-    def test_daily_pass_from_save(self):
+    def test_rs_file_holds_no_characters(self):
         self.rt.execute('''
             local S = require('RadioSurvivor/RS_State')
-            assert(S.init(false))
-            S.data.characters.dead = {id = 'dead', retired = true, retiredDay = 1, contacts = {x = {}}, knownMissions = {}}
+            local Store = require('CoreAI/CA_NotebookStore')
+            assert(Store.init(false))
+            assert(S.data and not S.blocked)
+            Store.data.characters.c1 = {id = 'c1', owner = 'a', name = 'A', contacts = {}, knownMissions = {}}
+            Store.data.npcs.n1 = {id = 'n1', name = 'Ruth'}
+            S.data.voiceStory = {walt = 'returned'}
+            assert(S.save())
         ''')
-        S = self.rt.eval("require('RadioSurvivor/RS_State')")
-        self.assertTrue(S.save())
-        self.assertIsNone(S.data.characters.dead.stripped, 'second pass on the same game day')
-        self.rt.globals().DAY = 11
-        self.assertTrue(S.save())
-        self.assertTrue(S.data.characters.dead.stripped)   # 10 days after the death
-        self.rt.globals().DAY = 50
-        self.assertTrue(S.save())
-        self.assertIsNone(S.data.characters.dead)
-
-    def test_batch_limit(self):
-        P = self.P
-        d = self.rt.execute('''
-            local c = {}
-            for i = 1, 120 do c['d' .. i] = {retired = true, retiredDay = 0, contacts = {x = {}}, knownMissions = {}} end
-            return {characters = c, missions = {}}
-        ''')
-        P.run(d, 10)
-        stripped = sum(1 for _k, r in d.characters.items() if r.stripped)
-        self.assertEqual(stripped, P.BATCH)
+        data, header = self.decoded('batman_RadioSurvivor/state-')
+        self.assertTrue(str(header).startswith('RSSTATE2='), header)
+        self.assertEqual(data.schema, 2)
+        self.assertEqual(data.voiceStory.walt, 'returned')
+        for key in ('characters', 'npcs', 'bindings', 'missions', 'world', 'uidCounter'):
+            self.assertIsNone(data[key], key)
+        notebook, _ = self.decoded('batman_CoreAI/notebook-')
+        self.assertEqual(notebook.characters.c1.name, 'A')
+        self.assertIsNone(notebook.voiceStory)
 
 
 if __name__ == '__main__':

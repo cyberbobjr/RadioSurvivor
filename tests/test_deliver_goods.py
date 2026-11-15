@@ -7,7 +7,7 @@ A voice `deliver` mission whose section names a category accepts exactly the ite
 RS_Categories shared with the cache reward); `quantity=` (number or range) is drawn when the mission starts
 (RS_MissionGoods.setRandom, injected generator) and kept on the mission. Without those keys the mission keeps the list
 and the quantity of CA_MissionConfig (Bandage, RippedSheets; 6).
-Integration: real RadioSurvivor_Server and RS_Carnet_Server (bench of tests/test_carnet.py, VoiceMissionTests), real
+Integration: real RadioSurvivor_Server and CA_NotebookServer (bench of tests/test_carnet.py, VoiceMissionTests), real
 sheet reader, real catalogue. Dead drops: the world doubles of tests/test_voice_delivery.py (real RS_DeadDrops, real
 deliver template). Proof of the Lua logic, not of the Java API nor the network.
 """
@@ -69,7 +69,7 @@ class VoiceGoodsTests(unittest.TestCase):
         rt = sim.server.rt
         rt.execute(CLINIC_WORLD)  # squares of the drop not loaded: the drop waits for its first reading
         self.voice = rt.eval("require('RadioSurvivor/RS_MissionVoice')")
-        self.store = rt.eval("require('RadioSurvivor/RS_State')")
+        self.store = rt.eval("require('CoreAI/CA_NotebookStore')")
         self.engine = rt.eval("require('CoreAI/CA_Missions')")
         self.goods = rt.eval("require('RadioSurvivor/RS_MissionGoods')")
         self.addCleanup(self.goods.setRandom, None)

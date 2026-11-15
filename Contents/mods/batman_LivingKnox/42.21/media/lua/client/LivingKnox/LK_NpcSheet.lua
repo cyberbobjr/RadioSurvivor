@@ -28,6 +28,7 @@ require "LivingKnox/LK_Config"
 require "LivingKnox/LK_Log"
 require "LivingKnox/LK_Anim"
 require "LivingKnox/LK_Table"
+local Access = require "CoreAI/CA_AdminAccess"
 
 local Sheet = LivingKnox.NpcSheet or {}
 LivingKnox.NpcSheet = Sheet
@@ -36,7 +37,7 @@ LivingKnox.NpcSheet = Sheet
 Sheet.MODULE = "LivingKnox"
 Sheet.CMD_REQUEST = "adminRequest"
 Sheet.CMD_REPLY = "adminReply"
-Sheet.CAPABILITY = "PopmanManage"
+Sheet.CAPABILITY = Access.CAPABILITY
 Sheet.FIELDS = { "hunger", "thirst", "fatigue", "fear", "health", "bleed", "wound" }
 Sheet.OPS = { npc = true, npcSet = true, npcRole = true, npcName = true, npcGoto = true, homeGoto = true }
 Sheet.GOTO_OPS = { npcGoto = true, homeGoto = true }   -- téléportations (LK13-T15, foyer d'un groupe : LK13-T16)
@@ -67,11 +68,7 @@ local function now() return getTimestampMs() end
 
 -- Vrai si le joueur peut voir l'option et ouvrir la fiche (affichage seulement : l'autorité décide).
 function Sheet.canUse(player)
-    if not isClient() then return isDebugEnabled ~= nil and isDebugEnabled() == true end
-    player = player or localPlayer()
-    if player == nil or Capability == nil or Capability[Sheet.CAPABILITY] == nil then return false end
-    local role = player:getRole()
-    return role ~= nil and role:hasCapability(Capability[Sheet.CAPABILITY]) == true
+    return Access.canUse(player) -- E21-T04 : règle commune (CA_AdminAccess)
 end
 
 local function dist2(ax, ay, bx, by)

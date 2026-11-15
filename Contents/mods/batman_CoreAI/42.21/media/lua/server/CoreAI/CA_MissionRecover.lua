@@ -2,7 +2,7 @@ if isClient() then return end
 --[[
 Mission template `recover` (E11-T06): pick up a cache (marked bag) left in a place chosen by the server and carry it
 to the depot of the requester's group. Authority only. Catalogue: CA_MissionConfig.Missions.recover (offer id recover_v1).
-Registered in CA_Missions (M.register); required by RS_Carnet_Server, whose once-a-second poll of the participants
+Registered in CA_Missions (M.register); required by CA_NotebookServer, whose once-a-second poll of the participants
 (M.observe) also places the cache (CA_Caches) and checks the depot. Details:
 docs/annexes/conception/carnet-implementation-04221.md, "Caches et gabarit recuperer"; design choices:
 docs/annexes/conception/mission-recuperer.md.

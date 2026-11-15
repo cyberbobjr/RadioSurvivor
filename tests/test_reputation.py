@@ -339,7 +339,7 @@ class Server(unittest.TestCase):
         del sim.server.g.PLAYERS['bob']
         sim.clock.offset += 1001; sim.tick()
         self.assertTrue(self.M.finish(sim.state(), m, 'success'))
-        sim.server.g.RS_CarnetServer.store.save()
+        sim.server.g.CoreAI.notebookServer.store.save()
         self.assertEqual(self.rep('alice'), (5, 'neutral'))
         self.assertEqual(self.R.scoreOf(bob), 5)
         alice_o = self.R.data.outcomes[m.id + '-' + sim.character('alice') + '-result']
@@ -514,7 +514,7 @@ class Effects(unittest.TestCase):
                 received.append(args)
             return base(command, args)
         client.receive = counting
-        server = sim.server.g.RS_CarnetServer
+        server = sim.server.g.CoreAI.notebookServer
         sim.command('alice', 'snapshot')
         self.assertEqual(len(received), 1, 'an answer to a request is always sent')
         server.publish(); server.publish()
@@ -538,7 +538,9 @@ class Effects(unittest.TestCase):
             return base(command, args)
         client.receive = capture
         self.bad('alice')
-        self.rt.execute('RS_FreqDebug = {isAllowed = function(p) return ADMIN_OK == true, "missing capability" end}')
+        # E21-T04: the access rule of the administration tools (CA_AdminAccess), doubled.
+        self.rt.execute('require("CoreAI/CA_AdminAccess").allowed = function(p) return ADMIN_OK == true, '
+                        '"missing capability" end')
         sim.command('bob', 'rep_admin')
         self.assertEqual({k: answers[-1][k] for k in ('ok', 'err')}, {'ok': False, 'err': 'denied'})
         self.assertNotIn('characters', answers[-1])
@@ -577,7 +579,7 @@ class Effects(unittest.TestCase):
             self.assertNotIn(gone, text)
         self.assertEqual(len(list(c.g.HALOS.values())), 0, 'no warning without a change')
         self.bad('alice')
-        sim.server.g.RS_CarnetServer.publish()
+        sim.server.g.CoreAI.notebookServer.publish()
         text = window.detail.text
         self.assertIn('IGUI_CA_RepLevelLine|IGUI_CA_RepLevel_bad <LINE> <LINE> IGUI_CA_RepTrendLine|IGUI_CA_RepTrend_down', text)
         self.assertIn('IGUI_CA_RepChanged|IGUI_CA_RelWhen_today|IGUI_CA_RepLevel_neutral|IGUI_CA_RepLevel_bad', text)

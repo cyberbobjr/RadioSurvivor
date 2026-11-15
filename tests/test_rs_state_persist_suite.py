@@ -1,6 +1,6 @@
 """Suites de persistance de l'état privé du carnet (E16-T08, C17-C20, base rs.state de la campagne mp-persist) :
-rs.state.before puis rs.state.after-restart joués par le vrai moteur RST sur le vrai RS_State et le vrai
-RS_StatePurge.
+rs.state.before puis rs.state.after-restart joués par le vrai moteur RST sur le vrai CA_NotebookStore et le vrai
+CA_NotebookPurge (E21-T04 : état du carnet dans le mod commun).
 
     python RadioSurvivor/tests/test_rs_state_persist_suite.py
 
@@ -37,9 +37,9 @@ getFileWriter = function(path, create, append)
     if w then w.writeln = function(self, line) self:write(line .. '\n') end end
     return w
 end
-local S = require('RadioSurvivor/RS_State')
+local S = require('CoreAI/CA_NotebookStore')
 STARTED = S.init(false)
-RS_CarnetServer = {store = S, bound = {}}
+CoreAI = CoreAI or {}; CoreAI.notebookServer = {store = S, bound = {}}
 require "RST/RST"
 '''
 
@@ -72,7 +72,7 @@ def run(rt, name):
 def test_ids(rt):
     """Test character ids (RST.StatePersist.PREFIX) of the notebook state in memory, sorted."""
     listed = rt.eval('(function() local out = {} local P = RST.StatePersist.PREFIX '
-                     'for cid in pairs(require("RadioSurvivor/RS_State").data.characters) do '
+                     'for cid in pairs(require("CoreAI/CA_NotebookStore").data.characters) do '
                      'if string.sub(cid, 1, #P) == P then out[#out + 1] = cid end end '
                      'return table.concat(out, ",") end)()')
     return sorted(c for c in listed.split(',') if c)
@@ -109,7 +109,7 @@ class StatePersistSuiteTests(unittest.TestCase):
 
     def test_purged_record_still_present_after_restart_fails(self):
         rt = self.before()
-        rt.execute('local S = require("RadioSurvivor/RS_State") '
+        rt.execute('local S = require("CoreAI/CA_NotebookStore") '
                    'local cid = RST.Persist.read(RST.StatePersist.FILE, RST.StatePersist.HEADER).purged[1] '
                    'S.data.characters[cid] = {id = cid, retired = true, retiredDay = DAY, contacts = {}, '
                    'knownMissions = {}} assert(S.save())')
@@ -119,7 +119,7 @@ class StatePersistSuiteTests(unittest.TestCase):
 
     def test_kept_record_lost_fails(self):
         rt = self.before()
-        rt.execute('local S = require("RadioSurvivor/RS_State") '
+        rt.execute('local S = require("CoreAI/CA_NotebookStore") '
                    'for cid in pairs(S.data.characters) do if string.find(cid, "-busy$") then '
                    'S.data.characters[cid] = nil end end assert(S.save())')
         (status, message), = run(self.restart(rt), 'rs.state.after-restart')
@@ -128,7 +128,7 @@ class StatePersistSuiteTests(unittest.TestCase):
 
     def test_kept_record_changed_fails(self):
         rt = self.before()
-        rt.execute('local S = require("RadioSurvivor/RS_State") '
+        rt.execute('local S = require("CoreAI/CA_NotebookStore") '
                    'for cid, r in pairs(S.data.characters) do if string.find(cid, "-living$") then '
                    'r.contacts = {} end end assert(S.save())')
         (status, message), = run(self.restart(rt), 'rs.state.after-restart')
@@ -139,8 +139,8 @@ class StatePersistSuiteTests(unittest.TestCase):
         """The newest slot corrupt: S.init falls back to the older slot, saved before the purge."""
         rt = self.before()
         files = files_of(rt)
-        gen = rt.eval('require("RadioSurvivor/RS_State").generation')
-        path = rt.eval('require("RadioSurvivor/RS_State").path') + f'-{gen % 2}.txt'
+        gen = rt.eval('require("CoreAI/CA_NotebookStore").seq')
+        path = rt.eval('require("CoreAI/CA_NotebookStore").base') + f'-{gen % 2}.txt'
         files[path] = files[path].replace('\nend\n', '\nbroken\n')
         rt2 = server(files)
         self.assertTrue(rt2.eval('STARTED'))

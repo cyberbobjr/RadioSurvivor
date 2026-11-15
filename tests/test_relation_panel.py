@@ -2,7 +2,7 @@
 
     python tests/test_relation_panel.py
 
-Banc lupa (Lua 5.1, `next` retiré comme dans Kahlua) : vrai serveur du carnet (`RS_Carnet_Server.lua`), vrais
+Banc lupa (Lua 5.1, `next` retiré comme dans Kahlua) : vrai serveur du carnet (`CA_NotebookServer.lua`), vrais
 `LK_NotebookRelations.lua` et `RS_Factions.lua` (doublure fidèle de la faction vanilla de `tests/test_factions.py`), moteur
 Living Knox réel (registres, `LK_Hostility`, API, fournisseur `RS_LivingKnox.lua`), vrai client du carnet
 (`CA_NotebookContacts.lua` avec les doublures ISUI de `NOTEBOOK_UI`) et table anglaise réelle du mod pour le rendu. Les changements
@@ -66,7 +66,7 @@ class RelationPanelTests(unittest.TestCase):
         self.sim, self.g, self.rt = sim, sim.server.g, sim.server.rt
         for c in clients:
             sim.add_client(c)
-        self.server = self.g.RS_CarnetServer
+        self.server = self.g.CoreAI.notebookServer
         self.R = self.rt.eval("require('LivingKnox/LK_NotebookRelations')")
         self.F = self.rt.eval(AGREEMENTS_FACADE)
         self.H = self.rt.eval('LivingKnox.Hostility')

@@ -4,7 +4,7 @@
 
 CA_History (core mod, authority): one private file Zomboid/Lua/batman_CoreAI/history-<world>-<0|1>.txt
 (CA_SlotFile, header RCHISTORY1), lines per character and per interlocutor, bounded like before (MAX_HISTORY). The
-notebook state (RS_State) no longer writes them: each contact's history is the table of the core mod (same table in
+notebook state (CA_NotebookStore) never writes them: each contact's history is the table of the core mod (same table in
 memory, so every existing writer is unchanged).
 """
 from __future__ import annotations
@@ -41,9 +41,8 @@ class Base(unittest.TestCase):
 
     def state_text(self):
         """Decoded notebook state of the newest slot, as one string (to look for history lines)."""
-        return self.ev('local S = require("RadioSurvivor/RS_State") local C = require("CoreAI/CA_Codec") '
-                       'local best for slot = 0, 1 do local r = S._read(S.path .. "-" .. slot .. ".txt") '
-                       'if r and (not best or r.generation > best.generation) then best = r end end '
+        return self.ev('local S = require("CoreAI/CA_NotebookStore") '
+                       'local best = require("CoreAI/CA_SlotFile").read(S.base, S.HEADER) '
                        'local out = {} local function walk(v) if type(v) == "table" then for k, x in pairs(v) do '
                        'out[#out + 1] = tostring(k) walk(x) end else out[#out + 1] = tostring(v) end end '
                        'walk(best.data) return table.concat(out, " ")')
@@ -58,7 +57,7 @@ class ModuleTests(unittest.TestCase):
 
 class StateTests(Base):
     def seed(self):
-        self.ev('local S = require("RadioSurvivor/RS_State") assert(S.init(true)) '
+        self.ev('local S = require("CoreAI/CA_NotebookStore") assert(S.init(true)) '
                 'S.data.characters["c-ann"] = {contacts = {["lk:lk-1"] = {}, ["lk:lk-2"] = {}}} '
                 'S.data.characters["c-bob"] = {contacts = {["lk:lk-1"] = {}}} '
                 'local H = require("CoreAI/CA_History") '
@@ -69,14 +68,14 @@ class StateTests(Base):
 
     def test_lines_stay_in_the_core_file_after_a_restart(self):
         self.seed()
-        self.ev('package.loaded["RadioSurvivor/RS_State"] = nil local S = require("RadioSurvivor/RS_State") '
+        self.ev('package.loaded["CoreAI/CA_NotebookStore"] = nil local S = require("CoreAI/CA_NotebookStore") '
                 'assert(S.init(false))')
         self.assertEqual(self.texts('c-bob', 'lk:lk-1').count('Again you.'), 1)
         self.assertNotIn('Again you.', self.state_text())
 
     def test_dropped_contact_and_character_are_forgotten(self):
         self.seed()
-        self.ev('local S = require("RadioSurvivor/RS_State") '
+        self.ev('local S = require("CoreAI/CA_NotebookStore") '
                 'S.data.characters["c-bob"] = nil S.data.characters["c-ann"].contacts["lk:lk-2"] = nil assert(S.save())')
         self.assertTrue(self.ev('local H = require("CoreAI/CA_History") '
                                 'return H.find("c-bob", "lk:lk-1") == nil and H.find("c-ann", "lk:lk-2") == nil '
@@ -84,13 +83,13 @@ class StateTests(Base):
 
     def test_new_world_starts_empty(self):
         self.seed()
-        self.assertTrue(self.ev('return require("RadioSurvivor/RS_State").init(true)'))
+        self.assertTrue(self.ev('return require("CoreAI/CA_NotebookStore").init(true)'))
         self.assertEqual(self.texts('c-ann', 'lk:lk-1'), '')
 
 
 class BoundsTests(Base):
     def test_append_keeps_the_last_lines(self):
-        self.ev('local S = require("RadioSurvivor/RS_State") assert(S.init(true))')
+        self.ev('local S = require("CoreAI/CA_NotebookStore") assert(S.init(true))')
         out = self.ev('local H = require("CoreAI/CA_History") '
                       'for i = 1, 5 do H.append("c", "p", {id = tostring(i), author = "a", text = "t" .. i}, 3) end '
                       'local t = {} for _, l in ipairs(H.lines("c", "p")) do t[#t + 1] = l.text end '

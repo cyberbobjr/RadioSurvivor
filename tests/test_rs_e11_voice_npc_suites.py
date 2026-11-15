@@ -3,7 +3,7 @@
     python tests/test_rs_e11_voice_npc_suites.py
 
 - rs.missions.voicetemplates (dev/.../suites/RS_MissionRadio.lua): the voice simulation of tests/test_carnet.py
-  (VoiceMissionTests: real RadioSurvivor_Server and RS_Carnet_Server, scout metagrid), the clear density double of
+  (VoiceMissionTests: real RadioSurvivor_Server and CA_NotebookServer, scout metagrid), the clear density double of
   tests/test_mission_clear.py and the Signal Smoke double; zombies spawned by an addZombiesInOutfit double that fires
   OnHitZombie and OnZombieDead in the order of the game. The real RST engine runs the suite on the server machine.
 

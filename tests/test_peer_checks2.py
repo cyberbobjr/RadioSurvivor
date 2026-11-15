@@ -286,7 +286,7 @@ class AuthorityHelperTests(Base):
         self.assertEqual(out, 'skip: no peer')
 
     def test_check_zones_without_notebook_state(self):
-        self.m.lua('RS_CarnetServer = nil')
+        self.m.lua('CoreAI = CoreAI or {}; CoreAI.notebookServer = nil')
         self.side(True)
         self.m.lua('online({ "rs_mp1", "rs_mp2" })')
         out = self.m.lua('local t = newT() return outcome(t, function() '
@@ -299,7 +299,7 @@ class AuthorityHelperTests(Base):
 
     def test_check_zones_registers_one_restore_and_leaves_no_mark_on_t(self):
         self.side(False)
-        self.m.lua('PUBLISHED = 0; RS_CarnetServer = { store = { data = { world = "w" }, run = "r" }, '
+        self.m.lua('PUBLISHED = 0; CoreAI = CoreAI or {}; CoreAI.notebookServer = { store = { data = { world = "w" }, run = "r" }, '
                    'publish = function() PUBLISHED = PUBLISHED + 1 end }')
         self.m.lua('ASKED = 0; RST.Steps.ask = function(t, step, args, opts, after) ASKED = ASKED + 1 end')
         self.m.lua('T = newT(); for i = 1, 3 do RST.PeerChecks2.checkZones(T, { id = "m" }, {}, "present", nil) end')

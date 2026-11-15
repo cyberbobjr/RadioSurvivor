@@ -98,7 +98,7 @@ function PD.onDeath(chr)
     local token = PD.armed[user]
     if token == nil then return end
     PD.armed[user] = nil
-    local Server = RS_CarnetServer
+    local Server = CoreAI and CoreAI.notebookServer
     local seen = { user = user, player = chr, x = math.floor(chr:getX()), y = math.floor(chr:getY()),
         z = math.floor(chr:getZ()), onFire = chr:isOnFire() and true or false,
         boundAtEvent = type(Server) == "table" and Server.bound and Server.bound[chr] or nil }

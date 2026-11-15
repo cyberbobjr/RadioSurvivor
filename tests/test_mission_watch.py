@@ -4,7 +4,7 @@ faits vus pendant le guet (hélicoptère vanilla entendu, groupe de morts proche
 
     python RadioSurvivor/tests/test_mission_watch.py
 
-Vrai RadioSurvivor_Server, vrai RS_Carnet_Server (gabarit CA_MissionWatch et ses sources de faits inscrits au
+Vrai RadioSurvivor_Server, vrai CA_NotebookServer (gabarit CA_MissionWatch et ses sources de faits inscrits au
 chargement), vrai RS_MissionVoice (départ et compte rendu d'une voix), vrai RS_MissionTarget (lieu target), vrai
 RS_Persona (lecture de la fiche), vrai client du carnet ; doublures fidèles au Java 42.22 relevé (WATCH_WORLD). Preuve
 de la logique Lua, pas de l'API Java réelle ni du réseau : la suite en jeu rs.voicewatch le confirme sur un serveur
@@ -84,7 +84,7 @@ class WatchMissionTests(unittest.TestCase):
         # Same for the fact sources of the watches (server/CoreAI/WatchFacts/).
         for source in FACT_SOURCES:
             rt.eval(f"require('CoreAI/WatchFacts/{source}')")
-        return sim, rt.eval("require('RadioSurvivor/RS_MissionVoice')"), rt.eval("require('RadioSurvivor/RS_State')")
+        return sim, rt.eval("require('RadioSurvivor/RS_MissionVoice')"), rt.eval("require('CoreAI/CA_NotebookStore')")
 
     def sheet(self, sim, section):
         rt = sim.server.rt

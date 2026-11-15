@@ -66,7 +66,7 @@ failing undo is reported as "cleanup <label>: ..." on the test and does not stop
                                          given). Undo: LivingKnox.API.testRemoveNpc(id) (body removed, NPC
                                          forgotten); a failed removal is a cleanup error.
     F.engagedMission(t, store, npc, members[, opts]) -> mission
-                                         an ACTIVE notebook mission requested by the fiche npc (RS_CarnetServer
+                                         an ACTIVE notebook mission requested by the fiche npc (CoreAI.notebookServer
                                          .ensure of a provider NPC), offered to every character of members
                                          ({ [character] = name }) and accepted by each (RS_Missions.accept);
                                          marked m.rstTest = opts.tag. Undo: mission removed, unless opts.keep.
@@ -639,10 +639,10 @@ function F.removeTestMission(store, m)
     return true
 end
 
--- An ACTIVE mission of the notebook requested by the fiche npc (RS_CarnetServer.ensure of a provider NPC) with every
+-- An ACTIVE mission of the notebook requested by the fiche npc (CoreAI.notebookServer.ensure of a provider NPC) with every
 -- character of members ({ [character] = name }) engaged: offer of the default template (deliver, catalogue entry
 -- RS_Config.Missions.deliver, no supply terms) invited to all, then accepted by each through RS_Missions.accept, the
--- path of the notebook "accept" command. Marked m.rstTest = tag ("rst" by default). store: RS_CarnetServer.store.
+-- path of the notebook "accept" command. Marked m.rstTest = tag ("rst" by default). store: CoreAI.notebookServer.store.
 -- Undo (t:defer) unless opts.keep: the mission removed (F.removeTestMission). Authority only.
 function F.engagedMission(t, store, npc, members, opts)
     opts = opts or {}

@@ -39,9 +39,9 @@ local function authority(t)
     local okP, Personas = pcall(require, "RadioSurvivor/RS_Personas")
     t:ok(okP and type(Personas) == "table", "RadioSurvivor/RS_Personas not loaded on this side")
     t:ok(type(RS_RadioServer) == "table", "RadioSurvivor_Server.lua (talk command) not loaded on this side")
-    local Server = RS_CarnetServer
+    local Server = CoreAI and CoreAI.notebookServer
     if type(Server) ~= "table" or type(Server.store) ~= "table" or Server.store.data == nil then
-        t:skip("notebook server state not ready (RS_CarnetServer)")
+        t:skip("notebook server state not ready (CoreAI.notebookServer)")
     end
     if not Const.isEnabled() then t:skip("sandbox option RadioSurvivor.Enabled is off") end
     local p = RST.Fixtures.player(t)

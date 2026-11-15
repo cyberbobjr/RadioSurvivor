@@ -3,7 +3,7 @@ if isClient() then return end
 Mission template `relay` (E20-T12, ADR D02, D10): set up a radio relay, that is a two-way radio placed high at a place
 named by the giver, powered and turned on, then report by radio. Authority only. Catalogue:
 CA_MissionConfig.Missions.relay (offer id relay_v1). Registered in CA_Missions (M.register); required by
-RS_Carnet_Server.
+CA_NotebookServer.
 
 Giver: a radio voice only, under the name `relay` (declaration voiceName); an NPC fiche is never offered one. The spot
 is the place `target` of the voice sheet (use=target), handed over by RadioSurvivor's set-up of the templates that

@@ -10,15 +10,16 @@ selects contents, creates an active-mission reward, or replaces the reward draw.
 voice's allowed places. Refusals include not_done, no_reward and bad_table.
 ]]
 local Caches = require 'CoreAI/CA_Caches'
-local S = require 'RadioSurvivor/RS_State'
+local Notebook = require 'CoreAI/CA_NotebookStore' -- E21-T04: mission state of the notebook
 local Actions = require 'RadioSurvivor/RS_Actions'
 local V = require 'RadioSurvivor/RS_MissionVoice'
 
--- Last mission given by this voice to this character: the open one, else its latest success. nil without any.
+-- Last mission given by this voice to this character in the mission state: the open one, else its latest success.
+-- nil without any.
 function Caches.voiceMission(state, voice, cid)
     local open = V.open(state, voice, cid)
     if open then return open end
-    local d = V.donor(state, voice, cid, false)
+    local d = V.donor(voice, cid, false)
     if not d then return nil end
     local best
     for _, m in pairs(state.missions) do
@@ -37,8 +38,8 @@ local function validate(params)
 end
 
 local function execute(params, ctx)
-    local state = S.data
-    if type(state) ~= 'table' or S.blocked then return false, 'storage' end
+    local state = Notebook.data
+    if type(state) ~= 'table' or Notebook.blocked then return false, 'storage' end
     local cid = type(ctx) == 'table' and ctx.cid or nil
     local record = type(cid) == 'string' and state.characters[cid] or nil
     if not record or record.retired then return false, 'no_character' end
@@ -50,7 +51,7 @@ local function execute(params, ctx)
         return false, 'no_reward'
     end
     if params.table ~= m.cache.table then return false, 'bad_table' end
-    Caches.place(S, m.cache)
+    Caches.place(Notebook, m.cache)
     return true
 end
 

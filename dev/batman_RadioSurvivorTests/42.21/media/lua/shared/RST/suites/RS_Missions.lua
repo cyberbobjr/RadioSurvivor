@@ -20,8 +20,8 @@ local function modules(t)
     end
     local M = require "CoreAI/CA_Missions"
     if type(M) ~= "table" then t:skip("CA_Missions did not return its table here") end
-    -- E18-T05: RadioSurvivor's givers and hooks of the core engine (reputation, notebook trust), attached by RS_State.
-    require "RadioSurvivor/RS_State"
+    -- E18-T05, E21-T04: giver 'npc' and hooks of the notebook (notebook trust), attached when loaded.
+    require "CoreAI/CA_NotebookGiver"
     return M, require "RadioSurvivor/RS_Config"
 end
 

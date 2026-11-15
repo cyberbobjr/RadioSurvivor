@@ -3,7 +3,7 @@
     python tests/test_agreements.py
 
 Deux bancs lupa (Lua 5.1, `next` retiré comme dans Kahlua) :
-- `AgreementCarnetTests` : vrai serveur du carnet (`RS_Carnet_Server.lua`), vrais `RS_Factions.lua`, moteur Living Knox
+- `AgreementCarnetTests` : vrai serveur du carnet (`CA_NotebookServer.lua`), vrais `RS_Factions.lua`, moteur Living Knox
   réel (registres, `LK_Hostility`, `LK_Decisions`) et vrai pont hors ligne (`RS_OFFLINE_INTENT=negotiate[:<kind>]`,
   drapeau du banc qui tient lieu d'un modèle d'accord, jamais tiré des mots du joueur) ; doublure fidèle de la faction
   vanilla de `tests/test_factions.py`. Le passage de décision d'un membre est rejoué par son état
@@ -44,7 +44,7 @@ class AgreementCarnetTests(unittest.TestCase):
         for c in clients:
             sim.add_client(c)
         self.sim, self.g, self.rt = sim, sim.server.g, sim.server.rt
-        self.server = self.g.RS_CarnetServer
+        self.server = self.g.CoreAI.notebookServer
         self.F = self.rt.eval(AGREEMENTS_FACADE)
         self.H = self.rt.eval('LivingKnox.Hostility')
         self.D = self.rt.eval('LivingKnox.Decisions')
@@ -283,7 +283,7 @@ class AgreementCarnetTests(unittest.TestCase):
         self.F = self.rt.eval(AGREEMENTS_FACADE)
         self.rt.execute('PLAYERS.solo = enhance(makePlayer("solo")); PLAYERS.solo.isPlayer = true')
         p = self.g.PLAYERS['solo']
-        self.rt.execute('RS_CarnetServer.store.data.characters["char-s"] = {id = "char-s", owner = "solo", slot = 0, '
+        self.rt.execute('CoreAI.notebookServer.store.data.characters["char-s"] = {id = "char-s", owner = "solo", slot = 0, '
                         'name = "S", contacts = {}, knownMissions = {}} '
                         # E18-T20: Living Knox reads the owner of a character in the identity of the core mod.
                         'local I = require("CoreAI/CA_Identity") I.ensure() '

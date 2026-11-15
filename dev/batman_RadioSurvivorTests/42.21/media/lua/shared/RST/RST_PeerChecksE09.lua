@@ -6,7 +6,7 @@ client side uses the existing steps "carnet.send", "carnet.talk", "carnet.state"
 "rs.faction" of RST_PeerChecksRadio.lua). No side effect at load time.
 
 The model's decision is never awaited: the suites put in the bridge reply file a reply of their own (fabricated, valid
-for the request) and let the REAL notebook server read and check it (RS_Carnet_Server poll -> reply -> Relations.apply,
+for the request) and let the REAL notebook server read and check it (CA_NotebookServer poll -> reply -> Relations.apply,
 Factions.conclude, collectiveCheck, RS_Incidents.reply). The bridge, real or fake, may run: its answer to a request
 taken by a rule is dropped. Works without any bridge.
 
@@ -81,7 +81,7 @@ end
 
 function E9.intercept(t)
     local T = require "RadioSurvivor/RS_BridgeLanes"
-    local Server = RS_CarnetServer
+    local Server = CoreAI and CoreAI.notebookServer
     local ctl = { rules = {}, seenAll = {} }
     local original = T.readResponses
     local function wrapped()
@@ -220,7 +220,7 @@ end
 
 -- ---------------------------------------------------------------- sight of the selecting player
 
--- The notebook selects and serves a talk only while the npc body is in sight (RS_Carnet_Server: Provider.near, same
+-- The notebook selects and serves a talk only while the npc body is in sight (CA_NotebookServer: Provider.near, same
 -- floor, SELECT_RANGE, IsoGameCharacter.CanSee = LosUtil.lineClear ~= Blocked), checked again every second. A fixture
 -- group walks to its posts (sentry at a door or window, forager outside the room) and a second player stands one
 -- square aside: the body may be behind a wall of the house (MP campaign of 2026-10-15: "did not select lk-2", "client
@@ -384,7 +384,7 @@ local function talkNow(t, who, c, text, after, attempt)
             t1:waitQuiet(function()
                 local req = E9.requestOf(c.Server, "npc_talk", c.fiche.id, who.cid, text)
                 if req ~= nil then return { req = req } end
-                -- A talk refused for range or sight clears the selection at once (RS_Carnet_Server talk).
+                -- A talk refused for range or sight clears the selection at once (CA_NotebookServer talk).
                 if c.Server.selected[who.cid] ~= c.fiche.id and attempt < E9.ATTEMPTS then return { lost = true } end
                 if RST.now() >= deadline then return { missing = true } end
                 return nil

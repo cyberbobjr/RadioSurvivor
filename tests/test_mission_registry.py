@@ -8,7 +8,7 @@ et faits composés par le serveur), sans aucune modification de bridge/.
 
     python RadioSurvivor/tests/test_mission_registry.py
 
-Banc lupa du carnet (vrai RadioSurvivor_Server, vrai RS_Carnet_Server, vrai client du carnet) : preuve de la logique
+Banc lupa du carnet (vrai RadioSurvivor_Server, vrai CA_NotebookServer, vrai client du carnet) : preuve de la logique
 Lua, pas de l'API Java ni du réseau réel.
 """
 from __future__ import annotations
@@ -68,7 +68,7 @@ class MissionRegistryTests(unittest.TestCase):
         voice = rt.eval("require('RadioSurvivor/RS_MissionVoice')")
         sheet = rt.table_from({'id': 'custom', 'name': 'Custom',
                                'missions': rt.table_from([rt.table_from({'id': 'tower', 'type': 'fake'})])})
-        store = rt.eval("require('RadioSurvivor/RS_State')")
+        store = rt.eval("require('CoreAI/CA_NotebookStore')")
         m = voice.start(store, sheet, sim.character('alice'), sim.server.g.PLAYERS.alice, 160000, 'fake')
         return sim, voice, m
 
@@ -89,7 +89,7 @@ class MissionRegistryTests(unittest.TestCase):
         voice = rt.eval("require('RadioSurvivor/RS_MissionVoice')")
         sheet = rt.table_from({'id': 'custom', 'name': 'Custom',
                                'missions': rt.table_from([rt.table_from({'id': 'job', 'type': 'nothing'})])})
-        store = rt.eval("require('RadioSurvivor/RS_State')")
+        store = rt.eval("require('CoreAI/CA_NotebookStore')")
         self.assertFalse(voice.allowed('nothing'))
         self.assertEqual(voice.start(store, sheet, sim.character('alice'), sim.server.g.PLAYERS.alice, 160000,
                                      'nothing'), (None, 'bad_template'))

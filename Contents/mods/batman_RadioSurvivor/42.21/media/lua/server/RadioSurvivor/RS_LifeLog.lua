@@ -10,7 +10,7 @@ solo). Design notes: docs/annexes/conception/releve-de-vie.md.
     LifeLog.rescue(cid, outcome, label)   -- rescue done ('saved') or missed ('missed') by a living character (E12)
     LifeLog.onFrozen = function(cid, log, character) end   -- optional single listener, called at the death
 
-Identity: only a character of the notebook (E00-T01: RS_CarnetServer.bound[player] -> id of
+Identity: only a character of the notebook (E00-T01: CoreAI.notebookServer.bound[player] -> id of
 S.data.characters, same owner, not retired) has a log. A player without an identity has none, and nothing is read
 from a client: every value comes from the server copy of the player (IsoPlayer) or from the private state.
 Storage: private state of the notebook (RS_State: S.data.lifelogs = { seq, logs = { [cid] = log } }), saved with it,
@@ -34,7 +34,7 @@ Death (own OnCharacterDeath subscription, players only): one last poll, the miss
 (never as accomplished), then the log is FROZEN (dead = true, death time) and kept for E15-T03, which reads it, writes
 the last pages and calls LifeLog.release. Frozen logs are bounded (MAX_FROZEN, the oldest death dropped). The
 character is found by the notebook binding, the server modData identity, or the binding seen at the last poll: the
-order of the OnCharacterDeath subscribers does not matter (RS_Carnet_Server.characterDeath clears the binding, the
+order of the OnCharacterDeath subscribers does not matter (CA_NotebookServer.characterDeath clears the binding, the
 modData identity and the radio history of the dead character; the phrases already copied stay in the log).
 A live log whose character is gone or retired without a freeze (death missed) is dropped at the next poll.
 
@@ -49,6 +49,7 @@ all. The poll samples nothing and drops every log already kept (live or frozen),
 so no last pages). Turned on again: logs start afresh at the next poll.
 ]]
 local S = require "RadioSurvivor/RS_State"
+local Notebook = require "CoreAI/CA_NotebookStore" -- E21-T04: characters, fiches, missions
 local Const = require "RadioSurvivor/RadioSurvivor_Const"
 local Rescue = require "RadioSurvivor/RS_Rescue"
 local RadioLog = require "RadioSurvivor/RS_RadioLog"
@@ -66,7 +67,7 @@ L.MAX_LABEL = 80
 L.MAX_BYTES = 12288
 L.RESCUE_OUTCOMES = { saved = true, missed = true }
 
--- Same key as RS_Carnet_Server (server copy of the player's modData, written by the server only).
+-- Same key as CA_NotebookServer (server copy of the player's modData, written by the server only).
 local IDENTITY_KEY = "CA_Character"
 
 local pollAt = 0
@@ -78,7 +79,7 @@ function L.resetForTests()
 end
 
 local function store()
-    if not S.data or S.blocked then return nil end
+    if not S.data or S.blocked or not Notebook.data then return nil end
     local s = S.data.lifelogs
     if type(s) ~= "table" then
         s = { seq = 0, logs = {} }
@@ -100,9 +101,9 @@ end
 
 -- Bound character of a living player, or nil.
 local function boundCharacter(player)
-    local server = RS_CarnetServer
+    local server = CoreAI and CoreAI.notebookServer
     local cid = server and server.bound and server.bound[player]
-    local record = type(cid) == "string" and S.data.characters[cid] or nil
+    local record = type(cid) == "string" and Notebook.data.characters[cid] or nil
     if not record or record.retired or record.owner ~= ownerOf(player) then return nil end
     return cid, record
 end
@@ -174,7 +175,7 @@ end
 
 local function requesterOf(m)
     if type(m.requesterName) == "string" then return clean(m.requesterName, L.MAX_LABEL) end
-    local npc = S.data.npcs and S.data.npcs[m.npc]
+    local npc = Notebook.data.npcs[m.npc]
     return npc and clean(npc.name, L.MAX_LABEL) or ""
 end
 
@@ -190,7 +191,7 @@ end
 -- Closed missions of this character, noted once each; ids of pruned missions forgotten (they never come back).
 local function sampleMissions(log, cid)
     local changed = false
-    local missions = S.data.missions or {}
+    local missions = Notebook.data.missions or {}
     for id, m in pairs(missions) do
         if type(m) == "table" and type(m.participants) == "table" and m.participants[cid] and not isOpen(m)
                 and not log.noted[id] then
@@ -229,7 +230,7 @@ end
 local function prune(s)
     local frozen = {}
     for cid, log in pairs(s.logs) do
-        local record = S.data.characters[cid]
+        local record = Notebook.data.characters[cid]
         if log.dead then frozen[#frozen + 1] = log
         elseif not record or record.retired then s.logs[cid] = nil end
     end
@@ -258,7 +259,7 @@ function L.poll()
     if not Const.lastPages() then return dropAll(s) end
     local changed = false
     local present = {}
-    local server = RS_CarnetServer
+    local server = CoreAI and CoreAI.notebookServer
     for player, _ in pairs(server and server.bound or {}) do
         local cid, record = boundCharacter(player)
         if cid and not player:isDead() then
@@ -292,17 +293,17 @@ end
 function L.characterDeath(character)
     local s = store()
     if not s or not instanceof(character, "IsoPlayer") then return end
-    local server = RS_CarnetServer
+    local server = CoreAI and CoreAI.notebookServer
     local cid = (server and server.bound and server.bound[character]) or character:getModData()[IDENTITY_KEY]
         or seen[character]
     seen[character] = nil
     if not Const.lastPages() then return end
     local log = type(cid) == "string" and s.logs[cid] or nil
-    local record = log and S.data.characters[cid]
+    local record = log and Notebook.data.characters[cid]
     if not log or log.dead or not record or record.owner ~= ownerOf(character) then return end
     sample(log, cid, character, record)
     local openAtDeath = {}
-    for _, m in pairs(S.data.missions or {}) do
+    for _, m in pairs(Notebook.data.missions or {}) do
         if type(m) == "table" and type(m.participants) == "table" and m.participants[cid] and m.state == "active" then
             push(openAtDeath, missionEntry(m, "open", log), L.MAX_OPEN)
         end
@@ -353,6 +354,9 @@ function L.release(cid)
     S.dirty = true
     return true
 end
+
+-- C17: the record of a dead character whose last pages are still pending is kept by the purge of the notebook.
+Notebook.onPurge(function(cid) return L.get(cid) ~= nil end)
 
 Events.OnTickEvenPaused.Add(L.tick)
 Events.OnCharacterDeath.Add(L.characterDeath)

@@ -5,7 +5,7 @@ seul l'objet marqué compte, un objet du même type non marqué est laissé ; co
 
     python RadioSurvivor/tests/test_mission_item.py
 
-Vrai RadioSurvivor_Server, vrai RS_Carnet_Server (gabarit CA_MissionItem inscrit au chargement), vrai RS_MissionVoice
+Vrai RadioSurvivor_Server, vrai CA_NotebookServer (gabarit CA_MissionItem inscrit au chargement), vrai RS_MissionVoice
 (départ et compte rendu d'une voix), vrais RS_MissionTarget (lieu target) et RS_DeadDrops (planques), vraie pose
 différée de CA_Caches, vrai RS_Persona (lecture de la fiche), vrai client du carnet ; doublures du monde rattachées à
 leur classe Java et fidèles au Java 42.22 relevé (ITEM_WORLD). Preuve de la logique Lua, pas de l'API Java réelle ni du
@@ -245,7 +245,7 @@ class ItemMissionTests(unittest.TestCase):
         g = sim.server.g
         for who in ('alice', 'bob'):
             g.PLAYERS[who].x, g.PLAYERS[who].y = 305, 309
-        return sim, rt.eval("require('RadioSurvivor/RS_MissionVoice')"), rt.eval("require('RadioSurvivor/RS_State')")
+        return sim, rt.eval("require('RadioSurvivor/RS_MissionVoice')"), rt.eval("require('CoreAI/CA_NotebookStore')")
 
     def sheet(self, sim, params=None, **section):
         rt = sim.server.rt

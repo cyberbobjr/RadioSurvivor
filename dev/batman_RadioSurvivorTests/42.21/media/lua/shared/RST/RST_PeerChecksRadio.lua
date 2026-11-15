@@ -323,7 +323,7 @@ function PR.player(t, user)
 end
 
 function PR.stripHistory(prefix)
-    local S = safe(require, "RadioSurvivor/RS_State")
+    local S = safe(require, "CoreAI/CA_NotebookStore")
     if type(S) ~= "table" or type(S.data) ~= "table" or type(S.data.characters) ~= "table" then return 0 end
     local n = 0
     local H = require "CoreAI/CA_History" -- E18-T19: radio history kept by the core mod

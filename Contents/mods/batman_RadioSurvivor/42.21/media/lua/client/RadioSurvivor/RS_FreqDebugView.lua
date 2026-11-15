@@ -18,6 +18,7 @@
 if isServer() then return end
 
 local Const = require "RadioSurvivor/RadioSurvivor_Const"
+local Access = require "CoreAI/CA_AdminAccess"
 
 local FreqView = RS_FreqDebugView or {}
 RS_FreqDebugView = FreqView
@@ -26,7 +27,7 @@ RS_FreqDebugView = FreqView
 FreqView.MODULE = "RadioSurvivorDebug"
 FreqView.CMD_REQUEST = "freqRequest"
 FreqView.CMD_REPLY = "freqReply"
-FreqView.CAPABILITY = "PopmanManage"
+FreqView.CAPABILITY = Access.CAPABILITY
 FreqView.OP = "frequencies"
 
 FreqView.state = FreqView.state or { n = 0, pending = nil, data = nil, status = nil, window = nil }
@@ -47,11 +48,7 @@ end
 
 -- Vrai si le joueur peut ouvrir la fenêtre (affichage seulement : l'autorité décide).
 function FreqView.canUse(player)
-    if not isClient() then return isDebugEnabled ~= nil and isDebugEnabled() == true end
-    player = player or localPlayer()
-    if player == nil or Capability == nil or Capability[FreqView.CAPABILITY] == nil then return false end
-    local role = player:getRole()
-    return role ~= nil and role:hasCapability(Capability[FreqView.CAPABILITY]) == true
+    return Access.canUse(player) -- E21-T04 : règle commune (CA_AdminAccess)
 end
 
 -- Requêtes -----------------------------------------------------------------------------------------------------------

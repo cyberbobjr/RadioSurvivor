@@ -51,10 +51,10 @@ class ObservationTests(unittest.TestCase):
         self.sim, self.g = sim, sim.server.g
         self.obs = sim.server.rt.eval("require('LivingKnox/LK_Observations')")
         self.cfg = sim.server.rt.eval("require('LivingKnox/LK_Observations')").CFG
-        ids = [sim.server.g.RS_CarnetServer.ensure(2001).id]
+        ids = [sim.server.g.CoreAI.notebookServer.ensure(2001).id]
         for i in range(1, npcs):
             sim.server.g.spawn(3000 + i, 'Survivor %d' % i, False, 'k%d' % i)
-            ids.append(sim.server.g.RS_CarnetServer.ensure(3000 + i).id)
+            ids.append(sim.server.g.CoreAI.notebookServer.ensure(3000 + i).id)
         return ids
 
     def t(self, value):
@@ -198,15 +198,15 @@ class ObservationTests(unittest.TestCase):
         self.sim.state().characters[alice].name = 'Alice Doe'
         self.sim.select('alice')
         self.sim.say('alice', '/say Bonjour')
-        first = self.sim.server.g.RS_CarnetServer.talk.pending[1]
+        first = self.sim.server.g.CoreAI.notebookServer.talk.pending[1]
         self.assertIsNone(first.observations, 'empty field sent')
         key, _ = self.record(b, fact='player_return', subject=alice, day=4, place='Gas station')
         self.assertEqual(self.obs.transmit(b, a, key)[1], 'ok')
         self.record(a, fact='helicopter', subject='sky', day=5, place=self.obs.area(10234, 9876))
-        self.sim.server.g.RS_CarnetServer.talk.pending = self.sim.server.rt.table()
+        self.sim.server.g.CoreAI.notebookServer.talk.pending = self.sim.server.rt.table()
         self.sim.clock.offset += 11000  # after the talk cooldown (server and client)
         self.sim.say('alice', '/say Du nouveau ?')
-        req = self.sim.server.g.RS_CarnetServer.talk.pending[1]
+        req = self.sim.server.g.CoreAI.notebookServer.talk.pending[1]
         self.assertEqual(req.kind, 'npc_talk')
         field = [convert(o) for o in lua_list(req.observations)]
         self.assertEqual(field, [
@@ -236,10 +236,10 @@ class ObservationTests(unittest.TestCase):
         # Enrichissement : jamais d'observations.
         npc = self.sim.state().npcs[a]
         npc.enrichState = 'needed'
-        self.sim.server.g.RS_CarnetServer.talk.pending = self.sim.server.rt.table()
+        self.sim.server.g.CoreAI.notebookServer.talk.pending = self.sim.server.rt.table()
         self.sim.clock.offset += 5001
         self.sim.tick()
-        enrich = [r for r in self.sim.server.g.RS_CarnetServer.talk.pending.values() if r.kind == 'npc_enrich']
+        enrich = [r for r in self.sim.server.g.CoreAI.notebookServer.talk.pending.values() if r.kind == 'npc_enrich']
         self.assertTrue(enrich)
         self.assertIsNone(enrich[0].observations)
 
@@ -304,7 +304,7 @@ class TriggerTests(unittest.TestCase):
         sim.add_client('alice')
         sim.add_client('bob')
         self.sim, self.g, self.rt = sim, sim.server.g, sim.server.rt
-        self.server = self.g.RS_CarnetServer
+        self.server = self.g.CoreAI.notebookServer
         self.obs = self.rt.eval("require('LivingKnox/LK_Observations')")
         self.g.NPCS[2001].group = 'grp-1'
         self.fid = self.server.ensure(2001).id
@@ -341,7 +341,7 @@ class TriggerTests(unittest.TestCase):
         alice, bob = self.sim.character('alice'), self.sim.character('bob')
         self.sim.select('alice')  # alice becomes known to the fiche; bob, also in range, never talked to it
         far = self.npc(3001, x=300)
-        self.rt.execute(f'RS_CarnetServer.store.data.characters["{alice}"].contacts["{far}"] = '
+        self.rt.execute(f'CoreAI.notebookServer.store.data.characters["{alice}"].contacts["{far}"] = '
                         '{history = {}, note = "", trust = "Unassessed", trend = "Stable"}')
         fiches = count(self.sim.state().npcs)
         self.tick()
@@ -501,7 +501,7 @@ class TriggerTests(unittest.TestCase):
         self.sim, self.g, self.rt = sim, sim.server.g, sim.server.rt
         self.obs = self.rt.eval("require('LivingKnox/LK_Observations')")
         alice = sim.character('alice')
-        server = self.g.RS_CarnetServer
+        server = self.g.CoreAI.notebookServer
         mate = server.ensure(self.g.LK_MATE).id
         raider = server.ensure(self.g.LK_RAIDER).id
         self.assertEqual(sim.state().npcs[mate].clan, self.g.LK_GROUP)
@@ -588,7 +588,7 @@ class WorldTriggerTests(unittest.TestCase):
         sim.server.g.WORLD_HOURS = 47
         sim.add_client('alice')
         self.sim, self.g, self.rt = sim, sim.server.g, sim.server.rt
-        self.server = self.g.RS_CarnetServer
+        self.server = self.g.CoreAI.notebookServer
         self.obs = self.rt.eval("require('LivingKnox/LK_Observations')")
         self.cfg = self.rt.eval("require('LivingKnox/LK_Observations')").CFG
         self.fid = self.server.ensure(2001).id
@@ -740,7 +740,7 @@ class WorldTriggerTests(unittest.TestCase):
         self.sim, self.g, self.rt = sim, sim.server.g, sim.server.rt
         self.obs = self.rt.eval("require('LivingKnox/LK_Observations')")
         self.cfg = self.rt.eval("require('LivingKnox/LK_Observations')").CFG
-        server = self.g.RS_CarnetServer
+        server = self.g.CoreAI.notebookServer
         mate = server.ensure(self.g.LK_MATE).id
         loner = server.ensure(self.g.LK_LONER).id
         P = self.rt.eval("require('CoreAI/CA_NPCProvider')")

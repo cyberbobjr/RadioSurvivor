@@ -26,11 +26,11 @@ Client handlers (RST.Steps.on)
                    x, y - r): present = one ring and one label per ring, absent = none. line = a notebook line
                    translated HERE (getText(key, arg)) that must exist (data.line). Data: rings, labels per ring.
 Authority helpers
-    PC2.notebook()                   RS_CarnetServer with its state, or nil
+    PC2.notebook()                   CoreAI.notebookServer with its state, or nil
     PC2.boundOf(player)              notebook character bound to a player on the authority, or nil
     PC2.pushRows(t, rows, after)     sends every online client (solo: the local client module) a notebook snapshot
                                      whose missions are rows (M.projection rows of a test mission), then after(t)
-    PC2.restore()                    real snapshots again (RS_CarnetServer.publish), the test rows go away
+    PC2.restore()                    real snapshots again (CoreAI.notebookServer.publish), the test rows go away
     PC2.zoneRow(M, m, character, uid) -> row, rings
                                      notebook row of a test mission as projected for a participant, unique id uid
     PC2.checkZones(t, row, rings, expect, line, after)
@@ -287,7 +287,7 @@ end)
 -- ---------------------------------------------------------------- authority helpers
 
 function PC2.notebook()
-    local Server = RS_CarnetServer
+    local Server = CoreAI and CoreAI.notebookServer
     if type(Server) ~= "table" or type(Server.store) ~= "table" or Server.store.data == nil then return nil end
     return Server
 end

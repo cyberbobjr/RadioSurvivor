@@ -58,7 +58,7 @@ class ChatterTests(unittest.TestCase):
         sim.add_client('bob')
         self.sim, self.g, self.rt = sim, sim.server.g, sim.server.rt
         self.rt.execute(LOAD)
-        self.server = self.g.RS_CarnetServer
+        self.server = self.g.CoreAI.notebookServer
         self.conv = self.rt.eval("require('LivingKnox/LK_Conversations')")
         self.init = self.rt.eval("require('LivingKnox/LK_Initiatives')")
         self.chat = self.rt.eval("require('LivingKnox/LK_Chatter')")

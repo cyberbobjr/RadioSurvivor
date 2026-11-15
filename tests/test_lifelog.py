@@ -12,7 +12,7 @@
 - DeathTests : à la mort, dernier sondage, missions ouvertes notées « open », relevé figé puis libéré (E15-T03) ;
   indépendant de l'ordre des abonnés à OnCharacterDeath ; solo.
 - SuiteTests : la suite en jeu rs.lifelog (dev/batman_RadioSurvivorTests, moteur RST) passe sur ce banc.
-- CarnetIntegrationTests : vrai RS_Carnet_Server (simulation de tests/test_carnet.py), chargé AVANT le relevé : son
+- CarnetIntegrationTests : vrai CA_NotebookServer (simulation de tests/test_carnet.py), chargé AVANT le relevé : son
   abonné à OnCharacterDeath passe le premier et efface la liaison, l'identité en ModData et l'historique radio.
 Simulation, PAS validation en jeu.
 """
@@ -32,10 +32,11 @@ getWorld = function() return { getGameMode = function() return setmetatable({}, 
 ZombRand = function(a, b) return a end
 SandboxVars = { RadioSurvivor = { Enabled = true } }
 S = require 'RadioSurvivor/RS_State'
+Notebook = require 'CoreAI/CA_NotebookStore'
 Log = require 'RadioSurvivor/RS_RadioLog'
 Codec = require 'CoreAI/CA_Codec'
-assert(S.init(NEW_WORLD ~= false))
-RS_CarnetServer = { bound = {} }
+assert(Notebook.init(NEW_WORLD ~= false))
+CoreAI = CoreAI or {}; CoreAI.notebookServer = { bound = {} }
 -- getLotDirectories (LuaManager) : ArrayList<String> des dossiers de carte chargés.
 LOTS = { 'Muldraugh, KY' }
 getLotDirectories = function()
@@ -58,11 +59,11 @@ function stats(p)
 end
 function bind(username, cid, owner)
     local p = stats(HARNESS.players[username])
-    if not S.data.characters[cid] then
-        S.data.characters[cid] = { id = cid, owner = owner or username, slot = 0, name = username, contacts = {},
+    if not Notebook.data.characters[cid] then
+        Notebook.data.characters[cid] = { id = cid, owner = owner or username, slot = 0, name = username, contacts = {},
             knownMissions = {} }
     end
-    RS_CarnetServer.bound[p] = cid
+    CoreAI.notebookServer.bound[p] = cid
     p:getModData().CA_Character = cid
     return p
 end
@@ -114,7 +115,7 @@ class IdentityTests(Bench):
         self.assertEqual(self.ev('count(S.data.lifelogs.logs)'), 1)
         self.assertIsNotNone(self.log('char-a'))
         # A binding to a character of another account, or to a retired one, gives no log either.
-        self.lua("bind('B', 'char-x', 'mallory'); S.data.characters['char-a'].retired = true")
+        self.lua("bind('B', 'char-x', 'mallory'); Notebook.data.characters['char-a'].retired = true")
         self.poll()
         self.assertEqual(self.ev('count(S.data.lifelogs.logs)'), 0)
         self.assertIsNone(self.log('char-x'))
@@ -123,7 +124,7 @@ class IdentityTests(Bench):
     def test_log_dropped_when_character_disappears(self):
         self.lua("bind('A', 'char-a')")
         self.poll()
-        self.lua("S.data.characters['char-a'] = nil")
+        self.lua("Notebook.data.characters['char-a'] = nil")
         self.poll()
         self.assertIsNone(self.log('char-a'))
 
@@ -203,16 +204,16 @@ class SampleTests(Bench):
 
     def test_closed_missions_noted_once(self):
         self.lua(r'''
-        S.data.npcs['npc-1'] = { id = 'npc-1', name = 'Marla' }
-        S.data.missions['m1'] = { id = 'm1', npc = 'npc-1', template = 'deliver', state = 'success',
+        Notebook.data.npcs['npc-1'] = { id = 'npc-1', name = 'Marla' }
+        Notebook.data.missions['m1'] = { id = 'm1', npc = 'npc-1', template = 'deliver', state = 'success',
             participants = { ['char-a'] = true } }
-        S.data.missions['m2'] = { id = 'm2', npc = 'voice:walt:char-a', template = 'scout', state = 'failed',
+        Notebook.data.missions['m2'] = { id = 'm2', npc = 'voice:walt:char-a', template = 'scout', state = 'failed',
             requesterName = 'Walt', placeKind = 'church', participants = { ['char-a'] = true } }
-        S.data.missions['m3'] = { id = 'm3', npc = 'npc-1', template = 'scout', state = 'active',
+        Notebook.data.missions['m3'] = { id = 'm3', npc = 'npc-1', template = 'scout', state = 'active',
             participants = { ['char-a'] = true } }
-        S.data.missions['m4'] = { id = 'm4', npc = 'npc-1', template = 'deliver', state = 'success',
+        Notebook.data.missions['m4'] = { id = 'm4', npc = 'npc-1', template = 'deliver', state = 'success',
             participants = { ['char-b'] = true } }
-        S.data.missions['m5'] = { id = 'm5', npc = 'npc-1', template = 'deliver', state = 'cancelled_dead',
+        Notebook.data.missions['m5'] = { id = 'm5', npc = 'npc-1', template = 'deliver', state = 'cancelled_dead',
             participants = { ['char-a'] = true } }
         ''')
         self.poll()
@@ -224,7 +225,7 @@ class SampleTests(Bench):
         self.assertFalse(self.poll())
         self.assertEqual(len(values(self.log('char-a')['missions'])), 3)
         # The active mission closes later; a pruned mission id is forgotten.
-        self.lua("S.data.missions['m3'].state = 'success'; S.data.missions['m1'] = nil")
+        self.lua("Notebook.data.missions['m3'].state = 'success'; Notebook.data.missions['m1'] = nil")
         self.assertTrue(self.poll())
         log = self.log('char-a')
         self.assertEqual(len(values(log['missions'])), 4)
@@ -258,9 +259,9 @@ class BoundTests(Bench):
     def test_lists_and_encoded_size_bounded(self):
         self.lua(r'''
         local long = string.rep('n', 500)
-        S.data.characters['char-a'].name = long
+        Notebook.data.characters['char-a'].name = long
         for i = 1, 30 do
-            S.data.missions['m' .. i] = { id = 'm' .. i, npc = 'v' .. i, template = 'scout', state = 'success',
+            Notebook.data.missions['m' .. i] = { id = 'm' .. i, npc = 'v' .. i, template = 'scout', state = 'success',
                 requesterName = long .. i, placeKind = long, participants = { ['char-a'] = true } }
         end
         for i = 1, 60 do Log.add('char-a', 140000 + (i % 8) * 200, 'said', string.rep('p', 300) .. i) end
@@ -283,7 +284,7 @@ class BoundTests(Bench):
         size = self.ev("#Codec.encodeBytes(LifeLog.get('char-a'))")
         self.assertLessEqual(size, self.ev('LifeLog.MAX_BYTES'))
         # Death adds the open missions: still bounded.
-        self.lua("for i = 1, 30 do S.data.missions['o' .. i] = { id = 'o' .. i, npc = 'v', template = 'scout', "
+        self.lua("for i = 1, 30 do Notebook.data.missions['o' .. i] = { id = 'o' .. i, npc = 'v', template = 'scout', "
                  "state = 'active', requesterName = string.rep('o', 500), placeKind = string.rep('k', 500), "
                  "participants = { ['char-a'] = true } } end")
         self.h.kill_player('A')
@@ -295,8 +296,8 @@ class BoundTests(Bench):
         self.lua(r'''
         for i = 1, 10 do
             local cid = 'dead-' .. i
-            S.data.characters[cid] = { id = cid, owner = 'A', slot = 0, name = 'A', contacts = {}, knownMissions = {} }
-            RS_CarnetServer.bound = { [HARNESS.players.A] = cid }
+            Notebook.data.characters[cid] = { id = cid, owner = 'A', slot = 0, name = 'A', contacts = {}, knownMissions = {} }
+            CoreAI.notebookServer.bound = { [HARNESS.players.A] = cid }
             HARNESS.players.A.dead = false
             LifeLog.poll()
             HARNESS.players.A.dead = true
@@ -336,7 +337,7 @@ class DeathTests(Bench):
         local p = HARNESS.players.A
         p.kills, p.hours = 41, 100.25
         Log.add('char-a', 145000, 'said', 'If anyone hears this, the church is safe.')
-        S.data.missions['m1'] = { id = 'm1', npc = 'v', template = 'scout', state = 'active', requesterName = 'Walt',
+        Notebook.data.missions['m1'] = { id = 'm1', npc = 'v', template = 'scout', state = 'active', requesterName = 'Walt',
             placeKind = 'church', participants = { ['char-a'] = true } }
         ''')
         self.h.move_player('A', 8159, 11661)  # Rosewood
@@ -353,7 +354,7 @@ class DeathTests(Bench):
         self.assertEqual(values(py(self.ev('FROZEN'))), ['char-a:A'])
         self.assertFalse(self.ev('S.dirty'), 'frozen log not saved at the death')
         # Frozen: later polls, missions and rescues change nothing; the other character is untouched.
-        self.lua("HARNESS.players.A.kills = 99; S.data.missions['m1'].state = 'success'")
+        self.lua("HARNESS.players.A.kills = 99; Notebook.data.missions['m1'].state = 'success'")
         self.poll()
         self.assertFalse(self.ev("LifeLog.rescue('char-a', 'saved', 'x')"))
         log = self.log('char-a')
@@ -369,14 +370,14 @@ class DeathTests(Bench):
         self.assertFalse(self.ev("LifeLog.release('char-b')"), 'a live log released')
 
     def test_death_found_after_another_subscriber_cleared_the_identity(self):
-        # As RS_Carnet_Server.characterDeath when it runs first: binding, modData identity and radio history gone.
+        # As CA_NotebookServer.characterDeath when it runs first: binding, modData identity and radio history gone.
         self.lua("Log.add('char-a', 145000, 'said', 'Last words.')")
         self.poll()
         self.lua(r'''
         local p = HARNESS.players.A
-        RS_CarnetServer.bound[p] = nil
+        CoreAI.notebookServer.bound[p] = nil
         p:getModData().CA_Character = nil
-        S.data.characters['char-a'].retired = true
+        Notebook.data.characters['char-a'].retired = true
         require('CoreAI/CA_History').data.radio['char-a'] = nil
         p.kills = 5
         p.dead = true
@@ -394,7 +395,7 @@ class DeathTests(Bench):
         self.h.spawn_zombie(1001, 5, 5)
         self.h.kill_zombie(1001)
         self.lua("local p = HARNESS.players.B; p:getModData().CA_Character = 'char-a'; "
-                 "RS_CarnetServer.bound[p] = nil; LifeLog.characterDeath(p)")
+                 "CoreAI.notebookServer.bound[p] = nil; LifeLog.characterDeath(p)")
         self.assertFalse(self.log('char-a')['dead'])
         self.assertEqual(values(py(self.ev('FROZEN'))), [])
 
@@ -403,11 +404,11 @@ class SoloTests(Bench):
     mode = 'solo'
 
     def test_solo_character(self):
-        # The account name of a solo player is not its owner key ('solo', as RS_Carnet_Server.ownerOf).
+        # The account name of a solo player is not its owner key ('solo', as CA_NotebookServer.ownerOf).
         self.lua("bind('A', 'char-x', 'A')")
         self.poll()
         self.assertIsNone(self.log('char-x'))
-        self.lua("RS_CarnetServer.bound = {}; bind('A', 'char-s', 'solo'); HARNESS.players.A.kills = 3")
+        self.lua("CoreAI.notebookServer.bound = {}; bind('A', 'char-s', 'solo'); HARNESS.players.A.kills = 3")
         self.poll()
         self.assertEqual(self.log('char-s')['kills'], 3)
         self.h.kill_player('A')
@@ -438,7 +439,7 @@ class SuiteTests(unittest.TestCase):
 
 
 class CarnetIntegrationTests(unittest.TestCase):
-    """Vrai RS_Carnet_Server chargé avant le relevé : son abonné à OnCharacterDeath passe le premier."""
+    """Vrai CA_NotebookServer chargé avant le relevé : son abonné à OnCharacterDeath passe le premier."""
 
     def setUp(self):
         self.tmp = Path(tempfile.mkdtemp(prefix='rs_lifelog_'))

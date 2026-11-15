@@ -2,7 +2,7 @@
 
     python tests/test_incidents.py
 
-Banc lupa (Lua 5.1, `next` retiré comme dans Kahlua) : vrai serveur du carnet (`RS_Carnet_Server.lua`), vrais
+Banc lupa (Lua 5.1, `next` retiré comme dans Kahlua) : vrai serveur du carnet (`CA_NotebookServer.lua`), vrais
 `RS_Factions.lua` et `RS_Incidents.lua`, moteur Living Knox réel (registres, `LK_Hostility`, `LK_Decisions`,
 `LK_Relations`) et vrai pont hors ligne (`RS_OFFLINE_INTENT=incident:<décision>[:<catégorie>]`, drapeau du banc qui
 tient lieu d'un modèle, jamais tiré d'un texte) ; doublure fidèle de la faction vanilla de `tests/test_factions.py`.
@@ -44,7 +44,7 @@ class IncidentTests(unittest.TestCase):
         for c in clients:
             sim.add_client(c)
         self.sim, self.g, self.rt = sim, sim.server.g, sim.server.rt
-        self.server = self.g.RS_CarnetServer
+        self.server = self.g.CoreAI.notebookServer
         self.F = self.rt.eval(AGREEMENTS_FACADE)
         self.H = self.rt.eval('LivingKnox.Hostility')
         self.D = self.rt.eval('LivingKnox.Decisions')

@@ -192,9 +192,9 @@ FACTS = r'''
 local p = HARNESS.players.A
 p.kills, p.hours, p.prof = 41, 100.25, 'doctor'
 Log.add('char-a', 145000, 'said', 'If anyone hears this, the church is safe.')
-S.data.missions['m1'] = { id = 'm1', npc = 'v', template = 'scout', state = 'success', requesterName = 'Walt',
+Notebook.data.missions['m1'] = { id = 'm1', npc = 'v', template = 'scout', state = 'success', requesterName = 'Walt',
     placeKind = 'church', participants = { ['char-a'] = true } }
-S.data.missions['m2'] = { id = 'm2', npc = 'v', template = 'deliver', state = 'active', requesterName = 'Marla',
+Notebook.data.missions['m2'] = { id = 'm2', npc = 'v', template = 'deliver', state = 'active', requesterName = 'Marla',
     placeKind = 'farm', participants = { ['char-a'] = true } }
 '''
 
@@ -505,7 +505,7 @@ class FallbackTests(Bench):
         self.assertEqual([w for w, _ in self.found(self.token())], ['ground'])
 
     def test_no_identity_no_request(self):
-        self.lua("RS_CarnetServer.bound = {}; HARNESS.players.B.kills = 1")
+        self.lua("CoreAI.notebookServer.bound = {}; HARNESS.players.B.kills = 1")
         self.h.kill_player('B')
         self.assertNotIn('kind=last_pages', self.requests())
         self.assertIsNone(self.ev("HARNESS.players.B:getModData().RS_LastPagesToken"))

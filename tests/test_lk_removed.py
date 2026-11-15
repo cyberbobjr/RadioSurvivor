@@ -2,7 +2,7 @@
 
     python RadioSurvivor/tests/test_lk_removed.py
 
-Real notebook server and client (RS_Carnet_Server, CA_NotebookClient), real Living Knox engine in the first session (registries,
+Real notebook server and client (CA_NotebookServer, CA_NotebookClient), real Living Knox engine in the first session (registries,
 API, LK_PersonalRelation, provider RS_LivingKnox.lua), same save folder for every session. Second session: Living Knox
 is not on the module path (as when the player unticks it): the notebook must start, keep its character, show its
 contacts (the fiche of a Living Knox NPC stays, without relation level), refuse to talk to an NPC that no longer
@@ -52,7 +52,7 @@ class LivingKnoxRemovedTests(unittest.TestCase):
         g.LivingKnox.Bodies.bound[leader].x = 12
         sim.command('alice', 'select', incarnation=leader)
         sim.acquaint('alice')
-        fiche = g.RS_CarnetServer.ensure(leader)
+        fiche = g.CoreAI.notebookServer.ensure(leader)
         cid = sim.character('alice')
         self.assertIsNotNone(rt.eval('LivingKnox.Hostility').record(g.LK_GROUP, cid, 'gift',
                                                                    rt.table_from({'witnessed': True})))

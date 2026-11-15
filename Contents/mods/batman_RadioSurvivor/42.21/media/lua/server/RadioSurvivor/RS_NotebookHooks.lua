@@ -1,18 +1,19 @@
 if isClient() then return end
 --[[
 RadioSurvivor: what it registers in the notebook server (E21-T04), which knows nothing of the radio voices. Authority
-only. Runs before server/RS_Carnet_Server.lua in the load order: the notebook server is required here (run once).
+only. The notebook server of the core mod (CoreAI/CA_NotebookServer) is required here (run once).
 
   Server.addPoll            caches still to place (reward cache of a voice mission, E11-T06: CA_Caches.poll, with the
                             voice action of RS_CacheAction)
   Server.hooks.overheard    comfort of a player who heard two NPCs talk (RS_Comfort, E05-T15)
   Server.hooks.claim        replies of the calls on a group frequency, aired by the group radio (RS_GroupRadio, E08-T06)
   Server.hooks.callLanguage forced language of the radio calls (RadioSurvivor_Const.callLanguage)
-  CA_Identity.onRetire      a dead character is forgotten: what the voices remembered (RS_Memory, E07-T03) and its
-                            radio history (CA_History.data.radio, E06-T04)
+  CA_Identity.onRetire      a dead character is forgotten: what the voices remembered (RS_Memory, E07-T03), its
+                            bonds with the voices (RS_VoiceBonds, E07-T10) and its radio history (CA_History.data.radio,
+                            E06-T04)
 ]]
 if RS_NotebookHooks then return RS_NotebookHooks end -- registered once, even after a Lua reload of this file
-local Server = require 'RS_Carnet_Server'
+local Server = require 'CoreAI/CA_NotebookServer'
 local Identity = require 'CoreAI/CA_Identity'
 local History = require 'CoreAI/CA_History'
 local Radio = require 'RadioSurvivor/RadioSurvivor_Const'
@@ -38,6 +39,7 @@ function Hooks.forget(_, id)
         History.data.radio[id], History.dirty = nil, true
     end
     require('RadioSurvivor/RS_Memory').forgetCharacter(id)
+    require('RadioSurvivor/RS_VoiceBonds').forget(id)
 end
 
 if Server then

@@ -5,7 +5,7 @@ Load with: require "RST/RST_RSHelpers". No side effect at load time (definitions
 
     local R = RST.RSHelpers
     R.solo(t)                        skip unless solo (the local player and the authority share the Lua state)
-    R.notebook(t)                    RS_CarnetServer with its state loaded (skip otherwise)
+    R.notebook(t)                    CoreAI.notebookServer with its state loaded (skip otherwise)
     R.character(t, p)                notebook character bound to the player (asks "hello" directly when missing)
     R.npcWithFiche(t, p, dx, after)  Living Knox test npc dx squares east of the player (RST.Fixtures.spawnNpc), its
                                      notebook fiche, waited until the notebook maps its body; after(t, id, fiche, body).
@@ -72,9 +72,9 @@ function R.solo(t)
 end
 
 function R.notebook(t)
-    local Server = RS_CarnetServer
+    local Server = CoreAI and CoreAI.notebookServer
     if type(Server) ~= "table" or type(Server.store) ~= "table" or Server.store.data == nil then
-        t:skip("notebook server state not ready (RS_CarnetServer)")
+        t:skip("notebook server state not ready (CoreAI.notebookServer)")
     end
     return Server
 end
@@ -378,7 +378,7 @@ function R.watchRequest(t, c, text)
     for _, r in ipairs(c.Server.talk.pending) do seen.before[r.id] = true end
     Events.OnTick.Add(watch)
     t:defer(function() Events.OnTick.Remove(watch) end, "stop watching the npc_talk requests")
-    -- The request is saved right after it joins the pending list (RS_Carnet_Server enqueue: S.save()): seen there
+    -- The request is saved right after it joins the pending list (CA_NotebookServer enqueue: S.save()): seen there
     -- even when the bridge answers before the next tick.
     local store = c.Server.store
     local save = store and store.save
@@ -425,7 +425,9 @@ function R.speech(t)
     local Talk = LivingKnox.Talk
     t:ok(Talk ~= nil and Talk.host ~= nil and Talk.data ~= nil, "speech of the NPCs not started (no host)")
     local Speech = require "CoreAI/CA_SpeechConfig"
-    return { talk = Talk, P = Talk.provider, alone = RS_CarnetServer == nil, HEARING = Speech.HEARING_RANGE,
+    -- alone: Living Knox hosts the speech itself (LK_TalkAlone), not the notebook server.
+    local alone = LivingKnox.TalkAlone ~= nil and LivingKnox.TalkAlone.started == true
+    return { talk = Talk, P = Talk.provider, alone = alone, HEARING = Speech.HEARING_RANGE,
         ensure = function(id) return Talk.ensure(id) end,
         objects = function() return Talk.objects() or {} end,
         bound = function() return Talk.bound() or {} end }

@@ -237,6 +237,7 @@ ZombRand = function(a, b) return a end
 instanceof = function() return false end
 STORE = { data = { characters = { ["c-a"] = {}, ["c-b"] = {} } }, dirty = false }
 package.loaded["RadioSurvivor/RS_State"] = STORE
+package.loaded["CoreAI/CA_NotebookStore"] = STORE   -- E21-T04: notebook characters
 package.loaded["RadioSurvivor/RadioSurvivor_Const"] = { CMD = { HISTORY = "history" },
     isEnabled = function() return true end }
 package.loaded["RadioSurvivor/RS_Personas"] = { voiceAt = function() return nil end,
@@ -256,7 +257,7 @@ ONLINE = { PA, PB }
 getOnlinePlayers = function() return { size = function() return #ONLINE end,
     get = function(_, i) return ONLINE[i + 1] end } end
 BOUND = { [PA] = "c-a", [PB] = "c-b" }
-RS_CarnetServer = { store = STORE, bound = BOUND }
+CoreAI = CoreAI or {}; CoreAI.notebookServer = { store = STORE, bound = BOUND }
 RS_RadioServer = {}
 require "RST/RST"
 require "RST/RST_Fixtures"

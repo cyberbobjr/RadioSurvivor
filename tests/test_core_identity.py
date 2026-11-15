@@ -150,7 +150,7 @@ class IdentityMP(Base):
 
     def test_living_knox_keys_attitudes_without_radiosurvivor(self):
         self.h.load('server', 'require "LivingKnox/LK_Core"; require "LivingKnox/LK_Hostility"')
-        self.assertIsNone(self.h.eval('server', 'RS_CarnetServer'))
+        self.assertIsNone(self.h.eval('server', 'CoreAI and CoreAI.notebookServer'))
         self.assertIsNone(self.h.eval('server', '(LivingKnox.Hostility.keyOf(HARNESS.players.A))'))
         self.join('A')
         self.assertEqual(self.h.eval('server', '(LivingKnox.Hostility.keyOf(HARNESS.players.A))'),

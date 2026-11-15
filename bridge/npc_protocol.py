@@ -396,7 +396,7 @@ def cut_pieces(text: str, max_chars: int) -> list[str]:
 MAX_REPLY_BYTES = 1600   # RS_Config.MAX_REPLY_BYTES: the game refuses a longer text
 _STAGE = re.compile(r"\*[^*]*\*|\[[^\]]*\]")   # *smiles*, [sighs]: stage directions, not speech
 _TAG = re.compile(r"<[^>]*>")
-_UNSAFE = re.compile(r"[\x00-\x1f\x7f-\x9f<>\[\]*`#  ]")   # RS_Carnet_Server reply(): no %c, <, >, [, ], *
+_UNSAFE = re.compile(r"[\x00-\x1f\x7f-\x9f<>\[\]*`#  ]")   # CA_NotebookServer reply(): no %c, <, >, [, ], *
 _JSON = json.JSONDecoder(strict=False)   # tolerates a raw line break inside a string
 _FENCE = re.compile(r"```[A-Za-z]*")
 

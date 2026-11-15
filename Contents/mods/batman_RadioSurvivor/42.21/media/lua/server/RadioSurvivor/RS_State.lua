@@ -1,34 +1,30 @@
 if isClient() then return end
 --[[
-Private notebook state (authority only), two slots written in turn: batman_RadioSurvivor/state-<hex>-<0|1>.txt =
-"RSSTATE2=<generation>", RSV2 bytes in hex, checksum, "end".
+Private state of the radio voices (authority only), two slots written in turn: batman_RadioSurvivor/state-<hex>-<0|1>.txt
+= "RSSTATE2=<generation>", RSV2 bytes in hex, checksum, "end". E21-T04: data of the voices only (trade, personaState,
+memory, facts, rescues, lifelogs, voiceDonors, voiceTeamChains, voiceStory, actionCounters, rewards ledgers); the
+characters, NPC fiches and bindings of the notebook are the core mod's store (CA_NotebookStore), its missions and
+exchange histories the core mod's files too.
 
+- Companion of the notebook store (CA_NotebookStore.addCompanion): loaded by its init with the same world start, written
+  by its save after the notebook file. S.save() saves the whole chain (missions, histories, notebook, then this file);
+  before the notebook store is ready (benches), this file only.
 - Corrupted storage (both slots exist and none is readable, or a schema newer than this code): S.blocked, nothing is
-  written, the files are kept for recovery. Only S.init clears it.
-- Failed write (no file writer, unreadable write, state over the codec bounds): NOT blocked (C19). The state stays in
-  memory with S.dirty, the slot of the failed generation is written again at the next save (the other slot keeps the
-  last good file), S.failures counts the streak. Over the bounds (C18), S.reducers (registered by the server, e.g.
-  the purge of dead characters) are run once with force, then the save is refused: never a file the decoder refuses.
+  written, the files are kept for recovery. Only S.init clears it (the notebook store is blocked with it).
+- Failed write (C19, over the codec bounds included): NOT blocked. The state stays in memory with S.dirty, the slot of
+  the failed generation is written again at the next save (the other slot keeps the last good file), S.failures counts
+  the streak.
 - Verification read: at the first write of the session and after a failure (C20); fast hex and checksum (CA_Codec).
-- Schema: S.SCHEMA; S.MIGRATIONS[n](data) turns schema n into n + 1 (S.upgrade). None yet: schema 2 is current.
-- Missions (E18-T05): S.data.missions is the mission table of the core mod (CA_MissionStore, its own private file),
-  shared in memory, never written here. S.save encodes this file, writes the mission file, then this file.
+- Schema: S.SCHEMA; S.MIGRATIONS[n](data) turns schema n into n + 1 (S.upgrade). None: schema 2 is current.
 ]]
 local Codec = require 'CoreAI/CA_Codec'
-local MissionStore = require 'CoreAI/CA_MissionStore'
-local History = require 'CoreAI/CA_History'
+local NotebookStore = require 'CoreAI/CA_NotebookStore'
 local S = {data = nil, generation = 0, blocked = false, dirty = false, failures = 0, verified = false}
 S.SCHEMA = 2
 S.MIGRATIONS = {}
-S.reducers = S.reducers or {}
 S.WARN_RATIO = 0.7   -- console warning when the state reaches 70 % of a codec bound
 
-function S.uid(prefix)
-    S.uidCounter = (S.uidCounter or 0) + 1
-    if S.data then S.data.uidCounter = (S.data.uidCounter or 0) + 1 end
-    local counter = S.data and S.data.uidCounter or S.uidCounter
-    return prefix .. '-' .. string.format('%.0f', getTimestampMs()) .. '-' .. counter .. '-' .. ZombRand(100000, 999999)
-end
+local function log(msg) print('[RS_State] ' .. tostring(msg)) end
 
 -- Brings data up to S.SCHEMA. Returns the old schema when migrated, false when already current, nil when unknown
 -- (newer than this code or no migration path).
@@ -56,7 +52,7 @@ local function read(path)
     local body = Codec.unhexBytes(raw) -- byte layer: old Latin-1 states keep their checksum
     if not gen or not body or Codec.checksumBytes(body) ~= checksum then return nil, true end
     local data = Codec.decodeBytes(body)
-    if type(data) ~= 'table' or type(data.world) ~= 'string' then return nil, true end
+    if type(data) ~= 'table' then return nil, true end
     local from = S.upgrade(data)
     if from == nil then return nil, true, true end -- unknown schema (newer mod version): never fall back to the other slot
     return {generation = gen, data = data, migrated = from}, true
@@ -74,41 +70,21 @@ function S.init(newWorld)
     S.failures, S.verified, S.warned = 0, false, false
     if not newWorld and (newerA or newerB) then
         S.blocked = true
-        print('[RS_Carnet] STORAGE BLOCKED: state written by a newer schema; preserve files for recovery')
+        log('STORAGE BLOCKED: state written by a newer schema; preserve files for recovery')
         return false
     elseif best and not newWorld then
         S.data, S.generation = best.data, best.generation
-        if best.migrated then print('[RS_Carnet] state migrated from schema ' .. tostring(best.migrated)) end
+        if best.migrated then log('state migrated from schema ' .. tostring(best.migrated)) end
     elseif not newWorld and (existsA or existsB) then
         S.blocked = true
-        print('[RS_Carnet] STORAGE BLOCKED: both state slots invalid; preserve files for recovery')
+        log('STORAGE BLOCKED: both state slots invalid; preserve files for recovery')
         return false
     else
-        S.data = {schema = S.SCHEMA, world = S.uid('world'), npcs = {}, bindings = {}, characters = {}, missions = {}}
+        S.data = {schema = S.SCHEMA}
         S.generation = best and best.generation or 0
     end
-    -- E18-T05: missions in the core mod's private state.
-    if not MissionStore.init(newWorld) then
-        S.blocked = true
-        print('[RS_Carnet] STORAGE BLOCKED: mission state of the core mod unreadable; preserve files for recovery')
-        return false
-    end
-    S.data.missions = MissionStore.data.missions
-    -- E18-T11: exchange histories with the NPCs in the core mod's private state (CA_History); each contact's history
-    -- is the core table (same table: writers unchanged).
-    if not History.init(newWorld) then
-        S.blocked = true
-        print('[RS_Carnet] STORAGE BLOCKED: exchange history of the core mod unreadable; preserve files for recovery')
-        return false
-    end
-    for c, record in pairs(S.data.characters or {}) do
-        for id, k in pairs(type(record) == 'table' and record.contacts or {}) do
-            if type(k) == 'table' then k.history = History.lines(c, id) end
-        end
-    end
-    S.run = S.uid('run')
     S.blocked = false
-    return S.save()
+    return S.write()
 end
 
 local function failed(reason)
@@ -116,82 +92,28 @@ local function failed(reason)
     S.dirty, S.verified = true, false
     -- First failure of a streak, then every 20th: the save is retried by the next S.save (tick, command, OnSave).
     if S.failures == 1 or S.failures % 20 == 0 then
-        print('[RS_Carnet] STORAGE WRITE FAILED (' .. reason .. '), attempt ' .. S.failures
+        log('STORAGE WRITE FAILED (' .. reason .. '), attempt ' .. S.failures
             .. '; state kept in memory, retried at the next save')
     end
     return false
-end
-
--- The notebook file never holds the missions (core mod file, E18-T05) nor the exchange histories (E18-T11):
--- encoded without them, put back right after.
-local function encodeState()
-    local missions = S.data.missions
-    S.data.missions = nil
-    local histories = {}
-    for _, record in pairs(S.data.characters or {}) do
-        for _, k in pairs(type(record) == 'table' and record.contacts or {}) do
-            if type(k) == 'table' and k.history ~= nil then
-                histories[#histories + 1] = {k, k.history}
-                k.history = nil
-            end
-        end
-    end
-    local ok, body = pcall(Codec.encodeBytes, S.data)
-    S.data.missions = missions
-    for _, h in ipairs(histories) do h[1].history = h[2] end
-    return ok, body
-end
-
--- E18-T11: the core history keeps only the contacts the notebook still holds (dropped contact or character).
-local function keepContact(c, id)
-    local record = S.data.characters and S.data.characters[c]
-    return type(record) == 'table' and type(record.contacts) == 'table' and record.contacts[id] ~= nil
-end
-
-local function encode()
-    local ok, body = encodeState()
-    if ok then return body end
-    -- Over the codec bounds: reducers once (forced purge of what the players no longer see), then refused.
-    local reduced = false
-    for _, reduce in ipairs(S.reducers) do
-        local okR, changed = pcall(reduce, S.data, true)
-        if okR and changed then reduced = true end
-    end
-    if reduced then
-        ok, body = encodeState()
-        if ok then
-            print('[RS_Carnet] state reduced to fit the serialization bounds')
-            return body
-        end
-    end
-    return nil, tostring(body)
 end
 
 local function warnSize(body)
     local ratio = math.max(#body / Codec.MAX_BYTES, (Codec.lastNodes or 0) / Codec.MAX_NODES)
     if ratio >= S.WARN_RATIO and not S.warned then
         S.warned = true
-        print(string.format('[RS_Carnet] WARNING: notebook state at %d %% of its size limit (%d bytes, %d nodes)',
+        log(string.format('WARNING: voice state at %d %% of its size limit (%d bytes, %d nodes)',
             math.floor(ratio * 100), #body, Codec.lastNodes or 0))
     elseif ratio < S.WARN_RATIO * 0.9 then
         S.warned = false
     end
 end
 
-function S.save()
+-- Writes this file only (companion save of the notebook store).
+function S.write()
     if S.blocked or not S.data then return false end
-    if S.maintenance then pcall(S.maintenance, S.data) end   -- C17: daily bounded purge of dead characters
-    local body, why = encode()
-    if not body then return failed('state exceeds serialization bounds: ' .. tostring(why)) end
-    -- E18-T05: the mission file of the core mod first (write-ahead markers of the missions), then this file.
-    if S.data.missions ~= nil then
-        MissionStore.attach(S.data.missions)
-        if not MissionStore.save() then return failed('mission state of the core mod not written') end
-    end
-    History.retain(keepContact)
-    -- E18-T19: radio history of the characters the notebook still holds.
-    History.retainRadio(function(c) return S.data.characters and S.data.characters[c] ~= nil end)
-    if not History.save() then return failed('exchange history of the core mod not written') end
+    local ok, body = pcall(Codec.encodeBytes, S.data)
+    if not ok then return failed('state exceeds serialization bounds: ' .. tostring(body)) end
     warnSize(body)
     local gen = S.generation + 1
     local path = S.path .. '-' .. (gen % 2) .. '.txt'
@@ -204,14 +126,19 @@ function S.save()
         if not verify or verify.generation ~= gen then return failed('write verification failed') end
         S.verified = true
     end
-    if (S.failures or 0) > 0 then
-        print('[RS_Carnet] storage write recovered after ' .. S.failures .. ' failed attempt(s)')
-    end
+    if (S.failures or 0) > 0 then log('storage write recovered after ' .. S.failures .. ' failed attempt(s)') end
     S.generation, S.dirty, S.failures = gen, false, 0
     return true
 end
 
-require('RadioSurvivor/RS_StatePurge').attach(S) -- C17: dead characters purged, reducer over the codec bounds
-require('RadioSurvivor/RS_MissionHooks').attach(S) -- E18-T05: givers and hooks of the core mission engine
+-- Saves the whole chain once the notebook store is ready (missions, histories, notebook, then this file).
+function S.save()
+    if S.blocked or not S.data then return false end
+    if NotebookStore.data then return NotebookStore.save() end
+    return S.write()
+end
+
+NotebookStore.addCompanion({init = S.init, save = S.write, dirty = function() return S.dirty == true end})
+require('RadioSurvivor/RS_MissionHooks').attach() -- E18-T05: giver of the radio voices in the core mission engine
 
 return S

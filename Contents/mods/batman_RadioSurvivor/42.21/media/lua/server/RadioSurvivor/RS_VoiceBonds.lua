@@ -7,11 +7,13 @@
 --     or a good reputation of the character (RS_Reputation level 'good');
 --   - rarity: once per VOICE_DAYS game days for one voice and one character, once per CHARACTER_DAYS game days for one
 --     character, all voices together.
--- Counters in the private state of the notebook (record.voiceBonds, record.lastShareDay; RS_State, never global
--- ModData), kept with the character and dropped with it. Authority only. Console messages in English.
+-- Counters in the private state of the voices (RS_State: S.data.voiceBonds[cid] = { voices = { [voice] = bond },
+-- lastShareDay }, never global ModData), for a living notebook character (CA_NotebookStore), forgotten when it dies
+-- (B.forget, RS_NotebookHooks). Authority only. Console messages in English.
 if isClient() then return end
 
 local S = require "RadioSurvivor/RS_State"
+local Notebook = require "CoreAI/CA_NotebookStore"
 local Rep = require "CoreAI/CA_Reputation"
 
 local B = {}
@@ -20,29 +22,32 @@ B.MIN_DAYS = 2
 B.VOICE_DAYS = 7
 B.CHARACTER_DAYS = 3
 
-local function record(cid)
-    local chars = S.data and not S.blocked and S.data.characters or nil
-    local rec = type(cid) == "string" and chars and chars[cid] or nil
-    if type(rec) ~= "table" or rec.retired then return nil end
+-- Bonds of a living notebook character (created when asked), or nil.
+local function record(cid, create)
+    local chars = Notebook.data and Notebook.data.characters or nil
+    local character = type(cid) == "string" and chars and chars[cid] or nil
+    if type(character) ~= "table" or character.retired or not S.data or S.blocked then return nil end
+    if type(S.data.voiceBonds) ~= "table" then S.data.voiceBonds = {} end
+    local rec = S.data.voiceBonds[cid]
+    if not rec then
+        rec = { voices = {} }
+        if create then S.data.voiceBonds[cid] = rec end
+    end
     return rec
 end
 
 local function bondOf(rec, voice, create)
-    if type(rec.voiceBonds) ~= "table" then
-        if not create then return nil end
-        rec.voiceBonds = {}
-    end
-    local bond = rec.voiceBonds[voice]
+    local bond = rec.voices[voice]
     if not bond and create then
         bond = { answers = 0, days = 0 }
-        rec.voiceBonds[voice] = bond
+        rec.voices[voice] = bond
     end
     return bond
 end
 
 -- An answer of this voice to this character went on the air (RadioSurvivor_Server, not a briefing).
 function B.answered(cid, voice)
-    local rec = record(cid)
+    local rec = record(cid, true)
     local day = Rep.today()
     if not rec or type(voice) ~= "string" or not day then return false end
     local bond = bondOf(rec, voice, true)
@@ -71,13 +76,20 @@ end
 
 -- A frequency was given by this voice to this character.
 function B.shared(cid, voice)
-    local rec = record(cid)
+    local rec = record(cid, true)
     local day = Rep.today()
     if not rec or type(voice) ~= "string" or not day then return false end
     bondOf(rec, voice, true).sharedDay = day
     rec.lastShareDay = day
     S.dirty = true
     return true
+end
+
+-- A dead character's bonds are forgotten (CA_Identity.onRetire, RS_NotebookHooks).
+function B.forget(cid)
+    if S.data and type(S.data.voiceBonds) == "table" and S.data.voiceBonds[cid] ~= nil then
+        S.data.voiceBonds[cid], S.dirty = nil, true
+    end
 end
 
 return B

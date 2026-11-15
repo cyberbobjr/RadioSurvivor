@@ -98,7 +98,7 @@ reads voiceBrief.
 Report to the requester (E11-T13, user decision of 2026-10-14): the templates scout, clear, recover and signal never
 succeed by themselves. Their objective met, the mission stays 'active' and is projected with toReport = true (the
 notebook shows "to report"); it succeeds only when a participant reports to the requester: in person to the NPC
-(RS_Carnet_Server: talk request carrying context.reportable, intent report_done chosen by the model and checked again
+(CA_NotebookServer: talk request carrying context.reportable, intent report_done chosen by the model and checked again
 here, or the notebook button "Report" near the requester, without the bridge), or for a radio voice requester on its
 frequency (RS_MissionVoice: action report_mission of the voice's reply). M.spoken is that single entry point: it
 refuses a mission whose objective is not met (no claim ever validates anything). The delay keeps running meanwhile

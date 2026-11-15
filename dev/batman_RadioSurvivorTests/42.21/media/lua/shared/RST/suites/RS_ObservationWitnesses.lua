@@ -7,7 +7,7 @@ Scene (every test): Living Knox test npcs around the requester (LivingKnox.API.t
 C (4 squares, NOT in the group), D (4 squares, in the group, NO fiche), each 2 squares at least from the others,
 and F (FAR_DX squares, when that square is
 loaded); a test group (LivingKnox.Groups.create, home at the requester, furnishing skipped, players hidden from its
-members) with A, B, D, F and one member without body; fiches of A, B, C, F (RS_CarnetServer.ensure).
+members) with A, B, D, F and one member without body; fiches of A, B, C, F (CoreAI.notebookServer.ensure).
     assault_seen  LivingKnox.Hostility.record(group, character, "hit", witnessed, witnesses A and D): A remembers it
                   once (same call again: still once); B, C, F nothing; D still has no fiche.
     group_death   D (in the group, no fiche) is killed (Kill, reference health lowered): the members with a fiche that
@@ -157,9 +157,9 @@ end
 
 local function setup(t)
     if type(isClient) == "function" and isClient() then t:skip("observations live on the authority") end
-    local Server = RS_CarnetServer
+    local Server = CoreAI and CoreAI.notebookServer
     if type(Server) ~= "table" or type(Server.store) ~= "table" or Server.store.data == nil then
-        t:skip("notebook server state not ready (RS_CarnetServer)")
+        t:skip("notebook server state not ready (CoreAI.notebookServer)")
     end
     local ready, why = RST.Fixtures.npcReady()
     if not ready then t:skip("no Living Knox test npc: " .. tostring(why)) end

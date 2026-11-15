@@ -1,7 +1,7 @@
 --[[ Living Knox provider of the notebook (E17-T03): implements CA_NPCProvider on the Living Knox engine of this mod.
 
 Registration: when Living Knox is enabled (sandbox LivingKnox.Enabled), at OnInitGlobalModData (authority: sandbox
-already read, before RS_Carnet_Server.init, which is subscribed later because server files load after shared ones),
+already read, before CA_NotebookServer.init, which is subscribed later because server files load after shared ones),
 OnGameStart and OnServerStarted (idempotent). Disabled: nothing is registered, the notebook keeps its empty provider
 ("No NPC engine active"). One NPC engine per server (decision of 2026-10-03): when another provider already holds
 CA_NPCProvider, Living Knox is NOT registered a second time; a console warning names the active provider.

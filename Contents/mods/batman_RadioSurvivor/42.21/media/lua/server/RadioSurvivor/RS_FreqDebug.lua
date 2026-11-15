@@ -34,11 +34,12 @@
 
 local FreqDebug = RS_FreqDebug or {}
 RS_FreqDebug = FreqDebug
+local Access = require "CoreAI/CA_AdminAccess"
 
 FreqDebug.MODULE = "RadioSurvivorDebug"
 FreqDebug.CMD_REQUEST = "freqRequest"
 FreqDebug.CMD_REPLY = "freqReply"
-FreqDebug.CAPABILITY = "PopmanManage"
+FreqDebug.CAPABILITY = Access.CAPABILITY
 FreqDebug.OP = "frequencies"
 FreqDebug.REFUSAL_LOG_MS = 60000
 FreqDebug.NAME_MAX = 32
@@ -75,20 +76,7 @@ end
 -- Contrôle d'accès (autorité) : règle des opérations de debug de LK_Admin.isAllowed (voir l'en-tête). Rend vrai, ou
 -- faux et la raison (anglais, journal seulement).
 function FreqDebug.isAllowed(player)
-    if player == nil then return false, "no player" end
-    if isClient() then return false, "MP client" end
-    if isServer() then
-        local cap = Capability ~= nil and Capability[FreqDebug.CAPABILITY] or nil
-        if cap == nil then return false, "capability " .. FreqDebug.CAPABILITY .. " unknown" end
-        if checkPermissions(player, cap) ~= true then return false, "missing capability " .. FreqDebug.CAPABILITY end
-        local role = player.getRole ~= nil and player:getRole() or nil
-        if role == nil or role:hasCapability(cap) ~= true then
-            return false, "missing capability " .. FreqDebug.CAPABILITY .. " (role)"
-        end
-        return true
-    end
-    if isDebugEnabled == nil or isDebugEnabled() ~= true then return false, "debug mode off (solo)" end
-    return true
+    return Access.allowed(player, true) -- E21-T04: règle commune (CA_AdminAccess), mode debug exigé en solo
 end
 
 local function refuse(player, why)

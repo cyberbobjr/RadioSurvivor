@@ -28,7 +28,7 @@ class VoiceTemplateTests(unittest.TestCase):
         return sim, voice, sheet
 
     def start(self, sim, voice, sheet, template):
-        return voice.start(sim.server.rt.eval("require('RadioSurvivor/RS_State')"), sheet,
+        return voice.start(sim.server.rt.eval("require('CoreAI/CA_NotebookStore')"), sheet,
                            sim.character('alice'), sim.server.g.PLAYERS.alice, 160000, template)
 
     def test_each_permitted_template_is_created_and_waits_for_radio_report(self):
@@ -41,7 +41,7 @@ class VoiceTemplateTests(unittest.TestCase):
                 self.assertEqual(m.template, 'retrieve_id' if template == 'retrieve' else template)
                 engine = sim.server.rt.eval("require('CoreAI/CA_Missions')")
                 self.assertFalse(engine.reportReady(m))
-                refused = voice.report(sim.server.rt.eval("require('RadioSurvivor/RS_State')"), sheet,
+                refused = voice.report(sim.server.rt.eval("require('CoreAI/CA_NotebookStore')"), sheet,
                                        sim.character('alice'), sim.server.g.PLAYERS.alice, 160000)
                 self.assertEqual(refused, (None, 'not_done'))
 
@@ -101,7 +101,7 @@ class VoiceTemplateTests(unittest.TestCase):
         self.assertEqual((m.drops[1].label, m.collectHours), ('Supply depot', 6))
         self.assertNotEqual(m.place, 'Supply depot')
         m.found, m.cardId = True, 987654
-        result = voice.report(sim.server.rt.eval("require('RadioSurvivor/RS_State')"), sheet,
+        result = voice.report(sim.server.rt.eval("require('CoreAI/CA_NotebookStore')"), sheet,
                               sim.character('alice'), sim.server.g.PLAYERS.alice, 160000)
         self.assertEqual(result, (None, 'not_done'))
         self.assertEqual(m.state, 'active')
@@ -165,7 +165,7 @@ class MissionBriefTests(unittest.TestCase):
     def test_uncollected_drop_is_never_due_and_its_rule_is_told(self):
         sim, voice, sheet = self.setup_voice('deliver')
         m = self.start(sim, voice, sheet, 'deliver')
-        store = sim.server.rt.eval("require('RadioSurvivor/RS_State')")
+        store = sim.server.rt.eval("require('CoreAI/CA_NotebookStore')")
         heard = voice.heard(sheet, sim.server.g.PLAYERS.alice, sim.character('alice'), 160000, store)
         self.assertEqual((heard.turn, heard.toReport), ('not_yet', False))
         _, prompt = self.told(voice, heard)

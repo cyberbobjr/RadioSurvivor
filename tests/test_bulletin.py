@@ -186,7 +186,7 @@ class BulletinTests(unittest.TestCase):
                                          '<szzt>']])
         self.assertEqual(lua_list(self.g.AIRED_ON), [KHZ])
         self.assertEqual(self.kinds(), [], 'facts read by the bulletin not purged')
-        self.assertEqual(self.sim.state().facts.aired, 3)
+        self.assertEqual(self.sim.voices().facts.aired, 3)
         self.assertEqual(self.requests(), [])
         # Once an evening: nothing more until the next fact day reaches its hour.
         self.die('bob', 10, 10)
@@ -293,7 +293,7 @@ class BulletinTests(unittest.TestCase):
         self.sim.clock.offset += int(self.facts.BULLETIN_TIMEOUT_MS) + 1
         self.tick()
         self.assertEqual(self.aired()[0][2:4], [en('IGUI_RS_Bulletin_Memorial'), 'alice Doe.'])
-        self.assertEqual(self.sim.state().facts.aired, 3)
+        self.assertEqual(self.sim.voices().facts.aired, 3)
 
     def test_no_bulletin_without_chronicler_or_when_disabled(self):
         self.world()

@@ -16,10 +16,11 @@ Speakers: one record per NPC spoken to, in the private speech file of Living Kno
     world                                                  identifier of the requests
 The id of a speaker is the Living Knox NPC id, so a mission of an NPC reads "lk-3-<template><n>".
 
-Missions: engine of the core mod on its private state (CA_MissionStore), giver "npc" registered here (CA_MissionTalk:
-offer, acceptance and report by speech). Hand-over and claim (E18-T29): buttons of the Missions tab of the common
-notebook (CA_MissionJournal, command "mission"), next to the requester's body (giver.near, DELIVERY_RANGE); the lot is
-an item of the household surplus (LK_MissionRewards), else the common lot of the engine.
+Missions: engine of the core mod on the state of the notebook server (CoreAI/CA_NotebookServer, mission file of the
+core mod), giver "npc" registered here (CA_MissionTalk: offer, acceptance and report by speech). Hand-over and claim
+(E18-T29, E21-T04): gestures of the Missions tab of the common notebook (notebook server commands), next to the
+requester's body (giver.near, DELIVERY_RANGE); the lot is an item of the household surplus (LK_MissionRewards), else the
+common lot of the engine.
 Observations (LK_Observations, LK_ObservationTriggers), initiatives and conversations run alone too (E18-T27): each
 pass of the authority calls LK_Talk.turns (the decisions of a leader on an incident of a truce as well: agreements are
 Living Knox's, E18-T20).
@@ -37,8 +38,6 @@ local MissionStore = require "CoreAI/CA_MissionStore"
 local MissionTalk = require "CoreAI/CA_MissionTalk"
 local Speech = require "CoreAI/CA_SpeechConfig"
 local Transport = require "CoreAI/CA_Transport"
-local WorldStart = require "CoreAI/CA_WorldStart"
-local playMeter = require("CoreAI/CA_GameClock").meter()
 
 local Talk = LivingKnox.Talk
 
@@ -314,8 +313,9 @@ function Alone.onClientCommand(module, command, player, args)
     if module == Alone.MODULE and command == Alone.CMD_SAY then Alone.say(player, args) end
 end
 
--- One pass of the authority: clock and watch of the missions, answers of the bridge, comebacks, initiatives and
--- conversations (LK_Talk.turns), background of the speakers.
+-- One pass of the authority: answers of the bridge, comebacks, initiatives and conversations (LK_Talk.turns),
+-- background of the speakers. E21-T04: the clock, the watch and the purge of the missions are the notebook server's
+-- (CoreAI/CA_NotebookServer, which runs for every mod).
 function Alone.pass(now)
     if MissionStore.data == nil or MissionStore.blocked then return end
     -- E18-T27: a hello of a client may arrive before its server player exists (then dropped): a connected player who
@@ -326,12 +326,6 @@ function Alone.pass(now)
             if Identity.bound[player] == nil then Identity.bind(player) end
         end
     end
-    local changed = M.advance(MissionStore.data, playMeter())
-    local watched = {}
-    for player, character in pairs(Identity.bound) do watched[#watched + 1] = { player = player, character = character } end
-    if #watched > 0 and M.observe(MissionStore.data, watched, MissionStore) then changed = true end
-    if M.prune(MissionStore.data, now) then changed = true end
-    if changed then MissionStore.save() end
     Talk.poll()
     Talk.turns(now)
     Talk.enrich(now)
@@ -340,7 +334,10 @@ end
 function Alone.start(newWorld)
     if Alone.started or LivingKnox.radioSurvivorActive() then return false end
     if LivingKnox.NpcProvider == nil or not LivingKnox.Config.isEnabled() then return false end
-    if not MissionStore.init(WorldStart.isNewWorld(newWorld == true)) then
+    -- E21-T04: the state of the missions is the notebook's (CA_NotebookStore, mission file of the core mod), read by
+    -- the notebook server at the same world start; never read twice.
+    require("CoreAI/CA_NotebookServer").init(newWorld)
+    if MissionStore.data == nil or MissionStore.blocked then
         log("missions state unavailable: speech of the NPCs not started")
         return false
     end

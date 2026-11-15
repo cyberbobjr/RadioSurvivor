@@ -4,11 +4,13 @@ Missions given by a radio voice (E11-T08): action start_mission, report on the r
 Required by RadioSurvivor_Server (executor registered at load, context joined to the voice's requests).
 
 Requester ("donor"): no notebook NPC fiche and no body. One donor record per voice and per notebook character, in
-the private state (RS_State: data.voiceDonors['voice:<voice>:<character>'] = { id, voice, character, mission,
-missionCount, nextOfferHour, given }), never in global ModData. The common engine (CA_Missions) runs the mission as any
-other: clock and delay, collective result, reputation scale of M01 (RS_Config.Reputation), purge; the mission keeps
-m.npc = donor id and m.donor = 'voice', m.voice, m.requesterName (name of the sheet), m.khz (frequency of the reply),
-m.report = 'radio', and no reward lot (rewardType '', rewardCount 0).
+the private state of the voices (RS_State: data.voiceDonors['voice:<voice>:<character>'] = { id, voice, character,
+mission, missionCount, nextOfferHour, given }), never in global ModData. E21-T04: the missions and the notebook characters
+are the notebook store's (CA_NotebookStore, the store of the common engine), the donor records RS_State's. The common
+engine (CA_Missions) runs the mission as any other: clock and delay, collective result, reputation scale of M01
+(RS_Config.Reputation), purge; the mission keeps m.npc = donor id and m.donor = 'voice', m.voice, m.requesterName
+(name of the sheet), m.khz (frequency of the reply), m.report = 'radio', and no reward lot (rewardType '',
+rewardCount 0).
 One open mission at a time per caller and per voice; after its closure, the next one waits RS_Config.OFFER_COOLDOWN_MS
 (same rule as an NPC, M01). start_mission also has the RS_Actions controls: sheet actions=, budget.start_mission per
 game day, START_MISSION_COOLDOWN_MS per voice.
@@ -72,6 +74,7 @@ local Codec = require "CoreAI/CA_Codec"
 local M = require "CoreAI/CA_Missions"
 local Rep = require "CoreAI/CA_Reputation"
 local S = require "RadioSurvivor/RS_State"
+local Notebook = require "CoreAI/CA_NotebookStore"
 local Actions = require "RadioSurvivor/RS_Actions"
 local Log = require "RadioSurvivor/RS_RadioLog"
 local Bonds = require "RadioSurvivor/RS_VoiceBonds" -- E07-T10: exceptional share_frequency
@@ -126,8 +129,11 @@ function V.donorId(voice, cid)
     return "voice:" .. tostring(voice) .. ":" .. tostring(cid)
 end
 
--- Donor record of this voice for this character; created when asked.
-function V.donor(state, voice, cid, create)
+-- Donor record of this voice for this character, in the state of the voices (RS_State); created when asked. nil when
+-- that state is not loaded.
+function V.donor(voice, cid, create)
+    local state = S.data
+    if type(state) ~= "table" then return nil end
     if type(state.voiceDonors) ~= "table" then
         if not create then return nil end
         state.voiceDonors = {}
@@ -141,21 +147,22 @@ function V.donor(state, voice, cid, create)
     return d
 end
 
--- Open mission (offer or active) of this voice for this character, or nil.
+-- Open mission (offer or active) of this voice for this character in the mission state, or nil.
 function V.open(state, voice, cid)
     if type(state) ~= "table" or type(voice) ~= "string" or type(cid) ~= "string" then return nil end
-    local d = V.donor(state, voice, cid, false)
+    local d = V.donor(voice, cid, false)
     local m = d and d.mission and state.missions[d.mission]
     if m and (m.state == "active" or m.state == "offer") then return m end
     return nil
 end
 
 local function publish()
-    local server = RS_CarnetServer
+    local server = CoreAI and CoreAI.notebookServer
     if server and type(server.publish) == "function" then server.publish() end
 end
 
--- Creates and accepts a mission of this voice for the caller. store: RS_State or a double { data, blocked, save }.
+-- Creates and accepts a mission of this voice for the caller. store: the mission store (CA_NotebookStore) or a double
+-- { data, blocked, save }.
 -- Returns the mission, or nil and a refusal reason ([a-z_]).
 function V.start(store, sheet, cid, player, khz, template)
     if not player then return nil, "no_player" end
@@ -164,11 +171,12 @@ function V.start(store, sheet, cid, player, khz, template)
     local record = type(cid) == "string" and state.characters[cid] or nil
     if not record or record.retired then return nil, "no_character" end
     if V.open(state, sheet.id, cid) then return nil, "mission_open" end
-    local d = V.donor(state, sheet.id, cid, true)
+    local d = V.donor(sheet.id, cid, true)
+    if not d then return nil, "storage" end
     if M.offerWait(d) then return nil, "recent_mission" end -- E11-T20: play time (pause, speed)
     -- E20-T08: a section id, or a type drawn among the available sections of that type (after=, weight=).
     local team = Chain.teamOf(player)
-    local section, refused = Chain.choose(sheet, {state = state, voice = sheet.id, donor = d, team = team}, template)
+    local section, refused = Chain.choose(sheet, {state = S.data, voice = sheet.id, donor = d, team = team}, template)
     if not section then return nil, refused end
     local name, t = M.voiceTemplate(section.type)
     if not name then
@@ -208,7 +216,8 @@ end
 function V.reward(store, sheet, m, player, cid, khz)
     if type(sheet.rewards) == 'table' and #sheet.rewards > 0 then
         local R = require 'RadioSurvivor/RS_Rewards'
-        local rec, why = R.grant(store, sheet, m, player, cid, khz)
+        -- Ledgers of the rewards in the state of the voices (RS_State), saved with the mission (S.save: whole chain).
+        local rec, why = R.grant(S, sheet, m, player, cid, khz)
         if rec then m.rewardLabel = rec.status == 'applied' and R.context(rec) or nil end
         if why then Const.log('voice mission reward ' .. tostring(m.id) .. ': ' .. why) end
         return rec
@@ -279,12 +288,11 @@ end
 -- Jobs this voice may give to this caller (character cid, server player), told to its model (field jobs=), or nil
 -- when the sheet does not allow start_mission. E20-T08: one job per section available to the caller
 -- (RS_MissionChain: after=, scope=), named by its section id. A type without a registered template is left out and
--- logged once (V.start refuses it too). store: RS_State or a double { data, blocked }.
-function V.jobs(sheet, cid, player, store)
+-- logged once (V.start refuses it too). Read in the state of the voices (RS_State).
+function V.jobs(sheet, cid, player)
     if not Actions.allowedBy(sheet, "start_mission") then return nil end
-    store = store or S
-    local state = not store.blocked and type(store.data) == "table" and store.data or nil
-    local donor = state and type(cid) == "string" and V.donor(state, sheet.id, cid, false) or nil
+    local state = not S.blocked and type(S.data) == "table" and S.data or nil
+    local donor = state and type(cid) == "string" and V.donor(sheet.id, cid, false) or nil
     local caller = {state = state, voice = sheet.id, donor = donor, team = Chain.teamOf(player)}
     local jobs = {}
     for _, section in ipairs(Chain.available(sheet, caller)) do
@@ -302,7 +310,7 @@ end
 -- judged here; the turn tells the voice whether the objective is met (report_due: the call may be the report, then
 -- action report_mission). Returns the bridge context of this voice's mission for this caller, or nil.
 function V.heard(sheet, player, cid, khz, store)
-    store = store or S
+    store = store or Notebook
     local state = store.data
     if type(state) ~= "table" or store.blocked or type(sheet) ~= "table" then return nil end
     local m = V.open(state, sheet.id, cid)
@@ -317,9 +325,9 @@ function V.heard(sheet, player, cid, khz, store)
 end
 
 -- The caller reports this voice's mission on its frequency (E11-T13, action report_mission accepted by RS_Actions).
--- store: RS_State or a double { data, blocked, save }. Returns the mission once succeeded, or nil and a refusal
--- reason ([a-z_]): storage, no_mission (no open mission of this voice for this caller), not_done (objective not
--- met: a claim validates nothing), refused (engine refusal).
+-- store: the mission store (CA_NotebookStore) or a double { data, blocked, save }. Returns the mission once succeeded,
+-- or nil and a refusal reason ([a-z_]): storage, no_mission (no open mission of this voice for this caller),
+-- not_done (objective not met: a claim validates nothing), refused (engine refusal).
 function V.report(store, sheet, cid, player, khz)
     local state = store.data
     if type(state) ~= "table" or store.blocked then return nil, "storage" end
@@ -352,7 +360,7 @@ end
 
 local function execute(params, ctx)
     if type(ctx) ~= "table" or type(ctx.sheet) ~= "table" then return false, "failed" end
-    local m, why = V.start(S, ctx.sheet, ctx.cid, ctx.player, ctx.khz, params.template)
+    local m, why = V.start(Notebook, ctx.sheet, ctx.cid, ctx.player, ctx.khz, params.template)
     if not m then return false, why end
     Log.add(ctx.cid, ctx.khz, "mission", m.placeKind or m.place or params.template)
     Const.log("voice mission " .. m.id .. " started (" .. tostring(m.placeKind) .. ")")
@@ -371,7 +379,7 @@ end
 
 local function executeReport(_, ctx)
     if type(ctx) ~= "table" or type(ctx.sheet) ~= "table" then return false, "failed" end
-    local m, why = V.report(S, ctx.sheet, ctx.cid, ctx.player, ctx.khz)
+    local m, why = V.report(Notebook, ctx.sheet, ctx.cid, ctx.player, ctx.khz)
     if not m then return false, why end
     Const.log("voice mission " .. m.id .. " reported on the radio: success")
     return true
@@ -398,7 +406,7 @@ local function executeShare(_, ctx)
     if type(ctx) ~= 'table' or type(ctx.sheet) ~= 'table' or not ctx.player or not ctx.cid then
         return false, 'no_player'
     end
-    if S.blocked or not S.data or not S.data.characters[ctx.cid] then return false, 'storage' end
+    if Notebook.blocked or not Notebook.data or not Notebook.data.characters[ctx.cid] then return false, 'storage' end
     local allowed, why = Bonds.allowed(ctx.cid, ctx.sheet.id)
     if not allowed then return false, why end
     local detail = shareTarget(ctx.sheet, ctx.cid)

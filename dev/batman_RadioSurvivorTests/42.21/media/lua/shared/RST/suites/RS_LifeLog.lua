@@ -32,7 +32,7 @@ local function player(t)
 end
 
 local function boundId(p)
-    local server = RS_CarnetServer
+    local server = CoreAI and CoreAI.notebookServer
     return server and server.bound and server.bound[p] or nil
 end
 
@@ -114,7 +114,7 @@ RST.suite("rs.lifelog", { tags = { "server" } }, function(s)
         L.poll()
         local problems, live, frozen = {}, 0, 0
         for cid, log in pairs(S.data.lifelogs and S.data.lifelogs.logs or {}) do
-            local r = S.data.characters[cid]
+            local r = require("CoreAI/CA_NotebookStore").data.characters[cid]
             if log.dead then frozen = frozen + 1
             else
                 live = live + 1

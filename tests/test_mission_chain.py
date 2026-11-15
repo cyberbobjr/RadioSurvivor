@@ -2,7 +2,7 @@
 
     python RadioSurvivor/tests/test_mission_chain.py
 
-Vrai RadioSurvivor_Server, vrai RS_Carnet_Server, vrai RS_Persona (fiche lue depuis un fichier), sans moteur de PNJ
+Vrai RadioSurvivor_Server, vrai CA_NotebookServer, vrai RS_Persona (fiche lue depuis un fichier), sans moteur de PNJ
 (métagrille et joueurs de VoiceMissionTests). Une mission de voix est désignée par l'identifiant de sa section
 [mission <id>] ; after= la réserve à qui a réussi la mission citée ; weight= départage les sections d'un même type ;
 sets_state= pose l'état de récit de la voix (sauvegardé, relu, dit au modèle, exposé par RadioSurvivor.API).
@@ -63,7 +63,7 @@ class MissionChainTests(unittest.TestCase):
         self.voice = sim.server.rt.eval("require('RadioSurvivor/RS_MissionVoice')")
         self.chain = sim.server.rt.eval("require('RadioSurvivor/RS_MissionChain')")
         self.engine = sim.server.rt.eval("require('CoreAI/CA_Missions')")
-        self.store = sim.server.rt.eval("require('RadioSurvivor/RS_State')")
+        self.store = sim.server.rt.eval("require('CoreAI/CA_NotebookStore')")
         return sim
 
     def sheet(self, sim):
@@ -170,9 +170,9 @@ class MissionChainTests(unittest.TestCase):
         self.assertEqual(home.setsState, 'returned')
         self.close(sim, home, 'success')
         self.assertEqual(api.voiceStoryState('scouter'), 'returned')
-        self.assertEqual(sim.state().voiceStory.scouter, 'returned')
+        self.assertEqual(sim.voices().voiceStory.scouter, 'returned')
         story = sim.server.rt.eval("require('RadioSurvivor/RS_VoiceStory')")
-        self.assertFalse(story.set(sim.state(), 'scouter', 'returned'), 'set once')
+        self.assertFalse(story.set(sim.voices(), 'scouter', 'returned'), 'set once')
         self.assertFalse(story.set(sim.state(), 'scouter', 'Back Home'), 'a name only')
         # Told to the model: field story= of the radio request, rendered by the bridge without any name list.
         req = self.talk(sim, 'alice', 'How are you doing?')

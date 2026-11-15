@@ -552,7 +552,7 @@ class StaticTests(unittest.TestCase):
     def test_constants_shared_with_the_authority(self):
         admin = ADMIN_FILE.read_text(encoding='utf-8')
         sheet = SHEET_FILE.read_text(encoding='utf-8')
-        for name in ('MODULE', 'CMD_REQUEST', 'CMD_REPLY', 'CAPABILITY'):
+        for name in ('MODULE', 'CMD_REQUEST', 'CMD_REPLY'):   # CAPABILITY: one source, CA_AdminAccess (E21-T04)
             a = re.search(rf'^Admin\.{name} = "([^"]+)"', admin, re.M).group(1)
             s = re.search(rf'^Sheet\.{name} = "([^"]+)"', sheet, re.M).group(1)
             self.assertEqual(a, s, name)

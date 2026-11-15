@@ -55,6 +55,7 @@
 -- Constantes lues aussi par un client MP (qui charge media/lua/server mais s'arrête à la garde) : MODULE, CMD_*,
 -- CAPABILITY, OPS (la fenêtre client, LK_AdminView.lua, garde ses propres copies, comparées par le banc).
 require "LivingKnox/LK_Core"
+local Access = require "CoreAI/CA_AdminAccess"
 
 local Admin = LivingKnox.Admin or {}
 LivingKnox.Admin = Admin
@@ -62,7 +63,7 @@ LivingKnox.Admin = Admin
 Admin.MODULE = "LivingKnox"
 Admin.CMD_REQUEST = "adminRequest"
 Admin.CMD_REPLY = "adminReply"
-Admin.CAPABILITY = "PopmanManage"
+Admin.CAPABILITY = Access.CAPABILITY
 Admin.OPS = { list = true, group = true, relief = true, home = true, load = true, npc = true, npcSet = true,
     activity = true, npcRole = true, npcName = true, npcGoto = true, homeGoto = true }
 -- LK13-T13 : fiche d'un PNJ (npc) et réglage borné d'un besoin ou de la santé (npcSet). En solo, ces deux opérations
@@ -132,29 +133,11 @@ function Admin.nameOf(player)
     return string.sub(name, 1, Admin.CFG.NAME_MAX)
 end
 
-local function debugOn()
-    return isDebugEnabled ~= nil and isDebugEnabled() == true
-end
-
 -- Contrôle d'accès (autorité). op facultatif : en solo, une opération de DEBUG_OPS exige le mode debug (LK13-T13).
 -- Rend vrai, ou faux et la raison (anglais, journal seulement).
 function Admin.isAllowed(player, op)
-    if player == nil then return false, "no player" end
-    if isClient() then return false, "MP client" end
-    if isServer() then
-        local cap = Capability ~= nil and Capability[Admin.CAPABILITY] or nil
-        if cap == nil then return false, "capability " .. Admin.CAPABILITY .. " unknown" end
-        if checkPermissions(player, cap) ~= true then return false, "missing capability " .. Admin.CAPABILITY end
-        -- checkPermissions rend vrai si la connexion du joueur est introuvable (LuaManager.java:2916-2919) : rôle du
-        -- joueur relu aussi (copié de sa connexion par le serveur, base logs-and-tools.md).
-        local role = player.getRole ~= nil and player:getRole() or nil
-        if role == nil or role:hasCapability(cap) ~= true then
-            return false, "missing capability " .. Admin.CAPABILITY .. " (role)"
-        end
-        return true
-    end
-    if op ~= nil and Admin.DEBUG_OPS[op] and not debugOn() then return false, "debug mode off (solo)" end
-    return true   -- solo : le joueur local administre sa partie
+    -- E21-T04 : règle commune des outils (CA_AdminAccess) ; en solo, le joueur local administre sa partie.
+    return Access.allowed(player, op ~= nil and Admin.DEBUG_OPS[op] == true)
 end
 
 local function now() return getTimestampMs() end

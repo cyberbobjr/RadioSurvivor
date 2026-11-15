@@ -129,7 +129,7 @@ class RetrieveMissionTests(unittest.TestCase):
         return sim, npc, record, missions
 
     def catalog(self, sim, npc, record):
-        return convert(sim.server.g.RS_CarnetServer.offerCatalogFor(npc, record))
+        return convert(sim.server.g.CoreAI.notebookServer.offerCatalogFor(npc, record))
 
     def active(self, name='retrieve'):
         sim, npc, record, missions = self.retrieve_sim(name)
@@ -263,10 +263,10 @@ class RetrieveMissionTests(unittest.TestCase):
         self.assertIsNotNone(g.PLAYERS.alice.inv.getItemWithIDRecursiv(g.PLAYERS.alice.inv, other))
         self.assertEqual(list(lua_list(g.REMOVALS)), [])
         # The right id while the card is still in the body: no item of the player, refused.
-        quote = convert(g.RS_CarnetServer.quotes[char]) if g.RS_CarnetServer.quotes[char] else None
+        quote = convert(g.CoreAI.notebookServer.quotes[char]) if g.CoreAI.notebookServer.quotes[char] else None
         self.assertIsNone(quote)
         missions_mod = sim.server.rt.eval("require('CoreAI/CA_Missions')")
-        store = g.RS_CarnetServer.store
+        store = g.CoreAI.notebookServer.store
         ok, reason = missions_mod.report(store, m, g.PLAYERS.alice, char,
                                          sim.server.rt.table_from([m.cardId]), 'forged-token')
         self.assertEqual((ok, reason), (False, 'WrongCard'))
@@ -298,13 +298,13 @@ class RetrieveMissionTests(unittest.TestCase):
         sim.clock.offset += 11000
         sim.select('bob')
         sim.command('bob', 'prepare_delivery', mission=m.id, revision=m.revision, items=[card.id])
-        self.assertIsNone(g.RS_CarnetServer.quotes[sim.character('bob')])
+        self.assertIsNone(g.CoreAI.notebookServer.quotes[sim.character('bob')])
         # Alice gets it but stands away from the requester: no quote (DELIVERY_RANGE), mission open.
         g.PLAYERS.bob.inv.Remove(g.PLAYERS.bob.inv, card)
         g.PLAYERS.alice.inv.AddItem(g.PLAYERS.alice.inv, card)
         g.PLAYERS.alice.x = 30
         sim.request_mission('alice', 'prepare_delivery', items=[card.id])
-        self.assertIsNone(g.RS_CarnetServer.quotes[sim.character('alice')])
+        self.assertIsNone(g.CoreAI.notebookServer.quotes[sim.character('alice')])
         self.assertEqual(m.state, 'active')
 
     def test_expiry_leaves_the_body_and_closes_the_mission(self):

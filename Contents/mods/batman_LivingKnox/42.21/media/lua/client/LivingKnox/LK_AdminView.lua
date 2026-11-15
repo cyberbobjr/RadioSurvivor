@@ -21,6 +21,7 @@ if isServer() then return end
 
 require "LivingKnox/LK_Core"
 require "LivingKnox/LK_Log"
+local Access = require "CoreAI/CA_AdminAccess"
 
 local View = LivingKnox.AdminView or {}
 LivingKnox.AdminView = View
@@ -29,7 +30,7 @@ LivingKnox.AdminView = View
 View.MODULE = "LivingKnox"
 View.CMD_REQUEST = "adminRequest"
 View.CMD_REPLY = "adminReply"
-View.CAPABILITY = "PopmanManage"
+View.CAPABILITY = Access.CAPABILITY
 -- Réponses lues par LK_NpcSheet.lua (npc, npcSet) et LK_DebugView.lua (activity, LK13-T14), même commande de réponse.
 View.SHEET_OPS = { npc = true, npcSet = true, activity = true }
 
@@ -54,11 +55,7 @@ end
 
 -- Vrai si le joueur peut ouvrir l'outil (affichage seulement : le serveur décide). Solo : toujours.
 function View.canUse(player)
-    if not isClient() then return true end
-    player = player or localPlayer()
-    if player == nil or Capability == nil or Capability[View.CAPABILITY] == nil then return false end
-    local role = player:getRole()
-    return role ~= nil and role:hasCapability(Capability[View.CAPABILITY]) == true
+    return Access.canUse(player, true) -- E21-T04 : règle commune (CA_AdminAccess)
 end
 
 -- Envoie une requête op (list, group, relief, home) avec les champs fields. Rend le numéro de requête, ou nil.

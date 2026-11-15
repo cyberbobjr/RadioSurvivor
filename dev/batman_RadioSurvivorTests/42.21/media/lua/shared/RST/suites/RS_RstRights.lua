@@ -25,12 +25,12 @@ require "RST/RST_PeerChecks2"
 
 local FILTER = { suite = "rst.selftest" }
 
-local KEY = "CA_Character"   -- RS_Carnet_Server.lua IDENTITY_KEY
+local KEY = "CA_Character"   -- CA_NotebookServer.lua IDENTITY_KEY
 
 local function notebook(t)
-    local server = RS_CarnetServer
+    local server = CoreAI and CoreAI.notebookServer
     if type(server) ~= "table" or type(server.store) ~= "table" or type(server.store.data) ~= "table" then
-        t:skip("notebook state not loaded on this side (RS_CarnetServer)")
+        t:skip("notebook state not loaded on this side (CoreAI.notebookServer)")
     end
     return server, server.store
 end

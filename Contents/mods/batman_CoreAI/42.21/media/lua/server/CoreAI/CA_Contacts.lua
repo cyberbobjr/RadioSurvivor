@@ -10,7 +10,7 @@ A source is registered by the server code of its mod, so the contacts of a mod t
 nor touched (its data stays in its own files and comes back with it). A row is a copy, never a live table:
     { id (unique, e.g. "lk:lk-3"), source (set here), name, alive, groupName?, near?, relation? (panel of the mod),
       history? (lines of CA_History for (character, id) when the source gives none) }
-Read by the command "contacts" of the module CoreAI (CA_MissionJournal).
+Read by the notebook server (CA_NotebookServer: contacts of the snapshot).
 ]]
 local History = require "CoreAI/CA_History"
 

@@ -6,7 +6,7 @@ Banc lupa (Lua 5.1) sur le vrai moteur Living Knox (registres, API, corps, histo
 `LK_TalkAlone.lua` et le vrai moteur des missions du commun, RadioSurvivor absent de la liste des mods : une phrase dite
 près d'un PNJ part au pont avec le contexte du PNJ, la réponse revient en bulle et dans l'historique du commun ; le PNJ
 connu propose une mission, acceptée par la parole, listée au journal du commun ; E18-T29 : les objets se livrent et le lot
-se réclame par les gestes du journal du commun (commande « mission »), à côté du demandeur ; relecture après un
+se réclame par les gestes du carnet commun (E21-T04 : commandes du serveur du carnet), à côté du demandeur ; relecture après un
 redémarrage. E18-T27 : un PNJ prend la parole de lui-même sur une observation récente et deux PNJ proches se racontent
 ce qu'ils ont vu, sans RadioSurvivor.
 Doublures : le faux pont du banc écrit la réponse ; ne prouve ni le réseau ni Java.
@@ -164,13 +164,30 @@ class AloneTests(unittest.TestCase):
         return m
 
     def gesture(self, m, action, **args):
-        journal = self.w.rt.eval("require('CoreAI/CA_MissionJournal')")
-        table = self.w.rt.table_from({'action': action, 'mission': m.id, 'revision': m.revision, **args})
+        """E21-T04: a gesture of the Missions tab of the common notebook, sent to the notebook server of the core mod
+        (hand-over: prepare_delivery, then confirm_delivery with the quote's token; claim). Returns the refusals and the
+        rows of the mission journal of the character (CA_MissionJournal.rows) after the gesture."""
+        server = self.w.rt.eval('CoreAI.notebookServer')
+        store = server.store
+        t = self.w.rt.table_from
+        if server.bound[self.p] is None:
+            server.command('CoreAI', 'hello', self.p, t({}))
         self.w.sent.clear()
-        journal.onClientCommand('CoreAI', 'mission', self.p, table)
-        errors = [c[3].reason for c in self.w.sent if c[2] == 'error']
-        rows = [c[3].missions for c in self.w.sent if c[2] == 'missions']
-        return errors, rows[-1] if rows else None
+
+        def send(command, **fields):
+            server.command('CoreAI', command, self.p, t({'world': store.data.world, 'run': store.run, **fields}))
+
+        if action == 'deliver':
+            send('prepare_delivery', mission=m.id, revision=m.revision, **args)
+            quotes = [c[3] for c in self.w.sent if len(c) == 4 and c[2] == 'quote']
+            if quotes:
+                q = quotes[-1]
+                send('confirm_delivery', mission=q.mission, revision=q.revision, token=q.token)
+        else:
+            send(action, mission=m.id, revision=m.revision, **args)
+        errors = [c[3].reason for c in self.w.sent if len(c) == 4 and c[2] == 'error']
+        rows = self.w.rt.eval("require('CoreAI/CA_MissionJournal')").rows(self.character)
+        return errors, rows
 
     def test_items_are_handed_over_and_the_lot_claimed_from_the_journal(self):
         m = self.accepted_supply()
@@ -183,7 +200,8 @@ class AloneTests(unittest.TestCase):
             ids.append(it.id)
         self.p.x = 500
         errors, _ = self.gesture(m, 'deliver', items=self.w.rt.table_from(ids))
-        self.assertEqual(errors, ['Range'])
+        self.assertEqual(errors, ['State'])   # refusal of the notebook server, as for every requester out of reach
+        self.assertEqual(m.delivered, 0)
         self.p.x = 13
         errors, rows = self.gesture(m, 'deliver', items=self.w.rt.table_from(ids))
         self.assertEqual(errors, [])

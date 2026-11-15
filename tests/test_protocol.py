@@ -2088,10 +2088,12 @@ def scenario_memory_server(tmp: Path) -> None:
     talk_module = g.require("RadioSurvivor/RS_RadioTalk")
     tick = lambda: g.fire("OnTick")
     # État privé neuf (fichiers state-<partie>-<0|1>.txt du banc), deux personnages ; le joueur est lié à c1.
-    assert state.init(True) is True
-    state.data.characters = t({"c1": t({"id": "c1"}), "c2": t({"id": "c2"})})
-    g.RS_CarnetServer = t({"bound": t({})})
-    g.RS_CarnetServer.bound[player] = "c1"
+    notebook = g.require("CoreAI/CA_NotebookStore")   # E21-T04: notebook characters; RS_State its companion
+    assert notebook.init(True) is True and state.data is not None
+    notebook.data.characters = t({"c1": t({"id": "c1"}), "c2": t({"id": "c2"})})
+    g.CoreAI = g.CoreAI or t({})
+    g.CoreAI.notebookServer = t({"bound": t({})})
+    g.CoreAI.notebookServer.bound[player] = "c1"
 
     def turn(text: str) -> dict:
         g.finishAiring()
@@ -2168,7 +2170,7 @@ def scenario_memory_server(tmp: Path) -> None:
     assert facts("mem2") == ["A", "B"] and facts("mem2", "bob", None) == ["D"]
     assert facts("mem", "bob", None) == [] and facts("mem", "solo", "c2") == [] and facts("mem", "solo", None) == []
     assert memory.field("mem", "solo", "c2") is None and memory.field("mem2", "bob", "c1") is None
-    g.RS_CarnetServer.bound[player] = "c2"  # nouveau personnage en solo : même clé d'appelant, aucun souvenir
+    g.CoreAI.notebookServer.bound[player] = "c2"  # nouveau personnage en solo : même clé d'appelant, aucun souvenir
     req = turn("New face here.")
     assert "memory" not in req, req
     respond(req["id"], [{"type": "remember", "fact": "Second life"}])
@@ -2192,12 +2194,12 @@ def scenario_memory_server(tmp: Path) -> None:
     assert memory.field("mem", "solo", "c1") == before and facts("mem", "solo", "c2") == ["Second life"]
 
     # Mort : personnage retiré (jamais relu), puis souvenirs purgés de toutes les voix.
-    state.data.characters["c1"].retired = True
+    notebook.data.characters["c1"].retired = True
     assert facts("mem") == [] and memory.field("mem", "solo", "c1") is None
     state.dirty = False
     memory.forgetCharacter("c1")
     assert state.dirty is True
-    state.data.characters["c1"].retired = False
+    notebook.data.characters["c1"].retired = False
     assert facts("mem") == [] and facts("mem2") == [] and facts("mem", "solo", "c2") == ["Second life"]
 
     # Journal admin : une ligne par décision, le fait nettoyé seulement par le serveur, encodé comme tout paramètre.
@@ -2351,10 +2353,12 @@ def scenario_persona_server(tmp: Path) -> None:
     personas = g.require("RadioSurvivor/RS_Personas")
     talk_module = g.require("RadioSurvivor/RS_RadioTalk")
     tick = lambda: g.fire("OnTick")
-    assert state.init(True) is True
-    state.data.characters = t({"c1": t({"id": "c1"})})
-    g.RS_CarnetServer = t({"bound": t({})})
-    g.RS_CarnetServer.bound[player] = "c1"
+    notebook = g.require("CoreAI/CA_NotebookStore")   # E21-T04: notebook characters; RS_State its companion
+    assert notebook.init(True) is True and state.data is not None
+    notebook.data.characters = t({"c1": t({"id": "c1"})})
+    g.CoreAI = g.CoreAI or t({})
+    g.CoreAI.notebookServer = t({"bound": t({})})
+    g.CoreAI.notebookServer.bound[player] = "c1"
 
     def turn(text: str) -> dict:
         g.finishAiring()
@@ -3791,7 +3795,7 @@ def scenario_npc_reply_cleaning(tmp: Path) -> None:
     import io
     import npc_protocol as protocol
     import radio_bridge as rb
-    bad = re.compile(r"[\x00-\x1f\x7f<>\[\]*]")   # RS_Carnet_Server reply(): '[%c<>%[%]*]'
+    bad = re.compile(r"[\x00-\x1f\x7f<>\[\]*]")   # CA_NotebookServer reply(): '[%c<>%[%]*]'
     req = {"version": 2, "kind": "npc_talk", "id": "run-a-npc-a-1", "world": "world-a", "run": "run-a",
            "npc": "npc-a", "character": "character-a", "order": 1, "revision": 1, "sent": int(time.time() * 1000),
            "channel": "say", "language": "EN", "text": "comment ça va", "personality": {}, "context": {},
@@ -3848,7 +3852,7 @@ def scenario_npc_reply_cleaning(tmp: Path) -> None:
     game.rt.execute("Translator = {getLanguage = function() return {name = function() return 'EN' end} end}")
     logs = []
     game.g.print = lambda *args: logs.append(" ".join(str(a) for a in args))
-    client, server = game.g.CoreAI.notebookClient, game.g.RS_CarnetServer
+    client, server = game.g.CoreAI.notebookClient, game.g.CoreAI.notebookServer
     client.selectNearest()
     sent = []
 
@@ -3892,7 +3896,7 @@ def scenario_npc_reply_cleaning(tmp: Path) -> None:
         assert pump(lambda: len(server.talk.pending) == 0, [lambda: game.g.fire("OnTickEvenPaused")], timeout=5)
         refused = [line for line in logs if "npc_talk" in line and "refused" in line]
         assert refused == [f"[LK_Talk] npc_talk {second.id} refused: bridge error invalid_or_unavailable"], refused
-        # E17-T15: provider error named from the bridge to the server log and RS_CarnetServer.talk.refusals, at once (no
+        # E17-T15: provider error named from the bridge to the server log and CoreAI.notebookServer.talk.refusals, at once (no
         # wait of REQUEST_TIMEOUT_MS: the game clock is never advanced, the turn takes a few real seconds).
         server.talk.lastTalk[client.character] = None
         started = time.time()

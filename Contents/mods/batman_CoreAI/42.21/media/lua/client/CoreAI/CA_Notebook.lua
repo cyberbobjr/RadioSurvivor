@@ -785,7 +785,7 @@ Notebook.reputationExtras = {}
 Notebook.contactPages = {}
 
 -- Answers of the authority to the core commands reach the client registry of the notebook (CA_NotebookClient), also
--- called by name in solo (CA_MissionJournal, CA_Teams).
+-- called by name in solo (CA_Teams).
 function Notebook.receive(command, args) Client.receive(command, args) end
 
 -- E18-T20: team of the player (CA_Teams.projection), for the Team tab of Living Knox.

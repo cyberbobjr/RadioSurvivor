@@ -30,9 +30,9 @@ local function modules(t)
     if type(isClient) == "function" and isClient() then t:skip("agreements are authority only (solo or server)") end
     local F = RST.factions() -- E18-T20: CA_Teams (ids, mandates) and LK_Agreements
     t:ok(type(F.canConclude) == "function", "CoreAI/CA_Teams not loaded")
-    local Server = RS_CarnetServer
+    local Server = CoreAI and CoreAI.notebookServer
     if type(Server) ~= "table" or type(Server.store) ~= "table" or Server.store.data == nil then
-        t:skip("notebook server state not ready (RS_CarnetServer)")
+        t:skip("notebook server state not ready (CoreAI.notebookServer)")
     end
     local p = RST.Fixtures.player(t)
     t:ok(p ~= nil, "no target player (t.ctx.player)")

@@ -5,7 +5,7 @@
 
 Serveur dédié et deux clients du banc du carnet (test_carnet.Simulation : machines lupa séparées, réseau direct) :
 alice est le demandeur, bob le second client. Réels : moteur RST (RST.lua, RST_Steps.lua), la suite et ses étapes
-(RST_PeerChecks.lua carnet.send, RST_PeerChecks2.lua map.zones, RST_PeerChecksSignal.lua), RS_Carnet_Server.lua et
+(RST_PeerChecks.lua carnet.send, RST_PeerChecks2.lua map.zones, RST_PeerChecksSignal.lua), CA_NotebookServer.lua et
 CA_NotebookClient.lua (commandes accept, report, claim du carnet), gabarit CA_MissionSignal.lua et son écouteur, CA_MapZones.lua
 sur les clients. Doublures : Signal Smoke (tests/signalsmoke_double.py), métagrille et carte (SCOUT_GRID, MAP_DOUBLE de
 test_carnet), PNJ du faux fournisseur (corps 2001) à la place du PNJ de test Living Knox (RST.SignalClientSuite.requester
@@ -51,8 +51,8 @@ getWorld = function() return {getGameMode = function() return setmetatable({}, {
     return 'Multiplayer' end}) end, getWorld = function() return 'rstest-signal' end,
     getMetaGrid = function() return grid end} end
 RST.SignalClientSuite.requester = function(t, p, Signal, c, after)
-    local fiche = RS_CarnetServer.ensure(2001)
-    return after(t, { fiche = fiche, body = RS_CarnetServer.objects[fiche.id] })
+    local fiche = CoreAI.notebookServer.ensure(2001)
+    return after(t, { fiche = fiche, body = CoreAI.notebookServer.objects[fiche.id] })
 end
 '''
 

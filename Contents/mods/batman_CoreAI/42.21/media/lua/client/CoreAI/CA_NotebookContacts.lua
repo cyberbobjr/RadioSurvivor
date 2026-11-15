@@ -6,10 +6,11 @@ Rows: the NPCs the reader's character knows (snapshot of the notebook server, Co
 Page: name, group, personality, the page of the mod that gave the contact (Notebook.contactPages[row.page or
 row.source](win, row, line)) or, without one, the relation lines of the NPC engine (Notebook.relationLines), then the
 exchanges kept. Buttons: talk (select the NPC as the target of the local chat), clear the target, save the private
-note; "Say:" line to the selected NPC (same 'talk' command and server checks as the local chat).
+note; "Say:" line to the selected NPC (same 'talk' command and server checks as the local chat). A row given by a
+contact source of a mod (row.source, CA_Contacts: an interlocutor known without a fiche of the notebook) shows its
+name, group, the page of its mod and the exchanges kept, without buttons.
 Key binding CoreAISelect (Ctrl+G by default): selects the nearest NPC as the target. Notices of the page (no NPC
 engine, private state not written) and footer (target of the local chat) while a notebook server answers.
-The head and history lines of a contact are shared with the page of Living Knox alone (CA_NotebookJournal).
 Texts: IGUI_CA_*.
 ]]
 local Notebook = require 'CoreAI/CA_Notebook'
@@ -100,6 +101,12 @@ local function contactsDetail(w, row, line)
     local talkLine = row ~= nil and Client.snapshot.npcProvider == true
     w.speak:setVisible(talkLine); w.speakSend:setVisible(talkLine)
     if not row then line(tr('NoContactsSelect')); return false end
+    if row.source then
+        Contacts.headLines(row, line)
+        Contacts.sourcePage(w, row, line)
+        Contacts.historyLines(row, line)
+        return false
+    end
     Contacts.headLines(row, line)
     line(tr('Style_' .. row.personality.style))
     line(tr('Traits', row.personality.courage, row.personality.sociability, row.personality.generosity))

@@ -3,7 +3,7 @@ en hauteur dans le lieu `target` de la fiche d'une voix ; état lu par le serveu
 
     python RadioSurvivor/tests/test_mission_relay.py
 
-Vrai RadioSurvivor_Server, vrai RS_Carnet_Server (gabarit CA_MissionRelay inscrit au chargement), vrai RS_MissionVoice
+Vrai RadioSurvivor_Server, vrai CA_NotebookServer (gabarit CA_MissionRelay inscrit au chargement), vrai RS_MissionVoice
 (départ et compte rendu d'une voix), vrai RS_MissionTarget (lieu target), vrai RS_Persona (lecture de la fiche), vrai
 client du carnet ; doublures du monde fidèles au Java 42.22 relevé (RELAY_WORLD). Preuve de la logique Lua, pas de
 l'API Java réelle ni du réseau : la suite en jeu rs.voicerelay le confirme sur un serveur dédié.
@@ -235,7 +235,7 @@ class RelayMissionTests(unittest.TestCase):
         rt.execute(RELAY_WORLD)
         # The game loads every server file of the mod: the set-up of the target place registers itself (no require).
         rt.eval("require('RadioSurvivor/RS_MissionTarget')")
-        return sim, rt.eval("require('RadioSurvivor/RS_MissionVoice')"), rt.eval("require('RadioSurvivor/RS_State')")
+        return sim, rt.eval("require('RadioSurvivor/RS_MissionVoice')"), rt.eval("require('CoreAI/CA_NotebookStore')")
 
     def sheet(self, sim, section):
         rt = sim.server.rt

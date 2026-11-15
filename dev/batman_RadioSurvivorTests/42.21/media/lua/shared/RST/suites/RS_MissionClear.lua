@@ -198,7 +198,7 @@ local function missionPage(t, id)
 end
 
 -- Solo E11-T04: a real clear mission of a Living Knox npc fiche in the real notebook state, counted by the real
--- subscribers of the template (Clear.onHitZombie / Clear.onZombieDead, binding RS_CarnetServer.bound), accepted,
+-- subscribers of the template (Clear.onHitZombie / Clear.onZombieDead, binding CoreAI.notebookServer.bound), accepted,
 -- reported and claimed through the real notebook commands (CoreAI.notebookClient.send). The counting circle is moved onto the
 -- player (radius zoneRadius) so that the requester stays next to the player for the report and the claim: the place
 -- draw and the circle of the building are covered by the first test. Kills: lethal bat hit (melee), lethal pistol hit

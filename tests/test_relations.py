@@ -2,7 +2,7 @@
 
     python tests/test_relations.py
 
-Banc lupa (Lua 5.1, `next` retiré comme dans Kahlua) : vrai serveur du carnet (`RS_Carnet_Server.lua`), relation
+Banc lupa (Lua 5.1, `next` retiré comme dans Kahlua) : vrai serveur du carnet (`CA_NotebookServer.lua`), relation
 tenue par Living Knox (`LK_PersonalRelation.lua`, E18-T21) et lue par `LK_NotebookRelations.lua` (opérations du fournisseur, E21-T04), moteur Living Knox réel (registres, `LK_Hostility`, API, fournisseur `RS_LivingKnox.lua`) et vrai
 pont hors ligne (`RS_OFFLINE_INTENT=relation[...]`, drapeau du banc qui tient lieu d'un modèle qui cite un fait, jamais
 tiré des mots du joueur). Doublures seulement : ne prouve ni l'API Java ni le réseau.
@@ -45,7 +45,7 @@ class RelationTests(unittest.TestCase):
         for c in clients:
             sim.add_client(c)
         self.sim, self.g, self.rt = sim, sim.server.g, sim.server.rt
-        self.server = self.g.RS_CarnetServer
+        self.server = self.g.CoreAI.notebookServer
         self.R = self.rt.eval("require('LivingKnox/LK_NotebookRelations')")
         self.H = self.rt.eval('LivingKnox.Hostility')
         for npc in (self.g.LK_LEADER, self.g.LK_MATE):
@@ -129,7 +129,7 @@ class RelationTests(unittest.TestCase):
         sim.command('alice', 'talk', channel='say', text='Salut', language='FR')
         [req] = talk_requests(sim.server.g)
         self.assertEqual(convert(req.context.relation), {'level': 'wary', 'group': 'cautious', 'facts': {}})
-        fiche = sim.server.g.RS_CarnetServer.find(2001)
+        fiche = sim.server.g.CoreAI.notebookServer.find(2001)
         host = sim.server.g.LivingKnox.Talk.host
         view, key = host.relationApply(fiche, sim.character('alice'), 'binding-2001', 'up', 'f1')
         self.assertEqual((view.level, key), ('cautious', 'key-1'))
@@ -413,10 +413,10 @@ class RelationTests(unittest.TestCase):
                                                      'place': 'area-1-1' if source == 'seen' else 'area-2-2',
                                                      'source': source}))
         obs.record(fiche.id, self.rt.table_from({'fact': 'player_return', 'subject': cid, 'day': 5, 'place': 'x'}))
-        self.rt.execute(f'''RS_CarnetServer.store.data.missions["mis-1"] = {{id = "mis-1", npc = "{fiche.id}",
+        self.rt.execute(f'''CoreAI.notebookServer.store.data.missions["mis-1"] = {{id = "mis-1", npc = "{fiche.id}",
             state = "success", template = "scout", closedAt = 10, participants = {{["{cid}"] = {{name = "A"}}}},
             invited = {{}}}}
-            RS_CarnetServer.store.data.missions["mis-2"] = {{id = "mis-2", npc = "{fiche.id}", state = "failed",
+            CoreAI.notebookServer.store.data.missions["mis-2"] = {{id = "mis-2", npc = "{fiche.id}", state = "failed",
             closedAt = 20, participants = {{}}, invited = {{}}}}''')
         context, binding = self.offer('alice', leader)
         facts = [(f['fact'], f['nature'], f['source']) for f in context['facts'].values()]
@@ -442,7 +442,7 @@ class RelationTests(unittest.TestCase):
         # E18-T21: Living Knox drops the relations of a dead character at its death (identity retired).
         # Death event: the core mod retires the identity (CA_Identity, OnCharacterDeath), then the notebook.
         self.rt.eval("require('CoreAI/CA_Identity')").characterDeath(self.g.PLAYERS['alice'])
-        self.g.RS_CarnetServer.characterDeath(self.g.PLAYERS['alice'])
+        self.g.CoreAI.notebookServer.characterDeath(self.g.PLAYERS['alice'])
         self.assertIsNone(self.rt.eval('LivingKnox.PersonalRelation.debugPair')(leader, self.cid('alice')))
         # An NPC gone from the Living Knox registry: its relations dropped at the next purge.
         self.fact('bob', 'gift')

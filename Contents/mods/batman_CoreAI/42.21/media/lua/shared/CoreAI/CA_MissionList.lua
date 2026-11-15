@@ -1,6 +1,6 @@
 --[[
 CoreAI: one list of missions per character (E18-T06), shared by the mission journal of the core mod
-(CA_MissionJournal) and RadioSurvivor's notebook (Missions tab): which missions a character sees, their order and the
+(CA_MissionJournal rows) and the notebook (Missions tab of the snapshot): which missions a character sees, their order and the
 state shown. Pure functions, loaded on every machine (media/lua/shared).
 
     List.visible(m, character, known)   the character takes part, is invited, or still knows the mission (known: set

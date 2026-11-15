@@ -35,7 +35,7 @@ Client handlers (RST.Steps.on); every body is found by its npc id in LivingKnox.
                       centre of each block), returned in data.known as a string of "1" / "0"; with expect, polled
                       until equal; clear = these blocks are cleared at the end (clearKnownInSquares), PASS or FAIL.
     core.journal.act  { action, mission, revision }: the gesture of a button of the Missions tab of the core notebook
-                      (CoreAI.notebook.journal.act, E18-T29), sent to the authority.
+                      (E21-T04: notebook command of the action, CoreAI.notebookClient.send), sent to the authority.
     radio.history     { khz, other, kind, label, cid, x, key }: client copy of the radio history
                       (RS_RadioHistory): exactly one line of that kind and label on khz, none on other, history of
                       character cid, no coordinate x in the line, notebook line key translated with the label.
@@ -193,12 +193,11 @@ end)
 
 -- ---------------------------------------------------------------- core.journal.act (E18-T29)
 
--- The gesture of a button of the Missions tab of the core notebook (Journal.act: command "mission" to the authority).
+-- The gesture of a button of the Missions tab of the core notebook (E21-T04: notebook command of the action).
 Steps.on("core.journal.act", function(args)
-    local N = CoreAI and CoreAI.notebook
-    local J = N and N.journal
-    if J == nil or J.act == nil then return Steps.fail("journal of the core notebook not loaded here") end
-    J.act(tostring(args.action), { id = args.mission, revision = args.revision })
+    local Client = CoreAI and CoreAI.notebookClient
+    if Client == nil or Client.send == nil then return Steps.fail("notebook client of the core mod not loaded here") end
+    Client.send(tostring(args.action), { mission = args.mission, revision = args.revision })
     return Steps.pass("sent " .. tostring(args.action))
 end)
 

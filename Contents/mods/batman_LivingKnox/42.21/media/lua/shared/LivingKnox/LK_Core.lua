@@ -84,7 +84,7 @@ function LK.requeue(eventName, key, fn)
 end
 
 -- Faits du moteur publiés aux autres modules (E08-T07, avant les événements publics de LK12-T02). Le moteur publie,
--- un consommateur s'abonne (RS_Carnet_Server) : aucune dépendance du moteur vers lui. LK.listen(name, key, fn) est
+-- un consommateur s'abonne (CA_NotebookServer) : aucune dépendance du moteur vers lui. LK.listen(name, key, fn) est
 -- idempotent par clé (un rechargement remplace l'abonné) ; LK.publish(name, info) appelle les abonnés dans l'ordre
 -- d'inscription, chacun sous pcall (une erreur est journalisée et n'arrête ni le moteur ni les suivants). info est
 -- une table propre à l'autorité (peut contenir un objet du moteur) : jamais à envoyer telle quelle à un client.

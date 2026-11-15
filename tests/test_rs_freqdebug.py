@@ -331,6 +331,7 @@ class RuleTests(unittest.TestCase):
                    'package.loaded["RadioSurvivor/RadioSurvivor_Const"] = { log = function() end } '
                    'package.loaded["RadioSurvivor/RS_Personas"] = {}')
         rt.execute(RIGHTS)
+        rt.execute(f'package.path = [[{(tps.CORE_LUA / "shared").as_posix()}/?.lua;]] .. package.path')  # CA_AdminAccess
         rt.execute(f'dofile([[{LK_ADMIN_FILE.as_posix()}]]) dofile([[{SERVER_FILE.as_posix()}]])')
         rt.execute('ADMINS.boss = true BOSS, PEON = MKPLAYER("boss"), MKPLAYER("peon") '
                    'NOROLE = MKPLAYER("boss") NOROLE.getRole = function() return nil end SAVED_CAP = Capability')
@@ -531,12 +532,10 @@ class StaticTests(unittest.TestCase):
     def test_constants_shared_by_the_authority_and_the_window(self):
         server = SERVER_FILE.read_text(encoding='utf-8')
         view = VIEW_FILE.read_text(encoding='utf-8')
-        for name in ('MODULE', 'CMD_REQUEST', 'CMD_REPLY', 'CAPABILITY', 'OP'):
+        for name in ('MODULE', 'CMD_REQUEST', 'CMD_REPLY', 'OP'):   # CAPABILITY: one source, CA_AdminAccess (E21-T04)
             a = re.search(rf'^FreqDebug\.{name} = "([^"]+)"', server, re.M).group(1)
             b = re.search(rf'^FreqView\.{name} = "([^"]+)"', view, re.M).group(1)
             self.assertEqual(a, b, name)
-        lk = LK_ADMIN_FILE.read_text(encoding='utf-8')
-        self.assertEqual(re.search(r'^Admin\.CAPABILITY = "([^"]+)"', lk, re.M).group(1), 'PopmanManage')
         # Constantes avant la garde du client MP.
         self.assertLess(server.index('FreqDebug.OP ='), server.index('if isClient() then return FreqDebug end'))
 

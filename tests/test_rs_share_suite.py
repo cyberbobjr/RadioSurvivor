@@ -6,7 +6,7 @@ RS_ShareFrequency.lua).
 La suite est jouée par le VRAI moteur RST (RST.lua, RST_Steps.lua, RST_PeerChecksRadio.lua, RST_PeerChecksVoices.lua)
 sur le serveur dédié simulé de tests/test_carnet.py (Simulation) avec deux clients : vrai RadioSurvivor_Server, vrais
 RS_Actions, RS_MissionVoice (exécuteur share_frequency), RS_VoiceBonds, RS_RadioLog, RS_Personas (Walt et Darlene
-installés et servis), vrai CA_Reputation, vrai RS_Carnet_Server, vrai RS_RadioHistory sur chaque client. Doublure
+installés et servis), vrai CA_Reputation, vrai CA_NotebookServer, vrai RS_RadioHistory sur chaque client. Doublure
 propre à ce banc : le mode debug (isDebugEnabled, exigé par CA_Reputation.testSetLevel). Chaque critère est contredit
 par un défaut injecté que la suite doit faire échouer : partage sans lien, voix livrée aussi au second client, voix
 absente de la copie du client demandeur, voix déjà connue redonnée. Ce banc ne prouve ni l'API Java ni le réseau réel : la campagne MP à deux clients reste
@@ -88,10 +88,10 @@ class ShareSuiteTests(unittest.TestCase):
         for name in ('alice', 'bob'):
             cid = self.sim.character(name)
             radio = self.server.rt.eval('function(cid) return RST.radioOf(cid) end')(cid)
-            rec = self.sim.state().characters[cid]
+            bonds = self.sim.voices().voiceBonds   # E21-T04: bonds in the state of the voices, per character
+            rec = bonds[cid] if bonds is not None else None
             out[name] = (radio_history.convert(radio) if radio is not None else None,
-                         radio_history.convert(rec.voiceBonds) if rec.voiceBonds is not None else None,
-                         rec.lastShareDay)
+                         radio_history.convert(rec) if rec is not None else None)
         out['rep'] = self.server.rt.eval(
             "function(cid) local R = require('CoreAI/CA_Reputation'); R.ensure(); "
             "return R.scoreOf(cid) end")(self.sim.character('alice'))
@@ -125,7 +125,7 @@ class ShareSuiteTests(unittest.TestCase):
             Log.add = function(cid, khz, kind, text, voice)
                 local line = add(cid, khz, kind, text, voice)
                 if kind == 'reply' and voice ~= nil then
-                    for _, other in pairs(RS_CarnetServer.bound) do
+                    for _, other in pairs(CoreAI.notebookServer.bound) do
                         if other ~= cid then add(other, khz, kind, text, voice) end
                     end
                 end

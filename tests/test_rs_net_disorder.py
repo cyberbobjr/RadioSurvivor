@@ -5,7 +5,7 @@
 Serveur dédié et deux clients du banc (tests/harness.py), vrai moteur RST (RST.lua, RST_Steps.lua,
 RST_PeerChecks.lua : étape client « carnet.talk »), vrai RST_RSHelpers.R.talk sur le serveur, vrai CA_NotebookClient.lua sur le
 client demandeur (Client.talk : commande « talk » du carnet). Doublures : serveur du carnet réduit à sa liste de requêtes
-(mise en file puis sauvegarde, comme RS_Carnet_Server enqueue) et pont rapide qui répond à l'image suivante du serveur.
+(mise en file puis sauvegarde, comme CA_NotebookServer enqueue) et pont rapide qui répond à l'image suivante du serveur.
 
 Défaut vu en jeu (campagne MP du 2026-11-05, registre docs/annexes/tests/ecarts-banc-jeu.md, catégorie F) : la commande
 « talk » et la réponse de l'étape sont deux commandes Lua du même client, fiables mais NON ordonnées
@@ -34,7 +34,7 @@ Translator = { getLanguage = function() return { name = function() return "EN" e
 require "CoreAI/CA_NotebookClient"
 '''
 
-# Serveur : liste des requêtes du carnet (talk.pending), sauvegarde après la mise en file (RS_Carnet_Server enqueue :
+# Serveur : liste des requêtes du carnet (talk.pending), sauvegarde après la mise en file (CA_NotebookServer enqueue :
 # S.save()), pont qui répond à l'image suivante (requête retirée de la liste). Suite d'une étape : R.talk.
 SERVER = r'''
 NOTEBOOK = { store = {}, talk = { pending = {}, refusals = {} } }

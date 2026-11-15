@@ -178,16 +178,16 @@ class FactsTests(unittest.TestCase):
         self.assertEqual(self.listed(1)[0]['place'], {'key': 'TownFar'})
         self.assert_no_coordinates()
         # Private state of the notebook (server file), not a global ModData; survives a restart.
-        self.assertEqual(int(self.sim.state().facts.next), 3)
+        self.assertEqual(int(self.sim.voices().facts.next), 3)
         self.g.fire('OnSave')
         restart = Simulation(self.sim.path, self.sim.clock, saved_players=self.sim.saved())
-        self.assertEqual([convert(f)['name'] for f in lua_list(restart.state().facts.list)], ['alice Doe', 'bob Doe'])
+        self.assertEqual([convert(f)['name'] for f in lua_list(restart.voices().facts.list)], ['alice Doe', 'bob Doe'])
 
     def test_closed_missions_after_the_observation_listener(self):
         self.world()
         sim = self.sim
         alice, bob = sim.character('alice'), sim.character('bob')
-        fid = self.g.RS_CarnetServer.ensure(2001).id
+        fid = self.g.CoreAI.notebookServer.ensure(2001).id
         state = sim.state()
         M = self.rt.eval("require('CoreAI/CA_Missions')")
         Obs = self.rt.eval("require('LivingKnox/LK_Observations')")
@@ -302,7 +302,7 @@ class FactsTests(unittest.TestCase):
         F.record('rescue', self.t({'result': 'in_time', 'participants': ['Alice']}))
         self.assertEqual(F.purge(read.next - 1), 2)
         self.assertEqual(self.kinds(), ['rescue'])
-        self.assertEqual(int(self.sim.state().facts.next), 4)
+        self.assertEqual(int(self.sim.voices().facts.next), 4)
         # Without a bulletin: the facts of a day are dropped at the start of the day after the next one.
         self.g.WORLD_HOURS = 3 * 24 - 1   # last hour of day 3
         self.hour()                       # day 4

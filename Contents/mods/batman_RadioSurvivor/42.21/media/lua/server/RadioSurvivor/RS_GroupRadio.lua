@@ -115,7 +115,7 @@ end
 -- cid : personnage du carnet (historique radio), language : code de langue. Rend la demande du carnet, ou nil et une
 -- raison (anglais, journalisée par l'appelant ; le joueur n'entend que le silence).
 function GroupRadio.talk(player, key, sheet, khz, text, language, cid)
-    local Server = RS_CarnetServer
+    local Server = CoreAI and CoreAI.notebookServer
     local S = Server and Server.store
     if not S or not S.data or S.blocked then return nil, "notebook state not ready" end
     local character = Server.bound[player]
@@ -129,7 +129,7 @@ function GroupRadio.talk(player, key, sheet, khz, text, language, cid)
     if type(text) ~= "string" or text == "" or string.len(Codec.toUtf8(text)) > C.MAX_TEXT_BYTES then
         return nil, "text"
     end
-    -- Mêmes quotas que la parole de proximité (RS_Carnet_Server.talk).
+    -- Mêmes quotas que la parole de proximité (CA_NotebookServer.talk).
     local now = getTimestampMs()
     local Queue = Server.talk
     if not Queue then return nil, "no Living Knox speech" end
@@ -159,7 +159,7 @@ function GroupRadio.talk(player, key, sheet, khz, text, language, cid)
     return req
 end
 
--- Réponse du pont à une demande radio (appelée par RS_Carnet_Server.reply). Rend vrai, ou faux et la raison.
+-- Réponse du pont à une demande radio (appelée par CA_NotebookServer.reply). Rend vrai, ou faux et la raison.
 function GroupRadio.owns(id)
     return state.outstanding[id] ~= nil
 end
@@ -203,7 +203,7 @@ function GroupRadio.tick(now)
         state.nextRefreshMs = now + GroupRadio.REFRESH_MS
         GroupRadio.refresh()
     end
-    local Server = RS_CarnetServer
+    local Server = CoreAI and CoreAI.notebookServer
     if not Server or not Server.talk then return end
     local live = {}
     for _, r in ipairs(Server.talk.pending) do live[r.id] = true end

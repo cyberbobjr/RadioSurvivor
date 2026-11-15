@@ -50,6 +50,11 @@ end
 function SlotFile.write(base, header, seq, data)
     local ok, body = pcall(Codec.encodeBytes, data)
     if not ok or type(body) ~= "string" then return false, "encode: " .. tostring(body) end
+    return SlotFile.writeBody(base, header, seq, body)
+end
+
+-- Same as SlotFile.write with the bytes already encoded (CA_Codec.encodeBytes), for a caller that checks them first.
+function SlotFile.writeBody(base, header, seq, body)
     local path = base .. "-" .. (seq % 2) .. ".txt"
     local w = getFileWriter(path, true, false)
     if not w then return false, "no writer for " .. path end

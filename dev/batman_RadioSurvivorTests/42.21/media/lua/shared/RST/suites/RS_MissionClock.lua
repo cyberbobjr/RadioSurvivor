@@ -2,7 +2,7 @@
 rs.missions.clock - mission delays count game time in a real solo game (E11-T20, review point C27, user decision of
 2026-10-21): the countdown stops while the game is paused and runs faster at fast-forward.
 An active mission of the real engine lives in an in-memory notebook state (as rs.missions.unclaimed and
-rs.missions.solo); its countdown is driven exactly like RS_Carnet_Server.tick drives the real ones: on
+rs.missions.solo); its countdown is driven exactly like CA_NotebookServer.tick drives the real ones: on
 OnTickEvenPaused, CA_Missions.advance(state, meter()) with a real CA_GameClock.meter. Three windows of real time:
     x1     normal speed (setGameSpeed(1), multiplier 1) for WINDOW_MS: the countdown runs at about one play ms per real
            ms and drops by exactly the world age elapsed times CA_GameClock.msPerHour.
@@ -78,7 +78,7 @@ end
 --[[ Driver: one OnTickEvenPaused listener (fires paused or not, before GameTime.update of the frame) that
     1. ends a pause it was asked to hold once its real time is over (first, so that nothing below can keep the game
        paused);
-    2. counts the play time of the mission like RS_Carnet_Server.tick (CA_Missions.advance with a CA_GameClock meter);
+    2. counts the play time of the mission like CA_NotebookServer.tick (CA_Missions.advance with a CA_GameClock meter);
     3. records the start and end readings of the current phase.
 A second listener on OnTick only counts the frames that reach OnTick (none while paused in solo). ]]
 local function newDriver(M, Clock, state, m)

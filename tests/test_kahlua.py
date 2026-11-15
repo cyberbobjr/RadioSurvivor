@@ -50,7 +50,7 @@ STDLIB = PZ_DIR / 'stdlib.lua'
 EVENTS_AT_LOAD = {'LivingKnox/LK_Decisions'}
 # E18-T03 : modules du mod commun qui s'abonnent par Events.X.Add au chargement : charges avec une table Events dont
 # chaque evenement accepte Add sans rien inscrire.
-EVENTS_ADD_AT_LOAD = {'CoreAI/CA_WorldStart', 'CoreAI/CA_Identity', 'CoreAI/CA_MissionJournal'}
+EVENTS_ADD_AT_LOAD = {'CoreAI/CA_WorldStart', 'CoreAI/CA_Identity'}
 LUA_FILES = [
     ('driver', BENCH / 'driver.lua'),
     ('RST/RST', TESTS_LUA / 'shared' / 'RST' / 'RST.lua'),
@@ -78,7 +78,10 @@ LUA_FILES = [
     ('CoreAI/CA_History', CORE_LUA / 'server' / 'CoreAI' / 'CA_History.lua'),  # E18-T11 : RS_State
     ('CoreAI/CA_Reputation', CORE_LUA / 'server' / 'CoreAI' / 'CA_Reputation.lua'),  # E18-T22 : RS_State
     ('RadioSurvivor/RS_MissionHooks', MOD_LUA / 'server' / 'RadioSurvivor' / 'RS_MissionHooks.lua'),
-    ('RadioSurvivor/RS_StatePurge', MOD_LUA / 'server' / 'RadioSurvivor' / 'RS_StatePurge.lua'),
+    # E21-T04 : etat prive du carnet dans le mod commun (RS_State en est un compagnon).
+    ('CoreAI/CA_NotebookPurge', CORE_LUA / 'server' / 'CoreAI' / 'CA_NotebookPurge.lua'),
+    ('CoreAI/CA_NotebookStore', CORE_LUA / 'server' / 'CoreAI' / 'CA_NotebookStore.lua'),
+    ('CoreAI/CA_NotebookGiver', CORE_LUA / 'server' / 'CoreAI' / 'CA_NotebookGiver.lua'),  # rs.missions
     ('RadioSurvivor/RS_State', MOD_LUA / 'server' / 'RadioSurvivor' / 'RS_State.lua'),
     ('RadioSurvivor/RS_PersonaParams', MOD_LUA / 'server' / 'RadioSurvivor' / 'RS_PersonaParams.lua'),  # E20-T03
     ('RadioSurvivor/RS_Persona', MOD_LUA / 'server' / 'RadioSurvivor' / 'RS_Persona.lua'),

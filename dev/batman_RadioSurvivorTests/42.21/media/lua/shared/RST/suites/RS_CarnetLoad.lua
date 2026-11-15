@@ -1,5 +1,5 @@
 --[[
-rs.carnet.load - bounded load of the notebook on the authority (E00-T04, server/RS_Carnet_Server.lua: ensure, scan,
+rs.carnet.load - bounded load of the notebook on the authority (E00-T04, server/CoreAI/CA_NotebookServer.lua: ensure, scan,
 prune, tick, clockRunning; RS_State.save):
     no fiche      NPC_COUNT Living Knox test npcs are spawned around the requester (LivingKnox.API.testSpawnNpc) and
                   seen by the notebook provider; after a few notebook passes (scan once a second) none of them has a
@@ -35,9 +35,9 @@ local IDLE_MS = 12000
 
 local function notebook(t)
     if type(isClient) == "function" and isClient() then t:skip("the notebook state lives on the authority") end
-    local Server = RS_CarnetServer
+    local Server = CoreAI and CoreAI.notebookServer
     if type(Server) ~= "table" or type(Server.store) ~= "table" or Server.store.data == nil then
-        t:skip("notebook server state not ready (RS_CarnetServer)")
+        t:skip("notebook server state not ready (CoreAI.notebookServer)")
     end
     if Server.store.blocked then t:skip("notebook storage blocked") end
     local C = require "RadioSurvivor/RS_Config"

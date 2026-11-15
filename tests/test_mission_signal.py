@@ -46,7 +46,7 @@ class SignalMissionTests(unittest.TestCase):
         return sim, npc, record, signal
 
     def catalog(self, sim, npc, record):
-        return convert(sim.server.g.RS_CarnetServer.offerCatalogFor(npc, record))
+        return convert(sim.server.g.CoreAI.notebookServer.offerCatalogFor(npc, record))
 
     def active(self, name, bob=False):
         sim, npc, record, signal = self.sim(name)
@@ -132,7 +132,7 @@ class SignalMissionTests(unittest.TestCase):
         self.assertNotIn('siteKey', row)
         [bandage] = sim.items('alice', 'Base.Bandage')
         sim.request_mission('alice', 'prepare_delivery', items=[bandage])
-        self.assertIsNone(sim.server.g.RS_CarnetServer.quotes[sim.character('alice')])
+        self.assertIsNone(sim.server.g.CoreAI.notebookServer.quotes[sim.character('alice')])
 
     def test_signals_that_do_not_count(self):
         sim, npc, m, missions = self.active('ignored')

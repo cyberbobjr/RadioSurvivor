@@ -11,13 +11,14 @@
 -- Bornes (RadioSurvivor_Const) : MEMORY_MAX_FACTS faits par (voix, appelant, personnage), le plus ancien évincé ; un
 -- fait identique après normalisation (casse, espaces) est rafraîchi, pas dupliqué ; MEMORY_MAX_CALLERS appelants par
 -- voix, le moins récemment servi évincé ; MEMORY_FACT_CHARS caractères par fait.
--- Purge : la mort d'un personnage (RS_Carnet_Server.characterDeath, identité retirée) appelle forgetCharacter ; un
+-- Purge : la mort d'un personnage (CA_NotebookServer.characterDeath, identité retirée) appelle forgetCharacter ; un
 -- personnage déjà retiré n'est de toute façon jamais relu (filtre à la lecture).
 if isClient() then return end
 
 local Const = require "RadioSurvivor/RadioSurvivor_Const"
 local Codec = require "CoreAI/CA_Codec"
 local S = require "RadioSurvivor/RS_State"
+local Notebook = require "CoreAI/CA_NotebookStore" -- E21-T04: notebook characters
 local Actions = require "RadioSurvivor/RS_Actions"
 
 local Memory = {}
@@ -82,8 +83,8 @@ end
 
 -- Personnage retiré à la mort (ou disparu de l'état) : ses souvenirs ne sont plus lus.
 local function retired(cid)
-    if cid == nil or not S.data or type(S.data.characters) ~= "table" then return false end
-    local record = S.data.characters[cid]
+    if cid == nil or not Notebook.data then return false end
+    local record = Notebook.data.characters[cid]
     return type(record) ~= "table" or record.retired == true
 end
 

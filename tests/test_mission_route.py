@@ -4,7 +4,7 @@
 
     python RadioSurvivor/tests/test_mission_route.py
 
-Vrai RadioSurvivor_Server, vrai RS_Carnet_Server (gabarit CA_MissionRoute inscrit au chargement), vrai RS_MissionVoice
+Vrai RadioSurvivor_Server, vrai CA_NotebookServer (gabarit CA_MissionRoute inscrit au chargement), vrai RS_MissionVoice
 (départ et compte rendu d'une voix), vrai RS_MissionWaypoints (points de la section), vrai RS_Persona et
 RS_PersonaParams (lecture de la fiche, nature de paramètre `places`), vrai client du carnet (page, cercles de la carte) ;
 doublures fidèles au Java 42.22 relevé (ROUTE_WORLD). Preuve de la logique Lua, pas de l'API Java réelle ni du réseau :
@@ -77,7 +77,7 @@ class RouteMissionTests(unittest.TestCase):
         # The game loads every server file of the mod: the set-up of the route points registers itself (no require).
         rt.eval("require('RadioSurvivor/RS_MissionWaypoints')")
         rt.eval("require('CoreAI/CA_MissionRoute')").resetForTests()
-        return sim, rt.eval("require('RadioSurvivor/RS_MissionVoice')"), rt.eval("require('RadioSurvivor/RS_State')")
+        return sim, rt.eval("require('RadioSurvivor/RS_MissionVoice')"), rt.eval("require('CoreAI/CA_NotebookStore')")
 
     def sheet(self, sim, points=('a', 'b', 'c')):
         rt = sim.server.rt

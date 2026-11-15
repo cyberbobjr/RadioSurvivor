@@ -112,27 +112,26 @@ class StorageTests(unittest.TestCase):
         self.h.machine('server').rt.execute(WORLD)
 
     def seed(self):
-        self.ev('local S = require("RadioSurvivor/RS_State") assert(S.init(true)) '
+        self.ev('local S = require("CoreAI/CA_NotebookStore") assert(S.init(true)) '
                 'S.data.missions["m-1"] = {id = "m-1", npc = "npc-a"} assert(S.save())')
 
     def test_saved_in_the_core_file_and_read_after_a_restart(self):
         self.seed()
         self.restart()
-        self.assertEqual(self.ev('local S = require("RadioSurvivor/RS_State") assert(S.init(false)) '
+        self.assertEqual(self.ev('local S = require("CoreAI/CA_NotebookStore") assert(S.init(false)) '
                                  'return S.data.missions["m-1"].npc'), 'npc-a')
 
     def test_notebook_state_holds_no_mission(self):
         self.seed()
-        out = self.ev('local S = require("RadioSurvivor/RS_State") '
-                      'local r0 = S._read(S.path .. "-0.txt") local r1 = S._read(S.path .. "-1.txt") '
-                      'local best = r0 if r1 and (not r0 or r1.generation > r0.generation) then best = r1 end '
+        out = self.ev('local S = require("CoreAI/CA_NotebookStore") '
+                      'local best = require("CoreAI/CA_SlotFile").read(S.base, S.HEADER) '
                       'return tostring(best.data.missions)')
         self.assertEqual(out, 'nil')
 
     def test_new_world_starts_without_missions(self):
         self.seed()
         self.restart()
-        out = self.ev('local S = require("RadioSurvivor/RS_State") S.init(true) local n = 0 '
+        out = self.ev('local S = require("CoreAI/CA_NotebookStore") S.init(true) local n = 0 '
                       'for _ in pairs(S.data.missions) do n = n + 1 end return n')
         self.assertEqual(out, 0)
 

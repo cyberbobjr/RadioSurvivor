@@ -369,7 +369,8 @@ AUTHORITY = r'''
 DEFECT = DEFECT or {}
 Const = require "RadioSurvivor/RadioSurvivor_Const"
 C = require "RadioSurvivor/RS_Config"
-S = require "RadioSurvivor/RS_State"
+require "RadioSurvivor/RS_State"   -- E21-T04: state of the voices, companion of the notebook store
+S = require "CoreAI/CA_NotebookStore"
 assert(S.init(true))
 WALT = 130000
 package.loaded["RadioSurvivor/RS_Personas"] = {
@@ -545,11 +546,11 @@ function M.finish(state, m, result)
 end
 package.loaded["CoreAI/CA_Missions"] = M
 
--- Notebook server reduced to what the suites read (RS_Carnet_Server.lua: hello, snapshot, select, scan,
+-- Notebook server reduced to what the suites read (CA_NotebookServer.lua: hello, snapshot, select, scan,
 -- prune, conditional save, enrichment of a contacted fiche).
 F = (function() local A, T = require("LivingKnox/LK_Agreements"), require("CoreAI/CA_Teams") return setmetatable({}, {__index = function(_, k) if A[k] ~= nil then return A[k] end return T[k] end}) end)()
 Server = { talk = { pending = {}, enrichTimes = {}, times = {} }, store = S, bound = {}, selected = {}, objects = {}, pending = {}, enrichTimes = {}, times = {} }
-RS_CarnetServer = Server
+CoreAI = CoreAI or {}; CoreAI.notebookServer = Server
 local function players()
     if isServer() then local out = {} for i, n in ipairs(ONLINE) do out[i] = PLAYERS[n] end return out end
     return { getPlayer() }

@@ -110,7 +110,7 @@ local function run(t)
     local state = {missions = {}, npcs = {}, voiceDonors = {}, characters = {}, outcomes = {}}
     state.characters.char1 = {name = 'Tester', contacts = {}, knownMissions = {}}
     local store = {data = state, save = function() return true end}
-    local d = V.donor(state, sheet.id, 'char1', true)
+    local d = V.donor(sheet.id, 'char1', true)
     d.given = {clinic = true}
     local present = {{player = p, character = 'char1'}}
     local function poll()

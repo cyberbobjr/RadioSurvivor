@@ -83,7 +83,7 @@ class ClearMissionTests(unittest.TestCase):
         return sim, npc, record, missions
 
     def catalog(self, sim, npc, record):
-        return convert(sim.server.g.RS_CarnetServer.offerCatalogFor(npc, record))
+        return convert(sim.server.g.CoreAI.notebookServer.offerCatalogFor(npc, record))
 
     def active(self, name='clear', bob=False, speech=True):
         sim, npc, record, missions = self.clear_sim(name, speech)
@@ -177,7 +177,7 @@ class ClearMissionTests(unittest.TestCase):
         # A forged delivery finds nothing to accept.
         [bandage] = sim.items('alice', 'Base.Bandage')
         sim.request_mission('alice', 'prepare_delivery', items=[bandage])
-        self.assertIsNone(sim.server.g.RS_CarnetServer.quotes[sim.character('alice')])
+        self.assertIsNone(sim.server.g.CoreAI.notebookServer.quotes[sim.character('alice')])
         self.assertEqual(sim.clients['alice'].g.CoreAI.notebookClient.lastError, 'Items')
 
     def test_two_participants_share_one_count_without_double_count(self):

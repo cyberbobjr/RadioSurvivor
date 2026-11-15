@@ -2,7 +2,7 @@
 
     python tests/test_lk_talk.py
 
-Banc lupa (Lua 5.1) sur le vrai `RS_Carnet_Server.lua` et le vrai `LK_Talk.lua` : le code de la parole est chez Living
+Banc lupa (Lua 5.1) sur le vrai `CA_NotebookServer.lua` et le vrai `LK_Talk.lua` : le code de la parole est chez Living
 Knox et ne requiert aucun module de RadioSurvivor ; voies `npc` et `acks` à leur place dans le fichier ; acquittements
 et délais des initiatives relus après un redémarrage dans le fichier privé de Living Knox, plus dans l'état du carnet ;
 numéros d'ordre tenus par la file ; RadioSurvivor seul n'a aucune file. Doublures : ne prouve ni le réseau ni Java.
@@ -27,7 +27,7 @@ class SourceTests(unittest.TestCase):
         for name in FILES:
             text = (LK / name).read_text(encoding='utf-8')
             self.assertEqual(re.findall(r'''require\s*\(?\s*['"]RadioSurvivor/[^'"]+''', text), [], name)
-            self.assertNotIn('RS_CarnetServer', text, name)
+            self.assertNotIn('CoreAI.notebookServer', text, name)
 
     def test_old_modules_are_gone_from_radiosurvivor(self):
         for name in ('RS_Conversations.lua', 'RS_Initiatives.lua', 'RS_Incidents.lua'):
@@ -98,7 +98,7 @@ class ReplyKindTests(unittest.TestCase):
         self.sim = Simulation(Path(self.tmp.name) / 'w', clock=Clock(), new_world=True)
         self.rt = self.sim.server.rt
         self.rt.execute('''
-            local Talk = RS_CarnetServer.talk
+            local Talk = CoreAI.notebookServer.talk
             PROBE_NPC = { id = "npc-9", incarnation = 2001, order = 0, revision = 2, alive = true, personality = {} }
             Talk.fiche = function(id) if id == "npc-9" then return PROBE_NPC end return nil end
             SERVED = {}
@@ -111,7 +111,7 @@ class ReplyKindTests(unittest.TestCase):
         self.tmp.cleanup()
 
     def answer(self, kind, intent):
-        req = self.rt.eval(f'RS_CarnetServer.talk.enqueue(PROBE_NPC, "{kind}", "system", "x", "EN", {{}}, {{}})')
+        req = self.rt.eval(f'CoreAI.notebookServer.talk.enqueue(PROBE_NPC, "{kind}", "system", "x", "EN", {{}}, {{}})')
         body = {'version': 2, 'kind': 'npc_reply', 'id': req.id, 'world': req.world, 'run': req.run, 'npc': req.npc,
                 'order': req.order, 'revision': req.revision, 'text': 'Noted.', 'intent': intent, 'offer': ''}
         (self.sim.path / 'responses.txt').write_text(f"resp={req.id}\npayload={protocol.encode(body).hex()}\nend\n",
@@ -127,7 +127,7 @@ class ReplyKindTests(unittest.TestCase):
     def test_added_kind_is_served_after_the_intent_checks(self):
         self.answer('npc_probe', 'none')
         self.assertEqual(self.served(), ['npc_probe'])
-        refusals = self.rt.eval('RS_CarnetServer.talk.refusals')
+        refusals = self.rt.eval('CoreAI.notebookServer.talk.refusals')
         self.answer('npc_probe', 'leave_group')                    # intention réservée à npc_talk : refusée
         self.assertEqual(self.served(), ['npc_probe'])
         self.assertEqual(refusals[len(refusals)].reason, 'invalid intent')
@@ -141,7 +141,7 @@ class AloneTests(unittest.TestCase):
     def test_notebook_without_living_knox_has_no_queue(self):
         with tempfile.TemporaryDirectory(prefix='lk-talk-') as tmp:
             sim = Simulation(Path(tmp) / 'alone', provider=False)
-            self.assertIsNone(sim.server.g.RS_CarnetServer.talk)
+            self.assertIsNone(sim.server.g.CoreAI.notebookServer.talk)
             sim.clock.offset += 2000
             sim.tick()
             self.assertEqual(sim.server.errors() if hasattr(sim.server, 'errors') else [], [])

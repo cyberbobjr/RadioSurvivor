@@ -9,8 +9,7 @@ order). Page: requester, state, the place and its clues (template view with show
 view (CA_MissionViews), delay, reward, participants, the report expected (giver presentation of CA_MissionViews:
 remote givers have no body to join). Buttons: accept, hand-over (delivery window, then the quote of the authority to
 confirm), report, claim, abandon, invite a player near. The authority checks every gesture again.
-The helpers of the rows (label, state, lot of a created reward, items of the inventory a mission accepts) are shared
-with the page of Living Knox alone (CA_NotebookJournal).
+Helpers of the rows: label, state, lot of a created reward, items of the inventory a mission accepts.
 Texts: IGUI_CA_*.
 ]]
 local Notebook = require 'CoreAI/CA_Notebook'

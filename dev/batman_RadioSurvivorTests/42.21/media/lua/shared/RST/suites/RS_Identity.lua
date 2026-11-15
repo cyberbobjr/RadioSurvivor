@@ -1,8 +1,8 @@
 --[[
 rs.identity - character identity of the notebook (E00-T01, E00-T02) checked on the authority during a real session
-(E03-T04). Reads the live state of RS_CarnetServer (server/RS_Carnet_Server.lua); never changes it.
+(E03-T04). Reads the live state of CoreAI.notebookServer (server/CoreAI/CA_NotebookServer.lua); never changes it.
 
-Suites (tag "server": RS_Carnet_Server.lua starts with "if isClient() then return end"):
+Suites (tag "server": CA_NotebookServer.lua starts with "if isClient() then return end"):
     rs.identity                 invariants of the live state, any time (also run by "rs" and the dedicated-server
                                 autorun): records well formed, each online player bound to a usable identity of
                                 its own account, no identity shared, no retired identity in use, mission members
@@ -25,7 +25,7 @@ The "manual" suites only run when named exactly: RST.server("rs.identity.before"
 section 11 (two accounts: reconnection, restart, death).
 
 Missions: on a world run (save rstest*, debug) with Living Knox, rs.identity.before first engages every online
-account in one ACTIVE mission requested by a real test NPC (RST.Fixtures.spawnNpc + RS_CarnetServer.ensure +
+account in one ACTIVE mission requested by a real test NPC (RST.Fixtures.spawnNpc + CoreAI.notebookServer.ensure +
 RST.Fixtures.engagedMission, accepted through RS_Missions.accept), kept for the after-* steps and removed by
 .after-restart and .after-death; rs.identity checks in the same way, live, that such a mission clock follows the real
 time (solo proof of E00-T01, mission removed after the test). Without the Living Knox test API those tests SKIP and
@@ -56,16 +56,16 @@ local function serverSide()
     return type(isServer) == "function" and isServer() and true or false
 end
 
--- RS_CarnetServer and its state, or a skip / failure.
+-- CoreAI.notebookServer and its state, or a skip / failure.
 local function carnet(t)
     if type(isClient) == "function" and isClient() then
         t:skip("the notebook state lives on the server (not loaded on an MP client)")
     end
-    local server = RS_CarnetServer
-    t:ok(type(server) == "table", "RS_CarnetServer is not loaded on this side")
+    local server = CoreAI and CoreAI.notebookServer
+    t:ok(type(server) == "table", "CoreAI.notebookServer is not loaded on this side")
     local store = server.store
     t:ok(type(store) == "table" and type(store.data) == "table", "notebook state not initialised (store.data is nil)")
-    t:ok(not store.blocked, "notebook storage is blocked (see [RS_Carnet] STORAGE BLOCKED in the log)")
+    t:ok(not store.blocked, "notebook storage is blocked (see [CoreAI] notebook: STORAGE BLOCKED in the log)")
     return server, store
 end
 
@@ -80,7 +80,7 @@ local function onlinePlayers()
     return out
 end
 
--- Same rule as RS_Carnet_Server.lua ownerOf.
+-- Same rule as CA_NotebookServer.lua ownerOf.
 local function ownerOf(player)
     return serverSide() and player:getUsername() or "solo"
 end
@@ -283,7 +283,7 @@ local function playNow()
 end
 
 -- A test NPC of Living Knox (RST.Fixtures.spawnNpc, removed after the test), its notebook fiche
--- (RS_CarnetServer.ensure) and an ACTIVE mission it requests with every character of members engaged
+-- (CoreAI.notebookServer.ensure) and an ACTIVE mission it requests with every character of members engaged
 -- (RST.Fixtures.engagedMission, removed after the test unless keep); then after(t, m). SKIP outside a world run or
 -- without the Living Knox test API (reason given).
 local function engagedByNpc(t, server, store, members, keep, after)

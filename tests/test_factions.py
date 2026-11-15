@@ -188,7 +188,7 @@ class FactionTests(unittest.TestCase):
         f = self.g.FACTION_CREATE('Alpha', 'alice', self.sim.server.rt.table_from(['bob', 'carol']))
         self.poll()
         rid = self.id_of('carol')
-        self.sim.server.g.RS_CarnetServer.store.save()
+        self.sim.server.g.CoreAI.notebookServer.store.save()
 
         def rebuild(g):
             # Owner bob, previous owner alice kept as member (Faction.setOwner), dave joined, new name.
@@ -219,7 +219,7 @@ class FactionTests(unittest.TestCase):
         self.poll()
         a, c = self.id_of('bob'), self.id_of('dave')
         self.assertNotEqual(a, c)
-        self.sim.server.g.RS_CarnetServer.store.save()
+        self.sim.server.g.CoreAI.notebookServer.store.save()
 
         def rebuild(g):  # list order swapped after the restart: names never decide
             first = g.FACTION_CREATE('Alpha', 'carol', None)

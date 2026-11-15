@@ -10,7 +10,7 @@ Kahlua, réseau en file livré au tick suivant). Doublures : joueurs (mode dieu,
 OnCharacterDeath AVANT de créer le cadavre, qui prend le même conteneur ; paquet de mort vers le client avec
 l'inventaire du cadavre ; ExtraInfo du client appliqué au serveur), écran de mort et création de personnage en jeu
 (ISPostDeathUI, CoopCharacterCreation : nouvel IsoPlayer, OnCreatePlayer puis hello), serveur du carnet réduit à
-identity / hello / characterDeath avec les MÊMES règles que RS_Carnet_Server.lua (propriétaire, retraite, liaison).
+identity / hello / characterDeath avec les MÊMES règles que CA_NotebookServer.lua (propriétaire, retraite, liaison).
 Chaque critère est contredit par un défaut injecté (DEFECTS) que la suite doit faire échouer. Ce banc ne prouve ni le
 Java (paquets PlayerDeath et ExtraInfo, écran de mort) ni le vrai serveur du carnet (test_carnet.py) : la campagne MP
 à deux clients reste nécessaire.
@@ -202,7 +202,7 @@ function SERVER_PACKET(kind, sender, args)
     end
 end
 
--- Notebook server double: identity(), hello and characterDeath with the rules of RS_Carnet_Server.lua.
+-- Notebook server double: identity(), hello and characterDeath with the rules of CA_NotebookServer.lua.
 package.loaded["RadioSurvivor/RS_Config"] = { VERSION = 2, MODULE = "CoreAI", OFFER_TTL_MS = 3600000,
     Missions = { deliver = { id = "first_aid_v1", titleKey = "IGUI_CA_Mission_FirstAid", quantity = 6, durationMs = 7200000,
         accepted = { ["Base.Bandage"] = true }, rewardType = "Base.Bullets9mm", rewardCount = 20 } } }
@@ -226,9 +226,9 @@ package.loaded["CoreAI/CA_Missions"] = { accept = function(state, m, character, 
     m.revision = m.revision + 1
     return true end }
 SAVES, SEQ = 0, 0
-RS_CarnetServer = { store = { data = DATA, run = "r1", save = function() SAVES = SAVES + 1 return true end },
+CoreAI = CoreAI or {}; CoreAI.notebookServer = { store = { data = DATA, run = "r1", save = function() SAVES = SAVES + 1 return true end },
     bound = {} }
-local Server = RS_CarnetServer
+local Server = CoreAI and CoreAI.notebookServer
 function Server.ensure(id)
     if not NPCS[id] then return nil end
     for _, f in pairs(DATA.npcs) do if f.incarnation == id then return f end end
@@ -515,7 +515,7 @@ class DeathSuiteTests(Bench):
         # Old identity retired, new one of the same account bound, extra claim record removed, corpse removed.
         self.assertTrue(s.lua('return DATA.characters["char-2"].retired'))
         self.assertEqual(s.lua('local n = 0 for _ in pairs(DATA.characters) do n = n + 1 end return n'), 3)
-        self.assertEqual(s.lua('return RS_CarnetServer.bound[ONLINE[3]]'), 'char-3')
+        self.assertEqual(s.lua('return CoreAI.notebookServer.bound[ONLINE[3]]'), 'char-3')
         self.assertEqual(s.lua('return CELL:getGridSquare(1000, 1000, 0):getStaticMovingObjects():size()'), 0)
         self.assertEqual(net.clients['rs_mp2'].lua('return CELL:getGridSquare(1000, 1000, 0)'
                                                    ':getStaticMovingObjects():size()'), 0)

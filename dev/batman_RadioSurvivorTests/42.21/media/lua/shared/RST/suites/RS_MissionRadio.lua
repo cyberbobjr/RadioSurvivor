@@ -193,7 +193,8 @@ end
 local function dropMission(S, m, cid)
     if not (S.data and m) then return end
     S.data.missions[m.id] = nil
-    local donor = S.data.npcs[m.npc] or (S.data.voiceDonors and S.data.voiceDonors[m.npc])
+    local voices = (require "RadioSurvivor/RS_State").data -- E21-T04: donor records of the voices
+    local donor = S.data.npcs[m.npc] or (voices and voices.voiceDonors and voices.voiceDonors[m.npc])
     if donor and donor.mission == m.id then donor.mission = nil end
     local record = S.data.characters[cid]
     if record and type(record.knownMissions) == "table" then record.knownMissions[m.id] = nil end
@@ -247,7 +248,7 @@ RST.suite("rs.missionreport.llm", { tags = { "server", "world" }, testTimeoutMs 
         sheet.listen = {}
         t:defer(function() sheet.listen = listen end, "restore the listening hours of " .. VOICE)
         -- A job of an earlier run is dropped; the delay after a closed job is lifted for this caller.
-        local d = V.donor(S.data, VOICE, cid, true)
+        local d = V.donor(VOICE, cid, true)
         local old = V.open(S.data, VOICE, cid)
         if old then dropMission(S, old, cid) end
         d.nextOfferAt, d.nextOfferHour = nil, nil

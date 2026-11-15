@@ -2,7 +2,7 @@ if isClient() then return end
 --[[
 Mission template `barricade` (E20-T09, ADR D02, D10): barricade `count` outside windows and doors of a building named
 by the giver. Authority only. Catalogue: CA_MissionConfig.Missions.barricade (offer id barricade_v1). Registered in
-CA_Missions (M.register); required by RS_Carnet_Server.
+CA_Missions (M.register); required by CA_NotebookServer.
 
 Giver: a radio voice only, under the name `barricade` (declaration voiceName); an NPC fiche is never offered one. The
 building is the one at the place `target` of the voice sheet (use=target), handed over by RadioSurvivor's set-up of

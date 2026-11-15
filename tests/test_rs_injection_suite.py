@@ -4,7 +4,7 @@
 
 The suite (dev/.../RST/suites/RS_InjectionLlm.lua) is played by the REAL RST engine on the simulated server of
 tests/test_carnet.py (Simulation, through tests/test_radio_history.py): real RadioSurvivor_Server (talk command, Walt
-on his example frequency 145.0 MHz, airing), real RS_Carnet_Server (character record of alice). The bridge is the real
+on his example frequency 145.0 MHz, airing), real CA_NotebookServer (character record of alice). The bridge is the real
 prompt code of bridge/radio_bridge.py (parse_requests, answer, write_responses) run in-process by BridgeDouble, with
 the model replaced by ModelDouble (scripted reply, messages kept). Doubles of the server machine: the walkie-talkie
 already held by the player double (RST.RSHelpers.radioInHand), lines heard read from the broadcasts of the radio

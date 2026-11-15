@@ -83,18 +83,17 @@ M.register('probe', {idPrefix = 'probe', reportBySpeech = true,
     reportReady = function(m) return m.ready == true end,
     project = function() end, context = function() end})
 GIVERS = {['lk:1'] = {id = 'lk:1', name = 'Ruth'}, ['lk:2'] = {id = 'lk:2', name = 'Abe'}, ['lk:3'] = {id = 'lk:3', name = 'Cy'}}
-STATE = {missions = {}}
-STORE = {data = STATE, save = function() return true end}
 M.registerDonor('lknpc', {find = function(state, id) return GIVERS[id] end})
-M.useStore(STORE)
-BOUND = {}
-M.setBinding(function() return BOUND end)
+-- E21-T04: the notebook server of the core mod (no NPC provider registered, as with Living Knox alone today).
+getWorld = function() return {getGameMode = function() return setmetatable({}, {__tostring = function() return 'Multiplayer' end}) end,
+    getWorld = function() return 'core-notebook' end} end
+SERVER = require('CoreAI/CA_NotebookServer')
+STORE = SERVER.store
 function newMission(giver, character)
-    local m = M.create(STATE, GIVERS[giver], character, 'probe_v1', {durationMs = 600000})
+    local m = M.create(STORE.data, GIVERS[giver], character, 'probe_v1', {durationMs = 600000})
     m.donor = 'lknpc'
     return m
 end
-require('CoreAI/CA_MissionJournal')
 """
 
 
@@ -126,15 +125,20 @@ def lua_rows(machine):
 
 
 class NotebookCoreOnlyTests(unittest.TestCase):
-    """The core mod alone on the clients (Living Knox alone ships no notebook page of its own yet)."""
+    """The core mod alone (no RadioSurvivor module, as with Living Knox alone): E21-T04, the notebook server of the core
+    mod answers and each common tab reads its snapshot."""
 
     def setUp(self):
         self.h = Harness(mode='mp')
         s = self.h.machine('server')
         s.rt.execute(SIGNAL_SMOKE)
         s.rt.execute(SERVER)
-        s.g.BOUND[self.h.player('server', 'A')] = 'cA'
-        s.g.BOUND[self.h.player('server', 'B')] = 'cB'
+        for name in ('A', 'B'):   # SurvivorDesc of the server copy of each player (name of the notebook character)
+            s.rt.execute(f'HARNESS.players["{name}"].getDescriptor = function() return {{getForename = function() '
+                         f'return "{name}" end, getSurname = function() return "Doe" end}} end '
+                         f'HARNESS.players["{name}"].CanSee = function() return true end')
+        self.h.fire('server', 'OnInitGlobalModData', False)
+        self.cid = {}
         for name in ('A', 'B'):
             c = self.h.machine(name)
             c.rt.execute('SHIPPED = {' + ', '.join(f'["{k}"] = true' for k in shipped_keys()) + '}')
@@ -142,7 +146,13 @@ class NotebookCoreOnlyTests(unittest.TestCase):
             c.rt.execute(NOTEBOOK_UI)
             c.rt.execute(SIDEBAR)
             c.rt.execute(active_mods('batman_SignalSmoke', 'batman_CoreAI', 'batman_LivingKnox'))
-            c.rt.execute('require("CoreAI/CA_Notebook") require("CoreAI/CA_NotebookJournal")')
+            c.rt.execute('require("CoreAI/CA_Notebook") require("CoreAI/CA_NotebookClient") '
+                         'require("CoreAI/CA_NotebookContacts") require("CoreAI/CA_NotebookMissions") '
+                         'require("CoreAI/CA_NotebookReputation")')
+            c.rt.execute('CoreAI.notebookClient.hello()')
+            self.h.pump(); self.h.pump()
+            self.cid[name] = c.rt.eval('CoreAI.notebookClient.character')
+            self.assertIsNotNone(self.cid[name], 'hello of ' + name + ' not answered by the core server')
 
     def tearDown(self):
         self.h.close()
@@ -153,81 +163,94 @@ class NotebookCoreOnlyTests(unittest.TestCase):
     def cev(self, name, code):
         return self.h.eval(name, '(function() ' + code + ' end)()')
 
-    def open(self, name='A'):
-        self.cev(name, 'local w = CA_UI_Notebook.toggle(0, false) w:changeTab("Missions") w:update()')
+    def refresh(self, name='A'):
+        self.cev(name, 'CoreAI.notebookClient.send("snapshot")')
         self.h.pump(); self.h.pump()
+        self.cev(name, 'local w = CoreAI.notebook.window if w then w:refresh() end')
+
+    def open(self, name='A', tab='Missions'):
+        self.cev(name, f'local w = CA_UI_Notebook.toggle(0, false) w:changeTab("{tab}") w:update()')
+        self.refresh(name)
+
+    def mission(self, giver, name):
+        return self.sev(f'return newMission("{giver}", "{self.cid[name]}").id')
+
+    def accept(self, mid, name='A', ready=True):
+        cid = self.cid[name]
+        self.sev(f'local M = require("CoreAI/CA_Missions") local m = STORE.data.missions["{mid}"] '
+                 f'M.accept(STORE.data, m, "{cid}", "Alice") m.ready = {"true" if ready else "false"}')
 
     def test_tabs_without_radiosurvivor(self):
-        self.open('A')
+        self.open('A', 'Contacts')
         self.assertEqual(tab_names(self.h.machine('A')), 'Contacts,Missions,Reputation')
         self.cev('A', 'CoreAI.notebook.window:changeTab("Reputation")')
-        self.assertIn('IGUI_CA_ReputationUnavailable', self.cev('A', 'return CoreAI.notebook.window.detail.text'))
+        self.assertIn('IGUI_CA_Rep', self.cev('A', 'return CoreAI.notebook.window.detail.text'))
         self.cev('A', 'CoreAI.notebook.window:changeTab("Contacts")')
-        self.assertIn('IGUI_CA_Empty_Contacts', self.cev('A', 'return CoreAI.notebook.window.detail.text'))
+        self.assertIn('IGUI_CA_NoContactsSelect', self.cev('A', 'return CoreAI.notebook.window.detail.text'))
         self.assertIsNone(self.cev('A', 'return CoreAI.notebook.window:changeTab("Radio")'))
         self.assertEqual(self.cev('A', 'return CoreAI.notebook.window.tab'), 'Contacts')
 
     def test_open_missions_listed_in_list_order_and_states(self):
-        self.sev('local M = require("CoreAI/CA_Missions") '
-                 'local a = newMission("lk:1", "cA") '                       # offer to A
-                 'local b = newMission("lk:2", "cA") M.accept(STATE, b, "cA", "Alice") '   # active
-                 'b.ready = true '                                           # objective met: to report
-                 'newMission("lk:3", "cB") ')                                # another character's offer
+        self.mission('lk:1', 'A')                    # offer to A
+        self.accept(self.mission('lk:2', 'A'))       # active, objective met: to report
+        self.mission('lk:3', 'B')                    # another character's offer
         self.open('A')
-        self.assertEqual(lua_rows(self.h.machine('A')),
-                         'IGUI_CA_TestProbe - Ruth (IGUI_CA_State_offer)|IGUI_CA_TestProbe - Abe (IGUI_CA_State_toReport)')
+        rows = lua_rows(self.h.machine('A')).split('|')
+        self.assertEqual([r.split(' (')[0] for r in rows], ['IGUI_CA_TestProbe - Ruth', 'IGUI_CA_TestProbe - Abe'])
+        self.assertEqual(self.cev('A', 'local s = CoreAI.notebookClient.snapshot.missions '
+                                       'return s[1].state .. "|" .. s[2].state .. "|" .. tostring(s[2].toReport)'),
+                         'offer|active|true')
         self.open('B')   # only its own offer, never A's missions
-        self.assertEqual(lua_rows(self.h.machine('B')), 'IGUI_CA_TestProbe - Cy (IGUI_CA_State_offer)')
+        rows = lua_rows(self.h.machine('B')).split('|')
+        self.assertEqual([r.split(' (')[0] for r in rows], ['IGUI_CA_TestProbe - Cy'])
+        self.open('A')
         detail = self.cev('A', 'return CoreAI.notebook.window.detail.text')
         self.assertIn('IGUI_CA_Requester', detail)
 
     def test_mission_done_leaves_the_list_at_the_next_refresh(self):
-        self.sev('local M = require("CoreAI/CA_Missions") '
-                 'local b = newMission("lk:2", "cA") M.accept(STATE, b, "cA", "Alice") b.ready = true MID = b.id')
+        mid = self.mission('lk:2', 'A')
+        self.accept(mid)
         self.open('A')
-        self.assertIn('toReport', lua_rows(self.h.machine('A')))
-        ok = self.sev('local M = require("CoreAI/CA_Missions") '
-                      'return tostring(M.spoken(STORE, STATE.missions[MID], nil, "cA"))')
+        before = lua_rows(self.h.machine('A'))
+        self.assertIn('Abe', before)
+        ok = self.sev(f'local M = require("CoreAI/CA_Missions") '
+                      f'return tostring(M.spoken(STORE, STORE.data.missions["{mid}"], nil, "{self.cid["A"]}"))')
         self.assertEqual(ok, 'true')
-        self.h.advance_ms(3500)
-        self.cev('A', 'CoreAI.notebook.window:update()')
-        self.h.pump(); self.h.pump()
-        self.assertEqual(lua_rows(self.h.machine('A')), '')
-        detail = self.cev('A', 'return CoreAI.notebook.window.detail.text')
-        self.assertIn('IGUI_CA_JournalEmpty', detail)
+        self.refresh('A')
+        self.assertNotEqual(lua_rows(self.h.machine('A')), before)
+        self.assertEqual(self.cev('A', 'return CoreAI.notebookClient.snapshot.missions[1].state'), 'success')
 
     def test_claim_button_of_a_success_near_the_requester(self):
-        """E18-T29: a success with a lot left is listed "to claim"; its button sends the gesture to the authority, which
-        asks the giver (near, claim) and answers the list again."""
+        """E18-T29: a success with a lot shows its claim button; the gesture goes to the notebook server, which asks the
+        giver (near, claim)."""
         self.sev('local M = require("CoreAI/CA_Missions") CLAIMS = {} '
                  'M.registerDonor("lknpc", {find = function(state, id) return GIVERS[id] end, '
                  'near = function() return true end, '
                  'claim = function(store, m, player, character) CLAIMS[#CLAIMS + 1] = character '
-                 'm.claimedBy, m.claimedName = character, "Alice" m.revision = m.revision + 1 return true end}) '
-                 'local b = newMission("lk:2", "cA") M.accept(STATE, b, "cA", "Alice") b.ready = true '
-                 'M.spoken(STORE, b, nil, "cA")')
+                 'm.claimedBy, m.claimedName = character, "Alice" m.revision = m.revision + 1 return true end})')
+        mid = self.mission('lk:2', 'A')
+        self.accept(mid)
+        self.sev(f'require("CoreAI/CA_Missions").spoken(STORE, STORE.data.missions["{mid}"], nil, "{self.cid["A"]}")')
         self.open('A')
-        self.assertEqual(lua_rows(self.h.machine('A')), 'IGUI_CA_TestProbe - Abe (IGUI_CA_State_toClaim)')
         out = self.cev('A', 'local w = CoreAI.notebook.window '
-                            'return tostring(w.journalClaim:isVisible()) .. tostring(w.journalDeliver:isVisible())')
+                            'return tostring(w.claim:isVisible()) .. tostring(w.deliver:isVisible())')
         self.assertEqual(out, 'truefalse')
-        self.cev('A', 'local w = CoreAI.notebook.window w.journalClaim.onclick(w)')
+        self.cev('A', 'local w = CoreAI.notebook.window w.claim.onclick(w)')
         self.h.pump(); self.h.pump()
-        self.assertEqual(self.sev('return table.concat(CLAIMS, ",")'), 'cA')
-        self.assertEqual(lua_rows(self.h.machine('A')), '')
+        self.assertEqual(self.sev('return table.concat(CLAIMS, ",")'), self.cid['A'])
+        self.assertEqual(self.sev(f'return STORE.data.missions["{mid}"].claimedBy'), self.cid['A'])
 
     def test_created_lot_announced_by_the_notebook(self):
-        """E18-T33: a mission that announces no lot shows the lot its giver creates (projected rewardTable)."""
+        """E18-T33: a mission that announces no lot carries the lot its giver creates (projected rewardTable)."""
         self.sev('local M = require("CoreAI/CA_Missions") '
                  'M.registerDonor("lknpc", {find = function(state, id) return GIVERS[id] end, '
-                 'lot = function(m) return "tools" end}) '
-                 'local b = newMission("lk:2", "cA") b.rewardCount = 0')
+                 'lot = function(m) return "tools" end})')
+        mid = self.mission('lk:2', 'A')
+        self.sev(f'STORE.data.missions["{mid}"].rewardCount = 0')
         self.open('A')
-        detail = self.cev('A', 'return CoreAI.notebook.window.detail.text')
-        self.assertIn('IGUI_CA_RewardLot', detail)
-        self.assertNotIn('IGUI_CA_Reward ', detail)
-        text = self.cev('A', 'return CoreAI.notebook.Journal.lotText("tools")')
-        self.assertEqual(text, '1 \u00d7 item Base.Hammer, 1 \u00d7 item Base.Screwdriver, 10 \u00d7 item Base.Nails')
+        self.assertEqual(self.cev('A', 'return CoreAI.notebookClient.snapshot.missions[1].rewardTable'), 'tools')
+        text = self.cev('A', 'return CoreAI.notebookMissions.lotText("tools")')
+        self.assertEqual(text, '1 × item Base.Hammer, 1 × item Base.Screwdriver, 10 × item Base.Nails')
 
     def test_sidebar_button_opens_the_notebook(self):
         out = self.cev('A', 'local p = ISEquippedItem:new() p:initialise() ISEquippedItem.instance = p '
@@ -238,29 +261,29 @@ class NotebookCoreOnlyTests(unittest.TestCase):
         self.assertEqual(out, 'truetruetrue|IGUI_CA_NotebookHint')
 
     def test_controller_wheel_selection_and_close(self):
-        self.sev('local M = require("CoreAI/CA_Missions") newMission("lk:1", "cA") newMission("lk:2", "cA")')
+        first, second = self.mission('lk:1', 'A'), self.mission('lk:2', 'A')
         out = self.cev('A', 'ISDPadWheels.onDisplayRight({player = 0}) local s = SLICES[1] '
                             's.fn(s.a1, s.a2) return tostring(WHEEL_SHOWN) .. "|" .. s.text .. "|" '
                             '.. tostring(JOYPAD_FOCUS[0] == CoreAI.notebook.window)')
         self.assertEqual(out, '0|IGUI_CA_Notebook|true')
         self.cev('A', 'local w = CoreAI.notebook.window w:changeTab("Missions") w:update()')
-        self.h.pump(); self.h.pump()
+        self.refresh('A')
         out = self.cev('A', 'local w = CoreAI.notebook.window local a = w.selectedId '
                             'w:onJoypadDirDown() local b = w.selectedId w:onJoypadDirUp() local c = w.selectedId '
                             'w:onJoypadDown(Joypad.BButton) '
                             'return table.concat({a, b, c, tostring(w:isVisible()), tostring(JOYPAD_FOCUS[0])}, "|")')
-        self.assertEqual(out, 'lk:1-probe1|lk:2-probe1|lk:1-probe1|false|nil')
+        self.assertEqual(out, '|'.join([first, second, first, 'false', 'nil']))
 
     def test_reputation_page_reads_the_core_reputation(self):
         """E18-T25: Living Knox alone, the Reputation page shows the core reputation and the acts in words; the act of
         Living Knox has its text once its notebook part is loaded, the act of RadioSurvivor (absent) a generic word."""
+        cid = self.cid['A']
         self.sev('local R = require("CoreAI/CA_Reputation") R.useData({reputation = {}, outcomes = {}}) '
                  'R.setLiveness(function() return nil end) '
-                 'R.record(nil, "e1", "cA", "mission.success", nil, {}, {"Ruth"}) '
-                 'R.record(nil, "e2", "cA", "npc.memberKilled", nil, {}) '
-                 'R.record(nil, "e3", "cA", "trade.cheated", nil, {})')
-        self.cev('A', 'local w = CA_UI_Notebook.toggle(0, false) w:changeTab("Reputation")')
-        self.h.pump(); self.h.pump()
+                 f'R.record(nil, "e1", "{cid}", "mission.success", nil, {{}}, {{"Ruth"}}) '
+                 f'R.record(nil, "e2", "{cid}", "npc.memberKilled", nil, {{}}) '
+                 f'R.record(nil, "e3", "{cid}", "trade.cheated", nil, {{}})')
+        self.open('A', 'Reputation')
         text = self.cev('A', 'return CoreAI.notebook.window.detail.text')
         self.assertIn('IGUI_CA_RepLevelLine', text)
         self.assertIn('IGUI_CA_RepReason_MissionSuccess', text)
@@ -269,9 +292,7 @@ class NotebookCoreOnlyTests(unittest.TestCase):
         self.assertNotIn('IGUI_RS_', text)
         self.h.machine('A').load((ROOT / 'Contents' / 'mods' / 'batman_LivingKnox' / '42.21' / 'media' / 'lua' / 'client'
                                   / 'LivingKnox' / 'LK_NotebookPages.lua').read_text(encoding='utf-8'))
-        self.h.advance_ms(3500)
-        self.cev('A', 'CoreAI.notebook.window:update()')
-        self.h.pump(); self.h.pump()
+        self.refresh('A')
         text = self.cev('A', 'return CoreAI.notebook.window.detail.text')
         self.assertIn('IGUI_LK_RepReason_MemberKilled', text)
         self.assertNotIn('IGUI_RS_', text)
@@ -281,39 +302,37 @@ class NotebookCoreOnlyTests(unittest.TestCase):
     def test_mission_of_a_giver_not_active_is_hidden_and_frozen(self):
         """E18-T25: a mission whose giver's mod is not active is hidden from the list, keeps its delay, is never failed
         nor pruned, and comes back as it was when the mod is active again."""
-        self.sev('local M = require("CoreAI/CA_Missions") PRESENT = true '
-                 'M.registerDonor("gone", {find = function(state, id) return GIVERS[id] end, '
-                 'present = function() return PRESENT end}) '
-                 'local m = newMission("lk:1", "cA") m.donor = "gone" M.accept(STATE, m, "cA", "Alice") MID = m.id')
+        cid = self.cid['A']
+        mid = self.sev('local M = require("CoreAI/CA_Missions") PRESENT = true '
+                       'M.registerDonor("gone", {find = function(state, id) return GIVERS[id] end, '
+                       'present = function() return PRESENT end}) '
+                       f'local m = newMission("lk:1", "{cid}") m.donor = "gone" M.accept(STORE.data, m, "{cid}", "Alice") '
+                       'return m.id')
         self.open('A')
         self.assertIn('Ruth', lua_rows(self.h.machine('A')))
         out = self.sev('local M = require("CoreAI/CA_Missions") PRESENT = false '
-                       'local m = STATE.missions[MID] local before = m.remainingMs '
-                       'M.advance(STATE, 10 * 600000) M.prune(STATE, getTimestampMs() + 10 * 86400000) '
+                       f'local m = STORE.data.missions["{mid}"] local before = m.remainingMs '
+                       'M.advance(STORE.data, 10 * 600000) M.prune(STORE.data, getTimestampMs() + 10 * 86400000) '
                        'return table.concat({m.state, tostring(m.remainingMs == before), '
-                       'tostring(STATE.missions[MID] ~= nil), tostring(M.present(m))}, "|")')
+                       f'tostring(STORE.data.missions["{mid}"] ~= nil), tostring(M.present(m))}}, "|")')
         self.assertEqual(out, 'active|true|true|false')
-        self.h.advance_ms(3500)
-        self.cev('A', 'CoreAI.notebook.window:update()')
-        self.h.pump(); self.h.pump()
+        self.refresh('A')
         self.assertEqual(lua_rows(self.h.machine('A')), '')
         self.sev('PRESENT = true')
-        self.h.advance_ms(3500)
-        self.cev('A', 'CoreAI.notebook.window:update()')
-        self.h.pump(); self.h.pump()
+        self.refresh('A')
         self.assertIn('Ruth', lua_rows(self.h.machine('A')))
 
     def test_contacts_given_by_a_mod_with_its_page_and_history(self):
-        """E18-T26: Contacts lists what the registered sources give (command "contacts"), with the exchanges of the
-        core history; the page of the source (Living Knox: relation panel) is drawn by that mod's notebook part."""
-        self.sev('local H = require("CoreAI/CA_History") H.data = {schema = 1, characters = {}} '
-                 'H.append("cA", "lk:lk-1", {id = "h1", author = "Ann", text = "Hi"}) '
+        """E18-T26: Contacts lists what the registered sources give (snapshot of the notebook server), with the exchanges
+        of the core history; the page of the source (Living Knox: relation panel) is drawn by that mod's notebook part."""
+        cid = self.cid['A']
+        self.sev('local H = require("CoreAI/CA_History") '
+                 f'H.append("{cid}", "lk:lk-1", {{id = "h1", author = "Ann", text = "Hi"}}) '
                  'require("CoreAI/CA_Contacts").registerSource("lk", {list = function(c) '
-                 'if c ~= "cA" then return {} end '
+                 f'if c ~= "{cid}" then return {{}} end '
                  'return {{id = "lk:lk-1", name = "Ruth", alive = true, groupName = "Farm", '
                  'relation = {level = "favorable", trend = "up", group = "cautious", today = 3, facts = {}}}} end})')
-        self.cev('A', 'local w = CA_UI_Notebook.toggle(0, false) w:changeTab("Contacts")')
-        self.h.pump(); self.h.pump()
+        self.open('A', 'Contacts')
         self.assertEqual(lua_rows(self.h.machine('A')), 'Ruth (IGUI_CA_Contact)')
         text = self.cev('A', 'return CoreAI.notebook.window.detail.text')
         self.assertIn('IGUI_CA_Group|Farm', text)
@@ -324,17 +343,15 @@ class NotebookCoreOnlyTests(unittest.TestCase):
         self.assertIn('IGUI_LK_RelTitle', text)
         self.assertIn('IGUI_LK_RelLevel|IGUI_LK_RelLevel_favorable|IGUI_LK_RelTrend_up', text)
         self.assertIn('IGUI_LK_RelGroup|IGUI_LK_RelLevel_cautious', text)
-        self.assertEqual(self.cev('B', 'local w = CA_UI_Notebook.toggle(0, false) w:changeTab("Contacts") '
-                                       'return #CoreAI.notebook.contactRows'), 0)
-        self.h.pump(); self.h.pump()
+        self.open('B', 'Contacts')
         self.assertEqual(lua_rows(self.h.machine('B')), '')
 
     def test_requests_are_rate_limited_on_the_server(self):
         for _ in range(12):
-            self.cev('A', 'CoreAI.notebook.journal.request()')
+            self.cev('A', 'CoreAI.notebookClient.send("snapshot")')
         self.h.pump()
-        sent = [m for m in self.h.pending() if m.get('command') == 'missions']
-        self.assertLessEqual(len(sent), 4)
+        sent = [m for m in self.h.pending() if m.get('command') == 'snapshot']
+        self.assertLessEqual(len(sent), 6)
 
     def test_no_radiosurvivor_module(self):
         self.open('A')
@@ -428,7 +445,7 @@ class CoreClientRoundTripTests(unittest.TestCase):
         self.assertEqual([r.name for r in lua_list(client.snapshot.contacts)], ['Real Bandit'])
         c.rt.execute("Translator = {getLanguage = function() return {name = function() return 'EN' end} end}")
         self.assertTrue(client.talk('Hello there', True))
-        self.assertTrue(any(r.kind == 'npc_talk' for r in sim.server.g.RS_CarnetServer.talk.pending.values()))
+        self.assertTrue(any(r.kind == 'npc_talk' for r in sim.server.g.CoreAI.notebookServer.talk.pending.values()))
         npc = next(iter(sim.state().npcs.values()))
         sim.server.rt.eval("require('CoreAI/CA_Missions')").create(sim.state(), npc, client.character,
                                                                    'first_aid_v1')

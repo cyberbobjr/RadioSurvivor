@@ -286,7 +286,7 @@ class MemberReactionTests(unittest.TestCase):
         sim.server.rt.execute(SPEECH_DOUBLE)
         sim.add_client('alice')
         self.sim, self.g, self.rt = sim, sim.server.g, sim.server.rt
-        self.server = self.g.RS_CarnetServer
+        self.server = self.g.CoreAI.notebookServer
         self.G = self.rt.eval('LivingKnox.Groups')
         for npc in (self.g.LK_LEADER, self.g.LK_MATE):
             self.g.LivingKnox.Bodies.bound[npc].x = 12
@@ -366,7 +366,7 @@ class MemberReactionTests(unittest.TestCase):
         self.assertEqual(len(reqs), self.server.talk.MEMBER_REACTIONS, 'quota of member reactions per decision')
         # Un membre quitte le groupe avant la réponse (départ) : sa réaction est refusée, rien n'est écrit pour lui.
         first = carnet.convert(reqs[0])
-        gone = self.g.RS_CarnetServer.store.data.npcs[first['npc']].incarnation
+        gone = self.g.CoreAI.notebookServer.store.data.npcs[first['npc']].incarnation
         gid, mid = self.G.findNpc(gone)
         self.rt.execute(f'assert(LivingKnox.Groups.removeMember("{gid}", "{mid}"))')
         self.wait_members()

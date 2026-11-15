@@ -57,7 +57,7 @@ class ConversationTests(unittest.TestCase):
         sim.add_client('bob')
         self.sim, self.g, self.rt = sim, sim.server.g, sim.server.rt
         self.rt.execute(LOAD)
-        self.server = self.g.RS_CarnetServer
+        self.server = self.g.CoreAI.notebookServer
         self.obs = self.rt.eval("require('LivingKnox/LK_Observations')")
         self.conv = self.rt.eval("require('LivingKnox/LK_Conversations')")
         self.init = self.rt.eval("require('LivingKnox/LK_Initiatives')")
@@ -304,7 +304,7 @@ class ConversationTests(unittest.TestCase):
 TRACE = r'''
 -- E08-T05: every conversation line requested (with the talk requests pending at that instant), every line said.
 CONV_ASKED, CONV_SAID = {}, {}
-local server = RS_CarnetServer
+local server = CoreAI and CoreAI.notebookServer
 local enqueue = server.talk.enqueue
 server.talk.enqueue = function(npc, kind, ...)
     local talks = 0

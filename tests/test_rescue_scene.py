@@ -7,7 +7,7 @@ Vrai Lua du mod (RS_Rescue, RS_RescueVisit, RS_RescueScene, RS_Caches, RS_Memory
 RS_Config, CA_Codec, RS_State ; `next` retiré comme dans Kahlua) sur la métagrille et les doublures de
 tests/test_rescue.py et tests/test_rescue_visit.py, plus : cases de sol pour la pose (isFree, HasStairs,
 getWorldObjects, AddWorldInventoryItem), instanceItem (sac à ModData et conteneur, feuille de papier Literature :
-addPage, setLockedBy, setName, setCustomName), descripteurs de joueurs, RS_CarnetServer.bound ; RS_Actions,
+addPage, setLockedBy, setName, setCustomName), descripteurs de joueurs, CoreAI.notebookServer.bound ; RS_Actions,
 RS_MissionVoice et RS_LifeLog remplacés par des doublures (enregistrement d'action, relevé de vie noté).
 Couvre : issue « saved » seulement après un dépôt réel puis le départ de tous les membres proches ; aidants notés
 (nom, appelant, personnage) et participants du fait du jour ; cache tirée dans la liste fermée avec une note (noms,
@@ -38,9 +38,10 @@ package.loaded["RadioSurvivor/RS_LifeLog"] = { rescue = function(cid, outcome, l
     LIFE[#LIFE + 1] = { cid = cid, outcome = outcome, label = label } return true end }
 FACTS = {}
 RS_Facts = { record = function(kind, fields, key) FACTS[#FACTS + 1] = { kind = kind, fields = fields, key = key } end }
-STATE.data.characters = { c1 = { name = "Kate Smith" } }
+-- E21-T04: the notebook characters are the core store's (CA_NotebookStore), read by RS_RadioLog.characterOf.
+require("CoreAI/CA_NotebookStore").data = { characters = { c1 = { name = "Kate Smith" } }, missions = {}, npcs = {} }
 STATE.save = function() SAVES = (SAVES or 0) + 1 return true end
-RS_CarnetServer = { bound = {} }
+CoreAI = CoreAI or {}; CoreAI.notebookServer = { bound = {} }
 
 instanceof = (function(prev)
     return function(o, cls)
@@ -179,7 +180,7 @@ class OutcomeTests(SceneHarness):
 
     def test_every_member_near_after_the_delivery_is_a_helper(self):
         self.g.SIDE = 'server'
-        self.rt.execute('ME.getUsername = function() return "kate" end; RS_CarnetServer.bound[ME] = "c1"'
+        self.rt.execute('ME.getUsername = function() return "kate" end; CoreAI.notebookServer.bound[ME] = "c1"'
                         '; BOB = Member(5003, 4995, "bob")')
         self.rt.execute('R.teamOf = function() return "fac-1" end; package.loaded["CoreAI/CA_Teams"].idOf'
                         ' = function() return "fac-1" end')
@@ -305,7 +306,7 @@ class PrepareTests(SceneHarness):
         self.assertIsNone(self.ev('return PersonaState.get("darlene")'))
 
     def test_work_store_keeps_the_life_log_and_facts_alone(self):
-        self.rt.execute('R.useStore(R.newStore()); RS_CarnetServer.bound[ME] = "c1"')
+        self.rt.execute('R.useStore(R.newStore()); CoreAI.notebookServer.bound[ME] = "c1"')
         self.start()
         self.deliver()
         self.leave()

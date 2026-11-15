@@ -1,20 +1,48 @@
 if isClient() then return end
-if RS_CarnetServer then return RS_CarnetServer end
-local C = require 'RadioSurvivor/RS_Config'
+--[[
+CoreAI: server of the notebook (E21-T04, design carnet-commun-e21.md).
+Authority only (dedicated server or solo). Loaded for every mod that uses the core mod: with no NPC provider
+registered it still serves the identity of the characters, the missions of the givers without a body, the reputation
+and the snapshot of the notebook.
+
+Global CoreAI.notebookServer (also read by the real-Lua simulation tests). Private state: CA_NotebookStore
+(characters, NPC fiches, bindings; missions and histories in their own files of the core mod). Network module
+CA_NotebookConfig.MODULE ('CoreAI'), commands registered by Server.registerCommand (an unknown command is ignored).
+Mission engine (CA_Missions): store, NPC provider, giver 'npc' (notebook fiches of the provider's NPCs) and its hooks
+are attached here (Server.attachMissions), with every mission template of the core mod.
+Registries filled by the mods that use the notebook (read here only):
+  Server.addPoll(fn)        fn(state, store, watched) -> true when it changed the state (saved and published);
+                            called once a second while identified players are connected (watched = { {player,
+                            character}, ... }).
+  Server.hooks.overheard    list of fn(player, character, seen): a player heard two NPCs talk (speech host).
+  Server.hooks.claim        list of fn(request) -> reply handler or nil: a reply handled by its mod (first one wins).
+  Server.hooks.callLanguage fn() -> forced language of the NPC initiatives, or nil (one per server).
+The NPC provider (CA_NPCProvider) gives the bodies, the speech engine (speech()) and the relations (relation*).
+]]
+CoreAI = CoreAI or {}
+if CoreAI.notebookServer then return CoreAI.notebookServer end
+local C = require 'CoreAI/CA_NotebookConfig'
+local Speech = require 'CoreAI/CA_SpeechConfig'
+local TextCut = require 'CoreAI/CA_TextCut'
+local Access = require 'CoreAI/CA_AdminAccess'
 local Codec = require 'CoreAI/CA_Codec'
 local P = require 'CoreAI/CA_NPCProvider'; local WorldStart = require 'CoreAI/CA_WorldStart'
-local S = require 'RadioSurvivor/RS_State'; require 'CoreAI/CA_MissionClear' -- E11-T04: template clear
+local S = require 'CoreAI/CA_NotebookStore'
 local Identity = require 'CoreAI/CA_Identity' -- E18-T03: identity of the characters (core mod)
 local M = require 'CoreAI/CA_Missions'
+local Giver = require 'CoreAI/CA_NotebookGiver'
 local MissionList = require 'CoreAI/CA_MissionList' -- E18-T06
 local History = require 'CoreAI/CA_History' -- E18-T11: exchange history of the core mod
-require 'CoreAI/CA_MissionScout'; require 'CoreAI/CA_MissionRetrieve'
+-- Mission templates of the core mod (CA_Missions.register at load; deliver is the engine's own).
+require 'CoreAI/CA_MissionScout'; require 'CoreAI/CA_MissionRetrieve'; require 'CoreAI/CA_MissionClear'
+require 'CoreAI/CA_MissionRecover'; require 'CoreAI/CA_MissionSignal'; require 'CoreAI/CA_MissionBarricade'
+require 'CoreAI/CA_MissionRelay'; require 'CoreAI/CA_MissionWatch'; require 'CoreAI/CA_MissionRoute'
+require 'CoreAI/CA_MissionItem'
 local Rep = require 'CoreAI/CA_Reputation' -- E18-T22: reputation kept by the core mod
-local Contacts = require 'CoreAI/CA_Contacts' -- E18-T26: contacts given to the core notebook
+local Contacts = require 'CoreAI/CA_Contacts' -- E18-T26: contacts given by the other sources of the mods
 -- Reputation of the snapshot: the core projection as it is (E18-T25: actions only, each notebook page translates the
 -- acts its mod knows).
 local function repProjection(character) return Rep.projection(character) end
-local Radio = require 'RadioSurvivor/RadioSurvivor_Const'
 -- E18-T27: observations of the NPCs and their triggers belong to the NPC engine.
 local Teams = require 'CoreAI/CA_Teams' -- E09-T03, E18-T20: team ids and mandates of the core mod
 local MissionTalk = require 'CoreAI/CA_MissionTalk'
@@ -22,16 +50,9 @@ local RateLimit = require 'CoreAI/CA_RateLimit' -- C21: per-account limit of the
 -- E18-T17, E21-T04: Server.talk = the speech engine of the NPC provider (CA_NPCProvider.speech), set when the world
 -- starts; nil when the provider has none.
 local Server = {store = S, bound = {}, selected = {}, objects = {}, quotes = {}}
--- Export only on the authority, also used by the real-Lua simulation tests.
-RS_CarnetServer = Server
+CoreAI.notebookServer = Server
 local saveAt, checkAt, pruneAt = 0, 0, 0
--- E21-T04: registries filled by the mods that use the notebook (RadioSurvivor: RS_NotebookHooks), read here only.
---   Server.addPoll(fn)        fn(state, store, watched) -> true when it changed the state (saved and published);
---                             called once a second while identified players are connected (watched = { {player,
---                             character}, ... }).
---   Server.hooks.overheard    list of fn(player, character, seen): a player heard two NPCs talk (speech host).
---   Server.hooks.claim        list of fn(request) -> reply handler or nil: a reply handled by its mod (first one wins).
---   Server.hooks.callLanguage fn() -> forced language of the NPC initiatives, or nil (one per server).
+local function log(msg) print('[CoreAI] notebook: ' .. tostring(msg)) end
 Server.polls = {}
 Server.hooks = {overheard = {}, claim = {}, callLanguage = nil}
 function Server.addPoll(fn)
@@ -68,7 +89,7 @@ end
 
 local function displayName(player)
     local d = player:getDescriptor()
-    return Radio.oneLine(d:getForename() .. ' ' .. d:getSurname())
+    return TextCut.oneLine(d:getForename() .. ' ' .. d:getSurname())
 end
 
 local IDENTITY_KEY = Identity.KEY -- 'CA_Character'
@@ -119,7 +140,7 @@ function Server.ensure(id)
     local npc = Server.find(id)
     if not npc then
         local key = S.uid('npc')
-        npc = {id = key, incarnation = id, signature = signature, name = Radio.oneLine(record.name or 'Survivor'),
+        npc = {id = key, incarnation = id, signature = signature, name = TextCut.oneLine(record.name or 'Survivor'),
             revision = 1, order = 0, alive = true, clan = tostring(record.group or ''),
             personality = P.personality(signature),
             agreements = {}, background = '', enrichState = 'idle', seenAt = getTimestampMs()}
@@ -132,7 +153,7 @@ function Server.ensure(id)
     end
     -- Group changes do not erase agreements, memories or identity.
     npc.clan = tostring(record.group or '')
-    npc.groupName = Radio.oneLine(record.groupName or '') -- E17-T06: readable name for the notebook ('' none)
+    npc.groupName = TextCut.oneLine(record.groupName or '') -- E17-T06: readable name for the notebook ('' none)
     return npc
 end
 
@@ -186,7 +207,7 @@ end
 -- group id ("grp-<n>"), '' when the NPC has no group or the provider gives no name.
 local function groupName(npc)
     local record = P.npc(npc.incarnation)
-    if record then return Radio.oneLine(record.groupName or '') end
+    if record then return TextCut.oneLine(record.groupName or '') end
     return npc.groupName or ''
 end
 
@@ -216,7 +237,8 @@ local function adoptRelated(character, record)
     end
 end
 
--- Contacts of a character as the notebook shows them (snapshot, and source 'rs' of the core contacts, E18-T26).
+-- Contacts of a character as the notebook shows them: its fiches, then the rows of the contact sources of the mods
+-- (CA_Contacts, E18-T26: interlocutors a mod knows without a fiche of the notebook; such a row carries its source).
 local function contactRows(player, character, team)
     local record = character and S.data.characters[character]
     local contacts = {}
@@ -227,19 +249,24 @@ local function contactRows(player, character, team)
         if npc and not engineMissing(npc) then
             contacts[#contacts + 1] = {id = id, name = npc.name, alive = npc.alive,
                 groupName = groupName(npc), personality = npc.personality, background = npc.background,
-                revision = npc.revision, near = P.near(player, Server.objects[id], C.SELECT_RANGE),
+                revision = npc.revision, near = P.near(player, Server.objects[id], Speech.SELECT_RANGE),
                 history = known.history, note = known.note,
                 -- E09-T07: relation panel of THIS character only (identifiers and game days, translated by the client;
                 -- agreements of the NPC's group with this character's team), given by the NPC provider (E21-T04).
                 relation = P.relationPanel(npc, character, team)}
         end
     end
+    for _, row in ipairs(Contacts.rows(character, player)) do contacts[#contacts + 1] = row end
     table.sort(contacts, function(a, b) return a.name < b.name end)
     return contacts
 end
-Contacts.registerSource('rs', {list = function(character, player)
-    return contactRows(player, character, Teams.projection(player))
-end})
+
+-- Requester of a mission next to this player (DELIVERY_RANGE): the giver's near(m, player); a giver without one (remote
+-- giver) is never near.
+local function nearRequester(m, player)
+    local giver = M.donor(m.donor or 'npc')
+    return giver ~= nil and giver.near ~= nil and giver.near(m, player) == true
+end
 
 local function projection(player, pushed)
     local character = Server.bound[player]
@@ -249,23 +276,25 @@ local function projection(player, pushed)
     local team = Teams.projection(player) -- E09-T03: own team (agreements of the relation panel)
     local contacts = contactRows(player, character, team)
     -- E18-T06: the same list as the mission journal of the core mod (CA_MissionList: who sees it, order, state).
+    local known = M.knownMissions(S.data, character)
     for _, m in pairs(S.data.missions) do
-        if M.present(m) and MissionList.visible(m, character, record.knownMissions) then
+        if M.present(m) and MissionList.visible(m, character, known) then
             local p = M.projection(m, character)
-            -- E11-T08: a radio voice requester has no fiche nor body (name of its sheet, never near).
+            -- E11-T08: a remote giver (radio voice) has no fiche nor body (name of its sheet, never near).
             p.requester = M.requester(S.data, m)
-            p.near = P.near(player, Server.objects[m.npc], C.DELIVERY_RANGE)
+            p.near = nearRequester(m, player)
             missions[#missions + 1] = p
         end
     end
     for _, other in ipairs(players()) do
         local id = Server.bound[other]
-        if id and id ~= character and P.near(player, other, C.SELECT_RANGE) then
+        if id and id ~= character and P.near(player, other, Speech.SELECT_RANGE) then
             inviteTargets[#inviteTargets + 1] = {id = id, name = S.data.characters[id].name}
         end
     end
     MissionList.sort(missions)
-    local snapshot = {world = S.data.world, run = S.run, contacts = contacts, missions = missions, selected = Server.selected[character] or '',
+    local snapshot = {world = S.data.world, run = S.run, contacts = contacts, missions = missions,
+        selected = Server.selected[character] or '',
         -- E04-T12: reputation of this character only (level, trend, reasons), never a number.
         reputation = repProjection(character), inviteTargets = inviteTargets,
         team = team,
@@ -284,7 +313,7 @@ local function publish()
     for _, player in ipairs(players()) do projection(player, true) end
 end
 
--- Also called by RS_MissionVoice (E11-T08) when a radio voice starts or closes a mission.
+-- Also called by the mods whose remote givers start or close a mission (E11-T08).
 Server.publish = publish
 
 local function activeNpc(player, character, id, range)
@@ -305,7 +334,7 @@ Server.offerCatalogFor = offerCatalog
 
 local function talk(player, character, args)
     local id = Server.selected[character]
-    local npc = activeNpc(player, character, id, C.SELECT_RANGE)
+    local npc = activeNpc(player, character, id, Speech.SELECT_RANGE)
     if not npc or not Server.talk then
         -- E17-T06: the cleared target reaches the notebook at once (its Say line greys).
         Server.selected[character] = nil; projection(player)
@@ -328,18 +357,24 @@ end
 -- E11-T13: report spoken to the requester (CA_MissionTalk).
 function Server.spokenReport(req, result, npc) return MissionTalk.report(S, req, result, npc, Server.bound) end
 
-local function missionFor(player, character, args, range)
+local function missionFor(player, character, args, ranged)
     local m = type(args.mission) == 'string' and S.data.missions[args.mission]
     if not m or (not m.invited[character] and not m.participants[character]) then return nil end
     if not M.present(m) then return nil end -- E18-T25: giver of a mod not active, mission hidden
-    -- E11-T08: a radio voice mission has no body to join: only accept and abandon (no range), never invite or claim.
-    if m.donor == 'voice' then
-        if range or m.transaction then return nil end
+    local giver = M.donor(m.donor or 'npc')
+    -- E11-T08, E21-T04: a remote giver (radio voice) has no body to join: only accept and abandon (no range), never
+    -- invite or claim.
+    if giver.remote then
+        if ranged or m.transaction then return nil end
         return m
     end
-    local npc = S.data.npcs[m.npc]
-    if not npc or not npc.alive then return nil end
-    if range and not activeNpc(player, character, m.npc, range) then return nil end
+    local requester = M.donorOf(S.data, m)
+    if not requester or requester.alive == false then return nil end
+    if ranged then
+        if not nearRequester(m, player) then return nil end
+        -- A fiche of the notebook speaks only to the characters that know it (contact).
+        if S.data.npcs[m.npc] and not S.data.characters[character].contacts[m.npc] then return nil end
+    end
     if m.transaction then return nil end
     return m
 end
@@ -363,10 +398,11 @@ gestures.invite = {ranged = true, apply = function(player, character, m, args)
     if m.state ~= 'active' or not m.participants[character] or type(args.character) ~= 'string' then return false, 'State' end
     local other
     for _, p in ipairs(players()) do if Server.bound[p] == args.character then other = p end end
-    if not other or not P.near(player, other, C.SELECT_RANGE) then return false, 'Range' end
+    if not other or not P.near(player, other, Speech.SELECT_RANGE) then return false, 'Range' end
     m.invited[args.character] = true
     S.data.characters[args.character].knownMissions[m.id] = true
-    contact(args.character, S.data.npcs[m.npc])
+    local npc = S.data.npcs[m.npc]
+    if npc then contact(args.character, npc) end
     m.revision = m.revision + 1
     return true
 end}
@@ -375,12 +411,14 @@ gestures.abandon = {apply = function(_, character, m)
     return true
 end}
 gestures.prepare_delivery = {ranged = true, apply = function(player, character, m, args)
-    if m.state ~= 'active' or not m.participants[character] or not M.checkItems(player, m, args.items) then return false, 'Items' end
+    if m.state ~= 'active' or not m.participants[character] or not M.checkItems(player, m, args.items) then
+        return false, 'Items'
+    end
     local token = S.uid('quote')
     Server.quotes[character] = {token = token, mission = m.id, revision = m.revision, items = args.items,
         untilMs = getTimestampMs() + 30000}
     local quote = {token = token, mission = m.id, revision = m.revision, count = #args.items,
-        remaining = m.quantity - m.delivered, requester = S.data.npcs[m.npc].name}
+        remaining = m.quantity - m.delivered, requester = M.requester(S.data, m)}
     -- E17-T03: value mission of an engine supply offer: value V of the chosen items.
     if m.unit == 'value' then quote.unit, quote.value = 'value', M.supplyValue(m, M.checkItems(player, m, args.items)) end
     send(player, 'quote', quote)
@@ -389,7 +427,9 @@ end}
 gestures.confirm_delivery = {ranged = true, apply = function(player, character, m, args)
     local q = Server.quotes[character]
     Server.quotes[character] = nil
-    if not q or q.token ~= args.token or q.mission ~= m.id or q.revision ~= m.revision or q.untilMs < getTimestampMs() then return false, 'State' end
+    if not q or q.token ~= args.token or q.mission ~= m.id or q.revision ~= m.revision or q.untilMs < getTimestampMs() then
+        return false, 'State'
+    end
     return M.deliver(S, m, player, character, q.items, q.token)
 end}
 gestures.claim = {ranged = true, apply = function(player, character, m)
@@ -397,7 +437,7 @@ gestures.claim = {ranged = true, apply = function(player, character, m)
 end}
 
 local function transact(player, character, gesture, args)
-    local m = missionFor(player, character, args, gesture.ranged and C.DELIVERY_RANGE or nil)
+    local m = missionFor(player, character, args, gesture.ranged)
     if not m or m.revision ~= args.revision then return reject(player, 'State') end
     local ok, reason = gesture.apply(player, character, m, args)
     if ok == ANSWERED then return end
@@ -409,7 +449,7 @@ end
 
 -- An empty argument table arrives as nil (SinglePlayerClient.java:126, GameClient.java:1760: args sent only when not
 -- empty): the first hello of a new character ({character = nil}) used to be dropped here, so no notebook character
--- was ever created and the radio history (RS_RadioLog) stayed empty. nil is read as {}.
+-- was ever created and the histories kept by character stayed empty. nil is read as {}.
 -- C21: per-account token buckets {capacity, per second} (CA_RateLimit, MP server only). hello and snapshot rebuild
 -- and send the whole projection, rep_admin logs its refusals; every other command shares one bucket. The client polls
 -- every 3 s with the notebook open: far below these limits. A dropped command gets no reply.
@@ -420,8 +460,7 @@ Server.RATE_LIMIT_OTHER = {20, 4}
 -- 'CoreAI'). fn(player, args, character): character is the bound notebook character, nil for an open command (open:
 -- served before the identity and session checks: hello, rep_admin). limit: own token bucket, else the shared one. A
 -- command no one registered is ignored (no token taken, no reply): the other commands of the module belong to
--- CA_MissionJournal (missions, contacts, reputation, mission), CA_Teams (team, mandate) and CA_Identity (hello, which
--- the notebook owns while it is loaded: Identity.yieldHello).
+-- CA_Teams (team, mandate) and CA_Identity (hello, which the notebook owns while it is loaded: Identity.yieldHello).
 Server.commands = {}
 function Server.registerCommand(name, fn, limit, open)
     Server.commands[name] = {fn = fn, open = open == true}
@@ -464,7 +503,7 @@ Server.registerCommand('select', function(player, args, character)
         if id and not Server.objects[id] then scan() end -- a fiche created now has no mapped body yet
     end
     local npc = type(id) == 'string' and S.data.npcs[id]
-    if npc and npc.alive and P.near(player, Server.objects[id], C.SELECT_RANGE) then
+    if npc and npc.alive and P.near(player, Server.objects[id], Speech.SELECT_RANGE) then
         contact(character, npc)
         Server.selected[character] = id
         S.save(); projection(player)
@@ -538,21 +577,13 @@ end
 -- E18-T22: npc.memberKilled is reported by the NPC engine itself, which reads the reputation of the core mod directly.
 
 -- E04-T14 (Q17): read-only view of every live character's reputation for an administrator: name, level, trend, last
--- acts (no score, no proof, no account). Access checked at each request on the authority, same rule as the Living
--- Knox and frequency debug tools (RS_FreqDebug.isAllowed: MP server = checkPermissions + role capability
--- PopmanManage; solo = debug mode; MP client never). Refusal: {ok = false, err = 'denied'} without data.
+-- acts (no score, no proof, no account). Access checked at each request on the authority (CA_AdminAccess, debug mode
+-- required in solo). Refusal: {ok = false, err = 'denied'} without data.
 Server.REP_ADMIN_MAX = 64
 function Server.reputationAdmin(player)
-    local allowed, why = false, 'access rule unavailable'
-    local Freq = RS_FreqDebug
-    if Freq == nil then
-        local ok, mod = pcall(require, 'RadioSurvivor/RS_FreqDebug')
-        Freq = ok and mod or nil
-    end
-    if type(Freq) == 'table' and type(Freq.isAllowed) == 'function' then allowed, why = Freq.isAllowed(player) end
+    local allowed, why = Access.allowed(player, true)
     if not allowed then
-        print('[RS_Carnet] reputation admin view refused for ' .. tostring(player and player:getUsername()) .. ': '
-            .. tostring(why))
+        log('reputation admin view refused for ' .. tostring(player and player:getUsername()) .. ': ' .. tostring(why))
         return {ok = false, err = 'denied'}
     end
     local ids = {}
@@ -600,10 +631,6 @@ local function clockRunning()
     return false
 end
 
-require 'CoreAI/CA_MissionRecover' -- E11-T06: template recover
-require 'CoreAI/CA_MissionSignal'; require 'CoreAI/CA_MissionBarricade' -- E11-T07 signal, E20-T09
-require 'CoreAI/CA_MissionRelay'; require 'CoreAI/CA_MissionWatch' -- E20-T12 relay, E20-T14 watch
-require 'CoreAI/CA_MissionRoute'; require 'CoreAI/CA_MissionItem' -- E20-T13 route, E20-T15 item
 local function tick()
     if not S.data or S.blocked then return end
     local now = getTimestampMs()
@@ -621,7 +648,7 @@ local function tick()
         if Server.talk then Server.talk.turns(now) end -- E18-T17: initiatives, conversations, incidents (speech)
         for player, character in pairs(Server.bound) do
             local id = Server.selected[character]
-            if id and not activeNpc(player, character, id, C.SELECT_RANGE) then
+            if id and not activeNpc(player, character, id, Speech.SELECT_RANGE) then
                 Server.selected[character] = nil
                 projection(player) -- only this player's view changed
             end
@@ -635,7 +662,7 @@ local function tick()
             S.save()
             changed = true
         end
-        -- E21-T04: polls of the mods that use the notebook (RadioSurvivor: caches still to place, E11-T06).
+        -- E21-T04: polls of the mods that use the notebook (Server.addPoll).
         if #watched > 0 then
             for _, poll in ipairs(Server.polls) do
                 if poll(S.data, S, watched) then
@@ -656,7 +683,7 @@ local function tick()
     -- Snapshots are pushed on changes; clients poll only while their notebook is open.
     if changed then S.dirty = true; publish() end
     if now >= saveAt then
-        if S.dirty or clockRunning() then S.save() end
+        if S.needsSave() or clockRunning() then S.save() end
         saveAt = now + C.SAVE_INTERVAL_MS
     end
     if Server.talk then Server.talk.enrich(now) end
@@ -672,7 +699,7 @@ local function init(newWorld) -- OnInitGlobalModData arg: always true on a dedic
         for _, npc in pairs(S.data.npcs) do if npc.enrichState == 'pending' then npc.enrichState = 'needed' end end
         scan()
         Server.attachTalk()
-        print('[RS_Carnet] authoritative state ready, NPC provider=' .. tostring(P.active().name)
+        log('authoritative state ready, NPC provider=' .. tostring(P.active().name)
             .. ', available=' .. tostring(P.available()))
     end
 end
@@ -703,10 +730,10 @@ end
 local function talkQueued(req, player, npc, character, text)
     for _, listener in ipairs(players()) do
         local cid = Server.bound[listener]
-        if cid and P.hears(player, listener, C.HEARING_RANGE) then
+        if cid and P.hears(player, listener, Speech.HEARING_RANGE) then
             local k = contact(cid, npc)
             k.history[#k.history + 1] = {id = req.id .. '-player', author = S.data.characters[character].name, text = text}
-            while #k.history > C.MAX_HISTORY do table.remove(k.history, 1) end
+            while #k.history > Speech.MAX_HISTORY do table.remove(k.history, 1) end
         end
     end
     S.save()
@@ -725,10 +752,10 @@ local function heard(req, result, npc, object, outcome)
     local audiences = {}
     for _, listener in ipairs(players()) do
         local cid = Server.bound[listener]
-        if cid and P.hears(object, listener, C.HEARING_RANGE) then
+        if cid and P.hears(object, listener, Speech.HEARING_RANGE) then
             local k = contact(cid, npc)
             k.history[#k.history + 1] = {id = req.id, author = npc.name, text = result.text}
-            while #k.history > C.MAX_HISTORY do table.remove(k.history, 1) end
+            while #k.history > Speech.MAX_HISTORY do table.remove(k.history, 1) end
             if outcome.offer then S.data.characters[cid].knownMissions[outcome.offer.id] = true end
             audiences[#audiences + 1] = listener
         end
@@ -750,7 +777,7 @@ local function remember(npc, id, text, listeners)
         local known = record and record.contacts[npc.id]
         if known then
             known.history[#known.history + 1] = {id = id, author = npc.name, text = text}
-            while #known.history > C.MAX_HISTORY do table.remove(known.history, 1) end
+            while #known.history > Speech.MAX_HISTORY do table.remove(known.history, 1) end
         end
     end
 end
@@ -831,15 +858,25 @@ local HOST = {
 -- Speech engine of the NPC provider (CA_NPCProvider.speech): the notebook is its host. Called once the state of the
 -- notebook is ready.
 function Server.attachTalk()
-    local talk = P.speech()
-    if type(talk) ~= 'table' or type(talk.attach) ~= 'function' then return end
-    if talk.attach(HOST) then
-        Server.talk = talk
-        talk.sync()
+    local engine = P.speech()
+    if type(engine) ~= 'table' or type(engine.attach) ~= 'function' then return end
+    if engine.attach(HOST) then
+        Server.talk = engine
+        engine.sync()
     else
-        print('[RS_Carnet] speech of the NPCs not ready: speech engine state unavailable')
+        log('speech of the NPCs not ready: speech engine state unavailable')
     end
 end
+
+-- E18-T05, E21-T04: the common mission engine on the notebook (CA_NotebookGiver: store, NPC provider, giver 'npc' and
+-- hooks, attached when it loads); the notebook gives it the loaded bodies of the fiches, its binding and its push.
+function Server.attachMissions()
+    Giver.objects = function() return Server.objects end
+    Giver.bound = function() return Server.bound end
+    Giver.publish = publish
+end
+Server.attachMissions()
+Server.init = init
 
 Events.OnInitGlobalModData.Add(init)
 Events.OnServerStarted.Add(function() init(false) end)

@@ -26,7 +26,7 @@
 -- Bornes : Log.MAX_LINES lignes par fréquence, Log.MAX_FREQUENCIES fréquences par personnage (la moins récemment
 -- active est oubliée), textes coupés à Log.MAX_TEXT caractères.
 if isClient() then return end
-local S = require "RadioSurvivor/RS_State"
+local Notebook = require "CoreAI/CA_NotebookStore" -- E21-T04: notebook characters (state of the core mod)
 local Const = require "RadioSurvivor/RadioSurvivor_Const"
 local Personas = require "RadioSurvivor/RS_Personas"
 local Notes = require "RadioSurvivor/RS_Notes"
@@ -82,19 +82,19 @@ function Log.when()
     return string.format("%02d/%02d %02d:%02d", gt:getMonth() + 1, gt:getDay() + 1, gt:getHour(), gt:getMinutes())
 end
 
--- Personnage du carnet lié à ce joueur (RS_Carnet_Server, commande hello), ou nil : sans carnet lié ni état privé
+-- Personnage du carnet lié à ce joueur (CA_NotebookServer, commande hello), ou nil : sans carnet lié ni état privé
 -- lisible, aucun historique n'est tenu.
 function Log.characterOf(player)
-    local server = RS_CarnetServer
+    local server = CoreAI and CoreAI.notebookServer
     local cid = server and player and server.bound[player]
-    if not cid or not S.data or S.blocked then return nil end
-    local record = S.data.characters[cid]
+    if not cid or not Notebook.data or Notebook.blocked then return nil end
+    local record = Notebook.data.characters[cid]
     if not record or record.retired then return nil end
     return cid, record
 end
 
 local function playerOf(cid)
-    local server = RS_CarnetServer
+    local server = CoreAI and CoreAI.notebookServer
     if not server then return nil end
     for player, id in pairs(server.bound) do
         if id == cid then return player end
@@ -139,8 +139,8 @@ end
 -- Inscrit une ligne pour ce personnage et l'envoie à son joueur s'il est connecté. Rend la ligne, ou nil. voice (E06-T07) :
 -- id de la voix que cette ligne fait connaître sur khz (contact, note, fréquence donnée), si elle y est encore.
 function Log.add(cid, khz, kind, text, voice)
-    if not S.data or S.blocked or not Log.KINDS[kind] or not Log.validKhz(khz) then return nil end
-    local record = S.data.characters[cid]
+    if not Notebook.data or Notebook.blocked or not Log.KINDS[kind] or not Log.validKhz(khz) then return nil end
+    local record = Notebook.data.characters[cid]
     if not record or record.retired then return nil end
     text = Log.cleanText(text)
     if text == "" then return nil end
@@ -153,7 +153,7 @@ function Log.add(cid, khz, kind, text, voice)
     local line = { kind = kind, text = text, when = Log.when(), seq = radio.seq }
     f.lines[#f.lines + 1] = line
     while #f.lines > Log.MAX_LINES do table.remove(f.lines, 1) end
-    S.dirty, History.dirty = true, true
+    Notebook.dirty, History.dirty = true, true
     local player = playerOf(cid)
     if player then
         Const.toClient(player, Const.CMD.HISTORY_ADD, { character = cid, khz = khz, last = f.last, line = line,
@@ -287,7 +287,7 @@ end
 
 -- Ce personnage connaît-il déjà la voix (E06-T07 : f.voice d'une de ses fréquences) ? (E07-T10 : share_frequency.)
 function Log.knowsVoice(cid, voice)
-    local radio = S.data and not S.blocked and radioOf(cid, false) or nil
+    local radio = Notebook.data and not Notebook.blocked and radioOf(cid, false) or nil
     for _, f in ipairs(radio and radio.frequencies or {}) do
         if f.voice == voice then return true end
     end

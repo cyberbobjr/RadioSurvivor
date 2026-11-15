@@ -60,7 +60,7 @@ if not LivingKnox.GroupTypes.isKnown("avengers") then
 end
 '''
 
-# Identité du carnet (RS_Carnet_Server.bound) et faits publiés relevés.
+# Identité du carnet (CA_NotebookServer.bound) et faits publiés relevés.
 CARNET = r'''
 CA_Identity = CA_Identity or { bound = {} }   -- identité du mod commun (E18-T03)
 function BIND(name, key) CA_Identity.bound[HARNESS.players[name]] = key end

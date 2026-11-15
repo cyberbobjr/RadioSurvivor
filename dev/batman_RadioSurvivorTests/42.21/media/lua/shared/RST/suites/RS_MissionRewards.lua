@@ -91,19 +91,21 @@ end
 local function setup(t, kind)
     if isClient() then t:skip('authority only') end
     local Server = Helpers.notebook(t)
-    local S = Server.store
+    local Notebook = Server.store
+    -- E21-T04: the ledgers of the rewards live in the state of the voices, saved with the missions (S.save).
+    local S = require "RadioSurvivor/RS_State"
     local p = RST.Fixtures.player(t)
     local cid = Helpers.character(t, p)
     local id = 'rst-reward-' .. kind .. '-' .. tostring(RST.now())
     local m = {id=id, state='success', participants={[cid]=true}}
-    S.data.missions[id] = m
+    Notebook.data.missions[id] = m
     -- E20-T03: [rewards] pool of the sheet (one entry of this kind) and a place with use=drop for the cache.
     local params = {cache='medical', lesson='Doctor'}
     local source = {id=id, rewards={{kind=kind, param=params[kind], weight=1}}, shares={'cody','darlene'},
         places={{id='reward',label='Test reward',x=math.floor(p:getX()),y=math.floor(p:getY()),z=math.floor(p:getZ()),
             uses={'drop'}, use={drop=true}}}}
     t:defer(function()
-        S.data.missions[id] = nil
+        Notebook.data.missions[id] = nil
         if S.data.missionRewards then S.data.missionRewards[cid .. ':' .. id] = nil end
         S.dirty = true
     end, 'reward fixture removed')

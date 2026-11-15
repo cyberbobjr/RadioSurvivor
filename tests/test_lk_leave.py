@@ -2,7 +2,7 @@
 
     python tests/test_lk_leave.py
 
-Banc lupa (Lua 5.1, `next` retiré comme dans Kahlua) : vrai serveur du carnet (`RS_Carnet_Server.lua`), vrais
+Banc lupa (Lua 5.1, `next` retiré comme dans Kahlua) : vrai serveur du carnet (`CA_NotebookServer.lua`), vrais
 `RS_Factions.lua` et fournisseur `RS_LivingKnox.lua`, moteur Living Knox réel (registre des groupes, `LK_API`,
 population) et vrai pont hors ligne (`RS_OFFLINE_INTENT=leave_group`, drapeau du banc qui tient lieu d'un modèle qui
 décide de partir, jamais tiré des mots du joueur). Doublures : `LivingKnox.Sites.pick` (site fixe loin du foyer : la
@@ -57,7 +57,7 @@ class LeaveGroupTests(unittest.TestCase):
         sim.server.rt.execute(LEAVE_DOUBLES)
         sim.add_client('alice')
         self.sim, self.g, self.rt = sim, sim.server.g, sim.server.rt
-        self.server = self.g.RS_CarnetServer
+        self.server = self.g.CoreAI.notebookServer
         self.G = self.rt.eval('LivingKnox.Groups')
         self.api = self.rt.eval('LivingKnox.API')
         self.F = self.rt.eval(AGREEMENTS_FACADE)

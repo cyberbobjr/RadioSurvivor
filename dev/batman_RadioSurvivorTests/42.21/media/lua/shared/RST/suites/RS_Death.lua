@@ -46,7 +46,7 @@ local D = RST.DeathSuite
 local PD = RST.PeerDeath
 local Steps = RST.Steps
 
-D.KEY = "CA_Character"     -- RS_Carnet_Server.lua IDENTITY_KEY
+D.KEY = "CA_Character"     -- CA_NotebookServer.lua IDENTITY_KEY
 D.BOUND_MS = 20000                -- identity of a connected client (hello at game start)
 D.GOD_MS = 10000                  -- ExtraInfo packet of the client applied on the server
 D.DEATH_MS = 15000                -- OnCharacterDeath, then the corpse
@@ -67,9 +67,9 @@ local function authority(t)
         t:skip("solo: the only player would die and end the run; the real death runs on a dedicated server with a "
             .. "second client (autoclient.py --mp --clients 2, RST.server)")
     end
-    local Server = RS_CarnetServer
+    local Server = CoreAI and CoreAI.notebookServer
     t:ok(type(Server) == "table" and type(Server.store) == "table" and type(Server.store.data) == "table",
-        "notebook server state not ready (RS_CarnetServer)")
+        "notebook server state not ready (CoreAI.notebookServer)")
     t:ok(not Server.store.blocked, "notebook storage is blocked")
     return Server, Server.store.data
 end
@@ -110,7 +110,7 @@ end
 -- A zombie carrying the requester's identity in its ModData dies through the notebook handler: nothing retired.
 local function zombieRetiresNothing(t, Server, data, p, requesterId)
     if type(addZombiesInOutfit) ~= "function" or type(Server.characterDeath) ~= "function" then
-        t:ok(false, "addZombiesInOutfit or RS_CarnetServer.characterDeath missing")
+        t:ok(false, "addZombiesInOutfit or CoreAI.notebookServer.characterDeath missing")
     end
     -- Created and removed in the same call: never sent to the clients.
     local list = addZombiesInOutfit(math.floor(p:getX()), math.floor(p:getY()), math.floor(p:getZ()), 1, nil, 0)

@@ -1,6 +1,6 @@
 --[[
 lk.missions.alone - lot of a mission of an NPC claimed from the journal of the core mod with Living Knox alone
-(E18-T29: CA_MissionJournal "mission", giver "npc" of LK_TalkAlone, LK_MissionRewards).
+(E18-T29, E21-T04: command "claim" of the notebook server, giver "npc" of LK_TalkAlone, LK_MissionRewards).
 Tags "world" and "server": a save named rstest*, with a target player. SKIP when RadioSurvivor is active: its notebook
 holds the buttons then. Run:
     python tools/autoclient/autoclient.py --mods lk --mp --clients 1 --server-suite lk.missions.alone --server-tags world
@@ -72,9 +72,15 @@ RST.suite("lk.missions.alone", { tags = { "world", "server" }, testTimeoutMs = 1
         return out
     end
 
-    -- The claim of mission m by the journal gesture, then check(t) once the lot is claimed.
+    -- Claim of mission m by the notebook server (E21-T04: command "claim" of the Missions tab).
+    local function claim(p, m)
+        local Server = CoreAI.notebookServer
+        Server.command("CoreAI", "claim", p, { mission = m.id, revision = m.revision,
+            world = Server.store.data.world, run = Server.store.run })
+    end
+
+    -- The claim of mission m by the notebook gesture, then check(t) once the lot is claimed.
     local function claimFromJournal(t, p, id, character, m, check)
-        local Journal = require "CoreAI/CA_MissionJournal"
         local MissionConfig = require "CoreAI/CA_MissionConfig"
         local Hearing = require "CoreAI/CA_Hearing"
         t:waitUntil(function()
@@ -83,17 +89,16 @@ RST.suite("lk.missions.alone", { tags = { "world", "server" }, testTimeoutMs = 1
             local function claimed(t4)
                 t4:waitUntil(function() return m.claimedBy == character end, CLAIM_MS, function(t5)
                     check(t5)
-                    local ok, why = Journal.act(p, character, { action = "claim", mission = m.id,
-                        revision = m.revision })
-                    t5:ok(not ok and why == "State", "second claim: " .. tostring(ok) .. " " .. tostring(why))
+                    local revision = m.revision
+                    claim(p, m)
+                    t5:eq({ character, revision }, { m.claimedBy, m.revision }, "second claim changed the mission")
                 end, "lot never claimed")
             end
             if multiplayer() then
                 RST.Steps.ask(t3, "core.journal.act", { action = "claim", mission = m.id, revision = m.revision },
                     { target = "requester", timeoutMs = 10000 }, claimed)
             else
-                Journal.onClientCommand(Journal.MODULE, "mission", p,
-                    { action = "claim", mission = m.id, revision = m.revision })
+                claim(p, m)
                 claimed(t3)
             end
         end, "member " .. tostring(id) .. " never within reach of the player")

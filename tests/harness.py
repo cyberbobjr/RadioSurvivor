@@ -1054,9 +1054,9 @@ def mission_view_files():
 
 def core_notebook_files():
     """Client files of the notebook of the core mod (E21-T03) as the game loads them: transport, frame, one file per
-    common tab, the page source of Living Knox alone (temporary), then every mission view. The frame CA_Notebook is
+    common tab, then every mission view. The frame CA_Notebook is
     run by their require (the game runs a file once)."""
-    names = ('CA_NotebookClient', 'CA_NotebookContacts', 'CA_NotebookJournal', 'CA_NotebookMissions',
+    names = ('CA_NotebookClient', 'CA_NotebookContacts', 'CA_NotebookMissions',
              'CA_NotebookReputation')
     return [f'client/CoreAI/{name}.lua' for name in names] + mission_view_files()
 

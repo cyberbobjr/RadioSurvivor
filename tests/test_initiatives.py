@@ -59,7 +59,7 @@ class InitiativeTests(unittest.TestCase):
         self.sim, self.g, self.rt = sim, sim.server.g, sim.server.rt
         self.g.SandboxVars.LivingKnox.InitiativeFrequency = level
         self.rt.execute(LOAD)
-        self.server = self.g.RS_CarnetServer
+        self.server = self.g.CoreAI.notebookServer
         self.obs = self.rt.eval("require('LivingKnox/LK_Observations')")
         self.init = self.rt.eval("require('LivingKnox/LK_Initiatives')")
         self.init.reset()

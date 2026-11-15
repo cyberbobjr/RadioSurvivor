@@ -13,7 +13,7 @@
 - RevealTests (E07-T05) : de même, un reveal_area accepté inscrit une ligne « reveal » (« Quartier révélé »).
 - HistoryClientTests : copie client (client/RadioSurvivor/RS_RadioHistory.lua) : voyant, changement de personnage,
   tri par activité, refus et réglage par l'action vanilla ISRadioAction « SetChannel ».
-- IntegrationTests : vrai RadioSurvivor_Server + RS_Carnet_Server (simulation de tests/test_carnet.py) : phrase,
+- IntegrationTests : vrai RadioSurvivor_Server + CA_NotebookServer (simulation de tests/test_carnet.py) : phrase,
   réponse de Walt relue par le pont simulé, ligne entendue par un autre joueur, redémarrage, mort du personnage,
   onglet Radio du carnet (dont la ligne « Mission reçue » d'une voix, E11-T08 : type de lieu traduit par le carnet).
 Simulation, PAS validation en jeu.
@@ -35,17 +35,18 @@ getWorld = function() return { getGameMode = function() return setmetatable({}, 
 ZombRand = function(a, b) return a end
 SandboxVars = { RadioSurvivor = { Enabled = true } }
 S = require 'RadioSurvivor/RS_State'
+Notebook = require 'CoreAI/CA_NotebookStore'
 Log = require 'RadioSurvivor/RS_RadioLog'
 Const = require 'RadioSurvivor/RadioSurvivor_Const'
-assert(S.init(NEW_WORLD ~= false))
-RS_CarnetServer = { bound = {} }
+assert(Notebook.init(NEW_WORLD ~= false))
+CoreAI = CoreAI or {}; CoreAI.notebookServer = { bound = {} }
 function bind(username, cid)
     local p = HARNESS.players[username]
-    if not S.data.characters[cid] then
-        S.data.characters[cid] = { id = cid, owner = username, slot = 0, name = username, contacts = {},
+    if not Notebook.data.characters[cid] then
+        Notebook.data.characters[cid] = { id = cid, owner = username, slot = 0, name = username, contacts = {},
             knownMissions = {} }
     end
-    RS_CarnetServer.bound[p] = cid
+    CoreAI.notebookServer.bound[p] = cid
     return p
 end
 -- Même aiguillage que RadioSurvivor_Server.lua (onClientCommand), couvert pour de vrai par IntegrationTests.
@@ -232,7 +233,7 @@ class TransportTests(Bench):
         self.assertEqual(self.texts('B', 131000), ['heard:Later call'])
 
     def test_unbound_player_gets_nothing(self):
-        self.server("RS_CarnetServer.bound[HARNESS.players.B] = nil")
+        self.server("CoreAI.notebookServer.bound[HARNESS.players.B] = nil")
         self.server("Log.broadcast(145000, { 'Walt.' }, nil)")
         self.h.load('B', "History.report(145000, 'Walt.'); History.request()")
         self.h.pump()
@@ -420,7 +421,7 @@ class HistoryClientTests(Bench):
 
 
 class IntegrationTests(unittest.TestCase):
-    """Vrai RadioSurvivor_Server et vrai RS_Carnet_Server (identité, état privé), réseau de tests/test_carnet.py."""
+    """Vrai RadioSurvivor_Server et vrai CA_NotebookServer (identité, état privé), réseau de tests/test_carnet.py."""
 
     def setUp(self):
         self.tmp = Path(tempfile.mkdtemp(prefix='rs_radio_history_'))
@@ -478,7 +479,7 @@ class IntegrationTests(unittest.TestCase):
         self.assertNotEqual(alice_id, bob_id)
         self.assertEqual(sim.server.rt.eval("require('CoreAI/CA_History')").radio(bob_id).frequencies[1].lines[1].kind, 'heard')
         self.assertTrue(alice.rt.eval('History.unread'))
-        self.assertTrue(sim.server.g.RS_CarnetServer.store.save())
+        self.assertTrue(sim.server.g.CoreAI.notebookServer.store.save())
 
         restart = self.simulation(self.tmp / 'mp', saved_players=sim.saved())
         alice2 = self.client(restart, 'alice')
@@ -984,7 +985,7 @@ class SoloScenarioTests(unittest.TestCase):
         game.rt.execute("local d = getPlayer().radio.device; function d:getPower() return 1 end")
         # Game load order: client files, then server files (the solo game loads both).
         game.load('client/CoreAI/CA_NotebookClient.lua', 'client/RadioSurvivor_Client.lua',
-                  'server/RS_Carnet_Server.lua', 'server/RadioSurvivor/RS_NotebookHooks.lua',
+                  'server/CoreAI/CA_NotebookServer.lua', 'server/RadioSurvivor/RS_NotebookHooks.lua',
                   'server/RadioSurvivor_Server.lua')
         game.rt.execute("Talk = require('RadioSurvivor/RS_RadioTalk'); History = Talk.History; "
                         "function texts(khz) local out = {} for _, l in ipairs(History.lines(khz)) do "
@@ -1003,7 +1004,7 @@ class SoloScenarioTests(unittest.TestCase):
             self.g.flushNet()
 
     def characters(self):
-        return convert(self.g.RS_CarnetServer.store.data.characters)
+        return convert(self.g.CoreAI.notebookServer.store.data.characters)
 
     def texts(self, khz=145000):
         return lua_list(self.g.texts(khz))
@@ -1055,7 +1056,7 @@ class SoloScenarioTests(unittest.TestCase):
         self.assertIn('Walt here.', window.detail.text)
         self.assertNotIn('IGUI_RS_Empty_Radio', window.detail.text)
         expected = self.texts()
-        self.assertTrue(self.g.RS_CarnetServer.store.save())
+        self.assertTrue(self.g.CoreAI.notebookServer.store.save())
 
         # Reload: same character (player modData saved with the player), history read again.
         saved = {'CA_Character': self.player.md.CA_Character}

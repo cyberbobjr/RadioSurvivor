@@ -3,7 +3,7 @@ share_frequency (RS_MissionVoice) jugée par le vrai RS_Actions ; lupa, Lua 5.1.
 
     python RadioSurvivor/tests/test_voice_bonds.py
 
-Vrai RadioSurvivor_Server et vrai RS_Carnet_Server (simulation de tests/test_carnet.py), Walt (145.0, shares=darlene,
+Vrai RadioSurvivor_Server et vrai CA_NotebookServer (simulation de tests/test_carnet.py), Walt (145.0, shares=darlene,
 nightowl) et Darlene installés. Couvre : refus sans lien (moins de 4 réponses ou un seul jour de jeu), lien par les
 réponses réellement diffusées ou par une bonne réputation ; une voix encore inconnue du carnet seulement, inscrite avec
 sa voix (E06-T07) ; une fois par 7 jours de jeu pour une voix et un personnage, une fois par 3 jours pour un
@@ -124,7 +124,7 @@ class VoiceBondsTests(unittest.TestCase):
             sim.clock.offset += 20000
             self.assertTrue(alice.rt.eval(f"Talk.send(getPlayer(), getPlayer().radio, 'Walt? {n}')"))
             it.answer(sim, f'Walt here {n}.')
-        bond = convert(sim.state().characters[sim.character('alice')].voiceBonds['walt'])
+        bond = convert(sim.voices().voiceBonds[sim.character('alice')].voices['walt'])
         self.assertEqual((bond['answers'], bond['days']), (2, 2))
 
 if __name__ == '__main__':

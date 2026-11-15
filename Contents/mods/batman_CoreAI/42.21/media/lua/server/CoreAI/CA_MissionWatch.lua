@@ -2,7 +2,7 @@ if isClient() then return end
 --[[
 Mission template `watch` (E20-T14, ADR D02, D10): keep watch at a place named by the giver for a duration in game
 hours, then report by radio what was seen. Authority only. Catalogue: CA_MissionConfig.Missions.watch (offer id
-watch_v1). Registered in CA_Missions (M.register); required by RS_Carnet_Server.
+watch_v1). Registered in CA_Missions (M.register); required by CA_NotebookServer.
 
 Giver: a radio voice only, under the name `watch` (declaration voiceName); an NPC fiche is never offered one. The
 spot is the place `target` of the voice sheet (use=target), handed over by RadioSurvivor's set-up of the templates

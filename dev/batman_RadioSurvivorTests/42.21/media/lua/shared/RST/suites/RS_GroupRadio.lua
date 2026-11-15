@@ -33,7 +33,7 @@ RST.RSGroupRadio = RST.RSGroupRadio or {}
 -- RST_LKGroupFixture.lua when none does: E01-T19).
 local function setup(t, after)
     if isClient() then t:skip("authority only (solo, or RST.server in MP)") end
-    local Server = RS_CarnetServer
+    local Server = CoreAI and CoreAI.notebookServer
     t:ok(Server ~= nil and Server.store.data ~= nil, "notebook server not ready")
     local P = require "CoreAI/CA_NPCProvider"
     if not P.available() then t:skip("Living Knox is not the active NPC provider") end

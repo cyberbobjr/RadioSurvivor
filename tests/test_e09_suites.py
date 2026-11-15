@@ -35,7 +35,8 @@ SUITE_FILES = [SUITES / f'{n}.lua' for n in ('RS_Relation', 'RS_FactionsAccord',
 AUTHORITY = r'''
 DEFECT = DEFECT or {}
 C = require "RadioSurvivor/RS_Config"
-S = require "RadioSurvivor/RS_State"
+require "RadioSurvivor/RS_State"   -- E21-T04: state of the voices, companion of the notebook store
+S = require "CoreAI/CA_NotebookStore"
 assert(S.init(true))
 RS_RadioServer = { bench = true }
 for _, p in pairs(PLAYERS) do
@@ -241,10 +242,10 @@ F = (function() local A, T = require("LivingKnox/LK_Agreements"), require("CoreA
 Rel = require "LivingKnox/LK_NotebookRelations"
 F.installHook()
 
--- Notebook server reduced (RS_Carnet_Server.lua: hello, select, talk with context, pending, reply, incidents).
+-- Notebook server reduced (CA_NotebookServer.lua: hello, select, talk with context, pending, reply, incidents).
 Server = { talk = { initiatives = { bridge = { down = false, probeAt = 0 } }, pending = {}, refusals = {}, collectives = {}, relations = {}, times = {}, lastTalk = {}, characterName = function(key) return S.data.characters[key] and S.data.characters[key].name end }, store = S, bound = {}, selected = {}, objects = {}, pending = {}, refusals = {}, collectives = {},
     relations = {}, times = {}, initiatives = { bridge = { down = false, probeAt = 0 } } }
-RS_CarnetServer = Server
+CoreAI = CoreAI or {}; CoreAI.notebookServer = Server
 local function players()
     if isServer() then local out = {} for i, n in ipairs(ONLINE) do out[i] = PLAYERS[n] end return out end
     return { getPlayer() }
@@ -330,7 +331,7 @@ function Server.command(module, command, player, args)
     if not cid then return send(player, "error", { reason = "Identity" }) end
     scan()
     -- WALKED: the body walked out of sight once between the check of the suite and the command (refused, the selection
-    -- cleared, as RS_Carnet_Server select / talk do).
+    -- cleared, as CA_NotebookServer select / talk do).
     if WALKED and WALKED[command] then
         WALKED[command] = nil
         Server.selected[cid] = nil
@@ -430,7 +431,7 @@ Events.OnTickEvenPaused.Add(function()
     for _, req in ipairs(Server.talk.pending) do
         local result = nil
         if not used[req.npc] then
-            used[req.npc] = true   -- one request per fiche and pass, the oldest first (RS_Carnet_Server poll)
+            used[req.npc] = true   -- one request per fiche and pass, the oldest first (CA_NotebookServer poll)
             result = responses[req.id]
         end
         if result then

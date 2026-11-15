@@ -2,7 +2,7 @@ if isClient() then return end
 --[[
 Mission template `route` (E20-T13, ADR D02, D10): cross IN ORDER several places named by the giver, on foot or by
 vehicle, then report by radio. Authority only. Catalogue: CA_MissionConfig.Missions.route (offer id route_v1).
-Registered in CA_Missions (M.register); required by RS_Carnet_Server.
+Registered in CA_Missions (M.register); required by CA_NotebookServer.
 
 Giver: a radio voice only, under the name `route` (declaration voiceName); an NPC fiche is never offered one. The
 points come with the set-up: declaration alongPoints(m, points) -> ok, reason, called by RadioSurvivor's

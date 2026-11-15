@@ -44,7 +44,7 @@ local function modules(t)
         t:skip("Living Knox server part not loaded here")
     end
     local F = RST.factions() -- E18-T20: LK_Agreements and CA_Teams
-    local Server = RS_CarnetServer
+    local Server = CoreAI and CoreAI.notebookServer
     if type(F) ~= "table" or type(F.incidentFact) ~= "function" or type(Server) ~= "table" or not Server.store
             or not Server.store.data then
         t:skip("notebook server state not ready")

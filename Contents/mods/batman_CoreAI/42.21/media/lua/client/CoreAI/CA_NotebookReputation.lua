@@ -8,11 +8,12 @@ The text of an act belongs to the mod that knows it (Notebook.reputationReasons[
 mod not active reads "a good / bad deed"). Then the lines the mods add (Notebook.reputationExtras: fn(snapshot) ->
 lines, in registration order). Administrators (solo debug, MP capability PopmanManage; checked again by the server)
 read every character's reputation (command rep_admin). A warning over the character when the level changes.
-Notebook.reputationLines(rep) is shared with the page of Living Knox alone (CA_NotebookJournal).
+Notebook.reputationLines(rep): lines of a reputation projection.
 Texts: IGUI_CA_*.
 ]]
 local Notebook = require 'CoreAI/CA_Notebook'
 local Client = require 'CoreAI/CA_NotebookClient'
+local Access = require 'CoreAI/CA_AdminAccess'
 
 local Reputation = CoreAI.notebookReputation or {}
 CoreAI.notebookReputation = Reputation
@@ -100,13 +101,7 @@ end
 
 -- Administrator button of the Reputation tab (display only: the server checks the right at each request). Solo: debug
 -- mode; MP: role capability PopmanManage (same rule as the frequency and Living Knox debug tools).
-function Reputation.canSeeAll()
-    if not isClient() then return type(isDebugEnabled) == 'function' and isDebugEnabled() == true end
-    local p = getSpecificPlayer(0)
-    local cap = Capability ~= nil and Capability.PopmanManage or nil
-    local role = p and cap and p:getRole() or nil
-    return role ~= nil and role:hasCapability(cap) == true
-end
+function Reputation.canSeeAll() return Access.canUse() end
 
 -- E04-T04 (Q9): warning over the character when the level of its reputation changes, once per change (key n of the
 -- server change). The first snapshot after loading or a new character only sets the reference: no warning for a

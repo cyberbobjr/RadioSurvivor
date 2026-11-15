@@ -2,7 +2,7 @@ if isClient() then return end
 --[[
 Mission template `retrieve_id` (E11-T05): find the body of a missing person in a place chosen by the server and bring
 their ID card back to the requester. Authority only. Catalogue: CA_MissionConfig.Missions.retrieve_id (offer id
-retrieve_id_v1). Registered in CA_Missions (M.register); required by RS_Carnet_Server, whose once-a-second poll of the
+retrieve_id_v1). Registered in CA_Missions (M.register); required by CA_NotebookServer, whose once-a-second poll of the
 participants (M.observe) also places the body. Details: docs/annexes/conception/carnet-implementation-04221.md, "Gabarit
 retrouver"; design choices: docs/annexes/conception/mission-retrouver.md.
 
@@ -26,7 +26,7 @@ m.person (name of the body); the body carries ModData CA_RetrieveMission = missi
 with the private state at the next save (a crash in between may place a second body; its card is a different item).
 Found: the poll marks m.found once a participant holds the card (server copy of the inventory, bags included).
 Hand-over: the delivery exchange of the notebook (prepare_delivery / confirm_delivery, within DELIVERY_RANGE of the
-requester's body, RS_Carnet_Server): the mission exposes quantity 1 and the accepted identity card types so that the
+requester's body, CA_NotebookServer): the mission exposes quantity 1 and the accepted identity card types so that the
 window lists every ID card of the player; Retrieve.check accepts only the item whose id is m.cardId, still in the
 server inventory of the player (never its displayed name): any other card is refused ('WrongCard') before any
 effect. The card is removed (write-ahead transaction of the engine), then success, reputation and common reward lot

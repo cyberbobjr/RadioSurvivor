@@ -17,7 +17,7 @@ Sources (closed list R.ACTIONS, nothing from a client command or from a sentence
     mission.success / mission.failed / mission.abandoned   CA_Missions.finish, one fact per registered participant
                                                            (same amount for everyone; cancellations change nothing)
     trade.cheated          RadioSurvivor (RS_TradeExchange finish 'cheated'), the caller of the passage
-    npc.requesterKilled    RadioSurvivor (RS_Carnet_Server.dead, E04-T07): attributed killer who takes part in an
+    npc.requesterKilled    RadioSurvivor (CA_NotebookServer.dead, E04-T07): attributed killer who takes part in an
                            active mission of the dead requester; proof.body = id of the dead body
     npc.memberKilled       Living Knox (LK_Reputation, fact npcDied): attributed killer of a group member, unless
                            npc.requesterKilled already charged this death to this character (R.chargedFor)

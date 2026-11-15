@@ -2,7 +2,7 @@
 
     python RadioSurvivor/tests/test_darlene_chain.py
 
-Vrai RadioSurvivor_Server, vrai RS_Carnet_Server, vraie fiche `personas/darlene.txt` du mod (copiée avec les autres
+Vrai RadioSurvivor_Server, vrai CA_NotebookServer, vraie fiche `personas/darlene.txt` du mod (copiée avec les autres
 fiches livrées et le catalogue des catégories dans le dossier de travail du banc). Doublures : la métagrille du banc
 carnet (SCOUT_GRID) avec le bâtiment de la clinique de West Point aux coordonnées de la carte 42.22 (bâtiment 43 du
 lotheader 46_26 : x 11854-11888, y 6857-6886, relevé par .claude/tools/lotheader_parser.py) et
@@ -73,7 +73,7 @@ class DarleneChainTests(unittest.TestCase):
             sim.add_client(user)
         self.voice = rt.eval("require('RadioSurvivor/RS_MissionVoice')")
         self.engine = rt.eval("require('CoreAI/CA_Missions')")
-        self.store = rt.eval("require('RadioSurvivor/RS_State')")
+        self.store = rt.eval("require('CoreAI/CA_NotebookStore')")
         self.api = sim.server.g.RadioSurvivor.API
         return sim
 
@@ -156,7 +156,7 @@ class DarleneChainTests(unittest.TestCase):
         self.assertIn(meds.quantity, (2, 3, 4))
         self.close(sim, meds, 'success')
         self.assertEqual(self.api.voiceStoryState('darlene'), 'returned')
-        self.assertEqual(sim.state().voiceStory.darlene, 'returned')
+        self.assertEqual(sim.voices().voiceStory.darlene, 'returned')
 
     def test_failure_of_a_step_locks_the_next_one_again(self):
         sim = self.sim('darlene-failed')
@@ -224,7 +224,7 @@ You are Scout Voice, a voice of the offline test bench.
         rt.execute(CLEAR_WORLD)
         rt.execute(CLINIC_WORLD.replace('scoutHouse(43, 11854, 6857, 35, 30)', 'scoutHouse(77, 3000, 3000, 12, 10)'))
         self.voice = rt.eval("require('RadioSurvivor/RS_MissionVoice')")
-        self.store = rt.eval("require('RadioSurvivor/RS_State')")
+        self.store = rt.eval("require('CoreAI/CA_NotebookStore')")
         return sim
 
     def start(self, sim, name):

@@ -60,11 +60,13 @@ end
 -- Bonds and last share day of the character put back at the end; the radio history put back and sent again; the
 -- frequencies of the target voice emptied (the voice unknown at the start).
 local function guardCharacter(t, c, who)
-    local rec = c.S.data.characters[who.cid]
+    local rec = c.Notebook.data.characters[who.cid]
     t:ok(type(rec) == "table", "no private record for " .. who.label)
-    local bonds, last = RST.deepCopy(rec.voiceBonds), rec.lastShareDay
+    -- E21-T04: bonds in the state of the voices (RS_State data.voiceBonds[cid]).
+    if type(c.S.data.voiceBonds) ~= "table" then c.S.data.voiceBonds = {} end
+    local bonds = RST.deepCopy(c.S.data.voiceBonds[who.cid])
     t:defer(function()
-        rec.voiceBonds, rec.lastShareDay = bonds, last
+        c.S.data.voiceBonds[who.cid] = bonds
         c.S.dirty = true
     end, "bonds of " .. who.label .. " put back")
     local saved = RST.deepCopy(RST.radioOf(who.cid))
@@ -90,14 +92,15 @@ local function authority(t)
     if type(isClient) == "function" and isClient() then
         t:skip("the bonds and the radio history live on the authority (solo or dedicated server), not on an MP client")
     end
-    local Server = RS_CarnetServer
+    local Server = CoreAI and CoreAI.notebookServer
     if type(Server) ~= "table" or type(Server.store) ~= "table" or Server.store.data == nil then
-        t:skip("notebook server state not ready (RS_CarnetServer)")
+        t:skip("notebook server state not ready (CoreAI.notebookServer)")
     end
     local Personas = require "RadioSurvivor/RS_Personas"
     local c = { Actions = require "RadioSurvivor/RS_Actions", Bonds = require "RadioSurvivor/RS_VoiceBonds",
         Voice = require "RadioSurvivor/RS_MissionVoice", Log = require "RadioSurvivor/RS_RadioLog",
-        S = require "RadioSurvivor/RS_State", Rep = require "CoreAI/CA_Reputation", Personas = Personas }
+        S = require "RadioSurvivor/RS_State", Notebook = require "CoreAI/CA_NotebookStore",
+        Rep = require "CoreAI/CA_Reputation", Personas = Personas }
     if c.S.blocked or c.S.data == nil then t:skip("private state of the notebook not loaded or blocked") end
     local p = RST.Fixtures.player(t)
     t:ok(p ~= nil, "no target player (t.ctx.player)")

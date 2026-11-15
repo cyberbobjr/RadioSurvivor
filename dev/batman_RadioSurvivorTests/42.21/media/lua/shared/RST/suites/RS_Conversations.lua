@@ -155,7 +155,7 @@ local function joined(t3, c, V, Server, conv, joined0)
     end, "conversation never ended within 100 s")
 end
 
--- E08-T05: the sentence joins at its admission (RS_Carnet_Server talk, before any model call): no wait for the model.
+-- E08-T05: the sentence joins at its admission (CA_NotebookServer talk, before any model call): no wait for the model.
 -- Not joined within 10 s: the refusal read on the requester client (notebook error: Cooldown, Busy, Range...) names
 -- the cause.
 local function waitJoined(t, c, V, Server, conv, joined0)
@@ -227,7 +227,7 @@ RST.suite("rs.conversations", { mods = { "lk" },
                 local player = RST.Fixtures.player(t2)
                 local function selected()
                     local cid = Server.bound()[player]
-                    return cid ~= nil and RS_CarnetServer.selected[cid] == c.teller.id
+                    return cid ~= nil and CoreAI.notebookServer.selected[cid] == c.teller.id
                 end
                 Steps.ask(t2, "carnet.send", { command = "select", args = { incarnation = c.tellerId } },
                     { target = "requester", timeoutMs = 10000 }, function(t2a)

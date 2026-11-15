@@ -55,9 +55,9 @@ local function authority(t)
         "RadioSurvivor_Const (E06-T04) not loaded")
     local okP, Personas = pcall(require, "RadioSurvivor/RS_Personas")
     t:ok(okP and type(Personas) == "table", "RadioSurvivor/RS_Personas not loaded on this side")
-    local Server = RS_CarnetServer
+    local Server = CoreAI and CoreAI.notebookServer
     t:ok(type(Server) == "table" and type(Server.store) == "table" and Server.store.data ~= nil,
-        "notebook server state not ready (RS_CarnetServer)")
+        "notebook server state not ready (CoreAI.notebookServer)")
     t:ok(Const.isEnabled(), "sandbox option RadioSurvivor.Enabled is off")
     local p = RST.Fixtures.player(t)
     t:ok(p ~= nil, "no target player (t.ctx.player)")

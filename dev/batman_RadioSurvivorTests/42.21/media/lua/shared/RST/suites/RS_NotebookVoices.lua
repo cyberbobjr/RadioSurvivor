@@ -103,9 +103,9 @@ local function authority(t)
     t:ok(okC and type(Const) == "table" and Const.CMD ~= nil and Const.CMD.NOTE_READ ~= nil,
         "RadioSurvivor_Const (E06-T07) not loaded")
     t:ok(type(RS_RadioServer) == "table", "RadioSurvivor_Server.lua (talk, note_read commands) not loaded on this side")
-    local Server = RS_CarnetServer
+    local Server = CoreAI and CoreAI.notebookServer
     if type(Server) ~= "table" or type(Server.store) ~= "table" or Server.store.data == nil then
-        t:skip("notebook server state not ready (RS_CarnetServer)")
+        t:skip("notebook server state not ready (CoreAI.notebookServer)")
     end
     if not Const.isEnabled() then t:skip("sandbox option RadioSurvivor.Enabled is off") end
     local Personas = require "RadioSurvivor/RS_Personas"

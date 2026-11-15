@@ -8,7 +8,7 @@ direct call by name in solo: Client.receive) go through a registry of client com
   Client.registerCommand(name, fn)  -- fn(args, player): the one owner of the command name
   Client.listen(name, fn)           -- fn(args, player): called after the owner (pages that react to a command)
 A command without an owner is ignored. Owners here: identity, snapshot, error, speech, queued, offer; the pages of the
-notebook and the mods own the others (quote, rep_admin, team, the answers of the mission journal...).
+notebook and the mods own the others (quote, rep_admin, team...).
 Client.hosted(): a notebook server answered the hello with its session (Client.world). An identity answered without a
 session (CA_Identity alone: no notebook server, Living Knox alone) stops the hellos of the poll.
 ]]
@@ -240,7 +240,7 @@ Client.registerCommand('snapshot', function(args, p)
     refresh()
 end)
 
--- Refusal of the authority (notebook, mission journal, teams): one message over the character.
+-- Refusal of the authority (notebook, teams): one message over the character.
 -- While a notebook server answers, some reasons read its own words (a selected NPC out of range).
 Client.HOSTED_ERRORS = {Range = 'NpcRange'}
 local function errorText(reason)

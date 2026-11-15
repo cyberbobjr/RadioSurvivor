@@ -1,4 +1,4 @@
-"""Radio des groupes équipés (E08-T06) : vrai RadioSurvivor_Server, vrai RS_Carnet_Server, vrai moteur Living Knox
+"""Radio des groupes équipés (E08-T06) : vrai RadioSurvivor_Server, vrai CA_NotebookServer, vrai moteur Living Knox
 (registres, API, corps), vrai fournisseur RS_LivingKnox.lua, deux clients avec le vrai client radio ; lupa, Lua 5.1.
 
     python tests/test_group_radio.py
@@ -42,7 +42,7 @@ class GroupRadioTests(unittest.TestCase):
         sim.server.load('shared/RadioSurvivor/RadioSurvivor_Const.lua', 'server/RadioSurvivor_Server.lua')
         sim.server.g.fire('OnLoadRadioScripts', sim.server.g.MANAGER, True)
         self.sim, self.g, self.rt = sim, sim.server.g, sim.server.rt
-        self.server = self.g.RS_CarnetServer
+        self.server = self.g.CoreAI.notebookServer
         self.personas = self.rt.eval("require('RadioSurvivor/RS_Personas')")
         self.radio = self.rt.eval("require('RadioSurvivor/RS_GroupRadio')")
         self.sent = []
@@ -207,8 +207,8 @@ class GroupRadioTests(unittest.TestCase):
         self.world('claim')
         claims = lua_list(self.server.hooks.claim)
         self.assertEqual(len(claims), 1)
-        self.rt.execute('CLAIMS = 0 local own = RS_CarnetServer.hooks.claim[1] '
-                        'RS_CarnetServer.hooks.claim[1] = function(req) CLAIMS = CLAIMS + 1 return own(req) end')
+        self.rt.execute('CLAIMS = 0 local own = CoreAI.notebookServer.hooks.claim[1] '
+                        'CoreAI.notebookServer.hooks.claim[1] = function(req) CLAIMS = CLAIMS + 1 return own(req) end')
         self.talk('alice', 'Anyone on this channel?')
         [req] = self.radio_requests()
         before = len(self.broadcasts())

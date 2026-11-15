@@ -5,7 +5,7 @@ l'onglet Radio du carnet) et de ses étapes client (RST_PeerChecksVoices.lua).
 
 La suite est jouée par le VRAI moteur RST (RST.lua, RST_Steps.lua, RST_PeerChecksRadio.lua, RST_PeerChecksVoices.lua)
 sur le serveur dédié simulé de tests/test_carnet.py (Simulation) avec deux clients : vrai RadioSurvivor_Server (commandes
-talk et note_read, RS_RadioLog, RS_Personas : Walt sur sa fréquence d'exemple), vrai RS_Carnet_Server, vrai
+talk et note_read, RS_RadioLog, RS_Personas : Walt sur sa fréquence d'exemple), vrai CA_NotebookServer, vrai
 RS_RadioHistory sur chaque client et vraie fenêtre du carnet (onglet Radio RS_NotebookRadio, doublures d'interface NOTEBOOK_UI) sur le
 client demandeur. Doublures propres à ce banc : la radio tenue (RST.RSHelpers.radioInHand rend le talkie déjà en main
 de la doublure de joueur) et le don d'objet (RST.Fixtures.giveItem crée la note et appelle le vrai OnCreate des notes,
@@ -141,7 +141,7 @@ class NotebookVoicesSuiteTests(unittest.TestCase):
             Log.noteRead = function(player, args)
                 local line = read(player, args)
                 local me = Log.characterOf(player)
-                for _, cid in pairs(RS_CarnetServer.bound) do
+                for _, cid in pairs(CoreAI.notebookServer.bound) do
                     if cid ~= me then Log.add(cid, 145000, 'note', 'walt', 'walt') end
                 end
                 return line

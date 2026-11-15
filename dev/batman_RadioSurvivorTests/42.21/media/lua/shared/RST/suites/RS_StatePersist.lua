@@ -1,10 +1,10 @@
 --[[
-rs.state persistence steps (E16-T08, C17-C20: private notebook state bounded, reliable writes; server/RadioSurvivor/
-RS_State.lua and RS_StatePurge.lua). Played by autoclient.py --mp --phases restart --server-campaign mp-persist
-(base rs.state):
+rs.state persistence steps (E16-T08, C17-C20: private notebook state bounded, reliable writes; E21-T04: notebook
+store of the core mod, server/CoreAI/CA_NotebookStore.lua and CA_NotebookPurge.lua). Played by autoclient.py --mp
+--phases restart --server-campaign mp-persist (base rs.state):
     rs.state.before         (opt-in "manual") five test character records added to the real notebook store
-                            (RS_CarnetServer.store = RS_State), saved once at the real game day, then saved again
-                            through the real S.save -> S.maintenance -> Purge.run path with the purge clock moved
+                            (CoreAI.notebookServer.store = CA_NotebookStore), saved once at the real game day, then saved
+                            again through the real S.save -> daily purge -> Purge.run path with the purge clock moved
                             DROP_DAYS + 1 game days ahead (CA_Reputation.today, the clock the purge reads, replaced
                             for that one save and restored at once; GameTime untouched):
                               living  never retired                  -> kept as is
@@ -21,7 +21,7 @@ RS_State.lua and RS_StatePurge.lua). Played by autoclient.py --mp --phases resta
 Tags "server", "world", "manual": authority only, test saves rstest* only, exact names only. The forward pass also
 treats the other dead characters of the test world as DROP_DAYS + 1 days older (what the purge does to them anyway).
 Snapshot: Zomboid/Lua/batman_RadioSurvivor/tests/state-persist.txt of the server (RST_Persist).
-Outside the game: tests/test_rs_state_persist_suite.py (real RS_State, RS_StatePurge and RST engine, restart
+Outside the game: tests/test_rs_state_persist_suite.py (real CA_NotebookStore, CA_NotebookPurge and RST engine, restart
 simulated by a new Lua state on the same files).
 ]]
 
@@ -42,7 +42,7 @@ local function setup(t)
     if type(isClient) == "function" and isClient() then t:skip("the notebook state lives on the authority") end
     local S = R.notebook(t).store
     if S.blocked then t:skip("notebook storage blocked") end
-    local Purge = require "RadioSurvivor/RS_StatePurge"
+    local Purge = require "CoreAI/CA_NotebookPurge"
     local Rep = require "CoreAI/CA_Reputation"
     t:ok(type(Rep) == "table" and type(Rep.today) == "function", "CA_Reputation (purge clock) not loaded")
     return S, Purge, Rep
@@ -94,10 +94,12 @@ local function saveAt(S, Rep, day)
     return saved == true, "S.save refused (failures " .. tostring(S.failures) .. ")"
 end
 
--- Slot file of the current generation, read and checked by RS_State's own reader (header, checksum, decoder).
+-- Slot file of the current write, read and checked by the slot reader of the core mod (header, checksum, decoder):
+-- { generation, data }.
 local function slotOf(S)
-    local file = S.path .. "-" .. (S.generation % 2) .. ".txt"
-    return S._read(file), file
+    local file = S.base .. "-" .. (S.seq % 2) .. ".txt"
+    local slot = (require "CoreAI/CA_SlotFile").readSlot(file, S.HEADER)
+    return slot and { generation = slot.seq, data = slot.data } or nil, file
 end
 
 -- Every kept record present with the snapshot fields, no dropped one, no other test record; prefix "where".
@@ -163,15 +165,15 @@ RST.suite("rs.state.before", { tags = { "server", "world", "manual" }, testTimeo
         local living = chars[id("living")]
         t:ok(living ~= nil and not living.stripped and count(living.contacts) == 1, "living record touched")
         local slot, file = slotOf(S)
-        t:ok(slot ~= nil and slot.generation == S.generation, "slot file " .. file .. " not valid after the save")
+        t:ok(slot ~= nil and slot.generation == S.seq, "slot file " .. file .. " not valid after the save")
         local kept = {}
         for _, name in ipairs({ "living", "busy", "recent", "alive2" }) do kept[id(name)] = summary(chars[id(name)]) end
-        local snap = { kept = kept, purged = { id("old") }, generation = S.generation, path = S.path }
+        local snap = { kept = kept, purged = { id("old") }, generation = S.seq, path = S.base }
         compare(t, slot.data.characters, snap, "slot file before the restart")
         local ok, werr = RST.Persist.write(SP.FILE, SP.HEADER, snap)
         t:ok(ok, "snapshot not written: " .. tostring(werr))
         written = true
-        t:note("generation " .. S.generation .. ", purge day " .. ahead .. " (real " .. today .. "), file " .. file)
+        t:note("generation " .. S.seq .. ", purge day " .. ahead .. " (real " .. today .. "), file " .. file)
     end)
 end)
 
@@ -186,13 +188,13 @@ RST.suite("rs.state.after-restart", { tags = { "server", "world", "manual" },
             S.save()
             RST.Persist.consume(SP.FILE)
         end, "test records removed, state saved")
-        t:eq(snap.path, S.path, "state file of the same world")
-        t:ok(S.generation >= snap.generation, "generation went back: " .. tostring(S.generation) .. " < "
+        t:eq(snap.path, S.base, "state file of the same world")
+        t:ok(S.seq >= snap.generation, "generation went back: " .. tostring(S.seq) .. " < "
             .. tostring(snap.generation))
         compare(t, S.data.characters, snap, "state after the restart")
         local slot, file = slotOf(S)
-        t:ok(slot ~= nil and slot.generation == S.generation, "slot file " .. file .. " not valid after the restart")
+        t:ok(slot ~= nil and slot.generation == S.seq, "slot file " .. file .. " not valid after the restart")
         compare(t, slot.data.characters, snap, "slot file after the restart")
-        t:note("generation " .. snap.generation .. " -> " .. S.generation .. ", file " .. file)
+        t:note("generation " .. snap.generation .. " -> " .. S.seq .. ", file " .. file)
     end)
 end)

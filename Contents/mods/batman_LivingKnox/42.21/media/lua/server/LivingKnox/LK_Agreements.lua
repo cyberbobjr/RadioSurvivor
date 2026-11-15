@@ -737,7 +737,7 @@ if not F.subscribed then
     F.subscribed = true
     Events.OnInitGlobalModData.Add(function(newWorld) F.init(newWorld) end)
     Events.EveryOneMinute.Add(function() if F.dirty then F.save() end end)
-    Events.OnTickEvenPaused.Add(F.tick) -- same clock as the former poll of the notebook (RS_Carnet_Server)
+    Events.OnTickEvenPaused.Add(F.tick) -- same clock as the former poll of the notebook (CA_NotebookServer)
 end
 
 return F

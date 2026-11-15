@@ -362,7 +362,7 @@ function Facts.missionFinished(state, mission, result)
         if type(member) == 'table' and type(member.name) == 'string' then names[#names + 1] = member.name end
     end
     table.sort(names)
-    local server = RS_CarnetServer
+    local server = CoreAI and CoreAI.notebookServer
     local body = server and server.objects and server.objects[mission.npc]
     Facts.record('mission', {template = mission.template or 'deliver', result = result, requester = requester,
         participants = names, place = Facts.placeOf(body)}, 'mission|' .. tostring(mission.id))

@@ -597,10 +597,13 @@ class ServerChainTests(unittest.TestCase):
             state = g.require('RadioSurvivor/RS_State')
             trade = g.require('RadioSurvivor/RS_Trade')
             talk_module = g.require('RadioSurvivor/RS_RadioTalk')
-            assert state.init(True) is True
-            state.data.characters = t({'c1': t({'id': 'c1'})})
-            g.RS_CarnetServer = t({'bound': t({})})
-            g.RS_CarnetServer.bound[player] = 'c1'
+            notebook = g.require('CoreAI/CA_NotebookStore')   # E21-T04: characters of the notebook, voices companion
+            assert notebook.init(True) is True
+            assert state.data is not None
+            notebook.data.characters = t({'c1': t({'id': 'c1'})})
+            g.CoreAI = g.CoreAI or t({})
+            g.CoreAI.notebookServer = t({'bound': t({})})
+            g.CoreAI.notebookServer.bound[player] = 'c1'
 
             def turn(khz: int, text: str) -> dict:
                 player.radio.device.channel = khz

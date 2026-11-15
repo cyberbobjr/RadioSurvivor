@@ -2,7 +2,7 @@
 CoreAI: constants of the notebook protocol (E21-T03, design carnet-commun-e21.md, "Configuration et stocks").
 Read by the notebook client (CA_NotebookClient) and by the notebook server (the configuration of the mod that hosts
 it gives the same values under the same names). The notebook traffic uses the network module MODULE, shared with
-the other commands of the core mod (CA_Identity, CA_MissionJournal, CA_Teams): each command name has one owner (see
+the other commands of the core mod (CA_Identity, CA_Teams): each command name has one owner (see
 the server registry).
 ]]
 local MissionConfig = require 'CoreAI/CA_MissionConfig'

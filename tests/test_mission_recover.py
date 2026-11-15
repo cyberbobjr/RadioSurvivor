@@ -171,7 +171,7 @@ class RecoverMissionTests(unittest.TestCase):
         return sim, npc, record, missions
 
     def catalog(self, sim, npc, record):
-        return convert(sim.server.g.RS_CarnetServer.offerCatalogFor(npc, record))
+        return convert(sim.server.g.CoreAI.notebookServer.offerCatalogFor(npc, record))
 
     def active(self, name='recover'):
         sim, npc, record, missions = self.recover_sim(name)
@@ -308,7 +308,7 @@ class RecoverMissionTests(unittest.TestCase):
         self.assertEqual((m.cache.placed, m.cache.itemId), (True, placed[1].id))
         self.assertNotEqual(m.cache.itemId, other.id)
         # A failed save of `placing` places nothing.
-        store = g.RS_CarnetServer.store
+        store = g.CoreAI.notebookServer.store
         m.cache.placed, m.cache.placing = False, False
         saved = store.save
         store.save = lambda *a: False
@@ -370,7 +370,7 @@ class RecoverMissionTests(unittest.TestCase):
         sim, npc, m, missions = self.active('floor')
         g, char = sim.server.g, sim.character('alice')
         bag = self.place(sim, m)
-        store = g.RS_CarnetServer.store
+        store = g.CoreAI.notebookServer.store
         # The notebook delivery commands are no way to finish it.
         ok, reason = missions.report(store, m, g.PLAYERS.alice, char, sim.server.rt.table_from([bag.id]), 'forged')
         self.assertEqual((ok, reason), (False, 'State'))
@@ -429,7 +429,7 @@ class RecoverMissionTests(unittest.TestCase):
         char = sim.character('alice')
         actions = rt.eval("require('RadioSurvivor/RS_Actions')")
         voice = rt.eval("require('RadioSurvivor/RS_MissionVoice')")
-        store = g.RS_CarnetServer.store
+        store = g.CoreAI.notebookServer.store
         sheet = rt.eval("{id = 'walt', name = 'Walt', actions = {'say', 'place_cache', 'start_mission'}, budgets = {}}")
         ctx = lambda: rt.table_from({'player': g.PLAYERS.alice, 'cid': char, 'khz': 91200, 'day': '1993-07-12'})
 

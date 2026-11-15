@@ -158,7 +158,9 @@ M = require 'CoreAI/CA_Missions'
 require 'LivingKnox/LK_MissionRewards'
 store = {data={npcs={n={id='n', incarnation='lk-1'}}, characters={a={name='Ann'}, b={name='Bob'}}},
          save=function() return true end}
-require('RadioSurvivor/RS_MissionHooks').attach(store)
+-- E21-T04: giver 'npc' and hooks of the notebook (core mod), attached at load; the engine on this store.
+require('CoreAI/CA_NotebookGiver')
+M.useStore(store)
 m = {id='n-d1', npc='n', state='success', participants={a={name='Ann'}, b={name='Bob'}}, invited={},
      claimedBy='', revision=1, rewardCount=0, rewardType='', receipts={}, quantity=1, delivered=1, accepted={}}
 """

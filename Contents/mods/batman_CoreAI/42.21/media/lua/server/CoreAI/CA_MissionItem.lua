@@ -3,7 +3,7 @@ if isClient() then return end
 Mission template `item` (E20-T15, ADR D06, D10): find a personal item the server put at a place named by the giver and
 leave it at one of the mission's dead drops, then report by radio. Authority only. Catalogue:
 CA_MissionConfig.Missions.item (offer id item_v1). Registered in CA_Missions (M.register); required by
-RS_Carnet_Server.
+CA_NotebookServer.
 
 Giver: a radio voice only, under the name `item` (declaration voiceName); an NPC fiche is never offered one.
 Parameters of its sheet section (declaration params): item = full type of a vanilla item script (kind `item` of

@@ -32,6 +32,7 @@ if isServer() then return end
 require "LivingKnox/LK_Core"
 require "LivingKnox/LK_Log"
 require "LivingKnox/LK_Table"
+local Access = require "CoreAI/CA_AdminAccess"
 
 local DebugView = LivingKnox.DebugView or {}
 LivingKnox.DebugView = DebugView
@@ -40,7 +41,7 @@ LivingKnox.DebugView = DebugView
 DebugView.MODULE = "LivingKnox"
 DebugView.CMD_REQUEST = "adminRequest"
 DebugView.CMD_REPLY = "adminReply"
-DebugView.CAPABILITY = "PopmanManage"
+DebugView.CAPABILITY = Access.CAPABILITY
 DebugView.OP = "activity"
 DebugView.MAX = 200          -- lignes d'activité gardées (celles de l'autorité)
 
@@ -69,11 +70,7 @@ local function now() return getTimestampMs() end
 
 -- Vrai si le joueur peut ouvrir le panneau (affichage seulement : l'autorité décide). Mêmes droits que la fiche.
 function DebugView.canUse(player)
-    if not isClient() then return isDebugEnabled ~= nil and isDebugEnabled() == true end
-    player = player or localPlayer()
-    if player == nil or Capability == nil or Capability[DebugView.CAPABILITY] == nil then return false end
-    local role = player:getRole()
-    return role ~= nil and role:hasCapability(Capability[DebugView.CAPABILITY]) == true
+    return Access.canUse(player) -- E21-T04 : règle commune (CA_AdminAccess)
 end
 
 -- Requêtes -----------------------------------------------------------------------------------------------------------
