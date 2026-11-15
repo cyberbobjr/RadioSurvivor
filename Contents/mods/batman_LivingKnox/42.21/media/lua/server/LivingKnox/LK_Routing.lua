@@ -754,6 +754,7 @@ function Obstacles.planDoorRoute(npcId, x0, y0, tx, ty, z)
         shared.box, shared.exitKeys = exit.box, exit.keys
         info.exit = exit.text
     end
+    info.waryOfWindows = waryOfWindows(npcId)   -- LK05-T23 : pour le journal, même si aucun itinéraire n'est trouvé
     local zr, zn, why = Obstacles.findRoute(npcId, x0, y0, tx, ty, z, "zombie", shared)
     info.nodes = zn
     if zr == nil then return done({}, "zombie route: " .. tostring(why)) end
