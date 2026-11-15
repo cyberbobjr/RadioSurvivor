@@ -16,8 +16,8 @@ while you play. It is one program for every setup (Radio Survivor, Living Knox o
 ## 1. What you need
 
 - **Python 3.10 or newer** (`python --version`). No package to install: the bridge uses only the standard library.
-- The **five bridge files**, kept together in one folder: `radio_bridge.py`, `npc_protocol.py`, `persona_store.py`,
-  `bulletin.py`, `last_pages.py`, plus `.env.example`. Use the bridge of the same version as the mods.
+- The **whole `bridge` folder**, downloaded entirely from the GitHub repository and kept together (not only
+  `radio_bridge.py`), plus `.env.example`. Use the bridge of the same version as the mods.
 - An **API key** from a provider compatible with the OpenAI API: see
   [AI provider configuration](08-ai-provider-configuration.md). Not needed for `--offline`.
 

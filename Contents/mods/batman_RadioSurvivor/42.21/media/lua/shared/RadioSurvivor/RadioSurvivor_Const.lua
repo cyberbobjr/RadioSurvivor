@@ -20,12 +20,19 @@ Const.RESPONSES_FILE = Bridge.RESPONSES_FILE
 -- courant devient actions-<partie>.1.log (l'ancien écrasé) et repart vide. Taille en caractères (unités Kahlua).
 Const.ACTION_LOG_MAX_LINES = 2000
 Const.ACTION_LOG_MAX_CHARS = 262144
--- Mémoire des voix (E07-T03, server/RadioSurvivor/RS_Memory.lua, action remember) : faits gardés par (voix, appelant,
--- personnage), le plus ancien évincé ; appelants gardés par voix, le moins récent évincé ; caractères par fait (la
--- borne des paramètres d'action de RS_Actions).
-Const.MEMORY_MAX_FACTS = 5
-Const.MEMORY_MAX_CALLERS = 50
-Const.MEMORY_FACT_CHARS = 64
+-- Memory of the voices (E07-T03, E22-T13, server/RadioSurvivor/RS_Memory.lua, action remember of every voice): per
+-- (voice, caller, character) at most MEMORY_CALLER_CHARS characters of facts and MEMORY_MAX_FACTS facts, no eviction
+-- (one more fact is refused); MEMORY_FACT_CHARS characters per fact (one or two sentences: a name, a place and their
+-- context; also the bound of the fact parameter in RS_Actions). The count of facts bounds the private state (one fact
+-- = one RSV2 table) even when the facts are very short.
+-- Dead people a voice knew (E22-T13), joined to each request to that voice: at most MEMORY_DEAD_MAX, latest deaths
+-- first, MEMORY_DEAD_CHARS characters of facts each, a name of at most MEMORY_NAME_CHARS characters.
+Const.MEMORY_CALLER_CHARS = 2000
+Const.MEMORY_MAX_FACTS = 50
+Const.MEMORY_FACT_CHARS = 200
+Const.MEMORY_DEAD_MAX = 10
+Const.MEMORY_DEAD_CHARS = 300
+Const.MEMORY_NAME_CHARS = 64
 -- État dynamique des voix (E07-T06, server/RadioSurvivor/RS_PersonaState.lua, action persona_state) : moral et
 -- réserves entiers de 0 à 10 (5 par défaut), changés d'au plus 2 par appel ; lieu dit par la voix, en caractères.
 Const.PERSONA_LEVEL_MAX = 10
@@ -328,6 +335,13 @@ end
 -- de l'autorité par server/RadioSurvivor/RS_BridgeAlive.lua (abonnement hors de ce module partagé, requis partout).
 function Const.refreshTimeout(now)
     Const.TIMEOUT_MS = Const.waitMs(Const.NO_BRIDGE_TIMEOUT_MS, now)
+end
+
+-- Current game day YYYY-MM-DD (authority): key of the daily budget of the actions (RS_Actions), date of a death a
+-- voice remembers (RS_NotebookHooks -> RS_Memory.markDead, E22-T13).
+function Const.gameDay()
+    local gt = getGameTime()
+    return string.format("%04d-%02d-%02d", gt:getYear(), gt:getMonth() + 1, gt:getDay() + 1)
 end
 
 return Const

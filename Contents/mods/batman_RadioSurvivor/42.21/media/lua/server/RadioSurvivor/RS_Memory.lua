@@ -1,18 +1,23 @@
--- Radio Survivor : action `remember`, mémoire bornée d'une voix sur un appelant (E07-T03).
--- Le pont propose `remember` (paramètre unique `fact`) ; RS_Actions juge (catalogue, fiche, budget.remember du jour,
--- paramètres) puis l'exécuteur ci-dessous range le fait. Aucun effet de jeu : seulement la mémoire.
--- La mémoire vit côté autorité, dans l'état privé RS_State (S.data.memory, jamais en ModData globale) ; sinon (état
--- pas encore chargé ou bloqué) dans une table en mémoire, perdue au redémarrage du serveur, comme les compteurs de
--- RS_Actions. Clé : voix + appelant + personnage du carnet (ctx.cid s'il existe), pour qu'un nouveau personnage en
--- solo (une seule clé d'appelant, « solo ») n'hérite pas des souvenirs du précédent.
--- À chaque demande radio suivante du même appelant à la même voix, RadioSurvivor_Server joint les faits à la demande
--- (champ memory=, hexadécimal RSV2 d'une liste de chaînes, Memory.field) ; le pont les place dans le prompt comme
--- souvenirs non vérifiés, jamais comme preuve (docs/specifications-techniques/protocole-carnet-v2.md, « Mémoire des voix »).
--- Bornes (RadioSurvivor_Const) : MEMORY_MAX_FACTS faits par (voix, appelant, personnage), le plus ancien évincé ; un
--- fait identique après normalisation (casse, espaces) est rafraîchi, pas dupliqué ; MEMORY_MAX_CALLERS appelants par
--- voix, le moins récemment servi évincé ; MEMORY_FACT_CHARS caractères par fait.
--- Purge : la mort d'un personnage (CA_NotebookServer.characterDeath, identité retirée) appelle forgetCharacter ; un
--- personnage déjà retiré n'est de toute façon jamais relu (filtre à la lecture).
+-- Radio Survivor: action `remember`, what a voice remembers about its callers (E07-T03, E22-T13).
+-- Every voice has `remember` without listing it in its sheet (RS_Actions.UNIVERSAL): the bridge always offers it
+-- (single parameter `fact`); RS_Actions judges it (catalogue, parameters), then the executor below stores the fact.
+-- No game effect: memory only.
+-- The memory lives on the authority, in the private state RS_State (S.data.memory, never in global ModData); otherwise
+-- (state not loaded yet or blocked) in a table in memory, lost at a server restart, like the counters of RS_Actions.
+-- Key: voice + caller + notebook character (ctx.cid when there is one), so that a new character in solo (a single
+-- caller key, "solo") does not inherit the memories of the previous one.
+-- At each later radio request of the same caller to the same voice, RadioSurvivor_Server joins the facts to the
+-- request (field memory=, RSV2 hex of a list of strings, Memory.field); the bridge puts them in the prompt as
+-- unverified memories, never as proof (docs/specifications-techniques/protocole-carnet-v2.md, "Memoire des voix").
+-- Bounds (RadioSurvivor_Const), without any eviction: at most MEMORY_CALLER_CHARS characters of facts and
+-- MEMORY_MAX_FACTS facts per (voice, caller, character); past that a new fact is refused (memory_full, logged) and
+-- nothing is forgotten; a fact identical after normalisation (case, spaces) is refreshed, not duplicated;
+-- MEMORY_FACT_CHARS characters per fact. No bound on the number of callers: the state grows by at most
+-- MEMORY_CALLER_CHARS per character and per voice.
+-- Death (E22-T13): CA_Identity.onRetire (RS_NotebookHooks) calls markDead; the memories of the character stay, marked
+-- dead (name, game day of the death). They are no longer joined as the memories of a caller (retired filter when
+-- read), but every request to a voice carries the dead people it knew (field dead=, Memory.deadField): at most
+-- MEMORY_DEAD_MAX, latest deaths first, MEMORY_DEAD_CHARS characters of facts each.
 if isClient() then return end
 
 local Const = require "RadioSurvivor/RadioSurvivor_Const"
@@ -23,13 +28,12 @@ local Actions = require "RadioSurvivor/RS_Actions"
 
 local Memory = {}
 
--- Délai entre deux `remember` d'une même voix : aucun. Le délai de RS_Actions est par voix et non par appelant : un
--- délai ferait refuser le souvenir d'un deuxième appelant juste après celui d'un premier. Le budget du jour
--- (budget.remember de la fiche), les 3 actions au plus par réponse et les bornes ci-dessus suffisent à limiter
--- l'écriture.
+-- No delay between two `remember` of a voice: the delay of RS_Actions is per voice, not per caller, and would refuse
+-- the memory of a second caller right after the one of a first. The 3 actions at most per reply and the bounds above
+-- limit the writing.
 Memory.COOLDOWN_MS = 0
 
--- Mémoire de secours quand RS_State n'est pas chargé (voir l'en-tête).
+-- Memory used while RS_State is not loaded (see the header).
 local volatile = {}
 
 function Memory.resetForTests()
@@ -44,8 +48,8 @@ local function store()
     return volatile, false
 end
 
--- Fait sur une ligne : contrôles et retours en espaces, balises de texte riche retirées, espaces réduits, coupé à
--- MEMORY_FACT_CHARS (ou maxChars : lieu de RS_PersonaState) ; "" si rien ne reste.
+-- One-line fact: controls and line breaks to spaces, rich text marks removed, spaces reduced, cut at
+-- MEMORY_FACT_CHARS (or maxChars: place of RS_PersonaState, name of a dead person); "" when nothing is left.
 function Memory.clean(text, maxChars)
     if type(text) ~= "string" then return "" end
     local limit = maxChars or Const.MEMORY_FACT_CHARS
@@ -57,13 +61,13 @@ function Memory.clean(text, maxChars)
     return text
 end
 
--- Forme de comparaison (doublons) : minuscules, espaces déjà réduits par clean.
+-- Comparison form (duplicates): lower case, spaces already reduced by clean.
 local function normal(text)
     return string.lower(text)
 end
 
--- Clé d'un appelant : longueur de la clé de compte en tête, pour qu'aucun nom de compte ne se confonde avec un
--- autre couple (appelant, personnage).
+-- Key of a caller: length of the account key first, so that no account name is mistaken for another (caller,
+-- character) pair.
 local function keyOf(caller, cid)
     local who = tostring(caller or "?")
     return tostring(string.len(who)) .. ":" .. who .. "/" .. tostring(cid or "-")
@@ -81,53 +85,53 @@ local function voiceOf(all, voice, create)
     return v
 end
 
--- Personnage retiré à la mort (ou disparu de l'état) : ses souvenirs ne sont plus lus.
+-- Character retired at its death (or gone from the state): its memories are no longer read as a caller's.
 local function retired(cid)
     if cid == nil or not Notebook.data then return false end
     local record = Notebook.data.characters[cid]
     return type(record) ~= "table" or record.retired == true
 end
 
--- Retire l'appelant le moins récemment servi tant que la voix en garde plus que MEMORY_MAX_CALLERS.
-local function evictCallers(v)
-    while true do
-        local count, oldestKey, oldestSeq = 0, nil, nil
-        for key, entry in pairs(v.callers) do
-            count = count + 1
-            local seq = type(entry) == "table" and tonumber(entry.seq) or -1
-            if oldestSeq == nil or seq < oldestSeq then oldestKey, oldestSeq = key, seq end
-        end
-        if count <= Const.MEMORY_MAX_CALLERS or oldestKey == nil then return end
-        v.callers[oldestKey] = nil
-    end
+local function isFact(f)
+    return type(f) == "table" and type(f.text) == "string" and f.text ~= ""
 end
 
--- Range un fait déjà nettoyé. Rend true.
+-- Stores a fact already cleaned. Returns true, or false and "memory_full" when the entry of this caller already holds
+-- MEMORY_MAX_FACTS facts or the fact would take it past MEMORY_CALLER_CHARS characters (nothing is evicted; logged).
+-- A fact identical after normalisation replaces the old one (refreshed, moved last), its size counted once.
 function Memory.add(voice, caller, cid, fact)
     local all, persistent = store()
     local v = voiceOf(all, voice, true)
-    v.seq = v.seq + 1
     local key = keyOf(caller, cid)
     local entry = v.callers[key]
-    if type(entry) ~= "table" or type(entry.facts) ~= "table" then
-        entry = { caller = caller, cid = cid, facts = {} }
+    local wanted = normal(fact)
+    local kept, used = {}, 0
+    if type(entry) == "table" and type(entry.facts) == "table" then
+        for _, f in ipairs(entry.facts) do
+            if isFact(f) and normal(f.text) ~= wanted then
+                kept[#kept + 1] = f
+                used = used + string.len(f.text)
+            end
+        end
+    end
+    if #kept >= Const.MEMORY_MAX_FACTS or used + string.len(fact) > Const.MEMORY_CALLER_CHARS then
+        Const.log("memory of voice " .. tostring(voice) .. " for caller " .. tostring(caller) .. " ("
+            .. tostring(cid or "-") .. ") is full (" .. #kept .. " facts, " .. used .. " characters): fact refused")
+        return false, "memory_full"
+    end
+    if type(entry) ~= "table" then
+        entry = { caller = caller, cid = cid }
         v.callers[key] = entry
     end
+    v.seq = v.seq + 1
     entry.seq = v.seq
-    local wanted = normal(fact)
-    local kept = {}
-    for _, f in ipairs(entry.facts) do
-        if type(f) == "table" and type(f.text) == "string" and normal(f.text) ~= wanted then kept[#kept + 1] = f end
-    end
     kept[#kept + 1] = { text = fact, seq = v.seq }
-    while #kept > Const.MEMORY_MAX_FACTS do table.remove(kept, 1) end
     entry.facts = kept
-    evictCallers(v)
     if persistent then S.dirty = true end
     return true
 end
 
--- Faits de l'appelant pour cette voix, du plus ancien au plus récent ; liste vide s'il n'y en a pas.
+-- Facts of the caller for this voice, oldest first; empty list when there is none (or its character is dead).
 function Memory.facts(voice, caller, cid)
     local out = {}
     if voice == nil or retired(cid) then return out end
@@ -136,42 +140,91 @@ function Memory.facts(voice, caller, cid)
     local entry = v and v.callers[keyOf(caller, cid)]
     if type(entry) ~= "table" or type(entry.facts) ~= "table" then return out end
     for _, f in ipairs(entry.facts) do
-        if type(f) == "table" and type(f.text) == "string" and f.text ~= "" and #out < Const.MEMORY_MAX_FACTS then
-            out[#out + 1] = f.text
-        end
+        if isFact(f) and #out < Const.MEMORY_MAX_FACTS then out[#out + 1] = f.text end
     end
     return out
 end
 
--- Champ memory= d'une demande radio : hexadécimal RSV2 de la liste des faits (une ligne, réversible, taille bornée
--- par les bornes ci-dessus), ou nil sans souvenir (champ absent).
+-- Field memory= of a radio request: RSV2 hex of the list of facts (one line, reversible, size bounded by the bounds
+-- above), or nil without any memory (field absent).
 function Memory.field(voice, caller, cid)
     local facts = Memory.facts(voice, caller, cid)
     if #facts == 0 then return nil end
     return Codec.hexBytes(Codec.encodeBytes(facts))
 end
 
--- Mort d'un personnage : ses souvenirs, toutes voix confondues, sont oubliés.
-function Memory.forgetCharacter(cid)
+-- Death of a character (E22-T13): its memories stay in every voice, marked dead with its name (cleaned, at most
+-- MEMORY_NAME_CHARS characters) and the game day of the death (YYYY-MM-DD, or nil). A death marked once is kept.
+function Memory.markDead(cid, name, day)
     if cid == nil then return end
     local all, persistent = store()
-    local removed = false
+    local marked = false
+    local shown = Memory.clean(name, Const.MEMORY_NAME_CHARS)
     for _, v in pairs(all) do
         if type(v) == "table" and type(v.callers) == "table" then
-            local doomed = {}
-            for key, entry in pairs(v.callers) do
-                if type(entry) == "table" and entry.cid == cid then doomed[#doomed + 1] = key end
-            end
-            for _, key in ipairs(doomed) do
-                v.callers[key] = nil
-                removed = true
+            for _, entry in pairs(v.callers) do
+                if type(entry) == "table" and entry.cid == cid and entry.dead == nil then
+                    v.seq = (tonumber(v.seq) or 0) + 1
+                    entry.dead = { name = shown ~= "" and shown or nil, day = type(day) == "string" and day or nil,
+                        seq = v.seq }
+                    marked = true
+                end
             end
         end
     end
-    if removed and persistent then S.dirty = true end
+    if marked and persistent then S.dirty = true end
 end
 
--- Paramètre unique `fact` : chaîne non vide une fois nettoyée (RS_Actions en borne déjà la longueur brute).
+-- Facts of one dead person on one line, latest first, joined by "; ", cut at MEMORY_DEAD_CHARS characters.
+local function deadFacts(entry)
+    local parts = {}
+    for i = #entry.facts, 1, -1 do
+        local f = entry.facts[i]
+        if isFact(f) then parts[#parts + 1] = f.text end
+    end
+    local text = table.concat(parts, "; ")
+    if string.len(text) > Const.MEMORY_DEAD_CHARS then
+        text = Const.oneLine(string.sub(text, 1, Const.MEMORY_DEAD_CHARS))
+    end
+    return text
+end
+
+local function laterDeath(a, b)
+    return a.seq > b.seq
+end
+
+-- Dead people this voice knew: { { name, day, facts } }, latest deaths first, at most MEMORY_DEAD_MAX; name and day
+-- absent when unknown; a dead person without any fact is left out.
+function Memory.dead(voice)
+    local found = {}
+    local v = voice ~= nil and voiceOf(store(), voice, false) or nil
+    if v == nil then return found end
+    for _, entry in pairs(v.callers) do
+        if type(entry) == "table" and type(entry.dead) == "table" and type(entry.facts) == "table" then
+            local facts = deadFacts(entry)
+            if facts ~= "" then
+                found[#found + 1] = { seq = tonumber(entry.dead.seq) or 0, name = entry.dead.name,
+                    day = entry.dead.day, facts = facts }
+            end
+        end
+    end
+    table.sort(found, laterDeath)
+    local out = {}
+    for i = 1, math.min(#found, Const.MEMORY_DEAD_MAX) do
+        local d = found[i]
+        out[i] = { name = d.name, day = d.day, facts = d.facts }
+    end
+    return out
+end
+
+-- Field dead= of a radio request: RSV2 hex of Memory.dead(voice), or nil when the voice knew nobody who died.
+function Memory.deadField(voice)
+    local dead = Memory.dead(voice)
+    if #dead == 0 then return nil end
+    return Codec.hexBytes(Codec.encodeBytes(dead))
+end
+
+-- Single parameter `fact`: a string, not empty once cleaned (RS_Actions already bounds its raw length).
 local function validate(params)
     for key in pairs(params) do
         if key ~= "fact" then return false end
@@ -185,7 +238,8 @@ local function execute(params, ctx)
 end
 
 function Memory.register()
-    return Actions.register("remember", { validate = validate, cooldownMs = Memory.COOLDOWN_MS, execute = execute })
+    return Actions.register("remember", { validate = validate, cooldownMs = Memory.COOLDOWN_MS,
+        maxParamChars = Const.MEMORY_FACT_CHARS, execute = execute })
 end
 
 Memory.register()

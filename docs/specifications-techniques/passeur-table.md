@@ -172,9 +172,11 @@ masques et filtres improvisés (`Hat_ImprovisedGasMask`, `GasmaskFilterCrafted`)
 ## 3. Ce que le passeur apporte
 
 Depuis `E20-T07` (ADR D07), ce stock est déclaré dans la section `[trade]` de `personas/gus.txt` (une ligne
-`item=Base.X:fourchette:poids` par objet, groupes `group=seeds:3-8:4` et `group=alcohol:1-4`), mêmes objets, fourchettes
-et poids que ci-dessous ; format dans [persona-format.md](persona-format.md). Un autre marchand déclare le sien dans sa
-fiche.
+`item=Base.X:fourchette` par objet, groupes `group=seeds:3-8:4` et `group=alcohol:1-4`), mêmes objets et fourchettes
+que ci-dessous ; format dans [persona-format.md](persona-format.md). Un autre marchand déclare le sien dans sa fiche.
+Depuis `E22-T12`, la fiche n'écrit plus de poids : le serveur lit celui du script de l'objet (`RS_ItemWeights` :
+`Weight` du script, plus le liquide d'un récipient créé plein, 1 kg par litre), qui compte dans les 10 kg de la
+contrepartie. Les 20 kg de ce que prend le passeur pèsent les objets réels déposés (`getUnequippedWeight`).
 
 Prix de vente selon la section 1 (`⌈V × quantité × (1 + marge) × M⌉`). Stock tiré à chaque passage dans la
 fourchette ; les objets usables (piles, paquets) sont fournis pleins.

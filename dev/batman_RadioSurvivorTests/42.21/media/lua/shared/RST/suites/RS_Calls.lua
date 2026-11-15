@@ -48,18 +48,7 @@ local function setup(t)
     return { Const = Const, P = P, sheet = sheet, khz = khz, heard = R.hear(t) }
 end
 
--- Puts the clock just before the next full hour and waits for EveryHours; next(t, firedAt).
-local function nextHour(t, next)
-    local fired = nil
-    local function onHour() fired = fired or getTimestampMs() end
-    Events.EveryHours.Add(onHour)
-    t:defer(function() Events.EveryHours.Remove(onHour) end, "remove the EveryHours listener")
-    local gt = getGameTime()
-    local tod = gt:getTimeOfDay()
-    local target = math.floor(tod) + 0.99
-    if tod < target then gt:setTimeOfDay(target) end
-    t:waitUntil(function() return fired end, 60000, next, "EveryHours not fired within 60 s (game paused?)")
-end
+local nextHour = R.nextHour
 
 RST.suite("rs.calls", { tags = { "world", "server" }, testTimeoutMs = 120000, timeoutMs = 300000 }, function(s)
     s.test("a voice forced to call is heard at the next full hour", function(t)

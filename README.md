@@ -80,6 +80,19 @@ works without the other.
   hours later; a job can offer several drop points, rewards are drawn at random from what the voice can give.
 - **Jobs that tell a story**: scouting, deliveries by item category, clearing, barricading, a radio relay, a route,
   keeping watch, a personal keepsake; some jobs follow each other, and Darlene can go back to her clinic.
+- **Voices remember you, for good**: every voice keeps what it learned about each caller (up to 2,000 characters per
+  character) and still knows who died, if someone talks about them.
+
+### The voice workshop (Radio Survivor)
+
+Make your own radio voices without writing a file: double-click `bridge/atelier.bat` (`atelier.sh` on Linux,
+`atelier.command` on macOS) and a page opens in your browser. Five steps (who, where and when, what she knows,
+missions, rewards), places recorded in game with a right click, a trader's stock picked by item name, a handwritten
+note and a spontaneous call written in the voice itself. The bridge's AI can write the personality and lets you try
+the voice before saving; the game hears it within 30 seconds, tells you if it refuses a line, and a live journal shows
+what players say to the voices. Export and import share a voice. Guide: [Voice workshop](docs/wiki/en/13-voice-workshop.md).
+
+![The voice workshop](docs/images/screenshots/atelier/atelier-en-01-voice.png)
 
 ### The notebook and the NPCs
 
@@ -183,15 +196,7 @@ game ◀─responses.txt── bridge ◀─────────
 
 ### 1. The files
 
-The bridge is five Python files, to be kept **together in the same folder** and updated along with the mods:
-
-| File | Role |
-|---|---|
-| `radio_bridge.py` | Main program: watches the files, calls the AI, writes the answers |
-| `npc_protocol.py` | Notebook NPC dialogue |
-| `persona_store.py` | Reads the voices' character sheets |
-| `bulletin.py` | The pirate station's evening bulletin |
-| `last_pages.py` | A dead character's last pages |
+The bridge is a whole folder, to be downloaded **entirely** from the GitHub repository, kept **together** and updated along with the mods. Its main program is `radio_bridge.py`; it needs the other Python files, the `atelier/` folder and the launchers (`atelier.bat`, `atelier.sh`, `atelier.command`) next to it.
 
 Plus `.env.example`, the template for the settings file. In this repository: the [`bridge/`](bridge/) folder.
 
@@ -261,7 +266,7 @@ game.
    Without `--exchange`, the bridge uses the `Zomboid` folder of **its own** account: pass `--exchange` as soon as the
    server runs under another account or with `-cachedir`. The bridge creates the folder if it is missing, so a typo
    gives no error: while the bridge runs, the right folder contains `bridge-alive.txt`.
-2. **Install** the five files in a folder (for example `C:\RadioSurvivorBridge` or `/opt/radiosurvivor-bridge`) and the
+2. **Install** the whole `bridge` folder in a folder (for example `C:\RadioSurvivorBridge` or `/opt/radiosurvivor-bridge`) and the
    key file **outside** that folder and the game folders, readable only by the bridge's account (`chmod 600` on Linux).
 3. **Test by hand**:
 
@@ -315,6 +320,9 @@ game.
 | `--usage-log PATH` | Usage log (default `<exchange>/token_usage.jsonl`). |
 | `--debug` | Full log in the terminal, prompts and dialogue included. |
 | `--poll SECONDS` | How often `requests.txt` is read (default 0.3). |
+| `--atelier` | Also opens the [voice workshop](docs/wiki/en/13-voice-workshop.md) in your browser (it opens even without an AI configured). |
+| `--atelier-port PORT` | Local port of the workshop (default 8765, the next ones if taken). |
+| `--game-log PATH` | Game console read by the workshop for its verdicts and journal (default `<Zomboid>/console.txt`; a dedicated server's console file). |
 | `--help` | Full help. |
 
 ### Cost

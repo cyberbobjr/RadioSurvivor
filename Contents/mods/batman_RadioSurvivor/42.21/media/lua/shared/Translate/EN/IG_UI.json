@@ -198,5 +198,8 @@
     "IGUI_RS_Reward_cache": "I left supplies for you at the marked place.",
     "IGUI_RS_Reward_frequency": "A radio contact has been added to your notebook.",
     "IGUI_RS_Reward_stashmap": "You received an annotated map to a stash.",
-    "IGUI_RS_Reward_lesson": "You received a practical lesson."
+    "IGUI_RS_Reward_lesson": "You received a practical lesson.",
+    "IGUI_RS_Survey_Menu": "Voice workshop: record this place",
+    "IGUI_RS_Survey_Done": "Place recorded for the voice workshop",
+    "IGUI_RS_Survey_Refused": "This place could not be recorded"
 }

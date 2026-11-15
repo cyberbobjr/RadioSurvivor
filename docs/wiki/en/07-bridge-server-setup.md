@@ -27,9 +27,9 @@ a program: the bridge is installed and started **by hand, on the machine that ru
 Without the bridge, the mods still work: the voices only answer with static, the evening bulletin and the last pages
 fall back to short texts written by the server, and the notebook NPCs stay silent.
 
-The bridge is five files: `radio_bridge.py` (the program), `npc_protocol.py` (notebook dialogues), `persona_store.py`
-(voice sheets), `bulletin.py` (evening bulletin) and `last_pages.py` (last pages). Copy them together into one folder,
-with `.env.example`, at the same version as the mods installed on the server: a bridge older than the mods does not
+The bridge is a whole folder, `bridge`, not a single program: `radio_bridge.py` needs the other Python files, the
+`atelier/` folder and the launchers next to it. Download the entire folder from the GitHub repository and keep it
+together in one place, with `.env.example`, at the same version as the mods installed on the server: a bridge older than the mods does not
 understand every request, and a missing file stops it from starting (`ModuleNotFoundError`). Update it with every mod
 update.
 

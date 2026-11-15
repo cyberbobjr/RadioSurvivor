@@ -83,6 +83,9 @@ def vanilla_items() -> dict[str, float]:
     return out
 
 
+CATALOG = ROOT / 'bridge' / 'atelier' / 'catalog.json'
+
+
 def code_files() -> list[Path]:
     """Code du mod et du pont : hors fiches, traductions et bancs."""
     out = []
@@ -92,6 +95,8 @@ def code_files() -> list[Path]:
                 continue
             parts = set(path.parts)
             if 'personas' in parts or 'Translate' in parts or 'tests' in parts or '__pycache__' in parts:
+                continue
+            if path == CATALOG:  # E22-T01 : catalogue généré depuis les fiches livrées (voix listées), pas du code
                 continue
             out.append(path)
     return out

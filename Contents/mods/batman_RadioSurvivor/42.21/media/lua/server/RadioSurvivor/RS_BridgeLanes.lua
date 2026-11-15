@@ -22,8 +22,10 @@ local T = require "CoreAI/CA_Transport"
 -- trade (E13-T02): book of the smuggler for this caller (hex RSV2 table, RS_Trade.field); absent = no trade.
 -- reputation (E04-T10): public reputation of this caller (level and last public act); absent = none.
 -- story (E20-T08): story state of the voice (a name, RS_VoiceStory); absent = none yet.
+-- dead (E22-T13): people this voice knew who died (hex RSV2 list of {name, day, facts}, RS_Memory.deadField);
+-- absent = none.
 local RADIO_KEYS = { 'kind', 'caller', 'voice', 'name', 'date', 'days', 'radio', 'text', 'language', 'memory',
-    'persona', 'mission', 'jobs', 'facts', 'trade', 'reputation', 'story' }
+    'persona', 'mission', 'jobs', 'facts', 'trade', 'reputation', 'story', 'dead' }
 
 local function radioLines(out, r)
     out[#out + 1] = 'sent=' .. string.format('%.0f', r.sentAt)

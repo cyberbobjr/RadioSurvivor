@@ -1,8 +1,8 @@
 # Wanda Haddix : marchande de West Point (E20-T11, ADR D08 ; format docs/specifications-techniques/persona-format.md).
 # - fréquence tirée au hasard dans 25.0-31.8 MHz à chaque nouvelle partie (bande libre, sans recouvrement) ;
 # - écoute 05:00-08:00 (heure du jeu) ; hors carte ; arrivée en barque (mode boat, son de moteur coupé puis relancé) ;
-# - troc : action propose_trade et section [trade] (stock du barème CA_TradeValues, poids du script vanilla
-#   42.22, plus le fluide d'un récipient plein) ; share_frequency vers les marchands voisins ; note de fréquence
+# - troc : action propose_trade et section [trade] (stock du barème CA_TradeValues, poids lu par le serveur
+#   dans le script, liquide d'un récipient plein compris) ; share_frequency vers les marchands voisins ; note de fréquence
 #   trouvée dans le butin (section [note]).
 format=1
 id=wanda
@@ -35,18 +35,18 @@ every_days=7
 hours=02:00-04:00
 margin=0.10-0.50
 group=canned:3-8:3
-item=Base.TinnedBeans:canned:0.8
-item=Base.TinnedSoup:canned:0.8
-item=Base.CannedCorn:canned:0.8
-item=Base.CannedPeas:canned:0.8
-item=Base.CannedChili:canned:0.8
-item=Base.PeanutButter:0-2:0.3
-item=Base.Coffee2:1-2:1.0
-item=Base.CigarettePack:2-6:0.2
-item=Base.Battery:2-8:0.1
-item=Base.Bandage:2-6:0.1
-item=Base.Pills:0-2:0.2
-item=RadioSurvivor.OutsideNews:1-1:0.2
+item=Base.TinnedBeans:canned
+item=Base.TinnedSoup:canned
+item=Base.CannedCorn:canned
+item=Base.CannedPeas:canned
+item=Base.CannedChili:canned
+item=Base.PeanutButter:0-2
+item=Base.Coffee2:1-2
+item=Base.CigarettePack:2-6
+item=Base.Battery:2-8
+item=Base.Bandage:2-6
+item=Base.Pills:0-2
+item=RadioSurvivor.OutsideNews:1-1
 
 # Note de fréquence (E20-T11) : objet partagé des marchands, traductions Print_Media_RadioSurvivor_NoteWanda_*.
 [note]

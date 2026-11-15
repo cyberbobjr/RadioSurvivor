@@ -54,5 +54,6 @@ and the voices and NPCs stay silent.
 - [AI provider configuration](08-ai-provider-configuration.md)
 - [Sandbox options](09-sandbox-options.md)
 - [Creating radio voices](10-creating-radio-voices.md): edit a voice or add your own.
+- [Voice workshop](13-voice-workshop.md): make and manage voices in your browser, without writing a file.
 - [Troubleshooting](11-troubleshooting.md)
 - [FAQ](12-faq.md)

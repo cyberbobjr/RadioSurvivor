@@ -484,6 +484,7 @@ local function onTalk(player, args)
     }
     -- Souvenirs de cette voix sur cet appelant et ce personnage (E07-T03), absents s'il n'y en a pas.
     req.memory = Memory.field(sheet.id, req.caller, req.cid)
+    req.dead = Memory.deadField(sheet.id) -- E22-T13: people this voice knew who died, latest first
     -- État dynamique de la voix (E07-T06), absent tant qu'elle ne l'a jamais changé.
     req.persona = PersonaState.field(sheet.id)
     req.story = VoiceStory.value(sheet.id) -- E20-T08 : état de récit posé par une mission réussie (sets_state=)
@@ -544,8 +545,13 @@ local translationsReloaded = false
 -- Clés call_text introuvables déjà signalées (une ligne de journal par clé).
 local missingCallText = {}
 
--- Texte fixe de l'appel (call_text de la fiche, %1 = fréquence affichée), ou nil si la clé n'existe pas.
+-- Texte fixe de l'appel, %1 = fréquence affichée : écrit dans la fiche (call=, E22-T07), sinon la traduction de sa clé
+-- call_text ; nil si la clé n'existe pas.
 local function callText(sheet, khz)
+    if sheet.call ~= "" then
+        local label = Const.frequencyLabel(khz)
+        return (string.gsub(sheet.call, "%%1", function() return label end))
+    end
     local key = sheet.call_text
     if getTextOrNull(key) == nil and isServer() and not translationsReloaded then
         translationsReloaded = true
@@ -688,6 +694,7 @@ VoiceMissions.onStarted = function(m, ctx)
         cid = src.cid,
     }
     req.memory = Memory.field(src.voice, src.caller, src.cid)
+    req.dead = Memory.deadField(src.voice) -- E22-T13
     req.persona = PersonaState.field(src.voice)
     req.story = VoiceStory.value(src.voice) -- E20-T08
     req.mission = VoiceMissions.field(VoiceMissions.context(m, "briefing"))

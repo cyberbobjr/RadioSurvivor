@@ -43,6 +43,7 @@ sys.path.insert(0, str(ROOT / 'tests'))
 
 import npc_protocol as npc  # noqa: E402
 import radio_bridge as rb  # noqa: E402
+from itemweights_double import ITEM_WEIGHTS, WEIGHTS  # noqa: E402
 from test_rs_trade_run import GUS, TraderProxy  # noqa: E402
 
 
@@ -87,7 +88,9 @@ class TradeHarness(unittest.TestCase):
         self.rt.execute(f'package.path = [[{paths};]] .. package.path')
         # E20-T07 : la vraie fiche de Gus (section [trade]) lue par RS_Persona, mode d'arrivée boat inscrit.
         self.rt.eval('require("RadioSurvivor/TradeArrivals/RS_TradeArrival_Boat")')
-        rules = self.rt.eval('{ arrivals = require("RadioSurvivor/RS_TradeArrivals").NAMES }')
+        self.rt.execute(ITEM_WEIGHTS)  # E22-T12 : poids des objets du troc, à la place des scripts du jeu
+        rules = self.rt.eval('{ arrivals = require("RadioSurvivor/RS_TradeArrivals").NAMES,'
+                             ' itemWeight = require("RadioSurvivor/RS_ItemWeights").of }')
         persona = self.rt.eval('require("RadioSurvivor/RS_Persona")')
         self.gus = persona.parseLines(self.rt.table_from(GUS.read_text(encoding='utf-8').splitlines()), 'gus', rules)
         self.assertFalse(isinstance(self.gus, tuple), self.gus)
@@ -158,13 +161,21 @@ class CatalogueTests(TradeHarness):
         caps = {t.k: t.cap for t in lua_list(self.T.TAKES)}
         self.assertEqual(caps, {'valuables': 60, 'images': 40, 'papers': 30, 'military': 60})
 
-    @unittest.skipUnless(VANILLA_ITEMS.is_dir(), 'vanilla 42.21 scripts missing')
-    def test_weights_are_the_vanilla_ones_with_their_fluid(self):
-        text = {f.name: f.read_text(encoding='utf-8', errors='replace') for f in VANILLA_ITEMS.glob('*.txt')}
+    def test_weights_come_from_the_injected_scripts(self):
+        # E22-T12 : la fiche n'écrit plus de poids ; chaque objet porte celui de la source (RS_ItemWeights).
         for e in self.supply():
-            if not e.t.startswith('Base.'):
+            with self.subTest(e.n):
+                self.assertAlmostEqual(e.w, WEIGHTS[e.t], places=6)
+
+    @unittest.skipUnless(VANILLA_ITEMS.is_dir(), 'vanilla scripts missing')
+    def test_weight_double_is_the_vanilla_scripts_with_their_fluid(self):
+        # La doublure des bancs (itemweights_double.WEIGHTS) suit la règle de RS_ItemWeights : Weight du script, plus
+        # Capacity d'un FluidContainer créé rempli (bloc Fluids avec une ligne fluid=).
+        text = {f.name: f.read_text(encoding='utf-8', errors='replace') for f in VANILLA_ITEMS.glob('*.txt')}
+        for full, kg in WEIGHTS.items():
+            if not full.startswith('Base.'):
                 continue
-            name = e.t[5:]
+            name = full[5:]
             block = None
             for body in text.values():
                 m = re.search(r'(?m)^\s*item\s+' + re.escape(name) + r'\s*\n\s*\{(.*?)\n    \}', body, re.S)
@@ -173,9 +184,10 @@ class CatalogueTests(TradeHarness):
                     break
             with self.subTest(name):
                 self.assertIsNotNone(block)
-                weight = float(re.search(r'Weight\s*=\s*([\d.]+)', block).group(1))
+                weight = float(re.search(r'(?m)^\s*Weight\s*=\s*([\d.]+)', block).group(1))
                 cap = re.search(r'Capacity\s*=\s*([\d.]+)', block)
-                self.assertAlmostEqual(e.w, weight + (float(cap.group(1)) if cap else 0.0), places=6)
+                full_of = cap and re.search(r'(?im)^\s*fluid\s*=', block)
+                self.assertAlmostEqual(kg, weight + (float(cap.group(1)) if full_of else 0.0), places=6)
 
     def test_news_weight_is_the_mod_script(self):
         script = (MOD / 'media/scripts/RadioSurvivor_outsidenews.txt').read_text(encoding='utf-8')
@@ -300,6 +312,34 @@ class OfferTests(TradeHarness):
         book = self.g.STATE.data.trade.traders.gus.books['kate']
         self.propose('kate', 'Battery:9')
         self.assertEqual(book.refused.reason, 'over_stock')
+
+    def test_weight_cap_uses_the_weights_read_from_the_scripts(self):
+        # E22-T12 : un autre poids dans la source (script d'un mod qui alourdit l'objet) change le plafond de la
+        # contrepartie (CAP_KG, 10 kg) sans toucher la fiche ; poids relus quand la fiche est relue.
+        self.rt.execute('require("RadioSurvivor/RS_ItemWeights").use({ ["Base.Antibiotics"] = 4.0,'
+                        ' ["Base.Battery"] = 0.1, ["Base.CigaretteCarton"] = 2.0 })')
+        persona = self.rt.eval('require("RadioSurvivor/RS_Persona")')
+        rules = self.rt.eval('{ arrivals = require("RadioSurvivor/RS_TradeArrivals").NAMES,'
+                             ' itemWeight = require("RadioSurvivor/RS_ItemWeights").of }')
+        # Gus cite des objets absents de cette source : sa fiche est refusée, avec la ligne du premier.
+        refused = persona.parseLines(self.rt.table_from(GUS.read_text(encoding='utf-8').splitlines()), 'gus', rules)
+        self.assertRegex(refused[1], r"^line \d+: unknown trade item 'Base\.\w+' \(no item script of that type\)$")
+        sheet = persona.parseLines(self.rt.table_from(['format=1', 'id=gus', 'name=Gus', 'frequencies=160.0',
+                                                       'actions=say,propose_trade', '[place pier]', 'at=1,2,0',
+                                                       'label=Pier', 'use=landing', '[trade]', 'landing=pier',
+                                                       'arrival=boat', 'every_days=7', 'hours=01:00-03:00',
+                                                       'item=Base.Antibiotics:1-6', 'item=Base.Battery:1-30',
+                                                       '[prompt]', 'Bench.']), 'gus', rules)
+        self.assertFalse(isinstance(sheet, tuple), sheet)
+        self.g.VOICES.gus = sheet
+        self.spec = sheet.trade
+        self.assertEqual({e.n: e.w for e in self.supply()}, {'Antibiotics': 4.0, 'Battery': 0.1})
+        self.force_stock({'Antibiotics': 6, 'Battery': 30})
+        self.assertEqual(self.propose('kate', 'Antibiotics:3')[1], 'over_weight')            # 12 kg
+        offer, why = self.propose('kate', 'Antibiotics:2,Battery:20')                       # 8 + 2 = 10 kg
+        self.assertIsNone(why)
+        self.assertAlmostEqual(offer.weight, 10.0)
+        self.assertEqual(self.propose('kate', 'Antibiotics:2,Battery:21')[1], 'over_weight')  # 10,1 kg
 
     def test_stocks_never_negative_and_no_offer_outside_the_table(self):
         rnd = random.Random(7)
@@ -551,7 +591,7 @@ class BridgeFormTests(unittest.TestCase):
     def test_action_offered_described_and_bounded(self):
         sheet = FakeSheet()
         self.assertIn('propose_trade', rb.EXECUTABLE_ACTIONS)
-        self.assertEqual(rb.offered_actions(sheet), ['propose_trade'])
+        self.assertEqual(rb.offered_actions(sheet), ['propose_trade', 'remember'])   # E22-T13: every voice remembers
         prompt = rb.actions_prompt(sheet)
         self.assertIn('"items"', prompt)
         self.assertIn('{"type": "propose_trade", "items": "Antibiotics:2,Battery:4", "margin": 0.25}', prompt)
@@ -586,7 +626,7 @@ class ServerChainTests(unittest.TestCase):
                 'format=1\nid=gus\nname=Gus Bench\nfrequencies=160.0\nactions=say,propose_trade\n'
                 '[place pier]\nat=6041,5217,0\nlabel=Bench pier\nuse=landing\n'
                 '[trade]\nlanding=pier\narrival=boat\nevery_days=7\nhours=01:00-03:00\n'
-                'item=Base.Battery:4-12:0.1\nitem=Base.Antibiotics:2-6:0.1\n[prompt]\n'
+                'item=Base.Battery:4-12\nitem=Base.Antibiotics:2-6\n[prompt]\n'
                 'You are Gus Bench, a smuggler of the test bench.\n', encoding='utf-8')
             (folder / 'ps.txt').write_text(tp.PS_SHEETS['ps'], encoding='utf-8')
             clock = tp.Clock()
@@ -602,6 +642,7 @@ class ServerChainTests(unittest.TestCase):
             # E20-T07 : chargés par le jeu avec tous les fichiers serveur (mode boat, racine du troc RS_TradeRun).
             g.require('RadioSurvivor/TradeArrivals/RS_TradeArrival_Boat')
             g.require('RadioSurvivor/RS_TradeRun')
+            game.rt.execute(ITEM_WEIGHTS)  # E22-T12 : poids des objets du troc, à la place des scripts du jeu
             g.fire('OnLoadRadioScripts', g.MANAGER, True)
             state = g.require('RadioSurvivor/RS_State')
             trade = g.require('RadioSurvivor/RS_Trade')

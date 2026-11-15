@@ -32,8 +32,8 @@ belt receives, but it does not transmit: hold it in hand to speak.
 
 ![Transmit section and the answer of Walt](../../images/screenshots/en-radio-transmit.png)
 
-Every voice has its listening hours and remembers you. The **Radio** tab of the notebook keeps what was said on each
-frequency.
+Every voice has its listening hours and remembers you, for good. It does not forget the dead either: talk to it about
+a lost friend and it may recall them. The **Radio** tab of the notebook keeps what was said on each frequency.
 
 ## 3. Meet a Living Knox group
 

@@ -1,5 +1,5 @@
 """Suites de persistance en jeu de la campagne MP par étapes (E01-T17, autoclient.py --mp --phases) : bases
-rs.mission.recover, rs.rescue.missed, lk.leave, lk.walls, rs.radiotab, rs.actions.map (before / after-reconnect /
+rs.mission.recover, rs.rescue.missed, rs.memory, lk.leave, lk.walls, rs.radiotab, rs.actions.map (before / after-reconnect /
 after-restart) et lk.rejoin (before / after-reconnect2), leur fichier d'instantané (RST_Persist.lua) et la campagne
 mp-persist. Repère de carte après reconnexion joué sur doublures : tests/test_map_persist.py.
 
@@ -33,6 +33,7 @@ CORE_SERVER = CORE_SHARED.parent / 'server'
 FILES = {
     'RS_MissionRecoverPersist.lua': {'rs.mission.recover.before': 'restart', 'rs.mission.recover.after-restart': None},
     'RS_RescuePersist.lua': {'rs.rescue.missed.before': None, 'rs.rescue.missed.after-restart': None},
+    'RS_MemoryPersist.lua': {'rs.memory.before': None, 'rs.memory.after-restart': None},   # E22-T13
     'RST_LKLeavePersist.lua': {'lk.leave.before': None, 'lk.leave.after-restart': None},
     'RST_LKWallsPersist.lua': {'lk.walls.before': None, 'lk.walls.after-reconnect': None,
                                'lk.walls.after-restart': None},
@@ -98,7 +99,7 @@ class ListingTests(unittest.TestCase):
         lua = autoclient.campaign_text()
         bases = autoclient.campaign_suites(lua, 'mp-persist')
         for base in ('rs.identity', 'lk.homes', 'lk.leave', 'rs.mission.recover', 'rs.rescue.missed', 'lk.walls',
-                     'rs.radiotab', 'rs.actions.map', 'rs.state', 'rst.disconnect', 'lk.rejoin'):
+                     'rs.radiotab', 'rs.actions.map', 'rs.state', 'rs.memory', 'rst.disconnect', 'lk.rejoin'):
             self.assertIn(base, bases)
         self.assertEqual(bases[-1], 'lk.rejoin')   # its before step moves the requester away: last of step 0
         declared = autoclient.declared_suite_names(autoclient.test_lua_dirs())
@@ -117,7 +118,8 @@ class ListingTests(unittest.TestCase):
         self.assertEqual(sorted(steps[3][0]), sorted(['rs.identity.after-restart', 'lk.homes.after-restart',
                                                       'lk.leave.after-restart', 'rs.mission.recover.after-restart',
                                                       'rs.rescue.missed.after-restart', 'lk.walls.after-restart',
-                                                      'rs.reputation.after-restart', 'rs.state.after-restart']))
+                                                      'rs.reputation.after-restart', 'rs.state.after-restart',
+                                                      'rs.memory.after-restart']))
         self.assertFalse(autoclient.needs_bridge(None, [n for st in steps for r in st for n in r]))
 
 

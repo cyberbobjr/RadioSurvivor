@@ -10,16 +10,16 @@
 |---|---|---|---|
 | 1 | [E16-T05](E16-publication.md#L85) | Publication | `à faire` |
 | 2 | [E19-T08](E19-banc-mimetique.md#L114) | Site réel des campagnes rejoué au banc | `à faire` |
-| 3 | [E22-T04](E22-atelier-voix.md#L119) | Verdict du jeu affiché dans l'atelier | `testé hors jeu` |
-| 4 | [E22-T07](E22-atelier-voix.md#L159) | Note de fréquence et appel spontané écrits dans la fiche | `à faire` |
-| 5 | [E22-T08](E22-atelier-voix.md#L167) | Relevé de lieux en jeu | `à faire` |
-| 6 | [E22-T10](E22-atelier-voix.md#L175) | Journal en direct dans l'atelier | `testé hors jeu` |
-| 7 | [E22-T09](E22-atelier-voix.md#L209) | Wiki et README de l'atelier | `à faire` |
-| 8 | [LK13-T04](LK13-outils-validation-publication.md#L91) | Validation multijoueur finale et publication | `à faire` |
-| 9 | [LK13-T05](LK13-outils-validation-publication.md#L102) | Essai sur serveur dédié Linux (N5) | `codé` |
-| 10 | [LK17-T01](LK17-chemin-vanilla.md#L27) | Détour immédiat par la porte la plus proche après un refus au contact | `à faire` |
-| 11 | [LK17-T02](LK17-chemin-vanilla.md#L38) | Suppression du guidage maison | `à faire` |
-| 12 | [LK18-T01](LK18-ceder-le-passage.md#L26) | Registre des priorités de passage et arbitrage | `à faire` |
+| 3 | [E22-T04](E22-atelier-voix.md#L121) | Verdict du jeu affiché dans l'atelier | `testé hors jeu` |
+| 4 | [E22-T07](E22-atelier-voix.md#L161) | Note de fréquence et appel spontané écrits dans la fiche | `testé hors jeu` |
+| 5 | [E22-T08](E22-atelier-voix.md#L177) | Relevé de lieux en jeu | `testé hors jeu` |
+| 6 | [E22-T10](E22-atelier-voix.md#L193) | Journal en direct dans l'atelier | `testé hors jeu` |
+| 7 | [E22-T12](E22-atelier-voix.md#L227) | Stock du marchand sans poids à saisir | `testé hors jeu` |
+| 8 | [E22-T13](E22-atelier-voix.md#L246) | Toutes les voix se souviennent des appelants, sans oubli, morts compris | `testé hors jeu` |
+| 9 | [LK13-T04](LK13-outils-validation-publication.md#L91) | Validation multijoueur finale et publication | `à faire` |
+| 10 | [LK13-T05](LK13-outils-validation-publication.md#L102) | Essai sur serveur dédié Linux (N5) | `codé` |
+| 11 | [LK17-T01](LK17-chemin-vanilla.md#L27) | Détour immédiat par la porte la plus proche après un refus au contact | `à faire` |
+| 12 | [LK17-T02](LK17-chemin-vanilla.md#L38) | Suppression du guidage maison | `à faire` |
 
 ## Étapes
 
@@ -47,7 +47,7 @@
 | [E19](E19-banc-mimetique.md) | Banc hors jeu mimétique | en cours | 7 / 8 |
 | [E20](../plans-termines/E20-voix-declaratives.md) | Voix déclarées en un seul fichier : missions, récompenses, planques et troc | terminée | 16 / 16 |
 | [E21](../plans-termines/E21-separation-coreai.md) | Séparer Living Knox et RadioSurvivor autour de batman_CoreAI | terminée | 10 / 10 |
-| [E22](E22-atelier-voix.md) | Atelier des voix | en cours | 6 / 11 |
+| [E22](E22-atelier-voix.md) | Atelier des voix | en cours | 7 / 13 |
 | [LK00](../plans-termines/LK00-cadrage.md) | Cadrage : décisions de conception et architecture | terminée | 2 / 2 |
 | [LK01](../plans-termines/LK01-fondations.md) | Fondations du projet | terminée | 6 / 6 |
 | [LK02](../plans-termines/LK02-jalon-corps-gestes.md) | Jalon 1 : corps et gestes prouvés (décision de continuer) | terminée | 15 / 15 |
@@ -66,7 +66,7 @@
 | [LK15](../plans-termines/LK15-registre-routines.md) | Registres des routines et potager du jardinier | terminée | 7 / 7 |
 | [LK16](../plans-termines/LK16-remise-en-ordre-solid.md) | Remise en ordre SOLID | terminée | 12 / 12 |
 | [LK17](LK17-chemin-vanilla.md) | Chemin du jeu pour les PNJ, détour seulement après un refus | à faire | 0 / 2 |
-| [LK18](LK18-ceder-le-passage.md) | Céder le passage | à faire | 0 / 3 |
+| [LK18](LK18-ceder-le-passage.md) | Céder le passage | en cours | 1 / 3 |
 
 ## Tâches
 
@@ -331,17 +331,19 @@
 | ☑ | [E21-T08](../plans-termines/E21-separation-coreai.md#L145) | Bancs de Living Knox sans RadioSurvivor | `testé hors jeu` | hors jeu | commit `85d03066` : chaque `tests/test_lk_*.py` ne charge que CoreAI et Living Knox (`harness.tests_lua(setup)`, `Harness(with_rs=False)`, `Game.WITH_RS = False`) ; recherche `batman_RadioSurvivor|RadioSurvivor/|\bRS_[A-Z]` dans `tests/test_lk_*.py` et `dev/batman_LivingKnoxTests` : 0 fichier ; `run_all.py --keep-going` : `Summary: 194 passed, 0 failed, 0 skipped` |
 | ☑ | [E21-T09](../plans-termines/E21-separation-coreai.md#L156) | Les trois montages en jeu, solo et MP | `testé MP` | MP | campagnes du 2026-11-15 sur copie figée, `--bridge on --llm fake --wait-idle 3600` : `solo-lk` sur `85d03066` : code 0, `RST-RESULT ok=true total=131 pass=124 fail=0 error=0 skip=7` (`tools/autoclient/runs/20261115-152930-e4fba59a6632`) ; `solo-rs` : code 0, `RST-RESULT ok=true total=168 pass=125 fail=0 error=0 skip=43` (`tools/autoclient/runs/20261115-155302-7917d6409d43`) ; `solo` : code 0, `RST-RESULT ok=true total=281 pass=271 fail=0 error=0 skip=10` (`tools/autoclient/runs/20261115-155639-08a79cee0786`) ; MP (serveur dédié + 2 clients, `--mp --clients 2 --server-campaign mp`) : code 1, `RST-RESULT ok=false total=408 pass=389 fail=2 error=0 skip=17` chez rs_mp1 et `ok=true total=161 pass=161` chez rs_mp2 (`tools/autoclient/runs/20261115-163137-mp-6073f48256c0`), deux échecs de `lk.missions` (réclamation refusée sans trace : PNJ de la fixture jamais contact) ; correctif `6983b87c` (refus des gestes journalisé, la suite sélectionne le demandeur ; bancs `test_lk_speech_single_path` rouge puis vert) ; relance MP de `lk.missions` sur `6983b87c` : code 0, `OK - 2 test(s): 2 pass, 0 fail` (`tools/autoclient/runs/20261115-173011-mp-f3d79dbb18b4`) ; `solo-lk` sur `6983b87c` (avec `lk.conversations` et `lk.initiatives`) : code 0, `RST-RESULT ok=true total=139 pass=132 fail=0 error=0 skip=7` (`tools/autoclient/runs/20261115-173233-32e93976dadf`) |
 | ☑ | [E21-T10](../plans-termines/E21-separation-coreai.md#L167) | Documentation, README et descriptions Workshop | `testé hors jeu` | hors jeu | commit `094f467d` : architecture, règles de développement, spécifications, guide des tests en jeu, notes de conception, README, wiki et descriptions Workshop (README.steam 7212 octets, README.steam.fr 7864 octets avec le bloc d'identifiants) ; `pz_workshop_project.validate` sans erreur ; `run_all.py --keep-going` : `Summary: 194 passed, 0 failed, 0 skipped` ; aucune publication |
-| ☑ | [E22-T01](E22-atelier-voix.md#L58) | Catalogue de l'atelier généré depuis le mod | `testé hors jeu` | hors jeu | 2026-11-15 : `tools/gen_atelier_catalog.py` charge le lecteur réel par lupa (chargeur des bancs |
-| ☑ | [E22-T02](E22-atelier-voix.md#L79) | Serveur de l'atelier et lanceurs | `testé hors jeu` | hors jeu | 2026-11-15 : `bridge/atelier_server.py` (bibliothèque standard ; `VoiceStore` pour les fiches, écriture |
-| ☑ | [E22-T03](E22-atelier-voix.md#L98) | Interface : voix, assistant en cinq étapes, aperçu | `testé hors jeu` | hors jeu | 2026-11-15 : `bridge/atelier/` en modules ES sans framework ni CDN : `sheet.js` (lecture et écriture de la |
-| ☐ | [E22-T04](E22-atelier-voix.md#L119) | Verdict du jeu affiché dans l'atelier | `testé hors jeu` | solo | 2026-11-15 (hors jeu) : `bridge/game_console.py` (`ConsoleTail` suit `console.txt`, fichier absent ou |
-| ☑ | [E22-T05](E22-atelier-voix.md#L133) | Exporter et importer une voix | `testé hors jeu` | hors jeu | 2026-11-15 : routes `export` et `import` de `atelier_server.py` (bancs de `test_atelier_server.py`) ; |
-| ☑ | [E22-T06](E22-atelier-voix.md#L143) | L'IA du pont aide à écrire et fait essayer la voix | `testé hors jeu` | hors jeu | 2026-11-15 : `bridge/atelier_ai.py` (requêtes de l'atelier, LLM injecté) et `atelier_ai_templates.json` |
-| ☐ | [E22-T07](E22-atelier-voix.md#L159) | Note de fréquence et appel spontané écrits dans la fiche | `à faire` | MP | — |
-| ☐ | [E22-T08](E22-atelier-voix.md#L167) | Relevé de lieux en jeu | `à faire` | MP | — |
-| ☐ | [E22-T10](E22-atelier-voix.md#L175) | Journal en direct dans l'atelier | `testé hors jeu` | solo | 2026-11-15 (hors jeu) : `bridge/log_buffer.py` (tampon de 2000 lignes, `since`), `log()` du pont y écrit, |
-| ☑ | [E22-T11](E22-atelier-voix.md#L193) | Aide détaillée sur chaque réglage | `testé hors jeu` | hors jeu | 2026-11-15 : `bridge/atelier/help.js` (bouton « ? » au survol, au clavier et au clic, bulle gardée dans |
-| ☐ | [E22-T09](E22-atelier-voix.md#L209) | Wiki et README de l'atelier | `à faire` | hors jeu | — |
+| ☑ | [E22-T01](E22-atelier-voix.md#L60) | Catalogue de l'atelier généré depuis le mod | `testé hors jeu` | hors jeu | 2026-11-15 : `tools/gen_atelier_catalog.py` charge le lecteur réel par lupa (chargeur des bancs |
+| ☑ | [E22-T02](E22-atelier-voix.md#L81) | Serveur de l'atelier et lanceurs | `testé hors jeu` | hors jeu | 2026-11-15 : `bridge/atelier_server.py` (bibliothèque standard ; `VoiceStore` pour les fiches, écriture |
+| ☑ | [E22-T03](E22-atelier-voix.md#L100) | Interface : voix, assistant en cinq étapes, aperçu | `testé hors jeu` | hors jeu | 2026-11-15 : `bridge/atelier/` en modules ES sans framework ni CDN : `sheet.js` (lecture et écriture de la |
+| ☐ | [E22-T04](E22-atelier-voix.md#L121) | Verdict du jeu affiché dans l'atelier | `testé hors jeu` | solo | 2026-11-15 (hors jeu) : `bridge/game_console.py` (`ConsoleTail` suit `console.txt`, fichier absent ou |
+| ☑ | [E22-T05](E22-atelier-voix.md#L135) | Exporter et importer une voix | `testé hors jeu` | hors jeu | 2026-11-15 : routes `export` et `import` de `atelier_server.py` (bancs de `test_atelier_server.py`) ; |
+| ☑ | [E22-T06](E22-atelier-voix.md#L145) | L'IA du pont aide à écrire et fait essayer la voix | `testé hors jeu` | hors jeu | 2026-11-15 : `bridge/atelier_ai.py` (requêtes de l'atelier, LLM injecté) et `atelier_ai_templates.json` |
+| ☐ | [E22-T07](E22-atelier-voix.md#L161) | Note de fréquence et appel spontané écrits dans la fiche | `testé hors jeu` | MP | 2026-11-15 (hors jeu) : `[note]` accepte `text=` (une ligne par ligne, `%1` = fréquence, 8 lignes de 40 |
+| ☐ | [E22-T08](E22-atelier-voix.md#L177) | Relevé de lieux en jeu | `testé hors jeu` | MP | 2026-11-15 (hors jeu) : `RS_PlaceSurveyMenu.lua` (clic droit « Atelier des voix : relever ce lieu », solo ou |
+| ☐ | [E22-T10](E22-atelier-voix.md#L193) | Journal en direct dans l'atelier | `testé hors jeu` | solo | 2026-11-15 (hors jeu) : `bridge/log_buffer.py` (tampon de 2000 lignes, `since`), `log()` du pont y écrit, |
+| ☑ | [E22-T11](E22-atelier-voix.md#L211) | Aide détaillée sur chaque réglage | `testé hors jeu` | hors jeu | 2026-11-15 : `bridge/atelier/help.js` (bouton « ? » au survol, au clavier et au clic, bulle gardée dans |
+| ☐ | [E22-T12](E22-atelier-voix.md#L227) | Stock du marchand sans poids à saisir | `testé hors jeu` | MP | 2026-11-15 (hors jeu) : `RS_ItemWeights.lua` lit le poids dans le script de l'objet sans le créer |
+| ☐ | [E22-T13](E22-atelier-voix.md#L246) | Toutes les voix se souviennent des appelants, sans oubli, morts compris | `testé hors jeu` | MP | 2026-11-15 (hors jeu) : `remember` retiré du catalogue des fiches (les deux lecteurs) et donné à toute voix |
+| ☑ | [E22-T09](E22-atelier-voix.md#L274) | Wiki et README de l'atelier | `testé hors jeu` | hors jeu | 2026-11-15 : pages `docs/wiki/fr/13-atelier-des-voix.md` et `docs/wiki/en/13-voice-workshop.md` (menu, |
 | ☑ | [LK00-T01](../plans-termines/LK00-cadrage.md#L40) | Analyse comparative des architectures d'exécution de l'IA en multijoueur | `testé hors jeu` | hors jeu | analyse v2 et estimation, commits `9441d40` et `534803f` ; faits porteurs revérifiés à la main (accroche `IsRagdoll`, `sendClientCommand` réservé au joueur local, `NetworkZombieAI.parse`, `isRemote`, `isOwner` d'A-Life, `sendDamage`) |
 | ☑ | [LK00-T02](../plans-termines/LK00-cadrage.md#L51) | Choisir la base des PNJ et l'architecture d'exécution | `testé hors jeu` | hors jeu | décision « moteur propre avec jalon » et nom « Living Knox » du 2026-10-03 (section Décisions) ; étapes LK01 à LK13 écrites |
 | ☑ | [LK01-T01](../plans-termines/LK01-fondations.md#L33) | Banc de tests hors jeu : serveur et deux clients simulés | `testé hors jeu` | hors jeu | `tests/test_harness.py` 24/24 (machines séparées, relais copié et non ordonné, propriétaire de zombie transférable, horloges, fichiers par machine, mode solo), `test_protocol.py`, `test_carnet.py` 19, `test_rst.py` 151, `test_rs_suites.py` 20, luacheck 21, `plan.py check` du 2026-10-08 ; LK01-T04 : commit `6d5ff74` |
@@ -516,6 +518,6 @@
 | ☑ | [LK16-T12](../plans-termines/LK16-remise-en-ordre-solid.md#L159) | Remise en ordre vérifiée en jeu | `testé MP` | MP | campagnes du 2026-11-13 au soir et du 2026-11-14 (dossier de travail, commits `8b439ee` à `a7ddc94`) : MP 3 tranches `tools/autoclient/runs/20261113-233636-parallel-3` 510/534, 3 FAIL (`lk.alert` garde, `lk.forage` arrosage, `rs.npctalk` délai : corrigés par `19ac890`, `44b200a`, `f9c8d8f`) ; solo deux mods `20261113-235754-parallel-2` 245/257, 3 FAIL (`lk.forage` : lancé avant `44b200a` ; `lk.upkeep` : corrigé par `a7ddc94` ; `lk.debugview` : ouvert, registre des écarts) ; Living Knox seul `20261114-001702-parallel-2` 105/114, 0 FAIL ; `mp-ambient` `20261114-003116-mp-cf36126965e3` 23/24, 0 FAIL ; campagne MP de contrôle sur `a7ddc94` arrêtée par Claude Code (mémoire de la machine basse), non relancée ; campagne MP du 2026-11-15 sur `962ee34` (serveur dédié + 2 clients, pont avec faux modèle) : code 0, `RST-RESULT ok=true total=398 pass=378 fail=0 error=0 skip=20` (`tools/autoclient/runs/20261115-004728-mp-63ed80f68139`) ; campagne `mp-ambient` du 2026-11-15 sur `d52f5f2` (zombies du jeu, sans mode dieu) : code 0, `RST-RESULT ok=true total=24 pass=23 fail=0 error=0 skip=1` chez rs_mp1 et 6/6 chez rs_mp2 (`tools/autoclient/runs/20261115-022131-mp-aad4e251e079`) ; campagne solo des deux mods du 2026-11-15 sur le commit `d52f5f2` (copie figée, `--campaign solo --bridge on --llm fake --wait-idle 3600`) : code 1, `RST-RESULT ok=false total=274 pass=256 fail=1 error=0 skip=17` (`tools/autoclient/runs/20261115-022616-966db38d6a28`), seul échec étranger à Living Knox : rs.personas.update (fiche de voix, travail E20 en cours) ; campagne `solo-lk` (Living Knox seul) du 2026-11-15 sur `962ee34` : code 0, `TOTAL total=114 pass=105 fail=0 error=0 skip=9` (`tools/autoclient/runs/20261115-002325-run-962ee349cab6`) : aucune suite de Living Knox en échec, lk.garden joué et vert en solo et en MP |
 | ☐ | [LK17-T01](LK17-chemin-vanilla.md#L27) | Détour immédiat par la porte la plus proche après un refus au contact | `à faire` | MP | — |
 | ☐ | [LK17-T02](LK17-chemin-vanilla.md#L38) | Suppression du guidage maison | `à faire` | MP | — |
-| ☐ | [LK18-T01](LK18-ceder-le-passage.md#L26) | Registre des priorités de passage et arbitrage | `à faire` | hors jeu | — |
-| ☐ | [LK18-T02](LK18-ceder-le-passage.md#L37) | Action « s'écarter », signalement du blocage par l'exécutant | `à faire` | MP | — |
-| ☐ | [LK18-T03](LK18-ceder-le-passage.md#L48) | Places d'arrêt hors des portes et des couloirs | `à faire` | solo | — |
+| ☑ | [LK18-T01](LK18-ceder-le-passage.md#L26) | Registre des priorités de passage et arbitrage | `testé hors jeu` | hors jeu | 2026-11-15 : python tests/test_lk_passage.py -> Ran 17 tests ... OK (registre, arbitrage de chaque cas de l'ADR, comportement inscrit par le test sans toucher LK_Passage). |
+| ☐ | [LK18-T02](LK18-ceder-le-passage.md#L37) | Action « s'écarter », signalement du blocage par l'exécutant | `testé hors jeu` | MP | 2026-11-15 : python tests/test_lk_step_aside.py -> Ran 21 tests ... OK ; luacheck Contents 0/0 (292 fichiers), dev 0/0 (199) ; check_case PASS. |
+| ☐ | [LK18-T03](LK18-ceder-le-passage.md#L48) | Places d'arrêt hors des portes et des couloirs | `testé hors jeu` | solo | 2026-11-15 : python tests/test_lk_stop_place.py -> Ran 11 tests ... OK ; test_lk_routines 23 OK, test_lk_chores 16 OK, test_lk_defense 23 OK, test_lk_fight_all 8 OK. |

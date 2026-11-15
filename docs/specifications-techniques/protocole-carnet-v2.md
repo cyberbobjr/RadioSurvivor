@@ -196,10 +196,12 @@ valide la forme, le serveur le fond ; le serveur seul exécute. Implémentation 
 
 **Deux modes, choisis par la fiche de la voix** (`actions=`, `docs/specifications-techniques/persona-format.md`) :
 
-- **Mode texte** (fiche `say` seul : toutes les fiches livrées ; ou fiche dont aucune action autorisée n'a
-  d'exécuteur, E07-T07) : prompt, `radio_lines` et sortie `line=` strictement identiques à ceux d'avant E07. Une fiche
-  `actions=say,mark_map` **sans lieu `[place]` avec `use=mark`** donne ainsi le même prompt que la même fiche `say` seul (E07-T04).
-- **Mode structuré** (au moins une action autorisée par la fiche **et dotée d'un exécuteur** côté serveur, E07-T07) :
+- **Mode texte** : pont `--offline` seulement depuis E22-T13 (avant : fiche `say` seul ou dont aucune action
+  autorisée n'avait d'exécuteur, E07-T07) ; prompt, `radio_lines` et sortie `line=` identiques à ceux d'avant E07.
+- **Mode structuré** (au moins une action permise **et dotée d'un exécuteur** côté serveur, E07-T07 ; toute voix
+  depuis E22-T13, car `remember` est permise à toute voix, `UNIVERSAL_ACTIONS`) : une fiche `say` seul se voit
+  proposer `remember` seule ; une fiche `actions=say,mark_map` **sans lieu `[place]` avec `use=mark`** a le même prompt
+  qu'une fiche `say` seul (E07-T04). Une réponse en texte libre (sans objet JSON) est dite telle quelle, sans action.
   le prompt système demande en plus un objet JSON `{"say": "...", "actions": [{"type": "...", <paramètres>}]}`, nomme
   les actions proposées et décrit chacune (paramètres, types, bornes, usage) avec un exemple d'objet JSON ; jamais de
   secret, de coordonnée ni de fréquence. `say` peut aussi être une liste de chaînes (jointes) ; un bloc
@@ -207,13 +209,13 @@ valide la forme, le serveur le fond ; le serveur seul exécute. Implémentation 
   l'appelant** envoyé au LLM (`format_reminder` : objet attendu et types d'action proposés, sans lieu, secret ni
   coordonnée) ; l'historique garde la question sans ce rappel (E07-T09).
 - **Actions proposées** (`EXECUTABLE_ACTIONS` et `offered_actions` du pont) : celles de la fiche qui ont un exécuteur
-  (`Actions.register`), dans l'ordre de la fiche. Les autres ne sont pas proposées au LLM (journal anglais une fois
+  (`Actions.register`), dans l'ordre de la fiche, puis celles de toute voix (`UNIVERSAL_ACTIONS` : `remember`). Les autres ne sont pas proposées au LLM (journal anglais une fois
   par voix et par liste : `actions not offered to the LLM, no executor on the server yet`). Description envoyée, en
   anglais, bornes reprises de `RadioSurvivor_Const.lua` (un test compare noms et bornes au serveur) :
 
   | Action | Paramètres décrits |
   |---|---|
-  | `remember` | `fact` : texte d'au plus `MEMORY_FACT_CHARS` (64) caractères, un fait court sur l'appelant (nom, lieu déclaré, service rendu) ; une note, pas une preuve |
+  | `remember` | `fact` : texte d'au plus `MEMORY_FACT_CHARS` (200) caractères, un fait court sur l'appelant (nom, lieu déclaré, service rendu) ; une note, pas une preuve ; la voix se souvient de chaque appelant pour toujours, environ `MEMORY_CALLER_CHARS` (2000) caractères de notes en tout |
   | `persona_state` | au moins un de : `morale`, `supplies` (vivres, eau, munitions) : entiers de 0 à `PERSONA_LEVEL_MAX` (10), au plus `PERSONA_LEVEL_STEP` (2) d'écart par appel ; `place` : texte d'au plus `PERSONA_PLACE_CHARS` (40) caractères, où la voix dit être |
   | `mark_map` | `place` : identifiant d'un lieu de la fiche ; suivi de la liste `id: libellé` des lieux `[place]` avec `use=mark` (E20-T03), jamais de coordonnées ; exemple au premier identifiant. Proposée seulement si la fiche a au moins un tel lieu (sinon journal anglais une fois par voix : `mark_map not offered to the LLM, the sheet has no [place] with use=mark`) |
   | `reveal_area` | `place` : identifiant d'un lieu de la fiche, comme `mark_map` (E07-T05) ; mêmes conditions (au moins un lieu `use=mark`, sinon `reveal_area not offered to the LLM, the sheet has no [place] with use=mark`) ; la liste `id: libellé` n'est écrite qu'une fois, sous la première de ces deux actions proposée ; aucune taille de zone demandée au LLM (le serveur la fixe) |
@@ -226,10 +228,12 @@ valide la forme, le serveur le fond ; le serveur seul exécute. Implémentation 
 - Appels spontanés (`kind=radio_call`) : inchangés, jamais d'action.
 
 **Validation du pont** (`bounded_actions`, forme seulement) : au plus 3 actions ; chacune un objet dont `type` est
-dans `persona_store.ACTIONS` et dans `actions=` de la fiche, doté d'un exécuteur (`EXECUTABLE_ACTIONS`, E07-T07 :
+dans `persona_store.ACTIONS` et dans `actions=` de la fiche, ou dans `UNIVERSAL_ACTIONS` (E22-T13), doté d'un
+exécuteur (`EXECUTABLE_ACTIONS`, E07-T07 :
 le serveur la refuserait `not_available`), jamais `say` (le texte est déjà `say`) ; au plus 8
 paramètres, noms `[a-z][a-z0-9_]{0,31}`, valeurs scalaires : chaîne passée par `safe_text` (contrôles et balises
-retirés) d'au plus 64 octets UTF-8, nombre fini, booléen ; `mark_map` et `reveal_area` : seulement `place`,
+retirés) d'au plus 64 octets UTF-8 (`remember` : 200, `PARAM_BYTES`, E22-T13), nombre fini, booléen ; `mark_map`
+et `reveal_area` : seulement `place`,
 identifiant d'un lieu de la fiche (E07-T04, E07-T05). Un élément invalide est retiré et journalisé (anglais), le reste passe. JSON illisible : le texte brut devient `say` seul, sans action (journalisé). `leaks_secret` s'applique au
 texte et à chaque paramètre chaîne : une fuite donne les parasites `<fzzt>` en `line=`, rien en mémoire, aucune action.
 La mémoire de conversation ne garde que le texte `say`, jamais le JSON.
@@ -294,7 +298,8 @@ admin fichier (ci-dessous).
 
 **Exécuteurs** : `Actions.register(name, { validate = f(params, ctx) -> ok, cooldownMs = n, maxDistance = n,
 execute = f(params, ctx) -> ok, reason })`, `ctx = { caller, voice, sheet, player, khz, cid, day }` (`sheet` : fiche
-de la voix, E07-T04). `remember` (E07-T03, « Mémoire des voix » ci-dessous), `persona_state` (E07-T06, « État
+de la voix, E07-T04 ; `maxParamChars = n` : borne propre de ses chaînes de paramètre, E22-T13). `remember` (E07-T03,
+action de toute voix depuis E22-T13 : `Actions.UNIVERSAL`, « Mémoire des voix » ci-dessous), `persona_state` (E07-T06, « État
 dynamique des voix » ci-dessous), `mark_map` (E07-T04, « Repère sur la carte » ci-dessous), `reveal_area` (E07-T05,
 « Quartier révélé » ci-dessous) et `start_mission` (E11-T08, « Mission donnée par une voix » ci-dessous) ont le leur ; toute autre action du catalogue autre que `say` est refusée
 `not_available` tant que sa tâche (E11, E12, E13) n'a pas branché le sien.
@@ -349,66 +354,102 @@ deux fichiers, soit environ deux fois les seuils sur le disque.
 Écriture impossible (`getFileWriter` nil) : un avertissement console unique
 `[RadioSurvivor] action log unavailable: ...`, la ligne console de chaque décision reste.
 
-### Mémoire des voix (E07-T03)
+### Mémoire des voix (E07-T03, E22-T13)
 
-Action `remember` : la voix retient un fait court sur l'appelant (nom de personnage, lieu déclaré, service rendu). Le
-pont la propose, le serveur l'accepte et range le fait ; la mémoire vit **côté autorité**, jamais dans le pont ni en
-ModData globale. Implémentation : `server/RadioSurvivor/RS_Memory.lua` (exécuteur, bornes, champ de demande),
-`RadioSurvivor_Server.lua` (champ joint à la demande), `CA_Transport.lua` (mod commun) et `RS_BridgeLanes.lua`, `bridge/radio_bridge.py`
-(`memory_facts`, `memory_prompt`).
+Action `remember` : la voix retient un fait court sur l'appelant (nom de personnage, lieu déclaré, service rendu).
+**Toute voix l'a** (E22-T13) : `remember` n'est plus une action de fiche (une fiche qui la liste dans `actions=` ou
+qui écrit `budget.remember` est refusée, `unknown action 'remember'`) ; elle est universelle (`RS_Actions.UNIVERSAL`,
+`radio_bridge.UNIVERSAL_ACTIONS`), donc proposée au LLM pour toute voix et **toute voix répond en mode structuré**
+(une fiche `say` seul comprise ; une réponse en texte libre reste dite telle quelle, sans action). Le pont la propose,
+le serveur l'accepte et range le fait ; la mémoire vit **côté autorité**, jamais dans le pont ni en ModData globale.
+Implémentation : `server/RadioSurvivor/RS_Memory.lua` (exécuteur, bornes, champs de demande),
+`RadioSurvivor_Server.lua` (champs joints à la demande), `RS_NotebookHooks.lua` (mort d'un personnage),
+`CA_Transport.lua` (mod commun) et `RS_BridgeLanes.lua`, `bridge/radio_bridge.py` (`memory_facts`, `memory_prompt`,
+`dead_people`, `dead_prompt`).
 
-**Exécuteur** (jugé par `RS_Actions.decide` comme toute action : catalogue, `actions=` de la fiche, paramètres,
-`budget.remember` par jour de jeu et par voix, `0` ou absent = sans plafond) :
+**Exécuteur** (jugé par `RS_Actions.decide` comme toute action : catalogue, action universelle permise à toute fiche,
+paramètres ; aucun budget du jour) :
 
-- paramètre unique `fact`, chaîne ; tout autre paramètre, ou un fait vide une fois nettoyé : `bad_params`. Nettoyage :
-  contrôles, retours et `<>[]` en espaces, espaces réduits, coupé à 64 caractères (`Const.MEMORY_FACT_CHARS`, la borne
-  des paramètres d'action) ;
+- paramètre unique `fact`, chaîne d'au plus 200 caractères (`maxParamChars` de l'exécuteur = `Const.MEMORY_FACT_CHARS`,
+  au-delà de la borne commune de 64 ; même borne en octets dans le pont, `radio_bridge.PARAM_BYTES`) ; tout autre
+  paramètre, ou un fait vide une fois nettoyé : `bad_params`. Nettoyage : contrôles, retours et `<>[]` en espaces,
+  espaces réduits, coupé à 200 caractères. 200 caractères : une ou deux phrases (un nom, un lieu et leur contexte),
+  au moins dix faits pleins dans les 2000 caractères d'un appelant ;
 - délai `cooldownMs = 0` : le délai de `RS_Actions` est par voix et non par appelant, il ferait refuser le souvenir d'un
-  deuxième appelant juste après celui d'un premier ; le budget du jour, les 3 actions par réponse et les bornes
-  ci-dessous limitent l'écriture ;
+  deuxième appelant juste après celui d'un premier ; les 3 actions par réponse et les bornes ci-dessous limitent
+  l'écriture ;
+- mémoire pleine : refus `memory_full` (aucun compteur consommé) et une ligne console
+  `[RadioSurvivor] memory of voice <id> for caller <clé> (<cid>) is full (<n> facts, <c> characters): fact refused` ;
 - **aucun effet de jeu** : seulement la mémoire (`S.dirty = true` quand l'état privé est chargé).
 
 **Rangement** : `RS_State`, `data.memory[<voix>] = { seq, callers = { [<clé>] = { caller, cid, seq, facts = { { text,
-seq } } } } }`, sauvegardé avec l'état des voix ; sans état chargé (pas encore initialisé ou bloqué), table en
-mémoire perdue au redémarrage du serveur, comme les compteurs d'actions. Clé = voix + appelant (`callerKey` : compte
-en MP, `solo` en solo) + personnage du carnet (`cid` de la demande, `-` sans carnet lié) : un nouveau personnage en
-solo n'hérite pas des souvenirs du précédent.
+seq } }, dead = { name, day, seq } } } }`, sauvegardé avec l'état des voix ; sans état chargé (pas encore initialisé
+ou bloqué), table en mémoire perdue au redémarrage du serveur, comme les compteurs d'actions. Clé = voix + appelant
+(`callerKey` : compte en MP, `solo` en solo) + personnage du carnet (`cid` de la demande, `-` sans carnet lié) : un
+nouveau personnage en solo n'hérite pas des souvenirs du précédent.
 
-**Bornes** (`RadioSurvivor_Const`) : au plus `MEMORY_MAX_FACTS = 5` faits par (voix, appelant, personnage), le plus
-ancien évincé ; un fait identique après normalisation (casse, espaces) est rafraîchi (repasse en dernier), pas
-dupliqué ; au plus `MEMORY_MAX_CALLERS = 50` appelants par voix, le moins récemment servi par `remember` évincé ; au
-pire 50 × 5 × 64 caractères par voix. Aucun souvenir entre voix, aucun pour les appels spontanés.
+**Bornes** (`RadioSurvivor_Const`), **sans aucune éviction** : par (voix, appelant, personnage), au plus
+`MEMORY_CALLER_CHARS = 2000` caractères de faits (somme des textes) et `MEMORY_MAX_FACTS = 50` faits ; un fait de plus
+est refusé et rien n'est oublié. Le nombre de faits borne l'état privé quand les faits sont très courts (un fait = une
+table RSV2, environ 5 nœuds du codec). Un fait identique après normalisation (casse, espaces) est rafraîchi (repasse
+en dernier, sa taille comptée une fois), pas dupliqué. Aucune borne sur le nombre d'appelants. Aucun souvenir entre
+voix, aucun pour les appels spontanés.
 
-**Purge** : la mort d'un personnage (`CA_NotebookServer.characterDeath`, identité retirée, E00-T02) appelle
-`RS_Memory.forgetCharacter` : ses souvenirs sont effacés de toutes les voix. Un personnage marqué `retired` n'est de
-toute façon jamais relu.
+**Taille de l'état** : au pire 2000 caractères de faits (plus une petite enveloppe par fait) par personnage et par
+voix, pour toujours : morts compris. L'état privé est plafonné par le codec (`CA_Codec.MAX_BYTES` 4 Mio,
+`MAX_NODES` 200 000) et `RS_State` avertit en console à 70 % (`S.WARN_RATIO`) ; une écriture refusée garde l'état en
+mémoire et réessaie (C19). Ordre de grandeur : une mémoire pleine de 50 faits courts coûte environ 3 Kio et 260 nœuds,
+soit environ 750 mémoires pleines avant le plafond des nœuds (par exemple 12 voix × 62 personnages qui les ont toutes
+remplies) ; pleine de 10 faits de 200 caractères, environ 2,3 Kio et 60 nœuds, soit environ 1 800 avant le plafond
+des octets.
+
+**Mort** (E22-T13) : la mort d'un personnage (`CA_Identity.onRetire`, identité retirée, E00-T02 ; crochet
+`RS_NotebookHooks.forget`) appelle `RS_Memory.markDead(cid, nom, jour)` : ses souvenirs **restent** dans toutes les
+voix, marqués `dead = { name, day, seq }` (nom du personnage tel que ses demandes le donnaient, prénom et nom du
+descripteur, 64 caractères au plus ; jour de jeu `AAAA-MM-JJ` de la mort, `Const.gameDay`). Une mort marquée le reste.
+Le personnage retiré n'est plus joint comme appelant (`memory=` vide pour lui).
 
 **Champ de demande** `memory=` (demande radio sans `kind`, après `text`/`language` dans l'ordre de la voie radio (`RS_BridgeLanes`)) :
 hexadécimal minuscule RSV2 (« Codec structuré RSV2 ») de la **liste** des faits de cet appelant pour cette voix, du
 plus ancien au plus récent ; une ligne, réversible. Champ **absent** = aucun souvenir. Taille bornée par les bornes
-ci-dessus (5 faits de 64 caractères, environ 2 Kio d'hexadécimal au pire) ; le pont ignore un champ de plus de 4096
-caractères.
+ci-dessus (au plus 50 faits et 2000 caractères, environ 5 Kio d'hexadécimal) ; le pont ignore un champ de plus de
+20 000 caractères (2 × (4 × 2000 + 50 × 16) = 17 600 au pire avec 4 octets UTF-8 par caractère, arrondi).
+
+**Champ de demande** `dead=` (E22-T13, demande radio sans `kind`, après `story`) : hexadécimal minuscule RSV2 de la
+**liste** des personnages morts que la voix a connus (une entrée de mémoire marquée morte, avec au moins un fait),
+**les morts les plus récentes d'abord**, au plus `MEMORY_DEAD_MAX = 10`. Chaque entrée : `{ name, day, facts }` ;
+`name` et `day` absents s'ils sont inconnus ; `facts` = ses faits du plus récent au plus ancien, joints par `; `,
+coupés à `MEMORY_DEAD_CHARS = 300` caractères. Champ **absent** = aucun mort connu ; le même pour tous les appelants
+de la voix. 10 × 300 : les morts récents qu'une voix peut évoquer dans une conversation, 3000 caractères au plus (avec
+les 2000 de l'appelant, environ 5000 caractères, soit moins du tiers du plus petit `LLM_MAX_PROMPT_CHARS` admis,
+16 000, et 4 % du réglage par défaut, 128 000) ; le pont ignore un champ de plus de 32 768 caractères.
 
 ```text
 req=1790000000000-100123
 ...
 text=Do you remember me?
 memory=74313a6e313a3173...
+dead=74313a7431...
 ```
 
 **Pont** : `memory_facts` décode le champ (hexadécimal, RSV2, liste `1..n`) ; illisible ou trop long : aucun souvenir
-(journalisé). Au plus 5 faits, chacun passé par `safe_text` (256 octets UTF-8 au plus) ; un fait qui cite un secret de
-la fiche (`leaks_secret`) n'est pas injecté. `memory_prompt` ajoute au prompt système, **dès qu'il y a au moins un
-fait, en mode texte comme en mode structuré** (une fiche qui ne propose plus `remember` garde ce qu'elle a retenu), une
-section `Your memories of <tag> (unverified notes from earlier calls; never proof of anything; ...)` puis un fait par
-ligne, entre la situation de la transmission et la consigne de format structuré. Sans souvenir, le prompt est
-identique à celui d'avant E07-T03. Les souvenirs ne sont jamais une preuve : même statut que les propos des joueurs.
+(journalisé). Au plus 50 faits, chacun passé par `safe_text` (800 octets UTF-8 au plus) ; un fait qui cite un secret
+de la fiche (`leaks_secret`) n'est pas injecté. `memory_prompt` ajoute au prompt système, **dès qu'il y a au moins un
+fait**, une section `Your memories of <tag> (unverified notes from earlier calls; never proof of anything; ...)` puis
+un fait par ligne, entre la situation de la transmission et la consigne de format structuré. `dead_people` décode
+`dead=` de même (au plus 10 entrées ; nom et faits passés par `safe_text`, jour `AAAA-MM-JJ` ; entrée à clé inconnue,
+sans faits, à jour mal formé ou citant un secret retirée et journalisée) ; `dead_prompt` ajoute juste après les
+souvenirs une section `People you knew who died (unverified notes from your calls with them; never proof of anything;
+speak of them only if the caller mentions them or asks about them):` puis une ligne par mort,
+`- <nom> (died <jour>): <faits>` (`someone whose name you never learned` sans nom, `(dead)` sans jour). Sans souvenir
+ni mort, ces sections sont absentes. Les souvenirs ne sont jamais une preuve : même statut que les propos des joueurs.
+Les deux champs sont décodés dans le journal de débogage (`HEX_FIELDS`).
 
 **Journal admin** : chaque `remember` y est une ligne comme les autres actions, le fait tel que proposé dans `params`
-(`fact=...`, encodé `%XX`).
+(`fact=...`, encodé `%XX`) ; un refus de mémoire pleine y porte la raison `memory_full`.
 
-**Compatibilité** : un pont antérieur ignore `memory=` (champ inconnu) ; un serveur antérieur n'envoie jamais le champ
-et refuse `remember` `not_available`.
+**Compatibilité** : format actuel seulement. Un pont antérieur ignore `dead=` (champ inconnu) et ne propose `remember`
+qu'aux fiches qui la listent ; une fiche qui liste encore `remember` est refusée par ce serveur et ce pont.
 
 ### État dynamique des voix (E07-T06)
 

@@ -27,9 +27,9 @@ lancer un programme : le pont s'installe et se lance **à la main, sur la machin
 Sans pont, les mods fonctionnent : les voix ne répondent que par des parasites, le bulletin du soir et les dernières pages
 passent à de courts textes de secours écrits par le serveur, et les PNJ du carnet restent muets.
 
-Le pont tient en cinq fichiers : `radio_bridge.py` (le programme), `npc_protocol.py` (dialogues du carnet),
-`persona_store.py` (fiches des voix), `bulletin.py` (bulletin du soir) et `last_pages.py` (dernières pages). Copiez-les
-ensemble dans un même dossier, avec `.env.example`, à la même version que les mods installés sur le serveur : un pont plus
+Le pont est un dossier entier, `bridge`, et non un seul programme : `radio_bridge.py` a besoin des autres fichiers
+Python, du dossier `atelier/` et des lanceurs placés à côté. Téléchargez le dossier complet depuis le dépôt GitHub et
+gardez-le ensemble, avec `.env.example`, à la même version que les mods installés sur le serveur : un pont plus
 ancien que les mods ne comprend pas toutes les demandes, et un fichier manquant l'empêche de démarrer
 (`ModuleNotFoundError`). Mettez-le à jour à chaque mise à jour du mod.
 

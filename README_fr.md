@@ -80,6 +80,20 @@ les deux. Chacun fonctionne sans l'autre.
   parmi ce que la voix peut donner.
 - **Des missions qui racontent** : reconnaissance, livraison par catégorie d'objets, nettoyage, barricadage, relais
   radio, itinéraire, guet, objet personnel ; certaines missions s'enchaînent, et Darlene peut retourner à sa clinique.
+- **Les voix se souviennent de vous, pour toujours** : chaque voix garde ce qu'elle a appris de chaque appelant
+  (jusqu'à 2 000 caractères par personnage) et sait encore qui est mort, si quelqu'un lui en parle.
+
+### L'atelier des voix (Radio Survivor)
+
+Créez vos propres voix radio sans écrire de fichier : double-cliquez sur `bridge/atelier.bat` (`atelier.sh` sous
+Linux, `atelier.command` sous macOS) et une page s'ouvre dans votre navigateur. Cinq étapes (qui, où et quand, ce
+qu'elle sait, missions, récompenses), des lieux relevés en jeu d'un clic droit, le stock d'un marchand choisi par nom
+d'objet, une note manuscrite et un appel spontané écrits dans la voix elle-même. L'IA du pont peut écrire la
+personnalité et fait essayer la voix avant d'enregistrer ; le jeu l'entend en moins de 30 secondes, signale une ligne
+refusée, et un journal en direct montre ce que les joueurs disent aux voix. Exporter et Importer partagent une voix.
+Guide : [Atelier des voix](docs/wiki/fr/13-atelier-des-voix.md).
+
+![L'atelier des voix](docs/images/screenshots/atelier/atelier-fr-01-voice.png)
 
 ### Le carnet et les PNJ
 
@@ -184,15 +198,7 @@ jeu ◀─responses.txt── pont ◀─────────
 
 ### 1. Les fichiers
 
-Le pont tient en cinq fichiers Python, à garder **ensemble dans un même dossier** et à mettre à jour avec les mods :
-
-| Fichier | Rôle |
-|---|---|
-| `radio_bridge.py` | Programme principal : surveillance des fichiers, appels à l'IA, réponses |
-| `npc_protocol.py` | Dialogues des PNJ du carnet |
-| `persona_store.py` | Lecture des fiches de caractère des voix |
-| `bulletin.py` | Bulletin du soir de la station pirate |
-| `last_pages.py` | Dernières pages d'un personnage mort |
+Le pont est un dossier entier, à télécharger **en entier** depuis le dépôt GitHub, à garder **ensemble** et à mettre à jour avec les mods. Son programme principal est `radio_bridge.py` ; il a besoin des autres fichiers Python, du dossier `atelier/` et des lanceurs (`atelier.bat`, `atelier.sh`, `atelier.command`) placés à côté.
 
 S'y ajoute `.env.example`, le modèle du fichier de réglages. Dans ce dépôt : dossier [`bridge/`](bridge/).
 
@@ -261,7 +267,7 @@ Comme en solo, sur le PC de l'hôte : le serveur lancé par le jeu utilise le m�
    Sans `--exchange`, le pont prend le dossier `Zomboid` de **son propre** compte : passez `--exchange` dès que le
    serveur tourne sous un autre compte ou avec `-cachedir`. Le pont crée le dossier s'il manque, donc une faute de
    frappe ne donne aucune erreur : tant que le pont tourne, le bon dossier contient `bridge-alive.txt`.
-2. **Installer** les cinq fichiers dans un dossier (par exemple `C:\RadioSurvivorBridge` ou
+2. **Installer** le dossier `bridge` en entier dans un dossier (par exemple `C:\RadioSurvivorBridge` ou
    `/opt/radiosurvivor-bridge`) et le fichier de clé **hors** de ce dossier et des dossiers du jeu, lisible par le seul
    compte du pont (`chmod 600` sous Linux).
 3. **Tester à la main** :
@@ -316,6 +322,9 @@ Comme en solo, sur le PC de l'hôte : le serveur lancé par le jeu utilise le m�
 | `--usage-log CHEMIN` | Journal de consommation (défaut `<échange>/token_usage.jsonl`). |
 | `--debug` | Journal complet dans le terminal, prompts et dialogues compris. |
 | `--poll SECONDES` | Intervalle de lecture de `requests.txt` (défaut 0,3). |
+| `--atelier` | Ouvre aussi l'[atelier des voix](docs/wiki/fr/13-atelier-des-voix.md) dans le navigateur (même sans IA configurée). |
+| `--atelier-port PORT` | Port local de l'atelier (défaut 8765, les suivants s'il est pris). |
+| `--game-log CHEMIN` | Console du jeu lue par l'atelier pour ses verdicts et son journal (défaut `<Zomboid>/console.txt` ; fichier de console d'un serveur dédié). |
 | `--help` | Aide complète. |
 
 ### Coût

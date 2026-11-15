@@ -198,5 +198,8 @@
     "IGUI_RS_Reward_cache": "J’ai laissé du matériel pour toi à l’endroit indiqué.",
     "IGUI_RS_Reward_frequency": "Un contact radio a été ajouté à ton carnet.",
     "IGUI_RS_Reward_stashmap": "Tu as reçu une carte annotée menant à une planque.",
-    "IGUI_RS_Reward_lesson": "Tu as reçu une leçon pratique."
+    "IGUI_RS_Reward_lesson": "Tu as reçu une leçon pratique.",
+    "IGUI_RS_Survey_Menu": "Atelier des voix : relever ce lieu",
+    "IGUI_RS_Survey_Done": "Lieu relevé pour l'atelier des voix",
+    "IGUI_RS_Survey_Refused": "Ce lieu n'a pas pu être relevé"
 }

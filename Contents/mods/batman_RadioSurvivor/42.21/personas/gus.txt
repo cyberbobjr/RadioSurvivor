@@ -39,8 +39,8 @@ label=Old wooden pier, west end of Riverside
 use=landing
 
 # Troc (E20-T07, docs/specifications-techniques/persona-format.md) : barème docs/specifications-techniques/passeur-table.md
-# section 3 ; poids du script vanilla, plus le fluide d'un récipient plein. Graines : 3 à 8 sachets, 4 sortes au plus ;
-# alcools : 1 à 4 bouteilles.
+# section 3 ; poids lu par le serveur dans le script, liquide d'un récipient plein compris. Graines : 3 à 8 sachets,
+# 4 sortes au plus ; alcools : 1 à 4 bouteilles.
 [trade]
 landing=riverside_pier
 arrival=boat
@@ -49,38 +49,38 @@ hours=01:00-03:00
 margin=0.10-0.50
 group=seeds:3-8:4
 group=alcohol:1-4
-item=Base.Battery:4-12:0.1
-item=Base.Antibiotics:2-6:0.1
-item=Base.ShotgunShellsBox:0-2:1.5
-item=Base.308Box:0-2:0.6
-item=Base.3030Box:0-1:0.6
-item=Base.CarrotBagSeed2:seeds:0.1
-item=Base.BroccoliBagSeed2:seeds:0.1
-item=Base.RedRadishBagSeed2:seeds:0.1
-item=Base.StrewberrieBagSeed2:seeds:0.1
-item=Base.TomatoBagSeed2:seeds:0.1
-item=Base.PotatoBagSeed2:seeds:0.1
-item=Base.CabbageBagSeed2:seeds:0.1
-item=Base.CornBagSeed:seeds:0.1
-item=Base.KaleBagSeed:seeds:0.1
-item=Base.OnionBagSeed:seeds:0.1
-item=Base.GarlicBagSeed:seeds:0.1
-item=Base.WheatBagSeed:seeds:0.1
-item=Base.LettuceBagSeed:seeds:0.1
-item=Base.CigarettePack:2-8:0.2
-item=Base.CigaretteCarton:0-1:2.0
-item=Base.Whiskey:alcohol:1.7
-item=Base.Vodka:alcohol:2.0
-item=Base.Wine:alcohol:1.3
-item=Base.Wine2:alcohol:1.3
-item=Base.BeerPack:alcohol:1.8
-item=Base.Coffee2:1-3:1.0
-item=Base.RadioReceiver:0-2:0.1
-item=Base.RadioTransmitter:0-2:0.1
-item=Base.Amplifier:0-2:0.3
-item=Base.ElectricWire:2-5:0.1
-item=Base.ElectronicsScrap:2-5:0.1
-item=RadioSurvivor.OutsideNews:1-1:0.2
+item=Base.Battery:4-12
+item=Base.Antibiotics:2-6
+item=Base.ShotgunShellsBox:0-2
+item=Base.308Box:0-2
+item=Base.3030Box:0-1
+item=Base.CarrotBagSeed2:seeds
+item=Base.BroccoliBagSeed2:seeds
+item=Base.RedRadishBagSeed2:seeds
+item=Base.StrewberrieBagSeed2:seeds
+item=Base.TomatoBagSeed2:seeds
+item=Base.PotatoBagSeed2:seeds
+item=Base.CabbageBagSeed2:seeds
+item=Base.CornBagSeed:seeds
+item=Base.KaleBagSeed:seeds
+item=Base.OnionBagSeed:seeds
+item=Base.GarlicBagSeed:seeds
+item=Base.WheatBagSeed:seeds
+item=Base.LettuceBagSeed:seeds
+item=Base.CigarettePack:2-8
+item=Base.CigaretteCarton:0-1
+item=Base.Whiskey:alcohol
+item=Base.Vodka:alcohol
+item=Base.Wine:alcohol
+item=Base.Wine2:alcohol
+item=Base.BeerPack:alcohol
+item=Base.Coffee2:1-3
+item=Base.RadioReceiver:0-2
+item=Base.RadioTransmitter:0-2
+item=Base.Amplifier:0-2
+item=Base.ElectricWire:2-5
+item=Base.ElectronicsScrap:2-5
+item=RadioSurvivor.OutsideNews:1-1
 
 # Note de fréquence (E05-T09, E20-T11) : mot griffonné ; magasins et réserves de pêche, cartons de pêche des
 # placards, boîte à gants des pêcheurs.

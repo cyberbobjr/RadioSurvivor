@@ -1,0 +1,206 @@
+"""E22-T06: the bridge's LLM helps to write a voice in the workshop (ADR atelier-voix D04).
+
+    python RadioSurvivor/tests/test_atelier_ai.py
+
+A real workshop server on 127.0.0.1 (port 0) whose AI is built by radio_bridge.workshop_ai over the deterministic fake
+LLM (tools/fake_llm, port 0): POST /api/ai/personality, /api/ai/story and /api/ai/try answer; without configuration
+or offline the routes answer 503 ai_unavailable and no call is made; the bridge's prompt cap refuses an oversized
+request before any call (prompt_too_large); /api/ai/try builds the voice prompt with radio_bridge.voice_turn from the
+UNSAVED text of the page; the token usage journal marks the calls source=workshop; no file of the working folder
+changes. No paid LLM, no .env read, no game.
+"""
+from __future__ import annotations
+
+import http.client
+import json
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "bridge"))
+sys.path.insert(0, str(ROOT / "tests"))
+import atelier_ai  # noqa: E402
+import atelier_server as atelier  # noqa: E402
+import persona_store  # noqa: E402
+import radio_bridge as rb  # noqa: E402
+from test_fake_llm import start_fake, stop  # noqa: E402
+
+SAVED = "format=1\nid=zed\nname=Zed Moore\nfrequencies=146.0\n[prompt]\nYou are Zed, the saved version.\n"
+UNSAVED = ("format=1\nid=zed\nname=Zed Moore\nfrequencies=146.0\nknows=Where the old mill is.\n"
+           "secret=He buried the money under the porch.\n[prompt]\nYou are Zed. UNSAVED-MARK-42.\n")
+
+
+def snapshot(folder: Path) -> dict[str, tuple[bytes, int]]:
+    return {p.name: (p.read_bytes(), p.stat().st_mtime_ns) for p in sorted(folder.iterdir())}
+
+
+class WorkshopAiRoutes(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.fake_log = Path(tempfile.gettempdir()) / f"fake-atelier-ai-{id(cls)}.jsonl"
+        cls.fake, cls.port = start_fake("--log", str(cls.fake_log))
+
+    @classmethod
+    def tearDownClass(cls):
+        stop(cls.fake)
+        cls.fake_log.unlink(missing_ok=True)
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        base = Path(self.tmp.name)
+        self.working, shipped = base / "personas", base / "mod"
+        self.working.mkdir()
+        shipped.mkdir()
+        (self.working / "zed.txt").write_text(SAVED, encoding="utf-8", newline="")
+        self.lines: list[str] = []
+        self.sent: list[list[dict]] = []
+        self.saved = (rb.log, rb.call_llm, rb.TOKEN_USAGE)
+        rb.log = self.lines.append
+        real_call = rb.call_llm
+
+        def spy(config, messages, speaker="Walt", json_mode=False):
+            self.sent.append(messages)
+            return real_call(config, messages, speaker, json_mode)
+        rb.call_llm = spy
+        rb.TOKEN_USAGE = rb.TokenUsageLog(base / "usage" / "token_usage.jsonl")
+        self.config = {"OPENAI_BASE_URL": f"http://127.0.0.1:{self.port}/v1", "OPENAI_MODEL": "fake",
+                       "OPENAI_KEY": "fake", "LLM_MAX_TOKENS": 1000, "LLM_MAX_PROMPT_CHARS": 16000}
+        self.server = self.serve(rb.workshop_ai(self.config))
+        self.before = snapshot(self.working)
+
+    def serve(self, ai):
+        server = atelier.bind(atelier.VoiceStore(self.working, self.working.parent / "mod"), 0,
+                              self.working.parent, None, lambda m: None, live=atelier.Live(ai=ai))
+        atelier.start(server)
+        return server
+
+    def tearDown(self):
+        rb.log, rb.call_llm, rb.TOKEN_USAGE = self.saved
+        self.server.shutdown()
+        self.server.server_close()
+        self.tmp.cleanup()
+
+    def post(self, kind: str, body: dict, server=None) -> tuple[int, dict]:
+        server = server or self.server
+        conn = http.client.HTTPConnection(atelier.HOST, server.server_address[1], timeout=30)
+        conn.request("POST", f"/api/ai/{kind}", body=json.dumps(body).encode("utf-8"),
+                     headers={"Content-Type": "application/json"})
+        resp = conn.getresponse()
+        payload = json.loads(resp.read())
+        conn.close()
+        return resp.status, payload
+
+    def usage(self) -> list[dict]:
+        return [json.loads(line) for line in rb.TOKEN_USAGE.path.read_text(encoding="utf-8").splitlines()]
+
+    def test_personality(self):
+        status, payload = self.post("personality", {"voiceId": "zed", "name": "Zed Moore",
+                                                    "description": "Un vieux mécanicien qui répare des radios.",
+                                                    "knows": ["Where the old mill is."], "ignores": [], "secret": []})
+        self.assertEqual((status, payload["ok"]), (200, True), payload)
+        self.assertTrue(payload["prompt"].startswith("You are Zed Moore"), payload["prompt"])
+        system, user = (m["content"] for m in self.sent[0])
+        self.assertTrue(system.startswith("Workshop task: personality."))
+        self.assertIn("Un vieux mécanicien", user)
+        self.assertIn("workshop AI personality for voice 'zed'", self.lines)
+        self.assertEqual(rb.bridge_line("workshop AI personality for voice 'zed'"), ("info", "zed"))
+        self.assertEqual([e.get("source") for e in self.usage()], ["workshop"])
+        self.assertEqual(snapshot(self.working), self.before)
+
+    def test_story(self):
+        status, payload = self.post("story", {"voiceId": "zed", "missionType": "deliver",
+                                              "voiceText": "Bring items to a dead drop.", "context": "Zed, mechanic"})
+        self.assertEqual(status, 200, payload)
+        self.assertLessEqual(len(payload["story"]), atelier_ai.STORY_MAX_CHARS)
+        self.assertNotIn("\n", payload["story"])
+        self.assertIn("workshop AI story for voice 'zed'", self.lines)
+        self.assertEqual(snapshot(self.working), self.before)
+
+    def test_try_uses_the_unsaved_text_and_the_bridge_prompt(self):
+        history = [{"role": "user", "content": "Hello [Caller 7]?"}, {"role": "assistant", "content": "Zed here. Over."}]
+        status, payload = self.post("try", {"voiceId": "zed", "sheetText": UNSAVED, "history": history,
+                                            "text": "Who are you?"})
+        self.assertEqual(status, 200, payload)
+        self.assertTrue(payload["lines"] and all(len(line) <= rb.MAX_LINE_CHARS for line in payload["lines"]))
+        messages = self.sent[0]
+        sheet = persona_store.parse_bytes(UNSAVED.encode("utf-8"), "zed")
+        req = dict(rb.WORKSHOP_REQUEST, text="Who are you?", voice="zed")
+        # E22-T13: every voice has remember, so the game prompt (and this one) ends with the reply format.
+        jobs = rb.voice_jobs(req, sheet)
+        self.assertEqual(messages[0]["content"], rb.system_prompt(req, rb.WORKSHOP_TAG, rb.voice_prompt(sheet))
+                         + rb.actions_prompt(sheet, jobs))
+        self.assertIn("UNSAVED-MARK-42", messages[0]["content"])
+        self.assertIn("Never reveal them", messages[0]["content"], "secrets enter with the game's rule")
+        self.assertNotIn("the saved version", messages[0]["content"])
+        self.assertEqual(messages[1:], [{"role": "user", "content": "[Caller 1] Hello (Caller 7)?"},
+                                        {"role": "assistant", "content": "Zed here. Over."},
+                                        {"role": "user", "content": "[Caller 1] Who are you?"
+                                         + rb.format_reminder(sheet, jobs)}])
+        self.assertIn("workshop AI try for voice 'zed'", self.lines)
+        self.assertEqual(self.usage()[0]["source"], "workshop")
+        self.assertEqual(snapshot(self.working), self.before)
+
+    def test_try_refuses_an_invalid_sheet_without_call(self):
+        status, payload = self.post("try", {"voiceId": "zed", "sheetText": "format=1\nid=zed\n", "text": "Hi"})
+        self.assertEqual((status, payload["code"]), (422, "sheet_refused"))
+        status, payload = self.post("try", {"voiceId": "Bad Id", "sheetText": UNSAVED, "text": "Hi"})
+        self.assertEqual((status, payload["code"]), (400, "bad_request"))
+        self.assertEqual(self.sent, [])
+
+    def test_oversized_request_refused_by_the_bridge_cap(self):
+        calls_before = len(self.fake_log.read_text(encoding="utf-8").splitlines()) if self.fake_log.is_file() else 0
+        status, payload = self.post("personality", {"voiceId": "zed", "description": "x" * 20000})
+        self.assertEqual((status, payload["code"]), (413, "prompt_too_large"))
+        calls_after = len(self.fake_log.read_text(encoding="utf-8").splitlines()) if self.fake_log.is_file() else 0
+        self.assertEqual(calls_after, calls_before, "never sent to the provider")
+        status, payload = self.post("try", {"voiceId": "zed", "text": "Hi",
+                                            "sheetText": UNSAVED.replace("UNSAVED-MARK-42.", "y" * 20000)})
+        self.assertEqual((status, payload["code"]), (413, "prompt_too_large"))
+        self.assertEqual(snapshot(self.working), self.before)
+
+    def test_unavailable_without_configuration_or_offline(self):
+        self.assertIsNone(rb.workshop_ai(None))
+        self.assertIsNone(rb.workshop_ai({"OFFLINE": "1", "OPENAI_MODEL": "offline"}))
+        server = self.serve(None)
+        try:
+            for kind in ("personality", "story", "try"):
+                status, payload = self.post(kind, {"voiceId": "zed", "description": "x", "text": "Hi",
+                                                   "sheetText": UNSAVED, "missionType": "scout"}, server)
+                self.assertEqual((status, payload["ok"], payload["code"]), (503, False, "ai_unavailable"))
+                self.assertIn(".env", payload["message"])
+            conn = http.client.HTTPConnection(atelier.HOST, server.server_address[1], timeout=10)
+            conn.request("GET", "/api/status")
+            self.assertFalse(json.loads(conn.getresponse().read())["ai"])
+            conn.close()
+        finally:
+            server.shutdown()
+            server.server_close()
+        self.assertEqual(self.sent, [])
+        status, payload = self.post("unknown", {})
+        self.assertEqual((status, payload["code"]), (404, "not_found"))
+
+
+class AnswerShapes(unittest.TestCase):
+    def test_one_sentence(self):
+        self.assertEqual(atelier_ai.one_sentence('"Bring me the medicine. Over."\nSecond line'),
+                         "Bring me the medicine. Over.")
+        long = "First part is short. " + "word " * 60
+        self.assertEqual(atelier_ai.one_sentence(long), "First part is short.")
+        cut = atelier_ai.one_sentence("word " * 80)
+        self.assertLessEqual(len(cut), atelier_ai.STORY_MAX_CHARS)
+        self.assertTrue(cut.endswith("word"))
+
+    def test_plain_text_drops_a_fence(self):
+        self.assertEqual(atelier_ai.plain_text("```text\nYou are Zed.\n```"), "You are Zed.")
+
+    def test_templates_are_data_with_markers(self):
+        templates = atelier_ai.load_templates()
+        self.assertEqual(sorted(templates), ["personality", "story"])
+        self.assertTrue(templates["personality"]["system"].startswith("Workshop task: personality."))
+        self.assertIn('End each transmission with "Over."', templates["personality"]["system"])
+
+
+if __name__ == "__main__":
+    unittest.main()

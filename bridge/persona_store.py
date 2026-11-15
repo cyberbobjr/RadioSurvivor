@@ -22,9 +22,10 @@ FORMAT = '1'
 SEPARATOR = '[prompt]'
 BOM = '﻿'
 REPLACEMENT = '�'
-# Actions of the closed catalogue (note de travail, section 02). Only `say` is executed before E07.
+# Actions of the closed catalogue a sheet may list (note de travail, section 02). Only `say` is executed before E07.
+# E22-T13: `remember` is no sheet action any more: every voice has it (radio_bridge.UNIVERSAL_ACTIONS).
 ACTIONS = ('say', 'mark_map', 'reveal_area', 'signal', 'place_cache', 'place_scene', 'start_mission',
-           'persona_state', 'remember', 'propose_trade', 'report_mission', 'share_frequency')
+           'persona_state', 'propose_trade', 'report_mission', 'share_frequency')
 RADIOS = ('any', 'high_tier')
 LOCATIONS = ('none', 'fixed', 'rescue')
 STATES = ('active', 'silent', 'gone', 'dead')
@@ -35,6 +36,7 @@ REQUIRED = ('format', 'id', 'name')   # then frequencies or frequency_range (one
 MIN_KHZ, MAX_KHZ, STEP_KHZ = 1000, 999800, 200
 MAX_COUNT = 999999
 MAX_CALL_ONE_IN = 1000
+MAX_CALL_BYTES = 200   # call= written in the sheet (E22-T07), UTF-8 bytes as RS_Persona.lua
 # Known places of the voice: at most MAX_PLACES [place] sections, label of at most MAX_PLACE_LABEL_BYTES bytes in
 # UTF-8 (the Lua reader counts the same bytes from the UTF-16 units of Kahlua).
 MAX_PLACES = 12
@@ -96,6 +98,7 @@ class Persona:
     budgets: dict[str, int] = field(default_factory=dict)          # action -> uses per game day, 0 = no cap
     call_one_in: int = 0                       # spontaneous call: one chance in N per game hour, 0 = never
     call_text: str = ''                        # translation key of the fixed call, %1 = frequency label
+    call: str = ''                             # fixed call written in the sheet, %1 = frequency label (E22-T07)
     shares: list[str] = field(default_factory=list)
     state: str = 'active'
 
@@ -254,6 +257,15 @@ def _text(value: str, line: int) -> str:
     return value
 
 
+def _call(value: str, line: int) -> str:
+    """Call written in the sheet (E22-T07): bounded, no <, > or ^, % only in %1 (same rules as RS_Persona.lua)."""
+    if len(value.encode('utf-8')) > MAX_CALL_BYTES:
+        raise PersonaError(line, f'call too long ({MAX_CALL_BYTES} bytes of UTF-8 at most)')
+    if re.search(r'[<>^]', value) or '%' in value.replace('%1', ''):
+        raise PersonaError(line, f"bad call '{value}' (no <, > or ^; % only in %1, the frequency)")
+    return value
+
+
 # Head: one reader per key -> (field of Persona, reader(value, line)). Repeatable keys append to a list.
 HEAD: dict[str, tuple[str, Callable[[str, int], object]]] = {
     'format': ('format', _format),
@@ -274,6 +286,7 @@ HEAD: dict[str, tuple[str, Callable[[str, int], object]]] = {
     'budget': ('budget', lambda value, line: _count(value, 'budget', line)),
     'call_one_in': ('call_one_in', lambda value, line: _count(value, 'call_one_in', line, MAX_CALL_ONE_IN)),
     'call_text': ('call_text', _call_text),
+    'call': ('call', _call),
     'state': ('state', lambda value, line: _choice(value, 'state', STATES, line)),
 }
 
@@ -487,8 +500,11 @@ def parse_lines(lines: list[str], expected_id: str | None = None) -> Persona:
         raise PersonaError(seen['location'], 'location fixed needs a coords line')
     if location != 'fixed' and 'coords' in fields:
         raise PersonaError(seen['coords'], 'coords is only allowed with location=fixed')
-    if fields.get('call_one_in') and 'call_text' not in fields:
-        raise PersonaError(seen['call_one_in'], 'call_one_in needs a call_text line')
+    if 'call' in fields and 'call_text' in fields:
+        raise PersonaError(max(seen['call'], seen['call_text']),
+                           'call and call_text cannot be used together (text written in the sheet or translation key)')
+    if fields.get('call_one_in') and 'call' not in fields and 'call_text' not in fields:
+        raise PersonaError(seen['call_one_in'], 'call_one_in needs a call or call_text line')
     actions = fields.setdefault('actions', ['say'])
     for action, number in head.budget_lines:
         if action not in actions:

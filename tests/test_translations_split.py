@@ -167,11 +167,15 @@ ADDED |= {'IGUI_RS_TradeRun_' + k for k in (
     'Pier_road', 'Cancel_late_road', 'Done_road', 'Cancel_nodrop_road', 'Cancel_checkpoint', 'Cancel_air_patrol',
     'Cancel_washout', 'Pier_cache', 'Cancel_late_cache', 'Done_cache', 'Cheated_cache', 'Cancel_nodrop_cache',
     'Cancel_sweep', 'Cancel_overflight')}
+# E22-T08: "Voice workshop: record this place" (RS_PlaceSurveyMenu) and its halo texts.
+ADDED |= {'IGUI_RS_Survey_Menu', 'IGUI_RS_Survey_Done', 'IGUI_RS_Survey_Refused'}
 TOWN_NOTES = ('Wanda', 'Lamar', 'Delphine', 'Hollis', 'Loretta', 'Virgil', 'Boone', 'Odessa', 'Ezra', 'Maxine')
+# E22-T07: generic handwritten note of the voices whose note text is written in their sheet (title and name only).
 ADDED_FILES = {
-    'Print_Media': {f'Print_Media_RadioSurvivor_Note{n}_{p}' for n in TOWN_NOTES for p in ('title', 'info')},
+    'Print_Media': {f'Print_Media_RadioSurvivor_Note{n}_{p}' for n in TOWN_NOTES for p in ('title', 'info')}
+    | {'Print_Media_RadioSurvivor_NoteVoice_title'},
     'Print_Text': {f'Print_Text_RadioSurvivor_Note{n}_info' for n in TOWN_NOTES},
-    'ItemName': {'RadioSurvivor.NoteTrade'},
+    'ItemName': {'RadioSurvivor.NoteTrade', 'RadioSurvivor.NoteVoice'},
 }
 
 # E21-T03: pages of the notebook moved to the core mod (CA_NotebookContacts, CA_NotebookMissions, CA_NotebookReputation,

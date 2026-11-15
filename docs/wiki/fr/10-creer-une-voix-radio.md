@@ -12,6 +12,9 @@ de voix.
 > Les cinq étapes du démarrage rapide suffisent pour la plupart des voix. La suite de la page est une référence : ne
 > lisez que ce dont vous avez besoin.
 
+> **Vous préférez ne pas écrire le fichier à la main ?** Utilisez l'[atelier des voix](13-atelier-des-voix.md) : une
+> page dans votre navigateur qui écrit la même fiche pour vous, en cinq étapes.
+
 ## Démarrage rapide
 
 1. **Copiez une fiche.** Ouvrez le dossier `personas` (voir [Où sont les fiches](#où-sont-les-fiches)), copiez
@@ -220,6 +223,20 @@ use=mark,target
   posée au premier lieu `drop` de la fiche (à défaut, à son premier lieu).
 - `landing` : un rendez-vous de marchand (clé `landing` de la section `[trade]`, voir « Troc »).
 
+#### Relever un lieu en jeu
+
+Plutôt que de lire des coordonnées sur la carte, marchez jusqu'au lieu : clic droit sur une case, **« Atelier des
+voix : relever ce lieu »**. Le menu n'apparaît qu'en solo, ou à un admin en multijoueur (le serveur revérifie). Le jeu
+note la case, le conteneur qui s'y trouve (une benne, une caisse), la pièce et l'emprise du bâtiment, avec la date du
+jeu et le nom du personnage, dans `Zomboid/Lua/batman_RadioSurvivor/workshop-places.txt` de la machine qui fait tourner
+la partie ou le serveur (les 200 derniers relevés). Un message au-dessus du personnage confirme le relevé.
+
+Dans l'atelier des voix (étape « Missions », panneau « Ses lieux »), la liste **« Relevés en jeu »** montre les
+relevés, les plus récents d'abord. **« Ajouter à cette voix »** crée un lieu `[place]` à cette case avec un nom proposé
+(modifiable) et des usages proposés : un conteneur devient une planque (`drop`), un bâtiment un lieu de mission et un
+repère (`target`, `mark`). Tout se change ensuite dans la fiche du lieu. L'atelier ne modifie jamais ce fichier ; sur un
+serveur loué, l'atelier doit tourner sur la machine du serveur pour le lire.
+
 ### Actions
 
 Par défaut, une voix ne fait que **parler**. Les actions lui permettent d'**agir dans le jeu** pendant la
@@ -236,23 +253,28 @@ conversation : poser un repère sur votre carte, vous révéler un quartier, vou
    (`<dossier d'échange>/actions-<partie>.log`).
 
 ```ini
-actions=say,remember,mark_map
+actions=say,persona_state,mark_map
 ```
 
-Les noms (`mark_map`, `remember`…) sont des mots-clés : écrivez-les exactement ainsi, séparés par des virgules, sans
+Les noms (`mark_map`, `persona_state`…) sont des mots-clés : écrivez-les exactement ainsi, séparés par des virgules, sans
 espace. Une voix peut utiliser au plus trois actions dans une même réponse.
 
 #### Parler — `say`
 
 Toujours permise, même si vous ne l'écrivez pas. La voix vous répond à la radio.
 
-#### Se souvenir de vous — `remember`
+#### Se souvenir de vous — toujours
 
-- **En jeu :** la voix retient un détail sur vous (« il cherche sa sœur », « elle a une jambe blessée ») et vous en
-  reparle lors des appels suivants, même plusieurs jours de jeu plus tard.
+Rien à écrire : **toute voix se souvient de ses appelants**, pour toujours. `remember` n'est plus un mot de la ligne
+`actions=` : une fiche qui l'écrit est refusée (`unknown action 'remember'`), tout comme `budget.remember`.
+
+- **En jeu :** la voix retient des détails sur vous (« il cherche sa sœur », « elle a une jambe blessée ») et vous en
+  reparle lors des appels suivants, même des semaines de jeu plus tard.
 - **Conséquences :** aucune sur le jeu, seulement sur la conversation. Les souvenirs sont propres à chaque personnage.
-- **Limites :** 5 souvenirs par personnage et par voix (les plus anciens s'effacent), 64 caractères chacun.
-- **Conseillé** pour toute voix qu'on rappelle souvent.
+- **Limites :** 2 000 caractères de souvenirs par personnage et par voix (50 souvenirs au plus, 200 caractères
+  chacun). Rien ne s'efface : une fois la mémoire pleine, la voix ne retient plus rien de neuf sur ce personnage.
+- **Les morts :** quand un personnage meurt, ses souvenirs restent. La voix sait qu'il est mort (et à quelle date du
+  jeu) et peut réagir si quelqu'un lui parle de lui : elle reçoit les 10 morts les plus récents qu'elle a connus.
 
 #### Faire évoluer son humeur et ses réserves — `persona_state`
 
@@ -460,7 +482,7 @@ l'une sans l'autre est refusée.
 | `hours` | Fenêtre du rendez-vous, `HH:MM-HH:MM`. |
 | `delay_hours` | Facultatif : heures de jeu où personne ne doit voir le lieu avant l'échange (1 par défaut). |
 | `margin` | Facultatif : marge la plus basse et la plus haute (`0.10-0.50` par défaut). |
-| `item` | Un objet apporté par ligne : `Module.Type:quantité:poids en kg` ; quantité tirée à chaque passage (`4`, `2-6`) ou nom d'un groupe. |
+| `item` | Un objet apporté par ligne : `Module.Type:quantité` ; quantité tirée à chaque passage (`4`, `2-6`) ou nom d'un groupe. Pas de poids à écrire : le serveur le lit dans le script de l'objet (liquide d'une bouteille pleine compris) ; un type d'objet inconnu du jeu fait refuser la fiche. |
 | `group` | Facultatif : `nom:total[:sortes]`, un total tiré parmi les objets du groupe (`seeds:3-8:4` : 3 à 8 sachets, 4 sortes au plus). |
 
 Chaque marchand a son propre stock, sa propre réservation et ses propres affaires : deux marchands réservés la même
@@ -495,11 +517,11 @@ arrival=boat
 every_days=7
 hours=01:00-03:00
 delay_hours=2
-item=Base.Battery:2-6:0.1
-item=Base.Coffee2:1-2:1.0
+item=Base.Battery:2-6
+item=Base.Coffee2:1-2
 group=smokes:1-3
-item=Base.CigarettePack:smokes:0.2
-item=Base.CigaretteCarton:smokes:2.0
+item=Base.CigarettePack:smokes
+item=Base.CigaretteCarton:smokes
 
 [prompt]
 You are Ada Pruitt, 61, who runs an old ferry boat on the Ohio and trades with people inside the Knox Exclusion Zone.
@@ -514,20 +536,36 @@ Answer in the same language the caller uses.
 Une voix se trouve par une **note** cachée dans le butin : le joueur l'inspecte et lit la fréquence tirée pour la
 partie. La section `[note]` (une au plus, sans identifiant) la déclare ; sans elle, la voix n'a pas de note.
 
+Une nouvelle voix **écrit le texte de sa note dans sa fiche** (`text=`, une ligne de la note par ligne) : la note est
+alors la **note manuscrite** du mod, que le joueur lit avec la fréquence de la partie à la place de `%1`. Aucun objet ni
+traduction à ajouter au mod : la fiche suffit, et l'atelier des voix la remplit pour vous. Les voix livrées avec le mod
+gardent leur propre objet et leurs traductions (`item=` et `key=`).
+
 | Clé | À quoi ça sert |
 |---|---|
-| `item` | L'objet du document, `Module.Type` d'un script d'objets du mod dont `OnCreate` est `RadioSurvivorNotes.onCreate` (`RadioSurvivor.NoteTrade` : mot manuscrit partagé ; plusieurs voix peuvent partager un objet, chaque note neuve porte l'une d'elles). |
-| `key` | Racine des traductions : `Print_Media_RadioSurvivor_<key>_title`, `Print_Media_RadioSurvivor_<key>_info` (mise en page, `%1` = fréquence) et `Print_Text_RadioSurvivor_<key>_info` (transcription), dans `media/lua/shared/Translate/<langue>/`. |
+| `text` | Répétable : une ligne de la note, écrite dans la langue de votre choix, 40 caractères au plus (accents comptés double), 8 lignes au plus ; `%1` = fréquence de la partie, sur une ligne au moins. Ni `<`, ni `>`, ni `^`, et `%` seulement dans `%1`. Avec `text`, n'écrivez ni `item` ni `key`. |
+| `item` | Sans `text` : l'objet du document, `Module.Type` d'un script d'objets du mod dont `OnCreate` est `RadioSurvivorNotes.onCreate` (`RadioSurvivor.NoteTrade` : mot manuscrit partagé ; plusieurs voix peuvent partager un objet, chaque note neuve porte l'une d'elles). |
+| `key` | Sans `text` : racine des traductions : `Print_Media_RadioSurvivor_<key>_title`, `Print_Media_RadioSurvivor_<key>_info` (mise en page, `%1` = fréquence) et `Print_Text_RadioSurvivor_<key>_info` (transcription), dans `media/lua/shared/Translate/<langue>/`. |
 | `loot` | Facultatif, répétable : `liste:poids`, une liste procédurale vanilla (`ProceduralDistributions`) et son poids (environ le pourcentage par tirage). |
 | `glovebox` | Facultatif, répétable : `liste:poids` dans `VehicleDistributions` (boîte à gants). |
 | `corpse` | Facultatif : `yes` pour qu'un mort qui porte un talkie puisse l'avoir sur lui (`no` par défaut). |
 
 ```ini
 [note]
+text=Besoin d'un coup de main ?
+text=Ada écoute sur %1 MHz,
+text=chaque soir après 19 h.
+loot=FishingStoreGear:2
+glovebox=GloveBox:0.5
+```
+
+Avec un objet et des traductions du mod (voix livrées) :
+
+```ini
+[note]
 item=RadioSurvivor.NoteTrade
 key=NoteAda
 loot=FishingStoreGear:2
-glovebox=GloveBox:0.5
 ```
 
 #### Actions à ne pas ajouter
@@ -560,7 +598,8 @@ budget.start_mission=2
 | `budget` | `budget=20` | Au plus N demandes acceptées par heure réelle pour cette voix, en plus de l'option globale `MaxPerHour`. `0` (défaut) = plafond global seul. |
 | `budget.<action>` | `budget.mark_map=4` | Au plus N utilisations de cette action par **jour de jeu** (`0` = sans plafond). L'action doit figurer dans `actions`. |
 | `call_one_in` | `call_one_in=5` | Chaque heure de jeu, une chance sur N de lancer un appel général. `0` (défaut) = jamais. |
-| `call_text` | `call_text=IGUI_RadioSurvivor_Call_Mae` | Obligatoire si `call_one_in` > 0 : clé de traduction utilisée quand le pont n'écrit pas l'appel. |
+| `call` | `call=Ici Mae, près de Rosewood, sur %1. Quelqu'un ? À vous.` | Texte de l'appel quand le pont ne l'écrit pas, écrit dans la fiche : `%1` = fréquence de la partie, 200 octets au plus, ni `<`, ni `>`, ni `^`. Une nouvelle voix utilise `call`. |
+| `call_text` | `call_text=IGUI_RadioSurvivor_Call` | Même rôle, par une clé de traduction du mod (voix livrées). `call` ou `call_text`, pas les deux ; l'un des deux est obligatoire si `call_one_in` > 0. |
 
 - Au-delà de son budget, la voix se tait.
 - Un appel spontané n'a lieu que pendant les heures d'écoute, quand personne ne parle à la voix. Une voix au plus
@@ -568,15 +607,13 @@ budget.start_mission=2
 - L'option sandbox **Appels spontanés** les coupe tous.
 
 <details>
-<summary>À propos de call_text pour une nouvelle voix</summary>
+<summary>Quand le texte de la fiche est-il dit ?</summary>
 
-- `call_text` est une **clé de traduction** du mod, utilisée seulement quand le pont n'écrit pas l'appel (pont
-  arrêté, réponse vide, pas de réponse au bout de 30 s).
-- Une nouvelle voix n'a pas de clé propre dans Radio Survivor : donnez-lui quand même un nom nouveau
-  (`IGUI_RadioSurvivor_Call_Mae`).
-- Quand le pont est arrêté, son appel est alors sauté et le journal indique une fois
-  `call of voice 'mae' skipped: no translation for call_text 'IGUI_RadioSurvivor_Call_Mae'`.
-- Ne réutilisez **pas** la clé d'une autre voix : le texte de Walt dit « Ici Walt ».
+- Le pont écrit d'habitude l'appel lui-même. Le texte de `call` (ou de `call_text`) est dit seulement quand le pont
+  n'en écrit pas : pont arrêté, réponse vide, pas de réponse au bout de 30 s.
+- `call` est dit tel que vous l'avez écrit, dans votre langue, pour tous les joueurs.
+- `call_text` est une clé de traduction du mod : ne réutilisez **pas** celle d'une autre voix (le texte de Walt dit
+  « Ici Walt »).
 
 </details>
 
@@ -600,7 +637,7 @@ Le pont garde au plus **8 lignes de 100 caractères**. Aucun secret du serveur d
 ## Exemple 1 : Mae Tolliver
 
 Une institutrice retraitée, radioamatrice, qui anime le réseau du comté depuis une ferme près de Rosewood.
-Plage 40.0-49.8 MHz (talkies 3 à 5, radios HAM, poste militaire) ; actions `remember`, `persona_state`, `mark_map`.
+Plage 40.0-49.8 MHz (talkies 3 à 5, radios HAM, poste militaire) ; actions `persona_state`, `mark_map`.
 
 <details open>
 <summary><code>personas/mae.txt</code></summary>
@@ -623,12 +660,12 @@ knows=How to keep a battery alive: charge it from a car, keep it warm, switch of
 ignores=What the army or the government is planning.
 ignores=Anything that happened outside Knox County.
 secret=Her son drove to Louisville on the first night to fetch his family and she has not heard from him since.
-actions=say,remember,persona_state,mark_map,start_mission,share_frequency
+actions=say,persona_state,mark_map,start_mission,share_frequency
 shares=gus,darlene
 budget=20
 budget.mark_map=4
 call_one_in=5
-call_text=IGUI_RadioSurvivor_Call_Mae
+call=This is Mae near Rosewood, on %1. Anyone out there? Over.
 state=active
 
 [place rosewood]
@@ -713,16 +750,15 @@ knows=Which police stations and patrol cars were left behind, and that their loc
 ignores=What the army or the government is planning.
 ignores=Where his wife and son are now.
 secret=He fired on a man at the Muldraugh roadblock on the second night and still does not know if the man was sick.
-actions=say,remember,persona_state,mark_map,reveal_area,start_mission,share_frequency
+actions=say,persona_state,mark_map,reveal_area,start_mission,share_frequency
 shares=cody,gus
 budget=20
-budget.remember=10
 budget.persona_state=6
 budget.mark_map=4
 budget.reveal_area=2
 budget.start_mission=2
 call_one_in=6
-call_text=IGUI_RadioSurvivor_Call_Rick
+call=Rick Grimes on %1. Anyone still out there? Over.
 
 [place west_point]
 at=11654,6864,0
@@ -866,7 +902,7 @@ Mae, hors ligne. Je reçois Allô ? Il y a quelqu'un ?. À vous.
 | `unknown key 'colour'` / `bad key 'Radio'` | Faute de frappe | Les clés sont en minuscules. |
 | `id 'mae' does not match the file name 'mae2.txt'` | Fichier et `id` différents | Renommez le fichier ou changez l'`id`. |
 | `frequency 44.5 is not on the 0.2 MHz step of the radios` | Dixième impair | Utilisez 44.4 ou 44.6. |
-| `call_one_in needs a call_text line` | Appels spontanés sans texte de secours | Ajoutez `call_text`, ou `call_one_in=0`. |
+| `call_one_in needs a call or call_text line` | Appels spontanés sans texte de secours | Ajoutez `call`, ou `call_one_in=0`. |
 
 Une fiche refusée est journalisée une fois par contenu :
 `[RadioSurvivor] personas: ERROR: batman_RadioSurvivor/personas/mae.txt refused, line N: <raison>`. La lecture
@@ -894,7 +930,13 @@ s'arrête à la première erreur, et la dernière version valide de la voix rest
 | `bad listening hours '8:00-12:00' (always, or HH:MM-HH:MM ranges separated by commas)` | Deux chiffres : `08:00-12:00`. |
 | `unknown action 'fly'` | Voir [Actions](#actions). |
 | `budget.mark_map set but action 'mark_map' is not in actions` | Ajouter l'action ou retirer le budget. |
-| `call_one_in needs a call_text line` | Ajouter `call_text`, ou `call_one_in=0`. |
+| `call_one_in needs a call or call_text line` | Ajouter `call`, ou `call_one_in=0`. |
+| `call and call_text cannot be used together …` | Garder `call` (texte écrit) ou `call_text` (clé), pas les deux. |
+| `bad call '…' (no <, > or ^; % only in %1, the frequency)` | Retirer `<`, `>`, `^` et tout `%` autre que `%1`. |
+| `missing key 'text' in [note] (or item and key)` | Écrire le texte de la note (`text=`). |
+| `note text needs %1 (the frequency) on one of its lines` | Mettre `%1` là où la fréquence doit s'afficher. |
+| `note text too long (40 bytes of UTF-8 at most)` | Couper la ligne en deux lignes `text=`. |
+| `item and key cannot be used with text in [note] …` | Garder `text` (note manuscrite) ou `item` et `key`, pas les deux. |
 | `unknown key 'radio' in [place mill]` | Une ligne de l'en-tête écrite sous une section : la remonter au-dessus de la première section. |
 | `missing key 'use' in [place mill]` | Un lieu demande `at`, `label` et `use`. |
 | `bad use entry 'hide' (expected mark, target, drop, landing)` | Voir [Lieux](#lieux--sections-place). |

@@ -18,8 +18,8 @@ les deux) : rien à y changer.
 
 - **Python 3.10 ou plus récent** (`python --version`). Aucun paquet à installer : le pont n'utilise que la
   bibliothèque standard.
-- Les **cinq fichiers du pont**, gardés ensemble dans un même dossier : `radio_bridge.py`, `npc_protocol.py`,
-  `persona_store.py`, `bulletin.py`, `last_pages.py`, plus `.env.example`. Prenez le pont de la même version que le
+- Le **dossier `bridge` en entier**, téléchargé complètement depuis le dépôt GitHub et gardé ensemble (pas
+  seulement `radio_bridge.py`), plus `.env.example`. Prenez le pont de la même version que le
   mod.
 - Une **clé d'API** d'un fournisseur compatible avec l'API OpenAI : voir
   [Configurer le fournisseur d'IA](08-fournisseur-ia.md). Inutile avec `--offline`.

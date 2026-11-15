@@ -96,11 +96,12 @@ class FakeLLMTests(unittest.TestCase):
         cls.saved = (rb.TOKEN_USAGE,)
         rb.TOKEN_USAGE = None
         cls.voices = rb.Voices(rb.BUNDLED_PERSONAS)
-        # Test sheet: Walt with mission and memory actions (sheet copied in the temp folder, never the delivered one).
+        # Test sheet: Walt with mission actions (sheet copied in the temp folder, never the delivered one); every
+        # voice has remember (E22-T13).
         sheets = cls.tmp / "personas"
         sheets.mkdir()
         text = (rb.BUNDLED_PERSONAS / "walt.txt").read_text(encoding="utf-8")
-        text = text.replace("id=walt", "id=rstfake").replace("actions=say", "actions=say,start_mission,remember")
+        text = text.replace("id=walt", "id=rstfake").replace("actions=say", "actions=say,start_mission")
         (sheets / "rstfake.txt").write_text(text, encoding="utf-8")
         cls.mission_voices = rb.Voices(sheets)
 
@@ -153,10 +154,12 @@ class FakeLLMTests(unittest.TestCase):
         self.assertIn("gas station", said)
         self.assertIn("a red roof", said)
 
-    def test_radio_structured_plain_turn_remembers(self):
-        out = self.radio("rstfake", self.mission_voices)
-        self.assertEqual("remember", out["actions"][0]["type"])
-        self.assertEqual(1, len(out["actions"]))
+    def test_radio_structured_plain_turn_remembers_on_request(self):
+        out = self.radio("rstfake", self.mission_voices, text="[remember] Anyone out there?")
+        self.assertEqual([{"type": "remember", "fact": "Called me on the radio"}], out["actions"])
+        self.assertEqual([{"type": "remember", "fact": "Called me on the radio"}],
+                         self.radio(text="[remember] Anyone out there?")["actions"])   # walt: say only (E22-T13)
+        self.assert_lines(self.radio("rstfake", self.mission_voices))   # plain turn: no action
 
     def test_radio_trade_offer_from_the_book(self):
         out = self.radio("gus", trade=hexed(TRADE_BOOK))

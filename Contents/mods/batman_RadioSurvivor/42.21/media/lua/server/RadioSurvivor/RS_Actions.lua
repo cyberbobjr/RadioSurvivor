@@ -24,9 +24,16 @@ Actions.MAX_PER_REPLY = 3
 Actions.MAX_PARAMS = 8
 Actions.MAX_PARAM_CHARS = 64
 
--- Catalogue fermé : copie de RS_Persona.ACTIONS (même liste que bridge/persona_store.ACTIONS).
+-- E22-T13: actions every voice has without listing them in its sheet (absent from the sheet catalogue, a sheet that
+-- lists one is refused); same list in the bridge, radio_bridge.UNIVERSAL_ACTIONS. remember: every voice remembers
+-- its callers (RS_Memory).
+Actions.UNIVERSAL = { remember = true }
+
+-- Closed catalogue: the sheet actions (RS_Persona.ACTIONS, same list as bridge/persona_store.ACTIONS) and the
+-- universal ones.
 local CATALOGUE = {}
 for _, name in ipairs(Persona.ACTIONS) do CATALOGUE[name] = true end
+for name in pairs(Actions.UNIVERSAL) do CATALOGUE[name] = true end
 
 local executors = {}
 -- Compteurs de secours quand RS_State n'est pas chargé (voir l'en-tête).
@@ -37,6 +44,7 @@ function Actions.isKnown(name)
 end
 
 -- spec = { validate = function(params, ctx) -> ok (refus : bad_params) ; cooldownMs = n ; maxDistance = n ou nil ;
+--          maxParamChars = n or nil (bound of a string parameter, else MAX_PARAM_CHARS; E22-T13) ;
 --          execute = function(params, ctx) -> ok, reason (refus : reason en [a-z_], sinon failed) }.
 -- ctx : { caller, voice, sheet, player, khz, cid, day } (sheet : fiche de la voix, lue par un exécuteur qui en
 -- dépend, comme les lieux de mark_map). Rend true si l'exécuteur est enregistré.
@@ -81,30 +89,29 @@ local function counterOf(voice, name)
     return c, persistent
 end
 
--- Jour de jeu courant (AAAA-MM-JJ), clé du budget quotidien.
-local function gameDay()
-    local gt = getGameTime()
-    return string.format("%04d-%02d-%02d", gt:getYear(), gt:getMonth() + 1, gt:getDay() + 1)
-end
-
 -- Actions allowed with another one of the sheet (E11-T13: a voice that gives missions takes their report on the
 -- radio, report_mission, without listing it; same rule in the bridge, radio_bridge.IMPLIED_ACTIONS).
 Actions.IMPLIED = { report_mission = "start_mission" }
 
 local function allowedBy(sheet, name)
-    if type(sheet) ~= "table" or type(sheet.actions) ~= "table" then return false end
+    if type(sheet) ~= "table" then return false end
+    if Actions.UNIVERSAL[name] then return true end
+    if type(sheet.actions) ~= "table" then return false end
     for _, a in ipairs(sheet.actions) do
         if a == name or a == Actions.IMPLIED[name] then return true end
     end
     return false
 end
 
--- E20-T02: true when the sheet allows this action (listed, or implied by a listed one).
+-- E20-T02: true when the sheet allows this action (universal, listed, or implied by a listed one).
 Actions.allowedBy = allowedBy
 
 -- Paramètres d'une action proposée : tout champ sauf `type`, clés en chaînes courtes, valeurs scalaires (chaîne
 -- d'au plus MAX_PARAM_CHARS, nombre fini, booléen), au plus MAX_PARAMS. Rend la copie, ou nil.
+-- E22-T13: the string bound is maxParamChars of the executor of the action when it sets one.
 local function paramsOf(action)
+    local spec = executors[action.type]
+    local maxChars = type(spec) == "table" and tonumber(spec.maxParamChars) or Actions.MAX_PARAM_CHARS
     local params, count = {}, 0
     for k, v in pairs(action) do
         if k ~= "type" then
@@ -115,7 +122,7 @@ local function paramsOf(action)
             end
             local t = type(v)
             if t == "string" then
-                if string.len(v) > Actions.MAX_PARAM_CHARS then return nil end
+                if string.len(v) > maxChars then return nil end
             elseif t == "number" then
                 if v ~= v or v == math.huge or v == -math.huge then return nil end
             elseif t ~= "boolean" then
@@ -163,7 +170,7 @@ local function judge(sheet, name, params, now, ctx)
         if d ~= nil and d > spec.maxDistance then return false, "too_far" end
     end
     local counter, persistent = counterOf(sheet.id, name)
-    local day = ctx.day or gameDay()
+    local day = ctx.day or Const.gameDay()
     if counter.day ~= day then counter.day, counter.used = day, 0 end
     local cap = type(sheet.budgets) == "table" and sheet.budgets[name] or nil
     if type(cap) == "number" and cap > 0 and counter.used >= cap then return false, "budget" end

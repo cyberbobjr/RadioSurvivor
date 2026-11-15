@@ -30,6 +30,7 @@ Le pont est un seul programme, quel que soit votre choix.
 [*][b]Secours, passeur, chronique :[/b] une famille assiégée appelle à l'aide ; chaque ville a son marchand (bateau, route ou conteneur) ; une planque n'est relevée que hors de vue de tous, quelques heures plus tard ; la station pirate lit les nouvelles du serveur et le nom des morts.
 [*][b]Dernières pages :[/b] à la mort d'un personnage, un journal manuscrit de sa vie est laissé sur le corps.
 [*][b]Réputation :[/b] mauvaise, neutre ou bonne, gagnée par les missions et tenue par le serveur.
+[*][b]Atelier des voix :[/b] créez vos voix dans le navigateur, sans écrire de fichier (atelier.bat, avec le pont) ; l'IA du pont aide à écrire.
 [/list]
 
 Le serveur décide de tout : l'IA n'écrit que des paroles et choisit dans des listes fermées.
@@ -48,7 +49,7 @@ Ordre de chargement : TooltipLib, Belt Walkie-Talkie, Signal Smoke, Core AI, Rad
 
 Le Lua de Project Zomboid n'a aucun accès réseau : le jeu et le pont s'échangent des fichiers texte dans un dossier commun, et le pont appelle l'IA. Un mod du Workshop ne peut pas lancer de programme : [b]lancez le pont vous-même, sur la machine qui exécute le serveur[/b] (votre PC en solo). Les joueurs qui rejoignent un serveur n'installent que les mods.
 
-[b]Il faut :[/b] Python 3.10 ou plus récent (aucun paquet à installer), les cinq fichiers du pont gardés ensemble (radio_bridge.py, npc_protocol.py, persona_store.py, bulletin.py, last_pages.py ; à télécharger dans le dossier [i]bridge[/i] du dépôt GitHub ci-dessous) et une clé d'API d'un fournisseur compatible avec l'API OpenAI (/chat/completions).
+[b]Il faut :[/b] Python 3.10 ou plus récent (aucun paquet à installer), le dossier [i]bridge[/i] du dépôt GitHub ci-dessous, téléchargé en entier et une clé d'API d'un fournisseur compatible avec l'API OpenAI (/chat/completions).
 
 [b]1. Clé.[/b] Copiez [i].env.example[/i] en [i].env[/i] à côté de radio_bridge.py et remplissez OPENAI_KEY, OPENAI_BASE_URL (par exemple https://api.openai.com/v1) et OPENAI_MODEL. Ne partagez jamais ce fichier.
 

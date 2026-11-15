@@ -27,6 +27,7 @@ fortification LK14…) : les lire dans leur fichier.
 
 | ADR | Statut |
 |---|---|
+| [adr-atelier-voix.md](adr-atelier-voix.md) — atelier des voix servi par le pont, relevé des lieux en jeu, aide de l'IA, export et import, note et appel écrits dans la fiche (2026-11-15), plan [E22](../../annexes/plans/E22-atelier-voix.md) | Accepté |
 | [adr-coreai-separation.md](adr-coreai-separation.md) — Living Knox et RadioSurvivor séparés autour de `batman_CoreAI` : carnet commun, registres neutres, tests séparés (2026-11-15), plan [E21](../../annexes/plans-termines/E21-separation-coreai.md) | Accepté |
 | [adr-personas-declaratives.md](adr-personas-declaratives.md) — voix radio déclarées en un seul fichier : missions (registre de types), récompenses aléatoires par catégorie, planques multiples au choix du joueur, troc par marchand, remises hors de vue (2026-11-14), plan [E20](../../annexes/plans-termines/E20-voix-declaratives.md) | Accepté |
 | [adr-remise-en-ordre-solid.md](adr-remise-en-ordre-solid.md) — remise en ordre SOLID du moteur Living Knox après l'audit du 2026-11-13, par chantiers vérifiés, sans changement de comportement, plan [LK16](../../annexes/plans-termines/LK16-remise-en-ordre-solid.md) | Accepté (par défaut) |

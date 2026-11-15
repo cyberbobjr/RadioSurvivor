@@ -8,7 +8,8 @@
 -- Regles injectees (RS_Personas.rules, racine de composition) : template(nom) -> gabarit de mission donne par une
 -- voix (CA_Missions.voiceTemplate, schema `params` declare par le gabarit), rewards (natures de recompense de
 -- RS_Rewards.KINDS), skills (RS_Rewards.SKILLS), categories (catalogue partage personas/_categories.txt), arrivals
--- (modes d'arrivee des marchands, RS_TradeArrivals.NAMES).
+-- (modes d'arrivee des marchands, RS_TradeArrivals.NAMES), itemWeight(type) -> kg ou nil (poids d'un objet du troc lu
+-- dans son script, RS_ItemWeights.of, E22-T12).
 -- Valeurs des parametres : RS_PersonaParams, un validateur par genre.
 -- Aucun loadstring : chaque ligne est decoupee et controlee a la main.
 -- Seulement de l'ASCII dans ce fichier : le lexeur Kahlua change les litteraux non ASCII en U+FFFD. Les
@@ -26,7 +27,7 @@ local BOM = "\239\187\191"          -- U+FEFF
 local REPLACEMENT = "\239\191\189"  -- U+FFFD : octets UTF-8 invalides decodes par InputStreamReader
 
 local ACTION_LIST = { "say", "mark_map", "reveal_area", "signal", "place_cache", "place_scene", "start_mission",
-    "persona_state", "remember", "propose_trade", "report_mission", "share_frequency" }
+    "persona_state", "propose_trade", "report_mission", "share_frequency" }
 local RADIO_LIST = { "any", "high_tier" }
 local LOCATION_LIST = { "none", "fixed", "rescue" }
 local STATE_LIST = { "active", "silent", "gone", "dead" }
@@ -37,6 +38,11 @@ local USE_LIST = { "mark", "target", "drop", "landing" }
 local SCOPE_LIST = { "character", "team" }
 -- Texte story= d'une mission, ajoute a la description du travail dite au modele (jobs=, RS_MissionVoice.jobs).
 local MAX_STORY_BYTES = 200
+-- E22-T07 : textes ecrits dans la fiche et montres au joueur : appel spontane (call=, une ligne radio) et lignes de la
+-- note manuscrite (text= de [note], une ligne de la page chacune).
+local MAX_CALL_BYTES = 200
+local MAX_NOTE_LINE_BYTES = 40
+local MAX_NOTE_LINES = 8
 -- Puis frequencies ou frequency_range (l'une des deux, pas les deux : E05-T07).
 local REQUIRED = { "format", "id", "name" }
 local MIN_KHZ, MAX_KHZ, STEP_KHZ = 1000, 999800, 200
@@ -57,6 +63,8 @@ end
 
 local ACTIONS = set(ACTION_LIST)
 local REPEATABLE = set({ "knows", "ignores", "secret" })
+-- Cle de tete budget.<action> : budget par jour de jeu d'une action de la liste actions.
+local BUDGET_PREFIX = "budget."
 Persona.ACTIONS = ACTION_LIST
 -- Sans regles (banc, fiche sans section) : aucun gabarit, aucune nature de recompense, aucune categorie.
 local function noTemplate() return nil end
@@ -220,6 +228,19 @@ local function utf8Bytes(text)
     return total
 end
 
+-- Texte ecrit dans la fiche et montre au joueur (call=, text= de [note]), au plus maxBytes octets UTF-8 : ni <, > ni ^
+-- (balises et sauts de ligne des documents printMedia), % seulement dans %1 (frequence affichee ; getText, par
+-- lequel la fenetre des documents repasse le texte, formaterait tout autre %).
+local function writtenText(value, key, line, maxBytes)
+    if utf8Bytes(value) > maxBytes then
+        fail(line, key .. " too long (" .. tostring(maxBytes) .. " bytes of UTF-8 at most)")
+    end
+    if string.find(value, "[<>%^]") or string.find((string.gsub(value, "%%1", "")), "%", 1, true) then
+        fail(line, "bad " .. key .. " '" .. value .. "' (no <, > or ^; % only in %1, the frequency)")
+    end
+    return value
+end
+
 local function actions(value, line)
     local result = {}
     for _, part in ipairs(splitList(value)) do
@@ -304,6 +325,9 @@ local function headCallText(values, value, line)
     values.call_text = value
 end
 
+-- E22-T07 : texte de l'appel ecrit dans la fiche (%1 = frequence affichee), a la place de la cle call_text.
+local function headCall(values, value, line) values.call = writtenText(value, "call", line, MAX_CALL_BYTES) end
+
 local function headState(values, value, line) values.state = choice(value, "state", STATE_LIST, line) end
 
 local HEAD = {
@@ -311,7 +335,7 @@ local HEAD = {
     frequency_range = headFrequencyRange, radio = headRadio, listen = headListen, location = headLocation,
     coords = headCoords, knows = headKnows, ignores = headIgnores, secret = headSecret, shares = headShares,
     actions = headActions, budget = headBudget, call_one_in = headCallOneIn, call_text = headCallText,
-    state = headState,
+    call = headCall, state = headState,
 }
 
 -- Sections ----------------------------------------------------------------------------------------------------
@@ -382,8 +406,10 @@ local function placeKey(sec, key, value, line)
     reader(sec, value, line)
 end
 
+local PLACE_REQUIRED = { "at", "label", "use" }
+
 local function placeClose(sec, ctx)
-    requireKeys(sec, { "at", "label", "use" })
+    requireKeys(sec, PLACE_REQUIRED)
     ctx.places[#ctx.places + 1] = sec.place
     ctx.placeById[sec.id] = sec.place
 end
@@ -435,7 +461,8 @@ local MISSION_KEYS = { type = missionType, weight = missionWeight, after = missi
     drops = missionDrops, target = missionTarget, scope = missionScope, sets_state = missionSetsState }
 
 local function missionKey() end  -- cles connues seulement avec le type : missionResolve
-local function missionClose(sec) requireKeys(sec, { "type" }) end
+local MISSION_REQUIRED = { "type" }
+local function missionClose(sec) requireKeys(sec, MISSION_REQUIRED) end
 
 local function missionResolve(sec, ctx)
     local voiceType = sec.values.type
@@ -476,11 +503,14 @@ local function missionFinish(ctx)
 end
 
 -- [rewards] : pool= entrees nature:poids ou nature:parametre:poids, dans l'ordre de la fiche.
+local REWARDS_KEYS = { pool = true }
+local REWARDS_REQUIRED = { "pool" }
+
 local function rewardsKey(sec, key, _, line)
-    if key ~= "pool" then unknownKey(sec, key, line) end
+    if not REWARDS_KEYS[key] then unknownKey(sec, key, line) end
 end
 
-local function rewardsClose(sec) requireKeys(sec, { "pool" }) end
+local function rewardsClose(sec) requireKeys(sec, REWARDS_REQUIRED) end
 
 local function rewardsResolve(sec, ctx)
     local line, kinds, seen = sec.lines.pool, ctx.rules.rewards or {}, {}
@@ -523,8 +553,11 @@ local function categoryOpen(sec, ctx)
     sec.category = { id = sec.id, items = {} }
 end
 
+local CATEGORY_KEYS = { item = true }
+local CATEGORY_REQUIRED = { "item" }
+
 local function categoryKey(sec, key, value, line, ctx)
-    if key ~= "item" then unknownKey(sec, key, line) end
+    if not CATEGORY_KEYS[key] then unknownKey(sec, key, line) end
     local itemType, quantity = string.match(value, "^([A-Za-z0-9_]+%.[A-Za-z0-9_]+):([^:]+)$")
     if not itemType then
         fail(line, "bad item '" .. value .. "' (Module.Type:quantity, e.g. Base.Bandage:2-4)")
@@ -539,7 +572,7 @@ local function categoryKey(sec, key, value, line, ctx)
 end
 
 local function categoryClose(sec, ctx)
-    requireKeys(sec, { "item" })
+    requireKeys(sec, CATEGORY_REQUIRED)
     ctx.ownCategories[sec.id] = sec.category
     ctx.categories[sec.id] = sec.category
 end
@@ -547,12 +580,12 @@ end
 -- [trade] (E20-T07, ADR D07) : troc de la voix. landing (lieux use=landing), arrival (mode d'arrivee inscrit,
 -- regles arrivals), every_days (un passage tous les N jours de jeu), hours (fenetre du rendez-vous), delay_hours
 -- (facultatif : heures de jeu hors de vue avant l'echange), margin (facultatif : marge la plus basse et la plus
--- haute), item= repetable (Module.Type:quantite:poids en kg ; quantite : fourchette, ou nom d'un groupe), group=
--- repetable (nom:total[:sortes] : total tire dans le groupe, au plus `sortes` objets differents).
+-- haute), item= repetable (Module.Type:quantite ; quantite : fourchette, ou nom d'un groupe ; E22-T12 : poids lu dans
+-- le script de l'objet par la regle injectee itemWeight, RS_ItemWeights, type inconnu refuse), group= repetable
+-- (nom:total[:sortes] : total tire dans le groupe, au plus `sortes` objets differents).
 local MAX_TRADE_ITEMS = 40
 local MAX_EVERY_DAYS = 28
 local MAX_DELAY_HOURS = 48
-local MAX_ITEM_KG = 50
 Persona.TRADE_MARGIN = { min = 0.10, max = 0.50 }
 
 -- Nombre positif ecrit en chiffres avec au plus deux decimales, au plus maximum ; sinon erreur.
@@ -621,10 +654,12 @@ local function tradeMargin(trade, value, line)
 end
 
 local function tradeItem(trade, value, line, ctx)
-    local itemType, quantity, kg = string.match(value, "^([A-Za-z0-9_]+%.[A-Za-z0-9_]+):([^:]+):([^:]+)$")
+    local itemType, quantity = string.match(value, "^([A-Za-z0-9_]+%.[A-Za-z0-9_]+):([^:]+)$")
     if not itemType then
-        fail(line, "bad trade item '" .. value .. "' (Module.Type:quantity:kg, e.g. Base.Battery:4-12:0.1)")
+        fail(line, "bad trade item '" .. value .. "' (Module.Type:quantity, e.g. Base.Battery:4-12)")
     end
+    local kg = ctx.rules.itemWeight and ctx.rules.itemWeight(itemType)
+    if type(kg) ~= "number" then fail(line, "unknown trade item '" .. itemType .. "' (no item script of that type)") end
     if #trade.items >= MAX_TRADE_ITEMS then
         fail(line, "too many trade items (" .. tostring(MAX_TRADE_ITEMS) .. " at most)")
     end
@@ -632,7 +667,7 @@ local function tradeItem(trade, value, line, ctx)
     for _, item in ipairs(trade.items) do
         if string.lower(item.n) == string.lower(name) then fail(line, "duplicate trade item '" .. name .. "'") end
     end
-    local item = { n = name, t = itemType, w = decimal(kg, "item weight", line, MAX_ITEM_KG), line = line }
+    local item = { n = name, t = itemType, w = kg, line = line }
     if string.match(quantity, "^[a-z][a-z0-9_]*$") then
         item.gr = quantity
     else
@@ -672,8 +707,10 @@ local function tradeKey(sec, key, value, line, ctx)
     reader(sec.trade, value, line, ctx)
 end
 
+local TRADE_REQUIRED = { "landing", "arrival", "every_days", "hours", "item" }
+
 local function tradeClose(sec)
-    requireKeys(sec, { "landing", "arrival", "every_days", "hours", "item" })
+    requireKeys(sec, TRADE_REQUIRED)
     local trade, used = sec.trade, {}
     for _, item in ipairs(trade.items) do
         if item.gr then
@@ -701,11 +738,13 @@ end
 -- partager un objet), key (racine des traductions Print_Media_<module>_<key>_title et _info,
 -- Print_Text_<module>_<key>_info), loot= repetable (liste procedurale vanilla:poids), glovebox= repetable (liste
 -- VehicleDistributions:poids), corpse (yes ou no, defaut no : note possible sur un mort qui porte un talkie).
+-- E22-T07 : ou text= repetable (une ligne de la page chacune, %1 = frequence) a la place de item et key : la note est
+-- alors la note manuscrite generique du mod (RS_Notes.GENERIC_ITEM), qui porte ce texte.
 local MAX_NOTE_LISTS = 16
 local MAX_LOOT_WEIGHT = 100
 
 local function noteOpen(sec)
-    sec.note = { loot = {}, glovebox = {}, corpse = false }
+    sec.note = { loot = {}, glovebox = {}, corpse = false, text = {} }
 end
 
 local function noteList(note, key, value, line)
@@ -741,7 +780,15 @@ local function noteCorpse(note, _, value, line)
     note.corpse = value == "yes"
 end
 
-local NOTE_KEYS = { item = noteItem, key = noteTextKey, loot = noteList, glovebox = noteList, corpse = noteCorpse }
+local function noteText(note, _, value, line)
+    if #note.text >= MAX_NOTE_LINES then
+        fail(line, "too many note text lines (" .. tostring(MAX_NOTE_LINES) .. " at most)")
+    end
+    note.text[#note.text + 1] = writtenText(value, "note text", line, MAX_NOTE_LINE_BYTES)
+end
+
+local NOTE_KEYS = { item = noteItem, key = noteTextKey, loot = noteList, glovebox = noteList, corpse = noteCorpse,
+    text = noteText }
 
 local function noteKey(sec, key, value, line)
     local reader = NOTE_KEYS[key]
@@ -749,22 +796,52 @@ local function noteKey(sec, key, value, line)
     reader(sec.note, key, value, line)
 end
 
-local function noteClose(sec, ctx)
-    requireKeys(sec, { "item", "key" })
-    ctx.note = sec.note
+-- Aucune cle toujours obligatoire : text, ou bien item et key (noteClose).
+local NOTE_REQUIRED = {}
+local NOTE_OWN_ITEM = { "item", "key" }
+
+-- Vrai si une ligne du texte porte %1 (la frequence).
+local function showsFrequency(text)
+    for _, line in ipairs(text) do
+        if string.find(line, "%1", 1, true) then return true end
+    end
+    return false
 end
 
+local function noteClose(sec, ctx)
+    local note, lines = sec.note, sec.lines
+    if #note.text > 0 then
+        if lines.item or lines.key then
+            fail(lines.item or lines.key, "item and key cannot be used with text in [note] (text goes on the "
+                .. "handwritten note of the mod)")
+        end
+        if not showsFrequency(note.text) then
+            fail(sec.line, "note text needs %1 (the frequency) on one of its lines")
+        end
+    elseif lines.item == nil and lines.key == nil then
+        fail(sec.line, "missing key 'text' in [note] (or item and key)")
+    else
+        requireKeys(sec, NOTE_OWN_ITEM)
+    end
+    ctx.note = note
+end
+
+-- keys, required, choices (listes fermees de valeurs par cle) et ruleChoices (cle -> champ des regles dont les noms
+-- sont les valeurs admises) ne servent qu'a Persona.grammar (E22-T01) : les memes tables que les lecteurs ci-dessus.
 local SECTIONS = {
-    place = { rank = 1, example = "mill", open = placeOpen, key = placeKey, close = placeClose },
+    place = { rank = 1, example = "mill", open = placeOpen, key = placeKey, close = placeClose,
+        keys = PLACE_KEYS, required = PLACE_REQUIRED, choices = { use = USE_LIST } },
     mission = { rank = 2, example = "meds", key = missionKey, close = missionClose, resolve = missionResolve,
-        finish = missionFinish },
-    rewards = { rank = 3, key = rewardsKey, close = rewardsClose, resolve = rewardsResolve },
+        finish = missionFinish, keys = MISSION_KEYS, required = MISSION_REQUIRED, choices = { scope = SCOPE_LIST } },
+    rewards = { rank = 3, key = rewardsKey, close = rewardsClose, resolve = rewardsResolve,
+        keys = REWARDS_KEYS, required = REWARDS_REQUIRED },
     category = { rank = 4, example = "snacks", repeatable = { item = true }, open = categoryOpen, key = categoryKey,
-        close = categoryClose },
+        close = categoryClose, keys = CATEGORY_KEYS, required = CATEGORY_REQUIRED },
     trade = { rank = 5, repeatable = { item = true, group = true }, open = tradeOpen, key = tradeKey,
-        close = tradeClose, resolve = tradeResolve },
-    note = { rank = 6, repeatable = { loot = true, glovebox = true }, open = noteOpen, key = noteKey,
-        close = noteClose },
+        close = tradeClose, resolve = tradeResolve, keys = TRADE_KEYS, required = TRADE_REQUIRED,
+        ruleChoices = { arrival = "arrivals" } },
+    note = { rank = 6, repeatable = { loot = true, glovebox = true, text = true }, open = noteOpen, key = noteKey,
+        close = noteClose, keys = NOTE_KEYS, required = NOTE_REQUIRED },
 }
 
 -- Noms de SECTIONS (ou d'un sous-ensemble) dans l'ordre de leur rang.
@@ -877,8 +954,8 @@ end)()
 local function headLine(values, seen, budgetLines, text, number)
     local key, value = keyValue(text, number, true)
     local action = nil
-    if startsWith(key, "budget.") then
-        action = string.sub(key, string.len("budget.") + 1)
+    if startsWith(key, BUDGET_PREFIX) then
+        action = string.sub(key, string.len(BUDGET_PREFIX) + 1)
         if not ACTIONS[action] then
             fail(number, "unknown action '" .. action .. "' in key '" .. key .. "'")
         end
@@ -959,13 +1036,17 @@ local function parse(lines, expectedId, rules)
     if location ~= "fixed" and values.coords ~= nil then
         fail(seen.coords, "coords is only allowed with location=fixed")
     end
-    if (values.call_one_in or 0) > 0 and values.call_text == nil then
-        fail(seen.call_one_in, "call_one_in needs a call_text line")
+    if values.call ~= nil and values.call_text ~= nil then
+        fail(math.max(seen.call, seen.call_text),
+            "call and call_text cannot be used together (text written in the sheet or translation key)")
+    end
+    if (values.call_one_in or 0) > 0 and values.call == nil and values.call_text == nil then
+        fail(seen.call_one_in, "call_one_in needs a call or call_text line")
     end
     local allowed = values.actions or { "say" }
     for _, b in ipairs(budgetLines) do
         if not contains(allowed, b.action) then
-            fail(b.line, "budget." .. b.action .. " set but action '" .. b.action .. "' is not in actions")
+            fail(b.line, BUDGET_PREFIX .. b.action .. " set but action '" .. b.action .. "' is not in actions")
         end
     end
     resolveSections(ctx)
@@ -984,7 +1065,8 @@ local function parse(lines, expectedId, rules)
         listen = values.listen or {}, location = location, coords = values.coords, knows = values.knows,
         ignores = values.ignores, secrets = values.secret, places = ctx.places, actions = allowed,
         budget = values.budget or 0, budgets = values.budgets, call_one_in = values.call_one_in or 0,
-        call_text = values.call_text or "", state = values.state or "active", shares = values.shares or {},
+        call_text = values.call_text or "", call = values.call or "", state = values.state or "active",
+        shares = values.shares or {},
         missions = ctx.missions, rewards = ctx.rewards, categories = ctx.ownCategories, trade = ctx.trade,
         note = ctx.note,
     }
@@ -1051,6 +1133,49 @@ function Persona.readFile(path, rules)
     reader:close()
     local stem = string.match(path, "([^/\\]+)%.txt$")
     return Persona.parseLines(lines, stem, rules)
+end
+
+-- E22-T01 (atelier des voix, ADR D03) : ce qu'une fiche peut contenir, lu par tools/gen_atelier_catalog.py (catalogue
+-- de l'atelier). Construit depuis les tables memes du lecteur (rien n'est redit) : tete (cles, obligatoires,
+-- repetables, prefixe des budgets, listes fermees) et chaque section de SECTIONS (cles, obligatoires, repetables,
+-- listes fermees, identifiant ou non). Copies triees. rules (RS_Personas.rules, ou nil) donne les listes fermees par
+-- un registre (ruleChoices : modes d'arrivee) ; les cles des [mission] declarees par un gabarit (params) et les natures
+-- de recompense restent dans leurs registres.
+local function sortedKeys(t)
+    local out = {}
+    for k in pairs(t or {}) do out[#out + 1] = k end
+    table.sort(out)
+    return out
+end
+
+local function copyList(list)
+    local out = {}
+    for i, v in ipairs(list or {}) do out[i] = v end
+    return out
+end
+
+local function copyChoices(choices)
+    local out = {}
+    for key, list in pairs(choices or {}) do out[key] = copyList(list) end
+    return out
+end
+
+function Persona.grammar(rules)
+    rules = rules or NO_RULES
+    local sections = {}
+    for name, s in pairs(SECTIONS) do
+        local choices = copyChoices(s.choices)
+        for key, field in pairs(s.ruleChoices or {}) do choices[key] = sortedKeys(rules[field]) end
+        sections[name] = { rank = s.rank, hasId = s.example ~= nil, keys = sortedKeys(s.keys),
+            required = copyList(s.required), repeatable = sortedKeys(s.repeatable), choices = choices }
+    end
+    return {
+        format = Persona.FORMAT, separator = Persona.SEPARATOR, maxPlaces = MAX_PLACES,
+        head = { keys = sortedKeys(HEAD), required = copyList(REQUIRED), repeatable = sortedKeys(REPEATABLE),
+            budgetPrefix = BUDGET_PREFIX, choices = copyChoices({ actions = ACTION_LIST, radio = RADIO_LIST,
+                location = LOCATION_LIST, state = STATE_LIST }) },
+        sections = sections,
+    }
 end
 
 -- Lieux de la fiche qui ont cet usage (mark, target, drop, landing), dans l'ordre de la fiche.

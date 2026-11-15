@@ -15,6 +15,10 @@ Client handlers (RST.Steps.on)
                    RS_NotebookRadio.secondLine), lines = { "kind:text", ... }, page }. With page = true and the frequency
                    in the tab, the real notebook window is opened on the Radio tab, the frequency selected, the text of
                    its page read (page), then the window is put back as it was (tab, hidden if it was).
+    rs.note.compose { itemId, waitMs }: waits until the item is in the local player's inventory (bags included) with the
+                   ModData of a frequency note (sent by the authority with the item), then composes the document as
+                   the note reader does before opening it (RS_Notes.compose, client side): data { voice, khz, written
+                   (text written in the sheet, raw), info, text }. Not found within waitMs: FAIL (E22-T07).
 Kahlua: no next(), no goto, ASCII only; messages in English.
 ]]
 
@@ -103,6 +107,31 @@ Steps.on("rs.voice.tab", function(args)
     end
     return Steps.pass("frequency " .. tostring(khz) .. ": voice " .. tostring(data.voice) .. ", hours "
         .. tostring(data.hours), data)
+end)
+
+-- E22-T07: a note whose text is written in the sheet, read on the client from the ModData the authority sent.
+Steps.on("rs.note.compose", function(args)
+    local p = getPlayer()
+    if p == nil then return Steps.fail("no local player") end
+    local id = tonumber(args.itemId)
+    if id == nil then return Steps.fail("rs.note.compose without itemId") end
+    local Notes = require "RadioSurvivor/RS_Notes"
+    local waitMs, started = tonumber(args.waitMs) or PV.READ_MS, RST.now()
+    return function(ctx)
+        local item = p:getInventory():getItemWithIDRecursiv(id)
+        local md = item ~= nil and item:hasModData() and item:getModData() or nil
+        if md ~= nil and Notes.isNote(md) then
+            local note = md[Notes.MODDATA_KEY]
+            local info, text = Notes.compose(md)
+            return Steps.pass("note " .. tostring(id) .. " composed on this client", { voice = note.voice,
+                khz = tonumber(note.khz), written = note.text, info = info, text = text })
+        end
+        if ctx.final or RST.now() - started >= waitMs then
+            return Steps.fail("note " .. tostring(id) .. " not in the inventory with its ModData within " .. waitMs
+                .. " ms")
+        end
+        return nil
+    end
 end)
 
 return PV

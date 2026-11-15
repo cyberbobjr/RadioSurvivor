@@ -39,7 +39,7 @@
 |---|---|
 | `Missing configuration: OPENAI_KEY, …` | `.env` introuvable (`--env` faux) ou valeur vide. Voir [Configurer le fournisseur d'IA](08-fournisseur-ia.md). |
 | `Another bridge is already running on …` | Un seul pont par dossier : arrêtez l'autre (terminal, tâche planifiée, service). |
-| `ModuleNotFoundError` | L'un des cinq fichiers du pont manque à côté de `radio_bridge.py`. |
+| `ModuleNotFoundError` | Le dossier `bridge` est incomplet (un fichier manque à côté de `radio_bridge.py`) : recopiez le dossier entier depuis le dépôt GitHub. |
 | `LLM error (<id>): no valid sheet for voice 'walt' in …/personas` | Mauvais dossier d'échange, ou monde pas encore chargé. |
 | `HTTP 401` / `HTTP 403` | Clé refusée ou révoquée. |
 | `HTTP 404` | Nom de modèle ou `OPENAI_BASE_URL` incorrects. |

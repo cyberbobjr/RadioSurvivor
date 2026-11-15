@@ -55,5 +55,6 @@ et les PNJ restent muets.
 - [Configurer le fournisseur d'IA](08-fournisseur-ia.md)
 - [Options sandbox](09-options-sandbox.md)
 - [Créer une voix radio](10-creer-une-voix-radio.md) : modifier une voix ou ajouter la vôtre.
+- [Atelier des voix](13-atelier-des-voix.md) : créer et gérer les voix dans le navigateur, sans écrire de fichier.
 - [Dépannage](11-depannage.md)
 - [FAQ](12-faq.md)

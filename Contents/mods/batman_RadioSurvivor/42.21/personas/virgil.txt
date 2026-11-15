@@ -1,8 +1,8 @@
 # Virgil Mattingly : marchand de Irvington (E20-T11, ADR D08 ; format docs/specifications-techniques/persona-format.md).
 # - fréquence tirée au hasard dans 220.0-229.8 MHz à chaque nouvelle partie (bande libre, sans recouvrement) ;
 # - écoute 05:00-07:00,18:00-20:00 (heure du jeu) ; hors carte ; arrivée par la route (mode road, portière puis hayon d'un fourgon) ;
-# - troc : action propose_trade et section [trade] (stock du barème CA_TradeValues, poids du script vanilla
-#   42.22, plus le fluide d'un récipient plein) ; share_frequency vers les marchands voisins ; note de fréquence
+# - troc : action propose_trade et section [trade] (stock du barème CA_TradeValues, poids lu par le serveur
+#   dans le script, liquide d'un récipient plein compris) ; share_frequency vers les marchands voisins ; note de fréquence
 #   trouvée dans le butin (section [note]).
 format=1
 id=virgil
@@ -35,25 +35,25 @@ every_days=6
 hours=21:00-23:00
 margin=0.10-0.50
 group=seeds:3-8:4
-item=Base.CarrotBagSeed2:seeds:0.1
-item=Base.BroccoliBagSeed2:seeds:0.1
-item=Base.RedRadishBagSeed2:seeds:0.1
-item=Base.StrewberrieBagSeed2:seeds:0.1
-item=Base.TomatoBagSeed2:seeds:0.1
-item=Base.PotatoBagSeed2:seeds:0.1
-item=Base.CabbageBagSeed2:seeds:0.1
-item=Base.CornBagSeed:seeds:0.1
-item=Base.KaleBagSeed:seeds:0.1
-item=Base.OnionBagSeed:seeds:0.1
-item=Base.GarlicBagSeed:seeds:0.1
-item=Base.WheatBagSeed:seeds:0.1
-item=Base.LettuceBagSeed:seeds:0.1
-item=Base.CannedTomato2:0-3:0.8
-item=Base.CannedPotato2:0-3:0.8
-item=Base.ShotgunShellsBox:0-2:1.5
-item=Base.3030Box:0-1:0.6
-item=Base.BeerPack:0-2:1.8
-item=Base.CigarettePack:1-4:0.2
+item=Base.CarrotBagSeed2:seeds
+item=Base.BroccoliBagSeed2:seeds
+item=Base.RedRadishBagSeed2:seeds
+item=Base.StrewberrieBagSeed2:seeds
+item=Base.TomatoBagSeed2:seeds
+item=Base.PotatoBagSeed2:seeds
+item=Base.CabbageBagSeed2:seeds
+item=Base.CornBagSeed:seeds
+item=Base.KaleBagSeed:seeds
+item=Base.OnionBagSeed:seeds
+item=Base.GarlicBagSeed:seeds
+item=Base.WheatBagSeed:seeds
+item=Base.LettuceBagSeed:seeds
+item=Base.CannedTomato2:0-3
+item=Base.CannedPotato2:0-3
+item=Base.ShotgunShellsBox:0-2
+item=Base.3030Box:0-1
+item=Base.BeerPack:0-2
+item=Base.CigarettePack:1-4
 
 # Note de fréquence (E20-T11) : objet partagé des marchands, traductions Print_Media_RadioSurvivor_NoteVirgil_*.
 [note]

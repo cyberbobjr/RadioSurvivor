@@ -48,9 +48,9 @@ de **son propre** compte : passez `--exchange` dès que le serveur tourne sous u
 ## 3. Installer le pont
 
 1. Python 3.10 ou plus récent (`python3 --version` sous Linux). Aucun paquet à installer.
-2. Copiez les cinq fichiers (`radio_bridge.py`, `npc_protocol.py`, `persona_store.py`, `bulletin.py`,
-   `last_pages.py`) dans un même dossier, par exemple `C:\RadioSurvivorBridge` ou `/opt/radiosurvivor-bridge`.
-   Mettez-les à jour à chaque mise à jour du mod.
+2. Copiez le dossier `bridge` en entier, téléchargé complètement depuis le dépôt GitHub (pas seulement
+   `radio_bridge.py`), par exemple vers `C:\RadioSurvivorBridge` ou `/opt/radiosurvivor-bridge`.
+   Mettez-le à jour à chaque mise à jour du mod.
 3. Placez le fichier de clé **hors** de ce dossier et hors des dossiers du jeu et d'échange, lisible par le seul compte
    du pont (Linux : `chmod 600`). Format : [Configurer le fournisseur d'IA](08-fournisseur-ia.md).
 4. Testez d'abord à la main :

@@ -90,4 +90,19 @@ module RadioSurvivor
         Tags = base:fastread;base:picture,
         OnCreate = RadioSurvivorNotes.onCreate,
     }
+
+    /* Note manuscrite générique (E22-T07) : note des voix dont la fiche écrit le texte (text= de [note]) ; le texte et
+       la fréquence de la voix tirée à sa création sont dans sa ModData (RS_Notes.lua). */
+    item NoteVoice
+    {
+        DisplayCategory = Literature,
+        Weight = 0.05,
+        ItemType = base:literature,
+        Icon = Note2,
+        ReadType = photo,
+        StaticModel = Note2,
+        WorldStaticModel = Note2,
+        Tags = base:fastread;base:picture,
+        OnCreate = RadioSurvivorNotes.onCreate,
+    }
 }

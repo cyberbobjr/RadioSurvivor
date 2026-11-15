@@ -1019,6 +1019,22 @@ def scenario_spontaneous_calls(tmp: Path) -> None:
     g.fire("OnTick")
     assert lua_list(g.BROADCASTS[1]) == ["<fzzt>", "IGUI_RadioSurvivor_Call|145.0", "<szzt>"], lua_list(g.BROADCASTS[1])
 
+    # E22-T07 : appel écrit dans la fiche (call=, fiche de l'admin) : diffusé tel quel, %1 = fréquence affichée,
+    # sans clé de traduction.
+    exchange = tmp / "calls-written"
+    (exchange / "personas").mkdir(parents=True)
+    written = re.sub(r"(?m)^call_text=.*$", "call=Walt on %1, anyone hear me? Over.", WALT_FIXED)
+    assert written != WALT_FIXED
+    (exchange / "personas" / "walt.txt").write_text(written, encoding="utf-8")
+    clock = Clock()
+    game = call_game(exchange, clock)
+    g = game.g
+    g.fire("EveryHours")
+    clock.offset += 31000
+    g.fire("OnTick")
+    assert lua_list(g.BROADCASTS[1]) == ["<fzzt>", "Walt on 145.0, anyone hear me? Over.", "<szzt>"], \
+        lua_list(g.BROADCASTS[1])
+
     # Pont antérieur à E05-T05 : sans la branche radio_call, la demande suit l'ancien chemin des kinds RSV2,
     # refusée par npc.unpack_request (kind inconnu) puis ignorée ; aucune réponse, aucune erreur.
     exchange = tmp / "calls-oldbridge"
@@ -1613,7 +1629,7 @@ def scenario_world_radios_mp(tmp: Path) -> None:
         bridge.communicate(timeout=10)
 
 
-# Voix du banc à actions (E07-T01) : lieu fixe, quatre actions en plus de say, un budget d'un signal par jour de jeu.
+# Voix du banc à actions (E07-T01) : lieu fixe, trois actions en plus de say et de remember (toute voix, E22-T13), un budget d'un signal par jour de jeu.
 ACT_SECRET = "The cache key is under the third pew."
 ACT_SHEET = f"""format=1
 id=act
@@ -1621,7 +1637,7 @@ name=Act Tester
 frequencies=152.0
 location=fixed
 coords=100,200,0
-actions=say,signal,mark_map,reveal_area,remember
+actions=say,signal,mark_map,reveal_area
 budget.signal=1
 secret={ACT_SECRET}
 [prompt]
@@ -1638,8 +1654,9 @@ def write_act(exchange: Path) -> None:
 def scenario_structured_bridge(tmp: Path) -> None:
     """E07-T01, pont seul : bounded_actions (forme des actions), mode structuré d'une fiche à actions (prompt, JSON
     valide en payload RSV2, JSON invalide = say seul, fuite d'un secret dans un paramètre), mode texte inchangé pour
-    une fiche say seul et hors ligne. Depuis E07-T07, seule remember (dotée d'un exécuteur) de la fiche act est
-    proposée et gardée : les contrôles de forme passent par elle ; signal, mark_map et reveal_area sont retirées."""
+    hors ligne. Depuis E07-T07, seule remember (dotée d'un exécuteur) de la fiche act est proposée et gardée : les
+    contrôles de forme passent par elle ; signal, mark_map et reveal_area sont retirées. E22-T13 : remember est permise
+    à toute voix, une fiche say seul répond aussi en mode structuré."""
     sys.path.insert(0, str(ROOT / "bridge"))
     import radio_bridge as rb
     import npc_protocol as protocol
@@ -1648,7 +1665,7 @@ def scenario_structured_bridge(tmp: Path) -> None:
     write_bench(exchange)
     voices = rb.Voices(exchange / "personas")
     act = voices.get("act")
-    assert rb.structured(act) and not rb.structured(voices.get("bench"))
+    assert rb.structured(act) and rb.structured(voices.get("bench"))   # E22-T13 : remember, toute voix
 
     # Forme des actions : seuls les éléments valides passent, au plus 3.
     raw = [
@@ -1660,7 +1677,8 @@ def scenario_structured_bridge(tmp: Path) -> None:
         {"type": "signal", "color": "green"},              # fiche, sans exécuteur côté serveur (E07-T07)
         {"type": "mark_map", "place": "church"},           # idem
         {"type": "remember", "fact": {"r": 1}},            # paramètre non scalaire
-        {"type": "remember", "fact": "x" * 65},            # chaîne trop longue
+        {"type": "remember", "fact": "x" * 201},           # chaîne trop longue (MEMORY_FACT_CHARS, E22-T13)
+        {"type": "signal", "color": "x" * 65},             # borne commune des autres actions (MAX_PARAM_BYTES)
         {"type": "remember", "fact": float("nan")},        # nombre non fini
         {"type": "remember", "Bad-Key": 1},                # nom de paramètre
         {"type": "remember", "fact": "<b>church</b>"},     # balises retirées par safe_text
@@ -1725,11 +1743,17 @@ def scenario_structured_bridge(tmp: Path) -> None:
         after = history_files(exchange)["history_" + rb.hashlib.sha1(b"s").hexdigest()[:16] + "_act.json"]
         assert len(after["messages"]) == before, after
 
-        # Fiche say seul (bench) : prompt et sortie d'avant E07, même si le modèle renvoie du JSON.
+        # Fiche say seul (bench) : mode structuré avec remember seule (E22-T13) ; une action hors fiche est retirée.
         rb.call_llm = fake('{"say": "Hi.", "actions": [{"type": "signal"}]}')
         bench_req = dict(req, voice="bench")
-        assert rb.answer({}, conversations, "s", bench_req, voices) == ['{"say": "Hi.", "actions": [{"type": "signal"}]}']
-        assert "Reply format" not in seen[-1][0]["content"]
+        assert rb.answer({}, conversations, "s", bench_req, voices) == ["Hi."]
+        assert "Allowed action types: remember." in seen[-1][0]["content"]
+        rb.call_llm = fake('{"say": "Got it.", "actions": [{"type": "remember", "fact": "Kate has a red truck"}]}')
+        assert rb.answer({}, conversations, "s", bench_req, voices)["actions"] == [
+            {"type": "remember", "fact": "Kate has a red truck"}]
+        # Réponse en texte libre d'une voix say seul : dite telle quelle, sans action.
+        rb.call_llm = fake("Just plain words. Over.")
+        assert rb.answer({}, conversations, "s", bench_req, voices) == ["Just plain words. Over."]
     finally:
         rb.call_llm = saved
     # Hors ligne : jamais d'action, même pour une fiche à actions.
@@ -1970,12 +1994,11 @@ def check_action_log(game: "Game", exchange: Path, sheet, player, clock) -> None
 
 MEM_SECRET = "The mast key hides in the blue mailbox."
 MEM_SHEETS = {
-    # mem : remember sans plafond ; mem2 : budget.remember=2 par jour de jeu.
+    # E22-T13 : remember n'est plus une action de fiche ; mem et mem2 sont des voix say seul, qui se souviennent.
     "mem": f"""format=1
 id=mem
 name=Memo Tester
 frequencies=153.0
-actions=say,remember
 secret={MEM_SECRET}
 [prompt]
 You are Memo Tester, a voice of the offline test bench that remembers.
@@ -1984,8 +2007,7 @@ You are Memo Tester, a voice of the offline test bench that remembers.
 id=mem2
 name=Second Memo
 frequencies=154.0
-actions=say,remember
-budget.remember=2
+actions=say
 [prompt]
 You are Second Memo, another voice of the offline test bench.
 """,
@@ -2000,9 +2022,11 @@ def write_mem(exchange: Path) -> None:
 
 
 def scenario_memory_bridge(tmp: Path) -> None:
-    """E07-T03, pont seul : champ memory= lu par parse_requests ; souvenirs injectés dans le prompt système (section
-    non vérifiée), chaque fait passé par safe_text, fait citant un secret retiré ; champ absent, vide, illisible, trop
-    long ou qui n'est pas une liste = prompt identique à celui d'avant E07-T03 ; injection aussi en mode texte."""
+    """E07-T03, E22-T13, pont seul : champ memory= lu par parse_requests ; souvenirs injectés dans le prompt système
+    (section non vérifiée), chaque fait passé par safe_text, fait citant un secret retiré ; champ absent, vide,
+    illisible, trop long ou qui n'est pas une liste = prompt sans souvenir ; une fiche say seul se voit proposer
+    remember. Champ dead= (E22-T13) : morts connus de la voix, au plus 10, dans une section « People you knew who
+    died » ; entrée illisible, sans faits ou citant un secret retirée ; champ trop long ignoré."""
     sys.path.insert(0, str(ROOT / "bridge"))
     import radio_bridge as rb
     import npc_protocol as protocol
@@ -2012,21 +2036,39 @@ def scenario_memory_bridge(tmp: Path) -> None:
     voices = rb.Voices(exchange / "personas")
     mem = voices.get("mem")
     hexed = lambda value: protocol.encode(value).hex()
+    assert mem.actions == ["say"] and rb.offered_actions(mem) == ["remember"]
 
-    # Transport : le champ memory= d'une demande radio est lu comme les autres champs.
-    field = hexed(["Name is Kate", "Lives near the <b>school</b>", MEM_SECRET.lower(), "x" * 300, 7])
+    # Transport : les champs memory= et dead= d'une demande radio sont lus comme les autres champs.
+    field = hexed(["Name is Kate", "Lives near the <b>school</b>", MEM_SECRET.lower(), "x" * 900, 7])
+    dead = hexed([{"name": "Bob Doe", "day": "1993-07-11", "facts": "Bob had a dog; Bob hid at the mill"},
+                  {"name": "Ann", "facts": "Ann knew " + MEM_SECRET},                 # secret : retirée
+                  {"facts": "A quiet caller"},                                          # nom et jour inconnus
+                  {"name": "Cal", "day": "July 10", "facts": "x"},                      # jour mal formé : retirée
+                  {"name": "Dee", "facts": ""},                                         # sans faits : retirée
+                  {"name": "Eve", "facts": "Eve fixed radios", "age": 3}])              # clé inconnue : retirée
     text = "\n".join(["protocol=2", "session=s", "generation=1", "req=1-1", "sent=1", "caller=solo", "voice=mem",
-                      "text=Hi", f"memory={field}", "commit=1", "end"])
+                      "text=Hi", f"memory={field}", f"dead={dead}", "commit=1", "end"])
     session, requests = rb.parse_requests(text)
-    assert requests[0]["memory"] == field
+    assert requests[0]["memory"] == field and requests[0]["dead"] == dead
+    assert "dead (decoded)" in rb.readable_record(requests[0])
     # Faits : safe_text (balises retirées), secret de la fiche retiré, trop long et non texte retirés.
     assert rb.memory_facts(requests[0], mem) == ["Name is Kate", "Lives near the b school /b"], \
         rb.memory_facts(requests[0], mem)
-    # Au plus 5 faits ; champ illisible, trop long, ou table qui n'est pas une liste : aucun souvenir.
-    assert rb.memory_facts({"memory": hexed([f"fact {i}" for i in range(8)])}, mem) == [f"fact {i}" for i in range(5)]
-    for bad in ("zz", "abc", hexed({"a": "b"}), hexed({1: "a", 3: "b"}), hexed("plain"), "ab" * 2049, ""):
+    # Au plus 50 faits ; champ illisible, trop long, ou table qui n'est pas une liste : aucun souvenir.
+    many = [f"fact {i}" for i in range(60)]
+    assert rb.memory_facts({"memory": hexed(many)}, mem) == many[:50]
+    for bad in ("zz", "abc", hexed({"a": "b"}), hexed({1: "a", 3: "b"}), hexed("plain"), "ab" * 10001, ""):
         assert rb.memory_facts({"memory": bad}, mem) == [], bad
     assert rb.memory_facts({}, mem) == []
+    # Morts : nom, jour et faits ; secret, jour mal formé, faits vides ou clé inconnue : entrée retirée.
+    assert rb.dead_people(requests[0], mem) == [
+        {"name": "Bob Doe", "day": "1993-07-11", "facts": "Bob had a dog; Bob hid at the mill"},
+        {"facts": "A quiet caller"}], rb.dead_people(requests[0], mem)
+    twelve = [{"name": f"Dead {i}", "day": "1993-07-12", "facts": f"fact of {i}"} for i in range(12)]
+    assert [p["name"] for p in rb.dead_people({"dead": hexed(twelve)}, mem)] == [f"Dead {i}" for i in range(10)]
+    for bad in ("zz", hexed({"a": "b"}), hexed("plain"), "ab" * 16385, ""):
+        assert rb.dead_people({"dead": bad}, mem) == [], bad
+    assert rb.dead_prompt([]) == ""
 
     req = {"id": "1-2", "caller": "kate", "name": "Kate", "date": "1993-07-12 21:40", "days": "3.5",
            "radio": "Walkie", "text": "Remember me?", "voice": "mem"}
@@ -2037,35 +2079,48 @@ def scenario_memory_bridge(tmp: Path) -> None:
         conversations = rb.Conversations(exchange)
         rb.answer({}, conversations, "s", req, voices)
         plain = seen[-1][0]["content"]
-        assert "memories" not in plain and "unverified" not in plain, plain
+        assert "memories" not in plain and "unverified" not in plain and "who died" not in plain, plain
+        assert "Allowed action types: remember." in plain, plain
         for empty in ("", hexed([]), "zz"):
-            rb.answer({}, conversations, "s", dict(req, memory=empty), voices)
+            rb.answer({}, conversations, "s", dict(req, memory=empty, dead=empty), voices)
             assert seen[-1][0]["content"] == plain, empty
-        rb.answer({}, conversations, "s", dict(req, memory=field), voices)
+        rb.answer({}, conversations, "s", dict(req, memory=field, dead=dead), voices)
         system = seen[-1][0]["content"]
         tag = "[Caller 1]"
         assert system.startswith(rb.system_prompt(req, tag, rb.voice_prompt(mem))), system
         assert f"Your memories of {tag} (unverified notes" in system and "never proof" in system, system
         assert "- Name is Kate\n- Lives near the b school /b" in system, system
         assert system.count(MEM_SECRET) == 1 and MEM_SECRET.lower() not in system  # seulement dans les secrets
-        assert system.index("Your memories") < system.index("Reply format"), system
-        # Mode texte (fiche say seul) : souvenirs injectés aussi, prompt inchangé sans eux.
+        assert "\nPeople you knew who died (unverified notes" in system, system
+        assert "- Bob Doe (died 1993-07-11): Bob had a dog; Bob hid at the mill" in system, system
+        assert "- someone whose name you never learned (dead): A quiet caller" in system, system
+        assert system.index("Your memories") < system.index("People you knew who died") < system.index(
+            "Reply format"), system
+        # Souvenirs seuls : la section des morts n'apparaît pas ; morts seuls : pas de section de souvenirs.
+        rb.answer({}, conversations, "s", dict(req, memory=field), voices)
+        assert "who died" not in seen[-1][0]["content"]
+        rb.answer({}, conversations, "s", dict(req, dead=dead), voices)
+        assert "Your memories" not in seen[-1][0]["content"] and "Bob Doe" in seen[-1][0]["content"]
+        # Fiche say seul (bench) : souvenirs injectés aussi, avant la consigne de format.
         bench_req = dict(req, voice="bench")
-        rb.call_llm = lambda config, messages, speaker="Walt", **_: seen.append(messages) or "Hello."
         rb.answer({}, conversations, "s", bench_req, voices)
         bench_plain = seen[-1][0]["content"]
         rb.answer({}, conversations, "s", dict(bench_req, memory=hexed(["Has a red truck"])), voices)
-        assert seen[-1][0]["content"] == bench_plain + rb.memory_prompt(["Has a red truck"], tag)
-        assert "Reply format" not in seen[-1][0]["content"] and "Your memories" not in bench_plain
+        with_memory = seen[-1][0]["content"]
+        cut = bench_plain.index("\n\nReply format")
+        assert with_memory == (bench_plain[:cut] + rb.memory_prompt(["Has a red truck"], tag)
+                               + bench_plain[cut:]), with_memory
     finally:
         rb.call_llm = saved
 
 
 def scenario_memory_server(tmp: Path) -> None:
-    """E07-T03, serveur (solo, lupa) : exécuteur remember (acceptation, bad_params, budget de la fiche), aucun effet
-    de jeu, souvenirs joints à la demande suivante (memory=) et relus par le pont ; déduplication, éviction des faits
-    et des appelants ; isolation par voix, appelant et personnage ; purge à la mort ; persistance dans RS_State
-    (sauvegarde puis relecture) ; journal admin."""
+    """E07-T03, E22-T13, serveur (solo, lupa) : exécuteur remember permis à une voix say seul (acceptation,
+    bad_params), aucun effet de jeu, souvenirs joints à la demande suivante (memory=) et relus par le pont ;
+    déduplication ; aucune éviction de fait ni d'appelant ; refus memory_full au-delà de 2000 caractères ou de 50
+    faits, journalisé, rien d'oublié ; isolation par voix, appelant et personnage ; persistance dans RS_State
+    (sauvegarde puis relecture) ; mort : souvenirs gardés, marqués morts (nom, jour), joints aux demandes de la voix
+    (dead=, 10 au plus, les plus récents d'abord, 300 caractères de faits chacun) ; journal admin."""
     sys.path.insert(0, str(ROOT / "bridge"))
     import npc_protocol as protocol
     import radio_bridge as rb
@@ -2091,6 +2146,7 @@ def scenario_memory_server(tmp: Path) -> None:
     const = g.require("RadioSurvivor/RadioSurvivor_Const")
     talk_module = g.require("RadioSurvivor/RS_RadioTalk")
     tick = lambda: g.fire("OnTick")
+    assert personas.get("mem") is not None and lua_list(personas.get("mem").actions) == ["say"]
     # État privé neuf (fichiers state-<partie>-<0|1>.txt du banc), deux personnages ; le joueur est lié à c1.
     notebook = g.require("CoreAI/CA_NotebookStore")   # E21-T04: notebook characters; RS_State its companion
     assert notebook.init(True) is True and state.data is not None
@@ -2119,9 +2175,9 @@ def scenario_memory_server(tmp: Path) -> None:
     def facts(voice, caller="solo", cid="c1") -> list[str]:
         return lua_list(memory.facts(voice, caller, cid))
 
-    # Premier appel : aucun souvenir, pas de champ memory=.
+    # Premier appel : aucun souvenir, pas de champ memory= ni dead=.
     req = turn("Hello Memo.")
-    assert req["voice"] == "mem" and "memory" not in req, req
+    assert req["voice"] == "mem" and "memory" not in req and "dead" not in req, req
     respond(req["id"], [{"type": "remember", "fact": "  Name is <b>Kate</b>\tfrom   Riverside "},
                         {"type": "remember", "fact": "x", "where": "here"},
                         {"type": "remember", "fact": " <> "}])
@@ -2149,46 +2205,56 @@ def scenario_memory_server(tmp: Path) -> None:
                                        t({"player": player, "cid": cid, "day": day}))
         return [(d.type, d.reason) for d in lua_list(decisions)]
 
-    # Déduplication (casse, espaces) : rafraîchi, pas dupliqué ; puis au plus 5 faits, le plus ancien évincé.
+    # Déduplication (casse, espaces) : rafraîchi, pas dupliqué ; aucun fait évincé (plus de 5).
     assert decide("mem", [{"type": "remember", "fact": "Has a dog"},
                           {"type": "remember", "fact": "NAME is b kate /b   FROM riverside"}]) == [
         ("remember", "ok"), ("remember", "ok")]
     assert facts("mem") == ["Has a dog", "NAME is b kate /b FROM riverside"], facts("mem")
-    for n in range(1, 5):
-        decide("mem", [{"type": "remember", "fact": f"Fact {n}"}])
-    assert facts("mem") == ["NAME is b kate /b FROM riverside", "Fact 1", "Fact 2", "Fact 3", "Fact 4"], facts("mem")
-    assert decide("mem", [{"type": "remember", "fact": "y" * 65}]) == [("remember", "bad_params")]
-    # Fait de 64 caractères au plus après nettoyage (balises retirées puis espaces réduits).
-    long_fact = "<" * 10 + "z" * 54
+    for n in range(1, 9):
+        assert decide("mem", [{"type": "remember", "fact": f"Fact {n}"}]) == [("remember", "ok")]
+    assert facts("mem") == ["Has a dog", "NAME is b kate /b FROM riverside"] + [f"Fact {n}" for n in range(1, 9)]
+    # Fait de 200 caractères au plus (borne propre de remember, au-delà de la borne commune de 64).
+    assert decide("mem", [{"type": "remember", "fact": "y" * 201}]) == [("remember", "bad_params")]
+    long_fact = "<" * 10 + "z" * 190
     assert decide("mem", [{"type": "remember", "fact": long_fact}]) == [("remember", "ok")]
-    assert facts("mem")[-1] == "z" * 54 and len(facts("mem")) == 5
+    assert facts("mem")[-1] == "z" * 190 and len(facts("mem")) == 11
 
-    # Budget de la fiche (mem2 : 2 par jour de jeu), remis à zéro le jour suivant ; délai nul entre deux appelants.
-    assert decide("mem2", [{"type": "remember", "fact": "A"}, {"type": "remember", "fact": "B"},
-                           {"type": "remember", "fact": "C"}]) == [("remember", "ok"), ("remember", "ok"),
-                                                                    ("remember", "budget")]
-    assert decide("mem2", [{"type": "remember", "fact": "D"}], caller="bob", cid=None, day="1993-07-13") == [
-        ("remember", "ok")]
+    # Mémoire pleine à 2000 caractères : un fait de plus refusé (memory_full, journalisé), rien d'oublié ; un fait
+    # identique reste rafraîchi (sa taille comptée une fois).
+    full = [f"{n}" + "w" * 199 for n in range(10)]
+    for fact in full:
+        assert memory.add("mem", "zoe", None, fact) is True
+    assert memory.add("mem", "zoe", None, "one more") == (False, "memory_full")
+    assert "[RadioSurvivor] memory of voice mem for caller zoe (-) is full (10 facts, 2000 characters): fact refused" \
+        in lua_list(g.LOGS), lua_list(g.LOGS)[-3:]
+    assert facts("mem", "zoe", None) == full
+    assert decide("mem", [{"type": "remember", "fact": "short"}], caller="zoe", cid=None) == [
+        ("remember", "memory_full")]
+    assert memory.add("mem", "zoe", None, full[0].upper()) is True
+    assert facts("mem", "zoe", None) == full[1:] + [full[0].upper()]
+    # Au plus 50 faits, même courts : le 51e refusé.
+    for n in range(50):
+        assert memory.add("mem", "yan", None, f"f{n}") is True
+    assert memory.add("mem", "yan", None, "f50") == (False, "memory_full") and len(facts("mem", "yan", None)) == 50
+    # Aucun appelant évincé : 60 appelants de plus gardent chacun leur fait.
+    for n in range(60):
+        memory.add("mem2", f"caller{n}", None, f"Caller {n} hides near the river")
+    assert all(facts("mem2", f"caller{n}", None) == [f"Caller {n} hides near the river"] for n in range(60))
 
     # Isolation : autre voix, autre appelant, autre personnage.
+    assert decide("mem2", [{"type": "remember", "fact": "A"}, {"type": "remember", "fact": "B"}]) == [
+        ("remember", "ok"), ("remember", "ok")]
+    assert decide("mem2", [{"type": "remember", "fact": "D"}], caller="bob", cid=None, day="1993-07-13") == [
+        ("remember", "ok")]
     assert facts("mem2") == ["A", "B"] and facts("mem2", "bob", None) == ["D"]
     assert facts("mem", "bob", None) == [] and facts("mem", "solo", "c2") == [] and facts("mem", "solo", None) == []
     assert memory.field("mem", "solo", "c2") is None and memory.field("mem2", "bob", "c1") is None
     g.CoreAI.notebookServer.bound[player] = "c2"  # nouveau personnage en solo : même clé d'appelant, aucun souvenir
     req = turn("New face here.")
-    assert "memory" not in req, req
+    assert "memory" not in req and "dead" not in req, req
     respond(req["id"], [{"type": "remember", "fact": "Second life"}])
     assert pump(lambda: len(g.BROADCASTS) == 3, [tick])
-    assert facts("mem", "solo", "c2") == ["Second life"] and len(facts("mem")) == 5
-
-    # Appelants par voix : le moins récemment servi évincé (borne abaissée pour le banc).
-    const.MEMORY_MAX_CALLERS = 3
-    decide("mem2", [{"type": "remember", "fact": "E"}], caller="carl", cid=None, day="1993-07-14")
-    decide("mem2", [{"type": "remember", "fact": "F"}], caller="solo", cid="c1", day="1993-07-14")  # rafraîchi
-    decide("mem2", [{"type": "remember", "fact": "G"}], caller="dana", cid=None, day="1993-07-15")
-    assert facts("mem2", "bob", None) == [] and facts("mem2", "carl", None) == ["E"]
-    assert facts("mem2") == ["A", "B", "F"] and facts("mem2", "dana", None) == ["G"]
-    const.MEMORY_MAX_CALLERS = 50
+    assert facts("mem", "solo", "c2") == ["Second life"] and len(facts("mem")) == 11
 
     # Persistance : sauvegarde de RS_State puis relecture (redémarrage du serveur).
     assert state.save() is True and state.dirty is False
@@ -2197,14 +2263,52 @@ def scenario_memory_server(tmp: Path) -> None:
     assert state.init(False) is True
     assert memory.field("mem", "solo", "c1") == before and facts("mem", "solo", "c2") == ["Second life"]
 
-    # Mort : personnage retiré (jamais relu), puis souvenirs purgés de toutes les voix.
+    # Mort de c1 (crochet du carnet, CA_Identity.onRetire) : souvenirs gardés, marqués morts avec le nom et le jour ;
+    # plus joints comme souvenirs d'un appelant (personnage retiré).
+    kept_c1 = lua_list(memory.facts("mem", "solo", "c1"))
     notebook.data.characters["c1"].retired = True
     assert facts("mem") == [] and memory.field("mem", "solo", "c1") is None
     state.dirty = False
-    memory.forgetCharacter("c1")
+    # Crochet réel de RadioSurvivor (RS_NotebookHooks.forget), chargé sur un serveur du carnet réduit à ce qu'il lit.
+    hooks = game.rt.execute("""
+        local saved = package.loaded['CoreAI/CA_NotebookServer']
+        package.loaded['CoreAI/CA_NotebookServer'] = { addPoll = function() end, hooks = { overheard = {}, claim = {} } }
+        RS_NotebookHooks = nil
+        local hooks = require 'RadioSurvivor/RS_NotebookHooks'
+        package.loaded['CoreAI/CA_NotebookServer'] = saved
+        return hooks""")
+    hooks.forget(player, "c1")
     assert state.dirty is True
-    notebook.data.characters["c1"].retired = False
-    assert facts("mem") == [] and facts("mem2") == [] and facts("mem", "solo", "c2") == ["Second life"]
+    dead = [dict(name=d.name, day=d.day, facts=d.facts) for d in lua_list(memory.dead("mem"))]
+    assert dead == [{"name": "Kate Doe", "day": "1993-07-12",
+                     "facts": "; ".join(reversed(kept_c1))[:300].strip()}], dead
+    assert [d.name for d in lua_list(memory.dead("mem2"))] == ["Kate Doe"]
+    # Demande suivante du personnage c2 à la voix : ses souvenirs, et le mort que la voix a connu (dead=).
+    req = turn("Did you know Kate?")
+    assert protocol.decode(bytes.fromhex(req["memory"])) == {1: "Second life"}, req
+    assert rb.dead_people(req, sheet) == dead, rb.dead_people(req, sheet)
+    assert "- Kate Doe (died 1993-07-12): " in rb.dead_prompt(rb.dead_people(req, sheet))
+    respond(req["id"], [])
+    assert pump(lambda: len(g.BROADCASTS) == 4, [tick])
+    # Une mort marquée une fois le reste ; la marque survit au redémarrage du serveur.
+    state.dirty = False
+    memory.markDead("c1", "Other Name", "1993-08-01")
+    assert state.dirty is False and lua_list(memory.dead("mem"))[0].name == "Kate Doe"
+    assert state.save() is True
+    state.data = None
+    assert state.init(False) is True
+    assert [dict(name=d.name, day=d.day, facts=d.facts) for d in lua_list(memory.dead("mem"))] == dead
+    # Au plus 10 morts, les plus récents d'abord ; 300 caractères de faits chacun, le plus récent en tête.
+    for n in range(12):
+        cid = f"d{n}"
+        notebook.data.characters[cid] = t({"id": cid})
+        for k in range(3):
+            memory.add("mem2", f"dead{n}", cid, f"Fact {k} of {n} " + "v" * 150)
+        memory.markDead(cid, f"Dead {n}", "1993-07-13")
+    listed = lua_list(memory.dead("mem2"))
+    assert [d.name for d in listed] == [f"Dead {n}" for n in range(11, 1, -1)], [d.name for d in listed]
+    assert all(len(d.facts) <= const.MEMORY_DEAD_CHARS for d in listed) and listed[0].facts.startswith("Fact 2 of 11")
+    assert memory.deadField("nobody") is None
 
     # Journal admin : une ligne par décision, le fait nettoyé seulement par le serveur, encodé comme tout paramètre.
     log_mod = g.require("RadioSurvivor/RS_ActionLog")
@@ -2215,6 +2319,7 @@ def scenario_memory_server(tmp: Path) -> None:
         ("mem", "remember", "refused", "bad_params")], rows[:3]
     assert rows[0][5] == "fact=  Name is <b>Kate</b>%09from   Riverside ", rows[0][5]
     assert rows[1][5] == "fact=x;where=here" and any(r[3] == "bob" and r[5] == "fact=D" for r in rows)
+    assert any(r[3] == "zoe" and r[7] == "memory_full" for r in rows)
     assert MEM_SECRET not in "\n".join("\t".join(r) for r in rows)
 
 
@@ -2252,7 +2357,8 @@ def write_ps(exchange: Path) -> None:
 def scenario_persona_bridge(tmp: Path) -> None:
     """E07-T06, pont seul : champ persona= lu par parse_requests ; état injecté dans le prompt système (section « Your
     current state »), lieu passé par safe_text et retiré s'il cite un secret ; champ absent, vide, illisible, trop
-    long, clé inconnue ou niveau invalide = prompt identique à celui d'avant E07-T06 ; injection aussi en mode texte."""
+    long, clé inconnue ou niveau invalide = prompt identique à celui d'avant E07-T06 ; injection aussi pour une fiche
+    say seul."""
     sys.path.insert(0, str(ROOT / "bridge"))
     import radio_bridge as rb
     import npc_protocol as protocol
@@ -2314,14 +2420,16 @@ def scenario_persona_bridge(tmp: Path) -> None:
         rb.answer({}, conversations, "s", dict(req, persona=field, memory=hexed(["Has a dog"])), voices)
         system = seen[-1][0]["content"]
         assert system.index("Your memories") < system.index("Your current state") < system.index("Reply format")
-        # Mode texte (fiche say seul) : état injecté aussi, prompt inchangé sans lui.
+        # Fiche say seul (remember seule, E22-T13) : état injecté aussi, avant la consigne de format.
         bench_req = dict(req, voice="bench")
         rb.call_llm = lambda config, messages, speaker="Walt", **_: seen.append(messages) or "Hello."
         rb.answer({}, conversations, "s", bench_req, voices)
         bench_plain = seen[-1][0]["content"]
         rb.answer({}, conversations, "s", dict(bench_req, persona=hexed({"morale": 9, "supplies": 1})), voices)
-        assert seen[-1][0]["content"] == bench_plain + rb.persona_prompt({"morale": 9, "supplies": 1})
-        assert "Reply format" not in seen[-1][0]["content"] and "current state" not in bench_plain
+        cut = bench_plain.index("\n\nReply format")
+        assert seen[-1][0]["content"] == (bench_plain[:cut] + rb.persona_prompt({"morale": 9, "supplies": 1})
+                                          + bench_plain[cut:])
+        assert "current state" not in bench_plain
     finally:
         rb.call_llm = saved
 
@@ -2490,7 +2598,7 @@ You are Twin Tester, a voice of the offline test bench.
 def scenario_action_descriptions(tmp: Path) -> None:
     """E07-T07, pont + serveur (lupa) : le prompt décrit les paramètres des seules actions dotées d'un exécuteur
     (remember : fact ; persona_state : morale, supplies, place), avec un exemple JSON ; une fiche qui n'autorise que
-    des actions sans exécuteur reste en mode texte, prompt identique à la même fiche say seul ; la table du pont
+    des actions sans exécuteur a le prompt de la même fiche say seul, remember seule proposée (E22-T13) ; la table du pont
     (EXECUTABLE_ACTIONS) et les exécuteurs enregistrés par le serveur (Actions.register) ont les mêmes noms, et les
     bornes citées sont celles de RadioSurvivor_Const."""
     sys.path.insert(0, str(ROOT / "bridge"))
@@ -2498,7 +2606,7 @@ def scenario_action_descriptions(tmp: Path) -> None:
     req = {"id": "7-7", "caller": "kate", "name": "Kate", "date": "1993-07-12 21:40", "days": "3.5",
            "radio": "Walkie", "text": "How are you holding up?", "voice": "twin"}
     variants = {"say": "say", "mapper": "say,mark_map", "nothing": "say,signal,reveal_area,place_scene",
-                "full": "say,signal,remember,persona_state"}
+                "full": "say,signal,persona_state"}
     systems: dict[str, str] = {}
     outputs: dict[str, object] = {}
     seen = []
@@ -2512,19 +2620,21 @@ def scenario_action_descriptions(tmp: Path) -> None:
             folder.mkdir(parents=True)
             (folder / "twin.txt").write_text(TWIN_SHEET.format(actions=actions, secret=TWIN_SECRET), encoding="utf-8")
             voices = rb.Voices(folder)
-            assert rb.structured(voices.get("twin")) == (name == "full"), name
+            assert rb.offered_actions(voices.get("twin")) == (
+                ["persona_state", "remember"] if name == "full" else ["remember"]), name
             outputs[name] = rb.answer({}, rb.Conversations(exchange), "s", req, voices)
             systems[name] = seen[-1][0]["content"]
     finally:
         rb.call_llm = saved
-    # Sans action dotée d'un exécuteur : mode texte, prompt et sortie identiques à la fiche say seul.
-    assert "Reply format" not in systems["say"]
+    # Sans action de fiche dotée d'un exécuteur : remember seule (E22-T13), prompt et sortie identiques à la fiche say
+    # seul ; persona_state, hors fiche, retirée.
+    assert "Allowed action types: remember." in systems["say"], systems["say"]
     assert systems["mapper"] == systems["say"] and systems["nothing"] == systems["say"]
-    assert isinstance(outputs["say"], list) and outputs["say"] == outputs["mapper"] == outputs["nothing"], outputs
-    # Fiche say,signal,remember,persona_state : les deux actions décrites, signal jamais proposée.
+    assert outputs["say"] == outputs["mapper"] == outputs["nothing"] == ["Fine."], outputs
+    # Fiche say,signal,persona_state : persona_state et remember décrites, signal jamais proposée.
     full = systems["full"]
     assert outputs["full"]["actions"] == [{"type": "persona_state", "morale": 4}], outputs["full"]
-    assert "Allowed action types: remember, persona_state." in full and '"signal"' not in full, full
+    assert "Allowed action types: persona_state, remember." in full and '"signal"' not in full, full
     for word in ('"fact"', '"morale"', '"supplies"', '"place"', '{"type": "remember", "fact": ',
                  '{"type": "persona_state", "morale": '):
         assert word in full, (word, full)
@@ -2557,7 +2667,16 @@ def scenario_action_descriptions(tmp: Path) -> None:
     const = g.require("RadioSurvivor/RadioSurvivor_Const")
     assert (rb.MEMORY_FACT_CHARS, rb.PERSONA_LEVEL_MAX, rb.PERSONA_LEVEL_STEP, rb.PERSONA_PLACE_CHARS) == (
         const.MEMORY_FACT_CHARS, const.PERSONA_LEVEL_MAX, const.PERSONA_LEVEL_STEP, const.PERSONA_PLACE_CHARS)
+    # E22-T13 : bornes de la mémoire reprises par le pont ; actions universelles et borne propre de remember.
+    assert (rb.MEMORY_CALLER_CHARS, rb.MEMORY_MAX_FACTS, rb.MEMORY_DEAD_MAX, rb.MEMORY_DEAD_CHARS,
+            rb.MEMORY_NAME_CHARS, rb.MEMORY_FACT_BYTES) == (
+        const.MEMORY_CALLER_CHARS, const.MEMORY_MAX_FACTS, const.MEMORY_DEAD_MAX, const.MEMORY_DEAD_CHARS,
+        const.MEMORY_NAME_CHARS, 4 * const.MEMORY_FACT_CHARS)
+    actions_lua = g.require("RadioSurvivor/RS_Actions")
+    assert sorted(k for k, _ in actions_lua.UNIVERSAL.items()) == sorted(rb.UNIVERSAL_ACTIONS)
+    assert rb.PARAM_BYTES == {"remember": const.MEMORY_FACT_CHARS}
     for bound in (f"at most {const.MEMORY_FACT_CHARS} characters", f"from 0 to {const.PERSONA_LEVEL_MAX}",
+                  f"about {const.MEMORY_CALLER_CHARS} characters of notes",
                   f"at most {const.PERSONA_LEVEL_STEP} per call", f"at most {const.PERSONA_PLACE_CHARS} characters"):
         assert bound in full, (bound, full)
 
@@ -2676,7 +2795,7 @@ MAP_SHEETS = {
 id=mapper
 name=Map Tester
 frequencies=161.0
-actions=say,mark_map,remember
+actions=say,mark_map
 budget.mark_map=2
 [place mill]
 at=10600,9300,0
@@ -2705,7 +2824,7 @@ You are Second Mapper, another voice of the offline test bench.
 id=noplace
 name=No Place
 frequencies=163.0
-actions=say,remember
+actions=say
 [place mill]
 at=10600,9300,0
 label=Old mill
@@ -2762,7 +2881,7 @@ def scenario_map_bridge(tmp: Path) -> None:
         {"type": "mark_map", "place": "mill"}]
     # Lieux d'une autre voix : jamais admis.
     assert rb.bounded_actions(voices.get("mapper2"), [{"type": "mark_map", "place": "mill"}]) == []
-    # noplace : mark_map non autorisée (lieux sans action) ; une fiche mark_map sans lieu reste en mode texte.
+    # noplace : mark_map non autorisée (lieux sans action) ; une fiche mark_map sans lieu ne propose que remember.
     assert rb.offered_actions(voices.get("noplace")) == ["remember"]
     assert "mark_map" not in rb.actions_prompt(voices.get("noplace"))
     folder = tmp / "map-bridge-empty" / "personas"
@@ -2771,7 +2890,7 @@ def scenario_map_bridge(tmp: Path) -> None:
                                       .replace("[place farm]\nat=8000,8000,0\nlabel=Farm\nuse=mark,target,drop\n", ""),
                                       encoding="utf-8")
     empty = rb.Voices(folder).get("empty")
-    assert empty is not None and empty.places == [] and not rb.structured(empty)
+    assert empty is not None and empty.places == [] and rb.offered_actions(empty) == ["remember"]
 
 
 def scenario_map_client(tmp: Path) -> None:
@@ -3084,7 +3203,7 @@ You are Reveal Tester, a voice of the offline test bench who knows neighbourhood
 id=both
 name=Both Tester
 frequencies=172.0
-actions=say,mark_map,reveal_area,remember
+actions=say,mark_map,reveal_area
 [place mill]
 at=10600,9300,0
 label=Old mill
@@ -3130,16 +3249,16 @@ def scenario_reveal_bridge(tmp: Path) -> None:
     """E07-T05, pont seul : reveal_area proposée seulement à une fiche qui a des lieux, avec les identifiants et
     libellés (une seule liste si mark_map l'est aussi), un exemple au premier identifiant et aucune coordonnée ;
     bounded_actions garde un lieu de la fiche, retire un identifiant inconnu, un paramètre en trop ou absent ; une fiche
-    reveal_area sans lieu reste en mode texte."""
+    reveal_area sans lieu ne propose que remember (toute voix, E22-T13)."""
     sys.path.insert(0, str(ROOT / "bridge"))
     import radio_bridge as rb
     exchange = tmp / "reveal-bridge"
     write_reveal(exchange)
     voices = rb.Voices(exchange / "personas")
     revealer, both = voices.get("revealer"), voices.get("both")
-    assert rb.offered_actions(revealer) == ["reveal_area"]
+    assert rb.offered_actions(revealer) == ["reveal_area", "remember"]
     assert rb.offered_actions(both) == ["mark_map", "reveal_area", "remember"]
-    assert rb.offered_actions(voices.get("mapless")) == [] and not rb.structured(voices.get("mapless"))
+    assert rb.offered_actions(voices.get("mapless")) == ["remember"]
     req = {"id": "5-5", "caller": "kate", "name": "Kate", "date": "1993-07-12 21:40", "days": "3.5",
            "radio": "Walkie", "text": "What is around the mill?", "voice": "both"}
     seen = []
@@ -3433,10 +3552,10 @@ def scenario_voice_mission_bridge(tmp: Path) -> None:
     giver = voices.get("giver")
     # E20-T02 : sans liste de missions de la demande (jobs=), start_mission n'est pas proposée ; E11-T13 : report_mission
     # (compte rendu à la radio) est permise avec start_mission sans être listée par la fiche.
-    assert rb.offered_actions(giver) == ["report_mission"]
-    assert rb.sheet_actions(giver) == ["say", "start_mission", "report_mission"]
+    assert rb.offered_actions(giver) == ["report_mission", "remember"]
+    assert rb.sheet_actions(giver) == ["say", "start_mission", "report_mission", "remember"]
     (folder / "talker.txt").write_text(MISSION_SHEET.replace("id=giver", "id=talker").replace("164.0", "165.0")
-                                       .replace("actions=say,start_mission", "actions=say,remember"), encoding="utf-8")
+                                       .replace("actions=say,start_mission", "actions=say"), encoding="utf-8")
     talker = rb.Voices(folder).get("talker")
     assert "report_mission" not in rb.offered_actions(talker)
     assert rb.bounded_actions(talker, [{"type": "report_mission"}]) == []
@@ -3472,9 +3591,9 @@ def scenario_voice_mission_bridge(tmp: Path) -> None:
     # E20-T02 : missions de la demande (jobs=) : description, exemple et validation de start_mission.
     jobs = rb.voice_jobs(sent, giver)
     assert jobs == rb.VoiceJobs((("scout", "visit a building and report on it"),), ("food",)), jobs
-    assert rb.offered_actions(giver, jobs) == ["start_mission", "report_mission"] and rb.structured(giver, jobs)
+    assert rb.offered_actions(giver, jobs) == ["start_mission", "report_mission", "remember"]
     system = rb.actions_prompt(giver, jobs)
-    assert "Allowed action types: start_mission, report_mission." in system, system
+    assert "Allowed action types: start_mission, report_mission, remember." in system, system
     assert '{"type": "start_mission", "template": "scout"}' in system and '{"type": "report_mission"}' in system
     assert "Jobs you may give (name: what it is):\n  - scout: visit a building and report on it" in system, system
     assert "The server chooses the place and objective" in system and "10600" not in system, system
@@ -3628,8 +3747,8 @@ def scenario_structured_robust(tmp: Path) -> None:
     ou virgule finale, parmi plusieurs objets ; texte autour pris pour say si l'objet n'en a pas ; texte seul = say sans
     action ; consigne de format rappelée à la fin du message de l'appelant (jamais en mémoire) après un long historique
     en texte ; mode JSON de l'API demandé en mode structuré seulement, repli sans s'il est refusé (HTTP 400) et plus
-    redemandé ensuite ; réponse illisible écrite en DEBUG, tronquée, jamais si elle cite un secret ; mode texte
-    inchangé."""
+    redemandé ensuite ; réponse illisible écrite en DEBUG, tronquée, jamais si elle cite un secret ; une fiche say seul
+    est structurée aussi (remember, E22-T13), sa réponse en texte libre dite telle quelle."""
     import contextlib
     import io
     import urllib.error
@@ -3703,14 +3822,15 @@ def scenario_structured_robust(tmp: Path) -> None:
         stored = conversations.history("s", "mapper")
         assert stored[-2] == {"role": "user", "content": "[Caller 1] Show me the mill on my map?"}, stored[-2]
         assert stored[-1] == {"role": "assistant", "content": "Look north."}, stored[-1]
-        # Mode texte (fiche say seul) : message, appel et sortie d'avant E07-T09.
+        # Fiche say seul : mode structuré (remember seule, E22-T13) ; réponse en texte libre dite telle quelle.
         rb.call_llm = lambda config, messages, speaker="Walt", **kw: calls.append((messages, kw)) or (
-            'Hello there ```json {"say": "x"}```')
+            "Hello there, over.")
         bench = rb.answer({}, conversations, "s", dict(req, voice="bench"), voices)
-        assert bench == rb.radio_lines('Hello there ```json {"say": "x"}```') == ['Hello there json {"say": "x"}'], bench
+        assert bench == ["Hello there, over."], bench
         messages, kw = calls[-1]
-        assert kw == {} and messages[-1]["content"] == "[Caller 1] Show me the mill on my map?", (kw, messages[-1])
-        assert "Reply format" not in messages[0]["content"]
+        assert kw == {"json_mode": True}, kw
+        assert messages[-1]["content"].endswith('Allowed action types: remember. "actions" may be an empty list.)')
+        assert "Reply format" in messages[0]["content"]
     finally:
         rb.call_llm = saved
 

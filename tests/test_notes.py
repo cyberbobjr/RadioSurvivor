@@ -98,9 +98,13 @@ class NotesHarness(Harness):
     """Fiches réellement livrées, monde neuf (tirage), modules des notes chargés sur l'autorité (solo)."""
 
     bundled = None
+    # Fiches de l'admin ajoutées au dossier des fiches avant le chargement du monde (nom -> texte).
+    admin_sheets: dict[str, str] = {}
 
     def setUp(self):
         super().setUp()
+        for name, text in self.admin_sheets.items():
+            self.write(name, text)
         self.rt.execute(NOTE_STUBS)
         self.load_world(True)
         self.Notes = self.rt.eval('require("RadioSurvivor/RS_Notes")')
@@ -177,19 +181,25 @@ class AuthorityTests(NotesHarness):
         self.assertIsNone(item.md)
 
 
+def client_runtime():
+    """Machine Lua d'un client MP : isClient vrai, fichiers server sans effet, doublures des notes."""
+    rt = lupa.LuaRuntime(unpack_returned_tuples=True)
+    rt.globals().next = None
+    rt.execute('SIDE = "client" isClient = function() return true end isServer = function() return false end '
+               'print = function() end')
+    rt.execute(NOTE_STUBS)
+    paths = ';'.join((LUA / side).as_posix() + '/?.lua' for side in ('shared', 'server', 'client'))
+    paths = (CORE_LUA / 'shared').as_posix() + '/?.lua;' + (CORE_LUA / 'server').as_posix() + '/?.lua;' + (CORE_LUA / 'client').as_posix() + '/?.lua;' + (LK_LUA / 'shared').as_posix() + '/?.lua;' + (LK_LUA / 'server').as_posix() + '/?.lua;' + (LK_LUA / 'client').as_posix() + '/?.lua;' + paths  # mod commun (E18)
+    rt.execute(f'package.path = [[{paths};]] .. package.path')
+    return rt
+
+
 class ClientTests(unittest.TestCase):
     """Client MP : fichiers server non chargés (isClient), OnCreate rejoué sans fournisseur ni fréquence."""
 
     def setUp(self):
-        self.rt = lupa.LuaRuntime(unpack_returned_tuples=True)
+        self.rt = client_runtime()
         self.g = self.rt.globals()
-        self.g.next = None
-        self.rt.execute('SIDE = "client" isClient = function() return true end isServer = function() return false end '
-                        'print = function() end')
-        self.rt.execute(NOTE_STUBS)
-        paths = ';'.join((LUA / side).as_posix() + '/?.lua' for side in ('shared', 'server', 'client'))
-        paths = (CORE_LUA / 'shared').as_posix() + '/?.lua;' + (CORE_LUA / 'server').as_posix() + '/?.lua;' + (CORE_LUA / 'client').as_posix() + '/?.lua;' + (LK_LUA / 'shared').as_posix() + '/?.lua;' + (LK_LUA / 'server').as_posix() + '/?.lua;' + (LK_LUA / 'client').as_posix() + '/?.lua;' + paths  # mod commun (E18)
-        self.rt.execute(f'package.path = [[{paths};]] .. package.path')
 
     def test_client_writes_no_frequency(self):
         notes = self.rt.eval('require("RadioSurvivor/RS_Notes")')
@@ -429,6 +439,95 @@ ZombRand = function(n) ROLLS = ROLLS + 1 if n == 10000 then return TEST_ROLL els
         self.assertEqual(len(self.g.CORPSE_ITEMS), 1)
 
 
+# E22-T07 : voix créée avec l'atelier, note écrite dans sa fiche (text=, %1 = fréquence), sans objet ni traduction propres.
+WRITTEN_SHEET = ('format=1\nid=mae\nname=Mae\nfrequency_range=300.0-309.8\n[note]\ntext=Need a hand? Call Mae\n'
+                 'text=on %1 MHz, after dark.\nloot=OfficeDesk:2\nglovebox=GloveBox:1\ncorpse=yes\n'
+                 '[prompt]\nYou are Mae.\n')
+WRITTEN_TEXT = 'Need a hand? Call Mae\non %1 MHz, after dark.'
+
+
+def assert_vanilla_layout(test: unittest.TestCase, info: str) -> None:
+    """Mise en page lisible par PrintMedia.lua:68-84 : découpe sur <, >, puis , et : (paramètres clé:valeur)."""
+    test.assertTrue(info.startswith('<type:parent, width:'))
+    for chunk in info.split('<')[1:]:
+        params, _, content = chunk.partition('>')
+        test.assertNotIn('>', content)
+        for param in params.split(','):
+            test.assertEqual(len(param.split(':')), 2, param)
+
+
+class WrittenNoteTests(NotesHarness):
+    admin_sheets = {'mae.txt': WRITTEN_SHEET}
+
+    def created(self):
+        item = self.g.newItem('NoteVoice')
+        self.g.RadioSurvivorNotes.onCreate(item)
+        return item
+
+    def label(self) -> str:
+        return self.Const.frequencyLabel(self.served('mae')[0])
+
+    def test_generic_note_carries_the_text_and_frequency_of_the_sheet(self):
+        md = self.created().md
+        khz = self.served('mae')[0]
+        self.assertTrue(300000 <= khz <= 309800, khz)
+        note = md['RadioSurvivorNote']
+        self.assertEqual((note['voice'], int(note['khz']), note['text']), ('mae', khz, WRITTEN_TEXT))
+        self.assertEqual(md['printMedia']['id'], 'RadioSurvivor_NoteVoice')
+        self.assertEqual(md['printMedia']['title'], 'Print_Media_RadioSurvivor_NoteVoice_title')
+
+    def test_loot_and_corpse_use_the_generic_item(self):
+        mine = [(e.list, e.fullType, bool(e.vehicle)) for e in self.entries() if e.voice == 'mae']
+        self.assertEqual(mine, [('OfficeDesk', 'RadioSurvivor.NoteVoice', False),
+                                ('GloveBox', 'RadioSurvivor.NoteVoice', True)])
+        definition = self.Notes.forVoice('mae')
+        self.assertEqual((definition.fullType, definition.corpse), ('RadioSurvivor.NoteVoice', True))
+
+    def test_shipped_notes_unchanged(self):
+        md = self.create('gus').md
+        self.assertEqual(md['printMedia']['info'], 'Print_Media_RadioSurvivor_NoteGus_info')
+        self.assertIsNone(md['RadioSurvivorNote']['text'])
+
+    def test_composed_on_the_authority(self):
+        info, text = self.Notes.compose(self.created().md)
+        label = self.label()
+        self.assertEqual(text, WRITTEN_TEXT.replace('%1', label))
+        self.assertIn('>Need a hand? Call Mae<', info)
+        self.assertTrue(info.endswith(f'>on {label} MHz, after dark.'))
+        assert_vanilla_layout(self, info)
+
+    def test_client_shows_the_text_with_the_frequency(self):
+        # Client MP : ni fiche ni fournisseur ; la ModData écrite par l'autorité arrive avec l'objet (copie ci-dessous),
+        # le client compose le document à l'ouverture.
+        server_md = self.created().md
+        rt = client_runtime()
+        rt.execute(READER_STUBS)
+        rt.execute('require("RadioSurvivor/RS_NotesReader")')
+        g = rt.globals()
+        g.LANG = rt.table_from({'Print_Media_RadioSurvivor_NoteVoice_title': 'Handwritten Note'})
+        item = g.newItem('NoteVoice')
+        g.RadioSurvivorNotes.onCreate(item)  # rejoué chez le client : ne pose rien
+        self.assertIsNone(item.md)
+        md = item.getModData(item)
+        md['printMedia'] = rt.table_from(dict(server_md['printMedia']))
+        md['RadioSurvivorNote'] = rt.table_from(dict(server_md['RadioSurvivorNote']))
+        action = rt.eval('function(item) return setmetatable({ item = item }, { __index = ISReadABook }) end')(item)
+        self.assertIsNone(action.startLoadingPrintMediaTextures(action))
+        action.displayPrintMedia(action)
+        shown = g.DISPLAYED[1]
+        label = self.label()
+        self.assertEqual(shown['text'], WRITTEN_TEXT.replace('%1', label))
+        self.assertIn(f'>on {label} MHz, after dark.', shown['info'])
+        self.assertEqual(shown['title'], 'Handwritten Note')
+        self.assertEqual(md['printMedia']['info'], 'Print_Media_RadioSurvivor_NoteVoice_info')  # clés remises
+
+    def test_smudged_without_frequency(self):
+        md = self.created().md
+        md['RadioSurvivorNote']['khz'] = None
+        _, text = self.Notes.compose(md)
+        self.assertIn('on ???.? MHz', text)
+
+
 class StaticTests(unittest.TestCase):
 
     def entries(self) -> list[tuple[str, str, bool]]:
@@ -443,7 +542,7 @@ class StaticTests(unittest.TestCase):
         text = SCRIPT.read_text(encoding='utf-8')
         self.assertTrue(text.lstrip().startswith('module RadioSurvivor'))
         items = re.findall(r'item (\w+)\s*\{([^}]*)\}', text)
-        self.assertEqual([name for name, _ in items], [TYPES[v] for v in VOICES] + ['NoteTrade'])
+        self.assertEqual([name for name, _ in items], [TYPES[v] for v in VOICES] + ['NoteTrade', 'NoteVoice'])
         for name, body in items:
             with self.subTest(name):
                 self.assertIn('OnCreate = RadioSurvivorNotes.onCreate,', body)

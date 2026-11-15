@@ -41,6 +41,7 @@ sys.path.insert(0, str(ROOT / 'bridge'))
 import npc_protocol as npc  # noqa: E402
 import persona_store  # noqa: E402
 import radio_bridge as rb  # noqa: E402
+from itemweights_double import ITEM_WEIGHTS  # noqa: E402
 
 EN = json.loads((TRANSLATE / 'EN/IG_UI.json').read_text(encoding='utf-8'))
 FR = json.loads((TRANSLATE / 'FR/IG_UI.json').read_text(encoding='utf-8'))
@@ -174,7 +175,9 @@ class RunHarness(unittest.TestCase):
         self.rt.execute(f'package.path = [[{paths};]] .. package.path')
         self.rt.eval('require("RadioSurvivor/TradeArrivals/RS_TradeArrival_Boat")')
         self.Persona = self.rt.eval('require("RadioSurvivor/RS_Persona")')
-        self.rules = self.rt.eval('{ arrivals = require("RadioSurvivor/RS_TradeArrivals").NAMES }')
+        self.rt.execute(ITEM_WEIGHTS)  # E22-T12 : poids des objets du troc, à la place des scripts du jeu
+        self.rules = self.rt.eval('{ arrivals = require("RadioSurvivor/RS_TradeArrivals").NAMES,'
+                                  ' itemWeight = require("RadioSurvivor/RS_ItemWeights").of }')
         self.gus = self.add_voice(GUS.read_text(encoding='utf-8'), 'gus')
         self.Trade = self.rt.eval('require("RadioSurvivor/RS_Trade")')
         self.T = TraderProxy(self.Trade, 'gus')
@@ -552,7 +555,7 @@ class StaticTests(unittest.TestCase):
     def test_gus_sheet_trades(self):
         sheet = persona_store.load_file(MOD / 'personas/gus.txt')
         self.assertIn('propose_trade', sheet.actions)
-        self.assertEqual(rb.offered_actions(sheet), ['propose_trade', 'share_frequency'])  # E07-T10
+        self.assertEqual(rb.offered_actions(sheet), ['propose_trade', 'share_frequency', 'remember'])  # E07-T10, E22-T13
         self.assertIn('trade book', sheet.prompt)
         self.assertNotIn('Never give a meeting place', sheet.prompt)
 

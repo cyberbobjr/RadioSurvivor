@@ -70,6 +70,7 @@ RST.Campaigns.add("mp", 30, {
     "rs.memorial",      -- E14-T04 (animal death kept out, bulletin announces the names)
     "rs.lifelog",       -- E15-T01
     "rs.freqdebug",     -- E05-T14
+    "rs.placesurvey",   -- E22-T08: admin client records a container square; user client: no option, refused
     "rst.rights",       -- E01-T05 (E01-T16: a real user client refused RST.server, an admin told busy)
     "rs.voices",        -- E05-T06
     "rs.comfort",       -- E05-T15 (requester client: gauges and halo; second client: no drop)
@@ -131,4 +132,5 @@ RST.Campaigns.add("mp-persist", 30, {
     "rs.actions.map",   -- E07-T04: map mark of the requester kept after its reconnection (reconnect)
     "rs.reputation",    -- E04-T14: score and facts kept by a restart, no duplicate
     "rs.state",         -- E16-T08: notebook state purged after game weeks, kept records and file valid after a restart
+    "rs.memory",        -- E22-T13: a fact a voice remembered comes back in the request after a restart
 })

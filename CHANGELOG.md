@@ -32,6 +32,19 @@
 - A successful mission's unclaimed shared reward is now kept for 7 in-game days instead of 7 real days: the wait stops while the game is paused or the server is empty.
 - Server owners can write their own radio voices in a single text file: places, jobs, rewards, item categories, trade stock and frequency notes all go in that one sheet (see the wiki page "Creating a radio voice").
 
+### Voice workshop
+
+- New voice workshop: make, change and share radio voices in your web browser, without writing a file. Start it with `atelier.bat` (Windows), `atelier.sh` (Linux) or `atelier.command` (macOS) in the bridge folder, or `python radio_bridge.py --atelier`. The bridge keeps answering the game, and the workshop opens even without an AI configured. In English and French.
+- Five simple steps: who, where and when, what she knows, missions and rewards (each one Rarely, Normally or Often), plus an optional trader stock and frequency note. A "?" on every setting explains it with an example. The game hears a saved voice within 30 seconds, without a restart.
+- Record places in game: right click a square, "Voice workshop: record this place" (in solo, or an admin in multiplayer), and the place shows up in the workshop under "Recorded in game"; "Add to this voice" makes it one of the voice's places, with a suggested name and use (a container becomes a dead drop).
+- The bridge's AI can write a voice's personality from a few sentences in your own language, suggest what she says to give a job, and let you try the voice before saving it.
+- When the game refuses a sheet, the voice gets a red dot and a banner names the line in plain words, with a button to the right step.
+- Live journal for server owners: what players say to the voices, their replies and the sheets the game refused, filtered by voice. It stays on the machine running the workshop.
+- Export a voice to a file and import it elsewhere; a voice of the mod can be taken off the air or brought back to the mod's version.
+- A trader's stock no longer needs item weights: write `item=Base.Battery:4-12` (or pick the item by its name in the workshop) and the server reads the weight from the game's item (a full bottle counts its liquid); an item the game does not know makes the sheet refused, with its line in the server log.
+- A new radio voice can have its own frequency note and its own spontaneous call without touching the mod: the note's text and the call are written in the voice's sheet, in any language. The note is found in the loot as a handwritten note showing that voice's text and its frequency.
+- Every radio voice now remembers every caller permanently, up to 2,000 characters of notes per character, and remembers those who died: talk to a voice about a dead friend and it may recall them.
+
 ### Living Knox survivors
 
 - Gardeners dig furrows, sow seeds from their supplies and water the plants of their home, after the daily upkeep.

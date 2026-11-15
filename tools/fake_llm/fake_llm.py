@@ -17,9 +17,11 @@ fallback nor rejection):
     radio        free text of a radio voice: a few short sentences (<= 8 radio lines of 100 characters);
     radio_json   structured radio reply {"say", "actions"}: an action only when the prompt offers it AND a server
                  fact of the prompt calls for it (report_mission on a "report due" mission, propose_trade from the
-                 trade book when the run is open, otherwise remember when allowed); briefing turn: the clues said;
+                 trade book when the run is open, remember on an explicit [remember] test request: every voice
+                 may remember since E22-T13, a plain turn stays without action); briefing turn: the clues said;
     radio_call   spontaneous call (1-2 sentences);         bulletin   evening bulletin from the facts of the prompt;
     last_pages   journal of a dead character, from the facts of the prompt;
+    workshop_personality / workshop_story   voice workshop (E22-T06): a personality text naming the voice, one sentence;
     npc_*        NPC JSON {"text", "intent", "offer"[, "background", "dir", "fact"]} read from the authoritative
                  context of the prompt (same admissibility helpers as the bridge, npc_protocol):
                  npc_talk     report_done when context.reportable; accept when context.acceptable and this
@@ -71,6 +73,8 @@ STRUCTURED = "Reply format: return ONLY one JSON object"
 REPORT_DUE = "you only wait for their report"
 BRIEFING = "they are waiting for the details"
 TRADE_BOOK = "Your trade book (kept by the other side"
+WORKSHOP_PERSONALITY = "Workshop task: personality."   # bridge/atelier_ai_templates.json (E22-T06)
+WORKSHOP_STORY = "Workshop task: mission story."
 
 
 def digest(*parts: str) -> int:
@@ -188,6 +192,10 @@ def classify(messages: list) -> str:
         return kind if isinstance(kind, str) and kind.startswith("npc_") else "npc_unknown"
     if system.startswith(LAST_PAGES_HEAD):
         return "last_pages"
+    if system.startswith(WORKSHOP_PERSONALITY):
+        return "workshop_personality"
+    if system.startswith(WORKSHOP_STORY):
+        return "workshop_story"
     if last == BULLETIN_MARK:
         return "bulletin"
     if last == CALL_MARK:
@@ -328,7 +336,9 @@ def radio_json(system: str, last: str) -> dict:
         if action:
             return {"say": "I can bring you something on the next run. The count will be firm. Over.",
                     "actions": [action]}
-    actions = [{"type": "remember", "fact": "Called me on the radio"}] if "remember" in allowed else []
+    # [remember] as typed; the bridge turns the brackets of a caller's text into parentheses (C02).
+    wanted = re.search(r"[\[(]remember[\])]", last) and "remember" in allowed
+    actions = [{"type": "remember", "fact": "Called me on the radio"}] if wanted else []
     return {"say": pick(RADIO[lg], last), "actions": actions}
 
 
@@ -352,6 +362,22 @@ def last_pages_text(system: str) -> str:
 
 # --- reply -----------------------------------------------------------------------------------------------------------
 
+WORKSHOP_STORY_TEXT = "I need this done before the dead get there first, so please do it for me."
+
+
+def workshop_personality(last: str) -> str:
+    """E22-T06: a personality text in the structure of the delivered sheets, naming the voice of the request."""
+    match = re.search(r'Name of the voice: "([^"]*)"', last)
+    name = (match.group(1) if match else "") or "the survivor"
+    return (f"You are {name}, a survivor of the Knox Event in July 1993.\n\n"
+            "Your story: you hide somewhere quiet and talk on the radio at night.\n\n"
+            "You are talking over a two-way radio with people still trapped inside the Exclusion Zone. You cannot see "
+            "them and you do not know where they are.\n\n"
+            "Rules:\n- Stay in character at all times.\n- Never invite anyone to meet you.\n"
+            "- Radio style: 1 to 4 short sentences. End each transmission with \"Over.\"\n"
+            "- Answer in the same language the caller uses.")
+
+
 def reply_for(body: dict, intents: frozenset = frozenset()) -> tuple[str, dict]:
     """(content, meta) for one chat completion body; meta goes to the log (kind, intent or actions)."""
     messages = body.get("messages") if isinstance(body.get("messages"), list) else []
@@ -372,6 +398,10 @@ def reply_for(body: dict, intents: frozenset = frozenset()) -> tuple[str, dict]:
         return bulletin_text(system), meta
     if kind == "radio_call":
         return CALL[lang(speaks_french(system))], meta
+    if kind == "workshop_personality":
+        return workshop_personality(last), meta
+    if kind == "workshop_story":
+        return WORKSHOP_STORY_TEXT, meta
     return pick(RADIO["en"], last, system[:200]), meta
 
 

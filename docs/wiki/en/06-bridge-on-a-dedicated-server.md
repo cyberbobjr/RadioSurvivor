@@ -48,8 +48,8 @@ another account or with `-cachedir`.
 ## 3. Install the bridge
 
 1. Python 3.10 or newer (`python3 --version` on Linux). No package to install.
-2. Copy the five files (`radio_bridge.py`, `npc_protocol.py`, `persona_store.py`, `bulletin.py`, `last_pages.py`)
-   into one folder, for example `C:\RadioSurvivorBridge` or `/opt/radiosurvivor-bridge`. Update them with every mod
+2. Copy the whole `bridge` folder, downloaded entirely from the GitHub repository (not just
+   `radio_bridge.py`), for example to `C:\RadioSurvivorBridge` or `/opt/radiosurvivor-bridge`. Update it with every mod
    update.
 3. Put the key file **outside** that folder and outside the game and exchange folders, readable by the bridge
    account only (Linux: `chmod 600`). Format: [AI provider configuration](08-ai-provider-configuration.md).

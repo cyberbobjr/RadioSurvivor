@@ -39,8 +39,8 @@ arrival=boat
 every_days=7
 hours=01:00-03:00
 delay_hours=3
-item=Base.Antibiotics:2-6:0.1
-item=Base.Coffee2:1-3:1.0
+item=Base.Antibiotics:2-6
+item=Base.Coffee2:1-3
 [prompt]
 You are Tess, a bench trader.
 '''
@@ -72,7 +72,7 @@ landing=gate
 arrival=cart
 every_days=3
 hours=22:00-01:00
-item=Base.Battery:4-4:0.1
+item=Base.Battery:4-4
 [prompt]
 You are Carl, a bench trader.
 '''

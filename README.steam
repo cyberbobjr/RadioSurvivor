@@ -30,6 +30,7 @@ The bridge is one program whatever you tick.
 [*][b]Rescue, smuggler, chronicle:[/b] a besieged family calls for help; a trader in every town barters over the radio and delivers by boat, by road or in a container once you are out of sight; dead drops are collected only when nobody is watching, a few hours later; the pirate station reads the server news and the names of the dead.
 [*][b]Last pages:[/b] when a character dies, a handwritten journal of their life is left on the body.
 [*][b]Reputation:[/b] bad, neutral or good, earned through missions and kept by the server.
+[*][b]Voice workshop:[/b] make your own voices in your browser, without writing a file (atelier.bat, next to the bridge). The bridge's AI helps you write; the game hears the voice within 30 seconds.
 [/list]
 
 The server decides everything: the AI only writes words and picks from closed lists. It never creates items, positions or rules.
@@ -48,7 +49,7 @@ Load order: TooltipLib, Belt Walkie-Talkie, Signal Smoke, Core AI, Radio Survivo
 
 Project Zomboid's Lua has no network access, so the game and the bridge exchange text files in a shared folder, and the bridge calls the AI. A Workshop mod cannot start a program: [b]run the bridge yourself, on the machine that runs the server[/b] (your PC in singleplayer). Players who join a server install nothing but the mods.
 
-[b]You need:[/b] Python 3.10 or newer (no package to install), the five bridge files kept together (radio_bridge.py, npc_protocol.py, persona_store.py, bulletin.py, last_pages.py; download them from the [i]bridge[/i] folder of the GitHub repository below), and an API key from a provider compatible with the OpenAI API (/chat/completions).
+[b]You need:[/b] Python 3.10 or newer (no package to install), the whole [i]bridge[/i] folder of the GitHub repository below, and an API key from a provider compatible with the OpenAI API (/chat/completions).
 
 [b]1. Key.[/b] Copy [i].env.example[/i] to [i].env[/i] next to radio_bridge.py and fill in OPENAI_KEY, OPENAI_BASE_URL (for example https://api.openai.com/v1) and OPENAI_MODEL. Never share this file.
 

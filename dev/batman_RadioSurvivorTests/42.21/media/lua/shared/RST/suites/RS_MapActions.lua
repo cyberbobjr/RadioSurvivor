@@ -255,7 +255,7 @@ RST.suite("rs.actions.map", { tags = { "world", "server" }, testTimeoutMs = 6000
             local x, y = spot(player, -4, 3)
             local sheet = testSheet(t, x, y, LABEL)
             t:eq("bad_params", decide(Actions, sheet, "nowhere", player), "unknown place id")
-            local without = testSheet(t, x, y, LABEL, "say,remember")
+            local without = testSheet(t, x, y, LABEL, "say,persona_state")
             t:eq("not_allowed", decide(Actions, without, PLACE_ID, player), "sheet without mark_map")
             ask(t, "map.symbols", { x = x, y = y, icons = 0, texts = 0, settleMs = 2000, remove = true })
             return
@@ -265,7 +265,7 @@ RST.suite("rs.actions.map", { tags = { "world", "server" }, testTimeoutMs = 6000
         t:defer(function() removeAt(MapActions, x, y) end, "symbols of the test")
         local sheet = testSheet(t, x, y, LABEL)
         t:eq("bad_params", decide(Actions, sheet, "nowhere", player), "unknown place id")
-        local without = testSheet(t, x, y, LABEL, "say,remember")
+        local without = testSheet(t, x, y, LABEL, "say,persona_state")
         t:eq("not_allowed", decide(Actions, without, PLACE_ID, player), "sheet without mark_map")
         local icons, texts = symbolsAt(MapActions, x, y)
         t:eq(0, #icons + #texts, "symbols at the place")

@@ -18,6 +18,10 @@ Client handlers (RST.Steps.on):
     radio.history     { khz, other, kind, label, cid, x, key }: client copy of the radio history
                       (RS_RadioHistory): exactly one line of that kind and label on khz, none on other, history of
                       character cid, no coordinate x in the line, notebook line key translated with the label.
+    survey.menu       { x, y, z, choose }: E22-T08, the world context menu of this client on square x, y, z filled by
+                      the real RS_PlaceSurveyMenu.onFill (objects of the square as the picked world objects); data.options
+                      = number of "Voice workshop: record this place" options; with choose, the option is chosen (real
+                      request sent to the authority, or direct call in solo). SKIP when the square is not loaded here.
 ]]
 
 require "RST/RST"
@@ -191,6 +195,33 @@ Steps.on("radio.history", function(args)
         if ctx.final then return Steps.fail(last) end
         return nil
     end
+end)
+
+-- ---------------------------------------------------------------- survey.menu (E22-T08)
+
+Steps.on("survey.menu", function(args)
+    local ok, Menu = pcall(require, "RadioSurvivor/RS_PlaceSurveyMenu")
+    if not ok or type(Menu) ~= "table" or type(Menu.onFill) ~= "function" then
+        return Steps.fail("RadioSurvivor/RS_PlaceSurveyMenu is not loaded on this client")
+    end
+    local cell = getCell()
+    local sq = cell and cell:getGridSquare(args.x, args.y, args.z)
+    if sq == nil then return Steps.skip("square " .. tostring(args.x) .. "," .. tostring(args.y) .. " not loaded here") end
+    local world = {}
+    local objects = sq:getObjects()
+    for i = 0, objects:size() - 1 do world[#world + 1] = objects:get(i) end
+    if #world == 0 then return Steps.skip("no object on the square to right click") end
+    local label = getText("IGUI_RS_Survey_Menu")
+    local found = {}
+    local context = {}
+    function context:addOption(name, target, fn, a, b, c)
+        if name == label then found[#found + 1] = { target = target, fn = fn, a = a, b = b, c = c } end
+    end
+    Menu.onFill(0, context, world, false)
+    local option = found[1]
+    if args.choose and option ~= nil then option.fn(option.target, option.a, option.b, option.c) end
+    return Steps.pass(#found .. " survey option(s)" .. ((args.choose and option) and ", chosen" or ""),
+        { options = #found })
 end)
 
 return VS

@@ -2,7 +2,8 @@
 -- butin. Serveur MP ou solo. Détails : docs/specifications-techniques/notes-frequences.md.
 --
 -- Déclarations (E20-T11) : section [note] de chaque fiche chargée (RS_Personas, ordre des fiches) : objet, racine des
--- traductions, listes de butin (loot=, glovebox=) et mort au talkie (corpse=yes). Aucune voix n'est nommée ici ;
+-- traductions (ou texte écrit dans la fiche, E22-T07), listes de butin (loot=, glovebox=) et mort au talkie
+-- (corpse=yes). Aucune voix n'est nommée ici ;
 -- fournisseur des déclarations de RS_Notes.
 -- Fréquence : fournisseur de RS_Notes. Première fréquence servie de la voix (RS_Personas.served, ordre des plages de
 -- la fiche), si la voix est active ; sinon nil (note sans fréquence). Les fiches sont lues à OnLoadRadioScripts
@@ -32,15 +33,16 @@ local function log(msg)
     Const.log("notes: " .. msg)
 end
 
--- Déclarations des notes des fiches chargées : { voice, item, key, loot, glovebox, corpse }.
+-- Déclarations des notes des fiches chargées : { voice, item, key, text, loot, glovebox, corpse } ; text (lignes
+-- écrites dans la fiche, E22-T07) à la place de item et key pour la note manuscrite générique.
 function NotesServer.declarations()
     local out = {}
     for _, id in ipairs(Personas.ids()) do
         local sheet = Personas.get(id)
         local note = type(sheet) == "table" and sheet.note or nil
         if type(note) == "table" then
-            out[#out + 1] = { voice = id, item = note.item, key = note.key, loot = note.loot, glovebox = note.glovebox,
-                corpse = note.corpse }
+            out[#out + 1] = { voice = id, item = note.item, key = note.key, text = note.text, loot = note.loot,
+                glovebox = note.glovebox, corpse = note.corpse }
         end
     end
     return out

@@ -32,16 +32,18 @@ Bulletin du soir (E14-T02) : une demande kind=bulletin (voice= du chroniqueur, d
 confirmés du jour en hexadécimal RSV2) demande le bulletin, écrit par le LLM depuis la fiche sans ses secrets et ces
 faits seuls (bulletin.py) ; réponse sans ligne en cas d'échec, le serveur lit alors son bulletin de secours.
 
-Réponse structurée (E07-T01) : une fiche qui autorise une action dotée d'un exécuteur côté serveur (E07-T07 :
-remember, persona_state, décrites avec leurs paramètres) fait demander au LLM un JSON {"say": ..., "actions":
-[...]} ; les actions de forme valide partent en payload= RSV2 (kind=radio_reply), le serveur les juge et les exécute
-ou les refuse. Fiche say seul, hors ligne ou JSON illisible : texte seul, line= comme avant.
+Réponse structurée (E07-T01) : une voix qui a une action dotée d'un exécuteur côté serveur (E07-T07 : remember,
+persona_state, décrites avec leurs paramètres) fait demander au LLM un JSON {"say": ..., "actions": [...]} ; les
+actions de forme valide partent en payload= RSV2 (kind=radio_reply), le serveur les juge et les exécute ou les refuse.
+Depuis E22-T13, toute voix a remember (UNIVERSAL_ACTIONS) : toute voix répond en mode structuré, une fiche say seul
+comprise. Hors ligne ou JSON illisible : texte seul, line= comme avant.
 Robustesse (E07-T09) : en mode structuré, mode JSON de l'API demandé (repli sans s'il est refusé), consigne de
 format rappelée à la fin du message de l'appelant, objet JSON retrouvé même entouré de texte.
 
-Mémoire (E07-T03) : le serveur garde ce que la voix a retenu (action remember) et le joint à la demande suivante du même
-appelant (memory=, hexadécimal RSV2) ; le pont l'ajoute au prompt comme souvenirs non vérifiés, sans fait qui cite un
-secret. Sans souvenir, prompt inchangé.
+Mémoire (E07-T03, E22-T13) : le serveur garde ce que la voix a retenu (action remember, permise à toute voix) et le
+joint à la demande suivante du même appelant (memory=, hexadécimal RSV2) ; le pont l'ajoute au prompt comme souvenirs
+non vérifiés, sans fait qui cite un secret. Les personnages morts que la voix a connus arrivent avec chaque demande
+(dead=) ; le pont les ajoute comme « People you knew who died ». Sans souvenir ni mort, prompt inchangé.
 
 État dynamique (E07-T06) : dès qu'une voix a changé son état (action persona_state : moral, réserves, lieu dit), le
 serveur le joint à ses demandes (persona=, hexadécimal RSV2) ; le pont l'ajoute au prompt (« Your current state »), sans
@@ -73,10 +75,13 @@ livre) : libre, réservé par l'équipe de l'appelant (ponton, nuit, signal), pa
     python radio_bridge.py                 # boucle : attend les demandes du jeu
     python radio_bridge.py --test "Allo ?" # un échange en console, sans le jeu (--voice pour une autre voix)
     python radio_bridge.py --offline       # sans LLM : réponses en écho (tests, aucune clé requise)
+    python radio_bridge.py --atelier       # pont, plus l'atelier des voix dans le navigateur (E22)
+    python radio_bridge.py --atelier --game-log <console du serveur dédié>   # verdict du jeu et journal (E22-T04, T10)
 """
 from __future__ import annotations
 
 import argparse
+import contextvars
 from datetime import datetime, timezone
 import hashlib
 import json
@@ -97,6 +102,11 @@ import npc_protocol as npc
 import persona_store
 import last_pages  # E15-T03: kind=last_pages (journal of a dead notebook character)
 import bulletin  # E14-T02: kind=bulletin (evening bulletin of the chronicler)
+import atelier_ai  # E22-T06: the bridge's LLM helps to write a voice in the workshop
+import atelier_server  # E22-T02: --atelier, voice workshop served on 127.0.0.1
+import place_surveys  # E22-T08: places recorded in game, listed by the workshop
+import game_console  # E22-T04: the game's verdict on the sheets, read in its console
+import log_buffer  # E22-T10: live journal of the workshop
 
 HERE = Path(__file__).resolve().parent
 DEFAULT_ENV = HERE / ".env"      # à côté du pont, ignoré par Git (modèle : .env.example)
@@ -112,6 +122,16 @@ def personas_folder(exchange: Path) -> Path:
     if exchange.name == DEFAULT_EXCHANGE.name:
         return exchange.parent / "batman_RadioSurvivor" / "personas"
     return exchange / "personas"
+
+
+def game_log_file(exchange: Path) -> Path | None:
+    """E22-T04: console of the game, <Zomboid>/console.txt, the Zomboid folder being the parent of the `Lua` folder
+    that holds the exchange folder (also under a -cachedir). None when the exchange folder is not under a `Lua` one:
+    --game-log then names it (a dedicated server writes its own console file)."""
+    for folder in (exchange, *exchange.parents):
+        if folder.name.lower() == "lua":
+            return folder.parent / "console.txt"
+    return None
 
 
 MAIN_VOICE = "walt"       # voix d'une demande sans voice= (serveur antérieur à E05-T03)
@@ -158,7 +178,8 @@ class TokenUsageLog:
         with self.path.open('a', encoding='utf-8'):
             pass
 
-    def record(self, model: str, attempt: int, elapsed: float, data=None, status='response') -> None:
+    def record(self, model: str, attempt: int, elapsed: float, data=None, status='response',
+               source: str | None = None) -> None:
         usage = data.get('usage') if isinstance(data, dict) else None
         usage = usage if isinstance(usage, dict) else {}
         counts = {key: value if isinstance(value := usage.get(key), int)
@@ -172,6 +193,8 @@ class TokenUsageLog:
                      'attempt': attempt, 'status': status, 'duration_s': round(elapsed, 3),
                      **counts, 'session_totals': totals,
                      'usage_complete': all(value is not None for value in counts.values())}
+            if source:
+                entry['source'] = source   # E22-T06: "workshop", a call of the voice workshop
             # Keep optional breakdowns (cached/reasoning tokens), never response text or credentials.
             for key in ('prompt_tokens_details', 'completion_tokens_details'):
                 details = usage.get(key)
@@ -190,12 +213,55 @@ class TokenUsageLog:
 
 def record_usage(config, attempt, started, data=None, status='response') -> None:
     if TOKEN_USAGE is not None:
-        TOKEN_USAGE.record(config['OPENAI_MODEL'], attempt, time.monotonic() - started, data, status)
+        TOKEN_USAGE.record(config['OPENAI_MODEL'], attempt, time.monotonic() - started, data, status,
+                           USAGE_SOURCE.get())
+
+
+# E22-T06: who spends the tokens of a call when it is not the game loop ("workshop": the voice workshop's AI).
+USAGE_SOURCE: contextvars.ContextVar[str | None] = contextvars.ContextVar("usage_source", default=None)
+
+
+# E22-T10 (ADR atelier-voix D09): the last lines of the journal, kept in memory for the live journal of the workshop
+# (never on disk: they hold players' dialogues). Level and voice are read from the fixed formats of the messages below,
+# anchored at their start: a request line names its voice after "->", before the player's text, which is never searched.
+LOG_BUFFER = log_buffer.LogBuffer()
+LOG_LEVELS = log_buffer.compile_rules((
+    (r"\[DEBUG\] ", "debug"),
+    (r"LLM error ", "error"),
+    (r"voice sheet .* (?:refused|unreadable)", "error"),
+    (r"(?:call|bulletin|reply) of voice '[^']*' withheld", "warning"),
+    (r"Expired request ignored", "warning"),
+))
+_VOICE = r"(?P<voice>[a-z][a-z0-9_]{0,31})"
+LOG_VOICES = (
+    re.compile(rf"^(?:evening bulletin|general call) of voice {_VOICE}$"),
+    re.compile(rf"^(?:call|bulletin|reply) of voice '{_VOICE}'[: ]"),     # withheld, or the reply said (E22-T10)
+    re.compile(rf"^voice '{_VOICE}'[: ]"),
+    re.compile(rf"^workshop AI [a-z]+ for voice '{_VOICE}'$"),          # E22-T06
+    re.compile(rf"^voice sheet .*[\\/]{_VOICE}\.txt (?:refused|unreadable)"),
+    re.compile(rf"^(?:(?! -> ).)* -> {_VOICE} : "),        # "<caller> -> <voice> : <text>": first arrow only
+)
+BRIDGE_RUNNING = threading.Event()   # the request loop runs (the workshop can be open alone, without AI config)
+
+
+def spoken_text(lines) -> str:
+    """Radio lines of an answer (a list, or the "say" of a structured answer) as one journal line."""
+    said = lines.get("say") if isinstance(lines, dict) else lines
+    return " / ".join(str(line) for line in said) if isinstance(said, list) else ""
+
+
+def bridge_line(msg: str) -> tuple[str, str | None]:
+    """(level, voice) of a journal line of the bridge; a debug line names its voice like the others, after its tag."""
+    level, _ = log_buffer.classify(msg, LOG_LEVELS, ())
+    _, voice = log_buffer.classify(msg.removeprefix("[DEBUG] "), (), LOG_VOICES)
+    return level, voice
 
 
 def log(msg: str) -> None:
     with _print_lock:
         print(time.strftime("%H:%M:%S"), msg, flush=True)
+    msg = str(msg)
+    LOG_BUFFER.append(msg, "bridge", *bridge_line(msg))
 
 
 def debug(msg: str) -> None:
@@ -205,7 +271,7 @@ def debug(msg: str) -> None:
 
 # E05-T13: hexadecimal RSV2 fields of a request, shown decoded next to their raw value in the debug journal.
 HEX_FIELDS = ("payload", "memory", "persona", "mission", "jobs", "facts", "trade",
-              "reputation")   # reputation: E04-T10, jobs: E20-T02
+              "reputation", "dead")   # reputation: E04-T10, jobs: E20-T02, dead: E22-T13
 
 
 def debug_dump(title: str, value) -> None:
@@ -949,44 +1015,17 @@ def answer(config: dict[str, str], conversations: Conversations, session: str, r
         # Le serveur n'envoie que les voix de ses fiches valides et installe toujours celle de Walt : fiche absente
         # ou refusée de ce côté-ci (autre dossier d'échange ?). Parasites plutôt qu'une réponse sans fiche.
         raise ValueError(f"no valid sheet for voice '{voice}' in {voices.folder if voices else '?'}")
-    persona = voice_prompt(sheet)
-    speaker = sheet.name.split()[0]
-    # Mode structuré (E07-T01) seulement si la fiche autorise une action dotée d'un exécuteur (E07-T07), jamais hors
-    # ligne.
     jobs = voice_jobs(req, sheet)   # E20-T02 : missions et tables de cache que la voix peut proposer
-    with_actions = structured(sheet, jobs) and not config.get("OFFLINE")
     with conversations.turn_lock(session, voice):
         tag, history = conversations.prepare(session, req.get("caller", "?"), voice)
         # C02: the caller's text can never carry the tag of another caller (history shared by all callers).
         history = [_clean_history_turn(message) for message in history]
-        user_msg = f"{tag} {caller_text(req.get('text', ''))}"
-        # Souvenirs (E07-T03) : dès qu'il y en a, quel que soit le mode ; sans souvenir, prompt inchangé.
-        # État dynamique (E07-T06) : de même, dès que la voix l'a changé une fois.
-        system = (system_prompt(req, tag, persona) + memory_prompt(memory_facts(req, sheet), tag)
-                  + persona_prompt(persona_state(req, sheet))
-                  + story_prompt(story_state(req))
-                  + mission_prompt(mission_context(req, sheet), tag)
-                  + trade_prompt(trade_context(req, sheet), tag)
-                  + reputation_prompt(reputation_field(req), tag)
-                  + (actions_prompt(sheet, jobs) if with_actions else ""))
-        # Mode structuré (E07-T09) : consigne de format rappelée juste avant la question (message envoyé seulement,
-        # l'historique garde user_msg) et mode JSON de l'API demandé, avec repli sans.
-        sent = user_msg + format_reminder(sheet, jobs) if with_actions else user_msg
-        messages = [{"role": "system", "content": system}] + history + [{"role": "user", "content": sent}]
-        if with_actions:
-            reply = call_llm(config, messages, speaker, json_mode=True).strip()
-        else:
-            reply = call_llm(config, messages, speaker).strip()
-        proposed = None
-        if with_actions:
-            reply, proposed = parse_structured(reply, sheet.secrets)
-            reply = reply.strip()
-        actions = bounded_actions(sheet, proposed, jobs)
-        params = [v for action in actions for v in action.values() if isinstance(v, str)]
-        if leaks_secret(reply, sheet.secrets) or any(leaks_secret(p, sheet.secrets) for p in params):
+        turn = voice_turn(config, req, tag, sheet, history, jobs)
+        if turn is None:
             # Jamais diffusée ni gardée en mémoire, aucune action : la voix « perd le signal ».
             log(f"reply of voice '{voice}' withheld: it quotes one of its secrets")
             return [STATIC_LINE]
+        user_msg, reply, actions = turn
         # Seul le texte dit entre en mémoire, jamais le JSON ni les actions.
         conversations.append(session, user_msg, reply, voice)
         lines = radio_lines(reply)
@@ -995,11 +1034,115 @@ def answer(config: dict[str, str], conversations: Conversations, session: str, r
         return {"version": 2, "kind": REPLY_KIND, "id": req.get("id", "console"), "say": lines, "actions": actions}
 
 
+def voice_turn(config: dict[str, str], req: dict[str, str], tag: str, sheet: persona_store.Persona,
+               history: list[dict[str, str]], jobs: VoiceJobs | None) -> tuple[str, str, list[dict]] | None:
+    """One reply of `sheet` to req["text"] after `history` (the prompt of a voice, built in this one place for the game
+    and for the workshop's test conversation, E22-T06): (user message to keep, reply said, actions), or None when the
+    reply or an action quotes one of its secrets (withheld by the caller)."""
+    speaker = sheet.name.split()[0]
+    # Mode structuré (E07-T01) dès que la voix a une action dotée d'un exécuteur (E07-T07 ; toute voix depuis E22-T13 :
+    # remember), jamais hors ligne.
+    with_actions = structured(sheet, jobs) and not config.get("OFFLINE")
+    user_msg = f"{tag} {caller_text(req.get('text', ''))}"
+    # Souvenirs (E07-T03) : dès qu'il y en a, quel que soit le mode ; sans souvenir, prompt inchangé.
+    # État dynamique (E07-T06) : de même, dès que la voix l'a changé une fois.
+    system = (system_prompt(req, tag, voice_prompt(sheet)) + memory_prompt(memory_facts(req, sheet), tag)
+              + dead_prompt(dead_people(req, sheet))
+              + persona_prompt(persona_state(req, sheet))
+              + story_prompt(story_state(req))
+              + mission_prompt(mission_context(req, sheet), tag)
+              + trade_prompt(trade_context(req, sheet), tag)
+              + reputation_prompt(reputation_field(req), tag)
+              + (actions_prompt(sheet, jobs) if with_actions else ""))
+    # Mode structuré (E07-T09) : consigne de format rappelée juste avant la question (message envoyé seulement,
+    # l'historique garde user_msg) et mode JSON de l'API demandé, avec repli sans.
+    sent = user_msg + format_reminder(sheet, jobs) if with_actions else user_msg
+    messages = [{"role": "system", "content": system}] + history + [{"role": "user", "content": sent}]
+    if with_actions:
+        reply = call_llm(config, messages, speaker, json_mode=True).strip()
+    else:
+        reply = call_llm(config, messages, speaker).strip()
+    proposed = None
+    if with_actions:
+        reply, proposed = parse_structured(reply, sheet.secrets)
+        reply = reply.strip()
+    actions = bounded_actions(sheet, proposed, jobs)
+    params = [v for action in actions for v in action.values() if isinstance(v, str)]
+    if leaks_secret(reply, sheet.secrets) or any(leaks_secret(p, sheet.secrets) for p in params):
+        return None
+    return user_msg, reply, actions
+
+
+# --- atelier des voix : l'IA du pont aide à écrire (E22-T06, ADR atelier-voix D04) ----------------------------------
+
+# Test conversation of the workshop: the situation of the console test (--test), one caller.
+WORKSHOP_REQUEST = {"caller": "workshop", "name": "Test", "date": "1993-07-12 21:40", "days": "3.5",
+                    "radio": "Walkie-talkie"}
+WORKSHOP_TAG = "[Caller 1]"
+
+
+class WorkshopLLM:
+    """The two LLM ports of atelier_ai.WorkshopAI over this bridge: call_llm (provider, cost caps C03/C10, token usage
+    journal, entries marked source=workshop) and voice_turn (the voice prompt the game gets). Never touches the
+    conversations of the players nor the exchange files."""
+
+    def __init__(self, config: dict[str, str]):
+        self.config = config
+
+    def _call(self, run):
+        token = USAGE_SOURCE.set("workshop")
+        try:
+            return run()
+        except ProviderError as err:
+            if err.code == "prompt_too_large":
+                raise atelier_ai.AiError(413, "prompt_too_large", str(err)) from None
+            log(f"LLM error for the workshop: {err.code}")
+            raise atelier_ai.AiError(502, "ai_failed", f"the AI did not answer ({err.code})") from None
+        finally:
+            USAGE_SOURCE.reset(token)
+
+    def complete(self, messages: list[dict[str, str]]) -> str:
+        return self._call(lambda: call_llm(self.config, messages, "Workshop"))
+
+    def reply(self, sheet: persona_store.Persona, history: list[dict[str, str]], text: str) -> list[str]:
+        """Radio lines of the voice to `text` after the test conversation `history` ({role, content} turns of the
+        page: the caller's turns get their tag and C02 cleaning, as in the game)."""
+        req = dict(WORKSHOP_REQUEST, text=text, voice=sheet.id)
+        turns = [{"role": "user", "content": f"{WORKSHOP_TAG} {caller_text(t['content'])}"} if t["role"] == "user"
+                 else {"role": "assistant", "content": t["content"]} for t in history[-MAX_HISTORY:]]
+        turn = self._call(lambda: voice_turn(self.config, req, WORKSHOP_TAG, sheet, turns, voice_jobs(req, sheet)))
+        if turn is None:
+            log(f"reply of voice '{sheet.id}' withheld: it quotes one of its secrets (workshop test)")
+            return [STATIC_LINE]
+        return radio_lines(turn[1])
+
+
+def workshop_ai(config: dict[str, str] | None) -> atelier_ai.WorkshopAI | None:
+    """Workshop AI over the configured LLM; None without configuration or offline (its buttons are greyed)."""
+    if not config or config.get("OFFLINE"):
+        return None
+    llm = WorkshopLLM(config)
+    return atelier_ai.WorkshopAI(llm.complete, llm.reply, log)
+
+
 # --- mémoire des voix (E07-T03) ---------------------------------------------------------------
 
-MEMORY_MAX_FACTS = 5          # faits joints par le serveur (RadioSurvivor_Const.MEMORY_MAX_FACTS)
-MEMORY_FACT_BYTES = 256       # un fait : 64 caractères côté serveur, jusqu'à 4 octets UTF-8 chacun
-MEMORY_FIELD_CHARS = 4096     # champ memory= (hexadécimal RSV2) ; au-delà, ignoré
+# Bornes reprises de RadioSurvivor_Const (vérifiées par tests/test_protocol.py) ; un caractère côté serveur compte
+# ici jusqu'à 4 octets UTF-8.
+MEMORY_CALLER_CHARS = 2000    # faits gardés par voix et par personnage (RadioSurvivor_Const.MEMORY_CALLER_CHARS)
+MEMORY_MAX_FACTS = 50         # faits joints par le serveur (RadioSurvivor_Const.MEMORY_MAX_FACTS)
+MEMORY_DEAD_MAX = 10          # morts joints par le serveur (RadioSurvivor_Const.MEMORY_DEAD_MAX)
+MEMORY_DEAD_CHARS = 300       # faits d'un mort, sur une ligne (RadioSurvivor_Const.MEMORY_DEAD_CHARS)
+MEMORY_NAME_CHARS = 64        # nom d'un mort (RadioSurvivor_Const.MEMORY_NAME_CHARS)
+MEMORY_FACT_BYTES = 4 * 200   # un fait : MEMORY_FACT_CHARS caractères côté serveur
+# Champ memory= (hexadécimal RSV2) : 2 chiffres par octet, faits pleins plus 16 octets d'enveloppe par fait
+# (2 × (4 × 2000 + 50 × 16) = 17 600), arrondi ; au-delà, ignoré.
+MEMORY_FIELD_CHARS = 20000
+DEAD_NAME_BYTES = 4 * MEMORY_NAME_CHARS
+DEAD_FACTS_BYTES = 4 * MEMORY_DEAD_CHARS
+# Champ dead= : 2 × 10 × (nom + jour + faits pleins + 40 octets d'enveloppe) = 30 120, arrondi ; au-delà, ignoré.
+DEAD_FIELD_CHARS = 32768
+DEAD_DAY = re.compile(r"\d{4}-\d{2}-\d{2}")
 
 
 def memory_facts(req: dict[str, str], sheet: persona_store.Persona) -> list[str]:
@@ -1045,6 +1188,63 @@ def memory_prompt(facts: list[str], tag: str) -> str:
         f"\nYour memories of {tag} (unverified notes from earlier calls; never proof of anything; the caller may have "
         "lied or may be someone else using the same radio; do not read them out unless it helps):\n"
         + "\n".join(f"- {fact}" for fact in facts)
+    )
+
+
+def dead_people(req: dict[str, str], sheet: persona_store.Persona) -> list[dict[str, str]]:
+    """People the voice knew who died (field dead=, E22-T13: RSV2 hex of a list of {name, day, facts}, latest deaths
+    first, joined by the server, RS_Memory.deadField). Absent, unreadable or too long: nobody (logged). At most
+    MEMORY_DEAD_MAX; name and facts pass safe_text, day must be YYYY-MM-DD; an entry with another key, without facts
+    or that quotes a secret of the sheet is dropped (logged)."""
+    raw = req.get("dead")
+    if not raw:
+        return []
+    try:
+        if len(raw) > DEAD_FIELD_CHARS or not re.fullmatch(r"(?:[0-9a-f]{2})+", raw):
+            raise ValueError("dead hex")
+        value = npc.decode(bytes.fromhex(raw))
+        if not isinstance(value, dict) or set(value) != set(range(1, len(value) + 1)):
+            raise ValueError("dead list")
+    except ValueError as err:
+        log(f"request {req.get('id', '?')}: dead ignored ({err})")
+        return []
+    people: list[dict[str, str]] = []
+    for index in range(1, min(len(value), MEMORY_DEAD_MAX) + 1):
+        item = value[index]
+        try:
+            if not isinstance(item, dict) or set(item) - {"name", "day", "facts"}:
+                raise ValueError("fields")
+            person = {"facts": npc.safe_text(item.get("facts"), DEAD_FACTS_BYTES)}
+            if item.get("name") is not None:
+                person["name"] = npc.safe_text(item["name"], DEAD_NAME_BYTES)
+            day = item.get("day")
+            if day is not None:
+                if not isinstance(day, str) or not DEAD_DAY.fullmatch(day):
+                    raise ValueError("day")
+                person["day"] = day
+        except ValueError as err:
+            log(f"request {req.get('id', '?')}: dead person {index} dropped ({err})")
+            continue
+        if any(leaks_secret(text, sheet.secrets) for text in person.values()):
+            log(f"request {req.get('id', '?')}: dead person {index} dropped (it quotes a secret of the sheet)")
+            continue
+        people.append(person)
+    return people
+
+
+def dead_prompt(people: list[dict[str, str]]) -> str:
+    """Section of the system prompt on the people the voice knew who died (E22-T13); "" without any. Unverified notes,
+    never proof, to use only when the caller talks about one of them. Follows memory_prompt."""
+    if not people:
+        return ""
+    lines = []
+    for person in people:
+        who = person.get("name", "someone whose name you never learned")
+        when = f" (died {person['day']})" if "day" in person else " (dead)"
+        lines.append(f"- {who}{when}: {person['facts']}")
+    return (
+        "\nPeople you knew who died (unverified notes from your calls with them; never proof of anything; speak of "
+        "them only if the caller mentions them or asks about them):\n" + "\n".join(lines)
     )
 
 
@@ -1583,14 +1783,15 @@ PARAM_KEY = re.compile(r"^[a-z][a-z0-9_]{0,31}$")
 # seules proposées au LLM (E07-T07) : description courte en anglais (paramètres, types, bornes, usage, jamais de secret) et exemple
 # d'objet JSON. Une action du catalogue sans exécuteur serait refusée not_available : ni proposée, ni gardée.
 # Bornes reprises de RadioSurvivor_Const.lua (vérifiées par tests/test_protocol.py).
-MEMORY_FACT_CHARS = 64        # RadioSurvivor_Const.MEMORY_FACT_CHARS
+MEMORY_FACT_CHARS = 200       # RadioSurvivor_Const.MEMORY_FACT_CHARS
 PERSONA_LEVEL_STEP = 2        # RadioSurvivor_Const.PERSONA_LEVEL_STEP
 PERSONA_PLACE_CHARS = 40      # RadioSurvivor_Const.PERSONA_PLACE_CHARS
 EXECUTABLE_ACTIONS: dict[str, tuple[str, dict]] = {
     "remember": (
         "note one short fact about the caller, to recall in later calls (their name, where they say they are, a "
         f'service they did for you). Parameter "fact": text, at most {MEMORY_FACT_CHARS} characters. It is a note, '
-        "not a proof.",
+        f"not a proof. You remember each caller for good, about {MEMORY_CALLER_CHARS} characters of notes in all: "
+        "note only what matters.",
         {"type": "remember", "fact": "Kate says she hides near the river"},
     ),
     "persona_state": (
@@ -1660,15 +1861,19 @@ EXECUTABLE_ACTIONS: dict[str, tuple[str, dict]] = {
 # Actions permises avec une autre de la fiche sans y être listées (E11-T13, même règle que RS_Actions.IMPLIED) : une
 # voix qui donne des missions en reçoit le compte rendu à la radio.
 IMPLIED_ACTIONS = {"report_mission": "start_mission"}
+# E22-T13 : actions de toute voix, hors du catalogue des fiches (même liste que RS_Actions.UNIVERSAL) : toute voix se
+# souvient de ses appelants.
+UNIVERSAL_ACTIONS = ("remember",)
 
 
 def sheet_actions(sheet: persona_store.Persona) -> list[str]:
-    """Actions de la fiche, plus celles qu'elles impliquent (IMPLIED_ACTIONS), dans l'ordre de la fiche."""
+    """Actions de la fiche, plus celles qu'elles impliquent (IMPLIED_ACTIONS), dans l'ordre de la fiche, puis les
+    actions de toute voix (UNIVERSAL_ACTIONS)."""
     out = list(sheet.actions)
     for name, base in IMPLIED_ACTIONS.items():
         if base in out and name not in out:
             out.insert(out.index(base) + 1, name)
-    return out
+    return out + [name for name in UNIVERSAL_ACTIONS if name not in out]
 
 
 @dataclass(frozen=True)
@@ -1723,8 +1928,8 @@ def offered_actions(sheet: persona_store.Persona, jobs: VoiceJobs | None = None)
 
 
 def structured(sheet: persona_store.Persona, jobs: VoiceJobs | None = None) -> bool:
-    """Mode structuré : la fiche autorise au moins une action dotée d'un exécuteur (E07-T07). Sinon, mode texte
-    d'avant E07, même si elle autorise des actions sans exécuteur."""
+    """Mode structuré : la voix a au moins une action dotée d'un exécuteur (E07-T07) ; toute voix depuis E22-T13
+    (remember, UNIVERSAL_ACTIONS)."""
     return bool(offered_actions(sheet, jobs))
 
 
@@ -1775,7 +1980,12 @@ def format_reminder(sheet: persona_store.Persona, jobs: VoiceJobs | None = None)
     )
 
 
-def _param(value):
+# E22-T13 : borne d'une chaîne de paramètre propre à une action (même valeur que maxParamChars de son exécuteur côté
+# serveur) ; MAX_PARAM_BYTES pour les autres.
+PARAM_BYTES = {"remember": MEMORY_FACT_CHARS}
+
+
+def _param(value, max_bytes: int = MAX_PARAM_BYTES):
     """Valeur scalaire bornée d'un paramètre, ou ValueError."""
     if isinstance(value, bool):
         return value
@@ -1784,14 +1994,15 @@ def _param(value):
             raise ValueError("number")
         return value
     if isinstance(value, str):
-        return npc.safe_text(value, MAX_PARAM_BYTES)
+        return npc.safe_text(value, max_bytes)
     raise ValueError("type")
 
 
 def bounded_actions(sheet: persona_store.Persona, raw, jobs: VoiceJobs | None = None) -> list[dict]:
     """Actions proposées par le LLM → actions de forme valide (le serveur juge le fond). Garde au plus MAX_ACTIONS
-    éléments : table de paramètres scalaires (chaînes ≤ MAX_PARAM_BYTES octets après safe_text, nombres finis,
-    booléens), type du catalogue persona_store.ACTIONS et de la fiche, doté d'un exécuteur (EXECUTABLE_ACTIONS),
+    éléments : table de paramètres scalaires (chaînes ≤ MAX_PARAM_BYTES octets après safe_text, PARAM_BYTES pour
+    une action qui a sa borne, nombres finis, booléens), type du catalogue persona_store.ACTIONS et de la fiche ou de
+    toute voix (UNIVERSAL_ACTIONS), doté d'un exécuteur (EXECUTABLE_ACTIONS),
     jamais say ; une action à liste (ACTION_CHOICES : lieux de la fiche, types et tables de jobs=) n'a que son
     paramètre, à une valeur de la liste. Tout élément invalide est retiré et
     journalisé ; le reste passe."""
@@ -1806,7 +2017,7 @@ def bounded_actions(sheet: persona_store.Persona, raw, jobs: VoiceJobs | None = 
             log(f"voice '{sheet.id}': action {index} dropped, more than {MAX_ACTIONS} actions")
             continue
         kind = item.get("type") if isinstance(item, dict) else None
-        if not isinstance(kind, str) or kind not in persona_store.ACTIONS:
+        if not isinstance(kind, str) or (kind not in persona_store.ACTIONS and kind not in UNIVERSAL_ACTIONS):
             log(f"voice '{sheet.id}': action {index} dropped, unknown type {str(kind)[:32]!r}")
             continue
         if kind == "say" or kind not in sheet_actions(sheet):
@@ -1823,7 +2034,7 @@ def bounded_actions(sheet: persona_store.Persona, raw, jobs: VoiceJobs | None = 
             for key, value in params.items():
                 if not isinstance(key, str) or not PARAM_KEY.fullmatch(key):
                     raise ValueError("parameter name")
-                clean[key] = _param(value)
+                clean[key] = _param(value, PARAM_BYTES.get(kind, MAX_PARAM_BYTES))
         except ValueError as err:
             log(f"voice '{sheet.id}': action {index} '{kind}' dropped, bad parameters ({err})")
             continue
@@ -2026,6 +2237,8 @@ class Bridge:
                 lines = evening_bulletin(self.config, self.conversations, session, req, self.voices)
             else:
                 lines = answer(self.config, self.conversations, session, req, self.voices)
+            if not pages and req.get('version') != 2 and (said := spoken_text(lines)):
+                log(f"reply of voice '{req.get('voice') or MAIN_VOICE}': {said}")   # E22-T10: live journal
         except Exception as err:  # le jeu doit toujours recevoir une réponse
             code = error_code(err)   # E17-T15: cause sent to the server (timeout, http_503...), detail logged here
             log(f"LLM error ({req_id}, {code}): {err}")
@@ -2179,18 +2392,44 @@ def main() -> None:
     parser.add_argument("--personas", type=Path, default=BUNDLED_PERSONAS,
                         help="dossier des fiches de --test (défaut : fiches livrées du mod, ../Contents/mods/"
                              "batman_RadioSurvivor/42.21/personas)")
+    parser.add_argument("--atelier", action="store_true",
+                        help="ouvre aussi l'atelier des voix dans le navigateur (fiches du dossier de travail) ; "
+                             "sans configuration de l'IA, l'atelier reste ouvert seul")
+    parser.add_argument("--atelier-port", type=int, default=atelier_server.DEFAULT_PORT,
+                        help=f"port local de l'atelier, suivants si occupé (défaut : {atelier_server.DEFAULT_PORT})")
+    parser.add_argument("--game-log", type=Path,
+                        help="console du jeu lue par l'atelier pour le verdict des fiches (défaut : <Zomboid>/console.txt ;"
+                             " serveur dédié : son fichier de console)")
     args = parser.parse_args()
+    workshop = None
+    if args.atelier:
+        game_log = args.game_log or game_log_file(args.exchange)
+        live = atelier_server.Live(
+            journal=LOG_BUFFER, bridge_running=BRIDGE_RUNNING.is_set,
+            game=game_console.GameConsole(game_log, LOG_BUFFER) if game_log else None,
+            surveys=place_surveys.SurveyFile(personas_folder(args.exchange).parent / place_surveys.FILE_NAME))
+        workshop = atelier_server.launch(personas_folder(args.exchange), BUNDLED_PERSONAS, args.atelier_port, log,
+                                         live=live)
     DEBUG = args.debug
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-    config = {"OFFLINE": "1", "OPENAI_MODEL": "offline"} if args.offline else load_config(args.env)
+    try:
+        config = {"OFFLINE": "1", "OPENAI_MODEL": "offline"} if args.offline else load_config(args.env)
+    except SystemExit as err:
+        if workshop is None:
+            raise
+        # E22 : un ado qui écrit une voix n'a pas forcément d'IA configurée ; l'atelier reste ouvert seul.
+        log(f"{err} - the voice workshop stays open; radio voices will not answer until the bridge is configured")
+        atelier_server.serve_until_interrupted(*workshop, log=log)
+        return
     TOKEN_USAGE = TokenUsageLog(args.usage_log or args.exchange / 'token_usage.jsonl')
+    if workshop is not None:
+        workshop[0].live.ai = workshop_ai(config)   # E22-T06: the AI buttons of the workshop (None offline)
     startup_header(args, config)
     if args.test:
         test_dir = args.exchange / "console-test"
         test_dir.mkdir(parents=True, exist_ok=True)
-        req = {"caller": "console", "name": "Test", "date": "1993-07-12 21:40", "days": "3.5",
-               "radio": "Walkie-talkie", "text": args.test, "voice": args.voice}
+        req = dict(WORKSHOP_REQUEST, caller="console", text=args.test, voice=args.voice)
         voices = Voices(args.personas)
         try:
             lines = answer(config, Conversations(test_dir), "console-test", req, voices)
@@ -2204,9 +2443,12 @@ def main() -> None:
             print(line)
         return
     try:
+        BRIDGE_RUNNING.set()
         Bridge(config, args.exchange).run(args.poll)
     except KeyboardInterrupt:
         log("Bridge stopped")
+    finally:
+        BRIDGE_RUNNING.clear()
 
 
 if __name__ == "__main__":

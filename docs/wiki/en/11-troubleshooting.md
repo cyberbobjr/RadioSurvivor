@@ -39,7 +39,7 @@
 |---|---|
 | `Missing configuration: OPENAI_KEY, …` | `.env` not found (wrong `--env`) or empty value. See [AI provider configuration](08-ai-provider-configuration.md). |
 | `Another bridge is already running on …` | One bridge per folder: stop the other one (terminal, scheduled task, service). |
-| `ModuleNotFoundError` | One of the five bridge files is missing next to `radio_bridge.py`. |
+| `ModuleNotFoundError` | The `bridge` folder is incomplete (a file is missing next to `radio_bridge.py`): copy the whole folder again from the GitHub repository. |
 | `LLM error (<id>): no valid sheet for voice 'walt' in …/personas` | Wrong exchange folder, or the world was not loaded yet. |
 | `HTTP 401` / `HTTP 403` | Key refused or revoked. |
 | `HTTP 404` | Wrong model name or `OPENAI_BASE_URL`. |

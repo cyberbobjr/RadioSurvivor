@@ -21,6 +21,11 @@
 -- du serveur arrive avec l'objet (InventoryItem.load, base loot-distributions.md).
 -- Voix absente, silencieuse, disparue ou sans fréquence servie à la création : note sans fréquence, le texte
 -- affiche SMUDGED (encre délavée). Une note garde la fréquence de sa création, même si la fiche change ensuite.
+-- Note écrite dans la fiche (E22-T07, ADR D07) : une fiche qui donne text= (lignes de la note, %1 = fréquence) au
+-- lieu de item et key a pour note l'objet générique GENERIC_ITEM (mot manuscrit). L'autorité écrit alors aussi ce texte
+-- dans la ModData (modData.RadioSurvivorNote.text, lignes séparées par un saut de ligne) : il voyage avec l'objet
+-- comme la fréquence, sans fiche ni texte d'une autre voix. Le client le met en page (composeWritten) avec la fréquence ; seul
+-- le titre (Print_Media_RadioSurvivor_NoteVoice_title) est une clé de traduction.
 -- Seul l'ASCII est utilisé dans le code (littéraux non ASCII changés en U+FFFD par le lexeur Kahlua).
 
 local Const = require "RadioSurvivor/RadioSurvivor_Const"
@@ -30,18 +35,25 @@ local Notes = {}
 Notes.MODDATA_KEY = "RadioSurvivorNote"
 -- Fréquence illisible (voix sans fréquence servie à la création de la note).
 Notes.SMUDGED = "???.?"
+-- Note manuscrite générique (E22-T07) : objet et identifiant printMedia des notes écrites dans les fiches.
+Notes.GENERIC_ITEM = "RadioSurvivor.NoteVoice"
+local GENERIC_ID = "RadioSurvivor_NoteVoice"
 
 -- Fournisseur des déclarations, posé côté autorité seulement : function() -> liste { voice, item = "Module.Type",
--- key, loot, glovebox, corpse } (section [note] des fiches chargées, dans leur ordre).
+-- key, loot, glovebox, corpse } ou, pour une note écrite dans la fiche, { voice, text = { lignes }, loot, glovebox,
+-- corpse } (section [note] des fiches chargées, dans leur ordre).
 Notes.declarationsProvider = nil
 -- Fournisseur de fréquence, posé côté autorité seulement : function(voice) -> kHz servi, ou nil.
 Notes.frequencyProvider = nil
 
--- Définition d'une note d'après sa déclaration : type d'objet, clés de traduction, identifiant printMedia.
+-- Définition d'une note d'après sa déclaration : type d'objet, clés de traduction, identifiant printMedia, et pour
+-- une note écrite dans la fiche son texte (written, lignes séparées par un saut de ligne).
 local function definition(decl)
-    local module, itemType = string.match(decl.item, "^([^%.]+)%.(.+)$")
-    local id = module .. "_" .. decl.key
-    return { voice = decl.voice, type = itemType, fullType = decl.item, id = id,
+    local written = type(decl.text) == "table" and #decl.text > 0 and table.concat(decl.text, "\n") or nil
+    local fullType = written and Notes.GENERIC_ITEM or decl.item
+    local module, itemType = string.match(fullType, "^([^%.]+)%.(.+)$")
+    local id = written and GENERIC_ID or (module .. "_" .. decl.key)
+    return { voice = decl.voice, type = itemType, fullType = fullType, id = id, written = written,
         titleKey = "Print_Media_" .. id .. "_title", infoKey = "Print_Media_" .. id .. "_info",
         textKey = "Print_Text_" .. id .. "_info", loot = decl.loot or {}, glovebox = decl.glovebox or {},
         corpse = decl.corpse == true }
@@ -79,13 +91,14 @@ function Notes.isNote(modData)
         and type(printMedia.info) == "string" and type(printMedia.text) == "string"
 end
 
--- Données de la ModData d'une note neuve : clés de traduction, voix, fréquence si l'autorité la connaît.
+-- Données de la ModData d'une note neuve : clés de traduction, voix, fréquence si l'autorité la connaît, texte d'une
+-- note écrite dans la fiche.
 function Notes.newData(def)
     local khz = nil
     if Notes.frequencyProvider then khz = tonumber(Notes.frequencyProvider(def.voice)) end
     return {
         printMedia = { id = def.id, title = def.titleKey, info = def.infoKey, text = def.textKey },
-        note = { voice = def.voice, khz = khz },
+        note = { voice = def.voice, khz = khz, text = def.written },
     }
 end
 
@@ -119,11 +132,40 @@ function Notes.frequencyLabel(note)
     return Const.frequencyLabel(khz)
 end
 
--- Mise en page et transcription dans la langue courante, fréquence comprise, ou nil (autre document).
+-- Mise en page d'une note écrite dans la fiche (E22-T07) : page de papier jauni, une ligne manuscrite (SdfCaveat,
+-- légèrement inclinée) par ligne du texte, sans retour à la ligne automatique (lignes de 40 octets au plus, contrôlées
+-- par RS_Persona) ; la hauteur suit le nombre de lignes.
+local PAGE_WIDTH, PAGE_MARGIN, LINE_HEIGHT = 560, 40, 48
+
+local function withFrequency(line, label)
+    return (string.gsub(line, "%%1", function() return label end))
+end
+
+-- Mise en page (info) et transcription (text) du texte written, %1 remplacé par label.
+function Notes.composeWritten(written, label)
+    local lines = {}
+    for line in string.gmatch(written, "[^\n]+") do lines[#lines + 1] = withFrequency(line, label) end
+    local height = PAGE_MARGIN * 2 + #lines * LINE_HEIGHT
+    local parts = {
+        "<type:parent, width:" .. PAGE_WIDTH .. ", height:" .. height .. ">",
+        "<type:texture, x:0, y:0, width:" .. PAGE_WIDTH .. ", height:" .. height .. ", r:0.86, g:0.84, b:0.78, a:1>",
+        "<type:texture, x:0, y:0, width:" .. PAGE_WIDTH .. ", height:12, r:0.7, g:0.68, b:0.62, a:0.8>",
+    }
+    for i, line in ipairs(lines) do
+        local y = PAGE_MARGIN + (i - 1) * LINE_HEIGHT
+        parts[#parts + 1] = "<type:text, font:SdfCaveat, x:" .. PAGE_MARGIN .. ", y:" .. y
+            .. ", scaleX:1, scaleY:1, angle:-2, r:0.28, g:0.27, b:0.26, a:0.95>" .. line
+    end
+    return table.concat(parts), table.concat(lines, "\n")
+end
+
+-- Mise en page et transcription dans la langue courante, fréquence comprise, ou nil (autre document). Note écrite
+-- dans la fiche : son texte, tel que l'auteur l'a écrit.
 function Notes.compose(modData)
     if not Notes.isNote(modData) then return nil end
-    local printMedia = modData.printMedia
-    local label = Notes.frequencyLabel(modData[Notes.MODDATA_KEY])
+    local printMedia, note = modData.printMedia, modData[Notes.MODDATA_KEY]
+    local label = Notes.frequencyLabel(note)
+    if type(note.text) == "string" then return Notes.composeWritten(note.text, label) end
     return getText(printMedia.info, label), getText(printMedia.text, label)
 end
 

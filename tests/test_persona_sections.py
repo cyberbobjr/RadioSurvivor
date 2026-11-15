@@ -113,7 +113,7 @@ CASES: list[tuple[str, str, tuple[int, str] | None]] = [
 # E20-T07 : section [trade] (troc de la voix). TRADE_HEAD : lignes 1 à 9 ; trade(body) : en-tête ligne 10, première clé
 # ligne 11 ; TRADE_OK : lignes 11 à 15.
 TRADE_HEAD = HEAD + 'actions=say,propose_trade\n[place dock]\nat=1,2,0\nlabel=Old dock\nuse=landing\n'
-TRADE_OK = 'landing=dock\narrival=boat\nevery_days=7\nhours=01:00-03:00\nitem=Base.Battery:1-2:0.1\n'
+TRADE_OK = 'landing=dock\narrival=boat\nevery_days=7\nhours=01:00-03:00\nitem=Base.Battery:1-2\n'
 
 
 def trade(body: str) -> str:
@@ -123,13 +123,13 @@ def trade(body: str) -> str:
 CASES += [
     ('trade section', trade(TRADE_OK), None),
     ('trade with groups, delay and margin',
-     trade(TRADE_OK + 'group=seeds:3-8:2\nitem=Base.CornBagSeed:seeds:0.1\nitem=Base.KaleBagSeed:seeds:0.1\n'
+     trade(TRADE_OK + 'group=seeds:3-8:2\nitem=Base.CornBagSeed:seeds\nitem=Base.KaleBagSeed:seeds\n'
            'delay_hours=2.5\nmargin=0.2-0.4\n'), None),
     ('propose_trade without trade', HEAD + 'actions=say,propose_trade\n' + PROMPT,
      (5, 'action propose_trade needs a [trade] section')),
     ('trade without propose_trade', HEAD + '[place dock]\nat=1,2,0\nlabel=Old dock\nuse=landing\n[trade]\n' + TRADE_OK
      + PROMPT, (9, 'section [trade] needs the action propose_trade')),
-    ('trade without landing', trade('arrival=boat\nevery_days=7\nhours=01:00-03:00\nitem=Base.Battery:1:0.1\n'),
+    ('trade without landing', trade('arrival=boat\nevery_days=7\nhours=01:00-03:00\nitem=Base.Battery:1\n'),
      (10, "missing key 'landing' in [trade]")),
     ('landing to an absent place', trade(TRADE_OK.replace('landing=dock', 'landing=ghost')),
      (11, "unknown place 'ghost'")),
@@ -144,12 +144,15 @@ CASES += [
      (14, "bad trade hours '1-3' (one HH:MM-HH:MM range of the meeting, e.g. 01:00-03:00)")),
     ('empty trade hours', trade(TRADE_OK.replace('hours=01:00-03:00', 'hours=02:00-02:00')),
      (14, "empty trade hours '02:00-02:00'")),
-    ('bad trade item', trade(TRADE_OK.replace('item=Base.Battery:1-2:0.1', 'item=Battery:2')),
-     (15, "bad trade item 'Battery:2' (Module.Type:quantity:kg, e.g. Base.Battery:4-12:0.1)")),
-    ('bad trade item weight', trade(TRADE_OK.replace('item=Base.Battery:1-2:0.1', 'item=Base.Battery:2:heavy')),
-     (15, "bad item weight 'heavy' (number from 0 to 50, two decimals at most)")),
-    ('duplicate trade item', trade(TRADE_OK + 'item=Base.Battery:1:0.1\n'), (16, "duplicate trade item 'Battery'")),
-    ('unknown trade group', trade(TRADE_OK + 'item=Base.CornBagSeed:seeds:0.1\n'), (16, "unknown trade group 'seeds'")),
+    ('bad trade item', trade(TRADE_OK.replace('item=Base.Battery:1-2', 'item=Battery:2')),
+     (15, "bad trade item 'Battery:2' (Module.Type:quantity, e.g. Base.Battery:4-12)")),
+    # E22-T12 : poids lu dans le script de l'objet ; une ligne à trois parties (ancien poids écrit) est refusée.
+    ('trade item with a written weight', trade(TRADE_OK.replace('item=Base.Battery:1-2', 'item=Base.Battery:1-2:0.1')),
+     (15, "bad trade item 'Base.Battery:1-2:0.1' (Module.Type:quantity, e.g. Base.Battery:4-12)")),
+    ('unknown trade item type', trade(TRADE_OK.replace('item=Base.Battery:1-2', 'item=Base.FluxCapacitor:1-2')),
+     (15, "unknown trade item 'Base.FluxCapacitor' (no item script of that type)")),
+    ('duplicate trade item', trade(TRADE_OK + 'item=Base.Battery:1\n'), (16, "duplicate trade item 'Battery'")),
+    ('unknown trade group', trade(TRADE_OK + 'item=Base.CornBagSeed:seeds\n'), (16, "unknown trade group 'seeds'")),
     ('trade group without item', trade(TRADE_OK + 'group=seeds:1-2\n'), (16, "trade group 'seeds' has no item")),
     ('bad trade margin', trade(TRADE_OK + 'margin=0.6-0.2\n'),
      (16, "bad margin '0.6-0.2' (lowest-highest from 0 to 1, e.g. 0.10-0.50)")),
@@ -168,6 +171,24 @@ CASES += [
     ('note section', note(NOTE_OK + 'loot=OfficeDesk:4\nloot=CrateFishing:1.5\nglovebox=GloveBox:1.5\ncorpse=yes\n'),
      None),
     ('note without key', note('item=RadioSurvivor.NoteWalt\n'), (13, "missing key 'key' in [note]")),
+    ('note without item', note('key=NoteWalt\n'), (13, "missing key 'item' in [note]")),
+    # E22-T07 : note écrite dans la fiche (text= répétable, %1 = fréquence), sans item ni key.
+    ('written note', note('text=Need help? Call Mae\ntext=on %1 MHz.\nloot=OfficeDesk:2\ncorpse=yes\n'), None),
+    ('written note of 8 lines of 40 bytes', note('text=%1\n' + ('text=' + 'é' * 20 + '\n') * 7), None),
+    ('empty note', note('corpse=yes\n'), (13, "missing key 'text' in [note] (or item and key)")),
+    ('written note without frequency', note('text=Call Mae.\n'),
+     (13, 'note text needs %1 (the frequency) on one of its lines')),
+    ('written note with item', note('text=Call %1\nitem=RadioSurvivor.NoteWalt\n'),
+     (15, "item and key cannot be used with text in [note] (text goes on the handwritten note of the mod)")),
+    ('written note with key', note('key=NoteWalt\ntext=Call %1\n'),
+     (14, "item and key cannot be used with text in [note] (text goes on the handwritten note of the mod)")),
+    ('note text line too long', note('text=%1 ' + 'a' * 38 + '\n'),
+     (14, 'note text too long (40 bytes of UTF-8 at most)')),
+    ('note text with a tag', note('text=<b>%1\n'),
+     (14, "bad note text '<b>%1' (no <, > or ^; % only in %1, the frequency)")),
+    ('note text with a caret', note('text=%1^next\n'),
+     (14, "bad note text '%1^next' (no <, > or ^; % only in %1, the frequency)")),
+    ('too many note text lines', note('text=%1\n' * 9), (22, 'too many note text lines (8 at most)')),
     ('bad note item', note(NOTE_OK.replace('RadioSurvivor.NoteWalt', 'NoteWalt')),
      (14, "bad note item 'NoteWalt' (Module.Type, e.g. RadioSurvivor.NoteWalt)")),
     ('bad note key', note(NOTE_OK.replace('key=NoteWalt', 'key=Note Walt')),
@@ -317,7 +338,7 @@ class PlaceUseTests(unittest.TestCase):
         self.assertIn('clinic: West Point clinic', prompt)
         self.assertNotIn('church', prompt)
         drops_only = store.parse_lines(store.split_lines(HEAD + 'actions=say,mark_map\n' + DROP + PROMPT))
-        self.assertEqual(rb.offered_actions(drops_only), [])
+        self.assertEqual(rb.offered_actions(drops_only), ['remember'])   # E22-T13: every voice remembers
 
 
 class DeliveredSheetsTests(unittest.TestCase):

@@ -31,7 +31,8 @@ talkie-walkie à la ceinture reçoit, mais n'émet pas : prenez-le en main pour 
 
 ![Section Émettre et réponse de Walt](../../images/screenshots/fr-radio-transmit.png)
 
-Chaque voix a ses heures d'écoute et se souvient de vous. L'onglet **Radio** du carnet garde ce qui s'est dit sur
+Chaque voix a ses heures d'écoute et se souvient de vous, pour toujours. Elle n'oublie pas non plus ceux qui sont
+morts : parlez-lui d'un ami disparu, elle peut s'en souvenir. L'onglet **Radio** du carnet garde ce qui s'est dit sur
 chaque fréquence.
 
 ## 3. Rencontrer un groupe Living Knox

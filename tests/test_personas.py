@@ -53,6 +53,7 @@ WALT = ROOT / 'Contents/mods/batman_RadioSurvivor/42.21/personas/walt.txt'
 sys.path.insert(0, str(ROOT / 'bridge'))
 import persona_store as store  # noqa: E402
 from signalsmoke_double import SIGNAL_SMOKE  # noqa: E402
+from itemweights_double import ITEM_WEIGHTS  # noqa: E402
 
 HEAD = 'format=1\nid=case\nname=Case\nfrequencies=145.0\n'
 RANGE_HEAD = 'format=1\nid=case\nname=Case\nfrequency_range=140.0-150.0\n'
@@ -212,7 +213,18 @@ CASES: list[tuple[str, str | bytes, tuple[int, str] | None]] = [
     ('coords without fixed', HEAD + 'location=rescue\ncoords=1,2,0\n' + PROMPT,
      (6, 'coords is only allowed with location=fixed')),
     ('coords and default location', HEAD + 'coords=1,2,0\n' + PROMPT, (5, 'coords is only allowed with location=fixed')),
-    ('call without text', HEAD + 'call_one_in=3\n' + PROMPT, (5, 'call_one_in needs a call_text line')),
+    ('call without text', HEAD + 'call_one_in=3\n' + PROMPT, (5, 'call_one_in needs a call or call_text line')),
+    # E22-T07 : appel écrit dans la fiche (call=), à la place de la clé call_text.
+    ('call written in the sheet', HEAD + 'call_one_in=3\ncall=Anyone out there? Mae on %1, over.\n' + PROMPT, None),
+    ('call of 200 bytes', HEAD + 'call=' + 'é' * 100 + '\n' + PROMPT, None),
+    ('call too long', HEAD + 'call=' + 'é' * 100 + 'a\n' + PROMPT, (5, 'call too long (200 bytes of UTF-8 at most)')),
+    ('call with a tag', HEAD + 'call=Hello <fzzt>\n' + PROMPT,
+     (5, "bad call 'Hello <fzzt>' (no <, > or ^; % only in %1, the frequency)")),
+    ('call with a percent', HEAD + 'call=100% sure on %1\n' + PROMPT,
+     (5, "bad call '100% sure on %1' (no <, > or ^; % only in %1, the frequency)")),
+    ('call and call_text', HEAD + 'call_text=IGUI_Call\ncall=Hello\n' + PROMPT,
+     (6, 'call and call_text cannot be used together (text written in the sheet or translation key)')),
+    ('duplicate call', HEAD + 'call=Hello\ncall=Bye\n' + PROMPT, (6, "duplicate key 'call' (first set on line 5)")),
     ('budget of a forbidden action', HEAD + 'actions=say\nbudget.signal=1\n' + PROMPT,
      (6, "budget.signal set but action 'signal' is not in actions")),
     ('budget of say by default', HEAD + 'budget.say=5\n' + PROMPT, None),
@@ -301,7 +313,7 @@ return function(p)
         join(p.knows, ";"), join(p.ignores, ";"), join(p.secrets, ";"),
         join(p.places, ";", function(l) return l.id .. "@" .. tostring(l.x) .. "," .. tostring(l.y) .. ","
             .. tostring(l.z) .. "@" .. l.label .. "@" .. join(l.uses, ",") end), join(p.actions, ","),
-        tostring(p.budget), table.concat(budgets, ","), tostring(p.call_one_in), p.call_text, p.state, p.prompt,
+        tostring(p.budget), table.concat(budgets, ","), tostring(p.call_one_in), p.call_text, p.call, p.state, p.prompt,
         join(p.shares, ",") }, "|")
 end
 '''
@@ -315,7 +327,7 @@ def canonical(p: store.Persona) -> str:
                      ';'.join(p.ignores), ';'.join(p.secrets),
                      ';'.join(f'{q.id}@{q.x},{q.y},{q.z}@{q.label}@{",".join(q.uses)}' for q in p.places), ','.join(p.actions),
                      str(p.budget),
-                     ','.join(f'{k}={v}' for k, v in sorted(p.budgets.items())), str(p.call_one_in), p.call_text,
+                     ','.join(f'{k}={v}' for k, v in sorted(p.budgets.items())), str(p.call_one_in), p.call_text, p.call,
                      p.state, p.prompt, ','.join(p.shares)])
 
 
@@ -364,6 +376,7 @@ class LuaPersona:
         g.getModFileReader = lambda mod, name, create: (
             LuaReader(MOD / name) if mod == 'batman_RadioSurvivor' and (MOD / name).is_file() else None)
         self.rt.execute(f'package.path = [[{LUA_PATH};]] .. package.path')
+        self.rt.execute(ITEM_WEIGHTS)  # E22-T12 : poids des objets du troc, à la place des scripts du jeu
         for module in RULE_MODULES:
             self.rt.eval(f'require("{module}")')
         self.module = self.rt.eval('require("RadioSurvivor/RS_Persona")')

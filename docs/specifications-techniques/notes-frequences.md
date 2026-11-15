@@ -75,6 +75,11 @@ fréquence ; le joueur qui ouvre le conteneur peut la prendre. Les autres limite
 - ⚠ **Horaires** : écrits dans les traductions (valeurs livrées des fiches), pas lus dans `listen=` : si l'admin
   change les heures d'écoute, les notes citent encore les anciennes.
 - Mod désactivé (`Enabled`) au chargement du monde : aucune note dans le butin ; une note déjà créée reste lisible.
+- **Note écrite dans la fiche** (E22-T07, `text=` de `[note]`, `persona-format.md`) : objet générique
+  `RadioSurvivor.NoteVoice` ; l'autorité ajoute à `modData.RadioSurvivorNote` le texte de la fiche (`text`, lignes
+  séparées par un saut de ligne), qui voyage avec l'objet comme la fréquence ; le client le met en page à l'ouverture
+  (`RS_Notes.composeWritten`) et remplace `%1`. Le texte garde la langue de son auteur ; seul le titre est traduit. Une
+  note créée garde le texte de sa création, comme sa fréquence.
 
 ## Butin
 

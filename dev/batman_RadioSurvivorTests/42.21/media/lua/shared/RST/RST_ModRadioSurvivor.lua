@@ -19,6 +19,8 @@ end
 RST.PeerChecks = RST.PeerChecks or {}
 RST.PeerChecks.MODULES = RST.PeerChecks.MODULES or {}
 RST.PeerChecks.MODULES.RadioSurvivorDebug = { freqRequest = "freqReply" }
+-- E22-T08: place survey of the voice workshop (rs.placesurvey: a user client is refused).
+RST.PeerChecks.MODULES.RadioSurvivorSurvey = { surveyPlace = "surveyReply" }
 
 -- Bookmark of RadioSurvivor in the core notebook, before the core tabs (suite ca.notebook).
 RST.NotebookTabs = RST.NotebookTabs or {}

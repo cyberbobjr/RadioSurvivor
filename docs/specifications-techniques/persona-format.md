@@ -22,9 +22,12 @@ radio exigée, budget et prompt construit par le pont (E05-T03, « Routage par v
 au hasard dans des plages, à chaque nouvelle partie (E05-T07, « Tirage des fréquences » ci-dessous) ; appels spontanés
 de chaque voix (E05-T05, « Appels spontanés » ci-dessous). Les actions autres que `say` sont E07 : depuis E07-T01, la
 voix peut les proposer et le serveur les juge (catalogue, fiche, `budget.<action>` par jour de jeu, distance, délai),
-mais seules celles dotées d'un exécuteur ont un effet ; les autres sont refusées `not_available`. Depuis E07-T03,
-`remember` est effective : la voix retient un fait court sur l'appelant, rangé par le serveur et rappelé au pont comme
-souvenir non vérifié (`docs/specifications-techniques/protocole-carnet-v2.md`, « Mémoire des voix »). Depuis E07-T06, `persona_state` est
+mais seules celles dotées d'un exécuteur ont un effet ; les autres sont refusées `not_available`. Depuis E22-T13,
+toute voix se souvient de ses appelants, pour toujours, sans rien écrire dans sa fiche : `remember` n'est plus une
+action de la liste `actions=` (une fiche qui l'écrit, ou qui écrit `budget.remember`, est refusée comme pour toute
+action inconnue) ; la voix retient des faits courts sur l'appelant, rangés par le serveur, rappelés au pont comme
+souvenirs non vérifiés, gardés à la mort du personnage (`docs/specifications-techniques/protocole-carnet-v2.md`,
+« Mémoire des voix »). Depuis E07-T06, `persona_state` est
 effective : la voix fait évoluer son propre moral, ses réserves et le lieu où elle dit se trouver, rangés par le
 serveur dans son état privé (jamais dans la fiche, qui reste celle de l'admin) et rappelés au pont
 (`docs/specifications-techniques/protocole-carnet-v2.md`, « État dynamique des voix »). Depuis E07-T04, `mark_map` est effective : la fiche
@@ -109,11 +112,12 @@ You are Walt Hensley, 54, ...
 | `knows` | texte non vide, répétable | aucun | Ce que la voix sait. |
 | `ignores` | texte non vide, répétable | aucun | Ce que la voix ignore (pour qu'elle ne l'invente pas). |
 | `secret` | texte non vide, répétable | aucun | Ce que la voix cache. Voir « Secrets » ci-dessous. |
-| `actions` | liste parmi `say`, `mark_map`, `reveal_area`, `signal`, `place_cache`, `place_scene`, `start_mission`, `persona_state`, `remember`, `propose_trade`, `report_mission`, `share_frequency`, sans doublon | `say` | Actions que la voix peut proposer (catalogue fermé, note de travail §02). Seules les actions dotées d'un exécuteur côté serveur ont un effet (`say`, diffusée comme avant ; `remember` depuis E07-T03 : un fait de 64 caractères au plus sur l'appelant, 5 par appelant et par personnage, 50 appelants par voix, sans effet de jeu ; `persona_state` depuis E07-T06 : paramètres `morale` et `supplies`, entiers de 0 à 10 (5 par défaut), changés d'au plus 2 par appel, une demande au-delà ou hors bornes étant ramenée, et `place`, lieu dit de 40 caractères au plus, simple récit sans effet sur `coords` ni sur la distance ; au moins un paramètre, aucun autre ; état propre à la voix, rangé dans l'état privé du serveur, jamais dans la fiche ; sans effet de jeu ; plafond `budget.persona_state`) ; `mark_map` depuis E07-T04 : paramètre unique `place`, identifiant d'un lieu `[place]` de la fiche avec `use=mark`, repère posé sur la carte du monde du seul appelant, 30 s réelles au moins entre deux repères de la voix, plafond `budget.mark_map` ; une fiche `mark_map` sans lieu `use=mark` ne la propose pas au LLM ; `reveal_area` depuis E07-T05 : même paramètre `place`, le quartier autour du lieu devient connu sur la carte du monde du seul appelant, carré de 5 blocs de 32 cases (160 cases de côté au plus, moins en bord de carte), 60 s réelles au moins entre deux révélations de la voix, plafond `budget.reveal_area`, conditions de proposition identiques à `mark_map` ; `start_mission` depuis E11-T08 : paramètre unique `template`, `scout` seul, mission « reconnaître » confiée à l'appelant (bâtiment choisi par le serveur autour de lui, décrit à la voix sans coordonnée juste après, par une demande de consigne où elle dit les indices (E11-T09), puis aux appels suivants), une mission ouverte à la fois par appelant et par voix, 60 s réelles au moins entre deux missions de la voix et 30 min après la clôture de la précédente du même appelant, compte rendu à la radio sur la fréquence de la voix après la visite (E11-T13 : action `report_mission`, sans paramètre, rendue par le modèle quand l'appel en rend compte et revérifiée par le serveur ; permise à toute fiche qui autorise `start_mission`, sans la lister), récompense en réputation et, sans section `[rewards]`, repère du premier lieu `use=mark` pas encore donné à ce personnage, plafond `budget.start_mission` ; carnet du joueur requis) ; `place_cache` depuis E11-T06 : paramètre unique `table` (`food`, `medical`, `ammo`, `tools`), sac marqué rempli de cette table fermée et posé une seule fois au bâtiment de la dernière mission donnée par la voix à l'appelant (ouverte, sinon sa dernière réussite), une cache par mission, 60 s réelles au moins entre deux caches de la voix, plafond `budget.place_cache` ; serveur seulement pour l'instant : le pont ne la propose pas encore au LLM ; `propose_trade` depuis E13-T02 : paramètres `items` (« `Nom:quantité` » séparés par des virgules, objets du stock du passage) et `margin` facultative, offre du passeur contrôlée contre la table validée et figée par le serveur, qui joint le livre du passeur (`trade=`) aux demandes de cette voix (`docs/annexes/conception/passeur-offre.md`) ; les autres sont refusées `not_available` et journalisées. Une fiche qui autorise une action autre que `say` fait passer le pont en réponse structurée (`docs/specifications-techniques/protocole-carnet-v2.md`, « Réponse radio structurée »). |
+| `actions` | liste parmi `say`, `mark_map`, `reveal_area`, `signal`, `place_cache`, `place_scene`, `start_mission`, `persona_state`, `propose_trade`, `report_mission`, `share_frequency`, sans doublon | `say` | Actions que la voix peut proposer (catalogue fermé, note de travail §02). `remember` n'y figure plus (E22-T13) : toute voix l'a sans la lister (faits de 200 caractères au plus sur l'appelant, 2000 caractères et 50 faits au plus par appelant et par personnage, sans éviction ni effet de jeu ; une fiche qui la liste est refusée). Seules les actions dotées d'un exécuteur côté serveur ont un effet (`say`, diffusée comme avant ; `persona_state` depuis E07-T06 : paramètres `morale` et `supplies`, entiers de 0 à 10 (5 par défaut), changés d'au plus 2 par appel, une demande au-delà ou hors bornes étant ramenée, et `place`, lieu dit de 40 caractères au plus, simple récit sans effet sur `coords` ni sur la distance ; au moins un paramètre, aucun autre ; état propre à la voix, rangé dans l'état privé du serveur, jamais dans la fiche ; sans effet de jeu ; plafond `budget.persona_state`) ; `mark_map` depuis E07-T04 : paramètre unique `place`, identifiant d'un lieu `[place]` de la fiche avec `use=mark`, repère posé sur la carte du monde du seul appelant, 30 s réelles au moins entre deux repères de la voix, plafond `budget.mark_map` ; une fiche `mark_map` sans lieu `use=mark` ne la propose pas au LLM ; `reveal_area` depuis E07-T05 : même paramètre `place`, le quartier autour du lieu devient connu sur la carte du monde du seul appelant, carré de 5 blocs de 32 cases (160 cases de côté au plus, moins en bord de carte), 60 s réelles au moins entre deux révélations de la voix, plafond `budget.reveal_area`, conditions de proposition identiques à `mark_map` ; `start_mission` depuis E11-T08 : paramètre unique `template`, `scout` seul, mission « reconnaître » confiée à l'appelant (bâtiment choisi par le serveur autour de lui, décrit à la voix sans coordonnée juste après, par une demande de consigne où elle dit les indices (E11-T09), puis aux appels suivants), une mission ouverte à la fois par appelant et par voix, 60 s réelles au moins entre deux missions de la voix et 30 min après la clôture de la précédente du même appelant, compte rendu à la radio sur la fréquence de la voix après la visite (E11-T13 : action `report_mission`, sans paramètre, rendue par le modèle quand l'appel en rend compte et revérifiée par le serveur ; permise à toute fiche qui autorise `start_mission`, sans la lister), récompense en réputation et, sans section `[rewards]`, repère du premier lieu `use=mark` pas encore donné à ce personnage, plafond `budget.start_mission` ; carnet du joueur requis) ; `place_cache` depuis E11-T06 : paramètre unique `table` (`food`, `medical`, `ammo`, `tools`), sac marqué rempli de cette table fermée et posé une seule fois au bâtiment de la dernière mission donnée par la voix à l'appelant (ouverte, sinon sa dernière réussite), une cache par mission, 60 s réelles au moins entre deux caches de la voix, plafond `budget.place_cache` ; serveur seulement pour l'instant : le pont ne la propose pas encore au LLM ; `propose_trade` depuis E13-T02 : paramètres `items` (« `Nom:quantité` » séparés par des virgules, objets du stock du passage) et `margin` facultative, offre du passeur contrôlée contre la table validée et figée par le serveur, qui joint le livre du passeur (`trade=`) aux demandes de cette voix (`docs/annexes/conception/passeur-offre.md`) ; les autres sont refusées `not_available` et journalisées. Toute voix répond en réponse structurée depuis E22-T13 (`remember`, `docs/specifications-techniques/protocole-carnet-v2.md`, « Réponse radio structurée »). |
 | `budget` | entier de 0 à 999999 | `0` | Demandes par heure réelle pour cette voix, en plus du plafond global `MaxPerHour` ; `0` = seul le plafond global. |
 | `budget.<action>` | entier de 0 à 999999 | aucun | Utilisations par jour de jeu de cette action ; `0` = pas de plafond. L'action doit figurer dans `actions`. |
 | `call_one_in` | entier de 0 à 1000 | `0` | Appel général spontané : une chance sur N à chaque heure de jeu, pendant les heures d'écoute, quand personne ne parle à la voix ; `0` = jamais. Voir « Appels spontanés ». |
-| `call_text` | clé de traduction (`A`-`Z`, `a`-`z`, `0`-`9`, `_`) | aucun | Texte fixe de l'appel, diffusé quand le pont n'en écrit pas, `%1` = fréquence affichée. Obligatoire si `call_one_in` > 0. Clé du fichier `IG_UI.json` du mod (préfixe `IGUI_`). |
+| `call_text` | clé de traduction (`A`-`Z`, `a`-`z`, `0`-`9`, `_`) | aucun | Texte fixe de l'appel, diffusé quand le pont n'en écrit pas, `%1` = fréquence affichée. Clé du fichier `IG_UI.json` du mod (préfixe `IGUI_`) : voix livrées avec le mod. `call` ou `call_text` (un seul des deux) est obligatoire si `call_one_in` > 0. |
+| `call` | texte de 200 octets UTF-8 au plus, sans `<`, `>` ni `^`, `%` seulement dans `%1` | aucun | E22-T07 : texte fixe de l'appel écrit dans la fiche, dans n'importe quelle langue (voix créées avec l'atelier), `%1` = fréquence affichée ; même rôle que `call_text`, sans clé de traduction. Interdit avec `call_text`. |
 | `state` | `active`, `silent`, `gone`, `dead` | `active` | `active` : répond ; `silent` : écoute mais ne répond pas (pause) ; `gone` : retirée du réseau ; `dead` : morte dans l'histoire. Traitement : « Chargement par le serveur » et « Routage par voix ». |
 | `shares` | IDs de voix, même syntaxe que `id`, sans doublon ; présence et état vérifiés par le serveur | aucun | Voix dont la fréquence peut être donnée par `share_frequency` ou une récompense `frequency` (« Missions et récompenses des voix »). |
 
@@ -390,7 +394,8 @@ Le serveur décide (`RadioSurvivor_Server.lua`, `onEveryHours`), le pont écrit 
   `ignores`), dans la langue de l'autorité, sans fréquence (il ne la connaît pas) ni fait absent de la fiche.
   L'appel entre dans l'historique de la voix (message `[General call]`), sans numéro d'appelant.
 - **Secours** : pont absent, réponse vide, parasites seuls, ou rien après `Const.CALL_TIMEOUT_MS` (30 s réelles) :
-  texte fixe de la clé `call_text`, `%1` = fréquence affichée, composé par l'autorité. Une ligne radio n'est jamais
+  texte fixe de la fiche, `%1` = fréquence affichée, composé par l'autorité : `call` tel qu'il est écrit (E22-T07),
+  sinon la clé `call_text`. Une ligne radio n'est jamais
   traduite par le client : sur un serveur MP, dont les traductions des mods sont lues avant les mods (`getText` y
   rendrait la clé brute), le serveur appelle une fois `Translator.loadFiles()` quand la clé manque ; le texte est
   dans la langue du processus serveur. Une clé introuvable même après ce rechargement : pas d'appel, une ligne de
@@ -505,6 +510,28 @@ L'objet d'une mission `item` est posé au lieu `target=` de sa section (même d�
 Les points d'une mission `route` (E20-T13) sont les lieux `target` nommés dans l'ordre par `points=` (`RS_MissionWaypoints`, déclaration `alongPoints` du gabarit) ; un point est franchi quand la copie serveur d'un participant, ou le véhicule où il est assis, passe à moins de `CA_MissionConfig.Missions.route.radius` cases (8) du lieu, trajet depuis la lecture précédente compris (au plus `maxStep`, 60 cases : au-delà, un saut, seule son arrivée compte) ; seul le prochain point compte, un point atteint avant son tour ne l'est pas. Carte : un cercle par point connu (franchis et prochain), carnet : « n sur N » et le prochain point ; voix : libellés dans l'ordre et compte vérifié.
 Les lieux n'ont aucun autre effet : ni distance (`too_far`), ni `coords` de la voix, ni `persona_state`.
 
+### Relevé de lieux en jeu (E22-T08)
+
+Menu du monde « Atelier des voix : relever ce lieu » (`client/RadioSurvivor/RS_PlaceSurveyMenu.lua`) : affiché en solo,
+ou sur un client MP dont le rôle a la capacité `PopmanManage` (`CA_AdminAccess.canUse`, affichage seulement). Le client
+n'envoie que la case : commande `surveyPlace` du module `RadioSurvivorSurvey` `{ op = "place", n, x, y, z }`, réponse
+`surveyReply` au seul demandeur `{ n, op, ok, err }` ; en solo, appel direct. L'autorité
+(`server/RadioSurvivor/RS_PlaceSurvey.lua`) revérifie les droits à chaque requête (`CA_AdminAccess.allowed`), refuse
+`denied`, `bad_coords` (entiers, `x`, `y` de 0 à 999999, `z` de -32 à 31), `not_loaded` (pas de case chez elle) ou
+`write_failed`, lit elle-même conteneurs, pièce et bâtiment, et réécrit
+`Zomboid/Lua/batman_RadioSurvivor/workshop-places.txt` : une ligne d'en-tête `#`, puis un relevé par ligne (les 200
+derniers), champs `clé=valeur` séparés par une tabulation :
+
+```text
+time=2026-11-15 10:05:00	game=1993-07-09 08:41	by=Kate Smith	at=10612,9307,0	containers=bin:trash_01_0
+time=2026-11-15 10:06:12	game=1993-07-09 08:50	by=Kate Smith	at=10600,9300,1	room=kitchen	building=10590,9290,10620,9310
+```
+
+`time` : heure réelle UTC ; `game` : date du jeu ; `by` : nom du personnage ; `at` : case ; `room` : nom de la pièce
+(absent dehors) ; `building` : emprise du `BuildingDef` (fin exclusive) ; `containers` : `type:sprite` de 4 conteneurs
+au plus. Aucune valeur ne contient de tabulation ni de saut de ligne (`;` et `:` deviennent `_` dans `containers`).
+Le pont le lit (`bridge/place_surveys.py`, `GET /api/surveys` de l'atelier), sans jamais l'écrire.
+
 ## Erreurs
 
 La lecture s'arrête à la **première** erreur. Message en anglais, identique dans les deux lecteurs :
@@ -550,6 +577,7 @@ Erreurs sur une ligne (dans l'ordre du fichier) :
 | Action inconnue ou répétée | `line N: unknown action 'fly'`, `line N: duplicate action 'say'` |
 | Nombre (`budget`, `budget.<action>`, `call_one_in`) | `line N: bad budget '-1' (whole number from 0 to 999999)` (`… 0 to 1000` pour `call_one_in`) |
 | `call_text` | `line N: bad call_text 'IGUI Call' (translation key: A to Z, a to z, 0 to 9 and _)` |
+| `call` | `line N: call too long (200 bytes of UTF-8 at most)`, `line N: bad call 'Hello <b>' (no <, > or ^; % only in %1, the frequency)` |
 
 Erreurs de la fiche entière, contrôlées ensuite dans cet ordre :
 
@@ -563,7 +591,8 @@ Erreurs de la fiche entière, contrôlées ensuite dans cet ordre :
 | `id` différent du nom du fichier | ligne `id` | `id 'other' does not match the file name 'case.txt'` |
 | `location=fixed` sans `coords` | ligne `location` | `location fixed needs a coords line` |
 | `coords` sans `location=fixed` | ligne `coords` | `coords is only allowed with location=fixed` |
-| `call_one_in` > 0 sans `call_text` | ligne `call_one_in` | `call_one_in needs a call_text line` |
+| `call` et `call_text` ensemble | la seconde des deux lignes | `call and call_text cannot be used together (text written in the sheet or translation key)` |
+| `call_one_in` > 0 sans `call` ni `call_text` | ligne `call_one_in` | `call_one_in needs a call or call_text line` |
 | `budget.<action>` hors `actions` | ligne du budget | `budget.signal set but action 'signal' is not in actions` |
 
 Puis, côté serveur seulement, les sections `[mission]` (dans l'ordre du fichier), `after=` de toutes les missions, puis
@@ -784,7 +813,7 @@ Le troc d'une voix marchande : une section `[trade]` au plus, sans identifiant. 
 | `hours` | oui | Fenêtre du rendez-vous, une plage `HH:MM-HH:MM` (peut passer minuit, jamais vide). |
 | `delay_hours` | non | Heures de jeu hors de vue de tout joueur avant l'échange (0 à 48, deux décimales) ; défaut `RS_TradeExchange.DELAY_HOURS` (1). |
 | `margin` | non | Marge la plus basse et la plus haute, `0.10-0.50` par défaut (0 à 1). La réputation de l'appelant et les affaires conclues fixent son plancher dans cette fourchette ; une tricherie la porte au plus haut. |
-| `item` | oui, répétable | `Module.Type:quantité:poids` : objet apporté, quantité tirée à chaque passage (genre `range`, `4` ou `2-4`) **ou** nom d'un groupe, poids en kg (0 à 50, deux décimales : poids du script, plus le fluide d'un récipient plein). Le nom du stock donné au LLM est le type sans module, unique dans la section. 40 objets au plus. |
+| `item` | oui, répétable | `Module.Type:quantité` : objet apporté, quantité tirée à chaque passage (genre `range`, `4` ou `2-4`) **ou** nom d'un groupe. Aucun poids écrit (E22-T12) : le serveur lit celui du script de l'objet (`RS_ItemWeights`, règle `itemWeight` de `RS_Personas.rules`) : `Weight` du script, plus la contenance d'un récipient créé plein (bloc `Fluids` du `FluidContainer`, 1 kg par litre) ; un récipient créé vide (gourde) ne compte que son `Weight`. Un type sans script d'objet fait refuser la fiche. Le nom du stock donné au LLM est le type sans module, unique dans la section. 40 objets au plus. |
 | `group` | non, répétable | `nom:total[:sortes]` : `total` exemplaires tirés parmi les objets du groupe, au plus `sortes` objets différents (sans `sortes` : chaque exemplaire tiré parmi tous). Un groupe sans objet, un objet d'un groupe absent, ou moins d'objets que de sortes sont refusés. |
 
 Tirage du stock : objets hors groupe dans l'ordre de la fiche, puis les groupes dans leur ordre (même résultat pour la
@@ -826,7 +855,7 @@ arrivée (`WAIT_HOURS`), le marchand repart (`no_drop`).
 | Cadence | `line N: bad every_days '0' (whole number from 1 to 28)` |
 | Heures | `line N: bad trade hours '1-3' (one HH:MM-HH:MM range of the meeting, e.g. 01:00-03:00)`, `line N: empty trade hours '02:00-02:00'` |
 | Délai, marge | `line N: bad delay_hours 'x' (number from 0 to 48, two decimals at most)`, `line N: bad margin '0.6-0.2' (lowest-highest from 0 to 1, e.g. 0.10-0.50)` |
-| Objet | `line N: bad trade item 'Battery:2' (Module.Type:quantity:kg, e.g. Base.Battery:4-12:0.1)`, `line N: bad item weight 'heavy' (number from 0 to 50, two decimals at most)`, `line N: duplicate trade item 'Battery'`, `line N: too many trade items (40 at most)` |
+| Objet | `line N: bad trade item 'Battery:2' (Module.Type:quantity, e.g. Base.Battery:4-12)` (aussi pour un ancien poids écrit, `Base.Battery:4-12:0.1`), `line N: unknown trade item 'Base.FluxCapacitor' (no item script of that type)`, `line N: duplicate trade item 'Battery'`, `line N: too many trade items (40 at most)` |
 | Groupe | `line N: bad trade group 'x' (name:total[:kinds], e.g. seeds:3-8:4)`, `line N: unknown trade group 'seeds'`, `line N: trade group 'seeds' has no item`, `line N: trade group 'seeds' has fewer items than its kinds` |
 
 Exemple (Gus, `personas/gus.txt`, extrait) :
@@ -845,9 +874,9 @@ hours=01:00-03:00
 margin=0.10-0.50
 group=seeds:3-8:4
 group=alcohol:1-4
-item=Base.Battery:4-12:0.1
-item=Base.CarrotBagSeed2:seeds:0.1
-item=Base.Whiskey:alcohol:1.7
+item=Base.Battery:4-12
+item=Base.CarrotBagSeed2:seeds
+item=Base.Whiskey:alcohol
 ```
 
 ### Section `[note]` (E20-T11)
@@ -857,17 +886,31 @@ sans identifiant. Aucune voix n'est nommée dans le code des notes : objet, trad
 fiche. Le serveur seul la lit ; le pont la saute. Sur un client MP, sans les fiches, `OnCreate` ne pose rien : la
 ModData de l'autorité arrive avec l'objet.
 
+Deux formes (E22-T07, ADR D07 de l'atelier des voix) : une note **écrite dans la fiche** (`text=`, voix créées avec
+l'atelier), ou une note à **objet et traductions propres** (`item=` et `key=`, voix livrées avec le mod). Avec `text=`,
+la note est l'objet générique `RadioSurvivor.NoteVoice` (« Handwritten Note », « Note manuscrite ») ; l'autorité écrit
+à sa création, dans sa ModData (`modData.RadioSurvivorNote = { voice, khz, text }`), la voix, la fréquence de la partie
+et le texte de la fiche (lignes séparées par un saut de ligne) ; le client le met en page à l'ouverture (papier jauni,
+écriture manuscrite `SdfCaveat`, une ligne de la page par ligne `text=`, hauteur selon le nombre de lignes) et remplace
+`%1` par la fréquence. Le texte voyage avec l'objet comme la fréquence : ni la fiche ni le texte d'une autre voix
+n'atteignent le client. Seul le titre de la fenêtre est traduit (`Print_Media_RadioSurvivor_NoteVoice_title`) ; le texte
+reste dans la langue où l'auteur l'a écrit. Plusieurs fiches à `text=` partagent l'objet générique comme les marchands
+partagent `NoteTrade` : une note neuve porte l'une de ces voix, tirée à sa création.
+
 | Clé | Obligatoire | Valeur |
 |---|---|---|
-| `item` | oui | `Module.Type` d'un objet de `media/scripts/RadioSurvivor_notes.txt` (`OnCreate = RadioSurvivorNotes.onCreate`). Plusieurs fiches peuvent déclarer le même objet (`RadioSurvivor.NoteTrade`, mot manuscrit des marchands) : une note neuve porte l'une de ces voix, tirée parmi celles qui servent une fréquence. |
-| `key` | oui | Racine des traductions (`A`-`Z`, `a`-`z`, `0`-`9`, `_`) : `Print_Media_<module>_<key>_title`, `Print_Media_<module>_<key>_info` (mise en page, `%1` une fois), `Print_Text_<module>_<key>_info` ; identifiant printMedia `<module>_<key>`. |
+| `text` | répétable, sans `item` ni `key` | E22-T07 : une ligne de la note (40 octets UTF-8 au plus, 8 lignes au plus, sans `<`, `>` ni `^`, `%` seulement dans `%1`) ; une ligne au moins porte `%1` (fréquence affichée). |
+| `item` | sans `text` | `Module.Type` d'un objet de `media/scripts/RadioSurvivor_notes.txt` (`OnCreate = RadioSurvivorNotes.onCreate`). Plusieurs fiches peuvent déclarer le même objet (`RadioSurvivor.NoteTrade`, mot manuscrit des marchands) : une note neuve porte l'une de ces voix, tirée parmi celles qui servent une fréquence. |
+| `key` | sans `text` | Racine des traductions (`A`-`Z`, `a`-`z`, `0`-`9`, `_`) : `Print_Media_<module>_<key>_title`, `Print_Media_<module>_<key>_info` (mise en page, `%1` une fois), `Print_Text_<module>_<key>_info` ; identifiant printMedia `<module>_<key>`. |
 | `loot` | non, répétable | `liste:poids` d'une liste de `ProceduralDistributions` (poids au-dessus de 0, au plus 100, deux décimales), multiplié par l'option `NoteRarity`. Un objet partagé reçoit une ligne par liste, poids des voix additionnés. 16 listes au plus. |
 | `glovebox` | non, répétable | `liste:poids` de `VehicleDistributions` (boîte à gants), mêmes règles. |
 | `corpse` | non | `yes` : candidate pour la note d'un mort qui porte un talkie (`no` par défaut). |
 
 | Erreur | Message |
 |---|---|
-| Clé absente | `line N: missing key 'key' in [note]` |
+| Clé absente (ligne de l'en-tête) | `line N: missing key 'text' in [note] (or item and key)` (aucune des trois), `line N: missing key 'key' in [note]` (`item` sans `key`) |
+| `text` avec `item` ou `key` | `line N: item and key cannot be used with text in [note] (text goes on the handwritten note of the mod)` (ligne de `item`, sinon de `key`) |
+| Texte (`text`) | `line N: note text too long (40 bytes of UTF-8 at most)`, `line N: bad note text '<b>%1' (no <, > or ^; % only in %1, the frequency)`, `line N: too many note text lines (8 at most)`, `line N: note text needs %1 (the frequency) on one of its lines` (ligne de l'en-tête) |
 | Objet, racine | `line N: bad note item 'NoteWalt' (Module.Type, e.g. RadioSurvivor.NoteWalt)`, `line N: bad note key 'Note Walt' (A to Z, a to z, 0 to 9 and _)` |
 | Listes | `line N: bad loot 'OfficeDesk' (list:weight, e.g. OfficeDesk:4)`, `line N: bad glovebox weight '0' (above 0)`, `line N: duplicate loot list 'OfficeDesk'`, `line N: too many loot lists (16 at most)` |
 | Mort | `line N: bad corpse 'maybe' (yes or no)` |
@@ -881,6 +924,16 @@ key=NoteGus
 loot=FishingStoreGear:4
 loot=CrateFishing:1.5
 glovebox=FishermanGloveBox:10
+corpse=yes
+```
+
+Exemple d'une note écrite dans la fiche (voix créée avec l'atelier) :
+
+```text
+[note]
+text=Need a hand? Call Mae
+text=on %1 MHz, after dark.
+loot=OfficeDesk:2
 corpse=yes
 ```
 

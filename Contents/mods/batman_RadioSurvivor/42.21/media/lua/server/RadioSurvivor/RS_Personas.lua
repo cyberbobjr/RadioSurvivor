@@ -67,9 +67,9 @@ Personas.CATALOGUE = "_categories.txt"
 -- Empreintes (Personas.fingerprint) de toutes les versions livrées de chaque fiche, la version actuelle comprise :
 -- reconnaissent une fiche non modifiée installée avant le fichier d'empreintes (E05-T02 à E05-T10). Versions des
 -- commits 09d7474 et 24832ea (fréquences fixes ; Walt identique dans les deux), 486b21e (plages, E05-T07), puis
--- E05-T10, E05-T05, E20-T03, E20-T07, E20-T10, E20-T11 ([note] des fiches). Toute nouvelle version livrée d'une
--- fiche ajoute ici son empreinte (banc tests/test_personas_server.py) ; une fiche livrée après E05-T11 (marchands
--- des villes, E20-T11) n'a jamais été installée sans le fichier d'empreintes : aucune entrée.
+-- E05-T10, E05-T05, E20-T03, E20-T07, E20-T10, E20-T11 ([note] des fiches), E22-T12 (stock sans poids). Toute
+-- nouvelle version livrée d'une fiche ajoute ici son empreinte (banc tests/test_personas_server.py) ; une fiche livrée
+-- après E05-T11 (marchands des villes, E20-T11) n'a jamais été installée sans le fichier d'empreintes : aucune entrée.
 Personas.KNOWN_DELIVERED = {
     walt = { "2105682694", "2759756800", "213942039", "1586801598", "2833011528" },   -- E20-T11 : [note]
     darlene = { "611497886", "1134557996", "2120896689", "3998911546", "3957645400",
@@ -78,7 +78,8 @@ Personas.KNOWN_DELIVERED = {
         "1976566616", "1464760889" },   -- E20-T11 : [note]
     whitaker = { "4044533006", "3352221633", "2075828338" },   -- E12-T04 : règle du secours réussi
     nightowl = { "4175146858", "225312038", "1263236001" },   -- E20-T11 : [note]
-    gus = { "2508366732", "2733824589", "2930912175", "1078646290", "1260582370", "3810027509", "4079538633" },
+    gus = { "2508366732", "2733824589", "2930912175", "1078646290", "1260582370", "3810027509", "4079538633",
+        "3516644979" },   -- E22-T12 : stock sans poids ecrit
 }
 
 local STEP_KHZ, MIN_KHZ, MAX_KHZ = 200, 1000, 999800
@@ -366,13 +367,15 @@ local function loadCatalogue()
 end
 
 -- Règles injectées dans RS_Persona : gabarits de mission donnés par une voix (registre du mod commun), natures de
--- récompense et compétences (RS_Rewards), catégories, modes d'arrivée (RS_TradeArrivals). Lu à l'appel : le jeu a tout
--- chargé (gabarits, natures et modes inscrits) avant la lecture des fiches (OnLoadRadioScripts).
+-- récompense et compétences (RS_Rewards), catégories, modes d'arrivée (RS_TradeArrivals), poids des objets du troc
+-- (RS_ItemWeights, E22-T12). Lu à l'appel : le jeu a tout chargé (gabarits, natures et modes inscrits, scripts
+-- d'objets) avant la lecture des fiches (OnLoadRadioScripts).
 function Personas.rules()
     local Missions = require "CoreAI/CA_Missions"
     local Rewards, Arrivals = require "RadioSurvivor/RS_Rewards", require "RadioSurvivor/RS_TradeArrivals"
+    local ItemWeights = require "RadioSurvivor/RS_ItemWeights"
     return { template = Missions.voiceTemplate, rewards = Rewards.KINDS, skills = Rewards.SKILLS,
-        categories = loadCatalogue(), arrivals = Arrivals.NAMES }
+        categories = loadCatalogue(), arrivals = Arrivals.NAMES, itemWeight = ItemWeights.of }
 end
 
 local function removeVoice(id, why)

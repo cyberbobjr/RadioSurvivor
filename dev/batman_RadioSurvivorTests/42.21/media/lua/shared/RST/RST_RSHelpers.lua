@@ -32,6 +32,8 @@ Load with: require "RST/RST_RSHelpers". No side effect at load time (definitions
                                      request of the authority; after(t, req). No request within TALK_REQUEST_MS: FAIL
                                      with the last notebook refusal read on the client (RST.Steps "carnet.state")
     R.label(khz)                     "145.0"
+    R.nextHour(t, next)              clock put just before the next full hour (forward only), EveryHours awaited (60 s);
+                                     next(t, firedAt)
 ]]
 
 require "RST/RST"
@@ -297,6 +299,19 @@ end
 
 function R.label(khz)
     return string.format("%.1f", khz / 1000)
+end
+
+-- Puts the clock just before the next full hour (forward only) and waits for EveryHours; next(t, firedAt).
+function R.nextHour(t, next)
+    local fired = nil
+    local function onHour() fired = fired or getTimestampMs() end
+    Events.EveryHours.Add(onHour)
+    t:defer(function() Events.EveryHours.Remove(onHour) end, "remove the EveryHours listener")
+    local gt = getGameTime()
+    local tod = gt:getTimeOfDay()
+    local target = math.floor(tod) + 0.99
+    if tod < target then gt:setTimeOfDay(target) end
+    t:waitUntil(function() return fired end, 60000, next, "EveryHours not fired within 60 s (game paused?)")
 end
 
 return R

@@ -48,6 +48,7 @@ PERSONAS_LUA = LUA / 'server/RadioSurvivor/RS_Personas.lua'
 sys.path.insert(0, str(ROOT / 'bridge'))
 import persona_store as store  # noqa: E402
 from signalsmoke_double import SIGNAL_SMOKE  # noqa: E402
+from itemweights_double import ITEM_WEIGHTS  # noqa: E402
 from test_personas import RULE_MODULES  # noqa: E402
 
 # Fiche livrée de Walt avec sa fréquence d'exemple fixe à la place de sa plage de tirage (E05-T07).
@@ -206,6 +207,7 @@ class Harness(unittest.TestCase):
         # au chargement du jeu (tous les fichiers serveur avant OnLoadRadioScripts) ; le gabarit signal charge le mod
         # requis Signal Smoke.
         self.rt.execute(SIGNAL_SMOKE)
+        self.rt.execute(ITEM_WEIGHTS)  # E22-T12 : poids des objets du troc, à la place des scripts du jeu
         self.rt.execute('Events = Events or setmetatable({}, {__index = function(t, k) local e = {Add = function() '
                         'end, Remove = function() end} rawset(t, k, e) return e end})')
         for module in RULE_MODULES:

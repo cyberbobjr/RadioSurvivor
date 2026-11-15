@@ -98,6 +98,8 @@ LUA_FILES = [
       for p in sorted((MOD_LUA / 'server' / 'RadioSurvivor' / 'Rewards').glob('*.lua'), key=lambda p: p.name.lower())],
     # E20-T07 : registre des modes d'arrivée des marchands (RS_Personas.rules) et un fichier par mode (TradeArrivals/).
     ('RadioSurvivor/RS_TradeArrivals', MOD_LUA / 'server' / 'RadioSurvivor' / 'RS_TradeArrivals.lua'),
+    # E22-T12 : poids des objets du troc lus dans les scripts (RS_Personas.rules).
+    ('RadioSurvivor/RS_ItemWeights', MOD_LUA / 'server' / 'RadioSurvivor' / 'RS_ItemWeights.lua'),
     # E20-T11 : causes d'annulation partagées par les modes d'arrivée.
     ('RadioSurvivor/RS_TradeCauses', MOD_LUA / 'server' / 'RadioSurvivor' / 'RS_TradeCauses.lua'),
     *[(f'RadioSurvivor/TradeArrivals/{p.stem}', p)
@@ -474,6 +476,11 @@ PERSONA_CASES = [
                      + test_personas.PROMPT).encode(), 'case'),
     ('place-emoji-long', (test_personas.HEAD + test_personas.place('a', label='\U0001F4FB' * 12 + 'x')
                           + test_personas.PROMPT).encode(), 'case'),
+    # E22-T07 : appel écrit dans la fiche (call=), borné en octets UTF-8 comme les libellés de lieu.
+    ('call-200', (test_personas.HEAD + 'call=' + 'é' * 99 + '%1\n' + test_personas.PROMPT).encode(), 'case'),
+    ('call-201', (test_personas.HEAD + 'call=' + 'é' * 100 + 'x\n' + test_personas.PROMPT).encode(), 'case'),
+    ('call-caret', (test_personas.HEAD + 'call=Ici %1^suite\n' + test_personas.PROMPT).encode(), 'case'),
+    ('call-percent', (test_personas.HEAD + 'call=100% sur %1\n' + test_personas.PROMPT).encode(), 'case'),
 ]
 
 
@@ -625,6 +632,30 @@ REVEAL_EVAL = (
     '.. " " .. tostring(r5) .. "/" .. w5 .. " " .. table.concat(calls, ";")'
 )
 EXCHANGE_EVALS.append(REVEAL_EVAL)
+
+# E22-T12 : RS_ItemWeights dans la VM réelle, doublure fidèle du ScriptManager 42.22 : poids en float Java
+# (0.7f = 0.699999988...), FindItem d'un module inconnu qui retombe sur Base (ScriptManager.java:1329-1346), recipient
+# créé plein (liste de fluides initiaux non vide : + Capacity) ou vide (gourde : Weight seul), type inconnu, cache.
+WEIGHTS_EVAL = (
+    'eval:local W = require("RadioSurvivor/RS_ItemWeights"); local finds = 0; '
+    'ComponentType = { FluidContainer = "FC" }; '
+    'local function list(n) return { isEmpty = function() return n == 0 end } end; '
+    'local function script(full, kg, fluid) return { getFullName = function() return full end, '
+    'getActualWeight = function() return kg end, getComponentScriptFor = function(_, t) '
+    'if t == "FC" then return fluid end end } end; '
+    'local function fluid(n, cap) return { getInitialFluids = function() return list(n) end, '
+    'getCapacity = function() return cap end } end; '
+    'local S = { ["Base.Whiskey"] = script("Base.Whiskey", 0.699999988079071, fluid(1, 1.0)), '
+    '["Base.CanteenMilitary"] = script("Base.CanteenMilitary", 0.20000000298023224, fluid(0, 0.8999999761581421)), '
+    '["Base.Battery"] = script("Base.Battery", 0.10000000149011612, nil) }; '
+    'getScriptManager = function() return { FindItem = function(_, name) finds = finds + 1; '
+    'return S[name] or S["Base." .. string.match(name, "%.(.+)$")] end } end; '
+    'local a = { W.of("Base.Whiskey"), W.of("Base.CanteenMilitary"), W.of("Base.Battery") }; '
+    'local fake, none = W.of("Fake.Battery"), W.of("Base.Nope"); W.of("Base.Whiskey"); W.of("Base.Nope"); '
+    'return "KR-WEIGHTS " .. tostring(a[1]) .. " " .. tostring(a[2]) .. " " .. tostring(a[3]) .. " " '
+    '.. tostring(fake) .. " " .. tostring(none) .. " " .. finds'
+)
+EXCHANGE_EVALS.append(WEIGHTS_EVAL)
 
 # LK13-T02 : LK_Load dans la VM reelle (Events, isServer et sendServerCommand de test, remis ensuite) : valeurs rendues
 # par l'enveloppe d'un abonne (nil au milieu, quatre valeurs), cout mesure sur l'horloge du banc, reseau compte par
@@ -1045,6 +1076,10 @@ class KahluaBench(unittest.TestCase):
     def test_map_mark_in_kahlua(self):
         # E07-T04 : repère au centre de la case, libellé nettoyé de 12 unités (« Café  b x /b »), aucun doublon.
         self.assertEqual(self.line('KR-MAP'), 'added present 2 1 12 10600.5,9300.5 1/0')
+
+    def test_trade_item_weights_in_kahlua(self):
+        # E22-T12 : 0,7 + 1 l de whisky, gourde vide, pile ; module inconnu et type inconnu : nil ; cache (5 lectures).
+        self.assertEqual(self.line('KR-WEIGHTS'), '1.7 0.2 0.1 nil nil 5')
 
     def test_map_reveal_in_kahlua(self):
         # E07-T05 : bord haut inclus (x2 - 1), flottants admis, non aligné ou trop grand refusé, carte absente.

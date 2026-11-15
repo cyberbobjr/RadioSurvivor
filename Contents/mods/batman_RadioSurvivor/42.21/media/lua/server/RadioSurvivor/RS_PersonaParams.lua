@@ -22,6 +22,14 @@ function Params.known(kind)
     return validators[kind] ~= nil
 end
 
+-- E22-T01: names of the registered kinds, sorted (catalogue of the voice workshop, tools/gen_atelier_catalog.py).
+function Params.kinds()
+    local names = {}
+    for kind in pairs(validators) do names[#names + 1] = kind end
+    table.sort(names)
+    return names
+end
+
 -- Parsed value of `value` for this kind, or nil and the reason.
 function Params.check(kind, value, ctx)
     local validator = validators[kind]
