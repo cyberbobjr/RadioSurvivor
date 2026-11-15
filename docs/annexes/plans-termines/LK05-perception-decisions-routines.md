@@ -2,7 +2,7 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 22 / 23 tâche(s) terminée(s).
+**Avancement.** terminée — 23 / 23 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
@@ -28,7 +28,7 @@
 | ☑ | LK05-T20 | Provisions sur soi et gourde inépuisable | `testé MP` | MP | LK05-T07, LK07-T05 |
 | ☑ | LK05-T21 | Jardinier : le comportement `garden` prend d'abord les tâches du jardin | `testé MP` | solo | LK05-T11 |
 | ☑ | LK05-T22 | Casseur : le comportement `breach` des pillards force, les autres l'attendent | `testé MP` | solo | LK04-T04 |
-| ☐ | LK05-T23 | Fenêtre refusée au contact : trajets suivants jalonnés par les portes | `testé hors jeu` | solo | LK04-T09, E18-T38 |
+| ☑ | LK05-T23 | Fenêtre refusée au contact : trajets suivants jalonnés par les portes | `testé solo` | solo | LK04-T09, E18-T38 |
 
 <!-- fin du tableau de bord -->
 
@@ -316,13 +316,13 @@
   - Preuve : 2026-11-13, banc `test_raider_waits_for_the_breaker_of_his_group` rouge avant, vert après ; bancs complets OK, luacheck `Contents` 8 (`f67846f`) ; campagne solo des deux mods du 2026-11-15 sur `962ee34` (`--campaign solo --bridge on --llm fake`) : code 1, `RST-RESULT ok=false total=272 pass=262 fail=1 error=0 skip=9` (`tools/autoclient/runs/20261115-013428-dd05558cc5fd`, échec étranger à la tâche : lk.expedition, voir LK05-T23) ; campagne `solo-lk` (Living Knox seul) du 2026-11-15 : code 0, `TOTAL total=114 pass=105 fail=0 error=0 skip=9` (`tools/autoclient/runs/20261115-002325-run-962ee349cab6`) : lk.force 6/6 PASS dans les deux ; campagne MP du 2026-11-15 sur le commit `962ee34` (serveur dédié + 2 clients, pont avec faux modèle, `--mp --clients 2 --server-campaign mp --bridge on --llm fake --wait-idle 3600`) : code 0, `RST-RESULT ok=true total=398 pass=378 fail=0 error=0 skip=20` (`tools/autoclient/runs/20261115-004728-mp-63ed80f68139`) : lk.force 6/6 PASS
   - Reste : aucune suite en jeu ne fait encore attendre un pillard derrière son casseur (prouvé au banc seulement)
 
-- [ ] **LK05-T23** — Fenêtre refusée au contact : trajets suivants jalonnés par les portes
-  - État : `testé hors jeu`
+- [x] **LK05-T23** — Fenêtre refusée au contact : trajets suivants jalonnés par les portes
+  - État : `testé solo`
   - Cible : `solo`
   - Dépend de : LK04-T09, E18-T38
   - Fichiers : `LK_Obstacles.lua` (`refuse`, `windowRefusedAt`) ; `LK_Routing.lua` (`planDoorRoute`, `WINDOW_WARY_MS`) ; `tests/test_lk_obstacles.py`
   - Faire : campagne solo du 2026-11-15 (`tools/autoclient/runs/20261115-013428-dd05558cc5fd`, lk.expedition « team not back home ») : au retour d'une expédition, le chemin natif du PNJ lk-111 prend la fenêtre condamnée 10877,10020 N de la cuisine fouillée, que le modèle « zombie » ne prévoyait pas (aucune escalade prévue, donc aucun guidage par les portes) ; refusé au contact, il reprend le même chemin une minute plus tard (fin de l'écart de E18-T38) et l'équipe ne rentre pas. Décision par défaut : une fenêtre refusée au contact rend le PNJ prudent pendant `WINDOW_WARY_MS` (5 min) : tout trajet sans escalade prévue est jalonné en lignes dégagées (sans fenêtre) sur son itinéraire « npc », par les portes ; la raison du trajet le dit (« after a refused window »).
   - Accepté si : au banc, sans refus, aucun guidage ; après un refus récent, points de passage par la porte ; refus ancien, plus de guidage ; le refus au contact note l'heure ; en jeu, lk.expedition reste vert.
   - Tests : `test_lk_obstacles.py` ; campagne solo des deux mods.
-  - Preuve : 2026-11-15, bancs `test_npc_refused_at_a_window_is_guided_by_the_doors_next_time` et `test_window_refusal_is_remembered_for_the_routing` rouges avant, verts après ; `test_lk_obstacles` et `test_lk_routing` (sorties figées comprises) 183 tests OK.
-  - Reste : campagne solo ; cause du mauvais pronostic du modèle « zombie » sur cette cuisine non cherchée (le jalonnement la contourne).
+  - Preuve : 2026-11-15, bancs `test_npc_refused_at_a_window_is_guided_by_the_doors_next_time` et `test_window_refusal_is_remembered_for_the_routing` rouges avant, verts après ; `test_lk_obstacles` et `test_lk_routing` (sorties figées comprises) 183 tests OK ; campagne solo des deux mods du 2026-11-15 sur le commit `d52f5f2` (copie figée, `--campaign solo --bridge on --llm fake --wait-idle 3600`) : code 1, `RST-RESULT ok=false total=274 pass=256 fail=1 error=0 skip=17` (`tools/autoclient/runs/20261115-022616-966db38d6a28`), seul échec étranger à Living Knox : rs.personas.update (fiche de voix, travail E20 en cours) : lk.expedition PASS (équipe rentrée en 123 s) ; 6 trajets « after a refused window » jalonnés au journal (par exemple lk-84 : 4 points par 1 porte)
+  - Reste : cause du mauvais pronostic du modèle « zombie » sur cette cuisine non cherchée

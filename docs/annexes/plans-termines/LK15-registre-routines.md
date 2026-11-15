@@ -2,13 +2,13 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 6 / 7 tâche(s) terminée(s).
+**Avancement.** terminée — 7 / 7 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
 | ☑ | LK15-T01 | Moteur des tâches du foyer et registre `registerJob` | `testé hors jeu` | hors jeu | — |
 | ☑ | LK15-T02 | Registre des activités et une routine par fichier | `testé hors jeu` | hors jeu | LK15-T01 |
-| ☐ | LK15-T03 | Découpage vérifié en jeu | `à faire` | MP | LK15-T02 |
+| ☑ | LK15-T03 | Découpage vérifié en jeu | `testé MP` | MP | LK15-T02 |
 | ☑ | LK15-T04 | Creuser un sillon (`LK_Job_Dig`) | `testé MP` | MP | LK15-T03 |
 | ☑ | LK15-T05 | Semer (`LK_Job_Sow`) | `testé MP` | MP | LK15-T04 |
 | ☑ | LK15-T06 | Graines reçues par le jardinier | `testé MP` | MP | LK15-T05 |
@@ -58,16 +58,16 @@ LK05-T21 (préférence du jardinier, remplacée par `prefer`).
   - Tests : bancs hors jeu complets.
   - Preuve : 2026-11-13 : `Routines.registerActivity({ id, behaviour, order, run })` ; `Routines.apply` réduit à la boucle du registre (ne cite ni module ni comportement) ; `LK_Routines.lua` 542 lignes au lieu de 1 170 (constantes, relevé, plans, registre) ; outils partagés dans `LK_RoutineExec.lua` ; activités `Routines/LK_Routine_Watch.lua` (guet, ronde), `LK_Routine_Sleep.lua`, `LK_Routine_Meal.lua`, `LK_Routine_Chores.lua` ; `LK_Fortify` (`chore.fortify`, ordre 10) et `LK_Upkeep` (`chore.upkeep`, ordre 20) inscrits ; chargement des piles de test par `harness.routine_files()`. Banc `RegistryTests` (4 tests : ordre, première activité qui prend le membre, repli) rouge avant, vert après ; `test_lk_routines.py` 22 OK, `test_lk_chores.py` 12, `test_lk_meals.py` 15, `test_lk_upkeep.py` 24, `test_lk_decisions.py` 27, `test_kahlua.py` 40 ; les 162 fichiers `tests/test_*.py` verts ; luacheck `Contents` 8 (inchangé), `dev` 0.
   - Reste : vérification en jeu par `LK15-T03`.
-- [ ] **LK15-T03** — Découpage vérifié en jeu
-  - État : `à faire`
+- [x] **LK15-T03** — Découpage vérifié en jeu
+  - État : `testé MP`
   - Cible : `MP`
   - Dépend de : LK15-T02
   - Fichiers : —
   - Faire : ADR D06 : campagnes solo (deux mods, Living Knox seul) et MP (`mp`, `mp-ambient`) sur le commit du découpage.
   - Accepté si : mêmes résultats que les campagnes vertes du 2026-11-13 (`20261113-071238-run-13d311e27a22`, `20261113-092625-parallel-3-13d311e27a22`, `20261113-095437-run-85680d65085c`).
   - Tests : campagnes en jeu.
-  - Preuve : `lk.meals` et `lk.routines` verts en MP ; `lk.meals` vert en solo deux mods et Living Knox seul ; campagnes du 2026-11-13 au soir et du 2026-11-14 (dossier de travail, commits `8b439ee` à `a7ddc94`) : MP 3 tranches `tools/autoclient/runs/20261113-233636-parallel-3` 510/534, 3 FAIL (`lk.alert` garde, `lk.forage` arrosage, `rs.npctalk` délai : corrigés par `19ac890`, `44b200a`, `f9c8d8f`) ; solo deux mods `20261113-235754-parallel-2` 245/257, 3 FAIL (`lk.forage` : lancé avant `44b200a` ; `lk.upkeep` : corrigé par `a7ddc94` ; `lk.debugview` : ouvert, registre des écarts) ; Living Knox seul `20261114-001702-parallel-2` 105/114, 0 FAIL ; `mp-ambient` `20261114-003116-mp-cf36126965e3` 23/24, 0 FAIL ; campagne MP de contrôle sur `a7ddc94` arrêtée par Claude Code (mémoire de la machine basse), non relancée
-  - Reste : campagnes partielles du 2026-11-13 après-midi, lancées depuis le dossier de travail (la copie figée d'un commit échoue tant que l'abandon de CharacterReputation de l'autre session n'est pas commité : `batman_CharacterReputation` encore dans la liste des mods du lanceur commité ; c'est aussi la cause du « code 2, total=0 » de la campagne solo deux mods du matin) : MP sur `157c4a0` (`runs/20261113-150840-parallel-3`) code 1, `total=533 pass=509 fail=3` : `lk.upkeep` (tâches du potager avant le verre et le sang, corrigé par `73247c8`), `lk.alert` (cri sans auditeur chez le second client, intermittent connu : 2 échecs sur 9 avant) et `lk.traversal` « destination behind a locked door elsewhere » (intermittent connu : 4 sur 34) ; `mp-ambient` code 0, `total=24 pass=23 fail=0` (`runs/20261113-153040-mp-a41ca303d196`) ; solo deux mods interrompue (jeu rendu à l'utilisateur) ; à refaire sur le dernier commit : solo deux mods, solo Living Knox seul, MP
+  - Preuve : `lk.meals` et `lk.routines` verts en MP ; `lk.meals` vert en solo deux mods et Living Knox seul ; campagnes du 2026-11-13 au soir et du 2026-11-14 (dossier de travail, commits `8b439ee` à `a7ddc94`) : MP 3 tranches `tools/autoclient/runs/20261113-233636-parallel-3` 510/534, 3 FAIL (`lk.alert` garde, `lk.forage` arrosage, `rs.npctalk` délai : corrigés par `19ac890`, `44b200a`, `f9c8d8f`) ; solo deux mods `20261113-235754-parallel-2` 245/257, 3 FAIL (`lk.forage` : lancé avant `44b200a` ; `lk.upkeep` : corrigé par `a7ddc94` ; `lk.debugview` : ouvert, registre des écarts) ; Living Knox seul `20261114-001702-parallel-2` 105/114, 0 FAIL ; `mp-ambient` `20261114-003116-mp-cf36126965e3` 23/24, 0 FAIL ; campagne MP de contrôle sur `a7ddc94` arrêtée par Claude Code (mémoire de la machine basse), non relancée ; campagne MP du 2026-11-15 sur `962ee34` (serveur dédié + 2 clients, pont avec faux modèle) : code 0, `RST-RESULT ok=true total=398 pass=378 fail=0 error=0 skip=20` (`tools/autoclient/runs/20261115-004728-mp-63ed80f68139`) ; campagne `mp-ambient` du 2026-11-15 sur `d52f5f2` (zombies du jeu, sans mode dieu) : code 0, `RST-RESULT ok=true total=24 pass=23 fail=0 error=0 skip=1` chez rs_mp1 et 6/6 chez rs_mp2 (`tools/autoclient/runs/20261115-022131-mp-aad4e251e079`) ; campagne solo des deux mods du 2026-11-15 sur le commit `d52f5f2` (copie figée, `--campaign solo --bridge on --llm fake --wait-idle 3600`) : code 1, `RST-RESULT ok=false total=274 pass=256 fail=1 error=0 skip=17` (`tools/autoclient/runs/20261115-022616-966db38d6a28`), seul échec étranger à Living Knox : rs.personas.update (fiche de voix, travail E20 en cours) ; campagne `solo-lk` (Living Knox seul) du 2026-11-15 sur `962ee34` : code 0, `TOTAL total=114 pass=105 fail=0 error=0 skip=9` (`tools/autoclient/runs/20261115-002325-run-962ee349cab6`) : aucune suite de Living Knox en échec
+  - Reste : aucun
 - [x] **LK15-T04** — Creuser un sillon (`LK_Job_Dig`)
   - État : `testé MP`
   - Cible : `MP`

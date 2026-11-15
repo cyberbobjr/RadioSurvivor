@@ -6,7 +6,7 @@
 | Statut | Accepté (confirmé par défaut le 2026-11-13, selon la règle de l'utilisateur : option recommandée appliquée, liste des choix dans le compte rendu, veto possible ; demande d'origine : « après LK15 : audit SOLID de tout Living Knox ») |
 | Décideur | utilisateur |
 | Portée | `batman_LivingKnox`, côté autorité et client (`media/lua/{server,client,shared}/LivingKnox`) ; aucun changement de comportement pour un joueur |
-| Plan associé | [LK16 — Remise en ordre SOLID](../../annexes/plans/LK16-remise-en-ordre-solid.md) (suivi des tâches dans le plan) |
+| Plan associé | [LK16 — Remise en ordre SOLID](../../annexes/plans-termines/LK16-remise-en-ordre-solid.md) (suivi des tâches dans le plan) |
 | Références | [audit SOLID du 2026-11-13](../../annexes/audits/audit-solid-livingknox-2026-11-13.md) (214 constats) ; [vérification contradictoire des 34 P0](../../annexes/audits/audit-solid-livingknox-2026-11-13-verification-p0.md) ; [ADR des registres des routines](adr-registre-routines.md) ; règle « Principes SOLID dès la conception » de [`docs/developpement.md`](../../developpement.md) |
 
 ## Contexte

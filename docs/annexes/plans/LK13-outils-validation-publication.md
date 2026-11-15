@@ -96,8 +96,8 @@
   - Faire : toutes les suites du périmètre sur serveur dédié avec deux clients, puis publication selon la skill `pz-workshop` après accord explicite.
   - Accepté si : aucune erreur au démarrage liée au mod ; page publiée avec la visibilité décidée.
   - Tests : suites ; skill.
-  - Preuve : —
-  - Reste : —
+  - Preuve : volet suites : campagne MP du 2026-11-15 sur `962ee34` (serveur dédié + 2 clients, pont avec faux modèle) : code 0, `RST-RESULT ok=true total=398 pass=378 fail=0 error=0 skip=20` (`tools/autoclient/runs/20261115-004728-mp-63ed80f68139`) ; campagne `mp-ambient` du 2026-11-15 sur `d52f5f2` (zombies du jeu, sans mode dieu) : code 0, `RST-RESULT ok=true total=24 pass=23 fail=0 error=0 skip=1` chez rs_mp1 et 6/6 chez rs_mp2 (`tools/autoclient/runs/20261115-022131-mp-aad4e251e079`) ; aucune erreur au démarrage liée aux mods
+  - Reste : publication Workshop : seulement après accord explicite de l'utilisateur
 
 - [ ] **LK13-T05** — Essai sur serveur dédié Linux (N5)
   - État : `codé`

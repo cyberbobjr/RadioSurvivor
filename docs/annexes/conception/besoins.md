@@ -7,7 +7,7 @@ Code : `media/lua/server/LivingKnox/LK_Needs.lua` (`LivingKnox.Needs`, autorité
 
 ## Problème
 
-Chaque membre d'un groupe a quatre jauges de 0 à 100 (faim, soif, fatigue, peur) qui évoluent avec l'heure de jeu et ce qu'il fait, et qui créent des **envies** (manger, boire, dormir, fuir) lues par la cascade de priorités du membre. Décision de l'utilisateur du 2026-10-08 ([LK05](../plans/LK05-perception-decisions-routines.md), section « Décisions ») : jauges tenues par le serveur, **même modèle à l'écran et hors écran**. Les jauges doivent être reproductibles (mêmes entrées, mêmes valeurs), ne jamais être tenues par un client, coûter peu par heure de jeu et se rattraper après une absence par le même calcul.
+Chaque membre d'un groupe a quatre jauges de 0 à 100 (faim, soif, fatigue, peur) qui évoluent avec l'heure de jeu et ce qu'il fait, et qui créent des **envies** (manger, boire, dormir, fuir) lues par la cascade de priorités du membre. Décision de l'utilisateur du 2026-10-08 ([LK05](../plans-termines/LK05-perception-decisions-routines.md), section « Décisions ») : jauges tenues par le serveur, **même modèle à l'écran et hors écran**. Les jauges doivent être reproductibles (mêmes entrées, mêmes valeurs), ne jamais être tenues par un client, coûter peu par heure de jeu et se rattraper après une absence par le même calcul.
 
 ## Contraintes du moteur
 
@@ -91,7 +91,7 @@ Code : `LK_Routines.lua` (section « repas réels », `Routines.runMeal`), `LK_S
 
 ### Provisions sur soi et gourde inépuisable (LK05-T20)
 
-Décision de l'utilisateur du 2026-11-04 ([LK05](../plans/LK05-perception-decisions-routines.md), section « Décisions ») : chaque PNJ porte deux vrais aliments non périssables et une gourde d'eau qui ne se vide jamais ; il mange une provision loin du foyer, et décroche du combat pour manger quand la faim devient trop forte.
+Décision de l'utilisateur du 2026-11-04 ([LK05](../plans-termines/LK05-perception-decisions-routines.md), section « Décisions ») : chaque PNJ porte deux vrais aliments non périssables et une gourde d'eau qui ne se vide jamais ; il mange une provision loin du foyer, et décroche du combat pour manger quand la faim devient trop forte.
 
 Code : `LK_Provisions.lua` (`LivingKnox.Provisions` : objets portés, don, remplacement, repas, boisson), `LK_ProvisionMeal.lua` (`LivingKnox.ProvisionMeal` : extension « provision » de la cascade). Points d'extension ajoutés pour cette tâche, sans cas nommé dans les moteurs : registre des extensions de la cascade `Decisions.registerExtension` ([decisions.md](decisions.md), « Extensions de la cascade ») et registre du contenu du butin `Loot.registerContent` ([sante.md](sante.md), « Butin réel du cadavre »). Banc `tests/test_lk_provisions.py` ; suite en jeu `lk.provisions` (`RST_LKProvisions.lua`, campagnes `solo-lk` et `mp` après `lk.meals`).
 

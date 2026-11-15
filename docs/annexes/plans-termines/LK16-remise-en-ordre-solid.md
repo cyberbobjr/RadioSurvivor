@@ -2,7 +2,7 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 11 / 12 tâche(s) terminée(s).
+**Avancement.** terminée — 12 / 12 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
@@ -17,7 +17,7 @@
 | ☑ | LK16-T09 | C6 : simulation hors écran | `testé hors jeu` | hors jeu | LK16-T04 |
 | ☑ | LK16-T10 | C11 : aménagements des foyers ; nettoyages | `testé hors jeu` | hors jeu | LK16-T01 |
 | ☑ | LK16-T11 | C10 : obstacles | `testé hors jeu` | hors jeu | LK16-T01 |
-| ☐ | LK16-T12 | Remise en ordre vérifiée en jeu | `à faire` | MP | LK16-T02, LK16-T03, LK16-T06, LK16-T07, LK16-T08, LK16-T09, LK16-T10, LK16-T11 |
+| ☑ | LK16-T12 | Remise en ordre vérifiée en jeu | `testé MP` | MP | LK16-T02, LK16-T03, LK16-T06, LK16-T07, LK16-T08, LK16-T09, LK16-T10, LK16-T11 |
 
 <!-- fin du tableau de bord -->
 
@@ -156,13 +156,13 @@ Constats P2 et P3 de l'audit hors des chantiers ; tout changement visible par un
   - Tests : bancs des obstacles ; suite complète.
   - Preuve : 2026-11-13 : `LivingKnox.Obstacles.Routing.registerModel(name, spec)` sur `LivingKnox.Registry` (`edgeCost`, `maxNodes`, `vanilla`, `refusedCost`) ; moteur d'itinéraires sorti dans `LK_Routing.lua` (relevé des bords, recherche de chemin, détours, choix d'itinéraire) ; sept modèles, un par fichier sous `server/LivingKnox/Routing/` ; plus aucune comparaison de mode dans le moteur ; `LK_Obstacles.lua` de 2 850 à 1 947 lignes, appels publics `LivingKnox.Obstacles.*` inchangés ; dédoublonnages locaux (fin commune des refermetures, contrôle « objet disparu ») ; paires porte/fenêtre et politique force/attente/détour gardées (règles différentes, ADR D04) ; banc de gel `tests/test_lk_routing.py` (9 cartes, 7 modèles : coûts de chaque bord dans les deux sens, itinéraires, lignes dégagées, `planDoorRoute`), empreintes identiques avant et après ; acceptation : un modèle factice inscrit par le banc seul est suivi par la recherche (rouge avant : `attempt to index field 'Routing' (a nil value)`) ; `test_lk_obstacles.py` 176 OK, `test_lk_alert` 25, `test_lk_window_lure` 12, `test_lk_floor_strike` 6, `test_lk_movement` 15, `test_lk_guard` 27, `test_lk_milestone` 13, `test_lk_directives` 43, `test_doubles_api`, `test_mod_calls_api`, `test_kahlua` verts sans attendu changé ; luacheck `Contents` 8
   - Reste : suite complète à repasser ; portes, clés, fenêtres, passage bloqué et refermetures restent dans `LK_Obstacles.lua` (aides privées partagées) ; passes codées en dur (D-OBS-04), lectures directes de l'état des consignes et des décisions (D-OBS-08) ; les nouveaux fichiers ne sont pas compilés par le banc Kahlua réel (le moteur des obstacles n'y est pas chargé) ; chargement du dossier `Routing/` vérifié statiquement, pas en jeu
-- [ ] **LK16-T12** — Remise en ordre vérifiée en jeu
-  - État : `à faire`
+- [x] **LK16-T12** — Remise en ordre vérifiée en jeu
+  - État : `testé MP`
   - Cible : `MP`
   - Dépend de : LK16-T02, LK16-T03, LK16-T06, LK16-T07, LK16-T08, LK16-T09, LK16-T10, LK16-T11
   - Fichiers : —
   - Faire : campagnes solo (deux mods, Living Knox seul), MP et `mp-ambient` sur le commit de fin.
   - Accepté si : mêmes résultats que la dernière campagne verte de référence.
   - Tests : campagnes en jeu.
-  - Preuve : campagnes du 2026-11-13 au soir et du 2026-11-14 (dossier de travail, commits `8b439ee` à `a7ddc94`) : MP 3 tranches `tools/autoclient/runs/20261113-233636-parallel-3` 510/534, 3 FAIL (`lk.alert` garde, `lk.forage` arrosage, `rs.npctalk` délai : corrigés par `19ac890`, `44b200a`, `f9c8d8f`) ; solo deux mods `20261113-235754-parallel-2` 245/257, 3 FAIL (`lk.forage` : lancé avant `44b200a` ; `lk.upkeep` : corrigé par `a7ddc94` ; `lk.debugview` : ouvert, registre des écarts) ; Living Knox seul `20261114-001702-parallel-2` 105/114, 0 FAIL ; `mp-ambient` `20261114-003116-mp-cf36126965e3` 23/24, 0 FAIL ; campagne MP de contrôle sur `a7ddc94` arrêtée par Claude Code (mémoire de la machine basse), non relancée
-  - Reste : campagne MP de contrôle sur le dernier commit (relancée seulement à la demande de l'utilisateur, la dernière ayant été arrêtée faute de mémoire) ; `lk.debugview` en solo (registre des écarts, `E19-T08`) ; `lk.garden` jamais joué en jeu jusqu'ici (sauté par la pollution des potagers de test, corrigée par `debc2ac`)
+  - Preuve : campagnes du 2026-11-13 au soir et du 2026-11-14 (dossier de travail, commits `8b439ee` à `a7ddc94`) : MP 3 tranches `tools/autoclient/runs/20261113-233636-parallel-3` 510/534, 3 FAIL (`lk.alert` garde, `lk.forage` arrosage, `rs.npctalk` délai : corrigés par `19ac890`, `44b200a`, `f9c8d8f`) ; solo deux mods `20261113-235754-parallel-2` 245/257, 3 FAIL (`lk.forage` : lancé avant `44b200a` ; `lk.upkeep` : corrigé par `a7ddc94` ; `lk.debugview` : ouvert, registre des écarts) ; Living Knox seul `20261114-001702-parallel-2` 105/114, 0 FAIL ; `mp-ambient` `20261114-003116-mp-cf36126965e3` 23/24, 0 FAIL ; campagne MP de contrôle sur `a7ddc94` arrêtée par Claude Code (mémoire de la machine basse), non relancée ; campagne MP du 2026-11-15 sur `962ee34` (serveur dédié + 2 clients, pont avec faux modèle) : code 0, `RST-RESULT ok=true total=398 pass=378 fail=0 error=0 skip=20` (`tools/autoclient/runs/20261115-004728-mp-63ed80f68139`) ; campagne `mp-ambient` du 2026-11-15 sur `d52f5f2` (zombies du jeu, sans mode dieu) : code 0, `RST-RESULT ok=true total=24 pass=23 fail=0 error=0 skip=1` chez rs_mp1 et 6/6 chez rs_mp2 (`tools/autoclient/runs/20261115-022131-mp-aad4e251e079`) ; campagne solo des deux mods du 2026-11-15 sur le commit `d52f5f2` (copie figée, `--campaign solo --bridge on --llm fake --wait-idle 3600`) : code 1, `RST-RESULT ok=false total=274 pass=256 fail=1 error=0 skip=17` (`tools/autoclient/runs/20261115-022616-966db38d6a28`), seul échec étranger à Living Knox : rs.personas.update (fiche de voix, travail E20 en cours) ; campagne `solo-lk` (Living Knox seul) du 2026-11-15 sur `962ee34` : code 0, `TOTAL total=114 pass=105 fail=0 error=0 skip=9` (`tools/autoclient/runs/20261115-002325-run-962ee349cab6`) : aucune suite de Living Knox en échec, lk.garden joué et vert en solo et en MP
+  - Reste : `lk.debugview` reste au registre des écarts (`E19-T08`)

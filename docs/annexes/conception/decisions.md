@@ -7,7 +7,7 @@ Code : `media/lua/server/LivingKnox/LK_Decisions.lua` (`LivingKnox.Decisions`, a
 
 ## Problème
 
-Les PNJ doivent agir d'eux-mêmes : le groupe se donne un but pour les heures qui viennent (se reposer, monter la garde, se ravitailler, soigner, fortifier), et chaque membre réagit vite à ce qui l'entoure (une menace, une blessure, un besoin) sans perdre le fil de ce que le groupe attend de lui. Les décisions doivent être prises par le seul serveur (ou le jeu en solo), être reproductibles (mêmes entrées, mêmes choix et mêmes raisons), coûter peu par image et ne produire que des consignes LK03 existantes. Modèle tranché par l'utilisateur le 2026-10-08 (hybride, section « Décisions » de [LK05](../plans/LK05-perception-decisions-routines.md)).
+Les PNJ doivent agir d'eux-mêmes : le groupe se donne un but pour les heures qui viennent (se reposer, monter la garde, se ravitailler, soigner, fortifier), et chaque membre réagit vite à ce qui l'entoure (une menace, une blessure, un besoin) sans perdre le fil de ce que le groupe attend de lui. Les décisions doivent être prises par le seul serveur (ou le jeu en solo), être reproductibles (mêmes entrées, mêmes choix et mêmes raisons), coûter peu par image et ne produire que des consignes LK03 existantes. Modèle tranché par l'utilisateur le 2026-10-08 (hybride, section « Décisions » de [LK05](../plans-termines/LK05-perception-decisions-routines.md)).
 
 ## Contraintes du moteur
 
