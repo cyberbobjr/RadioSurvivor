@@ -210,19 +210,68 @@ class AuthorityTests(PassageBase):
         self.assertIsNone(d)
         self.assertIn('no free square', why)
 
-    def test_blocker_with_priority_or_unable_to_move_keeps_its_place(self):
+    def high(self):
         self.run_lua(f'LivingKnox.Passage.priority("t.high", 90) {PA}.kindOf = function(id) '
                      'if id == "lk-2" then return "t.high" end return nil end')
+
+    def test_moving_blocker_with_priority_keeps_its_way(self):
+        self.high()
+        v = self.d('moveTo("lk-2", 103, 106, 0, "walk")')            # en marche : la priorité départage (D02)
         d, why = self.signal()
         self.assertIsNone(d)
         self.assertIn('priority', why)
-        self.h.advance_ms(self.ev(f'{PA}.SIGNAL_MS'))              # un signal par demandeur et par SIGNAL_MS
-        self.run_lua(f'{PA}.kindOf = function() return nil end '
-                     'LivingKnox.Combat = { get = function(id) if id == "lk-2" then return {} end end }')
+        self.assertEqual(self.run_lua('return LivingKnox.Directives.get("lk-2").v'), v)
+
+    def test_stationary_blocker_yields_whatever_its_priority(self):
+        # ADR, mise à jour du 2026-11-15 (soir), D07 : refus « blocker has priority (guard vs meal) » de la campagne.
+        self.high()
+        action, x, y = self.signal()
+        self.assertEqual(action, 'stepAside')
+        self.assertEqual(self.directive('lk-2')[0], 'move')
+        self.assertTrue(any('granted (nil vs t.high)' in s for s in self.lk()), self.lk())
+
+    def test_blocker_in_combat_or_in_care_keeps_its_place(self):
+        self.run_lua('LivingKnox.Combat = { get = function(id) if id == "lk-2" then return {} end end }')
         d, why = self.signal()
         self.assertIsNone(d)
         self.assertIn('in combat', why)
+        self.h.advance_ms(self.ev(f'{PA}.SIGNAL_MS'))              # un signal par demandeur et par SIGNAL_MS
+        self.run_lua('LivingKnox.Combat = nil LivingKnox.Care = { get = function() return nil end, '
+                     'taskOf = function() return nil end, caredFor = function(id) return id == "lk-2" end }')
+        d, why = self.signal()
+        self.assertIsNone(d)
+        self.assertIn('cared for', why)
+        self.h.advance_ms(self.ev(f'{PA}.SIGNAL_MS'))
+        self.run_lua('LivingKnox.Care = { get = function() return nil end, caredFor = function() return false end, '
+                     'taskOf = function(id) if id == "lk-2" then return "lk-9", {} end return nil end }')
+        d, why = self.signal()
+        self.assertIsNone(d)
+        self.assertIn('caring', why)
         self.assertIsNone(self.directive('lk-2'))
+
+    def test_free_square_reachable_around_a_corner_within_three_squares(self):
+        # ADR D08 : refus « no free square for the blocker (chore vs guard) » de la campagne. Seule case libre :
+        # 104,104, joignable par 103,103 puis 103,104 (plantes : on y passe, on ne s'y arrête pas) ; la ligne droite
+        # depuis le bloqueur coupe 104,103, bloquée.
+        self.run_lua('for x = 99, 107 do for y = 98, 106 do local keep = (x == 102 or x == 103) and y == 102 '
+                     'keep = keep or (x == 103 and (y == 103 or y == 104)) or (x == 104 and y == 104) '
+                     'if not keep then BLOCK(x, y) end end end '
+                     'getCell():getGridSquare(103, 103, 0).plant = { state = "seeded" } '
+                     'getCell():getGridSquare(103, 104, 0).plant = { state = "seeded" }')
+        self.assertIsNone(self.run_lua('local n = 0 for _, c in ipairs(' + PA + '.freeAround(103, 102, 0)) do '
+                                       'if c.x ~= 104 or c.y ~= 104 then n = n + 1 end end '
+                                       'if n > 0 then return n end return nil'))
+        action, x, y = self.signal()
+        self.assertEqual((x, y), (104, 104))
+        self.assertIn(action, ('stepAside', 'backOff'))   # derrière le bloqueur : recul
+
+    def test_passage_squares_are_allowed_for_the_yield(self):
+        # D08 : une case de passage (couloir d'une case de large, 103,103..104 entre deux colonnes bloquées) reste une
+        # case de retrait.
+        self.run_lua('for y = 103, 105 do BLOCK(102, y) BLOCK(104, y) end')
+        cells = self.run_lua('local out = {} for _, c in ipairs(' + PA + '.freeAround(103, 102, 0)) do '
+                             'out[#out + 1] = c.x .. "," .. c.y end return table.concat(out, " ")')
+        self.assertIn('103,103', cells.split())
 
     def test_signal_of_a_closed_or_other_move_refused(self):
         d, why = self.signal(v='e.v + 1')
@@ -257,6 +306,8 @@ class SoloPassageTests(PassageBase):
         self.assertEqual(self.ev('LivingKnox.Executor.stats.passageSignals'), 1)
         self.assertEqual(self.ev(f'{PA}.stats.granted'), 1)
         self.assertEqual(self.mv('stats.stuck'), 0)
+        # PNJ devant cherché dès PassageSignal.STILL_MS : aucun traitement du blocage (STUCK_MS) n'a commencé.
+        self.assertIsNone(self.ev('LivingKnox.Executor.stats.stuckSeen'))
         # Le bloqueur, sans consigne avant, revient à sa case une fois le demandeur passé.
         self.walk_both([z1, z2], 1500, until=lambda: self.ev(f'{SA}.orders["lk-2"] == nil') is True)
         op, x, y, _, _ = self.directive('lk-2')
@@ -272,8 +323,7 @@ class SoloPassageTests(PassageBase):
     def test_refused_signal_keeps_the_stuck_handling(self):
         z1 = self.solo_ready()
         z2 = self.second(104.5, 102.5)
-        self.run_lua(f'LivingKnox.Passage.priority("t.high", 90) {PA}.kindOf = function(id) '
-                     'if id == "lk-2" then return "t.high" end return nil end')
+        self.run_lua('LivingKnox.Combat = { get = function(id) if id == "lk-2" then return {} end end }')
         self.move()
         self.assertTrue(self.walk_both([z1, z2], 4000, until=self.done()), 'move never closed')
         self.assertEqual(self.ev('LivingKnox.Executor.stats.passageSignals'), 1)

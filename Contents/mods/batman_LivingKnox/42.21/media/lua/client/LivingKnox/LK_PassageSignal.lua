@@ -2,7 +2,7 @@
 -- docs/architecture/decisions/adr-ceder-le-passage.md (D01, D06). Fiche : docs/annexes/conception/passage.md.
 --
 -- Machine qui simule le corps (client MP proprietaire, solo ; appele par LK_Executor quand un "move" ne progresse
--- plus, avant le traitement du blocage de LK_Movement) :
+-- plus depuis STILL_MS, et avant le traitement du blocage de LK_Movement) :
 --   1. un autre corps de PNJ (corps connus ici, Executor.loadedBodies) se tient juste devant : a RANGE case au plus,
 --      meme niveau, du cote de l'etape visee (produit scalaire positif avec la direction de l'etape) ;
 --   2. signal "bloque par un PNJ" remis a l'autorite (solo : appel direct de LivingKnox.PassageAuthority.onSignal ;
@@ -20,6 +20,7 @@ LivingKnox.PassageSignal = Signal
 Signal.RANGE = 1.5       -- cases entre les deux corps
 Signal.LANE_COS = 0.75   -- PNJ encore dans le couloir devant : cosinus de l'ecart avec la direction de l'etape
 Signal.WAIT_MS = 6000    -- attente bornee du passage apres le signal
+Signal.STILL_MS = 1500   -- sans progres depuis ce temps, un PNJ devant est cherche (sans attendre Movement.STUCK_MS)
 
 -- Distance et cosinus de l'ecart entre (dx, dy) et la direction (hx, hy) ; cosinus nil si une direction est nulle.
 local function aim(dx, dy, hx, hy)

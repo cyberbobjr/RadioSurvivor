@@ -47,13 +47,16 @@ passage d'un membre (son comportement, ou `care` quand le soin le mène) est ré
 `LivingKnox.PassageArbiter.decide(mover, blocker, free, path, priorityOf)` ; `Passage.arbitrate(mover, blocker, free,
 path)` l'appelle avec `Passage.priorityOf`. Données simples, aucune lecture du monde :
 
-- `mover`, `blocker` : `{ id, kind, x, y, z }` ; `blocker.canMove == false` (blessé, en combat, mort) : rien.
-- Le demandeur passe si sa priorité est plus haute, ou égale et son numéro de PNJ plus petit (`Identity.idNumber`) ;
+- `mover`, `blocker` : `{ id, kind, x, y, z }` ; `blocker.canMove == false` (mort, en combat, soigné ou soignant) : rien.
+- D07 (mise à jour de l'ADR du 2026-11-15, soir) : un bloqueur immobile (`blocker.moving` pas vrai) cède toujours au
+  demandeur, quelle que soit sa priorité ; la priorité ne départage que deux PNJ en marche.
+- Entre deux PNJ en marche, le demandeur passe si sa priorité est plus haute, ou égale et son numéro de PNJ plus petit (`Identity.idNumber`) ;
   sinon rien (le demandeur garde le traitement actuel du blocage, « stuck »).
 - `{ action = "stepAside", to }` : case libre voisine du bloqueur (distance 1), ni la sienne ni celle du demandeur, hors
   des cases `path` du demandeur ; la plus proche, puis la plus loin du demandeur, puis y et x.
 - Sans case de côté : `{ action = "backOff", to }` : case libre derrière le bloqueur (côté opposé au demandeur), hors
   du trajet, la plus proche.
+- D08 : ni côté ni recul : `{ action = "stepAside", to }` vers la case libre utilisable la plus proche du relevé.
 - `free` : cases libres où le bloqueur peut se tenir et qu'il peut joindre, relevées par l'autorité (LK18-T02).
 
 ### Signalement du blocage (exécutant, LK18-T02)
@@ -65,6 +68,8 @@ de `LK_Movement` (nouvelle requête, point de déblocage, échec « stuck ») :
   côté de l'étape visée (cosinus de l'écart positif) ; le plus proche.
 - Signal remis à l'autorité une fois par étape du trajet : `{ id, v, l, b, x, y, z, bx, by, bz, tx, ty }` (solo :
   appel direct de `PassageAuthority.onSignal` ; client MP : commande `Passage.CMD_BLOCKED`, `"passageBlocked"`).
+- Recherche dès `STILL_MS` (1,5 s) sans progrès, sans attendre `Movement.STUCK_MS` (6 s) : campagne MP du
+  2026-11-15, deux corps qui se poussent dans une porte se dégageaient seuls avant 6 s, ou restaient plantés sans signal.
 - Attente bornée `WAIT_MS` (6 s) sans essai compté ; chemin relancé dès que le PNJ a quitté le couloir devant
   (cosinus de l'écart sous `LANE_COS`, 0,75) ; l'attente passée, traitement habituel du blocage. En solo, un refus
   rend aussitôt le traitement habituel ; un client MP n'a pas de réponse et attend `WAIT_MS` au plus.
@@ -83,12 +88,14 @@ de `LK_Movement` (nouvelle requête, point de déblocage, échec « stuck ») :
 
 - Genre de passage (`kindOf`) : « care » quand le soin le mène (`Care.get`), sinon son comportement au cadre
   (`Decisions.get(id).b`), sinon aucun (priorité par défaut).
-- Bloqueur capable de bouger (`canMove`) : vivant, hors combat (comportement de `Decisions.COMBAT_BEHAVIOURS`,
-  engagement `Combat.get`), santé de référence au-dessus du seuil de blessure (`Decisions.healthOf`,
-  `woundRatio`), pas déjà à l'écart.
-- Cases libres (`freeAround`, relevées par l'autorité) : à `FREE_RADIUS` (3) cases du bloqueur, praticables, sans
-  personnage debout (`Bodies.standingOn`) ni plante ni feu (`Bodies.hazardOn`), joignables en ligne dégagée
-  (`Movement.clearLine`) ; celles qui respectent la règle des places d'arrêt (`StopPlace.allows`) d'abord.
+- Bloqueur en marche (`movingOf` : consigne `move` ouverte) ou immobile (D07).
+- Bloqueur capable de bouger (`canMove`, D07) : vivant, hors combat (comportement de `Decisions.COMBAT_BEHAVIOURS`,
+  engagement `Combat.get`), ni soigné (`Care.caredFor`) ni soignant (`Care.get`, `Care.taskOf`), pas déjà à l'écart.
+  Le seuil de blessure ne compte plus (la liste de D07 ne le cite pas).
+- Cases libres (`freeAround`, D08) : joignables à pied en `FREE_RADIUS` (3) pas au plus (parcours en largeur par les
+  côtés : case praticable, sans personnage debout `Bodies.standingOn`, bord libre au sens de `Movement.edgeBlocked`),
+  sans plante ni feu (`Bodies.hazardOn`, on y passe sans s'y arrêter) ; cases de passage comprises (l'écart dure
+  quelques secondes). La ligne droite (`Movement.clearLine`) refusait une case joignable par un coin.
 - Trajet du demandeur (`pathAhead`) : case du bloqueur, case juste au-delà, puis 4 cases de la ligne vers l'étape.
 - Décision `stepAside` ou `backOff` : ordre `StepAside.order` ; la marche vise la case libre juste au-delà de la case
   décidée, dans le même sens (`walkTarget`), car un corps « arrive » à `Directives.ARRIVE` (1 case) du centre visé :
@@ -114,6 +121,15 @@ de `LK_Movement` (nouvelle requête, point de déblocage, échec « stuck ») :
 
 La règle est placée devant `threat` : l'arbitrage a déjà écarté un bloqueur en combat ou prioritaire ; une menace
 apparue pendant l'écart attend au plus `HOLD_MS`.
+
+### Campagne MP du 2026-11-15 : les trois refus
+
+Tous au poste de guet 10656,10136 du foyer de test (10656,10137, maison du joueur de la campagne) : poste relevé par
+`Routines.survey` pour la fenêtre 10654,10136 W, décalé de 2 cases par `StopPlace.nearest` (rayon `SHIFT_RADIUS`) ; la
+case respecte la règle (ni bord de porte, ni passage d'une case) mais se trouve sur le chemin d'une corvée vers la case
+de la fenêtre (10654,10136). Ce n'est pas une place hors de `StopPlace` : déduit des journaux (« group grp-10 home
+10656,10137,0 surveyed: 6 post(s) », « move #26 to 10656,10136 » du guetteur puis « face #29 to 180 degrees »), non
+vérifié sur la carte. Réponse : D07 (le guetteur immobile cède) et D08, pas un changement de la règle des places.
 
 ### Places d'arrêt (LK18-T03)
 

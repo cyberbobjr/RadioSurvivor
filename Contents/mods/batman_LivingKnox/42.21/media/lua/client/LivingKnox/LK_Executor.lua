@@ -601,9 +601,11 @@ function Executor.follow(id, e, z, run)
             return
         end
     end
-    -- Passage demandé (LK18-T02) : attente bornée en cours, ou chemin relancé quand le PNJ devant est parti.
+    -- Passage (LK18-T02) : attente bornée en cours, chemin relancé quand le PNJ devant est parti, ou PNJ devant
+    -- cherché dès PassageSignal.STILL_MS sans progrès (campagne MP du 2026-11-15 : deux corps qui se poussent dans une
+    -- porte se dégagent seuls avant Movement.STUCK_MS, ou restent bloqués sans signal).
     local P = LivingKnox.PassageSignal
-    if P ~= nil and P.waiting(run) and passageWait(id, e, z, run) then
+    if P ~= nil and (P.waiting(run) or M.stillMs(run, now()) >= P.STILL_MS) and passageWait(id, e, z, run) then
         if now() - run.lastReport >= Dir.REPORT_MS then Executor.report(id, run, z, "moving") end
         return
     end

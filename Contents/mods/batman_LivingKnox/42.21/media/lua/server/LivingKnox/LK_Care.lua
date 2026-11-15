@@ -220,6 +220,11 @@ function Care.assign(gid, g, minute)
     return st.tasks
 end
 
+-- Vrai si le PNJ id est le blessé d'une tâche de soin en cours (LK18-T02 : il ne s'écarte pas pour un passage).
+function Care.caredFor(id)
+    return Care.state.tasks[id] ~= nil
+end
+
 -- Tâche dont le PNJ id est le soigneur : identifiant du blessé, tâche ; ou nil.
 function Care.taskOf(id)
     for pid, t in pairs(Care.state.tasks) do

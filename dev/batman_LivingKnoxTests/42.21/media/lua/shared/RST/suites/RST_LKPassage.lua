@@ -11,15 +11,17 @@ RST.server({ suite = "lk.passage", tags = "world" }) from an admin client standi
 simulated, and the blocked npc signalled, by a client). Asynchronous run only (about 2 minutes; do not pause the game).
 
 The door of the site is opened for the test (state restored afterwards). The target player is untouchable (god mode)
-and vanilla zombies are removed around the site at every poll. Both npcs have no group: same passage priority, the
-smaller npc id passes (ADR D02); the first npc spawned is the one that passes.
-    - face to face in the doorway: npc 1 on the start square of the lane, npc 2 on its target square; each is sent to
-      the square of the other. Both arrive within TRIP_MS (an npc that steps aside gets its own move back afterwards),
-      at least one passage is granted and one npc stepped aside;
-    - npc standing guard on the passage: npc 2 stands on the square before the door (facing the door), npc 1 is sent
-      through the door to the target square. npc 2 is ordered aside, npc 1 arrives, then npc 2 comes back within
-      Directives.ARRIVE squares of its square.
-Figures are printed as "[LKP] measure ..." lines (time, passages granted, step-asides). Every test removes its npcs.
+and vanilla zombies are removed around the site at every poll. Both npcs have no group (same passage priority).
+Placement by the test, outside the stop-place rule (LK_StopPlace): the npcs are spawned right next to the door.
+    - face to face in the doorway (a 1-wide passage): npc 1 on the second square before the door edge, npc 2 on the
+      second square past it (the spawn keeps one free square around a body), both sent through the door at the same
+      time, each to the start square of the other (two moving npcs: the priority, then the smaller id, decides, ADR
+      D02). Both arrive within TRIP_MS (the npc that steps aside gets its own move back afterwards); at least one
+      passage is granted and one npc stepped aside;
+    - npc standing guard on the passage: npc 2 stands still ON the door square (facing through the door), npc 1 is
+      sent through the door. A still npc always yields (ADR update of 2026-11-15 evening, D07): npc 2 is ordered aside,
+      npc 1 arrives, then npc 2 comes back within Directives.ARRIVE squares of the door square.
+Figures are printed as "[LKPG] measure ..." lines (time, passages granted, step-asides). Every test removes its npcs.
 ]]
 
 require "RST/RST"
@@ -34,7 +36,7 @@ local STAND_MS = K.STAND_MS
 local TRIP_MS = 60000       -- both npcs through the door (two blockings, a wait and a step aside at most)
 local BACK_MS = 30000       -- the npc that stepped aside back on its square
 local CLEAR_RADIUS = 20     -- squares around the site cleared of vanilla zombies at every poll
-local measure = K.measurer("[LKP]")
+local measure = K.measurer("[LKPG]")   -- "[LKP]" is taken by lk.provisions
 local B, D = K.B, K.D
 
 local function O() return LivingKnox and LivingKnox.Obstacles end
@@ -87,7 +89,7 @@ local function site(t, run)
         end)
     end, function(t2, s)
         openDoor(t2, s)
-        print("[LKP] site: door " .. s.e.key .. ", start " .. s.start:getX() .. "," .. s.start:getY() .. ", target "
+        print("[LKPG] site: door " .. s.e.key .. ", start " .. s.start:getX() .. "," .. s.start:getY() .. ", target "
             .. s.target:getX() .. "," .. s.target:getY())
         return run(t2, s)
     end)
@@ -98,6 +100,17 @@ local function near(id, sq)
     if z == nil or math.floor(z:getZ()) ~= sq:getZ() then return false end
     local dx, dy = z:getX() - (sq:getX() + 0.5), z:getY() - (sq:getY() + 0.5)
     return math.sqrt(dx * dx + dy * dy) <= D().ARRIVE
+end
+
+-- Square of the lane through the door of site s, k squares from the edge: k < 0 on the side of e.a (k = -1: e.a),
+-- k > 0 on the side of e.b (k = 1: e.b).
+local function laneSquare(s, k)
+    local a, b = s.e.a, s.e.b
+    local nx, ny = b:getX() - a:getX(), b:getY() - a:getY()
+    local base = k < 0 and a or b
+    local off = k < 0 and (-k - 1) or (k - 1)
+    if k < 0 then nx, ny = -nx, -ny end
+    return getCell():getGridSquare(base:getX() + nx * off, base:getY() + ny * off, a:getZ())
 end
 
 local function both(id1, id2)
@@ -122,10 +135,12 @@ RST.suite("lk.passage", { tags = { "world", "server" }, testTimeoutMs = 150000, 
         ready(t)
         site(t, function(t1, s)
             K.clearZombiesNear(t1, s.e.a:getX(), s.e.a:getY(), s.e.a:getZ(), CLEAR_RADIUS)
-            local id1 = spawnOn(t1, s.start)
-            local id2 = spawnOn(t1, s.target)
+            local from1, from2 = laneSquare(s, -2), laneSquare(s, 2)
+            t1:ok(from1 ~= nil and from2 ~= nil, "lane squares next to the door not loaded")
+            local id1 = spawnOn(t1, from1)
+            local id2 = spawnOn(t1, from2)
             t1:waitUntil(both(id1, id2), STAND_MS, function(t2)
-                if not near(id1, s.start) or not near(id2, s.target) then
+                if not near(id1, from1) or not near(id2, from2) then
                     t2:skip("an npc spawned off its square")
                 end
                 local c0 = counters()
@@ -150,10 +165,11 @@ RST.suite("lk.passage", { tags = { "world", "server" }, testTimeoutMs = 150000, 
         ready(t)
         site(t, function(t1, s)
             K.clearZombiesNear(t1, s.e.a:getX(), s.e.a:getY(), s.e.a:getZ(), CLEAR_RADIUS)
-            local mover = spawnOn(t1, s.start)    -- spawned first: the smaller id, it passes
-            local guard = spawnOn(t1, s.e.a)
+            local post = s.obj:getSquare()        -- the door square itself (never a stop place of the mod)
+            local mover = spawnOn(t1, s.start)
+            local guard = spawnOn(t1, post)
             t1:waitUntil(both(mover, guard), STAND_MS, function(t2)
-                if not near(mover, s.start) or not near(guard, s.e.a) then t2:skip("an npc spawned off its square") end
+                if not near(mover, s.start) or not near(guard, post) then t2:skip("an npc spawned off its square") end
                 local a = math.atan2(s.e.b:getY() - s.e.a:getY(), s.e.b:getX() - s.e.a:getX()) * 180 / math.pi
                 D().face(guard, a)
                 local c0 = counters()
@@ -165,10 +181,11 @@ RST.suite("lk.passage", { tags = { "world", "server" }, testTimeoutMs = 150000, 
                     return near(mover, s.target) and not SA().active(guard)
                 end, TRIP_MS, function(t3, ms)
                     local c = counters()
-                    measure(string.format("guard on the passage: mover through in %d ms, guard ordered aside %s, "
+                    measure(string.format("guard on the door square: mover through in %d ms, guard ordered aside %s, "
                         .. "passages granted %d", ms, tostring(ordered), c.granted - c0.granted))
                     t3:ok(ordered, "the guard was never ordered aside")
-                    waitClear(t3, s, function() return near(guard, s.e.a) end, BACK_MS, function(t4, back)
+                    t3:ok(c.granted > c0.granted, "no passage granted")
+                    waitClear(t3, s, function() return near(guard, post) end, BACK_MS, function(t4, back)
                         measure(string.format("guard back on its square %d ms after the mover passed", back))
                     end, "the guard did not come back within " .. BACK_MS .. " ms")
                 end, "the mover did not get through within " .. TRIP_MS .. " ms")

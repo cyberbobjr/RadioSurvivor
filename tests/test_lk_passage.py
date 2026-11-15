@@ -51,9 +51,10 @@ MOVER = '{ id = "lk-5", kind = "t.urgent", x = 10, y = 10, z = 0 }'
 PATH = '{ { x = 11, y = 10 }, { x = 12, y = 10 }, { x = 13, y = 10 }, { x = 14, y = 10 } }'
 
 
-def blocker(kind='t.guard', bid='lk-9', can_move=True):
+def blocker(kind='t.guard', bid='lk-9', can_move=True, moving=True):
+    """Bloqueur en 11,10 ; moving : en marche (consigne ouverte), sinon immobile (D07 : il cède toujours)."""
     return (f'{{ id = "{bid}", kind = "{kind}", x = 11, y = 10, z = 0'
-            f'{"" if can_move else ", canMove = false"} }}')
+            f'{"" if can_move else ", canMove = false"}{", moving = true" if moving else ""} }}')
 
 
 def squares(*xy):
@@ -120,6 +121,52 @@ class ArbitrationTests(PassageBase):
                            '{ id = "lk-1", kind = "b", x = 11, y = 10, z = 0 }, { { x = 11, y = 9, z = 0 } }, {}, '
                            'function(k) if k == "a" then return 7 end return 3 end).action')
         self.assertEqual(out, 'stepAside')
+
+
+class StationaryBlockerTests(PassageBase):
+    """Mise à jour du 2026-11-15 (soir) de l'ADR : D07 (un PNJ immobile cède toujours à un PNJ en marche, sauf s'il
+    ne peut pas bouger) et D08 (pas de case voisine : la case libre la plus proche, jusqu'à 3 cases). Les trois refus
+    de la campagne MP du 2026-11-15 (serveur, PNJ de foyer au poste 10656,10136) rejoués en données d'arbitrage."""
+
+    def setUp(self):
+        super().setUp()
+        # Priorités de l'ADR (D02), déclarées ici comme les fichiers des comportements.
+        self.run_lua(f'{P}.priority("chore", 50) {P}.priority("meal", 50) {P}.priority("guard", 30) '
+                     f'{P}.priority("patrol", 30)')
+
+    def test_campaign_guard_vs_meal_stationary_meal_steps_aside(self):
+        # « lk-140: blocked by npc lk-141 ..., no passage: blocker has priority (guard vs meal) »
+        mover = '{ id = "lk-140", kind = "guard", x = 10, y = 10, z = 0 }'
+        b = blocker(kind='meal', bid='lk-141', moving=False)
+        self.assertEqual(self.decide(mover, b, squares((11, 9)), PATH), ('stepAside', 11, 9))
+
+    def test_campaign_patrol_vs_chore_stationary_chore_steps_aside(self):
+        # « lk-191: blocked by npc lk-192 ..., no passage: blocker has priority (patrol vs chore) »
+        mover = '{ id = "lk-191", kind = "patrol", x = 10, y = 10, z = 0 }'
+        b = blocker(kind='chore', bid='lk-192', moving=False)
+        self.assertEqual(self.decide(mover, b, squares((11, 11)), PATH), ('stepAside', 11, 11))
+
+    def test_campaign_chore_vs_guard_without_neighbour_goes_further(self):
+        # « lk-5: blocked by npc lk-7 ..., no passage: no free square for the blocker (chore vs guard) » : aucune
+        # case voisine hors trajet ni derrière ; une case libre à 2 cases sur le côté (D08).
+        mover = '{ id = "lk-5", kind = "chore", x = 10, y = 10, z = 0 }'
+        b = blocker(kind='guard', bid='lk-7', moving=False)
+        free = squares((12, 10), (13, 10), (11, 8), (9, 12))
+        self.assertEqual(self.decide(mover, b, free, PATH), ('stepAside', 11, 8))
+
+    def test_moving_blockers_are_still_decided_by_priority(self):
+        mover = '{ id = "lk-140", kind = "guard", x = 10, y = 10, z = 0 }'
+        self.assertIsNone(self.decide(mover, blocker(kind='meal', bid='lk-141'), squares((11, 9)), PATH)[0])
+
+    def test_stationary_blocker_unable_to_move_keeps_its_place(self):
+        mover = '{ id = "lk-140", kind = "guard", x = 10, y = 10, z = 0 }'
+        b = blocker(kind='meal', bid='lk-141', moving=False, can_move=False)
+        self.assertIsNone(self.decide(mover, b, squares((11, 9)), PATH)[0])
+
+    def test_fallback_never_takes_the_path_or_the_mover_square(self):
+        mover = '{ id = "lk-5", kind = "chore", x = 10, y = 10, z = 0 }'
+        b = blocker(kind='guard', bid='lk-7', moving=False)
+        self.assertIsNone(self.decide(mover, b, squares((12, 10), (13, 10), (10, 10)), PATH)[0])
 
 
 class RegistryTests(PassageBase):

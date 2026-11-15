@@ -4,7 +4,8 @@
 -- Fonction pure : aucune lecture du monde, aucun registre global. Tout arrive en données simples ou en requête injectée,
 -- testable hors jeu :
 --   mover   = { id, kind, x, y, z }            PNJ qui avance sans progresser (le demandeur)
---   blocker = { id, kind, x, y, z, canMove }   PNJ sur son trajet ; canMove faux : blessé, en combat, mort...
+--   blocker = { id, kind, x, y, z, canMove, moving }   PNJ sur son trajet ; canMove faux : en combat, mort, soigné
+--                                              ou soignant... ; moving vrai : en marche (consigne "move" ouverte)
 --   free    = { { x, y, z }, ... }             cases libres autour du bloqueur, où il peut se tenir et qu'il peut
 --                                              joindre (relevé de l'appelant, l'autorité)
 --   path    = { { x, y }, ... }                prochaines cases du trajet du demandeur
@@ -29,8 +30,11 @@ local function idBefore(a, b)
     return tostring(a) < tostring(b)
 end
 
--- Vrai si le demandeur passe : priorité plus haute, ou égale et plus petit identifiant.
+-- Vrai si le demandeur passe. Mise à jour de l'ADR du 2026-11-15 (soir), D07 : un bloqueur immobile (moving pas
+-- vrai) cède toujours au demandeur, qui est en marche ; entre deux PNJ en marche : priorité plus haute, ou égale et
+-- plus petit identifiant (D02).
 function Arbiter.moverPasses(mover, blocker, priorityOf)
+    if blocker.moving ~= true then return true end
     local pm, pb = priorityOf(mover.kind), priorityOf(blocker.kind)
     if pm ~= pb then return pm > pb end
     return idBefore(mover.id, blocker.id)
@@ -74,7 +78,8 @@ local function usable(sq, mover, blocker, path)
     return not onPath(sq, path)
 end
 
--- Décision de passage (voir l'en-tête). D03 : le bloqueur qui ne peut pas bouger, ou qui a la priorité, ne cède rien.
+-- Décision de passage (voir l'en-tête). D03 : le bloqueur qui ne peut pas bouger ne cède rien ; D07 : un bloqueur en
+-- marche prioritaire non plus.
 function Arbiter.decide(mover, blocker, free, path, priorityOf)
     if blocker.canMove == false then return nil end
     if not Arbiter.moverPasses(mover, blocker, priorityOf) then return nil end
@@ -90,6 +95,10 @@ function Arbiter.decide(mover, blocker, free, path, priorityOf)
         return (sq.x - blocker.x) * bx + (sq.y - blocker.y) * by > 0 and usable(sq, mover, blocker, path)
     end)
     if back ~= nil then return { action = Arbiter.BACK_OFF, to = { x = back.x, y = back.y, z = blocker.z } } end
+    -- D08 (mise à jour du 2026-11-15, soir) : ni côté ni recul, la case libre utilisable la plus proche (free : relevé
+    -- de l'autorité, cases joignables jusqu'à 3 cases, cases de passage comprises).
+    local any = best(free, blocker, mover, function(sq) return usable(sq, mover, blocker, path) end)
+    if any ~= nil then return { action = Arbiter.STEP_ASIDE, to = { x = any.x, y = any.y, z = blocker.z } } end
     return nil
 end
 

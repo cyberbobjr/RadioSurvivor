@@ -53,6 +53,22 @@ systèmes, comportements et actions conformes aux principes SOLID.
 - **D06 — Autorité et MP.** L'autorité seule arbitre et ordonne. Le client propriétaire signale le blocage (cible voisine
   vue) et exécute l'action. Le serveur vérifie que les deux PNJ sont voisins et que la case de retrait est libre.
 
+## Mise à jour du 2026-11-15 (soir) : un PNJ immobile cède toujours
+
+Constat de l'utilisateur et campagne MP du 2026-11-15 (serveur, `rs-mp-server`) : des PNJ immobiles ne bougent pas
+quand ils bloquent. Les signalements arrivent bien à l'autorité, mais tous les arbitrages ont rendu « rien » :
+« blocker has priority (patrol vs chore) », « blocker has priority (guard vs meal) », « no free square for the blocker
+(chore vs guard) ». La règle D02 seule laisse un PNJ en corvée ou au repas planté sur le passage d'un PNJ de garde.
+
+- **D07 — Un PNJ immobile cède toujours à un PNJ en marche**, quelle que soit sa priorité, sauf s'il ne peut pas bouger
+  (mort, en combat, soigné ou soignant). La priorité de D02 ne départage que deux PNJ en marche. Remplace, pour ce cas,
+  la dernière puce de D03 (« le bloqueur a la priorité »).
+- **D08 — Pas de case libre voisine : on cherche plus loin.** Le bloqueur recule ou s'écarte vers la case libre
+  joignable la plus proche, jusqu'à 3 cases (cases de passage comprises : il s'agit de libérer le passage quelques
+  secondes, pas de s'y arrêter durablement).
+
+Décisions D01 à D06 inchangées par ailleurs.
+
 ## Conséquences
 
 - Les PNJ se croisent dans les portes et les couloirs du foyer sans s'arrêter longtemps. Un PNJ immobile ne bloque plus

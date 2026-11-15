@@ -8,11 +8,13 @@
 --      l'autorite (meme niveau, NEIGHBOUR case au plus, distance de Tchebychev) ; au plus un signal par demandeur et
 --      par SIGNAL_MS ;
 --   2. genre de passage de chaque PNJ (kindOf : son comportement au cadre de decision, "care" quand le soin le mene)
---      et bloqueur capable de bouger (canMove : vivant, hors combat, sante au-dessus du seuil de blessure, pas deja a
+--      ; bloqueur en marche (moving : consigne "move" ouverte ; immobile, il cede toujours, mise a jour du
+--      2026-11-15 soir, D07) et capable de bouger (canMove : vivant, hors combat, ni soigne ni soignant, pas deja a
 --      l'ecart) ;
---   3. cases libres autour du bloqueur (freeAround, relevees ici, D06) : a FREE_RADIUS case au plus, praticables,
---      sans personnage debout (Bodies.standingOn) ni danger (Bodies.hazardOn), joignables en ligne degagee
---      (Movement.clearLine) ; celles qui respectent la regle des places d'arret (StopPlace.allows) d'abord ;
+--   3. cases libres autour du bloqueur (freeAround, relevees ici, D06, D08) : joignables a pied en FREE_RADIUS pas au
+--      plus (pas entre voisines par un cote : case praticable, aucun personnage debout, bord libre au sens de
+--      Movement.edgeBlocked), sans danger (Bodies.hazardOn) ; cases de passage comprises (l'ecart dure quelques
+--      secondes, ce n'est pas une place d'arret) ;
 --   4. LivingKnox.Passage.arbitrate ; decision stepAside ou backOff : ordre au bloqueur (LivingKnox.StepAside.order),
 --      marche visant la case libre juste au-dela de la case decidee, dans le meme sens (walkTarget : un corps
 --      "arrive" a Directives.ARRIVE case du centre vise, soit une case : sans ce depassement, il resterait sur le
@@ -32,7 +34,7 @@ local Authority = LivingKnox.PassageAuthority or {}
 LivingKnox.PassageAuthority = Authority
 
 Authority.NEIGHBOUR = 2      -- cases (Tchebychev, meme niveau) entre les corps du demandeur et du bloqueur
-Authority.FREE_RADIUS = 3    -- cases autour du bloqueur relevees pour l'arbitrage (pas de cote, recul)
+Authority.FREE_RADIUS = 3    -- pas au plus du bloqueur aux cases relevees pour l'arbitrage (D08)
 Authority.PATH_SQUARES = 4   -- cases du trajet du demandeur (ligne vers l'etape) tenues hors de la case de retrait
 Authority.SIGNAL_MS = 1000   -- au plus un signal traite par demandeur dans ce delai
 Authority.LINE_STEP = 0.25   -- cases : echantillonnage de la ligne du demandeur vers l'etape
@@ -84,6 +86,12 @@ function Authority.kindOf(id)
     return st ~= nil and st.b or nil
 end
 
+-- Vrai si le PNJ id est en marche : consigne "move" ouverte (D07 : sinon il est immobile et cede toujours).
+function Authority.movingOf(id)
+    local e = D().get(id)
+    return e ~= nil and not e.done and e.op == D().OP_MOVE
+end
+
 -- Vrai si le PNJ id (corps body) peut s'ecarter ; sinon faux et la raison.
 function Authority.canMove(id, body)
     if body == nil or body:isDead() then return false, "dead" end
@@ -95,35 +103,48 @@ function Authority.canMove(id, body)
                 if st.b == b then return false, "in combat" end
             end
         end
-        if Dec.healthOf ~= nil and Dec.healthOf({ npc = id }) < Dec.woundRatio() then return false, "badly hurt" end
     end
     local C = LivingKnox.Combat
     if C ~= nil and C.get ~= nil and C.get(id) ~= nil then return false, "in combat" end
+    local Ca = LivingKnox.Care
+    if Ca ~= nil then
+        if Ca.caredFor ~= nil and Ca.caredFor(id) then return false, "cared for" end
+        if (Ca.get ~= nil and Ca.get(id) ~= nil) or (Ca.taskOf ~= nil and Ca.taskOf(id) ~= nil) then
+            return false, "caring"
+        end
+    end
     local S = LivingKnox.StepAside
     if S ~= nil and S.active ~= nil and S.active(id) then return false, "already stepping aside" end
     return true
 end
 
--- Cases libres autour de (bx, by, lv) ou le bloqueur peut se tenir et qu'il peut joindre (voir l'en-tete), dans
--- l'ordre des anneaux de Bodies.ring ; celles qui respectent la regle des places d'arret si elles existent.
+local SIDES = { { 0, -1 }, { 1, 0 }, { 0, 1 }, { -1, 0 } }
+
+-- Cases libres ou le bloqueur de (bx, by, lv) peut se tenir et qu'il peut joindre a pied en FREE_RADIUS pas au plus
+-- (voir l'en-tete), dans l'ordre du parcours en largeur (pas, puis nord, est, sud, ouest).
 function Authority.freeAround(bx, by, lv)
     local cell = getCell()
-    local Bo, Mv, SP = B(), LivingKnox.Movement, LivingKnox.StopPlace
-    local good, any = {}, {}
-    for r = 1, Authority.FREE_RADIUS do
-        for _, d in ipairs(Bo.ring(r)) do
-            local x, y = bx + d[1], by + d[2]
-            local sq = cell:getGridSquare(x, y, lv)
-            if sq ~= nil and sq:isFree(false) and not Bo.standingOn(x, y, lv) and Bo.hazardOn(sq) == nil
-                and Mv.clearLine(bx + 0.5, by + 0.5, x + 0.5, y + 0.5, lv) then
-                local c = { x = x, y = y, z = lv }
-                any[#any + 1] = c
-                if SP == nil or SP.allows(sq) then good[#good + 1] = c end
+    local Bo, Mv = B(), LivingKnox.Movement
+    local out, seen = {}, { [bx .. "," .. by] = true }
+    local front = { cell:getGridSquare(bx, by, lv) }
+    if front[1] == nil then return out end
+    for _ = 1, Authority.FREE_RADIUS do
+        local nextFront = {}
+        for _, sq in ipairs(front) do
+            for _, d in ipairs(SIDES) do
+                local x, y = sq:getX() + d[1], sq:getY() + d[2]
+                local k = x .. "," .. y
+                local nb = not seen[k] and cell:getGridSquare(x, y, lv) or nil
+                if nb ~= nil and nb:isFree(false) and not Bo.standingOn(x, y, lv) and not Mv.edgeBlocked(sq, nb) then
+                    seen[k] = true
+                    nextFront[#nextFront + 1] = nb
+                    if Bo.hazardOn(nb) == nil then out[#out + 1] = { x = x, y = y, z = lv } end
+                end
             end
         end
+        front = nextFront
     end
-    if #good > 0 then return good end
-    return any
+    return out
 end
 
 -- Prochaines cases du trajet du demandeur (case (mx, my) vers l'etape (tx, ty)) : la case du bloqueur, celle juste
@@ -198,7 +219,8 @@ function Authority.onSignal(player, args)
     Authority.last[id] = t
     local can, cant = Authority.canMove(bid, bz)
     local mover = { id = id, kind = Authority.kindOf(id), x = mx, y = my, z = lv }
-    local blocker = { id = bid, kind = Authority.kindOf(bid), x = bx, y = by, z = bl, canMove = can }
+    local blocker = { id = bid, kind = Authority.kindOf(bid), x = bx, y = by, z = bl, canMove = can,
+        moving = Authority.movingOf(bid) }
     local tx, ty = D().stepTarget(e, e.k)
     local path = Authority.pathAhead(mx, my, bx, by, tx, ty)
     local free = Authority.freeAround(bx, by, bl)
@@ -206,8 +228,8 @@ function Authority.onSignal(player, args)
     if decision == nil then
         Authority.stats.none = Authority.stats.none + 1
         local why = noneReason(mover, blocker, cant)
-        log().info("npc %s: blocked by npc %s at %d,%d, no passage: %s (%s vs %s)", id, bid, bx, by, why,
-            tostring(mover.kind), tostring(blocker.kind))
+        log().info("npc %s: blocked by npc %s at %d,%d, no passage: %s (%s vs %s, blocker %s)", id, bid, bx, by, why,
+            tostring(mover.kind), tostring(blocker.kind), blocker.moving and "moving" or "still")
         return nil, why
     end
     decision.aim = Authority.walkTarget(bx, by, decision.to, free)
