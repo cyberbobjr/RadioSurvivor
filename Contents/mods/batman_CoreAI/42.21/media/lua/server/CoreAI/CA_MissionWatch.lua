@@ -5,8 +5,8 @@ hours, then report by radio what was seen. Authority only. Catalogue: CA_Mission
 watch_v1). Registered in CA_Missions (M.register); required by CA_NotebookServer.
 
 Giver: a radio voice only, under the name `watch` (declaration voiceName); an NPC fiche is never offered one. The
-spot is the place `target` of the voice sheet (use=target), handed over by RadioSurvivor's set-up of the templates
-that declare aimAt (RS_MissionTarget). Parameter hours (sheet, kind count; default entry.hours), from 1 to
+spot is the place `target` of the voice sheet (use=target), handed over by the voice set-up of the templates
+that declare aimAt. Parameter hours (sheet, kind count; default entry.hours), from 1 to
 entry.maxHours, else the start is refused: bad_hours.
 Watch (server authority, the server copy of each participant, never a claim): a participant watches while within
 entry.radius tiles of the place on the ground plane (any level: a roof or an upper floor of the place counts). Time is
@@ -21,7 +21,7 @@ sleeping), read by the engine poll of each participant (CA_Missions.observe, onc
 Several participants read at the same instant (one engine poll) count once: one of them at the spot is enough (so the
 length of an absence is judged from the next instant on).
 Objective met when m.watched reaches m.hours (latched: leaving afterwards changes nothing, reportReady): the mission
-waits "to report" and succeeds by the report on the voice's frequency (RS_MissionVoice.report, CA_Missions.spoken).
+waits "to report" and succeeds by the report on the voice's frequency (the voice's report, CA_Missions.spoken).
 Facts (CA_WatchFacts, sources in WatchFacts/): sampled while someone is at the spot during the watch, at most every
 entry.scanMs per mission (real time); recorded in m.facts and told to the voice as plain English lines (voiceBrief),
 never a coordinate. Notebook (MissionViews/CA_View_Watch): place label, time watched of the duration,
@@ -100,7 +100,7 @@ local function sample(m)
     return Facts.observe(m, m.spot)
 end
 
--- Declaration aimAt (set-up of a voice mission with a target place, RadioSurvivor's RS_MissionTarget): the spot at
+-- Declaration aimAt (set-up of a voice mission with a target place, the voices' set-up): the spot at
 -- `place` and the hours of `params`; also called on a scratch table to check a section before the mission exists.
 -- Returns true, or false and the reason ([a-z_]).
 function Watch.aimAt(m, place, params)

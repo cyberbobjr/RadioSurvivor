@@ -20,10 +20,10 @@ Sources (closed list, Facts.KINDS):
     water_cut    EveryHours poll: GameTime.getWorldAgeDaysSinceBegin() < SandboxOptions.getWaterShutModifier() goes
                  from true to false (same test as IsoObject.java:2544 and ParameterWaterSupply.java:18).
     weather      EveryHours poll (CA_WorldFacts.weatherNow): start of a storm, tropical storm or blizzard.
-    group_death  public event OnLivingKnoxMemberDied: group name, role, cause, byPlayer, offscreen, place.
-    group_gone   public event OnLivingKnoxGroupGone: group name, reason.
-    group_new    public event OnLivingKnoxGroupCreated: group name, type key, place (at most CAPS.group_new a day).
-    Not recorded: encounters, attitudes and needs of Living Knox (they concern one player or are internal).
+    group_death  CA_GroupFacts member_died: group name, role, cause, byPlayer, offscreen, place.
+    group_gone   CA_GroupFacts group_gone: group name, reason.
+    group_new    CA_GroupFacts group_created: group name, type key, place (at most CAPS.group_new a day).
+    Not recorded: encounters, attitudes and needs of the NPC groups (they concern one player or are internal).
 
 Bounds: at most MAX_FACTS facts (when full, the oldest fact that is not a death goes first), CAPS[kind] per kind and
 day, strings cut to MAX_CHARS, at most MAX_NAMES names per list, any string with three digits in a row refused (no
@@ -58,6 +58,7 @@ local Rescue = require 'RadioSurvivor/RS_Rescue'
 local World = require 'CoreAI/CA_WorldFacts' -- E18-T27: world readings of the core mod
 local Const = require 'RadioSurvivor/RadioSurvivor_Const'
 local Codec = require 'CoreAI/CA_Codec'
+local GroupFacts = require 'CoreAI/CA_GroupFacts' -- E21-T06: public facts of the NPC groups
 
 local Facts = {pending = {}}
 
@@ -338,7 +339,7 @@ end
 
 -- ------------------------------------------------------------------------------------------------ sources
 
--- OnCharacterDeath: players only (zombies and Living Knox bodies also raise it). E14-T04: an animal is an IsoPlayer
+-- OnCharacterDeath: players only (zombies and NPC bodies also raise it). E14-T04: an animal is an IsoPlayer
 -- too (IsoAnimal extends IsoPlayer, IsoAnimal.java:136) and raises the event at its death (IsoAnimal.java:1077); its
 -- descriptor keeps the default names "None" "None" (SurvivorDesc.java:50, 54): never a survivor of the memorial.
 function Facts.characterDeath(character)
@@ -370,7 +371,7 @@ end
 
 local chained
 -- Installs Facts.missionFinished after the current listener of CA_Missions.onFinished (none since E18-T27: the
--- observations of Living Knox use a result listener). Called again at each poll: a listener set later is wrapped too.
+-- observations of the NPC engine use a result listener). Called again at each poll: a listener set later is wrapped too.
 function Facts.chain()
     if chained and M.onFinished == chained then return end
     local previous = M.onFinished
@@ -381,35 +382,27 @@ function Facts.chain()
     M.onFinished = chained
 end
 
-local function groupName(id)
-    local LK = LivingKnox
-    local api = type(LK) == 'table' and LK.API
-    if type(id) ~= 'string' or type(api) ~= 'table' or type(api.getGroup) ~= 'function' then return nil end
-    local view = api.getGroup(id)
-    return type(view) == 'table' and type(view.name) == 'string' and view.name or nil
-end
-
 local function areaPlace(area)
     if type(area) ~= 'table' then return nil end
     return Facts.place(area.x, area.y)
 end
 
-function Facts.lkMemberDied(e)
-    if type(e) ~= 'table' or type(e.group) ~= 'string' then return end
-    Facts.record('group_death', {group = groupName(e.group), role = e.role, cause = e.cause,
-        byPlayer = e.byPlayer == true, offscreen = e.offscreen == true, place = areaPlace(e.area)},
-        'lkdied|' .. e.group .. '|' .. tostring(e.member))
+-- CA_GroupFacts (the group name comes resolved with the fact; id and member make the key of the fact).
+function Facts.groupMemberDied(f)
+    if type(f) ~= 'table' or type(f.id) ~= 'string' then return end
+    Facts.record('group_death', {group = f.group, role = f.role, cause = f.cause,
+        byPlayer = f.byPlayer == true, offscreen = f.offscreen == true, place = areaPlace(f.area)},
+        'groupdied|' .. f.id .. '|' .. tostring(f.member))
 end
 
-function Facts.lkGroupGone(e)
-    if type(e) ~= 'table' or type(e.group) ~= 'string' then return end
-    Facts.record('group_gone', {group = groupName(e.group), reason = e.reason}, 'lkgone|' .. e.group)
+function Facts.groupGone(f)
+    if type(f) ~= 'table' or type(f.id) ~= 'string' then return end
+    Facts.record('group_gone', {group = f.group, reason = f.reason}, 'groupgone|' .. f.id)
 end
 
-function Facts.lkGroupCreated(e)
-    if type(e) ~= 'table' or type(e.group) ~= 'string' then return end
-    Facts.record('group_new', {group = e.name or groupName(e.group), typeKey = e.typeNameKey,
-        place = areaPlace(e.area)}, 'lknew|' .. e.group)
+function Facts.groupCreated(f)
+    if type(f) ~= 'table' or type(f.id) ~= 'string' then return end
+    Facts.record('group_new', {group = f.group, typeKey = f.typeKey, place = areaPlace(f.area)}, 'groupnew|' .. f.id)
 end
 
 -- One poll of the world state: start of a weather episode, power and water cuts (state kept in the book).
@@ -763,12 +756,12 @@ end
 
 -- ------------------------------------------------------------------------------------------------ events
 
--- Event name -> handler name. Handlers are looked up in the global RS_Facts at each call: a Lua reload replaces the
--- module without adding a second subscription (Events.X.Add does not deduplicate).
-local LK_EVENTS = {
-    OnLivingKnoxMemberDied = 'lkMemberDied',
-    OnLivingKnoxGroupGone = 'lkGroupGone',
-    OnLivingKnoxGroupCreated = 'lkGroupCreated',
+-- Group fact kind (CA_GroupFacts) -> handler name. Handlers are looked up in the global RS_Facts at each call: a Lua
+-- reload replaces the module without adding a second subscription (guarded by RS_FactsHooked).
+local GROUP_FACTS = {
+    member_died = 'groupMemberDied',
+    group_gone = 'groupGone',
+    group_created = 'groupCreated',
 }
 
 RS_Facts = Facts
@@ -778,10 +771,8 @@ if not RS_FactsHooked then
     Events.EveryHours.Add(function() RS_Facts.hourly() end)
     Events.OnServerStarted.Add(function() RS_Facts.chain() end)
     Events.OnGameStart.Add(function() RS_Facts.chain() end)
-    for name, handler in pairs(LK_EVENTS) do
-        -- AddEvent is idempotent (declares the name when Living Knox is not loaded yet or at all).
-        if LuaEventManager and LuaEventManager.AddEvent then LuaEventManager.AddEvent(name) end
-        if Events[name] then Events[name].Add(function(e) RS_Facts[handler](e) end) end
+    for kind, handler in pairs(GROUP_FACTS) do
+        GroupFacts.on(kind, function(f) RS_Facts[handler](f) end)
     end
 end
 Facts.chain()

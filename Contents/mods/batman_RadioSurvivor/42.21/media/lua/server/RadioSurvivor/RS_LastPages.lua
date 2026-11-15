@@ -42,7 +42,7 @@ P.REPLY_KIND = "last_pages_reply"
 P.ITEM = "Base.Notebook"      -- literature.txt: CanBeWrite = true, PageToWrite = 10
 P.PAGES = 10
 P.LINES = 15                  -- ISUIWriteJournal: setMaxLines(15)
-P.WIDTH = 40                  -- characters per line (350 px window): same guess as LK_Traces, to check in game
+P.WIDTH = 40                  -- characters per line (350 px window): same guess as the NPC traces, to check in game
 P.MAX_TEXT = 2400             -- characters of the bridge text kept (bridge: last_pages.MAX_TEXT_BYTES)
 P.TIMEOUT_MS = 90000          -- no answer of a missing bridge by then: fallback journal (E17-T16: a bridge seen
                               -- alive is awaited Const.BRIDGE_TIMEOUT_MS, Const.waitMs)

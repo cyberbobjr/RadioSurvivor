@@ -1,6 +1,6 @@
 -- Radio Survivor : radio des groupes équipés (E08-T06). Fiche : docs/annexes/conception/radio-groupes.md.
 --
--- Un groupe de Living Knox qui tient un poste émetteur (type au format 2 : homeRadio au foyer, radio dans un profil ;
+-- Un groupe de PNJ qui tient un poste émetteur (type au format 2 : homeRadio au foyer, radio dans un profil ;
 -- Provider.radios) devient une voix du réseau radio, comme les voix d'E05 :
 --   - une fiche ENGENDRÉE par groupe (RS_Personas.setGenerated, jamais écrite dans le dossier des fiches), identifiant
 --     grp_<n> ; même tirage de fréquence par partie, sans conflit, mémorisé dans le fichier de la partie (E05-T07),
@@ -63,7 +63,7 @@ local function sheetLines(entry, id)
     return { "format=1", "id=" .. id, "name=" .. name, "language=en", "frequency_range=" .. GroupRadio.RANGE,
         "radio=any", "listen=always", "location=none", "actions=say", "budget=0", "call_one_in=0", "state=active",
         "[prompt]",
-        "Radio of a Living Knox group: its replies come from the notebook NPC requests (RS_GroupRadio), never from"
+        "Radio of an NPC group: its replies come from the notebook NPC requests (RS_GroupRadio), never from"
             .. " this text." }
 end
 
@@ -132,7 +132,7 @@ function GroupRadio.talk(player, key, sheet, khz, text, language, cid)
     -- Mêmes quotas que la parole de proximité (CA_NotebookServer.talk).
     local now = getTimestampMs()
     local Queue = Server.talk
-    if not Queue then return nil, "no Living Knox speech" end
+    if not Queue then return nil, "no NPC speech host" end
     if Queue.lastTalk[character] and now - Queue.lastTalk[character] < C.COOLDOWN_MS then return nil, "cooldown" end
     if not Queue.room(now) then return nil, "notebook requests busy" end
     local known = Server.contact(character, npc)

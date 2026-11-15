@@ -1,5 +1,5 @@
 -- CoreAI: new world or restart of an existing world, for the states written in files of the authority
--- (RS_State, Living Knox registries). Moved to the core mod by E18-T02 (shared: loaded on every machine, the signal
+-- (private states and registries of the mods). Moved to the core mod by E18-T02 (shared: loaded on every machine, the signal
 -- is only read by the authority).
 --
 -- Engine trap (42.21.0): the argument of OnInitGlobalModData comes from WorldDictionary.isIsNewGame()

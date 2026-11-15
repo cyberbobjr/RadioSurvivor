@@ -183,6 +183,15 @@ class CatalogueTests(TradeHarness):
         self.assertAlmostEqual(news.w, float(re.search(r'Weight\s*=\s*([\d.]+)', script).group(1)))
         self.assertEqual((news.min, news.max), (1, 1))
 
+    def test_news_sale_value_registered_by_the_mod(self):
+        # E21-T06: the sale value of the outside news is RadioSurvivor's, registered in the core scale by RS_Trade.
+        self.rt.execute('package.loaded["CoreAI/CA_TradeValues"] = nil; package.loaded["RadioSurvivor/RS_Trade"] = nil')
+        tv = self.rt.eval('require("CoreAI/CA_TradeValues")')
+        self.rt.eval('require("RadioSurvivor/RS_Trade")')
+        self.assertEqual((tv.sellValue('RadioSurvivor.OutsideNews'), tv.SELL_ONLY['RadioSurvivor.OutsideNews'].cap,
+                          tv.SELL_ONLY['RadioSurvivor.OutsideNews'].k), (2, 1, 'supply'))
+        self.assertEqual(tv.value('RadioSurvivor.OutsideNews')[0], 0)
+
 
 class StockTests(TradeHarness):
 

@@ -1,8 +1,8 @@
 --[[
-CoreAI: files and heartbeat of the Python bridge (E18-T04, moved from RadioSurvivor_Const, E17-T16).
+CoreAI: files and heartbeat of the Python bridge (E18-T04, moved from a mod's constants, E17-T16).
 
 Exchange files of the queue (CA_Transport) and heartbeat file of the bridge, in the folder of the core mod (E18-T12):
-the same bridge serves RadioSurvivor alone, Living Knox alone or both, without any option.
+the same bridge serves one mod alone or several, without any option.
 
 Heartbeat: the bridge writes any answer, error included, at most BRIDGE_REPLY_MS after the request
 (bridge/radio_bridge.py: MAX_AGE_S 75 + LLM_BUDGET_S 60) and, while it runs, keeps BRIDGE_ALIVE_FILE fresh
@@ -17,7 +17,7 @@ Bridge.REQUESTS_FILE = "batman_CoreAI/requests.txt"
 Bridge.RESPONSES_FILE = "batman_CoreAI/responses.txt"
 Bridge.BRIDGE_ALIVE_FILE = "batman_CoreAI/bridge-alive.txt"
 Bridge.BRIDGE_REPLY_MS = 135000
-Bridge.BRIDGE_TIMEOUT_MS = 150000      -- = RS_Config.REQUEST_TIMEOUT_MS (notebook)
+Bridge.BRIDGE_TIMEOUT_MS = 150000      -- = request timeout of the notebook
 Bridge.NO_BRIDGE_TIMEOUT_MS = 90000    -- radio without bridge: static and NoAnswer refusal
 Bridge.ALIVE_STALE_MS = 20000
 Bridge.ALIVE_READ_MS = 5000

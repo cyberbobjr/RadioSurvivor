@@ -1,7 +1,7 @@
 if isClient() then return end
 --[[
 Public API of RadioSurvivor for other mods (E20-T08), on the authority only: global RadioSurvivor.API, required by
-RadioSurvivor_Server. No dependency on any other mod: a consumer (Living Knox later, ADR D09) checks that the table
+RadioSurvivor_Server. No dependency on any other mod: a consumer (an NPC engine, ADR D09) checks that the table
 exists, then API.version() >= the version it knows.
 Version: API.VERSION (whole number). Within a version, functions are only added; a removal or a change of meaning
 takes a new version.

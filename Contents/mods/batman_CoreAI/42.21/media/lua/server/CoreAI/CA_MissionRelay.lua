@@ -6,8 +6,8 @@ CA_MissionConfig.Missions.relay (offer id relay_v1). Registered in CA_Missions (
 CA_NotebookServer.
 
 Giver: a radio voice only, under the name `relay` (declaration voiceName); an NPC fiche is never offered one. The spot
-is the place `target` of the voice sheet (use=target), handed over by RadioSurvivor's set-up of the templates that
-declare aimAt (RS_MissionTarget). No parameter of its own.
+is the place `target` of the voice sheet (use=target), handed over by the voice set-up of the templates that
+declare aimAt. No parameter of its own.
 Spot (Relay.locate): the building at the place (IsoMetaGrid:getBuildingAt(x, y, z), by the room of the tile, loaded or
 not: IsoMetaGrid.java:271-280), its whole footprint (BuildingDef getX/getY, getX2/getY2 exclusive: BuildingDef.java
 82-100, 189-202) from the lowest level allowed up to its roof (getMaxLevel() + 1, the roof level of the engine:
@@ -30,7 +30,7 @@ IsoWaveSignal.removeFromWorld, IsoWaveSignal.java:331-338). Read by the engine p
 (CA_Missions.observe, once a second on the server) at most every entry.scanMs per mission, and again when the report
 is checked, so that a radio turned off, unpowered or taken away refuses the report at once.
 Objective met while m.relayed (reportReady): the mission waits "to report" and succeeds by the report on the voice's
-frequency (RS_MissionVoice.report, CA_Missions.spoken). Notebook (MissionViews/CA_View_Relay): place
+frequency (the voice's report, CA_Missions.spoken). Notebook (MissionViews/CA_View_Relay): place
 label, lowest level, yes/no; map: a circle around the spot (m.mapZone, style Relay). The voice is told the job and the
 verified yes/no, never a coordinate.
 ASCII only (Kahlua lexer).
@@ -112,7 +112,7 @@ function Relay.locate(place, c)
     return {x1 = x - h, y1 = y - h, x2 = x + h + 1, y2 = y + h + 1, zMin = minZ, zMax = minZ + c.zoneLevels - 1}
 end
 
--- Declaration aimAt (set-up of a voice mission with a target place, RadioSurvivor's RS_MissionTarget): the spot at
+-- Declaration aimAt (set-up of a voice mission with a target place, the voices' set-up): the spot at
 -- `place`; also called on a scratch table to check a section before the mission exists. Returns true.
 function Relay.aimAt(m, place)
     local c = entry()

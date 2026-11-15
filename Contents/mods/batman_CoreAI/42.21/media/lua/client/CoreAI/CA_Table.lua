@@ -1,6 +1,6 @@
 --[[
-CoreAI: column table of the debug tools (LK13-T15; moved from Living Knox by E18-T09 so that RadioSurvivor's
-frequency debug view works without Living Knox). Living Knox keeps the name LivingKnox.Table (LK_Table).
+CoreAI: column table of the debug tools (LK13-T15; moved from an NPC engine by E18-T09 so that a debug view of
+another mod works without that engine). The engine keeps its own name for the same table.
 Design: docs/annexes/conception/administration.md, section "Panneau de debug des PNJ". M = vanilla 42.21 media/lua.
 
 Pure functions (tested outside the game): Table.layout (column widths: minimum plus a share of the rest by weight),

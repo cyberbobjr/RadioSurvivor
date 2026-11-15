@@ -5,9 +5,9 @@ vehicle, then report by radio. Authority only. Catalogue: CA_MissionConfig.Missi
 Registered in CA_Missions (M.register); required by CA_NotebookServer.
 
 Giver: a radio voice only, under the name `route` (declaration voiceName); an NPC fiche is never offered one. The
-points come with the set-up: declaration alongPoints(m, points) -> ok, reason, called by RadioSurvivor's
-RS_MissionWaypoints with the places { id, label, x, y, z } named in order by the section's parameter points= (kind
-`places` of RS_PersonaParams: 2 to 8 places of the sheet with use=target, never the same twice in a row); also called
+points come with the set-up: declaration alongPoints(m, points) -> ok, reason, called by the voices'
+set-up with the places { id, label, x, y, z } named in order by the section's parameter points= (kind
+`places` of the sheet parameters: 2 to 8 places of the sheet with use=target, never the same twice in a row); also called
 on a scratch table to check a section before the mission exists (fewer than 2 points: false, 'no_points').
 Crossing (server authority, read on the server copy of each participant, never a claim; CA_Missions.observe, once a
 second): the position is the participant's vehicle when they sit in one (IsoGameCharacter.getVehicle; BaseVehicle
@@ -18,7 +18,7 @@ place is crossed at any level). Only the next point counts: a later point reache
 crossed again after the previous ones (skipped point refused). The previous readings are kept in memory only (a
 restart of the server reads the next position alone). A dead participant crosses nothing.
 Objective met once every point is crossed (reportReady): the mission waits "to report" and succeeds by the report on
-the voice's frequency (RS_MissionVoice.report, CA_Missions.spoken). Notebook (MissionViews/
+the voice's frequency (the voice's report, CA_Missions.spoken). Notebook (MissionViews/
 CA_View_Route): points crossed "n of N", label of the next point; map: one circle per known point (m.points up to
 the next one: those crossed and the next, never the later ones), centred on the place, radius entry.radius,
 labelled with the place label (p.mapZones, style Route). The voice is told the job (labels in order) and the verified
@@ -75,7 +75,7 @@ local function nextPoint(m)
     return type(m.points) == 'table' and m.points[m.crossed + 1] or nil
 end
 
--- Declaration alongPoints (set-up of a voice mission, RadioSurvivor's RS_MissionWaypoints): the points in order.
+-- Declaration alongPoints (set-up of a voice mission, the voices' set-up): the points in order.
 function Route.alongPoints(m, points)
     if type(points) ~= 'table' or #points < MIN_POINTS then return false, 'no_points' end
     m.points, m.crossed = {}, 0

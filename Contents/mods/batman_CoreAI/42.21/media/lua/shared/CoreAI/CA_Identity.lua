@@ -1,8 +1,8 @@
 --[[
-CoreAI: identity of the player characters (E18-T03), shared by RadioSurvivor and Living Knox.
+CoreAI: identity of the player characters (E18-T03), shared by the mods.
 
 A character has one identity "character-<ms>-<n>-<rand>", decided by the authority (dedicated server, or the solo
-game) and kept by both mods: the notebook keys its records on it, Living Knox its attitudes and facts.
+game) and kept by every mod: the notebook keys its records on it, an NPC engine its attitudes and facts.
 Rules (E00-T01, E00-T02, moved here unchanged):
 - the authority writes the identity into ITS copy of the player modData (key KEY): in MP only the server IsoPlayer is
   saved, a value written by a client into its own modData is lost at reconnection;

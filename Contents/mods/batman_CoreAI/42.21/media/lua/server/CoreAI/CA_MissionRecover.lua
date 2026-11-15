@@ -8,7 +8,7 @@ docs/annexes/conception/carnet-implementation-04221.md, "Caches et gabarit recup
 docs/annexes/conception/mission-recuperer.md.
 
 Requester: an NPC fiche of the notebook only (a radio voice has no depot: no voiceName declared),
-whose provider tells where its group lives (CA_NPCProvider.presence(id).x, y; Living Knox: home of the group). An NPC
+whose provider tells where its group lives (CA_NPCProvider.presence(id).x, y; an NPC engine: home of the group). An NPC
 without a known home offers nothing.
 Place: drawn exactly as the scout template (CA_MissionScout.pick: habitable building of the metagrid at 60-250 tiles
 of the requester's body, 60 tiles at least from any known base, nothing loaded), with the cache table drawn from the

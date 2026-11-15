@@ -10,7 +10,7 @@ direct call by name in solo: Client.receive) go through a registry of client com
 A command without an owner is ignored. Owners here: identity, snapshot, error, speech, queued, offer; the pages of the
 notebook and the mods own the others (quote, rep_admin, team...).
 Client.hosted(): a notebook server answered the hello with its session (Client.world). An identity answered without a
-session (CA_Identity alone: no notebook server, Living Knox alone) stops the hellos of the poll.
+session (CA_Identity alone: no notebook server, an NPC engine alone) stops the hellos of the poll.
 ]]
 CoreAI = CoreAI or {}
 if CoreAI.notebookClient then return CoreAI.notebookClient end

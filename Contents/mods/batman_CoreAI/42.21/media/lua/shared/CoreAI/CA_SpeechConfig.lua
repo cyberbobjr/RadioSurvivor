@@ -1,6 +1,6 @@
 --[[
-CoreAI: bounds of the NPC speech (E18-T17), read by Living Knox, which emits the requests, and by
-RadioSurvivor (RS_Config: same values, client checks of the notebook, group radio).
+CoreAI: bounds of the NPC speech (E18-T17), read by the NPC engine, which emits the requests, and by
+the other mods (same values: client checks of the notebook, group radio).
 ]]
 local Speech = {
     HEARING_RANGE = 30, -- inspected SayChat default; our policy, not a claim of exact vanilla hearing

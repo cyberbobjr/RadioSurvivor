@@ -6,7 +6,7 @@ comme dans Kahlua), deux clients.
 Couvre : liste fermÃ©e de sortes et de champs, bornes (par sorte et par jour, total, noms), aucune coordonnÃ©e
 (lieu arrondi Ã  la ville par RS_Rescue.town, chaÃ®ne Ã  trois chiffres refusÃ©e), morts de joueurs (OnCharacterDeath :
 joueurs seuls, une fois), missions closes (chaÃ®nÃ©es aprÃ¨s les observations, annulations ignorÃ©es), coupures du rÃ©seau
-et de l'eau, dÃ©but d'un Ã©pisode mÃ©tÃ©o, faits publics de Living Knox, Ã©tat privÃ© (RS_State, survit au redÃ©marrage),
+et de l'eau, dÃ©but d'un Ã©pisode mÃ©tÃ©o, faits publics des groupes (CA_GroupFacts), Ã©tat privÃ© (RS_State, survit au redÃ©marrage),
 lecture et purge par le bulletin, expiration sans bulletin, faits en attente avant le chargement de l'Ã©tat.
 Doublures du jeu de tests/test_carnet.py et tests/test_observations.py : ne prouve ni l'API Java rÃ©elle ni le
 dÃ©clenchement rÃ©el de EveryHours ou d'OnCharacterDeath par le Java.
@@ -24,8 +24,7 @@ from test_observations import GAME_CLOCK, WORLD_STUBS
 from test_protocol import ROOT, lua_list
 
 # Vanilla map loaded (RS_Rescue.town reads getLotDirectories); water shut-off (SandboxOptions.getWaterShutModifier,
-# GameTime.getWorldAgeDaysSinceBegin, SandboxOptions.java:368, IsoObject.java:2544); Living Knox public API reduced to
-# getGroup(...).name.
+# GameTime.getWorldAgeDaysSinceBegin, SandboxOptions.java:368, IsoObject.java:2544).
 FACT_STUBS = r'''
 getLotDirectories = function() return list({'Muldraugh, KY'}) end
 WATER_SHUT, WORLD_DAYS = 14, 2
@@ -41,7 +40,6 @@ getGameTime = function()
     gt.getWorldAgeDaysSinceBegin = function() return WORLD_DAYS end
     return gt
 end
-LivingKnox = {API = {getGroup = function(id) return {name = 'The Millers of ' .. id} end}}
 '''
 
 MULDRAUGH = (10754, 9926)
@@ -268,18 +266,18 @@ class FactsTests(unittest.TestCase):
         self.hour(3)
         self.assertEqual(self.listed(), [])
 
-    def test_living_knox_public_events(self):
+    def test_group_facts_of_the_core(self):
         self.world()
-        self.g.fire('OnLivingKnoxMemberDied', self.t({'group': 'grp-1', 'member': 'm-2', 'role': 'fighter',
-            'offscreen': False, 'cause': 'firearm', 'byPlayer': True, 'area': {'x': 10750, 'y': 9950, 'size': 100},
-            'groupAlive': 3, 'day': 3}))
-        self.g.fire('OnLivingKnoxMemberDied', self.t({'group': 'grp-1', 'member': 'm-2', 'offscreen': True, 'day': 3}))
-        self.g.fire('OnLivingKnoxGroupGone', self.t({'group': 'grp-1', 'reason': 'dead', 'total': 4, 'day': 3}))
+        emit = self.rt.eval("require('CoreAI/CA_GroupFacts')").emit
+        emit('member_died', self.t({'id': 'grp-1', 'member': 'm-2', 'group': 'The Millers', 'role': 'fighter',
+            'offscreen': False, 'cause': 'firearm', 'byPlayer': True, 'area': {'x': 10750, 'y': 9950, 'size': 100}}))
+        emit('member_died', self.t({'id': 'grp-1', 'member': 'm-2', 'group': 'The Millers', 'offscreen': True}))
+        emit('group_gone', self.t({'id': 'grp-1', 'group': 'The Millers', 'reason': 'dead'}))
         for i in range(5):
-            self.g.fire('OnLivingKnoxGroupCreated', self.t({'group': 'grp-%d' % (i + 2), 'type': 'settlers',
-                'typeNameKey': 'IGUI_LK_Type_settlers', 'name': 'Group %s' % 'ABCDE'[i], 'alive': 4, 'day': 3}))
+            emit('group_created', self.t({'id': 'grp-%d' % (i + 2), 'group': 'Group %s' % 'ABCDE'[i],
+                'typeKey': 'IGUI_Type_settlers'}))
         facts = self.listed()
-        self.assertEqual(facts[0], {'n': 1, 'kind': 'group_death', 'day': 3, 'hour': 7, 'group': 'The Millers of grp-1',
+        self.assertEqual(facts[0], {'n': 1, 'kind': 'group_death', 'day': 3, 'hour': 7, 'group': 'The Millers',
                                     'role': 'fighter', 'cause': 'firearm', 'byPlayer': True, 'offscreen': False,
                                     'place': {'key': 'TownIn', 'town': 'Muldraugh'}})
         self.assertEqual(facts[1]['kind'], 'group_gone')

@@ -130,7 +130,7 @@ local C = {
             ['WpStashMap8'] = true,
             ['WpStashMap9'] = true,
         }},
-    -- E18-T27: personal observations of the NPCs and their triggers are Living Knox's (LK_Observations.CFG).
+    -- E18-T27: personal observations of the NPCs and their triggers belong to the NPC engine.
     -- E04-T11 (Q13): lowest margin of the smuggler by reputation level; a done deal lowers it by RS_Trade.MARGIN_STEP
     -- down to RS_Trade.MARGIN_MIN, a cheat sets RS_Trade.MARGIN_MAX.
     TradeMargin = {good = 0.10, neutral = 0.25, bad = 0.40},

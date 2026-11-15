@@ -6,9 +6,8 @@
 -- aucune commande ne les envoie aux clients (E05-T08). Seule exception : la réponse de ce module, envoyée au SEUL
 -- demandeur, et seulement s'il a le droit (FreqDebug.isAllowed, revérifié À CHAQUE requête sur l'autorité).
 --
--- Droits : la règle des outils de debug Living Knox (LK13-T13, server/LivingKnox/LK_Admin.lua, Admin.isAllowed avec une
--- opération de DEBUG_OPS), recopiée ici pour garder un canal propre à RadioSurvivor (aucun appel à LK_Admin.lua, qui
--- peut évoluer pour ses propres opérations ; tests/test_rs_freqdebug.py compare les deux règles) :
+-- Droits : la règle commune des outils de debug des mods (CA_AdminAccess, E21-T04 ; avant elle, celle des outils de
+-- debug des PNJ, LK13-T13), avec un canal propre à RadioSurvivor :
 --   - serveur MP : checkPermissions(joueur, Capability.PopmanManage) (rôle de la connexion, LuaManager.java:2913-2919 ;
 --     rôles moderator et admin) ET getRole():hasCapability (checkPermissions rend vrai sans connexion trouvée) ;
 --   - solo : mode debug exigé (isDebugEnabled) ;
@@ -73,7 +72,7 @@ function FreqDebug.nameOf(player)
     return string.sub(name, 1, FreqDebug.NAME_MAX)
 end
 
--- Contrôle d'accès (autorité) : règle des opérations de debug de LK_Admin.isAllowed (voir l'en-tête). Rend vrai, ou
+-- Contrôle d'accès (autorité) : règle commune des outils de debug (voir l'en-tête). Rend vrai, ou
 -- faux et la raison (anglais, journal seulement).
 function FreqDebug.isAllowed(player)
     return Access.allowed(player, true) -- E21-T04: règle commune (CA_AdminAccess), mode debug exigé en solo

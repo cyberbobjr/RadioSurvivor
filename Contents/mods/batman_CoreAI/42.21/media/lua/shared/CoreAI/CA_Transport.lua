@@ -1,5 +1,5 @@
 --[[
-CoreAI: the one queue of the LLM requests and answers (E18-T04, moved from the RS_Transport module of RadioSurvivor).
+CoreAI: the one queue of the LLM requests and answers (E18-T04, moved from a mod's transport module).
 
 One writer for every mod (the Python bridge stays one process and one lock): each mod registers its kinds of
 requests as LANES (Transport.register), keeps the requests of a lane in Transport[name] (a list) and calls
@@ -9,7 +9,7 @@ each mod (decision of 2026-11-05: one queue, separate caps).
 Requests file (Bridge.REQUESTS_FILE), protocol 2:
     protocol=2 / session=<Transport.session> / generation=<n>
     per request: req=<id>, then the lines of the lane format: default (RSV2) kind=<kind>, payload=<hex RSV2 of the
-    request>; a lane may give its own format(out, request) (RadioSurvivor radio lane: key=value lines)
+    request>; a lane may give its own format(out, request) (radio lane: key=value lines)
     commit=<n> / end
 Answers file (Bridge.RESPONSES_FILE): resp=<id>, payload=<hex RSV2 of the answer>, ..., end; read by
 Transport.readResponses for every lane (a file without "end" is not read yet).

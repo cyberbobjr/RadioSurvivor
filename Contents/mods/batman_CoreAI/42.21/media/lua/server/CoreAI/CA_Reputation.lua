@@ -1,10 +1,10 @@
 if isClient() then return end
 --[==[
 CoreAI: reputation of the player characters, kept by the core mod (E18-T22, user decision of 2026-11-06;
-moved from RadioSurvivor's RS_Reputation, rules unchanged: E04-T08, E04-T09, E04-T12, design
+moved from a mod's reputation module, rules unchanged: E04-T08, E04-T09, E04-T12, design
 docs/annexes/conception/reputation-interne.md). Authority only (dedicated server or solo): never loaded by an MP
-client. One reputation per character (CA_Identity), read the same way by the radio voices (RadioSurvivor) and by the
-NPCs (Living Knox); each mod reports its own facts.
+client. One reputation per character (CA_Identity), read the same way by the radio voices and by the
+NPCs; each mod reports its own facts.
 
 Private state, two slot files written in turn (CA_SlotFile): Zomboid/Lua/batman_CoreAI/reputation-<hex of
 "mode/world">-<0|1>.txt, header RCREP1, never a global ModData:
@@ -16,10 +16,10 @@ level, the trend and the public reasons only.
 Sources (closed list R.ACTIONS, nothing from a client command or from a sentence):
     mission.success / mission.failed / mission.abandoned   CA_Missions.finish, one fact per registered participant
                                                            (same amount for everyone; cancellations change nothing)
-    trade.cheated          RadioSurvivor (RS_TradeExchange finish 'cheated'), the caller of the passage
-    npc.requesterKilled    RadioSurvivor (CA_NotebookServer.dead, E04-T07): attributed killer who takes part in an
+    trade.cheated          the voices (trade exchange finish 'cheated'), the caller of the passage
+    npc.requesterKilled    the notebook (CA_NotebookServer.dead, E04-T07): attributed killer who takes part in an
                            active mission of the dead requester; proof.body = id of the dead body
-    npc.memberKilled       Living Knox (LK_Reputation, fact npcDied): attributed killer of a group member, unless
+    npc.memberKilled       the NPC engine (fact npcDied): attributed killer of a group member, unless
                            npc.requesterKilled already charged this death to this character (R.chargedFor)
     rescue.success         reserved for E12 (same call)
 
@@ -30,7 +30,7 @@ Rules (CA_ReputationConfig, values of section 9 of the design):
     effect (rep = 'capped'); losses are never capped; no decay over time (Q4);
     trend = sign of the sum of the signs of the last trendFacts (3) acts: up, down, stable;
     reasons = the last `reasons` (5) acts, newest first: { action, reasonArgs, sign, capped, day }. The text of a
-    reason belongs to the mod that shows it (RadioSurvivor's notebook: IGUI_RS_RepReason_<action>).
+    reason belongs to the mod that shows it (the notebook: its own reason key per action).
 
 Idempotence: R.record writes outcomes[eventId] once and applies the amount in the same Lua call, then saves. A
 replay (double death event, restart, second finish) finds the entry and does nothing. Outcome fields:
@@ -323,7 +323,7 @@ function R.record(state, eventId, character, action, delta, proof, reasonArgs)
     return o
 end
 
--- npc.requesterKilled already recorded for the death of this body and this character (Living Knox then does not
+-- npc.requesterKilled already recorded for the death of this body and this character (the NPC engine then does not
 -- add npc.memberKilled for the same death).
 function R.chargedFor(body, character, state)
     state = dataOf(state)
@@ -381,7 +381,7 @@ function R.change(character, state)
     return {from = c.from, to = c.to, day = c.day, n = c.n}
 end
 
--- Snapshot for the player of this character only (RadioSurvivor's notebook adds the text of each reason). No number
+-- Snapshot for the player of this character only (the notebook adds the text of each reason). No number
 -- but game days (today, day of each reason and of the last change), translated into words by the client.
 function R.projection(character, state)
     state = dataOf(state)

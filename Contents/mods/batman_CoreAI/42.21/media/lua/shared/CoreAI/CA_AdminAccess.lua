@@ -1,6 +1,6 @@
 --[[
 CoreAI: the one access rule of the administration and debug tools of the mods (E21-T04, design carnet-commun-e21.md:
-reputation of every character, Living Knox debug and administration windows, frequencies of the voices). Shared: the
+reputation of every character, NPC debug and administration windows, frequencies of the voices). Shared: the
 authority checks it at EVERY request, a client only greys or hides its button with it.
 
     Access.CAPABILITY                       'PopmanManage' (roles moderator and admin, J/characters/Roles.java)

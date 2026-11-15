@@ -7,10 +7,10 @@ CA_NotebookServer.
 
 Giver: a radio voice only, under the name `item` (declaration voiceName); an NPC fiche is never offered one.
 Parameters of its sheet section (declaration params): item = full type of a vanilla item script (kind `item` of
-RadioSurvivor's RS_PersonaParams: a photo, a locket, a pocket watch...; required), label = how the voice names it
+the voices' sheet parameters: a photo, a locket, a pocket watch...; required), label = how the voice names it
 (optional text, e.g. "Ellen's locket"; else the display name of its script), collect_hours (game hours before a drop
 is collected, E20-T05).
-Place (declaration aimAt, RadioSurvivor's RS_MissionTarget): the place `target` of the sheet; the building at it
+Place (declaration aimAt, the voices' set-up): the place `target` of the sheet; the building at it
 (IsoMetaGrid:getBuildingAt(x, y, z), IsoMetaGrid.java:271-280, footprint BuildingDef getX/getY, getX2/getY2
 exclusive), else a square zone of entry.zoneHalf tiles around it, at the level of the place. aimAt refuses a section
 without item= or with a type the item scripts do not know (ScriptManager.FindItem, ScriptManager.java:1325): 'no_item'.
@@ -23,7 +23,7 @@ floor item already marked with the key is adopted after a stop (never a second i
 (Item.observe, once a second on the server) places it; the mission keeps m.itemId = InventoryItem:getID() (random at
 creation, saved with the item, kept by every MP transfer).
 Found: the same poll sets m.found once a participant holds it (server copy of the inventory, bags included).
-Deposit (dead drops of the giver, RadioSurvivor's RS_DeadDrops: all marked on the map, collected out of everyone's
+Deposit (dead drops of the giver, the voices' dead drops: all marked on the map, collected out of everyone's
 view after a delay in game hours): only the item whose id is m.itemId is taken (strategy dropAccepts =
 M.onlyItem('itemId')); another item of the same type is left where it is. Once collected (m.delivered = quantity = 1),
 the objective is met and the radio report succeeds without touching any inventory (check of 'speech').
@@ -60,7 +60,7 @@ function Item.bounds(place, c)
     return {x1 = x - h, y1 = y - h, x2 = x + h + 1, y2 = y + h + 1}
 end
 
--- Declaration aimAt (set-up of a voice mission with a target place, RadioSurvivor's RS_MissionTarget): the item of
+-- Declaration aimAt (set-up of a voice mission with a target place, the voices' set-up): the item of
 -- the section's parameters at `place`; also called on a scratch table to check a section before the mission exists.
 -- Returns true, or false and 'no_item'.
 function Item.aimAt(m, place, params)

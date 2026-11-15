@@ -1,6 +1,6 @@
 if isClient() then return end
 -- CoreAI: engine events of the exchange history of the core mod (E18-T26). The core mod reads its own
--- history at the world start, whatever mod writes in it (RadioSurvivor's notebook state also calls CA_History.init,
+-- history at the world start, whatever mod writes in it (the state of a mod may also call CA_History.init,
 -- which reads the same file again), and writes it back every ten game minutes when a line was added.
 local History = require 'CoreAI/CA_History'
 local WorldStart = require 'CoreAI/CA_WorldStart'

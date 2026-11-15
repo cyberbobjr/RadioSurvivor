@@ -1,7 +1,7 @@
 --[[
-CoreAI: rules of the reputation kept by the core mod (E18-T22, moved from RadioSurvivor's RS_Config,
+CoreAI: rules of the reputation kept by the core mod (E18-T22, moved from a mod's configuration,
 values unchanged: docs/annexes/conception/reputation-interne.md section 9, confirmed by default 2026-10-15). Read by
-server/CoreAI/CA_Reputation.lua; RadioSurvivor's RS_Config.Reputation is this table (one copy).
+server/CoreAI/CA_Reputation.lua; a mod's configuration may point at this table (one copy).
 ]]
 return {
     success = 5, failure = -5,       -- mission.success; mission.failed, mission.abandoned, trade.cheated

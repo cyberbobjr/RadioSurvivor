@@ -1,9 +1,9 @@
 if isClient() then return end
 --[[
-CoreAI: building draw by the metagrid and descriptive clues (E18-T05, moved from RadioSurvivor's rescue
+CoreAI: building draw by the metagrid and descriptive clues (E18-T05, moved from a rescue
 module, code unchanged). Authority only (dedicated server or solo). Used by the mission templates (scout, clear,
-recover, retrieve_id, signal), by RadioSurvivor's rescues (RS_Rescue, same functions under the same names) and by
-Living Knox's places. Details: docs/specifications-techniques/rescue.md.
+recover, retrieve_id, signal), by the rescues of the voices (same functions under the same names) and by
+the places of an NPC engine. Details: docs/specifications-techniques/rescue.md.
 
     local Sites = require "CoreAI/CA_Sites"
     local site, reason = Sites.pick({ seed = 42, minDistance = 600, avoid = { { x = 100, y = 200 } } })
@@ -145,7 +145,7 @@ local function drawer(seed)
     for _ = 1, 6 do draw(1) end
     return draw
 end
--- Exposed for the other place draws without loading (LivingKnox/LK_Sites, LK08-T03); same draw.
+-- Exposed for the other place draws without loading (an NPC engine, LK08-T03); same draw.
 Sites.drawer = drawer
 
 -- Rooms of a building: count per name (lower case), total area, levels.
@@ -312,7 +312,7 @@ local function insideMap(grid, x, y)
 end
 
 -- Examines a BuildingDef: site (plain table), or nil and the refusal reason. opts.rules (optional) replaces the list
--- of admitted kinds (Sites.KINDS by default; same format): LivingKnox/LK_Sites adds the hideouts (LK08-T08).
+-- of admitted kinds (Sites.KINDS by default; same format): an NPC engine adds its hideouts (LK08-T08).
 function Sites.check(b, bases, opts, grid)
     opts = opts or {}
     if b == nil then return nil, "missing" end
@@ -477,7 +477,7 @@ local function townData(cx, cy)
     if bestD <= 2 then return "It is out in the country, some way from " .. best.name .. ".", "TownCountry", best.name end
     return "It is out in the countryside, far from any town.", "TownFar", nil
 end
--- Exposed for the fact log (RS_Facts, E14-T01): place rounded to the town, same rule as the clues.
+-- Exposed for the fact log (a fact log, E14-T01): place rounded to the town, same rule as the clues.
 Sites.town = townData
 
 -- Clues of a BuildingDef in two parallel lists: English sentences without digits (bridge prompt) and translatable

@@ -4,7 +4,7 @@ CoreAI: one list of missions per character (E18-T06), shared by the mission jour
 state shown. Pure functions, loaded on every machine (media/lua/shared).
 
     List.visible(m, character, known)   the character takes part, is invited, or still knows the mission (known: set
-                                        of mission ids kept by RadioSurvivor's notebook, or nil)
+                                        of mission ids kept by a mod's notebook, or nil)
     List.sort(rows)                     mission id order (stable from one refresh to the next); returns rows
     List.stateKey(row)                  'toReport' once the objective is met (E11-T13), 'toClaim' for a success whose lot
                                         the journal can still collect (E18-T29), else the mission state

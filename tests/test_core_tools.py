@@ -69,6 +69,24 @@ class LayoutTests(unittest.TestCase):
             self.assertTrue(path.read_bytes().isascii(), path)
 
 
+class TradeValuesTests(unittest.TestCase):
+    """E21-T06: an item of a mod (outside the Base module) is sold only once that mod registers its sale value."""
+
+    def setUp(self):
+        self.h = Harness(mode='mp')
+
+    def tearDown(self):
+        self.h.close()
+
+    def test_sell_only_item_registered_by_its_mod(self):
+        out = self.h.eval('server', '(function() local TV = require("CoreAI/CA_TradeValues") '
+                                    'local before = TV.sellValue("SomeMod.Paper") '
+                                    'TV.registerSellOnly("SomeMod.Paper", { v = 3, k = "supply", cap = 1 }) '
+                                    'return before .. "|" .. TV.sellValue("SomeMod.Paper") .. "|" '
+                                    '.. TV.value("SomeMod.Paper") .. "|" .. TV.SELL_ONLY["SomeMod.Paper"].cap end)()')
+        self.assertEqual(out, '0|3|0|1')
+
+
 class OldFilesTests(unittest.TestCase):
     """Files written by the pre-move code, read back and written again by the moved code."""
 

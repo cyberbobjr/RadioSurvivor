@@ -100,7 +100,7 @@ function Reputation.adminLines(view)
 end
 
 -- Administrator button of the Reputation tab (display only: the server checks the right at each request). Solo: debug
--- mode; MP: role capability PopmanManage (same rule as the frequency and Living Knox debug tools).
+-- mode; MP: role capability PopmanManage (same rule as the debug tools of the mods).
 function Reputation.canSeeAll() return Access.canUse() end
 
 -- E04-T04 (Q9): warning over the character when the level of its reputation changes, once per change (key n of the

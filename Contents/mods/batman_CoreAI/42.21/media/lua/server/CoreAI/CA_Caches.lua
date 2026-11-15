@@ -2,8 +2,8 @@ if isClient() then return end
 --[[
 CoreAI: caches (E11-T06, moved to the core mod by E18-T05): a marked bag filled from one closed table of
 the server, placed once in the world. Authority only. Configuration: CA_MissionConfig.Caches (bag type, closed list
-`order` of the tables and their contents). Used by the template `recover` (CA_MissionRecover) and by RadioSurvivor
-(reward caches of the voices, its voice action place_cache in RS_CacheAction, poll of the pending caches once a second
+`order` of the tables and their contents). Used by the template `recover` (CA_MissionRecover) and by a mod
+(reward caches of the voices, its voice action place_cache, poll of the pending caches once a second
 while a player is connected, Caches.poll). Details: docs/annexes/conception/carnet-implementation-04221.md, "Caches et
 gabarit recuperer"; design: docs/annexes/conception/mission-recuperer.md.
 

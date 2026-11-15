@@ -14,13 +14,13 @@ by the bridge and the created mission name the same building.
 Zone: the footprint of the building (BuildingDef bounds, exclusive ends) widened by `margin` tiles, every floor.
 Presence: polled by the server on the server copy of each connected participant (IsoPlayer:getX/getY of the server
 player; never a position sent by a client). The first living participant inside marks the mission zoneReached
-(saved with the private state, RS_State; never in global ModData).
+(saved with the private state; never in global ModData).
 Report (E11-T13): once the zone is reached (Scout.reportReady), the mission waits "to report"; a participant reports
 to the requester in person (admitted notebook `talk` within SELECT_RANGE of the body whose reply carries intent
 report_done, chosen by the model and checked again by the server, or the notebook button "Report" near the
 requester); the mission succeeds then, never before. A report before the visit is nothing. Delay, reputation,
 collective result and reward lot: the common engine (same values as M01).
-Radio voice requester (E11-T08, RS_MissionVoice.lua): the same template, drawn around the caller's server position
+Radio voice requester (E11-T08): the same template, drawn around the caller's server position
 (the "body" given to Scout.site), m.report = 'radio'; the report is announced to the voice on its frequency (action
 report_mission of its reply, E11-T13).
 Aimed place (E20-T10): an offer that receives `aim` (a place { x, y, z, label } named by the giver: target= of a
@@ -66,7 +66,7 @@ local function metaGrid()
     return nil
 end
 
--- Clues of RS_Rescue speak of a shelter; a scouting target is only a place. Returns the English clues (bridge) and
+-- Clues of a rescue speak of a shelter; a scouting target is only a place. Returns the English clues (bridge) and
 -- their translatable data (notebook, E11-T09), same order.
 local function clues(b, grid)
     local out = {}

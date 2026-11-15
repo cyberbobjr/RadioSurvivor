@@ -1,7 +1,7 @@
 if isClient() then return end
 --[==[
 CoreAI: stable team identifiers and negotiation mandates (E09-T03; kept by the core mod since E18-T20,
-decision confirmed by default on 2026-11-06, moved from RadioSurvivor's RS_Factions, rules unchanged). Authority only.
+decision confirmed by default on 2026-11-06, moved from a mod's factions module, rules unchanged). Authority only.
 
 A vanilla Faction has only a name and an owner, both mutable, plus its members (Faction.java:24-28, 255-277): no
 durable id. getPlayers() excludes the owner (members = owner + getPlayers()); two factions may share a name; no
@@ -23,10 +23,10 @@ faction (the faction panel is MP only): the player is the owner of a personal te
 Mandates: the current owner of a vanilla faction designates negotiators among its members (bounded list). They are
 cleared when the owner changes, and a negotiator who leaves the faction loses the mandate. canConclude reads the
 vanilla faction again at call time: the current owner, or a designated negotiator still a member.
-Readers: Living Knox's agreements (LK_Agreements), RadioSurvivor's radio teams (E12: rescues, smuggler).
+Readers: the agreements of an NPC engine, the radio teams of the voices (E12: rescues, smuggler).
 API: Teams.keyOf, Teams.sync, Teams.idOf, Teams.canConclude, Teams.designate, Teams.list, Teams.projection,
 Teams.teamOfAccount, Teams.info, Teams.onDrop(fn) (fn(teamId) when a dissolved record is dropped for good).
-Commands of the module CoreAI (Team tab of the notebook, inscribed by Living Knox): "team" -> "team"
+Commands of the module CoreAI (Team tab of the notebook, inscribed by an NPC engine): "team" -> "team"
 { team = projection }, "mandate" { member, action = 'grant' | 'revoke' } -> "team" (or "error" { reason }).
 
 Private state, two slot files written in turn (CA_SlotFile): Zomboid/Lua/batman_CoreAI/teams-<hex of
@@ -216,7 +216,7 @@ local function pruneDissolved(d)
     end)
     for i = 1, #dead - F.MAX_DISSOLVED do
         d.records[dead[i]] = nil
-        -- Living Knox drops the agreements of a team record dropped for good (F.onDrop listeners).
+        -- An NPC engine drops the agreements of a team record dropped for good (F.onDrop listeners).
         for _, fn in ipairs(F.dropListeners) do fn(dead[i]) end
     end
 end

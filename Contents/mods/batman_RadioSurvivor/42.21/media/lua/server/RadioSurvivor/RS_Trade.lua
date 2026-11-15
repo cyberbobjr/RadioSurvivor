@@ -43,6 +43,8 @@ local Codec = require "CoreAI/CA_Codec"
 local S = require "RadioSurvivor/RS_State"
 local Actions = require "RadioSurvivor/RS_Actions"
 local TV = require "CoreAI/CA_TradeValues"
+-- E21-T06: sale value of the outside news (section 3, one issue per visit: E13-T05, RS_OutsideNewsServer.lua).
+TV.registerSellOnly("RadioSurvivor.OutsideNews", { v = 2, k = "supply", cap = 1 })
 local Factions = require "CoreAI/CA_Teams" -- E18-T20: team ids kept by the core mod
 local Rep = require "CoreAI/CA_Reputation"
 local Config = require "RadioSurvivor/RS_Config"

@@ -32,7 +32,7 @@ server inventory of the player (never its displayed name): any other card is ref
 effect. The card is removed (write-ahead transaction of the engine), then success, reputation and common reward lot
 by the engine (same values as M01).
 Radio voice requester (E20-T06, ADR D06): no hand-over in person. The card is left at one of the mission's dead drops
-(drops of the giver, RadioSurvivor's RS_DeadDrops: all marked on the map, collected out of everyone's view after a
+(drops of the giver, the voices' dead drops: all marked on the map, collected out of everyone's view after a
 delay in game hours) and recognised only by its item id (strategy Retrieve.dropAccepts; another ID card is never
 taken). Once the giver collected it (m.delivered = quantity = 1), the objective is met and the radio report succeeds
 without touching any inventory (Retrieve.check of 'speech').

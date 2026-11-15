@@ -1,7 +1,7 @@
 if isClient() then return end
 --[[
-CoreAI: readings of the world shared by RadioSurvivor (RS_Facts) and Living Knox (LK_ObservationTriggers)
-(E18-T27, moved from RS_ObservationTriggers). Authority only; plain readings, no state.
+CoreAI: readings of the world shared by the fact log of the voices and the observations of an NPC engine
+(E18-T27, moved from the observation triggers). Authority only; plain readings, no state.
 
     World.hour()         world age in whole game hours, nil without a clock
     World.today()        game day (1 = first day), 1 without a clock

@@ -5,8 +5,8 @@ by the giver. Authority only. Catalogue: CA_MissionConfig.Missions.barricade (of
 CA_Missions (M.register); required by CA_NotebookServer.
 
 Giver: a radio voice only, under the name `barricade` (declaration voiceName); an NPC fiche is never offered one. The
-building is the one at the place `target` of the voice sheet (use=target), handed over by RadioSurvivor's set-up of
-the templates that declare aimAt (RS_MissionTarget): Barricade.aimAt(m, place, params) finds the building on the
+building is the one at the place `target` of the voice sheet (use=target), handed over by the voice set-up of
+the templates that declare aimAt: Barricade.aimAt(m, place, params) finds the building on the
 metagrid (IsoMetaGrid:getBuildingAt(x, y, z), by the room of the tile, loaded or not: IsoMetaGrid.java:271-280) and
 keeps its bounds (BuildingDef getX/getY, getX2/getY2 exclusive, getMinLevel..getMaxLevel: BuildingDef.java:82-100,
 189-202). Parameter count (sheet, kind count; default entry.count), at least 1. Refusals: no_building (no room at the
@@ -31,7 +31,7 @@ seen barricaded is never counted. A barricade removed again stops counting. Squa
 (the count of an unloaded building stays the last verified one). Read by the engine poll of a participant
 (CA_Missions.observe, once a second on the server) at most every entry.scanMs per mission.
 Objective met when m.barricaded >= m.count (reportReady): the mission waits "to report" and succeeds by the report on
-the voice's frequency (RS_MissionVoice.report, CA_Missions.spoken). Notebook (MissionViews/
+the voice's frequency (the voice's report, CA_Missions.spoken). Notebook (MissionViews/
 CA_View_Barricade): place label, count; map: a circle around the building (m.mapZone, style Barricade). The voice is
 told the job and the verified count, never a coordinate.
 ASCII only (Kahlua lexer).
@@ -124,7 +124,7 @@ function Barricade.locate(place)
         zMax = def:getMaxLevel()}
 end
 
--- Declaration aimAt (set-up of a voice mission with a target place, RadioSurvivor's RS_MissionTarget): the building
+-- Declaration aimAt (set-up of a voice mission with a target place, the voices' set-up): the building
 -- at `place` and the count of `params`; also called on a scratch table to check a section before the mission exists.
 -- Returns true, or false and the reason ([a-z_]).
 function Barricade.aimAt(m, place, params)

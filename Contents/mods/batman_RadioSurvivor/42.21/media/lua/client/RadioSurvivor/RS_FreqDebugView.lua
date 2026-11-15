@@ -5,14 +5,14 @@
 -- Affiche ce que l'autorité répond (server/RadioSurvivor/RS_FreqDebug.lua, FreqDebug.view), sans rien décider, en
 -- lecture seule : un tableau des voix (id, nom, état, fréquences de la partie, plages de tirage, radio requise, heures
 -- d'écoute, rôle) et un tableau des autres fréquences du mod (bulletin du soir du chroniqueur). Tableaux de
--- LK_Table.lua (lu, jamais modifié : en-têtes cliquables pour trier, texte coupé, infobulle de la ligne).
+-- CoreAI/CA_Table (en-têtes cliquables pour trier, texte coupé, infobulle de la ligne).
 -- Droits : FreqView.canUse (affichage du bouton seulement : solo = mode debug, client MP = rôle avec la capacité
 -- PopmanManage) ; l'autorité revérifie à CHAQUE requête (RS_FreqDebug.isAllowed).
 -- Requêtes : à l'ouverture et par le bouton « Actualiser », jamais fenêtre fermée (FreqView.send refuse sans
 -- fenêtre ; réponse arrivée après la fermeture ignorée). Aucune relecture périodique : les fiches changent rarement.
 -- Ouverture : bouton du panneau debug vanilla (ISDebugMenu, onglet MAIN : enveloppe de setupButtons qui ajoute le
 -- bouton AVANT l'original, trié avec les autres, M/client/DebugUIs/DebugMenu/ISDebugMenu.lua:16-58, comme le bouton
--- « Living Knox - PNJ » de client/LivingKnox/LK_DebugView.lua), et console Lua : RS_FreqDebugView.open().
+-- de debug des PNJ d'un moteur de PNJ), et console Lua : RS_FreqDebugView.open().
 -- Transport : MP, "freqRequest" -> "freqReply" (module "RadioSurvivorDebug") ; solo, RS_FreqDebug.request appelé
 -- directement, réponse rendue pendant l'appel (attente posée avant).
 if isServer() then return end
@@ -193,7 +193,7 @@ function FreqView.closed(win)
 end
 
 if ISCollapsableWindow ~= nil then
-    local Table = require "CoreAI/CA_Table"   -- E18-T09: table of the core mod (works without Living Knox)
+    local Table = require "CoreAI/CA_Table"   -- E18-T09: table of the core mod (works alone)
     local Window = ISCollapsableWindow:derive("RSFreqDebugWindow")
     FreqView.Window = Window
 

@@ -1,6 +1,5 @@
--- CoreAI: shared barter scale (value V per item, in whole points), used by the Ohio smuggler (E13) and
--- by the direct barter with a Living Knox group (LK11-T08, server/LivingKnox/LK_Trade.lua); moved to the core mod by
--- E18-T02.
+-- CoreAI: shared barter scale (value V per item, in whole points), used by the traders of the mods (a radio
+-- smuggler, the direct barter with an NPC group); moved to the core mod by E18-T02.
 -- Source: docs/specifications-techniques/passeur-table.md, validated on 2026-10-10 (decision E13-T01 (4)); vanilla
 -- 42.21 identifiers read in media/scripts/generated/items (file:line in the table of the document). No item of the
 -- mods is listed: any item outside the Base module is worth 0 (refused).
@@ -26,7 +25,7 @@ local TV = {}
 TV.FORMAT = 1
 TV.CLASSES = { "valuables", "images", "papers", "military", "supply", "food", "medical", "ammo" }
 
--- Fallback value per category of the real stock (LK_Stock.CATEGORIES) for an unlisted item: food, water, medical,
+-- Fallback value per stock category of an NPC group for an unlisted item: food, water, medical,
 -- materials. Ammunition: none (only the listed boxes have a value).
 TV.FALLBACK = { food = 2, water = 2, medical = 1, materials = 1 }
 
@@ -99,7 +98,7 @@ put("supply", { Battery = 2, CigarettePack = 3, CigaretteCarton = 25, Whiskey = 
     PotatoBagSeed2 = 3, CabbageBagSeed2 = 3, CornBagSeed = 3, KaleBagSeed = 3, OnionBagSeed = 3, GarlicBagSeed = 3,
     WheatBagSeed = 3, LettuceBagSeed = 3 })
 
--- 5. Reserves of a Living Knox group.
+-- 5. Reserves of an NPC group.
 put("food", { TinnedBeans = 2, TinnedSoup = 2, CannedChili = 2, CannedCornedBeef = 2, CannedCorn = 2, CannedPeas = 2,
     CannedPotato2 = 2, CannedTomato2 = 2, CannedBolognese = 2, CannedFruitCocktail = 2, Rice = 2, Pasta = 2,
     DriedBlackBeans = 2, PeanutButter = 2 })
@@ -107,14 +106,18 @@ put("medical", { Antibiotics = 8, AntibioticsBox = 90, Bandage = 1, AlcoholWipes
     SutureNeedle = 3 })
 put("ammo", { ShotgunShellsBox = 12, ["308Box"] = 14, ["3030Box"] = 12, Bullets9mmBox = 10 })
 
--- Items of RadioSurvivor brought by the smuggler (section 3): sale value only. Outside the Base module, TV.value
--- leaves them at 0: they are never taken back, neither by the smuggler nor by a group. Outside news: one issue per
--- visit (E13-T05, server/RadioSurvivor/RS_OutsideNewsServer.lua).
-TV.SELL_ONLY = {
-    ["RadioSurvivor.OutsideNews"] = { v = 2, k = "supply", cap = 1 },
-}
+-- Items of a mod sold by a trader (section 3): sale value only, registered by the mod that owns the item
+-- (TV.registerSellOnly). Outside the Base module, TV.value leaves them at 0: they are never taken back.
+TV.SELL_ONLY = {}
 
 local function isNumber(v) return type(v) == "number" and v == v and v > -1e9 and v < 1e9 end
+
+-- Registers (or replaces) the sale entry { v, k, cap (optional) } of an item of a mod; returns the entry, or nil.
+function TV.registerSellOnly(fullType, entry)
+    if type(fullType) ~= "string" or type(entry) ~= "table" or not isNumber(entry.v) then return nil end
+    TV.SELL_ONLY[fullType] = entry
+    return entry
+end
 
 -- Sale value V of a type (scale, then the items that are only sold), or 0.
 function TV.sellValue(fullType)

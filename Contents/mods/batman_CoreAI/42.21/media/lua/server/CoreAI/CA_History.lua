@@ -4,7 +4,7 @@ CoreAI: exchange history kept by the core mod (E18-T11, user decision of 2026-11
 
 Lines per character and per interlocutor (an NPC id of the notebook, "lk:lk-1"), oldest first, each a plain table
 { id, author, text } written by the mod that holds the conversation; at most MAX lines are kept by append (same bound
-as RadioSurvivor's MAX_HISTORY). Read by the notebook for its display and by the speech of the NPCs as memory.
+as the history bound of the voices). Read by the notebook for its display and by the speech of the NPCs as memory.
 
 Two slot files written in turn (CA_SlotFile): Zomboid/Lua/batman_CoreAI/history-<hex of "mode/world">-
 <0|1>.txt, header RCHISTORY1, data = { schema = 1, characters = { [character] = { [peer] = { lines } } } }. Never in a
@@ -15,8 +15,8 @@ global ModData.
     History.find(c, peer)            -- the line table, or nil
     History.append(c, peer, line, max)
     History.retain(keep)             -- drops every (c, peer) for which keep(c, peer) is false
-    History.radio(c, create)         -- E18-T19: radio history of a character { seq, frequencies } (RadioSurvivor's
-                                     -- typed lines per frequency, RS_RadioLog rules), created when asked, or nil
+    History.radio(c, create)         -- E18-T19: radio history of a character { seq, frequencies } (the voices'
+                                     -- typed lines per frequency, radio log rules), created when asked, or nil
     History.retainRadio(keep)        -- drops the radio history of every character for which keep(c) is false
     History.save()                   -- true when written
 

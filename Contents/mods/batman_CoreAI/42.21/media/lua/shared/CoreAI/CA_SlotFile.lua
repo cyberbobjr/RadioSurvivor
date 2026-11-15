@@ -1,7 +1,7 @@
 --[[
 CoreAI: private state files of the authority, written in two slots in turn (E18-T03).
 
-Same layout as the registries of RadioSurvivor and Living Knox: each slot file <base>-<0|1>.txt holds
+Same layout as the registries of the mods: each slot file <base>-<0|1>.txt holds
 
     <HEADER>=<write number>
     <RSV2 bytes in hex (CA_Codec, byte layer)>

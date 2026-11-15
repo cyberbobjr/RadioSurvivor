@@ -1,7 +1,7 @@
 if isClient() then return end
 --[[
 CoreAI: the missions in a conversation with an NPC (E18-T18, moved from CA_NotebookServer, same rules), for
-whichever mod hosts the speech of the NPCs: the notebook of RadioSurvivor, or Living Knox alone. Authority only.
+whichever mod hosts the speech of the NPCs: the common notebook server. Authority only.
 
     T.openOffer(state, npc, character) -> mission | nil
     T.acquaintance(missions, character, npc, known) -> "stranger" | "acquainted"

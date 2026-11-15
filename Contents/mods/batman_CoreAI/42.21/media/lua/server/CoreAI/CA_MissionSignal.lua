@@ -244,7 +244,7 @@ function Signal.count(state, event, resolve, players, hour)
     return nil
 end
 
--- Character of a server player (CA_Missions.binding: RadioSurvivor's notebook binding, else the core identity), or nil.
+-- Character of a server player (CA_Missions.binding: a mod's notebook binding, else the core identity), or nil.
 local function bound(player)
     return M.binding()[player]
 end

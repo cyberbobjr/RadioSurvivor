@@ -145,7 +145,7 @@ function C.hexBytes(s)
 end
 
 -- Fast hex of a byte string (codes 0-255, output of encodeBytes): same digits as hexBytes, by a gsub replacement
--- table (no Lua call per byte; same technique as LK_Store, LK13-T06). A unit above 255 would be kept as is: use
+-- table (no Lua call per byte; same technique as the NPC registry, LK13-T06). A unit above 255 would be kept as is: use
 -- hexBytes for Lua strings (historical file name).
 local HEX, UNHEX = {}, {}
 for i = 0, 255 do
@@ -334,7 +334,7 @@ function C.decodeBytes(s)
 end
 
 -- Adler-32 in decimal. Same value as the historical one-modulo-per-byte loop, the modulo taken every BLOCK bytes and
--- sixteen bytes read per string.byte call (LK_Store, LK13-T06; C20). Exact integers in doubles: a < 65521 + 65535 x
+-- sixteen bytes read per string.byte call (NPC registry, LK13-T06; C20). Exact integers in doubles: a < 65521 + 65535 x
 -- BLOCK, b < 65521 + BLOCK x a, below 2^53 even for UTF-16 units.
 local BLOCK = 4000
 function C.checksumBytes(s)

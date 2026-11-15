@@ -1,8 +1,8 @@
 if isClient() then return end
 --[[
 RadioSurvivor: its lanes in the queue of the core mod (E18-T04, CoreAI/CA_Transport). Returns the
-transport. Order of the requests file: radio (10), then the lanes npc (20) and acks (30) of Living Knox (LK_Talk,
-E18-T17), then lastPages (40).
+transport. Order of the requests file: radio (10), then the lanes npc (20) and acks (30) of the NPC engine
+(E18-T17), then lastPages (40).
 - radio: requests of the radio voices (RadioSurvivor_Server.lua), written as key=value lines (format below);
 - lastPages (E15-T03): kind=last_pages requests of RS_LastPages, written as RSV2 (kind=, payload=).
 Caps stay in RadioSurvivor (decision of 2026-11-05).

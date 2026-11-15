@@ -1,7 +1,7 @@
 --[[
-CoreAI: mission catalogue, caches and mission delays of the common mission engine (E18-T05, moved from the
-RadioSurvivor configuration; values unchanged). Read by CA_Missions, its templates and CA_Caches; RadioSurvivor's
-RS_Config points at the same tables (one copy). Loaded on every machine (media/lua/shared).
+CoreAI: mission catalogue, caches and mission delays of the common mission engine (E18-T05, moved from a
+mod's configuration; values unchanged). Read by CA_Missions, its templates and CA_Caches; a mod's
+configuration may point at the same tables (one copy). Loaded on every machine (media/lua/shared).
 ]]
 local MC = {
     -- E11-T20: OFFER_TTL_MS, OFFER_COOLDOWN_MS and the durationMs of the missions are play ms (CA_GameClock: real ms
@@ -12,8 +12,8 @@ local MC = {
     -- template registration order and does not ask the templates after the cap: no place drawn for an offer that is
     -- not sent). Same value as MAX_OFFERS in bridge/npc_protocol.py, which rejects a larger catalog.
     MAX_OFFERS = 6,
-    -- Squares between a player and the requester's body for a hand-over or a claim (deliver, claim: notebook of
-    -- RadioSurvivor and journal of the core mod, E18-T29).
+    -- Squares between a player and the requester's body for a hand-over or a claim (deliver, claim: notebook and
+    -- journal of the core mod, E18-T29).
     DELIVERY_RANGE = 3,
     MISSION_RETENTION_MS = 86400000,   -- closed missions kept 24 h for the notebook
     -- Successful but unclaimed lot kept 7 game days (168 game hours of world age, stopped while paused: user decision
@@ -212,9 +212,9 @@ local MC = {
             tools = {{'Base.Hammer', 1}, {'Base.Screwdriver', 1}, {'Base.Nails', 10}},
         },
     },
-    -- E18-T33: lot of a mission given by an NPC, by type of its group: a table of Caches.tables. Read by Living Knox
-    -- (LK_MissionRewards: lot created when the household has no surplus and the mission announces none, with or
-    -- without RadioSurvivor, E11-T21). Unknown type: food.
+    -- E18-T33: lot of a mission given by an NPC, by type of its group: a table of Caches.tables. Read by an NPC engine
+    -- (its mission rewards: lot created when the household has no surplus and the mission announces none, with or
+    -- without the voices, E11-T21). Unknown type: food.
     NPC_REWARD_TABLES = {settlers = 'tools', neutrals = 'food', raiders = 'ammo'},
 }
 

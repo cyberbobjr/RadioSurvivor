@@ -20,13 +20,13 @@ Givers (E18-T05, user decision of 2026-11-05: registration and hooks). A mod reg
                                       a voice (M.dropsWhere, M.dropsRule)
 The engine keeps its fields on the giver record, owned by that mod: id, name, mission, missionCount, nextOfferHour.
 NPC reward source (E11-T21, decision D09 of 2026-11-14: each mod pays its missions). The NPC engine declares how a
-mission given by one of its NPCs is paid, so that a giver of another mod (RadioSurvivor's notebook fiche of an engine
+mission given by one of its NPCs is paid, so that a giver of another mod (a notebook fiche of an engine
 NPC) delegates the claim to it without reading any module of that engine:
     M.registerNpcReward({ claim(store, m, player, character, token, npcId) -> handled, reason | nil,
                           lot(m, npcId) -> name of a Caches table | nil })
     M.npcReward() -> the registered source, or nil (no NPC engine: the giver keeps the common lot)
 npcId is the engine's id of the requester; claim and lot have the contract of the giver's claim and lot above (nil:
-the common lot of the engine). One source per game (Living Knox registers its own at load, authority only); a second
+the common lot of the engine). One source per game (the NPC engine registers its own at load, authority only); a second
 registration replaces the first.
 Reputation (E18-T22): the engine records the fact of each participant of a closed mission in the reputation of the
 core mod (CA_Reputation: mission.success, mission.failed, mission.abandoned; not for the cancelled_* results) and
@@ -88,7 +88,7 @@ Declarations read by the other modules (E20-T01, ADR D02; all optional, nothing 
                                                 to m.delivered, and its drop hooks are called by the engine
     mapStyle = '<Suffix>'                       suffix of the map label key IGUI_CA_MapZone<Suffix>; none: plain label
     params = {<key> = '<kind>'}                 (with voiceName) keys a voice sheet may set in a [mission] section of
-                                                this type, each checked by its kind (RadioSurvivor's RS_PersonaParams:
+                                                this type, each checked by its kind (the voices' sheet parameters:
                                                 count, range, category, place, text, skill; E20-T03); any other key of
                                                 the section is refused, besides the common ones (type, weight, after,
                                                 story, drops, target)
@@ -100,11 +100,11 @@ succeed by themselves. Their objective met, the mission stays 'active' and is pr
 notebook shows "to report"); it succeeds only when a participant reports to the requester: in person to the NPC
 (CA_NotebookServer: talk request carrying context.reportable, intent report_done chosen by the model and checked again
 here, or the notebook button "Report" near the requester, without the bridge), or for a radio voice requester on its
-frequency (RS_MissionVoice: action report_mission of the voice's reply). M.spoken is that single entry point: it
+frequency (action report_mission of the voice's reply). M.spoken is that single entry point: it
 refuses a mission whose objective is not met (no claim ever validates anything). The delay keeps running meanwhile
 (same rule as scout since E11-T03); a requester who dies first closes it as 'cancelled_dead' (no reputation change).
 Requester ("donor"): an NPC fiche of the notebook (state.npcs[m.npc]) or, since E11-T08, a radio voice
-(RS_MissionVoice.lua: state.voiceDonors[m.npc], id 'voice:<voice>:<character>', m.donor = 'voice'). Both carry the
+(the voices: state.voiceDonors[m.npc], id 'voice:<voice>:<character>', m.donor = 'voice'). Both carry the
 fields the engine reads and writes: id, mission, missionCount, nextOfferHour (nextOfferAt before E11-T20).
 Game time (E11-T20, user decision of 2026-10-21): remainingMs and offerRemainingMs are play ms (CA_GameClock: real
 ms at normal speed, stopped while the game is paused, faster at x2/x3), decreased by M.advance with the play time
@@ -113,7 +113,7 @@ keep their remainingMs (same unit at normal speed); a saved nextOfferAt (real ms
 closedAt stays real time (notebook retention and ordering, housekeeping only). An unclaimed lot is kept until a world age
 (unclaimedUntilHour, UNCLAIMED_RETENTION_HOURS = 7 game days after the success, user decision of 2026-10-21): see
 M.prune.
-Engine supplies (E17-T03): for an NPC of a provider that defines supplies (CA_NPCProvider.hasSupplies, Living Knox),
+Engine supplies (E17-T03): for an NPC of a provider that defines supplies (CA_NPCProvider.hasSupplies),
 `deliver` offers come only from Provider.supplies (real needs of its group); the mission counts value points V
 (m.unit = 'value', m.values), each delivery goes through Provider.supplyDeliver with the transaction token as receipt,
 and an offer closed by the engine closes the mission as 'cancelled_closed' (no reputation change, like
@@ -162,7 +162,7 @@ function M.npcReward() return npcReward end
 local function kindOf(m) return m.donor or 'npc' end
 
 -- E18-T25 (decision of 2026-11-06): a mission is present while the mod of its giver is active: its kind is registered
--- and the giver's optional present(m, state) does not say false (RadioSurvivor: the fiche of an engine NPC needs its
+-- and the giver's optional present(m, state) does not say false (a notebook: the fiche of an engine NPC needs its
 -- engine; state = the engine's store when not given). A mission that
 -- is not present is hidden from every list and frozen (no delay counted, no expiry, no poll, never pruned): never
 -- erased nor failed by the absence of its mod, found again as it was when the mod is ticked again.
@@ -205,7 +205,7 @@ function M.binding()
     return require('CoreAI/CA_Identity').bound or {}
 end
 
--- Missions a character still knows besides its own and its invitations (RadioSurvivor's notebook: set of ids), or nil.
+-- Missions a character still knows besides its own and its invitations (a mod's notebook: set of ids), or nil.
 function M.knownMissions(state, character)
     if knownMissions then return knownMissions(state, character) end
     return nil
@@ -218,7 +218,7 @@ function M.requester(state, m)
     return donor and type(donor.name) == 'string' and donor.name or ''
 end
 
--- A template changed a mission from a world event: the listeners publish it (RadioSurvivor's notebook).
+-- A template changed a mission from a world event: the listeners publish it (the notebook).
 function M.changed()
     for _, fn in ipairs(changeListeners) do fn() end
 end
@@ -380,10 +380,10 @@ function M.finish(state, mission, result)
         local t = M.template(mission)
         if t and t.complete then t.complete(state, mission) end
     end
-    -- Optional listener of closed missions, cancellations included (RadioSurvivor: RS_Facts, mission fact).
+    -- Optional listener of closed missions, cancellations included (a mod's fact log).
     if M.onFinished then M.onFinished(state, mission, result) end
     -- Cancellations (requester dead, engine offer closed) tell no listener. Otherwise the result listeners hear once
-    -- per registered participant, connected or not (RadioSurvivor: reputation fact and notebook trust, E04-T08); the
+    -- per registered participant, connected or not (reputation fact and notebook trust, E04-T08); the
     -- requester's name (giver record, else the name kept on the mission) is handed to them and to the reputation.
     if string.sub(result, 1, 10) ~= 'cancelled_' then
         local donor = M.donorOf(state, mission)
@@ -861,7 +861,7 @@ function Deliver.voiceBrief(m)
 end
 
 -- E20-T16 (ADR D04): declaration askFor(m, types, quantity), the goods of a voice mission's sheet section, handed by
--- the voice set-up of the templates declaring it (RadioSurvivor's RS_MissionGoods). types: list of the full types of
+-- the voice set-up of the templates declaring it (the voices' goods). types: list of the full types of
 -- its items= category, replacing the configured list (nil: kept); quantity: number drawn in its quantity=, at least 1
 -- (nil: the configured quantity kept).
 function Deliver.askFor(m, types, quantity)
@@ -880,7 +880,7 @@ M.deliver = M.report
 
 -- Server poll of the templates that watch their participants (E11-T03). present: list of {player, character} built
 -- by the caller from the server copies of the connected players (never from a position sent by a client). Returns
--- true when a mission changed (revision raised). store (E11-T06, optional): RS_State or a double { save } handed to
+-- true when a mission changed (revision raised). store (E11-T06, optional): a mod's private state or a double { save } handed to
 -- the templates that must save before acting on the world (recover cache).
 -- E20-T06: the giver's dead drops of a template that declares dropAccepts are polled after the template (deferred,
 -- unseen collection: never consume an item in front of a player).

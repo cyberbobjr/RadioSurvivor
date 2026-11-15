@@ -9,8 +9,8 @@ require 'ISUI/ISDPadWheels'
 --[[
 CoreAI: the notebook (E18-T24, user decision of 2026-11-06). Client only, presentation only.
 
-One notebook for every mod of the article, shipped by the core mod (always present: RadioSurvivor and Living Knox
-both require it), opened without any item by a button of the vanilla sidebar and, with a controller, by a slice of the
+One notebook for every mod of the article, shipped by the core mod (always present: every mod that uses it
+requires it), opened without any item by a button of the vanilla sidebar and, with a controller, by a slice of the
 D-pad right wheel. This file holds the frame only: paper, binding, bookmarks, left list, right page, buttons laid out
 under the text, thin scroll bars, and the registry of tabs.
 
@@ -788,7 +788,7 @@ Notebook.contactPages = {}
 -- called by name in solo (CA_Teams).
 function Notebook.receive(command, args) Client.receive(command, args) end
 
--- E18-T20: team of the player (CA_Teams.projection), for the Team tab of Living Knox.
+-- E18-T20: team of the player (CA_Teams.projection), for the Team tab of an NPC engine.
 Client.registerCommand('team', function(args)
     Notebook.team = type(args.team) == 'table' and args.team or nil
     local w = Notebook.window
