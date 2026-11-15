@@ -23,6 +23,8 @@ local Actions = require "RadioSurvivor/RS_Actions"
 local Memory = require "RadioSurvivor/RS_Memory"
 -- État dynamique des voix (E07-T06) : exécuteur persona_state enregistré au chargement ; état joint (persona=).
 local PersonaState = require "RadioSurvivor/RS_PersonaState"
+local VoiceStory = require "RadioSurvivor/RS_VoiceStory" -- E20-T08: story state of the voice (story=)
+require "RadioSurvivor/RS_API" -- E20-T08: public API of the mod (RadioSurvivor.API)
 -- Repère sur la carte (E07-T04) : exécuteur mark_map enregistré au chargement (rien d'autre à appeler ici).
 require "RadioSurvivor/RS_MapMarks"
 -- Mission donnée par une voix (E11-T08) : exécuteur start_mission enregistré au chargement ; compte rendu et contexte
@@ -484,12 +486,13 @@ local function onTalk(player, args)
     req.memory = Memory.field(sheet.id, req.caller, req.cid)
     -- État dynamique de la voix (E07-T06), absent tant qu'elle ne l'a jamais changé.
     req.persona = PersonaState.field(sheet.id)
+    req.story = VoiceStory.value(sheet.id) -- E20-T08 : état de récit posé par une mission réussie (sets_state=)
     -- Mission de cette voix pour ce personnage (E11-T08), absente sinon. E11-T13 : rien n'est jugé ici ; objectif
     -- rempli (sondage serveur), turn = report_due : le modèle de la voix reconnaît le compte rendu et rend l'action
     -- report_mission, revérifiée par son exécuteur (RS_MissionVoice) ; avant, turn = not_yet.
     req.mission = VoiceMissions.field(VoiceMissions.heard(sheet, player, req.cid, khz))
     -- E20-T02 : missions que cette voix peut donner, décrites par leur gabarit (voix qui autorise start_mission).
-    req.jobs = VoiceMissions.field(VoiceMissions.jobs(sheet))
+    req.jobs = VoiceMissions.field(VoiceMissions.jobs(sheet, req.cid, player))
     req.trade = Trade.field(sheet, req.caller, req.cid) -- E13-T02 : voix qui autorise propose_trade seulement
     -- E04-T10 (Q10) : réputation du personnage appelant (niveau et dernier acte public, hexadécimal RSV2), absente sans
     -- personnage du carnet ; jamais de score. Écrite par RS_Transport.write (clé reputation).
@@ -686,8 +689,9 @@ VoiceMissions.onStarted = function(m, ctx)
     }
     req.memory = Memory.field(src.voice, src.caller, src.cid)
     req.persona = PersonaState.field(src.voice)
+    req.story = VoiceStory.value(src.voice) -- E20-T08
     req.mission = VoiceMissions.field(VoiceMissions.context(m, "briefing"))
-    req.jobs = VoiceMissions.field(VoiceMissions.jobs(Personas.get(src.voice))) -- E20-T02
+    req.jobs = VoiceMissions.field(VoiceMissions.jobs(Personas.get(src.voice), src.cid, ctx.player)) -- E20-T02
     req.trade = Trade.field(Personas.get(src.voice), src.caller, src.cid) -- E13-T02
     briefings[#briefings + 1] = req
 end

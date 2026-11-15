@@ -110,7 +110,7 @@ class RewardDrawTests(unittest.TestCase):
         instanceItem = function(fullType)
             if fullType ~= 'Base.Bag' then return item(fullType) end
             local inside = {list = {}}
-            function inside:AddItem(it) self.list[#self.list + 1] = it.fullType; return it end
+            inside.AddItem = function(self, it) self.list[#self.list + 1] = it.fullType; return it end
             local md = {}
             return {getModData = function() return md end, getItemContainer = function() return inside end,
                 inside = inside}

@@ -13,20 +13,23 @@ One open mission at a time per caller and per voice; after its closure, the next
 (same rule as an NPC, M01). start_mission also has the RS_Actions controls: sheet actions=, budget.start_mission per
 game day, START_MISSION_COOLDOWN_MS per voice.
 
-start_mission { template }: a name declared by a registered template (RC_Missions, declaration voiceName: V.allowed,
-looked up when the action runs, after every file is loaded), further restricted by the types of the sheet's
-[mission] sections (RS_Persona, E20-T03; a sheet without any: scout). A
-voice-specific set-up of the mission is registered by its own file, for one voice name:
+start_mission { template }: E20-T08, the id of a [mission] section of the sheet (RS_Persona, E20-T03) available to
+the caller (after=, scope=), or a mission type: the server then draws among the available sections of that type by
+weight= (RS_MissionChain.choose; a sheet without any section: section 'scout'). The type of the section must be
+declared by a registered template (RC_Missions, declaration voiceName: V.allowed, looked up when the action runs).
+The mission keeps m.section, m.team (team of the caller) and m.setsState (sets_state= of the section): its result is
+recorded by RS_MissionChain.record (result listener, RS_MissionHooks). A voice-specific set-up of the mission is
+registered by its own file, for one voice name:
 V.registerSetup(voiceName, { check(sheet, section) -> ok, reason, apply(m, sheet, donor, section) }), or for every
 template that declares a field: V.registerDeclaredSetup(field, setup) (E20-T06: dead drops of the templates declaring
-dropAccepts, RS_DeadDrops); a set-up by name comes first. It is checked before the
-mission is created and applied before it is accepted and saved; section = the first [mission] section of the sheet of
-this type (V.section: drops, params), nil for the default scout. The server draws the place with the template's
-offer (RC_MissionScout: habitable building at 60-250 tiles of the caller's server position, same rules as E11-T03),
-creates and accepts the mission for the caller, writes the history line "mission" (kind of place, no coordinate) on
-the frequency of the reply. Refusals (reason): no_player (caller not connected: no server position), storage
+dropAccepts, RS_DeadDrops); a set-up by name comes first. It is checked before the mission is created and applied
+before it is accepted and saved; section = the chosen [mission] section (drops, params). The server draws the place
+with the template's offer (RC_MissionScout: habitable building at 60-250 tiles of the caller's server position, same
+rules as E11-T03), creates and accepts the mission for the caller, writes the history line "mission" (kind of place,
+no coordinate) on the frequency of the reply. Refusals (reason): no_player (caller not connected: no server position), storage
 (private state not loaded or blocked), no_character (no notebook character bound), mission_open (this caller already
-has an open mission from this voice), recent_mission (OFFER_COOLDOWN_MS after the previous one), no_place, reputation
+has an open mission from this voice), recent_mission (OFFER_COOLDOWN_MS after the previous one), bad_template (no
+section nor type of that name, or a type without template), locked (waits for its after=), no_place, reputation
 (E04-T05: sensitive template refused to a bad reputation; scout is a simple mission, always allowed).
 
 Visit: the same server poll as E11-T03 (RC_Missions.observe from the notebook loop, server copy of the player).
@@ -52,8 +55,8 @@ Bridge context (V.context, field mission= of the radio request, hex RSV2; generi
 'success': the report was accepted; 'open': otherwise), toReport (objective met), reward (label of the place given, or
 to be given at the report), job and facts (English, composed by the template's voiceBrief from server facts). Never a
 coordinate nor the zone. Jobs this voice may give (V.jobs, field jobs=, hex RSV2, only for a sheet that allows
-start_mission): jobs = ordered list of { name, text } (types of the sheet's [mission] sections declared by a
-registered template, text = its voiceText) and caches = the cache tables of place_cache (RC_Caches.tableNames).
+start_mission): jobs = ordered list of { name, text } (E20-T08: sections available to this caller, name = section
+id, text = voiceText of its template, then its story=) and caches = the cache tables of place_cache (RC_Caches.tableNames).
 Briefing (E11-T09): the reply that proposes start_mission is aired before the action is judged, so it cannot know the
 place. Once the mission is created, V.onStarted(m, ctx) (set by RadioSurvivor_Server) queues one more request to the
 bridge for this caller and this voice, with turn = 'briefing': the voice then says the kind of place and its clues on
@@ -71,6 +74,7 @@ local Bonds = require "RadioSurvivor/RS_VoiceBonds" -- E07-T10: exceptional shar
 local Caches = require "RadioSurvivorCore/RC_Caches" -- E20-T02: cache tables told to the voice (jobs=)
 local MapMarks = require "RadioSurvivor/RS_MapMarks"
 local Persona = require "RadioSurvivor/RS_Persona"
+local Chain = require "RadioSurvivor/RS_MissionChain" -- E20-T08: sections available to a caller (after=, weight=)
 
 local V = {}
 
@@ -110,27 +114,6 @@ local function logUnknown(sheet, voiceName)
     if unknownLogged[key] then return end
     unknownLogged[key] = true
     Const.log("voice sheet " .. tostring(sheet.id) .. " lists unknown mission type '" .. tostring(voiceName) .. "'")
-end
-
--- Mission types the sheet gives: types of its [mission] sections, each once, in file order (default: scout).
-local function missionsOf(sheet)
-    local types, seen = {}, {}
-    for _, m in ipairs(type(sheet.missions) == "table" and sheet.missions or {}) do
-        if type(m) == "table" and type(m.type) == "string" and not seen[m.type] then
-            seen[m.type] = true
-            types[#types + 1] = m.type
-        end
-    end
-    if #types == 0 then return {"scout"} end
-    return types
-end
-
--- First [mission] section of the sheet of this type (drops, params), or nil.
-function V.section(sheet, voiceName)
-    for _, m in ipairs(type(sheet.missions) == "table" and sheet.missions or {}) do
-        if type(m) == "table" and m.type == voiceName then return m end
-    end
-    return nil
 end
 
 function V.donorId(voice, cid)
@@ -177,18 +160,22 @@ function V.start(store, sheet, cid, player, khz, template)
     if V.open(state, sheet.id, cid) then return nil, "mission_open" end
     local d = V.donor(state, sheet.id, cid, true)
     if M.offerWait(d) then return nil, "recent_mission" end -- E11-T20: play time (pause, speed)
-    local permitted = false
-    for _, name in ipairs(missionsOf(sheet)) do if name == template then permitted = true end end
-    local name, t = M.voiceTemplate(template)
-    if permitted and not name then logUnknown(sheet, template) end
-    if not name or not permitted then return nil, "bad_template" end
+    -- E20-T08: a section id, or a type drawn among the available sections of that type (after=, weight=).
+    local team = Chain.teamOf(player)
+    local section, refused = Chain.choose(sheet, {state = state, voice = sheet.id, donor = d, team = team}, template)
+    if not section then return nil, refused end
+    local name, t = M.voiceTemplate(section.type)
+    if not name then
+        logUnknown(sheet, section.type)
+        return nil, "bad_template"
+    end
     local c = Config.Missions[name]
     -- E04-T05 (Q11): a sensitive template is never started for a bad reputation.
     if not Rep.offerAllowed(Rep.level(cid), name) then return nil, "reputation" end
     -- The template's offer draws the place around the caller (server copy of the player: never a client claim).
     local terms = c and t.offer(c, d, nil, player, cid)
     if not terms then return nil, "no_place" end
-    local setup, section = setupOf(template, t), V.section(sheet, template)
+    local setup = setupOf(section.type, t)
     if setup then
         local ok, reason = setup.check(sheet, section)
         if not ok then return nil, reason end
@@ -197,6 +184,7 @@ function V.start(store, sheet, cid, player, khz, template)
     if not m then return nil, "no_place" end
     m.donor, m.voice, m.requesterName, m.khz, m.report = "voice", sheet.id, tostring(sheet.name or sheet.id), khz, "radio"
     m.rewardType, m.rewardCount = "", 0
+    m.section, m.team, m.setsState = section.id, team, section.sets_state -- E20-T08: RS_MissionChain.record
     -- Saved atomically with acceptance below; a set-up never persists a half-created mission.
     if setup then setup.apply(m, sheet, d, section) end
     M.accept(state, m, cid, record.name or "")
@@ -273,17 +261,31 @@ function V.context(m, turn, place)
     return ctx
 end
 
--- Jobs this voice may give, told to its model (field jobs=), or nil when the sheet does not allow start_mission.
--- A name of the sheet without a registered template is left out and logged once (V.start refuses it too).
-function V.jobs(sheet)
+-- Text of a job: what the template does, then the story of the section (story=), if any.
+local function jobText(t, section)
+    if type(section.story) == "string" and section.story ~= "" then
+        return t.voiceText .. ". " .. section.story
+    end
+    return t.voiceText
+end
+
+-- Jobs this voice may give to this caller (character cid, server player), told to its model (field jobs=), or nil
+-- when the sheet does not allow start_mission. E20-T08: one job per section available to the caller
+-- (RS_MissionChain: after=, scope=), named by its section id. A type without a registered template is left out and
+-- logged once (V.start refuses it too). store: RS_State or a double { data, blocked }.
+function V.jobs(sheet, cid, player, store)
     if not Actions.allowedBy(sheet, "start_mission") then return nil end
+    store = store or S
+    local state = not store.blocked and type(store.data) == "table" and store.data or nil
+    local donor = state and type(cid) == "string" and V.donor(state, sheet.id, cid, false) or nil
+    local caller = {state = state, voice = sheet.id, donor = donor, team = Chain.teamOf(player)}
     local jobs = {}
-    for _, name in ipairs(missionsOf(sheet)) do
-        local _, t = M.voiceTemplate(name)
+    for _, section in ipairs(Chain.available(sheet, caller)) do
+        local _, t = M.voiceTemplate(section.type)
         if t and type(t.voiceText) == "string" then
-            jobs[#jobs + 1] = {name = name, text = t.voiceText}
+            jobs[#jobs + 1] = {name = section.id, text = jobText(t, section)}
         elseif not t then
-            logUnknown(sheet, name)
+            logUnknown(sheet, section.type)
         end
     end
     return {jobs = jobs, caches = Caches.tableNames()}
@@ -332,12 +334,13 @@ end
 
 -- Executor -----------------------------------------------------------------------------------------------------
 
--- Single parameter `template`, a name declared by a registered template (V.allowed).
+-- Single parameter `template`: a name (section id or mission type, E20-T08); the sheet judges it (V.start).
 local function validate(params)
     for key in pairs(params) do
         if key ~= "template" then return false end
     end
-    return type(params.template) == "string" and V.allowed(params.template)
+    local name = params.template
+    return type(name) == "string" and string.len(name) <= 32 and string.match(name, "^[a-z][a-z0-9_]*$") ~= nil
 end
 
 local function execute(params, ctx)

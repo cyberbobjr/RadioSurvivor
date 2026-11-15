@@ -9,7 +9,8 @@ RadioSurvivor's givers and hooks of the common mission engine (E18-T05, RC_Missi
   its engine registered in the core, M.npcReward: each mod pays its missions, E11-T21),
   'voice' = radio voice (S.data.voiceDonors, E11-T08; its dead drops polled and projected by RS_DeadDrops);
 - result of a mission: trust of the notebook contact (the reputation fact of each participant and the offers closed
-  to a bad reputation are the core engine's, E18-T22);
+  to a bad reputation are the core engine's, E18-T22); result of a voice mission section, per participant and team,
+  and the story state of the voice (RS_MissionChain, E20-T08);
 - dropped mission: forgotten by every notebook character (knownMissions);
 - missions still listed for a character: its notebook record (knownMissions, E18-T06: same list in the journal);
 - character of a server player: the notebook binding (RS_CarnetServer.bound); a change from a world event publishes
@@ -84,6 +85,14 @@ local function onResult(state, m, result, character)
     end
 end
 
+-- E20-T08: result of a voice mission section for this participant (its donor record of the voice) and the caller's
+-- team; a success may set the story state of the voice (RS_MissionChain).
+local function onVoiceResult(state, m, result, character)
+    if m.donor ~= 'voice' or type(m.section) ~= 'string' then return end
+    local donor = require('RadioSurvivor/RS_MissionVoice').donor(state, m.voice, character, true)
+    require('RadioSurvivor/RS_MissionChain').record(state, m, result, donor)
+end
+
 local function onPruned(state, id)
     for _, record in pairs(state.characters or {}) do record.knownMissions[id] = nil end
 end
@@ -112,6 +121,7 @@ function H.attach(S)
     M.registerDonor('npc', npcGiver())
     M.registerDonor('voice', voiceGiver())
     M.addResultListener(onResult)
+    M.addResultListener(onVoiceResult)
     M.addPruneListener(onPruned)
     M.addChangeListener(publish)
     M.setCharacterName(characterName)

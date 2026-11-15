@@ -73,6 +73,14 @@ CASES: list[tuple[str, str, tuple[int, str] | None]] = [
     ('after itself', mission('type=scout\nafter=m\n'), (15, "after= cycle through mission 'm'")),
     ('after cycle', BASE + '[mission a]\ntype=scout\nafter=b\n[mission b]\ntype=clear\nafter=a\n' + PROMPT,
      (15, "after= cycle through mission 'a'")),
+    # E20-T08 : enchainement par equipe, etat de recit pose a la reussite, recit borne (texte du travail, jobs=).
+    ('mission scope team', mission('type=scout\nscope=team\n'), None),
+    ('bad mission scope', mission('type=scout\nscope=world\n'), (15, "bad scope 'world' (expected character, team)")),
+    ('mission sets_state', mission('type=scout\nsets_state=returned\n'), None),
+    ('bad sets_state', mission('type=scout\nsets_state=Back home\n'),
+     (15, "bad sets_state 'Back home' (a to z, 0 to 9 and _, starting with a letter, 32 characters at most)")),
+    ('story too long', mission('type=scout\nstory=' + 'x' * 201 + '\n'),
+     (15, 'story too long (200 bytes of UTF-8 at most)')),
     ('unknown reward', rewards('gold:1'), (14, "unknown reward 'gold' (expected cache, frequency, lesson, stashmap)")),
     ('reward without weight', rewards('frequency'),
      (14, "bad reward 'frequency' (kind:weight or kind:parameter:weight, e.g. cache:medical:3)")),
@@ -207,6 +215,7 @@ class SectionTests(unittest.TestCase):
                          ('medical', 2, 4))
         self.assertEqual((look.id, look.type, look.weight, look.after, look.target, lua_items(look.drops)),
                          ('look', 'scout', 1, 'meds', 'clinic', []))
+        self.assertEqual((meds.scope, meds.sets_state, look.scope), ('character', None, 'character'))
         self.assertEqual([(r.kind, r.param, r.weight) for r in lua_items(p.rewards)],
                          [('cache', 'medical', 3), ('cache', 'snacks', 1), ('frequency', None, 1),
                           ('stashmap', None, 1), ('lesson', 'Doctor', 2)])

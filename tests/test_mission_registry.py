@@ -144,21 +144,22 @@ class MissionRegistryTests(unittest.TestCase):
         sheet = rt.eval("require('RadioSurvivor/RS_Personas').get('scouter')")
         self.assertEqual([(m.id, m.type) for m in lua_list(sheet.missions)], [('tower', 'fake')])
         req = self.talk(sim, 'alice', 'Got any work for me?')
-        # The server tells the bridge the jobs this voice may give, described by their template.
+        # The server tells the bridge the jobs this voice may give, named by their section (E20-T08) and described
+        # by their template.
         jobs = convert(protocol.decode(bytes.fromhex(req['jobs'])))
         self.assertEqual([jobs['jobs'][i] for i in sorted(jobs['jobs'])],
-                         [{'name': 'fake', 'text': 'check the old water tower'}])
+                         [{'name': 'tower', 'text': 'check the old water tower'}])
         order = rt.eval("require('RadioSurvivorCore/RC_MissionConfig').Caches.order")
         self.assertEqual([jobs['caches'][i] for i in sorted(jobs['caches'])], list(lua_list(order)))
-        start = json.dumps({'say': 'Go check the tower.', 'actions': [{'type': 'start_mission', 'template': 'fake'}]})
+        start = json.dumps({'say': 'Go check the tower.', 'actions': [{'type': 'start_mission', 'template': 'tower'}]})
         system, result = self.answer(sim, req, start)
-        self.assertIn('fake: check the old water tower', system)
-        self.assertIn('{"type": "start_mission", "template": "fake"}', system)
-        self.assertEqual(result['actions'], [{'type': 'start_mission', 'template': 'fake'}])
+        self.assertIn('tower: check the old water tower', system)
+        self.assertIn('{"type": "start_mission", "template": "tower"}', system)
+        self.assertEqual(result['actions'], [{'type': 'start_mission', 'template': 'tower'}])
         # The server starts the fake mission, then the briefing tells its job and facts to the voice.
         self.respond(sim, req, result['actions'], 'Go check the tower.')
         [m] = [m for m in sim.state().missions.values() if m.donor == 'voice']
-        self.assertEqual((m.template, m.state), ('fake', 'active'))
+        self.assertEqual((m.template, m.section, m.state), ('fake', 'tower', 'active'))
         parsed = bridge_module.parse_requests((sim.path / 'requests.txt').read_text(encoding='utf-8'))
         [brief] = [r for r in parsed[1] if r['id'].endswith('-brief')]
         system, _ = self.answer(sim, brief, json.dumps({'say': 'Listen.', 'actions': []}))

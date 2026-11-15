@@ -964,6 +964,7 @@ def answer(config: dict[str, str], conversations: Conversations, session: str, r
         # État dynamique (E07-T06) : de même, dès que la voix l'a changé une fois.
         system = (system_prompt(req, tag, persona) + memory_prompt(memory_facts(req, sheet), tag)
                   + persona_prompt(persona_state(req, sheet))
+                  + story_prompt(story_state(req))
                   + mission_prompt(mission_context(req, sheet), tag)
                   + trade_prompt(trade_context(req, sheet), tag)
                   + reputation_prompt(reputation_field(req), tag)
@@ -1102,6 +1103,32 @@ def persona_prompt(state: dict | None) -> str:
         "\nYour current state (stay consistent with it; change it only for a reason in the story):\n"
         + "\n".join(lines)
     )
+
+
+# --- état de récit de la voix (E20-T08) ----------------------------------------------------------
+
+STORY_NAME = re.compile(r"[a-z][a-z0-9_]{0,31}")
+
+
+def story_state(req: dict[str, str]) -> str | None:
+    """État de récit de la voix (champ story= : un nom, posé par le serveur à la réussite d'une mission qui déclare
+    sets_state=, RS_VoiceStory). Absent : None. Pas un nom ([a-z][a-z0-9_], 32 caractères au plus) : ignoré (None,
+    journalisé). Le pont ne connaît aucun nom d'état."""
+    raw = req.get("story")
+    if not raw:
+        return None
+    if not STORY_NAME.fullmatch(raw):
+        log(f"request {req.get('id', '?')}: story state ignored (not a name)")
+        return None
+    return raw
+
+
+def story_prompt(state: str | None) -> str:
+    """Ligne « état de récit » du prompt système ; "" sans état. Le sens du nom est donné par la fiche (prompt)."""
+    if not state:
+        return ""
+    return ("\nYour story state (set by what callers really did for you; your sheet tells what it means, stay "
+            f"consistent with it): {state.replace('_', ' ')}.")
 
 
 # --- mission donnée par la voix (E11-T08) -----------------------------------------------------
@@ -1273,8 +1300,9 @@ def mission_prompt(mission: dict | None, tag: str) -> str:
 
 # --- missions que la voix peut donner (E20-T02, ADR D03) ------------------------------------------------------
 
-JOBS_FIELD_CHARS = 4096       # champ jobs= (hexadécimal RSV2) ; au-delà, ignoré
-JOB_TEXT_BYTES = 160          # description d'un type de mission (voiceText du gabarit), en octets UTF-8
+JOBS_FIELD_CHARS = 16384      # champ jobs= (hexadécimal RSV2) ; au-delà, ignoré
+JOB_TEXT_BYTES = 400          # description d'une mission : voiceText du gabarit puis story= de la section
+                              # (200 octets au plus, RS_Persona), en octets UTF-8 (E20-T08)
 MAX_JOBS = 16
 MAX_CACHES = 16
 

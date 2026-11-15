@@ -57,4 +57,4 @@ anonymes test_rs_suites.py 4
 anonymes test_rs_trade_exchange.py 11
 anonymes test_rst.py 41
 anonymes test_rst_steps.py 17
-anonymes test_voice_delivery.py 36
+anonymes test_voice_delivery.py 30

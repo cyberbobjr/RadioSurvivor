@@ -21,8 +21,9 @@ local T = require "RadioSurvivorCore/RC_Transport"
 -- of English sentences, RS_Facts.bulletin); absent = nothing confirmed. A bridge older than E14-T02 ignores it.
 -- trade (E13-T02): book of the smuggler for this caller (hex RSV2 table, RS_Trade.field); absent = no trade.
 -- reputation (E04-T10): public reputation of this caller (level and last public act); absent = none.
+-- story (E20-T08): story state of the voice (a name, RS_VoiceStory); absent = none yet.
 local RADIO_KEYS = { 'kind', 'caller', 'voice', 'name', 'date', 'days', 'radio', 'text', 'language', 'memory',
-    'persona', 'mission', 'jobs', 'facts', 'trade', 'reputation' }
+    'persona', 'mission', 'jobs', 'facts', 'trade', 'reputation', 'story' }
 
 local function radioLines(out, r)
     out[#out + 1] = 'sent=' .. string.format('%.0f', r.sentAt)

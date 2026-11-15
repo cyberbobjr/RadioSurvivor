@@ -195,7 +195,7 @@ valide la forme, le serveur le fond ; le serveur seul exécute. Implémentation 
   | `persona_state` | au moins un de : `morale`, `supplies` (vivres, eau, munitions) : entiers de 0 à `PERSONA_LEVEL_MAX` (10), au plus `PERSONA_LEVEL_STEP` (2) d'écart par appel ; `place` : texte d'au plus `PERSONA_PLACE_CHARS` (40) caractères, où la voix dit être |
   | `mark_map` | `place` : identifiant d'un lieu de la fiche ; suivi de la liste `id: libellé` des lieux `[place]` avec `use=mark` (E20-T03), jamais de coordonnées ; exemple au premier identifiant. Proposée seulement si la fiche a au moins un tel lieu (sinon journal anglais une fois par voix : `mark_map not offered to the LLM, the sheet has no [place] with use=mark`) |
   | `reveal_area` | `place` : identifiant d'un lieu de la fiche, comme `mark_map` (E07-T05) ; mêmes conditions (au moins un lieu `use=mark`, sinon `reveal_area not offered to the LLM, the sheet has no [place] with use=mark`) ; la liste `id: libellé` n'est écrite qu'une fois, sous la première de ces deux actions proposée ; aucune taille de zone demandée au LLM (le serveur la fixe) |
-  | `start_mission` | `template` : un nom de la liste `jobs=` de la demande (types inscrits au registre des gabarits et cités par les sections `[mission]` de la fiche, défaut `scout` ; E20-T02, E20-T03) ; la voix ne choisit pas le bâtiment, décrit juste après par une demande de consigne (`turn = briefing`, E11-T09), puis à chaque appel par le champ `mission=` (« Mission donnée par une voix ») |
+  | `start_mission` | `template` : un nom de la liste `jobs=` de la demande (identifiants des sections `[mission]` de la fiche disponibles pour l'appelant, E20-T08 ; défaut `scout` ; E20-T02, E20-T03) ; la voix ne choisit pas le bâtiment, décrit juste après par une demande de consigne (`turn = briefing`, E11-T09), puis à chaque appel par le champ `mission=` (« Mission donnée par une voix ») |
   | `report_mission` | aucun paramètre (E11-T13) : compte rendu, à la radio, de la mission de cette voix dont l'objectif est rempli (tour `report_due`) ; permise avec `start_mission` sans être listée ; refusée `no_mission` (pas de mission ouverte de cette voix pour l'appelant) ou `not_done` (objectif non rempli) |
   | `propose_trade` | `items` : texte d'au plus 64 caractères, « `Nom:quantité` » séparés par des virgules, noms du livre du passeur ; `margin` : nombre facultatif dans la fourchette du livre ; le serveur calcule le prix et fige l'offre (E13-T02, « Livre du passeur ») ; refuser = ne rien proposer |
 
@@ -452,6 +452,35 @@ Sans champ, le prompt est identique à celui d'avant E07-T06.
 **Compatibilité** : un pont antérieur ignore `persona=` (champ inconnu) ; un serveur antérieur n'envoie jamais le champ
 et refuse `persona_state` `not_available`.
 
+### État de récit des voix (E20-T08)
+
+Distinct de l'état de vie de la fiche (`state=` : `active`, `silent`, `gone`, `dead`) et de l'état dynamique
+ci-dessus. Une section `[mission]` qui déclare `sets_state=<nom>` pose, à sa réussite, l'**état de récit** de la voix
+(`RS_VoiceStory`, état privé `RS_State` : `voiceStory[voix] = nom`), une fois : poser la valeur déjà tenue ne change
+rien. Sauvegardé avec l'état privé, relu au chargement, exposé aux autres mods par `RadioSurvivor.API.voiceStoryState(id)`
+(`RS_API`, version 1), sans dépendance vers Living Knox.
+
+**Champ de demande** `story=` (demande radio sans `kind` et demande de consigne, après `reputation` dans l'ordre de la
+voie radio) : le nom tel quel (`[a-z][a-z0-9_]*`, 32 caractères au plus). **Absent** tant que la voix n'a pas d'état de
+récit.
+
+```text
+text=How are you doing?
+story=returned
+```
+
+**Pont** : `story_state` garde le champ s'il suit la syntaxe d'un nom (sinon ignoré, journalisé : `story state ignored
+(not a name)`) ; `story_prompt` ajoute au prompt système, après l'état dynamique, une ligne générique, sans aucune liste
+de noms (le sens de l'état est écrit dans le prompt de la fiche) :
+
+```text
+Your story state (set by what callers really did for you; your sheet tells what it means, stay consistent with it): returned.
+```
+
+Les `_` du nom deviennent des espaces. Sans champ, le prompt est identique à celui d'avant E20-T08.
+
+**Compatibilité** : un pont antérieur ignore `story=` (champ inconnu).
+
 ### Repère sur la carte (E07-T04)
 
 Action `mark_map` : la voix marque sur la carte du monde de l'appelant un des lieux qu'elle connaît. La fiche liste
@@ -569,10 +598,18 @@ client partagent la carte de ce client (comportement vanilla).
 
 ### Mission donnée par une voix (E11-T08)
 
-**Contrat courant (E20-T02, ADR D03 ; extension du 2026-10-15).** `start_mission {template}` accepte le nom d'un
-type de mission inscrit au registre des gabarits (`RC_Missions`, déclaration `voiceName` ; aujourd'hui `scout`,
-`deliver`, `retrieve`, `clear`, `signal`), seulement si une section `[mission]` de la fiche a ce `type` (aucune :
-`scout`). Aucun
+**Contrat courant (E20-T02, E20-T08, ADR D03, D04 ; extension du 2026-10-15).** `start_mission {template}` nomme
+l'identifiant d'une section `[mission <id>]` de la fiche **disponible pour l'appelant** (sans `after=`, ou dont la
+mission citée a pour dernier résultat une réussite de ce personnage, ou de son équipe avec `scope=team` ; une fiche
+sans section : `scout`). Un nom qui n'est pas un identifiant de section est lu comme un type de mission : le serveur
+tire parmi les sections disponibles de ce type selon leur `weight=` (`RS_MissionChain.choose`, générateur injectable).
+Le type de la section doit être inscrit au registre des gabarits (`RC_Missions`, déclaration `voiceName` ;
+aujourd'hui `scout`, `deliver`, `retrieve`, `clear`, `signal`). Refus : `locked` (section, ou toutes celles du type,
+en attente de leur `after=`), `bad_template` (ni section ni type de ce nom, ou type sans gabarit) ; le paramètre doit
+suivre la syntaxe `[a-z][a-z0-9_]*` (32 caractères au plus), sinon `bad_params`. La mission garde `section`, `team` et
+`setsState` ; à sa clôture (réussite, échec, abandon), le résultat de la section est rangé par personnage
+participant (fiche de donneur de la voix, `chain`) et par équipe (`voiceTeamChains`) dans l'état privé `RS_State` :
+une mission échouée bloque de nouveau ses suites jusqu'à une nouvelle réussite. Aucun
 lieu, type d'objet, nombre, position ou récompense ne vient du modèle. Le serveur conserve une mission ouverte par
 personnage et par voix, les délais et budgets existants, ainsi que les restrictions de réputation. Le compte rendu
 reste radio pour les missions d'une voix ; pour un PNJ, il reste en personne. Ce que vérifie chaque type (visite de la
@@ -584,11 +621,14 @@ et le compte rendu radio ne retire plus rien de l'inventaire.
 
 **Champ `jobs=`** (hexadécimal RSV2, `RS_MissionVoice.jobs`, joint à toute demande d'une voix dont la fiche autorise
 `start_mission`, consigne comprise) : `{ jobs = { {name, text}, ... }, caches = { ... } }`. `jobs` suit l'ordre des
-sections `[mission]` (chaque type une fois) et ne garde que les noms déclarés par un gabarit inscrit ; `text` est la description courte en anglais
-déclarée par le gabarit (`voiceText`). Un nom de la fiche sans gabarit est omis et journalisé une fois
+sections `[mission]` et ne garde que les sections **disponibles pour l'appelant** (E20-T08) dont le type est déclaré
+par un gabarit inscrit ; `name` est l'identifiant de la section, `text` la description courte en anglais déclarée par
+le gabarit (`voiceText`), suivie de `. ` et du `story=` de la section s'il y en a un (200 octets au plus). Un type de
+la fiche sans gabarit est omis et journalisé une fois
 (`voice sheet <id> lists unknown mission type '<nom>'`) ; `V.start` le refuse aussi (`bad_template`). `caches` donne
 les tables de cache de `place_cache`, de leur seul propriétaire (`RC_Caches.tableNames`, ordre de
-`RC_MissionConfig.Caches.order`). Le pont (`voice_jobs`) borne le champ à 4 096 caractères, 16 types et 16 tables ;
+`RC_MissionConfig.Caches.order`). Le pont (`voice_jobs`) borne le champ à 16 384 caractères, 16 missions (texte de
+400 octets UTF-8 au plus) et 16 tables ;
 un nom hors syntaxe `[a-z][a-z0-9_]*`, en double, ou un texte illisible ou qui cite un secret est retiré. La
 description de `start_mission`, son exemple et sa validation prennent la liste `jobs` ; ceux de `place_cache`, la
 liste `caches`. Sans `jobs=` (ou liste vide), l'action n'est pas proposée au modèle (journalisé une fois par voix).

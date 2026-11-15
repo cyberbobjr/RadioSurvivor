@@ -32,6 +32,10 @@ local STATE_LIST = { "active", "silent", "gone", "dead" }
 -- Usages d'un lieu (ADR D04) : mark (repere donnable : mark_map, reveal_area, repere de fin de mission), target
 -- (objectif d'une mission), drop (planque : depot de deliver, cache de recompense), landing (rendez-vous du troc).
 local USE_LIST = { "mark", "target", "drop", "landing" }
+-- Portee d'un enchainement de missions (E20-T08, RS_MissionChain) : reussite par personnage ou par equipe.
+local SCOPE_LIST = { "character", "team" }
+-- Texte story= d'une mission, ajoute a la description du travail dite au modele (jobs=, RS_MissionVoice.jobs).
+local MAX_STORY_BYTES = 200
 -- Puis frequencies ou frequency_range (l'une des deux, pas les deux : E05-T07).
 local REQUIRED = { "format", "id", "name" }
 local MIN_KHZ, MAX_KHZ, STEP_KHZ = 1000, 999800, 200
@@ -387,7 +391,22 @@ end
 local function missionType() end
 local function missionWeight(m, value, line) m.weight = weight(value, "weight", line) end
 local function missionAfter(m, value, line) m.after, m.afterLine = value, line end
-local function missionStory(m, value, line, ctx) m.story = param("text", value, line, ctx) end
+local function missionStory(m, value, line, ctx)
+    if utf8Bytes(value) > MAX_STORY_BYTES then
+        fail(line, "story too long (" .. tostring(MAX_STORY_BYTES) .. " bytes of UTF-8 at most)")
+    end
+    m.story = param("text", value, line, ctx)
+end
+-- E20-T08 : scope= de l'enchainement (after=) : par personnage (defaut) ou par equipe.
+local function missionScope(m, value, line) m.scope = choice(value, "scope", SCOPE_LIST, line) end
+-- E20-T08 : sets_state= : etat de recit de la voix pose a la reussite (un nom, distinct de state= de la tete).
+local function missionSetsState(m, value, line)
+    if not isName(value) then
+        fail(line, "bad sets_state '" .. value
+            .. "' (a to z, 0 to 9 and _, starting with a letter, 32 characters at most)")
+    end
+    m.sets_state = value
+end
 
 local function missionDrops(m, value, line, ctx)
     if value == "any" then
@@ -412,7 +431,7 @@ local function missionTarget(m, value, line, ctx)
 end
 
 local MISSION_KEYS = { type = missionType, weight = missionWeight, after = missionAfter, story = missionStory,
-    drops = missionDrops, target = missionTarget }
+    drops = missionDrops, target = missionTarget, scope = missionScope, sets_state = missionSetsState }
 
 local function missionKey() end  -- cles connues seulement avec le type : missionResolve
 local function missionClose(sec) requireKeys(sec, { "type" }) end
@@ -422,7 +441,7 @@ local function missionResolve(sec, ctx)
     local _, template = ctx.rules.template(voiceType)
     if not template then fail(sec.lines.type, "unknown mission type '" .. voiceType .. "'") end
     local declared = type(template.params) == "table" and template.params or {}
-    local m = { id = sec.id, type = voiceType, weight = 1, drops = {}, params = {} }
+    local m = { id = sec.id, type = voiceType, weight = 1, scope = "character", drops = {}, params = {} }
     for _, key in ipairs(sec.keys) do
         local value, line = sec.values[key], sec.lines[key]
         if MISSION_KEYS[key] then
