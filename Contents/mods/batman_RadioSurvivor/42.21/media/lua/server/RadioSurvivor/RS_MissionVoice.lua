@@ -16,8 +16,10 @@ game day, START_MISSION_COOLDOWN_MS per voice.
 start_mission { template }: a name declared by a registered template (RC_Missions, declaration voiceName: V.allowed,
 looked up when the action runs, after every file is loaded), further restricted by the types of the sheet's
 [mission] sections (RS_Persona, E20-T03; a sheet without any: scout). A
-voice-specific set-up of the mission (dead drops of `deliver`, RS_VoiceDelivery) is registered by its own file:
-V.registerSetup(voiceName, { check(sheet, section) -> ok, reason, apply(m, sheet, donor, section) }), checked before the
+voice-specific set-up of the mission is registered by its own file, for one voice name:
+V.registerSetup(voiceName, { check(sheet, section) -> ok, reason, apply(m, sheet, donor, section) }), or for every
+template that declares a field: V.registerDeclaredSetup(field, setup) (E20-T06: dead drops of the templates declaring
+dropAccepts, RS_DeadDrops); a set-up by name comes first. It is checked before the
 mission is created and applied before it is accepted and saved; section = the first [mission] section of the sheet of
 this type (V.section: drops, params), nil for the default scout. The server draws the place with the template's
 offer (RC_MissionScout: habitable building at 60-250 tiles of the caller's server position, same rules as E11-T03),
@@ -75,11 +77,25 @@ local V = {}
 V.COOLDOWN_MS = Const.START_MISSION_COOLDOWN_MS
 
 -- E20-T01: voice-specific set-ups of a mission, by voice name (one file per set-up registers it).
-local setups = {}
+-- E20-T06: or by a declaration of the template (field name), in order of registration.
+local setups, declared = {}, {}
 
 function V.registerSetup(voiceName, setup)
     setups[voiceName] = setup
     return setup
+end
+
+function V.registerDeclaredSetup(field, setup)
+    declared[#declared + 1] = {field = field, setup = setup}
+    return setup
+end
+
+local function setupOf(voiceName, t)
+    if setups[voiceName] then return setups[voiceName] end
+    for _, entry in ipairs(declared) do
+        if t[entry.field] ~= nil then return entry.setup end
+    end
+    return nil
 end
 
 -- True when a registered template is given by a voice under this name (start_mission parameter `template`).
@@ -172,7 +188,7 @@ function V.start(store, sheet, cid, player, khz, template)
     -- The template's offer draws the place around the caller (server copy of the player: never a client claim).
     local terms = c and t.offer(c, d, nil, player, cid)
     if not terms then return nil, "no_place" end
-    local setup, section = setups[template], V.section(sheet, template)
+    local setup, section = setupOf(template, t), V.section(sheet, template)
     if setup then
         local ok, reason = setup.check(sheet, section)
         if not ok then return nil, reason end

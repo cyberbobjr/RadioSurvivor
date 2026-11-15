@@ -81,6 +81,7 @@
     "IGUI_RS_RetrieveNotFound": "Carte d’identité pas encore trouvée. Fouillez le bâtiment pour trouver le corps ; aucune coordonnée n’est donnée.",
     "IGUI_RS_RetrieveFound": "Carte d’identité trouvée (%1). Rapportez-la au demandeur.",
     "IGUI_RS_RetrieveReport": "Remise : près du demandeur, choisissez Livrer puis la carte prise sur le corps. Toute autre carte d’identité est refusée.",
+    "IGUI_RS_RetrieveDropCard": "Déposez la carte prise sur le corps à l’un des points de dépôt ci-dessous. Seule cette carte est emportée ; toute autre carte d’identité reste sur place.",
     "IGUI_RS_MapZoneClear": "Zone à nettoyer (%1)",
     "IGUI_RS_MapZoneClearAnon": "Zone à nettoyer",
     "IGUI_RS_ClearMapZone": "La zone à nettoyer est entourée sur votre carte, autour du lieu : seuls comptent les zombies tués dans le cercle.",

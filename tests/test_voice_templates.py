@@ -92,14 +92,39 @@ class VoiceTemplateTests(unittest.TestCase):
             self.assertIn(key, window.detail.text)
         self.assertNotIn('IGUI_RS_DeadDropCollected', window.detail.text)
 
-    def test_retrieve_requires_actual_card_even_after_found(self):
+    def test_retrieve_report_waits_for_the_card_left_at_a_drop(self):
+        """E20-T06: a found card is not the objective of a voice retrieve; the mission keeps its search place and
+        gets the dead drops of the sheet, and the radio report is refused until the card is collected there."""
         sim, voice, sheet = self.setup_voice('retrieve')
         m = self.start(sim, voice, sheet, 'retrieve')
+        self.assertEqual(len(m.drops), 1)
+        self.assertEqual((m.drops[1].label, m.collectHours), ('Supply depot', 6))
+        self.assertNotEqual(m.place, 'Supply depot')
         m.found, m.cardId = True, 987654
         result = voice.report(sim.server.rt.eval("require('RadioSurvivor/RS_State')"), sheet,
                               sim.character('alice'), sim.server.g.PLAYERS.alice, 160000)
-        self.assertEqual(result, (None, 'refused'))
+        self.assertEqual(result, (None, 'not_done'))
         self.assertEqual(m.state, 'active')
+
+    def test_retrieve_notebook_lists_the_drops_and_the_map_circles_them(self):
+        sim, voice, sheet = self.setup_voice('retrieve')
+        self.start(sim, voice, sheet, 'retrieve')
+        c = sim.clients['alice']
+        c.rt.execute(MAP_DOUBLE)
+        c.rt.execute(NOTEBOOK_UI)
+        c.rt.execute("getScriptManager = function() return {FindItem = function() return nil end} end")
+        c.load('client/RS_Carnet_Client.lua')
+        maps = c.rt.eval("require('RadioSurvivor/RS_MapActions')")
+        maps.resetForTests(); maps.resetZonesForTests()
+        sim.command('alice', 'snapshot', world=c.g.RS_CarnetClient.world, run=c.g.RS_CarnetClient.run)
+        drawn = [convert(x) for x in lua_list(c.rt.eval('mapSymbols()'))]
+        self.assertIn('IGUI_RS_MapZoneDepot|Supply depot', [x['text'] for x in drawn if x['kind'] == 'text'])
+        c.g.RS_Notebook.toggle()
+        window = c.g.RS_CarnetClient.window
+        window.changeTab(window, 'Missions')
+        for key in ('IGUI_RS_RetrieveDropCard', 'IGUI_RS_DeadDropPoints|Supply depot', 'IGUI_RS_DeadDropLeave|6'):
+            self.assertIn(key, window.detail.text)
+        self.assertNotIn('IGUI_RS_RetrieveReport', window.detail.text)
 
 
 # E20-T02: fields of mission= (RS_MissionVoice.context); per-template facts come as job and facts only.

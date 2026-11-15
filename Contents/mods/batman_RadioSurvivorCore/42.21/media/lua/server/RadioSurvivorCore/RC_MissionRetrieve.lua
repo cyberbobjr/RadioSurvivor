@@ -30,8 +30,14 @@ requester's body, RS_Carnet_Server): the mission exposes quantity 1 and the acce
 window lists every ID card of the player; Retrieve.check accepts only the item whose id is m.cardId, still in the
 server inventory of the player (never its displayed name): any other card is refused ('WrongCard') before any
 effect. The card is removed (write-ahead transaction of the engine), then success, reputation and common reward lot
-by the engine (same values as M01). The bridge sees only the kind of place, clues without digits, whether the body
-was placed or the card found, and the name of the dead person; never a coordinate, the zone nor the item id.
+by the engine (same values as M01).
+Radio voice requester (E20-T06, ADR D06): no hand-over in person. The card is left at one of the mission's dead drops
+(drops of the giver, RadioSurvivor's RS_DeadDrops: all marked on the map, collected out of everyone's view after a
+delay in game hours) and recognised only by its item id (strategy Retrieve.dropAccepts; another ID card is never
+taken). Once the giver collected it (m.delivered = quantity = 1), the objective is met and the radio report succeeds
+without touching any inventory (Retrieve.check of 'speech').
+The bridge sees only the kind of place, clues without digits, whether the body was placed, the card found or
+collected, the drop labels and the name of the dead person; never a coordinate, the zone nor the item id.
 ]]
 local M = require 'RadioSurvivorCore/RC_Missions'
 local Scout = require 'RadioSurvivorCore/RC_MissionScout'
@@ -41,7 +47,9 @@ local function log(msg)
 end
 
 local Retrieve = {idPrefix = 'retrieve', handover = true, voiceName = 'retrieve', mapStyle = 'Search',
-    voiceText = 'bring back the papers of a missing person'}
+    voiceText = 'bring back the papers of a missing person',
+    -- E20-T06: sheet value of its mission section (game hours before a dead drop is collected).
+    params = {collect_hours = 'count'}}
 Retrieve.MARK = 'RS_RetrieveMission'
 -- Requester fiche id -> {site = ..., at = ms} (memory only); mission id -> last placement attempt (ms).
 local sites, tried = {}, {}
@@ -214,11 +222,21 @@ function Retrieve.observe(m, player, name)
     return changed
 end
 
--- Only the card of this mission, by item id, still in the server inventory of the player.
-function Retrieve.voiceReportReady(m) return m.found == true end
+-- E20-T06: strategy of the dead drops, only the card of this mission (item id), never another ID card.
+function Retrieve.dropAccepts(m, item)
+    return m.cardId ~= nil and item:getID() == m.cardId
+end
 
+-- Voice requester: the card has been collected at a dead drop.
+function Retrieve.voiceReportReady(m) return m.delivered >= m.quantity end
+
+-- Hand-over in person: only the card of this mission, by item id, still in the server inventory of the player.
+-- Radio report of a voice requester: accepted once the card is collected, nothing taken from the inventory.
 function Retrieve.check(m, player, ids)
-    if m.donor == 'voice' and ids == 'speech' then ids = {m.cardId} end
+    if m.donor == 'voice' and ids == 'speech' then
+        if not Retrieve.voiceReportReady(m) then return nil, 'Items' end
+        return {report = true}
+    end
     if type(ids) ~= 'table' or #ids ~= 1 or not m.cardId then return nil, 'WrongCard' end
     local id = ids[1]
     if id ~= m.cardId then return nil, 'WrongCard' end
@@ -228,10 +246,12 @@ function Retrieve.check(m, player, ids)
 end
 
 function Retrieve.prepare(m, e)
+    if e.report then return {kind = 'voice_retrieve_report'} end
     return {kind = 'retrieve_card', ids = e.ids, types = {e.type}, before = m.delivered, count = 1}
 end
 
 function Retrieve.apply(m, e)
+    if e.report then return end
     local container = e.item:getContainer()
     local ok = pcall(function()
         container:Remove(e.item)
@@ -240,15 +260,18 @@ function Retrieve.apply(m, e)
     if not ok then return 'inventory_remove' end
 end
 
-function Retrieve.progress(m)
+function Retrieve.progress(m, e)
+    if e.report then return 0, true end
     m.delivered = 1
     return 1, true
 end
 
 function Retrieve.complete() end
 
+local function reportOf(m) return m.donor == 'voice' and 'radio' or 'in_person' end
+
 function Retrieve.project(m, p)
-    p.template, p.placeKind, p.report = 'retrieve_id', m.placeKind or '', 'in_person'
+    p.template, p.placeKind, p.report = 'retrieve_id', m.placeKind or '', reportOf(m)
     p.clues = copyClueData(m.clueData)
     p.person, p.found, p.foundBy = m.person or '', m.found == true, m.foundBy or ''
     -- Delivery window of the notebook: one piece among the identity cards (the server checks the item id).
@@ -258,17 +281,20 @@ function Retrieve.project(m, p)
 end
 
 function Retrieve.context(m, ctx)
-    ctx.kind, ctx.place, ctx.clues, ctx.report = 'retrieve_id', m.place, copyList(m.clues), 'in_person'
+    ctx.kind, ctx.place, ctx.clues, ctx.report = 'retrieve_id', m.place, copyList(m.clues), reportOf(m)
     ctx.item, ctx.placed, ctx.found = 'ID card', m.placed == true, m.found == true
     if m.person and m.person ~= '' then ctx.person = m.person end
 end
 
--- E20-T02: the job told to a radio voice; only the card the server placed counts.
+-- E20-T02: the job told to a radio voice; only the card the server placed counts. E20-T06: left at a drop point.
+
 function Retrieve.voiceBrief(m)
-    return {job = "Find the missing person's body at a " .. tostring(m.place) .. ', take their ID card, and report '
-        .. 'to you on this frequency while still holding the real card. The server takes that specific card when '
-        .. 'accepting the report; another ID card never counts.',
-        facts = {"The server has observed the card in a participant's inventory: " .. M.yesNo(m.found == true) .. '.'}}
+    return {job = "Find the missing person's body at a " .. tostring(m.place) .. ', take their ID card, leave it '
+        .. 'at one of your drop points (' .. tostring(M.dropsWhere(m) or '') .. '), then report to you on this '
+        .. 'frequency after collection. Only that specific card counts; another ID card is never taken.',
+        facts = {"The server has observed the card in a participant's inventory: " .. M.yesNo(m.found == true) .. '.',
+            M.dropsRule(m),
+            'Card collected at a drop point: ' .. M.yesNo(Retrieve.voiceReportReady(m)) .. '.'}}
 end
 
 M.register('retrieve_id', Retrieve)

@@ -7,7 +7,7 @@ RadioSurvivor's givers and hooks of the common mission engine (E18-T05, RC_Missi
 - NPC engine: RS_NPCProvider (Living Knox through its adapter, or no engine);
 - givers: 'npc' = NPC fiche of the notebook (S.data.npcs; the mission of an engine NPC is paid by the reward source
   its engine registered in the core, M.npcReward: each mod pays its missions, E11-T21),
-  'voice' = radio voice (S.data.voiceDonors, E11-T08; its dead drops polled and projected by RS_VoiceDelivery);
+  'voice' = radio voice (S.data.voiceDonors, E11-T08; its dead drops polled and projected by RS_DeadDrops);
 - result of a mission: trust of the notebook contact (the reputation fact of each participant and the offers closed
   to a bad reputation are the core engine's, E18-T22);
 - dropped mission: forgotten by every notebook character (knownMissions);
@@ -65,13 +65,13 @@ local function voiceGiver()
             local givers = type(state) == 'table' and state.voiceDonors or nil
             return givers and givers[id] or nil
         end,
-        observeDeliver = function(m, player, name, state, store)
-            return require('RadioSurvivor/RS_VoiceDelivery').observe(m, player, name, state, store)
+        -- E20-T05, E20-T06: dead drops of a template declaring dropAccepts (poll, notebook, map, rule told to the voice).
+        observeDrops = function(m, player, name, state, store)
+            return require('RadioSurvivor/RS_DeadDrops').observe(m, player, name, state, store)
         end,
-        -- E20-T05: drop points of the mission (notebook, map) and the rule told to the voice.
-        projectDeliver = function(m, p) return require('RadioSurvivor/RS_VoiceDelivery').project(m, p) end,
-        deliverWhere = function(m) return require('RadioSurvivor/RS_VoiceDelivery').where(m) end,
-        deliverRule = function(m) return require('RadioSurvivor/RS_VoiceDelivery').rule(m) end,
+        projectDrops = function(m, p) return require('RadioSurvivor/RS_DeadDrops').project(m, p) end,
+        dropsWhere = function(m) return require('RadioSurvivor/RS_DeadDrops').where(m) end,
+        dropsRule = function(m) return require('RadioSurvivor/RS_DeadDrops').rule(m) end,
     }
 end
 

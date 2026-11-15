@@ -2,6 +2,7 @@
 -- or a supply offer of a Living Knox group counted in value points (E17-T03). Also the view of a row without a
 -- template name (a saved mission without the field is a `deliver`) or with an unknown one.
 local Views = require 'RadioSurvivor/RS_MissionViews'
+local DeadDrops = require 'RadioSurvivor/RS_DeadDropLines' -- E20-T05: drop points of a voice mission
 
 local function supply(row, line, ctx)
     local tr = ctx.tr
@@ -15,25 +16,10 @@ local function supply(row, line, ctx)
     line(tr('SupplyValues'))
 end
 
--- E20-T05: every drop point of a voice mission (labels of its sheet), at the player's choice; deposits add up.
-local function deadDrops(row, line, tr)
-    local labels, approach, modes = {}, false, {}
-    for _, d in ipairs(type(row.drops) == 'table' and row.drops or {}) do
-        labels[#labels + 1] = tostring(d.label)
-        if not d.ready then approach = true end
-        modes[d.mode == 'bag' and 'bag' or 'box'] = true
-    end
-    line(tr('DeadDropPoints', table.concat(labels, ', ')))
-    if approach then line(tr('DeadDropApproach')) end
-    if modes.box then line(tr('DeadDropBox')) end
-    if modes.bag then line(tr('DeadDropBag')) end
-    line(row.depositCollected and tr('DeadDropCollected') or tr('DeadDropLeave', tostring(row.collectHours or '')))
-end
-
 local function items(row, line, ctx)
     local tr = ctx.tr
     line(tr('Progress', row.delivered, row.quantity))
-    if ctx.voice then deadDrops(row, line, tr) end
+    if ctx.voice then DeadDrops.write(row, line, tr) end
     local accepted = {}
     for fullType in pairs(row.accepted) do accepted[#accepted + 1] = ctx.itemName(fullType) end
     table.sort(accepted)

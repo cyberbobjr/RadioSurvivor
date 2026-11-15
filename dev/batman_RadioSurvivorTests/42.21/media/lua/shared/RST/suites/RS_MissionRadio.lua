@@ -379,9 +379,9 @@ Two templates are played to the end with the real objective mechanism of their r
   another caller is refused, the report on the voice's frequency closes the mission in success; a second report is
   refused, the reputation fact is written once and the mission has no lot to claim (no reward doubled).
 Each mission lives in an in-memory state built by the test (characters char1 and char2, store whose save does
-nothing): no notebook state, no history line, no ModData of the notebook. The test sheets have no [place] except
-the deliver one (use=drop, its dead drop point is the player's square): reputation only, no map mark. A deliver dead drop in
-"box" mode leaves an opaque key in the ModData of a nearby container: removed at the end. Cleanup: zombies and
+nothing): no notebook state, no history line, no ModData of the notebook. The test sheets have one [place] only
+(use=drop, its dead drop point is the player's square, used by deliver and retrieve): reputation only, no map mark. A dead
+drop in "box" mode leaves an opaque key in the ModData of a nearby container: removed at the end. Cleanup: zombies and
 corpses of the test removed, Signal Smoke listener removed and test signals stopped, god mode restored.
 Outside the game: tests/test_rs_e11_voice_npc_suites.py (voice simulation of tests/test_carnet.py, clear and Signal
 Smoke doubles).
@@ -421,11 +421,10 @@ local function voiceMission(t, template)
     if not p then t:skip("no target player") end
     local sheet = { id = "rst-voice-" .. template, name = "RST Voice", actions = { "say", "start_mission" },
         budgets = {}, missions = { { id = template, type = template } }, places = {} }
-    if template == "deliver" then
-        -- E20-T03: the dead drop of a voice is a place of its sheet with use=drop.
-        sheet.places[1] = { id = "drop", label = "RST drop", x = math.floor(p:getX()), y = math.floor(p:getY()),
-            z = math.floor(p:getZ()), uses = { "drop" }, use = { drop = true } }
-    end
+    -- E20-T03: the dead drop of a voice is a place of its sheet with use=drop (E20-T06: deliver and retrieve use it;
+    -- the other templates ignore it).
+    sheet.places[1] = { id = "drop", label = "RST drop", x = math.floor(p:getX()), y = math.floor(p:getY()),
+        z = math.floor(p:getZ()), uses = { "drop" }, use = { drop = true } }
     local state = { missions = {}, npcs = {}, characters = {}, outcomes = {} }
     state.characters.char1 = { name = "Tester", contacts = {}, knownMissions = {} }
     state.characters.char2 = { name = "Mate", contacts = {}, knownMissions = {} }
@@ -608,6 +607,11 @@ RST.suite("rs.missions.voicetemplates", { tags = { "server", "world" }, testTime
         local c = voiceMission(t, "retrieve")
         created(t, c, "retrieve")
         t:eq({ false, false }, { c.m.placed, c.m.found }, "body placed or card found at creation")
+        -- E20-T06: the card is left at a drop of the sheet; the mission keeps its search place.
+        local d = c.m.drops and c.m.drops[1]
+        t:eq({ 1, c.sheet.places[1].x, c.sheet.places[1].y }, { c.m.drops and #c.m.drops, d and d.x, d and d.y },
+            "dead drop of the retrieve mission")
+        t:ok(c.m.place ~= "RST drop", "the search place was replaced by the drop")
     end)
 
     s.test("clear: kill of the caller counted, report on the voice's frequency only, no reward doubled", function(t)

@@ -1,4 +1,4 @@
-"""Dead drops of the radio voices (E20-T05, ADR D06), real Lua with isolated Lua 5.1 engine doubles.
+"""Dead drops of the radio voices (E20-T05, E20-T06, ADR D06; unit RS_DeadDrops), real Lua with isolated Lua 5.1 engine doubles.
 
 A voice `deliver` mission carries all its drops; deposits at several drops add up, each item credited once. A drop is
 collected only out of everyone's view (RS_OutOfSight: 100 tiles, or square not loaded) and after a delay in game hours
@@ -12,7 +12,7 @@ import lupa.lua51 as lupa
 
 ROOT = Path(__file__).resolve().parents[1]
 SERVER = ROOT / 'Contents/mods/batman_RadioSurvivor/42.21/media/lua/server'
-MODULE = SERVER / 'RadioSurvivor/RS_VoiceDelivery.lua'
+MODULE = SERVER / 'RadioSurvivor/RS_DeadDrops.lua'
 CORE = ROOT / 'Contents/mods/batman_RadioSurvivorCore/42.21/media/lua'
 
 WORLD = r'''
@@ -107,12 +107,12 @@ function getSpecificPlayer(i) return PLAYERS[i+1] end
 function sendRemoveItemFromContainer(c,it) SYNC=SYNC+1 end
 STORE={save=function() SAVES=SAVES+1; return SAVE_OK end}
 STATE={}
-CONFIG={VoiceDelivery={radius=3,collectDelayHours=6,maxItems=200}}
+CONFIG={DeadDrops={radius=3,collectDelayHours=6,maxItems=200}}
 package.preload['RadioSurvivor/RS_Config']=function() return CONFIG end
 package.preload['RadioSurvivor/RS_State']=function() return STORE end
 SETUPS={}
 package.preload['RadioSurvivor/RS_MissionVoice']=function()
-    return {registerSetup=function(name, setup) SETUPS[name]=setup; return setup end}
+    return {registerDeclaredSetup=function(field, setup) SETUPS[field]=setup; return setup end}
 end
 '''
 
@@ -406,7 +406,8 @@ class BagTests(DropBench):
 
 
 class SetUpTests(DropBench):
-    """Set-up registered for the voice `deliver` (RS_MissionVoice.registerSetup): all the drops of the section."""
+    """Set-up registered for the templates declaring dropAccepts (RS_MissionVoice.registerDeclaredSetup), here a
+    voice `deliver`: all the drops of the section."""
 
     SHEET = """
         local function place(id, x, use) return {id=id, label='Label '..id, x=x, y=100, z=0, use=use} end
@@ -416,7 +417,7 @@ class SetUpTests(DropBench):
         donor={missionCount=1}
         function setUp(section)
             local mission={id='new',donor='voice',quantity=2,delivered=0,accepted={['Base.Bandage']=true}}
-            SETUPS.deliver.apply(mission, sheet, donor, section)
+            SETUPS.dropAccepts.apply(mission, sheet, donor, section)
             return mission
         end
     """
@@ -442,7 +443,7 @@ class SetUpTests(DropBench):
         self.assertEqual(self.rt.eval('N.collectHours'), 6)
 
     def test_sheet_without_drop_place_is_refused(self):
-        self.run_lua("R = {SETUPS.deliver.check({id='v', places={}}, nil)}")
+        self.run_lua("R = {SETUPS.dropAccepts.check({id='v', places={}}, nil)}")
         self.assertEqual(self.rt.eval('R[2]'), 'no_place')
 
     def test_notebook_projection_lists_every_drop_and_its_map_zone(self):

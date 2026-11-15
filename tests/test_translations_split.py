@@ -127,8 +127,8 @@ JOURNAL_GESTURES = {'IGUI_RC_' + k for k in ('Deliver', 'Claim', 'Delivery', 'De
     'IGUI_RC_Error_' + k for k in ('Range', 'Items', 'Storage', 'Recovery', 'Capacity', 'TooMany', 'SupplyClosed',
                                    'SupplyRefused', 'WrongCard')}
 
-# E20-T05: the drop points of a voice mission listed by the notebook (RadioSurvivor).
-ADDED = {'IGUI_RS_DeadDropPoints'}
+# E20-T05: the drop points of a voice mission listed by the notebook (RadioSurvivor); E20-T06: card left at a drop.
+ADDED = {'IGUI_RS_DeadDropPoints', 'IGUI_RS_RetrieveDropCard'}
 
 
 class TranslationSplitTests(unittest.TestCase):

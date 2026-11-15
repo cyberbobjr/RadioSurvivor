@@ -1,14 +1,18 @@
--- Dead drops of a radio voice `deliver` mission (E20-T01, E20-T05, ADR D06). Authority only.
+-- Dead drops of a radio voice mission (E20-T01, E20-T05, E20-T06, ADR D06). Authority only.
+-- Any mission template that declares the strategy dropAccepts(m, item) (RC_Missions: deliver = accepted goods,
+-- retrieve_id = the card of the mission by item id) gets dead drops when a voice gives it: the set-up is registered for
+-- that declaration (RS_MissionVoice.registerDeclaredSetup), the poll and projection are the voice giver's drop hooks
+-- (RS_MissionHooks: observeDrops, projectDrops, dropsWhere, dropsRule, called by the engine).
 -- The mission carries all the drops of its sheet section (`drops=`: a list of places, or `any`/none = every place
--- with use=drop), all marked on the participant's map; the player leaves goods at any of them and deposits add up
--- toward the quantity, each item credited once (m.credited: ids saved with the mission). A drop is collected only
--- out of everyone's view and after m.collectHours game hours (RS_OutOfSight; default RS_Config.VoiceDelivery
--- .collectDelayHours, section parameter collect_hours). A drop whose delay passed while its square was unloaded is due:
--- it is collected at the first pass where the square is loaded again.
+-- with use=drop), all marked on the participant's map; the player leaves items at any of them and deposits add up
+-- toward the quantity, each item credited once (m.credited: ids saved with the mission). Only items the template's
+-- strategy accepts are taken. A drop is collected only out of everyone's view and after m.collectHours game hours
+-- (RS_OutOfSight; default RS_Config.DeadDrops.collectDelayHours, section parameter collect_hours). A drop whose delay
+-- passed while its square was unloaded is due: it is collected at the first pass where the square is loaded again.
 -- Drop record (m.drops[i], private state): id, label, x, y, z, mode ('box' preferred on odd missions, 'bag' otherwise;
 -- a drop without a container becomes 'bag'), ready, baseline (ids present at preparation, never taken), box (marked
 -- container), hiddenSince (RS_OutOfSight), due, pickup (write-ahead journal of a pickup in progress).
--- Registered in RS_MissionVoice (V.registerSetup). ASCII only (Kahlua lexer).
+-- Registered in RS_MissionVoice (V.registerDeclaredSetup). ASCII only (Kahlua lexer).
 if isClient() then return end
 local Config = require 'RadioSurvivor/RS_Config'
 local Const = require 'RadioSurvivor/RadioSurvivor_Const'
@@ -20,13 +24,19 @@ local D = {}
 local nextBox = 0
 local sight = OutOfSight.engine()
 
-local function cfg() return Config.VoiceDelivery end
+local function cfg() return Config.DeadDrops end
 
 -- Composition: the out-of-sight watcher (tests or another engine may inject theirs).
 function D.useSight(watcher) sight = watcher end
 
 local function delayOf(m)
     return type(m.collectHours) == 'number' and m.collectHours or cfg().collectDelayHours
+end
+
+-- Strategy of the mission's template (declaration dropAccepts): the items a drop may collect for this mission.
+local function accepts(m, item)
+    local t = Missions.template(m)
+    return t ~= nil and type(t.dropAccepts) == 'function' and t.dropAccepts(m, item) == true
 end
 
 local function credited(m, id)
@@ -130,14 +140,14 @@ function D.prepare(m, d, store)
     return true
 end
 
--- Goods of a container the drop may take: new eligible items, at most `needed`; strict (a bag): every item must be
--- such an item and there must be no more than `needed`.
+-- Items of a container the drop may take: new items the strategy accepts, at most `needed`; strict (a bag): every
+-- item must be such an item and there must be no more than `needed`.
 local function contents(m, d, container, needed, strict)
     local items, out = container:getItems(), {}
     if items:size() > cfg().maxItems then return nil end
     for i = 0, items:size() - 1 do
         local item = items:get(i)
-        if fresh(m, d, item) and Missions.eligible(item, m) then
+        if fresh(m, d, item) and accepts(m, item) then
             out[#out + 1] = item:getID()
         elseif strict then return nil end
     end
@@ -245,7 +255,7 @@ local function observeDrop(m, d, store)
     return changed or collected
 end
 
--- Poll of the voice giver (RC_Missions Deliver.observe): every drop, in the order of the mission.
+-- Poll of the voice giver (hook observeDrops, called by RC_Missions.observe): every drop, in the order of the mission.
 function D.observe(m, _player, _name, _state, store)
     if m.donor ~= 'voice' or m.state ~= 'active' or type(m.drops) ~= 'table' or not store then return false end
     local changed = false
@@ -256,9 +266,11 @@ function D.observe(m, _player, _name, _state, store)
     return changed
 end
 
--- Notebook projection (RC_Missions Deliver.project): drops with their label and mode; map zones for a participant.
+-- Notebook projection (hook projectDrops, called by RC_Missions.projection): drops with their label and mode, whether
+-- everything was collected; map zones for a participant.
 function D.project(m, p)
     p.drops, p.collectHours = {}, delayOf(m)
+    p.depositCollected = m.delivered >= m.quantity
     if p.engaged then p.dropZones = {} end
     for _, d in ipairs(type(m.drops) == 'table' and m.drops or {}) do
         p.drops[#p.drops + 1] = {label = d.label, mode = d.mode, ready = d.ready == true}
@@ -276,7 +288,7 @@ function D.where(m)
     return table.concat(labels, ', ')
 end
 
--- Collection rule told to the voice (RC_Missions Deliver.voiceBrief).
+-- Collection rule told to the voice (hook dropsRule, read by the template's voiceBrief through RC_Missions.dropsRule).
 function D.rule(m)
     return 'Collection rule: the caller may use any of the drop points and split the goods between them; deposits '
         .. 'add up. A drop is collected only out of sight of everyone (nobody within about '
@@ -285,7 +297,7 @@ function D.rule(m)
         .. 'goods: the whole bag is taken. Never claim collection before the server confirms it.'
 end
 
--- Set-up of a voice `deliver` mission: every drop of its section (E20-T03 places with use=drop).
+-- Set-up of a voice mission with dead drops: every drop of its section (E20-T03 places with use=drop).
 local function dropPlaces(sheet, section)
     local wanted = type(section) == 'table' and type(section.drops) == 'table' and section.drops or {}
     if #wanted == 0 then return Persona.placesFor(sheet, 'drop') end
@@ -314,9 +326,10 @@ local function setUp(m, sheet, donor, section)
         m.drops[#m.drops + 1] = d
         D.prepare(m, d, noSave)
     end
-    m.place, m.placeKind = D.where(m), 'dead drop'
+    -- A mission without a place of its own (deliver) takes place at its drops; retrieve_id keeps its search place.
+    if m.place == nil or m.place == '' then m.place, m.placeKind = D.where(m), 'dead drop' end
 end
 
-Voice.registerSetup('deliver', {check = hasPlaces, apply = setUp})
+Voice.registerDeclaredSetup('dropAccepts', {check = hasPlaces, apply = setUp})
 
 return D

@@ -27,7 +27,7 @@ end
 
 local function run(t)
     if isClient() then t:skip('authority only') end
-    local D = require 'RadioSurvivor/RS_VoiceDelivery'
+    local D = require 'RadioSurvivor/RS_DeadDrops'
     local M = require 'RadioSurvivorCore/RC_Missions'
     local gt = getGameTime()
     if (gt:getTimeOfDay() - 7) % 24 > 20 then

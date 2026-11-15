@@ -13,9 +13,11 @@ Givers (E18-T05, user decision of 2026-11-05: registration and hooks). A mod reg
                             claim(store, m, player, character, token) -> handled, reason | nil   optional reward path
                             lot(m) -> name of a Caches table | nil   optional: lot the giver creates when the mission
                                       announces none (E18-T33), projected as rewardTable
-                            observeDeliver(m, player, name, state, store) -> changed }       optional, `deliver` poll
-                            projectDeliver(m, p), deliverWhere(m) -> text, deliverRule(m) -> text   optional, `deliver`
-                                      drop points of the giver: notebook fields, place labels and rule told to a voice
+                            observeDrops(m, player, name, state, store) -> changed           optional, dead drops
+                            projectDrops(m, p), dropsWhere(m) -> text, dropsRule(m) -> text }  optional, dead drops
+                                      dead drops of the giver for a template that declares dropAccepts (E20-T06):
+                                      poll (M.observe), notebook fields (M.projection), place labels and rule told to
+                                      a voice (M.dropsWhere, M.dropsRule)
 The engine keeps its fields on the giver record, owned by that mod: id, name, mission, missionCount, nextOfferHour.
 NPC reward source (E11-T21, decision D09 of 2026-11-14: each mod pays its missions). The NPC engine declares how a
 mission given by one of its NPCs is paid, so that a giver of another mod (RadioSurvivor's notebook fiche of an engine
@@ -79,6 +81,11 @@ Declarations read by the other modules (E20-T01, ADR D02; all optional, nothing 
                                                 E20-T02): job, one English sentence of the objective; facts, English
                                                 lines of server facts and rules (counts, yes/no). Composed from server
                                                 facts only: never a coordinate, an item id in the job, nor a frequency
+    dropAccepts(m, item) -> boolean             strategy of the dead drops (E20-T06, ADR D06): an item a giver's
+                                                dead drop may collect for this mission (deliver: an accepted type in
+                                                usable state; retrieve_id: the item whose id is m.cardId). A giver with
+                                                dead drops collects at most quantity - delivered such items, adds them
+                                                to m.delivered, and its drop hooks are called by the engine
     mapStyle = '<Suffix>'                       suffix of the map label key IGUI_RS_MapZone<Suffix>; none: plain label
     params = {<key> = '<kind>'}                 (with voiceName) keys a voice sheet may set in a [mission] section of
                                                 this type, each checked by its kind (RadioSurvivor's RS_PersonaParams:
@@ -566,6 +573,27 @@ function M.claim(store, m, player, character, token)
     return true
 end
 
+-- E20-T06: hook of the giver's dead drops for a template that declares the strategy dropAccepts, or nil.
+local function dropHook(m, name)
+    local t = M.template(m)
+    local giver = t and type(t.dropAccepts) == 'function' and donors[kindOf(m)]
+    return giver and giver[name] or nil
+end
+
+-- Drop points of the mission told to a voice (place labels, never a coordinate), or nil without dead drops.
+function M.dropsWhere(m)
+    local where = dropHook(m, 'dropsWhere')
+    return where and where(m) or nil
+end
+
+-- Collection rule of the dead drops told to a voice (English); without dead drops, the bare rule of every collection.
+local NO_DROP_RULE = 'Collection rule: never claim collection before the server confirms it.'
+
+function M.dropsRule(m)
+    local rule = dropHook(m, 'dropsRule')
+    return rule and rule(m) or NO_DROP_RULE
+end
+
 function M.projection(m, character)
     -- Clone; never leak server receipts, inventory item IDs or another player's private data.
     local p = {id = m.id, npc = m.npc, titleKey = m.titleKey, state = m.state, revision = m.revision,
@@ -582,6 +610,9 @@ function M.projection(m, character)
     p.handover = t ~= nil and t.handover == true
     p.mapStyle = t and type(t.mapStyle) == 'string' and t.mapStyle or nil
     if t then t.project(m, p) end
+    -- E20-T06: dead drops of the giver (labels, modes, collection state, map zones of a participant).
+    local projectDrops = dropHook(m, 'projectDrops')
+    if projectDrops then projectDrops(m, p) end
     -- E11-T13: objective met, the report to the requester is still expected (templates with a report only).
     if t and (t.reportBySpeech or m.donor == 'voice') then p.toReport = M.reportReady(m) end
     for _, member in pairs(m.participants) do p.participants[#p.participants + 1] = member.name end
@@ -615,6 +646,9 @@ local Deliver = {idPrefix = 'delivery', handover = true, voiceName = 'deliver',
     voiceText = 'leave requested goods at a dead drop',
     -- E20-T03: sheet values of its mission section (items, quantity: not used yet; collect_hours: E20-T05 drops).
     params = {items = 'category', quantity = 'range', collect_hours = 'count'}}
+
+-- E20-T06: strategy of the dead drops, the goods a drop may collect (an accepted type in usable state).
+function Deliver.dropAccepts(m, item) return Deliver.eligible(item, m) end
 
 local SUPPLY_TITLES = {food = 'IGUI_RC_Mission_Supply_food', medical = 'IGUI_RC_Mission_Supply_medical',
     ammo = 'IGUI_RC_Mission_Supply_ammo'}
@@ -781,10 +815,6 @@ function Deliver.complete() end
 function Deliver.project(m, p)
     if m.donor == 'voice' then
         p.report, p.place = 'radio', m.place
-        p.depositCollected = m.delivered >= m.quantity
-        -- E20-T05: drop points of the giver (labels, modes, map zones of a participant).
-        local giver = donors[kindOf(m)]
-        if giver and giver.projectDeliver then giver.projectDeliver(m, p) end
     end
     p.quantity, p.delivered, p.accepted = m.quantity, m.delivered, {}
     for k, v in pairs(m.accepted) do p.accepted[k] = v end
@@ -805,14 +835,12 @@ end
 
 -- E20-T02: dead drops of a radio voice, told to the voice. The report is due only once the server collected the whole
 -- quantity (Deliver.voiceReportReady): before that, the mission is never sent with toReport nor turn 'report_due'.
--- E20-T05: the drop points and the collection rule are the giver's (deliverWhere, deliverRule).
+-- E20-T05: the drop points and the collection rule are the giver's (M.dropsWhere, M.dropsRule).
 local MAX_ACCEPTED_TOLD = 32
 
 function Deliver.voiceBrief(m)
-    local giver = donors[kindOf(m)]
-    local where = giver and giver.deliverWhere and giver.deliverWhere(m) or tostring(m.place)
-    local rule = giver and giver.deliverRule and giver.deliverRule(m)
-        or 'Collection rule: never claim collection before the server confirms it.'
+    local where = M.dropsWhere(m) or tostring(m.place)
+    local rule = M.dropsRule(m)
     local accepted = {}
     for fullType, ok in pairs(m.accepted or {}) do
         if ok == true and type(fullType) == 'string' then accepted[#accepted + 1] = fullType end
@@ -831,14 +859,6 @@ function Deliver.voiceBrief(m)
     }
 end
 
--- Poll of the giver (RadioSurvivor's radio voice: deferred, unseen collection of the complete dead drop; never
--- consume goods in front of a player).
-function Deliver.observe(m, player, memberName, state, store)
-    local giver = donors[kindOf(m)]
-    if giver and giver.observeDeliver then return giver.observeDeliver(m, player, memberName, state, store) end
-    return false
-end
-
 M.register('deliver', Deliver)
 
 -- M01 facades, kept for the server commands and the existing tests.
@@ -849,15 +869,24 @@ M.deliver = M.report
 -- by the caller from the server copies of the connected players (never from a position sent by a client). Returns
 -- true when a mission changed (revision raised). store (E11-T06, optional): RS_State or a double { save } handed to
 -- the templates that must save before acting on the world (recover cache).
+-- E20-T06: the giver's dead drops of a template that declares dropAccepts are polled after the template (deferred,
+-- unseen collection: never consume an item in front of a player).
+local function observeMember(t, m, player, name, state, store)
+    local changed = t.observe and t.observe(m, player, name, state, store) and true or false
+    local observeDrops = m.state == 'active' and dropHook(m, 'observeDrops')
+    if observeDrops and observeDrops(m, player, name, state, store) then changed = true end
+    return changed
+end
+
 function M.observe(state, present, store)
     local changed = false
     for _, m in pairs(state.missions) do
         local t = m.state == 'active' and not m.transaction and M.present(m) and M.template(m)
-        if t and t.observe then
+        if t and (t.observe or t.dropAccepts) then
             for _, entry in ipairs(present) do
                 local member = m.participants[entry.character]
                 -- state (E11-T06): a template that closes the mission from its poll (recover depot) calls M.finish.
-                if member and m.state == 'active' and t.observe(m, entry.player, member.name, state, store) then
+                if member and m.state == 'active' and observeMember(t, m, entry.player, member.name, state, store) then
                     m.revision, changed = m.revision + 1, true
                 end
             end

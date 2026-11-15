@@ -81,6 +81,7 @@
     "IGUI_RS_RetrieveNotFound": "ID card not found yet. Search the building for the body; no coordinates are given.",
     "IGUI_RS_RetrieveFound": "ID card found (%1). Bring it back to the requester.",
     "IGUI_RS_RetrieveReport": "Hand-over: near the requester, select Deliver and choose the card taken from the body. Any other ID card is refused.",
+    "IGUI_RS_RetrieveDropCard": "Leave the card taken from the body at one of the drop points below. Only that card is collected; any other ID card stays where it is.",
     "IGUI_RS_MapZoneClear": "Area to clear (%1)",
     "IGUI_RS_MapZoneClearAnon": "Area to clear",
     "IGUI_RS_ClearMapZone": "The area to clear is circled on your map, around the place: only zombies killed inside the circle count.",
