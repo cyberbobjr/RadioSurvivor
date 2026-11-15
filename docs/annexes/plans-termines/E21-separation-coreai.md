@@ -2,19 +2,19 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 8 / 10 tâche(s) terminée(s).
+**Avancement.** terminée — 10 / 10 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
 | ☑ | E21-T01 | Renommer le mod commun en batman_CoreAI | `testé solo` | solo | — |
 | ☑ | E21-T02 | Living Knox sans nom de RadioSurvivor dans ses journaux et ses dossiers | `testé hors jeu` | hors jeu | E21-T01 |
 | ☑ | E21-T03 | Carnet client et interfaces dans batman_CoreAI | `testé solo` | solo | E21-T01 |
-| ☐ | E21-T04 | Carnet serveur dans batman_CoreAI | `testé solo` | MP | E21-T03 |
+| ☑ | E21-T04 | Carnet serveur dans batman_CoreAI | `testé MP` | MP | E21-T03 |
 | ☑ | E21-T05 | Living Knox fournisseur du carnet commun | `testé solo` | solo | E21-T04 |
 | ☑ | E21-T06 | RadioSurvivor sans appel à Living Knox | `testé solo` | solo | E21-T04 |
 | ☑ | E21-T07 | Trois mods de test et campagnes séparées | `testé solo` | solo | E21-T05, E21-T06 |
 | ☑ | E21-T08 | Bancs de Living Knox sans RadioSurvivor | `testé hors jeu` | hors jeu | E21-T07 |
-| ☐ | E21-T09 | Les trois montages en jeu, solo et MP | `à faire` | MP | E21-T08 |
+| ☑ | E21-T09 | Les trois montages en jeu, solo et MP | `testé MP` | MP | E21-T08 |
 | ☑ | E21-T10 | Documentation, README et descriptions Workshop | `testé hors jeu` | hors jeu | E21-T09 |
 
 <!-- fin du tableau de bord -->
@@ -98,16 +98,16 @@ qui porte le carnet et les méthodes factorisées. Les tests de Living Knox ne c
   - Preuve : commits `c4a29e1` (CA_NPCProvider, CA_MissionViews et registre des donneurs, CA_MapZones) et `ca4c530` (module réseau `CoreAI`, registre des commandes, CA_NotebookClient, onglets Contacts, Missions, Réputation dans le commun, onglet Radio dans RS_NotebookRadio) ; bancs nouveaux `test_core_npc_provider`, `test_core_mission_views`, `test_core_map_zones`, `test_core_notebook` (CoreClientRoundTripTests), `test_protocol` (scenario_notebook_module), rouges avant, verts après ; `run_all.py --keep-going` : `Summary: 188 passed, 0 failed, 0 skipped` ; luacheck Contents 5 avertissements (référence 8), dev 0 ; `check_case` PASS ; commits `c4a29e1`, `ca4c530`, `f589f0a` ; `run_all.py --keep-going` : `Summary: 188 passed, 0 failed, 0 skipped` ; campagne solo des deux mods du 2026-11-15 sur `360995f` : code 1, `RST-RESULT ok=false total=281 pass=270 fail=1 error=0 skip=10` (`tools/autoclient/runs/20261115-114128-86ce56704e84`), seul échec `rs.notebook.visual` (la suite cherchait l'ancien nom de touche `RadioSurvivorSelect`, corrigée en `f589f0a`) ; relance de la suite seule sur `f589f0a` : code 0, `RST-RESULT ok=true total=3 pass=3 fail=0 error=0 skip=0` (`tools/autoclient/runs/20261115-121334-54775bb3a8b8`, 22 captures du carnet sans défaut de mise en page, raccourci Ctrl+G)
   - Reste : Living Knox seul en jeu : campagne `solo-lk` de E21-T07 ; `CA_NotebookJournal` provisoire jusqu'à E21-T04
 
-- [ ] **E21-T04** — Carnet serveur dans batman_CoreAI
-  - État : `testé solo`
+- [x] **E21-T04** — Carnet serveur dans batman_CoreAI
+  - État : `testé MP`
   - Cible : `MP`
   - Dépend de : E21-T03
   - Fichiers : `RS_Carnet_Server.lua` (partie commune → `CA_NotebookServer.lua`), `RS_Config.lua` (module réseau du carnet), `RS_Client.lua`
   - Faire : le serveur du carnet devient commun (identité, contacts, missions, journal, historique, parole par les fournisseurs) ; ce qui ne sert qu'aux voix (gabarits enregistrés, personas, troc, réputation des voix) reste dans RadioSurvivor et s'inscrit au carnet.
   - Accepté si : le carnet fonctionne avec chaque mod seul et avec les deux, en solo et en MP ; aucun module commun ne charge `RadioSurvivor/` ni `LivingKnox/`.
   - Tests : bancs du carnet et du protocole ; campagnes solo et MP.
-  - Preuve : commits `0cd9cb0` (serveur neutre sur place : opérations du fournisseur, LK_AgreementNotices, RS_NotebookHooks), `dc75c7d` (CA_NotebookStore, CA_NotebookServer, CA_NotebookGiver, CA_AdminAccess) et `0b9fedb1` ; `run_all.py --keep-going` : `Summary: 191 passed, 0 failed, 0 skipped` ; campagne solo des deux mods sur `dc75c7d` : code 1, `RST-RESULT ok=false total=281 pass=269 fail=2 error=0 skip=10` (`tools/autoclient/runs/20261115-131957-49d0fc63d655`) : `rs.voicedarlene` lisait l'état d'histoire dans la doublure du carnet (suite corrigée en `0b9fedb1`), `lk.expedition` (LK05-T23, sans lien) ; campagne solo des deux mods sur `ec77cab4` (copie figée, `--campaign solo --bridge on --llm fake --wait-idle 3600`) : code 1, `RST-RESULT ok=false total=281 pass=270 fail=1 error=0 skip=10` (`tools/autoclient/runs/20261115-135810-933a6492ed4e`) : suites du carnet et de Darlene vertes, seul échec `lk.windowsally` (second zombie poursuivi, sans lien)
-  - Reste : campagne MP (E21-T09)
+  - Preuve : commits `0cd9cb0` (serveur neutre sur place : opérations du fournisseur, LK_AgreementNotices, RS_NotebookHooks), `dc75c7d` (CA_NotebookStore, CA_NotebookServer, CA_NotebookGiver, CA_AdminAccess) et `0b9fedb1` ; `run_all.py --keep-going` : `Summary: 191 passed, 0 failed, 0 skipped` ; campagne solo des deux mods sur `dc75c7d` : code 1, `RST-RESULT ok=false total=281 pass=269 fail=2 error=0 skip=10` (`tools/autoclient/runs/20261115-131957-49d0fc63d655`) : `rs.voicedarlene` lisait l'état d'histoire dans la doublure du carnet (suite corrigée en `0b9fedb1`), `lk.expedition` (LK05-T23, sans lien) ; campagne solo des deux mods sur `ec77cab4` (copie figée, `--campaign solo --bridge on --llm fake --wait-idle 3600`) : code 1, `RST-RESULT ok=false total=281 pass=270 fail=1 error=0 skip=10` (`tools/autoclient/runs/20261115-135810-933a6492ed4e`) : suites du carnet et de Darlene vertes, seul échec `lk.windowsally` (second zombie poursuivi, sans lien) ; campagne MP de E21-T09 (serveur dédié + 2 clients) verte après `6983b87c`
+  - Reste : aucun
 
 - [x] **E21-T05** — Living Knox fournisseur du carnet commun
   - État : `testé solo`
@@ -153,16 +153,16 @@ qui porte le carnet et les méthodes factorisées. Les tests de Living Knox ne c
   - Preuve : commit `85d03066` : chaque `tests/test_lk_*.py` ne charge que CoreAI et Living Knox (`harness.tests_lua(setup)`, `Harness(with_rs=False)`, `Game.WITH_RS = False`) ; recherche `batman_RadioSurvivor|RadioSurvivor/|\bRS_[A-Z]` dans `tests/test_lk_*.py` et `dev/batman_LivingKnoxTests` : 0 fichier ; `run_all.py --keep-going` : `Summary: 194 passed, 0 failed, 0 skipped`
   - Reste : aucun
 
-- [ ] **E21-T09** — Les trois montages en jeu, solo et MP
-  - État : `à faire`
+- [x] **E21-T09** — Les trois montages en jeu, solo et MP
+  - État : `testé MP`
   - Cible : `MP`
   - Dépend de : E21-T08
   - Fichiers : —
   - Faire : campagnes `solo-lk`, `solo-rs`, `solo` (pont avec faux modèle) et MP (serveur dédié et deux clients), une à la fois.
   - Accepté si : aucune suite en échec liée à la séparation.
   - Tests : `autoclient.py`, `--wait-idle 3600`.
-  - Preuve : —
-  - Reste : —
+  - Preuve : campagnes du 2026-11-15 sur copie figée, `--bridge on --llm fake --wait-idle 3600` : `solo-lk` sur `85d03066` : code 0, `RST-RESULT ok=true total=131 pass=124 fail=0 error=0 skip=7` (`tools/autoclient/runs/20261115-152930-e4fba59a6632`) ; `solo-rs` : code 0, `RST-RESULT ok=true total=168 pass=125 fail=0 error=0 skip=43` (`tools/autoclient/runs/20261115-155302-7917d6409d43`) ; `solo` : code 0, `RST-RESULT ok=true total=281 pass=271 fail=0 error=0 skip=10` (`tools/autoclient/runs/20261115-155639-08a79cee0786`) ; MP (serveur dédié + 2 clients, `--mp --clients 2 --server-campaign mp`) : code 1, `RST-RESULT ok=false total=408 pass=389 fail=2 error=0 skip=17` chez rs_mp1 et `ok=true total=161 pass=161` chez rs_mp2 (`tools/autoclient/runs/20261115-163137-mp-6073f48256c0`), deux échecs de `lk.missions` (réclamation refusée sans trace : PNJ de la fixture jamais contact) ; correctif `6983b87c` (refus des gestes journalisé, la suite sélectionne le demandeur ; bancs `test_lk_speech_single_path` rouge puis vert) ; relance MP de `lk.missions` sur `6983b87c` : code 0, `OK - 2 test(s): 2 pass, 0 fail` (`tools/autoclient/runs/20261115-173011-mp-f3d79dbb18b4`) ; `solo-lk` sur `6983b87c` (avec `lk.conversations` et `lk.initiatives`) : code 0, `RST-RESULT ok=true total=139 pass=132 fail=0 error=0 skip=7` (`tools/autoclient/runs/20261115-173233-32e93976dadf`)
+  - Reste : refus des commandes générales du carnet (Session, Identity) non journalisés (le client y répond par hello)
 
 - [x] **E21-T10** — Documentation, README et descriptions Workshop
   - État : `testé hors jeu`

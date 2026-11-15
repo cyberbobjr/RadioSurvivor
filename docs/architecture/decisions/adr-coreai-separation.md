@@ -6,7 +6,7 @@
 | Statut | Accepté |
 | Décideur | utilisateur |
 | Complète | [Trois mods dans un article](adr-separation-mods.md) (2026-11-05) : D01, D02, D04, D05 y restent valables ; D03 et D06 sont remplacées ici |
-| Plan associé | [E21 — Séparer Living Knox et RadioSurvivor autour de batman_CoreAI](../../annexes/plans/E21-separation-coreai.md) (suivi des tâches dans le plan) |
+| Plan associé | [E21 — Séparer Living Knox et RadioSurvivor autour de batman_CoreAI](../../annexes/plans-termines/E21-separation-coreai.md) (suivi des tâches dans le plan) |
 | Références | relevé des liens du 2026-11-15 (résumé dans le plan E21, section Sources) ; [API Living Knox](../../specifications-techniques/api-living-knox.md) ; [protocole du carnet v2](../../specifications-techniques/protocole-carnet-v2.md) |
 
 ## Contexte
