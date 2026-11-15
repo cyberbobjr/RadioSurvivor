@@ -41,10 +41,23 @@ TESTS_LUA = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lu
 SUITE_FILE = TESTS_LUA / 'shared' / 'RST' / 'suites' / 'RS_FreqDebug.lua'
 lua_list = tps.lua_list
 
-# Fréquences tirées des six fiches livrées sur le serveur simulé (ZombRand rend 0 : la plus basse libre de chaque
-# plage), dans l'ordre de chargement des fiches (alphabétique au premier chargement).
-VOICES = {'cody': [10000], 'darlene': [115000], 'gus': [150200], 'nightowl': [88000, 109000], 'walt': [130000],
-          'whitaker': [75000]}
+# Fréquences tirées des fiches livrées sur le serveur simulé (ZombRand rend 0 : la plus basse de chaque plage, les
+# plages des fiches livrées ne se chevauchant pas), dans l'ordre de chargement des fiches (alphabétique au premier
+# chargement). Lues dans les fiches : une voix ajoutée au mod n'a pas à être recopiée ici.
+def shipped_voices() -> dict[str, list[int]]:
+    voices = {}
+    for sheet in sorted((ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivor' / '42.21' / 'personas').glob('*.txt')):
+        if sheet.name.startswith('_'):
+            continue
+        text = sheet.read_text(encoding='utf-8')
+        fixed = re.search(r'^frequencies=(.+)$', text, re.M)
+        ranges = re.search(r'^frequency_range=(.+)$', text, re.M)
+        parts = fixed.group(1).split(',') if fixed else [r.split('-')[0] for r in ranges.group(1).split(',')]
+        voices[sheet.stem] = [round(float(part.strip()) * 1000) for part in parts]
+    return voices
+
+
+VOICES = shipped_voices()
 
 RIGHTS = r'''
 Capability = { PopmanManage = "cap:PopmanManage", AddItem = "cap:AddItem" }
@@ -291,7 +304,7 @@ class AuthorityTests(ServerBase):
         self.assertTrue(self.logs_with('request refused for alice (debug mode off (solo))'))
         self.g.DBG = True
         r = to_py(self.req('BOB'))                                  # solo : le joueur local, sans rôle
-        self.assertEqual(len(r['voices']), 6)
+        self.assertEqual(len(r['voices']), len(VOICES))
         self.assertEqual(self.full(), [])
 
     def test_reloading_the_file_keeps_one_subscription(self):
@@ -389,13 +402,13 @@ class ClientTests(ServerBase):
                                       'freqs': '88.0, 109.0', 'ranges': '88.0-107.8, 109.0-114.8',
                                       'radio': 'any', 'listen': '19:00-22:00',
                                       'role': 'IGUI_RS_FreqDebug_Chronicler'})
-        walt = to_py(self.c.ev(f'{V}.voiceCells({V}.state.data.voices[5])'))
+        walt = to_py(self.c.ev(f'{V}.voiceCells({V}.state.data.voices[{list(VOICES).index("walt") + 1}])'))
         self.assertEqual((walt['id'], walt['listen'], walt['role'], walt['freqs']),
                          ('walt', 'IGUI_RS_FreqDebug_Always', '-', '130.0'))
         other = to_py(self.c.ev(f'{V}.otherCells({V}.state.data.others[1])'))
         self.assertEqual(other, {'what': 'bulletin', 'voice': 'nightowl', 'freq': '88.0',
                                  'when': 'IGUI_RS_FreqDebug_Daily|20:00'})
-        self.assertEqual(self.c.ev(f'{V}.voiceSort({V}.state.data.voices[4], "freqs")'), 88000)
+        self.assertEqual(self.c.ev(f'{V}.voiceSort({V}.state.data.voices[{list(VOICES).index("nightowl") + 1}], "freqs")'), 88000)
 
     def test_reply_after_closing_or_stale_is_ignored(self):
         self.c.g.ADMINS.carol = True
@@ -411,7 +424,7 @@ class ClientTests(ServerBase):
         self.c.ev(f'{V}.send()')
         self.pump('ALICE')
         self.assertEqual(self.c.ev(f'{V}.stats.stale'), 2)
-        self.assertEqual(len(lua_list(self.c.ev(f'{V}.state.data.voices'))), 6)
+        self.assertEqual(len(lua_list(self.c.ev(f'{V}.state.data.voices'))), len(VOICES))
         # Fermée : plus aucune requête.
         self.c.run(f'{V}.closed({V}.state.window)')
         self.assertIsNone(self.c.ev(f'{V}.send()'))
