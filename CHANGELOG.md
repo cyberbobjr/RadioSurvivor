@@ -52,6 +52,9 @@
 - Members of a group chat with each other at home, across rooms, where you can overhear them.
 - Survivors remember what they saw (and who), and act on their own initiative more or less often depending on the sandbox settings.
 - A survivor who finds a window refused goes through the doors on the next trips; a zombie stuck at a window is attacked from outside instead of from the window.
+- Survivors walk the game's own paths. When a window is locked or blocked, they walk around the house to a door they can use instead of pushing against the window.
+- Survivors make way for each other: one standing on a passage steps aside for a survivor who needs to get through, then goes back to what it was doing. Between two walking survivors, the more urgent task goes first (fighting or fleeing before caring, defending, trips, chores and guard duty).
+- Survivors no longer stop in doorways, on thresholds or in one-square corridors to wait, eat, work or keep watch.
 - Raiders wait for their breaker before forcing a way in.
 - Living Knox missions can be given, delivered and rewarded without Radio Survivor.
 
