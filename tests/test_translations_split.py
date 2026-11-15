@@ -8,7 +8,7 @@ and mission titles; no sandbox option, none of the existing options is about the
 
 - union of the keys of the three mods = keys before the split (fixture tests/fixtures/e18-t13/keys-before.json, written
   from commit 4ab5c75, the last one with a single mod) + keys of the journal (E18-T06) and of the notebook frame of the
-  core mod (E18-T24, journal window removed), mission titles and common tab labels renamed;
+  core mod (E18-T24, journal window removed), mission titles and common tab labels renamed, keys added since (ADDED);
 - no key shipped by two mods, prefixes of each mod kept apart, every shipped language has the same keys;
 - every literal key used by the Lua of a mod is shipped by that mod, by a mod it requires or by the game;
 - every sandbox option kept with the same name (settings of an existing game read again), on its mod's page, with its
@@ -127,6 +127,9 @@ JOURNAL_GESTURES = {'IGUI_RC_' + k for k in ('Deliver', 'Claim', 'Delivery', 'De
     'IGUI_RC_Error_' + k for k in ('Range', 'Items', 'Storage', 'Recovery', 'Capacity', 'TooMany', 'SupplyClosed',
                                    'SupplyRefused', 'WrongCard')}
 
+# E20-T05: the drop points of a voice mission listed by the notebook (RadioSurvivor).
+ADDED = {'IGUI_RS_DeadDropPoints'}
+
 
 class TranslationSplitTests(unittest.TestCase):
     @classmethod
@@ -142,7 +145,7 @@ class TranslationSplitTests(unittest.TestCase):
             for name, before in self.before['keys'][lang].items():
                 expected = set(before)
                 if name == 'IG_UI':
-                    expected = ((expected - set(RENAMED)) | set(RENAMED.values()) | JOURNAL | NOTEBOOK | TALK | JOURNAL_GESTURES) - REMOVED
+                    expected = ((expected - set(RENAMED)) | set(RENAMED.values()) | JOURNAL | NOTEBOOK | TALK | JOURNAL_GESTURES | ADDED) - REMOVED
                 elif name == 'Sandbox':
                     moved = {k for k in expected if k in SANDBOX_RENAMED}
                     expected = (expected - moved) | {SANDBOX_RENAMED[k] for k in moved}

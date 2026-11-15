@@ -205,7 +205,7 @@ use=mark,target
 - `mark` : un **repère** qu'elle peut vous donner (`mark_map`, `reveal_area`, repère offert à la fin d'une mission
   sans section `[rewards]`). L'IA ne voit que l'id et le libellé de ces lieux.
 - `target` : un **objectif** de mission (`target=` d'une section `[mission]`).
-- `drop` : une **planque**. Les dépôts des missions `deliver` s'y font, à tour de rôle ; une récompense `cache` est
+- `drop` : une **planque**. Une mission `deliver` les propose toutes à la fois (ou celles de `drops=`) ; une récompense `cache` est
   posée au premier lieu `drop` de la fiche (à défaut, à son premier lieu).
 - `landing` : un rendez-vous de marchand (réservé au troc, sans effet pour l'instant).
 
@@ -295,10 +295,9 @@ Toujours permise, même si vous ne l'écrivez pas. La voix vous répond à la ra
 
 #### Livraisons radio : collecte discrète
 
-Le serveur alterne boîte de dépôt convenue et sac caché au sol, à un lieu `use=drop` de la voix (les lieux `drop`
-servent à tour de rôle). Une boîte existante adaptée est désignée précisément sur votre carte ; sans boîte adaptée, le serveur demande un sac. Déposez le lot complet puis éloignez-vous : **tous les joueurs doivent rester à au moins 40 cases horizontalement pendant 10 secondes réelles continues**, même à un autre étage. Un retour ou un redémarrage relance le délai ; la case exacte doit être chargée avant le retrait.
+Une mission de dépôt d'une voix propose **toutes ses planques à la fois** (clé `drops=` de sa section ; sans elle, tous les lieux `use=drop` de la fiche), chacune entourée sur votre carte avec son nom. Déposez où vous voulez : les objets laissés à plusieurs planques s'additionnent jusqu'à la quantité demandée. À chaque planque, le serveur désigne une boîte existante adaptée (une mission sur deux) ou, à défaut, demande un sac au sol. La voix ne ramasse une planque que **hors de vue de tout le monde** (aucun joueur à moins de 100 cases en x comme en y, quel que soit l'étage, ou la case déchargée) **et après environ 6 heures de jeu** (`collect_hours=` de la section `[mission]`). Le délai suit l'horloge du jeu : il s'arrête en pause, va plus vite en vitesse accélérée ou pendant le sommeil, et ne compte pas serveur arrêté. Un joueur revenu en vue avant la fin remet le délai à zéro. Une planque dont le délai s'est écoulé pendant que sa case était déchargée est vidée dès que la case se charge de nouveau.
 
-Dans une boîte, seuls les objets demandés disparaissent : boîte et autres objets restent. Pour un sac, sac et contenu disparaissent ; un sac contenant des objets étrangers au lot demandé est refusé pour éviter leur perte. Avant la collecte, vous pouvez reprendre le dépôt et rien n'est validé. **Après la collecte seulement, rendez compte à la radio**. Validation en jeu solo et MP de cette collecte : **en attente**.
+Dans une boîte, seuls les objets demandés disparaissent, jamais plus que la quantité restante : boîte, autres objets et surplus restent. Pour un sac, sac et contenu disparaissent ; un sac qui contient des objets étrangers au lot, ou plus que la quantité restante, est refusé pour éviter leur perte. Chaque objet n'est compté qu'une fois, même après un redémarrage. Avant la collecte, vous pouvez reprendre le dépôt et rien n'est validé. **Une fois toute la quantité collectée seulement, rendez compte à la radio**. Validation en jeu solo et MP de cette collecte : **en attente**.
 
 #### Missions, récompenses et objets
 
@@ -330,13 +329,13 @@ pool=cache:medical:3, cache:snacks:1, frequency:1, stashmap:1, lesson:Doctor:2
 | `weight` | Poids de la mission dans le tirage (1 par défaut). |
 | `after` | La mission n'est proposée qu'après la réussite d'une autre mission de la fiche (son id). |
 | `story` | La raison que donne la voix. |
-| `drops` | Planques de la mission : `any` (tous les lieux `use=drop`) ou une liste d'ids de lieux `use=drop`. |
+| `drops` | Planques de la mission, toutes proposées au joueur : `any` (tous les lieux `use=drop`, comme sans la clé) ou une liste d'ids de lieux `use=drop`. |
 | `target` | Lieu objectif, un lieu `use=target`. |
-| autres | Les paramètres propres au type : `deliver` accepte `items` (une catégorie d'objets) et `quantity` (`4` ou `2-4`). |
+| autres | Les paramètres propres au type : `deliver` accepte `items` (une catégorie d'objets), `quantity` (`4` ou `2-4`) et `collect_hours` (heures de jeu avant le ramassage d'une planque, 6 par défaut). |
 
 Les clés `weight`, `after`, `story`, `drops`, `target` et les paramètres de `deliver` sont **lus et vérifiés dès
-maintenant** ; les missions s'en serviront au fil des prochaines versions (tirage pondéré, missions enchaînées,
-planques au choix du joueur, quantités demandées).
+maintenant** ; `drops` et `collect_hours` servent déjà, les autres serviront au fil des prochaines versions (tirage
+pondéré, missions enchaînées, quantités demandées).
 
 `[rewards]` n'a qu'une ligne, `pool=`, liste de récompenses `nature:poids` ou `nature:paramètre:poids` :
 

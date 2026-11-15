@@ -16,9 +16,10 @@ game day, START_MISSION_COOLDOWN_MS per voice.
 start_mission { template }: a name declared by a registered template (RC_Missions, declaration voiceName: V.allowed,
 looked up when the action runs, after every file is loaded), further restricted by the types of the sheet's
 [mission] sections (RS_Persona, E20-T03; a sheet without any: scout). A
-voice-specific set-up of the mission (dead drop of `deliver`, RS_VoiceDelivery) is registered by its own file:
-V.registerSetup(voiceName, { check(sheet) -> ok, reason, apply(m, sheet, donor) }), checked before the mission is
-created and applied before it is accepted and saved. The server draws the place with the template's
+voice-specific set-up of the mission (dead drops of `deliver`, RS_VoiceDelivery) is registered by its own file:
+V.registerSetup(voiceName, { check(sheet, section) -> ok, reason, apply(m, sheet, donor, section) }), checked before the
+mission is created and applied before it is accepted and saved; section = the first [mission] section of the sheet of
+this type (V.section: drops, params), nil for the default scout. The server draws the place with the template's
 offer (RC_MissionScout: habitable building at 60-250 tiles of the caller's server position, same rules as E11-T03),
 creates and accepts the mission for the caller, writes the history line "mission" (kind of place, no coordinate) on
 the frequency of the reply. Refusals (reason): no_player (caller not connected: no server position), storage
@@ -108,6 +109,14 @@ local function missionsOf(sheet)
     return types
 end
 
+-- First [mission] section of the sheet of this type (drops, params), or nil.
+function V.section(sheet, voiceName)
+    for _, m in ipairs(type(sheet.missions) == "table" and sheet.missions or {}) do
+        if type(m) == "table" and m.type == voiceName then return m end
+    end
+    return nil
+end
+
 function V.donorId(voice, cid)
     return "voice:" .. tostring(voice) .. ":" .. tostring(cid)
 end
@@ -163,9 +172,9 @@ function V.start(store, sheet, cid, player, khz, template)
     -- The template's offer draws the place around the caller (server copy of the player: never a client claim).
     local terms = c and t.offer(c, d, nil, player, cid)
     if not terms then return nil, "no_place" end
-    local setup = setups[template]
+    local setup, section = setups[template], V.section(sheet, template)
     if setup then
-        local ok, reason = setup.check(sheet)
+        local ok, reason = setup.check(sheet, section)
         if not ok then return nil, reason end
     end
     local m = M.create(state, d, cid, c.id, terms)
@@ -173,7 +182,7 @@ function V.start(store, sheet, cid, player, khz, template)
     m.donor, m.voice, m.requesterName, m.khz, m.report = "voice", sheet.id, tostring(sheet.name or sheet.id), khz, "radio"
     m.rewardType, m.rewardCount = "", 0
     -- Saved atomically with acceptance below; a set-up never persists a half-created mission.
-    if setup then setup.apply(m, sheet, d) end
+    if setup then setup.apply(m, sheet, d, section) end
     M.accept(state, m, cid, record.name or "")
     if type(record.knownMissions) == "table" then record.knownMissions[m.id] = true end
     if not store.save() then

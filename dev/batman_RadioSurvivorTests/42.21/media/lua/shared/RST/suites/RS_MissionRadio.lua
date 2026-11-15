@@ -450,15 +450,17 @@ local function voiceMission(t, template)
         t:skip("no place for a " .. template .. " mission around the player: move to a town and run again")
     end
     t:ok(m ~= nil, template .. " mission not created: " .. tostring(why))
-    if m.deposit and m.deposit.box then
-        local box, z = m.deposit.box, m.deposit.z
-        t:defer(function()
-            local sq = getCell() and getCell():getGridSquare(box.x, box.y, z)
-            local objects = sq and sq:getObjects()
-            local o = objects and box.object < objects:size() and objects:get(box.object) or nil
-            local md = o and o:getModData()
-            if md and type(md.RS_DeadDrop) == "table" then md.RS_DeadDrop[box.key] = nil end
-        end, "remove the dead drop key of the test box")
+    for _, drop in ipairs(type(m.drops) == "table" and m.drops or {}) do
+        local box, z = drop.box, drop.z
+        if box then
+            t:defer(function()
+                local sq = getCell() and getCell():getGridSquare(box.x, box.y, z)
+                local objects = sq and sq:getObjects()
+                local o = objects and box.object < objects:size() and objects:get(box.object) or nil
+                local md = o and o:getModData()
+                if md and type(md.RS_DeadDrop) == "table" then md.RS_DeadDrop[box.key] = nil end
+            end, "remove the dead drop key of the test box")
+        end
     end
     return { M = M, V = V, p = p, peer = peerPlayer(t), sheet = sheet, state = state, store = store, m = m }
 end
@@ -595,7 +597,8 @@ RST.suite("rs.missions.voicetemplates", { tags = { "server", "world" }, testTime
     s.test("deliver: created for the caller only, drop at the voice's place, no report before collection", function(t)
         local c = voiceMission(t, "deliver")
         created(t, c, "deliver")
-        local d, place = c.m.deposit, c.sheet.places[1]
+        -- E20-T05: every use=drop place of the sheet is a drop of the mission.
+        local d, place = c.m.drops and c.m.drops[1], c.sheet.places[1]
         t:eq({ place.x, place.y, place.z }, { d and d.x, d and d.y, d and d.z }, "dead drop point of the sheet")
         t:ok(d.mode == "box" or d.mode == "bag", "dead drop mode " .. tostring(d.mode))
         t:note("dead drop mode " .. tostring(d.mode))

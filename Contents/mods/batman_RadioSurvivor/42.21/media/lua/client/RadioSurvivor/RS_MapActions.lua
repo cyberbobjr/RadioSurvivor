@@ -200,25 +200,34 @@ local function wantedZones(missions)
         if type(z) == "table" and p.state == "active" and p.engaged and type(z.x) == "number"
                 and type(z.y) == "number" and type(z.r) == "number" and z.r > 0 then
             -- E20-T01: label style declared by the template (RC_Missions, mapStyle), projected by the engine.
-            out[#out + 1] = { id = tostring(p.id), x = z.x, y = z.y, r = z.r, requester = p.requester,
+            out[#out + 1] = { id = tostring(p.id), x = z.x, y = z.y, r = z.r, name = p.requester,
                 style = type(p.mapStyle) == "string" and p.mapStyle or nil }
         end
         -- E11-T06: depot circle of a recover mission (same conditions), drawn next to its search area.
         local d = type(p) == "table" and p.depotZone or nil
         if type(d) == "table" and p.state == "active" and p.engaged and type(d.x) == "number"
                 and type(d.y) == "number" and type(d.r) == "number" and d.r > 0 then
-            out[#out + 1] = { id = tostring(p.id) .. ":depot", x = d.x, y = d.y, r = d.r, requester = p.requester,
+            out[#out + 1] = { id = tostring(p.id) .. ":depot", x = d.x, y = d.y, r = d.r, name = p.requester,
                 style = "Depot" }
+        end
+        -- E20-T05: one circle per dead drop of a voice mission, labelled with the place label of the sheet.
+        local drops = type(p) == "table" and p.state == "active" and p.engaged and p.dropZones or nil
+        for i, drop in ipairs(type(drops) == "table" and drops or {}) do
+            if type(drop) == "table" and type(drop.x) == "number" and type(drop.y) == "number"
+                    and type(drop.r) == "number" and drop.r > 0 then
+                out[#out + 1] = { id = tostring(p.id) .. ":drop" .. i, x = drop.x, y = drop.y, r = drop.r,
+                    name = drop.label, style = "Depot" }
+            end
         end
     end
     return out
 end
 
 -- Label of a zone: IGUI_RS_MapZone followed by the style the template declares (E20-T01: Search for retrieve_id,
--- Clear, Cache for recover, Signal) or Depot for the depot circle of recover; none: the plain label. The symbols are
--- matched by position only.
+-- Clear, Cache for recover, Signal) or Depot for the depot circle of recover and the dead drops of a voice (E20-T05:
+-- with the place label); none: the plain label. The symbols are matched by position only.
 local function zoneLabel(z)
-    local name = cleanLabel(z.requester)
+    local name = cleanLabel(z.name)
     local key = "IGUI_RS_MapZone" .. (z.style or "")
     if name == "" then return cleanLabel(getText(key .. "Anon")) end
     return cleanLabel(getText(key, name))

@@ -201,7 +201,7 @@ use=mark,target
 - `mark`: a **marker** it can give you (`mark_map`, `reveal_area`, marker offered at the end of a mission without a
   `[rewards]` section). The AI only sees the id and label of these places.
 - `target`: a mission **objective** (`target=` of a `[mission]` section).
-- `drop`: a **dead drop**. The drops of `deliver` missions happen there, in turn; a `cache` reward is left at the
+- `drop`: a **dead drop**. A `deliver` mission offers them all at once (or those of `drops=`); a `cache` reward is left at the
   first `drop` place of the sheet (else at its first place).
 - `landing`: a trader's meeting point (reserved for trade, no effect yet).
 
@@ -313,13 +313,13 @@ pool=cache:medical:3, cache:snacks:1, frequency:1, stashmap:1, lesson:Doctor:2
 | `weight` | Weight of the mission in the draw (1 by default). |
 | `after` | The mission is offered only after the success of another mission of the sheet (its id). |
 | `story` | The reason the voice gives. |
-| `drops` | Dead drops of the mission: `any` (every `use=drop` place) or a list of ids of `use=drop` places. |
+| `drops` | Dead drops of the mission, all offered to the player: `any` (every `use=drop` place, as without the key) or a list of ids of `use=drop` places. |
 | `target` | Objective place, a `use=target` place. |
-| others | Parameters of the type: `deliver` takes `items` (an item category) and `quantity` (`4` or `2-4`). |
+| others | Parameters of the type: `deliver` takes `items` (an item category), `quantity` (`4` or `2-4`) and `collect_hours` (game hours before a dead drop is collected, 6 by default). |
 
 The keys `weight`, `after`, `story`, `drops`, `target` and the parameters of `deliver` are **read and checked
-now**; the missions will use them over the next versions (weighted draw, chained missions, dead drops chosen by the
-player, requested quantities).
+now**; `drops` and `collect_hours` are already used, the others will be over the next versions (weighted draw,
+chained missions, requested quantities).
 
 `[rewards]` has a single line, `pool=`, a list of rewards `kind:weight` or `kind:parameter:weight`:
 
@@ -349,10 +349,9 @@ places and the prompt: it does not see these errors. In-game solo and MP validat
 
 #### Radio deliveries: discreet collection
 
-The server alternates an agreed drop box and a hidden bag on the ground at one of the voice's `use=drop` places
-(taken in turn). A suitable existing box is marked precisely on your map; without a suitable box, the server requests a bag. Leave the complete batch and move away: **all players must remain at least 40 tiles away horizontally for 10 continuous real seconds**, even on another floor. Returning or restarting resets the wait; the exact square must be loaded before removal.
+A delivery mission of a voice offers **all its dead drops at once** (key `drops=` of its section; without it, every `use=drop` place of the sheet), each circled on your map with its name. Leave the goods wherever you want: items left at several drops add up toward the requested quantity. At each drop, the server designates a suitable existing box (every other mission) or, without one, requests a bag on the ground. The voice collects a drop only **out of everyone's sight** (no player within 100 tiles on x and on y, whatever the floor, or the square unloaded) **and after about 6 game hours** (`collect_hours=` of the `[mission]` section). The wait follows the game clock: it stops while paused, runs faster at higher speed or while sleeping, and does not count while the server is stopped. A player back in sight before the end resets it. A drop whose wait ran out while its square was unloaded is emptied as soon as the square loads again.
 
-From a box, only requested items disappear; the box and other items remain. For a bag, the bag and contents disappear; a bag containing unrelated items is refused to prevent their loss. Until collection, you can take the drop back and nothing is validated. **Only after collection, report over the radio**. Solo and MP in-game validation of this collection is **pending**.
+From a box, only requested items disappear, never more than the remaining quantity: the box, other items and the surplus remain. For a bag, the bag and contents disappear; a bag containing unrelated items, or more than the remaining quantity, is refused to prevent their loss. Each item counts only once, even after a restart. Until collection, you can take the drop back and nothing is validated. **Only once the whole quantity is collected, report over the radio**. Solo and MP in-game validation of this collection is **pending**.
 
 #### Actions not to add
 

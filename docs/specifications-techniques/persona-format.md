@@ -451,8 +451,9 @@ Les trois clés sont obligatoires (`missing key 'use' in [place mill]`, à la li
   encore donné à ce personnage par cette voix est marqué sur sa carte comme par `mark_map` (hors budget et délai) ;
   sans lieu restant, réputation seule.
 - `target` : objectif possible d'une mission (`target=` d'une section `[mission]`).
-- `drop` : planque. La planque d'une mission `deliver` d'une voix prend tour à tour les lieux `drop` de la fiche
-  (`RS_VoiceDelivery`) ; une voix sans lieu `drop` ne peut pas donner `deliver` (`no_place`). La cache d'une
+- `drop` : planque. Une mission `deliver` d'une voix porte toutes les planques de sa section (`drops=`, sans la clé :
+  tous les lieux `drop` de la fiche ; `RS_VoiceDelivery`, E20-T05), toutes marquées sur la carte du participant ; une
+  voix sans lieu `drop` ne peut pas donner `deliver` (`no_place`). La cache d'une
   récompense `cache` est posée au **premier lieu `drop`** de la fiche, à défaut à son premier lieu.
 - `landing` : rendez-vous d'un marchand (troc, E20-T07) ; aucun effet avant cette tâche.
 
@@ -620,9 +621,9 @@ autorise `start_mission`.
 | `weight` | entier de 1 à 999999 | `1` | Poids du tirage parmi les missions disponibles (lu, utilisé à partir d'E20-T08). |
 | `after` | identifiant d'une autre section `[mission]` de la fiche, sans boucle | aucun | Mission proposée seulement après la réussite de celle-ci (lu, utilisé à partir d'E20-T08). |
 | `story` | texte | aucun | Raison donnée par la voix (lu, utilisé par une tâche suivante). |
-| `drops` | `any` (tous les lieux `use=drop`, au moins un) ou liste de lieux `use=drop` | aucun | Planques de la mission (lu, utilisé à partir d'E20-T05). |
+| `drops` | `any` (tous les lieux `use=drop`, au moins un) ou liste de lieux `use=drop` | tous les lieux `use=drop` | Planques de la mission, toutes proposées au joueur ; les dépôts s'additionnent (E20-T05). |
 | `target` | un lieu `use=target` | aucun | Objectif de la mission (lu, utilisé par les nouveaux types d'E20). |
-| autres clés | celles que **déclare le type** (`params = { clé = '<genre>' }` du gabarit), chacune contrôlée par son genre | aucun | Paramètres propres au type. `deliver` déclare `items` (catégorie) et `quantity` (fourchette) : lus et gardés, la livraison ne les lit pas encore. Les autres types livrés n'en déclarent aucun. |
+| autres clés | celles que **déclare le type** (`params = { clé = '<genre>' }` du gabarit), chacune contrôlée par son genre | aucun | Paramètres propres au type. `deliver` déclare `items` (catégorie) et `quantity` (fourchette) : lus et gardés, la livraison ne les lit pas encore ; `collect_hours` (`count`) : heures de jeu hors de vue avant le ramassage d'une planque (défaut `RS_Config.VoiceDelivery.collectDelayHours`, 6). Les autres types livrés n'en déclarent aucun. |
 
 Genres de valeurs (`RS_PersonaParams.lua`, un validateur par genre, registre ouvert : un nouveau genre s'inscrit
 sans toucher au lecteur) :

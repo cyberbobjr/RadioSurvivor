@@ -1,32 +1,55 @@
--- A dead drop is collected only when nobody is close enough to watch it.
--- E20-T01: also the set-up of a `deliver` mission given by a radio voice (dead drop at a place of its sheet),
--- registered in RS_MissionVoice (V.registerSetup).
+-- Dead drops of a radio voice `deliver` mission (E20-T01, E20-T05, ADR D06). Authority only.
+-- The mission carries all the drops of its sheet section (`drops=`: a list of places, or `any`/none = every place
+-- with use=drop), all marked on the participant's map; the player leaves goods at any of them and deposits add up
+-- toward the quantity, each item credited once (m.credited: ids saved with the mission). A drop is collected only
+-- out of everyone's view and after m.collectHours game hours (RS_OutOfSight; default RS_Config.VoiceDelivery
+-- .collectDelayHours, section parameter collect_hours). A drop whose delay passed while its square was unloaded is due:
+-- it is collected at the first pass where the square is loaded again.
+-- Drop record (m.drops[i], private state): id, label, x, y, z, mode ('box' preferred on odd missions, 'bag' otherwise;
+-- a drop without a container becomes 'bag'), ready, baseline (ids present at preparation, never taken), box (marked
+-- container), hiddenSince (RS_OutOfSight), due, pickup (write-ahead journal of a pickup in progress).
+-- Registered in RS_MissionVoice (V.registerSetup). ASCII only (Kahlua lexer).
 if isClient() then return end
 local Config = require 'RadioSurvivor/RS_Config'
+local Const = require 'RadioSurvivor/RadioSurvivor_Const'
 local Voice = require 'RadioSurvivor/RS_MissionVoice'
 local Persona = require 'RadioSurvivor/RS_Persona'
+local Missions = require 'RadioSurvivorCore/RC_Missions'
+local OutOfSight = require 'RadioSurvivor/RS_OutOfSight'
 local D = {}
-local unseen = {} -- Real-time delay deliberately restarts after a process restart.
 local nextBox = 0
+local sight = OutOfSight.engine()
 
 local function cfg() return Config.VoiceDelivery end
 
-local function eligible(item, m)
-    return item and m.accepted[item:getFullType()] == true and item:getCondition() > 0
-        and not item:isFavorite() and not item:isEquipped()
+-- Composition: the out-of-sight watcher (tests or another engine may inject theirs).
+function D.useSight(watcher) sight = watcher end
+
+local function delayOf(m)
+    return type(m.collectHours) == 'number' and m.collectHours or cfg().collectDelayHours
 end
 
-local function eachSquare(m, visit)
+local function credited(m, id)
+    return type(m.credited) == 'table' and m.credited[tostring(id)] == true
+end
+
+local function fresh(m, d, item)
+    return not d.baseline[tostring(item:getID())] and not credited(m, item:getID())
+end
+
+local function squareOf(d, x, y)
     local cell = getCell()
-    local p = m.deposit
-    if not cell or not cell:getGridSquare(p.x, p.y, p.z) then return false end
+    return cell and cell:getGridSquare(x or d.x, y or d.y, d.z)
+end
+
+local function eachSquare(d, visit)
+    if not squareOf(d) then return false end
     for r = 0, cfg().radius do
         for dx = -r, r do
             for dy = -r, r do
                 if math.max(math.abs(dx), math.abs(dy)) == r then
-                    local x, y = p.x + dx, p.y + dy
-                    local sq = cell:getGridSquare(x, y, p.z)
-                    if sq and visit(sq, x, y) then return true end
+                    local sq = squareOf(d, d.x + dx, d.y + dy)
+                    if sq and visit(sq, d.x + dx, d.y + dy) then return true end
                 end
             end
         end
@@ -34,13 +57,12 @@ local function eachSquare(m, visit)
     return false
 end
 
-local function boxAt(m)
-    local b = m.deposit.box
-    if not b then return nil end
-    local cell = getCell()
-    local sq = cell and cell:getGridSquare(b.x, b.y, m.deposit.z)
+local function boxAt(d)
+    local b = d.box
+    if not b or not b.key then return nil end
+    local sq = squareOf(d, b.x, b.y)
     local objects = sq and sq:getObjects()
-    if not objects or not b.key then return nil end
+    if not objects then return nil end
     local object
     for i = 0, objects:size() - 1 do
         local candidateObject = objects:get(i)
@@ -55,44 +77,45 @@ local function boxAt(m)
     return container
 end
 
--- Snapshot existing contents so a mission never takes pre-existing household supplies.
--- Selection is bounded and deterministic, then persisted before the player deposits anything.
-function D.prepare(m, store)
-    local p = m.deposit
-    if not p or p.ready then return p and p.ready or false end
-    local cell = getCell()
-    if not cell or not cell:getGridSquare(p.x, p.y, p.z) then return false end
-    local baseline, n = {}, 0
-    if p.mode ~= 'bag' then
-        eachSquare(m, function(sq, x, y)
-            local objects = sq:getObjects()
-            for i = 0, objects:size() - 1 do
-                local o = objects:get(i)
-                for k = 0, o:getContainerCount() - 1 do
-                    local c = o:getContainerByIndex(k)
-                    if c and c:getItems():size() <= cfg().maxItems then
-                        local sprite = o.getSprite and o:getSprite()
-                        p.box = {x = x, y = y, object = i, container = k,
-                            type = c.getType and c:getType() or nil,
-                            sprite = sprite and sprite:getName() or nil}
-                        nextBox = nextBox + 1
-                        p.box.key = tostring(getTimestampMs()) .. '-' .. tostring(nextBox)
-                        local md = o:getModData()
-                        if type(md.RS_DeadDrop) ~= 'table' then md.RS_DeadDrop = {} end
-                        -- Opaque identity only, no voice, character or mission secrets in world metadata.
-                        md.RS_DeadDrop[p.box.key] = true
-                        for j = 0, c:getItems():size() - 1 do baseline[tostring(c:getItems():get(j):getID())] = true end
-                        return true
-                    end
+-- Marks the first container (bounded size) near the drop as the agreed box; its contents become the baseline.
+local function markBox(d, baseline)
+    return eachSquare(d, function(sq, x, y)
+        local objects = sq:getObjects()
+        for i = 0, objects:size() - 1 do
+            local o = objects:get(i)
+            for k = 0, o:getContainerCount() - 1 do
+                local c = o:getContainerByIndex(k)
+                if c and c:getItems():size() <= cfg().maxItems then
+                    local sprite = o.getSprite and o:getSprite()
+                    nextBox = nextBox + 1
+                    d.box = {x = x, y = y, object = i, container = k, type = c.getType and c:getType() or nil,
+                        sprite = sprite and sprite:getName() or nil,
+                        key = tostring(getTimestampMs()) .. '-' .. tostring(nextBox)}
+                    local md = o:getModData()
+                    if type(md.RS_DeadDrop) ~= 'table' then md.RS_DeadDrop = {} end
+                    -- Opaque identity only, no voice, character or mission secrets in world metadata.
+                    md.RS_DeadDrop[d.box.key] = true
+                    for j = 0, c:getItems():size() - 1 do baseline[tostring(c:getItems():get(j):getID())] = true end
+                    return true
                 end
             end
-            return false
-        end)
-    end
-    if p.box then p.mode = 'box'
+        end
+        return false
+    end)
+end
+
+-- Snapshot of the existing contents of one drop, so a mission never takes pre-existing household supplies.
+-- Selection is bounded and deterministic, then persisted before the player deposits anything.
+function D.prepare(m, d, store)
+    if d.ready then return true end
+    if not squareOf(d) then return false end
+    local baseline, n = {}, 0
+    if d.mode ~= 'bag' then markBox(d, baseline) end
+    if d.box then
+        d.mode = 'box'
     else
-        p.mode = 'bag'
-        eachSquare(m, function(sq)
+        d.mode = 'bag'
+        eachSquare(d, function(sq)
             local objects = sq:getWorldObjects()
             for i = 0, objects:size() - 1 do
                 baseline[tostring(objects:get(i):getItem():getID())] = true
@@ -102,236 +125,196 @@ function D.prepare(m, store)
         end)
         if n > cfg().maxItems then return false end
     end
-    p.baseline, p.ready = baseline, true
-    m.mapZone = {x = p.box and p.box.x or p.x, y = p.box and p.box.y or p.y, r = p.box and 1 or cfg().radius}
-    if not store.save() then p.ready, p.baseline, p.box = nil, nil, nil; return false end
+    d.baseline, d.ready = baseline, true
+    if not store.save() then d.ready, d.baseline, d.box = nil, nil, nil; return false end
     return true
 end
 
-local function bagAt(m, id)
-    local found, square, world
-    eachSquare(m, function(sq)
-        local objects = sq:getWorldObjects()
-        for i = 0, objects:size() - 1 do
-            local wo = objects:get(i)
-            local item = wo:getItem()
-            if item:getID() == id then found, square, world = item, sq, wo; return true end
-        end
-        return false
-    end)
-    return found, square, world
-end
-
-local function contents(container, m, strict)
+-- Goods of a container the drop may take: new eligible items, at most `needed`; strict (a bag): every item must be
+-- such an item and there must be no more than `needed`.
+local function contents(m, d, container, needed, strict)
     local items, out = container:getItems(), {}
     if items:size() > cfg().maxItems then return nil end
     for i = 0, items:size() - 1 do
         local item = items:get(i)
-        local old = m.deposit.baseline[tostring(item:getID())]
-        if not old and eligible(item, m) then
+        if fresh(m, d, item) and Missions.eligible(item, m) then
             out[#out + 1] = item:getID()
         elseif strict then return nil end
     end
-    local needed = m.quantity - m.delivered
-    if #out < needed or (strict and #out ~= needed) then return nil end
+    if #out == 0 or (strict and #out > needed) then return nil end
     while #out > needed do table.remove(out) end
     return out
 end
 
-local function candidate(m)
-    if m.deposit.mode == 'box' then
-        local c = boxAt(m)
-        local ids = c and contents(c, m, false)
-        if ids then return {mode = 'box', ids = ids, count = #ids} end
-    else
-        local result
-        eachSquare(m, function(sq)
-            local objects = sq:getWorldObjects()
-            for i = 0, objects:size() - 1 do
-                local bag = objects:get(i):getItem()
-                if not m.deposit.baseline[tostring(bag:getID())] and instanceof(bag, 'InventoryContainer')
-                        and not bag:isFavorite() then
-                    local ids = contents(bag:getItemContainer(), m, true)
-                    if ids then
-                        result = {mode = 'bag', bag = bag:getID(), ids = ids, count = #ids,
-                            x = sq:getX(), y = sq:getY(), z = sq:getZ()}
-                        return true
-                    end
-                end
-            end
-            return false
-        end)
-        return result
-    end
-    return nil
-end
-
-local function same(a, b)
-    if not a or not b or a.mode ~= b.mode or a.bag ~= b.bag or #a.ids ~= #b.ids then return false end
-    if a.mode == 'bag' and b.x and (a.x ~= b.x or a.y ~= b.y or a.z ~= b.z) then return false end
-    local ids = {}
-    for _, id in ipairs(a.ids) do ids[id] = true end
-    for _, id in ipairs(b.ids) do if not ids[id] then return false end end
-    return true
-end
-
-local function nearby(player, p)
-    if not player or (player.isDead and player:isDead()) then return false end
-    local dx, dy = player:getX() - p.x, player:getY() - p.y
-    return dx * dx + dy * dy < cfg().unseenDistance * cfg().unseenDistance
-end
-
-function D.witness(m, participant)
-    local point = m.deposit.box or m.deposit
-    local pending = m.pickup or m.depositCandidate
-    if m.deposit.mode == 'bag' and pending and pending.bag then
-        local _, sq = bagAt(m, pending.bag)
-        if sq then point = {x = sq:getX(), y = sq:getY()} end
-    end
-    if nearby(participant, point) then return true end
-    if isServer() then
-        local players = getOnlinePlayers()
-        for i = 0, players:size() - 1 do if nearby(players:get(i), point) then return true end end
-    else
-        for i = 0, getNumActivePlayers() - 1 do
-            if nearby(getSpecificPlayer(i), point) then return true end
-        end
-    end
-    return false
-end
-
--- The durable pickup journal is distinct from M.transaction: the regular mission poll must be able to resume it.
--- A missing prepared item is ambiguous after interruption: fail closed, never credit an unproven pickup.
-local function collect(m, store)
-    local tx = m.pickup
-    local cell = getCell()
-    if not cell or not cell:getGridSquare(m.deposit.x, m.deposit.y, m.deposit.z) then return false end
-    if tx.mode == 'bag' then
-        local bag, sq, wo = bagAt(m, tx.bag)
-        if not bag then
-            tx.error = 'missing_bag'
-            store.save()
-            return false
-        else
-            local current = {mode = 'bag', bag = tx.bag, ids = contents(bag:getItemContainer(), m, true) or {},
-                x = sq:getX(), y = sq:getY(), z = sq:getZ()}
-            if not same(tx, current) then return false end
-            sq:transmitRemoveItemFromSquare(wo)
-            if bagAt(m, tx.bag) then
-                tx.error = 'bag_remove_failed'
-                store.save()
-                return false
+local function bagCandidate(m, d, needed)
+    local result
+    eachSquare(d, function(sq)
+        local objects = sq:getWorldObjects()
+        for i = 0, objects:size() - 1 do
+            local wo = objects:get(i)
+            local bag = wo:getItem()
+            if fresh(m, d, bag) and instanceof(bag, 'InventoryContainer') and not bag:isFavorite() then
+                local ids = contents(m, d, bag:getItemContainer(), needed, true)
+                if ids then result = {ids = ids, square = sq, world = wo}; return true end
             end
         end
-    else
-        local container = boxAt(m)
-        if not container then return false end
-        for _, id in ipairs(tx.ids) do
-            local item = container:getItemWithIDRecursiv(id)
-            if not eligible(item, m) then
-                tx.error = 'missing_items'
-                store.save()
-                return false
-            end
-        end
-        for _, id in ipairs(tx.ids) do
-            local item = container:getItemWithIDRecursiv(id)
-            if item then
-                container:DoRemoveItem(item)
-                if isServer() then sendRemoveItemFromContainer(container, item) end
-                if container:getItemWithIDRecursiv(id) then
-                    tx.error = 'item_remove_failed'
-                    store.save()
-                    return false
-                end
-            end
-        end
-    end
-    m.delivered = tx.before + tx.count
-    tx.status = 'applied'
-    if not store.save() then return false end
-    m.pickup, m.depositCandidate = nil, nil
-    unseen[m.id] = nil
-    store.save()
-    return true
-end
-
-function D.observe(m, player, _name, _state, store)
-    if m.donor ~= 'voice' or m.state ~= 'active' or not m.deposit or not store then return false end
-    if m.pickup and m.pickup.status == 'applied' then
-        m.delivered = m.pickup.before + m.pickup.count
-        m.pickup = nil
-        return store.save()
-    end
-    if m.delivered >= m.quantity then return false end
-    if m.pickup and m.pickup.error then return false end
-    -- Deposit square unloaded: the game unloads an area only far from every player, so nobody watches it (solo
-    -- campaign of 2026-11-04: at 65 squares the square unloads before the delay and nothing was ever collected).
-    -- Goods seen before the departure are prepared once the delay has passed, then collected at the first pass where
-    -- the square is loaded again and still unwatched (the player comes back beyond the witness distance first).
-    local cell = getCell()
-    if m.deposit.ready and m.depositCandidate and not m.pickup
-            and (not cell or not cell:getGridSquare(m.deposit.x, m.deposit.y, m.deposit.z)) then
-        local now = getTimestampMs()
-        if not unseen[m.id] then unseen[m.id] = now; return false end
-        if now - unseen[m.id] < cfg().unseenMs then return false end
-        local tx = {}
-        for k, v in pairs(m.depositCandidate) do tx[k] = v end
-        tx.before, tx.status, tx.away = m.delivered, 'prepared', true
-        m.pickup = tx
-        if not store.save() then m.pickup = nil end
         return false
-    end
-    local prepared = not m.deposit.ready
-    if not D.prepare(m, store) then return false end
-    local found
-    if not m.pickup then
-        found = candidate(m)
-        if not found then unseen[m.id] = nil; return prepared end
-        if not same(found, m.depositCandidate) then
-            m.depositCandidate, unseen[m.id] = found, nil
-            if not store.save() then m.depositCandidate = nil; return false end
-        end
-    end
-    if D.witness(m, player) then
-        unseen[m.id] = nil
-        if m.pickup and m.pickup.away then m.pickup.away = nil; store.save() end   -- full delay again
-        return prepared
-    end
-    if m.pickup then
-        if m.pickup.away then return collect(m, store) end
-        local now = getTimestampMs()
-        if not unseen[m.id] then unseen[m.id] = now; return false end
-        if now - unseen[m.id] < cfg().unseenMs then return false end
-        return collect(m, store)
-    end
-    local now = getTimestampMs()
-    if not unseen[m.id] then unseen[m.id] = now; return false end
-    if now - unseen[m.id] < cfg().unseenMs then return false end
-    found.before, found.status = m.delivered, 'prepared'
-    m.pickup = found
-    if not store.save() then m.pickup = nil; return false end
-    return collect(m, store)
+    end)
+    return result
 end
 
-function D.resetForTests() unseen = {} end
+local function removeFromBox(container, ids)
+    local removed = {}
+    for _, id in ipairs(ids) do
+        local item = container:getItemWithIDRecursiv(id)
+        if item then
+            container:DoRemoveItem(item)
+            if isServer() then sendRemoveItemFromContainer(container, item) end
+            if not container:getItemWithIDRecursiv(id) then removed[#removed + 1] = id end
+        end
+    end
+    return removed
+end
 
--- Set-up of a voice `deliver` mission: the sheet needs a place with use=drop (E20-T03); the dead drop takes those
--- places in turn, a box on odd missions and a bag on even ones.
-local function hasPlaces(sheet)
-    if #Persona.placesFor(sheet, 'drop') == 0 then return false, 'no_place' end
+local function removeBag(found)
+    found.square:transmitRemoveItemFromSquare(found.world)
+    local objects = found.square:getWorldObjects()
+    for i = 0, objects:size() - 1 do
+        if objects:get(i) == found.world then return {} end
+    end
+    return found.ids
+end
+
+local function credit(m, ids)
+    if type(m.credited) ~= 'table' then m.credited = {} end
+    for _, id in ipairs(ids) do m.credited[tostring(id)] = true end
+    m.delivered = m.delivered + #ids
+end
+
+-- Pickup of the goods of a loaded drop. The journal is saved before anything is destroyed; only the items really
+-- removed are credited.
+local function collect(m, d, store)
+    local needed = m.quantity - m.delivered
+    local container, found
+    if d.mode == 'box' then
+        container = boxAt(d)
+        local ids = container and contents(m, d, container, needed, false)
+        found = ids and {ids = ids}
+    else
+        found = bagCandidate(m, d, needed)
+    end
+    if not found then return false end
+    d.pickup = {ids = found.ids}
+    if not store.save() then d.pickup = nil; return false end
+    local removed = container and removeFromBox(container, found.ids) or removeBag(found)
+    credit(m, removed)
+    d.pickup = nil
+    store.save()
+    return #removed > 0
+end
+
+-- A journal left by an interrupted pickup is ambiguous (removed or not): fail closed, never credit an unproven pickup.
+local function dropJournal(m, d, store)
+    if not d.pickup then return end
+    d.pickup = nil
+    Const.log('dead drop pickup of mission ' .. tostring(m.id) .. ' interrupted: not credited')
+    store.save()
+end
+
+local function observeDrop(m, d, store)
+    dropJournal(m, d, store)
+    local changed = false
+    if not d.ready then
+        if not D.prepare(m, d, store) then return false end
+        changed = true
+    end
+    local point = d.box and {x = d.box.x, y = d.box.y, z = d.z} or d
+    local ready, moved = sight.watch(d, point, delayOf(m))
+    if not ready and not d.due then
+        if moved then store.save() end
+        return changed
+    end
+    if not squareOf(d) then
+        if not d.due then d.due = true; store.save() end
+        return changed
+    end
+    local wasDue = d.due
+    d.due = nil
+    local collected = collect(m, d, store)
+    if not collected and (wasDue or moved) then store.save() end
+    return changed or collected
+end
+
+-- Poll of the voice giver (RC_Missions Deliver.observe): every drop, in the order of the mission.
+function D.observe(m, _player, _name, _state, store)
+    if m.donor ~= 'voice' or m.state ~= 'active' or type(m.drops) ~= 'table' or not store then return false end
+    local changed = false
+    for _, d in ipairs(m.drops) do
+        if m.delivered >= m.quantity then break end
+        if observeDrop(m, d, store) then changed = true end
+    end
+    return changed
+end
+
+-- Notebook projection (RC_Missions Deliver.project): drops with their label and mode; map zones for a participant.
+function D.project(m, p)
+    p.drops, p.collectHours = {}, delayOf(m)
+    if p.engaged then p.dropZones = {} end
+    for _, d in ipairs(type(m.drops) == 'table' and m.drops or {}) do
+        p.drops[#p.drops + 1] = {label = d.label, mode = d.mode, ready = d.ready == true}
+        if p.engaged then
+            local at = d.box or d
+            p.dropZones[#p.dropZones + 1] = {x = at.x, y = at.y, r = d.box and 1 or cfg().radius, label = d.label}
+        end
+    end
+end
+
+-- Labels of the drops, as told to the voice (no coordinate).
+function D.where(m)
+    local labels = {}
+    for _, d in ipairs(type(m.drops) == 'table' and m.drops or {}) do labels[#labels + 1] = tostring(d.label) end
+    return table.concat(labels, ', ')
+end
+
+-- Collection rule told to the voice (RC_Missions Deliver.voiceBrief).
+function D.rule(m)
+    return 'Collection rule: the caller may use any of the drop points and split the goods between them; deposits '
+        .. 'add up. A drop is collected only out of sight of everyone (nobody within about '
+        .. tostring(OutOfSight.VIEW_TILES) .. ' tiles), about ' .. tostring(delayOf(m)) .. ' game hours after the '
+        .. 'last person left; coming back in sight before that restarts the wait. In a bag, leave only the requested '
+        .. 'goods: the whole bag is taken. Never claim collection before the server confirms it.'
+end
+
+-- Set-up of a voice `deliver` mission: every drop of its section (E20-T03 places with use=drop).
+local function dropPlaces(sheet, section)
+    local wanted = type(section) == 'table' and type(section.drops) == 'table' and section.drops or {}
+    if #wanted == 0 then return Persona.placesFor(sheet, 'drop') end
+    local byId, out = {}, {}
+    for _, p in ipairs(Persona.placesFor(sheet, 'drop')) do byId[p.id] = p end
+    for _, id in ipairs(wanted) do
+        if byId[id] then out[#out + 1] = byId[id] end
+    end
+    return out
+end
+
+local function hasPlaces(sheet, section)
+    if #dropPlaces(sheet, section) == 0 then return false, 'no_place' end
     return true
 end
 
-local function setUp(m, sheet, d)
-    local drops = Persona.placesFor(sheet, 'drop')
-    local place = drops[(d.missionCount - 1) % #drops + 1]
-    m.deposit = {x = place.x, y = place.y, z = place.z or 0,
-        mode = d.missionCount % 2 == 1 and 'box' or 'bag'}
-    m.place, m.placeKind = place.label, 'dead drop'
+local function setUp(m, sheet, donor, section)
+    local mode = donor.missionCount % 2 == 1 and 'box' or 'bag'
+    local params = type(section) == 'table' and type(section.params) == 'table' and section.params or {}
+    m.collectHours = params.collect_hours or cfg().collectDelayHours
+    m.drops, m.credited = {}, {}
     -- Saved atomically with acceptance by RS_MissionVoice; do not persist a half-created mission.
-    D.prepare(m, {save = function() return true end})
-    m.mapZone = m.mapZone or {x = place.x, y = place.y, r = 3}
+    local noSave = {save = function() return true end}
+    for _, place in ipairs(dropPlaces(sheet, section)) do
+        local d = {id = place.id, label = place.label, x = place.x, y = place.y, z = place.z or 0, mode = mode}
+        m.drops[#m.drops + 1] = d
+        D.prepare(m, d, noSave)
+    end
+    m.place, m.placeKind = D.where(m), 'dead drop'
 end
 
 Voice.registerSetup('deliver', {check = hasPlaces, apply = setUp})

@@ -14,6 +14,8 @@ Givers (E18-T05, user decision of 2026-11-05: registration and hooks). A mod reg
                             lot(m) -> name of a Caches table | nil   optional: lot the giver creates when the mission
                                       announces none (E18-T33), projected as rewardTable
                             observeDeliver(m, player, name, state, store) -> changed }       optional, `deliver` poll
+                            projectDeliver(m, p), deliverWhere(m) -> text, deliverRule(m) -> text   optional, `deliver`
+                                      drop points of the giver: notebook fields, place labels and rule told to a voice
 The engine keeps its fields on the giver record, owned by that mod: id, name, mission, missionCount, nextOfferHour.
 NPC reward source (E11-T21, decision D09 of 2026-11-14: each mod pays its missions). The NPC engine declares how a
 mission given by one of its NPCs is paid, so that a giver of another mod (RadioSurvivor's notebook fiche of an engine
@@ -611,8 +613,8 @@ end
 -- engine: rewardCount 0), claimed by the common lot mechanism (M.claim).
 local Deliver = {idPrefix = 'delivery', handover = true, voiceName = 'deliver',
     voiceText = 'leave requested goods at a dead drop',
-    -- E20-T03: read from the voice sheet and stored on its mission section; not used by the delivery yet.
-    params = {items = 'category', quantity = 'range'}}
+    -- E20-T03: sheet values of its mission section (items, quantity: not used yet; collect_hours: E20-T05 drops).
+    params = {items = 'category', quantity = 'range', collect_hours = 'count'}}
 
 local SUPPLY_TITLES = {food = 'IGUI_RC_Mission_Supply_food', medical = 'IGUI_RC_Mission_Supply_medical',
     ammo = 'IGUI_RC_Mission_Supply_ammo'}
@@ -779,10 +781,10 @@ function Deliver.complete() end
 function Deliver.project(m, p)
     if m.donor == 'voice' then
         p.report, p.place = 'radio', m.place
-        p.depositMode = m.deposit and m.deposit.mode
-        p.depositReady = m.deposit and m.deposit.ready == true
         p.depositCollected = m.delivered >= m.quantity
-        if p.engaged and m.mapZone then p.mapZone = copyMap(m.mapZone) end
+        -- E20-T05: drop points of the giver (labels, modes, map zones of a participant).
+        local giver = donors[kindOf(m)]
+        if giver and giver.projectDeliver then giver.projectDeliver(m, p) end
     end
     p.quantity, p.delivered, p.accepted = m.quantity, m.delivered, {}
     for k, v in pairs(m.accepted) do p.accepted[k] = v end
@@ -801,12 +803,16 @@ function Deliver.context(m, ctx)
     end
 end
 
--- E20-T02: dead drop of a radio voice, told to the voice. The report is due only once the server collected the whole
--- drop (Deliver.voiceReportReady): before that, the mission is never sent with toReport nor turn 'report_due'.
+-- E20-T02: dead drops of a radio voice, told to the voice. The report is due only once the server collected the whole
+-- quantity (Deliver.voiceReportReady): before that, the mission is never sent with toReport nor turn 'report_due'.
+-- E20-T05: the drop points and the collection rule are the giver's (deliverWhere, deliverRule).
 local MAX_ACCEPTED_TOLD = 32
 
 function Deliver.voiceBrief(m)
-    local mode = m.deposit and m.deposit.mode == 'bag' and 'a bag hidden on the ground' or 'the agreed box'
+    local giver = donors[kindOf(m)]
+    local where = giver and giver.deliverWhere and giver.deliverWhere(m) or tostring(m.place)
+    local rule = giver and giver.deliverRule and giver.deliverRule(m)
+        or 'Collection rule: never claim collection before the server confirms it.'
     local accepted = {}
     for fullType, ok in pairs(m.accepted or {}) do
         if ok == true and type(fullType) == 'string' then accepted[#accepted + 1] = fullType end
@@ -814,13 +820,11 @@ function Deliver.voiceBrief(m)
     table.sort(accepted)
     while #accepted > MAX_ACCEPTED_TOLD do table.remove(accepted) end
     return {
-        job = 'Leave ' .. tostring(m.quantity) .. ' requested items in ' .. mode .. ' at ' .. tostring(m.place)
-            .. ', then report to you on this frequency after collection.',
+        job = 'Leave ' .. tostring(m.quantity) .. ' requested items at one or more of your drop points (' .. where
+            .. '), then report to you on this frequency after collection.',
         facts = {
             'Accepted item types (closed server list): ' .. table.concat(accepted, ', ') .. '.',
-            'Collection rule: leave the complete requested goods; for a bag include only the requested goods. '
-                .. 'Everyone must move at least forty tiles away for ten seconds. The goods disappear only when '
-                .. 'collected; a hidden bag also disappears. Never claim collection before the server confirms it.',
+            rule,
             'Collected by the server: ' .. tostring(m.delivered) .. ' of ' .. tostring(m.quantity)
                 .. '; collection complete: ' .. M.yesNo(Deliver.voiceReportReady(m)) .. '.',
         },

@@ -1,7 +1,8 @@
 ﻿"""Voice mission templates: real Lua authority and bridge fields, no Java API proof."""
 import unittest
 import test_carnet as carnet_helpers
-from test_carnet import bridge_module
+from test_carnet import MAP_DOUBLE, NOTEBOOK_UI, bridge_module, convert
+from test_protocol import lua_list
 from test_mission_clear import CLEAR_WORLD
 import npc_protocol as protocol
 from types import SimpleNamespace
@@ -51,11 +52,45 @@ class VoiceTemplateTests(unittest.TestCase):
     def test_delivery_targets_sheet_place_and_requires_collection(self):
         sim, voice, sheet = self.setup_voice('deliver')
         m = self.start(sim, voice, sheet, 'deliver')
-        self.assertEqual((m.deposit.x, m.deposit.y, m.deposit.z), (100, 10, 0))
+        # E20-T05: every drop place of the sheet (no drops= in the section: any), with the default game-hour delay.
+        self.assertEqual(len(m.drops), 1)
+        drop = m.drops[1]
+        self.assertEqual((drop.x, drop.y, drop.z, drop.label), (100, 10, 0, 'Supply depot'))
         engine = sim.server.rt.eval("require('RadioSurvivorCore/RC_Missions')")
         self.assertFalse(engine.reportReady(m))
         self.assertEqual(m.state, 'active')
-        self.assertIn(m.deposit.mode, ('box', 'bag'))
+        self.assertIn(drop.mode, ('box', 'bag'))
+        self.assertEqual(m.collectHours, 6)
+
+    def test_notebook_lists_every_drop_and_the_map_circles_each(self):
+        """E20-T05: a deliver mission without drops= carries every use=drop place; the participant's notebook names
+        them and the map gets one circle per drop, labelled with the place label."""
+        sim, voice, sheet = self.setup_voice('deliver')
+        rt = sim.server.rt
+        shed = rt.table_from({'id': 'shed', 'x': 130, 'y': 10, 'z': 0, 'label': 'Old shed',
+                              'uses': rt.table_from(['drop']), 'use': rt.table_from({'drop': True})})
+        sheet.places[2] = shed
+        m = self.start(sim, voice, sheet, 'deliver')
+        self.assertEqual(m.place, 'Supply depot, Old shed')
+        c = sim.clients['alice']
+        c.rt.execute(MAP_DOUBLE)
+        c.rt.execute(NOTEBOOK_UI)
+        c.rt.execute("getScriptManager = function() return {FindItem = function() return nil end} end")
+        c.load('client/RS_Carnet_Client.lua')
+        maps = c.rt.eval("require('RadioSurvivor/RS_MapActions')")
+        maps.resetForTests(); maps.resetZonesForTests()
+        sim.command('alice', 'snapshot', world=c.g.RS_CarnetClient.world, run=c.g.RS_CarnetClient.run)
+        drawn = [convert(x) for x in lua_list(c.rt.eval('mapSymbols()'))]
+        self.assertEqual(sorted(x['text'] for x in drawn if x['kind'] == 'text'),
+                         ['IGUI_RS_MapZoneDepot|Old shed', 'IGUI_RS_MapZoneDepot|Supply depot'])
+        self.assertEqual(sorted((x['x'], x['y']) for x in drawn if x['kind'] == 'texture'), [(100, 10), (130, 10)])
+        c.g.RS_Notebook.toggle()
+        window = c.g.RS_CarnetClient.window
+        window.changeTab(window, 'Missions')
+        for key in ('IGUI_RS_DeadDropPoints|Supply depot, Old shed', 'IGUI_RS_DeadDropApproach',
+                    'IGUI_RS_DeadDropLeave|6'):
+            self.assertIn(key, window.detail.text)
+        self.assertNotIn('IGUI_RS_DeadDropCollected', window.detail.text)
 
     def test_retrieve_requires_actual_card_even_after_found(self):
         sim, voice, sheet = self.setup_voice('retrieve')
@@ -86,7 +121,7 @@ class MissionBriefTests(unittest.TestCase):
     def test_every_template_tells_its_objective_and_facts(self):
         examples = {
             'scout': ('Go and look at a building', 'The caller has been to the place (checked by the server): no.'),
-            'deliver': ('requested items in', 'collection complete: no.'),
+            'deliver': ('requested items at one or more of your drop points', 'collection complete: no.'),
             'retrieve': ("missing person's body", "card in a participant's inventory: no."),
             'clear': ('zombies inside the circled area', 'Verified kills: 0 of '),
             'signal': ('Signal Smoke signal inside the circled area', 'signal was verified: no.'),
@@ -109,7 +144,8 @@ class MissionBriefTests(unittest.TestCase):
         heard = voice.heard(sheet, sim.server.g.PLAYERS.alice, sim.character('alice'), 160000, store)
         self.assertEqual((heard.turn, heard.toReport), ('not_yet', False))
         _, prompt = self.told(voice, heard)
-        self.assertIn('forty tiles away for ten seconds', prompt)
+        self.assertIn('out of sight of everyone (nobody within about 100 tiles), about 6 game hours', prompt)
+        self.assertIn('(Supply depot)', prompt)
         self.assertIn('Never claim collection before the server confirms it', prompt)
         self.assertIn('never add report_mission', prompt)
 
