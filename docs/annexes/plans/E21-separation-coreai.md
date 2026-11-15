@@ -55,6 +55,8 @@ qui porte le carnet et les méthodes factorisées. Les tests de Living Knox ne c
 - **Hors `Contents/` :** 209 fichiers nomment `RadioSurvivorCore` (tests 105, dev 53, docs 40, outils 4, pont 1,
   racine 6).
 
+**Conception.** [Carnet commun dans batman_CoreAI](../conception/carnet-commun-e21.md) : répartition fonction par fonction, chemin unique de Living Knox, registres neutres, tranches de E21-T03 à E21-T06.
+
 **Décisions.** Voir l'ADR (D01 à D08). Ordre retenu par défaut :
 
 1. le renommage, mécanique, d'abord, pour que la suite parte des noms définitifs ;
