@@ -186,7 +186,7 @@ local function open(server, st, npc, item, heard, rule, hour, now)
     server.times[#server.times + 1] = now
     server.sync()
     count('llm')
-    print('[RS_Initiatives] initiative ' .. req.id .. ' of ' .. tostring(npc.id) .. ' about ' .. item.fact
+    print('[LK_Initiatives] initiative ' .. req.id .. ' of ' .. tostring(npc.id) .. ' about ' .. item.fact
         .. ' (' .. #heard .. ' listener(s))')
     return 'llm', req
 end
@@ -230,7 +230,7 @@ function I.observe(req, answered, now)
             and not I.bridge.down then
         I.bridge.down = true
         I.bridge.probeAt = (now or getTimestampMs()) + I.CFG.PROBE_MS
-        print('[RS_Initiatives] bridge considered stopped: no reply to ' .. tostring(req.id)
+        print('[LK_Initiatives] bridge considered stopped: no reply to ' .. tostring(req.id)
             .. ', initiatives and conversations stay silent')
     end
 end

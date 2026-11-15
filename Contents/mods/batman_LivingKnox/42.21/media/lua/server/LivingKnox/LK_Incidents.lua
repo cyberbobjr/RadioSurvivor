@@ -128,7 +128,7 @@ function I.tick(server, now)
             F.incidentAsked(inc.id, req.id, now)
             server.times[#server.times + 1] = now
             server.sync()
-            print('[RS_Incidents] decision on incident ' .. inc.id .. ' (revision ' .. inc.revision .. ') asked to '
+            print('[LK_Incidents] decision on incident ' .. inc.id .. ' (revision ' .. inc.revision .. ') asked to '
                 .. npc.id .. ', leader of ' .. inc.group)
             return 1
         end

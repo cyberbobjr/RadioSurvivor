@@ -184,7 +184,7 @@ local function transmit(conv, how)
     conv.learned = true
     local key, why = Obs.transmit(conv.a, conv.b, conv.subject)
     if key and why == 'ok' then count('learned') end
-    print('[RS_Conversations] ' .. tostring(conv.a) .. ' told ' .. tostring(conv.b) .. ' (' .. how .. '): '
+    print('[LK_Conversations] ' .. tostring(conv.a) .. ' told ' .. tostring(conv.b) .. ' (' .. how .. '): '
         .. tostring(why))
 end
 
@@ -195,7 +195,7 @@ local function finish(conv, reason)
     for rid, cid in pairs(V.interventions) do
         if cid == conv.id then V.interventions[rid] = nil end
     end
-    print('[RS_Conversations] conversation ' .. conv.id .. ' ended after ' .. #conv.lines .. ' line(s): ' .. reason)
+    print('[LK_Conversations] conversation ' .. conv.id .. ' ended after ' .. #conv.lines .. ' line(s): ' .. reason)
 end
 
 -- E18-T32 : corps au foyer home = { x, y, z, radius } (écart en x et en y, même étage ; règle de LK_Decisions).
@@ -304,7 +304,7 @@ local function llmTurn(server, conv, speakerId, partnerId, heard, now)
     server.sync()
     conv.waiting, conv.waitingRev, conv.mode = req.id, conv.rev, 'llm'
     count('llm')
-    print('[RS_Conversations] line ' .. (#conv.lines + 1) .. ' of ' .. conv.id .. ': request ' .. req.id)
+    print('[LK_Conversations] line ' .. (#conv.lines + 1) .. ' of ' .. conv.id .. ': request ' .. req.id)
     return true
 end
 
@@ -346,7 +346,7 @@ local function open(server, st, npc, found, hour, now, bodies)
     if not partner then
         partner = server.ensure(found.pid)
         if not partner then return nil end
-        print('[RS_Conversations] fiche ' .. partner.id .. ' created for ' .. tostring(found.pid)
+        print('[LK_Conversations] fiche ' .. partner.id .. ' created for ' .. tostring(found.pid)
             .. ' (group already contacted)')
     end
     st.pairs[pairKey(npc.id, partner.id)] = hour
@@ -363,7 +363,7 @@ local function open(server, st, npc, found, hour, now, bodies)
     end
     V.active[conv.id] = conv
     count('opened')
-    print('[RS_Conversations] conversation ' .. conv.id .. ' between ' .. npc.id .. ' and ' .. partner.id
+    print('[LK_Conversations] conversation ' .. conv.id .. ' between ' .. npc.id .. ' and ' .. partner.id
         .. ' about ' .. found.item.fact)
     advance(server, conv, bodies, now)
     return 'opened', conv
@@ -384,7 +384,7 @@ function V.openChatter(server, a, b, topic, turns, now, home)
         deadline = now + V.CFG.MAX_MS, nextAt = now, learned = true, rev = 0, maxTurns = turns, home = home}
     V.active[conv.id] = conv
     count('chatter')
-    print('[RS_Conversations] chatter ' .. conv.id .. ' between ' .. a.id .. ' and ' .. b.id .. ' about '
+    print('[LK_Conversations] chatter ' .. conv.id .. ' between ' .. a.id .. ' and ' .. b.id .. ' about '
         .. topic.subject .. ' (' .. turns .. ' lines)')
     advance(server, conv, P.objects(), now)
     return conv
@@ -504,7 +504,7 @@ function V.intervene(server, conv, req, player, name, text)
     addLine(conv, name, text, heard, true)
     V.interventions[req.id] = conv.id
     count('joined')
-    print('[RS_Conversations] player line ' .. #conv.lines .. ' joined ' .. conv.id .. ' (request ' .. req.id .. ')')
+    print('[LK_Conversations] player line ' .. #conv.lines .. ' joined ' .. conv.id .. ' (request ' .. req.id .. ')')
     return true
 end
 
