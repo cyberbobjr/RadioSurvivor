@@ -2,16 +2,16 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 3 / 10 tâche(s) terminée(s).
+**Avancement.** en cours — 4 / 10 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
 | ☑ | E21-T01 | Renommer le mod commun en batman_CoreAI | `testé solo` | solo | — |
 | ☑ | E21-T02 | Living Knox sans nom de RadioSurvivor dans ses journaux et ses dossiers | `testé hors jeu` | hors jeu | E21-T01 |
 | ☑ | E21-T03 | Carnet client et interfaces dans batman_CoreAI | `testé solo` | solo | E21-T01 |
-| ☐ | E21-T04 | Carnet serveur dans batman_CoreAI | `à faire` | MP | E21-T03 |
-| ☐ | E21-T05 | Living Knox fournisseur du carnet commun | `à faire` | solo | E21-T04 |
-| ☐ | E21-T06 | RadioSurvivor sans appel à Living Knox | `à faire` | solo | E21-T04 |
+| ☐ | E21-T04 | Carnet serveur dans batman_CoreAI | `testé solo` | MP | E21-T03 |
+| ☑ | E21-T05 | Living Knox fournisseur du carnet commun | `testé solo` | solo | E21-T04 |
+| ☐ | E21-T06 | RadioSurvivor sans appel à Living Knox | `testé hors jeu` | solo | E21-T04 |
 | ☐ | E21-T07 | Trois mods de test et campagnes séparées | `à faire` | solo | E21-T05, E21-T06 |
 | ☐ | E21-T08 | Bancs de Living Knox sans RadioSurvivor | `à faire` | hors jeu | E21-T07 |
 | ☐ | E21-T09 | Les trois montages en jeu, solo et MP | `à faire` | MP | E21-T08 |
@@ -99,37 +99,37 @@ qui porte le carnet et les méthodes factorisées. Les tests de Living Knox ne c
   - Reste : Living Knox seul en jeu : campagne `solo-lk` de E21-T07 ; `CA_NotebookJournal` provisoire jusqu'à E21-T04
 
 - [ ] **E21-T04** — Carnet serveur dans batman_CoreAI
-  - État : `à faire`
+  - État : `testé solo`
   - Cible : `MP`
   - Dépend de : E21-T03
   - Fichiers : `RS_Carnet_Server.lua` (partie commune → `CA_NotebookServer.lua`), `RS_Config.lua` (module réseau du carnet), `RS_Client.lua`
   - Faire : le serveur du carnet devient commun (identité, contacts, missions, journal, historique, parole par les fournisseurs) ; ce qui ne sert qu'aux voix (gabarits enregistrés, personas, troc, réputation des voix) reste dans RadioSurvivor et s'inscrit au carnet.
   - Accepté si : le carnet fonctionne avec chaque mod seul et avec les deux, en solo et en MP ; aucun module commun ne charge `RadioSurvivor/` ni `LivingKnox/`.
   - Tests : bancs du carnet et du protocole ; campagnes solo et MP.
-  - Preuve : —
-  - Reste : —
+  - Preuve : commits `0cd9cb0` (serveur neutre sur place : opérations du fournisseur, LK_AgreementNotices, RS_NotebookHooks), `dc75c7d` (CA_NotebookStore, CA_NotebookServer, CA_NotebookGiver, CA_AdminAccess) et `0b9fedb1` ; `run_all.py --keep-going` : `Summary: 191 passed, 0 failed, 0 skipped` ; campagne solo des deux mods sur `dc75c7d` : code 1, `RST-RESULT ok=false total=281 pass=269 fail=2 error=0 skip=10` (`tools/autoclient/runs/20261115-131957-49d0fc63d655`) : `rs.voicedarlene` lisait l'état d'histoire dans la doublure du carnet (suite corrigée en `0b9fedb1`), `lk.expedition` (LK05-T23, sans lien) ; campagne solo des deux mods sur `ec77cab4` (copie figée, `--campaign solo --bridge on --llm fake --wait-idle 3600`) : code 1, `RST-RESULT ok=false total=281 pass=270 fail=1 error=0 skip=10` (`tools/autoclient/runs/20261115-135810-933a6492ed4e`) : suites du carnet et de Darlene vertes, seul échec `lk.windowsally` (second zombie poursuivi, sans lien)
+  - Reste : campagne MP (E21-T09)
 
-- [ ] **E21-T05** — Living Knox fournisseur du carnet commun
-  - État : `à faire`
+- [x] **E21-T05** — Living Knox fournisseur du carnet commun
+  - État : `testé solo`
   - Cible : `solo`
   - Dépend de : E21-T04
   - Fichiers : `shared/RadioSurvivor/RS_LivingKnox.lua` → `LK_NotebookProvider.lua` ; `LK_Core.lua` (`radioSurvivorActive` retiré) ; `LK_TalkView.lua`, `LK_TalkAlone.lua`, `LK_Contacts.lua`, `LK_Admin.lua`
   - Faire : l'adaptateur s'inscrit toujours à `CA_NPCProvider`, que RadioSurvivor soit là ou non ; la parole de proximité passe par un seul chemin ; `LK_Admin` lit les noms par le registre commun.
   - Accepté si : aucun `RadioSurvivor` ni `RS_` dans le code de `batman_LivingKnox`.
   - Tests : bancs LK de la parole, du carnet et des contacts ; suites `lk.*` concernées.
-  - Preuve : —
-  - Reste : —
+  - Preuve : commit `ec77cab4` : LK_NotebookProvider toujours inscrit, LK_TalkAlone et LK_Contacts supprimés ; bancs `test_lk_notebook_provider` (2) et `test_lk_speech_single_path` (13) rouges avant, verts après ; `run_all.py --keep-going` : `Summary: 192 passed, 0 failed, 0 skipped` ; aucune mention de RadioSurvivor dans le code de `batman_LivingKnox` (recherche `RadioSurvivor|\bRS_` : 0 ligne) ; campagne solo des deux mods sur `ec77cab4` (copie figée, `--campaign solo --bridge on --llm fake --wait-idle 3600`) : code 1, `RST-RESULT ok=false total=281 pass=270 fail=1 error=0 skip=10` (`tools/autoclient/runs/20261115-135810-933a6492ed4e`) : parole, contacts et missions des PNJ verts par le carnet commun, seul échec `lk.windowsally` sans lien
+  - Reste : Living Knox seul en jeu : campagne `solo-lk` (E21-T07)
 
 - [ ] **E21-T06** — RadioSurvivor sans appel à Living Knox
-  - État : `à faire`
+  - État : `testé hors jeu`
   - Cible : `solo`
   - Dépend de : E21-T04
   - Fichiers : `RS_Facts.lua`, `RS_Relations.lua`, partie RadioSurvivor du carnet ; `CA_MissionClear.lua` ; registres ou événements neutres du commun
   - Faire : faits de groupe, accords, relations, hostilité et attribution des morts lus par des registres ou événements neutres de `batman_CoreAI` que Living Knox alimente (D05) ; tout comportement impossible à neutraliser est nommé ici et signalé.
   - Accepté si : aucun `LivingKnox` ni `LK_` dans le code de `batman_RadioSurvivor` et de `batman_CoreAI`.
   - Tests : bancs des faits, des relations et des accords ; suites `rs.*` concernées.
-  - Preuve : —
-  - Reste : —
+  - Preuve : commit `7dd0a12e` : CA_GroupFacts et LK_GroupFactsFeed, RS_Facts sans Living Knox, registre des objets vendus seulement ; bancs `test_core_group_facts` (3), `test_lk_group_facts_feed` (3) et `test_core_tools` (vente seule) rouges avant, verts après ; `run_all.py --keep-going` : `Summary: 194 passed, 0 failed, 0 skipped` ; luacheck Contents 0, dev 0 ; aucune mention de Living Knox dans le code de `batman_RadioSurvivor`, ni de l'un ou l'autre dans `batman_CoreAI` (restent les descriptions `mod.info` vues par le joueur, revues en E21-T10)
+  - Reste : campagne solo (E21-T09)
 
 - [ ] **E21-T07** — Trois mods de test et campagnes séparées
   - État : `à faire`
