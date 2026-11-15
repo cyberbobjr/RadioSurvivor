@@ -97,8 +97,8 @@ Optional operations of the shared notebook (E21-T03), neutral when the provider 
       and game days only, translated by the client). nil by default.
   Provider.debugPair(npc, character) -> table or nil   authority, tests and diagnostics only (never sent to a client):
       copy of the relation with its hidden values. nil by default.
-  Provider.contacts(character) -> { npc, ... }   authority. NPCs known by the character through a personal relation
-      only (kept among the contacts). Empty by default.
+  Provider.contacts(character) -> { id, ... }   authority. Provider ids of the NPCs the character knows through a
+      personal relation: the notebook keeps them among its contacts (fiche made a contact). Empty by default.
 
 Events, emitted by the provider on the authority, listened to by the notebook
   Provider.on(event, fn)               subscribe; the same function is added once.

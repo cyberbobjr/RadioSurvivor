@@ -3,7 +3,7 @@
     python tests/test_relation_panel.py
 
 Banc lupa (Lua 5.1, `next` retiré comme dans Kahlua) : vrai serveur du carnet (`RS_Carnet_Server.lua`), vrais
-`RS_Relations.lua` et `RS_Factions.lua` (doublure fidèle de la faction vanilla de `tests/test_factions.py`), moteur
+`LK_NotebookRelations.lua` et `RS_Factions.lua` (doublure fidèle de la faction vanilla de `tests/test_factions.py`), moteur
 Living Knox réel (registres, `LK_Hostility`, API, fournisseur `RS_LivingKnox.lua`), vrai client du carnet
 (`CA_NotebookContacts.lua` avec les doublures ISUI de `NOTEBOOK_UI`) et table anglaise réelle du mod pour le rendu. Les changements
 personnels passent par l'API d'E09-T04 (`Relations.offer` puis `Relations.apply`, faits réels enregistrés par
@@ -67,7 +67,7 @@ class RelationPanelTests(unittest.TestCase):
         for c in clients:
             sim.add_client(c)
         self.server = self.g.RS_CarnetServer
-        self.R = self.rt.eval("require('RadioSurvivor/RS_Relations')")
+        self.R = self.rt.eval("require('LivingKnox/LK_NotebookRelations')")
         self.F = self.rt.eval(AGREEMENTS_FACADE)
         self.H = self.rt.eval('LivingKnox.Hostility')
         for npc in (self.g.LK_LEADER, self.g.LK_MATE, self.g.LK_LONER):
@@ -287,6 +287,23 @@ class RelationPanelTests(unittest.TestCase):
         self.assertEqual(lines[0], 'Attitude toward you: cautious (steady).')
         self.assertIn('Agreement (status unknown): covers their side and your side.', lines)
         self.assertIn('- Some time ago, something you did for them.', lines)
+
+    def test_panel_of_a_provider_without_living_knox(self):
+        """E21-T04: the notebook shows the relation panel its NPC provider gives (CA_NPCProvider.relationPanel), for the
+        reader's character and team, with no Living Knox loaded."""
+        sim = Simulation(self.path / 'provider-panel', speech=False)
+        sim.server.rt.execute("""FAKE_PROVIDER.relationPanel = function(npc, character, team)
+            return {level = 'wary', trend = 'down', today = 3, facts = {}, who = tostring(npc.incarnation),
+                team = type(team) == 'table' and team.kind or 'none', reader = character}
+        end""")
+        sim.add_client('alice')
+        sim.select('alice')
+        self.assertIsNone(sim.server.g.LivingKnox, 'Living Knox loaded')
+        sim.command('alice', 'snapshot')
+        [row] = list(sim.clients['alice'].g.CoreAI.notebookClient.snapshot.contacts.values())
+        self.assertEqual(convert(row.relation), {'level': 'wary', 'trend': 'down', 'today': 3, 'facts': {},
+                                                 'who': '2001', 'team': 'personal',
+                                                 'reader': sim.character('alice')})
 
     def test_french_table_has_every_key(self):
         en = json.loads(LK_EN.read_text(encoding='utf-8-sig'))

@@ -506,6 +506,7 @@ for _, m in ipairs({'LivingKnox/LK_Core', 'LivingKnox/LK_Config', 'LivingKnox/LK
         'LivingKnox/Data/LK_Type_raiders', 'LivingKnox/Data/LK_Type_settlers', 'LivingKnox/Data/Stories',
         'RadioSurvivor/RS_LivingKnox', 'LivingKnox/LK_Server', 'LivingKnox/LK_Stories', 'LivingKnox/LK_API',
         'LivingKnox/LK_Agreements', -- E18-T20: agreements of Living Knox (loaded with every server file in the game)
+        'LivingKnox/LK_AgreementNotices', -- E21-T04: their notices to the team
         'LivingKnox/LK_Reputation', 'LivingKnox/LK_PersonalRelation'}) do
     require(m)
 end
@@ -564,10 +565,12 @@ def native_table(game, value):
 class Simulation:
     def __init__(self, path: Path, clock=None, world='test', boot_cell=True, new_world=False, saved_players=None,
                  radio_new_world=None,
-                 provider=True, living_knox=False, server_globals=None):
+                 provider=True, living_knox=False, server_globals=None, speech=True, rs_hooks=True):
         """living_knox=True (E17-T03): no fake provider; the real Living Knox engine (registries, API, bodies) and its
         notebook provider RS_LivingKnox.lua are loaded on the server, the provider and a roster double of
-        LK_ZombieGuard on each client (see LK_SERVER_STUBS / LK_CLIENT_STUBS)."""
+        LK_ZombieGuard on each client (see LK_SERVER_STUBS / LK_CLIENT_STUBS). speech=False (E21-T04): the fake
+        provider has no speech engine (LK_Talk not loaded, no LivingKnox global). rs_hooks=False (E21-T04): the notebook
+        server without what RadioSurvivor registers in it (RS_NotebookHooks)."""
         self.living_knox = living_knox
         if living_knox:
             provider = False
@@ -588,10 +591,13 @@ class Simulation:
         if living_knox:
             self.server.rt.execute(LK_SERVER_STUBS)
             self.server.rt.execute(LK_SERVER_LOAD)
-        elif provider:
-            # E18-T17: the speech of the NPCs is Living Knox's; a fake provider stands for its engine, LK_Talk is real.
-            self.server.rt.execute("require 'LivingKnox/LK_Talk'")
+        elif provider and speech:
+            # E18-T17: the speech of the NPCs is Living Knox's; a fake provider stands for its engine, LK_Talk is real,
+            # given to the notebook as the provider's speech engine (E21-T04, CA_NPCProvider.speech).
+            self.server.rt.execute("require 'LivingKnox/LK_Talk'; FAKE_PROVIDER.speech = function() return LivingKnox.Talk end")
         self.server.load('server/RS_Carnet_Server.lua')
+        if rs_hooks:   # E21-T04: what RadioSurvivor registers in the notebook server (polls, hooks, retirement)
+            self.server.load('server/RadioSurvivor/RS_NotebookHooks.lua')
         # E18-T20: the game loads every server file of the core mod, among them the events of the team ids (CA_Teams:
         # state read at the world start, commands "team" and "mandate").
         self.server.load('server/CoreAI/CA_TeamsEvents.lua')
@@ -614,9 +620,8 @@ class Simulation:
         result.update({name: convert(md) for name, md in self.player_data.items()})
         return result
 
-    def add_client(self, name, saved_id=None, core_only=False):
-        """saved_id: a value left in the CLIENT modData (a claim), never trusted alone. core_only (E21-T03): the
-        notebook client of the core mod alone, without RadioSurvivor's client file."""
+    def add_client(self, name, saved_id=None):
+        """saved_id: a value left in the CLIENT modData (a claim), never trusted alone."""
         c = Game('client', self.path, self.clock)
         c.g.getTimestampMs = lambda: int(self.clock())
         c.rt.execute(STUBS)
@@ -643,9 +648,8 @@ class Simulation:
             c.rt.execute(LK_CLIENT_STUBS)
             c.rt.execute(LK_CLIENT_LOAD)
             c.g.RS_LivingKnox.install()
+            c.load('client/LivingKnox/LK_AgreementNoticesView.lua')  # E21-T04: notices of the agreements and incidents
         c.load('client/CoreAI/CA_NotebookClient.lua')
-        if not core_only:
-            c.load('client/RadioSurvivor/RS_NotebookHost.lua')
         c.g.CoreAI.notebookClient.installChat()
         c.g.CoreAI.notebookClient.hello()
         if not self.living_knox:
@@ -737,6 +741,42 @@ class CarnetTests(unittest.TestCase):
             if self.process.returncode not in (0, 1, -15):
                 print(output)
         self.tmp.cleanup()
+
+    def test_notebook_server_without_radiosurvivor_hooks(self):
+        """E21-T04: the notebook server runs without what RadioSurvivor registers in it, and calls only what its
+        registries hold: polls (Server.addPoll, connected players only), heard conversations and reply claims
+        (Server.hooks lists), the forced language of a call (Server.hooks.callLanguage)."""
+        sim = Simulation(self.path / 'no-hooks', rs_hooks=False)
+        sim.server.rt.execute("""POLLS, HEARD = {}, {}
+        RS_CarnetServer.addPoll(function(data, store, watched)
+            POLLS[#POLLS + 1] = #watched
+            return false
+        end)
+        table.insert(RS_CarnetServer.hooks.overheard, function(player, character, seen) HEARD[#HEARD + 1] = character end)
+        table.insert(RS_CarnetServer.hooks.claim, function(req)
+            if req.id ~= 'mine' then return nil end
+            return function() return 'claimed' end
+        end)""")
+        sim.clock.offset += 1001
+        sim.tick()
+        self.assertEqual(list(sim.server.g.POLLS.values()), [], 'polled without a connected player')
+        sim.add_client('alice')
+        sim.select('alice')
+        sim.clock.offset += 1001
+        sim.tick()
+        self.assertEqual(list(sim.server.g.POLLS.values())[-1], 1)
+        host = sim.server.g.LivingKnox.Talk.host
+        cid = sim.character('alice')
+        host.overheard(sim.server.g.PLAYERS['alice'], cid, True)
+        self.assertEqual(list(sim.server.g.HEARD.values()), [cid])
+        self.assertIsNone(host.callLanguage())
+        sim.server.rt.execute("RS_CarnetServer.hooks.callLanguage = function() return 'FR' end")
+        self.assertEqual(host.callLanguage(), 'FR')
+        self.assertIsNone(host.claim(sim.server.rt.table_from({'id': 'other'})))
+        self.assertEqual(host.claim(sim.server.rt.table_from({'id': 'mine'}))(), 'claimed')
+        sim.acquaint('alice')
+        sim.command('alice', 'talk', channel='say', text='Salut', language='FR')
+        self.assertEqual(len(talk_requests(sim.server.g)), 1)
 
     def connected(self):
         sim = Simulation(self.path / 'game')
@@ -1251,8 +1291,8 @@ def solo_game(path: Path, clock):
     game.g.registerFakeProvider()
     game.g.getWorld = lambda: game.rt.eval(
         "{getGameMode=function() return setmetatable({}, {__tostring = function() return 'Survivor' end}) end, getWorld=function() return 'solo' end}")
-    game.rt.execute("require 'LivingKnox/LK_Talk'")  # E18-T17: speech of the NPCs
-    game.load('server/RS_Carnet_Server.lua')
+    game.rt.execute("require 'LivingKnox/LK_Talk'; FAKE_PROVIDER.speech = function() return LivingKnox.Talk end")  # E18-T17, E21-T04: speech of the NPCs
+    game.load('server/RS_Carnet_Server.lua', 'server/RadioSurvivor/RS_NotebookHooks.lua')
     game.g.fire('OnInitGlobalModData', False)
     zombie = game.g.spawn(2001, 'Real Bandit', False, 'original-key')
     player = game.g.enhance(game.g.makePlayer('solo'))
@@ -1261,7 +1301,7 @@ def solo_game(path: Path, clock):
     game.g.getSpecificPlayer = lambda n: player
     game.g.sendClientCommand = lambda p, module, cmd, args: game.g.fire(
         'OnClientCommand', module, cmd, p, network_args(game, args))
-    game.load('client/CoreAI/CA_NotebookClient.lua', 'client/RadioSurvivor/RS_NotebookHost.lua')
+    game.load('client/CoreAI/CA_NotebookClient.lua')
     game.g.CoreAI.notebookClient.installChat()
     game.g.CoreAI.notebookClient.hello()
     return game, player, zombie

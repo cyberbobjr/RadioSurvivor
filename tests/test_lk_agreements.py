@@ -67,6 +67,67 @@ class LivingKnoxAgreementsTests(LivingKnoxAloneTests):
         self.no_radiosurvivor()
 
 
+# Client doubles of the notice view: halos and translated text "key|arg1|arg2" (vanilla getText formatting not needed).
+NOTICE_CLIENT = r"""
+HALOS = {}
+HaloTextHelper = {addGoodText = function(p, t) HALOS[#HALOS + 1] = 'good:' .. t end,
+    addBadText = function(p, t) HALOS[#HALOS + 1] = 'bad:' .. t end}
+getText = function(key, ...) local out = key for _, a in ipairs({...}) do out = out .. '|' .. tostring(a) end return out end
+"""
+
+
+class AgreementNoticesTests(relation_bench.Base):
+    """E21-T04: the agreements that became applicable and the decisions of a leader on an incident are announced by
+    Living Knox itself (LK_AgreementNotices, network module LivingKnox) to the connected players of the team, with
+    no module of RadioSurvivor loaded (dedicated server and two MP clients of the harness)."""
+    mode = 'mp'
+    debug = False
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory(prefix='lk-agreement-notices-')
+        self.h = self.make(root=Path(self.tmp.name))
+        self.h.load('server', 'require "LivingKnox/LK_GroupTypes" require "LivingKnox/Data/LK_Type_settlers"')
+        for path in relation_bench.MODULES:
+            self.h.load('server', path)
+        self.init(True)
+        self.run_lua('assert(LivingKnox.Groups.init(true)) ' + LOAD + ' require "LivingKnox/LK_AgreementNotices" '
+                     'assert(require("CoreAI/CA_Teams").init(true)) assert(LivingKnox.Agreements.init(true)) '
+                     'local g = assert(LivingKnox.Groups.create({type = "settlers", name = "Farm", '
+                     'home = {x = 100, y = 100, z = 0}, day = 2})) GID = g.id '
+                     'TEAM = require("CoreAI/CA_Teams").idOf(HARNESS.players.A)')
+        for client in ('A', 'B'):
+            self.h.load(client, NOTICE_CLIENT)
+            self.h.load(client, 'client/LivingKnox/LK_AgreementNoticesView.lua')
+
+    def tearDown(self):
+        super().tearDown()
+        self.tmp.cleanup()
+
+    def halos(self, client):
+        return list(self.h.eval(client, 'HALOS').values())
+
+    def test_agreement_and_incident_reach_the_team_only(self):
+        agreement = '{id = "agr-1", revision = 1, kind = "truce", state = "applicable", group = GID, team = TEAM}'
+        self.run_lua(f'for _, fn in ipairs(LivingKnox.Agreements.appliedListeners) do fn({agreement}) end')
+        self.h.pump()
+        self.assertEqual(self.halos('A'), ['good:IGUI_LK_Agreement_truce|Farm'])
+        self.assertEqual(self.halos('B'), [], 'announced to a player of another team')
+        # Same revision again: shown once.
+        self.run_lua(f'for _, fn in ipairs(LivingKnox.Agreements.appliedListeners) do fn({agreement}) end')
+        self.h.pump()
+        self.assertEqual(len(self.halos('A')), 1)
+        self.run_lua('LivingKnox.AgreementNotices.incident({revision = 2, team = TEAM}, '
+                     '{id = "inc-1", decision = "repair", category = "food"}, {groupName = "Farm"}) '
+                     'LivingKnox.AgreementNotices.incident({revision = 3, team = TEAM}, '
+                     '{id = "inc-2", decision = "break"}, {groupName = ""})')
+        self.h.pump()
+        self.assertEqual(self.halos('A')[1:], ['good:IGUI_LK_Incident_repair|Farm|IGUI_LK_RepairCategory_food',
+                                               'bad:IGUI_LK_Incident_break|IGUI_LK_IncidentGroup'])
+        self.assertEqual(self.halos('B'), [])
+        self.assertFalse(self.ev('(function() for name in pairs(package.loaded) do '
+                                 'if string.find(name, "^RadioSurvivor/") then return true end end return false end)()'))
+
+
 del LivingKnoxAloneTests  # base bench: collected by its own file only
 
 

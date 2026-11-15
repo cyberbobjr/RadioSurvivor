@@ -280,7 +280,7 @@ class Game:
     def load_notebook(self) -> None:
         """Fichiers client du carnet comme le jeu les charge (E21-T03) : carnet du mod commun (transport, cadre, un
         fichier par onglet commun, vues de gabarit), page de Living Knox actif (E18-T26 : panneau de relation, textes
-        de ses actes), puis la part de RadioSurvivor (onglet Radio, actes, avis hébergés)."""
+        de ses actes), puis la part de RadioSurvivor (onglet Radio, actes, vues des missions des voix)."""
         self.load(*core_notebook_files())
         if self.WITH_LK:
             self.rt.execute('require "LivingKnox/LK_NotebookPages"')

@@ -73,6 +73,9 @@ RENAMED.update({k: 'IGUI_CA_' + k[len('IGUI_RS_'):] for k in json.loads(FIXTURE.
                 ['IG_UI'] if k[len('IGUI_RS_'):] in VIEW_WORDS
                 or any(k.startswith('IGUI_RS_' + p) for p in ('Cache_', 'SignalColor_', 'MapZone'))})
 NOTEBOOK |= {'IGUI_CA_Error_State'}
+# E21-T04: notices of the agreements and incidents are Living Knox's (LK_AgreementNotices), same texts.
+RENAMED.update({k: 'IGUI_LK_' + k[len('IGUI_RS_'):] for k in json.loads(FIXTURE.read_text(encoding='utf-8'))['keys']['EN']
+                ['IG_UI'] if any(k.startswith('IGUI_RS_' + p) for p in ('Agreement', 'Incident', 'RepairCategory_'))})
 JOURNAL = {
     'IGUI_CA_Journal', 'IGUI_CA_JournalButton', 'IGUI_CA_JournalEmpty', 'IGUI_CA_JournalHint', 'IGUI_CA_Mission',
     'IGUI_CA_Participants', 'IGUI_CA_ReportHint', 'IGUI_CA_Requester', 'IGUI_CA_Reward', 'IGUI_CA_TimeLeft',

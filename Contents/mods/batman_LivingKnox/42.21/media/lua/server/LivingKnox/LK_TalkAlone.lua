@@ -269,7 +269,6 @@ local function makeHost(provider)
             local player = playerOf(character)
             if player then send(player, Alone.CMD_OFFER, { mission = m.id }) end
         end,
-        incidentDecided = nothing,
     }
 end
 

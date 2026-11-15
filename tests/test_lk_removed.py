@@ -56,7 +56,7 @@ class LivingKnoxRemovedTests(unittest.TestCase):
         cid = sim.character('alice')
         self.assertIsNotNone(rt.eval('LivingKnox.Hostility').record(g.LK_GROUP, cid, 'gift',
                                                                    rt.table_from({'witnessed': True})))
-        R = rt.eval("require('RadioSurvivor/RS_Relations')")
+        R = rt.eval("require('LivingKnox/LK_NotebookRelations')")
         _, binding = R.offer(fiche, cid)
         view, _ = R.apply(fiche, cid, binding, 'up', 'f1')
         self.assertIsNotNone(view)
@@ -102,8 +102,8 @@ class LivingKnoxRemovedTests(unittest.TestCase):
         core_rows = srv.rt.eval("require('CoreAI/CA_Contacts')").rows(cid, None)
         self.assertEqual([r for r in core_rows.values() if r.id == fiche_id], [])
         self.assertIsNotNone(alone.state().npcs[fiche_id])
-        self.assertIsNone(srv.rt.eval("require('RadioSurvivor/RS_Relations')").view(
-            alone.state().npcs[fiche_id], cid))
+        self.assertIsNone(srv.rt.eval("require('CoreAI/CA_NPCProvider')").relationPanel(
+            alone.state().npcs[fiche_id], cid, None))
         # Talking to the NPC that no longer exists: refused cleanly, nothing sent to the bridge.
         alone.command('alice', 'select', incarnation=leader)
         alone.command('alice', 'talk', channel='say', text='Tu es encore la ?', language='FR')
@@ -142,7 +142,7 @@ class LivingKnoxRemovedTests(unittest.TestCase):
         back.add_client('alice')
         fiche = back.state().npcs[fiche_id]
         self.assertIsNotNone(fiche)
-        view = back.server.rt.eval("require('RadioSurvivor/RS_Relations')").view(fiche, cid)
+        view = back.server.rt.eval("require('LivingKnox/LK_NotebookRelations')").view(fiche, cid)
         self.assertEqual(view.level, level, 'relation kept by Living Knox while it was removed')
         # E18-T26: the contact is listed again with its relation; E18-T25: the mission is listed again as it was.
         back.command('alice', 'snapshot')

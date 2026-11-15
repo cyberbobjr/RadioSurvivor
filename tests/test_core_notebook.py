@@ -420,7 +420,7 @@ class CoreClientRoundTripTests(unittest.TestCase):
 
     def test_hello_snapshot_talk_and_quote(self):
         sim = Simulation(Path(self.tmp.name) / 'rt')
-        c = sim.add_client('alice', core_only=True)
+        c = sim.add_client('alice')
         client = c.g.CoreAI.notebookClient
         self.assertIsNotNone(client.world, 'hello not answered with the session')
         self.assertEqual(client.character, sim.character('alice'))
@@ -448,7 +448,7 @@ class CoreClientRoundTripTests(unittest.TestCase):
 
     def test_three_tabs_render_from_the_snapshot(self):
         sim = Simulation(Path(self.tmp.name) / 'tabs')
-        c = sim.add_client('alice', core_only=True)
+        c = sim.add_client('alice')
         sim.select('alice')
         window = open_core_notebook(c)
         self.assertEqual(tab_names(c), 'Contacts,Missions,Reputation')

@@ -33,7 +33,6 @@ HOST, given by Talk.attach(host) (decision of 2026-11-06: each mod brings its ow
   heard(request, result, npc, body, outcome) -> players who heard the reply
   speech(players, request, result, npc, body)   the reply reaches them
   offered(mission, character)                   a new offer is signalled to its character
-  incidentDecided(agreement, incident, npc)     decision of a leader announced
 ]]
 require "LivingKnox/LK_Core"
 

@@ -1063,8 +1063,8 @@ def core_notebook_files():
 
 def rs_notebook_files():
     """Client files of RadioSurvivor's part of the notebook (E21-T03): Radio tab, its reputation acts and the
-    notices it hosts until the notebook server moves to the core mod."""
-    names = ('RS_NotebookHost', 'RS_NotebookRadio', 'RS_NotebookReputation', 'RS_VoiceMissionViews')
+    views of its voice missions."""
+    names = ('RS_NotebookRadio', 'RS_NotebookReputation', 'RS_VoiceMissionViews')
     return [f'client/RadioSurvivor/{name}.lua' for name in names]
 
 

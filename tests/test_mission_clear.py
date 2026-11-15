@@ -72,8 +72,8 @@ class ClearMissionTests(unittest.TestCase):
         sim.server.rt.execute(CLEAR_WORLD)
         sim.server.rt.eval("require('CoreAI/CA_MissionClear')").resetForTests()
 
-    def clear_sim(self, name='clear'):
-        sim = Simulation(self.path / name)
+    def clear_sim(self, name='clear', speech=True):
+        sim = Simulation(self.path / name, speech=speech)
         sim.add_client('alice'); sim.add_client('bob')
         self.world(sim)
         sim.select('alice')
@@ -85,8 +85,8 @@ class ClearMissionTests(unittest.TestCase):
     def catalog(self, sim, npc, record):
         return convert(sim.server.g.RS_CarnetServer.offerCatalogFor(npc, record))
 
-    def active(self, name='clear', bob=False):
-        sim, npc, record, missions = self.clear_sim(name)
+    def active(self, name='clear', bob=False, speech=True):
+        sim, npc, record, missions = self.clear_sim(name, speech)
         self.assertIn('clear_v1', self.catalog(sim, npc, record))
         m = missions.create(sim.state(), npc, sim.character('alice'), 'clear_v1')
         sim.request_mission('alice', 'accept')
@@ -202,7 +202,7 @@ class ClearMissionTests(unittest.TestCase):
             self.assertEqual(row['tally'], {1: {'name': 'alice Doe', 'count': 2}, 2: {'name': 'bob Doe', 'count': 1}})
 
     def test_kills_not_counted(self):
-        sim, npc, m, missions = self.active('ignored')
+        sim, npc, m, missions = self.active('ignored', speech=False)
         g = sim.server.g
         self.kill(sim, 'bob')                       # not a participant
         self.kill(sim, 'alice', x=140, y=15)        # outside the circle (35 tiles from its centre)
@@ -220,8 +220,10 @@ class ClearMissionTests(unittest.TestCase):
         npc_body.isOnFire = lambda self: False
         g.fire('OnHitZombie', npc_body, g.PLAYERS.alice, None, g.item('Base.BaseballBat'))
         g.fire('OnZombieDead', npc_body)
-        sim.server.rt.execute("LivingKnox = {Identity = {readTag = function(md) return md.lkNpcId, md.lkNpcGen end}}")
-        tagged = g.zombieAt(105, 15)                # body tagged by Living Knox (old generation)
+        # E21-T04: a body the provider recognises (CA_NPCProvider.isBody: a tag of an earlier generation), no engine.
+        sim.server.rt.execute("FAKE_PROVIDER.isBody = function(z, md) return md ~= nil and md.lkNpcId ~= nil end")
+        self.assertIsNone(g.LivingKnox, 'Living Knox loaded')
+        tagged = g.zombieAt(105, 15)                # body tagged by its engine (old generation)
         tagged.getModData(tagged).lkNpcId, tagged.md.lkNpcGen = 'lk-7', 1
         tagged.attacker = g.PLAYERS.alice
         g.fire('OnHitZombie', tagged, g.PLAYERS.alice, None, g.item('Base.BaseballBat'))

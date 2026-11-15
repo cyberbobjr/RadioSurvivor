@@ -487,7 +487,9 @@ class IntegrationTests(unittest.TestCase):
         alice2.rt.execute('History.request()')
         self.assertEqual(self.texts(alice2), ['said:Walt, are you there?', 'reply:Walt here, loud and clear.'])
 
-        restart.server.g.RS_CarnetServer.characterDeath(restart.server.g.PLAYERS['alice'])
+        # Death as the game reports it (OnCharacterDeath): the identity retired, its radio history forgotten (E21-T04:
+        # RadioSurvivor's CA_Identity.onRetire listener, RS_NotebookHooks).
+        restart.server.g.fire('OnCharacterDeath', restart.server.g.PLAYERS['alice'])
         self.assertIsNone(restart.server.rt.eval("require('CoreAI/CA_History')").radio(alice_id))
 
     def test_silence_on_a_frequency_without_voice_is_still_said(self):
@@ -981,9 +983,9 @@ class SoloScenarioTests(unittest.TestCase):
                         "t[#t + 1] = tostring(select(i, ...)) end return table.concat(t, '|') end")
         game.rt.execute("local d = getPlayer().radio.device; function d:getPower() return 1 end")
         # Game load order: client files, then server files (the solo game loads both).
-        game.load('client/CoreAI/CA_NotebookClient.lua', 'client/RadioSurvivor/RS_NotebookHost.lua',
-                  'client/RadioSurvivor_Client.lua',
-                  'server/RS_Carnet_Server.lua', 'server/RadioSurvivor_Server.lua')
+        game.load('client/CoreAI/CA_NotebookClient.lua', 'client/RadioSurvivor_Client.lua',
+                  'server/RS_Carnet_Server.lua', 'server/RadioSurvivor/RS_NotebookHooks.lua',
+                  'server/RadioSurvivor_Server.lua')
         game.rt.execute("Talk = require('RadioSurvivor/RS_RadioTalk'); History = Talk.History; "
                         "function texts(khz) local out = {} for _, l in ipairs(History.lines(khz)) do "
                         "out[#out + 1] = l.kind .. ':' .. l.text end return out end")

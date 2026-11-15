@@ -168,7 +168,7 @@ class IncidentTests(unittest.TestCase):
         self.assertTrue(self.F.covered(self.gid, self.cid('bob')), 'maintained: bob covered again')
         name = self.server.ensure(self.g.LK_LEADER).groupName
         for player in ('alice', 'bob', 'carol'):
-            self.assertEqual(self.halos(player), [f'IGUI_RS_Incident_maintain|{name}'], player)
+            self.assertEqual(self.halos(player), [f'IGUI_LK_Incident_maintain|{name}'], player)
         self.assertEqual(self.halos('dave'), [])
         # Nothing asked again: one decision only.
         self.poll(SETTLE)
@@ -201,7 +201,7 @@ class IncidentTests(unittest.TestCase):
         for name in ('alice', 'bob', 'carol'):
             self.assertFalse(self.F.covered(self.gid, self.cid(name)), name)
         self.assertEqual(len(self.halos('alice')), 1)
-        self.assertTrue(self.halos('alice')[0].startswith('IGUI_RS_Incident_break|'))
+        self.assertTrue(self.halos('alice')[0].startswith('IGUI_LK_Incident_break|'))
         # A broken agreement may be negotiated again from nothing.
         neg = self.F.negotiation(self.g.PLAYERS['alice'], self.gid)
         self.assertEqual((neg.current, neg.revision), ('none', 2))
@@ -235,7 +235,7 @@ class IncidentTests(unittest.TestCase):
         self.assertTrue(self.F.covered(self.gid, self.cid('bob')))
         name = self.server.ensure(self.g.LK_LEADER).groupName
         # The getText double of the bench shows the first argument only (tests/test_protocol.py).
-        self.assertEqual(self.halos('carol'), [f'IGUI_RS_Incident_repair|{name}'])
+        self.assertEqual(self.halos('carol'), [f'IGUI_LK_Incident_repair|{name}'])
 
     def test_riposte_kill_and_no_revenge_on_the_team(self):
         self.world('riposte', bridge=False)

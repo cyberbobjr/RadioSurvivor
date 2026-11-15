@@ -22,8 +22,6 @@ from test_lk_bodies import Base  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 LK_SERVER = ROOT / 'Contents' / 'mods' / 'batman_LivingKnox' / '42.21' / 'media' / 'lua' / 'server' / 'LivingKnox'
-RS_RELATIONS = (ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivor' / '42.21' / 'media' / 'lua' / 'server'
-                / 'RadioSurvivor' / 'RS_Relations.lua')
 MODULES = ('server/LivingKnox/LK_Groups.lua', 'server/LivingKnox/LK_Hostility.lua', 'server/LivingKnox/LK_API.lua',
            'server/LivingKnox/LK_PersonalRelation.lua')
 
@@ -35,13 +33,6 @@ class ModuleTests(unittest.TestCase):
         for name in re.findall(r'require\s*\(?\s*"([^"]+)"', text):
             self.assertTrue(name.startswith(('CoreAI/', 'LivingKnox/')), name)
         self.assertNotIn('IGUI_RS_', text)
-
-    def test_notebook_keeps_no_relation_rule(self):
-        """RadioSurvivor reads the relation through the API of Living Knox, never by a require, and keeps no state."""
-        text = RS_RELATIONS.read_text(encoding='utf-8')
-        self.assertNotIn('LivingKnox/', ''.join(re.findall(r'require\s*\(?\s*[\'"][^\'"]+[\'"]', text)))
-        for rule in ('GAP_MAX', 'S.data.relations', 'S.dirty'):
-            self.assertNotIn(rule, text)
 
 
 class LivingKnoxAloneTests(Base):
@@ -153,6 +144,32 @@ class LivingKnoxAloneTests(Base):
         end)()''')
         self.assertEqual(out, 'mission_success:mission,assault_seen:seen|relation fact unknown to this NPC|true|'
                               'mission_success:personal|nil')
+
+    def test_notebook_relations_of_living_knox_alone(self):
+        """E21-T04: the relation operations Living Knox gives the shared notebook (LK_NotebookRelations): the
+        notebook's citable facts read in the mission store of the core mod, offer, change and panel of a fiche, its
+        hidden copy and the NPCs a character knows through a relation, without any RadioSurvivor module."""
+        self.h.load('solo', 'server/LivingKnox/LK_NotebookRelations.lua')
+        out = self.ev(f'''(function()
+            local R = require("LivingKnox/LK_NotebookRelations")
+            local fiche = {{id = "fiche-1", incarnation = "{self.npc}", clan = GID}}
+            require("CoreAI/CA_MissionStore").data = {{missions = {{
+                ["m-1"] = {{npc = "fiche-1", participants = {{["c-ann"] = true}}, state = "success", closedAt = 5,
+                    template = "scout"}},
+                ["m-2"] = {{npc = "fiche-1", participants = {{["c-bob"] = true}}, state = "failed", closedAt = 6}}}}}}
+            local ctx, binding = R.offer(fiche, "c-ann")
+            local facts = {{}}
+            for _, f in ipairs(ctx.facts) do facts[#facts + 1] = f.fact .. ":" .. f.source end
+            local v = R.apply(fiche, "c-ann", binding, "up", ctx.facts[1].id)
+            local known = R.contacts("c-ann")
+            local p = R.panel(fiche, "c-ann", nil)
+            return table.concat(facts, ",") .. "|" .. tostring(v ~= nil) .. "|" .. R.debugPair(fiche, "c-ann").gap
+                .. "|" .. table.concat(known, ",") .. "|" .. #R.contacts("c-bob") .. "|" .. p.level
+        end)()''')
+        group = self.ev('LivingKnox.API.attitude(GID, "c-ann").level')
+        levels = ['hostile', 'wary', 'cautious', 'favorable', 'trusting']
+        self.assertEqual(out, f'mission_success:mission|true|1|{self.npc}|0|{levels[min(4, levels.index(group) + 1)]}')
+        self.no_radiosurvivor()
 
     def test_purge_dead_character_and_gone_npc(self):
         self.fact('c-ann', 'gift')

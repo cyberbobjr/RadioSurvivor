@@ -3,7 +3,7 @@
     python tests/test_relations.py
 
 Banc lupa (Lua 5.1, `next` retiré comme dans Kahlua) : vrai serveur du carnet (`RS_Carnet_Server.lua`), relation
-tenue par Living Knox (`LK_PersonalRelation.lua`, E18-T21) et lue par `RS_Relations.lua`, moteur Living Knox réel (registres, `LK_Hostility`, API, fournisseur `RS_LivingKnox.lua`) et vrai
+tenue par Living Knox (`LK_PersonalRelation.lua`, E18-T21) et lue par `LK_NotebookRelations.lua` (opérations du fournisseur, E21-T04), moteur Living Knox réel (registres, `LK_Hostility`, API, fournisseur `RS_LivingKnox.lua`) et vrai
 pont hors ligne (`RS_OFFLINE_INTENT=relation[...]`, drapeau du banc qui tient lieu d'un modèle qui cite un fait, jamais
 tiré des mots du joueur). Doublures seulement : ne prouve ni l'API Java ni le réseau.
 """
@@ -46,7 +46,7 @@ class RelationTests(unittest.TestCase):
             sim.add_client(c)
         self.sim, self.g, self.rt = sim, sim.server.g, sim.server.rt
         self.server = self.g.RS_CarnetServer
-        self.R = self.rt.eval("require('RadioSurvivor/RS_Relations')")
+        self.R = self.rt.eval("require('LivingKnox/LK_NotebookRelations')")
         self.H = self.rt.eval('LivingKnox.Hostility')
         for npc in (self.g.LK_LEADER, self.g.LK_MATE):
             self.g.LivingKnox.Bodies.bound[npc].x = 12
@@ -87,7 +87,7 @@ class RelationTests(unittest.TestCase):
         return (v.level, v.trend, v.group)
 
     def pair(self, name, npc):
-        p = self.R.debugPair(self.fiche(npc).id, self.cid(name))
+        p = self.R.debugPair(self.fiche(npc), self.cid(name))
         return convert(p) if p else None
 
     def group_level(self, name):
@@ -110,6 +110,49 @@ class RelationTests(unittest.TestCase):
 
     def apply(self, name, npc, binding, direction, fact_id):
         return self.R.apply(self.fiche(npc), self.cid(name), binding, direction, fact_id)
+
+    def test_relation_of_a_provider_offered_and_applied(self):
+        """E21-T04: the relation offered to a conversation and its change come from the NPC provider
+        (CA_NPCProvider.relationOffer / relationApply), whatever the engine."""
+        sim = Simulation(self.path / 'provider-relation')
+        sim.server.rt.execute("""APPLIED = {}
+        FAKE_PROVIDER.relationOffer = function(npc, character)
+            return {level = 'wary', group = 'cautious', facts = {}}, 'binding-' .. tostring(npc.incarnation)
+        end
+        FAKE_PROVIDER.relationApply = function(npc, character, binding, dir, fact)
+            APPLIED[#APPLIED + 1] = table.concat({tostring(npc.incarnation), character, binding, dir, fact}, '|')
+            return {level = 'cautious'}, 'key-1'
+        end""")
+        sim.add_client('alice')
+        sim.select('alice')
+        sim.acquaint('alice')
+        sim.command('alice', 'talk', channel='say', text='Salut', language='FR')
+        [req] = talk_requests(sim.server.g)
+        self.assertEqual(convert(req.context.relation), {'level': 'wary', 'group': 'cautious', 'facts': {}})
+        fiche = sim.server.g.RS_CarnetServer.find(2001)
+        host = sim.server.g.LivingKnox.Talk.host
+        view, key = host.relationApply(fiche, sim.character('alice'), 'binding-2001', 'up', 'f1')
+        self.assertEqual((view.level, key), ('cautious', 'key-1'))
+        self.assertEqual(list(sim.server.g.APPLIED.values()),
+                         [f"2001|{sim.character('alice')}|binding-2001|up|f1"])
+
+    def test_npc_known_through_a_relation_stays_a_contact(self):
+        """E21-T04, decision 2: an NPC the character knows only through a personal relation (Living Knox provider
+        operation contacts) is listed among its notebook contacts with its panel; the provider recognises the tagged
+        body of its NPC (isBody)."""
+        self.world('known-by-relation', intent=None, clients=('alice',))
+        leader = self.g.LK_LEADER
+        fiche = self.fiche(leader)
+        self.fact('alice', 'gift')
+        _, binding = self.R.offer(fiche, self.cid('alice'))
+        view, _ = self.R.apply(fiche, self.cid('alice'), binding, 'up', 'f1')
+        self.assertIsNotNone(view)
+        self.sim.command('alice', 'snapshot')
+        rows = [convert(c) for c in self.sim.clients['alice'].g.CoreAI.notebookClient.snapshot.contacts.values()]
+        self.assertEqual([(r['id'], r['relation']['level']) for r in rows], [(fiche.id, view.level)])
+        P = self.rt.eval("require('CoreAI/CA_NPCProvider')")
+        body = self.g.LivingKnox.Bodies.bound[leader]
+        self.assertEqual((P.isBody(body, body.md), P.isBody(body, self.rt.table_from({}))), (True, False))
 
     def test_help_then_betrayal_two_changes(self):
         """« Une aide puis une trahison motivent deux changements » (bout en bout, pont hors ligne)."""

@@ -39,6 +39,7 @@ Initiatives (E08-T03, authority): Provider.engaged = LivingKnox.API.engaged; Pro
 proximity speech of LivingKnox.Speech (LK11-T04).
 Relation basis (E09-T04, authority): Provider.relation = attitude of the NPC's group toward a notebook character and
 its last attitude facts (LivingKnox.API.attitude, API.attitudeFacts), keys 'att:<group>:<n>'.
+Shared notebook (E21-T04): isBody, speech and the relation operations (LK_NotebookRelations), section below.
 Group radios (E08-T06, authority): Provider.radios = groups holding a transmitter a living member can use now (group
 type format 2: homeRadio, profile radio), with the NPC who answers; never a home nor a position.
 
@@ -454,6 +455,28 @@ function LK.bark(id, situation, opts)
     if not authority() or not isId(id) or not S then return nil, 'speech unavailable' end
     return S.bark(id, situation, opts)
 end
+
+-- ---------------------------------------------------------------- shared notebook (E21-T04)
+-- isBody (any side): body tag of a Living Knox NPC, any generation (LivingKnox.Identity.readTag of its ModData).
+-- speech (authority): the speech engine of the NPCs, LivingKnox.Talk, hosted by the notebook server.
+-- relationOffer, relationApply, relationPanel, debugPair, contacts (authority): personal relations of the NPCs toward
+-- the notebook characters (LK_NotebookRelations, server part loaded after this file: required when called).
+function LK.isBody(_, modData)
+    local I = engine().Identity
+    return modData ~= nil and I ~= nil and I.readTag ~= nil and I.readTag(modData) ~= nil
+end
+
+function LK.speech()
+    if not authority() then return nil end
+    return engine().Talk
+end
+
+local function relations() return require('LivingKnox/LK_NotebookRelations') end
+function LK.relationOffer(npc, character) return relations().offer(npc, character) end
+function LK.relationApply(npc, character, binding, dir, fact) return relations().apply(npc, character, binding, dir, fact) end
+function LK.relationPanel(npc, character, team) return relations().panel(npc, character, team) end
+function LK.debugPair(npc, character) return relations().debugPair(npc, character) end
+function LK.contacts(character) return relations().contacts(character) end
 
 -- ---------------------------------------------------------------- group radios (E08-T06, authority)
 -- Fiche docs/annexes/conception/radio-groupes.md. A group is a voice of the radio network while it holds a transmitter that a

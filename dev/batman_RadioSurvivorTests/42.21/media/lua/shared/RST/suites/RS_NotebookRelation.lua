@@ -1,6 +1,6 @@
 --[[
 rs.notebook.relation - relation panel of a contact in the notebook (E09-T07, client/CoreAI/CA_NotebookContacts.lua,
-server/RadioSurvivor/RS_Relations.lua panel,
+server/LivingKnox/LK_NotebookRelations.lua panel,
 LivingKnox.API.relationPanel). Two test npcs are created next to the player and bound to two living
 members of the same Living Knox group of the save (the leader and another member without body), each with its
 notebook fiche, selected by the notebook. Two REAL facts are recorded through the engine (LivingKnox.Hostility.record,
@@ -139,7 +139,7 @@ RST.suite("rs.notebook.relation", { mods = { "rs", "lk" },
         if gid == nil then t:skip("no living group with a leader and a member without body in this save") end
         R.god(t, p)
         keepAttitude(t, gid, cid)
-        local c = { Server = Server, p = p, cid = cid, gid = gid, Rel = require "RadioSurvivor/RS_Relations",
+        local c = { Server = Server, p = p, cid = cid, gid = gid, Rel = require "LivingKnox/LK_NotebookRelations",
             Notebook = require "CoreAI/CA_Notebook" }
         t:note("group " .. gid .. " '" .. tostring(g.name) .. "': leader " .. leader .. ", member " .. mate)
         boundNpc(t, c, 2, leader, function(t2, _, first)

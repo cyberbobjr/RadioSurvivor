@@ -23,12 +23,12 @@ distribution (sandbox Distribution = 2) reads 128, the result is multiplied by Z
 sandbox Zombies = 6 (none) or a multiplier of 0 offers nothing. density = mean / 255 x multiplier;
 N = minKills + (maxKills - minKills) x min(1, density / fullDensity), rounded, within [minKills, maxKills]; a density
 below minDensity offers nothing (an empty countryside place would make an impossible mission). Kept in the offer.
-Count (E04-T06 rule, same window as LivingKnox.Bodies.deathCause, without depending on Living Knox): OnHitZombie on
+Count (E04-T06 rule, same window as the death cause of the NPC engine, without depending on it): OnHitZombie on
 the authority records the last hit of a player on each zombie (wielder IsoPlayer, weapon, time), only while an active
 clear mission exists; at OnZombieDead (authority only: the server decides the death, a client gets its own
 OnZombieDead from the death packet and loads nothing of this file), the zombie counts only when
-    - it is not an NPC body of the provider (CA_NPCProvider.id) nor a body tagged by Living Knox (ModData lkNpcId,
-      any generation, read through LivingKnox.Identity.readTag when it is loaded);
+    - it is not an NPC body of the provider (CA_NPCProvider.id) nor a body the provider recognises from its ModData
+      (CA_NPCProvider.isBody: a tag of any generation, read even while the engine is not available);
     - it was not counted before (ModData CA_ClearCounted: a burning zombie fires OnZombieDead twice, a dragged corpse
       dies again when released, its ModData being copied);
     - getAttackedBy() is a player (not an animal) and either its last recorded hit on this zombie is at most
@@ -53,7 +53,7 @@ end
 local Clear = {idPrefix = 'clear', reportBySpeech = true, voiceName = 'clear', mapStyle = 'Clear',
     voiceText = 'kill zombies around a place'}
 Clear.MARK = 'CA_ClearCounted'
-Clear.HIT_WINDOW_MS = 5000   -- E04-T06: a kill is attributed only to a recent hit (LivingKnox.Bodies.HIT_WINDOW_MS)
+Clear.HIT_WINDOW_MS = 5000   -- E04-T06: a kill is attributed only to a recent hit (same window as the NPC engine)
 local CHUNK = 8
 local HITS_SWEEP = 200       -- recorded hits kept before the old ones are swept
 -- Requester fiche id -> {site = ..., at = ms} (memory only); zombie object -> last hit of a player (memory only).
@@ -237,11 +237,11 @@ function Clear.noteHit(z, wielder, weapon)
     end
 end
 
--- Body of an NPC (provider id, or a Living Knox tag of any generation): never a zombie to clear.
+-- Body of an NPC (provider id, or a body the provider recognises, any generation): never a zombie to clear.
 local function npcBody(z, md)
-    if M.provider().id(z) ~= nil then return true end
-    local I = LivingKnox and LivingKnox.Identity
-    return md ~= nil and I ~= nil and I.readTag ~= nil and I.readTag(md) ~= nil
+    local P = M.provider()
+    if P.id(z) ~= nil then return true end
+    return P.isBody(z, md)
 end
 
 -- Recorded hit of z, removed from the memory.

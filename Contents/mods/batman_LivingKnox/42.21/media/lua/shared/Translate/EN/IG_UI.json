@@ -413,5 +413,18 @@
     "IGUI_LK_Role_negotiator": "Negotiator",
     "IGUI_LK_Role_member": "Member",
     "IGUI_LK_MandateGrant": "Designate as negotiator",
-    "IGUI_LK_MandateRevoke": "Withdraw the mandate"
+    "IGUI_LK_MandateRevoke": "Withdraw the mandate",
+    "IGUI_LK_Agreement_truce": "Truce with %1 now in force",
+    "IGUI_LK_Agreement_alliance": "Alliance with %1 now in force",
+    "IGUI_LK_AgreementUnnamed_truce": "Truce now in force",
+    "IGUI_LK_AgreementUnnamed_alliance": "Alliance now in force",
+    "IGUI_LK_Incident_maintain": "%1 keeps the agreement despite the incident",
+    "IGUI_LK_Incident_repair": "%1 keeps the agreement but demands %2 as reparation",
+    "IGUI_LK_Incident_break": "%1 broke the agreement after the incident",
+    "IGUI_LK_IncidentGroup": "The group",
+    "IGUI_LK_RepairCategory_food": "food",
+    "IGUI_LK_RepairCategory_water": "water",
+    "IGUI_LK_RepairCategory_medical": "medical supplies",
+    "IGUI_LK_RepairCategory_ammo": "ammunition",
+    "IGUI_LK_RepairCategory_materials": "materials"
 }

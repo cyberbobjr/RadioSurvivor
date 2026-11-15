@@ -1,23 +1,23 @@
 if isClient() then return end
--- E09-T04 / E18-T21: personal relation of an NPC toward a notebook character, as the notebook reads it (authority
--- only). The relation is kept by Living Knox since E18-T21 (LivingKnox.PersonalRelation, rules unchanged; design
--- docs/annexes/conception/relations.md) and read through its public API (LivingKnox.API.relation*), never by a
--- require: without Living Knox there is no NPC fiche and no relation (view nil, panel without level).
+-- E09-T04 / E18-T21 / E21-T04: personal relation of a Living Knox NPC toward a notebook character, as the shared
+-- notebook reads it (authority only). The relation is kept by LivingKnox.PersonalRelation (rules unchanged; design
+-- docs/annexes/conception/relations.md) and read through LivingKnox.API.relation*. The notebook calls these functions
+-- through the relation operations of its NPC provider (CA_NPCProvider.relationOffer, relationApply, relationPanel,
+-- debugPair, contacts), implemented by the Living Knox provider.
 --
--- `npc` is a notebook fiche ({ id, incarnation = Living Knox NPC id }). The notebook brings its own citable facts
--- (golden rule of 2026-11-06: each mod gives its context), passed as `extra` at the offer and again at the reply:
---   seen      observations of this NPC seen by itself (LK_Observations of Living Knox, source 'seen') whose subject is the
+-- `npc` is a notebook fiche ({ id, incarnation = Living Knox NPC id }). The notebook's own citable facts (golden rule
+-- of 2026-11-06: each mod gives its context) are passed as `extra` at the offer and again at the reply:
+--   seen      observations of this NPC seen by itself (LK_Observations, source 'seen') whose subject is the
 --             character: mission_done (+1), assault_seen (-1): 'obs:<observation key>';
---   mission   closed missions of this NPC the character took part in: success (+1), failed or abandoned (-1):
---             'mis:<mission id>'.
--- The panel adds what belongs to the notebook: agreements of the group with the reader's team and the incident
--- suspension (Living Knox's LK_Agreements since E18-T20, read through LivingKnox.Agreements).
-local S = require 'RadioSurvivor/RS_State'
+--   mission   closed missions of this NPC (mission store of the core mod, CA_MissionStore) the character took part in:
+--             success (+1), failed or abandoned (-1): 'mis:<mission id>'.
+-- The panel adds the agreements of the group with the reader's team and the incident suspension (LK_Agreements).
+require 'LivingKnox/LK_Core'
 local P = require 'CoreAI/CA_NPCProvider'
 local World = require 'CoreAI/CA_WorldFacts'
--- E18-T27: the observation log is Living Knox's (LK_Observations); without Living Knox there is no NPC to cite.
-local function Observations() return type(LivingKnox) == 'table' and LivingKnox.Observations or nil end
-local function Factions() return type(LivingKnox) == 'table' and LivingKnox.Agreements or nil end
+local MissionStore = require 'CoreAI/CA_MissionStore'
+local function Observations() return LivingKnox.Observations end
+local function Factions() return LivingKnox.Agreements end
 
 local R = {}
 
@@ -25,7 +25,7 @@ R.OBS_SIGNS = {mission_done = 1, assault_seen = -1}
 R.MISSION_SIGNS = {success = 1, failed = -1, abandoned = -1}
 
 local function api()
-    local API = type(LivingKnox) == 'table' and LivingKnox.API or nil
+    local API = LivingKnox.API
     if type(API) ~= 'table' or type(API.relation) ~= 'function' then return nil end
     return API
 end
@@ -46,7 +46,7 @@ function R.extra(npc, character)
         end
     end
     local missions = {}
-    for id, m in pairs(S.data and S.data.missions or {}) do
+    for id, m in pairs(MissionStore.data and MissionStore.data.missions or {}) do
         if m.npc == npc.id and type(m.participants) == 'table' and m.participants[character]
                 and R.MISSION_SIGNS[m.state] then
             missions[#missions + 1] = {key = 'mis:' .. id, fact = 'mission_' .. m.state, sign = R.MISSION_SIGNS[m.state],
@@ -63,14 +63,14 @@ function R.extra(npc, character)
     return out
 end
 
--- { level, trend, group } or nil (no Living Knox, no NPC).
+-- { level, trend, group } or nil (no NPC).
 function R.view(npc, character)
     local API, id = api(), npcOf(npc)
     if not API or not id then return nil end
     return API.relation(id, character)
 end
 
--- context.relation of a request and its server binding (nil, nil without Living Knox).
+-- context.relation of a request and its server binding (nil, nil without an NPC).
 function R.offer(npc, character)
     local API, id = api(), npcOf(npc)
     if not API or not id then return nil, nil end
@@ -85,8 +85,8 @@ function R.apply(npc, character, binding, dir, factId)
 end
 
 -- ---------------------------------------------------------------- notebook panel (E09-T07)
--- Relation panel of a contact, for ONE character (the one who reads the notebook) and its team. Living Knox part:
--- { level (nil: nothing known), trend, group, today, facts } (LivingKnox.API.relationPanel); notebook part:
+-- Relation panel of a contact, for ONE character (the one who reads the notebook) and its team. Personal relation:
+-- { level (nil: nothing known), trend, group, today, facts } (LivingKnox.API.relationPanel); then
 --   agreements = { { kind = 'truce' | 'alliance' | 'none', state = 'pending' | 'applicable' | 'broken' | 'kept',
 --           scope = { group = 'all_members' | 'this_npc', team = 'current_members' | 'you' } }, ... },
 --   suspended = true when this character is the author of an open incident with the group (protection lost).
@@ -130,12 +130,21 @@ function R.panel(npc, character, team)
     return out
 end
 
--- Copy of a relation of a fiche (tests, server diagnostic): holds the gap, never to be sent to a client.
-function R.debugPair(ficheId, character)
-    local PR = type(LivingKnox) == 'table' and LivingKnox.PersonalRelation or nil
-    local fiche = S.data and S.data.npcs and S.data.npcs[ficheId]
-    if not PR or not fiche then return nil end
-    return PR.debugPair(fiche.incarnation, character)
+-- Copy of the relation of a fiche (tests, server diagnostic): holds the gap, never to be sent to a client.
+function R.debugPair(npc, character)
+    local PR, id = LivingKnox.PersonalRelation, npcOf(npc)
+    if not PR or not id then return nil end
+    return PR.debugPair(id, character)
+end
+
+-- Living Knox NPC ids that keep a personal relation toward this character (decision 2 of carnet-commun-e21.md: kept
+-- among the notebook contacts), sorted.
+function R.contacts(character)
+    local PR = LivingKnox.PersonalRelation
+    local ids = {}
+    for id in pairs(PR and PR.knownBy(character) or {}) do ids[#ids + 1] = id end
+    table.sort(ids)
+    return ids
 end
 
 return R

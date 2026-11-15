@@ -176,9 +176,9 @@ class AgreementCarnetTests(unittest.TestCase):
         name = self.server.ensure(self.g.LK_LEADER).groupName
         self.assertTrue(name)
         for player in ('alice', 'bob', 'carol'):
-            self.assertEqual(self.halos(player), [f'IGUI_RS_Agreement_truce|{name}'], player)
+            self.assertEqual(self.halos(player), [f'IGUI_LK_Agreement_truce|{name}'], player)
         self.poll()
-        self.assertEqual(self.halos('alice'), [f'IGUI_RS_Agreement_truce|{name}'], 'announced twice')
+        self.assertEqual(self.halos('alice'), [f'IGUI_LK_Agreement_truce|{name}'], 'announced twice')
         # A truce never changes the attitude (ADR B08): same pair, still provoked without the hook.
         self.assertEqual(convert(self.H.debugPair(gid, self.cid('bob'))), attitude)
         self.assertTrue(self.H.provoked(gid, self.cid('bob')))

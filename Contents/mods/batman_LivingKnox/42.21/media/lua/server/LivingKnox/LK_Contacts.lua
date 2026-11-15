@@ -21,13 +21,7 @@ LivingKnox.Contacts = LKC
 
 -- Living Knox NPC ids known to a character (set).
 function LKC.known(character)
-    local ids = {}
-    local R = LivingKnox.PersonalRelation
-    if R.ensure() and type(R.data) == "table" and type(R.data.relations) == "table" then
-        for npcId, byCharacter in pairs(R.data.relations) do
-            if type(byCharacter) == "table" and byCharacter[character] ~= nil then ids[npcId] = true end
-        end
-    end
+    local ids = LivingKnox.PersonalRelation.knownBy(character)
     local hist = History.data and History.data.characters and History.data.characters[character]
     for peer in pairs(type(hist) == "table" and hist or {}) do
         local id = string.match(tostring(peer), "^lk:(lk%-%d+)$")

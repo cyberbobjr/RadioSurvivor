@@ -201,6 +201,21 @@ class GroupRadioTests(unittest.TestCase):
         self.assertFalse([r for r in lua_list(self.server.talk.pending) if r.kind == 'npc_talk'])
         del khz
 
+    def test_reply_claimed_through_the_notebook_registry(self):
+        """E21-T04: RadioSurvivor claims the replies of its radio calls through the registry of the notebook server
+        (Server.hooks.claim, RS_NotebookHooks), the notebook knowing nothing of the group radio."""
+        self.world('claim')
+        claims = lua_list(self.server.hooks.claim)
+        self.assertEqual(len(claims), 1)
+        self.rt.execute('CLAIMS = 0 local own = RS_CarnetServer.hooks.claim[1] '
+                        'RS_CarnetServer.hooks.claim[1] = function(req) CLAIMS = CLAIMS + 1 return own(req) end')
+        self.talk('alice', 'Anyone on this channel?')
+        [req] = self.radio_requests()
+        before = len(self.broadcasts())
+        self.respond(req)
+        self.assertGreater(self.g.CLAIMS, 0)
+        self.assertEqual(len(self.broadcasts()) - before, 1, 'reply not aired on the group channel')
+
     def test_decision_over_the_radio_refused(self):
         self.world('decide')
         self.talk('alice', 'Need any help?')

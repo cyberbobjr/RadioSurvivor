@@ -15,19 +15,29 @@ local Contacts = require 'CoreAI/CA_Contacts' -- E18-T26: contacts given to the 
 -- acts its mod knows).
 local function repProjection(character) return Rep.projection(character) end
 local Radio = require 'RadioSurvivor/RadioSurvivor_Const'
--- E18-T27: observations of the NPCs and their triggers are Living Knox's (LK_Observations, LK_ObservationTriggers).
+-- E18-T27: observations of the NPCs and their triggers belong to the NPC engine.
 local Teams = require 'CoreAI/CA_Teams' -- E09-T03, E18-T20: team ids and mandates of the core mod
--- E18-T20: agreements, personal truces and incidents are Living Knox's (LK_Agreements), read through its global; nil
--- without Living Knox (no agreement offered, none applied). E18-T17: so is the speech of the NPCs (LK_Talk).
-local function Agreements() return type(LivingKnox) == 'table' and LivingKnox.Agreements or nil end
 local MissionTalk = require 'CoreAI/CA_MissionTalk'
-local Relations = require 'RadioSurvivor/RS_Relations' -- E09-T04, E18-T21: relation kept by Living Knox, read by its API
 local RateLimit = require 'CoreAI/CA_RateLimit' -- C21: per-account limit of the notebook commands
--- E18-T17: Server.talk = the speech of the NPCs (LivingKnox.Talk), set when the world starts; nil without Living Knox.
+-- E18-T17, E21-T04: Server.talk = the speech engine of the NPC provider (CA_NPCProvider.speech), set when the world
+-- starts; nil when the provider has none.
 local Server = {store = S, bound = {}, selected = {}, objects = {}, quotes = {}}
 -- Export only on the authority, also used by the real-Lua simulation tests.
 RS_CarnetServer = Server
 local saveAt, checkAt, pruneAt = 0, 0, 0
+-- E21-T04: registries filled by the mods that use the notebook (RadioSurvivor: RS_NotebookHooks), read here only.
+--   Server.addPoll(fn)        fn(state, store, watched) -> true when it changed the state (saved and published);
+--                             called once a second while identified players are connected (watched = { {player,
+--                             character}, ... }).
+--   Server.hooks.overheard    list of fn(player, character, seen): a player heard two NPCs talk (speech host).
+--   Server.hooks.claim        list of fn(request) -> reply handler or nil: a reply handled by its mod (first one wins).
+--   Server.hooks.callLanguage fn() -> forced language of the NPC initiatives, or nil (one per server).
+Server.polls = {}
+Server.hooks = {overheard = {}, claim = {}, callLanguage = nil}
+function Server.addPoll(fn)
+    for _, known in ipairs(Server.polls) do if known == fn then return end end
+    Server.polls[#Server.polls + 1] = fn
+end
 -- E11-T20 (C27): mission and offer delays count play time (CA_GameClock: stopped while paused, faster at x2/x3),
 -- not the real time of OnTickEvenPaused; one meter for every caller of M.advance.
 local playMeter = require('CoreAI/CA_GameClock').meter()
@@ -187,18 +197,31 @@ end
 -- idle player no longer receives the same snapshot again (rs.carnet.load, E00-T04).
 Server.lastSnapshot = {} -- player -> {key, body}; entries of absent players dropped by tick (no weak table in Kahlua)
 
--- E18-T26: the fiche of an engine NPC (Living Knox: incarnation) belongs to its engine: without it the fiche is
+-- E18-T26: the fiche of an engine NPC (incarnation) belongs to its engine: without it the fiche is
 -- hidden from the notebook and kept (never pruned), found again as it was when the engine comes back.
 local function engineMissing(npc)
     return npc ~= nil and npc.incarnation ~= nil and P.available() ~= true
 end
 Server.engineMissing = engineMissing
 
+-- E21-T04 (decision 2 of carnet-commun-e21.md): NPCs the character knows only through a personal relation
+-- (CA_NPCProvider.contacts) stay among its contacts: their fiche becomes a contact of the character.
+local function adoptRelated(character, record)
+    for _, id in ipairs(P.contacts(character)) do
+        local npc = Server.ensure(id)
+        if npc and npc.incarnation == id and not record.contacts[npc.id] then
+            contact(character, npc)
+            S.dirty = true
+        end
+    end
+end
+
 -- Contacts of a character as the notebook shows them (snapshot, and source 'rs' of the core contacts, E18-T26).
 local function contactRows(player, character, team)
     local record = character and S.data.characters[character]
     local contacts = {}
     if not record then return contacts end
+    adoptRelated(character, record)
     for id, known in pairs(record.contacts) do
         local npc = S.data.npcs[id]
         if npc and not engineMissing(npc) then
@@ -207,8 +230,8 @@ local function contactRows(player, character, team)
                 revision = npc.revision, near = P.near(player, Server.objects[id], C.SELECT_RANGE),
                 history = known.history, note = known.note,
                 -- E09-T07: relation panel of THIS character only (identifiers and game days, translated by the client;
-                -- agreements of the NPC's group with this character's team). Replaces trust/trend keys of 0.2.
-                relation = Relations.panel(npc, character, team)}
+                -- agreements of the NPC's group with this character's team), given by the NPC provider (E21-T04).
+                relation = P.relationPanel(npc, character, team)}
         end
     end
     table.sort(contacts, function(a, b) return a.name < b.name end)
@@ -465,31 +488,26 @@ for name, gesture in pairs(gestures) do
     Server.registerCommand(name, function(player, args, character) transact(player, character, gesture, args) end)
 end
 
--- Notebook character of the account named by a server death cause (E04-T07), or nil. Same path as the revenge of
--- Living Knox (LK_Relations.onNpcDied): living player of this account (Relations.playerByName, else the connected
--- players), then its bound character (Hostility.keyOf reads Server.bound). Read only; never a client claim.
+-- Notebook character of the account named by a server death cause (E04-T07), or nil: connected player of this
+-- account, then its identity (CA_Identity, bound on the authority), else its notebook binding. Read only; never a
+-- client claim.
 function Server.killerCharacter(account)
     if type(account) ~= 'string' or account == '' then return nil end
-    local LK = LivingKnox
-    local relations = type(LK) == 'table' and LK.Relations or nil
-    local player = relations and relations.playerByName and relations.playerByName(account) or nil
-    if not player then
-        for _, p in ipairs(players()) do if p:getUsername() == account then player = p end end
-    end
+    local player
+    for _, p in ipairs(players()) do if p:getUsername() == account then player = p end end
     if not player then return nil end
-    local hostility = type(LK) == 'table' and LK.Hostility or nil
-    local key = hostility and hostility.keyOf and hostility.keyOf(player) or Server.bound[player]
+    local key = Identity.of(player) or Server.bound[player]
     local record = type(key) == 'string' and S.data.characters[key] or nil
     if not record or record.retired then return nil end
     return key
 end
 
 -- 'death' event of CA_NPCProvider: the provider body with this id died. cause (optional, E04-T06) is established on
--- the authority by the engine (LK_Bodies.deathCause: last hit of a player within 5 s, driver of a vehicle; fire,
+-- the authority by the engine (its death cause: last hit of a player within 5 s, driver of a vehicle; fire,
 -- trap without thrower, unseen death: no killer). E04-T07: a killer who takes part in an active mission of this
 -- requester loses Reputation.requesterKilled (Q7), this character only, once per death (eventId
 -- <npc>-killed-<character>); team mates are spared; a killer who does not take part is left to npc.memberKilled
--- (Living Knox, LK_Reputation). No penalty by proximity, never an accusation relayed from a client.
+-- (reported by the NPC engine). No penalty by proximity, never an accusation relayed from a client.
 function Server.dead(id, object, cause)
     if not S.data or id == nil or not object then return end
     local npc = Server.find(id)
@@ -517,8 +535,7 @@ function Server.dead(id, object, cause)
     S.save(); publish()
 end
 
--- E18-T22: npc.memberKilled is reported by Living Knox itself (LK_Reputation), which reads the reputation of the core
--- mod directly (first welcome of a group, LK_Hostility.reputationOf).
+-- E18-T22: npc.memberKilled is reported by the NPC engine itself, which reads the reputation of the core mod directly.
 
 -- E04-T14 (Q17): read-only view of every live character's reputation for an administrator: name, level, trend, last
 -- acts (no score, no proof, no account). Access checked at each request on the authority, same rule as the Living
@@ -574,7 +591,7 @@ local function prune(now)
         for sig, id in pairs(S.data.bindings) do if not S.data.npcs[id] then S.data.bindings[sig] = nil end end
         S.dirty = true
     end
-    -- E18-T21: personal relations are kept and purged by Living Knox (LivingKnox.PersonalRelation.prune).
+    -- E18-T21: personal relations are kept and purged by the NPC engine.
     return removed
 end
 
@@ -583,7 +600,6 @@ local function clockRunning()
     return false
 end
 
-local Caches = require 'RadioSurvivor/RS_CacheAction' -- E11-T06: caches (core CA_Caches with the voice action)
 require 'CoreAI/CA_MissionRecover' -- E11-T06: template recover
 require 'CoreAI/CA_MissionSignal'; require 'CoreAI/CA_MissionBarricade' -- E11-T07 signal, E20-T09
 require 'CoreAI/CA_MissionRelay'; require 'CoreAI/CA_MissionWatch' -- E20-T12 relay, E20-T14 watch
@@ -602,7 +618,7 @@ local function tick()
         for p in pairs(Server.lastSnapshot) do if not present[p] then gone[#gone + 1] = p end end
         for _, p in ipairs(gone) do Server.lastSnapshot[p] = nil end
         scan()
-        if Server.talk then Server.talk.turns(now) end -- E18-T17: initiatives, conversations, incidents (LK_Talk)
+        if Server.talk then Server.talk.turns(now) end -- E18-T17: initiatives, conversations, incidents (speech)
         for player, character in pairs(Server.bound) do
             local id = Server.selected[character]
             if id and not activeNpc(player, character, id, C.SELECT_RANGE) then
@@ -619,17 +635,18 @@ local function tick()
             S.save()
             changed = true
         end
-        -- E11-T06: caches still to place (reward cache of a voice mission; a recover cache is also placed by observe).
-        if #watched > 0 and Caches.poll(S.data, S) then
-            S.save()
-            changed = true
+        -- E21-T04: polls of the mods that use the notebook (RadioSurvivor: caches still to place, E11-T06).
+        if #watched > 0 then
+            for _, poll in ipairs(Server.polls) do
+                if poll(S.data, S, watched) then
+                    S.save()
+                    changed = true
+                end
+            end
         end
         if Server.talk then Server.talk.poll() end
         -- E09-T03: bounded poll of the vanilla factions (no server event): renames, owners, members, disbands.
         if Teams.sync(false) then changed = true end
-        -- E09-T05: agreements confirmed by the next decisions of the group (polled by Living Knox, E18-T20): announced
-        -- when they become applicable, never before, to the online players of the team (listener Server.announce).
-        if Agreements() then Agreements().onApplied(Server.announce) end
         checkAt = now + 1000
     end
     if now >= pruneAt then
@@ -660,18 +677,17 @@ local function init(newWorld) -- OnInitGlobalModData arg: always true on a dedic
     end
 end
 
--- E08-T06: radio of the equipped groups (RS_GroupRadio): a call on a group frequency is an npc_talk of the queue.
+-- Contacts and acquaintance of a character, also used by the mods that talk through the notebook (E08-T06).
 Server.contact, Server.acquaintance = contact, acquaintance
-Server.groupRadio = require 'RadioSurvivor/RS_GroupRadio'
 
--- E18-T17: what the notebook adds to the speech of the NPCs (LK_TalkHost). --------------------------------------------
+-- E18-T17: what the notebook adds to the speech of the NPCs (host of the speech engine). ----------------------------
 
 -- E17-T08, E17-T09, E17-T10, E10-T02: fiche of the speaker in the context of a sentence, its offers and their bindings.
 local function talkContext(context, npc, character, _, _, group)
     local known = contact(character, npc)
     -- E09-T04: personal relation of the NPC toward this character (labels only) and the real facts it may cite to
-    -- change it (short ids; the keys stay on the server). Replaces the former trust.
-    local relation, relationBinding = Relations.offer(npc, character)
+    -- change it (short ids; the keys stay on the server), given by the NPC provider (E21-T04).
+    local relation, relationBinding = P.relationOffer(npc, character)
     context.relation = relation
     -- E17-T08: a stranger never learns the group nor its home (name, story, leader, needs withheld from the prompt).
     context.stage = acquaintance(character, npc, known)
@@ -756,7 +772,7 @@ local HOST = {
     session = function() return S.data.world, S.run end,
     fiche = function(id) return S.data.npcs[id] end,
     fiches = function() return S.data.npcs end,
-    -- E18-T27: a character knows a fiche (contact of its notebook record): comebacks of LK_ObservationTriggers.
+    -- E18-T27: a character knows a fiche (contact of its notebook record): comebacks of the observation triggers.
     knows = function(character, id)
         local record = S.data.characters[character]
         return record ~= nil and type(record.contacts) == 'table' and record.contacts[id] ~= nil
@@ -778,15 +794,24 @@ local HOST = {
     end,
     remember = remember,
     contactedGroups = contactedGroups,
-    overheard = function(player, character, seen) require('RadioSurvivor/RS_Comfort').overheard(player, character, seen) end,
-    callLanguage = Radio.callLanguage,
+    overheard = function(player, character, seen)
+        for _, fn in ipairs(Server.hooks.overheard) do fn(player, character, seen) end
+    end,
+    callLanguage = function()
+        local fn = Server.hooks.callLanguage
+        if fn then return fn() end
+        return nil
+    end,
     claim = function(req)
-        if not Server.groupRadio.owns(req.id) then return nil end
-        return function(r, result, npc) return Server.groupRadio.reply(Server, r, result, npc) end
+        for _, fn in ipairs(Server.hooks.claim) do
+            local handler = fn(req)
+            if handler then return handler end
+        end
+        return nil
     end,
     talkContext = talkContext,
     talkQueued = talkQueued,
-    relationApply = function(npc, character, binding, dir, fact) return Relations.apply(npc, character, binding, dir, fact) end,
+    relationApply = P.relationApply,
     talkActions = talkActions,
     heard = heard,
     speech = function(listeners, req, result, npc, object)
@@ -801,38 +826,19 @@ local HOST = {
             if cid == character then send(player, 'offer', {mission = m.id}) end
         end
     end,
-    -- E09-T06: decision of a group leader on an incident, announced on screen to the online players of the team.
-    incidentDecided = function(a, inc, npc)
-        for _, p in ipairs(Agreements().membersOnline(a.team, players())) do
-            send(p, 'incident', {id = inc.id, decision = inc.decision, category = inc.category or '',
-                revision = a.revision, groupName = npc.groupName or ''})
-        end
-    end,
 }
 
--- Living Knox active: the notebook is the host of its speech. Called once the state of the notebook is ready.
+-- Speech engine of the NPC provider (CA_NPCProvider.speech): the notebook is its host. Called once the state of the
+-- notebook is ready.
 function Server.attachTalk()
-    local talk = type(LivingKnox) == 'table' and LivingKnox.Talk or nil
+    local talk = P.speech()
     if type(talk) ~= 'table' or type(talk.attach) ~= 'function' then return end
     if talk.attach(HOST) then
         Server.talk = talk
         talk.sync()
     else
-        print('[RS_Carnet] speech of the NPCs not ready: Living Knox state unavailable')
+        print('[RS_Carnet] speech of the NPCs not ready: speech engine state unavailable')
     end
-end
-
--- E09-T05: an agreement that became applicable (LivingKnox.Agreements.onApplied), announced on screen to the online
--- players of its team with the name of the signer's group.
-function Server.announce(a)
-    local signer = a.signed and S.data and S.data.npcs[a.signed.npc]
-    local name = signer and signer.groupName or ''
-    print('[RS_Carnet] agreement ' .. a.id .. ' (' .. a.kind .. ') between ' .. a.group .. ' and ' .. a.team
-        .. ' applicable')
-    for _, p in ipairs(Agreements().membersOnline(a.team, players())) do
-        send(p, 'agreement', {id = a.id, revision = a.revision, kind = a.kind, state = a.state, groupName = name})
-    end
-    publish()
 end
 
 Events.OnInitGlobalModData.Add(init)
@@ -853,13 +859,7 @@ function Server.characterDeath(character)
     local record = type(id) == 'string' and S.data.characters[id] or nil
     if not record or record.owner ~= ownerOf(character) or record.retired then return end
     record.retired = true
-    -- radio history of a dead character (E06-T04): never shown again, frees the private state (core mod, E18-T19)
-    local H = require 'CoreAI/CA_History'
-    if H.data and type(H.data.radio) == 'table' and H.data.radio[id] ~= nil then
-        H.data.radio[id], H.dirty = nil, true
-    end
-    -- What the voices remembered about this character (E07-T03, action remember): forgotten with it.
-    require('RadioSurvivor/RS_Memory').forgetCharacter(id)
+    -- E21-T04: what the mods keep about this character is forgotten by their CA_Identity.onRetire listeners.
     md[IDENTITY_KEY] = nil
     Server.bound[character], Server.selected[id], Server.quotes[id] = nil, nil, nil
     S.save()

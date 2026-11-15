@@ -385,6 +385,17 @@ function R.debugPair(npcId, character)
     return out
 end
 
+-- NPC ids that keep a personal relation toward this character (set; E18-T26 contacts, E21-T04 notebook contacts).
+function R.knownBy(character)
+    local ids = {}
+    if R.ensure() and type(R.data) == "table" and type(R.data.relations) == "table" then
+        for npcId, byCharacter in pairs(R.data.relations) do
+            if type(byCharacter) == "table" and byCharacter[character] ~= nil then ids[npcId] = true end
+        end
+    end
+    return ids
+end
+
 -- Engine events -----------------------------------------------------------------------------------------------------
 if not R.subscribed and type(LivingKnox.subscribe) == "function" then
     R.subscribed = true

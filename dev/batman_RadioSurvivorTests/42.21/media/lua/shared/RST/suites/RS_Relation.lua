@@ -1,6 +1,6 @@
 --[[
 rs.relation - personal relation of a Living Knox npc toward the player's character (E09-T04, intent change_relation,
-server/RadioSurvivor/RS_Relations.lua, kept by Living Knox: LK_PersonalRelation.lua), with the bridge and its model.
+server/LivingKnox/LK_NotebookRelations.lua, kept by Living Knox: LK_PersonalRelation.lua), with the bridge and its model.
 A test npc is created next to the player, made the leader of a living group of the save (same setup as rs.npctalk),
 selected by the notebook and treated as acquainted. A REAL fact is recorded through the engine (LivingKnox.Hostility
 .record: a gift seen by the group), then the player speaks of it with the notebook Say line:
@@ -85,7 +85,7 @@ end
 local function setup(t, after)
     local Server = R.notebook(t)
     local C = require "RadioSurvivor/RS_Config"
-    local Rel = require "RadioSurvivor/RS_Relations"
+    local Rel = require "LivingKnox/LK_NotebookRelations"
     local p = F.player(t)
     t:ok(p ~= nil, "no target player")
     local cid = R.character(t, p)
@@ -152,7 +152,7 @@ RST.suite("rs.relation", { mods = { "rs", "lk" },
                 end
                 t3:ok(found ~= nil, "the recorded gift is not offered as a citable fact")
             end, function(t3)
-                local pair = c.Rel.debugPair(c.fiche.id, c.cid)
+                local pair = c.Rel.debugPair(c.fiche, c.cid)
                 local after = c.Rel.view(c.fiche, c.cid)
                 if pair and pair.gap == 1 then
                     t3:eq(1, count(pair.used), "one fact used by the change")
@@ -179,7 +179,7 @@ RST.suite("rs.relation", { mods = { "rs", "lk" },
                 t3:ok(type(rel) == "table", "no relation in the request context")
                 t3:eq(0, count(rel.facts), "facts offered without any real fact")
             end, function(t3)
-                t3:eq(nil, c.Rel.debugPair(c.fiche.id, c.cid), "relation changed by words alone")
+                t3:eq(nil, c.Rel.debugPair(c.fiche, c.cid), "relation changed by words alone")
                 t3:eq(before.level, c.Rel.view(c.fiche, c.cid).level, "relation level")
             end)
         end)
@@ -189,7 +189,7 @@ RST.suite("rs.relation", { mods = { "rs", "lk" },
     s.test("help then betrayal: two changes; two npcs of one group differ (E09-T04)", function(t0)
         local Server = R.notebook(t0)
         local C = require "RadioSurvivor/RS_Config"
-        local Rel = require "RadioSurvivor/RS_Relations"
+        local Rel = require "LivingKnox/LK_NotebookRelations"
         local H = LivingKnox and LivingKnox.Hostility
         if H == nil then t0:skip("Living Knox server part not loaded here") end
         local p = F.player(t0)
@@ -237,7 +237,7 @@ RST.suite("rs.relation", { mods = { "rs", "lk" },
                                     -- moment (solo campaign of 2026-11-13: not kept, the cause not logged).
                                     t5:ok(false, "reply of the help not kept: " .. E9.why(me, c))
                                 end
-                                local pair = Rel.debugPair(fa.id, me.cid)
+                                local pair = Rel.debugPair(fa, me.cid)
                                 t5:eq(1, pair and pair.gap, "help: one level above the group")
                                 local okT, whyT = H.record(gid, me.cid, "theft", { witnessed = true })
                                 t5:ok(okT ~= nil, "theft not recorded: " .. tostring(whyT))
@@ -246,7 +246,7 @@ RST.suite("rs.relation", { mods = { "rs", "lk" },
                                 E9.talkBy(t5, me, c, betrayal, function(t6, req2)
                                     t6:waitUntil(function() return E9.settled(c, req2) end, E9.REQUEST_MS, function(t7)
                                         t7:ok(want[betrayal].id ~= nil, "the theft was not offered as a citable fact")
-                                        local now = Rel.debugPair(fa.id, me.cid)
+                                        local now = Rel.debugPair(fa, me.cid)
                                         t7:eq(0, now and now.gap, "betrayal: back to the group level")
                                         t7:eq(2, now and now.revision, "two changes, two revisions")
                                         t7:eq(2, now and #now.changes, "changes kept")

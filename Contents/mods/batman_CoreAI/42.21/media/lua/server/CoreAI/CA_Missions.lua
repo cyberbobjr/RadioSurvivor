@@ -132,6 +132,7 @@ local offerFilter, characterName, binding, hostStore, knownMissions = nil, nil, 
 -- Engine of NPC bodies seen through the notebook interface (CA_NPCProvider, E17), or no engine at all.
 local NO_ENGINE = {
     id = function() return nil end,
+    isBody = function() return false end,
     presence = function() return nil end,
     hasSupplies = function() return false end,
     supplies = function() return {} end,

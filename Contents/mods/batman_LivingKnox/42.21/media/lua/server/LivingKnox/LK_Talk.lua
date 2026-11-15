@@ -391,13 +391,14 @@ local function memberReply(req, result, npc)
 end
 
 -- E09-T06: decision of the group leader on an incident of an agreement (LK_Incidents, LK_Agreements): applied once,
--- then announced by the host.
+-- then announced to the team (LK_AgreementNotices).
 local function incidentReply(req, result, npc)
     local ok, a, inc = Talk.incidents.reply(Talk, req, result, npc)
     if not ok then return false, a end
     Talk.acknowledge(req, true, {})
     if not Talk.save() then return false, "state not saved" end
-    Talk.host.incidentDecided(a, inc, npc)
+    local Notices = LivingKnox.AgreementNotices
+    if Notices then Notices.incident(a, inc, npc) end
     Talk.host.publish()
     return true
 end
