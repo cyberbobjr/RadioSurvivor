@@ -2,7 +2,7 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 9 / 15 tâche(s) terminée(s).
+**Avancement.** en cours — 9 / 16 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
@@ -21,6 +21,7 @@
 | ☐ | E20-T13 | Type de mission `route` (itinéraire) | `à faire` | MP | E20-T01, E20-T03 |
 | ☐ | E20-T14 | Type de mission `watch` (guet) | `à faire` | MP | E20-T01, E20-T03 |
 | ☐ | E20-T15 | Type de mission `item` (objet personnel) | `à faire` | MP | E20-T01, E20-T03, E20-T05 |
+| ☐ | E20-T16 | `deliver` lit la catégorie et la quantité de sa section | `à faire` | MP | E20-T03, E20-T05 |
 
 <!-- fin du tableau de bord -->
 
@@ -212,5 +213,15 @@ chaque tâche avant son code.
   - Faire : ADR D10. Un objet vanilla nommé (photo, bijou ; types relevés dans les scripts 42.22) placé dans un lieu `target`, marqué par son identifiant ; à trouver puis déposer à une planque de la mission (règle de E20-T05).
   - Accepté si : banc ; suite MP : objet trouvé, déposé, ramassé hors de vue ; un objet du même type non marqué refusé.
   - Tests : banc du gabarit ; campagne MP.
+  - Preuve : —
+  - Reste : —
+- [ ] **E20-T16** — `deliver` lit la catégorie et la quantité de sa section
+  - État : `à faire`
+  - Cible : `MP`
+  - Dépend de : E20-T03, E20-T05
+  - Fichiers : `RC_Missions.lua` (gabarit `deliver`) ; `RS_DeadDrops.lua` si besoin ; bancs ; suite en jeu
+  - Faire : ADR D04. Une mission `deliver` donnée par une voix lit `items=<catégorie>` (objets acceptés : ceux de la catégorie du catalogue ou de la fiche) et `quantity=` (nombre ou fourchette tirée au départ), au lieu de la liste fixe et des 6 objets de `RC_MissionConfig`. Sans ces clés, comportement actuel. Constat de E20-T10 : la mission `meds` de Darlene demande toujours 6 objets de soins.
+  - Accepté si : banc : catégorie de la fiche et fourchette respectées, objet hors catégorie refusé, sans clé = comportement actuel ; suite MP : dépôt d'objets de la catégorie compté jusqu'à la quantité tirée.
+  - Tests : bancs `deliver` ; campagne MP.
   - Preuve : —
   - Reste : —
