@@ -2,16 +2,50 @@
 
 ## Unreleased
 
-### Gameplay
+### Three mods in one Workshop item
 
+- Radio Survivor and Living Knox are now two separate mods in the same Workshop item: play with the radio voices alone, with the Living Knox survivors alone, or with both. Each one works on its own.
+- The parts both mods share live in a third mod, Core AI (batman_CoreAI); it is enabled automatically by Radio Survivor or Living Knox.
+- The notebook keeps one window for both mods: each mod adds its own tabs (Radio for the voices), and the Contacts, Missions and Reputation tabs are shared.
+- Character Reputation is no longer needed: reputation is now part of the shared mod.
+- Saves started before the split are not carried over: start a new game.
+
+### Radio voices
+
+- One trader per vanilla town. Riverside, West Point, Brandenburg and Louisville get a smuggler who comes by boat at night; Muldraugh, March Ridge, Irvington and Echo Creek get one who drives up to the roadside; in Rosewood, Ekron and Fallas Lake nobody shows up: you leave the payment in a container and the goods appear there later. Each trader has their own story, stock, hours and frequency note.
+- Trades happen only once every player is out of sight of the meeting place, after a short in-game delay; come back too early and nothing has moved yet.
+- Dead drops feel real: the voice collects what you left only once nobody can see the spot (about 100 tiles) and a few in-game hours later (6 by default). Coming back before that restarts the wait, and you can take your goods back until then.
+- A job can offer several drop points at once; you choose where to leave the goods, and deposits at different points add up.
+- A missing person's ID card is no longer taken from your inventory when you report: leave it at one of the drop points like any other delivery. Only that card counts.
+- Delivery jobs now ask for items of a category (for example medical: bandages, disinfectant, painkillers) and a quantity that can vary from one job to the next.
+- Rewards are random: each voice draws a reward among what it can actually give right now, and a supply cache holds a random mix from its category instead of a fixed list.
+- New radio jobs: board up the windows and doors of a building, put a powered radio high up as a relay, cross several places in the right order (on foot or by car), keep watch on a place for a few in-game hours (the voice asks what you saw: a helicopter, a horde passing by), or find someone's personal keepsake and leave it at a drop point.
+- Jobs can follow each other: some only open once a previous one is done, and a voice's story can move on when its last job succeeds.
+- Darlene has a story now: after the night she locked the clinic door on people begging to get in, she left the West Point clinic and hides elsewhere in town. Help her make the clinic safe again (scout it, clear the dead around it, board it up, bring medicine) and she goes back.
 - Rarely, a radio voice may introduce you to another voice and give you its frequency: only after several conversations over different days (or with a good reputation), when you have negotiated, earned its trust or truly convinced it, and never often. Walt and Gus can now do it too, as Darlene and Cody already could.
 - The notebook's Radio tab now shows who speaks on a frequency and when they listen, as soon as they have answered you, you have heard them, or you have read their frequency note. Reading a frequency note adds it to the notebook.
-- The Night Owl's evening memorial no longer reads a dead animal as "None None", and the Night Owl no longer says he won't give the names right before they are read.
 - Talking helps: each time a survivor answers your character on the radio, their boredom and unhappiness go down a little (shown above the character). Overhearing two survivors talk to each other eases a little boredom too. At most 5 comforts per in-game hour; four new sandbox options set the amounts and the limit (0 turns one off).
 - Corpses carrying a walkie-talkie now have a 35% chance to also contain a frequency note when their loot is generated. The existing note rarity setting adjusts this chance (14% on Rare, 87.5% on Frequent, disabled on None).
 - Increased the availability of Walt's frequency note in home and office desks, garages, electronics crates and amateur radio shelves.
+- A successful mission's unclaimed shared reward is now kept for 7 in-game days instead of 7 real days: the wait stops while the game is paused or the server is empty.
+- Server owners can write their own radio voices in a single text file: places, jobs, rewards, item categories, trade stock and frequency notes all go in that one sheet (see the wiki page "Creating a radio voice").
 
-- A successful mission's unclaimed shared reward is now kept for 7 in-game days instead of 7 real days: the wait stops while the game is paused or the server is empty. Rewards already waiting keep the time they had left (at most 7 in-game days).
+### Living Knox survivors
+
+- Gardeners dig furrows, sow seeds from their supplies and water the plants of their home, after the daily upkeep.
+- Survivors carry provisions on their trips and refill their water before they run dry.
+- Members of a group chat with each other at home, across rooms, where you can overhear them.
+- Survivors remember what they saw (and who), and act on their own initiative more or less often depending on the sandbox settings.
+- A survivor who finds a window refused goes through the doors on the next trips; a zombie stuck at a window is attacked from outside instead of from the window.
+- Raiders wait for their breaker before forcing a way in.
+- Living Knox missions can be given, delivered and rewarded without Radio Survivor.
+
+### Fixes
+
+- The Night Owl's evening memorial no longer reads a dead animal as "None None", and the Night Owl no longer says he won't give the names right before they are read.
+- A busy radio channel no longer holds back the lines of the other frequencies.
+- The notebook stays whole on screen after switching to a smaller resolution.
+- Compatibility with Build 42.22.
 
 ### Reliability
 
@@ -21,8 +55,3 @@
 - A notebook save that fails once (disk busy, file locked) no longer switches the notebook off until the next restart: the save is retried and nothing is lost.
 - A very large notebook state on a long-running server can no longer produce a save file that the next session cannot read; dead characters' old notebook data is cleared after a few in-game weeks to keep the save small.
 - Corpse notes only select active voices with an available frequency. Repeated loot generation preserves the original roll and avoids duplicate notes already in the corpse.
-
-### Validation
-
-- Frequency notes: 27 automated tests passed; protocol and notebook tests passed; Lua lint and project plan checks passed.
-- Actual corpse loot in solo and multiplayer remains to be checked in game after restarting.
