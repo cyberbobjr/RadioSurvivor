@@ -94,6 +94,10 @@ Obstacles.ROUTE_EXIT_PENALTY = 1000   -- cases : fenêtre ou clôture bordant le
 Obstacles.ROUTE_EXIT_MARGIN = 3   -- cases ajoutées autour du bâtiment à la boîte de recherche (portes éloignées)
 Obstacles.ROUTE_EXIT_MAX_NODES = 8000 -- cases développées au plus par la recherche d'une sortie par une porte
 Obstacles.ROUTE_LOOSE_PENALTY = 3000  -- cases : passage refusé du modèle "exit-loose" (au-delà d'une escalade de sortie)
+-- Fenêtre refusée au contact (LK05-T23, campagne solo du 2026-11-15, lk.expedition : fenêtre condamnée prise par le
+-- chemin natif sans que le modèle "zombie" la prévoie, même refus une minute plus tard) : pendant ce temps, tout trajet
+-- du PNJ est jalonné en lignes dégagées (sans fenêtre) sur son itinéraire "npc", par les portes.
+Obstacles.WINDOW_WARY_MS = 300000
 
 local Routing = Obstacles.Routing or {}
 Obstacles.Routing = Routing
@@ -709,6 +713,12 @@ local function chooseRoute(npcId, x0, y0, tx, ty, z, shared, exit, zr, mode, inf
     return r, why2, exitUsed, trapped
 end
 
+-- Vrai si le PNJ npcId a été refusé au contact d'une fenêtre depuis moins de WINDOW_WARY_MS (LK05-T23).
+local function waryOfWindows(npcId)
+    local t = Obstacles.windowRefusedAt ~= nil and Obstacles.windowRefusedAt[npcId] or nil
+    return t ~= nil and now() - t < Obstacles.WINDOW_WARY_MS
+end
+
 -- Points de passage « porte d'abord » d'un "move" du PNJ npcId, du point (x0, y0) à la case (tx, ty) au niveau z (même
 -- niveau que le corps ; voir l'en-tête). Rend une liste { { x, y }, ... } (vide : aucun guidage, le chemin vanilla
 -- reste seul) et un relevé { reason, climbs (itinéraire du zombie), npcClimbs, doors, doorEdges (bords des portes
@@ -769,7 +779,8 @@ function Obstacles.planDoorRoute(npcId, x0, y0, tx, ty, z)
     local risk = #refused > 0
     if risk then info.refused = refused end
     if not Obstacles.DOORS_FIRST and not risk then return done({}, "door-first rule off") end
-    if info.climbs == 0 and not risk then return done({}, "no window, low fence or closed gate on the way") end
+    local wary = info.climbs == 0 and not risk and waryOfWindows(npcId)
+    if info.climbs == 0 and not risk and not wary then return done({}, "no window, low fence or closed gate on the way") end
     local mode = Obstacles.DOORS_FIRST and "npc" or "detour"
     local r, why2, exitUsed, trapped = chooseRoute(npcId, x0, y0, tx, ty, z, shared, exit, zr, mode, info)
     if r == nil then
@@ -783,10 +794,10 @@ function Obstacles.planDoorRoute(npcId, x0, y0, tx, ty, z)
     end
     local climbs, doors = climbsOf(r)
     info.npcClimbs, info.doors = climbs, doors
-    if not risk and not exitUsed and not trapped and (doors == 0 or climbs >= info.climbs) then
+    if not risk and not exitUsed and not trapped and not wary and (doors == 0 or climbs >= info.climbs) then
         return done({}, "no usable door or gate within " .. Obstacles.ROUTE_PENALTY .. " squares of detour")
     end
-    local guided = exitUsed or trapped   -- points de passage gardés près du départ et de la destination
+    local guided = exitUsed or trapped or wary   -- points de passage gardés près du départ et de la destination
     local marks, used = {}, 0                              -- indices de r
     local outward = {}                                     -- indice de la case juste après une escalade -> pas
     info.doorEdges = {}
@@ -922,6 +933,7 @@ function Obstacles.planDoorRoute(npcId, x0, y0, tx, ty, z)
         end
     end
     info.exitUsed = exitUsed
+    if wary then text = text .. " after a refused window" end
     if risk and info.loose == nil and not trapped then
         text = "around the refused " .. refusedText(refused) .. " through " .. used .. " door(s) and "
             .. climbs .. " window or fence crossing(s)"

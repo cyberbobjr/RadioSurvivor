@@ -157,6 +157,7 @@ Obstacles.winActs = Obstacles.winActs or {}     -- clé de bord -> geste en cour
 Obstacles.closedBy = Obstacles.closedBy or {}   -- clé de bord -> { id, ms } fenêtre refermée par ce PNJ (LK04-T18)
 Obstacles.alertShuts = Obstacles.alertShuts or {}   -- gid|bâtiment -> fermeture demandée par une alerte (LK05-T08)
 Obstacles.track = Obstacles.track or {}     -- npcId -> { x, y, ms } dernière position mobile
+Obstacles.windowRefusedAt = Obstacles.windowRefusedAt or {}   -- npcId -> ms du dernier refus au contact d'une fenêtre (LK05-T23)
 Obstacles.homes = Obstacles.homes or { ms = nil, byBuilding = {}, list = {} }
 Obstacles.state = Obstacles.state or { ticks = 0, secured = nil }
 Obstacles.arrivals = Obstacles.arrivals or {}   -- gid|bâtiment -> { ms, due, doors, done } arrivée près du foyer
@@ -884,6 +885,8 @@ local function refuse(id, e, c, why, what)
     -- à chaque consigne (campagne solo du 2026-11-13 : 37 refus de suite).
     local Mv = LivingKnox.Movement
     if what == "window" and Mv ~= nil and Mv.noteStuck ~= nil then Mv.noteStuck(id, e) end
+    -- LK05-T23 : PNJ prudent pour ses prochains trajets (Routing : itinéraire jalonné par les portes, WINDOW_WARY_MS).
+    if what == "window" then Obstacles.windowRefusedAt[id] = now() end
     Dir().abort(id, what .. " " .. c.e.key .. ": " .. why)
 end
 

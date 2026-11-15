@@ -1455,6 +1455,17 @@ class TraversalFixTests(ObstacleBase):
         self.assertIsNone(v)
         self.assertIn('avoided', why)
 
+    def test_window_refusal_is_remembered_for_the_routing(self):
+        """LK05-T23 : la fenêtre refusée au contact rend le PNJ prudent pour ses prochains trajets
+        (Obstacles.windowRefusedAt, lu par planDoorRoute)."""
+        self.window(locked=True)
+        zid = self.start()
+        self.friendly_group()
+        self.move()
+        self.walk_w(zid, 900, until=self.done())
+        self.assertEqual(self.entry('s'), 'failed')
+        self.assertIsNotNone(self.o('windowRefusedAt["lk-1"]'))
+
 
 class DoorFirstTests(ObstacleBase):
     """LK04-T09 : porte d'abord. Mur (ou clôture basse) le long du bord ouest de x = 106, de y = 90 à 125, percé d'une
@@ -1479,6 +1490,34 @@ class DoorFirstTests(ObstacleBase):
     def steps(self):
         w = self.entry('w')
         return [] if w is None else [(w[i].x, w[i].y) for i in range(1, len(w) + 1)]
+
+    def planned(self):
+        out = self.run_lua('local w, info = LivingKnox.Obstacles.planDoorRoute("lk-1", 102.5, 102.5, 111, 102, 0) '
+                           'local s = {} for _, q in ipairs(w) do s[#s + 1] = q.x .. "," .. q.y end '
+                           'return table.concat(s, ";") .. " | " .. tostring(info.reason)')
+        steps, reason = out.split(' | ')
+        return [tuple(int(v) for v in s.split(',')) for s in steps.split(';') if s], reason
+
+    def test_npc_refused_at_a_window_is_guided_by_the_doors_next_time(self):
+        """LK05-T23 (campagne solo du 2026-11-15, runs/20261115-013428-dd05558cc5fd, lk.expedition) : le chemin natif
+        a pris une fenêtre condamnée que le modèle « zombie » ne prévoyait pas (aucune escalade prévue : aucun guidage) ;
+        refusé au contact, le PNJ reprenait le même chemin une minute plus tard. Une fenêtre refusée récemment fait
+        jalonner tout l'itinéraire du PNJ (lignes dégagées, sans fenêtre), par la porte."""
+        self.line(skip=(105,))
+        self.door(y=105, open=True)
+        self.start()
+        steps, reason = self.planned()
+        self.assertEqual(steps, [])
+        self.assertIn('no window', reason)
+        self.run_lua('LivingKnox.Obstacles.windowRefusedAt["lk-1"] = getTimestampMs()')
+        steps, reason = self.planned()
+        self.assertTrue(any(x == 105 and y == 105 for x, y in steps), (steps, reason))
+        self.assertTrue(any(x >= 106 for x, _ in steps), (steps, reason))
+        self.assertIn('after a refused window', reason)
+        # Prudence limitée dans le temps (WINDOW_WARY_MS).
+        self.run_lua('LivingKnox.Obstacles.windowRefusedAt["lk-1"] = getTimestampMs() '
+                     '- LivingKnox.Obstacles.WINDOW_WARY_MS - 1')
+        self.assertEqual(self.planned()[0], [])
 
     def test_open_door_next_to_an_open_window_is_used(self):
         self.line(skip=(102, 105))

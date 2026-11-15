@@ -459,13 +459,12 @@ class SquareKeyTests(unittest.TestCase):
             m = Machine(Path(tmp) / 'c', SQ_GAME, [STEPS_FILE, PEER_FILE])
             m.lua('BAR = { cls = "IsoBarricade", hp = 300, getSprite = function() return { getName = function() '
                   'return "b" end } end, getContainerCount = function() return 0 end, '
-                  'getNumPlanks = function() return 2 end, isMetal = function() return false end }\n'
-                  'function BAR:getHealth() return self.hp end\n'
+                  'getNumPlanks = function() return 2 end, isMetal = function() return false end, '
+                  'getHealth = function(self) return self.hp end }\n'
                   'PLANT = { cls = "IsoObject", md = { typeOfSeed = "Carrots", state = "seeded" }, '
                   'getSprite = function() return { getName = function() return "vegetation_farming_01_8" end } end, '
-                  'getContainerCount = function() return 0 end }\n'
-                  'function PLANT:hasModData() return true end\n'
-                  'function PLANT:getModData() return self.md end\n'
+                  'getContainerCount = function() return 0 end, hasModData = function() return true end, '
+                  'getModData = function(self) return self.md end }\n'
                   'OBJECTS = { BAR, PLANT, OBJECTS[1] }')
             keys = lambda kinds: m.lua('return table.concat(RST.PeerChecks.squareKeys(1, 1, 0, ' + kinds + '), "|")')
             self.assertEqual(keys('{ barricade = true }'), 'barricade planks=2 metal=false')

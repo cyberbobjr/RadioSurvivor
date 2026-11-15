@@ -2,7 +2,7 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 20 / 22 tâche(s) terminée(s).
+**Avancement.** en cours — 22 / 23 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
@@ -26,8 +26,9 @@
 | ☑ | LK05-T18 | Campement : le groupe se défend sur place contre les zombies | `testé MP` | MP | LK05-T09 |
 | ☑ | LK05-T19 | Entretien limité aux générateurs du groupe | `testé MP` | MP | LK05-T10 |
 | ☑ | LK05-T20 | Provisions sur soi et gourde inépuisable | `testé MP` | MP | LK05-T07, LK07-T05 |
-| ☐ | LK05-T21 | Jardinier : le comportement `garden` prend d'abord les tâches du jardin | `testé hors jeu` | solo | LK05-T11 |
-| ☐ | LK05-T22 | Casseur : le comportement `breach` des pillards force, les autres l'attendent | `testé hors jeu` | solo | LK04-T04 |
+| ☑ | LK05-T21 | Jardinier : le comportement `garden` prend d'abord les tâches du jardin | `testé MP` | solo | LK05-T11 |
+| ☑ | LK05-T22 | Casseur : le comportement `breach` des pillards force, les autres l'attendent | `testé MP` | solo | LK04-T04 |
+| ☐ | LK05-T23 | Fenêtre refusée au contact : trajets suivants jalonnés par les portes | `testé hors jeu` | solo | LK04-T09, E18-T38 |
 
 <!-- fin du tableau de bord -->
 
@@ -294,23 +295,34 @@
   - Tests : banc ; nouvelle suite en jeu dans les campagnes solo et MP.
   - Preuve : 2026-11-13 : `LK_Provisions.lua` (objets et effets : 2 provisions parmi barre de céréales, viande séchée, abricots secs ; gourde militaire pleine jamais vidée ; remplacement depuis le stock du foyer, repas, boisson) et `LK_ProvisionMeal.lua` (règles, décrochage à faim ≥ 90 avec ennemi au-delà de 3 cases, course de 8 cases vers une case cachée, repas assis, reprise) ; deux registres extraits pour ne pas ajouter de cas en dur : `Decisions.registerExtension` (`LK_Decisions.lua`, rangs de `PRIORITIES` inchangés) et `Loot.registerContent` (`LK_Loot.lua` : munitions, poches, provisions, mission) ; `python tests/test_lk_provisions.py` : `Ran 18 tests … OK` (rouge avant : 18 erreurs), dont un banc serveur + deux clients et la suite `lk.provisions` jouée sur les doublures ; `test_lk_meals.py` 16 OK, `test_lk_decisions.py` 27 OK, `test_lk_loot.py` 17 OK, `test_doubles_api.py` 13 OK (toute méthode doublée existe en Java), `test_autoclient.py` 93 OK ; `python tests/run_all.py` : `166 passed, 0 failed` ; luacheck `Contents` 8 (inchangé), `dev` 0 ; campagne MP du 2026-11-14 (serveur dédié + 2 clients, pont avec faux modèle, `tools/autoclient/runs/20261114-193029-parallel-1`, code 1, `TOTAL total=556 pass=534 fail=2 error=0 skip=20`, échecs étrangers à la tâche : rs.factions.accord, lk.warn) : lk.provisions PASS « provisions carried, eaten away from home, canteen never emptied, replaced at home »
   - Reste : campagne solo (`solo-lk`) ; non prouvé en jeu : inventaire du corps relu après une sauvegarde, cadavre pillé en MP, décrochage dans une vraie maison (la suite retire les zombies : le combat est prouvé au banc)
-- [ ] **LK05-T21** — Jardinier : le comportement `garden` prend d'abord les tâches du jardin
-  - État : `testé hors jeu`
+- [x] **LK05-T21** — Jardinier : le comportement `garden` prend d'abord les tâches du jardin
+  - État : `testé MP`
   - Cible : `solo`
   - Dépend de : LK05-T11
   - Fichiers : `LK_Upkeep.lua` (`claim`, `run`) ; `tests/test_lk_upkeep.py` ; `docs/annexes/conception/entretien.md`
   - Faire : demande de l'utilisateur du 2026-11-13 (« tu les branches ») : `garden`, listé dans les rôles des colons (travailleur), n'était lu par aucun code. Décision par défaut : un membre dont le rôle permet `garden` prend d'abord une tâche du jardin ouverte (`water`, `harvest`), puis les autres dans l'ordre de `JOBS` ; les autres membres gardent l'ordre (le jardin n'est pas réservé au jardinier).
   - Accepté si : au banc, le jardinier prend l'arrosage avant le plein du générateur, un autre membre garde l'ordre ; en jeu, l'arrosage et la récolte de `lk.forage` restent verts.
   - Tests : `test_lk_upkeep.py` ; campagne solo des deux mods.
-  - Preuve : 2026-11-13, banc `test_gardener_takes_the_plants_first_others_keep_the_job_order` rouge avant, vert après ; bancs complets OK, luacheck `Contents` 8 (`f67846f`).
-  - Reste : campagne solo.
-- [ ] **LK05-T22** — Casseur : le comportement `breach` des pillards force, les autres l'attendent
-  - État : `testé hors jeu`
+  - Preuve : 2026-11-13, banc `test_gardener_takes_the_plants_first_others_keep_the_job_order` rouge avant, vert après ; bancs complets OK, luacheck `Contents` 8 (`f67846f`) ; campagne MP du 2026-11-15 sur le commit `962ee34` (serveur dédié + 2 clients, pont avec faux modèle, `--mp --clients 2 --server-campaign mp --bridge on --llm fake --wait-idle 3600`) : code 0, `RST-RESULT ok=true total=398 pass=378 fail=0 error=0 skip=20` (`tools/autoclient/runs/20261115-004728-mp-63ed80f68139`) : lk.forage 5/5 PASS (arrosage « a thirsty plant of the home is watered from the stock » et récolte compris), lk.garden PASS ; campagne solo des deux mods du 2026-11-15 sur `962ee34` (`--campaign solo --bridge on --llm fake`) : code 1, `RST-RESULT ok=false total=272 pass=262 fail=1 error=0 skip=9` (`tools/autoclient/runs/20261115-013428-dd05558cc5fd`, échec étranger à la tâche : lk.expedition, voir LK05-T23) ; campagne `solo-lk` (Living Knox seul) du 2026-11-15 : code 0, `TOTAL total=114 pass=105 fail=0 error=0 skip=9` (`tools/autoclient/runs/20261115-002325-run-962ee349cab6`) : récolte et lk.garden PASS, arrosage SKIP (« it rains »)
+  - Reste : arrosage en solo non relancé faute de temps sec (vert en MP)
+- [x] **LK05-T22** — Casseur : le comportement `breach` des pillards force, les autres l'attendent
+  - État : `testé MP`
   - Cible : `solo`
   - Dépend de : LK04-T04
   - Fichiers : `LK_Obstacles.lua` (`blockedPolicy`, `breachPolicy`, `BREACH_RANGE`) ; `tests/test_lk_obstacles.py` ; `docs/annexes/conception/deplacement.md`
   - Faire : demande de l'utilisateur du 2026-11-13 (« tu les branches ») : `breach`, listé pour le rôle casseur des pillards, n'était lu par aucun code (tout pillard forçait). Décision par défaut : devant un passage bloqué, un pillard dont le rôle permet `breach` force ; un autre pillard attend (`wait`, `WAIT_MS`) quand un casseur du groupe est incarné à `BREACH_RANGE` (20) cases au plus ; sans casseur sur place, chacun force comme avant (un raid sans casseur reste capable d'entrer).
   - Accepté si : au banc, politique `force` pour le casseur, `wait` pour un combattant avec un casseur incarné près de lui, `force` sans casseur ou casseur sans corps ; les suites de forçage restent vertes.
   - Tests : `test_lk_obstacles.py` ; campagnes solo et MP.
-  - Preuve : 2026-11-13, banc `test_raider_waits_for_the_breaker_of_his_group` rouge avant, vert après ; bancs complets OK, luacheck `Contents` 8 (`f67846f`).
-  - Reste : campagne solo (suite `lk.force`) ; aucune suite en jeu ne fait encore attendre un pillard derrière son casseur.
+  - Preuve : 2026-11-13, banc `test_raider_waits_for_the_breaker_of_his_group` rouge avant, vert après ; bancs complets OK, luacheck `Contents` 8 (`f67846f`) ; campagne solo des deux mods du 2026-11-15 sur `962ee34` (`--campaign solo --bridge on --llm fake`) : code 1, `RST-RESULT ok=false total=272 pass=262 fail=1 error=0 skip=9` (`tools/autoclient/runs/20261115-013428-dd05558cc5fd`, échec étranger à la tâche : lk.expedition, voir LK05-T23) ; campagne `solo-lk` (Living Knox seul) du 2026-11-15 : code 0, `TOTAL total=114 pass=105 fail=0 error=0 skip=9` (`tools/autoclient/runs/20261115-002325-run-962ee349cab6`) : lk.force 6/6 PASS dans les deux ; campagne MP du 2026-11-15 sur le commit `962ee34` (serveur dédié + 2 clients, pont avec faux modèle, `--mp --clients 2 --server-campaign mp --bridge on --llm fake --wait-idle 3600`) : code 0, `RST-RESULT ok=true total=398 pass=378 fail=0 error=0 skip=20` (`tools/autoclient/runs/20261115-004728-mp-63ed80f68139`) : lk.force 6/6 PASS
+  - Reste : aucune suite en jeu ne fait encore attendre un pillard derrière son casseur (prouvé au banc seulement)
+
+- [ ] **LK05-T23** — Fenêtre refusée au contact : trajets suivants jalonnés par les portes
+  - État : `testé hors jeu`
+  - Cible : `solo`
+  - Dépend de : LK04-T09, E18-T38
+  - Fichiers : `LK_Obstacles.lua` (`refuse`, `windowRefusedAt`) ; `LK_Routing.lua` (`planDoorRoute`, `WINDOW_WARY_MS`) ; `tests/test_lk_obstacles.py`
+  - Faire : campagne solo du 2026-11-15 (`tools/autoclient/runs/20261115-013428-dd05558cc5fd`, lk.expedition « team not back home ») : au retour d'une expédition, le chemin natif du PNJ lk-111 prend la fenêtre condamnée 10877,10020 N de la cuisine fouillée, que le modèle « zombie » ne prévoyait pas (aucune escalade prévue, donc aucun guidage par les portes) ; refusé au contact, il reprend le même chemin une minute plus tard (fin de l'écart de E18-T38) et l'équipe ne rentre pas. Décision par défaut : une fenêtre refusée au contact rend le PNJ prudent pendant `WINDOW_WARY_MS` (5 min) : tout trajet sans escalade prévue est jalonné en lignes dégagées (sans fenêtre) sur son itinéraire « npc », par les portes ; la raison du trajet le dit (« after a refused window »).
+  - Accepté si : au banc, sans refus, aucun guidage ; après un refus récent, points de passage par la porte ; refus ancien, plus de guidage ; le refus au contact note l'heure ; en jeu, lk.expedition reste vert.
+  - Tests : `test_lk_obstacles.py` ; campagne solo des deux mods.
+  - Preuve : 2026-11-15, bancs `test_npc_refused_at_a_window_is_guided_by_the_doors_next_time` et `test_window_refusal_is_remembered_for_the_routing` rouges avant, verts après ; `test_lk_obstacles` et `test_lk_routing` (sorties figées comprises) 183 tests OK.
+  - Reste : campagne solo ; cause du mauvais pronostic du modèle « zombie » sur cette cuisine non cherchée (le jalonnement la contourne).
