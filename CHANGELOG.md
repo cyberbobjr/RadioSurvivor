@@ -6,7 +6,9 @@
 
 - Radio Survivor and Living Knox are now two separate mods in the same Workshop item: play with the radio voices alone, with the Living Knox survivors alone, or with both. Each one works on its own.
 - The parts both mods share live in a third mod, Core AI (batman_CoreAI); it is enabled automatically by Radio Survivor or Living Knox.
-- The notebook keeps one window for both mods: each mod adds its own tabs (Radio for the voices), and the Contacts, Missions and Reputation tabs are shared.
+- The notebook now belongs to Core AI: it works the same with Radio Survivor, Living Knox or both. Each mod adds its own tabs (Radio for the voices), and the Contacts, Missions and Reputation tabs are shared.
+- With Living Knox alone the notebook is complete (notes, NPC selection, quoted deliveries, report button) and group agreements and incidents are announced.
+- A chat line said without a selected target goes to the nearest NPC within 8 squares (nothing happens if nobody is near). The shortcut is now called Select the nearest NPC (Ctrl+G).
 - Character Reputation is no longer needed: reputation is now part of the shared mod.
 - Saves started before the split are not carried over: start a new game.
 
