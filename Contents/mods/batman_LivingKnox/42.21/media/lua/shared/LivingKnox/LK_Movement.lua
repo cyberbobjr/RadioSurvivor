@@ -18,7 +18,9 @@
 --   autorité (serveur MP, solo ; appelé par LK_Directives) : une consigne close en échec "stuck" est notée par PNJ
 --     (case visée, AVOID_MS) ; Directives.moveTo refuse au même PNJ une case à AVOID_RADIUS de celle-ci pendant ce
 --     délai, et le cadre de décision (LK_Decisions) avance l'échéance du comportement dont la consigne a échoué
---     (Movement.takeStuck) : la cascade existante choisit alors une autre consigne.
+--     (Movement.takeStuck) : la cascade existante choisit alors une autre consigne. LK18-T02 : une consigne pour
+--     laquelle l'autorité a accordé un passage (un autre PNJ s'écarte, Movement.excuse) n'est pas notée : ni case
+--     évitée, ni échéance avancée (le blocage venait d'un PNJ, déjà arbitré).
 -- Chemin d'un zombie : nœuds illisibles en Lua ; PathFindState efface bPathfind en échec comme en succès
 -- (J/ai/states/PathFindState.java:51-71) ; piétinement : échec après walkingOnTheSpot
 -- (J/pathfind/PathFindBehavior2.java:750-752) ; base pz-knowledge pathfinding-and-obstacles.md.
@@ -45,6 +47,7 @@ Movement.WHY_MAX = 40          -- caractères d'une raison reçue d'un client
 Movement.DETAIL_MAX = 160      -- caractères du détail reçu d'un client
 
 Movement.stuckAt = Movement.stuckAt or {}   -- autorité : npcId -> { { x, y, z, ms, v, taken }, ... }
+Movement.excused = Movement.excused or {}   -- autorité : npcId -> { v, ms } passage accordé (LK18-T02)
 Movement.stats = Movement.stats or { detected = 0, repaths = 0, unblocks = 0, unblockReached = 0, unblockTimeout = 0,
     noPoint = 0, stuck = 0, noted = 0, avoided = 0, taken = 0 }
 
@@ -292,10 +295,30 @@ function Movement.cleanWhy(why, max)
     return why
 end
 
--- Consigne e du PNJ id close en échec "stuck" (autorité) : case visée notée pour AVOID_MS. Rend vrai.
+-- Passage accordé au PNJ id pour sa consigne v (LK18-T02, LK_PassageAuthority) : un échec "stuck" de cette consigne
+-- n'est pas noté pendant AVOID_MS. Rend vrai.
+function Movement.excuse(id, v)
+    if type(id) ~= "string" or v == nil then return false end
+    Movement.excused[id] = { v = v, ms = now() }
+    return true
+end
+
+local function excusedFor(id, v)
+    local x = Movement.excused[id]
+    return x ~= nil and x.v == v and now() - x.ms < Movement.AVOID_MS
+end
+
+-- Consigne e du PNJ id close en échec "stuck" (autorité) : case visée notée pour AVOID_MS. Rend vrai. Consigne
+-- excusée (passage accordé, Movement.excuse) : rien de noté, rend faux.
 function Movement.noteStuck(id, e)
     if not LivingKnox.isAuthority() or type(id) ~= "string" or type(e) ~= "table" then return false end
     if type(e.x) ~= "number" or type(e.y) ~= "number" or type(e.z) ~= "number" then return false end
+    if excusedFor(id, e.v) then
+        count("excused")
+        log().info("npc %s: %s #%s stuck after a passage was granted to it, target not avoided", id, tostring(e.op),
+            tostring(e.v))
+        return false
+    end
     local list = Movement.stuckAt[id] or {}
     local t = now()
     local keep = {}
@@ -348,8 +371,10 @@ end
 function Movement.forgetStuck(id)
     if id == nil then
         Movement.stuckAt = {}
+        Movement.excused = {}
     else
         Movement.stuckAt[id] = nil
+        Movement.excused[id] = nil
     end
 end
 

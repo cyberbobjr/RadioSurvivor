@@ -28,6 +28,7 @@ RST.Campaigns.add({ "solo-lk", "solo" }, 20, {
     "lk.revenge",       -- LK11-T05 (E01-T19)
     "lk.traversal",     -- LK04-T03..T18 (E01-T19; about 7 minutes)
     "lk.doors",         -- LK04-T02 (2026-10-15: sites found by RST.Places when missing near the player)
+    "lk.passage",       -- LK18-T02 (npcs give way in a doorway)
     "lk.melee",         -- LK06-T02
     "lk.upkeep",        -- LK05-T10 (E01-T19)
     "lk.garden",        -- LK15-T04..T06 (garden of the gardener: seeds, furrow, sowing)
@@ -90,6 +91,7 @@ RST.Campaigns.add("mp", 20, {
     "lk.doors",         -- LK04-T02 (2026-10-15: both clients see the same door state, no double toggle)
     "lk.force",         -- LK04-T04 (E01-T19)
     "lk.stuck",         -- LK04-T05 (E01-T19)
+    "lk.passage",       -- LK18-T02 (the owner client signals, the server orders the step aside)
     "lk.milestone1",    -- LK02-T08 (E01-T19)
     "lk.essai",         -- LK02-T10 (E01-T19)
     "lk.npcsheet",      -- LK13-T13, LK13-T15

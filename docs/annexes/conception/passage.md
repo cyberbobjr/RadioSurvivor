@@ -1,9 +1,9 @@
 # Passage entre PNJ : priorités, arbitrage, places d'arrêt
 
-- Tâches : LK18-T01 (registre des priorités, arbitrage), LK18-T03 (places d'arrêt) ; LK18-T02 (action « s'écarter », signalement) à venir
+- Tâches : LK18-T01 (registre des priorités, arbitrage), LK18-T02 (signalement du blocage, action « s'écarter »), LK18-T03 (places d'arrêt)
 - ADR : [Les PNJ se cèdent le passage](../../architecture/decisions/adr-ceder-le-passage.md) (D01 à D06)
-- Code : `Contents/mods/batman_LivingKnox/42.21/media/lua/shared/LivingKnox/LK_Passage.lua` (registre), `.../shared/LivingKnox/LK_PassageArbiter.lua` (arbitrage pur), `.../server/LivingKnox/LK_StopPlace.lua` (règle des places d'arrêt) ; bancs `tests/test_lk_passage.py`, `tests/test_lk_stop_place.py`
-- Build : 42.22 (Java décompilé **J/** = `E:\pz-source-42.22\java\zombie\`) — Date : 2026-11-15 — Statut : testé hors jeu seulement
+- Code : `Contents/mods/batman_LivingKnox/42.21/media/lua/shared/LivingKnox/LK_Passage.lua` (registre), `.../shared/LivingKnox/LK_PassageArbiter.lua` (arbitrage pur), `.../server/LivingKnox/LK_StopPlace.lua` (règle des places d'arrêt), `.../client/LivingKnox/LK_PassageSignal.lua` (signalement par l'exécutant), `.../server/LivingKnox/LK_PassageAuthority.lua` (contrôles, arbitrage, ordre), `.../server/LivingKnox/Decisions/LK_Decide_StepAside.lua` (action « s'écarter ») ; bancs `tests/test_lk_passage.py`, `tests/test_lk_stop_place.py`, `tests/test_lk_step_aside.py` ; suite en jeu `lk.passage`
+- Build : 42.22 (Java décompilé **J/** = `E:\pz-source-42.22\java\zombie\`) — Date : 2026-11-15 — Statut : testé hors jeu seulement (LK18-T02 : suite `lk.passage` à passer en solo et en MP)
 
 ## Problème
 
@@ -56,6 +56,65 @@ path)` l'appelle avec `Passage.priorityOf`. Données simples, aucune lecture du 
   du trajet, la plus proche.
 - `free` : cases libres où le bloqueur peut se tenir et qu'il peut joindre, relevées par l'autorité (LK18-T02).
 
+### Signalement du blocage (exécutant, LK18-T02)
+
+`LivingKnox.PassageSignal` (client propriétaire du corps, solo), appelé par `LK_Executor` avant le traitement du blocage
+de `LK_Movement` (nouvelle requête, point de déblocage, échec « stuck ») :
+
+- PNJ devant : autre corps de PNJ connu ici (`Executor.loadedBodies`), même niveau, à `RANGE` (1,5) case au plus, du
+  côté de l'étape visée (cosinus de l'écart positif) ; le plus proche.
+- Signal remis à l'autorité une fois par étape du trajet : `{ id, v, l, b, x, y, z, bx, by, bz, tx, ty }` (solo :
+  appel direct de `PassageAuthority.onSignal` ; client MP : commande `Passage.CMD_BLOCKED`, `"passageBlocked"`).
+- Attente bornée `WAIT_MS` (6 s) sans essai compté ; chemin relancé dès que le PNJ a quitté le couloir devant
+  (cosinus de l'écart sous `LANE_COS`, 0,75) ; l'attente passée, traitement habituel du blocage. En solo, un refus
+  rend aussitôt le traitement habituel ; un client MP n'a pas de réponse et attend `WAIT_MS` au plus.
+
+### Contrôles et ordre (autorité, LK18-T02)
+
+`LivingKnox.PassageAuthority.onSignal(player, args)`, seule à arbitrer et à ordonner (D06) :
+
+| Contrôle | Refus |
+|---|---|
+| Demandeur et bloqueur incarnés (`Bodies.find`) | « mover has no body », « blocker ... has no body » |
+| Expéditeur propriétaire du corps du demandeur (`Directives.isOwner`) | « not the owner of ... » |
+| Consigne `move` ouverte du demandeur, du numéro signalé | « no open move » |
+| Corps voisins vus par l'autorité : même niveau, `NEIGHBOUR` (2) cases au plus (Tchebychev) | « not neighbours » |
+| Un signal par demandeur et par `SIGNAL_MS` (1 s) | « too soon » |
+
+- Genre de passage (`kindOf`) : « care » quand le soin le mène (`Care.get`), sinon son comportement au cadre
+  (`Decisions.get(id).b`), sinon aucun (priorité par défaut).
+- Bloqueur capable de bouger (`canMove`) : vivant, hors combat (comportement de `Decisions.COMBAT_BEHAVIOURS`,
+  engagement `Combat.get`), santé de référence au-dessus du seuil de blessure (`Decisions.healthOf`,
+  `woundRatio`), pas déjà à l'écart.
+- Cases libres (`freeAround`, relevées par l'autorité) : à `FREE_RADIUS` (3) cases du bloqueur, praticables, sans
+  personnage debout (`Bodies.standingOn`) ni plante ni feu (`Bodies.hazardOn`), joignables en ligne dégagée
+  (`Movement.clearLine`) ; celles qui respectent la règle des places d'arrêt (`StopPlace.allows`) d'abord.
+- Trajet du demandeur (`pathAhead`) : case du bloqueur, case juste au-delà, puis 4 cases de la ligne vers l'étape.
+- Décision `stepAside` ou `backOff` : ordre `StepAside.order` ; la marche vise la case libre juste au-delà de la case
+  décidée, dans le même sens (`walkTarget`), car un corps « arrive » à `Directives.ARRIVE` (1 case) du centre visé :
+  sans ce dépassement il resterait au bord du couloir (banc : arrivé à 0,5 case de sa place, encore sur le chemin).
+  Consigne du demandeur excusée (`Movement.excuse`) : un échec « stuck » de cette consigne n'est pas noté (ni case
+  évitée, ni échéance avancée par `Movement.takeStuck`).
+- Décision nil : rien ; le demandeur garde le traitement habituel du blocage (D03).
+
+### Action « s'écarter » (LK18-T02)
+
+`LivingKnox.StepAside` (`server/LivingKnox/Decisions/LK_Decide_StepAside.lua`) :
+
+- `order(id, decision, moverId)` : marche aussitôt vers la case décidée ; fin quand le demandeur est passé (au-delà
+  de la case quittée, côté opposé à son départ, à `PASSED` (1,5) case au moins ; consigne du demandeur close ; corps
+  parti) ou après `HOLD_MS` (8 s) ; vérifiée par `StepAside.tick` (OnTick de l'autorité) toutes les `CHECK_MS`.
+- Membre mené par le cadre de décision : extension `stepAside` (`Decisions.registerExtension`, règle placée devant
+  `threat`, comportement `stepAside`, vigilance de garde) tant que l'ordre dure ; la consigne de l'écart est notée comme
+  celle du cadre (`Decisions.noteIssued`). Ordre fini : la règle se tait, la cascade rend au membre son comportement
+  (état neuf : la routine le ramène à son poste). Extension menante (sans `overlay`) : le soin et la routine ne
+  reprennent pas la main pendant l'écart.
+- PNJ hors du cadre (consigne ouverte d'un autre module, suite de test, API ; PNJ sans groupe) : sa marche
+  interrompue est relancée vers la même case à la fin, sinon retour à la case quittée.
+
+La règle est placée devant `threat` : l'arbitrage a déjà écarté un bloqueur en combat ou prioritaire ; une menace
+apparue pendant l'écart attend au plus `HOLD_MS`.
+
 ### Places d'arrêt (LK18-T03)
 
 `LivingKnox.StopPlace` porte seul la règle : une place d'arrêt n'est ni une case dont un bord porte une porte (case de
@@ -92,3 +151,6 @@ relevé invalide).
 | Liste des priorités dans `LK_Passage.lua` | Ajouter un comportement modifierait le module de passage (ADR D02) | écartée |
 | Règle des places d'arrêt dans `Bodies.freeSquare` | Mêle la règle aux apparitions et aux contrôles de case libre ; touche des appelants qui ne s'arrêtent pas | écartée |
 | Règle appliquée à toute cible de `Directives.moveTo` | Une porte doit rester une cible (ouvrir, barricader, passer) | écartée |
+| Écart mené seulement au passage de décision du bloqueur | Réaction lente (un membre évalué toutes les quelques secondes) ; aucun effet sur un PNJ hors du cadre | écartée : marche donnée dès l'ordre |
+| Extension `overlay` | Le soin ou la routine passeraient avant l'écart et garderaient le membre à sa tâche | écartée |
+| Option « arrivée serrée » ajoutée à `Directives.moveTo` | Change un module partagé par tous les comportements | écartée : dépassement `walkTarget` |

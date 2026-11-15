@@ -7,6 +7,8 @@
 -- Ce module ne nomme aucun comportement (ouvert/fermé). Un comportement non déclaré a la priorité DEFAULT, la plus
 -- basse (une déclaration est refusée en dessous). Passage.arbitrate assemble le registre et l'arbitrage pur
 -- (LK_PassageArbiter) pour l'autorité. Partagé : aucun appel au moteur du jeu.
+-- LK18-T02 : nom de la commande « bloqué par un PNJ » (client propriétaire -> serveur), lu par l'exécutant
+-- (LK_PassageSignal) et par l'autorité (LK_PassageAuthority).
 require "LivingKnox/LK_Core"
 require "LivingKnox/LK_Registry"
 require "LivingKnox/LK_PassageArbiter"
@@ -15,6 +17,8 @@ local Passage = LivingKnox.Passage or {}
 LivingKnox.Passage = Passage
 
 Passage.DEFAULT = 0   -- comportement sans déclaration (repos, attente...) : le plus bas
+Passage.MODULE = "LivingKnox"
+Passage.CMD_BLOCKED = "passageBlocked"   -- client propriétaire -> serveur : { id, v, l, b, x, y, z, bx, by, bz, tx, ty }
 
 local function validate(spec)
     if type(spec.kind) ~= "string" or spec.kind == "" then return false, "kind must be a non-empty string" end

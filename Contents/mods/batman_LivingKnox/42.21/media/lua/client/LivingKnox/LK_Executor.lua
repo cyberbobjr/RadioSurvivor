@@ -57,12 +57,16 @@
 -- Blocage (LK04-T05, shared/LivingKnox/LK_Movement.lua) : aucun progrès vers l'étape pendant Movement.STUCK_MS (hors
 -- geste ponctuel, escalade et attente devant une porte), ou nouveaux essais épuisés -> nouvelle requête de chemin,
 -- puis point intermédiaire de déblocage, puis échec rapporté avec la raison "stuck" (détail wd).
+-- Passage (LK18-T02, client/LivingKnox/LK_PassageSignal.lua) : avant ce traitement, un autre PNJ juste devant sur le
+-- trajet est signalé à l'autorité (une fois par étape) et le corps attend au plus PassageSignal.WAIT_MS, sans essai
+-- compté ; chemin relancé dès que le PNJ a quitté le couloir devant.
 require "LivingKnox/LK_Core"
 require "LivingKnox/LK_Config"
 require "LivingKnox/LK_Log"
 require "LivingKnox/LK_ZombieGuard"
 require "LivingKnox/LK_Anim"
 require "LivingKnox/LK_Movement"
+require "LivingKnox/LK_PassageSignal"
 
 local Executor = LivingKnox.Executor or {}
 LivingKnox.Executor = Executor
@@ -89,6 +93,7 @@ Executor.handR = Executor.handR or {}                       -- client MP : npcId
 Executor.claimed = Executor.claimed or {}                   -- client MP : npcId -> heure de la dernière demande
 Executor.waitLocal = Executor.waitLocal or {}               -- client MP : npcId -> copie dont le bail attend
 Executor.state = Executor.state or { ticks = 0, n = 0 }
+Executor.known = Executor.known or {}                       -- corps connus et chargés au dernier passage (LK18-T02)
 Executor.stats = Executor.stats or { passes = 0, started = 0, resumed = 0, released = 0, retries = 0, reports = 0,
     arrived = 0, failed = 0, older = 0, stale = 0, waiting = 0, asks = 0, hands = 0, revoked = 0, claims = 0,
     healthSet = 0, muted = 0, soon = 0 }
@@ -382,8 +387,39 @@ local function fail(id, run, z, why, detail)
     Executor.report(id, run, z, "failed", why, detail)
 end
 
+-- Passage (LK18-T02, LK_PassageSignal.step) : PNJ devant signalé, attente bornée, ou chemin relancé quand il est
+-- parti. Rend vrai si le passage tient l'exécution pour ce passage (aucun essai compté, aucun blocage traité).
+local function passageWait(id, e, z, run)
+    local P = LivingKnox.PassageSignal
+    if P == nil then return false end
+    local tx, ty = D().stepTarget(e, run.k)
+    local r = P.step(id, run, z, Executor.known, tx, ty, now())
+    if r == nil then
+        if run.passage ~= nil and run.passage.k == run.k and not run.passage.counted then
+            run.passage.counted = true
+            count("passageSignals")   -- signal refusé en solo : traitement habituel aussitôt
+        end
+        return false
+    end
+    if r == "signal" then
+        run.passage.counted = true
+        count("passageSignals")
+        log().info("npc %s: move #%d blocked by npc %s at %.1f,%.1f, passage asked, waiting up to %d ms", id, run.v,
+            tostring(run.passage.by), z:getX(), z:getY(), P.WAIT_MS)
+    elseif r == "clear" then
+        count("passageCleared")
+        log().info("npc %s: move #%d npc %s out of the way, path to the step again", id, run.v,
+            tostring(run.passage.by))
+        Executor.issuePath(z, e, run.k)
+    end
+    mark(run, z)
+    Mv().pause(run, now())
+    return true
+end
+
 -- Blocage (LK04-T05) : nouvelle requête de chemin, point de déblocage, ou échec "stuck" (LK_Movement.respond).
 local function escalate(id, e, z, run, cause)
+    if passageWait(id, e, z, run) then return end   -- LK18-T02 : PNJ devant, passage demandé
     local M = Mv()
     local t = now()
     local tx, ty = D().stepTarget(e, run.k)
@@ -565,6 +601,12 @@ function Executor.follow(id, e, z, run)
             return
         end
     end
+    -- Passage demandé (LK18-T02) : attente bornée en cours, ou chemin relancé quand le PNJ devant est parti.
+    local P = LivingKnox.PassageSignal
+    if P ~= nil and P.waiting(run) and passageWait(id, e, z, run) then
+        if now() - run.lastReport >= Dir.REPORT_MS then Executor.report(id, run, z, "moving") end
+        return
+    end
     -- Progrès vers l'étape (LK04-T05) : distance qui baisse ou case nouvelle ; sinon déblocage puis échec "stuck".
     if M.progress(run, z, Dir.distToStep(e, run.k, z:getX(), z:getY(), z:getZ()), now()) then
         escalate(id, e, z, run, "no approach")
@@ -616,6 +658,7 @@ function Executor.pass()
     if Dir == nil then return end
     local G = LivingKnox.ZombieGuard
     local known = Executor.loadedBodies()
+    Executor.known = known   -- LK18-T02 : PNJ devant un corps bloqué (LK_PassageSignal)
     local directives = Executor.directives()
     local drop = {}
     local me = isClient() and myName() or nil

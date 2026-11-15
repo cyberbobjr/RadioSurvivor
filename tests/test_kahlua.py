@@ -156,6 +156,9 @@ LUA_FILES = [
     # LK_RoutineExec, avec LK_Movement pour les bords fermés).
     ('LivingKnox/LK_Movement', LK_LUA / 'shared' / 'LivingKnox' / 'LK_Movement.lua'),
     ('LivingKnox/LK_StopPlace', LK_LUA / 'server' / 'LivingKnox' / 'LK_StopPlace.lua'),
+    # LK18-T02 : passage demandé à l'autorité et action « s'écarter » (extension du cadre de décision).
+    ('LivingKnox/LK_PassageAuthority', LK_LUA / 'server' / 'LivingKnox' / 'LK_PassageAuthority.lua'),
+    ('LivingKnox/Decisions/LK_Decide_StepAside', LK_LUA / 'server' / 'LivingKnox' / 'Decisions' / 'LK_Decide_StepAside.lua'),
     ('LivingKnox/LK_RoutineExec', LK_LUA / 'server' / 'LivingKnox' / 'LK_RoutineExec.lua'),
     ('LivingKnox/LK_Routines', LK_LUA / 'server' / 'LivingKnox' / 'LK_Routines.lua'),
     ('LivingKnox/Routines/LK_Routine_Chores', LK_LUA / 'server' / 'LivingKnox' / 'Routines' / 'LK_Routine_Chores.lua'),

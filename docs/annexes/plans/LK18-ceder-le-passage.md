@@ -7,7 +7,7 @@
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
 | ☑ | LK18-T01 | Registre des priorités de passage et arbitrage | `testé hors jeu` | hors jeu | — |
-| ☐ | LK18-T02 | Action « s'écarter », signalement du blocage par l'exécutant | `à faire` | MP | LK18-T01 |
+| ☐ | LK18-T02 | Action « s'écarter », signalement du blocage par l'exécutant | `testé hors jeu` | MP | LK18-T01 |
 | ☐ | LK18-T03 | Places d'arrêt hors des portes et des couloirs | `testé hors jeu` | solo | — |
 
 <!-- fin du tableau de bord -->
@@ -35,15 +35,15 @@ reprend sa tâche. Aucun PNJ ne s'arrête dans une porte ou un couloir.
   - Reste : —
 
 - [ ] **LK18-T02** — Action « s'écarter », signalement du blocage par l'exécutant
-  - État : `à faire`
+  - État : `testé hors jeu`
   - Cible : `MP`
   - Dépend de : LK18-T01
   - Fichiers : exécutant (signalement d'un PNJ voisin sur le trajet), autorité (vérification, ordre), action « s'écarter » au registre des actions ; suite en jeu dédiée dans `batman_LivingKnoxTests`
   - Faire : D01, D03 et D06. Le blocage par un PNJ est signalé à l'autorité, qui arbitre et donne l'action au bloqueur ; celui-ci s'écarte, attend le passage ou une durée bornée, puis reprend sa tâche.
   - Accepté si : en jeu, deux PNJ face à face dans une porte passent tous les deux ; un PNJ de garde sur le passage s'écarte puis revient, en solo et en MP.
   - Tests : bancs ; suite en jeu dédiée ; campagnes `solo-lk` et MP.
-  - Preuve : —
-  - Reste : —
+  - Preuve : 2026-11-15 : python tests/test_lk_step_aside.py -> Ran 21 tests ... OK ; luacheck Contents 0/0 (292 fichiers), dev 0/0 (199) ; check_case PASS.
+  - Reste : Suite en jeu lk.passage (campagnes solo-lk et mp).
 
 - [ ] **LK18-T03** — Places d'arrêt hors des portes et des couloirs
   - État : `testé hors jeu`

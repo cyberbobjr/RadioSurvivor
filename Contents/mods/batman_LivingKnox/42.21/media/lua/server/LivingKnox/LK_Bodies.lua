@@ -248,18 +248,23 @@ local function standing(o)
     return instanceof(o, "IsoZombie") and o:hasModData() and Identity().readTag(o:getModData()) ~= nil
 end
 
+-- Vrai si un personnage debout occupe la case (x, y, z) (case non chargée : faux). LK18-T02 : case de retrait d'un
+-- PNJ qui cède le passage (LK_PassageAuthority).
+function Bodies.standingOn(x, y, z)
+    local sq = getCell():getGridSquare(x, y, z)
+    if sq == nil then return false end
+    local objects = sq:getMovingObjects()
+    for i = 0, objects:size() - 1 do
+        if standing(objects:get(i)) then return true end
+    end
+    return false
+end
+
 -- Vrai si aucun personnage debout n'occupe la case (x, y, z) ni ses 8 voisines.
 function Bodies.clearAround(x, y, z)
-    local cell = getCell()
     for dy = -1, 1 do
         for dx = -1, 1 do
-            local sq = cell:getGridSquare(x + dx, y + dy, z)
-            if sq ~= nil then
-                local objects = sq:getMovingObjects()
-                for i = 0, objects:size() - 1 do
-                    if standing(objects:get(i)) then return false end
-                end
-            end
+            if Bodies.standingOn(x + dx, y + dy, z) then return false end
         end
     end
     return true
