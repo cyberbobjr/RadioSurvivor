@@ -11,7 +11,7 @@ Comté de Knox, juillet 1993. Vous n'êtes plus seul : des voix répondent à la
 Abonnez-vous une fois, puis cochez dans la liste des mods ce que vous voulez. Radio Survivor et Living Knox fonctionnent chacun sans l'autre.
 
 [list]
-[*][b]Radio Survivor[/b] (batman_RadioSurvivor) : la radio, six voix d'IA, l'onglet Radio du carnet, les factions.
+[*][b]Radio Survivor[/b] (batman_RadioSurvivor) : la radio, des voix d'IA (six personnages et un marchand dans chaque ville), l'onglet Radio du carnet, les factions.
 [*][b]Living Knox[/b] (batman_LivingKnox) : des groupes de survivants PNJ avec foyers, besoins, routines et combats ; relations et accords.
 [*][b]Core AI[/b] (batman_CoreAI) : ce que les deux partagent : lien avec le pont, carnet entier (contacts, missions, réputation), missions, identité, historique des échanges. Le jeu l'active pour vous ; seul, il n'apporte rien de jouable.
 [/list]
@@ -23,11 +23,11 @@ Le pont est un seul programme, quel que soit votre choix.
 [h2]Ce que les mods ajoutent[/h2]
 
 [list]
-[*][b]Des voix à la radio :[/b] Walt, une infirmière, un déserteur, une famille assiégée, une station pirate et un passeur, chacun sur une vraie fréquence tirée à chaque partie. Trouvez leur fréquence sur des notes dans le butin, puis parlez avec n'importe quelle radio émettrice tenue en main ou portée sur le dos (section [b]Émettre[/b] de la fenêtre de la radio). Ils se souviennent de vous, donnent des conseils, des nouvelles et des missions.
+[*][b]Des voix à la radio :[/b] Walt, une infirmière, un déserteur, une famille assiégée, une station pirate et un marchand dans chaque ville vanilla, chacun sur une vraie fréquence tirée à chaque partie. Trouvez leur fréquence sur des notes dans le butin, puis parlez avec n'importe quelle radio émettrice tenue en main ou portée sur le dos (section [b]Émettre[/b] de la fenêtre de la radio). Ils se souviennent de vous, donnent des conseils, des nouvelles et des missions.
 [*][b]Carnet de terrain[/b] (bouton [b]Carnet[/b]) : contacts, historique radio par fréquence, missions, récompenses et réputation.
 [*][b]Groupes de survivants Living Knox :[/b] 3 à 5 groupes de PNJ humains avec un foyer, un chef, de vraies réserves, des besoins et des routines. Ils défendent et fortifient leur foyer, combattent les zombies et continuent de vivre hors écran. Colons, neutres et pillards : les pillards peuvent sommer, attaquer votre base ou se venger.
 [*][b]Missions :[/b] livrer, reconnaître, retrouver un disparu, nettoyer un lieu, récupérer une cache, faire un signal. Le serveur vérifie chaque objectif ; revenez rendre compte.
-[*][b]Secours, passeur, chronique :[/b] une famille assiégée appelle à l'aide ; le passeur de l'Ohio troque à la radio ; la station pirate lit les nouvelles du serveur et le nom des morts.
+[*][b]Secours, passeur, chronique :[/b] une famille assiégée appelle à l'aide ; chaque ville a son marchand (bateau, route ou conteneur) ; une planque n'est relevée que hors de vue de tous, quelques heures plus tard ; la station pirate lit les nouvelles du serveur et le nom des morts.
 [*][b]Dernières pages :[/b] à la mort d'un personnage, un journal manuscrit de sa vie est laissé sur le corps.
 [*][b]Réputation :[/b] mauvaise, neutre ou bonne, gagnée par les missions et tenue par le serveur.
 [/list]

@@ -37,7 +37,7 @@ les deux. Chacun fonctionne sans l'autre.
 
 | Mod | Mod ID | Ce qu'il apporte | Demande |
 |---|---|---|---|
-| Radio Survivor | `batman_RadioSurvivor` | La radio : six voix d'IA sur de vraies fréquences, l'onglet Radio du carnet, les factions | Core AI, Belt Walkie-Talkie, Signal Smoke |
+| Radio Survivor | `batman_RadioSurvivor` | La radio : des voix d'IA sur de vraies fréquences (six personnages et un marchand par ville), l'onglet Radio du carnet, les factions | Core AI, Belt Walkie-Talkie, Signal Smoke |
 | Living Knox | `batman_LivingKnox` | Des groupes de survivants PNJ : foyers, besoins, routines, combats, fortifications ; leurs relations et accords, l'onglet Équipe du carnet | Core AI. Incompatible avec Bandits! et Project A-Life |
 | Core AI | `batman_CoreAI` | Ce que les deux partagent : lien avec le pont d'IA, carnet entier (fenêtre, onglets Contacts, Missions et Réputation, vues des missions, zones sur la carte), moteur des missions, identité des personnages, historique des échanges, réputation, contacts, équipes, petits outils | Signal Smoke |
 
@@ -55,10 +55,10 @@ les deux. Chacun fonctionne sans l'autre.
 
 ### La radio (Radio Survivor)
 
-- **Six voix**, chacune sur sa propre fréquence, tirée au hasard à chaque partie : Walt, le confident sorti de la zone ;
-  Darlene, infirmière à West Point ; Cody, déserteur de la Garde nationale ; les Whitaker, famille assiégée ; le Night
-  Owl, station pirate ; Gus, passeur de l'Ohio. Chacune a son caractère, ses horaires et la radio qu'il faut pour la
-  joindre.
+- **Seize voix**, chacune sur sa propre fréquence, tirée au hasard à chaque partie : Walt, le confident sorti de la
+  zone ; Darlene, infirmière cachée à West Point ; Cody, déserteur de la Garde nationale ; les Whitaker, famille
+  assiégée ; le Night Owl, station pirate ; et un marchand dans chaque ville vanilla, dont Gus, passeur de l'Ohio à
+  Riverside. Chacune a son caractère, ses horaires et la radio qu'il faut pour la joindre.
 - **On les trouve en fouillant** : des notes du butin (page de journal, fiche de patient, avis de recherche, prospectus…)
   donnent les fréquences de la partie. Aucune liste n'est envoyée aux joueurs.
 - **On leur parle avec n'importe quelle radio émettrice** : talkie en main ou sur le dos, radio de radioamateur posée,
@@ -71,8 +71,15 @@ les deux. Chacun fonctionne sans l'autre.
   **dernières pages** : à la mort d'un personnage, son journal manuscrit est écrit et laissé sur le corps.
 - **Survivants à secourir** : une famille appelle à l'aide depuis un vrai bâtiment, avec des indices ; secourue à temps
   elle laisse une cache, sinon on trouve la scène.
-- **Le passeur de l'Ohio** : troc négocié à la radio, une traversée par semaine de jeu, échange sans contact de nuit sur
-  une berge.
+- **Un marchand par ville** : troc négocié à la radio, échange sans contact une fois tous les joueurs hors de vue.
+  Riverside, West Point, Brandenburg et Louisville ont un passeur qui vient en bateau la nuit ; Muldraugh, March Ridge,
+  Irvington et Echo Creek un marchand qui arrive en voiture au bord de la route ; à Rosewood, Ekron et Fallas Lake on
+  laisse le paiement dans un conteneur et la marchandise y apparaît plus tard.
+- **Des planques crédibles** : une voix ne récupère ce que vous avez déposé qu'une fois l'endroit hors de vue de tous et
+  quelques heures de jeu plus tard ; une mission peut proposer plusieurs planques, et la récompense est tirée au hasard
+  parmi ce que la voix peut donner.
+- **Des missions qui racontent** : reconnaissance, livraison par catégorie d'objets, nettoyage, barricadage, relais
+  radio, itinéraire, guet, objet personnel ; certaines missions s'enchaînent, et Darlene peut retourner à sa clinique.
 
 ### Le carnet et les PNJ
 

@@ -37,7 +37,7 @@ works without the other.
 
 | Mod | Mod ID | What it brings | Needs |
 |---|---|---|---|
-| Radio Survivor | `batman_RadioSurvivor` | The radio: six AI voices on real frequencies, the Radio tab of the notebook, factions | Core AI, Belt Walkie-Talkie, Signal Smoke |
+| Radio Survivor | `batman_RadioSurvivor` | The radio: AI voices on real frequencies (six characters and a trader per town), the Radio tab of the notebook, factions | Core AI, Belt Walkie-Talkie, Signal Smoke |
 | Living Knox | `batman_LivingKnox` | Groups of NPC survivors: homes, needs, routines, fights, fortifications; their relations and agreements, the Team tab of the notebook | Core AI. Not compatible with Bandits! and Project A-Life |
 | Core AI | `batman_CoreAI` | What both share: link with the AI bridge, the whole notebook (window, Contacts, Missions and Reputation tabs, mission views, map areas), missions engine, character identity, history of conversations, reputation, contacts, teams, small tools | Signal Smoke |
 
@@ -56,10 +56,10 @@ works without the other.
 
 ### The radio (Radio Survivor)
 
-- **Six voices**, each on its own frequency, rolled at random for every game: Walt, the confidant who made it out of
-  the Zone; Darlene, a nurse in West Point; Cody, a National Guard deserter; the Whitakers, a family under siege; the
-  Night Owl, a pirate station; Gus, a smuggler on the Ohio. Each one has its own personality, its own hours and the
-  radio you need to reach it.
+- **Sixteen voices**, each on its own frequency, rolled at random for every game: Walt, the confidant who made it out
+  of the Zone; Darlene, a nurse hiding in West Point; Cody, a National Guard deserter; the Whitakers, a family under
+  siege; the Night Owl, a pirate station; and a trader in every vanilla town, Gus on the Ohio at Riverside among them.
+  Each one has its own personality, its own hours and the radio you need to reach it.
 - **You find them by looting**: notes in the loot (diary page, patient chart, missing person notice, flyer…) give this
   game's frequencies. No list is ever sent to the players.
 - **You talk to them with any radio that can transmit**: a walkie-talkie in hand or on your back, a placed HAM radio, a
@@ -72,8 +72,14 @@ works without the other.
   **last pages**: when a character dies, a handwritten diary is written and left on the body.
 - **Survivors to rescue**: a family calls for help from a real building, with clues; rescued in time they leave a
   stash, otherwise you find the scene.
-- **The Ohio smuggler**: barter negotiated over the radio, one crossing per in-game week, a no-contact exchange at night
-  on a riverbank.
+- **A trader per town**: barter negotiated over the radio, a no-contact exchange once every player is out of sight.
+  Riverside, West Point, Brandenburg and Louisville get a smuggler who comes by boat at night; Muldraugh, March Ridge,
+  Irvington and Echo Creek one who drives up to the roadside; in Rosewood, Ekron and Fallas Lake you leave the payment
+  in a container and the goods appear there later.
+- **Dead drops that feel real**: a voice collects what you left only once nobody can see the spot and a few in-game
+  hours later; a job can offer several drop points, rewards are drawn at random from what the voice can give.
+- **Jobs that tell a story**: scouting, deliveries by item category, clearing, barricading, a radio relay, a route,
+  keeping watch, a personal keepsake; some jobs follow each other, and Darlene can go back to her clinic.
 
 ### The notebook and the NPCs
 

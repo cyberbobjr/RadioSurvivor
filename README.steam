@@ -11,7 +11,7 @@ Knox County, July 1993. You are not alone any more: voices answer on the radio, 
 Subscribe once, then tick in the Mods list what you want. Radio Survivor and Living Knox each work without the other.
 
 [list]
-[*][b]Radio Survivor[/b] (batman_RadioSurvivor): the radio, six AI voices, the Radio tab of the notebook, factions.
+[*][b]Radio Survivor[/b] (batman_RadioSurvivor): the radio, AI voices (six characters and a trader in every town), the Radio tab of the notebook, factions.
 [*][b]Living Knox[/b] (batman_LivingKnox): groups of NPC survivors with homes, needs, routines and fights; relations and agreements with them.
 [*][b]Core AI[/b] (batman_CoreAI): what both share: the link with the bridge, the whole notebook (contacts, missions, reputation), missions, character identity, conversation history. The game enables it for you; on its own it adds nothing playable.
 [/list]
@@ -23,11 +23,11 @@ The bridge is one program whatever you tick.
 [h2]What it adds[/h2]
 
 [list]
-[*][b]Voices on the radio:[/b] Walt, a nurse, a deserter, a besieged family, a pirate station and a smuggler, each on a real frequency drawn for each game. Find their frequency on notes in the loot, then talk with any transmitting radio held in hand or worn on the back ([b]Transmit[/b] section of the radio window). They remember you, give advice, news and missions.
+[*][b]Voices on the radio:[/b] Walt, a nurse, a deserter, a besieged family, a pirate station and a trader in every vanilla town, each on a real frequency drawn for each game. Find their frequency on notes in the loot, then talk with any transmitting radio held in hand or worn on the back ([b]Transmit[/b] section of the radio window). They remember you, give advice, news and missions.
 [*][b]Field notebook[/b] ([b]Notebook[/b] button): contacts, radio history by frequency, missions, rewards and your reputation.
 [*][b]Living Knox survivor groups:[/b] 3 to 5 groups of human NPCs with a home, a leader, real supplies, needs and routines (guard, sleep, meals, scavenging, garden). They defend and fortify their home, fight zombies, and keep living off screen. Settlers, neutrals and raiders: raiders may warn, raid your base or take revenge.
 [*][b]Missions:[/b] deliver, scout, find a missing person, clear a place, recover a stash, signal. The server checks every objective; come back and report.
-[*][b]Rescue, smuggler, chronicle:[/b] a besieged family calls for help; the Ohio smuggler trades over the radio; the pirate station reads the server news and the names of the dead.
+[*][b]Rescue, smuggler, chronicle:[/b] a besieged family calls for help; a trader in every town barters over the radio and delivers by boat, by road or in a container once you are out of sight; dead drops are collected only when nobody is watching, a few hours later; the pirate station reads the server news and the names of the dead.
 [*][b]Last pages:[/b] when a character dies, a handwritten journal of their life is left on the body.
 [*][b]Reputation:[/b] bad, neutral or good, earned through missions and kept by the server.
 [/list]
