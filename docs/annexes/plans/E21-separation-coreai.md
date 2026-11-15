@@ -2,13 +2,13 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 2 / 10 tâche(s) terminée(s).
+**Avancement.** en cours — 3 / 10 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
 | ☑ | E21-T01 | Renommer le mod commun en batman_CoreAI | `testé solo` | solo | — |
 | ☑ | E21-T02 | Living Knox sans nom de RadioSurvivor dans ses journaux et ses dossiers | `testé hors jeu` | hors jeu | E21-T01 |
-| ☐ | E21-T03 | Carnet client et interfaces dans batman_CoreAI | `testé hors jeu` | solo | E21-T01 |
+| ☑ | E21-T03 | Carnet client et interfaces dans batman_CoreAI | `testé solo` | solo | E21-T01 |
 | ☐ | E21-T04 | Carnet serveur dans batman_CoreAI | `à faire` | MP | E21-T03 |
 | ☐ | E21-T05 | Living Knox fournisseur du carnet commun | `à faire` | solo | E21-T04 |
 | ☐ | E21-T06 | RadioSurvivor sans appel à Living Knox | `à faire` | solo | E21-T04 |
@@ -87,16 +87,16 @@ qui porte le carnet et les méthodes factorisées. Les tests de Living Knox ne c
   - Preuve : commit `e3b2914` : journaux `[LK_Conversations]`, `[LK_Incidents]`, `[LK_Initiatives]` ; aucun `[RS_` dans le code de `batman_LivingKnox` hors l'adaptateur que retire E21-T05 ; `run_all.py --only conversations --only initiatives --only incidents --only lk_speech --only luacheck-contents` : `Summary: 5 passed, 0 failed`
   - Reste : commentaires qui décrivent RadioSurvivor : réécrits par E21-T05
 
-- [ ] **E21-T03** — Carnet client et interfaces dans batman_CoreAI
-  - État : `testé hors jeu`
+- [x] **E21-T03** — Carnet client et interfaces dans batman_CoreAI
+  - État : `testé solo`
   - Cible : `solo`
   - Dépend de : E21-T01
   - Fichiers : `RS_NPCProvider.lua` → `CA_NPCProvider.lua` ; `RS_Notebook.lua`, `RS_MissionViews.lua`, `MissionViews/`, `RS_MapActions.lua`, `RS_DeadDropLines.lua` et leurs traductions → `batman_CoreAI` ; parties propres aux voix inscrites depuis RadioSurvivor par registre
   - Faire : déplacer le carnet côté client et l'interface des fournisseurs dans le commun (D04) ; ce qui ne concerne que les voix (pages radio, troc) s'inscrit au carnet depuis RadioSurvivor.
   - Accepté si : le carnet s'ouvre et affiche contacts et missions avec RadioSurvivor seul, Living Knox seul, et les deux ; aucun fichier du commun ne nomme RadioSurvivor ni Living Knox.
   - Tests : bancs du carnet ; suites `rc.notebook`, `rs.*` du carnet.
-  - Preuve : commits `c4a29e1` (CA_NPCProvider, CA_MissionViews et registre des donneurs, CA_MapZones) et `ca4c530` (module réseau `CoreAI`, registre des commandes, CA_NotebookClient, onglets Contacts, Missions, Réputation dans le commun, onglet Radio dans RS_NotebookRadio) ; bancs nouveaux `test_core_npc_provider`, `test_core_mission_views`, `test_core_map_zones`, `test_core_notebook` (CoreClientRoundTripTests), `test_protocol` (scenario_notebook_module), rouges avant, verts après ; `run_all.py --keep-going` : `Summary: 188 passed, 0 failed, 0 skipped` ; luacheck Contents 5 avertissements (référence 8), dev 0 ; `check_case` PASS
-  - Reste : campagne solo ; `CA_NotebookJournal` provisoire jusqu'à la tranche 11 (E21-T04) ; libellé de la touche CoreAISelect à reformuler quand Living Knox s'en sert (E21-T05)
+  - Preuve : commits `c4a29e1` (CA_NPCProvider, CA_MissionViews et registre des donneurs, CA_MapZones) et `ca4c530` (module réseau `CoreAI`, registre des commandes, CA_NotebookClient, onglets Contacts, Missions, Réputation dans le commun, onglet Radio dans RS_NotebookRadio) ; bancs nouveaux `test_core_npc_provider`, `test_core_mission_views`, `test_core_map_zones`, `test_core_notebook` (CoreClientRoundTripTests), `test_protocol` (scenario_notebook_module), rouges avant, verts après ; `run_all.py --keep-going` : `Summary: 188 passed, 0 failed, 0 skipped` ; luacheck Contents 5 avertissements (référence 8), dev 0 ; `check_case` PASS ; commits `c4a29e1`, `ca4c530`, `f589f0a` ; `run_all.py --keep-going` : `Summary: 188 passed, 0 failed, 0 skipped` ; campagne solo des deux mods du 2026-11-15 sur `360995f` : code 1, `RST-RESULT ok=false total=281 pass=270 fail=1 error=0 skip=10` (`tools/autoclient/runs/20261115-114128-86ce56704e84`), seul échec `rs.notebook.visual` (la suite cherchait l'ancien nom de touche `RadioSurvivorSelect`, corrigée en `f589f0a`) ; relance de la suite seule sur `f589f0a` : code 0, `RST-RESULT ok=true total=3 pass=3 fail=0 error=0 skip=0` (`tools/autoclient/runs/20261115-121334-54775bb3a8b8`, 22 captures du carnet sans défaut de mise en page, raccourci Ctrl+G)
+  - Reste : Living Knox seul en jeu : campagne `solo-lk` de E21-T07 ; `CA_NotebookJournal` provisoire jusqu'à E21-T04
 
 - [ ] **E21-T04** — Carnet serveur dans batman_CoreAI
   - État : `à faire`
