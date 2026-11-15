@@ -2,7 +2,7 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 8 / 15 tâche(s) terminée(s).
+**Avancement.** en cours — 9 / 15 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
@@ -14,7 +14,7 @@
 | ☑ | E20-T06 | Objets demandés par une voix toujours déposés à une planque | `testé MP` | MP | E20-T05 |
 | ☑ | E20-T07 | Troc déclaré dans la fiche, un état par marchand | `testé MP` | MP | E20-T03, E20-T05 |
 | ☑ | E20-T08 | Missions enchaînées et état de fiche | `testé hors jeu` | hors jeu | E20-T03 |
-| ☐ | E20-T09 | Type de mission `barricade` | `testé hors jeu` | MP | E20-T01, E20-T03 |
+| ☑ | E20-T09 | Type de mission `barricade` | `testé MP` | MP | E20-T01, E20-T03 |
 | ☐ | E20-T10 | Darlene veut rentrer à sa clinique | `à faire` | MP | E20-T04, E20-T05, E20-T08, E20-T09 |
 | ☐ | E20-T11 | Un marchand par ville vanilla | `à faire` | MP | E20-T07 |
 | ☐ | E20-T12 | Type de mission `relay` (relais radio) | `à faire` | MP | E20-T01, E20-T03 |
@@ -144,16 +144,16 @@ chaque tâche avant son code.
   - Tests : banc des voix ; `tests/run_all.py`.
   - Preuve : 2026-11-15 : une mission est désignée par l'id de sa section ; `RS_MissionChain.lua` (sections disponibles, `after=` par personnage ou par équipe avec `scope=team` sur `RC_Teams.idOf`, échec/expiration/abandon = chaîne bloquée jusqu'à une nouvelle réussite, tirage pondéré `weight` à générateur injectable quand le modèle nomme un type) ; `jobs=` ne liste que les sections disponibles (texte du type + `story=`) ; `sets_state=` pose une fois l'état de récit de la voix (`RS_VoiceStory.lua`, sauvegardé, relu, envoyé au pont dans `story=`, rendu générique) ; API publique `RadioSurvivor.API.voiceStoryState(id)` (`RS_API.lua`), sans dépendance vers Living Knox ; fiches livrées inchangées (ids = types). Rouge d'abord : `test_mission_chain.py` `FAILED (failures=4, errors=6)`. Vert : `test_mission_chain.py` 7 OK (chaîne de trois missions proposée dans l'ordre, échec = chaîne bloquée, tirage pondéré, état posé une fois, sauvegardé et relu, fiche sans section = scout), `test_voice_templates.py` 12, `test_mission_registry.py` 4, `test_persona_sections.py` 11, `test_personas_server.py` 107, `test_carnet.py` 95, `test_fake_llm.py` 27, `test_rst.py` 176, `test_kahlua.py` 40, `test_rs_suites.py` 48 OK, `test_protocol.py` code 0. luacheck `Contents` 8, `dev` 0. `protocole-carnet-v2.md`, `persona-format.md`, wiki FR/EN 03 et 10 (exemple Nell chargé tel quel) mis à jour. Au passage : `test_doubles_api.py` repassé au vert (plafond de `test_voice_delivery.py` abaissé, faux sac de `test_reward_draw.py` sans méthode anonyme).
   - Reste : Une section réussie reste proposée. L'état de récit est un par voix (pas par personnage).
-- [ ] **E20-T09** — Type de mission `barricade`
-  - État : `testé hors jeu`
+- [x] **E20-T09** — Type de mission `barricade`
+  - État : `testé MP`
   - Cible : `MP`
   - Dépend de : E20-T01, E20-T03
   - Fichiers : `server/.../Missions/` (fichier du gabarit, emplacement fixé par E20-T01) ; traductions EN/FR ; bancs ; suite en jeu
   - Faire : ADR D10. Barricader `count` fenêtres et portes d'un lieu `target` (bâtiment entier) ; vérification par les barricades vanilla relevées dans 42.22 (objet de barricade et ses planches ou tôles) ; compte rendu à la radio.
   - Accepté si : banc avec doublures fidèles ; suite MP : barricades posées par le joueur comptées, objectif atteint, compte rendu accepté.
   - Tests : banc du gabarit ; campagne MP.
-  - Preuve : 2026-11-15 : gabarit `barricade` dans son fichier (`RC_MissionBarricade.lua`, déclarations `voiceName`, `voiceText`, `voiceBrief`, `mapStyle`, `params={count}`, `observe`, nouvelle déclaration `aimAt`) ; mise en place commune des types à objectif `target=` (`RS_MissionTarget.lua`, `V.registerDeclaredSetup('aimAt', …)`, refus `no_target`, `no_building`, `bad_count`) ; le serveur compte les fenêtres et portes extérieures du bâtiment barricadées (planches, tôle ou barres, un côté ou l'autre, une fois par ouverture ; déjà barricadée au départ = jamais comptée ; retirée = décomptée ; bâtiment déchargé = dernier compte) par `IsoMetaGrid.getBuildingAt`, `BuildingDef`, `getBarricadeOnSameSquare/OppositeSquare`, `IsoBarricade.getNumPlanks/isMetal/isMetalBar` (42.22 : `IsoMetaGrid.java:271-280`, `IsoDoor.java:1584-1604`, `IsoBarricade.java:90-108`, confirmé statiquement) ; vue du carnet `RS_View_Barricade.lua`, zone de carte, traductions EN/FR. Rouge d'abord : `test_mission_barricade.py` `FAILED (failures=17, errors=1)`. Vert : `test_mission_barricade.py` 14 OK (doublures rattachées à leurs classes Java, suite en jeu jouée par le vrai moteur RST sur le monde du banc), `test_mission_clear.py` 12, `test_core_missions.py` 10, `test_mod_calls_api.py` 16, `test_translations_split.py` 7, `test_doubles_api.py` OK, `test_protocol.py` code 0. luacheck `Contents` 8, `dev` 0. `persona-format.md`, wiki FR/EN 03 et 10 mis à jour. Suite en jeu `rs.voicebarricade`.
-  - Reste : campagne MP de `rs.voicebarricade`. Seules les ouvertures extérieures comptent. `RS_MissionVoice.setupOf` ne rend qu'une mise en place par gabarit : un type qui déclarerait `dropAccepts` et `aimAt` (`item`, E20-T15) devra les composer.
+  - Preuve : 2026-11-15 : gabarit `barricade` dans son fichier (`RC_MissionBarricade.lua`, déclarations `voiceName`, `voiceText`, `voiceBrief`, `mapStyle`, `params={count}`, `observe`, nouvelle déclaration `aimAt`) ; mise en place commune des types à objectif `target=` (`RS_MissionTarget.lua`, `V.registerDeclaredSetup('aimAt', …)`, refus `no_target`, `no_building`, `bad_count`) ; le serveur compte les fenêtres et portes extérieures du bâtiment barricadées (planches, tôle ou barres, un côté ou l'autre, une fois par ouverture ; déjà barricadée au départ = jamais comptée ; retirée = décomptée ; bâtiment déchargé = dernier compte) par `IsoMetaGrid.getBuildingAt`, `BuildingDef`, `getBarricadeOnSameSquare/OppositeSquare`, `IsoBarricade.getNumPlanks/isMetal/isMetalBar` (42.22 : `IsoMetaGrid.java:271-280`, `IsoDoor.java:1584-1604`, `IsoBarricade.java:90-108`, confirmé statiquement) ; vue du carnet `RS_View_Barricade.lua`, zone de carte, traductions EN/FR. Rouge d'abord : `test_mission_barricade.py` `FAILED (failures=17, errors=1)`. Vert : `test_mission_barricade.py` 14 OK (doublures rattachées à leurs classes Java, suite en jeu jouée par le vrai moteur RST sur le monde du banc), `test_mission_clear.py` 12, `test_core_missions.py` 10, `test_mod_calls_api.py` 16, `test_translations_split.py` 7, `test_doubles_api.py` OK, `test_protocol.py` code 0. luacheck `Contents` 8, `dev` 0. `persona-format.md`, wiki FR/EN 03 et 10 mis à jour. Suite en jeu `rs.voicebarricade`. Campagne MP 2026-11-15 (42.22.2, serveur dédié + 2 clients, `autoclient.py --mp --clients 2 --server-suite rs.voicebarricade,rs.missions.voicetemplates,rs.voiceretrieve,rs.voicedelivery,rs.missionrewards --server-tags world --bridge on --llm fake`) : code 0, rapport `tools/autoclient/runs/e20-t08-t09-mp/server/20261115-014943-server.txt` `OK - 14 test(s): 14 pass, 0 fail` ; `rs.voicebarricade` : « outside openings of a real building barricaded, counted by the server, then the radio report » PASS ; suites des voix inchangées après E20-T08 (`rs.missions.voicetemplates`, `rs.voiceretrieve`, `rs.voicedelivery`, `rs.missionrewards`) PASS.
+  - Reste : Seules les ouvertures extérieures comptent. `RS_MissionVoice.setupOf` ne rend qu'une mise en place par gabarit : un type qui déclarerait `dropAccepts` et `aimAt` (`item`, E20-T15) devra les composer.
 - [ ] **E20-T10** — Darlene veut rentrer à sa clinique
   - État : `à faire`
   - Cible : `MP`
