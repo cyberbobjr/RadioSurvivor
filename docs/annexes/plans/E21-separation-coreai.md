@@ -8,7 +8,7 @@
 |---|---|---|---|---|---|
 | ☑ | E21-T01 | Renommer le mod commun en batman_CoreAI | `testé solo` | solo | — |
 | ☑ | E21-T02 | Living Knox sans nom de RadioSurvivor dans ses journaux et ses dossiers | `testé hors jeu` | hors jeu | E21-T01 |
-| ☐ | E21-T03 | Carnet client et interfaces dans batman_CoreAI | `à faire` | solo | E21-T01 |
+| ☐ | E21-T03 | Carnet client et interfaces dans batman_CoreAI | `testé hors jeu` | solo | E21-T01 |
 | ☐ | E21-T04 | Carnet serveur dans batman_CoreAI | `à faire` | MP | E21-T03 |
 | ☐ | E21-T05 | Living Knox fournisseur du carnet commun | `à faire` | solo | E21-T04 |
 | ☐ | E21-T06 | RadioSurvivor sans appel à Living Knox | `à faire` | solo | E21-T04 |
@@ -88,15 +88,15 @@ qui porte le carnet et les méthodes factorisées. Les tests de Living Knox ne c
   - Reste : commentaires qui décrivent RadioSurvivor : réécrits par E21-T05
 
 - [ ] **E21-T03** — Carnet client et interfaces dans batman_CoreAI
-  - État : `à faire`
+  - État : `testé hors jeu`
   - Cible : `solo`
   - Dépend de : E21-T01
   - Fichiers : `RS_NPCProvider.lua` → `CA_NPCProvider.lua` ; `RS_Notebook.lua`, `RS_MissionViews.lua`, `MissionViews/`, `RS_MapActions.lua`, `RS_DeadDropLines.lua` et leurs traductions → `batman_CoreAI` ; parties propres aux voix inscrites depuis RadioSurvivor par registre
   - Faire : déplacer le carnet côté client et l'interface des fournisseurs dans le commun (D04) ; ce qui ne concerne que les voix (pages radio, troc) s'inscrit au carnet depuis RadioSurvivor.
   - Accepté si : le carnet s'ouvre et affiche contacts et missions avec RadioSurvivor seul, Living Knox seul, et les deux ; aucun fichier du commun ne nomme RadioSurvivor ni Living Knox.
   - Tests : bancs du carnet ; suites `rc.notebook`, `rs.*` du carnet.
-  - Preuve : —
-  - Reste : —
+  - Preuve : commits `c4a29e1` (CA_NPCProvider, CA_MissionViews et registre des donneurs, CA_MapZones) et `ca4c530` (module réseau `CoreAI`, registre des commandes, CA_NotebookClient, onglets Contacts, Missions, Réputation dans le commun, onglet Radio dans RS_NotebookRadio) ; bancs nouveaux `test_core_npc_provider`, `test_core_mission_views`, `test_core_map_zones`, `test_core_notebook` (CoreClientRoundTripTests), `test_protocol` (scenario_notebook_module), rouges avant, verts après ; `run_all.py --keep-going` : `Summary: 188 passed, 0 failed, 0 skipped` ; luacheck Contents 5 avertissements (référence 8), dev 0 ; `check_case` PASS
+  - Reste : campagne solo ; `CA_NotebookJournal` provisoire jusqu'à la tranche 11 (E21-T04) ; libellé de la touche CoreAISelect à reformuler quand Living Knox s'en sert (E21-T05)
 
 - [ ] **E21-T04** — Carnet serveur dans batman_CoreAI
   - État : `à faire`
