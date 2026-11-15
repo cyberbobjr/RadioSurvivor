@@ -3,7 +3,7 @@
 -- Aucune décision n'est prise par un client : le client propriétaire d'un corps n'exécute que des consignes LK03
 -- (LK_Directives) et ne fait que rapporter ce que son PNJ perçoit (LK_Senses).
 --
--- Modèle hybride (décision du 2026-10-08, docs/annexes/plans/LK05-perception-decisions-routines.md) :
+-- Modèle hybride (décision du 2026-10-08, docs/annexes/plans-termines/LK05-perception-decisions-routines.md) :
 --   1. Groupe, long terme (Decisions.scoreGroup, pur) : à chaque heure de jeu, chaque groupe matérialisé (au moins un
 --      membre incarné) note les objectifs de la liste fermée OBJECTIVES par utilité (0..100) d'après ses réserves
 --      (stock réel du foyer, LivingKnox.Stock.assessGroup, LK08-T07 ; sinon besoins abstraits du registre), ses
