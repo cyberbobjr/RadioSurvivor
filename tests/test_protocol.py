@@ -2669,8 +2669,14 @@ name=Map Tester
 frequencies=161.0
 actions=say,mark_map,remember
 budget.mark_map=2
-place=mill 10600,9300,0 Old mill
-place=pharmacy 11920,6905,-1 West Point <b>pharmacy</b>
+[place mill]
+at=10600,9300,0
+label=Old mill
+use=mark,target,drop
+[place pharmacy]
+at=11920,6905,-1
+label=West Point <b>pharmacy</b>
+use=mark,target,drop
 [prompt]
 You are Map Tester, a voice of the offline test bench who knows places.
 """,
@@ -2679,7 +2685,10 @@ id=mapper2
 name=Second Mapper
 frequencies=162.0
 actions=say,mark_map
-place=farm 8000,8000,0 Farm
+[place farm]
+at=8000,8000,0
+label=Farm
+use=mark,target,drop
 [prompt]
 You are Second Mapper, another voice of the offline test bench.
 """,
@@ -2688,7 +2697,10 @@ id=noplace
 name=No Place
 frequencies=163.0
 actions=say,remember
-place=mill 10600,9300,0 Old mill
+[place mill]
+at=10600,9300,0
+label=Old mill
+use=mark,target,drop
 [prompt]
 You are No Place, a voice that does not mark maps.
 """,
@@ -2747,7 +2759,8 @@ def scenario_map_bridge(tmp: Path) -> None:
     folder = tmp / "map-bridge-empty" / "personas"
     folder.mkdir(parents=True)
     (folder / "empty.txt").write_text(MAP_SHEETS["mapper2"].replace("id=mapper2", "id=empty")
-                                      .replace("place=farm 8000,8000,0 Farm\n", ""), encoding="utf-8")
+                                      .replace("[place farm]\nat=8000,8000,0\nlabel=Farm\nuse=mark,target,drop\n", ""),
+                                      encoding="utf-8")
     empty = rb.Voices(folder).get("empty")
     assert empty is not None and empty.places == [] and not rb.structured(empty)
 
@@ -3047,8 +3060,14 @@ name=Reveal Tester
 frequencies=171.0
 actions=say,reveal_area
 budget.reveal_area=2
-place=mill 10600,9300,0 Old mill
-place=far 30000,30000,0 Beyond the map
+[place mill]
+at=10600,9300,0
+label=Old mill
+use=mark,target,drop
+[place far]
+at=30000,30000,0
+label=Beyond the map
+use=mark,target,drop
 [prompt]
 You are Reveal Tester, a voice of the offline test bench who knows neighbourhoods.
 """,
@@ -3057,8 +3076,14 @@ id=both
 name=Both Tester
 frequencies=172.0
 actions=say,mark_map,reveal_area,remember
-place=mill 10600,9300,0 Old mill
-place=farm 8000,8000,0 Farm
+[place mill]
+at=10600,9300,0
+label=Old mill
+use=mark,target,drop
+[place farm]
+at=8000,8000,0
+label=Farm
+use=mark,target,drop
 [prompt]
 You are Both Tester, a voice of the offline test bench.
 """,
@@ -3075,7 +3100,10 @@ id=marker
 name=Marker Tester
 frequencies=174.0
 actions=say,mark_map
-place=mill 10600,9300,0 Old mill
+[place mill]
+at=10600,9300,0
+label=Old mill
+use=mark,target,drop
 [prompt]
 You are Marker Tester, a voice that only marks.
 """,
@@ -3368,8 +3396,11 @@ id=giver
 name=Job Giver
 frequencies=164.0
 actions=say,start_mission
-place=depot 10600,9300,0 Fuel depot
 secret=The radio mast hides the cache.
+[place depot]
+at=10600,9300,0
+label=Fuel depot
+use=mark,target,drop
 [prompt]
 You are Job Giver, a voice of the offline test bench who hands out scouting jobs.
 """

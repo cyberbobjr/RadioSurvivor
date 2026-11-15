@@ -2,7 +2,7 @@ local MissionConfig = require 'RadioSurvivorCore/RC_MissionConfig'
 local C = {
     MODULE = 'RS_Carnet',
     VoiceDelivery = {radius = 3, unseenDistance = 40, unseenMs = 10000, maxItems = 512},
-    Rewards = {order = {'cache', 'frequency', 'stashmap', 'lesson'}, lessonXP = 25, dailyXP = 100,
+    Rewards = {lessonXP = 25, dailyXP = 100,
         -- Vanilla 42.21 stash catalogue; mod-added stash maps are never mission rewards.
         vanillaStashes = {
             ['BBurgStashMap1'] = true,

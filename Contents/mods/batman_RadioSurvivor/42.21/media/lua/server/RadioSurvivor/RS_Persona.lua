@@ -1,45 +1,47 @@
--- Radio Survivor : fiches des voix radio (E05-T01), lecture et validation stricte côté serveur.
--- Format : docs/specifications-techniques/persona-format.md. Mêmes règles et mêmes messages (« line N: raison », en anglais) que
--- bridge/persona_store.py ; tests/test_personas.py compare les deux lecteurs sur les mêmes fichiers.
--- Aucun loadstring : chaque ligne est découpée et contrôlée à la main.
--- Utilisé par RS_Personas.lua (chargement et relecture à chaud des fiches, E05-T02 ; tirage des fréquences dans
--- les plages frequency_range, E05-T07).
--- Seulement de l'ASCII dans ce fichier : le lexeur Kahlua change les littéraux non ASCII en U+FFFD. Les
--- échappements d'octets UTF-8 ci-dessous donnent un seul caractère en Kahlua (une unité UTF-16, comme les
--- lignes rendues par getFileReader) et les mêmes octets sous Lua 5.1 (banc lupa).
+-- Radio Survivor : fiches des voix radio (E05-T01), lecture et validation stricte cote serveur.
+-- Format : docs/specifications-techniques/persona-format.md. Le serveur est le seul lecteur complet (E20-T03, ADR D03) :
+-- tete (lignes cle=valeur), sections [place <id>], [mission <id>], [rewards], [category <id>], puis [prompt].
+-- bridge/persona_store.py lit la tete, les lieux et le prompt avec les memes regles et les memes messages
+-- (« line N: raison », en anglais) et passe les autres sections sans les lire ; tests/test_personas.py compare les deux
+-- lecteurs, tests/test_persona_sections.py couvre ce que seul le serveur valide.
+-- Regles injectees (RS_Personas.rules, racine de composition) : template(nom) -> gabarit de mission donne par une
+-- voix (RC_Missions.voiceTemplate, schema `params` declare par le gabarit), rewards (natures de recompense de
+-- RS_Rewards.KINDS), skills (RS_Rewards.SKILLS), categories (catalogue partage personas/_categories.txt).
+-- Valeurs des parametres : RS_PersonaParams, un validateur par genre.
+-- Aucun loadstring : chaque ligne est decoupee et controlee a la main.
+-- Seulement de l'ASCII dans ce fichier : le lexeur Kahlua change les litteraux non ASCII en U+FFFD. Les
+-- echappements d'octets UTF-8 ci-dessous donnent un seul caractere en Kahlua (une unite UTF-16, comme les
+-- lignes rendues par getFileReader) et les memes octets sous Lua 5.1 (banc lupa).
 if isClient() then return end
+
+local Params = require "RadioSurvivor/RS_PersonaParams"
 
 local Persona = {}
 
 Persona.FORMAT = "1"
 Persona.SEPARATOR = "[prompt]"
 local BOM = "\239\187\191"          -- U+FEFF
-local REPLACEMENT = "\239\191\189"  -- U+FFFD : octets UTF-8 invalides décodés par InputStreamReader
+local REPLACEMENT = "\239\191\189"  -- U+FFFD : octets UTF-8 invalides decodes par InputStreamReader
 
 local ACTION_LIST = { "say", "mark_map", "reveal_area", "signal", "place_cache", "place_scene", "start_mission",
     "persona_state", "remember", "propose_trade", "report_mission", "share_frequency" }
 local RADIO_LIST = { "any", "high_tier" }
 local LOCATION_LIST = { "none", "fixed", "rescue" }
--- E20-T02 (ADR D03) : missions= et cache_table= ne sont controles que pour leur syntaxe (nom) ; le serveur refuse et
--- journalise a l'execution un type de mission ou une table sans proprietaire inscrit.
-local REWARDS = { "cache", "frequency", "stashmap", "lesson" }
-local TEACHES = { "Doctor", "Aiming", "Reloading", "Woodwork", "Mechanics", "Electricity", "MetalWelding",
-    "Cooking", "Farming", "Fishing", "Trapping", "PlantScavenging" }
 local STATE_LIST = { "active", "silent", "gone", "dead" }
-local KEY_LIST = { "format", "id", "name", "language", "frequencies", "frequency_range", "radio", "listen",
-    "location", "coords", "knows", "ignores", "secret", "place", "actions", "budget", "call_one_in", "call_text",
-    "state", "cache_table", "shares", "teaches", "missions", "rewards" }
+-- Usages d'un lieu (ADR D04) : mark (repere donnable : mark_map, reveal_area, repere de fin de mission), target
+-- (objectif d'une mission), drop (planque : depot de deliver, cache de recompense), landing (rendez-vous du troc).
+local USE_LIST = { "mark", "target", "drop", "landing" }
 -- Puis frequencies ou frequency_range (l'une des deux, pas les deux : E05-T07).
 local REQUIRED = { "format", "id", "name" }
 local MIN_KHZ, MAX_KHZ, STEP_KHZ = 1000, 999800, 200
 local MAX_COUNT = 999999
 local MAX_CALL_ONE_IN = 1000
--- Lieux connus de la voix (E07-T04, action mark_map) : au plus MAX_PLACES lignes place=, libellé d'au plus
--- MAX_PLACE_LABEL_BYTES octets en UTF-8 (comptés comme le pont, voir utf8Bytes).
+-- Lieux connus de la voix : au plus MAX_PLACES sections [place], libelle d'au plus MAX_PLACE_LABEL_BYTES octets en
+-- UTF-8 (comptes comme le pont, voir utf8Bytes).
 local MAX_PLACES = 12
 local MAX_PLACE_LABEL_BYTES = 48
 Persona.MAX_PLACES = MAX_PLACES
--- Kahlua : un littéral d'octets UTF-8 devient un seul caractère (une unité UTF-16) ; Lua 5.1 (banc lupa) : 2 octets.
+-- Kahlua : un litteral d'octets UTF-8 devient un seul caractere (une unite UTF-16) ; Lua 5.1 (banc lupa) : 2 octets.
 local KAHLUA = string.len("\195\169") == 1
 local function set(list)
     local s = {}
@@ -48,11 +50,13 @@ local function set(list)
 end
 
 local ACTIONS = set(ACTION_LIST)
-local KEYS = set(KEY_LIST)
-local REPEATABLE = set({ "knows", "ignores", "secret", "place" })
+local REPEATABLE = set({ "knows", "ignores", "secret" })
 Persona.ACTIONS = ACTION_LIST
+-- Sans regles (banc, fiche sans section) : aucun gabarit, aucune nature de recompense, aucune categorie.
+local function noTemplate() return nil end
+local NO_RULES = { template = noTemplate, rewards = {}, skills = {}, categories = {} }
 
--- Erreur : levée par error({ line, reason }) dans l'analyse, rendue en « line N: reason ».
+-- Erreur : levee par error({ line, reason }) dans l'analyse, rendue en « line N: reason ».
 local function fail(line, reason)
     error({ rsPersonaLine = line, reason = reason }, 0)
 end
@@ -72,18 +76,22 @@ local function contains(list, value)
     return false
 end
 
--- Découpe sur les virgules ; chaque morceau sans espaces autour.
-local function splitList(value)
+-- Decoupe sur un separateur d'un caractere ; chaque morceau sans espaces autour.
+local function split(value, sep)
     local parts, start = {}, 1
     while true do
-        local comma = string.find(value, ",", start, true)
-        if not comma then
+        local at = string.find(value, sep, start, true)
+        if not at then
             parts[#parts + 1] = trim(string.sub(value, start))
             return parts
         end
-        parts[#parts + 1] = trim(string.sub(value, start, comma - 1))
-        start = comma + 1
+        parts[#parts + 1] = trim(string.sub(value, start, at - 1))
+        start = at + 1
     end
+end
+
+local function splitList(value)
+    return split(value, ",")
 end
 
 local function digitsOnly(s, maxLen)
@@ -98,7 +106,15 @@ local function count(value, key, line, maximum)
     return tonumber(value)
 end
 
--- Une fréquence en MHz à une décimale, rendue en kHz.
+-- Poids d'un tirage : entier de 1 a MAX_COUNT.
+local function weight(value, key, line)
+    if not digitsOnly(value, 6) or tonumber(value) < 1 then
+        fail(line, "bad " .. key .. " '" .. value .. "' (whole number from 1 to " .. tostring(MAX_COUNT) .. ")")
+    end
+    return tonumber(value)
+end
+
+-- Une frequence en MHz a une decimale, rendue en kHz.
 local function oneFrequency(part, line)
     local whole, tenth = string.match(part, "^([0-9]+)%.([0-9])$")
     if not whole or string.len(whole) > 3 then
@@ -163,18 +179,25 @@ local function listen(value, line)
     return result
 end
 
-local function coords(value, line)
+-- x,y,z entiers, ou nil.
+local function parseCoords(value)
     local x, y, z = string.match(value, "^([0-9]+),([0-9]+),(%-?[0-9]+)$")
     local zDigits = z and string.gsub(z, "^%-", "")
     if not x or string.len(x) > 6 or string.len(y) > 6 or string.len(zDigits) > 2
             or tonumber(z) < -32 or tonumber(z) > 31 then
-        fail(line, "bad coords '" .. value .. "' (x,y,z whole numbers, z from -32 to 31)")
+        return nil
     end
     return { x = tonumber(x), y = tonumber(y), z = tonumber(z) }
 end
 
--- Longueur en octets UTF-8, la même que len(text.encode('utf-8')) du pont. Kahlua : chaque unité UTF-16 compte
--- 1, 2 ou 3 octets, chaque moitié d'une paire de substitution 2 (4 pour la paire) ; Lua 5.1 : les octets mêmes.
+local function coords(value, line)
+    local c = parseCoords(value)
+    if not c then fail(line, "bad coords '" .. value .. "' (x,y,z whole numbers, z from -32 to 31)") end
+    return c
+end
+
+-- Longueur en octets UTF-8, la meme que len(text.encode('utf-8')) du pont. Kahlua : chaque unite UTF-16 compte
+-- 1, 2 ou 3 octets, chaque moitie d'une paire de substitution 2 (4 pour la paire) ; Lua 5.1 : les octets memes.
 local function utf8Bytes(text)
     if not KAHLUA then return string.len(text) end
     local total = 0
@@ -191,35 +214,6 @@ local function utf8Bytes(text)
     return total
 end
 
--- Une ligne place= (E07-T04) : « <id> <x>,<y>,<z> <libellé> ». places : lieux déjà lus ; placeLines : id -> ligne.
-local function place(value, line, places, placeLines)
-    local id, where, label = string.match(value, "^([^ \t]+)[ \t]+([^ \t]+)[ \t]+(.+)$")
-    if not id then
-        fail(line, "bad place '" .. value .. "' (id x,y,z label, e.g. mill 10600,9300,0 Old mill)")
-    end
-    if not string.match(id, "^[a-z0-9_]+$") or string.len(id) > 32 then
-        fail(line, "bad place id '" .. id .. "' (a to z, 0 to 9 and _, 32 characters at most)")
-    end
-    local x, y, z = string.match(where, "^([0-9]+),([0-9]+),(%-?[0-9]+)$")
-    local zDigits = z and string.gsub(z, "^%-", "")
-    if not x or string.len(x) > 6 or string.len(y) > 6 or string.len(zDigits) > 2
-            or tonumber(z) < -32 or tonumber(z) > 31 then
-        fail(line, "bad place coords '" .. where .. "' (x,y,z whole numbers, z from -32 to 31)")
-    end
-    if utf8Bytes(label) > MAX_PLACE_LABEL_BYTES then
-        fail(line, "place label of '" .. id .. "' too long (" .. tostring(MAX_PLACE_LABEL_BYTES)
-            .. " bytes of UTF-8 at most)")
-    end
-    if placeLines[id] then
-        fail(line, "duplicate place '" .. id .. "' (first set on line " .. tostring(placeLines[id]) .. ")")
-    end
-    if #places >= MAX_PLACES then
-        fail(line, "too many places (" .. tostring(MAX_PLACES) .. " at most)")
-    end
-    placeLines[id] = line
-    return { id = id, x = tonumber(x), y = tonumber(y), z = tonumber(z), label = label }
-end
-
 local function actions(value, line)
     local result = {}
     for _, part in ipairs(splitList(value)) do
@@ -234,24 +228,17 @@ local function isName(value)
     return string.match(value, "^[a-z][a-z0-9_]*$") ~= nil and string.len(value) <= 32
 end
 
-local function closedList(value, key, allowed, line)
+-- Liste sans doublon ; allowed nil : chaque entree est un nom (isName).
+local function closedList(value, key, allowed, line, hint)
     local result = {}
     for _, part in ipairs(splitList(value)) do
         if (allowed and not contains(allowed, part)) or (not allowed and not isName(part)) then
-            fail(line, "bad " .. key .. " entry '" .. part .. "'")
+            fail(line, "bad " .. key .. " entry '" .. part .. "'" .. (hint or ""))
         end
         if contains(result, part) then fail(line, "duplicate " .. key .. " entry '" .. part .. "'") end
         result[#result + 1] = part
     end
     return result
-end
-
-local function nameValue(value, key, line)
-    if not isName(value) then
-        fail(line, "bad " .. key .. " '" .. value
-            .. "' (a to z, 0 to 9 and _, starting with a letter, 32 characters at most)")
-    end
-    return value
 end
 
 local function choice(value, key, list, line)
@@ -261,104 +248,446 @@ local function choice(value, key, list, line)
     return value
 end
 
-local function parse(lines, expectedId)
-    local values = { knows = {}, ignores = {}, secret = {}, budgets = {}, places = {} }
-    local placeLines = {}
+-- Tete : un lecteur par cle (values : valeurs lues, value : texte, line : numero de ligne). Kahlua : une erreur levee
+-- a travers une fonction anonyme rangee dans une table casse pcall (NullPointerException « Method name is null ») ;
+-- chaque lecteur est donc une fonction locale nommee.
+local function headFormat(values, value, line)
+    if value ~= Persona.FORMAT then
+        fail(line, "unsupported format '" .. value .. "' (expected " .. Persona.FORMAT .. ")")
+    end
+    values.format = value
+end
+
+local function headId(values, value, line)
+    if not isName(value) then
+        fail(line, "bad id '" .. value .. "' (a to z, 0 to 9 and _, starting with a letter, 32 characters at most)")
+    end
+    values.id = value
+end
+
+local function headName(values, value) values.name = value end
+
+local function headLanguage(values, value, line)
+    if not string.match(value, "^[a-z][a-z]$") then
+        fail(line, "bad language '" .. value .. "' (two lowercase letters, e.g. en)")
+    end
+    values.language = value
+end
+
+local function headFrequencies(values, value, line) values.frequencies = frequencies(value, line) end
+local function headFrequencyRange(values, value, line) values.frequency_ranges = frequencyRanges(value, line) end
+local function headRadio(values, value, line) values.radio = choice(value, "radio", RADIO_LIST, line) end
+local function headListen(values, value, line) values.listen = listen(value, line) end
+local function headLocation(values, value, line) values.location = choice(value, "location", LOCATION_LIST, line) end
+local function headCoords(values, value, line) values.coords = coords(value, line) end
+local function headKnows(values, value) values.knows[#values.knows + 1] = value end
+local function headIgnores(values, value) values.ignores[#values.ignores + 1] = value end
+local function headSecret(values, value) values.secret[#values.secret + 1] = value end
+local function headShares(values, value, line) values.shares = closedList(value, "shares", nil, line) end
+local function headActions(values, value, line) values.actions = actions(value, line) end
+local function headBudget(values, value, line) values.budget = count(value, "budget", line) end
+
+local function headCallOneIn(values, value, line)
+    values.call_one_in = count(value, "call_one_in", line, MAX_CALL_ONE_IN)
+end
+
+local function headCallText(values, value, line)
+    if not string.match(value, "^[A-Za-z0-9_]+$") then
+        fail(line, "bad call_text '" .. value .. "' (translation key: A to Z, a to z, 0 to 9 and _)")
+    end
+    values.call_text = value
+end
+
+local function headState(values, value, line) values.state = choice(value, "state", STATE_LIST, line) end
+
+local HEAD = {
+    format = headFormat, id = headId, name = headName, language = headLanguage, frequencies = headFrequencies,
+    frequency_range = headFrequencyRange, radio = headRadio, listen = headListen, location = headLocation,
+    coords = headCoords, knows = headKnows, ignores = headIgnores, secret = headSecret, shares = headShares,
+    actions = headActions, budget = headBudget, call_one_in = headCallOneIn, call_text = headCallText,
+    state = headState,
+}
+
+-- Sections ----------------------------------------------------------------------------------------------------
+-- Chaque section est un gestionnaire de la table SECTIONS : rank (ordre des messages et de la resolution), example
+-- (identifiant d'exemple ; nil = section sans identifiant), repeatable (cles repetables), open(sec, ctx) a l'en-tete,
+-- key(sec, key, value, line, ctx) a chaque ligne, close(sec, ctx) a la fin de la section, resolve(sec, ctx) apres
+-- toute la fiche (references vers d'autres sections), finish(ctx) une fois apres toutes ses resolutions.
+-- sec = { name, id, line, values = { cle -> valeur }, lines = { cle -> ligne }, keys = { cles dans l'ordre } }.
+
+local function title(sec)
+    if sec.id then return "[" .. sec.name .. " " .. sec.id .. "]" end
+    return "[" .. sec.name .. "]"
+end
+
+local function unknownKey(sec, key, line)
+    fail(line, "unknown key '" .. key .. "' in " .. title(sec))
+end
+
+local function requireKeys(sec, keys)
+    for _, key in ipairs(keys) do
+        if sec.values[key] == nil then fail(sec.line, "missing key '" .. key .. "' in " .. title(sec)) end
+    end
+end
+
+-- Contexte des validateurs de RS_PersonaParams.
+local function paramsContext(ctx)
+    return { places = ctx.placeById, categories = ctx.categories, skills = ctx.rules.skills or {} }
+end
+
+local function param(kind, value, line, ctx)
+    local parsed, reason = Params.check(kind, value, paramsContext(ctx))
+    if parsed == nil then fail(line, reason) end
+    return parsed
+end
+
+-- [place <id>] : at, label, use.
+local function placeAt(sec, value, line)
+    local c = parseCoords(value)
+    if not c then fail(line, "bad place coords '" .. value .. "' (x,y,z whole numbers, z from -32 to 31)") end
+    sec.place.x, sec.place.y, sec.place.z = c.x, c.y, c.z
+end
+
+local function placeLabel(sec, value, line)
+    if utf8Bytes(value) > MAX_PLACE_LABEL_BYTES then
+        fail(line, "place label of '" .. sec.id .. "' too long (" .. tostring(MAX_PLACE_LABEL_BYTES)
+            .. " bytes of UTF-8 at most)")
+    end
+    sec.place.label = value
+end
+
+local function placeUse(sec, value, line)
+    local uses = closedList(value, "use", USE_LIST, line, " (expected " .. table.concat(USE_LIST, ", ") .. ")")
+    sec.place.uses, sec.place.use = uses, set(uses)
+end
+
+local PLACE_KEYS = { at = placeAt, label = placeLabel, use = placeUse }
+
+local function placeOpen(sec, ctx)
+    if #ctx.places >= MAX_PLACES then
+        fail(sec.line, "too many places (" .. tostring(MAX_PLACES) .. " at most)")
+    end
+    sec.place = { id = sec.id }
+end
+
+local function placeKey(sec, key, value, line)
+    local reader = PLACE_KEYS[key]
+    if not reader then unknownKey(sec, key, line) end
+    reader(sec, value, line)
+end
+
+local function placeClose(sec, ctx)
+    requireKeys(sec, { "at", "label", "use" })
+    ctx.places[#ctx.places + 1] = sec.place
+    ctx.placeById[sec.id] = sec.place
+end
+
+-- [mission <id>] : cles communes a toute mission ; les autres sont les parametres declares par le gabarit (params).
+local function missionType() end
+local function missionWeight(m, value, line) m.weight = weight(value, "weight", line) end
+local function missionAfter(m, value, line) m.after, m.afterLine = value, line end
+local function missionStory(m, value, line, ctx) m.story = param("text", value, line, ctx) end
+
+local function missionDrops(m, value, line, ctx)
+    if value == "any" then
+        for _, p in ipairs(ctx.places) do
+            if p.use.drop then m.drops[#m.drops + 1] = p.id end
+        end
+        if #m.drops == 0 then fail(line, "drops=any needs a place with use=drop") end
+        return
+    end
+    for _, id in ipairs(splitList(value)) do
+        local p = ctx.placeById[param("place", id, line, ctx)]
+        if not p.use.drop then fail(line, "place '" .. id .. "' has no use=drop") end
+        if contains(m.drops, id) then fail(line, "duplicate drops entry '" .. id .. "'") end
+        m.drops[#m.drops + 1] = id
+    end
+end
+
+local function missionTarget(m, value, line, ctx)
+    local p = ctx.placeById[param("place", value, line, ctx)]
+    if not p.use.target then fail(line, "place '" .. value .. "' has no use=target") end
+    m.target = value
+end
+
+local MISSION_KEYS = { type = missionType, weight = missionWeight, after = missionAfter, story = missionStory,
+    drops = missionDrops, target = missionTarget }
+
+local function missionKey() end  -- cles connues seulement avec le type : missionResolve
+local function missionClose(sec) requireKeys(sec, { "type" }) end
+
+local function missionResolve(sec, ctx)
+    local voiceType = sec.values.type
+    local _, template = ctx.rules.template(voiceType)
+    if not template then fail(sec.lines.type, "unknown mission type '" .. voiceType .. "'") end
+    local declared = type(template.params) == "table" and template.params or {}
+    local m = { id = sec.id, type = voiceType, weight = 1, drops = {}, params = {} }
+    for _, key in ipairs(sec.keys) do
+        local value, line = sec.values[key], sec.lines[key]
+        if MISSION_KEYS[key] then
+            MISSION_KEYS[key](m, value, line, ctx)
+        elseif declared[key] then
+            m.params[key] = param(declared[key], value, line, ctx)
+        else
+            fail(line, "unknown key '" .. key .. "' for mission type '" .. voiceType .. "'")
+        end
+    end
+    ctx.missions[#ctx.missions + 1] = m
+    ctx.missionById[m.id] = m
+end
+
+-- after= : une mission de la fiche, sans boucle.
+local function missionFinish(ctx)
+    for _, m in ipairs(ctx.missions) do
+        if m.after and not ctx.missionById[m.after] then
+            fail(m.afterLine, "unknown mission '" .. m.after .. "' in after=")
+        end
+    end
+    for _, m in ipairs(ctx.missions) do
+        local seen, step = {}, m
+        while step and step.after and not seen[step.id] do
+            seen[step.id] = true
+            step = ctx.missionById[step.after]
+            if step == m then fail(m.afterLine, "after= cycle through mission '" .. m.id .. "'") end
+        end
+    end
+    for _, m in ipairs(ctx.missions) do m.afterLine = nil end
+end
+
+-- [rewards] : pool= entrees nature:poids ou nature:parametre:poids, dans l'ordre de la fiche.
+local function rewardsKey(sec, key, _, line)
+    if key ~= "pool" then unknownKey(sec, key, line) end
+end
+
+local function rewardsClose(sec) requireKeys(sec, { "pool" }) end
+
+local function rewardsResolve(sec, ctx)
+    local line, kinds, seen = sec.lines.pool, ctx.rules.rewards or {}, {}
+    local names = {}
+    for name in pairs(kinds) do names[#names + 1] = name end
+    table.sort(names)
+    for _, entry in ipairs(splitList(sec.values.pool)) do
+        local parts = split(entry, ":")
+        if #parts < 2 or #parts > 3 then
+            fail(line, "bad reward '" .. entry .. "' (kind:weight or kind:parameter:weight, e.g. cache:medical:3)")
+        end
+        local kind = parts[1]
+        local def = kinds[kind]
+        if not def then
+            fail(line, "unknown reward '" .. kind .. "' (expected " .. table.concat(names, ", ") .. ")")
+        end
+        if def.param and #parts == 2 then
+            fail(line, "reward '" .. kind .. "' needs a parameter (kind:parameter:weight)")
+        end
+        if not def.param and #parts == 3 then
+            fail(line, "reward '" .. kind .. "' takes no parameter (kind:weight)")
+        end
+        local reward = { kind = kind, weight = weight(parts[#parts], "reward weight", line) }
+        local key = kind
+        if def.param then
+            reward.param = param(def.param, parts[2], line, ctx)
+            key = kind .. ":" .. parts[2]
+        end
+        if seen[key] then fail(line, "duplicate reward '" .. key .. "'") end
+        seen[key] = true
+        ctx.rewards[#ctx.rewards + 1] = reward
+    end
+end
+
+-- [category <id>] : item=Module.Type:quantite (quantite : genre range de RS_PersonaParams), repetable.
+local function categoryOpen(sec, ctx)
+    if ctx.rules.categories and ctx.rules.categories[sec.id] then
+        fail(sec.line, "category '" .. sec.id .. "' already exists in the shared catalogue")
+    end
+    sec.category = { id = sec.id, items = {} }
+end
+
+local function categoryKey(sec, key, value, line, ctx)
+    if key ~= "item" then unknownKey(sec, key, line) end
+    local itemType, quantity = string.match(value, "^([A-Za-z0-9_]+%.[A-Za-z0-9_]+):([^:]+)$")
+    if not itemType then
+        fail(line, "bad item '" .. value .. "' (Module.Type:quantity, e.g. Base.Bandage:2-4)")
+    end
+    for _, item in ipairs(sec.category.items) do
+        if item.type == itemType then
+            fail(line, "duplicate item '" .. itemType .. "' in " .. title(sec))
+        end
+    end
+    local range = param("range", quantity, line, ctx)
+    sec.category.items[#sec.category.items + 1] = { type = itemType, min = range.min, max = range.max }
+end
+
+local function categoryClose(sec, ctx)
+    requireKeys(sec, { "item" })
+    ctx.ownCategories[sec.id] = sec.category
+    ctx.categories[sec.id] = sec.category
+end
+
+local SECTIONS = {
+    place = { rank = 1, example = "mill", open = placeOpen, key = placeKey, close = placeClose },
+    mission = { rank = 2, example = "meds", key = missionKey, close = missionClose, resolve = missionResolve,
+        finish = missionFinish },
+    rewards = { rank = 3, key = rewardsKey, close = rewardsClose, resolve = rewardsResolve },
+    category = { rank = 4, example = "snacks", repeatable = { item = true }, open = categoryOpen, key = categoryKey,
+        close = categoryClose },
+}
+
+-- Noms de SECTIONS (ou d'un sous-ensemble) dans l'ordre de leur rang.
+local function ranked(names)
+    table.sort(names, function(a, b) return SECTIONS[a].rank < SECTIONS[b].rank end)
+    return names
+end
+
+-- En-tete « [nom] » ou « [nom id] » (espaces permis autour) -> nom, id ("" sans id) ; nil si la ligne n'en est pas un.
+local function header(text)
+    return string.match(text, "^%[[ \t]*([^ \t%]]*)[ \t]*(.-)[ \t]*%]$")
+end
+
+-- Ligne cle=valeur -> cle, valeur (cle de forme [a-z_]+, ou a.b si dotted).
+local function keyValue(text, line, dotted)
+    local eq = string.find(text, "=", 1, true)
+    if not eq then fail(line, "expected key=value or " .. Persona.SEPARATOR) end
+    local key, value = trim(string.sub(text, 1, eq - 1)), trim(string.sub(text, eq + 1))
+    if not string.match(key, "^[a-z_]+$") and not (dotted and string.match(key, "^[a-z_]+%.[a-z_]+$")) then
+        fail(line, "bad key '" .. key .. "'")
+    end
+    return key, value
+end
+
+local function emptyValue(key, value, line)
+    if value == "" then fail(line, "empty value for key '" .. key .. "'") end
+end
+
+local function newContext(rules)
+    local categories = {}
+    for id, category in pairs(rules.categories or {}) do categories[id] = category end
+    return { rules = rules, sections = {}, firstLine = {}, places = {}, placeById = {}, missions = {},
+        missionById = {}, rewards = {}, ownCategories = {}, categories = categories }
+end
+
+-- Ouvre la section de l'en-tete (allowed : noms permis ; expected : texte du message d'une section inconnue).
+local function openSection(name, id, line, ctx, allowed, expected)
+    local handler = allowed[name] and SECTIONS[name]
+    if not handler then fail(line, "unknown section '" .. name .. "' (expected " .. expected .. ")") end
+    if handler.example and id == "" then
+        fail(line, "section [" .. name .. "] needs an id, e.g. [" .. name .. " " .. handler.example .. "]")
+    end
+    if not handler.example and id ~= "" then fail(line, "section [" .. name .. "] takes no id") end
+    if id ~= "" and (not string.match(id, "^[a-z0-9_]+$") or string.len(id) > 32) then
+        fail(line, "bad " .. name .. " id '" .. id .. "' (a to z, 0 to 9 and _, 32 characters at most)")
+    end
+    local first = ctx.firstLine[name] or {}
+    ctx.firstLine[name] = first
+    if first[id] then
+        if id == "" then
+            fail(line, "duplicate section [" .. name .. "] (first set on line " .. tostring(first[id]) .. ")")
+        end
+        fail(line, "duplicate " .. name .. " '" .. id .. "' (first set on line " .. tostring(first[id]) .. ")")
+    end
+    first[id] = line
+    local sec = { name = name, id = id ~= "" and id or nil, line = line, values = {}, lines = {}, keys = {} }
+    if handler.open then handler.open(sec, ctx) end
+    local list = ctx.sections[name] or {}
+    ctx.sections[name] = list
+    list[#list + 1] = sec
+    return sec
+end
+
+local function sectionLine(sec, text, line, ctx)
+    local handler = SECTIONS[sec.name]
+    local key, value = keyValue(text, line, false)
+    if sec.lines[key] and not (handler.repeatable and handler.repeatable[key]) then
+        fail(line, "duplicate key '" .. key .. "' in " .. title(sec) .. " (first set on line "
+            .. tostring(sec.lines[key]) .. ")")
+    end
+    emptyValue(key, value, line)
+    if not sec.lines[key] then sec.keys[#sec.keys + 1] = key end
+    sec.values[key], sec.lines[key] = value, line
+    handler.key(sec, key, value, line, ctx)
+end
+
+local function closeSection(sec, ctx)
+    if sec then SECTIONS[sec.name].close(sec, ctx) end
+end
+
+-- Resolutions apres toute la fiche (references entre sections), dans l'ordre des rangs.
+local function resolveSections(ctx)
+    local names = {}
+    for name in pairs(SECTIONS) do names[#names + 1] = name end
+    for _, name in ipairs(ranked(names)) do
+        local handler = SECTIONS[name]
+        if handler.resolve then
+            for _, sec in ipairs(ctx.sections[name] or {}) do handler.resolve(sec, ctx) end
+        end
+        if handler.finish then handler.finish(ctx) end
+    end
+end
+
+local function checkRaw(raw, number)
+    if number == 1 and startsWith(raw, BOM) then
+        fail(1, "file starts with a byte order mark (save it as UTF-8 without BOM)")
+    end
+    if string.find(raw, REPLACEMENT, 1, true) then
+        fail(number, "invalid UTF-8 (save the file as UTF-8)")
+    end
+end
+
+local SHEET_SECTIONS = { place = true, mission = true, rewards = true, category = true }
+local SHEET_EXPECTED = (function()
+    local names = {}
+    for name in pairs(SHEET_SECTIONS) do names[#names + 1] = name end
+    return table.concat(ranked(names), ", ") .. " or prompt"
+end)()
+
+local function headLine(values, seen, budgetLines, text, number)
+    local key, value = keyValue(text, number, true)
+    local action = nil
+    if startsWith(key, "budget.") then
+        action = string.sub(key, string.len("budget.") + 1)
+        if not ACTIONS[action] then
+            fail(number, "unknown action '" .. action .. "' in key '" .. key .. "'")
+        end
+    elseif not HEAD[key] then
+        fail(number, "unknown key '" .. key .. "'")
+    end
+    if not REPEATABLE[key] then
+        if seen[key] then
+            fail(number, "duplicate key '" .. key .. "' (first set on line " .. tostring(seen[key]) .. ")")
+        end
+        seen[key] = number
+    end
+    emptyValue(key, value, number)
+    if action then
+        values.budgets[action] = count(value, key, number)
+        budgetLines[#budgetLines + 1] = { action = action, line = number }
+    else
+        HEAD[key](values, value, number)
+    end
+end
+
+local function parse(lines, expectedId, rules)
+    local values = { knows = {}, ignores = {}, secret = {}, budgets = {} }
+    local ctx = newContext(rules or NO_RULES)
     local seen = {}
     local budgetLines = {}
     local separator = nil
+    local current = nil
     for number, raw in ipairs(lines) do
-        if number == 1 and startsWith(raw, BOM) then
-            fail(1, "file starts with a byte order mark (save it as UTF-8 without BOM)")
-        end
-        if string.find(raw, REPLACEMENT, 1, true) then
-            fail(number, "invalid UTF-8 (save the file as UTF-8)")
-        end
+        checkRaw(raw, number)
         local text = trim(raw)
-        -- Après le séparateur : texte libre, rien à contrôler de plus.
-        if not separator and text == Persona.SEPARATOR then
-            separator = number
-        elseif not separator and text ~= "" and string.sub(text, 1, 1) ~= "#" then
-            local eq = string.find(text, "=", 1, true)
-            if not eq then fail(number, "expected key=value or " .. Persona.SEPARATOR) end
-            local key, value = trim(string.sub(text, 1, eq - 1)), trim(string.sub(text, eq + 1))
-            if not string.match(key, "^[a-z_]+$") and not string.match(key, "^[a-z_]+%.[a-z_]+$") then
-                fail(number, "bad key '" .. key .. "'")
-            end
-            local action = nil
-            if startsWith(key, "budget.") then
-                action = string.sub(key, string.len("budget.") + 1)
-                if not ACTIONS[action] then
-                    fail(number, "unknown action '" .. action .. "' in key '" .. key .. "'")
-                end
-            elseif not KEYS[key] then
-                fail(number, "unknown key '" .. key .. "'")
-            end
-            if not REPEATABLE[key] then
-                if seen[key] then
-                    fail(number, "duplicate key '" .. key .. "' (first set on line " .. tostring(seen[key]) .. ")")
-                end
-                seen[key] = number
-            end
-            if value == "" then fail(number, "empty value for key '" .. key .. "'") end
-
-            if action then
-                values.budgets[action] = count(value, key, number)
-                budgetLines[#budgetLines + 1] = { action = action, line = number }
-            elseif key == "format" then
-                if value ~= Persona.FORMAT then
-                    fail(number, "unsupported format '" .. value .. "' (expected " .. Persona.FORMAT .. ")")
-                end
-                values.format = value
-            elseif key == "id" then
-                if not string.match(value, "^[a-z][a-z0-9_]*$") or string.len(value) > 32 then
-                    fail(number, "bad id '" .. value
-                        .. "' (a to z, 0 to 9 and _, starting with a letter, 32 characters at most)")
-                end
-                values.id = value
-            elseif key == "language" then
-                if not string.match(value, "^[a-z][a-z]$") then
-                    fail(number, "bad language '" .. value .. "' (two lowercase letters, e.g. en)")
-                end
-                values.language = value
-            elseif key == "frequencies" then
-                values.frequencies = frequencies(value, number)
-            elseif key == "frequency_range" then
-                values.frequency_ranges = frequencyRanges(value, number)
-            elseif key == "radio" then
-                values.radio = choice(value, key, RADIO_LIST, number)
-            elseif key == "listen" then
-                values.listen = listen(value, number)
-            elseif key == "location" then
-                values.location = choice(value, key, LOCATION_LIST, number)
-            elseif key == "coords" then
-                values.coords = coords(value, number)
-            elseif key == "cache_table" then
-                values.cache_table = nameValue(value, key, number)
-            elseif key == "teaches" then
-                values.teaches = choice(value, key, TEACHES, number)
-            elseif key == "shares" or key == "missions" or key == "rewards" then
-                values[key] = closedList(value, key, key == "rewards" and REWARDS or nil, number)
-            elseif key == "actions" then
-                values.actions = actions(value, number)
-            elseif key == "budget" then
-                values.budget = count(value, key, number)
-            elseif key == "call_one_in" then
-                values.call_one_in = count(value, key, number, MAX_CALL_ONE_IN)
-            elseif key == "call_text" then
-                if not string.match(value, "^[A-Za-z0-9_]+$") then
-                    fail(number, "bad call_text '" .. value .. "' (translation key: A to Z, a to z, 0 to 9 and _)")
-                end
-                values.call_text = value
-            elseif key == "state" then
-                values.state = choice(value, key, STATE_LIST, number)
-            elseif key == "place" then
-                values.places[#values.places + 1] = place(value, number, values.places, placeLines)
-            elseif REPEATABLE[key] then
-                local list = values[key]
-                list[#list + 1] = value
+        -- Apres le separateur : texte libre, rien a controler de plus.
+        if not separator and text ~= "" and string.sub(text, 1, 1) ~= "#" then
+            local name, id = header(text)
+            if name == "prompt" and id == "" then
+                closeSection(current, ctx)
+                current, separator = nil, number
+            elseif name then
+                closeSection(current, ctx)
+                current = openSection(name, id, number, ctx, SHEET_SECTIONS, SHEET_EXPECTED)
+            elseif current then
+                sectionLine(current, text, number, ctx)
             else
-                values[key] = value -- name
+                headLine(values, seen, budgetLines, text, number)
             end
         end
     end
@@ -404,34 +733,70 @@ local function parse(lines, expectedId)
             fail(b.line, "budget." .. b.action .. " set but action '" .. b.action .. "' is not in actions")
         end
     end
+    resolveSections(ctx)
 
     return {
         format = values.format, id = values.id, name = values.name, frequencies = values.frequencies or {},
         frequency_ranges = values.frequency_ranges or {},
         prompt = table.concat(body, "\n"), language = values.language or "en", radio = values.radio or "any",
         listen = values.listen or {}, location = location, coords = values.coords, knows = values.knows,
-        ignores = values.ignores, secrets = values.secret, places = values.places, actions = allowed, budget = values.budget or 0,
-        budgets = values.budgets, call_one_in = values.call_one_in or 0, call_text = values.call_text or "",
-        state = values.state or "active",
-        cache_table = values.cache_table or "", shares = values.shares or {}, teaches = values.teaches or "",
-        missions = values.missions or {}, rewards = values.rewards or {},
+        ignores = values.ignores, secrets = values.secret, places = ctx.places, actions = allowed,
+        budget = values.budget or 0, budgets = values.budgets, call_one_in = values.call_one_in or 0,
+        call_text = values.call_text or "", state = values.state or "active", shares = values.shares or {},
+        missions = ctx.missions, rewards = ctx.rewards, categories = ctx.ownCategories,
     }
 end
 
--- Fiche donnée en lignes (table de chaînes, comme getFileReader les rend). expectedId : nom du fichier sans
--- « .txt », ou nil. Rend la fiche, ou nil et « line N: raison ».
-function Persona.parseLines(lines, expectedId)
-    local ok, result = pcall(parse, lines, expectedId)
+-- Catalogue partage (personas/_categories.txt) : sections [category <id>] seulement.
+local CATALOGUE_SECTIONS = { category = true }
+
+local function parseCatalogue(lines)
+    local ctx = newContext(NO_RULES)
+    local current = nil
+    for number, raw in ipairs(lines) do
+        checkRaw(raw, number)
+        local text = trim(raw)
+        if text ~= "" and string.sub(text, 1, 1) ~= "#" then
+            local name, id = header(text)
+            if name then
+                closeSection(current, ctx)
+                current = openSection(name, id, number, ctx, CATALOGUE_SECTIONS, "category")
+            elseif current then
+                sectionLine(current, text, number, ctx)
+            else
+                fail(number, "expected [category <id>]")
+            end
+        end
+    end
+    closeSection(current, ctx)
+    return ctx.ownCategories
+end
+
+-- Erreur de fiche -> nil, « line N: raison » ; toute autre erreur est une erreur de programmation, relevee telle quelle.
+local function guarded(fn, ...)
+    local ok, result = pcall(fn, ...)
     if ok then return result end
     if type(result) == "table" and result.rsPersonaLine then
         return nil, "line " .. tostring(result.rsPersonaLine) .. ": " .. result.reason
     end
-    error(result, 0) -- erreur de programmation : ne pas la déguiser en fiche refusée
+    error(result, 0) -- erreur de programmation : ne pas la deguiser en fiche refusee
 end
 
--- Fichier sous Zomboid\Lua (chemin relatif, ex. « batman_RadioSurvivor/personas/walt.txt »). Son id doit être
+-- Fiche donnee en lignes (table de chaines, comme getFileReader les rend). expectedId : nom du fichier sans
+-- « .txt », ou nil. rules : regles du serveur (RS_Personas.rules), ou nil (aucun gabarit ni recompense ni
+-- categorie : une fiche sans section [mission], [rewards] ni [category]). Rend la fiche, ou nil et « line N: raison ».
+function Persona.parseLines(lines, expectedId, rules)
+    return guarded(parse, lines, expectedId, rules)
+end
+
+-- Catalogue de categories en lignes -> table id -> { id, items = { { type, min, max } } }, ou nil et « line N: raison ».
+function Persona.parseCatalogue(lines)
+    return guarded(parseCatalogue, lines)
+end
+
+-- Fichier sous Zomboid\Lua (chemin relatif, ex. « batman_RadioSurvivor/personas/walt.txt »). Son id doit etre
 -- le nom du fichier sans « .txt ».
-function Persona.readFile(path)
+function Persona.readFile(path, rules)
     local reader = getFileReader(path, false)
     if not reader then return nil, "cannot read " .. tostring(path) end
     local lines = {}
@@ -442,7 +807,21 @@ function Persona.readFile(path)
     end
     reader:close()
     local stem = string.match(path, "([^/\\]+)%.txt$")
-    return Persona.parseLines(lines, stem)
+    return Persona.parseLines(lines, stem, rules)
+end
+
+-- Lieux de la fiche qui ont cet usage (mark, target, drop, landing), dans l'ordre de la fiche.
+function Persona.placesFor(sheet, use)
+    local out = {}
+    for _, p in ipairs(type(sheet) == "table" and type(sheet.places) == "table" and sheet.places or {}) do
+        if type(p) == "table" and type(p.use) == "table" and p.use[use] then out[#out + 1] = p end
+    end
+    return out
+end
+
+-- Premier lieu de la fiche qui a cet usage, ou nil.
+function Persona.placeFor(sheet, use)
+    return Persona.placesFor(sheet, use)[1]
 end
 
 return Persona

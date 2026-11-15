@@ -253,7 +253,8 @@ MAP_SETUP = r'''
 Actions = require 'RadioSurvivor/RS_Actions'
 MapMarks = require 'RadioSurvivor/RS_MapMarks'
 SHEET = { id = 'mapper', actions = { 'say', 'mark_map' }, budgets = {},
-    places = { { id = 'mill', x = 10600, y = 9300, z = 0, label = 'Old mill' } } }
+    places = { { id = 'mill', x = 10600, y = 9300, z = 0, label = 'Old mill', uses = { 'mark' },
+        use = { mark = true } } } }
 function markFor(username, cid, khz)
     local p = HARNESS.players[username]
     local d = Actions.decide(SHEET, username, { { type = 'mark_map', place = 'mill' } }, getTimestampMs(),
@@ -303,7 +304,8 @@ REVEAL_SETUP = r'''
 Actions = require 'RadioSurvivor/RS_Actions'
 MapMarks = require 'RadioSurvivor/RS_MapMarks'
 REVEALER = { id = 'revealer', actions = { 'say', 'reveal_area' }, budgets = {},
-    places = { { id = 'mill', x = 10600, y = 9300, z = 0, label = 'Old mill' } } }
+    places = { { id = 'mill', x = 10600, y = 9300, z = 0, label = 'Old mill', uses = { 'mark' },
+        use = { mark = true } } } }
 function revealFor(username, cid, khz)
     local p = HARNESS.players[username]
     local d = Actions.decide(REVEALER, username, { { type = 'reveal_area', place = 'mill' } }, getTimestampMs(),

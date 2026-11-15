@@ -1,0 +1,30 @@
+# Shared catalogue of item categories for the radio voices (E20-T03, ADR D04).
+# Read by the server (RS_Personas) before the voice sheets, from the mod folder only: never copied to
+# Zomboid/Lua/batman_RadioSurvivor/personas, never a voice (a file whose name starts with "_" is not a sheet).
+# A sheet cites these categories (cache:<category> in [rewards] pool=, items=<category> of a mission) and may add its
+# own [category <id>] sections, with ids not used here.
+# Format: one [category <id>] section per category, one line item=Module.Type:quantity per item, quantity a whole
+# number or a range lowest first (2-4). Contents: the fixed cache tables of RC_MissionConfig.Caches.tables.
+
+[category food]
+item=Base.TinnedBeans:2
+item=Base.TinnedSoup:2
+item=Base.CannedCorn:1
+
+[category medical]
+item=Base.Bandage:4
+item=Base.Disinfectant:1
+item=Base.Pills:1
+
+[category ammo]
+item=Base.Bullets9mm:20
+item=Base.ShotgunShells:8
+
+[category tools]
+item=Base.Hammer:1
+item=Base.Screwdriver:1
+item=Base.Nails:10
+
+[category radio]
+item=Base.WalkieTalkie2:1
+item=Base.Battery:2

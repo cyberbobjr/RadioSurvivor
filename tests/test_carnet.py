@@ -3005,8 +3005,14 @@ name=Scout Voice
 frequencies=160.0
 actions=say,start_mission
 budget.start_mission=3
-place=depot 10600,9300,0 Fuel depot
-place=farm 8000,8000,0 Old farm
+[place depot]
+at=10600,9300,0
+label=Fuel depot
+use=mark,target,drop
+[place farm]
+at=8000,8000,0
+label=Old farm
+use=mark,target,drop
 [prompt]
 You are Scout Voice, a voice of the offline test bench who gives scouting jobs.
 """

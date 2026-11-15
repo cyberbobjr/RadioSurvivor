@@ -23,17 +23,38 @@ from pathlib import Path
 import lupa.lua51 as lupa
 
 ROOT = Path(__file__).resolve().parents[1]
-LUA = ROOT / 'Contents/mods/batman_RadioSurvivor/42.21/media/lua'
+MOD = ROOT / 'Contents/mods/batman_RadioSurvivor/42.21'
+LUA = MOD / 'media/lua'
+CORE_LUA = ROOT / 'Contents/mods/batman_RadioSurvivorCore/42.21/media/lua'
 PERSONA_LUA = LUA / 'server/RadioSurvivor/RS_Persona.lua'
+LUA_PATH = ';'.join(f'{(root / side).as_posix()}/?.lua' for root in (CORE_LUA, LUA) for side in ('shared', 'server'))
+# Gabarits de mission qui s'inscrivent dans RC_Missions (deliver est déclaré par RC_Missions même).
+TEMPLATE_MODULES = ('RadioSurvivorCore/RC_MissionScout', 'RadioSurvivorCore/RC_MissionClear',
+                    'RadioSurvivorCore/RC_MissionRetrieve', 'RadioSurvivorCore/RC_MissionSignal')
+# Doublures minimales du jeu pour charger ces modules (côté autorité, solo).
+RULES_STUBS = '''
+isClient = function() return false end
+isServer = function() return false end
+Events = setmetatable({}, {__index = function(t, k) local e = {Add = function() end, Remove = function() end}
+    rawset(t, k, e) return e end})
+'''
 # Fiches livrées : seul exemplaire du dépôt, dans le mod (E05-T10).
 WALT = ROOT / 'Contents/mods/batman_RadioSurvivor/42.21/personas/walt.txt'
 sys.path.insert(0, str(ROOT / 'bridge'))
 import persona_store as store  # noqa: E402
+from signalsmoke_double import SIGNAL_SMOKE  # noqa: E402
 
 HEAD = 'format=1\nid=case\nname=Case\nfrequencies=145.0\n'
 RANGE_HEAD = 'format=1\nid=case\nname=Case\nfrequency_range=140.0-150.0\n'
 BAD_RANGE = '(two frequencies in MHz, lowest first, e.g. 140.0-150.0)'
 PROMPT = '[prompt]\nYou are a test voice.\n'
+PLACE = '[place mill]\nat=10600,9300,0\nlabel=Old mill\nuse=mark\n'
+
+
+def place(ident: str, at: str = '1,2,0', label: str = 'Place', use: str = 'mark') -> str:
+    """One [place] section of four lines."""
+    return f'[place {ident}]\nat={at}\nlabel={label}\nuse={use}\n'
+
 
 FULL = ('# fiche complète\n'
         'format=1\n'
@@ -49,8 +70,6 @@ FULL = ('# fiche complète\n'
         'knows=Les patrouilles passent à l’aube.\n'
         'ignores=Ce qui se passe en Ohio.\n'
         'secret=Elle a laissé son frère à West Point.\n'
-        'place=mill 10600,9300,0 Vieux moulin\n'
-        'place = west_point_2  11900,6900,-1 \t Pharmacie  de West Point \n'
         'actions=say, signal,mark_map\n'
         'budget=12\n'
         'budget.signal=2\n'
@@ -58,6 +77,16 @@ FULL = ('# fiche complète\n'
         'call_one_in=4\n'
         'call_text=IGUI_Test_Call\n'
         'state=silent\n'
+        '\n'
+        '[place mill]\n'
+        'at=10600,9300,0\n'
+        'label=Vieux moulin\n'
+        'use=mark\n'
+        '# lieu à deux usages\n'
+        ' [ place   west_point_2 ] \n'
+        ' at = 11900,6900,-1 \n'
+        'label= \t Pharmacie  de West Point \n'
+        'use=drop, mark\n'
         '\n'
         '[prompt]\n'
         '\n'
@@ -70,18 +99,10 @@ FULL = ('# fiche complète\n'
 # (nom, contenu, ligne et raison attendues ; None = fiche valide). Le fichier s'appelle case.txt.
 CASES: list[tuple[str, str | bytes, tuple[int, str] | None]] = [
     ('minimal', HEAD + PROMPT, None),
-    ('mission reward permissions', HEAD + 'cache_table=medical\nshares=gus,cody\nteaches=Doctor\nmissions=scout,deliver,retrieve,clear,signal\nrewards=cache,frequency,stashmap,lesson\nactions=say,share_frequency\n' + PROMPT, None),
-    ('bad cache_table', HEAD + 'cache_table=Weapon\n' + PROMPT, (5, "bad cache_table 'Weapon' (a to z, 0 to 9 and _, starting with a letter, 32 characters at most)")),
-    ('bad teaches', HEAD + 'teaches=Carpentry\n' + PROMPT, (5, "bad teaches 'Carpentry' (expected Doctor, Aiming, Reloading, Woodwork, Mechanics, Electricity, MetalWelding, Cooking, Farming, Fishing, Trapping, PlantScavenging)")),
+    ('shares', HEAD + 'shares=gus,cody\nactions=say,share_frequency\n' + PROMPT, None),
     ('bad shares', HEAD + 'shares=Gus\n' + PROMPT, (5, "bad shares entry 'Gus'")),
     ('duplicate shares', HEAD + 'shares=gus,gus\n' + PROMPT, (5, "duplicate shares entry 'gus'")),
     ('empty shares entry', HEAD + 'shares=gus,\n' + PROMPT, (5, "bad shares entry ''")),
-    ('bad missions', HEAD + 'missions=re-cover\n' + PROMPT, (5, "bad missions entry 're-cover'")),
-    ('duplicate missions', HEAD + 'missions=scout,scout\n' + PROMPT, (5, "duplicate missions entry 'scout'")),
-    ('empty missions entry', HEAD + 'missions=scout,\n' + PROMPT, (5, "bad missions entry ''")),
-    ('bad rewards', HEAD + 'rewards=gold\n' + PROMPT, (5, "bad rewards entry 'gold'")),
-    ('duplicate rewards', HEAD + 'rewards=cache,cache\n' + PROMPT, (5, "duplicate rewards entry 'cache'")),
-    ('empty rewards entry', HEAD + 'rewards=cache,\n' + PROMPT, (5, "bad rewards entry ''")),
 
     ('full', FULL, None),
     ('crlf', (HEAD + PROMPT).replace('\n', '\r\n'), None),
@@ -185,35 +206,69 @@ CASES: list[tuple[str, str | bytes, tuple[int, str] | None]] = [
     ('budget of a forbidden action', HEAD + 'actions=say\nbudget.signal=1\n' + PROMPT,
      (6, "budget.signal set but action 'signal' is not in actions")),
     ('budget of say by default', HEAD + 'budget.say=5\n' + PROMPT, None),
-    # Lieux connus (E07-T04) : place=<id> <x>,<y>,<z> <libellé>, 12 au plus, libellé de 48 octets UTF-8 au plus.
-    ('place', HEAD + 'place=mill 10600,9300,0 Old mill\n' + PROMPT, None),
-    ('place label of 48 bytes', HEAD + 'place=a 1,2,0 ' + 'é' * 24 + '\n' + PROMPT, None),
-    ('place label of 4-byte characters', HEAD + 'place=a 1,2,0 ' + '\U0001F4FB' * 12 + '\n' + PROMPT, None),
-    ('place without label', HEAD + 'place=mill 10600,9300,0\n' + PROMPT,
-     (5, "bad place 'mill 10600,9300,0' (id x,y,z label, e.g. mill 10600,9300,0 Old mill)")),
-    ('place without coords', HEAD + 'place=mill\n' + PROMPT,
-     (5, "bad place 'mill' (id x,y,z label, e.g. mill 10600,9300,0 Old mill)")),
-    ('place id upper case', HEAD + 'place=Mill 1,2,0 Old mill\n' + PROMPT,
+    # Sections (E20-T03, ADR D04) : [place <id>] lu par les deux lecteurs ; [mission], [rewards] et [category] passés
+    # par le pont (le serveur les valide : tests/test_persona_sections.py). Lieux : 12 au plus, libellé de 48 octets
+    # UTF-8 au plus.
+    ('place', HEAD + PLACE + PROMPT, None),
+    ('place with every use', HEAD + PLACE.replace('use=mark', 'use=mark,target,drop,landing') + PROMPT, None),
+    ('place label of 48 bytes', HEAD + place('a', label='é' * 24) + PROMPT, None),
+    ('place label of 4-byte characters', HEAD + place('a', label='\U0001F4FB' * 12) + PROMPT, None),
+    ('place without at', HEAD + '[place mill]\nlabel=Old mill\nuse=mark\n' + PROMPT,
+     (5, "missing key 'at' in [place mill]")),
+    ('place without label', HEAD + '[place mill]\nat=1,2,0\nuse=mark\n' + PROMPT,
+     (5, "missing key 'label' in [place mill]")),
+    ('place without use', HEAD + '[place mill]\nat=1,2,0\nlabel=Old mill\n' + PROMPT,
+     (5, "missing key 'use' in [place mill]")),
+    ('place id upper case', HEAD + PLACE.replace('[place mill]', '[place Mill]') + PROMPT,
      (5, "bad place id 'Mill' (a to z, 0 to 9 and _, 32 characters at most)")),
-    ('place id with accent', HEAD + 'place=moulïn 1,2,0 Old mill\n' + PROMPT,
+    ('place id with accent', HEAD + PLACE.replace('[place mill]', '[place moulïn]') + PROMPT,
      (5, "bad place id 'moulïn' (a to z, 0 to 9 and _, 32 characters at most)")),
-    ('place id too long', HEAD + 'place=' + 'm' * 33 + ' 1,2,0 Old mill\n' + PROMPT,
+    ('place id too long', HEAD + PLACE.replace('[place mill]', '[place ' + 'm' * 33 + ']') + PROMPT,
      (5, "bad place id '" + 'm' * 33 + "' (a to z, 0 to 9 and _, 32 characters at most)")),
-    ('place coords with two numbers', HEAD + 'place=mill 10600,9300 Old mill\n' + PROMPT,
-     (5, "bad place coords '10600,9300' (x,y,z whole numbers, z from -32 to 31)")),
-    ('place coords z out of range', HEAD + 'place=mill 1,2,-33 Old mill\n' + PROMPT,
-     (5, "bad place coords '1,2,-33' (x,y,z whole numbers, z from -32 to 31)")),
-    ('place coords too large', HEAD + 'place=mill 1234567,2,0 Old mill\n' + PROMPT,
-     (5, "bad place coords '1234567,2,0' (x,y,z whole numbers, z from -32 to 31)")),
-    ('place label too long', HEAD + 'place=a 1,2,0 ' + 'é' * 24 + 'x\n' + PROMPT,
-     (5, "place label of 'a' too long (48 bytes of UTF-8 at most)")),
-    ('place label too long in 4-byte characters', HEAD + 'place=a 1,2,0 ' + '\U0001F4FB' * 12 + 'x\n' + PROMPT,
-     (5, "place label of 'a' too long (48 bytes of UTF-8 at most)")),
-    ('duplicate place', HEAD + 'place=mill 1,2,0 Old mill\nplace=mill 3,4,0 Other mill\n' + PROMPT,
-     (6, "duplicate place 'mill' (first set on line 5)")),
-    ('twelve places', HEAD + ''.join(f'place=p{i} {i},1,0 Place {i}\n' for i in range(12)) + PROMPT, None),
-    ('thirteen places', HEAD + ''.join(f'place=p{i} {i},1,0 Place {i}\n' for i in range(13)) + PROMPT,
-     (17, 'too many places (12 at most)')),
+    ('place id with a space', HEAD + PLACE.replace('[place mill]', '[place old mill]') + PROMPT,
+     (5, "bad place id 'old mill' (a to z, 0 to 9 and _, 32 characters at most)")),
+    ('section without id', HEAD + PLACE.replace('[place mill]', '[place]') + PROMPT,
+     (5, 'section [place] needs an id, e.g. [place mill]')),
+    ('mission section without id', HEAD + '[mission]\ntype=scout\n' + PROMPT,
+     (5, 'section [mission] needs an id, e.g. [mission meds]')),
+    ('rewards section with an id', HEAD + '[rewards main]\npool=frequency:1\n' + PROMPT,
+     (5, 'section [rewards] takes no id')),
+    ('unknown section', HEAD + '[shop gus]\nstock=food\n' + PROMPT,
+     (5, "unknown section 'shop' (expected place, mission, rewards, category or prompt)")),
+    ('place coords with two numbers', HEAD + PLACE.replace('10600,9300,0', '10600,9300') + PROMPT,
+     (6, "bad place coords '10600,9300' (x,y,z whole numbers, z from -32 to 31)")),
+    ('place coords z out of range', HEAD + PLACE.replace('10600,9300,0', '1,2,-33') + PROMPT,
+     (6, "bad place coords '1,2,-33' (x,y,z whole numbers, z from -32 to 31)")),
+    ('place coords too large', HEAD + PLACE.replace('10600,9300,0', '1234567,2,0') + PROMPT,
+     (6, "bad place coords '1234567,2,0' (x,y,z whole numbers, z from -32 to 31)")),
+    ('place label too long', HEAD + place('a', label='é' * 24 + 'x') + PROMPT,
+     (7, "place label of 'a' too long (48 bytes of UTF-8 at most)")),
+    ('place label too long in 4-byte characters', HEAD + place('a', label='\U0001F4FB' * 12 + 'x') + PROMPT,
+     (7, "place label of 'a' too long (48 bytes of UTF-8 at most)")),
+    ('bad use', HEAD + PLACE.replace('use=mark', 'use=mark,hide') + PROMPT,
+     (8, "bad use entry 'hide' (expected mark, target, drop, landing)")),
+    ('duplicate use', HEAD + PLACE.replace('use=mark', 'use=mark,mark') + PROMPT, (8, "duplicate use entry 'mark'")),
+    ('empty use entry', HEAD + PLACE.replace('use=mark', 'use=mark,') + PROMPT,
+     (8, "bad use entry '' (expected mark, target, drop, landing)")),
+    ('unknown place key', HEAD + PLACE + 'colour=red\n' + PROMPT, (9, "unknown key 'colour' in [place mill]")),
+    ('head key after a section', HEAD + PLACE + 'radio=any\n' + PROMPT, (9, "unknown key 'radio' in [place mill]")),
+    ('duplicate place key', HEAD + PLACE + 'at=1,2,0\n' + PROMPT,
+     (9, "duplicate key 'at' in [place mill] (first set on line 6)")),
+    ('empty place value', HEAD + PLACE.replace('label=Old mill', 'label=') + PROMPT,
+     (7, "empty value for key 'label'")),
+    ('place line without equal sign', HEAD + PLACE + 'Old mill\n' + PROMPT, (9, 'expected key=value or [prompt]')),
+    ('duplicate place', HEAD + PLACE + PLACE.replace('10600,9300,0', '3,4,0') + PROMPT,
+     (9, "duplicate place 'mill' (first set on line 5)")),
+    ('twelve places', HEAD + ''.join(place(f'p{i}') for i in range(12)) + PROMPT, None),
+    ('thirteen places', HEAD + ''.join(place(f'p{i}') for i in range(13)) + PROMPT,
+     (53, 'too many places (12 at most)')),
+    ('duplicate mission section', HEAD + '[mission a]\ntype=scout\n[mission a]\ntype=clear\n' + PROMPT,
+     (7, "duplicate mission 'a' (first set on line 5)")),
+    ('duplicate rewards section', HEAD + '[rewards]\npool=frequency:1\n[rewards]\npool=stashmap:1\n' + PROMPT,
+     (7, 'duplicate section [rewards] (first set on line 5)')),
+    ('sections read by the server only', HEAD + PLACE.replace('use=mark', 'use=drop')
+     + '[mission meds]\ntype=deliver\nitems=medical\nquantity=2-4\ndrops=any\n'
+     + '[category snacks]\nitem=Base.Crisps:1-2\n[rewards]\npool=cache:snacks:2, frequency:1\n' + PROMPT, None),
 ]
 
 # Résumé canonique d'une fiche, identique en Python et en Lua (comparaison des deux lecteurs).
@@ -235,9 +290,9 @@ return function(p)
         p.coords and (tostring(p.coords.x) .. "," .. tostring(p.coords.y) .. "," .. tostring(p.coords.z)) or "-",
         join(p.knows, ";"), join(p.ignores, ";"), join(p.secrets, ";"),
         join(p.places, ";", function(l) return l.id .. "@" .. tostring(l.x) .. "," .. tostring(l.y) .. ","
-            .. tostring(l.z) .. "@" .. l.label end), join(p.actions, ","), tostring(p.budget),
-        table.concat(budgets, ","), tostring(p.call_one_in), p.call_text, p.state, p.prompt, p.cache_table, join(p.shares, ","), p.teaches,
-        join(p.missions, ","), join(p.rewards, ",") }, "|")
+            .. tostring(l.z) .. "@" .. l.label .. "@" .. join(l.uses, ",") end), join(p.actions, ","),
+        tostring(p.budget), table.concat(budgets, ","), tostring(p.call_one_in), p.call_text, p.state, p.prompt,
+        join(p.shares, ",") }, "|")
 end
 '''
 
@@ -248,11 +303,15 @@ def canonical(p: store.Persona) -> str:
                      ','.join(f'{a}-{b}' for a, b in p.frequency_ranges), p.radio,
                      ','.join(f'{a}-{b}' for a, b in p.listen), p.location, coords, ';'.join(p.knows),
                      ';'.join(p.ignores), ';'.join(p.secrets),
-                     ';'.join(f'{q.id}@{q.x},{q.y},{q.z}@{q.label}' for q in p.places), ','.join(p.actions),
+                     ';'.join(f'{q.id}@{q.x},{q.y},{q.z}@{q.label}@{",".join(q.uses)}' for q in p.places), ','.join(p.actions),
                      str(p.budget),
                      ','.join(f'{k}={v}' for k, v in sorted(p.budgets.items())), str(p.call_one_in), p.call_text,
-                     p.state, p.prompt, p.cache_table, ','.join(p.shares), p.teaches,
-                     ','.join(p.missions), ','.join(p.rewards)])
+                     p.state, p.prompt, ','.join(p.shares)])
+
+
+def lua_items(t) -> list:
+    """Liste Python des éléments d'un tableau Lua (indices 1..n), [] pour nil."""
+    return [t[i] for i in range(1, len(t) + 1)] if t is not None else []
 
 
 def raw_bytes(content: str | bytes) -> bytes:
@@ -280,17 +339,33 @@ class LuaReader:
 
 
 class LuaPersona:
+    """Vrai RS_Persona avec les vraies règles du serveur (E20-T03) : registre des gabarits de mission du mod commun
+    (gabarits inscrits comme au chargement du jeu, qui lit tous les fichiers serveur avant les fiches), natures de
+    récompense de RS_Rewards et catalogue de catégories livré (personas/_categories.txt), assemblés par
+    RS_Personas.rules()."""
+
     def __init__(self, folder: Path):
         self.rt = lupa.LuaRuntime(unpack_returned_tuples=True)
         g = self.rt.globals()
         g.next = None  # absent de Kahlua
-        g.isClient = lambda: False
+        self.rt.execute(RULES_STUBS)
+        self.rt.execute(SIGNAL_SMOKE)  # mod requis, chargé par le gabarit signal
         g.getFileReader = lambda name, create: (LuaReader(folder / name) if (folder / name).is_file() else None)
-        self.module = self.rt.execute(PERSONA_LUA.read_text(encoding='utf-8'))
+        g.getModFileReader = lambda mod, name, create: (
+            LuaReader(MOD / name) if mod == 'batman_RadioSurvivor' and (MOD / name).is_file() else None)
+        self.rt.execute(f'package.path = [[{LUA_PATH};]] .. package.path')
+        for module in TEMPLATE_MODULES:
+            self.rt.eval(f'require("{module}")')
+        self.module = self.rt.eval('require("RadioSurvivor/RS_Persona")')
+        self.rules = self.rt.eval('require("RadioSurvivor/RS_Personas")').rules()
         self.canonical = self.rt.execute(LUA_CANONICAL)
 
+    def read(self, name: str):
+        """Fiche lue par le serveur : table Lua, ou (None, raison)."""
+        return self.module.readFile(name, self.rules)
+
     def result(self, name: str) -> str:
-        result = self.module.readFile(name)
+        result = self.read(name)
         if isinstance(result, tuple):  # nil, reason
             return 'ERR ' + result[1]
         return 'OK ' + self.canonical(result)
@@ -337,8 +412,11 @@ class PersonaFormatTests(unittest.TestCase):
         self.assertEqual(p.knows, ['Le pont de Muldraugh est tombé.', 'Les patrouilles passent à l’aube.'])
         self.assertEqual(p.ignores, ['Ce qui se passe en Ohio.'])
         self.assertEqual(p.secrets, ['Elle a laissé son frère à West Point.'])
-        self.assertEqual(p.places, [store.Place('mill', 10600, 9300, 0, 'Vieux moulin'),
-                                    store.Place('west_point_2', 11900, 6900, -1, 'Pharmacie  de West Point')])
+        self.assertEqual(p.places, [store.Place('mill', 10600, 9300, 0, 'Vieux moulin', ('mark',)),
+                                    store.Place('west_point_2', 11900, 6900, -1, 'Pharmacie  de West Point',
+                                                ('drop', 'mark'))])
+        self.assertEqual([q.id for q in p.places_for('mark')], ['mill', 'west_point_2'])
+        self.assertEqual([q.id for q in p.places_for('drop')], ['west_point_2'])
         self.assertEqual(p.actions, ['say', 'signal', 'mark_map'])
         self.assertEqual((p.budget, p.budgets), (12, {'signal': 2, 'say': 0}))
         self.assertEqual((p.call_one_in, p.call_text), (4, 'IGUI_Test_Call'))
@@ -352,7 +430,7 @@ class PersonaFormatTests(unittest.TestCase):
                          ('en', 'any', [], 'none', None, ['say'], 0, {}, 0, '', 'active', []))
 
     def test_missing_file(self):
-        self.assertEqual(self.lua.module.readFile('absent.txt'), (None, 'cannot read absent.txt'))
+        self.assertEqual(self.lua.read('absent.txt'), (None, 'cannot read absent.txt'))
         with self.assertRaises(OSError):
             store.load_file(self.folder / 'absent.txt')
 
@@ -466,7 +544,9 @@ class DeliveredVoicesTests(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.sheets = {p.stem: store.load_file(p) for p in sorted(WALT.parent.glob('*.txt'))}
+        # Un fichier commençant par « _ » n'est pas une voix (catalogue _categories.txt, E20-T03).
+        cls.sheets = {p.stem: store.load_file(p) for p in sorted(WALT.parent.glob('*.txt'))
+                      if not p.name.startswith('_')}
 
     def test_the_six_voices_are_delivered(self):
         self.assertEqual(set(self.sheets), VOICES)
@@ -576,10 +656,7 @@ class DeliveredVoicesTests(unittest.TestCase):
                 self.assertEqual((s.language, s.radio, s.actions, s.call_one_in, s.budget, s.budgets),
                                  ('en', 'any', actions, self.CALLS[vid], 0, {}))
                 if vid in ('darlene', 'cody'):
-                    self.assertEqual(s.cache_table, 'medical' if vid == 'darlene' else 'ammo')
-                    self.assertEqual(s.teaches, 'Doctor' if vid == 'darlene' else 'Aiming')
-                    self.assertEqual(s.missions, ['scout', 'deliver', 'retrieve', 'clear', 'signal'])
-                    self.assertEqual(s.rewards, list(store.REWARDS))
+                    # Missions, récompenses et catégories : lues par le serveur seul (tests/test_persona_sections.py).
                     self.assertTrue(s.places and s.shares)
                 self.assertTrue(s.knows and s.ignores and s.secrets)
                 self.assertIn('Answer in the same language the caller uses.', s.prompt)

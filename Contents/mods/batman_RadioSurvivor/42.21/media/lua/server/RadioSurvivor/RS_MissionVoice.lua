@@ -14,7 +14,8 @@ One open mission at a time per caller and per voice; after its closure, the next
 game day, START_MISSION_COOLDOWN_MS per voice.
 
 start_mission { template }: a name declared by a registered template (RC_Missions, declaration voiceName: V.allowed,
-looked up when the action runs, after every file is loaded), further restricted by the sheet's missions list. A
+looked up when the action runs, after every file is loaded), further restricted by the types of the sheet's
+[mission] sections (RS_Persona, E20-T03; a sheet without any: scout). A
 voice-specific set-up of the mission (dead drop of `deliver`, RS_VoiceDelivery) is registered by its own file:
 V.registerSetup(voiceName, { check(sheet) -> ok, reason, apply(m, sheet, donor) }), checked before the mission is
 created and applied before it is accepted and saved. The server draws the place with the template's
@@ -34,10 +35,11 @@ to every voice whose sheet allows start_mission (RS_Actions.IMPLIED). Its execut
 mission of this voice for this caller, objective met, caller a participant (RC_Missions.spoken: template check,
 write-ahead transaction), then success. Before the objective, a call is never a report (turn 'not_yet') and the
 action is refused (not_done). Another frequency reaches another voice (or none): never this mission. Reward
-(V.reward): reputation by the engine, plus a mark_map of the first place of the voice sheet not yet given to this
-character by this voice (MapMarks.give: map mark and history line "mark", no budget). A sheet without place= lines
-(or all already given): reputation only. The place that would be given is told to the voice with turn 'report_due'
-(field reward). The mark is sent after the success is saved: a crash in between loses the mark, never the success.
+(V.reward): with a [rewards] pool, RS_Rewards; else reputation by the engine, plus a mark_map of the first place
+with use=mark of the voice sheet not yet given to this character by this voice (MapMarks.give: map mark and history
+line "mark", no budget). A sheet without such a place (or all already given): reputation only. The place that
+would be given is told to the voice with turn 'report_due' (field reward). The mark is sent after the success is
+saved: a crash in between loses the mark, never the success.
 Without the bridge the voice never answers: a voice mission waits for the bridge (or its delay); no notebook button.
 
 Bridge context (V.context, field mission= of the radio request, hex RSV2; generic since E20-T02, ADR D03): kind
@@ -47,8 +49,8 @@ Bridge context (V.context, field mission= of the radio request, hex RSV2; generi
 'success': the report was accepted; 'open': otherwise), toReport (objective met), reward (label of the place given, or
 to be given at the report), job and facts (English, composed by the template's voiceBrief from server facts). Never a
 coordinate nor the zone. Jobs this voice may give (V.jobs, field jobs=, hex RSV2, only for a sheet that allows
-start_mission): jobs = ordered list of { name, text } (names of the sheet's missions= line declared by a registered
-template, text = its voiceText) and caches = the cache tables of place_cache (RC_Caches.tableNames).
+start_mission): jobs = ordered list of { name, text } (types of the sheet's [mission] sections declared by a
+registered template, text = its voiceText) and caches = the cache tables of place_cache (RC_Caches.tableNames).
 Briefing (E11-T09): the reply that proposes start_mission is aired before the action is judged, so it cannot know the
 place. Once the mission is created, V.onStarted(m, ctx) (set by RadioSurvivor_Server) queues one more request to the
 bridge for this caller and this voice, with turn = 'briefing': the voice then says the kind of place and its clues on
@@ -65,6 +67,7 @@ local Log = require "RadioSurvivor/RS_RadioLog"
 local Bonds = require "RadioSurvivor/RS_VoiceBonds" -- E07-T10: exceptional share_frequency
 local Caches = require "RadioSurvivorCore/RC_Caches" -- E20-T02: cache tables told to the voice (jobs=)
 local MapMarks = require "RadioSurvivor/RS_MapMarks"
+local Persona = require "RadioSurvivor/RS_Persona"
 
 local V = {}
 
@@ -92,9 +95,17 @@ local function logUnknown(sheet, voiceName)
     Const.log("voice sheet " .. tostring(sheet.id) .. " lists unknown mission type '" .. tostring(voiceName) .. "'")
 end
 
--- Mission types listed by the sheet (missions= line; default: scout).
+-- Mission types the sheet gives: types of its [mission] sections, each once, in file order (default: scout).
 local function missionsOf(sheet)
-    return type(sheet.missions) == "table" and #sheet.missions > 0 and sheet.missions or {"scout"}
+    local types, seen = {}, {}
+    for _, m in ipairs(type(sheet.missions) == "table" and sheet.missions or {}) do
+        if type(m) == "table" and type(m.type) == "string" and not seen[m.type] then
+            seen[m.type] = true
+            types[#types + 1] = m.type
+        end
+    end
+    if #types == 0 then return {"scout"} end
+    return types
 end
 
 function V.donorId(voice, cid)
@@ -185,8 +196,8 @@ function V.reward(store, sheet, m, player, cid, khz)
     local d = M.donorOf(store.data, m)
     local given = d and type(d.given) == "table" and d.given or {}
     local place = nil
-    for _, p in ipairs(type(sheet.places) == "table" and sheet.places or {}) do
-        if type(p) == "table" and type(p.id) == "string" and not given[p.id] then
+    for _, p in ipairs(Persona.placesFor(sheet, "mark")) do
+        if type(p.id) == "string" and not given[p.id] then
             place = p
             break
         end
@@ -205,7 +216,8 @@ function V.reward(store, sheet, m, player, cid, khz)
     return place
 end
 
--- Place of the sheet the next success would give (first not yet given to this character by this voice), or nil.
+-- Place (use=mark) of the sheet the next success would give (first not yet given to this character by this voice),
+-- or nil.
 function V.nextPlace(state, sheet, m)
     if type(sheet.rewards) == 'table' and #sheet.rewards > 0 then
         -- No irreversible promise before the server has actually applied the effect.
@@ -213,8 +225,8 @@ function V.nextPlace(state, sheet, m)
     end
     local d = M.donorOf(state, m)
     local given = d and type(d.given) == "table" and d.given or {}
-    for _, p in ipairs(type(sheet) == "table" and type(sheet.places) == "table" and sheet.places or {}) do
-        if type(p) == "table" and type(p.id) == "string" and not given[p.id] then return p end
+    for _, p in ipairs(Persona.placesFor(sheet, "mark")) do
+        if type(p.id) == "string" and not given[p.id] then return p end
     end
     return nil
 end

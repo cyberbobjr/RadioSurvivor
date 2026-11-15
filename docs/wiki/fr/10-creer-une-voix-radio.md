@@ -72,11 +72,17 @@ de voix.
 
 ## Comment s'écrit une fiche
 
-- D'abord un en-tête de lignes `clé=valeur`, puis une ligne `[prompt]`, puis le texte libre du prompt.
-- Les lignes vides et celles qui commencent par `#` sont ignorées dans l'en-tête.
+- D'abord un en-tête de lignes `clé=valeur`, puis des **sections** facultatives, puis une ligne `[prompt]`, puis le
+  texte libre du prompt.
+- Une section commence par un titre entre crochets et regroupe ses propres lignes `clé=valeur` : `[place <id>]` (un
+  lieu), `[mission <id>]` (une mission), `[rewards]` (les récompenses), `[category <id>]` (une liste d'objets). Elle
+  s'arrête au titre suivant ou à `[prompt]`. Une ligne écrite sous un titre appartient à cette section : gardez les
+  lignes de l'en-tête au-dessus de la première section.
+- Les lignes vides et celles qui commencent par `#` sont ignorées hors du prompt.
 - Les clés inconnues et les valeurs vides sont refusées : pour garder une valeur par défaut, retirez la ligne.
-- `knows`, `ignores`, `secret` et `place` se répètent, une ligne par élément. Les autres clés apparaissent une fois.
-- Le nom du fichier et l'`id` correspondent : `mae.txt` contient `id=mae`.
+- `knows`, `ignores` et `secret` se répètent, une ligne par élément. Les autres clés de l'en-tête apparaissent une fois.
+- Le nom du fichier et l'`id` correspondent : `mae.txt` contient `id=mae`. Un fichier dont le nom commence par `_`
+  n'est pas une voix (le mod y range son catalogue d'objets, `_categories.txt`).
 
 La référence complète du format est
 [docs/specifications-techniques/persona-format.md](https://github.com/cyberbobjr/RadioSurvivor/blob/main/docs/specifications-techniques/persona-format.md).
@@ -171,16 +177,37 @@ La référence complète du format est
 | `knows` | `knows=The roads around Rosewood.` | Un fait que la voix peut utiliser. |
 | `ignores` | `ignores=What the army is planning.` | Une chose qu'elle doit dire ne pas savoir, au lieu de l'inventer. |
 | `secret` | `secret=Her son left on the first night.` | Un **trait du personnage** qu'elle ne révélera pas. |
-| `place` | `place=rosewood 8159,11661,0 Rosewood, center of town` | Un lieu qu'elle connaît, pour `mark_map`, `reveal_area` et `start_mission`. |
 
 - Une réponse qui cite un secret mot pour mot est remplacée par du grésillement (une paraphrase n'est pas détectée).
-- `place=` s'écrit `<id> <x>,<y>,<z> <libellé>`, 12 lignes au plus. L'id utilise `a`-`z`, `0`-`9`, `_` ; le libellé
-  (48 octets au plus) s'affiche tel quel sur la carte du joueur. L'IA ne voit que l'id et le libellé, jamais les
-  coordonnées.
 
 > **Important**
 > Ne mettez jamais un vrai secret du serveur dans une fiche : mots de passe, codes, fréquences cachées, position d'une
 > base de joueur. L'IA peut dire tout ce qui est dans son prompt.
+
+### Lieux — sections `[place]`
+
+Chaque lieu que la voix connaît est une section, 12 au plus :
+
+```text
+[place rosewood]
+at=8159,11661,0
+label=Rosewood, center of town
+use=mark,target
+```
+
+| Clé | À quoi ça sert |
+|---|---|
+| `[place <id>]` | Identifiant du lieu : `a`-`z`, `0`-`9`, `_`, unique dans la fiche. |
+| `at` | Coordonnées `x,y,z` de la case (relevées sur la carte du jeu). L'IA ne les voit jamais. |
+| `label` | Nom du lieu, 48 octets au plus, affiché tel quel sur la carte du joueur. |
+| `use` | Ce que la voix fait de ce lieu, un ou plusieurs mots séparés par des virgules (ci-dessous). |
+
+- `mark` : un **repère** qu'elle peut vous donner (`mark_map`, `reveal_area`, repère offert à la fin d'une mission
+  sans section `[rewards]`). L'IA ne voit que l'id et le libellé de ces lieux.
+- `target` : un **objectif** de mission (`target=` d'une section `[mission]`).
+- `drop` : une **planque**. Les dépôts des missions `deliver` s'y font, à tour de rôle ; une récompense `cache` est
+  posée au premier lieu `drop` de la fiche (à défaut, à son premier lieu).
+- `landing` : un rendez-vous de marchand (réservé au troc, sans effet pour l'instant).
 
 ### Actions
 
@@ -228,8 +255,8 @@ Toujours permise, même si vous ne l'écrivez pas. La voix vous répond à la ra
 
 - **En jeu :** la voix dit « je te le marque sur ta carte » et **un symbole apparaît sur votre carte du monde**, à
   l'un des lieux qu'elle connaît.
-- **Il faut dans la fiche :** au moins une ligne `place=` (les lieux que la voix connaît). La voix ne peut marquer
-  **que** ces lieux, jamais une position inventée.
+- **Il faut dans la fiche :** au moins un lieu `[place]` avec `use=mark`. La voix ne peut marquer **que** ces lieux,
+  jamais une position inventée.
 - **Conséquences :** le repère n'apparaît que chez le joueur qui parle, pas chez les autres.
 - **Limites :** 30 secondes réelles entre deux repères de la voix ; plafond par jour de jeu avec `budget.mark_map`.
 
@@ -237,18 +264,26 @@ Toujours permise, même si vous ne l'écrivez pas. La voix vous répond à la ra
 
 - **En jeu :** la voix décrit un quartier qu'elle connaît et **la zone se dévoile sur votre carte** (comme si vous
   aviez trouvé une carte locale).
-- **Il faut dans la fiche :** au moins une ligne `place=` ; la zone révélée est centrée sur l'un de ces lieux.
+- **Il faut dans la fiche :** au moins un lieu `[place]` avec `use=mark` ; la zone révélée est centrée sur l'un de
+  ces lieux.
 - **Conséquences :** seulement chez le joueur qui parle.
 - **Limites :** un carré de 160 cases de côté au plus ; 60 secondes réelles entre deux révélations ; plafond par jour
   avec `budget.reveal_area`.
 
 #### Missions et récompenses — `start_mission`
 
-- `missions=scout,deliver,retrieve,clear,signal` autorise reconnaissance, dépôt, recherche de papiers, nettoyage et signal Signal Smoke. Le serveur vérifie chaque objectif ; une mission par joueur et voix.
-- Les noms admis sont les types de mission inscrits par le mod (aujourd'hui `scout`, `deliver`, `retrieve`, `clear`, `signal`). `persona_store.py` ne vérifie que l'écriture du nom ; un nom bien écrit mais inconnu du mod est ignoré par le serveur, avec une ligne dans le journal du jeu (`console.txt`) : `voice sheet <id> lists unknown mission type '<nom>'`. La voix garde ses autres missions.
-- **Il faut :** que le joueur ait le carnet. Le bâtiment est choisi par le serveur, jamais par l'IA.
-- **Récompense :** réputation et une récompense autorisée par `rewards=cache,frequency,stashmap,lesson`. Le serveur suit cet ordre cyclique par joueur et voix, saute les effets indisponibles et mémorise son choix. L'IA ne choisit ni récompense ni contenu. Sans `rewards`, l'ancien repère reste disponible ; sans `missions`, seul `scout` est permis.
-- Une cache contient des objets réels de `cache_table`, au premier `place=` ; une seule par mission, pose différée si le lieu est déchargé et repère privé. `shares` limite les autres voix actives dont la fréquence peut entrer dans le carnet du bénéficiaire. Une carte-cachette vanilla mène à une planque inexplorée : une par joueur et voix. `teaches` fixe la compétence enseignée.
+- Chaque mission que la voix peut confier est une section `[mission <id>]` avec son `type` : `scout`
+  (reconnaissance), `deliver` (dépôt de matériel), `retrieve` (recherche de papiers), `clear` (nettoyage), `signal`
+  (signal Signal Smoke). Le serveur vérifie chaque objectif ; une mission par joueur et voix. Sans aucune section
+  `[mission]`, seul `scout` est permis. Détail des clés : [Missions, récompenses et objets](#missions-récompenses-et-objets).
+- **Il faut :** que le joueur ait le carnet. Le bâtiment est choisi par le serveur, jamais par l'IA ; une mission
+  `deliver` demande au moins un lieu `use=drop`.
+- **Récompense :** réputation et une récompense de la section `[rewards]`. L'IA ne choisit ni récompense ni contenu.
+  Sans section `[rewards]`, la voix vous offre le repère d'un de ses lieux `use=mark`.
+- Une cache contient des objets réels de sa catégorie, au premier lieu `use=drop` ; une seule par mission, pose
+  différée si le lieu est déchargé et repère privé. `shares` limite les autres voix actives dont la fréquence peut
+  entrer dans le carnet du bénéficiaire. Une carte-cachette vanilla mène à une planque inexplorée : une par joueur et
+  voix.
 - Une leçon donne 25 XP de base, avec plafond de 100 par jour avant multiplicateur ; l'option sandbox du multiplicateur va de 0 à 5, 0 la désactive. L'expérience est donnée par le serveur, avec les règles d'apprentissage du jeu : un personnage sans bonus de métier ou de trait dans la compétence n'en reçoit qu'un quart, un personnage doué davantage.
 - **Limites :** une mission en cours à la fois par joueur et par voix ; 30 minutes réelles entre deux missions pour un
   même joueur ; plafond par jour avec `budget.start_mission`.
@@ -260,21 +295,73 @@ Toujours permise, même si vous ne l'écrivez pas. La voix vous répond à la ra
 
 #### Livraisons radio : collecte discrète
 
-Le serveur alterne boîte de dépôt convenue et sac caché au sol, à un lieu `place=` de la voix. Une boîte existante adaptée est désignée précisément sur votre carte ; sans boîte adaptée, le serveur demande un sac. Déposez le lot complet puis éloignez-vous : **tous les joueurs doivent rester à au moins 40 cases horizontalement pendant 10 secondes réelles continues**, même à un autre étage. Un retour ou un redémarrage relance le délai ; la case exacte doit être chargée avant le retrait.
+Le serveur alterne boîte de dépôt convenue et sac caché au sol, à un lieu `use=drop` de la voix (les lieux `drop`
+servent à tour de rôle). Une boîte existante adaptée est désignée précisément sur votre carte ; sans boîte adaptée, le serveur demande un sac. Déposez le lot complet puis éloignez-vous : **tous les joueurs doivent rester à au moins 40 cases horizontalement pendant 10 secondes réelles continues**, même à un autre étage. Un retour ou un redémarrage relance le délai ; la case exacte doit être chargée avant le retrait.
 
 Dans une boîte, seuls les objets demandés disparaissent : boîte et autres objets restent. Pour un sac, sac et contenu disparaissent ; un sac contenant des objets étrangers au lot demandé est refusé pour éviter leur perte. Avant la collecte, vous pouvez reprendre le dépôt et rien n'est validé. **Après la collecte seulement, rendez compte à la radio**. Validation en jeu solo et MP de cette collecte : **en attente**.
 
-#### Clés des récompenses
+#### Missions, récompenses et objets
 
-| Clé | Valeurs autorisées |
+Une section par mission, puis une section `[rewards]`, et si besoin vos propres listes d'objets :
+
+```text
+[mission meds]
+type=deliver
+items=medical
+quantity=2-4
+drops=any
+weight=2
+story=I am running out of bandages.
+
+[mission look]
+type=scout
+
+[category snacks]
+item=Base.Crisps:1-2
+item=Base.Pop:1
+
+[rewards]
+pool=cache:medical:3, cache:snacks:1, frequency:1, stashmap:1, lesson:Doctor:2
+```
+
+| Clé de `[mission]` | À quoi ça sert |
 |---|---|
-| `cache_table` | Tables du mod : `medical`, `ammo`, `tools`, `food`, `radio` |
-| `shares` | IDs de voix séparés par des virgules |
-| `teaches` | `Doctor`, `Aiming`, `Reloading`, `Woodwork`, `Mechanics`, `Electricity`, `MetalWelding`, `Cooking`, `Farming`, `Fishing`, `Trapping`, `PlantScavenging` |
-| `missions` | Types inscrits par le mod : `scout`, `deliver`, `retrieve`, `clear`, `signal` |
-| `rewards` | `cache`, `frequency`, `stashmap`, `lesson` |
+| `type` | Obligatoire : `scout`, `deliver`, `retrieve`, `clear` ou `signal` (types inscrits par le mod). |
+| `weight` | Poids de la mission dans le tirage (1 par défaut). |
+| `after` | La mission n'est proposée qu'après la réussite d'une autre mission de la fiche (son id). |
+| `story` | La raison que donne la voix. |
+| `drops` | Planques de la mission : `any` (tous les lieux `use=drop`) ou une liste d'ids de lieux `use=drop`. |
+| `target` | Lieu objectif, un lieu `use=target`. |
+| autres | Les paramètres propres au type : `deliver` accepte `items` (une catégorie d'objets) et `quantity` (`4` ou `2-4`). |
 
-Clés non répétables, listes sans doublon ni entrée vide, casse exacte. Pour `missions` et `cache_table`, `persona_store.py` ne contrôle que l'écriture (lettres minuscules, chiffres et `_`, une lettre en tête) : un nom inconnu du mod est ignoré par le serveur et signalé dans `console.txt`. Validation solo et MP des nouvelles récompenses **en attente**.
+Les clés `weight`, `after`, `story`, `drops`, `target` et les paramètres de `deliver` sont **lus et vérifiés dès
+maintenant** ; les missions s'en serviront au fil des prochaines versions (tirage pondéré, missions enchaînées,
+planques au choix du joueur, quantités demandées).
+
+`[rewards]` n'a qu'une ligne, `pool=`, liste de récompenses `nature:poids` ou `nature:paramètre:poids` :
+
+| Nature | Paramètre | Ce que reçoit le joueur |
+|---|---|---|
+| `cache` | une catégorie : `cache:medical:3` | un sac d'objets de cette catégorie au premier lieu `use=drop` |
+| `frequency` | aucun | la fréquence d'une voix de `shares`, inscrite au carnet |
+| `stashmap` | aucun | une carte annotée vers une planque vanilla inexplorée |
+| `lesson` | une compétence : `lesson:Doctor:2` | de l'expérience : `Doctor`, `Aiming`, `Reloading`, `Woodwork`, `Mechanics`, `Electricity`, `MetalWelding`, `Cooking`, `Farming`, `Fishing`, `Trapping`, `PlantScavenging` |
+
+Pour l'instant, le serveur donne les natures **à tour de rôle**, par joueur et voix, dans l'ordre où elles
+apparaissent dans `pool`, en sautant celles qui ne sont pas possibles ; les poids seront utilisés par le tirage au
+hasard d'une prochaine version. Une cache prend la catégorie de la première entrée `cache` et la leçon la compétence
+de la première entrée `lesson`.
+
+**Catégories d'objets.** Le mod livre un catalogue partagé (`personas/_categories.txt` du mod) : `food`, `medical`,
+`ammo`, `tools`, `radio`. Une fiche peut ajouter les siennes avec `[category <id>]` et une ligne
+`item=Module.Type:quantité` par objet (`Base.Bandage:2-4`), avec un id absent du catalogue. Les caches de récompense
+utilisent encore les cinq catégories du catalogue : une catégorie propre à la fiche est acceptée mais ne remplit pas
+encore de cache.
+
+Le serveur est le seul à vérifier ces sections : un type de mission inconnu, un lieu absent ou sans le bon `use`, une
+catégorie inconnue ou un poids invalide fait refuser la fiche par le serveur, avec la ligne et la raison dans
+`console.txt` (la dernière version valide de la voix reste en service). `persona_store.py` ne lit que l'en-tête, les
+lieux et le prompt : il ne voit pas ces erreurs. Validation solo et MP des récompenses **en attente**.
 
 #### Actions à ne pas ajouter
 
@@ -370,19 +457,47 @@ knows=How to keep a battery alive: charge it from a car, keep it warm, switch of
 ignores=What the army or the government is planning.
 ignores=Anything that happened outside Knox County.
 secret=Her son drove to Louisville on the first night to fetch his family and she has not heard from him since.
-place=rosewood 8159,11661,0 Rosewood, center of town
-place=fallas_lake 7253,8279,0 Fallas Lake
 actions=say,remember,persona_state,mark_map,start_mission,share_frequency
-cache_table=radio
 shares=gus,darlene
-teaches=Electricity
-missions=scout,deliver,retrieve,clear,signal
-rewards=cache,frequency,stashmap,lesson
 budget=20
 budget.mark_map=4
 call_one_in=5
 call_text=IGUI_RadioSurvivor_Call_Mae
 state=active
+
+[place rosewood]
+at=8159,11661,0
+label=Rosewood, center of town
+use=mark,target,drop
+
+[place fallas_lake]
+at=7253,8279,0
+label=Fallas Lake
+use=mark
+
+[mission scout]
+type=scout
+weight=2
+story=Somebody stopped answering my roll call near there.
+
+[mission batteries]
+type=deliver
+items=radio
+quantity=1-2
+drops=any
+story=My batteries will not last the month.
+
+[mission retrieve]
+type=retrieve
+
+[mission clear]
+type=clear
+
+[mission signal]
+type=signal
+
+[rewards]
+pool=cache:radio:1, frequency:1, stashmap:1, lesson:Electricity:1
 
 [prompt]
 You are Mae Tolliver, 67, a retired schoolteacher and a licensed radio amateur who lives alone in a farmhouse a few miles outside Rosewood, Kentucky. You are a character in a survival story set in July 1993, during the "Knox Event": an infection turned people in Knox County into violent, undead "zombies", and the army sealed the county behind a fence.
@@ -432,16 +547,8 @@ knows=Which police stations and patrol cars were left behind, and that their loc
 ignores=What the army or the government is planning.
 ignores=Where his wife and son are now.
 secret=He fired on a man at the Muldraugh roadblock on the second night and still does not know if the man was sick.
-place=west_point 11654,6864,0 West Point, center of town
-place=muldraugh_pd 10644,10405,0 Muldraugh, police station
-place=muldraugh 10754,9926,0 Muldraugh, center of town
-place=march_ridge 10130,12801,0 March Ridge
 actions=say,remember,persona_state,mark_map,reveal_area,start_mission,share_frequency
-cache_table=ammo
 shares=cody,gus
-teaches=Aiming
-missions=scout,deliver,retrieve,clear,signal
-rewards=cache,frequency,stashmap,lesson
 budget=20
 budget.remember=10
 budget.persona_state=6
@@ -450,6 +557,54 @@ budget.reveal_area=2
 budget.start_mission=2
 call_one_in=6
 call_text=IGUI_RadioSurvivor_Call_Rick
+
+[place west_point]
+at=11654,6864,0
+label=West Point, center of town
+use=mark
+
+[place muldraugh_pd]
+at=10644,10405,0
+label=Muldraugh, police station
+use=mark,target,drop
+
+[place muldraugh]
+at=10754,9926,0
+label=Muldraugh, center of town
+use=mark
+
+[place march_ridge]
+at=10130,12801,0
+label=March Ridge
+use=mark,drop
+
+[mission scout]
+type=scout
+weight=3
+story=I am looking for any trace of my wife and my son.
+
+[mission ammo]
+type=deliver
+items=ammo
+quantity=1
+drops=muldraugh_pd,march_ridge
+
+[mission papers]
+type=retrieve
+after=scout
+
+[mission clear]
+type=clear
+
+[mission signal]
+type=signal
+
+[category patrol]
+item=Base.Bullets9mm:10-20
+item=Base.Battery:1-2
+
+[rewards]
+pool=cache:ammo:2, cache:patrol:1, frequency:1, stashmap:1, lesson:Aiming:2
 
 [prompt]
 You are Rick Grimes, 38, a sheriff's deputy from a small county south of Louisville, Kentucky. You are a character in a survival story set in July 1993, during the "Knox Event": an infection turned people in Knox County into violent, undead "zombies", and the army sealed the county behind a fence.
@@ -478,7 +633,9 @@ Rules:
 
 À remarquer :
 
-- Les lignes `place=` servent aux actions de carte, aux lieux de mission et au dépôt de matériel. Le serveur choisit les récompenses dans les permissions fermées ci-dessus.
+- Les sections `[place]` disent à quoi sert chaque lieu (`use`) : repères de carte, objectifs de mission,
+  planques de dépôt. Le serveur choisit les récompenses dans la liste `pool` ci-dessus ; la catégorie `patrol` de
+  Rick ne vaut que pour sa fiche.
 - Chaque action a son propre budget du jour : un appelant bavard ne peut pas révéler toute la carte en une soirée.
 - Le prompt dit **quand** utiliser les actions (« only when it helps them and they earned some trust ») ; le serveur
   les vérifie quand même toutes.
@@ -558,7 +715,7 @@ s'arrête à la première erreur, et la dernière version valide de la voix rest
 | `invalid UTF-8 (save the file as UTF-8)` | Fichier enregistré dans un autre codage (ANSI) : enregistrer en UTF-8. |
 | `expected key=value or [prompt]` | Ligne d'en-tête sans `=`, ou ligne `[prompt]` absente ou mal écrite. |
 | `unknown key 'colour'` / `bad key 'Radio'` | Faute de frappe ; les clés sont en minuscules. |
-| `duplicate key 'name' (first set on line 3)` | Garder une ligne (seules `knows`, `ignores`, `secret`, `place` se répètent). |
+| `duplicate key 'name' (first set on line 3)` | Garder une ligne (seules `knows`, `ignores`, `secret` se répètent). |
 | `empty value for key 'radio'` | Retirer la ligne pour garder la valeur par défaut. |
 | `id 'mae' does not match the file name 'mae2.txt'` | Renommer le fichier ou changer l'`id`. |
 | `bad id 'Mae' (a to z, 0 to 9 and _, starting with a letter, 32 characters at most)` | Id en minuscules. |
@@ -572,8 +729,15 @@ s'arrête à la première erreur, et la dernière version valide de la voix rest
 | `unknown action 'fly'` | Voir [Actions](#actions). |
 | `budget.mark_map set but action 'mark_map' is not in actions` | Ajouter l'action ou retirer le budget. |
 | `call_one_in needs a call_text line` | Ajouter `call_text`, ou `call_one_in=0`. |
-| `bad place 'mill 10600,9300,0' (id x,y,z label, …)` | Le libellé manque. |
+| `unknown key 'radio' in [place mill]` | Une ligne de l'en-tête écrite sous une section : la remonter au-dessus de la première section. |
+| `missing key 'use' in [place mill]` | Un lieu demande `at`, `label` et `use`. |
+| `bad use entry 'hide' (expected mark, target, drop, landing)` | Voir [Lieux](#lieux--sections-place). |
 | `place label of 'mill' too long (48 bytes of UTF-8 at most)` | Raccourcir le libellé. |
+| `unknown section 'shop' (expected place, mission, rewards, category or prompt)` | Faute de frappe dans un titre de section. |
+| `unknown mission type 'fly'` (journal du serveur seulement) | Un type du mod : `scout`, `deliver`, `retrieve`, `clear`, `signal`. |
+| `place 'clinic' has no use=drop` (journal du serveur seulement) | Ajouter `drop` au `use` de ce lieu, ou citer un autre lieu. |
+| `unknown category 'weapons'` (journal du serveur seulement) | Une catégorie du catalogue ou une `[category]` de la fiche. |
+| `bad reward weight '0' (whole number from 1 to 999999)` (journal du serveur seulement) | Les poids commencent à 1. |
 | `missing [prompt] line before the prompt text` / `empty prompt text after [prompt]` | Ajouter la ligne, puis le texte. |
 
 </details>

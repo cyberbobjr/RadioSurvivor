@@ -43,9 +43,12 @@ CORE_LUA = Path(__file__).resolve().parents[1] / 'Contents' / 'mods' / 'batman_R
 LK_LUA = Path(__file__).resolve().parents[1] / 'Contents' / 'mods' / 'batman_LivingKnox' / '42.21' / 'media' / 'lua'  # moteur des PNJ (E18-T07)
 BUNDLED = MOD / 'personas'
 BOM_BYTES = bytes([0xEF, 0xBB, 0xBF])
+CATALOGUE = '_categories.txt'   # catalogue partagé des catégories d'objets (E20-T03)
 PERSONAS_LUA = LUA / 'server/RadioSurvivor/RS_Personas.lua'
 sys.path.insert(0, str(ROOT / 'bridge'))
 import persona_store as store  # noqa: E402
+from signalsmoke_double import SIGNAL_SMOKE  # noqa: E402
+from test_personas import TEMPLATE_MODULES  # noqa: E402
 
 # Fiche livrée de Walt avec sa fréquence d'exemple fixe à la place de sa plage de tirage (E05-T07).
 WALT_FIXED = re.sub(rb'(?m)^frequency_range=.*$', b'frequencies=145.0', (BUNDLED / 'walt.txt').read_bytes())
@@ -169,6 +172,8 @@ class Harness(unittest.TestCase):
         if self.mod_dir is MOD and self.bundled is not None:
             self.mod_dir = self.tmp / 'mod'
             (self.mod_dir / 'personas').mkdir(parents=True)
+            # Le catalogue partagé est toujours livré avec le mod (E20-T03).
+            shutil.copyfile(BUNDLED / CATALOGUE, self.mod_dir / 'personas' / CATALOGUE)
             for name in self.bundled:
                 target = self.mod_dir / 'personas' / name
                 if name == 'walt.txt':
@@ -197,6 +202,13 @@ class Harness(unittest.TestCase):
             self.skipTest(beltradio_lib.missing())
         self.rt.execute(f'package.path = [[{beltradio_lib.lua_path(("shared",))};]] .. package.path')
         self.rt.execute(beltradio_lib.SUPPORT_REQUIRE)
+        # E20-T03 : gabarits de mission inscrits avant la lecture des fiches, comme au chargement du jeu (tous les
+        # fichiers serveur avant OnLoadRadioScripts) ; le gabarit signal charge le mod requis Signal Smoke.
+        self.rt.execute(SIGNAL_SMOKE)
+        self.rt.execute('Events = Events or setmetatable({}, {__index = function(t, k) local e = {Add = function() '
+                        'end, Remove = function() end} rawset(t, k, e) return e end})')
+        for module in TEMPLATE_MODULES:
+            self.rt.eval(f'require("{module}")')
         self.P = self.rt.eval('require("RadioSurvivor/RS_Personas")')
         self.Const = self.rt.eval('require("RadioSurvivor/RadioSurvivor_Const")')
 
@@ -252,8 +264,10 @@ class BundledSheetTests(unittest.TestCase):
     def test_delivered_sheets_are_valid(self):
         # E05-T04 : les six voix, rien d'autre dans le dossier ; chacune valide (lecteur Python, mêmes règles que
         # RS_Persona.lua : tests/test_personas.py), UTF-8 sans BOM.
-        bundled = sorted(p.name for p in BUNDLED.iterdir() if p.is_file())
-        self.assertEqual(bundled, sorted(f'{vid}.txt' for vid in DeliveredVoicesServerTests.VOICES))
+        # E20-T03 : plus le catalogue partagé des catégories (_categories.txt), qui n'est pas une voix.
+        files = sorted(p.name for p in BUNDLED.iterdir() if p.is_file())
+        self.assertEqual(files, sorted([CATALOGUE] + [f'{vid}.txt' for vid in DeliveredVoicesServerTests.VOICES]))
+        bundled = [name for name in files if name != CATALOGUE]
         for name in bundled:
             with self.subTest(name):
                 raw = (BUNDLED / name).read_bytes()

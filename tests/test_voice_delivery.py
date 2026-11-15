@@ -121,6 +121,8 @@ class VoiceDeliveryTests(unittest.TestCase):
     def setUp(self):
         self.rt = lupa.LuaRuntime(unpack_returned_tuples=True)
         self.rt.execute(WORLD)
+        # E20-T03: real sheet reader (dead drops are the places with use=drop).
+        self.rt.execute(f"package.path = [[{MODULE.parents[1].as_posix()}/?.lua;]] .. package.path")
         self.rt.globals().D = self.rt.execute(MODULE.read_text(encoding='utf-8-sig'))
 
     def run_lua(self, source):

@@ -9,7 +9,7 @@ report_mission) closes it (success, reputation event of M01).
 Tags "server" (authority only: solo, or RST.server from an admin client of a dedicated server) and "world" (the
 player is moved: test saves "rstest*" only). Asynchronous run (RST.start / RST.server): the move waits in steps.
 The mission lives in an in-memory state built by the test (character, store whose save does nothing): no notebook
-state, no history line, no ModData. The test sheet has no place= line: no map mark is given (reputation only).
+state, no history line, no ModData. The test sheet has no [place]: no map mark is given (reputation only).
 E11-T10: the mission keeps an approximate map area (m.mapZone) that holds the building footprint without being
 centred on it, projected to the participant only while the mission is active, never in the bridge context. Where the
 client map module is loaded with the authority (solo), the area is drawn on the world map (Circle symbol at its
@@ -140,7 +140,7 @@ RST.suite("rs.missions.radio", { tags = { "server", "world" }, testTimeoutMs = 6
             t2:eq("active", m.state, "a visit alone is not a success")
             local after = V.heard(sheet, p, "char1", 199800, store)
             t2:eq({ "report_due", "active", true }, { after.turn, m.state, after.toReport }, "call after the visit")
-            t2:eq(nil, after.reward, "reward place from a sheet without place=")
+            t2:eq(nil, after.reward, "reward place from a sheet without [place]")
             t2:eq(true, M.projection(m, "char1").toReport, "notebook row not marked to report")
             local other = { id = "rst-other", name = "RST Other", actions = { "say", "start_mission" }, places = {} }
             t2:eq({ nil, "no_mission" }, { V.report(store, other, "char1", p, 199900) }, "report to another voice")
@@ -362,8 +362,8 @@ end)
 --[[
 rs.missions.voicetemplates (E11-T17, tags "server" and "world"): the other templates a radio voice may give
 (RS_MissionVoice.TEMPLATES: deliver, retrieve, clear, signal; scout is rs.missions.radio), each one through the real
-start path of a voice (RS_MissionVoice.start, the executor of start_mission) with a test sheet whose missions= list
-permits only that template. For every template: the mission is created for the caller with the engine template
+start path of a voice (RS_MissionVoice.start, the executor of start_mission) with a test sheet whose only [mission]
+permits that template. For every template: the mission is created for the caller with the engine template
 (retrieve -> retrieve_id), radio report, no reward lot; a second one is refused while it is open; another caller
 (the second client's character when one is online, else a character of the test state) has no open mission, hears
 nothing, cannot report it and is not engaged in the notebook projection; a report before the objective is refused
@@ -379,8 +379,8 @@ Two templates are played to the end with the real objective mechanism of their r
   another caller is refused, the report on the voice's frequency closes the mission in success; a second report is
   refused, the reputation fact is written once and the mission has no lot to claim (no reward doubled).
 Each mission lives in an in-memory state built by the test (characters char1 and char2, store whose save does
-nothing): no notebook state, no history line, no ModData of the notebook. The test sheets have no place= line except
-the deliver one (its dead drop point is the player's square): reputation only, no map mark. A deliver dead drop in
+nothing): no notebook state, no history line, no ModData of the notebook. The test sheets have no [place] except
+the deliver one (use=drop, its dead drop point is the player's square): reputation only, no map mark. A deliver dead drop in
 "box" mode leaves an opaque key in the ModData of a nearby container: removed at the end. Cleanup: zombies and
 corpses of the test removed, Signal Smoke listener removed and test signals stopped, god mode restored.
 Outside the game: tests/test_rs_e11_voice_npc_suites.py (voice simulation of tests/test_carnet.py, clear and Signal
@@ -420,10 +420,11 @@ local function voiceMission(t, template)
     local p = F.player(t)
     if not p then t:skip("no target player") end
     local sheet = { id = "rst-voice-" .. template, name = "RST Voice", actions = { "say", "start_mission" },
-        budgets = {}, missions = { template }, places = {} }
+        budgets = {}, missions = { { id = template, type = template } }, places = {} }
     if template == "deliver" then
+        -- E20-T03: the dead drop of a voice is a place of its sheet with use=drop.
         sheet.places[1] = { id = "drop", label = "RST drop", x = math.floor(p:getX()), y = math.floor(p:getY()),
-            z = math.floor(p:getZ()) }
+            z = math.floor(p:getZ()), uses = { "drop" }, use = { drop = true } }
     end
     local state = { missions = {}, npcs = {}, characters = {}, outcomes = {} }
     state.characters.char1 = { name = "Tester", contacts = {}, knownMissions = {} }
@@ -507,7 +508,7 @@ local function reported(t, c)
     t:eq({ nil, "no_mission" }, { V.report(store, c.sheet, "char1", p, VOICE_KHZ) }, "second report")
     t:eq(facts, factsOf(c.state, m), "reputation fact written twice")
     t:eq(false, (M.claim(store, m, p, "char1", "rst-voice-claim")), "a voice mission gave a lot to claim")
-    t:eq({ 0, nil }, { m.rewardCount, m.rewardPlace }, "reward of a sheet without place= lines")
+    t:eq({ 0, nil }, { m.rewardCount, m.rewardPlace }, "reward of a sheet without a [place] to mark")
     t:eq(nil, V.open(c.state, c.sheet.id, "char1"), "mission still open after the report")
 end
 

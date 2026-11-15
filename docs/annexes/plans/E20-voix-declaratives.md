@@ -2,13 +2,13 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 2 / 15 tâche(s) terminée(s).
+**Avancement.** en cours — 3 / 15 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
 | ☑ | E20-T01 | Registre des types de mission, sans changement de comportement | `testé hors jeu` | hors jeu | — |
 | ☑ | E20-T02 | Analyseur unique des fiches et pont sans liste de types | `testé hors jeu` | hors jeu | E20-T01 |
-| ☐ | E20-T03 | Fiche à sections : lieux, missions, récompenses, catégories | `à faire` | hors jeu | E20-T02 |
+| ☑ | E20-T03 | Fiche à sections : lieux, missions, récompenses, catégories | `testé hors jeu` | hors jeu | E20-T02 |
 | ☐ | E20-T04 | Récompenses tirées au hasard par catégorie | `à faire` | MP | E20-T03 |
 | ☐ | E20-T05 | Planques multiples au choix du joueur, ramassées hors de vue | `à faire` | MP | E20-T03 |
 | ☐ | E20-T06 | Objets demandés par une voix toujours déposés à une planque | `à faire` | MP | E20-T05 |
@@ -84,16 +84,16 @@ chaque tâche avant son code.
   - Tests : `tests/test_protocol.py`, `tests/test_bridge_*.py`, `tests/run_all.py`.
   - Preuve : 2026-11-15 : chaque gabarit déclare `voiceText` et `voiceBrief(m)` (objectif et faits en anglais composés par le serveur) ; `mission=` générique (`kind`, `state`, `turn`, `place`, `clues`, `remainingMs`, `toReport`, `reward`, `job`, `facts`) ; nouveau champ `jobs=` (`V.jobs` : types permis par la fiche et inscrits, tables de cache de `RC_Caches.tableNames`) ; pont sans liste de types ni de tables (registre `ACTION_CHOICES`, `voice_jobs`) ; `missions=` et `cache_table=` contrôlés par leur syntaxe seule dans les deux analyseurs ; défaut `scout` porté par `RS_MissionVoice` seul. Rouge d'abord : `test_mission_registry.py` `Ran 4 tests … FAILED (errors=1)` (fiche `missions=fake` refusée), puis `Ran 4 tests … OK` ; `test_personas.py` 20 OK ; `test_voice_templates.py` OK ; `test_fake_llm.py` 27 OK ; `test_protocol.py` code 0 ; `test_carnet.py` OK ; `run_all.py --keep-going` : 184 passés, 1 échec `doubles_api` (`test_peer_checks2.py`, commit LK `9162e24` arrivé pendant le passage, sans lien). luacheck `Contents` 8 avertissements (inchangé), `dev` 0. `grep MISSION_TEMPLATES\|CACHE_TABLES` vide dans `bridge/` et `Contents/`. Contrat (`protocole-carnet-v2.md`), `persona-format.md` et pages 10 du wiki FR/EN mis à jour.
   - Reste : `bridge/npc_protocol.py:1191-1220` (réponses hors ligne des offres de PNJ, Living Knox) garde une chaîne par type : hors périmètre E20 (Living Knox exclu), à reprendre par une tâche LK.
-- [ ] **E20-T03** — Fiche à sections : lieux, missions, récompenses, catégories
-  - État : `à faire`
+- [x] **E20-T03** — Fiche à sections : lieux, missions, récompenses, catégories
+  - État : `testé hors jeu`
   - Cible : `hors jeu`
   - Dépend de : E20-T02
   - Fichiers : `RS_Persona.lua` (sections) ; `RS_Personas.lua` (empreintes `KNOWN_DELIVERED`) ; `personas/*.txt` (six fiches réécrites) ; `personas/_categories.txt` (catalogue livré) ; `docs/specifications-techniques/persona-format.md` ; `docs/wiki/fr/10-creer-une-voix-radio.md` et `docs/wiki/en/10-creating-radio-voices.md` (exemples de fiche réécrits)
   - Faire : ADR D01, D04, D11. Sections `[place <id>]` (`at`, `label`, `use` parmi `mark`, `target`, `drop`, `landing`), `[mission <id>]` (`type`, paramètres validés par le schéma déclaré du gabarit, `weight`, `after`, `story`, `drops`), `[rewards]` (`pool` pondéré), `[category <id>]` (objets et fourchettes de quantités). Une fiche ne cite que des types inscrits et des lieux qu'elle déclare ; erreur de fiche = ligne et raison journalisées, fiche refusée. Les six fiches passent au format sans changer ce que propose chaque voix aujourd'hui. Pas de lecture de l'ancien format.
   - Accepté si : bancs d'analyse (sections valides, type inconnu, lieu absent, `drops` vers un lieu sans `use=drop`, catégorie inconnue, poids invalides) ; un faux type inscrit par le test accepte ses propres paramètres sans modifier l'analyseur ; les six fiches livrées se chargent ; `persona-format.md` réécrit ; pages 10 du wiki FR et EN réécrites, leurs exemples de fiche se chargent tels quels.
   - Tests : `tests/test_persona*.py`, `tests/run_all.py`.
-  - Preuve : —
-  - Reste : —
+  - Preuve : 2026-11-15 : `RS_Persona.lua` réécrit (en-tête par table de lecteurs, sections par table de gestionnaires, règles injectées par `Personas.rules()`) ; registre des genres de paramètres `RS_PersonaParams.lua` (`count`, `range`, `category`, `place`, `text`, `skill`) ; schéma `params` déclaré par le gabarit (`deliver` : `items`, `quantity`, lus pas encore consommés) ; catalogue `personas/_categories.txt` = tables figées de `RC_MissionConfig.Caches.tables` ; `R.KINDS`/`R.SKILLS` portés par `RS_Rewards` ; lieux filtrés par usage (`mark` pour mark_map/reveal_area/récompense de lieu, `drop` pour les planques et la cache) ; pont : `[place]` lus, autres sections sautées sans validation. Fiches `cody` et `darlene` au format (les quatre autres n'avaient aucune clé retirée) ; empreintes ajoutées. Rouge d'abord : `test_personas.py` `FAILED (errors=3)`, `test_persona_sections.py` `FAILED (errors=3)` (`Personas.rules` absent). Vert : `test_persona_sections.py` 11 OK (refus demandés, faux type inscrit par le banc avec ses params, catalogue, fiches livrées inchangées, exemples des pages 10 du wiki FR/EN chargés tels quels), `test_personas.py` 20 OK, `test_personas_server.py` 107 OK, `test_carnet.py` 95 OK, `test_protocol.py` code 0, `test_kahlua.py` OK, 67 bancs ciblés OK (dont `test_rst` 176, `test_rs_suites` 48). luacheck `Contents` 8 (inchangé), `dev` 0. `persona-format.md`, pages 10 du wiki FR et EN réécrites.
+  - Reste : `run_all.py` complet non lancé (campagne MP d'un autre agent en cours sur la machine) : à passer avant la clôture de E20-T04. Les fiches sans `[mission]` gardent le défaut `scout`. Pas de commentaire en fin de ligne dans le format (`;` et `#` font partie de la valeur, contrairement à l'exemple indicatif de l'ADR D04).
 - [ ] **E20-T04** — Récompenses tirées au hasard par catégorie
   - État : `à faire`
   - Cible : `MP`

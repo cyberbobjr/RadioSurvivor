@@ -7,9 +7,11 @@
 # - écoute 22:00-03:00 (heure du jeu) ; mobile, toujours en fuite (location=none) ;
 # - appel général (E05-T05) : une chance sur six par heure de jeu pendant ses heures d'écoute, texte écrit par le
 #   pont ou, à défaut, texte fixe IGUI_RadioSurvivor_Call_Cody (%1 = fréquence) ;
-# - actions say et start_mission (E11-T13 : gabarits scout/deliver/retrieve/clear/signal, il fait reconnaître un bâtiment par l'appelant ; compte
-#   rendu à la radio sur sa fréquence, action report_mission implicite) ; cibles futures : mark_map, reveal_area ;
-#   aucun budget propre.
+# - actions say et start_mission (E11-T13 : il fait reconnaître un bâtiment par l'appelant ; compte rendu à la radio
+#   sur sa fréquence, action report_mission implicite) ; cibles futures : mark_map, reveal_area ; aucun budget propre ;
+# - sections (E20-T03) : le relais [place checkpoint] (repère, objectif, planque de dépôt et de cache), une section
+#   [mission] par type proposé (scout, deliver, retrieve, clear, signal), [rewards] : cache de munitions, fréquence,
+#   carte de planque et leçon de tir, à poids égaux.
 format=1
 id=cody
 name=Cody Haskins
@@ -25,15 +27,33 @@ ignores=What is happening outside Knox County.
 ignores=Whether the officers know anything more than the soldiers.
 secret=At the checkpoint he fired on civilians who were running toward him.
 actions=say,start_mission,share_frequency
-cache_table=ammo
 shares=gus,darlene
-teaches=Aiming
-missions=scout,deliver,retrieve,clear,signal
-rewards=cache,frequency,stashmap,lesson
-place=checkpoint 4827,6277,0 Relay station
 call_one_in=6
 call_text=IGUI_RadioSurvivor_Call_Cody
 state=active
+
+[place checkpoint]
+at=4827,6277,0
+label=Relay station
+use=mark,target,drop
+
+[mission scout]
+type=scout
+
+[mission deliver]
+type=deliver
+
+[mission retrieve]
+type=retrieve
+
+[mission clear]
+type=clear
+
+[mission signal]
+type=signal
+
+[rewards]
+pool=cache:ammo:1, frequency:1, stashmap:1, lesson:Aiming:1
 
 [prompt]
 You are Specialist Cody Haskins, 21, of the Kentucky Army National Guard. You are a character in a survival story set in July 1993, during the "Knox Event": a fast-spreading infection turned people in Knox County, Kentucky (Muldraugh, West Point, Riverside, Rosewood, March Ridge, Louisville outskirts) into violent, undead "zombies". The army sealed the area behind a fence and checkpoints: the Knox Exclusion Zone.

@@ -17,9 +17,13 @@ class VoiceTemplateTests(unittest.TestCase):
                    "cell.getGridSquare = function() return nil end; getCell = function() return cell end")
         rt.execute(CLEAR_WORLD)
         voice = rt.eval("require('RadioSurvivor/RS_MissionVoice')")
-        sheet = rt.table_from({'id': 'custom', 'name': 'Custom', 'missions': rt.table_from([template]),
-                               'places': rt.table_from([rt.table_from({'id': 'box', 'x': 100, 'y': 10, 'z': 0,
-                                                                        'label': 'Supply depot'})])})
+        # E20-T03: one [mission] section of this type, one place usable as a dead drop and a mark.
+        mission = rt.table_from({'id': template, 'type': template})
+        place = rt.table_from({'id': 'box', 'x': 100, 'y': 10, 'z': 0, 'label': 'Supply depot',
+                               'uses': rt.table_from(['mark', 'drop']),
+                               'use': rt.table_from({'mark': True, 'drop': True})})
+        sheet = rt.table_from({'id': 'custom', 'name': 'Custom', 'missions': rt.table_from([mission]),
+                               'places': rt.table_from([place])})
         return sim, voice, sheet
 
     def start(self, sim, voice, sheet, template):

@@ -68,8 +68,9 @@ Template interface (M.register(name, template)); observe and reportBySpeech are 
 Declarations read by the other modules (E20-T01, ADR D02; all optional, nothing else names a template):
     handover = true                             the objective is a hand-over of items to the requester (notebook
                                                 Deliver button and NoRefund line, journal action "deliver")
-    voiceName = '<name>'                        a radio voice may give it under this name (sheet missions= line,
-                                                start_mission parameter, bridge); none: never given by a voice
+    voiceName = '<name>'                        a radio voice may give it under this name (type= of a [mission]
+                                                section of the sheet, start_mission parameter, bridge); none: never
+                                                given by a voice
     voiceText = '<short English phrase>'        (with voiceName) what the job is, told to the voice's model among the
                                                 jobs it may give (field jobs= of the radio request, E20-T02)
     voiceBrief(m) -> {job, facts}               (with voiceName) the open mission told to the voice (field mission=,
@@ -77,6 +78,11 @@ Declarations read by the other modules (E20-T01, ADR D02; all optional, nothing 
                                                 lines of server facts and rules (counts, yes/no). Composed from server
                                                 facts only: never a coordinate, an item id in the job, nor a frequency
     mapStyle = '<Suffix>'                       suffix of the map label key IGUI_RS_MapZone<Suffix>; none: plain label
+    params = {<key> = '<kind>'}                 (with voiceName) keys a voice sheet may set in a [mission] section of
+                                                this type, each checked by its kind (RadioSurvivor's RS_PersonaParams:
+                                                count, range, category, place, text, skill; E20-T03); any other key of
+                                                the section is refused, besides the common ones (type, weight, after,
+                                                story, drops, target)
 The engine copies handover (boolean) and mapStyle into every client projection (p.handover, p.mapStyle);
 M.voiceTemplate(voiceName) -> name, template | nil and M.voiceNames() -> sorted list read voiceName; M.voiceBrief(m)
 reads voiceBrief.
@@ -604,7 +610,9 @@ end
 -- effect), then the items are removed. Reward lot = engine reward item at completion (none, or withdrawn by the
 -- engine: rewardCount 0), claimed by the common lot mechanism (M.claim).
 local Deliver = {idPrefix = 'delivery', handover = true, voiceName = 'deliver',
-    voiceText = 'leave requested goods at a dead drop'}
+    voiceText = 'leave requested goods at a dead drop',
+    -- E20-T03: read from the voice sheet and stored on its mission section; not used by the delivery yet.
+    params = {items = 'category', quantity = 'range'}}
 
 local SUPPLY_TITLES = {food = 'IGUI_RC_Mission_Supply_food', medical = 'IGUI_RC_Mission_Supply_medical',
     ammo = 'IGUI_RC_Mission_Supply_ammo'}

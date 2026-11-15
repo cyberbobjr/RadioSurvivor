@@ -124,7 +124,7 @@ local function deliveredIds(P)
     local listing = listFilesInModDirectory and listFilesInModDirectory(P.MOD_ID, P.BUNDLED_DIR)
     for _, name in ipairs(javaList(listing)) do
         name = tostring(name)
-        if string.len(name) > 4 and string.sub(name, -4) == ".txt" then ids[#ids + 1] = string.sub(name, 1, -5) end
+        if P.isSheetName(name) then ids[#ids + 1] = string.sub(name, 1, -5) end -- E20-T03: not _categories.txt
     end
     if #ids == 0 then ids = copyList(DELIVERED_FALLBACK) end
     table.sort(ids)
@@ -358,7 +358,7 @@ RST.suite("rs.voices", { tags = { "server" } }, function(s)
                 t:note(id .. ": generated group voice, " .. P.get(id).state .. " (no sheet file by design)")
             else
                 t:ok(lines ~= nil and #lines > 0, "Zomboid/Lua/" .. P.DIR .. "/" .. id .. ".txt missing or empty")
-                local sheet, err = Persona.parseLines(lines, id)
+                local sheet, err = Persona.parseLines(lines, id, P.rules()) -- E20-T03: server rules
                 t:ok(sheet ~= nil, "installed sheet " .. id .. ".txt refused: " .. tostring(err)
                     .. " (an older valid version is in service)")
                 local live = P.get(id)

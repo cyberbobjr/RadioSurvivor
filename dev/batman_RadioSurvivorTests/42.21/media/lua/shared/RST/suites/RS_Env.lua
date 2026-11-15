@@ -26,7 +26,7 @@ local PREFIX = "media/lua/"
 local GLOBALS = {
     { "isClient", "any", "server/RadioSurvivorCore/RC_Missions.lua:1" },
     { "isServer", "any", "client/RS_Carnet_Client.lua:1" },
-    { "getTimestampMs", "any", "server/RadioSurvivorCore/RC_Missions.lua:272" },
+    { "getTimestampMs", "any", "server/RadioSurvivorCore/RC_Missions.lua:278" },
     { "getSandboxOptions", "any", "shared/RadioSurvivor/RadioSurvivor_Const.lua:146" },
     -- Lua global of the required mod batman_BeltRadio (shared file, loaded everywhere): transmit predicate.
     { "BatmanRadioSupport.canTransmitWith", "any", "shared/RadioSurvivor/RadioSurvivor_Const.lua:271" },
@@ -40,18 +40,18 @@ local GLOBALS = {
     { "ZombRand", "server", "server/RadioSurvivor/RS_State.lua:30" },
     { "getGameTime", "server", "server/RadioSurvivor_Server.lua:83" },
     { "getClimateManager", "server", "server/RadioSurvivorCore/RC_WorldFacts.lua:33" },
-    { "getZomboidRadio", "server", "server/RadioSurvivor/RS_Personas.lua:720" },
-    { "sendRemoveItemFromContainer", "server", "server/RadioSurvivorCore/RC_Missions.lua:738" },
-    { "sendAddItemToContainer", "server", "server/RadioSurvivorCore/RC_Missions.lua:550" },
-    { "DynamicRadioChannel.new", "server", "server/RadioSurvivor/RS_Personas.lua:676" },
-    { "ChannelCategory.Amateur", "server", "server/RadioSurvivor/RS_Personas.lua:676" },
+    { "getZomboidRadio", "server", "server/RadioSurvivor/RS_Personas.lua:761" },
+    { "sendRemoveItemFromContainer", "server", "server/RadioSurvivorCore/RC_Missions.lua:746" },
+    { "sendAddItemToContainer", "server", "server/RadioSurvivorCore/RC_Missions.lua:556" },
+    { "DynamicRadioChannel.new", "server", "server/RadioSurvivor/RS_Personas.lua:717" },
+    { "ChannelCategory.Amateur", "server", "server/RadioSurvivor/RS_Personas.lua:717" },
     { "RadioBroadCast.new", "server", "server/RadioSurvivor_Server.lua:121" },
     { "RadioLine.new", "server", "server/RadioSurvivor_Server.lua:125" },
     { "getCell", "server", "server/RadioSurvivor_Server.lua:260" },
-    { "listFilesInModDirectory", "server", "server/RadioSurvivor/RS_Personas.lua:265" },
-    { "getModFileReader", "server", "server/RadioSurvivor/RS_Personas.lua:281" },
-    { "listFilesInZomboidLuaDirectory", "server", "server/RadioSurvivor/RS_Personas.lua:369" },
-    { "instanceItem", "server", "server/RadioSurvivorCore/RC_Missions.lua:534" },
+    { "listFilesInModDirectory", "server", "server/RadioSurvivor/RS_Personas.lua:276" },
+    { "getModFileReader", "server", "server/RadioSurvivor/RS_Personas.lua:292" },
+    { "listFilesInZomboidLuaDirectory", "server", "server/RadioSurvivor/RS_Personas.lua:410" },
+    { "instanceItem", "server", "server/RadioSurvivorCore/RC_Missions.lua:540" },
     { "ItemPickerJava.Parse", "server", "server/RadioSurvivor/RS_NotesServer.lua:114" },
     { "getSpecificPlayer", "client", "client/RadioSurvivor/RS_Client.lua:11" },
     { "sendClientCommand", "client", "client/RadioSurvivor/RS_Client.lua:15" },
@@ -75,7 +75,7 @@ local GLOBALS = {
     { "UIWorldMap.new", "client", "client/RadioSurvivor/RS_MapActions.lua:83" },
     -- Area revealed by a voice (E07-T05): known squares of the world map, client and server (MP account) sides.
     { "WorldMapVisited.getInstance", "client", "client/RadioSurvivor/RS_MapActions.lua:155" },
-    { "WorldMapVisitedServer.getInstance", "server", "server/RadioSurvivor/RS_MapMarks.lua:129" },
+    { "WorldMapVisitedServer.getInstance", "server", "server/RadioSurvivor/RS_MapMarks.lua:131" },
     -- Comfort from talk (E05-T15): stats eased by the authority, synced to the client, vanilla arrow halo.
     { "CharacterStat.BOREDOM", "server", "server/RadioSurvivor/RS_Comfort.lua:62" },
     { "SyncPlayerStatsPacket.getBitMaskForStat", "server", "server/RadioSurvivor/RS_Comfort.lua:29" },
@@ -86,12 +86,12 @@ local GLOBALS = {
 
 -- Methods of an ItemContainer used by the server files (missions, radio carried on the belt).
 local CONTAINER_METHODS = {
-    { "getItemWithIDRecursiv", "server/RadioSurvivorCore/RC_Missions.lua:678" },
+    { "getItemWithIDRecursiv", "server/RadioSurvivorCore/RC_Missions.lua:686" },
     { "getItemWithID", "server/RadioSurvivor_Server.lua:241" },
-    { "getCapacityWeight", "server/RadioSurvivorCore/RC_Missions.lua:540" },
-    { "getEffectiveCapacity", "server/RadioSurvivorCore/RC_Missions.lua:540" },
-    { "AddItem", "server/RadioSurvivorCore/RC_Missions.lua:549" },
-    { "Remove", "server/RadioSurvivorCore/RC_Missions.lua:737" },
+    { "getCapacityWeight", "server/RadioSurvivorCore/RC_Missions.lua:546" },
+    { "getEffectiveCapacity", "server/RadioSurvivorCore/RC_Missions.lua:546" },
+    { "AddItem", "server/RadioSurvivorCore/RC_Missions.lua:555" },
+    { "Remove", "server/RadioSurvivorCore/RC_Missions.lua:745" },
 }
 
 local function side()

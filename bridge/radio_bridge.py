@@ -47,7 +47,7 @@ secret. Sans souvenir, prompt inchangé.
 serveur le joint à ses demandes (persona=, hexadécimal RSV2) ; le pont l'ajoute au prompt (« Your current state »), sans
 lieu qui cite un secret. Sans état, prompt inchangé.
 
-Repère sur la carte (E07-T04) : une fiche qui autorise mark_map et liste des lieux (place=) propose l'action avec les
+Repère sur la carte (E07-T04) : une fiche qui autorise mark_map et a des lieux use=mark propose l'action avec les
 identifiants et libellés de ses lieux, jamais leurs coordonnées ; un identifiant hors fiche est retiré. Le serveur
 envoie les coordonnées au seul appelant.
 
@@ -1560,8 +1560,8 @@ EXECUTABLE_ACTIONS: dict[str, tuple[str, dict]] = {
         "you are.",
         {"type": "persona_state", "morale": 4, "place": "the old mill"},
     ),
-    # E07-T04 : lieux de la fiche (place=) ; le prompt n'en donne que les identifiants et libellés (ACTION_CHOICES),
-    # l'exemple prend le premier identifiant de la fiche. Les coordonnées restent au serveur.
+    # E07-T04 : lieux use=mark de la fiche ([place], E20-T03) ; le prompt n'en donne que les identifiants et libellés
+    # (ACTION_CHOICES), l'exemple prend le premier identifiant de ces lieux. Les coordonnées restent au serveur.
     "mark_map": (
         "put a mark on the caller's own map at one of the places you know, when you tell them where it is. "
         'Parameter "place": the id of one place of the list below, nothing else.',
@@ -1642,8 +1642,10 @@ class ActionChoice:
     missing: str
 
 
+# E20-T03 : seuls les lieux [place] de la fiche avec use=mark se donnent (le serveur refuse les autres, RS_MapMarks).
 PLACE_CHOICE = ActionChoice("place", "Places you know (id: label):",
-                            lambda sheet, jobs: [(p.id, p.label) for p in sheet.places], "the sheet has no place= line")
+                            lambda sheet, jobs: [(p.id, p.label) for p in sheet.places_for("mark")],
+                            "the sheet has no [place] with use=mark")
 JOB_CHOICE = ActionChoice("template", "Jobs you may give (name: what it is):",
                           lambda sheet, jobs: list(jobs.jobs) if jobs else [], "the request lists no job (jobs=)")
 CACHE_CHOICE = ActionChoice("table", "Bags you may leave (name):",

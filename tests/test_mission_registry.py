@@ -1,7 +1,8 @@
 """Registre des types de mission (E20-T01, ADR D02) : un faux gabarit inscrit par le banc, avec ses déclarations
 (voiceName 'fake', handover false, mapStyle 'Fake') et sa vue du carnet, est donné par une voix, projeté, affiché au
 carnet et sur la carte sans aucune modification de RS_MissionVoice, du carnet ni de la carte. E20-T02 (ADR D03) : le
-même faux gabarit se décrit à la voix (voiceText, voiceBrief) ; listé par la fiche (missions=fake), il est proposé au
+même faux gabarit se décrit à la voix (voiceText, voiceBrief) ; cité par la fiche (section [mission] de type fake,
+E20-T03), il est proposé au
 modèle par le champ jobs= de la demande, admis par la validation de start_mission du pont et sa mission racontée (objectif
 et faits composés par le serveur), sans aucune modification de bridge/.
 
@@ -50,8 +51,8 @@ require('RadioSurvivor/RS_MissionViews').register('fake', {showsPlace = false,
 '''
 
 
-# Voix du banc qui donne le faux gabarit (ligne missions= de la fiche).
-FAKE_SHEET = VOICE_SHEET.replace('budget.start_mission=3\n', 'budget.start_mission=3\nmissions=fake\n')
+# Voix du banc qui donne le faux gabarit (section [mission] de la fiche, E20-T03).
+FAKE_SHEET = VOICE_SHEET.replace('[prompt]\n', '[mission tower]\ntype=fake\n[prompt]\n')
 
 
 class MissionRegistryTests(unittest.TestCase):
@@ -65,7 +66,8 @@ class MissionRegistryTests(unittest.TestCase):
         rt.execute(CLEAR_WORLD)
         rt.execute(FAKE_TEMPLATE)
         voice = rt.eval("require('RadioSurvivor/RS_MissionVoice')")
-        sheet = rt.table_from({'id': 'custom', 'name': 'Custom', 'missions': rt.table_from(['fake'])})
+        sheet = rt.table_from({'id': 'custom', 'name': 'Custom',
+                               'missions': rt.table_from([rt.table_from({'id': 'tower', 'type': 'fake'})])})
         store = rt.eval("require('RadioSurvivor/RS_State')")
         m = voice.start(store, sheet, sim.character('alice'), sim.server.g.PLAYERS.alice, 160000, 'fake')
         return sim, voice, m
@@ -85,7 +87,8 @@ class MissionRegistryTests(unittest.TestCase):
         sim = self.voice_sim('registry-unknown')
         rt = sim.server.rt
         voice = rt.eval("require('RadioSurvivor/RS_MissionVoice')")
-        sheet = rt.table_from({'id': 'custom', 'name': 'Custom', 'missions': rt.table_from(['nothing'])})
+        sheet = rt.table_from({'id': 'custom', 'name': 'Custom',
+                               'missions': rt.table_from([rt.table_from({'id': 'job', 'type': 'nothing'})])})
         store = rt.eval("require('RadioSurvivor/RS_State')")
         self.assertFalse(voice.allowed('nothing'))
         self.assertEqual(voice.start(store, sheet, sim.character('alice'), sim.server.g.PLAYERS.alice, 160000,
@@ -130,10 +133,16 @@ class MissionRegistryTests(unittest.TestCase):
         return seen[-1][0]['content'], result
 
     def test_fake_template_is_offered_to_the_model_and_its_job_told_without_bridge_change(self):
-        sim = self.voice_sim('registry-bridge', sheet=FAKE_SHEET)
+        sim = self.voice_sim('registry-bridge')
         rt = sim.server.rt
         rt.execute(CLEAR_WORLD)
         rt.execute(FAKE_TEMPLATE)
+        # The sheet cites the fake type: read once the template is registered (in game, every file loads before the
+        # sheets), here by the reload of a changed sheet. Not a word of the reader nor of the bridge changes.
+        (sim.path / 'personas' / 'scouter.txt').write_text(FAKE_SHEET, encoding='utf-8')
+        self.assertTrue(rt.eval("require('RadioSurvivor/RS_Personas').reload()"))
+        sheet = rt.eval("require('RadioSurvivor/RS_Personas').get('scouter')")
+        self.assertEqual([(m.id, m.type) for m in lua_list(sheet.missions)], [('tower', 'fake')])
         req = self.talk(sim, 'alice', 'Got any work for me?')
         # The server tells the bridge the jobs this voice may give, described by their template.
         jobs = convert(protocol.decode(bytes.fromhex(req['jobs'])))

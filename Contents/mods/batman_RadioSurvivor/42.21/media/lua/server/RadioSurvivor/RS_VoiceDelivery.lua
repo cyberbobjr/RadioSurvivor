@@ -4,6 +4,7 @@
 if isClient() then return end
 local Config = require 'RadioSurvivor/RS_Config'
 local Voice = require 'RadioSurvivor/RS_MissionVoice'
+local Persona = require 'RadioSurvivor/RS_Persona'
 local D = {}
 local unseen = {} -- Real-time delay deliberately restarts after a process restart.
 local nextBox = 0
@@ -315,15 +316,16 @@ end
 
 function D.resetForTests() unseen = {} end
 
--- Set-up of a voice `deliver` mission: the sheet needs a place; the dead drop takes its places in turn, a box on odd
--- missions and a bag on even ones.
+-- Set-up of a voice `deliver` mission: the sheet needs a place with use=drop (E20-T03); the dead drop takes those
+-- places in turn, a box on odd missions and a bag on even ones.
 local function hasPlaces(sheet)
-    if type(sheet.places) ~= 'table' or #sheet.places == 0 then return false, 'no_place' end
+    if #Persona.placesFor(sheet, 'drop') == 0 then return false, 'no_place' end
     return true
 end
 
 local function setUp(m, sheet, d)
-    local place = sheet.places[(d.missionCount - 1) % #sheet.places + 1]
+    local drops = Persona.placesFor(sheet, 'drop')
+    local place = drops[(d.missionCount - 1) % #drops + 1]
     m.deposit = {x = place.x, y = place.y, z = place.z or 0,
         mode = d.missionCount % 2 == 1 and 'box' or 'bag'}
     m.place, m.placeKind = place.label, 'dead drop'

@@ -69,11 +69,17 @@ mod (`batman_RadioSurvivor`): with Living Knox alone there are no voice sheets.
 
 ## How a sheet is written
 
-- First a header of `key=value` lines, then a line `[prompt]`, then the free text of the prompt.
-- Empty lines and lines starting with `#` are ignored in the header.
+- First a header of `key=value` lines, then optional **sections**, then a line `[prompt]`, then the free text of the
+  prompt.
+- A section starts with a title in square brackets and groups its own `key=value` lines: `[place <id>]` (a place),
+  `[mission <id>]` (a mission), `[rewards]` (the rewards), `[category <id>]` (a list of items). It ends at the next
+  title or at `[prompt]`. A line written under a title belongs to that section: keep the header lines above the first
+  section.
+- Empty lines and lines starting with `#` are ignored outside the prompt.
 - Unknown keys and empty values are refused: to keep a default value, remove the line.
-- `knows`, `ignores`, `secret` and `place` can be repeated, one line per item. Every other key appears once.
-- The file name and the `id` must match: `mae.txt` holds `id=mae`.
+- `knows`, `ignores` and `secret` can be repeated, one line per item. Every other header key appears once.
+- The file name and the `id` must match: `mae.txt` holds `id=mae`. A file whose name starts with `_` is not a voice
+  (the mod keeps its item catalogue there, `_categories.txt`).
 
 The full reference of the format (in French) is
 [docs/specifications-techniques/persona-format.md](https://github.com/cyberbobjr/RadioSurvivor/blob/main/docs/specifications-techniques/persona-format.md).
@@ -167,15 +173,37 @@ The full reference of the format (in French) is
 | `knows` | `knows=The roads around Rosewood.` | A fact the voice can use. |
 | `ignores` | `ignores=What the army is planning.` | Something it must say it does not know, instead of inventing it. |
 | `secret` | `secret=Her son left on the first night.` | A **trait of the character** it will not reveal. |
-| `place` | `place=rosewood 8159,11661,0 Rosewood, center of town` | A place it knows, for `mark_map`, `reveal_area` and `start_mission`. |
 
 - An answer that quotes a secret word for word is replaced by static (a paraphrase is not detected).
-- `place=` is `<id> <x>,<y>,<z> <label>`, 12 lines at most. The id uses `a`-`z`, `0`-`9`, `_`; the label (48 bytes at
-  most) is shown as is on the player's map. The AI only sees the id and the label, never the coordinates.
 
 > **Important**
 > Never put a real secret of the server in a sheet: passwords, codes, hidden frequencies, the position of a player
 > base. The AI may say anything that is in its prompt.
+
+### Places — `[place]` sections
+
+Each place the voice knows is a section, 12 at most:
+
+```text
+[place rosewood]
+at=8159,11661,0
+label=Rosewood, center of town
+use=mark,target
+```
+
+| Key | What it does |
+|---|---|
+| `[place <id>]` | Id of the place: `a`-`z`, `0`-`9`, `_`, unique in the sheet. |
+| `at` | `x,y,z` coordinates of the square (read on the game map). The AI never sees them. |
+| `label` | Name of the place, 48 bytes at most, shown as is on the player's map. |
+| `use` | What the voice does with this place, one or more words separated by commas (below). |
+
+- `mark`: a **marker** it can give you (`mark_map`, `reveal_area`, marker offered at the end of a mission without a
+  `[rewards]` section). The AI only sees the id and label of these places.
+- `target`: a mission **objective** (`target=` of a `[mission]` section).
+- `drop`: a **dead drop**. The drops of `deliver` missions happen there, in turn; a `cache` reward is left at the
+  first `drop` place of the sheet (else at its first place).
+- `landing`: a trader's meeting point (reserved for trade, no effect yet).
 
 ### Actions
 
@@ -221,8 +249,8 @@ Always allowed, even if you do not list it. The voice answers you on the radio.
 
 - **In game:** the voice says "I'm marking it on your map" and **a symbol appears on your world map**, at one of the
   places it knows.
-- **The sheet needs:** at least one `place=` line (the places the voice knows). The voice can mark **only** those
-  places, never an invented position.
+- **The sheet needs:** at least one `[place]` with `use=mark`. The voice can mark **only** those places, never an
+  invented position.
 - **Effect:** the marker appears only for the player who is talking, not for the others.
 - **Limits:** 30 real seconds between two markers of the voice; daily cap with `budget.mark_map`.
 
@@ -230,40 +258,96 @@ Always allowed, even if you do not list it. The voice answers you on the radio.
 
 - **In game:** the voice describes an area it knows and **that area is uncovered on your map** (as if you had found
   a local map).
-- **The sheet needs:** at least one `place=` line; the revealed area is centred on one of those places.
+- **The sheet needs:** at least one `[place]` with `use=mark`; the revealed area is centred on one of those places.
 - **Effect:** only for the player who is talking.
 - **Limits:** a square of 160 tiles per side at most; 60 real seconds between two reveals; daily cap with
   `budget.reveal_area`.
 
 #### Missions and rewards — `start_mission`
 
-- `missions=scout,deliver,retrieve,clear,signal` allows scouting, a delivery drop, missing papers, clearing zombies and a Signal Smoke signal. The server checks each objective; one mission per player and voice. The notebook is required.
-- The accepted names are the mission types registered by the mod (currently `scout`, `deliver`, `retrieve`, `clear`, `signal`). `persona_store.py` only checks how a name is written; a well-written name the mod does not know is ignored by the server, with a line in the game log (`console.txt`): `voice sheet <id> lists unknown mission type '<name>'`. The voice keeps its other missions.
+- Each mission the voice can give is a `[mission <id>]` section with its `type`: `scout` (scouting), `deliver`
+  (delivery drop), `retrieve` (missing papers), `clear` (clearing zombies), `signal` (Signal Smoke signal). The server
+  checks each objective; one mission per player and voice. The notebook is required. Without any `[mission]` section,
+  only `scout` is allowed. Keys in detail: [Missions, rewards and items](#missions-rewards-and-items).
+- The building is chosen by the server, never by the AI; a `deliver` mission needs at least one `use=drop` place.
 - **Report by radio**, on the voice's frequency (`report_mission` is implicit). Successful missions improve reputation.
-- `rewards=cache,frequency,stashmap,lesson` allows one extra reward. The server rotates through that order per player and voice, skipping unavailable effects and saving its choice. The AI never chooses the reward.
-- A cache contains real items from `cache_table`, at the first `place=`: one per mission, deferred placement when unloaded, with a private map marker. `shares` limits other active voices whose frequency may enter the beneficiary's radio notebook. A vanilla stash map leads to an unexplored stash (one map per player and voice). `teaches` fixes the lesson's skill.
+- The `[rewards]` section allows one extra reward per success. The AI never chooses the reward nor its contents.
+  Without a `[rewards]` section, the voice offers the marker of one of its `use=mark` places.
+- A cache contains real items of its category, at the first `use=drop` place: one per mission, deferred placement
+  when unloaded, with a private map marker. `shares` limits other active voices whose frequency may enter the
+  beneficiary's radio notebook. A vanilla stash map leads to an unexplored stash (one map per player and voice).
 - Lessons grant 25 base XP, capped at 100 per game day before the multiplier. The sandbox **Lesson multiplier** ranges from 0 to 5; 0 disables lessons. The server grants XP under the game's learning rules: a character without a profession or trait bonus in the skill receives a quarter of it, a gifted one more.
-- Missing `missions` keeps `scout` only; missing `rewards` keeps the previous map marker reward. Existing cooldowns and `budget.start_mission` still apply.
+- Existing cooldowns and `budget.start_mission` still apply.
 
 #### Share a frequency — `share_frequency`
 
 `actions=...,share_frequency` allows a trust gesture outside mission rewards. `shares=gus,cody` limits the candidates: the server chooses another active voice and adds the exact frequency, without exposing it to the model or sending a directory to other players.
 
-#### Reward sheet keys
+#### Missions, rewards and items
 
-| Key | Allowed values |
+One section per mission, then a `[rewards]` section, and your own item lists if needed:
+
+```text
+[mission meds]
+type=deliver
+items=medical
+quantity=2-4
+drops=any
+weight=2
+story=I am running out of bandages.
+
+[mission look]
+type=scout
+
+[category snacks]
+item=Base.Crisps:1-2
+item=Base.Pop:1
+
+[rewards]
+pool=cache:medical:3, cache:snacks:1, frequency:1, stashmap:1, lesson:Doctor:2
+```
+
+| `[mission]` key | What it does |
 |---|---|
-| `cache_table` | Tables of the mod: `medical`, `ammo`, `tools`, `food`, `radio` |
-| `shares` | Comma-separated voice IDs |
-| `teaches` | `Doctor`, `Aiming`, `Reloading`, `Woodwork`, `Mechanics`, `Electricity`, `MetalWelding`, `Cooking`, `Farming`, `Fishing`, `Trapping`, `PlantScavenging` |
-| `missions` | Types registered by the mod: `scout`, `deliver`, `retrieve`, `clear`, `signal` |
-| `rewards` | `cache`, `frequency`, `stashmap`, `lesson` |
+| `type` | Required: `scout`, `deliver`, `retrieve`, `clear` or `signal` (types registered by the mod). |
+| `weight` | Weight of the mission in the draw (1 by default). |
+| `after` | The mission is offered only after the success of another mission of the sheet (its id). |
+| `story` | The reason the voice gives. |
+| `drops` | Dead drops of the mission: `any` (every `use=drop` place) or a list of ids of `use=drop` places. |
+| `target` | Objective place, a `use=target` place. |
+| others | Parameters of the type: `deliver` takes `items` (an item category) and `quantity` (`4` or `2-4`). |
 
-Keys cannot repeat; lists cannot contain duplicates or empty entries; spelling is case-sensitive. For `missions` and `cache_table`, `persona_store.py` only checks the spelling (lowercase letters, digits and `_`, starting with a letter): a name the mod does not know is ignored by the server and reported in `console.txt`. In-game solo and MP validation of the new rewards is **pending**.
+The keys `weight`, `after`, `story`, `drops`, `target` and the parameters of `deliver` are **read and checked
+now**; the missions will use them over the next versions (weighted draw, chained missions, dead drops chosen by the
+player, requested quantities).
+
+`[rewards]` has a single line, `pool=`, a list of rewards `kind:weight` or `kind:parameter:weight`:
+
+| Kind | Parameter | What the player receives |
+|---|---|---|
+| `cache` | a category: `cache:medical:3` | a bag of items of that category at the first `use=drop` place |
+| `frequency` | none | the frequency of a voice of `shares`, written in the notebook |
+| `stashmap` | none | an annotated map to an unexplored vanilla stash |
+| `lesson` | a skill: `lesson:Doctor:2` | experience: `Doctor`, `Aiming`, `Reloading`, `Woodwork`, `Mechanics`, `Electricity`, `MetalWelding`, `Cooking`, `Farming`, `Fishing`, `Trapping`, `PlantScavenging` |
+
+For now the server gives the kinds **in turn**, per player and voice, in the order they first appear in `pool`,
+skipping those that are not possible; the weights will be used by the random draw of a next version. A cache takes
+the category of the first `cache` entry and a lesson the skill of the first `lesson` entry.
+
+**Item categories.** The mod ships a shared catalogue (`personas/_categories.txt` of the mod): `food`, `medical`,
+`ammo`, `tools`, `radio`. A sheet may add its own with `[category <id>]` and one line `item=Module.Type:quantity` per
+item (`Base.Bandage:2-4`), with an id that is not in the catalogue. Reward caches still use the five categories of the
+catalogue: a category of the sheet is accepted but does not fill a cache yet.
+
+Only the server checks these sections: an unknown mission type, a missing place or one without the right `use`, an
+unknown category or an invalid weight makes the server refuse the sheet, with the line and the reason in
+`console.txt` (the last valid version of the voice stays in service). `persona_store.py` only reads the header, the
+places and the prompt: it does not see these errors. In-game solo and MP validation of the rewards is **pending**.
 
 #### Radio deliveries: discreet collection
 
-The server alternates an agreed drop box and a hidden bag on the ground at one of the voice's `place=` locations. A suitable existing box is marked precisely on your map; without a suitable box, the server requests a bag. Leave the complete batch and move away: **all players must remain at least 40 tiles away horizontally for 10 continuous real seconds**, even on another floor. Returning or restarting resets the wait; the exact square must be loaded before removal.
+The server alternates an agreed drop box and a hidden bag on the ground at one of the voice's `use=drop` places
+(taken in turn). A suitable existing box is marked precisely on your map; without a suitable box, the server requests a bag. Leave the complete batch and move away: **all players must remain at least 40 tiles away horizontally for 10 continuous real seconds**, even on another floor. Returning or restarting resets the wait; the exact square must be loaded before removal.
 
 From a box, only requested items disappear; the box and other items remain. For a bag, the bag and contents disappear; a bag containing unrelated items is refused to prevent their loss. Until collection, you can take the drop back and nothing is validated. **Only after collection, report over the radio**. Solo and MP in-game validation of this collection is **pending**.
 
@@ -361,19 +445,47 @@ knows=How to keep a battery alive: charge it from a car, keep it warm, switch of
 ignores=What the army or the government is planning.
 ignores=Anything that happened outside Knox County.
 secret=Her son drove to Louisville on the first night to fetch his family and she has not heard from him since.
-place=rosewood 8159,11661,0 Rosewood, center of town
-place=fallas_lake 7253,8279,0 Fallas Lake
 actions=say,remember,persona_state,mark_map,start_mission,share_frequency
-cache_table=radio
 shares=gus,darlene
-teaches=Electricity
-missions=scout,deliver,retrieve,clear,signal
-rewards=cache,frequency,stashmap,lesson
 budget=20
 budget.mark_map=4
 call_one_in=5
 call_text=IGUI_RadioSurvivor_Call_Mae
 state=active
+
+[place rosewood]
+at=8159,11661,0
+label=Rosewood, center of town
+use=mark,target,drop
+
+[place fallas_lake]
+at=7253,8279,0
+label=Fallas Lake
+use=mark
+
+[mission scout]
+type=scout
+weight=2
+story=Somebody stopped answering my roll call near there.
+
+[mission batteries]
+type=deliver
+items=radio
+quantity=1-2
+drops=any
+story=My batteries will not last the month.
+
+[mission retrieve]
+type=retrieve
+
+[mission clear]
+type=clear
+
+[mission signal]
+type=signal
+
+[rewards]
+pool=cache:radio:1, frequency:1, stashmap:1, lesson:Electricity:1
 
 [prompt]
 You are Mae Tolliver, 67, a retired schoolteacher and a licensed radio amateur who lives alone in a farmhouse a few miles outside Rosewood, Kentucky. You are a character in a survival story set in July 1993, during the "Knox Event": an infection turned people in Knox County into violent, undead "zombies", and the army sealed the county behind a fence.
@@ -423,16 +535,8 @@ knows=Which police stations and patrol cars were left behind, and that their loc
 ignores=What the army or the government is planning.
 ignores=Where his wife and son are now.
 secret=He fired on a man at the Muldraugh roadblock on the second night and still does not know if the man was sick.
-place=west_point 11654,6864,0 West Point, center of town
-place=muldraugh_pd 10644,10405,0 Muldraugh, police station
-place=muldraugh 10754,9926,0 Muldraugh, center of town
-place=march_ridge 10130,12801,0 March Ridge
 actions=say,remember,persona_state,mark_map,reveal_area,start_mission,share_frequency
-cache_table=ammo
 shares=cody,gus
-teaches=Aiming
-missions=scout,deliver,retrieve,clear,signal
-rewards=cache,frequency,stashmap,lesson
 budget=20
 budget.remember=10
 budget.persona_state=6
@@ -441,6 +545,54 @@ budget.reveal_area=2
 budget.start_mission=2
 call_one_in=6
 call_text=IGUI_RadioSurvivor_Call_Rick
+
+[place west_point]
+at=11654,6864,0
+label=West Point, center of town
+use=mark
+
+[place muldraugh_pd]
+at=10644,10405,0
+label=Muldraugh, police station
+use=mark,target,drop
+
+[place muldraugh]
+at=10754,9926,0
+label=Muldraugh, center of town
+use=mark
+
+[place march_ridge]
+at=10130,12801,0
+label=March Ridge
+use=mark,drop
+
+[mission scout]
+type=scout
+weight=3
+story=I am looking for any trace of my wife and my son.
+
+[mission ammo]
+type=deliver
+items=ammo
+quantity=1
+drops=muldraugh_pd,march_ridge
+
+[mission papers]
+type=retrieve
+after=scout
+
+[mission clear]
+type=clear
+
+[mission signal]
+type=signal
+
+[category patrol]
+item=Base.Bullets9mm:10-20
+item=Base.Battery:1-2
+
+[rewards]
+pool=cache:ammo:2, cache:patrol:1, frequency:1, stashmap:1, lesson:Aiming:2
 
 [prompt]
 You are Rick Grimes, 38, a sheriff's deputy from a small county south of Louisville, Kentucky. You are a character in a survival story set in July 1993, during the "Knox Event": an infection turned people in Knox County into violent, undead "zombies", and the army sealed the county behind a fence.
@@ -469,7 +621,8 @@ Rules:
 
 What to notice:
 
-- `place=` lines supply map actions, mission locations and the material reward drop. The server selects rewards from the closed permissions above.
+- The `[place]` sections say what each place is for (`use`): map markers, mission objectives, dead drops. The server
+  chooses the rewards from the `pool` list above; Rick's `patrol` category is valid for his sheet only.
 - Each action has its own daily budget, so a chatty caller cannot reveal the whole map in one evening.
 - The prompt says **when** to use the actions ("only when it helps them and they earned some trust"); the server
   still checks every one.
@@ -549,7 +702,7 @@ first error, and the last valid version of the voice stays in service until you 
 | `invalid UTF-8 (save the file as UTF-8)` | The file was saved in another encoding (ANSI): save as UTF-8. |
 | `expected key=value or [prompt]` | A header line without `=`, or the `[prompt]` line is missing or misspelt. |
 | `unknown key 'colour'` / `bad key 'Radio'` | Typo; keys are lowercase. |
-| `duplicate key 'name' (first set on line 3)` | Keep one line (only `knows`, `ignores`, `secret`, `place` repeat). |
+| `duplicate key 'name' (first set on line 3)` | Keep one line (only `knows`, `ignores`, `secret` repeat). |
 | `empty value for key 'radio'` | Remove the line to keep the default. |
 | `id 'mae' does not match the file name 'mae2.txt'` | Rename the file or change `id`. |
 | `bad id 'Mae' (a to z, 0 to 9 and _, starting with a letter, 32 characters at most)` | Lowercase id. |
@@ -563,8 +716,15 @@ first error, and the last valid version of the voice stays in service until you 
 | `unknown action 'fly'` | See [Actions](#actions). |
 | `budget.mark_map set but action 'mark_map' is not in actions` | Add the action or remove the budget. |
 | `call_one_in needs a call_text line` | Add `call_text`, or `call_one_in=0`. |
-| `bad place 'mill 10600,9300,0' (id x,y,z label, …)` | The label is missing. |
+| `unknown key 'radio' in [place mill]` | A header line written below a section: move it above the first section. |
+| `missing key 'use' in [place mill]` | A place needs `at`, `label` and `use`. |
+| `bad use entry 'hide' (expected mark, target, drop, landing)` | See [Places](#places--place-sections). |
 | `place label of 'mill' too long (48 bytes of UTF-8 at most)` | Shorten the label. |
+| `unknown section 'shop' (expected place, mission, rewards, category or prompt)` | Typo in a section title. |
+| `unknown mission type 'fly'` (server log only) | Use a type of the mod: `scout`, `deliver`, `retrieve`, `clear`, `signal`. |
+| `place 'clinic' has no use=drop` (server log only) | Add `drop` to the `use` of that place, or cite another place. |
+| `unknown category 'weapons'` (server log only) | A category of the catalogue or a `[category]` of the sheet. |
+| `bad reward weight '0' (whole number from 1 to 999999)` (server log only) | Weights start at 1. |
 | `missing [prompt] line before the prompt text` / `empty prompt text after [prompt]` | Add the line, then the text. |
 
 </details>

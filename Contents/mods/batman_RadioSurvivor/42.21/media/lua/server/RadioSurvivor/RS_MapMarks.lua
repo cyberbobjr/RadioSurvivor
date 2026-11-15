@@ -1,8 +1,9 @@
 -- Radio Survivor : actions `mark_map`, repère sur la carte de l'appelant (E07-T04), et `reveal_area`, quartier révélé
 -- sur sa carte (E07-T05, plus bas).
--- La fiche de la voix liste ses lieux connus (lignes place=<id> <x>,<y>,<z> <libellé>, RS_Persona) ; le pont ne
--- montre au LLM que leurs identifiants et libellés, jamais les coordonnées ; le LLM choisit un lieu par son
--- identifiant (paramètre unique `place`). RS_Actions juge (catalogue, fiche, paramètres, budget.mark_map du jour,
+-- La fiche de la voix liste ses lieux connus (sections [place <id>], RS_Persona) ; seuls ceux qui ont use=mark se
+-- donnent (E20-T03). Le pont ne montre au LLM que leurs identifiants et libellés, jamais les coordonnées ; le LLM
+-- choisit un lieu par son identifiant (paramètre unique `place`). RS_Actions juge (catalogue, fiche, paramètres,
+-- budget.mark_map du jour,
 -- délai), puis l'exécuteur ci-dessous envoie les coordonnées exactes et le libellé de ce seul lieu au seul appelant
 -- (Const.toClient : sendServerCommand au joueur en multijoueur, appel direct du client en solo, où sendServerCommand ne
 -- fait rien). Le client (client/RadioSurvivor/RS_MapActions.lua) ajoute le symbole à la carte du monde du joueur.
@@ -37,17 +38,18 @@ if isClient() then return end
 local Const = require "RadioSurvivor/RadioSurvivor_Const"
 local Actions = require "RadioSurvivor/RS_Actions"
 local Log = require "RadioSurvivor/RS_RadioLog"
+local Persona = require "RadioSurvivor/RS_Persona"
 
 local MapMarks = {}
 
 -- Délai réel entre deux repères d'une même voix (RS_Actions : par voix, tous appelants confondus).
 MapMarks.COOLDOWN_MS = Const.MAP_MARK_COOLDOWN_MS
 
--- Lieu `id` de la fiche, ou nil.
+-- Lieu `id` de la fiche qui peut se donner (use=mark), ou nil.
 function MapMarks.placeOf(sheet, id)
-    if type(sheet) ~= "table" or type(sheet.places) ~= "table" or type(id) ~= "string" then return nil end
-    for _, place in ipairs(sheet.places) do
-        if type(place) == "table" and place.id == id then return place end
+    if type(id) ~= "string" then return nil end
+    for _, place in ipairs(Persona.placesFor(sheet, "mark")) do
+        if place.id == id then return place end
     end
     return nil
 end

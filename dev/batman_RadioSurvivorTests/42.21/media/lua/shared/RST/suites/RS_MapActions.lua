@@ -9,7 +9,7 @@ the test are removed there by the same steps); the notebook character of the cal
 server branch (base rs.actions.map of the phased MP run, below); after-reload stays solo only.
 
 rs.actions.map (tag "world": solo save named rstest*)
-    - a test sheet read by the real parser (RS_Persona.parseLines) with one place= line, a few squares from the
+    - a test sheet read by the real parser (RS_Persona.parseLines) with one [place] section, a few squares from the
       player; RS_Actions.decide accepts mark_map for that place (reason ok): the map of the player gets the vanilla
       icon (RS_MapActions.ICON) and the label at the centre of the square, once;
     - a second mark of the same place adds nothing (RS_MapActions.mark gives "present"); a second decision within
@@ -143,8 +143,8 @@ local function testSheet(t, x, y, label, actions)
     local Persona = require "RadioSurvivor/RS_Persona"
     local id = "rstest_map_" .. string.format("%.0f", getTimestampMs())
     local lines = { "format=1", "id=" .. id, "name=RST Map", "frequencies=199.8", "actions=" .. (actions or "say,mark_map"),
-        "place=" .. PLACE_ID .. " " .. tostring(x) .. "," .. tostring(y) .. ",0 " .. label, "[prompt]",
-        "Test voice of rs.actions.map." }
+        "[place " .. PLACE_ID .. "]", "at=" .. tostring(x) .. "," .. tostring(y) .. ",0", "label=" .. label,
+        "use=mark", "[prompt]", "Test voice of rs.actions.map." }
     local sheet, why = Persona.parseLines(lines, id)
     t:ok(sheet ~= nil, "test sheet refused: " .. tostring(why))
     t:defer(function()

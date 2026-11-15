@@ -3,15 +3,18 @@ from pathlib import Path
 import unittest
 from lupa.lua51 import LuaRuntime
 ROOT=Path(__file__).resolve().parents[1]
-MODULE=ROOT/'Contents/mods/batman_RadioSurvivor/42.21/media/lua/server/RadioSurvivor/RS_Rewards.lua'
+SERVER=ROOT/'Contents/mods/batman_RadioSurvivor/42.21/media/lua/server/RadioSurvivor'
+MODULE=SERVER/'RS_Rewards.lua'
 
 class RewardsTests(unittest.TestCase):
     def setUp(self):
         self.lua=LuaRuntime(unpack_returned_tuples=True)
+        self.lua.globals().PARAMS_LUA=str(SERVER/'RS_PersonaParams.lua')
+        self.lua.globals().PERSONA_LUA=str(SERVER/'RS_Persona.lua')
         self.lua.execute('''
         function isClient() return false end
         function isServer() return true end
-        cfg={Rewards={order={'cache','frequency','stashmap','lesson'},lessonXP=25,dailyXP=100,vanillaStashes={A=true}},
+        cfg={Rewards={lessonXP=25,dailyXP=100,vanillaStashes={A=true}},
           Caches={tables={medical={}}}}
         day=1; xp=0; added=0; placed=0; logged={}; capacity=20; saveOK=true; saves=0
         Perks={Doctor=1}; SandboxVars={RadioSurvivor={LessonMultiplier=1}}
@@ -40,9 +43,13 @@ class RewardsTests(unittest.TestCase):
           ['RadioSurvivor/RS_CacheAction']={attach=function(m,t,p,b) m.cache={table=t,spot=p};return m.cache end,
              place=function() placed=placed+1;return true end}}
         function require(n) assert(modules[n],n);return modules[n] end
+        -- E20-T03: real sheet reader (places by use).
+        modules['RadioSurvivor/RS_PersonaParams']=dofile(PARAMS_LUA)
+        modules['RadioSurvivor/RS_Persona']=dofile(PERSONA_LUA)
         store={data={},save=function() saves=saves+1;return saveOK end}
-        source={id='darlene',rewards={'cache','frequency','stashmap','lesson'},cache_table='medical',teaches='Doctor',
-          shares={'silent','dead','cody'},places={{id='p',x=1,y=2,label='Clinic'}}}
+        source={id='darlene',rewards={{kind='cache',param='medical',weight=1},{kind='frequency',weight=1},
+            {kind='stashmap',weight=1},{kind='lesson',param='Doctor',weight=1}},
+          shares={'silent','dead','cody'},places={{id='p',x=1,y=2,label='Clinic',uses={'drop'},use={drop=true}}}}
         m={id='m',state='success',participants={p=true}}
         ''')
         self.r=self.lua.execute(MODULE.read_text(encoding='utf-8-sig'))
@@ -63,17 +70,17 @@ class RewardsTests(unittest.TestCase):
         self.lua.execute("m.state='success';saveOK=false");self.grant()
         self.assertEqual(self.g.placed,0);self.assertIsNone(self.g.m.extendedReward)
     def test_stash_once_and_unvisited(self):
-        self.lua.execute("source.rewards={'stashmap'}")
+        self.lua.execute("source.rewards={{kind='stashmap',weight=1}}")
         self.grant();self.assertEqual(self.g.stashed,1);self.assertEqual(self.g.added,1)
         self.lua.execute("m={state='success',participants={p=true}}")
         self.assertIsNone(self.r.choose(self.g.store.data,self.g.source,self.g.m,'p'))
         self.lua.execute('store.data={};visited=true')
         self.assertIsNone(self.r.stash())
     def test_full_inventory_does_not_reserve_stash(self):
-        self.lua.execute("source.rewards={'stashmap'};capacity=0")
+        self.lua.execute("source.rewards={{kind='stashmap',weight=1}};capacity=0")
         self.grant();self.assertIsNone(self.g.m.extendedReward);self.assertEqual(self.g.stashed,0)
     def test_xp_daily_limit_disable_and_day_reset(self):
-        self.lua.execute("source.rewards={'lesson'}")
+        self.lua.execute("source.rewards={{kind='lesson',param='Doctor',weight=1}}")
         for _ in range(6):
             self.lua.execute("m={state='success',participants={p=true}}")
             self.grant()

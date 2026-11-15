@@ -61,15 +61,21 @@ Personas.MIN_GAP_KHZ = 1000
 -- extension admise par getFileWriter (ini, cfg, txt, log, json : base kahlua-lua.md).
 Personas.FINGERPRINTS = "batman_RadioSurvivor/personas-fingerprints.txt"
 Personas.FINGERPRINTS_HEADER = "RSFP1"
+-- Catalogue partagé des catégories d'objets (E20-T03, ADR D04) : livré dans le dossier des fiches du mod, lu là (jamais
+-- copié dans le dossier de travail), avant les fiches ; une fiche y ajoute ses catégories propres.
+Personas.CATALOGUE = "_categories.txt"
 -- Empreintes (Personas.fingerprint) de toutes les versions livrées de chaque fiche, la version actuelle comprise :
 -- reconnaissent une fiche non modifiée installée avant le fichier d'empreintes (E05-T02 à E05-T10). Versions des
 -- commits 09d7474 et 24832ea (fréquences fixes ; Walt identique dans les deux), 486b21e (plages, E05-T07), puis
--- E05-T10 (commentaires de walt.txt), E05-T05 (appels de darlene, cody, gus). Toute nouvelle version livrée
--- d'une fiche ajoute ici son empreinte (tests/test_personas_server.py le vérifie).
+-- E05-T10 (commentaires de walt.txt), E05-T05 (appels de darlene, cody, gus), E20-T03 (fiches à sections de darlene
+-- et cody). Toute nouvelle version livrée d'une fiche ajoute ici son empreinte (tests/test_personas_server.py le
+-- vérifie).
 Personas.KNOWN_DELIVERED = {
     walt = { "2105682694", "2759756800", "213942039", "1586801598" },   -- E07-T10 : share_frequency
-    darlene = { "611497886", "1134557996", "2120896689", "3998911546", "3957645400" },   -- E11-T13 : start_mission
-    cody = { "3131466986", "673421833", "4032160620", "318842949", "1196981398" },   -- E11-T13 : start_mission
+    darlene = { "611497886", "1134557996", "2120896689", "3998911546", "3957645400",
+        "1182033778" },   -- E20-T03 : sections
+    cody = { "3131466986", "673421833", "4032160620", "318842949", "1196981398",
+        "1976566616" },   -- E20-T03 : sections
     whitaker = { "4044533006", "3352221633", "2075828338" },   -- E12-T04 : règle du secours réussi
     nightowl = { "4175146858", "225312038" },
     gus = { "2508366732", "2733824589", "2930912175", "1078646290", "1260582370" },   -- E07-T10 : share_frequency
@@ -109,12 +115,17 @@ local function javaList(list)
     return out
 end
 
--- Noms « *.txt » triés.
+-- Vrai pour un nom de fiche de voix : « *.txt », sauf un nom qui commence par « _ » (catalogue CATALOGUE).
+function Personas.isSheetName(name)
+    name = tostring(name)
+    return string.len(name) > 4 and string.sub(name, -4) == ".txt" and string.sub(name, 1, 1) ~= "_"
+end
+
+-- Noms de fiches de voix triés.
 local function sheetNames(names)
     local out = {}
     for _, name in ipairs(names) do
-        name = tostring(name)
-        if string.len(name) > 4 and string.sub(name, -4) == ".txt" then out[#out + 1] = name end
+        if Personas.isSheetName(name) then out[#out + 1] = tostring(name) end
     end
     table.sort(out)
     return out
@@ -334,6 +345,36 @@ end
 
 -- Lecture du dossier ---------------------------------------------------------------------------
 
+-- Règles des fiches (racine de composition, E20-T03) ----------------------------------------------------------
+
+local catalogue = nil
+
+-- Catalogue livré, lu une fois par session Lua (fichier du mod) ; illisible ou refusé : vide, journalisé.
+local function loadCatalogue()
+    if catalogue then return catalogue end
+    local path = Personas.BUNDLED_DIR .. "/" .. Personas.CATALOGUE
+    local reader = getModFileReader(Personas.MOD_ID, path, false)
+    if not reader then
+        log("ERROR: cannot read the shared category catalogue " .. path .. " of the mod")
+        catalogue = {}
+        return catalogue
+    end
+    local parsed, err = Persona.parseCatalogue(readLines(reader))
+    if not parsed then log("ERROR: " .. path .. " of the mod refused, " .. err) end
+    catalogue = parsed or {}
+    return catalogue
+end
+
+-- Règles injectées dans RS_Persona : gabarits de mission donnés par une voix (registre du mod commun), natures de
+-- récompense et compétences (RS_Rewards), catalogue des catégories. Lu à l'appel : le jeu a chargé tous les fichiers
+-- serveur (gabarits inscrits) avant la lecture des fiches (OnLoadRadioScripts).
+function Personas.rules()
+    local Missions = require "RadioSurvivorCore/RC_Missions"
+    local Rewards = require "RadioSurvivor/RS_Rewards"
+    return { template = Missions.voiceTemplate, rewards = Rewards.KINDS, skills = Rewards.SKILLS,
+        categories = loadCatalogue() }
+end
+
 local function removeVoice(id, why)
     if state.voices[id] then
         state.voices[id] = nil
@@ -381,7 +422,7 @@ local function scan()
                 if #lines == 0 then
                     removeVoice(id, "empty file")
                 else
-                    local sheet, err = Persona.parseLines(lines, id)
+                    local sheet, err = Persona.parseLines(lines, id, Personas.rules())
                     if sheet then
                         setVoice(id, sheet)
                     elseif state.voices[id] then
@@ -848,7 +889,7 @@ function Personas.setGenerated(map)
         if old and old.key == key then
             out[id] = old
         else
-            local sheet, err = Persona.parseLines(entry.lines, id)
+            local sheet, err = Persona.parseLines(entry.lines, id, Personas.rules())
             if sheet then
                 sheet.group, sheet.generated = entry.group, true
                 out[id] = { sheet = sheet, key = key }

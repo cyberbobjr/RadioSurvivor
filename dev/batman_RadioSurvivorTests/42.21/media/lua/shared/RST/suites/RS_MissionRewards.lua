@@ -36,8 +36,11 @@ local function setup(t, kind)
     local id = 'rst-reward-' .. kind .. '-' .. tostring(RST.now())
     local m = {id=id, state='success', participants={[cid]=true}}
     S.data.missions[id] = m
-    local source = {id=id, rewards={kind}, teaches='Doctor', cache_table='medical', shares={'cody','darlene'},
-        places={{id='reward',label='Test reward',x=math.floor(p:getX()),y=math.floor(p:getY()),z=math.floor(p:getZ())}}}
+    -- E20-T03: [rewards] pool of the sheet (one entry of this kind) and a place with use=drop for the cache.
+    local params = {cache='medical', lesson='Doctor'}
+    local source = {id=id, rewards={{kind=kind, param=params[kind], weight=1}}, shares={'cody','darlene'},
+        places={{id='reward',label='Test reward',x=math.floor(p:getX()),y=math.floor(p:getY()),z=math.floor(p:getZ()),
+            uses={'drop'}, use={drop=true}}}}
     t:defer(function()
         S.data.missions[id] = nil
         if S.data.missionRewards then S.data.missionRewards[cid .. ':' .. id] = nil end

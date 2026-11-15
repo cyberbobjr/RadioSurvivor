@@ -79,7 +79,9 @@ LUA_FILES = [
     ('RadioSurvivor/RS_MissionHooks', MOD_LUA / 'server' / 'RadioSurvivor' / 'RS_MissionHooks.lua'),
     ('RadioSurvivor/RS_StatePurge', MOD_LUA / 'server' / 'RadioSurvivor' / 'RS_StatePurge.lua'),
     ('RadioSurvivor/RS_State', MOD_LUA / 'server' / 'RadioSurvivor' / 'RS_State.lua'),
+    ('RadioSurvivor/RS_PersonaParams', MOD_LUA / 'server' / 'RadioSurvivor' / 'RS_PersonaParams.lua'),  # E20-T03
     ('RadioSurvivor/RS_Persona', MOD_LUA / 'server' / 'RadioSurvivor' / 'RS_Persona.lua'),
+    ('RadioSurvivor/RS_Rewards', MOD_LUA / 'server' / 'RadioSurvivor' / 'RS_Rewards.lua'),  # E20-T03 : RS_Personas.rules
     ('RadioSurvivor/RadioSurvivor_Const', MOD_LUA / 'shared' / 'RadioSurvivor' / 'RadioSurvivor_Const.lua'),
     ('RadioSurvivor/RS_Personas', MOD_LUA / 'server' / 'RadioSurvivor' / 'RS_Personas.lua'),
     ('RadioSurvivor/RS_RadioHistory', MOD_LUA / 'client' / 'RadioSurvivor' / 'RS_RadioHistory.lua'),
@@ -428,17 +430,17 @@ PERSONA_CASES = [
     ('frequency', (test_personas.HEAD.replace('145.0', '145.1') + test_personas.PROMPT).encode(), 'case'),
     ('budget', (test_personas.HEAD + 'actions=say\nbudget.signal=1\n' + test_personas.PROMPT).encode(), 'case'),
     # E07-T04 : libellé de lieu borné en octets UTF-8, comptés depuis les unités UTF-16 de Kahlua.
-    ('place-48', (test_personas.HEAD + 'place=a 1,2,0 ' + 'é' * 24 + '\n' + test_personas.PROMPT).encode(),
+    ('place-48', (test_personas.HEAD + test_personas.place('a', label='é' * 24) + test_personas.PROMPT).encode(),
      'case'),
-    ('place-49', (test_personas.HEAD + 'place=a 1,2,0 ' + 'é' * 24 + 'x\n' + test_personas.PROMPT).encode(),
+    ('place-49', (test_personas.HEAD + test_personas.place('a', label='é' * 24 + 'x')
+                  + test_personas.PROMPT).encode(), 'case'),
+    ('place-cjk', (test_personas.HEAD + test_personas.place('a', label='港' * 16) + test_personas.PROMPT).encode(),
      'case'),
-    ('place-cjk', (test_personas.HEAD + 'place=a 1,2,0 ' + '港' * 16 + '\n' + test_personas.PROMPT).encode(),
-     'case'),
-    ('place-cjk-long', (test_personas.HEAD + 'place=a 1,2,0 ' + '港' * 16 + 'x\n'
+    ('place-cjk-long', (test_personas.HEAD + test_personas.place('a', label='港' * 16 + 'x')
                         + test_personas.PROMPT).encode(), 'case'),
-    ('place-emoji', (test_personas.HEAD + 'place=a 1,2,0 ' + '\U0001F4FB' * 12 + '\n'
+    ('place-emoji', (test_personas.HEAD + test_personas.place('a', label='\U0001F4FB' * 12)
                      + test_personas.PROMPT).encode(), 'case'),
-    ('place-emoji-long', (test_personas.HEAD + 'place=a 1,2,0 ' + '\U0001F4FB' * 12 + 'x\n'
+    ('place-emoji-long', (test_personas.HEAD + test_personas.place('a', label='\U0001F4FB' * 12 + 'x')
                           + test_personas.PROMPT).encode(), 'case'),
 ]
 

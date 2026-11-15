@@ -1,15 +1,21 @@
 # Format des fiches de voix radio (format 1)
 
 Une fiche décrit une voix du réseau radio (E05) : identité, fréquences, horaires, lieu, connaissances, actions
-autorisées, état, et le texte du prompt donné au LLM. Elle est lue par deux lecteurs qui appliquent **les mêmes
-règles et les mêmes messages** :
+autorisées, état, lieux, missions proposées, récompenses, catégories d'objets propres, et le texte du prompt donné au
+LLM (fiche à sections depuis E20-T03, [ADR des voix déclarées](../architecture/decisions/adr-personas-declaratives.md),
+D01, D03, D04). Deux lecteurs :
 
-- le pont : `bridge/persona_store.py` (`load_file`, `parse_bytes`, `parse_lines`) ;
 - le serveur : `media/lua/server/RadioSurvivor/RS_Persona.lua` (`RS_Persona.readFile`, `RS_Persona.parseLines`),
-  qui lit le fichier avec `getFileReader`, sans `loadstring`.
+  qui lit le fichier avec `getFileReader`, sans `loadstring`. C'est **le seul lecteur complet** : il valide toute la
+  fiche, sections comprises, avec les règles que lui passe `RS_Personas.rules()` (types de mission inscrits et leurs
+  paramètres, natures de récompense, compétences, catalogue des catégories) ;
+- le pont : `bridge/persona_store.py` (`load_file`, `parse_bytes`, `parse_lines`), qui lit l'en-tête, les sections
+  `[place]` et le prompt avec **les mêmes règles et les mêmes messages**, et passe les sections `[mission]`,
+  `[rewards]` et `[category]` sans les lire (le serveur les valide).
 
-`tests/test_personas.py` compare les deux lecteurs sur les mêmes fichiers (lupa) ; `tests/test_kahlua.py` refait une
-partie des cas dans la VM Kahlua réelle (accents, BOM, UTF-8 invalide).
+`tests/test_personas.py` compare les deux lecteurs sur les mêmes fichiers (lupa) ; `tests/test_persona_sections.py`
+couvre ce que seul le serveur valide ; `tests/test_kahlua.py` refait une partie des cas dans la VM Kahlua réelle
+(accents, BOM, UTF-8 invalide).
 
 État : format et lecteurs (E05-T01) ; chargement et relecture à chaud côté serveur (E05-T02) ; routage par voix,
 radio exigée, budget et prompt construit par le pont (E05-T03, « Routage par voix » ci-dessous) ; fréquences tirées
@@ -22,7 +28,7 @@ souvenir non vérifié (`docs/specifications-techniques/protocole-carnet-v2.md`,
 effective : la voix fait évoluer son propre moral, ses réserves et le lieu où elle dit se trouver, rangés par le
 serveur dans son état privé (jamais dans la fiche, qui reste celle de l'admin) et rappelés au pont
 (`docs/specifications-techniques/protocole-carnet-v2.md`, « État dynamique des voix »). Depuis E07-T04, `mark_map` est effective : la fiche
-liste ses lieux connus (`place=`, « Lieux connus » ci-dessous), la voix en choisit un par son identifiant et le
+liste ses lieux connus (sections `[place]`, « Lieux connus » ci-dessous), la voix en choisit un par son identifiant et le
 serveur le marque sur la carte du seul appelant (`docs/specifications-techniques/protocole-carnet-v2.md`, « Repère sur la carte »). Les fiches livrées n'existent qu'en un exemplaire, dans le mod (E05-T10) ; le prompt de secours
 `bridge/persona.txt` est retiré.
 
@@ -35,7 +41,11 @@ serveur le marque sur la carte du seul appelant (`docs/specifications-techniques
   « Chargement par le serveur »).
 - Texte **UTF-8 sans BOM**. Fins de ligne `\n`, `\r\n` ou `\r` (découpage de `BufferedReader.readLine`, celui de
   `getFileReader`).
-- Deux parties : un en-tête de lignes `clé=valeur`, puis une ligne `[prompt]` suivie du texte libre du prompt.
+- Trois parties, dans cet ordre : un en-tête de lignes `clé=valeur`, des sections facultatives (`[place <id>]`,
+  `[mission <id>]`, `[rewards]`, `[category <id>]`, dans n'importe quel ordre), puis une ligne `[prompt]` suivie du
+  texte libre du prompt. Une ligne `clé=valeur` placée après un en-tête de section appartient à cette section.
+- Un fichier dont le nom commence par `_` n'est pas une voix : c'est le catalogue partagé des catégories
+  (`_categories.txt`, « Catalogue des catégories » ci-dessous).
 
 ```text
 # commentaire
@@ -60,6 +70,19 @@ You are Walt Hensley, 54, ...
 - Une valeur vide est refusée : pour garder la valeur par défaut, retirer la ligne.
 - Les listes (`frequencies`, `frequency_range`, `listen`, `actions`) sont séparées par des virgules, espaces
   tolérés autour.
+
+### Sections
+
+- Une section commence par une ligne d'en-tête `[nom id]` (`[place mill]`), ou `[nom]` pour `[rewards]`, qui n'a pas
+  d'identifiant ; espaces tolérés autour du nom et de l'identifiant. Elle finit à l'en-tête suivant ou à `[prompt]`.
+- Identifiant : `a`-`z`, `0`-`9`, `_`, 32 caractères au plus, unique par genre de section dans la fiche
+  (`duplicate place 'mill' (first set on line 5)`) ; `[rewards]` une fois au plus.
+- Corps : lignes vides, commentaires `#` et lignes `clé=valeur`, coupées comme celles de l'en-tête ; clés en minuscules
+  (`a` à `z`, `_`), une fois chacune sauf `item` de `[category]`, valeur non vide. Une clé inconnue de la section est
+  refusée (`unknown key 'colour' in [place mill]`).
+- Les références entre sections (lieu d'une mission, catégorie d'une récompense, mission citée par `after`) sont
+  contrôlées après la lecture du fichier : une section peut citer une section écrite plus bas.
+- Pas de commentaire en fin de ligne : `#` et `;` font partie de la valeur.
 
 ### Prompt
 
@@ -86,16 +109,17 @@ You are Walt Hensley, 54, ...
 | `knows` | texte non vide, répétable | aucun | Ce que la voix sait. |
 | `ignores` | texte non vide, répétable | aucun | Ce que la voix ignore (pour qu'elle ne l'invente pas). |
 | `secret` | texte non vide, répétable | aucun | Ce que la voix cache. Voir « Secrets » ci-dessous. |
-| `place` | `<id> <x>,<y>,<z> <libellé>`, répétable, 12 lignes au plus : `id` en `a`-`z`, `0`-`9`, `_` (32 caractères au plus, unique dans la fiche), coordonnées comme `coords`, libellé non vide de 48 octets UTF-8 au plus ; un ou plusieurs espaces ou tabulations entre les trois parties | aucun | Lieu connu de la voix (E07-T04), qu'elle peut marquer sur la carte de l'appelant par l'action `mark_map` ou dont elle peut révéler le quartier par `reveal_area` (E07-T05). Le pont ne montre au LLM que `id` et libellé ; les coordonnées restent sur le serveur, qui les envoie au seul appelant d'un `mark_map` accepté. Le libellé est affiché tel quel sur la carte du joueur : pas de secret ni de texte réservé à l'admin. Voir « Lieux connus » ci-dessous. |
-| `actions` | liste parmi `say`, `mark_map`, `reveal_area`, `signal`, `place_cache`, `place_scene`, `start_mission`, `persona_state`, `remember`, `propose_trade`, `report_mission`, `share_frequency`, sans doublon | `say` | Actions que la voix peut proposer (catalogue fermé, note de travail §02). Seules les actions dotées d'un exécuteur côté serveur ont un effet (`say`, diffusée comme avant ; `remember` depuis E07-T03 : un fait de 64 caractères au plus sur l'appelant, 5 par appelant et par personnage, 50 appelants par voix, sans effet de jeu ; `persona_state` depuis E07-T06 : paramètres `morale` et `supplies`, entiers de 0 à 10 (5 par défaut), changés d'au plus 2 par appel, une demande au-delà ou hors bornes étant ramenée, et `place`, lieu dit de 40 caractères au plus, simple récit sans effet sur `coords` ni sur la distance ; au moins un paramètre, aucun autre ; état propre à la voix, rangé dans l'état privé du serveur, jamais dans la fiche ; sans effet de jeu ; plafond `budget.persona_state`) ; `mark_map` depuis E07-T04 : paramètre unique `place`, identifiant d'une ligne `place=` de la fiche, repère posé sur la carte du monde du seul appelant, 30 s réelles au moins entre deux repères de la voix, plafond `budget.mark_map` ; une fiche `mark_map` sans ligne `place=` ne la propose pas au LLM ; `reveal_area` depuis E07-T05 : même paramètre `place`, le quartier autour du lieu devient connu sur la carte du monde du seul appelant, carré de 5 blocs de 32 cases (160 cases de côté au plus, moins en bord de carte), 60 s réelles au moins entre deux révélations de la voix, plafond `budget.reveal_area`, conditions de proposition identiques à `mark_map` ; `start_mission` depuis E11-T08 : paramètre unique `template`, `scout` seul, mission « reconnaître » confiée à l'appelant (bâtiment choisi par le serveur autour de lui, décrit à la voix sans coordonnée juste après, par une demande de consigne où elle dit les indices (E11-T09), puis aux appels suivants), une mission ouverte à la fois par appelant et par voix, 60 s réelles au moins entre deux missions de la voix et 30 min après la clôture de la précédente du même appelant, compte rendu à la radio sur la fréquence de la voix après la visite (E11-T13 : action `report_mission`, sans paramètre, rendue par le modèle quand l'appel en rend compte et revérifiée par le serveur ; permise à toute fiche qui autorise `start_mission`, sans la lister), récompense en réputation et repère du premier lieu `place=` pas encore donné à ce personnage, plafond `budget.start_mission` ; carnet du joueur requis) ; `place_cache` depuis E11-T06 : paramètre unique `table` (`food`, `medical`, `ammo`, `tools`), sac marqué rempli de cette table fermée et posé une seule fois au bâtiment de la dernière mission donnée par la voix à l'appelant (ouverte, sinon sa dernière réussite), une cache par mission, 60 s réelles au moins entre deux caches de la voix, plafond `budget.place_cache` ; serveur seulement pour l'instant : le pont ne la propose pas encore au LLM ; `propose_trade` depuis E13-T02 : paramètres `items` (« `Nom:quantité` » séparés par des virgules, objets du stock du passage) et `margin` facultative, offre du passeur contrôlée contre la table validée et figée par le serveur, qui joint le livre du passeur (`trade=`) aux demandes de cette voix (`docs/annexes/conception/passeur-offre.md`) ; les autres sont refusées `not_available` et journalisées. Une fiche qui autorise une action autre que `say` fait passer le pont en réponse structurée (`docs/specifications-techniques/protocole-carnet-v2.md`, « Réponse radio structurée »). |
+| `actions` | liste parmi `say`, `mark_map`, `reveal_area`, `signal`, `place_cache`, `place_scene`, `start_mission`, `persona_state`, `remember`, `propose_trade`, `report_mission`, `share_frequency`, sans doublon | `say` | Actions que la voix peut proposer (catalogue fermé, note de travail §02). Seules les actions dotées d'un exécuteur côté serveur ont un effet (`say`, diffusée comme avant ; `remember` depuis E07-T03 : un fait de 64 caractères au plus sur l'appelant, 5 par appelant et par personnage, 50 appelants par voix, sans effet de jeu ; `persona_state` depuis E07-T06 : paramètres `morale` et `supplies`, entiers de 0 à 10 (5 par défaut), changés d'au plus 2 par appel, une demande au-delà ou hors bornes étant ramenée, et `place`, lieu dit de 40 caractères au plus, simple récit sans effet sur `coords` ni sur la distance ; au moins un paramètre, aucun autre ; état propre à la voix, rangé dans l'état privé du serveur, jamais dans la fiche ; sans effet de jeu ; plafond `budget.persona_state`) ; `mark_map` depuis E07-T04 : paramètre unique `place`, identifiant d'un lieu `[place]` de la fiche avec `use=mark`, repère posé sur la carte du monde du seul appelant, 30 s réelles au moins entre deux repères de la voix, plafond `budget.mark_map` ; une fiche `mark_map` sans lieu `use=mark` ne la propose pas au LLM ; `reveal_area` depuis E07-T05 : même paramètre `place`, le quartier autour du lieu devient connu sur la carte du monde du seul appelant, carré de 5 blocs de 32 cases (160 cases de côté au plus, moins en bord de carte), 60 s réelles au moins entre deux révélations de la voix, plafond `budget.reveal_area`, conditions de proposition identiques à `mark_map` ; `start_mission` depuis E11-T08 : paramètre unique `template`, `scout` seul, mission « reconnaître » confiée à l'appelant (bâtiment choisi par le serveur autour de lui, décrit à la voix sans coordonnée juste après, par une demande de consigne où elle dit les indices (E11-T09), puis aux appels suivants), une mission ouverte à la fois par appelant et par voix, 60 s réelles au moins entre deux missions de la voix et 30 min après la clôture de la précédente du même appelant, compte rendu à la radio sur la fréquence de la voix après la visite (E11-T13 : action `report_mission`, sans paramètre, rendue par le modèle quand l'appel en rend compte et revérifiée par le serveur ; permise à toute fiche qui autorise `start_mission`, sans la lister), récompense en réputation et, sans section `[rewards]`, repère du premier lieu `use=mark` pas encore donné à ce personnage, plafond `budget.start_mission` ; carnet du joueur requis) ; `place_cache` depuis E11-T06 : paramètre unique `table` (`food`, `medical`, `ammo`, `tools`), sac marqué rempli de cette table fermée et posé une seule fois au bâtiment de la dernière mission donnée par la voix à l'appelant (ouverte, sinon sa dernière réussite), une cache par mission, 60 s réelles au moins entre deux caches de la voix, plafond `budget.place_cache` ; serveur seulement pour l'instant : le pont ne la propose pas encore au LLM ; `propose_trade` depuis E13-T02 : paramètres `items` (« `Nom:quantité` » séparés par des virgules, objets du stock du passage) et `margin` facultative, offre du passeur contrôlée contre la table validée et figée par le serveur, qui joint le livre du passeur (`trade=`) aux demandes de cette voix (`docs/annexes/conception/passeur-offre.md`) ; les autres sont refusées `not_available` et journalisées. Une fiche qui autorise une action autre que `say` fait passer le pont en réponse structurée (`docs/specifications-techniques/protocole-carnet-v2.md`, « Réponse radio structurée »). |
 | `budget` | entier de 0 à 999999 | `0` | Demandes par heure réelle pour cette voix, en plus du plafond global `MaxPerHour` ; `0` = seul le plafond global. |
 | `budget.<action>` | entier de 0 à 999999 | aucun | Utilisations par jour de jeu de cette action ; `0` = pas de plafond. L'action doit figurer dans `actions`. |
 | `call_one_in` | entier de 0 à 1000 | `0` | Appel général spontané : une chance sur N à chaque heure de jeu, pendant les heures d'écoute, quand personne ne parle à la voix ; `0` = jamais. Voir « Appels spontanés ». |
 | `call_text` | clé de traduction (`A`-`Z`, `a`-`z`, `0`-`9`, `_`) | aucun | Texte fixe de l'appel, diffusé quand le pont n'en écrit pas, `%1` = fréquence affichée. Obligatoire si `call_one_in` > 0. Clé du fichier `IG_UI.json` du mod (préfixe `IGUI_`). |
 | `state` | `active`, `silent`, `gone`, `dead` | `active` | `active` : répond ; `silent` : écoute mais ne répond pas (pause) ; `gone` : retirée du réseau ; `dead` : morte dans l'histoire. Traitement : « Chargement par le serveur » et « Routage par voix ». |
+| `shares` | IDs de voix, même syntaxe que `id`, sans doublon ; présence et état vérifiés par le serveur | aucun | Voix dont la fréquence peut être donnée par `share_frequency` ou une récompense `frequency` (« Missions et récompenses des voix »). |
 
-Les deux lecteurs rendent la fiche avec ces noms (`secret` devient la liste `secrets`, `place` la liste `places` de
-lieux `{ id, x, y, z, label }` dans l'ordre du fichier (Python : `Place`), les `budget.<action>` la
+Les deux lecteurs rendent la fiche avec ces noms (`secret` devient la liste `secrets`, les sections `[place]` la liste
+`places` de lieux `{ id, x, y, z, label, uses }` dans l'ordre du fichier (Python : `Place`, `places_for(use)` ; Lua :
+plus `use`, ensemble des usages, et `RS_Persona.placesFor(sheet, use)`), les `budget.<action>` la
 table `budgets`, `listen` une liste de plages `(début, fin)` en minutes du jour de jeu, vide pour `always`,
 `frequency_range` la liste `frequency_ranges` de plages `(bas, haut)` en kHz ; `frequencies` est alors vide, et
 `frequency_ranges` est vide pour une fiche à fréquences fixes).
@@ -385,42 +409,55 @@ Le serveur décide (`RadioSurvivor_Server.lua`, `onEveryHours`), le pont écrit 
   fréquences cachées et positions exactes des bases de joueurs ne vont **jamais** dans une fiche ni dans un prompt
   (note de travail §02). Le serveur ajoute ces valeurs après coup quand une action en a besoin.
 - Seule exception à « jamais dans une commande `sendServerCommand` » : un `mark_map` accepté envoie au **seul
-  appelant** les coordonnées et le libellé d'**un** lieu `place=` (commande `map_mark`), rien d'autre de la fiche ;
+  appelant** les coordonnées et le libellé d'**un** lieu `[place]` (commande `map_mark`), rien d'autre de la fiche ;
   un `reveal_area` accepté lui envoie de même un rectangle de 160 cases de côté au plus autour d'un lieu (commande
   `map_reveal`, E07-T05). Autre exception, réservée à l'administration : la réponse `freqReply` du panneau de debug
   des fréquences (E05-T14), au seul demandeur autorisé, sans aucun texte de fiche (ni prompt, ni `knows`, ni secret).
 
-## Lieux connus (E07-T04)
+## Lieux connus (E07-T04, sections E20-T03)
 
-Une ligne `place=` par lieu que la voix connaît, pour les actions `mark_map` et `reveal_area` (E07-T05) :
+Une section `[place <id>]` par lieu que la voix connaît, 12 au plus :
 
 ```text
-place=mill 10600,9300,0 Vieux moulin
-place=west_pharmacy 11920,6905,0 Pharmacie de West Point
+[place mill]
+at=10600,9300,0
+label=Vieux moulin
+use=mark
+
+[place drop_church]
+at=11795,6950,0
+label=Derrière l'église baptiste
+use=drop,target
 ```
 
-- `id` : identifiant que le LLM choisit (`[a-z0-9_]`, 32 caractères au plus, unique dans la fiche) ; coordonnées
-  entières comme `coords` (`x`, `y` de 0 à 999999, `z` de -32 à 31) ; libellé : le reste de la ligne, espaces
-  intérieurs gardés, 48 octets UTF-8 au plus (environ 24 lettres accentuées ; les deux lecteurs comptent les mêmes
-  octets, Kahlua depuis ses unités UTF-16). Au plus 12 lieux.
-- Le prompt (mode structuré, `mark_map` autorisée) liste `id: libellé` de chaque lieu, jamais ses coordonnées ;
-  `bounded_actions` (pont) et l'exécuteur (serveur, `RS_MapMarks.lua`) refusent un identifiant absent de la fiche.
-- Le repère est posé au centre de la case `x,y` (le niveau `z` est lu mais la carte du monde est plane), sur la carte
-  du seul appelant, comme une annotation du joueur : icône vanilla et libellé, sauvegardés avec ses annotations
-  (`docs/specifications-techniques/protocole-carnet-v2.md`, « Repère sur la carte »). Le joueur peut l'effacer ; un nouveau `mark_map` du même
-  lieu le repose, sans doublon.
-- `reveal_area` (E07-T05) : le quartier autour du lieu devient connu sur la carte du seul appelant, carré de 5 blocs de
-  32 cases centré sur le bloc du lieu (160 cases de côté au plus, rogné en bord de carte), comme une carte vanilla lue ;
-  persistant (sauvegarde solo, ou carte du compte gardée par le serveur MP), sans retour en arrière
-  (`docs/specifications-techniques/protocole-carnet-v2.md`, « Quartier révélé »). Un lieu hors de la carte est refusé `off_map`.
-- `start_mission` (E11-T08) : à la réussite d'une mission confiée par la voix, le premier lieu de la fiche (ordre du
-  fichier) pas encore donné à ce personnage par cette voix est marqué sur sa carte comme par `mark_map` (hors budget et
-  délai de `mark_map`) ; sans lieu restant, réputation seule (`docs/specifications-techniques/protocole-carnet-v2.md`, « Mission donnée par une
-  voix »). Le bâtiment de la mission, lui, n'est jamais un lieu de la fiche : le serveur le choisit. Voix livrées qui
-  donnent des missions (E11-T13) : Darlene et Cody (`actions=say,start_mission`, gabarit `scout`, compte rendu à la
-  radio par `report_mission` implicite) ; sans ligne `place=`, leur récompense est la réputation seule. Night Owl,
-  Whitaker et Walt n'en donnent pas ; Gus garde `propose_trade`.
-- Les lieux n'ont aucun autre effet : ni distance (`too_far`), ni `coords` de la voix, ni `persona_state`.
+| Clé | Valeurs | Rôle |
+|---|---|---|
+| `at` | `x,y,z` entiers comme `coords` (`x`, `y` de 0 à 999999, `z` de -32 à 31) | Case du lieu ; gardée par le serveur, jamais montrée au LLM. |
+| `label` | texte non vide de 48 octets UTF-8 au plus (environ 24 lettres accentuées ; les deux lecteurs comptent les mêmes octets, Kahlua depuis ses unités UTF-16) | Nom du lieu, montré au LLM et affiché tel quel sur la carte du joueur : pas de secret ni de texte réservé à l'admin. |
+| `use` | liste sans doublon parmi `mark`, `target`, `drop`, `landing` | Usages du lieu, ci-dessous. |
+
+Les trois clés sont obligatoires (`missing key 'use' in [place mill]`, à la ligne de l'en-tête).
+
+- `mark` : repère que la voix peut donner. Le prompt (mode structuré, `mark_map` ou `reveal_area` autorisée) liste
+  `id: libellé` de ces lieux, jamais leurs coordonnées ; `bounded_actions` (pont) et l'exécuteur (serveur,
+  `RS_MapMarks.lua`) refusent un autre identifiant. Le repère est posé au centre de la case `x,y` (le niveau `z` est
+  lu mais la carte du monde est plane), sur la carte du seul appelant, comme une annotation du joueur : icône vanilla
+  et libellé, sauvegardés avec ses annotations (`docs/specifications-techniques/protocole-carnet-v2.md`, « Repère sur
+  la carte »). Le joueur peut l'effacer ; un nouveau `mark_map` du même lieu le repose, sans doublon. `reveal_area`
+  (E07-T05) : le quartier autour du lieu devient connu sur la carte du seul appelant, carré de 5 blocs de 32 cases
+  centré sur le bloc du lieu (160 cases de côté au plus, rogné en bord de carte), comme une carte vanilla lue ;
+  persistant, sans retour en arrière (« Quartier révélé » du protocole). Un lieu hors de la carte est refusé `off_map`.
+  Mission réussie d'une voix **sans** section `[rewards]` (E11-T08) : le premier lieu `mark` (ordre du fichier) pas
+  encore donné à ce personnage par cette voix est marqué sur sa carte comme par `mark_map` (hors budget et délai) ;
+  sans lieu restant, réputation seule.
+- `target` : objectif possible d'une mission (`target=` d'une section `[mission]`).
+- `drop` : planque. La planque d'une mission `deliver` d'une voix prend tour à tour les lieux `drop` de la fiche
+  (`RS_VoiceDelivery`) ; une voix sans lieu `drop` ne peut pas donner `deliver` (`no_place`). La cache d'une
+  récompense `cache` est posée au **premier lieu `drop`** de la fiche, à défaut à son premier lieu.
+- `landing` : rendez-vous d'un marchand (troc, E20-T07) ; aucun effet avant cette tâche.
+
+Le bâtiment d'une mission `scout`, `retrieve` ou `clear`, lui, n'est jamais un lieu de la fiche : le serveur le choisit.
+Les lieux n'ont aucun autre effet : ni distance (`too_far`), ni `coords` de la voix, ni `persona_state`.
 
 ## Erreurs
 
@@ -434,7 +471,7 @@ Erreurs sur une ligne (dans l'ordre du fichier) :
 |---|---|
 | BOM en tête de fichier | `line 1: file starts with a byte order mark (save it as UTF-8 without BOM)` |
 | Octet UTF-8 invalide (ou U+FFFD), en-tête ou prompt | `line N: invalid UTF-8 (save the file as UTF-8)` |
-| Ligne sans `=` avant `[prompt]` | `line N: expected key=value or [prompt]` |
+| Ligne sans `=` ni en-tête avant `[prompt]` | `line N: expected key=value or [prompt]` |
 | Clé mal formée | `line N: bad key 'Radio'` |
 | Clé inconnue | `line N: unknown key 'colour'` |
 | `budget.<action>` inconnue | `line N: unknown action 'fly' in key 'budget.fly'` |
@@ -454,12 +491,16 @@ Erreurs sur une ligne (dans l'ordre du fichier) :
 | Plage horaire mal écrite | `line N: bad listening hours '8:00-12:00' (always, or HH:MM-HH:MM ranges separated by commas)` |
 | Plage vide | `line N: empty listening range '06:00-06:00'` |
 | `coords` | `line N: bad coords '10600,9300' (x,y,z whole numbers, z from -32 to 31)` |
-| `place` en moins de trois parties | `line N: bad place 'mill 10600,9300,0' (id x,y,z label, e.g. mill 10600,9300,0 Old mill)` |
-| Identifiant de lieu | `line N: bad place id 'Mill' (a to z, 0 to 9 and _, 32 characters at most)` |
+| Section inconnue | `line N: unknown section 'shop' (expected place, mission, rewards, category or prompt)` |
+| Section sans identifiant, ou `[rewards]` avec un identifiant | `line N: section [place] needs an id, e.g. [place mill]`, `line N: section [rewards] takes no id` |
+| Identifiant de section | `line N: bad place id 'Mill' (a to z, 0 to 9 and _, 32 characters at most)` (même forme pour `mission`, `category`) |
+| Section répétée | `line N: duplicate place 'mill' (first set on line 5)`, `line N: duplicate section [rewards] (first set on line 5)` |
+| Clé inconnue, répétée dans une section | `line N: unknown key 'colour' in [place mill]`, `line N: duplicate key 'at' in [place mill] (first set on line 6)` |
 | Coordonnées de lieu | `line N: bad place coords '10600,9300' (x,y,z whole numbers, z from -32 to 31)` |
 | Libellé de lieu trop long | `line N: place label of 'mill' too long (48 bytes of UTF-8 at most)` |
-| Lieu répété | `line N: duplicate place 'mill' (first set on line 5)` |
-| Treizième lieu | `line N: too many places (12 at most)` |
+| Usage de lieu | `line N: bad use entry 'hide' (expected mark, target, drop, landing)`, `line N: duplicate use entry 'mark'` |
+| Clé de lieu absente (ligne de l'en-tête) | `line N: missing key 'at' in [place mill]` |
+| Treizième lieu (ligne de l'en-tête) | `line N: too many places (12 at most)` |
 | Action inconnue ou répétée | `line N: unknown action 'fly'`, `line N: duplicate action 'say'` |
 | Nombre (`budget`, `budget.<action>`, `call_one_in`) | `line N: bad budget '-1' (whole number from 0 to 999999)` (`… 0 to 1000` pour `call_one_in`) |
 | `call_text` | `line N: bad call_text 'IGUI Call' (translation key: A to Z, a to z, 0 to 9 and _)` |
@@ -479,6 +520,33 @@ Erreurs de la fiche entière, contrôlées ensuite dans cet ordre :
 | `call_one_in` > 0 sans `call_text` | ligne `call_one_in` | `call_one_in needs a call_text line` |
 | `budget.<action>` hors `actions` | ligne du budget | `budget.signal set but action 'signal' is not in actions` |
 
+Puis, côté serveur seulement, les sections `[mission]` (dans l'ordre du fichier), `after=` de toutes les missions, puis
+`[rewards]` ; les sections `[category]` sont contrôlées à leur lecture :
+
+| Cas | Ligne indiquée | Message |
+|---|---|---|
+| Section `[mission]` sans `type` | en-tête | `missing key 'type' in [mission m]` |
+| Type non inscrit | ligne `type` | `unknown mission type 'fly'` |
+| Clé ni commune ni déclarée par le type | sa ligne | `unknown key 'count' for mission type 'scout'` |
+| Valeur d'un paramètre du type | sa ligne | message du genre (ci-dessous), par exemple `bad range '4-2' (whole number or range lowest first, e.g. 2-4)`, `unknown category 'weapons'` |
+| `weight` | sa ligne | `bad weight '0' (whole number from 1 to 999999)` |
+| `drops`, `target` vers un lieu absent | sa ligne | `unknown place 'mill'` |
+| `drops` vers un lieu sans `use=drop` ; entrée répétée | sa ligne | `place 'clinic' has no use=drop`, `duplicate drops entry 'church'` |
+| `drops=any` sans lieu `use=drop` | sa ligne | `drops=any needs a place with use=drop` |
+| `target` vers un lieu sans `use=target` | sa ligne | `place 'church' has no use=target` |
+| `after` vers une mission absente | sa ligne | `unknown mission 'ghost' in after=` |
+| Boucle de `after` (une mission après elle-même, ou deux qui s'attendent) | ligne `after` de la première mission de la boucle | `after= cycle through mission 'a'` |
+| `[rewards]` sans `pool`, ou autre clé | en-tête, ou sa ligne | `missing key 'pool' in [rewards]`, `unknown key 'colour' in [rewards]` |
+| Entrée de `pool` mal formée | ligne `pool` | `bad reward 'frequency' (kind:weight or kind:parameter:weight, e.g. cache:medical:3)` |
+| Nature inconnue | ligne `pool` | `unknown reward 'gold' (expected cache, frequency, lesson, stashmap)` |
+| Paramètre manquant ou en trop | ligne `pool` | `reward 'cache' needs a parameter (kind:parameter:weight)`, `reward 'frequency' takes no parameter (kind:weight)` |
+| Poids | ligne `pool` | `bad reward weight '0' (whole number from 1 to 999999)` |
+| Catégorie ou compétence inconnue | ligne `pool` | `unknown category 'weapons'`, `unknown skill 'Carpentry' (expected Doctor, Aiming, …)` |
+| Entrée répétée | ligne `pool` | `duplicate reward 'cache:medical'` |
+| Catégorie du catalogue redéfinie | en-tête | `category 'medical' already exists in the shared catalogue` |
+| Catégorie sans objet | en-tête | `missing key 'item' in [category snacks]` |
+| Objet mal écrit, répété | sa ligne | `bad item 'Crisps:2' (Module.Type:quantity, e.g. Base.Bandage:2-4)`, `duplicate item 'Base.Crisps' in [category snacks]` |
+
 Fichier absent : Lua rend `nil, "cannot read <chemin>"` ; Python lève l'`OSError` habituel.
 
 Vérifier une fiche à la main : `python bridge/persona_store.py chemin\vers\fiche.txt` (une ligne `OK` ou l'erreur par
@@ -492,6 +560,10 @@ fichier, code de sortie 1 si une fiche est refusée).
 - En Kahlua, une chaîne compte des unités UTF-16 ; sous Lua 5.1 (lupa), des octets. Aucune règle ne mesure donc la
   longueur d'un texte libre (`name`, `knows`, prompt) : seules les valeurs ASCII contrôlées (`id`, nombres) ont une
   longueur maximale.
+- Le pont ne lit pas les sections `[mission]`, `[rewards]` et `[category]` (ADR D03) : il accepte une fiche que le
+  serveur refuse pour une de ces sections. Le serveur garde alors la dernière version valide de la voix et écrit la
+  ligne et la raison dans son journal ; le pont répond avec le prompt du fichier, sans action qui dépende de ces
+  sections (les missions permises arrivent du serveur, champ `jobs=` de la demande).
 - Les classes de caractères sont écrites en plages explicites (`[a-z]`, `[0-9]`), jamais `%a`/`%d` en Lua ni `\d` en
   Python, qui acceptent des lettres et chiffres non ASCII selon le moteur.
 
@@ -522,32 +594,71 @@ call_one_in=4
 call_text=IGUI_Test_Call
 state=silent
 
+[place mill]
+at=10600,9300,0
+label=Vieux moulin
+use=mark,drop
+
 [prompt]
 Tu es Hélène, ...
 ```
 
 ## Missions et récompenses des voix
 
-Les cinq clés facultatives suivantes sont strictes, non répétables, et identiques dans les lecteurs Python et Lua.
-Les listes sont séparées par des virgules, sans doublons ni entrée vide ; la casse compte.
+Lues et validées par le serveur seul (E20-T03, ADR D03, D04) ; le pont reçoit les missions permises dans la demande
+(champ `jobs=`, [protocole](protocole-carnet-v2.md#mission-donnée-par-une-voix-e11-t08)).
 
-`missions=` et `cache_table=` ne sont contrôlées que pour leur **syntaxe** par les deux lecteurs (E20-T02, ADR D03) :
-un nom fait de `a` à `z`, `0` à `9` et `_`, commençant par une lettre, 32 caractères au plus (sinon
-`bad missions entry '<nom>'` ou `bad cache_table '<nom>' (a to z, 0 to 9 and _, starting with a letter, 32 characters
-at most)`). Les types de mission et les tables de cache existants appartiennent au serveur : registre des gabarits
-(`RC_Missions`, déclaration `voiceName`) et `RC_MissionConfig.Caches.order`. À l'exécution, le serveur ignore un type
-de mission sans gabarit inscrit et l'écrit une fois dans le journal du jeu (`voice sheet <id> lists unknown mission
-type '<nom>'`, `console.txt`) ; `start_mission` le refuse (`bad_template`). Le pont ne lit plus ces deux clés : il
-reçoit les missions permises et les tables dans la demande (champ `jobs=`,
-[protocole](protocole-carnet-v2.md#mission-donnée-par-une-voix-e11-t08)).
+### Sections `[mission <id>]`
 
-| Clé | Valeurs | Défaut |
+Une section par mission que la voix peut confier ; les types qu'elle donne sont les `type` de ses sections, chacun une
+fois, dans l'ordre du fichier (`RS_MissionVoice`, `V.jobs`). Une fiche sans section `[mission]` donne `scout` si elle
+autorise `start_mission`.
+
+| Clé | Valeurs | Défaut | Rôle |
+|---|---|---|---|
+| `type` | nom d'un type de mission inscrit au registre du mod commun (`RC_Missions`, déclaration `voiceName`) ; aujourd'hui `scout`, `deliver`, `retrieve`, `clear`, `signal` | obligatoire | Gabarit de la mission. |
+| `weight` | entier de 1 à 999999 | `1` | Poids du tirage parmi les missions disponibles (lu, utilisé à partir d'E20-T08). |
+| `after` | identifiant d'une autre section `[mission]` de la fiche, sans boucle | aucun | Mission proposée seulement après la réussite de celle-ci (lu, utilisé à partir d'E20-T08). |
+| `story` | texte | aucun | Raison donnée par la voix (lu, utilisé par une tâche suivante). |
+| `drops` | `any` (tous les lieux `use=drop`, au moins un) ou liste de lieux `use=drop` | aucun | Planques de la mission (lu, utilisé à partir d'E20-T05). |
+| `target` | un lieu `use=target` | aucun | Objectif de la mission (lu, utilisé par les nouveaux types d'E20). |
+| autres clés | celles que **déclare le type** (`params = { clé = '<genre>' }` du gabarit), chacune contrôlée par son genre | aucun | Paramètres propres au type. `deliver` déclare `items` (catégorie) et `quantity` (fourchette) : lus et gardés, la livraison ne les lit pas encore. Les autres types livrés n'en déclarent aucun. |
+
+Genres de valeurs (`RS_PersonaParams.lua`, un validateur par genre, registre ouvert : un nouveau genre s'inscrit
+sans toucher au lecteur) :
+
+| Genre | Valeur | Rendu |
 |---|---|---|
-| `cache_table` | un nom (syntaxe de `id`) ; tables du serveur aujourd'hui : `medical`, `ammo`, `tools`, `food`, `radio` | aucune table |
-| `shares` | IDs de voix, même syntaxe que `id` ; présence et état vérifiés par le serveur | aucun destinataire |
-| `teaches` | `Doctor`, `Aiming`, `Reloading`, `Woodwork`, `Mechanics`, `Electricity`, `MetalWelding`, `Cooking`, `Farming`, `Fishing`, `Trapping`, `PlantScavenging` | aucune leçon |
-| `missions` | noms (syntaxe de `id`) ; types inscrits aujourd'hui : `scout`, `deliver`, `retrieve`, `clear`, `signal` | `scout` |
-| `rewards` | `cache`, `frequency`, `stashmap`, `lesson` | ancien repère de reconnaissance |
+| `count` | entier de 0 à 999999 | nombre |
+| `range` | entier, ou fourchette `bas-haut`, le plus bas d'abord (`2-4`) | `{ min, max }` |
+| `category` | catégorie du catalogue ou de la fiche | identifiant |
+| `place` | lieu `[place]` de la fiche | identifiant |
+| `text` | texte non vide | texte |
+| `skill` | compétence que peut enseigner une leçon (`RS_Rewards.SKILLS`) | nom |
+
+Ajouter un type de mission avec ses paramètres = un fichier de gabarit qui s'inscrit (`RC_Missions.register`) avec
+`voiceName` et `params` ; le lecteur des fiches n'en connaît aucun nom.
+
+### Section `[rewards]`
+
+Une seule ligne `pool=`, liste d'entrées `nature:poids` ou `nature:paramètre:poids` séparées par des virgules, dans
+l'ordre voulu, sans doublon (même nature et même paramètre). Natures (`RS_Rewards.KINDS`, seul propriétaire de ces
+noms) :
+
+| Nature | Paramètre | Effet |
+|---|---|---|
+| `cache` | catégorie (`cache:medical:3`) | sac de matériel laissé au premier lieu `use=drop` de la fiche (à défaut son premier lieu), repère sur la carte |
+| `frequency` | aucun | fréquence d'une voix de `shares`, inscrite au carnet |
+| `stashmap` | aucun | carte annotée d'une planque vanilla non visitée |
+| `lesson` | compétence (`lesson:Doctor:2`) : `Doctor`, `Aiming`, `Reloading`, `Woodwork`, `Mechanics`, `Electricity`, `MetalWelding`, `Cooking`, `Farming`, `Fishing`, `Trapping`, `PlantScavenging` | expérience dans cette compétence, plafonnée par jour |
+
+Jusqu'à E20-T04, les poids sont lus mais pas encore tirés : à la réussite, le serveur garde la réputation et choisit
+une seule récompense réalisable dans un ordre cyclique par joueur et par voix, celui de la **première apparition** de
+chaque nature dans `pool` ; la table de la cache est le paramètre de la première entrée `cache`, la compétence celui
+de la première entrée `lesson`, et une cache n'est remplie que d'une table fixe du serveur
+(`RC_MissionConfig.Caches.tables` : `food`, `medical`, `ammo`, `tools`, `radio`) : une catégorie propre à la fiche y
+est acceptée par la lecture mais ne donne pas encore de cache. L'IA ne choisit ni le type ni le contenu. Sans section
+`[rewards]`, une mission réussie donne le repère d'un lieu `use=mark` (« Lieux connus »).
 
 `actions=...,share_frequency` autorise aussi le partage direct d'une fréquence comme geste de confiance.
 Le modèle propose uniquement cette action : le serveur choisit une voix active autorisée par `shares`, puis ajoute
@@ -556,17 +667,44 @@ consigne demande au modèle de ne le proposer qu'après une négociation, une co
 le serveur exige en plus un lien (au moins 4 réponses de cette voix à ce personnage sur au moins 2 jours de jeu, ou
 une bonne réputation), au plus un partage tous les 7 jours de jeu par voix et par personnage et tous les 3 jours par
 personnage, et seulement une voix que le carnet de ce personnage ne connaît pas encore (`RS_VoiceBonds.lua`).
-Refus journalisés : `not_trusted`, `voice_too_soon`, `too_soon`, `nothing_new`. Les lieux `place=` servent aux caches et aux
-objectifs ; leurs coordonnées restent côté serveur. Les tables de matériel sont fermées côté serveur.
+Refus journalisés : `not_trusted`, `voice_too_soon`, `too_soon`, `nothing_new`.
 
-À la réussite, le serveur conserve la réputation et choisit une seule récompense réalisable dans l'ordre cyclique
-`cache`, `frequency`, `stashmap`, `lesson`, par joueur et voix. L'ordre de la liste `rewards` ne change pas ce cycle.
-L'IA n'en choisit ni le type ni le contenu. Sans `rewards`, les fiches existantes gardent leur comportement antérieur.
+### Sections `[category <id>]` et catalogue des catégories
+
+Une catégorie est une liste d'objets avec leurs quantités, une ligne `item=Module.Type:quantité` par objet (quantité :
+genre `range`, `4` ou `2-4`), au moins une, sans objet répété.
+
+Le mod livre un **catalogue partagé**, `Contents/mods/batman_RadioSurvivor/42.21/personas/_categories.txt` (seulement
+des sections `[category]`), lu par le serveur (`RS_Personas`) dans le dossier du mod avant les fiches, jamais copié
+dans le dossier de travail ni lu comme une voix. Il reprend les tables fixes des caches (`food`, `medical`, `ammo`,
+`tools`, `radio`, mêmes objets et quantités). Une fiche y ajoute ses propres catégories, avec des identifiants
+absents du catalogue ; elles ne valent que pour elle. Catalogue illisible ou refusé : journalisé
+(`personas: ERROR: personas/_categories.txt of the mod refused, line N: …`), aucune catégorie partagée.
+
+### Exemple
 
 ```text
-cache_table=medical
-shares=gus,cody
-teaches=Doctor
-missions=scout,deliver,retrieve,clear,signal
-rewards=cache,frequency,stashmap,lesson
+[place clinic]
+at=11880,6878,0
+label=West Point clinic
+use=mark,target,drop
+
+[mission meds]
+type=deliver
+items=medical
+quantity=2-4
+drops=any
+weight=2
+story=I am running out of bandages.
+
+[mission look]
+type=scout
+after=meds
+
+[category snacks]
+item=Base.Crisps:1-2
+item=Base.Pop:1
+
+[rewards]
+pool=cache:medical:3, cache:snacks:1, frequency:1, stashmap:1, lesson:Doctor:2
 ```

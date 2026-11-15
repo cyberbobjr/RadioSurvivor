@@ -35,15 +35,22 @@ package.loaded["RadioSurvivor/RS_Persona"] = {
 }
 package.loaded["RadioSurvivor/RS_Actions"] = {
     decide = function(sheet, mode, actions, now, ctx)
+        -- [place <id>] sections of the sheet (E20-T03): at=x,y,z and label=.
         local wanted = actions[1] and actions[1].place
+        local places, current = {}, nil
         for _, line in ipairs(sheet.lines) do
-            local id, x, y, label = string.match(line, "^place=(%S+) (%d+),(%d+),%d+ (.*)$")
-            if id ~= nil and id == wanted then
-                DECISIONS[#DECISIONS + 1] = id
-                sendServerCommand(ctx.player, "RSTMapDouble", "mark", { x = tonumber(x), y = tonumber(y),
-                    label = label })
-                return { { reason = "ok" } }
-            end
+            local id = string.match(line, "^%[place (%S+)%]$")
+            if id then current = {}; places[id] = current end
+            local x, y = string.match(line, "^at=(%d+),(%d+),%d+$")
+            if x and current then current.x, current.y = tonumber(x), tonumber(y) end
+            local label = string.match(line, "^label=(.*)$")
+            if label and current then current.label = label end
+        end
+        local p = wanted and places[wanted]
+        if p then
+            DECISIONS[#DECISIONS + 1] = wanted
+            sendServerCommand(ctx.player, "RSTMapDouble", "mark", { x = p.x, y = p.y, label = p.label })
+            return { { reason = "ok" } }
         end
         return { { reason = "bad_params" } }
     end,
