@@ -82,6 +82,10 @@ LUA_FILES = [
     ('RadioSurvivor/RS_PersonaParams', MOD_LUA / 'server' / 'RadioSurvivor' / 'RS_PersonaParams.lua'),  # E20-T03
     ('RadioSurvivor/RS_Persona', MOD_LUA / 'server' / 'RadioSurvivor' / 'RS_Persona.lua'),
     ('RadioSurvivor/RS_Rewards', MOD_LUA / 'server' / 'RadioSurvivor' / 'RS_Rewards.lua'),  # E20-T03 : RS_Personas.rules
+    # E20-T04 : natures de récompense inscrites dans RS_Rewards (une par fichier, Rewards/), la cache sur RC_Caches.
+    ('RadioSurvivorCore/RC_Caches', CORE_LUA / 'server' / 'RadioSurvivorCore' / 'RC_Caches.lua'),
+    *[(f'RadioSurvivor/Rewards/{p.stem}', p)
+      for p in sorted((MOD_LUA / 'server' / 'RadioSurvivor' / 'Rewards').glob('*.lua'), key=lambda p: p.name.lower())],
     ('RadioSurvivor/RadioSurvivor_Const', MOD_LUA / 'shared' / 'RadioSurvivor' / 'RadioSurvivor_Const.lua'),
     ('RadioSurvivor/RS_Personas', MOD_LUA / 'server' / 'RadioSurvivor' / 'RS_Personas.lua'),
     ('RadioSurvivor/RS_RadioHistory', MOD_LUA / 'client' / 'RadioSurvivor' / 'RS_RadioHistory.lua'),

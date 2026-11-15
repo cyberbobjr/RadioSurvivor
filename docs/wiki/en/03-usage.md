@@ -79,7 +79,7 @@ notebook").
 
 ### What you earn
 
-After success and reporting, voice missions improve reputation and may grant **one** material cache, another voice's frequency, a vanilla stash map or a skill lesson. Darlene offers medical rewards and first-aid lessons; Cody offers ammunition and aiming lessons. The server rotates permitted rewards; you do not choose their contents. Frequencies enter only your notebook; voice caches get a marker only on your map. Physical supplies remain real world items.
+After success and reporting, voice missions improve reputation and may grant **one** material cache, another voice's frequency, a vanilla stash map or a skill lesson. Darlene offers medical rewards and first-aid lessons; Cody offers ammunition and aiming lessons. The server draws the reward at random among those the voice offers, and the contents of a cache at random within its category; you choose neither. Frequencies enter only your notebook; voice caches get a marker only on your map. Physical supplies remain real world items.
 
 Depending on their sheet, voices can request scouting, a delivery drop, missing papers, clearing or a Signal Smoke signal. NPCs can also offer recovery and group supplies. Always report an NPC mission **in person** to its requester.
 

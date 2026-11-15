@@ -5,8 +5,8 @@ only. Required by RadioSurvivor_Server (executor of place_cache). Returns the co
 Caches.voiceMission and Caches.register.
 
 Voice action place_cache { table } is a compatibility retry only: the mission must already have succeeded and
-RS_Rewards must have selected and reserved its cache. The parameter must match that server-selected table; it never
-selects contents, creates an active-mission reward, or replaces the reward rotation. New reward sites come from the
+RS_Rewards must have drawn and reserved its cache. The parameter must match that server-drawn category; it never
+selects contents, creates an active-mission reward, or replaces the reward draw. New reward sites come from the
 voice's allowed places. Refusals include not_done, no_reward and bad_table.
 ]]
 local Caches = require 'RadioSurvivorCore/RC_Caches'

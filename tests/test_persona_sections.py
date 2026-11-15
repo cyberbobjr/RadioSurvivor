@@ -184,7 +184,7 @@ class SectionTests(unittest.TestCase):
                          (None, "line 15: unknown key 'colour' for mission type 'watch_tower'"))
 
     def test_catalogue_holds_the_fixed_cache_tables(self):
-        # Contenu exact des tables figées de RC_MissionConfig.Caches.tables (E20-T04 tirera dans le catalogue).
+        # Contenu exact des tables figées de RC_MissionConfig.Caches.tables (caches des voix : catalogue, E20-T04).
         tables = self.lua.rt.eval('require("RadioSurvivorCore/RC_MissionConfig").Caches')
         lines = store.split_lines(CATALOGUE.read_text(encoding='utf-8'))
         catalogue = self.lua.module.parseCatalogue(self.lua.rt.table_from(lines))

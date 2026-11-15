@@ -642,23 +642,36 @@ Ajouter un type de mission avec ses paramètres = un fichier de gabarit qui s'in
 ### Section `[rewards]`
 
 Une seule ligne `pool=`, liste d'entrées `nature:poids` ou `nature:paramètre:poids` séparées par des virgules, dans
-l'ordre voulu, sans doublon (même nature et même paramètre). Natures (`RS_Rewards.KINDS`, seul propriétaire de ces
-noms) :
+l'ordre voulu, sans doublon (même nature et même paramètre). Natures : registre de `RS_Rewards` (E20-T04), une
+nature par fichier `media/lua/server/RadioSurvivor/Rewards/RS_Reward_<Nature>.lua` qui s'inscrit par
+`RS_Rewards.register` ; `RS_Rewards.KINDS`, lu par le lecteur des fiches, en est dérivé :
 
 | Nature | Paramètre | Effet |
 |---|---|---|
-| `cache` | catégorie (`cache:medical:3`) | sac de matériel laissé au premier lieu `use=drop` de la fiche (à défaut son premier lieu), repère sur la carte |
+| `cache` | catégorie (`cache:medical:3`) | sac de matériel laissé au premier lieu `use=drop` de la fiche (à défaut son premier lieu), rempli d'un contenu tiré dans la catégorie, repère sur la carte |
 | `frequency` | aucun | fréquence d'une voix de `shares`, inscrite au carnet |
 | `stashmap` | aucun | carte annotée d'une planque vanilla non visitée |
 | `lesson` | compétence (`lesson:Doctor:2`) : `Doctor`, `Aiming`, `Reloading`, `Woodwork`, `Mechanics`, `Electricity`, `MetalWelding`, `Cooking`, `Farming`, `Fishing`, `Trapping`, `PlantScavenging` | expérience dans cette compétence, plafonnée par jour |
 
-Jusqu'à E20-T04, les poids sont lus mais pas encore tirés : à la réussite, le serveur garde la réputation et choisit
-une seule récompense réalisable dans un ordre cyclique par joueur et par voix, celui de la **première apparition** de
-chaque nature dans `pool` ; la table de la cache est le paramètre de la première entrée `cache`, la compétence celui
-de la première entrée `lesson`, et une cache n'est remplie que d'une table fixe du serveur
-(`RC_MissionConfig.Caches.tables` : `food`, `medical`, `ammo`, `tools`, `radio`) : une catégorie propre à la fiche y
-est acceptée par la lecture mais ne donne pas encore de cache. L'IA ne choisit ni le type ni le contenu. Sans section
+Tirage (E20-T04, ADR D05) : à la réussite, le serveur garde la réputation et tire **une** récompense au hasard parmi
+les entrées de `pool` **réalisables à cet instant**, chaque entrée avec une chance proportionnelle à son poids. Une
+entrée irréalisable n'est jamais tirée : `cache` quand la mission a déjà une cache, que la catégorie est vide ou
+inconnue, ou que la fiche n'a aucun lieu ; `frequency` sans voix active à partager ; `stashmap` déjà donnée par cette
+voix à ce personnage, sans planque vanilla non visitée, ou carte trop lourde pour l'inventaire ; `lesson` au plafond
+du jour ou avec `LessonMultiplier` à 0. Rien de réalisable : réputation seule (journal `unavailable`). Le tirage n'a
+aucune mémoire (plus de cycle par joueur). Contenu d'une cache : chaque ligne `item=` de la catégorie (section de la
+fiche d'abord, sinon catalogue) donne une quantité tirée dans sa fourchette (`2-4` : 2, 3 ou 4 ; `3` : 3) ; une ligne
+tirée à 0 est omise. Le contenu tiré est gardé dans l'état privé avec la cache (`m.cache.items`) : une cache posée
+après un redémarrage a le même contenu. L'IA ne choisit ni la nature, ni la catégorie, ni le contenu. Sans section
 `[rewards]`, une mission réussie donne le repère d'un lieu `use=mark` (« Lieux connus »).
+
+Ajouter une nature : un fichier dans `Rewards/` qui appelle `RS_Rewards.register(nom, def)` avec `param` (genre du
+paramètre, `RS_PersonaParams`, absent sans paramètre), `available(ctx)` (détail si réalisable maintenant, sinon
+`nil`, sans effet durable), `reserve(ctx, rec, détail)` (remplit l'enregistrement avant sa sauvegarde), `cancel`
+facultatif (défait `reserve` si la sauvegarde échoue), `apply(ctx, rec, détail)` (effet, `false` = laissé à la
+reprise) et `describe(rec)` (phrase anglaise du contexte de la voix), puis son `require` dans la racine de composition
+`RadioSurvivor_Server.lua` pour qu'elle soit connue avant la lecture des fiches. Le moteur ne change pas. Le tirage
+passe par un générateur injectable (`RS_Rewards.setRandom`, `ZombRand` par défaut).
 
 `actions=...,share_frequency` autorise aussi le partage direct d'une fréquence comme geste de confiance.
 Le modèle propose uniquement cette action : le serveur choisit une voix active autorisée par `shares`, puis ajoute
@@ -677,7 +690,9 @@ genre `range`, `4` ou `2-4`), au moins une, sans objet répété.
 Le mod livre un **catalogue partagé**, `Contents/mods/batman_RadioSurvivor/42.21/personas/_categories.txt` (seulement
 des sections `[category]`), lu par le serveur (`RS_Personas`) dans le dossier du mod avant les fiches, jamais copié
 dans le dossier de travail ni lu comme une voix. Il reprend les tables fixes des caches (`food`, `medical`, `ammo`,
-`tools`, `radio`, mêmes objets et quantités). Une fiche y ajoute ses propres catégories, avec des identifiants
+`tools`, `radio`, mêmes objets et quantités) ; depuis E20-T04, les caches des voix sont remplies du catalogue ou des
+catégories de la fiche, plus de `RC_MissionConfig.Caches.tables` (gardées pour les lots de Living Knox, le gabarit
+`recover`, les caches des sauvetages et l'action `place_cache`). Une fiche y ajoute ses propres catégories, avec des identifiants
 absents du catalogue ; elles ne valent que pour elle. Catalogue illisible ou refusé : journalisé
 (`personas: ERROR: personas/_categories.txt of the mod refused, line N: …`), aucune catégorie partagée.
 

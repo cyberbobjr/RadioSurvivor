@@ -31,6 +31,11 @@ LUA_PATH = ';'.join(f'{(root / side).as_posix()}/?.lua' for root in (CORE_LUA, L
 # Gabarits de mission qui s'inscrivent dans RC_Missions (deliver est déclaré par RC_Missions même).
 TEMPLATE_MODULES = ('RadioSurvivorCore/RC_MissionScout', 'RadioSurvivorCore/RC_MissionClear',
                     'RadioSurvivorCore/RC_MissionRetrieve', 'RadioSurvivorCore/RC_MissionSignal')
+# Natures de récompense qui s'inscrivent dans RS_Rewards (E20-T04 : un fichier par nature, server/RadioSurvivor/Rewards/).
+REWARD_KIND_MODULES = tuple(f'RadioSurvivor/Rewards/{p.stem}' for p in sorted(
+    (LUA / 'server/RadioSurvivor/Rewards').glob('*.lua'), key=lambda p: p.name.lower()))
+# Modules chargés par le jeu avant la lecture des fiches : leurs inscriptions forment les règles du lecteur.
+RULE_MODULES = TEMPLATE_MODULES + REWARD_KIND_MODULES
 # Doublures minimales du jeu pour charger ces modules (côté autorité, solo).
 RULES_STUBS = '''
 isClient = function() return false end
@@ -354,7 +359,7 @@ class LuaPersona:
         g.getModFileReader = lambda mod, name, create: (
             LuaReader(MOD / name) if mod == 'batman_RadioSurvivor' and (MOD / name).is_file() else None)
         self.rt.execute(f'package.path = [[{LUA_PATH};]] .. package.path')
-        for module in TEMPLATE_MODULES:
+        for module in RULE_MODULES:
             self.rt.eval(f'require("{module}")')
         self.module = self.rt.eval('require("RadioSurvivor/RS_Persona")')
         self.rules = self.rt.eval('require("RadioSurvivor/RS_Personas")').rules()

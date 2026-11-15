@@ -48,7 +48,7 @@ PERSONAS_LUA = LUA / 'server/RadioSurvivor/RS_Personas.lua'
 sys.path.insert(0, str(ROOT / 'bridge'))
 import persona_store as store  # noqa: E402
 from signalsmoke_double import SIGNAL_SMOKE  # noqa: E402
-from test_personas import TEMPLATE_MODULES  # noqa: E402
+from test_personas import RULE_MODULES  # noqa: E402
 
 # Fiche livrée de Walt avec sa fréquence d'exemple fixe à la place de sa plage de tirage (E05-T07).
 WALT_FIXED = re.sub(rb'(?m)^frequency_range=.*$', b'frequencies=145.0', (BUNDLED / 'walt.txt').read_bytes())
@@ -202,12 +202,13 @@ class Harness(unittest.TestCase):
             self.skipTest(beltradio_lib.missing())
         self.rt.execute(f'package.path = [[{beltradio_lib.lua_path(("shared",))};]] .. package.path')
         self.rt.execute(beltradio_lib.SUPPORT_REQUIRE)
-        # E20-T03 : gabarits de mission inscrits avant la lecture des fiches, comme au chargement du jeu (tous les
-        # fichiers serveur avant OnLoadRadioScripts) ; le gabarit signal charge le mod requis Signal Smoke.
+        # E20-T03, E20-T04 : gabarits de mission et natures de récompense inscrits avant la lecture des fiches, comme
+        # au chargement du jeu (tous les fichiers serveur avant OnLoadRadioScripts) ; le gabarit signal charge le mod
+        # requis Signal Smoke.
         self.rt.execute(SIGNAL_SMOKE)
         self.rt.execute('Events = Events or setmetatable({}, {__index = function(t, k) local e = {Add = function() '
                         'end, Remove = function() end} rawset(t, k, e) return e end})')
-        for module in TEMPLATE_MODULES:
+        for module in RULE_MODULES:
             self.rt.eval(f'require("{module}")')
         self.P = self.rt.eval('require("RadioSurvivor/RS_Personas")')
         self.Const = self.rt.eval('require("RadioSurvivor/RadioSurvivor_Const")')

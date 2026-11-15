@@ -325,19 +325,22 @@ player, requested quantities).
 
 | Kind | Parameter | What the player receives |
 |---|---|---|
-| `cache` | a category: `cache:medical:3` | a bag of items of that category at the first `use=drop` place |
+| `cache` | a category: `cache:medical:3` | a bag of items of that category, quantities drawn at random, at the first `use=drop` place |
 | `frequency` | none | the frequency of a voice of `shares`, written in the notebook |
 | `stashmap` | none | an annotated map to an unexplored vanilla stash |
 | `lesson` | a skill: `lesson:Doctor:2` | experience: `Doctor`, `Aiming`, `Reloading`, `Woodwork`, `Mechanics`, `Electricity`, `MetalWelding`, `Cooking`, `Farming`, `Fishing`, `Trapping`, `PlantScavenging` |
 
-For now the server gives the kinds **in turn**, per player and voice, in the order they first appear in `pool`,
-skipping those that are not possible; the weights will be used by the random draw of a next version. A cache takes
-the category of the first `cache` entry and a lesson the skill of the first `lesson` entry.
+On each successful mission, the server **draws a single** reward from `pool` at random, among those possible at that
+moment, following the weights: with `cache:medical:3, frequency:1`, the cache comes out three times out of four. An
+impossible reward is never drawn (no active voice to share, stash map already given by this voice, lessons of the
+day used up…); when nothing is possible, the player keeps the reputation only. The contents of a cache are drawn in
+its category: each `item=` line gives a quantity within its range (`Base.Bandage:2-4`: 2, 3 or 4 bandages;
+`Base.Pills:1`: one bottle).
 
 **Item categories.** The mod ships a shared catalogue (`personas/_categories.txt` of the mod): `food`, `medical`,
 `ammo`, `tools`, `radio`. A sheet may add its own with `[category <id>]` and one line `item=Module.Type:quantity` per
-item (`Base.Bandage:2-4`), with an id that is not in the catalogue. Reward caches still use the five categories of the
-catalogue: a category of the sheet is accepted but does not fill a cache yet.
+item (`Base.Bandage:2-4`), with an id that is not in the catalogue; a `cache:<id>` entry of `pool` may cite either,
+and the bag is filled from that category only.
 
 Only the server checks these sections: an unknown mission type, a missing place or one without the right `use`, an
 unknown category or an invalid weight makes the server refuse the sheet, with the line and the reason in

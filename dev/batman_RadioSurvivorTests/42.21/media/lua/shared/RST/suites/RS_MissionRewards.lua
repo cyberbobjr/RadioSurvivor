@@ -1,4 +1,6 @@
 -- Actual Java inventory/XP effects. Authority grants, each client reads its OWN player only.
+-- E20-T04: rewards drawn at random in the [rewards] pool (RS_Rewards, kinds in server/RadioSurvivor/Rewards/); a voice
+-- reward cache holds contents drawn in its category (catalogue personas/_categories.txt or a section of the sheet).
 require 'RST/RST'
 require 'RST/RST_Fixtures'
 require 'RST/RST_Steps'
@@ -16,6 +18,39 @@ Steps.on('rewards.radio', function(args)
     end
 end)
 
+-- Contents of the reward bag with this item id on the floor around (x, y, z), as THIS client sees it:
+-- full type -> count.
+local function bagContents(args)
+    local cell = getCell()
+    for dx = -1, 1 do
+        for dy = -1, 1 do
+            local sq = cell and cell:getGridSquare(args.x + dx, args.y + dy, args.z)
+            local floor = sq and sq:getWorldObjects()
+            for i = 0, (floor and floor:size() or 0) - 1 do
+                local item = floor:get(i):getItem()
+                if item and item:getID() == args.id then
+                    local out, inside = {}, item:getItemContainer():getItems()
+                    for j = 0, inside:size() - 1 do
+                        local fullType = inside:get(j):getFullType()
+                        out[fullType] = (out[fullType] or 0) + 1
+                    end
+                    return out
+                end
+            end
+        end
+    end
+    return nil
+end
+
+Steps.on('rewards.cachebag', function(args)
+    return function(ctx)
+        local items = bagContents(args)
+        if items then return Steps.pass('reward bag seen on the floor', {items=items}) end
+        if ctx.final then return Steps.fail('reward bag ' .. tostring(args.id) .. ' not seen around '
+            .. args.x .. ',' .. args.y .. ',' .. args.z) end
+    end
+end)
+
 Steps.on('rewards.xp', function(args)
     local p = getSpecificPlayer(0)
     if not p then return Steps.fail('no local player') end
@@ -26,6 +61,32 @@ Steps.on('rewards.xp', function(args)
         end
     end
 end)
+
+-- Item line of this full type in the category, or nil.
+local function lineOf(category, fullType)
+    for _, item in ipairs(category.items) do
+        if item.type == fullType then return item end
+    end
+    return nil
+end
+
+-- Every item of the bag belongs to the category, each count within its range and equal to the drawn contents.
+local function checkContents(t, category, drawn, items, who)
+    local expected = {}
+    for _, line in ipairs(drawn) do expected[line[1]] = line[2] end
+    for fullType, count in pairs(items) do
+        local line = lineOf(category, fullType)
+        t:ok(line ~= nil, who .. ': ' .. fullType .. ' is not in category ' .. category.id)
+        if line then
+            t:ok(count >= line.min and count <= line.max, who .. ': ' .. fullType .. ' x' .. count .. ' outside '
+                .. line.min .. '-' .. line.max)
+        end
+        t:eq(expected[fullType], count, who .. ': count of ' .. fullType .. ' differs from the drawn contents')
+    end
+    for fullType, count in pairs(expected) do
+        t:eq(count, items[fullType], who .. ': drawn ' .. fullType .. ' missing from the bag')
+    end
+end
 
 local function setup(t, kind)
     if isClient() then t:skip('authority only') end
@@ -59,6 +120,50 @@ RST.suite("rs.missionrewards", {tags={"server","world"},testTimeoutMs=45000}, fu
             end
         end
     end)
+    s.test('every catalogue category contains real item scripts', function(t)
+        if isClient() then t:skip('authority only') end
+        local categories = require('RadioSurvivor/RS_Personas').rules().categories
+        local count = 0
+        for id, category in pairs(categories) do
+            count = count + 1
+            for _, item in ipairs(category.items) do
+                t:ok(instanceItem(item.type) ~= nil, 'missing script ' .. item.type .. ' in category ' .. id)
+            end
+        end
+        t:ok(count > 0, 'shared category catalogue not loaded')
+    end)
+
+    s.test('voice mission cache holds contents of the drawn category, seen alike by the client', function(t)
+        local _,S,p,cid,m,source=setup(t,'cache')
+        -- Pool of two catalogue categories and one of the sheet (E20-T03 [category] section).
+        source.categories={rst_snacks={id='rst_snacks',items={{type='Base.Crisps',min=1,max=3},
+            {type='Base.Pop',min=2,max=2}}}}
+        source.rewards={{kind='cache',param='medical',weight=1},{kind='cache',param='food',weight=1},
+            {kind='cache',param='rst_snacks',weight=1}}
+        local V=require 'RadioSurvivor/RS_MissionVoice'
+        local rec=V.reward(S,source,m,p,cid,nil)
+        t:ok(rec and rec.status=='applied','voice mission reward not applied')
+        t:eq('cache',rec.kind,'reward kind')
+        local Cache=require 'RadioSurvivor/Rewards/RS_Reward_Cache'
+        local category=Cache.category(source,rec.category)
+        t:ok(category~=nil,'drawn category unknown: '..tostring(rec.category))
+        t:eq(rec.category,m.cache.table,'cache record category')
+        local C=require 'RadioSurvivor/RS_CacheAction'
+        C.place(S,m.cache)
+        t:eq(true,m.cache.placed,'reward cache was not placed')
+        local at=m.cache.at
+        local server=bagContents({id=m.cache.itemId,x=at.x,y=at.y,z=at.z})
+        t:ok(server~=nil,'reward bag absent from the floor on the authority')
+        checkContents(t,category,m.cache.items,server or {},'authority')
+        t:note('drawn category '..rec.category..', '..#m.cache.items..' item lines')
+        Steps.ask(t,'rewards.cachebag',{id=m.cache.itemId,x=at.x,y=at.y,z=at.z},
+            {target='requester',timeoutMs=15000},function(t2,res)
+                for _,row in ipairs(res.list) do
+                    if row.status=='PASS' then checkContents(t2,category,m.cache.items,row.data.items,row.user) end
+                end
+            end)
+    end)
+
     s.test('lesson is applied by server and observed by recipient client; peer unchanged', function(t)
         local R,S,p,cid,m,source = setup(t,'lesson')
         local oldDay = S.data.lessonDays and S.data.lessonDays[cid]
@@ -111,18 +216,20 @@ RST.suite("rs.missionrewards", {tags={"server","world"},testTimeoutMs=45000}, fu
 
     s.test('stash map is a real annotated map and cannot repeat for source',function(t)
         local R,S,p,cid,m,source=setup(t,'stashmap')
-        t:ok(R.stash()~=nil,'no undiscovered vanilla stash in fresh test world')
+        t:ok(require('RadioSurvivor/Rewards/RS_Reward_Stashmap').find()~=nil,
+            'no undiscovered vanilla stash in fresh test world')
         local count=p:getInventory():getItems():size()
         local rec,why=R.grant(S,source,m,p,cid)
         t:ok(rec and rec.status=='applied','stash grant failed: '..tostring(why))
         t:eq(count+1,p:getInventory():getItems():size(),'stash map not in real inventory')
         local nextMission={id=m.id..'-next',state='success',participants={[cid]=true}}
-        t:eq(nil,R.choose(S.data,source,nextMission,cid),'same source gave a second stash map')
+        t:eq(nil,(R.choose(S.data,source,nextMission,cid)),'same source gave a second stash map')
     end)
 
     s.test('frequency reward changes recipient private radio log only',function(t)
         local R,S,p,cid,m,source=setup(t,'frequency')
-        t:ok(R.frequency(source)~=nil,'no active delivered voice frequency')
+        t:ok(require('RadioSurvivor/Rewards/RS_Reward_Frequency').find(source)~=nil,
+            'no active delivered voice frequency')
         local other=Steps.others(t)[1]
         local mate=other and Steps.playerOf(other)
         local mid=mate and Helpers.character(t,mate)

@@ -8,7 +8,8 @@ while a player is connected, Caches.poll). Details: docs/annexes/conception/carn
 gabarit recuperer"; design: docs/annexes/conception/mission-recuperer.md.
 
 One cache per mission: the record is the field m.cache of the mission (private mission state, never global ModData):
-    { key = mission id, table = name of RC_MissionConfig.Caches.order, spot = { x, y, z }, bounds = { x1, y1, x2, y2 }
+    { key = mission id, table = name of RC_MissionConfig.Caches.order (or the category of a voice reward cache, whose
+      drawn contents are items = { { fullType, count }, ... }, E20-T04), spot = { x, y, z }, bounds = { x1, y1, x2, y2 }
       (x2, y2 exclusive), placing, placed, itemId, at = { x, y, z } }
 A mission that already has a cache never gets a second one (Caches.attach refuses: 'cache_exists').
 Deferred placement (Caches.place, at most every placeRetryMs per cache): once the site square itself is loaded
@@ -82,15 +83,30 @@ function Caches.siteOf(m)
     return {x = math.floor((b.x1 + b.x2) / 2), y = math.floor((b.y1 + b.y2) / 2), z = 0}, b
 end
 
--- The cache record of mission m (one per mission). Returns it, or nil and a reason.
-function Caches.attach(m, tableName, spot, bounds)
-    if m.cache ~= nil then return nil, 'cache_exists' end
-    if not Caches.isTable(tableName) then return nil, 'bad_table' end
+local function record(m, name, spot, bounds)
     if type(spot) ~= 'table' or type(bounds) ~= 'table' then return nil, 'no_place' end
-    m.cache = {key = m.id, table = tableName, spot = {x = spot.x, y = spot.y, z = spot.z or 0},
+    m.cache = {key = m.id, table = name, spot = {x = spot.x, y = spot.y, z = spot.z or 0},
         bounds = {x1 = bounds.x1, y1 = bounds.y1, x2 = bounds.x2, y2 = bounds.y2},
         placing = false, placed = false}
     return m.cache
+end
+
+-- The cache record of mission m (one per mission), filled from a closed table. Returns it, or nil and a reason.
+function Caches.attach(m, tableName, spot, bounds)
+    if m.cache ~= nil then return nil, 'cache_exists' end
+    if not Caches.isTable(tableName) then return nil, 'bad_table' end
+    return record(m, tableName, spot, bounds)
+end
+
+-- E20-T04: the cache record of mission m filled with contents drawn by the caller (reward cache of a voice, drawn in
+-- a category): name = the category (record field `table`), items = list of {fullType, count} kept in the record
+-- (rec.items) so that a restart places the same contents. Returns it, or nil and a reason.
+function Caches.attachContents(m, name, items, spot, bounds)
+    if m.cache ~= nil then return nil, 'cache_exists' end
+    if type(name) ~= 'string' or type(items) ~= 'table' then return nil, 'bad_contents' end
+    local rec, why = record(m, name, spot, bounds)
+    if rec then rec.items = items end
+    return rec, why
 end
 
 -- ---------------------------------------------------------------- placement
@@ -178,14 +194,15 @@ function Caches.makeNote(note)
     return item
 end
 
--- The bag of a table, marked, with its contents (and the note of the record, E12-T04). nil when the bag type is
--- unknown.
+-- The bag of a record, marked, with its contents (drawn contents rec.items, else the lines of its table; and the note
+-- of the record, E12-T04). nil when the bag type is unknown.
 function Caches.make(rec)
     local bag = instanceItem(Config.Caches.bagType)
     if not bag then return nil end
     bag:getModData()[Caches.MARK] = rec.key
     local inside = bag:getItemContainer()
-    for _, line in ipairs(Config.Caches.tables[rec.table] or {}) do
+    local lines = type(rec.items) == 'table' and rec.items or Config.Caches.tables[rec.table] or {}
+    for _, line in ipairs(lines) do
         for _ = 1, line[2] do
             local it = instanceItem(line[1])
             if it then inside:AddItem(it) else log('cache: unknown item ' .. tostring(line[1])) end

@@ -29,6 +29,8 @@ require "RadioSurvivor/RS_MapMarks"
 -- de la mission joints aux demandes de l'appelant à cette voix (mission=).
 local VoiceMissions = require "RadioSurvivor/RS_MissionVoice"; require "RadioSurvivor/RS_CacheAction" -- E11-T06: place_cache
 require "RadioSurvivor/RS_VoiceDelivery" -- E20-T01: registers the dead-drop set-up of a voice `deliver` mission
+-- E20-T04: reward kinds of the voices (one file each, registered at RS_Rewards), known before any sheet is read.
+for _, kind in ipairs({"Cache", "Frequency", "Stashmap", "Lesson"}) do require("RadioSurvivor/Rewards/RS_Reward_" .. kind) end
 -- Livre du passeur (E13-T02) : exécuteur propose_trade enregistré au chargement ; contexte joint (trade=).
 local Trade = require "RadioSurvivor/RS_Trade"; local GroupRadio = require "RadioSurvivor/RS_GroupRadio" -- E08-T06
 local Rep = require "RadioSurvivorCore/RC_Reputation" -- E04-T10: reputation of the caller in the voice request

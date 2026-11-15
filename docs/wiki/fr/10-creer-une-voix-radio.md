@@ -342,21 +342,22 @@ planques au choix du joueur, quantités demandées).
 
 | Nature | Paramètre | Ce que reçoit le joueur |
 |---|---|---|
-| `cache` | une catégorie : `cache:medical:3` | un sac d'objets de cette catégorie au premier lieu `use=drop` |
+| `cache` | une catégorie : `cache:medical:3` | un sac d'objets de cette catégorie, quantités tirées au hasard, au premier lieu `use=drop` |
 | `frequency` | aucun | la fréquence d'une voix de `shares`, inscrite au carnet |
 | `stashmap` | aucun | une carte annotée vers une planque vanilla inexplorée |
 | `lesson` | une compétence : `lesson:Doctor:2` | de l'expérience : `Doctor`, `Aiming`, `Reloading`, `Woodwork`, `Mechanics`, `Electricity`, `MetalWelding`, `Cooking`, `Farming`, `Fishing`, `Trapping`, `PlantScavenging` |
 
-Pour l'instant, le serveur donne les natures **à tour de rôle**, par joueur et voix, dans l'ordre où elles
-apparaissent dans `pool`, en sautant celles qui ne sont pas possibles ; les poids seront utilisés par le tirage au
-hasard d'une prochaine version. Une cache prend la catégorie de la première entrée `cache` et la leçon la compétence
-de la première entrée `lesson`.
+À chaque mission réussie, le serveur **tire au hasard une seule** récompense dans `pool`, parmi celles qui sont
+possibles à ce moment, en suivant les poids : avec `cache:medical:3, frequency:1`, la cache sort trois fois sur quatre.
+Une récompense impossible n'est jamais tirée (pas de voix active à partager, carte de planque déjà donnée par cette
+voix, leçons du jour épuisées…) ; si rien n'est possible, le joueur garde la réputation seule. Le contenu d'une cache
+est tiré dans sa catégorie : chaque ligne `item=` donne une quantité dans sa fourchette (`Base.Bandage:2-4` : 2, 3 ou
+4 bandages ; `Base.Pills:1` : un flacon).
 
 **Catégories d'objets.** Le mod livre un catalogue partagé (`personas/_categories.txt` du mod) : `food`, `medical`,
 `ammo`, `tools`, `radio`. Une fiche peut ajouter les siennes avec `[category <id>]` et une ligne
-`item=Module.Type:quantité` par objet (`Base.Bandage:2-4`), avec un id absent du catalogue. Les caches de récompense
-utilisent encore les cinq catégories du catalogue : une catégorie propre à la fiche est acceptée mais ne remplit pas
-encore de cache.
+`item=Module.Type:quantité` par objet (`Base.Bandage:2-4`), avec un id absent du catalogue ; une entrée
+`cache:<id>` de `pool` peut citer l'une ou l'autre, et le sac est rempli de cette catégorie seulement.
 
 Le serveur est le seul à vérifier ces sections : un type de mission inconnu, un lieu absent ou sans le bon `use`, une
 catégorie inconnue ou un poids invalide fait refuser la fiche par le serveur, avec la ligne et la raison dans
