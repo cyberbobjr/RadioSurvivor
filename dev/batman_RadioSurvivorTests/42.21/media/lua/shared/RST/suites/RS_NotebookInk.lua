@@ -1,5 +1,5 @@
 --[[
-rs.notebook.ink - the notebook text is written in dark ink on its paper (E00-T12, client/RadioSurvivor/RS_Notebook.lua):
+rs.notebook.ink - the notebook text is written in dark ink on its paper (E00-T12, client/CoreAI/CA_Notebook*.lua):
 the real notebook window is opened, every bookmark (Radio, Contacts, Missions, Reputation, Team) is shown in turn, and
 the rich text of the page is laid out (ISRichTextPanel:paginate): it starts with an <RGB:...> tag and no line keeps
 the vanilla white or grey colour (every colour of the page is dark: r + g + b < 1.5). Each page stays 2 s on screen
@@ -33,8 +33,8 @@ end
 RST.suite("rs.notebook.ink", { tags = { "client", "world" }, testTimeoutMs = 30000 }, function(s)
     s.test("every page of the real notebook is written in dark ink", function(t)
         if type(isServer) == "function" and isServer() then t:skip("client UI (not on a server)") end
-        local Notebook = require "RadioSurvivor/RS_Notebook"
-        local Client = RS_CarnetClient
+        local Notebook = require "CoreAI/CA_Notebook"
+        local Client = CoreAI.notebookClient
         t:ok(Notebook ~= nil and Client ~= nil, "notebook client not loaded")
         local wasOpen = Client.window ~= nil and Client.window:isVisible()
         if not wasOpen then Notebook.toggle() end

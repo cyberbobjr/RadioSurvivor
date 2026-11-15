@@ -5,7 +5,7 @@
 Banc lupa (Lua 5.1, `next` retiré comme dans Kahlua) : vrai serveur du carnet (`RS_Carnet_Server.lua`), vrais
 `RS_Relations.lua` et `RS_Factions.lua` (doublure fidèle de la faction vanilla de `tests/test_factions.py`), moteur
 Living Knox réel (registres, `LK_Hostility`, API, fournisseur `RS_LivingKnox.lua`), vrai client du carnet
-(`RS_Notebook.lua` avec les doublures ISUI de `NOTEBOOK_UI`) et table anglaise réelle du mod pour le rendu. Les changements
+(`CA_NotebookContacts.lua` avec les doublures ISUI de `NOTEBOOK_UI`) et table anglaise réelle du mod pour le rendu. Les changements
 personnels passent par l'API d'E09-T04 (`Relations.offer` puis `Relations.apply`, faits réels enregistrés par
 `LK_Hostility.record`). Doublures seulement : ne prouve ni l'API Java ni le réseau ni l'affichage en jeu.
 """
@@ -102,7 +102,7 @@ class RelationPanelTests(unittest.TestCase):
 
     def contacts(self, name):
         self.sim.command(name, 'snapshot')
-        snap = self.sim.clients[name].g.RS_CarnetClient.snapshot
+        snap = self.sim.clients[name].g.CoreAI.notebookClient.snapshot
         return {c.id: convert(c) for c in snap.contacts.values()}
 
     def relation(self, name, npc):
@@ -131,13 +131,13 @@ class RelationPanelTests(unittest.TestCase):
             texts.update(json.loads(LK_EN.read_text(encoding='utf-8-sig')))  # E18-T26: words of the relation panel
             c.g.EN_TEXTS = c.rt.table_from(texts)
             c.rt.execute(TRANSLATOR)
-            c.load('client/RS_Carnet_Client.lua')
+            c.load_notebook()
             c.rel_ui = True
         if rel is None:
-            out = c.g.RS_Notebook.relationLines(None)
+            out = c.g.CoreAI.notebookContacts.relationLines(None)
         else:
-            [row] = [r for r in c.g.RS_CarnetClient.snapshot.contacts.values() if r.id == rel]
-            out = c.g.RS_Notebook.relationLines(row.relation)
+            [row] = [r for r in c.g.CoreAI.notebookClient.snapshot.contacts.values() if r.id == rel]
+            out = c.g.CoreAI.notebookContacts.relationLines(row.relation)
         self.assertEqual(list(c.g.MISSING_ARGS.values()), [], 'a text read without its arguments')
         return [out[i] for i in range(1, len(out) + 1)]
 
@@ -219,8 +219,8 @@ class RelationPanelTests(unittest.TestCase):
         self.sim.command('alice', 'select', incarnation=self.g.LK_LEADER)
         self.lines('alice', None)  # loads the notebook client with the English table
         c = self.sim.clients['alice']
-        c.g.RS_Notebook.toggle()
-        window = c.g.RS_CarnetClient.window
+        c.g.CoreAI.notebook.toggle()
+        window = c.g.CoreAI.notebookClient.window
         window.selectedId = self.fiche(self.g.LK_LEADER).id
         window.showDetail(window)
         text = window.detail.text
@@ -281,7 +281,7 @@ class RelationPanelTests(unittest.TestCase):
             'agreements': c.rt.table_from([c.rt.table_from({'kind': 'pact', 'state': 'odd',
                                                             'scope': c.rt.table_from({'group': 'x', 'team': 'y'})})]),
         })
-        out = c.g.RS_Notebook.relationLines(rel)
+        out = c.g.CoreAI.notebookContacts.relationLines(rel)
         lines = [out[i] for i in range(1, len(out) + 1)]
         self.assert_clean(lines)
         self.assertEqual(lines[0], 'Attitude toward you: cautious (steady).')

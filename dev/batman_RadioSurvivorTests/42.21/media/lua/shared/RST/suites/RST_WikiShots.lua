@@ -318,8 +318,8 @@ end
 
 -- Fixed snapshot and history in the real client (server snapshots and history answers ignored until the cleanup).
 local function installNotebook(t, p, lang, khz, zone)
-    local Notebook = require "RadioSurvivor/RS_Notebook"
-    local Client = RS_CarnetClient
+    local Notebook = require "CoreAI/CA_Notebook"
+    local Client = CoreAI.notebookClient
     t:ok(Notebook ~= nil and Client ~= nil, "notebook client not loaded")
     local History = require "RadioSurvivor/RS_RadioHistory"
     local Const = require "RadioSurvivor/RadioSurvivor_Const"
@@ -670,7 +670,7 @@ local function notebookTest(lang)
             t2:ok(res ~= nil, "map zones not drawn")
             t2:defer(function()
                 MapActions.resetZonesForTests()
-                local Client = RS_CarnetClient
+                local Client = CoreAI.notebookClient
                 MapActions.zones(Client.snapshot and Client.snapshot.missions or {})
             end, "map circles of the real snapshot drawn again")
             -- The world map pauses a solo game (no OnTick, so no RST wait): the screenshot is taken by an

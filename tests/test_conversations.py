@@ -367,7 +367,7 @@ class InterventionTests(unittest.TestCase):
         conv = self.conv.of(self.leader.id)
         self.assertIsNotNone(conv)
         # Alice speaks to the leader while its first line is awaited: her sentence joins the conversation.
-        self.assertTrue(sim.clients['alice'].g.RS_CarnetClient.talk('Hello you two, what happened?', False))
+        self.assertTrue(sim.clients['alice'].g.CoreAI.notebookClient.talk('Hello you two, what happened?', False))
         talks = self.talks()
         self.assertEqual(len(talks), 1)
         talk = talks[0]
@@ -377,7 +377,7 @@ class InterventionTests(unittest.TestCase):
         self.assertEqual(convert(context['conversation']['lines']), {}, 'lines nobody said yet')
         order = [r.id for r in lua_list(self.server.talk.pending) if r.npc == self.leader.id]
         self.assertEqual(order, [first[0].id, talk.id], 'the talk overtook the line already requested')
-        self.assertEqual(sim.clients['alice'].g.RS_CarnetClient.waiting.id, talk.id)
+        self.assertEqual(sim.clients['alice'].g.CoreAI.notebookClient.waiting.id, talk.id)
         self.assertEqual(convert(self.conv.stats)['joined'], 1)
         # No second engagement while the talk waits: no new line requested, whatever the clock.
         for _ in range(3):
@@ -406,14 +406,14 @@ class InterventionTests(unittest.TestCase):
                                                'payload': protocol.encode(req).hex()})
             self.assertEqual(len(checked['context']['lines']), checked['context']['turn'] - 1)
         self.assertIn(key, self.keys(self.mate), 'story not received after the teller answered')
-        self.assertIsNone(sim.clients['alice'].g.RS_CarnetClient.waiting, 'wait not ended by the answer')
+        self.assertIsNone(sim.clients['alice'].g.CoreAI.notebookClient.waiting, 'wait not ended by the answer')
 
     def test_sentence_within_the_cooldown_never_joins(self):
         """E08-T05 (campagne solo du 2026-10-15) : une phrase dite moins de COOLDOWN_MS après la précédente du même
         personnage est refusée par le carnet (« Cooldown ») et n'entre pas dans la conversation, qui reste ouverte et
         inchangée ; la même phrase après le délai la rejoint."""
         sim = self.start()
-        client = sim.clients['alice'].g.RS_CarnetClient
+        client = sim.clients['alice'].g.CoreAI.notebookClient
         sim.command('alice', 'select', incarnation=self.g.LK_LEADER)
         self.away('bob')
         self.server.talk.lastTalk[sim.character('alice')] = self.sim.clock() - 8000   # sentence of a previous test
@@ -448,7 +448,7 @@ class InterventionTests(unittest.TestCase):
                 'Somebody fired twice near the bridge. Then everything went quiet until noon, '
                 'and the dogs started barking again for a long while')
         self.assertGreater(len(text.encode('utf-8')), self.conv.CFG.MAX_REPLY)
-        self.assertTrue(sim.clients['alice'].g.RS_CarnetClient.talk(text, False))
+        self.assertTrue(sim.clients['alice'].g.CoreAI.notebookClient.talk(text, False))
         line = convert(lua_list(conv.lines)[0])
         self.assertEqual(line['text'], 'We saw smoke over the river this morning. Three trucks drove north without '
                                        'lights. Somebody fired twice near the bridge.')
@@ -466,7 +466,7 @@ class InterventionTests(unittest.TestCase):
         # Bob comes, selects the mate and speaks to it in the middle of the conversation.
         self.sim.server.g.PLAYERS['bob'].x = self.sim.server.g.PLAYERS['alice'].x
         sim.command('bob', 'select', incarnation=self.g.LK_MATE)
-        self.assertTrue(sim.clients['bob'].g.RS_CarnetClient.talk('Mind if I join?', False))
+        self.assertTrue(sim.clients['bob'].g.CoreAI.notebookClient.talk('Mind if I join?', False))
         self.assertEqual(len(self.talks()), 1)
         self.run_bridge(lambda: self.conv.of(self.leader.id) is None, timeout=90)
         history = [convert(h) for h in lua_list(sim.state().characters[bob].contacts[self.mate.id].history)]
@@ -482,7 +482,7 @@ class InterventionTests(unittest.TestCase):
         self.away('bob')
         self.record(self.leader)
         self.step()
-        self.assertTrue(sim.clients['alice'].g.RS_CarnetClient.talk('Who are you people?', False))
+        self.assertTrue(sim.clients['alice'].g.CoreAI.notebookClient.talk('Who are you people?', False))
         inside = convert(self.talks()[0].context)
         self.assertIn('conversation', inside)
         self.assertNotIn('negotiation', inside)
@@ -494,7 +494,7 @@ class InterventionTests(unittest.TestCase):
         self.assertEqual(self.talks(), [])
         # The same character outside any conversation: the same context, without the conversation (no right added).
         self.step(11000)
-        self.assertTrue(sim.clients['alice'].g.RS_CarnetClient.talk('Who are you people?', False))
+        self.assertTrue(sim.clients['alice'].g.CoreAI.notebookClient.talk('Who are you people?', False))
         outside = convert(self.talks()[0].context)
         self.assertEqual(set(inside) - {'conversation'}, set(outside))
         self.assertEqual({k: v for k, v in inside.items() if k != 'conversation'}, outside)
@@ -502,7 +502,7 @@ class InterventionTests(unittest.TestCase):
     def test_client_wait_ends_only_on_its_own_answer(self):
         sim = self.start()
         client = sim.clients['alice']
-        cc = client.g.RS_CarnetClient
+        cc = client.g.CoreAI.notebookClient
         cc.waiting = client.rt.table_from({'at': self.g.getTimestampMs(), 'npc': 'npc-x', 'id': 'req-alice'})
         args = {'world': cc.world, 'run': cc.run, 'npc': 'npc-x', 'incarnation': 'none', 'name': 'X', 'text': 'Hi.',
                 'x': 0, 'y': 0, 'z': 0}

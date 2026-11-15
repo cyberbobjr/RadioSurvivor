@@ -252,7 +252,7 @@ end
 local function send(player, command, args)
     args = args or {}
     if isServer() then sendServerCommand(player, C.MODULE, command, args)
-    elseif RS_CarnetClient then RS_CarnetClient.receive(command, args) end
+    elseif CoreAI.notebookClient then CoreAI.notebookClient.receive(command, args) end
 end
 function Server.find(id) for _, npc in pairs(S.data.npcs) do if npc.incarnation == id then return npc end end end
 function Server.ensure(id)
@@ -324,6 +324,8 @@ function Server.command(module, command, player, args)
         send(player, "identity", { character = cid })
         return
     end
+    -- E21-T03: registry of the notebook commands on the module CoreAI: any other command belongs to another owner.
+    if command ~= "select" and command ~= "talk" then return end
     local cid = Server.bound[player]
     if not cid then return send(player, "error", { reason = "Identity" }) end
     scan()
@@ -455,9 +457,10 @@ end)
 
 CLIENT_SIDE = r'''
 SendCommandToServer = function() end   -- /teleportto of RST_Fixtures: the server copy already moved (AUTHORITY)
-RS_CarnetClient = { waiting = false }
-local CC = RS_CarnetClient
-function CC.send(command, args) sendClientCommand(getPlayer(), "RS_Carnet", command, args or {}) end
+CoreAI = CoreAI or {}
+CoreAI.notebookClient = { waiting = false }
+local CC = CoreAI.notebookClient
+function CC.send(command, args) sendClientCommand(getPlayer(), "CoreAI", command, args or {}) end
 function CC.isWaiting() return CC.waiting end
 function CC.talk(text)
     CC.waiting, CC.lastTalkAt = true, getTimestampMs()
@@ -470,7 +473,7 @@ function CC.receive(command, args)
     elseif command == "error" then CC.lastError, CC.waiting = args.reason, false end
 end
 if isClient() then
-    Events.OnServerCommand.Add(function(m, c, a) if m == "RS_Carnet" then CC.receive(c, a or {}) end end)
+    Events.OnServerCommand.Add(function(m, c, a) if m == "CoreAI" then CC.receive(c, a or {}) end end)
 end
 '''
 

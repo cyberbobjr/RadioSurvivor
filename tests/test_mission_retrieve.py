@@ -193,7 +193,7 @@ class RetrieveMissionTests(unittest.TestCase):
                          ('retrieve_id', False, False, 'ID card'))
         for key in ('spot', 'bounds', 'mapZone', 'cardId', 'person', 'bodyAt'):
             self.assertNotIn(key, context)
-        row = convert(sim.clients['alice'].g.RS_CarnetClient.snapshot.missions[1])
+        row = convert(sim.clients['alice'].g.CoreAI.notebookClient.snapshot.missions[1])
         self.assertEqual((row['template'], row['quantity'], row['delivered'], row['found']), ('retrieve_id', 1, 0, False))
         self.assertEqual(row['mapZone'], convert(m.mapZone))
         for key in ('spot', 'bounds', 'cardId', 'bodyAt', 'siteKey'):
@@ -257,7 +257,7 @@ class RetrieveMissionTests(unittest.TestCase):
         g.PLAYERS.alice.inv['items'][1].name = 'ID Card: Jane1 Roe'
         quote = sim.quote('alice', [other])
         sim.confirm('alice', quote)
-        self.assertEqual(client.g.RS_CarnetClient.lastError, 'WrongCard')
+        self.assertEqual(client.g.CoreAI.notebookClient.lastError, 'WrongCard')
         self.assertEqual((m.state, m.delivered, count(m.receipts)), ('active', 0, 0))
         self.assertIsNone(m.transaction)
         self.assertIsNotNone(g.PLAYERS.alice.inv.getItemWithIDRecursiv(g.PLAYERS.alice.inv, other))
@@ -313,7 +313,7 @@ class RetrieveMissionTests(unittest.TestCase):
         sim.clock.offset += 7200001; sim.tick()
         self.assertEqual(m.state, 'failed')
         self.assertEqual(sim.server.g.RETRIEVE.calls, 1)
-        row = convert(sim.clients['alice'].g.RS_CarnetClient.snapshot.missions[1])
+        row = convert(sim.clients['alice'].g.CoreAI.notebookClient.snapshot.missions[1])
         self.assertNotIn('mapZone', row)
 
     def test_notebook_page_and_search_area_label(self):
@@ -322,18 +322,18 @@ class RetrieveMissionTests(unittest.TestCase):
         c.rt.execute(MAP_DOUBLE)
         c.rt.execute(NOTEBOOK_UI)
         c.rt.execute("getScriptManager = function() return {FindItem = function() return nil end} end")
-        c.load('client/RS_Carnet_Client.lua')
+        c.load_notebook()
         maps = c.rt.eval("require('CoreAI/CA_MapZones')")
         maps.resetForTests(); maps.resetZonesForTests()
-        sim.command('alice', 'snapshot', world=c.g.RS_CarnetClient.world, run=c.g.RS_CarnetClient.run)
+        sim.command('alice', 'snapshot', world=c.g.CoreAI.notebookClient.world, run=c.g.CoreAI.notebookClient.run)
         texts = [convert(s)['text'] for s in lua_list(c.rt.eval('mapSymbols()')) if convert(s)['kind'] == 'text']
         self.assertEqual(texts, ['IGUI_CA_MapZoneSearch|Real Bandit'])
-        c.g.RS_Notebook.toggle()
-        window = c.g.RS_CarnetClient.window
+        c.g.CoreAI.notebook.toggle()
+        window = c.g.CoreAI.notebookClient.window
         window.changeTab(window, 'Missions')
-        label = c.rt.eval('RS_CarnetClient.window.list.items[1].text')
+        label = c.rt.eval('CoreAI.notebookClient.window.list.items[1].text')
         self.assertTrue(label.startswith('IGUI_CA_Mission_Retrieve - '), label)
-        for key in ('IGUI_RS_ScoutPlace', 'IGUI_RS_ScoutClues', 'IGUI_CA_RetrieveMapZone', 'IGUI_CA_RetrieveNotFound',
+        for key in ('IGUI_CA_ScoutPlace', 'IGUI_CA_ScoutClues', 'IGUI_CA_RetrieveMapZone', 'IGUI_CA_RetrieveNotFound',
                     'IGUI_CA_RetrieveReport'):
             self.assertIn(key, window.detail.text)
         self.assertNotIn('IGUI_CA_Progress', window.detail.text)

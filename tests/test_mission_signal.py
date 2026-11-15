@@ -72,7 +72,7 @@ class SignalMissionTests(unittest.TestCase):
         return g.SS_FAKE.start(sim.server.rt.table_from(opts))
 
     def row(self, sim, name):
-        rows = [convert(r) for r in lua_list(sim.clients[name].g.RS_CarnetClient.snapshot.missions)]
+        rows = [convert(r) for r in lua_list(sim.clients[name].g.CoreAI.notebookClient.snapshot.missions)]
         [row] = [r for r in rows if r['template'] == 'signal']
         return row
 
@@ -224,23 +224,23 @@ class SignalMissionTests(unittest.TestCase):
         c.rt.execute(MAP_DOUBLE)
         c.rt.execute(NOTEBOOK_UI)
         c.rt.execute("getScriptManager = function() return {FindItem = function() return nil end} end")
-        c.load('client/RS_Carnet_Client.lua')
+        c.load_notebook()
         maps = c.rt.eval("require('CoreAI/CA_MapZones')")
         maps.resetForTests(); maps.resetZonesForTests()
-        sim.command('alice', 'snapshot', world=c.g.RS_CarnetClient.world, run=c.g.RS_CarnetClient.run)
+        sim.command('alice', 'snapshot', world=c.g.CoreAI.notebookClient.world, run=c.g.CoreAI.notebookClient.run)
         texts = [convert(s)['text'] for s in lua_list(c.rt.eval('mapSymbols()')) if convert(s)['kind'] == 'text']
         self.assertEqual(texts, ['IGUI_CA_MapZoneSignal|Real Bandit'])
-        c.g.RS_Notebook.toggle()
-        window = c.g.RS_CarnetClient.window
+        c.g.CoreAI.notebook.toggle()
+        window = c.g.CoreAI.notebookClient.window
         window.changeTab(window, 'Missions')
-        label = c.rt.eval('RS_CarnetClient.window.list.items[1].text')
+        label = c.rt.eval('CoreAI.notebookClient.window.list.items[1].text')
         self.assertTrue(label.startswith('IGUI_CA_Mission_Signal - '), label)
         end = (m.hour + 2) % 24
-        for key in ('IGUI_RS_ScoutPlace', 'IGUI_RS_ScoutClues', 'IGUI_CA_SignalMapZone',
+        for key in ('IGUI_CA_ScoutPlace', 'IGUI_CA_ScoutClues', 'IGUI_CA_SignalMapZone',
                     'IGUI_CA_SignalColor|IGUI_CA_SignalColor_' + m.color, f'IGUI_CA_SignalHour|{m.hour}|{end}',
                     'IGUI_CA_SignalNotLit', 'IGUI_CA_SignalRule', 'IGUI_CA_SignalReport'):
             self.assertIn(key, window.detail.text)
-        for key in ('IGUI_CA_Progress', 'IGUI_CA_ScoutReport', 'IGUI_RS_NoRefund'):
+        for key in ('IGUI_CA_Progress', 'IGUI_CA_ScoutReport', 'IGUI_CA_NoRefund'):
             self.assertNotIn(key, window.detail.text)
         self.assertFalse(window.deliver.isVisible(window.deliver), 'delivery button for a signal mission')
 

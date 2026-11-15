@@ -40,7 +40,7 @@ RST.suite("ca.notebook", { tags = { "client", "world" }, testTimeoutMs = 30000 }
             t:ok(type(w.detail.text) == "string" and w.detail.text ~= "", name .. ": empty page")
         end
         -- Kahlua has no package table: the pages of RadioSurvivor are seen through their global.
-        t:eq(rs, RS_Notebook ~= nil, "pages of RadioSurvivor loaded only with it")
+        t:eq(rs, RS_NotebookRadio ~= nil, "pages of RadioSurvivor loaded only with it")
         w:changeTab("Missions")
         t:note("mods: RadioSurvivor " .. tostring(rs) .. ", Living Knox " .. tostring(lk) .. "; tabs " ..
             table.concat(names, ","))

@@ -41,7 +41,7 @@ end
 -- Mission rows given to CA_MapZones.zones: the test row first, then the real notebook missions (their areas stay).
 local function rowsWith(row)
     local rows = { row }
-    local client = RS_CarnetClient
+    local client = CoreAI.notebookClient
     for _, r in ipairs(client and client.snapshot and client.snapshot.missions or {}) do rows[#rows + 1] = r end
     return rows
 end

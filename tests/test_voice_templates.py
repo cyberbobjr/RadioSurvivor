@@ -76,16 +76,16 @@ class VoiceTemplateTests(unittest.TestCase):
         c.rt.execute(MAP_DOUBLE)
         c.rt.execute(NOTEBOOK_UI)
         c.rt.execute("getScriptManager = function() return {FindItem = function() return nil end} end")
-        c.load('client/RS_Carnet_Client.lua')
+        c.load_notebook()
         maps = c.rt.eval("require('CoreAI/CA_MapZones')")
         maps.resetForTests(); maps.resetZonesForTests()
-        sim.command('alice', 'snapshot', world=c.g.RS_CarnetClient.world, run=c.g.RS_CarnetClient.run)
+        sim.command('alice', 'snapshot', world=c.g.CoreAI.notebookClient.world, run=c.g.CoreAI.notebookClient.run)
         drawn = [convert(x) for x in lua_list(c.rt.eval('mapSymbols()'))]
         self.assertEqual(sorted(x['text'] for x in drawn if x['kind'] == 'text'),
                          ['IGUI_CA_MapZoneDepot|Old shed', 'IGUI_CA_MapZoneDepot|Supply depot'])
         self.assertEqual(sorted((x['x'], x['y']) for x in drawn if x['kind'] == 'texture'), [(100, 10), (130, 10)])
-        c.g.RS_Notebook.toggle()
-        window = c.g.RS_CarnetClient.window
+        c.g.CoreAI.notebook.toggle()
+        window = c.g.CoreAI.notebookClient.window
         window.changeTab(window, 'Missions')
         for key in ('IGUI_RS_DeadDropPoints|Supply depot, Old shed', 'IGUI_RS_DeadDropApproach',
                     'IGUI_RS_DeadDropLeave|6'):
@@ -113,14 +113,14 @@ class VoiceTemplateTests(unittest.TestCase):
         c.rt.execute(MAP_DOUBLE)
         c.rt.execute(NOTEBOOK_UI)
         c.rt.execute("getScriptManager = function() return {FindItem = function() return nil end} end")
-        c.load('client/RS_Carnet_Client.lua')
+        c.load_notebook()
         maps = c.rt.eval("require('CoreAI/CA_MapZones')")
         maps.resetForTests(); maps.resetZonesForTests()
-        sim.command('alice', 'snapshot', world=c.g.RS_CarnetClient.world, run=c.g.RS_CarnetClient.run)
+        sim.command('alice', 'snapshot', world=c.g.CoreAI.notebookClient.world, run=c.g.CoreAI.notebookClient.run)
         drawn = [convert(x) for x in lua_list(c.rt.eval('mapSymbols()'))]
         self.assertIn('IGUI_CA_MapZoneDepot|Supply depot', [x['text'] for x in drawn if x['kind'] == 'text'])
-        c.g.RS_Notebook.toggle()
-        window = c.g.RS_CarnetClient.window
+        c.g.CoreAI.notebook.toggle()
+        window = c.g.CoreAI.notebookClient.window
         window.changeTab(window, 'Missions')
         for key in ('IGUI_RS_RetrieveDropCard', 'IGUI_RS_DeadDropPoints|Supply depot', 'IGUI_RS_DeadDropLeave|6'):
             self.assertIn(key, window.detail.text)

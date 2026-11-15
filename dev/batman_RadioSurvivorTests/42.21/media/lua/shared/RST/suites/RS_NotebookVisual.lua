@@ -1,5 +1,6 @@
 --[[
-rs.notebook.visual - visual protocol of the notebook, scripted (E03-T02; frame CA_Notebook.lua, pages RS_Notebook.lua).
+rs.notebook.visual - visual protocol of the notebook, scripted (E03-T02; frame CA_Notebook.lua, pages CA_Notebook*.lua,
+RS_NotebookRadio.lua).
 No gesture needed: the suite fills the REAL notebook with a fixed client snapshot and radio history (no server data
 changed: the server snapshots and history answers are ignored while it runs, then asked again), opens it, shows
 every page and dialog, checks by script what can be checked and takes one screenshot per view
@@ -54,6 +55,8 @@ V.PAGES = {
 local function measure(text, font) return getTextManager():MeasureStringX(font or UIFont.Small, tostring(text or "")) end
 local function hasKey(s) return type(s) == "string" and string.find(s, "IGUI_", 1, true) ~= nil end
 local function rtr(key, ...) return getText("IGUI_RS_" .. key, ...) end
+-- E21-T03: words of the common pages, now the core mod's.
+local function ctr(key, ...) return getText("IGUI_CA_" .. key, ...) end
 local function int(v) return math.floor((tonumber(v) or 0) + 0.5) end
 
 -- %1..%9 of a translated text replaced like Translator.getText.
@@ -254,7 +257,7 @@ local function overlap(a, b)
 end
 local function bottom(e) return e:getY() + e:getHeight() end
 
--- Lines the greedy word wrap of the notebook needs (RS_Notebook wrap); 99 when a single word is wider than the line.
+-- Lines the greedy word wrap of the notebook needs (CA_Notebook wrap); 99 when a single word is wider than the line.
 local function linesNeeded(text, maxWidth, font)
     local n, current = 0, ""
     for word in string.gmatch(tostring(text or ""), "%S+") do
@@ -272,13 +275,13 @@ local function linesNeeded(text, maxWidth, font)
 end
 V.linesNeeded = linesNeeded
 
--- Second line of a list row, as drawn (RS_Notebook.rowSecondLine; same rule before it existed).
+-- Second line of a list row, as drawn (secondLine of the tab; same rule before it existed).
 local function secondLine(w, row)
     if w.rowSecondLine then return w.rowSecondLine(row) end
     if row.khz then return rtr("RadioLast", row.when ~= "" and row.when or "-") end
     if row.role then return rtr("Role_" .. row.role) end
-    if row.state then return rtr("State_" .. row.state) end
-    return row.alive and rtr("Contact") or rtr("Dead")
+    if row.state then return ctr("MissionState_" .. row.state) end
+    return row.alive and ctr("Contact") or ctr("Dead")
 end
 
 local function nameOf(w, c)
@@ -338,15 +341,15 @@ function V.auditNotebook(w, label, out, screen)
     if g.showList then
         local header = w.tab == "Radio" and rtr("RadioHeardList") or rtr(w.tab)
         if measure(header) > g.colW then bad("list header cut: " .. header) end
-        local footer = rtr("Target", rtr("None"))
+        local footer = ctr("Target", ctr("None"))
         if measure(footer) > g.colW then bad("target footer cut: " .. footer) end
         for _, item in ipairs(w.list.items or {}) do
             local s = secondLine(w, item.item)
             if measure(s) > w.list:getWidth() - 20 then bad("second line of a row cut: " .. s) end
             if hasKey(s) or hasKey(item.text) then bad("raw key in the list: " .. tostring(item.text) .. " / " .. s) end
         end
-    elseif measure(rtr("Reputation"), UIFont.Large) > g.rightW then
-        bad("page title cut: " .. rtr("Reputation"))
+    elseif measure(ctr("Reputation"), UIFont.Large) > g.rightW then
+        bad("page title cut: " .. ctr("Reputation"))
     end
     -- Status above the Say line: at most two lines (the second one is cut with an ellipsis).
     if w.tab == "Contacts" and w.speak and w.speak:isVisible() then w:syncTalk() end
@@ -485,7 +488,7 @@ function V.auditDeliveryCorners(Notebook, mission, label, out)
     for _, c in ipairs(corners) do
         local anchor = { getX = function() return c[1] end, getY = function() return c[2] end,
             getWidth = function() return 900 end, getHeight = function() return 650 end }
-        local dw = Notebook.newDelivery(mission, anchor)
+        local dw = CoreAI.notebookMissions.newDelivery(mission, anchor)
         if not inside(dw, sw, sh) then
             out[#out + 1] = label .. ": delivery window " .. rect(dw) .. " of a notebook at " .. c[1] .. "," .. c[2]
                 .. " outside the screen " .. sw .. "x" .. sh
@@ -550,12 +553,12 @@ local function containers(w)
 end
 
 local BUTTONS = { SaveNote = true, Talk = true, ClearTarget = true, Accept = true, Deliver = true, Claim = true,
-    Abandon = true, Invite = true, MandateGrant = true, MandateRevoke = true }
+    ClaimShared = true, Abandon = true, Invite = true, MandateGrant = true, MandateRevoke = true }
 local HEADERS = { Radio = true, Contacts = true, Missions = true, Team = true, RadioHeardList = true }
 local SECOND = { Contact = true, Dead = true, RadioLast = true }
 local STATUS = { TalkSelectFirst = true, TalkOutOfRange = true, TalkWaiting = true, TalkDead = true,
     RadioTunedElsewhere = true, Error_Cooldown = true }
--- Radio status of the Say line (RS_Notebook syncSay: Talk.busyReason, Talk.problem in RS_RadioTalk.lua).
+-- Radio status of the Say line (RS_NotebookRadio syncSay: Talk.busyReason, Talk.problem in RS_RadioTalk.lua).
 local RADIO_STATUS = { NotEquipped = true, NotTwoWay = true, Off = true, MicMuted = true, Reject_Disabled = true,
     Reject_NoRadio = true, Reject_TooFar = true, Reject_NotInVehicle = true, Reject_Waiting = true, Reject_Spam = true }
 local DIALOGS = { ConfirmAccept = true, ConfirmAbandon = true, ConfirmDelivery = true, ConfirmSupply = true }
@@ -567,14 +570,14 @@ local function place(key, c)
     if key == "IGUI_RadioSurvivor_Talk" then return "line", c.sayW - 8 end
     local r = string.match(key, "^IGUI_RadioSurvivor_(.+)$")
     if r and RADIO_STATUS[r] then return "lines2", c.rightW end
-    local k = string.match(key, "^IGUI_RS_(.+)$")
+    local k = string.match(key, "^IGUI_RS_(.+)$") or string.match(key, "^IGUI_CA_(.+)$") -- E21-T03: common pages
     if not k then return nil end
     if BUTTONS[k] then return "line", c.rightW - 4 end
     if k == "TalkSend" then return "line", c.sendW - 4 end
     if k == "RadioTune" then return "line", c.colW - 4 end
     if k == "ReviewDelivery" then return "line", c.deliveryW - 36 end
     if k == "Notebook" then return "line", c.minW - 2 * (c.th + 4) end
-    if k == "Delivery" then return "line", c.deliveryW - 2 * (c.th + 4) end
+    if k == "Delivery" or k == "DeliveryPieces" then return "line", c.deliveryW - 2 * (c.th + 4) end
     if k == "Reputation" or k == "RadioFrequency" then return "line", c.rightW, UIFont.Large end
     if HEADERS[k] or k == "Target" then return "line", c.colW end
     if SECOND[k] or string.match(k, "^Role_") or string.match(k, "^StateShort_") then return "line", c.colW - 20 end
@@ -590,7 +593,7 @@ local function sample(key, T)
     if key == "IGUI_RS_RadioLast" then return { "00/00 00:00" } end
     if key == "IGUI_RS_RadioFrequency" or key == "IGUI_RadioSurvivor_Talk" then return { "999.9" } end
     if key == "IGUI_RS_RadioTunedElsewhere" then return { "999.9", "999.9" } end
-    if key == "IGUI_RS_Target" then return { T["IGUI_RS_None"] or "None" } end
+    if key == "IGUI_CA_Target" then return { T["IGUI_CA_None"] or "None" } end
     return { "Abcdefgh", "Abcdefgh", "Abcdefgh", "Abcdefgh", "Abcdefgh", "Abcdefgh" }
 end
 
@@ -638,13 +641,13 @@ function V.auditLanguage(Notebook, Client, T, label, out)
         V.showPage(w, page)
         V.auditNotebook(w, label .. " " .. page.name, out, false)
     end
-    local dw = Notebook.newDelivery(Client.snapshot.missions[1])
+    local dw = CoreAI.notebookMissions.newDelivery(Client.snapshot.missions[1])
     dw:instantiate()
     V.auditDelivery(dw, label .. " delivery", out, false)
     local q = V.QUOTE
-    local texts = { ConfirmAccept = rtr("ConfirmAccept"), ConfirmAbandon = rtr("ConfirmAbandon"),
-        ConfirmDelivery = rtr("ConfirmDelivery", q.count, q.requester, q.remaining),
-        ConfirmSupply = rtr("ConfirmSupply", q.count, q.requester, q.remaining, q.value) }
+    local texts = { ConfirmAccept = ctr("ConfirmAccept"), ConfirmAbandon = ctr("ConfirmAbandon"),
+        ConfirmDelivery = ctr("ConfirmDelivery", q.count, q.requester, q.remaining),
+        ConfirmSupply = ctr("ConfirmSupply", q.count, q.requester, q.remaining, q.value) }
     for name, text in pairs(texts) do
         V.auditModal(Notebook.newConfirm(text, function() end), label .. " " .. name, out)
     end
@@ -708,8 +711,8 @@ end
 -- Fixed snapshot and history in the real client; server snapshots and history answers ignored until the cleanup.
 local function install(t)
     if type(isServer) == "function" and isServer() then t:skip("client UI (not on a server)") end
-    local Notebook = require "RadioSurvivor/RS_Notebook"
-    local Client = RS_CarnetClient
+    local Notebook = require "CoreAI/CA_Notebook"
+    local Client = CoreAI.notebookClient
     t:ok(Notebook ~= nil and Client ~= nil, "notebook client not loaded")
     local History = require "RadioSurvivor/RS_RadioHistory"
     local MapZones = require "CoreAI/CA_MapZones"
@@ -862,11 +865,11 @@ local function resolutionSteps(ctx, res)
     steps[#steps + 1] = viewStep(ctx, "confirm",
         function()
             V.showPage(ctx.w, V.PAGES[3])
-            return dialog(ctx, ctx.w:confirm(getText("IGUI_RS_ConfirmAbandon"), function() end))
+            return dialog(ctx, ctx.w:confirm(getText("IGUI_CA_ConfirmAbandon"), function() end))
         end,
         function(m, label) V.auditModal(m, label, ctx.out) end, drop)
     steps[#steps + 1] = viewStep(ctx, "quote",
-        function() return dialog(ctx, Client.confirmQuote(V.QUOTE)) end,
+        function() return dialog(ctx, CoreAI.notebookMissions.confirmQuote(V.QUOTE)) end,
         function(m, label) V.auditModal(m, label, ctx.out) end, drop)
     steps[#steps + 1] = viewStep(ctx, "contacts_min",
         function()

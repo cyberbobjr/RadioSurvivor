@@ -414,8 +414,8 @@ class Server(unittest.TestCase):
         self.assertEqual(py(self.R.data.reputation), before)
         self.assertEqual(len(list(self.R.data.outcomes.values())), outcomes)
         sim.command('alice', 'snapshot'); sim.command('bob', 'snapshot')
-        a = py(sim.clients['alice'].g.RS_CarnetClient.snapshot.reputation)
-        b = py(sim.clients['bob'].g.RS_CarnetClient.snapshot.reputation)
+        a = py(sim.clients['alice'].g.CoreAI.notebookClient.snapshot.reputation)
+        b = py(sim.clients['bob'].g.CoreAI.notebookClient.snapshot.reputation)
         self.assertEqual((a['available'], a['level'], a['trend']), (True, 'neutral', 'down'))
         self.assertEqual(a['reasons'][1]['action'], 'mission.failed')
         self.assertNotIn('reasonKey', a['reasons'][1], 'E18-T25: the text of a reason is chosen by the client')
@@ -506,7 +506,7 @@ class Effects(unittest.TestCase):
     def test_pushed_snapshot_only_when_changed(self):
         sim = self.world('push')
         received = []
-        client = sim.clients['alice'].g.RS_CarnetClient
+        client = sim.clients['alice'].g.CoreAI.notebookClient
         base = client.receive
 
         def counting(command, args):
@@ -529,7 +529,7 @@ class Effects(unittest.TestCase):
     def test_admin_view_read_only_and_checked_on_the_server(self):
         sim = self.world('admin')
         answers = []
-        client = sim.clients['bob'].g.RS_CarnetClient
+        client = sim.clients['bob'].g.CoreAI.notebookClient
         base = client.receive
 
         def capture(command, args):
@@ -564,9 +564,9 @@ class Effects(unittest.TestCase):
                      "HALOS = {}\n"
                      "HaloTextHelper.addGoodText = function(p, t) HALOS[#HALOS + 1] = 'good:' .. t end\n"
                      "HaloTextHelper.addBadText = function(p, t) HALOS[#HALOS + 1] = 'bad:' .. t end")
-        c.load('client/RS_Carnet_Client.lua')
-        c.g.RS_Notebook.toggle()
-        window = c.g.RS_CarnetClient.window
+        c.load_notebook()
+        c.g.CoreAI.notebook.toggle()
+        window = c.g.CoreAI.notebookClient.window
         sim.command('alice', 'snapshot')
         window.changeTab(window, 'Reputation')
         text = window.detail.text
@@ -583,12 +583,12 @@ class Effects(unittest.TestCase):
         self.assertIn('IGUI_CA_RepChanged|IGUI_CA_RelWhen_today|IGUI_CA_RepLevel_neutral|IGUI_CA_RepLevel_bad', text)
         self.assertIn('- IGUI_CA_RepAct|IGUI_CA_RelWhen_today|IGUI_CA_RepReason_MissionFailed|Real Bandit', text)
         self.assertIsNone(re.search(r'\d', re.sub(r'<[^>]*>', '', text)), 'a number is shown: ' + text)
-        self.assertEqual(lua_list(c.g.HALOS), ['bad:IGUI_RS_RepWarn|IGUI_CA_RepLevel_bad'])
+        self.assertEqual(lua_list(c.g.HALOS), ['bad:IGUI_CA_RepWarn|IGUI_CA_RepLevel_bad'])
         # Same change seen again (poll): no second warning.
         sim.command('alice', 'snapshot')
         self.assertEqual(len(lua_list(c.g.HALOS)), 1)
         # A reconnection only sets the reference: no warning for a change made before it.
-        c.g.RS_CarnetClient.repChangeSeen = None
+        c.g.CoreAI.notebookClient.repChangeSeen = None
         sim.command('alice', 'snapshot')
         self.assertEqual(len(lua_list(c.g.HALOS)), 1)
 

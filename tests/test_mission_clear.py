@@ -112,7 +112,7 @@ class ClearMissionTests(unittest.TestCase):
         return z
 
     def row(self, sim, name):
-        rows = [convert(r) for r in lua_list(sim.clients[name].g.RS_CarnetClient.snapshot.missions)]
+        rows = [convert(r) for r in lua_list(sim.clients[name].g.CoreAI.notebookClient.snapshot.missions)]
         [row] = [r for r in rows if r['template'] == 'clear']
         return row
 
@@ -178,7 +178,7 @@ class ClearMissionTests(unittest.TestCase):
         [bandage] = sim.items('alice', 'Base.Bandage')
         sim.request_mission('alice', 'prepare_delivery', items=[bandage])
         self.assertIsNone(sim.server.g.RS_CarnetServer.quotes[sim.character('alice')])
-        self.assertEqual(sim.clients['alice'].g.RS_CarnetClient.lastError, 'Items')
+        self.assertEqual(sim.clients['alice'].g.CoreAI.notebookClient.lastError, 'Items')
 
     def test_two_participants_share_one_count_without_double_count(self):
         sim, npc, m, missions = self.active('shared', bob=True)
@@ -264,7 +264,7 @@ class ClearMissionTests(unittest.TestCase):
         outcome = restart.reputation().outcomes[old.id + '-' + char + '-result']
         self.assertEqual((outcome.action, outcome.proposedDelta), ('mission.success', 5))
         self.assertIsNone(restart.state().npcs[old.npc].mission)
-        row = convert(restart.clients['alice'].g.RS_CarnetClient.snapshot.missions[1])
+        row = convert(restart.clients['alice'].g.CoreAI.notebookClient.snapshot.missions[1])
         self.assertNotIn('mapZone', row)
 
     def test_expiry_closes_the_mission(self):
@@ -281,22 +281,22 @@ class ClearMissionTests(unittest.TestCase):
         c.rt.execute(MAP_DOUBLE)
         c.rt.execute(NOTEBOOK_UI)
         c.rt.execute("getScriptManager = function() return {FindItem = function() return nil end} end")
-        c.load('client/RS_Carnet_Client.lua')
+        c.load_notebook()
         maps = c.rt.eval("require('CoreAI/CA_MapZones')")
         maps.resetForTests(); maps.resetZonesForTests()
         self.kill(sim, 'alice')
-        sim.command('alice', 'snapshot', world=c.g.RS_CarnetClient.world, run=c.g.RS_CarnetClient.run)
+        sim.command('alice', 'snapshot', world=c.g.CoreAI.notebookClient.world, run=c.g.CoreAI.notebookClient.run)
         texts = [convert(s)['text'] for s in lua_list(c.rt.eval('mapSymbols()')) if convert(s)['kind'] == 'text']
         self.assertEqual(texts, ['IGUI_CA_MapZoneClear|Real Bandit'])
-        c.g.RS_Notebook.toggle()
-        window = c.g.RS_CarnetClient.window
+        c.g.CoreAI.notebook.toggle()
+        window = c.g.CoreAI.notebookClient.window
         window.changeTab(window, 'Missions')
-        label = c.rt.eval('RS_CarnetClient.window.list.items[1].text')
+        label = c.rt.eval('CoreAI.notebookClient.window.list.items[1].text')
         self.assertTrue(label.startswith('IGUI_CA_Mission_Clear - '), label)
-        for key in ('IGUI_RS_ScoutPlace', 'IGUI_RS_ScoutClues', 'IGUI_CA_ClearMapZone', 'IGUI_CA_ClearProgress|1',
+        for key in ('IGUI_CA_ScoutPlace', 'IGUI_CA_ScoutClues', 'IGUI_CA_ClearMapZone', 'IGUI_CA_ClearProgress|1',
                     'IGUI_CA_ClearBy|alice Doe', 'IGUI_CA_ClearRule', 'IGUI_CA_ClearReport'):
             self.assertIn(key, window.detail.text)
-        for key in ('IGUI_CA_Progress', 'IGUI_CA_ScoutReport', 'IGUI_RS_NoRefund'):
+        for key in ('IGUI_CA_Progress', 'IGUI_CA_ScoutReport', 'IGUI_CA_NoRefund'):
             self.assertNotIn(key, window.detail.text)
         self.assertFalse(window.deliver.isVisible(window.deliver), 'delivery button for a clear mission')
 

@@ -36,7 +36,11 @@ local function send(player, command, args)
     args = args or {}
     if S.data then args.world, args.run = S.data.world, S.run end
     if isServer() then sendServerCommand(player, C.MODULE, command, args or {})
-    elseif RS_CarnetClient then RS_CarnetClient.receive(command, args or {}) end
+    else
+        -- solo: same Lua, the notebook client of the core mod receives the answer by name (E21-T03)
+        local client = CoreAI and CoreAI.notebookClient
+        if client then client.receive(command, args or {}) end
+    end
 end
 
 local function reject(player, reason)
@@ -317,51 +321,64 @@ local function missionFor(player, character, args, range)
     return m
 end
 
-local function transact(player, character, command, args)
-    local range
-    if command ~= 'accept' and command ~= 'abandon' then range = C.DELIVERY_RANGE end
-    local m = missionFor(player, character, args, range)
+-- E21-T03: gestures on a mission, one entry per notebook command. ranged: next to the requester (DELIVERY_RANGE).
+-- apply(player, character, m, args) -> true (done: saved and published), false and the reason of a refusal, or
+-- ANSWERED when it answered itself (quote).
+local ANSWERED = 'answered'
+local gestures = {}
+gestures.report = {ranged = true, apply = function(player, character, m)
+    -- E11-T13: notebook button "Report" (works without the bridge), next to the living requester's body
+    -- (DELIVERY_RANGE, never for a radio voice: missionFor), objective met and sender a participant.
+    if not M.reportReady(m) or not m.participants[character] then return false, 'State' end
+    return M.spoken(S, m, player, character)
+end}
+gestures.accept = {apply = function(_, character, m)
+    if not M.accept(S.data, m, character, S.data.characters[character].name) then return false, 'State' end
+    return true
+end}
+gestures.invite = {ranged = true, apply = function(player, character, m, args)
+    if m.state ~= 'active' or not m.participants[character] or type(args.character) ~= 'string' then return false, 'State' end
+    local other
+    for _, p in ipairs(players()) do if Server.bound[p] == args.character then other = p end end
+    if not other or not P.near(player, other, C.SELECT_RANGE) then return false, 'Range' end
+    m.invited[args.character] = true
+    S.data.characters[args.character].knownMissions[m.id] = true
+    contact(args.character, S.data.npcs[m.npc])
+    m.revision = m.revision + 1
+    return true
+end}
+gestures.abandon = {apply = function(_, character, m)
+    if not m.participants[character] or not M.finish(S.data, m, 'abandoned') then return false, 'State' end
+    return true
+end}
+gestures.prepare_delivery = {ranged = true, apply = function(player, character, m, args)
+    if m.state ~= 'active' or not m.participants[character] or not M.checkItems(player, m, args.items) then return false, 'Items' end
+    local token = S.uid('quote')
+    Server.quotes[character] = {token = token, mission = m.id, revision = m.revision, items = args.items,
+        untilMs = getTimestampMs() + 30000}
+    local quote = {token = token, mission = m.id, revision = m.revision, count = #args.items,
+        remaining = m.quantity - m.delivered, requester = S.data.npcs[m.npc].name}
+    -- E17-T03: value mission of an engine supply offer: value V of the chosen items.
+    if m.unit == 'value' then quote.unit, quote.value = 'value', M.supplyValue(m, M.checkItems(player, m, args.items)) end
+    send(player, 'quote', quote)
+    return ANSWERED
+end}
+gestures.confirm_delivery = {ranged = true, apply = function(player, character, m, args)
+    local q = Server.quotes[character]
+    Server.quotes[character] = nil
+    if not q or q.token ~= args.token or q.mission ~= m.id or q.revision ~= m.revision or q.untilMs < getTimestampMs() then return false, 'State' end
+    return M.deliver(S, m, player, character, q.items, q.token)
+end}
+gestures.claim = {ranged = true, apply = function(player, character, m)
+    return M.claim(S, m, player, character, S.uid('claim'))
+end}
+
+local function transact(player, character, gesture, args)
+    local m = missionFor(player, character, args, gesture.ranged and C.DELIVERY_RANGE or nil)
     if not m or m.revision ~= args.revision then return reject(player, 'State') end
-    if command == 'report' then
-        -- E11-T13: notebook button "Report" (works without the bridge), next to the living requester's body
-        -- (DELIVERY_RANGE, never for a radio voice: missionFor), objective met and sender a participant.
-        if not M.reportReady(m) or not m.participants[character] then return reject(player, 'State') end
-        local ok, reason = M.spoken(S, m, player, character)
-        if not ok then return reject(player, reason) end
-    elseif command == 'accept' then
-        if not M.accept(S.data, m, character, S.data.characters[character].name) then return reject(player, 'State') end
-    elseif command == 'invite' then
-        if m.state ~= 'active' or not m.participants[character] or type(args.character) ~= 'string' then return reject(player, 'State') end
-        local other
-        for _, p in ipairs(players()) do if Server.bound[p] == args.character then other = p end end
-        if not other or not P.near(player, other, C.SELECT_RANGE) then return reject(player, 'Range') end
-        m.invited[args.character] = true
-        S.data.characters[args.character].knownMissions[m.id] = true
-        contact(args.character, S.data.npcs[m.npc])
-        m.revision = m.revision + 1
-    elseif command == 'abandon' then
-        if not m.participants[character] or not M.finish(S.data, m, 'abandoned') then return reject(player, 'State') end
-    elseif command == 'prepare_delivery' then
-        if m.state ~= 'active' or not m.participants[character] or not M.checkItems(player, m, args.items) then return reject(player, 'Items') end
-        local token = S.uid('quote')
-        Server.quotes[character] = {token = token, mission = m.id, revision = m.revision, items = args.items,
-            untilMs = getTimestampMs() + 30000}
-        local quote = {token = token, mission = m.id, revision = m.revision, count = #args.items,
-            remaining = m.quantity - m.delivered, requester = S.data.npcs[m.npc].name}
-        -- E17-T03: value mission of an engine supply offer: value V of the chosen items.
-        if m.unit == 'value' then quote.unit, quote.value = 'value', M.supplyValue(m, M.checkItems(player, m, args.items)) end
-        send(player, 'quote', quote)
-        return
-    elseif command == 'confirm_delivery' then
-        local q = Server.quotes[character]
-        Server.quotes[character] = nil
-        if not q or q.token ~= args.token or q.mission ~= m.id or q.revision ~= m.revision or q.untilMs < getTimestampMs() then return reject(player, 'State') end
-        local ok, reason = M.deliver(S, m, player, character, q.items, q.token)
-        if not ok then return reject(player, reason) end
-    elseif command == 'claim' then
-        local ok, reason = M.claim(S, m, player, character, S.uid('claim'))
-        if not ok then return reject(player, reason) end
-    else return end
+    local ok, reason = gesture.apply(player, character, m, args)
+    if ok == ANSWERED then return end
+    if not ok then return reject(player, reason) end
     S.save()
     publish()
 end
@@ -373,11 +390,26 @@ end
 -- C21: per-account token buckets {capacity, per second} (CA_RateLimit, MP server only). hello and snapshot rebuild
 -- and send the whole projection, rep_admin logs its refusals; every other command shares one bucket. The client polls
 -- every 3 s with the notebook open: far below these limits. A dropped command gets no reply.
-Server.RATE_LIMITS = {hello = {4, 0.5}, snapshot = {6, 1}, rep_admin = {3, 0.2}}
+Server.RATE_LIMITS = {}
 Server.RATE_LIMIT_OTHER = {20, 4}
+
+-- E21-T03: registry of the notebook commands on the network module of the core mod (CA_NotebookConfig.MODULE =
+-- 'CoreAI'). fn(player, args, character): character is the bound notebook character, nil for an open command (open:
+-- served before the identity and session checks: hello, rep_admin). limit: own token bucket, else the shared one. A
+-- command no one registered is ignored (no token taken, no reply): the other commands of the module belong to
+-- CA_MissionJournal (missions, contacts, reputation, mission), CA_Teams (team, mandate) and CA_Identity (hello, which
+-- the notebook owns while it is loaded: Identity.yieldHello).
+Server.commands = {}
+function Server.registerCommand(name, fn, limit, open)
+    Server.commands[name] = {fn = fn, open = open == true}
+    Server.RATE_LIMITS[name] = limit
+    if name == 'hello' then Identity.yieldHello() end
+end
 
 function Server.command(module, command, player, args)
     if module ~= C.MODULE or not player then return end
+    local entry = Server.commands[command]
+    if not entry then return end
     local limit = Server.RATE_LIMITS[command]
     local bucket = limit and ('carnet.' .. command) or 'carnet'
     limit = limit or Server.RATE_LIMIT_OTHER
@@ -386,42 +418,51 @@ function Server.command(module, command, player, args)
     if not S.data or S.blocked then return reject(player, 'Storage') end
     if player:isDead() then return reject(player, 'State') end
     M.advance(S.data, playMeter())
-    if command == 'hello' then
-        identity(player, args.character)
-        scan(); projection(player)
-        return
-    end
-    if command == 'rep_admin' then return send(player, 'rep_admin', Server.reputationAdmin(player)) end
+    if entry.open then return entry.fn(player, args) end
     local character = Server.bound[player]
     if not character then return reject(player, 'Identity') end
     if args.world ~= S.data.world or args.run ~= S.run then return reject(player, 'Session') end
     scan()
-    if command == 'snapshot' then projection(player)
-    elseif command == 'select' then
-        local id = args.npc
-        if type(args.incarnation) == 'number' or type(args.incarnation) == 'string' then
-            local npc = Server.ensure(args.incarnation)
-            id = npc and npc.incarnation == args.incarnation and npc.id or nil
-            if id and not Server.objects[id] then scan() end -- a fiche created now has no mapped body yet
-        end
-        local npc = type(id) == 'string' and S.data.npcs[id]
-        if npc and npc.alive and P.near(player, Server.objects[id], C.SELECT_RANGE) then
-            contact(character, npc)
-            Server.selected[character] = id
-            S.save(); projection(player)
-        else Server.selected[character] = nil; projection(player); reject(player, 'Range') end
-    elseif command == 'deselect' then Server.selected[character] = nil; projection(player)
-    elseif command == 'talk' then talk(player, character, args)
-    elseif command == 'note' then
-        local npc = type(args.npc) == 'string' and S.data.npcs[args.npc]
-        local known = npc and S.data.characters[character].contacts[npc.id]
-        if not known then return reject(player, 'State') end
-        if type(args.text) ~= 'string' or #args.text > 2000 then return reject(player, 'Text') end
-        -- Multi-line note (E17-T06): line breaks kept, other control characters replaced by a space.
-        local note = args.text:gsub('\r\n?', '\n'):gsub('[%c]', function(c) return c == '\n' and c or ' ' end)
-        known.note = note
+    entry.fn(player, args, character)
+end
+
+Server.registerCommand('hello', function(player, args)
+    identity(player, args.character)
+    scan(); projection(player)
+end, {4, 0.5}, true)
+Server.registerCommand('rep_admin', function(player) send(player, 'rep_admin', Server.reputationAdmin(player)) end,
+    {3, 0.2}, true)
+Server.registerCommand('snapshot', function(player) projection(player) end, {6, 1})
+Server.registerCommand('select', function(player, args, character)
+    local id = args.npc
+    if type(args.incarnation) == 'number' or type(args.incarnation) == 'string' then
+        local npc = Server.ensure(args.incarnation)
+        id = npc and npc.incarnation == args.incarnation and npc.id or nil
+        if id and not Server.objects[id] then scan() end -- a fiche created now has no mapped body yet
+    end
+    local npc = type(id) == 'string' and S.data.npcs[id]
+    if npc and npc.alive and P.near(player, Server.objects[id], C.SELECT_RANGE) then
+        contact(character, npc)
+        Server.selected[character] = id
         S.save(); projection(player)
-    else transact(player, character, command, args) end
+    else Server.selected[character] = nil; projection(player); reject(player, 'Range') end
+end)
+Server.registerCommand('deselect', function(player, _, character)
+    Server.selected[character] = nil; projection(player)
+end)
+Server.registerCommand('talk', function(player, args, character) talk(player, character, args) end)
+Server.registerCommand('note', function(player, args, character)
+    local npc = type(args.npc) == 'string' and S.data.npcs[args.npc]
+    local known = npc and S.data.characters[character].contacts[npc.id]
+    if not known then return reject(player, 'State') end
+    if type(args.text) ~= 'string' or #args.text > 2000 then return reject(player, 'Text') end
+    -- Multi-line note (E17-T06): line breaks kept, other control characters replaced by a space.
+    local note = args.text:gsub('\r\n?', '\n'):gsub('[%c]', function(c) return c == '\n' and c or ' ' end)
+    known.note = note
+    S.save(); projection(player)
+end)
+for name, gesture in pairs(gestures) do
+    Server.registerCommand(name, function(player, args, character) transact(player, character, gesture, args) end)
 end
 
 -- Notebook character of the account named by a server death cause (E04-T07), or nil. Same path as the revenge of

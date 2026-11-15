@@ -80,7 +80,7 @@ JOURNAL = {
     'IGUI_CA_State_cancelled_dead', 'IGUI_CA_State_expired', 'IGUI_CA_State_failed', 'IGUI_CA_State_offer',
     'IGUI_CA_State_success', 'IGUI_CA_State_toReport'}
 PREFIX_OF = {
-    'core': ('IGUI_CA_',),
+    'core': ('IGUI_CA_', 'UI_optionscreen_binding_CoreAI'),
     'lk': ('IGUI_LK_', 'Sandbox_LivingKnox'),
 }
 KEY_IN_LUA = re.compile(r"""["']((?:IGUI|Sandbox|ContextMenu|Tooltip|UI|Print_Media|Print_Text|Challenge)_[A-Za-z0-9_]+)["']""")
@@ -172,6 +172,47 @@ ADDED_FILES = {
     'ItemName': {'RadioSurvivor.NoteTrade'},
 }
 
+# E21-T03: pages of the notebook moved to the core mod (CA_NotebookContacts, CA_NotebookMissions, CA_NotebookReputation,
+# CA_NotebookClient): their words moved with them (same text); RadioSurvivor keeps what its Radio tab still uses.
+NOTEBOOK_WORDS = (
+    'Abandon', 'Accept', 'ClaimedBy', 'ClearTarget', 'ClueDistance_blocks', 'ClueDistance_short', 'ClueFloors_five',
+    'ClueFloors_four', 'ClueFloors_single', 'ClueFloors_tall', 'ClueFloors_three', 'ClueFloors_two',
+    'ClueSize_large', 'ClueSize_medium', 'ClueSize_small', 'ClueSize_very_large', 'Clue_Basement', 'Clue_BuiltUp',
+    'Clue_FewHouses', 'Clue_Isolated', 'Clue_Kind', 'Clue_Landmark', 'Clue_LandmarkNext', 'Clue_NoLandmark',
+    'Clue_TownCountry', 'Clue_TownFar', 'Clue_TownIn', 'Clue_TownOutskirts', 'ConfirmAbandon', 'ConfirmAccept',
+    'ConfirmDelivery', 'ConfirmSupply', 'Contact', 'Dead', 'Deliver', 'Empty_Missions', 'Error_Bridge',
+    'Error_Busy', 'Error_Capacity', 'Error_Chat', 'Error_Cooldown', 'Error_Identity', 'Error_Items',
+    'Error_NoAnswer', 'Error_Recovery', 'Error_Session', 'Error_State', 'Error_Storage', 'Error_SupplyClosed',
+    'Error_SupplyRefused', 'Error_Text', 'Error_TooMany', 'Error_WrongCard', 'Group', 'Invite', 'JoinRequester',
+    'KnownConversations', 'Landmark_bakery', 'Landmark_bar', 'Landmark_barn', 'Landmark_bookstore',
+    'Landmark_church', 'Landmark_clinic', 'Landmark_clothing', 'Landmark_daycare', 'Landmark_firestation',
+    'Landmark_gas', 'Landmark_grocery', 'Landmark_gunstore', 'Landmark_gym', 'Landmark_hardware',
+    'Landmark_hospital', 'Landmark_library', 'Landmark_liquor', 'Landmark_mechanic', 'Landmark_motel',
+    'Landmark_pharmacy', 'Landmark_police', 'Landmark_post', 'Landmark_restaurant', 'Landmark_school',
+    'Landmark_theatre', 'Landmark_warehouse', 'NewOffer', 'NoNPCProvider', 'NoRefund', 'Participants',
+    'Place_apartments', 'Place_church', 'Place_clinic', 'Place_farmhouse', 'Place_firestation', 'Place_hospital',
+    'Place_house', 'Place_house_garage', 'Place_motel', 'Place_police', 'Place_school', 'RepAdminButton',
+    'RepAdminDenied', 'RepAdminLine', 'RepAdminTitle', 'RepWarn', 'ReportButton', 'ReportInPerson', 'Requester',
+    'ReviewDelivery', 'RewardGoodwill', 'RewardInformation', 'SaveNote', 'ScoutClues', 'ScoutPlace',
+    'StateShort_cancelled_closed', 'StateShort_cancelled_dead', 'StateShort_expired', 'StateShort_failed',
+    'StateShort_offer', 'StateShort_toReport', 'Style_Direct', 'Style_Helpful', 'Style_Prudent', 'Style_Reserved',
+    'Talk', 'TalkDead', 'TalkOutOfRange', 'TalkPlaceholder', 'TalkSelectFirst', 'TalkSend', 'TalkWaiting', 'Target',
+    'Time', 'Traits', 'UseChat'
+)
+RENAMED.update({f'IGUI_RS_{n}': f'IGUI_CA_{n}' for n in NOTEBOOK_WORDS})
+RENAMED.update({k: 'IGUI_CA_Mission' + k[len('IGUI_RS_'):] for k in json.loads(FIXTURE.read_text(encoding='utf-8'))['keys']['EN']
+                ['IG_UI'] if k.startswith('IGUI_RS_State_')})
+RENAMED.update({'IGUI_RS_' + old: 'IGUI_CA_' + new for old, new in (
+    ('Claim', 'ClaimShared'), ('Reward', 'RewardShared'), ('Delivery', 'DeliveryPieces'),
+    ('Empty_Contacts', 'NoContactsSelect'), ('Error_Range', 'Error_NpcRange'))})
+UI_RENAMED = {'UI_optionscreen_binding_RadioSurvivorSelect': 'UI_optionscreen_binding_CoreAISelect'}
+# Words the core pages share with RadioSurvivor's Radio tab (kept there too): a copy in the core mod.
+ADDED |= {
+    'IGUI_CA_Dir_east', 'IGUI_CA_Dir_north', 'IGUI_CA_Dir_north_east', 'IGUI_CA_Dir_north_west',
+    'IGUI_CA_Dir_south', 'IGUI_CA_Dir_south_east', 'IGUI_CA_Dir_south_west', 'IGUI_CA_Dir_west', 'IGUI_CA_None',
+    'IGUI_CA_Say'
+}
+
 
 class TranslationSplitTests(unittest.TestCase):
     @classmethod
@@ -188,6 +229,8 @@ class TranslationSplitTests(unittest.TestCase):
                 expected = set(before)
                 if name == 'IG_UI':
                     expected = ((expected - set(RENAMED)) | set(RENAMED.values()) | JOURNAL | NOTEBOOK | TALK | JOURNAL_GESTURES | ADDED) - REMOVED
+                elif name == 'UI':   # E21-T03: key binding of the notebook selection, now the core mod's
+                    expected = {UI_RENAMED.get(k, k) for k in expected}
                 elif name in ADDED_FILES:
                     expected = expected | ADDED_FILES[name]
                 elif name == 'Sandbox':

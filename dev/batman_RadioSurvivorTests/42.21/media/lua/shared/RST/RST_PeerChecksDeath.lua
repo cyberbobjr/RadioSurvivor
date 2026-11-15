@@ -12,7 +12,7 @@ Client handlers (RST.Steps.on)
                    RST_PeerDeath.MARK = token, or the custom name "RST corpse witness <token>"). PASS data { items };
                    FAIL at the deadline with the corpses and item counts seen.
     death.after    { old, godmode }: waits until the local player is a living character again (new character after
-                   the post-death screen) and the notebook client (RS_CarnetClient) holds an identity other than old;
+                   the post-death screen) and the notebook client (CoreAI.notebookClient) holds an identity other than old;
                    god mode given back when args.godmode. PASS data { character, name }.
 Authority helpers
     PD.arm(user, token)       one-shot OnCharacterDeath witness for the IsoPlayer of account user: records the death
@@ -203,7 +203,7 @@ Steps.on("death.after", function(args)
     local restored = false
     return function(ctx)
         local p = localPlayer()
-        local C = RS_CarnetClient
+        local C = CoreAI.notebookClient
         local cid = type(C) == "table" and C.character or nil
         if p ~= nil and not p:isDead() and type(cid) == "string" and cid ~= args.old then
             if args.godmode and not restored then

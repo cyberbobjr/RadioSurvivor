@@ -1,6 +1,5 @@
 local MissionConfig = require 'CoreAI/CA_MissionConfig'
 local C = {
-    MODULE = 'RS_Carnet',
     DeadDrops = {radius = 3, collectDelayHours = 6, maxItems = 512}, -- E20-T05: game hours out of sight
     Rewards = {lessonXP = 25, dailyXP = 100,
         -- Vanilla 42.21 stash catalogue; mod-added stash maps are never mission rewards.
@@ -131,25 +130,18 @@ local C = {
             ['WpStashMap8'] = true,
             ['WpStashMap9'] = true,
         }},
-    VERSION = 2,
-    DELIVERY_RANGE = MissionConfig.DELIVERY_RANGE,
-    -- E17-T15: longer than the longest answer of the bridge (bridge/radio_bridge.py: start at most MAX_AGE_S = 75 s
-    -- after `sent`, then one model call of at most LLM_BUDGET_S = 60 s, attempts included: 135 s). An error of the
-    -- provider comes back sooner as a reply with `error` (timeout, http_503...), refused with that cause.
-    SAVE_INTERVAL_MS = 5000, -- only while a mission clock runs or the state changed
-    -- E17-T08: acquaintance of a character with an NPC (RS_Carnet_Server, contact.stage). 'stranger' until a talk at
-    -- least ACQUAINT_HOURS game hours after the first answered exchange, or after ACQUAINT_EXCHANGES answered exchanges.
-    -- Snapshot polling by the client: open notebook vs. closed (identity/session keep-alive).
-    SNAPSHOT_OPEN_MS = 3000,
-    SNAPSHOT_CLOSED_MS = 30000,
-    -- Lifecycle of missions and NPC fiches; keeps the private state bounded on long servers.
-    NPC_UNSEEN_MS = 3600000,           -- uncontacted fiche dropped after 1 h without a loaded body
-    PRUNE_INTERVAL_MS = 60000,
     -- E18-T27: personal observations of the NPCs and their triggers are Living Knox's (LK_Observations.CFG).
     -- E04-T11 (Q13): lowest margin of the smuggler by reputation level; a done deal lowers it by RS_Trade.MARGIN_STEP
     -- down to RS_Trade.MARGIN_MIN, a cheat sets RS_Trade.MARGIN_MAX.
     TradeMargin = {good = 0.10, neutral = 0.25, bad = 0.40},
 }
+-- E21-T03: network module and constants of the notebook protocol live in the core mod (CA_NotebookConfig); same
+-- values. The notebook traffic uses the module 'CoreAI'.
+local NotebookConfig = require 'CoreAI/CA_NotebookConfig'
+for _, key in ipairs({'MODULE', 'VERSION', 'DELIVERY_RANGE', 'SAVE_INTERVAL_MS', 'SNAPSHOT_OPEN_MS',
+        'SNAPSHOT_CLOSED_MS', 'NPC_UNSEEN_MS', 'PRUNE_INTERVAL_MS'}) do
+    C[key] = NotebookConfig[key]
+end
 -- E18-T05: mission catalogue, caches and mission delays live in the core mod (CA_MissionConfig); same tables.
 for _, key in ipairs({'OFFER_TTL_MS', 'OFFER_COOLDOWN_MS', 'MAX_OFFERS', 'MISSION_RETENTION_MS',
         'UNCLAIMED_RETENTION_HOURS', 'UNCLAIMED_RETENTION_MS', 'Missions', 'Caches'}) do

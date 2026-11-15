@@ -45,8 +45,8 @@ local function fit(text, maxWidth)
 end
 
 local function openNotebook()
-    local Client = require "RadioSurvivor/RS_Client"
-    local Notebook = require "RadioSurvivor/RS_Notebook"
+    local Client = require "CoreAI/CA_NotebookClient"
+    local Notebook = require "CoreAI/CA_Notebook"
     if Client.window and Client.window:isVisible() then
         Client.window:bringToTop()
     elseif Notebook and Notebook.toggle then

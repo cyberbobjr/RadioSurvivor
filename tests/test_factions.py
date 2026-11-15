@@ -145,18 +145,18 @@ class FactionTests(unittest.TestCase):
 
     def core(self, name, command, **args):
         """E18-T20: command of the core mod (team ids and mandates, CA_Teams), answered to the notebook of the core
-        mod (CA_Notebook: team, lastError)."""
+        mod (CA_Notebook: team; notebook client: lastError)."""
         c = self.sim.clients[name]
         if c.g.CoreAI is None or c.g.CoreAI.notebook is None:
             c.rt.execute(NOTEBOOK_UI)
             c.rt.execute('require "CoreAI/CA_Notebook"')
-        c.g.CoreAI.notebook.lastError = None
+        c.g.CoreAI.notebookClient.lastError = None
         self.sim.clock.offset += 1000  # a player clicks: within the limit of the core commands (CA_RateLimit)
         c.g.sendClientCommand(c.g.getPlayer(), 'CoreAI', command, native_table(c, args))
         return c.g.CoreAI.notebook
 
     def last_error(self, name):
-        return self.sim.clients[name].g.CoreAI.notebook.lastError
+        return self.sim.clients[name].g.CoreAI.notebookClient.lastError
 
     def team(self, name):
         return self.core(name, 'team').team
@@ -357,9 +357,9 @@ class FactionTests(unittest.TestCase):
         self.poll()
         c = self.sim.clients['alice']
         c.rt.execute(NOTEBOOK_UI)
-        c.load('client/RS_Carnet_Client.lua')
-        c.g.RS_Notebook.toggle()
-        window = c.g.RS_CarnetClient.window
+        c.load_notebook()
+        c.g.CoreAI.notebook.toggle()
+        window = c.g.CoreAI.notebookClient.window
         window.changeTab(window, 'Team')
         self.assertEqual([i.item.id for i in window.list['items'].values()], ['alice', 'bob'])
         self.assertIn('IGUI_LK_TeamFaction', window.detail.text)
@@ -376,9 +376,9 @@ class FactionTests(unittest.TestCase):
         # A member sees the tab without the owner's controls.
         b = self.sim.clients['bob']
         b.rt.execute(NOTEBOOK_UI)
-        b.load('client/RS_Carnet_Client.lua')
-        b.g.RS_Notebook.toggle()
-        bw = b.g.RS_CarnetClient.window
+        b.load_notebook()
+        b.g.CoreAI.notebook.toggle()
+        bw = b.g.CoreAI.notebookClient.window
         bw.changeTab(bw, 'Team')
         bw.selectedId = 'alice'
         bw.showDetail(bw)

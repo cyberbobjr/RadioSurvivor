@@ -205,7 +205,7 @@ RST.suite("rs.relation", { mods = { "rs", "lk" },
                         LivingKnox.PersonalRelation.forget(mateNpc)
                         -- Solo (one Lua VM): a reply never heard leaves the Say line waiting TALK_WAIT_MS on the
                         -- notebook client; the next suite would wait behind it (rs.conversations, 2026-11-13).
-                        if type(RS_CarnetClient) == "table" then RS_CarnetClient.waiting = nil end
+                        if type(CoreAI.notebookClient) == "table" then CoreAI.notebookClient.waiting = nil end
                     end, "relations of the fixture npcs removed, notebook client wait cleared")
                     local ctl = E9.intercept(t2)
                     ctl.quiet({ [fa.id] = true, [fb.id] = true })

@@ -614,8 +614,9 @@ class Simulation:
         result.update({name: convert(md) for name, md in self.player_data.items()})
         return result
 
-    def add_client(self, name, saved_id=None):
-        """saved_id: a value left in the CLIENT modData (a claim), never trusted alone."""
+    def add_client(self, name, saved_id=None, core_only=False):
+        """saved_id: a value left in the CLIENT modData (a claim), never trusted alone. core_only (E21-T03): the
+        notebook client of the core mod alone, without RadioSurvivor's client file."""
         c = Game('client', self.path, self.clock)
         c.g.getTimestampMs = lambda: int(self.clock())
         c.rt.execute(STUBS)
@@ -642,9 +643,11 @@ class Simulation:
             c.rt.execute(LK_CLIENT_STUBS)
             c.rt.execute(LK_CLIENT_LOAD)
             c.g.RS_LivingKnox.install()
-        c.load('client/RadioSurvivor/RS_Client.lua')
-        c.g.RS_CarnetClient.installChat()
-        c.g.RS_CarnetClient.hello()
+        c.load('client/CoreAI/CA_NotebookClient.lua')
+        if not core_only:
+            c.load('client/RadioSurvivor/RS_NotebookHost.lua')
+        c.g.CoreAI.notebookClient.installChat()
+        c.g.CoreAI.notebookClient.hello()
         if not self.living_knox:
             c.g.spawn(2001, 'Real Bandit', False, 'original-key')
         return c
@@ -661,7 +664,7 @@ class Simulation:
             client.g.fire('OnServerCommand', module, command, network_args(client, args))
 
     def command(self, name, command, **args):
-        self.clients[name].g.RS_CarnetClient.send(command, native_table(self.clients[name], args))
+        self.clients[name].g.CoreAI.notebookClient.send(command, native_table(self.clients[name], args))
 
     def say(self, name, text):
         c = self.clients[name]
@@ -686,7 +689,7 @@ class Simulation:
         return self.server.rt.eval("require('CoreAI/CA_Reputation').data")
 
     def character(self, name):
-        return self.clients[name].g.RS_CarnetClient.character
+        return self.clients[name].g.CoreAI.notebookClient.character
 
     def mission(self):
         return next(iter(self.state().missions.values()))
@@ -745,8 +748,8 @@ class CarnetTests(unittest.TestCase):
         completed = pump(lambda: count(sim.state().missions) == 1, [sim.tick])
         if not completed:
             print('DIAGNOSTIC pending=', convert(sim.server.g.RS_CarnetServer.talk.pending),
-                'client=', convert(sim.clients['alice'].g.RS_CarnetClient.snapshot),
-                'error=', sim.clients['alice'].g.RS_CarnetClient.lastError)
+                'client=', convert(sim.clients['alice'].g.CoreAI.notebookClient.snapshot),
+                'error=', sim.clients['alice'].g.CoreAI.notebookClient.lastError)
             for filename in ('requests.txt', 'responses.txt'):
                 path = sim.path / filename
                 print(filename, path.read_text(encoding='utf-8') if path.exists() else 'MISSING')
@@ -802,13 +805,13 @@ class CarnetTests(unittest.TestCase):
         # Private notes never leak into the other listener's projection.
         sim.command('alice', 'note', npc=npc.id, text='Private note A')
         sim.command('bob', 'snapshot')
-        self.assertEqual(sim.clients['alice'].g.RS_CarnetClient.snapshot.contacts[1].note, 'Private note A')
-        self.assertEqual(sim.clients['bob'].g.RS_CarnetClient.snapshot.contacts[1].note, '')
+        self.assertEqual(sim.clients['alice'].g.CoreAI.notebookClient.snapshot.contacts[1].note, 'Private note A')
+        self.assertEqual(sim.clients['bob'].g.CoreAI.notebookClient.snapshot.contacts[1].note, '')
         # Duplicate speech event renders once and never generates a command.
         c = sim.clients['bob']
         speech = [m for m in c.g.CHAT.shown.values() if m.author == npc.name][0]
-        event_id = c.g.RS_CarnetClient.seenOrder[1]
-        c.g.RS_CarnetClient.receive('speech', native_table(c, {'id': event_id, 'npc': npc.id, 'incarnation': 2001,
+        event_id = c.g.CoreAI.notebookClient.seenOrder[1]
+        c.g.CoreAI.notebookClient.receive('speech', native_table(c, {'id': event_id, 'npc': npc.id, 'incarnation': 2001,
             'world': sim.state().world, 'run': sim.server.g.RS_CarnetServer.store.run,
             'name': npc.name, 'text': speech.text}))
         self.assertEqual(len([m for m in c.g.CHAT.shown.values() if m.author == npc.name]), 1)
@@ -818,7 +821,7 @@ class CarnetTests(unittest.TestCase):
         by a chat message); the chat line waits in the inbox and is shown once the say chat is known, the bubble is
         not shown again."""
         sim = Simulation(self.path / 'nosay'); c = sim.add_client('alice')
-        client = c.g.RS_CarnetClient
+        client = c.g.CoreAI.notebookClient
         self.assertTrue(c.g.isClient())
         self.assertIsNone(client.say)
         zombie = c.g.ZOMBIES[len(c.g.ZOMBIES)]
@@ -859,13 +862,13 @@ class CarnetTests(unittest.TestCase):
         sim.server.g.PLAYERS.alice.muted = True
         sim.say('alice', '/say muted server side')
         self.assertEqual(len(sim.server.g.RS_CarnetServer.talk.pending), 1)
-        self.assertEqual(c.g.RS_CarnetClient.lastError, 'Chat')
+        self.assertEqual(c.g.CoreAI.notebookClient.lastError, 'Chat')
         sim.server.g.PLAYERS.alice.muted = False
         sim.clock.offset += 11000; sim.say('alice', '/say BLOCKED')
-        self.assertEqual(c.g.RS_CarnetClient.lastError, 'Chat')
+        self.assertEqual(c.g.CoreAI.notebookClient.lastError, 'Chat')
         sim.server.g.CHAT_STREAMS = 'all,f'
         sim.clock.offset += 11000; sim.say('alice', '/say disabled on server')
-        self.assertEqual(c.g.RS_CarnetClient.lastError, 'Chat')
+        self.assertEqual(c.g.CoreAI.notebookClient.lastError, 'Chat')
         sim.server.g.CHAT_STREAMS = 's,all'
         c.g.CHAT_ENABLED = False
         sim.clock.offset += 11000; sim.say('alice', '/say disabled locally')
@@ -880,11 +883,11 @@ class CarnetTests(unittest.TestCase):
         sim.say('alice', '/say hello')
         sim.clock.offset += 151000; sim.tick()
         self.assertEqual(count(sim.state().missions), 0)
-        self.assertEqual(sim.clients['alice'].g.RS_CarnetClient.lastError, 'NoAnswer')
+        self.assertEqual(sim.clients['alice'].g.CoreAI.notebookClient.lastError, 'NoAnswer')
         self.assertFalse(any(r.kind == 'npc_talk' for r in sim.server.g.RS_CarnetServer.talk.pending.values()))
         sim.server.g.PLAYERS.alice.x = 100
         sim.clock.offset += 1001; sim.tick()
-        self.assertEqual(sim.clients['alice'].g.RS_CarnetClient.snapshot.selected, '')
+        self.assertEqual(sim.clients['alice'].g.CoreAI.notebookClient.snapshot.selected, '')
         sim.server.g.PLAYERS.alice.x = 10
         sim.select('alice')
         npc = next(iter(sim.state().npcs.values()))
@@ -963,13 +966,13 @@ class CarnetTests(unittest.TestCase):
         bridge_module.write_responses(sim.path / 'responses.txt', {req['id']: invalid})
         sim.clock.offset += 1100; sim.tick()
         self.assertEqual(count(sim.state().missions), 0)
-        self.assertEqual(c.g.RS_CarnetClient.lastError, 'NoAnswer')
+        self.assertEqual(c.g.CoreAI.notebookClient.lastError, 'NoAnswer')
         npc = next(iter(sim.state().npcs.values()))
         m = sim.server.rt.eval("require('CoreAI/CA_Missions')").create(sim.state(), npc, sim.character('alice'))
         sim.request_mission('alice', 'accept')
         good, dirty = sim.items('alice', 'Base.Bandage', 'Base.BandageDirty')
         sim.request_mission('alice', 'prepare_delivery', items=[good, good])
-        self.assertEqual(c.g.RS_CarnetClient.lastError, 'Items')
+        self.assertEqual(c.g.CoreAI.notebookClient.lastError, 'Items')
         sim.request_mission('alice', 'prepare_delivery', items=[dirty])
         self.assertEqual(m.delivered, 0)
         q = sim.quote('alice', [good])
@@ -1001,13 +1004,13 @@ class CarnetTests(unittest.TestCase):
         bob.square = None
         old_char = sim.character('alice')
         # Re-handshake is needed when a client has retained an old runtime session.
-        a.g.RS_CarnetClient.run = 'old-run'
+        a.g.CoreAI.notebookClient.run = 'old-run'
         sim.command('alice', 'snapshot')
-        self.assertEqual(a.g.RS_CarnetClient.run, sim.server.g.RS_CarnetServer.store.run)
+        self.assertEqual(a.g.CoreAI.notebookClient.run, sim.server.g.RS_CarnetServer.store.run)
         self.assertEqual(sim.character('alice'), old_char)
-        a.g.RS_CarnetClient.receive('speech', native_table(a, {'id': 'old-reply', 'world': sim.state().world,
+        a.g.CoreAI.notebookClient.receive('speech', native_table(a, {'id': 'old-reply', 'world': sim.state().world,
             'run': 'old-run', 'npc': npc.id, 'name': npc.name, 'text': 'stale'}))
-        self.assertFalse(a.g.RS_CarnetClient.seen['old-reply'])
+        self.assertFalse(a.g.CoreAI.notebookClient.seen['old-reply'])
         # The engine recreates the NPC and announces it through the provider 'reincarnated' event.
         sim.server.g.FAKE_PROVIDER.restore(2001)
         sim.clock.offset += 1001; sim.tick()
@@ -1037,7 +1040,7 @@ class CarnetTests(unittest.TestCase):
         q = sim.quote('alice', [second])
         sim.server.rt.execute('sendRemoveItemFromContainer=function() error("native packet failure") end')
         sim.confirm('alice', q)
-        self.assertEqual(a.g.RS_CarnetClient.lastError, 'Recovery')
+        self.assertEqual(a.g.CoreAI.notebookClient.lastError, 'Recovery')
         self.assertEqual(m.transaction.error, 'inventory_remove')
         self.assertEqual(m.delivered, 1)
         sim.confirm('alice', q)
@@ -1064,7 +1067,7 @@ class CarnetTests(unittest.TestCase):
         sim2.confirm('alice', sim2.quote('alice', sim2.items('alice', *(['Base.Bandage'] * 6))))
         sim2.server.g.PLAYERS.alice.inv.capacity = 0
         sim2.request_mission('alice', 'claim')
-        self.assertEqual(c.g.RS_CarnetClient.lastError, 'Capacity')
+        self.assertEqual(c.g.CoreAI.notebookClient.lastError, 'Capacity')
         self.assertEqual(m.claimedBy, '')
         self.assertEqual(len(sim2.server.g.ADDITIONS), 0)
 
@@ -1077,7 +1080,7 @@ class CarnetTests(unittest.TestCase):
         sim.clock.offset += 1001; sim.tick()
         sim.add_client('alice')
         self.assertEqual(sim.character('alice'), old_char)
-        snapshot = sim.clients['alice'].g.RS_CarnetClient.snapshot
+        snapshot = sim.clients['alice'].g.CoreAI.notebookClient.snapshot
         self.assertEqual(snapshot.contacts[1].note, 'keep me')
         self.assertTrue(snapshot.missions[1].engaged)
         # A client claim for another account's identity is refused.
@@ -1143,14 +1146,14 @@ class CarnetTests(unittest.TestCase):
         self.assertIsNone(provider.npc(2001), 'empty provider returned an NPC')
         logs = lua_list(sim.server.g.LOGS)
         self.assertIn('[RS_Carnet] authoritative state ready, NPC provider=none, available=false', logs)
-        snapshot = c.g.RS_CarnetClient.snapshot
+        snapshot = c.g.CoreAI.notebookClient.snapshot
         self.assertFalse(snapshot.npcProvider, 'snapshot does not report the missing provider')
         self.assertTrue(snapshot.storage)
         self.assertEqual(count(snapshot.contacts), 0)
         self.assertEqual(count(snapshot.missions), 0)
         # A loaded body of no provider cannot become a contact.
         sim.select('alice')
-        self.assertEqual(c.g.RS_CarnetClient.lastError, 'Range')
+        self.assertEqual(c.g.CoreAI.notebookClient.lastError, 'Range')
         self.assertEqual(count(sim.state().npcs), 0)
         sim.clock.offset += 1001; sim.tick()
         sim.server.g.fire('OnZombieDead', sim.zombie)
@@ -1187,15 +1190,15 @@ class CarnetTests(unittest.TestCase):
 
     def test_notebook_window_opens_with_vanilla_instantiation_order(self):
         sim = Simulation(self.path / 'window'); c = sim.add_client('alice'); sim.select('alice')
-        self.assertGreater(count(c.g.RS_CarnetClient.snapshot.contacts), 0)
+        self.assertGreater(count(c.g.CoreAI.notebookClient.snapshot.contacts), 0)
         c.rt.execute(NOTEBOOK_UI)
         # The double fails like the vanilla text box when its Java object does not exist yet.
         with self.assertRaisesRegex(Exception, 'setMaxTextLength of non-table'):
             c.rt.execute("local b = ISTextEntryBox:new('', 0, 0, 10, 10); b:initialise(); b:setMaxTextLength(5)")
-        c.load('client/RS_Carnet_Client.lua')
-        notebook = c.g.RS_Notebook
+        c.load_notebook()
+        notebook = c.g.CoreAI.notebook
         notebook.toggle()  # Notebook:new, initialise, addToUIManager -> instantiate -> createChildren
-        window = c.g.RS_CarnetClient.window
+        window = c.g.CoreAI.notebookClient.window
         self.assertIsNotNone(window)
         self.assertEqual(window.note.javaObject.maxTextLength, 2000)
         self.assertTrue(window.note.isVisible(window.note))
@@ -1240,7 +1243,7 @@ class CarnetTests(unittest.TestCase):
 def solo_game(path: Path, clock):
     """Solo game (E17-T06): server and client files in ONE Lua machine (isClient and isServer false), no chat; a client
     command is handled during sendClientCommand (SinglePlayerClient, copied arguments) and the server answers by calling
-    RS_CarnetClient.receive directly. Fake NPC engine, body 2001 near the player."""
+    CoreAI.notebookClient.receive directly. Fake NPC engine, body 2001 near the player."""
     path.mkdir(parents=True, exist_ok=True)
     game = Game('solo', path, clock)
     game.g.getTimestampMs = lambda: int(clock())
@@ -1258,17 +1261,17 @@ def solo_game(path: Path, clock):
     game.g.getSpecificPlayer = lambda n: player
     game.g.sendClientCommand = lambda p, module, cmd, args: game.g.fire(
         'OnClientCommand', module, cmd, p, network_args(game, args))
-    game.load('client/RadioSurvivor/RS_Client.lua')
-    game.g.RS_CarnetClient.installChat()
-    game.g.RS_CarnetClient.hello()
+    game.load('client/CoreAI/CA_NotebookClient.lua', 'client/RadioSurvivor/RS_NotebookHost.lua')
+    game.g.CoreAI.notebookClient.installChat()
+    game.g.CoreAI.notebookClient.hello()
     return game, player, zombie
 
 
 def open_notebook(game):
     game.rt.execute(NOTEBOOK_UI)
-    game.load('client/RS_Carnet_Client.lua')
-    game.g.RS_Notebook.toggle()
-    return game.g.RS_CarnetClient.window
+    game.load_notebook()
+    game.g.CoreAI.notebook.toggle()
+    return game.g.CoreAI.notebookClient.window
 
 
 def talk_requests(server_g):
@@ -1318,14 +1321,14 @@ class ReportCases:
 
     def notebook(self, sim):
         c = sim.clients['alice']
-        if c.g.RS_CarnetClient.window is None:
+        if c.g.CoreAI.notebookClient.window is None:
             c.rt.execute(MAP_DOUBLE)
             c.rt.execute(NOTEBOOK_UI)
             c.rt.execute("getScriptManager = function() return {FindItem = function() return nil end} end")
-            c.load('client/RS_Carnet_Client.lua')
-            c.g.RS_Notebook.toggle()
-        sim.command('alice', 'snapshot', world=c.g.RS_CarnetClient.world, run=c.g.RS_CarnetClient.run)
-        window = c.g.RS_CarnetClient.window
+            c.load_notebook()
+            c.g.CoreAI.notebook.toggle()
+        sim.command('alice', 'snapshot', world=c.g.CoreAI.notebookClient.world, run=c.g.CoreAI.notebookClient.run)
+        window = c.g.CoreAI.notebookClient.window
         window.changeTab(window, 'Missions')
         return c, window
 
@@ -1337,19 +1340,19 @@ class ReportCases:
         self.assertIsNone(req.context.reportable)
         self.assertFalse(convert(req.context.mission)['toReport'])
         sim.request_mission('alice', 'report')
-        self.assertEqual(sim.clients['alice'].g.RS_CarnetClient.lastError, 'State')
+        self.assertEqual(sim.clients['alice'].g.CoreAI.notebookClient.lastError, 'State')
         self.assertEqual((m.state, count(m.receipts)), ('active', 0))
         # Objective met by the server: still active, "to report" in the projection and the notebook.
         self.fulfil(sim, m)
         self.assertEqual(m.state, 'active', 'the objective alone succeeded')
         self.assertTrue(missions.reportReady(m))
         c, window = self.notebook(sim)
-        row = convert(c.g.RS_CarnetClient.snapshot.missions[1])
+        row = convert(c.g.CoreAI.notebookClient.snapshot.missions[1])
         self.assertEqual((row['state'], row['toReport']), ('active', True))
-        self.assertIn('IGUI_RS_State_toReport', window.detail.text)
-        self.assertIn('IGUI_RS_ReportInPerson|' + row['requester'], window.detail.text)
-        self.assertEqual(c.g.RS_Notebook.rowSecondLine(c.g.RS_CarnetClient.snapshot.missions[1]),
-                         'IGUI_RS_StateShort_toReport')
+        self.assertIn('IGUI_CA_MissionState_toReport', window.detail.text)
+        self.assertIn('IGUI_CA_ReportInPerson|' + row['requester'], window.detail.text)
+        self.assertEqual(c.g.CoreAI.notebookMissions.secondLine(c.g.CoreAI.notebookClient.snapshot.missions[1]),
+                         'IGUI_CA_StateShort_toReport')
         self.assertTrue(window.report.isVisible(window.report), 'no Report button')
         # Said to another NPC: nothing reportable, a report_done there changes nothing.
         other = sim.server.g.spawn(2002, 'Other Bandit', False, 'other-key')
@@ -1430,7 +1433,7 @@ class ContactsTalkTests(unittest.TestCase):
     def test_solo_say_line_reaches_the_selected_npc_who_answers(self):
         clock = Clock()
         game, player, zombie = solo_game(self.path / 'solo', clock)
-        client, server = game.g.RS_CarnetClient, game.g.RS_CarnetServer
+        client, server = game.g.CoreAI.notebookClient, game.g.RS_CarnetServer
         window = open_notebook(game)
         self.assertEqual(window.tab, 'Contacts')
         self.assertFalse(window.speak.isVisible(window.speak), 'Say line without any contact')
@@ -1439,11 +1442,11 @@ class ContactsTalkTests(unittest.TestCase):
         self.assertNotEqual(client.snapshot.selected, '')
         self.assertTrue(window.speak.isVisible(window.speak))
         self.assertEqual(self.status(window), (None, True, True))
-        self.assertEqual(window.speak.javaObject.placeholder, 'IGUI_RS_TalkPlaceholder|Real Bandit')
+        self.assertEqual(window.speak.javaObject.placeholder, 'IGUI_CA_TalkPlaceholder|Real Bandit')
         self.assertEqual(window.speak.javaObject.maxTextLength, 200)
         # Refusal: no target (deselected). Greyed with the reason; a forced send does nothing.
         client.send('deselect')
-        self.assertEqual(self.status(window), ('IGUI_RS_TalkSelectFirst', False, False))
+        self.assertEqual(self.status(window), ('IGUI_CA_TalkSelectFirst', False, False))
         self.send(window, 'nobody listens')
         self.assertEqual(talk_requests(game.g), [])
         client.selectNearest()
@@ -1463,7 +1466,7 @@ class ContactsTalkTests(unittest.TestCase):
         self.assertEqual(lua_list(player.said), [self.TEXT])
         self.assertEqual(lua_list(game.g.SAID_CHAT), [], 'solo must not use the chat')
         self.assertEqual(window.speak.getText(window.speak), '')
-        self.assertEqual(self.status(window), ('IGUI_RS_TalkWaiting', False, False))
+        self.assertEqual(self.status(window), ('IGUI_CA_TalkWaiting', False, False))
         self.send(window, 'second sentence while waiting')
         self.assertEqual(len(talk_requests(game.g)), 1)
         # The NPC answers through the offline bridge: bubble over its body, line kept in the notebook history.
@@ -1476,13 +1479,13 @@ class ContactsTalkTests(unittest.TestCase):
         self.assertEqual(history[0], ('solo Doe', self.TEXT))
         self.assertEqual(history[1], ('Real Bandit', zombie.bubbles[1]))
         self.assertIn(zombie.bubbles[1].split(' ')[0], window.detail.text)
-        self.assertEqual(self.status(window)[0], 'IGUI_RS_Error_Cooldown')
+        self.assertEqual(self.status(window)[0], 'IGUI_CA_Error_Cooldown')
         clock.offset += 11000
         self.assertEqual(self.status(window), (None, True, True))
         # Refusal: too far. The line is greyed; a client bypassing it is refused by the server (Range), never said.
         zombie.x = 100
         client.send('snapshot')
-        self.assertEqual(self.status(window), ('IGUI_RS_TalkOutOfRange', False, False))
+        self.assertEqual(self.status(window), ('IGUI_CA_TalkOutOfRange', False, False))
         self.send(window, 'too far')
         self.assertEqual(len(talk_requests(game.g)), 0)
         self.assertTrue(client.talk('forced far', True))
@@ -1503,7 +1506,7 @@ class ContactsTalkTests(unittest.TestCase):
         reqs = talk_requests(sim.server.g)
         self.assertEqual(len(reqs), 1)
         self.assertEqual(lua_list(alice.g.SAID_CHAT), [self.TEXT])
-        self.assertEqual(self.status(window), ('IGUI_RS_TalkWaiting', False, False))
+        self.assertEqual(self.status(window), ('IGUI_CA_TalkWaiting', False, False))
         # The same sentence in the chat (bob): same request, field by field, except the sender.
         sim.say('bob', '/say ' + self.TEXT)
         reqs = talk_requests(sim.server.g)
@@ -1524,22 +1527,22 @@ class ContactsTalkTests(unittest.TestCase):
         sim.say('alice', '/say Et des munitions ?')
         self.assertEqual([r.text for r in talk_requests(sim.server.g)], [self.TEXT, self.TEXT, 'Et des munitions ?'])
         self.assertEqual(lua_list(alice.g.SAID_CHAT).count(self.TEXT), 1)
-        self.assertEqual(self.status(window)[0], 'IGUI_RS_TalkWaiting')
+        self.assertEqual(self.status(window)[0], 'IGUI_CA_TalkWaiting')
         # Fake engine: group id '1' without a readable name -> no group line, never the identifier.
-        self.assertNotIn('IGUI_RS_Group', window.detail.text)
-        self.assertIsNone(alice.g.RS_CarnetClient.snapshot.contacts[1].clan)
+        self.assertNotIn('IGUI_CA_Group', window.detail.text)
+        self.assertIsNone(alice.g.CoreAI.notebookClient.snapshot.contacts[1].clan)
         # Multi-line private note: Java text box set after addChild; line breaks kept by the server.
         self.assertEqual((window.note.javaObject.multipleLine, window.note.javaObject.maxLines), (True, 4))
-        npc = alice.g.RS_CarnetClient.snapshot.selected
+        npc = alice.g.CoreAI.notebookClient.snapshot.selected
         sim.command('alice', 'note', npc=npc, text='Ligne 1\nLigne 2\r\nLigne 3\tfin')
-        self.assertEqual(alice.g.RS_CarnetClient.snapshot.contacts[1].note, 'Ligne 1\nLigne 2\nLigne 3 fin')
+        self.assertEqual(alice.g.CoreAI.notebookClient.snapshot.contacts[1].note, 'Ligne 1\nLigne 2\nLigne 3 fin')
 
     def test_client_sends_the_real_game_language(self):
         """E17-T11: the Say line sends Translator.getLanguage():name() as is (game in Spanish -> ES, Brazilian
         Portuguese -> PTBR), not FR or EN; a malformed name falls back to EN on the client already."""
         clock = Clock()
         game, _, _ = solo_game(self.path / 'solo', clock)
-        client, server = game.g.RS_CarnetClient, game.g.RS_CarnetServer
+        client, server = game.g.CoreAI.notebookClient, game.g.RS_CarnetServer
         client.selectNearest()
         sent = []
         for name in ('ES', 'PTBR', 'bad code'):
@@ -1557,7 +1560,7 @@ class ContactsTalkTests(unittest.TestCase):
 
 class PlayerSpeechTests(unittest.TestCase):
     """LK11-T09 : une phrase dite par une ligne « Dire » du carnet (onglet Radio : RS_RadioTalk.handle ; onglet
-    Contacts : RS_CarnetClient.receive) s'affiche UNE fois au-dessus du personnage, après acceptation par le serveur,
+    Contacts : CoreAI.notebookClient.receive) s'affiche UNE fois au-dessus du personnage, après acceptation par le serveur,
     jamais sur refus. Solo : player:Say (IsoGameCharacter.java:6655-6660, 6686-6688 -> ChatManager.showInfoMessage ->
     SayChat.showMessage -> RangeBasedChat.showInSpeechBubble : ChatElement du joueur) ; client MP : processSayMessage
     seul (le chat « dire » affiche déjà la bulle localement, base ui-windows.md), jamais les deux. Doublures : Say et
@@ -1590,7 +1593,7 @@ class PlayerSpeechTests(unittest.TestCase):
 
     def test_contacts_tab_sentence_shown_once_after_queued_never_on_refusal(self):
         game, player, _ = solo_game(self.path / 'solo', Clock())
-        client = game.g.RS_CarnetClient
+        client = game.g.CoreAI.notebookClient
         receive = lambda command, args: client.receive(command, game.rt.table_from(args))
         client.waiting = game.rt.table_from({'at': 0, 'npc': 'x', 'text': 'Bonjour.'})
         receive('error', {'reason': 'Range'})                                   # refus : jamais dit
@@ -1691,7 +1694,7 @@ class LivingKnoxCarnetTests(unittest.TestCase):
     def ctrl_g(self, name, npc_id, online_id, x=12):
         client = self.sim.clients[name]
         client.rt.eval('lkCopy')(npc_id, online_id, x)
-        client.g.RS_CarnetClient.selectNearest()
+        client.g.CoreAI.notebookClient.selectNearest()
         return client
 
     def assert_private(self, value, where):
@@ -1711,11 +1714,11 @@ class LivingKnoxCarnetTests(unittest.TestCase):
         client = self.ctrl_g('alice', leader, 5001)
         fiche = sim.server.g.RS_CarnetServer.find(leader)
         self.assertIsNotNone(fiche)
-        self.assertEqual(client.g.RS_CarnetClient.snapshot.selected, fiche.id)
+        self.assertEqual(client.g.CoreAI.notebookClient.snapshot.selected, fiche.id)
         self.assertEqual((fiche.incarnation, fiche.signature, fiche.clan), (leader, 'lk:' + leader, self.g.LK_GROUP))
         self.assertEqual(fiche.name, self.g.LK_STORY.leader.name, 'the leader carries the name of its story')
         self.assertTrue(fiche.personality.smoker and fiche.personality.alcoholic)
-        self.assertTrue(client.g.RS_CarnetClient.snapshot.npcProvider)
+        self.assertTrue(client.g.CoreAI.notebookClient.snapshot.npcProvider)
         # Conversation: public context of the group, offer drawn from the real food need, nothing private.
         self.process = start_bridge(sim.path)
         sim.acquaint('alice') # E17-T08: the stranger stage is covered by AcquaintanceTests
@@ -1750,12 +1753,12 @@ class LivingKnoxCarnetTests(unittest.TestCase):
         self.assertEqual((m.supply.ref, m.supply.offer, m.rewardType, m.rewardCount),
                          (self.g.LK_GROUP, self.g.LK_GROUP + '-food-1', 'Base.Antibiotics', 2))
         sim.request_mission('alice', 'accept')
-        view = client.g.RS_CarnetClient.snapshot.missions[1]
+        view = client.g.CoreAI.notebookClient.snapshot.missions[1]
         self.assertEqual((view.unit, view.need, view.quantity, view['values']['Base.Rice']), ('value', 'food', 60, 2))
         # One item more than needed: refused before any effect (no marker, nothing removed, reserve unchanged).
         beans = sim.items('alice', *(['Base.TinnedBeans'] * 31))
         sim.confirm('alice', sim.quote('alice', beans))
-        self.assertEqual(client.g.RS_CarnetClient.lastError, 'TooMany')
+        self.assertEqual(client.g.CoreAI.notebookClient.lastError, 'TooMany')
         self.assertIsNone(m.transaction)
         self.assertEqual((m.delivered, self.food(), len(sim.server.g.REMOVALS)), (0, 20, 0))
         # First delivery: 10 cans = 20 V, food 20 -> 25, once.
@@ -1770,7 +1773,7 @@ class LivingKnoxCarnetTests(unittest.TestCase):
                                          self.rt.table_from(beans[10:20]), quote['token']))
         self.assertEqual((m.delivered, self.food(), len(sim.server.g.REMOVALS)), (20, 25, 10), 'notebook replay')
         sim.confirm('alice', quote)  # quote already consumed
-        self.assertEqual(client.g.RS_CarnetClient.lastError, 'State')
+        self.assertEqual(client.g.CoreAI.notebookClient.lastError, 'State')
         self.assertEqual(count(sim.reputation().outcomes), 0, 'partial delivery must not apply reputation')
         # Last delivery: 20 cans = 40 V completes the offer: food 35, reward lot of the engine, reputation, attitude.
         before = self.api.attitude(self.g.LK_GROUP, alice).level
@@ -1804,7 +1807,7 @@ class LivingKnoxCarnetTests(unittest.TestCase):
         self.assertEqual(self.rt.eval('LivingKnox.Store.data()').npcs[leader].state, 'dead')
         seen = [convert(o) for o in lua_list(obs.list(mate.id))]
         self.assertEqual([(o['fact'], o['subject']) for o in seen], [('group_death', fiche.id)])
-        contact = [c for c in client.g.RS_CarnetClient.snapshot.contacts.values() if c.id == fiche.id][0]
+        contact = [c for c in client.g.CoreAI.notebookClient.snapshot.contacts.values() if c.id == fiche.id][0]
         self.assertFalse(contact.alive)
         self.assertEqual(sim.server.g.RS_CarnetServer.find(leader).id, fiche.id, 'fiche kept, closed')
 
@@ -1841,20 +1844,20 @@ class LivingKnoxCarnetTests(unittest.TestCase):
         self.assertEqual(leader.clan, self.g.LK_GROUP)
         self.assertEqual(leader.groupName, self.g.LK_STORY.leader.name)
         window = open_notebook(client)
-        contact = [c for c in client.g.RS_CarnetClient.snapshot.contacts.values() if c.id == leader.id][0]
+        contact = [c for c in client.g.CoreAI.notebookClient.snapshot.contacts.values() if c.id == leader.id][0]
         self.assertEqual(contact.groupName, self.g.LK_STORY.leader.name)
         self.assertIsNone(contact.clan, 'raw group id sent to the client')
-        self.assertIn('IGUI_RS_Group|' + self.g.LK_STORY.leader.name, window.detail.text)
+        self.assertIn('IGUI_CA_Group|' + self.g.LK_STORY.leader.name, window.detail.text)
         self.assertNotIn('grp-', window.detail.text)
         # A groupless NPC: no group line at all.
         self.g.LivingKnox.Bodies.bound[self.g.LK_LONER].x = 12
         sim.command('alice', 'select', incarnation=self.g.LK_LONER)
         loner = sim.server.g.RS_CarnetServer.find(self.g.LK_LONER)
-        self.assertEqual(client.g.RS_CarnetClient.snapshot.selected, loner.id)
+        self.assertEqual(client.g.CoreAI.notebookClient.snapshot.selected, loner.id)
         window.selectedId = loner.id
         window.showDetail(window)
         self.assertEqual(window.row.groupName, '')
-        self.assertNotIn('IGUI_RS_Group', window.detail.text)
+        self.assertNotIn('IGUI_CA_Group', window.detail.text)
         self.assertNotIn('grp-', window.detail.text)
 
     def test_in_game_suite_on_the_simulated_server(self):
@@ -2194,11 +2197,11 @@ class SpokenAcceptanceTests(unittest.TestCase):
         self.assertTrue(pump(lambda: not any(r.id == rid for r in self.server.talk.pending.values()), [sim.tick]),
                         'no reply: ' + text)
         req = convert(req)
-        self.assertTrue(sim.clients['alice'].g.RS_CarnetClient.seen[rid], 'reply not said: ' + text)
+        self.assertTrue(sim.clients['alice'].g.CoreAI.notebookClient.seen[rid], 'reply not said: ' + text)
         return req
 
     def offer_signals(self):
-        return lua_list(self.sim.clients['alice'].g.getPlayer().halos).count('IGUI_RS_NewOffer')
+        return lua_list(self.sim.clients['alice'].g.getPlayer().halos).count('IGUI_CA_NewOffer')
 
     def test_model_accept_takes_the_open_offer_once(self):
         sim = self.start('accept')
@@ -2211,7 +2214,7 @@ class SpokenAcceptanceTests(unittest.TestCase):
         self.assertEqual(req['context']['acceptable'], {'mission': m.id, 'revision': revision})
         self.assertEqual(m.state, 'active')
         self.assertEqual(list(convert(m.participants)), [sim.character('alice')])
-        row = convert(sim.clients['alice'].g.RS_CarnetClient.snapshot.missions[1])
+        row = convert(sim.clients['alice'].g.CoreAI.notebookClient.snapshot.missions[1])
         self.assertEqual((row['state'], row['engaged']), ('active', True))
         self.assertEqual(self.offer_signals(), 1, 'an acceptance signalled a new offer')
         # The bridge took the acknowledgement carrying the acceptance (applied.accept = this mission) as applied: the
@@ -2318,7 +2321,7 @@ class MissionTemplateTests(unittest.TestCase):
         restart.request_mission('alice', 'claim')
         self.assertEqual(old.claimedBy, restart.character('alice'))
         self.assertEqual(len(restart.server.g.ADDITIONS), 20)
-        snapshot = restart.clients['alice'].g.RS_CarnetClient.snapshot
+        snapshot = restart.clients['alice'].g.CoreAI.notebookClient.snapshot
         self.assertEqual((snapshot.missions[1].quantity, snapshot.missions[1].delivered), (6, 6))
 
     def test_registered_template_uses_the_common_engine(self):
@@ -2538,7 +2541,7 @@ class ScoutMissionTests(unittest.TestCase):
         self.poll(sim)
         self.assertTrue(m.zoneReached)
         self.assertEqual((m.reachedBy, m.revision, m.state), ('alice Doe', revision + 1, 'active'))
-        snapshot = sim.clients['alice'].g.RS_CarnetClient.snapshot
+        snapshot = sim.clients['alice'].g.CoreAI.notebookClient.snapshot
         self.assertEqual((snapshot.missions[1].template, snapshot.missions[1].zoneReached), ('scout', True))
         # Visit without report: still running, even long after.
         alice.x, alice.y = 10, 10
@@ -2598,19 +2601,19 @@ class ScoutMissionTests(unittest.TestCase):
         c = sim.clients['alice']
         c.rt.execute(NOTEBOOK_UI)
         c.rt.execute("getScriptManager = function() return {FindItem = function() return nil end} end")
-        c.load('client/RS_Carnet_Client.lua')
-        c.g.RS_Notebook.toggle()
-        window = c.g.RS_CarnetClient.window
+        c.load_notebook()
+        c.g.CoreAI.notebook.toggle()
+        window = c.g.CoreAI.notebookClient.window
         window.changeTab(window, 'Missions')
         self.assertIn('IGUI_CA_ScoutNotReached', window.detail.text)
         self.assertIn('IGUI_CA_ScoutReport', window.detail.text)
         self.assertNotIn('IGUI_CA_Progress', window.detail.text)
         # E11-T09: title of the template (list and sheet), clues translated by the client, no technical line.
-        label = c.rt.eval('RS_CarnetClient.window.list.items[1].text')
+        label = c.rt.eval('CoreAI.notebookClient.window.list.items[1].text')
         self.assertTrue(label.startswith('IGUI_CA_Mission_Scout - '), label)
-        self.assertIn('IGUI_RS_ScoutClues', window.detail.text)
-        self.assertIn('- IGUI_RS_Clue_Kind|IGUI_RS_Place_house', window.detail.text)  # stub: first argument only
-        self.assertIn('IGUI_RS_Clue_FewHouses', window.detail.text)
+        self.assertIn('IGUI_CA_ScoutClues', window.detail.text)
+        self.assertIn('- IGUI_CA_Clue_Kind|IGUI_CA_Place_house', window.detail.text)  # stub: first argument only
+        self.assertIn('IGUI_CA_Clue_FewHouses', window.detail.text)
         self.assertNotIn('ReputationUnavailable', window.detail.text)
         self.assertFalse(window.deliver.isVisible(window.deliver), 'delivery button on a scout mission')
         self.assertTrue(window.abandon.isVisible(window.abandon))
@@ -2712,17 +2715,17 @@ class ScoutMissionTests(unittest.TestCase):
             self.assertLessEqual(math.hypot(px - zone['x'], py - zone['y']), zone['r'])
         self.assertNotEqual((zone['x'], zone['y']), (105, 15))
         # An offer not accepted yet draws nothing; neither the bridge nor the offer carry the area.
-        sim.command('alice', 'snapshot', world=alice.g.RS_CarnetClient.world, run=alice.g.RS_CarnetClient.run)
+        sim.command('alice', 'snapshot', world=alice.g.CoreAI.notebookClient.world, run=alice.g.CoreAI.notebookClient.run)
         self.assertEqual(len(self.symbols(alice)), 1)
         self.assertNotIn('mapZone', convert(missions.context(m)))
         sim.request_mission('alice', 'accept')
         self.assertEqual(m.state, 'active')
-        row = convert(alice.g.RS_CarnetClient.snapshot.missions[1])
+        row = convert(alice.g.CoreAI.notebookClient.snapshot.missions[1])
         self.assertEqual(row['mapZone'], zone)
         for key in ('zone', 'siteKey'):
             self.assertNotIn(key, row)
         self.assertNotIn('mapZone', convert(missions.context(m)))
-        self.assertEqual(len(lua_list(bob.g.RS_CarnetClient.snapshot.missions)), 0)
+        self.assertEqual(len(lua_list(bob.g.CoreAI.notebookClient.snapshot.missions)), 0)
         drawn = self.symbols(alice)
         self.assertEqual(len(drawn), 3, drawn)
         ring = [s for s in drawn if s['kind'] == 'texture' and s['a'] < 1]
@@ -2734,15 +2737,15 @@ class ScoutMissionTests(unittest.TestCase):
                          (zone['x'], zone['y'] - zone['r'], 'IGUI_CA_MapZone|Real Bandit'))
         self.assertEqual(self.symbols(bob), [])
         # Later snapshots add nothing more.
-        sim.command('alice', 'snapshot', world=alice.g.RS_CarnetClient.world, run=alice.g.RS_CarnetClient.run)
+        sim.command('alice', 'snapshot', world=alice.g.CoreAI.notebookClient.world, run=alice.g.CoreAI.notebookClient.run)
         self.assertEqual(len(self.symbols(alice)), 3)
         # New session, symbols kept by map_symbols.bin: no duplicate. Symbols lost: drawn again once.
         alice.rt.eval("require('CoreAI/CA_MapZones')").resetZonesForTests()
-        sim.command('alice', 'snapshot', world=alice.g.RS_CarnetClient.world, run=alice.g.RS_CarnetClient.run)
+        sim.command('alice', 'snapshot', world=alice.g.CoreAI.notebookClient.world, run=alice.g.CoreAI.notebookClient.run)
         self.assertEqual(len(self.symbols(alice)), 3)
         alice.rt.execute("MAP_SYMBOLS = { MAP_SYMBOLS[1] }")
         alice.rt.eval("require('CoreAI/CA_MapZones')").resetZonesForTests()
-        sim.command('alice', 'snapshot', world=alice.g.RS_CarnetClient.world, run=alice.g.RS_CarnetClient.run)
+        sim.command('alice', 'snapshot', world=alice.g.CoreAI.notebookClient.world, run=alice.g.CoreAI.notebookClient.run)
         self.assertEqual(len(self.symbols(alice)), 3)
         # End of the mission (abandon): the area is removed, the player's own circle stays.
         sim.request_mission('alice', 'abandon')
@@ -2767,7 +2770,7 @@ class ScoutMissionTests(unittest.TestCase):
         # The bound method itself, not the value read back from Lua: lupa may hand back a stale wrapper.
         sim.server.g.sendServerCommand = sim.deliver_to_client
         # Reconnection: the hello sent at game start brings the snapshot that removes the area.
-        alice.g.RS_CarnetClient.hello()
+        alice.g.CoreAI.notebookClient.hello()
         self.assertEqual(self.symbols(alice), [])
 
     def npc_offer(self, sim, user, offer='scout_v1'):
@@ -2796,13 +2799,13 @@ class ScoutMissionTests(unittest.TestCase):
         m = self.npc_offer(sim, 'alice')
         self.assertEqual((m.template, m.state, count(m.participants)), ('scout', 'offer', 0))
         zone = convert(m.mapZone)
-        row = convert(alice.g.RS_CarnetClient.snapshot.missions[1])
+        row = convert(alice.g.CoreAI.notebookClient.snapshot.missions[1])
         self.assertEqual((row['state'], row['invited'], row['engaged']), ('offer', True, False))
         self.assertNotIn('mapZone', row)
         self.assertEqual(self.symbols(alice), [], 'an offer drew the area')
         sim.request_mission('alice', 'accept')
         self.assertEqual(m.state, 'active')
-        row = convert(alice.g.RS_CarnetClient.snapshot.missions[1])
+        row = convert(alice.g.CoreAI.notebookClient.snapshot.missions[1])
         self.assertEqual((row['requester'], row['mapZone']), ('Real Bandit', zone))
         drawn = self.symbols(alice)
         self.assertEqual(sorted((s['kind'], s['x'], s['y']) for s in drawn),
@@ -2837,7 +2840,7 @@ class ScoutMissionTests(unittest.TestCase):
         alice = sim.clients['alice']
         self.install_map(alice)
         m = self.npc_offer(sim, 'alice')
-        self.assertEqual(lua_list(alice.g.getPlayer().halos).count('IGUI_RS_NewOffer'), 1)
+        self.assertEqual(lua_list(alice.g.getPlayer().halos).count('IGUI_CA_NewOffer'), 1)
         self.assertEqual(self.symbols(alice), [])
         revision = m.revision
         # The model's intent decides (E17-T10), the server checks it.
@@ -2845,12 +2848,12 @@ class ScoutMissionTests(unittest.TestCase):
         req = self.respond(sim, 'Bien, reviens me raconter.', 'accept')
         self.assertEqual(convert(req.context.acceptable), {'mission': m.id, 'revision': revision})
         self.assertEqual((m.state, list(convert(m.participants))), ('active', [sim.character('alice')]))
-        self.assertTrue(alice.g.RS_CarnetClient.seen[req.id])
+        self.assertTrue(alice.g.CoreAI.notebookClient.seen[req.id])
         self.assertEqual(sim.talk().data.acks[len(sim.talk().data.acks)].applied.accept, m.id)
-        row = convert(alice.g.RS_CarnetClient.snapshot.missions[1])
+        row = convert(alice.g.CoreAI.notebookClient.snapshot.missions[1])
         self.assertEqual((row['engaged'], row['mapZone']), (True, convert(m.mapZone)))
         self.assertEqual(sorted(s['kind'] for s in self.symbols(alice)), ['text', 'texture'])
-        self.assertEqual(lua_list(alice.g.getPlayer().halos).count('IGUI_RS_NewOffer'), 1)
+        self.assertEqual(lua_list(alice.g.getPlayer().halos).count('IGUI_CA_NewOffer'), 1)
 
     def test_spoken_yes_needs_the_same_open_offer(self):
         """E17-T09, E17-T10: the model's intent accept is checked by the server: another character, an offer changed or
@@ -2863,14 +2866,14 @@ class ScoutMissionTests(unittest.TestCase):
         req = self.respond(sim, 'Pas toi.', 'accept')
         self.assertIsNone(req.context.acceptable)
         self.assertEqual((m.state, count(m.participants)), ('offer', 0))
-        self.assertTrue(bob.g.RS_CarnetClient.seen[req.id])
+        self.assertTrue(bob.g.CoreAI.notebookClient.seen[req.id])
         # Alice's sentence, model intent accept, but the offer changed (new revision) before the reply: not applied.
         self.talk(sim, 'alice', "D'accord, je m'en occupe.")
         m.revision = m.revision + 1
         req = self.respond(sim, 'Merci.', 'accept')
         self.assertEqual(convert(req.context.acceptable)['revision'], m.revision - 1)
         self.assertEqual((m.state, count(m.participants)), ('offer', 0))
-        self.assertTrue(alice.g.RS_CarnetClient.seen[req.id])
+        self.assertTrue(alice.g.CoreAI.notebookClient.seen[req.id])
         # Same sentence again, model intent accept on the current revision: accepted, once.
         self.talk(sim, 'alice', "D'accord, je m'en occupe.")
         current = m.revision
@@ -2882,19 +2885,19 @@ class ScoutMissionTests(unittest.TestCase):
         req = self.respond(sim, 'Oui, je sais.', 'accept')
         self.assertIsNone(req.context.acceptable)
         self.assertEqual((m.revision, count(m.participants)), (revision, 1))
-        self.assertTrue(alice.g.RS_CarnetClient.seen[req.id])
+        self.assertTrue(alice.g.CoreAI.notebookClient.seen[req.id])
         # A new offer that expires between the sentence and the reply: refused without effect.
         sim.request_mission('alice', 'abandon')
         npc.nextOfferAt = npc.nextOfferHour = None
         m2 = self.npc_offer(sim, 'alice')
         self.assertNotEqual(m2.id, m.id)
-        self.assertEqual(lua_list(alice.g.getPlayer().halos).count('IGUI_RS_NewOffer'), 2)
+        self.assertEqual(lua_list(alice.g.getPlayer().halos).count('IGUI_CA_NewOffer'), 2)
         self.talk(sim, 'alice', 'Oui.')
         m2.offerRemainingMs = 1
         req = self.respond(sim, 'Trop tard.', 'accept')
         self.assertEqual(convert(req.context.acceptable)['mission'], m2.id)
         self.assertEqual((m2.state, count(m2.participants)), ('expired', 0))
-        self.assertTrue(alice.g.RS_CarnetClient.seen[req.id])
+        self.assertTrue(alice.g.CoreAI.notebookClient.seen[req.id])
 
     def test_map_area_removed_after_the_report(self):
         sim, npc, record, missions = self.scout_sim('area-success')
@@ -2922,8 +2925,11 @@ class ScoutMissionTests(unittest.TestCase):
         c = sim.clients['alice']
         c.rt.execute(NOTEBOOK_UI)
         c.rt.execute("getScriptManager = function() return {FindItem = function() return nil end} end")
-        en = ROOT / 'Contents/mods/batman_RadioSurvivor/42.21/media/lua/shared/Translate/EN/IG_UI.json'
-        c.g.EN_TEXTS = c.rt.table_from(json.loads(en.read_text(encoding='utf-8-sig')))
+        texts = {}
+        for mod in ('batman_CoreAI', 'batman_RadioSurvivor'):   # E21-T03: the clues are words of the core notebook
+            en = ROOT / f'Contents/mods/{mod}/42.21/media/lua/shared/Translate/EN/IG_UI.json'
+            texts.update(json.loads(en.read_text(encoding='utf-8-sig')))
+        c.g.EN_TEXTS = c.rt.table_from(texts)
         c.rt.execute(r"""
             MISSING_ARGS = {}
             local function format(key, text, n, ...)
@@ -2940,9 +2946,9 @@ class ScoutMissionTests(unittest.TestCase):
             end
             getText = function(key, ...) return format(key, EN_TEXTS[key] or key, select('#', ...), ...) end
         """)
-        c.load('client/RS_Carnet_Client.lua')
-        c.g.RS_Notebook.toggle()
-        window = c.g.RS_CarnetClient.window
+        c.load_notebook()
+        c.g.CoreAI.notebook.toggle()
+        window = c.g.CoreAI.notebookClient.window
         window.changeTab(window, 'Missions')
         text = window.detail.text
         self.assertIn('- Building: house (', text)
@@ -3196,7 +3202,7 @@ class VoiceMissionTests(unittest.TestCase):
         parsed = bridge_module.parse_requests((sim.path / 'requests.txt').read_text(encoding='utf-8'))
         self.assertFalse([r for r in parsed[1] if r['id'].endswith('-brief')], 'briefing still pending')
         # Notebook row: clues as translatable data, title of the template.
-        row = sim.clients['alice'].g.RS_CarnetClient.snapshot.missions[1]
+        row = sim.clients['alice'].g.CoreAI.notebookClient.snapshot.missions[1]
         self.assertEqual(row.titleKey, 'IGUI_CA_Mission_Scout')
         self.assertEqual(row.clues[1].key, 'Kind')
         # History line "Mission received" (kind of place only) on the voice's frequency, for alice only.
@@ -3204,7 +3210,7 @@ class VoiceMissionTests(unittest.TestCase):
         self.assertIn('mission:house', texts)
         self.assertNotIn('mission:house', lua_list(sim.clients['bob'].rt.eval('texts(160000)')))
         # Notebook projection: requester = the voice's name, no body.
-        snapshot = sim.clients['alice'].g.RS_CarnetClient.snapshot
+        snapshot = sim.clients['alice'].g.CoreAI.notebookClient.snapshot
         row = snapshot.missions[1]
         self.assertEqual((row.requester, row.donor, row.template, row.near, row.zoneReached, row.report),
                          ('Scout Voice', 'voice', 'scout', False, False, 'radio'))
@@ -3275,7 +3281,7 @@ class VoiceMissionTests(unittest.TestCase):
         self.assertNotIn('has NOT completed the objective', prompt)
         self.respond(sim, req)
         self.assertEqual(m.state, 'active')
-        row = sim.clients['alice'].g.RS_CarnetClient.snapshot.missions[1]
+        row = sim.clients['alice'].g.CoreAI.notebookClient.snapshot.missions[1]
         self.assertEqual((row.state, row.toReport), ('active', True))
         # Report on the radio (action report_mission of the voice, checked again): success, reputation (scale of M01),
         # map mark of a sheet place.
@@ -3354,23 +3360,23 @@ class VoiceMissionTests(unittest.TestCase):
         c = sim.clients['alice']
         c.rt.execute(NOTEBOOK_UI)
         c.rt.execute("getScriptManager = function() return {FindItem = function() return nil end} end")
-        c.load('client/RS_Carnet_Client.lua')
-        c.g.RS_Notebook.toggle()
-        window = c.g.RS_CarnetClient.window
+        c.load_notebook()
+        c.g.CoreAI.notebook.toggle()
+        window = c.g.CoreAI.notebookClient.window
         window.changeTab(window, 'Missions')
         text = window.detail.text
-        for key in ('IGUI_RS_Requester|Scout Voice', 'IGUI_RS_ScoutPlace|IGUI_RS_Place_house', 'IGUI_CA_ScoutNotReached',
-                    'IGUI_RS_ScoutReportRadio', 'IGUI_RS_RewardInformation'):
+        for key in ('IGUI_CA_Requester|Scout Voice', 'IGUI_CA_ScoutPlace|IGUI_CA_Place_house', 'IGUI_CA_ScoutNotReached',
+                    'IGUI_RS_ScoutReportRadio', 'IGUI_CA_RewardInformation'):
             self.assertIn(key, text)
-        for key in ('IGUI_RS_JoinRequester', 'IGUI_RS_Reward|', 'IGUI_CA_ScoutReport ', 'IGUI_CA_Progress'):
+        for key in ('IGUI_CA_JoinRequester', 'IGUI_CA_RewardShared|', 'IGUI_CA_ScoutReport ', 'IGUI_CA_Progress'):
             self.assertNotIn(key, text)
         # E11-T09: clues translated by the client with every argument, title of the template, no technical line.
-        for key in ('IGUI_RS_ScoutClues',
-                    '- IGUI_RS_Clue_Kind|IGUI_RS_Place_house|IGUI_RS_ClueSize_large|IGUI_RS_ClueFloors_single',
-                    '- IGUI_RS_Clue_FewHouses'):
+        for key in ('IGUI_CA_ScoutClues',
+                    '- IGUI_CA_Clue_Kind|IGUI_CA_Place_house|IGUI_CA_ClueSize_large|IGUI_CA_ClueFloors_single',
+                    '- IGUI_CA_Clue_FewHouses'):
             self.assertIn(key, text)
         self.assertNotIn('ReputationUnavailable', text)
-        self.assertEqual(c.rt.eval('RS_CarnetClient.window.list.items[1].text'), 'IGUI_CA_Mission_Scout - Scout Voice')
+        self.assertEqual(c.rt.eval('CoreAI.notebookClient.window.list.items[1].text'), 'IGUI_CA_Mission_Scout - Scout Voice')
         self.assertTrue(window.abandon.isVisible(window.abandon))
         for button in (window.deliver, window.claim, window.invite, window.accept):
             self.assertFalse(button.isVisible(button))
@@ -3958,7 +3964,7 @@ class CollectiveLeaderTests(unittest.TestCase):
                 + reason)
         self.assertIn(line, [x.partition('[LK_Talk] ')[2] for x in self.logs()], self.logs())
         self.assertFalse(any(req['id'] + ' refused' in x for x in self.logs()), 'whole reply refused')
-        self.assertIsNone(self.sim.clients['alice'].g.RS_CarnetClient.lastError, 'the player sees NoAnswer')
+        self.assertIsNone(self.sim.clients['alice'].g.CoreAI.notebookClient.lastError, 'the player sees NoAnswer')
 
     def test_composition_fingerprint_follows_deaths_arrivals_and_successions(self):
         self.world('composition')
@@ -4022,7 +4028,7 @@ class CollectiveLeaderTests(unittest.TestCase):
     def test_reply_after_a_death_or_a_succession_is_rejected(self):
         sim = self.world('stale')
         gid, mate = self.g.LK_GROUP, self.member(self.g.LK_MATE)
-        client = sim.clients['alice'].g.RS_CarnetClient
+        client = sim.clients['alice'].g.CoreAI.notebookClient
         # Death of a member between the request and the reply: the group mission is refused, nothing logged.
         # E09-T09: the line of the leader is still said (kept in the history), only the offer is ignored.
         before = self.spoken(self.g.LK_LEADER)
@@ -4154,8 +4160,8 @@ class GameClockTests(unittest.TestCase):
         self.assertEqual(m.remainingMs, start - 3600000)
         # A player command advances the same meter (no double count with the next tick).
         sim.server.g.WORLD_AGE_HOURS = sim.server.g.WORLD_AGE_HOURS + 1
-        sim.command('alice', 'snapshot', world=sim.clients['alice'].g.RS_CarnetClient.world,
-                    run=sim.clients['alice'].g.RS_CarnetClient.run)
+        sim.command('alice', 'snapshot', world=sim.clients['alice'].g.CoreAI.notebookClient.world,
+                    run=sim.clients['alice'].g.CoreAI.notebookClient.run)
         self.assertEqual(m.remainingMs, start - 3600000 - 225000)
         sim.tick()
         self.assertEqual(m.remainingMs, start - 3600000 - 225000)

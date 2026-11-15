@@ -83,7 +83,7 @@ Const.CALL_MAX_LINES = 3
 -- Le client oublie son attente un peu après le serveur (pont vivant compris), si aucune nouvelle n'arrive.
 Const.CLIENT_TIMEOUT_MS = 160000
 Const.POLL_MS = 500
-Const.MAX_INPUT_CHARS = 200
+Const.MAX_INPUT_CHARS = require("CoreAI/CA_SpeechConfig").MAX_INPUT_CHARS -- E21-T03: commun au carnet
 -- Anti-spam (E05-T08) : écart minimal imposé par le client entre deux phrases (millisecondes réelles), et limite du
 -- serveur par joueur, toutes fréquences confondues : SPAM_MAX phrases par SPAM_WINDOW_MS. 5 s d'écart donnent au
 -- plus 12 phrases par minute, sous la limite du serveur : seul un client modifié l'atteint.

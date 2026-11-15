@@ -148,7 +148,7 @@ class RelationTests(unittest.TestCase):
         self.assertIsNone(self.sim.state().relations)
         self.assertIsNotNone(self.rt.eval('LivingKnox.PersonalRelation.data').relations[leader][self.cid('alice')])
         self.sim.command('alice', 'snapshot')
-        [row] = [c for c in self.sim.clients['alice'].g.RS_CarnetClient.snapshot.contacts.values()
+        [row] = [c for c in self.sim.clients['alice'].g.CoreAI.notebookClient.snapshot.contacts.values()
                  if c.id == self.fiche(leader).id]
         # E09-T07: relation panel (identifiers and game days only, tests/test_relation_panel.py).
         self.assertEqual(sorted(convert(row.relation)), ['agreements', 'facts', 'group', 'level', 'today', 'trend'])
@@ -204,7 +204,7 @@ class RelationTests(unittest.TestCase):
         # E09-T08: only the change is ignored; the line of the NPC is still said.
         self.assertTrue(any('ignored, reply kept: relation revision changed' in line for line in self.logs()),
                         self.logs())
-        self.assertIsNone(self.sim.clients['alice'].g.RS_CarnetClient.lastError)
+        self.assertIsNone(self.sim.clients['alice'].g.CoreAI.notebookClient.lastError)
         self.assertEqual(self.spoken('alice', leader), [self.SAID])
         p = self.pair('alice', leader)
         self.assertEqual((p['gap'], p['revision']), (1, 1), 'only the change made meanwhile')
@@ -214,7 +214,7 @@ class RelationTests(unittest.TestCase):
         fiche = self.fiche(leader)
         self.say('alice', leader, 'Pardon.', lambda: setattr(fiche, 'revision', fiche.revision + 1))
         self.assertTrue(any('refused: NPC revision changed' in line for line in self.logs()), self.logs())
-        self.assertEqual(self.sim.clients['alice'].g.RS_CarnetClient.lastError, 'NoAnswer')
+        self.assertEqual(self.sim.clients['alice'].g.CoreAI.notebookClient.lastError, 'NoAnswer')
         self.assertEqual(self.spoken('alice', leader), [self.SAID])
         self.assertEqual(self.pair('alice', leader)['revision'], 1)
 
@@ -240,7 +240,7 @@ class RelationTests(unittest.TestCase):
                 + reason)
         self.assertIn(line, [x.partition('[LK_Talk] ')[2] for x in self.logs()], self.logs())
         self.assertFalse(any(req['id'] + ' refused' in x for x in self.logs()), 'whole reply refused')
-        self.assertIsNone(self.sim.clients[name].g.RS_CarnetClient.lastError, 'the player sees NoAnswer')
+        self.assertIsNone(self.sim.clients[name].g.CoreAI.notebookClient.lastError, 'the player sees NoAnswer')
         self.assertEqual(self.spoken(name, npc), before + [self.SAID], 'reply of the NPC not said')
         self.assertEqual(self.pair(name, npc), state['pair'], 'relation changed by a refused change')
 
@@ -309,7 +309,7 @@ class RelationTests(unittest.TestCase):
         self.fact('alice', 'gift')
         req = self.say('alice', leader, 'Le riz vous a servi ?')
         self.assertEqual(self.spoken('alice', leader), [self.SAID])
-        self.assertIsNone(self.sim.clients['alice'].g.RS_CarnetClient.lastError)
+        self.assertIsNone(self.sim.clients['alice'].g.CoreAI.notebookClient.lastError)
         self.assertEqual((self.pair('alice', leader)['gap'], self.view('alice', leader)[0]), (1, 'trusting'))
         self.assertFalse(any('ignored' in x for x in self.logs()), self.logs())
         self.assertTrue(any(f'relation of {self.fiche(leader).id} toward {self.cid("alice")} up' in x

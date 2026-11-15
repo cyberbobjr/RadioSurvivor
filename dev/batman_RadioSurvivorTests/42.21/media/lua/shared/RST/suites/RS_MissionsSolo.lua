@@ -40,7 +40,7 @@ end
 
 -- Projection of mission id in the client snapshot, or nil.
 local function shown(id)
-    for _, row in ipairs(RS_CarnetClient and RS_CarnetClient.snapshot.missions or {}) do
+    for _, row in ipairs(CoreAI.notebookClient and CoreAI.notebookClient.snapshot.missions or {}) do
         if row.id == id then return row end
     end
     return nil
@@ -151,8 +151,8 @@ RST.suite("rs.missions.solo", { tags = { "server", "world" }, testTimeoutMs = 90
             c.Server.publish()
             local row = shown(m.id)
             t2:ok(row ~= nil and row.state == "expired", "expired mission not in the notebook snapshot")
-            local Notebook = require "RadioSurvivor/RS_Notebook"
-            local Client = RS_CarnetClient
+            local Notebook = require "CoreAI/CA_Notebook"
+            local Client = CoreAI.notebookClient
             local wasOpen = Client.window ~= nil and Client.window:isVisible()
             if not wasOpen then Notebook.toggle() end
             t2:defer(function()
@@ -162,8 +162,8 @@ RST.suite("rs.missions.solo", { tags = { "server", "world" }, testTimeoutMs = 90
             w:changeTab("Missions")
             w.selectedId = m.id
             w:refresh()
-            local expected = getText("IGUI_RS_State_expired")
-            t2:ne("IGUI_RS_State_expired", expected, "state not translated")
+            local expected = getText("IGUI_CA_MissionState_expired")
+            t2:ne("IGUI_CA_MissionState_expired", expected, "state not translated")
             t2:ok(string.find(w.detail.text or "", expected, 1, true) ~= nil,
                 "Missions page without the expired state '" .. expected .. "'")
             t2:note("Missions page shows: " .. expected)
@@ -174,7 +174,7 @@ RST.suite("rs.missions.solo", { tags = { "server", "world" }, testTimeoutMs = 90
 
     s.test("npc scout mission: zone only after Accept, removed after Abandon (E11-T11)", function(t)
         scoutOffer(t, function(t2, c)
-            local m, Client = c.m, RS_CarnetClient
+            local m, Client = c.m, CoreAI.notebookClient
             local z = m.mapZone
             t2:ok(type(z) == "table", "no mapZone on the scout mission")
             local row = shown(m.id)

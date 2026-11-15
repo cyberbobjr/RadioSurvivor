@@ -109,7 +109,7 @@ class AgreementCarnetTests(unittest.TestCase):
         prefix = f'agreement of {fiche.id} toward {self.cid(name)} in '
         self.assertTrue(any(prefix in x and x.endswith('ignored, reply kept: ' + reason) for x in self.logs()),
                         self.logs())
-        self.assertIsNone(self.sim.clients[name].g.RS_CarnetClient.lastError, 'the player sees NoAnswer')
+        self.assertIsNone(self.sim.clients[name].g.CoreAI.notebookClient.lastError, 'the player sees NoAnswer')
         self.assertEqual(len(self.spoken(name)), before + 1, 'reply of the leader not said')
 
     def fighting(self, npc, account):

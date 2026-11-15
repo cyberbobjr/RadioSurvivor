@@ -2,7 +2,7 @@
 
     python RadioSurvivor/tests/test_lk_removed.py
 
-Real notebook server and client (RS_Carnet_Server, RS_Client), real Living Knox engine in the first session (registries,
+Real notebook server and client (RS_Carnet_Server, CA_NotebookClient), real Living Knox engine in the first session (registries,
 API, LK_PersonalRelation, provider RS_LivingKnox.lua), same save folder for every session. Second session: Living Knox
 is not on the module path (as when the player unticks it): the notebook must start, keep its character, show its
 contacts (the fiche of a Living Knox NPC stays, without relation level), refuse to talk to an NPC that no longer
@@ -97,7 +97,7 @@ class LivingKnoxRemovedTests(unittest.TestCase):
         self.assertEqual(alone.character('alice'), cid, 'same character after Living Knox was removed')
         # E18-T26: the contact of the Living Knox NPC is hidden (snapshot and contacts of the core mod), its fiche kept.
         alone.command('alice', 'snapshot')
-        contacts = alone.clients['alice'].g.RS_CarnetClient.snapshot.contacts
+        contacts = alone.clients['alice'].g.CoreAI.notebookClient.snapshot.contacts
         self.assertEqual([c for c in contacts.values() if c.id == fiche_id], [])
         core_rows = srv.rt.eval("require('CoreAI/CA_Contacts')").rows(cid, None)
         self.assertEqual([r for r in core_rows.values() if r.id == fiche_id], [])
@@ -119,14 +119,14 @@ class LivingKnoxRemovedTests(unittest.TestCase):
         remaining, revision = m.remainingMs, m.revision
         alone.command('alice', 'snapshot')
         self.assertFalse(any(v.id == self.mission_id for v in
-                             alone.clients['alice'].g.RS_CarnetClient.snapshot.missions.values()))
+                             alone.clients['alice'].g.CoreAI.notebookClient.snapshot.missions.values()))
         journal = srv.rt.eval("require('CoreAI/CA_MissionJournal')")
         self.assertEqual(len(list(journal.rows(cid).values())), 0)
         quote = alone.quote('alice', alone.items('alice', *(['Base.TinnedBeans'] * 5)))
         if quote:
             alone.confirm('alice', quote)
         self.assertEqual(m.delivered, 10, 'delivery to a group that no longer exists')
-        self.refused = alone.clients['alice'].g.RS_CarnetClient.lastError
+        self.refused = alone.clients['alice'].g.CoreAI.notebookClient.lastError
         alone.request_mission('alice', 'abandon')
         for _ in range(30):
             alone.tick()
@@ -146,9 +146,9 @@ class LivingKnoxRemovedTests(unittest.TestCase):
         self.assertEqual(view.level, level, 'relation kept by Living Knox while it was removed')
         # E18-T26: the contact is listed again with its relation; E18-T25: the mission is listed again as it was.
         back.command('alice', 'snapshot')
-        [row] = [c for c in back.clients['alice'].g.RS_CarnetClient.snapshot.contacts.values() if c.id == fiche_id]
+        [row] = [c for c in back.clients['alice'].g.CoreAI.notebookClient.snapshot.contacts.values() if c.id == fiche_id]
         self.assertEqual(convert(row.relation).get('level'), level)
-        rows = [v for v in back.clients['alice'].g.RS_CarnetClient.snapshot.missions.values() if v.id == self.mission_id]
+        rows = [v for v in back.clients['alice'].g.CoreAI.notebookClient.snapshot.missions.values() if v.id == self.mission_id]
         self.assertEqual(len(rows), 1, 'mission of the Living Knox NPC found again')
         self.assertEqual((rows[0].state, rows[0].delivered), ('active', 10))
         self.assertEqual(self.errors(back), [])

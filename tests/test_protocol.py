@@ -32,7 +32,7 @@ import unittest
 import lupa.lua51 as lupa
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from harness import lua_src, mission_view_files  # noqa: E402  (E18-T07, E20-T01)
+from harness import lua_src, core_notebook_files, rs_notebook_files  # noqa: E402  (E18-T07, E20-T01, E21-T03)
 import beltradio_lib  # noqa: E402
 from signalsmoke_double import SIGNAL_SMOKE  # noqa: E402
 
@@ -276,14 +276,15 @@ class Game:
     def load(self, *files: str) -> None:
         for rel in files:
             self.rt.execute(lua_src(rel).read_text(encoding="utf-8"))
-            # E18-T26 : le jeu charge aussi les fichiers client de Living Knox actif, dont sa page du carnet commun
-            # (panneau de relation, textes de ses actes) : chargée avec le carnet de RadioSurvivor.
-            if rel == 'client/RS_Carnet_Client.lua' and self.WITH_LK:
-                self.rt.execute('require "LivingKnox/LK_NotebookPages"')
-            # E20-T01 : le jeu charge aussi chaque vue de gabarit du carnet (client/CoreAI/MissionViews/).
-            if rel == 'client/RS_Carnet_Client.lua':
-                for view in mission_view_files():
-                    self.rt.execute(lua_src(view).read_text(encoding="utf-8"))
+
+    def load_notebook(self) -> None:
+        """Fichiers client du carnet comme le jeu les charge (E21-T03) : carnet du mod commun (transport, cadre, un
+        fichier par onglet commun, vues de gabarit), page de Living Knox actif (E18-T26 : panneau de relation, textes
+        de ses actes), puis la part de RadioSurvivor (onglet Radio, actes, avis hébergés)."""
+        self.load(*core_notebook_files())
+        if self.WITH_LK:
+            self.rt.execute('require "LivingKnox/LK_NotebookPages"')
+        self.load(*rs_notebook_files())
 
     def table(self, value):
         """Copie (récursive) d'une table d'une autre machine Lua, comme le réseau."""
@@ -3847,7 +3848,7 @@ def scenario_npc_reply_cleaning(tmp: Path) -> None:
     game.rt.execute("Translator = {getLanguage = function() return {name = function() return 'EN' end} end}")
     logs = []
     game.g.print = lambda *args: logs.append(" ".join(str(a) for a in args))
-    client, server = game.g.RS_CarnetClient, game.g.RS_CarnetServer
+    client, server = game.g.CoreAI.notebookClient, game.g.RS_CarnetServer
     client.selectNearest()
     sent = []
 
@@ -4168,6 +4169,27 @@ def scenario_unreadable_requests_wait(tmp: Path) -> None:
     assert calls["read"] <= calls["sleep"] + 1, calls
 
 
+def scenario_notebook_module(tmp: Path) -> None:
+    """E21-T03 : le carnet passe par le module réseau du commun 'CoreAI'. Un hello sur ce module est servi une seule
+    fois (identité de la session puis instantané, le hello de CA_Identity cède la place au carnet) ; une commande
+    inconnue est ignorée, sans réponse d'erreur."""
+    from test_carnet import solo_game
+    game, player, _zombie = solo_game(tmp / "notebook-module", Clock())
+    g = game.g
+    client = g.CoreAI.notebookClient
+    received = []
+    base = client.receive
+    client.receive = lambda command, args: (received.append(command), base(command, args))[1]
+    g.fire("OnClientCommand", "CoreAI", "hello", player,
+           game.rt.table_from({"character": client.character, "v": 2}))
+    assert received == ["identity", "snapshot"], received
+    received.clear()
+    client.lastError = None
+    g.fire("OnClientCommand", "CoreAI", "no_such_command", player,
+           game.rt.table_from({"world": client.world, "run": client.run}))
+    assert received == [] and client.lastError is None, (received, client.lastError)
+
+
 def main() -> int:
     tmp = Path(tempfile.mkdtemp(prefix="radiosurvivor-"))
     failures = 0
@@ -4188,7 +4210,7 @@ def main() -> int:
                          scenario_reveal_mp, scenario_voice_mission_bridge, scenario_report_done_bridge,
                          scenario_structured_robust, scenario_npc_reply_cleaning, scenario_provider_errors,
                          scenario_debug_journal,
-                         scenario_unreadable_requests_wait):
+                         scenario_unreadable_requests_wait, scenario_notebook_module):
             try:
                 scenario(tmp)
                 print(f"OK    {scenario.__name__}")

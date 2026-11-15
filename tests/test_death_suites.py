@@ -203,7 +203,7 @@ function SERVER_PACKET(kind, sender, args)
 end
 
 -- Notebook server double: identity(), hello and characterDeath with the rules of RS_Carnet_Server.lua.
-package.loaded["RadioSurvivor/RS_Config"] = { VERSION = 2, MODULE = "RS_Carnet", OFFER_TTL_MS = 3600000,
+package.loaded["RadioSurvivor/RS_Config"] = { VERSION = 2, MODULE = "CoreAI", OFFER_TTL_MS = 3600000,
     Missions = { deliver = { id = "first_aid_v1", titleKey = "IGUI_CA_Mission_FirstAid", quantity = 6, durationMs = 7200000,
         accepted = { ["Base.Bandage"] = true }, rewardType = "Base.Bullets9mm", rewardCount = 20 } } }
 KEY = "CA_Character"
@@ -241,7 +241,7 @@ local function usable(id, owner)
     local r = type(id) == "string" and DATA.characters[id] or nil
     return r and r.owner == owner and (DEFECT.reclaim or not r.retired)
 end
-local function send(p, command, args) args.world, args.run = DATA.world, "r1"; sendServerCommand(p, "RS_Carnet", command, args) end
+local function send(p, command, args) args.world, args.run = DATA.world, "r1"; sendServerCommand(p, "CoreAI", command, args) end
 local function identity(player, claimed)
     if Server.bound[player] then send(player, "identity", { character = Server.bound[player] }) return end
     local owner = ownerOf(player)
@@ -263,7 +263,7 @@ local function identity(player, claimed)
     send(player, "identity", { character = claimed })
 end
 function Server.command(module, command, player, args)
-    if module ~= "RS_Carnet" or not player then return end
+    if module ~= "CoreAI" or not player then return end
     if type(args) ~= "table" then args = {} end
     if player:isDead() then return end
     if command == "hello" then identity(player, args.character) end
@@ -286,21 +286,22 @@ Events.OnCharacterDeath.Add(Server.characterDeath)
 '''
 
 CLIENT = r'''
-package.loaded["RadioSurvivor/RS_Config"] = { VERSION = 2, MODULE = "RS_Carnet" }
+package.loaded["RadioSurvivor/RS_Config"] = { VERSION = 2, MODULE = "CoreAI" }
 LOCAL_PLAYER = makePlayer(USER, 1000.5, 1000.5, 0)
 getPlayer = function() return LOCAL_PLAYER end
 getSpecificPlayer = function() return LOCAL_PLAYER end
 sendClientCommand = function(player, module, command, args) PY_SEND("c2s", module, command, args) end
 sendPlayerExtraInfo = function(p) PY_SEND("pkt", "extra", { god = p.god }) end
 sendServerCommand = function() error("sendServerCommand on a client") end
--- Notebook client double (RS_Client): hello at game start and at OnCreatePlayer(0); identity kept.
-RS_CarnetClient = { character = nil }
-local CC = RS_CarnetClient
-function CC.send(command, args) sendClientCommand(getPlayer(), "RS_Carnet", command, args or {}) end
+-- Notebook client double (CA_NotebookClient): hello at game start and at OnCreatePlayer(0); identity kept.
+CoreAI = CoreAI or {}
+CoreAI.notebookClient = { character = nil }
+local CC = CoreAI.notebookClient
+function CC.send(command, args) sendClientCommand(getPlayer(), "CoreAI", command, args or {}) end
 function CC.receive(command, args) if command == "identity" then CC.character = args.character end end
 function CC.hello() CC.send("hello", { v = 2, character = getPlayer():getModData()[KEY] }) end
 KEY = "CA_Character"
-Events.OnServerCommand.Add(function(m, c, a) if m == "RS_Carnet" then CC.receive(c, a or {}) end end)
+Events.OnServerCommand.Add(function(m, c, a) if m == "CoreAI" then CC.receive(c, a or {}) end end)
 Events.OnCreatePlayer.Add(function(num) if num == 0 then CC.hello() end end)
 -- Death packet (PlayerDeath): the client copy dies, its corpse holds the inventory of the server corpse.
 function onDeathPacket(a)
@@ -419,7 +420,7 @@ class Net:
             c.lua(f'dofile([[{DRIVER.as_posix()}]])')
             c.lua('RST.AutoClient._cmdRead = true; RST.AutoClient._cmd = { mp = true, peer = true, token = "tok" }; '
                   'RST.AutoClient.status("idle", "connected, nothing to run")')
-            c.lua('RS_CarnetClient.hello()')
+            c.lua('CoreAI.notebookClient.hello()')
         for _ in range(3):
             self.tick()
 

@@ -231,7 +231,7 @@ class RecoverMissionTests(unittest.TestCase):
         self.assertEqual(context['cache'], cache['table'])
         for key in ('spot', 'bounds', 'mapZone', 'depot', 'depotZone', 'itemId', 'at', 'x', 'y'):
             self.assertNotIn(key, context)
-        row = convert(sim.clients['alice'].g.RS_CarnetClient.snapshot.missions[1])
+        row = convert(sim.clients['alice'].g.CoreAI.notebookClient.snapshot.missions[1])
         self.assertEqual((row['template'], row['cache'], row['placed'], row['found']), ('recover', cache['table'],
                                                                                       False, False))
         self.assertEqual(row['mapZone'], convert(m.mapZone))
@@ -242,9 +242,9 @@ class RecoverMissionTests(unittest.TestCase):
         for px, py in ((100, 10), (110, 10), (100, 20), (110, 20)):
             self.assertLessEqual(((px - zone['x']) ** 2 + (py - zone['y']) ** 2) ** 0.5, zone['r'])
         # Bob is no participant: neither area in his notebook.
-        sim.command('bob', 'snapshot', world=sim.clients['bob'].g.RS_CarnetClient.world,
-                    run=sim.clients['bob'].g.RS_CarnetClient.run)
-        for p in lua_list(sim.clients['bob'].g.RS_CarnetClient.snapshot.missions or {}):
+        sim.command('bob', 'snapshot', world=sim.clients['bob'].g.CoreAI.notebookClient.world,
+                    run=sim.clients['bob'].g.CoreAI.notebookClient.run)
+        for p in lua_list(sim.clients['bob'].g.CoreAI.notebookClient.snapshot.missions or {}):
             self.assertNotIn('depotZone', convert(p))
 
     def test_cache_placed_once_when_its_building_is_loaded_even_after_a_restart(self):
@@ -358,7 +358,7 @@ class RecoverMissionTests(unittest.TestCase):
         outcome = sim.reputation().outcomes[m.id + '-' + char + '-result']
         self.assertEqual((outcome.action, outcome.proposedDelta), ('mission.success', 5))
         self.assertIsNone(npc.mission)
-        row = convert(sim.clients['alice'].g.RS_CarnetClient.snapshot.missions[1])
+        row = convert(sim.clients['alice'].g.CoreAI.notebookClient.snapshot.missions[1])
         self.assertNotIn('mapZone', row); self.assertNotIn('depotZone', row)
         sim.request_mission('alice', 'claim')
         self.assertEqual(m.claimedBy, char)
@@ -396,7 +396,7 @@ class RecoverMissionTests(unittest.TestCase):
         for _ in range(3):
             self.poll(sim, 6000)
         self.assertEqual((m.cache.placed, len(lua_list(sim.server.g.RECOVER.placed))), (False, 0))
-        row = convert(sim.clients['alice'].g.RS_CarnetClient.snapshot.missions[1])
+        row = convert(sim.clients['alice'].g.CoreAI.notebookClient.snapshot.missions[1])
         self.assertNotIn('mapZone', row); self.assertNotIn('depotZone', row)
 
     def test_offer_cap_shared_by_the_server_and_the_bridge(self):
@@ -474,25 +474,25 @@ class RecoverMissionTests(unittest.TestCase):
         c.rt.execute(MAP_DOUBLE)
         c.rt.execute(NOTEBOOK_UI)
         c.rt.execute("getScriptManager = function() return {FindItem = function() return nil end} end")
-        c.load('client/RS_Carnet_Client.lua')
+        c.load_notebook()
         maps = c.rt.eval("require('CoreAI/CA_MapZones')")
         maps.resetForTests(); maps.resetZonesForTests()
-        sim.command('alice', 'snapshot', world=c.g.RS_CarnetClient.world, run=c.g.RS_CarnetClient.run)
+        sim.command('alice', 'snapshot', world=c.g.CoreAI.notebookClient.world, run=c.g.CoreAI.notebookClient.run)
         drawn = [convert(s) for s in lua_list(c.rt.eval('mapSymbols()'))]
         texts = sorted(s['text'] for s in drawn if s['kind'] == 'text')
         self.assertEqual(texts, ['IGUI_CA_MapZoneCache|Real Bandit', 'IGUI_CA_MapZoneDepot|Real Bandit'])
         rings = sorted((s['x'], s['y']) for s in drawn if s['kind'] == 'texture')
         self.assertIn((14, 10), rings)
-        c.g.RS_Notebook.toggle()
-        window = c.g.RS_CarnetClient.window
+        c.g.CoreAI.notebook.toggle()
+        window = c.g.CoreAI.notebookClient.window
         window.changeTab(window, 'Missions')
-        label = c.rt.eval('RS_CarnetClient.window.list.items[1].text')
+        label = c.rt.eval('CoreAI.notebookClient.window.list.items[1].text')
         self.assertTrue(label.startswith('IGUI_CA_Mission_Recover - '), label)
-        for key in ('IGUI_RS_ScoutPlace', 'IGUI_RS_ScoutClues', 'IGUI_CA_RecoverMapZone', 'IGUI_CA_RecoverCache',
+        for key in ('IGUI_CA_ScoutPlace', 'IGUI_CA_ScoutClues', 'IGUI_CA_RecoverMapZone', 'IGUI_CA_RecoverCache',
                     'IGUI_CA_Cache_' + m.cache.table, 'IGUI_CA_RecoverNotFound', 'IGUI_CA_RecoverDepotZone',
                     'IGUI_CA_RecoverReport'):
             self.assertIn(key, window.detail.text)
-        self.assertNotIn('IGUI_RS_NoRefund', window.detail.text)
+        self.assertNotIn('IGUI_CA_NoRefund', window.detail.text)
         self.assertFalse(window.deliver.isVisible(window.deliver), 'delivery button for a recover mission')
         bag = self.place(sim, m)
         sim.server.g.recoverTake(bag, sim.server.g.PLAYERS.alice.inv)
@@ -505,10 +505,10 @@ class RecoverMissionTests(unittest.TestCase):
         self.poll(sim)
         self.assertEqual(m.state, 'active')
         window.changeTab(window, 'Missions')
-        self.assertIn('IGUI_RS_State_toReport', window.detail.text)
+        self.assertIn('IGUI_CA_MissionState_toReport', window.detail.text)
         report_turn(sim, 'alice', 'The bag is at your depot.', 'report_done')
         self.assertEqual(m.state, 'success')
-        sim.command('alice', 'snapshot', world=c.g.RS_CarnetClient.world, run=c.g.RS_CarnetClient.run)
+        sim.command('alice', 'snapshot', world=c.g.CoreAI.notebookClient.world, run=c.g.CoreAI.notebookClient.run)
         self.assertEqual([s for s in (convert(x) for x in lua_list(c.rt.eval('mapSymbols()')))
                           if s['kind'] == 'text'], [])
 

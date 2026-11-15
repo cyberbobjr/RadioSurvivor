@@ -26,16 +26,17 @@ PC2_FILE = LUA / 'shared' / 'RST' / 'RST_PeerChecks2.lua'
 LK2_FILE = LUA / 'shared' / 'RST' / 'RST_PeerChecksLK2.lua'
 
 RS_GAME = PEER_GAME + r"""
-package.loaded["RadioSurvivor/RS_Config"] = { VERSION = 2, MODULE = "RS_Carnet" }
+package.loaded["RadioSurvivor/RS_Config"] = { VERSION = 2, MODULE = "CoreAI" }
 getText = function(key, arg)
     if key == "IGUI_CA_RetrieveFound" then return "Card found (" .. tostring(arg) .. ")" end
     return key
 end
 -- Notebook client double: send records, receive keeps snapshot and character.
-RS_CarnetClient = { snapshot = { contacts = {}, missions = {} }, world = "w1", run = "r1", character = "c-own" }
-function RS_CarnetClient.send(command, args) SENT[#SENT + 1] = { module = "RS_Carnet", command = command, args = args } end
-function RS_CarnetClient.receive(command, args)
-    if command == "snapshot" then RS_CarnetClient.snapshot = args end
+CoreAI = CoreAI or {}
+CoreAI.notebookClient = { snapshot = { contacts = {}, missions = {} }, world = "w1", run = "r1", character = "c-own" }
+function CoreAI.notebookClient.send(command, args) SENT[#SENT + 1] = { module = "CoreAI", command = command, args = args } end
+function CoreAI.notebookClient.receive(command, args)
+    if command == "snapshot" then CoreAI.notebookClient.snapshot = args end
 end
 -- World map double (CA_MapZones): symbols with world position, colour, kind.
 SYMBOLS = {}
@@ -138,7 +139,7 @@ class RsStepTests(Base):
         self.assertIsNone(self.start('carnet.claim', '{ character = "c-other" }'))
         sent = self.m.lua('return SENT[#SENT]')
         self.assertEqual((sent.command, sent.args.character), ('hello', 'c-other'))
-        self.m.lua('Events.OnServerCommand.fire("RS_Carnet", "identity", { character = "c-own" })')
+        self.m.lua('Events.OnServerCommand.fire("CoreAI", "identity", { character = "c-own" })')
         a = self.tick()
         self.assertEqual(a.status, 'PASS', a.message)
         self.assertEqual(a.data.character, 'c-own')
@@ -148,9 +149,9 @@ class RsStepTests(Base):
     def test_contact_waits_for_the_group_name(self):
         self.assertIsNone(self.start('carnet.contact', '{ id = "npc-1", groupName = "Jane" }'))
         self.assertEqual(self.m.lua('return SENT[#SENT].command'), 'snapshot')
-        self.m.lua('RS_CarnetClient.snapshot = { contacts = { { id = "npc-1", name = "Jane Doe", groupName = "RST leave" } } }')
+        self.m.lua('CoreAI.notebookClient.snapshot = { contacts = { { id = "npc-1", name = "Jane Doe", groupName = "RST leave" } } }')
         self.assertIsNone(self.tick())
-        self.m.lua('RS_CarnetClient.snapshot.contacts[1].groupName = "Jane"')
+        self.m.lua('CoreAI.notebookClient.snapshot.contacts[1].groupName = "Jane"')
         a = self.tick()
         self.assertEqual(a.status, 'PASS', a.message)
         self.assertIsNone(self.start('carnet.contact', '{ id = "npc-1", groupName = "Other" }'))
@@ -162,7 +163,7 @@ class RsStepTests(Base):
         args = ('{ mission = "m1", rings = { { x = 100, y = 200, r = 30 } }, expect = "present", '
                 'line = { key = "IGUI_CA_RetrieveFound", arg = "Tester" } }')
         self.assertIsNone(self.start('map.zones', args))
-        self.m.lua('RS_CarnetClient.snapshot = { missions = { { id = "m1", state = "active" } } }')
+        self.m.lua('CoreAI.notebookClient.snapshot = { missions = { { id = "m1", state = "active" } } }')
         self.assertIsNone(self.tick())          # row received, no ring drawn yet
         self.m.lua('zone(100, 200, 30)')
         a = self.tick()
@@ -173,7 +174,7 @@ class RsStepTests(Base):
         self.assertIsNone(self.start('map.zones', '{ mission = "m1", rings = { { x = 100, y = 200, r = 30 } } }'))
         self.assertEqual(self.tick(2000).status, 'FAIL')
         # closed: still drawn -> FAIL, removed -> PASS
-        self.m.lua('RS_CarnetClient.snapshot = { missions = { { id = "m1", state = "success" } } }')
+        self.m.lua('CoreAI.notebookClient.snapshot = { missions = { { id = "m1", state = "success" } } }')
         self.assertIsNone(self.start('map.zones', '{ mission = "m1", rings = { { x = 100, y = 200, r = 30 } }, '
                                                   'expect = "absent" }'))
         self.m.lua('SYMBOLS = {}')

@@ -30,7 +30,7 @@ CORE_LUA = ROOT / 'Contents' / 'mods' / 'batman_CoreAI' / '42.21' / 'media' / 'l
 TALK = LUA / 'client' / 'RadioSurvivor' / 'RS_RadioTalk.lua'
 MODULE = LUA / 'client' / 'RadioSurvivor' / 'RS_RadioModule.lua'
 MENU = LUA / 'client' / 'RadioSurvivor_Client.lua'
-NOTEBOOK = LUA / 'client' / 'RadioSurvivor' / 'RS_Notebook.lua'
+NOTEBOOK = LUA / 'client' / 'RadioSurvivor' / 'RS_NotebookRadio.lua'
 HISTORY = LUA / 'client' / 'RadioSurvivor' / 'RS_RadioHistory.lua'
 
 STUBS = r"""
@@ -247,9 +247,9 @@ OnScreenKeyboard = {
     Show = function(num, entry, data) OSK_VISIBLE = true; OSK_ENTRY = entry; return { shown = true } end,
 }
 RS_CLIENT_STUB = { window = nil }
-package.preload["RadioSurvivor/RS_Client"] = function() return RS_CLIENT_STUB end
+package.preload["CoreAI/CA_NotebookClient"] = function() return RS_CLIENT_STUB end
 TOGGLES = 0
-package.preload["RadioSurvivor/RS_Notebook"] = function() return { toggle = function() TOGGLES = TOGGLES + 1 end } end
+package.preload["CoreAI/CA_Notebook"] = function() return { toggle = function() TOGGLES = TOGGLES + 1 end } end
 for _, name in ipairs({ "RadioCom/ISRadioWindow", "RadioCom/RadioWindowModules/RWMPanel", "ISUI/ISTextEntryBox",
     "ISUI/ISButton" }) do
     package.preload[name] = function() return true end

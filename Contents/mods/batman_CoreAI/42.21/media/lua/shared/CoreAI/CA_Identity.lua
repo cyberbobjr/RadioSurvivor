@@ -21,7 +21,8 @@ An unknown CLIENT claim is never accepted.
 
 Network (module MODULE): the client sends "hello" { character = its modData value } when the game starts and when
 its player is created; the authority binds and answers "identity" { character }, which the client stores in its
-modData. RadioSurvivor binds through Identity.bind from its own hello too: both give the same answer.
+modData. E21-T03: the notebook, on the same module, owns "hello" while it is loaded (Identity.yieldHello): it binds
+through Identity.bind and answers "identity" itself, with its session; one answer per hello.
 ]]
 local SlotFile = require "CoreAI/CA_SlotFile"
 local WorldStart = require "CoreAI/CA_WorldStart"
@@ -212,8 +213,12 @@ local function reply(player, id)
     end
 end
 
+-- The notebook server registers its own "hello" on the module: this handler then leaves the command to it.
+function Identity.yieldHello() Identity.helloYielded = true end
+
 function Identity.onClientCommand(module, command, player, args)
     if module ~= Identity.MODULE or command ~= "hello" or player == nil or not authority() then return end
+    if Identity.helloYielded then return end
     if not RateLimit.allow(player, "core.hello", Identity.HELLO_LIMIT[1], Identity.HELLO_LIMIT[2]) then return end
     local claimed = type(args) == "table" and args.character or nil
     local id = Identity.bind(player, claimed)

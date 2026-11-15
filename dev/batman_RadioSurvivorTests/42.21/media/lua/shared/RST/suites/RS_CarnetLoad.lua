@@ -5,7 +5,7 @@ prune, tick, clockRunning; RS_State.save):
                   seen by the notebook provider; after a few notebook passes (scan once a second) none of them has a
                   fiche, the number of fiches is unchanged and no enrichment request was queued (no LLM call).
     idle server   during IDLE_MS nobody does anything: the authority sends no notebook snapshot to a player who did not
-                  ask for one (sendServerCommand wrapped on a server, RS_CarnetClient.receive in solo; requests counted
+                  ask for one (sendServerCommand wrapped on a server, CoreAI.notebookClient.receive in solo; requests counted
                   by an OnClientCommand listener), and saves nothing when no mission clock runs and the state is
                   clean (RS_State.save wrapped). In MP the other clients count what they receive in the same window
                   (RST.Steps "carnet.count": snapshots received <= snapshot or hello requests they sent). Then the
@@ -157,16 +157,16 @@ RST.suite("rs.carnet.load", { mods = { "rs", "lk" },
                 return send(a, b, c2, d)
             end
             t:defer(function() sendServerCommand = send end, "sendServerCommand restored")
-        elseif RS_CarnetClient ~= nil then
-            local receive = RS_CarnetClient.receive
-            RS_CarnetClient.receive = function(command, args)
+        elseif CoreAI.notebookClient ~= nil then
+            local receive = CoreAI.notebookClient.receive
+            CoreAI.notebookClient.receive = function(command, args)
                 if command == "snapshot" then
                     local key = nameOf(c.p)
                     sent[key] = (sent[key] or 0) + 1
                 end
                 return receive(command, args)
             end
-            t:defer(function() RS_CarnetClient.receive = receive end, "RS_CarnetClient.receive restored")
+            t:defer(function() CoreAI.notebookClient.receive = receive end, "CoreAI.notebookClient.receive restored")
         end
         -- A save is "of an unchanged state" when the encoded state equals the one of the previous save (or of the start
         -- of the window): other modules save after a real change (fiche seen again: seenAt once a minute, npcs of

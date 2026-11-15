@@ -7,9 +7,9 @@ suites has the handlers; the authority helpers below run on the server or in sol
 What a client sees from the server is read on the client itself:
     MP client   one OnServerCommand listener (installed once when this file loads on a client) keeps the last commands
                 of the modules "RadioSurvivor" (radio: accepted, rejected, done, history, history_lines, history_add)
-                and "RS_Carnet" (notebook: snapshot, identity, error...) in RST.PeerRadio.inbox, numbered.
+                and "CoreAI" (notebook: snapshot, identity, error...) in RST.PeerRadio.inbox, numbered.
     solo        the authority hands these commands to the client modules directly (RadioSurvivor_Const.clientHandler,
-                RS_CarnetClient.receive): both are wrapped once, at the first step that needs them, to fill the same
+                CoreAI.notebookClient.receive): both are wrapped once, at the first step that needs them, to fill the same
                 inbox (the wrapped functions are called first and unchanged).
 
 Client handlers (RST.Steps.on)
@@ -28,7 +28,7 @@ Client handlers (RST.Steps.on)
     carnet.mandate { member, action = "grant" | "revoke", waitMs }: command "mandate" of the core mod (Team tab buttons);
                    data { lastError } after waitMs, or as soon as the server refused.
     carnet.count   { ms }: during ms, snapshots received from the notebook server and snapshot or hello requests sent by
-                   this client (RS_CarnetClient.send, wrapped for the window): data { snapshots, pulls, other }.
+                   this client (CoreAI.notebookClient.send, wrapped for the window): data { snapshots, pulls, other }.
 Authority helpers
     PR.stripHistory(prefix) -> n   radio history lines whose text starts with prefix removed from every notebook
                                    character (private state RS_State, marked dirty); cleanup of the radio suites.
@@ -44,7 +44,7 @@ local PR = RST.PeerRadio
 local Steps = RST.Steps
 
 PR.RADIO_MODULE = "RadioSurvivor"
-PR.CARNET_MODULE = "RS_Carnet"
+PR.CARNET_MODULE = "CoreAI"
 PR.INBOX_MAX = 200
 PR.TALK_MS = 8000
 PR.VEHICLE_MS = 10000
@@ -116,7 +116,7 @@ function PR.tapSolo()
         end
         PR._constTapped = true
     end
-    local C = RS_CarnetClient
+    local C = CoreAI.notebookClient
     if type(C) == "table" and not PR._carnetTapped and type(C.receive) == "function" then
         local receive = C.receive
         C.receive = function(command, args)
@@ -287,8 +287,8 @@ local PULLS = { snapshot = true, hello = true }
 
 Steps.on("carnet.count", function(args)
     PR.tapSolo()
-    local C = RS_CarnetClient
-    if C == nil or type(C.send) ~= "function" then return Steps.fail("notebook client (RS_CarnetClient) not loaded") end
+    local C = CoreAI.notebookClient
+    if C == nil or type(C.send) ~= "function" then return Steps.fail("notebook client (CoreAI.notebookClient) not loaded") end
     local ms = tonumber(args.ms) or 10000
     local mark, started = PR.seq, RST.now()
     local counts = { pulls = 0, other = 0 }

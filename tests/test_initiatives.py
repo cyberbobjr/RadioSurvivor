@@ -272,7 +272,7 @@ class InitiativeTests(unittest.TestCase):
         self.assertEqual(len(self.initiatives()), 1)
         self.server.talk.pending = self.rt.table()
         # Reconnection (player objects bound again) and a reset of the module memory: the event stays consumed.
-        sim.clients['bob'].g.RS_CarnetClient.hello()
+        sim.clients['bob'].g.CoreAI.notebookClient.hello()
         self.init.reset()
         for _ in range(3):
             self.step()

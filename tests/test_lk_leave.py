@@ -138,7 +138,7 @@ class LeaveGroupTests(unittest.TestCase):
         self.assertEqual((fiche.clan, fiche.groupName), (gid, g.name))
         self.assertTrue(any('left group ' + old + ' for ' + gid in line for line in self.logs()))
         # The client sees the same state (snapshot pushed after the reply): new group name, never a raw id.
-        snap = sim.clients['alice'].g.RS_CarnetClient.snapshot
+        snap = sim.clients['alice'].g.CoreAI.notebookClient.snapshot
         [seen] = [c for c in snap.contacts.values() if c.id == fiche.id]
         self.assertEqual((seen.groupName, seen.clan), (g.name, None))
         # Written at once: survives a restart of the registry, nothing dropped.
@@ -167,7 +167,7 @@ class LeaveGroupTests(unittest.TestCase):
     def test_late_reply_on_an_older_composition_rejected(self):
         sim = self.world('late')
         old = self.g.LK_GROUP
-        client = sim.clients['alice'].g.RS_CarnetClient
+        client = sim.clients['alice'].g.CoreAI.notebookClient
         # An arrival between the request and the reply: the departure is refused before any effect.
         self.talk(self.g.LK_MATE, 'Pars avec moi.',
                   lambda: self.rt.execute(f'assert(LivingKnox.Groups.addMember("{old}", {{role = "worker"}}))'))

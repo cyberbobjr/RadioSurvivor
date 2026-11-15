@@ -77,7 +77,7 @@ class MachinesTests(Base):
         self.assertEqual(self.h.eval('A', 'type(require("CoreAI/CA_Codec"))'), 'table')
         # Le client MP charge aussi media/lua/server (GameLoadingState.java:153) ; le dédié n'exécute pas client/.
         self.assertTrue(self.h.eval('A', '(pcall(require, "RadioSurvivor/RS_State"))'))
-        self.assertFalse(self.h.eval('server', '(pcall(require, "RadioSurvivor/RS_Notebook"))'))
+        self.assertFalse(self.h.eval('server', '(pcall(require, "RadioSurvivor/RS_NotebookRadio"))'))
         with self.assertRaises(FileNotFoundError):
             self.h.load('server', 'shared/absent.lua')
         with self.assertRaises(LuaError):

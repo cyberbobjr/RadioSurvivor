@@ -3,7 +3,7 @@
     python RadioSurvivor/tests/test_rs_net_disorder.py
 
 Serveur dédié et deux clients du banc (tests/harness.py), vrai moteur RST (RST.lua, RST_Steps.lua,
-RST_PeerChecks.lua : étape client « carnet.talk »), vrai RST_RSHelpers.R.talk sur le serveur, vrai RS_Client.lua sur le
+RST_PeerChecks.lua : étape client « carnet.talk »), vrai RST_RSHelpers.R.talk sur le serveur, vrai CA_NotebookClient.lua sur le
 client demandeur (Client.talk : commande « talk » du carnet). Doublures : serveur du carnet réduit à sa liste de requêtes
 (mise en file puis sauvegarde, comme RS_Carnet_Server enqueue) et pont rapide qui répond à l'image suivante du serveur.
 
@@ -28,10 +28,10 @@ DEV_LUA = ROOT / 'dev' / 'batman_RadioSurvivorTests' / '42.21' / 'media' / 'lua'
 REQUESTER = 'A'
 RST_FILES = 'require "RST/RST"; require "RST/RST_Steps"; require "RST/RST_PeerChecks"; require "RST/RST_RSHelpers"'
 
-# Client demandeur : le vrai carnet client (RS_Client.lua) ; Translator : langue du jeu (Translator.getLanguage).
+# Client demandeur : le vrai carnet client (CA_NotebookClient.lua, E21-T03) ; Translator : langue du jeu (Translator.getLanguage).
 CLIENT = '''
 Translator = { getLanguage = function() return { name = function() return "EN" end } end }
-require "RadioSurvivor/RS_Client"
+require "CoreAI/CA_NotebookClient"
 '''
 
 # Serveur : liste des requêtes du carnet (talk.pending), sauvegarde après la mise en file (RS_Carnet_Server enqueue :

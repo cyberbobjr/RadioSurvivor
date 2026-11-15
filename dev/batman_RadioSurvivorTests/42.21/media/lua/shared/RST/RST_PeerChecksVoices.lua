@@ -12,7 +12,7 @@ Client handlers (RST.Steps.on)
                    tab; ask "rs.history" first to have it re-read from the server) and returns data { row (frequency
                    in the tab), voice (id of the known voice or nil), name (History.voiceName), hours
                    (History.hoursText: "19:00-22:00", nil = at any hour), second (second line of the frequency row,
-                   RS_Notebook.rowSecondLine), lines = { "kind:text", ... }, page }. With page = true and the frequency
+                   RS_NotebookRadio.secondLine), lines = { "kind:text", ... }, page }. With page = true and the frequency
                    in the tab, the real notebook window is opened on the Radio tab, the frequency selected, the text of
                    its page read (page), then the window is put back as it was (tab, hidden if it was).
 Kahlua: no next(), no goto, ASCII only; messages in English.
@@ -93,8 +93,8 @@ Steps.on("rs.voice.tab", function(args)
     for _, l in ipairs(H.lines(khz)) do lines[#lines + 1] = tostring(l.kind) .. ":" .. tostring(l.text) end
     local data = { row = true, lines = lines, voice = type(row.voice) == "table" and row.voice.id or nil,
         name = H.voiceName(row.voice), hours = H.hoursText(row.voice) }
-    if RS_Notebook ~= nil and type(RS_Notebook.rowSecondLine) == "function" then
-        data.second = RS_Notebook.rowSecondLine(row)
+    if RS_NotebookRadio ~= nil and type(RS_NotebookRadio.secondLine) == "function" then
+        data.second = RS_NotebookRadio.secondLine(row)
     end
     if args.page then
         local page, why = PV.pageText(khz)

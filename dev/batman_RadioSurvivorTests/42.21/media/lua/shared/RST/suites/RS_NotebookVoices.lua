@@ -1,7 +1,7 @@
 --[[
 rs.notebook.voices - voice and listening hours of a known frequency in the Radio tab of the notebook (E06-T07; server
 server/RadioSurvivor/RS_RadioLog.lua: f.voice, Log.voiceInfo, command note_read; client RS_RadioHistory.lua and the
-Radio tab of RS_Notebook.lua). Through the REAL server path: the requester client sends the real radio commands
+Radio tab of RS_NotebookRadio.lua). Through the REAL server path: the requester client sends the real radio commands
 ("talk", "note_read") and reads its own Radio tab (RST.Steps "rs.talk", "rs.history" of RST_PeerChecksRadio.lua,
 "rs.voice.read" and "rs.voice.tab" of RST_PeerChecksVoices.lua).
     voice chosen    a voice of a frequency note (RS_Notes.voices) served in this game, not a group voice; its
@@ -202,7 +202,7 @@ RST.suite("rs.notebook.voices", { tags = { "server", "world" }, testTimeoutMs = 
                             if d.second ~= nil then
                                 t3:eq(d.name, d.second, "requester: second line of the frequency row")
                             else
-                                t3:note("requester: notebook pages (RS_Notebook) not loaded: second line not read")
+                                t3:note("requester: notebook pages (RS_NotebookRadio) not loaded: second line not read")
                             end
                             local page = type(d.page) == "string" and d.page or ""
                             t3:ok(string.find(page, c.hours, 1, true) ~= nil, "requester: hours missing on the page: "

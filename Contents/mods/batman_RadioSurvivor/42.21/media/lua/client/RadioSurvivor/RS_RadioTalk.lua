@@ -121,13 +121,7 @@ function Talk.commandArgs(device, text)
 end
 
 -- Texte envoyé : une ligne, sans espaces superflus, coupé à Const.MAX_INPUT_CHARS.
-function Talk.cleanText(text)
-    text = Const.oneLine(text)
-    if string.len(text) > Const.MAX_INPUT_CHARS then
-        text = string.sub(text, 1, Const.MAX_INPUT_CHARS)
-    end
-    return text
-end
+Talk.cleanText = require("CoreAI/CA_SpeechConfig").cleanInput -- E21-T03 : même nettoyage que le carnet
 
 -- Envoie une phrase dite dans la radio. Rend true si elle part au serveur ; sinon false et le motif (déjà affiché
 -- au-dessus du joueur), ou false sans motif pour un texte vide.

@@ -5,13 +5,13 @@ steps; the handlers read the notebook client of THIS machine).
 
 Steps (RST.Steps.on; solo: the local player answers in the same Lua state)
     rep.read   { refresh = bool, wait = { level?, action? } }: the reputation of the notebook snapshot of this
-               client (RS_CarnetClient.snapshot.reputation), after a 'snapshot' request when refresh is true, waited
+               client (CoreAI.notebookClient.snapshot.reputation), after a 'snapshot' request when refresh is true, waited
                until it matches `wait` (or the client deadline). data { available, level, trend, reasons (count),
-               action (newest act), reasonArg, changeTo, lines (Reputation tab, RS_Notebook.reputationLines,
+               action (newest act), reasonArg, changeTo, lines (Reputation tab, CoreAI.notebookReputation.lines,
                translated and joined by " / "), digit (true when a digit is shown), warned (last warning text over
-               the character, RS_Notebook.reputationWarning) }.
+               the character, CoreAI.notebookReputation.warning) }.
     rep.admin  {}: the notebook command 'rep_admin' (administrator view, Q17), answer read from
-               RS_CarnetClient.repAdmin: data { ok, err, count, names = "a, b", score (true when a field 'score' was
+               CoreAI.notebookClient.repAdmin: data { ok, err, count, names = "a, b", score (true when a field 'score' was
                received) }.
 Kahlua: no next(), no goto, ASCII only; messages in English.
 ]]
@@ -23,7 +23,7 @@ RST.PeerRep = RST.PeerRep or {}
 local PRp = RST.PeerRep
 local Steps = RST.Steps
 
-local function carnet() return RS_CarnetClient end
+local function carnet() return CoreAI.notebookClient end
 
 local function reputationOf(C)
     local snap = C and C.snapshot or nil
@@ -44,9 +44,9 @@ function PRp.describe(C)
         data.reasonArg = type(reasons[1].reasonArgs) == "table" and reasons[1].reasonArgs[1] or nil
     end
     data.changeTo = type(rep.change) == "table" and rep.change.to or nil
-    local N = RS_Notebook
-    if N ~= nil and type(N.reputationLines) == "function" then
-        local lines = N.reputationLines(rep, snap.contacts)
+    local N = CoreAI.notebookReputation
+    if N ~= nil and type(N.lines) == "function" then
+        local lines = N.lines({ reputation = rep, contacts = snap.contacts })
         local text = table.concat(lines, " / ")
         data.lines = text
         data.digit = string.find(text, "%d") ~= nil
@@ -64,7 +64,7 @@ end
 
 Steps.on("rep.read", function(args)
     local C = carnet()
-    if C == nil then return Steps.fail("notebook client (RS_CarnetClient) not loaded") end
+    if C == nil then return Steps.fail("notebook client (CoreAI.notebookClient) not loaded") end
     if args.refresh == true then C.send("snapshot") end
     return function(ctx)
         local data = PRp.describe(C)
@@ -78,7 +78,7 @@ end)
 
 Steps.on("rep.admin", function()
     local C = carnet()
-    if C == nil then return Steps.fail("notebook client (RS_CarnetClient) not loaded") end
+    if C == nil then return Steps.fail("notebook client (CoreAI.notebookClient) not loaded") end
     C.repAdmin = nil
     C.send("rep_admin")
     return function(ctx)

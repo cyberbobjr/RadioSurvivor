@@ -1052,6 +1052,22 @@ def mission_view_files():
     return [f'client/CoreAI/MissionViews/{name}' for name in names]
 
 
+def core_notebook_files():
+    """Client files of the notebook of the core mod (E21-T03) as the game loads them: transport, frame, one file per
+    common tab, the page source of Living Knox alone (temporary), then every mission view. The frame CA_Notebook is
+    run by their require (the game runs a file once)."""
+    names = ('CA_NotebookClient', 'CA_NotebookContacts', 'CA_NotebookJournal', 'CA_NotebookMissions',
+             'CA_NotebookReputation')
+    return [f'client/CoreAI/{name}.lua' for name in names] + mission_view_files()
+
+
+def rs_notebook_files():
+    """Client files of RadioSurvivor's part of the notebook (E21-T03): Radio tab, its reputation acts and the
+    notices it hosts until the notebook server moves to the core mod."""
+    names = ('RS_NotebookHost', 'RS_NotebookRadio', 'RS_NotebookReputation', 'RS_VoiceMissionViews')
+    return [f'client/RadioSurvivor/{name}.lua' for name in names]
+
+
 ROUTINES_DIR = LK_LUA / 'server' / 'LivingKnox' / 'Routines'
 CHORES_DIR = LK_LUA / 'server' / 'LivingKnox' / 'Chores'
 

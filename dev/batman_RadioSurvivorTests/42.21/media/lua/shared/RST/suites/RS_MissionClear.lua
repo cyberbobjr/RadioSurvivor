@@ -148,7 +148,7 @@ local PISTOL, CAR = "Base.Pistol", "Base.CarNormal"
 local BURN_MS = 60000
 
 local function shownRow(id)
-    for _, row in ipairs(RS_CarnetClient and RS_CarnetClient.snapshot.missions or {}) do
+    for _, row in ipairs(CoreAI.notebookClient and CoreAI.notebookClient.snapshot.missions or {}) do
         if row.id == id then return row end
     end
     return nil
@@ -181,8 +181,8 @@ end
 
 -- Notebook window on the Missions page, mission id selected and refreshed; closed at the end if it was closed.
 local function missionPage(t, id)
-    local Notebook = require "RadioSurvivor/RS_Notebook"
-    local Client = RS_CarnetClient
+    local Notebook = require "CoreAI/CA_Notebook"
+    local Client = CoreAI.notebookClient
     local wasOpen = Client.window ~= nil and Client.window:isVisible()
     if not wasOpen then
         Notebook.toggle()
@@ -199,7 +199,7 @@ end
 
 -- Solo E11-T04: a real clear mission of a Living Knox npc fiche in the real notebook state, counted by the real
 -- subscribers of the template (Clear.onHitZombie / Clear.onZombieDead, binding RS_CarnetServer.bound), accepted,
--- reported and claimed through the real notebook commands (RS_CarnetClient.send). The counting circle is moved onto the
+-- reported and claimed through the real notebook commands (CoreAI.notebookClient.send). The counting circle is moved onto the
 -- player (radius zoneRadius) so that the requester stays next to the player for the report and the claim: the place
 -- draw and the circle of the building are covered by the first test. Kills: lethal bat hit (melee), lethal pistol hit
 -- (firearm), a zombie run over through the engine path of a car hit (IsoGameCharacter.Hit(BaseVehicle, ...) with the
@@ -255,7 +255,7 @@ local function soloPlay(t)
         t2:note("requester " .. id .. ", circle moved onto the player " .. px .. "," .. py .. " r " .. c.zoneRadius
             .. ", target lowered to 3")
         Server.publish()
-        RS_CarnetClient.send("accept", { mission = m.id, revision = m.revision })
+        CoreAI.notebookClient.send("accept", { mission = m.id, revision = m.revision })
         t2:waitUntil(function()
             local r = shownRow(m.id)
             return r ~= nil and r.state == "active" and r.engaged
@@ -318,24 +318,24 @@ local function soloPlay(t)
                                         local r = shownRow(m.id)
                                         t10:eq({ "active", 3, 3 }, { r.state, r.kills, r.target }, "notebook row")
                                         local w = missionPage(t10, m.id)
-                                        local toReport = getText("IGUI_RS_State_toReport")
+                                        local toReport = getText("IGUI_CA_MissionState_toReport")
                                         t10:ok(string.find(w.detail.text or "", toReport, 1, true) ~= nil,
                                             "Missions page without '" .. toReport .. "'")
                                         t10:eq(true, w.report:isVisible(), "Report button shown")
                                         t10:eq(false, w.claim:isVisible(), "Claim button before the report")
-                                        RS_CarnetClient.send("report", { mission = m.id, revision = r.revision })
+                                        CoreAI.notebookClient.send("report", { mission = m.id, revision = r.revision })
                                         t10:waitUntil(function()
                                             local r2 = shownRow(m.id)
                                             return r2 ~= nil and r2.state == "success"
                                         end, 5000, function(t11)
                                             w:refresh()
-                                            local success = getText("IGUI_RS_State_success")
+                                            local success = getText("IGUI_CA_MissionState_success")
                                             t11:ok(string.find(w.detail.text or "", success, 1, true) ~= nil,
                                                 "Missions page without '" .. success .. "'")
                                             t11:eq(true, w.claim:isVisible(), "Claim button after the success")
                                             t11:eq("mission.success", repOutcomes()[m.id .. "-" .. cid .. "-result"]
                                                 and repOutcomes()[m.id .. "-" .. cid .. "-result"].action)
-                                            RS_CarnetClient.send("claim",
+                                            CoreAI.notebookClient.send("claim",
                                                 { mission = m.id, revision = shownRow(m.id).revision })
                                             t11:waitUntil(function()
                                                 local r3 = shownRow(m.id)

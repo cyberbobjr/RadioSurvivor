@@ -16,30 +16,22 @@ under the text, thin scroll bars, and the registry of tabs.
 
 Every tab belongs to a mod and exists only when its mod (and every mod it names) is active:
   Notebook.registerTab{ name, mods = { 'batman_X', ... }, order, color = { r, g, b }, label = function() ... end, ... }
-Contacts, Missions and Reputation are common tabs registered here; a mod fills one with Notebook.extendTab(name,
-fields). Fields of a tab (all optional except name):
+The common tabs Contacts, Missions and Reputation are registered by one file each of the core mod (E21-T03:
+CA_NotebookContacts, CA_NotebookMissions, CA_NotebookReputation, from the snapshot of the notebook server received by
+CA_NotebookClient); a mod fills one with Notebook.extendTab(name, fields) or the registries below. Fields of a tab
+(all optional except name):
   rows(win) -> list of rows (each with an id); rowLabel(row); secondLine(row); create(win) (own children, made once
   when the window is built); detail(win, row, line, text) (fills the right page; true when it laid out the page
   itself); layout(win, geo) (own right column); listHeight(win, listMax, bh, gap); layoutLeft(win, geo, listTop,
   listH); status(win) -> text, problem (two lines above a say line); update(win) (each frame on that tab); onOpen(win);
   unread() (dot on the bookmark, the title bar and the sidebar button); font (right page font); titleColor;
   showList (false: the right page takes the whole width); header(win) (left column header).
-Missions and Reputation read the data of the core mod (E18-T25), asked to the authority (CA_MissionJournal, commands
-"missions" and "reputation" of the module CoreAI) and asked again every REFRESH_MS while the tab is shown:
-the open missions of the player's character (missions of a giver whose mod is not active are hidden by the server),
-its reputation (level, trend, last acts). The text of an act belongs to the mod that knows it
-(Notebook.reputationReasons[action] = translation key; an act of a mod not active reads "a good / bad deed").
-Contacts (E18-T26) lists the interlocutors every active mod gives (CA_Contacts, command "contacts"): name, group,
-the page of the mod that gave the contact (Notebook.contactPages[source](win, row, line)), then the exchanges kept by
-the core mod (CA_History).
 Texts: IGUI_CA_* (Translate/<LANG>/IG_UI.json of the core mod); a mod labels its own tabs.
 ]]
 CoreAI = CoreAI or {}
-local MissionList = require 'CoreAI/CA_MissionList'
+local Client = require 'CoreAI/CA_NotebookClient'
 
 local CORE_MOD = 'batman_CoreAI'
-local MODULE = 'CoreAI'
-local REFRESH_MS = 3000
 
 local function tr(key, ...) return getText('IGUI_CA_' .. key, ...) end
 
@@ -778,341 +770,36 @@ function Notebook.toggle(playerNum, joypad)
     return w
 end
 
--- ---------------------------------------------------------------- common tabs
+-- ---------------------------------------------------------------- registries of the common tabs
 
--- Data of the core mod asked to the authority (CA_MissionJournal): command -> time of the last request.
-local asked = {}
-function Notebook.request(command)
-    asked[command] = getTimestampMs()
-    local p = getSpecificPlayer(0)
-    if p ~= nil then sendClientCommand(p, MODULE, command, {}) end
-end
-local function poll(command)
-    if getTimestampMs() - (asked[command] or 0) >= REFRESH_MS then Notebook.request(command) end
-end
-
--- Open missions of the player's character, in the list order and states of CA_MissionList.
-local Journal = {rows = {}}
-Notebook.Journal = Journal -- missions tab helpers (tests, E18-T33)
-Notebook.journal = Journal
-function Journal.request() Notebook.request('missions') end
-
-function Journal.receive(args)
-    if type(args) ~= 'table' or type(args.missions) ~= 'table' then return end
-    local rows = {}
-    for _, row in ipairs(args.missions) do
-        if type(row) == 'table' and type(row.id) == 'string' then rows[#rows + 1] = row end
-    end
-    Journal.rows = rows
-    local w = Notebook.window
-    if w and w.tab == 'Missions' and w:spec().rows == Journal.tabRows then w:refresh() end
-end
-
-function Journal.tabRows() return Journal.rows end
-
--- E18-T29: gesture on a mission of the journal (CA_MissionJournal "mission"): hand-over or claim, next to the requester;
--- the authority checks everything and answers the list again (and "error" on a refusal).
-function Journal.act(action, row, extra)
-    if type(row) ~= 'table' then return end
-    local args = extra or {}
-    args.action, args.mission, args.revision = action, row.id, row.revision
-    local p = getSpecificPlayer(0)
-    if p ~= nil then sendClientCommand(p, MODULE, 'mission', args) end
-end
-
--- Hand-over window: the items of the inventory (bags included) the mission accepts, at most the count still asked
--- for; the authority checks them again (CA_Missions.deliver).
-local Delivery = ISCollapsableWindow:derive('CA_UI_Delivery')
-Notebook.Delivery = Delivery
-
-local function inventoryItems(container, out, depth)
-    if depth > 8 then return end
-    local items = container:getItems()
-    for i = 0, items:size() - 1 do
-        local item = items:get(i)
-        out[#out + 1] = item
-        if instanceof(item, 'InventoryContainer') then inventoryItems(item:getItemContainer(), out, depth + 1) end
-    end
-end
-
--- Items of the player a row accepts (same filter as the server: accepted type, not broken, not favourite, not equipped).
-function Delivery.candidates(player, row)
-    local out, all = {}, {}
-    if player == nil or type(row) ~= 'table' or type(row.accepted) ~= 'table' then return out end
-    inventoryItems(player:getInventory(), all, 0)
-    for _, item in ipairs(all) do
-        if row.accepted[item:getFullType()] and item:getCondition() > 0 and not item:isFavorite()
-                and not item:isEquipped() then
-            out[#out + 1] = item
-        end
-    end
-    return out
-end
-
-function Delivery:left()
-    local row = self.mission
-    return math.max(0, (tonumber(row.quantity) or 0) - (tonumber(row.delivered) or 0))
-end
-
-function Delivery:chosenIds()
-    local ids = {}
-    for id in pairs(self.chosen) do ids[#ids + 1] = id end
-    table.sort(ids)
-    return ids
-end
-
-function Delivery:toggle(id)
-    if self.chosen[id] then self.chosen[id] = nil
-    elseif #self:chosenIds() < self:left() then self.chosen[id] = true end
-end
-
-function Delivery:createChildren()
-    ISCollapsableWindow.createChildren(self)
-    local top = self:titleBarHeight() + 12
-    self.items = ISScrollingListBox:new(12, top, self.width - 24, self.height - top - fontHeight() - 54)
-    self.items:initialise(); self:addChild(self.items)
-    self.items.itemheight = fontHeight() + 12
-    self.chosen = {}
-    for _, item in ipairs(Delivery.candidates(getSpecificPlayer(0), self.mission)) do
-        self.items:addItem(item:getDisplayName(), {id = item:getID()})
-    end
-    self.items:setOnMouseDownFunction(self, function(window, row) window:toggle(row.id) end)
-    self.items.doDrawItem = function(list, y, item)
-        local mark = list.parent.chosen[item.item.id] and '[x] ' or '[ ] '
-        local room = list.width - 8 - 17 - 4 - width(mark)
-        list:drawText(mark .. fit(item.text, room), 8, y + 4, 1, 1, 1, 1, UIFont.Small)
-        return y + list.itemheight
-    end
-    self.send = button(self, tr('DeliverSend'), function(window)
-        local ids = window:chosenIds()
-        if #ids > 0 then
-            Journal.act('deliver', window.mission, {items = ids})
-            window:close()
-        end
-    end)
-    self.send:setX(12); self.send:setY(self.height - fontHeight() - 30)
-end
-
-function Delivery:prerender()
-    ISCollapsableWindow.prerender(self)
-    if #self.items.items == 0 then
-        self:drawText(tr('DeliverEmpty'), 16, self:titleBarHeight() + 16, 1, 1, 1, 1, UIFont.Small)
-    end
-end
-
-function Delivery:close()
-    self:setVisible(false)
-    self:removeFromUIManager()
-    if Notebook.delivery == self then Notebook.delivery = nil end
-end
-
--- Created without being shown (benches); centred on the notebook, kept whole on the screen.
-function Delivery.create(row, anchor)
-    local sw, sh = getCore():getScreenWidth(), getCore():getScreenHeight()
-    local w, h = math.min(480, sw - 60), math.min(420, sh - 60)
-    local x, y = (sw - w) / 2, (sh - h) / 2
-    if anchor then
-        x = anchor:getX() + (anchor:getWidth() - w) / 2
-        y = anchor:getY() + (anchor:getHeight() - h) / 2
-    end
-    local window = Delivery:new(math.floor(math.max(0, math.min(x, sw - w))), math.floor(math.max(0, math.min(y, sh - h))), w, h)
-    window.title, window.mission = tr('Delivery'), row
-    window:setResizable(false); window:initialise()
-    return window
-end
-
-function Journal.openDelivery(row, anchor)
-    if Notebook.delivery then Notebook.delivery:close() end
-    local window = Delivery.create(row, anchor)
-    window:addToUIManager()
-    Notebook.delivery = window
-    return window
-end
-
--- Buttons of the Missions tab (RadioSurvivor's notebook replaces this tab with its own buttons).
-function Journal.create(w)
-    w.journalDeliver = w:addAction(stamp(w, tr('Deliver'), function(win)
-        if win.row then Journal.openDelivery(win.row, win) end
-    end))
-    w.journalClaim = w:addAction(stamp(w, tr('Claim'), function(win) Journal.act('claim', win.row) end, true))
-end
-
-local function missionState(row) return tr('State_' .. tostring(MissionList.stateKey(row))) end
-
--- E18-T33: items of a lot created by the requester's group (table of CA_MissionConfig.Caches), "2 x Name, ...".
-function Journal.lotText(name)
-    local entries = (require 'CoreAI/CA_MissionConfig').Caches.tables[name] or {}
-    local parts = {}
-    for _, entry in ipairs(entries) do
-        local item = getScriptManager and getScriptManager():FindItem(entry[1])
-        parts[#parts + 1] = tostring(entry[2]) .. ' \195\151 ' .. (item and item:getDisplayName() or entry[1])
-    end
-    return table.concat(parts, ', ')
-end
-
-function Journal.detail(w, row, line)
-    if not row then line(tr('JournalEmpty')); return false end
-    line(missionState(row))
-    line(tr('Requester', tostring(row.requester or '')))
-    if type(row.remainingMs) == 'number' then line(tr('TimeLeft', math.ceil(row.remainingMs / 60000))) end
-    if type(row.rewardCount) == 'number' and row.rewardCount > 0 and type(row.rewardType) == 'string' then
-        local item = getScriptManager and getScriptManager():FindItem(row.rewardType)
-        line(tr('Reward', row.rewardCount, item and item:getDisplayName() or row.rewardType))
-    elseif type(row.rewardTable) == 'string' then
-        line(tr('RewardLot', Journal.lotText(row.rewardTable)))
-    end
-    if type(row.participants) == 'table' and #row.participants > 0 then
-        line(tr('Participants', table.concat(row.participants, ', ')))
-    end
-    if row.toReport then line(tr('ReportHint')) end
-    local handover = type(row.accepted) == 'table' and row.engaged == true and row.state == 'active'
-        and not row.toReport and row.donor ~= 'voice'
-    if handover and type(row.quantity) == 'number' then
-        line(tr('Delivered', tonumber(row.delivered) or 0, row.quantity)); line(tr('DeliverHint'))
-    end
-    if row.toClaim then line(tr('ClaimHint')) end
-    if w.journalDeliver then
-        w.journalDeliver:setVisible(handover); enable(w.journalDeliver, not row.recovery)
-        w.journalClaim:setVisible(row.toClaim == true); enable(w.journalClaim, not row.recovery)
-    end
-    return false
-end
-
--- Reputation of the player's character (CA_Reputation.projection): level, trend, last acts with their game day, last
--- change of level; no number is shown (days become words). Text of an act: key given by the mod that knows the action.
-local REP_LEVELS = {bad = true, neutral = true, good = true}
-local TRENDS = {up = true, down = true, stable = true}
+-- Tables the mods fill (E21-T03): the text of an act of the reputation (Notebook.reputationReasons[action] =
+-- translation key), lines a mod adds to the Reputation page (Notebook.reputationExtras: fn(snapshot) -> lines), the
+-- page of the mod that gave a contact (Notebook.contactPages[row.page or row.source](win, row, line)). The common
+-- tabs themselves live in one file each: CA_NotebookContacts, CA_NotebookMissions, CA_NotebookReputation.
 Notebook.reputationReasons = {
     ['mission.success'] = 'IGUI_CA_RepReason_MissionSuccess',
     ['mission.failed'] = 'IGUI_CA_RepReason_MissionFailed',
     ['mission.abandoned'] = 'IGUI_CA_RepReason_MissionAbandoned',
 }
-Notebook.reputationData = nil
-
--- When a fact happened, in words (no number): today, yesterday, this week, earlier.
-local function when(today, day)
-    local ago = (type(today) == 'number' and type(day) == 'number') and today - day or nil
-    if ago == nil then return tr('RelWhen_earlier') end
-    if ago <= 0 then return tr('RelWhen_today') end
-    if ago == 1 then return tr('RelWhen_yesterday') end
-    if ago < 7 then return tr('RelWhen_week') end
-    return tr('RelWhen_earlier')
-end
-local function repLevel(level) return tr('RepLevel_' .. (REP_LEVELS[level] and level or 'neutral')) end
-local function repTrend(trend) return tr('RepTrend_' .. (TRENDS[trend] and trend or 'stable')) end
--- One act: its translated text (public argument: a name), or a generic word for an act of a mod not active.
-local function repReason(r)
-    local key = type(r.action) == 'string' and Notebook.reputationReasons[r.action] or nil
-    local args = type(r.reasonArgs) == 'table' and r.reasonArgs or {}
-    local name = clean(args[1] or '') -- one value: gsub also returns a count
-    local text = key and getTextOrNull(key, name)
-    if text then return text end
-    return tr(r.sign == 1 and 'RepReason_good' or 'RepReason_bad')
-end
-Notebook.rep = {when = when, level = repLevel, trend = repTrend, reason = repReason, LEVELS = REP_LEVELS,
-    TRENDS = TRENDS}
-
-function Notebook.reputationLines(rep)
-    local out = {tr('GlobalReputation')}
-    if type(rep) ~= 'table' or rep.available ~= true then
-        out[#out + 1] = tr('ReputationUnavailable')
-        return out
-    end
-    out[#out + 1] = tr('RepLevelLine', repLevel(rep.level)); out[#out + 1] = tr('RepTrendLine', repTrend(rep.trend))
-    local change = type(rep.change) == 'table' and rep.change or nil
-    if change and REP_LEVELS[change.from] and REP_LEVELS[change.to] then
-        out[#out + 1] = tr('RepChanged', when(rep.today, change.day), repLevel(change.from), repLevel(change.to))
-    end
-    local reasons = type(rep.reasons) == 'table' and rep.reasons or {}
-    if #reasons == 0 then out[#out + 1] = tr('RepNoActs')
-    else
-        out[#out + 1] = tr('RepLastActs')
-        for _, r in ipairs(reasons) do
-            local text = tr('RepAct', when(rep.today, r.day), repReason(r))
-            if r.capped then text = text .. ' ' .. tr('RepCapped') end
-            out[#out + 1] = '- ' .. text
-        end
-    end
-    return out
-end
-
--- Answers of the authority to the core commands (OnServerCommand, or directly in solo).
-function Notebook.receive(command, args)
-    if command == 'team' and type(args) == 'table' then
-        -- E18-T20: team of the player (CA_Teams.projection), for the Team tab of Living Knox.
-        Notebook.team = type(args.team) == 'table' and args.team or nil
-        local w = Notebook.window
-        if w and w.tab == 'Team' then w:refresh() end
-        return
-    elseif command == 'error' and type(args) == 'table' then
-        local p = getSpecificPlayer(0)
-        local text = getTextOrNull('IGUI_CA_Error_' .. tostring(args.reason)) or tr('Error_State')
-        if p then HaloTextHelper.addBadText(p, text) end
-        Notebook.lastError = args.reason
-        return
-    end
-    if command == 'missions' then Journal.receive(args)
-    elseif command == 'contacts' and type(args) == 'table' then
-        local rows = {}
-        for _, row in ipairs(type(args.contacts) == 'table' and args.contacts or {}) do
-            if type(row) == 'table' and type(row.id) == 'string' then rows[#rows + 1] = row end
-        end
-        Notebook.contactRows = rows
-        local w = Notebook.window
-        if w and w.tab == 'Contacts' and w:spec().rows == Notebook.coreContacts then w:refresh() end
-    elseif command == 'reputation' and type(args) == 'table' then
-        Notebook.reputationData = type(args.reputation) == 'table' and args.reputation or nil
-        local w = Notebook.window
-        if w and w.tab == 'Reputation' and w:spec().reputation == 'core' then w:refresh() end
-    end
-end
-
--- Contacts given by the active mods (CA_Contacts): rows sent by the authority, page of each source.
+Notebook.reputationExtras = {}
 Notebook.contactPages = {}
-Notebook.contactRows = {}
 
-local function contactsDetail(w, row, line)
-    if not row then line(tr('Empty_Contacts')); return false end
-    line(row.name)
-    if type(row.groupName) == 'string' and row.groupName ~= '' then line(tr('Group', row.groupName)) end
-    local page = Notebook.contactPages[row.source]
-    if page then page(w, row, line) end
-    line(tr('KnownConversations'))
-    for _, speech in ipairs(type(row.history) == 'table' and row.history or {}) do
-        line(tostring(speech.author) .. ' : ' .. tostring(speech.text))
-    end
-    return false
+-- Answers of the authority to the core commands reach the client registry of the notebook (CA_NotebookClient), also
+-- called by name in solo (CA_MissionJournal, CA_Teams).
+function Notebook.receive(command, args) Client.receive(command, args) end
+
+-- E18-T20: team of the player (CA_Teams.projection), for the Team tab of Living Knox.
+Client.registerCommand('team', function(args)
+    Notebook.team = type(args.team) == 'table' and args.team or nil
+    local w = Notebook.window
+    if w and w.tab == 'Team' then w:refresh() end
+end)
+
+-- Each opening or closing: the notebook client follows the window and asks a fresh snapshot of a notebook server.
+Notebook.onToggle[#Notebook.onToggle + 1] = function(w)
+    Client.window = w
+    if Client.hosted() then Client.send('snapshot') end
 end
-
-function Notebook.coreContacts() return Notebook.contactRows end
-
-Notebook.registerTab({name = 'Contacts', order = 20, color = {0.498, 0.435, 0.271},
-    rows = Notebook.coreContacts,
-    rowLabel = function(row) return tostring(row.name or row.id) end,
-    secondLine = function(row) return row.alive == false and tr('Dead') or tr('Contact') end,
-    detail = contactsDetail,
-    onOpen = function() Notebook.request('contacts') end,
-    update = function() poll('contacts') end})
-Notebook.registerTab({name = 'Missions', order = 30, color = {0.369, 0.478, 0.31},
-    rows = Journal.tabRows,
-    rowLabel = function(row)
-        return getText(row.titleKey or 'IGUI_CA_Mission') .. ' - ' .. tostring(row.requester or '')
-    end,
-    secondLine = function(row)
-        return missionState(row)
-    end,
-    create = Journal.create,
-    detail = Journal.detail,
-    onOpen = function() Notebook.request('missions') end,
-    update = function() poll('missions') end})
-Notebook.registerTab({name = 'Reputation', order = 40, color = {0.31, 0.369, 0.478}, showList = false,
-    reputation = 'core',
-    detail = function(_, _, line)
-        for _, s in ipairs(Notebook.reputationLines(Notebook.reputationData)) do line(s) end
-        return false
-    end,
-    onOpen = function() Notebook.request('reputation') end,
-    update = function() poll('reputation') end})
 
 -- ---------------------------------------------------------------- opening
 
@@ -1151,9 +838,6 @@ function ISDPadWheels.onDisplayRight(joypadData, ...)
     return result
 end
 
-Events.OnServerCommand.Add(function(module, command, args)
-    if module == MODULE then Notebook.receive(command, args) end
-end)
 Events.OnGameStart.Add(function()
     if ISEquippedItem.instance then sidebar(ISEquippedItem.instance) end
 end)

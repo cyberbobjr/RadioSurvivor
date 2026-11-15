@@ -558,7 +558,7 @@ local function send(player, command, args)
     args = args or {}
     args.world, args.run = S.data.world, S.run
     if isServer() then sendServerCommand(player, C.MODULE, command, args)
-    elseif RS_CarnetClient then RS_CarnetClient.receive(command, args) end
+    elseif CoreAI.notebookClient then CoreAI.notebookClient.receive(command, args) end
 end
 local function publish() for _, p in ipairs(players()) do send(p, "snapshot", {}) end end
 function Server.find(id) for _, npc in pairs(S.data.npcs) do if npc.incarnation == id then return npc end end end
@@ -596,6 +596,8 @@ function Server.command(module, command, player, args)
         send(player, "snapshot", {})
         return
     end
+    -- E21-T03: registry of the notebook commands on the module CoreAI: any other command belongs to another owner.
+    if command ~= "snapshot" and command ~= "select" then return end
     local cid = Server.bound[player]
     if not cid then return send(player, "error", { reason = "Identity" }) end
     scan()
@@ -736,12 +738,13 @@ CLIENT_SIDE = r'''
 Const = Const or require "RadioSurvivor/RadioSurvivor_Const"
 History = require "RadioSurvivor/RS_RadioHistory"
 Const.clientHandler = function(command, args) History.receive(command, args) end
-RS_CarnetClient = { snapshots = 0 }
-local CC = RS_CarnetClient
+CoreAI = CoreAI or {}
+CoreAI.notebookClient = { snapshots = 0 }
+local CC = CoreAI.notebookClient
 function CC.send(command, args)
     args = args or {}
     args.world, args.run = CC.world, CC.run
-    sendClientCommand(getPlayer(), "RS_Carnet", command, args)
+    sendClientCommand(getPlayer(), "CoreAI", command, args)
 end
 function CC.receive(command, args)
     if command == "identity" then CC.world, CC.run, CC.character = args.world, args.run, args.character
@@ -751,10 +754,10 @@ end
 if isClient() then
     Events.OnServerCommand.Add(function(m, c, a)
         if m == Const.MODULE then Const.clientHandler(c, a or {}) end
-        if m == "RS_Carnet" then CC.receive(c, a or {}) end
+        if m == "CoreAI" then CC.receive(c, a or {}) end
     end)
 end
--- Closed notebook: one pull every SNAPSHOT_CLOSED_MS (RS_Client.lua OnTick), hello first.
+-- Closed notebook: one pull every SNAPSHOT_CLOSED_MS (CA_NotebookClient.lua OnTick), hello first.
 local nextSync = 0
 Events.OnTick.Add(function()
     if getTimestampMs() >= nextSync then

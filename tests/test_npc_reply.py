@@ -190,7 +190,7 @@ class ServerTests(unittest.TestCase):
         body = protocol.offline(req)
         body['text'] = OBSERVED
         self.answer(sim, req, body)
-        self.assertEqual(c.g.RS_CarnetClient.lastError, 'NoAnswer')
+        self.assertEqual(c.g.CoreAI.notebookClient.lastError, 'NoAnswer')
         contact = next(iter(sim.state().characters[sim.character('alice')].contacts.values()), None)
         history = convert(contact.history) if contact is not None and contact.history is not None else {}
         self.assertNotIn('json_object', json.dumps(history, ensure_ascii=False))

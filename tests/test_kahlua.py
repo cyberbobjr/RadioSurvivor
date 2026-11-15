@@ -61,6 +61,7 @@ LUA_FILES = [
     ('CoreAI/CA_MissionConfig', CORE_LUA / 'shared' / 'CoreAI' / 'CA_MissionConfig.lua'),
     ('CoreAI/CA_SpeechConfig', CORE_LUA / 'shared' / 'CoreAI' / 'CA_SpeechConfig.lua'),  # E18-T17
     ('CoreAI/CA_Hearing', CORE_LUA / 'shared' / 'CoreAI' / 'CA_Hearing.lua'),  # E18-T18
+    ('CoreAI/CA_NotebookConfig', CORE_LUA / 'shared' / 'CoreAI' / 'CA_NotebookConfig.lua'),  # E21-T03 : RS_Config
     ('RadioSurvivor/RS_Config', MOD_LUA / 'shared' / 'RadioSurvivor' / 'RS_Config.lua'),
     ('CoreAI/CA_Bridge', CORE_LUA / 'shared' / 'CoreAI' / 'CA_Bridge.lua'),  # E18-T04 : RadioSurvivor_Const
     ('CoreAI/CA_Codec', CORE_LUA / 'shared' / 'CoreAI' / 'CA_Codec.lua'),

@@ -21,7 +21,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from harness import Harness  # noqa: E402
+from harness import Harness, core_notebook_files  # noqa: E402
 from signalsmoke_double import SIGNAL_SMOKE  # noqa: E402
 from test_carnet import NOTEBOOK_UI, Simulation, open_notebook, convert  # noqa: E402
 from test_protocol import lua_list  # noqa: E402
@@ -142,7 +142,7 @@ class NotebookCoreOnlyTests(unittest.TestCase):
             c.rt.execute(NOTEBOOK_UI)
             c.rt.execute(SIDEBAR)
             c.rt.execute(active_mods('batman_SignalSmoke', 'batman_CoreAI', 'batman_LivingKnox'))
-            c.rt.execute('require("CoreAI/CA_Notebook")')
+            c.rt.execute('require("CoreAI/CA_Notebook") require("CoreAI/CA_NotebookJournal")')
 
     def tearDown(self):
         self.h.close()
@@ -376,7 +376,7 @@ class TabsByModTests(unittest.TestCase):
                                               'return table.concat(out, ",") end)()')
         self.assertEqual(labels, 'IGUI_RS_Radio,IGUI_CA_Contacts,IGUI_CA_Missions,IGUI_CA_Reputation,IGUI_LK_Team')  # E18-T20: Living Knox's tab
         self.assertEqual(window.tab, 'Contacts')
-        self.assertTrue(sim.clients['alice'].rt.eval('RS_CarnetClient.window == CoreAI.notebook.window'))
+        self.assertTrue(sim.clients['alice'].rt.eval('CoreAI.notebookClient.window == CoreAI.notebook.window'))
 
     def test_one_sidebar_button(self):
         sim, _ = self.notebook()
@@ -400,12 +400,78 @@ class TabsByModTests(unittest.TestCase):
                      "return {getDisplayName = function() return t end} end} end")
         sim.command('alice', 'snapshot')
         window.changeTab(window, 'Missions')
-        notebook_rows = [convert(r) for r in lua_list(c.g.RS_CarnetClient.snapshot.missions)]
+        notebook_rows = [convert(r) for r in lua_list(c.g.CoreAI.notebookClient.snapshot.missions)]
         rows = [convert(r) for r in lua_list(journal.rows(cid))]
         self.assertEqual([(r['id'], r['state'], r['requester']) for r in rows],
                          [(r['id'], r['state'], r['requester']) for r in notebook_rows])
         self.assertEqual(len(rows), 1)
         self.assertEqual(len(lua_list(window.list['items'])), 1)
+
+
+class CoreClientRoundTripTests(unittest.TestCase):
+    """E21-T03: the notebook client and the three common pages of the core mod alone on the client (no RadioSurvivor
+    client file), a fake NPC provider and the notebook server of the authority, on the network module CoreAI."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory(prefix='rc-notebook-rt-')
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def test_hello_snapshot_talk_and_quote(self):
+        sim = Simulation(Path(self.tmp.name) / 'rt')
+        c = sim.add_client('alice', core_only=True)
+        client = c.g.CoreAI.notebookClient
+        self.assertIsNotNone(client.world, 'hello not answered with the session')
+        self.assertEqual(client.character, sim.character('alice'))
+        sim.select('alice')
+        self.assertEqual([r.name for r in lua_list(client.snapshot.contacts)], ['Real Bandit'])
+        c.rt.execute("Translator = {getLanguage = function() return {name = function() return 'EN' end} end}")
+        self.assertTrue(client.talk('Hello there', True))
+        self.assertTrue(any(r.kind == 'npc_talk' for r in sim.server.g.RS_CarnetServer.talk.pending.values()))
+        npc = next(iter(sim.state().npcs.values()))
+        sim.server.rt.eval("require('CoreAI/CA_Missions')").create(sim.state(), npc, client.character,
+                                                                   'first_aid_v1')
+        sim.request_mission('alice', 'accept')
+        window = open_core_notebook(c)
+        window.changeTab(window, 'Missions')
+        ids = sim.items('alice', 'Base.Bandage', 'Base.Bandage')
+        delivery = c.rt.eval("require('CoreAI/CA_NotebookMissions')").newDelivery(window.row)
+        delivery.instantiate(delivery)
+        for item_id in ids:
+            delivery.chosen[item_id] = True
+        delivery.prepare.onclick(delivery)
+        dialog = c.g.UI_ROOTS[len(c.g.UI_ROOTS)]
+        self.assertTrue(str(dialog.text).startswith('IGUI_CA_ConfirmDelivery'), dialog.text)
+        dialog.onclick(None, c.rt.eval("{internal = 'YES'}"))
+        self.assertEqual(sim.mission().delivered, 2)
+
+    def test_three_tabs_render_from_the_snapshot(self):
+        sim = Simulation(Path(self.tmp.name) / 'tabs')
+        c = sim.add_client('alice', core_only=True)
+        sim.select('alice')
+        window = open_core_notebook(c)
+        self.assertEqual(tab_names(c), 'Contacts,Missions,Reputation')
+        self.assertIn('Real Bandit', window.detail.text)
+        self.assertTrue(window.talk.isVisible(window.talk))
+        npc = next(iter(sim.state().npcs.values()))
+        sim.server.rt.eval("require('CoreAI/CA_Missions')").create(sim.state(), npc, sim.character('alice'),
+                                                                   'first_aid_v1')
+        sim.command('alice', 'snapshot')
+        window.changeTab(window, 'Missions')
+        self.assertIn('IGUI_CA_Requester|Real Bandit', window.detail.text)
+        self.assertTrue(window.accept.isVisible(window.accept))
+        window.changeTab(window, 'Reputation')
+        self.assertIn('IGUI_CA_RepLevelLine', window.detail.text)
+
+
+def open_core_notebook(c):
+    """Notebook of the core mod opened on a client that holds only the core notebook files."""
+    c.rt.execute(NOTEBOOK_UI)
+    c.rt.execute("getScriptManager = function() return {FindItem = function() return nil end} end")
+    c.load(*core_notebook_files())
+    c.g.CoreAI.notebook.toggle()
+    return c.g.CoreAI.notebook.window
 
 
 class TranslationTests(unittest.TestCase):

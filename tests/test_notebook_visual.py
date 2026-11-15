@@ -2,7 +2,7 @@
 
     python tests/test_notebook_visual.py
 
-Banc lupa (Lua 5.1, `next` retiré comme dans Kahlua) : vrai client du carnet (`RS_Client.lua`, `RS_Notebook.lua`) sur le
+Banc lupa (Lua 5.1, `next` retiré comme dans Kahlua) : vrai client du carnet (`CA_NotebookClient.lua`, onglets `CA_Notebook*.lua`, `RS_NotebookRadio.lua`) sur le
 serveur simulé de `tests/test_carnet.py`, doublures ISUI de `NOTEBOOK_UI` complétées (fenêtre repliable avec ses boutons
 de titre, dialogue vanilla dimensionné par son texte et gardé à l'écran, texte riche avec couleurs par ligne, défilement
 borné), largeurs de texte RÉELLES lues dans les polices du jeu (`media/fonts/EN/1x/zomboid{Small,Medium,Large}.fnt` :
@@ -308,7 +308,7 @@ class NotebookVisualTests(unittest.TestCase):
         inv = c.g.getSpecificPlayer(0).getInventory(c.g.getSpecificPlayer(0))
         for kind in ('Base.Bandage', 'Base.FirstAidKit', 'Base.Bandage'):
             inv.AddItem(inv, c.g.namedItem(kind))
-        c.load('client/RS_Carnet_Client.lua')
+        c.load_notebook()
         c.rt.execute('SIDEBAR = getmetatable(ISButton).new(ISEquippedItem, 0, 100, 48, 300); SIDEBAR.playerNum = 0; '
                      'ISEquippedItem.initialise(SIDEBAR); ISEquippedItem.instance = SIDEBAR')
         shared = (TESTS_LUA / 'shared').as_posix()
@@ -376,7 +376,7 @@ class NotebookVisualTests(unittest.TestCase):
             self.assertRegex(line, r' \d{3} keys, \d{3} notebook strings measured, 0 problem')
 
     def test_views_at_two_resolutions_restore_the_display(self):
-        self.c.rt.execute('ORIG_RECEIVE = RS_CarnetClient.receive')
+        self.c.rt.execute('ORIG_RECEIVE = CoreAI.notebookClient.receive')
         status, message, notes = self.only(self.run_async('views'))
         self.assertEqual(status, 'PASS', '\n'.join([str(message)] + notes))
         shots = lua_list(self.g.SHOTS)
@@ -390,10 +390,10 @@ class NotebookVisualTests(unittest.TestCase):
         self.assertEqual((screen.w, screen.h, screen.full, screen.borderless), (2560, 1440, False, True))
         # Test windows and dialogs removed, snapshot and hooks restored.
         self.assertEqual(len(lua_list(self.g.UI_ROOTS)), 0)
-        client = self.g.RS_CarnetClient
+        client = self.g.CoreAI.notebookClient
         self.assertIsNone(client.window)
         self.assertFalse(any(r.id.startswith('rsv_') for r in client.snapshot.contacts.values()))
-        self.assertTrue(self.c.rt.eval('RS_CarnetClient.receive == ORIG_RECEIVE'), 'receive hook not restored')
+        self.assertTrue(self.c.rt.eval('CoreAI.notebookClient.receive == ORIG_RECEIVE'), 'receive hook not restored')
 
     def test_scroll_refresh_collapse_close_sidebar_and_shortcut(self):
         status, message, notes = self.only(self.run_async('scroll'))
@@ -447,13 +447,13 @@ class NotebookVisualTests(unittest.TestCase):
             local read = RST.NotebookVisual.readTable
             RST.NotebookVisual.readTable = function(lang)
                 local T, n = read(lang)
-                if lang == "FR" then T["IGUI_RS_Deliver"] = string.rep("Livrer ", 30) end
+                if lang == "FR" then T["IGUI_CA_Deliver"] = string.rep("Livrer ", 30) end
                 return T, n
             end
         ''')
         status, _, notes = self.only(self.run_sync('translation tables'))
         self.assertEqual(status, 'FAIL')
-        self.assertTrue(any(n.startswith('FR current font string: IGUI_RS_Deliver') for n in notes), notes)
+        self.assertTrue(any(n.startswith('FR current font string: IGUI_CA_Deliver') for n in notes), notes)
         self.assertFalse(any(n.startswith('EN ') for n in notes if 'problem(s)' not in n), notes)
 
     def test_detects_controls_pushed_out_by_a_larger_font_at_the_former_minimum(self):
@@ -476,22 +476,21 @@ class NotebookVisualTests(unittest.TestCase):
             local read = RST.NotebookVisual.readTable
             RST.NotebookVisual.readTable = function(lang)
                 local T, n = read(lang)
-                T["IGUI_RS_ConfirmSupply"] = string.gsub(T["IGUI_RS_ConfirmSupply"], "\\n", " ")
+                T["IGUI_CA_ConfirmSupply"] = string.gsub(T["IGUI_CA_ConfirmSupply"], "\\n", " ")
                 return T, n
             end
         ''')
         status, _, notes = self.only(self.run_sync('translation tables'))
         self.assertEqual(status, 'FAIL')
-        self.assertTrue(any(n.startswith('FR larger font string: IGUI_RS_ConfirmSupply dialog line') for n in notes), notes)
+        self.assertTrue(any(n.startswith('FR larger font string: IGUI_CA_ConfirmSupply dialog line') for n in notes), notes)
         self.assertFalse(any(n.startswith('EN current font string') or n.startswith('FR current font string')
                              for n in notes), notes)
 
     def delivery_rows(self):
         """Rows of a delivery window over a notebook at the current screen, as drawn (texts, list width)."""
         return self.c.rt.eval('''function()
-            local Notebook = require "RadioSurvivor/RS_Notebook"
-            local mission = RST.NotebookVisual.fixture(RS_CarnetClient, getSpecificPlayer(0)).missions[1]
-            local dw = Notebook.newDelivery(mission)
+            local mission = RST.NotebookVisual.fixture(CoreAI.notebookClient, getSpecificPlayer(0)).missions[1]
+            local dw = CoreAI.notebookMissions.newDelivery(mission)
             dw:instantiate()
             local out = {}
             dw.items.drawText = function(_, s, x) out[#out + 1] = {s = s, x = x} end
@@ -524,10 +523,10 @@ class NotebookVisualTests(unittest.TestCase):
         self.assertEqual(len(lua_list(inv['items'])), before, 'long named test item left in the inventory')
 
     def test_delivery_window_over_the_notebook_and_on_screen(self):
-        self.c.rt.execute('RS_Notebook.toggle()')
+        self.c.rt.execute('CoreAI.notebook.toggle()')
         geo = self.c.rt.eval('''function()
-            local Notebook, w = require "RadioSurvivor/RS_Notebook", RS_CarnetClient.window
-            local mission = RST.NotebookVisual.fixture(RS_CarnetClient, getSpecificPlayer(0)).missions[1]
+            local Notebook, w = require "CoreAI/CA_Notebook", CoreAI.notebookClient.window
+            local mission = RST.NotebookVisual.fixture(CoreAI.notebookClient, getSpecificPlayer(0)).missions[1]
             local out = {}
             for i, pos in ipairs({{nil, nil}, {-500, -400}, {SCREEN.w - 50, SCREEN.h - 30}}) do
                 if pos[1] then w:setX(pos[1]); w:setY(pos[2]) end
@@ -549,8 +548,8 @@ class NotebookVisualTests(unittest.TestCase):
     def test_detects_a_delivery_window_in_the_top_left_corner(self):
         # Placement before E03-T07: Delivery:new(0, 0, ...), under the sidebar.
         self.c.rt.execute('''
-            local new = RS_Notebook.newDelivery
-            RS_Notebook.newDelivery = function(mission)
+            local new = CoreAI.notebookMissions.newDelivery
+            CoreAI.notebookMissions.newDelivery = function(mission)
                 local dw = new(mission); dw:setX(0); dw:setY(0); return dw
             end
         ''')
@@ -562,8 +561,8 @@ class NotebookVisualTests(unittest.TestCase):
     def test_detects_an_item_name_not_cut(self):
         # Rows before E03-T07: the name drawn whole.
         self.c.rt.execute('''
-            local new = RS_Notebook.newDelivery
-            RS_Notebook.newDelivery = function(...)
+            local new = CoreAI.notebookMissions.newDelivery
+            CoreAI.notebookMissions.newDelivery = function(...)
                 local dw = new(...)
                 local create = dw.createChildren
                 dw.createChildren = function(self)

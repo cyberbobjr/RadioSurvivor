@@ -2,13 +2,13 @@
 rs.npctalk - talking to a Living Knox npc through the notebook, with the bridge and its model (E17-T08, E17-T09).
 A test npc is created next to the player and made the leader of a living group of the save (LivingKnox.Groups.setNpc
 on a leader without body; given back at the end), selected and spoken to with the notebook Say line
-(RS_CarnetClient.talk, the same 'talk' command as the chat). Each sentence waits for the request of the server
+(CoreAI.notebookClient.talk, the same 'talk' command as the chat). Each sentence waits for the request of the server
 (checked: stage, context, offers) and for the answer of the model (checked: facts only, never words of the player).
     E17-T08  first "hello" to a stranger: request at stage "stranger", context without the group name, story, leader
              or needs, no offer catalogue; answer without the group name nor the leader name; no mission. Asking for
              help while still a stranger: same, no offer.
     E17-T08/T09  acquainted (4 answered exchanges recorded on the contact): asking for help sends the offer catalogue;
-             an offer made by the model is signalled on screen ("New offer in the notebook", RS_CarnetClient
+             an offer made by the model is signalled on screen ("New offer in the notebook", CoreAI.notebookClient
              offersShown); a clear "yes, I'll do it" then makes the offer acceptable (context.acceptable) and, when the
              model returns intent accept, the mission becomes active (zone in the snapshot for a scout mission). When
              the model makes no offer, a scout offer is created by the suite so that the spoken acceptance is still

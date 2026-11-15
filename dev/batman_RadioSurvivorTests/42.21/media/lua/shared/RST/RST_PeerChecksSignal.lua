@@ -5,7 +5,7 @@ the authority through RST.Steps (E01-T16). Development mod only. Load with: requ
 notebook and the inventory of the local player of THIS machine).
 
 What the requester sees of a signal mission is read on its client: the row of the mission in the notebook snapshot
-(RS_CarnetClient.snapshot.missions, as the Missions page shows it) and the main inventory of the local player.
+(CoreAI.notebookClient.snapshot.missions, as the Missions page shows it) and the main inventory of the local player.
 
 Steps (RST.Steps.on; solo: the local player answers in the same Lua state)
     rs.signal.row    { mission, want = { field = value, ... }?, settleMs? }: with want, waits until the snapshot row
@@ -14,9 +14,10 @@ Steps (RST.Steps.on; solo: the local player answers in the same Lua state)
                      that should NOT happen had time to arrive). data = PS.summary(row) ({ missing = true } when no
                      row).
     rs.signal.send   { command = "report" | "claim", mission, want }: the notebook button of that command (the same
-                     request as RS_Notebook:request: RS_CarnetClient.send(command, { mission, revision of the row
-                     shown here })), then waits until the row holds want; after a claim, waits until the main
-                     inventory stopped changing for PS.SETTLE_MS (the items of the server arrive by their own packets).
+                     request of the Missions tab (CA_NotebookMissions): CoreAI.notebookClient.send(command,
+                     { mission, revision of the row shown here })), then waits until the row holds want; after a
+                     claim, waits until the main inventory stopped changing for PS.SETTLE_MS (the items of the
+                     server arrive by their own packets).
                      data = { row = PS.summary(row), gained = { [fullType] = count }, lastError }. Any other command
                      is refused (closed list PS.COMMANDS).
 Kahlua: no next(), no goto, ASCII only; messages in English.
@@ -29,10 +30,10 @@ RST.PeerSignal = RST.PeerSignal or {}
 local PS = RST.PeerSignal
 local Steps = RST.Steps
 
-PS.COMMANDS = { report = true, claim = true }   -- notebook buttons Report and Claim (RS_Notebook.lua)
+PS.COMMANDS = { report = true, claim = true }   -- notebook buttons Report and Claim (CA_NotebookMissions.lua)
 PS.SETTLE_MS = 1500
 
-local function carnet() return RS_CarnetClient end
+local function carnet() return CoreAI.notebookClient end
 
 -- Snapshot row of the mission on this client, or nil.
 function PS.row(C, id)
@@ -96,7 +97,7 @@ end
 
 Steps.on("rs.signal.row", function(args)
     local C = carnet()
-    if C == nil then return Steps.fail("notebook client (RS_CarnetClient) not loaded") end
+    if C == nil then return Steps.fail("notebook client (CoreAI.notebookClient) not loaded") end
     local want = type(args.want) == "table" and args.want or nil
     local settleAt = RST.now() + (tonumber(args.settleMs) or PS.SETTLE_MS)
     return function(ctx)
@@ -115,7 +116,7 @@ end)
 
 Steps.on("rs.signal.send", function(args)
     local C = carnet()
-    if C == nil or type(C.send) ~= "function" then return Steps.fail("notebook client (RS_CarnetClient) not loaded") end
+    if C == nil or type(C.send) ~= "function" then return Steps.fail("notebook client (CoreAI.notebookClient) not loaded") end
     local command = tostring(args.command)
     if not PS.COMMANDS[command] then return Steps.fail("refused: notebook command " .. command) end
     local row = PS.row(C, args.mission)

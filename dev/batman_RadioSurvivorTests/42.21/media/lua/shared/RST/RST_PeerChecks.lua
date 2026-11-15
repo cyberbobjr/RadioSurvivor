@@ -19,8 +19,8 @@ Client handlers (RST.Steps.on)
                       ChangeAccessLevel); test accounts rs_mp<N> of the launcher only, user or admin only, never itself.
     rst.request       { module, command, reply, args }: this client sends the command of a tool (LivingKnox
                       adminRequest, RadioSurvivorDebug freqRequest) and returns the reply of the same request number.
-    carnet.send       { command, args }: RS_CarnetClient.send for select, deselect and accept only.
-    carnet.talk       { text, cooldownMs }: the notebook Say line (RS_CarnetClient.talk(text, true)) once the client no
+    carnet.send       { command, args }: CoreAI.notebookClient.send for select, deselect and accept only.
+    carnet.talk       { text, cooldownMs }: the notebook Say line (CoreAI.notebookClient.talk(text, true)) once the client no
                       longer waits for an answer and the cooldown is over.
     carnet.state      { mission }: notebook client state: lastError, waiting, offer shown, snapshot row of the mission.
 Authority helpers (suite code, through RST.Steps.ask)
@@ -575,12 +575,12 @@ Steps.on("rst.request", function(args)
 end)
 
 local function carnet()
-    return RS_CarnetClient
+    return CoreAI.notebookClient
 end
 
 Steps.on("carnet.send", function(args)
     local C = carnet()
-    if C == nil then return Steps.fail("notebook client (RS_CarnetClient) not loaded") end
+    if C == nil then return Steps.fail("notebook client (CoreAI.notebookClient) not loaded") end
     local command = tostring(args.command)
     if not PC.CARNET_COMMANDS[command] then return Steps.fail("refused: notebook command " .. command) end
     C.send(command, type(args.args) == "table" and args.args or {})
@@ -589,7 +589,7 @@ end)
 
 Steps.on("carnet.talk", function(args)
     local C = carnet()
-    if C == nil then return Steps.fail("notebook client (RS_CarnetClient) not loaded") end
+    if C == nil then return Steps.fail("notebook client (CoreAI.notebookClient) not loaded") end
     local cooldown = tonumber(args.cooldownMs) or 0
     return function(ctx)
         local last = C.lastTalkAt
@@ -620,7 +620,7 @@ end
 -- snapshot row of args.mission is engaged); the state is returned in data either way (the server asserts).
 Steps.on("carnet.state", function(args)
     local C = carnet()
-    if C == nil then return Steps.fail("notebook client (RS_CarnetClient) not loaded") end
+    if C == nil then return Steps.fail("notebook client (CoreAI.notebookClient) not loaded") end
     return function(ctx)
         local data = carnetState(C, args.mission)
         local reached = args.wait == nil or (args.wait == "offer" and data.offerShown)

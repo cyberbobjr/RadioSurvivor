@@ -16,8 +16,8 @@ Client handlers (RST.Steps.on)
                    everyMs while the server answers "busy", until it answers anything else or maxMs passed (E01-T05:
                    a run started by this client right after the run in progress, then cut by its disconnection).
                    Answers PASS "armed" at once; the attempts go on after the step (one OnTick poller, PC2.later).
-    carnet.contact { id, groupName }: this client asks its notebook snapshot (RS_CarnetClient.send "snapshot", as the
-                   notebook does when it opens) and waits until the contact id of RS_CarnetClient.snapshot shows that
+    carnet.contact { id, groupName }: this client asks its notebook snapshot (CoreAI.notebookClient.send "snapshot", as the
+                   notebook does when it opens) and waits until the contact id of CoreAI.notebookClient.snapshot shows that
                    group name (data { groupName, name } of the last row seen; FAIL with it at the deadline).
     map.zones      { mission, rings = { { x, y, r }, ... }, expect = "present" | "absent", line = { key, arg } }:
                    waits until a notebook snapshot holding the row of mission was received here (present) or one whose
@@ -65,13 +65,13 @@ PC2.runSeq = PC2.runSeq or 0
 local function isClientSide() return type(isClient) == "function" and isClient() end
 local function isServerSide() return type(isServer) == "function" and isServer() end
 
-local function carnet() return RS_CarnetClient end
+local function carnet() return CoreAI.notebookClient end
 
 -- ---------------------------------------------------------------- carnet.claim
 
 Steps.on("carnet.claim", function(args)
     local C = carnet()
-    if C == nil or type(C.send) ~= "function" then return Steps.fail("notebook client (RS_CarnetClient) not loaded") end
+    if C == nil or type(C.send) ~= "function" then return Steps.fail("notebook client (CoreAI.notebookClient) not loaded") end
     if type(args.character) ~= "string" or args.character == "" then return Steps.fail("no character to claim") end
     PR.tapSolo()
     local mark = PR.seq
@@ -178,7 +178,7 @@ end
 
 Steps.on("carnet.contact", function(args)
     local C = carnet()
-    if C == nil or type(C.send) ~= "function" then return Steps.fail("notebook client (RS_CarnetClient) not loaded") end
+    if C == nil or type(C.send) ~= "function" then return Steps.fail("notebook client (CoreAI.notebookClient) not loaded") end
     if C.world == nil then return Steps.fail("the notebook of this client has no session (no identity yet)") end
     C.send("snapshot", {})
     local last = "no contact " .. tostring(args.id) .. " in the notebook here"
@@ -245,7 +245,7 @@ end
 
 Steps.on("map.zones", function(args)
     local C = carnet()
-    if C == nil then return Steps.fail("notebook client (RS_CarnetClient) not loaded") end
+    if C == nil then return Steps.fail("notebook client (CoreAI.notebookClient) not loaded") end
     local MA = mapModule()
     if MA == nil or type(MA.symbolsAPI) ~= "function" then return Steps.fail("CA_MapZones not loaded here") end
     local rings = args.rings or {}
@@ -317,8 +317,8 @@ function PC2.pushRows(t, rows, after)
         for i = 0, (list and list:size() or 0) - 1 do
             sendServerCommand(list:get(i), Config.MODULE, "snapshot", payload(Server, rows))
         end
-    elseif RS_CarnetClient ~= nil then
-        RS_CarnetClient.receive("snapshot", payload(Server, rows))
+    elseif CoreAI.notebookClient ~= nil then
+        CoreAI.notebookClient.receive("snapshot", payload(Server, rows))
     end
     if after then return after(t) end
 end

@@ -6,7 +6,7 @@ l'onglet Radio du carnet) et de ses étapes client (RST_PeerChecksVoices.lua).
 La suite est jouée par le VRAI moteur RST (RST.lua, RST_Steps.lua, RST_PeerChecksRadio.lua, RST_PeerChecksVoices.lua)
 sur le serveur dédié simulé de tests/test_carnet.py (Simulation) avec deux clients : vrai RadioSurvivor_Server (commandes
 talk et note_read, RS_RadioLog, RS_Personas : Walt sur sa fréquence d'exemple), vrai RS_Carnet_Server, vrai
-RS_RadioHistory sur chaque client et vraie fenêtre du carnet (RS_Notebook, doublures d'interface NOTEBOOK_UI) sur le
+RS_RadioHistory sur chaque client et vraie fenêtre du carnet (onglet Radio RS_NotebookRadio, doublures d'interface NOTEBOOK_UI) sur le
 client demandeur. Doublures propres à ce banc : la radio tenue (RST.RSHelpers.radioInHand rend le talkie déjà en main
 de la doublure de joueur) et le don d'objet (RST.Fixtures.giveItem crée la note et appelle le vrai OnCreate des notes,
 RadioSurvivorNotes.onCreate, comme Item.InstanceItem du jeu). Chaque critère est contredit par un défaut injecté que la
@@ -123,7 +123,7 @@ class NotebookVoicesSuiteTests(unittest.TestCase):
         self.assertEqual({name: self.history(name) for name in ('alice', 'bob')}, before, 'radio histories changed')
         self.assertEqual(self.server.rt.eval("#require('RadioSurvivor/RS_Personas').get('walt').listen"), listen)
         self.assertEqual(self.alice.rt.eval('History.sorted()[1].voice.id'), 'walt', 'client copy not sent again')
-        self.assertFalse(self.alice.rt.eval('RS_CarnetClient.window and RS_CarnetClient.window:isVisible()'),
+        self.assertFalse(self.alice.rt.eval('CoreAI.notebookClient.window and CoreAI.notebookClient.window:isVisible()'),
                          'notebook window left open')
 
     def test_fails_when_the_reader_client_does_not_receive_the_voice(self):

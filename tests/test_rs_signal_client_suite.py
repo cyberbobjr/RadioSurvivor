@@ -6,7 +6,7 @@
 Serveur dédié et deux clients du banc du carnet (test_carnet.Simulation : machines lupa séparées, réseau direct) :
 alice est le demandeur, bob le second client. Réels : moteur RST (RST.lua, RST_Steps.lua), la suite et ses étapes
 (RST_PeerChecks.lua carnet.send, RST_PeerChecks2.lua map.zones, RST_PeerChecksSignal.lua), RS_Carnet_Server.lua et
-RS_Client.lua (commandes accept, report, claim du carnet), gabarit CA_MissionSignal.lua et son écouteur, CA_MapZones.lua
+CA_NotebookClient.lua (commandes accept, report, claim du carnet), gabarit CA_MissionSignal.lua et son écouteur, CA_MapZones.lua
 sur les clients. Doublures : Signal Smoke (tests/signalsmoke_double.py), métagrille et carte (SCOUT_GRID, MAP_DOUBLE de
 test_carnet), PNJ du faux fournisseur (corps 2001) à la place du PNJ de test Living Knox (RST.SignalClientSuite.requester
 remplacé), paquets d'objets (sendAddItemToContainer / sendRemoveItemFromContainer : copie de l'objet dans l'inventaire

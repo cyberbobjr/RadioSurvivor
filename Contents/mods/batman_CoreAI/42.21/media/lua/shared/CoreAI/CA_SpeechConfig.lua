@@ -19,6 +19,7 @@ local Speech = {
     NARRATIVE_LANGUAGE = "FR", -- one canonical biography, independent of listener language
     MAX_TEXT_BYTES = 800,
     MAX_REPLY_BYTES = 1600,
+    MAX_INPUT_CHARS = 200, -- one sentence typed by a player (notebook Say line, radio line)
 }
 
 -- E17-T11: game language code sent to the bridge as a hint (npc_talk). The game names a language after its Translate
@@ -31,6 +32,11 @@ function Speech.languageCode(value)
     local code = string.upper(value)
     if #code < 2 or #code > 8 or not string.match(code, "^[A-Z][A-Z_]+$") then return "EN" end
     return code
+end
+
+-- E21-T03: a sentence typed by a player, on one line, cut to MAX_INPUT_CHARS bytes (notebook and radio lines).
+function Speech.cleanInput(text)
+    return string.sub(require("CoreAI/CA_TextCut").oneLine(text), 1, Speech.MAX_INPUT_CHARS)
 end
 
 return Speech

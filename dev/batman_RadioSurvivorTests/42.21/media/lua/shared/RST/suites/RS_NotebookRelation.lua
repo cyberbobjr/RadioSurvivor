@@ -1,5 +1,5 @@
 --[[
-rs.notebook.relation - relation panel of a contact in the notebook (E09-T07, client/RadioSurvivor/RS_Notebook.lua,
+rs.notebook.relation - relation panel of a contact in the notebook (E09-T07, client/CoreAI/CA_NotebookContacts.lua,
 server/RadioSurvivor/RS_Relations.lua panel,
 LivingKnox.API.relationPanel). Two test npcs are created next to the player and bound to two living
 members of the same Living Knox group of the save (the leader and another member without body), each with its
@@ -74,7 +74,7 @@ local function boundNpc(t, c, dx, mid, after)
         t2:ok(ok, "npc not bound to " .. mid .. " of " .. c.gid .. ": " .. tostring(why))
         t2:defer(function() LivingKnox.Groups.setNpc(c.gid, mid, nil) end, "unbind " .. mid .. " of " .. c.gid)
         t2:defer(function() LivingKnox.PersonalRelation.forget(id) end, "relation of the test npc " .. id .. " removed")
-        RS_CarnetClient.send("select", { incarnation = id })
+        CoreAI.notebookClient.send("select", { incarnation = id })
         t2:waitUntil(function() return c.Server.selected[c.cid] == fiche.id end, 5000, function(t3)
             return after(t3, id, fiche)
         end, "npc " .. id .. " not selected by the notebook")
@@ -92,7 +92,7 @@ local function change(t, c, fiche, fact, dir)
 end
 
 local function rowOf(fiche)
-    for _, row in ipairs(RS_CarnetClient.snapshot.contacts or {}) do
+    for _, row in ipairs(CoreAI.notebookClient.snapshot.contacts or {}) do
         if row.id == fiche.id then return row end
     end
     return nil
@@ -113,7 +113,7 @@ local function show(t, c, w, fiche, expected, after)
             if col.r + col.g + col.b >= DARK then light = light + 1 end
         end
         t2:eq(0, light, "light (white or grey) lines on the page")
-        local lines = c.Notebook.relationLines(row.relation)
+        local lines = CoreAI.notebookContacts.relationLines(row.relation)
         t2:eq(expected, row.relation.level, "level sent for " .. fiche.id)
         t2:ok(string.find(lines[1], getText("IGUI_LK_RelLevel_" .. expected), 1, true) ~= nil,
             "translated level label absent: " .. lines[1])
@@ -140,7 +140,7 @@ RST.suite("rs.notebook.relation", { mods = { "rs", "lk" },
         R.god(t, p)
         keepAttitude(t, gid, cid)
         local c = { Server = Server, p = p, cid = cid, gid = gid, Rel = require "RadioSurvivor/RS_Relations",
-            Notebook = require "RadioSurvivor/RS_Notebook" }
+            Notebook = require "CoreAI/CA_Notebook" }
         t:note("group " .. gid .. " '" .. tostring(g.name) .. "': leader " .. leader .. ", member " .. mate)
         boundNpc(t, c, 2, leader, function(t2, _, first)
             boundNpc(t2, c, 3, mate, function(t3, _, second)
@@ -151,7 +151,7 @@ RST.suite("rs.notebook.relation", { mods = { "rs", "lk" },
                 change(t3, c, second, "theft", "down")
                 local up, down = c.Rel.view(first, cid).level, c.Rel.view(second, cid).level
                 t3:ok(up ~= down, "the two members show the same level: " .. up)
-                local Client = RS_CarnetClient
+                local Client = CoreAI.notebookClient
                 local wasOpen = Client.window ~= nil and Client.window:isVisible()
                 if not wasOpen then c.Notebook.toggle() end
                 local w = Client.window

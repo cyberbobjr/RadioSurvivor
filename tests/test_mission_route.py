@@ -206,19 +206,19 @@ class RouteMissionTests(unittest.TestCase):
         c.rt.execute(MAP_DOUBLE)
         c.rt.execute(NOTEBOOK_UI)
         c.rt.execute("getScriptManager = function() return {FindItem = function() return nil end} end")
-        c.load('client/RS_Carnet_Client.lua')
+        c.load_notebook()
         maps = c.rt.eval("require('CoreAI/CA_MapZones')")
         maps.resetForTests(); maps.resetZonesForTests()
 
         def snapshot():
-            sim.command('alice', 'snapshot', world=c.g.RS_CarnetClient.world, run=c.g.RS_CarnetClient.run)
+            sim.command('alice', 'snapshot', world=c.g.CoreAI.notebookClient.world, run=c.g.CoreAI.notebookClient.run)
             drawn = [convert(s) for s in carnet_helpers.lua_list(c.rt.eval('mapSymbols()'))]
             return (sorted(s['text'] for s in drawn if s['kind'] == 'text'),
                     sorted((s['x'], s['y']) for s in drawn if s['kind'] == 'texture'))
 
         self.assertEqual(snapshot(), (['IGUI_CA_MapZoneRoute|Point A'], [(40, 10)]))
-        c.g.RS_Notebook.toggle()
-        window = c.g.RS_CarnetClient.window
+        c.g.CoreAI.notebook.toggle()
+        window = c.g.CoreAI.notebookClient.window
         window.changeTab(window, 'Missions')
         text = window.detail.text
         for key in ('IGUI_CA_RouteProgress|0|3', 'IGUI_CA_RouteNext|Point A', 'IGUI_CA_RouteMapZone',
