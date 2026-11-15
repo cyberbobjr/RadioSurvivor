@@ -617,7 +617,7 @@ class DrawTests(SpeechBase):
         self.assertEqual(self.h.errors('solo'), [])
 
     def test_notebook_answer_uses_the_same_bubble(self):
-        self.h.load('solo', 'shared/RadioSurvivor/RS_NPCProvider.lua')
+        self.h.load('solo', 'shared/CoreAI/CA_NPCProvider.lua')
         self.h.load('solo', 'shared/RadioSurvivor/RS_LivingKnox.lua')
         self.run_lua('RS_LivingKnox.bubble(LivingKnox.Bodies.find("lk-1"), "From the notebook.", 25)')
         line = self.h.eval('solo', 'SHOWN[#SHOWN]')

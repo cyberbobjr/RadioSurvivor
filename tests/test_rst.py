@@ -2831,7 +2831,7 @@ class LauncherContextTests(unittest.TestCase):
         self.assertIn("SKIP   x.world :: a (0 ms) world suite refused: save 'pzserver' is not a test save (rstest*)", text)
 
 
-# E01-T10 : faux fournisseur RS_NPCProvider (même forme que le module publié) et fausse API de test Living Knox. Le
+# E01-T10 : faux fournisseur CA_NPCProvider (même forme que le module publié) et fausse API de test Living Knox. Le
 # corps apparaît dans objects() SEEN_AFTER appels après la création (0 = tout de suite).
 FAKE_NPC = r"""
 NPC = { bodies = {}, records = {}, next = 1, seenAfter = 0, calls = 0, removed = {}, refuse = nil, failRemove = nil }
@@ -2859,7 +2859,7 @@ FAKE_PROVIDER = {
     id = function(o) return IMPL.id(o) end,
     npc = function(id) return IMPL.npc(id) end,
 }
-package.loaded["RadioSurvivor/RS_NPCProvider"] = FAKE_PROVIDER
+package.loaded["CoreAI/CA_NPCProvider"] = FAKE_PROVIDER
 CELL.getZombieList = function() return { contains = function(_, b) return not b.dead end } end
 LivingKnox = { API = {} }
 function LivingKnox.API.testSpawnNpc(x, y, z)
@@ -2893,7 +2893,7 @@ NPC_SUITE_FILE = LUA / 'shared' / 'RST' / 'suites' / 'RST_FixturesNpc.lua'
 
 
 class NpcFixtureTests(AsyncHarness):
-    """E01-T10 : F.spawnNpc par l'API de test de Living Knox, vu par RS_NPCProvider, retiré après le test."""
+    """E01-T10 : F.spawnNpc par l'API de test de Living Knox, vu par CA_NPCProvider, retiré après le test."""
 
     def setUp(self):
         super().setUp()
@@ -2970,11 +2970,11 @@ class NpcFixtureTests(AsyncHarness):
         self.assertEqual(lua_list(self.g.NPC.removed), [], setup)
 
     def test_refusals_are_clear(self):
-        self.refusal('package.loaded["RadioSurvivor/RS_NPCProvider"] = nil',
-                     'spawnNpc: no NPC provider active (RS_NPCProvider not loaded)')
-        self.refusal('package.loaded["RadioSurvivor/RS_NPCProvider"] = FAKE_PROVIDER; '
+        self.refusal('package.loaded["CoreAI/CA_NPCProvider"] = nil',
+                     'spawnNpc: no NPC provider active (CA_NPCProvider not loaded)')
+        self.refusal('package.loaded["CoreAI/CA_NPCProvider"] = FAKE_PROVIDER; '
                      'IMPL.available = function() return false end; IMPL.name = "none"',
-                     'spawnNpc: no NPC provider active (RS_NPCProvider: none)')
+                     'spawnNpc: no NPC provider active (CA_NPCProvider: none)')
         self.refusal('IMPL.available = function() return true end; IMPL.name = "other"',
                      'spawnNpc: the active NPC provider is other, not Living Knox (livingknox)')
         self.refusal('IMPL.name = "livingknox"; SAVED_SPAWN = LivingKnox.API.testSpawnNpc; '
@@ -3036,7 +3036,7 @@ class NpcFixtureTests(AsyncHarness):
         self.assertTrue(self.start('"rst.fixtures.npc"', 'ctx = CTX'))
         self.run_to_end()
         for _, _, status, msg in self.results():
-            self.assertEqual((status, msg), ('SKIP', 'no NPC provider active (RS_NPCProvider: none)'))
+            self.assertEqual((status, msg), ('SKIP', 'no NPC provider active (CA_NPCProvider: none)'))
         self.lua('SAVE = "Survie 1"')
         self.assertTrue(self.start('"rst.fixtures.npc"', 'ctx = CTX'))
         self.run_to_end()

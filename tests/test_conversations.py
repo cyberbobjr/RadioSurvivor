@@ -238,7 +238,7 @@ class ConversationTests(unittest.TestCase):
         """E08-T09 : pont arrêté, budget épuisé ou option « Désactivées » : aucune conversation entendue, aucune
         réplique de gabarit, aucun récit transmis ; pont revenu : la conversation s'ouvre."""
         self.world()
-        provider = self.rt.eval("require('RadioSurvivor/RS_NPCProvider')")
+        provider = self.rt.eval("require('CoreAI/CA_NPCProvider')")
         barks = []
         provider.bark = lambda *args: barks.append(args)  # never called (E08-T09)
         self.init.bridge.down = True
@@ -276,7 +276,7 @@ class ConversationTests(unittest.TestCase):
     def test_conversation_ends_silently_when_the_bridge_stops(self):
         """E08-T09 : le pont tombe pendant une conversation : elle se termine au tour suivant, sans gabarit."""
         self.world()
-        provider = self.rt.eval("require('RadioSurvivor/RS_NPCProvider')")
+        provider = self.rt.eval("require('CoreAI/CA_NPCProvider')")
         barks = []
         provider.bark = lambda *args: barks.append(args)
         key = self.record(self.leader)

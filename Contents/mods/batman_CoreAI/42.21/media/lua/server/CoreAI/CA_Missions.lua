@@ -86,7 +86,7 @@ Declarations read by the other modules (E20-T01, ADR D02; all optional, nothing 
                                                 usable state; retrieve_id: the item whose id is m.cardId). A giver with
                                                 dead drops collects at most quantity - delivered such items, adds them
                                                 to m.delivered, and its drop hooks are called by the engine
-    mapStyle = '<Suffix>'                       suffix of the map label key IGUI_RS_MapZone<Suffix>; none: plain label
+    mapStyle = '<Suffix>'                       suffix of the map label key IGUI_CA_MapZone<Suffix>; none: plain label
     params = {<key> = '<kind>'}                 (with voiceName) keys a voice sheet may set in a [mission] section of
                                                 this type, each checked by its kind (RadioSurvivor's RS_PersonaParams:
                                                 count, range, category, place, text, skill; E20-T03); any other key of
@@ -113,7 +113,7 @@ keep their remainingMs (same unit at normal speed); a saved nextOfferAt (real ms
 closedAt stays real time (notebook retention and ordering, housekeeping only). An unclaimed lot is kept until a world age
 (unclaimedUntilHour, UNCLAIMED_RETENTION_HOURS = 7 game days after the success, user decision of 2026-10-21): see
 M.prune.
-Engine supplies (E17-T03): for an NPC of a provider that defines supplies (RS_NPCProvider.hasSupplies, Living Knox),
+Engine supplies (E17-T03): for an NPC of a provider that defines supplies (CA_NPCProvider.hasSupplies, Living Knox),
 `deliver` offers come only from Provider.supplies (real needs of its group); the mission counts value points V
 (m.unit = 'value', m.values), each delivery goes through Provider.supplyDeliver with the transaction token as receipt,
 and an offer closed by the engine closes the mission as 'cancelled_closed' (no reputation change, like
@@ -129,7 +129,7 @@ local donors, donorOrder = {}, {}
 local resultListeners, pruneListeners, changeListeners = {}, {}, {}
 local offerFilter, characterName, binding, hostStore, knownMissions = nil, nil, nil, nil, nil
 
--- Engine of NPC bodies seen through the notebook interface (RS_NPCProvider, E17), or no engine at all.
+-- Engine of NPC bodies seen through the notebook interface (CA_NPCProvider, E17), or no engine at all.
 local NO_ENGINE = {
     id = function() return nil end,
     presence = function() return nil end,

@@ -317,7 +317,7 @@ class Server(unittest.TestCase):
 
     def kill(self, killer=None, cause='melee'):
         self.sim.zombie.dead = True
-        P = self.rt.eval("require('RadioSurvivor/RS_NPCProvider')")
+        P = self.rt.eval("require('CoreAI/CA_NPCProvider')")
         args = self.rt.table_from({'cause': cause, 'killer': killer}) if killer else None
         P.emit('death', 2001, self.sim.zombie, args)
 

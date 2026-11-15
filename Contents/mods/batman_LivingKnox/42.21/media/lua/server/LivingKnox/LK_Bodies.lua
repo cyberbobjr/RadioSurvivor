@@ -1018,7 +1018,7 @@ local function copyCause(c)
 end
 
 -- Écouteur de mort facultatif : function(id, zombie, cause). Le fournisseur Living Knox du carnet (E17-T03) s'y
--- branchera (Bodies.onDied = ...) pour émettre l'événement 'death' de RS_NPCProvider avec la cause en troisième
+-- branchera (Bodies.onDied = ...) pour émettre l'événement 'death' de CA_NPCProvider avec la cause en troisième
 -- argument. Absent par défaut.
 
 -- Abonné OnZombieDead (autorité) : le PNJ dont le corps courant meurt passe à l'état "dead" (suite : LK07), avec la

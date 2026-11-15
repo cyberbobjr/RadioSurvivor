@@ -14,7 +14,7 @@ place (CA_MissionScout.siteAt), wherever the requester stands; zone, density and
 place (no building there, or a density below minDensity: no offer).
 Zone: a circle centred on the building (m.mapZone = { x, y, r }, r = zoneRadius tiles, larger for a big building so
 that the whole footprint lies inside), every floor. It is the counting zone itself, drawn on the map of an engaged
-participant of an active mission (client/RadioSurvivor/RS_MapActions.lua, label IGUI_RS_MapZoneClear): unlike the
+participant of an active mission (client/CoreAI/CA_MapZones.lua, label IGUI_CA_MapZoneClear): unlike the
 scout and retrieve_id areas it is not moved off the building, the player must know where a kill counts.
 Target N: from the zombie density of the zone, read on the metagrid without loading anything
 (IsoMetaGrid:getChunkDataFromTile(x, y):getUnadjustedZombieIntensity(), 0..255 of the lot headers, chunks of 8 x 8
@@ -27,7 +27,7 @@ Count (E04-T06 rule, same window as LivingKnox.Bodies.deathCause, without depend
 the authority records the last hit of a player on each zombie (wielder IsoPlayer, weapon, time), only while an active
 clear mission exists; at OnZombieDead (authority only: the server decides the death, a client gets its own
 OnZombieDead from the death packet and loads nothing of this file), the zombie counts only when
-    - it is not an NPC body of the provider (RS_NPCProvider.id) nor a body tagged by Living Knox (ModData lkNpcId,
+    - it is not an NPC body of the provider (CA_NPCProvider.id) nor a body tagged by Living Knox (ModData lkNpcId,
       any generation, read through LivingKnox.Identity.readTag when it is loaded);
     - it was not counted before (ModData CA_ClearCounted: a burning zombie fires OnZombieDead twice, a dragged corpse
       dies again when released, its ModData being copied);
@@ -49,7 +49,7 @@ local function log(msg)
     print('[CoreAI] ' .. tostring(msg))
 end
 
--- E11-T13: report in person. E20-T01: given by a voice as `clear`, labelled IGUI_RS_MapZoneClear on the map.
+-- E11-T13: report in person. E20-T01: given by a voice as `clear`, labelled IGUI_CA_MapZoneClear on the map.
 local Clear = {idPrefix = 'clear', reportBySpeech = true, voiceName = 'clear', mapStyle = 'Clear',
     voiceText = 'kill zombies around a place'}
 Clear.MARK = 'CA_ClearCounted'

@@ -4,7 +4,7 @@ RadioSurvivor's givers and hooks of the common mission engine (E18-T05, CA_Missi
 2026-11-05: registration and hooks). Attached once by RS_State (RS_MissionHooks.attach(S)), before any mission is read.
 
 - store: the notebook state RS_State (its S.save writes the mission file of the core mod first, then the notebook);
-- NPC engine: RS_NPCProvider (Living Knox through its adapter, or no engine);
+- NPC engine: CA_NPCProvider (Living Knox through its adapter, or no engine);
 - givers: 'npc' = NPC fiche of the notebook (S.data.npcs; the mission of an engine NPC is paid by the reward source
   its engine registered in the core, M.npcReward: each mod pays its missions, E11-T21),
   'voice' = radio voice (S.data.voiceDonors, E11-T08; its dead drops polled and projected by RS_DeadDrops);
@@ -18,7 +18,7 @@ RadioSurvivor's givers and hooks of the common mission engine (E18-T05, CA_Missi
 Requires of modules that require RS_State are made at call time (RS_State requires this file).
 ]]
 local M = require 'CoreAI/CA_Missions'
-local P = require 'RadioSurvivor/RS_NPCProvider'
+local P = require 'CoreAI/CA_NPCProvider'
 
 local H = {}
 

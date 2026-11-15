@@ -442,20 +442,20 @@ class ItemMissionTests(unittest.TestCase):
         c.rt.execute(NOTEBOOK_UI)
         c.rt.execute(CLIENT_SCRIPTS)
         c.load('client/RS_Carnet_Client.lua')
-        maps = c.rt.eval("require('RadioSurvivor/RS_MapActions')")
+        maps = c.rt.eval("require('CoreAI/CA_MapZones')")
         maps.resetForTests(); maps.resetZonesForTests()
         sim.command('alice', 'snapshot', world=c.g.RS_CarnetClient.world, run=c.g.RS_CarnetClient.run)
         drawn = [convert(s) for s in carnet_helpers.lua_list(c.rt.eval('mapSymbols()'))]
         texts = [s['text'] for s in drawn if s['kind'] == 'text']
-        self.assertIn('IGUI_RS_MapZoneItem|Custom', texts)
-        self.assertIn('IGUI_RS_MapZoneDepot|Hollow stump', texts)
+        self.assertIn('IGUI_CA_MapZoneItem|Custom', texts)
+        self.assertIn('IGUI_CA_MapZoneDepot|Hollow stump', texts)
         c.g.RS_Notebook.toggle()
         window = c.g.RS_CarnetClient.window
         window.changeTab(window, 'Missions')
         text = window.detail.text
-        for key in ("IGUI_RS_ItemWhat|Ellen's locket", 'IGUI_RS_ItemPlace|Old farmhouse', 'IGUI_RS_ItemMapZone',
-                    'IGUI_RS_ItemNotFound', 'IGUI_RS_ItemDropIt', 'IGUI_RS_DeadDropPoints|Hollow stump',
-                    'IGUI_RS_ItemOnlyThis'):
+        for key in ("IGUI_CA_ItemWhat|Ellen's locket", 'IGUI_CA_ItemPlace|Old farmhouse', 'IGUI_CA_ItemMapZone',
+                    'IGUI_CA_ItemNotFound', 'IGUI_CA_ItemDropIt', 'IGUI_RS_DeadDropPoints|Hollow stump',
+                    'IGUI_CA_ItemOnlyThis'):
             self.assertIn(key, text)
         self.assertFalse(window.deliver.isVisible(window.deliver), 'delivery button for an item mission')
         self.poll(sim, store)
@@ -464,7 +464,7 @@ class ItemMissionTests(unittest.TestCase):
         self.poll(sim, store)
         sim.command('alice', 'snapshot', world=c.g.RS_CarnetClient.world, run=c.g.RS_CarnetClient.run)
         window.changeTab(window, 'Missions')
-        self.assertIn('IGUI_RS_ItemFound|alice Doe', window.detail.text)
+        self.assertIn('IGUI_CA_ItemFound|alice Doe', window.detail.text)
 
     def test_item_name_from_the_scripts_without_label(self):
         sim, voice, store = self.world('item-unlabelled')

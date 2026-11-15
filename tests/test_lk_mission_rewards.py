@@ -141,7 +141,7 @@ function makePlayer() local added = {}
   return {added=added, getInventory=function() return {getCapacityWeight=function() return 0 end,
     getEffectiveCapacity=function() return 50 end, AddItem=function(_, it) added[#added+1] = it; return it end} end} end
 alice, bob = makePlayer(), makePlayer()
-modules = {['RadioSurvivor/RS_NPCProvider'] = {available=function() return true end}}
+modules = {['CoreAI/CA_NPCProvider'] = {available=function() return true end}}
 local roots = {}
 for _, mod in ipairs({'batman_CoreAI', 'batman_RadioSurvivor', 'batman_LivingKnox'}) do
   for _, side in ipairs({'shared', 'server'}) do roots[#roots+1] = MODS .. '/' .. mod .. '/42.21/media/lua/' .. side .. '/' end

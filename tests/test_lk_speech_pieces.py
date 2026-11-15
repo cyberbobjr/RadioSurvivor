@@ -89,7 +89,7 @@ class BubblePiecesTests(SpeechBase):
         self.assertEqual(self.v('lastPieces.text', 'solo'), ANSWER)
 
     def test_notebook_answer_goes_through_the_same_pieces(self):
-        self.h.load('solo', 'shared/RadioSurvivor/RS_NPCProvider.lua')
+        self.h.load('solo', 'shared/CoreAI/CA_NPCProvider.lua')
         self.h.load('solo', 'shared/RadioSurvivor/RS_LivingKnox.lua')
         self.run_lua(f'RS_LivingKnox.bubble(LivingKnox.Bodies.find("lk-1"), {lua_str(ANSWER)}, 25)')
         pieces = [p for p, _ in self.read_all()]

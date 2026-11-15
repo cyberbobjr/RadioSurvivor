@@ -39,7 +39,7 @@ the room left: radius - half diagonal - 1 tile), direction and length drawn by C
 the place key (same draw for the same mission). Kept as m.mapZone = { x, y, r } (integer tiles) in the private state.
 The client gets it only in the notebook projection (p.mapZone) of a participant of an active mission, never the
 building bounds nor m.zone; it draws the area on the player's world map and removes it once the mission is no longer
-active (client/RadioSurvivor/RS_MapActions.lua, MapActions.zones). Missions created before E11-T10 have no area.
+active (client/CoreAI/CA_MapZones.lua, CA_MapZones.zones). Missions created before E11-T10 have no area.
 ]]
 local M = require 'CoreAI/CA_Missions'
 local Sites = require 'CoreAI/CA_Sites'

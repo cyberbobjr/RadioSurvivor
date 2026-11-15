@@ -28,7 +28,7 @@ LK2_FILE = LUA / 'shared' / 'RST' / 'RST_PeerChecksLK2.lua'
 RS_GAME = PEER_GAME + r"""
 package.loaded["RadioSurvivor/RS_Config"] = { VERSION = 2, MODULE = "RS_Carnet" }
 getText = function(key, arg)
-    if key == "IGUI_RS_RetrieveFound" then return "Card found (" .. tostring(arg) .. ")" end
+    if key == "IGUI_CA_RetrieveFound" then return "Card found (" .. tostring(arg) .. ")" end
     return key
 end
 -- Notebook client double: send records, receive keeps snapshot and character.
@@ -37,7 +37,7 @@ function RS_CarnetClient.send(command, args) SENT[#SENT + 1] = { module = "RS_Ca
 function RS_CarnetClient.receive(command, args)
     if command == "snapshot" then RS_CarnetClient.snapshot = args end
 end
--- World map double (RS_MapActions): symbols with world position, colour, kind.
+-- World map double (CA_MapZones): symbols with world position, colour, kind.
 SYMBOLS = {}
 local function symbol(kind, id, x, y, c)
     return { kind = kind, id = id, x = x, y = y, c = c,
@@ -53,7 +53,7 @@ function zone(x, y, r)
     SYMBOLS[#SYMBOLS + 1] = symbol("text", nil, x, y - r, ZONE_COLOR)
 end
 API = { getSymbolCount = function() return #SYMBOLS end, getSymbolByIndex = function(_, i) return SYMBOLS[i + 1] end }
-package.loaded["RadioSurvivor/RS_MapActions"] = { ZONE_ICON = "Circle", ZONE_COLOR = ZONE_COLOR,
+package.loaded["CoreAI/CA_MapZones"] = { ZONE_ICON = "Circle", ZONE_COLOR = ZONE_COLOR,
     ZONE_COLOR_TOLERANCE = 0.02, symbolsAPI = function() return API end }
 """
 
@@ -160,7 +160,7 @@ class RsStepTests(Base):
 
     def test_zones_present_with_line_then_absent(self):
         args = ('{ mission = "m1", rings = { { x = 100, y = 200, r = 30 } }, expect = "present", '
-                'line = { key = "IGUI_RS_RetrieveFound", arg = "Tester" } }')
+                'line = { key = "IGUI_CA_RetrieveFound", arg = "Tester" } }')
         self.assertIsNone(self.start('map.zones', args))
         self.m.lua('RS_CarnetClient.snapshot = { missions = { { id = "m1", state = "active" } } }')
         self.assertIsNone(self.tick())          # row received, no ring drawn yet

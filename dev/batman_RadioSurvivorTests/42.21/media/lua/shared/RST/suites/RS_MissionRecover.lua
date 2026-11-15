@@ -9,7 +9,7 @@ Tags "server" (authority only: solo, or RST.server from an admin client of a ded
 player is moved, bags are put on the floor: test saves "rstest*" only). Asynchronous run (RST.start / RST.server).
 The mission lives in an in-memory state built by the test (requester fiche, character, store whose save does
 nothing): no notebook state, no ModData of the notebook, no reward item. The requester body is a stand-in at the
-player's position, and the home of its group (the depot) is that position: RS_NPCProvider.presence is wrapped for the
+player's position, and the home of its group (the depot) is that position: CA_NPCProvider.presence is wrapped for the
 stand-in id during the test only. Cleanup: the player goes back, the bags left on the floor or in the inventory are
 removed, the wrapped function is restored.
 Outside the game: tests/test_mission_recover.py (metagrid, cell and floor doubles).
@@ -30,7 +30,7 @@ local function modules(t)
     if type(M) ~= "table" or type(Recover) ~= "table" or type(Caches) ~= "table" then
         t:skip("mission modules did not return their table here")
     end
-    return M, Recover, Caches, require "RadioSurvivor/RS_Config", require "RadioSurvivor/RS_NPCProvider"
+    return M, Recover, Caches, require "RadioSurvivor/RS_Config", require "CoreAI/CA_NPCProvider"
 end
 
 -- Floor object (square, world object) of the item with this id around (x, y, z), radius r; nil when absent.
@@ -90,7 +90,7 @@ RST.suite("rs.mission.recover", { tags = { "server", "world" }, testTimeoutMs = 
             if id == npc.incarnation then return { away = false, x = ox, y = oy, z = oz } end
             return presence(id)
         end
-        t:defer(function() P.presence = presence end, "restore RS_NPCProvider.presence")
+        t:defer(function() P.presence = presence end, "restore CA_NPCProvider.presence")
         Recover.resetForTests(); Caches.resetForTests()
         local offer = Recover.offer(c, npc, nil, body)
         if not offer then t:skip("no building fits around the player (" .. c.minDistance .. "-" .. c.maxDistance

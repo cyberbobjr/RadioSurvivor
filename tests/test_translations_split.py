@@ -63,6 +63,15 @@ NOTEBOOK |= {'IGUI_CA_Group', 'IGUI_CA_KnownConversations', 'IGUI_CA_Contact', '
 RENAMED.update({k: 'IGUI_LK_' + k[len('IGUI_RS_'):] for k in json.loads(FIXTURE.read_text(encoding='utf-8'))['keys']['EN']
                 ['IG_UI'] if any(k.startswith('IGUI_RS_' + p) for p in ('Team', 'Role_', 'Mandate', 'Empty_Team'))})
 RENAMED.update({f'IGUI_RS_Error_{n}': f'IGUI_CA_Error_{n}' for n in ('MandateOwner', 'MandateMember', 'MandateFull')})
+# E21-T03: generic lines of the mission views (CA_View_*) and labels of the map zones (CA_MapZones) in the core mod.
+VIEW_WORDS = ('AcceptedItems', 'OneUnit', 'Progress', 'SupplyProgress', 'SupplyValues', 'ScoutMapZone', 'ScoutNotReached',
+              'ScoutReached', 'ScoutReport', 'RetrieveFound', 'RetrieveMapZone', 'RetrieveNotFound', 'RetrievePerson',
+              'RetrieveReport', 'SignalColor', 'SignalHour', 'SignalLit', 'SignalMapZone', 'SignalNotLit', 'SignalReport',
+              'SignalRule', 'ClearBy', 'ClearMapZone', 'ClearProgress', 'ClearReport', 'ClearRule', 'RecoverCache',
+              'RecoverDepotZone', 'RecoverFound', 'RecoverMapZone', 'RecoverNotFound', 'RecoverReport')
+RENAMED.update({k: 'IGUI_CA_' + k[len('IGUI_RS_'):] for k in json.loads(FIXTURE.read_text(encoding='utf-8'))['keys']['EN']
+                ['IG_UI'] if k[len('IGUI_RS_'):] in VIEW_WORDS
+                or any(k.startswith('IGUI_RS_' + p) for p in ('Cache_', 'SignalColor_', 'MapZone'))})
 NOTEBOOK |= {'IGUI_CA_Error_State'}
 JOURNAL = {
     'IGUI_CA_Journal', 'IGUI_CA_JournalButton', 'IGUI_CA_JournalEmpty', 'IGUI_CA_JournalHint', 'IGUI_CA_Mission',
@@ -130,25 +139,25 @@ JOURNAL_GESTURES = {'IGUI_CA_' + k for k in ('Deliver', 'Claim', 'Delivery', 'De
 # E20-T05: the drop points of a voice mission listed by the notebook (RadioSurvivor); E20-T06: card left at a drop.
 ADDED = {'IGUI_RS_DeadDropPoints', 'IGUI_RS_RetrieveDropCard',
          # E20-T09: template barricade (title, notebook view, map label).
-         'IGUI_CA_Mission_Barricade', 'IGUI_RS_MapZoneBarricade', 'IGUI_RS_MapZoneBarricadeAnon',
-         'IGUI_RS_BarricadePlace', 'IGUI_RS_BarricadeMapZone', 'IGUI_RS_BarricadeProgress', 'IGUI_RS_BarricadeRule',
-         'IGUI_RS_BarricadeReport',
+         'IGUI_CA_Mission_Barricade', 'IGUI_CA_MapZoneBarricade', 'IGUI_CA_MapZoneBarricadeAnon',
+         'IGUI_CA_BarricadePlace', 'IGUI_CA_BarricadeMapZone', 'IGUI_CA_BarricadeProgress', 'IGUI_CA_BarricadeRule',
+         'IGUI_CA_BarricadeReport',
          # E20-T12: template relay (title, notebook view, map label).
-         'IGUI_CA_Mission_Relay', 'IGUI_RS_MapZoneRelay', 'IGUI_RS_MapZoneRelayAnon', 'IGUI_RS_RelayPlace',
-         'IGUI_RS_RelayMapZone', 'IGUI_RS_RelayLevel', 'IGUI_RS_RelayOn', 'IGUI_RS_RelayOff', 'IGUI_RS_RelayRule',
-         'IGUI_RS_RelayReport'}
+         'IGUI_CA_Mission_Relay', 'IGUI_CA_MapZoneRelay', 'IGUI_CA_MapZoneRelayAnon', 'IGUI_CA_RelayPlace',
+         'IGUI_CA_RelayMapZone', 'IGUI_CA_RelayLevel', 'IGUI_CA_RelayOn', 'IGUI_CA_RelayOff', 'IGUI_CA_RelayRule',
+         'IGUI_CA_RelayReport'}
 # E20-T13: template route (title, notebook view, map label).
-ADDED |= {'IGUI_CA_Mission_Route', 'IGUI_RS_MapZoneRoute', 'IGUI_RS_MapZoneRouteAnon', 'IGUI_RS_RouteProgress',
-          'IGUI_RS_RouteNext', 'IGUI_RS_RouteAllCrossed', 'IGUI_RS_RouteMapZone', 'IGUI_RS_RouteRule',
-          'IGUI_RS_RouteReport'}
+ADDED |= {'IGUI_CA_Mission_Route', 'IGUI_CA_MapZoneRoute', 'IGUI_CA_MapZoneRouteAnon', 'IGUI_CA_RouteProgress',
+          'IGUI_CA_RouteNext', 'IGUI_CA_RouteAllCrossed', 'IGUI_CA_RouteMapZone', 'IGUI_CA_RouteRule',
+          'IGUI_CA_RouteReport'}
 # E20-T14: template watch (title, notebook view, map label).
-ADDED |= {'IGUI_CA_Mission_Watch', 'IGUI_RS_MapZoneWatch', 'IGUI_RS_MapZoneWatchAnon', 'IGUI_RS_WatchPlace',
-          'IGUI_RS_WatchMapZone', 'IGUI_RS_WatchProgress', 'IGUI_RS_WatchDone', 'IGUI_RS_WatchRule',
-          'IGUI_RS_WatchReport'}
+ADDED |= {'IGUI_CA_Mission_Watch', 'IGUI_CA_MapZoneWatch', 'IGUI_CA_MapZoneWatchAnon', 'IGUI_CA_WatchPlace',
+          'IGUI_CA_WatchMapZone', 'IGUI_CA_WatchProgress', 'IGUI_CA_WatchDone', 'IGUI_CA_WatchRule',
+          'IGUI_CA_WatchReport'}
 # E20-T15: template item (title, notebook view, map label).
-ADDED |= {'IGUI_CA_Mission_Item', 'IGUI_RS_MapZoneItem', 'IGUI_RS_MapZoneItemAnon', 'IGUI_RS_ItemWhat',
-          'IGUI_RS_ItemPlace', 'IGUI_RS_ItemMapZone', 'IGUI_RS_ItemFound', 'IGUI_RS_ItemNotFound', 'IGUI_RS_ItemDropIt',
-          'IGUI_RS_ItemOnlyThis', 'IGUI_RS_ItemReport'}
+ADDED |= {'IGUI_CA_Mission_Item', 'IGUI_CA_MapZoneItem', 'IGUI_CA_MapZoneItemAnon', 'IGUI_CA_ItemWhat',
+          'IGUI_CA_ItemPlace', 'IGUI_CA_ItemMapZone', 'IGUI_CA_ItemFound', 'IGUI_CA_ItemNotFound', 'IGUI_CA_ItemDropIt',
+          'IGUI_CA_ItemOnlyThis', 'IGUI_CA_ItemReport'}
 
 
 # E20-T11: radio lines of the arrival modes road and cache (RS_TradeRun.textFor), notes of the town traders.

@@ -52,14 +52,14 @@ failing undo is reported as "cleanup <label>: ..." on the test and does not stop
                                          at the deadline (default F.SQUARE_TIMEOUT_MS). Needs an asynchronous run.
     F.npcReady() -> true, or false and the refusal reason
                                          whether F.spawnNpc can work on this machine (authority, an NPC provider
-                                         active in RS_NPCProvider, and it is Living Knox with its test API).
+                                         active in CA_NPCProvider, and it is Living Knox with its test API).
     F.spawnNpc(t, player[, suite])       a test NPC (no group) appears near the player (F.NPC_OFFSET squares east,
                                          nearest free loaded square) through the public Living Knox API on the
                                          authority (LivingKnox.API.testSpawnNpc,
                                          docs/specifications-techniques/api-living-knox.md); returns its
-                                         provider id "lk-<n>" and its body as RS_NPCProvider sees it (nil when not
+                                         provider id "lk-<n>" and its body as CA_NPCProvider sees it (nil when not
                                          seen yet). With suite, waits (t:waitQuiet, F.NPC_TIMEOUT_MS) until
-                                         RS_NPCProvider.objects()[id] is a body whose RS_NPCProvider.id is id,
+                                         CA_NPCProvider.objects()[id] is a body whose CA_NPCProvider.id is id,
                                          then runs suite(t, id, body). Refused (error) outside a world run (save
                                          not rstest*), on an MP client, without an active NPC provider, with a
                                          provider other than Living Knox, or when Living Knox refuses (reason
@@ -86,7 +86,7 @@ Where they run
     An MP client uses the same command and wait. Those waits need an asynchronous run (RST.start) and do not count
     as assertions (t:waitQuiet).
     NPC: on the authority only (solo, or the server in MP): LivingKnox.API does not exist on an MP client. The
-    module RadioSurvivor/RS_NPCProvider (published mod) is required lazily, under pcall: without it, no provider.
+    module CoreAI/CA_NPCProvider (published mod) is required lazily, under pcall: without it, no provider.
 ]]
 
 require "RST/RST"
@@ -541,7 +541,7 @@ end
 -- ---------------------------------------------------------------- npc (provider)
 
 local function provider()
-    local ok, P = pcall(require, "RadioSurvivor/RS_NPCProvider")
+    local ok, P = pcall(require, "CoreAI/CA_NPCProvider")
     if ok and type(P) == "table" and type(P.active) == "function" then return P end
     return nil
 end
@@ -557,9 +557,9 @@ end
 function F.npcReady()
     if isClientSide() then return false, "needs the authority (solo or server), not an MP client" end
     local P = provider()
-    if P == nil then return false, "no NPC provider active (RS_NPCProvider not loaded)" end
+    if P == nil then return false, "no NPC provider active (CA_NPCProvider not loaded)" end
     local name = tostring(P.active().name)
-    if not P.available() then return false, "no NPC provider active (RS_NPCProvider: " .. name .. ")" end
+    if not P.available() then return false, "no NPC provider active (CA_NPCProvider: " .. name .. ")" end
     if name ~= F.NPC_PROVIDER then
         return false, "the active NPC provider is " .. name .. ", not Living Knox (" .. F.NPC_PROVIDER .. ")"
     end
@@ -567,7 +567,7 @@ function F.npcReady()
     return true
 end
 
--- Body of the provider NPC id as RS_NPCProvider sees it, or nil.
+-- Body of the provider NPC id as CA_NPCProvider sees it, or nil.
 local function seenBody(P, id)
     local body = P.objects()[id]
     if body ~= nil and P.id(body) == id then return body end

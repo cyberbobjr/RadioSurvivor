@@ -31,8 +31,8 @@ seen barricaded is never counted. A barricade removed again stops counting. Squa
 (the count of an unloaded building stays the last verified one). Read by the engine poll of a participant
 (CA_Missions.observe, once a second on the server) at most every entry.scanMs per mission.
 Objective met when m.barricaded >= m.count (reportReady): the mission waits "to report" and succeeds by the report on
-the voice's frequency (RS_MissionVoice.report, CA_Missions.spoken). Notebook (RadioSurvivor MissionViews/
-RS_View_Barricade): place label, count; map: a circle around the building (m.mapZone, style Barricade). The voice is
+the voice's frequency (RS_MissionVoice.report, CA_Missions.spoken). Notebook (MissionViews/
+CA_View_Barricade): place label, count; map: a circle around the building (m.mapZone, style Barricade). The voice is
 told the job and the verified count, never a coordinate.
 ASCII only (Kahlua lexer).
 ]]

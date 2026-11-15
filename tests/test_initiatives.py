@@ -216,7 +216,7 @@ class InitiativeTests(unittest.TestCase):
         sim = self.world()
         alice = sim.character('alice')
         mate = self.server.ensure(self.g.LK_MATE)
-        provider = self.rt.eval("require('RadioSurvivor/RS_NPCProvider')")
+        provider = self.rt.eval("require('CoreAI/CA_NPCProvider')")
         barks = []
         provider.bark = lambda *args: barks.append(args)  # never called (E08-T09)
         self.step()

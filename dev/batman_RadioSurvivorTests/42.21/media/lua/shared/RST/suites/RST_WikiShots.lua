@@ -565,7 +565,7 @@ function W.groupScene(t, lang, E, p, Server, cid, home)
             t2:sleep(4000, function(t3)
                 shot(t3, lang, "group_home")
                 -- Nearest member the notebook can select.
-                local P = require "RadioSurvivor/RS_NPCProvider"
+                local P = require "CoreAI/CA_NPCProvider"
                 local C = require "RadioSurvivor/RS_Config"
                 local best, bestD
                 for _, npc in pairs(memberNpcs(gid)) do
@@ -664,7 +664,7 @@ local function notebookTest(lang)
         -- Circle of the engaged scouting mission on the world map.
         steps[#steps + 1] = function(t2, nextStep)
             w:setVisible(false)
-            local MapActions = require "RadioSurvivor/RS_MapActions"
+            local MapActions = require "CoreAI/CA_MapZones"
             MapActions.resetZonesForTests()
             local res = MapActions.zones(fixture.missions)
             t2:ok(res ~= nil, "map zones not drawn")

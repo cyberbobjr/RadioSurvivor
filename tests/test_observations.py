@@ -743,7 +743,7 @@ class WorldTriggerTests(unittest.TestCase):
         server = self.g.RS_CarnetServer
         mate = server.ensure(self.g.LK_MATE).id
         loner = server.ensure(self.g.LK_LONER).id
-        P = self.rt.eval("require('RadioSurvivor/RS_NPCProvider')")
+        P = self.rt.eval("require('CoreAI/CA_NPCProvider')")
         self.assertEqual(convert(P.presence(self.g.LK_MATE)), {'away': False, 'x': 10637, 'y': 9412})
         self.assertEqual(convert(P.presence(self.g.LK_LONER)), {'away': False})
         # Bodies out of the cell: the home of the group decides who hears the helicopter.

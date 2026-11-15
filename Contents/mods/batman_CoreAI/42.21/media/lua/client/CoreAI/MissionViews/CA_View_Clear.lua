@@ -1,10 +1,10 @@
 -- Notebook view of the template `clear` (E11-T04): kill zombies inside the circle drawn on the map.
-local Views = require 'RadioSurvivor/RS_MissionViews'
+local Views = require 'CoreAI/CA_MissionViews'
+local tr = Views.tr
 
 Views.register('clear', {
     showsPlace = true,
-    detail = function(row, line, ctx)
-        local tr = ctx.tr
+    detail = function(row, line)
         if row.mapZone then line(tr('ClearMapZone')) end
         line(tr('ClearProgress', row.kills, row.target))
         for _, part in ipairs(type(row.tally) == 'table' and row.tally or {}) do

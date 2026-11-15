@@ -127,4 +127,15 @@ function TextCut.endsSentence(piece)
     return classAt(piece, string.len(piece)) == 3
 end
 
+-- Text on a single line, without surrounding blanks (C22; in the core mod since E21-T03). Linear: the
+-- pattern "^%s*(.-)%s*$" backtracked in O(n^2) on a long run of blanks followed by a character; the edges are found by
+-- two finds (first and last non-blank character, each blank read once).
+function TextCut.oneLine(text)
+    text = string.gsub(tostring(text or ""), "[\r\n\t]", " ")
+    local first = string.find(text, "%S")
+    if not first then return "" end
+    local last = string.find(text, "%S%s*$", first)
+    return string.sub(text, first, last)
+end
+
 return TextCut

@@ -5,7 +5,7 @@ fixture PNJ du moteur de tests en jeu (RST.Fixtures.spawnNpc) et sa suite rst.fi
 
 Banc tests/harness.py (solo, ou serveur dédié + deux clients) avec les doublures du Java de tests/test_lk_bodies.py
 (création par addZombiesInOutfit -> createCorpse -> reanimate, retrait, liste des zombies). Le moteur est réel :
-LK_Store, LK_Bodies, LK_Server, LK_API, LK_APITest, le fournisseur du carnet RS_NPCProvider + RS_LivingKnox, le
+LK_Store, LK_Bodies, LK_Server, LK_API, LK_APITest, le fournisseur du carnet CA_NPCProvider + RS_LivingKnox, le
 moteur RST, ses fixtures et la suite en jeu. Les doublures NE PROUVENT PAS l'API réelle, seulement la logique.
 """
 from __future__ import annotations
@@ -23,7 +23,7 @@ import test_lk_bodies as tb  # noqa: E402
 API_TEST_FILE = LK_LUA / 'server' / 'LivingKnox' / 'LK_APITest.lua'
 
 LOAD = r'''
-for _, m in ipairs({ 'LivingKnox/LK_APITest', 'RadioSurvivor/RS_NPCProvider', 'RadioSurvivor/RS_LivingKnox' }) do
+for _, m in ipairs({ 'LivingKnox/LK_APITest', 'CoreAI/CA_NPCProvider', 'RadioSurvivor/RS_LivingKnox' }) do
     require(m)
 end
 '''
@@ -178,7 +178,7 @@ class SuiteTests(Base):
 
     def test_suite_passes_with_the_real_provider(self):
         self.init()
-        self.assertEqual(self.ev('require("RadioSurvivor/RS_NPCProvider").active().name'), 'livingknox')
+        self.assertEqual(self.ev('require("CoreAI/CA_NPCProvider").active().name'), 'livingknox')
         results = self.run_suite()
         self.assertEqual(len(results), 2)
         for test, status, msg in results:
@@ -192,7 +192,7 @@ class SuiteTests(Base):
         self.run_lua('SandboxVars = { LivingKnox = { Enabled = false } }')
         self.init()
         results = self.run_suite()
-        self.assertEqual(results, [(t, 'SKIP', 'no NPC provider active (RS_NPCProvider: none)') for t in
+        self.assertEqual(results, [(t, 'SKIP', 'no NPC provider active (CA_NPCProvider: none)') for t in
                                    ('spawnNpc makes an NPC seen by the provider',
                                     'the NPC is gone after the previous test')])
         self.assertEqual([c for c in self.calls() if c.startswith('addZombiesInOutfit')], [])

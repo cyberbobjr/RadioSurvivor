@@ -1014,7 +1014,7 @@ class SoloScenarioTests(unittest.TestCase):
 
     def test_history_without_provider_notebook_opened_late_and_reload(self):
         self.boot(True)
-        self.assertEqual(self.game.rt.eval("require('RadioSurvivor/RS_NPCProvider').active().name"), 'none')
+        self.assertEqual(self.game.rt.eval("require('CoreAI/CA_NPCProvider').active().name"), 'none')
         # The first hello has no stored character, no world and no run: it must still bind a notebook character.
         characters = self.characters()
         self.assertEqual(len(characters), 1, 'no notebook character after the first hello (empty args -> nil)')

@@ -1,10 +1,10 @@
---[[ Living Knox provider of the notebook (E17-T03): implements RS_NPCProvider on the Living Knox engine of this mod.
+--[[ Living Knox provider of the notebook (E17-T03): implements CA_NPCProvider on the Living Knox engine of this mod.
 
 Registration: when Living Knox is enabled (sandbox LivingKnox.Enabled), at OnInitGlobalModData (authority: sandbox
 already read, before RS_Carnet_Server.init, which is subscribed later because server files load after shared ones),
 OnGameStart and OnServerStarted (idempotent). Disabled: nothing is registered, the notebook keeps its empty provider
 ("No NPC engine active"). One NPC engine per server (decision of 2026-10-03): when another provider already holds
-RS_NPCProvider, Living Knox is NOT registered a second time; a console warning names the active provider.
+CA_NPCProvider, Living Knox is NOT registered a second time; a console warning names the active provider.
 
 Identity: the provider id IS the Living Knox NPC id "lk-<n>" (never reused, LK_Identity), the same on the server and
 on every client; it survives re-embodiments (a new body of the same NPC keeps its id), so no 'reincarnated' event is
@@ -18,7 +18,7 @@ group = "grp-<n>" ('' without group); groupName = name of the group (nil without
 group: unknown, no offer); traits from the group member (smoker, drinker -> alcoholic, tidy -> compulsiveCleaner).
 Death: LivingKnox.Bodies.onDied (authority) emits Provider 'death' (id, body, cause).
 
-Supplies (optional provider operations, RS_NPCProvider header): offers of LivingKnox.API.missionOffers for the
+Supplies (optional provider operations, CA_NPCProvider header): offers of LivingKnox.API.missionOffers for the
 group of the NPC and the notebook character (player key of LK_Hostility), deliveries by LivingKnox.API.deliver
 (receipt key = transaction token of the notebook: a replay never raises a reserve twice). A completed delivery
 records the attitude fact "delivery" for the delivering character (LK_Hostility.record, attributable).
@@ -50,7 +50,7 @@ require 'LivingKnox/LK_Core'
 require 'LivingKnox/LK_Config'
 
 -- Without RadioSurvivor: no RadioSurvivor module is required, RS_LivingKnox stays nil and nothing is registered.
-local P = LivingKnox.radioSurvivorActive() and require('RadioSurvivor/RS_NPCProvider') or nil
+local P = LivingKnox.radioSurvivorActive() and require('CoreAI/CA_NPCProvider') or nil
 
 local LK = {name = 'livingknox'}
 LivingKnox.NpcProvider = LK -- E18-T18: provider of the speech of Living Knox alone
@@ -105,7 +105,7 @@ function LK.bubble(object, text, range)
     local V = engine() and engine().SpeechView
     if V and V.show then return V.show(object, text, LK.BUBBLE_COLOR, LK.id(object)) end
     object:addLineChatElement(text, LK.BUBBLE_COLOR[1], LK.BUBBLE_COLOR[2], LK.BUBBLE_COLOR[3], UIFont.Medium, range,
-        'RS_Speech', false, false, false, false, false, true)
+        'CA_Speech', false, false, false, false, false, true)
 end
 
 function LK.id(object)
@@ -510,7 +510,7 @@ end
 
 -- ---------------------------------------------------------------- supplies (authority)
 
--- Open offers of the NPC group for this character, in the provider-neutral shape of RS_NPCProvider.supplies.
+-- Open offers of the NPC group for this character, in the provider-neutral shape of CA_NPCProvider.supplies.
 function LK.supplies(id, character)
     local E = engine()
     local API = E.API

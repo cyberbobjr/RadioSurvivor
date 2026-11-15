@@ -46,9 +46,9 @@ local function shown(id)
     return nil
 end
 
--- Zone symbols (colour signature of RS_MapActions) at the centre of the circle and over it.
+-- Zone symbols (colour signature of CA_MapZones) at the centre of the circle and over it.
 local function zoneSymbols(z)
-    local MapActions = require "RadioSurvivor/RS_MapActions"
+    local MapActions = require "CoreAI/CA_MapZones"
     local api = MapActions.symbolsAPI()
     if api == nil then return nil end
     local c, tol, eps = MapActions.ZONE_COLOR, MapActions.ZONE_COLOR_TOLERANCE, 0.01

@@ -183,7 +183,7 @@ LK.Hostility = {
     end,
 }
 
--- Notebook provider over these bodies (RS_NPCProvider interface used by RS_Relations, RS_Incidents, the suites).
+-- Notebook provider over these bodies (CA_NPCProvider interface used by RS_Relations, RS_Incidents, the suites).
 local function dist(a, b)
     local dx, dy = a:getX() - b:getX(), a:getY() - b:getY()
     return math.sqrt(dx * dx + dy * dy)
@@ -211,7 +211,7 @@ P = {
     near = function(a, b, range) return a ~= nil and b ~= nil and dist(a, b) <= range end,
     hears = function(a, b, range) return a ~= nil and b ~= nil and dist(a, b) <= range end,
 }
-package.loaded["RadioSurvivor/RS_NPCProvider"] = P
+package.loaded["CoreAI/CA_NPCProvider"] = P
 package.loaded["RadioSurvivor/RS_BridgeLanes"] = { readResponses = function() return BRIDGE end }
 BRIDGE = nil
 

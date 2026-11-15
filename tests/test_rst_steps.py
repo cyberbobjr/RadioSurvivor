@@ -766,7 +766,7 @@ function materialize()
         for _, m in pairs(g.members) do OBJECTS[m.npc] = standingBody(m.npc); BODIES[m.npc] = OBJECTS[m.npc] end
     end
 end
-package.loaded["RadioSurvivor/RS_NPCProvider"] = { objects = function() return OBJECTS end }
+package.loaded["CoreAI/CA_NPCProvider"] = { objects = function() return OBJECTS end }
 package.loaded["RadioSurvivor/RS_GroupRadio"] = { refresh = function() REFRESHED = REFRESHED + 1 end }
 """
 

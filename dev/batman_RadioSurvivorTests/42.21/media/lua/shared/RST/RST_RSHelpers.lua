@@ -351,7 +351,7 @@ function R.select(t, c, after)
                 -- Why the server refused (select needs Provider.near: same floor, SELECT_RANGE, CanSee).
                 local body = c.Server.objects[c.fiche.id]
                 if body == nil or c.p == nil then return "npc not selected by the notebook (body not mapped)" end
-                local P = require "RadioSurvivor/RS_NPCProvider"
+                local P = require "CoreAI/CA_NPCProvider"
                 local C = require "RadioSurvivor/RS_Config"
                 return "npc not selected by the notebook (body at " .. R.at(body) .. ", player at " .. R.at(c.p)
                     .. ", near " .. tostring(P.near(c.p, body, C.SELECT_RANGE)) .. ", sight " .. R.sightOf(c.p, body)

@@ -2,7 +2,7 @@ if isClient() then return end
 if RS_CarnetServer then return RS_CarnetServer end
 local C = require 'RadioSurvivor/RS_Config'
 local Codec = require 'CoreAI/CA_Codec'
-local P = require 'RadioSurvivor/RS_NPCProvider'; local WorldStart = require 'CoreAI/CA_WorldStart'
+local P = require 'CoreAI/CA_NPCProvider'; local WorldStart = require 'CoreAI/CA_WorldStart'
 local S = require 'RadioSurvivor/RS_State'; require 'CoreAI/CA_MissionClear' -- E11-T04: template clear
 local Identity = require 'CoreAI/CA_Identity' -- E18-T03: identity of the characters (core mod)
 local M = require 'CoreAI/CA_Missions'
@@ -137,7 +137,7 @@ local function scan()
     Server.objects = objects
 end
 
--- The provider recreated an NPC under a new id ('reincarnated' event of RS_NPCProvider): keep the
+-- The provider recreated an NPC under a new id ('reincarnated' event of CA_NPCProvider): keep the
 -- canonical fiche (memories, agreements, missions) on the new incarnation. Nothing else migrates.
 function Server.reincarnated(oldSignature, newId, newSignature)
     if not S.data or type(oldSignature) ~= 'string' or type(newSignature) ~= 'string' then return end
@@ -443,7 +443,7 @@ function Server.killerCharacter(account)
     return key
 end
 
--- 'death' event of RS_NPCProvider: the provider body with this id died. cause (optional, E04-T06) is established on
+-- 'death' event of CA_NPCProvider: the provider body with this id died. cause (optional, E04-T06) is established on
 -- the authority by the engine (LK_Bodies.deathCause: last hit of a player within 5 s, driver of a vehicle; fire,
 -- trap without thrower, unseen death: no killer). E04-T07: a killer who takes part in an active mission of this
 -- requester loses Reputation.requesterKilled (Q7), this character only, once per death (eventId

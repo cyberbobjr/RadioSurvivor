@@ -33,12 +33,12 @@ end
 
 local function mapActions()
     if type(isServer) == "function" and isServer() then return nil end
-    local ok, MapActions = pcall(require, "RadioSurvivor/RS_MapActions")
+    local ok, MapActions = pcall(require, "CoreAI/CA_MapZones")
     if ok and type(MapActions) == "table" and MapActions.symbolsAPI() ~= nil then return MapActions end
     return nil
 end
 
--- Mission rows given to MapActions.zones: the test row first, then the real notebook missions (their areas stay).
+-- Mission rows given to CA_MapZones.zones: the test row first, then the real notebook missions (their areas stay).
 local function rowsWith(row)
     local rows = { row }
     local client = RS_CarnetClient

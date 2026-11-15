@@ -64,7 +64,7 @@ LUA_FILES = [
     ('RadioSurvivor/RS_Config', MOD_LUA / 'shared' / 'RadioSurvivor' / 'RS_Config.lua'),
     ('CoreAI/CA_Bridge', CORE_LUA / 'shared' / 'CoreAI' / 'CA_Bridge.lua'),  # E18-T04 : RadioSurvivor_Const
     ('CoreAI/CA_Codec', CORE_LUA / 'shared' / 'CoreAI' / 'CA_Codec.lua'),
-    ('RadioSurvivor/RS_NPCProvider', MOD_LUA / 'shared' / 'RadioSurvivor' / 'RS_NPCProvider.lua'),  # RS_MissionHooks
+    ('CoreAI/CA_NPCProvider', CORE_LUA / 'shared' / 'CoreAI' / 'CA_NPCProvider.lua'),  # RS_MissionHooks
     ('CoreAI/CA_GameClock', CORE_LUA / 'shared' / 'CoreAI' / 'CA_GameClock.lua'),  # CA_Missions (E11-T20)
     # E18-T03 : identité des personnages du mod commun (LK_Hostility.keyOf) et ses dépendances.
     ('CoreAI/CA_RateLimit', CORE_LUA / 'shared' / 'CoreAI' / 'CA_RateLimit.lua'),
@@ -95,9 +95,11 @@ LUA_FILES = [
     *[(f'RadioSurvivor/TradeArrivals/{p.stem}', p)
       for p in sorted((MOD_LUA / 'server' / 'RadioSurvivor' / 'TradeArrivals').glob('*.lua'),
                       key=lambda p: p.name.lower())],
+    ('CoreAI/CA_TextCut', CORE_LUA / 'shared' / 'CoreAI' / 'CA_TextCut.lua'),  # E21-T03 : RadioSurvivor_Const.oneLine
     ('RadioSurvivor/RadioSurvivor_Const', MOD_LUA / 'shared' / 'RadioSurvivor' / 'RadioSurvivor_Const.lua'),
     ('RadioSurvivor/RS_Personas', MOD_LUA / 'server' / 'RadioSurvivor' / 'RS_Personas.lua'),
     ('RadioSurvivor/RS_RadioHistory', MOD_LUA / 'client' / 'RadioSurvivor' / 'RS_RadioHistory.lua'),
+    ('CoreAI/CA_MapZones', CORE_LUA / 'client' / 'CoreAI' / 'CA_MapZones.lua'),  # E21-T03 : RS_MapActions
     ('RadioSurvivor/RS_MapActions', MOD_LUA / 'client' / 'RadioSurvivor' / 'RS_MapActions.lua'),
     ('RadioSurvivor/RS_RadioTalk', MOD_LUA / 'client' / 'RadioSurvivor' / 'RS_RadioTalk.lua'),
     ('LivingKnox/LK_Core', LK_LUA / 'shared' / 'LivingKnox' / 'LK_Core.lua'),

@@ -124,7 +124,7 @@ class RetrieveMissionTests(unittest.TestCase):
         self.world(sim)
         sim.add_client('alice'); sim.add_client('bob'); sim.select('alice')
         npc = next(iter(sim.state().npcs.values()))
-        record = sim.server.rt.eval("require('RadioSurvivor/RS_NPCProvider')").npc(2001)
+        record = sim.server.rt.eval("require('CoreAI/CA_NPCProvider')").npc(2001)
         missions = sim.server.rt.eval("require('CoreAI/CA_Missions')")
         return sim, npc, record, missions
 
@@ -323,28 +323,28 @@ class RetrieveMissionTests(unittest.TestCase):
         c.rt.execute(NOTEBOOK_UI)
         c.rt.execute("getScriptManager = function() return {FindItem = function() return nil end} end")
         c.load('client/RS_Carnet_Client.lua')
-        maps = c.rt.eval("require('RadioSurvivor/RS_MapActions')")
+        maps = c.rt.eval("require('CoreAI/CA_MapZones')")
         maps.resetForTests(); maps.resetZonesForTests()
         sim.command('alice', 'snapshot', world=c.g.RS_CarnetClient.world, run=c.g.RS_CarnetClient.run)
         texts = [convert(s)['text'] for s in lua_list(c.rt.eval('mapSymbols()')) if convert(s)['kind'] == 'text']
-        self.assertEqual(texts, ['IGUI_RS_MapZoneSearch|Real Bandit'])
+        self.assertEqual(texts, ['IGUI_CA_MapZoneSearch|Real Bandit'])
         c.g.RS_Notebook.toggle()
         window = c.g.RS_CarnetClient.window
         window.changeTab(window, 'Missions')
         label = c.rt.eval('RS_CarnetClient.window.list.items[1].text')
         self.assertTrue(label.startswith('IGUI_CA_Mission_Retrieve - '), label)
-        for key in ('IGUI_RS_ScoutPlace', 'IGUI_RS_ScoutClues', 'IGUI_RS_RetrieveMapZone', 'IGUI_RS_RetrieveNotFound',
-                    'IGUI_RS_RetrieveReport'):
+        for key in ('IGUI_RS_ScoutPlace', 'IGUI_RS_ScoutClues', 'IGUI_CA_RetrieveMapZone', 'IGUI_CA_RetrieveNotFound',
+                    'IGUI_CA_RetrieveReport'):
             self.assertIn(key, window.detail.text)
-        self.assertNotIn('IGUI_RS_Progress', window.detail.text)
-        self.assertNotIn('IGUI_RS_ScoutReport', window.detail.text)
+        self.assertNotIn('IGUI_CA_Progress', window.detail.text)
+        self.assertNotIn('IGUI_CA_ScoutReport', window.detail.text)
         self.assertTrue(window.deliver.isVisible(window.deliver), 'no delivery button for the card')
         body = self.place(sim, m)
         self.take(sim, 'alice', body, m.cardId)
         self.poll(sim)
         window.changeTab(window, 'Missions')
-        self.assertIn('IGUI_RS_RetrievePerson|Jane1 Roe', window.detail.text)
-        self.assertIn('IGUI_RS_RetrieveFound|alice Doe', window.detail.text)
+        self.assertIn('IGUI_CA_RetrievePerson|Jane1 Roe', window.detail.text)
+        self.assertIn('IGUI_CA_RetrieveFound|alice Doe', window.detail.text)
 
     def test_offline_bridge_tells_the_offer(self):
         req = {'kind': 'npc_talk', 'language': 'EN', 'offers': {'retrieve_id_v1': {

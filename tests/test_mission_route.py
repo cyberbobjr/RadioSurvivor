@@ -207,7 +207,7 @@ class RouteMissionTests(unittest.TestCase):
         c.rt.execute(NOTEBOOK_UI)
         c.rt.execute("getScriptManager = function() return {FindItem = function() return nil end} end")
         c.load('client/RS_Carnet_Client.lua')
-        maps = c.rt.eval("require('RadioSurvivor/RS_MapActions')")
+        maps = c.rt.eval("require('CoreAI/CA_MapZones')")
         maps.resetForTests(); maps.resetZonesForTests()
 
         def snapshot():
@@ -216,28 +216,28 @@ class RouteMissionTests(unittest.TestCase):
             return (sorted(s['text'] for s in drawn if s['kind'] == 'text'),
                     sorted((s['x'], s['y']) for s in drawn if s['kind'] == 'texture'))
 
-        self.assertEqual(snapshot(), (['IGUI_RS_MapZoneRoute|Point A'], [(40, 10)]))
+        self.assertEqual(snapshot(), (['IGUI_CA_MapZoneRoute|Point A'], [(40, 10)]))
         c.g.RS_Notebook.toggle()
         window = c.g.RS_CarnetClient.window
         window.changeTab(window, 'Missions')
         text = window.detail.text
-        for key in ('IGUI_RS_RouteProgress|0|3', 'IGUI_RS_RouteNext|Point A', 'IGUI_RS_RouteMapZone',
-                    'IGUI_RS_RouteRule', 'IGUI_RS_RouteReport'):
+        for key in ('IGUI_CA_RouteProgress|0|3', 'IGUI_CA_RouteNext|Point A', 'IGUI_CA_RouteMapZone',
+                    'IGUI_CA_RouteRule', 'IGUI_CA_RouteReport'):
             self.assertIn(key, text)
         self.assertNotIn('Point B', text)
         self.assertFalse(window.deliver.isVisible(window.deliver), 'delivery button for a route mission')
         self.go(sim, store, 'a')
-        self.assertEqual(snapshot(), (['IGUI_RS_MapZoneRoute|Point A', 'IGUI_RS_MapZoneRoute|Point B'],
+        self.assertEqual(snapshot(), (['IGUI_CA_MapZoneRoute|Point A', 'IGUI_CA_MapZoneRoute|Point B'],
                                       [(40, 10), (40, 40)]))
         window.changeTab(window, 'Missions')
-        self.assertIn('IGUI_RS_RouteProgress|1|3', window.detail.text)
-        self.assertIn('IGUI_RS_RouteNext|Point B', window.detail.text)
+        self.assertIn('IGUI_CA_RouteProgress|1|3', window.detail.text)
+        self.assertIn('IGUI_CA_RouteNext|Point B', window.detail.text)
         self.go(sim, store, 'b')
         self.go(sim, store, 'c')
         self.assertEqual(len(snapshot()[1]), 3)
         window.changeTab(window, 'Missions')
-        self.assertIn('IGUI_RS_RouteProgress|3|3', window.detail.text)
-        self.assertIn('IGUI_RS_RouteAllCrossed', window.detail.text)
+        self.assertIn('IGUI_CA_RouteProgress|3|3', window.detail.text)
+        self.assertIn('IGUI_CA_RouteAllCrossed', window.detail.text)
 
 
 class RouteBriefTests(unittest.TestCase):

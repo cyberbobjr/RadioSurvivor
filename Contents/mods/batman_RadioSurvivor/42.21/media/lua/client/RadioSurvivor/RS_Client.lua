@@ -1,6 +1,6 @@
 if RS_CarnetClient then return RS_CarnetClient end
 local C = require 'RadioSurvivor/RS_Config'
-local P = require 'RadioSurvivor/RS_NPCProvider'
+local P = require 'CoreAI/CA_NPCProvider'
 local Client = {snapshot = {contacts = {}, missions = {}, inviteTargets = {}, events = {}}, seen = {}, seenOrder = {}, inbox = {}}
 RS_CarnetClient = Client
 local wrappedChat, wrappedSay = false, false
@@ -194,9 +194,9 @@ function Client.receive(command, args)
                 if npc.id == args.selected then HaloTextHelper.addGoodText(p, npc.name); break end
             end
         end
-        -- E11-T10: approximate areas of the active scout missions drawn on (or removed from) the world map.
-        local MapActions = require 'RadioSurvivor/RS_MapActions'
-        if type(MapActions) == 'table' then MapActions.zones(args.missions) end
+        -- E11-T10: approximate areas of the active missions drawn on (or removed from) the world map (CoreAI, E21-T03).
+        local MapZones = require 'CoreAI/CA_MapZones'
+        if type(MapZones) == 'table' then MapZones.zones(args.missions) end
         if Client.window then Client.window:refresh() end
     elseif command == 'error' then
         if p then HaloTextHelper.addBadText(p, getText('IGUI_RS_Error_' .. tostring(args.reason))) end

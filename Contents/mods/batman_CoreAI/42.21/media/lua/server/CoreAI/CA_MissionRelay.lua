@@ -30,7 +30,7 @@ IsoWaveSignal.removeFromWorld, IsoWaveSignal.java:331-338). Read by the engine p
 (CA_Missions.observe, once a second on the server) at most every entry.scanMs per mission, and again when the report
 is checked, so that a radio turned off, unpowered or taken away refuses the report at once.
 Objective met while m.relayed (reportReady): the mission waits "to report" and succeeds by the report on the voice's
-frequency (RS_MissionVoice.report, CA_Missions.spoken). Notebook (RadioSurvivor MissionViews/RS_View_Relay): place
+frequency (RS_MissionVoice.report, CA_Missions.spoken). Notebook (MissionViews/CA_View_Relay): place
 label, lowest level, yes/no; map: a circle around the spot (m.mapZone, style Relay). The voice is told the job and the
 verified yes/no, never a coordinate.
 ASCII only (Kahlua lexer).

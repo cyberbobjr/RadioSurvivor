@@ -527,7 +527,7 @@ class RadioModuleSuiteTests(SuiteHarness):
 
     def setUp(self):
         super().setUp()
-        self.lua(f'package.path = [[{(MOD_LUA / "client").as_posix()}/?.lua;]] .. package.path')
+        self.lua(f'package.path = [[{(MOD_LUA / "client").as_posix()}/?.lua;{(CORE_LUA / "client").as_posix()}/?.lua;]] .. package.path')
         self.lua(trm.STUBS)
         self.lua(RADIO_ITEMS)
         # Traductions EN réelles (clé inconnue rendue telle quelle, %1 remplacé comme Translator).

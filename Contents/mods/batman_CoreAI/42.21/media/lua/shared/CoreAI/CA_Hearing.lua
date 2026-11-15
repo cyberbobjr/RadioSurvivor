@@ -1,5 +1,5 @@
 --[[
-CoreAI: who can talk to whom, for every mod that makes characters speak (E18-T18, moved from RS_NPCProvider,
+CoreAI: who can talk to whom, for every mod that makes characters speak (E18-T18, moved from CA_NPCProvider,
 same rules), and the personality derived from an identity. Plain functions on game objects, any side.
 
     Hearing.near(a, b, range) -> boolean       same floor, within range, seen

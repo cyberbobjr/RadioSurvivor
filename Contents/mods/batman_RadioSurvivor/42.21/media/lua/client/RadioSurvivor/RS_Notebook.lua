@@ -20,7 +20,8 @@ local History = require 'RadioSurvivor/RS_RadioHistory'
 -- "Say" line of the Radio tab (E06-T06): same send path, checks and delay as the radio window module.
 local Talk = require 'RadioSurvivor/RS_RadioTalk'
 local MissionList = require 'CoreAI/CA_MissionList' -- E18-T06: state shown, as in the core mod
-local Views = require 'RadioSurvivor/RS_MissionViews' -- E20-T01: lines of each mission template
+local Views = require 'CoreAI/CA_MissionViews' -- E20-T01: lines of each mission template (core mod, E21-T03)
+require 'RadioSurvivor/RS_VoiceMissionViews' -- E21-T03: presentation of the missions of a radio voice
 
 local RS_MOD = 'batman_RadioSurvivor'
 local COLOR, INK_TAG, DOT = UI.COLOR, UI.INK_TAG, UI.DOT
@@ -482,9 +483,11 @@ local function missionDetail(self, row, line)
     line(getText(row.titleKey)); line(tr('Requester', row.requester))
     -- E11-T13: objective met, the report to the requester is expected (in person, or on the voice's frequency).
     line(tr('State_' .. MissionList.stateKey(row)))
-    -- E11-T08: mission given by a radio voice: no body to join, report on its frequency, information as reward.
-    local voice = row.donor == 'voice'
-    -- E20-T01: lines proper to the template come from its view (RS_MissionViews, one file per template).
+    -- E11-T08: mission given by a remote giver (a radio voice): no body to join, report on its frequency.
+    -- E21-T03: presentation of the giver kind from the core registry (RS_VoiceMissionViews for a voice).
+    local giver = Views.giver(row.donor)
+    local remote = giver.remote == true
+    -- E20-T01: lines proper to the template come from its view (CA_MissionViews, one file per template).
     local view = Views.get(row.template)
     if view and view.showsPlace then
         if row.placeKind and row.placeKind ~= '' then line(tr('ScoutPlace', placeName(row.placeKind))) end
@@ -500,31 +503,30 @@ local function missionDetail(self, row, line)
         end
     end
     if view then
-        view.detail(row, line, {tr = tr, placeName = placeName, clueText = clueText, itemName = itemName, voice = voice})
+        view.detail(row, line, {tr = tr, placeName = placeName, clueText = clueText, itemName = itemName})
     end
     line(tr('Time', math.ceil(row.remainingMs / 60000)))
     if row.rewardCount > 0 then line(tr('Reward', row.rewardCount, itemName(row.rewardType)))
     elseif row.unit == 'value' then line(tr('RewardGoodwill'))
     else line(tr('RewardInformation')) end
     line(tr('Participants', table.concat(row.participants, ', ')))
-    if row.toReport then line(row.donor == 'voice' and tr('ReportRadio', row.requester)
-        or tr('ReportInPerson', row.requester)) end
+    if row.toReport then line(giver.reportLine and giver.reportLine(row) or tr('ReportInPerson', row.requester)) end
     -- E20-T01: a hand-over of items (template declaration handover, projected by the engine).
     if row.handover then line(tr('NoRefund')) end
     if row.claimedName ~= '' then line(tr('ClaimedBy', row.claimedName)) end
     if row.recovery then line(tr('Error_Recovery')) end
-    if not row.near and not voice then line(tr('JoinRequester')) end
+    if not row.near and not remote then line(tr('JoinRequester')) end
     self.accept:setVisible(row.invited and not row.engaged and (row.state == 'offer' or row.state == 'active'))
     enable(self.accept, not row.recovery)
     self.deliver:setVisible(row.engaged and row.state == 'active' and row.handover == true)
     enable(self.deliver, row.near and not row.recovery)
-    self.report:setVisible(row.engaged and row.state == 'active' and row.toReport == true and not voice)
+    self.report:setVisible(row.engaged and row.state == 'active' and row.toReport == true and not remote)
     enable(self.report, row.near and not row.recovery)
     self.claim:setVisible(row.engaged and row.state == 'success' and row.rewardCount > 0)
     enable(self.claim, row.near and row.claimedName == '' and not row.recovery)
     self.abandon:setVisible(row.engaged and row.state == 'active')
     enable(self.abandon, not row.recovery)
-    if row.engaged and row.state == 'active' and not voice then
+    if row.engaged and row.state == 'active' and not remote then
         self.invite:setVisible(true); enable(self.invite, row.near and #(Client.snapshot.inviteTargets or {}) > 0)
         local selected = self.inviteTargets and self.inviteTargets[self.inviteChoice.selected]
         self.inviteTargets = Client.snapshot.inviteTargets or {}

@@ -78,7 +78,7 @@ class ClearMissionTests(unittest.TestCase):
         self.world(sim)
         sim.select('alice')
         npc = next(iter(sim.state().npcs.values()))
-        record = sim.server.rt.eval("require('RadioSurvivor/RS_NPCProvider')").npc(2001)
+        record = sim.server.rt.eval("require('CoreAI/CA_NPCProvider')").npc(2001)
         missions = sim.server.rt.eval("require('CoreAI/CA_Missions')")
         return sim, npc, record, missions
 
@@ -282,21 +282,21 @@ class ClearMissionTests(unittest.TestCase):
         c.rt.execute(NOTEBOOK_UI)
         c.rt.execute("getScriptManager = function() return {FindItem = function() return nil end} end")
         c.load('client/RS_Carnet_Client.lua')
-        maps = c.rt.eval("require('RadioSurvivor/RS_MapActions')")
+        maps = c.rt.eval("require('CoreAI/CA_MapZones')")
         maps.resetForTests(); maps.resetZonesForTests()
         self.kill(sim, 'alice')
         sim.command('alice', 'snapshot', world=c.g.RS_CarnetClient.world, run=c.g.RS_CarnetClient.run)
         texts = [convert(s)['text'] for s in lua_list(c.rt.eval('mapSymbols()')) if convert(s)['kind'] == 'text']
-        self.assertEqual(texts, ['IGUI_RS_MapZoneClear|Real Bandit'])
+        self.assertEqual(texts, ['IGUI_CA_MapZoneClear|Real Bandit'])
         c.g.RS_Notebook.toggle()
         window = c.g.RS_CarnetClient.window
         window.changeTab(window, 'Missions')
         label = c.rt.eval('RS_CarnetClient.window.list.items[1].text')
         self.assertTrue(label.startswith('IGUI_CA_Mission_Clear - '), label)
-        for key in ('IGUI_RS_ScoutPlace', 'IGUI_RS_ScoutClues', 'IGUI_RS_ClearMapZone', 'IGUI_RS_ClearProgress|1',
-                    'IGUI_RS_ClearBy|alice Doe', 'IGUI_RS_ClearRule', 'IGUI_RS_ClearReport'):
+        for key in ('IGUI_RS_ScoutPlace', 'IGUI_RS_ScoutClues', 'IGUI_CA_ClearMapZone', 'IGUI_CA_ClearProgress|1',
+                    'IGUI_CA_ClearBy|alice Doe', 'IGUI_CA_ClearRule', 'IGUI_CA_ClearReport'):
             self.assertIn(key, window.detail.text)
-        for key in ('IGUI_RS_Progress', 'IGUI_RS_ScoutReport', 'IGUI_RS_NoRefund'):
+        for key in ('IGUI_CA_Progress', 'IGUI_CA_ScoutReport', 'IGUI_RS_NoRefund'):
             self.assertNotIn(key, window.detail.text)
         self.assertFalse(window.deliver.isVisible(window.deliver), 'delivery button for a clear mission')
 

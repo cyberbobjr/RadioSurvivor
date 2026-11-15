@@ -176,7 +176,7 @@ local function setup(t)
     end
     t:ok(type(cid) == "string", "no notebook character bound to the requester")
     return { Server = Server, S = Server.store, C = C, E = E, API = E.API, p = p, cid = cid,
-        Obs = require "LivingKnox/LK_Observations", P = require "RadioSurvivor/RS_NPCProvider",
+        Obs = require "LivingKnox/LK_Observations", P = require "CoreAI/CA_NPCProvider",
         M = require "CoreAI/CA_Missions" }
 end
 

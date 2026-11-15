@@ -27,7 +27,7 @@ Deposit (dead drops of the giver, RadioSurvivor's RS_DeadDrops: all marked on th
 view after a delay in game hours): only the item whose id is m.itemId is taken (strategy dropAccepts =
 M.onlyItem('itemId')); another item of the same type is left where it is. Once collected (m.delivered = quantity = 1),
 the objective is met and the radio report succeeds without touching any inventory (check of 'speech').
-Notebook (RadioSurvivor MissionViews/RS_View_Item): name of the item, place label, found or not, drop points; map: a
+Notebook (MissionViews/CA_View_Item): name of the item, place label, found or not, drop points; map: a
 circle around the place (m.mapZone, style Item). The voice is told the item's name, the place and the drop labels,
 whether the item was found and collected; never a coordinate nor the item id.
 ASCII only (Kahlua lexer).

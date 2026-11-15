@@ -291,7 +291,7 @@ class GroupRadioTests(unittest.TestCase):
         for coord in ('11201', '8803'):
             self.assertNotIn(coord, channel.uuid)
             self.assertNotIn(coord, json.dumps(convert(sheet)))
-        entry = [e for e in lua_list(self.rt.eval('require("RadioSurvivor/RS_NPCProvider").radios()'))
+        entry = [e for e in lua_list(self.rt.eval('require("CoreAI/CA_NPCProvider").radios()'))
                  if e.ref == self.g.LK_CAMP]
         self.assertEqual(len(entry), 1)
         self.assertEqual(entry[0].speaker, self.g.LK_CAMP_BOSS, 'the raider leader does not answer')

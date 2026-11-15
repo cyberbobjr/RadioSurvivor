@@ -495,7 +495,7 @@ LK.Hostility = { record = function(gid, key, fact, opts)
     return { level = 0 }
 end }
 
--- Notebook provider (RS_NPCProvider interface) over the bodies above.
+-- Notebook provider (CA_NPCProvider interface) over the bodies above.
 local function dist(a, b)
     local dx, dy = a:getX() - b:getX(), a:getY() - b:getY()
     return math.sqrt(dx * dx + dy * dy)
@@ -514,7 +514,7 @@ P = {
     near = function(a, b, range) return a ~= nil and b ~= nil and dist(a, b) <= range end,
     presence = function() return nil end,
 }
-package.loaded["RadioSurvivor/RS_NPCProvider"] = P
+package.loaded["CoreAI/CA_NPCProvider"] = P
 
 -- RS_Missions reduced to create / accept / finish and its optional listener (RS_Missions.lua:87-160).
 -- Result listeners heard once per participant of a closed mission (CA_Missions, E18-T05), not for a cancellation.

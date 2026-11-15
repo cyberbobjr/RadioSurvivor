@@ -66,7 +66,7 @@ end
 
 -- Ordinary zombies (no Living Knox tag) within r squares of the player removed: the test npc engages a zombie up to
 -- 10 squares away (LK06-T14) and may leave the house to fight it; the player inside then cannot hear its answer
--- (RS_NPCProvider.hears: one inside, one outside = no line), and the request ends without any history (in-game run of
+-- (CA_NPCProvider.hears: one inside, one outside = no line), and the request ends without any history (in-game run of
 -- 2026-10-13: lk-219 and lk-220 fought zombie z@100006 in the yard, both "help" answers were never heard).
 local CLEAR_RADIUS = 20
 local function clearZombies(t, p)
@@ -103,7 +103,7 @@ local function lostAnswer(c, reqId)
             local body = c.Server.objects[c.fiche.id]
             local where = body and string.format("npc at %d,%d, player at %d,%d", math.floor(body:getX()),
                 math.floor(body:getY()), math.floor(c.p:getX()), math.floor(c.p:getY())) or "npc body not mapped"
-            return "answer applied by the server but not heard by the player (RS_NPCProvider.hears; " .. where .. ")"
+            return "answer applied by the server but not heard by the player (CA_NPCProvider.hears; " .. where .. ")"
         end
     end
     return "answer refused or not heard (acknowledgement already confirmed by the bridge; see the [LK_Talk] lines)"
@@ -139,7 +139,7 @@ local function setup(t, after)
         local c = { Server = Server, C = C, p = p, cid = cid, id = id, fiche = fiche, gid = gid, group = g,
             groupName = g.name, words = SENTENCES[R.language()] }
         R.select(t2, c, function(t3)
-            local P = require "RadioSurvivor/RS_NPCProvider"
+            local P = require "CoreAI/CA_NPCProvider"
             local full = P.context(id, cid, R.language()) or {}
             c.leaderName = full.leaderName
             c.contact = Server.store.data.characters[cid].contacts[fiche.id]

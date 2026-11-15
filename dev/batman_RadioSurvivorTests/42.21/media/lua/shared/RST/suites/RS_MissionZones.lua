@@ -72,12 +72,12 @@ RST.suite("rs.mission.zones", { tags = { "server" }, testTimeoutMs = 60000 }, fu
         local m = accepted(t, M, T, Config.Missions.retrieve_id, "rst-zones-retrieve", p)
         local _, rings = PC2.zoneRow(M, m, "char1", "probe")
         t:eq(1, #rings, "circles of the accepted mission")
-        zonesChain(t, M, m, rings, "IGUI_RS_RetrieveFound")
+        zonesChain(t, M, m, rings, "IGUI_CA_RetrieveFound")
     end)
 
     s.test("recover: cache and depot circles drawn, kept once found, removed after the success (E11-T06)", function(t)
         local M, T, Config = modules(t, "recover")
-        local P = require "RadioSurvivor/RS_NPCProvider"
+        local P = require "CoreAI/CA_NPCProvider"
         local p = RST.Fixtures.player(t)
         if not p then t:skip("no target player") end
         local ox, oy, oz = math.floor(p:getX()), math.floor(p:getY()), math.floor(p:getZ())
@@ -86,10 +86,10 @@ RST.suite("rs.mission.zones", { tags = { "server" }, testTimeoutMs = 60000 }, fu
             if id == "rst-zones-recover" then return { away = false, x = ox, y = oy, z = oz } end
             return presence(id)
         end
-        t:defer(function() P.presence = presence end, "restore RS_NPCProvider.presence")
+        t:defer(function() P.presence = presence end, "restore CA_NPCProvider.presence")
         local m = accepted(t, M, T, Config.Missions.recover, "rst-zones-recover", p)
         local _, rings = PC2.zoneRow(M, m, "char1", "probe")
         t:eq(2, #rings, "circles of the accepted mission (cache area, depot)")
-        zonesChain(t, M, m, rings, "IGUI_RS_RecoverFound")
+        zonesChain(t, M, m, rings, "IGUI_CA_RecoverFound")
     end)
 end)

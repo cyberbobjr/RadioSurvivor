@@ -18,8 +18,8 @@ Place: drawn as the scout template (CA_MissionScout.pick: habitable building at 
 60 tiles at least from any known base, nothing loaded), kept per requester for siteTtlMs in a memory of this file so
 that the offer told by the bridge and the created mission name the same building, colour and hour.
 Zone: a circle centred on the building (m.mapZone = { x, y, r }, like the clear template: the signal must be lit
-inside it), every floor, drawn on the map of an engaged participant of an active mission (client
-RS_MapActions.lua, label IGUI_RS_MapZoneSignal) and removed once the mission is closed.
+inside it), every floor, drawn on the map of an engaged participant of an active mission (client/CoreAI
+CA_MapZones.lua, label IGUI_CA_MapZoneSignal) and removed once the mission is closed.
 Colour: drawn among c.colors that Signal Smoke knows. Hour: start of a window of c.windowHours game hours, drawn
 between leadHours and leadHours + spreadHours after the game hour of the draw, valid on any day while the mission
 is active (the delay stays the M01 real-time rule).
@@ -40,7 +40,7 @@ local function log(msg)
     print('[CoreAI] ' .. tostring(msg))
 end
 
--- E11-T13: report in person. E20-T01: given by a voice as `signal`, labelled IGUI_RS_MapZoneSignal on the map.
+-- E11-T13: report in person. E20-T01: given by a voice as `signal`, labelled IGUI_CA_MapZoneSignal on the map.
 local Signal = {idPrefix = 'signal', reportBySpeech = true, voiceName = 'signal', mapStyle = 'Signal',
     voiceText = 'light a Signal Smoke signal at a place'}
 local COLOR_TOLERANCE = 0.02

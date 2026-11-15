@@ -21,7 +21,7 @@ if isClient() then return end
 
 local Const = require "RadioSurvivor/RadioSurvivor_Const"
 local Personas = require "RadioSurvivor/RS_Personas"
-local P = require "RadioSurvivor/RS_NPCProvider"
+local P = require "CoreAI/CA_NPCProvider"
 local C = require "RadioSurvivor/RS_Config"
 local Codec = require "CoreAI/CA_Codec"
 local TextCut = require "CoreAI/CA_TextCut"

@@ -6,7 +6,7 @@ l'objet donné (même identifiant) dans getWorldObjects() ; transmitRemoveItemFr
 (IsoGridSquare.java:5072-5098, RemoveItemFromSquarePacket.java:101-142) ; InventoryContainer.getItemContainer rend un
 inventaire du banc ; InventoryItem.hasModData / getModData ; getCell():getGridSquare rend nil hors des zones chargées
 par le test ; BuildingDef.isFullyStreamedIn et RoomDef.isExplored sont des drapeaux du test ; le foyer du groupe du
-demandeur vient de RS_NPCProvider.presence (doublure du moteur de PNJ).
+demandeur vient de CA_NPCProvider.presence (doublure du moteur de PNJ).
 python RadioSurvivor/tests/test_mission_recover.py
 """
 from __future__ import annotations
@@ -166,7 +166,7 @@ class RecoverMissionTests(unittest.TestCase):
         self.world(sim)
         sim.add_client('alice'); sim.add_client('bob'); sim.select('alice')
         npc = next(iter(sim.state().npcs.values()))
-        record = sim.server.rt.eval("require('RadioSurvivor/RS_NPCProvider')").npc(2001)
+        record = sim.server.rt.eval("require('CoreAI/CA_NPCProvider')").npc(2001)
         missions = sim.server.rt.eval("require('CoreAI/CA_Missions')")
         return sim, npc, record, missions
 
@@ -475,12 +475,12 @@ class RecoverMissionTests(unittest.TestCase):
         c.rt.execute(NOTEBOOK_UI)
         c.rt.execute("getScriptManager = function() return {FindItem = function() return nil end} end")
         c.load('client/RS_Carnet_Client.lua')
-        maps = c.rt.eval("require('RadioSurvivor/RS_MapActions')")
+        maps = c.rt.eval("require('CoreAI/CA_MapZones')")
         maps.resetForTests(); maps.resetZonesForTests()
         sim.command('alice', 'snapshot', world=c.g.RS_CarnetClient.world, run=c.g.RS_CarnetClient.run)
         drawn = [convert(s) for s in lua_list(c.rt.eval('mapSymbols()'))]
         texts = sorted(s['text'] for s in drawn if s['kind'] == 'text')
-        self.assertEqual(texts, ['IGUI_RS_MapZoneCache|Real Bandit', 'IGUI_RS_MapZoneDepot|Real Bandit'])
+        self.assertEqual(texts, ['IGUI_CA_MapZoneCache|Real Bandit', 'IGUI_CA_MapZoneDepot|Real Bandit'])
         rings = sorted((s['x'], s['y']) for s in drawn if s['kind'] == 'texture')
         self.assertIn((14, 10), rings)
         c.g.RS_Notebook.toggle()
@@ -488,9 +488,9 @@ class RecoverMissionTests(unittest.TestCase):
         window.changeTab(window, 'Missions')
         label = c.rt.eval('RS_CarnetClient.window.list.items[1].text')
         self.assertTrue(label.startswith('IGUI_CA_Mission_Recover - '), label)
-        for key in ('IGUI_RS_ScoutPlace', 'IGUI_RS_ScoutClues', 'IGUI_RS_RecoverMapZone', 'IGUI_RS_RecoverCache',
-                    'IGUI_RS_Cache_' + m.cache.table, 'IGUI_RS_RecoverNotFound', 'IGUI_RS_RecoverDepotZone',
-                    'IGUI_RS_RecoverReport'):
+        for key in ('IGUI_RS_ScoutPlace', 'IGUI_RS_ScoutClues', 'IGUI_CA_RecoverMapZone', 'IGUI_CA_RecoverCache',
+                    'IGUI_CA_Cache_' + m.cache.table, 'IGUI_CA_RecoverNotFound', 'IGUI_CA_RecoverDepotZone',
+                    'IGUI_CA_RecoverReport'):
             self.assertIn(key, window.detail.text)
         self.assertNotIn('IGUI_RS_NoRefund', window.detail.text)
         self.assertFalse(window.deliver.isVisible(window.deliver), 'delivery button for a recover mission')
@@ -498,7 +498,7 @@ class RecoverMissionTests(unittest.TestCase):
         sim.server.g.recoverTake(bag, sim.server.g.PLAYERS.alice.inv)
         self.poll(sim)
         window.changeTab(window, 'Missions')
-        self.assertIn('IGUI_RS_RecoverFound|alice Doe', window.detail.text)
+        self.assertIn('IGUI_CA_RecoverFound|alice Doe', window.detail.text)
         # Success: both circles removed from the map.
         sim.server.g.loadArea(0, 0, 40, 40)
         sim.server.g.recoverDrop(bag, 14, 10, 0)

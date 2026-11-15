@@ -18,8 +18,8 @@ place is crossed at any level). Only the next point counts: a later point reache
 crossed again after the previous ones (skipped point refused). The previous readings are kept in memory only (a
 restart of the server reads the next position alone). A dead participant crosses nothing.
 Objective met once every point is crossed (reportReady): the mission waits "to report" and succeeds by the report on
-the voice's frequency (RS_MissionVoice.report, CA_Missions.spoken). Notebook (RadioSurvivor MissionViews/
-RS_View_Route): points crossed "n of N", label of the next point; map: one circle per known point (m.points up to
+the voice's frequency (RS_MissionVoice.report, CA_Missions.spoken). Notebook (MissionViews/
+CA_View_Route): points crossed "n of N", label of the next point; map: one circle per known point (m.points up to
 the next one: those crossed and the next, never the later ones), centred on the place, radius entry.radius,
 labelled with the place label (p.mapZones, style Route). The voice is told the job (labels in order) and the verified
 count, never a coordinate.

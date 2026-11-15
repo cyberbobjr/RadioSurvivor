@@ -26,7 +26,7 @@ local function provider(t)
     if type(isClient) == "function" and isClient() then
         t:skip("the provider records are authority only (solo or dedicated server)")
     end
-    local P = require "RadioSurvivor/RS_NPCProvider"
+    local P = require "CoreAI/CA_NPCProvider"
     local E = LivingKnox
     if type(E) ~= "table" or type(E.Config) ~= "table" or not E.Config.isEnabled() then
         t:skip("Living Knox is disabled (sandbox LivingKnox.Enabled)")

@@ -238,16 +238,8 @@ function Const.maxPerHour()
     return math.max(0, math.floor(readNumber("MaxPerHour")))
 end
 
--- Texte sur une seule ligne, sans espaces superflus. Linéaire (C22) : le motif "^%s*(.-)%s*$" revenait en arrière en
--- O(n²) sur une longue suite d'espaces suivie d'un caractère ; les bords sont trouvés par deux find (premier et dernier
--- caractère non blanc, chaque blanc n'est relu qu'une fois).
-function Const.oneLine(text)
-    text = string.gsub(tostring(text or ""), "[\r\n\t]", " ")
-    local first = string.find(text, "%S")
-    if not first then return "" end
-    local last = string.find(text, "%S%s*$", first)
-    return string.sub(text, first, last)
-end
+-- Texte sur une seule ligne, sans espaces superflus (C22) : outil du mod commun depuis E21-T03 (CA_TextCut.oneLine).
+Const.oneLine = require("CoreAI/CA_TextCut").oneLine
 
 -- Le joueur parle-t-il dans le micro de la radio posée en x, y, z ? Même règle que la transmission vanilla
 -- (zombie/radio/ZomboidRadio.java:519 et GetDistance :545-547 : distance entière, cases entières, < getMicRange()),

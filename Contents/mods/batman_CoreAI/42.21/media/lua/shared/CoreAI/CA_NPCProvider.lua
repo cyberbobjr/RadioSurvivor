@@ -1,4 +1,4 @@
---[[ NPC provider interface of the notebook (E17-T02).
+--[[ CoreAI: NPC provider interface of the notebook (E17-T02; moved to the core mod by E21-T03).
 
 The notebook never talks to an NPC engine directly: it only calls Provider.xxx below. An engine plugs
 itself in with Provider.register(impl). One provider at a time; until one registers, the default
@@ -33,7 +33,7 @@ Optional operations (E17-T03), authority only; a provider without them keeps the
       summary, leader, needs, attitude toward this character...): plain values only, never a secret, a home or
       exact coordinates. nil when the provider has none.
   Provider.hasSupplies() -> boolean    the provider defines supplies: the `deliver` missions (M01) of its NPCs come
-      ONLY from Provider.supplies (the static catalogue RS_Config.Missions.deliver is not offered for them).
+      ONLY from Provider.supplies (the static catalogue of deliver missions is not offered for them).
   Provider.supplies(id, character) -> { offer, ... }   open supply offers of this NPC for this notebook character
       (never nil): { ref = supplier reference (string, opaque to the notebook), offer = offer id (string),
       need = 'food' | 'medical' | 'ammo' | ..., level = reserve 0..100, value = requested value V, remaining = V
@@ -57,7 +57,7 @@ Optional operations (E17-T03), authority only; a provider without them keeps the
       its group journal: decision = { kind = 'offer' | 'accept', need = 'food' | 'medical' | 'ammo' | ..., with =
       character name }. Facts only, composed by the provider: never the model's speech nor the leader's reasons.
   Provider.loyalty(id) -> 'loyal' | 'steady' | 'wavering' | nil   (E10-T03) loyalty of the NPC to its group, derived
-      by the provider (Living Knox: group morale and seniority of the member, nothing stored). nil: no group or unknown;
+      by the provider (e.g. from group morale and seniority of the member, nothing stored). nil: no group or unknown;
       the notebook then keeps the base personality value.
   Provider.dissent(id, d) -> { logged = boolean, heard = number } | nil, reason   (E10-T03) a member contests or refuses
       a collective decision of its group: d = { choice = 'contest' | 'refuse', about = decision fact (English, plain
@@ -81,6 +81,24 @@ Optional operations (E17-T03), authority only; a provider without them keeps the
       chat). nil, reason when nobody hears or the engine has no speech channel.
   Provider.bark(id, situation, opts) -> same | nil, reason   (E08-T03) short template line of the engine for a
       situation ('greet'...), opts.player = player addressed; the fallback of an initiative without bridge.
+
+Optional operations of the shared notebook (E21-T03), neutral when the provider lacks them
+  Provider.name() -> string             name of the active provider ('none' by default): key of its contact page.
+  Provider.isBody(object, modData) -> boolean   any side. The object (with its ModData) is the body of one of the
+      provider's NPCs, alive or dead, of any incarnation. Read even when available() is false (body tags of an earlier
+      session stay readable). False by default.
+  Provider.speech() -> table or nil     authority. Speech engine of the NPCs hosted by the notebook server. nil by
+      default or when the engine is not available.
+  Provider.relationOffer(npc, character) -> relation, binding | nil   authority. Personal relation of the NPC fiche
+      toward a character, offered to the conversation, and its binding. nil by default.
+  Provider.relationApply(npc, character, binding, dir, fact) -> result | nil, reason   authority. Applies a change of
+      the personal relation decided by a conversation. nil, 'unsupported' by default.
+  Provider.relationPanel(npc, character, team) -> table or nil   authority. Relation panel of a contact (identifiers
+      and game days only, translated by the client). nil by default.
+  Provider.debugPair(npc, character) -> table or nil   authority, tests and diagnostics only (never sent to a client):
+      copy of the relation with its hidden values. nil by default.
+  Provider.contacts(character) -> { npc, ... }   authority. NPCs known by the character through a personal relation
+      only (kept among the contacts). Empty by default.
 
 Events, emitted by the provider on the authority, listened to by the notebook
   Provider.on(event, fn)               subscribe; the same function is added once.
@@ -117,21 +135,21 @@ local listeners = {}
 function Provider.register(impl)
     local name = type(impl) == 'table' and tostring(impl.name or 'unnamed') or tostring(impl)
     if type(impl) ~= 'table' then
-        print('[RS_NPCProvider] refused provider ' .. name .. ': not a table')
+        print('[CA_NPCProvider] refused provider ' .. name .. ': not a table')
         return false
     end
     if registered and registered.name ~= nil and registered.name == impl.name then
         registered = impl
-        print('[RS_NPCProvider] provider ' .. name .. ' registered again (reload)')
+        print('[CA_NPCProvider] provider ' .. name .. ' registered again (reload)')
         return true
     end
     if registered then
-        print('[RS_NPCProvider] refused provider ' .. name .. ': provider '
+        print('[CA_NPCProvider] refused provider ' .. name .. ': provider '
             .. tostring(registered.name or 'unnamed') .. ' is already active')
         return false
     end
     registered = impl
-    print('[RS_NPCProvider] provider ' .. name .. ' registered')
+    print('[CA_NPCProvider] provider ' .. name .. ' registered')
     return true
 end
 
@@ -270,7 +288,7 @@ function Provider.bubble(object, text, range)
     local impl = Provider.active()
     if not object or object:isDead() then return end
     if type(impl.bubble) == 'function' then return impl.bubble(object, text, range) end
-    object:addLineChatElement(text, 0.95, 0.9, 0.7, UIFont.Medium, range, 'RS_Speech',
+    object:addLineChatElement(text, 0.95, 0.9, 0.7, UIFont.Medium, range, 'CA_Speech',
         false, false, false, false, false, true)
 end
 
@@ -296,6 +314,57 @@ function Provider.radios()
     local impl = Provider.active()
     if not Provider.available() or type(impl.radios) ~= 'function' then return {} end
     local list = impl.radios()
+    return type(list) == 'table' and list or {}
+end
+
+
+-- E21-T03: optional operations of the shared notebook (header). Every default is neutral.
+function Provider.name()
+    return tostring(Provider.active().name or 'unnamed')
+end
+
+function Provider.isBody(object, modData)
+    local impl = Provider.active()
+    if object == nil or type(impl.isBody) ~= 'function' then return false end
+    return impl.isBody(object, modData) == true
+end
+
+function Provider.speech()
+    local impl = Provider.active()
+    if not Provider.available() or type(impl.speech) ~= 'function' then return nil end
+    local engine = impl.speech()
+    return type(engine) == 'table' and engine or nil
+end
+
+function Provider.relationOffer(npc, character)
+    local impl = Provider.active()
+    if not Provider.available() or type(impl.relationOffer) ~= 'function' then return nil end
+    return impl.relationOffer(npc, character)
+end
+
+function Provider.relationApply(npc, character, binding, dir, fact)
+    local impl = Provider.active()
+    if not Provider.available() or type(impl.relationApply) ~= 'function' then return nil, 'unsupported' end
+    return impl.relationApply(npc, character, binding, dir, fact)
+end
+
+function Provider.relationPanel(npc, character, team)
+    local impl = Provider.active()
+    if not Provider.available() or type(impl.relationPanel) ~= 'function' then return nil end
+    local panel = impl.relationPanel(npc, character, team)
+    return type(panel) == 'table' and panel or nil
+end
+
+function Provider.debugPair(npc, character)
+    local impl = Provider.active()
+    if not Provider.available() or type(impl.debugPair) ~= 'function' then return nil end
+    return impl.debugPair(npc, character)
+end
+
+function Provider.contacts(character)
+    local impl = Provider.active()
+    if not Provider.available() or type(impl.contacts) ~= 'function' then return {} end
+    local list = impl.contacts(character)
     return type(list) == 'table' and list or {}
 end
 

@@ -6,7 +6,7 @@ LK_Initiatives, LK_Conversations and LK_Incidents, in whatever order the game lo
 The queue, the requests and the replies are Living Knox's. The speakers and what a mod adds around them come from the
 HOST, given by Talk.attach(host) (decision of 2026-11-06: each mod brings its own context):
 
-  provider                  table of NPC functions (RS_NPCProvider contract: near, hears, say, engaged, objects, npc,
+  provider                  table of NPC functions (CA_NPCProvider contract: near, hears, say, engaged, objects, npc,
                             context, composition, loyalty, leave, decide, dissent, available)
   session() -> world, run   identifiers of the requests
   fiche(id), fiches()       speaker of this id, every speaker (each { id, incarnation, name, background, alive,

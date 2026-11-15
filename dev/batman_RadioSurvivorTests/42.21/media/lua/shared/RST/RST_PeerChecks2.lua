@@ -22,7 +22,7 @@ Client handlers (RST.Steps.on)
     map.zones      { mission, rings = { { x, y, r }, ... }, expect = "present" | "absent", line = { key, arg } }:
                    waits until a notebook snapshot holding the row of mission was received here (present) or one whose
                    row is no longer active or is gone (absent), then counts the mission rings of the world map of this
-                   player (RS_MapActions: symbol ZONE_ICON with the zone colour at x, y) and their labels (any text at
+                   player (CA_MapZones: symbol ZONE_ICON with the zone colour at x, y) and their labels (any text at
                    x, y - r): present = one ring and one label per ring, absent = none. line = a notebook line
                    translated HERE (getText(key, arg)) that must exist (data.line). Data: rings, labels per ring.
 Authority helpers
@@ -208,7 +208,7 @@ local function missionRow(C, id)
 end
 
 local function mapModule()
-    local ok, M = pcall(require, "RadioSurvivor/RS_MapActions")
+    local ok, M = pcall(require, "CoreAI/CA_MapZones")
     if ok and type(M) == "table" then return M end
     return nil
 end
@@ -247,7 +247,7 @@ Steps.on("map.zones", function(args)
     local C = carnet()
     if C == nil then return Steps.fail("notebook client (RS_CarnetClient) not loaded") end
     local MA = mapModule()
-    if MA == nil or type(MA.symbolsAPI) ~= "function" then return Steps.fail("RS_MapActions not loaded here") end
+    if MA == nil or type(MA.symbolsAPI) ~= "function" then return Steps.fail("CA_MapZones not loaded here") end
     local rings = args.rings or {}
     local present = args.expect ~= "absent"
     local lineText = nil
@@ -268,7 +268,7 @@ Steps.on("map.zones", function(args)
         end
         if reached then
             local api = MA.symbolsAPI()
-            if api == nil then return Steps.fail("no world map here (RS_MapActions.symbolsAPI)") end
+            if api == nil then return Steps.fail("no world map here (CA_MapZones.symbolsAPI)") end
             local counts = countZones(MA, api, rings)
             local ok = true
             for _, n in ipairs(counts) do

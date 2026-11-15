@@ -280,7 +280,7 @@ class Game:
             # (panneau de relation, textes de ses actes) : chargée avec le carnet de RadioSurvivor.
             if rel == 'client/RS_Carnet_Client.lua' and self.WITH_LK:
                 self.rt.execute('require "LivingKnox/LK_NotebookPages"')
-            # E20-T01 : le jeu charge aussi chaque vue de gabarit du carnet (client/RadioSurvivor/MissionViews/).
+            # E20-T01 : le jeu charge aussi chaque vue de gabarit du carnet (client/CoreAI/MissionViews/).
             if rel == 'client/RS_Carnet_Client.lua':
                 for view in mission_view_files():
                     self.rt.execute(lua_src(view).read_text(encoding="utf-8"))

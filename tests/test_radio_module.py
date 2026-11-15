@@ -263,7 +263,7 @@ class Bench(unittest.TestCase):
         self.rt = lupa.LuaRuntime(unpack_returned_tuples=True)
         self.g = self.rt.globals()
         self.g.next = None  # absent de Kahlua
-        self.rt.execute(f'package.path = [[{(CORE_LUA / "shared").as_posix()}/?.lua;{(LUA / "shared").as_posix()}/?.lua;{(LUA / "client").as_posix()}/?.lua;]]'
+        self.rt.execute(f'package.path = [[{(CORE_LUA / "shared").as_posix()}/?.lua;{(LUA / "shared").as_posix()}/?.lua;{(LUA / "client").as_posix()}/?.lua;{(CORE_LUA / "client").as_posix()}/?.lua;]]'
                         ' .. package.path')
         self.rt.execute(STUBS)
         # Mod requis Belt Walkie-Talkie : vrai prédicat d'émission (BatmanRadioSupport.canTransmitWith).

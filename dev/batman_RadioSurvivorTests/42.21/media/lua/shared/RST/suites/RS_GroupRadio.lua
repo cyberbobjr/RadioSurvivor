@@ -35,7 +35,7 @@ local function setup(t, after)
     if isClient() then t:skip("authority only (solo, or RST.server in MP)") end
     local Server = RS_CarnetServer
     t:ok(Server ~= nil and Server.store.data ~= nil, "notebook server not ready")
-    local P = require "RadioSurvivor/RS_NPCProvider"
+    local P = require "CoreAI/CA_NPCProvider"
     if not P.available() then t:skip("Living Knox is not the active NPC provider") end
     local R = require "RadioSurvivor/RS_GroupRadio"
     local Personas = require "RadioSurvivor/RS_Personas"
@@ -134,7 +134,7 @@ RST.suite("rs.groupradio", { mods = { "rs", "lk" },
 
     s.test("a raiders camp is a voice, a neutrals group is none (E08-T10)", function(t)
         if isClient() then t:skip("authority only (solo, or RST.server in MP)") end
-        local P = require "RadioSurvivor/RS_NPCProvider"
+        local P = require "CoreAI/CA_NPCProvider"
         if not P.available() then t:skip("Living Knox is not the active NPC provider") end
         local R = require "RadioSurvivor/RS_GroupRadio"
         local Personas = require "RadioSurvivor/RS_Personas"

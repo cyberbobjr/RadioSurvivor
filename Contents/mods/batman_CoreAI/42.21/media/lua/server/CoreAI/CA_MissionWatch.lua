@@ -24,7 +24,7 @@ Objective met when m.watched reaches m.hours (latched: leaving afterwards change
 waits "to report" and succeeds by the report on the voice's frequency (RS_MissionVoice.report, CA_Missions.spoken).
 Facts (CA_WatchFacts, sources in WatchFacts/): sampled while someone is at the spot during the watch, at most every
 entry.scanMs per mission (real time); recorded in m.facts and told to the voice as plain English lines (voiceBrief),
-never a coordinate. Notebook (RadioSurvivor MissionViews/RS_View_Watch): place label, time watched of the duration,
+never a coordinate. Notebook (MissionViews/CA_View_Watch): place label, time watched of the duration,
 radius and absence rule; map: a circle around the place (m.mapZone, style Watch).
 ASCII only (Kahlua lexer).
 ]]

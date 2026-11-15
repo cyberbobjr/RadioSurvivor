@@ -5,7 +5,7 @@ rs.factions.incident) and used to SKIP away from the initial population (E01-T19
 Load with: require "RST/RST_LKGroupFixture". No side effect at load time (definitions only).
 
     local LG = RST.LKGroup
-    LG.loaded()                  first loaded body of a Living Knox group on the authority (RS_NPCProvider.objects(),
+    LG.loaded()                  first loaded body of a Living Knox group on the authority (CA_NPCProvider.objects(),
                                  ids sorted): gid, npc id; nil when there is none.
     LG.ensure(t, player, suite[, opts])
                                  suite(t, gid, npcId, created) runs once a body of a group is loaded near the player:
@@ -40,7 +40,7 @@ LG.MEMBERS = { "m-1", "m-2" }
 local function provider()
     local L = LivingKnox
     if L and L.radioSurvivorActive and not L.radioSurvivorActive() then return L.NpcProvider end -- E18-T18: alone
-    local ok, P = pcall(require, "RadioSurvivor/RS_NPCProvider")
+    local ok, P = pcall(require, "CoreAI/CA_NPCProvider")
     if ok and type(P) == "table" then return P end
     return nil
 end

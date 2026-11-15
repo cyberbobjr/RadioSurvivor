@@ -94,7 +94,7 @@ function enhance(p)
     p.isAnimal = function(self) return self.animal or false end
     return p
 end
--- Fake NPC engine conforming to RS_NPCProvider (registered by Simulation unless provider=False).
+-- Fake NPC engine conforming to CA_NPCProvider (registered by Simulation unless provider=False).
 -- Bodies are loaded characters of the cell; each body id names one incarnation of an NPC.
 ZOMBIES, NPCS = {}, {}
 getCell = function() if NO_CELL then return nil end; return {getZombieList = function() return list(ZOMBIES) end} end
@@ -124,11 +124,11 @@ function FAKE_PROVIDER.restore(id)
     local n = NPCS[id]
     local newID = id + 1000
     spawn(newID, n.name, n.hostile, n.key)
-    local P = require('RadioSurvivor/RS_NPCProvider')
+    local P = require('CoreAI/CA_NPCProvider')
     P.emit('reincarnated', FAKE_PROVIDER.npc(id).signature, newID, FAKE_PROVIDER.npc(newID).signature)
 end
 function registerFakeProvider()
-    local P = require('RadioSurvivor/RS_NPCProvider')
+    local P = require('CoreAI/CA_NPCProvider')
     -- The fake engine relays the death of its bodies, as a real engine would.
     Events.OnZombieDead.Add(function(z) if NPCS[z.id] then P.emit('death', z.id, z) end end)
     return P.register(FAKE_PROVIDER)
@@ -985,7 +985,7 @@ class CarnetTests(unittest.TestCase):
         sim.select('alice')
         npc = next(iter(sim.state().npcs.values()))
         self.assertIsNotNone(npc.personality, 'selected NPC has no fiche')
-        provider = sim.server.rt.eval("require('RadioSurvivor/RS_NPCProvider')")
+        provider = sim.server.rt.eval("require('CoreAI/CA_NPCProvider')")
         bob = sim.server.g.PLAYERS.bob
         self.assertTrue(provider.hears(sim.zombie, bob, 30))
         bob.deaf = True
@@ -1093,7 +1093,7 @@ class CarnetTests(unittest.TestCase):
         self.assertEqual(first.state, 'expired')
         self.assertIsNone(npc.mission)
         server = sim.server.g.RS_CarnetServer
-        record = sim.server.rt.eval("require('RadioSurvivor/RS_NPCProvider')").npc(2001)
+        record = sim.server.rt.eval("require('CoreAI/CA_NPCProvider')").npc(2001)
         catalog = sim.server.rt.eval("""function(server, npc, record)
             local n = 0
             for _ in pairs(server.offerCatalogFor(npc, record)) do n = n + 1 end
@@ -1119,7 +1119,7 @@ class CarnetTests(unittest.TestCase):
         sim.select('alice')
         npc = next(iter(sim.state().npcs.values()))
         # Personality fixed by the spawn identity: identical whenever the NPC is first met.
-        provider = sim.server.rt.eval("require('RadioSurvivor/RS_NPCProvider')")
+        provider = sim.server.rt.eval("require('CoreAI/CA_NPCProvider')")
         fixed = convert(provider.personality(npc.signature))
         self.assertEqual(fixed, convert(provider.personality(npc.signature)))
         self.assertEqual({k: convert(npc.personality)[k] for k in fixed}, fixed)
@@ -1136,7 +1136,7 @@ class CarnetTests(unittest.TestCase):
     def test_without_provider_notebook_empty_and_walt_available(self):
         sim = Simulation(self.path / 'noprovider', provider=False)
         c = sim.add_client('alice')
-        provider = sim.server.rt.eval("require('RadioSurvivor/RS_NPCProvider')")
+        provider = sim.server.rt.eval("require('CoreAI/CA_NPCProvider')")
         self.assertFalse(provider.available())
         self.assertEqual(provider.active().name, 'none')
         self.assertEqual(count(provider.objects()), 0)
@@ -1170,10 +1170,10 @@ class CarnetTests(unittest.TestCase):
 
     def test_second_provider_refused(self):
         sim = Simulation(self.path / 'second')
-        provider = sim.server.rt.eval("require('RadioSurvivor/RS_NPCProvider')")
-        self.assertFalse(sim.server.rt.eval("require('RadioSurvivor/RS_NPCProvider').register({name = 'other'})"))
+        provider = sim.server.rt.eval("require('CoreAI/CA_NPCProvider')")
+        self.assertFalse(sim.server.rt.eval("require('CoreAI/CA_NPCProvider').register({name = 'other'})"))
         self.assertEqual(provider.active().name, 'fake')
-        self.assertIn('[RS_NPCProvider] refused provider other: provider fake is already active',
+        self.assertIn('[CA_NPCProvider] refused provider other: provider fake is already active',
                       lua_list(sim.server.g.LOGS))
 
     def test_no_periodic_snapshot_broadcast(self):
@@ -1887,7 +1887,7 @@ class LivingKnoxCarnetTests(unittest.TestCase):
         sim.add_client('alice')
         alice = sim.character('alice')
         server = sim.server.g.RS_CarnetServer
-        provider = self.rt.eval("require('RadioSurvivor/RS_NPCProvider')")
+        provider = self.rt.eval("require('CoreAI/CA_NPCProvider')")
         for npc_id, hostile in ((self.g.LK_RAIDER, True), (self.g.LK_LONER, None)):
             fiche = server.ensure(npc_id)
             self.assertEqual(provider.npc(npc_id).hostile, hostile)
@@ -1908,7 +1908,7 @@ class LivingKnoxCarnetTests(unittest.TestCase):
         sim.add_client('alice')
         alice = sim.character('alice')
         server = sim.server.g.RS_CarnetServer
-        provider = self.rt.eval("require('RadioSurvivor/RS_NPCProvider')")
+        provider = self.rt.eval("require('CoreAI/CA_NPCProvider')")
         fiche = server.ensure(self.g.LK_LEADER)
         terms = server.offerCatalogFor(fiche, provider.npc(self.g.LK_LEADER), alice).first_aid_v1
         missions = self.rt.eval("require('CoreAI/CA_Missions')")
@@ -1946,7 +1946,7 @@ class LivingKnoxCarnetTests(unittest.TestCase):
         client.rt.execute(NOTEBOOK_UI)
         client.rt.execute('require "RadioSurvivor/RS_FreqDebugView"')   # debug window: table of the core mod
         self.assertIsNotNone(client.g.RS_FreqDebugView.Window if client.g.RS_FreqDebugView else None)
-        provider = sim.server.rt.eval("require('RadioSurvivor/RS_NPCProvider')")
+        provider = sim.server.rt.eval("require('CoreAI/CA_NPCProvider')")
         self.assertEqual((provider.active().name, provider.available()), ('none', False))
         for machine in [sim.server] + list(sim.clients.values()):
             loaded = machine.rt.eval('(function() local out = {} for k in pairs(package.loaded) do '
@@ -1963,7 +1963,7 @@ class LivingKnoxCarnetTests(unittest.TestCase):
         game.rt.execute(LK_SERVER_STUBS)
         game.rt.execute(LK_SERVER_LOAD)
         game.g.fire('OnInitGlobalModData', False)
-        provider = game.rt.eval("require('RadioSurvivor/RS_NPCProvider')")
+        provider = game.rt.eval("require('CoreAI/CA_NPCProvider')")
         self.assertEqual((provider.active().name, provider.available()), ('none', False))
         # Another NPC engine already registered: Living Knox is not a second provider, a warning names the active one.
         other = Game('server', self.path / 'other', Clock())
@@ -1972,7 +1972,7 @@ class LivingKnoxCarnetTests(unittest.TestCase):
         other.rt.execute(LK_SERVER_STUBS)
         other.rt.execute(LK_SERVER_LOAD)
         other.g.fire('OnInitGlobalModData', False)
-        provider = other.rt.eval("require('RadioSurvivor/RS_NPCProvider')")
+        provider = other.rt.eval("require('CoreAI/CA_NPCProvider')")
         self.assertEqual(provider.active().name, 'fake')
         self.assertIn('[RS_LivingKnox] another NPC provider (fake) is active: Living Knox is not registered in the '
                       'notebook (one NPC engine per server)', lua_list(other.g.LOGS))
@@ -2075,7 +2075,7 @@ class AcquaintanceTests(unittest.TestCase):
         known.stage, known.exchanges = None, None
         npc = next(iter(sim.state().npcs.values()))
         missions = sim.server.rt.eval("require('CoreAI/CA_Missions')")
-        record = sim.server.rt.eval("require('RadioSurvivor/RS_NPCProvider')").npc(2001)
+        record = sim.server.rt.eval("require('CoreAI/CA_NPCProvider')").npc(2001)
         terms = sim.server.g.RS_CarnetServer.offerCatalogFor(npc, record).first_aid_v1
         missions.create(sim.state(), npc, sim.character('alice'), 'first_aid_v1', terms)
         sim.request_mission('alice', 'accept')
@@ -2327,7 +2327,7 @@ class MissionTemplateTests(unittest.TestCase):
         missions = sim.server.rt.eval("require('CoreAI/CA_Missions')")
         server, state = sim.server.g.RS_CarnetServer, sim.state()
         npc = next(iter(state.npcs.values()))
-        record = sim.server.rt.eval("require('RadioSurvivor/RS_NPCProvider')").npc(2001)
+        record = sim.server.rt.eval("require('CoreAI/CA_NPCProvider')").npc(2001)
         catalog = convert(server.offerCatalogFor(npc, record))
         self.assertEqual(sorted(catalog), ['first_aid_v1', 'probe_v1'])
         self.assertEqual(catalog['probe_v1'], {'needed': 2, 'durationMs': 1000})
@@ -2442,7 +2442,7 @@ class ScoutMissionTests(unittest.TestCase):
         sim.server.g.scoutHouse(5003, 600, 10, 10, 10)
         sim.add_client('alice'); sim.add_client('bob'); sim.select('alice')
         npc = next(iter(sim.state().npcs.values()))
-        record = sim.server.rt.eval("require('RadioSurvivor/RS_NPCProvider')").npc(2001)
+        record = sim.server.rt.eval("require('CoreAI/CA_NPCProvider')").npc(2001)
         missions = sim.server.rt.eval("require('CoreAI/CA_Missions')")
         return sim, npc, record, missions
 
@@ -2602,9 +2602,9 @@ class ScoutMissionTests(unittest.TestCase):
         c.g.RS_Notebook.toggle()
         window = c.g.RS_CarnetClient.window
         window.changeTab(window, 'Missions')
-        self.assertIn('IGUI_RS_ScoutNotReached', window.detail.text)
-        self.assertIn('IGUI_RS_ScoutReport', window.detail.text)
-        self.assertNotIn('IGUI_RS_Progress', window.detail.text)
+        self.assertIn('IGUI_CA_ScoutNotReached', window.detail.text)
+        self.assertIn('IGUI_CA_ScoutReport', window.detail.text)
+        self.assertNotIn('IGUI_CA_Progress', window.detail.text)
         # E11-T09: title of the template (list and sheet), clues translated by the client, no technical line.
         label = c.rt.eval('RS_CarnetClient.window.list.items[1].text')
         self.assertTrue(label.startswith('IGUI_CA_Mission_Scout - '), label)
@@ -2618,7 +2618,7 @@ class ScoutMissionTests(unittest.TestCase):
         alice.x, alice.y = 105, 15
         self.poll(sim)
         window.changeTab(window, 'Missions')
-        self.assertIn('IGUI_RS_ScoutReached|alice Doe', window.detail.text)
+        self.assertIn('IGUI_CA_ScoutReached|alice Doe', window.detail.text)
 
     def test_in_game_suite_on_the_simulated_server(self):
         """rs.missions.scout (dev mod) run by the real RST engine on the server machine; the server move of
@@ -2692,8 +2692,8 @@ class ScoutMissionTests(unittest.TestCase):
 
     def install_map(self, c):
         c.rt.execute(MAP_DOUBLE)
-        c.rt.eval("require('RadioSurvivor/RS_MapActions')").resetForTests()
-        c.rt.eval("require('RadioSurvivor/RS_MapActions')").resetZonesForTests()
+        c.rt.eval("require('CoreAI/CA_MapZones')").resetForTests()
+        c.rt.eval("require('CoreAI/CA_MapZones')").resetZonesForTests()
 
     @staticmethod
     def symbols(c):
@@ -2731,17 +2731,17 @@ class ScoutMissionTests(unittest.TestCase):
         self.assertEqual((ring[0]['id'], ring[0]['x'], ring[0]['y']), ('Circle', zone['x'], zone['y']))
         self.assertAlmostEqual(ring[0]['scale'], 2 * zone['r'] / (20 * 50 / 64), places=5)
         self.assertEqual((text[0]['x'], text[0]['y'], text[0]['text']),
-                         (zone['x'], zone['y'] - zone['r'], 'IGUI_RS_MapZone|Real Bandit'))
+                         (zone['x'], zone['y'] - zone['r'], 'IGUI_CA_MapZone|Real Bandit'))
         self.assertEqual(self.symbols(bob), [])
         # Later snapshots add nothing more.
         sim.command('alice', 'snapshot', world=alice.g.RS_CarnetClient.world, run=alice.g.RS_CarnetClient.run)
         self.assertEqual(len(self.symbols(alice)), 3)
         # New session, symbols kept by map_symbols.bin: no duplicate. Symbols lost: drawn again once.
-        alice.rt.eval("require('RadioSurvivor/RS_MapActions')").resetZonesForTests()
+        alice.rt.eval("require('CoreAI/CA_MapZones')").resetZonesForTests()
         sim.command('alice', 'snapshot', world=alice.g.RS_CarnetClient.world, run=alice.g.RS_CarnetClient.run)
         self.assertEqual(len(self.symbols(alice)), 3)
         alice.rt.execute("MAP_SYMBOLS = { MAP_SYMBOLS[1] }")
-        alice.rt.eval("require('RadioSurvivor/RS_MapActions')").resetZonesForTests()
+        alice.rt.eval("require('CoreAI/CA_MapZones')").resetZonesForTests()
         sim.command('alice', 'snapshot', world=alice.g.RS_CarnetClient.world, run=alice.g.RS_CarnetClient.run)
         self.assertEqual(len(self.symbols(alice)), 3)
         # End of the mission (abandon): the area is removed, the player's own circle stays.
@@ -2807,7 +2807,7 @@ class ScoutMissionTests(unittest.TestCase):
         drawn = self.symbols(alice)
         self.assertEqual(sorted((s['kind'], s['x'], s['y']) for s in drawn),
                          [('text', zone['x'], zone['y'] - zone['r']), ('texture', zone['x'], zone['y'])])
-        self.assertEqual([s['text'] for s in drawn if s['kind'] == 'text'], ['IGUI_RS_MapZone|Real Bandit'])
+        self.assertEqual([s['text'] for s in drawn if s['kind'] == 'text'], ['IGUI_CA_MapZone|Real Bandit'])
         self.assertEqual(self.symbols(bob), [])
         sim.request_mission('alice', 'abandon')
         self.assertEqual(m.state, 'abandoned')
@@ -2950,7 +2950,7 @@ class ScoutMissionTests(unittest.TestCase):
         self.assertEqual(list(c.g.MISSING_ARGS.values()), [], 'a clue key read without its arguments')
 
 
-# E11-T10: world map symbols of a client (WorldMapSymbolsV2 reached through a hidden UIWorldMap, see RS_MapActions).
+# E11-T10: world map symbols of a client (WorldMapSymbolsV2 reached through a hidden UIWorldMap, see CA_MapZones).
 # Colours are stored as bytes like WorldMapBaseSymbol.save ((byte)(c * 255), read back / 255).
 MAP_DOUBLE = r"""
 MAP_SYMBOLS = {}
@@ -3117,8 +3117,8 @@ class VoiceMissionTests(unittest.TestCase):
         alice, bob = sim.clients['alice'], sim.clients['bob']
         for c in (alice, bob):
             c.rt.execute(MAP_DOUBLE)
-            c.rt.eval("require('RadioSurvivor/RS_MapActions')").resetForTests()
-            c.rt.eval("require('RadioSurvivor/RS_MapActions')").resetZonesForTests()
+            c.rt.eval("require('CoreAI/CA_MapZones')").resetForTests()
+            c.rt.eval("require('CoreAI/CA_MapZones')").resetZonesForTests()
         req = self.talk(sim, 'alice', 'Got any work for me?')
         self.respond(sim, req, [{'type': 'start_mission', 'template': 'scout'}], 'I need eyes on a place.')
         [m] = self.voice_missions(sim)
@@ -3129,7 +3129,7 @@ class VoiceMissionTests(unittest.TestCase):
         shown = [convert(s) for s in lua_list(alice.rt.eval('mapSymbols()'))]
         self.assertEqual(sorted((s['kind'], s['x'], s['y']) for s in shown),
                          [('text', zone['x'], zone['y'] - zone['r']), ('texture', zone['x'], zone['y'])])
-        self.assertEqual([s['text'] for s in shown if s['kind'] == 'text'], ['IGUI_RS_MapZone|Scout Voice'])
+        self.assertEqual([s['text'] for s in shown if s['kind'] == 'text'], ['IGUI_CA_MapZone|Scout Voice'])
         self.assertEqual(lua_list(bob.rt.eval('mapSymbols()')), [])
         # The snapshot sent to bob carries no area; the bridge context neither.
         for call in self.sent:
@@ -3157,7 +3157,7 @@ class VoiceMissionTests(unittest.TestCase):
         sim = self.voice_sim()
         g = sim.server.g
         alice, char = g.PLAYERS.alice, sim.character('alice')
-        self.assertFalse(sim.server.rt.eval("require('RadioSurvivor/RS_NPCProvider').available()"), 'Living Knox on')
+        self.assertFalse(sim.server.rt.eval("require('CoreAI/CA_NPCProvider').available()"), 'Living Knox on')
         # No mission yet: no mission= field, prompt unchanged.
         req = self.talk(sim, 'alice', 'Got any work for me?')
         self.assertNotIn('mission', req)
@@ -3359,10 +3359,10 @@ class VoiceMissionTests(unittest.TestCase):
         window = c.g.RS_CarnetClient.window
         window.changeTab(window, 'Missions')
         text = window.detail.text
-        for key in ('IGUI_RS_Requester|Scout Voice', 'IGUI_RS_ScoutPlace|IGUI_RS_Place_house', 'IGUI_RS_ScoutNotReached',
+        for key in ('IGUI_RS_Requester|Scout Voice', 'IGUI_RS_ScoutPlace|IGUI_RS_Place_house', 'IGUI_CA_ScoutNotReached',
                     'IGUI_RS_ScoutReportRadio', 'IGUI_RS_RewardInformation'):
             self.assertIn(key, text)
-        for key in ('IGUI_RS_JoinRequester', 'IGUI_RS_Reward|', 'IGUI_RS_ScoutReport ', 'IGUI_RS_Progress'):
+        for key in ('IGUI_RS_JoinRequester', 'IGUI_RS_Reward|', 'IGUI_CA_ScoutReport ', 'IGUI_CA_Progress'):
             self.assertNotIn(key, text)
         # E11-T09: clues translated by the client with every argument, title of the template, no technical line.
         for key in ('IGUI_RS_ScoutClues',

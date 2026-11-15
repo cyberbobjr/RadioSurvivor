@@ -43,7 +43,7 @@ local function notebook(t)
     local C = require "RadioSurvivor/RS_Config"
     local p = RST.Fixtures.player(t)
     t:ok(p ~= nil, "no target player (t.ctx.player)")
-    return { Server = Server, S = Server.store, C = C, P = require "RadioSurvivor/RS_NPCProvider", p = p }
+    return { Server = Server, S = Server.store, C = C, P = require "CoreAI/CA_NPCProvider", p = p }
 end
 
 local function testApi(t)

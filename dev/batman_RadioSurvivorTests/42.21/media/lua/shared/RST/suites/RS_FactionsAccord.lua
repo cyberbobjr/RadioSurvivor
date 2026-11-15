@@ -51,7 +51,7 @@ end
 -- First loaded body of a Living Knox group: gid, npc id (the fixture group of RST_LKGroupFixture.lua is created
 -- before when none is loaded: E01-T19).
 local function loadedGroup(t, E)
-    local P = require "RadioSurvivor/RS_NPCProvider"
+    local P = require "CoreAI/CA_NPCProvider"
     local ids = {}
     for id in pairs(P.objects()) do ids[#ids + 1] = id end
     table.sort(ids)

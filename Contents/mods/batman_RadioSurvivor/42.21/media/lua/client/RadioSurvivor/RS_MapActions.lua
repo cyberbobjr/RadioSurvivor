@@ -34,63 +34,23 @@
 -- compte (RS_MapMarks, WorldMapVisitedServer), renvoyée à la connexion. Aucune commande vanilla
 -- « map setKnownInSquares » n'est envoyée : le serveur n'a pas à croire le client.
 --
--- Zone approximative d'une mission de reconnaissance (E11-T10, MapActions.zones, plus bas) : le serveur ne l'envoie
--- que dans l'instantané du carnet (champ mapZone { x, y, r } d'une mission active dont le joueur est participant,
--- CA_MissionScout) ; jamais la position du bâtiment. Dessin : symbole vanilla « Circle » (map_o.png, cercle tracé à la
--- main) centré sur (x, y), agrandi pour que son anneau ait un rayon de r cases : avec applyZoom (vrai par défaut), la
--- taille affichée vaut largeur x échelle x worldScale pixels, worldScale = pixels par case
--- (WorldMapBaseSymbol.getDisplayScale, WorldMapRenderer.getWorldScale : 1 / metersPerPixel) ; la largeur d'une icône
--- définie sans taille vaut 20 (MapSymbolDefinitions.addTexture) et l'anneau occupe environ 50 des 64 pixels de la
--- texture. Libellé traduit (IGUI_RS_MapZone, nom du demandeur) au-dessus de l'anneau. Sur la mini-carte, l'échelle
--- est ignorée (min(worldScale, 1)) : petit cercle seulement.
--- Reconnaissance des symboles de zone : couleur orange et alpha 0,8, que l'interface vanilla ne pose jamais (alpha 1,0
--- pour ses icônes, ISWorldMapSymbols.lua:138, 432, 469) ; l'alpha est sauvegardé sur un octet (WorldMapBaseSymbol.save),
--- d'où la tolérance. À chaque instantané, les symboles de zone qui ne correspondent plus à aucune mission active du
--- joueur sont retirés (fin, abandon, expiration, mission purgée, autre personnage), y compris quand la fin a eu lieu
--- pendant que le joueur était déconnecté ; les zones manquantes sont posées une fois par session (une zone effacée par
--- le joueur revient au chargement suivant tant que la mission dure). Persistance : celle des notes du joueur
--- (map_symbols.bin côté client, voir plus haut) ; sinon reposée au premier instantané d'une session.
+-- Zones des missions sur la carte (E11-T10) : mod commun depuis E21-T03 (client/CoreAI/CA_MapZones.lua), qui
+-- possède aussi l'API des symboles de la carte (une seule par MapItem) utilisée ici.
 if isServer() then return end
 
 local Const = require "RadioSurvivor/RadioSurvivor_Const"
+local Zones = require "CoreAI/CA_MapZones"
 
 local MapActions = {}
 
 -- Icône vanilla « Target » (onglet Locations) et couleur : rouge brique, lisible sur la carte papier.
 MapActions.ICON = "Target"
 MapActions.COLOR = { r = 0.70, g = 0.18, b = 0.08 }
--- Échelle des notes du joueur (ISMap.SCALE, client/ISUI/Maps/ISMap.lua:16).
-MapActions.SCALE = 0.666
--- Écart toléré (cases) en comparant deux positions de symbole (flottants Java).
-MapActions.EPSILON = 0.01
-MapActions.LABEL_MAX = 48
-
--- API de symboles de la partie : { item = MapItem du monde, api = WorldMapSymbolsV2 }. Chaque WorldMapSymbolsV2
--- ajoute un écouteur permanent aux symboles (WorldMapSymbolsV2.java:54-59) : une seule par MapItem. MapItem.Reset()
--- (retour au menu) remplace le singleton : une nouvelle partie recrée l'API.
-local cache = { item = nil, api = nil, ui = nil }
-
-function MapActions.resetForTests()
-    cache = { item = nil, api = nil, ui = nil }
-end
-
-function MapActions.symbolsAPI()
-    if MapItem == nil or UIWorldMap == nil then return nil end
-    local item = MapItem.getSingleton()
-    if item == nil then return nil end
-    if cache.api == nil or cache.item ~= item then
-        local ui = {}
-        ui.javaObject = UIWorldMap.new(ui)
-        local mapAPI = ui.javaObject:getAPIv3()
-        mapAPI:setMapItem(item)
-        cache = { item = item, api = mapAPI:getSymbolsAPIv2(), ui = ui }
-    end
-    return cache.api
-end
-
-local function near(symbol, x, y)
-    return math.abs(symbol:getWorldX() - x) < MapActions.EPSILON and math.abs(symbol:getWorldY() - y) < MapActions.EPSILON
-end
+-- Échelle des notes du joueur, écart toléré entre deux positions, longueur des libellés et API des symboles : ceux
+-- du mod commun (E21-T03).
+MapActions.SCALE, MapActions.EPSILON, MapActions.LABEL_MAX = Zones.SCALE, Zones.EPSILON, Zones.LABEL_MAX
+MapActions.symbolsAPI, MapActions.resetForTests = Zones.symbolsAPI, Zones.resetForTests
+local near, cleanLabel = Zones.near, Zones.cleanLabel
 
 -- Symboles déjà présents au point (x, y) : icône MapActions.ICON, texte (tout texte).
 local function existing(api, x, y)
@@ -112,12 +72,6 @@ local function paint(symbol, anchorY)
     symbol:setScale(MapActions.SCALE)
 end
 
--- Libellé sur une ligne, sans balise, borné (la fiche le borne déjà à 48 octets UTF-8).
-local function cleanLabel(label)
-    local text = Const.oneLine(string.gsub(tostring(label or ""), "[%c<>%[%]]", " "))
-    if string.len(text) > MapActions.LABEL_MAX then text = string.sub(text, 1, MapActions.LABEL_MAX) end
-    return text
-end
 
 -- Pose le repère du point de case (x, y) (centre de la case). Rend "added" (au moins un symbole ajouté), "present"
 -- (déjà marqué) ou nil et la raison ("bad_args", "no_map").
@@ -158,127 +112,6 @@ function MapActions.reveal(x1, y1, x2, y2)
     return "revealed"
 end
 
--- ---------------------------------------------------------------------------------- zones de mission (E11-T10)
-
-MapActions.ZONE_ICON = "Circle"
-MapActions.ZONE_COLOR = { r = 0.85, g = 0.40, b = 0.05, a = 0.8 }
--- Diamètre de l'anneau de « Circle » à l'échelle 1, en cases (20 unités, anneau sur ~50/64 de la texture).
-MapActions.ZONE_RING = 20 * 50 / 64
--- Couleurs sauvegardées sur un octet : 1/255 près.
-MapActions.ZONE_COLOR_TOLERANCE = 0.02
-
--- Zones déjà traitées pendant cette session (clé mission@x,y,r) : posées une seule fois par session.
-local zonesDone = {}
-
-function MapActions.resetZonesForTests()
-    zonesDone = {}
-end
-
-function MapActions.zoneScale(r)
-    return 2 * r / MapActions.ZONE_RING
-end
-
--- Symbole posé pour une zone de mission (signature de couleur et d'alpha).
-local function isZoneSymbol(symbol)
-    local c, tol = MapActions.ZONE_COLOR, MapActions.ZONE_COLOR_TOLERANCE
-    return math.abs(symbol:getAlpha() - c.a) < tol and math.abs(symbol:getRed() - c.r) < tol
-        and math.abs(symbol:getGreen() - c.g) < tol and math.abs(symbol:getBlue() - c.b) < tol
-end
-
-local function paintZone(symbol, anchorY, scale)
-    local c = MapActions.ZONE_COLOR
-    symbol:setRGBA(c.r, c.g, c.b, c.a)
-    symbol:setAnchor(0.5, anchorY)
-    symbol:setScale(scale)
-end
-
-local function isCircle(z)
-    return type(z) == "table" and type(z.x) == "number" and type(z.y) == "number" and type(z.r) == "number"
-        and z.r > 0
-end
-
-local function addCircle(out, id, z, name, style)
-    if isCircle(z) then out[#out + 1] = { id = id, x = z.x, y = z.y, r = z.r, name = name, style = style } end
-end
-
--- Zones voulues : missions actives de l'instantané dont le joueur est participant et qui portent mapZone.
-local function wantedZones(missions)
-    local out = {}
-    for _, p in ipairs(type(missions) == "table" and missions or {}) do
-        if type(p) == "table" and p.state == "active" and p.engaged then
-            local id = tostring(p.id)
-            -- E20-T01: label style declared by the template (CA_Missions, mapStyle), projected by the engine.
-            local style = type(p.mapStyle) == "string" and p.mapStyle or nil
-            addCircle(out, id, p.mapZone, p.requester, style)
-            -- E11-T06: depot circle of a recover mission, drawn next to its search area.
-            addCircle(out, id .. ":depot", p.depotZone, p.requester, "Depot")
-            -- E20-T05: one circle per dead drop of a voice mission, labelled with the place label of the sheet.
-            for i, drop in ipairs(type(p.dropZones) == "table" and p.dropZones or {}) do
-                addCircle(out, id .. ":drop" .. i, drop, type(drop) == "table" and drop.label or nil, "Depot")
-            end
-            -- E20-T13: several circles of the template itself (route: one per known point), each with its place
-            -- label, in the template's style.
-            for i, zone in ipairs(type(p.mapZones) == "table" and p.mapZones or {}) do
-                addCircle(out, id .. ":zone" .. i, zone, type(zone) == "table" and zone.label or nil, style)
-            end
-        end
-    end
-    return out
-end
-
--- Label of a zone: IGUI_RS_MapZone followed by the style the template declares (E20-T01: Search for retrieve_id,
--- Clear, Cache for recover, Signal) or Depot for the depot circle of recover and the dead drops of a voice (E20-T05:
--- with the place label); none: the plain label. The symbols are matched by position only.
-local function zoneLabel(z)
-    local name = cleanLabel(z.name)
-    local key = "IGUI_RS_MapZone" .. (z.style or "")
-    if name == "" then return cleanLabel(getText(key .. "Anon")) end
-    return cleanLabel(getText(key, name))
-end
-
--- Accorde la carte du joueur aux missions de l'instantané du carnet. Rend { added = n, removed = n } ou nil et la
--- raison ("no_map").
-function MapActions.zones(missions)
-    local wanted = wantedZones(missions)
-    local api = MapActions.symbolsAPI()
-    if api == nil then return nil, "no_map" end
-    local hasRing, hasText, removed = {}, {}, 0
-    for i = api:getSymbolCount() - 1, 0, -1 do
-        local symbol = api:getSymbolByIndex(i)
-        if symbol and isZoneSymbol(symbol) then
-            local kept = false
-            for _, z in ipairs(wanted) do
-                if symbol:isTexture() and symbol:getSymbolID() == MapActions.ZONE_ICON and near(symbol, z.x, z.y) then
-                    kept, hasRing[z] = true, true
-                elseif symbol:isText() and near(symbol, z.x, z.y - z.r) then
-                    kept, hasText[z] = true, true
-                end
-            end
-            if not kept then
-                api:removeSymbolByIndex(i)
-                removed = removed + 1
-            end
-        end
-    end
-    local added = 0
-    for _, z in ipairs(wanted) do
-        local key = z.id .. "@" .. z.x .. "," .. z.y .. "," .. z.r
-        if not zonesDone[key] then
-            zonesDone[key] = true
-            if not hasRing[z] then
-                paintZone(api:addTexture(MapActions.ZONE_ICON, z.x, z.y), 0.5, MapActions.zoneScale(z.r))
-                added = added + 1
-            end
-            local text = zoneLabel(z)
-            if not hasText[z] and text ~= "" then
-                paintZone(api:addTranslatedText(text, api:getDefaultTextLayerID(), z.x, z.y - z.r), 1.0,
-                    MapActions.SCALE)
-                added = added + 1
-            end
-        end
-    end
-    return { added = added, removed = removed }
-end
 
 -- Commande du serveur (RS_RadioTalk.handle). Rend true si elle est traitée ici.
 function MapActions.receive(command, args)

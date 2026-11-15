@@ -13,7 +13,7 @@ of the requester's body, 60 tiles at least from any known base, nothing loaded),
 a memory of this file so that the offer told by the bridge and the created mission name the same building. The
 mission keeps the site point (centre of the main room, m.spot) and the building bounds in the private state.
 Map area: the same approximate circle as the scout template (CA_MissionScout.mapZone, m.mapZone, projected to an
-engaged participant of an active mission only; client/RadioSurvivor/RS_MapActions.lua draws and removes it).
+engaged participant of an active mission only; client/CoreAI/CA_MapZones.lua draws and removes it).
 Deferred placement: the body is placed by the server poll of a participant (Retrieve.observe), at most every
 placeRetryMs, once the site square is loaded (getCell():getGridSquare of the point itself, never a neighbour chunk)
 and the building has passed its vanilla stories (BuildingDef:isFullyStreamedIn, or one of its rooms explored):

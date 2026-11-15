@@ -229,7 +229,7 @@ end
 E9.SIGHT_MARGIN = 2         -- squares kept under SELECT_RANGE (the body keeps walking)
 E9.SIGHT_SETTLE_MS = 2000   -- the body may come into sight by itself (walk in progress)
 
-local function provider() return require "RadioSurvivor/RS_NPCProvider" end
+local function provider() return require "CoreAI/CA_NPCProvider" end
 
 local function bodyOf(c) return c.Server.objects[c.fiche.id] end
 

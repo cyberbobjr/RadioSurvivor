@@ -774,7 +774,7 @@ SHARE_STYLES = {"Helpful": 1, "Direct": 1, "Prudent": -1, "Reserved": -1}
 
 
 def openness(personality: dict) -> str:
-    """E17-T08: how much an NPC says about itself to a stranger, from its server personality (RS_NPCProvider):
+    """E17-T08: how much an NPC says about itself to a stranger, from its server personality (CA_NPCProvider):
     sociability 1..5, plus 1 for a Helpful or Direct style, minus 1 for Prudent or Reserved. 4 or more: open (first and
     last name, a word about itself); 2 or less: wary (vague, a first name or a nickname at most); else reserved (first
     name only). Missing or malformed values count as sociability 3 and a neutral style."""

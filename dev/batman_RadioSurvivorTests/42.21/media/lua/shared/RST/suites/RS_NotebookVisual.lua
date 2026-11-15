@@ -712,10 +712,10 @@ local function install(t)
     local Client = RS_CarnetClient
     t:ok(Notebook ~= nil and Client ~= nil, "notebook client not loaded")
     local History = require "RadioSurvivor/RS_RadioHistory"
-    local MapActions = require "RadioSurvivor/RS_MapActions"
+    local MapZones = require "CoreAI/CA_MapZones"
     local Const = require "RadioSurvivor/RadioSurvivor_Const"
     local player = getSpecificPlayer(0)
-    local ctx = { Notebook = Notebook, Client = Client, History = History, MapActions = MapActions, out = {},
+    local ctx = { Notebook = Notebook, Client = Client, History = History, MapZones = MapZones, out = {},
         captures = {}, player = player }
     local saved = { snapshot = Client.snapshot, receive = Client.receive, window = Client.window,
         open = Client.window ~= nil and Client.window:isVisible(), delivery = Client.deliveryWindow,
@@ -991,10 +991,10 @@ RST.suite("rs.notebook.visual", { tags = { "client", "ui" }, testTimeoutMs = 120
                             local snap = copy(ctx.fixture)
                             table.insert(snap.contacts[11].history, { author = "You", text = "One more line." })
                             snap.contacts[3].name = "Lena Moreau"
-                            local zones = ctx.MapActions.zones
-                            ctx.MapActions.zones = function() return nil, "test" end
+                            local zones = ctx.MapZones.zones
+                            ctx.MapZones.zones = function() return nil, "test" end
                             local ok, err = pcall(ctx.saved.receive, "snapshot", snap)
-                            ctx.MapActions.zones = zones
+                            ctx.MapZones.zones = zones
                             if not ok then bad("forced snapshot raised: " .. tostring(err)) end
                             t6:sleep(V.SHOW_MS, function(t7)
                                 local after = { id = w.selectedId, index = list.selected, list = list:getYScroll(),

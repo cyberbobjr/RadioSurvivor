@@ -46,7 +46,7 @@ M.register('fake', Fake)
 
 # Fausse vue du carnet : une seule ligne propre au gabarit.
 FAKE_VIEW = r'''
-require('RadioSurvivor/RS_MissionViews').register('fake', {showsPlace = false,
+require('CoreAI/CA_MissionViews').register('fake', {showsPlace = false,
     detail = function(row, line, ctx) line(ctx.tr('FakeDetail', row.fakeLine)) end})
 '''
 
@@ -103,11 +103,11 @@ class MissionRegistryTests(unittest.TestCase):
         c.rt.execute("getScriptManager = function() return {FindItem = function() return nil end} end")
         c.load('client/RS_Carnet_Client.lua')
         c.rt.execute(FAKE_VIEW)
-        maps = c.rt.eval("require('RadioSurvivor/RS_MapActions')")
+        maps = c.rt.eval("require('CoreAI/CA_MapZones')")
         maps.resetForTests(); maps.resetZonesForTests()
         sim.command('alice', 'snapshot', world=c.g.RS_CarnetClient.world, run=c.g.RS_CarnetClient.run)
         drawn = [convert(s) for s in lua_list(c.rt.eval('mapSymbols()'))]
-        self.assertEqual([s['text'] for s in drawn if s['kind'] == 'text'], ['IGUI_RS_MapZoneFake|Custom'])
+        self.assertEqual([s['text'] for s in drawn if s['kind'] == 'text'], ['IGUI_CA_MapZoneFake|Custom'])
         c.g.RS_Notebook.toggle()
         window = c.g.RS_CarnetClient.window
         window.changeTab(window, 'Missions')
@@ -115,7 +115,7 @@ class MissionRegistryTests(unittest.TestCase):
         self.assertIn('IGUI_RS_FakeDetail|here', text)
         # Common lines kept, deliver lines absent: the fake template declares no hand-over.
         self.assertIn('IGUI_RS_Time', text)
-        for key in ('IGUI_RS_Progress', 'IGUI_RS_NoRefund', 'IGUI_RS_ScoutPlace'):
+        for key in ('IGUI_CA_Progress', 'IGUI_RS_NoRefund', 'IGUI_RS_ScoutPlace'):
             self.assertNotIn(key, text)
         self.assertFalse(window.deliver.isVisible(window.deliver), 'delivery button for a fake mission')
 

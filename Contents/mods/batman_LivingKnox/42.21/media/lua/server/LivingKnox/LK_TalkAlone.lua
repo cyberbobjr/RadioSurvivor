@@ -91,7 +91,7 @@ local function characterName(character)
     return player and displayName(player) or nil
 end
 
--- Provider of the speech: the Living Knox functions, and what RS_NPCProvider adds around them with RadioSurvivor.
+-- Provider of the speech: the Living Knox functions, and what CA_NPCProvider adds around them with RadioSurvivor.
 local function makeProvider()
     local base = LivingKnox.NpcProvider
     return setmetatable({ near = Hearing.near, hears = Hearing.hears, personality = Hearing.personality,

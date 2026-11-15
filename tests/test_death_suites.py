@@ -208,13 +208,13 @@ package.loaded["RadioSurvivor/RS_Config"] = { VERSION = 2, MODULE = "RS_Carnet",
         accepted = { ["Base.Bandage"] = true }, rewardType = "Base.Bullets9mm", rewardCount = 20 } } }
 KEY = "CA_Character"
 DATA = { world = "w1", characters = {}, missions = {}, npcs = {} }
--- Living Knox test NPC (LivingKnox.API.testSpawnNpc) seen by the provider (RS_NPCProvider) at once.
+-- Living Knox test NPC (LivingKnox.API.testSpawnNpc) seen by the provider (CA_NPCProvider) at once.
 NPCS, NPC_SEQ = {}, 0
 LivingKnox = { API = {
     testSpawnNpc = function(x, y, z) NPC_SEQ = NPC_SEQ + 1 local id = "lk-" .. NPC_SEQ
         NPCS[id] = { id = id, x = x, y = y, z = z } return id end,
     testRemoveNpc = function(id) if not NPCS[id] then return false, "unknown" end NPCS[id] = nil return true end } }
-package.loaded["RadioSurvivor/RS_NPCProvider"] = { active = function() return { name = "livingknox" } end,
+package.loaded["CoreAI/CA_NPCProvider"] = { active = function() return { name = "livingknox" } end,
     available = function() return true end, objects = function() return NPCS end, id = function(b) return b.id end }
 -- RS_Missions.accept with the rules of RS_Missions.lua.
 package.loaded["CoreAI/CA_Missions"] = { accept = function(state, m, character, name)

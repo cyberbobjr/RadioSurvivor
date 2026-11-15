@@ -130,7 +130,7 @@ class LivingKnoxModTests(unittest.TestCase):
         self.assertIs(lua.eval('LivingKnox.NpcProvider.install()'), False)
         lua = LuaRuntime(unpack_returned_tuples=True)
         lua.execute(base + mods % r'"batman_LivingKnox", "\\batman_RadioSurvivor"')
-        with self.assertRaisesRegex(LuaError, 'RadioSurvivor/RS_NPCProvider'):
+        with self.assertRaisesRegex(LuaError, 'CoreAI/CA_NPCProvider'):
             lua.execute(src)
 
     def test_no_non_ascii_literal(self):

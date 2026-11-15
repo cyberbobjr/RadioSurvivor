@@ -13,7 +13,7 @@ if isClient() then return end
 -- The panel adds what belongs to the notebook: agreements of the group with the reader's team and the incident
 -- suspension (Living Knox's LK_Agreements since E18-T20, read through LivingKnox.Agreements).
 local S = require 'RadioSurvivor/RS_State'
-local P = require 'RadioSurvivor/RS_NPCProvider'
+local P = require 'CoreAI/CA_NPCProvider'
 local World = require 'CoreAI/CA_WorldFacts'
 -- E18-T27: the observation log is Living Knox's (LK_Observations); without Living Knox there is no NPC to cite.
 local function Observations() return type(LivingKnox) == 'table' and LivingKnox.Observations or nil end
