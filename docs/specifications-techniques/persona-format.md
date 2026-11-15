@@ -450,7 +450,11 @@ Les trois clés sont obligatoires (`missing key 'use' in [place mill]`, à la li
   Mission réussie d'une voix **sans** section `[rewards]` (E11-T08) : le premier lieu `mark` (ordre du fichier) pas
   encore donné à ce personnage par cette voix est marqué sur sa carte comme par `mark_map` (hors budget et délai) ;
   sans lieu restant, réputation seule.
-- `target` : objectif possible d'une mission (`target=` d'une section `[mission]`).
+- `target` : objectif possible d'une mission (`target=` d'une section `[mission]`). `barricade` (E20-T09) : le
+  bâtiment dont une pièce couvre la case du lieu (métagrille, chargé ou non) ; ses fenêtres et portes extérieures
+  sont comptées par le serveur dans le monde (planches, tôle ou barres, d'un côté ou de l'autre, une fois par
+  ouverture ; une ouverture déjà barricadée au départ, ou à sa première lecture si sa case n'était pas chargée, ne
+  compte jamais ; une barricade retirée ne compte plus ; cases déchargées : dernier compte vérifié).
 - `drop` : planque. Une mission `deliver` ou `retrieve` d'une voix porte toutes les planques de sa section (`drops=`,
   sans la clé : tous les lieux `drop` de la fiche ; `RS_DeadDrops`, E20-T05, E20-T06 : la carte d'identité de `retrieve`
   s'y dépose), toutes marquées sur la carte du participant ; une voix sans lieu `drop` ne peut donner ni `deliver` ni
@@ -460,6 +464,8 @@ Les trois clés sont obligatoires (`missing key 'use' in [place mill]`, à la li
   repère par `mark_map`.
 
 Le bâtiment d'une mission `scout`, `retrieve` ou `clear`, lui, n'est jamais un lieu de la fiche : le serveur le choisit.
+Celui d'une mission `barricade` est le bâtiment du lieu `target=` de sa section (`RS_MissionTarget`, déclaration
+`aimAt` du gabarit) : sans lieu `target`, départ refusé `no_target` ; sans bâtiment à ce lieu, `no_building`.
 Les lieux n'ont aucun autre effet : ni distance (`too_far`), ni `coords` de la voix, ni `persona_state`.
 
 ## Erreurs
@@ -538,6 +544,9 @@ Puis, côté serveur seulement, les sections `[mission]` (dans l'ordre du fichie
 | `drops=any` sans lieu `use=drop` | sa ligne | `drops=any needs a place with use=drop` |
 | `target` vers un lieu sans `use=target` | sa ligne | `place 'church' has no use=target` |
 | `after` vers une mission absente | sa ligne | `unknown mission 'ghost' in after=` |
+| `scope` hors liste | sa ligne | `bad scope 'world' (expected character, team)` |
+| `sets_state` qui n'est pas un nom | sa ligne | `bad sets_state 'Back home' (a to z, 0 to 9 and _, starting with a letter, 32 characters at most)` |
+| `story` trop long | sa ligne | `story too long (200 bytes of UTF-8 at most)` |
 | Boucle de `after` (une mission après elle-même, ou deux qui s'attendent) | ligne `after` de la première mission de la boucle | `after= cycle through mission 'a'` |
 | `[rewards]` sans `pool`, ou autre clé | en-tête, ou sa ligne | `missing key 'pool' in [rewards]`, `unknown key 'colour' in [rewards]` |
 | Entrée de `pool` mal formée | ligne `pool` | `bad reward 'frequency' (kind:weight or kind:parameter:weight, e.g. cache:medical:3)` |
@@ -613,19 +622,21 @@ Lues et validées par le serveur seul (E20-T03, ADR D03, D04) ; le pont reçoit 
 
 ### Sections `[mission <id>]`
 
-Une section par mission que la voix peut confier ; les types qu'elle donne sont les `type` de ses sections, chacun une
-fois, dans l'ordre du fichier (`RS_MissionVoice`, `V.jobs`). Une fiche sans section `[mission]` donne `scout` si elle
-autorise `start_mission`.
+Une section par mission que la voix peut confier, désignée par son identifiant (E20-T08) : la voix propose les
+sections **disponibles** pour l'appelant, dans l'ordre du fichier (`RS_MissionVoice`, `V.jobs` ; règles ci-dessous,
+« Enchaînement et état de récit »). Une fiche sans section `[mission]` donne `scout` si elle autorise `start_mission`.
 
 | Clé | Valeurs | Défaut | Rôle |
 |---|---|---|---|
-| `type` | nom d'un type de mission inscrit au registre du mod commun (`RC_Missions`, déclaration `voiceName`) ; aujourd'hui `scout`, `deliver`, `retrieve`, `clear`, `signal` | obligatoire | Gabarit de la mission. |
-| `weight` | entier de 1 à 999999 | `1` | Poids du tirage parmi les missions disponibles (lu, utilisé à partir d'E20-T08). |
-| `after` | identifiant d'une autre section `[mission]` de la fiche, sans boucle | aucun | Mission proposée seulement après la réussite de celle-ci (lu, utilisé à partir d'E20-T08). |
-| `story` | texte | aucun | Raison donnée par la voix (lu, utilisé par une tâche suivante). |
+| `type` | nom d'un type de mission inscrit au registre du mod commun (`RC_Missions`, déclaration `voiceName`) ; aujourd'hui `scout`, `deliver`, `retrieve`, `clear`, `signal`, `barricade` | obligatoire | Gabarit de la mission. |
+| `weight` | entier de 1 à 999999 | `1` | Poids du tirage parmi les sections disponibles d'un même type, quand le modèle nomme un type plutôt qu'une section. |
+| `after` | identifiant d'une autre section `[mission]` de la fiche, sans boucle | aucun | Section proposée seulement quand la dernière mission de la section citée est une réussite (par personnage, ou par équipe avec `scope=team`). |
+| `scope` | `character`, `team` | `character` | Portée de `after` : réussites du personnage du carnet, ou de son équipe (`RC_Teams.idOf` : faction vanilla, ou équipe personnelle du joueur seul). |
+| `sets_state` | nom : `a`-`z`, `0`-`9`, `_`, commence par une lettre, 32 caractères au plus | aucun | État de récit de la voix posé à la réussite de cette mission (« Enchaînement et état de récit »). |
+| `story` | texte, 200 octets UTF-8 au plus | aucun | Raison donnée par la voix : ajoutée à la description du travail dite au modèle (`jobs=`). |
 | `drops` | `any` (tous les lieux `use=drop`, au moins un) ou liste de lieux `use=drop` | tous les lieux `use=drop` | Planques de la mission, toutes proposées au joueur ; les dépôts s'additionnent (E20-T05). |
-| `target` | un lieu `use=target` | aucun | Objectif de la mission (lu, utilisé par les nouveaux types d'E20). |
-| autres clés | celles que **déclare le type** (`params = { clé = '<genre>' }` du gabarit), chacune contrôlée par son genre | aucun | Paramètres propres au type. `deliver` déclare `items` (catégorie) et `quantity` (fourchette) : lus et gardés, la livraison ne les lit pas encore ; `collect_hours` (`count`) : heures de jeu hors de vue avant le ramassage d'une planque (défaut `RS_Config.DeadDrops.collectDelayHours`, 6). `retrieve` déclare `collect_hours` (même sens, E20-T06). Les autres types livrés n'en déclarent aucun. |
+| `target` | un lieu `use=target` | aucun | Objectif de la mission : bâtiment à barricader de `barricade` (obligatoire pour ce type, refus `no_target` au départ) ; lu, utilisé par les autres nouveaux types d'E20. |
+| autres clés | celles que **déclare le type** (`params = { clé = '<genre>' }` du gabarit), chacune contrôlée par son genre | aucun | Paramètres propres au type. `deliver` déclare `items` (catégorie) et `quantity` (fourchette) : lus et gardés, la livraison ne les lit pas encore ; `collect_hours` (`count`) : heures de jeu hors de vue avant le ramassage d'une planque (défaut `RS_Config.DeadDrops.collectDelayHours`, 6). `retrieve` déclare `collect_hours` (même sens, E20-T06). `barricade` déclare `count` (`count`) : nombre de fenêtres et portes extérieures à barricader, au moins 1 (défaut `RC_MissionConfig.Missions.barricade.count`, 4 ; `0` refusé au départ `bad_count`). Les autres types livrés n'en déclarent aucun. |
 
 Genres de valeurs (`RS_PersonaParams.lua`, un validateur par genre, registre ouvert : un nouveau genre s'inscrit
 sans toucher au lecteur) :
@@ -641,6 +652,26 @@ sans toucher au lecteur) :
 
 Ajouter un type de mission avec ses paramètres = un fichier de gabarit qui s'inscrit (`RC_Missions.register`) avec
 `voiceName` et `params` ; le lecteur des fiches n'en connaît aucun nom.
+
+### Enchaînement et état de récit (E20-T08, ADR D04, D09)
+
+`RS_MissionChain` (serveur) :
+
+- **Disponible** : une section sans `after`, ou dont la section citée a pour **dernier** résultat une réussite, lu
+  selon `scope` (personnage : fiche de donneur de la voix pour ce personnage, `voiceDonors[...].chain` ; équipe :
+  `voiceTeamChains['<voix>:<équipe>']`). Une mission échouée, expirée ou abandonnée de la section citée bloque de
+  nouveau ses suites jusqu'à une nouvelle réussite. Une section reste proposée après sa réussite.
+- **Choix** (`start_mission {template}`) : l'identifiant d'une section disponible ; sinon un type, et le serveur tire
+  parmi les sections disponibles de ce type selon `weight` (générateur injectable `RS_MissionChain.setRandom`). Refus
+  `locked` (section, ou toutes celles du type, en attente de leur `after`), `bad_template` (ni section ni type de ce nom).
+- **Résultat** : à la clôture d'une mission de voix (moteur commun, écouteur de résultat attaché par
+  `RS_MissionHooks`), le résultat de sa section (`success` ou `failed`) est rangé pour chaque personnage participant et
+  pour l'équipe de l'appelant au départ (`m.team`), dans l'état privé `RS_State`, sauvegardé avec lui.
+- **État de récit** : la réussite d'une section qui déclare `sets_state=<nom>` pose l'état de récit de la voix
+  (`RS_VoiceStory`, `voiceStory[voix]`), une fois. Il est distinct de `state=` de la tête (état de vie : `active`,
+  `silent`, `gone`, `dead`). Relu au chargement, dit au modèle à chaque demande radio (champ `story=`,
+  [protocole](protocole-carnet-v2.md#état-de-récit-des-voix-e20-t08)) et exposé aux autres mods par
+  `RadioSurvivor.API.voiceStoryState(id)` (`RS_API`). Le sens de l'état s'écrit dans le prompt de la fiche.
 
 ### Section `[rewards]`
 
@@ -788,6 +819,8 @@ story=I am running out of bandages.
 [mission look]
 type=scout
 after=meds
+scope=team
+sets_state=supplied
 
 [category snacks]
 item=Base.Crisps:1-2

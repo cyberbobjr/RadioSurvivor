@@ -73,6 +73,10 @@ offre dans le carnet »).
 - **Livrer** ouvre la fenêtre de livraison : choisissez les objets que le demandeur accepte.
 - Les missions de reconnaissance, de recherche, de nettoyage, de récupération et de signal entourent une **zone
   approximative** sur la carte du monde : le lieu est quelque part dedans, pas au centre.
+- Une mission **barricader** d'une voix entoure le bâtiment sur la carte et indique le nombre d'ouvertures à
+  barricader : fenêtres et portes extérieures, avec des planches ou de la tôle, de l'intérieur ou de l'extérieur
+  (chaque ouverture compte une fois). Le serveur compte lui-même ; les barricades déjà en place au début de la
+  mission ne comptent pas, et une barricade retirée ne compte plus.
 - Une fois l'objectif rempli, la mission indique **À rapporter** : retournez voir le demandeur et dites-le-lui
   (**Parler**), ou utilisez **Rendre compte** près de lui. Pour une voix radio, rappelez-la sur sa fréquence. La
   mission ne réussit qu'à ce moment, et le délai continue de courir.
@@ -81,7 +85,7 @@ offre dans le carnet »).
 
 Après réussite et compte rendu, les missions de voix améliorent la réputation et peuvent donner **une** cache de matériel, une fréquence d'une autre voix, une carte-cachette vanilla ou une leçon. Darlene propose du matériel médical et enseigne les soins ; Cody propose des munitions et enseigne le tir. Le serveur tire la récompense au hasard parmi celles que la voix propose, et le contenu d'une cache au hasard dans sa catégorie ; vous ne choisissez ni l'une ni l'autre. Les fréquences rejoignent votre seul carnet ; les caches de voix ont un repère sur votre seule carte. Le matériel posé reste un objet réel du monde.
 
-Les voix peuvent demander reconnaissance, dépôt, papiers à retrouver, nettoyage ou signal Signal Smoke selon leur fiche. Les PNJ peuvent aussi proposer récupération et ravitaillement du groupe. Rapportez toujours une mission de PNJ **en personne** au demandeur.
+Les voix peuvent demander reconnaissance, dépôt, papiers à retrouver, nettoyage, signal Signal Smoke ou barricadage d'un bâtiment selon leur fiche. Certaines missions d'une voix n'arrivent qu'après la réussite d'une autre : un échec les remet en attente jusqu'à la réussite suivante, et une suite réussie peut changer la situation de la voix. Les PNJ peuvent aussi proposer récupération et ravitaillement du groupe. Rapportez toujours une mission de PNJ **en personne** au demandeur.
 
 ### Livraisons radio : collecte discrète
 

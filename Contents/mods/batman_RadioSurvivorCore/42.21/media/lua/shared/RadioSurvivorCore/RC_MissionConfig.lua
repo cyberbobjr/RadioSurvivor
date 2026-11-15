@@ -128,6 +128,20 @@ local MC = {
             spreadHours = 2,       -- start drawn up to this many game hours later
             windowHours = 2,       -- game hours of the window, valid on any day while the mission is active
         },
+        -- E20-T09: barricade `count` outside windows and doors of the building at a place of the voice sheet
+        -- (server/RadioSurvivorCore/RC_MissionBarricade.lua). Given by a radio voice only (no reward lot: the voice
+        -- pays); count from the sheet section (parameter count), else the default below.
+        barricade = {
+            id = 'barricade_v1',
+            titleKey = 'IGUI_RC_Mission_Barricade',
+            durationMs = 14400000, -- barricading takes longer than a visit: twice the delay of `scout`
+            rewardType = '',
+            rewardCount = 0,
+            count = 4,             -- openings to barricade when the section sets no count
+            zoneRadius = 8,        -- tiles: smallest circle drawn on the map around the building
+            zoneMargin = 3,        -- tiles kept between the building corners and the circle
+            scanMs = 3000,         -- real ms between two server reads of the building's openings
+        },
     },
     -- E11-T06: caches (server/RadioSurvivorCore/RC_Caches.lua): a marked bag filled from one closed table of the server,
     -- placed once in the world when its site is loaded. `order` is the closed list (and the draw order) of the tables.

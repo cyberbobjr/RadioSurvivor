@@ -26,6 +26,7 @@
     "IGUI_RC_Mission_Clear": "Nettoyer les abords d’un lieu",
     "IGUI_RC_Mission_Recover": "Rapporter une cache",
     "IGUI_RC_Mission_Signal": "Faire un signal sur un lieu",
+    "IGUI_RC_Mission_Barricade": "Barricader un bâtiment",
     "IGUI_RC_Notebook": "Carnet",
     "IGUI_RC_NotebookHint": "Ouvrir le carnet : contacts, missions, réputation et les pages de vos mods.",
     "IGUI_RC_Contacts": "Contacts",

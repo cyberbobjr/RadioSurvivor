@@ -274,9 +274,10 @@ Toujours permise, même si vous ne l'écrivez pas. La voix vous répond à la ra
 
 - Chaque mission que la voix peut confier est une section `[mission <id>]` avec son `type` : `scout`
   (reconnaissance), `deliver` (dépôt de matériel), `retrieve` (recherche de papiers), `clear` (nettoyage), `signal`
-  (signal Signal Smoke). Le serveur vérifie chaque objectif ; une mission par joueur et voix. Sans aucune section
+  (signal Signal Smoke), `barricade` (barricader un bâtiment). Le serveur vérifie chaque objectif ; une mission par joueur et voix. Sans aucune section
   `[mission]`, seul `scout` est permis. Détail des clés : [Missions, récompenses et objets](#missions-récompenses-et-objets).
-- **Il faut :** que le joueur ait le carnet. Le bâtiment est choisi par le serveur, jamais par l'IA ; une mission
+- **Il faut :** que le joueur ait le carnet. Le bâtiment est choisi par le serveur, jamais par l'IA (pour
+  `barricade` : celui du lieu `target=` de la section, obligatoire) ; une mission
   `deliver` ou `retrieve` demande au moins un lieu `use=drop`.
 - **Récompense :** réputation et une récompense de la section `[rewards]`. L'IA ne choisit ni récompense ni contenu.
   Sans section `[rewards]`, la voix vous offre le repère d'un de ses lieux `use=mark`.
@@ -298,6 +299,8 @@ Toujours permise, même si vous ne l'écrivez pas. La voix vous répond à la ra
 Une mission de dépôt d'une voix propose **toutes ses planques à la fois** (clé `drops=` de sa section ; sans elle, tous les lieux `use=drop` de la fiche), chacune entourée sur votre carte avec son nom. Déposez où vous voulez : les objets laissés à plusieurs planques s'additionnent jusqu'à la quantité demandée. À chaque planque, le serveur désigne une boîte existante adaptée (une mission sur deux) ou, à défaut, demande un sac au sol. La voix ne ramasse une planque que **hors de vue de tout le monde** (aucun joueur à moins de 100 cases en x comme en y, quel que soit l'étage, ou la case déchargée) **et après environ 6 heures de jeu** (`collect_hours=` de la section `[mission]`). Le délai suit l'horloge du jeu : il s'arrête en pause, va plus vite en vitesse accélérée ou pendant le sommeil, et ne compte pas serveur arrêté. Un joueur revenu en vue avant la fin remet le délai à zéro. Une planque dont le délai s'est écoulé pendant que sa case était déchargée est vidée dès que la case se charge de nouveau.
 
 Dans une boîte, seuls les objets demandés disparaissent, jamais plus que la quantité restante : boîte, autres objets et surplus restent. Pour un sac, sac et contenu disparaissent ; un sac qui contient des objets étrangers au lot, ou plus que la quantité restante, est refusé pour éviter leur perte. Chaque objet n'est compté qu'une fois, même après un redémarrage. Avant la collecte, vous pouvez reprendre le dépôt et rien n'est validé. **Une fois toute la quantité collectée seulement, rendez compte à la radio**. Validation en jeu solo et MP de cette collecte : **en attente**.
+
+**Barricader pour une voix.** Le bâtiment du lieu `target=` est entouré sur votre carte. Barricadez le nombre demandé (`count=`) de ses fenêtres et portes **extérieures**, avec des planches ou de la tôle, de l'intérieur ou de l'extérieur : chaque ouverture compte une fois. Le serveur compte lui-même les barricades du bâtiment ; celles déjà en place au début de la mission ne comptent pas, et une barricade retirée ne compte plus. Une fois le compte atteint, rappelez la voix. Validation en jeu MP : **en attente**.
 
 **Papiers à retrouver pour une voix.** La carte d'identité prise sur le corps ne se remet pas à la radio : déposez-la à l'une des planques de la mission, marquées sur votre carte comme pour un dépôt (dans la boîte désignée, ou seule dans un sac au sol). La voix la ramasse avec la même règle, hors de vue et après le délai (`collect_hours=` de la section `[mission]`) ; seule la carte de ce corps est prise, une autre carte d'identité reste sur place. **Une fois la carte ramassée seulement, rendez compte à la radio** : le compte rendu ne retire rien de votre inventaire. Validation en jeu MP : **en attente**.
 
@@ -327,17 +330,73 @@ pool=cache:medical:3, cache:snacks:1, frequency:1, stashmap:1, lesson:Doctor:2
 
 | Clé de `[mission]` | À quoi ça sert |
 |---|---|
-| `type` | Obligatoire : `scout`, `deliver`, `retrieve`, `clear` ou `signal` (types inscrits par le mod). |
-| `weight` | Poids de la mission dans le tirage (1 par défaut). |
-| `after` | La mission n'est proposée qu'après la réussite d'une autre mission de la fiche (son id). |
-| `story` | La raison que donne la voix. |
+| `type` | Obligatoire : `scout`, `deliver`, `retrieve`, `clear`, `signal` ou `barricade` (types inscrits par le mod). |
+| `weight` | Poids de la mission quand l'IA demande un type et que plusieurs missions disponibles de ce type se présentent (1 par défaut). |
+| `after` | La mission n'est proposée qu'après la réussite d'une autre mission de la fiche (son id), pour ce personnage. |
+| `scope` | `character` (par défaut) : `after` compte les réussites du personnage ; `team` : celles de son équipe (faction, ou le joueur seul). |
+| `sets_state` | État de récit que prend la voix à la réussite de cette mission, un nom (`returned`…). Voir « Missions enchaînées ». |
+| `story` | La raison que donne la voix, dite à l'IA avec la mission (200 octets au plus). |
 | `drops` | Planques de la mission, toutes proposées au joueur : `any` (tous les lieux `use=drop`, comme sans la clé) ou une liste d'ids de lieux `use=drop`. |
-| `target` | Lieu objectif, un lieu `use=target`. |
-| autres | Les paramètres propres au type : `deliver` accepte `items` (une catégorie d'objets), `quantity` (`4` ou `2-4`) et `collect_hours` (heures de jeu avant le ramassage d'une planque, 6 par défaut) ; `retrieve` accepte `collect_hours` (la carte d'identité se dépose à une planque). |
+| `target` | Lieu objectif, un lieu `use=target`. Obligatoire pour `barricade` : une case à l'intérieur du bâtiment à barricader. |
+| autres | Les paramètres propres au type : `deliver` accepte `items` (une catégorie d'objets), `quantity` (`4` ou `2-4`) et `collect_hours` (heures de jeu avant le ramassage d'une planque, 6 par défaut) ; `retrieve` accepte `collect_hours` (la carte d'identité se dépose à une planque) ; `barricade` accepte `count` (fenêtres et portes extérieures à barricader, 4 par défaut, au moins 1). |
 
-Les clés `weight`, `after`, `story`, `drops`, `target` et les paramètres de `deliver` sont **lus et vérifiés dès
-maintenant** ; `drops` et `collect_hours` servent déjà, les autres serviront au fil des prochaines versions (tirage
-pondéré, missions enchaînées, quantités demandées).
+Toutes ces clés sont **lues et vérifiées** au chargement. `weight`, `after`, `scope`, `sets_state`, `story`, `drops`
+et `collect_hours` servent déjà ; `target`, `items` et `quantity` serviront au fil des prochaines versions (nouveaux
+types de mission, quantités demandées).
+
+##### Missions enchaînées et état de récit
+
+Chaque mission est désignée par son id de section : l'IA ne voit que les missions **disponibles** pour le joueur qui
+appelle, chacune avec la phrase de son type puis son `story`. Une mission `after=<id>` n'apparaît qu'une fois la
+mission citée réussie par ce personnage (ou par son équipe avec `scope=team`) ; si la mission citée échoue ensuite
+(délai écoulé, abandon), la suite se bloque de nouveau jusqu'à une nouvelle réussite. Si l'IA demande un type plutôt
+qu'un id, le serveur tire au sort parmi les missions disponibles de ce type, selon `weight`. Une fiche sans section
+`[mission]` propose toujours `scout`.
+
+`sets_state=<nom>` donne à la voix un **état de récit** quand la mission réussit : un nom libre (`a`-`z`, `0`-`9`,
+`_`), distinct de `state=` de la tête (`active`, `silent`…). Il est posé une fois, gardé avec la partie, rappelé à
+l'IA à chaque appel, et lisible par les autres mods (`RadioSurvivor.API.voiceStoryState("<id>")`). Dites dans le
+prompt ce que cet état change pour la voix. Exemple complet (coordonnées d'exemple, à relever sur votre carte) :
+
+```ini
+format=1
+id=nell
+name=Nell Barker
+frequencies=152.4
+actions=say,start_mission
+
+[place farmhouse]
+at=10850,9650,0
+label=Barker farmhouse
+use=target,drop
+
+[mission look_farm]
+type=scout
+target=farmhouse
+story=I left my farm in a hurry. Tell me what is left of it.
+
+[mission clear_farm]
+type=clear
+target=farmhouse
+after=look_farm
+scope=team
+story=The dead are all over my yard. Clear them out.
+
+[mission stock_farm]
+type=deliver
+items=food
+quantity=2-4
+after=clear_farm
+sets_state=returned
+story=Leave some food at the farm and I will come home.
+
+[prompt]
+You are Nell Barker, a farmer hiding in a church since the first week. You want to go back to your farm.
+If your story state is "returned", you are back at your farm and you talk from there.
+```
+
+Ici, `look_farm` est proposée seule ; sa réussite ouvre `clear_farm` (pour toute l'équipe du joueur), dont la
+réussite ouvre `stock_farm` ; la réussite de `stock_farm` met Nell dans l'état `returned`.
 
 `[rewards]` n'a qu'une ligne, `pool=`, liste de récompenses `nature:poids` ou `nature:paramètre:poids` :
 
@@ -795,7 +854,7 @@ s'arrête à la première erreur, et la dernière version valide de la voix rest
 | `bad use entry 'hide' (expected mark, target, drop, landing)` | Voir [Lieux](#lieux--sections-place). |
 | `place label of 'mill' too long (48 bytes of UTF-8 at most)` | Raccourcir le libellé. |
 | `unknown section 'shop' (expected place, mission, rewards, category or prompt)` | Faute de frappe dans un titre de section. |
-| `unknown mission type 'fly'` (journal du serveur seulement) | Un type du mod : `scout`, `deliver`, `retrieve`, `clear`, `signal`. |
+| `unknown mission type 'fly'` (journal du serveur seulement) | Un type du mod : `scout`, `deliver`, `retrieve`, `clear`, `signal`, `barricade`. |
 | `place 'clinic' has no use=drop` (journal du serveur seulement) | Ajouter `drop` au `use` de ce lieu, ou citer un autre lieu. |
 | `unknown category 'weapons'` (journal du serveur seulement) | Une catégorie du catalogue ou une `[category]` de la fiche. |
 | `bad reward weight '0' (whole number from 1 to 999999)` (journal du serveur seulement) | Les poids commencent à 1. |

@@ -128,7 +128,11 @@ JOURNAL_GESTURES = {'IGUI_RC_' + k for k in ('Deliver', 'Claim', 'Delivery', 'De
                                    'SupplyRefused', 'WrongCard')}
 
 # E20-T05: the drop points of a voice mission listed by the notebook (RadioSurvivor); E20-T06: card left at a drop.
-ADDED = {'IGUI_RS_DeadDropPoints', 'IGUI_RS_RetrieveDropCard'}
+ADDED = {'IGUI_RS_DeadDropPoints', 'IGUI_RS_RetrieveDropCard',
+         # E20-T09: template barricade (title, notebook view, map label).
+         'IGUI_RC_Mission_Barricade', 'IGUI_RS_MapZoneBarricade', 'IGUI_RS_MapZoneBarricadeAnon',
+         'IGUI_RS_BarricadePlace', 'IGUI_RS_BarricadeMapZone', 'IGUI_RS_BarricadeProgress', 'IGUI_RS_BarricadeRule',
+         'IGUI_RS_BarricadeReport'}
 
 
 class TranslationSplitTests(unittest.TestCase):
@@ -213,7 +217,8 @@ class TranslationSplitTests(unittest.TestCase):
         path = media('core') / 'lua' / 'shared' / 'RadioSurvivorCore' / 'RC_MissionConfig.lua'
         mc = lua.execute(path.read_text(encoding='utf-8'))
         titles = {t.titleKey for t in mc.Missions.values()}
-        self.assertTrue(titles <= set(RENAMED.values()), sorted(titles))
+        # Renamed titles of an older game, or titles of templates added since (ADDED).
+        self.assertTrue(titles <= set(RENAMED.values()) | ADDED, sorted(titles))
 
 
 if __name__ == '__main__':
