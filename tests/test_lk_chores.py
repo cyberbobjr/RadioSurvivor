@@ -33,7 +33,9 @@ D = 'LivingKnox.Decisions'
 CHORES = ['fire', 'warm', 'tidy', 'lookout', 'repair', 'smoke', 'care', 'rest']
 # LK16-T07 : empreintes (sha256) des tirages et des plans de corvée relevées sur le code d'avant le registre des corvées.
 FROZEN_DRAW = 'b0196227728cab513481a0c295d38a974daef83a1f96532ea9917d3ab0b5ed74'
-FROZEN_PLANS = 'aa0b56700dbf29db9787e23891d30c3a44d1a642fab6a2ac0a1462c5216db2a5'
+# LK18-T03 : seule la réparation au poste de la porte change (place 110,115 -> 110,114, hors du seuil) ; avec la règle
+# des places d'arrêt neutralisée, l'empreinte reste aa0b5670...db2a5 d'avant (43 lignes sur 1 296 par passe).
+FROZEN_PLANS = '35801584c478234f955667459bf3a91117314381dc151b53b84103a6d18ce5ae'
 
 # Objets de corvée doublés : cheminée, conteneurs typés (lecture seule : getType, getItems), murs entre deux cases.
 OBJECTS = r'''

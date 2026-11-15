@@ -6,6 +6,7 @@
 if isClient() then return end
 
 require "LivingKnox/LK_Upkeep"
+require "LivingKnox/LK_StopPlace"   -- LK18-T03 : places d'arrêt
 
 local Garden = LivingKnox.Garden or {}
 LivingKnox.Garden = Garden
@@ -227,24 +228,12 @@ end
 
 -- Case libre (LK_Bodies.freeSquare) la plus proche de (x, y, z), à FREE_RADIUS cases au plus, où un membre reste « au
 -- foyer » home (Upkeep.atHome, LK15-T07) ; même ordre que LK_Bodies.findFreeSquare (anneau, puis distance, puis y et
--- x), qui ne connaît pas le foyer. Rend la case, ou nil.
+-- x), qui ne connaît pas le foyer ; place d'arrêt hors des portes et des couloirs (LK18-T03, LivingKnox.StopPlace).
+-- Rend la case, ou nil.
 local function freeSquareAtHome(B, x, y, z, home)
-    local cell = getCell()
-    for r = 0, B.FREE_RADIUS do
-        local best, bestD = nil, nil
-        for dy = -r, r do
-            for dx = -r, r do
-                local d = dx * dx + dy * dy
-                if math.max(math.abs(dx), math.abs(dy)) == r and (bestD == nil or d < bestD)
-                    and Upkeep().atHome(home, x + dx, y + dy, z) then
-                    local sq = cell:getGridSquare(x + dx, y + dy, z)
-                    if B.freeSquare(sq) then best, bestD = sq, d end
-                end
-            end
-        end
-        if best ~= nil then return best end
-    end
-    return nil
+    return LivingKnox.StopPlace.nearest(x, y, z, B.FREE_RADIUS, function(sq)
+        return Upkeep().atHome(home, sq:getX(), sq:getY(), z) and B.freeSquare(sq)
+    end)
 end
 
 -- Place d'un membre pour arroser, récolter ou semer la plante de la tâche job : jamais à côté (un corps de zombie

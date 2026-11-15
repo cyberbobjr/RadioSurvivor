@@ -19,6 +19,7 @@ require "LivingKnox/LK_Log"
 require "LivingKnox/LK_Groups"
 require "LivingKnox/LK_Decisions"
 require "LivingKnox/LK_RoutineExec"
+require "LivingKnox/LK_StopPlace"
 
 local Routines = LivingKnox.Routines or {}
 LivingKnox.Routines = Routines
@@ -212,11 +213,20 @@ function Routines.survey(home)
         end
     end
     table.sort(posts, byPlace)
+    -- LK18-T03 : le guetteur se tient hors des portes, des seuils et des couloirs (LivingKnox.StopPlace), dans le
+    -- bâtiment, au plus près de l'ouverture qu'il garde (même regard).
+    local function postPlace(sq)
+        return standable(sq) and buildingId(sq) == bid and Routines.bedQuality(sq) == nil
+            and not used[sq:getX() .. "," .. sq:getY()]
+    end
+    local SP = LivingKnox.StopPlace
     for _, p in ipairs(posts) do
-        local key = p.x .. "," .. p.y
-        if #out.posts < cfg().MAX_POSTS and not used[key] then
-            used[key] = true
-            out.posts[#out.posts + 1] = { x = p.x, y = p.y, z = p.z, a = p.a, k = p.k }
+        local free = #out.posts < cfg().MAX_POSTS and not used[p.x .. "," .. p.y]
+        local sq = free and SP.nearest(p.x, p.y, p.z, SP.SHIFT_RADIUS, postPlace) or nil
+        if sq ~= nil then
+            used[p.x .. "," .. p.y] = true
+            used[sq:getX() .. "," .. sq:getY()] = true
+            out.posts[#out.posts + 1] = { x = sq:getX(), y = sq:getY(), z = p.z, a = p.a, k = p.k }
         end
     end
     -- Couchages : meilleure qualité d'abord ; une case de lit voisine d'un lit déjà retenu = le même lit.

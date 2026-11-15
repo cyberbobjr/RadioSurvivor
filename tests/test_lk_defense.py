@@ -310,7 +310,8 @@ class SoloDefenseTests(DefenseStack):
         phase, places, zombies, threat = self.plan(gid)
         self.assertEqual((phase, zombies, threat), ('hold', 3, 3))
         # LK06-T07 : l'ouvrier valide se bat aussi : un poste chacun (avant : ouvrier à l'abri).
-        self.assertEqual(places, 'm-1=post 110,115,0;m-2=post 105,110,0;m-3=post 112,105,0')
+        # LK18-T03 : poste de la porte relevé une case derrière le seuil (110,115), place d'arrêt hors du passage.
+        self.assertEqual(places, 'm-1=post 110,114,0;m-2=post 105,110,0;m-3=post 112,105,0')
         for m in ('m-1', 'm-2', 'm-3'):
             self.assertEqual(self.b(gid, m), 'defend', m)
         self.assertTrue(any('home defense def-1 (hold, leader m-1): 3 zombie(s), 0 hostile(s), 3 able fighter(s)' in
@@ -432,10 +433,10 @@ class SoloDefenseTests(DefenseStack):
         self.dpass(2)
         self.assertIsNotNone(self.ev('LivingKnox.Routines.state.valid["' + gid + '"]'))   # postes relevés
         # La case du poste de la porte devient injoignable (meuble posé) : trajets refusés.
-        self.run_lua('HARNESS.square(110, 115, 0).blocked = true')
+        self.run_lua('HARNESS.square(110, 114, 0).blocked = true')
         self.horde([(110, 121), (111, 122)])
         self.dpass(1)
-        first = 'post 110,115,0'
+        first = 'post 110,114,0'
         for _ in range(8):
             self.dpass(1, walk=1.0)
             if self.place_of(gid, 'm-1') != first:
@@ -625,7 +626,7 @@ class SallyTests(DefenseStack):
         return [line for line in self.lk() if 'target out of the defense leash' in line]
 
     def test_zombie_8_squares_from_the_post_is_engaged_then_back_to_the_post(self):
-        gid, z = self.start([(110, 123)])               # 8 cases au sud du poste de la porte (110,115)
+        gid, z = self.start([(110, 122)])               # 8 cases au sud du poste de la porte (110,114, LK18-T03)
         engaged = None
         for _ in range(12):
             self.dpass(1, walk=1.0)
@@ -633,9 +634,9 @@ class SallyTests(DefenseStack):
             if engaged is not None:
                 break
         self.assertEqual(self.plan(gid)[0], 'hold')
-        self.assertEqual(self.place_of(gid, 'm-1'), 'post 110,115,0')
+        self.assertEqual(self.place_of(gid, 'm-1'), 'post 110,114,0')
         self.assertEqual(engaged, f'z:{z[0]}')                         # ancien code : jamais (MELEE_ENGAGE 2)
-        self.assertEqual(list(self.order(gid, 'm-1')), [f'z:{z[0]}', 10, 110, 115])   # laisse = portée du rôle
+        self.assertEqual(list(self.order(gid, 'm-1')), [f'z:{z[0]}', 10, 110, 114])   # laisse = portée du rôle
         # Hors de la zone des autres postes (fenêtres ouest et nord : 13 et 18 cases) : aucune autre sortie.
         self.assertIsNone(self.engaged(gid, 'm-2'))
         self.assertIsNone(self.engaged(gid, 'm-3'))
@@ -678,7 +679,7 @@ class SallyTests(DefenseStack):
 
     def test_engage_range_read_from_the_role_of_the_member(self):
         # Ouvrier (worker) à 3 cases, combattants à 10 : m-2 (fenêtre ouest 105,110) ne sort pas vers un zombie à 8
-        # cases de sa place ; le combattant de la porte (110,115), à 5 cases, si.
+        # cases de sa place ; le combattant de la porte (110,114), à 6 cases, si.
         self.opt('ZombieEngageWorker', 3)
         gid, z = self.start([(105, 118)])
         self.assertEqual(self.ev(f'{Df}.engageRange(MEMBER_NPC("{gid}", "m-2"))'), 3)
@@ -802,7 +803,7 @@ class MultiplayerDefenseTests(DefenseStack):
             self.assertIsNone(self.h.eval(c, 'LivingKnox.Defense'))            # autorité seulement
         self.assertEqual(first['A'], first['B'])
         self.assertEqual(second['A'], second['B'])
-        self.assertTrue(first['A'][0].startswith('move:110,115@'), first['A'][0])   # en route vers la porte
+        self.assertTrue(first['A'][0].startswith('move:110,114@'), first['A'][0])   # en route vers la porte
         self.assertTrue(first['A'][0].endswith(':run|idle|guard') or '|guard' in first['A'][0], first['A'][0])
         for row in first['A']:
             self.assertTrue(row.endswith('|guard'), row)                       # vigilance de garde partout

@@ -266,7 +266,8 @@ class SurveyTests(MatBase):
         posts = lua_list(self.ev(f'(function() local p = {R}.survey({{ x = 110, y = 110, z = 0 }}) local out = {{}} '
                                  'for _, e in ipairs(p.posts) do out[#out + 1] = e.k .. ":" .. e.x .. "," .. e.y .. "@" '
                                  '.. e.a end return out end)()'))
-        self.assertEqual(posts, ['door:110,115@90', 'window:112,105@270', 'window:105,110@180'])
+        # LK18-T03 : poste de la porte une case derrière le seuil (110,115), même regard ; fenêtres gardées.
+        self.assertEqual(posts, ['door:110,114@90', 'window:112,105@270', 'window:105,110@180'])
         beds = lua_list(self.ev(f'(function() local p = {R}.survey({{ x = 110, y = 110, z = 0 }}) local out = {{}} '
                                 'for _, e in ipairs(p.beds) do out[#out + 1] = e.x .. "," .. e.y .. ">" .. e.bx .. "," '
                                 '.. e.by .. "@" .. e.a .. "q" .. e.q end return out end)()'))

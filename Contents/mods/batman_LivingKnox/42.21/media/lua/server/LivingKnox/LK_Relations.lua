@@ -51,6 +51,7 @@ require "LivingKnox/LK_Hostility"
 require "LivingKnox/LK_Decisions"   -- LK16-T05 : fournisseur de contexte (registerContext)
 require "LivingKnox/LK_Stock"
 require "LivingKnox/LK_Simulation"   -- LK16-T09 : passe horaire (registerHourly)
+require "LivingKnox/LK_Passage"   -- LK18-T01 : priorité de passage déclarée plus bas
 
 local Relations = LivingKnox.Relations or {}
 LivingKnox.Relations = Relations
@@ -1126,5 +1127,8 @@ LivingKnox.Decisions.registerExtension({ id = "revenge", order = 60,
 LivingKnox.Simulation.registerHourly({ id = "revenge", order = 10, run = function(g, gid, hour)
     Relations.offscreenHour(g, gid, hour)
 end })
+
+-- LK18-T01 (ADR adr-ceder-le-passage.md D02, fiche passage.md) : priorité de passage du comportement, déclarée ici.
+LivingKnox.Passage.priority("revenge", 70)
 
 return Relations

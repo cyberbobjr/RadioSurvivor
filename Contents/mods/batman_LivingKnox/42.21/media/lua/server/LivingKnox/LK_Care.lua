@@ -37,6 +37,7 @@ require "LivingKnox/LK_Stock"
 require "LivingKnox/LK_Routines"
 require "LivingKnox/LK_Decisions"
 require "LivingKnox/LK_Health"
+require "LivingKnox/LK_Passage"   -- LK18-T01 : priorité de passage déclarée plus bas
 
 local Care = LivingKnox.Care or {}
 LivingKnox.Care = Care
@@ -530,5 +531,8 @@ end
 function Care.reset()
     Care.state = { npcs = {}, tasks = {}, flagged = {}, aside = {}, failed = {}, assigned = {} }
 end
+
+-- LK18-T01 (ADR adr-ceder-le-passage.md D02, fiche passage.md) : priorité de passage du comportement, déclarée ici.
+LivingKnox.Passage.priority("care", 80)
 
 return Care

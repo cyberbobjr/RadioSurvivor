@@ -36,6 +36,7 @@ require "LivingKnox/LK_Store"
 require "LivingKnox/LK_GroupTypes"
 require "LivingKnox/LK_Bodies"
 require "LivingKnox/LK_Groups"
+require "LivingKnox/LK_StopPlace"
 
 local Materialize = LivingKnox.Materialize or {}
 LivingKnox.Materialize = Materialize
@@ -216,18 +217,12 @@ function Materialize.homeSquare(home)
 end
 
 -- Case libre la plus proche du foyer, à radius cases au plus, au niveau du foyer : même bâtiment (bid) ou, camp
--- (bid nil), hors bâtiment ; aucun escalier ; Bodies.freeSquare. Rend la case, ou nil.
+-- (bid nil), hors bâtiment ; aucun escalier ; Bodies.freeSquare ; place d'arrêt hors des portes et des couloirs
+-- (LK18-T03, LivingKnox.StopPlace). Rend la case, ou nil.
 function Materialize.placeFor(home, bid, radius)
-    local cell = getCell()
-    for r = 0, radius do
-        for _, d in ipairs(Bodies().ring(r)) do
-            local sq = cell:getGridSquare(home.x + d[1], home.y + d[2], home.z)
-            if sq ~= nil and buildingId(sq) == bid and not sq:HasStairs() and Bodies().freeSquare(sq) then
-                return sq
-            end
-        end
-    end
-    return nil
+    return LivingKnox.StopPlace.nearest(home.x, home.y, home.z, radius, function(sq)
+        return buildingId(sq) == bid and not sq:HasStairs() and Bodies().freeSquare(sq)
+    end)
 end
 
 -- Avertissement unique par (groupe, raison) tant qu'un joueur reste près du foyer.

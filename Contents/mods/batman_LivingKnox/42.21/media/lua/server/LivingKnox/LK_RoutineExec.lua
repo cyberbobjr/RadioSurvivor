@@ -11,6 +11,7 @@ require "LivingKnox/LK_Config"
 require "LivingKnox/LK_Log"
 require "LivingKnox/LK_Groups"
 require "LivingKnox/LK_Decisions"
+require "LivingKnox/LK_StopPlace"
 
 local Routines = LivingKnox.Routines or {}
 LivingKnox.Routines = Routines
@@ -38,22 +39,27 @@ local function standable(sq)
 end
 
 -- Place d'une corvée devant l'objet de la case (x, y) : case voisine (nord, est, sud, ouest) praticable, du bâtiment
--- bid, sans lit, libre dans used, sans mur ni porte fermée entre les deux (isBlockedTo). Rend { x, y, z, a, ox, oy }
--- (a : regard vers l'objet), ou nil.
+-- bid, sans lit, libre dans used, sans mur ni porte fermée entre les deux (isBlockedTo) ; d'abord une voisine hors des
+-- portes et des couloirs (LK18-T03, LivingKnox.StopPlace), sinon la première. Rend { x, y, z, a, ox, oy } (a : regard
+-- vers l'objet), ou nil.
 local function placeBeside(cell, x, y, z, bid, used)
     local osq = cell:getGridSquare(x, y, z)
     if osq == nil then return nil end
+    local squares, dirs = {}, {}
     for _, d in ipairs(DIRS) do
         local sx, sy = x + d[1], y + d[2]
         local sq = cell:getGridSquare(sx, sy, z)
-        local key = sx .. "," .. sy
-        if not used[key] and standable(sq) and (bid == nil or buildingId(sq) == bid) and Routines.bedQuality(sq) == nil
-            and not sq:isBlockedTo(osq) then
-            used[key] = true
-            return { x = sx, y = sy, z = z, a = (d[3] + 180) % 360, ox = x, oy = y }
+        if not used[sx .. "," .. sy] and standable(sq) and (bid == nil or buildingId(sq) == bid)
+            and Routines.bedQuality(sq) == nil and not sq:isBlockedTo(osq) then
+            squares[#squares + 1], dirs[#dirs + 1] = sq, d
         end
     end
-    return nil
+    local i = LivingKnox.StopPlace.firstAllowed(squares)
+    if i == nil then return nil end
+    local d = dirs[i]
+    local sx, sy = x + d[1], y + d[2]
+    used[sx .. "," .. sy] = true
+    return { x = sx, y = sy, z = z, a = (d[3] + 180) % 360, ox = x, oy = y }
 end
 
 -- ================================================================ outils de déplacement

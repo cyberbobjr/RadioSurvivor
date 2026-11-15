@@ -2,13 +2,13 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** à faire — 0 / 3 tâche(s) terminée(s).
+**Avancement.** en cours — 1 / 3 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
-| ☐ | LK18-T01 | Registre des priorités de passage et arbitrage | `à faire` | hors jeu | — |
+| ☑ | LK18-T01 | Registre des priorités de passage et arbitrage | `testé hors jeu` | hors jeu | — |
 | ☐ | LK18-T02 | Action « s'écarter », signalement du blocage par l'exécutant | `à faire` | MP | LK18-T01 |
-| ☐ | LK18-T03 | Places d'arrêt hors des portes et des couloirs | `à faire` | solo | — |
+| ☐ | LK18-T03 | Places d'arrêt hors des portes et des couloirs | `testé hors jeu` | solo | — |
 
 <!-- fin du tableau de bord -->
 
@@ -23,15 +23,15 @@ reprend sa tâche. Aucun PNJ ne s'arrête dans une porte ou un couloir.
 
 **Sources.** Observation de l'utilisateur du 2026-11-15 ; campagne `solo-lk` du 2026-11-15 sur `be9f01d1`.
 
-- [ ] **LK18-T01** — Registre des priorités de passage et arbitrage
-  - État : `à faire`
+- [x] **LK18-T01** — Registre des priorités de passage et arbitrage
+  - État : `testé hors jeu`
   - Cible : `hors jeu`
   - Dépend de : —
   - Fichiers : nouveau module de passage (registre `priority(kind, n)`, arbitrage pur) ; déclaration de priorité dans le fichier de chaque comportement ou directive concerné ; bancs dédiés
   - Faire : D02 et D05 de l'ADR. L'arbitrage prend deux PNJ (priorité, identifiant) et les cases libres autour du bloqueur, et rend « le bloqueur s'écarte vers telle case », « le bloqueur recule » ou « rien ».
   - Accepté si : au banc, chaque cas de l'ADR donne la décision attendue ; un comportement ajouté par un test déclare sa priorité sans modifier le module de passage.
   - Tests : bancs de l'arbitrage et du registre.
-  - Preuve : —
+  - Preuve : 2026-11-15 : python tests/test_lk_passage.py -> Ran 17 tests ... OK (registre, arbitrage de chaque cas de l'ADR, comportement inscrit par le test sans toucher LK_Passage).
   - Reste : —
 
 - [ ] **LK18-T02** — Action « s'écarter », signalement du blocage par l'exécutant
@@ -46,12 +46,12 @@ reprend sa tâche. Aucun PNJ ne s'arrête dans une porte ou un couloir.
   - Reste : —
 
 - [ ] **LK18-T03** — Places d'arrêt hors des portes et des couloirs
-  - État : `à faire`
+  - État : `testé hors jeu`
   - Cible : `solo`
   - Dépend de : —
   - Fichiers : le choix des places d'arrêt (un seul endroit, utilisé par les comportements qui s'arrêtent)
   - Faire : D04. Une place d'arrêt n'est jamais une case de porte ou de portail, un seuil ou un passage d'une case de large ; elle se décale à la case libre la plus proche.
   - Accepté si : au banc, une place demandée dans une porte ou un couloir est décalée ; en jeu, aucun PNJ de garde ou en attente sur un seuil.
   - Tests : bancs ; campagne `solo-lk`.
-  - Preuve : —
-  - Reste : —
+  - Preuve : 2026-11-15 : python tests/test_lk_stop_place.py -> Ran 11 tests ... OK ; test_lk_routines 23 OK, test_lk_chores 16 OK, test_lk_defense 23 OK, test_lk_fight_all 8 OK.
+  - Reste : Campagne solo-lk : aucun PNJ de garde ou en attente sur un seuil.

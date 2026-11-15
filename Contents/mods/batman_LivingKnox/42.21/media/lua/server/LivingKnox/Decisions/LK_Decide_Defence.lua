@@ -11,6 +11,7 @@ require "LivingKnox/LK_Core"
 require "LivingKnox/LK_Config"
 require "LivingKnox/LK_Log"
 require "LivingKnox/LK_Decisions"
+require "LivingKnox/LK_Passage"   -- LK18-T01 : priorité de passage déclarée plus bas
 
 local Decisions = LivingKnox.Decisions
 local Defence = LivingKnox.DecideDefence or {}
@@ -153,5 +154,12 @@ Decisions.registerExtension({ id = "watch", order = 72, overlay = true, gesture 
 Decisions.registerExtension({ id = "alert", order = 73, overlay = true, gesture = true,
     aim = Defence.aimAlert, apply = Defence.applyAlert })
 Decisions.registerExtension({ id = "flee", order = 74, overlay = true, aim = aimAway, apply = Defence.applyFlee })
+
+-- LK18-T01 (ADR adr-ceder-le-passage.md D02, fiche passage.md) : priorité de passage du comportement, déclarée ici.
+LivingKnox.Passage.priority("flee", 100)
+LivingKnox.Passage.priority("retreat", 100)
+LivingKnox.Passage.priority("surrender", 70)
+LivingKnox.Passage.priority("watch", 70)
+LivingKnox.Passage.priority("alert", 70)
 
 return Defence

@@ -156,6 +156,7 @@ require "LivingKnox/LK_Anim"
 require "LivingKnox/LK_Equipment"
 require "LivingKnox/LK_Ammo"
 require "LivingKnox/LK_Decisions"   -- LK16-T06 : extension propriétaire du comportement « fight »
+require "LivingKnox/LK_Passage"   -- LK18-T01 : priorité de passage déclarée plus bas
 
 Combat.orders = Combat.orders or {}     -- npcId -> ordre courant (autorité)
 Combat.weapons = Combat.weapons or {}   -- type -> objet HandWeapon de l'autorité (instancié une fois)
@@ -1263,5 +1264,8 @@ LivingKnox.Decisions.registerExtension({ id = "fight", order = 20,
     apply = function(id, st, ctx, fresh) return Combat.apply(id, st, ctx, fresh) end,
     leave = function(id) return Combat.leave(id) end,
     forget = function(id) return Combat.forget(id) end })
+
+-- LK18-T01 (ADR adr-ceder-le-passage.md D02, fiche passage.md) : priorité de passage du comportement, déclarée ici.
+LivingKnox.Passage.priority("fight", 100)
 
 return Combat

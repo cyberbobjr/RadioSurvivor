@@ -137,9 +137,17 @@ class SoloFightAllTests(DefenseStack):
         self.assertEqual(self.gesture(gid, 'm-2'), 'guard')
         post = self.place_of(gid, 'm-2')                                     # "post x,y,z"
         px, py, _ = (int(v) for v in post.split(' ')[1].split(','))
-        self.h.move_zombie(z[1], px - 0.5 if px == 105 else px + 0.5, py + 0.5 if px == 105 else py - 0.5)
+        # LK18-T03 : le poste de la porte est relevé une case derrière le seuil ; son combattant peut avoir déjà tué
+        # les deux zombies de la porte : un zombie encore vivant est amené (ou posé) devant la fenêtre.
+        wx, wy = (px - 0.5, py + 0.5) if px == 105 else (px + 0.5, py - 0.5)
+        live = [zid for zid in z if not self.h.eval('solo', f'HARNESS.zombies[{zid}]:isDead()')]
+        if live:
+            zid = live[-1]
+            self.h.move_zombie(zid, wx, wy)
+        else:
+            zid = self.horde([(int(wx), int(wy))], first=7101)[0]
         self.dpass(2)
-        self.assertEqual(self.engaged(gid, 'm-2'), f'z:{z[1]}')
+        self.assertEqual(self.engaged(gid, 'm-2'), f'z:{zid}')
         self.assertEqual(self.ev('OUTSIDE'), 0)
         self.assertEqual(self.h.errors('solo'), [])
 

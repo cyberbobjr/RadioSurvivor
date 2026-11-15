@@ -8,6 +8,7 @@ if isClient() then return end
 
 require "LivingKnox/LK_Core"
 require "LivingKnox/LK_Decisions"
+require "LivingKnox/LK_Passage"   -- LK18-T01 : priorité de passage déclarée plus bas
 
 local Decisions = LivingKnox.Decisions
 local Post = LivingKnox.DecidePost or {}
@@ -34,5 +35,9 @@ end
 
 Decisions.registerExtension({ id = "guard", order = 80, overlay = true, aim = Post.aimGuard, apply = Post.apply })
 Decisions.registerExtension({ id = "patrol", order = 81, overlay = true, apply = Post.apply })
+
+-- LK18-T01 (ADR adr-ceder-le-passage.md D02, fiche passage.md) : priorité de passage du comportement, déclarée ici.
+LivingKnox.Passage.priority("guard", 30)
+LivingKnox.Passage.priority("patrol", 30)
 
 return Post

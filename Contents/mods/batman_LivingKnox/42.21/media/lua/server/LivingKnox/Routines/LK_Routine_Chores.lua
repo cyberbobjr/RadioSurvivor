@@ -13,6 +13,7 @@ require "LivingKnox/LK_Log"
 require "LivingKnox/LK_Decisions"
 require "LivingKnox/LK_Routines"
 require "LivingKnox/LK_RoutineExec"
+require "LivingKnox/LK_Passage"   -- LK18-T01 : priorité de passage déclarée plus bas
 
 local Routines = LivingKnox.Routines
 local E = Routines.exec
@@ -286,3 +287,6 @@ Routines.registerActivity({ id = "chore.visible", behaviour = "chore", order = 9
         Routines.execPlan(id, st, ctx, plan, fresh)
         return true
     end })
+
+-- LK18-T01 (ADR adr-ceder-le-passage.md D02, fiche passage.md) : priorité de passage du comportement, déclarée ici.
+LivingKnox.Passage.priority("chore", 50)

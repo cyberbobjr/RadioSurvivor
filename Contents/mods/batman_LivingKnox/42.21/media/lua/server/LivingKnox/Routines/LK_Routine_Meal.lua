@@ -11,6 +11,7 @@ require "LivingKnox/LK_Groups"
 require "LivingKnox/LK_Decisions"
 require "LivingKnox/LK_Routines"
 require "LivingKnox/LK_RoutineExec"
+require "LivingKnox/LK_Passage"   -- LK18-T01 : priorité de passage déclarée plus bas
 
 local Routines = LivingKnox.Routines
 local E = Routines.exec
@@ -180,3 +181,6 @@ Routines.registerActivity({ id = "meal", behaviour = "meal", order = 10,
         Routines.runMeal(id, st, ctx, g)
         return true
     end })
+
+-- LK18-T01 (ADR adr-ceder-le-passage.md D02, fiche passage.md) : priorité de passage du comportement, déclarée ici.
+LivingKnox.Passage.priority("meal", 50)

@@ -25,6 +25,7 @@ require "LivingKnox/LK_Needs"
 require "LivingKnox/LK_Decisions"
 require "LivingKnox/LK_RoutineExec"
 require "LivingKnox/LK_Provisions"
+require "LivingKnox/LK_Passage"   -- LK18-T01 : priorité de passage déclarée plus bas
 
 local Meal = LivingKnox.ProvisionMeal or {}
 LivingKnox.ProvisionMeal = Meal
@@ -258,5 +259,8 @@ LivingKnox.Decisions.registerExtension({ id = Meal.ID, order = 10,
 
 -- Activité de l'heure pour le pas horaire des besoins (LK_Needs.observe).
 LivingKnox.Needs.BEHAVIOUR_ACTIVITY[Meal.ID] = "idle"
+
+-- LK18-T01 (ADR adr-ceder-le-passage.md D02, fiche passage.md) : priorité de passage du comportement, déclarée ici.
+LivingKnox.Passage.priority(Meal.ID, 50)
 
 return Meal

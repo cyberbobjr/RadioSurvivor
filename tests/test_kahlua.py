@@ -145,11 +145,17 @@ LUA_FILES = [
     # LK05-T02 : cadre de decision (fonctions pures ; les passages sur les corps sont testes sous lupa). LK13-T11 :
     # file de notation horaire inscrite a OnTick au chargement (EVENTS_AT_LOAD).
     ('LivingKnox/LK_Decisions', LK_LUA / 'server' / 'LivingKnox' / 'LK_Decisions.lua'),
+    # LK18-T01 : priorités de passage (arbitrage pur, registre) déclarées par les fichiers des comportements.
+    ('LivingKnox/LK_PassageArbiter', LK_LUA / 'shared' / 'LivingKnox' / 'LK_PassageArbiter.lua'),
+    ('LivingKnox/LK_Passage', LK_LUA / 'shared' / 'LivingKnox' / 'LK_Passage.lua'),
     # LK16-T06 : comportements de défense et de poste (visée, geste, application) inscrits par leurs fichiers.
     ('LivingKnox/Decisions/LK_Decide_Defence', LK_LUA / 'server' / 'LivingKnox' / 'Decisions' / 'LK_Decide_Defence.lua'),
     ('LivingKnox/Decisions/LK_Decide_Post', LK_LUA / 'server' / 'LivingKnox' / 'Decisions' / 'LK_Decide_Post.lua'),
     # LK15-T02 : registre des activités des routines, outils d'exécution, relevé et activités (LK_Fortify.lua requiert
-    # LK_Routines ; les activités s'inscrivent au chargement).
+    # LK_Routines ; les activités s'inscrivent au chargement). LK18-T03 : règle des places d'arrêt (requise par
+    # LK_RoutineExec, avec LK_Movement pour les bords fermés).
+    ('LivingKnox/LK_Movement', LK_LUA / 'shared' / 'LivingKnox' / 'LK_Movement.lua'),
+    ('LivingKnox/LK_StopPlace', LK_LUA / 'server' / 'LivingKnox' / 'LK_StopPlace.lua'),
     ('LivingKnox/LK_RoutineExec', LK_LUA / 'server' / 'LivingKnox' / 'LK_RoutineExec.lua'),
     ('LivingKnox/LK_Routines', LK_LUA / 'server' / 'LivingKnox' / 'LK_Routines.lua'),
     ('LivingKnox/Routines/LK_Routine_Chores', LK_LUA / 'server' / 'LivingKnox' / 'Routines' / 'LK_Routine_Chores.lua'),

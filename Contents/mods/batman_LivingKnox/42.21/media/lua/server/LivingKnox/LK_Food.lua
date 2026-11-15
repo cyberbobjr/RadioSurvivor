@@ -37,6 +37,7 @@ require "LivingKnox/LK_Config"
 require "LivingKnox/LK_Log"
 require "LivingKnox/LK_Groups"
 require "LivingKnox/LK_Simulation"
+require "LivingKnox/LK_StopPlace"   -- LK18-T03 : places d'arrêt
 
 local Food = LivingKnox.Food or {}
 LivingKnox.Food = Food
@@ -305,22 +306,11 @@ end
 -- plus proche de (px, py), la rank-ième ; ou nil.
 function Food.spotIn(zn, px, py, z, radius, rank)
     local B = LivingKnox.Bodies
-    local cell = getCell()
-    if cell == nil then return nil end
-    local n = 0
-    for r = 0, radius do
-        for _, d in ipairs(B.ring(r)) do
-            local x, y = px + d[1], py + d[2]
-            if gapTo(x, y, zn) == 0 then
-                local sq = cell:getGridSquare(x, y, z)
-                if sq ~= nil and sq:getBuildingDef() == nil and not sq:HasStairs() and B.freeSquare(sq) then
-                    n = n + 1
-                    if n >= (rank or 1) then return sq end
-                end
-            end
-        end
-    end
-    return nil
+    if getCell() == nil then return nil end
+    return LivingKnox.StopPlace.nearest(px, py, z, radius, function(sq)
+        return gapTo(sq:getX(), sq:getY(), zn) == 0 and sq:getBuildingDef() == nil and not sq:HasStairs()
+            and B.freeSquare(sq)
+    end, rank)
 end
 
 -- Vrai si les manques want ({ { c, m } }, ordre du manque) appellent une cueillette : la nourriture manque le plus.
@@ -449,19 +439,13 @@ function Food.shoreSpot(px, py, z, radius, rank)
     local B = LivingKnox.Bodies
     local cell = getCell()
     if cell == nil or B == nil then return nil end
-    local n = 0
-    for r = 0, radius do
-        for _, d in ipairs(B.ring(r)) do
-            local sq = cell:getGridSquare(px + d[1], py + d[2], z)
-            if sq ~= nil and not sq:isWaterSquare() and sq:getBuildingDef() == nil and not sq:HasStairs()
-                and B.freeSquare(sq) then
-                local wx, wy = waterBeside(cell, sq)
-                if wx ~= nil then
-                    n = n + 1
-                    if n >= (rank or 1) then return sq, wx, wy end
-                end
-            end
-        end
+    local sq = LivingKnox.StopPlace.nearest(px, py, z, radius, function(q)
+        return not q:isWaterSquare() and q:getBuildingDef() == nil and not q:HasStairs() and B.freeSquare(q)
+            and waterBeside(cell, q) ~= nil
+    end, rank)
+    if sq ~= nil then
+        local wx, wy = waterBeside(cell, sq)
+        return sq, wx, wy
     end
     return nil
 end

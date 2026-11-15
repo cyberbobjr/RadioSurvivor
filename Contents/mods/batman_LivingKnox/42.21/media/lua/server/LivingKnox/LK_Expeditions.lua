@@ -77,6 +77,8 @@ require "LivingKnox/LK_Homes"
 require "LivingKnox/LK_Stock"
 require "LivingKnox/LK_Decisions"
 require "LivingKnox/LK_Routines"
+require "LivingKnox/LK_StopPlace"   -- LK18-T03 : places d'arrêt
+require "LivingKnox/LK_Passage"   -- LK18-T01 : priorité de passage déclarée plus bas
 
 local Ex = LivingKnox.Expeditions or {}
 LivingKnox.Expeditions = Ex
@@ -453,21 +455,13 @@ local function buildingIdAt(x, y, z)
     return def ~= nil and def:getIDString() or nil, true
 end
 
--- Case libre du bâtiment bid la plus proche de (x, y, z), à radius cases au plus, la rank-ième (1 = la plus proche).
+-- Case libre du bâtiment bid la plus proche de (x, y, z), à radius cases au plus, la rank-ième (1 = la plus proche) ;
+-- place d'arrêt hors des portes et des couloirs (LK18-T03, LivingKnox.StopPlace).
 local function freeNear(x, y, z, bid, radius, rank)
     local B = LivingKnox.Bodies
-    local cell = getCell()
-    local n = 0
-    for r = 0, radius do
-        for _, d in ipairs(B.ring(r)) do
-            local sq = cell:getGridSquare(x + d[1], y + d[2], z)
-            if sq ~= nil and (bid == nil or X().buildingId(sq) == bid) and not sq:HasStairs() and B.freeSquare(sq) then
-                n = n + 1
-                if n >= (rank or 1) then return sq end
-            end
-        end
-    end
-    return nil
+    return LivingKnox.StopPlace.nearest(x, y, z, radius, function(sq)
+        return (bid == nil or X().buildingId(sq) == bid) and not sq:HasStairs() and B.freeSquare(sq)
+    end, rank)
 end
 Ex.freeNear = freeNear   -- LK16-T08 : place d'un membre au bâtiment visé (genre de repli)
 
@@ -1565,5 +1559,8 @@ end })
 -- trajet, fouille et retour.
 LivingKnox.Decisions.registerExtension({ id = "expedition", order = 50,
     apply = function(id, st, ctx, fresh) return Ex.apply(id, st, ctx, fresh) end })
+
+-- LK18-T01 (ADR adr-ceder-le-passage.md D02, fiche passage.md) : priorité de passage du comportement, déclarée ici.
+LivingKnox.Passage.priority("expedition", 60)
 
 return Ex
