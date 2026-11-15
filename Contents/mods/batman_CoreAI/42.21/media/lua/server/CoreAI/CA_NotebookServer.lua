@@ -416,26 +416,31 @@ end
 -- E11-T13: report spoken to the requester (CA_MissionTalk).
 function Server.spokenReport(req, result, npc) return MissionTalk.report(S, req, result, npc, Server.bound) end
 
--- Mission of a gesture, or nil and the reason of the refusal (State; Range: the requester is not next to the player).
+-- Mission of a gesture, or nil, the reason of the refusal (State; Range: the requester is not next to the player) and
+-- what failed (server log only).
 local function missionFor(player, character, args, ranged)
     local m = type(args.mission) == 'string' and S.data.missions[args.mission]
-    if not m or (not m.invited[character] and not m.participants[character]) then return nil, 'State' end
-    if not M.present(m) then return nil, 'State' end -- E18-T25: giver of a mod not active, mission hidden
+    if not m then return nil, 'State', 'unknown mission' end
+    if not m.invited[character] and not m.participants[character] then return nil, 'State', 'not invited' end
+    if not M.present(m) then return nil, 'State', 'giver absent' end -- E18-T25: giver of a mod not active, mission hidden
     local giver = M.donor(m.donor or 'npc')
     -- E11-T08, E21-T04: a remote giver (radio voice) has no body to join: only accept and abandon (no range), never
     -- invite or claim.
     if giver.remote then
-        if ranged or m.transaction then return nil, 'State' end
+        if ranged then return nil, 'State', 'remote giver' end
+        if m.transaction then return nil, 'State', 'transaction pending' end
         return m
     end
     local requester = M.donorOf(S.data, m)
-    if not requester or requester.alive == false then return nil, 'State' end
+    if not requester or requester.alive == false then return nil, 'State', 'requester gone' end
     if ranged then
-        if not nearRequester(m, player) then return nil, 'Range' end
+        if not nearRequester(m, player) then return nil, 'Range', 'requester not near' end
         -- A fiche of the notebook speaks only to the characters that know it (contact).
-        if S.data.npcs[m.npc] and not S.data.characters[character].contacts[m.npc] then return nil, 'State' end
+        if S.data.npcs[m.npc] and not S.data.characters[character].contacts[m.npc] then
+            return nil, 'State', 'requester not a contact'
+        end
     end
-    if m.transaction then return nil, 'State' end
+    if m.transaction then return nil, 'State', 'transaction pending' end
     return m
 end
 
@@ -496,13 +501,23 @@ gestures.claim = {ranged = true, apply = function(player, character, m)
     return M.claim(S, m, player, character, S.uid('claim'))
 end}
 
-local function transact(player, character, gesture, args)
-    local m, why = missionFor(player, character, args, gesture.ranged)
-    if not m then return reject(player, why) end
-    if m.revision ~= args.revision then return reject(player, 'State') end
+-- A refused gesture is logged on the server (MP run 20261115-163137: a claim refused without a trace), then answered.
+local function refuse(player, name, character, args, reason, detail)
+    log('gesture ' .. name .. ' refused for ' .. tostring(character) .. ' on ' .. tostring(args.mission) .. ': '
+        .. tostring(reason) .. (detail and (' (' .. detail .. ')') or ''))
+    return reject(player, reason)
+end
+
+local function transact(player, character, name, gesture, args)
+    local m, why, detail = missionFor(player, character, args, gesture.ranged)
+    if not m then return refuse(player, name, character, args, why, detail) end
+    if m.revision ~= args.revision then
+        return refuse(player, name, character, args, 'State',
+            'revision ' .. tostring(args.revision) .. ', mission at ' .. tostring(m.revision))
+    end
     local ok, reason = gesture.apply(player, character, m, args)
     if ok == ANSWERED then return end
-    if not ok then return reject(player, reason) end
+    if not ok then return refuse(player, name, character, args, reason) end
     S.save()
     publish()
 end
@@ -575,7 +590,9 @@ Server.registerCommand('note', function(player, args, character)
     S.save(); projection(player)
 end)
 for name, gesture in pairs(gestures) do
-    Server.registerCommand(name, function(player, args, character) transact(player, character, gesture, args) end)
+    Server.registerCommand(name, function(player, args, character)
+        transact(player, character, name, gesture, args)
+    end)
 end
 
 -- Notebook character of the account named by a server death cause (E04-T07), or nil: connected player of this

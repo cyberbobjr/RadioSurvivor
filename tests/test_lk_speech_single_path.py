@@ -23,7 +23,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from test_carnet import LK_WORLD, Simulation, convert, open_notebook, protocol, talk_requests
+from test_carnet import LK_WORLD, Simulation, convert, lua_list, open_notebook, protocol, talk_requests
 from test_protocol import Game
 
 
@@ -223,6 +223,48 @@ class SpeechSinglePathTests(unittest.TestCase):
         self.sim.request_mission('alice', 'prepare_delivery', items=ids)
         self.assertEqual(self.client.lastError, 'Range')
         self.assertEqual(m.delivered, 0)
+
+    def fixture_mission(self):
+        """A successful mission of the leader for alice made as the in-game suite lk.missions makes it: created from
+        the offers of the leader, accepted and closed in success by the authority, no sentence said to the NPC (the
+        bench leader offers a supply only: the claim path is the same for every kind)."""
+        return self.rt.eval('''function(id, character)
+            local M = require 'CoreAI/CA_Missions'
+            local P = require 'CoreAI/CA_NPCProvider'
+            local Server = CoreAI.notebookServer
+            local data = Server.store.data
+            local npc = Server.ensure(id)
+            local m
+            for offerId, terms in pairs(M.offers(npc, P.npc(id), P.objects()[id], character)) do
+                if m == nil and type(terms) == 'table' then m = M.create(data, npc, character, offerId, terms) end
+            end
+            M.accept(data, m, character, 'RST')
+            M.finish(data, m, 'success')
+            data.characters[character].knownMissions[m.id] = true
+            return m
+        end''')(self.g.LK_LEADER, self.alice)
+
+    def test_a_refused_lot_claim_is_logged_on_the_server_with_its_reason(self):
+        """MP run 20261115-163137 (lk.missions): a claim next to the requester of an NPC that is not a contact of the
+        character was refused (State) and nothing on the server said so."""
+        m = self.fixture_mission()
+        self.assertEqual(m.state, 'success')
+        self.sim.command('alice', 'claim', mission=m.id, revision=m.revision)
+        self.assertEqual((self.client.lastError, m.claimedBy), ('State', ''))
+        refused = [line for line in lua_list(self.g.LOGS) if 'gesture claim refused' in line]
+        self.assertEqual(len(refused), 1, lua_list(self.g.LOGS)[-5:])
+        self.assertIn(self.alice, refused[0])
+        self.assertIn(m.id, refused[0])
+        self.assertIn('State', refused[0])
+        self.assertIn('not a contact', refused[0])
+
+    def test_the_lot_is_claimed_once_the_player_has_selected_the_requester(self):
+        """What a player always does before a mission of an NPC (lk.missions in game: select, then claim)."""
+        m = self.fixture_mission()
+        self.sim.command('alice', 'select', incarnation=self.g.LK_LEADER)
+        self.sim.command('alice', 'claim', mission=m.id, revision=m.revision)
+        self.assertEqual(self.client.lastError, None)
+        self.assertEqual(m.claimedBy, self.alice)
 
     def test_a_lot_created_by_the_group_is_announced_and_claimed(self):
         """E18-T33: no announced lot (rewardCount 0): the notebook names the lot of the group and offers the claim."""

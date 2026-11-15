@@ -7,10 +7,12 @@ Tags "world" and "server": a save named rstest*, with a target player. Run:
     python tools/autoclient/autoclient.py --mods lk --suite lk.missions --tags world
 
 The mission of a member of a test group (RST.LKGroup) is created from the offers of that member, accepted and closed in
-success by the engine (the offer by speech is lk.talk). The claim goes through the journal: in multiplayer the
-requester client sends the gesture of the Claim button (step core.journal.act), in solo the same command reaches the
-authority directly. The test group has no household stock: the lot is the common lot of the engine (rewardType x
-rewardCount), checked in the player's inventory; a second claim is refused.
+success by the engine (the offer by speech is lk.talk). A player always talks to the NPC before its mission: the
+player selects the member first (command "select" of the notebook, the NPC becomes a contact of the character; the
+server refuses a ranged gesture on the mission of an NPC that is not a contact). The claim goes through the journal:
+in multiplayer the requester client sends the gesture of the Claim button (step core.journal.act), in solo the same
+command reaches the authority directly. The test group has no household stock: the lot is the common lot of the engine
+(rewardType x rewardCount), checked in the player's inventory; a second claim is refused.
 E18-T33: the same mission without an announced lot (rewardCount 0): the lot created by the type of the member's group
 (CA_MissionConfig.NPC_REWARD_TABLES -> Caches.tables), announced by the journal row (rewardTable), every item of the
 table in the inventory.
@@ -71,11 +73,25 @@ RST.suite("lk.missions", { tags = { "world", "server" }, testTimeoutMs = 120000,
         return out
     end
 
+    -- Command of the notebook server for player p in the current session.
+    local function command(p, name, args)
+        local Server = CoreAI.notebookServer
+        args.world, args.run = Server.store.data.world, Server.store.run
+        Server.command("CoreAI", name, p, args)
+    end
+
     -- Claim of mission m by the notebook server (E21-T04: command "claim" of the Missions tab).
     local function claim(p, m)
-        local Server = CoreAI.notebookServer
-        Server.command("CoreAI", "claim", p, { mission = m.id, revision = m.revision,
-            world = Server.store.data.world, run = Server.store.run })
+        command(p, "claim", { mission = m.id, revision = m.revision })
+    end
+
+    -- The player selects member id (what a player does before talking to it): the NPC is a contact of the character.
+    local function selectMember(t, p, id, character)
+        command(p, "select", { incarnation = id })
+        t:defer(function() command(p, "deselect", {}) end, "deselect " .. tostring(id))
+        local npc = Notebook().find(id)
+        t:ok(npc ~= nil and Notebook().store.data.characters[character].contacts[npc.id] ~= nil,
+            "member " .. tostring(id) .. " not a contact of " .. tostring(character) .. " after its selection")
     end
 
     -- The claim of mission m by the notebook gesture, then check(t) once the lot is claimed.
@@ -85,6 +101,7 @@ RST.suite("lk.missions", { tags = { "world", "server" }, testTimeoutMs = 120000,
         t:waitUntil(function()
             return Hearing.near(p, LivingKnox.NpcProvider.objects()[id], MissionConfig.DELIVERY_RANGE)
         end, 60000, function(t3)
+            selectMember(t3, p, id, character)
             local function claimed(t4)
                 t4:waitUntil(function() return m.claimedBy == character end, CLAIM_MS, function(t5)
                     check(t5)
