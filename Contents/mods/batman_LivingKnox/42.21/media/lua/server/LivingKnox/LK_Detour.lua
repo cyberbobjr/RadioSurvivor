@@ -16,15 +16,19 @@
 --     LK04-T08), décision "open" de Obstacles.decide abordée depuis la case avant (doorRefusal) ; clôture basse
 --     (isFenceTo : enjambée par le moteur, jamais refusée) ; cases avant et après praticables ;
 --   - jamais une ouverture déjà refusée pendant ce "move" (memory : par PNJ et numéro de consigne) ;
---   - case avant accessible depuis le corps par un couloir (LK_DetourCorridor, correctif du 2026-11-15) : cases du lieu
---     du corps, praticables, reliées sans franchir mur, fenêtre, porte ni clôture basse, dans la boîte corps + case
---     avant élargie de RADIUS cases ; sinon l'ouverture est écartée et la suivante essayée.
+--   - couloirs (LK_DetourCorridor, correctifs du 2026-11-15, campagnes 20261115-193703 et 20261115-202338) : case
+--     avant accessible depuis le corps (cases du lieu du corps) ET destination accessible depuis la case après (cases
+--     des lieux de la case après et de la destination ; destination à plus de RADIUS cases de la case après ou sur un
+--     autre niveau : voir Limites), sans franchir mur, fenêtre ni clôture basse ; une porte n'est franchie que si les
+--     règles de contact la laissent passer (doorRefusal, hors des clés déjà refusées) ; cases praticables (la
+--     destination exceptée) ; boîtes bornées à RADIUS cases ; sinon l'ouverture est écartée et la suivante essayée.
 -- La consigne garde son numéro (les modules qui l'ont émise la suivent toujours) et reçoit (Directives.reroute) les
--- coins du couloir (chaque segment droit entre deux points libre de tout bord fermé : pour un corps de zombie une
--- fenêtre ne coûte rien au chemin natif, base pz-knowledge pathfinding-and-obstacles.md, le plus court chemin entre
--- deux points n'a ainsi aucune raison de repasser par la fenêtre refusée), puis les points { case avant, case après },
--- tous serrés (t : Directives.STEP_TIGHT, le corps passe vraiment l'ouverture et ne coupe pas un coin), puis le
--- contournement des plantes et feux de camp (Directives.planDetour, LK04-T06) jusqu'à la destination ; nouveau bail :
+-- coins du premier couloir (chaque segment droit entre deux points libre de fenêtre, mur et clôture : pour un corps de
+-- zombie une fenêtre ne coûte rien au chemin natif, base pz-knowledge pathfinding-and-obstacles.md, le plus court
+-- chemin entre deux points n'a ainsi aucune raison de repasser par la fenêtre refusée), les points { case avant, case
+-- après }, les coins du second couloir, tous serrés (t : Directives.STEP_TIGHT, le corps passe vraiment l'ouverture
+-- et ne coupe pas un coin), puis le contournement des plantes et feux de camp (Directives.planDetour, LK04-T06) depuis
+-- le dernier de ces points jusqu'à la destination ; nouveau bail :
 -- l'exécutant repart aussitôt de la position du corps. Aucune case n'est écartée (pas de Movement.AVOID_MS).
 -- Dernier recours (D03, LK04-T20) : aucune ouverture utilisable et corps dans un bâtiment : l'ouverture la plus
 -- proche permise par les règles de dernier recours (porte ou fenêtre abordée de l'intérieur : decide et decideWindow
@@ -32,8 +36,9 @@
 -- contact de dernier recours, LK_Obstacles). Rien de tout cela, la même ouverture refusée une seconde fois, ou plus de
 -- MAX_PER_MOVE détours : refus inchangé (consigne close en échec par LK_Obstacles).
 -- Limites : le lieu ignore les pièces (deux pièces d'un même bâtiment sont un seul lieu) ; entre deux points du
--- couloir, le chemin reste celui du jeu (supposé proche de la ligne droite libre) ; de la case après à la destination,
--- aucun couloir.
+-- couloir, le chemin reste celui du jeu (supposé proche de la ligne droite libre) ; destination à plus de RADIUS cases
+-- de la case après : le second couloir s'arrête à la case accessible de sa boîte la plus proche de la destination
+-- (DetourCorridor.toward), le chemin du jeu reprend de là ; destination sur un autre niveau : aucun second couloir.
 if isClient() then return end
 
 require "LivingKnox/LK_Core"
@@ -176,21 +181,59 @@ local function sidesOf(c, near, far, goal, px, py)
     return nil
 end
 
--- Vrai si le corps passe de la case a à sa voisine orthogonale b dans le couloir d'approche : b praticable et dans le
--- lieu place, bord commun sans mur (isBlockedTo), porte, fenêtre (tout état : Obstacles.windowOf) ni clôture basse.
-function Detour.corridorStep(a, b, place)
-    if not b:isFree(false) or Detour.placeOf(b) ~= place then return false end
-    if a:isBlockedTo(b) or a:getDoorTo(b) ~= nil or O().windowOf(a, b) ~= nil then return false end
-    return not Detour.isFenceTo(a, b)
+-- Clé (Obstacles.edge) du bord commun des cases voisines orthogonales a et b.
+local function edgeKeyOf(a, b)
+    local x, y, side = a:getX(), a:getY(), "W"
+    if b:getX() > x then x = b:getX()
+    elseif b:getY() > y then y, side = b:getY(), "N"
+    elseif b:getY() < y then side = "N" end
+    return O().edge(x, y, a:getZ(), side).key
 end
 
--- Accès aux cases du couloir (LK_DetourCorridor) : cases chargées du niveau z, pas de corridorStep dans le lieu place.
-local function corridorGrid(z, place)
+-- Règles d'un tronçon de couloir du PNJ id : lieux permis (places : lieu -> vrai), portes jugées avec trapped (dernier
+-- recours) et jamais par une clé de skip (déjà refusée), case free (destination) dispensée d'être praticable.
+local function laneOf(id, trapped, skip, places, free)
+    return { id = id, trapped = trapped, skip = skip, places = places, free = free }
+end
+
+-- Vrai si le corps passe de la case a à sa voisine orthogonale b dans le couloir lane : b dans un lieu permis et
+-- praticable (sauf lane.free) ; bord classé dans l'ordre de la base pz-knowledge (pathfinding-and-obstacles.md,
+-- « Classer le bord commun de deux cases ») : porte (passée si doorRefusal ne la refuse pas, abordée depuis a ;
+-- isBlockedTo est vrai pour toute porte fermée, IsoDoor.isBlocked), fenêtre de tout état (Obstacles.windowOf) et
+-- clôture basse refusées, puis mur ou escalier (isBlockedTo).
+function Detour.corridorStep(lane, a, b)
+    if not lane.places[Detour.placeOf(b)] then return false end
+    if b ~= lane.free and not b:isFree(false) then return false end
+    local d = a:getDoorTo(b)
+    if d ~= nil then
+        return not lane.skip[edgeKeyOf(a, b)] and Detour.doorRefusal(lane.id, d, a, b, a, lane.trapped) == nil
+    end
+    if O().windowOf(a, b) ~= nil or Detour.isFenceTo(a, b) then return false end
+    return not a:isBlockedTo(b)
+end
+
+-- Accès aux cases d'un couloir (LK_DetourCorridor) : cases chargées du niveau z, pas de corridorStep selon lane.
+local function corridorGrid(z, lane)
     local cell = getCell()
     return {
         square = function(x, y) return cell:getGridSquare(x, y, z) end,
-        open = function(a, b) return Detour.corridorStep(a, b, place) end,
+        open = function(a, b) return Detour.corridorStep(lane, a, b) end,
     }
+end
+
+-- Coins des deux couloirs de l'ouverture (cases before et after) pour le trajet t (voir pick) : way (corps -> case
+-- avant) et tail (case après -> destination ; vide si la destination est sur un autre niveau), ou nil si l'un manque.
+local function corridorsOf(t, before, after, trapped)
+    local C = Corridor()
+    local near = corridorGrid(t.z, laneOf(t.id, trapped, t.skip, { [t.near] = true }))
+    local way = C.plan(near, t.px, t.py, before:getX(), before:getY(), Detour.RADIUS)
+    if way == nil then return nil end
+    if t.dest == nil then return way, {} end
+    local places = { [Detour.placeOf(after)] = true, [t.goal] = true }
+    local far = corridorGrid(t.z, laneOf(t.id, trapped, t.skip, places, t.dest))
+    local tail = C.toward(far, after:getX() + 0.5, after:getY() + 0.5, t.dest:getX(), t.dest:getY(), Detour.RADIUS)
+    if tail == nil then return nil end
+    return way, tail
 end
 
 -- Vrai si le PNJ id passe l'ouverture c de la case before vers la case after (trapped : dernier recours).
@@ -200,23 +243,23 @@ local function usable(id, c, before, after, trapped)
     return trapped and Detour.windowRefusal(id, c.obj, c.wk, c.sqA, c.sqB, before, after) == nil
 end
 
--- Ouverture choisie pour le PNJ id (corps au point px, py, niveau z) : la plus proche du meilleur rang, utilisable,
--- hors des clés de skip, case avant accessible par un couloir. Rend { c, before, after, rank, d, way } (way : coins
--- du couloir) ou nil.
-local function pick(id, px, py, z, near, far, goal, skip, trapped)
+-- Ouverture choisie pour le trajet t = { id, px, py, z, near, far, goal, dest, skip } (PNJ id, corps au point
+-- (px, py) du niveau z, lieux du corps, de l'autre côté de l'ouverture refusée et de la destination, case de
+-- destination au niveau z ou nil, clés à écarter) : la plus proche du meilleur rang, utilisable (trapped : dernier
+-- recours), avec ses deux couloirs. Rend { c, before, after, rank, d, way, tail } ou nil.
+local function pick(t, trapped)
     local best = nil
-    local grid = corridorGrid(z, near)
-    for _, c in ipairs(openingsNear(math.floor(px), math.floor(py), z, trapped)) do
-        if not skip[c.e.key] then
-            local before, after, rank = sidesOf(c, near, far, goal, px, py)
+    for _, c in ipairs(openingsNear(math.floor(t.px), math.floor(t.py), t.z, trapped)) do
+        if not t.skip[c.e.key] then
+            local before, after, rank = sidesOf(c, t.near, t.far, t.goal, t.px, t.py)
             if before ~= nil and before:isFree(false) and after:isFree(false) then
-                local d = O().dist(px, py, c.e.mx, c.e.my)
+                local d = O().dist(t.px, t.py, c.e.mx, c.e.my)
                 local better = best == nil or rank < best.rank or (rank == best.rank and (d < best.d - 1e-9
                     or (math.abs(d - best.d) <= 1e-9 and c.e.key < best.c.e.key)))
-                if better and usable(id, c, before, after, trapped) then
-                    local way = Corridor().plan(grid, px, py, before:getX(), before:getY(), Detour.RADIUS)
+                if better and usable(t.id, c, before, after, trapped) then
+                    local way, tail = corridorsOf(t, before, after, trapped)
                     if way ~= nil then
-                        best = { c = c, before = before, after = after, rank = rank, d = d, way = way }
+                        best = { c = c, before = before, after = after, rank = rank, d = d, way = way, tail = tail }
                     end
                 end
             end
@@ -225,9 +268,9 @@ local function pick(id, px, py, z, near, far, goal, skip, trapped)
     return best
 end
 
--- Points de passage : coins du couloir puis { case avant, case après }, tous serrés (best nil : aucun), puis
--- contournement des plantes et feux de camp jusqu'à la destination de e (Directives.planDetour, depuis la case après
--- ou le point (px, py)).
+-- Points de passage : coins du premier couloir, { case avant, case après }, coins du second couloir, tous serrés
+-- (best nil : aucun), puis contournement des plantes et feux de camp jusqu'à la destination de e
+-- (Directives.planDetour, depuis le dernier de ces points ou le point (px, py)).
 local function pointsOf(e, best, px, py)
     local w = {}
     local sx, sy = px, py
@@ -235,7 +278,9 @@ local function pointsOf(e, best, px, py)
         for _, p in ipairs(best.way) do w[#w + 1] = { x = p.x, y = p.y, t = true } end
         w[#w + 1] = { x = best.before:getX(), y = best.before:getY(), t = true }
         w[#w + 1] = { x = best.after:getX(), y = best.after:getY(), t = true }
-        sx, sy = best.after:getX() + 0.5, best.after:getY() + 0.5
+        for _, p in ipairs(best.tail) do w[#w + 1] = { x = p.x, y = p.y, t = true } end
+        local last = w[#w]
+        sx, sy = last.x + 0.5, last.y + 0.5
     end
     local around = Dir().planDetour(sx, sy, e.x, e.y, e.z)
     if around ~= nil then
@@ -244,8 +289,8 @@ local function pointsOf(e, best, px, py)
     return w
 end
 
--- Nombre de points du détour par l'ouverture de best (coins du couloir, cases avant et après : dk de
--- Directives.reroute, Directives.detouring).
+-- Nombre de points du détour par l'ouverture de best (coins du premier couloir, cases avant et après : dk de
+-- Directives.reroute, Directives.detouring ; après l'ouverture, les règles de contact ordinaires reprennent).
 local function detourPoints(best)
     return #best.way + 2
 end
@@ -258,8 +303,11 @@ function Detour.plan(id, e, c, z, skip)
     local nearSq, farSq = c.sqA, c.sqB
     if Ob.sideOf(c.e, px, py) ~= "a" then nearSq, farSq = c.sqB, c.sqA end
     local near, far = Detour.placeOf(nearSq), Detour.placeOf(farSq)
-    local goal = Detour.placeOf(getCell():getGridSquare(e.x, e.y, e.z))
-    local best = pick(id, px, py, pz, near, far, goal, skip, false)
+    local destSq = getCell():getGridSquare(e.x, e.y, e.z)
+    local goal = Detour.placeOf(destSq)
+    local t = { id = id, px = px, py = py, z = pz, near = near, far = far, goal = goal, skip = skip,
+        dest = e.z == pz and destSq or nil }
+    local best = pick(t, false)
     if best ~= nil then
         return { w = pointsOf(e, best, px, py), dk = detourPoints(best), via = best.c.e.key, kind = best.c.kind }
     end
@@ -267,7 +315,8 @@ function Detour.plan(id, e, c, z, skip)
     if near == Detour.OUTSIDE then return nil, why end
     if e.lr == true then return nil, why .. ", last resort already given" end
     -- Dernier recours (LK04-T20) : règles de dernier recours, l'ouverture refusée comprise.
-    local last = pick(id, px, py, pz, near, far, goal, {}, true)
+    t.skip = {}
+    local last = pick(t, true)
     if last == nil then return nil, why .. " and no way out of building " .. near .. " even as a last resort" end
     if last.c.e.key == c.e.key then
         return { w = pointsOf(e, nil, px, py), lr = true, via = last.c.e.key, kind = last.c.kind }

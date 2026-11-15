@@ -98,7 +98,9 @@ class SoloDetourTests(DetourBase):
         self.assertIs(self.entry('done'), False)
         self.assertEqual(self.entry('v'), v)
         self.assertEqual(self.o('lastRefused.why'), f'door of the home of {gid} (not a member)')
-        self.assertEqual(self.steps(), [(105, 106), (106, 106)])
+        # Second couloir (case après -> destination) : la ligne droite (106, 106) -> (114, 102) traverse le foyer F1,
+        # coin (112, 105) à son angle sud-est, dehors.
+        self.assertEqual(self.steps(), [(105, 106), (106, 106), (112, 105)])
         self.walk_w(zid, 3000, until=self.done())
         self.assertEqual(self.entry('s'), 'arrived')
         self.assertEqual(self.state('solo', '106,102,0,W'), 'false false false')   # porte du foyer jamais ouverte
@@ -387,6 +389,106 @@ class CorridorDetourTests(DetourBase):
         self.assertEqual(self.o('lastRefused.key'), WEST_WINDOW_KEY)
         self.assertTrue(any('no detour after the refused window ' + WEST_WINDOW_KEY in s for s in self.lk()),
                         self.lk())
+
+    # Second tronçon : de la case après à la destination (campagne tools/autoclient/runs/20261115-202338-44940358ac9a,
+    # lk-89 move #41 : porte de rang 3, dernier tronçon natif repassé par la fenêtre refusée) -------------------------
+    def toward_on(self, rows, start, target, margin):
+        """Comme plan_on, avec LK_DetourCorridor.toward (cible au-delà de la boîte : case accessible la plus proche)."""
+        lua_rows = ', '.join(f'"{r}"' for r in rows)
+        code = (f'local rows = {{ {lua_rows} }} local made = {{}} '
+                'local grid = { square = function(x, y) local r = rows[y + 1] '
+                'if r == nil or x < 0 or x >= #r then return nil end local k = x .. "," .. y '
+                'made[k] = made[k] or { x = x, y = y, c = r:sub(x + 1, x + 1) } return made[k] end, '
+                'open = function(a, b) return a.c ~= "#" and b.c ~= "#" end } '
+                f'local p = LivingKnox.DetourCorridor.toward(grid, {start[0] + 0.5}, {start[1] + 0.5}, {target[0]}, '
+                f'{target[1]}, {margin}) '
+                'if p == nil then return nil end local out = {} '
+                'for i, c in ipairs(p) do out[i] = c.x .. "," .. c.y end return table.concat(out, " ")')
+        return self.run_lua(code)
+
+    def test_corridor_toward_a_far_target_ends_on_the_nearest_reachable_square_of_the_box(self):
+        self.init()
+        rows = ['............',
+                '..#.........',
+                '..#.........',
+                '..#.........',
+                '............']
+        # Cible (11, 2) à 11 cases, boîte de marge 4 autour du départ (0, 2) : fin (4, 2), après le mur.
+        got = self.toward_on(rows, (0, 2), (11, 2), 4)
+        self.assertIsNotNone(got)
+        points = [tuple(int(v) for v in c.split(',')) for c in got.split()]
+        self.assertEqual(points[-1], (4, 2), points)
+        self.assertEqual(self.blocked_on(rows, [(0.5, 2.5)] + [(x + 0.5, y + 0.5) for x, y in points]), [])
+        self.assertEqual(self.toward_on(rows, (0, 2), (6, 2), 8), self.plan_on(rows, (0, 2), (6, 2), 8))
+
+    def test_exit_whose_last_leg_needs_the_refused_window_is_skipped(self):
+        # lk-89 réduit. Maison B5 murée ; cour au nord dans l'emprise d'un autre BuildingDef (B7, x 100..105,
+        # y 95..99 : lieu B7, ni la maison ni dehors) ; fenêtre verrouillée (102, 100) N vers la cour ; corps dedans,
+        # destination (102, 97) dans la cour. Annexe B6 (x 106..108, y 100..103) murée, seule porte (106, 101) W vers
+        # la maison : la plus proche (rang 3) mais sans chemin vers la cour hors de la fenêtre refusée : écartée.
+        # Porte de sortie (106, 107) W (rang 3 aussi) retenue, second tronçon contourné par l'est, dehors.
+        self.building({'id': 'B7', 'x1': 100, 'y1': 95, 'x2': 106, 'y2': 100})
+        self.building({'id': 'B6', 'x1': 106, 'y1': 100, 'x2': 109, 'y2': 104})
+        self.building(WALLED)
+        self.window(x=102, y=100, kind='N', locked=True)
+        self.door(x=106, y=101)
+        self.door(x=106, y=107)
+        annex = [f'109,{y},0,W' for y in range(100, 104)] + [f'{x},100,0,N' for x in range(106, 109)]
+        annex += [f'{x},104,0,N' for x in range(106, 109)]
+        house = house_walls(skip=('102,100,0,N', '106,101,0,W', '106,107,0,W'))
+        self.walls(house + annex)
+        self.init()
+        forbidden = set(house) | set(annex) | {'102,100,0,N', '106,101,0,W'}
+        zid = self.body(at=(102, 103))
+        v = self.go(target=(102, 97))
+        self.walk_w(zid, 1500, until=self.rerouted())
+        self.assertEqual(self.entry('v'), v)
+        self.assertEqual(self.o('lastRefused.key'), '102,100,0,N')
+        steps = self.steps()
+        self.assertEqual(steps[:2], [(105, 107), (106, 107)], steps)
+        self.assertGreater(len(steps), 2, steps)                        # coins du second tronçon, dehors
+        self.assertEqual(self.entry('dk'), 2)                            # détour par la porte : avant, après
+        path = [(x + 0.5, y + 0.5) for x, y in steps[1:]] + [(102.5, 97.5)]
+        self.assertEqual(crossed_edges(path, forbidden), [], path)
+        self.walk_w(zid, 4000, until=self.done())
+        self.assertEqual(self.entry('s'), 'arrived')
+        self.assertEqual(self.climbs('solo'), [])
+        self.assertEqual(self.wstate('solo', '102,100,0,N'), 'false false')
+        self.assertFalse(any('refused again' in s for s in self.lk()), self.lk())
+        self.assertEqual(self.state('solo', '106,101,0,W'), 'false false false')   # porte de l'annexe jamais ouverte
+        self.assertEqual(self.h.errors('solo'), [])
+
+    def test_interior_door_between_two_rooms_does_not_cut_the_corridor(self):
+        # lk-98 (même campagne, f:54670) : pièce nord séparée de la porte de sortie par une porte intérieure ; le
+        # couloir refusait tout bord de porte : aucun détour, dernier recours refusé. Mur intérieur y = 105 percé de
+        # la porte (102, 105) N ; fenêtre verrouillée (103, 100) N ; sortie (104, 110) N au sud ; destination dehors
+        # au nord (103, 96).
+        self.building(WALLED)
+        self.window(x=103, y=100, kind='N', locked=True)
+        self.door(x=102, y=105, kind='N')
+        self.door(x=104, y=110, kind='N')
+        inner = [f'{x},105,0,N' for x in range(100, 106) if x != 102]
+        house = house_walls(skip=('103,100,0,N', '104,110,0,N'))
+        self.walls(house + inner)
+        self.init()
+        forbidden = set(house) | set(inner) | {'103,100,0,N'}
+        zid = self.body(at=(103, 102))
+        v = self.go(target=(103, 96))
+        self.walk_w(zid, 1500, until=self.rerouted())
+        self.assertEqual(self.entry('v'), v)
+        self.assertIsNone(self.entry('lr'))
+        steps = self.steps()
+        i = steps.index((104, 109))
+        self.assertEqual(steps[i:i + 2], [(104, 109), (104, 110)], steps)
+        self.assertEqual(self.entry('dk'), i + 2)
+        zb = self.h.zombie('solo', zid)
+        self.assertEqual(crossed_edges([(zb.x, zb.y)] + [(x + 0.5, y + 0.5) for x, y in steps] + [(103.5, 96.5)],
+                                       forbidden), [])
+        self.walk_w(zid, 4000, until=self.done())
+        self.assertEqual(self.entry('s'), 'arrived')
+        self.assertEqual(self.climbs('solo'), [])
+        self.assertTrue(any('door 102,105,0,N opened' in s for s in self.lk()), self.lk())
+        self.assertEqual(self.h.errors('solo'), [])
 
 
 class SuiteDetourTests(DetourBase):
