@@ -110,6 +110,17 @@ local function run(t)
     local state = {missions = {}, npcs = {}, voiceDonors = {}, characters = {}, outcomes = {}}
     state.characters.char1 = {name = 'Tester', contacts = {}, knownMissions = {}}
     local store = {data = state, save = function() return true end}
+    -- E21-T04: the story state of a voice is kept by RadioSurvivor's own state (RS_State), not by the notebook store.
+    local Voices = require('RadioSurvivor/RS_State')
+    local function storyOf()
+        local data = Voices.data
+        return data and data.voiceStory and data.voiceStory.darlene or nil
+    end
+    local before = storyOf()
+    if before ~= nil then Voices.data.voiceStory.darlene = nil end
+    t:defer(function()
+        if Voices.data and Voices.data.voiceStory then Voices.data.voiceStory.darlene = before end
+    end, 'restore the story state of darlene')
     local d = V.donor(sheet.id, 'char1', true)
     d.given = {clinic = true}
     local present = {{player = p, character = 'char1'}}
@@ -262,9 +273,9 @@ local function run(t)
                     F.movePlayers(t5, p, origin.x, origin.y, origin.z, function(t6)
                         t6:waitUntil(function() poll() return meds.delivered >= meds.quantity end, 20000,
                             function(t7)
-                                t7:eq(nil, state.voiceStory and state.voiceStory.darlene, 'state set before the report')
+                                t7:eq(nil, storyOf(), 'state set before the report')
                                 reported(t7, meds, 'meds')
-                                t7:eq('returned', state.voiceStory and state.voiceStory.darlene,
+                                t7:eq('returned', storyOf(),
                                     'story state not returned after the last mission')
                             end, function()
                                 return 'goods not collected once back: delivered ' .. meds.delivered .. ' of '
