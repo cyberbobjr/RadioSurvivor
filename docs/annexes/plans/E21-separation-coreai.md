@@ -2,11 +2,11 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 1 / 10 tâche(s) terminée(s).
+**Avancement.** en cours — 2 / 10 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
-| ☐ | E21-T01 | Renommer le mod commun en batman_CoreAI | `testé hors jeu` | solo | — |
+| ☑ | E21-T01 | Renommer le mod commun en batman_CoreAI | `testé solo` | solo | — |
 | ☑ | E21-T02 | Living Knox sans nom de RadioSurvivor dans ses journaux et ses dossiers | `testé hors jeu` | hors jeu | E21-T01 |
 | ☐ | E21-T03 | Carnet client et interfaces dans batman_CoreAI | `à faire` | solo | E21-T01 |
 | ☐ | E21-T04 | Carnet serveur dans batman_CoreAI | `à faire` | MP | E21-T03 |
@@ -65,16 +65,16 @@ qui porte le carnet et les méthodes factorisées. Les tests de Living Knox ne c
 4. puis les tests ;
 5. enfin les campagnes.
 
-- [ ] **E21-T01** — Renommer le mod commun en batman_CoreAI
-  - État : `testé hors jeu`
+- [x] **E21-T01** — Renommer le mod commun en batman_CoreAI
+  - État : `testé solo`
   - Cible : `solo`
   - Dépend de : —
   - Fichiers : `Contents/mods/batman_RadioSurvivorCore` → `Contents/mods/batman_CoreAI` (dossier Lua `CoreAI/`, fichiers `CA_*.lua`, `mod.info`, traductions `IGUI_CA_`) ; `require=` des autres `mod.info` (dont `dev/`) ; tout code, banc, outil, pont et document qui nomme `RadioSurvivorCore`, `RC_` ou `IGUI_RC_`
   - Faire : renommage scripté selon D03 de l'ADR ; clés `RS_` du commun en `CA_` ; dossier d'échange du pont `Zomboid/Lua/batman_CoreAI/` ; journaux `[CoreAI]` ; aucune autre modification.
   - Accepté si : aucune occurrence de `RadioSurvivorCore`, `batman_RadioSurvivorCore`, `RC_` (préfixe de module) ni `IGUI_RC_` hors des plans terminés et de l'historique ; suite hors jeu au niveau d'avant ; démarrage en jeu sans erreur des trois mods.
   - Tests : `tests/run_all.py --keep-going` ; luacheck ; `tools/check_case.py` ; campagne solo des deux mods.
-  - Preuve : commit `d8954ee` (renommage scripté, 60 fichiers déplacés, 367 retouchés) ; `python RadioSurvivor/tests/run_all.py --keep-going` le 2026-11-15 : `Summary: 185 passed, 0 failed, 0 skipped` (avant : 185 passed), luacheck Contents 8 avertissements (référence 8), `case` PASS, plan 0 erreur ; 5 bancs qui lisaient l'ancien nom par accident corrigés (ordre des mods de `test_autoclient`, verrou des notes `CoreAI`, textures du carnet, marque `CA_` reconnue par le troc)
-  - Reste : démarrage en jeu et campagne solo des deux mods
+  - Preuve : commit `d8954ee` (renommage scripté, 60 fichiers déplacés, 367 retouchés) ; `python RadioSurvivor/tests/run_all.py --keep-going` le 2026-11-15 : `Summary: 185 passed, 0 failed, 0 skipped` (avant : 185 passed), luacheck Contents 8 avertissements (référence 8), `case` PASS, plan 0 erreur ; 5 bancs qui lisaient l'ancien nom par accident corrigés (ordre des mods de `test_autoclient`, verrou des notes `CoreAI`, textures du carnet, marque `CA_` reconnue par le troc) ; commit `d8954ee` ; `run_all.py --keep-going` : `Summary: 185 passed, 0 failed, 0 skipped` ; campagne solo des deux mods du 2026-11-15 sur `8fc4b16` (copie figée, `--campaign solo --bridge on --llm fake --wait-idle 3600`) : code 1, `RST-RESULT ok=false total=281 pass=268 fail=3 error=0 skip=10` (`tools/autoclient/runs/20261115-101858-a55f4c478725`), suites `ca.notebook` et toutes les suites du carnet vertes, aucune erreur Lua au démarrage des trois mods ; échecs étrangers au renommage : `rs.personas.update` et `rs.voicedarlene` (suites E20, corrigées par la session E20), `lk.expedition` (fenêtre condamnée, LK05-T23, journal ajouté en `a4a51a6` ; seule, la suite passe : code 0, `RST-RESULT ok=true total=1 pass=1`, `tools/autoclient/runs/20261115-105732-507fa93dfc5b`)
+  - Reste : aucun
 
 - [x] **E21-T02** — Living Knox sans nom de RadioSurvivor dans ses journaux et ses dossiers
   - État : `testé hors jeu`
