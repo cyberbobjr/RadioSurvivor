@@ -3,10 +3,10 @@
 | | |
 |---|---|
 | Date | 2026-11-14 (création, acceptation, précision de D06 sur les planques multiples) |
-| Statut | Accepté (utilisateur, 2026-11-14) |
+| Statut | Accepté (utilisateur, 2026-11-14) ; plan E20 terminé le 2026-11-15 |
 | Décideur | utilisateur |
-| Portée | `batman_RadioSurvivor` (fiches `personas/`, `RS_Persona`, `RS_MissionVoice`, `RS_VoiceDelivery`, `RS_Rewards`, `RS_Trade*`, carnet et carte côté client), le pont (`bridge/persona_store.py`, `bridge/radio_bridge.py`) et, pour les gabarits de mission qu'il héberge, `batman_RadioSurvivorCore`. Living Knox hors portée : ses missions de PNJ, son dépôt de groupe et sa remise en main propre ne changent pas. |
-| Plan associé | [E20 — Voix déclarées en un seul fichier](../../annexes/plans/E20-voix-declaratives.md) (suivi des tâches dans le plan) |
+| Portée | `batman_RadioSurvivor` (fiches `personas/`, `RS_Persona`, `RS_MissionVoice`, `RS_VoiceDelivery` (devenu `RS_DeadDrops`, E20-T06), `RS_Rewards`, `RS_Trade*`, carnet et carte côté client), le pont (`bridge/persona_store.py`, `bridge/radio_bridge.py`) et, pour les gabarits de mission qu'il héberge, `batman_RadioSurvivorCore`. Living Knox hors portée : ses missions de PNJ, son dépôt de groupe et sa remise en main propre ne changent pas. |
+| Plan associé | [E20 — Voix déclarées en un seul fichier](../../annexes/plans-termines/E20-voix-declaratives.md) (suivi des tâches dans le plan) |
 | Références | [format des fiches](../../specifications-techniques/persona-format.md) ; [passeur, rendez-vous](../../annexes/conception/passeur-rendezvous.md) et [échange](../../annexes/conception/passeur-echange.md) ; principes SOLID de [developpement.md](../../developpement.md) ; [ADR des registres de routines](adr-registre-routines.md) (même patron de registre) |
 
 ## Contexte
