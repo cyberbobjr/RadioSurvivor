@@ -100,7 +100,7 @@ function CORE:setResolutionAndFullScreen(w, h, full)
 end
 function CORE:getScreenModes() local t = {} for i, m in ipairs(SCREEN_MODES) do t[i] = m end return t end
 function CORE:getOptionFontSizeReal() return 2 end
-function CORE:getKey(name) if name == 'RadioSurvivorSelect' then return 34 end return 0 end
+function CORE:getKey(name) if name == 'CoreAISelect' then return 34 end return 0 end
 function CORE:addKeyBinding() end
 function CORE:isKey() return false end
 getCore = function() return CORE end

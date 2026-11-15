@@ -1043,8 +1043,8 @@ RST.suite("rs.notebook.visual", { tags = { "client", "ui" }, testTimeoutMs = 120
                                         if w:isVisible() then bad("sidebar button did not close the notebook") end
                                         click()
                                         -- Shortcut: the function of the key binding, commands captured (nothing sent).
-                                        local key = getCore():getKey("RadioSurvivorSelect")
-                                        if not key or key == 0 then bad("shortcut RadioSurvivorSelect not bound") end
+                                        local key = getCore():getKey("CoreAISelect")
+                                        if not key or key == 0 then bad("shortcut CoreAISelect not bound") end
                                         local sent, send = {}, Client.send
                                         Client.send = function(command) sent[#sent + 1] = command end
                                         local okKey, errKey = pcall(Client.selectNearest)
