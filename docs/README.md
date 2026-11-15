@@ -44,7 +44,7 @@ citent encore les anciens chemins ; cette table donne leur équivalent.
 | `docs/wiki/<Page>.md`, `docs/wiki/<Page>-FR.md` | `docs/wiki/en/NN-<page>.md`, `docs/wiki/fr/NN-<page>.md` (voir les barres latérales [en](wiki/en/_Sidebar.md), [fr](wiki/fr/_Sidebar.md)) |
 | `docs/wiki/images/` | [`docs/images/screenshots/`](images/screenshots/) |
 | `docs/api.md` | [`docs/specifications-techniques/api-living-knox.md`](specifications-techniques/api-living-knox.md) |
-| `docs/protocole-carnet-v2.md`, `docs/persona-format.md`, `docs/reputation-contract.md`, `docs/passeur-table.md`, `docs/factions.md`, `docs/rescue.md`, `docs/notes-frequences.md` | même nom sous [`docs/specifications-techniques/`](specifications-techniques/README.md) |
+| `docs/protocole-carnet-v2.md`, `docs/persona-format.md`, `docs/passeur-table.md`, `docs/factions.md`, `docs/rescue.md`, `docs/notes-frequences.md` | même nom sous [`docs/specifications-techniques/`](specifications-techniques/README.md) |
 | `docs/architecture-ia-multijoueur.md` | [`docs/architecture/ia-multijoueur.md`](architecture/ia-multijoueur.md) |
 | `docs/adr-b17-chat-proximite-pnj.md` | [`docs/architecture/decisions/adr-b17-chat-proximite-pnj.md`](architecture/decisions/adr-b17-chat-proximite-pnj.md) |
 | `docs/tests-en-jeu.md`, `docs/carnet-validation-04221.md` | même nom sous [`docs/annexes/tests/`](annexes/tests/tests-en-jeu.md) |

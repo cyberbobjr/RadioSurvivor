@@ -3,7 +3,7 @@
 # nothing is written to the Steam Workshop folder (TooltipLib, required by batman_BeltRadio, is only read from it).
 #
 # Default (automatic): copies batman_BeltRadio (required mod, from the sibling repository Workshop/BeltRadio),
-# batman_RadioSurvivor, batman_CharacterReputation and the development mod batman_RadioSurvivorTests into <cache>/mods, writes <cache>/Lua/batman_RadioSurvivor/tests/autorun.txt (one suite
+# batman_RadioSurvivor and the development mod batman_RadioSurvivorTests into <cache>/mods, writes <cache>/Lua/batman_RadioSurvivor/tests/autorun.txt (one suite
 # name or prefix per line, from -Filters), starts the server "rstest_smoke" (test save name: world suites allowed)
 # in the background with a redirected stdin, waits for autorun-result.txt (written by RST_Server.lua when the run
 # ends), prints the summary, sends "quit" to the server console and waits for the process to end (killed after
@@ -83,8 +83,6 @@ New-Item -ItemType Directory -Path $modsDir, (Join-Path $cacheRoot 'Server') | O
 Copy-Item -LiteralPath (Join-Path $projectRoot 'Contents/mods/batman_RadioSurvivorCore') -Destination $modsDir -Recurse
 Copy-Item -LiteralPath (Join-Path $projectRoot 'Contents/mods/batman_LivingKnox') -Destination $modsDir -Recurse
 Copy-Item -LiteralPath (Join-Path $projectRoot 'Contents/mods/batman_RadioSurvivor') -Destination $modsDir -Recurse
-$reputationRoot = Join-Path (Split-Path $projectRoot -Parent) 'CharacterReputation/Contents/mods/batman_CharacterReputation'
-Copy-Item -LiteralPath $reputationRoot -Destination $modsDir -Recurse
 # Required mod (require=\batman_BeltRadio): without it the game does not load batman_RadioSurvivor at all.
 $beltRadioRoot = Join-Path (Split-Path $projectRoot -Parent) 'BeltRadio/Contents/mods/batman_BeltRadio'
 if (-not (Test-Path -LiteralPath (Join-Path $beltRadioRoot '42.21/mod.info'))) {
@@ -110,7 +108,7 @@ PauseEmpty=true
 DefaultPort=17381
 UDPPort=17382
 MaxPlayers=2
-Mods=\TooltipLib;\batman_BeltRadio;\batman_CharacterReputation;\batman_RadioSurvivorCore;\batman_LivingKnox;\batman_RadioSurvivor;\batman_RadioSurvivorTests
+Mods=\TooltipLib;\batman_BeltRadio;\batman_RadioSurvivorCore;\batman_LivingKnox;\batman_RadioSurvivor;\batman_RadioSurvivorTests
 WorkshopItems=
 Map=Muldraugh, KY
 ChatStreams=s,r,a,w,y,sh,f,all

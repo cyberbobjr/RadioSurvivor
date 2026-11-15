@@ -22,7 +22,7 @@ principal) : le travail en cours d'autres agents ne change pas les mods en jeu p
         --phases reconnect2,reconnect,restart --server-campaign mp-persist --timeout 3600 --wait-idle 3600
 Sans --shards (avec --commit seulement) : un seul lancement de autoclient.py, tel quel (campagne à phases mp-persist
 comprise), dossier <parent>/run. Variables passées à autoclient.py : RS_WORKSHOP_DIR (dossier Workshop réel : mods
-frères BeltRadio, CharacterReputation, SignalSmoke), RS_AUTOCLIENT_RUNS (runs/ du dépôt principal : durées des
+frères BeltRadio, SignalSmoke), RS_AUTOCLIENT_RUNS (runs/ du dépôt principal : durées des
 rapports pour --shard). Le pont de la copie n'a pas de fichier de configuration (ignoré par Git) : --llm fake, ou
 OPENAI_* dans l'environnement pour un vrai modèle (avertissement sinon).
 """

@@ -4,6 +4,5 @@ description=Voices on the radio in Knox County. Radio characters played by an AI
 versionMin=42.21
 modversion=0.3.0
 require=\batman_RadioSurvivorCore,\batman_BeltRadio,\batman_SignalSmoke
-loadModAfter=\batman_CharacterReputation
 poster=poster.png
 icon=icon.png

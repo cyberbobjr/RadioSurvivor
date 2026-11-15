@@ -119,7 +119,6 @@ Une partie de ce qui suit demande Radio Survivor (onglet Radio, Ctrl+G, relation
 | **Une clé d'API d'IA** | chez un fournisseur | Compatible avec l'API OpenAI (voir [Fournisseur d'IA](#3-la-clé-et-le-fournisseur-dia)). |
 
 **Incompatible** (Living Knox) avec Bandits! et Project A-Life : un seul moteur de PNJ par partie (le sélecteur de mods le signale).
-`batman_CharacterReputation` est facultatif.
 
 ## Installation des mods
 

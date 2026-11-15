@@ -25,7 +25,7 @@ Vue joueur des fonctionnalités de la partie « radio » du mod. Contrats techni
 - Section **Émettre** ajoutée à la fenêtre radio vanilla : talkie-walkie ou radio HAM en main, radio militaire portée
   sur le dos, radio posée, autoradio. Le micro doit être ouvert. Le champ est grisé pendant la réponse.
 - Un talkie-walkie à la ceinture reçoit mais n'émet pas.
-- Conception : [E06](../annexes/plans/E06-carnet-radio-emettre.md).
+- Conception : [E06](../annexes/plans-termines/E06-carnet-radio-emettre.md).
 
 ## F04 — Carnet de terrain
 
@@ -87,9 +87,8 @@ Vue joueur des fonctionnalités de la partie « radio » du mod. Contrats techni
 ## F12 — Réputation
 
 - Missions tenues, personnes secourues, marchand floué, demandeur tué : niveau (mauvaise, neutre, bonne), tendance et
-  derniers actes dans l'onglet **Réputation**. Distincte de l'attitude de chaque PNJ. Interne au mod ;
-  CharacterReputation est utilisé s'il est présent ([reputation-contract.md](../specifications-techniques/reputation-contract.md),
-  [reputation-interne.md](../annexes/conception/reputation-interne.md)).
+  derniers actes dans l'onglet **Réputation**. Distincte de l'attitude de chaque PNJ. Interne au mod
+  ([reputation-interne.md](../annexes/conception/reputation-interne.md)).
 
 ## F13 — Parler fait du bien
 

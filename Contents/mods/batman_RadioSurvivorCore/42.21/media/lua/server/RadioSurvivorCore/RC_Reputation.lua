@@ -36,8 +36,8 @@ Idempotence: R.record writes outcomes[eventId] once and applies the amount in th
 replay (double death event, restart, second finish) finds the entry and does nothing. Outcome fields:
     id, character, action, proposedDelta (amount of the action), proof (server only), day (game day),
     rep ('applied' | 'capped' | 'no_character' | 'retired'), appliedDelta, before, after;
-    applied = false, status = 'api_unavailable': state of the optional CharacterReputation service (contract RSREP-1
-    section 4, adapter E04-T13), independent from the internal application.
+    applied = false, status = 'api_unavailable': legacy fields kept in saved outcomes, independent from the
+    internal application.
 
 A living character is an identity of RC_Identity that is not retired, or, for a state that carries its own
 `characters` records (isolated world of the in-game test fixtures), a record that is not retired (R.setLiveness
@@ -67,7 +67,6 @@ Public API (server Lua only). `state` is optional everywhere: the data table abo
     R.retire(state, character)                  marks the day of the death (purge clock)
     R.prune(state [, today]) -> boolean         purge described above
     R.today() -> game day (1 = first) or nil
-    R.descriptor()                              descriptor of the optional CharacterReputation mod (E04-T13)
     R.init(newWorld), R.ensure(), R.save(), R.useData(data) (tests)
 Console messages in English.
 ]==]
@@ -205,13 +204,6 @@ local function live(state, character)
     local why = liveness(character, state)
     if why then return false, why end
     return true
-end
-
-function R.descriptor()
-    if CharacterReputation and type(CharacterReputation.getDescriptor) == 'function' then
-        return CharacterReputation.getDescriptor()
-    end
-    return {status = 'missing', capabilities = {}}
 end
 
 function R.amount(action)

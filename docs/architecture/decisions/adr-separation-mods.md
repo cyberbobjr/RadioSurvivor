@@ -40,7 +40,7 @@ RadioSurvivor (outils, état des secours, identité des joueurs).
   publiés avec une sauvegarde à reprendre). Texte d'origine : missions, identités, historiques, groupes et attitudes
   d'une partie d'avant la séparation sont repris une fois au premier lancement, sans perte. Aucune reprise n'est écrite.
 
-- **D09 — Chaque mod paie ses missions (2026-11-14, décision de l'utilisateur).** Une mission donnée par un PNJ Living Knox est payée par Living Knox (lot du foyer), avec ou sans RadioSurvivor ; RadioSurvivor ne paie que les missions de ses voix et ne lit aucun module de Living Knox pour une récompense : la réclamation passe par une source de récompense que le moteur de PNJ déclare au mod commun. Remplace l'adaptateur `RS_NPCRewards` (E11-T18) qui payait les PNJ de Living Knox depuis RadioSurvivor quand les deux mods étaient actifs. Plan : [E11-T21](../../annexes/plans/E11-missions-generees.md).
+- **D09 — Chaque mod paie ses missions (2026-11-14, décision de l'utilisateur).** Une mission donnée par un PNJ Living Knox est payée par Living Knox (lot du foyer), avec ou sans RadioSurvivor ; RadioSurvivor ne paie que les missions de ses voix et ne lit aucun module de Living Knox pour une récompense : la réclamation passe par une source de récompense que le moteur de PNJ déclare au mod commun. Remplace l'adaptateur `RS_NPCRewards` (E11-T18) qui payait les PNJ de Living Knox depuis RadioSurvivor quand les deux mods étaient actifs. Plan : [E11-T21](../../annexes/plans-termines/E11-missions-generees.md).
 
 Valeurs techniques confirmées par défaut (identifiants, dossiers de données, outillage des tests) : voir la section
 « Décisions » du plan E18.

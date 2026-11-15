@@ -59,7 +59,7 @@ local function javaList(items)
     return { size = function() return #items end, get = function(_, i) return items[i + 1] end }
 end
 VERSION = "42.22.2 abcdef"
-MOD_IDS = { "batman_CharacterReputation", "batman_RadioSurvivorCore", "batman_LivingKnox", "batman_RadioSurvivor", "batman_RadioSurvivorTests" }
+MOD_IDS = { "batman_RadioSurvivorCore", "batman_LivingKnox", "batman_RadioSurvivor", "batman_RadioSurvivorTests" }
 getCore = function() return { getVersion = function() return VERSION end } end
 getActivatedMods = function() return javaList(MOD_IDS) end
 for _, name in ipairs({ "getSandboxOptions", "getPlayer", "sendServerCommand", "getOnlinePlayers", "addSound",

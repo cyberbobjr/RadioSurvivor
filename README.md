@@ -119,7 +119,6 @@ Some of what follows needs Radio Survivor (radio tab, Ctrl+G, faction relations)
 | **An AI API key** | from a provider | Compatible with the OpenAI API (see [AI provider](#3-the-key-and-the-ai-provider)). |
 
 **Incompatible** (Living Knox) with Bandits! and Project A-Life: only one NPC engine per game (the mod selector flags it).
-`batman_CharacterReputation` is optional.
 
 ## Installing the mods
 

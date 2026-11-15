@@ -11,7 +11,6 @@ comportement vu du joueur : [spécifications fonctionnelles](../specifications-f
 | [protocole-carnet-v2.md](protocole-carnet-v2.md) | Échange Lua ↔ pont Python v2 : enveloppe, réponse radio structurée et actions en liste fermée, codec RSV2, demandes PNJ, mémoire et acquittement, dépôt discret des livraisons |
 | [api-living-knox.md](api-living-knox.md) | API publique `LivingKnox.API` version 1 : constantes, fonctions, journal de récit, demandes d'aide, faits publiés, événements publics, fonctions de test |
 | [persona-format.md](persona-format.md) | Fiches des voix radio (format 1) : champs, chargement serveur, tirage des fréquences, routage, appels spontanés, secrets, erreurs |
-| [reputation-contract.md](reputation-contract.md) | Contrat RSREP-1 avec CharacterReputation (facultatif) |
 | [passeur-table.md](passeur-table.md) | Barème de troc du passeur et des groupes Living Knox (identifiants vanilla 42.21, poids) |
 | [factions.md](factions.md) | Équipes et mandats de négociation (`RS_Factions`) |
 | [rescue.md](rescue.md) | Survivants à secourir : tirage du bâtiment, indices, réserves, issues (`RS_Rescue*`) |
@@ -130,5 +129,4 @@ La langue des voix suit `CallLanguage` (langue du serveur, anglais, français).
 |---|---|---|
 | Belt Walkie-Talkie (`batman_BeltRadio`) | prérequis | `require=` |
 | Signal Smoke (`batman_SignalSmoke`) | prérequis (fumées, fusées des missions) | `require=` |
-| CharacterReputation (`batman_CharacterReputation`) | facultatif | `loadModAfter=`, contrat [RSREP-1](reputation-contract.md) |
 | Bandits! (`Bandits2`), Project A-Life (`ProjectALifeNPCs`) | incompatibles | `incompatible=` |

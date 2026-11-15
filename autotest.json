@@ -12,7 +12,6 @@
   "mods": [
     {"workshop": "3694097672", "id": "TooltipLib"},
     {"path": "../BeltRadio/Contents/mods/batman_BeltRadio"},
-    {"path": "../CharacterReputation/Contents/mods/batman_CharacterReputation"},
     {"path": "../SignalSmoke/Contents/mods/batman_SignalSmoke"},
     {"path": "Contents/mods/batman_RadioSurvivorCore"},
     {"path": "Contents/mods/batman_LivingKnox"},

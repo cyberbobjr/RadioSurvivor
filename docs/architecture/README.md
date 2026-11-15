@@ -76,8 +76,7 @@ Montages valides : RadioSurvivor seul, Living Knox seul, ou les deux, toujours a
 rien de jouable. Le pont Python est un seul programme, sans option selon le montage.
 
 `mod.info` de RadioSurvivor : `require=\batman_RadioSurvivorCore,\batman_BeltRadio,\batman_SignalSmoke`
-(Living Knox facultatif depuis `E18-T09` : l'adaptateur du carnet `shared/RadioSurvivor/RS_LivingKnox.lua` est livré par Living Knox et ne s'active qu'avec RadioSurvivor), `loadModAfter=\batman_CharacterReputation`
-(intégration facultative). Living Knox : `incompatible=\Bandits2,\ProjectALifeNPCs`. Le mod de tests
+(Living Knox facultatif depuis `E18-T09` : l'adaptateur du carnet `shared/RadioSurvivor/RS_LivingKnox.lua` est livré par Living Knox et ne s'active qu'avec RadioSurvivor). Living Knox : `incompatible=\Bandits2,\ProjectALifeNPCs`. Le mod de tests
 `dev/batman_RadioSurvivorTests` n'est jamais publié.
 
 ## 3. Modules Lua
@@ -137,7 +136,6 @@ sont pas publiés avec une sauvegarde à reprendre.
   ressources, journal de récit : [api-living-knox.md](../specifications-techniques/api-living-knox.md).
 - **Fiches de voix** éditables par l'admin, relues à chaud : [persona-format.md](../specifications-techniques/persona-format.md)
   et le guide [Créer une voix radio](../wiki/fr/10-creer-une-voix-radio.md).
-- **CharacterReputation** (facultatif) : contrat [reputation-contract.md](../specifications-techniques/reputation-contract.md).
 - **Belt Walkie-Talkie** et **Signal Smoke** (prérequis) : talkie à la ceinture, fumées et fusées des missions.
 - **Incompatibles** : Bandits! et Project A-Life (deux moteurs de PNJ concurrents, voir [ia-multijoueur.md](ia-multijoueur.md)).
 

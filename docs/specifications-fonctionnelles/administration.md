@@ -38,7 +38,7 @@ Vue administrateur. Guides pas à pas : [wiki](../wiki/fr/Home.md).
 ## F44 — Compatibilité et prérequis
 
 - Prérequis : Belt Walkie-Talkie (`batman_BeltRadio`, lui-même dépendant de TooltipLib) et Signal Smoke
-  (`batman_SignalSmoke`). Facultatif : CharacterReputation (`batman_CharacterReputation`, chargé avant).
+  (`batman_SignalSmoke`).
 - Incompatibles : Bandits! (`Bandits2`) et Project A-Life (`ProjectALifeNPCs`).
 - Installation : [Installation](../wiki/fr/04-installation.md).
 

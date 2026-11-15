@@ -11,7 +11,7 @@ copie modifiée de options.ini. Rien n'est écrit dans le jeu, dans `%USERPROFIL
 (TooltipLib y est seulement lu pour être copié). Étapes :
   1. refus si un processus java.exe ou ProjectZomboid64.exe tourne déjà (attente possible : --wait-idle) ;
   2. cache : Saves/<mode>/<partie> (mods.txt réécrit avec la liste minimale), mods/ (TooltipLib, batman_BeltRadio,
-     batman_CharacterReputation, batman_SignalSmoke, batman_RadioSurvivor, batman_RadioSurvivorTests) et
+     batman_SignalSmoke, batman_RadioSurvivor, batman_RadioSurvivorTests) et
      mods/default.txt (même liste : pas de rechargement Lua au chargement), options.ini (fenêtré),
      Lua/batman_RadioSurvivor/tests/autoclient.txt ; les mods requis Belt Walkie-Talkie et Signal Smoke sont toujours
      copiés de leurs dépôts locaux Workshop/BeltRadio et Workshop/SignalSmoke (lus seulement), en solo comme en MP ;
@@ -136,7 +136,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 # Launch from a frozen copy (campaign_parallel.py --commit: git worktree outside the Workshop folder): the sister mods
-# (BeltRadio, CharacterReputation, SignalSmoke) stay in the real Workshop folder (RS_WORKSHOP_DIR), the results go to
+# (BeltRadio, SignalSmoke) stay in the real Workshop folder (RS_WORKSHOP_DIR), the results go to
 # the runs/ folder of the main repository (RS_AUTOCLIENT_RUNS). The bridge of the copy has no configuration file of
 # its own (git-ignored): a real model needs OPENAI_* in the environment, --llm fake needs nothing.
 WORKSHOP_DEV = Path(os.environ.get('RS_WORKSHOP_DIR') or ROOT.parent)
@@ -153,8 +153,6 @@ TESTS_DIR = 'Lua/batman_RadioSurvivor/tests'
 MODS = [
     ('TooltipLib', STEAM_WORKSHOP / '3694097672' / 'mods' / 'TooltipLib'),
     ('batman_BeltRadio', WORKSHOP_DEV / 'BeltRadio' / 'Contents' / 'mods' / 'batman_BeltRadio'),
-    ('batman_CharacterReputation',
-     WORKSHOP_DEV / 'CharacterReputation' / 'Contents' / 'mods' / 'batman_CharacterReputation'),
     # Required by RadioSurvivor (mod.info require=, 2026-10-15): always copied; its local repository is only read.
     ('batman_SignalSmoke', WORKSHOP_DEV / 'SignalSmoke' / 'Contents' / 'mods' / 'batman_SignalSmoke'),
     # Shared core of RadioSurvivor and Living Knox (E18-T01): required by RadioSurvivor, loaded before it.
@@ -218,10 +216,10 @@ def log(message: str) -> None:
 # ---------------------------------------------------------------- pure helpers (tests/test_autoclient.py)
 
 # E18-T14: mods left out of each setup of the Workshop item (--mods); the core mod, its requirement Signal Smoke and
-# the test mod are always in the run. Belt Walkie-Talkie (and its TooltipLib) and Character Reputation are needed by
-# RadioSurvivor only.
+# the test mod are always in the run. Belt Walkie-Talkie (and its TooltipLib) is needed by RadioSurvivor
+# only.
 SETUP_DROPS = {'both': (), 'rs': ('batman_LivingKnox',),
-               'lk': ('batman_RadioSurvivor', 'batman_BeltRadio', 'TooltipLib', 'batman_CharacterReputation')}
+               'lk': ('batman_RadioSurvivor', 'batman_BeltRadio', 'TooltipLib')}
 
 
 def selected_mods(setup: str = 'both') -> list[tuple[str, Path]]:

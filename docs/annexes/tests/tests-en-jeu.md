@@ -177,7 +177,7 @@ powershell -ExecutionPolicy Bypass -File RadioSurvivor/tests/run_dedicated_smoke
 Déroulement :
 
 1. Nouveau cache temporaire `%TEMP%\rs-dedicated-<guid>` (affiché par `RS_SMOKE_CACHE=`) : copie de
-   `batman_RadioSurvivor`, `batman_CharacterReputation` et `batman_RadioSurvivorTests` dans `<cache>\mods`,
+   `batman_RadioSurvivor` et `batman_RadioSurvivorTests` dans `<cache>\mods`,
    configuration `Server\rstest_smoke.ini` (ports 17381/17382, `PauseEmpty=true`). Aucun cache, aucune
    sauvegarde ni aucun dossier de mods existant n'est touché.
 2. Écriture de `<cache>\Lua\batman_RadioSurvivor\tests\autorun.txt` : une suite ou un préfixe par ligne, lignes
@@ -230,7 +230,7 @@ python RadioSurvivor/tools/autoclient/autoclient.py --dry-run --suite rs.env    
 Déroulement :
 
 1. Cache temporaire `%TEMP%\rs-autoclient-*` (`RS_AUTOCLIENT_CACHE=`) : copie de la partie (son `mods.txt` est
-   réécrit avec la liste minimale `TooltipLib`, `batman_BeltRadio`, `batman_CharacterReputation`,
+   réécrit avec la liste minimale `TooltipLib`, `batman_BeltRadio`,
    `batman_SignalSmoke`, `batman_RadioSurvivor`, `batman_RadioSurvivorTests`), copie de ces mods dans `mods\`
    (TooltipLib lu dans le Workshop Steam `3694097672` ; les mods requis Belt Walkie-Talkie et Signal Smoke lus dans
    leurs dépôts locaux `Workshop\BeltRadio` et `Workshop\SignalSmoke\Contents\mods\batman_SignalSmoke`, sans rien y
@@ -378,7 +378,7 @@ résultats dans `tools/autoclient/runs/` du dépôt principal (`<date>-parallel-
 `commit.txt`), puis retire **ce** worktree par `git worktree remove --force` (jamais `stash`, `checkout`, `reset` ni
 `prune` du dépôt principal) : le travail en cours des autres agents ne change pas les mods pendant la campagne.
 Variables données à l'`autoclient.py` de la copie : `RS_WORKSHOP_DIR` (vrai dossier `Workshop` : mods frères
-`BeltRadio`, `CharacterReputation`, `SignalSmoke` ; `TooltipLib` vient du Workshop Steam) et `RS_AUTOCLIENT_RUNS`
+`BeltRadio`, `SignalSmoke` ; `TooltipLib` vient du Workshop Steam) et `RS_AUTOCLIENT_RUNS`
 (`runs/` du dépôt principal : durées des rapports pour `--shard`). Un commit antérieur à cette option (sans
 `RS_WORKSHOP_DIR`) est refusé (code 2) ; une source de mod absente arrête `autoclient.py` (code 2, chemins cités). Le
 pont de la copie n'a pas de fichier de configuration (ignoré par Git) : `--llm fake`, ou `OPENAI_*` dans
@@ -772,7 +772,7 @@ ne prouve pas la résolution par le moteur (chemins calculés en Java, `x_extend
 1. Serveur dédié Project Zomboid **42.21** (SteamCMD, application 380870) sur une machine Linux de test ; noter la
    version affichée au démarrage du journal (`42.21.x`), le chemin du serveur et celui de `~/Zomboid`.
 2. Mods, avec leur casse intacte (copie depuis le dépôt Git ou une archive, jamais par un outil qui renomme) :
-   - `batman_RadioSurvivor` et `batman_CharacterReputation` **par le Workshop**, comme sur le serveur de
+   - `batman_RadioSurvivor` **par le Workshop**, comme sur le serveur de
      l'utilisateur : `WorkshopItems=` dans l'`.ini`, donc dans `<serveur>/steamapps/workshop/content/108600/`,
      **dans** le dossier du jeu (cas où un chemin relatif peut passer en minuscules, base `file-path-case.md`). Si
      la version à essayer n'est pas encore publiée, une copie sous `~/Zomboid/mods/` est acceptable, mais ce cas
@@ -781,7 +781,7 @@ ne prouve pas la résolution par le moteur (chemins calculés en Java, `x_extend
    Vérifier la casse sur place : `find <dossier du mod> -path '*media*' -type d | sort` doit montrer `media`,
    `AnimSets/zombie/idle`, `pathfind`, `walktoward`, `walktoward-network`, `lua/shared/Translate/EN`, `FR`…
 3. Configuration `rstest_linux.ini`, sur le modèle de `tests/run_dedicated_smoke.ps1` :
-   `Mods=\batman_CharacterReputation;\batman_RadioSurvivor;\batman_RadioSurvivorTests` (plus les IDs Workshop
+   `Mods=\batman_RadioSurvivor;\batman_RadioSurvivorTests` (plus les IDs Workshop
    dans `WorkshopItems=`), `PauseEmpty=true`, sandbox par défaut. Le nom du serveur doit commencer par `rstest`
    (suites `world`, § 5) : lancer avec `-servername rstest_linux`. Donner au compte de test le rôle `admin`
    (capacité `DebugConsole`, § 3) ; le mode debug est exigé du client (§ 2).
@@ -848,7 +848,7 @@ relevé et `quit` : un arrêt de plus de 2 minutes est donc nécessaire pour le 
    `powershell -ExecutionPolicy Bypass -File RadioSurvivor/tests/run_dedicated_smoke.ps1 -Manual`. Noter le chemin
    `RS_SMOKE_CACHE=`. Le serveur est en `-nosteam` et n'écoute que `127.0.0.1` : les deux clients tournent sur ce PC,
    lancés en `-debug -nosteam`, le second avec un `-cachedir` distinct (deux instances sur un PC : non essayé).
-2. Clients : mêmes versions de `batman_CharacterReputation`, `batman_RadioSurvivor` et `batman_RadioSurvivorTests`
+2. Clients : mêmes versions de `batman_RadioSurvivor` et `batman_RadioSurvivorTests`
    (§ 1) que le dépôt. A = `rs_smoke_admin` / `local-smoke-only` (rôle admin, donc `RST.server`) ; B = un nouveau
    compte.
 3. A et B créent un personnage. Console Lua de A : `RST.server('rs.identity')` → `OK`.
