@@ -81,6 +81,16 @@ local function testSheet(real)
     return copy
 end
 
+-- Squares the suite reads, all loaded before it starts: the front of the clinic and the corners of the search area of
+-- both drops (radius 3 around 11874,6870 and 11894,6870). In solo the drops are 17 tiles from the front and their
+-- chunks load a little after it; on a dedicated server they were already loaded.
+local AREA = {{11880, 6887}, {11871, 6867}, {11877, 6873}, {11891, 6867}, {11897, 6873}}
+
+local function waitSquares(t, list, i, done)
+    if i > #list then return done(t) end
+    F.waitSquare(t, list[i][1], list[i][2], 0, nil, function(t2) waitSquares(t2, list, i + 1, done) end)
+end
+
 local function run(t)
     if isClient() then t:skip('authority only') end
     local M = require 'CoreAI/CA_Missions'
@@ -166,7 +176,7 @@ local function run(t)
     end, 'remove the barricades and the goods of the suite')
 
     F.movePlayers(t, p, FRONT.x, FRONT.y, FRONT.z, function(t1)
-      F.waitSquare(t1, 11880, 6887, 0, nil, function(t2)
+      waitSquares(t1, AREA, 1, function(t2)
         -- Only the first step is offered before anything was done.
         for _, locked in ipairs({'clear_clinic', 'secure_clinic', 'meds', 'barricade', 'deliver'}) do
             t2:eq({nil, 'locked'}, {start(locked)}, locked .. ' offered before its predecessor')
