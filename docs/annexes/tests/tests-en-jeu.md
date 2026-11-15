@@ -236,7 +236,7 @@ python RadioSurvivor/tools/autoclient/autoclient.py --dry-run --suite rs.env    
 | `--wait-idle` | 0 | Attente qu'aucun `java.exe` / `ProjectZomboid64.exe` ne tourne (sinon code 3 ; jamais tués). |
 | `--start-delay` | 5 | Secondes en jeu avant le passage. |
 | `--no-quit`, `--no-screenshot`, `--keep-cache`, `--out` | — | Jeu laissé ouvert ; pas de capture finale ; cache conservé ; dossier de résultats. |
-| `--bridge` | `auto` | Pont Python : `auto` (lancé si une suite choisie en a besoin : `rs.npctalk`, `rs.radiomodule`, `rs.relation`, `rs.conversations`, `rs.initiatives`, `rs.groupradio`, préfixes compris ; campagne lue dans `RST_Campaign.lua`, campagne inconnue = lancé), `on`, `off`, `offline` (réponses en écho, sans modèle). |
+| `--bridge` | `auto` | Pont Python : `auto` (lancé si une suite choisie en a besoin : `rs.npctalk`, `rs.radiomodule`, `rs.relation`, `lk.conversations`, `lk.initiatives`, `rs.groupradio`, préfixes compris ; campagne lue dans `RST_Campaign.lua`, campagne inconnue = lancé), `on`, `off`, `offline` (réponses en écho, sans modèle). |
 | `--bridge-timeout` | 60 | Délai pour la ligne « Bridge ready » du pont ; au-delà, ou si le pont s'arrête, le jeu n'est pas lancé (code 2). |
 
 Déroulement :
@@ -436,10 +436,10 @@ répondue), copié dans `runs/<passage>/client<N>/` ; le client 2 (`peer=true` d
 |---|---|---|
 | `world.keys` | Clés des cases (cadavres : vêtements portés et contenu ; barricades : planches ; constructions `IsoThumpable` par nom ; meubles à conteneur par sprite et contenu) égales à celles du serveur, calculées par la même fonction ; attente de la réplication jusqu'au délai | `lk.death`, `lk.loot` (même cadavre, même contenu), `lk.stock` (caisses, vol compris), `lk.barricade`, `lk.walls` |
 | `lk.look` | Copie locale de chaque corps (trouvée par `getOnlineID`) : peau, coupe, barbe, couleur, clés de vêtements | `lk.appearance` (premier test) |
-| `lk.speech.seen` | Chaque réplique entendue par ce compte (liste `names` de `LivingKnox.Speech.say`, enregistrée sur le serveur) reçue par sa vue de parole (`SpeechView.seen`) ; le serveur exige aussi que chaque autre client soit parmi les auditeurs | `lk.retreat` (reddition, trahison), `lk.alert` (cri), `rs.conversations`, `rs.initiatives` (demandeur) |
+| `lk.speech.seen` | Chaque réplique entendue par ce compte (liste `names` de `LivingKnox.Speech.say`, enregistrée sur le serveur) reçue par sa vue de parole (`SpeechView.seen`) ; le serveur exige aussi que chaque autre client soit parmi les auditeurs | `lk.retreat` (reddition, trahison), `lk.alert` (cri), `lk.conversations`, `lk.initiatives` (demandeur) |
 | `rst.access` | Le **demandeur** (admin) envoie `/setaccesslevel rs_mp<N> user` (ou `admin`) (`SendCommandToServer`) ; comptes de test du lanceur seulement, jamais lui-même | suites de droits (ci-dessous) |
 | `rst.request` | Ce client envoie la commande réelle d'un outil (`LivingKnox/adminRequest`, `RadioSurvivorDebug/freqRequest`) et rend la réponse de même numéro | `lk.admin`, `lk.npcsheet`, `lk.debugview`, `rs.freqdebug` : test « a real client with the user role is refused without data (E01-T16) » (client 2 passé `user`, refus sans donnée, compteur de refus du serveur ; `admin` rendu à la fin ; SKIP en solo) |
-| `carnet.send`, `carnet.talk`, `carnet.state` | Carnet du **demandeur** : `select` / `accept`, ligne « Dire » après la réponse attendue et le délai, état (dernière erreur, offre affichée, ligne de mission engagée) | `rs.npctalk`, `rs.relation`, `rs.conversations` |
+| `carnet.send`, `carnet.talk`, `carnet.state` | Carnet du **demandeur** : `select` / `accept`, ligne « Dire » après la réponse attendue et le délai, état (dernière erreur, offre affichée, ligne de mission engagée) | `rs.npctalk`, `rs.relation`, `lk.conversations` |
 | `lk.speech.pieces` | Morceaux de la bulle d'une réponse longue et ordre d'affichage (E17-T13) chez le demandeur | `rs.npctalk` |
 
 Étapes Living Knox à deux clients (`shared/RST/RST_PeerChecksLK.lua`, fichier partagé chargé par le jeu sur chaque
@@ -486,7 +486,7 @@ rs.worldradio,rs.radio,rs.carnet.load,rs.observations,rs.factions.mandate --serv
 3600 --wait-idle 3600`. Banc des cinq suites sur doublures (serveur + deux clients, solo, défauts injectés) :
 `python RadioSurvivor/tests/test_rs_mp_suites.py`.
 
-Suites du carnet en MP (`rs.npctalk`, `rs.relation`, `rs.conversations`, `rs.initiatives`) : étiquetées `world` et
+Suites du carnet en MP (`rs.npctalk`, `rs.relation`, `lk.conversations`, `lk.initiatives`) : étiquetées `world` et
 `server`, dans la campagne `mp` (pont lancé sur le dossier d'échange du serveur : `--bridge auto` le voit dans la
 campagne). Même suite en solo (`RST.run`, campagne `solo-rs` inchangée) : l'autorité crée le PNJ et lit les requêtes ;
 ce que fait ou voit le joueur passe par le client demandeur, donc par le vrai chemin réseau en MP (client → commande
@@ -544,7 +544,7 @@ Listes nommées de `client/RST/RST_Campaign.lua` (`RST.campaigns()` les affiche 
 
 | Campagne | Où | Contenu et remarques |
 |---|---|---|
-| `solo-lk`, `solo-rs`, `solo` (= les deux) | `RST.campaign` (client solo, `--campaign`) | `solo-lk` : suites du commun (`rst.guard`, `ca.*`…) puis `lk.*`, montage sans RadioSurvivor ni Belt Walkie-Talkie (E21-T07) ; `solo-rs` : suites du commun puis `rs.*`, sans Living Knox ; `solo` : les trois mods de test, commun d'abord, puis Living Knox, puis RadioSurvivor. Ajouts E01-T19 : `lk.revenge`, `lk.traversal` (environ 7 min), `lk.upkeep` ; `rs.rescue` (cinq suites), `rs.conversations`, `rs.initiatives`, `rs.groupradio` (pont). |
+| `solo-lk`, `solo-rs`, `solo` (= les deux) | `RST.campaign` (client solo, `--campaign`) | `solo-lk` : suites du commun (`rst.guard`, `ca.*`…) puis `lk.*`, montage sans RadioSurvivor ni Belt Walkie-Talkie (E21-T07) ; `solo-rs` : suites du commun puis `rs.*`, sans Living Knox ; `solo` : les trois mods de test, commun d'abord, puis Living Knox, puis RadioSurvivor. Ajouts E01-T19 : `lk.revenge`, `lk.traversal` (environ 7 min), `lk.upkeep`, `lk.conversations`, `lk.initiatives` (pont) ; `rs.rescue` (cinq suites), `rs.groupradio` (pont). |
 | `mp` | serveur dédié (`--server-campaign mp`) | Le serveur ne garde que les suites étiquetées `server` ou `shared` de la liste (`RST_Server.lua` : étiquettes par défaut, `client` toujours exclu, `manual` exclu par le pilote) : une suite étiquetée seulement `world` n'y tourne **jamais** (contrôlé par le banc). Ajouts E01-T19 : `rs.mission` (cinq gabarits), `rs.factions.accord`, `rs.factions.incident`, `rs.trade_exchange`, `rs.trade_run`, `rs.actions.map`, `rs.actions.reveal`, `rs.groupradio`, `lk.equipment`, `lk.ranged`, `lk.speech`, `lk.traversal`, `lk.force`, `lk.stuck`, `lk.milestone1`, `lk.essai`, puis `lk.meals`, `lk.repair`, `lk.expedition`, `lk.forage` et **`lk.routines` en dernier** (elle met l'horloge à 23 h puis à l'aube ; les quatre précédentes la mettent à 6 h 59 ou 9 h hors de leur fenêtre). |
 | `mp-ambient` | serveur dédié, zombies vanilla, joueurs mortels | `rs.identity`, `rs.facts`, `lk.load`, `lk.zombies`, `lk.alert`, `lk.defense`. La liste ne change pas le monde : c'est le lanceur qui le fait (commande ci-dessous). |
 

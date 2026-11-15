@@ -221,7 +221,7 @@ class ConversationTests(unittest.TestCase):
         self.assertEqual(len(self.conv.active), 0)
 
     def test_partner_behind_a_wall_tick_returns_nil(self):
-        # In-game run of 2026-10-13 (rs.conversations): teller and partner spawned on both sides of a house wall,
+        # In-game run of 2026-10-13 (suite rs.conversations, now lk.conversations): teller and partner spawned on both sides of a house wall,
         # within RANGE, the player in earshot: Provider.near fails on CanSee, V.tick returns nil (neither opened nor
         # silent) and nothing is learned. Same pair in sight: a conversation opens.
         self.world()

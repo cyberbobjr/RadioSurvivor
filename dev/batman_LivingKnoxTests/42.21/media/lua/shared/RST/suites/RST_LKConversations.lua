@@ -1,13 +1,13 @@
 --[[
-rs.conversations - conversations between two nearby NPCs (E08-T04, server/LivingKnox/LK_Conversations.lua): two
+lk.conversations - conversations between two nearby NPCs (E08-T04, server/LivingKnox/LK_Conversations.lua): two
 Living Knox npcs created next to the player, both given a fiche of the speech host (E18-T27: RadioSurvivor's notebook,
 or Living Knox alone: RST.LKHelpers.speech); the first one noticed a storm (observation recorded here, LK_Observations);
-E08-T11: their spots are searched around the player (RST.RSHelpers.pairSquares, bounded) where the
+E08-T11: their spots are searched around the player (RST.LKHelpers.pairSquares, bounded) where the
 bodies see each other and the player hears the teller.
 Heard by the player: a conversation opens and the second npc learns the story only once the first line is said
 (heard_from:<teller>); a busy partner (hit less than 30 s ago) gets nothing. Tags "world" and "server": the authority
 (solo or dedicated server), a save named rstest*, with a target player (t.ctx.player); Living Knox enabled.
-Solo: RST.run({ suite = "rs.conversations", tags = "world" }); MP: RST.server({ suite = "rs.conversations",
+Solo: RST.run({ suite = "lk.conversations", tags = "world" }); MP: RST.server({ suite = "lk.conversations",
 tags = "world" }) from an admin client (campaign mp). E01-T16: the lines said by the npcs must reach the requester
 client (RST.Steps "lk.speech.seen", its speech view) in solo and in MP.
 E08-T05: "a player line joins the conversation in order" selects the teller and says one sentence through the notebook
@@ -15,19 +15,17 @@ of the REQUESTER client (RST.Steps "carnet.send" / "carnet.talk": same command a
 in MP).
 The heard conversations need the bridge program running (bridge/radio_bridge.py): the lines are written by the
 model. E08-T09: without an answer of the model two npcs do not talk (no template line): "a stopped bridge: no
-conversation, no story" marks the bridge as stopped (RS_Initiatives.bridge, no bridge program needed). Every test
+conversation, no story" marks the bridge as stopped (LK_Initiatives.bridge, no bridge program needed). Every test
 removes its npcs and their pending requests with t:defer.
 ]]
 
 require "RST/RST"
-require "RST/RST_ModRadioSurvivor"
 require "RST/RST_ModLivingKnox"
 require "RST/RST_Fixtures"
 require "RST/RST_PeerChecks"
-require "RST/RST_RSHelpers"
 require "RST/RST_LKHelpers"
 
-RST.RSConversations = RST.RSConversations or {}
+RST.LKConversations = RST.LKConversations or {}
 
 local function B() return LivingKnox and LivingKnox.Bodies end
 
@@ -57,8 +55,8 @@ local function spawn(t, Server, sq)
     return id, fiche, body
 end
 
--- E08-T11: spots searched around the player (RST.RSHelpers.pairSquares, bounded): the teller heard by the player, the
--- partner in sight of the teller (RS_Conversations.partnerOf: Provider.near, IsoGameCharacter.CanSee). Fixed offsets
+-- E08-T11: spots searched around the player (RST.LKHelpers.pairSquares, bounded): the teller heard by the player, the
+-- partner in sight of the teller (LK_Conversations partnerOf: Provider.near, IsoGameCharacter.CanSee). Fixed offsets
 -- failed next to the start house of the MP test server (2026-10-15: every pair behind a wall or out of earshot). The
 -- rule is checked again on the real bodies, for at most SETTLE_MS (square of a new body), before the next pair.
 local SETTLE_MS = 2000
@@ -69,12 +67,12 @@ local SETTLE_MS = 2000
 local function pair(t, Server, Obs, subject, after, needSelect)
     local P = Server.P
     local V = require "LivingKnox/LK_Conversations"
-    local R = RST.RSHelpers
+    local K = RST.LKHelpers
     local p = RST.Fixtures.player(t)
     t:ok(p ~= nil, "no target player (t.ctx.player)")
-    local spots = R.pairSquares(p, V.CFG.RANGE)
+    local spots = K.pairSquares(p, V.CFG.RANGE)
     t:ok(#spots > 0, "no pair of free squares in sight of each other, the first heard by the player, within "
-        .. R.SPOT_RADIUS .. " squares of " .. R.at(p))
+        .. K.SPOT_RADIUS .. " squares of " .. K.at(p))
     local tried = {}
     local selectRange = needSelect and require("CoreAI/CA_SpeechConfig").SELECT_RANGE or nil
     local function ready(tb, pb)
@@ -93,13 +91,13 @@ local function pair(t, Server, Obs, subject, after, needSelect)
     end
     local function attempt(t1, i)
         local spot = spots[i]
-        t1:ok(spot ~= nil, "no spot where the two npcs see each other near the player " .. R.at(p) .. ": "
+        t1:ok(spot ~= nil, "no spot where the two npcs see each other near the player " .. K.at(p) .. ": "
             .. table.concat(tried, ", "))
         local tid, tf, tb = spawn(t1, Server, spot.a)
         local pid, pf, pb
         if tid ~= nil then pid, pf, pb = spawn(t1, Server, spot.b) end
         if pid == nil then
-            tried[#tried + 1] = R.at(spot.a) .. "/" .. R.at(spot.b) .. " (" .. tostring(pf or tf) .. ")"
+            tried[#tried + 1] = K.at(spot.a) .. "/" .. K.at(spot.b) .. " (" .. tostring(pf or tf) .. ")"
             if tid ~= nil then B().despawn(tid, true) end
             return attempt(t1, i + 1)
         end
@@ -109,8 +107,8 @@ local function pair(t, Server, Obs, subject, after, needSelect)
                 if ready(tb, pb) then
                     return mapped(t2, { tellerId = tid, teller = tf, partnerId = pid, partner = pf })
                 end
-                tried[#tried + 1] = R.at(spot.a) .. "/" .. R.at(spot.b) .. " -> " .. R.at(tb) .. "/" .. R.at(pb)
-                    .. " (sight " .. R.sightOf(tb, pb) .. "/" .. R.sightOf(pb, tb)
+                tried[#tried + 1] = K.at(spot.a) .. "/" .. K.at(spot.b) .. " -> " .. K.at(tb) .. "/" .. K.at(pb)
+                    .. " (sight " .. K.sightOf(tb, pb) .. "/" .. K.sightOf(pb, tb)
                     .. (P.hears(tb, p, Server.HEARING) and "" or ", player does not hear")
                     .. ((needSelect and not P.near(p, tb, selectRange)) and ", player cannot select the teller" or "")
                     .. ")"
@@ -174,8 +172,7 @@ local function waitJoined(t, c, V, Server, conv, joined0)
     end, "player line wait never ended")
 end
 
-RST.suite("rs.conversations", { mods = { "lk" },
-    tags = { "world", "server" }, testTimeoutMs = 120000, timeoutMs = 300000 }, function(s)
+RST.suite("lk.conversations", { tags = { "world", "server" }, testTimeoutMs = 120000, timeoutMs = 300000 }, function(s)
     s.test("a heard conversation passes the story after the first line", function(t)
         local Server, V, Obs = setup(t)
         local said = RST.PeerChecks.recordSpeech(t)
@@ -195,7 +192,7 @@ RST.suite("rs.conversations", { mods = { "lk" },
                 end
                 t3:ok(#mine > 0, "no conversation line said through LivingKnox.Speech")
                 RST.Steps.ask(t3, "lk.speech.seen", { lines = mine }, { target = "requester", timeoutMs = 10000 })
-            end, function() return "story never received within 90 s: " .. RST.RSHelpers.bridgeCause(Server, since) end)
+            end, function() return "story never received within 90 s: " .. RST.PeerChecks.bridgeCause(Server, since) end)
         end)
     end)
 
@@ -279,4 +276,4 @@ RST.suite("rs.conversations", { mods = { "lk" },
     end)
 end)
 
-return RST.RSConversations
+return RST.LKConversations

@@ -5,7 +5,7 @@ Prefix selection (an entry selects the suite of that name and the suites "<entry
 "rs.missions" also runs rs.missions.radio, rs.missions.scout and rs.missions.solo, NOT the templates rs.mission.*
 (singular: clear, retrieve, recover, signal); "rs.personas" runs .update; "rs.radiomodule" runs .world;
 "rs.rescue" runs .pick, .run, .visit, .saved, .missed. Suites from rs.radiomodule on need the Python bridge
-(rs.npctalk, rs.relation, rs.conversations, rs.initiatives, rs.groupradio: the real model). The suites that need
+(rs.npctalk, rs.relation, rs.groupradio: the real model). The suites that need
 Living Knox too are SKIP without it (opts.mods).
 ]]
 
@@ -28,8 +28,6 @@ RST.Campaigns.add({ "solo-rs", "solo" }, 30, {
     "rs.radiomodule",   -- E06-T02 (bridge)
     "rs.npctalk",       -- E17-T08, E17-T09 (bridge)
     "rs.relation",      -- E09-T04 (bridge)
-    "rs.conversations", -- E08-T04, E08-T05 (E01-T19, bridge)
-    "rs.initiatives",   -- E08-T03 (E01-T19, bridge)
     "rs.groupradio",    -- E08-T06, E08-T10, E17-T12 (E01-T19, bridge; fixture group when none holds a transmitter)
     "rs.worldradio",    -- E06-T03
     "rs.radio",         -- E06-T05
@@ -106,8 +104,6 @@ RST.Campaigns.add("mp", 30, {
     -- E01-T16: notebook suites through the requester client (RST.Steps): real network path, bridge on the server.
     "rs.npctalk",       -- E17-T08, E17-T09, E17-T13 (bridge)
     "rs.relation",      -- E09-T04 (bridge)
-    "rs.conversations", -- E08-T04, E08-T05
-    "rs.initiatives",   -- E08-T03 (bridge)
     "rs.groupradio",    -- E08-T06, E08-T10, E17-T12 (E01-T19, bridge)
     "rs.worldradio",    -- E06-T03
     "rs.radio",         -- E06-T05

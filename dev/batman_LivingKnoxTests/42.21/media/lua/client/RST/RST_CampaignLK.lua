@@ -1,7 +1,8 @@
 --[[
 RST_CampaignLK - parts of the RST campaigns that run the Living Knox suites (E21-T07, registry of RST_Campaign.lua in
 batman_CoreAITests: rank 20, suites that must come last 90). Development mod only (batman_LivingKnoxTests).
-No suite of solo-lk needs the Python bridge. Order: short suites first, long group suites (chores, defense) last.
+Order: short suites first, long group suites (chores, defense) last. lk.conversations and lk.initiatives need the
+Python bridge (the real model; autoclient.py BRIDGE_SUITES starts it).
 ]]
 
 require "RST/RST_Campaign"
@@ -20,6 +21,8 @@ RST.Campaigns.add({ "solo-lk", "solo" }, 20, {
     "lk.ownerreports",  -- LK03-T02 (owner part; the non-owner part is noted in solo)
     "lk.spawnclean",    -- LK03-T06
     "rst.fixtures.npc", -- E01-T10, E01-T18 (test API of Living Knox, debug mode)
+    "lk.conversations", -- E08-T04, E08-T05 (E01-T19, bridge)
+    "lk.initiatives",   -- E08-T03 (E01-T19, bridge)
     "lk.deathswing",    -- LK06-T13
     "lk.windowlure",    -- LK06-T10
     "lk.revenge",       -- LK11-T05 (E01-T19)
@@ -80,6 +83,8 @@ RST.Campaigns.add("mp", 20, {
     "lk.talk",          -- E18-T18, E21-T05 (proximity speech of the npcs)
     "lk.missions",      -- E18-T29, E21-T05 (missions of an npc in the notebook)
     "lk.chatter",       -- E18-T32
+    "lk.conversations", -- E08-T04, E08-T05 (E01-T16: notebook of the requester client, bridge on the server)
+    "lk.initiatives",   -- E08-T03 (bridge)
     "lk.zombies",       -- LK06-T04
     "lk.traversal",     -- LK04-T03..T18 (E01-T19; sites missing near the spawn house: SKIP per test)
     "lk.doors",         -- LK04-T02 (2026-10-15: both clients see the same door state, no double toggle)

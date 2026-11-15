@@ -168,7 +168,7 @@ local function say(t, c, text, onRequest, onReply)
             local answer = result.text
             t3:note("'" .. text .. "' -> '" .. tostring(answer) .. "'")
             return onReply(t3, seen, answer)
-        end, function() return "no answer within the request timeout: " .. R.bridgeCause(c.Server, seen.sent) end)
+        end, function() return "no answer within the request timeout: " .. RST.PeerChecks.bridgeCause(c.Server, seen.sent) end)
     end)
 end
 

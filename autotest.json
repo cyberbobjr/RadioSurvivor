@@ -66,8 +66,8 @@
     "offlineArgs": ["--offline"],
     "default": "auto",
     "auto": {
-      "suite": ["rs.npctalk", "rs.radiomodule", "rs.relation", "rs.conversations", "rs.initiatives", "rs.groupradio"],
-      "campaign": ["solo", "solo-rs", "solo-retry"]
+      "suite": ["rs.npctalk", "rs.radiomodule", "rs.relation", "rs.groupradio", "lk.conversations", "lk.initiatives"],
+      "campaign": ["solo", "solo-rs", "solo-lk", "solo-retry"]
     }
   }
 }

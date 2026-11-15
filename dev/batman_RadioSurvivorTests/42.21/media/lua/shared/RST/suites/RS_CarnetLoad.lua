@@ -23,6 +23,7 @@ Outside the game: tests/test_rs_mp_suites.py.
 require "RST/RST"
 require "RST/RST_ModRadioSurvivor"
 require "RST/RST_ModLivingKnox"
+require "RST/RST_LKHelpers"
 require "RST/RST_RSHelpers"
 require "RST/RST_Fixtures"
 require "RST/RST_Steps"
@@ -234,7 +235,7 @@ RST.suite("rs.carnet.load", { mods = { "rs", "lk" },
         -- The kept npc stands in sight of the requester (select needs Provider.near: CanSee; MP campaign of 2026-11-04:
         -- x + 2 behind the glass wall of the start house, "the select command made no contact"); the dropped one on
         -- the other side of the requester.
-        local spot = RST.RSHelpers.talkSquare(c.p, 2)
+        local spot = RST.LKHelpers.talkSquare(c.p, 2)
         local kx, ky = x + 2, y
         if spot ~= nil then kx, ky = spot:getX(), spot:getY() else t:note("no square in sight: kept npc 2 east") end
         local kept, dropped = API.testSpawnNpc(kx, ky, z), API.testSpawnNpc(2 * x - kx, 2 * y - ky, z)

@@ -35,6 +35,14 @@ only. Load with: require "RST/RST_LKHelpers". At load time: definitions, and the
                                          HEARING }; skip on an MP client or without a started host
     K.probeZombies(ids, tag)             server: every MP client prints what its copy of each zombie (onlineIds ids)
                                          does (step lk.zprobe, not awaited: diagnostic lines in the client console)
+    K.heardSquares(p, r)                 E08-T11: free squares (LivingKnox.Bodies.freeSquare) at most r (SPOT_RADIUS)
+                                         squares from the player, never next to it, where the player hears a body
+                                         (CA_Hearing.hears), nearest first
+    K.pairSquares(p, range, max, r)      up to max (SPOT_PAIRS) pairs { a, b }: a heard square, b free, 2 to range
+                                         squares from a, each in sight of the other (LosUtil.lineClear both ways)
+    K.talkSquare(p, dx, r)               square for an npc the player talks to: dx squares east when free, heard and in
+                                         sight both ways, else the nearest such K.heardSquares square, or nil
+    K.at(o) K.sightOf(a, b)              "x,y" of an object; LosUtil.lineClear of two bodies ("no square" when unplaced)
 ]]
 
 require "RST/RST"
@@ -538,6 +546,121 @@ function K.speech(t)
         ensure = function(id) return Talk.ensure(id) end,
         objects = function() return Talk.objects() or {} end,
         bound = function() return Talk.bound() or {} end }
+end
+
+-- E08-T11: bounded search of npc spots around the player (no fixed offsets: the start house of the MP test server put
+-- them behind walls or out of earshot). Same rules as the mod: a body stands on a LivingKnox.Bodies.freeSquare, the
+-- player hears it by Provider.hears (C.HEARING_RANGE), two bodies see each other by Provider.near (CanSee =
+-- LosUtil.lineClear not Blocked; not symmetric, so both ways are required).
+K.SPOT_RADIUS = 6
+K.SPOT_PAIRS = 4
+
+-- Stand-in of a body on sq for Provider.hears (reads getSquare, getX, getY, getZ only).
+local function standIn(sq)
+    return {
+        getSquare = function() return sq end,
+        getX = function() return sq:getX() + 0.5 end,
+        getY = function() return sq:getY() + 0.5 end,
+        getZ = function() return sq:getZ() end,
+    }
+end
+
+local function blocked(a, b)
+    return tostring(LosUtil.lineClear(getCell(), a:getX(), a:getY(), a:getZ(), b:getX(), b:getY(), b:getZ(), false))
+        == "Blocked"
+end
+
+-- Squares (same level, at most r squares away, never next to the player) where a new body may stand and be heard by
+-- the player p, nearest first.
+function K.heardSquares(p, r)
+    local P = require "CoreAI/CA_Hearing" -- E18-T27: rule of every speech host, any mod setup
+    local C = require "CoreAI/CA_SpeechConfig"
+    local Bodies = K.B()
+    local cell = getCell()
+    local out = {}
+    if Bodies == nil or cell == nil then return out end
+    r = r or K.SPOT_RADIUS
+    local px, py, pz = math.floor(p:getX()), math.floor(p:getY()), math.floor(p:getZ())
+    for dy = -r, r do
+        for dx = -r, r do
+            if math.max(math.abs(dx), math.abs(dy)) >= 2 then
+                local sq = cell:getGridSquare(px + dx, py + dy, pz)
+                if sq ~= nil and Bodies.freeSquare(sq) and P.hears(standIn(sq), p, C.HEARING_RANGE) then
+                    out[#out + 1] = { sq = sq, d = dx * dx + dy * dy, dx = dx, dy = dy }
+                end
+            end
+        end
+    end
+    table.sort(out, function(a, b)
+        if a.d ~= b.d then return a.d < b.d end
+        if a.dy ~= b.dy then return a.dy < b.dy end
+        return a.dx < b.dx
+    end)
+    local squares = {}
+    for i, e in ipairs(out) do squares[i] = e.sq end
+    return squares
+end
+
+-- Up to max pairs { a, b } of squares: a heard by the player (K.heardSquares), b free, 2 to range squares from a
+-- (never next to it: Bodies.clearAround would move the second body), each in sight of the other; one pair per a,
+-- nearest a first. Bounded: (2r + 1)^2 squares a, (2 range + 1)^2 squares b each.
+function K.pairSquares(p, range, max, r)
+    local Bodies = K.B()
+    local cell = getCell()
+    local out = {}
+    if Bodies == nil or cell == nil then return out end
+    max = max or K.SPOT_PAIRS
+    local reach = math.floor(range)
+    for _, a in ipairs(K.heardSquares(p, r)) do
+        local best, bestD
+        for dy = -reach, reach do
+            for dx = -reach, reach do
+                local d = dx * dx + dy * dy
+                if math.max(math.abs(dx), math.abs(dy)) >= 2 and d <= range * range and (bestD == nil or d < bestD) then
+                    local b = cell:getGridSquare(a:getX() + dx, a:getY() + dy, a:getZ())
+                    if b ~= nil and Bodies.freeSquare(b) and not blocked(a, b) and not blocked(b, a) then
+                        best, bestD = b, d
+                    end
+                end
+            end
+        end
+        if best ~= nil then
+            out[#out + 1] = { a = a, b = best }
+            if #out >= max then break end
+        end
+    end
+    return out
+end
+
+-- Square for a test npc the player p talks to: dx squares east when it is free, heard and in sight both ways,
+-- otherwise the nearest K.heardSquares square in sight both ways (MP campaign of 2026-11-04: rs.npctalk npc moved
+-- behind a glass wall of the start house, "sight Blocked", never selected). Returns the square, or nil.
+function K.talkSquare(p, dx, r)
+    local Bodies = K.B()
+    local cell = getCell()
+    local ps = p:getSquare()
+    if Bodies == nil or Bodies.freeSquare == nil or cell == nil or ps == nil then return nil end
+    local function fits(sq)
+        return sq ~= nil and not blocked(ps, sq) and not blocked(sq, ps)
+    end
+    local P = require "CoreAI/CA_Hearing" -- E18-T27: rule of every speech host, any mod setup
+    local C = require "CoreAI/CA_SpeechConfig"
+    local east = cell:getGridSquare(ps:getX() + dx, ps:getY(), ps:getZ())
+    if east ~= nil and Bodies.freeSquare(east) and P.hears(standIn(east), p, C.HEARING_RANGE) and fits(east) then
+        return east
+    end
+    for _, sq in ipairs(K.heardSquares(p, r)) do
+        if fits(sq) then return sq end
+    end
+    return nil
+end
+
+-- "x,y" of a square or a body, and why two bodies (or a body and the player) fail the rules above, for the reports.
+function K.at(o) return math.floor(o:getX()) .. "," .. math.floor(o:getY()) end
+function K.sightOf(a, b)
+    if a:getSquare() == nil or b:getSquare() == nil then return "no square" end
+    return tostring(LosUtil.lineClear(getCell(), math.floor(a:getX()), math.floor(a:getY()), math.floor(a:getZ()),
+        math.floor(b:getX()), math.floor(b:getY()), math.floor(b:getZ()), false))
 end
 
 return K

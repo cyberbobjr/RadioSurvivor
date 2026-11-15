@@ -27,9 +27,7 @@ LK_USE = re.compile(r'spawnNpc|npcReady|LivingKnox[./]|RST\.LKHelpers|RST_LKHelp
 RS_USE = re.compile(r'RadioSurvivor/(?!tests\b)|\bRS_(?!LivingKnox\b)[A-Z]\w+|RST\.RSHelpers|RST_RSHelpers|RadioSurvivor_')
 DECL = re.compile(r'RST\.suite\(\s*"([\w.]+)"\s*,\s*(\{[^\n]*?\}\s*,|function)')
 # Optional uses: the suite checks the mod first (if RS_LivingKnox ~= nil then ... end) and runs without it.
-OPTIONAL = {'rs.factions.mandate': {'lk'},  # E18-T15: agreements test skipped without Living Knox
-            # E18-T27: the RadioSurvivor helpers of these suites (spots, bridge cause) are guarded.
-            'rs.conversations': {'rs'}, 'rs.initiatives': {'rs'}}
+OPTIONAL = {'rs.factions.mandate': {'lk'}}  # E18-T15: agreements test skipped without Living Knox
 
 
 def strip_comments(text):

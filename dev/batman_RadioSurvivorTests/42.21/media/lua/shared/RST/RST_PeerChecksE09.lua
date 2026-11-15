@@ -19,7 +19,7 @@ taken by a rule is dropped. Works without any bridge.
         ctl.quiet(ficheIds)              npc_enrich / initiative / conversation / member requests of these fiches
                                          answered at once with a neutral reply (one request per fiche at a time)
         ctl.blackout = true              no reply at all is read (bridge silent, as when it is stopped): no request
-                                         leaves the queue, so RS_Initiatives never sees an answer meanwhile
+                                         leaves the queue, so LK_Initiatives never sees an answer meanwhile
     E9.faction(t, p1, u2, after)     vanilla faction of the requester with u2 as a plain member (MP only)
     E9.reply(req, fields)     npc_reply of a request: version, kind, id, world, run, npc, order, revision copied;
                               text E9.TEXT, intent "none", offer "" unless given in fields
@@ -55,6 +55,7 @@ require "RST/RST"
 require "RST/RST_Fixtures"
 require "RST/RST_Steps"
 require "RST/RST_LKGroupFixture"
+require "RST/RST_LKHelpers"
 require "RST/RST_PeerChecks"
 require "RST/RST_RSHelpers"
 
@@ -249,14 +250,14 @@ end
 
 -- Diagnostic of a refused selection or talk (positions, range, line of sight, binding of the player).
 function E9.why(who, c)
-    local R, C = RST.RSHelpers, require "RadioSurvivor/RS_Config"
+    local K, C = RST.LKHelpers, require "RadioSurvivor/RS_Config"
     local body, p = bodyOf(c), who.player
     if body == nil then return "body of " .. tostring(c.npc) .. " not mapped by the notebook" end
     local bound = c.Server.bound[p]
-    return "body at " .. R.at(body) .. "," .. math.floor(body:getZ()) .. ", player at " .. R.at(p) .. ","
+    return "body at " .. K.at(body) .. "," .. math.floor(body:getZ()) .. ", player at " .. K.at(p) .. ","
         .. math.floor(p:getZ()) .. ", near " .. tostring(provider().near(p, body, C.SELECT_RANGE)) .. ", hears "
         .. tostring(provider().hears(body, p, C.HEARING_RANGE)) .. ", sight "
-        .. (LosUtil ~= nil and R.sightOf(p, body) or "unknown") .. ", npc alive " .. tostring(c.fiche.alive)
+        .. (LosUtil ~= nil and K.sightOf(p, body) or "unknown") .. ", npc alive " .. tostring(c.fiche.alive)
         .. ", bound " .. tostring(bound == who.cid) .. " (" .. tostring(bound) .. "), selected "
         .. tostring(c.Server.selected[who.cid])
 end

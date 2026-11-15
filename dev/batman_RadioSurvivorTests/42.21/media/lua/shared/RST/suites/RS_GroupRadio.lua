@@ -231,7 +231,7 @@ RST.suite("rs.groupradio", { mods = { "rs", "lk" },
                 local Const = require "RadioSurvivor/RadioSurvivor_Const"
                 t2:eq(nil, badCut(spoken, Const.MAX_LINE_CHARS, require "CoreAI/CA_TextCut"), "bad cut")
                 for i, line in ipairs(spoken) do t2:note("line " .. i .. " (" .. string.len(line) .. "): " .. line) end
-            end, function() return "no reply within 60 s: " .. RST.RSHelpers.bridgeCause(Server, since) end)
+            end, function() return "no reply within 60 s: " .. RST.PeerChecks.bridgeCause(Server, since) end)
         end)
     end)
 end)

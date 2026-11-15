@@ -1,30 +1,28 @@
 --[[
-rs.initiatives - NPC initiatives (E08-T03, server/LivingKnox/LK_Initiatives.lua): a Living Knox npc
-created next to the player (E08-T11: on a square heard by the player, RST.RSHelpers.heardSquares), given a
+lk.initiatives - NPC initiatives (E08-T03, server/LivingKnox/LK_Initiatives.lua): a Living Knox npc
+created next to the player (E08-T11: on a square heard by the player, RST.LKHelpers.heardSquares), given a
 fiche of the speech host (E18-T27: RadioSurvivor's notebook, or Living Knox alone: RST.LKHelpers.speech), notices a
 storm (observation recorded here, LK_Observations) and speaks up on its
 own, once; a busy npc (hit less than 30 s ago) says nothing. Tags "world" and "server": the authority (solo or
 dedicated server), a save named rstest*, with a target player (t.ctx.player); Living Knox enabled; option
-LivingKnox.InitiativeFrequency not "Off". Solo: RST.run({ suite = "rs.initiatives", tags = "world" }); MP:
-RST.server({ suite = "rs.initiatives", tags = "world" }) from an admin client (campaign mp). E01-T16: the line of the
+LivingKnox.InitiativeFrequency not "Off". Solo: RST.run({ suite = "lk.initiatives", tags = "world" }); MP:
+RST.server({ suite = "lk.initiatives", tags = "world" }) from an admin client (campaign mp). E01-T16: the line of the
 last test must reach the requester client (RST.Steps "lk.speech.seen": its speech view), in solo and in MP.
 The last test needs the bridge program running (bridge/radio_bridge.py): the line written by the model is said by
 the speech channel of LK11-T04 and drawn as a bubble over the npc. Without the bridge it fails after 60 s.
-E08-T09: "a stopped bridge leaves the npc silent" marks the bridge as stopped (RS_Initiatives.bridge, no bridge
+E08-T09: "a stopped bridge leaves the npc silent" marks the bridge as stopped (LK_Initiatives.bridge, no bridge
 program needed): the initiative opens silently, no request, no template line (Provider.bark never called), nothing
 said. Budget spent and option "Off" are covered by tests/test_initiatives.py.
 Every test removes its npc and its pending request with t:defer.
 ]]
 
 require "RST/RST"
-require "RST/RST_ModRadioSurvivor"
 require "RST/RST_ModLivingKnox"
 require "RST/RST_Fixtures"
 require "RST/RST_PeerChecks"
-require "RST/RST_RSHelpers"
 require "RST/RST_LKHelpers"
 
-RST.RSInitiatives = RST.RSInitiatives or {}
+RST.LKInitiatives = RST.LKInitiatives or {}
 
 local function B() return LivingKnox and LivingKnox.Bodies end
 
@@ -36,16 +34,16 @@ local function setup(t)
 end
 
 -- New npc next to the player with a notebook fiche; waits until the notebook maps its body and the player hears it.
--- E08-T11: the spot is the pick-th square heard by the player (RST.RSHelpers.heardSquares, bounded search, nearest
+-- E08-T11: the spot is the pick-th square heard by the player (RST.LKHelpers.heardSquares, bounded search, nearest
 -- first), not a fixed offset: on the MP test server the square 3 west of the start spot was out of earshot
 -- (2026-10-15: I.tick nil instead of "silent"). pick differs per test (spots of the former bodies may still be busy).
 local function npcWithFiche(t, Server, pick, after)
     local P = Server.P
-    local R = RST.RSHelpers
+    local K = RST.LKHelpers
     local p = RST.Fixtures.player(t)
     t:ok(p ~= nil, "no target player (t.ctx.player)")
-    local squares = R.heardSquares(p)
-    t:ok(#squares > 0, "no free square heard by the player within " .. R.SPOT_RADIUS .. " squares of " .. R.at(p))
+    local squares = K.heardSquares(p)
+    t:ok(#squares > 0, "no free square heard by the player within " .. K.SPOT_RADIUS .. " squares of " .. K.at(p))
     local sq = squares[(pick - 1) % #squares + 1]
     local id, body = B().spawn({}, sq:getX(), sq:getY(), sq:getZ())
     t:ok(id ~= nil, "npc spawn refused: " .. tostring(body))
@@ -59,7 +57,7 @@ local function npcWithFiche(t, Server, pick, after)
     end, "forget " .. id)
     t:waitUntil(function() return Server.objects()[fiche.id] ~= nil and P.hears(body, p, Server.HEARING) end, 5000,
         function(t2) after(t2, id, fiche) end,
-        "body of the fiche never mapped by the notebook or never heard by the player (" .. R.at(sq) .. ")")
+        "body of the fiche never mapped by the notebook or never heard by the player (" .. K.at(sq) .. ")")
 end
 
 -- Why I.tick opened nothing for this fiche (report of a failure).
@@ -83,8 +81,7 @@ local function pendingOf(Server, fiche)
     return nil
 end
 
-RST.suite("rs.initiatives", { mods = { "lk" },
-    tags = { "world", "server" }, testTimeoutMs = 90000, timeoutMs = 240000 }, function(s)
+RST.suite("lk.initiatives", { tags = { "world", "server" }, testTimeoutMs = 90000, timeoutMs = 240000 }, function(s)
     s.test("a fresh observation of a heard npc opens one initiative, never twice", function(t)
         local Server, I, Obs = setup(t)
         npcWithFiche(t, Server, 1, function(t2, _, fiche)
@@ -152,9 +149,9 @@ RST.suite("rs.initiatives", { mods = { "lk" },
                 for _, line in ipairs(lines) do if line.npc == id then mine[#mine + 1] = line end end
                 t3:ok(#mine > 0, "initiative not said through LivingKnox.Speech (nobody heard it?)")
                 RST.Steps.ask(t3, "lk.speech.seen", { lines = mine }, { target = "requester", timeoutMs = 10000 })
-            end, function() return "no reply said within 60 s: " .. RST.RSHelpers.bridgeCause(Server, since) end)
+            end, function() return "no reply said within 60 s: " .. RST.PeerChecks.bridgeCause(Server, since) end)
         end)
     end)
 end)
 
-return RST.RSInitiatives
+return RST.LKInitiatives

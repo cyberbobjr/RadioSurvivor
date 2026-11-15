@@ -601,8 +601,8 @@ class SourceTests(unittest.TestCase):
             self.assertIn(token, text, f'{name} absent de {rel}:{line}')
 
 
-# E08-T11 : recherche bornée des emplacements de PNJ des suites rs.conversations et rs.initiatives
-# (RST.RSHelpers.heardSquares / pairSquares). Doublures : grille de cases libres, bâtiment déclaré par case
+# E08-T11 : recherche bornée des emplacements de PNJ des suites lk.conversations et lk.initiatives
+# (RST.LKHelpers.heardSquares / pairSquares / talkSquare, aides de batman_LivingKnoxTests). Doublures : grille de cases libres, bâtiment déclaré par case
 # (getBuilding/getRoom), LosUtil.lineClear bloqué par un mur vertical (côté ouest de la colonne WALL_X) ou par une paire
 # orientée déclarée (lineClear n'est pas symétrique, perception.md), Provider.hears et RS_Config réels.
 SPOT_DOUBLES = r"""
@@ -657,7 +657,9 @@ PLAYER = {
     hasTrait = function() return false end,
 }
 require "RST/RST_RSHelpers"
+require "RST/RST_LKHelpers"
 R = RST.RSHelpers
+K = RST.LKHelpers
 function squaresOf(list)
     local out = {}
     for i, sq in ipairs(list) do out[i] = { sq:getX(), sq:getY() } end
@@ -677,10 +679,10 @@ class SpotsTests(SuiteHarness):
         self.lua(SPOT_DOUBLES)
 
     def heard(self, r='nil'):
-        return [tuple(v.values()) for v in self.lua(f'return squaresOf(R.heardSquares(PLAYER, {r}))').values()]
+        return [tuple(v.values()) for v in self.lua(f'return squaresOf(K.heardSquares(PLAYER, {r}))').values()]
 
     def pairs(self, rng=4, mx='nil'):
-        return [tuple(v.values()) for v in self.lua(f'return pairsOf(R.pairSquares(PLAYER, {rng}, {mx}))').values()]
+        return [tuple(v.values()) for v in self.lua(f'return pairsOf(K.pairSquares(PLAYER, {rng}, {mx}))').values()]
 
     def test_heard_squares_free_not_next_to_player_nearest_first(self):
         self.lua('BUSY["102,100"] = true')
@@ -730,7 +732,7 @@ class SpotsTests(SuiteHarness):
 
 
     def talk(self, dx=2):
-        v = self.lua(f'local sq = R.talkSquare(PLAYER, {dx}) return sq and {{ sq:getX(), sq:getY() }} or false')
+        v = self.lua(f'local sq = K.talkSquare(PLAYER, {dx}) return sq and {{ sq:getX(), sq:getY() }} or false')
         return tuple(v.values()) if v else None
 
     def test_talk_square_east_when_in_sight(self):

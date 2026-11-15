@@ -71,7 +71,7 @@ START = ('REPORT = nil; assert(RST.start({ suite = "bench.npctalk", tags = { "se
 
 
 class NpcTalkUnderDisorderTests(unittest.TestCase):
-    """R.talk (rs.npctalk, rs.relation, rs.conversations...) : requête vue quel que soit l'ordre de livraison."""
+    """R.talk (rs.npctalk, rs.relation ; carnet.talk de lk.conversations...) : requête vue quel que soit l'ordre de livraison."""
 
     def setUp(self):
         self.h = Harness(lua_roots=[DEV_LUA])

@@ -625,7 +625,8 @@ function W.groupScene(t, lang, E, p, Server, cid, home)
                                     t6:note("history " .. tostring(h.id) .. " " .. tostring(h.author) .. ": " .. tostring(h.text))
                                 end
                                 return "no answer bubble of the npc (req " .. tostring(req.id) .. ", history " .. n
-                                    .. ", bubbles " .. #(View.bubbles or {}) .. "): " .. R.bridgeCause(Server, req.sent)
+                                    .. ", bubbles " .. #(View.bubbles or {}) .. "): "
+                                    .. RST.PeerChecks.bridgeCause(Server, req.sent)
                             end)
                         end)
                     end)

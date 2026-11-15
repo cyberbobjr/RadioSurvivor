@@ -35,7 +35,12 @@ Authority helpers (suite code, through RST.Steps.ask)
                                                ({ id, npc, key, names }); PC.checkSpeech(t, lines, after) asks the
                                                others to have shown the lines they heard (fails when another client
                                                is not among the listeners).
-    PC.asUser(t, after)                        the first other client gets the access level "user" (asked to the
+    PC.bridgeCause(Server, since)              E17-T15: failure message of a wait for a bridge answer: the latest
+                                               request refused by the notebook server since `since` (getTimestampMs)
+                                               with its cause (bridge error `timeout`, `http_503`..., no reply), else
+                                               "no request refused: is the bridge program running?". Pass it as a
+                                               function: function() return PC.bridgeCause(...) end
+    PC.asUser(t, after)                       the first other client gets the access level "user" (asked to the
                                                requester, role read back on the server), "admin" again at the end
                                                (t:defer); after(t, account). SKIP without a dedicated server or
                                                without a second client.
@@ -684,6 +689,17 @@ function PC.waitCopies(t, bodies, after)
     local list = {}
     for _, z in ipairs(bodies) do list[#list + 1] = { o = z:getOnlineID(), p = z:getPersistentOutfitID() } end
     Steps.ask(t, "lk.present", { bodies = list }, { timeoutMs = PC.LOOK_MS }, after)
+end
+
+function PC.bridgeCause(Server, since)
+    local refusals = Server and Server.talk.refusals or {}
+    for i = #refusals, 1, -1 do
+        local r = refusals[i]
+        if (r.at or 0) >= (since or 0) then
+            return "request " .. tostring(r.kind) .. " " .. tostring(r.id) .. " refused by the server: " .. tostring(r.reason)
+        end
+    end
+    return "no request refused by the server meanwhile: is the bridge program running?"
 end
 
 function PC.recordSpeech(t)

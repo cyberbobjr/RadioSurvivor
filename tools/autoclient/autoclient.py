@@ -175,8 +175,8 @@ IGNORE = shutil.ignore_patterns('__pycache__', '*.pyc', '*.bak', '*.tmp', '.git'
 BRIDGE_SCRIPT = ROOT / 'bridge' / 'radio_bridge.py'
 EXCHANGE_DIR = 'Lua/batman_CoreAI'
 BRIDGE_READY = 'Bridge ready'
-BRIDGE_SUITES = ('rs.npctalk', 'rs.radiomodule', 'rs.relation', 'rs.conversations', 'rs.initiatives',
-                 'rs.groupradio', 'lk.talk')
+BRIDGE_SUITES = ('rs.npctalk', 'rs.radiomodule', 'rs.relation', 'rs.groupradio', 'lk.talk', 'lk.conversations',
+                 'lk.initiatives')
 # E21-T07: each test mod registers its parts of the campaigns in client/RST/RST_Campaign*.lua (RST.Campaigns.add).
 CAMPAIGN_GLOB = 'RST_Campaign*.lua'
 # Credential shapes searched in the stored bridge journal (the key itself is never read by this tool).

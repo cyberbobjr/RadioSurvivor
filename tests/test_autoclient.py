@@ -1326,14 +1326,14 @@ class BridgeTests(unittest.TestCase):
         self.assertTrue(autoclient.needs_bridge(None, ['rs']))
         self.assertFalse(autoclient.needs_bridge(None, ['rs.env', 'rst.guard', 'rs.relationx']))
         self.assertTrue(autoclient.needs_bridge('solo-rs', None, lua))
-        self.assertFalse(autoclient.needs_bridge('solo-lk', None, lua))
+        self.assertTrue(autoclient.needs_bridge('solo-lk', None, lua))   # lk.conversations, lk.initiatives
         self.assertTrue(autoclient.needs_bridge('solo', None, lua))
         self.assertTrue(autoclient.needs_bridge('unknown-campaign', None, lua))
         self.assertIn('rs.npctalk', autoclient.campaign_suites(lua, 'solo-rs'))
         self.assertNotIn('E01-T06', autoclient.campaign_suites(lua, 'solo-rs'))
         # E01-T16: the four notebook suites run in MP through the requester client, bridge on the server
         mp = autoclient.campaign_suites(lua, 'mp')
-        for name in ('rs.npctalk', 'rs.relation', 'rs.conversations', 'rs.initiatives'):
+        for name in ('rs.npctalk', 'rs.relation', 'lk.conversations', 'lk.initiatives'):
             self.assertIn(name, mp)
         self.assertTrue(autoclient.needs_bridge('mp', None, lua))
 
@@ -1476,10 +1476,10 @@ class CampaignContentTests(unittest.TestCase):
 
     def test_solo_lists_and_ambient_campaign(self):
         solo = self.campaign('solo')
-        for entry in ('rs.initiatives', 'rs.conversations', 'rs.rescue', 'rs.groupradio', 'lk.revenge',
+        for entry in ('lk.initiatives', 'lk.conversations', 'rs.rescue', 'rs.groupradio', 'lk.revenge',
                       'lk.traversal', 'lk.upkeep', 'lk.garden'):
             self.assertIn(entry, solo)
-        self.assertFalse(autoclient.needs_bridge('solo-lk', None, self.lua))
+        self.assertTrue(autoclient.needs_bridge('solo-lk', None, self.lua))
         ambient = self.campaign('mp-ambient')
         self.assertEqual(sorted(ambient), sorted(['lk.load', 'lk.zombies', 'lk.alert', 'lk.defense', 'rs.identity',
                                                   'rs.facts']))

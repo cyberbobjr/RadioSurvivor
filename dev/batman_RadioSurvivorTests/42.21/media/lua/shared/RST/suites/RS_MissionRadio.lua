@@ -353,7 +353,7 @@ RST.suite("rs.missionreport.llm", { tags = { "server", "world" }, testTimeoutMs 
                             .. tostring(answer))
                     end, function()
                         return "report not accepted within " .. LLM_WAIT_MS .. " ms (state " .. tostring(m.state)
-                            .. "): " .. R.bridgeCause(Server, since)
+                            .. "): " .. RST.PeerChecks.bridgeCause(Server, since)
                     end)
                 end)
             end)
