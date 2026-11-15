@@ -739,7 +739,7 @@ function Deliver.value(m, items)
     return total, smallest or 0, counts
 end
 
-function Deliver.voiceReportReady(m) return m.delivered >= m.quantity end
+function Deliver.voiceReportReady(m) return M.allCollected(m) end
 
 function Deliver.check(m, player, ids)
     if m.donor == 'voice' and ids == 'speech' then
@@ -927,6 +927,21 @@ function M.spoken(store, m, player, character)
         return false, 'State'
     end
     return M.report(store, m, player, character, 'speech', 'speech-' .. character)
+end
+
+-- E20-T15: declarations shared by the templates whose voice mission ends with one marked item left at a dead drop
+-- (retrieve_id: the ID card, m.cardId; item: the personal item, m.itemId).
+-- Strategy dropAccepts that takes only the item whose id is m[field] (InventoryItem:getID, kept by every transfer),
+-- never another item of the same type.
+function M.onlyItem(field)
+    return function(m, item)
+        return m[field] ~= nil and item:getID() == m[field]
+    end
+end
+
+-- voiceReportReady of a mission collected at its dead drops: the whole quantity collected.
+function M.allCollected(m)
+    return m.delivered >= m.quantity
 end
 
 return M

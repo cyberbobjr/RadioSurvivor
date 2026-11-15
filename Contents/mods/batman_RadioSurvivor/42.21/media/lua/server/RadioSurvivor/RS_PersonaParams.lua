@@ -82,6 +82,18 @@ Params.register("text", function(value)
     return value
 end)
 
+-- E20-T15: full type of an item script ("Module.Type", e.g. Base.Locket). Checked against the item scripts of the game
+-- where the reader runs with them loaded (ScriptManager.FindItem, nil for an unknown type: ScriptManager.java:1325),
+-- else by its form only; the template refuses an unknown type again when a mission starts.
+Params.register("item", function(value)
+    if not string.match(value, "^[%a_][%w_]*%.[%w_]+$") then
+        return nil, "bad item '" .. value .. "' (Module.Type of an item script, e.g. Base.Locket)"
+    end
+    local scripts = getScriptManager and getScriptManager()
+    if scripts and scripts:FindItem(value) == nil then return nil, "unknown item '" .. value .. "'" end
+    return value
+end)
+
 Params.register("skill", function(value, ctx)
     for _, skill in ipairs(ctx.skills) do
         if skill == value then return value end

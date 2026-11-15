@@ -29,6 +29,9 @@ Once only, even after a restart:
        the bag (never duplicate it).
 Only caches of missions still 'active' (or 'success': reward cache of a voice mission) are placed; a failed, expired
 or cancelled mission places nothing more.
+Another floor item (E20-T15): Caches.place(store, rec, make) places what make(rec) returns instead of the bag, by the
+same rules (deferred, once, adopted after a stop); make marks the item itself (ModData RS_Cache = rec.key) and returns
+nil when it cannot be made. Used by the template `item` (RC_MissionItem) for its personal item, in its own record.
 ]]
 local Config = require 'RadioSurvivorCore/RC_MissionConfig'
 local M = require 'RadioSurvivorCore/RC_Missions'
@@ -221,9 +224,10 @@ local function settle(rec, item, sq)
     tried[rec.key] = nil
 end
 
--- Deferred placement of one cache (see the header). store: the mission store or a double { save }. Returns true when the
--- record changed (placed or adopted).
-function Caches.place(store, rec)
+-- Deferred placement of one cache (see the header). store: the mission store or a double { save }; make (optional,
+-- E20-T15): maker of the marked floor item, default Caches.make. Returns true when the record changed (placed or
+-- adopted).
+function Caches.place(store, rec, make)
     if type(rec) ~= 'table' or rec.placed then return false end
     local c = Config.Caches
     local now = getTimestampMs()
@@ -252,9 +256,9 @@ function Caches.place(store, rec)
         log('cache: state not saved, ' .. tostring(rec.key) .. ' not placed')
         return false
     end
-    local bag = Caches.make(rec)
+    local bag = (make or Caches.make)(rec)
     if not bag then
-        log('cache: unknown bag item ' .. tostring(c.bagType))
+        log('cache: item of ' .. tostring(rec.key) .. ' not made (unknown item type)')
         return false
     end
     sq:AddWorldInventoryItem(bag, 0.5, 0.5, 0, true)

@@ -223,12 +223,10 @@ function Retrieve.observe(m, player, name)
 end
 
 -- E20-T06: strategy of the dead drops, only the card of this mission (item id), never another ID card.
-function Retrieve.dropAccepts(m, item)
-    return m.cardId ~= nil and item:getID() == m.cardId
-end
+Retrieve.dropAccepts = M.onlyItem('cardId')
 
 -- Voice requester: the card has been collected at a dead drop.
-function Retrieve.voiceReportReady(m) return m.delivered >= m.quantity end
+Retrieve.voiceReportReady = M.allCollected
 
 -- Hand-over in person: only the card of this mission, by item id, still in the server inventory of the player.
 -- Radio report of a voice requester: accepted once the card is collected, nothing taken from the inventory.

@@ -184,6 +184,19 @@ local MC = {
             radius = 8,            -- tiles: a point is crossed within this distance of the participant (or vehicle)
             maxStep = 60,          -- tiles between two server readings still driven (above: a jump, only its end counts)
         },
+        -- E20-T15: a personal vanilla item placed by the server at a place of the voice sheet, to find and leave at
+        -- one of the mission's dead drops (server/RadioSurvivorCore/RC_MissionItem.lua). Given by a radio voice only
+        -- (no reward lot: the voice pays).
+        item = {
+            id = 'item_v1',
+            titleKey = 'IGUI_RC_Mission_Item',
+            durationMs = 14400000, -- a place to search and a drop to reach: the delay of `relay`
+            rewardType = '',
+            rewardCount = 0,
+            zoneHalf = 4,          -- tiles around a place outside any building: square of 9 x 9 tiles where it lies
+            zoneRadius = 8,        -- tiles: smallest circle drawn on the map around the place
+            zoneMargin = 3,        -- tiles kept between the place corners and the circle
+        },
     },
     -- E11-T06: caches (server/RadioSurvivorCore/RC_Caches.lua): a marked bag filled from one closed table of the server,
     -- placed once in the world when its site is loaded. `order` is the closed list (and the draw order) of the tables.
