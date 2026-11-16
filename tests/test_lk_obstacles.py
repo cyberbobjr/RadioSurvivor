@@ -1178,10 +1178,28 @@ class SoloTraversalTests(ObstacleBase):
         self.walk_w(zid, ticks, until=self.done())
         return zid
 
+    def test_npc_who_walks_up_to_an_open_window_and_turns_away_never_closes_it(self):
+        # LK19-T01 (ADR adr-fenetres-chacun-referme.md, D01): a window opened by another npc (gone since) is closed only
+        # by an npc that climbs through it. Walking up to it on the way, then turning away, is not climbing it.
+        self.window(open=True)
+        self.run_lua(f'LivingKnox.Obstacles.openWins["{DOOR_KEY}"] = {{ win = WINDOWS["{DOOR_KEY}"], '
+                     'e = LivingKnox.Obstacles.edge(105, 102, 0, "W"), id = "lk-9", ms = getTimestampMs(), '
+                     'seenMs = getTimestampMs(), from = "a" }')
+        zid = self.start()
+        self.move()
+        self.walk_w(zid, 900, until=lambda: self.h.zombie('solo', zid).x >= 105.3)
+        self.assertLess(self.h.zombie('solo', zid).x, 106)
+        self.assertEqual(self.climbs('solo'), [])
+        self.assertIsNotNone(self.d('stop("lk-1")'))
+        self.walk_w(zid, 120)
+        self.assertEqual(self.wstate('solo'), 'true false')
+        self.assertEqual(self.o('stats.windowsClosed'), 0)
+
     def test_open_window_beside_the_crossed_one_is_not_taken_over(self):
         # E21-T11 campaign solo-lk (runs/20261116-171910-c3a0093c3273, lk.traversal "open window"): the window one
         # square aside on the same wall, left open by an npc gone since, brought the body nearer its target too
-        # (onRoute); the body crossing its own window became its last passer and closed it.
+        # (onRoute); the body crossing its own window became its last passer and closed it. LK19-T01: only a climb
+        # through a window makes its passer.
         self.window(open=True)
         self.window(y=DOOR[1] + 1, open=True)
         self.run_lua('LivingKnox.Obstacles.openWins["106,103,0,W"] = { win = WINDOWS["106,103,0,W"], '

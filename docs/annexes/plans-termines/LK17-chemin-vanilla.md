@@ -2,14 +2,14 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 3 / 4 tâche(s) terminée(s).
+**Avancement.** terminée — 3 / 3 tâche(s) terminée(s), 1 abandonnée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
 | ☑ | LK17-T01 | Détour immédiat par la porte la plus proche après un refus au contact | `testé MP` | MP | — |
 | ☑ | LK17-T02 | Suppression du guidage maison | `testé MP` | MP | LK17-T01 |
 | ☑ | LK17-T03 | Bords des cases : un seul lecteur du jeu, des règles pures | `testé MP` | MP | LK17-T01 |
-| ☐ | LK17-T04 | Une fenêtre ouverte voisine n'est plus reprise par le PNJ qui passe à côté | `testé hors jeu` | MP | LK17-T01 |
+| ✕ | LK17-T04 | Une fenêtre ouverte voisine n'est plus reprise par le PNJ qui passe à côté | `abandonné` | MP | LK17-T01 |
 
 <!-- fin du tableau de bord -->
 
@@ -62,7 +62,7 @@ LK17-T03 suit l'ADR [Bords des cases : un seul lecteur du jeu, des règles pures
   - Reste : —
 
 - [ ] **LK17-T04** — Une fenêtre ouverte voisine n'est plus reprise par le PNJ qui passe à côté
-  - État : `testé hors jeu`
+  - État : `abandonné`
   - Cible : `MP`
   - Dépend de : LK17-T01
   - Fichiers : `LK_Obstacles.lua` (`Obstacles.inFrontOf`, `noteWindows`, réglage `ALIGN`) ; banc `tests/test_lk_obstacles.py`
@@ -70,4 +70,4 @@ LK17-T03 suit l'ADR [Bords des cases : un seul lecteur du jeu, des règles pures
   - Accepté si : au banc, `test_open_window_beside_the_crossed_one_is_not_taken_over` passe (rouge avant) ; bancs des obstacles verts ; en jeu, `lk.traversal` verte en `solo-lk` et en MP.
   - Tests : banc ; campagnes `solo-lk` et MP.
   - Preuve : 2026-11-16, `python tests/run_all.py --keep-going` : `Summary: 208 passed, 0 failed, 0 skipped (590.8 s)`, `RESULT: PASS` (luacheck Contents et dev 0 avertissement, `plan-check` 0 erreur). Rouge d'abord : `test_open_window_beside_the_crossed_one_is_not_taken_over` en échec (fenêtre voisine refermée), vert après `inFrontOf` ; `test_lk_obstacles` 132 OK.
-  - Reste : campagnes en jeu (`solo-lk` et MP).
+  - Reste : remplacée par LK19-T01 (ADR [Fenêtres : chacun referme ce qu'il a ouvert ou enjambé](../../architecture/decisions/adr-fenetres-chacun-referme.md), 2026-11-16) : la campagne `solo-lk` sur `f8688584` (`runs/20261116-200750-b90f4778c1ef`, code 1, `RST-RESULT ok=false total=188 pass=179 fail=1`) a montré le même défaut (`lk.traversal` « open window », 6 bascules au lieu de 5) : en marchant, le corps passe un instant en face de la fenêtre voisine. `inFrontOf` est retiré par LK19-T01.

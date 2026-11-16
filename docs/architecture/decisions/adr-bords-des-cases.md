@@ -5,7 +5,7 @@
 | Date | 2026-11-16 |
 | Statut | Accepté |
 | Décideur | utilisateur (« fait le tout de suite », 2026-11-16) |
-| Plan associé | [LK17 — Chemin du jeu pour les PNJ](../../annexes/plans/LK17-chemin-vanilla.md), tâche LK17-T03 |
+| Plan associé | [LK17 — Chemin du jeu pour les PNJ](../../annexes/plans-termines/LK17-chemin-vanilla.md), tâche LK17-T03 |
 | Références | [Déplacements des PNJ : chemin du jeu](adr-chemin-vanilla.md) ; [Les PNJ se cèdent le passage](adr-ceder-le-passage.md) ; [Remise en ordre SOLID](adr-remise-en-ordre-solid.md). Java 42.22 : `zombie/iso/IsoGridSquare.java` (`isWallTo` 718, `isWindowTo` 726, `isBlockedTo` 935, `isHoppableTo` 1043, `getDoorTo` 3077, `getWindowTo` 3131, `getBuildingDef` 7813) |
 
 ## Contexte

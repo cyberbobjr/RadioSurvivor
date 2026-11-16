@@ -81,9 +81,11 @@
 -- inamovible, donnant sur le vide (aucun sol de l'autre côté : chute, IsoWindow.java:1184-1218,
 -- ClimbThroughWindowState.java:81-83), donnant sur un meuble bas (issue "obstacle", corps au sol :
 -- isFurnitureLanding), foyer d'un autre groupe, maison à alarme quand l'option l'armerait.
--- Refermeture (LK04-T07, LK04-T18) : une fenêtre ouverte ici est notée ; tout PNJ dont elle rapproche l'étape (à
--- DETECT cases) en devient le dernier passant ; refermée (ToggleWindow, seulement si elle est encore ouverte) par ce
--- dernier PNJ, comme un joueur, JUSTE APRÈS son enjambée : corps dans le monde, au niveau de la fenêtre, hors escalade,
+-- Refermeture (LK04-T07, LK04-T18, LK19-T01) : une fenêtre ouverte ici est notée avec son passant, le PNJ qui l'a
+-- ouverte ; un autre PNJ n'en devient le passant qu'en l'escaladant (climbedWindows, ADR adr-fenetres-chacun-referme.md),
+-- jamais parce qu'elle est sur son trajet ; tant qu'un PNJ dont elle rapproche l'étape est à DETECT cases, elle n'est
+-- pas refermée (il arrive). Refermée (ToggleWindow, seulement si elle est encore ouverte) par son passant, comme un
+-- joueur, JUSTE APRÈS son enjambée : corps dans le monde, au niveau de la fenêtre, hors escalade,
 -- à ACT_REACH case au plus du milieu du bord (case voisine côté arrivée, diagonale comprise) et passé de l'autre côté
 -- (ou consigne changée, CLOSE_AFTER_MS sans passage : refermée de son côté s'il est contre elle), et aucun objet
 -- mobile autre que lui n'occupe ses deux cases ; sinon nouvel essai à chaque passage, laissée ouverte (WARN) après
@@ -129,7 +131,7 @@ LivingKnox.Obstacles = Obstacles
 
 Obstacles.PASS_EVERY = 5          -- images entre deux passages
 Obstacles.DETECT = 2.0            -- cases : porte (milieu du bord) à cette distance du corps au plus
-Obstacles.ALIGN = 0.75            -- cases : écart le long d'une fenêtre ouverte pour en devenir le passant
+Obstacles.ALIGN = 0.75            -- cases : corps qui escalade à cette distance du milieu d'une fenêtre : son passant
 Obstacles.REACH = 1.0             -- cases : porte au contact d'un corps arrêté
 Obstacles.STILL = 0.1             -- cases : déplacement en deçà duquel le corps est immobile
 Obstacles.STUCK_MS = 800          -- immobile depuis ce temps : portes au contact prises en compte
@@ -828,15 +830,6 @@ function Obstacles.onRoute(e, px, py, tx, ty)
     return dist(fx + 0.5, fy + 0.5, tx + 0.5, ty + 0.5) < dist(nx + 0.5, ny + 0.5, tx + 0.5, ty + 0.5) - 0.01
 end
 
--- Vrai si le point (px, py) est en face de l'ouverture du bord e : son écart le long du bord au milieu de celui-ci ne
--- dépasse pas ALIGN case. Campagne solo-lk du 2026-11-16 (runs/20261116-171910-c3a0093c3273) : la fenêtre ouverte
--- voisine sur le même mur rapprochait aussi le corps de son étape (onRoute) ; il en devenait le dernier passant et la
--- refermait sans l'avoir franchie.
-function Obstacles.inFrontOf(e, px, py)
-    local off = e.kind == "W" and (py - e.my) or (px - e.mx)
-    return math.abs(off) <= Obstacles.ALIGN
-end
-
 -- Temps (ms) depuis lequel le corps du PNJ id est immobile (STILL case).
 -- E18-T35 : un corps simulé par un client n'est vu du serveur qu'aux rapports de l'exécutant (copie recalée par
 -- Directives.syncServerCopy, au moins tous les REPORT_MS) ou aux paquets du moteur (200 ms à 4 s) : entre deux, sa copie
@@ -926,15 +919,29 @@ function Obstacles.checkWindows(id, e, z, still, t)
     return false
 end
 
--- Fenêtres ouvertes ici, en face du corps z du PNJ id (inFrontOf), que franchir rapproche de l'étape (tx, ty) : ce
--- PNJ en devient le dernier passant (et son côté) ; bord noté dans seen (pas de refermeture à ce passage).
-function Obstacles.noteWindows(id, z, tx, ty, seen, t)
+-- Fenêtres ouvertes ici, à DETECT case du corps z, que franchir rapproche de l'étape (tx, ty) : bord noté dans seen,
+-- pas de refermeture à ce passage (un PNJ arrive). Le passant ne change pas (LK19-T01 : seulement à l'enjambée,
+-- climbedWindows).
+function Obstacles.noteWindows(z, tx, ty, seen)
     local px, py, pz = z:getX(), z:getY(), math.floor(z:getZ())
     for key, rec in pairs(Obstacles.openWins) do
         local e = rec.e
-        if e.z == pz and dist(px, py, e.mx, e.my) <= Obstacles.DETECT and Obstacles.inFrontOf(e, px, py)
-            and Obstacles.onRoute(e, px, py, tx, ty) then
+        if e.z == pz and dist(px, py, e.mx, e.my) <= Obstacles.DETECT and Obstacles.onRoute(e, px, py, tx, ty) then
             seen[key] = true
+        end
+    end
+end
+
+-- LK19-T01 (ADR adr-fenetres-chacun-referme.md, D01) : le corps z du PNJ id escalade une fenêtre ouverte ici (état
+-- climbwindow, à ALIGN case au plus du milieu de son bord, même niveau) : ce PNJ en devient le passant, côté de départ
+-- noté. Seule façon de reprendre une fenêtre ouverte par un autre PNJ.
+function Obstacles.climbedWindows(id, z, t)
+    if z:getActionStateName() ~= "climbwindow" then return end
+    local px, py, pz = z:getX(), z:getY(), math.floor(z:getZ())
+    for key, rec in pairs(Obstacles.openWins) do
+        local e = rec.e
+        if rec.id ~= id and e.z == pz and dist(px, py, e.mx, e.my) <= Obstacles.ALIGN then
+            log().info("npc %s: climbs the window %s opened by npc %s, closes it behind", id, key, tostring(rec.id))
             rec.id, rec.seenMs, rec.from = id, t, sideOf(e, px, py)
         end
     end
@@ -1014,7 +1021,8 @@ function Obstacles.check(id, e, z, seen, t)
             end
         end
     end
-    Obstacles.noteWindows(id, z, tx, ty, seen, t)
+    Obstacles.climbedWindows(id, z, t)
+    Obstacles.noteWindows(z, tx, ty, seen)
     Obstacles.checkWindows(id, e, z, still, t)
 end
 

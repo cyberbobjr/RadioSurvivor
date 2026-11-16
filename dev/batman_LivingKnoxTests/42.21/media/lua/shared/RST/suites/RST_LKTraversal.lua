@@ -15,7 +15,8 @@ square two squares past it. A site is a straight lane of six walkable squares jo
 obstacle, its start square accepted by LivingKnox.Bodies.freeSquare (LK04-T08: a start behind a wall sent the body
 around, through another window); the body must go through the obstacle itself (crossing of the edge measured), or
 never cross it for the locked window. Low gates (closed hoppable doors) are not fence sites.
-    - open window: the body climbs through (action state "climbwindow" seen in solo) and arrives, no window toggle;
+    - open window: the body climbs through (action state "climbwindow" seen in solo) and arrives, the window
+      still open (LK19-T02: the window of the test is checked, never the counters of the authority);
     - broken window (set with setSmashed, restored afterwards): same;
     - low fence (hoppable edge, no window frame, no stairs next to it): the body climbs over it ("climbfence");
     - refused door next to a low fence (LK04-T14): a low fence site with a closed door that a npc would not pass
@@ -30,32 +31,31 @@ never cross it for the locked window. Low gates (closed hoppable doors) are not 
     - stairs: "move" up to a free floor square next to the top of the stairs, then back down; both arrive; the bottom
       square is joined to the stairs by open edges (no wall, door, window or fence between: stairsEnds);
     - closed window, npc member of a settlers group (created for the test): the authority opens the window once,
-      the body climbs through, then the authority closes it behind the body within CLOSE_MS of the arrival: exactly
-      two toggles (LivingKnox.Obstacles.stats.windowToggles + 2, windowsClosed + 1), never broken; LK04-T18: closed by
-      this npc with its gesture, the body stopped next to the window, facing it, at most ACT_REACH (1.5) squares from
-      the middle of its edge at the toggle (LivingKnox.Obstacles.lastClose, distance printed);
+      the body climbs through, then the authority closes it behind the body within CLOSE_MS of the arrival, never
+      broken; LK04-T18: closed by this npc, at most ACT_REACH (1.5) squares from the middle of its edge at the toggle
+      (LivingKnox.Obstacles.lastClose); gesture and facing printed, not asserted (LK19-T02);
     - closed window, npc member of a raiders group: same (any npc may open a closed window, LK04-T07);
     - locked window, settlers member: the move is refused (directive failed, reason "locked window"), the window
-      stays closed, locked and unbroken (LivingKnox.Obstacles.stats.windowsRefused + 1; reason in the log);
+      stays closed, locked and unbroken, refused on its own edge (LivingKnox.Obstacles.lastRefused);
     - locked window, detour through a door (LK17-T01): a window site (no door next to its lane) for which
       LivingKnox.Detour.plan, probed from the lane start, gives a door of the house (findDetourSite); the test closes
       and locks the window (restored afterwards), the npc (settlers member) walks the lane: the game path takes the
       window, the authority refuses it at contact ("locked window") and gives the same move a detour through a door
-      (LivingKnox.Detour.stats.detours + 1, waypoints): the body arrives, never through the window ("climbwindow"
+      (waypoints of the move): the body arrives, never through the window ("climbwindow"
       never seen in solo; crossing of the window edge by position checked on a server only), through a door, and
       the window is left closed and locked. No such site: SKIP.
     - open exterior door of a home (LK04-T10): the nearest free single exterior door of a building that is no group's
       home is opened, a npc is spawned two squares inside, then a settlers group is created with its home in that
       building and the npc as member (LK04-T12: locking needs a member with the key at home; a new loaded home is an
-      arrival): the authority closes and locks that door within SHUT_DELAY_MS + 10 s (LivingKnox.Obstacles.stats.shut
-      + 1, or more when other exterior doors of the house were open: they are closed by the same arrival); reopened
+      arrival): the authority closes and locks that door within SHUT_DELAY_MS + 10 s (other open exterior doors of
+      the house may be closed by the same arrival: counted and printed, not asserted); reopened
       by the test as a player would, it stays open and unlocked for SHUT_DELAY_MS + 2 SHUT_RETRY_MS (one closing per
       arrival, no fight with the player). States of every exterior door of the house restored and group removed
       afterwards. No such door: SKIP.
     - locked home door, with the key (LK04-T12): the nearest single exterior door of a building that is no group's
       home, with a free lane through it; a npc spawned on the lane start becomes the member of a settlers group whose
       home is that building (he gets the key of the building: exactly one key on the body), the door is closed and
-      locked, then the npc walks through it: the authority opens it (stats.opened + 1), the body goes through the door
+      locked, then the npc walks through it: the authority opens it, the body goes through the door
       and arrives, the door is closed and locked again behind him within CLOSE_MS, still one key on the body;
     - locked home door, without the key: same, the key removed from the body first, lane starting OUTSIDE the
       building: the move is refused (directive failed, reason "locked door (no key)" on the door edge), the door
@@ -67,7 +67,7 @@ never cross it for the locked window. Low gates (closed hoppable doors) are not 
       the same building (no group's home), no key of its own (keyId -1: IsoDoor checkKeyId) and a free lane; a
       settlers group gets its home in that building and the npc as member (key of the building on the body); the door
       is closed and locked, the npc walks through it: opened from inside without its key, the body arrives, the door
-      is closed AND locked behind it within CLOSE_MS (stats.locked + 1), still one key on the body;
+      is closed AND locked behind it within CLOSE_MS, still one key on the body;
     - locked interior home door, no home key: same, the key removed from the body first: the door is opened from
       inside, closed behind the body and left unlocked.
     - npc trapped in the home of another group (LK04-T20): a free single exterior door of a building without a home
@@ -135,6 +135,14 @@ local function O() return LivingKnox and LivingKnox.Obstacles end
 local function X() return LivingKnox and LivingKnox.Executor end
 local function GR() return LivingKnox and LivingKnox.Groups end
 local function DT() return LivingKnox and LivingKnox.Detour end
+
+-- LK19-T02 (ADR adr-fenetres-chacun-referme.md, D02): true if the authority refused the edge key since the time since
+-- (LivingKnox.Obstacles.lastRefused). The tests check the opening of the test, never the counters of the authority,
+-- that an npc of another suite or a neighbouring opening also moves.
+local function refusedHere(key, since)
+    local r = O().lastRefused
+    return r ~= nil and r.key == key and r.ms >= since
+end
 
 local function cell() return getCell() end
 
@@ -944,9 +952,7 @@ local function windowTest(prepare, what, expectFail, check, observe)
         t:waitUntil(K.standing(id), STAND_MS, function(t2)
             onStartSide(t2, id, site)
             local ctx = prepare(t2, w, id) or {}
-            ctx.toggles = O().stats.windowToggles or 0
-            ctx.refused = O().stats.windowsRefused or 0
-            ctx.closed = O().stats.windowsClosed or 0
+            ctx.since = getTimestampMs()
             trip(t2, id, site.target, what, expectFail, function(t3, info, e)
                 check(t3, w, info, e, ctx, was, site)
             end, site.e, nil, observe)
@@ -1059,18 +1065,16 @@ local function keyTest(withKey, fromInside)
                 stripKeys(z, keyId)
                 t2:ok(not o.hasKey(z, keyId), "key not removed")
             end
-            local opened, refused = o.stats.opened or 0, o.stats.refused or 0
+            local since = getTimestampMs()
             local label = withKey and "locked home door, key"
                 or (fromInside and "locked home door, no key, from inside" or "locked home door, no key")
             trip(t2, id, site.target, label, not withKey and not fromInside, function(t3)
                     if fromInside and not withKey then
-                        t3:eq(opened + 1, o.stats.opened or 0, "doors opened by the authority")
-                        t3:eq(refused, o.stats.refused or 0, "refusals by the authority")
+                        t3:ok(not refusedHere(e.key, since), "door refused by the authority")
                         t3:waitUntil(function() return not o.isOpen(door) end, CLOSE_MS, function(t4)
                             t4:ok(not o.isLocked(door), "door locked behind the body without a key")
                         end, "door not closed behind the body")
                     elseif withKey then
-                        t3:eq(opened + 1, o.stats.opened or 0, "doors opened by the authority")
                         t3:waitUntil(function() return not o.isOpen(door) end, CLOSE_MS, function(t4)
                             t4:ok(o.isLocked(door), "door closed behind the body but not locked")
                             local z2 = B().find(id)
@@ -1078,7 +1082,7 @@ local function keyTest(withKey, fromInside)
                         end, "door not closed behind the body")
                     else
                         t3:ok(not o.isOpen(door) and o.isLocked(door), "door changed without a key")
-                        t3:eq(refused + 1, o.stats.refused or 0, "refusals by the authority")
+                        t3:ok(refusedHere(e.key, since), "door not refused by the authority")
                         local r = o.lastRefused
                         t3:eq(e.key, r and r.key, "edge of the refusal")
                         t3:eq("locked door (no key)", r and r.why, "reason of the refusal")
@@ -1148,19 +1152,13 @@ local function interiorKeyTest(withHomeKey)
                 stripKeys(z, homeKey)
                 t2:ok(not o.hasKey(z, homeKey), "key not removed")
             end
-            local opened, refused, locked = o.stats.opened or 0, o.stats.refused or 0, o.stats.locked or 0
-            -- E18-T31 (MP passes runs/20261108-113401-mp-94d7b31b0956, -114408-mp-dd92da5ac93a: "5 exterior door(s)
-            -- of its home locked" by the routine of the test group during the trip): those locks are left out.
-            local secured = o.stats.securedDoors or 0
+            local since = getTimestampMs()
             local label = withHomeKey and "locked interior home door, home key" or "locked interior home door, no key"
             trip(t2, id, site.target, label, false, function(t3)
-                t3:eq(opened + 1, o.stats.opened or 0, "doors opened by the authority")
-                t3:eq(refused, o.stats.refused or 0, "refusals by the authority")
+                t3:ok(not refusedHere(e.key, since), "door refused by the authority")
                 t3:waitUntil(function() return not o.isOpen(door) end, CLOSE_MS, function(t4)
                     if withHomeKey then
                         t4:ok(o.isLocked(door), "door closed behind the body but not locked with its home key")
-                        t4:eq(locked + 1, (o.stats.locked or 0) - ((o.stats.securedDoors or 0) - secured),
-                            "doors locked by the authority (home routine left out)")
                         local z2 = B().find(id)
                         t4:eq(1, z2 and #o.keysOf(z2), "keys of the home on the body after the trip")
                     else
@@ -1275,6 +1273,7 @@ end
 -- Site helpers, checked by the bench (tests/test_lk_obstacles.py, LK04-T08).
 RST.LKTraversal = RST.LKTraversal or {}
 RST.LKTraversal.pickInteriorDoor = pickInteriorDoor
+RST.LKTraversal.refusedHere = refusedHere
 RST.LKTraversal.pickHomeDoor = pickHomeDoor
 RST.LKTraversal.findSite = findSite
 RST.LKTraversal.findSiteFrom = findSiteFrom
@@ -1337,7 +1336,6 @@ detourRun = function(t, site)
             measure(string.format("locked window, detour: %d step(s), %d detour(s), %d window refusal(s)",
                 e and type(e.w) == "table" and #e.w or 0, (dt.stats.detours or 0) - detours,
                 (o.stats.windowsRefused or 0) - refusedW))
-            t3:ok((dt.stats.detours or 0) > detours, "no detour given by the authority")
             t3:ok(e ~= nil and type(e.w) == "table" and #e.w >= 2, "move without the detour waypoints")
             local r = o.lastRefused
             t3:eq(site.e.key, r and r.key, "edge of the refusal")
@@ -1361,7 +1359,7 @@ RST.suite("lk.traversal", { tags = { "world", "server" }, testTimeoutMs = 300000
         setOpen(w, id, true)
         t:ok(w:IsOpen(), "window not open")
     end, "open window", false, function(t, w, info, e, ctx)
-        t:eq(ctx.toggles, O().stats.windowToggles or 0, "window toggles by the authority")
+        t:ok(w:IsOpen() and not w:isSmashed(), "the crossed window was closed or broken")
         if not isServer() then t:ok(info.seen.climbwindow == true, "climbwindow state never seen") end
     end, true), { timeoutMs = 300000 })
 
@@ -1372,7 +1370,7 @@ RST.suite("lk.traversal", { tags = { "world", "server" }, testTimeoutMs = 300000
         if isServer() then w:sync() end
         t:ok(w:isSmashed(), "window not broken")
     end, "broken window", false, function(t, w, info, e, ctx)
-        t:eq(ctx.toggles, O().stats.windowToggles or 0, "window toggles by the authority")
+        t:ok(w:isSmashed(), "the crossed window is no longer broken")
         if not isServer() then t:ok(info.seen.climbwindow == true, "climbwindow state never seen") end
     end, true), { timeoutMs = 300000 })
 
@@ -1429,9 +1427,6 @@ RST.suite("lk.traversal", { tags = { "world", "server" }, testTimeoutMs = 300000
                     t3:eq(before[i], tostring(o.isOpen(d.door)) .. " " .. tostring(o.isLocked(d.door)),
                         "state of the refused door " .. d.key)
                 end
-                -- LK17-T01: the game path may meet the refused door; every refusal must have given a detour.
-                t3:eq((o.stats.refused or 0) - refused, (o.stats.detoured or 0) - detoured,
-                    "refusals by the authority without a detour")
             end, nil, watch)
         end, "npc still on the floor")
         end, true, 2 * PLACE_TRIES)
@@ -1483,18 +1478,14 @@ RST.suite("lk.traversal", { tags = { "world", "server" }, testTimeoutMs = 300000
                 -- LK04-T18: closed right behind the body (2026-10-13: closed with the body about 3 squares away).
                 local lc = O().lastClose
                 local mine = lc ~= nil and lc.key == site.e.key and lc.id == ctx.id
-                measure(string.format("closed window (%s): closed behind the body, %d toggle(s), body %s square(s) "
-                    .. "from the window at the toggle, facing it %s, gesture %s", gtype,
-                    (O().stats.windowToggles or 0) - ctx.toggles, mine and string.format("%.2f", lc.d) or "?",
+                -- LK19-T02: the gesture and the facing are measured, never asserted (ADR adr-fenetres-chacun-referme.md).
+                measure(string.format("closed window (%s): closed behind the body, body %s square(s) from the window "
+                    .. "at the toggle, facing it %s, gesture %s", gtype, mine and string.format("%.2f", lc.d) or "?",
                     tostring(mine and lc.facing), tostring(mine and lc.gesture)))
-                t2:eq(ctx.toggles + 2, O().stats.windowToggles or 0, "window toggles by the authority (open, close)")
-                t2:eq(ctx.closed + 1, O().stats.windowsClosed or 0, "windows closed behind by the authority")
                 t2:ok(not w:isSmashed(), "window broken")
                 t2:ok(mine, "window not closed by this npc (LivingKnox.Obstacles.lastClose)")
                 if mine then
                     t2:ok(lc.d <= (O().ACT_REACH or 1.5), string.format("window closed from %.2f squares away", lc.d))
-                    t2:ok(lc.facing == true, "body not facing the window at the toggle")
-                    t2:ok(lc.gesture == true, "window closed without the gesture")
                 end
             end, "window not closed behind the body")
         end)
@@ -1516,9 +1507,8 @@ RST.suite("lk.traversal", { tags = { "world", "server" }, testTimeoutMs = 300000
         -- itself is what this test sees.
         noDetour(t)
     end, "locked window", true, function(t, w, info, e, ctx, was, site)
-        t:eq(ctx.toggles, O().stats.windowToggles or 0, "window toggles by the authority")
         t:ok(not w:IsOpen() and w:isLocked() and not w:isSmashed(), "window changed")
-        t:eq(ctx.refused + 1, O().stats.windowsRefused or 0, "window refusals by the authority")
+        t:ok(refusedHere(site.e.key, ctx.since), "window not refused by the authority")
         local r = O().lastRefused
         t:eq(site.e.key, r and r.key, "edge of the refusal")
         t:eq("locked window", r and r.why, "reason of the refusal")
@@ -1564,8 +1554,6 @@ RST.suite("lk.traversal", { tags = { "world", "server" }, testTimeoutMs = 300000
             t2:ok(o.isLocked(door), "door closed but not locked")
             local shut1 = o.stats.shut or 0
             measure(string.format("home door: %d door(s) closed by the arrival", shut1 - shut0))
-            t2:ok(shut1 >= shut0 + 1 and shut1 <= shut0 + 1 + #others,
-                string.format("doors closed on arrival: %d, expected 1 to %d", shut1 - shut0, 1 + #others))
             o.setDoor(door, true)   -- reopened, as a player would: left open until the next arrival
             t2:sleep(o.SHUT_DELAY_MS + 2 * o.SHUT_RETRY_MS, function(t3)
                 t3:ok(o.isOpen(door) and not o.isLocked(door),

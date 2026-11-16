@@ -6,7 +6,7 @@
 | Statut | Accepté |
 | Décideur | utilisateur |
 | Remplace | le guidage « porte d'abord » de LK04-T09 et ses suites : le modèle « zombie » qui prédit le chemin natif, le jalonnement en lignes dégagées, la sortie forcée par une porte, le dernier recours par points de passage et la prudence après une fenêtre refusée (LK05-T23) |
-| Plan associé | [LK17 — Chemin du jeu pour les PNJ](../../annexes/plans/LK17-chemin-vanilla.md) |
+| Plan associé | [LK17 — Chemin du jeu pour les PNJ](../../annexes/plans-termines/LK17-chemin-vanilla.md) |
 | Références | Sources Java 42.22 : `zombie/pathfind/SearchNode.java:86-90`, `PathFindRequest.java:44-80`, `nativeCode/PathFindRequest.java:51-96`, `nativeCode/PathfindNative.java:54`, `:120-135` et `:276-312`, `iso/IsoWorld.java:2066`, `debug/DebugOptions.java:76`, `zombie/ai/MapKnowledge.java`. Base de connaissances : `.claude/pz-knowledge/pathfinding-and-obstacles.md` |
 
 ## Contexte

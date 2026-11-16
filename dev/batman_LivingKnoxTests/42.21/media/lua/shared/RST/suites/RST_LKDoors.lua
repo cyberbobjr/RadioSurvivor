@@ -13,9 +13,8 @@ near the player, the players are moved to the nearest buildings of the metagrid 
 solo and dedicated server, same places in the same order at each run) and the players go back afterwards.
 
     - closed door on the trip: the door is closed and unlocked; a npc without group walks through it: the authority
-      opens it once (Obstacles.stats.opened + 1), the body goes through the door edge and arrives, the door is closed
-      behind it within CLOSE_MS (stats.closed + 1), and SETTLE_MS later still exactly one opening and one closing by
-      the authority, the door closed and unlocked. Every client (solo: the local player) watched the door from before
+      opens it, the body goes through the door edge and arrives, the door is closed behind it within CLOSE_MS, and
+      SETTLE_MS later the door is closed and unlocked. Every client (solo: the local player) watched the door from before
       the trip (RST.Steps "lk.door.watch" / "lk.door.seen", RST_PeerChecksDoors.lua): exactly one opening and one
       closing seen there, and the same final state ("lk.door.state").
     - home door, member: a settlers group gets its home in the building of the door and the npc as member (key of the
@@ -23,12 +22,12 @@ solo and dedicated server, same places in the same order at each run) and the pl
       body arrives, the door is closed and locked again behind it; every client sees it closed and locked.
     - home door, non-member: same home (a group of the test), the npc of no group walks in from outside: the move is
       refused at the door (directive failed, reason "door of the home of <group> (not a member)"), the door stays
-      closed and locked, no opening by the authority; every client sees it closed and locked. The detour after a
-      refusal is off for this test (hook LivingKnox.Obstacles.onRefusal, LK17-T01), otherwise the npc would be given
-      another way in.
+      closed and locked, refused on its own edge (Obstacles.lastRefused); every client sees it closed and locked.
+      The detour after a refusal is off for this test (hook LivingKnox.Obstacles.onRefusal, LK17-T01), otherwise
+      the npc would be given another way in.
     - barricaded door: one plank nailed on the start side of the closed door (IsoBarricade.AddBarricadeToObject), a
       npc of no group: the move is refused (reason "barricaded door", detour off), the door and the plank stay as they
-      were, no opening; every client sees the door closed.
+      were, refused on its own edge; every client sees the door closed.
 Every test removes its npc, its group, the barricade and restores the door with t:defer. Figures: "[LKDR] measure".
 ]]
 
@@ -137,16 +136,12 @@ local function plainRun(t, site)
         setClosed(o, door, false)
         t2:ok(not o.isOpen(door) and not o.isLocked(door), "door not closed and unlocked")
         RST.Steps.ask(t2, "lk.door.watch", { key = e.key }, { target = "all", timeoutMs = STEP_MS }, function(t3)
-            local opened0, closed0 = o.stats.opened or 0, o.stats.closed or 0
             tr.trip(t3, id, site.target, "closed door", false, function(t4)
-                t4:eq(opened0 + 1, o.stats.opened or 0, "doors opened by the authority")
                 t4:waitUntil(function() return not o.isOpen(door) end, CLOSE_MS, function(t5)
                     t5:sleep(SETTLE_MS, function(t6)
-                        measure(string.format("closed door %s: opened %d, closed %d by the authority, now %s", e.key,
-                            (o.stats.opened or 0) - opened0, (o.stats.closed or 0) - closed0,
-                            RST.PeerChecksDoors.stateText(door)))
-                        t6:eq(opened0 + 1, o.stats.opened or 0, "doors opened by the authority (no second toggle)")
-                        t6:eq(closed0 + 1, o.stats.closed or 0, "doors closed behind the body by the authority")
+                        -- LK19-T02: one opening and one closing of this door, as seen by every client (lk.door.seen),
+                        -- never the counters of the authority, that another door or npc also moves.
+                        measure(string.format("closed door %s: now %s", e.key, RST.PeerChecksDoors.stateText(door)))
                         t6:ok(not o.isOpen(door) and not o.isLocked(door), "door not closed and unlocked at the end")
                         RST.Steps.ask(t6, "lk.door.seen", { key = e.key, opens = 1, closes = 1, settleMs = 1500 },
                             { target = "all", timeoutMs = STEP_MS }, function(t7)
@@ -186,11 +181,10 @@ local function homeRun(member)
             else
                 t2:eq(nil, o.groupOf(id), "group of the non-member")
             end
-            local opened0, refused0 = o.stats.opened or 0, o.stats.refused or 0
+            local since = getTimestampMs()
             tr.trip(t2, id, site.target, member and "home door, member" or "home door, non-member", not member,
                 function(t3)
                     if member then
-                        t3:eq(opened0 + 1, o.stats.opened or 0, "doors opened by the authority")
                         t3:waitUntil(function() return not o.isOpen(door) end, CLOSE_MS, function(t4)
                             t4:ok(o.isLocked(door), "home door closed behind the member but not locked")
                             clientsSee(t4, e.key, false, true)
@@ -199,8 +193,7 @@ local function homeRun(member)
                         local r = o.lastRefused
                         measure("home door, non-member: refusal " .. tostring(r and r.why) .. " on "
                             .. tostring(r and r.key))
-                        t3:eq(opened0, o.stats.opened or 0, "doors opened by the authority")
-                        t3:eq(refused0 + 1, o.stats.refused or 0, "refusals by the authority")
+                        t3:ok(tr.refusedHere(e.key, since), "door not refused by the authority")
                         t3:eq(e.key, r and r.key, "edge of the refusal")
                         t3:eq("door of the home of " .. g.id .. " (not a member)", r and r.why, "reason of the refusal")
                         t3:ok(not o.isOpen(door) and o.isLocked(door), "home door changed by a non-member")
@@ -227,13 +220,12 @@ local function barricadeRun(t, site)
         local b = barricade(t2, door, site)
         local planks = b:getNumPlanks()
         t2:ok(door:isBarricaded(), "door not barricaded")
-        local opened0, refused0 = o.stats.opened or 0, o.stats.refused or 0
+        local since = getTimestampMs()
         tr.trip(t2, id, site.target, "barricaded door", true, function(t3)
             local r = o.lastRefused
             measure("barricaded door: refusal " .. tostring(r and r.why) .. " on " .. tostring(r and r.key)
                 .. ", planks " .. tostring(b:getNumPlanks()))
-            t3:eq(opened0, o.stats.opened or 0, "doors opened by the authority")
-            t3:eq(refused0 + 1, o.stats.refused or 0, "refusals by the authority")
+            t3:ok(tr.refusedHere(e.key, since), "door not refused by the authority")
             t3:eq(e.key, r and r.key, "edge of the refusal")
             t3:eq("barricaded door", r and r.why, "reason of the refusal")
             t3:ok(not o.isOpen(door), "barricaded door opened")
