@@ -2,13 +2,13 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 1 / 3 tâche(s) terminée(s).
+**Avancement.** terminée — 3 / 3 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
 | ☑ | LK18-T01 | Registre des priorités de passage et arbitrage | `testé hors jeu` | hors jeu | — |
-| ☐ | LK18-T02 | Action « s'écarter », signalement du blocage par l'exécutant | `testé hors jeu` | MP | LK18-T01 |
-| ☐ | LK18-T03 | Places d'arrêt hors des portes et des couloirs | `testé hors jeu` | solo | — |
+| ☑ | LK18-T02 | Action « s'écarter », signalement du blocage par l'exécutant | `testé MP` | MP | LK18-T01 |
+| ☑ | LK18-T03 | Places d'arrêt hors des portes et des couloirs | `testé solo` | solo | — |
 
 <!-- fin du tableau de bord -->
 
@@ -34,24 +34,24 @@ reprend sa tâche. Aucun PNJ ne s'arrête dans une porte ou un couloir.
   - Preuve : 2026-11-15 : python tests/test_lk_passage.py -> Ran 17 tests ... OK (registre, arbitrage de chaque cas de l'ADR, comportement inscrit par le test sans toucher LK_Passage).
   - Reste : —
 
-- [ ] **LK18-T02** — Action « s'écarter », signalement du blocage par l'exécutant
-  - État : `testé hors jeu`
+- [x] **LK18-T02** — Action « s'écarter », signalement du blocage par l'exécutant
+  - État : `testé MP`
   - Cible : `MP`
   - Dépend de : LK18-T01
   - Fichiers : exécutant (signalement d'un PNJ voisin sur le trajet), autorité (vérification, ordre), action « s'écarter » au registre des actions ; suite en jeu dédiée dans `batman_LivingKnoxTests`
   - Faire : D01, D03 et D06. Le blocage par un PNJ est signalé à l'autorité, qui arbitre et donne l'action au bloqueur ; celui-ci s'écarte, attend le passage ou une durée bornée, puis reprend sa tâche.
   - Accepté si : en jeu, deux PNJ face à face dans une porte passent tous les deux ; un PNJ de garde sur le passage s'écarte puis revient, en solo et en MP.
   - Tests : bancs ; suite en jeu dédiée ; campagnes `solo-lk` et MP.
-  - Preuve : 2026-11-15 : python tests/test_lk_step_aside.py -> Ran 21 tests ... OK ; luacheck Contents 0/0 (292 fichiers), dev 0/0 (199) ; check_case PASS.
-  - Reste : Suite en jeu lk.passage (campagnes solo-lk et mp).
+  - Preuve : 2026-11-15 : python tests/test_lk_step_aside.py -> Ran 21 tests ... OK ; luacheck Contents 0/0 (292 fichiers), dev 0/0 (199) ; check_case PASS. 2026-11-16 : `lk.passage` vert en solo et en MP (« face to face in a doorway: both npcs get through », « npc standing guard on the passage steps aside then comes back »). Campagnes sur `8a911d13` : `solo-lk` code 0, `RST-RESULT ok=true total=139 pass=132 fail=0 skip=7`, `runs/20261116-143506-2781d392947b` ; MP code 1, `ok=false total=414 pass=394 fail=3 skip=17`, `runs/20261116-145738-mp-2259cb26aba1`, les trois échecs côté RadioSurvivor (`rs.factions.accord` et `rs.relation` : le PNJ s'éloigne pendant la réponse ; `rs.notes.written` : pont lancé pendant la campagne), toutes les suites `lk.*` vertes.
+  - Reste : —
 
-- [ ] **LK18-T03** — Places d'arrêt hors des portes et des couloirs
-  - État : `testé hors jeu`
+- [x] **LK18-T03** — Places d'arrêt hors des portes et des couloirs
+  - État : `testé solo`
   - Cible : `solo`
   - Dépend de : —
   - Fichiers : le choix des places d'arrêt (un seul endroit, utilisé par les comportements qui s'arrêtent)
   - Faire : D04. Une place d'arrêt n'est jamais une case de porte ou de portail, un seuil ou un passage d'une case de large ; elle se décale à la case libre la plus proche.
   - Accepté si : au banc, une place demandée dans une porte ou un couloir est décalée ; en jeu, aucun PNJ de garde ou en attente sur un seuil.
   - Tests : bancs ; campagne `solo-lk`.
-  - Preuve : 2026-11-15 : python tests/test_lk_stop_place.py -> Ran 11 tests ... OK ; test_lk_routines 23 OK, test_lk_chores 16 OK, test_lk_defense 23 OK, test_lk_fight_all 8 OK.
-  - Reste : Campagne solo-lk : aucun PNJ de garde ou en attente sur un seuil.
+  - Preuve : 2026-11-15 : python tests/test_lk_stop_place.py -> Ran 11 tests ... OK ; test_lk_routines 23 OK, test_lk_chores 16 OK, test_lk_defense 23 OK, test_lk_fight_all 8 OK. 2026-11-16 : `solo-lk` sur `8a911d13` code 0, `RST-RESULT ok=true total=139 pass=132 fail=0 skip=7`, `runs/20261116-143506-2781d392947b` : `lk.defense` (postes tenus, « nobody stuck ») et `lk.passage` verts ; pas de contrôle dédié d'un seuil, la couverture en jeu est indirecte.
+  - Reste : —

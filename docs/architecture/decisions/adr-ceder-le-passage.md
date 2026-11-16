@@ -5,7 +5,7 @@
 | Date | 2026-11-15 |
 | Statut | Accepté |
 | Décideur | utilisateur |
-| Plan associé | [LK18 — Céder le passage](../../annexes/plans/LK18-ceder-le-passage.md) |
+| Plan associé | [LK18 — Céder le passage](../../annexes/plans-termines/LK18-ceder-le-passage.md) |
 | Références | [Déplacements des PNJ : chemin du jeu](adr-chemin-vanilla.md) ; [Registre des routines](adr-registre-routines.md) ; [Remise en ordre SOLID](adr-remise-en-ordre-solid.md) |
 
 ## Contexte

@@ -2,13 +2,13 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 0 / 3 tâche(s) terminée(s).
+**Avancement.** en cours — 1 / 3 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
 | ☐ | LK17-T01 | Détour immédiat par la porte la plus proche après un refus au contact | `à faire` | MP | — |
 | ☐ | LK17-T02 | Suppression du guidage maison | `à faire` | MP | LK17-T01 |
-| ☐ | LK17-T03 | Bords des cases : un seul lecteur du jeu, des règles pures | `testé hors jeu` | MP | LK17-T01 |
+| ☑ | LK17-T03 | Bords des cases : un seul lecteur du jeu, des règles pures | `testé MP` | MP | LK17-T01 |
 
 <!-- fin du tableau de bord -->
 
@@ -49,13 +49,13 @@ LK17-T03 suit l'ADR [Bords des cases : un seul lecteur du jeu, des règles pures
   - Preuve : —
   - Reste : —
 
-- [ ] **LK17-T03** — Bords des cases : un seul lecteur du jeu, des règles pures
-  - État : `testé hors jeu`
+- [x] **LK17-T03** — Bords des cases : un seul lecteur du jeu, des règles pures
+  - État : `testé MP`
   - Cible : `MP`
   - Dépend de : LK17-T01
   - Fichiers : nouveaux `shared/LivingKnox/Edges/LK_Edges.lua` (lecture du jeu) et `LK_EdgeRules.lua` (règles pures) ; appelants `LK_Executor.lua` (arrivée), `LK_Movement.lua` (déblocage), `LK_StopPlace.lua` (places d'arrêt), `LK_Detour.lua` (couloir, clôtures), `LK_Obstacles.lua` (fenêtre d'un bord), `LK_PassageAuthority.lua` ; banc `tests/test_lk_edges.py`
   - Faire : D01 à D04 de l'ADR « bords des cases ». Les quatre règles lisent les faits d'un bord par `Edges` et décident par `EdgeRules`, sans changer le comportement.
   - Accepté si : chaque règle de `EdgeRules` testée sur des faits sans carte ; `tests/run_all.py --keep-going` vert ; campagnes `solo-lk` et MP sans nouvel échec.
   - Tests : `tests/test_lk_edges.py`, `tests/run_all.py --keep-going` ; campagnes `solo-lk` et MP.
-  - Preuve : 2026-11-16, `python tests/run_all.py --keep-going` : `Summary: 207 passed, 0 failed, 0 skipped (571.8 s)`, `RESULT: PASS` (dont `lk_edges` 9 tests OK, luacheck Contents et dev 0 avertissement, `plan-check` 0 erreur). Rouge d'abord : `tests/test_lk_edges.py` 9 erreurs avant `LK_EdgeRules.lua`.
-  - Reste : campagnes `solo-lk` et MP (quand le jeu est libre).
+  - Preuve : 2026-11-16, `python tests/run_all.py --keep-going` : `Summary: 207 passed, 0 failed, 0 skipped (571.8 s)`, `RESULT: PASS` (dont `lk_edges` 9 tests OK, luacheck Contents et dev 0 avertissement, `plan-check` 0 erreur). Rouge d'abord : `tests/test_lk_edges.py` 9 erreurs avant `LK_EdgeRules.lua`. Campagnes sur `8a911d13` : `solo-lk` code 0, `RST-RESULT ok=true total=139 pass=132 fail=0 skip=7`, `runs/20261116-143506-2781d392947b` ; MP code 1, `ok=false total=414 pass=394 fail=3 skip=17`, `runs/20261116-145738-mp-2259cb26aba1`, les trois échecs côté RadioSurvivor (`rs.factions.accord` et `rs.relation` : le PNJ s'éloigne pendant la réponse ; `rs.notes.written` : pont lancé pendant la campagne), toutes les suites `lk.*` vertes. Campagnes précédentes, échecs corrigés : `8c9a7f86` (solo `runs/20261116-112759-66e3f0e32f8a` code 0 ; MP `runs/20261116-115134-mp-de37e3bd28df` code 1, `lk.expedition`, `lk.windowsally`, `lk.npcsheet`) -> `137f97d1` ; `137f97d1` (solo `runs/20261116-125651-2b98666c3baf` code 1, `lk.windowsally` ; MP `runs/20261116-132125-mp-26231bccb711` code 1, `lk.traversal`, `lk.npcsheet`, `lk.windowsally`) -> `8a911d13` (`run_all` : `Summary: 207 passed, 0 failed`, `RESULT: PASS`).
+  - Reste : —
