@@ -342,6 +342,7 @@ label.radio-card:has(input:focus-visible) { outline: var(--pico-outline-width) s
 .accept .checks.accept-categories { margin-bottom: 4px; }
 /* loot list: list name | how often */
 .loot-line { grid-template-columns: minmax(0, 1fr) 19rem; }
+.loot-name { align-self: center; font-weight: 600; overflow-wrap: anywhere; }
 /* a row holding a list of lines gives it the whole width (its label above) when the column is shared */
 .work.split .row:has(> .ctl .lines) { grid-template-columns: minmax(0, 1fr); }
 .work.split .row:has(> .ctl .lines) > .lab { padding-top: 0; }

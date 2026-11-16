@@ -182,14 +182,14 @@ def note(body: str) -> str:
 
 
 CASES += [
-    ('note section', note(NOTE_OK + 'loot=OfficeDesk:4\nloot=CrateFishing:1.5\nglovebox=GloveBox:1.5\ncorpse=yes\n'),
+    ('note section', note(NOTE_OK + 'loot=OfficeDesk:4\nloot=CrateFishing:1.5\nglovebox=GloveBox:1.5\n'),
      None),
     ('note without key', note('item=RadioSurvivor.NoteWalt\n'), (13, "missing key 'key' in [note]")),
     ('note without item', note('key=NoteWalt\n'), (13, "missing key 'item' in [note]")),
     # E22-T07 : note écrite dans la fiche (text= répétable, %1 = fréquence), sans item ni key.
-    ('written note', note('text=Need help? Call Mae\ntext=on %1 MHz.\nloot=OfficeDesk:2\ncorpse=yes\n'), None),
+    ('written note', note('text=Need help? Call Mae\ntext=on %1 MHz.\nloot=OfficeDesk:2\n'), None),
     ('written note of 8 lines of 40 bytes', note('text=%1\n' + ('text=' + 'é' * 20 + '\n') * 7), None),
-    ('empty note', note('corpse=yes\n'), (13, "missing key 'text' in [note] (or item and key)")),
+    ('empty note', note('loot=OfficeDesk:2\n'), (13, "missing key 'text' in [note] (or item and key)")),
     ('written note without frequency', note('text=Call Mae.\n'),
      (13, 'note text needs %1 (the frequency) on one of its lines')),
     ('written note with item', note('text=Call %1\nitem=RadioSurvivor.NoteWalt\n'),
@@ -211,7 +211,6 @@ CASES += [
     ('zero loot weight', note(NOTE_OK + 'glovebox=GloveBox:0\n'), (16, "bad glovebox weight '0' (above 0)")),
     ('duplicate loot list', note(NOTE_OK + 'loot=OfficeDesk:4\nloot=OfficeDesk:2\n'),
      (17, "duplicate loot list 'OfficeDesk'")),
-    ('bad corpse', note(NOTE_OK + 'corpse=maybe\n'), (16, "bad corpse 'maybe' (yes or no)")),
     ('unknown key in note', note(NOTE_OK + 'colour=red\n'), (16, "unknown key 'colour' in [note]")),
 ]
 
@@ -264,13 +263,12 @@ class SectionTests(unittest.TestCase):
                 self.assertEqual(store.load_file(path).id, 'case')
 
     def test_note_section_content(self):
-        p, _ = self.read(note(NOTE_OK + 'loot=OfficeDesk:4\nloot=CrateFishing:1.5\nglovebox=GloveBox:2\ncorpse=yes\n'))
+        p, _ = self.read(note(NOTE_OK + 'loot=OfficeDesk:4\nloot=CrateFishing:1.5\nglovebox=GloveBox:2\n'))
         n = p.note
-        self.assertEqual((n.item, n.module, n.type, n.key, n.corpse),
-                         ('RadioSurvivor.NoteWalt', 'RadioSurvivor', 'NoteWalt', 'NoteWalt', True))
+        self.assertEqual((n.item, n.module, n.type, n.key),
+                         ('RadioSurvivor.NoteWalt', 'RadioSurvivor', 'NoteWalt', 'NoteWalt'))
         self.assertEqual([(e.list, e.weight) for e in lua_items(n.loot)], [('OfficeDesk', 4), ('CrateFishing', 1.5)])
         self.assertEqual([(e.list, e.weight) for e in lua_items(n.glovebox)], [('GloveBox', 2)])
-        self.assertFalse(self.read(note(NOTE_OK))[0].note.corpse)
 
     def test_every_section_content(self):
         p, _ = self.read(EVERY)

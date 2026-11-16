@@ -121,6 +121,52 @@ le facteur de rareté, les réglages de butin du sandbox (catégorie littératur
 Contrôle automatique : `tests/test_notes.py` vérifie que chaque liste existe et qu'elle est citée par
 `Distributions.lua` (ou par un véhicule pour une boîte à gants).
 
+### Socle commun de toute note (E24-T03)
+
+Décision de l'utilisateur du 2026-11-16 : les notes de **toutes** les voix se trouvent en jeu, « sur les corps des Z,
+dans les loots, là où il y a des papiers ». Toute voix qui déclare une note (`[note]`) reçoit d'office le socle
+ci-dessous, sans ligne dans sa fiche ; ses lignes `loot=` et `glovebox=` ajoutent ses **listes à thème** par-dessus.
+Sur une liste du socle, une ligne de la fiche ne garde que le poids le plus fort (Walt garde 4 dans les bureaux). Données
+en un seul endroit : `server/RadioSurvivor/RS_NotesBase.lua` (`loot`, `glovebox`, `corpseChance`,
+`walkieCorpseChance`) ; le facteur `NoteRarity` s'applique à tout.
+
+Listes vanilla 42.22 retenues : elles contiennent déjà des papiers (relevé `ProceduralDistributions.lua`, ligne de
+l'objet) et sont citées par des salles (`Distributions.lua`, nombre de citations). Poids de base **0,1** par voix et par
+liste (environ 0,1 % par tirage).
+
+| Liste (tirages) | Papiers vanilla (ligne) | Citée par |
+|---|---|---|
+| `OfficeDesk` (4) | `Paperwork` 20 (36577) | 2 salles |
+| `OfficeDeskHome` (4) | `Paperwork` 10 (36627), `Newspaper` (36622) | 1 |
+| `OfficeDeskHomeClassy` (4) | `Paperwork` 10 (36710) | 1 |
+| `OfficeDeskSecretary` (4) | `Paperwork` 10 et 20 (36804) | 1 |
+| `OfficeDeskStressed` (4) | `Paperwork` 20 (36849) | 1 |
+| `OfficeDrawers` (4) | `Note` 20 (36910) | 1 |
+| `FilingCabinetGeneric` (4) | `LetterHandwritten` 20 (20757), `Paperwork` 50 (20762) | 5 |
+| `BedroomSidetable` (4) | `LetterHandwritten` 1 (4829), `Note` 1 (4844) | 1 |
+| `KitchenRandom` (2) | `Note` 8 (29653), `Notepad` 4 (29654) | 3 |
+| `PostOfficeSupplies` (4) | `Notepad` 8 (39177) | 3 |
+| `PoliceDesk` (2) | `Notepad` 10 (38064), `Paperwork` 10 (38076) | 3 |
+| `ClassroomDesk` (2) | `SheetPaper2` 20 (10228), `Note` 20 (10235) | 2 |
+| `VehicleDistributions.GloveBox` (1) | liste vide en vanilla (boîte à gants des voitures ordinaires) | 8 véhicules |
+
+Portefeuilles écartés : ce sont des sacs (`BagsAndContainers.Wallet`, `Distributions.lua:20422`), hors
+`ProceduralDistributions` où le mod ajoute ses notes.
+
+**Zombies.** Chaque cadavre de zombie rempli par le jeu tire une fois : `corpseChance` = **2 %**, ou
+`walkieCorpseChance` = **35 %** s'il porte un talkie émetteur, multiplié par le facteur `NoteRarity` ; la note est tirée
+parmi toutes les voix qui servent une fréquence (la clé `corpse=` des fiches est retirée).
+
+**Ordre de grandeur** en **Normales** (facteur 1), hors réglages de butin du sandbox (multiplicateur de tirages,
+catégorie littérature, densité de zombies), avec les 14 notes livrées (15 voix, Whitaker sans note). Un meuble à
+4 tirages fait 4 × 14 = 56 essais à 0,1 % : P(au moins une note) = 1 − 0,999^56 ≈ **5,4 %**, soit une note pour
+environ **18 meubles à papiers** fouillés (2,8 % pour un meuble à 2 tirages ; 5,8 % avec 15 notes). Une voix donnée :
+0,4 % par meuble à 4 tirages, environ une pour 250 meubles par le socle seul ; ses listes à thème la rendent plus
+facile. Pour N meubles à papiers fouillés, notes attendues ≈ N × 0,054 (N = 50 : environ 2,7). Boîte à gants d'une
+voiture ordinaire : somme des poids 12 × 0,5 + 1 (Hollis) + 1,5 (Night Owl) = 8,5 %, une voiture sur 12 environ.
+Zombies : une note pour 50 zombies morts environ (0,8 % en Rares, 5 % en Fréquentes), un zombie au talkie sur trois.
+Bureaux de bureau et de maison : la note de Walt y reste à 4 (environ 15 % par meuble pour lui seul).
+
 ### Option sandbox `RadioSurvivor.NoteRarity`
 
 | Valeur | Facteur des poids |
@@ -152,11 +198,10 @@ plusieurs notes ; le magasin de pêche (Gus) est plus rare : ⚠ à régler en j
 
 ## Notes sur les cadavres équipés d’un talkie-walkie
 
-Sur l’autorité, `OnFillContainer` examine le butin déjà généré : si un objet `Radio`
-possède un appareil émetteur (`getIsTwoWay`), une note supplémentaire a 35 % de
-chance d’apparaître (14 % en rare, 87,5 % en fréquent, aucune si désactivé).
-Une seule note est tirée parmi les cinq voix actives ayant une fréquence. Les
-poids des meubles et véhicules restent ceux définis plus haut.
+Sur l’autorité, `OnFillContainer` examine le butin déjà généré de **tout** cadavre de zombie (E24-T03) : une note
+a 2 % de chance d’apparaître (0,8 % en rare, 5 % en fréquent), 35 % si un objet `Radio` possède un appareil
+émetteur (`getIsTwoWay`) (14 % en rare, 87,5 % en fréquent), aucune si désactivé. Une seule note est tirée parmi
+toutes les voix actives ayant une fréquence. Chances dans `RS_NotesBase.lua`.
 
 Le résultat est mémorisé dans les ModData du cadavre : un nouveau remplissage
 ne relance pas le tirage et ne duplique pas la note ; si le moteur reconstruit

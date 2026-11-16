@@ -31,9 +31,9 @@ réponse revient sur la radio, comme toute autre émission.
 
 ![La réponse de Walt entendue en jeu, au-dessus du joueur](../../images/screenshots/fr-walkie-in-hand.png)
 
-Les fréquences ne sont jamais données : elles sont écrites sur des notes trouvées dans le butin (page de journal
-radio, fiche de patient, avis de la Garde nationale, note griffonnée, prospectus). Lisez la note pour savoir où
-écouter.
+Les fréquences ne sont jamais données : elles sont écrites sur des notes (page de journal radio, fiche de patient,
+avis de la Garde nationale, note griffonnée, prospectus) cachées partout où il y a des papiers, dans les boîtes à
+gants des voitures et sur les zombies. Lisez la note pour savoir où écouter.
 
 ![Note de fréquence de Walt](../../images/screenshots/fr-frequency-note.png)
 

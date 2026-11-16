@@ -2,8 +2,8 @@
 -- butin. Serveur MP ou solo. Détails : docs/specifications-techniques/notes-frequences.md.
 --
 -- Déclarations (E20-T11) : section [note] de chaque fiche chargée (RS_Personas, ordre des fiches) : objet, racine des
--- traductions (ou texte écrit dans la fiche, E22-T07), listes de butin (loot=, glovebox=) et mort au talkie
--- (corpse=yes). Aucune voix n'est nommée ici ;
+-- traductions (ou texte écrit dans la fiche, E22-T07), listes de butin à thème (loot=, glovebox=). Socle commun de
+-- toute note (E24-T03) : RS_NotesBase (listes à papiers, boîte à gants, zombies). Aucune voix n'est nommée ici ;
 -- fournisseur des déclarations de RS_Notes.
 -- Fréquence : fournisseur de RS_Notes. Première fréquence servie de la voix (RS_Personas.served, ordre des plages de
 -- la fiche), si la voix est active ; sinon nil (note sans fréquence). Les fiches sont lues à OnLoadRadioScripts
@@ -26,6 +26,7 @@ require "Vehicles/VehicleDistributions"
 local Const = require "RadioSurvivor/RadioSurvivor_Const"
 local Personas = require "RadioSurvivor/RS_Personas"
 local Notes = require "RadioSurvivor/RS_Notes"
+local Base = require "RadioSurvivor/RS_NotesBase"
 
 local NotesServer = {}
 
@@ -33,8 +34,8 @@ local function log(msg)
     Const.log("notes: " .. msg)
 end
 
--- Déclarations des notes des fiches chargées : { voice, item, key, text, loot, glovebox, corpse } ; text (lignes
--- écrites dans la fiche, E22-T07) à la place de item et key pour la note manuscrite générique.
+-- Déclarations des notes des fiches chargées : { voice, item, key, text, loot, glovebox } ; text (lignes écrites
+-- dans la fiche, E22-T07) à la place de item et key pour la note manuscrite générique.
 function NotesServer.declarations()
     local out = {}
     for _, id in ipairs(Personas.ids()) do
@@ -42,21 +43,39 @@ function NotesServer.declarations()
         local note = type(sheet) == "table" and sheet.note or nil
         if type(note) == "table" then
             out[#out + 1] = { voice = id, item = note.item, key = note.key, text = note.text, loot = note.loot,
-                glovebox = note.glovebox, corpse = note.corpse }
+                glovebox = note.glovebox }
+        end
+    end
+    return out
+end
+
+-- Listes d'une note : socle commun (RS_NotesBase, E24-T03) puis listes à thème de la fiche ; une liste présente
+-- deux fois garde le poids le plus fort. { list, weight } dans l'ordre : socle, puis thèmes nouveaux.
+local function merged(baseLists, ownLists)
+    local out, at = {}, {}
+    for _, lists in ipairs({ baseLists, ownLists }) do
+        for _, e in ipairs(lists) do
+            local i = at[e.list]
+            if i then
+                out[i].weight = math.max(out[i].weight, e.weight)
+            else
+                out[#out + 1] = { list = e.list, weight = e.weight }
+                at[e.list] = #out
+            end
         end
     end
     return out
 end
 
 -- Entrées de butin des notes déclarées : { voice, fullType, list, weight (poids de base, environ poids % par tirage
--- avant le facteur de rareté), vehicle = true pour VehicleDistributions }.
+-- avant le facteur de rareté), vehicle = true pour VehicleDistributions }. Une entrée par voix et liste.
 function NotesServer.entries()
     local out = {}
     for _, def in ipairs(Notes.voices()) do
-        for _, e in ipairs(def.loot) do
+        for _, e in ipairs(merged(Base.loot, def.loot)) do
             out[#out + 1] = { voice = def.voice, fullType = def.fullType, list = e.list, weight = e.weight }
         end
-        for _, e in ipairs(def.glovebox) do
+        for _, e in ipairs(merged(Base.glovebox, def.glovebox)) do
             out[#out + 1] = { voice = def.voice, fullType = def.fullType, list = e.list, weight = e.weight,
                 vehicle = true }
         end
@@ -101,12 +120,16 @@ function NotesServer.addToLoot()
         log("NoteRarity = none, no note added to the loot")
         return 0
     end
-    local added, mine = 0, {}
+    local added, mine, missing = 0, {}, {}
     for _, entry in ipairs(NotesServer.entries()) do
         local items = listItems(entry)
-        local key = (entry.vehicle and "vehicle:" or "") .. entry.list .. "|" .. entry.fullType
+        local listKey = (entry.vehicle and "vehicle:" or "") .. entry.list
+        local key = listKey .. "|" .. entry.fullType
         if not items then
-            log("WARNING: loot list " .. entry.list .. " not found, note of voice '" .. entry.voice .. "' skipped")
+            if not missing[listKey] then
+                missing[listKey] = true
+                log("WARNING: loot list " .. entry.list .. " not found, notes skipped there")
+            end
         elseif mine[key] then
             items[mine[key] + 1] = items[mine[key] + 1] + entry.weight * factor
             added = added + 1
@@ -124,11 +147,23 @@ function NotesServer.addToLoot()
     return added
 end
 
--- Roll after vanilla fills corpse loot (ItemPickerJava.java:587-622, 42.21.0).
--- Remember the result on the corpse; repeated fills never roll again or duplicate the note. Candidates: the notes
--- declared with corpse=yes whose voice serves a frequency.
-NotesServer.CORPSE_NOTE_CHANCE = 35
+-- Roll after vanilla fills corpse loot (ItemPickerJava.java:587-622, 42.21.0), on every zombie corpse (E24-T03):
+-- Base.corpseChance, or Base.walkieCorpseChance when the corpse carries a two-way radio, times the NoteRarity factor.
+-- Remember the result on the corpse; repeated fills never roll again or duplicate the note. Candidates: every
+-- declared note whose voice serves a frequency.
 local CORPSE_KEY = "RadioSurvivorCorpseNote"
+
+local function carriesWalkie(inv)
+    local items = inv:getItems()
+    for i = 0, items:size() - 1 do
+        local item = items:get(i)
+        if instanceof(item, "Radio") then
+            local data = item:getDeviceData()
+            if data and data:getIsTwoWay() then return true end
+        end
+    end
+    return false
+end
 
 function NotesServer.onFillContainer(roomName, containerType, inv)
     if roomName ~= "Zombie" then return end
@@ -138,22 +173,13 @@ function NotesServer.onFillContainer(roomName, containerType, inv)
     local md = corpse:getModData()
     local chosen = md[CORPSE_KEY]
     if chosen == nil then
-        local items = inv:getItems()
-        local hasWalkie = false
-        for i = 0, items:size() - 1 do
-            local item = items:get(i)
-            if instanceof(item, "Radio") then
-                local data = item:getDeviceData()
-                if data and data:getIsTwoWay() then hasWalkie = true break end
-            end
-        end
-        if not hasWalkie then return end
         md[CORPSE_KEY] = false
-        local chance = math.min(100, NotesServer.CORPSE_NOTE_CHANCE * Const.noteRarityFactor())
+        local base = carriesWalkie(inv) and Base.walkieCorpseChance or Base.corpseChance
+        local chance = math.min(100, base * Const.noteRarityFactor())
         if ZombRand(10000) >= chance * 100 then return end
         local candidates = {}
         for _, def in ipairs(Notes.voices()) do
-            if def.corpse and NotesServer.frequencyOf(def.voice) ~= nil then
+            if NotesServer.frequencyOf(def.voice) ~= nil then
                 candidates[#candidates + 1] = def.fullType
             end
         end

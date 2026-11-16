@@ -1,7 +1,8 @@
 -- Radio Survivor : notes de fréquences (E05-T09), documents lisibles trouvés dans le butin.
 --
 -- Une note par voix qui la déclare dans sa fiche (section [note], E20-T11 : objet, racine des traductions, listes de
--- butin, mort au talkie ; format docs/specifications-techniques/persona-format.md) ; aucune voix n'est nommée dans ce
+-- butin à thème ; format docs/specifications-techniques/persona-format.md ; socle commun de toute note :
+-- server/RadioSurvivor/RS_NotesBase.lua) ; aucune voix n'est nommée dans ce
 -- code. Objet `literature` sans CanBeWrite (media/scripts/RadioSurvivor_notes.txt) : « Inspecter » l'ouvre dans la
 -- fenêtre vanilla des documents (ISReadABook:displayPrintMedia, moteur printMedia). Plusieurs voix peuvent partager
 -- un objet : une note neuve de cet objet porte l'une d'elles, tirée à sa création.
@@ -40,8 +41,8 @@ Notes.GENERIC_ITEM = "RadioSurvivor.NoteVoice"
 local GENERIC_ID = "RadioSurvivor_NoteVoice"
 
 -- Fournisseur des déclarations, posé côté autorité seulement : function() -> liste { voice, item = "Module.Type",
--- key, loot, glovebox, corpse } ou, pour une note écrite dans la fiche, { voice, text = { lignes }, loot, glovebox,
--- corpse } (section [note] des fiches chargées, dans leur ordre).
+-- key, loot, glovebox } ou, pour une note écrite dans la fiche, { voice, text = { lignes }, loot, glovebox }
+-- (section [note] des fiches chargées, dans leur ordre).
 Notes.declarationsProvider = nil
 -- Fournisseur de fréquence, posé côté autorité seulement : function(voice) -> kHz servi, ou nil.
 Notes.frequencyProvider = nil
@@ -55,8 +56,7 @@ local function definition(decl)
     local id = written and GENERIC_ID or (module .. "_" .. decl.key)
     return { voice = decl.voice, type = itemType, fullType = fullType, id = id, written = written,
         titleKey = "Print_Media_" .. id .. "_title", infoKey = "Print_Media_" .. id .. "_info",
-        textKey = "Print_Text_" .. id .. "_info", loot = decl.loot or {}, glovebox = decl.glovebox or {},
-        corpse = decl.corpse == true }
+        textKey = "Print_Text_" .. id .. "_info", loot = decl.loot or {}, glovebox = decl.glovebox or {} }
 end
 
 -- Notes déclarées, dans l'ordre des fiches (liste vide sans fournisseur).

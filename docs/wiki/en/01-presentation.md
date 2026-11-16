@@ -29,8 +29,9 @@ back on the radio, like any other broadcast.
 
 ![The answer of Walt heard in game, above the player](../../images/screenshots/en-walkie-in-hand.png)
 
-The frequencies are never given for free: they are written on notes found in the loot (radio log page, patient card,
-National Guard notice, scribbled note, flyer). Read the note to learn where to listen.
+The frequencies are never given for free: they are written on notes (radio log page, patient card, National Guard
+notice, scribbled note, flyer) found wherever papers lie around, in car glove boxes and on zombies. Read the note to
+learn where to listen.
 
 ![Frequency note of Walt](../../images/screenshots/en-frequency-note.png)
 

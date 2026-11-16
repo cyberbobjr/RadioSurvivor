@@ -363,8 +363,37 @@ class LootTests(NotesHarness):
         self.option(3)
         self.reset_loot()
         self.rt.execute('ProceduralDistributions.list.PoliceDesk = nil')
-        self.assertEqual(self.NS.addToLoot(), len(self.entries()) - 1)
-        self.assertEqual(len(self.logs_with('loot list PoliceDesk not found')), 1)
+        missing = len([e for e in self.entries() if e.list == 'PoliceDesk' and not e.vehicle])
+        self.assertGreater(missing, 1)
+        self.assertEqual(self.NS.addToLoot(), len(self.entries()) - missing)
+        self.assertEqual(len(self.logs_with('loot list PoliceDesk not found')), 1)   # one warning per list
+
+    # E24-T03 : socle commun (RS_NotesBase) appliqué à toute note déclarée, listes à thème de la fiche en plus.
+    def base(self):
+        return self.rt.eval('require("RadioSurvivor/RS_NotesBase")')
+
+    def weights(self, voice: str) -> dict:
+        return {(e.list, bool(e.vehicle)): e.weight for e in self.entries() if e.voice == voice}
+
+    def test_base_applied_to_every_declared_note(self):
+        base = self.base()
+        expected = [(e.list, e.weight, False) for e in lua_list(base.loot)] + \
+                   [(e.list, e.weight, True) for e in lua_list(base.glovebox)]
+        self.assertGreaterEqual(len(lua_list(base.loot)), 8)
+        self.assertGreaterEqual(len(lua_list(base.glovebox)), 1)
+        for voice in declared_voices():
+            mine = self.weights(voice)
+            for name, weight, vehicle in expected:
+                with self.subTest(voice=voice, list=name):
+                    self.assertGreaterEqual(mine[(name, vehicle)], weight)
+
+    def test_themed_lists_added_or_raise_the_base(self):
+        walt, gus = self.weights('walt'), self.weights('gus')
+        self.assertEqual(walt[('ElectronicStoreHAMRadio', False)], 15)   # themed list, not in the base
+        self.assertEqual(walt[('OfficeDesk', False)], 4)                 # themed line raises the base weight
+        self.assertEqual(gus[('FishermanGloveBox', True)], 10)
+        keys = [(e.voice, e.list, bool(e.vehicle)) for e in self.entries()]
+        self.assertEqual(len(keys), len(set(keys)))                      # one entry per voice and list
 
 
 class CorpseNotesTests(NotesHarness):
@@ -400,33 +429,39 @@ ZombRand = function(n) ROLLS = ROLLS + 1 if n == 10000 then return TEST_ROLL els
         self.assertEqual(len(self.g.CORPSE_ITEMS), 2)
         note = self.g.CORPSE_ITEMS[2]
         md = note.getModData(note).RadioSurvivorNote
-        first = next(d for d in lua_list(self.Notes.voices()) if d.corpse)      # premier candidat (tirage 0)
+        first = lua_list(self.Notes.voices())[0]      # premier candidat (tirage 0) : toute voix, plus de corpse=
         self.assertEqual(note.getFullType(note), first.fullType)
         self.assertEqual(md.khz, self.NS.frequencyOf(md.voice))
+        rolls = self.g.ROLLS
         self.NS.onFillContainer("Zombie", "Generic", self.g.CORPSE_INV)
         self.assertEqual(len(self.g.CORPSE_ITEMS), 2)
         self.rt.execute('table.remove(CORPSE_ITEMS, 2)')
         self.NS.onFillContainer("Zombie", "Generic", self.g.CORPSE_INV)
         self.assertEqual(len(self.g.CORPSE_ITEMS), 2)
-        self.assertEqual(self.g.ROLLS, 2)
+        self.assertEqual(self.g.ROLLS, rolls + 1)     # note rendue (OnCreate seul), aucun nouveau tirage
 
-    def test_no_radio_or_receiver_only(self):
-        for radio, two_way in ((False, False), (True, False)):
-            self.corpse(radio, two_way)
-            self.NS.onFillContainer("Zombie", "Generic", self.g.CORPSE_INV)
-            self.assertEqual(len(self.g.CORPSE_ITEMS), int(radio))
-            self.assertEqual(self.g.ROLLS, 0)
-
+    # E24-T03 : tout zombie peut porter une note (chance faible), un zombie au talkie émetteur garde sa chance haute.
     def test_rarity_threshold_and_failed_roll_not_repeated(self):
-        for rarity, threshold in ((1, 0), (2, 1400), (3, 3500), (4, 8750)):
-            self.g.SandboxVars.RadioSurvivor.NoteRarity = rarity
-            for roll in (max(0, threshold - 1), threshold):
-                self.corpse(roll=roll)
-                self.NS.onFillContainer("Zombie", "Generic", self.g.CORPSE_INV)
-                self.assertEqual(len(self.g.CORPSE_ITEMS), 2 if roll < threshold else 1)
-                count = self.g.ROLLS
-                self.NS.onFillContainer("Zombie", "Generic", self.g.CORPSE_INV)
-                self.assertEqual(self.g.ROLLS, count)
+        base = self.rt.eval('require("RadioSurvivor/RS_NotesBase")')
+        self.assertEqual((base.corpseChance, base.walkieCorpseChance), (2, 35))
+        thresholds = {True: ((1, 0), (2, 1400), (3, 3500), (4, 8750)),     # talkie émetteur
+                      False: ((1, 0), (2, 80), (3, 200), (4, 500))}       # sans talkie, ou récepteur seul
+        for radio, two_way, walkie in ((True, True, True), (False, False, False), (True, False, False)):
+            for rarity, threshold in thresholds[walkie]:
+                self.g.SandboxVars.RadioSurvivor.NoteRarity = rarity
+                for roll in (max(0, threshold - 1), threshold):
+                    with self.subTest(radio=radio, two_way=two_way, rarity=rarity, roll=roll):
+                        self.corpse(radio, two_way, roll=roll)
+                        self.NS.onFillContainer("Zombie", "Generic", self.g.CORPSE_INV)
+                        self.assertEqual(len(self.g.CORPSE_ITEMS), int(radio) + int(roll < threshold))
+                        count = self.g.ROLLS
+                        self.NS.onFillContainer("Zombie", "Generic", self.g.CORPSE_INV)
+                        self.assertEqual(self.g.ROLLS, count)
+
+    def test_other_container_or_parent_ignored(self):
+        self.corpse(False, False)
+        self.NS.onFillContainer("Kitchen", "counter", self.g.CORPSE_INV)
+        self.assertEqual((len(self.g.CORPSE_ITEMS), self.g.ROLLS), (0, 0))
 
     def test_disabled_and_no_active_frequency(self):
         self.corpse()
@@ -441,7 +476,7 @@ ZombRand = function(n) ROLLS = ROLLS + 1 if n == 10000 then return TEST_ROLL els
 
 # E22-T07 : voix créée avec l'atelier, note écrite dans sa fiche (text=, %1 = fréquence), sans objet ni traduction propres.
 WRITTEN_SHEET = ('format=1\nid=mae\nname=Mae\nradio=tactical\n[note]\ntext=Need a hand? Call Mae\n'
-                 'text=on %1 MHz, after dark.\nloot=OfficeDesk:2\nglovebox=GloveBox:1\ncorpse=yes\n'
+                 'text=on %1 MHz, after dark.\nloot=OfficeDesk:2\nglovebox=GloveBox:1\n'
                  '[prompt]\nYou are Mae.\n')
 WRITTEN_TEXT = 'Need a hand? Call Mae\non %1 MHz, after dark.'
 
@@ -476,12 +511,14 @@ class WrittenNoteTests(NotesHarness):
         self.assertEqual(md['printMedia']['id'], 'RadioSurvivor_NoteVoice')
         self.assertEqual(md['printMedia']['title'], 'Print_Media_RadioSurvivor_NoteVoice_title')
 
-    def test_loot_and_corpse_use_the_generic_item(self):
-        mine = [(e.list, e.fullType, bool(e.vehicle)) for e in self.entries() if e.voice == 'mae']
-        self.assertEqual(mine, [('OfficeDesk', 'RadioSurvivor.NoteVoice', False),
-                                ('GloveBox', 'RadioSurvivor.NoteVoice', True)])
-        definition = self.Notes.forVoice('mae')
-        self.assertEqual((definition.fullType, definition.corpse), ('RadioSurvivor.NoteVoice', True))
+    def test_loot_uses_the_generic_item_with_the_base(self):
+        mine = {(e.list, bool(e.vehicle)): (e.fullType, e.weight) for e in self.entries() if e.voice == 'mae'}
+        base = self.rt.eval('require("RadioSurvivor/RS_NotesBase")')
+        self.assertEqual(len(mine), len(lua_list(base.loot)) + len(lua_list(base.glovebox)))   # sheet lists in the base
+        self.assertEqual(mine[('OfficeDesk', False)], ('RadioSurvivor.NoteVoice', 2))
+        self.assertEqual(mine[('GloveBox', True)], ('RadioSurvivor.NoteVoice', 1))
+        self.assertEqual({full for full, _ in mine.values()}, {'RadioSurvivor.NoteVoice'})
+        self.assertEqual(self.Notes.forVoice('mae').fullType, 'RadioSurvivor.NoteVoice')
 
     def test_shipped_notes_unchanged(self):
         md = self.create('gus').md
@@ -536,6 +573,11 @@ class StaticTests(unittest.TestCase):
         for voice, body in note_sections().items():
             for key, name in re.findall(r'(?m)^(loot|glovebox)=(\w+):', body):
                 out.append((voice, name, key == 'glovebox'))
+        # E24-T03 : socle commun de toutes les notes.
+        base = lupa.LuaRuntime().execute((LUA / 'server/RadioSurvivor/RS_NotesBase.lua').read_text(encoding='utf-8'))
+        for key in ('loot', 'glovebox'):
+            for e in base[key].values():
+                out.append(('base', e.list, key == 'glovebox'))
         return out
 
     def test_item_scripts(self):

@@ -900,9 +900,8 @@ partagent `NoteTrade` : une note neuve porte l'une de ces voix, tirée à sa cr�
 | `text` | répétable, sans `item` ni `key` | E22-T07 : une ligne de la note (40 octets UTF-8 au plus, 8 lignes au plus, sans `<`, `>` ni `^`, `%` seulement dans `%1`) ; une ligne au moins porte `%1` (fréquence affichée). |
 | `item` | sans `text` | `Module.Type` d'un objet de `media/scripts/RadioSurvivor_notes.txt` (`OnCreate = RadioSurvivorNotes.onCreate`). Plusieurs fiches peuvent déclarer le même objet (`RadioSurvivor.NoteTrade`, mot manuscrit des marchands) : une note neuve porte l'une de ces voix, tirée parmi celles qui servent une fréquence. |
 | `key` | sans `text` | Racine des traductions (`A`-`Z`, `a`-`z`, `0`-`9`, `_`) : `Print_Media_<module>_<key>_title`, `Print_Media_<module>_<key>_info` (mise en page, `%1` une fois), `Print_Text_<module>_<key>_info` ; identifiant printMedia `<module>_<key>`. |
-| `loot` | non, répétable | `liste:poids` d'une liste de `ProceduralDistributions` (poids au-dessus de 0, au plus 100, deux décimales), multiplié par l'option `NoteRarity`. Un objet partagé reçoit une ligne par liste, poids des voix additionnés. 16 listes au plus. |
+| `loot` | non, répétable | Lieu à thème, en plus du socle commun (E24-T03, `server/RadioSurvivor/RS_NotesBase.lua` : listes à papiers, boîte à gants `GloveBox`, zombies ; sur une liste du socle, le poids le plus fort l'emporte) : `liste:poids` d'une liste de `ProceduralDistributions` (poids au-dessus de 0, au plus 100, deux décimales), multiplié par l'option `NoteRarity`. Un objet partagé reçoit une ligne par liste, poids des voix additionnés. 16 listes au plus. |
 | `glovebox` | non, répétable | `liste:poids` de `VehicleDistributions` (boîte à gants), mêmes règles. |
-| `corpse` | non | `yes` : candidate pour la note d'un mort qui porte un talkie (`no` par défaut). |
 
 | Erreur | Message |
 |---|---|
@@ -911,7 +910,6 @@ partagent `NoteTrade` : une note neuve porte l'une de ces voix, tirée à sa cr�
 | Texte (`text`) | `line N: note text too long (40 bytes of UTF-8 at most)`, `line N: bad note text '<b>%1' (no <, > or ^; % only in %1, the frequency)`, `line N: too many note text lines (8 at most)`, `line N: note text needs %1 (the frequency) on one of its lines` (ligne de l'en-tête) |
 | Objet, racine | `line N: bad note item 'NoteWalt' (Module.Type, e.g. RadioSurvivor.NoteWalt)`, `line N: bad note key 'Note Walt' (A to Z, a to z, 0 to 9 and _)` |
 | Listes | `line N: bad loot 'OfficeDesk' (list:weight, e.g. OfficeDesk:4)`, `line N: bad glovebox weight '0' (above 0)`, `line N: duplicate loot list 'OfficeDesk'`, `line N: too many loot lists (16 at most)` |
-| Mort | `line N: bad corpse 'maybe' (yes or no)` |
 
 Exemple (Gus, `personas/gus.txt`) :
 
@@ -922,7 +920,6 @@ key=NoteGus
 loot=FishingStoreGear:4
 loot=CrateFishing:1.5
 glovebox=FishermanGloveBox:10
-corpse=yes
 ```
 
 Exemple d'une note écrite dans la fiche (voix créée avec l'atelier) :
@@ -932,7 +929,6 @@ Exemple d'une note écrite dans la fiche (voix créée avec l'atelier) :
 text=Need a hand? Call Mae
 text=on %1 MHz, after dark.
 loot=OfficeDesk:2
-corpse=yes
 ```
 
 ### Exemple

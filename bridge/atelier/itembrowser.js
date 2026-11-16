@@ -8,6 +8,9 @@
 // - single (one item: a mission's item, a line replaced): a click or Enter gives its type to `onPick(type)` and closes.
 // Escape or "Close" close it without change; the focus goes back to the button that opened it. `note` (an i18n key)
 // says under the filters which items the list holds when it is not every item of the game (sellable ones only).
+// `words` (E24-T03) is the i18n prefix of its texts (`browser` for items, `lootbrowser` for the loot lists of a
+// note): a text missing under it falls back to `browser.<key>`; `index` is any list with the item index contract
+// (items.js: find, categories), such as the loot lists (lootindex.js).
 
 import { h, select, uid } from './dom.js';
 import { hint } from './help.js';
@@ -15,8 +18,11 @@ import { button } from './widgets.js';
 
 const MAX_SHOWN = 200;
 
-export function openItemBrowser(t, index, { multi = false, note = null, taken = [], onPick = null, onAdd = null }) {
+export function openItemBrowser(t, index, { multi = false, note = null, taken = [], onPick = null, onAdd = null,
+  words = 'browser' } = {}) {
   const lang = t.lang;
+  const w = (key, args = {}) => t(`${words}.${key}`, args, t(`browser.${key}`, args));
+  const helpTopic = (name) => (t.has?.(`help.ui.${words}_${name}.what`) ? `help.ui.${words}_${name}` : `help.ui.item_${name}`);
   const opener = document.activeElement;
   const titleId = uid('ib');
   const listId = uid('ibl');
@@ -26,18 +32,18 @@ export function openItemBrowser(t, index, { multi = false, note = null, taken = 
   let active = -1;
 
   const search = h('input', { type: 'search', autocomplete: 'off', spellcheck: 'false', role: 'combobox',
-    'aria-autocomplete': 'list', 'aria-expanded': 'true', 'aria-controls': listId, 'aria-label': t('browser.search'),
-    placeholder: t('browser.search_placeholder'), class: 'browser-search' });
-  const category = select([{ value: '', label: t('browser.all_categories') }, ...index.categories(lang)], '',
-    () => refresh(), { 'aria-label': t('browser.category'), class: 'browser-category' });
+    'aria-autocomplete': 'list', 'aria-expanded': 'true', 'aria-controls': listId, 'aria-label': w('search'),
+    placeholder: w('search_placeholder'), class: 'browser-search' });
+  const category = select([{ value: '', label: w('all_categories') }, ...index.categories(lang)], '',
+    () => refresh(), { 'aria-label': w('category'), class: 'browser-category' });
   const count = h('p', { class: 'browser-count', 'aria-live': 'polite' });
   const status = h('p', { class: 'browser-selected', 'aria-live': 'polite' });
   const list = h('ul', { id: listId, role: 'listbox', class: `browser-list${multi ? ' multi' : ''}`,
-    'aria-label': t('browser.results'), 'aria-multiselectable': multi ? 'true' : null });
+    'aria-label': w('results'), 'aria-multiselectable': multi ? 'true' : null });
   const addButton = multi ? button('primary', { class: 'browser-add', disabled: true, onClick: () => {
     onAdd([...ticked]);
     dialog.close();
-  } }, t('browser.add_selected', { n: 0 })) : null;
+  } }, w('add_selected', { n: 0 })) : null;
 
   const rows = () => [...list.querySelectorAll('[role=option]')];
   const setActive = (next, scroll = true) => {
@@ -52,9 +58,9 @@ export function openItemBrowser(t, index, { multi = false, note = null, taken = 
     if (scroll) all[active].scrollIntoView({ block: 'nearest' });
   };
   const showTicked = () => {
-    status.textContent = ticked.size ? t('browser.selected', { n: ticked.size }) : '';
+    status.textContent = ticked.size ? w('selected', { n: ticked.size }) : '';
     addButton.disabled = ticked.size === 0;
-    addButton.textContent = t('browser.add_selected', { n: ticked.size });
+    addButton.textContent = w('add_selected', { n: ticked.size });
   };
   const toggle = (entry, row) => {
     if (ticked.has(entry.type)) ticked.delete(entry.type); else ticked.add(entry.type);
@@ -80,16 +86,16 @@ export function openItemBrowser(t, index, { multi = false, note = null, taken = 
     h('span', { class: 'b-name', text: entry.name }),
     h('span', { class: 'b-cat', text: entry.catName }),
     h('span', { class: 'b-pick', 'aria-hidden': 'true',
-      text: isTaken ? t('browser.taken') : (multi ? '' : t('browser.pick')) }));
+      text: isTaken ? w('taken') : (multi ? '' : w('pick')) }));
   };
 
   function refresh() {
     const { items, total } = index.find(search.value, lang, { category: category.value, limit: MAX_SHOWN });
     shown = items;
     list.replaceChildren(...(items.length ? items.map(rowOf)
-      : [h('li', { class: 'muted', role: 'presentation', text: t('browser.none') })]));
-    count.textContent = total > items.length ? t('browser.more', { shown: items.length, n: total })
-      : t('browser.count', { n: total });
+      : [h('li', { class: 'muted', role: 'presentation', text: w('none') })]));
+    count.textContent = total > items.length ? w('more', { shown: items.length, n: total })
+      : w('count', { n: total });
     search.removeAttribute('aria-activedescendant');
     active = -1;
     list.scrollTop = 0;
@@ -116,20 +122,20 @@ export function openItemBrowser(t, index, { multi = false, note = null, taken = 
     h('article', { class: note ? 'with-note' : null },
       h('header', { class: 'browser-head' },
         h('h2', { id: titleId, text: t(multi ? 'browser.title_multi' : 'browser.title') }),
-        multi && h('small', { class: 'muted', text: t('browser.enter_tip') }),
-        hint(t, 'help.ui.item_browser', { label: t('browser.title') }),
-        button('icon', { class: 'browser-close', 'aria-label': t('browser.close'), title: t('browser.close'),
+        multi && h('small', { class: 'muted', text: w('enter_tip') }),
+        hint(t, helpTopic('browser'), { label: w('title') }),
+        button('icon', { class: 'browser-close', 'aria-label': w('close'), title: w('close'),
           onClick: close }, '✕')),
       h('div', { class: 'browser-filters' }, search,
-        h('div', { class: 'browser-cat' }, category, hint(t, 'help.ui.item_category', { label: t('browser.category') }))),
+        h('div', { class: 'browser-cat' }, category, hint(t, helpTopic('category'), { label: w('category') }))),
       note && h('p', { class: 'browser-note', text: t(note) }),
       h('div', { class: 'browser-cols', 'aria-hidden': 'true' }, multi && h('span'),
-        h('span', { text: t('browser.col_name') }), h('span', { text: t('browser.col_category') }),
+        h('span', { text: w('col_name') }), h('span', { text: w('col_category') }),
         h('span')),
       list,
       h('footer', { class: 'browser-foot' }, count, status,
         h('div', { class: 'browser-actions' },
-          button('neutral', { class: 'browser-cancel', onClick: close }, t('browser.close')), addButton))));
+          button('neutral', { class: 'browser-cancel', onClick: close }, w('close')), addButton))));
   dialog.addEventListener('close', () => {
     dialog.remove();
     if (opener && opener.isConnected) opener.focus();

@@ -20,7 +20,10 @@ export const KEY_GROUPS = {
     { title: 'trade.q_meet', keys: ['landing', 'arrival', 'hours', 'every_days', 'delay_hours'] },
     { title: 'trade.q_pay', keys: ['accept', 'margin'] },
   ],
-  note: [{ title: null, keys: ['text', 'loot', 'glovebox', 'corpse'] }],
+  note: [
+    { title: null, keys: ['text'] },
+    { title: 'note.q_also', keys: ['loot', 'glovebox'] },   // E24-T03: themed places on top of the common base
+  ],
 };
 
 // Action a section needs in the head `actions=` (the game refuses a [trade] without propose_trade): ticked with it.

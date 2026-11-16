@@ -24,9 +24,9 @@ Any provider compatible with the OpenAI `/chat/completions` API, including local
 [AI provider configuration](08-ai-provider-configuration.md).
 
 **How do I find the voices?**
-Their frequencies are drawn for each game and never sent to the players: look for notes in the loot (a radio log page,
-a patient file, a National Guard notice, a scribbled note, a radio flyer, a trader's handwritten note) and
-**Inspect** them. Each vanilla town has its trader (eleven in all, Gus included); a trader may also introduce a
+Their frequencies are drawn for each game and never sent to the players: look for notes (a radio log page, a patient
+file, a National Guard notice, a scribbled note, a radio flyer, a trader's handwritten note) wherever papers lie
+around, in car glove boxes and on zombies, and **Inspect** them. Each vanilla town has its trader (eleven in all, Gus included); a trader may also introduce a
 neighbour. One voice stays silent
 until its rescue starts.
 

@@ -30,9 +30,9 @@ Il ne passe que lorsque personne n'est à moins de 100 cases du lieu (en x comme
 retour quand le lieu était trop loin pour être chargé.
 
 **Comment trouver les voix ?**
-Leurs fréquences sont tirées à chaque partie et jamais envoyées aux joueurs : cherchez des notes dans le butin (page de
-journal radio, fiche de patient, avis de la Garde nationale, note griffonnée, prospectus de radio, mot manuscrit d'un
-marchand) et **Inspectez**-les. Chaque ville vanilla a son marchand (onze en tout, Gus compris) ; un marchand peut
+Leurs fréquences sont tirées à chaque partie et jamais envoyées aux joueurs : cherchez des notes (page de journal radio,
+fiche de patient, avis de la Garde nationale, note griffonnée, prospectus de radio, mot manuscrit d'un marchand)
+partout où il y a des papiers, dans les boîtes à gants des voitures et sur les zombies, et **Inspectez**-les. Chaque ville vanilla a son marchand (onze en tout, Gus compris) ; un marchand peut
 aussi vous présenter un voisin.
 Une voix reste silencieuse jusqu'au début de son secours.
 

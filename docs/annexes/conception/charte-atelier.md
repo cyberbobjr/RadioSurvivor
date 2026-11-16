@@ -47,6 +47,7 @@ Une règle de présentation qui dépend du jeu est une **donnée**, à un seul e
 | Types de voix à la création | `presets.js` (`VOICE_TYPES`, `STEP_WANTS`) | Actions cochées et sections ajoutées par carte ; étapes repliées tant que la voix ne les utilise pas |
 | Groupes de questions d'une section | `stock.js` (`KEY_GROUPS`) | Les trois sous-titres du troc |
 | Langues de la personnalité | `voice.js` (`STARTERS`) | Texte de départ par langue |
+| Genres des lieux de la note | `lootindex.js` (`LOOT_KINDS`) | Motif du nom de liste du jeu → genre (maison, bureaux, magasins, caisses, véhicules, autres) du sélecteur « Aussi dans… » (E24-T03) |
 
 Les textes, icônes et aides vivent dans `i18n/fr.json` et `i18n/en.json` (mêmes clés).
 

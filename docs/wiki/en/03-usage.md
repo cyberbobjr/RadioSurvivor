@@ -7,9 +7,11 @@ A step-by-step guide for the player. The bridge must be running for the voices a
 
 ## 1. Find a frequency
 
-The voices are on frequencies drawn for each game. They are written on **notes** found in the loot: radio log page,
-patient card, National Guard notice, scribbled note, Night Owl flyer. Each note sits where its voice would leave it
-(how often: sandbox option **Frequency notes in the loot**).
+The voices are on frequencies drawn for each game. They are written on **notes**: radio log page, patient card,
+National Guard notice, scribbled note, Night Owl flyer. Every note can be found wherever papers lie around (office
+and home desks, filing cabinets, bedside tables, kitchen drawers, post offices, police and school desks), in car
+glove boxes and on zombies (rarely on any zombie, much more often on one carrying a walkie-talkie), and also where its
+voice would leave it (how often: sandbox option **Frequency notes in the loot**).
 
 Right click the note → **Inspect** (or **Read**) to open it. Walt is the first voice to look for: he answers at any
 hour.
@@ -139,8 +141,8 @@ Each vanilla town has its radio trader, each on its own frequency, with a story 
 | Ekron | Ezra Overby, the lay preacher | cache |
 | Fallas Lake | Maxine Whitlock, the campground manager | cache |
 
-Their frequencies are found like those of the other voices: a handwritten note in the loot (shops, drawers, glove
-boxes depending on the trader), to **Inspect**; a trader may also give you the frequency of a neighbour.
+Their frequencies are found like those of the other voices: a handwritten note found with the papers, in glove
+boxes, on zombies and in the trader's own places, to **Inspect**; a trader may also give you the frequency of a neighbour.
 A trader sells a stock over the radio. Your first firm offer books his **run** for
 your group: he gives you the place, the night and the signal, and the place is marked on your map. Another trader has
 his own run: booking one never blocks the other. During the window, show the signal there (boat and road: a lit lamp

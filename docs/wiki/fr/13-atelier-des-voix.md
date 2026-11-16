@@ -472,17 +472,17 @@ Deux marchands complets, une sur la route et une en cachette : [Exemples de voix
 
 ### La note de fréquence
 
-Ouvrez **Note de fréquence** et cochez **Sa fréquence est écrite sur une note**. Les joueurs trouveront dans le butin
-une **note manuscrite** avec votre texte.
+Ouvrez **Note de fréquence** et cochez **Sa fréquence est écrite sur une note**. Les joueurs trouveront une **note
+manuscrite** avec votre texte. Elle est déjà cachée **partout où il y a des papiers, dans les boîtes à gants et sur
+les zombies** : rien à choisir.
 
 ![La note de Rosie : trois lignes, deux endroits où la trouver](../../images/screenshots/atelier/atelier-fr-07-note.png)
 
 | Réglage | Ce que ça change |
 |---|---|
 | **Ce qui est écrit** | Ce que le joueur lit en inspectant la note. 8 lignes au plus (**+ Ajouter une ligne**), 40 octets par ligne : une lettre accentuée compte pour deux, et le compteur « N / 40 » l'affiche. **+ Ajouter ma fréquence** écrit le mot **[fréquence]** là où sa fréquence apparaîtra. Pas de signes `< > ^ %`. La note reste dans la langue où vous l'avez écrite. |
-| **Elle se trouve dans** | Les meubles ou conteneurs du jeu où la note peut apparaître, avec leur nom en clair (le nom technique est dans l'info-bulle), chacun avec **Rarement**, **Normalement** ou **Souvent**. Une ligne par meuble (16 au plus). |
-| **Boîtes à gants** | Pareil, dans les boîtes à gants des véhicules. Facultatif. |
-| **Un zombie peut l'avoir sur lui** | Un mort qui porte un talkie peut l'avoir sur lui. Désactivé par défaut. |
+| **Aussi dans… → Autres meubles** | Facultatif : des lieux à thème en plus (un magasin de pêche pour un pêcheur), ajoutés par **+ Ajouter des meubles**, qui ouvre la liste des meubles et conteneurs du jeu (cherche par mot, filtre par genre : maison, bureaux, magasins, caisses ; coche, puis **Ajouter la sélection** ; rien à taper), montrés avec leur nom en clair (le nom technique est dans l'info-bulle), chacun avec **Rarement**, **Normalement** ou **Souvent**. Une ligne par meuble (16 au plus). |
+| **Aussi dans… → Autres boîtes à gants** | Pareil, pour les boîtes à gants de véhicules particuliers (pêcheur, poste…). Facultatif. |
 
 Les voix du mod utilisent leur propre objet de note : leur panneau dit « Cette note est réglée par le mod. » et garde
 ces réglages dans **Réglages avancés**. Une nouvelle voix n'en a pas besoin : la note et la phrase d'appel sont écrites

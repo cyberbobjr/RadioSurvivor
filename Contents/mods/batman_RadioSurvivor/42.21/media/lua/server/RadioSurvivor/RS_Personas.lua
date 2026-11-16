@@ -71,21 +71,26 @@ Personas.CATALOGUE = "_categories.txt"
 -- (marchands des villes, E20-T11) n'a jamais été installée sans le fichier d'empreintes : aucune entrée.
 Personas.KNOWN_DELIVERED = {
     walt = { "2105682694", "2759756800", "213942039", "1586801598", "2833011528", "1923829937",   -- E22-T14
-        "4196879131" },   -- E24-T01 : radio=<niveau>
+        "4196879131",   -- E24-T01 : radio=<niveau>
+        "1334134519" },   -- E24-T03 : socle commun des notes, sans corpse=
     darlene = { "611497886", "1134557996", "2120896689", "3998911546", "3957645400",
         "1182033778", "674887514", "2957274911", "3572312285",   -- E22-T14 : sans knows, ignores ni secret
-        "3580043489" },   -- E24-T01 : radio=<niveau>
+        "3580043489",   -- E24-T01 : radio=<niveau>
+        "1476664509" },   -- E24-T03 : socle commun des notes, sans corpse=
     cody = { "3131466986", "673421833", "4032160620", "318842949", "1196981398",
         "1976566616", "1464760889", "2238673311",   -- E22-T14 : sans knows, ignores ni secret
-        "3427747601" },   -- E24-T01 : radio=<niveau>
+        "3427747601",   -- E24-T01 : radio=<niveau>
+        "69681901" },   -- E24-T03 : socle commun des notes, sans corpse=
     whitaker = { "4044533006", "3352221633", "2075828338", "1570277033",   -- E22-T14
         "3237976040" },   -- E24-T01 : radio=<niveau>
     nightowl = { "4175146858", "225312038", "1263236001", "326850688",   -- E22-T14
-        "2694918921" },   -- E24-T01 : radio=<niveau>
+        "2694918921",   -- E24-T01 : radio=<niveau>
+        "1281699557" },   -- E24-T03 : socle commun des notes, sans corpse=
     gus = { "2508366732", "2733824589", "2930912175", "1078646290", "1260582370", "3810027509", "4079538633",
         "3516644979", "78816791",   -- E22-T14 : sans knows, ignores ni secret
         "2872044854",              -- E23-T06 : accept=, troc par listes
-        "3627338360" },             -- E24-T01 : radio=<niveau>
+        "3627338360",              -- E24-T01 : radio=<niveau>
+        "3160852052" },   -- E24-T03 : socle commun des notes, sans corpse=
 }
 
 local function fresh()

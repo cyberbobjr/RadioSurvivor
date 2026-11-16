@@ -30,7 +30,8 @@ the visits as a named step, adds stock items from the item list (no item name ty
 la sélection"), shows each as its name, no weight, its Module.Type as tooltip only, replaces a line from the same list
 and removes one, ticks a category and adds an item to what the voice accepts (E23-T06), makes a paquet from a typed
 name (its id made and hidden) with an item from the list, picks the margin card "Rapace" then an exact value; the note
-panel counts its text, puts the frequency in by its button and switches on the corpses; the voice is saved and accepted by the game reader (screenshots atelier-rewards-fr.png,
+panel counts its text, puts the frequency in by its button, says the note is already hidden everywhere papers are
+found and adds a themed place under "Aussi dans..." (E24-T03); the voice is saved and accepted by the game reader (screenshots atelier-rewards-fr.png,
 atelier-items-fr.png, atelier-trade-fr.png, atelier-note-fr.png).
 Stock grid and item browser (user 2026-11-15), in French, on a shipped voice (Boone): two stock lines
 have their cells at the same x and width at 1280 and 800 px; "Ajouter ce qu'elle vend" opens the
@@ -320,7 +321,7 @@ def check_stock(page, t: dict, lang: str, path: Path, voice_id: str, shots: Path
     """E22-T12 and the simpler [trade] and [note] panels: a reward set to "Often"; a meeting point ticked among the
     voice's places (after the way to the Places panel), arrival, visits and hours picked, stock items ticked in the
     item list and added, one replaced and one removed, what the voice accepts (a category, an item), a lot made and used by the stock line, the margin in percent; the note's text with its
-    live count, the corpses switch and a loot list; saved and accepted by the game reader (screenshots
+    live count, the common base stated and a themed loot list; saved and accepted by the game reader (screenshots
     atelier-rewards-fr.png, atelier-items-fr.png, atelier-trade-fr.png, atelier-note-fr.png)."""
     page.set_viewport_size({'width': 1280, 'height': 900})
     show_text(page, t, True)
@@ -488,18 +489,29 @@ def check_stock(page, t: dict, lang: str, path: Path, voice_id: str, shots: Path
     expect(note.locator('.note-line .counter').nth(1)).to_have_class(re.compile(r'\bover\b'))
     long_line.fill('Passe le soir')
     expect(preview).to_contain_text('text=Mae écoute sur %1 MHz')
-    note.get_by_role('switch').check()
-    expect(preview).to_contain_text('corpse=yes')
+    expect(note).to_contain_text(t['advanced.note.help'])
+    expect(note.locator('section.question h4', has_text=t['note.q_also'])).to_be_visible()
     if note.get_by_text(t['section.advanced'], exact=True).count():
         failures.append(f'{lang}: the note of a new voice shows the advanced item and key')
     loot = note.locator('.row').filter(has=page.get_by_text(t['key.note.loot'], exact=True))
-    loot.get_by_role('button', name=t['stock.add_list']).click()
-    loot.get_by_label(t['stock.list'].replace('{n}', '1'), exact=True).fill('KitchenDryFood')
+    # E24-T03: themed places picked in the browser (kind, search word, tick), never typed; the line is read-only.
+    loot.locator('button.add-places').click()
+    dialog = page.locator('dialog.item-browser.multi')
+    kinds = dialog.locator('select.browser-category option').count()
+    dialog.locator('select.browser-category').select_option('home')
+    dialog.get_by_label(t['lootbrowser.search'], exact=True).fill('kitchen dry')
+    dialog.locator('[role=option][data-type="KitchenDryFood"]').click()
+    dialog.locator('.browser-add').click()
+    if loot.locator('input[type=text]').count():
+        failures.append(f'{lang}: a themed place line can still be typed')
+    expect(loot.locator('.loot-name').first).to_have_text('Kitchen dry food')
+    expect(loot.locator('.loot-name').first).to_have_attribute('title', 'KitchenDryFood')
     loot.locator('button[data-chance="often"]').click()
     expect(preview).to_contain_text('loot=KitchenDryFood:4')
-    if note.locator('datalist option').count() < 500:
-        failures.append(f'{lang}: the loot list field does not offer the lists of the game')
-    print(f'{lang}: note text with its count (22 / 40, too long line flagged), corpse=yes, loot=KitchenDryFood:4')
+    if kinds < 6:
+        failures.append(f'{lang}: the place browser offers {kinds - 1} kinds (5 expected)')
+    print(f'{lang}: note text with its count (22 / 40, too long line flagged), common base stated, '
+          f'themed place picked in the browser ({kinds - 1} kinds, no typing): loot=KitchenDryFood:4')
     note.evaluate("d => d.scrollIntoView({block: 'start'})")
     page.screenshot(path=str(shots / f'atelier-note-{lang}.png'))
     page.locator('#save').click()

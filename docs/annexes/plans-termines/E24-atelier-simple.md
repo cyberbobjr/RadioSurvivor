@@ -2,12 +2,13 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** terminée — 2 / 2 tâche(s) terminée(s).
+**Avancement.** terminée — 3 / 3 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
 | ☑ | E24-T01 | Fréquence choisie par la radio nécessaire | `testé hors jeu` | hors jeu | — |
 | ☑ | E24-T02 | Passe de simplicité sur tous les écrans de l'atelier | `testé hors jeu` | hors jeu | E24-T01 |
+| ☑ | E24-T03 | Socle commun des notes de fréquence | `testé hors jeu` | hors jeu | E24-T02 |
 
 <!-- fin du tableau de bord -->
 
@@ -40,6 +41,9 @@ de nombres : il choisit dans des listes, des cases et des curseurs, avec des mot
   missions, marchand) coche les actions qui vont avec.
 - 2026-11-16 — **E24-T02** (confirmé par défaut) : « paquet » à l'écran au lieu de « lot » (le format garde `group=`) ;
   les 95 corrections de présentation de l'audit sont appliquées ; la charte de l'atelier (8 règles) entre dans la doc.
+- 2026-11-16 — **E24-T03** (utilisateur) : les notes de fréquence de toutes les voix doivent se trouver en jeu ; socle
+  commun pour toute voix qui a une note (lieux à papiers, boîtes à gants, zombies même sans talkie, chance faible), plus
+  ses listes à thème par-dessus ; l'atelier applique ce socle d'office.
 
 ## Hors périmètre
 
@@ -62,3 +66,12 @@ de nombres : il choisit dans des listes, des cases et des curseurs, avec des mot
   - Faire : décision E24-T02 ; audit de tous les écrans, lots par liste, corrections de présentation, charte.
   - Accepté si : tests de l'atelier, essai automatique, captures refaites et regardées.
   - Preuve : 2026-11-16, audit `docs/annexes/audits/audit-ux-atelier-2026-11-16.md` appliqué (corrections de présentation, Journal gardé) ; identifiants fabriqués et cachés (voix, lieux, missions, paquets, listes propres, état de l'histoire) ; crans nommés avec « Valeur exacte » (`scales.js`) ; marge en trois cartes ; langue de la personnalité par `language=` ; état de l'histoire en phrase (`story.js`) ; cartes de genre de voix (`presets.js`) ; paquets (`paquets.js`) ; charte `docs/annexes/conception/charte-atelier.md` ; wiki 13 et 14, CHANGELOG. Bancs : `test_atelier_simple` 7, `test_atelier_ui` 20, autres `test_atelier_*` OK, `test_wiki_voice_examples` 5 ; `atelier_smoke` `summary: OK (2 locales, 0 failure(s))` ; captures refaites. Restes : aide de l'IA en anglais seulement, noms de butin non traduits, noms de paquets sans accents, `app.js` à découper.
+
+- [x] **E24-T03** — Socle commun des notes de fréquence
+  - État : `testé hors jeu`
+  - Cible : `hors jeu`
+  - Dépend de : E24-T02
+  - Faire : décision E24-T03 ; socle de listes de butin à papiers, boîtes à gants et zombies appliqué par le jeu à
+    toute note déclarée ; listes à thème de la fiche en plus ; atelier, wiki, CHANGELOG.
+  - Accepté si : bancs du socle (toute note dans le socle, thème ajouté, zombie sans talkie), atelier.
+  - Preuve : 2026-11-16, socle `server/RadioSurvivor/RS_NotesBase.lua` (12 listes à papiers vanilla 42.22 à 0,1, `GloveBox` 0,5, zombies 2 %, porteur de talkie 35 %, × NoteRarity) appliqué à toute note déclarée ; `loot=`/`glovebox=` = lieux à thème en plus ; `corpse=` retiré ; fiches allégées, empreintes `KNOWN_DELIVERED` ; atelier : socle dit en clair, « Aussi dans… » choisi dans une liste filtrable par genre (`lootindex.js`), sans saisie ; `notes-frequences.md` (calcul : environ 5,4 % par meuble à papiers à 4 tirages), wiki 01, 03, 10, 12, 13, 14, CHANGELOG. Bancs : `test_notes` 35, `test_persona_sections` 12, `test_personas` 17, `test_personas_server` 106, `test_wiki_voice_examples` 5, `test_atelier_*` OK ; `atelier_smoke` `summary: OK (2 locales, 0 failure(s))` ; luacheck 0 avertissement. Reste en jeu : suite `rs.notes`, butin réel.

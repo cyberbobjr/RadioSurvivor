@@ -457,17 +457,16 @@ Two complete traders, one on the road and one through a hiding spot: [Voice exam
 
 ### The frequency note
 
-Open **Frequency note** and tick **The frequency is on a note**. Players will find in the loot a **handwritten note**
-with your text.
+Open **Frequency note** and tick **The frequency is on a note**. Players will find a **handwritten note** with your
+text. It is already hidden **everywhere papers are found, in glove boxes and on zombies**: nothing to choose.
 
 ![Rosie's note: three lines, two places to find it](../../images/screenshots/atelier/atelier-en-07-note.png)
 
 | Setting | What it changes |
 |---|---|
 | **What is written** | What the player reads when inspecting the note. 8 lines at most (**+ Add a line**), 40 bytes per line: an accented letter counts as two, and the "N / 40" counter shows it. **+ Add my frequency** writes the word **[frequency]** where her frequency will appear. No `< > ^ %` signs. The note stays in the language you wrote it in. |
-| **It is found in** | The game's furniture or containers where the note can appear, with their plain names (the technical name is in the tooltip), each with **Rarely**, **Normally** or **Often**. One line per piece of furniture (16 at most). |
-| **Glove boxes** | The same, in vehicle glove boxes. Optional. |
-| **A zombie can carry it** | A dead body carrying a walkie-talkie may have the note on it. Off by default. |
+| **Also in… → Other furniture** | Optional: themed places on top (a fishing store for a fisherman), added with **+ Add furniture**, which opens the list of the game's furniture and containers (search by word, filter by kind: home, offices, shops, crates; tick, then **Add selected**; nothing to type), shown with their plain names (the technical name is in the tooltip), each with **Rarely**, **Normally** or **Often**. One line per piece of furniture (16 at most). |
+| **Also in… → Other glove boxes** | The same, for the glove boxes of special vehicles (fisherman, mail…). Optional. |
 
 The voices of the mod use their own note item: their panel says "This note is set by the mod." and keeps those settings
 in **Advanced settings**. A new voice does not need them: the note and the call sentence are written in the sheet

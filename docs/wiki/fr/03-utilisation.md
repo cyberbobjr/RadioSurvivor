@@ -7,9 +7,12 @@ Un guide pas à pas pour le joueur. Le pont doit tourner pour que les voix et le
 
 ## 1. Trouver une fréquence
 
-Les voix émettent sur des fréquences tirées pour chaque partie. Elles sont écrites sur des **notes** trouvées dans le
-butin : page de journal radio, fiche de patient, avis de la Garde nationale, note griffonnée, prospectus de Night Owl.
-Chaque note se trouve là où sa voix l'aurait laissée (fréquence : option sandbox **Notes de fréquences dans le butin**).
+Les voix émettent sur des fréquences tirées pour chaque partie. Elles sont écrites sur des **notes** : page de journal
+radio, fiche de patient, avis de la Garde nationale, note griffonnée, prospectus de Night Owl. Toute note se trouve
+partout où il y a des papiers (bureaux de travail et de maison, classeurs, tables de chevet, tiroirs de cuisine,
+bureaux de poste, de police et d'école), dans les boîtes à gants des voitures et sur les zombies (rarement sur un
+zombie quelconque, bien plus souvent sur un zombie qui porte un talkie), et aussi là où sa voix l'aurait laissée
+(fréquence : option sandbox **Notes de fréquences dans le butin**).
 
 Clic droit sur la note → **Inspecter** (ou **Lire**) pour l'ouvrir. Walt est la première voix à chercher : il répond à
 toute heure.
@@ -141,8 +144,8 @@ Chaque ville vanilla a son marchand radio, chacun sur sa fréquence, avec son hi
 | Ekron | Ezra Overby, le prédicateur | planque |
 | Fallas Lake | Maxine Whitlock, la gérante du camping | planque |
 
-Leurs fréquences se trouvent comme celles des autres voix : un mot manuscrit dans le butin (magasins, tiroirs,
-boîtes à gants selon le marchand), à **Inspecter** ; un marchand peut aussi vous donner la fréquence d'un voisin.
+Leurs fréquences se trouvent comme celles des autres voix : un mot manuscrit trouvé avec les papiers, dans les
+boîtes à gants, sur les zombies et dans les lieux propres au marchand, à **Inspecter** ; un marchand peut aussi vous donner la fréquence d'un voisin.
 Un marchand vend son stock à la radio. Votre première offre ferme réserve son
 **passage** pour votre groupe : il vous donne le lieu, la nuit et le signal, et le lieu est marqué sur votre carte. Un
 autre marchand a son propre passage : réserver chez l'un ne bloque pas l'autre. Pendant la fenêtre, montrez le signal

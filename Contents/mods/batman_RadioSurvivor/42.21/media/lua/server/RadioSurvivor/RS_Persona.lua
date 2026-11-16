@@ -757,14 +757,14 @@ end
 -- document, Module.Type d'un script d'objets dont OnCreate est RadioSurvivorNotes.onCreate ; plusieurs voix peuvent
 -- partager un objet), key (racine des traductions Print_Media_<module>_<key>_title et _info,
 -- Print_Text_<module>_<key>_info), loot= repetable (liste procedurale vanilla:poids), glovebox= repetable (liste
--- VehicleDistributions:poids), corpse (yes ou no, defaut no : note possible sur un mort qui porte un talkie).
+-- VehicleDistributions:poids) : listes a theme, en plus du socle commun de toute note (RS_NotesBase, E24-T03).
 -- E22-T07 : ou text= repetable (une ligne de la page chacune, %1 = frequence) a la place de item et key : la note est
 -- alors la note manuscrite generique du mod (RS_Notes.GENERIC_ITEM), qui porte ce texte.
 local MAX_NOTE_LISTS = 16
 local MAX_LOOT_WEIGHT = 100
 
 local function noteOpen(sec)
-    sec.note = { loot = {}, glovebox = {}, corpse = false, text = {} }
+    sec.note = { loot = {}, glovebox = {}, text = {} }
 end
 
 local function noteList(note, key, value, line)
@@ -795,11 +795,6 @@ local function noteTextKey(note, _, value, line)
     note.key = value
 end
 
-local function noteCorpse(note, _, value, line)
-    if value ~= "yes" and value ~= "no" then fail(line, "bad corpse '" .. value .. "' (yes or no)") end
-    note.corpse = value == "yes"
-end
-
 local function noteText(note, _, value, line)
     if #note.text >= MAX_NOTE_LINES then
         fail(line, "too many note text lines (" .. tostring(MAX_NOTE_LINES) .. " at most)")
@@ -807,8 +802,7 @@ local function noteText(note, _, value, line)
     note.text[#note.text + 1] = writtenText(value, "note text", line, MAX_NOTE_LINE_BYTES)
 end
 
-local NOTE_KEYS = { item = noteItem, key = noteTextKey, loot = noteList, glovebox = noteList, corpse = noteCorpse,
-    text = noteText }
+local NOTE_KEYS = { item = noteItem, key = noteTextKey, loot = noteList, glovebox = noteList, text = noteText }
 
 local function noteKey(sec, key, value, line)
     local reader = NOTE_KEYS[key]

@@ -463,7 +463,6 @@ text=Wendell écoute sur %1
 text=Avant l'aube
 loot=PostOfficeBoxes:2
 glovebox=PostalGloveBox:2
-corpse=yes
 
 [prompt]
 You are Wendell Ames, 63, the mail carrier of March Ridge, Kentucky, for forty years. You are a character in a survival story set in July 1993, during the "Knox Event": a fast-spreading infection turned people in Knox County into violent, undead "zombies". The army sealed the area behind a fence: the Knox Exclusion Zone.

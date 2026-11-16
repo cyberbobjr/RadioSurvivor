@@ -509,9 +509,10 @@ mod keep their own item and translations (`item=` and `key=`).
 | `text` | Repeatable: one line of the note, in the language of your choice, 40 characters at most (accented letters count twice), 8 lines at most; `%1` = frequency of the game, on one line at least. No `<`, `>` or `^`, and `%` only in `%1`. With `text`, write neither `item` nor `key`. |
 | `item` | Without `text`: the document item, `Module.Type` of an item script of the mod whose `OnCreate` is `RadioSurvivorNotes.onCreate` (`RadioSurvivor.NoteTrade`: a shared handwritten note; several voices may share an item, each new note carries one of them). |
 | `key` | Without `text`: root of the translations: `Print_Media_RadioSurvivor_<key>_title`, `Print_Media_RadioSurvivor_<key>_info` (layout, `%1` = frequency) and `Print_Text_RadioSurvivor_<key>_info` (transcript), in `media/lua/shared/Translate/<language>/`. |
-| `loot` | Optional, repeatable: `list:weight`, a vanilla procedural list (`ProceduralDistributions`) and its weight (about the per cent per roll). |
-| `glovebox` | Optional, repeatable: `list:weight` in `VehicleDistributions` (glove box). |
-| `corpse` | Optional: `yes` so that a dead body carrying a walkie-talkie may have it (`no` by default). |
+| `loot` | Optional, repeatable: a themed place, `list:weight`, a vanilla procedural list (`ProceduralDistributions`) and its weight (about the per cent per roll). |
+| `glovebox` | Optional, repeatable: a themed glove box, `list:weight` in `VehicleDistributions`. |
+
+Every note is hidden **everywhere papers are found** with no line to write: office and home desks, office drawers, filing cabinets, bedside tables, kitchen drawers, post office supplies, police and school desks, the glove boxes of ordinary cars, and on zombies (a small chance on any zombie, a higher one on a zombie carrying a walkie-talkie). `loot=` and `glovebox=` only add **themed places** on top (a fishing store for a fisherman); on a place of the common base, the higher weight wins.
 
 ```ini
 [note]
@@ -519,7 +520,6 @@ text=Need a hand?
 text=Ada listens on %1 MHz,
 text=every evening after 7 pm.
 loot=FishingStoreGear:2
-glovebox=GloveBox:0.5
 ```
 
 With an item and translations of the mod (shipped voices):

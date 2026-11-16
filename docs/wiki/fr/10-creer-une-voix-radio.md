@@ -521,9 +521,10 @@ gardent leur propre objet et leurs traductions (`item=` et `key=`).
 | `text` | Répétable : une ligne de la note, écrite dans la langue de votre choix, 40 caractères au plus (accents comptés double), 8 lignes au plus ; `%1` = fréquence de la partie, sur une ligne au moins. Ni `<`, ni `>`, ni `^`, et `%` seulement dans `%1`. Avec `text`, n'écrivez ni `item` ni `key`. |
 | `item` | Sans `text` : l'objet du document, `Module.Type` d'un script d'objets du mod dont `OnCreate` est `RadioSurvivorNotes.onCreate` (`RadioSurvivor.NoteTrade` : mot manuscrit partagé ; plusieurs voix peuvent partager un objet, chaque note neuve porte l'une d'elles). |
 | `key` | Sans `text` : racine des traductions : `Print_Media_RadioSurvivor_<key>_title`, `Print_Media_RadioSurvivor_<key>_info` (mise en page, `%1` = fréquence) et `Print_Text_RadioSurvivor_<key>_info` (transcription), dans `media/lua/shared/Translate/<langue>/`. |
-| `loot` | Facultatif, répétable : `liste:poids`, une liste procédurale vanilla (`ProceduralDistributions`) et son poids (environ le pourcentage par tirage). |
-| `glovebox` | Facultatif, répétable : `liste:poids` dans `VehicleDistributions` (boîte à gants). |
-| `corpse` | Facultatif : `yes` pour qu'un mort qui porte un talkie puisse l'avoir sur lui (`no` par défaut). |
+| `loot` | Facultatif, répétable : un lieu à thème, `liste:poids`, une liste procédurale vanilla (`ProceduralDistributions`) et son poids (environ le pourcentage par tirage). |
+| `glovebox` | Facultatif, répétable : une boîte à gants à thème, `liste:poids` dans `VehicleDistributions`. |
+
+Toute note est cachée **partout où il y a des papiers**, sans ligne à écrire : bureaux de travail et de maison, tiroirs de bureau, classeurs, tables de chevet, tiroirs de cuisine, fournitures de la poste, bureaux de police et d'école, boîtes à gants des voitures ordinaires, et sur les zombies (petite chance sur tout zombie, plus forte sur un zombie qui porte un talkie). `loot=` et `glovebox=` ajoutent seulement des **lieux à thème** par-dessus (un magasin de pêche pour un pêcheur) ; sur un lieu du socle commun, le poids le plus fort l'emporte.
 
 ```ini
 [note]
@@ -531,7 +532,6 @@ text=Besoin d'un coup de main ?
 text=Ada écoute sur %1 MHz,
 text=chaque soir après 19 h.
 loot=FishingStoreGear:2
-glovebox=GloveBox:0.5
 ```
 
 Avec un objet et des traductions du mod (voix livrées) :
