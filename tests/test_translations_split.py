@@ -226,6 +226,10 @@ ADDED |= {
 # E23-T06..T08: trade by lists of items (agreed deal in the notebook, nothing left, trader never left alone).
 ADDED |= {'IGUI_RS_Radio_trade', 'IGUI_RS_TradeDeal', 'IGUI_RS_RepReason_TradeNoDrop', 'IGUI_RS_Event_trade_nodrop',
           'IGUI_RS_TradeRun_Cancel_watched'}
+# E24-T01: frequency debug panel, radio needed by level and fixed or drawn frequency instead of bands.
+ADDED |= {'IGUI_RS_FreqDebug_Col_draw', 'IGUI_RS_FreqDebug_Drawn'} | {
+    f'IGUI_RS_FreqDebug_Radio_{level}' for level in ('any_talkie', 'good_talkie', 'pro_talkie', 'tactical', 'military')}
+REMOVED |= {'IGUI_RS_FreqDebug_Col_ranges', 'IGUI_RS_FreqDebug_Radio_any', 'IGUI_RS_FreqDebug_Radio_high_tier'}
 
 
 class TranslationSplitTests(unittest.TestCase):

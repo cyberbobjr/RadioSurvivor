@@ -3,7 +3,7 @@
 // its role here, never a colour or a size.
 
 import { h, uid } from './dom.js';
-import { CHANCES, chanceLevel } from './values.js';
+import { CHANCES, chanceLevel, freqToScreen, freqToSheet } from './values.js';
 
 // Role of a button -> Pico classes (theme.css gives the colours of primary, secondary, contrast and danger).
 const BUTTON_KINDS = {
@@ -33,7 +33,7 @@ export function removeButton(t, onClick, label = null) {
 export function row(label, control, help = null, hintButton = null) {
   const id = uid();
   return h('div', { class: 'row' },
-    h('div', { class: 'lab' }, h('label', { for: id, text: label }), hintButton),
+    h('div', { class: 'lab' }, h('label', { for: id }, label), hintButton),
     h('div', { class: 'ctl' }, control(id), help && h('p', { class: 'help', text: help })));
 }
 
@@ -81,13 +81,13 @@ export function lineEditor(t, items, { draw, blank = null, write, addLabel = nul
       tools && tools(addLines, list)));
 }
 
-// Check boxes of `options` [{value, label, help, title, hint}] (hint: "?" button of help.js; title: the tooltip, the
-// help by default), `selected` a list of values.
+// Check boxes of `options` [{value, label, help, title, hint, locked}] (hint: "?" button of help.js; title: the tooltip,
+// the help by default; locked: always ticked, cannot be unticked), `selected` a list of values.
 export function checkboxes(options, selected, onChange, attrs = {}) {
   const chosen = new Set(selected);
   return h('div', { class: 'checks', ...attrs },
     options.map((o) => h('label', { class: 'check', title: o.title ?? o.help ?? null, 'data-value': o.value },
-      h('input', { type: 'checkbox', checked: chosen.has(o.value), onChange: (e) => {
+      h('input', { type: 'checkbox', checked: chosen.has(o.value) || o.locked, disabled: o.locked, onChange: (e) => {
         if (e.target.checked) chosen.add(o.value); else chosen.delete(o.value);
         onChange(options.map((x) => x.value).filter((v) => chosen.has(v)).concat([...chosen].filter((v) => !options.some((x) => x.value === v))));
       } }),
@@ -141,6 +141,61 @@ export function switchBox(label, checked, onChange, attrs = {}) {
   return h('label', { class: 'switch' },
     h('input', { type: 'checkbox', role: 'switch', checked, ...attrs, onChange: (e) => onChange(e.target.checked) }),
     h('span', { text: label }));
+}
+
+// Closed choice as big cards (charter rule 7): `options` [{value, label, help, icon, hint}], one picked. `name` groups the
+// radio inputs; `attrs` goes to the group (id, aria-label, class).
+export function cards(name, options, current, onChange, attrs = {}) {
+  return h('div', { role: 'radiogroup', ...attrs, class: `choice-cards ${attrs.class ?? ''}`.trim() },
+    options.map((o) => h('label', { class: 'choice-card', 'data-value': o.value, title: o.title ?? null },
+      h('input', { type: 'radio', name, value: o.value, checked: o.value === current, onChange: () => onChange(o.value) }),
+      o.icon && h('span', { class: 'card-icon', 'aria-hidden': 'true', text: o.icon }),
+      h('b', { text: o.label }), o.help && h('small', { text: o.help }), o.hint ?? null)));
+}
+
+// A whole number with "-" and "+" buttons (charter rule 7: a quantity is a stepper). Empty stays empty until a button
+// is pressed (`emptyLabel` says what empty means, e.g. "no limit").
+export function stepper(value, onChange, { min = 0, max = 999, label, emptyLabel = null, id = null } = {}) {
+  const input = h('input', { type: 'number', min, max, step: 1, inputmode: 'numeric', class: 'num', id,
+    value: value ?? '', placeholder: emptyLabel ?? '', 'aria-label': label,
+    onInput: (e) => onChange(e.target.value.trim()) });
+  const move = (delta) => {
+    const now = input.value.trim() === '' ? (delta > 0 ? min - 1 : min + 1) : Number(input.value);
+    const next = Math.max(min, Math.min(max, now + delta));
+    input.value = String(next);
+    onChange(input.value);
+  };
+  return h('span', { class: 'stepper' },
+    h('button', { type: 'button', class: 'outline secondary step-btn', 'aria-label': `${label} -`, onClick: () => move(-1) }, '−'),
+    input,
+    h('button', { type: 'button', class: 'outline secondary step-btn', 'aria-label': `${label} +`, onClick: () => move(1) }, '+'));
+}
+
+// "Between [n] and [m]": a quantity drawn by the game ("2-4", or "3" for always 3) as two steppers in words.
+export function rangeStepper(t, value, onChange, { min = 0, max = 999, id = null } = {}) {
+  const [lo, hi] = String(value ?? '').split('-').map((v) => v.trim());
+  const current = { min: lo ?? '', max: hi ?? lo ?? '' };
+  const write = () => onChange(current.max === '' || current.max === current.min ? current.min : `${current.min}-${current.max}`);
+  return h('span', { class: 'inline range' }, t('field.between'),
+    stepper(current.min, (v) => { current.min = v; write(); }, { min, max, label: t('field.min'), id }),
+    t('field.and'),
+    stepper(current.max, (v) => { current.max = v; write(); }, { min, max, label: t('field.max') }));
+}
+
+// A text the players read where the voice's frequency appears (call=, note lines): the sheet's %1 is shown as the word
+// t('freq.word') and the button "Add my frequency" puts it at the cursor (charter rule 3: no symbol to type).
+// `onChange(sheetText)`; returns {el, input}.
+export function freqText(t, value, onChange, attrs = {}) {
+  const word = t('freq.word');
+  const input = h('input', { type: 'text', ...attrs, value: freqToScreen(value, word),
+    onInput: (e) => onChange(freqToSheet(e.target.value, word)) });
+  const add = button('add', { class: 'freq-add', onClick: () => {
+    const at = input.selectionStart ?? input.value.length;
+    input.value = `${input.value.slice(0, at)}${word}${input.value.slice(input.selectionEnd ?? at)}`;
+    input.focus();
+    onChange(freqToSheet(input.value, word));
+  } }, t('freq.add'));
+  return { el: h('div', { class: 'inline grow' }, input, add), input };
 }
 
 // "from [time] to [time]": `range` [from, to] in HH:MM, `onChange(range)` at each change.

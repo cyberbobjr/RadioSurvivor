@@ -967,7 +967,8 @@ retirée).
 Validation d'ensemble, solo puis MP : [validation/E05-reseau-voix.md](validation/E05-reseau-voix.md), qui renvoie aux
 essais ci-dessous. Suites : `RST.server("rs.voices")` (lecture seule, 5 tests, aussi dans l'exécution automatique du
 § 6) et `RST.server({ suite = "rs.voices", tags = { "server", "world" } })` (plus `rs.voices.world`, 3 tests : phrases
-simulées sur chaque voix, poste ordinaire refusé par une voix `high_tier`, fiche modifiée puis restaurée ; partie
+simulées sur chaque voix, talkie le plus simple hors de portée d'une voix `radio=tactical` et talkie tactique qui obtient
+sa réponse (E24-T01), fiche modifiée puis restaurée ; partie
 `rstest*`, pont arrêté ou `--offline`, jeu non en pause).
 
 ### Manuel (solo, court)
@@ -975,13 +976,13 @@ simulées sur chaque voix, poste ordinaire refusé par une voix `high_tier`, fic
 1. Nouvelle partie `rstest-voix`, talkie en main, allumé, 145,0 MHz. Journal : `installed the bundled sheet`,
    `voice 'walt' loaded`, `channel of voice 'walt' created on 145.0 MHz`. Clic droit sur la radio → « Parler sur
    145.0 MHz » → Walt répond (pont lancé).
-2. Sans quitter : dans `walt.txt`, `frequencies=147.0`, enregistrer. Dans les 30 s : `channel ... removed from 145.0`,
+2. Sans quitter : dans `walt.txt`, remplacer `radio=any_talkie` par `frequency=147.0`, enregistrer. Dans les 30 s : `channel ... removed from 145.0`,
    `created on 147.0`. Sur 145,0 : la phrase part, plus de réponse (aucun message) ; régler 147,0 → Walt répond.
 3. `state=silent` : la phrase part sur la radio, aucune réponse, rien dans `requests.txt`. `state=gone` : pareil,
    sans aucun message (E05-T08). Revenir à `state=active`.
-4. `frequencies=147.1` (hors pas) : `ERROR: ... walt.txt refused, line N: frequency 147.1 is not on the 0.2 MHz step
+4. `frequency=147.1` (hors pas) : `ERROR: ... walt.txt refused, line N: frequency 147.1 is not on the 0.2 MHz step
    of the radios; the previous valid version stays in service` ; Walt répond toujours sur 147,0.
-5. Remettre `frequencies=145.0` (ou supprimer `walt.txt` hors jeu : il est recopié au prochain chargement du monde).
+5. Remettre `radio=any_talkie` (ou supprimer `walt.txt` hors jeu : il est recopié au prochain chargement du monde).
 
 Écart à signaler : une fiche de l'admin écrasée, une chaîne restée sur l'ancienne fréquence, une erreur Lua de
 `RadioSurvivor/`.
@@ -992,7 +993,7 @@ Sur une partie solo **existante** installée avant E05-T07 (fiches à `frequenci
 `personas-fingerprints.txt` dans `Lua\batman_RadioSurvivor\`), jamais retouchées à la main :
 
 1. Charger la partie. Journal : une ligne `INFO: voice '<id>' updated to the delivered version` par fiche ; les fiches
-   portent maintenant `frequency_range=` ; `personas-fingerprints.txt` existe (`RSFP1` puis une ligne par fiche) ;
+   portent maintenant `radio=<niveau>` (E24-T01) ; `personas-fingerprints.txt` existe (`RSFP1` puis une ligne par fiche) ;
    `voice '<id>' drew ...` pour chaque voix.
 2. Quitter, ajouter une ligne `# essai` dans `gus.txt`, recharger : `WARNING: voice 'gus' modified by the admin,
    delivered version not applied` ; `gus.txt` garde la ligne ; aucune autre fiche touchée.
@@ -1006,18 +1007,18 @@ Aucune voix n'est livrée en plus de Walt (E05-T04) : l'essai crée une voix jet
 (`--offline` suffit : chaque voix répond « <Prénom>, hors ligne. Je reçois ... »).
 
 1. Partie `rstest-voix`. Dans `personas\`, créer `essai.txt` :
-   `format=1`, `id=essai`, `name=Essai Banc`, `frequencies=150.0`, `radio=high_tier`,
+   `format=1`, `id=essai`, `name=Essai Banc`, `frequency=320.0` (radio nécessaire déduite : talkie tactique),
    `budget=2`, puis `[prompt]` et une ligne de texte. Dans les 30 s :
-   `voice 'essai' loaded`, `channel of voice 'essai' created on 150.0 MHz`.
-2. Talkie ordinaire (`WalkieTalkie1` à 4) réglé sur 150,0 : le menu propose « Parler sur 150.0 MHz » ; la phrase
-   part, **aucune réponse**, rien dans `requests.txt`.
-3. Poste haut de gamme (`WalkieTalkie5`, ou `ManPackRadio` sur le dos) sur 150,0 : réponse « Essai, hors ligne... »
-   sur 150,0 ; `requests.txt` portait `voice=essai`. Revenir sur 145,0 : Walt répond comme avant (« Walt, hors
+   `voice 'essai' loaded`, `channel of voice 'essai' created on 320.0 MHz`.
+2. Talkie plus simple (`WalkieTalkie1` à 3) : 320,0 est hors de sa portée, il ne peut pas s'y régler ; aucune
+   demande dans `requests.txt`.
+3. Talkie tactique (`WalkieTalkie4`), talkie de l'armée ou radio HAM sur 320,0 : réponse « Essai, hors ligne... »
+   sur 320,0 ; `requests.txt` portait `voice=essai`. Revenir sur 145,0 : Walt répond comme avant (« Walt, hors
    ligne... »). Dans le dossier d'échange : `history_<empreinte>.json` (Walt) et `history_<empreinte>_essai.json`,
    chacun avec ses seuls messages.
-4. Sur 150,0, encore deux messages (10 s d'écart) : le premier reçoit une réponse, le second n'obtient que le silence
+4. Sur 320,0, encore deux messages (10 s d'écart) : le premier reçoit une réponse, le second n'obtient que le silence
    (budget 2, sans message depuis E05-T08) ; Walt répond toujours sur 145,0.
-5. Vider `essai.txt` (0 octet) : `voice 'essai' removed`, 150,0 ne répond plus.
+5. Vider `essai.txt` (0 octet) : `voice 'essai' removed`, 320,0 ne répond plus.
 
 Écart à signaler : une réponse de la voix d'essai sur 145,0 (ou de Walt sur 150,0), un historique qui mélange les
 deux voix, une réponse à un poste ordinaire.

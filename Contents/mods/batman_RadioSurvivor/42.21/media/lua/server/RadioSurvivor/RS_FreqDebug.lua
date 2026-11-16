@@ -16,11 +16,13 @@
 -- REFUSAL_LOG_MS au plus (refus tus comptés).
 --
 -- Contenu (lecture seule, copie de valeurs simples, kHz) : FreqDebug.view()
---   { enabled, voices = { { id, name, state, holds, fixed, frequencies, served, ranges = { { low, high } }, radio,
+--   { enabled, voices = { { id, name, state, holds, fixed, frequencies, served, radio,
 --     listen = { { from, to } } (minutes du jour ; vide = toujours), language, chronicler } } dans l'ordre de
 --     chargement des fiches (RS_Personas.ids),
 --     others = { { kind = "bulletin", voice, khz (nil : chroniqueur pas à l'antenne), hour } } : autres fréquences
 --     du mod (bulletin du soir du chroniqueur, E14-T02 ; le mod n'a aucune chaîne hors des chaînes des voix) }.
+-- fixed = fréquence fixée par la fiche (frequency=), sinon tirée pour la partie dans la zone de sa radio (radio,
+-- niveau de RS_RadioLevels, déduit d'une fréquence fixe : E24-T01).
 -- frequencies = fréquences de la voix pour cette partie (fixes ou tirées) ; served = celles qu'une chaîne du module
 -- sert réellement (une fréquence non servie : conflit avec une autre voix ou une chaîne étrangère, voix gone/dead).
 --
@@ -109,12 +111,12 @@ end
 local function voiceView(id, chron)
     local sheet = Personas.get(id)
     if sheet == nil then return nil end
-    local ranges, listen = {}, {}
-    for i, r in ipairs(sheet.frequency_ranges or {}) do ranges[i] = { low = r.low, high = r.high } end
+    local listen = {}
     for i, r in ipairs(sheet.listen or {}) do listen[i] = { from = r.from, to = r.to } end
     return { id = id, name = sheet.name, state = sheet.state, holds = Personas.holdsFrequencies(sheet) == true,
-        fixed = #ranges == 0, frequencies = copyList(Personas.frequencies(id)), served = copyList(Personas.served(id)),
-        ranges = ranges, radio = sheet.radio, listen = listen, language = sheet.language, chronicler = id == chron }
+        fixed = sheet.frequency ~= nil, frequencies = copyList(Personas.frequencies(id)),
+        served = copyList(Personas.served(id)), radio = sheet.radio, listen = listen, language = sheet.language,
+        chronicler = id == chron }
 end
 
 -- Toutes les fréquences de la partie (voir l'en-tête). Lecture seule : rien n'est relu ni écrit.

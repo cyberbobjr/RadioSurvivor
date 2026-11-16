@@ -3,12 +3,21 @@
     python RadioSurvivor/tools/atelier_smoke.py [--shots <folder>]
 
 Starts bridge/atelier_server.py on a free port over a temporary working folder (a copy of the shipped sheets; the
-mod's folder is only read), opens the page with the locale fr-FR then en-US, creates a voice through the five-step
-assistant (name, band, an allowed action, two places, a deliver mission with its dead drop, a barricade mission after it,
-a reward), saves it, and checks that the file exists and that the real game reader (RS_Persona.lua in lupa) accepts
-it. Exports it (same text) and imports it back, which asks for a new id. Then reopens it, looks at the page at 800 px wide (no horizontal scroll) and takes a screenshot per language.
-Live part (E22-T04, E22-T10), in French: a fake game console refuses the voice at its frequency line and the bridge logs
-a line through radio_bridge.log: red mark in the list, banner with the reason, button to the "where" step, the Journal
+mod's folder is only read), opens the page with the locale fr-FR then en-US, creates a voice through the assistant with
+nothing technical typed (E24-T02): its name only (the id made from the first name, a tooltip at most), the voice type
+"mission giver" (its action ticked, "Talk" locked), hours from the cards then custom, the spontaneous call as a named
+step with the frequency put in by its button, the personality language French (the starter text follows), two places
+(squares typed, user decision), a deliver mission whose quantity is two steppers, a barricade mission after it with a
+story state written as a sentence, a reward; saves it, checks what the simple controls wrote and that the real game
+reader (RS_Persona.lua in lupa) accepts it. Where and when (E24-T01): the first radio card is ticked for a new voice;
+another card is picked; the switch "choose the frequency myself" shows one field, filled with a free frequency of that
+radio, whose badge names the radio a typed frequency needs (and no radio at all off the grid); switched off, the radio
+of that frequency is ticked; the saved sheet has radio= and no frequency=. Exports it (same text) and imports it back
+as a new voice (one button, the next free id). Then reopens it, looks at the page at 800 px wide (no horizontal scroll)
+and takes a screenshot per language.
+Live part (E22-T04, E22-T10), in French: a fake game console refuses the voice at its radio line and the bridge logs
+a line through radio_bridge.log: red mark in the list, banner with the reason in words (the game's own words folded,
+no line number), button "fix it" to the "where" step, the Journal
 tab shows both lines and filters them (screenshots atelier-verdict-fr.png, atelier-journal-fr.png). In English, the
 bridge loop is said stopped: the Journal tab explains that only the game lines appear.
 AI part (E22-T06), against the deterministic fake LLM (tools/fake_llm, never a paid model): in French, "Write it with
@@ -16,14 +25,15 @@ the AI" writes the personality and "Use it" replaces the prompt after the in-pag
 story, "Try the voice" answers from the unsaved sheet and Reset empties it, the working file untouched (screenshot
 atelier-ai-fr.png). In English the AI is said unavailable: the buttons are greyed with the configuration tooltip.
 Chances, trade and note (E22-T12), in French: a reward set to "Often" is written with weight 4; the trade panel ticks
-its meeting point among the voice's places (reached by its button when there is none), adds stock items from the item
-list (no item name typed: search, category, ticks, "Ajouter la sélection"), shows each as its name and weight with its
-Module.Type as tooltip only, replaces a line from the same list and removes one, ticks a category and adds an item to
-what the voice accepts (E23-T06), makes a lot used by the stock line; the note panel counts the bytes of its text and
-switches on the corpses; the voice is saved and accepted by the game reader (screenshots atelier-rewards-fr.png,
+its meeting point (made by its button when there is none: a place marked as such, ticked), picks the arrival card and
+the visits as a named step, adds stock items from the item list (no item name typed: search, category, ticks, "Ajouter
+la sélection"), shows each as its name, no weight, its Module.Type as tooltip only, replaces a line from the same list
+and removes one, ticks a category and adds an item to what the voice accepts (E23-T06), makes a paquet from a typed
+name (its id made and hidden) with an item from the list, picks the margin card "Rapace" then an exact value; the note
+panel counts its text, puts the frequency in by its button and switches on the corpses; the voice is saved and accepted by the game reader (screenshots atelier-rewards-fr.png,
 atelier-items-fr.png, atelier-trade-fr.png, atelier-note-fr.png).
-Stock grid and item browser (user 2026-11-15), in French, on a shipped voice (Boone): a stock line taken from a lot
-and a line with a number have their cells at the same x and width at 1280 and 800 px; "Ajouter des objets" opens the
+Stock grid and item browser (user 2026-11-15), in French, on a shipped voice (Boone): two stock lines
+have their cells at the same x and width at 1280 and 800 px; "Ajouter ce qu'elle vend" opens the
 item list, filtered by a category: an item already in the stock is shown as such, a click and Enter tick two items that
 stay ticked across searches, Escape adds nothing, "Ajouter la sélection" adds them (screenshots atelier-stock-aligned-fr.png, atelier-item-browser-fr.png).
 Sellable stock, older copies and confirmations (E22-T17): the trader's stock offers only the items a trader can sell
@@ -74,22 +84,77 @@ def strings(lang: str) -> dict:
     return json.loads((ATELIER / 'i18n' / f'{lang}.json').read_text(encoding='utf-8'))
 
 
+def check_radio_choice(page, t: dict) -> None:
+    """E24-T01: the radio cards, then the switch "choose the frequency myself" and its badge; ends on the radio
+    tactical."""
+    cards = page.locator('label.radio-card')
+    expect(cards).to_have_count(5)
+    expect(cards.first.locator('input')).to_be_checked()                   # new voice: everybody hears it
+    expect(cards.first).to_contain_text(t['radio.any_talkie.who'])
+    page.locator('label.radio-card[data-level="military"]').click()
+    expect(page.locator('label.radio-card[data-level="military"] input')).to_be_checked()
+    page.get_by_role('switch', name=t['where.fixed_toggle']).check()
+    expect(cards).to_have_count(0)
+    field = page.get_by_label(t['where.fixed'], exact=True)
+    expect(field).to_have_value('0.2')                                     # first free frequency of the military zone
+    badge = page.locator('.radio-badge')
+    expect(badge).to_contain_text(t['radio.military.name'])
+    field.fill('145')
+    expect(badge).to_contain_text(t['radio.any_talkie.name'])
+    field.fill('1000.2')
+    expect(badge).to_contain_text(t['where.badge_none'].split('{')[0].strip())
+    field.fill('320.0')
+    expect(badge).to_contain_text(t['radio.tactical.name'])
+    page.get_by_role('switch', name=t['where.fixed_toggle']).uncheck()
+    expect(page.locator('label.radio-card[data-level="tactical"] input')).to_be_checked()
+    expect(page.get_by_label(t['where.fixed'], exact=True)).to_have_count(0)
+
+
+def show_text(page, t: dict, on: bool) -> None:
+    """Shows or hides the text the game reads (the "..." menu of the toolbar, E24-T02)."""
+    wanted = t['editor.preview'] if on else t['editor.preview_hide']
+    menu = page.locator('details.more-menu')
+    if not menu.evaluate('d => d.open'):
+        menu.locator(':scope > summary').click()
+    button = menu.get_by_role('button', name=wanted, exact=True)
+    if button.count():
+        button.click()
+    else:
+        menu.locator(':scope > summary').click()                           # already in the wanted state: closed
+
+
 def create_voice(page, t: dict, voice_id: str, name: str) -> None:
+    """E24-T02: nothing technical typed. The name only (the id is made from the first name), the voice type "mission
+    giver" (its action ticked), hours from the cards then custom, a spontaneous call as a named step with the
+    frequency put in by its button, places with their square (user decision: fields kept), a mission whose quantity is
+    two steppers and whose story state is a sentence."""
     page.locator('#new-voice').click()
     page.locator('#new-name').fill(name)
-    page.locator('#new-id').fill(voice_id)
+    page.locator('label.choice-card[data-value="missions"]').click()
     page.locator('#new-create').click()
     expect(page.locator('.pill.on')).to_contain_text(t['step.who'])
+    expect(page.locator('#main .toolbar h2')).to_have_attribute('title', voice_id)   # the id: a tooltip at most
     page.get_by_label(t['who.description'], exact=True).fill('A voice made by the smoke test')
     next_button = page.locator('#step-next')
 
-    next_button.click()                                                    # 2: where and when (free band given)
+    next_button.click()                                                    # 2: where and when
     expect(page.locator('.pill.on')).to_contain_text(t['step.where'])
+    check_radio_choice(page, t)
+    page.locator('label.choice-card[data-value="night"]').click()
+    page.locator('label.choice-card[data-value="custom"]').click()
     page.get_by_role('button', name=t['where.add_hours']).click()
+    page.locator('[data-scale="scale.head.call_one_in"] button[data-step="often"]').click()
+    call = page.get_by_label(t['where.call'], exact=True)
+    call.fill(t['where.call'] + ' ')
+    page.get_by_role('button', name=t['freq.add']).click()
+    expect(call).to_have_value(re.compile(re.escape(t['freq.word'])))
 
     next_button.click()                                                    # 3: personality
     expect(page.locator('.pill.on')).to_contain_text(t['step.personality'])
-    page.locator('.check', has_text=t['action.start_mission']).locator('input').check()
+    expect(page.locator('.check', has_text=t['action.start_mission']).locator('input')).to_be_checked()
+    expect(page.locator('.check', has_text=t['action.say']).locator('input')).to_be_disabled()
+    page.locator('label.choice-card[data-value="fr"]').click()             # the personality written in French
+    expect(page.locator('textarea.prompt')).to_have_value(re.compile('^Tu es '))
 
     next_button.click()                                                    # 4: places and missions
     for label, at, uses in (('Old mill', ('10600', '9300', '0'), ('use.target', 'use.mark')),
@@ -102,24 +167,27 @@ def create_voice(page, t: dict, voice_id: str, name: str) -> None:
         map_link = card.locator('a.maplink')                               # Build 42 map: whole map, then the square
         expect(map_link).to_have_attribute('href', 'https://zomboidmap.com/')
         expect(map_link).to_have_text(t['map.home'])
-        expect(card).to_contain_text(t['places.at_help'])
-        for axis, value in zip(('x', 'y', 'z'), at):
+        for axis, value in zip(('x', 'y', t['places.floor']), at):
             card.get_by_label(axis, exact=True).fill(value)
         expect(map_link).to_have_attribute('href', f'https://zomboidmap.com/#11/{at[0]}/{at[1]}/f{at[2]}')
         expect(map_link).to_have_text(t['map.open'])
         expect(map_link).to_have_attribute('target', '_blank')
         for use in uses:
             card.locator('.check', has_text=t[use]).locator('input').check()
+    if page.locator('details.fold').first.locator('code').count():
+        raise AssertionError('a place card shows its id')
     page.locator('.type-card', has_text=t['mission.deliver']).click()
     deliver = page.locator('.card.mission').last
     deliver.get_by_label(t['param.items'], exact=True).select_option('medical')
     deliver.get_by_label(t['field.min'], exact=True).fill('2')
-    deliver.get_by_label(t['field.max'], exact=True).fill('4')
+    deliver.get_by_label(t['field.max'], exact=True).fill('3')
+    deliver.get_by_role('button', name=f"{t['field.max']} +", exact=True).click()   # the stepper: 3 -> 4
     deliver.get_by_label(t['mission.story'], exact=True).fill('Leave some bandages by the dumpster.')
     page.locator('.type-card', has_text=t['mission.barricade']).click()
     barricade = page.locator('.card.mission').last
     barricade.get_by_label(t['param.count'], exact=True).fill('4')
-    barricade.get_by_label(t['mission.after'], exact=True).select_option('deliver')
+    barricade.get_by_label(t['mission.after'], exact=True).select_option(index=1)
+    barricade.get_by_label(t['mission.sets_state'], exact=True).fill('Le moulin est barricadé')
 
     next_button.click()                                                    # 5: rewards
     page.locator('.type-card', has_text=t['reward.cache']).click()
@@ -128,14 +196,26 @@ def create_voice(page, t: dict, voice_id: str, name: str) -> None:
     expect(page.locator('.toast')).to_contain_text(t['code.voice_created'])
 
 
+def check_simple_sheet(text: str, lang: str, failures: list[str]) -> None:
+    """What the simple controls wrote: steppers, named steps, the frequency mark, the story state and its line, the
+    language of the personality (E24-T02)."""
+    wanted = ('\nquantity=2-4\n', '\ncall_one_in=3\n', '%1', '\nsets_state=le_moulin_est_barricade\n',
+              'Story state: when your story state is le_moulin_est_barricade, Le moulin est barricadé',
+              '\nlanguage=fr\n', '\nactions=say,start_mission\n')
+    missing = [w for w in wanted if w not in text]
+    print(f'{lang}: simple controls written: {"all" if not missing else missing}')
+    if missing:
+        failures.append(f'{lang}: the sheet misses {missing}\n{text}')
+
+
 def check_live(page, t: dict, lang: str, voice_id: str, name: str, sheet: str, console: Path, running, shots: Path,
                failures: list[str]) -> None:
     """E22-T04 and E22-T10 in the page: the game's verdict and the live journal."""
     page.set_viewport_size({'width': 1280, 'height': 900})
     if lang == 'fr':
-        line = next(i for i, text in enumerate(sheet.splitlines(), 1)
-                    if text.startswith(('frequency_range=', 'frequencies=')))
-        reason = "bad frequency range '150.0-140.0' (two frequencies in MHz, lowest first, e.g. 140.0-150.0)"
+        line = next(i for i, text in enumerate(sheet.splitlines(), 1) if text.startswith('radio='))
+        reason = ('radio and frequency cannot be used together (a radio level to draw a free frequency, or one fixed '
+                  'frequency)')
         with console.open('a', encoding='utf-8', newline='') as handle:
             handle.write(f'LOG  : General      f:0> [batman_RadioSurvivor]     [RadioSurvivor] personas: ERROR: '
                          f'batman_RadioSurvivor/personas/{voice_id}.txt refused, line {line}: {reason}\n')
@@ -144,12 +224,14 @@ def check_live(page, t: dict, lang: str, voice_id: str, name: str, sheet: str, c
         expect(voice.locator('.gamebad')).to_be_visible(timeout=15000)
         voice.click()
         banner = page.locator('.verdict')
-        expect(banner).to_contain_text(t['verdict.title'].replace('{line}', str(line)))
-        expect(banner).to_contain_text(reason)
-        expect(banner).to_contain_text(t['verdict.why.frequency'])
+        expect(banner).to_contain_text(t['verdict.title'].replace('{step}', t['step.where']))
+        expect(banner).to_contain_text(t['verdict.why.radio'])
+        expect(banner.locator('details.verdict-raw')).not_to_have_attribute('open', '')   # the game's words: folded
+        expect(banner.locator('details.verdict-raw code')).to_have_text(reason)
         page.locator('#verdict-go').click()
         expect(page.locator('.pill.on')).to_contain_text(t['step.where'])
-        print(f'{lang}: refusal at line {line}: red mark, banner and jump to the where step shown')
+        print(f'{lang}: refusal at line {line}: red mark, banner (no line number, the words of the game folded) and '
+              '"fix it" to the where step')
         page.screenshot(path=str(shots / f'atelier-verdict-{lang}.png'), full_page=True)
         page.locator('#tab-journal').click()
         rows = page.locator('.journal-list .jrow')
@@ -241,7 +323,7 @@ def check_stock(page, t: dict, lang: str, path: Path, voice_id: str, shots: Path
     live count, the corpses switch and a loot list; saved and accepted by the game reader (screenshots
     atelier-rewards-fr.png, atelier-items-fr.png, atelier-trade-fr.png, atelier-note-fr.png)."""
     page.set_viewport_size({'width': 1280, 'height': 900})
-    page.get_by_role('button', name=t['editor.preview'], exact=True).click()
+    show_text(page, t, True)
     page.locator('.pill').nth(4).click()                                   # rewards
     preview = page.locator('.sheet-preview')
     reward = page.locator('.card.reward').first
@@ -255,28 +337,27 @@ def check_stock(page, t: dict, lang: str, path: Path, voice_id: str, shots: Path
     page.locator('.check', has_text=t['action.propose_trade']).locator('input').check()
     page.locator('.pill').nth(4).click()
     trade = page.locator('details.fold', has_text=t['advanced.trade.enable'])
-    trade.locator('summary').click()
+    trade.locator(':scope > summary').click()
     trade.get_by_label(t['advanced.trade.enable']).check()
-    # meeting points: none yet -> the way to the Places panel, a place used as trade meeting, back and ticked
+    # meeting points: none yet -> "make the meeting place": a place marked as such, ticked, its square in its card
     expect(trade.locator('.warnline', has_text=t['trade.no_landing'])).to_be_visible()
     trade.locator('button.to-places').click()
     expect(page.locator('.pill.on')).to_contain_text(t['step.missions'])
     places = page.locator('details.fold').first
     expect(places).to_have_attribute('open', '')
-    page.get_by_role('button', name=t['places.add']).click()
-    page.locator('.notice').get_by_label(t['places.label'], exact=True).fill('Quai du lac')
-    page.locator('.notice').get_by_role('button', name=t['places.add_ok']).click()
-    card = places.locator('.card').last
-    for axis, value in zip(('x', 'y', 'z'), ('10620', '9310', '0')):
+    card = places.locator('.card.fresh')
+    expect(card.locator('.check', has_text=t['use.landing']).locator('input')).to_be_checked()
+    card.get_by_label(t['places.label'], exact=True).fill('Quai du lac')
+    for axis, value in zip(('x', 'y', t['places.floor']), ('10620', '9310', '0')):
         card.get_by_label(axis, exact=True).fill(value)
-    card.locator('.check', has_text=t['use.landing']).locator('input').check()
     page.locator('.pill').nth(4).click()
     expect(trade).to_have_attribute('open', '')
-    trade.locator('.checks.landing .check', has_text='Quai du lac').locator('input').check()
-    expect(preview).to_contain_text('landing=quai_du_lac')
-    print(f'{lang}: no meeting point -> "{t["trade.to_places"]}" -> place added -> ticked: landing=quai_du_lac')
-    trade.get_by_label(f'{t["key.trade.arrival"]} {t["field.required"]}', exact=True).select_option('boat')
-    trade.get_by_label(t['key.trade.every_days'], exact=True).fill('7')
+    expect(trade.locator('.checks.landing .check', has_text='Quai du lac').locator('input')).to_be_checked()
+    expect(preview).to_contain_text(re.compile(r'landing=[a-z_]+'))
+    print(f'{lang}: no meeting point -> "{t["trade.make_landing"]}" -> place made, marked and ticked')
+    trade.locator('label.choice-card[data-value="boat"]').click()
+    expect(preview).to_contain_text('arrival=boat')
+    trade.locator('[data-scale="scale.trade.every_days"] button[data-step="weekly"]').click()
     trade.get_by_label(t['trade.hours_start'], exact=True).fill('02:00')
     trade.get_by_label(t['trade.hours_end'], exact=True).fill('04:00')
     expect(preview).to_contain_text('every_days=7')
@@ -284,9 +365,9 @@ def check_stock(page, t: dict, lang: str, path: Path, voice_id: str, shots: Path
 
     # stock (user 2026-11-16: no item name typed anywhere): "Ajouter des objets" opens the list of the items a trader
     # can sell (E22-T17), searched by name and filtered by category, two items ticked then added; each line shows the
-    # item's name and weight, its Module.Type only as tooltip; a line replaced from the same list, a line removed
+    # item's name (no weight), its Module.Type only as tooltip; a line replaced from the same list, a line removed
     stock_row = row_of(trade, page, t['key.trade.item'])
-    stock_row.get_by_role('button', name=t['browser.add_items'], exact=True).click()
+    stock_row.get_by_role('button', name=t['trade.add_sold'], exact=True).click()
     dialog = page.locator('dialog.item-browser.multi')
     expect(dialog).to_be_visible()
     expect(dialog.locator('.browser-note')).to_have_text(t['browser.sellable_only'])
@@ -321,12 +402,13 @@ def check_stock(page, t: dict, lang: str, path: Path, voice_id: str, shots: Path
     expect(lines).to_have_count(2)
     first = lines.first.locator('.item-choice')
     expect(first.locator('.item-name')).to_have_text('Bandage')
-    expect(first.locator('.item-kg')).to_have_text('0,1 kg')
     expect(first).to_have_attribute('title', 'Base.Bandage')
+    if re.search(r'\bkg\b', trade.inner_text()):
+        failures.append(f'{lang}: a weight is still shown in the trade panel')
     if trade.locator('.stock-line input[type=text], .stock-line input:not([type])').count():
         failures.append(f'{lang}: a stock line still has a text field')
     print(f'{lang}: "hache" -> nothing (an axe has no price); "bandage" + "Nourriture"/"whisky" ticked and added '
-          f'({", ".join(found[:3])}... all sellable): 2 lines, "Bandage 0,1 kg", type in the tooltip only')
+          f'({", ".join(found[:3])}... all sellable): 2 lines, "Bandage", no weight, type in the tooltip only')
     lines.nth(1).locator('.item-choice').click()                           # replace: the same list, single choice
     single = page.locator('dialog.item-browser:not(.multi)')
     expect(single).to_be_visible()
@@ -353,7 +435,7 @@ def check_stock(page, t: dict, lang: str, path: Path, voice_id: str, shots: Path
         failures.append(f'{lang}: the accepted categories offer a category without any item a trader can take')
     accept.locator('.check[data-value=cash] input').check()
     expect(preview).to_contain_text('accept=cash')
-    accept.get_by_role('button', name=t['browser.add_items'], exact=True).click()
+    accept.get_by_role('button', name=t['trade.add_taken'], exact=True).click()
     dialog = page.locator('dialog.item-browser.multi')
     dialog.get_by_label(t['browser.search'], exact=True).fill('antibio')
     expect(options.first).to_have_attribute('data-type', 'Base.Antibiotics')
@@ -363,27 +445,41 @@ def check_stock(page, t: dict, lang: str, path: Path, voice_id: str, shots: Path
     expect(accept.locator('.accept-line .item-choice').first).to_have_attribute('title', 'Base.Antibiotics')
     print(f'{lang}: accepts: {cats.count()} categories offered, "{t["category.cash"]}" ticked, Antibiotics added '
           '(accept=cash, accept=Base.Antibiotics)')
-    # a lot, then the stock line taken from it
-    trade.get_by_role('button', name=t['lot.add']).click()
-    lot_name = trade.get_by_label(t['lot.name'].replace('{n}', '1'), exact=True)
-    lot_name.fill('Graines')
-    lot_name.press('Tab')
-    expect(preview).to_contain_text('group=graines:1-3')
-    trade.locator('.stock-line').first.get_by_label(t['stock.amount'], exact=True).select_option('graines')
-    expect(preview).to_contain_text('item=Base.Bandage:graines')
-    print(f'{lang}: lot "graines" made (group=graines:1-3) and chosen by the stock line')
-    margin = trade.locator('.row', has=page.get_by_text(t['key.trade.margin'], exact=True))
+    # a paquet (E24-T02): its name typed, its id made and hidden, its items from the list, its total as steppers
+    lots = row_of(trade, page, t['key.trade.group'])
+    lots.get_by_label(t['lot.name'], exact=True).fill('Médicaments')
+    lots.get_by_role('button', name=t['lot.add']).click()
+    expect(preview).to_contain_text('group=medicaments:1-3')
+    paquet = trade.locator('article.paquet')
+    expect(paquet.locator('.paquet-name')).to_have_value('Medicaments')
+    paquet.get_by_role('button', name=t['lot.add_items']).click()
+    dialog = page.locator('dialog.item-browser.multi')
+    dialog.get_by_label(t['browser.search'], exact=True).fill('pile')
+    dialog.locator('[role=option]:not(.taken)').first.click()
+    dialog.locator('.browser-add').click()
+    expect(preview).to_contain_text(re.compile(r'item=Base\.[A-Za-z]+:medicaments'))
+    paquet.get_by_role('button', name=f"{t['lot.kinds']} +", exact=True).click()
+    expect(preview).to_contain_text('group=medicaments:1-3:1')
+    print(f'{lang}: paquet "Médicaments" made (group=medicaments:1-3:1), an item added from the list')
+    margin = row_of(trade, page, t['key.trade.margin'])
+    margin.locator('label.choice-card[data-value="greedy"]').click()
+    expect(preview).to_contain_text('margin=0.30-0.80')
+    margin.locator('details.fold > summary').click()
     margin.get_by_label(t['field.min'], exact=True).fill('10')
     margin.get_by_label(t['field.max'], exact=True).fill('40')
     expect(preview).to_contain_text('margin=0.10-0.40')
+    print(f'{lang}: margin "{t["scale.trade.margin.greedy"]}" -> margin=0.30-0.80, exact value 10-40 % -> 0.10-0.40')
     trade.evaluate("d => d.scrollIntoView({block: 'start'})")
     page.screenshot(path=str(shots / f'atelier-trade-{lang}.png'))
 
     note = page.locator('details.fold', has_text=t['advanced.note.enable'])
-    note.locator('summary').click()
+    note.locator(':scope > summary').click()
     note.get_by_label(t['advanced.note.enable']).check()
     line = note.get_by_label(t['note.line'].replace('{n}', '1'), exact=True)
-    line.fill('Mae écoute sur %1 MHz')
+    line.fill('Mae écoute sur ')
+    note.get_by_role('button', name=t['freq.add']).first.click()
+    line.press('End')
+    line.type(' MHz')
     counter = note.locator('.note-line .counter').first
     expect(counter).to_have_text(t['note.bytes'].replace('{n}', '22').replace('{max}', '40'))
     note.get_by_role('button', name=t['note.add_line']).click()
@@ -414,7 +510,7 @@ def check_stock(page, t: dict, lang: str, path: Path, voice_id: str, shots: Path
           f'{verdict[1] if verdict[0] != "OK" else ""}'.rstrip())
     if verdict[0] != 'OK':
         failures.append(f'{lang}: game reader refused the trade and note: {verdict[1]}\n{text}')
-    # a shipped voice: its note's own item and text key stay in the advanced settings, its lots and stock shown
+    # a shipped voice: its note's own item and text key stay in the advanced settings, its paquets and stock shown
     page.locator('.voice', has_text='Boone Tackett').first.click()
     page.locator('.pill').nth(4).click()
     note = page.locator('details.fold', has_text=t['advanced.note.enable'])
@@ -424,11 +520,11 @@ def check_stock(page, t: dict, lang: str, path: Path, voice_id: str, shots: Path
     advanced.locator(':scope > summary').click()
     expect(advanced.locator('.item-choice')).to_have_attribute('title', re.compile(r'^RadioSurvivor\.Note'))
     trade = page.locator('details.fold', has_text=t['advanced.trade.enable'])
-    trade.locator('summary').click()
-    expect(trade.get_by_label(t['lot.name'].replace('{n}', '1'), exact=True)).to_have_value('alcohol')
-    expect(trade.locator('.stock-line').first.locator('.item-kg')).not_to_have_text('')
+    trade.locator(':scope > summary').click()
+    expect(trade.locator('article.paquet .paquet-name').first).to_have_value('Alcohol')
+    expect(trade.locator('.stock-line').first.locator('.item-name')).not_to_have_text('')
     expect(page.locator('.dirty')).to_have_text(t['editor.saved'])
-    print(f'{lang}: shipped voice: note item and key in "{t["section.advanced"]}", lot "alcohol" and weights shown, '
+    print(f'{lang}: shipped voice: note item and key in "{t["section.advanced"]}", paquet "Alcohol" shown, '
           'nothing changed by opening it')
 
 
@@ -495,14 +591,12 @@ def check_status_and_confirm(page, t: dict, lang: str, working: Path, failures: 
 
 
 def check_stock_grid(page, trade, t: dict, lang: str, width: int, failures: list[str]) -> None:
-    """Every stock line of the shipped voice on the same grid: the item, quantity mode and "from ... to ..." cells of a
-    line taken from a lot (empty range cell) and of a line with a number share their x and width."""
+    """Every stock line of the shipped voice on the same grid: the item and "between ... and ..." cells of two lines
+    share their x and width."""
     lines = trade.locator('.stock-line')
-    lot_line = lines.filter(has=page.locator('.cell-empty')).first
-    number_line = lines.filter(has=page.locator('.range')).first
-    cells = {name: (boxes(lot_line.locator(f':scope > {sel}')), boxes(number_line.locator(f':scope > {sel}')))
-             for name, sel in (('item', '.item-choice'), ('mode', 'select'), ('range', ':nth-child(3)'))}
-    print(f'{lang}: stock grid at {width} px, (x, width) lot line / number line: '
+    cells = {name: (boxes(lines.nth(0).locator(f':scope > {sel}')), boxes(lines.nth(1).locator(f':scope > {sel}')))
+             for name, sel in (('item', '.item-choice'), ('range', '.range'))}
+    print(f'{lang}: stock grid at {width} px, (x, width) line 1 / line 2: '
           + '; '.join(f'{k} {a} / {b}' for k, (a, b) in cells.items()))
     for name, (a, b) in cells.items():
         if not a or a != b:
@@ -517,7 +611,7 @@ def check_item_browser(page, t: dict, lang: str, name: str, shots: Path, failure
     "Ajouter la sélection" adds the two ticked items."""
     trade = page.locator('details.fold', has_text=t['advanced.trade.enable'])
     stock = trade.locator('.lines', has=page.locator('.stock-line'))
-    page.get_by_role('button', name=t['editor.preview_hide'], exact=True).click()   # the form alone, full width
+    show_text(page, t, False)                                                  # the form alone, full width
     if page.locator('#try-open').get_attribute('aria-pressed') == 'true':
         page.locator('#try-open').click()
     for width in (1280, 800):
@@ -531,7 +625,7 @@ def check_item_browser(page, t: dict, lang: str, name: str, shots: Path, failure
     stock.screenshot(path=str(shots / f'atelier-stock-aligned-{lang}.png'))
     before = trade.locator('.stock-line').count()
     stock_row = row_of(trade, page, t['key.trade.item'])
-    stock_row.get_by_role('button', name=t['browser.add_items'], exact=True).click()
+    stock_row.get_by_role('button', name=t['trade.add_sold'], exact=True).click()
     dialog = page.locator('dialog.item-browser.multi')
     expect(dialog).to_be_visible()
     expect(dialog.locator('.browser-note')).to_have_text(t['browser.sellable_only'])
@@ -544,7 +638,6 @@ def check_item_browser(page, t: dict, lang: str, name: str, shots: Path, failure
     expect(first).to_have_attribute('data-type', 'Base.Whiskey')
     expect(first.locator('.b-name')).to_have_text('Bouteille de whisky')
     expect(first.locator('.b-cat')).to_have_text('Nourriture')
-    expect(first.locator('.b-kg')).to_have_text('1,7 kg')
     expect(first).to_have_class(re.compile(r'\btaken\b'))                 # already in Boone's stock: not twice
     expect(first.locator('.b-pick')).to_have_text(t['browser.taken'])
     first.click(force=True)                                                 # aria-disabled: nothing happens
@@ -565,17 +658,17 @@ def check_item_browser(page, t: dict, lang: str, name: str, shots: Path, failure
     page.keyboard.press('Escape')                                            # Escape: nothing added
     expect(dialog).to_have_count(0)
     expect(trade.locator('.stock-line')).to_have_count(before)
-    stock_row.get_by_role('button', name=t['browser.add_items'], exact=True).click()
+    stock_row.get_by_role('button', name=t['trade.add_sold'], exact=True).click()
     for word in ('chili', 'riz'):
         search.fill(word)
         dialog.locator('[role=option]').first.click()
     dialog.locator('.browser-add').click()
     expect(dialog).to_have_count(0)
     added = trade.locator('.stock-line').count() - before
-    page.get_by_role('button', name=t['editor.preview'], exact=True).click()
-    preview = page.locator('.sheet-preview')
-    expect(preview).to_contain_text('item=Base.CannedChili:1')
-    expect(preview).to_contain_text('item=Base.Rice:1')
+    show_text(page, t, True)
+    text = page.locator('.sheet-preview')
+    expect(text).to_contain_text('item=Base.CannedChili:1')
+    expect(text).to_contain_text('item=Base.Rice:1')
     print(f'{lang}: Escape added nothing; reopened, 2 ticked and "{t["browser.add_selected"]}": {added} new stock lines')
     if added != 2:
         failures.append(f'{lang}: the item browser added {added} stock lines instead of 2')
@@ -613,7 +706,7 @@ def check_surveys(page, t: dict, lang: str, voice_id: str, name: str, working: P
     expect(cards).to_have_count(places_before + 1)
     card = cards.last
     expect(card.get_by_label(t['places.label'], exact=True)).to_have_value("Benne de l'église")
-    for axis, value in zip(('x', 'y', 'z'), ('10612', '9307', '0')):
+    for axis, value in zip(('x', 'y', t['places.floor']), ('10612', '9307', '0')):
         expect(card.get_by_label(axis, exact=True)).to_have_value(value)
     expect(card.locator('.check', has_text=t['use.drop']).locator('input')).to_be_checked()
     expect(card.locator('.check', has_text=t['use.mark']).locator('input')).not_to_be_checked()
@@ -713,7 +806,7 @@ def run(shots: Path) -> int:
                 browser = pw.chromium.launch()
                 for locale, lang in LOCALES:
                     t = strings(lang)
-                    voice_id, name = f'smoke_{lang}', f'Smoke Tester {lang.upper()}'
+                    voice_id, name = f'smoke{lang}', f'Smoke{lang} Tester'          # the id: the first name
                     context = browser.new_context(locale=locale, viewport={'width': 1280, 'height': 900})
                     page = context.new_page()
                     errors: list[str] = []
@@ -730,17 +823,19 @@ def run(shots: Path) -> int:
                           f'{verdict[1] if verdict[0] != "OK" else ""}'.rstrip())
                     if verdict[0] != 'OK':
                         failures.append(f'{lang}: game reader refused the sheet: {verdict[1]}\n{text}')
+                    check_simple_sheet(text, lang, failures)
+                    if '\nradio=tactical\n' not in text or '\nfrequency=' in text:   # E24-T01: the card picked last
+                        failures.append(f'{lang}: the sheet should hold radio=tactical and no frequency=\n{text}')
                     exported = page.request.get(server.url.rstrip('/') + page.locator('a[download]').get_attribute('href'))
                     if exported.text() != text:
                         failures.append(f'{lang}: export differs from the saved file')
                     page.locator('input[type=file]').set_input_files(files=[{
                         'name': f'{voice_id}.txt', 'mimeType': 'text/plain', 'buffer': text.encode('utf-8')}])
-                    page.locator('.notice').get_by_label(t['who.id'], exact=True).fill(f'{voice_id}_copy')
-                    page.locator('.notice').get_by_role('button', name=t['import.ok']).click()
+                    page.locator('.notice').get_by_role('button', name=t['import.as_new']).click()
                     expect(page.locator('.toast')).to_contain_text(t['code.voice_imported'])
-                    copy = working / f'{voice_id}_copy.txt'
+                    copy = working / f'{voice_id}_2.txt'                    # the next free id, nothing typed
                     imported = copy.is_file() and copy.read_text(encoding='utf-8') == text.replace(
-                        f'id={voice_id}\n', f'id={voice_id}_copy\n')
+                        f'id={voice_id}\n', f'id={voice_id}_2\n')
                     print(f'{lang}: export identical: {exported.text() == text}, import under a new id: {imported}')
                     if not imported:
                         failures.append(f'{lang}: import with a new id failed')

@@ -6,18 +6,19 @@ Vrai Lua du mod (Lua 5.1, `next` retiré comme dans Kahlua) avec des doublures d
 Zomboid/Lua simulé dans un dossier temporaire (`getFileReader` UTF-8 comme le jeu, `getFileWriter`,
 `listFilesInZomboidLuaDirectory`), dossier du mod réel (`listFilesInModDirectory`, `getModFileReader`), gestionnaire
 de chaînes qui refuse une fréquence prise (`AddChannel`, `RemoveChannel`, `getRadioChannel`).
-Couvre : fiches livrées valides (seul exemplaire, dans le mod : E05-T10), installation, migration unique de
-l'ancienne option sandbox, rechargement à chaud (fréquence, état), conflits, fiche invalide qui garde l'ancienne version, fichier
+Couvre : fiches livrées valides (seul exemplaire, dans le mod : E05-T10), installation, rechargement à chaud
+(fréquence, état), conflits, fiche invalide qui garde l'ancienne version, fichier
 retiré ou vidé, fréquence prise par une autre chaîne, heures d'écoute, le serveur de Walt (voix silencieuse,
 fréquence non servie, appel spontané) et le routage par voix (E05-T03 : voice= de la demande, fréquences publiques
-des voix active et silent, radio haut de gamme exigée, fréquence hors de portée de la radio, budget de la voix) et
-le tirage des fréquences (E05-T07 : deux mondes neufs, redémarrage, monde recréé sous le même nom, collisions avec
-l'alerte d'urgence, une autre chaîne ou une autre voix, plage modifiée à chaud, fichier de tirage abîmé), et la mise à
+des voix active et silent, fréquence hors de portée de la radio, budget de la voix) et le tirage des fréquences
+(E05-T07, E24-T01 : zone de la radio nécessaire, deux mondes neufs, redémarrage, monde recréé sous le même nom,
+collisions avec l'alerte d'urgence, une autre chaîne ou une autre voix, radio modifiée à chaud, fichier de tirage abîmé),
+et la mise à
 jour des fiches installées non modifiées (E05-T11 : empreintes, fiche modifiée gardée, installation antérieure reconnue
 par une version livrée connue, fiche inconnue intacte, fichier d'empreintes abîmé), et l'émission depuis une radio posée
 ou une autoradio (E06-T03 : micro à portée et même étage, place dans le véhicule, canal connu du serveur, ancien client).
 Les cas d'E05-T02 et E05-T03 raisonnent sur une fréquence connue : Walt y reçoit sa fréquence d'exemple fixe 145.0
-(WALT_FIXED) ; DeliveredVoicesServerTests et DrawTests utilisent les vraies fiches à plages.
+(WALT_FIXED) ; DeliveredVoicesServerTests et DrawTests utilisent les vraies fiches (radio=<niveau>).
 Ne prouve pas l'API Java réelle : suite en jeu rs.personas.
 """
 from __future__ import annotations
@@ -49,10 +50,10 @@ sys.path.insert(0, str(ROOT / 'bridge'))
 import persona_store as store  # noqa: E402
 from signalsmoke_double import SIGNAL_SMOKE  # noqa: E402
 from itemweights_double import ITEM_WEIGHTS  # noqa: E402
-from test_personas import RULE_MODULES  # noqa: E402
+from test_personas import RULE_MODULES, DeliveredVoicesTests  # noqa: E402
 
-# Fiche livrée de Walt avec sa fréquence d'exemple fixe à la place de sa plage de tirage (E05-T07).
-WALT_FIXED = re.sub(rb'(?m)^frequency_range=.*$', b'frequencies=145.0', (BUNDLED / 'walt.txt').read_bytes())
+# Fiche livrée de Walt avec sa fréquence d'exemple fixe à la place de sa radio (E24-T01).
+WALT_FIXED = re.sub(rb'(?m)^radio=.*$', b'frequency=145.0', (BUNDLED / 'walt.txt').read_bytes())
 
 STUBS = r"""
 LOGS = {}
@@ -72,13 +73,9 @@ getWorld = function() return { getWorld = function() return WORLD end,
 GT_MODDATA = {}
 getGameTime = function() return { getModData = function() return GT_MODDATA end } end
 ENABLED = true
-LEGACY = nil
 getSandboxOptions = function() return {
     getOptionByName = function(_, name)
         if name == "RadioSurvivor.Enabled" then return { getValue = function() return ENABLED end } end
-        if name == "RadioSurvivor.Frequency" and LEGACY ~= nil then
-            return { getValue = function() return LEGACY end }
-        end
         return nil
     end } end
 SandboxVars = { RadioSurvivor = { Enabled = true, PlayerCooldown = 10, MaxPerHour = 60, SpontaneousCalls = true } }
@@ -232,7 +229,11 @@ class Harness(unittest.TestCase):
         (self.dir / name).write_bytes(text.encode('utf-8') if isinstance(text, str) else text)
 
     def sheet(self, vid: str, freqs: str = '145.0', extra: str = '') -> str:
-        return f'format=1\nid={vid}\nname={vid.title()}\nfrequencies={freqs}\n{extra}[prompt]\nYou are {vid}.\n'
+        return f'format=1\nid={vid}\nname={vid.title()}\nfrequency={freqs}\n{extra}[prompt]\nYou are {vid}.\n'
+
+    def level_sheet(self, vid: str, level: str, extra: str = '') -> str:
+        """Fiche à tirer (E24-T01) : radio=<niveau> à la place d'une fréquence fixe."""
+        return self.sheet(vid, extra=extra).replace('frequency=145.0', f'radio={level}')
 
     def load_world(self, new_game=None):
         return self.rt.eval('function(P, n) return P.onLoadRadioScripts(MANAGER, n) end')(self.P, new_game)
@@ -308,8 +309,6 @@ class InstallTests(Harness):
         self.assertEqual([int(f) for f in lua_list(self.g.NAMES_REMOVED)], [145000])
         self.assertEqual(self.talk(), [145000])
         self.assertEqual(len(self.logs_with('installed the bundled sheet')), 1)
-        # Sans option sandbox lisible : une note pour l'admin, la fiche livrée telle quelle.
-        self.assertEqual(len(self.logs_with('cannot be read any more')), 1)
         walt = self.P.get('walt')
         self.assertEqual((walt.state, walt.call_one_in, walt.call_text), ('active', 3, 'IGUI_RadioSurvivor_Call'))
 
@@ -344,41 +343,6 @@ class InstallTests(Harness):
         self.assertFalse(self.dir.exists())
         self.assertEqual(self.freqs(), [])
 
-    def test_migration_copies_a_non_default_sandbox_value_once(self):
-        self.g.LEGACY = 150.0
-        self.load_world()
-        lines = (self.dir / 'walt.txt').read_text(encoding='utf-8').splitlines()
-        self.assertIn('frequencies=150.0', lines)
-        self.assertNotIn('frequencies=145.0', lines)
-        # Seule la ligne frequencies change.
-        source = WALT_FIXED.decode('utf-8').splitlines()
-        self.assertEqual([a for a, b in zip(lines, source) if a != b], ['frequencies=150.0'])
-        self.assertEqual(self.freqs(), [150000])
-        self.assertEqual(len(self.logs_with('migrated the sandbox frequency 150.0 MHz')), 1)
-        # Ensuite seule la fiche compte : une autre valeur sandbox ne la touche plus.
-        self.g.LEGACY = 160.0
-        self.load_world()
-        self.after(31000)
-        self.assertIn('frequencies=150.0', (self.dir / 'walt.txt').read_text(encoding='utf-8').splitlines())
-        self.assertEqual(len(self.logs_with('migrated')), 1)
-
-    def test_migration_rounds_to_the_radio_step(self):
-        self.g.LEGACY = 150.1
-        self.load_world()
-        self.assertIn('frequencies=150.2', (self.dir / 'walt.txt').read_text(encoding='utf-8').splitlines())
-
-    def test_default_sandbox_value_keeps_the_delivered_sheet(self):
-        self.g.LEGACY = 145.0
-        self.load_world()
-        self.assertEqual((self.dir / 'walt.txt').read_bytes(), WALT_FIXED)
-        self.assertEqual(self.logs_with('migrated') + self.logs_with('cannot be read'), [])
-
-    def test_legacy_value_from_sandbox_vars(self):
-        self.rt.execute('SandboxVars.RadioSurvivor.Frequency = 99.0')
-        self.assertEqual(self.P.legacyFrequency(), 99000)
-        self.rt.execute('SandboxVars.RadioSurvivor.Frequency = nil')
-        self.assertIsNone(self.P.legacyFrequency())
-
 
 class FallbackTests(Harness):
     """Dossier du mod sans fiches livrées : erreur journalisée, essai de walt.txt quand même."""
@@ -411,7 +375,7 @@ class ReloadTests(Harness):
         self.write('walt.txt', self.walt)
 
     def test_frequency_changed_while_running(self):
-        self.edit_walt('frequencies=145.0', 'frequencies=150.0')
+        self.edit_walt('frequency=145.0', 'frequency=150.0')
         self.after(29000)
         self.assertEqual(self.freqs(), [145000], 'reloaded before RELOAD_MS')
         self.after(1000)
@@ -421,9 +385,9 @@ class ReloadTests(Harness):
         self.assertEqual(self.talk(), [150000])
         # E05-T08 : aucun envoi aux clients quand les fréquences changent (plus de liste annoncée).
         self.g.SIDE = 'server'
-        self.edit_walt('frequencies=150.0', 'frequencies=150.0, 152.0')
+        self.edit_walt('frequency=150.0', 'frequency=152.0')
         self.after(30000)
-        self.assertEqual(self.freqs(), [150000, 152000])
+        self.assertEqual(self.freqs(), [152000])
         self.assertEqual(lua_list(self.g.TO_CLIENTS), [])
 
     def test_unchanged_file_is_not_parsed_again(self):
@@ -452,18 +416,18 @@ class ReloadTests(Harness):
         self.assertEqual(self.freqs(), [145000])
 
     def test_invalid_edit_keeps_the_last_valid_version(self):
-        self.edit_walt('frequencies=145.0', 'frequencies=145.1')
+        self.edit_walt('frequency=145.0', 'frequency=145.1')
         self.after(30000)
-        line = self.walt.splitlines().index('frequencies=145.1') + 1
+        line = self.walt.splitlines().index('frequency=145.1') + 1
         errors = self.logs_with('walt.txt refused')
         self.assertEqual(len(errors), 1)
         self.assertIn(f'line {line}: frequency 145.1 is not on the 0.2 MHz step of the radios', errors[0])
         self.assertIn('the previous valid version stays in service', errors[0])
         self.assertEqual(self.freqs(), [145000])
-        self.assertEqual(self.P.get('walt').frequencies[1], 145000)
+        self.assertEqual(self.P.get('walt').frequency, 145000)
         self.after(30000)
         self.assertEqual(len(self.logs_with('walt.txt refused')), 1, 'same error logged again')
-        self.edit_walt('frequencies=145.1', 'frequencies=146.0')
+        self.edit_walt('frequency=145.1', 'frequency=146.0')
         self.after(30000)
         self.assertEqual(self.freqs(), [146000])
 
@@ -493,21 +457,21 @@ class ReloadTests(Harness):
         self.assertEqual(len(self.logs_with("Bob.txt refused, line 2: id 'bob' does not match the file name")), 1)
 
     def test_frequency_conflict_oldest_sheet_keeps_it(self):
-        self.write('abe.txt', self.sheet('abe', '145.0, 152.0'))  # avant walt dans l'ordre alphabétique
+        self.write('abe.txt', self.sheet('abe', '145.0'))  # avant walt dans l'ordre alphabétique
         self.after(30000)
-        self.assertEqual(self.freqs(), [145000, 152000])
+        self.assertEqual(self.freqs(), [145000])
         self.assertEqual(self.P.voiceAt(145000), 'walt')
-        self.assertEqual(self.served('abe'), [152000])
+        self.assertEqual(self.served('abe'), [])
         warnings = self.logs_with("frequency 145.0 of voice 'abe' refused, already used by voice 'walt'")
         self.assertEqual(len(warnings), 1)
         self.after(30000)
         self.assertEqual(len(self.logs_with('of voice \'abe\' refused')), 1, 'conflict logged again')
         # Walt quitte la fréquence : abe la reçoit à la relecture.
-        self.edit_walt('frequencies=145.0', 'frequencies=150.0')
+        self.edit_walt('frequency=145.0', 'frequency=150.0')
         self.after(30000)
         self.assertEqual(self.P.voiceAt(145000), 'abe')
-        self.assertEqual(self.served('abe'), [145000, 152000])
-        self.assertEqual(self.freqs(), [145000, 150000, 152000])
+        self.assertEqual(self.served('abe'), [145000])
+        self.assertEqual(self.freqs(), [145000, 150000])
 
     def test_conflict_at_first_load_alphabetical(self):
         self.write('zed.txt', self.sheet('zed', '145.0'))
@@ -528,7 +492,7 @@ class ReloadTests(Harness):
 
     def test_frequency_taken_by_another_channel(self):
         self.rt.execute('MANAGER.byFreq[150000] = newChannel("Vanilla", 150000, "Radio", "vanilla-150")')
-        self.edit_walt('frequencies=145.0', 'frequencies=150.0')
+        self.edit_walt('frequency=145.0', 'frequency=150.0')
         self.after(30000)
         self.assertEqual(self.served('walt'), [])
         self.assertEqual(self.talk(), [])
@@ -641,7 +605,7 @@ class FingerprintTests(Harness):
 
     def test_modified_sheet_is_kept(self):
         self.load_world()
-        admin = WALT_FIXED.replace(b'frequencies=145.0', b'frequencies=150.0')
+        admin = WALT_FIXED.replace(b'frequency=145.0', b'frequency=150.0')
         self.write('walt.txt', admin)
         record = self.record()
         self.deliver('walt.txt', WALT_FIXED.replace(b'listen=always', b'listen=06:00-22:00'))
@@ -703,15 +667,6 @@ class FingerprintTests(Harness):
         self.assertEqual(self.installed('walt.txt'), WALT_FIXED)
         self.assertEqual(len(self.logs_with('is damaged (line 1: expected RSFP1)')), 1)
 
-    def test_migrated_walt_is_never_replaced(self):
-        self.g.LEGACY = 150.0
-        self.load_world()
-        self.assertNotIn('walt.txt', self.record())
-        self.deliver('walt.txt', WALT_FIXED.replace(b'listen=always', b'listen=06:00-22:00'))
-        self.load_world()
-        self.assertIn('frequencies=150.0', self.installed('walt.txt').decode('utf-8').splitlines())
-        self.assertEqual(len(self.logs_with("voice 'walt' modified by the admin")), 1)
-
 
 # E20-T11 : marchands des villes, livrés pour la première fois avec le fichier d'empreintes (E05-T11) : jamais
 # installés sans lui, donc ni dans KNOWN_DELIVERED ni dans une installation d'avant E05-T07.
@@ -742,11 +697,12 @@ class KnownDeliveredTests(Harness):
 
 class PreviousInstallTests(Harness):
     """Accepté si (E05-T11) : une installation d'avant E05-T07 (six fiches à fréquences fixes de 24832ea, sans
-    fichier d'empreintes) reçoit les fiches à plages ; une fiche modifiée par l'admin est gardée."""
+    fichier d'empreintes) reçoit les fiches livrées actuelles (radio=<niveau>, E24-T01) ; une fiche modifiée par
+    l'admin est gardée."""
 
     bundled = None
 
-    def test_fixed_frequency_install_receives_the_ranges(self):
+    def test_fixed_frequency_install_receives_the_radio_levels(self):
         old = {vid: git_file('24832ea', f'{vid}.txt') for vid in first_voices()}
         if None in old.values():
             self.skipTest('git history not available')
@@ -762,7 +718,7 @@ class PreviousInstallTests(Harness):
                     self.assertEqual(self.installed_bytes(vid), admin)
                 else:
                     self.assertEqual(self.installed_bytes(vid), (BUNDLED / f'{vid}.txt').read_bytes())
-                    self.assertEqual(lua_list(self.P.get(vid).frequencies), [])
+                    self.assertIsNone(self.P.get(vid).frequency)
         self.assertEqual(len(self.logs_with('updated to the delivered version')), 5)
         self.assertEqual(len(self.logs_with("voice 'gus' modified by the admin")), 1)
         # The admin's sheet is kept as written in 24832ea, keys of that time included: only the current grammar
@@ -821,9 +777,9 @@ instanceof = function(o, c) return type(o) == "table" and o.isRadio == true and 
 SENT = {}
 sendServerCommand = function(...) local a = { ... }
     if #a == 4 then SENT[#SENT + 1] = a[3] .. (a[4].reason and (":" .. a[4].reason) or "") end end
-HIGH_TIER, MAX_CHANNEL = false, 1000000
+MAX_CHANNEL = 1000000
 -- Talkie en main (DeviceData tel que le serveur le connaît ; canTransmitWith de Belt Walkie-Talkie).
-local device = { getIsTwoWay = function() return true end, getIsHighTier = function() return HIGH_TIER end,
+local device = { getIsTwoWay = function() return true end, getIsHighTier = function() return false end,
     getIsPortable = function() return true end, getIsTelevision = function() return false end,
     isNoTransmit = function() return false end, getIsTurnedOn = function() return true end,
     getIsBatteryPowered = function() return false end, getMicIsMuted = function() return false end,
@@ -874,16 +830,18 @@ class ServerHarness(Harness):
 
 
 class DeliveredVoicesServerTests(ServerHarness):
-    """E05-T04 : les six fiches réellement livrées, installées et servies par le serveur (21:05, heure du jeu).
-    E05-T07 : fréquences tirées dans leurs plages ; ZombRand de SERVER_STUBS rend 0, donc la plus basse libre de
-    chaque plage, voix tirées dans leur ordre de chargement (alphabétique), à 1.0 MHz au moins les unes des autres."""
+    """E05-T04 : les fiches réellement livrées, installées et servies par le serveur (21:05, heure du jeu).
+    E24-T01 : une fréquence tirée dans la zone de la radio de chaque voix ; ZombRand de SERVER_STUBS rend 0, donc la
+    plus basse libre de la zone, voix tirées dans leur ordre de chargement (alphabétique), à 1.0 MHz au moins les unes
+    des autres."""
 
     bundled = None
-    VOICES = {'walt': [130000], 'darlene': [115000], 'cody': [10000], 'whitaker': [75000],
-              'nightowl': [88000, 109000], 'gus': [150200],
-              # E20-T11 : marchands des villes (plus basse fréquence libre de chaque plage).
-              'wanda': [25000], 'lamar': [32000], 'delphine': [65000], 'hollis': [201000], 'loretta': [210000],
-              'virgil': [220000], 'boone': [230000], 'odessa': [240000], 'ezra': [250000], 'maxine': [260000]}
+    # any_talkie (75-150) : darlene, nightowl, walt, whitaker ; good_talkie (50-74.8, 150.2-200) : delphine, gus ;
+    # pro_talkie (25-49.8, 200.2-300) : les marchands des villes ; tactical (10-24.8, 300.2-500) : cody.
+    VOICES = {'darlene': [75000], 'nightowl': [76000], 'walt': [77000], 'whitaker': [78000],
+              'delphine': [50000], 'gus': [51000], 'cody': [10000],
+              'boone': [25000], 'ezra': [26000], 'hollis': [27000], 'lamar': [28000], 'loretta': [29000],
+              'maxine': [30000], 'odessa': [31000], 'virgil': [32000], 'wanda': [33000]}
 
     def requests(self) -> str:
         path = self.lua_dir / 'batman_CoreAI' / 'requests.txt'
@@ -897,37 +855,32 @@ class DeliveredVoicesServerTests(ServerHarness):
         everything = sorted(f for khz in self.VOICES.values() for f in khz)
         self.assertEqual(self.freqs(), everything)
         self.assertEqual(sorted(int(f) for f in lua_list(self.g.NAMES_REMOVED)), everything)
-        self.assertEqual(self.talk()[0], 130000)  # Walt d'abord
+        self.assertEqual(self.talk()[0], 77000)  # Walt d'abord
         self.assertEqual(sorted(self.talk()), everything)  # whitaker (silent) compris
         self.assertEqual(self.P.get('whitaker').state, 'silent')
         self.assertEqual(len(self.logs_with('installed the bundled sheet')), len(self.VOICES))
         self.assertEqual(self.logs_with('refused') + self.logs_with('ERROR'), [])
 
     def test_routing_to_the_new_voices(self):
-        for khz, vid in ((75000, 'whitaker'), (115000, 'darlene')):  # silencieuse ; hors des gardes
+        for khz, vid in ((78000, 'whitaker'), (75000, 'darlene')):  # silencieuse ; hors des gardes
             with self.subTest(vid):
                 self.assertEqual(lua_list(self.g.say(khz)), ['accepted', 'done'])
                 self.assertNotIn(f'voice={vid}', self.requests())
-        self.assertEqual(lua_list(self.g.say(109000)), ['accepted'])  # Night Owl écoute 19:00-22:00
+        self.assertEqual(lua_list(self.g.say(76000)), ['accepted'])  # Night Owl écoute 19:00-22:00
         self.assertIn('voice=nightowl', self.requests())
         # Le pont reçoit l'identifiant de voix, jamais la fréquence tirée.
-        self.assertNotIn('109000', self.requests())
-        self.assertNotIn('109.0', self.requests())
+        self.assertNotIn('76000', self.requests())
+        self.assertNotIn('76.0', self.requests())
 
 
 class DrawTests(Harness):
-    """E05-T07 : tirage des fréquences dans les plages, mémoire de la partie, collisions."""
+    """E05-T07, E24-T01 : une fréquence libre tirée dans la zone de la radio nécessaire de chaque voix, mémoire de la
+    partie, collisions."""
 
     bundled = None
-    RANGES = {'walt': [(130000, 149800)], 'darlene': [(115000, 129800)], 'cody': [(10000, 24800)],
-              'whitaker': [(75000, 87800)], 'nightowl': [(88000, 107800), (109000, 114800)],
-              'gus': [(150200, 199800)],
-              # E20-T11 : marchands des villes.
-              'wanda': [(25000, 31800)], 'lamar': [(32000, 39800)], 'delphine': [(65000, 74800)],
-              'hollis': [(201000, 209800)], 'loretta': [(210000, 219800)], 'virgil': [(220000, 229800)],
-              'boone': [(230000, 239800)], 'odessa': [(240000, 249800)], 'ezra': [(250000, 259800)],
-              'maxine': [(260000, 269800)]}
+    LEVELS = DeliveredVoicesTests.LEVELS
     AEBS = 'EMRG-711984'
+    VANILLA = (89400, 91200, 93200, 94200, 95000, 98000, 101200, 107600)
 
     def start(self, new_game, seed=1, world='rstest_a', aebs=None):
         """Chargement d'un monde : nouveau gestionnaire, chaînes vanilla fixes, AEBS de la partie (comme
@@ -935,7 +888,7 @@ class DrawTests(Harness):
         self.new_manager()
         self.g.SEED, self.g.WORLD = seed, world
         self.rt.execute('GT_MODDATA = {}')
-        for khz in (89400, 91200, 93200, 94200, 95000, 98000, 101200, 107600):
+        for khz in self.VANILLA:
             self.rt.execute(f'MANAGER.byFreq[{khz}] = newChannel("Vanilla", {khz}, "Radio", "vanilla-{khz}")')
         if aebs is not None:
             self.rt.execute(f'MANAGER.byFreq[{aebs}] = newChannel("Automated Emergency Broadcast System", {aebs}, '
@@ -946,31 +899,36 @@ class DrawTests(Harness):
         return self.all_served()
 
     def all_served(self) -> dict[str, list[int]]:
-        return {vid: self.served(vid) for vid in self.RANGES}
+        return {vid: self.served(vid) for vid in self.LEVELS}
 
     def memory_files(self) -> list[Path]:
         return sorted((self.lua_dir / 'batman_RadioSurvivor').glob('frequencies-*.txt'))
 
+    def in_zone(self, level: str, khz: int) -> bool:
+        return bool(self.rt.eval('require("RadioSurvivor/RS_RadioLevels")').inZone(level, khz))
+
     def check_draw(self, served: dict[str, list[int]], aebs=None):
         everything = []
-        for vid, ranges in self.RANGES.items():
+        for vid, level in self.LEVELS.items():
             with self.subTest(vid):
-                self.assertEqual(len(served[vid]), len(ranges), served)
-                for khz, (low, high) in zip(served[vid], ranges):
-                    self.assertTrue(low <= khz <= high and khz % 200 == 0, (vid, khz))
+                self.assertEqual(len(served[vid]), 1, served)
+                khz = served[vid][0]
+                self.assertTrue(self.in_zone(level, khz) and khz % 200 == 0, (vid, level, khz))
             everything += [(khz, vid) for khz in served[vid]]
         everything.sort()
         for (a, va), (b, vb) in zip(everything, everything[1:]):
             self.assertGreaterEqual(b - a, 1000, f'{va} {a} and {vb} {b} closer than 1.0 MHz')
-        taken = {89400, 91200, 93200, 94200, 95000, 98000, 101200, 107600, aebs}
+        taken = {*self.VANILLA, aebs}
         self.assertEqual({khz for khz, _ in everything} & taken, set())
         self.assertEqual(self.freqs(), sorted([khz for khz, _ in everything] + sorted(taken - {None})))
 
     def test_two_new_worlds_draw_different_frequencies(self):
         first = self.start(True, seed=11, aebs=98600)
         self.check_draw(first, aebs=98600)
-        self.assertEqual(len(self.logs_with(' drew ')), 17)
-        self.assertEqual(len(self.logs_with('(new game)')), 17)
+        self.assertEqual(len(self.logs_with(' drew ')), 16)
+        self.assertEqual(len(self.logs_with('(new game)')), 16)
+        self.assertEqual(len(self.logs_with("voice 'cody' drew")), 1)
+        self.assertIn('for the radio tactical (new game)', self.logs_with("voice 'cody' drew")[0])
         second = self.start(True, seed=977, world='rstest_b', aebs=101800)
         self.check_draw(second, aebs=101800)
         self.assertNotEqual(first, second)
@@ -982,9 +940,10 @@ class DrawTests(Harness):
         memory = self.memory_files()[0]
         text = memory.read_text(encoding='utf-8')
         lines = text.splitlines()
-        self.assertEqual(lines[0], 'RSFREQ1')
-        self.assertEqual(len(lines), 18)  # seize voix, deux plages pour le chroniqueur
-        self.assertIn(f"walt 130000-149800 {first['walt'][0]}", lines)
+        self.assertEqual(lines[0], 'RSFREQ2')
+        self.assertEqual(len(lines), 17)  # seize voix, une fréquence chacune
+        self.assertIn(f"walt any_talkie {first['walt'][0]}", lines)
+        self.assertIn(f"cody tactical {first['cody'][0]}", lines)
         drawn = len(self.logs_with(' drew '))
         again = self.start(False, seed=4242, aebs=99000)  # autre graine : rien n'est tiré
         self.assertEqual(again, first)
@@ -997,38 +956,29 @@ class DrawTests(Harness):
         second = self.start(True, seed=6)
         self.assertNotEqual(first, second)
         self.assertEqual(len(self.memory_files()), 1)
-        self.assertIn(f"walt 130000-149800 {second['walt'][0]}",
+        self.assertIn(f"walt any_talkie {second['walt'][0]}",
                       self.memory_files()[0].read_text(encoding='utf-8').splitlines())
         self.assertEqual(self.start(False, seed=7), second)
 
     def test_old_game_without_memory_draws_once(self):
-        # Partie créée avant E05-T07 : aucun fichier de tirage, monde non neuf.
+        # Partie sans fichier de tirage, monde non neuf.
         first = self.start(False, seed=3)
         self.check_draw(first)
         self.assertEqual(len(self.logs_with('no drawn frequencies remembered for this game yet')), 1)
-        self.assertEqual(len(self.logs_with('(no frequency remembered for this range)')), 17)
+        self.assertEqual(len(self.logs_with('(no frequency remembered for this voice)')), 16)
         self.assertEqual(self.start(False, seed=8), first)
 
-    def test_aebs_is_never_drawn(self):
-        # Plage étroite qui contient l'AEBS : sur 40 mondes neufs, jamais la fréquence de l'AEBS.
-        self.write('abe.txt', self.sheet('abe', extra='').replace('frequencies=145.0', 'frequency_range=100.0-101.0'))
-        for seed in range(1, 41):
+    def test_voices_never_closer_than_the_gap(self):
+        for vid in ('abe', 'bea', 'cid'):
+            self.write(f'{vid}.txt', self.level_sheet(vid, 'any_talkie'))
+        for seed in range(1, 31):
             with self.subTest(seed=seed):
-                served = self.start(True, seed=seed, aebs=100400)
-                self.assertNotEqual(self.served('abe'), [100400])
-                self.assertEqual(len(self.served('abe')), 1)
-                self.assertEqual(self.rt.eval(f'MANAGER.byFreq[100400].uuid'), self.AEBS)
-                self.assertTrue(served)
-
-    def test_aebs_only_in_the_mod_data(self):
-        # Ordre inverse des abonnés (AEBS pas encore créée) : la ModData de GameTime suffit à l'éviter.
-        self.write('abe.txt', self.sheet('abe').replace('frequencies=145.0', 'frequency_range=100.0-100.2'))
-        self.start(True, aebs=100000)
-        self.rt.execute('MANAGER.byFreq[100000] = nil')
-        self.new_manager()
-        self.rt.execute('GT_MODDATA = { dynamicRadio = { { name = "AEBS", freq = 100000, uuid = "EMRG-711984" } } }')
-        self.load_world(True)
-        self.assertEqual(self.served('abe'), [100200])
+                served = self.start(True, seed=seed)
+                every = sorted(k for v in list(self.LEVELS) + ['abe', 'bea', 'cid'] for k in self.served(v))
+                self.assertEqual(len(every), 19)  # seize voix livrées, trois du banc
+                self.assertTrue(all(b - a >= 1000 for a, b in zip(every, every[1:])), every)
+                self.assertTrue(all(self.in_zone('any_talkie', self.served(v)[0]) for v in ('abe', 'bea', 'cid')))
+                self.assertEqual(len(served['nightowl']), 1)
 
     def test_remembered_frequency_taken_at_load_is_drawn_again(self):
         first = self.start(True, seed=21)
@@ -1040,35 +990,21 @@ class DrawTests(Harness):
         self.load_world(False)
         now = self.all_served()
         self.assertNotEqual(now['walt'], [walt])
-        self.assertTrue(130000 <= now['walt'][0] <= 149800)
+        self.assertTrue(self.in_zone('any_talkie', now['walt'][0]))
         self.assertEqual({k: v for k, v in now.items() if k != 'walt'}, {k: v for k, v in first.items() if k != 'walt'})
-        logs = self.logs_with(f"voice 'walt' drew")
+        logs = self.logs_with("voice 'walt' drew")
         self.assertIn(f"({walt / 1000:.1f} taken by the radio channel 'Other mod')", logs[-1])
-        self.assertIn(f"walt 130000-149800 {now['walt'][0]}",
+        self.assertIn(f"walt any_talkie {now['walt'][0]}",
                       self.memory_files()[0].read_text(encoding='utf-8').splitlines())
 
-    def test_voices_never_closer_than_the_gap(self):
-        for vid in ('abe', 'bea', 'cid'):
-            self.write(f'{vid}.txt', self.sheet(vid).replace('frequencies=145.0', 'frequency_range=100.0-104.0'))
-        for seed in range(1, 31):
-            with self.subTest(seed=seed):
-                served = self.start(True, seed=seed)
-                every = sorted(k for v in list(self.RANGES) + ['abe', 'bea', 'cid'] for k in self.served(v))
-                self.assertEqual(len(every), 20)  # E20-T11 : seize voix livrées (nightowl : deux), trois du banc
-                self.assertTrue(all(b - a >= 1000 for a, b in zip(every, every[1:])), every)
-                self.assertEqual(len(served['nightowl']), 2)
-                got = sorted(self.served(v)[0] for v in ('abe', 'bea', 'cid'))
-                self.assertTrue(all(100000 <= k <= 104000 for k in got), got)
-                self.assertTrue(got[1] - got[0] >= 1000 and got[2] - got[1] >= 1000, got)
-
     def test_remembered_voices_too_close_the_later_one_moves(self):
-        self.write('abe.txt', self.sheet('abe').replace('frequencies=145.0', 'frequency_range=100.0-110.0'))
-        self.write('zed.txt', self.sheet('zed').replace('frequencies=145.0', 'frequency_range=100.0-110.0'))
+        self.write('abe.txt', self.level_sheet('abe', 'any_talkie'))
+        self.write('zed.txt', self.level_sheet('zed', 'any_talkie'))
         self.start(True)
         memory = self.memory_files()[0]
         lines = [line for line in memory.read_text(encoding='utf-8').splitlines()
                  if not line.startswith(('abe ', 'zed '))]
-        memory.write_text('\n'.join(lines + ['abe 100000-110000 105000', 'zed 100000-110000 105400']) + '\n',
+        memory.write_text('\n'.join(lines + ['abe any_talkie 105000', 'zed any_talkie 105400']) + '\n',
                           encoding='utf-8')
         self.start(False, seed=9)
         self.assertEqual(self.served('abe'), [105000])
@@ -1084,39 +1020,24 @@ class DrawTests(Harness):
         self.assertNotEqual(self.served('walt'), [walt])
         self.assertGreaterEqual(abs(self.served('walt')[0] - walt), 1000)
 
-    def test_no_free_frequency_left(self):
-        self.write('abe.txt', self.sheet('abe').replace('frequencies=145.0', 'frequency_range=100.0-100.2'))
-        self.new_manager()
-        self.rt.execute('MANAGER.byFreq[100000] = newChannel("A", 100000, "Radio", "a")')
-        self.rt.execute('MANAGER.byFreq[100200] = newChannel("B", 100200, "Radio", "b")')
-        self.load_world(True)
-        self.assertEqual(self.served('abe'), [])
-        self.assertEqual(len(self.logs_with("ERROR: voice 'abe': no free frequency left in 100.0-100.2")), 1)
-        self.assertEqual(len(self.served('walt')), 1)
-
-    def test_range_changed_while_running_draws_this_voice_only(self):
+    def test_radio_changed_while_running_draws_this_voice_only(self):
         first = self.start(True, seed=31)
         text = (self.dir / 'gus.txt').read_text(encoding='utf-8')
-        self.write('gus.txt', text.replace('frequency_range=150.2-199.8', 'frequency_range=160.0-170.0'))
+        self.write('gus.txt', text.replace('radio=good_talkie', 'radio=military'))
         self.after(30000)
         now = self.all_served()
-        self.assertTrue(160000 <= now['gus'][0] <= 170000)
+        self.assertTrue(self.in_zone('military', now['gus'][0]), now['gus'])
         self.assertEqual({k: v for k, v in now.items() if k != 'gus'}, {k: v for k, v in first.items() if k != 'gus'})
         self.assertEqual(len(self.logs_with("voice 'gus' drew")), 2)
+        self.assertIn('(radio changed from good_talkie)', self.logs_with("voice 'gus' drew")[-1])
         lines = self.memory_files()[0].read_text(encoding='utf-8').splitlines()
-        self.assertIn(f"gus 160000-170000 {now['gus'][0]}", lines)
-        self.assertFalse(any(line.startswith('gus 150200-199800') for line in lines))
-        # Une seule des deux plages du chroniqueur changée : seule elle est tirée de nouveau.
-        text = (self.dir / 'nightowl.txt').read_text(encoding='utf-8')
-        self.write('nightowl.txt', text.replace('109.0-114.8', '109.0-113.8'))
-        self.after(30000)
-        self.assertEqual(self.served('nightowl')[0], first['nightowl'][0])
-        self.assertTrue(109000 <= self.served('nightowl')[1] <= 113800)
+        self.assertIn(f"gus military {now['gus'][0]}", lines)
+        self.assertEqual([line for line in lines if line.startswith('gus ')], [f"gus military {now['gus'][0]}"])
 
     def test_fixed_frequency_sheet_drops_its_draw(self):
         self.start(True, seed=4)
         text = (self.dir / 'walt.txt').read_text(encoding='utf-8')
-        self.write('walt.txt', text.replace('frequency_range=130.0-149.8', 'frequencies=145.0'))
+        self.write('walt.txt', text.replace('radio=any_talkie', 'frequency=145.0'))
         self.after(30000)
         self.assertEqual(self.served('walt'), [145000])
         lines = self.memory_files()[0].read_text(encoding='utf-8').splitlines()
@@ -1127,12 +1048,13 @@ class DrawTests(Harness):
         memory = self.memory_files()[0]
         lines = memory.read_text(encoding='utf-8').splitlines()
         lines = ['garbage' if line.startswith('cody ') else line for line in lines]
+        # 160.0 MHz is outside the zone of Walt's radio: a weaker radio could not hear it, the line is refused.
         lines = [line.replace(f" {first['walt'][0]}", ' 160000') if line.startswith('walt ') else line for line in lines]
         memory.write_text('\n'.join(lines) + '\n', encoding='utf-8')
         now = self.start(False, seed=13)
         self.assertEqual(len([w for w in self.logs_with('WARNING') if 'frequencies-' in w and 'ignored' in w]), 2)
-        self.assertTrue(10000 <= now['cody'][0] <= 24800)
-        self.assertTrue(130000 <= now['walt'][0] <= 149800)
+        self.assertTrue(self.in_zone('tactical', now['cody'][0]))
+        self.assertTrue(self.in_zone('any_talkie', now['walt'][0]))
         self.assertEqual(now['gus'], first['gus'])
 
     def test_lua_reload_reads_the_memory(self):
@@ -1153,6 +1075,61 @@ class DrawTests(Harness):
         self.assertEqual(names, [f'frequencies-{hexa}.txt'])
         # Jamais de ModData globale ni d'envoi aux clients pour la mémoire du tirage.
         self.assertIsNone(self.rt.eval('GT_MODDATA.batman_RadioSurvivor'))
+
+
+class CrowdedZoneTests(Harness):
+    """E24-T01 : zone de la radio presque pleine (Walt seul livré, fréquence fixe 145.0) : le tirage ne prend jamais
+    une fréquence occupée (alerte d'urgence, autre chaîne) et signale une zone pleine."""
+
+    def fill(self, level: str, keep: set[int]):
+        """Une chaîne étrangère sur chaque fréquence de la zone du niveau, sauf `keep` et la fréquence de Walt."""
+        levels = self.rt.eval('require("RadioSurvivor/RS_RadioLevels")')
+        zones = levels.zones(level)
+        for i in range(1, len(zones) + 1):
+            for khz in range(int(zones[i].low), int(zones[i].high) + 1, 200):
+                if khz not in keep and khz != 145000:
+                    self.rt.execute(f'MANAGER.byFreq[{khz}] = newChannel("Other", {khz}, "Radio", "other-{khz}")')
+
+    def test_aebs_is_never_drawn(self):
+        self.write('abe.txt', self.level_sheet('abe', 'any_talkie'))
+        for seed in range(1, 11):
+            with self.subTest(seed=seed):
+                self.new_manager()
+                self.g.SEED = seed
+                self.fill('any_talkie', {100000, 100400})
+                self.rt.execute('MANAGER.byFreq[100400] = newChannel("AEBS", 100400, "Emergency", "EMRG-711984")')
+                self.rt.execute('GT_MODDATA = { dynamicRadio = { { name = "AEBS", freq = 100400, uuid = "EMRG-711984" } } }')
+                self.load_world(True)
+                self.assertEqual(self.served('abe'), [100000])
+
+    def test_aebs_only_in_the_mod_data(self):
+        # Ordre inverse des abonnés (AEBS pas encore créée) : la ModData de GameTime suffit à l'éviter.
+        self.write('abe.txt', self.level_sheet('abe', 'any_talkie'))
+        self.new_manager()
+        self.fill('any_talkie', {100000, 100200})
+        self.rt.execute('GT_MODDATA = { dynamicRadio = { { name = "AEBS", freq = 100000, uuid = "EMRG-711984" } } }')
+        self.load_world(True)
+        self.assertEqual(self.served('abe'), [100200])
+
+    def test_no_free_frequency_left(self):
+        self.write('abe.txt', self.level_sheet('abe', 'any_talkie'))
+        self.new_manager()
+        self.fill('any_talkie', set())
+        self.load_world(True)
+        self.assertEqual(self.served('abe'), [])
+        self.assertEqual(len(self.logs_with("ERROR: voice 'abe': no free frequency left for the radio any_talkie")), 1)
+        self.assertEqual(self.served('walt'), [145000])
+
+    def test_draw_never_lands_where_a_weaker_radio_hears(self):
+        # Zone du niveau tactical : 10-24.8 et 300.2-500 MHz, jamais ce que capte un talkie pro (25-300).
+        self.write('abe.txt', self.level_sheet('abe', 'tactical'))
+        for seed in range(1, 21):
+            with self.subTest(seed=seed):
+                self.new_manager()
+                self.g.SEED = seed
+                self.load_world(True)
+                khz = self.served('abe')[0]
+                self.assertTrue(10000 <= khz <= 24800 or 300200 <= khz <= 500000, khz)
 
 
 class ServerTests(ServerHarness):
@@ -1218,7 +1195,7 @@ class ServerTests(ServerHarness):
         self.assertEqual(lua_list(self.g.say(145000)), ['accepted'])
 
     def test_frequency_change_moves_the_conversation(self):
-        self.set_walt('frequencies=145.0', 'frequencies=150.0')
+        self.set_walt('frequency=145.0', 'frequency=150.0')
         self.assertEqual(lua_list(self.g.say(145000)), ['accepted', 'done'])
         self.assertEqual(lua_list(self.g.say(150000)), ['accepted'])
 
@@ -1285,7 +1262,7 @@ class ServerTests(ServerHarness):
         self.assertEqual(self.call(), ([], []))
         self.set_walt('call_one_in=0', 'call_one_in=7')
         self.set_walt('call_text=IGUI_RadioSurvivor_Call', 'call_text=IGUI_Other_Call')
-        self.set_walt('frequencies=145.0', 'frequencies=150.0')
+        self.set_walt('frequency=145.0', 'frequency=150.0')
         rand, aired = self.call()
         self.assertEqual(rand, [7])
         self.assertEqual(aired, [['<fzzt>', 'IGUI_Other_Call|150.0', '<szzt>']])
@@ -1374,15 +1351,6 @@ class ServerTests(ServerHarness):
         self.assertEqual(self.talk(), [145000, 152000])
         self.assertEqual(lua_list(self.g.say(152000)), ['accepted', 'done'])
         self.assertNotIn('req=', self.requests())
-
-    def test_high_tier_voice_needs_a_high_tier_radio(self):
-        self.write('abe.txt', self.sheet('abe', '152.0', 'radio=high_tier\n'))
-        self.after(30000)
-        self.assertEqual(lua_list(self.g.say(152000)), ['accepted', 'done'])
-        self.assertNotIn('req=', self.requests())
-        self.g.HIGH_TIER = True
-        self.assertEqual(lua_list(self.g.say(152000)), ['accepted'])
-        self.assertIn('voice=abe', self.requests())
 
     def test_frequency_out_of_the_radio_range(self):
         # Hors de portée de la radio ou fréquence non entière : silence, comme une fréquence sans voix (E05-T08).
@@ -1754,16 +1722,6 @@ class WorldRadioServerTests(ServerHarness):
         data.maxCh = 144000
         self.assertEqual(self.say_world(), ['accepted', 'done'])
         self.assertNotIn('req=', self.requests())
-
-    def test_high_tier_voice_judged_on_the_world_radio(self):
-        self.write('abe.txt', self.sheet('abe', '152.0', 'radio=high_tier\n'))
-        self.after(30000)
-        data, _ = self.world(khz=152000)
-        self.g.HIGH_TIER = True  # talkie en main haut de gamme : sans effet sur la radio posée
-        self.assertEqual(self.say_world(channel=152000), ['accepted', 'done'])
-        data.highTier = True
-        self.assertEqual(self.say_world(channel=152000), ['accepted'])
-        self.assertIn('voice=abe', self.requests())
 
     # Autoradio ------------------------------------------------------------------------------------------
 

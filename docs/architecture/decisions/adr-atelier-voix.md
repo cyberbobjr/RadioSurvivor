@@ -105,3 +105,9 @@ Le « journal sur la machine seulement » de D09 vaut désormais « journal derr
 
 - Hébergement en ligne de l'atelier, partage de voix entre joueurs par un service.
 - Édition des fiches de Living Knox.
+
+## Mise à jour du 2026-11-16 — D12 : un atelier sans saisie technique
+
+- **D12** (utilisateur) : l'atelier vise des adolescents ; aucune saisie d'identifiant, de nom technique, de syntaxe ni
+  de plage de nombres. La fréquence se choisit par la radio nécessaire (fréquence fixe en option) ; les lots du stock
+  et tout objet se choisissent dans des listes. Plan [E24](../../annexes/plans-termines/E24-atelier-simple.md).

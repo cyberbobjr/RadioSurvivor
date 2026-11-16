@@ -55,9 +55,13 @@ import persona_store as store  # noqa: E402
 from signalsmoke_double import SIGNAL_SMOKE  # noqa: E402
 from itemweights_double import ITEM_WEIGHTS  # noqa: E402
 
-HEAD = 'format=1\nid=case\nname=Case\nfrequencies=145.0\n'
-RANGE_HEAD = 'format=1\nid=case\nname=Case\nfrequency_range=140.0-150.0\n'
-BAD_RANGE = '(two frequencies in MHz, lowest first, e.g. 140.0-150.0)'
+# E24-T01 : radio=<niveau> (fréquence libre tirée à chaque partie dans la zone du niveau) ou frequency= (une fréquence
+# fixe), l'une des deux exactement.
+BASE = 'format=1\nid=case\nname=Case\n'
+HEAD = BASE + 'radio=any_talkie\n'
+FIXED_HEAD = BASE + 'frequency=145.0\n'
+BOTH = 'radio and frequency cannot be used together (a radio level to draw a free frequency, or one fixed frequency)'
+LEVELS = ('any_talkie', 'good_talkie', 'pro_talkie', 'tactical', 'military')
 PROMPT = '[prompt]\nYou are a test voice.\n'
 PLACE = '[place mill]\nat=10600,9300,0\nlabel=Old mill\nuse=mark\n'
 
@@ -72,8 +76,7 @@ FULL = ('# fiche complète\n'
         ' id = case \n'
         'name=Hélène Dupré\n'
         'language=fr\n'
-        'frequencies=7.2, 145.0 ,999.8\n'
-        'radio=high_tier\n'
+        'frequency= 7.2 \n'
         'listen=22:00-06:00,12:30-13:00\n'
         'location=fixed\n'
         'coords=10600,9300,-1\n'
@@ -117,16 +120,16 @@ CASES: list[tuple[str, str | bytes, tuple[int, str] | None]] = [
     ('no final newline', HEAD + PROMPT.rstrip('\n'), None),
     ('bom', '\ufeff' + HEAD + PROMPT,
      (1, 'file starts with a byte order mark (save it as UTF-8 without BOM)')),
-    ('invalid utf-8 in a value', HEAD.encode() + b'radio=caf\xe9\n' + PROMPT.encode(),
+    ('invalid utf-8 in a value', HEAD.encode() + b'language=caf\xe9\n' + PROMPT.encode(),
      (5, 'invalid UTF-8 (save the file as UTF-8)')),
     ('invalid utf-8 in the prompt', (HEAD + PROMPT).encode() + b'\xff\xfe\n',
      (7, 'invalid UTF-8 (save the file as UTF-8)')),
-    ('no equal sign', HEAD + 'radio high_tier\n' + PROMPT, (5, 'expected key=value or [prompt]')),
+    ('no equal sign', HEAD + 'location none\n' + PROMPT, (5, 'expected key=value or [prompt]')),
     ('bad key', HEAD + 'Radio=any\n' + PROMPT, (5, "bad key 'Radio'")),
     ('unknown key', HEAD + 'colour=red\n' + PROMPT, (5, "unknown key 'colour'")),
     ('unknown budget action', HEAD + 'budget.fly=1\n' + PROMPT, (5, "unknown action 'fly' in key 'budget.fly'")),
     ('duplicate key', HEAD + 'name=Other\n' + PROMPT, (5, "duplicate key 'name' (first set on line 3)")),
-    ('empty value', HEAD + 'radio=\n' + PROMPT, (5, "empty value for key 'radio'")),
+    ('empty value', HEAD + 'location=\n' + PROMPT, (5, "empty value for key 'location'")),
     ('format', HEAD.replace('format=1', 'format=2') + PROMPT, (1, "unsupported format '2' (expected 1)")),
     ('bad id', HEAD.replace('id=case', 'id=Case') + PROMPT,
      (2, "bad id 'Case' (a to z, 0 to 9 and _, starting with a letter, 32 characters at most)")),
@@ -135,16 +138,24 @@ CASES: list[tuple[str, str | bytes, tuple[int, str] | None]] = [
     ('id with accent', HEAD.replace('id=case', 'id=cas\u00e9') + PROMPT,
      (2, "bad id 'cas\u00e9' (a to z, 0 to 9 and _, starting with a letter, 32 characters at most)")),
     ('bad language', HEAD + 'language=eng\n' + PROMPT, (5, "bad language 'eng' (two lowercase letters, e.g. en)")),
-    ('frequency without decimal', HEAD.replace('145.0', '145') + PROMPT,
+    *((f'radio {level}', BASE + f'radio={level}\n' + PROMPT, None) for level in LEVELS),
+    ('fixed frequency', FIXED_HEAD + PROMPT, None),
+    ('lowest fixed frequency', FIXED_HEAD.replace('145.0', '0.2') + PROMPT, None),
+    ('highest fixed frequency', FIXED_HEAD.replace('145.0', '1000.0') + PROMPT, None),
+    ('frequency without decimal', FIXED_HEAD.replace('145.0', '145') + PROMPT,
      (4, "bad frequency '145' (MHz with one decimal, e.g. 145.0)")),
-    ('frequency with a comma', HEAD.replace('145.0', '145,0') + PROMPT,
-     (4, "bad frequency '145' (MHz with one decimal, e.g. 145.0)")),
-    ('frequency out of range', HEAD.replace('145.0', '0.8') + PROMPT,
-     (4, 'frequency 0.8 out of range (1.0 to 999.8 MHz)')),
-    ('frequency off step', HEAD.replace('145.0', '145.1') + PROMPT,
+    ('frequency with a comma', FIXED_HEAD.replace('145.0', '145,0') + PROMPT,
+     (4, "bad frequency '145,0' (MHz with one decimal, e.g. 145.0)")),
+    ('two frequencies', FIXED_HEAD.replace('145.0', '145.0,7.2') + PROMPT,
+     (4, "bad frequency '145.0,7.2' (MHz with one decimal, e.g. 145.0)")),
+    ('frequency below the radios', FIXED_HEAD.replace('145.0', '0.0') + PROMPT,
+     (4, 'frequency 0.0 out of range (0.2 to 1000.0 MHz)')),
+    ('frequency above the radios', FIXED_HEAD.replace('145.0', '1000.2') + PROMPT,
+     (4, 'frequency 1000.2 out of range (0.2 to 1000.0 MHz)')),
+    ('frequency off step', FIXED_HEAD.replace('145.0', '145.1') + PROMPT,
      (4, 'frequency 145.1 is not on the 0.2 MHz step of the radios')),
-    ('duplicate frequency', HEAD.replace('145.0', '145.0,7.2,145.0') + PROMPT, (4, 'duplicate frequency 145.0')),
-    ('bad radio', HEAD + 'radio=ham\n' + PROMPT, (5, "bad radio 'ham' (expected any, high_tier)")),
+    ('bad radio', BASE + 'radio=ham\n' + PROMPT,
+     (4, "bad radio 'ham' (expected any_talkie, good_talkie, pro_talkie, tactical, military)")),
     ('bad listening hours', HEAD + 'listen=20:00-06:00,24:00-01:00\n' + PROMPT,
      (5, "bad listening hours '24:00-01:00' (always, or HH:MM-HH:MM ranges separated by commas)")),
     ('listening hours without zero', HEAD + 'listen=8:00-12:00\n' + PROMPT,
@@ -170,39 +181,12 @@ CASES: list[tuple[str, str | bytes, tuple[int, str] | None]] = [
     ('missing separator at the end', HEAD, (4, 'missing [prompt] line before the prompt text')),
     ('empty file', '', (1, 'missing [prompt] line before the prompt text')),
     ('empty prompt', HEAD + '[prompt]\n \n\t\n', (5, 'empty prompt text after [prompt]')),
-    ('missing frequencies', 'format=1\nid=case\nname=Case\n' + PROMPT,
-     (4, "missing key 'frequencies' or 'frequency_range'")),
-    # Plages de tirage (E05-T07).
-    ('range', RANGE_HEAD + PROMPT, None),
-    ('two ranges with spaces', RANGE_HEAD.replace('140.0-150.0', '88.0-107.8 , 109.0 - 114.8') + PROMPT, None),
-    ('range over all the bounds', RANGE_HEAD.replace('140.0-150.0', '1.0-999.8') + PROMPT, None),
-    ('range without dash', RANGE_HEAD.replace('140.0-150.0', '145.0') + PROMPT,
-     (4, f"bad frequency range '145.0' {BAD_RANGE}")),
-    ('range with two dashes', RANGE_HEAD.replace('140.0-150.0', '1.0-2.0-3.0') + PROMPT,
-     (4, f"bad frequency range '1.0-2.0-3.0' {BAD_RANGE}")),
-    ('range reversed', RANGE_HEAD.replace('140.0-150.0', '150.0-140.0') + PROMPT,
-     (4, f"bad frequency range '150.0-140.0' {BAD_RANGE}")),
-    ('range of one frequency', RANGE_HEAD.replace('140.0-150.0', '140.0-140.0') + PROMPT,
-     (4, f"bad frequency range '140.0-140.0' {BAD_RANGE}")),
-    ('range with an empty part', RANGE_HEAD.replace('140.0-150.0', '140.0-150.0,') + PROMPT,
-     (4, f"bad frequency range '' {BAD_RANGE}")),
-    ('range bound without decimal', RANGE_HEAD.replace('140.0-150.0', '140-150.0') + PROMPT,
-     (4, "bad frequency '140' (MHz with one decimal, e.g. 145.0)")),
-    ('range bound off step', RANGE_HEAD.replace('140.0-150.0', '140.0-150.1') + PROMPT,
-     (4, 'frequency 150.1 is not on the 0.2 MHz step of the radios')),
-    ('range bound out of range', RANGE_HEAD.replace('140.0-150.0', '0.8-2.0') + PROMPT,
-     (4, 'frequency 0.8 out of range (1.0 to 999.8 MHz)')),
-    ('overlapping ranges', RANGE_HEAD.replace('140.0-150.0', '100.0-110.0,109.0-120.0') + PROMPT,
-     (4, "frequency range '109.0-120.0' overlaps another range of the sheet")),
-    ('touching ranges', RANGE_HEAD.replace('140.0-150.0', '100.0-110.0,110.0-120.0') + PROMPT,
-     (4, "frequency range '110.0-120.0' overlaps another range of the sheet")),
-    ('fixed frequencies and range', HEAD + 'frequency_range=140.0-150.0\n' + PROMPT,
-     (5, 'frequencies and frequency_range cannot be used together (fixed frequencies or ranges to draw from)')),
-    ('range and fixed frequencies', RANGE_HEAD + 'frequencies=145.0\n' + PROMPT,
-     (5, 'frequencies and frequency_range cannot be used together (fixed frequencies or ranges to draw from)')),
-    ('duplicate range key', RANGE_HEAD + 'frequency_range=1.0-2.0\n' + PROMPT,
-     (5, "duplicate key 'frequency_range' (first set on line 4)")),
-    ('missing format', 'id=case\nname=Case\nfrequencies=145.0\n' + PROMPT, (4, "missing key 'format'")),
+    ('neither radio nor frequency', BASE + PROMPT, (4, "missing key 'radio' or 'frequency'")),
+    ('radio and frequency', HEAD + 'frequency=145.0\n' + PROMPT, (5, BOTH)),
+    ('frequency and radio', FIXED_HEAD + 'radio=military\n' + PROMPT, (5, BOTH)),
+    ('duplicate frequency key', FIXED_HEAD + 'frequency=7.2\n' + PROMPT,
+     (5, "duplicate key 'frequency' (first set on line 4)")),
+    ('missing format', 'id=case\nname=Case\nradio=any_talkie\n' + PROMPT, (4, "missing key 'format'")),
     ('id does not match the file', HEAD.replace('id=case', 'id=other') + PROMPT,
      (2, "id 'other' does not match the file name 'case.txt'")),
     ('fixed without coords', HEAD + 'location=fixed\n' + PROMPT, (5, 'location fixed needs a coords line')),
@@ -269,7 +253,8 @@ CASES: list[tuple[str, str | bytes, tuple[int, str] | None]] = [
     ('empty use entry', HEAD + PLACE.replace('use=mark', 'use=mark,') + PROMPT,
      (8, "bad use entry '' (expected mark, target, drop, landing)")),
     ('unknown place key', HEAD + PLACE + 'colour=red\n' + PROMPT, (9, "unknown key 'colour' in [place mill]")),
-    ('head key after a section', HEAD + PLACE + 'radio=any\n' + PROMPT, (9, "unknown key 'radio' in [place mill]")),
+    ('head key after a section', HEAD + PLACE + 'location=none\n' + PROMPT,
+     (9, "unknown key 'location' in [place mill]")),
     ('duplicate place key', HEAD + PLACE + 'at=1,2,0\n' + PROMPT,
      (9, "duplicate key 'at' in [place mill] (first set on line 6)")),
     ('empty place value', HEAD + PLACE.replace('label=Old mill', 'label=') + PROMPT,
@@ -290,6 +275,8 @@ CASES: list[tuple[str, str | bytes, tuple[int, str] | None]] = [
 ]
 
 # Résumé canonique d'une fiche, identique en Python et en Lua (comparaison des deux lecteurs).
+# E24-T01 : le pont garde la radio écrite (None avec frequency=) ; le serveur déduit celle d'une fréquence fixe.
+# Pas de commentaire dans LUA_CANONICAL : tests/test_kahlua.py le met sur une seule ligne.
 LUA_CANONICAL = r'''
 return function(p)
     local function join(list, sep, f)
@@ -302,8 +289,8 @@ return function(p)
     table.sort(keys)
     local budgets = {}
     for _, k in ipairs(keys) do budgets[#budgets + 1] = k .. "=" .. tostring(p.budgets[k]) end
-    return table.concat({ p.format, p.id, p.name, p.language, join(p.frequencies, ","),
-        join(p.frequency_ranges, ",", function(r) return tostring(r.low) .. "-" .. tostring(r.high) end), p.radio,
+    return table.concat({ p.format, p.id, p.name, p.language, p.frequency and tostring(p.frequency) or "-",
+        p.frequency and "-" or p.radio,
         join(p.listen, ",", function(r) return tostring(r.from) .. "-" .. tostring(r.to) end), p.location,
         p.coords and (tostring(p.coords.x) .. "," .. tostring(p.coords.y) .. "," .. tostring(p.coords.z)) or "-",
         join(p.places, ";", function(l) return l.id .. "@" .. tostring(l.x) .. "," .. tostring(l.y) .. ","
@@ -316,8 +303,8 @@ end
 
 def canonical(p: store.Persona) -> str:
     coords = ','.join(str(v) for v in p.coords) if p.coords else '-'
-    return '|'.join([p.format, p.id, p.name, p.language, ','.join(map(str, p.frequencies)),
-                     ','.join(f'{a}-{b}' for a, b in p.frequency_ranges), p.radio,
+    return '|'.join([p.format, p.id, p.name, p.language, str(p.frequency) if p.frequency is not None else '-',
+                     p.radio or '-',
                      ','.join(f'{a}-{b}' for a, b in p.listen), p.location, coords,
                      ';'.join(f'{q.id}@{q.x},{q.y},{q.z}@{q.label}@{",".join(q.uses)}' for q in p.places), ','.join(p.actions),
                      str(p.budget),
@@ -422,8 +409,8 @@ class PersonaFormatTests(unittest.TestCase):
     def test_full_sheet_content(self):
         p = store.load_file(self.write_case(FULL))
         self.assertEqual((p.id, p.name, p.language, p.radio, p.location, p.state),
-                         ('case', 'Hélène Dupré', 'fr', 'high_tier', 'fixed', 'silent'))
-        self.assertEqual(p.frequencies, [7200, 145000, 999800])
+                         ('case', 'Hélène Dupré', 'fr', None, 'fixed', 'silent'))
+        self.assertEqual(p.frequency, 7200)
         self.assertEqual(p.listen, [(22 * 60, 6 * 60), (12 * 60 + 30, 13 * 60)])
         self.assertEqual(p.coords, (10600, 9300, -1))
         self.assertEqual(p.places, [store.Place('mill', 10600, 9300, 0, 'Vieux moulin', ('mark',)),
@@ -441,7 +428,20 @@ class PersonaFormatTests(unittest.TestCase):
         p = store.load_file(self.write_case(HEAD + PROMPT))
         self.assertEqual((p.language, p.radio, p.listen, p.location, p.coords, p.actions, p.budget, p.budgets,
                           p.call_one_in, p.call_text, p.state, p.places),
-                         ('en', 'any', [], 'none', None, ['say'], 0, {}, 0, '', 'active', []))
+                         ('en', 'any_talkie', [], 'none', None, ['say'], 0, {}, 0, '', 'active', []))
+        self.assertIsNone(p.frequency)
+
+    def test_server_derives_the_radio_of_a_fixed_frequency(self):
+        # E24-T01 : radio nécessaire d'une fréquence fixe = niveau le plus faible qui la capte (RS_RadioLevels.levelOf).
+        for mhz, level in (('145.0', 'any_talkie'), ('150.2', 'good_talkie'), ('25.0', 'pro_talkie'),
+                           ('300.2', 'tactical'), ('7.2', 'military'), ('1000.0', 'military')):
+            with self.subTest(mhz):
+                self.write_case(FIXED_HEAD.replace('145.0', mhz) + PROMPT)
+                sheet = self.lua.read('case.txt')
+                self.assertEqual((sheet.frequency, sheet.radio), (round(float(mhz) * 1000), level))
+        self.write_case(HEAD.replace('any_talkie', 'tactical') + PROMPT)
+        sheet = self.lua.read('case.txt')
+        self.assertEqual((sheet.frequency, sheet.radio), (None, 'tactical'))
 
     def test_missing_file(self):
         self.assertEqual(self.lua.read('absent.txt'), (None, 'cannot read absent.txt'))
@@ -482,13 +482,13 @@ class WaltSheetTests(unittest.TestCase):
     def test_identity_and_rules(self):
         w = self.walt
         self.assertEqual((w.id, w.name, w.language, w.radio, w.listen, w.location, w.coords, w.state),
-                         ('walt', 'Walt Hensley', 'en', 'any', [], 'none', None, 'active'))
+                         ('walt', 'Walt Hensley', 'en', 'any_talkie', [], 'none', None, 'active'))
         self.assertEqual((w.actions, w.budget, w.budgets), (['say', 'share_frequency'], 0, {}))  # E07-T10
 
     def test_frequency_comes_from_the_sheet(self):
         # E05-T02 : la fiche fait foi ; l'option sandbox RadioSurvivor.Frequency est retirée (fichier et textes).
-        # E05-T07 : fréquence tirée dans sa plage à chaque nouvelle partie (145.0 n'est plus qu'un exemple).
-        self.assertEqual((self.walt.frequencies, self.walt.frequency_ranges), ([], [(130000, 149800)]))
+        # E24-T01 : fréquence libre tirée à chaque nouvelle partie dans la zone du talkie le plus simple.
+        self.assertEqual((self.walt.frequency, self.walt.radio), (None, 'any_talkie'))
         const = (LUA / 'shared/RadioSurvivor/RadioSurvivor_Const.lua').read_text(encoding='utf-8')
         self.assertNotRegex(const, r'\n\s*Frequency = ')
         options = (ROOT / 'Contents/mods/batman_RadioSurvivor/42.21/media/sandbox-options.txt')
@@ -508,64 +508,22 @@ class WaltSheetTests(unittest.TestCase):
         self.assertIn('%1', en['IGUI_RadioSurvivor_Call'])
 
 
-# Chaînes fixes vanilla 42.21 en kHz (media/radio/RadioData.xml) : 10 chaînes TV, puis Hitz FM 89,4, Civilian Radio
-# 91,2, LBMW 93,2, USR 94,2, militaire 95,0, NNR 98,0, KnoxTalk 101,2, Unknown Frequency 107,6. L'alerte d'urgence
-# (AEBS) tire la sienne au hasard dans 88-108 MHz. Le serveur ne tire jamais une fréquence occupée (E05-T07,
-# tests/test_personas_server.py) : seule la plage FM du chroniqueur recoupe ces chaînes.
-VANILLA_KHZ = {200, 201, *range(203, 211), 89400, 91200, 93200, 94200, 95000, 98000, 101200, 107600}
-AEBS_KHZ = range(88000, 108001)
 VOICES = {'walt', 'darlene', 'cody', 'whitaker', 'nightowl', 'gus',
           # E20-T11 : un marchand par ville vanilla.
           'wanda', 'lamar', 'delphine', 'hollis', 'loretta', 'virgil', 'boone', 'odessa', 'ezra', 'maxine'}
 
-# Bornes de réglage des radios vanilla 42.21 (media/scripts/generated/items/radio.txt, MinChannel et MaxChannel,
-# bornes incluses comme radioReaches de RadioSurvivor_Server.lua) ; vrai = émettrice (TwoWay). Les autoradios
-# standard reprennent la plage FM, les radios HAM de véhicule celles de HamRadio1/HamRadio2.
-RADIOS = {
-    'WalkieTalkie1': (75000, 150000, True), 'WalkieTalkieMakeShift': (75000, 150000, True),
-    'WalkieTalkie2': (50000, 200000, True), 'WalkieTalkie3': (25000, 300000, True),
-    'WalkieTalkie4': (10000, 500000, True), 'WalkieTalkie5': (200, 1000000, True),
-    'ManPackRadio': (200, 1000000, True), 'HamRadio1': (10000, 500000, True),
-    'HamRadioMakeShift': (10000, 500000, True), 'HamRadio2': (200, 1000000, True),
-    'RadioBlack': (88000, 108000, False), 'RadioRed': (88000, 108000, False), 'RadioMakeShift': (88000, 108000, False),
-    'CDplayer': (88000, 108000, False), 'TvBlack': (200, 1000000, False), 'TvAntique': (200, 1000000, False),
-    'TvWideScreen': (200, 1000000, False),
-}
-ALL_TALKIES_HAM = {'WalkieTalkie1', 'WalkieTalkieMakeShift', 'WalkieTalkie2', 'WalkieTalkie3', 'WalkieTalkie4',
-                   'WalkieTalkie5', 'ManPackRadio', 'HamRadio1', 'HamRadioMakeShift', 'HamRadio2'}
-FM_RADIOS = {'RadioBlack', 'RadioRed', 'RadioMakeShift', 'CDplayer'}
-
-
-def radios_reaching(khz: int) -> tuple[frozenset[str], frozenset[str]]:
-    """(radios qui peuvent parler sur khz, radios qui l'entendent seulement)."""
-    talk = frozenset(n for n, (low, high, two_way) in RADIOS.items() if two_way and low <= khz <= high)
-    hear = frozenset(n for n, (low, high, two_way) in RADIOS.items() if not two_way and low <= khz <= high)
-    return talk, hear
-
 
 class DeliveredVoicesTests(unittest.TestCase):
-    """E05-T04 et E05-T07 : les six fiches livrées sont valides des deux côtés ; plages de tirage."""
+    """E05-T04, E20-T11 et E24-T01 : les fiches livrées sont valides des deux côtés ; radio de chaque voix."""
 
-    # Décision E05-T07 du 2026-10-09 : plage de chaque voix, fréquence fixe d'E05-T04 gardée comme exemple (les
-    # radios qui la joignent sont celles de toute la plage).
-    RANGES = {
-        'walt': ([(130000, 149800)], [145000]),
-        'darlene': ([(115000, 129800)], [115600]),
-        'cody': ([(10000, 24800)], [17400]),
-        'whitaker': ([(75000, 87800)], [81400]),
-        'nightowl': ([(88000, 107800), (109000, 114800)], [106200, 112400]),
-        'gus': ([(150200, 199800)], [156600]),
-        # E20-T11 : marchands des villes, bandes libres.
-        'wanda': ([(25000, 31800)], [25000]),
-        'lamar': ([(32000, 39800)], [32000]),
-        'delphine': ([(65000, 74800)], [65000]),
-        'hollis': ([(201000, 209800)], [201000]),
-        'loretta': ([(210000, 219800)], [210000]),
-        'virgil': ([(220000, 229800)], [220000]),
-        'boone': ([(230000, 239800)], [230000]),
-        'odessa': ([(240000, 249800)], [240000]),
-        'ezra': ([(250000, 259800)], [250000]),
-        'maxine': ([(260000, 269800)], [260000]),
+    # E24-T01 (2026-11-16) : radio nécessaire de chaque voix, reprise de sa bande d'E05-T07 / E20-T11 (le poste le
+    # plus faible qui captait toute la bande).
+    LEVELS = {
+        'walt': 'any_talkie', 'darlene': 'any_talkie', 'whitaker': 'any_talkie', 'nightowl': 'any_talkie',
+        'gus': 'good_talkie', 'delphine': 'good_talkie', 'cody': 'tactical',
+        'wanda': 'pro_talkie', 'lamar': 'pro_talkie', 'hollis': 'pro_talkie', 'loretta': 'pro_talkie',
+        'virgil': 'pro_talkie', 'boone': 'pro_talkie', 'odessa': 'pro_talkie', 'ezra': 'pro_talkie',
+        'maxine': 'pro_talkie',
     }
 
     @classmethod
@@ -584,56 +542,11 @@ class DeliveredVoicesTests(unittest.TestCase):
                 self.assertEqual(lua.result(f'{vid}.txt'), 'OK ' + canonical(sheet))
                 self.assertFalse((WALT.parent / f'{vid}.txt').read_bytes().startswith(b'\xef\xbb\xbf'))
 
-    def test_every_voice_draws_its_frequencies(self):
-        # Toutes les voix, Walt compris (décision du 2026-10-09) : aucune fréquence fixe livrée.
+    def test_every_voice_draws_its_frequency_for_its_radio(self):
+        # Toutes les voix, Walt compris : aucune fréquence fixe livrée, une radio nécessaire par voix.
         for vid, sheet in self.sheets.items():
             with self.subTest(vid):
-                self.assertEqual(sheet.frequencies, [])
-                self.assertEqual(sheet.frequency_ranges, self.RANGES[vid][0])
-
-    def test_ranges_are_disjoint_and_wide(self):
-        ranges = sorted(r for s in self.sheets.values() for r in s.frequency_ranges)
-        for (_, high), (low, _) in zip(ranges, ranges[1:]):
-            self.assertLess(high, low, ranges)
-        for low, high in ranges:
-            self.assertGreaterEqual((high - low) // 200 + 1, 30, (low, high))  # au moins 30 fréquences
-
-    def test_ranges_keep_the_radios_that_reach_the_voice(self):
-        # Chaque fréquence de la plage est jointe (parler) et entendue par exactement les mêmes radios que la
-        # fréquence d'exemple d'E05-T04 (document de travail E05-T04, section 1).
-        for vid, (ranges, examples) in self.RANGES.items():
-            for (low, high), example in zip(ranges, examples):
-                expected = radios_reaching(example)
-                with self.subTest(vid=vid, example=example):
-                    self.assertTrue(low <= example <= high)
-                    for khz in range(low, high + 1, 200):
-                        self.assertEqual(radios_reaching(khz), expected, khz)
-
-    def test_radios_named_by_the_decision(self):
-        walkie = {'WalkieTalkie2', 'WalkieTalkie3', 'WalkieTalkie4', 'WalkieTalkie5', 'ManPackRadio', 'HamRadio1',
-                  'HamRadioMakeShift', 'HamRadio2'}
-        shortwave = {'WalkieTalkie4', 'WalkieTalkie5', 'ManPackRadio', 'HamRadio1', 'HamRadioMakeShift', 'HamRadio2'}
-        expected = {
-            'walt': [(ALL_TALKIES_HAM, set())], 'darlene': [(ALL_TALKIES_HAM, set())],
-            'whitaker': [(ALL_TALKIES_HAM, set())], 'cody': [(shortwave, set())], 'gus': [(walkie, set())],
-            'nightowl': [(ALL_TALKIES_HAM, FM_RADIOS), (ALL_TALKIES_HAM, set())],
-        }
-        for vid, sides in expected.items():
-            for (low, _), (talk, hear) in zip(self.RANGES[vid][0], sides):
-                with self.subTest(vid=vid, low=low):
-                    got_talk, got_hear = radios_reaching(low)
-                    self.assertEqual(set(got_talk), talk)
-                    self.assertEqual(set(got_hear) - {'TvBlack', 'TvAntique', 'TvWideScreen'}, hear)
-
-    def test_no_range_on_reserved_frequencies(self):
-        for vid, sheet in self.sheets.items():
-            for low, high in sheet.frequency_ranges:
-                with self.subTest(vid=vid, low=low):
-                    self.assertFalse(low <= 108000 <= high)  # Opération Artemis, 108,0 par défaut
-                    in_aebs = low <= AEBS_KHZ[-1] and high >= AEBS_KHZ[0]
-                    self.assertEqual(in_aebs, (vid, low) == ('nightowl', 88000))
-                    if not in_aebs:
-                        self.assertEqual({k for k in VANILLA_KHZ if low <= k <= high}, set())
+                self.assertEqual((sheet.frequency, sheet.radio), (None, self.LEVELS[vid]))
 
     # Appels spontanés (E05-T05, valeurs du contrat) : une chance sur N par heure de jeu ; 0 = jamais.
     CALLS = {'darlene': 6, 'cody': 6, 'gus': 8, 'nightowl': 0, 'whitaker': 0}
@@ -681,7 +594,7 @@ class DeliveredVoicesTests(unittest.TestCase):
                            'darlene': ['say', 'start_mission', 'share_frequency'],
                            'cody': ['say', 'start_mission', 'share_frequency']}.get(vid, ['say'])
                 self.assertEqual((s.language, s.radio, s.actions, s.call_one_in, s.budget, s.budgets),
-                                 ('en', 'any', actions, self.CALLS[vid], 0, {}))
+                                 ('en', self.LEVELS[vid], actions, self.CALLS[vid], 0, {}))
                 if vid in ('darlene', 'cody'):
                     # Missions, récompenses et catégories : lues par le serveur seul (tests/test_persona_sections.py).
                     self.assertTrue(s.places and s.shares)

@@ -134,7 +134,7 @@ end
 local function testSheet(t, c, tag)
     local Persona = require "RadioSurvivor/RS_Persona"
     local id = "rstest_share_" .. tag .. "_" .. string.format("%.0f", getTimestampMs())
-    local lines = { "format=1", "id=" .. id, "name=RST Share", "frequencies=" .. string.format("%.1f", ANSWER_KHZ / 1000),
+    local lines = { "format=1", "id=" .. id, "name=RST Share", "frequency=" .. string.format("%.1f", ANSWER_KHZ / 1000),
         "actions=say,share_frequency", "shares=" .. c.target, "[prompt]", "Test voice of rs.actions.share." }
     local sheet, why = Persona.parseLines(lines, id)
     t:ok(sheet ~= nil, "test sheet refused: " .. tostring(why))

@@ -25,8 +25,8 @@ import atelier_auth  # noqa: E402
 import atelier_server as atelier  # noqa: E402
 import radio_bridge as rb  # noqa: E402
 
-WALT = "# delivered\nformat=1\nid=walt\nname=Walt Hensley\nfrequencies=145.0\n\n[prompt]\nYou are Walt.\n"
-CODY = "format=1\nid=cody\nname=Cody\nfrequencies=146.0\n[prompt]\nYou are Cody.\n"
+WALT = "# delivered\nformat=1\nid=walt\nname=Walt Hensley\nfrequency=145.0\n\n[prompt]\nYou are Walt.\n"
+CODY = "format=1\nid=cody\nname=Cody\nfrequency=146.0\n[prompt]\nYou are Cody.\n"
 
 
 def snapshot(folder: Path) -> dict[str, bytes]:

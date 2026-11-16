@@ -31,7 +31,7 @@ local R = RST.RSHelpers
 local Steps = RST.Steps
 local PV = RST.PeerVoices
 local PROBE_ID = "rstest_written"
-local RANGE = "300.0-309.8"
+local LEVEL = "tactical"   -- radio of the probe: its frequency is drawn in the zone of this radio (E24-T01)
 local CALL = "RST written call on %1, anyone? Over."
 local TEXT = { "RST written note", "Listen on %1 MHz" }
 
@@ -56,7 +56,7 @@ local function setup(t)
         P.reload()
         t2:ok(P.get(PROBE_ID) == nil, "probe voice still loaded after emptying its sheet")
     end, "empty the probe sheet")
-    local lines = { "format=1", "id=" .. PROBE_ID, "name=RST Written", "frequency_range=" .. RANGE, "listen=always",
+    local lines = { "format=1", "id=" .. PROBE_ID, "name=RST Written", "radio=" .. LEVEL, "listen=always",
         "state=active", "call_one_in=1", "call=" .. CALL, "", "[note]" }
     for _, line in ipairs(TEXT) do lines[#lines + 1] = "text=" .. line end
     lines[#lines + 1] = "loot=OfficeDesk:1"
@@ -67,7 +67,7 @@ local function setup(t)
     P.reload()
     t:ok(P.get(PROBE_ID) ~= nil, "probe sheet refused (see the personas: lines of the log)")
     local khz = P.served(PROBE_ID)[1]
-    t:ok(khz ~= nil, "probe voice serves no frequency in " .. RANGE)
+    t:ok(khz ~= nil, "probe voice serves no frequency for the radio " .. LEVEL)
     return { Const = Const, P = P, Notes = Notes, khz = khz, label = Notes.frequencyLabel({ khz = khz }) }
 end
 

@@ -25,7 +25,7 @@ sys.path.insert(0, str(ROOT / 'bridge'))
 import npc_protocol as protocol  # noqa: E402
 import radio_bridge as bridge_module  # noqa: E402
 
-LOW, HIGH = 75000, 149800
+LOW, HIGH = 75000, 150000   # zone of the radio any_talkie (RS_RadioLevels, E24-T01)
 
 
 class GroupRadioTests(unittest.TestCase):
@@ -128,7 +128,7 @@ class GroupRadioTests(unittest.TestCase):
         self.assertEqual((sheet.group, sheet.call_one_in, sheet.state), (self.g.LK_GROUP, 0, 'active'))
         # Drawn once for the game, remembered in the frequencies file of the game.
         memory = [p for p in (self.sim.path).rglob('frequencies-*.txt')]
-        self.assertTrue(memory and any(f'grp_1 75000-149800 {khz}' in p.read_text() for p in memory))
+        self.assertTrue(memory and any(f'grp_1 any_talkie {khz}' in p.read_text() for p in memory))
         # No position anywhere in the channel nor the sheet: the channel id only names the voice.
         channel = self.personas.state().channels[khz]
         self.assertEqual(channel.id, 'grp_1')

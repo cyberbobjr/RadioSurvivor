@@ -26,14 +26,15 @@ function content(t, topic, { label, choices, choicesTitle }) {
     ? h('div', { class: `hp-${name}` }, title && h('b', { text: title }), h('p', { text: t(`${topic}.${name}`) }))
     : null);
   const items = (choices ?? []).map((c) => ({ label: c.label, line: helpLine(t, c.topic) })).filter((c) => c.line);
+  // W15 (E24-T02): what it is, its choices and an example in sight; what the player lives and the tips folded.
+  const more = [part('game', t('hint.game')), part('tip', t('hint.tip'))].filter(Boolean);
   return [
     label && h('p', { class: 'hp-title', text: label }),
     part('what'),
-    part('game', t('hint.game')),
     items.length > 0 && h('div', { class: 'hp-choices' }, h('b', { text: choicesTitle ?? t('hint.choices') }),
       h('ul', {}, items.map((c) => h('li', {}, h('b', { text: c.label }), ` : ${c.line}`)))),
     part('example', t('hint.example')),
-    part('tip', t('hint.tip')),
+    more.length > 0 && h('details', { class: 'hp-more' }, h('summary', { text: t('hint.more') }), more),
   ];
 }
 

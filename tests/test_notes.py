@@ -440,7 +440,7 @@ ZombRand = function(n) ROLLS = ROLLS + 1 if n == 10000 then return TEST_ROLL els
 
 
 # E22-T07 : voix créée avec l'atelier, note écrite dans sa fiche (text=, %1 = fréquence), sans objet ni traduction propres.
-WRITTEN_SHEET = ('format=1\nid=mae\nname=Mae\nfrequency_range=300.0-309.8\n[note]\ntext=Need a hand? Call Mae\n'
+WRITTEN_SHEET = ('format=1\nid=mae\nname=Mae\nradio=tactical\n[note]\ntext=Need a hand? Call Mae\n'
                  'text=on %1 MHz, after dark.\nloot=OfficeDesk:2\nglovebox=GloveBox:1\ncorpse=yes\n'
                  '[prompt]\nYou are Mae.\n')
 WRITTEN_TEXT = 'Need a hand? Call Mae\non %1 MHz, after dark.'
@@ -470,7 +470,7 @@ class WrittenNoteTests(NotesHarness):
     def test_generic_note_carries_the_text_and_frequency_of_the_sheet(self):
         md = self.created().md
         khz = self.served('mae')[0]
-        self.assertTrue(300000 <= khz <= 309800, khz)
+        self.assertTrue(10000 <= khz <= 24800 or 300200 <= khz <= 500000, khz)   # zone of the radio tactical
         note = md['RadioSurvivorNote']
         self.assertEqual((note['voice'], int(note['khz']), note['text']), ('mae', khz, WRITTEN_TEXT))
         self.assertEqual(md['printMedia']['id'], 'RadioSurvivor_NoteVoice')

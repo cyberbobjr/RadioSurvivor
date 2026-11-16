@@ -37,8 +37,8 @@ import radio_bridge as rb  # noqa: E402
 FACTS_LUA = MOD / 'media/lua/server/RadioSurvivor/RS_Facts.lua'
 TRANSLATE = MOD / 'media/lua/shared/Translate'
 NIGHTOWL = (MOD / 'personas/nightowl.txt').read_text(encoding='utf-8')
-# Fiche livrée du chroniqueur avec une fréquence fixe à la place de ses plages de tirage (E05-T07).
-NIGHTOWL_FIXED = re.sub(r'(?m)^frequency_range=.*$', 'frequencies=112.4', NIGHTOWL)
+# Fiche livrée du chroniqueur avec une fréquence fixe à la place de sa radio (E24-T01).
+NIGHTOWL_FIXED = re.sub(r'(?m)^radio=.*$', 'frequency=112.4', NIGHTOWL)
 KHZ = 112400
 
 # Traducteur fidèle (42.21) : table anglaise du mod, nil pour une clé inconnue (getTextOrNull), %N remplacés.

@@ -2,9 +2,10 @@
 # Fiche autoporteuse : elle fait foi pour Walt (E05-T02, l'option sandbox RadioSurvivor.Frequency est retirée).
 # Livrée par le mod, installée par le serveur dans Zomboid/Lua/batman_RadioSurvivor/personas/, puis relue à chaud
 # (docs/persona-format.md, « Chargement par le serveur »). Valeurs livrées :
-# - fréquence tirée au hasard dans 130.0-149.8 MHz à chaque nouvelle partie (E05-T07), mémorisée pour la partie :
-#   tous les talkies (1 à 5, bricolé compris) et toutes les radios HAM, aucune radio FM. 145.0 (ancienne valeur
-#   par défaut) n'est plus qu'un exemple ; frequencies=145.0 à la place de frequency_range fixe la fréquence ;
+# - radio nécessaire (E24-T01) : n'importe quel talkie (talkie jouet ou bricolé, 75-150 MHz : tout le monde
+#   l'entend) ; fréquence libre tirée à chaque nouvelle partie dans la zone de cette radio, que les radios plus
+#   simples ne captent pas, mémorisée pour la partie ;
+#   frequency=145.0 à la place de radio= fixe la fréquence ;
 # - répond à toute heure, avec n'importe quelle radio émettrice tenue en main ou portée sur le dos ;
 # - appel général : une chance sur trois par heure de jeu quand personne ne parle (option SpontaneousCalls),
 #   texte fixe IGUI_RadioSurvivor_Call (%1 = fréquence) ;
@@ -16,8 +17,7 @@ format=1
 id=walt
 name=Walt Hensley
 language=en
-frequency_range=130.0-149.8
-radio=any
+radio=any_talkie
 listen=always
 location=none
 actions=say,share_frequency

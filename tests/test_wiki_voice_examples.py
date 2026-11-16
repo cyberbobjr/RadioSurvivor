@@ -10,7 +10,8 @@ Every fenced block marked ```persona of both pages is a whole sheet, as the voic
   reader (bridge/persona_store.py);
 - written back unchanged by the workshop's own sheet model, with nothing to flag by its light checks (node, skipped
   when node is missing);
-- a voice of its own: a band no shipped voice and no other example uses;
+- a voice of its own (E24-T01): the radio it needs (radio=) or one fixed frequency (frequency=) that no shipped voice
+  and no other example holds, and an id no shipped voice has;
 - a trader whose every good has a sale value in the trade scale (CoreAI/CA_TradeValues.lua): a good without one is
   accepted by the reader but every offer that names it is refused (RS_Trade evaluate, "not_in_stock").
 Both pages give the same voices, in the same order, with the same voice ids, kinds of sections and English
@@ -85,21 +86,14 @@ class GameReader:
         return self.values.sellValue(full_type)
 
 
-def bands(text: str) -> list[tuple[float, float]]:
-    match = re.search(r'^frequency_range=(.+)$', text, re.MULTILINE)
-    out = []
-    for part in (match.group(1).split(',') if match else []):
-        low, high = part.split('-')
-        out.append((float(low), float(high)))
-    return out
+def head_value(text: str, key: str) -> str | None:
+    match = re.search(rf'^{key}=(.+)$', text, re.MULTILINE)
+    return match.group(1).strip() if match else None
 
 
-def shipped_bands() -> dict[str, list[tuple[float, float]]]:
-    return {p.stem: bands(p.read_text(encoding='utf-8')) for p in SHIPPED.glob('*.txt') if not p.name.startswith('_')}
-
-
-def overlap(a: tuple[float, float], b: tuple[float, float]) -> bool:
-    return a[0] <= b[1] and b[0] <= a[1]
+def shipped_fixed() -> dict[str, int]:
+    """Voice id -> fixed frequency (kHz) of the shipped voices that have one (catalog.json, read from the mod)."""
+    return {vid: v['frequencyKhz'] for vid, v in catalog()['voices'].items() if v.get('frequencyKhz') is not None}
 
 
 def shape(text: str) -> tuple[list[str], str]:
@@ -141,18 +135,23 @@ class WikiVoiceExamplesTests(unittest.TestCase):
                         self.assertGreater(self.reader.sale_value(full_type), 0,
                                            f'{full_type} has no sale value: the trader can never sell it')
 
-    def test_examples_use_free_bands(self):
-        taken = shipped_bands()
-        seen: dict[str, list[tuple[float, float]]] = {}
-        for voice_id, text in self.sheets['fr']:
-            mine = bands(text)
-            self.assertTrue(mine, f'{voice_id}: no frequency_range')
-            for other, theirs in {**taken, **seen}.items():
-                with self.subTest(voice=voice_id, other=other):
-                    self.assertFalse(any(overlap(a, b) for a in mine for b in theirs),
-                                     f'{voice_id} {mine} crosses {other} {theirs}')
-            self.assertNotIn(voice_id, taken, f'{voice_id}: id of a shipped voice')
-            seen[voice_id] = mine
+    def test_examples_never_collide_on_a_frequency(self):
+        shipped = {p.stem for p in SHIPPED.glob('*.txt') if not p.name.startswith('_')}
+        levels = catalog()['header']['choices']['radio']
+        for lang, sheets in self.sheets.items():
+            taken = {khz: vid for vid, khz in shipped_fixed().items()}
+            for voice_id, text in sheets:
+                with self.subTest(lang=lang, voice=voice_id):
+                    radio, fixed = head_value(text, 'radio'), head_value(text, 'frequency')
+                    self.assertTrue((radio is None) != (fixed is None), f'{voice_id}: radio= or frequency=, one of them')
+                    if radio is not None:
+                        self.assertIn(radio, levels)
+                    else:
+                        khz = round(float(fixed) * 1000)
+                        self.assertNotIn(khz, taken, f'{voice_id} {fixed} MHz is the frequency of {taken.get(khz)}')
+                        taken[khz] = voice_id
+                    self.assertNotIn(voice_id, shipped, f'{voice_id}: id of a shipped voice')
+        self.assertTrue(any(head_value(t, 'frequency') for _, t in self.sheets['fr']), 'one example shows a fixed frequency')
 
     @unittest.skipUnless(NODE, 'node is not installed')
     def test_the_workshop_keeps_them_and_flags_nothing(self):

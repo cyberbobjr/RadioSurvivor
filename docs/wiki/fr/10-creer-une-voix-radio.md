@@ -25,10 +25,10 @@ de voix.
    ```ini
    id=mae
    name=Mae Tolliver
-   frequency_range=40.0-49.8
+   radio=pro_talkie
    ```
 
-   `id` est le nom du fichier sans `.txt`. Choisissez une plage dans les [bandes libres](#fréquence-et-écoute).
+   `id` est le nom du fichier sans `.txt`. `radio=pro_talkie` demande un talkie pro pour entendre la voix ; le serveur tire lui-même une fréquence libre de ce niveau (voir [Fréquence et écoute](#fréquence-et-écoute)).
 3. **Écrivez le prompt.** Tout ce qui suit la ligne `[prompt]` décrit le personnage à l'IA. Partez de
    [l'exemple de Mae](#exemple-1--mae-tolliver) et changez l'histoire.
 4. **Testez sans le jeu.** Depuis le dossier du pont :
@@ -37,8 +37,8 @@ de voix.
    python persona_store.py "$env:USERPROFILE\Zomboid\Lua\batman_RadioSurvivor\personas\mae.txt"
    ```
 
-   Vous devez lire `OK (mae, 40.0-49.8 MHz, active)`. Voir [Tester sa voix](#tester-sa-voix) pour un appel d'essai.
-5. **Jouez.** Enregistrez, attendez 30 secondes (ou chargez le monde), réglez une radio qui atteint la bande et parlez
+   Vous devez lire `OK (mae, pro_talkie, active)`. Voir [Tester sa voix](#tester-sa-voix) pour un appel d'essai.
+5. **Jouez.** Enregistrez, attendez 30 secondes (ou chargez le monde), réglez une radio assez forte pour la voix et parlez
    dans la section **Émettre** pendant les heures d'écoute de la voix.
 
 > **Important**
@@ -110,77 +110,40 @@ La référence complète du format est
 
 | Champ | Exemple | À quoi ça sert |
 |---|---|---|
-| `frequency_range` | `frequency_range=40.0-49.8` | Le serveur tire **une fréquence par plage** à chaque nouvelle partie et la garde toute la partie. Recommandé. |
-| `frequencies` | `frequencies=44.6` | Fréquences fixes, les mêmes à chaque partie. Utilisez cette clé **ou** `frequency_range`, pas les deux. |
-| `radio` | `radio=any` | `any` (défaut) : toute radio émettrice. `high_tier` : talkie 5, poste militaire, radio HAM haut de gamme seulement. |
+| `radio` | `radio=pro_talkie` | La radio dont le joueur a besoin pour entendre la voix, parmi les cinq niveaux décrits plus bas. Le serveur tire **une fréquence libre** de ce niveau à chaque nouvelle partie et la garde toute la partie. Recommandé. |
+| `frequency` | `frequency=152.4` | **Une** fréquence fixe, la même à chaque partie. Utilisez cette clé **ou** `radio`, pas les deux. La radio nécessaire se déduit de la fréquence. |
 | `listen` | `listen=05:00-09:00,20:00-23:00` | `always` (défaut), ou des plages en heure du jeu. En dehors, la voix se tait. |
 | `location` | `location=none` | `none` (défaut, hors carte) convient à une nouvelle voix. `fixed` avec `coords=x,y,z` la place sur la carte. |
 | `state` | `state=active` | `active` (défaut) répond. Voir [Retirer une voix](#retirer-une-voix) pour les autres états. |
 
-- Les fréquences sont en MHz avec une décimale, de 1.0 à 999.8, au **pas de 0,2 MHz** des radios (`44.6` convient,
-  `44.5` est refusé).
-- Plusieurs plages se séparent par des virgules (`88.0-107.8, 109.0-114.8`), fréquence basse d'abord, sans se toucher.
+- `radio` prend un seul niveau, écrit exactement comme dans le tableau ci-dessous : `any_talkie`, `good_talkie`, `pro_talkie`, `tactical` ou `military`, du plus faible au plus fort.
+- `frequency` prend **une** fréquence en MHz avec une décimale, de 0.2 à 1000.0, sur le **pas de 0,2 MHz** des radios (`152.4` convient, `152.5` est refusé).
 - Une fréquence tirée change d'une partie à l'autre : les joueurs ne peuvent pas la connaître à l'avance.
-- Heures : deux chiffres (`08:00`, pas `8:00`). La minute de début est incluse, celle de fin exclue ; `22:00-06:00`
-  passe minuit.
+- Heures : deux chiffres (`08:00`, pas `8:00`). La minute de début est incluse, celle de fin exclue ; `22:00-06:00` passe minuit.
 
-**Bandes libres** : 40.0-64.8 et 270.0 et au-delà (moins de radios atteignent les plus hautes). Mae (exemple 1)
-utilise 40.0-49.8, Rick (exemple 2) 50.0-64.8. Des plages qui recoupent une voix livrée fonctionnent aussi (règle
-de 1,0 MHz ci-dessous).
+**Les cinq niveaux de radio.** Chaque niveau correspond à la radio la plus faible qui entend toute sa zone. Vous ne choisissez pas la fréquence : le serveur prend une fréquence libre dans la zone du niveau, jamais une fréquence déjà utilisée par le jeu ou par un autre mod.
 
-<details>
-<summary>Bandes déjà prises</summary>
+| Niveau (`radio=`) | Nom dans l'atelier | Radios du niveau | Réglage de la plus faible | Zone de tirage (MHz) |
+|---|---|---|---|---|
+| `any_talkie` | 📻 N'importe quel talkie | talkie 1 (Toys-R-Mine), talkie bricolé | 75-150 MHz | 75.0-150.0 |
+| `good_talkie` | 📶 Un bon talkie | talkie 2 (ValuTech) | 50-200 MHz | 50.0-74.8 et 150.2-200.0 |
+| `pro_talkie` | 🎧 Un talkie pro | talkie 3 (Premium Technologies) | 25-300 MHz | 25.0-49.8 et 200.2-300.0 |
+| `tactical` | 📡 Un talkie tactique ou une radio amateur | talkie 4 (tactique), radio HAM Premium, radio HAM bricolée | 10-500 MHz | 10.0-24.8 et 300.2-500.0 |
+| `military` | 🎖️ Du matériel militaire | talkie 5, ManPackRadio, radio HAM (US Army) | 0.2-1000 MHz | 0.2-9.8 et 500.2-1000.0 |
 
-| Utilisée par | Plage (MHz) |
-|---|---|
-| Cody | 10.0-24.8 |
-| Jolene Whitaker | 75.0-87.8 |
-| Night Owl | 88.0-107.8 et 109.0-114.8 |
-| Darlene | 115.0-129.8 |
-| Walt | 130.0-149.8 |
-| Gus | 150.2-199.8 |
-| Wanda (West Point) | 25.0-31.8 |
-| Lamar (Brandenburg) | 32.0-39.8 |
-| Delphine (Louisville) | 65.0-74.8 |
-| Hollis (Muldraugh) | 201.0-209.8 |
-| Loretta (March Ridge) | 210.0-219.8 |
-| Virgil (Irvington) | 220.0-229.8 |
-| Boone (Echo Creek) | 230.0-239.8 |
-| Odessa (Rosewood) | 240.0-249.8 |
-| Ezra (Ekron) | 250.0-259.8 |
-| Maxine (Fallas Lake) | 260.0-269.8 |
-| Stations FM du jeu et diffusion d'urgence | 88-108 |
-| Opération Artemis (par défaut) | 108.0 |
-| Military Drop | 120-170 (émissions), 10-25 (station de nombres) |
+« Réglage de la plus faible » : la plage que la radio la plus faible du niveau peut régler, bornes comprises. « Zone de tirage » : les fréquences qu'elle règle et que le niveau juste en dessous ne règle pas.
 
-</details>
-
-<details>
-<summary>Quelles radios atteignent quelle bande (Build 42.21)</summary>
-
-| Bande (MHz) | Radios qui peuvent y parler |
-|---|---|
-| 0.2-1000 | talkie 5, poste militaire, radio HAM haut de gamme |
-| 10-500 | talkie 4, radios HAM ordinaires |
-| 25-300 | talkie 3 |
-| 50-200 | talkie 2 |
-| 75-150 | talkie 1, talkie de fortune |
-| 88-108 | radios FM et autoradios en **écoute seule** |
-
-</details>
+Dans l'atelier des voix, le mode « Choisir moi-même la fréquence » demande un nombre en MHz ; un badge indique alors la radio nécessaire.
 
 <details>
 <summary>Que se passe-t-il quand deux voix ou chaînes veulent la même fréquence</summary>
 
-- Une fréquence tirée n'est jamais prise par une chaîne du jeu ou d'un mod, et reste à **1,0 MHz** au moins de toute
-  autre voix : des plages qui se chevauchent fonctionnent, elles se partagent seulement les fréquences libres.
-- Une fréquence fixe demandée par deux fiches reste à la voix chargée la première (ordre alphabétique au premier
-  chargement) ; l'autre perd seulement cette fréquence
-  (`WARNING: frequency … of voice '…' refused, already used by voice '…'`).
-- Une fréquence fixe déjà utilisée par une chaîne du jeu ou d'un autre mod est refusée et retentée à chaque relecture
-  (`WARNING: frequency … of voice '…' already used by another radio channel (game or other mod)`).
-- Une plage sans fréquence libre n'est pas servie
-  (`ERROR: voice '…': no free frequency left in …; widen the range in its sheet`).
+- Une fréquence tirée n'est jamais prise par une chaîne du jeu ou d'un mod, et reste à **1,0 MHz** au moins de toute autre voix (fixe, tirée ou gardée pour la partie). Deux zones qui se recoupent fonctionnent : elles se partagent seulement les fréquences libres.
+- Une fréquence fixe demandée par deux fiches reste à la voix chargée la première (ordre alphabétique au premier chargement) ; l'autre ne sert pas cette fréquence, et le journal le signale.
+- Une fréquence fixe déjà utilisée par une chaîne du jeu ou d'un autre mod n'est pas servie : le serveur la réessaie à chaque relecture, et le journal le signale.
+- Une fréquence fixe passe toujours avant une fréquence tirée : la voix tirée en prend une autre.
+- Si la radio d'une fiche change, ou si la fréquence gardée pour la partie est prise entre-temps, le serveur tire de nouveau **cette seule voix** et l'écrit dans le journal.
+- Une zone sans fréquence libre n'est pas servie : le journal le dit, et la fiche doit alors prendre un niveau plus fort.
 - `location=rescue` est réservé au sauvetage des Whitaker.
 
 </details>
@@ -406,7 +369,7 @@ prompt ce que cet état change pour la voix. Exemple complet (coordonnées d'exe
 format=1
 id=nell
 name=Nell Barker
-frequencies=152.4
+frequency=152.4
 actions=say,start_mission
 
 [place farmhouse]
@@ -508,7 +471,7 @@ dix marchands livrés (un par ville vanilla) servent d'exemples : `personas/wand
 format=1
 id=ada
 name=Ada Pruitt
-frequency_range=60.0-64.8
+radio=good_talkie
 listen=21:00-02:00
 actions=say,propose_trade
 budget=3
@@ -650,21 +613,19 @@ Le pont garde au plus **8 lignes de 100 caractères**. Aucun secret du serveur d
 ## Exemple 1 : Mae Tolliver
 
 Une institutrice retraitée, radioamatrice, qui anime le réseau du comté depuis une ferme près de Rosewood.
-Plage 40.0-49.8 MHz (talkies 3 à 5, radios HAM, poste militaire) ; actions `persona_state`, `mark_map`.
+Niveau `pro_talkie` (talkie 3 ou mieux) : le serveur tire sa fréquence dans la zone 25.0-49.8 ou 200.2-300.0 MHz ; actions `persona_state`, `mark_map`.
 
 <details open>
 <summary><code>personas/mae.txt</code></summary>
 
 ```ini
 # Mae Tolliver: retired schoolteacher and radio amateur near Rosewood (custom voice, server admin).
-# Range 40.0-49.8 MHz: walkie-talkies 3 to 5, HAM radios and the military radio; no FM radio, away from
-# the bands of the delivered voices.
+# radio=pro_talkie: the server draws one free frequency in 25.0-49.8 or 200.2-300.0 MHz (walkie-talkie 3 or better).
 format=1
 id=mae
 name=Mae Tolliver
 language=en
-frequency_range=40.0-49.8
-radio=any
+radio=pro_talkie
 listen=05:00-09:00,20:00-23:00
 location=none
 actions=say,persona_state,mark_map,start_mission,share_frequency
@@ -734,7 +695,7 @@ Rules:
 
 *Exemple de fan, personnage appartenant à ses ayants droit.*
 Un ancien shérif adjoint qui a perdu sa femme et son fils dans l'évacuation et traverse Knox County pour les
-retrouver, méfiant mais juste. Plage 50.0-64.8 MHz (talkies 2 à 5, radios HAM, poste militaire) ; toutes les actions
+retrouver, méfiant mais juste. Niveau `good_talkie` (talkie 2 ou mieux) : le serveur tire sa fréquence dans la zone 50.0-74.8 ou 150.2-200.0 MHz ; toutes les actions
 qui ont un effet, sauf `propose_trade`, qui demande une section `[trade]` (voir « Troc »).
 
 <details>
@@ -742,13 +703,12 @@ qui ont un effet, sauf `propose_trade`, qui demande une section `[trade]` (voir 
 
 ```ini
 # Fan example: Rick Grimes belongs to his rights holders. Original text, written for Knox County 1993.
-# Range 50.0-64.8 MHz: walkie-talkies 2 to 5, HAM radios and the military radio; free band.
+# radio=good_talkie: the server draws one free frequency in 50.0-74.8 or 150.2-200.0 MHz (walkie-talkie 2 or better).
 format=1
 id=rick
 name=Rick Grimes
 language=en
-frequency_range=50.0-64.8
-radio=any
+radio=good_talkie
 listen=06:00-10:00,18:00-23:00
 location=none
 state=active
@@ -881,18 +841,18 @@ Mae, hors ligne. Je reçois Allô ? Il y a quelqu'un ?. À vous.
    sur un serveur dédié) indique :
 
    ```text
-   [RadioSurvivor] personas: voice 'mae' loaded: state active, frequency ranges 40.0-49.8
-   [RadioSurvivor] personas: voice 'mae' drew 44.6 MHz in 40.0-49.8 (no frequency remembered for this range)
+   [RadioSurvivor] personas: voice 'mae' loaded: state active, radio pro_talkie
+   [RadioSurvivor] personas: voice 'mae' drew 44.6 MHz for the radio pro_talkie (no frequency remembered for this voice)
    ```
 
-   (`new game` entre parenthèses quand la fiche existait avant un nouveau monde.) La fréquence est tirée une fois par
+   (La raison entre parenthèses est `new game` pour un nouveau monde ; sinon elle dit pourquoi la voix tire de nouveau.) La fréquence est tirée une fois par
    partie. Un admin la lit aussi en jeu : panneau de debug, bouton **Radio Survivor - Fréquences**.
-2. Réglez une radio qui atteint la bande (ici un talkie 3 ou mieux), allumez-la, et parlez dans la section
+2. Réglez une radio du niveau de la voix ou plus forte (ici `pro_talkie` : un talkie 3 ou mieux), allumez-la, et parlez dans la section
    **Émettre** pendant les heures d'écoute.
 
 > **Astuce**
 > Les notes de fréquences du butin n'existent que pour les voix livrées (Walt, Darlene, Cody, Gus, Night Owl). Donnez
-> la fréquence d'une nouvelle voix à vos joueurs, écrivez-la sur une carte, ou laissez-les fouiller la bande.
+> la fréquence d'une nouvelle voix à vos joueurs, écrivez-la sur une carte, ou laissez-les chercher la fréquence sur leur radio.
 
 ## Ça ne marche pas ?
 
@@ -926,10 +886,11 @@ s'arrête à la première erreur, et la dernière version valide de la voix rest
 | `bad id 'Mae' (a to z, 0 to 9 and _, starting with a letter, 32 characters at most)` | Id en minuscules. |
 | `frequency 44.5 is not on the 0.2 MHz step of the radios` | Dixième pair : 44.4 ou 44.6. |
 | `bad frequency '44' (MHz with one decimal, e.g. 145.0)` | Écrire `44.0`. |
-| `bad frequency range '49.8-40.0' (two frequencies in MHz, lowest first, e.g. 140.0-150.0)` | La plus basse d'abord. |
-| `frequency range '…' overlaps another range of the sheet` | Séparer les plages de la fiche. |
-| `missing key 'frequencies' or 'frequency_range'` | Ajouter l'une des deux. |
-| `frequencies and frequency_range cannot be used together …` | N'en garder qu'une. |
+| `frequency 1000.2 out of range (0.2 to 1000.0 MHz)` | Une fréquence entre 0.2 et 1000.0 MHz. |
+| `missing key 'radio' or 'frequency'` | Ajouter l'une des deux. |
+| `radio and frequency cannot be used together (a radio level to draw a free frequency, or one fixed frequency)` | N'en garder qu'une. |
+| `bad radio 'ham' (expected any_talkie, good_talkie, pro_talkie, tactical, military)` | Écrire exactement un des cinq niveaux. |
+| `duplicate key 'frequency' (first set on line 4)` | Garder une ligne. |
 | `bad listening hours '8:00-12:00' (always, or HH:MM-HH:MM ranges separated by commas)` | Deux chiffres : `08:00-12:00`. |
 | `unknown action 'fly'` | Voir [Actions](#actions). |
 | `budget.mark_map set but action 'mark_map' is not in actions` | Ajouter l'action ou retirer le budget. |

@@ -688,8 +688,11 @@
         "rescue"
       ],
       "radio": [
-        "any",
-        "high_tier"
+        "any_talkie",
+        "good_talkie",
+        "pro_talkie",
+        "tactical",
+        "military"
       ],
       "state": [
         "active",
@@ -706,8 +709,7 @@
       "call_text",
       "coords",
       "format",
-      "frequencies",
-      "frequency_range",
+      "frequency",
       "id",
       "language",
       "listen",
@@ -33188,6 +33190,80 @@
     "skill",
     "text"
   ],
+  "radioLevels": [
+    {
+      "id": "any_talkie",
+      "maxKhz": 150000,
+      "minKhz": 75000,
+      "zones": [
+        [
+          75000,
+          150000
+        ]
+      ]
+    },
+    {
+      "id": "good_talkie",
+      "maxKhz": 200000,
+      "minKhz": 50000,
+      "zones": [
+        [
+          50000,
+          74800
+        ],
+        [
+          150200,
+          200000
+        ]
+      ]
+    },
+    {
+      "id": "pro_talkie",
+      "maxKhz": 300000,
+      "minKhz": 25000,
+      "zones": [
+        [
+          25000,
+          49800
+        ],
+        [
+          200200,
+          300000
+        ]
+      ]
+    },
+    {
+      "id": "tactical",
+      "maxKhz": 500000,
+      "minKhz": 10000,
+      "zones": [
+        [
+          10000,
+          24800
+        ],
+        [
+          300200,
+          500000
+        ]
+      ]
+    },
+    {
+      "id": "military",
+      "maxKhz": 1000000,
+      "minKhz": 200,
+      "zones": [
+        [
+          200,
+          9800
+        ],
+        [
+          500200,
+          1000000
+        ]
+      ]
+    }
+  ],
+  "radioStepKhz": 200,
   "rewardKinds": {
     "cache": {
       "param": "category"
@@ -33538,183 +33614,99 @@
   "voices": {
     "boone": {
       "arrival": "road",
-      "frequenciesKhz": [],
-      "frequencyRangesKhz": [
-        [
-          230000,
-          239800
-        ]
-      ],
-      "name": "Boone Tackett"
+      "frequencyKhz": null,
+      "name": "Boone Tackett",
+      "radio": "pro_talkie"
     },
     "cody": {
       "arrival": null,
-      "frequenciesKhz": [],
-      "frequencyRangesKhz": [
-        [
-          10000,
-          24800
-        ]
-      ],
-      "name": "Cody Haskins"
+      "frequencyKhz": null,
+      "name": "Cody Haskins",
+      "radio": "tactical"
     },
     "darlene": {
       "arrival": null,
-      "frequenciesKhz": [],
-      "frequencyRangesKhz": [
-        [
-          115000,
-          129800
-        ]
-      ],
-      "name": "Darlene Pruitt"
+      "frequencyKhz": null,
+      "name": "Darlene Pruitt",
+      "radio": "any_talkie"
     },
     "delphine": {
       "arrival": "boat",
-      "frequenciesKhz": [],
-      "frequencyRangesKhz": [
-        [
-          65000,
-          74800
-        ]
-      ],
-      "name": "Delphine Arnett"
+      "frequencyKhz": null,
+      "name": "Delphine Arnett",
+      "radio": "good_talkie"
     },
     "ezra": {
       "arrival": "cache",
-      "frequenciesKhz": [],
-      "frequencyRangesKhz": [
-        [
-          250000,
-          259800
-        ]
-      ],
-      "name": "Ezra Overby"
+      "frequencyKhz": null,
+      "name": "Ezra Overby",
+      "radio": "pro_talkie"
     },
     "gus": {
       "arrival": "boat",
-      "frequenciesKhz": [],
-      "frequencyRangesKhz": [
-        [
-          150200,
-          199800
-        ]
-      ],
-      "name": "Gus Lacombe"
+      "frequencyKhz": null,
+      "name": "Gus Lacombe",
+      "radio": "good_talkie"
     },
     "hollis": {
       "arrival": "road",
-      "frequenciesKhz": [],
-      "frequencyRangesKhz": [
-        [
-          201000,
-          209800
-        ]
-      ],
-      "name": "Hollis Beck"
+      "frequencyKhz": null,
+      "name": "Hollis Beck",
+      "radio": "pro_talkie"
     },
     "lamar": {
       "arrival": "boat",
-      "frequenciesKhz": [],
-      "frequencyRangesKhz": [
-        [
-          32000,
-          39800
-        ]
-      ],
-      "name": "Lamar Dunaway"
+      "frequencyKhz": null,
+      "name": "Lamar Dunaway",
+      "radio": "pro_talkie"
     },
     "loretta": {
       "arrival": "road",
-      "frequenciesKhz": [],
-      "frequencyRangesKhz": [
-        [
-          210000,
-          219800
-        ]
-      ],
-      "name": "Loretta Royce"
+      "frequencyKhz": null,
+      "name": "Loretta Royce",
+      "radio": "pro_talkie"
     },
     "maxine": {
       "arrival": "cache",
-      "frequenciesKhz": [],
-      "frequencyRangesKhz": [
-        [
-          260000,
-          269800
-        ]
-      ],
-      "name": "Maxine Whitlock"
+      "frequencyKhz": null,
+      "name": "Maxine Whitlock",
+      "radio": "pro_talkie"
     },
     "nightowl": {
       "arrival": null,
-      "frequenciesKhz": [],
-      "frequencyRangesKhz": [
-        [
-          88000,
-          107800
-        ],
-        [
-          109000,
-          114800
-        ]
-      ],
-      "name": "Lyle Ferrand"
+      "frequencyKhz": null,
+      "name": "Lyle Ferrand",
+      "radio": "any_talkie"
     },
     "odessa": {
       "arrival": "cache",
-      "frequenciesKhz": [],
-      "frequencyRangesKhz": [
-        [
-          240000,
-          249800
-        ]
-      ],
-      "name": "Odessa Kessler"
+      "frequencyKhz": null,
+      "name": "Odessa Kessler",
+      "radio": "pro_talkie"
     },
     "virgil": {
       "arrival": "road",
-      "frequenciesKhz": [],
-      "frequencyRangesKhz": [
-        [
-          220000,
-          229800
-        ]
-      ],
-      "name": "Virgil Mattingly"
+      "frequencyKhz": null,
+      "name": "Virgil Mattingly",
+      "radio": "pro_talkie"
     },
     "walt": {
       "arrival": null,
-      "frequenciesKhz": [],
-      "frequencyRangesKhz": [
-        [
-          130000,
-          149800
-        ]
-      ],
-      "name": "Walt Hensley"
+      "frequencyKhz": null,
+      "name": "Walt Hensley",
+      "radio": "any_talkie"
     },
     "wanda": {
       "arrival": "boat",
-      "frequenciesKhz": [],
-      "frequencyRangesKhz": [
-        [
-          25000,
-          31800
-        ]
-      ],
-      "name": "Wanda Haddix"
+      "frequencyKhz": null,
+      "name": "Wanda Haddix",
+      "radio": "pro_talkie"
     },
     "whitaker": {
       "arrival": null,
-      "frequenciesKhz": [],
-      "frequencyRangesKhz": [
-        [
-          75000,
-          87800
-        ]
-      ],
-      "name": "Jolene Whitaker"
+      "frequencyKhz": null,
+      "name": "Jolene Whitaker",
+      "radio": "any_talkie"
     }
   }
 }

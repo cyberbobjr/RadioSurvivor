@@ -8,7 +8,7 @@ chaînes du module, vrai RadioSurvivor_Server.lua) et, pour le MP, un client lup
 sendServerCommand (tables recopiées par Python, comme le réseau) :
 - refus sans donnée d'un non-autorisé (client MP sans la capacité, solo sans le mode debug, connexion perdue : le rôle
   tranche), refus journalisés et bornés ;
-- réponse fidèle à RS_Personas (ordre de chargement, fréquences tirées, servies, plages, radio, heures d'écoute, état,
+- réponse fidèle à RS_Personas (ordre de chargement, fréquences, servies, fixées ou tirées, radio, heures d'écoute, état,
   chroniqueur du bulletin E14-T02) et qui suit une relecture des fiches (conflit : fréquence non servie) ;
 - aucun envoi sans requête, aucune requête fenêtre fermée, réponse arrivée après la fermeture ignorée ;
 - même règle de droits que LK_Admin.isAllowed pour une opération de debug (deux modules chargés côte à côte) ;
@@ -29,6 +29,7 @@ import lupa.lua51 as lupa
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import test_personas_server as tps  # noqa: E402
+import persona_store as store  # noqa: E402  (bridge/ on sys.path through test_personas_server)
 
 ROOT = Path(__file__).resolve().parents[1]
 LUA = tps.LUA
@@ -42,20 +43,11 @@ TESTS_LUA = tests_lua()
 SUITE_FILE = TESTS_LUA / 'shared' / 'RST' / 'suites' / 'RS_FreqDebug.lua'
 lua_list = tps.lua_list
 
-# Fréquences tirées des fiches livrées sur le serveur simulé (ZombRand rend 0 : la plus basse de chaque plage, les
-# plages des fiches livrées ne se chevauchant pas), dans l'ordre de chargement des fiches (alphabétique au premier
-# chargement). Lues dans les fiches : une voix ajoutée au mod n'a pas à être recopiée ici.
+# Fréquences tirées des fiches livrées sur le serveur simulé (ZombRand rend 0 : la plus basse libre de la zone de la
+# radio de chaque voix, E24-T01 ; tests/test_personas_server.py), dans l'ordre de chargement des fiches (alphabétique
+# au premier chargement).
 def shipped_voices() -> dict[str, list[int]]:
-    voices = {}
-    for sheet in sorted((ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivor' / '42.21' / 'personas').glob('*.txt')):
-        if sheet.name.startswith('_'):
-            continue
-        text = sheet.read_text(encoding='utf-8')
-        fixed = re.search(r'^frequencies=(.+)$', text, re.M)
-        ranges = re.search(r'^frequency_range=(.+)$', text, re.M)
-        parts = fixed.group(1).split(',') if fixed else [r.split('-')[0] for r in ranges.group(1).split(',')]
-        voices[sheet.stem] = [round(float(part.strip()) * 1000) for part in parts]
-    return voices
+    return {vid: tps.DeliveredVoicesServerTests.VOICES[vid] for vid in sorted(tps.DeliveredVoicesServerTests.VOICES)}
 
 
 VOICES = shipped_voices()
@@ -236,8 +228,7 @@ class AuthorityTests(ServerBase):
                 sheet = self.P.get(v['id'])
                 self.assertEqual((v['name'], v['state'], v['radio'], v['language']),
                                  (sheet.name, sheet.state, sheet.radio, sheet.language))
-                ranges = [(x['low'], x['high']) for x in v['ranges']]
-                self.assertEqual(ranges, tps.DrawTests.RANGES[v['id']])
+                self.assertEqual(v['radio'], tps.DrawTests.LEVELS[v['id']])
                 self.assertIs(v['fixed'], False)
                 self.assertIs(v['chronicler'], v['id'] == 'nightowl')
                 self.assertIs(v['holds'], True)
@@ -246,7 +237,7 @@ class AuthorityTests(ServerBase):
         self.assertEqual(by_id['nightowl']['listen'], [{'from': 19 * 60, 'to': 22 * 60}])
         self.assertEqual(by_id['walt']['listen'], [])                                 # always
         self.assertEqual(by_id['darlene']['listen'], [{'from': 420, 'to': 600}, {'from': 960, 'to': 1140}])
-        self.assertEqual(r['others'], [{'kind': 'bulletin', 'voice': 'nightowl', 'khz': 88000, 'hour': 20}])
+        self.assertEqual(r['others'], [{'kind': 'bulletin', 'voice': 'nightowl', 'khz': 76000, 'hour': 20}])
         # Rien d'autre que des valeurs simples (aucun objet Java, aucune fonction) dans la réponse.
         self.assertNotIn('function', json.dumps(r))
         # Lecture seule : aucune chaîne créée ni retirée.
@@ -255,17 +246,18 @@ class AuthorityTests(ServerBase):
     def test_view_follows_a_reload_with_a_conflicting_sheet(self):
         # Deux fiches de l'admin à la même fréquence fixe : la première chargée la sert, l'autre la garde sans chaîne.
         # Une fréquence fixe sur la fréquence tirée de Walt : Walt est tiré de nouveau (RS_Personas.resolveFrequencies).
-        self.write('zprobe.txt', self.sheet('zprobe', '145.0, 130.0'))
-        self.write('zprobe2.txt', self.sheet('zprobe2', '145.0'))
+        drawn = self.served('walt')[0]
+        self.write('zprobe.txt', self.sheet('zprobe', f'{drawn / 1000:.1f}'))
+        self.write('zprobe2.txt', self.sheet('zprobe2', f'{drawn / 1000:.1f}'))
         self.after(self.P.RELOAD_MS)
         r = to_py(self.req('ALICE'))
         by_id = {v['id']: v for v in r['voices']}
         self.assertEqual((by_id['zprobe']['frequencies'], by_id['zprobe']['served'], by_id['zprobe']['fixed']),
-                         ([145000, 130000], [145000, 130000], True))
-        self.assertEqual(by_id['zprobe']['ranges'], [])
-        self.assertEqual((by_id['zprobe2']['frequencies'], by_id['zprobe2']['served']), ([145000], []))
+                         ([drawn], [drawn], True))
+        self.assertEqual(by_id['zprobe']['radio'], 'any_talkie')   # needed radio derived from the fixed frequency
+        self.assertEqual((by_id['zprobe2']['frequencies'], by_id['zprobe2']['served']), ([drawn], []))
         walt = by_id['walt']
-        self.assertNotEqual(walt['frequencies'], [130000])
+        self.assertNotEqual(walt['frequencies'], [drawn])
         self.assertEqual(walt['frequencies'], self.served('walt'))
         self.assertEqual(walt['served'], walt['frequencies'])
         # Chroniqueur parti (gone) : bulletin sans fréquence, plus de chaîne.
@@ -401,16 +393,16 @@ class ClientTests(ServerBase):
         owl = self.c.ev(f'(function() for _, v in ipairs({V}.state.data.voices) do '
                         f'if v.id == "nightowl" then return {V}.voiceCells(v) end end end)()')
         self.assertEqual(to_py(owl), {'id': 'nightowl', 'name': 'Lyle Ferrand', 'state': 'active',
-                                      'freqs': '88.0, 109.0', 'ranges': '88.0-107.8, 109.0-114.8',
-                                      'radio': 'any', 'listen': '19:00-22:00',
+                                      'freqs': '76.0', 'draw': 'IGUI_RS_FreqDebug_Drawn',
+                                      'radio': 'any_talkie', 'listen': '19:00-22:00',
                                       'role': 'IGUI_RS_FreqDebug_Chronicler'})
         walt = to_py(self.c.ev(f'{V}.voiceCells({V}.state.data.voices[{list(VOICES).index("walt") + 1}])'))
         self.assertEqual((walt['id'], walt['listen'], walt['role'], walt['freqs']),
-                         ('walt', 'IGUI_RS_FreqDebug_Always', '-', '130.0'))
+                         ('walt', 'IGUI_RS_FreqDebug_Always', '-', '77.0'))
         other = to_py(self.c.ev(f'{V}.otherCells({V}.state.data.others[1])'))
-        self.assertEqual(other, {'what': 'bulletin', 'voice': 'nightowl', 'freq': '88.0',
+        self.assertEqual(other, {'what': 'bulletin', 'voice': 'nightowl', 'freq': '76.0',
                                  'when': 'IGUI_RS_FreqDebug_Daily|20:00'})
-        self.assertEqual(self.c.ev(f'{V}.voiceSort({V}.state.data.voices[{list(VOICES).index("nightowl") + 1}], "freqs")'), 88000)
+        self.assertEqual(self.c.ev(f'{V}.voiceSort({V}.state.data.voices[{list(VOICES).index("nightowl") + 1}], "freqs")'), 76000)
 
     def test_reply_after_closing_or_stale_is_ignored(self):
         self.c.g.ADMINS.carol = True
@@ -434,10 +426,10 @@ class ClientTests(ServerBase):
 
     def test_unserved_frequency_marked_and_fixed_sheet(self):
         cells = to_py(self.c.ev(f'{V}.voiceCells({{ id = "x", name = "X", state = "gone", frequencies = {{ 145000 }}, '
-                                'served = {}, ranges = {}, radio = "high_tier", listen = { { from = 1320, to = 360 } } })'))
+                                'served = {}, fixed = true, radio = "military", listen = { { from = 1320, to = 360 } } })'))
         self.assertEqual(cells['freqs'], 'IGUI_RS_FreqDebug_NotServed|145.0')
-        self.assertEqual((cells['ranges'], cells['listen'], cells['radio']),
-                         ('IGUI_RS_FreqDebug_Fixed', '22:00-06:00', 'high_tier'))
+        self.assertEqual((cells['draw'], cells['listen'], cells['radio']),
+                         ('IGUI_RS_FreqDebug_Fixed', '22:00-06:00', 'military'))
         off = to_py(self.c.ev(f'{V}.otherCells({{ kind = "bulletin", voice = "nightowl" }})'))
         self.assertEqual((off['freq'], off['when']), ('IGUI_RS_FreqDebug_OffAir', '-'))
 
@@ -555,7 +547,7 @@ class StaticTests(unittest.TestCase):
         cols = view[view.index('FreqView.VOICE_COLUMNS = {'):view.index('-- Cellules d\'une voix v')]
         used |= {f'Col_{k}' for k in re.findall(r'key = "(\w+)"', cols)}
         used |= {f'State_{s}' for s in ('active', 'silent', 'gone', 'dead')}
-        used |= {'Radio_any', 'Radio_high_tier', 'Kind_bulletin'}
+        used |= {f'Radio_{level}' for level in store.RADIOS} | {'Kind_bulletin'}   # E24-T01: radio levels
         self.assertEqual(len([k for k in used if k.startswith('Col_')]), 12)
         for lang in ('EN', 'FR'):
             data = json.loads((TRANSLATE / lang / 'IG_UI.json').read_text(encoding='utf-8'))

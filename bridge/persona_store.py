@@ -1,4 +1,4 @@
-"""Radio voice sheets (E05-T01, ranges E05-T07, sections E20-T03): read and validate one `.txt` sheet per voice.
+"""Radio voice sheets (E05-T01, sections E20-T03, radio levels E24-T01): read and validate one `.txt` sheet per voice.
 
     python bridge/persona_store.py FILE.txt [...]     validate sheets, one line per file, exit code 1 on error
 
@@ -26,13 +26,15 @@ REPLACEMENT = '�'
 # E22-T13: `remember` is no sheet action any more: every voice has it (radio_bridge.UNIVERSAL_ACTIONS).
 ACTIONS = ('say', 'mark_map', 'reveal_area', 'signal', 'place_cache', 'place_scene', 'start_mission',
            'persona_state', 'propose_trade', 'report_mission', 'share_frequency')
-RADIOS = ('any', 'high_tier')
+# Radio needed to hear the voice (E24-T01): ids of RS_RadioLevels.lua, weakest first (tests/test_radio_levels.py checks
+# they are the same). The server draws a free frequency in the level's zone; the bridge only checks the name.
+RADIOS = ('any_talkie', 'good_talkie', 'pro_talkie', 'tactical', 'military')
 LOCATIONS = ('none', 'fixed', 'rescue')
 STATES = ('active', 'silent', 'gone', 'dead')
 # Uses of a place (ADR D04): mark (mark_map, reveal_area), target (mission goal), drop (dead drop), landing (trade).
 USES = ('mark', 'target', 'drop', 'landing')
-REQUIRED = ('format', 'id', 'name')   # then frequencies or frequency_range (one of them, not both: E05-T07)
-MIN_KHZ, MAX_KHZ, STEP_KHZ = 1000, 999800, 200
+REQUIRED = ('format', 'id', 'name')   # then radio or frequency (exactly one of them: E24-T01)
+MIN_KHZ, MAX_KHZ, STEP_KHZ = 200, 1000000, 200   # every radio of the game (RS_RadioLevels.lua, level military)
 MAX_COUNT = 999999
 MAX_CALL_ONE_IN = 1000
 MAX_CALL_BYTES = 200   # call= written in the sheet (E22-T07), UTF-8 bytes as RS_Persona.lua
@@ -45,7 +47,7 @@ ID_RE = re.compile(r'[a-z][a-z0-9_]{0,31}')
 SECTION_ID_RE = re.compile(r'[a-z0-9_]{1,32}')
 HEADER_RE = re.compile(r'\[[ \t]*([^ \t\]]*)[ \t]*(.*?)[ \t]*\]')
 LANGUAGE_RE = re.compile(r'[a-z][a-z]')
-FREQUENCY_RE = re.compile(r'([0-9]{1,3})\.([0-9])')
+FREQUENCY_RE = re.compile(r'([0-9]{1,4})\.([0-9])')
 RANGE_RE = re.compile(r'([0-9][0-9]):([0-9][0-9])-([0-9][0-9]):([0-9][0-9])')
 COORDS_RE = re.compile(r'([0-9]{1,6}),([0-9]{1,6}),(-?[0-9]{1,2})')
 COUNT_RE = re.compile(r'[0-9]{1,6}')
@@ -80,11 +82,10 @@ class Persona:
     format: str
     id: str
     name: str
-    frequencies: list[int]                     # kHz, in file order; [] when the sheet gives ranges to draw from
     prompt: str
-    frequency_ranges: list[tuple[int, int]] = field(default_factory=list)   # (low, high) kHz, frequency_range
+    frequency: int | None = None               # kHz of frequency=; None: the server draws one for `radio`
+    radio: str | None = None                   # radio= as written; None with frequency= (the server derives it)
     language: str = 'en'
-    radio: str = 'any'
     listen: list[tuple[int, int]] = field(default_factory=list)   # (from, to) minutes of the game day; [] = always
     location: str = 'none'
     coords: tuple[int, int, int] | None = None
@@ -127,43 +128,16 @@ def _list(value: str) -> list[str]:
 
 
 def _frequency(part: str, line: int) -> int:
+    """Fixed frequency (frequency=, E24-T01): MHz with one decimal, inside every radio's bounds, on their step."""
     match = FREQUENCY_RE.fullmatch(part)
     if not match:
         raise PersonaError(line, f"bad frequency '{part}' (MHz with one decimal, e.g. 145.0)")
     khz = int(match.group(1)) * 1000 + int(match.group(2)) * 100
     if khz < MIN_KHZ or khz > MAX_KHZ:
-        raise PersonaError(line, f'frequency {part} out of range (1.0 to 999.8 MHz)')
+        raise PersonaError(line, f'frequency {part} out of range ({MIN_KHZ / 1000:.1f} to {MAX_KHZ / 1000:.1f} MHz)')
     if khz % STEP_KHZ != 0:
-        raise PersonaError(line, f'frequency {part} is not on the 0.2 MHz step of the radios')
+        raise PersonaError(line, f'frequency {part} is not on the {STEP_KHZ / 1000:.1f} MHz step of the radios')
     return khz
-
-
-def _frequencies(value: str, line: int) -> list[int]:
-    result = []
-    for part in _list(value):
-        khz = _frequency(part, line)
-        if khz in result:
-            raise PersonaError(line, f'duplicate frequency {part}')
-        result.append(khz)
-    return result
-
-
-def _frequency_ranges(value: str, line: int) -> list[tuple[int, int]]:
-    """Ranges to draw from (E05-T07): "low-high" in MHz, low < high, no overlap inside the sheet."""
-    result: list[tuple[int, int]] = []
-    for part in _list(value):
-        bad_range = f"bad frequency range '{part}' (two frequencies in MHz, lowest first, e.g. 140.0-150.0)"
-        halves = part.split('-')
-        if len(halves) != 2:
-            raise PersonaError(line, bad_range)
-        low, high = _frequency(trim(halves[0]), line), _frequency(trim(halves[1]), line)
-        if low >= high:
-            raise PersonaError(line, bad_range)
-        for other_low, other_high in result:
-            if low <= other_high and high >= other_low:
-                raise PersonaError(line, f"frequency range '{part}' overlaps another range of the sheet")
-        result.append((low, high))
-    return result
 
 
 def _listen(value: str, line: int) -> list[tuple[int, int]]:
@@ -269,8 +243,7 @@ HEAD: dict[str, tuple[str, Callable[[str, int], object]]] = {
     'id': ('id', _id),
     'name': ('name', _text),
     'language': ('language', _language),
-    'frequencies': ('frequencies', _frequencies),
-    'frequency_range': ('frequency_ranges', _frequency_ranges),
+    'frequency': ('frequency', _frequency),
     'radio': ('radio', lambda value, line: _choice(value, 'radio', RADIOS, line)),
     'listen': ('listen', _listen),
     'location': ('location', lambda value, line: _choice(value, 'location', LOCATIONS, line)),
@@ -491,12 +464,12 @@ def parse_lines(lines: list[str], expected_id: str | None = None) -> Persona:
     for key in REQUIRED:   # in this order (same first missing key as the Lua reader)
         if key not in fields:
             raise PersonaError(separator, f"missing key '{key}'")
-    if 'frequencies' not in fields and 'frequency_ranges' not in fields:
-        raise PersonaError(separator, "missing key 'frequencies' or 'frequency_range'")
-    if 'frequencies' in fields and 'frequency_ranges' in fields:
-        raise PersonaError(max(seen['frequencies'], seen['frequency_range']),
-                           'frequencies and frequency_range cannot be used together (fixed frequencies or ranges to '
-                           'draw from)')
+    if 'radio' not in fields and 'frequency' not in fields:
+        raise PersonaError(separator, "missing key 'radio' or 'frequency'")
+    if 'radio' in fields and 'frequency' in fields:
+        raise PersonaError(max(seen['radio'], seen['frequency']),
+                           'radio and frequency cannot be used together (a radio level to draw a free frequency, or '
+                           'one fixed frequency)')
     if expected_id is not None and fields['id'] != expected_id:
         raise PersonaError(seen['id'], f"id '{fields['id']}' does not match the file name '{expected_id}.txt'")
     location = fields.setdefault('location', 'none')
@@ -513,7 +486,6 @@ def parse_lines(lines: list[str], expected_id: str | None = None) -> Persona:
     for action, number in head.budget_lines:
         if action not in actions:
             raise PersonaError(number, f"budget.{action} set but action '{action}' is not in actions")
-    fields.setdefault('frequencies', [])
     return Persona(prompt='\n'.join(body), places=places, budgets=head.budgets, trade_accepts=accepts, **fields)
 
 
@@ -542,9 +514,8 @@ def main(argv: list[str]) -> int:
             failed += 1
             print(f'{name}: {exc}')
         else:
-            mhz = ', '.join([f'{khz / 1000:.1f}' for khz in persona.frequencies]
-                            + [f'{low / 1000:.1f}-{high / 1000:.1f}' for low, high in persona.frequency_ranges])
-            print(f'{name}: OK ({persona.id}, {mhz} MHz, {persona.state})')
+            where = f'{persona.frequency / 1000:.1f} MHz' if persona.frequency is not None else persona.radio
+            print(f'{name}: OK ({persona.id}, {where}, {persona.state})')
     return 1 if failed else 0
 
 

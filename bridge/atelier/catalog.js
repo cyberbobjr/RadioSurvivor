@@ -12,6 +12,7 @@ export function createCatalog(data) {
   const missionTypes = data.missionTypes ?? {};
   const rewardKinds = data.rewardKinds ?? {};
   const voices = data.voices ?? {};
+  const radioLevels = data.radioLevels ?? [];
   // Mission type: its parameters ({key: kind}), voice set-ups (aimAt, dropAccepts...) and English description.
   const missionType = (name) => (missionTypes[name] ? {
     name, params: missionTypes[name].params ?? {}, setups: missionTypes[name].setups ?? [],
@@ -69,13 +70,20 @@ export function createCatalog(data) {
     placeUses: () => (sections.place?.choices?.use) ?? [],
     arrivals: () => (sections.trade?.choices?.arrival) ?? [],
 
-    // Shipped voices: [{id, name, bands: [[lo, hi], ...] kHz}], `exceptId` left out (the voice being edited).
-    takenBands: (exceptId = null) => sorted(Object.keys(voices)).filter((id) => id !== exceptId).map((id) => ({
-      id,
-      name: voices[id].name ?? id,
-      bands: [...(voices[id].frequencyRangesKhz ?? []),
-        ...(voices[id].frequenciesKhz ?? []).map((khz) => [khz, khz])],
-    })),
+    // Radio a voice needs (E24-T01, RS_RadioLevels of the mod): [{id, minKhz, maxKhz, zones}], weakest first. The
+    // first one is the default of a new voice: everybody hears it.
+    radioLevels: () => radioLevels,
+    // Weakest radio level that tunes `khz` (the radio a fixed frequency needs), or null outside every radio.
+    levelOf: (khz) => radioLevels.find((l) => khz >= l.minKhz && khz <= l.maxKhz)?.id ?? null,
+    // Frequencies every radio tunes (kHz), on the step of the radios.
+    frequencyBounds: () => ({
+      min: Math.min(...radioLevels.map((l) => l.minKhz)), max: Math.max(...radioLevels.map((l) => l.maxKhz)),
+      step: data.radioStepKhz ?? 200,
+    }),
+    // Shipped voices with a fixed frequency: [{id, name, khz}], `exceptId` left out (the voice being edited).
+    fixedFrequencies: (exceptId = null) => sorted(Object.keys(voices))
+      .filter((id) => id !== exceptId && Number.isFinite(voices[id].frequencyKhz))
+      .map((id) => ({ id, name: voices[id].name ?? id, khz: voices[id].frequencyKhz })),
     voiceIds: () => sorted(Object.keys(voices)),
   };
 }

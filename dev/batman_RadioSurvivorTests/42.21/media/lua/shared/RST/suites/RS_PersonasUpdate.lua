@@ -2,7 +2,7 @@
 rs.personas.update - update of the installed voice sheets on an existing game (E05-T11,
 server/RadioSurvivor/RS_Personas.lua, Personas.install), on the real files of the authority:
     - a sheet installed before E05-T07 (fixed frequency, version of commit 24832ea shipped with the test mod in
-      rstdata/gus-24832ea.txt), never touched, without fingerprint: replaced by the delivered sheet with ranges;
+      rstdata/gus-24832ea.txt), never touched, without fingerprint: replaced by the delivered sheet (radio level, E24-T01);
     - the same old sheet recorded in the fingerprint file (unmodified since its copy): replaced too;
     - a sheet changed by the admin (one more line): kept, never overwritten.
 Each case writes gus.txt and personas-fingerprints.txt, calls Personas.install() and restores both files in the same
@@ -96,7 +96,7 @@ local function recorded(record, value)
 end
 
 RST.suite("rs.personas.update", { tags = { "world", "server" } }, function(s)
-    s.test("old sheet without fingerprint (before E05-T07) replaced by the delivered sheet with ranges", function(t)
+    s.test("old sheet without fingerprint (before E05-T07) replaced by the delivered sheet", function(t)
         local c = setup(t)
         local P = c.P
         local oldPrint = P.fingerprint(c.old)
@@ -115,7 +115,7 @@ RST.suite("rs.personas.update", { tags = { "world", "server" } }, function(s)
         t:ok(recorded(record, P.fingerprint(c.delivered)), "fingerprint of the delivered sheet not recorded")
         local Persona = require "RadioSurvivor/RS_Persona"
         local sheet = Persona.parseLines(after, VOICE, P.rules())
-        t:ok(sheet ~= nil and #sheet.frequency_ranges > 0, "installed sheet without frequency_range")
+        t:ok(sheet ~= nil and sheet.frequency == nil and sheet.radio ~= nil, "installed sheet without radio=")
         t:ok(same(readAll(getFileReader(c.path, false)), c.original), VOICE .. ".txt not restored")
     end)
 

@@ -4,7 +4,7 @@
 -- Les voix viennent de leurs fiches (E05-T02, RS_Personas : Zomboid/Lua/batman_RadioSurvivor/personas/<id>.txt,
 -- relues à chaud). Routage (E05-T03) : la fréquence de la radio de l'appelant désigne la voix ; la demande au pont
 -- porte son identifiant (voice=), le pont y construit le prompt depuis la même fiche et garde un historique par
--- partie et par voix. Les règles d'accès (état, heures d'écoute, radio exigée, budget) sont tenues ici, côté autorité.
+-- partie et par voix. Les règles d'accès (état, heures d'écoute, budget) sont tenues ici, côté autorité.
 -- Le serveur trie (E05-T08) : aucun client ne reçoit les fréquences des voix ; toute phrase dite dans une radio
 -- émettrice arrive ici avec la fréquence de la radio, et seule une voix qui tient cette fréquence y répond. Sur une
 -- fréquence sans voix, la phrase part sur la radio et rien d'autre ne se passe (ni message, ni demande au pont).
@@ -370,13 +370,6 @@ local function radioReaches(radio, khz)
     return khz >= low and khz <= high
 end
 
--- Radio exigée par la fiche : radio=high_tier demande un poste haut de gamme (DeviceData.getIsHighTier, 42.21 :
--- IsHighTier du script, WalkieTalkie5, ManPackRadio, HamRadio2, ou radio bricolée réussie ; DeviceData.java:249).
-local function radioAccepted(sheet, radio)
-    if sheet.radio ~= "high_tier" then return true end
-    return radio:getDeviceData():getIsHighTier() == true
-end
-
 -- Anti-spam par joueur, toutes fréquences confondues (E05-T08) : au plus Const.SPAM_MAX phrases reçues par
 -- Const.SPAM_WINDOW_MS réelles. Le client s'impose déjà un écart minimal (Const.CLIENT_MIN_INTERVAL_MS) qui reste
 -- sous ce seuil : seul un client modifié l'atteint. Compte toute phrase reçue, même refusée ensuite.
@@ -461,9 +454,10 @@ local function onTalk(player, args)
         Const.toClient(player, Const.CMD.ACCEPTED, { text = text })
         return
     end
-    -- Voix silencieuse (state=silent), hors de ses heures d'écoute, radio trop faible pour elle (radio=high_tier et
-    -- poste ordinaire) ou budget de la voix épuisé : silence (ni parasites qui trahiraient une présence).
-    if sheet.state ~= "active" or not Personas.isListening(sheet, minuteOfDay()) or not radioAccepted(sheet, radio)
+    -- Voix silencieuse (state=silent), hors de ses heures d'écoute ou budget de la voix épuisé : silence (ni
+    -- parasites qui trahiraient une présence). La radio nécessaire (radio=, E24-T01) ne demande aucun contrôle : la
+    -- fréquence de la voix est hors de portée des postes plus simples (radioReaches).
+    if sheet.state ~= "active" or not Personas.isListening(sheet, minuteOfDay())
             or not underVoiceBudget(sheet, now) then
         return silence(player, text, khz)
     end

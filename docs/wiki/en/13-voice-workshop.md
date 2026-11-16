@@ -4,7 +4,7 @@
 
 The **voice workshop** is a page that opens in your browser. It is where you make the people who answer on the
 radio: who they are, when they listen, their character, the jobs they give, what they give in return and what they
-sell. You fill in five steps, click **Save**, and the game hears the new voice within 30 seconds, without a restart.
+sell. You answer five steps, click **Save**, and the game hears the new voice within 30 seconds, without a restart.
 
 No need to write a file by hand. The workshop writes the same file as the one described in
 [Creating radio voices](10-creating-radio-voices.md), the line-by-line reference. Four complete voices, built step by
@@ -21,11 +21,12 @@ tower. She calls in the morning and the evening, asks for food, then for the dea
 - [The workshop screen](#the-workshop-screen) · [the voice list](#the-voice-list) ·
   [making a voice](#making-a-voice) · [the buttons of a voice](#the-buttons-of-a-voice)
 - The five steps: [1. Who](#step-1--who) · [2. Where & when](#step-2--where--when) ·
-  [3. Personality](#step-3--personality) · [4. Missions](#step-4--missions) · [5. Rewards](#step-5--rewards)
-- To go further: [trade](#trade) · [frequency note](#the-frequency-note) · [her own categories](#own-categories)
+  [3. Personality](#step-3--personality) · [4. Places and missions](#step-4--places-and-missions) ·
+  [5. Rewards](#step-5--rewards)
+- To go further: [trade](#trade) · [frequency note](#the-frequency-note) · [her own item lists](#her-own-item-lists)
 - [The bridge's AI helps you](#the-bridges-ai-helps-you) · [Saving and the game's verdict](#saving-and-the-games-verdict) ·
   [The live journal](#the-live-journal)
-- [Sharing a voice](#sharing-a-voice) · [Delete, remove, go back](#delete-remove-go-back) ·
+- [Sharing a voice](#sharing-a-voice) · [Delete, take off, go back](#delete-take-off-go-back) ·
   [Voices remember](#voices-remember) · [For a server owner](#for-a-server-owner) · [Limits](#limits)
 
 ## Opening the workshop
@@ -46,8 +47,8 @@ Good to know:
 
 - **The bridge keeps working for the game.** One window does both: the voices answer in game while you work in the
   workshop. Closing that window also closes the workshop.
-- **Without an AI configured, the workshop still opens.** Everything works, except the writing help buttons and
-  trying the voice, which stay greyed out (see [The bridge's AI helps you](#the-bridges-ai-helps-you)).
+- **Without an AI configured, the workshop still opens.** Everything works, except the writing help buttons and the
+  test conversation **Chat with the voice**, which stay greyed out (see [The bridge's AI helps you](#the-bridges-ai-helps-you)).
 - **The workshop works on the game's real sheets**: the `Zomboid\Lua\batman_RadioSurvivor\personas` folder of your
   computer. That folder only exists after a world has been loaded once with the mod: start a game once before opening
   the workshop.
@@ -82,114 +83,136 @@ home network:
 ## The workshop screen
 
 - **At the top**: two tabs, **Voices** (the editor) and **Journal** ([the live journal](#the-live-journal)); on the
-  right, **Import** ([sharing a voice](#sharing-a-voice)) and, on the network, **Log out**.
-- **On the left**: the voice list and the **+ New voice** button.
+  right, **Open a voice (file)** ([sharing a voice](#sharing-a-voice)) and, on the network, **Log out**.
+- **On the left**: **Your voices** and the **+ New voice** button. Under 900 px wide, the list becomes a strip of chips
+  above the editor.
 - **In the middle**: the open voice. With no voice open, a welcome screen recalls the three gestures: pick a voice,
-  fill in the five steps, save.
+  answer the questions step by step, save.
 
-Every setting has a small **?**: hover over it (or click) to learn what it is for, what the player lives in game, the
-possible choices and an example. **Escape** closes the bubble.
+Every setting has a small **?**: click it (or hover over it) to learn what it is for, what the player lives in game,
+the possible choices and an example. The rest is under **Learn more**. **Escape** closes the bubble.
 
 ### The voice list
 
-Each voice carries a coloured dot; the legend is below the list.
+The legend under the list fits on one line: **the red dot** means "The game could not read this voice".
 
 | Badge | Meaning |
 |---|---|
 | **Yours** | A voice you made or imported. |
-| **From the mod** | A voice shipped with the mod, as is. |
-| **Older version** (hollow green dot) | A copy of a voice of the mod that the game wrote from an older version of the mod: the game will replace it with the mod's new version the next time it loads the world, or at once with **Back to the mod's version**. |
-| **Changed** | A voice of the mod you changed. A mod update never overwrites your changes. |
-| **Removed** | A voice of the mod you took off the air. |
+| **Original voice** | A voice shipped with the mod, as it is. |
+| **You changed it** | An original voice you changed. A mod update never overwrites your changes. |
+| **Off the air** | An original voice you took off the air. |
+| **Older version** (hollow green dot) | A copy of a voice of the mod that the game wrote from an older version of the mod: the game will replace it with the mod's new version the next time it loads the world, or at once with **Back to the original**. |
 | **Not saved yet** | (at the top of the editor) A voice made but never saved: it does not exist for the game yet. |
-| **Refused by the game** (red dot) | The game did not accept the sheet: see [When the game refuses a voice](#when-the-game-refuses-a-voice). |
+| **Red dot** | The game could not read this voice: see [When the game refuses a voice](#when-the-game-refuses-a-voice). |
 
 ### Making a voice
 
-**+ New voice** opens a small form:
+**+ New voice** opens a small window, in three steps:
 
-![New voice: a name, an id, start from an empty voice or a copy](../../images/screenshots/atelier/atelier-en-12-new.png)
+![New voice: a name, then the kind of voice](../../images/screenshots/atelier/atelier-en-12-new.png)
 
-| Box | What goes in it |
-|---|---|
-| **Name** | The name players will hear, such as "Rosie Calloway". |
-| **Short id** | Filled in by itself from the first name (`rosie`). Lowercase letters, digits and `_`, starting with a letter, 32 at most. It becomes the file name and **never changes** once the voice is saved. |
-| **Start from** | **An empty voice** (a starting sheet, with a free band and a personality to rewrite) or **A copy of …** any voice (the copy is saved at once). |
+1. **What is this voice called?** Give only the name players will hear, such as "Rosie Calloway". Nothing else to
+   type: the file name is made by itself from the first name, and it is never shown (a tooltip on the title may show it).
+2. **How do you start?** Two cards:
+   - **Start from scratch**: a brand new voice, with a starting sheet that everybody hears with any walkie-talkie, and
+     a personality to rewrite.
+   - **Start from a voice**: a copy to change. The list of voices opens, one click picks; the copy is saved at once.
+3. **What kind of voice?** (only for **Start from scratch**) Three cards that tick the right actions at step 3:
+   - **A survivor who talks**: it only ticks **Talk**.
+   - **A mission giver**: it ticks **Give missions**.
+   - **A trader**: it ticks **Trade** and turns on the trade panel of step 5.
 
-Copying a voice of the mod is a good way to start: everything is already filled in, you only have to change it.
-**Create** opens the new voice at step 1. If the id is badly written or already taken, the form says so.
+The steps a voice does not use yet are folded. **+ All steps** shows them; they come back as soon as an action needs
+them. Copying a voice of the mod is a good way to start: everything is already filled in, you only have to change it.
 
 Nothing is saved until you click **Save**. If you switch voices with unsaved changes, a bar asks **Leave without
 saving** or **Cancel**; closing the browser tab asks too.
 
 ### The buttons of a voice
 
-At the top of the open voice: its name, its badge and "Saved" or "Changes not saved".
+At the top of the open voice: its name, its badge and "Saved" or "Not saved".
 
 | Button | Effect |
 |---|---|
-| **Save** | Writes the sheet; the game reads it again within 30 seconds. Also at the bottom of step 5. |
-| **Export** | Downloads the sheet (`<id>.txt`). Missing until the voice is saved. |
-| **Sheet preview** | Shows on the right the file as it will be written, updated at each keystroke. **Hide the sheet** closes it. |
-| **Try the voice** | Opens the test conversation ([The bridge's AI helps you](#the-bridges-ai-helps-you)). |
-| **Delete** | **Yours** voices only: erases the sheet for good. |
-| **Take off the air** | **From the mod** or **Changed** voices: empties the sheet, the game drops the voice. |
-| **Back to the mod's version** | **Changed** or **Removed** voices: throws your changes away. |
+| **Save** | Writes the voice; the game reads it again within 30 seconds. |
+| **Chat with the voice** | Opens the test conversation ([The bridge's AI helps you](#the-bridges-ai-helps-you)). |
+| **Delete** | **Yours** voices only: erases the voice for good. |
+| **Take off the air** | **Original voice** or **You changed it** voices: empties the sheet, the game drops the voice. |
+| **Back to the original** | **You changed it** or **Off the air** voices: throws your changes away. |
+| **…** (more actions) | **Save a copy** downloads the voice (a `<name>.txt` file); missing until the voice is saved. **See the game's text** shows on the right the file as it will be written, updated at each keystroke; **Hide the game's text** closes it. |
 
-Below these buttons, the **five steps** are numbered pills: click one to jump to a step, or use **Back** and **Next**
-at the bottom. A number on a pill counts the [things to look at](#saving-and-the-games-verdict) of that step.
+Below these buttons, the **five steps** are numbered pills with their icon: click one to jump to a step, or use **Back**
+and **Next** at the bottom. A number on a pill counts the [things to check](#saving-and-the-games-verdict) of that step
+("To check: N").
 
 ## Step 1 — Who
 
-"Who is talking on the radio?"
+"What is this voice called?"
 
 | Setting | What it changes |
 |---|---|
-| **Name** | How the voice introduces itself; players hear it on the radio. |
-| **Short id** | The file name. It can only be changed before the first save; to rename later, make a copy. |
-| **Short description** | For you only: the game does not read it. It is written as a comment at the top of the sheet. |
-| **On the air?** | **On the air**: she listens and answers (the normal choice). **Silent for now**: she keeps her frequency but does not answer, players only hear silence. **Gone**: she left the radio, her frequency becomes free again; she can come back if you change the state. **Dead**: she died in the story, her frequency becomes free again. |
+| **What is this voice called?** | How the voice introduces itself; players hear it on the radio. |
+| **In one sentence, who is it?** | One line, for you only: the game does not read it. |
+| **Is she on the air?** | Four cards. **She answers**: she listens and answers (the normal choice). **She is quiet**: she keeps her frequency but does not answer, players only hear silence. **She left**: she left the radio, her frequency becomes free again; she can come back if you change the state. **She is dead**: she died in the story, her frequency becomes free again. |
 
-**Example in game.** Setting Rosie to **Silent for now** for a game week makes players believe something happened to
-her; putting her back **On the air** brings her back.
+**Example in game.** Setting Rosie to **She is quiet** for a game week makes players believe something happened to
+her; putting her back on **She answers** brings her back.
 
 ## Step 2 — Where & when
 
-![Step 2: frequency band, listening hours and spontaneous call](../../images/screenshots/atelier/atelier-en-02-where.png)
+![Step 2: the radio needed to hear her, then the listening hours](../../images/screenshots/atelier/atelier-en-02-where.png)
 
-"Where can players hear her, and when?"
+"Where can players hear her, and when?" The step has four parts, each under its own title.
+
+### The radio
 
 | Setting | What it changes |
 |---|---|
-| **Frequency band** | "from … to … MHz". Each new game picks one frequency in this band and keeps it for the whole game: players have to look for it by turning the dial. Frequencies go from 1.0 to 999.8 MHz, in steps of 0.2. Several bands are possible. |
-| **Find a free band** | Adds a band no voice of the mod uses. If your band crosses another voice's band, an orange line says so. |
-| **Bands already taken by the mod's voices** | Folded list of the bands of the shipped voices. |
-| **Fixed frequencies** | Only shows for a sheet that already has some (written by hand): the same frequencies in every game, such as `145.0`. |
-| **Radio needed** | **Any radio that can talk**: walkie-talkies and ham radios, if the band is within their reach. **Only a big radio**: a high-end set (top-level walkie-talkie, military set, high-end ham radio); a player with a small walkie-talkie cannot talk to her. |
-| **Listening hours** | Game time, "from … to …". **+ Add listening hours** adds a shift. A shift can go past midnight (22:00 to 06:00). With no shift at all: she listens all the time. Outside her hours she is silent and never calls. |
-| **Is this voice on the map?** | **Nowhere on the map**: nobody knows where she hides (the right choice for a new voice). **At one spot**: a fixed point, given by **Spot on the map** (x, y, z). **Chosen for a rescue**: kept for the Whitaker rescue. |
-| **Spontaneous calls** | One chance in N, each listening hour, that she calls on her own. 5: about one call every five hours. 0 or empty: never. Each call counts as one request to the AI. |
-| **What the voice says when calling** | Shows once calls are set. The sentence every player tuned in hears, in the language of your choice; `%1` becomes her frequency. 200 bytes at most, no `<`, `>` or `^`. When the bridge's AI runs, it writes the call; your sentence is used when the bridge writes nothing. |
+| **Which radio does the player need to hear it?** | Five big cards, from the simplest to the rarest: **📻 Any walkie-talkie** (everybody hears it, even with a toy or homemade walkie: the choice already ticked), **📶 A good walkie-talkie**, **🎧 A pro walkie-talkie**, **📡 A tactical walkie or a ham radio**, **🎖️ Military gear**. At each new game, the game gives the voice a free frequency that this radio tunes and simpler radios do not: the player needs the right radio, then looks for the voice by turning the dial. Never two voices on the same frequency. |
+| **Choose the frequency myself** | A switch. On, the cards give way to one **Frequency** box (in MHz, in steps of 0.2, from 0.2 to 1000.0): the same in every game, so players can write it down. A **Radio needed** badge tells at once which radio tunes it, and an orange line warns when a voice of the mod already uses it. Off, the card of the radio that tunes this frequency is ticked. |
 
-The voices of the mod show **Text key of the call** instead of the sentence: it is the name of a translated text of
-the mod. A new voice writes its sentence.
+### The hours
 
-**Which radios hear which band** (reach of the game's radios):
-
-| Radio | Band |
+| Setting | What it changes |
 |---|---|
-| Toys-R-Mine walkie-talkie, makeshift walkie-talkie | 75 to 150 MHz |
-| ValuTech walkie-talkie | 50 to 200 MHz |
-| Premium Tech. walkie-talkie | 25 to 300 MHz |
-| Tactical walkie-talkie, Premium Technologies ham radio, makeshift ham radio | 10 to 500 MHz |
-| US Army walkie-talkie and ham radio | 0.2 to 1,000 MHz |
+| **When does she listen?** | Four cards: **All the time** (day and night), **At night** (from 8 pm to 6 am), **By day** (from 8 am to 8 pm), **Custom** (you pick the ranges). |
+| **Start** / **End** | For **Custom**: a range of game time, "from … to …". **+ Add hours** adds a range. A range can go past midnight (22:00 to 06:00). Outside her hours she is silent and never calls. |
 
-A band between 75 and 150 MHz is heard by every walkie-talkie; a band above 300 MHz needs a military or ham radio.
-Most bands between 75 and 150 are already taken by the mod's voices.
+### The place
+
+| Setting | What it changes |
+|---|---|
+| **Where is she?** | Three cards. **Nobody knows where she is**: she hides (the right choice for a new voice). **At a precise spot**: a fixed point of the map; the x, y and floor fields appear, with the **See on the map ↗** link. **The game places her for a rescue**: kept for the Whitaker rescue. |
+
+### The calls
+
+| Setting | What it changes |
+|---|---|
+| **Does she call by herself?** | Four named steps: **Never**, **Rarely** (about one call every 12 game hours), **Sometimes** (about one call every 6 hours), **Often** (about one call every 3 hours). Each step is explained in its tooltip. The folded **Exact value** panel holds the number (one chance in N each game hour, during her listening hours). A value typed by hand lights the nearest step and shows **Custom setting**. Each call counts as one request to the AI. |
+| **What she says when she calls** | Shows once calls are set. The sentence every player tuned to her frequency hears, in the language of your choice. The **+ Add my frequency** button writes the word **[frequency]** where you want it: the game replaces it with her frequency, which you never see. 200 bytes at most, no `<`, `>` or `^`. When the bridge's AI runs, it writes the call; your sentence is used when the bridge writes nothing. |
+
+The voices of the mod keep their call sentence in the folded **Advanced settings** panel: it is the name of a translated
+text of the mod. A new voice writes its sentence.
+
+![Wendell keeps his frequency: 284.6 MHz needs a pro walkie-talkie](../../images/screenshots/atelier/exemples/atelier-en-26-wendell-where.png)
+
+**The five radios** (reach of the game's radios, read from its files):
+
+| Card | Radios | They tune | The voice gets a frequency in |
+|---|---|---|---|
+| 📻 Any walkie-talkie | Toys-R-Mine walkie-talkie, makeshift walkie-talkie | 75 to 150 MHz | 75.0 to 150.0 |
+| 📶 A good walkie-talkie | ValuTech walkie-talkie | 50 to 200 MHz | 50.0 to 74.8, 150.2 to 200.0 |
+| 🎧 A pro walkie-talkie | Premium Technologies walkie-talkie | 25 to 300 MHz | 25.0 to 49.8, 200.2 to 300.0 |
+| 📡 A tactical walkie or a ham radio | Tactical walkie-talkie, Premium Technologies ham radio, makeshift ham radio | 10 to 500 MHz | 10.0 to 24.8, 300.2 to 500.0 |
+| 🎖️ Military gear | US Army walkie-talkie, manpack radio and ham radio | 0.2 to 1,000 MHz | 0.2 to 9.8, 500.2 to 1000.0 |
+
+A stronger radio tunes everything the simpler ones tune: a **📻 Any walkie-talkie** voice is heard with every radio, a
+**🎖️ Military gear** voice only with the army's.
 
 **Common mistakes.** An hour written `8:00` instead of `08:00` in a hand-written sheet (the workshop always writes two
-digits); a shift whose start equals its end; a band that crosses another voice's band (allowed, but both voices share
-the frequencies that can be drawn).
+digits); a range whose start equals its end; a frequency chosen by hand that is already another voice's (the voice
+loaded first keeps it, the other one stays silent).
 
 ## Step 3 — Personality
 
@@ -197,109 +220,112 @@ the frequencies that can be drawn).
 
 "Who is this voice, and what can it do on the radio?"
 
-### What the voice can do
+### What can she do?
 
-During the conversation, the AI alone decides to use an action when the situation calls for it. The game then checks
-each action; if it refuses it, the voice still talks.
+She always talks. Tick what else she does, each action with its icon. During the conversation, the AI alone decides to
+use an action when the situation calls for it. The game then checks each action; if it refuses it, the voice still talks.
 
-| Box | What the player lives | Good to know |
+| Card | What the player lives | Good to know |
 |---|---|---|
-| **Talk** | She answers on the radio. | Always ticked. |
-| **Mark a place on the map** | "I'll mark it on your map": a symbol appears at one of her places. | Needs a **Map mark** place. Only the player talking sees it. |
-| **Show a neighbourhood** | The neighbourhood around one of her places is revealed on the player's map. | Needs a **Map mark** place. |
+| **Talk** | She answers on the radio. | Always ticked, and it cannot be unticked. |
+| **Mark the map** | "I'll mark it on your map": a symbol appears at one of her places. | Needs a **Landmark** place. Only the player talking sees it. |
+| **Show a neighbourhood** | The neighbourhood around one of her places is revealed on the player's map. | Needs a **Landmark** place. |
 | **Give missions** | She gives the jobs of step 4. | The player needs the notebook. One mission in progress at a time per player and per voice. |
-| **Mood and supplies** | Her mood and supplies change from call to call; she talks about it herself. | Story only: nothing changes in the game. |
+| **Have a mood** | Her mood and supplies change from call to call; she talks about it herself. | Story only: nothing changes in the game. |
 | **Trade** | She sells goods and sets up a meeting. | Also fill in [trade](#trade) at step 5: one without the other is refused. Ticked by itself when you tick **This voice trades**. |
-| **Hear mission reports** | Players report on a job over the radio. | |
-| **Pass on a frequency** | She gives another voice's frequency to someone she trusts; it is written in their notebook. | Shows **Voices it can pass on**. |
-| **Send a signal**, **Set up a scene** | | Planned for later: the game always refuses them. Do not tick them. |
-| **Leave a supply bag** | | Kept for the notebook's recovery missions: do not tick it. |
+| **Give a contact** | She gives another voice's frequency to someone she trusts; it is written in their notebook. | Shows **She can give the contact of…**. |
 
-**Voices it can pass on**: tick the voices whose frequency she can give. The game itself picks, among them, a voice
-that is on the air. Also used by the **A frequency** reward. Rosie knows Darlene, the nurse.
+**She can give the contact of…**: tick the voices whose frequency she can give. The game itself picks, among them, a
+voice that is on the air. Also used by the **A radio contact** reward. Rosie knows Darlene, the nurse.
 
-### Personality (English)
+### Who is she really?
 
 The only text that describes the voice. The AI reads it to play her: who she is, her past, what she knows how to do,
 what she keeps to herself, her tone, her rules on the radio. A new voice starts from a starting text to rewrite.
 
+**In which language do you write her personality?** Two cards: **In English** (the default) and **In French**. The AI
+that plays the voice understands both: nothing is translated, the text stays as it is written, and the sheet notes the
+language (`language=`). A starting text you have not touched switches to the other language when you change the card.
+
+**Write it with the AI** sits above the text: the AI writes it in English from a few sentences. If the AI is not
+plugged in, the button is greyed out and says: "The AI is not plugged in: ask the adult who runs the workshop."
+
 Tips:
 
-- Write in English, in the second person ("You are Rosie…"). The voice still answers in the player's language if you
-  say so in her rules: "Answer in the same language the caller uses."
+- Write in the second person ("You are Rosie…" in English, "Tu es Rosie…" in French). The voice still answers in the
+  player's language if you say so in her rules: "Answer in the same language the caller uses."
 - **The past and the secrets go here.** A secret is written with the rule never to tell it: "You never tell anyone
   that…, even if asked; deny it."
 - **Never write the current state of a place** ("the clinic is surrounded"): it would become wrong during the game.
   What the voice learns about the world comes from the game (deaths, places, missions, news).
 - Ask for short sentences, staying in character, no coordinates. Put no server secret in it: the AI can repeat
   anything.
-- If a mission sets a **story state** (step 4), say here what that state changes for her.
+- If a mission sets a **story state** (step 4, "What changes in her story"), say here what that state changes for her.
 
-**Write it with the AI** can write this text for you ([The bridge's AI helps you](#the-bridges-ai-helps-you)).
-
-## Step 4 — Missions
+## Step 4 — Places and missions
 
 ![Step 4: Rosie's missions](../../images/screenshots/atelier/atelier-en-04-missions.png)
 
-"What jobs does this voice give?" The step has two parts: her places, then her missions.
+"Where is she, and what jobs does she give?" The step has two parts: **Her places**, then **Her missions**.
 
-### Places
+### Her places
 
-The places the voice knows (12 at most). The **Places (n)** panel opens and closes with a click. **+ Add a place**
-first asks for the place's name: the place's id is made from it once and for all (missions refer to it). **Delete this
-place** (the cross on the card) removes it.
+The places the voice knows (12 at most). The **Her places (n)** panel opens and closes with a click. Without a place, a
+sentence says so: "She has no place yet. Start with a spot you know." **+ New place** asks first for the place's name
+("Name of the place (seen on the map):"). No id is asked: each place card only carries its name. **Delete this place**
+(the cross on the card) removes it.
 
 | Setting | What it changes |
 |---|---|
-| **Name on the map** | What players see on their map: no secret here. 48 bytes at most. |
-| **Square** | x, y and floor z (0 = ground). The AI never sees these numbers. Record them in game (below). |
-| **Used for** | One or more uses: **Map mark** (she can mark it on a player's map; with no reward set, she also offers this marker after a job), **Job place** (a square inside the targeted building; it is circled on the map during the job), **Dead drop** (the player leaves goods there, and reward bags are put there), **Trade meeting point** (where the trader comes). |
+| **Name on the map** | What players see on their map: no secret here. A "12 / 48" counter shows the room left. |
+| **Where on the map?** | x, y and floor (0 = ground floor). The AI never sees these numbers. Record them in game (below), or read them on the map. The **See on the map ↗** link opens the square. |
+| **It is used as** | Four chips with their icon, to tick: **🗺️ Landmark** (she can mark it on a player's map; with no reward set, she also offers this marker after a job), **🎯 Job place** (a square inside the targeted building; it is circled on the map during the job), **📦 Dead drop** (the player leaves goods there, and reward bags are put there), **🤝 Trade meeting place** (where the trader comes). |
 
-Rosie has two places: the water tower south of Muldraugh (map mark and job place) and the shed next to it, whose
-locker is the dead drop.
+Rosie has two places: the water tower south of Muldraugh (landmark and job place) and the shed next to it, whose locker
+is the dead drop.
 
 **Finding x and y.** The most reliable way is to record the place in game (below): the B42 map can differ from the
 sites made from an older map. To look before playing, the [Project Zomboid B42 map](https://zomboidmap.com/) shows the
 whole Knox Country: move the mouse over a square to read its X and Y, then check the spot in game. Put a dead drop or the
-meeting point of a hidden drop on the square of a container (dumpster, mailbox) or right next to it, and a job place on
+meeting point of a hiding spot on the square of a container (dumpster, mailbox) or right next to it, and a job place on
 a square inside the building.
 
-Next to the x, y and z fields of a place (and of the position of a voice set at a precise place), the "View on the map
+Next to the x, y and z fields of a place (and of the position of a voice set at a precise place), the "See on the map
 ↗" link opens the community Build 42 map (zomboidmap.com) in a new tab, zoomed on the square. While x and y are empty,
 the "Open the map ↗" link shows the whole map: the square under the mouse shows its coordinates there. That map is made
 from Build 42.20 and may differ slightly from your version; for a sure square, record it in the game with a right
 click, "Voice workshop: record this place" (in solo with debug mode on, or by an admin in multiplayer).
 
-![One of Rosie's places and its "View on the map" link](../../images/screenshots/atelier/atelier-en-04c-place-map.png)
+![One of Rosie's places and its "See on the map" link](../../images/screenshots/atelier/atelier-en-04c-place-map.png)
 
 ### Recording a place in game
 
 Rather than looking for coordinates, walk to the spot in the game, right-click the square and choose **"Voice
-workshop: record this place"**. The menu only shows in singleplayer with the game's debug mode on, and on a server only for an admin or a moderator. The place
-then shows in the workshop under **Recorded in game** (newest first), with the date, who recorded it, the room and the
-container found (a dumpster, a mailbox).
+workshop: record this place"**. The menu only shows in singleplayer with the game's debug mode on, and on a server only
+for an admin or a moderator. The place then shows in the workshop under **From my records** (newest first), with the
+date, who recorded it, the room and the container found (a dumpster, a mailbox), in plain names.
 
-!["Recorded in game": the shed's locker already among the places, a kitchen to add](../../images/screenshots/atelier/atelier-en-04b-places.png)
+!["From my records": the shed's locker already among the places, a kitchen to add](../../images/screenshots/atelier/atelier-en-04b-places.png)
 
 **Add to this voice** asks for a name and creates the place with suggested uses: a container becomes a dead drop, a
-building a job place and a map mark. Everything can then be changed on the place's card. A record already present is
+building a job place and a landmark. Everything can then be changed on the place's card. A record already present is
 marked **Already one of the voice's places**. Records are kept in `Zomboid/Lua/batman_RadioSurvivor/workshop-places.txt` on
 the machine running the game or the server (the last 200).
 
-### The missions
+### Her missions
 
-To add a mission, click a kind card under **Add a mission**. Each mission becomes a numbered card, with these common
-settings:
+Without any mission, the kind cards come first: click one under **Add a mission**. Each mission becomes a numbered card,
+with the icon of its kind, with no id. Common settings:
 
 | Setting | What it changes |
 |---|---|
-| **Kind of job** | Changes the kind; the settings of the old kind are removed. The game itself checks success: the voice decides nothing. |
-| **What the voice says** | The reason she gives, in English, 200 characters at most. The AI tells it to the player. **Suggest** asks the AI for a sentence. |
-| **Only after** | **Right away**, or another of her missions: this one is only offered once the other is done. The player discovers the missions one after the other. |
-| **More options** › **Place** | For the kinds that do not require one: **Picked around the player** (empty, the game picks a building near the player to scout or clear) or one of her places. |
-| **More options** › **Offered** | **Rarely**, **Normally** or **Often** when she has several missions to give. Often comes back twice as much as Normally. |
-| **More options** › **Who unlocks the next one** | For "Only after": **The player** (the player must have done the first mission; the default) or **The whole team** (their faction, or the player alone without one). |
-| **More options** › **Story state when done** | A word (`a-z`, `0-9`, `_`) the voice remembers: the AI recalls it at every call, and other mods can read it. Example: `returned`. |
+| **What the voice says** | The reason she gives, in the language of her personality (English by default), 200 characters at most, with a "N / 200" counter. The AI tells it to the player. **Suggest**, at the top, asks the AI for a sentence. |
+| **Where does it happen?** | One of her places marked **Job place**. A red **to fill in** pill appears when one is needed. |
+| **Type settings** | In one box. Quantities: "between [− n +] and [− m +]". Counts: a − / + stepper. **She picks it up after**: **Soon** (2 h), **A few hours** (6 h, the usual setting), **Half a day**, **One day**. **How long to keep watch?**: **One hour**, **Two hours** (the usual setting), **A morning** (6), **A whole night** (12). Each step has its **Exact value**. |
+| **Dead drops** | For the kinds that need one: nothing ticked means all her dead drops. |
+| **Only after the mission** | **Right away**, or one of her other missions, for example **1 · Keep watch**: the number and the kind, never an id. This one is only offered once the other has succeeded. |
+| **What changes in her story** | A short sentence, for example "She went back to her clinic". You write it, the workshop makes a name for the game from it and writes the sentence at the end of her personality (`Story state: when your story state is <name>, <sentence>`): the AI knows what that name means. Two missions with the same sentence share the same state. |
+| **More settings** (folded) | Change the kind of mission; the place, for the kinds that do not require one (**Picked around the player**: the game picks a building near the player, to scout or clear); **Offered** (Rarely, Normally, Often); **Who unlocks the next one** (The player, or The whole team). |
 
 At the end of a successful mission, the player gains reputation and a reward of step 5.
 
@@ -309,18 +335,18 @@ At the end of a successful mission, the player gains reputation and a reward of 
 |---|---|---|---|
 | **Scout a building** | Visits a building, then tells her what they saw. | — | Nothing (place optional) |
 | **Clear the dead** | Kills the zombies around a place. | — | Nothing (place optional) |
-| **Barricade** | Boards up outside windows and doors with planks or sheet metal. Only barricades put up during the job count. | **Windows and doors** (4 by default, 1 at least) | A **Place** |
-| **Deliver goods** | Leaves the requested items at a dead drop; drops at several dead drops add up. | **Pick-up delay** (game hours with nobody around before the goods are picked up, 6 by default), **What to bring** (a category; without one, 6 bandages or ripped sheets), **How many** ("from … to …", drawn at the start of the job) | A **Dead drop** |
-| **Bring back papers** | Finds a missing person's ID card and leaves it at a dead drop. | **Pick-up delay** | A **Dead drop** |
-| **Find a personal item** | The game puts a precious item at the chosen place; the player finds it and leaves it at a dead drop. | **Pick-up delay**, **Which object** (**Pick an item** opens the list of items, one click picks), **Its name** (what she calls it, optional) | A **Place** and a **Dead drop** |
-| **Set up a radio relay** | Puts up high (upper floor or roof) a transmitting radio, turned on and powered. Turned off, unpowered or taken away, it no longer counts. | — | A **Place** |
+| **Barricade** | Boards up outside windows and doors with planks or sheet metal. Only barricades put up during the job count. | **Windows and doors** (4 by default, 1 at least) | A **Job place** |
+| **Deliver goods** | Leaves the requested items at a dead drop; drops at several dead drops add up. | **She picks it up after** (game hours with nobody around before the goods are picked up, 6 by default), **What to bring?** (a category; without one, 6 bandages or ripped sheets), **How many?** ("from … to …", drawn at the start of the job) | A **Dead drop** |
+| **Bring back papers** | Finds a missing person's ID card and leaves it at a dead drop. | **She picks it up after** | A **Dead drop** |
+| **Find a personal item** | The game puts a precious item at the chosen place; the player finds it and leaves it at a dead drop. | **She picks it up after**, **Which item?** (**Pick an item** opens the list of items, one click picks), **What she calls it** (optional) | A **Job place** and a **Dead drop** |
+| **Set up a radio relay** | Puts up high (upper floor or roof) a transmitting radio, turned on and powered. Turned off, unpowered or taken away, it no longer counts. | — | A **Job place** |
 | **Follow a route** | Goes through several places in order, on foot or by vehicle (within 8 squares of the centre), then reports. Only the next stop is circled on the map. | **Stops, in order**: 2 to 8 **Job place** places, never the same twice in a row (**+ Add a stop**, **Move up**, **Remove**) | Two job places |
 | **Light a smoke signal** | Lights a Signal Smoke signal at the requested place. | — | The Signal Smoke mod |
-| **Keep watch** | Stays within 6 squares of a place for a few game hours (time stops when the game is paused), then tells what they saw. | **Watch hours** (1 to 24, 2 by default) | A **Place** |
+| **Keep watch** | Stays within 6 squares of a place for a few game hours (time stops when the game is paused), then tells what they saw. | **How long to keep watch?** (one hour to a whole night, two hours by default) | A **Job place** |
 
-The kinds that need a place show it with "(needed)"; those that need a dead drop show the **Dead drops** box (nothing
-ticked: all her dead drops). Rosie first asks for food (**Deliver goods** at the shed), and only after that for the
-dead around the tower to be cleared.
+The fields to fill in carry a star, and a red **to fill in** pill appears when something is missing. The kinds that need
+a dead drop show the **Dead drops** box (nothing ticked: all her dead drops). Rosie first asks for food (**Deliver
+goods** at the shed), and only after that for the dead around the tower to be cleared.
 
 **Common mistakes.** A **Deliver goods** or **Bring back papers** mission with no **Dead drop** place; a **Place**
 that is not ticked **Job place**; a mission "Only after" a mission deleted since.
@@ -329,20 +355,20 @@ that is not ticked **Job place**; a mission "Only after" a mission deleted since
 
 ![Step 5: Rosie's rewards, with their chances](../../images/screenshots/atelier/atelier-en-05-rewards.png)
 
-"What does a player win after a job?" At each successful mission, the game draws **one** reward from this list. Click
-a **+ …** card to add one.
+"What does a player win after a job?" **Only one reward is drawn at random.** At each successful mission, the game draws
+one reward from this list. Click a **+ …** card, with its icon, to add one.
 
 | Reward | What the player gets | Setting |
 |---|---|---|
-| **Supply bag** | A bag of real items, in quantities drawn at random, put at her first dead drop; the player gets the dead drop's marker, which only they see. Needs at least one place. | **Category**: Ammo (9 mm rounds and shotgun shells), Food (canned beans, soup and corn), Medical (bandages, disinfectant, pills), Radio gear (a walkie-talkie and batteries), Tools (hammer, screwdriver, nails), or [one of her own](#own-categories). |
-| **A frequency** | The frequency of a voice she can pass on (step 3), written in their notebook. | — |
-| **Stash map** | A map that leads to a hidden stash of the game, not looted yet. One per player and per voice. | — |
-| **A lesson** | Experience in a skill: 25 base points, capped at 100 per day; a character with no bonus in that skill only gets a quarter. | **Skill**: First aid, Aiming, Reloading, Carpentry, Mechanics, Electrical, Metalworking, Cooking, Agriculture, Fishing, Trapping, Foraging. |
+| **🎒 Supply bag** | A bag of real items, in quantities drawn at random, put at her first dead drop; the player gets the dead drop's marker, which only they see. Needs at least one place. | **Category**: Ammo (9 mm rounds and shotgun shells), **Food** (canned beans, soup and corn, by default), Medical (bandages, disinfectant, pills), Radio gear (a walkie-talkie and batteries), Tools (hammer, screwdriver, nails), or [one of her own](#her-own-item-lists). |
+| **📇 A radio contact** | The frequency of a voice she can pass on (step 3), written in their notebook. | — |
+| **🗺️ Stash map** | A map that leads to a hidden stash of the game, not looted yet. One per player and per voice. | — |
+| **📘 A lesson** | Experience in a skill: 25 base points, capped at 100 per day; a character with no bonus in that skill only gets a quarter. | **Skill**: First aid, Aiming, Reloading, Carpentry, Mechanics, Electrical, Metalworking, Cooking, Agriculture, Fishing, Trapping, Foraging. |
 
 For each one, **Comes out**: **Rarely**, **Normally** or **Often** (Often comes out twice as much as Normally, which
 comes out twice as much as Rarely). Next to the name, the workshop shows the resulting chance ("about 1 time in 3",
 "every time"). A reward impossible at the moment (no voice to pass on, map already given) is not drawn. **With no
-reward**, she marks one of her **Map mark** places on the player's map.
+reward**, she marks one of her **Landmark** places on the player's map.
 
 **Dropping off and picking up.** For a mission with dead drops, the player leaves the goods within 3 squares of a dead
 drop: when the game designates a container there (one mission in two, if there is one), the goods go in it; otherwise
@@ -350,7 +376,8 @@ in a bag **on the ground** holding only the requested goods; the notebook says w
 different: the game itself puts the bag **on the ground** at the dead drop (the nearest free square, inside the
 building when the place is in one) and marks it on the player's map; you place nothing, the player just picks it up.
 
-Under **To go further**, three optional panels, closed by default: trade, the frequency note and her own categories.
+Under **To go further**, two optional panels, closed by default: **trade** and the **frequency note**. The **Advanced
+settings**, at the bottom of the step, keep **Her own item lists**.
 
 ### Trade
 
@@ -364,7 +391,7 @@ only and **the deal is written in the notebook** (Radio tab). The meeting is at 
 once the trader has arrived, the deal no longer changes.
 
 1. **Boat** or **Road**: during the meeting window, the player shows the signal on the spot, **a lit lamp in hand** or
-   **a red flare** (Signal Smoke). They hear the boat land, or the van's door. **Hidden drop**: no signal, no sound;
+   **a red flare** (Signal Smoke). They hear the boat land, or the van's door. **A hiding spot**: no signal, no sound;
    the payment waits in the place's container (trash can, mailbox) before the hour.
 2. The player leaves **exactly what was agreed within 3 squares of the place**, then **goes out of sight**: nobody
    within 100 squares during the delay (1 game hour by default). Coming back too early resets the wait.
@@ -374,29 +401,42 @@ once the trader has arrived, the deal no longer changes.
    (higher prices, lower reputation). Nothing was left: the reputation drops half as much.
 
 **Where the payment goes.** With **Boat** or **Road**, in one or more bags put **on the ground** within 3 squares of
-the place (they add up); the goods go in the bag that held most of the payment. With **Hidden drop**, no bag on the
+the place (they add up); the goods go in the bag that held most of the payment. With **A hiding spot**, no bag on the
 ground: the payment goes **in one or more containers** of the place (dumpster, mailbox, crate) within 3 squares, and
-the goods in the one that held most of it. **Never in a vehicle**: the trader does not search cars. So put a hidden
-drop's meeting point on a container or right next to it.
+the goods in the one that held most of it. **Never in a vehicle**: the trader does not search cars. So put a hiding
+spot's meeting point on a container or right next to it.
 
 **Caps**: the trader leaves **10 kg at most** per exchange (8 kinds of items at most) and the player brings **20 kg at
 most**. A run is rarely called off (patrol 1 time in 75, helicopter 1 time in 100, a real storm of the game by mode):
 the voice announces it on its frequency and repeats it every hour until the meeting time, and nothing is lost. The
 trader leaves without touching anything if he had no quiet moment within 12 hours of his arrival.
 
-**In the workshop**, open **Trade** and tick **This voice trades** (**Trade** is also ticked at step 3):
+**In the workshop**, open **Trade** and tick **This voice trades** (**Trade** is also ticked at step 3). The panel has
+three groups. Each setting to fill in carries a star, and "* to fill in" is said once, at the top.
+
+**What does she sell?**
 
 | Setting | What it changes |
 |---|---|
-| **Meeting point(s)** (needed) | Tick her **Trade meeting point** places; with several, one is drawn per run. With no such place, **Go to the voice's places** takes you to step 4. |
-| **Arrives by** (needed) | **Boat** (a boat lands), **Road** (a van parks by the road) or **Hidden drop** (nobody comes, like the traders of Rosewood, Ekron or Fallas Lake). |
-| **Meeting hours** (needed) | The window, in game time, when the player shows the signal; the end can go past midnight (23:00 to 01:00). |
-| **Visits** (needed) | "every N days" of game, from 1 to 28. A single run per period for the whole server. |
-| **Goods** (needed) | What the trader leaves: one line per item, added with **Add items** (the list below), and how many the trader brings, "from … to …" (drawn at each run). Each line shows the item's name in your language and its weight, for information: **you never write a weight or an item name**. Click the name to change the item, the cross to remove the line. |
-| **Lots** | A lot groups goods that share a total: its name, "from … to … in all" and, if you want, "at most N kinds". On each goods line, choose **In the "…" lot** instead of **A number**. A lot with no item is refused by the game. |
-| **What the voice accepts** (needed) | What the player may bring as payment, and nothing else: tick whole categories (**Cash and valuables**, **Jewelry**, **Cameras and films**, **Papers of the dead**, **Military gear**, or one of her own; each says how many of its items have a trade price, hover it to see them), then add single items if you want with **Add items**. A category with no priced item is not offered. |
-| **Margin** | The share the trader keeps, "from … % to … %"; empty: 10 % to 50 %. The game counts it in secret to judge a deal; it goes down for a loyal customer. |
-| **Quiet place for** | The game hours with nobody around before the exchange; empty: about 1 hour. |
+| **What she sells** | One line per item, with "between [− +] and [− +]": how many she brings, drawn at each run. Only the item's name shows, never a weight. **Add what she sells** opens the list of items. |
+| **Bundles** | A bundle groups items that share one total. Type its name ("E.g. Booze") and click **+ Add a bundle**. On the bundle's card: its name (editable), "between … and … items in all", "No more than [− N +] different items" (empty = no limit), the list of its items and **Add items to the bundle**. Renaming a bundle keeps its items. |
+
+**When and where?**
+
+| Setting | What it changes |
+|---|---|
+| **Where is the meeting?** | Tick her **Trade meeting place** places; with several, one is drawn at each run. With none, **Make the meeting place** creates a place marked as such, ticks it and opens the places step to give it its square. |
+| **She comes by** | **Boat** (a boat lands), **A hiding spot** (nobody comes, like the traders of Rosewood, Ekron or Fallas Lake) or **Road** (a van parks by the road). |
+| **At what time?** | Start and end of the meeting, in game time: the end can go past midnight (23:00 to 01:00). |
+| **She comes back** | **Every day**, **Every 3 days**, **Every week**, **Every 2 weeks**, **Once a month**. **Exact value** sets a number of days from 1 to 28. One run per period for the whole server. |
+| **The place stays quiet** | **Right away**, **One hour** (the usual setting), **A few hours** (4 game hours), **One day** (24). The game hours with nobody around before the exchange. |
+
+**What does she take as payment?**
+
+| Setting | What it changes |
+|---|---|
+| **What she takes** | **Whole lists** (Cash and valuables, Jewelry, Cameras and films, Papers of the dead, Military gear, or one of her own), each with "N items"; **And precise items**; the **Add what she takes as payment** button adds items. The panel says **Only what traders buy.** A list with no priced item is not offered. |
+| **Her prices** | Three cards: **Generous** (from 5 % to 25 %), **Fair** (the game's usual setting, 10 % to 50 %, nothing to fill in), **Greedy** (from 30 % to 80 %). The exact percentages are set in **Exact value**. The game counts it in secret to judge a deal. |
 
 > **Only items with a price can be traded.** A trader can only sell, or accept, the items that have a price in the
 > trade: batteries, cigarettes, spirits, beer, coffee, radio parts, electric wire, seed packets; canned food, rice,
@@ -404,16 +444,16 @@ trader leaves without touching anything if he had no quiet moment within 12 hour
 > boxes; money, jewelry, cameras, papers of the dead, military gear. So the lists of the step only offer those. A line
 > naming another item (an imported sheet) is flagged in the checks.
 
-**Add items** opens the list of items (for the goods and what the voice accepts: only those with a trade price).
-Search by name in the workshop's language, filter by **Category** (the one of the game's inventory); each line gives
-the name, the category and the weight. Tick one or more items (the ticks stay when you search again), then **Add
-selected**. An item already in the list is marked "Already in the list". To replace the item of a line, click its
-name: the same list opens, one click picks. **Escape** closes without changing anything. Nothing is ever typed: the
-technical id of the item (`Base.Battery`) only shows when hovering its name.
+**Add what she sells** and **Add what she takes as payment** open the list of items (only those with a trade price).
+Search by name in the workshop's language, filter by **Category** (the one of the game's inventory). The list has two
+columns, **Item** and **Category**. Tick one or more items (**Click, or Enter, to tick.**), then add the selection. An
+item already in the list is marked "Already in the list". To replace the item of a line, click its name. **Escape**
+closes without changing anything. Nothing is ever typed: the technical id of the item (`Base.Battery`) only shows when
+hovering its name.
 
 ![Add items: searching "whisky"](../../images/screenshots/atelier/atelier-en-15-browser.png)
 
-Two complete traders, one on the road and one through a hidden drop: [Voice examples](14-voice-examples.md#3-sol-the-night-truck).
+Two complete traders, one on the road and one through a hiding spot: [Voice examples](14-voice-examples.md#3-sol-the-night-truck).
 
 ### The frequency note
 
@@ -424,21 +464,22 @@ with your text.
 
 | Setting | What it changes |
 |---|---|
-| **Text of the note** | What the player reads when inspecting the note. 8 lines at most (**+ Add a line**), 40 bytes per line (an accented letter counts as two, the counter shows it). One line must hold `%1`, where her frequency is written. No `<`, `>` or `^`. The note stays in the language you wrote it in. |
-| **Found in** | The game's furniture or containers where it can appear (a bedroom dresser `BedroomDresser`, a school locker `SchoolLockers`…), each with **Rarely**, **Normally** or **Often**. One line per list (16 at most). |
-| **Glove boxes** | The same, in vehicle glove boxes (`GloveBox`, `PostalGloveBox`…). Optional. |
-| **On dead bodies** | **A dead body carrying a walkie-talkie may have it**. Off by default. |
+| **What is written** | What the player reads when inspecting the note. 8 lines at most (**+ Add a line**), 40 bytes per line: an accented letter counts as two, and the "N / 40" counter shows it. **+ Add my frequency** writes the word **[frequency]** where her frequency will appear. No `< > ^ %` signs. The note stays in the language you wrote it in. |
+| **It is found in** | The game's furniture or containers where the note can appear, with their plain names (the technical name is in the tooltip), each with **Rarely**, **Normally** or **Often**. One line per piece of furniture (16 at most). |
+| **Glove boxes** | The same, in vehicle glove boxes. Optional. |
+| **A zombie can carry it** | A dead body carrying a walkie-talkie may have the note on it. Off by default. |
 
-The voices of the mod use their own note item: their panel says "This note uses its own item of the mod" and keeps
-those settings in **Advanced settings**. A new voice does not need them: the note and the call sentence are written in
-the sheet itself, with no other file.
+The voices of the mod use their own note item: their panel says "This note is set by the mod." and keeps those settings
+in **Advanced settings**. A new voice does not need them: the note and the call sentence are written in the sheet
+itself, with no other file.
 
-### Own categories
+### Her own item lists
 
-Lists of items of her own, for her deliveries (**What to bring**) and her **Supply bags**, on top of the mod's five
-categories. Type a name (for example `team kit`), click **+ Add a category**, then add the items as for a stock
-(**Add items**, quantity "from … to …"). The category then shows in the category lists of the missions and
-rewards. A complete example: [Coach Tibbs](14-voice-examples.md#2-coach-tibbs-the-mission-giver).
+Item lists of her own, for her deliveries (**What to bring?**) and her **Supply bags**, on top of the mod's five lists.
+Open **Advanced settings**, then **Her own item lists**: type a name in **Name of the list** (for example `team kit`),
+click **+ Add a list**, then add the items as for a stock. The list's technical name is made by itself from the name you
+typed and is never shown. The list then shows in the category choices of the missions and rewards. A complete example:
+[Coach Tibbs](14-voice-examples.md#2-coach-tibbs-the-mission-giver).
 
 ## The bridge's AI helps you
 
@@ -449,13 +490,13 @@ help you:
   (who she is, what happened to her, what she wants, how she talks), then **Write it**. The AI writes her personality
   in English. **Use it** puts it in the sheet (the workshop asks first if a text is already there).
 - **Suggest** (next to "What the voice says", step 4): the AI suggests the sentence that gives the job, in English.
-- **Try the voice** (at the top): talk to her like a player (**Send**). She answers with the sheet as it is, even
+- **Chat with the voice** (at the top): talk to her like a player (**Send**). She answers with the sheet as it is, even
   unsaved. **Start over** clears the conversation, **Close** closes it. Nothing changes in the game. If the sheet is
   not complete, the workshop asks you to fix the points shown first.
 
 ![Write it with the AI: a few sentences in your language, a personality in English](../../images/screenshots/atelier/atelier-en-16-ai-personality.png)
 
-![Try the voice: Rosie answers from the sheet](../../images/screenshots/atelier/atelier-en-08-try.png)
+![Chat with the voice: Rosie answers from the sheet](../../images/screenshots/atelier/atelier-en-08-try.png)
 
 Each click is a call to your AI provider, like a radio exchange in game: it costs a little and follows the same caps
 as the bridge. **Without an AI configured**, these buttons are greyed out; their bubble explains how to turn it on:
@@ -464,41 +505,44 @@ the bridge without `--offline`.
 
 ## Saving and the game's verdict
 
-**Save** writes the sheet; a message confirms "Saved. The game reads it again within 30 seconds.". The game reads it
-without a restart: tune a radio to her band during her listening hours and talk to her.
+**Save** writes the voice; a message confirms "Saved. The game reads it again within 30 seconds.". The game reads it
+without a restart: take the radio she needs, look for her frequency during her listening hours and talk to her.
 
 ![Saved: the game reads the sheet again within 30 seconds](../../images/screenshots/atelier/atelier-en-17-saved.png)
 
-**Things to look at.** While you fill in, the workshop flags what looks wrong to it, step by step ("2 thing(s) to look
-at"), for example: a band that crosses another voice's band, listening hours whose start equals their end, a place
-without its three numbers, a mission without a place or a dead drop, "Only after" naming a mission that is gone, an
-empty personality. **These are hints only**: you can save anyway. **The game decides.**
+**Things to check.** While you fill in, the workshop flags what looks wrong to it, step by step ("To check: 2"), for
+example: a frequency chosen by hand that another voice already uses, listening hours whose start equals their end, a
+place without its three numbers, a mission without a place or a dead drop, "Only after" naming a mission that is gone,
+an empty personality. **These are tips only**: you can save anyway. **The game decides.**
 
 ### When the game refuses a voice
 
-If the game does not accept a sheet, the voice gets a **red dot** in the list, and a banner says which line is wrong,
-in plain words, with the game's exact message. The **Go to the "…" step** button takes you to the right place.
+If the game does not accept a voice, it gets a **red dot** in the list, and a banner says, in plain words, what does not
+work: "The voice does not work yet: fix it in the step "…"". The **Fix it** button takes you to the right place. The
+game's raw message is folded under **Details for an adult**, without any line number. Until it is fixed, the game keeps
+the last version that worked: the banner adds "The game keeps the older version meanwhile.".
 
 ![The game refuses Tommy: listening hours badly written](../../images/screenshots/atelier/atelier-en-10-refused.png)
 
-Here, Tommy has listening hours written `8:00` instead of `08:00`. Until it is fixed, the game keeps the last version
-that worked, or the voice stays silent. Fix it, save: a banner says the sheet changed and the game has not read it
-again yet (within 30 seconds if a game is running, otherwise at the next start), then it goes away once the game
-accepts it.
+Here, Tommy has listening hours written `8:00` instead of `08:00`. Fix it, save: a banner says the voice changed and the
+game has not read it again yet (within 30 seconds if a game is running, otherwise at the next start), then it goes away
+once the game accepts it.
 
 | What the banner says | What to do |
 |---|---|
 | The setting "…" does not exist here | Check its name, or remove the line (hand-written sheet). |
 | The setting "…" is written twice | Keep a single line. |
 | The setting "…" is missing / empty | Fill it in. |
-| A frequency is wrong | A number with one decimal (145.0), on the 0.2 step, no duplicates and no ranges touching each other. |
+| A frequency is wrong | A number with one decimal (145.0), from 0.2 to 1000.0 MHz, on the 0.2 step. |
+| Give either the radio needed or one fixed frequency | Only one of them: a radio card, or **Choose the frequency myself**. |
+| The listening hours are wrong | Choose them with the cards of "When does she listen?". |
 | The block "[…]" does not exist | A badly named part of the sheet: remove it or fix its name. |
-| "…" is not defined anywhere | A place, mission or category named but missing: add it or change the choice. |
+| "…" is not defined anywhere | A place, mission or list named but missing: add it or change the choice. |
 | The mission type "…" does not exist | Pick a kind in the list. |
-| The personality is missing or empty | Write it at step 3. |
+| The personality is missing or empty | Write it at the Personality step. |
 | The file is not saved as plain UTF-8 | Save it from the workshop. |
 
-The verdict is read in the game's console (`console.txt`): it only shows on the machine running the game or the
+The verdict is also read in the game's console (`console.txt`): it only shows on the machine running the game or the
 server.
 
 ## The live journal
@@ -525,30 +569,31 @@ game's lines. If the game's console cannot be found, it says so too (see `--game
 
 ## Sharing a voice
 
-- **Export** downloads the voice's sheet (`<id>.txt`). Send it to a friend or to your server's admin.
-- **Import** (top right) adds a sheet you received: pick the file, or drop it on the page ("Drop a voice sheet (.txt)
-  to import it"). The voice opens at once, marked **Yours**.
-- If a voice already has that id, the workshop overwrites nothing: it suggests a new id (for example `rosie_2`), which
-  you can change before **Import**.
+- **Save a copy** (menu **…**) downloads the voice (`<name>.txt`). Send it to a friend or to your server's admin.
+- **Open a voice (file)** (top right) adds a voice you received: pick the file, or drop it on the page ("Drop the file of
+  a voice here"). The voice opens at once, marked **Yours**.
+- If a voice already has that name, the workshop overwrites nothing: it asks one question, with the button
+  **Import as a new voice**. The file name is made again by itself; there is no id box.
 
-![Import: this id already exists, the workshop suggests another one](../../images/screenshots/atelier/atelier-en-14-import.png)
+![Open a voice: this name already exists, the workshop offers to import it as a new voice](../../images/screenshots/atelier/atelier-en-14-import.png)
 
-Import is refused for a file that is not UTF-8 text, too large, or whose id is badly written. The workshop does not
-examine the rest of the imported sheet: the game will tell whether it is right. The
+Import is refused for a file that is not UTF-8 text, too large, or whose contents are badly written. The workshop does
+not examine the rest of the imported sheet: the game will tell whether it is right. The
 [voice examples](14-voice-examples.md) can be copied into a `.txt` file and imported this way.
 
-## Delete, remove, go back
+## Delete, take off, go back
 
-Each gesture asks for confirmation in a bar (**Cancel** or the red button).
+Each gesture asks for confirmation in a bar (**Cancel**, or the red button: **Yes, delete it**, **Yes, take it off**,
+**Back to the original**).
 
-- **Delete**: erases for good a voice you made. Export it first if you want to keep it. A voice of the mod cannot be
+- **Delete**: erases for good a voice you made. Save a copy first if you want to keep it. A voice of the mod cannot be
   deleted.
 - **Take off the air**: for a voice of the mod. Its sheet is emptied and the game drops it within 30 seconds. It stays
-  in the list, marked **Removed**; when opened, it only offers **Back to the mod's version**.
-- **Back to the mod's version**: copies the mod's version back at once, for a changed, removed or older-version voice.
+  in the list, marked **Off the air**; when opened, it only offers **Back to the original**.
+- **Back to the original**: copies the mod's version back at once, for a changed, removed or older-version voice.
   Your changes are lost. The bridge uses it right away, the game within 30 seconds.
 
-![Back to the mod's version: the workshop asks for confirmation](../../images/screenshots/atelier/atelier-en-13-restore.png)
+![Back to the original: the workshop asks for confirmation](../../images/screenshots/atelier/atelier-en-13-restore.png)
 
 ## Voices remember
 
@@ -570,20 +615,21 @@ Details: [Remember you](10-creating-radio-voices.md#remember-you--always).
 - **Game verdict and journal on a dedicated server**: the workshop reads `console.txt` in the Zomboid folder. If your
   server writes its console elsewhere, give the file: `python radio_bridge.py --atelier --game-log <file>`.
 - **Port already taken**: the workshop tries 8765 then the next ports; `--atelier-port <port>` picks another one.
-- A player can make their voice in their own workshop, in singleplayer, then send it to you with **Export**; you add
-  it with **Import**.
+- A player can make their voice in their own workshop, in singleplayer, then send it to you with **Save a copy**; you
+  add it with **Open a voice (file)**.
 
 ## Limits
 
 - The workshop only knows the current sheet format. It keeps the lines it does not understand, unchanged.
-- The personality and the mission sentences are written in English (the AI plays the voice from that text and answers
-  in the player's language). The note, the call sentence and the place names are written in the language of your
-  choice.
+- The personality is written in English or in French, as the author chooses, and nothing is translated. The mission
+  sentences follow the language of the personality. The note, the call sentence and the place names are written in the
+  language of your choice.
 - 12 places at most per voice, 48 bytes per place name; 8 lines of 40 bytes for the note; 200 bytes for the call
   sentence and for a mission's sentence; 40 goods at most per trader.
-- **Find a free band** only takes into account the bands of the mod's voices, not those of your own voices.
+- The "Already used by" warning of a frequency chosen by hand only knows the voices of the mod, not your own voices;
+  the game itself never puts two voices on the same drawn frequency.
 - Two settings of a hand-written sheet have no box in the workshop: the language (`language`) and the number of
   requests per hour (`budget`). The workshop keeps them as they are.
-- The id of a saved voice does not change: to rename it, make a copy of it.
+- The file name of a saved voice does not change: to rename it, make a copy of it.
 - The places recorded in game and the game's verdict are only visible in a workshop started on the machine running
   the game.

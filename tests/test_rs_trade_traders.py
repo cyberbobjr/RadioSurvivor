@@ -27,7 +27,7 @@ TESS_DOCK = (7000, 5300)
 TESS = '''format=1
 id=tess
 name=Tess Bench
-frequencies=161.0
+frequency=161.0
 actions=say,propose_trade
 [place dock]
 at=7000,5300,0
@@ -63,7 +63,7 @@ require("RadioSurvivor/RS_TradeArrivals").register("cart", {
 CARL = '''format=1
 id=carl
 name=Carl Bench
-frequencies=162.0
+frequency=162.0
 actions=say,propose_trade
 [place gate]
 at=8000,8000,0

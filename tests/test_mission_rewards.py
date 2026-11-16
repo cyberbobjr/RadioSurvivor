@@ -33,6 +33,7 @@ def runtime():
     g=lua.globals()
     g.PARAMS_LUA=str(SERVER/'RS_PersonaParams.lua')
     g.PERSONA_LUA=str(SERVER/'RS_Persona.lua')
+    g.LEVELS_LUA=str(SERVER.parents[1]/'shared'/'RadioSurvivor'/'RS_RadioLevels.lua')  # E24-T01, read by RS_Persona
     g.CACHES_LUA=str(CORE_SERVER/'CA_Caches.lua')
     g.CATEGORIES_LUA=str(SERVER/'RS_Categories.lua')
     g.next=None  # absent from Kahlua
@@ -76,6 +77,7 @@ def runtime():
       ['RadioSurvivor/RS_MapMarks']={give=function() end}}
     function require(n) assert(modules[n],n);return modules[n] end
     modules['RadioSurvivor/RS_PersonaParams']=dofile(PARAMS_LUA)
+    modules['RadioSurvivor/RS_RadioLevels']=dofile(LEVELS_LUA)
     modules['RadioSurvivor/RS_Persona']=dofile(PERSONA_LUA)
     modules['RadioSurvivor/RS_Categories']=dofile(CATEGORIES_LUA)  -- E20-T16: real resolver of the categories
     -- Real caches of the core mod; placement in the world is the double (counted).

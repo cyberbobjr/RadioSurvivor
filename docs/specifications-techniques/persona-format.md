@@ -19,7 +19,7 @@ couvre ce que seul le serveur valide ; `tests/test_kahlua.py` refait une partie 
 
 État : format et lecteurs (E05-T01) ; chargement et relecture à chaud côté serveur (E05-T02) ; routage par voix,
 radio exigée, budget et prompt construit par le pont (E05-T03, « Routage par voix » ci-dessous) ; fréquences tirées
-au hasard dans des plages, à chaque nouvelle partie (E05-T07, « Tirage des fréquences » ci-dessous) ; appels spontanés
+au hasard dans la zone de leur niveau de radio, à chaque nouvelle partie (E05-T07, « Tirage des fréquences » ci-dessous) ; appels spontanés
 de chaque voix (E05-T05, « Appels spontanés » ci-dessous). Les actions autres que `say` sont E07 : depuis E07-T01, la
 voix peut les proposer et le serveur les juge (catalogue, fiche, `budget.<action>` par jour de jeu, distance, délai),
 mais seules celles dotées d'un exécuteur ont un effet ; les autres sont refusées `not_available`. Depuis E22-T13,
@@ -55,7 +55,7 @@ serveur le marque sur la carte du seul appelant (`docs/specifications-techniques
 format=1
 id=walt
 name=Walt Hensley
-frequency_range=130.0-149.8
+radio=any_talkie
 call_one_in=3
 call_text=IGUI_RadioSurvivor_Call
 
@@ -71,8 +71,9 @@ You are Walt Hensley, 54, ...
 - Clés en minuscules (`a` à `z`, `_`, et un seul `.` pour `budget.<action>`). Une clé inconnue est refusée.
 - Une clé de l'en-tête ne peut apparaître qu'une fois.
 - Une valeur vide est refusée : pour garder la valeur par défaut, retirer la ligne.
-- Les listes (`frequencies`, `frequency_range`, `listen`, `actions`) sont séparées par des virgules, espaces
+- Les listes (`listen`, `actions`) sont séparées par des virgules, espaces
   tolérés autour.
+- `radio` et `frequency` ne sont pas des listes : `radio` prend un seul niveau, `frequency` une seule fréquence.
 
 ### Sections
 
@@ -103,9 +104,8 @@ You are Walt Hensley, 54, ...
 | `id` | `a`-`z`, `0`-`9`, `_`, commence par une lettre, 32 caractères au plus | obligatoire | Identifiant stable de la voix (historiques, journaux) ; égal au nom du fichier. |
 | `name` | texte non vide | obligatoire | Nom du personnage (pour l'admin et le prompt). |
 | `language` | deux lettres minuscules (`en`, `fr`…) | `en` | Langue par défaut de la voix. Répondre dans la langue de l'appelant reste une consigne du prompt. |
-| `frequencies` | liste de MHz à une décimale, de `1.0` à `999.8`, au pas de 0,2 MHz des radios, sans doublon | `frequencies` **ou** `frequency_range` obligatoire, pas les deux | Fréquences fixes où la voix écoute et répond, les mêmes dans toutes les parties. Lues en kHz (`145.0` → 145000). |
-| `frequency_range` | liste de plages `bas-haut` (deux fréquences au format de `frequencies`, la plus basse d'abord, espaces tolérés autour du `-`), sans chevauchement entre elles | voir `frequencies` | Plages de tirage (E05-T07) : à chaque nouvelle partie, le serveur tire **une fréquence par plage** et la garde pour toute la partie. Voir « Tirage des fréquences ». |
-| `radio` | `any`, `high_tier` | `any` | Radio exigée de l'appelant : toute radio émettrice, ou poste haut de gamme (`getIsHighTier`, par exemple pour les ondes courtes). |
+| `radio` | `any_talkie`, `good_talkie`, `pro_talkie`, `tactical`, `military` : un niveau, du plus faible au plus fort (« Tirage des fréquences ») | `radio` **ou** `frequency` obligatoire, pas les deux | Radio exigée : le serveur tire à chaque partie une fréquence libre dans la zone de ce niveau. Une seule valeur, pas une liste. |
+| `frequency` | un MHz à une décimale, de `0.2` à `1000.0`, au pas de 0,2 MHz des radios | voir `radio` | Une fréquence fixe, la même dans toutes les parties. Lue en kHz (`145.0` → 145000). Son niveau se déduit (« Tirage des fréquences »). Une seule valeur ; prime sur un tirage. |
 | `listen` | `always`, ou liste de plages `HH:MM-HH:MM` (heure du jeu, deux chiffres, 00:00 à 23:59) | `always` | Horaires d'écoute. Une plage dont la fin précède le début passe minuit (`22:00-06:00`). Début et fin égaux : refusé. Minute de début incluse, minute de fin exclue. |
 | `location` | `none`, `fixed`, `rescue` | `none` | `none` : hors carte ; `fixed` : point fixe de la carte (`coords` obligatoire) ; `rescue` : point choisi par le serveur pour un secours (E12), pas de `coords`. |
 | `coords` | `x,y,z` entiers, `x` et `y` de 0 à 999999, `z` de -32 à 31 | aucun | Seulement avec `location=fixed`. |
@@ -122,8 +122,7 @@ Les deux lecteurs rendent la fiche avec ces noms (les sections `[place]` la list
 `places` de lieux `{ id, x, y, z, label, uses }` dans l'ordre du fichier (Python : `Place`, `places_for(use)` ; Lua :
 plus `use`, ensemble des usages, et `RS_Persona.placesFor(sheet, use)`), les `budget.<action>` la
 table `budgets`, `listen` une liste de plages `(début, fin)` en minutes du jour de jeu, vide pour `always`,
-`frequency_range` la liste `frequency_ranges` de plages `(bas, haut)` en kHz ; `frequencies` est alors vide, et
-`frequency_ranges` est vide pour une fiche à fréquences fixes).
+`radio` le niveau écrit (côté Lua, celui déduit de `frequency=` ; côté Python, `None` avec `frequency=`) et `frequency` la fréquence fixe en kHz, `nil` ou `None` si absente). Lua : `Personas.frequencies(id)` rend la liste des fréquences de la voix pour cette partie, au plus un élément.
 
 ## Chargement par le serveur (E05-T02)
 
@@ -149,19 +148,10 @@ Module `media/lua/server/RadioSurvivor/RS_Personas.lua`, côté autorité (serve
   `nom.txt empreinte`). Sans empreinte mémorisée (installation antérieure à E05-T11, fichier absent ou vidé), elle
   est non modifiée si son empreinte est celle d'une version livrée connue (`RS_Personas.KNOWN_DELIVERED` : versions
   des commits `09d7474`, `24832ea`, `486b21e` et actuelle ; toute nouvelle version livrée y ajoute la sienne,
-  contrôlé par `tests/test_personas_server.py`) ; sinon elle est traitée comme modifiée. Une installation à
-  fréquences fixes (avant E05-T07) reçoit ainsi les fiches à plages. Un fichier d'empreintes **abîmé** (en-tête ou
+  contrôlé par `tests/test_personas_server.py`) ; sinon elle est traitée comme modifiée. Un fichier d'empreintes **abîmé** (en-tête ou
   ligne illisible) est ignoré prudemment : aucune fiche n'est remplacée, il n'est pas réécrit, un avertissement
   indique de le vider ; les fiches absentes sont copiées quand même. Une fiche de l'admin sans équivalent livré n'est
   jamais touchée.
-- **Migration unique de l'ancienne option sandbox** `RadioSurvivor.Frequency` (retirée en E05-T02) : à la première
-  copie de `walt.txt`, une valeur lisible différente de 145,0 remplace la ligne `frequencies`. En 42.21, cette
-  valeur n'est **plus lisible** une fois l'option retirée du mod : `SandboxOptions.load` saute les noms inconnus de
-  `map_sand.bin` (`SandboxOptions.java:470-488`), `toLua` n'écrit que les options déclarées, et un serveur dédié
-  réécrit `<serveur>_SandboxVars.lua` sans elle avant tout événement Lua du monde (`GameServer.java:1413-1424`).
-  En pratique, la fiche livrée (145,0) est copiée et le journal porte une note : un admin qui avait changé la
-  fréquence doit la reporter dans `walt.txt`. Ensuite, seule la fiche compte. Une copie migrée est un choix de
-  l'admin : aucune empreinte n'est mémorisée et elle n'est jamais remplacée.
 - **Relecture** : toutes les 30 s réelles (`RS_Personas.RELOAD_MS`, `OnTickEvenPaused` : aussi sur un serveur dédié
   vide en pause) et à chaque chargement du monde. Seuls les fichiers dont le texte a changé sont analysés. Les fichiers
   pris en compte sont les `*.txt` du dossier ; un autre nom (`walt.txt.bak`) est ignoré.
@@ -190,83 +180,95 @@ Module `media/lua/server/RadioSurvivor/RS_Personas.lua`, côté autorité (serve
   sa radio avec chaque phrase dite dans une radio émettrice allumée ; le serveur trie (« Routage par voix »).
   `RS_Personas.heldFrequencies()` donne la liste côté autorité seulement (tests, diagnostic).
 
-## Tirage des fréquences (E05-T07)
+## Tirage des fréquences (E05-T07, E24-T01)
 
-Décision du 2026-10-09 : **toutes les voix, Walt compris**, tirent leur fréquence au hasard à chaque nouvelle partie,
-dans une plage propre à chaque voix qui garde les radios capables de la joindre. Code : `RS_Personas.lua`, section
-« Tirage » ; les fréquences fixes d'E05-T04 ne sont plus que des exemples (commentaires des fiches).
+Décision du 2026-10-09 : **toutes les voix tirent leur fréquence au hasard à chaque nouvelle partie**, dans la zone du
+niveau de radio de la fiche (`radio=<niveau>`, E24-T01). Une fiche à `frequency=` ne tire rien : sa fréquence est fixe,
+et son niveau se déduit de cette fréquence. Code : `RS_Personas.lua`, section « Tirage ».
 
-### Plages des voix livrées
+La table des niveaux est **la seule** à donner les réglages des radios et les zones :
+`Contents/mods/batman_RadioSurvivor/42.21/media/lua/shared/RadioSurvivor/RS_RadioLevels.lua`. Le lecteur des fiches
+(`RS_Persona.lua`, `bridge/persona_store.py`), le tirage (`RS_Personas.lua`) et le catalogue de l'atelier
+(`tools/gen_atelier_catalog.py`, `radioLevels`) la lisent ; `tests/test_radio_levels.py` la contrôle contre les scripts
+des objets radio.
 
-Radios : bornes `MinChannel`/`MaxChannel` de `media/scripts/generated/items/radio.txt` (42.21), bornes incluses
-comme le contrôle du serveur ; talkie 1 = `WalkieTalkie1` et talkie bricolé (75-150 MHz), talkie 2 (50-200),
-talkie 3 (25-300), talkie 4 et radios HAM ordinaires (10-500), talkie 5, poste militaire et HAM haut de gamme
-(0,2-1 000) ; radios FM, lecteur CD et autoradio standard (88-108, réception seule) ; téléviseurs (tout, réception
-seule). Chaque fréquence de chaque plage est jointe par exactement les mêmes radios que la fréquence d'exemple
-(`tests/test_personas.py`, `test_ranges_keep_the_radios_that_reach_the_voice`).
+### Niveaux de radio
 
-| Voix | Plage(s) (MHz) | Fréquences possibles | Exemple (E05-T04) | Peuvent parler à la voix | L'entendent seulement |
-|---|---|---|---|---|---|
-| Walt (`walt`) | 130.0-149.8 | 100 | 145.0 | tous les talkies (1 à 5, bricolé) et toutes les radios HAM | téléviseurs |
-| Darlene (`darlene`) | 115.0-129.8 | 75 | 115.6 | idem | téléviseurs |
-| Jolene Whitaker (`whitaker`) | 75.0-87.8 | 65 | 81.4 | idem | téléviseurs |
-| Cody (`cody`) | 10.0-24.8 (ondes courtes) | 75 | 17.4 | talkies 4 et 5, radios HAM, poste militaire (pas le talkie 3) | téléviseurs |
-| Night Owl (`nightowl`), FM | 88.0-107.8 | 100 | 106.2 | tous les talkies et toutes les radios HAM | radios FM, autoradios, téléviseurs |
-| Night Owl (`nightowl`), VHF | 109.0-114.8 | 30 | 112.4 | tous les talkies et toutes les radios HAM | téléviseurs |
-| Gus (`gus`) | 150.2-199.8 | 249 | 156.6 | talkies 2 à 5, radios HAM (ni le talkie 1 ni le bricolé) | téléviseurs |
-| Wanda (`wanda`, West Point) | 25.0-31.8 | 35 | 25.0 | talkies 3 à 5, radios HAM | téléviseurs |
-| Lamar (`lamar`, Brandenburg) | 32.0-39.8 | 40 | 32.0 | talkies 3 à 5, radios HAM | téléviseurs |
-| Delphine (`delphine`, Louisville) | 65.0-74.8 | 50 | 65.0 | talkies 2 à 5, radios HAM | téléviseurs |
-| Hollis (`hollis`, Muldraugh) | 201.0-209.8 | 45 | 201.0 | talkies 3 à 5, radios HAM | téléviseurs |
-| Loretta, Virgil, Boone, Odessa, Ezra, Maxine (March Ridge, Irvington, Echo Creek, Rosewood, Ekron, Fallas Lake) | 210.0-219.8, 220.0-229.8, 230.0-239.8, 240.0-249.8, 250.0-259.8, 260.0-269.8 | 50 chacune | borne basse | talkies 3 à 5, radios HAM | téléviseurs |
+Chaque niveau est réglé par le poste **le plus faible** du niveau (bornes `MinChannel` / `MaxChannel` de
+`media/scripts/generated/items/radio.txt`, 42.22, bornes incluses comme le contrôle du serveur). Chaque plage de réglage
+contient celle du niveau précédent. La **zone** d'un niveau est formée des fréquences que son poste le plus faible règle
+et que le niveau précédent ne règle pas (`Levels.zones`). Pas des radios : 0,2 MHz (`Levels.STEP_KHZ` = 200 kHz).
 
-Les plages sont disjointes. Seule la plage FM du Night Owl recoupe des chaînes vanilla (huit stations FM et l'alerte
-d'urgence AEBS, tirée par le jeu dans 88-108) : elles ne sont jamais tirées. 108.0 (Opération Artemis par défaut)
-n'est dans aucune plage. Les plages de Darlene, Walt et Gus recoupent la bande de diffusion de Military Drop
-(120-170) et celle de Cody sa station de chiffres (10-25) : la voix ou le mod inscrit en second évite la fréquence
-de l'autre (règles ci-dessous ; Military Drop prend la suivante si la sienne est occupée).
+| Niveau (`radio=`) | Postes du niveau | Réglage du poste le plus faible (MHz) | Zone de tirage (MHz) |
+|---|---|---|---|
+| `any_talkie` | `WalkieTalkie1` (Toys-R-Mine), `WalkieTalkieMakeShift` | 75-150 | 75.0-150.0 |
+| `good_talkie` | `WalkieTalkie2` (ValuTech) | 50-200 | 50.0-74.8 et 150.2-200.0 |
+| `pro_talkie` | `WalkieTalkie3` (Premium Technologies) | 25-300 | 25.0-49.8 et 200.2-300.0 |
+| `tactical` | `WalkieTalkie4` (tactique), `HamRadio1` (HAM Premium), `HamRadioMakeShift` | 10-500 | 10.0-24.8 et 300.2-500.0 |
+| `military` | `WalkieTalkie5`, `ManPackRadio`, `HamRadio2` (US Army) | 0,2-1000 | 0.2-9.8 et 500.2-1000.0 |
+
+Fréquence fixe (`frequency=`) : son niveau est le plus faible qui la règle (`Levels.levelOf`). Exemples : `145.0` donne
+`any_talkie`, `152.0` donne `good_talkie`, `284.6` donne `pro_talkie`, `320.0` donne `tactical`, `7.2` donne `military`.
+
+### Voix livrées
+
+| Niveau | Voix (`id`) |
+|---|---|
+| `any_talkie` | Walt (`walt`), Darlene (`darlene`), Jolene Whitaker (`whitaker`), Night Owl (`nightowl`) |
+| `tactical` | Cody (`cody`) |
+| `good_talkie` | Gus (`gus`), Delphine (`delphine`) |
+| `pro_talkie` | Wanda (`wanda`, West Point), Lamar (`lamar`, Brandenburg), Hollis (`hollis`, Muldraugh), Loretta (`loretta`, March Ridge), Virgil (`virgil`, Irvington), Boone (`boone`, Echo Creek), Odessa (`odessa`, Rosewood), Ezra (`ezra`, Ekron), Maxine (`maxine`, Fallas Lake) |
+
+Les zones recoupent des chaînes du jeu et d'autres mods (stations FM, alerte d'urgence, Military Drop) : le tirage les
+évite, comme il évite les fréquences déjà prises par une autre voix.
 
 ### Règles
 
-- **Tirage** : une fréquence par plage, uniforme (`ZombRand`) parmi les fréquences **libres** de la plage, au pas
-  de 0,2 MHz. Non libre : fréquence d'une chaîne qui n'est pas une voix de ce module (chaînes vanilla de
-  `RadioData.xml`, AEBS, chaînes des mods déjà inscrites : `RadioScriptManager.getChannelsList`), fréquence de
-  l'AEBS notée dans la ModData de `GameTime` (`dynamicRadio`), ou fréquence à moins de **1,0 MHz**
-  (`RS_Personas.MIN_GAP_KHZ`) d'une fréquence d'une autre voix chargée (fixe, tirée ou mémorisée, quel que soit son
-  état : une voix `gone` peut revenir). Voix traitées dans leur ordre de chargement. Aucune fréquence libre : erreur
-  journalisée, la plage n'est pas servie (élargir la plage).
-- **Ordre de création de l'AEBS** : elle existe déjà au moment du tirage. Les fichiers Lua vanilla sont chargés
-  avant ceux des mods (`LuaManager.LoadDirBase`, `LuaManager.java:1197-1198`, 42.21.0), donc l'abonné
-  `OnLoadRadioScripts` de `ISDynamicRadio.lua` (qui tire et crée l'AEBS) passe avant celui du mod. La lecture de
-  `dynamicRadio` couvre aussi l'ordre inverse. Une chaîne inscrite après nous et tirée par
-  `ZomboidRadio.getRandomFrequency` évite nos fréquences (`knownFrequencies`, `ZomboidRadio.java:139-147, 179-183`).
+- **Tirage** : une fréquence **uniforme** (`ZombRand`) parmi les fréquences **libres** de la zone du niveau, au pas de
+  0,2 MHz. Non libre : fréquence d'une chaîne qui n'est pas une voix de ce module (chaînes vanilla de `RadioData.xml`,
+  AEBS, chaînes des mods déjà inscrites : `RadioScriptManager.getChannelsList`), fréquence de l'AEBS notée dans la
+  ModData de `GameTime` (`dynamicRadio`), ou fréquence à moins de **1,0 MHz** (`RS_Personas.MIN_GAP_KHZ`) d'une fréquence
+  d'une autre voix chargée (fixe, tirée ou mémorisée, quel que soit son état). Voix traitées dans leur ordre de
+  chargement. Aucune fréquence libre : erreur journalisée (`ERROR: voice '…': no free frequency left for the radio <niveau>`,
+  avec `choose a stronger radio in its sheet`) ; la voix n'est pas servie.
+- **Ordre de création de l'AEBS** : elle existe déjà au moment du tirage. Les fichiers Lua vanilla sont chargés avant ceux
+  des mods (`LuaManager.LoadDirBase`, `LuaManager.java:1197-1198`, 42.21.0), donc l'abonné `OnLoadRadioScripts` de
+  `ISDynamicRadio.lua` (qui tire et crée l'AEBS) passe avant celui du mod. La lecture de `dynamicRadio` couvre aussi
+  l'ordre inverse. Une chaîne inscrite après nous et tirée par `ZomboidRadio.getRandomFrequency` évite nos fréquences
+  (`knownFrequencies`, `ZomboidRadio.java:139-147, 179-183`).
 - **Monde neuf** : second argument d'`OnLoadRadioScripts`, vrai quand `savedWorldVersion == -1`
   (`ZomboidRadio.java:246` : `map_t.bin` absent sur un serveur, `map_ver.bin` en solo ; base `multiplayer.md`). Toutes
-  les plages sont tirées ; un ancien fichier de tirage du même nom (monde effacé puis recréé sous le même nom) est
-  ignoré puis réécrit.
+  les voix sont tirées ; un ancien fichier de tirage du même nom (monde effacé puis recréé sous le même nom) est ignoré
+  puis réécrit.
 - **Mémoire** : fichier `Zomboid/Lua/batman_RadioSurvivor/frequencies-<hex>.txt` sur la machine qui fait autorité,
   `<hex>` = octets hexadécimaux de `« mode/nom de la partie »` (`getWorld():getGameMode()`, `getWorld():getWorld()`,
-  comme l'état du carnet). Jamais de ModData globale (lisible par tout client). Contenu : `RSFREQ1`, puis une ligne
-  `<id> <bas>-<haut> <kHz>` par plage. Écrit à chaque changement.
-- **Redémarrage** (monde existant) : les fréquences mémorisées sont reprises, sans tirage. Partie antérieure à
-  E05-T07 (pas de fichier) : tirage, une seule fois. Une ligne abîmée est ignorée (avertissement) et sa plage tirée
-  de nouveau.
-- **Collision au chargement** (improbable) : une fréquence mémorisée prise par une chaîne étrangère, ou à moins de
-  1,0 MHz d'une fréquence fixe ou déjà attribuée d'une autre voix, est tirée de nouveau dans sa plage, avec une
-  ligne de journal (`voice 'walt' drew 137.4 MHz in 130.0-149.8 (145.0 taken by the radio channel '…')`). Une
-  fréquence fixe d'une autre voix l'emporte toujours sur une fréquence tirée. Une chaîne étrangère qui arrive en
-  cours de partie et remplace une chaîne de voix est vue à la relecture suivante (30 s) : nouveau tirage.
-- **Fiche modifiée à chaud** : seule une plage changée (ou ajoutée) est tirée de nouveau, pour cette voix seulement ;
-  les autres plages et les autres voix gardent leurs fréquences. Une fiche passée à `frequencies` fixe perd son
-  tirage mémorisé. Fichier retiré : le tirage reste en mémoire et revient avec la fiche (s'il est encore libre).
-- **Journal** : chaque tirage est écrit dans le journal du serveur (`[RadioSurvivor] personas: voice '…' drew …`).
-  Les fréquences tirées sont un secret de partie : jamais dans une fiche, un prompt, une commande au pont ni une
-  commande aux clients (E05-T08). Limites : voir « Ce qui pourrait révéler une fréquence ».
-- **Installation existante** : un serveur qui a installé les fiches avant E05-T07 reçoit les fiches à plages au
-  chargement suivant pour chaque fiche qu'il n'a pas modifiée (reconnue par les versions livrées connues, E05-T11 :
-  « Installation et mise à jour ») ; une fiche modifiée garde ses fréquences fixes, avec un avertissement.
-- **Pont** : il n'a pas besoin de la fréquence. Le serveur choisit la voix d'après la fréquence de la radio et
-  envoie `voice=<id>` (E05-T03) ; le pont lit la fiche (ses plages comprises, `persona_store.py`) pour le prompt.
+  comme l'état du carnet). Jamais de ModData globale (lisible par tout client). Contenu : en-tête `RSFREQ2`, puis une
+  ligne `id niveau kHz` par voix tirée (`niveau` : le niveau de la fiche au moment du tirage, `kHz` : la fréquence
+  tirée). Écrit à chaque changement.
+- **Redémarrage** (monde existant) : les fréquences mémorisées sont reprises, sans tirage. Une ligne abîmée est ignorée
+  (avertissement) et sa voix est tirée de nouveau.
+- **Raisons d'un nouveau tirage** : seule la voix concernée est tirée de nouveau ; les autres gardent leur fréquence.
+  La raison est écrite dans le journal, par exemple `voice 'walt' drew 137.4 MHz for the radio any_talkie (new game)` :
+  - `new game` : monde neuf, aucune fréquence mémorisée ;
+  - `no frequency remembered for this voice` : aucune fréquence mémorisée pour cette voix ;
+  - `radio changed from <niveau>` : `radio=` a été changé dans la fiche ;
+  - `<fréquence> taken by the radio channel '<nom>'` : la fréquence mémorisée est prise par une chaîne étrangère ;
+  - `<fréquence> too close to <fréquence> of voice '<id>'` : la fréquence mémorisée est à moins de 1,0 MHz d'une autre voix.
+- **Fréquence fixe** : `frequency=` ne tire rien. Une fréquence fixe l'emporte toujours sur une fréquence tirée : la voix
+  tirée en prend une autre. Deux fiches fixes sur la même fréquence : la voix chargée la première (ordre alphabétique au
+  premier chargement) la garde, l'autre ne la sert pas (avertissement journalisé). Une fréquence fixe déjà prise par une
+  chaîne étrangère n'est pas servie et est réessayée à chaque relecture (avertissement).
+- **Fiche modifiée à chaud** : seule la voix changée est tirée de nouveau (raisons ci-dessus) ; les autres voix gardent
+  leurs fréquences. Une fiche passée à `frequency=` perd son tirage mémorisé. Fichier retiré : le tirage reste en mémoire
+  et revient avec la fiche (s'il est encore libre).
+- **Journal** : chaque tirage est écrit dans le journal du serveur (`[RadioSurvivor] personas: voice '…' drew …`). Les
+  fréquences tirées sont un secret de partie : jamais dans une fiche, un prompt, une commande au pont ni une commande aux
+  clients (E05-T08). Limites : voir « Ce qui pourrait révéler une fréquence ».
+- **Radio exigée** : aucun contrôle de niveau à part. La radio de l'appelant doit régler la fréquence de la voix (bornes
+  du script de l'objet) : c'est le contrôle du routage (« Routage par voix »). Une radio plus faible ne peut simplement
+  pas la régler.
+- **Pont** : il n'a pas besoin de la fréquence. Le serveur choisit la voix d'après la fréquence de la radio et envoie
+  `voice=<id>` (E05-T03) ; le pont lit la fiche pour le prompt.
 
 ## Routage par voix (E05-T03)
 
@@ -289,9 +291,7 @@ Le serveur décide (`RadioSurvivor_Server.lua`, `onTalk`), le pont exécute (`br
   toutes fréquences (`Const.SPAM_MAX`, `Const.SPAM_WINDOW_MS`), compteur en mémoire. Seul un client modifié atteint
   la limite du serveur.
 - **Silence** : fréquence sans voix ou hors de portée de la radio, voix `gone`/`dead`, voix `silent`, hors de ses
-  heures d'écoute, budget de la voix épuisé, ou `radio=high_tier` avec un poste ordinaire
-  (`DeviceData.getIsHighTier()` faux ; vrai pour `WalkieTalkie5`, `ManPackRadio`, `HamRadio2` et certaines radios
-  bricolées, `DeviceData.java:249`, `Item.java:1806`, 42.21.0). La phrase part sur la radio, personne ne répond,
+  heures d'écoute, budget de la voix épuisé. La phrase part sur la radio, personne ne répond,
   rien n'est envoyé au pont : ni coût, ni délai, ni plafond, ni budget consommés. Silence plutôt que parasites :
   même règle que `silent` depuis E05-T02, et des parasites trahiraient une présence sur la fréquence. Le client
   reçoit `accepted` puis aussitôt `done` : la même suite partout, aucun message.
@@ -348,7 +348,7 @@ bouton **« Radio Survivor - Fréquences »** du panneau debug vanilla (`ISDebug
 - **Fenêtre** (`client/RadioSurvivor/RS_FreqDebugView.lua`, lecture seule, tableaux de `LK_Table.lua`) : une ligne
   par voix chargée, dans l'ordre de chargement : id, nom, état (active, silencieuse, partie, morte), fréquences de la
   partie en MHz (une fréquence qu'aucune chaîne ne sert est suivie de « (pas à l'antenne) » : conflit avec une autre
-  voix ou une chaîne étrangère, voix `gone` ou `dead`), plages de tirage (ou « fixe »), radio requise, heures
+  voix ou une chaîne étrangère, voix `gone` ou `dead`), zone de tirage (ou « fixe »), radio requise, heures
   d'écoute (ou « toujours »), rôle (chroniqueur du bulletin). Second tableau : autres fréquences du mod, aujourd'hui
   le **bulletin du soir** (E14-T02) : voix du chroniqueur, sa première fréquence servie (ou « pas à l'antenne »),
   heure (option `ChronicleHour`). Le mod n'a aucune autre chaîne que celles des voix. Bouton « Actualiser » : les
@@ -548,13 +548,9 @@ Erreurs sur une ligne (dans l'ordre du fichier) :
 | `id` | `line N: bad id 'Walt' (a to z, 0 to 9 and _, starting with a letter, 32 characters at most)` |
 | `language` | `line N: bad language 'eng' (two lowercase letters, e.g. en)` |
 | Fréquence mal écrite | `line N: bad frequency '145' (MHz with one decimal, e.g. 145.0)` |
-| Fréquence hors bornes | `line N: frequency 0.8 out of range (1.0 to 999.8 MHz)` |
+| Fréquence hors bornes | `line N: frequency 1000.2 out of range (0.2 to 1000.0 MHz)` |
 | Fréquence hors pas | `line N: frequency 145.1 is not on the 0.2 MHz step of the radios` |
-| Fréquence en double | `line N: duplicate frequency 145.0` |
-| Plage mal écrite, inversée ou réduite à une fréquence | `line N: bad frequency range '150.0-140.0' (two frequencies in MHz, lowest first, e.g. 140.0-150.0)` |
-| Borne de plage mal écrite, hors bornes ou hors pas | messages de la fréquence ci-dessus (`bad frequency '140'`, `frequency 0.8 out of range …`, `frequency 150.1 is not on …`) |
-| Plages qui se chevauchent (ou se touchent) | `line N: frequency range '109.0-120.0' overlaps another range of the sheet` |
-| `radio`, `location`, `state` | `line N: bad radio 'ham' (expected any, high_tier)` (même forme pour les autres) |
+| `radio`, `location`, `state` | `line N: bad radio 'ham' (expected any_talkie, good_talkie, pro_talkie, tactical, military)` (même forme pour les autres) |
 | Plage horaire mal écrite | `line N: bad listening hours '8:00-12:00' (always, or HH:MM-HH:MM ranges separated by commas)` |
 | Plage vide | `line N: empty listening range '06:00-06:00'` |
 | `coords` | `line N: bad coords '10600,9300' (x,y,z whole numbers, z from -32 to 31)` |
@@ -580,8 +576,8 @@ Erreurs de la fiche entière, contrôlées ensuite dans cet ordre :
 | Pas de ligne `[prompt]` | dernière ligne (1 si le fichier est vide) | `missing [prompt] line before the prompt text` |
 | Prompt vide | ligne `[prompt]` | `empty prompt text after [prompt]` |
 | Clé obligatoire absente (`format`, `id`, `name`, dans cet ordre) | ligne `[prompt]` | `missing key 'name'` |
-| Ni `frequencies` ni `frequency_range` | ligne `[prompt]` | `missing key 'frequencies' or 'frequency_range'` |
-| `frequencies` et `frequency_range` ensemble | la seconde des deux lignes | `frequencies and frequency_range cannot be used together (fixed frequencies or ranges to draw from)` |
+| Ni `radio` ni `frequency` | ligne `[prompt]` | `missing key 'radio' or 'frequency'` |
+| `radio` et `frequency` ensemble | la seconde des deux lignes | `radio and frequency cannot be used together (a radio level to draw a free frequency, or one fixed frequency)` |
 | `id` différent du nom du fichier | ligne `id` | `id 'other' does not match the file name 'case.txt'` |
 | `location=fixed` sans `coords` | ligne `location` | `location fixed needs a coords line` |
 | `coords` sans `location=fixed` | ligne `coords` | `coords is only allowed with location=fixed` |
@@ -643,16 +639,14 @@ fichier, code de sortie 1 si une fiche est refusée).
 
 Fiche fictive de démonstration (ce n'est pas une des voix livrées ; les seize fiches réelles sont dans
 `Contents/mods/batman_RadioSurvivor/42.21/personas/`, E05-T04).
-Elle a des fréquences fixes ; pour un tirage à chaque partie, remplacer la ligne `frequencies` par par exemple
-`frequency_range=5.0-9.8, 140.0-150.0` (une fréquence tirée par plage) :
+Elle a une fréquence fixe : `frequency=7.2` tombe dans le niveau `military`. Pour un tirage à chaque partie, remplacez cette ligne par `radio=military` :
 
 ```text
 format=1
 id=case
 name=Hélène Dupré
 language=fr
-frequencies=7.2, 145.0
-radio=high_tier
+frequency=7.2
 listen=22:00-06:00,12:30-13:00
 location=fixed
 coords=10600,9300,0

@@ -90,6 +90,7 @@ LUA_FILES = [
     ('CoreAI/CA_NotebookGiver', CORE_LUA / 'server' / 'CoreAI' / 'CA_NotebookGiver.lua'),  # ca.missions
     ('RadioSurvivor/RS_State', MOD_LUA / 'server' / 'RadioSurvivor' / 'RS_State.lua'),
     ('RadioSurvivor/RS_PersonaParams', MOD_LUA / 'server' / 'RadioSurvivor' / 'RS_PersonaParams.lua'),  # E20-T03
+    ('RadioSurvivor/RS_RadioLevels', MOD_LUA / 'shared' / 'RadioSurvivor' / 'RS_RadioLevels.lua'),  # E24-T01
     ('RadioSurvivor/RS_Persona', MOD_LUA / 'server' / 'RadioSurvivor' / 'RS_Persona.lua'),
     ('RadioSurvivor/RS_Rewards', MOD_LUA / 'server' / 'RadioSurvivor' / 'RS_Rewards.lua'),  # E20-T03 : RS_Personas.rules
     # E20-T04 : natures de récompense inscrites dans RS_Rewards (une par fichier, Rewards/), la cache sur CA_Caches.
@@ -466,9 +467,9 @@ PERSONA_CASES = [
     ('walt', test_personas.WALT.read_bytes(), 'walt'),
     ('full', test_personas.FULL.encode('utf-8'), 'case'),
     ('bom', ('\ufeff' + test_personas.HEAD + test_personas.PROMPT).encode('utf-8'), 'case'),
-    ('invalid', test_personas.HEAD.encode() + b'radio=caf\xe9\n' + test_personas.PROMPT.encode(), 'case'),
+    ('invalid', test_personas.HEAD.encode() + b'language=caf\xe9\n' + test_personas.PROMPT.encode(), 'case'),
     ('accented-id', (test_personas.HEAD.replace('id=case', 'id=cas\u00e9') + test_personas.PROMPT).encode(), 'case'),
-    ('frequency', (test_personas.HEAD.replace('145.0', '145.1') + test_personas.PROMPT).encode(), 'case'),
+    ('frequency', (test_personas.FIXED_HEAD.replace('145.0', '145.1') + test_personas.PROMPT).encode(), 'case'),
     ('budget', (test_personas.HEAD + 'actions=say\nbudget.signal=1\n' + test_personas.PROMPT).encode(), 'case'),
     # E07-T04 : libellé de lieu borné en octets UTF-8, comptés depuis les unités UTF-16 de Kahlua.
     ('place-48', (test_personas.HEAD + test_personas.place('a', label='é' * 24) + test_personas.PROMPT).encode(),
@@ -514,8 +515,8 @@ def persona_eval(name: str, raw: bytes, expected_id: str) -> str:
 EXCHANGE_EVALS += [persona_eval(name, raw, expected_id) for name, raw, expected_id in PERSONA_CASES]
 
 # E05-T02 : RS_Personas dans la VM réelle (doublures Lua des fichiers, du dossier du mod et du gestionnaire de
-# chaînes) : migration d'une valeur sandbox arrondie au pas, identifiants de chaîne (tostring d'un nombre Kahlua),
-# changement de fréquence et d'état, conflit, fiche invalide gardant l'ancienne version.
+# chaînes) : identifiants de chaîne (tostring d'un nombre Kahlua),
+# changement de fréquence et d'état, conflit de deux fréquences fixes, fiche invalide gardant l'ancienne version.
 PERSONAS_EVAL = (
     'eval:local P = require("RadioSurvivor/RS_Personas"); local K = require("RadioSurvivor/RadioSurvivor_Const"); '
     'local FILES = {}; local function rd(l) local i = 0; return { readLine = function() i = i + 1; return l[i] end, '
@@ -529,10 +530,9 @@ PERSONAS_EVAL = (
     'if string.sub(k, 1, string.len(d) + 1) == d .. "/" then n[#n + 1] = string.sub(k, string.len(d) + 2) end end; '
     'return jl(n) end; '
     'listFilesInModDirectory = function() return jl({ "walt.txt" }) end; '
-    'getModFileReader = function() return rd({ "format=1", "id=walt", "name=Walt", "frequencies=145.0", '
+    'getModFileReader = function() return rd({ "format=1", "id=walt", "name=Walt", "frequency=145.0", '
     '"call_one_in=3", "call_text=IGUI_X", "[prompt]", "Hi." }) end; '
     'getSandboxOptions = function() return { getOptionByName = function(_, n) '
-    'if n == "RadioSurvivor.Frequency" then return { getValue = function() return 150.1 end } end; '
     'if n == "RadioSurvivor.Enabled" then return { getValue = function() return true end } end end } end; '
     'local M = { by = {} }; function M:AddChannel(c) if not self.by[c.f] then self.by[c.f] = c end end; '
     'function M:RemoveChannel(f) self.by[f] = nil end; '
@@ -545,19 +545,20 @@ PERSONAS_EVAL = (
     'P.onLoadRadioScripts(M); local d = "batman_RadioSurvivor/personas/"; '
     'out[#out + 1] = FILES[d .. "walt.txt"][4]; out[#out + 1] = chans(); '
     'out[#out + 1] = K.frequencyLabel(P.heldFrequencies()[1]); '
-    'FILES[d .. "walt.txt"][4] = "frequencies=145.0, 146.0"; FILES[d .. "abe.txt"] = { "format=1", "id=abe", '
-    '"name=Abe", "frequencies=146.0, 147.0", "state=silent", "[prompt]", "Hi." }; P.reload(); '
+    'FILES[d .. "walt.txt"][4] = "frequency=146.0"; FILES[d .. "abe.txt"] = { "format=1", "id=abe", '
+    '"name=Abe", "frequency=146.0", "state=silent", "[prompt]", "Hi." }; P.reload(); '
     'out[#out + 1] = chans(); out[#out + 1] = tostring(P.voiceAt(146000)); '
-    'FILES[d .. "walt.txt"][4] = "frequencies=145.1"; P.reload(); '
-    'out[#out + 1] = chans() .. "|" .. P.get("walt").frequencies[2]; '
+    'FILES[d .. "walt.txt"][4] = "frequency=145.1"; P.reload(); '
+    'out[#out + 1] = chans() .. "|" .. P.get("walt").frequency; '
     'FILES[d .. "abe.txt"][5] = "state=gone"; P.reload(); out[#out + 1] = chans(); '
     'out[#out + 1] = tostring(P.isListening({ listen = { { from = 1320, to = 360 } } }, 0)); '
     'return "KR-PERSONAS " .. table.concat(out, " ")'
 )
 EXCHANGE_EVALS.append(PERSONAS_EVAL)
 
-# E05-T07 : tirage dans une plage dans la VM réelle. Plage 100.0-101.0 ; 100.0 tenue par une autre chaîne, 100.4 par
-# l'AEBS de la ModData de GameTime ; ZombRand rend 1 : deuxième fréquence libre (100.6). Fichier de la partie
+# E05-T07, E24-T01 : tirage dans la zone d'une radio dans la VM réelle. radio=any_talkie (zone 75.0-150.0) ; 75.0 tenue
+# par une autre chaîne, 75.4 par l'AEBS de la ModData de GameTime ; ZombRand rend 1 : deuxième fréquence libre (75.6).
+# Fichier de la partie
 # (nom en hex de « mode/nom »), puis rechargement du même monde (non neuf) : même fréquence, aucun tirage.
 DRAW_EVAL = (
     'eval:local P = require("RadioSurvivor/RS_Personas"); '
@@ -572,32 +573,32 @@ DRAW_EVAL = (
     'if string.sub(k, 1, string.len(d) + 1) == d .. "/" then n[#n + 1] = string.sub(k, string.len(d) + 2) end end; '
     'return jl(n) end; '
     'listFilesInModDirectory = function() return jl({ "abe.txt" }) end; '
-    'getModFileReader = function() return rd({ "format=1", "id=abe", "name=Abe", "frequency_range=100.0-101.0", '
+    'getModFileReader = function() return rd({ "format=1", "id=abe", "name=Abe", "radio=any_talkie", '
     '"[prompt]", "Hi." }) end; '
     'getSandboxOptions = function() return { getOptionByName = function(_, n) '
     'if n == "RadioSurvivor.Enabled" then return { getValue = function() return true end } end end } end; '
     'getWorld = function() return { getWorld = function() return "kr" end, '
     'getGameMode = function() return setmetatable({}, {__tostring = function() return "Multiplayer" end}) end } end; '
     'getGameTime = function() return { getModData = function() return { dynamicRadio = { { name = "AEBS", '
-    'freq = 100400 } } } end } end; '
+    'freq = 75400 } } } end } end; '
     'local draws = 0; ZombRand = function(n) draws = draws + 1; return 1 end; '
     'local function mgr() local M = { by = {} }; '
     'function M:AddChannel(c) if not self.by[c.f] then self.by[c.f] = c end end; '
     'function M:RemoveChannel(f) self.by[f] = nil end; '
     'function M:getRadioChannel(u) for _, c in pairs(self.by) do if c.u == u then return c end end end; '
     'function M:getChannelsList() local l = {}; for _, c in pairs(self.by) do l[#l + 1] = c end; return jl(l) end; '
-    'M.by[100000] = { f = 100000, u = "other", n = "Other" }; return M end; '
+    'M.by[75000] = { f = 75000, u = "other", n = "Other" }; return M end; '
     'DynamicRadioChannel = { new = function(n, f, c, u) return { f = f, u = u, n = n } end }; ChannelCategory = {}; '
     'local chanMethods = function(c) c.getGUID = function(self) return self.u end; '
     'c.GetFrequency = function(self) return self.f end; c.GetName = function(self) return self.n end; return c end; '
     'local new = DynamicRadioChannel.new; DynamicRadioChannel.new = function(...) return chanMethods(new(...)) end; '
-    'local M = mgr(); chanMethods(M.by[100000]); '
+    'local M = mgr(); chanMethods(M.by[75000]); '
     'getZomboidRadio = function() return { getScriptManager = function() return M end, '
     'removeChannelName = function() end } end; '
     'local out = {}; P.onLoadRadioScripts(M, true); out[#out + 1] = tostring(P.served("abe")[1]); '
     'local path = "batman_RadioSurvivor/frequencies-4d756c7469706c617965722f6b72.txt"; '
     'out[#out + 1] = table.concat(FILES[path] or { "none" }, "/"); out[#out + 1] = tostring(draws); '
-    'M = mgr(); chanMethods(M.by[100000]); P.onLoadRadioScripts(M, false); '
+    'M = mgr(); chanMethods(M.by[75000]); P.onLoadRadioScripts(M, false); '
     'out[#out + 1] = tostring(P.served("abe")[1]) .. "/" .. tostring(draws); '
     'return "KR-DRAW " .. table.concat(out, " ")'
 )
@@ -1095,15 +1096,15 @@ class KahluaBench(unittest.TestCase):
 
     def test_frequency_draw_in_kahlua(self):
         # E05-T07 : tirage, fichier de la partie et reprise au rechargement dans la VM Kahlua réelle.
-        self.assertEqual(self.line('KR-DRAW'), '100600 RSFREQ1/abe 100000-101000 100600 1 100600/1')
+        self.assertEqual(self.line('KR-DRAW'), '75600 RSFREQ2/abe any_talkie 75600 1 75600/1')
 
     def test_personas_server_in_kahlua(self):
         v = 'batman_RadioSurvivor-voice-'
         self.assertEqual(self.line('KR-PERSONAS'), ' '.join([
-            'frequencies=150.2', v + 'walt-150200', '150.2',
-            f'{v}abe-147000,{v}walt-145000,{v}walt-146000', 'walt',
-            f'{v}abe-147000,{v}walt-145000,{v}walt-146000|146000',
-            f'{v}walt-145000,{v}walt-146000', 'true']))
+            'frequency=145.0', v + 'walt-145000', '145.0',
+            f'{v}walt-146000', 'walt',
+            f'{v}walt-146000|146000',
+            f'{v}walt-146000', 'true']))
 
     def test_text_cut_in_kahlua_same_as_the_bridge(self):
         # E17-T12 : unités UTF-16 en Kahlua = caractères en Python (texte du plan multilingue de base, BMP).

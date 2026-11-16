@@ -63,6 +63,9 @@ autoritaire, adaptateurs d'exécution, fournisseur de PNJ. Vue détaillée :
   `if kind == "…"` ou à une liste de noms dans un moteur ; au plus tard au troisième cas du même genre, extraire un
   registre avant d'ajouter le suivant. À la clôture d'une tâche, relire le module touché (une responsabilité par
   fichier, ajout sans modification du moteur) et signaler tout écart dans le compte rendu.
+- **Atelier des voix** (`bridge/atelier/`, décision `E24-T02` du 2026-11-16) : tout nouvel écran de l'atelier suit la
+  [charte de l'atelier](annexes/conception/charte-atelier.md) (rien de technique à l'écran, nombres en crans nommés,
+  identifiants fabriqués).
 
 ## Méthode du plan
 

@@ -1,11 +1,10 @@
 // Value syntaxes of a voice sheet read and written by the workshop (frequencies, hours, lists, coordinates, ranges,
 // reward pool). Pure module: text <-> plain data, no rule of the game beyond the shape of a value (ADR D03).
 
-const MHZ_RE = /^\d{1,3}(?:\.\d)?$/;
+const MHZ_RE = /^\d{1,4}(?:\.\d)?$/;
+// Frequency of a sheet (frequency=, RS_Persona.lua): MHz with exactly one decimal.
+const SHEET_MHZ_RE = /^\d{1,4}\.\d$/;
 const TIME_RE = /^([01]\d|2[0-3]):([0-5]\d)$/;
-const KHZ_STEP = 200;
-const KHZ_MIN = 1000;
-const KHZ_MAX = 999800;
 
 export function parseList(text) {
   return String(text ?? '').split(',').map((v) => v.trim()).filter((v) => v !== '');
@@ -25,32 +24,10 @@ export function khzToMhz(khz) {
   return (khz / 1000).toFixed(1);
 }
 
-// "115.0-129.8, 130.0-140.0" -> [[115000, 129800], [130000, 140000]] ; null when one band is unreadable.
-export function parseBands(text) {
-  const bands = [];
-  for (const part of parseList(text)) {
-    const [lo, hi, extra] = part.split('-').map((v) => mhzToKhz(v));
-    if (lo === null || hi === null || lo === undefined || hi === undefined || extra !== undefined) return null;
-    bands.push([lo, hi]);
-  }
-  return bands;
-}
-
-export function formatBands(bands) {
-  return bands.map(([lo, hi]) => `${khzToMhz(lo)}-${khzToMhz(hi)}`).join(',');
-}
-
-export function overlaps(a, b) {
-  return a[0] <= b[1] && b[0] <= a[1];
-}
-
-// First band of `width` kHz on the radio step that crosses none of `taken`.
-export function freeBand(taken, width = 9800) {
-  for (let lo = KHZ_MIN; lo + width <= KHZ_MAX; lo += KHZ_STEP) {
-    const band = [lo, lo + width];
-    if (!taken.some((t) => overlaps(t, band))) return band;
-  }
-  return null;
+// Frequency written in a sheet (frequency=): kHz, or null unless it is MHz with one decimal (145.0) as the game reads it.
+export function sheetFrequency(text) {
+  const trimmed = String(text ?? '').trim();
+  return SHEET_MHZ_RE.test(trimmed) ? Math.round(Number(trimmed) * 1000) : null;
 }
 
 // --- listening hours ------------------------------------------------------------------------------------------------
@@ -195,6 +172,11 @@ export function parseTimeRange(text) {
 export function formatTimeRange([from, to]) {
   return from && to ? `${from}-${to}` : '';
 }
+
+// --- the voice's frequency in a written text (call=, note text=): %1 in the sheet, a word on screen (E24-T02) --------
+export const FREQUENCY_MARK = '%1';
+export const freqToScreen = (text, word) => String(text ?? '').split(FREQUENCY_MARK).join(word);
+export const freqToSheet = (text, word) => String(text ?? '').split(word).join(FREQUENCY_MARK);
 
 // --- written text of a note line: UTF-8 bytes (the game's limit counts bytes, an accent takes two) -------------------
 export function utf8Bytes(text) {

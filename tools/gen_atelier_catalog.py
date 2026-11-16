@@ -4,7 +4,7 @@
 
 The workshop (bridge/atelier) offers lists instead of free text from this file: mission types a voice may give and
 their parameters, parameter kinds, reward kinds, shared categories, the grammar of a sheet (header and section keys,
-required keys, closed lists of values) and the shipped voices (frequencies taken). Nothing is restated here: the real
+required keys, closed lists of values), the radio levels and the shipped voices. Nothing is restated here: the real
 Lua of the mod is loaded in lupa with the loader of the benches (tests/test_personas.LuaPersona: RS_Persona with
 RS_Personas.rules, reward kinds and trade arrival modes registered) and every entry is read from a registry or a
 declaration table:
@@ -14,7 +14,10 @@ declaration table:
 - paramKinds: RS_PersonaParams.kinds(); rewardKinds and skills: RS_Rewards.KINDS and SKILLS (rules);
 - categories: personas/_categories.txt read by RS_Persona.parseCatalogue (rules.categories);
 - header and sections: RS_Persona.grammar(rules) (trade arrival modes: RS_TradeArrivals.NAMES);
-- voices: every shipped sheet (RS_Personas.isSheetName) read by RS_Persona.readFile with the server rules;
+- radioLevels (E24-T01): RS_RadioLevels.LIST, weakest first, {id, minKhz, maxKhz, zones: [[low, high]...]} kHz, and
+  radioStepKhz (RS_RadioLevels.STEP_KHZ): the radio a voice needs, its draw zone, the needed radio of a fixed frequency;
+- voices: every shipped sheet (RS_Personas.isSheetName) read by RS_Persona.readFile with the server rules: name, fixed
+  frequency (kHz or null), radio (written, or derived from the fixed frequency), trade arrival;
 - items: every item type of the installed game then of the mod's own scripts, {'Module.Type': {en, fr, kg, cat}}, read
   by tools/game_items.py (name of ItemName.json, weight with the rule of RS_ItemWeights.lua, DisplayCategory) for the
   item search and the item browser of the page; itemCategories: {category: {en, fr}} named as the game's inventory
@@ -171,11 +174,19 @@ def voices(lua: LuaPersona) -> dict:
         trade = sheet.trade
         out[str(sheet.id)] = {
             'name': str(sheet.name),
-            'frequenciesKhz': [int(v) for v in lua_items(sheet.frequencies)],
-            'frequencyRangesKhz': [[int(r.low), int(r.high)] for r in lua_items(sheet.frequency_ranges)],
+            'frequencyKhz': int(sheet.frequency) if sheet.frequency is not None else None,
+            'radio': str(sheet.radio),
             'arrival': str(trade.arrival) if trade is not None else None,
         }
     return out
+
+
+def radio_levels(lua: LuaPersona) -> list[dict]:
+    """Radio levels of RS_RadioLevels (E24-T01), weakest first, with their draw zones."""
+    levels = require(lua, 'RadioSurvivor/RS_RadioLevels')
+    return [{'id': str(level.id), 'minKhz': int(level.minKhz), 'maxKhz': int(level.maxKhz),
+             'zones': [[int(z.low), int(z.high)] for z in lua_items(levels.zones(level.id))]}
+            for level in lua_items(levels.LIST)]
 
 
 # Readers of the installed game (folder given by --game): each takes its media folder and returns parts of the
@@ -223,6 +234,8 @@ def build(lua: LuaPersona, from_game: dict | None = None) -> dict:
         'skills': strings(rules.skills),
         'categories': categories(rules),
         'voices': voices(lua),
+        'radioLevels': radio_levels(lua),
+        'radioStepKhz': int(require(lua, 'RadioSurvivor/RS_RadioLevels').STEP_KHZ),
     }
     catalog.update(game_parts() if from_game is None else from_game)
     catalog['sellable'] = sellable(lua, catalog['items'])

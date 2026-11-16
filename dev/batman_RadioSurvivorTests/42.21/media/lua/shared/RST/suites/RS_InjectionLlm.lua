@@ -46,7 +46,7 @@ local function servedVoice(P)
     for _, id in ipairs(ids) do
         local sheet = P.get(id)
         local khz = P.frequencies(id)[1]
-        if sheet and sheet.state == "active" and not sheet.group and sheet.radio ~= "high_tier"
+        if sheet and sheet.state == "active" and not sheet.group
                 and type(khz) == "number" and P.isServed(id, khz) then
             return id, sheet, khz
         end

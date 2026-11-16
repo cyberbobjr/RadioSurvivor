@@ -29,9 +29,8 @@ local Rep = require "CoreAI/CA_Reputation"
 
 local GroupRadio = {}
 
--- Plage de tirage : tous les postes émetteurs vanilla (talkies 1 à 5, bricolé, HAM, haut de gamme ; base
--- radio-dynamic.md, plages de réglage), comme Walt.
-GroupRadio.RANGE = "75.0-149.8"
+-- Radio nécessaire (E24-T01, RS_RadioLevels) : n'importe quel talkie, comme Walt ; fréquence tirée dans sa zone.
+GroupRadio.RADIO = "any_talkie"
 GroupRadio.REFRESH_MS = 30000
 GroupRadio.NAME_MAX = 64
 -- Consigne jointe au contexte (anglais, composée par le serveur ; le pont la lit dans le contexte d'autorité).
@@ -60,8 +59,8 @@ local function sheetLines(entry, id)
     local name = string.gsub(Const.oneLine(entry.name), "[%c]", " ")
     if name == "" then name = "Group radio" end
     if string.len(name) > GroupRadio.NAME_MAX then name = string.sub(name, 1, GroupRadio.NAME_MAX) end
-    return { "format=1", "id=" .. id, "name=" .. name, "language=en", "frequency_range=" .. GroupRadio.RANGE,
-        "radio=any", "listen=always", "location=none", "actions=say", "budget=0", "call_one_in=0", "state=active",
+    return { "format=1", "id=" .. id, "name=" .. name, "language=en", "radio=" .. GroupRadio.RADIO,
+        "listen=always", "location=none", "actions=say", "budget=0", "call_one_in=0", "state=active",
         "[prompt]",
         "Radio of an NPC group: its replies come from the notebook NPC requests (RS_GroupRadio), never from"
             .. " this text." }

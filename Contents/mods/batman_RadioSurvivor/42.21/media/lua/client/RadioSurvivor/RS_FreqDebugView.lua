@@ -3,7 +3,7 @@
 -- « Panneau de debug des fréquences (E05-T14) ». M = media/lua vanilla 42.21.
 --
 -- Affiche ce que l'autorité répond (server/RadioSurvivor/RS_FreqDebug.lua, FreqDebug.view), sans rien décider, en
--- lecture seule : un tableau des voix (id, nom, état, fréquences de la partie, plages de tirage, radio requise, heures
+-- lecture seule : un tableau des voix (id, nom, état, fréquences de la partie, fixée ou tirée, radio requise, heures
 -- d'écoute, rôle) et un tableau des autres fréquences du mod (bulletin du soir du chroniqueur). Tableaux de
 -- CoreAI/CA_Table (en-têtes cliquables pour trier, texte coupé, infobulle de la ligne).
 -- Droits : FreqView.canUse (affichage du bouton seulement : solo = mode debug, client MP = rôle avec la capacité
@@ -132,7 +132,7 @@ end
 FreqView.VOICE_COLUMNS = {
     { key = "id", weight = 1, min = 80 }, { key = "name", weight = 2, min = 120 },
     { key = "state", weight = 1, min = 80 }, { key = "freqs", weight = 3, min = 140 },
-    { key = "ranges", weight = 3, min = 140 }, { key = "radio", weight = 1, min = 100 },
+    { key = "draw", weight = 2, min = 120 }, { key = "radio", weight = 2, min = 120 },
     { key = "listen", weight = 2, min = 110 }, { key = "role", weight = 2, min = 110 } }
 FreqView.OTHER_COLUMNS = {
     { key = "what", weight = 3, min = 160 }, { key = "voice", weight = 1, min = 80 },
@@ -148,17 +148,13 @@ function FreqView.voiceCells(v)
             freqs[#freqs + 1] = tr("NotServed", mhz(khz))
         end
     end
-    local ranges = {}
-    for _, r in ipairs(type(v.ranges) == "table" and v.ranges or {}) do
-        ranges[#ranges + 1] = mhz(r.low) .. "-" .. mhz(r.high)
-    end
     local listen = {}
     for _, r in ipairs(type(v.listen) == "table" and v.listen or {}) do
         listen[#listen + 1] = hhmm(r.from) .. "-" .. hhmm(r.to)
     end
     return { id = tostring(v.id), name = tostring(v.name), state = translated("State_" .. tostring(v.state), v.state),
         freqs = #freqs > 0 and table.concat(freqs, ", ") or "-",
-        ranges = #ranges > 0 and table.concat(ranges, ", ") or tr("Fixed"),
+        draw = v.fixed and tr("Fixed") or tr("Drawn"),
         radio = translated("Radio_" .. tostring(v.radio), v.radio),
         listen = #listen > 0 and table.concat(listen, ", ") or tr("Always"),
         role = v.chronicler and tr("Chronicler") or "-" }
@@ -167,7 +163,6 @@ end
 -- Valeur de tri d'une voix : première fréquence (nombre) pour la colonne des fréquences.
 function FreqView.voiceSort(v, key)
     if key == "freqs" and type(v.frequencies) == "table" then return v.frequencies[1] end
-    if key == "ranges" and type(v.ranges) == "table" and v.ranges[1] ~= nil then return v.ranges[1].low end
     return nil
 end
 

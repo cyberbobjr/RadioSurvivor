@@ -25,7 +25,8 @@ local PROBE = DIR .. "/" .. PROBE_ID .. ".txt"
 local F1, F2 = 999800, 999600
 local OLDER_ID = "rstest_probe_older"   -- second probe voice, loaded before the probe (conflict test)
 local OLDER = DIR .. "/" .. OLDER_ID .. ".txt"
-local MAX_SHEET_KHZ = 999800            -- highest frequency a sheet accepts (RS_Persona.lua: 1.0 to 999.8 MHz)
+-- Highest frequency a sheet accepts (RS_Persona.lua, frequency=: the bounds of every radio, RS_RadioLevels).
+local MAX_SHEET_KHZ = require("RadioSurvivor/RS_RadioLevels").maxKhz()
 local HELD_RADIO = "Base.WalkieTalkie5"
 
 local function personas(t)
@@ -52,8 +53,8 @@ local function writeSheet(t, lines, path)
     writer:close()
 end
 
-local function probeLines(frequencies, state, id)
-    return { "format=1", "id=" .. (id or PROBE_ID), "name=RST probe", "frequencies=" .. frequencies,
+local function probeLines(frequency, state, id)
+    return { "format=1", "id=" .. (id or PROBE_ID), "name=RST probe", "frequency=" .. frequency,
         "state=" .. (state or "active"), "", "[prompt]", "Test voice of the rs.personas suite." }
 end
 
@@ -148,7 +149,7 @@ RST.suite("rs.personas", { tags = { "world", "server" }, testTimeoutMs = 60000, 
         checkChannel(t, P, F1)
         writeSheet(t, probeLines("999.7"))
         P.reload()
-        t:eq(F1, P.get(PROBE_ID).frequencies[1], "frequency of the voice in service")
+        t:eq(F1, P.get(PROBE_ID).frequency, "frequency of the voice in service")
         checkChannel(t, P, F1)
     end)
 
@@ -171,8 +172,7 @@ RST.suite("rs.personas", { tags = { "world", "server" }, testTimeoutMs = 60000, 
             if id ~= PROBE_ID then for _, khz in ipairs(P.frequencies(id)) do others[#others + 1] = khz end end
         end
         local free = nil
-        -- A sheet takes 999.8 MHz at most (in-game run of 2026-10-13: the walkie-talkie tunes up to 1000.0 MHz, a
-        -- sheet on '1000.0' is refused and no channel is made).
+        -- A sheet takes the bounds of every radio (E24-T01: 0.2 to 1000.0 MHz, the tuning range of the walkie-talkie).
         local top = math.min(probe:getMaxChannelRange(), MAX_SHEET_KHZ)
         for khz = top - top % 200, probe:getMinChannelRange(), -200 do
             local ok = free == nil and not taken[khz] and P.voiceAt(khz) == nil
@@ -204,10 +204,10 @@ RST.suite("rs.personas", { tags = { "world", "server" }, testTimeoutMs = 60000, 
         end, "line of the new channel never received by the radio in hand")
     end)
 
-    -- Conflict between two sheets with fixed frequencies: the voice loaded first keeps the frequency, the newer
-    -- sheet loses only that one (RS_Personas.lua, header). Walt is not used any more: his sheet has frequency
-    -- ranges since E05-T07, and a fixed frequency of another voice wins over a drawn one (the drawn voice draws
-    -- again: in-game run of 2026-10-13, walt moved from 148.4 to 143.8 MHz and the test failed).
+    -- Conflict between two sheets with the same fixed frequency: the voice loaded first keeps it, the newer sheet
+    -- serves nothing (RS_Personas.lua, header). Walt is not used: his frequency is drawn for his radio (E24-T01),
+    -- and a fixed frequency of another voice wins over a drawn one (the drawn voice draws again: in-game run of
+    -- 2026-10-13, walt moved from 148.4 to 143.8 MHz and the test failed).
     s.test("frequency of an older voice refused to a newer sheet", function(t)
         local P = personas(t)
         cleanup(t, P)
@@ -220,10 +220,9 @@ RST.suite("rs.personas", { tags = { "world", "server" }, testTimeoutMs = 60000, 
         writeSheet(t, probeLines("999.6", nil, OLDER_ID), OLDER)
         P.reload()
         t:eq(OLDER_ID, P.voiceAt(F2), "owner of 999.6 after the first sheet")
-        writeSheet(t, probeLines("999.6, 999.8"))
+        writeSheet(t, probeLines("999.6"))
         P.reload()
         t:eq(OLDER_ID, P.voiceAt(F2), "owner of the frequency of the older voice")
-        t:eq(1, #P.served(PROBE_ID), "frequencies served by the newer sheet")
-        checkChannel(t, P, F1)
+        t:eq(0, #P.served(PROBE_ID), "frequencies served by the newer sheet")
     end)
 end)

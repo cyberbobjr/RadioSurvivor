@@ -8,9 +8,9 @@ different way to play on the radio:
 | Voice | What it does | What the example shows |
 |---|---|---|
 | [Opal, the Rosewood chatterbox](#1-opal-the-rosewood-chatterbox) | Talks, remembers you, marks places on your map | A simple voice: listening hours, spontaneous call, frequency note |
-| [Coach Tibbs, the mission giver](#2-coach-tibbs-the-mission-giver) | Two missions one after the other, rewards | Places, chained missions, story state, its own item category |
-| [Sol, the night truck](#3-sol-the-night-truck) | Sells goods by the roadside | Trade with a meeting place, a signal, a lot of seeds |
-| [Wendell, the March Ridge mailman](#4-wendell-the-march-ridge-mailman) | Trades through a mailbox, never shows up | Hidden-cache trade, another voice's frequency, a note in glove boxes |
+| [Coach Tibbs, the mission giver](#2-coach-tibbs-the-mission-giver) | Two missions one after the other, rewards | Places, chained missions, story state, its own item list |
+| [Sol, the night truck](#3-sol-the-night-truck) | Sells goods by the roadside | Trade with a meeting place, a signal, a bundle of seeds |
+| [Wendell, the March Ridge mailman](#4-wendell-the-march-ridge-mailman) | Trades through a mailbox, never shows up | Trade in a hiding spot, another voice's frequency, a note in glove boxes |
 
 Each example gives: the idea, what to fill in at each step, **the whole sheet** the workshop writes (its personality
 is the end of the sheet, after `[prompt]`) and a short radio exchange to see how it plays.
@@ -42,24 +42,23 @@ with her cat, she calls to chat, remembers everything you tell her and shows you
 
 | Step | Setting | Choice |
 |---|---|---|
-| **+ New voice** | Name, id, start from | `Opal Brannigan`, `opal`, **An empty voice** |
-| 1. Who | Short description | A retired switchboard operator who knows all of Rosewood |
-| | On the air? | **On the air** |
-| 2. Where & when | Frequency band | from 40.0 to 44.8 MHz |
-| | Radio needed | **Any radio that can talk** |
-| | Listening hours | from 09:00 to 12:00, then **+ Add listening hours**: from 19:00 to 22:00 |
-| | Is this voice on the map? | **Nowhere on the map** |
-| | Spontaneous calls | 4 (about one call every four listening hours) |
-| | What the voice says when calling | Hello, hello? This is Opal on %1. Anybody up for a chat? Over. |
-| 3. Personality | What the voice can do | **Talk**, **Mark a place on the map**, **Show a neighbourhood**, **Mood and supplies** |
-| | Personality | The text after `[prompt]` in the sheet below |
-| 4. Missions | Places | **Rosewood fire station** and **Rosewood town center**, both **Map mark** |
-| | Missions | none |
+| **+ New voice** | What is this voice called? ; What kind of voice? | `Opal Brannigan` ; **Start from scratch**, then **A survivor who talks** (it only ticks **Talk**) |
+| 1. Who | In one sentence, who is it? | A retired switchboard operator who knows all of Rosewood |
+| | Is she on the air? | **She answers** |
+| 2. Where & when | The radio: Which radio does the player need to hear it? | **📻 Any walkie-talkie** (the choice already ticked) |
+| | The hours: When does she listen? | **Custom**: from 09:00 to 12:00, then **+ Add hours**: from 19:00 to 22:00 |
+| | The place: Where is she? | **Nobody knows where she is** |
+| | The calls: Does she call by herself? | **Often** (about one call every three game hours) |
+| | What she says when she calls | "Hello, hello? This is Opal on [frequency]. Anybody up for a chat? Over." The word **[frequency]** comes from the **+ Add my frequency** button |
+| 3. Personality | What can she do? | **Talk** (already ticked), then **Mark the map**, **Show a neighbourhood**, **Have a mood** |
+| | Who is she really? | The text after `[prompt]` in the sheet below, written **In English** |
+| 4. Places and missions | Her places | **Rosewood fire station** and **Rosewood town center**, both with **Landmark** ticked under "It is used as" |
+| | Her missions | none |
 | 5. Rewards | Rewards | none (she gives no mission) |
-| | Frequency note | ticked: three lines, found in bedside and living room tables (**Normally**) |
+| | Frequency note | ticked: three lines, "It is found in": bedside and living room tables (**Normally**) |
 
-With **Mark a place on the map** and **Show a neighbourhood**, she needs at least one place ticked **Map mark**:
-those are the only places she can show you.
+With **Mark the map** and **Show a neighbourhood**, she needs at least one place with **Landmark** ticked under "It is
+used as": those are the only places she can show you.
 
 ### The whole sheet
 
@@ -69,13 +68,12 @@ format=1
 id=opal
 name=Opal Brannigan
 language=en
-frequency_range=40.0-44.8
-radio=any
+radio=any_talkie
 location=none
 actions=say,mark_map,reveal_area,persona_state
 state=active
 listen=09:00-12:00,19:00-22:00
-call_one_in=4
+call_one_in=3
 call=Hello, hello? This is Opal on %1. Anybody up for a chat? Over.
 
 [place rosewood_fire_station]
@@ -144,21 +142,22 @@ lessons or Walt's frequency.
 
 | Step | Setting | Choice |
 |---|---|---|
-| **+ New voice** | Name, id, start from | `Vernon Tibbs`, `vernon`, **An empty voice** |
-| 1. Who | Short description | The football coach of the Riverside high school |
-| 2. Where & when | Frequency band | from 45.0 to 49.8 MHz |
-| | Listening hours | from 06:00 to 08:00 and from 18:00 to 21:00 |
-| | Spontaneous calls | empty (he never calls on his own) |
-| 3. Personality | What the voice can do | **Talk**, **Mark a place on the map**, **Give missions**, **Pass on a frequency** |
-| | Voices it can pass on | **Walt Hensley** (a voice of the mod) |
-| 4. Missions | Places | **Riverside high school** (**Map mark** and **Job place**), **Football field** (**Job place**), **Gym dumpster** (**Dead drop**) |
-| | Mission 1 | **Keep watch** at the **Football field**, **Watch hours** 3 |
-| | Mission 2 | **Find a personal item** at the **Riverside high school**, item **Whistle**, its name "my lucky whistle", dead drop **Gym dumpster**, **Only after**: mission 1; under **More options**, **Story state when done**: `whistle_back` |
-| 5. Rewards | Own categories | a category `team_kit`: water bottles, granola bars, bandages |
-| | Rewards | **Supply bag** `team_kit` **Often**, **A lesson** First Aid **Normally**, **A frequency** **Rarely** |
+| **+ New voice** | What is this voice called? ; What kind of voice? | `Vernon Tibbs` ; **Start from scratch**, then **A mission giver** (it ticks **Give missions**) |
+| 1. Who | In one sentence, who is it? | The football coach of the Riverside high school |
+| 2. Where & when | The radio: Which radio does the player need to hear it? | **🎧 A pro walkie-talkie** |
+| | The hours: When does she listen? | **Custom**: from 06:00 to 08:00 and from 18:00 to 21:00 |
+| | The calls: Does she call by herself? | **Never** (he never calls on his own) |
+| 3. Personality | What can she do? | **Talk**, **Mark the map**, **Give missions** (already ticked), **Give a contact** |
+| | She can give the contact of… | **Walt Hensley** (a voice of the mod) |
+| 4. Places and missions | Her places | **Riverside high school** (**Landmark** and **Job place**), **Football field** (**Job place**), **Gym dumpster** (**Dead drop**) |
+| | Mission 1 | kind **Keep watch** at the **Football field**, **How long to keep watch?**: **A morning** (6 hours) |
+| | Mission 2 | kind **Find a personal item** at the **Riverside high school**, **Which item?**: **Whistle**, **What she calls it**: "my lucky whistle", **Dead drops**: **Gym dumpster**, **Only after the mission**: **1 · Keep watch**, **What changes in her story**: "He got his whistle back" (see below) |
+| 5. Rewards | Advanced settings: Her own item lists | a list `team_kit` (type "team kit" in **Name of the list**): water bottles, granola bars, bandages |
+| | Rewards | **Supply bag** on the list `team_kit` **Often**, **A lesson** First aid **Normally**, **A radio contact** **Rarely** |
 
-For the category: open **Own categories** (at the bottom of step 5), type `team kit`, click **+ Add a category**, then add
-the items. Then go back to the **Supply bag** reward and pick your category in its list.
+For the list: open **Advanced settings** (at the bottom of step 5), then **Her own item lists**: type `team kit` in
+**Name of the list**, click **+ Add a list**, then add the items. Then go back to the **Supply bag** reward and pick your
+list in its list.
 
 ![Coach Tibbs's rewards and his own item category](../../images/screenshots/atelier/exemples/atelier-en-23-tibbs-rewards.png)
 
@@ -173,8 +172,7 @@ format=1
 id=vernon
 name=Vernon Tibbs
 language=en
-frequency_range=45.0-49.8
-radio=any
+radio=pro_talkie
 location=none
 actions=say,mark_map,start_mission,share_frequency
 state=active
@@ -200,7 +198,7 @@ use=drop
 type=watch
 target=football_field
 story=The dead used to gather on my football field at night. Watch it for a few hours and tell me what you see.
-hours=3
+hours=6
 
 [mission item]
 type=item
@@ -242,8 +240,8 @@ Rules:
 - Answer in the same language the caller uses.
 ```
 
-The item of mission 2 is written `Base.Whistle`: in the workshop, type "whistle" in the **Which object** field and pick
-**Whistle**. The game itself puts a whistle in the school when the mission starts.
+The item of mission 2 is written `Base.Whistle`: in the workshop, click **Pick an item** under **Which item?**, search
+"whistle" and pick **Whistle**. The game itself puts a whistle in the school when the mission starts.
 
 ### On the radio
 
@@ -252,45 +250,51 @@ The item of mission 2 is written `Base.Whistle`: in the workshop, type "whistle"
 > **Coach Tibbs**: Loud and clear, son. My football field: the dead used to gather there at night. Keep watch for a
 > few hours and tell me what you see. I'll mark it on your map. Over.
 >
-> *(the player stays three game hours near the field, then calls back)*
+> *(the player stays six game hours near the field, then calls back)*
 >
 > **Player**: I counted about ten of them walking around the bleachers.
 >
 > **Coach Tibbs**: Good hustle! There's a bag for you at the gym dumpster. Now, my lucky whistle is still in my
 > office at the school. Over.
 
-The game itself checks that the watch lasted three hours: the voice decides nothing. When the whistle is dropped off,
+The game itself checks that the watch lasted six hours: the voice decides nothing. When the whistle is dropped off,
 the sheet keeps the state `whistle_back`, and his personality says what it changes for him.
+
+In the workshop, you do not write the state's name: you write the sentence, in **What changes in her story** ("He got
+his whistle back"). The workshop makes the state's name from it and writes the line `Story state: when your story state
+is <name>, <sentence>` itself, at the end of the personality. Here, the sheet keeps the name `whistle_back`, typed by
+hand: the workshop shows it with the words of that line, and the personality above is unchanged.
 
 ## 3. Sol, the night truck
 
-**The idea.** Marisol "Sol" Vega drove an ice cream truck before the outbreak. Now she comes at night, every five
-days, on the road east of West Point, with batteries, coffee, canned food and seeds. Nobody ever sees her.
+**The idea.** Marisol "Sol" Vega drove an ice cream truck before the outbreak. Now she comes at night, every
+week, on the road east of West Point, with batteries, coffee, canned food and seeds. Nobody ever sees her.
 
-![Sol's trade: meeting place, arrival by road, goods and a lot of seeds](../../images/screenshots/atelier/exemples/atelier-en-24-sol-trade.png)
+![Sol's trade: meeting place, arrival by road, goods and a bundle of seeds](../../images/screenshots/atelier/exemples/atelier-en-24-sol-trade.png)
 
 ### What to fill in
 
 | Step | Setting | Choice |
 |---|---|---|
-| **+ New voice** | Name, id, start from | `Marisol Vega`, `marisol`, **An empty voice** |
-| 1. Who | Short description | A trader who comes at night with her truck |
-| 2. Where & when | Frequency band | from 60.0 to 64.8 MHz |
-| | Listening hours | from 22:00 to 01:00 (a shift can go past midnight) |
-| | Spontaneous calls | 6, and her call sentence |
-| 3. Personality | What the voice can do | **Talk**, **Mood and supplies**, **Trade** (ticked by itself at step 5) |
-| 4. Missions | Places | **West Point lay-by**, ticked **Trade meeting point** only |
-| 5. Rewards | Trade | **This voice trades**; **Meeting point(s)**: West Point lay-by; **Arrives by**: **Road**; **Meeting hours** from 02:00 to 04:00; **Visits** every 5 days |
-| | Goods | Battery from 2 to 6, Cigarette Pack from 1 to 4, Coffee from 0 to 2, Peanut Butter from 1 to 3, Canned Fruit Cocktail from 0 to 2, and four seed packets in the lot `seeds` |
-| | Lots | `seeds`, from 3 to 8 in all, at most 3 kinds |
-| | What the voice accepts | the categories **Cash and valuables** (`cash`) and **Jewelry** (`jewelry`) |
-| | Margin, Quiet place for | from 15 % to 40 %; 2 hours with nobody around |
+| **+ New voice** | What is this voice called? ; What kind of voice? | `Marisol Vega` ; **Start from scratch**, then **A trader** (it ticks **Trade** and opens the trade panel) |
+| 1. Who | In one sentence, who is it? | A trader who comes at night with her truck |
+| 2. Where & when | The radio: Which radio does the player need to hear it? | **📶 A good walkie-talkie** |
+| | The hours: When does she listen? | **Custom**: from 22:00 to 01:00 (a range can go past midnight) |
+| | The calls: Does she call by herself? | **Sometimes** (about one call every six game hours), and her call sentence |
+| 3. Personality | What can she do? | **Talk**, **Have a mood**, **Trade** (ticked by itself at step 5) |
+| 4. Places and missions | Her places | **West Point lay-by**, ticked **Trade meeting place** only |
+| 5. Rewards | Trade: This voice trades | **This voice trades**; **Where is the meeting?**: West Point lay-by; **She comes by**: **Road**; **At what time?** from 02:00 to 04:00; **She comes back**: **Every week** |
+| | What she sells | Battery from 2 to 6, Cigarette Pack from 1 to 4, Coffee from 0 to 2, Peanut Butter from 1 to 3, Canned Fruit Cocktail from 0 to 2, and four kinds of seeds in the bundle `seeds` |
+| | Bundles | `seeds`: "between 3 and 8 items in all", "No more than 3 different items" |
+| | What she takes | the whole lists **Cash and valuables** (`cash`) and **Jewelry** (`jewelry`) |
+| | Her prices | **Generous** (from 5 % to 25 %) |
+| | The place stays quiet | **A few hours** (4 game hours) |
 | | Frequency note | three lines, found in glove boxes (**Often**) and candy stores (**Rarely**) |
 
-Goods are picked without typing anything: **Add items** opens the list of the items a trader can sell; search
-"battery", "coffee", tick them, then **Add selected**. For the lot: **+ Add a lot**, name it `seeds`, then on each seed
-line choose **In the "…" lot** instead of **A number**. **What the voice accepts** is filled the same way, with items
-or whole categories: Sol only takes cash and jewelry.
+Goods are picked without typing anything: **Add what she sells** opens the list of the items a trader can sell; search
+"battery", "coffee", tick them, then **Add selected**, and set "from … to …" on each line. For the bundle: **+ Add a
+bundle**, name it `seeds`, then **Add items to the bundle** (the four kinds of seeds). **What she takes** is filled the
+same way, with whole lists: Sol only takes cash and jewelry.
 
 ### The whole sheet
 
@@ -300,8 +304,7 @@ format=1
 id=marisol
 name=Marisol Vega
 language=en
-frequency_range=60.0-64.8
-radio=any
+radio=good_talkie
 location=none
 actions=say,persona_state,propose_trade
 state=active
@@ -318,7 +321,7 @@ use=landing
 landing=west_point_lay_by
 arrival=road
 hours=02:00-04:00
-every_days=5
+every_days=7
 item=Base.Battery:2-6
 item=Base.CigarettePack:1-4
 item=Base.Coffee2:0-2
@@ -331,8 +334,8 @@ item=Base.CabbageBagSeed2:seeds
 group=seeds:3-8:3
 accept=cash
 accept=jewelry
-margin=0.15-0.40
-delay_hours=2
+margin=0.05-0.25
+delay_hours=4
 
 [note]
 text=Sol and her truck
@@ -379,7 +382,7 @@ the player brings **20 kg at most**.
 The deal is written in the player's notebook, Radio tab: what they bring, what they receive, no price at all. That
 night, the player stands at the lay-by with a lit lamp in hand, hears the van park, puts exactly what was agreed in a
 bag within 3 tiles of the place (several bags add up; what was there before the deal does not count) and walks away.
-Two hours later, with nobody within 100 tiles, Sol takes the agreed list, nothing more, and leaves the batteries and
+Four hours later, with nobody within 100 tiles, Sol takes the agreed list, nothing more, and leaves the batteries and
 the seeds in the bag that held most of the payment. If something is missing, Sol keeps everything that was left,
 leaves nothing and will remember it; if nothing was left, her trust drops a little. A patrol, a helicopter or a storm
 can call the run off (rarely): Sol announces it on her frequency and repeats it every hour until the meeting time, and
@@ -397,21 +400,25 @@ frequency.
 
 | Step | Setting | Choice |
 |---|---|---|
-| **+ New voice** | Name, id, start from | `Wendell Ames`, `wendell`, **An empty voice** |
-| 1. Who | Short description | The March Ridge mailman, who still does his route |
-| 2. Where & when | Frequency band | from 280.0 to 289.8 MHz |
-| | Listening hours | from 05:00 to 07:00 |
-| 3. Personality | What the voice can do | **Talk**, **Trade**, **Pass on a frequency** |
-| | Voices it can pass on | **Marisol Vega** (example 3: make her first) |
-| 4. Missions | Places | **Post office mailbox**, ticked **Trade meeting point**, recorded in game right next to the mailbox |
-| 5. Rewards | Trade | **Meeting point(s)**: Post office mailbox; **Arrives by**: **Hidden drop**; **Meeting hours** from 05:00 to 06:00; **Visits** every 3 days; margin left empty (10 % to 50 %) |
-| | Goods | Bandage from 1 to 4, Painkillers from 0 to 2, Alcohol Wipes from 1 to 3, Battery from 1 to 3, Canned Vegetable Soup from 1 to 3, Bottle of Disinfectant from 0 to 1 |
-| | What the voice accepts | the categories **Papers of the dead** (`papers_of_the_dead`) and **Cash and valuables** (`cash`) |
-| | Frequency note | found in post office lockers and postal vehicle glove boxes (**Normally**), and **A dead body carrying a walkie-talkie may have it** |
+| **+ New voice** | What is this voice called? ; What kind of voice? | `Wendell Ames` ; **Start from scratch**, then **A trader** (it ticks **Trade**; he also ticks **Give a contact**) |
+| 1. Who | In one sentence, who is it? | The March Ridge mailman, who still does his route |
+| 2. Where & when | The radio: Choose the frequency myself | on, **Frequency** 284.6 MHz: the badge says **🎧 A pro walkie-talkie** |
+| | The hours: When does she listen? | **Custom**: from 05:00 to 07:00 |
+| | The calls: Does she call by herself? | **Never** |
+| | The place: Where is she? | **Nobody knows where she is** |
+| 3. Personality | What can she do? | **Talk**, **Trade**, **Give a contact** |
+| | She can give the contact of… | **Marisol Vega** (example 3: create her first) |
+| 4. Places and missions | Her places | **Post office mailbox**, ticked **Trade meeting place**, recorded in game right next to the mailbox |
+| 5. Rewards | Trade: Where is the meeting? | **Post office mailbox**; **She comes by**: **A hiding spot**; **At what time?** from 05:00 to 06:00; **She comes back**: **Every 3 days**; **Her prices**: **Fair** (nothing to fill in: 10 % to 50 %) |
+| | What she sells | Bandage from 1 to 4, Painkillers from 0 to 2, Alcohol Wipes from 1 to 3, Battery from 1 to 3, Canned Vegetable Soup from 1 to 3, Bottle of Disinfectant from 0 to 1 |
+| | What she takes | the whole lists **Papers of the dead** (`papers_of_the_dead`) and **Cash and valuables** (`cash`) |
+| | The place stays quiet | **One hour** (the usual setting, nothing to change) |
+| | Frequency note | found in post office lockers and postal vehicle glove boxes (**Normally**), and **A zombie can carry it** |
 
-With **Hidden drop**, nobody comes and no signal is expected: the player leaves the payment **in the mailbox** (the
-container of the place) before the hour, and the goods appear there out of sight. The 280.0-289.8 band needs a good
-radio: a Premium Technologies, tactical or US Army walkie-talkie, or a ham radio.
+With **A hiding spot**, nobody comes and no signal is expected: the player leaves the payment **in the mailbox** (the
+container of the place) before the hour, and the goods appear there out of sight. Wendell keeps the same frequency in
+every game: his customers write it down once and for all. 284.6 MHz needs a pro walkie-talkie (Premium Technologies)
+or better: a tactical or US Army walkie-talkie, or a ham radio.
 
 ### The whole sheet
 
@@ -421,8 +428,7 @@ format=1
 id=wendell
 name=Wendell Ames
 language=en
-frequency_range=280.0-289.8
-radio=any
+frequency=284.6
 location=none
 actions=say,propose_trade,share_frequency
 state=active

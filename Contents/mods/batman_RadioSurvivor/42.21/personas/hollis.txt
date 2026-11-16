@@ -1,5 +1,7 @@
 # Hollis Beck : marchand de Muldraugh (E20-T11, ADR D08 ; format docs/specifications-techniques/persona-format.md).
-# - fréquence tirée au hasard dans 201.0-209.8 MHz à chaque nouvelle partie (bande libre, sans recouvrement) ;
+# - radio nécessaire (E24-T01) : un talkie pro (Premium Technologies, 25-300 MHz, ou mieux) ; fréquence libre tirée
+#   à chaque nouvelle partie dans la zone de cette radio, que les radios plus simples ne captent pas, mémorisée pour
+#   la partie ;
 # - écoute 22:00-02:00 (heure du jeu) ; hors carte ; arrivée par la route (mode road, portière puis hayon d'un fourgon) ;
 # - troc : action propose_trade et section [trade] (stock du barème CA_TradeValues, poids lu par le serveur
 #   dans le script, liquide d'un récipient plein compris) ; share_frequency vers les marchands voisins ; note de fréquence
@@ -8,8 +10,7 @@ format=1
 id=hollis
 name=Hollis Beck
 language=en
-frequency_range=201.0-209.8
-radio=any
+radio=pro_talkie
 listen=22:00-02:00
 location=none
 actions=say,propose_trade,share_frequency

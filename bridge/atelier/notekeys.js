@@ -8,23 +8,33 @@ import { h, uid } from './dom.js';
 import { itemChoice } from './itempicker.js';
 import { ADVANCED, advanced } from './sectionform.js';
 import * as sheet from './sheet.js';
-import { DEFAULT_CHANCE, formatLootList, parseLootList, utf8Bytes } from './values.js';
-import { button, chanceChoice, lineEditor, removeButton, switchBox } from './widgets.js';
+import { DEFAULT_CHANCE, FREQUENCY_MARK, formatLootList, parseLootList, utf8Bytes } from './values.js';
+import { button, chanceChoice, freqText, lineEditor, removeButton, switchBox } from './widgets.js';
 
 // Limits of a note text line, as RS_Persona.lua reads them (MAX_NOTE_LINES, MAX_NOTE_LINE_BYTES, writtenText): the
 // catalogue grammar does not carry them.
 const MAX_LINES = 8;
 const MAX_BYTES = 40;
-const FREQUENCY = '%1';
+const FREQUENCY = FREQUENCY_MARK;
 const OWN_ITEM_KEYS = ['item', 'key'];
 const badText = (text) => /[<>^]/.test(text) || text.split(FREQUENCY).join('').includes('%');
 
-// Suggestions of a text field: a <datalist> with an id, placed next to the field.
-function datalist(values) {
-  return h('datalist', { id: uid('dl') }, [...new Set(values)].filter(Boolean).sort().map((v) => h('option', { value: v })));
+// A loot list of the game in words: "MedicalOfficeDesk" -> "Medical office desk" (charter rule 1: the game's name only in
+// the tooltip).
+export function lootLabel(name) {
+  const words = String(name ?? '').replace(/_/g, ' ').replace(/([a-z0-9])([A-Z])/g, '$1 $2').trim().toLowerCase();
+  return words ? words[0].toUpperCase() + words.slice(1) : '';
 }
 
-// Text of the note: up to MAX_LINES lines, each with its count of bytes (an accented letter takes two).
+// Suggestions of a list field: a <datalist> of plain names, with the map back to the game's names.
+function datalist(values) {
+  const names = new Map([...new Set(values)].filter(Boolean).map((v) => [lootLabel(v), v]));
+  const el = h('datalist', { id: uid('dl') }, [...names.keys()].sort().map((v) => h('option', { value: v })));
+  return { el, nameOf: (label) => names.get(label.trim()) ?? label.trim() };
+}
+
+// Text of the note: up to MAX_LINES lines, each with its count (the game counts bytes: an accented letter takes two),
+// the frequency shown as a word and put in by a button.
 function noteText(ctx, section, key) {
   const { t, changed } = ctx;
   if (!sheet.values(section, key).length && OWN_ITEM_KEYS.some((k) => sheet.values(section, k).length)) {
@@ -48,11 +58,11 @@ function noteText(ctx, section, key) {
       if (n > MAX_BYTES) warn.textContent = t('note.too_long', { max: MAX_BYTES });
       else warn.textContent = badText(lines[index]) ? t('note.bad_chars') : '';
     };
-    const input = h('input', { type: 'text', value: lines[index], placeholder: t('key.note.text.placeholder'),
-      'aria-label': t('note.line', { n: index + 1 }), onInput: (e) => { lines[index] = e.target.value; update(); write(); } });
+    const text = freqText(t, lines[index], (v) => { lines[index] = v; update(); write(); },
+      { placeholder: t('key.note.text.placeholder'), 'aria-label': t('note.line', { n: index + 1 }) });
     update();
     return h('div', { class: 'note-line' },
-      h('div', { class: 'inline grow' }, input, counter,
+      h('div', { class: 'inline grow' }, text.el, counter,
         removeButton(t, () => { lines.splice(index, 1); write(); draw(); })),
       warn);
   };
@@ -75,14 +85,14 @@ function lootLists(ctx, section, key) {
   const known = datalist([...catalog.lootLists(key),
     ...sheet.sectionsOf(model, 'note').flatMap((s) => sheet.values(s, key).map((v) => parseLootList(v).list))]);
   const write = (items) => { sheet.setValues(section, key, items.map(formatLootList)); changed(); };
-  return h('div', { class: 'stack' }, known, lineEditor(t, sheet.values(section, key).map(parseLootList), {
+  return h('div', { class: 'stack' }, known.el, lineEditor(t, sheet.values(section, key).map(parseLootList), {
     addLabel: t('stock.add_list'),
     blank: () => ({ list: '', weight: DEFAULT_CHANCE }),
     write,
     draw: (item, index, change) => h('div', { class: 'line-fields loot-line' },
-      h('input', { type: 'text', value: item.list, list: known.id, spellcheck: 'false',
+      h('input', { type: 'text', value: lootLabel(item.list), list: known.el.id, spellcheck: 'false', title: item.list || null,
         placeholder: t(`key.note.${key}.placeholder`), 'aria-label': t('stock.list', { n: index + 1 }),
-        onInput: (e) => { item.list = e.target.value; change(); } }),
+        onInput: (e) => { item.list = known.nameOf(e.target.value); e.target.title = item.list; change(); } }),
       chanceChoice(t, item.weight, (v) => { item.weight = v; change(); }, { 'aria-label': t('stock.chance') })),
   }));
 }

@@ -1,12 +1,12 @@
 --[[
 rs.freqdebug - frequencies of the game for the debug panel (E05-T14): server/RadioSurvivor/RS_FreqDebug.lua answers
 the window client/RadioSurvivor/RS_FreqDebugView.lua (button "Radio Survivor - Frequencies" of the vanilla debug
-panel) with every voice of RadioSurvivor (id, name, state, frequencies of this game, served frequencies, ranges, radio
+panel) with every voice of RadioSurvivor (id, name, state, frequencies of this game, served frequencies, fixed or drawn, radio
 needed, listening hours) and the other frequencies of the mod (evening bulletin of the chronicler). Same rights as
 the Living Knox debug tools: solo = debug mode, server = capability PopmanManage, checked on EVERY request.
 Checked here: refusal without an allowed player (no data); the answer for the target player (t.ctx.player, or the
 local player in solo) is faithful to RS_Personas (ids in load order, frequencies, served frequencies backed by a
-real channel of the voice, state, name, radio, ranges, listening hours) and to the bulletin of RS_Facts; the cells of
+real channel of the voice, state, name, radio, fixed or drawn, listening hours) and to the bulletin of RS_Facts; the cells of
 the window (solo only, where the client module is loaded).
 Tag "server": the authority only (dedicated server or solo); read only, any save. Solo (debug mode):
 RST.run({ suite = "rs.freqdebug" }). Dedicated server: RST.server({ suite = "rs.freqdebug" }) from an admin client.
@@ -96,7 +96,7 @@ RST.suite("rs.freqdebug", { tags = { "server" } }, function(s)
             t:eq(sheet.radio, v.radio, id .. " radio")
             sameList(t, P.frequencies(id), v.frequencies, id .. " frequencies")
             sameList(t, P.served(id), v.served, id .. " served frequencies")
-            t:eq(#sheet.frequency_ranges, #v.ranges, id .. " ranges")
+            t:eq(sheet.frequency ~= nil, v.fixed, id .. " fixed frequency")
             t:eq(#sheet.listen, #v.listen, id .. " listening ranges")
             for _, khz in ipairs(v.served) do
                 t:ok(contains(v.frequencies, khz), id .. " serves " .. khz .. " outside its frequencies")

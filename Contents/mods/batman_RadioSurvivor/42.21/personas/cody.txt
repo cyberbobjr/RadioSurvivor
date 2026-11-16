@@ -1,9 +1,8 @@
 # Spc. Cody Haskins : le déserteur de la garde nationale (E05-T04, format docs/persona-format.md).
 # Le mod livre une copie identique (Contents/mods/batman_RadioSurvivor/42.21/personas/cody.txt).
-# - fréquence tirée au hasard dans 10.0-24.8 MHz (ondes courtes) à chaque nouvelle partie (E05-T07 ; 17.4 n'est
-#   plus qu'un exemple) : talkies 4 et 5, radios HAM et poste militaire, pas le talkie 3 (25-300) ; radio=any, la
-#   fréquence suffit à filtrer. Bande de la station de chiffres de Military Drop : une fréquence déjà prise n'est
-#   jamais tirée ;
+# - radio nécessaire (E24-T01) : un talkie tactique ou une radio HAM (10-500 MHz, ou mieux) ; fréquence libre tirée
+#   à chaque nouvelle partie dans la zone de cette radio, que les radios plus simples ne captent pas, mémorisée pour
+#   la partie ;
 # - écoute 22:00-03:00 (heure du jeu) ; mobile, toujours en fuite (location=none) ;
 # - appel général (E05-T05) : une chance sur six par heure de jeu pendant ses heures d'écoute, texte écrit par le
 #   pont ou, à défaut, texte fixe IGUI_RadioSurvivor_Call_Cody (%1 = fréquence) ;
@@ -16,8 +15,7 @@ format=1
 id=cody
 name=Cody Haskins
 language=en
-frequency_range=10.0-24.8
-radio=any
+radio=tactical
 listen=22:00-03:00
 location=none
 actions=say,start_mission,share_frequency

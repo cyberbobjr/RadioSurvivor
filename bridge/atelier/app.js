@@ -9,16 +9,16 @@ import { tryDrawer } from './ai.js';
 import { LOGIN_PAGE, createApi } from './api.js';
 import { loadCatalog } from './catalog.js';
 import { check } from './checks.js';
-import { askBar, confirmBar } from './dialogs.js';
+import { confirmBar } from './dialogs.js';
 import { clear, h, select } from './dom.js';
 import { loadI18n } from './i18n.js';
 import { createJournal } from './journal.js';
 import * as sheet from './sheet.js';
-import { freeBand } from './values.js';
 import * as voice from './voice.js';
 import { renderVerdict } from './verdict.js';
+import { STEP_WANTS, VOICE_TYPES, applyVoiceType, stepWanted } from './presets.js';
 import { renderVoiceList, voiceStatus } from './voicelist.js';
-import { button } from './widgets.js';
+import { button, cards } from './widgets.js';
 import who from './steps/who.js';
 import where from './steps/where.js';
 import personality from './steps/personality.js';
@@ -26,7 +26,6 @@ import missions from './steps/missions.js';
 import rewards from './steps/rewards.js';
 
 const STEPS = [who, where, personality, missions, rewards];
-const ID_RE = /^[a-z][a-z0-9_]{0,31}$/;
 const VERDICT_POLL_MS = 4000;
 
 // What can be done to a voice in each state (server routes of bridge/atelier_server.py).
@@ -105,10 +104,8 @@ function pollVerdicts() {
 // Step owning line `line` of the sheet as the game read it (the text last loaded or saved).
 function verdictTarget(line) {
   if (!line || app.current.saved === undefined) return null;
-  const where = sheet.locate(app.current.saved, line);
-  const index = stepOf({ where });
-  const place = where.block === 'head' ? where.field : `[${[where.block, where.id].filter(Boolean).join(' ')}]${where.field ? ` ${where.field}` : ''}`;
-  return { step: app.t(`step.${STEPS[index].id}`), place, go: () => goStep(index) };
+  const index = stepOf({ where: sheet.locate(app.current.saved, line) });
+  return { step: app.t(`step.${STEPS[index].id}`), go: () => { app.ui.all_steps = true; goStep(index); } };
 }
 
 function renderVerdictBanner() {
@@ -141,33 +138,35 @@ async function openVoice(id) {
 }
 
 // --- new voice ------------------------------------------------------------------------------------------------------
+// E24-T02: the name, then how to start (from scratch with a voice type, or from a copy of a voice). The voice's id is
+// made from its first name and never shown (voice.voiceId).
+const START_FROM = ['empty', 'copy'];
+const takenIds = () => app.voices.map((v) => v.id);
+
 async function showNewVoice() {
   if (!(await leaveCurrent())) return;
   showView('voices');
   app.current = null;
   await refreshVoices();
   const t = app.t;
-  let name = '';
-  let id = '';
-  let idTouched = false;
-  let source = '';
-  const idInput = h('input', { type: 'text', id: 'new-id', spellcheck: 'false', autocomplete: 'off',
-    onInput: (e) => { id = e.target.value.trim(); idTouched = true; } });
+  const state = { name: '', from: 'empty', type: VOICE_TYPES[0].id, source: '' };
   const error = h('p', { class: 'warnline', 'aria-live': 'polite' });
-  const sources = [{ value: '', label: t('new.empty') },
-    ...app.voices.filter((v) => !v.removed).map((v) => ({ value: v.id, label: t('new.copy_of', { name: v.name || v.id }) }))];
+  const body = h('div', { class: 'stack' });
+  const sources = app.voices.filter((v) => !v.removed).map((v) => ({ value: v.id, label: v.name || v.id }));
   const create = async () => {
-    if (!ID_RE.test(id)) { error.textContent = t('code.bad_id'); idInput.focus(); return; }
-    if (entryOf(id)) { error.textContent = t('code.voice_exists', { id }); idInput.focus(); return; }
-    if (source) {
-      const result = await app.api.duplicate(source, id);
+    if (!state.name.trim()) { error.textContent = t('new.need_name'); app.el.main.querySelector('#new-name').focus(); return; }
+    const id = voice.voiceId(state.name, takenIds());
+    if (state.from === 'copy') {
+      if (!state.source) { error.textContent = t('new.need_source'); return; }
+      const result = await app.api.duplicate(state.source, id);
       if (!result.ok) { error.textContent = codeText(result); return; }
       toast(codeText(result));
       await openVoice(id);
       return;
     }
-    const taken = app.catalog.takenBands().flatMap((v) => v.bands);
-    const model = voice.newVoice({ id, name: name || id, band: freeBand(taken), format: app.catalog.sheet.format });
+    const model = voice.newVoice({ id, name: state.name.trim(), radio: app.catalog.radioLevels()[0]?.id,
+      format: app.catalog.sheet.format });
+    applyVoiceType(model, state.type);
     app.current = { id, model, isNew: true, dirty: true, empty: false };
     app.step = 0;
     app.ui = {};
@@ -175,19 +174,30 @@ async function showNewVoice() {
     await refreshAi();
     renderEditor();
   };
+  const draw = () => {
+    const starts = START_FROM.map((v) => ({ value: v, label: t(`new.from.${v}`), help: t(`new.from.${v}.help`),
+      icon: t(`new.from.${v}.icon`) }));
+    const types = VOICE_TYPES.map((v) => ({ value: v.id, label: t(`newtype.${v.id}`), help: t(`newtype.${v.id}.help`),
+      icon: t(`newtype.${v.id}.icon`) }));
+    body.replaceChildren(
+      cards('new-from', starts, state.from, (v) => { state.from = v; draw(); }, { 'aria-label': t('new.start_from') }),
+      state.from === 'empty'
+        ? h('div', { class: 'stack' }, h('h3', { text: t('new.type') }),
+          cards('new-type', types, state.type, (v) => { state.type = v; }, { id: 'new-type', 'aria-label': t('new.type') }),
+          h('p', { class: 'help', text: t('new.type_help') }))
+        : h('div', { class: 'stack' }, h('label', { for: 'new-source', text: t('new.copy_of') }),
+          select([{ value: '', label: t('field.choose') }, ...sources], state.source, (v) => { state.source = v; },
+            { id: 'new-source' })));
+  };
+  draw();
   clear(app.el.main).append(h('article', { class: 'welcome' },
     h('h2', { text: t('new.title') }),
-    h('p', { class: 'help', text: t('new.help') }),
     h('div', { class: 'form' },
-      h('div', { class: 'row' }, h('label', { for: 'new-name', text: t('who.name') }),
-        h('input', { type: 'text', id: 'new-name', autocomplete: 'off', placeholder: t('who.name_placeholder'), onInput: (e) => {
-          name = e.target.value;
-          if (!idTouched) { id = voice.slug(name.split(' ')[0] || name, 'voice'); idInput.value = id; }
-        } })),
-      h('div', { class: 'row' }, h('label', { for: 'new-id', text: t('who.id') }),
-        h('div', { class: 'ctl' }, idInput, h('p', { class: 'help', text: t('who.id_help') }))),
-      h('div', { class: 'row' }, h('label', { for: 'new-source', text: t('new.start_from') }),
-        select(sources, '', (v) => { source = v; }, { id: 'new-source' })),
+      h('div', { class: 'row' }, h('div', { class: 'lab' }, h('label', { for: 'new-name', text: t('who.name') })),
+        h('div', { class: 'ctl' }, h('input', { type: 'text', id: 'new-name', autocomplete: 'off',
+          placeholder: t('who.name_placeholder'), onInput: (e) => { state.name = e.target.value; },
+          onKeydown: (e) => { if (e.key === 'Enter') create(); } }))),
+      body,
       error,
       h('div', { class: 'btns' }, button('primary', { id: 'new-create', onClick: create }, t('new.create'))))));
   app.el.main.querySelector('#new-name').focus();
@@ -206,6 +216,13 @@ function currentId() {
   return app.current.isNew ? (sheet.value(app.current.model.head, 'id') ?? '') : app.current.id;
 }
 
+// Steps shown in the bar (E24-T02): the ones the voice wants (presets.js STEP_WANTS), the open one, or all of them once
+// "All steps" is pressed. Indexes in STEPS.
+function shownSteps() {
+  return STEPS.map((step, index) => index).filter((index) => app.ui.all_steps || index === app.step
+    || stepWanted(STEP_WANTS[STEPS[index].id], app.current.model));
+}
+
 function stepContext() {
   return {
     model: app.current.model, catalog: app.catalog, t: app.t, voiceId: currentId(), isNew: app.current.isNew,
@@ -216,6 +233,7 @@ function stepContext() {
 // Opens the step that holds a kind of block ('place', 'trade'...) with its panel open (ui.open_<kind>).
 function showBlock(kind) {
   app.ui[`open_${kind}`] = true;
+  app.ui.all_steps = true;
   goStep(STEPS.findIndex((s) => (s.blocks ?? []).includes(kind)));
 }
 
@@ -231,13 +249,15 @@ function refreshStatus() {
   for (const item of checks) byStep[stepOf(item)].push(item);
   app.el.pills.forEach((pill, index) => {
     const count = byStep[index].length;
-    pill.querySelector('.count').textContent = count ? String(count) : '';
+    pill.querySelector('.count').textContent = count ? t('checks.pill', { n: count }) : '';
     pill.classList.toggle('has-checks', count > 0);
   });
   const mine = byStep[app.step];
+  // A key named in a message is said with its words (checkname.<key>), never as the sheet writes it.
+  const plain = (args) => ({ ...args, name: t(`checkname.${args.name}`, {}, args.name ?? '') });
   app.el.checks.replaceChildren(...(mine.length ? [h('div', { class: 'checkbox-list' },
     h('b', { text: t('checks.title', { n: mine.length }) }),
-    h('ul', {}, mine.map((item) => h('li', { text: t(item.key, item.args) }))),
+    h('ul', {}, mine.map((item) => h('li', { text: t(item.key, plain(item.args)) }))),
     h('small', { class: 'muted', text: t('checks.judge') }))] : []));
   app.el.dirty.textContent = app.current.dirty ? t('editor.unsaved') : t('editor.saved');
   app.el.dirty.className = app.current.dirty ? 'dirty on' : 'dirty';
@@ -247,13 +267,17 @@ function refreshStatus() {
 function renderStep() {
   const step = STEPS[app.step];
   app.el.body.replaceChildren(step.render(stepContext()));
+  const shown = shownSteps();
   app.el.pills.forEach((pill, index) => {
+    pill.hidden = !shown.includes(index);
     pill.classList.toggle('on', index === app.step);
     pill.setAttribute('aria-current', index === app.step ? 'step' : 'false');
   });
-  app.el.prev.disabled = app.step === 0;
-  app.el.next.hidden = app.step === STEPS.length - 1;
-  app.el.finish.hidden = app.step !== STEPS.length - 1;
+  app.el.allSteps.hidden = shown.length === STEPS.length;
+  const at = shown.indexOf(app.step);
+  app.el.prev.disabled = at <= 0;
+  app.el.next.hidden = at === shown.length - 1;
+  app.el.finish.hidden = at !== shown.length - 1;
   refreshStatus();
 }
 
@@ -263,6 +287,12 @@ function goStep(index) {
   app.el.body.querySelector('input, textarea, select, button')?.focus({ preventScroll: true });
 }
 
+// The shown step before or after the open one.
+function moveStep(delta) {
+  const shown = shownSteps();
+  goStep(shown[shown.indexOf(app.step) + delta] ?? app.step);
+}
+
 function actionButtons(status) {
   if (app.current.isNew) return [];
   return (ACTIONS_BY_STATUS[status] ?? []).map((name) => {
@@ -270,7 +300,7 @@ function actionButtons(status) {
     return button(action.danger ? 'danger' : 'neutral', { onClick: async () => {
       const name = entryOf(app.current.id)?.name || app.current.id;   // the display name, the id when it has none
       const yes = await confirmBar(app.el.notice, app.t, { message: app.t(action.ask, { name }),
-        yes: app.t(`editor.${action.label}`), danger: action.danger });
+        yes: app.t(`${action.ask}_yes`), danger: action.danger });
       if (!yes) return;
       const result = await action.run(app.api, app.current.id);
       toast(codeText(result), !result.ok);
@@ -301,17 +331,23 @@ function renderEditor() {
   app.el.checks = h('div', { class: 'checks-host' });
   app.el.body = h('div', { class: 'step-body' });
   app.el.preview = h('pre', { class: 'sheet-preview', 'aria-label': t('editor.preview') });
-  app.el.pills = STEPS.map((step, index) => h('button', { type: 'button', class: 'pill', onClick: () => goStep(index) },
-    h('span', { class: 'n', text: String(index + 1) }), t(`step.${step.id}`), h('span', { class: 'count' })));
-  app.el.prev = button('neutral', { id: 'step-prev', onClick: () => goStep(app.step - 1) }, t('editor.prev'));
-  app.el.next = button('primary', { id: 'step-next', onClick: () => goStep(app.step + 1) }, t('editor.next'));
+  app.el.pills = STEPS.map((step, index) => h('button', { type: 'button', class: 'pill', 'data-step': step.id,
+    onClick: () => goStep(index) },
+  h('span', { class: 'n', 'aria-hidden': 'true', text: t(`step.${step.id}.icon`) }), t(`step.${step.id}`), h('span', { class: 'count' })));
+  app.el.allSteps = button('neutral', { id: 'all-steps', class: 'pill more-steps', title: t('editor.all_steps_help'),
+    onClick: () => { app.ui.all_steps = true; renderStep(); } }, t('editor.all_steps'));
+  app.el.prev = button('neutral', { id: 'step-prev', onClick: () => moveStep(-1) }, t('editor.prev'));
+  app.el.next = button('primary', { id: 'step-next', onClick: () => moveStep(1) }, t('editor.next'));
   app.el.finish = button('primary', { id: 'step-finish', onClick: save }, t('editor.save'));
-  const exportLink = current.isNew ? null : h('a', { role: 'button', class: 'outline contrast', href: app.api.exportUrl(current.id),
+  // Rare actions in the "..." menu (S13): a copy of the voice's file, the text the game reads.
+  const exportLink = current.isNew ? null : h('a', { role: 'menuitem', class: 'menu-item', href: app.api.exportUrl(current.id),
     download: `${current.id}.txt` }, t('editor.export'));
-  const previewToggle = button('neutral', { 'aria-pressed': String(app.preview), onClick: () => {
+  const previewToggle = button('neutral', { class: 'menu-item', 'aria-pressed': String(app.preview), onClick: () => {
     app.preview = !app.preview;
     renderEditor();
   } }, app.preview ? t('editor.preview_hide') : t('editor.preview'));
+  const menu = h('details', { class: 'more-menu' }, h('summary', { 'aria-label': t('editor.more'), title: t('editor.more') }, '…'),
+    h('div', { class: 'menu', role: 'menu' }, exportLink, previewToggle));
   const tryToggle = button('neutral', { id: 'try-open', 'aria-pressed': String(app.chat.open),
     title: app.ai.available ? t('ai.try_help') : t('ai.unavailable'), onClick: () => {
       app.chat.open = !app.chat.open;
@@ -321,16 +357,16 @@ function renderEditor() {
   clear(app.el.main).append(
     h('div', { class: 'toolbar' },
       h('div', { class: 'title' },
-        h('h2', { text: sheet.value(current.model.head, 'name') || current.id || t('editor.untitled') }),
+        h('h2', { text: sheet.value(current.model.head, 'name') || t('editor.untitled'), title: current.id }),
         h('span', { class: `badge ${status}`, title: current.isNew ? null : t(`status.${status}.help`),
           text: current.isNew ? t('status.new') : t(`status.${status}`) }),
         app.el.dirty),
       h('div', { class: 'btns' },
         button('primary', { id: 'save', onClick: save }, t('editor.save')),
-        exportLink, previewToggle, tryToggle, actionButtons(status))),
+        tryToggle, actionButtons(status), menu)),
     app.el.verdict,
     app.el.notice,
-    h('nav', { class: 'steps', 'aria-label': t('editor.steps') }, app.el.pills),
+    h('nav', { class: 'steps', 'aria-label': t('editor.steps') }, app.el.pills, app.el.allSteps),
     app.el.checks,
     h('div', { class: side ? 'work split' : 'work' },
       h('article', { class: 'step-col' }, app.el.body,
@@ -345,9 +381,9 @@ function renderEditor() {
 
 async function save() {
   const current = app.current;
+  // A voice of the same id made meanwhile (another tab): the new one takes the next free id.
+  if (current.isNew && entryOf(currentId())) sheet.setValue(current.model.head, 'id', voice.voiceId(currentId(), takenIds()));
   const id = currentId();
-  if (!ID_RE.test(id)) { goStep(0); toast(app.t('code.bad_id'), true); return; }
-  if (current.isNew && entryOf(id)) { goStep(0); toast(app.t('code.voice_exists', { id }), true); return; }
   const text = sheet.serialize(current.model);
   const result = await app.api.save(id, text);
   toast(codeText(result), !result.ok);
@@ -366,14 +402,12 @@ async function importFile(file) {
   if (!(await leaveCurrent())) return;
   const text = await file.text();
   let result = await app.api.importSheet(file.name, text);
-  while (!result.ok && result.code === 'voice_exists') {
-    const newId = await askBar(app.el.notice, app.t, {
-      message: app.t('import.exists', { name: file.name }), label: app.t('who.id'), ok: app.t('import.ok'),
-      value: `${voice.slug(file.name.replace(/\.txt$/i, ''), 'voice')}_2`,
-      check: (v) => (ID_RE.test(v) ? (entryOf(v) ? app.t('code.voice_exists', { id: v }) : null) : app.t('code.bad_id')),
-    });
-    if (newId === null) return;
-    result = await app.api.importSheet(file.name, text, newId);
+  if (!result.ok && result.code === 'voice_exists') {
+    // X15: one button, the next free id made from the file's name.
+    const yes = await confirmBar(app.el.notice, app.t, { message: app.t('import.exists', { name: file.name }),
+      yes: app.t('import.as_new') });
+    if (!yes) return;
+    result = await app.api.importSheet(file.name, text, voice.voiceId(file.name.replace(/\.txt$/i, ''), takenIds()));
   }
   toast(codeText(result), !result.ok);
   if (result.ok) {
@@ -408,7 +442,8 @@ function showWelcome() {
   clear(app.el.main).append(h('article', { class: 'welcome' },
     h('h2', { text: app.t('welcome.title') }),
     h('p', { text: app.t('welcome.text') }),
-    h('ol', { class: 'howto' }, ['welcome.step1', 'welcome.step2', 'welcome.step3'].map((k) => h('li', { text: app.t(k) }))),
+    h('ol', { class: 'howto' }, ['welcome.step1', 'welcome.step2', 'welcome.step3'].map((k) => h('li', {},
+      h('span', { class: 'howto-icon', 'aria-hidden': 'true', text: app.t(`${k}.icon`) }), h('span', { text: app.t(k) })))),
     app.el.notice,
     h('div', { class: 'btns start' }, button('primary', { onClick: showNewVoice }, app.t('voices.new')))));
 }
@@ -426,7 +461,7 @@ function showView(view) {
 function renderShell() {
   const t = app.t;
   document.title = t('app.title');
-  app.el.importButton = button('neutral', { id: 'import' }, t('import.button'));
+  app.el.importButton = button('neutral', { id: 'import', title: t('import.button_help') }, t('import.button'));
   app.el.side = h('aside', { class: 'side' });
   app.el.main = h('main', { class: 'main', id: 'main' });
   app.journal = createJournal({ api: app.api, t, voiceIds: () => app.voices.map((v) => v.id) });

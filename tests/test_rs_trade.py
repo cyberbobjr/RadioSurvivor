@@ -371,7 +371,7 @@ class OfferTests(TradeHarness):
         # Gus cite des objets absents de cette source : sa fiche est refusée, avec la ligne du premier.
         refused = persona.parseLines(self.rt.table_from(GUS.read_text(encoding='utf-8').splitlines()), 'gus', rules)
         self.assertRegex(refused[1], r"^line \d+: unknown trade item 'Base\.\w+' \(no item script of that type\)$")
-        sheet = persona.parseLines(self.rt.table_from(['format=1', 'id=gus', 'name=Gus', 'frequencies=160.0',
+        sheet = persona.parseLines(self.rt.table_from(['format=1', 'id=gus', 'name=Gus', 'frequency=160.0',
                                                        'actions=say,propose_trade', '[place pier]', 'at=1,2,0',
                                                        'label=Pier', 'use=landing', '[trade]', 'landing=pier',
                                                        'arrival=boat', 'every_days=7', 'hours=01:00-03:00',
@@ -675,7 +675,7 @@ class ServerChainTests(unittest.TestCase):
             folder = exchange / 'personas'
             folder.mkdir(parents=True)
             (folder / 'gus.txt').write_text(
-                'format=1\nid=gus\nname=Gus Bench\nfrequencies=160.0\nactions=say,propose_trade\n'
+                'format=1\nid=gus\nname=Gus Bench\nfrequency=160.0\nactions=say,propose_trade\n'
                 '[place pier]\nat=6041,5217,0\nlabel=Bench pier\nuse=landing\n'
                 '[trade]\nlanding=pier\narrival=boat\nevery_days=7\nhours=01:00-03:00\n'
                 'item=Base.Battery:4-12\nitem=Base.Antibiotics:2-6\naccept=Base.MoneyBundle\n[prompt]\n'

@@ -1,10 +1,9 @@
 # « Night Owl », Lyle Ferrand : le chroniqueur de la station pirate (E05-T04, format docs/persona-format.md).
 # Le mod livre une copie identique (Contents/mods/batman_RadioSurvivor/42.21/personas/nightowl.txt).
-# - deux fréquences tirées au hasard à chaque nouvelle partie (E05-T07 ; 106.2 et 112.4 ne sont plus que des
-#   exemples) : une dans 88.0-107.8 MHz (FM : radios et autoradios ordinaires l'entendent sans pouvoir répondre,
-#   tous les talkies et les radios HAM y parlent) et une dans 109.0-114.8 MHz (tous les talkies et les radios HAM,
-#   aucune radio FM). Les stations vanilla, l'alerte d'urgence (AEBS) de la partie et 108.0 (Opération Artemis)
-#   ne sont jamais tirées ;
+# - radio nécessaire (E24-T01) : n'importe quel talkie (talkie jouet ou bricolé, 75-150 MHz : tout le monde
+#   l'entend) ; fréquence libre tirée à chaque nouvelle partie dans la zone de cette radio, que les radios plus
+#   simples ne captent pas, mémorisée pour la partie ;
+#   les stations vanilla et l'alerte d'urgence (AEBS) de la partie ne sont jamais tirées ;
 # - écoute 19:00-22:00 (heure du jeu), qui contient l'heure prévue du bulletin du soir (E14) ; hors carte ;
 # - il ne raconte que les faits fournis par le serveur (E14) : aucun bulletin inventé ;
 # - call_one_in=0 : le bulletin du soir (E14) remplacera l'appel spontané ; seule action say ; aucun budget propre.
@@ -12,8 +11,7 @@ format=1
 id=nightowl
 name=Lyle Ferrand
 language=en
-frequency_range=88.0-107.8, 109.0-114.8
-radio=any
+radio=any_talkie
 listen=19:00-22:00
 location=none
 actions=say

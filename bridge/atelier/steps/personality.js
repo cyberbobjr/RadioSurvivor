@@ -1,29 +1,58 @@
-// Step 3, personality: allowed actions (plain words), voices she may pass on, and the English personality text
-// ([prompt], the only place of her character and past), which the bridge's AI can write from a few sentences
-// (E22-T06, ai.js).
+// Step 3, personality: what the voice can do (action cards, "Talk" always on), the voices she may pass on, the language
+// her personality is written in (language=, E24-T02 user decision: English by default, French allowed, the AI that
+// plays her reads both; the text is kept as written) and the personality text itself ([prompt], the only place of her
+// character and past), which the bridge's AI can write from a few sentences (E22-T06, ai.js).
 
 import { personalityPanel } from '../ai.js';
 import { h } from '../dom.js';
-import { choiceTopics, hint, withHint } from '../help.js';
+import { hint } from '../help.js';
 import * as sheet from '../sheet.js';
+import * as story from '../story.js';
 import { formatList, parseList } from '../values.js';
-import { checkboxes, choice, row } from '../widgets.js';
+import { PROMPT_LANGUAGES, starterPrompt } from '../voice.js';
+import { cards, checkboxes, choice, row } from '../widgets.js';
 
 // Head key an action brings with it: shown only while the action is allowed.
 const ACTION_KEYS = { share_frequency: 'shares' };
+// Action every voice has: shown ticked and locked.
+const ALWAYS = 'say';
+// Actions not offered as cards: the game refuses them in a sheet for now (signal, place_scene), keeps them to the
+// notebook's own missions (place_cache) or gives them with start_mission (report_mission). A sheet that names one keeps it.
+const NOT_OFFERED = new Set(['signal', 'place_scene', 'place_cache', 'report_mission']);
+const DEFAULT_LANGUAGE = 'en';
+
+// Language of the personality text: a card per language; an untouched starter text follows the language picked.
+function languageCards({ model, t, changed, rerender }, id) {
+  const head = model.head;
+  const current = sheet.value(head, 'language') ?? DEFAULT_LANGUAGE;
+  const options = PROMPT_LANGUAGES.map((lang) => ({ value: lang, label: t(`personality.lang.${lang}`),
+    help: t(`personality.lang.${lang}.help`), icon: t(`personality.lang.${lang}.icon`) }));
+  return cards('prompt-language', options, current, (lang) => {
+    const name = sheet.value(head, 'name') ?? '';
+    if (sheet.promptText(model).trim() === starterPrompt(name, current).trim()) sheet.setPromptText(model, starterPrompt(name, lang));
+    sheet.setValue(head, 'language', lang);
+    changed();
+    rerender();
+  }, { id, class: 'compact' });
+}
 
 export default {
   id: 'personality',
-  fields: ['actions', 'shares', 'budget'],
+  fields: ['actions', 'shares', 'budget', 'language'],
   blocks: ['prompt'],
-  render({ model, catalog, t, voiceId, voices, ai, changed, rerender }) {
+  render(ctx) {
+    const { model, catalog, t, voiceId, voices, ai, changed, rerender } = ctx;
     const head = model.head;
+    const language = sheet.value(head, 'language') ?? DEFAULT_LANGUAGE;
     const writer = personalityPanel({ ai, t, voiceId, name: sheet.value(head, 'name') ?? '',
       description: sheet.description(model),
       currentPrompt: () => sheet.promptText(model),
-      usePrompt: (text) => { sheet.setPromptText(model, text); changed(); rerender(); } });
-    const actions = parseList(sheet.value(head, 'actions') ?? 'say');
-    const options = (catalog.headerChoices('actions') ?? []).map((v) => withHint(t, 'help.head.actions', choice(t, 'action', v)));
+      // the story lines of the missions (story.js) stay: the AI does not know them
+      usePrompt: (text) => { sheet.setPromptText(model, story.carry(sheet.promptText(model), text)); changed(); rerender(); } });
+    const actions = parseList(sheet.value(head, 'actions') ?? ALWAYS);
+    const options = (catalog.headerChoices('actions') ?? []).filter((v) => !NOT_OFFERED.has(v))
+      .map((v) => ({ ...choice(t, 'action', v), label: `${t(`action.${v}.icon`)} ${t(`action.${v}`)}`, locked: v === ALWAYS,
+        hint: hint(t, `help.head.actions.${v}`, { label: t(`action.${v}`) }) }));
     const others = voices.filter((v) => v.id !== voiceId && !v.removed)
       .map((v) => ({ value: v.id, label: v.name || v.id }));
     const extras = Object.entries(ACTION_KEYS).filter(([action]) => actions.includes(action)).map(([action, key]) =>
@@ -33,19 +62,21 @@ export default {
       }, { class: 'checks cols' }), t(`personality.${key}_help`, {}, t(`action.${action}.help`)),
       hint(t, `help.head.${key}`, { label: t(`personality.${key}`) })));
     return h('div', { class: 'form' },
-      h('p', { class: 'q', text: t('personality.question') }),
       row(t('personality.actions'), () => checkboxes(options, actions, (list) => {
-        sheet.setValue(head, 'actions', formatList(list));
+        sheet.setValue(head, 'actions', formatList([ALWAYS, ...list.filter((a) => a !== ALWAYS)]));
         changed();
         rerender();
-      }, { class: 'checks cols' }), t('personality.actions_help'),
-      hint(t, 'help.head.actions', { label: t('personality.actions'), choices: choiceTopics('help.head.actions', options) })),
+      }, { class: 'checks cols action-cards' }), t('personality.actions_help'),
+      hint(t, 'help.head.actions', { label: t('personality.actions') })),
       extras,
+      row(t('personality.language'), (id) => languageCards(ctx, id), t('personality.language_help'),
+        hint(t, 'help.head.language', { label: t('personality.language') })),
       row(t('personality.prompt'), (id) => h('div', { class: 'stack' },
-        h('textarea', { id, class: 'prompt', rows: 14, spellcheck: 'true', lang: 'en', value: sheet.promptText(model),
-          onInput: (e) => { sheet.setPromptText(model, e.target.value); changed(); } }),
         h('div', { class: 'inline' }, writer.button,
           !ai.available && h('small', { class: 'muted', text: t('ai.unavailable_short') })),
-        writer.panel), t('personality.prompt_help'), hint(t, 'help.ui.prompt', { label: t('personality.prompt') })));
+        writer.panel,
+        h('textarea', { id, class: 'prompt', rows: 14, spellcheck: 'true', lang: language, value: sheet.promptText(model),
+          onInput: (e) => { sheet.setPromptText(model, e.target.value); changed(); } })),
+      t('personality.prompt_help'), hint(t, 'help.ui.prompt', { label: t('personality.prompt') })));
   },
 };

@@ -1,8 +1,8 @@
 # Gus Lacombe : le passeur de la rive de l'Indiana (E05-T04, format docs/persona-format.md).
 # Le mod livre une copie identique (Contents/mods/batman_RadioSurvivor/42.21/personas/gus.txt).
-# - fréquence tirée au hasard dans 150.2-199.8 MHz à chaque nouvelle partie (E05-T07 ; 156.6, proche du canal
-#   marine 72, n'est plus qu'un exemple) : talkies 2 à 5 et radios HAM, pas le talkie 1 ni le talkie bricolé
-#   (75-150). Recoupe la bande de diffusion de Military Drop : une fréquence déjà prise n'est jamais tirée ;
+# - radio nécessaire (E24-T01) : un bon talkie (ValuTech, 50-200 MHz, ou mieux) ; fréquence libre tirée à chaque
+#   nouvelle partie dans la zone de cette radio, que les radios plus simples ne captent pas, mémorisée pour la
+#   partie ;
 # - écoute 03:00-06:00 (heure du jeu), avant l'aube ; hors carte (rive de l'Indiana) ;
 # - troc (E13-T02, E13-T03, E20-T07) : action propose_trade et section [trade] (ponton de Riverside use=landing,
 #   arrivée en barque, un passage par semaine, rendez-vous de 01:00 à 03:00, stock) ; le serveur joint son livre
@@ -16,8 +16,7 @@ format=1
 id=gus
 name=Gus Lacombe
 language=en
-frequency_range=150.2-199.8
-radio=any
+radio=good_talkie
 listen=03:00-06:00
 location=none
 actions=say,propose_trade,share_frequency

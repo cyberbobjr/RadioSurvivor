@@ -9,16 +9,17 @@ what it needs: the voices of the mod stay as delivered, except Walt, changed for
 Muldraugh water tower: two places, two missions, rewards, a handwritten note and a spontaneous call), is written into
 that temporary folder first, with a fake survey file of the game, a fake game console and a few bridge log lines.
 Then, per locale (fr-FR, en-US) at 1280x800, it opens the page and writes atelier-<lang>-NN-<subject>.png:
-01-voice (list and step 1), 02-where, 03-personality (help popover), 04-missions, 04b-places ("recorded in game"),
+01-voice (list and step 1), 02-where (the radio cards, E24-T01), 03-personality (help popover), 04-missions, 04b-places ("recorded in game"),
 04c-place-map (a place card with its link to the community map),
 05-rewards, 06-trade (a shipped trader), 07-note, 08-try (test conversation), 09-journal, 10-refused (game banner),
 11-login (login page of the network mode, E22-T15), and for the reference page 13 (E22-T16): 12-new (new voice
-form), 13-restore (a changed voice of the mod, "back to the mod's version" asked), 14-import (import of an id that
-exists), 15-browser (item browser), 16-ai-personality ("Write it with the AI" with its answer), 17-saved (saved, the
+form, a voice type picked), 13-restore (a changed voice of the mod, "back to the original" asked), 14-import (import of a
+voice whose name exists: "import as a new voice"), 15-browser (item browser), 16-ai-personality ("Write it with the AI" with its answer), 17-saved (saved, the
 game reads it again).
 The four example voices of the wiki page 14 are loaded from that page itself (```persona blocks, read by
 tests/test_wiki_voice_examples.py) and photographed under exemples/: 21-opal-where, 22-tibbs-missions,
-23-tibbs-rewards, 24-sol-trade, 25-wendell-trade.
+23-tibbs-rewards, 24-sol-trade, 25-wendell-trade, 26-wendell-where (his fixed frequency and the badge of the radio
+it needs, E24-T01).
 The stub answers "Try the voice" with one fixed line in the language of the page (the fake LLM of tools/fake_llm
 answers in English only outside the game), and "Write it with the AI" with a fixed English personality.
 Every sheet written is checked by the real game reader (RS_Persona.lua in lupa) before the pictures are taken.
@@ -99,8 +100,7 @@ format=1
 id=rosie
 name=Rosie Calloway
 language={lang}
-frequency_range=50.0-54.8
-radio=any
+radio=good_talkie
 listen=06:00-09:00,19:00-23:00
 location=none
 actions=say,mark_map,start_mission,share_frequency
@@ -164,7 +164,7 @@ format=1
 id=tommy
 name=Tommy Reyes
 language={lang}
-frequency_range=56.0-58.8
+radio=good_talkie
 listen=8:00-12:00
 actions=say
 
@@ -237,7 +237,7 @@ def write_sheets(working: Path, lang: str) -> None:
 
 def console_lines(tommy_line: int) -> str:
     prefix = 'LOG  : General      f:0> [batman_RadioSurvivor]     [RadioSurvivor] personas: '
-    return (f"{prefix}voice 'rosie' loaded: state active, frequencies 52.4\n"
+    return (f"{prefix}voice 'rosie' loaded: state active, radio good_talkie\n"
             f'{prefix}ERROR: batman_RadioSurvivor/personas/tommy.txt refused, line {tommy_line}: {TOMMY_REASON}\n')
 
 
@@ -280,7 +280,11 @@ def fold_open(page, title: str):
 
 
 def pill(page, n: int) -> None:
-    page.locator('.pill').nth(n).click()
+    """Opens step n (0-based); a step the voice does not use yet is folded: "All steps" shows it first."""
+    step = page.locator('.pill[data-step]').nth(n)
+    if step.is_hidden():
+        page.locator('#all-steps').click()
+    step.click()
     page.mouse.move(0, 0)
     page.evaluate('window.scrollTo(0, 0)')
 
@@ -332,9 +336,10 @@ def run_locale(browser, locale: str, lang: str, out: Path, provider: StubProvide
             page.mouse.move(0, 0)
             shoot(page, out, f'atelier-{lang}-01-voice.png')
 
-            pill(page, 1)                                                        # where and when, down to the call
-            page.get_by_label(t['where.call'], exact=True).evaluate("e => e.scrollIntoView({block: 'end'})")
-            page.evaluate('window.scrollBy(0, 40)')
+            pill(page, 1)                                                        # where and when: the radio cards
+            expect(page.locator('label.radio-card')).to_have_count(5)
+            page.evaluate('window.scrollTo(0, 0)')
+            page.mouse.move(0, 0)
             shoot(page, out, f'atelier-{lang}-02-where.png')
 
             pill(page, 2)                                                        # personality, with a help popover
@@ -379,7 +384,7 @@ def run_locale(browser, locale: str, lang: str, out: Path, provider: StubProvide
             pill(page, 4)
             trade = page.locator('details.fold', has_text=t['advanced.trade.enable'])
             trade.locator(':scope > summary').click()
-            expect(trade.locator('.stock-line').first.locator('.item-kg')).not_to_have_text('')
+            expect(trade.locator('.stock-line').first.locator('.item-name')).not_to_have_text('')
             scroll_to(page, trade)
             shoot(page, out, f'atelier-{lang}-06-trade.png')
 
@@ -436,7 +441,7 @@ def shoot_reference(page, out: Path, lang: str, provider: StubProvider, working:
     page.locator('#tab-voices').click()                                  # 12-new: the new voice form, filled
     page.locator('#new-voice').click()
     page.locator('#new-name').fill(local['new_name'])
-    expect(page.locator('#new-id')).to_have_value(local['new_name'].split(' ')[0].lower())
+    page.locator('label.choice-card[data-value="missions"]').click()      # the voice type ticks its actions
     shoot_region(page, out, f'atelier-{lang}-12-new.png', page.locator('article.welcome'))
 
     with changed_walt(page, working):                                    # 13-restore: a changed voice of the mod
@@ -452,8 +457,8 @@ def shoot_reference(page, out: Path, lang: str, provider: StubProvider, working:
     open_voice(page, 'Rosie Calloway')                                   # 14-import: this id exists already
     page.locator('input[type=file]').set_input_files(
         files=[{'name': 'rosie.txt', 'mimeType': 'text/plain', 'buffer': rosie}])
-    ask = page.locator('.notice[role=dialog]')
-    expect(ask).to_be_visible()
+    ask = page.locator('.notice[role=alertdialog]')
+    expect(ask).to_contain_text(t['import.as_new'])                     # one button, no id to type
     page.evaluate('window.scrollTo(0, 0)')
     shoot_region(page, out, f'atelier-{lang}-14-import.png', page.locator('#main .toolbar'), ask)
     ask.get_by_role('button', name=t['dialog.cancel']).click()
@@ -462,7 +467,7 @@ def shoot_reference(page, out: Path, lang: str, provider: StubProvider, working:
     pill(page, 4)
     trade = page.locator('details.fold', has_text=t['advanced.trade.enable'])
     trade.locator(':scope > summary').click()
-    trade.get_by_role('button', name=t['browser.add_items']).first.click()
+    trade.get_by_role('button', name=t['trade.add_sold']).first.click()
     browser = page.locator('dialog.item-browser')
     browser.locator('.browser-search').fill('whisky')
     expect(browser.locator('[role=option]').first).to_be_visible()
@@ -509,6 +514,7 @@ def shoot_examples(page, out: Path, lang: str) -> None:
     shoot_region(page, out, f'atelier-{lang}-22-tibbs-missions.png', cards.first, cards.last)
 
     pill(page, 4)                                                        # rewards and own category
+    fold_open(page, t['advanced.options'])
     own = fold_open(page, t['advanced.category'])
     page.evaluate('window.scrollTo(0, 0)')
     shoot_region(page, out, f'atelier-{lang}-23-tibbs-rewards.png', page.locator('.card.reward').first, own)
@@ -518,8 +524,14 @@ def shoot_examples(page, out: Path, lang: str) -> None:
         pill(page, 4)
         trade = page.locator('details.fold', has_text=t['advanced.trade.enable'])
         trade.locator(':scope > summary').click()
-        expect(trade.locator('.stock-line').first.locator('.item-kg')).not_to_have_text('')
+        expect(trade.locator('.stock-line, article.paquet').first).to_be_visible()
         shoot_region(page, out, f'atelier-{lang}-{picture}.png', trade)
+
+    open_voice(page, 'Wendell Ames')                                     # his fixed frequency and its badge
+    pill(page, 1)
+    badge = page.locator('.radio-badge')
+    expect(badge).to_contain_text(t['radio.pro_talkie.name'])
+    shoot_region(page, out, f'atelier-{lang}-26-wendell-where.png', page.locator('.radio-editor'))
 
 
 def shoot_login(browser, locale: str, lang: str, out: Path) -> None:

@@ -4,10 +4,11 @@ rs.voices - the network of radio voices on the authority (E05-T06). Two suites, 
 
 rs.voices (tag "server", read only: no file, channel or game state is changed)
     - every voice sheet installed in Zomboid/Lua/batman_RadioSurvivor/personas/ is valid, and the voice in service
-      is the one of the file: state, radio, listening hours, frequencies or ranges read from it (a delivered sheet
+      is the one of the file: state, radio, listening hours, fixed frequency read from it (a delivered sheet
       changed by the admin is only noted);
-    - every active or silent voice holds one channel per frequency of this game, on the frequency drawn in its
-      range (0.2 MHz step), and that channel is the voice's own; gone or dead voices hold none;
+    - every active or silent voice holds one channel, on its fixed frequency or on the frequency drawn in the zone of
+      its radio (RS_RadioLevels, 0.2 MHz step, E24-T01), and that channel is the voice's own; gone or dead voices hold
+      none;
     - drawn frequencies are free of every other radio channel (vanilla, emergency broadcast of GameTime ModData,
       other mods) and at least Personas.MIN_GAP_KHZ apart between voices;
     - no channel name of a voice is listed (the list reaches every client at login, E05-T08);
@@ -19,8 +20,9 @@ rs.voices.world (tags "world" and "server": save named rstest* only)
     - a phrase said on the frequency of each voice reaches the bridge with voice=<id> when the voice is active and
       listening at the current game hour, silence otherwise (silent voice, out of hours); a phrase on a free
       frequency gives silence and no request;
-    - a voice sheet radio=high_tier (probe sheet rstest_voices.txt, on a free frequency that an ordinary walkie can
-      reach) is silent to an ordinary walkie (Base.WalkieTalkie1) and answers a high-tier one (Base.WalkieTalkie5);
+    - a voice sheet radio=tactical (probe sheet rstest_voices.txt, frequency drawn in the zone of its radio) is out
+      of reach of the simplest walkie (Base.WalkieTalkie1: silence) and answers the radio it needs
+      (Base.WalkieTalkie4);
     - an installed sheet changed while the game runs (its name= line, a harmless field) is picked up by the
       periodic reload (Personas.RELOAD_MS) without touching its channels, then restored.
 
@@ -56,7 +58,9 @@ require "RST/RST_ModRadioSurvivor"
 local PROBE_ID = "rstest_voices"
 local BACKUP_PREFIX = "batman_RadioSurvivor/rstest_voices_backup_"
 local RELOAD_VOICE = "walt"
-local LOW_RADIO, HIGH_RADIO = "Base.WalkieTalkie1", "Base.WalkieTalkie5"
+-- Simplest walkie (level any_talkie), the walkie of the level tactical, a walkie that reaches every frequency.
+local LOW_RADIO, TACTICAL_RADIO, HIGH_RADIO = "Base.WalkieTalkie1", "Base.WalkieTalkie4", "Base.WalkieTalkie5"
+local PROBE_LEVEL = "tactical"
 local DELIVERED_FALLBACK = { "cody", "darlene", "gus", "nightowl", "walt", "whitaker" }
 local STEP_KHZ = 200
 
@@ -188,17 +192,10 @@ local function freeFrequency(P, m, low, high)
     return nil
 end
 
-local function inRanges(sheet, khz)
-    if #sheet.frequency_ranges == 0 then
-        for _, f in ipairs(sheet.frequencies) do
-            if f == khz then return true end
-        end
-        return false
-    end
-    for _, range in ipairs(sheet.frequency_ranges) do
-        if khz >= range.low and khz <= range.high and (khz - range.low) % STEP_KHZ == 0 then return true end
-    end
-    return false
+-- Fixed frequency of the sheet, or a frequency of the zone of its radio on the step of the radios (E24-T01).
+local function inZone(sheet, khz)
+    if sheet.frequency then return khz == sheet.frequency end
+    return require("RadioSurvivor/RS_RadioLevels").inZone(sheet.radio, khz) and khz % STEP_KHZ == 0
 end
 
 local function listenLabel(sheet)
@@ -253,12 +250,11 @@ local function newTalker(t, Const)
     return talker
 end
 
-local function newRadio(t, fullType, highTier)
+local function newRadio(t, fullType)
     local radio = instanceItem(fullType)
     t:ok(radio ~= nil and instanceof(radio, "Radio"), "instanceItem(" .. fullType .. ") is not a Radio")
     local data = radio:getDeviceData()
     t:ok(data ~= nil and data:getIsTwoWay() == true, fullType .. " is not a two-way radio")
-    t:eq(highTier, data:getIsHighTier() == true, "getIsHighTier of " .. fullType)
     return radio
 end
 
@@ -382,8 +378,7 @@ RST.suite("rs.voices", { tags = { "server" } }, function(s)
                 t:ok(sheet ~= nil, "installed sheet " .. id .. ".txt refused: " .. tostring(err)
                     .. " (an older valid version is in service)")
                 local live = P.get(id)
-                for _, field in ipairs({ "state", "radio", "listen", "frequencies", "frequency_ranges", "budget",
-                    "call_one_in" }) do
+                for _, field in ipairs({ "state", "radio", "listen", "frequency", "budget", "call_one_in" }) do
                     t:eq(sheet[field], live[field], "voice " .. id .. ": " .. field .. " in service differs from the file")
                 end
                 local bundled = bundledLines(P, id)
@@ -394,7 +389,7 @@ RST.suite("rs.voices", { tags = { "server" } }, function(s)
         end
     end)
 
-    s.test("each voice holds its own channel on the frequency drawn in its range", function(t)
+    s.test("each voice holds its own channel on its frequency, drawn for its radio or fixed", function(t)
         local P = authority(t)
         local m = manager(t)
         for _, id in ipairs(P.ids()) do
@@ -402,12 +397,10 @@ RST.suite("rs.voices", { tags = { "server" } }, function(s)
             local frequencies = P.frequencies(id)
             local served = P.served(id)
             if P.holdsFrequencies(sheet) then
-                local expected = #sheet.frequency_ranges
-                if expected == 0 then expected = #sheet.frequencies end
-                t:eq(expected, #frequencies, "voice " .. id .. ": one frequency per range or fixed frequency")
+                t:eq(1, #frequencies, "voice " .. id .. ": one frequency, drawn for its radio or fixed")
                 t:eq(frequencies, served, "voice " .. id .. ": frequencies not all served (conflict or taken: see the log)")
                 for _, khz in ipairs(served) do
-                    t:ok(inRanges(sheet, khz), "voice " .. id .. ": " .. label(khz) .. " MHz outside its ranges or step")
+                    t:ok(inZone(sheet, khz), "voice " .. id .. ": " .. label(khz) .. " MHz outside the zone of its radio")
                     local channel = m:getRadioChannel(P.CHANNEL_PREFIX .. id .. "-" .. tostring(khz))
                     t:ok(channel ~= nil, "voice " .. id .. ": no channel on " .. label(khz) .. " MHz")
                     t:eq(khz, channel:GetFrequency(), "voice " .. id .. ": frequency of its channel")
@@ -438,7 +431,7 @@ RST.suite("rs.voices", { tags = { "server" } }, function(s)
             for _, khz in ipairs(P.served(id)) do
                 t:ok(foreign[khz] == nil, "voice " .. id .. " on " .. label(khz) .. " MHz, also used by channel '"
                     .. tostring(foreign[khz]) .. "'")
-                held[#held + 1] = { id = id, khz = khz, drawn = #P.get(id).frequency_ranges > 0 }
+                held[#held + 1] = { id = id, khz = khz, drawn = P.get(id).frequency == nil }
             end
         end
         t:ok(#held > 0, "no voice holds a frequency")
@@ -487,7 +480,7 @@ RST.suite("rs.voices.world", { tags = { "world", "server" }, testTimeoutMs = 120
         local P, Const = authority(t)
         local m = manager(t)
         local talker = newTalker(t, Const)
-        local radio = newRadio(t, HIGH_RADIO, true)
+        local radio = newRadio(t, HIGH_RADIO)
         local steps = {}
         for _, id in ipairs(P.ids()) do
             local khz = P.served(id)[1]
@@ -530,9 +523,8 @@ RST.suite("rs.voices.world", { tags = { "world", "server" }, testTimeoutMs = 120
         chain(t, steps, 1, function(t2) t2:ok(true, "all phrases checked") end)
     end)
 
-    s.test("ordinary radio refused by a high_tier voice, high-tier radio answered", function(t)
+    s.test("simplest walkie out of reach of a tactical voice, the radio it needs answered", function(t)
         local P, Const = authority(t)
-        local m = manager(t)
         local path = P.DIR .. "/" .. PROBE_ID .. ".txt"
         t:defer(function(t2)
             writeLines(t2, path, {})
@@ -540,22 +532,25 @@ RST.suite("rs.voices.world", { tags = { "world", "server" }, testTimeoutMs = 120
             t2:ok(P.get(PROBE_ID) == nil, "probe voice still loaded after emptying its sheet")
         end, "empty the probe sheet")
         local talker = newTalker(t, Const)
-        local low = newRadio(t, LOW_RADIO, false)
-        local high = newRadio(t, HIGH_RADIO, true)
-        local data = low:getDeviceData()
-        local khz = freeFrequency(P, m, data:getMinChannelRange(), math.min(data:getMaxChannelRange(), 999800))
-        t:ok(khz ~= nil, "no free frequency within the range of " .. LOW_RADIO)
-        writeLines(t, path, { "format=1", "id=" .. PROBE_ID, "name=RST Voices", "frequencies=" .. label(khz),
-            "radio=high_tier", "listen=always", "state=active", "", "[prompt]", "Test voice of the rs.voices suite." })
+        local low = newRadio(t, LOW_RADIO)
+        local tactical = newRadio(t, TACTICAL_RADIO)
+        writeLines(t, path, { "format=1", "id=" .. PROBE_ID, "name=RST Voices", "radio=" .. PROBE_LEVEL,
+            "listen=always", "state=active", "", "[prompt]", "Test voice of the rs.voices suite." })
         P.reload()
-        t:ok(P.isServed(PROBE_ID, khz), "probe voice not served on " .. label(khz) .. " MHz (see the log)")
-        t:note("probe radio=high_tier on " .. label(khz) .. " MHz")
+        local khz = P.served(PROBE_ID)[1]
+        t:ok(khz ~= nil, "probe voice not served (no free frequency for the radio " .. PROBE_LEVEL .. "? see the log)")
+        local reach = low:getDeviceData()
+        local lowest, highest = reach:getMinChannelRange(), reach:getMaxChannelRange()
+        t:ok(khz < lowest or khz > highest,
+            LOW_RADIO .. " tunes " .. label(khz) .. " MHz, drawn for the radio " .. PROBE_LEVEL)
+        t:note("probe radio=" .. PROBE_LEVEL .. " on " .. label(khz) .. " MHz")
         chain(t, {
             function(t2, continue)
-                return phrase(t2, talker, Const, low, khz, nil, LOW_RADIO .. " on a high_tier voice", continue)
+                return phrase(t2, talker, Const, low, khz, nil, LOW_RADIO .. " on a " .. PROBE_LEVEL .. " voice", continue)
             end,
             function(t2, continue)
-                return phrase(t2, talker, Const, high, khz, PROBE_ID, HIGH_RADIO .. " on a high_tier voice", continue)
+                return phrase(t2, talker, Const, tactical, khz, PROBE_ID, TACTICAL_RADIO .. " on a " .. PROBE_LEVEL
+                    .. " voice", continue)
             end,
         }, 1, function(t2) t2:ok(true, "both radios checked") end)
     end)

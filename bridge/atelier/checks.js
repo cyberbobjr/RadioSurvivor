@@ -7,7 +7,7 @@
 
 import { categoryIds, categoryTypes } from './categories.js';
 import * as sheet from './sheet.js';
-import { isInteger, isTime, overlaps, parseBands, parseHours, parseList, parsePool, parseStockItem } from './values.js';
+import { isInteger, isTime, parseHours, parseList, parsePool, parseStockItem, sheetFrequency } from './values.js';
 
 const ITEM_RE = /^[A-Za-z0-9_]+\.[A-Za-z0-9_]+$/;
 const SECTION_ID_RE = /^[a-z0-9_]{1,32}$/;
@@ -83,27 +83,36 @@ function checkBlock(block, grammar, extraKeys, where, out) {
   }
 }
 
+// Where the voice is heard (E24-T01): the radio it needs (radio=, a free frequency drawn in its zone at each new game) or
+// one fixed frequency (frequency=), exactly one of them; a fixed frequency on the step of every radio, inside their
+// bounds, and never the fixed frequency of another voice.
+function checkFrequency(head, catalog, voiceId, where, out) {
+  const radio = sheet.value(head, 'radio');
+  const text = sheet.value(head, 'frequency');
+  const at = (field) => ({ ...where, field });
+  if (!radio && !text) {
+    out.push({ key: 'check.no_frequency', args: {}, where: at('radio') });
+    return;
+  }
+  if (radio && text) out.push({ key: 'check.radio_and_frequency', args: {}, where: at('frequency') });
+  if (!text) return;
+  const khz = sheetFrequency(text);
+  const { min, max, step } = catalog.frequencyBounds();
+  if (khz === null || khz < min || khz > max || khz % step !== 0) {
+    out.push({ key: 'check.bad_frequency', args: { value: text }, where: at('frequency') });
+    return;
+  }
+  for (const other of catalog.fixedFrequencies(voiceId).filter((o) => o.khz === khz)) {
+    out.push({ key: 'check.frequency_taken', args: { name: other.name }, where: at('frequency') });
+  }
+}
+
 function checkHead(model, catalog, voiceId, out) {
   const head = model.head;
   const grammar = catalog.header();
   const where = { block: 'head', id: null };
   checkBlock(head, grammar, (key) => key.startsWith(grammar.budgetPrefix), where, out);
-  const bandText = sheet.value(head, 'frequency_range');
-  if (!bandText && !sheet.value(head, 'frequencies')) {
-    out.push({ key: 'check.no_frequency', args: {}, where: { ...where, field: 'frequency_range' } });
-  }
-  if (bandText) {
-    const bands = parseBands(bandText);
-    if (!bands || bands.some(([lo, hi]) => lo > hi)) {
-      out.push({ key: 'check.bad_band', args: { value: bandText }, where: { ...where, field: 'frequency_range' } });
-    } else {
-      for (const other of catalog.takenBands(voiceId)) {
-        if (bands.some((b) => other.bands.some((t) => overlaps(b, t)))) {
-          out.push({ key: 'check.band_overlap', args: { name: other.name }, where: { ...where, field: 'frequency_range' } });
-        }
-      }
-    }
-  }
+  checkFrequency(head, catalog, voiceId, where, out);
   if (parseHours(sheet.value(head, 'listen')).some(([from, to]) => !isTime(from) || !isTime(to) || from === to)) {
     out.push({ key: 'check.bad_hours', args: {}, where: { ...where, field: 'listen' } });
   }

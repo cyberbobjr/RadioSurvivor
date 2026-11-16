@@ -72,9 +72,3 @@ export function createItemIndex(items = {}, categories = {}) {
       .sort((a, b) => a.label.localeCompare(b.label, lang) || a.value.localeCompare(b.value)),
   };
 }
-
-// "0.1 kg" in the page's language ("0,1 kg" in French).
-export function formatKg(kg, lang) {
-  if (kg === null || kg === undefined) return '';
-  return `${Number(kg).toLocaleString(lang === 'fr' ? 'fr-FR' : 'en-US', { maximumFractionDigits: 2 })} kg`;
-}

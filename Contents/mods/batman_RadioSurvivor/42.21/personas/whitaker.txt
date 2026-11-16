@@ -1,8 +1,8 @@
 # Les Whitaker, voix de Jolene : la famille assiégée, premier secours (E05-T04, format docs/persona-format.md).
 # Le mod livre une copie identique (Contents/mods/batman_RadioSurvivor/42.21/personas/whitaker.txt).
-# - fréquence tirée au hasard dans 75.0-87.8 MHz à chaque nouvelle partie (E05-T07 ; 81.4 n'est plus qu'un
-#   exemple) : tous les talkies et toutes les radios HAM, aucune radio FM (88-108), hors des bandes AEBS et
-#   Military Drop ;
+# - radio nécessaire (E24-T01) : n'importe quel talkie (talkie jouet ou bricolé, 75-150 MHz : tout le monde
+#   l'entend) ; fréquence libre tirée à chaque nouvelle partie dans la zone de cette radio, que les radios plus
+#   simples ne captent pas, mémorisée pour la partie ;
 # - écoute 06:00-21:00 (heure du jeu) : la nuit, la famille éteint tout ;
 # - lieu rescue sans coords : le bâtiment sera choisi par le serveur pour chaque équipe (E12) ;
 # - livrée silencieuse (state=silent) jusqu'aux secours E12 : la chaîne est créée et la fréquence réservée, mais
@@ -15,8 +15,7 @@ format=1
 id=whitaker
 name=Jolene Whitaker
 language=en
-frequency_range=75.0-87.8
-radio=any
+radio=any_talkie
 listen=06:00-21:00
 location=rescue
 actions=say

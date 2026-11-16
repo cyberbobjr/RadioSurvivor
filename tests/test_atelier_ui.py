@@ -84,7 +84,8 @@ def bridge_reads(text: str, voice_id: str):
 
 
 BUILD_SCRIPT = node_prelude() + r"""
-const model = voice.newVoice({ id: 'bench_voice', name: 'Bench Voice', band: [270000, 279800], format: catalog.sheet.format });
+const model = voice.newVoice({ id: 'bench_voice', name: 'Bench Voice', radio: catalog.radioLevels()[0].id,
+  format: catalog.sheet.format });
 sheet.setDescription(model, 'A voice built by the bench, step by step');
 sheet.setValue(model.head, 'listen', '07:00-10:00,22:00-02:00');
 sheet.setValue(model.head, 'actions', 'say,start_mission');
@@ -103,7 +104,7 @@ console.log(JSON.stringify({ text, checks: check(model, catalog, 'bench_voice'),
 
 BROKEN_SHEET = """format=1
 id=broken
-frequency_range=115.0-120.0
+frequency=145.1
 radio=sometimes
 listen=07:00-07:00
 colour=red
@@ -137,7 +138,8 @@ pool=cache:nothing:1, lesson:Juggling:1, frequency:0, gold:1
 """
 
 BROKEN_EXPECTED = {
-    ('check.missing_key', 'name'), ('check.band_overlap', 'Darlene Pruitt'), ('check.bad_choice', 'radio'),
+    ('check.missing_key', 'name'), ('check.radio_and_frequency', None), ('check.bad_frequency', None),
+    ('check.bad_choice', 'radio'),
     ('check.bad_hours', None), ('check.unknown_key', 'colour'), ('check.bad_at', None),
     ('check.unknown_type', None), ('check.needs_target', None), ('check.bad_count', 'count'),
     ('check.unknown_mission', None), ('check.needs_drop', None), ('check.unknown_category', 'items'),
@@ -179,6 +181,7 @@ console.log(JSON.stringify(out));
         text = built['text']
         self.assertIn('[mission barricade]\ntype=barricade\ntarget=old_mill\ncount=4\nafter=deliver', text)
         self.assertTrue(text.startswith('# A voice built by the bench, step by step\nformat=1\nid=bench_voice\n'))
+        self.assertIn('\nradio=any_talkie\n', text)   # E24-T01: default radio, everybody hears it
         status, detail = game_reads(text, 'bench_voice')
         self.assertEqual(status, 'OK', f'game reader refused the built sheet: {detail}\n{text}')
         sheet = bridge_reads(text, 'bench_voice')
@@ -197,21 +200,60 @@ console.log(JSON.stringify(check(model, catalog, 'broken')));
         self.assertLessEqual(expected_names, keys)
         self.assertTrue(all(c['where']['block'] for c in found))
 
+    def test_radio_levels_and_the_radio_a_fixed_frequency_needs(self):
+        """E24-T01: the five radio levels of the mod, weakest first; the radio a fixed frequency needs is the weakest
+        level that tunes it, as RS_RadioLevels.levelOf."""
+        script = node_prelude() + """
+console.log(JSON.stringify({ ids: catalog.radioLevels().map((l) => l.id), bounds: catalog.frequencyBounds(),
+  levels: [145000, 75000, 150200, 49800, 300200, 7200, 1000000, 1000200, 0].map(catalog.levelOf) }));
+"""
+        got = run_node(script)
+        self.assertEqual(got['ids'], ['any_talkie', 'good_talkie', 'pro_talkie', 'tactical', 'military'])
+        self.assertEqual(got['bounds'], {'min': 200, 'max': 1000000, 'step': 200})
+        self.assertEqual(got['levels'], ['any_talkie', 'any_talkie', 'good_talkie', 'pro_talkie', 'tactical',
+                                         'military', 'military', None, None])
+
+    def test_radio_or_one_fixed_frequency_checked(self):
+        """E24-T01: exactly one of radio= and frequency=; a fixed frequency on the grid of every radio, never the
+        fixed frequency of another voice."""
+        script = node_prelude() + """
+const other = createCatalog({ ...catalog.data, voices: { ...catalog.data.voices,
+  zed: { name: 'Zed Taken', frequencyKhz: 152000, radio: 'good_talkie', arrival: null } } });
+const head = (lines) => 'format=1\\nid=case\\nname=Case\\n' + lines + '\\n[prompt]\\nHi.\\n';
+const keys = (text, cat = catalog) => check(sheet.parse(text), cat, 'case')
+  .filter((c) => c.where.block === 'head').map((c) => [c.key, c.args.name ?? c.args.value ?? null]);
+console.log(JSON.stringify({
+  radio: keys(head('radio=pro_talkie')), fixed: keys(head('frequency=1000.0')), none: keys(head('language=en')),
+  both: keys(head('radio=military\\nfrequency=7.2')), grid: keys(head('frequency=145.1')),
+  high: keys(head('frequency=1000.2')), low: keys(head('frequency=0.0')), text: keys(head('frequency=abc')),
+  taken: keys(head('frequency=152.0'), other), self: check(sheet.parse(head('frequency=152.0')), other, 'zed')
+    .filter((c) => c.where.block === 'head').map((c) => c.key),
+}));
+"""
+        got = run_node(script)
+        self.assertEqual((got['radio'], got['fixed']), ([], []))
+        self.assertEqual(got['none'], [['check.no_frequency', None]])
+        self.assertEqual(got['both'], [['check.radio_and_frequency', None]])
+        for case, value in (('grid', '145.1'), ('high', '1000.2'), ('low', '0.0'), ('text', 'abc')):
+            with self.subTest(case):
+                self.assertEqual(got[case], [['check.bad_frequency', value]])
+        self.assertEqual(got['taken'], [['check.frequency_taken', 'Zed Taken']])
+        self.assertEqual(got['self'], [], 'the voice being edited never collides with itself')
+
     def test_values_and_helpers_keep_their_shape(self):
         script = node_prelude() + f"""
 import * as values from '{module_url('values.js')}';
 console.log(JSON.stringify({{
-  bands: values.parseBands('115.0-129.8, 88.0-107.8'), back: values.formatBands([[115000, 129800]]),
-  free: values.freeBand([[1000, 50000]]), hours: values.parseHours('07:00-10:00,22:00-02:00'),
+  mhz: ['0.2', '145.0', '1000.0', '145', '145.0.1', '10000.0'].map(values.mhzToKhz), label: values.khzToMhz(1000000),
+  hours: values.parseHours('07:00-10:00,22:00-02:00'),
   always: values.formatHours([]), pool: values.parsePool('cache:medical:1, frequency:1'),
   poolText: values.formatPool([{{ kind: 'lesson', param: 'Doctor', weight: '2' }}, {{ kind: 'stashmap', param: '', weight: '' }}]),
   range: values.formatRange({{ min: '3', max: '3' }}), slug: voice.slug('Dumpster behind the café!', 'place'),
 }}));
 """
         got = run_node(script)
-        self.assertEqual(got['bands'], [[115000, 129800], [88000, 107800]])
-        self.assertEqual(got['back'], '115.0-129.8')
-        self.assertEqual(got['free'], [50200, 60000])
+        self.assertEqual(got['mhz'], [200, 145000, 1000000, 145000, None, None])
+        self.assertEqual(got['label'], '1000.0')
         self.assertEqual(got['hours'], [['07:00', '10:00'], ['22:00', '02:00']])
         self.assertEqual(got['always'], 'always')
         self.assertEqual(got['pool'], [{'kind': 'cache', 'param': 'medical', 'weight': '1'},
@@ -351,7 +393,7 @@ console.log(JSON.stringify({
         self.assertEqual((got['isAxe'], got['isBattery']), (False, True))
 
     def test_check_flags_a_stock_item_the_trader_cannot_sell(self):
-        sheet_text = ('format=1\nid=seller\nname=Seller\nfrequencies=145.0\n\n[trade]\nitem=Base.Axe:1\n'
+        sheet_text = ('format=1\nid=seller\nname=Seller\nfrequency=145.0\n\n[trade]\nitem=Base.Axe:1\n'
                       'item=Base.Battery:2-4\nitem=Mine.Gadget:1\n\n[category kit]\nitem=Base.Axe:1\n\n'
                       '[prompt]\nA trader.\n')
         script = node_prelude() + f"""
@@ -364,7 +406,7 @@ console.log(JSON.stringify(check(model, catalog, 'seller').filter((c) => c.key =
             ('Mine.Gadget', {'block': 'trade', 'id': None, 'field': 'item'}),
         ], 'only the [trade] stock: an own category keeps every item')
 
-    ACCEPT_SHEET = ('format=1\nid=buyer\nname=Buyer\nfrequencies=145.0\n\n[trade]\nitem=Base.Battery:1\n'
+    ACCEPT_SHEET = ('format=1\nid=buyer\nname=Buyer\nfrequency=145.0\n\n[trade]\nitem=Base.Battery:1\n'
                     'accept=cash\naccept=Base.Axe\naccept=kit\naccept=ghost\naccept=Base.Battery\naccept=goods\n\n'
                     '[category kit]\nitem=Base.Axe:1\n\n[category goods]\nitem=Base.Axe:1\nitem=Base.Battery:2\n\n'
                     '[prompt]\nA trader.\n')
@@ -472,6 +514,18 @@ class AtelierStringsTests(unittest.TestCase):
                 # A literal may be the prefix of a family ('choice.state' + '.' + value): some key must extend it.
                 missing = [k for k in keys if k not in strings and not any(s.startswith(k + '.') for s in strings)]
                 self.assertEqual(sorted(missing), [])
+
+    def test_every_radio_level_has_its_card_and_help(self):
+        """E24-T01: a card per radio level of the catalogue (emoji, plain name, who hears it) and its help topic."""
+        levels = [level['id'] for level in json.loads((ATELIER / 'catalog.json').read_text(encoding='utf-8'))['radioLevels']]
+        self.assertEqual(len(levels), 5)
+        for lang in ('fr', 'en'):
+            strings = self.strings(lang)
+            for level in levels:
+                with self.subTest(lang=lang, level=level):
+                    for key in (f'radio.{level}.icon', f'radio.{level}.name', f'radio.{level}.who',
+                                f'help.head.radio.{level}.what'):
+                        self.assertIn(key, strings)
 
     def test_server_codes_are_translated(self):
         server = (ROOT / 'bridge' / 'atelier_server.py').read_text(encoding='utf-8')

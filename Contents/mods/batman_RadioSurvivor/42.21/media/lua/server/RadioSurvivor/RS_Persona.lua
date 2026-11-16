@@ -18,6 +18,7 @@
 if isClient() then return end
 
 local Params = require "RadioSurvivor/RS_PersonaParams"
+local Levels = require "RadioSurvivor/RS_RadioLevels"
 
 local Persona = {}
 
@@ -28,7 +29,8 @@ local REPLACEMENT = "\239\191\189"  -- U+FFFD : octets UTF-8 invalides decodes p
 
 local ACTION_LIST = { "say", "mark_map", "reveal_area", "signal", "place_cache", "place_scene", "start_mission",
     "persona_state", "propose_trade", "report_mission", "share_frequency" }
-local RADIO_LIST = { "any", "high_tier" }
+-- Radio necessaire (E24-T01) : niveaux de RS_RadioLevels, du talkie le plus simple au materiel militaire.
+local RADIO_LIST = Levels.ids()
 local LOCATION_LIST = { "none", "fixed", "rescue" }
 local STATE_LIST = { "active", "silent", "gone", "dead" }
 -- Usages d'un lieu (ADR D04) : mark (repere donnable : mark_map, reveal_area, repere de fin de mission), target
@@ -43,9 +45,9 @@ local MAX_STORY_BYTES = 200
 local MAX_CALL_BYTES = 200
 local MAX_NOTE_LINE_BYTES = 40
 local MAX_NOTE_LINES = 8
--- Puis frequencies ou frequency_range (l'une des deux, pas les deux : E05-T07).
+-- Puis radio ou frequency (l'une des deux exactement : E24-T01).
 local REQUIRED = { "format", "id", "name" }
-local MIN_KHZ, MAX_KHZ, STEP_KHZ = 1000, 999800, 200
+local MIN_KHZ, MAX_KHZ, STEP_KHZ = Levels.minKhz(), Levels.maxKhz(), Levels.STEP_KHZ
 local MAX_COUNT = 999999
 local MAX_CALL_ONE_IN = 1000
 -- Lieux connus de la voix : au plus MAX_PLACES sections [place], libelle d'au plus MAX_PLACE_LABEL_BYTES octets en
@@ -127,52 +129,23 @@ local function weight(value, key, line)
     return tonumber(value)
 end
 
--- Une frequence en MHz a une decimale, rendue en kHz.
+-- Frequence fixe (frequency=, E24-T01) : MHz a une decimale, rendue en kHz, dans les bornes de toutes les radios et
+-- sur leur pas.
 local function oneFrequency(part, line)
     local whole, tenth = string.match(part, "^([0-9]+)%.([0-9])$")
-    if not whole or string.len(whole) > 3 then
+    if not whole or string.len(whole) > 4 then
         fail(line, "bad frequency '" .. part .. "' (MHz with one decimal, e.g. 145.0)")
     end
     local khz = tonumber(whole) * 1000 + tonumber(tenth) * 100
     if khz < MIN_KHZ or khz > MAX_KHZ then
-        fail(line, "frequency " .. part .. " out of range (1.0 to 999.8 MHz)")
+        fail(line, "frequency " .. part .. " out of range (" .. string.format("%.1f", MIN_KHZ / 1000) .. " to "
+            .. string.format("%.1f", MAX_KHZ / 1000) .. " MHz)")
     end
     if khz % STEP_KHZ ~= 0 then
-        fail(line, "frequency " .. part .. " is not on the 0.2 MHz step of the radios")
+        fail(line, "frequency " .. part .. " is not on the " .. string.format("%.1f", STEP_KHZ / 1000)
+            .. " MHz step of the radios")
     end
     return khz
-end
-
-local function frequencies(value, line)
-    local result = {}
-    for _, part in ipairs(splitList(value)) do
-        local khz = oneFrequency(part, line)
-        if contains(result, khz) then
-            fail(line, "duplicate frequency " .. part)
-        end
-        result[#result + 1] = khz
-    end
-    return result
-end
-
--- Plages de tirage (E05-T07) : « bas-haut » en MHz, bas < haut, sans chevauchement entre plages de la fiche.
-local function frequencyRanges(value, line)
-    local result = {}
-    for _, part in ipairs(splitList(value)) do
-        local lowText, highText = string.match(part, "^([^-]*)%-([^-]*)$")
-        local badRange = "bad frequency range '" .. part
-            .. "' (two frequencies in MHz, lowest first, e.g. 140.0-150.0)"
-        if not lowText then fail(line, badRange) end
-        local low, high = oneFrequency(trim(lowText), line), oneFrequency(trim(highText), line)
-        if low >= high then fail(line, badRange) end
-        for _, other in ipairs(result) do
-            if low <= other.high and high >= other.low then
-                fail(line, "frequency range '" .. part .. "' overlaps another range of the sheet")
-            end
-        end
-        result[#result + 1] = { low = low, high = high }
-    end
-    return result
 end
 
 local function listen(value, line)
@@ -300,8 +273,7 @@ local function headLanguage(values, value, line)
     values.language = value
 end
 
-local function headFrequencies(values, value, line) values.frequencies = frequencies(value, line) end
-local function headFrequencyRange(values, value, line) values.frequency_ranges = frequencyRanges(value, line) end
+local function headFrequency(values, value, line) values.frequency = oneFrequency(value, line) end
 local function headRadio(values, value, line) values.radio = choice(value, "radio", RADIO_LIST, line) end
 local function headListen(values, value, line) values.listen = listen(value, line) end
 local function headLocation(values, value, line) values.location = choice(value, "location", LOCATION_LIST, line) end
@@ -327,8 +299,8 @@ local function headCall(values, value, line) values.call = writtenText(value, "c
 local function headState(values, value, line) values.state = choice(value, "state", STATE_LIST, line) end
 
 local HEAD = {
-    format = headFormat, id = headId, name = headName, language = headLanguage, frequencies = headFrequencies,
-    frequency_range = headFrequencyRange, radio = headRadio, listen = headListen, location = headLocation,
+    format = headFormat, id = headId, name = headName, language = headLanguage, frequency = headFrequency,
+    radio = headRadio, listen = headListen, location = headLocation,
     coords = headCoords, shares = headShares, actions = headActions, budget = headBudget,
     call_one_in = headCallOneIn, call_text = headCallText, call = headCall, state = headState,
 }
@@ -1065,12 +1037,12 @@ local function parse(lines, expectedId, rules)
     for _, key in ipairs(REQUIRED) do
         if values[key] == nil then fail(separator, "missing key '" .. key .. "'") end
     end
-    if values.frequencies == nil and values.frequency_ranges == nil then
-        fail(separator, "missing key 'frequencies' or 'frequency_range'")
+    if values.radio == nil and values.frequency == nil then
+        fail(separator, "missing key 'radio' or 'frequency'")
     end
-    if values.frequencies ~= nil and values.frequency_ranges ~= nil then
-        fail(math.max(seen.frequencies, seen.frequency_range),
-            "frequencies and frequency_range cannot be used together (fixed frequencies or ranges to draw from)")
+    if values.radio ~= nil and values.frequency ~= nil then
+        fail(math.max(seen.radio, seen.frequency),
+            "radio and frequency cannot be used together (a radio level to draw a free frequency, or one fixed frequency)")
     end
     if expectedId ~= nil and values.id ~= expectedId then
         fail(seen.id, "id '" .. values.id .. "' does not match the file name '" .. expectedId .. ".txt'")
@@ -1105,9 +1077,10 @@ local function parse(lines, expectedId, rules)
     end
 
     return {
-        format = values.format, id = values.id, name = values.name, frequencies = values.frequencies or {},
-        frequency_ranges = values.frequency_ranges or {},
-        prompt = table.concat(body, "\n"), language = values.language or "en", radio = values.radio or "any",
+        -- frequency : kHz fixes ou nil (tiree dans la zone de radio) ; radio : ecrite, ou deduite de frequency.
+        format = values.format, id = values.id, name = values.name, frequency = values.frequency,
+        radio = values.radio or Levels.levelOf(values.frequency),
+        prompt = table.concat(body, "\n"), language = values.language or "en",
         listen = values.listen or {}, location = location, coords = values.coords,
         places = ctx.places, actions = allowed,
         budget = values.budget or 0, budgets = values.budgets, call_one_in = values.call_one_in or 0,

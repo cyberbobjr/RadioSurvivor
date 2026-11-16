@@ -28,7 +28,7 @@ KHZ = 160000
 SHEET = """format=1
 id=scouter
 name=Scout Voice
-frequencies=160.0
+frequency=160.0
 actions=say,start_mission
 budget.start_mission=20
 [place depot]

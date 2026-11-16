@@ -34,7 +34,7 @@ from test_atelier_ui import NODE, module_url, run_node  # noqa: E402
 
 FIXTURE = ROOT / "tests" / "fixtures" / "atelier" / "console.txt"
 PREFIX = "LOG  : General      f:0> [batman_RadioSurvivor]     [RadioSurvivor] personas: "
-CODY = "format=1\nid=cody\nname=Cody\nfrequencies=146\n[prompt]\nYou are Cody.\n"
+CODY = "format=1\nid=cody\nname=Cody\nfrequency=146\n[prompt]\nYou are Cody.\n"
 
 
 def persona(message: str) -> str:
@@ -310,7 +310,7 @@ class LiveRoutesTests(unittest.TestCase):
 @unittest.skipUnless(NODE, "node is not installed")
 class PageModulesTests(unittest.TestCase):
     def test_locate_and_plain_reason(self):
-        sheet_text = ("# comment\nformat=1\nid=x\n\nfrequencies=145\n[place mill]\nat=1,2,0\n"
+        sheet_text = ("# comment\nformat=1\nid=x\n\nfrequency=145\n[place mill]\nat=1,2,0\n"
                       "[mission m1]\ntype=deliver\n[prompt]\nYou are X.\n")
         script = f"""
 import * as sheet from '{module_url('sheet.js')}';
@@ -326,7 +326,7 @@ console.log(JSON.stringify({{
         got = run_node(script)
         head = lambda field: {"block": "head", "id": None, "field": field}  # noqa: E731
         self.assertEqual(got["lines"], [
-            head(None), head("format"), head(None), head("frequencies"),
+            head(None), head("format"), head(None), head("frequency"),
             {"block": "place", "id": "mill", "field": None}, {"block": "place", "id": "mill", "field": "at"},
             {"block": "mission", "id": "m1", "field": "type"}, {"block": "prompt", "id": None, "field": None},
             {"block": "prompt", "id": None, "field": None}])

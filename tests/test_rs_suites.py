@@ -297,7 +297,8 @@ import test_personas_server as tps  # noqa: E402
 # Radios créées par instanceItem (bornes et IsHighTier du script vanilla, media/scripts/generated/items/radio.txt)
 # et triggerEvent synchrone vers les abonnés Lua (LuaManager.GlobalObject.triggerEvent, 42.21.0).
 VOICES_STUBS = r"""
-RADIO_SCRIPTS = { ["Base.WalkieTalkie1"] = { 75000, 150000, false }, ["Base.WalkieTalkie5"] = { 200, 1000000, true } }
+RADIO_SCRIPTS = { ["Base.WalkieTalkie1"] = { 75000, 150000, false }, ["Base.WalkieTalkie4"] = { 10000, 500000, false },
+    ["Base.WalkieTalkie5"] = { 200, 1000000, true } }
 NEXT_ITEM_ID = 100
 instanceItem = function(fullType)
     local spec = RADIO_SCRIPTS[fullType]
@@ -326,7 +327,7 @@ class VoicesSuiteTests(tps.ServerHarness):
 
     bundled = None
     WORLD_TESTS = ('phrase on each voice frequency reaches the bridge with its voice, silence elsewhere',
-                   'ordinary radio refused by a high_tier voice, high-tier radio answered',
+                   'simplest walkie out of reach of a tactical voice, the radio it needs answered',
                    'installed sheet changed during the game, reloaded without touching its channels, restored')
 
     def setUp(self):
@@ -383,9 +384,9 @@ class VoicesSuiteTests(tps.ServerHarness):
         self.assertEqual({f.name: f.read_bytes() for f in self.dir.iterdir()}, before)
         self.assertEqual(self.requests(), '')
         notes = self.notes(report)
-        for expected in ('walt (active) on 130.0 MHz', 'nightowl (active) on 88.0, 109.0 MHz',
-                         'whitaker silent on 75.0 MHz', 'cody: active, radio any, listen 22:00-03:00',
-                         '7 voice frequencies'):
+        for expected in ('walt (active) on 77.0 MHz', 'nightowl (active) on 76.0 MHz',
+                         'whitaker silent on 78.0 MHz', 'cody: active, radio tactical, listen 22:00-03:00',
+                         '16 voice frequencies'):
             self.assertIn(expected, notes)
 
     def test_world_suite_on_a_server(self):
@@ -397,10 +398,10 @@ class VoicesSuiteTests(tps.ServerHarness):
         aired = tps.lua_list(self.P.channel(self.served('walt')[0]).aired)
         self.assertEqual([tps.lua_list(lines) for lines in aired][:1], [['<bzzt>', '<fzzt>']])
         notes = self.notes(report)
-        for expected in ('walt on 130.0 MHz: active, listen always (listening now) -> request',
-                         'nightowl on 88.0 MHz: active, listen 19:00-22:00 (listening now) -> request',
-                         'darlene on 115.0 MHz: active, listen 07:00-10:00,16:00-19:00 (not listening now) -> silence',
-                         'whitaker on 75.0 MHz: silent', 'probe radio=high_tier on 149.2 MHz', 'free frequency 199.8 MHz -> silence',
+        for expected in ('walt on 77.0 MHz: active, listen always (listening now) -> request',
+                         'nightowl on 76.0 MHz: active, listen 19:00-22:00 (listening now) -> request',
+                         'darlene on 75.0 MHz: active, listen 07:00-10:00,16:00-19:00 (not listening now) -> silence',
+                         'whitaker on 78.0 MHz: silent', 'probe radio=tactical on ', 'free frequency 199.8 MHz -> silence',
                          'walt.txt reloaded'):
             self.assertIn(expected, notes)
 
@@ -408,7 +409,7 @@ class VoicesSuiteTests(tps.ServerHarness):
         # Voix de groupe engendrée (RS_GroupRadio, Personas.setGenerated) : aucune fiche par conception (campagne MP du
         # 2026-10-15 : « grp_1.txt missing or empty », puis requête attendue au pont alors qu'elle passe par le carnet).
         self.rt.execute('GRP_MAP = { grp_1 = { group = "grp-1", lines = { "format=1", "id=grp_1", "name=Group radio",'
-                        '"language=en", "frequency_range=75.0-149.8", "radio=any", "listen=always", "location=none",'
+                        '"language=en", "radio=any_talkie", "listen=always", "location=none",'
                         '"actions=say", "budget=0", "call_one_in=0", "state=active", "[prompt]", "Group voice." } } }')
         # RS_GroupRadio.refresh (appelé par son tick) : un groupe équipé d'un poste, celui de GRP_MAP (sans Living Knox
         # dans ce banc, le vrai refresh retirerait la voix).
@@ -464,16 +465,18 @@ class VoicesSuiteTests(tps.ServerHarness):
         # Fréquence du Night Owl attribuée à Walt, qui ne la sert pas : silence là où une demande était attendue.
         self.assertIn('voice nightowl: answers to the caller (request expected)', msg)
 
-    def test_detects_a_low_tier_radio_answered(self):
-        # La suite lit IsHighTier = false sur son talkie ordinaire, le serveur lit ensuite true : la phrase obtient
-        # une demande, ce que la suite doit refuser.
+    def test_detects_a_weaker_radio_answered(self):
+        # La suite lit les bornes du talkie le plus simple (75-150 MHz), le serveur lit ensuite toute la plage : la
+        # phrase obtient une demande, ce que la suite doit refuser (E24-T01 : radio nécessaire).
         self.rt.execute('local old = instanceItem; instanceItem = function(ft) local r = old(ft)'
                         ' if ft == "Base.WalkieTalkie1" then local d = r.getDeviceData(); local n = 0;'
-                        ' d.getIsHighTier = function() n = n + 1 return n > 1 end end return r end')
+                        ' d.getMinChannelRange = function() n = n + 1 return n > 2 and 200 or 75000 end;'
+                        ' d.getMaxChannelRange = function() n = n + 1 return n > 2 and 1000000 or 150000 end end'
+                        ' return r end')
         _, results = self.run_suite('"rs.voices.world"')
         st, msg = results[self.WORLD_TESTS[1]]
         self.assertEqual(st, 'FAIL')
-        self.assertIn('Base.WalkieTalkie1 on a high_tier voice', msg)
+        self.assertIn('Base.WalkieTalkie1 on a tactical voice', msg)
         self.assertEqual((self.dir / 'rstest_voices.txt').read_bytes(), b'')
 
     def test_detects_a_published_channel_name(self):

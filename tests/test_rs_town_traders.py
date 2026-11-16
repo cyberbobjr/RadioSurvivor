@@ -166,15 +166,6 @@ class ShippedSheetsTests(TownTradersHarness):
                     if e.t in items:
                         self.assertGreaterEqual(e.w + 1e-9, items[e.t], f'{e.t} lighter than its script')
 
-    def test_frequency_ranges_do_not_overlap(self):
-        ranges = []
-        for path in sheet_paths():
-            for low, high in persona_store.load_file(path).frequency_ranges:
-                ranges.append((low, high, path.stem))
-        ranges.sort()
-        for (_, high, a), (low, _, b) in zip(ranges, ranges[1:]):
-            self.assertLess(high, low, f'{a} and {b} overlap')
-
     def test_landings_use_landing_at_the_verified_coordinates(self):
         for vid, at in LANDINGS.items():
             sheet = self.gus if vid == 'gus' else self.sheets[vid]

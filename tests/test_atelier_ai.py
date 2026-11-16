@@ -27,8 +27,8 @@ import persona_store  # noqa: E402
 import radio_bridge as rb  # noqa: E402
 from test_fake_llm import start_fake, stop  # noqa: E402
 
-SAVED = "format=1\nid=zed\nname=Zed Moore\nfrequencies=146.0\n[prompt]\nYou are Zed, the saved version.\n"
-UNSAVED = "format=1\nid=zed\nname=Zed Moore\nfrequencies=146.0\n[prompt]\nYou are Zed. UNSAVED-MARK-42.\n"
+SAVED = "format=1\nid=zed\nname=Zed Moore\nfrequency=146.0\n[prompt]\nYou are Zed, the saved version.\n"
+UNSAVED = "format=1\nid=zed\nname=Zed Moore\nfrequency=146.0\n[prompt]\nYou are Zed. UNSAVED-MARK-42.\n"
 
 
 def snapshot(folder: Path) -> dict[str, tuple[bytes, int]]:

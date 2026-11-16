@@ -86,7 +86,7 @@ class RewardDrawTests(unittest.TestCase):
     def test_sheet_category_used_by_a_cache(self):
         # Real sheet reader with the rules of the server: the [category] section of the sheet, cited by its pool.
         sheet = self.lua.execute('''
-        local text = {'format=1', 'id=case', 'name=Case', 'frequencies=145.0',
+        local text = {'format=1', 'id=case', 'name=Case', 'frequency=145.0',
             '[place church]', 'at=1,2,0', 'label=Behind the church', 'use=drop',
             '[category snacks]', 'item=Base.Crisps:1-3', 'item=Base.Pop:2',
             '[rewards]', 'pool=cache:snacks:1', '[prompt]', 'You are a test voice.'}
@@ -132,7 +132,7 @@ class RewardDrawTests(unittest.TestCase):
             {available = available, reserve = reserve, apply = apply, describe = describe})
         ''')
         sheet = self.lua.execute('''
-        local text = {'format=1', 'id=case', 'name=Case', 'frequencies=145.0', '[rewards]', 'pool=gift:2, frequency:1',
+        local text = {'format=1', 'id=case', 'name=Case', 'frequency=145.0', '[rewards]', 'pool=gift:2, frequency:1',
             '[prompt]', 'You are a test voice.'}
         local Rewards = require('RadioSurvivor/RS_Rewards')
         local rules = {template = function() return nil end, rewards = Rewards.KINDS, skills = Rewards.SKILLS,

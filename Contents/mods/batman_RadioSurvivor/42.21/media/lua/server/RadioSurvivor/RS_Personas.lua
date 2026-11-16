@@ -27,16 +27,17 @@
 --     (AddChannel hors OnLoadRadioScripts : base radio-dynamic.md). Une diffusion en cours sur l'ancienne
 --     fréquence est perdue (une diffusion n'est jamais sauvegardée).
 --
--- Fréquences tirées au hasard (E05-T07) : une fiche à plages (frequency_range) reçoit une fréquence par plage,
--- tirée à la première installation d'une partie neuve, puis mémorisée dans un fichier serveur propre à la partie
--- (jamais en ModData globale, lisible par les clients). Détails : section « Tirage » ci-dessous et
--- docs/specifications-techniques/persona-format.md.
+-- Fréquence tirée au hasard (E05-T07, E24-T01) : une fiche radio=<niveau> reçoit une fréquence libre de la zone de
+-- ce niveau (RS_RadioLevels), tirée à la première installation d'une partie neuve, puis mémorisée dans un fichier
+-- serveur propre à la partie (jamais en ModData globale, lisible par les clients) ; une fiche frequency= garde sa
+-- fréquence fixe. Détails : section « Tirage » ci-dessous et docs/specifications-techniques/persona-format.md.
 -- Seul l'ASCII est utilisé dans le code (littéraux non ASCII changés en U+FFFD par le lexeur Kahlua).
 if isClient() then return end
 
 local Const = require "RadioSurvivor/RadioSurvivor_Const"
 local Persona = require "RadioSurvivor/RS_Persona"
 local Codec = require "CoreAI/CA_Codec"
+local Levels = require "RadioSurvivor/RS_RadioLevels"
 
 local Personas = {}
 
@@ -49,13 +50,10 @@ Personas.RELOAD_MS = 30000
 -- Voix d'origine : première de heldFrequencies (diagnostic). Depuis E05-T08, plus de fréquence par défaut pour un
 -- client qui n'envoie pas la sienne ; toutes les voix répondent sur leurs fréquences (routage E05-T03).
 Personas.MAIN_VOICE = "walt"
--- Ancienne option sandbox de la fréquence de Walt (retirée en E05-T02) et sa valeur par défaut.
-Personas.LEGACY_OPTION = "RadioSurvivor.Frequency"
-Personas.LEGACY_DEFAULT_KHZ = 145000
 Personas.CHANNEL_PREFIX = Const.VOICE_CHANNEL_PREFIX
--- Tirage (E05-T07) : fichier de la partie, en-tête, écart minimal entre deux fréquences de voix différentes.
+-- Tirage (E05-T07, E24-T01) : fichier de la partie, en-tête, écart minimal entre deux fréquences de voix différentes.
 Personas.MEMORY_PREFIX = "batman_RadioSurvivor/frequencies-"
-Personas.MEMORY_HEADER = "RSFREQ1"
+Personas.MEMORY_HEADER = "RSFREQ2"
 Personas.MIN_GAP_KHZ = 1000
 -- Empreintes des fiches installées (E05-T11) : hors du dossier des fiches (un *.txt y serait lu comme une voix),
 -- extension admise par getFileWriter (ini, cfg, txt, log, json : base kahlua-lua.md).
@@ -68,23 +66,27 @@ Personas.CATALOGUE = "_categories.txt"
 -- reconnaissent une fiche non modifiée installée avant le fichier d'empreintes (E05-T02 à E05-T10). Versions des
 -- commits 09d7474 et 24832ea (fréquences fixes ; Walt identique dans les deux), 486b21e (plages, E05-T07), puis
 -- E05-T10, E05-T05, E20-T03, E20-T07, E20-T10, E20-T11 ([note] des fiches), E22-T12 (stock sans poids), E22-T14 (sans
--- knows, ignores ni secret). Toute nouvelle version livrée d'une fiche ajoute ici son empreinte (banc
--- tests/test_personas_server.py) ; une fiche livrée après E05-T11 (marchands des villes, E20-T11) n'a jamais été
--- installée sans le fichier d'empreintes : aucune entrée.
+-- knows, ignores ni secret), E23-T06, E24-T01 (radio=<niveau> a la place des plages). Toute nouvelle version livrée
+-- d'une fiche ajoute ici son empreinte (banc tests/test_personas_server.py) ; une fiche livrée après E05-T11
+-- (marchands des villes, E20-T11) n'a jamais été installée sans le fichier d'empreintes : aucune entrée.
 Personas.KNOWN_DELIVERED = {
-    walt = { "2105682694", "2759756800", "213942039", "1586801598", "2833011528", "1923829937" },   -- E22-T14
+    walt = { "2105682694", "2759756800", "213942039", "1586801598", "2833011528", "1923829937",   -- E22-T14
+        "4196879131" },   -- E24-T01 : radio=<niveau>
     darlene = { "611497886", "1134557996", "2120896689", "3998911546", "3957645400",
-        "1182033778", "674887514", "2957274911", "3572312285" },   -- E22-T14 : sans knows, ignores ni secret
+        "1182033778", "674887514", "2957274911", "3572312285",   -- E22-T14 : sans knows, ignores ni secret
+        "3580043489" },   -- E24-T01 : radio=<niveau>
     cody = { "3131466986", "673421833", "4032160620", "318842949", "1196981398",
-        "1976566616", "1464760889", "2238673311" },   -- E22-T14 : sans knows, ignores ni secret
-    whitaker = { "4044533006", "3352221633", "2075828338", "1570277033" },   -- E22-T14
-    nightowl = { "4175146858", "225312038", "1263236001", "326850688" },   -- E22-T14
+        "1976566616", "1464760889", "2238673311",   -- E22-T14 : sans knows, ignores ni secret
+        "3427747601" },   -- E24-T01 : radio=<niveau>
+    whitaker = { "4044533006", "3352221633", "2075828338", "1570277033",   -- E22-T14
+        "3237976040" },   -- E24-T01 : radio=<niveau>
+    nightowl = { "4175146858", "225312038", "1263236001", "326850688",   -- E22-T14
+        "2694918921" },   -- E24-T01 : radio=<niveau>
     gus = { "2508366732", "2733824589", "2930912175", "1078646290", "1260582370", "3810027509", "4079538633",
         "3516644979", "78816791",   -- E22-T14 : sans knows, ignores ni secret
-        "2872044854" },             -- E23-T06 : accept=, troc par listes
+        "2872044854",              -- E23-T06 : accept=, troc par listes
+        "3627338360" },             -- E24-T01 : radio=<niveau>
 }
-
-local STEP_KHZ, MIN_KHZ, MAX_KHZ = 200, 1000, 999800
 
 local function fresh()
     return {
@@ -96,7 +98,7 @@ local function fresh()
         installed = false,
         nextReloadMs = 0,
         newGame = false,  -- monde neuf (OnLoadRadioScripts) : le fichier de tirage d'un ancien monde est ignoré
-        draws = nil,      -- id -> { ["bas-haut"] = kHz } : tirages de la partie (nil = fichier pas encore lu)
+        draws = nil,      -- id -> { level, khz } : tirages de la partie (nil = fichier pas encore lu)
     }
 end
 
@@ -152,58 +154,6 @@ local function contains(list, value)
     return false
 end
 
-local function labels(list)
-    local out = {}
-    for _, khz in ipairs(list) do out[#out + 1] = Const.frequencyLabel(khz) end
-    return table.concat(out, ", ")
-end
-
--- Migration (E05-T02) -------------------------------------------------------------------------
-
--- Valeur (kHz, au pas des radios) de l'ancienne option sandbox RadioSurvivor.Frequency, ou nil si elle n'est
--- pas lisible. En 42.21, une option qu'aucun mod ne déclare plus n'est jamais rechargée : SandboxOptions.load
--- (SandboxOptions.java:470-488) saute les noms inconnus de map_sand.bin (« ERROR unknown SandboxOption »),
--- toLua n'écrit que les options déclarées, et un serveur dédié réécrit <serveur>_SandboxVars.lua sans elle au
--- démarrage (GameServer.java:1413-1424). Cette lecture rend donc nil dès que l'option est retirée du mod.
-function Personas.legacyFrequency()
-    local value = nil
-    local options = getSandboxOptions and getSandboxOptions()
-    local option = options and options:getOptionByName(Personas.LEGACY_OPTION)
-    if option then value = option:getValue() end
-    if value == nil then
-        local vars = SandboxVars and SandboxVars.RadioSurvivor
-        value = vars and vars.Frequency
-    end
-    value = tonumber(value)
-    if value == nil then return nil end
-    local khz = math.floor(value * 1000 / STEP_KHZ + 0.5) * STEP_KHZ
-    if khz < MIN_KHZ or khz > MAX_KHZ then return nil end
-    return khz
-end
-
--- Lignes de la fiche livrée de Walt -> lignes à écrire (frequencies ou frequency_range remplacée par
--- frequencies=<valeur> si l'ancienne option avait une autre valeur que 145.0 : choix explicite de l'admin).
--- Appelé une seule fois : à la première copie de walt.txt.
-function Personas.migrateWalt(lines)
-    local legacy = Personas.legacyFrequency()
-    local path = Personas.DIR .. "/walt.txt"
-    if legacy == nil then
-        log("note: the removed sandbox option " .. Personas.LEGACY_OPTION .. " cannot be read any more (the game"
-            .. " drops unknown options when it loads a save); if this server used another frequency than "
-            .. Const.frequencyLabel(Personas.LEGACY_DEFAULT_KHZ) .. ", set frequencies= in Zomboid/Lua/" .. path)
-        return lines
-    end
-    if legacy == Personas.LEGACY_DEFAULT_KHZ then return lines end
-    for i, line in ipairs(lines) do
-        if string.match(line, "^[ \t]*frequencies[ \t]*=") or string.match(line, "^[ \t]*frequency_range[ \t]*=") then
-            lines[i] = "frequencies=" .. Const.frequencyLabel(legacy)
-            log("migrated the sandbox frequency " .. Const.frequencyLabel(legacy) .. " MHz into " .. path)
-            return lines
-        end
-    end
-    return lines
-end
-
 -- Installation des fiches livrées --------------------------------------------------------------
 
 -- Empreintes (E05-T11). Empreinte d'une fiche : Adler-32 (CA_Codec.checksum, décimal) de ses octets UTF-8, lignes
@@ -218,8 +168,6 @@ end
 --     modifiée si son empreinte est celle d'une version livrée connue (KNOWN_DELIVERED), sinon modifiée ;
 --   - fichier d'empreintes abîmé : ignoré prudemment, aucune fiche remplacée et le fichier n'est pas réécrit
 --     (l'admin le vide pour revenir aux versions livrées connues) ; les fiches absentes sont copiées quand même ;
---   - walt.txt copié avec la fréquence de l'ancienne option sandbox (migrateWalt) : choix de l'admin, aucune
---     empreinte mémorisée, donc jamais remplacé ;
 --   - fiche de l'admin sans équivalent livré : jamais lue ici.
 
 function Personas.fingerprint(lines)
@@ -300,17 +248,11 @@ function Personas.install()
             local deliveredPrint = Personas.fingerprint(delivered)
             local existing = getFileReader(target, false)
             if not existing then
-                local lines = {}
-                for i, line in ipairs(delivered) do lines[i] = line end
-                if name == "walt.txt" then lines = Personas.migrateWalt(lines) end
-                if writeSheet(target, lines) then
+                if writeSheet(target, delivered) then
                     copied = copied + 1
                     log("installed the bundled sheet " .. target)
-                    local written = Personas.fingerprint(lines)
-                    if written == deliveredPrint then
-                        record[name] = written
-                        changed = true
-                    end
+                    record[name] = deliveredPrint
+                    changed = true
                 end
             else
                 local current = Personas.fingerprint(readLines(existing))
@@ -389,16 +331,10 @@ local function removeVoice(id, why)
     end
 end
 
-local function rangeLabel(range)
-    return Const.frequencyLabel(range.low) .. "-" .. Const.frequencyLabel(range.high)
-end
-
--- Fréquences de la fiche pour le journal : fixes, ou plages de tirage.
+-- Fréquence de la fiche pour le journal : fixe, ou radio dont la zone donne le tirage.
 local function sheetFrequencies(sheet)
-    if #sheet.frequency_ranges == 0 then return "frequencies " .. labels(sheet.frequencies) end
-    local out = {}
-    for _, range in ipairs(sheet.frequency_ranges) do out[#out + 1] = rangeLabel(range) end
-    return "frequency ranges " .. table.concat(out, ", ")
+    if sheet.frequency then return "frequency " .. Const.frequencyLabel(sheet.frequency) end
+    return "radio " .. sheet.radio
 end
 
 local function setVoice(id, sheet)
@@ -451,26 +387,27 @@ local function scan()
     end
 end
 
--- Tirage (E05-T07) ------------------------------------------------------------------------------
+-- Tirage (E05-T07, E24-T01) ---------------------------------------------------------------------
 --
--- Une fiche à plages (frequency_range) reçoit une fréquence par plage, tirée uniformément par ZombRand parmi les
--- fréquences libres de la plage (pas de 0,2 MHz). Une fréquence n'est pas libre si :
+-- Une fiche radio=<niveau> reçoit une fréquence tirée uniformément par ZombRand parmi les fréquences libres de la zone
+-- du niveau (RS_RadioLevels.zones : captées par ce niveau, pas par les radios plus simples ; pas de 0,2 MHz). Une
+-- fréquence n'est pas libre si :
 --   - une chaîne qui n'est pas une voix de ce module l'occupe (getChannelsList : chaînes vanilla de RadioData.xml,
 --     alerte d'urgence AEBS, chaînes des mods déjà inscrites), ou si la ModData de GameTime la donne à une chaîne
 --     dynamique vanilla (dynamicRadio : fréquence de l'AEBS de la partie) ;
 --   - elle est à moins de MIN_GAP_KHZ d'une fréquence d'une autre voix chargée (fixe, tirée ou mémorisée, quel que
---     soit son état : une voix gone peut revenir).
+--     soit son état : une voix gone peut revenir) : jamais deux voix sur la même fréquence.
 -- L'AEBS est déjà créée au moment du tirage : les fichiers Lua vanilla sont chargés avant ceux des mods
 -- (LuaManager.LoadDirBase, LuaManager.java:1197-1198, 42.21.0), donc l'abonné OnLoadRadioScripts de
 -- ISDynamicRadio.lua passe avant le nôtre ; la lecture de dynamicRadio couvre aussi l'ordre inverse. Une chaîne
 -- de mod inscrite après nous et tirée par getRandomFrequency évite nos fréquences (knownFrequencies,
 -- ZomboidRadio.java:139-147, 179-183).
 -- Mémoire : fichier MEMORY_PREFIX .. hex("mode/nom de la partie") .. ".txt" sur la machine qui fait autorité,
--- en-tête MEMORY_HEADER puis une ligne « id bas-haut kHz » par plage. Monde neuf (OnLoadRadioScripts(_, true),
+-- en-tête MEMORY_HEADER puis une ligne « id niveau kHz » par voix tirée. Monde neuf (OnLoadRadioScripts(_, true),
 -- ZomboidRadio.java:246 : savedWorldVersion == -1) : l'ancien fichier du même nom (monde effacé puis recréé sous
 -- le même nom, base multiplayer.md) est ignoré, puis réécrit. Sinon les fréquences mémorisées sont reprises. Une
 -- fréquence mémorisée devenue prise (chaîne étrangère, fréquence fixe ou déjà attribuée d'une autre voix trop
--- proche) ou une plage modifiée dans la fiche donne un nouveau tirage de cette plage seulement, journalisé.
+-- proche) ou une radio changée dans la fiche donne un nouveau tirage de cette voix seulement, journalisé.
 
 local function memoryPath()
     local world = getWorld()
@@ -478,12 +415,8 @@ local function memoryPath()
         .. ".txt"
 end
 
-local function rangeKey(range)
-    return tostring(range.low) .. "-" .. tostring(range.high)
-end
-
--- Fichier de tirage de la partie -> table id -> { clé de plage -> kHz }. Une ligne invalide est ignorée et
--- journalisée : sa plage est tirée de nouveau.
+-- Fichier de tirage de la partie -> table id -> { level, khz }. Une ligne invalide (niveau inconnu, fréquence hors de
+-- sa zone ou hors du pas) est ignorée et journalisée : sa voix est tirée de nouveau.
 local function readMemory()
     local draws = {}
     local path = memoryPath()
@@ -494,13 +427,12 @@ local function readMemory()
     end
     for number, line in ipairs(readLines(reader)) do
         if not (number == 1 and line == Personas.MEMORY_HEADER) and line ~= "" then
-            local id, low, high, khz = string.match(line, "^([a-z][a-z0-9_]*) ([0-9]+)%-([0-9]+) ([0-9]+)$")
-            low, high, khz = tonumber(low), tonumber(high), tonumber(khz)
-            if not id or khz < low or khz > high or khz % STEP_KHZ ~= 0 then
+            local id, level, khz = string.match(line, "^([a-z][a-z0-9_]*) ([a-z_]+) ([0-9]+)$")
+            khz = tonumber(khz)
+            if not id or not Levels.inZone(level, khz) or not Levels.onGrid(khz) then
                 log("WARNING: Zomboid/Lua/" .. path .. " line " .. tostring(number) .. " ignored: " .. line)
             else
-                draws[id] = draws[id] or {}
-                draws[id][tostring(low) .. "-" .. tostring(high)] = khz
+                draws[id] = { level = level, khz = khz }
             end
         end
     end
@@ -510,9 +442,7 @@ end
 local function writeMemory()
     local path = memoryPath()
     local out = {}
-    for id, ranges in pairs(state.draws) do
-        for key, khz in pairs(ranges) do out[#out + 1] = id .. " " .. key .. " " .. tostring(khz) end
-    end
+    for id, drawn in pairs(state.draws) do out[#out + 1] = id .. " " .. drawn.level .. " " .. tostring(drawn.khz) end
     table.sort(out)
     local writer = getFileWriter(path, true, false)
     if not writer then
@@ -528,7 +458,7 @@ local function ensureMemory()
     if state.draws then return end
     if state.newGame then
         state.draws = {}
-        log("new game: the frequencies of the voices with ranges are drawn")
+        log("new game: the frequencies of the voices are drawn")
     else
         state.draws = readMemory()
     end
@@ -564,99 +494,97 @@ local function tooClose(claims, id, khz)
     return nil
 end
 
-local function draw(range, id, claims, foreign)
+-- Fréquence libre tirée dans la zone du niveau, ou nil.
+local function draw(level, id, claims, foreign)
     local free = {}
-    for khz = range.low, range.high, STEP_KHZ do
-        if not foreign[khz] and not tooClose(claims, id, khz) then free[#free + 1] = khz end
+    for _, zone in ipairs(Levels.zones(level) or {}) do
+        for khz = zone.low, zone.high, Levels.STEP_KHZ do
+            if not foreign[khz] and not tooClose(claims, id, khz) then free[#free + 1] = khz end
+        end
     end
     if #free == 0 then return nil end
     return free[ZombRand(#free) + 1]
 end
 
--- Fréquences d'une voix à plages : mémorisées si elles restent libres, sinon tirées. claims : revendications de
--- toutes les voix ; final : celles qui font refuser une fréquence mémorisée. Rend la liste et vrai si la mémoire
--- de la voix a changé.
-local function resolveRanges(voice, claims, final, foreign)
-    local id = voice.sheet.id
-    local remembered = state.draws[id] or {}
-    local kept, list, changed = {}, {}, false
-    for _, range in ipairs(voice.sheet.frequency_ranges) do
-        local key = rangeKey(range)
-        local khz = remembered[key]
-        local why = nil
-        if khz == nil then
-            why = state.newGame and "new game" or "no frequency remembered for this range"
-        elseif foreign[khz] then
-            why = Const.frequencyLabel(khz) .. " taken by the radio channel '" .. foreign[khz] .. "'"
-        else
-            local claim = tooClose(final, id, khz)
-            if claim then
-                why = Const.frequencyLabel(khz) .. " too close to " .. Const.frequencyLabel(claim.khz) .. " of voice '"
-                    .. claim.id .. "'"
-            end
-        end
-        if why then
-            changed = true
-            khz = draw(range, id, claims, foreign)
-            if khz then
-                log("voice '" .. id .. "' drew " .. Const.frequencyLabel(khz) .. " MHz in " .. rangeLabel(range) .. " ("
-                    .. why .. ")")
-            else
-                log("ERROR: voice '" .. id .. "': no free frequency left in " .. rangeLabel(range) .. " (" .. why
-                    .. "); widen the range in its sheet")
-            end
-        end
-        if khz then
-            kept[key] = khz
-            list[#list + 1] = khz
-            claims[#claims + 1] = { id = id, khz = khz }
-            final[#final + 1] = { id = id, khz = khz }
-        end
+-- Raison de tirer de nouveau la fréquence mémorisée d'une voix, ou nil pour la garder.
+local function redrawReason(remembered, level, id, final, foreign)
+    if remembered == nil then
+        return state.newGame and "new game" or "no frequency remembered for this voice"
     end
-    for key in pairs(remembered) do
-        if kept[key] == nil then changed = true end
+    if remembered.level ~= level then return "radio changed from " .. remembered.level end
+    local khz = remembered.khz
+    if foreign[khz] then return Const.frequencyLabel(khz) .. " taken by the radio channel '" .. foreign[khz] .. "'" end
+    local claim = tooClose(final, id, khz)
+    if claim then
+        return Const.frequencyLabel(khz) .. " too close to " .. Const.frequencyLabel(claim.khz) .. " of voice '"
+            .. claim.id .. "'"
     end
-    state.draws[id] = kept
-    return list, changed
+    return nil
 end
 
--- Fréquences effectives de chaque voix (voice.frequencies) : celles de la fiche, ou celles tirées dans ses
--- plages. Voix traitées dans leur ordre de chargement ; une fréquence fixe d'une autre voix l'emporte toujours
--- sur une fréquence tirée (la voix tirée change de fréquence).
+-- Fréquence d'une voix à tirer : mémorisée si elle reste libre, sinon tirée. claims : revendications de toutes les
+-- voix ; final : celles qui font refuser une fréquence mémorisée. Rend la liste (une fréquence, ou vide) et vrai si
+-- la mémoire de la voix a changé.
+local function resolveDraw(voice, claims, final, foreign)
+    local id, level = voice.sheet.id, voice.sheet.radio
+    local remembered = state.draws[id]
+    local why = redrawReason(remembered, level, id, final, foreign)
+    local khz = remembered and remembered.khz
+    if why then
+        khz = draw(level, id, claims, foreign)
+        if khz then
+            log("voice '" .. id .. "' drew " .. Const.frequencyLabel(khz) .. " MHz for the radio " .. level .. " ("
+                .. why .. ")")
+        else
+            log("ERROR: voice '" .. id .. "': no free frequency left for the radio " .. level .. " (" .. why
+                .. "); choose a stronger radio in its sheet")
+        end
+    end
+    if not khz then
+        state.draws[id] = nil
+        return {}, why ~= nil
+    end
+    state.draws[id] = { level = level, khz = khz }
+    claims[#claims + 1] = { id = id, khz = khz }
+    final[#final + 1] = { id = id, khz = khz }
+    return { khz }, why ~= nil
+end
+
+-- Fréquences effectives de chaque voix (voice.frequencies) : sa fréquence fixe, ou celle tirée pour sa radio. Voix
+-- traitées dans leur ordre de chargement ; une fréquence fixe d'une autre voix l'emporte toujours sur une fréquence
+-- tirée (la voix tirée change de fréquence).
 local function resolveFrequencies(manager)
     local voices = {}
     for _, voice in pairs(state.voices) do voices[#voices + 1] = voice end
     table.sort(voices, function(a, b) return a.rank < b.rank end)
-    local anyRange = false
+    local anyDraw = false
     for _, voice in ipairs(voices) do
-        voice.frequencies = voice.sheet.frequencies
-        if #voice.sheet.frequency_ranges > 0 then anyRange = true end
+        voice.frequencies = voice.sheet.frequency and { voice.sheet.frequency } or {}
+        if not voice.sheet.frequency then anyDraw = true end
     end
-    if not anyRange then return end
+    if not anyDraw then return end
     ensureMemory()
     local foreign = foreignFrequencies(manager)
-    -- claims : fréquences fixes et mémorisées (plages actuelles) de toutes les voix, puis tirages définitifs ;
+    -- claims : fréquences fixes et mémorisées (radio actuelle) de toutes les voix, puis tirages définitifs ;
     -- final : fréquences fixes, puis fréquences définitives des voix déjà traitées.
     local claims, final = {}, {}
     for _, voice in ipairs(voices) do
         local id = voice.sheet.id
-        for _, khz in ipairs(voice.sheet.frequencies) do
-            claims[#claims + 1] = { id = id, khz = khz }
-            final[#final + 1] = { id = id, khz = khz }
-        end
-        local remembered = state.draws[id]
-        if remembered then
-            for _, range in ipairs(voice.sheet.frequency_ranges) do
-                local khz = remembered[rangeKey(range)]
-                if khz then claims[#claims + 1] = { id = id, khz = khz } end
+        if voice.sheet.frequency then
+            claims[#claims + 1] = { id = id, khz = voice.sheet.frequency }
+            final[#final + 1] = { id = id, khz = voice.sheet.frequency }
+        else
+            local remembered = state.draws[id]
+            if remembered and remembered.level == voice.sheet.radio then
+                claims[#claims + 1] = { id = id, khz = remembered.khz }
             end
         end
     end
     local changed = false
     for _, voice in ipairs(voices) do
         local id = voice.sheet.id
-        if #voice.sheet.frequency_ranges > 0 then
-            local list, voiceChanged = resolveRanges(voice, claims, final, foreign)
+        if not voice.sheet.frequency then
+            local list, voiceChanged = resolveDraw(voice, claims, final, foreign)
             voice.frequencies = list
             changed = changed or voiceChanged
         elseif state.draws[id] then
@@ -806,7 +734,8 @@ function Personas.get(id)
     return voice and voice.sheet
 end
 
--- Fréquences (kHz) de la voix pour cette partie : fixes, ou tirées dans ses plages (E05-T07) ; servies ou non.
+-- Fréquences (kHz) de la voix pour cette partie : sa fréquence fixe, ou celle tirée pour sa radio (E24-T01), dans
+-- une liste d'au plus un élément ; servie ou non.
 function Personas.frequencies(id)
     local voice = state.voices[id]
     return voice and voice.frequencies or {}
@@ -858,7 +787,7 @@ end
 
 -- Fiches engendrées (E08-T06) ----------------------------------------------------------------------
 -- Voix sans fichier, données par un autre module serveur (RS_GroupRadio : une voix par groupe équipé d'un poste
--- émetteur). Même traitement qu'une fiche lue (tirage par plage mémorisé dans le fichier de la partie, chaîne,
+-- émetteur). Même traitement qu'une fiche lue (tirage pour sa radio mémorisé dans le fichier de la partie, chaîne,
 -- fréquence libérée quand la voix disparaît) ; jamais écrites dans le dossier des fiches (le pont ne les lit pas : elles
 -- répondent par la file des PNJ du carnet). Un fichier de même identifiant l'emporte (avertissement). state.generated :
 -- id -> { sheet, key }, remis à zéro avec l'état (monde chargé) ; placé en fin de fichier (références de rs.env).

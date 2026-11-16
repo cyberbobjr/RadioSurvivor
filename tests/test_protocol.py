@@ -42,10 +42,9 @@ LUA = MOD / "media/lua"
 CORE_LUA = Path(__file__).resolve().parents[1] / 'Contents' / 'mods' / 'batman_CoreAI' / '42.21' / 'media' / 'lua'  # mod commun (E18)
 LK_LUA = Path(__file__).resolve().parents[1] / 'Contents' / 'mods' / 'batman_LivingKnox' / '42.21' / 'media' / 'lua'  # moteur des PNJ (E18-T07)
 BRIDGE = ROOT / "bridge/radio_bridge.py"
-# Fiche livrée de Walt, sa plage de tirage remplacée par la fréquence d'exemple 145.0 (E05-T07) : ces scénarios
-# raisonnent sur une fréquence connue ; le tirage est couvert par scenario_drawn_frequency et
-# tests/test_personas_server.py.
-WALT_FIXED = re.sub(r"(?m)^frequency_range=.*$", "frequencies=145.0",
+# Fiche livrée de Walt, sa radio remplacée par la fréquence d'exemple fixe 145.0 (E24-T01) : ces scénarios raisonnent
+# sur une fréquence connue ; le tirage est couvert par scenario_drawn_frequency et tests/test_personas_server.py.
+WALT_FIXED = re.sub(r"(?m)^radio=.*$", "frequency=145.0",
                     (MOD / "personas/walt.txt").read_text(encoding="utf-8"))
 
 STUBS = r"""
@@ -551,7 +550,8 @@ def scenario_multiplayer(tmp: Path) -> None:
 
 
 def scenario_drawn_frequency(tmp: Path) -> None:
-    """E05-T07 : vraie fiche de Walt (frequency_range=130.0-149.8). Monde neuf : fréquence tirée dans la plage,
+    """E05-T07, E24-T01 : vraie fiche de Walt (radio=any_talkie). Monde neuf : fréquence tirée dans la zone de sa
+    radio,
     mémorisée dans le fichier de la partie ; le pont répond par l'identifiant de voix (voice=walt), sans connaître
     la fréquence ; redémarrage du même monde : même fréquence, aucun nouveau tirage."""
     exchange = tmp / "drawn"
@@ -572,11 +572,11 @@ def scenario_drawn_frequency(tmp: Path) -> None:
 
         g, player = start(True)
         khz = int(lua_list(g.require("RadioSurvivor/RS_Personas").served("walt"))[0])
-        assert 130000 <= khz <= 149800 and khz % 200 == 0, khz
+        assert 75000 <= khz <= 150000 and khz % 200 == 0, khz
         assert lua_list(g.REMOVED_NAMES) == [khz]
         memory = list(exchange.glob("frequencies-*.txt"))
         assert len(memory) == 1, memory
-        assert memory[0].read_text(encoding="utf-8") == f"RSFREQ1\nwalt 130000-149800 {khz}\n", memory[0].read_text()
+        assert memory[0].read_text(encoding="utf-8") == f"RSFREQ2\nwalt any_talkie {khz}\n", memory[0].read_text()
         player.radio.device.channel = khz
         assert g.talk(player, "Walt ?") == "ok"
         request = (exchange / "requests.txt").read_text(encoding="utf-8")
@@ -696,13 +696,12 @@ def scenario_bridge_alive_radio(tmp: Path) -> None:
         bridge.communicate(timeout=10)
 
 
-# Seconde voix, propre au banc (aucune voix livrée en plus de Walt : E05-T04 reste à décider). Poste haut de gamme
-# exigé, écoute de 20:00 à 23:00 (fin exclue), budget de 2 demandes par heure réelle.
+# Seconde voix, propre au banc (aucune voix livrée en plus de Walt : E05-T04 reste à décider). Fréquence fixe 150.0,
+# écoute de 20:00 à 23:00 (fin exclue), budget de 2 demandes par heure réelle.
 BENCH_SHEET = """format=1
 id=bench
 name=Bench Tester
-frequencies=150.0
-radio=high_tier
+frequency=150.0
 listen=20:00-23:00
 budget=2
 [prompt]
@@ -724,7 +723,7 @@ def history_files(exchange: Path) -> dict[str, dict]:
 
 def scenario_two_voices(tmp: Path) -> None:
     """Serveur MP et deux clients : Walt (145.0) et la voix du banc (150.0) répondent chacun sur sa fréquence, en
-    parallèle, sans mélanger leurs historiques ; poste ordinaire refusé par la voix high_tier ; heures d'écoute ;
+    parallèle, sans mélanger leurs historiques ; poste qui ne capte pas 150.0 : silence ; heures d'écoute ;
     budget de la voix ; aucune donnée de la fiche chez les clients."""
     exchange = tmp / "voices"
     exchange.mkdir()
@@ -771,7 +770,9 @@ def scenario_two_voices(tmp: Path) -> None:
             sg.finishAiring()
             clock.offset += 11000  # délai entre deux messages d'un joueur
 
-        # Poste ordinaire sur la fréquence d'une voix high_tier : la phrase part, personne ne répond, rien au pont.
+        # Poste qui ne capte pas 150.0 (bornes connues du serveur, radio plus simple que celle de la voix) : la phrase
+        # part, personne ne répond, rien au pont.
+        sg.PLAYERS["bob"].radio.device.maxCh = 149800
         assert clients["bob"].g.talk(bob, "Allo, poste ordinaire ?") == "ok"
         assert lua_list(clients["bob"].g.SAID_CHAT) == ["Allo, poste ordinaire ?"]
         assert "req=" not in requests() and len(bob.halos) == 0, (requests(), lua_list(bob.halos))
@@ -781,8 +782,8 @@ def scenario_two_voices(tmp: Path) -> None:
         clock.offset += 6000
         clients["bob"].g.require("RadioSurvivor/RS_RadioTalk").resetForTests()
 
-        # Poste haut de gamme : les deux voix répondent en même temps, chacune sur sa fréquence.
-        sg.PLAYERS["bob"].radio.device.highTier = True
+        # Poste qui capte 150.0 : les deux voix répondent en même temps, chacune sur sa fréquence.
+        sg.PLAYERS["bob"].radio.device.maxCh = 1000000
         assert clients["alice"].g.talk(alice, "Alice pour Walt.") == "ok"
         assert clients["bob"].g.talk(bob, "Bob pour le banc.") == "ok"
         text = requests()
@@ -872,7 +873,7 @@ def scenario_server_sorts(tmp: Path) -> None:
         sg.sendServerCommand = to_client
         sg.fire("OnLoadRadioScripts", sg.MANAGER, True)
         walt = int(lua_list(sg.require("RadioSurvivor/RS_Personas").served("walt"))[0])
-        assert 130000 <= walt <= 149800, walt
+        assert 75000 <= walt <= 150000, walt   # zone of any_talkie (E24-T01)
         free = 160000  # aucune voix
         for name, khz in (("alice", walt), ("bob", free)):
             c = Game("client", exchange, clock)
@@ -1622,7 +1623,7 @@ def scenario_world_radios_mp(tmp: Path) -> None:
 ACT_SHEET = """format=1
 id=act
 name=Act Tester
-frequencies=152.0
+frequency=152.0
 location=fixed
 coords=100,200,0
 actions=say,signal,mark_map,reveal_area
@@ -1971,14 +1972,14 @@ MEM_SHEETS = {
     "mem": """format=1
 id=mem
 name=Memo Tester
-frequencies=153.0
+frequency=153.0
 [prompt]
 You are Memo Tester, a voice of the offline test bench that remembers.
 """,
     "mem2": """format=1
 id=mem2
 name=Second Memo
-frequencies=154.0
+frequency=154.0
 actions=say
 [prompt]
 You are Second Memo, another voice of the offline test bench.
@@ -2296,7 +2297,7 @@ PS_SHEETS = {
     "ps": """format=1
 id=ps
 name=State Tester
-frequencies=157.0
+frequency=157.0
 actions=say,persona_state
 [prompt]
 You are State Tester, a voice of the offline test bench whose mood changes.
@@ -2304,7 +2305,7 @@ You are State Tester, a voice of the offline test bench whose mood changes.
     "ps2": """format=1
 id=ps2
 name=Second State
-frequencies=158.0
+frequency=158.0
 actions=say,persona_state
 budget.persona_state=2
 [prompt]
@@ -2545,7 +2546,7 @@ def scenario_persona_server(tmp: Path) -> None:
 TWIN_SHEET = """format=1
 id=twin
 name=Twin Tester
-frequencies=159.0
+frequency=159.0
 actions={actions}
 [prompt]
 You are Twin Tester, a voice of the offline test bench.
@@ -2751,7 +2752,7 @@ MAP_SHEETS = {
     "mapper": """format=1
 id=mapper
 name=Map Tester
-frequencies=161.0
+frequency=161.0
 actions=say,mark_map
 budget.mark_map=2
 [place mill]
@@ -2768,7 +2769,7 @@ You are Map Tester, a voice of the offline test bench who knows places.
     "mapper2": """format=1
 id=mapper2
 name=Second Mapper
-frequencies=162.0
+frequency=162.0
 actions=say,mark_map
 [place farm]
 at=8000,8000,0
@@ -2780,7 +2781,7 @@ You are Second Mapper, another voice of the offline test bench.
     "noplace": """format=1
 id=noplace
 name=No Place
-frequencies=163.0
+frequency=163.0
 actions=say
 [place mill]
 at=10600,9300,0
@@ -3142,7 +3143,7 @@ REVEAL_SHEETS = {
     "revealer": """format=1
 id=revealer
 name=Reveal Tester
-frequencies=171.0
+frequency=171.0
 actions=say,reveal_area
 budget.reveal_area=2
 [place mill]
@@ -3159,7 +3160,7 @@ You are Reveal Tester, a voice of the offline test bench who knows neighbourhood
     "both": """format=1
 id=both
 name=Both Tester
-frequencies=172.0
+frequency=172.0
 actions=say,mark_map,reveal_area
 [place mill]
 at=10600,9300,0
@@ -3175,7 +3176,7 @@ You are Both Tester, a voice of the offline test bench.
     "mapless": """format=1
 id=mapless
 name=Mapless Tester
-frequencies=173.0
+frequency=173.0
 actions=say,reveal_area
 [prompt]
 You are Mapless Tester, a voice without places.
@@ -3183,7 +3184,7 @@ You are Mapless Tester, a voice without places.
     "marker": """format=1
 id=marker
 name=Marker Tester
-frequencies=174.0
+frequency=174.0
 actions=say,mark_map
 [place mill]
 at=10600,9300,0
@@ -3479,7 +3480,7 @@ def scenario_reveal_mp(tmp: Path) -> None:
 MISSION_SHEET = """format=1
 id=giver
 name=Job Giver
-frequencies=164.0
+frequency=164.0
 actions=say,start_mission
 [place depot]
 at=10600,9300,0

@@ -52,8 +52,8 @@ const sameSquare = (place, at) => ['x', 'y', 'z'].every((k) => String(place.at[k
 
 function what(t, record) {
   const parts = [];
-  for (const c of record.containers ?? []) parts.push(t('surveys.container', { type: c.type || '?' }));
-  if (record.room) parts.push(t('surveys.room', { room: record.room }));
+  for (const c of record.containers ?? []) parts.push(t('surveys.container', { type: capitalize(c.type) || '?' }));
+  if (record.room) parts.push(t('surveys.room', { room: capitalize(record.room) }));
   else if (record.building) parts.push(t('surveys.building'));
   return parts.join(' · ');
 }
@@ -73,7 +73,7 @@ function recordItem(ctx, record, ask, full) {
   };
   return h('li', { class: 'survey' },
     h('div', { class: 'survey-text' },
-      h('b', { text: label }), ' ', h('code', { text: atText(record.at) }),
+      h('b', { text: label }), ' ', h('small', { class: 'muted at', text: atText(record.at) }),
       h('small', { class: 'muted', text: [what(t, record), t('surveys.when', { time: record.time, game: record.game,
         by: record.by || '?' })].filter(Boolean).join(' · ') })),
     known ? h('small', { class: 'muted', text: t('surveys.known') })

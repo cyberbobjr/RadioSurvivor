@@ -11,7 +11,6 @@
 
 import { h, select, uid } from './dom.js';
 import { hint } from './help.js';
-import { formatKg } from './items.js';
 import { button } from './widgets.js';
 
 const MAX_SHOWN = 200;
@@ -80,7 +79,6 @@ export function openItemBrowser(t, index, { multi = false, note = null, taken = 
     multi && h('input', { type: 'checkbox', tabindex: '-1', 'aria-hidden': 'true', checked: on, disabled: isTaken }),
     h('span', { class: 'b-name', text: entry.name }),
     h('span', { class: 'b-cat', text: entry.catName }),
-    h('span', { class: 'b-kg', text: formatKg(entry.kg, lang) }),
     h('span', { class: 'b-pick', 'aria-hidden': 'true',
       text: isTaken ? t('browser.taken') : (multi ? '' : t('browser.pick')) }));
   };
@@ -118,6 +116,7 @@ export function openItemBrowser(t, index, { multi = false, note = null, taken = 
     h('article', { class: note ? 'with-note' : null },
       h('header', { class: 'browser-head' },
         h('h2', { id: titleId, text: t(multi ? 'browser.title_multi' : 'browser.title') }),
+        multi && h('small', { class: 'muted', text: t('browser.enter_tip') }),
         hint(t, 'help.ui.item_browser', { label: t('browser.title') }),
         button('icon', { class: 'browser-close', 'aria-label': t('browser.close'), title: t('browser.close'),
           onClick: close }, '✕')),
@@ -126,7 +125,7 @@ export function openItemBrowser(t, index, { multi = false, note = null, taken = 
       note && h('p', { class: 'browser-note', text: t(note) }),
       h('div', { class: 'browser-cols', 'aria-hidden': 'true' }, multi && h('span'),
         h('span', { text: t('browser.col_name') }), h('span', { text: t('browser.col_category') }),
-        h('span', { text: t('browser.col_kg') }), h('span')),
+        h('span')),
       list,
       h('footer', { class: 'browser-foot' }, count, status,
         h('div', { class: 'browser-actions' },

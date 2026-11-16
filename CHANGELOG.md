@@ -14,6 +14,7 @@
 
 ### Radio voices
 
+- Each voice now needs a kind of radio: some answer any walkie-talkie, others only a good, pro or tactical walkie, a ham radio or army gear. Each new game gives every voice a free frequency that its radio tunes and simpler radios do not, so a better radio lets you find more voices; two voices never share a frequency. In the voice workshop, pick the radio on a card, or choose a fixed frequency yourself and a badge shows which radio it needs.
 - One trader per vanilla town. Riverside, West Point, Brandenburg and Louisville get a smuggler who comes by boat at night; Muldraugh, March Ridge, Irvington and Echo Creek get one who drives up to the roadside; in Rosewood, Ekron and Fallas Lake nobody shows up: you leave the payment in a container and the goods appear there later. Each trader has their own story, stock, hours and frequency note.
 - Trades happen only once every player is out of sight of the meeting place, after a short in-game delay; come back too early and nothing has moved yet.
 - Trading is simpler: you and the trader agree on the radio on two lists of items, what you bring and what they leave ("bring me 2 boxes of shells, I leave you 3 cans"). No points or prices any more, and the agreed deal is written in your notebook's Radio tab. Once the trader has arrived, the deal no longer changes.
@@ -47,7 +48,9 @@
 - Live journal for server owners: what players say to the voices, their replies and the sheets the game refused, filtered by voice. It stays on the machine running the workshop.
 - Export a voice to a file and import it elsewhere; a voice of the mod can be taken off the air or brought back to the mod's version.
 - Open the workshop from a tablet or another computer at home: put `ATELIER_PASSWORD` in `bridge/.env` and start it with `--atelier-host 0.0.0.0`; everyone then logs in with that password, and repeated wrong passwords are slowed down.
-- No more typing item names in the workshop: "Add items" opens a list you can search by name in your language and filter by category, with the weight of each item; tick several items and add them at once. A chosen item shows its name and weight; click it to swap it for another, or remove the line.
+- No more typing item names in the workshop: "Add items" opens a list you can search by name in your language and filter by category; tick several items and add them at once. A chosen item shows its name; click it to swap it for another, or remove the line.
+- The workshop speaks like a player, not like a programmer: nothing technical to type anywhere. A new voice starts from its name and a card (survivor who talks, mission giver or trader) that ticks what it can do; how often it calls, when a trader comes back or how greedy it is are picked as words ("Often", "Every week", "Greedy") with the exact value tucked away; quantities use + and − buttons; a trader's bundles and own item lists are just named, and a mission's story change is written as a sentence.
+- A voice's personality can be written in French as well as English: the AI understands both and keeps your text as you wrote it.
 - A trader's sheet now says what the voice accepts as payment ("What the voice accepts"): whole categories such as Cash and valuables or Jewelry, or single items, only among those that have a trade price.
 - Next to a place's x, y and z, a link opens the community Build 42 map on that square.
 - A trader's stock in the workshop only offers the items a trader can actually sell (those with a price in the trade), and a stock line naming any other item is flagged: before, such an item could be picked but every offer naming it was refused.

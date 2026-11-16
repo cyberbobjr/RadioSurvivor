@@ -8,9 +8,9 @@ montre une façon différente de jouer à la radio :
 | Voix | Ce qu'elle fait | Ce que l'exemple montre |
 |---|---|---|
 | [Opal, la bavarde de Rosewood](#1-opal-la-bavarde-de-rosewood) | Elle parle, se souvient de vous, marque des lieux sur votre carte | Une voix simple : heures d'écoute, appel spontané, note de fréquence |
-| [Coach Tibbs, le donneur de missions](#2-coach-tibbs-le-donneur-de-missions) | Deux missions l'une après l'autre, des récompenses | Lieux, missions enchaînées, état de l'histoire, sa propre catégorie d'objets |
-| [Sol, le camion de nuit](#3-sol-le-camion-de-nuit) | Elle vend des marchandises au bord de la route | Troc avec rendez-vous, signal, lot de graines |
-| [Wendell, le facteur de March Ridge](#4-wendell-le-facteur-de-march-ridge) | Il échange par une boîte aux lettres, sans jamais venir | Troc par dépôt caché, fréquence d'une autre voix, note dans les boîtes à gants |
+| [Coach Tibbs, le donneur de missions](#2-coach-tibbs-le-donneur-de-missions) | Deux missions l'une après l'autre, des récompenses | Lieux, missions enchaînées, état de l'histoire, sa propre liste d'objets |
+| [Sol, le camion de nuit](#3-sol-le-camion-de-nuit) | Elle vend des marchandises au bord de la route | Troc avec rendez-vous, signal, paquet de graines |
+| [Wendell, le facteur de March Ridge](#4-wendell-le-facteur-de-march-ridge) | Il échange par une boîte aux lettres, sans jamais venir | Troc en cachette, fréquence d'une autre voix, note dans les boîtes à gants |
 
 Chaque exemple donne : l'idée, ce qu'il faut remplir à chaque étape, **la fiche complète** que l'atelier écrit (sa
 personnalité est la fin de la fiche, après `[prompt]`) et un petit échange radio pour voir comment elle se joue.
@@ -43,24 +43,23 @@ sur la carte.
 
 | Étape | Réglage | Choix |
 |---|---|---|
-| **+ Nouvelle voix** | Nom, identifiant, partir de | `Opal Brannigan`, `opal`, **Une voix vide** |
-| 1. Qui | Courte description | Une standardiste à la retraite qui connaît tout Rosewood |
-| | À l'antenne ? | **À l'antenne** |
-| 2. Où et quand | Bande de fréquence | de 40.0 à 44.8 MHz |
-| | Radio nécessaire | **Toute radio qui émet** |
-| | Heures d'écoute | de 09:00 à 12:00, puis **+ Ajouter des heures d'écoute** : de 19:00 à 22:00 |
-| | Cette voix est-elle sur la carte ? | **Nulle part sur la carte** |
-| | Appels spontanés | 4 (environ un appel toutes les quatre heures d'écoute) |
-| | Ce que dit la voix en appelant | Allô, allô ? Ici Opal, sur %1. Quelqu'un veut bavarder ? À vous. |
-| 3. Personnalité | Ce que la voix peut faire | **Parler**, **Marquer un lieu sur la carte**, **Montrer un quartier**, **Moral et provisions** |
-| | Sa personnalité | Le texte après `[prompt]` dans la fiche ci-dessous |
-| 4. Missions | Ses lieux | **Caserne de Rosewood** et **Centre de Rosewood**, tous deux **Repère sur la carte** |
-| | Missions | aucune |
+| **+ Nouvelle voix** | Comment s'appelle cette voix ? ; Quel genre de voix ? | `Opal Brannigan` ; **Partir de zéro**, puis **Un survivant qui parle** (il ne coche que **Parler**) |
+| 1. Qui | En une phrase, qui est-ce ? | Une standardiste à la retraite qui connaît tout Rosewood |
+| | Elle est à l'antenne ? | **Elle répond** |
+| 2. Où et quand | La radio : Quelle radio faut-il pour l'entendre ? | **📻 N'importe quel talkie** (le choix déjà coché) |
+| | Les heures : Quand écoute-t-elle ? | **Sur mesure** : de 09:00 à 12:00, puis **+ Ajouter des heures** : de 19:00 à 22:00 |
+| | L'endroit : Où se trouve-t-elle ? | **Personne ne sait où elle est** |
+| | Les appels : Appelle-t-elle toute seule ? | **Souvent** (environ un appel toutes les trois heures de jeu) |
+| | Ce qu'elle dit en appelant | « Allô, allô ? Ici Opal, sur [fréquence]. Quelqu'un veut bavarder ? À vous. » : le mot **[fréquence]** s'écrit avec le bouton **+ Ajouter ma fréquence** |
+| 3. Personnalité | Que peut-elle faire ? | **Parler** (déjà coché), puis **Marquer la carte**, **Montrer un quartier**, **Avoir un moral** |
+| | Qui est-elle vraiment ? | Le texte après `[prompt]` dans la fiche ci-dessous, écrit **En anglais** |
+| 4. Lieux et missions | Ses lieux | **Caserne de Rosewood** et **Centre de Rosewood**, tous deux avec **Repère** coché dans « Il sert à » |
+| | Ses missions | aucune |
 | 5. Récompenses | Récompenses | aucune (elle ne confie pas de mission) |
-| | Note de fréquence | cochée : trois lignes, trouvée dans les tables de chevet et de salon (**Normalement**) |
+| | Note de fréquence | cochée : trois lignes, « Elle se trouve dans » : tables de chevet et de salon (**Normalement**) |
 
-Avec **Marquer un lieu sur la carte** et **Montrer un quartier**, il lui faut au moins un lieu coché **Repère sur la
-carte** : ce sont les seuls endroits qu'elle peut vous montrer.
+Avec **Marquer la carte** et **Montrer un quartier**, il lui faut au moins un lieu avec **Repère** coché dans « Il sert
+à » : ce sont les seuls endroits qu'elle peut vous montrer.
 
 ### La fiche complète
 
@@ -70,13 +69,12 @@ format=1
 id=opal
 name=Opal Brannigan
 language=en
-frequency_range=40.0-44.8
-radio=any
+radio=any_talkie
 location=none
 actions=say,mark_map,reveal_area,persona_state
 state=active
 listen=09:00-12:00,19:00-22:00
-call_one_in=4
+call_one_in=3
 call=Allô, allô ? Ici Opal, sur %1. Quelqu'un veut bavarder ? À vous.
 
 [place caserne_de_rosewood]
@@ -145,22 +143,22 @@ lui-même, des leçons de secourisme ou la fréquence de Walt.
 
 | Étape | Réglage | Choix |
 |---|---|---|
-| **+ Nouvelle voix** | Nom, identifiant, partir de | `Vernon Tibbs`, `vernon`, **Une voix vide** |
-| 1. Qui | Courte description | L'entraîneur de football du lycée de Riverside |
-| 2. Où et quand | Bande de fréquence | de 45.0 à 49.8 MHz |
-| | Heures d'écoute | de 06:00 à 08:00 et de 18:00 à 21:00 |
-| | Appels spontanés | vide (il n'appelle jamais de lui-même) |
-| 3. Personnalité | Ce que la voix peut faire | **Parler**, **Marquer un lieu sur la carte**, **Confier des missions**, **Donner une fréquence** |
-| | Voix à faire connaître | **Walt Hensley** (une voix du mod) |
-| 4. Missions | Ses lieux | **Lycée de Riverside** (**Repère sur la carte** et **Lieu de mission**), **Terrain de football** (**Lieu de mission**), **Benne du gymnase** (**Planque**) |
-| | Mission 1 | **Faire le guet** au **Terrain de football**, **Heures de guet** 3 |
-| | Mission 2 | **Retrouver un objet personnel** au **Lycée de Riverside**, objet **Sifflet**, son nom « mon sifflet porte-bonheur », planque **Benne du gymnase**, **Seulement après** : la mission 1 ; sous **Plus d'options**, **État de l'histoire une fois réussie** : `whistle_back` |
-| 5. Récompenses | Ses propres catégories | une catégorie `trousse_equipe` : bouteilles d'eau, barres de céréales, bandages |
-| | Récompenses | **Sac de matériel** `trousse_equipe` **Souvent**, **Une leçon** Secourisme **Normalement**, **Une fréquence** **Rarement** |
+| **+ Nouvelle voix** | Comment s'appelle cette voix ? ; Quel genre de voix ? | `Vernon Tibbs` ; **Partir de zéro**, puis **Un donneur de missions** (il coche **Donner des missions**) |
+| 1. Qui | En une phrase, qui est-ce ? | L'entraîneur de football du lycée de Riverside |
+| 2. Où et quand | La radio : Quelle radio faut-il pour l'entendre ? | **🎧 Un talkie pro** |
+| | Les heures : Quand écoute-t-elle ? | **Sur mesure** : de 06:00 à 08:00 et de 18:00 à 21:00 |
+| | Les appels : Appelle-t-elle toute seule ? | **Jamais** (il n'appelle jamais de lui-même) |
+| 3. Personnalité | Que peut-elle faire ? | **Parler**, **Marquer la carte**, **Donner des missions** (déjà coché), **Donner un contact** |
+| | Elle peut donner le contact de… | **Walt Hensley** (une voix du mod) |
+| 4. Lieux et missions | Ses lieux | **Lycée de Riverside** (**Repère** et **Lieu de mission**), **Terrain de football** (**Lieu de mission**), **Benne du gymnase** (**Planque**) |
+| | Mission 1 | genre **Faire le guet** au **Terrain de football**, **Combien de temps faire le guet ?** : **Une matinée** (6 heures) |
+| | Mission 2 | genre **Retrouver un objet personnel** au **Lycée de Riverside**, **Quel objet ?** : **Sifflet**, **Comment elle l'appelle** : « mon sifflet porte-bonheur », **Planques** : **Benne du gymnase**, **Seulement après la mission** : **1 · Faire le guet**, **Ce qui change dans son histoire** : « Il a retrouvé son sifflet » (voir plus bas) |
+| 5. Récompenses | Options avancées : Ses propres listes d'objets | une liste `trousse_equipe` (tapez « trousse équipe » dans **Nom de la liste**) : bouteilles d'eau, barres de céréales, bandages |
+| | Récompenses | **Sac de matériel** sur la liste `trousse_equipe` **Souvent**, **Une leçon** Secourisme **Normalement**, **Un contact radio** **Rarement** |
 
-Pour la catégorie : ouvrez **Ses propres catégories** (en bas de l'étape 5), tapez `trousse équipe`, cliquez sur
-**+ Ajouter une catégorie**, puis ajoutez les objets. Revenez ensuite à la récompense **Sac de matériel** et
-choisissez `trousse_equipe` dans sa liste.
+Pour la liste : ouvrez **Options avancées** (en bas de l'étape 5), puis **Ses propres listes d'objets** : tapez
+`trousse équipe` dans **Nom de la liste**, cliquez sur **+ Ajouter une liste**, puis ajoutez les objets. Revenez ensuite
+à la récompense **Sac de matériel** et choisissez `trousse_equipe` dans sa liste.
 
 ![Les récompenses de Coach Tibbs et sa propre catégorie d'objets](../../images/screenshots/atelier/exemples/atelier-fr-23-tibbs-rewards.png)
 
@@ -175,8 +173,7 @@ format=1
 id=vernon
 name=Vernon Tibbs
 language=en
-frequency_range=45.0-49.8
-radio=any
+radio=pro_talkie
 location=none
 actions=say,mark_map,start_mission,share_frequency
 state=active
@@ -202,7 +199,7 @@ use=drop
 type=watch
 target=terrain_de_football
 story=The dead used to gather on my football field at night. Watch it for a few hours and tell me what you see.
-hours=3
+hours=6
 
 [mission item]
 type=item
@@ -244,8 +241,8 @@ Rules:
 - Answer in the same language the caller uses.
 ```
 
-L'objet de la mission 2 s'écrit `Base.Whistle` : dans l'atelier, tapez « sifflet » dans le champ **Quel objet** et
-choisissez **Sifflet**. Le jeu pose lui-même un sifflet au lycée quand la mission commence.
+L'objet de la mission 2 s'écrit `Base.Whistle` : dans l'atelier, cliquez sur **Choisir un objet** sous **Quel objet ?**,
+cherchez « sifflet » et choisissez **Sifflet**. Le jeu pose lui-même un sifflet au lycée quand la mission commence.
 
 ### À la radio
 
@@ -254,47 +251,53 @@ choisissez **Sifflet**. Le jeu pose lui-même un sifflet au lycée quand la miss
 > **Coach Tibbs** : Bien entendu, fiston. Mon terrain de football : avant, les morts s'y rassemblaient la nuit.
 > Fais le guet quelques heures et raconte-moi ce que tu vois. Je te le marque sur la carte. À vous.
 >
-> *(le joueur reste trois heures de jeu près du terrain, puis rappelle)*
+> *(le joueur reste six heures de jeu près du terrain, puis rappelle)*
 >
 > **Joueur** : J'en ai compté une dizaine qui tournaient près des gradins.
 >
 > **Coach Tibbs** : Beau travail ! Il y a un sac pour toi à la benne du gymnase. Maintenant, mon sifflet
 > porte-bonheur est resté dans mon bureau, au lycée. À vous.
 
-Le jeu vérifie lui-même que le guet a duré trois heures : la voix ne décide de rien. Quand le sifflet est déposé, la
+Le jeu vérifie lui-même que le guet a duré six heures : la voix ne décide de rien. Quand le sifflet est déposé, la
 fiche retient l'état `whistle_back`, et sa personnalité dit ce que cela change pour lui.
+
+Dans l'atelier, on n'écrit pas le nom de l'état : on écrit la phrase, dans **Ce qui change dans son histoire**
+(« Il a retrouvé son sifflet »). L'atelier en fait le nom de l'état et écrit lui-même la ligne `Story state: when your
+story state is <nom>, <phrase>` à la fin de la personnalité. Ici, la fiche garde le nom `whistle_back`, écrit à la
+main : l'atelier le montre avec les mots de cette ligne, et la personnalité ci-dessus reste inchangée.
 
 ## 3. Sol, le camion de nuit
 
-**L'idée.** Marisol « Sol » Vega conduisait un camion de glaces avant l'épidémie. Elle passe maintenant de nuit, tous
-les cinq jours, sur la route à l'est de West Point, avec des piles, du café, des conserves et des graines. Personne ne
+**L'idée.** Marisol « Sol » Vega conduisait un camion de glaces avant l'épidémie. Elle passe maintenant de nuit, chaque
+semaine, sur la route à l'est de West Point, avec des piles, du café, des conserves et des graines. Personne ne
 la voit jamais.
 
-![Le troc de Sol : rendez-vous, arrivée par la route, marchandises et lot de graines](../../images/screenshots/atelier/exemples/atelier-fr-24-sol-trade.png)
+![Le troc de Sol : rendez-vous, arrivée par la route, marchandises et paquet de graines](../../images/screenshots/atelier/exemples/atelier-fr-24-sol-trade.png)
 
 ### Ce qu'on remplit
 
 | Étape | Réglage | Choix |
 |---|---|---|
-| **+ Nouvelle voix** | Nom, identifiant, partir de | `Marisol Vega`, `marisol`, **Une voix vide** |
-| 1. Qui | Courte description | Une marchande qui passe de nuit avec son camion |
-| 2. Où et quand | Bande de fréquence | de 60.0 à 64.8 MHz |
-| | Heures d'écoute | de 22:00 à 01:00 (une garde peut passer minuit) |
-| | Appels spontanés | 6, et sa phrase d'appel |
-| 3. Personnalité | Ce que la voix peut faire | **Parler**, **Moral et provisions**, **Faire du troc** (cochée toute seule à l'étape 5) |
-| 4. Missions | Ses lieux | **Halte de West Point**, coché **Rendez-vous de troc** seulement |
-| 5. Récompenses | Troc | **Cette voix fait du troc** ; **Rendez-vous** : Halte de West Point ; **Arrive par** : **Route** ; **Heures du rendez-vous** de 02:00 à 04:00 ; **Passage** tous les 5 jours |
-| | Marchandises | Pile de 2 à 6, Paquet de cigarettes de 1 à 4, Café de 0 à 2, Beurre de cacahuètes de 1 à 3, Conserve de salade de fruits de 0 à 2, et quatre paquets de graines dans le lot `graines` |
-| | Lots | `graines`, de 3 à 8 au total, au plus 3 sortes |
-| | Ce que la voix accepte | les catégories **Argent et objets de valeur** (`cash`) et **Bijoux** (`jewelry`) |
-| | Marge, Lieu tranquille depuis | de 15 % à 40 % ; 2 heures sans personne autour |
+| **+ Nouvelle voix** | Comment s'appelle cette voix ? ; Quel genre de voix ? | `Marisol Vega` ; **Partir de zéro**, puis **Un marchand** (il coche **Faire du troc** et ouvre le panneau Troc) |
+| 1. Qui | En une phrase, qui est-ce ? | Une marchande qui passe de nuit avec son camion |
+| 2. Où et quand | La radio : Quelle radio faut-il pour l'entendre ? | **📶 Un bon talkie** |
+| | Les heures : Quand écoute-t-elle ? | **Sur mesure** : de 22:00 à 01:00 (une plage peut passer minuit) |
+| | Les appels : Appelle-t-elle toute seule ? | **Parfois** (environ un appel toutes les six heures de jeu), et sa phrase d'appel |
+| 3. Personnalité | Que peut-elle faire ? | **Parler**, **Avoir un moral**, **Faire du troc** (cochée toute seule à l'étape 5) |
+| 4. Lieux et missions | Ses lieux | **Halte de West Point**, avec seulement **Rendez-vous de troc** coché |
+| 5. Récompenses | Troc : Cette voix fait du troc | **Cette voix fait du troc** ; **Où a lieu le rendez-vous ?** : Halte de West Point ; **Elle arrive par** : **La route** ; **À quelle heure ?** de 02:00 à 04:00 ; **Elle revient** : **Chaque semaine** |
+| | Ce qu'elle vend | Pile de 2 à 6, Paquet de cigarettes de 1 à 4, Café de 0 à 2, Beurre de cacahuètes de 1 à 3, Conserve de salade de fruits de 0 à 2, et quatre sortes de graines dans le paquet `graines` |
+| | Paquets | `graines` : « entre 3 et 8 objets en tout », « pas plus de 3 objets différents » |
+| | Ce qu'elle prend | les listes entières **Argent et objets de valeur** (`cash`) et **Bijoux** (`jewelry`) |
+| | Ses prix | **Généreux** (de 5 % à 25 %) |
+| | Le lieu reste tranquille | **Quelques heures** (4 heures de jeu) |
 | | Note de fréquence | trois lignes, trouvée dans les boîtes à gants (**Souvent**) et dans les confiseries (**Rarement**) |
 
-Les marchandises se choisissent sans rien taper : **Ajouter des objets** ouvre la liste des objets que l'on peut
-vendre ; cherchez « pile », « café », cochez-les, puis **Ajouter la sélection**. Pour le lot : **+ Ajouter un lot**,
-nommez-le `graines`, puis sur chaque ligne de graines choisissez **Dans le lot « graines »** au lieu d'**Un nombre**.
-**Ce que la voix accepte** se remplit de la même façon, avec des objets ou des catégories entières : Sol ne prend que
-de l'argent et des bijoux.
+Les marchandises se choisissent sans rien taper : **Ajouter ce qu'elle vend** ouvre la liste des objets qu'un marchand
+peut vendre ; cherchez « pile », « café », cochez-les, puis **Ajouter la sélection**, et indiquez « entre … et … » sur
+chaque ligne. Pour le paquet : **+ Ajouter un paquet**, nommez-le `graines`, puis **Ajouter des objets au paquet**
+(les quatre sortes de graines). **Ce qu'elle prend** se remplit de la même façon, avec des listes entières : Sol ne
+prend que de l'argent et des bijoux.
 
 ### La fiche complète
 
@@ -304,8 +307,7 @@ format=1
 id=marisol
 name=Marisol Vega
 language=en
-frequency_range=60.0-64.8
-radio=any
+radio=good_talkie
 location=none
 actions=say,persona_state,propose_trade
 state=active
@@ -322,7 +324,7 @@ use=landing
 landing=halte_de_west_point
 arrival=road
 hours=02:00-04:00
-every_days=5
+every_days=7
 item=Base.Battery:2-6
 item=Base.CigarettePack:1-4
 item=Base.Coffee2:0-2
@@ -335,8 +337,8 @@ item=Base.CabbageBagSeed2:graines
 group=graines:3-8:3
 accept=cash
 accept=jewelry
-margin=0.15-0.40
-delay_hours=2
+margin=0.05-0.25
+delay_hours=4
 
 [note]
 text=Sol et son camion
@@ -383,7 +385,7 @@ Le poids de chaque objet n'est écrit nulle part : le jeu le connaît. Un marcha
 L'accord s'écrit dans le carnet du joueur, onglet Radio : ce qu'il apporte, ce qu'il reçoit, sans aucun prix. Le soir
 venu, le joueur se tient à la halte avec une lampe allumée en main, entend le fourgon se garer, pose dans un sac à
 moins de 3 cases du lieu exactement ce qui était convenu (plusieurs sacs s'additionnent ; ce qui était déjà là avant
-l'accord ne compte pas) et s'éloigne. Deux heures plus tard sans personne à moins de 100 cases, Sol prend la liste
+l'accord ne compte pas) et s'éloigne. Quatre heures plus tard, sans personne à moins de 100 cases, Sol prend la liste
 convenue, rien de plus, et laisse les piles et les graines dans le sac qui contenait le plus du paiement. S'il manque
 quelque chose, Sol garde tout ce qui a été déposé, ne laisse rien et s'en souviendra ; si rien n'a été déposé, sa
 confiance baisse un peu. Une patrouille, un hélicoptère ou un orage peut annuler le passage (rarement) : Sol l'annonce
@@ -395,27 +397,31 @@ sur sa fréquence et le répète chaque heure jusqu'au rendez-vous, et rien n'es
 dans la boîte aux lettres de la poste avant l'aube et reprend le paiement, sans jamais se montrer. Il connaît Sol et
 peut donner sa fréquence.
 
-![Le troc de Wendell : dépôt caché à la boîte de la poste](../../images/screenshots/atelier/exemples/atelier-fr-25-wendell-trade.png)
+![Le troc de Wendell : une cachette à la boîte de la poste](../../images/screenshots/atelier/exemples/atelier-fr-25-wendell-trade.png)
 
 ### Ce qu'on remplit
 
 | Étape | Réglage | Choix |
 |---|---|---|
-| **+ Nouvelle voix** | Nom, identifiant, partir de | `Wendell Ames`, `wendell`, **Une voix vide** |
-| 1. Qui | Courte description | Le facteur de March Ridge, qui continue sa tournée |
-| 2. Où et quand | Bande de fréquence | de 280.0 à 289.8 MHz |
-| | Heures d'écoute | de 05:00 à 07:00 |
-| 3. Personnalité | Ce que la voix peut faire | **Parler**, **Faire du troc**, **Donner une fréquence** |
-| | Voix à faire connaître | **Marisol Vega** (l'exemple 3 : créez-la d'abord) |
-| 4. Missions | Ses lieux | **Boîte de la poste**, coché **Rendez-vous de troc**, relevé en jeu juste à côté de la boîte aux lettres |
-| 5. Récompenses | Troc | **Rendez-vous** : Boîte de la poste ; **Arrive par** : **Dépôt caché** ; **Heures du rendez-vous** de 05:00 à 06:00 ; **Passage** tous les 3 jours ; marge laissée vide (10 % à 50 %) |
-| | Marchandises | Bandage de 1 à 4, Antidouleurs de 0 à 2, Lingettes désinfectantes de 1 à 3, Pile de 1 à 3, Conserve de soupe de 1 à 3, Bouteille de désinfectant de 0 à 1 |
-| | Ce que la voix accepte | les catégories **Papiers des morts** (`papers_of_the_dead`) et **Argent et objets de valeur** (`cash`) |
-| | Note de fréquence | trouvée dans les casiers de la poste et les boîtes à gants des véhicules postaux (**Normalement**), et **Un mort qui porte un talkie peut l'avoir sur lui** |
+| **+ Nouvelle voix** | Comment s'appelle cette voix ? ; Quel genre de voix ? | `Wendell Ames` ; **Partir de zéro**, puis **Un marchand** (il coche **Faire du troc** ; il coche aussi **Donner un contact**) |
+| 1. Qui | En une phrase, qui est-ce ? | Le facteur de March Ridge, qui continue sa tournée |
+| 2. Où et quand | La radio : Choisir moi-même la fréquence | activé, **Fréquence** 284.6 MHz : la pastille dit **🎧 Un talkie pro** |
+| | Les heures : Quand écoute-t-elle ? | **Sur mesure** : de 05:00 à 07:00 |
+| | Les appels : Appelle-t-elle toute seule ? | **Jamais** |
+| | L'endroit : Où se trouve-t-elle ? | **Personne ne sait où elle est** |
+| 3. Personnalité | Que peut-elle faire ? | **Parler**, **Faire du troc**, **Donner un contact** |
+| | Elle peut donner le contact de… | **Marisol Vega** (l'exemple 3 : créez-la d'abord) |
+| 4. Lieux et missions | Ses lieux | **Boîte de la poste**, coché **Rendez-vous de troc**, relevé en jeu juste à côté de la boîte aux lettres |
+| 5. Récompenses | Troc : Où a lieu le rendez-vous ? | **Boîte de la poste** ; **Elle arrive par** : **Une cachette** ; **À quelle heure ?** de 05:00 à 06:00 ; **Elle revient** : **Tous les 3 jours** ; **Ses prix** : **Correct** (rien à remplir : 10 % à 50 %) |
+| | Ce qu'elle vend | Bandage de 1 à 4, Antidouleurs de 0 à 2, Lingettes désinfectantes de 1 à 3, Pile de 1 à 3, Conserve de soupe de 1 à 3, Bouteille de désinfectant de 0 à 1 |
+| | Ce qu'elle prend | les listes entières **Papiers des morts** (`papers_of_the_dead`) et **Argent et objets de valeur** (`cash`) |
+| | Le lieu reste tranquille | **Une heure** (le réglage normal du jeu, rien à changer) |
+| | Note de fréquence | trouvée dans les casiers de la poste et les boîtes à gants des véhicules postaux (**Normalement**), et **Un zombie peut l'avoir sur lui** |
 
-Avec **Dépôt caché**, personne ne vient et aucun signal n'est attendu : le joueur laisse le paiement **dans la boîte
-aux lettres** (le conteneur du lieu) avant l'heure, et la marchandise y apparaît hors de vue. La bande 280.0-289.8
-demande une bonne radio : un talkie Premium Technologies, tactique, de l'armée, ou une radio amateur.
+Avec **Une cachette**, personne ne vient et aucun signal n'est attendu : le joueur laisse le paiement **dans la boîte
+aux lettres** (le conteneur du lieu) avant l'heure, et la marchandise y apparaît hors de vue. Wendell garde la même
+fréquence à chaque partie : ses clients la notent une fois pour toutes. 284.6 MHz demande un talkie pro (Premium
+Technologies) ou mieux : un talkie tactique, de l'armée, ou une radio amateur.
 
 ### La fiche complète
 
@@ -425,8 +431,7 @@ format=1
 id=wendell
 name=Wendell Ames
 language=en
-frequency_range=280.0-289.8
-radio=any
+frequency=284.6
 location=none
 actions=say,propose_trade,share_frequency
 state=active

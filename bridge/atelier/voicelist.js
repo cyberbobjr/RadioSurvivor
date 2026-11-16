@@ -1,5 +1,5 @@
 // Left column: the voices of the working folder (GET /api/voices) with a coloured dot for their state, a red mark
-// when the game refused the sheet (GET /api/verdicts, E22-T04), the "+ New voice" button and the legend.
+// when the game refused the sheet (GET /api/verdicts, E22-T04), the "+ New voice" button and a one-line legend.
 
 import { h } from './dom.js';
 import { button } from './widgets.js';
@@ -33,7 +33,6 @@ export function renderVoiceList(host, { t, voices, currentId, onOpen, onNew, ver
       refusedByGame(verdicts, entry.id) && h('span', { class: 'sr', text: ` (${t('verdict.dot')})` })));
     }))),
     button('add', { id: 'new-voice', class: 'new', onClick: onNew }, t('voices.new')),
-    h('ul', { class: 'legend' }, STATUSES.map((status) => h('li', {},
-      h('span', { class: `dot ${status}`, 'aria-hidden': 'true' }), t(`status.${status}`))),
-    h('li', {}, h('span', { class: 'gamebad', 'aria-hidden': 'true' }), t('verdict.dot'))));
+    // S07: one line of legend; each voice says its state in its tooltip.
+    h('p', { class: 'legend' }, h('span', { class: 'gamebad', 'aria-hidden': 'true' }), t('verdict.dot')));
 }

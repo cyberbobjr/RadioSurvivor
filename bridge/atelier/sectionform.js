@@ -5,24 +5,30 @@
 //   either a function (ctx, section, key) => control, or advanced(form): the key is shown only when the sheet already
 //   uses it, in a closed "advanced settings" panel at the end of the form (a key a new voice never needs), with that
 //   form, or its plain field for ADVANCED;
-// - order {kind: [key, ...]} shows these keys first, in that order (the order a player fills them), the other keys
-//   after them in the grammar's order.
+// - groups {kind: [{title, keys}]}: the questions of the form, in order, each under its title (E24-T02); the keys of no
+//   group come after them in the grammar's order.
+// A required key is marked with one star, said once at the top of the form (charter rule 4); a closed choice is a set
+// of cards (charter rule 7), with the icon i18n choice.<key>.<value>.icon when there is one.
 
-import { h, select } from './dom.js';
-import { hint, selectHelp } from './help.js';
+import { h } from './dom.js';
+import { hint } from './help.js';
 import * as sheet from './sheet.js';
-import { fold, listEditor, row, textInput } from './widgets.js';
+import { cards, fold, listEditor, row, textInput } from './widgets.js';
 
 export const advanced = (form = null) => Object.freeze({ advanced: true, form });
 export const ADVANCED = advanced();
 
-function ordered(keys, first = []) {
-  return [...first.filter((k) => keys.includes(k)), ...keys.filter((k) => !first.includes(k))];
+// [{title, keys}] covering every key of the grammar once.
+function groupsOf(keys, groups = []) {
+  const listed = groups.flatMap((g) => g.keys);
+  const rest = keys.filter((k) => !listed.includes(k));
+  const out = groups.map((g) => ({ title: g.title, keys: g.keys.filter((k) => keys.includes(k)) }));
+  return rest.length ? [...out, { title: null, keys: rest }] : out;
 }
 
-export function sectionForm(ctx, section, grammar, { editors = {}, order = {} } = {}) {
+export function sectionForm(ctx, section, grammar, { editors = {}, groups = {} } = {}) {
   const { t, changed } = ctx;
-  const label = (key) => `${t(`key.${grammar.kind}.${key}`, {}, key)}${grammar.required.includes(key) ? ` ${t('field.required')}` : ''}`;
+  const label = (key) => `${t(`key.${grammar.kind}.${key}`, {}, key)}${grammar.required.includes(key) ? ' *' : ''}`;
   const help = (key) => t(`key.${grammar.kind}.${key}.help`, {}, '') || null;
   // "?" of a key: help.<kind>.<key>, its closed choices help.<kind>.<key>.<value> (help.js).
   const topic = (key) => `help.${grammar.kind}.${key}`;
@@ -38,12 +44,10 @@ export function sectionForm(ctx, section, grammar, { editors = {}, order = {} } 
     }
     const choices = grammar.choices[key];
     if (choices) {
-      const options = choices.map((c) => ({ value: c, label: t(`choice.${key}.${c}`, {}, c) }));
-      return row(label(key), (id) => {
-        const field = select([{ value: '', label: t('field.choose') }, ...options], sheet.value(section, key) ?? '',
-          (v) => { sheet.setValue(section, key, v); changed(); }, { id });
-        return h('div', { class: 'stack' }, field, selectHelp(t, topic(key), field));
-      }, help(key), keyHint(key, options));
+      const options = choices.map((c) => ({ value: c, label: t(`choice.${key}.${c}`, {}, c),
+        help: t(`help.${grammar.kind}.${key}.${c}.what`, {}, '') || null, icon: t(`choice.${key}.${c}.icon`, {}, '') || null }));
+      return row(label(key), (id) => cards(`${grammar.kind}-${key}`, options, sheet.value(section, key) ?? '',
+        (v) => { sheet.setValue(section, key, v); changed(); }, { id }), help(key), keyHint(key, options));
     }
     return row(label(key), (id) => textInput(id, sheet.value(section, key), (v) => {
       sheet.setValue(section, key, v);
@@ -55,16 +59,17 @@ export function sectionForm(ctx, section, grammar, { editors = {}, order = {} } 
 
   const main = [];
   const more = [];
-  for (const key of ordered(grammar.keys, order[grammar.kind])) {
-    const editor = editors[grammar.kind]?.[key];
-    if (editor?.advanced) {
-      if (sheet.values(section, key).length) more.push(editor.form ? formRow(key, editor.form) : plainRow(key));
-    } else if (editor) {
-      main.push(formRow(key, editor));
-    } else {
-      main.push(plainRow(key));
+  for (const group of groupsOf(grammar.keys, groups[grammar.kind])) {
+    const rows = [];
+    for (const key of group.keys) {
+      const editor = editors[grammar.kind]?.[key];
+      if (editor?.advanced) {
+        if (sheet.values(section, key).length) more.push(editor.form ? formRow(key, editor.form) : plainRow(key));
+      } else rows.push(editor ? formRow(key, editor) : plainRow(key));
     }
+    if (rows.length) main.push(group.title ? h('section', { class: 'question' }, h('h4', { text: t(group.title) }), rows) : rows);
   }
+  if (grammar.required.length) main.unshift(h('p', { class: 'help legend', text: t('field.required_legend') }));
   if (more.length) {
     main.push(fold(t('section.advanced'), false, h('p', { class: 'help', text: t('section.advanced_help') }), more));
   }

@@ -3053,7 +3053,7 @@ end
 VOICE_SHEET = """format=1
 id=scouter
 name=Scout Voice
-frequencies=160.0
+frequency=160.0
 actions=say,start_mission
 budget.start_mission=3
 [place depot]
@@ -3072,7 +3072,7 @@ You are Scout Voice, a voice of the offline test bench who gives scouting jobs.
 OTHER_SHEET = """format=1
 id=other
 name=Other Voice
-frequencies=161.0
+frequency=161.0
 actions=say,start_mission
 [prompt]
 You are Other Voice, a second voice of the offline test bench.

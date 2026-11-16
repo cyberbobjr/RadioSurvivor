@@ -143,7 +143,7 @@ end
 local function testSheet(t, x, y, label, actions)
     local Persona = require "RadioSurvivor/RS_Persona"
     local id = "rstest_map_" .. string.format("%.0f", getTimestampMs())
-    local lines = { "format=1", "id=" .. id, "name=RST Map", "frequencies=199.8", "actions=" .. (actions or "say,mark_map"),
+    local lines = { "format=1", "id=" .. id, "name=RST Map", "frequency=199.8", "actions=" .. (actions or "say,mark_map"),
         "[place " .. PLACE_ID .. "]", "at=" .. tostring(x) .. "," .. tostring(y) .. ",0", "label=" .. label,
         "use=mark", "[prompt]", "Test voice of rs.actions.map." }
     local sheet, why = Persona.parseLines(lines, id)

@@ -2,7 +2,8 @@
 // - personalityPanel: "Write it with the AI" in the step "personality" (description -> English [prompt]);
 // - suggestButton: "Suggest" next to the story of a mission card (one sentence);
 // - tryDrawer: "Try the voice", a chat over the CURRENT UNSAVED sheet text (the bridge builds the prompt as in game).
-// Without AI configured (`ai.available` false) every button is greyed with a tooltip saying how to configure the bridge.
+// Without AI configured (`ai.available` false) every button is greyed with a tooltip saying to ask the adult who runs
+// the workshop (E24-T02; how to configure it is in the wiki).
 
 import { confirmBar } from './dialogs.js';
 import { clear, h } from './dom.js';
@@ -115,7 +116,9 @@ export function tryDrawer(ctx) {
       chat.messages.push({ role: 'assistant', content: answer.lines.join(' ') });
       draw();
       input.focus();
-    }) }, t('ai.try_send'));
+    }) }, '➤');
+  send.setAttribute('aria-label', t('ai.try_send'));
+  send.title = ai.available ? t('ai.try_send') : t('ai.unavailable');
   input.addEventListener('keydown', (e) => { if (e.key === 'Enter') send.click(); });
   const reset = button('neutral', { id: 'try-reset', onClick: () => {
     chat.messages.length = 0;
