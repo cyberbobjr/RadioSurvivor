@@ -11,6 +11,7 @@ installés (media/scripts/generated/items, Weight du script, plus Capacity d'un 
 + 1, Vodka 1 + 1, Wine et Wine2 0,3 + 1 ; CanteenMilitary sans liquide initial : 0,2) et dans le script du mod
 (RadioSurvivor.OutsideNews). Ce sont les poids que les fiches écrivaient avant E22-T12, à 0,05 kg près.
 """
+from pathlib import Path
 
 WEIGHTS = {
     'Base.3030Box': 0.6, 'Base.308Box': 0.6, 'Base.556Box': 0.5, 'Base.556Clip': 0.2, 'Base.AlcoholWipes': 0.3,
@@ -36,3 +37,18 @@ def lua_table(weights: dict[str, float]) -> str:
 
 
 ITEM_WEIGHTS = f'require("RadioSurvivor/RS_ItemWeights").use({lua_table(WEIGHTS)})'
+
+
+# E23-T06 : règles du lecteur des fiches pour une section [trade] (modes d'arrivée inscrits, poids ci-dessus, catalogue
+# partagé de catégories livré : accept=<catégorie>), comme RS_Personas.rules les donne en jeu. Expression Lua, à évaluer
+# après ITEM_WEIGHTS et l'inscription des modes d'arrivée.
+CATEGORIES = Path(__file__).resolve().parents[1] / 'Contents/mods/batman_RadioSurvivor/42.21/personas/_categories.txt'
+
+
+def trade_rules_lua() -> str:
+    lines = CATEGORIES.read_text(encoding='utf-8').splitlines()
+    text = '{' + ', '.join('[==[' + line + ']==]' for line in lines) + '}'
+    return ('{ arrivals = require("RadioSurvivor/RS_TradeArrivals").NAMES,'
+            ' itemWeight = require("RadioSurvivor/RS_ItemWeights").of,'
+            f' categories = require("RadioSurvivor/RS_Persona").parseCatalogue({text}) }}')
+

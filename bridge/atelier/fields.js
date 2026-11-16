@@ -4,11 +4,11 @@
 // field(kind, ctx) ; ctx = {t, id, value, onChange(text), rerender(), places: [{value, label}],
 //                           categories: [{value, label}], skills: [{value, label}], items: item index (items.js)}
 
+import { categoryIds } from './categories.js';
 import { h, select } from './dom.js';
 import { selectHelp } from './help.js';
-import * as sheet from './sheet.js';
 import { formatAt, formatRange, parseList, parseRange } from './values.js';
-import { itemPicker } from './itempicker.js';
+import { itemChoice } from './itempicker.js';
 import * as voice from './voice.js';
 import { button, numberInput, removeButton } from './widgets.js';
 
@@ -49,8 +49,8 @@ export const FIELDS = {
         t('field.add_stop')));
   },
 
-  // Search by name in the page's language or pick in the item browser; the sheet stores Module.Type (itempicker.js).
-  item: ({ t, id, value, onChange, items }) => itemPicker(t, items, value, onChange, { id }, { browse: true }),
+  // An item picked in the item browser, shown by its name and weight; the sheet stores Module.Type (itempicker.js).
+  item: ({ t, id, value, onChange, items }) => itemChoice(t, items, value, onChange, { id }),
 
   text: ({ id, value, onChange }) => h('input', { id, type: 'text', value, onInput: (e) => onChange(e.target.value) }),
 };
@@ -67,8 +67,7 @@ export function fieldOptions(model, catalog, t) {
   const opts = {
     places: places.map((p) => ({ value: p.id, label: label(p) })),
     drops: places.filter((p) => p.uses.includes('drop')).map((p) => ({ value: p.id, label: label(p) })),
-    categories: [...catalog.sharedCategories(), ...sheet.sectionsOf(model, 'category').map((s) => s.id)]
-      .map((c) => ({ value: c, label: t(`category.${c}`, {}, c) })),
+    categories: categoryIds(model, catalog).map((c) => ({ value: c, label: t(`category.${c}`, {}, c) })),
     skills: catalog.skills().map((s) => ({ value: s, label: t(`skill.${s}`, {}, s) })),
     items: catalog.itemIndex(),
   };

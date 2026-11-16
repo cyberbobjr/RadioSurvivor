@@ -26,14 +26,14 @@ local PREFIX = "media/lua/"
 -- { name, side, first use in the mod (relative to media/lua) }. A dotted name is a field of an exposed class.
 local GLOBALS = {
     { "isClient", "any", "server/CoreAI/CA_Missions.lua:1" },
-    { "isServer", "any", "server/CoreAI/CA_NotebookServer.lua:69" },
-    { "getTimestampMs", "any", "server/CoreAI/CA_Missions.lua:288" },
+    { "isServer", "any", "server/CoreAI/CA_NotebookServer.lua:70" },
+    { "getTimestampMs", "any", "server/CoreAI/CA_Missions.lua:286" },
     { "getSandboxOptions", "any", "shared/RadioSurvivor/RadioSurvivor_Const.lua:153" },
     -- Lua global of the required mod batman_BeltRadio (shared file, loaded everywhere): transmit predicate.
     { "BatmanRadioSupport.canTransmitWith", "any", "shared/RadioSurvivor/RadioSurvivor_Const.lua:270" },
     { "getPlayer", "any", "server/RadioSurvivor_Server.lua:66" },
     -- E18-T17: getServerOptions, detectBadWords and addSound are read by LK_Talk (Living Knox), run by lk.npctalk.
-    { "sendServerCommand", "server", "server/CoreAI/CA_NotebookServer.lua:69" },
+    { "sendServerCommand", "server", "server/CoreAI/CA_NotebookServer.lua:70" },
     { "getOnlinePlayers", "server", "server/RadioSurvivor_Server.lua:67" },
     { "getFileReader", "server", "server/RadioSurvivor/RS_State.lua:46" },
     { "getFileWriter", "server", "server/RadioSurvivor/RS_State.lua:120" },
@@ -41,18 +41,18 @@ local GLOBALS = {
     { "ZombRand", "server", "server/CoreAI/CA_NotebookStore.lua:49" },
     { "getGameTime", "server", "server/RadioSurvivor_Server.lua:87" },
     { "getClimateManager", "server", "server/CoreAI/CA_WorldFacts.lua:33" },
-    { "getZomboidRadio", "server", "server/RadioSurvivor/RS_Personas.lua:765" },
-    { "sendRemoveItemFromContainer", "server", "server/CoreAI/CA_Missions.lua:783" },
-    { "sendAddItemToContainer", "server", "server/CoreAI/CA_Missions.lua:566" },
-    { "DynamicRadioChannel.new", "server", "server/RadioSurvivor/RS_Personas.lua:721" },
-    { "ChannelCategory.Amateur", "server", "server/RadioSurvivor/RS_Personas.lua:721" },
+    { "getZomboidRadio", "server", "server/RadioSurvivor/RS_Personas.lua:768" },
+    { "sendRemoveItemFromContainer", "server", "server/CoreAI/CA_Missions.lua:820" },
+    { "sendAddItemToContainer", "server", "server/CoreAI/CA_Missions.lua:602" },
+    { "DynamicRadioChannel.new", "server", "server/RadioSurvivor/RS_Personas.lua:724" },
+    { "ChannelCategory.Amateur", "server", "server/RadioSurvivor/RS_Personas.lua:724" },
     { "RadioBroadCast.new", "server", "server/RadioSurvivor_Server.lua:125" },
     { "RadioLine.new", "server", "server/RadioSurvivor_Server.lua:129" },
     { "getCell", "server", "server/RadioSurvivor_Server.lua:264" },
-    { "listFilesInModDirectory", "server", "server/RadioSurvivor/RS_Personas.lua:278" },
-    { "getModFileReader", "server", "server/RadioSurvivor/RS_Personas.lua:294" },
-    { "listFilesInZomboidLuaDirectory", "server", "server/RadioSurvivor/RS_Personas.lua:414" },
-    { "instanceItem", "server", "server/CoreAI/CA_Missions.lua:550" },
+    { "listFilesInModDirectory", "server", "server/RadioSurvivor/RS_Personas.lua:279" },
+    { "getModFileReader", "server", "server/RadioSurvivor/RS_Personas.lua:295" },
+    { "listFilesInZomboidLuaDirectory", "server", "server/RadioSurvivor/RS_Personas.lua:417" },
+    { "instanceItem", "server", "server/CoreAI/CA_Missions.lua:586" },
     { "ItemPickerJava.Parse", "server", "server/RadioSurvivor/RS_NotesServer.lua:121" },
     { "getSpecificPlayer", "client", "client/CoreAI/CA_NotebookClient.lua:28" },
     { "sendClientCommand", "client", "client/CoreAI/CA_NotebookClient.lua:32" },
@@ -88,12 +88,12 @@ local GLOBALS = {
 
 -- Methods of an ItemContainer used by the server files (missions, radio carried on the belt).
 local CONTAINER_METHODS = {
-    { "getItemWithIDRecursiv", "server/CoreAI/CA_Missions.lua:723" },
+    { "getItemWithIDRecursiv", "server/CoreAI/CA_Missions.lua:760" },
     { "getItemWithID", "server/RadioSurvivor_Server.lua:245" },
-    { "getCapacityWeight", "server/CoreAI/CA_Missions.lua:556" },
-    { "getEffectiveCapacity", "server/CoreAI/CA_Missions.lua:556" },
-    { "AddItem", "server/CoreAI/CA_Missions.lua:565" },
-    { "Remove", "server/CoreAI/CA_Missions.lua:782" },
+    { "getCapacityWeight", "server/CoreAI/CA_Missions.lua:592" },
+    { "getEffectiveCapacity", "server/CoreAI/CA_Missions.lua:592" },
+    { "AddItem", "server/CoreAI/CA_Missions.lua:601" },
+    { "Remove", "server/CoreAI/CA_Missions.lua:819" },
 }
 
 local function side()

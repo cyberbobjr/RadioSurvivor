@@ -3648,6 +3648,68 @@ class IdentitySuiteTests(unittest.TestCase):
         self.assertEqual(results['dead account: old identity retired and unused'][0], 'FAIL')
         self.assertIn('did A die', results['dead account: old identity retired and unused'][1])
 
+    def die_and_return(self, sim, name):
+        """The server sees the death (OnCharacterDeath), the account comes back with a new character."""
+        body = sim.server.g.PLAYERS[name]
+        body.dead = True
+        sim.server.g.fire('OnCharacterDeath', body)
+        self.disconnect(sim, name)
+        c = sim.add_client(name)
+        sim.command(name, 'snapshot', world=c.g.CoreAI.notebookClient.world, run=c.g.CoreAI.notebookClient.run)
+        return c
+
+    def missions_page(self, c):
+        c.rt.execute(NOTEBOOK_UI)
+        # Every argument of a text shown (the bench default keeps the first one only).
+        c.rt.execute("getText = function(k, ...) local t = { k } for i = 1, select('#', ...) do "
+                     "t[#t + 1] = tostring(select(i, ...)) end return table.concat(t, '|') end")
+        c.load_notebook()
+        c.g.CoreAI.notebook.toggle()
+        window = c.g.CoreAI.notebookClient.window
+        window.changeTab(window, 'Missions')
+        return window.detail.text
+
+    def test_death_of_the_only_participant_loses_the_mission(self):
+        """E23-T02 (ADR D07): the death ends the participation at once; alone, the mission is lost (no penalty
+        result) and the new character of the account reads it in its notebook."""
+        sim = Simulation(self.path / 'lost')
+        sim.add_client('alice'); sim.select('alice')
+        npc = next(iter(sim.state().npcs.values()))
+        m = sim.server.rt.eval("require('CoreAI/CA_Missions')").create(sim.state(), npc, sim.character('alice'))
+        sim.request_mission('alice', 'accept')
+        old = sim.character('alice')
+        c = self.die_and_return(sim, 'alice')
+        self.assertEqual(m.state, 'cancelled_lost')
+        self.assertEqual(count(m.participants), 0)
+        self.assertIsNone(npc.mission, 'the requester stays bound to a lost mission')
+        outcomes = sim.reputation().outcomes or {}
+        self.assertFalse(any(key.startswith(m.id) for key in outcomes), 'a lost mission changed a reputation')
+        notices = [convert(n) for n in lua_list(c.g.CoreAI.notebookClient.snapshot.lostMissions)]
+        self.assertEqual(len(notices), 1)
+        self.assertEqual((notices[0]['name'], notices[0]['titleKey'], notices[0]['team']),
+                         (sim.state().characters[old].name, m.titleKey, False))
+        self.assertEqual(notices[0]['requester'], npc.name)
+        self.assertNotIn(m.id, notices[0].values(), 'a mission id sent to the client')
+        self.assertIn(f'IGUI_CA_LostMission|{notices[0]["name"]}|{m.titleKey}|{npc.name}', self.missions_page(c))
+
+    def test_death_in_a_team_keeps_the_mission_for_the_living(self):
+        """E23-T02: another participant alive, the mission goes on for him; the dead one's new character is told."""
+        sim = self.engaged('team')
+        m = sim.mission()
+        old = sim.character('alice')
+        c = self.die_and_return(sim, 'alice')
+        self.assertEqual(m.state, 'active')
+        self.assertEqual(list(m.participants.keys()), [sim.character('bob')])
+        self.assertIsNone(m.participants[old])
+        notices = [convert(n) for n in lua_list(c.g.CoreAI.notebookClient.snapshot.lostMissions)]
+        self.assertEqual([n['team'] for n in notices], [True])
+        self.assertIn('IGUI_CA_LostMissionTeam|', self.missions_page(c))
+        b = sim.clients['bob']
+        sim.command('bob', 'snapshot', world=b.g.CoreAI.notebookClient.world, run=b.g.CoreAI.notebookClient.run)
+        self.assertEqual(count(b.g.CoreAI.notebookClient.snapshot.lostMissions or {}), 0)
+        row = convert(b.g.CoreAI.notebookClient.snapshot.missions[1])
+        self.assertEqual(row['participants'], {1: 'bob Doe'})
+
 
 def request(npc='npc-a', world='world-a', order=1, run='run-a', **changes):
     value = {'version': 2, 'kind': 'npc_talk', 'id': f'{run}-{npc}-{order}', 'world': world, 'run': run,

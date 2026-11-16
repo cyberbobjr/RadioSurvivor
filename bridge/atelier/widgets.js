@@ -59,16 +59,17 @@ export function listEditor(t, values, onChange, placeholder = '') {
   return box;
 }
 
-// Editable list of structured lines (trader stock, loot lists, lots): `draw(item, index, change)` returns the cells of
-// one line (theme.css lays every line of a list on the same grid), `blank()` a new line, `write(items)` stores them.
-// `tools(addLines)` gives more buttons next to "+ Add" (the item browser), `addLines(items)` adding several lines at
-// once. Redraws its lines only: the buttons under them stay (and keep the focus).
-export function lineEditor(t, items, { draw, blank, write, addLabel, tools = null }) {
+// Editable list of structured lines (trader stock, loot lists, lots): `draw(item, index, change, list)` returns the
+// cells of one line (`list`: every line now) (theme.css lays every line of a list on the same grid), `blank()` a new line, `write(items)` stores them.
+// `tools(addLines, list)` gives more buttons next to "+ Add" (the item browser), `addLines(items)` adding several lines
+// at once, `list` the lines now. Without `blank` there is no "+ Add" (a list of items: its lines come from the item
+// browser only). Redraws its lines only: the buttons under them stay (and keep the focus).
+export function lineEditor(t, items, { draw, blank = null, write, addLabel = null, tools = null }) {
   const list = items.map((item) => ({ ...item }));
   const rows = h('div', { class: 'stack' });
   const redraw = (focusLast = false) => {
     rows.replaceChildren(...list.map((item, index) => h('div', { class: 'line' },
-      draw(item, index, () => write(list)),
+      draw(item, index, () => write(list), list),
       removeButton(t, () => { list.splice(index, 1); write(list); redraw(); }))));
     if (focusLast) rows.querySelector('.line:last-of-type input, .line:last-of-type select')?.focus();
   };
@@ -76,15 +77,16 @@ export function lineEditor(t, items, { draw, blank, write, addLabel, tools = nul
   redraw();
   return h('div', { class: 'stack lines' }, rows,
     h('div', { class: 'line-tools' },
-      button('add', { onClick: () => { list.push(blank()); write(list); redraw(true); } }, addLabel),
-      tools && tools(addLines)));
+      blank && button('add', { onClick: () => { list.push(blank()); write(list); redraw(true); } }, addLabel),
+      tools && tools(addLines, list)));
 }
 
-// Check boxes of `options` [{value, label, help, hint}] (hint: "?" button of help.js), `selected` a list of values.
+// Check boxes of `options` [{value, label, help, title, hint}] (hint: "?" button of help.js; title: the tooltip, the
+// help by default), `selected` a list of values.
 export function checkboxes(options, selected, onChange, attrs = {}) {
   const chosen = new Set(selected);
   return h('div', { class: 'checks', ...attrs },
-    options.map((o) => h('label', { class: 'check', title: o.help ?? null },
+    options.map((o) => h('label', { class: 'check', title: o.title ?? o.help ?? null, 'data-value': o.value },
       h('input', { type: 'checkbox', checked: chosen.has(o.value), onChange: (e) => {
         if (e.target.checked) chosen.add(o.value); else chosen.delete(o.value);
         onChange(options.map((x) => x.value).filter((v) => chosen.has(v)).concat([...chosen].filter((v) => !options.some((x) => x.value === v))));

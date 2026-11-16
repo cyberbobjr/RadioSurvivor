@@ -67,9 +67,10 @@ Compte rendu (E11-T13) : visite constatée, tour « report_due » ; si l'appel e
 report_mission (sans paramètre, permise avec start_mission : IMPLIED_ACTIONS), revérifiée par le serveur.
 
 Livre du passeur (E13-T02) : pour une fiche qui autorise propose_trade, le serveur joint son livre (trade=, hexadécimal
-RSV2 : stock disponible du passage, fourchette de marge, plafonds, barème de ce qu'il prend, offre en cours, affaires
-passées, dernier refus) ; le pont l'ajoute au prompt. propose_trade { items = "Nom:quantité,...", margin } : le serveur
-contrôle la table et fige l'offre (révision). Sans livre, prompt inchangé. Passage de la semaine (E13-T03, run du
+RSV2 : stock disponible du passage et prix, plafonds, ce que la fiche accepte en paiement, accord en cours, affaires
+passées, dernier refus) ; le pont l'ajoute au prompt. propose_trade { gives = "Nom:quantité,...", wants = "..." }
+(E23-T06 : deux listes, jamais de points à l'antenne) : le serveur contrôle le stock, ce que la fiche accepte et
+l'équité au barème, et fige l'accord (révision). Sans livre, prompt inchangé. Passage de la semaine (E13-T03, run du
 livre) : libre, réservé par l'équipe de l'appelant (ponton, nuit, signal), par une autre, ou fini (raison).
 
     python radio_bridge.py                 # boucle : attend les demandes du jeu
@@ -1508,28 +1509,37 @@ def voice_jobs(req: dict[str, str]) -> VoiceJobs | None:
 # --- livre du passeur (E13-T02) ---------------------------------------------------------------
 
 TRADE_FIELD_CHARS = 32768     # champ trade= (hexadécimal RSV2) ; au-delà, ignoré
-TRADE_TEXT_BYTES = 4096       # liste d'objets d'une catégorie prise, en octets UTF-8 après safe_text
-TRADE_ITEMS_BYTES = 200       # objets d'une offre ou d'une affaire passée
+TRADE_TEXT_BYTES = 4096       # liste d'objets d'une classe acceptée, en octets UTF-8 après safe_text
+TRADE_ITEMS_BYTES = 200       # objets d'une liste d'un accord ou d'une affaire passée
 TRADE_NAME = re.compile(r"^[A-Za-z0-9_]{1,40}$")
-# items de propose_trade : « Nom:quantité » séparés par des virgules (quantité facultative, 1 à 99) ; le serveur
-# contrôle les noms, le stock, la marge et les plafonds (RS_Trade.parseItems, RS_Trade.evaluate).
+# gives et wants de propose_trade (E23-T06) : « Nom:quantité » séparés par des virgules (quantité facultative, 1 à
+# 99) ; le serveur contrôle les noms, le stock, ce que la fiche accepte, les poids et l'équité au barème
+# (RS_Trade.parseList, RS_Trade.evaluate).
 TRADE_ITEMS = re.compile(r"^\s*[A-Za-z0-9_.]+(\s*:\s*\d{1,2})?\s*(,\s*[A-Za-z0-9_.]+(\s*:\s*\d{1,2})?\s*)*$")
-TRADE_CLASSES = ("valuables", "images", "papers", "military")
-TRADE_STATES = {"open": "standing", "replaced": "replaced by a newer offer", "expired": "never taken up",
-                "done": "done, the caller paid in full", "cheated": "the caller cheated you",
+TRADE_CLASS = re.compile(r"^[a-z][a-z0-9_]{0,31}$")
+TRADE_STATES = {"open": "standing", "replaced": "replaced by a newer deal", "expired": "never taken up",
+                "done": "done, the caller brought everything", "cheated": "the caller did not bring everything",
                 "cancelled": "called off"}
-TRADE_REFUSALS = {"bad_params": "it was badly written", "bad_margin": "your margin was outside your range",
+TRADE_REFUSALS = {"bad_params": "it was badly written",
                   "not_in_stock": "you named goods you do not have this run",
-                  "over_stock": "you offered more than what is left", "over_weight": "it was too heavy to carry",
-                  "over_cap": "it was worth more than you can take on one run", "failed": "it could not be noted",
+                  "over_stock": "you offered more than what is left", "over_weight": "your goods were too heavy to carry",
+                  "over_cap": "your goods were worth more than you can bring on one run",
+                  "not_taken": "you asked for something you do not accept in payment",
+                  "over_count": "you asked for more of one thing than you take on one run",
+                  "pay_weight": "what you asked the caller to bring was too heavy",
+                  "unfair": "what you asked was worth less than your goods: ask for more",
+                  "failed": "it could not be noted",
                   "booked": "the current run is booked by another group",
-                  "run_over": "there is no run left in this period"}
+                  "run_over": "there is no run left in this period",
+                  "frozen": "you are already at the meeting place: the deal can no longer change"}
 # Passage en cours (E13-T03, E20-T07, RS_Trade.runContext) : état vu par l'équipe de l'appelant. Lieu, signal, texte
 # d'arrivée et raison d'une fin sont des textes du serveur (fiche du marchand et mode d'arrivée), sans chiffre : le pont
 # ne connaît ni marchand, ni lieu, ni mode.
 TRADE_RUN_STATUS = ("free", "yours", "taken", "over")
 TRADE_RUN_STATES = ("booked", "arrived")
 TRADE_PLACE_BYTES = 160
+# E23-T07 : où le paiement se dépose, texte du mode d'arrivée ; repli si le serveur n'en donne pas.
+TRADE_DROP_DEFAULT = "the payment goes in a bag left on the ground at the meeting place, never in a vehicle"
 
 
 def _number(value) -> bool:
@@ -1548,9 +1558,9 @@ def _fmt(value) -> str:
 
 
 def trade_context(req: dict[str, str]) -> dict | None:
-    """Livre du passeur pour cet appelant (champ trade= : hexadécimal RSV2 d'une table du serveur, RS_Trade.context).
+    """Livre du marchand pour cet appelant (champ trade= : hexadécimal RSV2 d'une table du serveur, RS_Trade.context).
     Absent : None. Illisible, trop long ou bornes manquantes : ignoré (None, journalisé). Une ligne de stock, une
-    catégorie prise ou une affaire mal formée est retirée ; textes passés par safe_text."""
+    classe acceptée ou une affaire mal formée est retirée ; textes passés par safe_text."""
     raw = req.get("trade")
     if not raw:
         return None
@@ -1560,34 +1570,35 @@ def trade_context(req: dict[str, str]) -> dict | None:
         value = npc.decode(bytes.fromhex(raw))
         if not isinstance(value, dict):
             raise ValueError("trade table")
-        for key in ("passage", "cap", "kg", "marginMin", "marginMax", "cordon"):
+        for key in ("passage", "cap", "kg", "payKg"):
             if not _number(value.get(key)) or value[key] < 0:
                 raise ValueError(f"trade {key}")
-        if value["marginMin"] > value["marginMax"]:
-            raise ValueError("trade margin")
     except ValueError as err:
         log(f"request {req.get('id', '?')}: trade book ignored ({err})")
         return None
-    out = {k: value[k] for k in ("passage", "cap", "kg", "marginMin", "marginMax", "cordon")}
-    out["stock"] = [{"n": s["n"], "q": int(s["q"]), "v": s["v"], "w": s["w"], "unit": int(s["unit"])}
+    out = {k: value[k] for k in ("passage", "cap", "kg", "payKg")}
+    out["stock"] = [{"n": s["n"], "q": int(s["q"]), "w": s["w"], "unit": int(s["unit"])}
                     for s in _lua_list(value.get("stock"))
                     if isinstance(s, dict) and isinstance(s.get("n"), str) and TRADE_NAME.fullmatch(s["n"])
-                    and all(_number(s.get(k)) and s[k] >= 0 for k in ("q", "v", "w", "unit"))]
+                    and all(_number(s.get(k)) and s[k] >= 0 for k in ("q", "w", "unit"))]
     out["takes"] = []
     for t in _lua_list(value.get("takes")):
-        if not isinstance(t, dict) or t.get("k") not in TRADE_CLASSES or not _number(t.get("cap")):
+        if not isinstance(t, dict) or not isinstance(t.get("k"), str) or not TRADE_CLASS.fullmatch(t["k"]):
             continue
         try:
             items = npc.safe_text(t.get("items"), TRADE_TEXT_BYTES)
         except ValueError:
             continue
-        pieces = t.get("pieces") if _number(t.get("pieces")) else None
-        out["takes"].append({"k": t["k"], "cap": t["cap"], "pieces": pieces, "items": items})
+        if items:
+            out["takes"].append({"k": t["k"], "items": items})
+
+    def items_ok(text) -> bool:
+        return (isinstance(text, str) and len(text.encode("utf-8")) <= TRADE_ITEMS_BYTES
+                and TRADE_ITEMS.fullmatch(text) is not None)
 
     def deal(d) -> dict | None:
-        if (not isinstance(d, dict) or d.get("state") not in TRADE_STATES or not _number(d.get("price"))
-                or not isinstance(d.get("items"), str) or len(d["items"].encode("utf-8")) > TRADE_ITEMS_BYTES
-                or not TRADE_ITEMS.fullmatch(d["items"])):
+        if (not isinstance(d, dict) or d.get("state") not in TRADE_STATES or not items_ok(d.get("items"))
+                or not items_ok(d.get("wants"))):
             return None
         return d
 
@@ -1627,6 +1638,7 @@ def trade_run(run) -> dict | None:
         if run.get("state") not in TRADE_RUN_STATES or "days" not in out or not place or not signal:
             return None
         out["state"], out["place"], out["signal"] = run["state"], place, signal
+        out["drop"] = _run_text(run.get("drop")) or TRADE_DROP_DEFAULT
         if run["state"] == "arrived":
             out["arrived"] = _run_text(run.get("arrived")) or "you are at the landing now"
     elif out["status"] == "over":
@@ -1670,56 +1682,57 @@ def trade_run_lines(run: dict | None, tag: str) -> list[str]:
     lines = [f"- The current run is booked by the group of {tag}. Meeting: {run['place']}, {_run_when(run)}. "
              f"Signal: {run['signal']}; nobody there by {_clock(run['to'])} and you leave. The other side has "
              "marked the landing on their map. Tell them this plainly when they ask.",
-             "- No contact: they leave their goods in a bag at the landing, go far away out of sight for a while, "
-             "and find your goods in the same spot when they come back."]
+             f"- No contact: after the deal is struck, {run['drop']}; whatever was there before does not count. "
+             "They go far away out of sight for a while and find your goods where most of the payment was. If "
+             "anything agreed is missing, you keep what they left and leave nothing; if they left nothing, you go."]
     if run["state"] == "arrived":
-        lines.append(f"- {run['arrived'][:1].upper()}{run['arrived'][1:]}: they gave the signal.")
+        lines.append(f"- {run['arrived'][:1].upper()}{run['arrived'][1:]}: they gave the signal. The deal can no "
+                     "longer change for this run: make no new offer.")
     return lines
 
 
 def trade_prompt(trade: dict | None, tag: str) -> str:
-    """Section « livre du passeur » du prompt système ; "" sans livre (prompt d'avant E13-T02). Ce que le serveur
-    tient (stock, marges, offre, affaires), jamais ce que l'appelant affirme ; aucune fréquence ; lieu et heure du
-    rendez-vous seulement pour l'équipe qui a réservé le passage (E13-T03)."""
+    """Section « livre du marchand » du prompt système ; "" sans livre. Ce que le serveur tient (stock, ce que la fiche
+    accepte, accord, affaires), jamais ce que l'appelant affirme ; aucune fréquence ; lieu et heure du rendez-vous
+    seulement pour l'équipe qui a réservé le passage (E13-T03). E23-T06 : un accord = deux listes d'objets ; les
+    points servent au marchand à juger, jamais à l'antenne."""
     if not trade:
         return ""
-    lines = [f"- This is run number {_fmt(trade['passage'])}. On one run you take at most {_fmt(trade['cap'])} points "
-             f"of goods in all, and the goods you bring weigh at most {_fmt(trade['kg'])} kg.",
-             f"- Your margin with {tag}: from {_fmt(trade['marginMin'])} to {_fmt(trade['marginMax'])} (lower for "
-             "honest regulars, the highest after cheating).",
-             "- Price of each line you bring: value x quantity x (1 + margin) x risk, rounded up; the risk is "
-             f"x{_fmt(trade['cordon'])} this run, a quarter more for goods you have only one of. The other side "
-             "counts the exact price."]
+    lines = [f"- This is run number {_fmt(trade['passage'])}. On one run the goods you leave are worth at most "
+             f"{_fmt(trade['cap'])} points and weigh at most {_fmt(trade['kg'])} kg; what the caller brings weighs at "
+             f"most {_fmt(trade['payKg'])} kg.",
+             "- A deal is two lists of goods: what the caller brings, what you leave. What the caller brings must be "
+             "worth at least the price of what you leave (points below, your risk already counted); ask "
+             "more if you like. The points are for you alone: never say points, values or prices on the air, talk "
+             "only of goods (\"you bring me two boxes of shells, I leave you three cans\")."]
     if trade["stock"]:
-        lines.append(f"- What you bring and can still offer {tag} this run, a new offer replacing their standing one "
-                     "(name: how many left, value, weight each, price each at your lowest margin):")
-        lines += [f"  - {s['n']}: {s['q']} left, value {_fmt(s['v'])}, {_fmt(s['w'])} kg, {s['unit']} points each"
-                  for s in trade["stock"]]
+        lines.append(f"- What you can leave {tag} this run, a new deal replacing their standing one (name: how many "
+                     "left, weight each, price each in points):")
+        lines += [f"  - {s['n']}: {s['q']} left, {_fmt(s['w'])} kg, {s['unit']} points each" for s in trade["stock"]]
     else:
-        lines.append("- You have nothing left to sell this run.")
+        lines.append("- You have nothing left to trade this run.")
     if trade["takes"]:
-        lines.append("- What you take from the zone and its value in points (left in a bag at the drop and counted "
-                     "there, never on the air):")
-        for t in trade["takes"]:
-            limit = f"at most {_fmt(t['cap'])} points per run"
-            if t["pieces"] is not None:
-                limit += f" and {_fmt(t['pieces'])} pieces, only papers with a name on them"
-            lines.append(f"  - {t['k']} ({limit}): {t['items']}")
+        lines.append("- What you accept in payment and its value in points, nothing else (left at the meeting place "
+                     "and counted there, never on the air; papers only with a name on them):")
+        lines += [f"  - {t['k']}: {t['items']}" for t in trade["takes"]]
+    else:
+        lines.append("- You accept nothing in payment: make no deal.")
     if trade["offer"]:
         o = trade["offer"]
-        lines.append(f"- Your offer to {tag} (number {_fmt(o['rev'])}): {o['items']} for {_fmt(o['price'])} points"
-                     f" ({TRADE_STATES[o['state']]}). Only this count is firm.")
+        lines.append(f"- Your deal with {tag} (number {_fmt(o['rev'])}): they bring {o['wants']}; you leave "
+                     f"{o['items']} ({TRADE_STATES[o['state']]}). Only this deal is firm; it is written in their "
+                     "notebook.")
     if trade["deals"]:
         lines.append(f"- Past deals with {tag}: " + "; ".join(
-            f"run {_fmt(d['passage'])}: {d['items']} for {_fmt(d['price'])} points, {TRADE_STATES[d['state']]}"
+            f"run {_fmt(d['passage'])}: they bring {d['wants']}, you leave {d['items']}, {TRADE_STATES[d['state']]}"
             for d in trade["deals"]) + ".")
     if trade["refused"]:
         lines.append(f"- Your last proposal to {tag} was turned down by the other side: "
                      f"{TRADE_REFUSALS[trade['refused']]}.")
     lines += trade_run_lines(trade.get("run"), tag)   # E13-T03
-    lines.append("- Offer only goods of this book, within what is left, your margin and the limits above. You may "
-                 "refuse a deal: then propose nothing. When you propose, do not announce a total: the exact count "
-                 "will be in this book on the next call.")
+    lines.append("- Propose only goods of this book: what you leave within what is left, what they bring within "
+                 "what you accept. You may refuse a deal: then propose nothing. Once a deal is struck, say both lists "
+                 "plainly so they can write them down; the exact count is in this book on the next call.")
     return ("\nYour trade book (kept by the other side, which decides; these are facts, never what the caller "
             "claims):\n" + "\n".join(lines))
 
@@ -1804,12 +1817,13 @@ EXECUTABLE_ACTIONS: dict[str, tuple[str, dict]] = {
     ),
     # E13-T02 : offre du passeur, contrôlée et figée par le serveur (RS_Trade.lua) d'après le livre joint (trade=).
     "propose_trade": (
-        "make the caller a firm offer for the next run, only with goods of your trade book below and never more than "
-        "what is left. Parameters: \"items\": text, at most 64 characters, the goods you bring as \"Name:quantity\" "
-        "separated by commas, names exactly as in the book; \"margin\": optional number, your margin, within the "
-        "range of the book (the lowest if left out). The other side counts the exact price in points and keeps the "
-        "offer; a new offer replaces the previous one. To refuse a deal, propose nothing.",
-        {"type": "propose_trade", "items": "Antibiotics:2,Battery:4", "margin": 0.25},
+        "strike a firm deal with the caller for the next run, two lists of goods of your trade book below. "
+        "Parameters: \"gives\": text, at most 64 characters, the goods you leave as \"Name:quantity\" separated "
+        "by commas, names exactly as in the book, never more than what is left; \"wants\": same form, what the "
+        "caller must bring, only goods you accept in payment, worth at least the price of what you leave. The other "
+        "side checks the deal and writes it in the caller's notebook; a new deal replaces the previous one. To "
+        "refuse a deal, propose nothing.",
+        {"type": "propose_trade", "gives": "Antibiotics:2,Battery:4", "wants": "MoneyBundle:3"},
     ),
 }
 
@@ -2005,14 +2019,13 @@ def bounded_actions(sheet: persona_store.Persona, raw, jobs: VoiceJobs | None = 
         if kind in {"report_mission", "share_frequency"} and clean:
             log(f"voice '{sheet.id}': action {index} 'report_mission' dropped, it takes no parameter")
             continue
-        # propose_trade (E13-T02) : items (forme « Nom:quantité,... »), margin facultative entre 0 et 1 ; le serveur
-        # contrôle le stock, la marge permise et les plafonds.
+        # propose_trade (E23-T06) : gives et wants, deux listes « Nom:quantité,... » ; le serveur contrôle le stock, ce
+        # que la fiche accepte, les poids et l'équité au barème.
         if kind == "propose_trade" and (
-                not set(clean) <= {"items", "margin"} or not isinstance(clean.get("items"), str)
-                or not TRADE_ITEMS.fullmatch(clean["items"])
-                or ("margin" in clean and (not _number(clean["margin"]) or not 0 <= clean["margin"] <= 1))):
-            log(f"voice '{sheet.id}': action {index} 'propose_trade' dropped, bad items or margin "
-                f"({str(clean.get('items'))[:32]!r})")
+                set(clean) != {"gives", "wants"}
+                or not all(isinstance(clean[k], str) and TRADE_ITEMS.fullmatch(clean[k]) for k in ("gives", "wants"))):
+            log(f"voice '{sheet.id}': action {index} 'propose_trade' dropped, gives and wants are two lists "
+                f"({str(clean.get('gives'))[:32]!r}, {str(clean.get('wants'))[:32]!r})")
             continue
         kept.append({"type": kind, **clean})
     return kept

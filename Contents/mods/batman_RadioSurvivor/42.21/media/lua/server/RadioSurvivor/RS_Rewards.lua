@@ -12,6 +12,9 @@
 --   reserve(ctx, rec, detail) -> true, or nil and a reason; fills the record before it is saved (write-ahead)
 --   cancel(ctx, rec)  optional: undoes reserve when the reservation could not be saved
 --   apply(ctx, rec, detail)   -> true, or false when the effect is left to recovery
+--   resume(ctx, rec)  optional (E23-T05, ADR D10): detail of a reserved record whose apply did nothing, so that
+--                     R.retry applies it again; nil = not now. Only a kind whose apply has no effect when it returns
+--                     false defines it; a kind without resume is never reissued (its effect may have started).
 --   describe(rec)     -> English line for the voice context (never a frequency, a place or an item list)
 if isClient() then return end
 local R = {}
@@ -79,7 +82,16 @@ function R.choose(state, source, m, cid, player)
     return entry, detail
 end
 
--- Reserve before irreversible effects. An interrupted effect is kept as 'reserved', never silently reissued.
+-- The effect of a reserved record happened: applied, told on the frequency of the reply, saved.
+local function applied(store, rec, cid, khz)
+    rec.status = 'applied'
+    if khz then require('RadioSurvivor/RS_RadioLog').add(cid, khz, 'reward', rec.kind) end
+    if not store.save() then return rec, 'recovery' end
+    return rec
+end
+
+-- Reserve before irreversible effects. An interrupted effect is kept as 'reserved', never silently reissued (except a
+-- kind that can resume it, R.retry).
 function R.grant(store, source, m, player, cid, khz)
     if store.blocked or type(store.data) ~= 'table' then return nil, 'storage' end
     if not player or m.state ~= 'success' or not m.participants[cid] then return nil, 'state' end
@@ -98,10 +110,24 @@ function R.grant(store, source, m, player, cid, khz)
         return nil, 'storage'
     end
     if not def.apply(ctx, rec, detail) then return rec, 'recovery' end
-    rec.status = 'applied'
-    if khz then require('RadioSurvivor/RS_RadioLog').add(cid, khz, 'reward', rec.kind) end
-    if not store.save() then return rec, 'recovery' end
-    return rec
+    return applied(store, rec, cid, khz)
+end
+
+-- E23-T05 (ADR D10): applies again a reserved reward of this character whose effect did not happen (inventory full),
+-- when its kind can resume it. Returns the record once applied, or nil and a reason: state, not_resumable, not_now.
+function R.retry(store, source, m, player, cid, khz)
+    local rec = type(m) == 'table' and m.extendedReward or nil
+    if store.blocked or type(store.data) ~= 'table' or not player or type(rec) ~= 'table'
+            or rec.status ~= 'reserved' or rec.character ~= cid then
+        return nil, 'state'
+    end
+    local def = registry[rec.kind]
+    if not def or not def.resume then return nil, 'not_resumable' end
+    local ctx = {store = store, state = store.data, source = source, m = m, cid = cid, player = player, khz = khz,
+        random = random}
+    local detail = def.resume(ctx, rec)
+    if not detail or not def.apply(ctx, rec, detail) then return nil, 'not_now' end
+    return applied(store, rec, cid, khz)
 end
 
 function R.context(rec)

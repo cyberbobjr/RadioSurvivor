@@ -4,7 +4,8 @@ RadioSurvivor: what it registers in the notebook server (E21-T04), which knows n
 only. The notebook server of the core mod (CoreAI/CA_NotebookServer) is required here (run once).
 
   Server.addPoll            caches still to place (reward cache of a voice mission, E11-T06: CA_Caches.poll, with the
-                            voice action of RS_CacheAction)
+                            voice action of RS_CacheAction); rewards still to hand once there is room (RS_RewardRetry,
+                            E23-T05)
   Server.hooks.overheard    comfort of a player who heard two NPCs talk (RS_Comfort, E05-T15)
   Server.hooks.claim        replies of the calls on a group frequency, aired by the group radio (RS_GroupRadio, E08-T06)
   Server.hooks.callLanguage forced language of the radio calls (RadioSurvivor_Const.callLanguage)
@@ -19,6 +20,7 @@ local History = require 'CoreAI/CA_History'
 local Radio = require 'RadioSurvivor/RadioSurvivor_Const'
 local Caches = require 'RadioSurvivor/RS_CacheAction'
 local GroupRadio = require 'RadioSurvivor/RS_GroupRadio'
+local RewardRetry = require 'RadioSurvivor/RS_RewardRetry'
 
 local Hooks = {}
 RS_NotebookHooks = Hooks
@@ -51,6 +53,7 @@ end
 
 if Server then
     Server.addPoll(Hooks.pollCaches)
+    Server.addPoll(RewardRetry.poll)
     table.insert(Server.hooks.overheard, Hooks.overheard)
     table.insert(Server.hooks.claim, Hooks.claim)
     Server.hooks.callLanguage = Radio.callLanguage

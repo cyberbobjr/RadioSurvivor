@@ -41,6 +41,7 @@ hours=01:00-03:00
 delay_hours=3
 item=Base.Antibiotics:2-6
 item=Base.Coffee2:1-3
+accept=Base.MoneyBundle
 [prompt]
 You are Tess, a bench trader.
 '''
@@ -51,7 +52,8 @@ FOG = false
 local function fog(world) return FOG end
 require("RadioSurvivor/RS_TradeArrivals").register("cart", {
     signals = { lamp = true },
-    texts = { signal = "a lamp swung at the gate", arrived = "your cart is at the gate now" },
+    texts = { signal = "a lamp swung at the gate", arrived = "your cart is at the gate now",
+        drop = "the payment goes in a bag left on the ground at the gate, never in a vehicle" },
     sounds = { approach = "VehicleHorn", leave = "VehicleDoorClose" },
     causes = { { name = "fog", text = "a thick fog on the road", fallback = "No cart tonight, fog on the road. Over.",
         check = fog } },
@@ -73,6 +75,7 @@ arrival=cart
 every_days=3
 hours=22:00-01:00
 item=Base.Battery:4-4
+accept=Base.MoneyBundle
 [prompt]
 You are Carl, a bench trader.
 '''
@@ -160,7 +163,7 @@ class FakeArrivalModeTests(TradersHarness):
                           self.carl.trade.hours), ('cart', 3, 22, 3))
         self.g.CLOCK.hours = 4.0                                                        # jour 1, 11:00
         kate = self.make('kate', 'fac-1', 50, 50)
-        self.assertEqual(self.decide(kate, 'Battery:2', voice='carl'), 'ok')
+        self.assertEqual(self.decide(kate, 'Battery:2', voice='carl', wants='MoneyBundle:1'), 'ok')
         run = self.Carl.lastRun()
         self.assertEqual(run.start, 15.0)                                               # jour 1, 22:00
         self.assertEqual((run.landing.x, run.landing.y), (8000, 8000))
@@ -185,7 +188,7 @@ class FakeArrivalModeTests(TradersHarness):
         kate.x = 9000
         self.assertIsNone(self.update('carl', 15.6))
         self.assertEqual(self.update('carl', 15.6 + self.Ex.DELAY_HOURS), 'done')
-        self.assertEqual(self.bag_items(bag), ['Base.MoneyBundle', 'Base.Battery', 'Base.Battery'])  # 10 >= 5 points
+        self.assertEqual(self.bag_items(bag), ['Base.MoneyBundle', 'Base.Battery', 'Base.Battery'])  # liste prise exactement
         self.assertEqual(self.sounds()[-1], ('VehicleDoorClose', 8000, 8000))
 
     def test_cause_of_the_fake_mode_cancels_and_is_aired(self):
@@ -193,12 +196,12 @@ class FakeArrivalModeTests(TradersHarness):
         kate = self.make('kate', 'fac-1', 50, 50)
         self.assertEqual(self.decide(kate, 'Battery:1', voice='carl'), 'ok')
         self.g.FOG = True
-        self.assertIsNone(self.Run.updateTrader('carl', 13.9))                         # avant WARN_HOURS
+        self.assertIsNone(self.Run.updateTrader('carl', 11.9))                         # avant WARN_HOURS
         self.g.STORM = True                                                             # cause de la barque : ignorée
         self.g.FOG = False
-        self.assertIsNone(self.Run.updateTrader('carl', 14.0))
+        self.assertIsNone(self.Run.updateTrader('carl', 12.0))
         self.g.FOG = True
-        self.assertEqual(self.Run.updateTrader('carl', 14.1), 'fog')
+        self.assertEqual(self.Run.updateTrader('carl', 12.1), 'fog')
         run = self.Carl.lastRun()
         self.assertEqual((run.state, run.reason), ('cancelled', 'fog'))
         self.assertEqual(self.aired()[-1][1], 'No cart tonight, fog on the road. Over.')
@@ -269,7 +272,7 @@ class OutOfSightTests(TradersHarness):
         kate, bag = self.arrived_with_bag()
         kate.x = GUS_PIER[0] + 5
         self.assertIsNone(self.update('gus', 18.5 + self.Ex.WAIT_HOURS - 0.1))
-        self.assertEqual(self.update('gus', 18.5 + self.Ex.WAIT_HOURS), 'no_drop')
+        self.assertEqual(self.update('gus', 18.5 + self.Ex.WAIT_HOURS), 'watched')
         self.assertEqual(self.sounds()[-1][0], 'GeneratorStarting')
 
 

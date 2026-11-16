@@ -5,6 +5,7 @@ server/CoreAI/CA_Reputation.lua; a mod's configuration may point at this table (
 ]]
 return {
     success = 5, failure = -5,       -- mission.success; mission.failed, mission.abandoned, trade.cheated
+    tradeNoDrop = -2.5,              -- trade.nodrop: nothing left at a trade (E23-T07, half of a cheat)
     requesterKilled = -50,           -- npc.requesterKilled (E04-T07, Q7: back to bad)
     memberKilled = -10,              -- npc.memberKilled (Q5)
     rescue = 5,                      -- rescue.success (reserved, E12)

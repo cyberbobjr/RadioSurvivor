@@ -283,11 +283,14 @@ days, on the road east of West Point, with batteries, coffee, canned food and se
 | 5. Rewards | Trade | **This voice trades**; **Meeting point(s)**: West Point lay-by; **Arrives by**: **Road**; **Meeting hours** from 02:00 to 04:00; **Visits** every 5 days |
 | | Goods | Battery from 2 to 6, Cigarette Pack from 1 to 4, Coffee from 0 to 2, Peanut Butter from 1 to 3, Canned Fruit Cocktail from 0 to 2, and four seed packets in the lot `seeds` |
 | | Lots | `seeds`, from 3 to 8 in all, at most 3 kinds |
+| | What the voice accepts | the categories **Cash and valuables** (`cash`) and **Jewelry** (`jewelry`) |
 | | Margin, Quiet place for | from 15 % to 40 %; 2 hours with nobody around |
 | | Frequency note | three lines, found in glove boxes (**Often**) and candy stores (**Rarely**) |
 
-Goods are picked with **+ Add an item** (type "battery", "coffee") or **Browse items**. For the lot: **+ Add a lot**,
-name it `seeds`, then on each seed line choose **In the "…" lot** instead of **A number**.
+Goods are picked without typing anything: **Add items** opens the list of the items a trader can sell; search
+"battery", "coffee", tick them, then **Add selected**. For the lot: **+ Add a lot**, name it `seeds`, then on each seed
+line choose **In the "…" lot** instead of **A number**. **What the voice accepts** is filled the same way, with items
+or whole categories: Sol only takes cash and jewelry.
 
 ### The whole sheet
 
@@ -326,6 +329,8 @@ item=Base.TomatoBagSeed2:seeds
 item=Base.LettuceBagSeed:seeds
 item=Base.CabbageBagSeed2:seeds
 group=seeds:3-8:3
+accept=cash
+accept=jewelry
 margin=0.15-0.40
 delay_hours=2
 
@@ -341,7 +346,7 @@ You are Marisol "Sol" Vega, 34. Before the outbreak you drove the ice cream truc
 
 Your story: when the fence went up you were on the outside with a van full of stock. Now you drive in at night, by the back roads, and trade with the people trapped inside: batteries, coffee, canned food and seed packets. You are cheerful, quick and a hard haggler; you hum your old ice cream jingle when a deal is done. You never meet anyone: the goods are left at the meeting place and you are gone before anyone sees you.
 
-Business: only name goods, quantities and prices from your trade book; when you have no trade book, never name a price, a quantity or a meeting. Give the meeting place, the night and the signal only to the group whose run is booked, exactly as written in your book.
+Business: only name goods and quantities from your trade book, never points or prices: a deal is two lists, what the caller brings and what you leave. When you have no trade book, never name goods, a quantity or a meeting. Give the meeting place, the night and the signal only to the group whose run is booked, exactly as written in your book.
 
 Secret: a National Guard sergeant lets your van through a gap in the fence for a share of your goods. You never tell anyone how you get through the fence, even if asked; deny it.
 
@@ -356,24 +361,29 @@ Rules:
 - Answer in the same language the caller uses.
 ```
 
-The weight of each item is written nowhere: the game knows it. A trader brings **10 kg at most** per exchange, and
-takes **20 kg at most** from the player's bag.
+The weight of each item is written nowhere: the game knows it. A trader leaves **10 kg at most** per exchange, and
+the player brings **20 kg at most**.
 
 ### On the radio
 
 > **Player**: Sol, I need batteries and seeds.
 >
-> **Sol**: I've got four batteries and five seed packets on this run. For the lot, I need gold: some jewellery or a
-> nice watch. Over.
+> **Sol**: On this run I leave you four batteries and three seed packets. You bring me two gold and diamond
+> necklaces and a luxury watch. Over.
 >
-> **Player**: Deal, I have two gold necklaces and a watch.
+> **Player**: Deal.
 >
 > **Sol**: Perfect! The lay-by east of West Point, the night after tomorrow, between two and four. Light a lamp and
-> keep it in your hand, I'm coming. Over.
+> keep it in your hand, I'm coming. The payment goes in a bag on the ground, never in a car. Over.
 
-That night, the player stands at the lay-by with a lit lamp in hand, hears the van park, puts a bag with the gold
-within 3 tiles of the place and walks away. Two hours later, with nobody within 100 tiles, the batteries and the seeds
-are in the bag. A bag that does not cover the price counts as cheating: nothing is taken.
+The deal is written in the player's notebook, Radio tab: what they bring, what they receive, no price at all. That
+night, the player stands at the lay-by with a lit lamp in hand, hears the van park, puts exactly what was agreed in a
+bag within 3 tiles of the place (several bags add up; what was there before the deal does not count) and walks away.
+Two hours later, with nobody within 100 tiles, Sol takes the agreed list, nothing more, and leaves the batteries and
+the seeds in the bag that held most of the payment. If something is missing, Sol keeps everything that was left,
+leaves nothing and will remember it; if nothing was left, her trust drops a little. A patrol, a helicopter or a storm
+can call the run off (rarely): Sol announces it on her frequency and repeats it every hour until the meeting time, and
+nothing is lost.
 
 ## 4. Wendell, the March Ridge mailman
 
@@ -396,6 +406,7 @@ frequency.
 | 4. Missions | Places | **Post office mailbox**, ticked **Trade meeting point**, recorded in game right next to the mailbox |
 | 5. Rewards | Trade | **Meeting point(s)**: Post office mailbox; **Arrives by**: **Hidden drop**; **Meeting hours** from 05:00 to 06:00; **Visits** every 3 days; margin left empty (10 % to 50 %) |
 | | Goods | Bandage from 1 to 4, Painkillers from 0 to 2, Alcohol Wipes from 1 to 3, Battery from 1 to 3, Canned Vegetable Soup from 1 to 3, Bottle of Disinfectant from 0 to 1 |
+| | What the voice accepts | the categories **Papers of the dead** (`papers_of_the_dead`) and **Cash and valuables** (`cash`) |
 | | Frequency note | found in post office lockers and postal vehicle glove boxes (**Normally**), and **A dead body carrying a walkie-talkie may have it** |
 
 With **Hidden drop**, nobody comes and no signal is expected: the player leaves the payment **in the mailbox** (the
@@ -434,6 +445,8 @@ item=Base.AlcoholWipes:1-3
 item=Base.Battery:1-3
 item=Base.TinnedSoup:1-3
 item=Base.Disinfectant:0-1
+accept=papers_of_the_dead
+accept=cash
 
 [note]
 text=Undelivered mail
@@ -448,7 +461,7 @@ You are Wendell Ames, 63, the mail carrier of March Ridge, Kentucky, for forty y
 
 Your story: you never missed a day of your route, and you do not intend to start now. You still "do the route": before dawn you leave goods in the mailbox of the post office and you take the payment, then you are gone. You are polite, formal and precise, you quote postal regulations, and you call every caller "sir" or "ma'am". You know every street, address and family of March Ridge, as they were before the outbreak. You know Sol, a trader who drives a van at night; you may give her frequency to someone you trust.
 
-Business: only name goods, quantities and prices from your trade book; when you have no trade book, never name a price, a quantity or a meeting. Give the meeting place and the hour only to the group whose run is booked, exactly as written in your book. You never meet anyone.
+Business: only name goods and quantities from your trade book, never points or prices: a deal is two lists, what the caller brings and what you leave. When you have no trade book, never name goods, a quantity or a meeting. Give the meeting place and the hour only to the group whose run is booked, exactly as written in your book. You never meet anyone.
 
 Secret: you kept the letters you could not deliver after the fence went up, and you read them at night. You never tell anyone that you read the undelivered letters, even if asked; deny it.
 
@@ -467,16 +480,17 @@ Rules:
 
 > **Player**: Mister Ames? I need bandages.
 >
-> **Wendell**: Good morning, ma'am. On this run I can leave you three bandages and a box of painkillers, for the
-> papers of two missing people. Their families will want to know. Over.
+> **Wendell**: Good morning, ma'am. On this run I leave you three bandages and a box of painkillers. You bring me
+> the ID cards of three missing people: their families will want to know. Over.
 >
 > **Player**: All right. And do you know anyone else who trades?
 >
 > **Wendell**: You are a serious customer, ma'am. Write down Sol's frequency, she comes by at night with her truck.
 > Over.
 
-After the firm offer, the post office mailbox is marked on the map of the group that booked. The papers go in the
-mailbox before five; on the way back, the bandages are there. Sol's frequency is written in the player's notebook, only
+After the deal, the post office mailbox is marked on the map of the group that booked and the deal is written in
+the notebook. The three cards go in the mailbox before five (never in a vehicle); on the way back, the bandages and the
+painkillers are there. The rest of the mailbox is not touched. Sol's frequency is written in the player's notebook, only
 if Sol is on the air.
 
 ## Going further

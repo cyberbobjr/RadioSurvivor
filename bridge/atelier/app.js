@@ -36,7 +36,7 @@ const ACTIONS = {
   restore: { label: 'action_restore', ask: 'confirm.restore', danger: false, run: (api, id) => api.restore(id) },
 };
 const ACTIONS_BY_STATUS = {
-  custom: ['delete'], delivered: ['remove'], outdated: ['remove'], modified: ['restore', 'remove'], removed: ['restore'],
+  custom: ['delete'], delivered: ['remove'], outdated: ['restore', 'remove'], modified: ['restore', 'remove'], removed: ['restore'],
 };
 
 const app = {

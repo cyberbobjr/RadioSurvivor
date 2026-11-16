@@ -1,34 +1,38 @@
 -- Radio Survivor : échange sans contact au lieu du rendez-vous (E13-T04 ; E20-T07 : un passage par marchand, règle
--- hors de vue et délai de jeu d'E20-T05, ADR D06/D07). Fiche : docs/annexes/conception/passeur-echange.md ; barème
--- docs/specifications-techniques/passeur-table.md (sections 1 et 2), code shared/CoreAI/CA_TradeValues.lua.
+-- hors de vue et délai de jeu d'E20-T05, ADR D06/D07 ; E23-T07 : tout ou rien sur ce qui a été déposé, ADR D02/D03 de
+-- adr-troc-simple-et-cas-limites.md). Fiche : docs/annexes/conception/passeur-echange.md ; barème
+-- docs/specifications-techniques/passeur-table.md, code shared/CoreAI/CA_TradeValues.lua.
 -- Autorité seulement (serveur MP, jeu local en solo).
 --
--- Après le signal (RS_TradeRun : state arrived), le joueur dépose un sac au lieu du rendez-vous (DROP_RADIUS cases
--- autour du lieu du passage) et s'éloigne ; « sac » désigne ci-dessous le contenant que cherche le mode d'arrivée du
--- marchand (champ holds, RS_TradeHolds, E20-T11 : sacs au sol par défaut, contenants des objets du lieu pour une
--- planque). Sondage à chaque minute de jeu (EveryOneMinute), pour chaque marchand dont le passage est arrivé :
--- - reprise : un sac du lieu (case chargée) qui contient déjà un objet marqué de la révision du passage prouve que
---   l'échange a été appliqué au monde sans que l'état soit écrit : passage clos « done » sans rien reposer ;
+-- « Contenant » désigne ci-dessous ce que cherche le mode d'arrivée du marchand à DROP_RADIUS cases du lieu (champ
+-- holds, RS_TradeHolds : sacs posés au sol par défaut, contenants des objets du lieu pour une planque ; un véhicule
+-- n'est jamais lu). Sondage à chaque minute de jeu (EveryOneMinute), pour chaque marchand :
+-- - passage attendu ou arrivé, contenu du lieu pas encore noté, lieu chargé : le contenu présent est noté
+--   (RS_TradeDeposit.snapshot, gardé avec le passage par Trade.noteDeposit) ; seul ce qui est ajouté ensuite compte ;
+-- - passage arrivé, reprise : un contenant du lieu qui contient déjà un objet marqué de la révision du passage prouve
+--   que l'échange a été appliqué au monde sans que l'état soit écrit : passage clos « done » sans rien reposer ;
 -- - le marchand ne passe que hors de vue de tout joueur (RS_OutOfSight : personne à moins de VIEW_TILES cases sur
 --   chaque axe, ou case déchargée) depuis delay_hours heures de jeu (fiche, sinon DELAY_HOURS) ; un joueur revenu à
 --   portée remet l'attente à zéro. Délai écoulé : l'échange est dû (Trade.watchLanding) et se fait au premier
 --   sondage où la case est chargée (un joueur qui revient la charge avant de la voir) ;
--- - jamais tranquille WAIT_HOURS heures après son arrivée : le marchand repart (« no_drop ») ;
--- - échange dû : il évalue le contenu de chaque sac (premier niveau ; un portefeuille avec son contenu) au barème et
---   prend dans l'ordre du sac ce qui couvre le prix de l'offre figée du passage. Assez : objets pris retirés
---   (DoRemoveItem + sendRemoveItemFromContainer), contrepartie créée dans le même sac (instanceItem, journal du dehors
---   de l'édition en cours par RS_OutsideNewsServer.create, marque ModData MARK = révision, AddItem +
---   sendAddItemToContainer), passage clos « done », état écrit aussitôt (RS_State.save), le tout dans un seul appel
---   Lua ; pas assez : tricherie, rien n'est pris ni donné, passage clos « cheated » (marge au plus haut) et fait de
---   réputation trade.cheated au personnage du carnet de l'appelant ; aucun sac de valeur : le marchand repart
---   (« no_drop »).
+-- - jamais tranquille WAIT_HOURS heures après son arrivée : le marchand repart (« watched »), sans rien toucher ni
+--   pénaliser ;
+-- - échange dû : objets ajoutés depuis la note, additionnés sur tous les contenants (premier niveau ; un objet marqué
+--   par un mod, MOD_PREFIXES, n'est jamais pris). Tout ce qui est convenu est là (Ex.counts : état, filtre, sac vide,
+--   papiers à un nom) : le marchand prend exactement la liste convenue (le reste reste en place), laisse sa marchandise
+--   dans le contenant qui tenait le plus du paiement (le premier à égalité, ordre du chercheur), passage clos « done ».
+--   Dépôt incomplet : promesse non tenue, il garde tout ce qui a été ajouté et ne laisse rien, passage clos
+--   « cheated » (raison short, marge au plus haut) et fait de réputation trade.cheated. Rien d'ajouté : passage clos
+--   « cancelled » (no_drop) et fait trade.nodrop (la moitié). Retraits DoRemoveItem + sendRemoveItemFromContainer ;
+--   marchandise créée par instanceItem (journal du dehors de l'édition en cours par RS_OutsideNewsServer.create),
+--   marque ModData MARK = révision, AddItem + sendAddItemToContainer ; état écrit aussitôt (RS_State.save), le tout
+--   dans un seul appel Lua.
 -- Chaque issue est dite à la radio sur la fréquence de la voix du passage (RS_TradeRun.say) et le son de départ du
 -- mode d'arrivée est joué au lieu (RS_TradeRun.playSound).
 -- Messages de journal en anglais ; aucune coordonnée diffusée. Code ASCII seulement.
 if isClient() then return end
 
 local Const = require "RadioSurvivor/RadioSurvivor_Const"
-local Config = require "RadioSurvivor/RS_Config"
 local S = require "RadioSurvivor/RS_State"
 local Trade = require "RadioSurvivor/RS_Trade"
 local Run = require "RadioSurvivor/RS_TradeRun"
@@ -39,6 +43,7 @@ local Rep = require "CoreAI/CA_Reputation"
 local OutOfSight = require "RadioSurvivor/RS_OutOfSight"
 local Arrivals = require "RadioSurvivor/RS_TradeArrivals"
 local Holds = require "RadioSurvivor/RS_TradeHolds"
+local Deposit = require "RadioSurvivor/RS_TradeDeposit"
 
 local Ex = {}
 
@@ -46,10 +51,8 @@ Ex.DROP_RADIUS = 3             -- cases autour du lieu du rendez-vous où le pai
 Ex.HOLDS = "bags"              -- chercheur des contenants d'un mode sans champ holds (RS_TradeHolds)
 Ex.DELAY_HOURS = 1             -- heures de jeu hors de vue avant l'échange, sauf delay_hours de la fiche
 Ex.WAIT_HOURS = 12             -- jamais tranquille 12 heures de jeu après son arrivée : le marchand repart
-Ex.CAP_POINTS = 120            -- points pris au plus par passage (section 1)
-Ex.CAP_KG = 20                 -- poids pris au plus (place dans la barque, section 1)
-Ex.MARK = "RS_TradeGiven"      -- ModData de la contrepartie : révision de l'offre
--- Clés de ModData posées par ce mod sur des objets (objets de quête, preuves, butin des PNJ) : objet refusé.
+Ex.MARK = "RS_TradeGiven"      -- ModData de la marchandise laissée : révision de l'accord
+-- Clés de ModData posées par ce mod sur des objets (objets de quête, preuves, butin des PNJ) : objet jamais pris.
 Ex.MOD_PREFIXES = { "RS_", "RadioSurvivor", "CA_", "LK" }
 Ex.USES_MIN = { ["Base.GasmaskFilter"] = 0.5 }               -- filtre à moitié plein au moins (section 2.4)
 Ex.EMPTY = { ["Base.Bag_ALICEpack_Army"] = true }             -- sac militaire pris vide seulement
@@ -91,17 +94,7 @@ function Ex.playerNames()
     return out
 end
 
--- ================================================================ évaluation
-
--- Objets d'un conteneur (liste Lua, copie : on peut retirer en la parcourant).
-function Ex.itemsOf(container)
-    local out = {}
-    local inv = container and container.getInventory and container:getInventory() or container
-    local list = inv and inv:getItems()
-    if list == nil then return out end
-    for i = 0, list:size() - 1 do out[#out + 1] = list:get(i) end
-    return out
-end
+-- ================================================================ ce qui compte
 
 local function modMarked(item)
     if not (item.hasModData and item:hasModData()) then return false end
@@ -128,99 +121,21 @@ local function nominative(item, names)
     return true
 end
 
-local function weightOf(item)
-    local w = item.getUnequippedWeight and item:getUnequippedWeight() or 0
-    return tonumber(w) or 0
-end
-
--- Entrée du barème d'un objet que le passeur prend (classe de Trade.TAKES, conditions remplies), ou nil.
-local function accepted(item, names, caps)
+-- Vrai si l'objet compte pour une ligne convenue : au barème (CA_TradeValues), sans marque d'un mod, dans l'état de la table
+-- (état minimal, filtre à moitié plein, sac militaire vide, papiers à un nom qui n'est pas celui d'un joueur en ligne ;
+-- portefeuille compté seul).
+function Ex.counts(item, names)
     local t = item.getFullType and item:getFullType() or nil
-    if not TV.isBase(t) then return nil end
-    local e = TV.entry(t)
-    if e == nil or caps[e.k] == nil or modMarked(item) then return nil end
+    local e = TV.entry(t) or (type(t) == "string" and TV.SELL_ONLY[t]) or nil
+    if e == nil or modMarked(item) then return false end
     if e.cond then
         local max = item:getConditionMax()
-        if type(max) == "number" and max > 0 and item:getCondition() / max < e.cond - 1e-9 then return nil end
+        if type(max) == "number" and max > 0 and item:getCondition() / max < e.cond - 1e-9 then return false end
     end
-    if Ex.USES_MIN[t] and item:getCurrentUsesFloat() < Ex.USES_MIN[t] - 1e-9 then return nil end
-    if Ex.EMPTY[t] and not item:getInventory():isEmpty() then return nil end
-    if e.k == "papers" and not Ex.WALLETS[t] and not nominative(item, names) then return nil end
-    return e, t
-end
-
--- Unités prises ou laissées d'un bloc : { items = objets retirés ensemble, parts = { { t, k, v, n } }, w = kg }.
--- Billets par lots entiers de e.lot ; portefeuille au premier niveau avec son contenu (parties en plus, objets non
--- pris emportés avec lui).
-local function unitsOf(items, names, caps, depth)
-    local units, money = {}, nil
-    for _, item in ipairs(items) do
-        local e, t = accepted(item, names, caps)
-        if e and e.lot then
-            money = money or { items = {}, t = t, e = e }
-            money.items[#money.items + 1] = item
-        elseif e then
-            local parts = { { t = t, k = e.k, v = e.v, n = 1 } }
-            if depth == 1 and Ex.WALLETS[t] and instanceof(item, "InventoryContainer") then
-                for _, u in ipairs(unitsOf(Ex.itemsOf(item), names, caps, 2)) do
-                    for _, p in ipairs(u.parts) do parts[#parts + 1] = p end
-                end
-            end
-            units[#units + 1] = { items = { item }, parts = parts, w = weightOf(item) }
-        end
-    end
-    if money then
-        local lot = money.e.lot
-        for i = 1, math.floor(#money.items / lot) do
-            local its, w = {}, 0
-            for j = (i - 1) * lot + 1, i * lot do
-                its[#its + 1] = money.items[j]
-                w = w + weightOf(money.items[j])
-            end
-            units[#units + 1] = { items = its, parts = { { t = money.t, k = money.e.k, v = money.e.v, n = lot } }, w = w }
-        end
-    end
-    return units
-end
-
--- Évalue le contenu d'un sac (liste d'objets du premier niveau) : prend dans l'ordre les unités qui tiennent dans
--- les plafonds (classe, pièces de papiers, nombre par type, CAP_POINTS, CAP_KG) jusqu'à couvrir need (facultatif :
--- sans need, tout ce qui tient). Rend { value, kg, taken = objets à retirer, lines = { t = nombre }, byClass,
--- pieces, left = unités laissées par les plafonds }.
-function Ex.appraise(items, names, need)
-    local caps = {}
-    for _, c in ipairs(Trade.TAKES) do caps[c.k] = c end
-    local res = { value = 0, kg = 0, taken = {}, lines = {}, byClass = {}, pieces = 0, left = 0 }
-    for _, u in ipairs(unitsOf(items or {}, names, caps, 1)) do
-        if need ~= nil and res.value >= need then break end
-        local addClass, addCount, addPieces, addValue = {}, {}, 0, 0
-        for _, p in ipairs(u.parts) do
-            addClass[p.k] = (addClass[p.k] or 0) + p.v
-            addCount[p.t] = (addCount[p.t] or 0) + p.n
-            if p.k == "papers" then addPieces = addPieces + 1 end
-            addValue = addValue + p.v
-        end
-        local ok = res.kg + u.w <= Ex.CAP_KG + 1e-9 and res.value + addValue <= Ex.CAP_POINTS
-        for k, v in pairs(addClass) do
-            if (res.byClass[k] or 0) + v > caps[k].cap then ok = false end
-        end
-        for t, n in pairs(addCount) do
-            local cap = TV.entry(t).cap
-            if cap and (res.lines[t] or 0) + n > cap then ok = false end
-        end
-        if caps.papers and caps.papers.pieces and res.pieces + addPieces > caps.papers.pieces then ok = false end
-        if ok then
-            for k, v in pairs(addClass) do res.byClass[k] = (res.byClass[k] or 0) + v end
-            for t, n in pairs(addCount) do res.lines[t] = (res.lines[t] or 0) + n end
-            res.pieces = res.pieces + addPieces
-            res.value = res.value + addValue
-            res.kg = res.kg + u.w
-            for _, item in ipairs(u.items) do res.taken[#res.taken + 1] = item end
-        else
-            res.left = res.left + 1
-        end
-    end
-    return res
+    if Ex.USES_MIN[t] and item:getCurrentUsesFloat() < Ex.USES_MIN[t] - 1e-9 then return false end
+    if Ex.EMPTY[t] and not item:getInventory():isEmpty() then return false end
+    if e.k == "papers" and not Ex.WALLETS[t] and not nominative(item, names) then return false end
+    return true
 end
 
 -- ================================================================ monde
@@ -236,21 +151,26 @@ function Ex.holdsAt(id, run)
     return finder(p.x, p.y, p.z, Ex.DROP_RADIUS)
 end
 
--- Vrai si le contenant (sac ou inventaire) contient un objet de contrepartie marqué de la révision rev.
-function Ex.hasMark(bag, rev)
-    for _, item in ipairs(Ex.itemsOf(bag)) do
+-- Vrai si le contenant contient un objet de marchandise marqué de la révision rev.
+function Ex.hasMark(inv, rev)
+    for _, item in ipairs(Deposit.itemsOf(inv)) do
         if item.hasModData and item:hasModData() and item:getModData()[Ex.MARK] == rev then return true end
     end
     return false
 end
 
--- Applique l'échange à l'inventaire inv d'un contenant : retire les objets pris, crée la contrepartie de l'offre
--- (marquée mark). Rend la liste des objets donnés.
-function Ex.apply(inv, taken, offer, mark)
-    for _, item in ipairs(taken) do
-        inv:DoRemoveItem(item)
-        sendRemoveItemFromContainer(inv, item)
+-- Retire du monde les objets des entrées { item, hold } (hold : index dans holds). Rend leur nombre.
+function Ex.remove(holds, entries)
+    for _, e in ipairs(entries) do
+        local inv = holds[e.hold].inv
+        inv:DoRemoveItem(e.item)
+        sendRemoveItemFromContainer(inv, e.item)
     end
+    return #entries
+end
+
+-- Crée la marchandise de l'accord (lignes offer.lines) dans le contenant inv, marquée mark. Rend la liste des objets.
+function Ex.give(inv, offer, mark)
     local given = {}
     for _, l in ipairs(offer.lines or {}) do
         for _ = 1, l.q do
@@ -279,17 +199,21 @@ local function save()
     if S.data and not S.blocked and type(S.save) == "function" then S.save() end
 end
 
--- Clôt le passage arrivé du marchand id (Trade.finishRun), écrit l'état, dit l'issue à la radio (say : nom du texte,
--- facultatif) et joue le son de départ du mode d'arrivée (sauf reprise : le marchand est déjà loin).
+-- Faits de réputation par raison de fin d'un passage (action fermée de CA_Reputation).
+Ex.REPUTATION = { short = "trade.cheated", no_drop = "trade.nodrop" }
+
+-- Clôt le passage arrivé du marchand id (Trade.finishRun), note le fait de réputation de la raison, écrit l'état, dit
+-- l'issue à la radio (say : nom du texte, facultatif) et joue le son de départ du mode d'arrivée (sauf reprise : le
+-- marchand est déjà loin).
 local function finish(id, outcome, reason, detail, say)
     local run = Trade.finishRun(id, outcome, reason, detail)
     if run == nil then return nil end
-    if outcome == "cheated" and type(S.data) == "table" then
+    local action = Ex.REPUTATION[reason]
+    if action and type(S.data) == "table" then
         local who = run.cid or run.caller
-        Rep.record(nil, "trade-" .. tostring(run.rev) .. "-cheated", who, "trade.cheated",
-            Config.Reputation and Config.Reputation.failure or -5,
-            { run = run.passage, rev = run.rev, value = detail and detail.value, price = detail and detail.price })
-        -- Rejeu impossible : finishRun ne rend le passage qu'une fois, et l'eventId « trade-<rév>-cheated » est unique.
+        -- Rejeu impossible : finishRun ne rend le passage qu'une fois, et l'eventId est unique par révision.
+        Rep.record(nil, "trade-" .. tostring(run.rev) .. "-" .. reason, who, action, nil,
+            { run = run.passage, rev = run.rev })
     end
     save()
     if say then Run.say(run, say, "exchange") end
@@ -302,49 +226,62 @@ local function delayOf(id)
     return spec and spec.delayHours or Ex.DELAY_HOURS
 end
 
--- Échange dû au lieu chargé : le meilleur contenant évalué, issue appliquée. Rend l'issue.
+-- Échange dû au lieu chargé : tout ou rien sur ce qui a été ajouté depuis la note. Rend l'issue.
 local function exchange(id, run, holds)
     local offer = Trade.offerOf(id, run.caller, run.cid)
     if offer == nil or offer.rev ~= run.rev or offer.state ~= "open" then
         finish(id, "cancelled", "no_offer")
         return "no_offer"
     end
-    local names = Ex.playerNames()
-    local best, bestRes = nil, nil
-    for _, hold in ipairs(holds) do
-        local res = Ex.appraise(Ex.itemsOf(hold.inv), names, offer.price)
-        if bestRes == nil or res.value > bestRes.value then best, bestRes = hold, res end
+    local added = {}
+    for _, e in ipairs(Deposit.added(holds, run.seen)) do
+        if not modMarked(e.item) then added[#added + 1] = e end
     end
-    if bestRes == nil or bestRes.value <= 0 then
+    if #added == 0 then
+        log("run " .. tostring(run.passage) .. " of " .. tostring(id) .. ": nothing added at the landing")
         finish(id, "cancelled", "no_drop", nil, "Cancel_nodrop")
         return "no_drop"
     end
-    local detail = { value = bestRes.value, price = offer.price, took = #bestRes.taken, bag = best.id }
-    if bestRes.value < offer.price then
-        log("run " .. tostring(run.passage) .. " of " .. tostring(id) .. ": hold " .. tostring(detail.bag)
-            .. " worth " .. bestRes.value .. " points for a price of " .. offer.price .. ", refused")
-        finish(id, "cheated", "cheated", detail, "Cheated")
+    local names = Ex.playerNames()
+    local match = Deposit.match(added, offer.wants, function(item) return Ex.counts(item, names) end)
+    if not match.complete then
+        local kept = Ex.remove(holds, added)
+        log("run " .. tostring(run.passage) .. " of " .. tostring(id) .. ": payment incomplete, kept the "
+            .. kept .. " items added")
+        finish(id, "cheated", "short", { kept = kept, missing = match.missing }, "Cheated")
         return "cheated"
     end
-    local given = Ex.apply(best.inv, bestRes.taken, offer, run.rev)
-    detail.given = #given
-    log("run " .. tostring(run.passage) .. " of " .. tostring(id) .. ": took " .. #bestRes.taken .. " items worth "
-        .. bestRes.value .. " points from hold " .. tostring(detail.bag) .. ", gave " .. #given .. " items for "
-        .. offer.price)
-    finish(id, "done", "done", detail, "Done")
+    local target = holds[match.hold] or holds[1]
+    local took = Ex.remove(holds, match.take)
+    local given = Ex.give(target.inv, offer, run.rev)
+    log("run " .. tostring(run.passage) .. " of " .. tostring(id) .. ": took the " .. took .. " items agreed, gave "
+        .. #given .. " items in hold " .. tostring(target.id))
+    finish(id, "done", "done", { took = took, given = #given, bag = target.id }, "Done")
     return "done"
 end
 
--- Sondage du passage arrivé du marchand id à l'heure du monde hours. Rend l'issue (done, cheated, no_drop, no_offer)
--- ou nil (rien à faire, ou attente).
+-- Note le contenu du lieu la première fois qu'il est vu chargé après la réservation. Rend le passage relu.
+local function noteLanding(id, run, holds)
+    if run.seen ~= nil or holds == nil then return run end
+    Trade.noteDeposit(id, Deposit.snapshot(holds))
+    return Trade.lastRun(id)
+end
+
+-- Sondage du passage du marchand id à l'heure du monde hours. Rend l'issue (done, cheated, no_drop, watched,
+-- no_offer) ou nil (rien à faire, ou attente).
 function Ex.updateTrader(id, hours)
     hours = hours or Trade.worldHours()
     local run = Trade.lastRun(id)
-    if run == nil or run.state ~= "arrived" or type(run.landing) ~= "table" then return nil end
+    if run == nil or (run.state ~= "booked" and run.state ~= "arrived") or type(run.landing) ~= "table" then
+        return nil
+    end
+    if run.state == "booked" and run.seen ~= nil then return nil end
     local holds = Ex.holdsAt(id, run)
+    run = noteLanding(id, run, holds)
+    if run.state ~= "arrived" then return nil end
     for _, hold in ipairs(holds or {}) do
         if Ex.hasMark(hold.inv, run.rev) then
-            log("run " .. tostring(run.passage) .. " of " .. tostring(id) .. ": counterpart of offer "
+            log("run " .. tostring(run.passage) .. " of " .. tostring(id) .. ": goods of offer "
                 .. tostring(run.rev) .. " already at the landing, exchange recovered")
             finish(id, "done", "recovered")
             return "done"
@@ -352,13 +289,13 @@ function Ex.updateTrader(id, hours)
     end
     if not Trade.watchLanding(id, sight, delayOf(id)) then
         if hours >= (run.arrivedAt or hours) + Ex.WAIT_HOURS then
-            finish(id, "cancelled", "no_drop", nil, "Cancel_nodrop")
-            return "no_drop"
+            finish(id, "cancelled", "watched", nil, "Cancel_watched")
+            return "watched"
         end
         return nil
     end
     if holds == nil then return nil end             -- dû, case déchargée : au retour d'un joueur
-    return exchange(id, run, holds)
+    return exchange(id, Trade.lastRun(id), holds)
 end
 
 -- Sondage de tous les marchands.

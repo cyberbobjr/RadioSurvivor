@@ -118,6 +118,11 @@ class TownTradersHarness(TradersHarness):
     def trader(self, vid):
         return TraderProxy(self.Trade, vid)
 
+    def roll_zero(self, salt_name):
+        """Le tirage reproductible de la cause `salt_name` de RS_TradeCauses tombe sur 0 (annulation), les autres non."""
+        salt = self.rt.eval('require("RadioSurvivor/RS_TradeCauses")')[salt_name]
+        self.T.runRoll = lambda passage, s, n: 0 if s == salt else n - 1
+
     def run_rules(self, vid, hours):
         """Règles du passage (RS_TradeRun) à l'heure du monde `hours`."""
         self.g.CLOCK.hours = hours
@@ -258,8 +263,9 @@ class RoadPassageTests(TownTradersHarness):
         self.assertEqual(self.aired()[-1][1], EN['IGUI_RS_TradeRun_Done_road'])
 
     def test_causes_of_the_road(self):
-        for cause, setup in (('checkpoint', lambda: setattr(self.T, 'patrolRoll', lambda passage: 0)),
-                             ('air_patrol', lambda: self.Trade.noteHelicopter(15.5)),
+        # E23-T08 : patrouille et hélicoptère par tirage reproductible du passage (RS_TradeCauses), orage réel.
+        for cause, setup in (('checkpoint', lambda: self.roll_zero('PATROL_SALT')),
+                             ('air_patrol', lambda: self.roll_zero('HELICOPTER_SALT')),
                              ('washout', lambda: setattr(self.g, 'STORM', True))):
             with self.subTest(cause):
                 self.setUp()
@@ -316,7 +322,7 @@ class CachePassageTests(TownTradersHarness):
         run = odessa.lastRun()
         self.assertEqual(run.start, 30.0)                                           # jour 2, 13:00
         self.assertEqual(lua_list(self.g.MARKS)[-1].place.label, EN['IGUI_RS_TradeRun_Pier_cache'])
-        dumpster = self.g.placeContainer(x - 1, y - 1, self.t([self.it('MoneyBundle')]))
+        dumpster = self.g.placeContainer(x - 1, y - 1, self.t([self.it('MoneyBundle') for _ in range(2)]))
         ground = self.g.dropBag(x, y, self.t([self.it('MoneyBundle') for _ in range(3)]))
         # Aucun signal : le marchand vient à l'heure, personne au lieu, aucun son.
         self.assertIsNone(self.run_rules(self.VID, 29.9))
@@ -344,8 +350,8 @@ class CachePassageTests(TownTradersHarness):
         self.assertEqual(self.aired()[-1][1], EN['IGUI_RS_TradeRun_Cancel_nodrop_cache'])
 
     def test_causes_of_the_cache(self):
-        for cause, setup in (('sweep', lambda: setattr(self.T, 'patrolRoll', lambda passage: 0)),
-                             ('overflight', lambda: self.Trade.noteHelicopter(28.5))):
+        for cause, setup in (('sweep', lambda: self.roll_zero('PATROL_SALT')),
+                             ('overflight', lambda: self.roll_zero('HELICOPTER_SALT'))):
             with self.subTest(cause):
                 self.setUp()
                 self.g.CLOCK.hours = 4.0
@@ -366,7 +372,7 @@ class SharedCausesTests(unittest.TestCase):
             code = re.sub(r'--[^\n]*', '', path.read_text(encoding='utf-8'))
             with self.subTest(path.name):
                 self.assertIn('require "RadioSurvivor/RS_TradeCauses"', code)
-                self.assertNotRegex(code, r'helicopterSince|stormy\(|patrolRoll\(')
+                self.assertNotRegex(code, r'roll\(|stormy\(')
                 self.assertTrue(code.isascii())
 
 

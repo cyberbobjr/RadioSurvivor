@@ -506,7 +506,7 @@ Les lieux n'ont aucun autre effet : ni distance (`too_far`), ni `coords` de la v
 
 ### Relevé de lieux en jeu (E22-T08)
 
-Menu du monde « Atelier des voix : relever ce lieu » (`client/RadioSurvivor/RS_PlaceSurveyMenu.lua`) : affiché en solo,
+Menu du monde « Atelier des voix : relever ce lieu » (`client/RadioSurvivor/RS_PlaceSurveyMenu.lua`) : affiché en solo en mode debug,
 ou sur un client MP dont le rôle a la capacité `PopmanManage` (`CA_AdminAccess.canUse`, affichage seulement). Le client
 n'envoie que la case : commande `surveyPlace` du module `RadioSurvivorSurvey` `{ op = "place", n, x, y, z }`, réponse
 `surveyReply` au seul demandeur `{ n, op, ok, err }` ; en solo, appel direct. L'autorité
@@ -804,9 +804,10 @@ Le troc d'une voix marchande : une section `[trade]` au plus, sans identifiant. 
 | `every_days` | oui | Un passage tous les N jours de jeu (1 à 28) ; 7 : la semaine du journal du dehors. |
 | `hours` | oui | Fenêtre du rendez-vous, une plage `HH:MM-HH:MM` (peut passer minuit, jamais vide). |
 | `delay_hours` | non | Heures de jeu hors de vue de tout joueur avant l'échange (0 à 48, deux décimales) ; défaut `RS_TradeExchange.DELAY_HOURS` (1). |
-| `margin` | non | Marge la plus basse et la plus haute, `0.10-0.50` par défaut (0 à 1). La réputation de l'appelant et les affaires conclues fixent son plancher dans cette fourchette ; une tricherie la porte au plus haut. |
+| `margin` | non | Marge la plus basse et la plus haute, `0.10-0.50` par défaut (0 à 1). La réputation de l'appelant et les affaires conclues fixent son plancher dans cette fourchette ; une tricherie la porte au plus haut. E23-T06 : le serveur compte toujours au plancher ; le joueur ne voit jamais de prix. |
 | `item` | oui, répétable | `Module.Type:quantité` : objet apporté, quantité tirée à chaque passage (genre `range`, `4` ou `2-4`) **ou** nom d'un groupe. Aucun poids écrit (E22-T12) : le serveur lit celui du script de l'objet (`RS_ItemWeights`, règle `itemWeight` de `RS_Personas.rules`) : `Weight` du script, plus la contenance d'un récipient créé plein (bloc `Fluids` du `FluidContainer`, 1 kg par litre) ; un récipient créé vide (gourde) ne compte que son `Weight`. Un type sans script d'objet fait refuser la fiche. Le nom du stock donné au LLM est le type sans module, unique dans la section. 40 objets au plus. |
 | `group` | non, répétable | `nom:total[:sortes]` : `total` exemplaires tirés parmi les objets du groupe, au plus `sortes` objets différents (sans `sortes` : chaque exemplaire tiré parmi tous). Un groupe sans objet, un objet d'un groupe absent, ou moins d'objets que de sortes sont refusés. |
+| `accept` | oui, répétable | E23-T06 : ce que la voix accepte en paiement, un objet `Module.Type` ou le nom d'une catégorie (catalogue partagé `personas/_categories.txt`, dont `cash`, `jewelry`, `pictures`, `papers_of_the_dead`, `military_gear`, ou `[category]` de la fiche). Un objet doit avoir une valeur de vente (`CA_TradeValues.sellValue` > 0, règle `sellValue` de `RS_Personas.rules`) ; une catégorie apporte ses objets qui en ont une, et doit en avoir au moins un. Résolu après toute la fiche en `trade.accepts` (types, dans l'ordre, sans doublon). 60 lignes au plus. Le LLM ne demande que ces objets ; le serveur refuse un accord qui en nomme un autre (`not_taken`). |
 
 Tirage du stock : objets hors groupe dans l'ordre de la fiche, puis les groupes dans leur ordre (même résultat pour la
 même graine du marchand et le même passage). **État par marchand** (`S.data.trade.traders[<id>]` : livres des
@@ -819,25 +820,32 @@ textes pour le LLM (signal, arrivée), sons vanilla d'approche et de départ jou
 l'ordre (nom, texte, repli de l'annonce, contrôle). `boat` : signaux `lamp` et `flare` ; sons `GeneratorStopping`
 (moteur coupé en accostant) et `GeneratorStarting` (départ), `media/scripts/generated/sounds/objects/
 sounds_object_generator.txt:13-31` de 42.22 (aucun son de bateau vanilla) ; causes `patrol` (tirage du passage sous
-5, 15 ou 30 % selon le cordon), `helicopter` (hélicoptère vanilla entendu depuis 3 h avant la fenêtre), `storm`
-(orage). `road` (E20-T11) : signaux `lamp` et `flare` ; sons `VehicleDoorCloseVan` (portière à l'arrivée) et
+1 chance sur 75 par passage), `helicopter` (1 chance sur 100 par passage), `storm` (orage réel du jeu). `road` (E20-T11) : signaux `lamp` et `flare` ; sons `VehicleDoorCloseVan` (portière à l'arrivée) et
 `VehicleTrunkCloseVan` (hayon au départ), `media/scripts/generated/sounds/vehicles/sounds_vehicle_van.txt:60-67`
 et `:123-130` de 42.22 (le moteur et le klaxon sont des sons tenus d'un vrai véhicule, non joués) ; causes
-`checkpoint` (barrage de l'armée, tirage sous 10, 20 ou 35 %), `air_patrol` (hélicoptère depuis 2 h avant la
-fenêtre), `washout` (orage). `cache` (E20-T11) : signal `hour` (aucun signal : le coursier vient au début de la
+`checkpoint` (barrage de l'armée, 1 sur 75), `air_patrol` (hélicoptère, 1 sur 100), `washout` (orage réel). `cache` (E20-T11) : signal `hour` (aucun signal : le coursier vient au début de la
 fenêtre), aucun son, `holds = containers` (le paiement et la marchandise sont dans un conteneur d'un objet à moins de
-3 cases du lieu : benne, boîte aux lettres ; un sac au sol n'est pas pris) ; causes `sweep` (ratissage, sous 5, 10
-ou 20 %) et `overflight` (hélicoptère depuis 2 h). Les contrôles des causes sont partagés (`RS_TradeCauses.lua`) ;
+3 cases du lieu : benne, boîte aux lettres ; un sac au sol n'est pas pris) ; causes `sweep` (ratissage, 1 sur 75)
+et `overflight` (hélicoptère, 1 sur 100). E23-T08 (ADR D05) : tirages reproductibles du passage
+(`RS_Trade.runRoll`, un sel par cause), contrôlés à partir de 3 heures avant la fenêtre ; l'annonce est répétée chaque
+heure de jeu jusqu'au début de la fenêtre ; une annulation ne touche aucun dépôt et ne coûte rien au joueur. Textes
+pour le LLM : `signal`, `arrived` et `drop` (où déposer le paiement : jamais dans un véhicule). Les contrôles des causes sont partagés (`RS_TradeCauses.lua`) ;
 les signaux sondés sont un registre de `RS_TradeRun` (`registerSignal`). Annonce :
 `IGUI_RS_TradeRun_Cancel_<cause>` (nom de cause unique parmi les modes), sinon le repli anglais de la cause. Textes
 dits par mode : `IGUI_RS_TradeRun_<nom>_<mode>` (`Pier`, `Cancel_late`, `Done`, `Cheated`, `Cancel_nodrop`), puis
 les `lines` anglaises du mode, puis le texte commun.
 
-**Échange** (`RS_TradeExchange`) : après le signal, le sac posé à moins de 3 cases du lieu n'est évalué que **hors de vue
+**Échange** (`RS_TradeExchange`, E23-T07 : tout ou rien, ADR D02/D03) : le contenu des contenants du lieu (sacs au sol
+ou conteneurs selon le mode, à moins de 3 cases ; un véhicule n'est jamais lu) est noté la première fois que le serveur
+voit le lieu chargé après la réservation (identifiants d'objets, gardés avec le passage) ; seuls les objets ajoutés
+ensuite comptent, additionnés sur tous les contenants. Tout ce qui est convenu est là : le marchand prend exactement
+la liste convenue et laisse sa marchandise dans le contenant qui tenait le plus du paiement (le premier à égalité) ;
+dépôt incomplet : il garde tout ce qui a été ajouté et ne laisse rien (`cheated`, fait `trade.cheated`) ; rien
+d'ajouté : `no_drop`, fait `trade.nodrop` (moitié de la sanction). Cet échange n'a lieu que **hors de vue
 de tout joueur** (aucun joueur à moins de 100 cases en x et en y, ou case déchargée : `RS_OutOfSight`, règle de
 E20-T05) depuis `delay_hours` heures de jeu ; un joueur revenu en vue remet l'attente à zéro. Délai écoulé, case
 déchargée : l'échange se fait au premier passage où la case se charge. Jamais tranquille 12 heures de jeu après son
-arrivée (`WAIT_HOURS`), le marchand repart (`no_drop`).
+arrivée (`WAIT_HOURS`), le marchand repart (`watched`) sans rien toucher ni pénaliser.
 
 | Erreur | Message |
 |---|---|
@@ -849,6 +857,7 @@ arrivée (`WAIT_HOURS`), le marchand repart (`no_drop`).
 | Délai, marge | `line N: bad delay_hours 'x' (number from 0 to 48, two decimals at most)`, `line N: bad margin '0.6-0.2' (lowest-highest from 0 to 1, e.g. 0.10-0.50)` |
 | Objet | `line N: bad trade item 'Battery:2' (Module.Type:quantity, e.g. Base.Battery:4-12)` (aussi pour un ancien poids écrit, `Base.Battery:4-12:0.1`), `line N: unknown trade item 'Base.FluxCapacitor' (no item script of that type)`, `line N: duplicate trade item 'Battery'`, `line N: too many trade items (40 at most)` |
 | Groupe | `line N: bad trade group 'x' (name:total[:kinds], e.g. seeds:3-8:4)`, `line N: unknown trade group 'seeds'`, `line N: trade group 'seeds' has no item`, `line N: trade group 'seeds' has fewer items than its kinds` |
+| Paiement | `line N: bad trade accept 'x y' (Module.Type or a category, e.g. Base.MoneyBundle or ammo)`, `line N: duplicate trade accept 'cash'`, `line N: trade accept 'Base.Hammer' has no trade value (an item a trader cannot take)`, `line N: unknown category 'gems' in trade accept`, `line N: category 'tools' has no item with a trade value`, `line N: too many trade accepts (60 at most)` |
 
 Exemple (Gus, `personas/gus.txt`, extrait) :
 
@@ -869,6 +878,9 @@ group=alcohol:1-4
 item=Base.Battery:4-12
 item=Base.CarrotBagSeed2:seeds
 item=Base.Whiskey:alcohol
+accept=cash
+accept=jewelry
+accept=papers_of_the_dead
 ```
 
 ### Section `[note]` (E20-T11)

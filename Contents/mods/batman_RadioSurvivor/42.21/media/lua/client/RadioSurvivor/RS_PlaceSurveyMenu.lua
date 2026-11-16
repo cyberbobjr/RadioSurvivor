@@ -1,8 +1,9 @@
 -- Radio Survivor: "Voice workshop: record this place" in the world context menu (E22-T08, ADR atelier-voix D08).
 -- Doc: docs/specifications-techniques/persona-format.md, section "Releve de lieux en jeu (E22-T08)".
 --
--- Shown only in solo, or on an MP client whose role holds the capability of the admin tools (CA_AdminAccess.canUse,
--- display only): the authority checks the rights again on every request (server/RadioSurvivor/RS_PlaceSurvey.lua).
+-- Shown only in solo with the debug mode on, or on an MP client whose role holds the capability of the admin tools
+-- (CA_AdminAccess.canUse, display only): the authority checks the rights again on every request
+-- (server/RadioSurvivor/RS_PlaceSurvey.lua).
 -- The option sends the clicked square (x, y, z) only: the authority reads the containers, the room and the building
 -- itself. Feedback: a halo text over the player (recorded, or not recorded).
 -- Transport: MP, "surveyPlace" -> "surveyReply" (module "RadioSurvivorSurvey"); solo, RS_PlaceSurvey.request called
@@ -25,7 +26,7 @@ Menu.state = Menu.state or { n = 0 }
 
 -- True when the option is shown to this player (display only: the authority decides).
 function Menu.canUse(player)
-    return Access.canUse(player, true)
+    return Access.canUse(player)
 end
 
 -- Square of the right click: the square of the first world object picked (as vanilla corpseStorageCheck.lua).

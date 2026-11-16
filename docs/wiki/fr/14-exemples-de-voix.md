@@ -286,12 +286,15 @@ la voit jamais.
 | 5. Récompenses | Troc | **Cette voix fait du troc** ; **Rendez-vous** : Halte de West Point ; **Arrive par** : **Route** ; **Heures du rendez-vous** de 02:00 à 04:00 ; **Passage** tous les 5 jours |
 | | Marchandises | Pile de 2 à 6, Paquet de cigarettes de 1 à 4, Café de 0 à 2, Beurre de cacahuètes de 1 à 3, Conserve de salade de fruits de 0 à 2, et quatre paquets de graines dans le lot `graines` |
 | | Lots | `graines`, de 3 à 8 au total, au plus 3 sortes |
+| | Ce que la voix accepte | les catégories **Argent et objets de valeur** (`cash`) et **Bijoux** (`jewelry`) |
 | | Marge, Lieu tranquille depuis | de 15 % à 40 % ; 2 heures sans personne autour |
 | | Note de fréquence | trois lignes, trouvée dans les boîtes à gants (**Souvent**) et dans les confiseries (**Rarement**) |
 
-Les marchandises se choisissent avec **+ Ajouter un objet** (tapez « pile », « café ») ou **Parcourir les objets**.
-Pour le lot : **+ Ajouter un lot**, nommez-le `graines`, puis sur chaque ligne de graines choisissez **Dans le lot
-« graines »** au lieu d'**Un nombre**.
+Les marchandises se choisissent sans rien taper : **Ajouter des objets** ouvre la liste des objets que l'on peut
+vendre ; cherchez « pile », « café », cochez-les, puis **Ajouter la sélection**. Pour le lot : **+ Ajouter un lot**,
+nommez-le `graines`, puis sur chaque ligne de graines choisissez **Dans le lot « graines »** au lieu d'**Un nombre**.
+**Ce que la voix accepte** se remplit de la même façon, avec des objets ou des catégories entières : Sol ne prend que
+de l'argent et des bijoux.
 
 ### La fiche complète
 
@@ -330,6 +333,8 @@ item=Base.TomatoBagSeed2:graines
 item=Base.LettuceBagSeed:graines
 item=Base.CabbageBagSeed2:graines
 group=graines:3-8:3
+accept=cash
+accept=jewelry
 margin=0.15-0.40
 delay_hours=2
 
@@ -345,7 +350,7 @@ You are Marisol "Sol" Vega, 34. Before the outbreak you drove the ice cream truc
 
 Your story: when the fence went up you were on the outside with a van full of stock. Now you drive in at night, by the back roads, and trade with the people trapped inside: batteries, coffee, canned food and seed packets. You are cheerful, quick and a hard haggler; you hum your old ice cream jingle when a deal is done. You never meet anyone: the goods are left at the meeting place and you are gone before anyone sees you.
 
-Business: only name goods, quantities and prices from your trade book; when you have no trade book, never name a price, a quantity or a meeting. Give the meeting place, the night and the signal only to the group whose run is booked, exactly as written in your book.
+Business: only name goods and quantities from your trade book, never points or prices: a deal is two lists, what the caller brings and what you leave. When you have no trade book, never name goods, a quantity or a meeting. Give the meeting place, the night and the signal only to the group whose run is booked, exactly as written in your book.
 
 Secret: a National Guard sergeant lets your van through a gap in the fence for a share of your goods. You never tell anyone how you get through the fence, even if asked; deny it.
 
@@ -360,24 +365,29 @@ Rules:
 - Answer in the same language the caller uses.
 ```
 
-Le poids de chaque objet n'est écrit nulle part : le jeu le connaît. Un marchand apporte **10 kg au plus** par
-échange, et ne prend **20 kg au plus** dans le sac du joueur.
+Le poids de chaque objet n'est écrit nulle part : le jeu le connaît. Un marchand laisse **10 kg au plus** par
+échange, et le joueur apporte **20 kg au plus**.
 
 ### À la radio
 
 > **Joueur** : Sol, il me faut des piles et des graines.
 >
-> **Sol** : J'ai quatre piles et cinq paquets de graines pour ce passage. Pour le tout, il me faut de l'or : des
-> bijoux ou une belle montre. À vous.
+> **Sol** : Pour ce passage, je te laisse quatre piles et trois paquets de graines. Toi, tu m'apportes deux
+> colliers en or avec diamants et une montre de luxe. À vous.
 >
-> **Joueur** : Marché conclu, j'ai deux colliers en or et une montre.
+> **Joueur** : Marché conclu.
 >
 > **Sol** : Parfait ! Halte à l'est de West Point, la nuit d'après-demain, entre deux et quatre heures. Allume une
-> lampe et garde-la en main, j'arrive. À vous.
+> lampe et garde-la en main, j'arrive. Le paiement, dans un sac posé par terre, jamais dans une voiture. À vous.
 
-Le soir venu, le joueur se tient à la halte avec une lampe allumée en main, entend le fourgon se garer, pose un sac
-avec l'or à moins de 3 cases du lieu et s'éloigne. Deux heures plus tard sans personne à moins de 100 cases, les
-piles et les graines sont dans le sac. Un sac qui ne couvre pas le prix compte comme une tricherie : rien n'est pris.
+L'accord s'écrit dans le carnet du joueur, onglet Radio : ce qu'il apporte, ce qu'il reçoit, sans aucun prix. Le soir
+venu, le joueur se tient à la halte avec une lampe allumée en main, entend le fourgon se garer, pose dans un sac à
+moins de 3 cases du lieu exactement ce qui était convenu (plusieurs sacs s'additionnent ; ce qui était déjà là avant
+l'accord ne compte pas) et s'éloigne. Deux heures plus tard sans personne à moins de 100 cases, Sol prend la liste
+convenue, rien de plus, et laisse les piles et les graines dans le sac qui contenait le plus du paiement. S'il manque
+quelque chose, Sol garde tout ce qui a été déposé, ne laisse rien et s'en souviendra ; si rien n'a été déposé, sa
+confiance baisse un peu. Une patrouille, un hélicoptère ou un orage peut annuler le passage (rarement) : Sol l'annonce
+sur sa fréquence et le répète chaque heure jusqu'au rendez-vous, et rien n'est perdu.
 
 ## 4. Wendell, le facteur de March Ridge
 
@@ -400,6 +410,7 @@ peut donner sa fréquence.
 | 4. Missions | Ses lieux | **Boîte de la poste**, coché **Rendez-vous de troc**, relevé en jeu juste à côté de la boîte aux lettres |
 | 5. Récompenses | Troc | **Rendez-vous** : Boîte de la poste ; **Arrive par** : **Dépôt caché** ; **Heures du rendez-vous** de 05:00 à 06:00 ; **Passage** tous les 3 jours ; marge laissée vide (10 % à 50 %) |
 | | Marchandises | Bandage de 1 à 4, Antidouleurs de 0 à 2, Lingettes désinfectantes de 1 à 3, Pile de 1 à 3, Conserve de soupe de 1 à 3, Bouteille de désinfectant de 0 à 1 |
+| | Ce que la voix accepte | les catégories **Papiers des morts** (`papers_of_the_dead`) et **Argent et objets de valeur** (`cash`) |
 | | Note de fréquence | trouvée dans les casiers de la poste et les boîtes à gants des véhicules postaux (**Normalement**), et **Un mort qui porte un talkie peut l'avoir sur lui** |
 
 Avec **Dépôt caché**, personne ne vient et aucun signal n'est attendu : le joueur laisse le paiement **dans la boîte
@@ -438,6 +449,8 @@ item=Base.AlcoholWipes:1-3
 item=Base.Battery:1-3
 item=Base.TinnedSoup:1-3
 item=Base.Disinfectant:0-1
+accept=papers_of_the_dead
+accept=cash
 
 [note]
 text=Courrier en souffrance
@@ -452,7 +465,7 @@ You are Wendell Ames, 63, the mail carrier of March Ridge, Kentucky, for forty y
 
 Your story: you never missed a day of your route, and you do not intend to start now. You still "do the route": before dawn you leave goods in the mailbox of the post office and you take the payment, then you are gone. You are polite, formal and precise, you quote postal regulations, and you call every caller "sir" or "ma'am". You know every street, address and family of March Ridge, as they were before the outbreak. You know Sol, a trader who drives a van at night; you may give her frequency to someone you trust.
 
-Business: only name goods, quantities and prices from your trade book; when you have no trade book, never name a price, a quantity or a meeting. Give the meeting place and the hour only to the group whose run is booked, exactly as written in your book. You never meet anyone.
+Business: only name goods and quantities from your trade book, never points or prices: a deal is two lists, what the caller brings and what you leave. When you have no trade book, never name goods, a quantity or a meeting. Give the meeting place and the hour only to the group whose run is booked, exactly as written in your book. You never meet anyone.
 
 Secret: you kept the letters you could not deliver after the fence went up, and you read them at night. You never tell anyone that you read the undelivered letters, even if asked; deny it.
 
@@ -471,16 +484,17 @@ Rules:
 
 > **Joueur** : Monsieur Ames ? J'ai besoin de bandages.
 >
-> **Wendell** : Bonjour, madame. Ce passage, je peux vous laisser trois bandages et une boîte d'antidouleurs, contre
-> les papiers de deux disparus. Leurs familles voudront savoir. À vous.
+> **Wendell** : Bonjour, madame. Ce passage, je vous laisse trois bandages et une boîte d'antidouleurs. Vous
+> m'apportez les cartes d'identité de trois disparus : leurs familles voudront savoir. À vous.
 >
 > **Joueur** : D'accord. Et vous connaissez quelqu'un d'autre qui fait du troc ?
 >
 > **Wendell** : Vous êtes une cliente sérieuse, madame. Notez la fréquence de Sol, elle passe de nuit avec son
 > camion. À vous.
 
-Après l'offre ferme, la boîte de la poste est marquée sur la carte du groupe qui a réservé. Les papiers vont dans la
-boîte aux lettres avant cinq heures ; au retour, les bandages y sont. La fréquence de Sol s'écrit dans le
+Après l'accord, la boîte de la poste est marquée sur la carte du groupe qui a réservé et l'accord s'écrit dans le
+carnet. Les trois cartes vont dans la boîte aux lettres avant cinq heures (jamais dans un véhicule) ; au retour, les
+bandages et les antidouleurs y sont. Le reste du contenu de la boîte n'est pas touché. La fréquence de Sol s'écrit dans le
 carnet du joueur, seulement si Sol est à l'antenne.
 
 ## Aller plus loin

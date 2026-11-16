@@ -204,7 +204,9 @@ class GameItemsTests(unittest.TestCase):
                                              re.M)})
         self.assertGreater(len(stock), 20)
         self.assertEqual([t for t in stock if t not in listed], [])
-        self.assertTrue(all(listed[t]['kg'] > 0 and listed[t]['en'] and listed[t]['fr'] for t in stock))
+        # a weight read for each (a diamond, 0.001 kg in its script, rounds to 0 in the catalogue) and both names
+        self.assertTrue(all(listed[t]['kg'] >= 0 and listed[t]['en'] and listed[t]['fr'] for t in stock))
+        self.assertGreater(sum(listed[t]['kg'] > 0 for t in stock), len(stock) * 0.9)
         categories = gen.previous()['itemCategories']
         self.assertTrue(all(listed[t]['cat'] in categories for t in stock), 'every stock item has a named category')
         self.assertEqual(categories.get('Food', {}).get('fr'), 'Nourriture', "the game's own category names")

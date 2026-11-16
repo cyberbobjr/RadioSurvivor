@@ -321,5 +321,11 @@
     "IGUI_CA_Target": "Interlocuteur → %1",
     "IGUI_CA_Time": "Temps de jeu restant : %1 min à vitesse normale. S'arrête quand le jeu est en pause.",
     "IGUI_CA_Traits": "Courage %1/5 · sociabilité %2/5 · générosité %3/5",
-    "IGUI_CA_UseChat": "Interlocuteur à portée. Écrivez sur la ligne Dire ci-dessous (en multijoueur, le chat local /say marche aussi)."
+    "IGUI_CA_UseChat": "Interlocuteur à portée. Écrivez sur la ligne Dire ci-dessous (en multijoueur, le chat local /say marche aussi).",
+    "IGUI_CA_MissionPaused": "Votre contact ne vous entend pas pour l’instant : la mission attend et son délai est arrêté.",
+    "IGUI_CA_LostMission": "Mort de %1 : la mission « %2 » pour %3 est perdue.",
+    "IGUI_CA_LostMissionTeam": "Mort de %1 : la mission « %2 » pour %3 continue pour le reste de l’équipe, sans vous.",
+    "IGUI_CA_State_cancelled_lost": "Perdue — participant décédé",
+    "IGUI_CA_MissionState_cancelled_lost": "Perdue — son participant est décédé, sans malus de mission",
+    "IGUI_CA_StateShort_cancelled_lost": "Perdue"
 }

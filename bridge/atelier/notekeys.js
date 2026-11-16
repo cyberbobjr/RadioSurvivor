@@ -1,11 +1,12 @@
 // Forms of the [note] keys (E22-T07, E22-T12, user 2026-11-15): the text written on the note (text=, one line each,
 // live count of the game's limit, %1 = the voice's frequency), where it is found (loot= and glovebox=, a list of the
 // game and Rarely / Normally / Often) and the corpses switch (corpse=yes). The note's own item and text key (item=,
-// key=, shipped voices only) stay in the advanced settings of the form (sectionform.js ADVANCED). Registered in
-// stock.js KEY_EDITORS.
+// key=, shipped voices only) stay in the advanced settings of the form (sectionform.js advanced), the item picked in the
+// item browser like every item of the page. Registered in stock.js KEY_EDITORS.
 
 import { h, uid } from './dom.js';
-import { ADVANCED } from './sectionform.js';
+import { itemChoice } from './itempicker.js';
+import { ADVANCED, advanced } from './sectionform.js';
 import * as sheet from './sheet.js';
 import { DEFAULT_CHANCE, formatLootList, parseLootList, utf8Bytes } from './values.js';
 import { button, chanceChoice, lineEditor, removeButton, switchBox } from './widgets.js';
@@ -95,11 +96,18 @@ function corpse(ctx, section, key) {
   });
 }
 
+// The note's own item (item=): one item of the game, picked in the list.
+function noteItem(ctx, section, key) {
+  const { t, catalog, changed } = ctx;
+  return itemChoice(t, catalog.itemIndex(), sheet.value(section, key) ?? '', (v) => { sheet.setValue(section, key, v); changed(); },
+    { label: t(`key.note.${key}`) });
+}
+
 export const NOTE_EDITORS = {
   text: noteText,
   loot: lootLists,
   glovebox: lootLists,
   corpse,
-  item: ADVANCED,
+  item: advanced(noteItem),
   key: ADVANCED,
 };

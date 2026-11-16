@@ -204,6 +204,8 @@ local function missionDetail(self, row, line)
     end
     if view then view.detail(row, line, VIEW_CTX) end
     line(tr('Time', math.ceil(row.remainingMs / 60000)))
+    -- E23-T03: the delay is stopped (the requester cannot hear the report yet), said by the giver.
+    if row.paused then line(giver.pausedLine and giver.pausedLine(row) or tr('MissionPaused')) end
     if row.rewardCount > 0 then line(tr('RewardShared', row.rewardCount, Missions.itemName(row.rewardType)))
     elseif Missions.createdLot(row) then line(tr('RewardLot', Missions.lotText(row.rewardTable)))
     elseif row.unit == 'value' then line(tr('RewardGoodwill'))
@@ -250,6 +252,17 @@ Missions.page = {
 Notebook.registerTab({name = 'Missions', order = 30, color = {0.369, 0.478, 0.31},
     rows = Missions.page.rows, rowLabel = Missions.page.rowLabel, secondLine = Missions.page.secondLine,
     create = Missions.page.create, detail = Missions.page.detail})
+
+-- E23-T02: missions the previous character of this account lost with its death, above the page of the tab.
+function Missions.lostText(notice)
+    local key = notice.team and 'LostMissionTeam' or 'LostMission'
+    return tr(key, tostring(notice.name or ''), getText(notice.titleKey or 'IGUI_CA_Mission'),
+        tostring(notice.requester or ''))
+end
+Notebook.notices[#Notebook.notices + 1] = function(_, tab, line)
+    if tab ~= 'Missions' or not Client.hosted() then return end
+    for _, notice in ipairs(Client.snapshot.lostMissions or {}) do line(Missions.lostText(notice)) end
+end
 
 -- ---------------------------------------------------------------- hand-over and quote
 

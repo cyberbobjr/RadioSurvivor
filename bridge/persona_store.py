@@ -97,6 +97,7 @@ class Persona:
     call: str = ''                             # fixed call written in the sheet, %1 = frequency label (E22-T07)
     shares: list[str] = field(default_factory=list)
     state: str = 'active'
+    trade_accepts: list[str] = field(default_factory=list)   # [trade] accept= values, in file order (E23-T06)
 
     def places_for(self, use: str) -> list[Place]:
         """Places of the sheet with this use, in file order."""
@@ -292,6 +293,7 @@ class Section:
     line: int
     lines: dict[str, int] = field(default_factory=dict)
     place: Place | None = None
+    accepts: list[str] = field(default_factory=list)
 
     @property
     def title(self) -> str:
@@ -361,10 +363,22 @@ class SkippedSection:
         pass
 
 
+class TradeSection(SkippedSection):
+    """[trade]: validated by the server only (RS_Persona); the bridge keeps the raw values of `accept=` (E23-T06: what
+    the voice accepts as payment, items or categories), for the workshop and the tools. The trade book the LLM reads
+    comes with each request (trade=), resolved by the server."""
+
+    def line(self, sec: Section, text: str, number: int) -> None:
+        if '=' in text:
+            key, value = text.split('=', 1)
+            if trim(key) == 'accept' and trim(value):
+                sec.accepts.append(trim(value))
+
+
 # Sections of a sheet, in the order of the Lua reader's messages; example None = section without id.
 SECTIONS: dict[str, PlaceSection | SkippedSection] = {
     'place': PlaceSection(), 'mission': SkippedSection('meds'), 'rewards': SkippedSection(None),
-    'category': SkippedSection('snacks'), 'trade': SkippedSection(None), 'note': SkippedSection(None),
+    'category': SkippedSection('snacks'), 'trade': TradeSection(None), 'note': SkippedSection(None),
 }
 SECTIONS_EXPECTED = ', '.join(SECTIONS) + ' or prompt'
 
@@ -433,6 +447,7 @@ def parse_lines(lines: list[str], expected_id: str | None = None) -> Persona:
     """Validate a sheet given as lines; raise PersonaError on the first error. expected_id = file name stem."""
     head = _Head()
     places: list[Place] = []
+    accepts: list[str] = []
     first_lines: dict[tuple[str, str], int] = {}
     current: Section | None = None
     separator = 0
@@ -450,6 +465,7 @@ def parse_lines(lines: list[str], expected_id: str | None = None) -> Persona:
         if header:
             if current is not None:
                 SECTIONS[current.name].close(current, places)
+                accepts += current.accepts
             current = None
             if header.group(1) == 'prompt' and not header.group(2):
                 separator = number
@@ -498,7 +514,7 @@ def parse_lines(lines: list[str], expected_id: str | None = None) -> Persona:
         if action not in actions:
             raise PersonaError(number, f"budget.{action} set but action '{action}' is not in actions")
     fields.setdefault('frequencies', [])
-    return Persona(prompt='\n'.join(body), places=places, budgets=head.budgets, **fields)
+    return Persona(prompt='\n'.join(body), places=places, budgets=head.budgets, trade_accepts=accepts, **fields)
 
 
 def parse_bytes(raw: bytes, expected_id: str | None = None) -> Persona:

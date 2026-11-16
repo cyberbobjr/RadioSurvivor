@@ -77,13 +77,13 @@ RST.suite("rs.trade_run", { tags = { "world", "server" } }, function(s)
     s.test("one booking per run", function(t)
         local Trade, _, S = authority(t)
         withFreshRun(t, Trade, S, function()
-            local offer, why, booked = Trade.propose(VOICE, "rst-a", nil, "OutsideNews:1", nil, "rst-team-a", {})
+            local offer, why, booked = Trade.propose(VOICE, "rst-a", nil, "OutsideNews:1", "MoneyBundle:1", "rst-team-a", {})
             t:ok(offer ~= nil, "first offer refused: " .. tostring(why))
             t:ok(booked == true, "first offer did not book the run")
             local status = Trade.runStatus(VOICE, "rst-team-a")
             t:eq("yours", status, "status of the booking team")
             t:eq("taken", (Trade.runStatus(VOICE, "rst-team-b")), "status of another team")
-            local other, why2 = Trade.propose(VOICE, "rst-b", nil, "OutsideNews:1", nil, "rst-team-b", {})
+            local other, why2 = Trade.propose(VOICE, "rst-b", nil, "OutsideNews:1", "MoneyBundle:1", "rst-team-b", {})
             t:eq(nil, other, "second team got an offer")
             t:eq("booked", why2, "refusal of the second team")
         end)
@@ -94,7 +94,7 @@ RST.suite("rs.trade_run", { tags = { "world", "server" } }, function(s)
         local radio = RS_RadioServer
         if type(radio) ~= "table" or not radio.frequency(VOICE) then t:skip("voice " .. VOICE .. " is not on the air") end
         withFreshRun(t, Trade, S, function()
-            local _, why, booked = Trade.propose(VOICE, "rst-a", nil, "OutsideNews:1", nil, "rst-team-a", {})
+            local _, why, booked = Trade.propose(VOICE, "rst-a", nil, "OutsideNews:1", "MoneyBundle:1", "rst-team-a", {})
             t:ok(booked == true, "run not booked: " .. tostring(why))
             local original, captured = radio.air, nil
             radio.air = function(khz, lines) captured = { khz = khz, lines = lines } end
@@ -107,7 +107,7 @@ RST.suite("rs.trade_run", { tags = { "world", "server" } }, function(s)
             t:eq(3, #captured.lines, "announcement lines")
             t:ok(string.find(captured.lines[2], "IGUI_", 1, true) == nil, "untranslated key: " .. captured.lines[2])
             t:note(captured.lines[2])
-            t:eq("run_over", select(2, Trade.propose(VOICE, "rst-a", nil, "OutsideNews:1", nil, "rst-team-a")),
+            t:eq("run_over", select(2, Trade.propose(VOICE, "rst-a", nil, "OutsideNews:1", "MoneyBundle:1", "rst-team-a")),
                 "offer accepted after the cancellation")
         end)
     end)

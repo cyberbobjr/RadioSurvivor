@@ -16,7 +16,8 @@ level, the trend and the public reasons only.
 Sources (closed list R.ACTIONS, nothing from a client command or from a sentence):
     mission.success / mission.failed / mission.abandoned   CA_Missions.finish, one fact per registered participant
                                                            (same amount for everyone; cancellations change nothing)
-    trade.cheated          the voices (trade exchange finish 'cheated'), the caller of the passage
+    trade.cheated          the voices (trade exchange finish 'cheated': payment incomplete), the caller of the passage
+    trade.nodrop           the voices (trade exchange: nothing left at the landing, E23-T07), half of a cheat
     npc.requesterKilled    the notebook (CA_NotebookServer.dead, E04-T07): attributed killer who takes part in an
                            active mission of the dead requester; proof.body = id of the dead body
     npc.memberKilled       the NPC engine (fact npcDied): attributed killer of a group member, unless
@@ -25,7 +26,8 @@ Sources (closed list R.ACTIONS, nothing from a client command or from a sentence
 
 Rules (CA_ReputationConfig, values of section 9 of the design):
     score bounded min..max (-100..100), start 0; level bad <= badAt (-20) < neutral < goodAt (20) <= good;
-    amounts +5 success, -5 failed / abandoned / cheated, -50 requester killed, -10 member killed, +5 rescue;
+    amounts +5 success, -5 failed / abandoned / cheated, -2.5 nothing left at a trade, -50 requester killed,
+    -10 member killed, +5 rescue;
     gains capped at dailyGainCap (+10) per character and game day (7 am to 7 am): the surplus is recorded with no
     effect (rep = 'capped'); losses are never capped; no decay over time (Q4);
     trend = sign of the sum of the signs of the last trendFacts (3) acts: up, down, stable;
@@ -94,13 +96,14 @@ R.ACTIONS = {
     ['mission.failed'] = 'failure',
     ['mission.abandoned'] = 'failure',
     ['trade.cheated'] = 'failure',
+    ['trade.nodrop'] = 'tradeNoDrop',
     ['npc.requesterKilled'] = 'requesterKilled',
     ['npc.memberKilled'] = 'memberKilled',
     ['rescue.success'] = 'rescue',
 }
 
 -- Values of section 9 of the design, used when the configuration lacks a key.
-local DEFAULTS = {success = 5, failure = -5, requesterKilled = -50, memberKilled = -10, rescue = 5,
+local DEFAULTS = {success = 5, failure = -5, tradeNoDrop = -2.5, requesterKilled = -50, memberKilled = -10, rescue = 5,
     min = -100, max = 100, start = 0, badAt = -20, goodAt = 20, dailyGainCap = 10, reasons = 5, trendFacts = 3,
     keepOutcomeDays = 30, retiredPurgeDays = 7}
 

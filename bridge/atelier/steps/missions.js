@@ -7,6 +7,7 @@ import { askBar } from '../dialogs.js';
 import { h, select } from '../dom.js';
 import { field, fieldOptions } from '../fields.js';
 import { choiceTopics, hint, selectHelp, withHint } from '../help.js';
+import { mapLink } from '../maplink.js';
 import * as sheet from '../sheet.js';
 import { surveysBlock } from '../surveys.js';
 import { formatList, parseList } from '../values.js';
@@ -41,8 +42,9 @@ function placeCard(ctx, place, index) {
   const { catalog, t, changed, rerender, model } = ctx;
   const at = { ...place.at };
   const uses = catalog.placeUses().map((u) => withHint(t, 'help.place.use', choice(t, 'use', u)));
+  const map = mapLink(t, () => at);
   const coord = (key) => h('input', { type: 'number', step: 1, class: 'num', value: at[key], 'aria-label': key,
-    onInput: (e) => { at[key] = e.target.value; voice.setPlace(place.section, { at }); changed(); } });
+    onInput: (e) => { at[key] = e.target.value; voice.setPlace(place.section, { at }); changed(); map.refresh(); } });
   return h('article', { class: 'card' },
     h('header', { class: 'card-head' },
       h('b', { text: place.label || t('places.unnamed', { n: index + 1 }) }),
@@ -52,7 +54,7 @@ function placeCard(ctx, place, index) {
       voice.setPlace(place.section, { label: v });
       changed();
     }, { maxlength: 48 }), t('places.label_help'), hint(t, 'help.place.label', { label: t('places.label') })),
-    row(t('places.at'), (id) => h('div', { class: 'inline', id }, 'x', coord('x'), 'y', coord('y'), 'z', coord('z')),
+    row(t('places.at'), (id) => h('div', { class: 'inline', id }, 'x', coord('x'), 'y', coord('y'), 'z', coord('z'), map.el),
       t('places.at_help'), hint(t, 'help.place.at', { label: t('places.at') })),
     row(t('places.uses'), () => checkboxes(uses, place.uses, (list) => {
       voice.setPlace(place.section, { uses: list });

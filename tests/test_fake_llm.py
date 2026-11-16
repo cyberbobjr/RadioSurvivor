@@ -81,8 +81,10 @@ def npc_req(kind="npc_talk", context=None, offers=None, language="EN", **extra) 
 
 
 SCOUT_OFFER = {"m-7": {"kind": "scout", "durationMs": 3600000, "rewardCount": 10, "clues": {1: "a blue door"}}}
-TRADE_BOOK = {"passage": 2, "cap": 100, "kg": 10, "marginMin": 0.2, "marginMax": 0.5, "cordon": 1.2,
-              "stock": {1: {"n": "Antibiotics", "q": 3, "v": 10, "w": 0.1, "unit": 12}}, "takes": {}, "deals": {},
+TRADE_BOOK = {"passage": 2, "cap": 100, "kg": 10, "payKg": 20,
+              "stock": {1: {"n": "Antibiotics", "q": 3, "w": 0.1, "unit": 12}},
+              "takes": {1: {"k": "valuables", "items": "GoldBar 40 (max 1), Money 1 per 10 (max 100), MoneyBundle 10"}},
+              "deals": {},
               "run": {"status": "free", "from": 1, "to": 4, "days": 1, "inHours": 20}}
 
 
@@ -164,7 +166,9 @@ class FakeLLMTests(unittest.TestCase):
     def test_radio_trade_offer_from_the_book(self):
         out = self.radio("gus", trade=hexed(TRADE_BOOK))
         self.assertIsInstance(out, dict)
-        self.assertEqual([{"type": "propose_trade", "items": "Antibiotics:1", "margin": 0.2}], out["actions"])
+        # E23-T06: two lists; the payment covers the price (12 points) with the most valuable accepted item that
+        # fits its cap (GoldBar max 1 covers 40 >= 12 with one).
+        self.assertEqual([{"type": "propose_trade", "gives": "Antibiotics:1", "wants": "GoldBar:1"}], out["actions"])
 
     def test_radio_trade_run_taken_no_offer(self):
         book = dict(TRADE_BOOK, run={"status": "taken", "from": 1, "to": 4})

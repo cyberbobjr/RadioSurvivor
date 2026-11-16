@@ -326,9 +326,9 @@ class VoiceStore:
     def restore(self, voice_id: str) -> Done:
         self._delivered_only(voice_id, 'restore')
         with self._lock:
-            self.working_file(voice_id).unlink(missing_ok=True)
-        return Done('voice_restored', f"voice '{voice_id}' restored: the delivered version comes back at the next "
-                                      "world load")
+            self.working.mkdir(parents=True, exist_ok=True)
+            self.working_file(voice_id).write_bytes(self.shipped_file(voice_id).read_bytes())
+        return Done('voice_restored', f"voice '{voice_id}' restored: copy of the mod's version")
 
     def import_voice(self, filename: str, text: str, new_id: str | None = None) -> tuple[str, Done]:
         """Sheet of another player: id = new_id, else its id= line, else the file name."""

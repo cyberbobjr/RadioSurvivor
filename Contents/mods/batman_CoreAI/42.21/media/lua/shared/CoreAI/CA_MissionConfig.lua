@@ -20,6 +20,10 @@ local MC = {
     -- of 2026-10-21). UNCLAIMED_RETENTION_MS (7 real days) only converts a lot saved before that decision.
     UNCLAIMED_RETENTION_HOURS = 168,
     UNCLAIMED_RETENTION_MS = 604800000,
+    -- E23-T02: notice of a mission lost with a dead character, shown to the account's next character for 7 game days
+    -- (game hours of world age); at most LOST_NOTICE_MAX notices kept per account.
+    LOST_NOTICE_HOURS = 168,
+    LOST_NOTICE_MAX = 8,
     -- Mission catalogue, one entry per template of CA_Missions (E11-T02). `id` is the offer id seen by the bridge;
     -- durationMs (play ms, E11-T20), rewardType and rewardCount are read by the engine, the other fields by the
     -- template.

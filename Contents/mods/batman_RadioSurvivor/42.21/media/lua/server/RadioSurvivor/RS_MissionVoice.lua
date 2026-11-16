@@ -52,7 +52,9 @@ with use=mark of the voice sheet not yet given to this character by this voice (
 line "mark", no budget). A sheet without such a place (or all already given): reputation only. The place that
 would be given is told to the voice with turn 'report_due' (field reward). The mark is sent after the success is
 saved: a crash in between loses the mark, never the success.
-Without the bridge the voice never answers: a voice mission waits for the bridge (or its delay); no notebook button.
+Without the bridge the voice never answers: a voice mission waits for the bridge; no notebook button. E23-T03 (ADR
+D08): while it waits for its report, its delay is stopped as long as the bridge is not seen alive (voice giver's
+paused hook, RS_MissionHooks), and the notebook says the voice does not answer.
 
 Bridge context (V.context, field mission= of the radio request, hex RSV2; generic since E20-T02, ADR D03): kind
 (voice name of the template), state, place (kind of place in English), clues (no digits), remainingMs, turn

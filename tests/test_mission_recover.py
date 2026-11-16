@@ -468,6 +468,82 @@ class RecoverMissionTests(unittest.TestCase):
         at = convert(m.cache.at)
         self.assertTrue(100 <= at['x'] < 110 and 10 <= at['y'] < 20, at)
 
+    def test_reward_cache_not_placed_is_kept_beyond_the_retention(self):
+        """E23-T01 (ADR D06): a voice mission whose reward bag is not placed yet is never pruned; the bag is placed
+        when a player comes by, more than 24 real hours after the success, and the mission is pruned later."""
+        sim, npc, record, missions = self.recover_sim('kept')
+        g, rt = sim.server.g, sim.server.rt
+        char = sim.character('alice')
+        voice = rt.eval("require('RadioSurvivor/RS_MissionVoice')")
+        store = g.CoreAI.notebookServer.store
+        sheet = rt.eval("{id = 'walt', name = 'Walt', actions = {'say', 'start_mission'}, budgets = {}}")
+        m = voice.start(store, sheet, char, g.PLAYERS.alice, 91200, 'scout')
+        self.assertIsNotNone(m)
+        caches = rt.eval("require('CoreAI/CA_Caches')")
+        spot, bounds = caches.siteOf(m)
+        caches.attachContents(m, 'food', rt.eval("{{'Base.TinnedBeans', 2}}"), spot, bounds)
+        self.assertTrue(missions.finish(sim.state(), m, 'success'))
+        mid = m.id
+        day = 86400000
+        for _ in range(3):
+            self.poll(sim, day // 2)
+        self.assertIsNotNone(sim.state().missions[mid], 'a mission with its reward bag still to place was pruned')
+        self.assertFalse(m.cache.placed)
+        g.loadArea(90, 0, 130, 40)
+        self.poll(sim, 6000)
+        self.assertTrue(m.cache.placed, 'the reward bag is placed when the player comes by')
+        self.assertEqual(len(lua_list(g.RECOVER.placed)), 1)
+        # Placed: the usual retention of a closed mission applies again (24 real hours after its closure).
+        self.poll(sim, 61000)
+        self.assertIsNone(sim.state().missions[mid])
+
+    def test_delay_of_a_report_to_a_voice_stops_while_the_bridge_is_silent(self):
+        """E23-T03 (ADR D08): a voice mission waiting for its report keeps its delay while the bridge does not answer
+        (no heartbeat), says so in the notebook, and the delay resumes where it stopped when the bridge is back."""
+        sim, npc, record, missions = self.recover_sim('silent')
+        g, rt = sim.server.g, sim.server.rt
+        char = sim.character('alice')
+        voice = rt.eval("require('RadioSurvivor/RS_MissionVoice')")
+        store = g.CoreAI.notebookServer.store
+        sheet = rt.eval("{id = 'walt', name = 'Walt', actions = {'say', 'start_mission'}, budgets = {}}")
+        m = voice.start(store, sheet, char, g.PLAYERS.alice, 91200, 'scout')
+        # Default bench day: the world age follows the play clock, one real ms is one play ms.
+        def advance(ms):
+            sim.clock.offset += ms
+            sim.tick()
+
+        def heartbeat():
+            (sim.path / 'bridge-alive.txt').write_text(f'alive={int(sim.clock())}\n', encoding='utf-8')
+        advance(0)
+        start = m.remainingMs
+        advance(60000)
+        self.assertAlmostEqual(m.remainingMs, start - 60000, delta=1000, msg='before the objective the delay runs')
+        m.zoneReached = True
+        advance(0)
+        stopped = m.remainingMs
+        advance(3 * 3600000)
+        self.assertEqual(m.remainingMs, stopped, 'the delay ran while the voice could not hear the report')
+        self.assertEqual(m.state, 'active')
+        c = sim.clients['alice']
+        sim.command('alice', 'snapshot', world=c.g.CoreAI.notebookClient.world, run=c.g.CoreAI.notebookClient.run)
+        row = convert(c.g.CoreAI.notebookClient.snapshot.missions[1])
+        self.assertEqual(row['paused'], 'bridge')
+        c.rt.execute(MAP_DOUBLE)
+        c.rt.execute(NOTEBOOK_UI)
+        c.rt.execute("getScriptManager = function() return {FindItem = function() return nil end} end")
+        c.load_notebook()
+        c.g.CoreAI.notebook.toggle()
+        window = c.g.CoreAI.notebookClient.window
+        window.changeTab(window, 'Missions')
+        self.assertIn('IGUI_RS_VoiceSilentWaiting|Walt', window.detail.text)
+        # The bridge is back: the delay resumes from where it stopped, the notebook line goes away.
+        for _ in range(4):
+            heartbeat()
+            advance(6000)
+        self.assertAlmostEqual(m.remainingMs, stopped - 24000, delta=1000)
+        sim.command('alice', 'snapshot', world=c.g.CoreAI.notebookClient.world, run=c.g.CoreAI.notebookClient.run)
+        self.assertNotIn('paused', convert(c.g.CoreAI.notebookClient.snapshot.missions[1]))
+
     def test_notebook_page_and_map_labels(self):
         sim, npc, m, missions = self.active('notebook')
         c = sim.clients['alice']

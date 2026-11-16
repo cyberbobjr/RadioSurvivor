@@ -577,8 +577,13 @@ end
 -- (facultatif : heures de jeu hors de vue avant l'echange), margin (facultatif : marge la plus basse et la plus
 -- haute), item= repetable (Module.Type:quantite ; quantite : fourchette, ou nom d'un groupe ; E22-T12 : poids lu dans
 -- le script de l'objet par la regle injectee itemWeight, RS_ItemWeights, type inconnu refuse), group= repetable
--- (nom:total[:sortes] : total tire dans le groupe, au plus `sortes` objets differents).
+-- (nom:total[:sortes] : total tire dans le groupe, au plus `sortes` objets differents), accept= repetable (E23-T06 :
+-- ce que la voix accepte en paiement, un objet Module.Type ou le nom d'une categorie, partagee ou de la fiche ; un objet
+-- doit avoir une valeur de vente, regle injectee sellValue, CA_TradeValues.sellValue par defaut ; une categorie apporte
+-- ses objets qui en ont une, et au moins un). Resolu apres toute la fiche : trade.accepts = liste des types acceptes,
+-- dans l'ordre, sans doublon.
 local MAX_TRADE_ITEMS = 40
+local MAX_TRADE_ACCEPTS = 60
 local MAX_EVERY_DAYS = 28
 local MAX_DELAY_HOURS = 48
 Persona.TRADE_MARGIN = { min = 0.10, max = 0.50 }
@@ -686,11 +691,26 @@ local function tradeGroup(trade, value, line, ctx)
     trade.groupById[id] = group
 end
 
+-- accept= : lu apres toute la fiche (categories de la fiche) ; ici la forme seulement.
+local function tradeAccept(trade, value, line)
+    if not (string.match(value, "^[A-Za-z0-9_]+%.[A-Za-z0-9_]+$") or string.match(value, "^[a-z][a-z0-9_]*$")) then
+        fail(line, "bad trade accept '" .. value .. "' (Module.Type or a category, e.g. Base.MoneyBundle or ammo)")
+    end
+    for _, e in ipairs(trade.acceptLines) do
+        if e.value == value then fail(line, "duplicate trade accept '" .. value .. "'") end
+    end
+    if #trade.acceptLines >= MAX_TRADE_ACCEPTS then
+        fail(line, "too many trade accepts (" .. tostring(MAX_TRADE_ACCEPTS) .. " at most)")
+    end
+    trade.acceptLines[#trade.acceptLines + 1] = { value = value, line = line }
+end
+
 local TRADE_KEYS = { landing = tradeLanding, arrival = tradeArrival, every_days = tradeEveryDays, hours = tradeHours,
-    delay_hours = tradeDelay, margin = tradeMargin, item = tradeItem, group = tradeGroup }
+    delay_hours = tradeDelay, margin = tradeMargin, item = tradeItem, group = tradeGroup, accept = tradeAccept }
 
 local function tradeOpen(sec)
-    sec.trade = { landings = {}, items = {}, groups = {}, groupById = {}, marginMin = Persona.TRADE_MARGIN.min,
+    sec.trade = { landings = {}, items = {}, groups = {}, groupById = {}, acceptLines = {}, accepts = {},
+        marginMin = Persona.TRADE_MARGIN.min,
         marginMax = Persona.TRADE_MARGIN.max }
 end
 
@@ -702,7 +722,7 @@ local function tradeKey(sec, key, value, line, ctx)
     reader(sec.trade, value, line, ctx)
 end
 
-local TRADE_REQUIRED = { "landing", "arrival", "every_days", "hours", "item" }
+local TRADE_REQUIRED = { "landing", "arrival", "every_days", "hours", "item", "accept" }
 
 local function tradeClose(sec)
     requireKeys(sec, TRADE_REQUIRED)
@@ -723,8 +743,41 @@ local function tradeClose(sec)
     end
 end
 
+-- Types acceptes en paiement (accept=) : objets a valeur de vente, categories resolues en leurs objets qui en ont une.
+local function tradeAccepts(trade, ctx)
+    -- Bareme charge seulement pour une fiche qui troque (bancs sans le mod commun).
+    local sell, seen = ctx.rules.sellValue or require("CoreAI/CA_TradeValues").sellValue, {}
+    local function add(itemType)
+        if not seen[itemType] then
+            seen[itemType] = true
+            trade.accepts[#trade.accepts + 1] = itemType
+        end
+    end
+    for _, e in ipairs(trade.acceptLines) do
+        if string.find(e.value, ".", 1, true) then
+            if sell(e.value) <= 0 then
+                fail(e.line, "trade accept '" .. e.value .. "' has no trade value (an item a trader cannot take)")
+            end
+            add(e.value)
+        else
+            local category = ctx.categories[e.value]
+            if not category then fail(e.line, "unknown category '" .. e.value .. "' in trade accept") end
+            local any = false
+            for _, item in ipairs(category.items) do
+                if sell(item.type) > 0 then
+                    add(item.type)
+                    any = true
+                end
+            end
+            if not any then fail(e.line, "category '" .. e.value .. "' has no item with a trade value") end
+        end
+    end
+    trade.acceptLines = nil
+end
+
 local function tradeResolve(sec, ctx)
     tradeLanding(sec.trade, sec.values.landing, sec.lines.landing, ctx)
+    tradeAccepts(sec.trade, ctx)
     ctx.trade, ctx.tradeLine = sec.trade, sec.line
 end
 
@@ -832,7 +885,7 @@ local SECTIONS = {
         keys = REWARDS_KEYS, required = REWARDS_REQUIRED },
     category = { rank = 4, example = "snacks", repeatable = { item = true }, open = categoryOpen, key = categoryKey,
         close = categoryClose, keys = CATEGORY_KEYS, required = CATEGORY_REQUIRED },
-    trade = { rank = 5, repeatable = { item = true, group = true }, open = tradeOpen, key = tradeKey,
+    trade = { rank = 5, repeatable = { item = true, group = true, accept = true }, open = tradeOpen, key = tradeKey,
         close = tradeClose, resolve = tradeResolve, keys = TRADE_KEYS, required = TRADE_REQUIRED,
         ruleChoices = { arrival = "arrivals" } },
     note = { rank = 6, repeatable = { loot = true, glovebox = true, text = true }, open = noteOpen, key = noteKey,

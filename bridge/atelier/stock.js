@@ -13,7 +13,7 @@ export const KEY_EDITORS = {
 };
 
 export const KEY_ORDER = {
-  trade: ['landing', 'arrival', 'hours', 'every_days', 'item', 'group', 'margin', 'delay_hours'],
+  trade: ['landing', 'arrival', 'hours', 'every_days', 'item', 'group', 'accept', 'margin', 'delay_hours'],
   note: ['text', 'loot', 'glovebox', 'corpse'],
 };
 

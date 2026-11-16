@@ -458,8 +458,9 @@ From a box, only requested items disappear, never more than the remaining quanti
 
 #### Trade — `propose_trade` and the `[trade]` section
 
-A **trader** voice sells a stock over the radio and delivers during a **run**: a meeting at a place, at night or at
-the hours of the sheet, then a contactless exchange. Add `propose_trade` to `actions` **and** a `[trade]` section:
+A **trader** voice barters over the radio and delivers during a **run**: a meeting at a place, at night or at the
+hours of the sheet, then a contactless exchange. A deal is **two lists of items**: what the player brings, what the
+trader leaves ("you bring me 1 box of shells, I leave you 2 cans"); the player never sees points. Add `propose_trade` to `actions` **and** a `[trade]` section:
 one without the other is refused.
 
 | Key | What it does |
@@ -469,19 +470,25 @@ one without the other is refused.
 | `every_days` | One run every N game days (1 to 28). |
 | `hours` | Meeting window, `HH:MM-HH:MM`. |
 | `delay_hours` | Optional: game hours during which nobody may see the place before the exchange (1 by default). |
-| `margin` | Optional: lowest and highest margin (`0.10-0.50` by default). |
+| `margin` | Optional: lowest and highest margin (`0.10-0.50` by default), counted in secret by the server to judge a deal. |
 | `item` | One item brought per line: `Module.Type:quantity`; quantity drawn each run (`4`, `2-6`) or the name of a group. No weight to write: the server reads it from the item's script (the liquid of a full bottle included); an item type the game does not know makes the sheet refused. |
 | `group` | Optional: `name:total[:kinds]`, a total drawn among the items of the group (`seeds:3-8:4`: 3 to 8 packets, 4 kinds at most). |
+| `accept` | What the voice accepts in payment, one line per item (`Base.MoneyBundle`) or per category (`cash`, `jewelry`, `pictures`, `papers_of_the_dead`, `military_gear` of the shared catalogue, or a `[category]` of the sheet). At least one line. Each item must have a value in the trade scale; a category only brings its items that have one. The player can only pay with these items. |
 
 Each trader has its own stock, its own booking and its own deals: two traders booked the same week do not get in each
-other's way. The first firm offer of a run books it for the caller's group; the place is then marked on their map.
-After the signal, the player leaves a bag within 3 tiles of the place and walks away: the trader only comes once
-**nobody is within 100 tiles** (on x and on y) **for `delay_hours` game hours**, then leaves the goods in the same bag
-(cache: in the container of the place where the payment was left). A boat can be called off by a patrol, a
-helicopter heard or a storm; a van by an army checkpoint, a helicopter or a storm; a cache by a sweep or a
-helicopter: the voice says so on its frequency. The ten shipped traders (one per vanilla town) are examples:
-`personas/wanda.txt` (boat), `hollis.txt` (road), `odessa.txt` (cache). What a trader
-takes follows the smuggler's table (`docs/specifications-techniques/passeur-table.md`).
+other's way. The server refuses an unfair deal (what the player brings must be worth at least the price of what the
+trader leaves, in the scale); the first deal of a run books it for the caller's group, the place is marked on their
+map and the deal is written in their notebook. Once the trader has arrived, the deal no longer changes. The player
+leaves the payment within 3 tiles of the place (boat and van: in one or more bags on the ground; cache: in the
+containers of the place; **never in a vehicle**) and walks away: the trader only comes once **nobody is within 100
+tiles** (on x and on y) **for `delay_hours` game hours**. Only what was left after the deal counts. Everything is
+there: the trader takes exactly the agreed list and leaves the goods where most of the payment was. Something is
+missing: the trader keeps everything that was left, leaves nothing, and the reputation drops; nothing was left: it
+drops half as much. A run can be called off, rarely, by a patrol (1 chance in 75), a helicopter (1 in 100) or, by
+mode, a real storm of the game: the voice announces it on its frequency and repeats it every hour until the meeting
+time; nothing is lost. The ten shipped traders (one per vanilla town) are examples:
+`personas/wanda.txt` (boat), `hollis.txt` (road), `odessa.txt` (cache). The trade scale is
+the smuggler's table (`docs/specifications-techniques/passeur-table.md`).
 
 ```ini
 format=1
@@ -509,11 +516,15 @@ item=Base.Coffee2:1-2
 group=smokes:1-3
 item=Base.CigarettePack:smokes
 item=Base.CigaretteCarton:smokes
+accept=cash
+accept=jewelry
+accept=Base.Antibiotics
 
 [prompt]
 You are Ada Pruitt, 61, who runs an old ferry boat on the Ohio and trades with people inside the Knox Exclusion Zone.
-Your trade book is the only truth about your stock, your prices and your run; give the landing, the night and the
-signal only to the group whose run is booked, exactly as written in your book.
+Your trade book is the only truth about your stock, what you accept in payment and your run; a deal is two lists of
+goods, never points or prices; give the landing, the night and the signal only to the group whose run is booked,
+exactly as written in your book.
 Stay in character. Radio style: 1 to 3 short sentences, end each transmission with "Over.".
 Answer in the same language the caller uses.
 ```

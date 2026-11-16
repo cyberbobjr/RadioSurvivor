@@ -11,6 +11,8 @@ local function deadDrops(row, line) DeadDrops.write(row, line, tr) end
 Views.registerGiver('voice', {
     remote = true,
     reportLine = function(row) return tr('ReportRadio', row.requester) end,
+    -- E23-T03: the bridge does not answer, the voice cannot hear the report; the delay waits.
+    pausedLine = function(row) return tr('VoiceSilentWaiting', row.requester) end,
     sections = {
         deliver = deadDrops, -- E20-T05: drop points of a voice mission
         item = deadDrops,

@@ -9,6 +9,7 @@ local Notebook = require 'CoreAI/CA_Notebook'
 local function tr(key, ...) return getText('IGUI_RS_' .. key, ...) end
 
 Notebook.reputationReasons['trade.cheated'] = 'IGUI_RS_RepReason_TradeCheated'
+Notebook.reputationReasons['trade.nodrop'] = 'IGUI_RS_RepReason_TradeNoDrop'
 Notebook.reputationReasons['npc.requesterKilled'] = 'IGUI_RS_RepReason_RequesterKilled'
 Notebook.reputationReasons['rescue.success'] = 'IGUI_RS_RepReason_RescueSuccess'
 

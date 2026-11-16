@@ -5,29 +5,27 @@
 -- the driver gets out) and :123-130 (VehicleTrunkCloseVan, the load is stowed before he leaves): one-shot events. The
 -- engine (VehicleEnginePickUpVan, same file:3-12) and the horn (VehicleHorn, sounds_vehicle_default.txt:23-30) are
 -- held sounds of a real vehicle (BaseVehicle.onHornStart/onHornStop, 42.22 BaseVehicle.java:8148-8173), not played.
--- Causes (checked from RS_TradeRun.WARN_HOURS before the window, checks of RS_TradeCauses): an army checkpoint on the
--- roads (reproducible roll of the run below the chance of the cordon), a helicopter heard since HELI_HOURS before the
--- window, a thunderstorm. ASCII only (Kahlua lexer).
+-- Causes (checked from RS_TradeRun.WARN_HOURS before the window, checks of RS_TradeCauses, ADR D05 of E23): an army
+-- checkpoint on the roads (1 chance in 75 per run), a helicopter (1 chance in 100 per run), a thunderstorm.
+-- ASCII only (Kahlua lexer).
 if isClient() then return end
 local Arrivals = require "RadioSurvivor/RS_TradeArrivals"
 local Causes = require "RadioSurvivor/RS_TradeCauses"
 
 local Road = {}
 
-Road.CHECKPOINT_CHANCE = { 10, 20, 35 }  -- per cent, by cordon (RS_Trade.CORDONS: calm, patrols, tight)
-Road.HELI_HOURS = 2                      -- a helicopter heard two hours before the window keeps the truck away
-
 Road.mode = {
     signals = { lamp = true, flare = true },
     texts = {
         signal = "a red flare or a lit lamp held up at the roadside meeting point, then you pull over",
         arrived = "your truck is parked at the meeting point now",
+        drop = "the payment goes in a bag left on the ground by the road, never in a vehicle",
     },
     sounds = { approach = "VehicleDoorCloseVan", leave = "VehicleTrunkCloseVan" },
     causes = {
-        { name = "checkpoint", check = Causes.patrol(Road.CHECKPOINT_CHANCE), text = "an army checkpoint on the road",
+        { name = "checkpoint", check = Causes.patrol, text = "an army checkpoint on the road",
             fallback = "No run tonight. The army put a checkpoint on the road. Stay off it. Over." },
-        { name = "air_patrol", check = Causes.helicopter(Road.HELI_HOURS), text = "a helicopter over the roads",
+        { name = "air_patrol", check = Causes.helicopter, text = "a helicopter over the roads",
             fallback = "No run tonight. A helicopter is flying over the roads. I am not driving under it. Over." },
         { name = "washout", check = Causes.storm, text = "a storm flooding the roads",
             fallback = "No run tonight. The storm has the roads under water. I am staying put. Over." },

@@ -32,6 +32,7 @@ local Identity = require 'CoreAI/CA_Identity' -- E18-T03: identity of the charac
 local M = require 'CoreAI/CA_Missions'
 local Giver = require 'CoreAI/CA_NotebookGiver'
 local MissionList = require 'CoreAI/CA_MissionList' -- E18-T06
+local MissionLoss = require 'CoreAI/CA_MissionLoss' -- E23-T02: missions lost with a dead character
 local History = require 'CoreAI/CA_History' -- E18-T11: exchange history of the core mod
 -- Mission templates of the core mod (CA_Missions.register at load; deliver is the engine's own).
 require 'CoreAI/CA_MissionScout'; require 'CoreAI/CA_MissionRetrieve'; require 'CoreAI/CA_MissionClear'
@@ -298,6 +299,8 @@ local function projection(player, pushed)
         -- E04-T12: reputation of this character only (level, trend, reasons), never a number.
         reputation = repProjection(character), inviteTargets = inviteTargets,
         team = team,
+        -- E23-T02: missions the previous character of this account lost with its death.
+        lostMissions = MissionLoss.notices(S.data, record),
         npcProvider = P.available() == true, storage = not S.blocked}
     local ok, body = pcall(Codec.encodeBytes, snapshot)
     body = ok and body or nil
@@ -967,7 +970,10 @@ function Server.characterDeath(character)
     -- E21-T04: what the mods keep about this character is forgotten by their CA_Identity.onRetire listeners.
     md[IDENTITY_KEY] = nil
     Server.bound[character], Server.selected[id], Server.quotes[id] = nil, nil, nil
+    -- E23-T02 (ADR D07): his participation in the missions ends at once; the other participants see it.
+    local lost = MissionLoss.died(S.data, id, record)
     S.save()
+    if lost > 0 then publish() end
 end
 Events.OnCharacterDeath.Add(Server.characterDeath)
 return Server

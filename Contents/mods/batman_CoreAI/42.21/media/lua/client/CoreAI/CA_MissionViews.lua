@@ -15,11 +15,13 @@ Giver presentations (E21-T03): how the missions of a kind of giver (row.donor) a
 registers its kind; the views never name a giver.
 
     registerGiver(kind, giver)      giver = { remote = bool, sections = { [templateName] = fn(row, line, ctx) },
-                                    reportLine = fn(row) -> text }
+                                    reportLine = fn(row) -> text, pausedLine = fn(row) -> text }
                                     remote: the giver has no body to join (no hand-over or report in person);
                                     sections: lines of the giver at the section point of a template's view, written
                                     instead of the view's own lines of that point (none: the view's lines);
                                     reportLine: line of the report expected (nil: the notebook's line in person)
+                                    pausedLine: line of a mission whose delay is stopped (row.paused = reason,
+                                    E23-T03; nil: the notebook's generic line)
     giver(kind) -> giver            registered giver, else a giver in person { remote = false, sections = {} }
     section(templateName, row, line, ctx, fallback)   writes the section of the row's giver for this template, else
                                     fallback(row, line, ctx) when given

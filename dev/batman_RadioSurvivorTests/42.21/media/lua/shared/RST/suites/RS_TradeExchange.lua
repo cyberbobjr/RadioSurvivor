@@ -1,13 +1,15 @@
 --[[
 rs.trade_exchange - contactless exchange at the landing of a trader (E13-T04; E20-T07: Gus' run read from his sheet,
 state per trader, exchange only out of everyone's view and after a delay in game hours, rule of RS_OutOfSight):
-real items appraised with the table of the smuggler (named ID card taken, blank card and hammer refused, price
-covered), then Gus' full run: every online player is moved to his landing (place use=landing of personas/gus.txt),
-the run is booked and the boat arrives (RS_TradeRun.arrive: the signal itself is checked by rs.trade_run and the
-benches), a bag with three money bundles is put on the landing, nothing is exchanged while the players stand there,
+real items counted with the table of the smuggler (named ID card counts, blank card, card named after a player and
+hammer do not), then Gus' full run (E23-T06/T07: a deal of two lists, all or nothing on what is added after the
+booking): every online player is moved to his landing (place use=landing of personas/gus.txt), the deal is struck for
+three money bundles and the server notes the landing, the boat arrives (RS_TradeRun.arrive: the signal itself is
+checked by rs.trade_run and the benches), a bag with three money bundles and a hammer is put on the landing, nothing is
+exchanged while the players stand there,
 every player goes 150 tiles away (beyond RS_OutOfSight.VIEW_TILES), the game clock moves past the delay of the sheet
-(GameTime.setTimeOfDay), every player comes back: the bag holds the counterpart, marked with the revision of the
-offer, the run is done; later polls give nothing more.
+(GameTime.setTimeOfDay), every player comes back: the bag holds the goods, marked with the revision of the deal, and
+the hammer (not in the deal), the run is done; later polls give nothing more.
 Tags "server" and "world" (authority only: solo, or RST.server from an admin client of a dedicated server; a bag is put
 on the floor: test saves "rstest*" only). Solo: RST.run({ suite = "rs.trade_exchange", tags = "world" }); dedicated
 server: RST.server({ suite = "rs.trade_exchange", tags = "world" }); campaign:
@@ -164,11 +166,12 @@ local function passage(t, VOICE, sounds)
             local caller = p:getUsername()
             local name, fullType = goods(Trade, VOICE, caller)
             if not name then t2:skip("nothing left in the stock of " .. VOICE) end
-            local offer, why, booked = Trade.propose(VOICE, caller, nil, name .. ":1", nil,
+            local offer, why, booked = Trade.propose(VOICE, caller, nil, name .. ":1", "MoneyBundle:3",
                 Trade.teamOf(caller, p), {})
-            if offer == nil then t2:skip("no offer from " .. VOICE .. " now: " .. tostring(why)) end
+            if offer == nil then t2:skip("no deal with " .. VOICE .. " now: " .. tostring(why)) end
             t2:ok(booked == true, "run not booked")
-            t2:ok(offer.price <= 30, "price above three money bundles: " .. tostring(offer.price))
+            t2:eq(nil, poll(), "poll after the booking")
+            t2:ok(Trade.lastRun(VOICE).seen ~= nil, "landing content not noted after the booking")
             t2:eq(true, Run.arrive(VOICE, "rst"), VOICE .. " not arrived (" .. spec.arrival .. ")")
             if sounds then t2:eq(mode.sounds.approach, played[1], "approach sound of " .. spec.arrival) end
             local bag = bagWith({ "Base.MoneyBundle", "Base.MoneyBundle", "Base.MoneyBundle", "Base.Hammer" })
@@ -227,18 +230,22 @@ local function passage(t, VOICE, sounds)
 end
 
 RST.suite("rs.trade_exchange", { tags = { "server", "world" }, testTimeoutMs = 180000 }, function(s)
-    s.test("real items appraised with the table", function(t)
+    s.test("real items counted with the table", function(t)
         local Ex = modules(t)
         local _, inv = bagWith({ "Base.MoneyBundle", "Base.Necklace_Gold", "Base.IDcard", "Base.IDcard",
             "Base.Hammer" })
-        named(inv, "Base.IDcard", "ID Card: Rst Example")
-        named(inv, "Base.IDcard", nil)                         -- blank name: refused
-        local all = Ex.appraise(Ex.itemsOf(inv), {})
-        t:eq(17, all.value, "value of money bundle, gold necklace and one named card")
-        t:eq(3, #all.taken, "items taken")
-        local part = Ex.appraise(Ex.itemsOf(inv), {}, 10)
-        t:eq(10, part.value, "value taken for a price of 10")
-        t:eq(14, Ex.appraise(Ex.itemsOf(inv), { "Rst Example" }, nil).value, "card named after a player taken")
+        local card = named(inv, "Base.IDcard", "ID Card: Rst Example")
+        local blank = named(inv, "Base.IDcard", nil)            -- blank name: does not count
+        local counted = {}
+        for i = 0, inv:getItems():size() - 1 do
+            local item = inv:getItems():get(i)
+            if Ex.counts(item, {}) then counted[#counted + 1] = item:getFullType() end
+        end
+        table.sort(counted)
+        t:eq("Base.IDcard,Base.MoneyBundle,Base.Necklace_Gold", table.concat(counted, ","), "items that count")
+        t:eq(true, Ex.counts(card, {}) == true, "named card")
+        t:eq(false, Ex.counts(blank, {}) == true, "blank card")
+        t:eq(false, Ex.counts(card, { "Rst Example" }) == true, "card named after a player")
     end)
 
     s.test("Gus' run: exchanged only once every player is out of view for the delay", function(t)

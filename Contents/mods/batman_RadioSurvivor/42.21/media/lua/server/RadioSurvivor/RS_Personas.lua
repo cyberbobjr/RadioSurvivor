@@ -80,7 +80,8 @@ Personas.KNOWN_DELIVERED = {
     whitaker = { "4044533006", "3352221633", "2075828338", "1570277033" },   -- E22-T14
     nightowl = { "4175146858", "225312038", "1263236001", "326850688" },   -- E22-T14
     gus = { "2508366732", "2733824589", "2930912175", "1078646290", "1260582370", "3810027509", "4079538633",
-        "3516644979", "78816791" },   -- E22-T14 : sans knows, ignores ni secret
+        "3516644979", "78816791",   -- E22-T14 : sans knows, ignores ni secret
+        "2872044854" },             -- E23-T06 : accept=, troc par listes
 }
 
 local STEP_KHZ, MIN_KHZ, MAX_KHZ = 200, 1000, 999800
@@ -369,14 +370,16 @@ end
 
 -- Règles injectées dans RS_Persona : gabarits de mission donnés par une voix (registre du mod commun), natures de
 -- récompense et compétences (RS_Rewards), catégories, modes d'arrivée (RS_TradeArrivals), poids des objets du troc
--- (RS_ItemWeights, E22-T12). Lu à l'appel : le jeu a tout chargé (gabarits, natures et modes inscrits, scripts
+-- (RS_ItemWeights, E22-T12), valeur de vente de ce que la voix accepte (CA_TradeValues, E23-T06). Lu à l'appel :
+-- le jeu a tout chargé (gabarits, natures et modes inscrits, scripts
 -- d'objets) avant la lecture des fiches (OnLoadRadioScripts).
 function Personas.rules()
     local Missions = require "CoreAI/CA_Missions"
     local Rewards, Arrivals = require "RadioSurvivor/RS_Rewards", require "RadioSurvivor/RS_TradeArrivals"
     local ItemWeights = require "RadioSurvivor/RS_ItemWeights"
     return { template = Missions.voiceTemplate, rewards = Rewards.KINDS, skills = Rewards.SKILLS,
-        categories = loadCatalogue(), arrivals = Arrivals.NAMES, itemWeight = ItemWeights.of }
+        categories = loadCatalogue(), arrivals = Arrivals.NAMES, itemWeight = ItemWeights.of,
+        sellValue = require("CoreAI/CA_TradeValues").sellValue }
 end
 
 local function removeVoice(id, why)

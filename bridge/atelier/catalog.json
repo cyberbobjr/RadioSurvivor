@@ -14,6 +14,45 @@
         }
       ]
     },
+    "cash": {
+      "items": [
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Diamond"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.GoldBar"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.GoldCoin"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Money"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.MoneyBundle"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.SilverBar"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.SilverCoin"
+        }
+      ]
+    },
     "food": {
       "items": [
         {
@@ -33,6 +72,370 @@
         }
       ]
     },
+    "jewelry": {
+      "items": [
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Bracelet_BangleLeftGold"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Bracelet_BangleLeftSilver"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Bracelet_BangleRightGold"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Bracelet_BangleRightSilver"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Bracelet_ChainLeftGold"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Bracelet_ChainLeftSilver"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Bracelet_ChainRightGold"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Bracelet_ChainRightSilver"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Earring_Dangly_Diamond"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Earring_Dangly_Emerald"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Earring_Dangly_Pearl"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Earring_Dangly_Ruby"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Earring_Dangly_Sapphire"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Earring_LoopLrg_Gold"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Earring_LoopLrg_Silver"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Earring_LoopMed_Gold"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Earring_LoopMed_Silver"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Earring_LoopSmall_Gold_Both"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Earring_LoopSmall_Gold_Top"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Earring_LoopSmall_Silver_Both"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Earring_LoopSmall_Silver_Top"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Earring_Pearl"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Earring_Stone_Emerald"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Earring_Stone_Ruby"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Earring_Stone_Sapphire"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Earring_Stud_Gold"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Earring_Stud_Silver"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.NecklaceLong_Gold"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.NecklaceLong_GoldDiamond"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.NecklaceLong_Silver"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.NecklaceLong_SilverDiamond"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.NecklaceLong_SilverEmerald"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.NecklaceLong_SilverSapphire"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Necklace_Choker_Diamond"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Necklace_Choker_Sapphire"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Necklace_Gold"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Necklace_GoldDiamond"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Necklace_GoldRuby"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Necklace_Pearl"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Necklace_Silver"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Necklace_SilverCrucifix"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Necklace_SilverDiamond"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Necklace_SilverSapphire"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Pocketwatch"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Ring_Left_MiddleFinger_Gold"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Ring_Left_MiddleFinger_GoldDiamond"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Ring_Left_MiddleFinger_GoldRuby"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Ring_Left_MiddleFinger_Signet"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Ring_Left_MiddleFinger_Silver"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Ring_Left_MiddleFinger_SilverDiamond"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Ring_Left_RingFinger_Gold"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Ring_Left_RingFinger_GoldDiamond"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Ring_Left_RingFinger_GoldRuby"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Ring_Left_RingFinger_Signet"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Ring_Left_RingFinger_Silver"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Ring_Left_RingFinger_SilverDiamond"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Ring_Right_MiddleFinger_Gold"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Ring_Right_MiddleFinger_GoldDiamond"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Ring_Right_MiddleFinger_GoldRuby"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Ring_Right_MiddleFinger_Signet"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Ring_Right_MiddleFinger_Silver"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Ring_Right_MiddleFinger_SilverDiamond"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Ring_Right_RingFinger_Gold"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Ring_Right_RingFinger_GoldDiamond"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Ring_Right_RingFinger_GoldRuby"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Ring_Right_RingFinger_Signet"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Ring_Right_RingFinger_Silver"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Ring_Right_RingFinger_SilverDiamond"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.WristWatch_Left_ClassicGold"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.WristWatch_Left_Expensive"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.WristWatch_Right_ClassicGold"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.WristWatch_Right_Expensive"
+        }
+      ]
+    },
     "medical": {
       "items": [
         {
@@ -49,6 +452,183 @@
           "max": 1,
           "min": 1,
           "type": "Base.Pills"
+        }
+      ]
+    },
+    "military_gear": {
+      "items": [
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.556Box"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.556Clip"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.AssaultRifle"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Bag_ALICEpack_Army"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.CanteenMilitary"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.EntrenchingTool"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.FlashLight_AngleHead_Army"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.GasmaskFilter"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Hat_Army"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Hat_GasMask"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Hat_NBCmask"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.MilitaryMedal"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Shoes_ArmyBoots"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Vest_BulletArmy"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.WalkieTalkie5"
+        }
+      ]
+    },
+    "papers_of_the_dead": {
+      "items": [
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Badge"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.CreditCard"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.IDcard"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.IDcard_Female"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.IDcard_Male"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Necklace_DogTag"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Necklace_DogTag_Female"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Necklace_DogTag_Male"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Passport"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.PressID"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Wallet"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Wallet_Female"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Wallet_Male"
+        }
+      ]
+    },
+    "pictures": {
+      "items": [
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.Camera"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.CameraDisposable"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.CameraExpensive"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.CameraFilm"
+        },
+        {
+          "max": 1,
+          "min": 1,
+          "type": "Base.VHS_Home"
         }
       ]
     },
@@ -32725,6 +33305,7 @@
       },
       "hasId": false,
       "keys": [
+        "accept",
         "arrival",
         "delay_hours",
         "every_days",
@@ -32736,6 +33317,7 @@
       ],
       "rank": 5,
       "repeatable": [
+        "accept",
         "group",
         "item"
       ],
@@ -32744,7 +33326,8 @@
         "arrival",
         "every_days",
         "hours",
-        "item"
+        "item",
+        "accept"
       ]
     }
   },

@@ -5,6 +5,7 @@
 // check(model, catalog, voiceId) -> [{key, args, where: {block: 'head' | <section kind> | 'prompt', id, field}}]
 // `key` is an i18n message key, `args` its values.
 
+import { categoryIds, categoryTypes } from './categories.js';
 import * as sheet from './sheet.js';
 import { isInteger, isTime, overlaps, parseBands, parseHours, parseList, parsePool, parseStockItem } from './values.js';
 
@@ -48,18 +49,25 @@ function checkKind(kind, value, ctx) {
 function context(model, catalog) {
   const placeSections = sheet.sectionsOf(model, 'place');
   return {
+    model,
     places: new Set(placeSections.map((s) => s.id)),
     drops: new Set(placeSections.filter((s) => parseList(sheet.value(s, 'use')).includes('drop')).map((s) => s.id)),
     missions: new Set(sheet.sectionsOf(model, 'mission').map((s) => s.id)),
-    categories: new Set([...catalog.sharedCategories(), ...sheet.sectionsOf(model, 'category').map((s) => s.id)]),
+    categories: new Set(categoryIds(model, catalog)),
     skills: new Set(catalog.skills()),
   };
 }
 
+// A required key said in plain words instead of "Missing: <key>": MISSING_KEYS[block][key] -> message key.
+const MISSING_KEYS = { trade: { accept: 'check.no_accept' } };
+
 function checkBlock(block, grammar, extraKeys, where, out) {
   const present = sheet.keys(block);
   for (const key of grammar.required) {
-    if (!present.includes(key)) out.push({ key: 'check.missing_key', args: { name: key }, where: { ...where, field: key } });
+    if (!present.includes(key)) {
+      out.push({ key: MISSING_KEYS[where.block]?.[key] ?? 'check.missing_key', args: { name: key },
+        where: { ...where, field: key } });
+    }
   }
   for (const key of present) {
     if (!grammar.keys.includes(key) && !extraKeys(key)) {
@@ -178,13 +186,26 @@ function checkRewards(section, { catalog, ctx, where, out }) {
   }
 }
 
+// Problem of one accept= value (E23-T06), as RS_Persona.lua resolves it: an item needs a trade value, a category must
+// exist and have at least one item with a trade value; null when the game takes it.
+function acceptProblem(value, catalog, ctx) {
+  if (ITEM_RE.test(value)) return catalog.isSellable(value) ? null : 'check.accept_not_sellable';
+  const types = categoryTypes(ctx.model, catalog, value);
+  if (!types) return 'check.accept_unknown_category';
+  return types.some(catalog.isSellable) ? null : 'check.accept_no_value';
+}
+
 // Stock of a trader: the trade only sells an item with a sale value (catalog.sellable); any other line could never be
-// offered (the game refuses every offer naming it).
-function checkTrade(section, { catalog, where, out }) {
+// offered (the game refuses every offer naming it). What the voice accepts as payment: only what has a trade value.
+function checkTrade(section, { catalog, ctx, where, out }) {
   for (const { type } of sheet.values(section, 'item').map(parseStockItem)) {
     if (ITEM_RE.test(type) && !catalog.isSellable(type)) {
       out.push({ key: 'check.not_sellable', args: { value: type }, where: { ...where, field: 'item' } });
     }
+  }
+  for (const value of sheet.values(section, 'accept')) {
+    const problem = acceptProblem(value, catalog, ctx);
+    if (problem) out.push({ key: problem, args: { value }, where: { ...where, field: 'accept' } });
   }
 }
 

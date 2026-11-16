@@ -321,5 +321,11 @@
     "IGUI_CA_Target": "Speaking to → %1",
     "IGUI_CA_Time": "Game time left: %1 min at normal speed. Stops while the game is paused.",
     "IGUI_CA_Traits": "Courage %1/5 · sociability %2/5 · generosity %3/5",
-    "IGUI_CA_UseChat": "Target in range. Write on the Say line below (in multiplayer the local /say chat also works)."
+    "IGUI_CA_UseChat": "Target in range. Write on the Say line below (in multiplayer the local /say chat also works).",
+    "IGUI_CA_MissionPaused": "Your contact cannot hear you for now: the mission waits and its deadline is stopped.",
+    "IGUI_CA_LostMission": "%1 died: the mission \"%2\" for %3 is lost.",
+    "IGUI_CA_LostMissionTeam": "%1 died: the mission \"%2\" for %3 goes on for the rest of the team, without you.",
+    "IGUI_CA_State_cancelled_lost": "Lost — its participant died",
+    "IGUI_CA_MissionState_cancelled_lost": "Lost — its participant died, no mission penalty",
+    "IGUI_CA_StateShort_cancelled_lost": "Lost"
 }

@@ -36,6 +36,8 @@ export function createCatalog(data) {
     paramKinds: () => data.paramKinds ?? [],
     skills: () => data.skills ?? [],
     sharedCategories: () => sorted(Object.keys(data.categories ?? {})),
+    // Item types of a shared category (personas/_categories.txt), or null when there is no such shared category.
+    categoryItems: (id) => (data.categories ?? {})[id]?.items?.map((item) => item.type) ?? null,
     // Every item type of the game and of the mod with its category, searchable by name (items.js), built on first use.
     itemIndex: () => { itemIndex ??= createItemIndex(data.items ?? {}, data.itemCategories ?? {}); return itemIndex; },
     // The same, limited to the items a trader can sell: what the trader's stock offers.

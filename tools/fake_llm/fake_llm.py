@@ -294,23 +294,38 @@ def briefing_say(system: str) -> str:
     return " ".join(words)
 
 
+def trade_payment(system: str, price: int) -> str | None:
+    """What the caller brings for `price` points: the most valuable accepted item (no lot), as many as cover it."""
+    best = None
+    for line in re.findall(r"^  - [a-z][a-z0-9_]*: (.+)$", system, re.M):
+        for name, value, rest in re.findall(r"([A-Za-z0-9_]+) (\d+)((?: per \d+)?(?: \(max \d+\))?(?: \(condition \d+%\+\))?)",
+                                            line):
+            if "per" in rest or int(value) <= 0:
+                continue
+            cap = re.search(r"\(max (\d+)\)", rest)
+            count = -(-price // int(value))
+            if cap and count > int(cap.group(1)):
+                continue
+            if best is None or int(value) > best[1]:
+                best = (name, int(value), count)
+    return f"{best[0]}:{best[2]}" if best else None
+
+
 def trade_action(system: str) -> dict | None:
-    """First offer the trade book allows: one piece of the first line within the run limits, lowest margin."""
-    if TRADE_BOOK not in system or "already booked by another group" in system or "This week's run is over" in system:
+    """First deal the trade book allows (E23-T06): one piece of the first line within the run limits, paid with the
+    most valuable accepted item."""
+    if TRADE_BOOK not in system or "already booked by another group" in system or "make no new offer" in system:
         return None
-    if re.search(r"^- Your offer to .*\(standing\)", system, re.M):
+    if re.search(r"^- Your deal with .*\(standing\)", system, re.M) or re.search(r"^- The current run is over", system, re.M):
         return None
-    limits = re.search(r"you take at most ([\d.]+) points of goods in all, and the goods you bring weigh at most "
-                       r"([\d.]+) kg", system)
-    margin = re.search(r"- Your margin with .*?: from ([\d.]+) to ([\d.]+)", system)
+    limits = re.search(r"the goods you leave are worth at most ([\d.]+) points and weigh at most ([\d.]+) kg", system)
     cap, kg = (float(limits.group(1)), float(limits.group(2))) if limits else (float("inf"), float("inf"))
     for name, left, weight, unit in re.findall(
-            r"^  - ([A-Za-z0-9_]{1,40}): (\d+) left, value [\d.]+, ([\d.]+) kg, (\d+) points each$", system, re.M):
+            r"^  - ([A-Za-z0-9_]{1,40}): (\d+) left, ([\d.]+) kg, (\d+) points each$", system, re.M):
         if int(left) >= 1 and float(weight) <= kg and int(unit) <= cap:
-            action = {"type": "propose_trade", "items": f"{name}:1"}
-            if margin and 0 <= float(margin.group(1)) <= 1:
-                action["margin"] = float(margin.group(1))
-            return action
+            wants = trade_payment(system, int(unit))
+            if wants:
+                return {"type": "propose_trade", "gives": f"{name}:1", "wants": wants}
     return None
 
 

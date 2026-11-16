@@ -319,7 +319,9 @@ class DepositTests(DropBench):
             assert(m.delivered==1 and #inv.items==0 and SYNC==1,'only the item left at the drop counts')
         """)
 
-    def test_interrupted_pickup_journal_fails_closed(self):
+    def test_interrupted_pickup_credits_the_items_gone_from_the_box(self):
+        """E23-T04 (ADR D09): a stop between the removal and the record; at the restart, the items of the journal
+        that disappeared are counted as delivered, the others stay at the drop for a later pickup."""
         self.setup_delivery()
         self.run_lua("""
             add_goods(); depart()
@@ -329,8 +331,49 @@ class DepositTests(DropBench):
         self.load_module()
         self.run_lua("""
             observe()
-            assert(m.drops[1].pickup==nil and m.delivered==0,'an unproven pickup is never credited')
-            HOURS=HOURS+6.01; observe(); assert(m.delivered==1,'the goods still there are collected later')
+            assert(m.drops[1].pickup==nil,'journal settled at the first loaded pass')
+            assert(m.delivered==1 and m.credited['101'] and not m.credited['102'],'the vanished item is delivered')
+            HOURS=HOURS+6.01; observe(); assert(m.delivered==2,'the goods still there are collected later')
+            HOURS=HOURS+7; observe(); assert(m.delivered==2,'never credited twice')
+        """)
+
+    def test_interrupted_pickup_credits_a_bag_gone_from_the_floor(self):
+        self.setup_delivery(mode='bag')
+        self.run_lua("""
+            add_goods(); depart()
+            m.drops[1].pickup={ids={101,102}}
+            sq:transmitRemoveItemFromSquare(bag.world)
+        """)
+        self.load_module()
+        self.run_lua("""
+            observe()
+            assert(m.drops[1].pickup==nil and m.delivered==2,'the whole bag vanished: both items delivered')
+        """)
+
+    def test_interrupted_pickup_with_everything_still_there_credits_nothing(self):
+        self.setup_delivery(mode='bag')
+        self.run_lua("add_goods(); depart(); m.drops[1].pickup={ids={101,102}}")
+        self.load_module()
+        self.run_lua("""
+            observe()
+            assert(m.drops[1].pickup==nil and m.delivered==0,'world saved before the removal: nothing delivered')
+            HOURS=HOURS+6.01; observe(); assert(m.delivered==2 and #sq.world==0,'collected again later')
+        """)
+
+    def test_interrupted_pickup_waits_for_its_square(self):
+        self.setup_delivery()
+        self.run_lua("""
+            add_goods(); depart()
+            m.drops[1].pickup={ids={101,102}}
+            inv:DoRemoveItem(goods[1]); inv:DoRemoveItem(goods[2])
+            LOADED=false
+        """)
+        self.load_module()
+        self.run_lua("""
+            observe()
+            assert(m.drops[1].pickup~=nil and m.delivered==0,'nothing decided while the square is not loaded')
+            LOADED=true; observe()
+            assert(m.drops[1].pickup==nil and m.delivered==2)
         """)
 
     def test_failed_engine_container_removal_is_not_credited(self):

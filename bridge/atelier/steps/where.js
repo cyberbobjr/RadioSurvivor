@@ -3,6 +3,7 @@
 
 import { h } from '../dom.js';
 import { choiceTopics, hint, withHint } from '../help.js';
+import { mapLink } from '../maplink.js';
 import * as sheet from '../sheet.js';
 import { formatHours, freeBand, khzToMhz, overlaps, parseBands, parseHours } from '../values.js';
 import { button, choice, fold, radios, removeButton, row, textInput, timeRange } from '../widgets.js';
@@ -76,7 +77,12 @@ function locationEditor({ model, catalog, t, changed, rerender }) {
   const options = (catalog.headerChoices('location') ?? [])
     .map((v) => withHint(t, 'help.head.location', choice(t, 'choice.location', v)));
   const coords = (sheet.value(head, 'coords') ?? '').split(',').map((v) => v.trim());
-  const writeCoords = () => { sheet.setValue(head, 'coords', coords.every((v) => v !== '') ? coords.join(',') : null); changed(); };
+  const map = mapLink(t, () => ({ x: coords[0], y: coords[1], z: coords[2] }));
+  const writeCoords = () => {
+    sheet.setValue(head, 'coords', coords.every((v) => v !== '') ? coords.join(',') : null);
+    changed();
+    map.refresh();
+  };
   const coord = (index, label) => h('input', { type: 'number', step: 1, class: 'num', value: coords[index] ?? '',
     'aria-label': label, onInput: (e) => { coords[index] = e.target.value; writeCoords(); } });
   return h('div', { class: 'form' },
@@ -87,7 +93,7 @@ function locationEditor({ model, catalog, t, changed, rerender }) {
       rerender();
     }), null, hint(t, 'help.head.location', { label: t('where.location'), choices: choiceTopics('help.head.location', options) })),
     current === 'fixed' && row(t('where.coords'), (id) => h('div', { class: 'inline', id },
-      'x', coord(0, 'x'), 'y', coord(1, 'y'), 'z', coord(2, 'z')), t('where.coords_help'),
+      'x', coord(0, 'x'), 'y', coord(1, 'y'), 'z', coord(2, 'z'), map.el), t('where.coords_help'),
     hint(t, 'help.head.coords', { label: t('where.coords') })));
 }
 

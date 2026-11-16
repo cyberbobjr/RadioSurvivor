@@ -6,7 +6,7 @@ Authority server/RadioSurvivor/RS_PlaceSurvey.lua and menu client/RadioSurvivor/
 CA_AdminAccess and doubles of the engine (isClient/isServer, Capability, checkPermissions, IsoPlayer:getRole, squares,
 objects and containers, rooms and BuildingDef, getFileReader/getFileWriter over a Python dict, HaloTextHelper,
 ISContextMenu:addOption, send*Command):
-- menu gate: shown in solo; on an MP client only when the role holds PopmanManage; controller probe (test=true) gives
+- menu gate: shown in solo with debug mode only; on an MP client only when the role holds PopmanManage; controller probe (test=true) gives
   ISWorldObjectContextMenu.setTest() without an option; no square, no option;
 - the option sends only {op, n, x, y, z} in MP; in solo it calls the authority and shows a halo (good or bad);
 - authority: non-admin MP refused "denied" without data and without writing; bad coordinates and unloaded square
@@ -255,9 +255,11 @@ class AuthorityTests(unittest.TestCase):
 
 
 class MenuTests(unittest.TestCase):
-    def bench(self, mode: str, admin: bool):
+    def bench(self, mode: str, admin: bool, debug: bool = False):
         b = Bench(mode)
         g = b.g
+        if debug:
+            b.rt.execute('isDebugEnabled = function() return true end')
         if admin:
             g.ADMINS.alice = True
         g.LOCAL = g.MKPLAYER('alice', 'Kate', 'Smith')
@@ -270,8 +272,10 @@ class MenuTests(unittest.TestCase):
         result = b.menu.onFill(0, context, b.rt.table(b.g.WORLD), test)
         return to_py(context.options) or [], result, context
 
-    def test_shown_in_solo(self):
-        b = self.bench('solo', admin=False)
+    def test_shown_in_solo_debug_only(self):
+        # User decision 2026-11-16: the option is a debug tool in solo (debug mode), admin only in MP.
+        self.assertEqual(self.fill(self.bench('solo', admin=False))[0], [])
+        b = self.bench('solo', admin=False, debug=True)
         options, _, context = self.fill(b)
         self.assertEqual([o['name'] for o in options], ['IGUI_RS_Survey_Menu'])
         self.assertEqual(options[0]['args'], [10610, 9305, 0])
@@ -281,7 +285,7 @@ class MenuTests(unittest.TestCase):
         self.assertEqual(self.fill(self.bench('client', admin=False))[0], [])
 
     def test_controller_probe_and_no_square(self):
-        b = self.bench('solo', admin=False)
+        b = self.bench('solo', admin=False, debug=True)
         options, result, _ = self.fill(b, test=True)
         self.assertEqual((options, result, b.g.TESTED), ([], True, 1))
         context = b.g.MKCONTEXT()
@@ -303,7 +307,7 @@ class MenuTests(unittest.TestCase):
         self.assertEqual(to_py(b.g.HALOS), ['bad:IGUI_RS_Survey_Refused'])
 
     def test_solo_option_records_through_the_authority(self):
-        b = self.bench('solo', admin=False)
+        b = self.bench('solo', admin=False, debug=True)
         _, _, context = self.fill(b)
         option = context.options[1]
         option.fn(option.target, 10610, 9305, 0)

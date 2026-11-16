@@ -102,6 +102,8 @@ LUA_FILES = [
     ('RadioSurvivor/RS_TradeArrivals', MOD_LUA / 'server' / 'RadioSurvivor' / 'RS_TradeArrivals.lua'),
     # E22-T12 : poids des objets du troc lus dans les scripts (RS_Personas.rules).
     ('RadioSurvivor/RS_ItemWeights', MOD_LUA / 'server' / 'RadioSurvivor' / 'RS_ItemWeights.lua'),
+    # E23-T06 : barème du troc, valeur de vente de ce qu'une voix accepte en paiement (RS_Personas.rules).
+    ('CoreAI/CA_TradeValues', CORE_LUA / 'shared' / 'CoreAI' / 'CA_TradeValues.lua'),
     # E20-T11 : causes d'annulation partagées par les modes d'arrivée.
     ('RadioSurvivor/RS_TradeCauses', MOD_LUA / 'server' / 'RadioSurvivor' / 'RS_TradeCauses.lua'),
     *[(f'RadioSurvivor/TradeArrivals/{p.stem}', p)

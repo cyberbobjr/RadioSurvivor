@@ -9,16 +9,17 @@
 --             detectors registered in RS_TradeRun (RS_TradeRun.SIGNALS): lamp (lit lamp held in hand by a member
 --             of the booking team at the landing), flare (red flare or smoke of Signal Smoke lit near the landing, a
 --             member present), hour (no signal: the trader comes at the start of the window, seen or not)
---   texts     { signal = what the caller must do, arrived = the trader is there now } English for the voice
---             context, plain words without any digit (the bridge refuses digits in these texts)
+--   texts     { signal = what the caller must do, arrived = the trader is there now, drop = where the payment is
+--             left (E23-T07: on the ground or in a container of the place, never in a vehicle) } English for the
+--             voice context, plain words without any digit (the bridge refuses digits in these texts)
 --   sounds    { approach = vanilla sound played at the landing when the trader arrives, leave = when he goes };
 --             a sound left out is not played (a trader nobody hears)
 --   causes    ordered list of cancellation causes checked by RS_TradeRun while the run is booked, from
 --             RS_TradeRun.WARN_HOURS before the window: { name (unique among the modes: it names the translation),
 --             text (English, for the voice context, no digit), fallback (English radio line when the translation
 --             IGUI_RS_TradeRun_Cancel_<name> is missing), check(world) -> true to cancel }. world (RS_TradeRun): id,
---             run (copy), hours, cordonLevel (index in RS_Trade.CORDONS), patrolRoll() (0..99, reproducible per
---             run), helicopterSince(hours), stormy(); shared checks in RS_TradeCauses.
+--             run (copy), hours, roll(salt, n) (0..n-1, reproducible per run and salt), stormy(); shared checks in
+--             RS_TradeCauses (E23-T08: patrol 1 in 75, helicopter 1 in 100, storm = real weather).
 --   holds     optional: where the payment is left and the goods are put, a finder of RS_TradeHolds (bags, the
 --             default: bags on the floor; containers: containers of the objects at the landing)
 --   lines     optional: English radio lines of this mode by text name of RS_TradeRun (Pier, Cancel_late, Done,

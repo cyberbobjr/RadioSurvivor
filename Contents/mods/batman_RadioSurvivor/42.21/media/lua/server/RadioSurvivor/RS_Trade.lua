@@ -9,29 +9,38 @@
 -- groups { id, min, max, kinds }). Les voix chargees viennent d'un port injecte (Trade.useVoices : get(id) -> fiche,
 -- ids() -> identifiants ; RS_TradeRun.install branche RS_Personas). Aucune voix ni aucun lieu dans ce code.
 --
--- Le LLM du marchand negocie a la radio et propose une offre par l'action `propose_trade` :
---     { type = "propose_trade", items = "Antibiotics:2, Battery:4", margin = 0.25 }
---   items  : texte, au plus MAX_PARAM_CHARS (64) caracteres : objets apportes, « Nom:quantite » separes par des
---            virgules (quantite 1 si omise ; nom du stock, module facultatif, casse indifferente) ;
---   margin : nombre facultatif, marge choisie dans la fourchette permise a cet appelant (sinon la plus basse).
--- Le serveur decide (Trade.propose, voix de la demande) : chaque objet doit etre au stock du passage et disponible
--- (stock tire moins les offres en cours ou conclues des autres appelants), la marge dans la fourchette, la charge au
--- plus CAP_KG, le prix au plus CAP_POINTS. Hors table : refus avec une raison courte. Accepte : offre figee (revision
--- rev, unique pour tout le serveur, prix calcule ici), qui remplace l'offre precedente du meme appelant chez ce
--- marchand ; ses quantites sont reservees. Prix : par ligne, ceil(V x quantite x (1 + marge) x M), M = cordon x rarete
--- borne a M_MAX, rarete RARITY si le stock tire de l'objet est d'un seul exemplaire.
--- Memoire des affaires : par marchand et par appelant, les MAX_DEALS dernieres offres. Avec la reputation de
--- l'appelant (RS_Config.TradeMargin), elle fixe la marge la plus basse (base moins MARGIN_STEP par affaire conclue,
--- bornee aux marges de la fiche ; la plus haute apres une tricherie).
+-- Le LLM du marchand negocie a la radio et propose un accord par l'action `propose_trade` (E23-T06, ADR D01) :
+--     { type = "propose_trade", gives = "Antibiotics:2,Battery:4", wants = "MoneyBundle:3,GoldCoin:1" }
+--   gives : texte, au plus MAX_PARAM_CHARS (64) caracteres : ce que le marchand laisse, tire de son stock,
+--           « Nom:quantite » separes par des virgules (quantite 1 si omise ; nom du stock, module facultatif, casse
+--           indifferente) ;
+--   wants : meme forme : ce que l'appelant doit deposer, parmi ce que la fiche accepte en paiement (accept= de la
+--           section [trade], resolu par RS_Persona en spec.accepts : objets a valeur de vente ; module facultatif).
+-- Le joueur ne voit jamais de points : il convient de deux listes a la radio, et la liste convenue s'inscrit dans son
+-- carnet (Trade.onAgreed). Le serveur garde le bareme pour refuser un accord inequitable (Trade.propose, voix de la
+-- demande) : chaque objet de gives au stock du passage et disponible (stock tire moins les offres en cours ou conclues
+-- des autres appelants), charge au plus CAP_KG, prix au plus CAP_POINTS ; chaque objet de wants accepte par la fiche
+-- (refus not_taken), au plus son plafond par passage (cap du bareme, over_count), au plus CAP_PAY_KG au total
+-- (pay_weight) ;
+-- valeur de wants au moins le prix de gives (unfair). Prix : par ligne, ceil(V x quantite x (1 + marge) x M), marge =
+-- la plus basse permise a cet appelant, M = cordon x rarete borne a M_MAX, rarete RARITY si le stock tire de l'objet
+-- est d'un seul exemplaire. Valeur de wants : somme de V x quantite (billets : V par lot entier de e.lot). Accepte :
+-- accord fige (revision rev, unique pour tout le serveur), qui remplace l'accord precedent du meme appelant chez ce
+-- marchand ; ses quantites sont reservees. Accord fige a l'arrivee (ADR D04) : passage arrive, nouvelle offre refusee
+-- (frozen).
+-- Memoire des affaires : par marchand et par appelant, les MAX_DEALS derniers accords. Avec la reputation de
+-- l'appelant (RS_Config.TradeMargin), elle fixe la marge (base moins MARGIN_STEP par affaire conclue, bornee aux marges
+-- de la fiche ; la plus haute apres une tricherie).
 --
--- Passage reserve (E13-T03) : un passage par periode de every_days jours de jeu et par marchand ; la premiere offre
--- figee d'un passage le reserve pour l'equipe de l'appelant (CA_Teams.idOf ; sans joueur « caller:<compte> »). Une
+-- Passage reserve (E13-T03) : un passage par periode de every_days jours de jeu et par marchand ; le premier accord
+-- fige d'un passage le reserve pour l'equipe de l'appelant (CA_Teams.idOf ; sans joueur « caller:<compte> »). Une
 -- autre equipe est refusee (booked) ; annule, fait ou trop tard dans la periode : run_over. Rendez-vous : un lieu
 -- landing de la fiche (tire par passage s'il y en a plusieurs), la premiere fenetre au moins LEAD_HOURS apres la
--- reservation, dans la periode. Cordon (multiplicateur de prix) : tire par passage, monte d'un cran par un
--- helicoptere vanilla entendu (noteHelicopter). Deux marchands ne partagent rien : stock, livres, passage, cordon.
--- Suivi du rendez-vous : RS_TradeRun.lua ; echange sans contact : RS_TradeExchange.lua (Trade.finishRun).
--- Etat prive du serveur S.data.trade = { rev, heli, traders = { [voix] = { books, cordons, sold, seed, run } } }
+-- reservation, dans la periode. Cordon (multiplicateur de prix cache) : tire par passage. Deux marchands ne partagent
+-- rien : stock, livres, passage, cordon.
+-- Suivi du rendez-vous : RS_TradeRun.lua ; echange sans contact : RS_TradeExchange.lua (Trade.finishRun) ; contenu
+-- du lieu note a la premiere vue apres la reservation (Trade.noteDeposit, E23-T07).
+-- Etat prive du serveur S.data.trade = { rev, traders = { [voix] = { books, cordons, sold, seed, run } } }
 -- (RS_State), jamais en ModData ; sans etat charge, table en memoire. Pas de reprise d'un ancien etat (ADR D11).
 -- Contexte du LLM : RadioSurvivor_Server joint Trade.field a chaque demande d'une voix qui autorise propose_trade
 -- (champ trade=, hexadecimal RSV2). Le lieu n'est donne qu'a l'equipe qui a reserve ; jamais de coordonnee.
@@ -49,6 +58,7 @@ local Factions = require "CoreAI/CA_Teams" -- E18-T20: team ids kept by the core
 local Rep = require "CoreAI/CA_Reputation"
 local Config = require "RadioSurvivor/RS_Config"
 local Arrivals = require "RadioSurvivor/RS_TradeArrivals"
+local ItemWeights = require "RadioSurvivor/RS_ItemWeights"
 
 local Trade = {}
 
@@ -59,28 +69,29 @@ Trade.MARGIN_STEP = 0.05       -- baisse de la marge la plus basse par affaire c
 Trade.M_MAX = 1.75
 Trade.RARITY = 1.25
 Trade.CORDONS = { 1.0, 1.25, 1.5 }
-Trade.CAP_POINTS = 120         -- points au plus pris par passage (section 1)
-Trade.CAP_KG = 10              -- poids au plus de la contrepartie
-Trade.MAX_LINES = 8            -- objets distincts au plus par offre
+Trade.CAP_POINTS = 120         -- prix au plus de ce que le marchand laisse par passage (section 1)
+Trade.CAP_KG = 10              -- poids au plus de ce que le marchand laisse
+Trade.MAX_LINES = 8            -- objets distincts au plus par liste
 Trade.MAX_QTY = 99
 Trade.MAX_DEALS = 8            -- affaires gardees par appelant
 Trade.DEALS_SENT = 5           -- affaires envoyees au LLM
 Trade.MAX_BOOKS = 50           -- appelants gardes par marchand, le moins recent evince
-Trade.REASONS = { "bad_params", "bad_margin", "not_in_stock", "over_stock", "over_weight", "over_cap", "failed",
-    "booked", "run_over" }
+Trade.CAP_PAY_KG = 20          -- poids au plus de ce que l'appelant depose (place dans la barque, section 1)
+Trade.REASONS = { "bad_params", "not_in_stock", "over_stock", "over_weight", "over_cap", "not_taken", "over_count",
+    "pay_weight", "unfair", "failed", "booked", "run_over", "frozen" }
 Trade.LEAD_HOURS = 6           -- au moins 6 heures de jeu entre la reservation et le rendez-vous
 Trade.CORDON_ODDS = { 60, 30, 10 }   -- pour cent : calme, patrouilles, cordon serre (Trade.CORDONS)
 -- Fin d'un passage pour le LLM (status over), hors causes du mode d'arrivee : texte anglais sans chiffre.
 Trade.REASON_TEXTS = {
     late = "nobody showed the signal in time", done = "the trade is done", recovered = "the trade is done",
-    cheated = "they cheated you", cancelled = "it was called off", no_offer = "it was called off",
-    no_drop = "nobody left a bag at the landing", closed = "it is too late in this period for a run",
+    cheated = "they did not bring everything agreed", short = "they did not bring everything agreed",
+    cancelled = "it was called off", no_offer = "it was called off",
+    no_drop = "nobody left the payment at the landing", watched = "someone stayed in sight of the landing",
+    closed = "it is too late in this period for a run",
 }
--- Plafonds par categorie de ce que le marchand prend (sections 2.1 a 2.4) : contexte du LLM et echange (E13-T04).
-Trade.TAKES = {
-    { k = "valuables", cap = 60 }, { k = "images", cap = 40 }, { k = "papers", cap = 30, pieces = 10 },
-    { k = "military", cap = 60 },
-}
+-- Ordre des classes du bareme (CA_TradeValues) dans ce que le marchand accepte, pour le contexte du LLM ; papers :
+-- papiers a un nom seulement (RS_TradeExchange). Une classe absente de cette liste suit, par nom.
+Trade.TAKES = { "valuables", "images", "papers", "military", "ammo", "medical", "food", "supply" }
 
 local function log(msg) Const.log("trade: " .. msg) end
 
@@ -296,7 +307,7 @@ local function cordonOf(t, passage)
     return Trade.drawCordon(t.seed, passage)
 end
 
--- Cordon du passage du marchand (1, 1.25 ou 1.5) : fixe par setCordon (helicoptere entendu), sinon tire.
+-- Cordon du passage du marchand (1, 1.25 ou 1.5) : fixe par setCordon (bancs), sinon tire.
 function Trade.cordon(id, passage)
     local t = store(id)
     return cordonOf(t, passage or Trade.passage(id) or 1)
@@ -418,9 +429,10 @@ function Trade.marginRange(id, caller, cid)
     return marginFloor(spec, key and t.books[key], cid), spec.marginMax
 end
 
-local function itemsText(lines)
+-- Texte « Nom:quantite » d'une liste, separe par des virgules.
+local function listText(lines)
     local parts = {}
-    for _, l in ipairs(lines) do parts[#parts + 1] = l.n .. ":" .. l.q end
+    for _, l in ipairs(lines or {}) do parts[#parts + 1] = l.n .. ":" .. l.q end
     return table.concat(parts, ",")
 end
 
@@ -504,17 +516,11 @@ local function replaceOpen(book)
     end
 end
 
-local function byLower(spec)
-    local out = {}
-    for _, e in ipairs(spec.items) do out[string.lower(e.n)] = e end
-    return out
-end
-
--- Lignes d'une offre depuis le texte items : { { e = entree du stock, q = quantite, name } }, ou nil (forme
--- invalide). Un nom inconnu du stock est garde (e = nil) : refus not_in_stock, pas bad_params.
-function Trade.parseItems(text, spec)
+-- Liste « Nom:quantite » separes par des virgules : { { name, low (nom sans module, minuscules), module (minuscules
+-- ou nil), q } }, ou nil (forme invalide : texte trop long, jeton mal ecrit, quantite hors 1..MAX_QTY, doublon, plus
+-- de MAX_LINES lignes, liste vide).
+function Trade.parseList(text)
     if type(text) ~= "string" or string.len(text) > Actions.MAX_PARAM_CHARS then return nil end
-    local known = spec and byLower(spec) or {}
     local lines, seen = {}, {}
     for token in string.gmatch(text .. ",", "([^,]*),") do
         local tok = string.gsub(token, "^%s+", "")
@@ -527,32 +533,106 @@ function Trade.parseItems(text, spec)
         if name == nil then return nil end
         local q = tonumber(qty)
         if q == nil or q < 1 or q > Trade.MAX_QTY or math.floor(q) ~= q then return nil end
-        local low = string.gsub(string.lower(name), "^[%w_]+%.", "")
-        if seen[low] then return nil end
+        local lower = string.lower(name)
+        local module, low = string.match(lower, "^([%w_]+)%.([%w_]+)$")
+        if low == nil then low = lower end
+        if seen[low] or string.find(low, ".", 1, true) then return nil end
         seen[low] = true
-        lines[#lines + 1] = { e = known[low], q = q, name = name }
+        lines[#lines + 1] = { name = name, low = low, module = module, q = q }
         if #lines > Trade.MAX_LINES then return nil end
     end
     if #lines == 0 then return nil end
     return lines
 end
 
-local function evaluate(id, spec, caller, cid, items, margin, alsoKey)
+local function byLower(spec)
+    local out = {}
+    for _, e in ipairs(spec.items) do out[string.lower(e.n)] = e end
+    return out
+end
+
+-- Lignes de gives depuis le texte : { { e = entree du stock, q, name } }, ou nil (forme invalide). Un nom inconnu du
+-- stock est garde (e = nil) : refus not_in_stock, pas bad_params.
+function Trade.parseItems(text, spec)
+    local parsed = Trade.parseList(text)
+    if parsed == nil then return nil end
+    local known = spec and byLower(spec) or {}
+    local lines = {}
+    for _, p in ipairs(parsed) do lines[#lines + 1] = { e = known[p.low], q = p.q, name = p.name } end
+    return lines
+end
+
+-- Entree du bareme d'un type (prix, puis objets vendus seulement, CA_TradeValues), ou nil.
+local function valueEntry(fullType)
+    return TV.entry(fullType) or TV.SELL_ONLY[fullType]
+end
+
+-- Index minuscule de ce que la fiche accepte : nom sans module -> type complet, et module.nom -> type complet.
+local function acceptIndex(spec)
+    local out = {}
+    for _, full in ipairs(spec and spec.accepts or {}) do
+        local lower = string.lower(full)
+        out[lower] = full
+        local short = string.match(lower, "^[%w_]+%.([%w_]+)$")
+        if short and out[short] == nil then out[short] = full end
+    end
+    return out
+end
+
+-- Lignes de wants depuis le texte : { { t = type complet accepte par la fiche ou nil, n = nom du script, q } }, ou nil
+-- (forme invalide). Module facultatif, casse indifferente.
+function Trade.parseWants(text, spec)
+    local parsed = Trade.parseList(text)
+    if parsed == nil then return nil end
+    local index = acceptIndex(spec)
+    local lines = {}
+    for _, p in ipairs(parsed) do
+        local full = index[p.module and (p.module .. "." .. p.low) or p.low]
+        lines[#lines + 1] = { t = full, n = full and string.match(full, "%.(.+)$") or p.name, q = p.q }
+    end
+    return lines
+end
+
+-- Valeur d'une ligne de wants au bareme : V x quantite, billets V par lot entier.
+local function wantValue(e, q)
+    if e.lot then return math.floor(q / e.lot) * e.v end
+    return e.v * q
+end
+
+-- Ce que l'appelant doit deposer : { lines = { { n, t, q, v } }, value, weight } ou nil et la raison.
+local function evaluateWants(text, spec)
+    local parsed = Trade.parseWants(text, spec)
+    if parsed == nil then return nil, "bad_params" end
+    local out = { lines = {}, value = 0, weight = 0 }
+    for _, p in ipairs(parsed) do
+        local e = p.t and valueEntry(p.t) or nil
+        if e == nil then return nil, "not_taken" end
+        if e.cap and p.q > e.cap then return nil, "over_count" end
+        local value = wantValue(e, p.q)
+        out.lines[#out.lines + 1] = { n = p.n, t = p.t, q = p.q, v = value }
+        out.value = out.value + value
+        out.weight = out.weight + (ItemWeights.of(p.t) or 0) * p.q
+    end
+    out.weight = math.floor(out.weight * 10 + 0.5) / 10
+    if out.weight > Trade.CAP_PAY_KG + 1e-9 then return nil, "pay_weight" end
+    return out
+end
+
+local function evaluate(id, spec, caller, cid, gives, wants, alsoKey)
     local key = bookKey(caller, cid)
     if key == nil then return nil, "failed" end
-    local parsed = Trade.parseItems(items, spec)
+    local parsed = Trade.parseItems(gives, spec)
     if parsed == nil then return nil, "bad_params" end
+    local pay, payWhy = evaluateWants(wants, spec)
+    if pay == nil then return nil, payWhy end
     local t, persistent = store(id)
     local passage = passageAt(spec, Trade.worldHours())
     expire(t, passage, persistent)
-    local low = marginFloor(spec, t.books[key], cid)
-    if margin == nil then margin = low end
-    if type(margin) ~= "number" or margin ~= margin then return nil, "bad_margin" end
-    margin = round2(margin)
-    if margin < low - 1e-9 or margin > spec.marginMax + 1e-9 then return nil, "bad_margin" end
+    local margin = marginFloor(spec, t.books[key], cid)
     local avail, drawn = available(spec, t, passage, key, alsoKey)
     local cordon = cordonOf(t, passage)
-    local offer = { passage = passage, lines = {}, margin = margin, price = 0, weight = 0, cordon = cordon }
+    local offer = { passage = passage, lines = {}, margin = margin, price = 0, weight = 0, cordon = cordon,
+        wants = pay.lines, value = pay.value, payWeight = pay.weight }
     for _, p in ipairs(parsed) do
         if p.e == nil or avail[p.e.n] == nil or avail[p.e.n] <= 0 then return nil, "not_in_stock" end
         if p.q > avail[p.e.n] then return nil, "over_stock" end
@@ -567,21 +647,36 @@ local function evaluate(id, spec, caller, cid, items, margin, alsoKey)
     offer.weight = math.floor(offer.weight * 10 + 0.5) / 10
     if offer.weight > Trade.CAP_KG + 1e-9 then return nil, "over_weight" end
     if offer.price > Trade.CAP_POINTS then return nil, "over_cap" end
+    if offer.value < offer.price then return nil, "unfair" end
     return offer
 end
 
--- Evalue une proposition chez le marchand id sans rien ecrire. Rend l'offre ou nil et la raison. alsoKey : livre dont
--- l'offre ouverte ne compte pas comme prise (offre du passage d'un autre membre de l'equipe).
-function Trade.evaluate(id, caller, cid, items, margin, alsoKey)
+-- Evalue un accord chez le marchand id sans rien ecrire. Rend l'accord ou nil et la raison. alsoKey : livre dont
+-- l'accord ouvert ne compte pas comme pris (accord du passage d'un autre membre de l'equipe).
+function Trade.evaluate(id, caller, cid, gives, wants, alsoKey)
     local spec = Trade.specOf(id)
     if not spec then return nil, "failed" end
-    return evaluate(id, spec, caller, cid, items, margin, alsoKey)
+    return evaluate(id, spec, caller, cid, gives, wants, alsoKey)
 end
 
--- Fige une offre chez le marchand id pour l'appelant. team (Trade.teamOf) : passage reserve par une autre equipe ->
--- booked ; annule, fait ou trop tard -> run_over ; libre -> l'offre figee le reserve (troisieme valeur : true).
--- via : { voice, khz } de la demande (voix qui annoncera une annulation). Sans team : aucune reservation.
-function Trade.propose(id, caller, cid, items, margin, team, via)
+-- Texte de l'accord pour le carnet (ligne « trade » de l'historique radio) : « wants|gives », chaque cote
+-- « Type:quantite » separes par des virgules, types sans le module Base (RS_NotebookRadio les nomme).
+function Trade.agreedText(offer)
+    local function side(lines)
+        local parts = {}
+        for _, l in ipairs(lines or {}) do
+            parts[#parts + 1] = string.gsub(l.t or l.n, "^Base%.", "") .. ":" .. l.q
+        end
+        return table.concat(parts, ",")
+    end
+    return side(offer.wants) .. "|" .. side(offer.lines)
+end
+
+-- Fige un accord chez le marchand id pour l'appelant. team (Trade.teamOf) : passage reserve par une autre equipe ->
+-- booked ; annule, fait ou trop tard -> run_over ; marchand deja arrive pour cette equipe -> frozen (ADR D04) ; libre
+-- -> l'accord fige le reserve (troisieme valeur : true). via : { voice, khz } de la demande (voix qui annoncera une
+-- annulation). Sans team : aucune reservation.
+function Trade.propose(id, caller, cid, gives, wants, team, via)
     local spec = Trade.specOf(id)
     if not spec then return nil, "failed" end
     local key = bookKey(caller, cid)
@@ -592,16 +687,22 @@ function Trade.propose(id, caller, cid, items, margin, team, via)
     if team ~= nil and key ~= nil then
         expire(t, passage, persistent)
         status, run = runStatus(spec, t, passage, team, hours)
-        if status == "taken" then why = "booked" elseif status == "over" then why = "run_over" end
+        if status == "taken" then
+            why = "booked"
+        elseif status == "over" then
+            why = "run_over"
+        elseif status == "yours" and run.state ~= "booked" then
+            why = "frozen"
+        end
     end
     if why == nil then
         local other = run and run.key ~= key and run.key or nil
-        offer, why = evaluate(id, spec, caller, cid, items, margin, other)
+        offer, why = evaluate(id, spec, caller, cid, gives, wants, other)
     end
     if offer == nil then
         if key ~= nil then
             local book = bookOf(t, key, true)
-            book.refused = { reason = why, items = type(items) == "string" and items or "" }
+            book.refused = { reason = why }
             touched(persistent)
         end
         log("offer refused by " .. tostring(id) .. " (" .. tostring(why) .. ") caller=" .. tostring(caller))
@@ -617,8 +718,8 @@ function Trade.propose(id, caller, cid, items, margin, team, via)
     book.lastRev = offer.rev
     book.refused = nil
     local deals = book.deals
-    deals[#deals + 1] = { rev = offer.rev, passage = offer.passage, items = itemsText(offer.lines), price = offer.price,
-        state = "open" }
+    deals[#deals + 1] = { rev = offer.rev, passage = offer.passage, items = listText(offer.lines),
+        wants = listText(offer.wants), state = "open" }
     while #deals > Trade.MAX_DEALS do table.remove(deals, 1) end
     local booked = false
     if status == "free" then
@@ -633,7 +734,8 @@ function Trade.propose(id, caller, cid, items, margin, team, via)
     end
     touched(persistent)
     log("offer " .. offer.rev .. " of " .. tostring(id) .. " frozen for " .. tostring(caller) .. ": "
-        .. itemsText(offer.lines) .. " for " .. offer.price .. " points (passage " .. offer.passage .. ")")
+        .. listText(offer.lines) .. " for " .. listText(offer.wants) .. " (price " .. offer.price .. ", value "
+        .. offer.value .. ", passage " .. offer.passage .. ")")
     if booked then
         log("run " .. run.passage .. " of " .. tostring(id) .. " booked by team " .. tostring(team) .. " ("
             .. tostring(caller) .. "), meeting at world hour " .. run.start)
@@ -785,43 +887,38 @@ function Trade.watchLanding(id, watcher, delayHours)
     return r.due == true
 end
 
--- Tirage 0..99 de la patrouille d'un passage du marchand (reproductible : meme graine, meme passage).
-function Trade.patrolRoll(id, passage)
+-- Tirage reproductible 0..n-1 d'un passage du marchand pour une cause d'annulation (salt : un nombre par cause ; meme
+-- graine, meme passage, meme sel : meme tirage, ADR D05).
+function Trade.runRoll(id, passage, salt, n)
     local t = store(id)
-    return rng(t.seed + 7, passage)(100)
+    return rng(t.seed + salt, passage)(n)
 end
 
--- Helicoptere vanilla entendu (RS_TradeRun, signature OnWorldSound) a `hours` : note pour tous ; la premiere fois
--- dans le passage de chaque marchand, son cordon monte d'un cran. Rend true si un cordon monte.
-function Trade.noteHelicopter(hours)
-    local root, persistent = rootOf()
-    if type(root.heli) ~= "table" then root.heli = {} end
-    local old = type(root.heli.at) == "number" and root.heli.at or -1
-    root.heli.at = hours
-    if hours - old >= 0.25 then touched(persistent) end
-    local raised = false
-    for _, id in ipairs(Trade.traderIds()) do
-        local t = store(id)
-        local passage = Trade.passage(id)
-        if t.heliPassage ~= passage then
-            t.heliPassage = passage
-            local c = cordonOf(t, passage)
-            local up = Trade.CORDONS[Trade.cordonLevel(c) + 1] or c
-            if up ~= c then
-                Trade.setCordon(id, passage, up)
-                raised = true
-            end
-            touched(persistent)
-            log("helicopter heard in passage " .. passage .. " of " .. id .. ": cordon " .. c .. " -> " .. up)
-        end
+-- Annonce d'une annulation dite a l'heure `hours` (RS_TradeRun, repetee chaque heure jusqu'au rendez-vous, ADR
+-- D05) : heure notee sur le passage annule. Rend true si le passage est annule.
+function Trade.noteAnnounced(id, hours)
+    local t, persistent = store(id)
+    local r = t.run
+    if type(r) ~= "table" or r.state ~= "cancelled" then return false end
+    r.announcedAt = hours
+    touched(persistent)
+    return true
+end
+
+-- Contenu du lieu note la premiere fois que le serveur le voit charge apres la reservation (RS_TradeExchange, ADR
+-- D02) : seen = { [identifiant d'objet en texte] = true }. Ecrit une seule fois par passage attendu ou arrive.
+-- Rend true si la note est ecrite.
+function Trade.noteDeposit(id, seen)
+    local t, persistent = store(id)
+    local r = t.run
+    if type(r) ~= "table" or (r.state ~= "booked" and r.state ~= "arrived") or r.seen ~= nil
+            or type(seen) ~= "table" then
+        return false
     end
-    return raised
-end
-
--- Vrai si un helicoptere a ete entendu a partir de l'heure `since`.
-function Trade.helicopterSince(since)
-    local root = rootOf()
-    return type(root.heli) == "table" and type(root.heli.at) == "number" and root.heli.at >= since
+    r.seen = seen
+    touched(persistent)
+    log("run " .. tostring(r.passage) .. " of " .. tostring(id) .. ": landing content noted before the drop")
+    return true
 end
 
 -- ================================================================ contexte du LLM
@@ -834,27 +931,44 @@ local function allowsTrade(sheet)
     return false
 end
 
--- Ce que le marchand prend, par classe : texte « Nom V, Nom V » trie par nom (bareme CA_TradeValues).
-local takesCache = nil
-local function takes()
-    if takesCache then return takesCache end
-    local byClass = {}
-    for full, e in pairs(TV.VALUES) do
-        byClass[e.k] = byClass[e.k] or {}
-        local list = byClass[e.k]
-        local text = string.sub(full, 6) .. " " .. e.v
-        if e.lot then text = text .. " per " .. e.lot end
-        if e.cap then text = text .. " (max " .. e.cap .. ")" end
-        if e.cond then text = text .. " (condition " .. math.floor(e.cond * 100 + 0.5) .. "%+)" end
-        list[#list + 1] = text
+-- Ce que la fiche accepte en paiement, par classe du bareme (ordre Trade.TAKES, puis les autres) : { k, items = texte
+-- « Nom V, Nom V » trie par nom ; billets « per <lot> », plafond par passage « (max n) », etat minimal
+-- « (condition n%+) » }. Garde par fiche (spec.accepts ne change qu'avec une nouvelle lecture de la fiche).
+local takesCache = setmetatable({}, { __mode = "k" })
+local function takes(spec)
+    local cached = takesCache[spec]
+    if cached then return cached end
+    local byClass, order = {}, {}
+    for _, full in ipairs(spec.accepts or {}) do
+        local e = valueEntry(full)
+        if e then
+            local k = e.k or "supply"
+            if not byClass[k] then
+                byClass[k] = {}
+                order[#order + 1] = k
+            end
+            local text = string.match(full, "%.(.+)$") .. " " .. e.v
+            if e.lot then text = text .. " per " .. e.lot end
+            if e.cap then text = text .. " (max " .. e.cap .. ")" end
+            if e.cond then text = text .. " (condition " .. math.floor(e.cond * 100 + 0.5) .. "%+)" end
+            local list = byClass[k]
+            list[#list + 1] = text
+        end
     end
-    takesCache = {}
-    for _, tk in ipairs(Trade.TAKES) do
-        local list = byClass[tk.k] or {}
-        table.sort(list)
-        takesCache[#takesCache + 1] = { k = tk.k, cap = tk.cap, pieces = tk.pieces, items = table.concat(list, ", ") }
+    local rank = {}
+    for i, k in ipairs(Trade.TAKES) do rank[k] = i end
+    table.sort(order, function(a, b)
+        local ra, rb = rank[a] or 100, rank[b] or 100
+        if ra ~= rb then return ra < rb end
+        return a < b
+    end)
+    cached = {}
+    for _, k in ipairs(order) do
+        table.sort(byClass[k])
+        cached[#cached + 1] = { k = k, items = table.concat(byClass[k], ", ") }
     end
-    return takesCache
+    takesCache[spec] = cached
+    return cached
 end
 
 -- Texte d'une fin de passage pour le LLM : cause du mode d'arrivee, sinon REASON_TEXTS.
@@ -868,7 +982,8 @@ end
 
 -- Passage vu par l'equipe de l'appelant, pour le LLM : status (free, yours, taken, over), heures de la fenetre (from,
 -- to : heure du jeu, decimales pour les minutes), days et inHours jusqu'a son debut ; yours : state, place (libelle
--- du lieu), signal (ce que l'equipe doit faire), arrived (texte du mode une fois arrive) ; over : reason (texte).
+-- du lieu), signal (ce que l'equipe doit faire), drop (ou deposer le paiement), arrived (texte du mode une fois
+-- arrive) ; over : reason (texte).
 local function runContext(id, spec, team, passage, hours)
     local t = store(id)
     local status, r = runStatus(spec, t, passage, team, hours)
@@ -881,6 +996,7 @@ local function runContext(id, spec, team, passage, hours)
         start = r.start
         out.state, out.place = r.state, r.landing and r.landing.label or nil
         out.signal = mode and mode.texts.signal or nil
+        out.drop = mode and mode.texts.drop or nil
         if r.state == "arrived" then out.arrived = mode and mode.texts.arrived or nil end
     elseif status == "over" then
         out.reason = reasonText(spec, r and (r.reason or r.state) or "closed")
@@ -900,7 +1016,11 @@ function Trade.runContext(id, team, passage, hours)
     return runContext(id, spec, team, passage or passageAt(spec, hours), hours)
 end
 
--- Contexte du marchand (fiche sheet) pour une demande de l'appelant (table), ou nil si la fiche ne troque pas.
+-- Contexte du marchand (fiche sheet) pour une demande de l'appelant (table), ou nil si la fiche ne troque pas :
+-- passage, cap (prix au plus de ce qu'il laisse), kg (poids au plus de ce qu'il laisse), payKg (poids au plus du
+-- depot), stock { n, q, w, unit = prix d'un exemplaire a la marge de l'appelant }, takes { k, items }, offer { rev,
+-- items, wants, state }, deals { passage, items, wants, state }, refused (raison), run (runContext). Le LLM compte en
+-- points pour juger ; il ne les dit jamais (consignes du pont).
 function Trade.context(sheet, caller, cid)
     if not allowsTrade(sheet) then return nil end
     local id, spec = sheet.id, sheet.trade
@@ -913,26 +1033,25 @@ function Trade.context(sheet, caller, cid)
     local low = marginFloor(spec, book, cid)
     local avail, drawn = available(spec, t, passage, key)
     local cordon = cordonOf(t, passage)
-    local ctx = { passage = passage, cap = Trade.CAP_POINTS, kg = Trade.CAP_KG, marginMin = low,
-        marginMax = spec.marginMax, cordon = cordon, stock = {}, takes = takes(), deals = {} }
+    local ctx = { passage = passage, cap = Trade.CAP_POINTS, kg = Trade.CAP_KG, payKg = Trade.CAP_PAY_KG, stock = {},
+        takes = takes(spec), deals = {} }
     for _, e in ipairs(spec.items) do
         local n = avail[e.n]
         if n > 0 then
             local v = TV.sellValue(e.t)
-            ctx.stock[#ctx.stock + 1] = { n = e.n, q = n, v = v, w = e.w,
+            ctx.stock[#ctx.stock + 1] = { n = e.n, q = n, w = e.w,
                 unit = TV.linePrice(v, 1, (1 + low) * multiplier(drawn[e.n], cordon)) }
         end
     end
     if type(book) == "table" then
         local o = book.offer
         if type(o) == "table" and o.passage == passage then
-            ctx.offer = { rev = o.rev, items = itemsText(o.lines), price = o.price, margin = o.margin,
-                weight = o.weight, state = o.state }
+            ctx.offer = { rev = o.rev, items = listText(o.lines), wants = listText(o.wants), state = o.state }
         end
         local deals = book.deals or {}
         for i = math.max(1, #deals - Trade.DEALS_SENT + 1), #deals do
             local d = deals[i]
-            ctx.deals[#ctx.deals + 1] = { passage = d.passage, items = d.items, price = d.price, state = d.state }
+            ctx.deals[#ctx.deals + 1] = { passage = d.passage, items = d.items, wants = d.wants, state = d.state }
         end
         if type(book.refused) == "table" then ctx.refused = book.refused.reason end
     end
@@ -949,27 +1068,27 @@ end
 
 -- ================================================================ action
 
-local PARAMS = { items = true, margin = true }
+local PARAMS = { gives = true, wants = true }
 
 local function validate(params)
-    if type(params.items) ~= "string" then return false end
-    for k, v in pairs(params) do
+    for k in pairs(params) do
         if not PARAMS[k] then return false end
-        if k == "margin" and type(v) ~= "number" then return false end
     end
-    return Trade.parseItems(params.items) ~= nil
+    return Trade.parseList(params.gives) ~= nil and Trade.parseList(params.wants) ~= nil
 end
 
 local function execute(params, ctx)
     if type(ctx) ~= "table" or type(ctx.caller) ~= "string" or type(ctx.voice) ~= "string" then
         return false, "failed"
     end
-    -- La premiere offre figee reserve le passage du marchand pour l'equipe de l'appelant ; RS_TradeRun en est averti.
+    -- Le premier accord fige reserve le passage du marchand pour l'equipe de l'appelant ; RS_TradeRun en est averti,
+    -- et l'accord s'inscrit dans le carnet de l'appelant (Trade.onAgreed, composition RS_TradeRun.install).
     local team = Trade.teamOf(ctx.caller, ctx.player)
-    local offer, why, booked = Trade.propose(ctx.voice, ctx.caller, ctx.cid, params.items, params.margin, team,
+    local offer, why, booked = Trade.propose(ctx.voice, ctx.caller, ctx.cid, params.gives, params.wants, team,
         { khz = ctx.khz })
     if offer == nil then return false, why end
     if booked and type(Trade.onBooked) == "function" then Trade.onBooked(Trade.lastRun(ctx.voice), ctx) end
+    if type(Trade.onAgreed) == "function" then Trade.onAgreed(offer, ctx) end
     return true
 end
 

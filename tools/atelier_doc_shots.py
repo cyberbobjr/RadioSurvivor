@@ -10,6 +10,7 @@ Muldraugh water tower: two places, two missions, rewards, a handwritten note and
 that temporary folder first, with a fake survey file of the game, a fake game console and a few bridge log lines.
 Then, per locale (fr-FR, en-US) at 1280x800, it opens the page and writes atelier-<lang>-NN-<subject>.png:
 01-voice (list and step 1), 02-where, 03-personality (help popover), 04-missions, 04b-places ("recorded in game"),
+04c-place-map (a place card with its link to the community map),
 05-rewards, 06-trade (a shipped trader), 07-note, 08-try (test conversation), 09-journal, 10-refused (game banner),
 11-login (login page of the network mode, E22-T15), and for the reference page 13 (E22-T16): 12-new (new voice
 form), 13-restore (a changed voice of the mod, "back to the mod's version" asked), 14-import (import of an id that
@@ -357,6 +358,13 @@ def run_locale(browser, locale: str, lang: str, out: Path, provider: StubProvide
             shoot(page, out, f'atelier-{lang}-04b-places.png',
                   clip={'x': box['x'] - 16, 'y': max(0, box['y'] - 4), 'width': box['width'] + 32,
                         'height': box['height'] + 16})
+            card = page.locator('article.card', has=page.locator('a.maplink')).first     # 04c: a place, map link
+            expect(card.locator('a.maplink')).to_be_visible()
+            scroll_to(page, card)
+            box = card.bounding_box()
+            shoot(page, out, f'atelier-{lang}-04c-place-map.png',
+                  clip={'x': box['x'] - 8, 'y': max(0, box['y'] - 8), 'width': box['width'] + 16,
+                        'height': box['height'] + 16})
 
             pill(page, 4)                                                        # rewards
             expect(page.locator('.card.reward').first).to_be_visible()
@@ -454,7 +462,7 @@ def shoot_reference(page, out: Path, lang: str, provider: StubProvider, working:
     pill(page, 4)
     trade = page.locator('details.fold', has_text=t['advanced.trade.enable'])
     trade.locator(':scope > summary').click()
-    trade.get_by_role('button', name=t['browser.open']).first.click()
+    trade.get_by_role('button', name=t['browser.add_items']).first.click()
     browser = page.locator('dialog.item-browser')
     browser.locator('.browser-search').fill('whisky')
     expect(browser.locator('[role=option]').first).to_be_visible()

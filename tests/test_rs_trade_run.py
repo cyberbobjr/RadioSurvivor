@@ -11,9 +11,11 @@ traducteur fidèle (table anglaise du mod, nil pour une clé inconnue), ClimateM
 mod requis), état privé RS_State en mémoire, journal admin. Couvre : nuit du rendez-vous (01:00 à 03:00,
 au moins 6 h après, dans la semaine), une seule réservation par passage et par équipe (refus booked / run_over,
 autre membre de la même équipe, passage suivant), contexte par équipe relu par le pont (lieu seulement pour l'équipe
-qui a réservé), cordon tiré et monté par l'hélicoptère, annulations (patrouille, hélicoptère, orage, retard) annoncées
-une fois sur la fréquence de la voix, retard ancien non annoncé, voix hors antenne, signal (lampe en main, fusée rouge
-de Signal Smoke) d'un membre au ponton pendant la fenêtre, traductions EN/FR, fiche de Gus.
+qui a réservé), cordon tiré par passage, annulations rares (E23-T08 : patrouille 1 sur 75, hélicoptère 1 sur 100 par
+tirage reproductible, orage de la météo) annoncées sur la fréquence de la voix et répétées chaque heure jusqu'au
+rendez-vous, retard annoncé une fois, retard ancien non annoncé, voix hors antenne, accord figé à l'arrivée (E23-T06),
+signal (lampe en main, fusée rouge de Signal Smoke) d'un membre au ponton pendant la fenêtre, traductions EN/FR, fiche
+de Gus.
 Ne prouve ni l'API Java réelle ni le comportement du LLM : suite en jeu rs.trade_run.
 """
 from __future__ import annotations
@@ -41,7 +43,7 @@ sys.path.insert(0, str(ROOT / 'bridge'))
 import npc_protocol as npc  # noqa: E402
 import persona_store  # noqa: E402
 import radio_bridge as rb  # noqa: E402
-from itemweights_double import ITEM_WEIGHTS  # noqa: E402
+from itemweights_double import ITEM_WEIGHTS, trade_rules_lua  # noqa: E402
 
 EN = json.loads((TRANSLATE / 'EN/IG_UI.json').read_text(encoding='utf-8'))
 FR = json.loads((TRANSLATE / 'FR/IG_UI.json').read_text(encoding='utf-8'))
@@ -126,7 +128,7 @@ SOUND_PORT = function(name, point) SOUNDS[#SOUNDS + 1] = { name = name, x = poin
 # E20-T07 : fonctions de RS_Trade qui prennent l'identifiant de la voix en premier (le marchand) ; TraderProxy le
 # passe pour un marchand donné, comme les bancs d'avant l'état par marchand appelaient le module.
 BOUND = {'propose', 'evaluate', 'offerOf', 'deals', 'close', 'available', 'marginRange', 'lastRun', 'runOf',
-         'runStatus', 'cancelRun', 'arrive', 'finishRun', 'patrolRoll', 'stock', 'cordon', 'setCordon', 'passage',
+         'runStatus', 'cancelRun', 'arrive', 'finishRun', 'runRoll', 'stock', 'cordon', 'setCordon', 'passage',
          'passageEnd', 'rendezvous', 'runContext'}
 
 
@@ -176,8 +178,7 @@ class RunHarness(unittest.TestCase):
         self.rt.eval('require("RadioSurvivor/TradeArrivals/RS_TradeArrival_Boat")')
         self.Persona = self.rt.eval('require("RadioSurvivor/RS_Persona")')
         self.rt.execute(ITEM_WEIGHTS)  # E22-T12 : poids des objets du troc, à la place des scripts du jeu
-        self.rules = self.rt.eval('{ arrivals = require("RadioSurvivor/RS_TradeArrivals").NAMES,'
-                                  ' itemWeight = require("RadioSurvivor/RS_ItemWeights").of }')
+        self.rules = self.rt.eval(trade_rules_lua())
         self.gus = self.add_voice(GUS.read_text(encoding='utf-8'), 'gus')
         self.Trade = self.rt.eval('require("RadioSurvivor/RS_Trade")')
         self.T = TraderProxy(self.Trade, 'gus')
@@ -192,9 +193,10 @@ class RunHarness(unittest.TestCase):
         full = {n: 0 for n in names}
         full.update({'Battery': 10, 'Antibiotics': 4})
         self.T.drawStock = lambda spec, seed, passage: self.rt.table_from(full)
-        self.patrol_roll = self.T.patrolRoll
-        self.T.patrolRoll = lambda passage: 99          # aucune patrouille, sauf test dédié
+        self.run_roll = self.T.runRoll
+        self.T.runRoll = lambda passage, salt, n: n - 1  # aucune annulation tirée, sauf test dédié
         self.make = self.g.makePlayer
+        self.pay = 'MoneyBundle:12'                     # E23-T06 : paiement accepté par Gus, de quoi tout payer
 
     def add_voice(self, text: str, vid: str):
         """Fiche lue par le vrai RS_Persona (modes d'arrivée inscrits), rangée dans les voix chargées."""
@@ -211,12 +213,13 @@ class RunHarness(unittest.TestCase):
             return self.rt.table_from([self.t(v) for v in value])
         return value
 
-    def decide(self, player, items='Battery:2', caller=None, voice='gus'):
+    def decide(self, player, gives='Battery:2', caller=None, voice='gus', wants=None):
+        """Accord proposé par la voix (E23-T06 : deux listes) ; wants par défaut : self.pay, accepté par la fiche."""
         caller = caller or player.name
         ctx = self.t({'cid': None, 'day': '1993-07-10', 'khz': 160000})
         ctx.player = player
-        out = self.Actions.decide(self.g.VOICES[voice], caller, self.t([{'type': 'propose_trade', 'items': items}]),
-                                  1000, ctx)
+        action = {'type': 'propose_trade', 'gives': gives, 'wants': wants or self.pay}
+        out = self.Actions.decide(self.g.VOICES[voice], caller, self.t([action]), 1000, ctx)
         return lua_list(out)[0].reason
 
     def current_run(self):
@@ -306,9 +309,22 @@ class BookingTests(RunHarness):
         self.assertEqual(self.decide(kate), 'run_over')
         self.assertEqual(self.T.runStatus('fac-1')[0], 'over')
         # Appel direct sans équipe (bancs E13-T02) : aucune réservation.
-        offer, why, booked = self.T.propose('carl', None, 'Battery:1', None)
+        offer, why, booked = self.T.propose('carl', None, 'Battery:1', self.pay)
         self.assertIsNotNone(offer)
         self.assertFalse(booked)
+
+    def test_deal_frozen_once_the_trader_arrived(self):
+        # E23-T06, ADR D04 : une fois le marchand au lieu, plus de nouvel accord pour ce passage.
+        kate, run = self.booked(4.0)
+        self.assertEqual(self.decide(kate, 'Battery:3'), 'ok')       # encore attendu : l'accord change
+        self.g.CLOCK.hours = 18.5
+        self.assertTrue(self.T.arrive('lamp'))
+        self.assertEqual(self.decide(kate, 'Battery:1'), 'frozen')
+        ann = self.make('ann', 'fac-1', 0, 0)
+        self.assertEqual(self.decide(ann, 'Battery:1'), 'frozen')
+        self.assertEqual(self.T.offerOf('kate', None).lines[1].q, 3)
+        self.assertIn('propose_trade:frozen', lua_list(self.g.ACTION_LOG))
+        self.assertIn('frozen', rb.TRADE_REFUSALS)
 
     def test_offer_closed_by_the_exchange_ends_the_run(self):
         kate, run = self.booked(4.0)
@@ -342,7 +358,9 @@ class ContextTests(RunHarness):
         self.assertEqual(ctx['run']['state'], 'booked')
         prompt = rb.trade_prompt(ctx, '[Caller 1]')
         for text in ('booked by the group of [Caller 1]', 'west end of Riverside', 'red flare or a lit lamp',
-                     'nobody there by 03:00', 'marked the landing on their map'):
+                     'nobody there by 03:00', 'marked the landing on their map',
+                     'in a bag left on the ground at the landing, never in a vehicle',
+                     'whatever was there before does not count'):
             self.assertIn(text, prompt)
         self.assertNotRegex(prompt, r'6041|5217|\d{3}\.\d|kHz|MHz')
         other = self.context('bob')
@@ -386,55 +404,50 @@ class RuleTests(RunHarness):
         self.g.CLOCK.hours = hours
         return self.Run.updateTrader('gus', hours)
 
-    def test_storm_cancels_and_is_announced_once(self):
+    def test_storm_cancels_and_is_announced_every_hour_until_the_meeting(self):
+        # E23-T08, ADR D05 : annonce trois heures avant la fenêtre, puis rappel chaque heure jusqu'au rendez-vous.
         kate, run = self.booked(4.0)
         self.g.STORM = True
-        self.assertIsNone(self.update(16.9))                        # avant 00:00 : rien
-        self.assertEqual(self.update(17.0), 'storm')
+        self.assertIsNone(self.update(14.9))                        # avant 22:00 : rien
+        self.assertEqual(self.update(15.0), 'storm')
         self.assertEqual(self.current_run().state, 'cancelled')
         self.assertEqual(self.current_run().reason, 'storm')
         self.assertEqual(self.T.offerOf('kate', None).state, 'cancelled')
         self.assertEqual(self.aired(), [['<fzzt>', EN['IGUI_RS_TradeRun_Cancel_storm'], '<szzt>']])
         self.assertEqual(lua_list(self.g.AIRED)[0].khz, 160000)
-        self.assertIsNone(self.update(17.5))
-        self.assertEqual(len(self.aired()), 1)
+        for hours, count in ((15.5, 1), (16.0, 2), (16.5, 2), (17.0, 3), (17.9, 3), (18.0, 3), (19.0, 3)):
+            self.g.CLOCK.hours = hours
+            self.Run.update(hours)
+            self.assertEqual(len(self.aired()), count, hours)
+        self.assertTrue(all(a[1] == EN['IGUI_RS_TradeRun_Cancel_storm'] for a in self.aired()))
+        self.assertEqual(self.T.marginRange('kate', None)[0], 0.25)   # rien ne coûte au joueur
 
-    def test_patrol_drawn_by_cordon(self):
+    def test_patrol_and_helicopter_are_rare_reproducible_rolls(self):
+        # E23-T08 : patrouille 1 chance sur 75, hélicoptère 1 sur 100, tirés par passage et reproductibles.
+        Causes = self.rt.eval('require("RadioSurvivor/RS_TradeCauses")')
+        self.assertEqual((Causes.PATROL_ONE_IN, Causes.HELICOPTER_ONE_IN), (75, 100))
+        roll = self.run_roll
+        patrols = [roll(p, Causes.PATROL_SALT, 75) for p in range(1, 15001)]
+        helis = [roll(p, Causes.HELICOPTER_SALT, 100) for p in range(1, 15001)]
+        self.assertEqual(patrols[:200], [roll(p, Causes.PATROL_SALT, 75) for p in range(1, 201)])
+        self.assertTrue(all(0 <= x < 75 for x in patrols) and all(0 <= x < 100 for x in helis))
+        self.assertTrue(140 < patrols.count(0) < 270, patrols.count(0))      # 15000 / 75 = 200
+        self.assertTrue(95 < helis.count(0) < 210, helis.count(0))           # 15000 / 100 = 150
+        self.assertNotEqual(patrols[:300], [h % 75 for h in helis[:300]])
+
+    def test_patrol_roll_cancels_and_is_announced(self):
         kate, run = self.booked(4.0)
-        self.T.patrolRoll = lambda passage: 4                       # < 5 % du cordon calme
-        self.assertEqual(self.update(17.0), 'patrol')
+        Causes = self.rt.eval('require("RadioSurvivor/RS_TradeCauses")')
+        self.T.runRoll = lambda passage, salt, n: 0 if salt == Causes.PATROL_SALT else n - 1
+        self.assertEqual(self.update(15.0), 'patrol')
         self.assertEqual(self.aired()[0][1], EN['IGUI_RS_TradeRun_Cancel_patrol'])
 
-    def test_patrol_chance_follows_the_cordon(self):
+    def test_helicopter_roll_cancels_and_is_announced(self):
         kate, run = self.booked(4.0)
-        self.T.patrolRoll = lambda passage: 29
-        self.assertIsNone(self.update(17.0))                         # calme : 29 >= 5
-        self.T.setCordon(1, 1.5)
-        self.assertEqual(self.update(17.5), 'patrol')                # cordon serré : 29 < 30
-
-    def test_patrol_roll_is_reproducible(self):
-        roll = self.patrol_roll
-        rolls = [roll(p) for p in range(1, 400)]
-        self.assertEqual(rolls, [roll(p) for p in range(1, 400)])
-        self.assertTrue(all(0 <= x < 100 for x in rolls))
-        self.assertGreater(len(set(rolls)), 60)
-
-    def test_helicopter_raises_the_cordon_and_cancels_near_the_night(self):
-        self.g.CLOCK.hours = 2.0
-        self.Run.onWorldSound(100, 100, 0, 600, 600, None)          # autre son : rien
-        self.Run.onWorldSound(100, 100, 1, 500, 500, None)
-        self.assertEqual(self.T.cordon(1), 1.0)
-        self.Run.onWorldSound(100, 100, 0, 500, 500, None)
-        self.Run.onWorldSound(120, 100, 0, 500, 500, None)
-        self.assertEqual(self.T.cordon(1), 1.25)                    # un cran, une fois par passage
-        self.assertEqual(len(self.logs('helicopter heard in passage 1')), 1)
-        kate, run = self.booked(4.0)
-        self.assertIsNone(self.update(17.0))                         # entendu à 2 h, bien avant 22 h
-        self.g.CLOCK.hours = 15.5                                    # 22:30
-        self.Run.onWorldSound(100, 100, 0, 500, 500, None)
-        self.assertEqual(self.update(17.0), 'helicopter')
+        Causes = self.rt.eval('require("RadioSurvivor/RS_TradeCauses")')
+        self.T.runRoll = lambda passage, salt, n: 0 if salt == Causes.HELICOPTER_SALT else n - 1
+        self.assertEqual(self.update(15.0), 'helicopter')
         self.assertEqual(self.aired()[0][1], EN['IGUI_RS_TradeRun_Cancel_helicopter'])
-        self.assertEqual(self.T.cordon(1), 1.25)
 
     def test_late_announced_unless_long_past(self):
         kate, run = self.booked(4.0)
@@ -453,7 +466,7 @@ class RuleTests(RunHarness):
         kate, run = self.booked(4.0)
         self.g.ON_AIR = False
         self.g.STORM = True
-        self.assertEqual(self.update(17.0), 'storm')
+        self.assertEqual(self.update(15.0), 'storm')
         self.assertEqual(self.aired(), [])
         self.assertTrue(self.logs("not aired: voice 'gus' is off the air"))
 
@@ -500,8 +513,8 @@ class RuleTests(RunHarness):
     def test_hooks_installed(self):
         same = self.rt.eval('function(a, b) return a == b end')
         self.assertTrue(same(self.T.onBooked, self.Run.onBooked))
-        for name in ('EveryTenMinutes', 'OnWorldSound'):
-            self.assertIsNotNone(self.g.HANDLERS[name], name)
+        self.assertIsNotNone(self.g.HANDLERS['EveryTenMinutes'])
+        self.assertTrue(same(self.T.onAgreed, self.Run.onAgreed))
 
 
 class StaticTests(unittest.TestCase):
@@ -549,6 +562,9 @@ class StaticTests(unittest.TestCase):
         self.assertIn('propose_trade', sheet.actions)
         self.assertEqual(rb.offered_actions(sheet), ['propose_trade', 'share_frequency', 'remember'])  # E07-T10, E22-T13
         self.assertIn('trade book', sheet.prompt)
+        # E23-T06 : le lecteur du pont garde ce que la voix accepte en paiement (valeurs brutes, le serveur les résout).
+        self.assertEqual(sheet.trade_accepts, ['cash', 'jewelry', 'pictures', 'papers_of_the_dead', 'military_gear'])
+        self.assertNotIn('prices', sheet.prompt.split('Business rule')[1].split('.')[0])
         self.assertNotIn('Never give a meeting place', sheet.prompt)
 
 

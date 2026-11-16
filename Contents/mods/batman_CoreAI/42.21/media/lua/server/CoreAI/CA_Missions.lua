@@ -14,6 +14,9 @@ Givers (E18-T05, user decision of 2026-11-05: registration and hooks). A mod reg
                             lot(m) -> name of a Caches table | nil   optional: lot the giver creates when the mission
                                       announces none (E18-T33), projected as rewardTable
                             observeDrops(m, player, name, state, store) -> changed           optional, dead drops
+                            paused(m) -> reason | nil       optional (E23-T03): the delay of this active mission is
+                                      stopped for that reason ([a-z_], projected as p.paused), e.g. its requester
+                                      cannot hear the report it waits for
                             projectDrops(m, p), dropsWhere(m) -> text, dropsRule(m) -> text }  optional, dead drops
                                       dead drops of the giver for a template that declares dropAccepts (E20-T06):
                                       poll (M.observe), notebook fields (M.projection), place labels and rule told to
@@ -102,7 +105,9 @@ notebook shows "to report"); it succeeds only when a participant reports to the 
 here, or the notebook button "Report" near the requester, without the bridge), or for a radio voice requester on its
 frequency (action report_mission of the voice's reply). M.spoken is that single entry point: it
 refuses a mission whose objective is not met (no claim ever validates anything). The delay keeps running meanwhile
-(same rule as scout since E11-T03); a requester who dies first closes it as 'cancelled_dead' (no reputation change).
+(same rule as scout since E11-T03), unless the giver pauses it (paused hook, E23-T03: a voice without its bridge); a
+requester who dies first closes it as 'cancelled_dead' (no reputation change); E23-T02: a participant who dies leaves
+it at once (M.participantDied), the last one gone closes it as 'cancelled_lost' (no reputation change).
 Requester ("donor"): an NPC fiche of the notebook (state.npcs[m.npc]) or, since E11-T08, a radio voice
 (the voices: state.voiceDonors[m.npc], id 'voice:<voice>:<character>', m.donor = 'voice'). Both carry the
 fields the engine reads and writes: id, mission, missionCount, nextOfferHour (nextOfferAt before E11-T20).
@@ -412,7 +417,16 @@ local function supplyClosed(m)
     return provider.supplyOpen(m.supply.ref, m.supply.offer) == false
 end
 
--- elapsedMs: play ms since the previous call (CA_GameClock.meter, E11-T20); negative values are ignored.
+-- E23-T03 (ADR D08): reason why the delay of this active mission is stopped (giver's optional paused), or nil.
+function M.paused(m)
+    if m.state ~= 'active' then return nil end
+    local d = donors[kindOf(m)]
+    local reason = d and d.paused and d.paused(m) or nil
+    return type(reason) == 'string' and reason or nil
+end
+
+-- elapsedMs: play ms since the previous call (CA_GameClock.meter, E11-T20); negative values are ignored; the delay of
+-- a paused mission (M.paused) does not run.
 function M.advance(state, elapsedMs)
     local changed = false
     elapsedMs = math.max(0, elapsedMs)
@@ -427,7 +441,7 @@ function M.advance(state, elapsedMs)
                 changed = true
             end
         elseif m.state == 'active' then
-            m.remainingMs = math.max(0, m.remainingMs - elapsedMs)
+            if not M.paused(m) then m.remainingMs = math.max(0, m.remainingMs - elapsedMs) end
             if m.remainingMs <= 0 then changed = M.finish(state, m, 'failed') or changed end
         elseif m.state == 'offer' then
             -- Missions saved before offer expiry existed get a full delay.
@@ -461,8 +475,14 @@ local function keepUnclaimed(m, now)
     return due > h
 end
 
+-- E23-T01 (ADR D06): a successful mission whose cache (reward bag of a voice, CA_Caches) is not placed yet keeps its
+-- record, which is the outbox of the placement: never dropped before the bag is on the floor.
+local function cachePending(m)
+    return m.state == 'success' and type(m.cache) == 'table' and not m.cache.placed
+end
+
 -- Closed missions are kept for the notebook, then dropped (MISSION_RETENTION_MS, real time); an unclaimed lot stays
--- 7 game days (keepUnclaimed).
+-- 7 game days (keepUnclaimed); a reward bag still to place keeps its mission (cachePending).
 function M.prune(state, now)
     local removed = false
     for id, m in pairs(state.missions) do
@@ -471,7 +491,7 @@ function M.prune(state, now)
         -- A mission without a reward lot (radio voice, E11-T08) has nothing left to claim.
         local unclaimed = m.state == 'success' and m.claimedBy == '' and (m.rewardCount or 0) > 0
         local drop
-        if not closed or not M.present(m) then
+        if not closed or not M.present(m) or cachePending(m) then
             drop = false
         elseif unclaimed then
             drop = not keepUnclaimed(m, now)
@@ -487,6 +507,22 @@ function M.prune(state, now)
         end
     end
     return removed
+end
+
+-- E23-T02 (ADR D07): a participant of an active mission died. His participation ends at once (what he knew dies with
+-- him); the last participant gone, the mission is lost: 'cancelled_lost', closed without reputation change nor result
+-- listener, like the other cancellations. Returns 'lost', 'continues' (another participant is alive), or nil (not a
+-- participant of an active mission, or a contribution being written: left to its recovery).
+function M.participantDied(state, m, character)
+    if m.state ~= 'active' or m.transaction or not m.participants[character] then return nil end
+    m.participants[character] = nil
+    if type(m.invited) == 'table' then m.invited[character] = nil end
+    m.revision = m.revision + 1
+    local left = 0
+    for _ in pairs(m.participants) do left = left + 1 end
+    if left > 0 then return 'continues' end
+    M.finish(state, m, 'cancelled_lost')
+    return 'lost'
 end
 
 function M.accept(state, m, character, name)
@@ -616,6 +652,7 @@ function M.projection(m, character)
     if projectDrops then projectDrops(m, p) end
     -- E11-T13: objective met, the report to the requester is still expected (templates with a report only).
     if t and (t.reportBySpeech or m.donor == 'voice') then p.toReport = M.reportReady(m) end
+    p.paused = M.paused(m) -- E23-T03: delay stopped, and why
     for _, member in pairs(m.participants) do p.participants[#p.participants + 1] = member.name end
     table.sort(p.participants)
     return p

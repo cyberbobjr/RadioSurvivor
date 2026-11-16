@@ -111,9 +111,9 @@ CASES: list[tuple[str, str, tuple[int, str] | None]] = [
 ]
 
 # E20-T07 : section [trade] (troc de la voix). TRADE_HEAD : lignes 1 à 9 ; trade(body) : en-tête ligne 10, première clé
-# ligne 11 ; TRADE_OK : lignes 11 à 15.
+# ligne 11 ; TRADE_OK : lignes 11 à 16 (E23-T06 : accept= en ligne 16).
 TRADE_HEAD = HEAD + 'actions=say,propose_trade\n[place dock]\nat=1,2,0\nlabel=Old dock\nuse=landing\n'
-TRADE_OK = 'landing=dock\narrival=boat\nevery_days=7\nhours=01:00-03:00\nitem=Base.Battery:1-2\n'
+TRADE_OK = 'landing=dock\narrival=boat\nevery_days=7\nhours=01:00-03:00\nitem=Base.Battery:1-2\naccept=Base.MoneyBundle\n'
 
 
 def trade(body: str) -> str:
@@ -151,12 +151,26 @@ CASES += [
      (15, "bad trade item 'Base.Battery:1-2:0.1' (Module.Type:quantity, e.g. Base.Battery:4-12)")),
     ('unknown trade item type', trade(TRADE_OK.replace('item=Base.Battery:1-2', 'item=Base.FluxCapacitor:1-2')),
      (15, "unknown trade item 'Base.FluxCapacitor' (no item script of that type)")),
-    ('duplicate trade item', trade(TRADE_OK + 'item=Base.Battery:1\n'), (16, "duplicate trade item 'Battery'")),
-    ('unknown trade group', trade(TRADE_OK + 'item=Base.CornBagSeed:seeds\n'), (16, "unknown trade group 'seeds'")),
-    ('trade group without item', trade(TRADE_OK + 'group=seeds:1-2\n'), (16, "trade group 'seeds' has no item")),
+    ('duplicate trade item', trade(TRADE_OK + 'item=Base.Battery:1\n'), (17, "duplicate trade item 'Battery'")),
+    ('unknown trade group', trade(TRADE_OK + 'item=Base.CornBagSeed:seeds\n'), (17, "unknown trade group 'seeds'")),
+    ('trade group without item', trade(TRADE_OK + 'group=seeds:1-2\n'), (17, "trade group 'seeds' has no item")),
     ('bad trade margin', trade(TRADE_OK + 'margin=0.6-0.2\n'),
-     (16, "bad margin '0.6-0.2' (lowest-highest from 0 to 1, e.g. 0.10-0.50)")),
-    ('unknown key in trade', trade(TRADE_OK + 'colour=red\n'), (16, "unknown key 'colour' in [trade]")),
+     (17, "bad margin '0.6-0.2' (lowest-highest from 0 to 1, e.g. 0.10-0.50)")),
+    ('unknown key in trade', trade(TRADE_OK + 'colour=red\n'), (17, "unknown key 'colour' in [trade]")),
+    # E23-T06 : ce que la voix accepte en paiement (objets à valeur de vente, catégories), obligatoire.
+    ('trade without accept', trade(TRADE_OK.replace('accept=Base.MoneyBundle\n', '')),
+     (10, "missing key 'accept' in [trade]")),
+    ('trade accepts categories', trade(TRADE_OK + 'accept=cash\naccept=papers_of_the_dead\n'), None),
+    ('bad trade accept', trade(TRADE_OK + 'accept=gold coins\n'),
+     (17, "bad trade accept 'gold coins' (Module.Type or a category, e.g. Base.MoneyBundle or ammo)")),
+    ('duplicate trade accept', trade(TRADE_OK + 'accept=Base.MoneyBundle\n'),
+     (17, "duplicate trade accept 'Base.MoneyBundle'")),
+    ('trade accept without value', trade(TRADE_OK + 'accept=Base.Hammer\n'),
+     (17, "trade accept 'Base.Hammer' has no trade value (an item a trader cannot take)")),
+    ('trade accept of an unknown category', trade(TRADE_OK + 'accept=gems\n'),
+     (17, "unknown category 'gems' in trade accept")),
+    ('trade accept of a category without value', trade(TRADE_OK + 'accept=tools\n'),
+     (17, "category 'tools' has no item with a trade value")),
 ]
 
 # E20-T11 : section [note] (note de fréquence déclarée par la fiche). En-tête ligne 13, NOTE_OK lignes 14 et 15.
@@ -302,8 +316,10 @@ class SectionTests(unittest.TestCase):
             with self.subTest(name):
                 expected = [(row[1], row[2], row[2]) for row in lua_items(tables.tables[name])]
                 self.assertEqual([(i.type, i.min, i.max) for i in lua_items(catalogue[name]['items'])], expected)
-        self.assertEqual(sorted(catalogue.keys()), sorted(lua_items(tables.order)))
-        self.assertEqual(sorted(self.lua.rules.categories.keys()), sorted(lua_items(tables.order)))
+        # E23-T06 : plus les catégories de paiement des marchands (accept=), qui ne sont pas des tables de cache.
+        payment = ['cash', 'jewelry', 'military_gear', 'papers_of_the_dead', 'pictures']
+        self.assertEqual(sorted(catalogue.keys()), sorted(list(lua_items(tables.order)) + payment))
+        self.assertEqual(sorted(self.lua.rules.categories.keys()), sorted(list(lua_items(tables.order)) + payment))
 
     def test_catalogue_refuses_anything_but_categories(self):
         parse = self.lua.module.parseCatalogue

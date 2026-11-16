@@ -6,15 +6,17 @@
 --
 -- - Reservation (Trade.onBooked, appele par l'executeur de propose_trade) : repere du lieu du rendez-vous envoye a
 --   l'appelant (RS_MapMarks.give, libelle traduit dans la langue de l'autorite) ; sans joueur en ligne, rien.
--- - Helicoptere vanilla : signature OnWorldSound (source nil, etage 0, rayon et volume 500, base staging-effects.md)
---   -> Trade.noteHelicopter (cordon de chaque marchand monte d'un cran la premiere fois dans son passage).
+-- - Accord fige (Trade.onAgreed, E23-T06) : ligne « trade » de l'historique radio du personnage de l'appelant
+--   (RS_RadioLog.add, texte Trade.agreedText : les deux listes, jamais de points), sur la frequence de la reponse.
 -- - Regles, a chaque EveryTenMinutes et pour chaque marchand dont le passage est attendu (state booked) : fenetre
 --   finie sans signal -> annulation « late » ; a partir de WARN_HOURS avant la fenetre, chaque cause du mode
---   d'arrivee dans son ordre (check(world)) -> annulation de ce nom.
+--   d'arrivee dans son ordre (check(world), RS_TradeCauses : patrouille 1 sur 75, helicoptere 1 sur 100, orage reel)
+--   -> annulation de ce nom.
 -- - Annulation : Trade.cancelRun puis annonce a la radio sur la frequence de la voix du marchand (RS_RadioServer.air,
 --   texte IGUI_RS_TradeRun_Cancel_<cause> traduit dans la langue de l'autorite, repli anglais de la cause) ; voix hors
 --   antenne : journal seulement. Un retard decouvert plus de ANNOUNCE_LATE_HOURS apres la fin de la fenetre n'est pas
---   annonce.
+--   annonce. Annulation par une cause du mode (ADR D05) : annonce repetee chaque heure de jeu jusqu'au debut de la
+--   fenetre (Trade.noteAnnounced garde l'heure de la derniere) ; aucun depot touche, aucune penalite.
 -- - Signal pendant la fenetre, si le mode l'attend (registre des detecteurs, Run.registerSignal ; E20-T11) : lamp
 --   (lampe allumee tenue en main par un membre de l'equipe a moins de RADIUS cases du lieu,
 --   InventoryItem.isEmittingLight), flare (evenement « started » rouge de Signal Smoke, mod requis, a moins de RADIUS
@@ -36,7 +38,8 @@ local Sound = require "RadioSurvivor/RS_TradeSound"
 local Run = {}
 
 Run.RADIUS = 15                  -- cases autour du lieu du rendez-vous
-Run.WARN_HOURS = 1               -- causes appliquees une heure avant la fenetre : l'annonce precede le depart
+Run.WARN_HOURS = 3               -- causes appliquees trois heures avant la fenetre : annonce, puis rappels
+Run.REPEAT_HOURS = 1             -- rappel d'une annulation par cause, chaque heure de jeu jusqu'au rendez-vous
 Run.ANNOUNCE_LATE_HOURS = 2
 Run.SIGNAL_COLOR = "red"
 Run.COLOR_TOLERANCE = 0.02
@@ -50,8 +53,10 @@ Run.FALLBACK = {
     Cancel_late = "I waited at the landing and nobody showed the signal. I am gone. Over.",
     -- E13-T04 : issue de l'echange au lieu du rendez-vous (RS_TradeExchange.lua).
     Done = "Your goods are in the bag on the landing. Pleasure doing business. Over.",
-    Cheated = "You tried to short me. Your bag stays where it is, no deal, and I will remember it. Over.",
-    Cancel_nodrop = "Nobody left me a bag at the landing. I am gone. Over.",
+    Cheated = "You did not leave all we agreed. I keep what you left, no goods, and I will remember it. Over.",
+    Cancel_nodrop = "Nobody left me the payment at the landing. I am gone. Over.",
+    -- E23-T07 : jamais tranquille au lieu (RS_TradeExchange.WAIT_HOURS) : il repart sans rien toucher.
+    Cancel_watched = "Someone stayed in sight of the landing the whole time. I could not come close. I am gone. Over.",
 }
 
 local function log(msg) Const.log("trade run: " .. msg) end
@@ -223,11 +228,30 @@ function Run.announce(run, reason)
     return Run.say(run, "Cancel_" .. reason, "cancellation", cause and cause.fallback or nil)
 end
 
--- Annule le passage attendu du marchand id et l'annonce (sauf announce == false). Rend la copie annulee, ou nil.
-function Run.cancel(id, reason, announce)
+-- Annule le passage attendu du marchand id et l'annonce (sauf announce == false) ; heure de l'annonce notee. Rend la
+-- copie annulee, ou nil.
+function Run.cancel(id, reason, announce, hours)
     local run = Trade.cancelRun(id, reason)
-    if run and announce ~= false then Run.announce(run, reason) end
+    if run and announce ~= false then
+        Run.announce(run, reason)
+        Trade.noteAnnounced(id, hours or Trade.worldHours())
+    end
     return run
+end
+
+-- Rappel de l'annulation d'un passage par une cause du mode (ADR D05) : chaque REPEAT_HOURS jusqu'au debut de la
+-- fenetre. Rend true si le rappel est dit.
+function Run.remind(id, hours)
+    hours = hours or Trade.worldHours()
+    local run = Trade.lastRun(id)
+    if run == nil or run.state ~= "cancelled" or type(run.start) ~= "number" or hours >= run.start
+            or type(run.announcedAt) ~= "number" or hours < run.announcedAt + Run.REPEAT_HOURS - 1e-9
+            or causeOf(id, run.reason) == nil then
+        return false
+    end
+    Run.announce(run, run.reason)
+    Trade.noteAnnounced(id, hours)
+    return true
 end
 
 -- Arrivee du marchand au lieu (signal how) : etat arrived et son d'approche. Rend true si le passage etait attendu.
@@ -244,9 +268,8 @@ end
 
 -- Monde vu par les causes d'un mode d'arrivee (contrat : RS_TradeArrivals).
 local function worldOf(id, run, hours)
-    local function patrolRoll() return Trade.patrolRoll(id, run.passage) end
-    return { id = id, run = run, hours = hours, cordonLevel = Trade.cordonLevel(Trade.cordon(id, run.passage)),
-        patrolRoll = patrolRoll, helicopterSince = Trade.helicopterSince, stormy = stormy }
+    local function roll(salt, n) return Trade.runRoll(id, run.passage, salt, n) end
+    return { id = id, run = run, hours = hours, roll = roll, stormy = stormy }
 end
 
 -- Regles du passage attendu du marchand id a l'heure `hours`. Rend la raison d'une annulation, "arrived", ou nil.
@@ -264,7 +287,7 @@ function Run.updateTrader(id, hours)
     local world = worldOf(id, run, hours)
     for _, cause in ipairs(mode.causes) do
         if cause.check(world) then
-            Run.cancel(id, cause.name)
+            Run.cancel(id, cause.name, true, hours)
             return cause.name
         end
     end
@@ -275,20 +298,16 @@ function Run.updateTrader(id, hours)
     return nil
 end
 
--- Regles de tous les marchands.
+-- Regles de tous les marchands, puis rappels des annulations.
 function Run.update(hours)
-    for _, id in ipairs(Trade.traderIds()) do Run.updateTrader(id, hours) end
+    for _, id in ipairs(Trade.traderIds()) do
+        Run.updateTrader(id, hours)
+        Run.remind(id, hours)
+    end
 end
 
 local function onEveryTenMinutes()
     Run.update()
-end
-
--- ================================================================ helicoptere
-
-function Run.onWorldSound(x, y, z, radius, volume, source)
-    if source ~= nil or z ~= 0 or radius ~= 500 or volume ~= 500 then return end
-    Trade.noteHelicopter(Trade.worldHours())
 end
 
 -- ================================================================ Signal Smoke (mod requis)
@@ -347,12 +366,24 @@ function Run.onBooked(run, ctx)
     MapMarks.give(player, ctx.cid, ctx.khz, { x = p.x, y = p.y, z = p.z, label = Run.textFor(run, "Pier") })
 end
 
--- Racine de composition du troc et abonnements (une fois) : voix chargees, rappel de reservation, horloge,
--- helicoptere, Signal Smoke.
+-- Trade.onAgreed : accord fige inscrit dans le carnet du personnage de l'appelant (ligne « trade » de son historique
+-- radio, sur la frequence de la reponse) ; sans personnage lie, rien. RS_RadioLog charge a l'appel (bancs sans
+-- carnet).
+function Run.onAgreed(offer, ctx)
+    if type(offer) ~= "table" or type(ctx) ~= "table" or type(ctx.cid) ~= "string" or type(ctx.khz) ~= "number" then
+        return false
+    end
+    local Log = require "RadioSurvivor/RS_RadioLog"
+    return Log.add(ctx.cid, ctx.khz, "trade", Trade.agreedText(offer)) ~= nil
+end
+
+-- Racine de composition du troc et abonnements (une fois) : voix chargees, rappels de reservation et d'accord,
+-- horloge, Signal Smoke.
 local installed = false
 function Run.install()
     Trade.useVoices(require "RadioSurvivor/RS_Personas")
     Trade.onBooked = Run.onBooked
+    Trade.onAgreed = Run.onAgreed
     local mod = Run.library()
     if mod and subscribed ~= mod then
         mod.onSignal(Run.onSignal)
@@ -361,7 +392,6 @@ function Run.install()
     if installed then return end
     installed = true
     if Events.EveryTenMinutes then Events.EveryTenMinutes.Add(onEveryTenMinutes) end
-    if Events.OnWorldSound then Events.OnWorldSound.Add(Run.onWorldSound) end
 end
 
 -- Bancs : oublie le module Signal Smoke retenu (l'abonnement a un module precedent reste).

@@ -1,8 +1,8 @@
 -- Radio Survivor: places recorded in game for the voice workshop (E22-T08, ADR atelier-voix D08). Doc:
 -- docs/specifications-techniques/persona-format.md, section "Releve de lieux en jeu (E22-T08)".
 --
--- A right click in the world (client/RadioSurvivor/RS_PlaceSurveyMenu.lua, solo or admin) asks the authority to record
--- the clicked square. The authority checks the rights again (CA_AdminAccess: solo = the local player; MP server =
+-- A right click in the world (client/RadioSurvivor/RS_PlaceSurveyMenu.lua, solo debug or admin) asks the authority to record
+-- the clicked square. The authority checks the rights again (CA_AdminAccess: solo = debug mode on; MP server =
 -- capability PopmanManage), checks the coordinates, reads ITSELF what lies on the square (never trusted from the
 -- client): the containers of its objects, the room and the bounds of its building. It appends one line to the survey
 -- file of the working folder, Zomboid/Lua/batman_RadioSurvivor/workshop-places.txt, keeping the last MAX_RECORDS
@@ -70,7 +70,7 @@ end
 
 -- Authority check (see the header): true, or false and the reason (English, log only).
 function Survey.isAllowed(player)
-    return Access.allowed(player, false)
+    return Access.allowed(player, true)
 end
 
 -- Name of the recorder's character ("Forename Surname"), else its account name, else "?".

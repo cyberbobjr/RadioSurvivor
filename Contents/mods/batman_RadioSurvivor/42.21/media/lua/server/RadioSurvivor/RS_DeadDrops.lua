@@ -223,16 +223,41 @@ local function collect(m, d, store)
     return #removed > 0
 end
 
--- A journal left by an interrupted pickup is ambiguous (removed or not): fail closed, never credit an unproven pickup.
-local function dropJournal(m, d, store)
-    if not d.pickup then return end
+-- Item of this id still at the drop: in its marked box, or on the floor around it (a bag, or inside one).
+local function stillThere(d, id)
+    local container = d.box and boxAt(d)
+    if container and container:getItemWithIDRecursiv(id) then return true end
+    return eachSquare(d, function(sq)
+        local objects = sq:getWorldObjects()
+        for i = 0, objects:size() - 1 do
+            local it = objects:get(i):getItem()
+            if it and (it:getID() == id
+                    or (instanceof(it, 'InventoryContainer') and it:getItemContainer():getItemWithIDRecursiv(id))) then
+                return true
+            end
+        end
+        return false
+    end)
+end
+
+-- E23-T04 (ADR D09): a journal left by an interrupted pickup (stop between the removal and the record) is settled at
+-- the first pass where the drop square is loaded: the items of the journal gone from the drop were taken by the
+-- server and are counted as delivered; the others stay at the drop for a later pickup.
+local function settleJournal(m, d, store)
+    if not d.pickup or not squareOf(d) or (d.box and not squareOf(d, d.box.x, d.box.y)) then return end
+    local gone = {}
+    for _, id in ipairs(d.pickup.ids or {}) do
+        if not credited(m, id) and not stillThere(d, id) then gone[#gone + 1] = id end
+    end
+    credit(m, gone)
     d.pickup = nil
-    Const.log('dead drop pickup of mission ' .. tostring(m.id) .. ' interrupted: not credited')
+    Const.log('dead drop pickup of mission ' .. tostring(m.id) .. ' interrupted: ' .. tostring(#gone)
+        .. ' item(s) gone, counted as delivered')
     store.save()
 end
 
 local function observeDrop(m, d, store)
-    dropJournal(m, d, store)
+    settleJournal(m, d, store)
     local changed = false
     if not d.ready then
         if not D.prepare(m, d, store) then return false end

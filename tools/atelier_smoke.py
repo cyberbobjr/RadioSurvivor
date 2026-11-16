@@ -16,14 +16,16 @@ the AI" writes the personality and "Use it" replaces the prompt after the in-pag
 story, "Try the voice" answers from the unsaved sheet and Reset empties it, the working file untouched (screenshot
 atelier-ai-fr.png). In English the AI is said unavailable: the buttons are greyed with the configuration tooltip.
 Chances, trade and note (E22-T12), in French: a reward set to "Often" is written with weight 4; the trade panel ticks
-its meeting point among the voice's places (reached by its button when there is none), finds an item by its French
-name and shows its weight, makes a lot used by the stock line; the note panel counts the bytes of its text and
+its meeting point among the voice's places (reached by its button when there is none), adds stock items from the item
+list (no item name typed: search, category, ticks, "Ajouter la sélection"), shows each as its name and weight with its
+Module.Type as tooltip only, replaces a line from the same list and removes one, ticks a category and adds an item to
+what the voice accepts (E23-T06), makes a lot used by the stock line; the note panel counts the bytes of its text and
 switches on the corpses; the voice is saved and accepted by the game reader (screenshots atelier-rewards-fr.png,
 atelier-items-fr.png, atelier-trade-fr.png, atelier-note-fr.png).
 Stock grid and item browser (user 2026-11-15), in French, on a shipped voice (Boone): a stock line taken from a lot
-and a line with a number have their cells at the same x and width at 1280 and 800 px; "Parcourir les objets" opens the
-item browser, filtered by a category and searched "whisky", a click and Enter each add a stock line while it stays open
-with its count, Escape closes it (screenshots atelier-stock-aligned-fr.png, atelier-item-browser-fr.png).
+and a line with a number have their cells at the same x and width at 1280 and 800 px; "Ajouter des objets" opens the
+item list, filtered by a category: an item already in the stock is shown as such, a click and Enter tick two items that
+stay ticked across searches, Escape adds nothing, "Ajouter la sélection" adds them (screenshots atelier-stock-aligned-fr.png, atelier-item-browser-fr.png).
 Sellable stock, older copies and confirmations (E22-T17): the trader's stock offers only the items a trader can sell
 (an axe is not found, the browser says so); a copy of Walt the game wrote from an older version of the mod shows
 "Ancienne version" / "Older version" with its tooltip; the removal asked names the voice, not its id.
@@ -97,8 +99,15 @@ def create_voice(page, t: dict, voice_id: str, name: str) -> None:
         page.locator('.notice').get_by_role('button', name=t['places.add_ok']).click()
         card = page.locator('details.fold').first.locator('.card').last
         expect(card.get_by_label(t['places.label'], exact=True)).to_have_value(label)
+        map_link = card.locator('a.maplink')                               # Build 42 map: whole map, then the square
+        expect(map_link).to_have_attribute('href', 'https://zomboidmap.com/')
+        expect(map_link).to_have_text(t['map.home'])
+        expect(card).to_contain_text(t['places.at_help'])
         for axis, value in zip(('x', 'y', 'z'), at):
             card.get_by_label(axis, exact=True).fill(value)
+        expect(map_link).to_have_attribute('href', f'https://zomboidmap.com/#11/{at[0]}/{at[1]}/f{at[2]}')
+        expect(map_link).to_have_text(t['map.open'])
+        expect(map_link).to_have_attribute('target', '_blank')
         for use in uses:
             card.locator('.check', has_text=t[use]).locator('input').check()
     page.locator('.type-card', has_text=t['mission.deliver']).click()
@@ -227,8 +236,8 @@ def check_help(page, t: dict, lang: str, shots: Path, failures: list[str]) -> No
 
 def check_stock(page, t: dict, lang: str, path: Path, voice_id: str, shots: Path, failures: list[str]) -> None:
     """E22-T12 and the simpler [trade] and [note] panels: a reward set to "Often"; a meeting point ticked among the
-    voice's places (after the way to the Places panel), arrival, visits and hours picked, an item found by its French
-    name with its weight shown, a lot made and used by the stock line, the margin in percent; the note's text with its
+    voice's places (after the way to the Places panel), arrival, visits and hours picked, stock items ticked in the
+    item list and added, one replaced and one removed, what the voice accepts (a category, an item), a lot made and used by the stock line, the margin in percent; the note's text with its
     live count, the corpses switch and a loot list; saved and accepted by the game reader (screenshots
     atelier-rewards-fr.png, atelier-items-fr.png, atelier-trade-fr.png, atelier-note-fr.png)."""
     page.set_viewport_size({'width': 1280, 'height': 900})
@@ -273,29 +282,87 @@ def check_stock(page, t: dict, lang: str, path: Path, voice_id: str, shots: Path
     expect(preview).to_contain_text('every_days=7')
     expect(preview).to_contain_text('hours=02:00-04:00')
 
-    # stock: an item found by its name in French, its weight shown; only the items a trader can sell (E22-T17)
-    trade.get_by_role('button', name=t['stock.add']).click()
-    search = trade.get_by_label(t['stock.item'].replace('{n}', '1'), exact=True)
+    # stock (user 2026-11-16: no item name typed anywhere): "Ajouter des objets" opens the list of the items a trader
+    # can sell (E22-T17), searched by name and filtered by category, two items ticked then added; each line shows the
+    # item's name and weight, its Module.Type only as tooltip; a line replaced from the same list, a line removed
+    stock_row = row_of(trade, page, t['key.trade.item'])
+    stock_row.get_by_role('button', name=t['browser.add_items'], exact=True).click()
+    dialog = page.locator('dialog.item-browser.multi')
+    expect(dialog).to_be_visible()
+    expect(dialog.locator('.browser-note')).to_have_text(t['browser.sellable_only'])
+    search = dialog.get_by_label(t['browser.search'], exact=True)
+    options = dialog.locator('[role=option]')
     search.fill('hache')
-    options = trade.locator('.item-list [role=option]')
-    expect(trade.locator('.item-list li.muted')).to_have_text(t['item.none'])
+    expect(dialog.locator('.browser-list li.muted')).to_have_text(t['browser.none'])
     expect(options).to_have_count(0)
     search.fill('bandage')
     expect(options.first).to_have_attribute('data-type', 'Base.Bandage')
-    page.screenshot(path=str(shots / f'atelier-items-{lang}.png'))
+    expect(options.first).to_have_attribute('title', 'Base.Bandage')
+    if dialog.locator('.browser-list').inner_text().count('Base.'):
+        failures.append(f'{lang}: the item list shows Module.Type on screen')
     found = [options.nth(i).get_attribute('data-type') for i in range(options.count())]
-    if any(not atelier_catalog()['sellable_set'].__contains__(f) for f in found):
-        failures.append(f'{lang}: the stock search offers items a trader cannot sell: {found}')
-    print(f'{lang}: "hache" -> nothing (an axe has no price); "bandage" -> {", ".join(found[:4])}, all sellable')
+    if any(f not in atelier_catalog()['sellable_set'] for f in found):
+        failures.append(f'{lang}: the stock list offers items a trader cannot sell: {found}')
     options.first.click()
+    expect(options.first.locator('input[type=checkbox]')).to_be_checked()
+    expect(dialog.locator('.browser-selected')).to_have_text(t['browser.selected'].replace('{n}', '1'))
+    page.screenshot(path=str(shots / f'atelier-items-{lang}.png'))
+    dialog.get_by_label(t['browser.category'], exact=True).select_option('Food')
+    search.fill('whisky')
+    expect(options.first).to_have_attribute('data-type', 'Base.Whiskey')
+    options.first.click()
+    add = dialog.locator('.browser-add')
+    expect(add).to_have_text(t['browser.add_selected'].replace('{n}', '2'))
+    add.click()
+    expect(dialog).to_have_count(0)
     expect(preview).to_contain_text('item=Base.Bandage:1')
-    stock = trade.locator('.stock-line').first
-    expect(search).to_have_value('Bandage')
-    expect(stock.locator('.item-kg')).to_have_text('0,1 kg')
-    stock.get_by_label(t['field.min'], exact=True).fill('2')
-    stock.get_by_label(t['field.max'], exact=True).fill('6')
+    expect(preview).to_contain_text('item=Base.Whiskey:1')
+    lines = trade.locator('.stock-line')
+    expect(lines).to_have_count(2)
+    first = lines.first.locator('.item-choice')
+    expect(first.locator('.item-name')).to_have_text('Bandage')
+    expect(first.locator('.item-kg')).to_have_text('0,1 kg')
+    expect(first).to_have_attribute('title', 'Base.Bandage')
+    if trade.locator('.stock-line input[type=text], .stock-line input:not([type])').count():
+        failures.append(f'{lang}: a stock line still has a text field')
+    print(f'{lang}: "hache" -> nothing (an axe has no price); "bandage" + "Nourriture"/"whisky" ticked and added '
+          f'({", ".join(found[:3])}... all sellable): 2 lines, "Bandage 0,1 kg", type in the tooltip only')
+    lines.nth(1).locator('.item-choice').click()                           # replace: the same list, single choice
+    single = page.locator('dialog.item-browser:not(.multi)')
+    expect(single).to_be_visible()
+    single.get_by_label(t['browser.search'], exact=True).fill('vodka')
+    single.get_by_label(t['browser.search'], exact=True).press('Enter')
+    expect(single).to_have_count(0)
+    expect(preview).to_contain_text('item=Base.Vodka:1')
+    expect(preview).not_to_contain_text('Base.Whiskey')
+    second = trade.locator('.lines .line', has=page.locator('.stock-line')).nth(1)
+    second.get_by_role('button', name=t['field.remove'], exact=True).click()                 # remove
+    expect(lines).to_have_count(1)
+    expect(preview).not_to_contain_text('Base.Vodka')
+    print(f'{lang}: line 2 replaced from the list (whisky -> vodka, Enter), then removed')
+    lines.first.get_by_label(t['field.min'], exact=True).fill('2')
+    lines.first.get_by_label(t['field.max'], exact=True).fill('6')
     expect(preview).to_contain_text('item=Base.Bandage:2-6')
-    print(f'{lang}: stock line item=Base.Bandage:2-6, weight shown "0,1 kg"')
+    print(f'{lang}: stock line item=Base.Bandage:2-6')
+    # what the voice accepts (E23-T06): a whole category ticked (only those with an item a trader can take), an item
+    # added from the list of sellable items
+    accept = row_of(trade, page, t['key.trade.accept'])
+    cats = accept.locator('.accept-categories .check')
+    expect(accept.locator('.check[data-value=cash]')).to_contain_text(t['category.cash'])
+    if accept.locator('.check[data-value=ammo], .check[data-value=tools]').count():
+        failures.append(f'{lang}: the accepted categories offer a category without any item a trader can take')
+    accept.locator('.check[data-value=cash] input').check()
+    expect(preview).to_contain_text('accept=cash')
+    accept.get_by_role('button', name=t['browser.add_items'], exact=True).click()
+    dialog = page.locator('dialog.item-browser.multi')
+    dialog.get_by_label(t['browser.search'], exact=True).fill('antibio')
+    expect(options.first).to_have_attribute('data-type', 'Base.Antibiotics')
+    options.first.click()
+    dialog.locator('.browser-add').click()
+    expect(preview).to_contain_text('accept=Base.Antibiotics')
+    expect(accept.locator('.accept-line .item-choice').first).to_have_attribute('title', 'Base.Antibiotics')
+    print(f'{lang}: accepts: {cats.count()} categories offered, "{t["category.cash"]}" ticked, Antibiotics added '
+          '(accept=cash, accept=Base.Antibiotics)')
     # a lot, then the stock line taken from it
     trade.get_by_role('button', name=t['lot.add']).click()
     lot_name = trade.get_by_label(t['lot.name'].replace('{n}', '1'), exact=True)
@@ -355,7 +422,7 @@ def check_stock(page, t: dict, lang: str, path: Path, voice_id: str, shots: Path
     expect(note.get_by_text(t['note.own_item'], exact=True)).to_be_visible()
     advanced = note.locator('details.fold', has_text=t['section.advanced'])
     advanced.locator(':scope > summary').click()
-    expect(advanced.get_by_label(t['key.note.item'], exact=True)).not_to_have_value('')
+    expect(advanced.locator('.item-choice')).to_have_attribute('title', re.compile(r'^RadioSurvivor\.Note'))
     trade = page.locator('details.fold', has_text=t['advanced.trade.enable'])
     trade.locator('summary').click()
     expect(trade.get_by_label(t['lot.name'].replace('{n}', '1'), exact=True)).to_have_value('alcohol')
@@ -363,6 +430,11 @@ def check_stock(page, t: dict, lang: str, path: Path, voice_id: str, shots: Path
     expect(page.locator('.dirty')).to_have_text(t['editor.saved'])
     print(f'{lang}: shipped voice: note item and key in "{t["section.advanced"]}", lot "alcohol" and weights shown, '
           'nothing changed by opening it')
+
+
+def row_of(scope, page, label: str):
+    """The form row of a key, by the text of its label."""
+    return scope.locator('.row', has=page.locator(':scope > .lab label', has_text=label)).first
 
 
 def boxes(cells) -> list[tuple[int, int]]:
@@ -429,7 +501,7 @@ def check_stock_grid(page, trade, t: dict, lang: str, width: int, failures: list
     lot_line = lines.filter(has=page.locator('.cell-empty')).first
     number_line = lines.filter(has=page.locator('.range')).first
     cells = {name: (boxes(lot_line.locator(f':scope > {sel}')), boxes(number_line.locator(f':scope > {sel}')))
-             for name, sel in (('item', '.item-picker'), ('mode', 'select'), ('range', ':nth-child(3)'))}
+             for name, sel in (('item', '.item-choice'), ('mode', 'select'), ('range', ':nth-child(3)'))}
     print(f'{lang}: stock grid at {width} px, (x, width) lot line / number line: '
           + '; '.join(f'{k} {a} / {b}' for k, (a, b) in cells.items()))
     for name, (a, b) in cells.items():
@@ -438,10 +510,11 @@ def check_stock_grid(page, trade, t: dict, lang: str, width: int, failures: list
 
 
 def check_item_browser(page, t: dict, lang: str, name: str, shots: Path, failures: list[str]) -> None:
-    """User 2026-11-15: the stock of a shipped voice (Boone) is a grid whose columns line up at 1280 and 800 px
-    (screenshot atelier-stock-aligned-fr.png); "Browse items" opens the item browser, filtered by a category and
-    searched in French, an item picked adds a stock line and the browser stays open with its count (screenshot
-    atelier-item-browser-fr.png); Escape closes it."""
+    """User 2026-11-15, 2026-11-16: the stock of a shipped voice (Boone) is a grid whose columns line up at 1280 and
+    800 px (screenshot atelier-stock-aligned-fr.png); "Ajouter des objets" opens the item list, filtered by a category
+    and searched in French: an item already in the stock is shown as such and cannot be ticked, two items ticked (a
+    click, Enter) stay ticked across searches (screenshot atelier-item-browser-fr.png); Escape adds nothing; reopened,
+    "Ajouter la sélection" adds the two ticked items."""
     trade = page.locator('details.fold', has_text=t['advanced.trade.enable'])
     stock = trade.locator('.lines', has=page.locator('.stock-line'))
     page.get_by_role('button', name=t['editor.preview_hide'], exact=True).click()   # the form alone, full width
@@ -457,8 +530,9 @@ def check_item_browser(page, t: dict, lang: str, name: str, shots: Path, failure
     stock.scroll_into_view_if_needed()
     stock.screenshot(path=str(shots / f'atelier-stock-aligned-{lang}.png'))
     before = trade.locator('.stock-line').count()
-    stock.get_by_role('button', name=t['browser.open'], exact=True).click()
-    dialog = page.locator('dialog.item-browser')
+    stock_row = row_of(trade, page, t['key.trade.item'])
+    stock_row.get_by_role('button', name=t['browser.add_items'], exact=True).click()
+    dialog = page.locator('dialog.item-browser.multi')
     expect(dialog).to_be_visible()
     expect(dialog.locator('.browser-note')).to_have_text(t['browser.sellable_only'])
     total_all = dialog.locator('[role=option]').count()
@@ -471,25 +545,38 @@ def check_item_browser(page, t: dict, lang: str, name: str, shots: Path, failure
     expect(first.locator('.b-name')).to_have_text('Bouteille de whisky')
     expect(first.locator('.b-cat')).to_have_text('Nourriture')
     expect(first.locator('.b-kg')).to_have_text('1,7 kg')
-    shown = [dialog.locator('[role=option]').nth(i).get_attribute('data-type')
-             for i in range(dialog.locator('[role=option]').count())]
-    print(f'{lang}: browser "Nourriture" + "whisky" -> {", ".join(shown)}')
-    first.hover()
-    page.screenshot(path=str(shots / f'atelier-item-browser-{lang}.png'))
+    expect(first).to_have_class(re.compile(r'\btaken\b'))                 # already in Boone's stock: not twice
+    expect(first.locator('.b-pick')).to_have_text(t['browser.taken'])
+    first.click(force=True)                                                 # aria-disabled: nothing happens
+    expect(dialog.locator('.browser-add')).to_be_disabled()
+    search.fill('chili')
+    first = dialog.locator('[role=option]').first
+    expect(first).to_have_attribute('data-type', 'Base.CannedChili')
     first.click()
-    expect(dialog.locator('.browser-added')).to_have_text(t['browser.added'].replace('{n}', '1'))
-    expect(dialog).to_be_visible()
-    search.fill('vodka')
-    search.press('Enter')                                                    # keyboard: the first match
-    expect(dialog.locator('.browser-added')).to_have_text(t['browser.added'].replace('{n}', '2'))
-    page.keyboard.press('Escape')
+    search.fill('riz')
+    expect(dialog.locator('[role=option]').first).to_have_attribute('data-type', 'Base.Rice')
+    search.press('Enter')                                                    # keyboard: ticks the first match
+    expect(dialog.locator('.browser-selected')).to_have_text(t['browser.selected'].replace('{n}', '2'))
+    search.fill('chili')
+    expect(dialog.locator('[role=option]').first.locator('input')).to_be_checked()   # the ticks survive a new search
+    dialog.locator('[role=option]').first.hover()
+    page.screenshot(path=str(shots / f'atelier-item-browser-{lang}.png'))
+    print(f'{lang}: browser "Nourriture": whisky shown "{t["browser.taken"]}", chili clicked, riz by Enter: 2 ticked')
+    page.keyboard.press('Escape')                                            # Escape: nothing added
+    expect(dialog).to_have_count(0)
+    expect(trade.locator('.stock-line')).to_have_count(before)
+    stock_row.get_by_role('button', name=t['browser.add_items'], exact=True).click()
+    for word in ('chili', 'riz'):
+        search.fill(word)
+        dialog.locator('[role=option]').first.click()
+    dialog.locator('.browser-add').click()
     expect(dialog).to_have_count(0)
     added = trade.locator('.stock-line').count() - before
     page.get_by_role('button', name=t['editor.preview'], exact=True).click()
     preview = page.locator('.sheet-preview')
-    expect(preview).to_contain_text('item=Base.Whiskey:1')
-    print(f'{lang}: 2 items added from the browser ({added} new stock lines), item=Base.Whiskey:1 in the sheet, '
-          'closed by Escape')
+    expect(preview).to_contain_text('item=Base.CannedChili:1')
+    expect(preview).to_contain_text('item=Base.Rice:1')
+    print(f'{lang}: Escape added nothing; reopened, 2 ticked and "{t["browser.add_selected"]}": {added} new stock lines')
     if added != 2:
         failures.append(f'{lang}: the item browser added {added} stock lines instead of 2')
     # leave Boone without saving: the shipped voice stays as it is

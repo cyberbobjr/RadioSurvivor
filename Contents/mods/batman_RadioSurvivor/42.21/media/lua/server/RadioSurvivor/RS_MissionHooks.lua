@@ -6,12 +6,14 @@ server's (CoreAI/CA_NotebookServer, attachMissions); RadioSurvivor adds its radi
 (RS_MissionHooks.attach()), before any mission is read.
 
 - giver 'voice' = radio voice (remote: no body to join; donor records in the state of the voices, RS_State
-  data.voiceDonors, E11-T08; its dead drops polled and projected by RS_DeadDrops);
+  data.voiceDonors, E11-T08; its dead drops polled and projected by RS_DeadDrops; E23-T03, ADR D08: a mission waiting
+  for its report has its delay stopped, reason 'bridge', while the bridge is not seen alive, CA_Bridge.alive);
 - result of a voice mission section, per participant and team, and the story state of the voice (RS_MissionChain,
   E20-T08), in the state of the voices.
 Requires of modules that require RS_State are made at call time (RS_State requires this file).
 ]]
 local M = require 'CoreAI/CA_Missions'
+local Bridge = require 'CoreAI/CA_Bridge'
 
 local H = {}
 
@@ -31,6 +33,11 @@ local function voiceGiver()
         projectDrops = function(m, p) return require('RadioSurvivor/RS_DeadDrops').project(m, p) end,
         dropsWhere = function(m) return require('RadioSurvivor/RS_DeadDrops').where(m) end,
         dropsRule = function(m) return require('RadioSurvivor/RS_DeadDrops').rule(m) end,
+        -- E23-T03: without the bridge the voice cannot hear the report the mission waits for.
+        paused = function(m)
+            if M.reportReady(m) and not Bridge.alive() then return 'bridge' end
+            return nil
+        end,
     }
 end
 

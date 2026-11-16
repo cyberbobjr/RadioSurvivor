@@ -1,6 +1,7 @@
 """Livre du passeur et action propose_trade (E13-T02 ; E20-T07 : stock et marges déclarés dans la section [trade]
-de la fiche de Gus, état par marchand) : RS_Trade.lua dans lupa, le pont (radio_bridge.py) et le serveur radio complet
-(RadioSurvivor_Server.lua, doublures de tests/test_protocol.py).
+de la fiche de Gus, état par marchand ; E23-T06 : accord = deux listes d'objets, ce que la fiche accepte en paiement,
+équité au barème, accord figé à l'arrivée) : RS_Trade.lua dans lupa, le pont (radio_bridge.py) et le serveur radio
+complet (RadioSurvivor_Server.lua, doublures de tests/test_protocol.py).
 
     python RadioSurvivor/tests/test_rs_trade.py
 
@@ -9,8 +10,9 @@ CA_TradeValues, RS_OutsideNews, RadioSurvivor_Const ; doublures : GameTime (âge
 RS_State (table en mémoire), journal admin RS_ActionLog. Couvre : catalogue d'apport conforme à la table validée
 (docs/specifications-techniques/passeur-table.md, section 3 ; poids relus dans les scripts vanilla 42.21), tirage du stock reproductible et dans
 les fourchettes, prix ligne par ligne (exemples de la table), offre figée avec révision, réserve et remplacement,
-refus hors table (stock, marge, poids, plafond, forme), stocks jamais négatifs sur un tirage aléatoire de
-propositions, mémoire des affaires (marge la plus basse, tricherie, issue, expiration au passage suivant),
+refus hors table (stock, poids, plafond, forme, paiement non accepté, plafond par objet, poids du dépôt,
+accord inéquitable), stocks jamais négatifs sur un tirage aléatoire de propositions, mémoire des affaires (marge
+selon la réputation et l'historique, tricherie, issue, expiration au passage suivant),
 persistance dans l'état privé, contexte trade= relu par le pont, prompt et contrôle de forme du pont, chaîne complète
 demande -> réponse -> offre -> demande suivante dans le serveur radio.
 Ne prouve pas l'API Java réelle ni le comportement du LLM : la tâche est hors jeu (E13-T03 et E13-T04 en jeu).
@@ -43,7 +45,7 @@ sys.path.insert(0, str(ROOT / 'tests'))
 
 import npc_protocol as npc  # noqa: E402
 import radio_bridge as rb  # noqa: E402
-from itemweights_double import ITEM_WEIGHTS, WEIGHTS  # noqa: E402
+from itemweights_double import ITEM_WEIGHTS, WEIGHTS, trade_rules_lua  # noqa: E402
 from test_rs_trade_run import GUS, TraderProxy  # noqa: E402
 
 
@@ -76,6 +78,10 @@ VOICE_PORT = { get = function(id) return VOICES[id] end, ids = function() return
 """
 
 
+# E23-T06 : paiement par défaut des bancs, accepté par Gus (catégorie cash) et assez riche pour toute offre (120 points).
+PAY = 'MoneyBundle:12'
+
+
 class TradeHarness(unittest.TestCase):
 
     def setUp(self):
@@ -89,8 +95,7 @@ class TradeHarness(unittest.TestCase):
         # E20-T07 : la vraie fiche de Gus (section [trade]) lue par RS_Persona, mode d'arrivée boat inscrit.
         self.rt.eval('require("RadioSurvivor/TradeArrivals/RS_TradeArrival_Boat")')
         self.rt.execute(ITEM_WEIGHTS)  # E22-T12 : poids des objets du troc, à la place des scripts du jeu
-        rules = self.rt.eval('{ arrivals = require("RadioSurvivor/RS_TradeArrivals").NAMES,'
-                             ' itemWeight = require("RadioSurvivor/RS_ItemWeights").of }')
+        rules = self.rt.eval(trade_rules_lua())
         persona = self.rt.eval('require("RadioSurvivor/RS_Persona")')
         self.gus = persona.parseLines(self.rt.table_from(GUS.read_text(encoding='utf-8').splitlines()), 'gus', rules)
         self.assertFalse(isinstance(self.gus, tuple), self.gus)
@@ -126,8 +131,9 @@ class TradeHarness(unittest.TestCase):
         """Stock déclaré par la fiche de Gus (section [trade], lignes item=)."""
         return lua_list(self.spec['items'])
 
-    def propose(self, caller, items, margin=None, cid=None):
-        return self.two(self.T.propose, caller, cid, items, margin)
+    def propose(self, caller, gives, wants=PAY, cid=None):
+        """Accord proposé (E23-T06) : ce que Gus laisse, ce que l'appelant apporte (par défaut de quoi tout payer)."""
+        return self.two(self.T.propose, caller, cid, gives, wants)
 
     def available(self, caller='x', cid=None):
         a = self.T.available(caller, cid)
@@ -158,8 +164,19 @@ class CatalogueTests(TradeHarness):
         self.assertIn('pèse **au plus 10 kg**', doc)
         self.assertEqual((self.spec.marginMin, self.T.MARGIN_DEFAULT, self.spec.marginMax, self.T.M_MAX,
                           self.T.RARITY), (0.10, 0.25, 0.50, 1.75, 1.25))
-        caps = {t.k: t.cap for t in lua_list(self.T.TAKES)}
-        self.assertEqual(caps, {'valuables': 60, 'images': 40, 'papers': 30, 'military': 60})
+        self.assertEqual(self.T.CAP_PAY_KG, 20)
+        self.assertIn('au plus 20 kg', doc)
+
+    def test_gus_accepts_valued_items_only(self):
+        # E23-T06 : ce que la fiche accepte en paiement (accept=), résolu en types qui ont une valeur de vente.
+        accepts = lua_list(self.spec.accepts)
+        self.assertIn('Base.MoneyBundle', accepts)
+        self.assertIn('Base.Necklace_Gold', accepts)
+        self.assertIn('Base.IDcard', accepts)
+        self.assertIn('Base.AssaultRifle', accepts)
+        self.assertNotIn('Base.Battery', accepts)
+        self.assertEqual(len(accepts), len(set(accepts)))
+        self.assertTrue(all(self.TV.sellValue(t) > 0 for t in accepts))
 
     def test_weights_come_from_the_injected_scripts(self):
         # E22-T12 : la fiche n'écrit plus de poids ; chaque objet porte celui de la source (RS_ItemWeights).
@@ -247,71 +264,102 @@ class PriceTests(TradeHarness):
         offer, _ = self.propose('kate', '308Box:1, Battery:2')
         self.assertEqual([(line.n, line.price) for line in lua_list(offer.lines)], [('308Box', 27), ('Battery', 8)])
         self.assertEqual(offer.price, 35)
-        # Exemple 4 : un seul antibiotique au stock (rareté), cordon 1,25 : 16 / 14 / 19 selon la marge.
+        # Exemple 4 : un seul antibiotique au stock (rareté), cordon 1,25 : 16 / 14 / 19 selon la marge de l'appelant
+        # (neutre ; trois affaires conclues ; après une tricherie).
         self.force_stock({'Antibiotics': 1})
         self.T.setCordon(self.T.passage(), 1.25)
         prices = {}
-        for margin in (0.25, 0.10, 0.50):
+        for label, deals in (('neutral', []), ('regular', ['done'] * 3), ('cheat', ['cheated'])):
             store = self.g.STATE.data.trade.traders.gus
-            book = store.books['kate']
-            book.deals = self.t([{'state': 'done', 'rev': 0, 'passage': 0, 'items': 'Battery:1', 'price': 1}] * 3)
-            offer, why = self.propose('kate', 'Antibiotics', margin)
-            prices[margin] = offer.price if offer else why
-        self.assertEqual(prices, {0.25: 16, 0.10: 14, 0.50: 19})
+            store.books['kate'] = self.t({'deals': [{'state': st, 'rev': 0, 'passage': 0, 'items': 'Battery:1',
+                                                     'wants': 'Money:10'} for st in deals], 'lastRev': 0})
+            offer, why = self.propose('kate', 'Antibiotics')
+            prices[label] = (offer.price, offer.margin) if offer else why
+        self.assertEqual(prices, {'neutral': (16, 0.25), 'regular': (14, 0.1), 'cheat': (19, 0.5)})
 
     def test_multiplier_capped(self):
         self.force_stock({'Antibiotics': 1})
         self.T.setCordon(self.T.passage(), 1.5)   # 1,5 x 1,25 = 1,875 -> 1,75
-        offer, _ = self.propose('kate', 'Antibiotics:1', 0.25)
+        offer, _ = self.propose('kate', 'Antibiotics:1')
         self.assertEqual(offer.price, 18)          # ceil(8 x 1,25 x 1,75) = ceil(17,5)
         self.assertFalse(self.T.setCordon(self.T.passage(), 2))
+
+    def test_payment_value_must_cover_the_price(self):
+        # E23-T06, ADR D01 : le barème refuse un accord inéquitable ; le joueur ne voit jamais les points.
+        self.force_stock({'Antibiotics': 4})
+        self.assertEqual(self.propose('kate', 'Antibiotics:2', 'MoneyBundle:1')[1], 'unfair')        # 10 < 20
+        offer, why = self.propose('kate', 'Antibiotics:2', 'MoneyBundle:1,GoldCoin:3,Money:5')        # 10+9+0
+        self.assertEqual(why, 'unfair')
+        offer, why = self.propose('kate', 'Antibiotics:2', 'MoneyBundle:1,GoldCoin:3,Money:19')       # 10+9+1
+        self.assertIsNone(why)
+        self.assertEqual((offer.price, offer.value), (20, 20))
+        self.assertEqual([(w.t, w.q, w.v) for w in lua_list(offer.wants)],
+                         [('Base.MoneyBundle', 1, 10), ('Base.GoldCoin', 3, 9), ('Base.Money', 19, 1)])
+        offer, why = self.propose('kate', 'Antibiotics:2', 'base.goldbar')                           # 40 >= 20
+        self.assertEqual((why, lua_list(offer.wants)[0].t), (None, 'Base.GoldBar'))
 
 
 class OfferTests(TradeHarness):
 
     def test_offer_frozen_with_revision_and_reserved(self):
         self.force_stock({'Antibiotics': 4, 'Battery': 6})
-        offer, why = self.propose('kate', 'antibiotics:2,BATTERY:3', 0.3)
+        offer, why = self.propose('kate', 'antibiotics:2,BATTERY:3')
         self.assertIsNone(why)
-        self.assertEqual((offer.rev, offer.state, offer.price, offer.margin, offer.weight), (1, 'open', 29, 0.3, 0.5))
+        self.assertEqual((offer.rev, offer.state, offer.price, offer.margin, offer.weight), (1, 'open', 28, 0.25, 0.5))
         self.assertEqual(self.available('bob'), dict(self.available('kate'), Antibiotics=2, Battery=3))
         # Un autre appelant ne peut pas dépasser ce qui reste.
         self.assertEqual(self.propose('bob', 'Antibiotics:3')[1], 'over_stock')
         offer2, _ = self.propose('bob', 'Antibiotics:2')
         self.assertEqual(offer2.rev, 2)
         self.assertEqual(self.propose('carl', 'Antibiotics')[1], 'not_in_stock')
-        # Même appelant : la nouvelle offre remplace l'ancienne et rend sa réserve.
-        offer3, _ = self.propose('kate', 'Battery:6')
+        # Même appelant : le nouvel accord remplace l'ancien et rend sa réserve.
+        offer3, _ = self.propose('kate', 'Battery:6', 'GoldCoin:5')
         self.assertEqual(offer3.rev, 3)
         deals = lua_list(self.T.deals('kate', None))
-        self.assertEqual([(d.rev, d.state) for d in deals], [(1, 'replaced'), (3, 'open')])
+        self.assertEqual([(d.rev, d.state, d.wants) for d in deals],
+                         [(1, 'replaced', PAY), (3, 'open', 'GoldCoin:5')])
         self.assertEqual(self.available('carl')['Antibiotics'], 2)
         self.assertEqual(self.available('carl')['Battery'], 0)
-        self.assertTrue(any('offer 3 of gus frozen for kate: Battery:6' in line for line in lua_list(self.g.LOGS)))
+        self.assertTrue(any('offer 3 of gus frozen for kate: Battery:6 for GoldCoin:5' in line
+                            for line in lua_list(self.g.LOGS)))
 
     def test_refusals_outside_the_table(self):
         self.force_stock({'Antibiotics': 20, 'CigaretteCarton': 1, 'ShotgunShellsBox': 2, 'Coffee2': 3,
                           'Vodka': 2, 'Battery': 4})
         cases = {
-            'Money:2': 'not_in_stock', 'Base.Antibiotics:2': None, 'Whiskey': 'not_in_stock',
-            'Battery:5': 'over_stock', 'Antibiotics:15': 'over_cap',
-            'ShotgunShellsBox:2,Coffee2:3,Vodka:2,CigaretteCarton:1': 'over_weight',
-            'Antibiotics:2,': 'bad_params', 'Antibiotics:0': 'bad_params', 'Antibiotics:2,antibiotics:1': 'bad_params',
-            'Antibiotics x2': 'bad_params', '': 'bad_params', 'Antibiotics:100': 'bad_params',
+            ('Money:2', PAY): 'not_in_stock', ('Base.Antibiotics:2', PAY): None, ('Whiskey', PAY): 'not_in_stock',
+            ('Battery:5', PAY): 'over_stock', ('Antibiotics:15', PAY): 'over_cap',
+            ('ShotgunShellsBox:2,Coffee2:3,Vodka:2,CigaretteCarton:1', PAY): 'over_weight',
+            ('Antibiotics:2,', PAY): 'bad_params', ('Antibiotics:0', PAY): 'bad_params',
+            ('Antibiotics:2,antibiotics:1', PAY): 'bad_params', ('Antibiotics x2', PAY): 'bad_params',
+            ('', PAY): 'bad_params', ('Antibiotics:100', PAY): 'bad_params',
+            # E23-T06 : la liste de l'appelant.
+            ('Battery', ''): 'bad_params', ('Battery', 'MoneyBundle;GoldCoin'): 'bad_params',
+            ('Battery', 'Battery:3'): 'not_taken',             # au barème, pas accepté par Gus
+            ('Battery', 'Hammer'): 'not_taken',                # hors barème
+            ('Battery', 'Mod.MoneyBundle'): 'not_taken',       # autre module
+            ('Battery', 'GoldBar:2'): 'over_count',            # une barre par passage
+            ('Battery', 'Money:101'): 'bad_params',            # 99 au plus par ligne
+            ('Battery', 'MoneyBundle:1,Diamond'): None,
         }
-        for items, reason in cases.items():
-            with self.subTest(items):
-                offer, why = self.propose('kate', items)
+        for (gives, wants), reason in cases.items():
+            with self.subTest(gives=gives, wants=wants):
+                offer, why = self.propose('kate', gives, wants)
                 self.assertEqual(why, reason)
                 self.assertEqual(offer is None, reason is not None)
-        for margin in (0.05, 0.51, 1.0, -0.2, float('nan')):
-            with self.subTest(margin=margin):
-                self.assertEqual(self.propose('kate', 'Battery', margin)[1], 'bad_margin')
-        self.assertEqual(self.propose('kate', 'Battery', 0.249)[1], None)   # arrondi à 0,25
-        self.assertEqual(self.propose('kate', 'Battery', 0.24)[1], 'bad_margin')
         book = self.g.STATE.data.trade.traders.gus.books['kate']
         self.propose('kate', 'Battery:9')
         self.assertEqual(book.refused.reason, 'over_stock')
+
+    def test_payment_weight_capped(self):
+        # E23-T06 : ce que l'appelant dépose pèse au plus CAP_PAY_KG (20 kg), poids lus dans les scripts.
+        self.rt.execute('require("RadioSurvivor/RS_ItemWeights").use({ ["Base.Vest_BulletArmy"] = 4.5,'
+                        ' ["Base.Battery"] = 0.1 })')
+        self.force_stock({'Battery': 4})
+        self.assertEqual(self.propose('kate', 'Battery', 'Vest_BulletArmy:5')[1], 'pay_weight')   # 22,5 kg
+        offer, why = self.propose('kate', 'Battery', 'Vest_BulletArmy:4')                          # 18 kg
+        self.assertIsNone(why)
+        self.assertAlmostEqual(offer.payWeight, 18.0)
 
     def test_weight_cap_uses_the_weights_read_from_the_scripts(self):
         # E22-T12 : un autre poids dans la source (script d'un mod qui alourdit l'objet) change le plafond de la
@@ -319,8 +367,7 @@ class OfferTests(TradeHarness):
         self.rt.execute('require("RadioSurvivor/RS_ItemWeights").use({ ["Base.Antibiotics"] = 4.0,'
                         ' ["Base.Battery"] = 0.1, ["Base.CigaretteCarton"] = 2.0 })')
         persona = self.rt.eval('require("RadioSurvivor/RS_Persona")')
-        rules = self.rt.eval('{ arrivals = require("RadioSurvivor/RS_TradeArrivals").NAMES,'
-                             ' itemWeight = require("RadioSurvivor/RS_ItemWeights").of }')
+        rules = self.rt.eval(trade_rules_lua())
         # Gus cite des objets absents de cette source : sa fiche est refusée, avec la ligne du premier.
         refused = persona.parseLines(self.rt.table_from(GUS.read_text(encoding='utf-8').splitlines()), 'gus', rules)
         self.assertRegex(refused[1], r"^line \d+: unknown trade item 'Base\.\w+' \(no item script of that type\)$")
@@ -329,11 +376,13 @@ class OfferTests(TradeHarness):
                                                        'label=Pier', 'use=landing', '[trade]', 'landing=pier',
                                                        'arrival=boat', 'every_days=7', 'hours=01:00-03:00',
                                                        'item=Base.Antibiotics:1-6', 'item=Base.Battery:1-30',
-                                                       '[prompt]', 'Bench.']), 'gus', rules)
+                                                       'accept=Base.MoneyBundle', '[prompt]', 'Bench.']), 'gus',
+                                            rules)
         self.assertFalse(isinstance(sheet, tuple), sheet)
         self.g.VOICES.gus = sheet
         self.spec = sheet.trade
         self.assertEqual({e.n: e.w for e in self.supply()}, {'Antibiotics': 4.0, 'Battery': 0.1})
+        self.assertEqual(list(lua_list(self.spec.accepts)), ['Base.MoneyBundle'])
         self.force_stock({'Antibiotics': 6, 'Battery': 30})
         self.assertEqual(self.propose('kate', 'Antibiotics:3')[1], 'over_weight')            # 12 kg
         offer, why = self.propose('kate', 'Antibiotics:2,Battery:20')                       # 8 + 2 = 10 kg
@@ -355,19 +404,19 @@ class OfferTests(TradeHarness):
                     pool = [n for n, q in left.items() if q > 0] or names
                 lines = rnd.sample(pool, min(len(pool), rnd.randint(1, 4)))
                 items = ','.join(f'{n}:{rnd.randint(1, 5)}' if rnd.random() < 0.8 else n for n in lines)
-                margin = rnd.choice([None, 0.1, 0.25, 0.3, 0.5, 0.6, rnd.random()])
+                wants = rnd.choice([PAY, 'MoneyBundle:1', 'GoldBar:1', 'GoldCoin:4,Diamond:2', 'Battery:1', 'Hammer'])
                 caller = rnd.choice(callers)
                 if rnd.random() < 0.05:
                     o = self.T.offerOf(caller, None)
                     if o is not None:
                         self.T.close(caller, None, o.rev, rnd.choice(['done', 'cheated', 'cancelled']))
-                offer, why = self.propose(caller, items, margin)
+                offer, why = self.propose(caller, items, wants)
                 if offer is None:
                     self.assertIn(why, lua_list(self.T.REASONS))
                     continue
                 accepted += 1
                 self.assertTrue(0.1 - 1e-9 <= offer.margin <= 0.5 + 1e-9 and offer.price <= 120
-                                and offer.weight <= 10 + 1e-9)
+                                and offer.weight <= 10 + 1e-9 and offer.value >= offer.price)
                 drawn = self.T.stock()
                 total = 0
                 for line in lua_list(offer.lines):
@@ -397,7 +446,8 @@ class MemoryTests(TradeHarness):
 
     def test_margin_floor_follows_the_reputation_level(self):
         """E04-T11 (Q13) : bonne 0,10, neutre 0,25, mauvaise 0,40, rabais d'historique en plus (plancher 0,10),
-        tricherie 0,50 ; personnage inconnu ou sans carnet : neutre. La fourchette part dans le contexte trade=."""
+        tricherie 0,50 ; personnage inconnu ou sans carnet : neutre. E23-T06 : la marge n'est plus choisie par le
+        LLM, c'est toujours la plus basse permise ; elle entre dans le prix d'un exemplaire du contexte."""
         self.force_stock({'Battery': 12})
         state = self.g.STATE.data
         state.characters = self.t({'cg': {'id': 'cg'}, 'cb': {'id': 'cb'}, 'cn': {'id': 'cn'},
@@ -411,17 +461,16 @@ class MemoryTests(TradeHarness):
         self.assertAlmostEqual(self.T.marginRange('kate', 'cb')[0], 0.40)
         self.assertAlmostEqual(self.T.marginRange('kate', 'dead')[0], 0.25)
         self.assertAlmostEqual(self.T.marginRange('kate', None)[0], 0.25)
-        self.assertEqual(self.propose('bad', 'Battery', 0.30, cid='cb')[1], 'bad_margin')
-        offer, _ = self.propose('bad', 'Battery', None, cid='cb')
+        offer, _ = self.propose('bad', 'Battery', cid='cb')
         self.assertAlmostEqual(offer.margin, 0.40)
         self.assertTrue(self.T.close('bad', 'cb', offer.rev, 'done'))
         self.assertAlmostEqual(self.T.marginRange('bad', 'cb')[0], 0.35)   # history discount on top of the level
-        offer, _ = self.propose('good', 'Battery', None, cid='cg')
+        offer, _ = self.propose('good', 'Battery', cid='cg')
         self.assertAlmostEqual(offer.margin, 0.10)
         self.assertTrue(self.T.close('good', 'cg', offer.rev, 'cheated'))
         self.assertEqual(tuple(self.T.marginRange('good', 'cg')), (0.5, 0.5))
         ctx = self.Trade.context(self.gus, 'bad', 'cb')
-        self.assertAlmostEqual(ctx.marginMin, 0.35)
+        self.assertEqual({s.n: s.unit for s in lua_list(ctx.stock)}['Battery'], 3)   # ceil(2 x 1,35)
 
     def test_margin_floor_follows_past_deals(self):
         self.force_stock({'Battery': 12})
@@ -430,11 +479,10 @@ class MemoryTests(TradeHarness):
             offer, _ = self.propose('kate', 'Battery')
             self.assertTrue(self.T.close('kate', None, offer.rev, 'done'))
             self.assertAlmostEqual(self.T.marginRange('kate', None)[0], expected)
-        self.assertEqual(self.propose('kate', 'Battery', 0.09)[1], 'bad_margin')
-        offer, _ = self.propose('kate', 'Battery', 0.10)
+        offer, _ = self.propose('kate', 'Battery')
+        self.assertAlmostEqual(offer.margin, 0.10)
         self.assertTrue(self.T.close('kate', None, offer.rev, 'cheated'))
         self.assertEqual(tuple(self.T.marginRange('kate', None)), (0.5, 0.5))
-        self.assertEqual(self.propose('kate', 'Battery', 0.4)[1], 'bad_margin')
         self.assertEqual(self.propose('kate', 'Battery')[0].margin, 0.5)
         # Mémoire bornée, issues gardées dans l'ordre.
         deals = lua_list(self.T.deals('kate', None))
@@ -472,7 +520,7 @@ class MemoryTests(TradeHarness):
 
     def test_book_per_character_and_bounded(self):
         self.force_stock({'Battery': 12})
-        self.propose('solo', 'Battery', None, 'c1')
+        self.propose('solo', 'Battery', cid='c1')
         self.assertIsNone(self.T.offerOf('solo', 'c2'))
         self.assertEqual(self.T.offerOf('solo', 'c1').rev, 1)
         for i in range(60):
@@ -504,15 +552,17 @@ class ActionTests(TradeHarness):
     def test_executor_registered_and_judged(self):
         self.force_stock({'Antibiotics': 3, 'Battery': 4})
         self.assertEqual(self.decide([
-            {'type': 'propose_trade', 'items': 'Antibiotics:2', 'margin': 0.3},
-            {'type': 'propose_trade', 'items': 'Battery:9'},
-            {'type': 'propose_trade', 'items': 'Battery', 'colour': 'red'},
+            {'type': 'propose_trade', 'gives': 'Antibiotics:2', 'wants': 'MoneyBundle:2'},
+            {'type': 'propose_trade', 'gives': 'Battery:9', 'wants': PAY},
+            {'type': 'propose_trade', 'gives': 'Battery', 'wants': PAY, 'colour': 'red'},
         ]), [('propose_trade', 'ok'), ('propose_trade', 'over_stock'), ('propose_trade', 'bad_params')])
-        self.assertEqual(self.decide([{'type': 'propose_trade', 'items': 'Battery', 'margin': '0.3'},
-                                      {'type': 'propose_trade', 'margin': 0.3},
-                                      {'type': 'propose_trade', 'items': 'Battery;Antibiotics'}]),
-                         [('propose_trade', 'bad_params')] * 3)
-        self.assertEqual(self.decide([{'type': 'propose_trade', 'items': 'Battery'}],
+        self.assertEqual(self.decide([{'type': 'propose_trade', 'gives': 'Battery'},
+                                      {'type': 'propose_trade', 'wants': PAY},
+                                      {'type': 'propose_trade', 'items': 'Battery', 'margin': 0.3},
+                                      ]), [('propose_trade', 'bad_params')] * 3)
+        self.assertEqual(self.decide([{'type': 'propose_trade', 'gives': 'Battery', 'wants': 'Battery;Money'}]),
+                         [('propose_trade', 'bad_params')])
+        self.assertEqual(self.decide([{'type': 'propose_trade', 'gives': 'Battery', 'wants': PAY}],
                                      sheet={'id': 'walt', 'actions': ['say']}), [('propose_trade', 'not_allowed')])
         self.assertEqual(self.T.offerOf('kate', None).rev, 1)
         self.assertIn('propose_trade:over_stock', lua_list(self.g.ACTION_LOG))
@@ -531,46 +581,51 @@ class ContextTests(TradeHarness):
 
     def test_context_read_by_the_bridge(self):
         self.force_stock({'Antibiotics': 1, 'Battery': 6, 'OutsideNews': 1})
-        offer, _ = self.propose('kate', 'Battery:2')
+        offer, _ = self.propose('kate', 'Battery:2', 'Money:50')
         self.T.close('kate', None, offer.rev, 'done')
-        self.propose('kate', 'Antibiotics')
+        self.propose('kate', 'Antibiotics', 'MoneyBundle:2')
         self.propose('kate', 'Battery:9')
         req, raw = self.context()
-        self.assertEqual((raw['passage'], raw['cap'], raw['kg'], raw['marginMin'], raw['marginMax']),
-                         (1, 120, 10, 0.2, 0.5))
+        self.assertEqual((raw['passage'], raw['cap'], raw['kg'], raw['payKg']), (1, 120, 10, 20))
+        self.assertNotIn('marginMin', raw)
         stock = {s['n']: s['q'] for s in raw['stock'].values()}
-        # Sa propre offre ouverte (l'antibiotique) reste « offrable » : une nouvelle offre la remplace.
+        # Son propre accord ouvert (l'antibiotique) reste « offrable » : un nouvel accord le remplace.
         self.assertEqual(stock, {'Antibiotics': 1, 'Battery': 4, 'OutsideNews': 1})
         ctx = rb.trade_context(req)
         self.assertIsNotNone(ctx)
-        self.assertEqual(ctx['offer']['items'], 'Antibiotics:1')
+        self.assertEqual((ctx['offer']['items'], ctx['offer']['wants']), ('Antibiotics:1', 'MoneyBundle:2'))
         self.assertEqual([d['state'] for d in ctx['deals']], ['done', 'open'])
         self.assertEqual(ctx['refused'], 'over_stock')
+        self.assertEqual([t['k'] for t in ctx['takes']], ['valuables', 'images', 'papers', 'military'])
         prompt = rb.trade_prompt(ctx, '[Caller 1]')
-        for text in ('run number 1', 'at most 120 points', 'at most 10 kg', 'from 0.2 to 0.5',
-                     '- Battery: 4 left, value 2, 0.1 kg, 3 points each', 'OutsideNews: 1 left',
-                     'valuables (at most 60 points per run): ', 'MoneyBundle 10', 'Money 1 per 10',
-                     'AssaultRifle 20 (max 1) (condition 50%+)',
-                     'papers (at most 30 points per run and 10 pieces, only papers with a name on them)',
-                     'Your offer to [Caller 1] (number 2): Antibiotics:1 for 12 points (standing)',
-                     'run 1: Battery:2 for 5 points, done, the caller paid in full',
+        for text in ('run number 1', 'worth at most 120 points', 'weigh at most 10 kg', 'weighs at most 20 kg',
+                     '- Battery: 4 left, 0.1 kg, 3 points each', 'OutsideNews: 1 left',
+                     'What you accept in payment', 'MoneyBundle 10', 'Money 1 per 10 (max 100)',
+                     'AssaultRifle 20 (max 1) (condition 50%+)', 'never say points',
+                     'Your deal with [Caller 1] (number 2): they bring MoneyBundle:2; you leave Antibiotics:1 '
+                     '(standing)',
+                     'run 1: they bring Money:50, you leave Battery:2, done, the caller brought everything',
                      'more than what is left', 'You may refuse a deal'):
             self.assertIn(text, prompt)
-        self.assertNotRegex(prompt, r'\d{3}\.\d|kHz|MHz|secret')
+        self.assertNotIn('Battery 2', prompt)        # Gus ne prend pas de piles en paiement
+        self.assertNotRegex(prompt, r'\d{3}\.\d|kHz|MHz|secret|margin')
 
     def test_bridge_ignores_a_broken_book(self):
-        good = {'passage': 1, 'cap': 120, 'kg': 10, 'marginMin': 0.25, 'marginMax': 0.5, 'cordon': 1}
-        for bad in ({}, dict(good, cap='x'), dict(good, marginMin=0.6), dict(good, passage=-1)):
+        good = {'passage': 1, 'cap': 120, 'kg': 10, 'payKg': 20}
+        for bad in ({}, dict(good, cap='x'), dict(good, payKg=-1), dict(good, passage=-1)):
             self.assertIsNone(rb.trade_context({'trade': npc.encode(bad).hex()}))
         self.assertIsNone(rb.trade_context({'trade': 'zz'}))
         self.assertIsNone(rb.trade_context({'trade': 'ab' * 20000}))
-        ctx = rb.trade_context({'trade': npc.encode(dict(good, stock={1: {'n': 'Bad name', 'q': 1, 'v': 1, 'w': 1,
+        ctx = rb.trade_context({'trade': npc.encode(dict(good, stock={1: {'n': 'Bad name', 'q': 1, 'w': 1,
                                                                           'unit': 1}},
-                                                            offer={'rev': 1, 'items': 'x;y', 'price': 3,
+                                                            takes={1: {'k': 'Bad class', 'items': 'Money 1'}},
+                                                            offer={'rev': 1, 'items': 'x;y', 'wants': 'Money:1',
                                                                    'state': 'open'},
                                                             refused='because')).hex()})
-        self.assertEqual((ctx['stock'], ctx['offer'], ctx['refused']), ([], None, None))
-        self.assertIn('nothing left to sell', rb.trade_prompt(ctx, 'you'))
+        self.assertEqual((ctx['stock'], ctx['takes'], ctx['offer'], ctx['refused']), ([], [], None, None))
+        prompt = rb.trade_prompt(ctx, 'you')
+        self.assertIn('nothing left to trade', prompt)
+        self.assertIn('You accept nothing in payment', prompt)
         self.assertEqual(rb.trade_prompt(None, 'you'), '')
 
 
@@ -588,19 +643,21 @@ class BridgeFormTests(unittest.TestCase):
         self.assertIn('propose_trade', rb.EXECUTABLE_ACTIONS)
         self.assertEqual(rb.offered_actions(sheet), ['propose_trade', 'remember'])   # E22-T13: every voice remembers
         prompt = rb.actions_prompt(sheet)
-        self.assertIn('"items"', prompt)
-        self.assertIn('{"type": "propose_trade", "items": "Antibiotics:2,Battery:4", "margin": 0.25}', prompt)
+        self.assertIn('"gives"', prompt)
+        self.assertIn('"wants"', prompt)
+        self.assertIn('{"type": "propose_trade", "gives": "Antibiotics:2,Battery:4", "wants": "MoneyBundle:3"}', prompt)
+        good = {'type': 'propose_trade', 'gives': 'Antibiotics:2, Battery:4', 'wants': 'MoneyBundle:3'}
         kept = rb.bounded_actions(sheet, [
-            {'type': 'propose_trade', 'items': 'Antibiotics:2, Battery:4', 'margin': 0.3},
-            {'type': 'propose_trade', 'items': 'Battery'},
-            {'type': 'propose_trade', 'items': 'Battery', 'price': 3},
-            {'type': 'propose_trade', 'items': 'Battery;Coffee2'},
-            {'type': 'propose_trade', 'margin': 0.3},
-            {'type': 'propose_trade', 'items': 'Battery', 'margin': 2},
-            {'type': 'propose_trade', 'items': 'Battery', 'margin': True},
+            good,
+            {'type': 'propose_trade', 'gives': 'Battery', 'wants': 'GoldCoin'},
+            {'type': 'propose_trade', 'gives': 'Battery'},
+            {'type': 'propose_trade', 'wants': 'GoldCoin'},
+            {'type': 'propose_trade', 'gives': 'Battery', 'wants': 'GoldCoin', 'price': 3},
+            {'type': 'propose_trade', 'gives': 'Battery;Coffee2', 'wants': 'GoldCoin'},
+            {'type': 'propose_trade', 'gives': 'Battery', 'wants': 3},
+            {'type': 'propose_trade', 'items': 'Battery', 'margin': 0.3},
         ])
-        self.assertEqual(kept, [{'type': 'propose_trade', 'items': 'Antibiotics:2, Battery:4', 'margin': 0.3},
-                                {'type': 'propose_trade', 'items': 'Battery'}])
+        self.assertEqual(kept, [good, {'type': 'propose_trade', 'gives': 'Battery', 'wants': 'GoldCoin'}])
         self.assertEqual(rb.MAX_PARAM_BYTES, 64)
         self.assertIn('trade', rb.HEX_FIELDS)
 
@@ -621,7 +678,7 @@ class ServerChainTests(unittest.TestCase):
                 'format=1\nid=gus\nname=Gus Bench\nfrequencies=160.0\nactions=say,propose_trade\n'
                 '[place pier]\nat=6041,5217,0\nlabel=Bench pier\nuse=landing\n'
                 '[trade]\nlanding=pier\narrival=boat\nevery_days=7\nhours=01:00-03:00\n'
-                'item=Base.Battery:4-12\nitem=Base.Antibiotics:2-6\n[prompt]\n'
+                'item=Base.Battery:4-12\nitem=Base.Antibiotics:2-6\naccept=Base.MoneyBundle\n[prompt]\n'
                 'You are Gus Bench, a smuggler of the test bench.\n', encoding='utf-8')
             (folder / 'ps.txt').write_text(tp.PS_SHEETS['ps'], encoding='utf-8')
             clock = tp.Clock()
@@ -677,11 +734,17 @@ class ServerChainTests(unittest.TestCase):
             self.assertNotIn('offer', book)
             stock = {s['n']: s['q'] for s in book['stock'].values()}
             self.assertIn('Battery', stock)
-            respond(req['id'], [{'type': 'propose_trade', 'items': f"Battery:{stock['Battery']}", 'margin': 0.3},
-                                {'type': 'propose_trade', 'items': 'GoldBar:1'}])
+            respond(req['id'], [{'type': 'propose_trade', 'gives': f"Battery:{stock['Battery']}",
+                                 'wants': 'MoneyBundle:4'},
+                                {'type': 'propose_trade', 'gives': 'GoldBar:1', 'wants': 'MoneyBundle:4'}])
             self.assertTrue(tp.pump(lambda: len(g.BROADCASTS) == 2, [lambda: g.fire('OnTick')]))
             offer = trade.offerOf('gus', 'solo', 'c1')
-            self.assertEqual((offer.rev, offer.state, offer.margin), (1, 'open', 0.3))
+            self.assertEqual((offer.rev, offer.state, offer.margin), (1, 'open', 0.25))
+            # E23-T06 : l'accord est inscrit dans le carnet du personnage, deux listes, sans points.
+            history = g.require('CoreAI/CA_History').radio('c1')
+            lines = [line for f in tp.lua_list(history.frequencies) for line in tp.lua_list(f.lines)
+                     if line.kind == 'trade']
+            self.assertEqual([line.text for line in lines], [f"MoneyBundle:4|Battery:{stock['Battery']}"])
             logs = [line for line in tp.lua_list(g.LOGS) if line.startswith('[RadioSurvivor] action propose_trade')]
             self.assertEqual(logs, [
                 '[RadioSurvivor] action propose_trade voice=gus caller=solo accepted reason=ok',
@@ -690,7 +753,7 @@ class ServerChainTests(unittest.TestCase):
             req = turn(160000, 'And the price?')
             ctx = rb.trade_context(req)
             self.assertEqual(ctx['offer']['items'], f"Battery:{stock['Battery']}")
-            self.assertEqual(ctx['offer']['price'], offer.price)
+            self.assertEqual(ctx['offer']['wants'], 'MoneyBundle:4')
             self.assertEqual(ctx['refused'], 'not_in_stock')
             self.assertEqual({s['n']: s['q'] for s in ctx['stock']}['Battery'], stock['Battery'])  # sa propre offre
         finally:

@@ -470,8 +470,10 @@ lieux et le prompt : il ne voit pas ces erreurs.
 
 #### Troc — `propose_trade` et section `[trade]`
 
-Une voix **marchande** vend un stock à la radio et livre au cours d'un **passage** : rendez-vous à un lieu, la nuit
-ou à l'heure de la fiche, échange sans contact. Ajoutez `propose_trade` à `actions` **et** une section `[trade]` :
+Une voix **marchande** troque à la radio et livre au cours d'un **passage** : rendez-vous à un lieu, la nuit ou à
+l'heure de la fiche, échange sans contact. Un accord est fait de **deux listes d'objets** : ce que le joueur apporte,
+ce que le marchand laisse (« tu m'apportes 1 boîte de cartouches, je te laisse 2 conserves ») ; le joueur ne voit
+jamais de points. Ajoutez `propose_trade` à `actions` **et** une section `[trade]` :
 l'une sans l'autre est refusée.
 
 | Clé | À quoi ça sert |
@@ -481,19 +483,25 @@ l'une sans l'autre est refusée.
 | `every_days` | Un passage tous les N jours de jeu (1 à 28). |
 | `hours` | Fenêtre du rendez-vous, `HH:MM-HH:MM`. |
 | `delay_hours` | Facultatif : heures de jeu où personne ne doit voir le lieu avant l'échange (1 par défaut). |
-| `margin` | Facultatif : marge la plus basse et la plus haute (`0.10-0.50` par défaut). |
+| `margin` | Facultatif : marge la plus basse et la plus haute (`0.10-0.50` par défaut), comptée en secret par le serveur pour juger un accord. |
 | `item` | Un objet apporté par ligne : `Module.Type:quantité` ; quantité tirée à chaque passage (`4`, `2-6`) ou nom d'un groupe. Pas de poids à écrire : le serveur le lit dans le script de l'objet (liquide d'une bouteille pleine compris) ; un type d'objet inconnu du jeu fait refuser la fiche. |
 | `group` | Facultatif : `nom:total[:sortes]`, un total tiré parmi les objets du groupe (`seeds:3-8:4` : 3 à 8 sachets, 4 sortes au plus). |
+| `accept` | Ce que la voix accepte en paiement, une ligne par objet (`Base.MoneyBundle`) ou par catégorie (`cash`, `jewelry`, `pictures`, `papers_of_the_dead`, `military_gear` du catalogue partagé, ou une `[category]` de la fiche). Au moins une ligne. Chaque objet doit avoir une valeur au barème du troc ; une catégorie n'apporte que ses objets qui en ont une. Le joueur ne peut payer qu'avec ces objets. |
 
 Chaque marchand a son propre stock, sa propre réservation et ses propres affaires : deux marchands réservés la même
-semaine ne se gênent pas. La première offre ferme d'un passage le réserve pour le groupe de l'appelant ; le lieu est
-alors marqué sur sa carte. Après le signal, le joueur pose un sac à moins de 3 cases du lieu et s'en va : le marchand
-ne passe qu'une fois **personne à moins de 100 cases** (en x comme en y) **depuis `delay_hours` heures de jeu**, puis
-laisse sa marchandise dans le même sac (planque : dans le conteneur du lieu où le paiement a été laissé). Une barque
-peut être annulée par une patrouille, un hélicoptère entendu ou un orage ; un fourgon par un barrage de l'armée, un
-hélicoptère ou un orage ; une planque par un ratissage ou un hélicoptère : la voix l'annonce sur sa fréquence. Les
+semaine ne se gênent pas. Le serveur refuse un accord inéquitable (ce que le joueur apporte doit valoir au moins le
+prix de ce que le marchand laisse, au barème) ; le premier accord d'un passage le réserve pour le groupe de
+l'appelant, le lieu est marqué sur sa carte et l'accord s'écrit dans son carnet. Une fois le marchand arrivé, l'accord
+ne change plus. Le joueur dépose le paiement à moins de 3 cases du lieu (barque et fourgon : dans un ou plusieurs sacs
+posés par terre ; planque : dans les conteneurs du lieu ; **jamais dans un véhicule**) et s'en va : le marchand ne
+passe qu'une fois **personne à moins de 100 cases** (en x comme en y) **depuis `delay_hours` heures de jeu**. Seul
+compte ce qui a été déposé après l'accord. Tout y est : il prend exactement la liste convenue et laisse sa marchandise
+là où se trouvait l'essentiel du paiement. Il manque quelque chose : il garde tout ce qui a été déposé, ne laisse rien
+et la réputation baisse ; rien n'a été déposé : elle baisse de moitié moins. Un passage peut être annulé, rarement,
+par une patrouille (1 chance sur 75), un hélicoptère (1 sur 100) ou, selon le mode, un orage réel du jeu : la voix
+l'annonce sur sa fréquence et le répète chaque heure jusqu'au rendez-vous ; rien n'est perdu. Les
 dix marchands livrés (un par ville vanilla) servent d'exemples : `personas/wanda.txt` (barque), `hollis.txt`
-(route), `odessa.txt` (planque). Le barème de ce que prend un marchand est celui du passeur
+(route), `odessa.txt` (planque). Le barème du troc est celui du passeur
 (`docs/specifications-techniques/passeur-table.md`).
 
 ```ini
@@ -522,11 +530,15 @@ item=Base.Coffee2:1-2
 group=smokes:1-3
 item=Base.CigarettePack:smokes
 item=Base.CigaretteCarton:smokes
+accept=cash
+accept=jewelry
+accept=Base.Antibiotics
 
 [prompt]
 You are Ada Pruitt, 61, who runs an old ferry boat on the Ohio and trades with people inside the Knox Exclusion Zone.
-Your trade book is the only truth about your stock, your prices and your run; give the landing, the night and the
-signal only to the group whose run is booked, exactly as written in your book.
+Your trade book is the only truth about your stock, what you accept in payment and your run; a deal is two lists of
+goods, never points or prices; give the landing, the night and the signal only to the group whose run is booked,
+exactly as written in your book.
 Stay in character. Radio style: 1 to 3 short sentences, end each transmission with "Over.".
 Answer in the same language the caller uses.
 ```

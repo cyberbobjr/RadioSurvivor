@@ -1,18 +1,25 @@
-// Forms of the [trade] keys (E22-T12, user 2026-11-15: nothing to type in a format): the trader's stock (item=, an
-// item searched by name, its quantity "from ... to ..." or a lot, its weight shown), the lots (group=name:total[:kinds]),
+// Forms of the [trade] keys (E22-T12, user 2026-11-15: nothing to type in a format; 2026-11-16: no item name typed):
+// the trader's stock (item=, items picked in the item browser, each with its quantity "from ... to ..." or a lot, its
+// weight shown), what the voice accepts as payment (accept=, E23-T06: whole categories ticked and items picked, only
+// what has a trade value), the lots (group=name:total[:kinds]),
 // the meeting places (landing=, check boxes of the voice's places used as trade meeting points), the meeting hours,
 // the days between two visits, the quiet delay and the margin. Registered in stock.js KEY_EDITORS.
 
+import { acceptChoices } from './categories.js';
 import { h, select } from './dom.js';
 import { field } from './fields.js';
 import { hint } from './help.js';
-import { browseButton } from './itembrowser.js';
-import { itemPicker } from './itempicker.js';
+import { addItemsButton, itemChoice } from './itempicker.js';
 import * as sheet from './sheet.js';
 import { formatGroup, formatList, formatMargin, formatStockItem, formatTimeRange, groupName, parseGroup, parseList,
   parseMargin, parseStockItem, parseTimeRange } from './values.js';
 import * as voice from './voice.js';
 import { button, checkboxes, lineEditor, numberInput, timeRange } from './widgets.js';
+
+// What a trader's lists offer (E22-T17): only the items with a trade value, as the browser says.
+const SELLABLE_NOTE = 'browser.sellable_only';
+// Names of a category's items in its tooltip, at most this many.
+const MAX_TIP_NAMES = 30;
 
 // Use of a place ([place] use=) that makes it a trade meeting point (RS_Persona tradeLanding).
 const LANDING_USE = 'landing';
@@ -31,34 +38,86 @@ function amountCells(t, item, lots, change, redraw) {
   return [mode, range];
 }
 
-// Lines "Module.Type:quantity" ([trade] item=, own [category] item=): the item searched by name or picked in the item
-// browser (several at once), its weight shown, its quantity. Every line has the same cells: item | mode | range.
-// `offered(catalog)` is the index of the items the lines may offer, `note` the browser's line saying so (or null).
-const stockLines = (offered, note = null) => (ctx, section, key) => {
-  const { t, catalog, changed } = ctx;
-  const lots = lotNames(section);
+// Item lines of a list: the item as a read-only label (a click replaces it, itempicker.js), then `cells`; "Add items"
+// opens the item browser in multiple choice, `toLine(type)` making the line of a ticked item. `offered(catalog)` is the
+// index of the items the lines may hold, `note` the browser's line saying so (or null). Every item appears once.
+function itemLines(ctx, { lines, write, offered, note = null, toLine, rowClass, label, cells = () => [] }) {
+  const { t, catalog } = ctx;
   const items = catalog.itemIndex();
   const offer = offered(catalog);
-  const write = (list) => { sheet.setValues(section, key, list.map(formatStockItem)); changed(); };
-  const host = h('div', { class: 'stack' });
-  const draw = () => host.replaceChildren(lineEditor(t, sheet.values(section, key).map(parseStockItem), {
-    addLabel: t('stock.add'),
-    blank: () => ({ type: '', amount: '1' }),
+  return lineEditor(t, lines, {
     write,
-    tools: (addLines) => [browseButton(t, offer, { multi: true, note, onPick: (type) => addLines([{ type, amount: '1' }]) }),
-      hint(t, 'help.ui.item_browser', { label: t('browser.open') })],
-    draw: (item, index, change) => h('div', { class: `line-fields stock-line${lots.length ? ' with-lots' : ''}` },
-      itemPicker(t, items, item.type, (v) => { item.type = v; change(); }, { 'aria-label': t('stock.item', { n: index + 1 }) },
-        { offer }),
-      ...amountCells(t, item, lots, change, draw)),
-  }));
+    tools: (addLines, list) => [
+      addItemsButton(t, offer, { note, taken: () => list.map((l) => l.type), onAdd: (types) => addLines(types.map(toLine)) }),
+      hint(t, 'help.ui.item_browser', { label: t('browser.add_items') })],
+    draw: (line, index, change, list) => h('div', { class: `line-fields ${rowClass}` },
+      itemChoice(t, items, line.type, (v) => { line.type = v; change(); }, { offer, note, label: label(index),
+        taken: () => list.map((l) => l.type) }),
+      ...cells(line, change)),
+  });
+}
+
+// Lines "Module.Type:quantity" ([trade] item=, own [category] item=): each item with its quantity. Every line has the
+// same cells: item | mode | range.
+const stockLines = (offered, note = null) => (ctx, section, key) => {
+  const { t, changed } = ctx;
+  const lots = lotNames(section);
+  const host = h('div', { class: 'stack' });
+  const draw = () => {
+    const lines = sheet.values(section, key).map(parseStockItem);
+    host.replaceChildren(itemLines(ctx, {
+      lines, offered, note, rowClass: `stock-line${lots.length ? ' with-lots' : ''}`,
+      write: (list) => { sheet.setValues(section, key, list.map(formatStockItem)); changed(); },
+      toLine: (type) => ({ type, amount: '1' }),
+      label: (index) => t('stock.item', { n: index + 1 }),
+      cells: (item, change) => amountCells(t, item, lots, change, draw),
+    }));
+  };
   draw();
   return host;
 };
 
 // An own [category]: any item of the game. The trader's stock: only the items a trader can sell (E22-T17).
 export const stockItems = stockLines((catalog) => catalog.itemIndex());
-const traderStock = stockLines((catalog) => catalog.sellableItemIndex(), 'browser.sellable_only');
+const traderStock = stockLines((catalog) => catalog.sellableItemIndex(), SELLABLE_NOTE);
+
+// accept= (E23-T06): a value naming an item (Module.Type) or a category, as RS_Persona.lua tells them apart.
+const isItemValue = (value) => value.includes('.');
+
+// One category check box: its name, how many of its items the voice accepts, their names in the tooltip; a category
+// already in the sheet that the game would refuse (no item with a trade value, or unknown) stays, said as such, to be
+// unticked.
+function categoryOption(t, items, { id, sellable }) {
+  const names = [...new Set(sellable.map((type) => items.get(type, t.lang)?.name ?? type))]
+    .sort((a, b) => a.localeCompare(b, t.lang));
+  const tip = names.length > MAX_TIP_NAMES ? `${names.slice(0, MAX_TIP_NAMES).join(', ')}…` : names.join(', ');
+  return { value: id, label: t(`category.${id}`, {}, id),
+    help: sellable.length ? t('accept.count', { n: sellable.length }) : t('accept.no_value'), title: tip || null };
+}
+
+// What the voice accepts as payment: whole categories (check boxes of those with at least one item with a trade value)
+// and items picked in the sellable list. Written categories first, then items.
+function accepted(ctx, section, key) {
+  const { t, catalog, model, changed } = ctx;
+  const values = sheet.values(section, key);
+  let categories = values.filter((v) => !isItemValue(v));
+  let types = values.filter(isItemValue);
+  const write = () => { sheet.setValues(section, key, [...categories, ...types]); changed(); };
+  const items = catalog.itemIndex();
+  const choices = acceptChoices(model, catalog);
+  const known = new Set(choices.map((c) => c.id));
+  const options = [...choices.filter((c) => c.sellable.length || categories.includes(c.id)),
+    ...categories.filter((id) => !known.has(id)).map((id) => ({ id, sellable: [] }))].map((c) => categoryOption(t, items, c));
+  return h('div', { class: 'stack accept' },
+    h('p', { class: 'help', text: t('accept.categories') }),
+    checkboxes(options, categories, (list) => { categories = list; write(); }, { class: 'checks accept-categories' }),
+    h('p', { class: 'help', text: t('accept.items') }),
+    itemLines(ctx, {
+      lines: types.map((type) => ({ type })), offered: (c) => c.sellableItemIndex(), note: SELLABLE_NOTE,
+      rowClass: 'accept-line', toLine: (type) => ({ type }), label: (index) => t('accept.item', { n: index + 1 }),
+      write: (list) => { types = list.map((l) => l.type); write(); },
+    }));
+}
 
 // A lot name the game accepts (a-z first, then a-z 0-9 _), not taken by another lot of the section.
 function lotId(text, taken) {
@@ -144,6 +203,7 @@ function margin(ctx, section, key) {
 export const TRADE_EDITORS = {
   item: traderStock,
   group: lots,
+  accept: accepted,
   landing,
   hours: meetingHours,
   every_days: numberKey('trade.every', 'trade.days', { min: 1, max: 28 }),

@@ -364,6 +364,47 @@ console.log(JSON.stringify(check(model, catalog, 'seller').filter((c) => c.key =
             ('Mine.Gadget', {'block': 'trade', 'id': None, 'field': 'item'}),
         ], 'only the [trade] stock: an own category keeps every item')
 
+    ACCEPT_SHEET = ('format=1\nid=buyer\nname=Buyer\nfrequencies=145.0\n\n[trade]\nitem=Base.Battery:1\n'
+                    'accept=cash\naccept=Base.Axe\naccept=kit\naccept=ghost\naccept=Base.Battery\naccept=goods\n\n'
+                    '[category kit]\nitem=Base.Axe:1\n\n[category goods]\nitem=Base.Axe:1\nitem=Base.Battery:2\n\n'
+                    '[prompt]\nA trader.\n')
+
+    def test_accepted_categories_count_their_sellable_items(self):
+        """E23-T06: a category is accepted as payment only for its items with a trade value: the shared ones and the
+        sheet's own [category] sections, each with its sellable items (the accept editor offers those with one)."""
+        script = node_prelude() + f"""
+import {{ categoryIds, acceptChoices }} from '{module_url('categories.js')}';
+const model = sheet.parse({json.dumps(self.ACCEPT_SHEET)});
+const choices = acceptChoices(model, catalog);
+console.log(JSON.stringify({{ ids: categoryIds(model, catalog), choices: Object.fromEntries(choices.map((c) => [c.id,
+  {{ own: c.own, sellable: c.sellable }}])), shared: catalog.categoryItems('cash'), none: catalog.categoryItems('kit') }}));
+"""
+        got = run_node(script)
+        self.assertEqual(got['ids'][-2:], ['kit', 'goods'], 'the shared categories, then the own ones')
+        self.assertIn('cash', got['ids'])
+        self.assertEqual(got['choices']['kit'], {'own': True, 'sellable': []})
+        self.assertEqual(got['choices']['goods'], {'own': True, 'sellable': ['Base.Battery']})
+        self.assertFalse(got['choices']['cash']['own'])
+        self.assertIn('Base.MoneyBundle', got['choices']['cash']['sellable'])
+        self.assertLessEqual(set(got['choices']['cash']['sellable']), set(got['shared']))
+        self.assertIsNone(got['none'], 'an own category is not a shared one')
+
+    def test_check_flags_what_the_voice_cannot_accept(self):
+        """E23-T06: an accepted item without a trade value, a category without one, an unknown category; a trade without
+        accept= is said in plain words (not the raw key)."""
+        no_accept = self.ACCEPT_SHEET.replace('accept=', '#accept=')
+        script = node_prelude() + f"""
+const keys = (text) => check(sheet.parse(text), catalog, 'buyer').filter((c) => c.where.field === 'accept')
+  .map((c) => [c.key, c.args.value ?? c.args.name ?? null, c.where.field]);
+console.log(JSON.stringify({{ bad: keys({json.dumps(self.ACCEPT_SHEET)}), none: keys({json.dumps(no_accept)}) }}));
+"""
+        got = run_node(script)
+        self.assertEqual(got['bad'], [['check.accept_not_sellable', 'Base.Axe', 'accept'],
+                                      ['check.accept_no_value', 'kit', 'accept'],
+                                      ['check.accept_unknown_category', 'ghost', 'accept']])
+        self.assertIn(['check.no_accept', 'accept', 'accept'], got['none'])
+        self.assertNotIn('check.missing_key', [k for k, _, _ in got['none']])
+
 
     def test_voice_status_of_the_server_entries(self):
         """A copy the game wrote from an older version of the mod (server `outdated`) has its own state, not "from the
@@ -380,6 +421,19 @@ console.log(JSON.stringify(check(model, catalog, 'seller').filter((c) => c.key =
         got = run_node(script)
         self.assertEqual(got['got'], {k: k for k in entries})
         self.assertIn('outdated', got['statuses'])
+
+    def test_map_link_opens_the_build_42_map_on_the_square(self):
+        """The link next to x/y/z opens zomboidmap.com (Build 42) centred on the square: the site reads
+        #zoom/x/y/f<floor> from its address. Without a usable x and y it opens the whole map."""
+        cases = [['10600', '9300', '0'], [' 8159.4 ', '11661', ''], ['10600', '9300', '1.5'], ['', '9300', '0'],
+                 ['abc', '9300', '0'], ['-3', '9300', '0'], [None, None, None]]
+        script = (f"import {{ mapUrl, MAP_SITE }} from '{module_url('maplink.js')}';\n"
+                  f"const cases = {json.dumps(cases)};\n"
+                  "console.log(JSON.stringify({ site: MAP_SITE, urls: cases.map(([x, y, z]) => mapUrl(x, y, z)) }));\n")
+        got = run_node(script)
+        self.assertEqual(got['site'], 'https://zomboidmap.com/')
+        self.assertEqual(got['urls'], ['https://zomboidmap.com/#11/10600/9300/f0', 'https://zomboidmap.com/#11/8159/11661',
+                                       'https://zomboidmap.com/#11/10600/9300', None, None, None, None])
 
 
 class AtelierStringsTests(unittest.TestCase):

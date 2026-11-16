@@ -98,7 +98,7 @@ Each voice carries a coloured dot; the legend is below the list.
 |---|---|
 | **Yours** | A voice you made or imported. |
 | **From the mod** | A voice shipped with the mod, as is. |
-| **Older version** (hollow green dot) | A copy of a voice of the mod that the game wrote from an older version of the mod: the game will replace it with the mod's new version the next time it loads the world. Nothing to do. |
+| **Older version** (hollow green dot) | A copy of a voice of the mod that the game wrote from an older version of the mod: the game will replace it with the mod's new version the next time it loads the world, or at once with **Back to the mod's version**. |
 | **Changed** | A voice of the mod you changed. A mod update never overwrites your changes. |
 | **Removed** | A voice of the mod you took off the air. |
 | **Not saved yet** | (at the top of the editor) A voice made but never saved: it does not exist for the game yet. |
@@ -264,10 +264,18 @@ whole Knox Country: move the mouse over a square to read its X and Y, then check
 meeting point of a hidden drop on the square of a container (dumpster, mailbox) or right next to it, and a job place on
 a square inside the building.
 
+Next to the x, y and z fields of a place (and of the position of a voice set at a precise place), the "View on the map
+↗" link opens the community Build 42 map (zomboidmap.com) in a new tab, zoomed on the square. While x and y are empty,
+the "Open the map ↗" link shows the whole map: the square under the mouse shows its coordinates there. That map is made
+from Build 42.20 and may differ slightly from your version; for a sure square, record it in the game with a right
+click, "Voice workshop: record this place" (in solo with debug mode on, or by an admin in multiplayer).
+
+![One of Rosie's places and its "View on the map" link](../../images/screenshots/atelier/atelier-en-04c-place-map.png)
+
 ### Recording a place in game
 
 Rather than looking for coordinates, walk to the spot in the game, right-click the square and choose **"Voice
-workshop: record this place"**. The menu is always there in singleplayer, and only for an admin on a server. The place
+workshop: record this place"**. The menu only shows in singleplayer with the game's debug mode on, and on a server only for an admin or a moderator. The place
 then shows in the workshop under **Recorded in game** (newest first), with the date, who recorded it, the room and the
 container found (a dumpster, a mailbox).
 
@@ -304,7 +312,7 @@ At the end of a successful mission, the player gains reputation and a reward of 
 | **Barricade** | Boards up outside windows and doors with planks or sheet metal. Only barricades put up during the job count. | **Windows and doors** (4 by default, 1 at least) | A **Place** |
 | **Deliver goods** | Leaves the requested items at a dead drop; drops at several dead drops add up. | **Pick-up delay** (game hours with nobody around before the goods are picked up, 6 by default), **What to bring** (a category; without one, 6 bandages or ripped sheets), **How many** ("from … to …", drawn at the start of the job) | A **Dead drop** |
 | **Bring back papers** | Finds a missing person's ID card and leaves it at a dead drop. | **Pick-up delay** | A **Dead drop** |
-| **Find a personal item** | The game puts a precious item at the chosen place; the player finds it and leaves it at a dead drop. | **Pick-up delay**, **Which object** (type its name, or **Browse items**), **Its name** (what she calls it, optional) | A **Place** and a **Dead drop** |
+| **Find a personal item** | The game puts a precious item at the chosen place; the player finds it and leaves it at a dead drop. | **Pick-up delay**, **Which object** (**Pick an item** opens the list of items, one click picks), **Its name** (what she calls it, optional) | A **Place** and a **Dead drop** |
 | **Set up a radio relay** | Puts up high (upper floor or roof) a transmitting radio, turned on and powered. Turned off, unpowered or taken away, it no longer counts. | — | A **Place** |
 | **Follow a route** | Goes through several places in order, on foot or by vehicle (within 8 squares of the centre), then reports. Only the next stop is circled on the map. | **Stops, in order**: 2 to 8 **Job place** places, never the same twice in a row (**+ Add a stop**, **Move up**, **Remove**) | Two job places |
 | **Light a smoke signal** | Lights a Signal Smoke signal at the requested place. | — | The Signal Smoke mod |
@@ -348,27 +356,33 @@ Under **To go further**, three optional panels, closed by default: trade, the fr
 
 ![The stock of Boone, a trader of the mod](../../images/screenshots/atelier/atelier-en-06-trade.png)
 
-**How it goes in game.** No trader appears. The player haggles on the radio; their first firm offer books the next
-run for their group. The trader then gives the place, the night and the signal, and the place is marked on that
-group's map only. The meeting is at least 6 game hours after the booking.
+**How it goes in game.** No trader appears, and the player never sees a price. On the radio, the voice and the player
+agree on **two lists of items**: what the player brings, what the trader leaves ("you bring me 2 boxes of shells, I
+leave you 3 cans"). The game refuses a deal that is too generous for the trader. The first deal books the next run for
+the player's group: the trader gives the place, the night and the signal, the place is marked on that group's map
+only and **the deal is written in the notebook** (Radio tab). The meeting is at least 6 game hours after the booking;
+once the trader has arrived, the deal no longer changes.
 
 1. **Boat** or **Road**: during the meeting window, the player shows the signal on the spot, **a lit lamp in hand** or
    **a red flare** (Signal Smoke). They hear the boat land, or the van's door. **Hidden drop**: no signal, no sound;
    the payment waits in the place's container (trash can, mailbox) before the hour.
-2. The player puts **a bag with the payment within 3 squares of the place**, then **goes out of sight**: nobody within
-   100 squares during the delay (1 game hour by default). Coming back too early resets the wait.
-3. On the way back, the bag holds the goods. A bag that does not cover the price is **cheating**: nothing is taken or
-   given, and the trader remembers it (higher prices, lower reputation).
+2. The player leaves **exactly what was agreed within 3 squares of the place**, then **goes out of sight**: nobody
+   within 100 squares during the delay (1 game hour by default). Coming back too early resets the wait.
+3. On the way back, the goods are there. **All or nothing**: only what was left after the deal counts (a bag already
+   there, the loot of a dumpster or another player's stash do not count). Everything is there: the trader takes the
+   agreed list, nothing more. Something is missing: he keeps everything that was left, leaves nothing and remembers it
+   (higher prices, lower reputation). Nothing was left: the reputation drops half as much.
 
-**Where the payment goes.** With **Boat** or **Road**, any bag put **on the ground** within 3 squares of the place
-(the payment inside); the goods are put in that same bag. With **Hidden drop**, no bag on the ground: the payment goes
-**in a container** of the place (dumpster, mailbox, crate) within 3 squares, and the goods are put in that same
-container. So put a hidden drop's meeting point on a container or right next to it.
+**Where the payment goes.** With **Boat** or **Road**, in one or more bags put **on the ground** within 3 squares of
+the place (they add up); the goods go in the bag that held most of the payment. With **Hidden drop**, no bag on the
+ground: the payment goes **in one or more containers** of the place (dumpster, mailbox, crate) within 3 squares, and
+the goods in the one that held most of it. **Never in a vehicle**: the trader does not search cars. So put a hidden
+drop's meeting point on a container or right next to it.
 
-**Caps**: the trader brings **10 kg at most** per exchange (8 kinds of items at most) and takes **20 kg at most** from
-the bag. He accepts valuable items as payment: money, jewellery, watches, cameras and film, papers of the dead (ID
-cards, wallets, dog tags), military gear in good condition. A run can be cancelled (patrol, roadblock, sweep,
-helicopter, storm); the trader leaves if he had no quiet moment within 12 hours of his arrival.
+**Caps**: the trader leaves **10 kg at most** per exchange (8 kinds of items at most) and the player brings **20 kg at
+most**. A run is rarely called off (patrol 1 time in 75, helicopter 1 time in 100, a real storm of the game by mode):
+the voice announces it on its frequency and repeats it every hour until the meeting time, and nothing is lost. The
+trader leaves without touching anything if he had no quiet moment within 12 hours of his arrival.
 
 **In the workshop**, open **Trade** and tick **This voice trades** (**Trade** is also ticked at step 3):
 
@@ -378,24 +392,26 @@ helicopter, storm); the trader leaves if he had no quiet moment within 12 hours 
 | **Arrives by** (needed) | **Boat** (a boat lands), **Road** (a van parks by the road) or **Hidden drop** (nobody comes, like the traders of Rosewood, Ekron or Fallas Lake). |
 | **Meeting hours** (needed) | The window, in game time, when the player shows the signal; the end can go past midnight (23:00 to 01:00). |
 | **Visits** (needed) | "every N days" of game, from 1 to 28. A single run per period for the whole server. |
-| **Goods** (needed) | One line per item: its name (type "battery", "bandage" and pick it in the list, or **Browse items**) and how many the trader brings, "from … to …" (drawn at each run). The weight is shown for information: **you never write a weight**, the game knows it (full bottle included). **+ Add an item** adds a line. |
+| **Goods** (needed) | What the trader leaves: one line per item, added with **Add items** (the list below), and how many the trader brings, "from … to …" (drawn at each run). Each line shows the item's name in your language and its weight, for information: **you never write a weight or an item name**. Click the name to change the item, the cross to remove the line. |
 | **Lots** | A lot groups goods that share a total: its name, "from … to … in all" and, if you want, "at most N kinds". On each goods line, choose **In the "…" lot** instead of **A number**. A lot with no item is refused by the game. |
-| **Margin** | The share the trader keeps, "from … % to … %"; empty: 10 % to 50 %. It goes down for a loyal customer. |
+| **What the voice accepts** (needed) | What the player may bring as payment, and nothing else: tick whole categories (**Cash and valuables**, **Jewelry**, **Cameras and films**, **Papers of the dead**, **Military gear**, or one of her own; each says how many of its items have a trade price, hover it to see them), then add single items if you want with **Add items**. A category with no priced item is not offered. |
+| **Margin** | The share the trader keeps, "from … % to … %"; empty: 10 % to 50 %. The game counts it in secret to judge a deal; it goes down for a loyal customer. |
 | **Quiet place for** | The game hours with nobody around before the exchange; empty: about 1 hour. |
 
-> **Only items with a price can be sold.** A trader can only sell the items that have a price in the trade:
-> batteries, cigarettes, spirits, beer, coffee, radio parts, electric wire, seed packets; canned food, rice, pasta,
-> dried beans, peanut butter; antibiotics, bandages, wipes, disinfectant, painkillers, suture needle; ammo boxes;
-> military gear. So the goods list (search and **Browse items**) only offers those. A line naming another item (an
-> imported sheet, a type typed in full) is flagged in the checks: the game accepts the sheet, but every offer naming
-> that item would be refused.
+> **Only items with a price can be traded.** A trader can only sell, or accept, the items that have a price in the
+> trade: batteries, cigarettes, spirits, beer, coffee, radio parts, electric wire, seed packets; canned food, rice,
+> pasta, dried beans, peanut butter; antibiotics, bandages, wipes, disinfectant, painkillers, suture needle; ammo
+> boxes; money, jewelry, cameras, papers of the dead, military gear. So the lists of the step only offer those. A line
+> naming another item (an imported sheet) is flagged in the checks.
 
-**Browse items** opens the list of the items of the game (for the goods: the items a trader can sell): search by name (or `Module.Type`), filter by **Category**
-(the one of the game's inventory), click to pick. Each line gives the name, the category, the type the sheet keeps and
-the weight. In a goods list, each click (or **Enter**) adds a line and the window stays open: add several items at
-once, then **Done**. **Escape** closes the window.
+**Add items** opens the list of items (for the goods and what the voice accepts: only those with a trade price).
+Search by name in the workshop's language, filter by **Category** (the one of the game's inventory); each line gives
+the name, the category and the weight. Tick one or more items (the ticks stay when you search again), then **Add
+selected**. An item already in the list is marked "Already in the list". To replace the item of a line, click its
+name: the same list opens, one click picks. **Escape** closes without changing anything. Nothing is ever typed: the
+technical id of the item (`Base.Battery`) only shows when hovering its name.
 
-![Browse items: searching "whisky"](../../images/screenshots/atelier/atelier-en-15-browser.png)
+![Add items: searching "whisky"](../../images/screenshots/atelier/atelier-en-15-browser.png)
 
 Two complete traders, one on the road and one through a hidden drop: [Voice examples](14-voice-examples.md#3-sol-the-night-truck).
 
@@ -421,7 +437,7 @@ the sheet itself, with no other file.
 
 Lists of items of her own, for her deliveries (**What to bring**) and her **Supply bags**, on top of the mod's five
 categories. Type a name (for example `team kit`), click **+ Add a category**, then add the items as for a stock
-(**+ Add an item**, quantity "from … to …"). The category then shows in the category lists of the missions and
+(**Add items**, quantity "from … to …"). The category then shows in the category lists of the missions and
 rewards. A complete example: [Coach Tibbs](14-voice-examples.md#2-coach-tibbs-the-mission-giver).
 
 ## The bridge's AI helps you
@@ -529,8 +545,8 @@ Each gesture asks for confirmation in a bar (**Cancel** or the red button).
   deleted.
 - **Take off the air**: for a voice of the mod. Its sheet is emptied and the game drops it within 30 seconds. It stays
   in the list, marked **Removed**; when opened, it only offers **Back to the mod's version**.
-- **Back to the mod's version**: throws away your changes to a voice of the mod (or cancels its removal). The mod's
-  version comes back at the next world load.
+- **Back to the mod's version**: copies the mod's version back at once, for a changed, removed or older-version voice.
+  Your changes are lost. The bridge uses it right away, the game within 30 seconds.
 
 ![Back to the mod's version: the workshop asks for confirmation](../../images/screenshots/atelier/atelier-en-13-restore.png)
 
@@ -569,6 +585,5 @@ Details: [Remember you](10-creating-radio-voices.md#remember-you--always).
 - Two settings of a hand-written sheet have no box in the workshop: the language (`language`) and the number of
   requests per hour (`budget`). The workshop keeps them as they are.
 - The id of a saved voice does not change: to rename it, make a copy of it.
-- Going back to the mod's version only takes effect at the next world load.
 - The places recorded in game and the game's verdict are only visible in a workshop started on the machine running
   the game.

@@ -232,7 +232,9 @@ class AtelierServerTests(unittest.TestCase):
         self.assertIn("restore", payload["message"])
         self.assertTrue((self.working / "walt.txt").exists())
 
-    def test_remove_empties_a_delivered_voice_and_restore_deletes_it(self):
+    def test_remove_empties_a_delivered_voice_and_restore_copies_the_mod_version(self):
+        """User request 2026-11-16: "recopier du mod" puts the mod's version back at once (the bridge reads it on the
+        next request, the game within 30 s), for a removed, modified or outdated copy."""
         status, payload, _ = self.request("POST", "/api/voices/walt/remove")
         self.assertEqual((status, payload["code"]), (200, "voice_removed"))
         self.assertEqual((self.working / "walt.txt").read_bytes(), b"")
@@ -240,9 +242,10 @@ class AtelierServerTests(unittest.TestCase):
         self.assertEqual((walt["removed"], walt["name"]), (True, "Walt Hensley"))
         status, payload, _ = self.request("POST", "/api/voices/walt/restore")
         self.assertEqual((status, payload["code"]), (200, "voice_restored"))
-        self.assertIn("next world load", payload["message"])
-        self.assertFalse((self.working / "walt.txt").exists())
-        self.assertEqual(self.request("POST", "/api/voices/walt/restore")[0], 200)   # already absent: same result
+        self.assertEqual((self.working / "walt.txt").read_bytes(), (self.shipped / "walt.txt").read_bytes())
+        walt = self.voices()["walt"]
+        self.assertEqual((walt["removed"], walt["modified"], walt["outdated"]), (False, False, False))
+        self.assertEqual(self.request("POST", "/api/voices/walt/restore")[0], 200)   # already the mod's: same result
 
     def test_remove_and_restore_refuse_a_custom_voice(self):
         (self.working / "mine.txt").write_text("id=mine\n", encoding="utf-8")

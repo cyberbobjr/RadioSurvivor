@@ -169,6 +169,11 @@ ADDED |= {'IGUI_RS_TradeRun_' + k for k in (
     'Cancel_sweep', 'Cancel_overflight')}
 # E22-T08: "Voice workshop: record this place" (RS_PlaceSurveyMenu) and its halo texts.
 ADDED |= {'IGUI_RS_Survey_Menu', 'IGUI_RS_Survey_Done', 'IGUI_RS_Survey_Refused'}
+# E23-T02: mission lost with a dead participant (state cancelled_lost, notices of the next character); E23-T03: delay
+# stopped while the voice cannot hear the report.
+ADDED |= {'IGUI_CA_LostMission', 'IGUI_CA_LostMissionTeam', 'IGUI_CA_State_cancelled_lost',
+          'IGUI_CA_MissionState_cancelled_lost', 'IGUI_CA_StateShort_cancelled_lost', 'IGUI_CA_MissionPaused',
+          'IGUI_RS_VoiceSilentWaiting'}
 TOWN_NOTES = ('Wanda', 'Lamar', 'Delphine', 'Hollis', 'Loretta', 'Virgil', 'Boone', 'Odessa', 'Ezra', 'Maxine')
 # E22-T07: generic handwritten note of the voices whose note text is written in their sheet (title and name only).
 ADDED_FILES = {
@@ -218,6 +223,9 @@ ADDED |= {
     'IGUI_CA_Dir_south', 'IGUI_CA_Dir_south_east', 'IGUI_CA_Dir_south_west', 'IGUI_CA_Dir_west', 'IGUI_CA_None',
     'IGUI_CA_Say'
 }
+# E23-T06..T08: trade by lists of items (agreed deal in the notebook, nothing left, trader never left alone).
+ADDED |= {'IGUI_RS_Radio_trade', 'IGUI_RS_TradeDeal', 'IGUI_RS_RepReason_TradeNoDrop', 'IGUI_RS_Event_trade_nodrop',
+          'IGUI_RS_TradeRun_Cancel_watched'}
 
 
 class TranslationSplitTests(unittest.TestCase):

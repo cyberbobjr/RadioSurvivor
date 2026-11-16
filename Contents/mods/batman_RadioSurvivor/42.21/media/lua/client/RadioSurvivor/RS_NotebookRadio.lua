@@ -27,6 +27,7 @@ RADIO_COLORS.reveal = RADIO_COLORS.mark
 RADIO_COLORS.mission = RADIO_COLORS.mark
 RADIO_COLORS.reward = RADIO_COLORS.mark
 RADIO_COLORS.note = RADIO_COLORS.mark
+RADIO_COLORS.trade = RADIO_COLORS.mark
 local DEVICE_CACHE_MS = 250
 
 local function tr(key, ...) return getText('IGUI_RS_' .. key, ...) end
@@ -54,6 +55,30 @@ end
 
 RS_NotebookRadio = {}
 local Radio = RS_NotebookRadio
+
+-- E23-T06: one side of an agreed trade, "Type:quantity,..." (module Base left out) -> "2 x Battery, 1 x ..." with
+-- the names of the player's language.
+local function tradeSide(text)
+    local parts = {}
+    for name, q in string.gmatch(tostring(text or ''), '([%w_%.]+):(%d+)') do
+        local full = string.find(name, '.', 1, true) and name or ('Base.' .. name)
+        local shown = getItemNameFromFullType and getItemNameFromFullType(full) or nil
+        parts[#parts + 1] = q .. ' x ' .. ((shown and shown ~= '') and shown or name)
+    end
+    return #parts > 0 and table.concat(parts, ', ') or '-'
+end
+
+-- What a Radio line says, by kind, when its text is not said as is: mission received (E11-T08: the kind of place),
+-- reward (key of the reward), note read (the voice of the frequency), trade agreed (E23-T06: "bring|receive").
+local SAID = {
+    mission = function(l) return Missions.placeName(l.text) end,
+    reward = function(l) return tr('Reward_' .. l.text) end,
+    note = function(_, row) return History.voiceName(row.voice) or tr('None') end,
+    trade = function(l)
+        local bring, receive = string.match(tostring(l.text), '^([^|]*)|(.*)$')
+        return tr('TradeDeal', tradeSide(bring), tradeSide(receive))
+    end,
+}
 
 -- Second line of a frequency row: E06-T07: the voice of the frequency once known (contact, note read, frequency
 -- given), else the last line heard.
@@ -99,10 +124,7 @@ function Notebook:showRadio(row, text)
     local lines = History.lines(row.khz)
     for _, l in ipairs(lines) do
         local kind = RADIO_COLORS[l.kind] and l.kind or 'heard'
-        -- Mission received (E11-T08): the line holds the kind of place, translated here.
-        local said = kind == 'mission' and Missions.placeName(l.text) or l.text
-        if kind == 'reward' then said = tr('Reward_' .. l.text) end
-        if kind == 'note' then said = History.voiceName(row.voice) or tr('None') end
+        local said = SAID[kind] and SAID[kind](l, row) or l.text
         parts[#parts + 1] = '<RGB:' .. RADIO_COLORS[kind] .. '> ' .. clean(tr('Radio_' .. kind, l.when, said))
     end
     if #lines == 0 then parts[#parts + 1] = INK_TAG .. clean(tr('Empty_Radio')) end

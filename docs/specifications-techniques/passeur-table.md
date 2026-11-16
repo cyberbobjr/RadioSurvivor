@@ -11,6 +11,15 @@ indiqués (`fichier:ligne` de la déclaration `item X`). Noms anglais relevés d
 
 ## 1. Unité et règle d'un échange
 
+> **E23 (ADR [troc par liste d'objets](../architecture/decisions/adr-troc-simple-et-cas-limites.md), 2026-11-16).** Le
+> joueur ne voit jamais de points : la voix et le joueur conviennent à la radio de **deux listes d'objets**, ce que le
+> joueur apporte et ce que le marchand laisse (action `propose_trade { gives, wants }`), et l'accord s'écrit dans le
+> carnet. Ce barème ne sert plus qu'au serveur, pour **refuser un accord inéquitable** : Σ V de ce que le joueur
+> apporte ≥ Σ prix de ce que le marchand laisse. Ce que le joueur peut apporter est la liste `accept=` de la fiche du
+> marchand (objets ou catégories qui ont une valeur V). L'échange est tout ou rien sur ce qui a été déposé après
+> l'accord (section 1, « Échange »). Les plafonds par catégorie des sections 2.1 à 2.4 ne s'appliquent plus ; restent
+> le plafond par objet (`max`), les 120 points, les 10 kg et les 20 kg.
+
 ### Valeur
 
 - Chaque objet a une **valeur V en points entiers**. Il n'y a pas de monnaie : les points ne servent qu'à comparer deux
@@ -35,31 +44,43 @@ indiqués (`fichier:ligne` de la déclaration `item X`). Noms anglais relevés d
   **0,50** après une tricherie, quel que soit le niveau. Sans personnage du carnet : neutre. Remplace le « faute d'API
   de réputation » de la décision E13-T02.
 - **Multiplicateur M** = cordon × rareté, **borné à 1,0 – 1,75** :
-  - **cordon militaire** : 1,0 (calme), 1,25 (patrouilles ou hélicoptère signalés dans la semaine), 1,5 (cordon serré :
-    état serveur fixé par les événements de la semaine, E13-T03) ;
+  - **cordon militaire** (multiplicateur caché) : 1,0 (calme), 1,25 (patrouilles), 1,5 (cordon serré), tiré à chaque
+    passage (60 / 30 / 10 %) ; E23-T08 : un hélicoptère vanilla entendu ne le monte plus ;
   - **rareté** d'un objet : 1,25 si son stock du passage est de **1 exemplaire**, sinon 1,0.
-- **Accepté si** Σ V donnée ≥ Σ prix demandés. L'écart **n'est pas rendu** (pas de petite monnaie) : le LLM peut proposer
-  d'ajouter un petit objet pour l'équilibrer, dans les stocks du passage.
-- Le LLM négocie **à l'intérieur** de ces bornes : il choisit la marge dans la fourchette permise par la réputation et
-  peut refuser, jamais proposer sous le prix calculé (E13-T02).
+- **Accepté si** Σ V demandée au joueur ≥ Σ prix de ce que le marchand laisse (refus `unfair`). L'écart **n'est pas
+  rendu** (pas de petite monnaie) ; la voix peut demander plus.
+- La marge est toujours la plus basse permise à l'appelant (E23-T06) : le LLM ne la choisit plus, il voit le prix d'un
+  exemplaire de chaque objet de son stock et la valeur de ce qu'il accepte, et ne dit jamais de points à l'antenne.
 
 ### Plafonds d'un passage
 
 - Un passage par semaine de jeu pour tout le serveur (décision acquise).
-- Le passeur prend **au plus 120 points** au total par passage, et **au plus 20 kg** (place dans la barque), avec un
-  plafond par catégorie (sections 2.1 à 2.4).
+- Ce que le marchand laisse vaut **au plus 120 points** au total par passage et pèse **au plus 10 kg** ; ce que le
+  joueur apporte pèse **au plus 20 kg** (place dans la barque, poids des scripts) ; chaque objet au plus son plafond
+  `max` par passage (refus `over_count`).
 - La contrepartie pèse **au plus 10 kg**.
 - Le stock d'apport est tiré à chaque passage dans les fourchettes de la section 3 (tirage serveur reproductible).
 
 ### Ce qui est toujours refusé
 
+- Tout objet **absent de la liste `accept=` de la fiche** du marchand (E23-T06).
 - Tout objet **hors module `Base`** : en particulier les objets de ce mod (module `RadioSurvivor`, par exemple
   `RadioSurvivor.NoteWalt`, `NoteDarlene`, `NoteCody`, `NoteGus`, `NoteNightOwl`, déclarés dans
   `Contents/mods/batman_RadioSurvivor/42.21/media/scripts/RadioSurvivor_notes.txt`), le carnet et les objets de mission.
 - Tout objet portant des **ModData du mod** (objet de quête, preuve de mission), même de type `Base`.
-- Les objets **portés ou équipés** : seul compte le contenu du sac déposé, au premier niveau ; un portefeuille compte
-  avec son contenu (un niveau de plus, section 2.3), les autres contenants ne comptent que leur contenu.
-- Un objet hors des listes ci-dessous vaut **0** pour le passeur : il est laissé sur la berge.
+- Les objets **portés ou équipés** : seul compte ce qui est déposé au premier niveau des sacs au sol (barque, route) ou
+  des conteneurs du lieu (planque), à 3 cases ; un portefeuille compte pour lui seul ; un véhicule n'est jamais lu.
+- Ce qui était déjà au lieu quand le serveur l'a vu chargé après l'accord (E23-T07) : jamais compté, jamais pris.
+
+### Échange (E23-T07, ADR D02/D03)
+
+- **Tout est là** : le marchand prend exactement la liste convenue (le reste reste en place) et laisse sa marchandise
+  dans le sac ou le conteneur qui tenait le plus du paiement (le premier à égalité).
+- **Dépôt incomplet** : promesse non tenue ; il garde tout ce qui a été déposé, ne laisse rien ; fait de réputation
+  `trade.cheated` (−5) et marge au plus haut.
+- **Rien déposé** : il repart ; fait `trade.nodrop` (−2,5, la moitié).
+- **Annulation** par le marchand (patrouille 1 sur 75, hélicoptère 1 sur 100, orage réel selon le mode, E23-T08) :
+  annoncée et répétée chaque heure jusqu'au rendez-vous ; aucun dépôt touché, rien ne coûte au joueur.
 
 ## 2. Ce que le passeur prend
 
@@ -222,17 +243,19 @@ toujours refusé »).
 
 ## 4. Exemples d'échanges complets (passeur)
 
-Les prix sont calculés ligne par ligne, arrondis à l'entier supérieur.
+Les prix sont calculés ligne par ligne, arrondis à l'entier supérieur. Depuis E23, chaque exemple est un accord de deux
+listes que le serveur accepte ; à la radio, seuls les objets sont dits.
 
 1. **Première affaire, semaine calme** (marge 0,25, M = 1,0). Le joueur dépose une liasse `MoneyBundle` (10), un
    `Necklace_Gold` (4) et deux `IDcard` nominatives (6) : **20 points**. Il demande 2 `Antibiotics` :
-   ⌈8 × 2 × 1,25⌉ = **20**. Accepté, rien de perdu.
+   ⌈8 × 2 × 1,25⌉ = **20**. Accepté, rien de perdu. À la radio : « tu m'apportes une liasse de billets, un collier en
+   or et deux cartes d'identité, je te laisse deux antibiotiques ».
 2. **Cordon serré** (marge 0,25, cordon 1,5). Le joueur dépose une `CameraExpensive` (10), deux `VHS_Home` (12) et deux
    `CameraFilm` (6) : **28 points**. Une `308Box` coûte ⌈14 × 1,25 × 1,5⌉ = **27** ; y ajouter deux piles
-   (⌈2 × 2 × 1,875⌉ = 8) dépasserait. Accepté pour la seule boîte ; le point d'écart reste au passeur.
+   (⌈2 × 2 × 1,875⌉ = 8) dépasserait : un accord qui les ajoute est refusé (`unfair`). Accepté pour la seule boîte ;
+   le point d'écart reste au passeur.
 3. **Lot militaire** (marge 0,25, M = 1,0). Le joueur dépose un `AssaultRifle` en bon état (20), un `Vest_BulletArmy`
-   (10), une `556Box` (8) et trois `Necklace_DogTag` nominatives (12) : **50 points** (militaire 38 ≤ 60, papiers
-   12 ≤ 30). Il obtient une `CigaretteCarton` (⌈25 × 1,25⌉ = 32), une bouteille de `Whiskey` (7), un `Coffee2` (5) et
+   (10), une `556Box` (8) et trois `Necklace_DogTag` nominatives (12) : **50 points**. Il obtient une `CigaretteCarton` (⌈25 × 1,25⌉ = 32), une bouteille de `Whiskey` (7), un `Coffee2` (5) et
    deux `Battery` (⌈4 × 1,25⌉ = 5) : **49**. Accepté.
 4. **Rareté et réputation.** Ce passage ne compte qu'**un** antibiotique (rareté 1,25), cordon 1,25 :
    - équipe neutre (marge 0,25) : ⌈8 × 1,25 × 1,5625⌉ = **16** (M = 1,25 × 1,25 = 1,5625 ≤ 1,75) ;

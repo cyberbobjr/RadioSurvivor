@@ -102,7 +102,7 @@ Chaque voix porte un point de couleur ; la légende est sous la liste.
 |---|---|
 | **À toi** | Une voix que vous avez créée ou importée. |
 | **Du mod** | Une voix livrée avec le mod, telle quelle. |
-| **Ancienne version** (point vert creux) | Une copie d'une voix du mod que le jeu a écrite d'après une ancienne version du mod : le jeu la remplacera par la nouvelle version du mod au prochain chargement du monde. Rien à faire. |
+| **Ancienne version** (point vert creux) | Une copie d'une voix du mod que le jeu a écrite d'après une ancienne version du mod : le jeu la remplacera par la nouvelle version du mod au prochain chargement du monde, ou tout de suite avec **Revenir à la version du mod**. |
 | **Modifiée** | Une voix du mod que vous avez changée. Une mise à jour du mod n'écrase jamais vos changements. |
 | **Retirée** | Une voix du mod que vous avez retirée des ondes. |
 | **Pas encore enregistrée** | (en haut de l'éditeur) Une voix créée mais jamais enregistrée : elle n'existe pas encore pour le jeu. |
@@ -270,11 +270,20 @@ montre tout le comté de Knox : passez la souris sur une case pour lire son X et
 Placez une planque ou le rendez-vous d'un dépôt caché sur la case d'un conteneur (benne, boîte aux lettres) ou juste à
 côté, et un lieu de mission sur une case à l'intérieur du bâtiment.
 
+À côté des champs x, y et z d'un lieu (et de la position d'une voix placée à un endroit précis), le lien « Voir sur la
+carte ↗ » ouvre dans un nouvel onglet la carte communautaire de Build 42 (zomboidmap.com), zoomée sur la case. Tant que
+x et y ne sont pas remplis, le lien « Ouvrir la carte ↗ » montre la carte entière : la case sous la souris y affiche ses
+coordonnées. Cette carte est faite d'après Build 42.20 et peut différer un peu de votre version ; pour une case sûre,
+relevez-la en jeu par un clic droit « Atelier des voix : relever ce lieu » (en solo avec le mode debug, ou par un admin
+en multijoueur).
+
+![Un lieu de Rosie et son lien « Voir sur la carte »](../../images/screenshots/atelier/atelier-fr-04c-place-map.png)
+
 ### Relever un lieu en jeu
 
 Plutôt que de chercher des coordonnées, marchez jusqu'à l'endroit dans le jeu, faites un clic droit sur la case et
-choisissez **« Atelier des voix : relever ce lieu »**. Le menu existe toujours en solo, et seulement pour un admin sur
-un serveur. Le lieu apparaît ensuite dans l'atelier, sous **Relevés en jeu** (les plus récents d'abord), avec la date,
+choisissez **« Atelier des voix : relever ce lieu »**. Le menu n'apparaît qu'en solo avec le mode debug du jeu, et sur
+un serveur seulement pour un admin ou un modérateur. Le lieu apparaît ensuite dans l'atelier, sous **Relevés en jeu** (les plus récents d'abord), avec la date,
 qui l'a relevé, la pièce et le conteneur trouvé (une benne, une boîte aux lettres).
 
 ![Relevés en jeu : le casier de la cabane déjà dans ses lieux, une cuisine à ajouter](../../images/screenshots/atelier/atelier-fr-04b-places.png)
@@ -310,7 +319,7 @@ numérotée, avec ces réglages communs :
 | **Barricader** | Condamne des fenêtres et portes extérieures avec des planches ou de la tôle. Seules les barricades posées pendant la mission comptent. | **Fenêtres et portes** (4 par défaut, 1 au moins) | Un **Lieu** |
 | **Livrer des affaires** | Dépose à une planque les objets demandés ; les dépôts à plusieurs planques s'additionnent. | **Délai de ramassage** (heures de jeu sans personne autour avant que les affaires soient ramassées, 6 par défaut), **Quoi apporter** (une catégorie ; sans catégorie, 6 bandages ou draps déchirés), **Combien** (« de … à … », tiré au début de la mission) | Une **Planque** |
 | **Rapporter des papiers** | Retrouve la carte d'identité d'une personne disparue et la dépose à une planque. | **Délai de ramassage** | Une **Planque** |
-| **Retrouver un objet personnel** | Le jeu pose un objet précieux au lieu choisi ; le joueur le trouve et le dépose à une planque. | **Délai de ramassage**, **Quel objet** (tapez son nom, ou **Parcourir les objets**), **Son nom** (comment elle l'appelle, facultatif) | Un **Lieu** et une **Planque** |
+| **Retrouver un objet personnel** | Le jeu pose un objet précieux au lieu choisi ; le joueur le trouve et le dépose à une planque. | **Délai de ramassage**, **Quel objet** (**Choisir un objet** ouvre la liste des objets, un clic choisit), **Son nom** (comment elle l'appelle, facultatif) | Un **Lieu** et une **Planque** |
 | **Installer un relais radio** | Pose en hauteur (étage ou toit) une radio qui émet, allumée et alimentée. Éteinte, sans courant ou retirée, elle ne compte plus. | — | Un **Lieu** |
 | **Suivre un itinéraire** | Passe par plusieurs lieux dans l'ordre, à pied ou en véhicule (à moins de 8 cases du centre), puis fait son compte rendu. Seule la prochaine étape est entourée sur la carte. | **Étapes, dans l'ordre** : de 2 à 8 lieux **Lieu de mission**, jamais deux fois le même de suite (**+ Ajouter une étape**, **Monter**, **Retirer**) | Deux lieux de mission |
 | **Allumer un signal de fumée** | Allume un signal Signal Smoke au lieu demandé. | — | Le mod Signal Smoke |
@@ -356,29 +365,36 @@ propres catégories.
 
 ![Le stock de Boone, un marchand du mod](../../images/screenshots/atelier/atelier-fr-06-trade.png)
 
-**Comment ça se passe en jeu.** Aucun marchand n'apparaît. Le joueur négocie à la radio ; sa première offre ferme
-réserve le prochain passage pour son groupe. Le marchand donne alors le lieu, la nuit et le signal, et le lieu est
-marqué sur la carte de ce groupe seulement. Le rendez-vous a lieu au moins 6 heures de jeu après la réservation.
+**Comment ça se passe en jeu.** Aucun marchand n'apparaît, et le joueur ne voit jamais de prix. À la radio, la voix
+et le joueur conviennent de **deux listes d'objets** : ce que le joueur apporte, ce que le marchand laisse (« tu
+m'apportes 2 boîtes de cartouches, je te laisse 3 conserves »). Le jeu refuse un accord trop généreux pour le marchand.
+Le premier accord réserve le prochain passage pour le groupe du joueur : le marchand donne le lieu, la nuit et le
+signal, le lieu est marqué sur la carte de ce groupe seulement et **l'accord s'écrit dans le carnet** (onglet Radio).
+Le rendez-vous a lieu au moins 6 heures de jeu après la réservation ; une fois le marchand arrivé, l'accord ne change
+plus.
 
 1. **Bateau** ou **Route** : pendant la fenêtre du rendez-vous, le joueur montre le signal sur place, **une lampe
    allumée en main** ou **une fusée rouge** (Signal Smoke). Il entend la barque accoster, ou la portière du fourgon.
    **Dépôt caché** : aucun signal, aucun bruit ; le paiement attend dans le conteneur du lieu (poubelle, boîte aux
    lettres) avant l'heure.
-2. Le joueur pose un **sac avec le paiement à moins de 3 cases du lieu**, puis **s'éloigne hors de vue** : personne à
-   moins de 100 cases pendant le délai (1 heure de jeu par défaut). Revenir trop tôt remet l'attente à zéro.
-3. Au retour, le sac contient la marchandise. Un sac qui ne couvre pas le prix est une **tricherie** : rien n'est pris
-   ni donné, et le marchand s'en souvient (prix plus chers, réputation en baisse).
+2. Le joueur dépose **exactement ce qui est convenu à moins de 3 cases du lieu**, puis **s'éloigne hors de vue** :
+   personne à moins de 100 cases pendant le délai (1 heure de jeu par défaut). Revenir trop tôt remet l'attente à zéro.
+3. Au retour, la marchandise est là. **Tout ou rien** : seul compte ce qui a été déposé après l'accord (un sac déjà là,
+   le butin d'une benne ou la planque d'un autre joueur ne comptent pas). Tout y est : le marchand prend la liste
+   convenue, rien de plus. Il manque quelque chose : il garde tout ce qui a été déposé, ne laisse rien et s'en souvient
+   (prix plus chers, réputation en baisse). Rien n'a été déposé : la réputation baisse de moitié moins.
 
-**Où va le paiement.** Avec **Bateau** ou **Route**, n'importe quel sac posé **au sol** à moins de 3 cases du lieu (le
-paiement dedans) ; la marchandise est mise dans ce même sac. Avec **Dépôt caché**, pas de sac au sol : le paiement va
-**dans un conteneur** du lieu (benne, boîte aux lettres, caisse) à moins de 3 cases, et la marchandise est mise dans
-ce même conteneur. Placez donc le rendez-vous d'un dépôt caché sur un conteneur ou juste à côté.
+**Où va le paiement.** Avec **Bateau** ou **Route**, dans un ou plusieurs sacs posés **au sol** à moins de 3 cases du
+lieu (ils s'additionnent) ; la marchandise va dans le sac qui tenait le plus du paiement. Avec **Dépôt caché**, pas de
+sac au sol : le paiement va **dans un ou plusieurs conteneurs** du lieu (benne, boîte aux lettres, caisse) à moins de
+3 cases, et la marchandise dans celui qui en tenait le plus. **Jamais dans un véhicule** : le marchand ne fouille pas
+les voitures. Placez donc le rendez-vous d'un dépôt caché sur un conteneur ou juste à côté.
 
-**Plafonds** : le marchand apporte **10 kg au plus** par échange (8 sortes d'objets au plus) et ne prend **20 kg au
-plus** dans le sac. Il accepte en paiement des objets de valeur : argent, bijoux, montres, appareils photo et
-pellicules, papiers des morts (cartes d'identité, portefeuilles, plaques militaires), matériel militaire en bon état.
-Un passage peut être annulé (patrouille, barrage, ratissage, hélicoptère, orage) ; le marchand repart s'il n'a pas eu
-de moment tranquille dans les 12 heures après son arrivée.
+**Plafonds** : le marchand laisse **10 kg au plus** par échange (8 sortes d'objets au plus) et le joueur apporte
+**20 kg au plus**. Un passage est rarement annulé (patrouille 1 fois sur 75, hélicoptère 1 fois sur 100, orage réel
+du jeu selon le mode) : la voix l'annonce sur sa fréquence et le répète chaque heure jusqu'au rendez-vous, et rien
+n'est perdu. Le marchand repart sans rien toucher s'il n'a pas eu de moment tranquille dans les 12 heures après son
+arrivée.
 
 **Dans l'atelier**, ouvrez **Troc** et cochez **Cette voix fait du troc** (**Faire du troc** se coche aussi à l'étape 3) :
 
@@ -388,24 +404,28 @@ de moment tranquille dans les 12 heures après son arrivée.
 | **Arrive par** (obligatoire) | **Bateau** (une barque accoste), **Route** (un fourgon se gare au bord de la route) ou **Dépôt caché** (personne ne vient, comme les marchands de Rosewood, Ekron ou Fallas Lake). |
 | **Heures du rendez-vous** (obligatoire) | La fenêtre, en heure du jeu, où le joueur montre le signal ; la fin peut passer minuit (23:00 à 01:00). |
 | **Passage** (obligatoire) | « tous les N jours » de jeu, de 1 à 28. Un seul passage par période pour tout le serveur. |
-| **Marchandises** (obligatoire) | Une ligne par objet : son nom (tapez « pile », « pansement » et choisissez dans la liste, ou **Parcourir les objets**) et combien il en apporte, « de … à … » (tiré à chaque passage). Le poids s'affiche pour information : **vous n'écrivez jamais de poids**, le jeu le connaît (bouteille pleine comprise). **+ Ajouter un objet** ajoute une ligne. |
+| **Marchandises** (obligatoire) | Ce que le marchand laisse : une ligne par objet, ajoutée avec **Ajouter des objets** (la liste ci-dessous), et combien il en apporte, « de … à … » (tiré à chaque passage). Chaque ligne montre le nom de l'objet dans votre langue et son poids, pour information : **vous n'écrivez jamais de poids ni de nom d'objet**. Cliquez sur le nom pour changer d'objet, sur la croix pour retirer la ligne. |
 | **Lots** | Un lot regroupe des marchandises qui se partagent un total : son nom, « de … à … au total » et, si vous voulez, « au plus N sortes ». Sur chaque ligne de marchandise, choisissez **Dans le lot « … »** au lieu d'**Un nombre**. Un lot sans objet est refusé par le jeu. |
-| **Marge** | La part que le marchand garde, « de … % à … % » ; vide : 10 % à 50 %. Elle baisse pour un client fidèle. |
+| **Ce que la voix accepte** (obligatoire) | Ce que le joueur peut apporter en paiement, et rien d'autre : cochez des catégories entières (**Argent et objets de valeur**, **Bijoux**, **Appareils photo et films**, **Papiers des morts**, **Équipement militaire**, ou une catégorie à elle ; chacune dit combien de ses objets ont un prix au troc, survolez-la pour les voir), puis ajoutez si vous voulez des objets précis avec **Ajouter des objets**. Une catégorie sans objet à prix n'est pas proposée. |
+| **Marge** | La part que le marchand garde, « de … % à … % » ; vide : 10 % à 50 %. Le jeu la compte en secret pour juger un accord ; elle baisse pour un client fidèle. |
 | **Lieu tranquille depuis** | Les heures de jeu sans personne autour avant l'échange ; vide : environ 1 heure. |
 
-> **Seuls les objets qui ont un prix se vendent.** Un marchand ne peut vendre que les objets qui ont un prix au troc :
-> piles, cigarettes, alcools, bière, café, pièces radio, fil électrique, paquets de graines ; conserves, riz, pâtes,
-> haricots secs, beurre de cacahuètes ; antibiotiques, bandages, lingettes, désinfectant, antidouleurs, aiguille à
-> suture ; boîtes de munitions ; matériel militaire. La liste des marchandises (recherche et **Parcourir les objets**)
-> ne propose donc qu'eux. Une ligne qui nomme un autre objet (fiche importée, type tapé en entier) est signalée dans les
-> vérifications : le jeu accepte la fiche, mais toute offre qui cite cet objet serait refusée.
+> **Seuls les objets qui ont un prix se troquent.** Un marchand ne peut vendre, ni accepter, que les objets qui ont un
+> prix au troc : piles, cigarettes, alcools, bière, café, pièces radio, fil électrique, paquets de graines ; conserves,
+> riz, pâtes, haricots secs, beurre de cacahuètes ; antibiotiques, bandages, lingettes, désinfectant, antidouleurs,
+> aiguille à suture ; boîtes de munitions ; argent, bijoux, appareils photo, papiers des morts, matériel militaire. Les
+> listes de l'étape ne proposent donc qu'eux. Une ligne qui nomme un autre objet (fiche importée) est signalée dans les
+> vérifications.
 
-**Parcourir les objets** ouvre la liste des objets du jeu (pour les marchandises : ceux qu'un marchand peut vendre) : cherchez par nom (ou `Module.Type`), filtrez par
-**Catégorie** (celle de l'inventaire du jeu), cliquez pour choisir. Chaque ligne donne le nom, la catégorie, le type
-gardé par la fiche et le poids. Dans une liste de marchandises, chaque clic (ou **Entrée**) ajoute une ligne et la
-fenêtre reste ouverte : ajoutez plusieurs objets d'un coup, puis **Terminé**. **Échap** ferme la fenêtre.
+**Ajouter des objets** ouvre la liste des objets (pour les marchandises et ce que la voix accepte : seulement ceux qui
+ont un prix au troc). Cherchez par nom dans la langue de l'atelier, filtrez par **Catégorie** (celle de l'inventaire
+du jeu) ; chaque ligne donne le nom, la catégorie et le poids. Cochez un ou plusieurs objets (les coches restent quand
+vous changez de recherche), puis **Ajouter la sélection**. Un objet déjà dans la liste est marqué « Déjà dans la
+liste ». Pour remplacer l'objet d'une ligne, cliquez sur son nom : la même liste s'ouvre, un clic choisit. **Échap**
+ferme sans rien changer. Rien n'est jamais à taper : l'identifiant technique de l'objet (`Base.Battery`) ne s'affiche
+qu'en survolant son nom.
 
-![Parcourir les objets : recherche « whisky »](../../images/screenshots/atelier/atelier-fr-15-browser.png)
+![Ajouter des objets : recherche « whisky »](../../images/screenshots/atelier/atelier-fr-15-browser.png)
 
 Deux marchands complets, un sur la route et un par dépôt caché : [Exemples de voix](14-exemples-de-voix.md#3-sol-le-camion-de-nuit).
 
@@ -431,7 +451,7 @@ sont écrites dans la fiche elle-même, sans aucun autre fichier.
 
 Des listes d'objets à elle, pour ses livraisons (**Quoi apporter**) et ses **Sacs de matériel**, en plus des cinq
 catégories du mod. Tapez un nom (par exemple `trousse équipe`), cliquez sur **+ Ajouter une catégorie**, puis ajoutez
-les objets comme pour un stock (**+ Ajouter un objet**, quantité « de … à … »). La catégorie apparaît ensuite dans les
+les objets comme pour un stock (**Ajouter des objets**, quantité « de … à … »). La catégorie apparaît ensuite dans les
 listes de catégories des missions et des récompenses. Exemple complet :
 [Coach Tibbs](14-exemples-de-voix.md#2-coach-tibbs-le-donneur-de-missions).
 
@@ -541,8 +561,8 @@ Chaque geste demande confirmation dans un bandeau (**Annuler** ou le bouton roug
   Une voix du mod ne se supprime pas.
 - **Retirer des ondes** : pour une voix du mod. Sa fiche est vidée et le jeu l'enlève en moins de 30 secondes. Elle
   reste dans la liste, marquée **Retirée** ; ouverte, elle n'offre que **Revenir à la version du mod**.
-- **Revenir à la version du mod** : jette vos changements sur une voix du mod (ou annule son retrait). La version du
-  mod revient au prochain chargement du monde.
+- **Revenir à la version du mod** : recopie aussitôt la version du mod, pour une voix modifiée, retirée ou en ancienne
+  version. Vos changements sont perdus. Le pont l'utilise tout de suite, le jeu dans les 30 secondes.
 
 ![Revenir à la version du mod : l'atelier demande confirmation](../../images/screenshots/atelier/atelier-fr-13-restore.png)
 
@@ -581,6 +601,5 @@ sait qu'il est mort et peut en parler. Détails : [Se souvenir de vous](10-creer
 - Deux réglages d'une fiche écrite à la main n'ont pas de case dans l'atelier : la langue (`language`) et le nombre de
   demandes par heure (`budget`). L'atelier les garde tels quels.
 - L'identifiant d'une voix enregistrée ne change pas : pour la renommer, faites-en une copie.
-- Revenir à la version du mod ne prend effet qu'au prochain chargement du monde.
 - Les lieux relevés en jeu et le verdict du jeu ne sont visibles que dans un atelier lancé sur la machine qui fait
   tourner la partie.

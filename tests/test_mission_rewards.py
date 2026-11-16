@@ -48,17 +48,21 @@ def runtime():
     day=1; xp=0; added=0; placed=0; logged={}; capacity=20; saveOK=true; saves=0
     Perks={Doctor=1}; SandboxVars={RadioSurvivor={LessonMultiplier=1}}
     function addXp(p,perk,n) xp=xp+n end
-    function sendAddItemToContainer() added=added+1 end
+    steps={}  -- order of the inventory and stash effects (E23-T05)
+    function sendAddItemToContainer() added=added+1;steps[#steps+1]='send' end
     map={getActualWeight=function() return 1 end}
     function instanceItem() return map end
     inv={getCapacityWeight=function() return 0 end,getEffectiveCapacity=function() return capacity end,
-      AddItem=function(_,it) return it end}
+      AddItem=function(_,it) steps[#steps+1]='add';return it end}
     player={getInventory=function() return inv end}
     stash={getName=function() return 'A' end,getItem=function() return 'Base.Map' end,
       getBuildingX=function() return 1 end,getBuildingY=function() return 2 end}
-    visited=false; stashed=0
-    StashSystem={getPossibleStashes=function() return {size=function() return 1 end,get=function() return stash end} end,
-      getStash=function() return stash end,doStashItem=function() stashed=stashed+1 end}
+    visited=false; stashed=0; possible=true
+    -- StashSystem.java: doStashItem annotates the map and removes the stash from the possible ones.
+    StashSystem={getPossibleStashes=function() return {size=function() return possible and 1 or 0 end,
+        get=function() return stash end} end,
+      getStash=function() return stash end,
+      doStashItem=function() stashed=stashed+1;possible=false;steps[#steps+1]='stash' end}
     function getWorld() return {getMetaGrid=function() return {getRoomAt=function() return {
       getBuilding=function() return {isHasBeenVisited=function() return visited end} end} end} end} end
     voices={silent={state='silent'},dead={state='dead'},cody={state='active',name='Cody'}}
@@ -123,9 +127,58 @@ class RewardsTests(unittest.TestCase):
         self.assertIsNone(self.r.choose(self.g.store.data,self.g.source,self.g.m,'p')[0])
         self.lua.execute('store.data={};visited=true')
         self.assertIsNone(self.kind('RS_Reward_Stashmap').find())
-    def test_full_inventory_does_not_reserve_stash(self):
+    def test_map_enters_the_inventory_before_the_stash_is_reserved(self):
+        """E23-T05 (ADR D10): the map is in the inventory before the vanilla stash is reserved; the client gets the
+        annotated map after."""
+        self.lua.execute("source.rewards={{kind='stashmap',weight=1}}")
+        self.assertEqual(self.grant().status,'applied')
+        self.assertEqual(list(self.g.steps.values()),['add','stash','send'])
+    def test_full_inventory_consumes_nothing_and_the_map_stays_to_claim(self):
+        """E23-T05 (ADR D10): inventory full, nothing consumed, the reward stays reserved and the map is handed
+        once there is room."""
         self.lua.execute("source.rewards={{kind='stashmap',weight=1}};capacity=0")
-        self.grant();self.assertIsNone(self.g.m.extendedReward);self.assertEqual(self.g.stashed,0)
+        rec,why=self.grant()
+        self.assertEqual((rec.status,why),('reserved','recovery'))
+        self.assertEqual((self.g.stashed,self.g.added,len(self.g.steps)),(0,0,0))
+        self.assertTrue(self.g.possible,'the stash was consumed')
+        # A second success of the same voice never draws the same stash again meanwhile.
+        self.lua.execute("m2={id='m2',state='success',participants={p=true}}")
+        self.assertIsNone(self.r.choose(self.g.store.data,self.g.source,self.g.m2,'p',self.g.player)[0])
+        retry=lambda: self.r.retry(self.g.store,self.g.source,self.g.m,self.g.player,'p',77000)
+        self.assertEqual(retry()[1],'not_now')
+        self.assertEqual((rec.status,self.g.stashed),('reserved',0))
+        self.lua.execute('capacity=20')
+        self.assertEqual(retry().status,'applied')
+        self.assertEqual((self.g.stashed,self.g.added),(1,1))
+        self.assertEqual(list(self.g.steps.values()),['add','stash','send'])
+        self.assertEqual(self.g.logged[len(self.g.logged)].kind,'reward')
+        self.assertIsNone(retry()[0]);self.assertEqual(self.g.stashed,1)
+    def test_notebook_poll_hands_the_map_to_its_connected_recipient(self):
+        """E23-T05: RS_RewardRetry, poll of the notebook server, retries the reserved reward of a connected recipient."""
+        self.lua.execute("source.rewards={{kind='stashmap',weight=1}};capacity=0;voices.darlene=source;"
+                         "modules['RadioSurvivor/RS_State']=store;m.donor='voice';m.khz=77000;m.revision=1")
+        rec,_=self.grant()
+        poll=self.lua.execute((SERVER/'RS_RewardRetry.lua').read_text(encoding='utf-8-sig')).poll
+        state=self.lua.eval('{missions={m=m}}')
+        watched=self.lua.eval("{{player=player,character='p'}}")
+        self.assertFalse(poll(state,self.g.store,watched))
+        self.lua.execute('capacity=20')
+        self.assertFalse(poll(state,self.g.store,self.lua.eval("{{player=player,character='other'}}")))
+        self.assertEqual(self.g.stashed,0,'handed to a character who is not the recipient')
+        self.assertTrue(poll(state,self.g.store,watched))
+        self.assertEqual((rec.status,self.g.stashed,self.g.m.revision),('applied',1,2))
+        self.assertIn('stash',self.g.m.rewardLabel)
+        self.assertFalse(poll(state,self.g.store,watched))
+    def test_reserved_map_whose_stash_is_gone_is_never_handed(self):
+        self.lua.execute("source.rewards={{kind='stashmap',weight=1}};capacity=0")
+        rec,_=self.grant()
+        self.lua.execute('possible=false;capacity=20')
+        self.assertIsNone(self.r.retry(self.g.store,self.g.source,self.g.m,self.g.player,'p',77000)[0])
+        self.assertEqual((rec.status,self.g.added,self.g.stashed),('reserved',0,0))
+    def test_kind_without_resume_is_never_reissued(self):
+        self.lua.execute("source.rewards={{kind='frequency',weight=1}}")
+        rec=self.grant();rec.status='reserved'
+        self.assertEqual(self.r.retry(self.g.store,self.g.source,self.g.m,self.g.player,'p',77000)[1],'not_resumable')
     def test_xp_daily_limit_disable_and_day_reset(self):
         self.lua.execute("source.rewards={{kind='lesson',param='Doctor',weight=1}}")
         for _ in range(6):
