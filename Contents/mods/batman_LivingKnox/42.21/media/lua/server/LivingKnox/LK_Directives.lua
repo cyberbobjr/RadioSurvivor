@@ -67,6 +67,7 @@ require "LivingKnox/LK_Bodies"
 require "LivingKnox/LK_ZombieGuard"
 require "LivingKnox/LK_Anim"
 require "LivingKnox/LK_Movement"
+require "LivingKnox/Edges/LK_Edges"
 
 local Directives = LivingKnox.Directives or {}
 LivingKnox.Directives = Directives
@@ -150,6 +151,14 @@ local function finite(v) return type(v) == "number" and v == v and v > -1e9 and 
 function Directives.distToTarget(e, x, y, z)
     if math.floor(z) ~= e.z then return nil end
     return dist(x, y, e.x + 0.5, e.y + 0.5)
+end
+
+-- Vrai si un corps en (x, y, z) est arrivé sur la case (tx, ty, tz) : même niveau, à ARRIVE case du centre, et aucun
+-- bord qui l'arrête entre sa case et la case visée (LivingKnox.Edges.separates, ADR adr-bords-des-cases.md ;
+-- lk.windowsally MP du 2026-11-16 : membre resté dehors contre le mur, tenu « à son poste » dedans).
+function Directives.arrivedAt(x, y, z, tx, ty, tz)
+    if math.floor(z) ~= tz or dist(x, y, tx + 0.5, ty + 0.5) > Directives.ARRIVE then return false end
+    return not LivingKnox.Edges.separates(math.floor(x), math.floor(y), tz, tx, ty, tz)
 end
 
 -- Étapes d'une consigne "move" (LK05-T12) : points de passage e.w = { { x, y }, ... } (même niveau que la destination),

@@ -470,14 +470,8 @@ end
 -- refuse (consigne en échec), comme pour toute porte du trajet.
 function Executor.acrossEdge(z, tx, ty, tz)
     local sq = z:getCurrentSquare()
-    if sq == nil or sq:getZ() ~= tz then return false end
-    local dx, dy = tx - sq:getX(), ty - sq:getY()
-    if dx == 0 and dy == 0 then return false end
-    local ts = getCell():getGridSquare(tx, ty, tz)
-    if ts == nil then return false end
-    local Edges, Rules = LivingKnox.Edges, LivingKnox.EdgeRules
-    if math.abs(dx) + math.abs(dy) ~= 1 then return Rules.stopsDiagonalArrival(Edges.inside(sq), Edges.inside(ts)) end
-    return Rules.stopsArrival(Edges.read(sq, ts))
+    if sq == nil then return false end
+    return LivingKnox.Edges.separates(sq:getX(), sq:getY(), sq:getZ(), tx, ty, tz)
 end
 
 -- Suivi d'un "move" en cours.

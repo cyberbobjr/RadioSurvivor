@@ -105,10 +105,7 @@ local function sitDown(id, m, gesture)
 end
 
 local function reached(ctx, x, y, z, m, e)
-    if ctx.z == z then
-        local dx, dy = ctx.x - (x + 0.5), ctx.y - (y + 0.5)
-        if math.sqrt(dx * dx + dy * dy) <= LivingKnox.Directives.ARRIVE then return true end
-    end
+    if LivingKnox.Directives.arrivedAt(ctx.x, ctx.y, ctx.z, x, y, z) then return true end
     -- Case visée décalée par l'autorité (plantes, feu de camp à côté) : l'arrivée acceptée compte.
     return m.moveV ~= nil and e ~= nil and e.v == m.moveV and e.done and e.s == "arrived"
 end
@@ -133,7 +130,9 @@ local function goTo(id, ctx, x, y, z, m, e)
         log().debug("npc %s: routine move to %d,%d,%d refused: %s", id, x, y, z, tostring(why))
         return m.fails >= cfg().MAX_FAILS and "failed" or "moving"
     end
-    m.moveV = v
+    -- Regard d'une arrivée précédente oublié : il est refait à la nouvelle arrivée (lk.expedition MP du 2026-11-16 :
+    -- trajet relancé après le regard, fouille jamais commencée faute de voir finir ce regard remplacé).
+    m.moveV, m.faceV = v, nil
     return "moving"
 end
 

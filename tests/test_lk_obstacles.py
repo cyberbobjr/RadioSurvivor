@@ -3475,6 +3475,23 @@ class InsideDoorTests(ObstacleBase):
         self.spawn(x=105, y=102)
         self.assertIs(self.across(), False)
 
+    def arrived_at(self, x, y):
+        return self.ev(f'LivingKnox.Directives.arrivedAt({x}, {y}, 0, 106, 102, 0)')
+
+    def test_authority_does_not_hold_a_body_behind_a_wall_as_arrived(self):
+        # lk.windowsally MP du 2026-11-16 : membre dehors contre le mur, « à son poste » dedans pour la défense.
+        self.building()
+        self.wall(skip=())
+        self.init()
+        self.assertIs(self.arrived_at(105.9, 102.5), False)
+        self.assertIs(self.arrived_at(106.4, 102.6), True)
+        self.setUp()
+        self.building()
+        self.wall()
+        self.door(open=True)
+        self.init()
+        self.assertIs(self.arrived_at(105.9, 102.5), True)
+
     def garage(self, **fields):
         # Panneaux (106, 103) index 1, (106, 102) index 2, (106, 101) index 3 (bord ouest : suivant à y - 1).
         for y, i in ((103, 1), (102, 2), (101, 3)):

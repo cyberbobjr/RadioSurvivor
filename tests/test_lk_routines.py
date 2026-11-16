@@ -393,6 +393,15 @@ class SoloRoutineTests(RoutineStack):
         self.assertEqual(len(self.lines('home survey redone (unknown format)')), 1)
         self.assertEqual(self.h.errors('solo'), [])
 
+    def test_new_move_forgets_the_facing_of_the_previous_arrival(self):
+        # lk.expedition MP du 2026-11-16 : regard #149 émis à une arrivée jugée trop tôt, trajet #150 relancé, puis
+        # fouille jamais commencée (attente de la fin du regard #149, remplacé par le trajet).
+        gid = self.mk()
+        out = self.run_lua(f'local m = {{ fails = 0, faceV = 7 }} '
+                           f'local r = {R}.exec.goTo(MEMBER_NPC("{gid}", "m-2"), {{ x = 100.5, y = 100.5, z = 0 }}, '
+                           '115, 110, 0, m, nil) return r, m.faceV, m.moveV ~= nil')
+        self.assertEqual(out, ('moving', None, True))
+
     def test_sentry_walks_to_its_post_and_faces_out(self):
         gid = self.mk()
         self.jump_to(11)                                       # jour, deuxième heure du quart : guet au poste

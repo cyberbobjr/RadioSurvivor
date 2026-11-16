@@ -105,6 +105,22 @@ function Edges.inside(sq)
     return sq:getBuildingDef() ~= nil
 end
 
+-- Vrai si un corps sur la case (x, y, z) ne peut pas se dire arrivé sur la case voisine (tx, ty, tz) : bord qui l'arrête
+-- entre voisines orthogonales (EdgeRules.stopsArrival), l'une dedans et l'autre dehors en diagonale
+-- (EdgeRules.stopsDiagonalArrival). Faux pour la même case, une case non voisine, un autre niveau ou une case non
+-- chargée. Lu par l'exécutant (LK_Executor) et par l'autorité (Directives.arrivedAt).
+function Edges.separates(x, y, z, tx, ty, tz)
+    if z ~= tz then return false end
+    local dx, dy = tx - x, ty - y
+    if (dx == 0 and dy == 0) or math.abs(dx) > 1 or math.abs(dy) > 1 then return false end
+    local cell = getCell()
+    local sq, ts = cell:getGridSquare(x, y, z), cell:getGridSquare(tx, ty, tz)
+    if sq == nil or ts == nil then return false end
+    local Rules = LivingKnox.EdgeRules
+    if dx ~= 0 and dy ~= 0 then return Rules.stopsDiagonalArrival(Edges.inside(sq), Edges.inside(ts)) end
+    return Rules.stopsArrival(Edges.read(sq, ts))
+end
+
 -- Voisine nb de la case sq vue pour une place d'arrêt (EdgeRules.stopRefusal) : nil si absente, sinon praticable et
 -- faits du bord commun.
 function Edges.side(sq, nb)

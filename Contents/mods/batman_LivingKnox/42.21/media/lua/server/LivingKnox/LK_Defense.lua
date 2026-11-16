@@ -809,10 +809,7 @@ end
 -- Course vers la place : "here", "moving" ou "failed".
 local function goTo(id, ctx, dv, mem, e)
     local D = LivingKnox.Directives
-    if ctx.z == dv.z then
-        local dx, dy = ctx.x - (dv.x + 0.5), ctx.y - (dv.y + 0.5)
-        if math.sqrt(dx * dx + dy * dy) <= D.ARRIVE then return "here" end
-    end
+    if D.arrivedAt(ctx.x, ctx.y, ctx.z, dv.x, dv.y, dv.z) then return "here" end
     if mem.moveV ~= nil and e ~= nil and e.v == mem.moveV then
         if not e.done then return "moving" end
         if e.s == "arrived" then return "here" end
