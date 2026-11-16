@@ -6,43 +6,36 @@
 --     (IsoGridSquare.getDoorTo : IsoDoor ou IsoThumpable porte, vue des deux cases du bord,
 --     J/iso/IsoGridSquare.java:3077-3112, 42.22) ;
 --   - ni un passage d'une seule case de large : deux côtés opposés fermés (case absente ou impraticable, ou bord
---     fermé au sens de LivingKnox.Movement.edgeBlocked : mur, porte, fenêtre, cadre, clôture).
--- Ce module ne connaît que la règle ; chaque appelant garde ses propres critères (bâtiment, case libre, escalier,
--- foyer...) dans la fonction accept qu'il passe. Sans place qui respecte la règle, la case de l'appelant reste
--- (repli : un PNJ doit pouvoir s'arrêter quelque part). Autorité seulement : un client MP charge aussi
--- media/lua/server, il s'arrête ici.
+--     fermé au sens de LivingKnox.EdgeRules.closed : mur, porte, fenêtre, cadre, clôture).
+-- La règle elle-même est pure (LivingKnox.EdgeRules.stopRefusal, ADR adr-bords-des-cases.md) ; les faits des
+-- bords viennent de LivingKnox.Edges. Ce module ne connaît que la règle ; chaque appelant garde ses propres critères
+-- (bâtiment, case libre, escalier, foyer...) dans la fonction accept qu'il passe. Sans place qui respecte la règle,
+-- la case de l'appelant reste (repli : un PNJ doit pouvoir s'arrêter quelque part). Autorité seulement : un client MP
+-- charge aussi media/lua/server, il s'arrête ici.
 if isClient() then return end
 
 require "LivingKnox/LK_Core"
-require "LivingKnox/LK_Movement"
+require "LivingKnox/Edges/LK_Edges"
 
 local StopPlace = LivingKnox.StopPlace or {}
 LivingKnox.StopPlace = StopPlace
 
-StopPlace.DOOR = "door edge"
-StopPlace.NARROW = "one-square-wide passage"
+StopPlace.DOOR = LivingKnox.EdgeRules.DOOR
+StopPlace.NARROW = LivingKnox.EdgeRules.NARROW
 StopPlace.SHIFT_RADIUS = 2   -- décalage au plus d'une place relevée ailleurs (poste de guet)
 
--- Voisines nord, est, sud, ouest (deux côtés opposés : 1 et 3, 2 et 4).
+-- Voisines nord, est, sud, ouest (ordre de LivingKnox.EdgeRules.stopRefusal).
 local SIDES = { { 0, -1 }, { 1, 0 }, { 0, 1 }, { -1, 0 } }
-
--- Vrai si le corps ne peut pas passer de sq à sa voisine nb.
-local function closedTo(sq, nb)
-    return nb == nil or not nb:isFree(false) or LivingKnox.Movement.edgeBlocked(sq, nb)
-end
 
 -- Raison pour laquelle la case sq (chargée) gêne le passage (StopPlace.DOOR, StopPlace.NARROW), ou nil.
 function StopPlace.blocksPassage(sq)
-    local cell = getCell()
+    local cell, Edges = getCell(), LivingKnox.Edges
     local x, y, z = sq:getX(), sq:getY(), sq:getZ()
-    local closed = {}
+    local sides = {}
     for i, d in ipairs(SIDES) do
-        local nb = cell:getGridSquare(x + d[1], y + d[2], z)
-        if nb ~= nil and sq:getDoorTo(nb) ~= nil then return StopPlace.DOOR end
-        closed[i] = closedTo(sq, nb)
+        sides[i] = Edges.side(sq, cell:getGridSquare(x + d[1], y + d[2], z))
     end
-    if (closed[1] and closed[3]) or (closed[2] and closed[4]) then return StopPlace.NARROW end
-    return nil
+    return LivingKnox.EdgeRules.stopRefusal(sides)
 end
 
 -- Vrai si la case sq peut servir de place d'arrêt selon la règle.

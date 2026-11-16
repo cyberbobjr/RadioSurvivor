@@ -14,7 +14,7 @@
 --     porte intérieure) : case avant la plus proche du corps ;
 --   - utilisable, règles de contact réutilisées : porte ouverte et non barricadée, portail bas (enjambé par le moteur,
 --     LK04-T08), décision "open" de Obstacles.decide abordée depuis la case avant (doorRefusal) ; clôture basse
---     (isFenceTo : enjambée par le moteur, jamais refusée) ; cases avant et après praticables ;
+--     (Edges.fenceTo : enjambée par le moteur, jamais refusée) ; cases avant et après praticables ;
 --   - jamais une ouverture déjà refusée pendant ce "move" (memory : par PNJ et numéro de consigne) ;
 --   - couloirs (LK_DetourCorridor, correctifs du 2026-11-15, campagnes 20261115-193703 et 20261115-202338) : case
 --     avant accessible depuis le corps (cases du lieu du corps) ET destination accessible depuis la case après (cases
@@ -47,6 +47,7 @@ require "LivingKnox/LK_Bodies"
 require "LivingKnox/LK_Directives"
 require "LivingKnox/LK_Obstacles"
 require "LivingKnox/Detour/LK_DetourCorridor"
+require "LivingKnox/Edges/LK_Edges"
 
 local Detour = LivingKnox.Detour or {}
 LivingKnox.Detour = Detour
@@ -71,21 +72,6 @@ end
 -- Lieu de la case sq : identifiant de son bâtiment, ou OUTSIDE.
 function Detour.placeOf(sq)
     return O().buildingOf(sq) or Detour.OUTSIDE
-end
-
--- Clôture basse du bord commun des cases voisines (orthogonales) sq et nb TELLE QUE LE MOTEUR LA VOIT : objet
--- enjambable (isHoppableTo, IsoGridSquare.java:1043-1049) ET drapeau HoppableW/N de la case est (bord W) ou sud (N),
--- que RecalcProperties retire quand un autre objet du bord pose collideW/N sans Hoppable (mur ; IsoGridSquare.java:
--- 6144-6179, 6233-6236) ; le chemin natif et l'enjambée à la collision ne lisent que ce drapeau (base pz-knowledge
--- pathfinding-and-obstacles.md, « Classer le bord commun de deux cases »).
-function Detour.isFenceTo(sq, nb)
-    if not sq:isHoppableTo(nb) then return false end
-    if nb:getX() ~= sq:getX() then
-        local east = nb:getX() > sq:getX() and nb or sq
-        return east:has(IsoFlagType.HoppableW) == true
-    end
-    local south = nb:getY() > sq:getY() and nb or sq
-    return south:has(IsoFlagType.HoppableN) == true
 end
 
 -- Raison (anglais) pour laquelle le PNJ npcId ne passera pas la porte d (cases sqA, sqB) abordée depuis la case from,
@@ -137,14 +123,13 @@ local function openingsNear(fx, fy, z, windows)
                     local e = Ob.edge(x, y, z, side)
                     local nb = cell:getGridSquare(e.bx, e.by, z)
                     if nb ~= nil then
-                        local door = sq:getDoorTo(nb)
-                        local w, wk = nil, nil
-                        if door == nil and windows then w, wk = Ob.windowOf(sq, nb) end
-                        if door ~= nil then
-                            out[#out + 1] = { e = e, sqA = sq, sqB = nb, kind = "door", obj = door }
-                        elseif w ~= nil then
-                            out[#out + 1] = { e = e, sqA = sq, sqB = nb, kind = "window", obj = w, wk = wk }
-                        elseif Detour.isFenceTo(sq, nb) then
+                        local f = LivingKnox.Edges.read(sq, nb)
+                        if f.door then
+                            out[#out + 1] = { e = e, sqA = sq, sqB = nb, kind = "door", obj = f.door.obj }
+                        elseif windows and f.window then
+                            out[#out + 1] = { e = e, sqA = sq, sqB = nb, kind = "window", obj = f.window.obj,
+                                wk = f.window.kind }
+                        elseif f.fence then
                             out[#out + 1] = { e = e, sqA = sq, sqB = nb, kind = "fence" }
                         end
                     end
@@ -199,17 +184,15 @@ end
 -- Vrai si le corps passe de la case a à sa voisine orthogonale b dans le couloir lane : b dans un lieu permis et
 -- praticable (sauf lane.free) ; bord classé dans l'ordre de la base pz-knowledge (pathfinding-and-obstacles.md,
 -- « Classer le bord commun de deux cases ») : porte (passée si doorRefusal ne la refuse pas, abordée depuis a ;
--- isBlockedTo est vrai pour toute porte fermée, IsoDoor.isBlocked), fenêtre de tout état (Obstacles.windowOf) et
--- clôture basse refusées, puis mur ou escalier (isBlockedTo).
+-- isBlockedTo est vrai pour toute porte fermée, IsoDoor.isBlocked), fenêtre de tout état et
+-- clôture basse refusées, puis mur ou escalier (isBlockedTo) ; règle pure LivingKnox.EdgeRules.corridorStep.
 function Detour.corridorStep(lane, a, b)
     if not lane.places[Detour.placeOf(b)] then return false end
     if b ~= lane.free and not b:isFree(false) then return false end
-    local d = a:getDoorTo(b)
-    if d ~= nil then
-        return not lane.skip[edgeKeyOf(a, b)] and Detour.doorRefusal(lane.id, d, a, b, a, lane.trapped) == nil
-    end
-    if O().windowOf(a, b) ~= nil or Detour.isFenceTo(a, b) then return false end
-    return not a:isBlockedTo(b)
+    local f = LivingKnox.Edges.read(a, b)
+    return LivingKnox.EdgeRules.corridorStep(f, function()
+        return not lane.skip[edgeKeyOf(a, b)] and Detour.doorRefusal(lane.id, f.door.obj, a, b, a, lane.trapped) == nil
+    end)
 end
 
 -- Accès aux cases d'un couloir (LK_DetourCorridor) : cases chargées du niveau z, pas de corridorStep selon lane.

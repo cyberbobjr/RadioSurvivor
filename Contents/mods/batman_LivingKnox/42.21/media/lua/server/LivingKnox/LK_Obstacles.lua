@@ -122,6 +122,7 @@ require "LivingKnox/LK_Log"
 require "LivingKnox/LK_Bodies"
 require "LivingKnox/LK_Directives"
 require "LivingKnox/LK_Groups"
+require "LivingKnox/Edges/LK_Edges"
 
 local Obstacles = LivingKnox.Obstacles or {}
 LivingKnox.Obstacles = Obstacles
@@ -613,25 +614,13 @@ end
 
 -- ---------------------------------------------------------------- fenêtres (LK04-T03)
 
--- Fenêtre du bord commun de deux cases voisines : IsoWindow ("window"), fenêtre construite IsoThumpable ("built") ou
--- cadre vide IsoWindowFrame ("frame"), quelle que soit la case qui la porte (IsoGridSquare.java:3131-3172,
--- 3228-3236) ; nil sinon. Une IsoWindow posée dans un cadre est rendue en premier.
-function Obstacles.windowOf(sq, nb)
-    local w = sq:getWindowTo(nb)
-    if w ~= nil then return w, "window" end
-    w = sq:getWindowThumpableTo(nb)
-    if w ~= nil then return w, "built" end
-    w = sq:getWindowFrameTo(nb)
-    if w ~= nil then return w, "frame" end
-    return nil
-end
+-- Fenêtre d'un bord : LivingKnox.Edges.windowOf (ADR adr-bords-des-cases.md).
 
 -- Vrai si la fenêtre arrête un corps : barricadée, ou IsoWindow fermée et intacte. Fenêtre ouverte, cassée ou
 -- détruite, cadre vide et fenêtre construite non barricadés : franchis par le moteur (IsoWindow.java:1220-1238,
 -- IsoWindowFrame.java:348-372, IsoThumpable.java:2175-2186).
 function Obstacles.windowBlocks(w, kind)
-    if w:isBarricaded() then return true end
-    return kind == "window" and not w:IsOpen() and not w:isDestroyed()
+    return LivingKnox.EdgeRules.windowStops(LivingKnox.Edges.windowFacts(w, kind))
 end
 
 -- Vrai si la case sq n'offre aucun sol où se poser : franchir serait une chute (issue "fall" quand la case opposée
@@ -769,7 +758,7 @@ function Obstacles.windowsNear(px, py, z)
                     local e = edge(x, y, z, kind)
                     local nb = cell:getGridSquare(e.bx, e.by, z)
                     local w, wk
-                    if nb ~= nil then w, wk = Obstacles.windowOf(sq, nb) end
+                    if nb ~= nil then w, wk = LivingKnox.Edges.windowOf(sq, nb) end
                     if w ~= nil then
                         local d = dist(px, py, e.mx, e.my)
                         if d <= Obstacles.REACH then
@@ -938,7 +927,7 @@ end
 -- arrête jamais (IsoZombie.java:3051-3058 tryThump, 1075 collideWith exclut IsoDoor enjambable ; IsoThumpable :
 -- 3065-3071 ; IsoDoor.java:1244-1253). LK04-T08.
 function Obstacles.isLowGate(door)
-    return door:isHoppable() == true and door:isTallHoppable() ~= true
+    return LivingKnox.Edges.isLowGate(door)
 end
 
 -- Portes du PNJ id (consigne e, corps z) : ouverture ou refus. seen : clés des bords sur un trajet à ce passage.

@@ -155,7 +155,7 @@ local WINDOW_FRAME = {
     { "barricaded", function(w) return w:isBarricaded() end },
 }
 
--- Window kinds of an edge, first found wins (same order as LivingKnox.Obstacles.windowOf).
+-- Window kinds of an edge, first found wins (same order as LivingKnox.Edges.windowOf).
 X.WINDOW_KINDS = {
     { cls = "window", find = function(sq, nb) return sq:getWindowTo(nb) end, flags = WINDOW_FULL },
     { cls = "built", find = function(sq, nb) return sq:getWindowThumpableTo(nb) end, flags = WINDOW_BUILT },

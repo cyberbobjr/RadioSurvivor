@@ -27,6 +27,7 @@ fortification LK14…) : les lire dans leur fichier.
 
 | ADR | Statut |
 |---|---|
+| [adr-bords-des-cases.md](adr-bords-des-cases.md) — bords des cases : un seul lecteur du jeu (`LivingKnox.Edges`), des règles pures (`LivingKnox.EdgeRules`) pour l'arrivée, le déblocage, les places d'arrêt et le couloir d'un détour (2026-11-16), plan [LK17](../../annexes/plans/LK17-chemin-vanilla.md) | Accepté |
 | [adr-atelier-voix.md](adr-atelier-voix.md) — atelier des voix servi par le pont, relevé des lieux en jeu, aide de l'IA, export et import, note et appel écrits dans la fiche (2026-11-15), plan [E22](../../annexes/plans/E22-atelier-voix.md) | Accepté |
 | [adr-coreai-separation.md](adr-coreai-separation.md) — Living Knox et RadioSurvivor séparés autour de `batman_CoreAI` : carnet commun, registres neutres, tests séparés (2026-11-15), plan [E21](../../annexes/plans-termines/E21-separation-coreai.md) | Accepté |
 | [adr-personas-declaratives.md](adr-personas-declaratives.md) — voix radio déclarées en un seul fichier : missions (registre de types), récompenses aléatoires par catégorie, planques multiples au choix du joueur, troc par marchand, remises hors de vue (2026-11-14), plan [E20](../../annexes/plans-termines/E20-voix-declaratives.md) | Accepté |

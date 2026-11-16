@@ -26,6 +26,7 @@
 -- (J/pathfind/PathFindBehavior2.java:750-752) ; base pz-knowledge pathfinding-and-obstacles.md.
 require "LivingKnox/LK_Core"
 require "LivingKnox/LK_Log"
+require "LivingKnox/Edges/LK_Edges"
 
 local Movement = LivingKnox.Movement or {}
 LivingKnox.Movement = Movement
@@ -114,17 +115,6 @@ function Movement.stillMs(run, t)
     return t - m.refMs
 end
 
--- Vrai si le bord commun des cases voisines a et b porte un mur, une porte, une fenêtre, un cadre ou une clôture
--- (IsoGridSquare.isBlockedTo, getDoorTo, getWindowTo, getWindowThumpableTo, getWindowFrameTo, isHoppableTo :
--- J/iso/IsoGridSquare.java:935-941, 1043-1049, 3065-3111, 3131-3172, 3228-3236). Le point de déblocage ne franchit rien.
-function Movement.edgeBlocked(a, b)
-    if a:isBlockedTo(b) then return true end
-    if a:getDoorTo(b) ~= nil then return true end
-    if a:getWindowTo(b) ~= nil or a:getWindowThumpableTo(b) ~= nil or a:getWindowFrameTo(b) ~= nil then return true end
-    if a.isHoppableTo ~= nil and a:isHoppableTo(b) then return true end
-    return false
-end
-
 local function walkable(sq)
     return sq ~= nil and sq:isFree(false)
 end
@@ -148,11 +138,11 @@ function Movement.clearLine(x0, y0, x1, y1, lv)
                 local a = cell:getGridSquare(cx, py, lv)
                 local b = cell:getGridSquare(px, cy, lv)
                 if not walkable(a) or not walkable(b) then return false end
-                if Movement.edgeBlocked(prev, a) or Movement.edgeBlocked(a, sq) or Movement.edgeBlocked(prev, b)
-                    or Movement.edgeBlocked(b, sq) then
+                local closed = LivingKnox.Edges.closed
+                if closed(prev, a) or closed(a, sq) or closed(prev, b) or closed(b, sq) then
                     return false
                 end
-            elseif Movement.edgeBlocked(prev, sq) then
+            elseif LivingKnox.Edges.closed(prev, sq) then
                 return false
             end
             prev, px, py = sq, cx, cy

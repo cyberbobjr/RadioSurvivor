@@ -88,7 +88,7 @@ crossing: measured, and FAIL when it reaches BLOCKED_MS. Figures are printed as 
 crossing time (LivingKnox.Executor.stats.crossMs, solo), longest still stretch, retries. Human climb (LK04-T11,
 not on a server): once a crossing state was seen, the body must never be on the floor (isOnFloor, isKnockedDown,
 ClimbWindowFlopped, ClimbFenceFlopped) until the end of the trip; FAIL otherwise. Low fences are edges that the
-engine sees as such (LivingKnox.Detour.isFenceTo: square flag HoppableW/N, not only a hoppable object over a
+engine sees as such (LivingKnox.Edges.fenceTo: square flag HoppableW/N, not only a hoppable object over a
 wall). The npc of a test that joins a group is left out of the decisions of that group (LivingKnox.Decisions,
 isolate), and a move replaced by another directive before its end was read is a FAIL that says so. Every test removes its npc
 (and its directive), restores the window state and removes its group with t:defer.
@@ -396,9 +396,9 @@ end
 -- hoppable door) is left out (a door edge).
 local function pickFence(e)
     -- 2026-10-11 23:08: the edge 10747,9538 W carries a wall and a "HoppableW" counter: isHoppableTo (objects) is true,
-    -- but the engine sees a wall (square flag removed): LivingKnox.Detour.isFenceTo reads the flag.
-    local dt = DT()
-    if dt == nil or dt.isFenceTo == nil or not dt.isFenceTo(e.a, e.b) then return nil end
+    -- but the engine sees a wall (square flag removed): LivingKnox.Edges.fenceTo reads the flag.
+    local edges = LivingKnox.Edges
+    if edges == nil or not edges.fenceTo(e.a, e.b) then return nil end
     if e.a:getWindowTo(e.b) ~= nil or e.a:getWindowFrameTo(e.b) ~= nil then return nil end
     if e.a:getDoorTo(e.b) ~= nil then return nil end
     if e.a:HasStairs() or e.b:HasStairs() then return nil end

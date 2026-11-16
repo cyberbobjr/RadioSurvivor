@@ -46,11 +46,11 @@ local function openRect(cell, ox, oy, lv)
             if sq == nil or not sq:isFree(false) or sq:getRoom() ~= nil or sq:hasFarmingPlant() then return false end
             if x > ox then
                 local w = cell:getGridSquare(x - 1, y, lv)
-                if M().edgeBlocked(w, sq) then return false end
+                if LivingKnox.Edges.closed(w, sq) then return false end
             end
             if y > oy then
                 local n = cell:getGridSquare(x, y - 1, lv)
-                if M().edgeBlocked(n, sq) then return false end
+                if LivingKnox.Edges.closed(n, sq) then return false end
             end
         end
     end

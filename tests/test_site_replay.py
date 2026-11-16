@@ -182,7 +182,7 @@ class SiteWorldTests(SiteBase):
         self.assertEqual(self.ev(f'{self.sq(103, 102)}:getDoorTo({self.sq(104, 102)}):checkKeyId()'), 77)
         self.assertEqual(self.ev(f'{self.sq(106, 101)}:getDoorTo({self.sq(105, 101)}):checkKeyId()'), -1)
         self.assertEqual(self.wstate('solo', '106,105,0,N'), 'false false')
-        self.assertIs(self.ev(f'LivingKnox.Detour.isFenceTo({self.sq(100, 97)}, {self.sq(100, 98)})'), True)
+        self.assertIs(self.ev(f'LivingKnox.Edges.fenceTo({self.sq(100, 97)}, {self.sq(100, 98)})'), True)
         self.assertIs(self.ev(f'{self.sq(107, 103)}:HasStairs()'), True)
 
     def test_beds_and_containers_are_objects_of_their_square(self):

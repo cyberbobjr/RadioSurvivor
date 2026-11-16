@@ -1248,7 +1248,7 @@ class SoloTraversalTests(ObstacleBase):
         def decide(x, y, far=None):
             far = far or (x, y)
             return self.run_lua(
-                f'local w, k = LivingKnox.Obstacles.windowOf(HARNESS.square({x - 1}, {y}, 0), '
+                f'local w, k = LivingKnox.Edges.windowOf(HARNESS.square({x - 1}, {y}, 0), '
                 f'HARNESS.square({x}, {y}, 0)) '
                 f'return LivingKnox.Obstacles.decideWindow("lk-1", w, k, HARNESS.square({x - 1}, {y}, 0), '
                 f'HARNESS.square({x}, {y}, 0), HARNESS.square({far[0]}, {far[1]}, 0))')
@@ -2152,10 +2152,10 @@ class Traversal2308Tests(ObstacleBase):
         self.fence(y=104)                                  # vraie clôture basse
         a, b = self.sq(105, 102), self.sq(106, 102)
         self.assertIs(self.ev(f'{a}:isHoppableTo({b})'), True)
-        self.assertIs(self.ev(f'LivingKnox.Detour.isFenceTo({a}, {b})'), False)
-        self.assertIs(self.ev(f'LivingKnox.Detour.isFenceTo({b}, {a})'), False)
+        self.assertIs(self.ev(f'LivingKnox.Edges.fenceTo({a}, {b})'), False)
+        self.assertIs(self.ev(f'LivingKnox.Edges.fenceTo({b}, {a})'), False)
         for p, q in ((self.sq(105, 104), self.sq(106, 104)), (self.sq(106, 104), self.sq(105, 104))):
-            self.assertIs(self.ev(f'LivingKnox.Detour.isFenceTo({p}, {q})'), True)
+            self.assertIs(self.ev(f'LivingKnox.Edges.fenceTo({p}, {q})'), True)
 
     def test_suite_fence_sites_skip_a_hoppable_object_on_a_wall(self):
         self.suite()

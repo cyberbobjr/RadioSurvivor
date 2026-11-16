@@ -66,6 +66,7 @@ require "LivingKnox/LK_Log"
 require "LivingKnox/LK_ZombieGuard"
 require "LivingKnox/LK_Anim"
 require "LivingKnox/LK_Movement"
+require "LivingKnox/Edges/LK_Edges"
 require "LivingKnox/LK_PassageSignal"
 
 local Executor = LivingKnox.Executor or {}
@@ -306,10 +307,8 @@ function Executor.closedDoorNext(z)
     local x, y, lv = sq:getX(), sq:getY(), sq:getZ()
     for _, d in ipairs({ { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } }) do
         local nb = cell:getGridSquare(x + d[1], y + d[2], lv)
-        local door = nb and sq:getDoorTo(nb)
-        if door ~= nil and not door:IsOpen() and not (door:isHoppable() and not door:isTallHoppable()) then
-            return door
-        end
+        local door = nb ~= nil and LivingKnox.Edges.read(sq, nb).door
+        if door and LivingKnox.EdgeRules.doorStops(door) then return door.obj end
     end
     return nil
 end
@@ -324,10 +323,8 @@ function Executor.closedWindowNext(z)
     for _, d in ipairs({ { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } }) do
         local nb = cell:getGridSquare(x + d[1], y + d[2], lv)
         if nb ~= nil then
-            local w = sq:getWindowTo(nb)
-            if w ~= nil and (w:isBarricaded() or (not w:IsOpen() and not w:isDestroyed())) then return w end
-            local o = sq:getWindowThumpableTo(nb) or sq:getWindowFrameTo(nb)
-            if o ~= nil and o:isBarricaded() then return o end
+            local w, kind = LivingKnox.Edges.windowOf(sq, nb)
+            if w ~= nil and LivingKnox.EdgeRules.windowStops(LivingKnox.Edges.windowFacts(w, kind)) then return w end
         end
     end
     return nil
@@ -468,10 +465,9 @@ function Executor.actFace(id, z)
 end
 
 -- Vrai si la case visée (tx, ty, tz) est séparée de la case du corps z par un bord qu'on ne franchit pas en marchant :
--- pas d'arrivée à travers lui. Porte fermée (ni portail bas enjambé) : LK04-T17, lk.traversal du 2026-10-12, corps
--- « arrivé » à 1,0 case du centre derrière une porte verrouillée ; l'autorité ouvre la porte ou la refuse. Fenêtre
--- (même ouverte) ou mur : lk.windowsally du 2026-11-16, corps resté dehors sous la fenêtre et « arrivé » dedans.
--- Case non voisine (diagonale) : arrivée seulement du même côté du bâtiment (dedans ou dehors).
+-- pas d'arrivée à travers lui (règles pures LivingKnox.EdgeRules.stopsArrival et stopsDiagonalArrival, faits lus par
+-- LivingKnox.Edges ; ADR adr-bords-des-cases.md). L'autorité ouvre une porte fermée (le corps passe et arrive) ou la
+-- refuse (consigne en échec), comme pour toute porte du trajet.
 function Executor.acrossEdge(z, tx, ty, tz)
     local sq = z:getCurrentSquare()
     if sq == nil or sq:getZ() ~= tz then return false end
@@ -479,15 +475,9 @@ function Executor.acrossEdge(z, tx, ty, tz)
     if dx == 0 and dy == 0 then return false end
     local ts = getCell():getGridSquare(tx, ty, tz)
     if ts == nil then return false end
-    if math.abs(dx) + math.abs(dy) ~= 1 then
-        return (sq:getBuildingDef() == nil) ~= (ts:getBuildingDef() == nil)
-    end
-    local door = sq:getDoorTo(ts)
-    if door ~= nil then
-        if door:IsOpen() then return false end
-        return not (door:isHoppable() and not door:isTallHoppable())
-    end
-    return sq:isWindowTo(ts) or sq:isWallTo(ts)
+    local Edges, Rules = LivingKnox.Edges, LivingKnox.EdgeRules
+    if math.abs(dx) + math.abs(dy) ~= 1 then return Rules.stopsDiagonalArrival(Edges.inside(sq), Edges.inside(ts)) end
+    return Rules.stopsArrival(Edges.read(sq, ts))
 end
 
 -- Suivi d'un "move" en cours.

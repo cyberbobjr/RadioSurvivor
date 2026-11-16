@@ -2,12 +2,13 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** à faire — 0 / 2 tâche(s) terminée(s).
+**Avancement.** en cours — 0 / 3 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
 | ☐ | LK17-T01 | Détour immédiat par la porte la plus proche après un refus au contact | `à faire` | MP | — |
 | ☐ | LK17-T02 | Suppression du guidage maison | `à faire` | MP | LK17-T01 |
+| ☐ | LK17-T03 | Bords des cases : un seul lecteur du jeu, des règles pures | `testé hors jeu` | MP | LK17-T01 |
 
 <!-- fin du tableau de bord -->
 
@@ -19,6 +20,8 @@ chemin. Le guidage maison de `LK_Routing.lua` disparaît.
 
 **ADR.** [Déplacements des PNJ : chemin du jeu, détour seulement après un refus](../../architecture/decisions/adr-chemin-vanilla.md)
 (accepté le 2026-11-15, révisé le même jour : le moteur natif ignore `MapKnowledge`) ; ce plan en est l'ordre de livraison.
+LK17-T03 suit l'ADR [Bords des cases : un seul lecteur du jeu, des règles pures](../../architecture/decisions/adr-bords-des-cases.md)
+(accepté le 2026-11-16).
 
 **Dépend de.** LK04 (déplacement et obstacles), LK05-T23.
 
@@ -45,3 +48,14 @@ chemin. Le guidage maison de `LK_Routing.lua` disparaît.
   - Tests : `tests/run_all.py --keep-going` ; campagnes `solo-lk`, `solo` et MP.
   - Preuve : —
   - Reste : —
+
+- [ ] **LK17-T03** — Bords des cases : un seul lecteur du jeu, des règles pures
+  - État : `testé hors jeu`
+  - Cible : `MP`
+  - Dépend de : LK17-T01
+  - Fichiers : nouveaux `shared/LivingKnox/Edges/LK_Edges.lua` (lecture du jeu) et `LK_EdgeRules.lua` (règles pures) ; appelants `LK_Executor.lua` (arrivée), `LK_Movement.lua` (déblocage), `LK_StopPlace.lua` (places d'arrêt), `LK_Detour.lua` (couloir, clôtures), `LK_Obstacles.lua` (fenêtre d'un bord), `LK_PassageAuthority.lua` ; banc `tests/test_lk_edges.py`
+  - Faire : D01 à D04 de l'ADR « bords des cases ». Les quatre règles lisent les faits d'un bord par `Edges` et décident par `EdgeRules`, sans changer le comportement.
+  - Accepté si : chaque règle de `EdgeRules` testée sur des faits sans carte ; `tests/run_all.py --keep-going` vert ; campagnes `solo-lk` et MP sans nouvel échec.
+  - Tests : `tests/test_lk_edges.py`, `tests/run_all.py --keep-going` ; campagnes `solo-lk` et MP.
+  - Preuve : 2026-11-16, `python tests/run_all.py --keep-going` : `Summary: 207 passed, 0 failed, 0 skipped (571.8 s)`, `RESULT: PASS` (dont `lk_edges` 9 tests OK, luacheck Contents et dev 0 avertissement, `plan-check` 0 erreur). Rouge d'abord : `tests/test_lk_edges.py` 9 erreurs avant `LK_EdgeRules.lua`.
+  - Reste : campagnes `solo-lk` et MP (quand le jeu est libre).

@@ -13,7 +13,7 @@
 --      l'ecart) ;
 --   3. cases libres autour du bloqueur (freeAround, relevees ici, D06, D08) : joignables a pied en FREE_RADIUS pas au
 --      plus (pas entre voisines par un cote : case praticable, aucun personnage debout, bord libre au sens de
---      Movement.edgeBlocked), sans danger (Bodies.hazardOn) ; cases de passage comprises (l'ecart dure quelques
+--      Edges.closed), sans danger (Bodies.hazardOn) ; cases de passage comprises (l'ecart dure quelques
 --      secondes, ce n'est pas une place d'arret) ;
 --   4. LivingKnox.Passage.arbitrate ; decision stepAside ou backOff : ordre au bloqueur (LivingKnox.StepAside.order),
 --      marche visant la case libre juste au-dela de la case decidee, dans le meme sens (walkTarget : un corps
@@ -28,6 +28,7 @@ if isClient() then return end
 require "LivingKnox/LK_Core"
 require "LivingKnox/LK_Log"
 require "LivingKnox/LK_Movement"
+require "LivingKnox/Edges/LK_Edges"
 require "LivingKnox/LK_Passage"
 
 local Authority = LivingKnox.PassageAuthority or {}
@@ -124,7 +125,7 @@ local SIDES = { { 0, -1 }, { 1, 0 }, { 0, 1 }, { -1, 0 } }
 -- (voir l'en-tete), dans l'ordre du parcours en largeur (pas, puis nord, est, sud, ouest).
 function Authority.freeAround(bx, by, lv)
     local cell = getCell()
-    local Bo, Mv = B(), LivingKnox.Movement
+    local Bo, Edges = B(), LivingKnox.Edges
     local out, seen = {}, { [bx .. "," .. by] = true }
     local front = { cell:getGridSquare(bx, by, lv) }
     if front[1] == nil then return out end
@@ -135,7 +136,7 @@ function Authority.freeAround(bx, by, lv)
                 local x, y = sq:getX() + d[1], sq:getY() + d[2]
                 local k = x .. "," .. y
                 local nb = not seen[k] and cell:getGridSquare(x, y, lv) or nil
-                if nb ~= nil and nb:isFree(false) and not Bo.standingOn(x, y, lv) and not Mv.edgeBlocked(sq, nb) then
+                if nb ~= nil and nb:isFree(false) and not Bo.standingOn(x, y, lv) and not Edges.closed(sq, nb) then
                     seen[k] = true
                     nextFront[#nextFront + 1] = nb
                     if Bo.hazardOn(nb) == nil then out[#out + 1] = { x = x, y = y, z = lv } end

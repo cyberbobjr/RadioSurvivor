@@ -156,6 +156,9 @@ LUA_FILES = [
     # LK15-T02 : registre des activités des routines, outils d'exécution, relevé et activités (LK_Fortify.lua requiert
     # LK_Routines ; les activités s'inscrivent au chargement). LK18-T03 : règle des places d'arrêt (requise par
     # LK_RoutineExec, avec LK_Movement pour les bords fermés).
+    # LK17-T03 : faits des bords lus dans le jeu et regles pures (requis par LK_Movement, LK_StopPlace).
+    ('LivingKnox/Edges/LK_EdgeRules', LK_LUA / 'shared' / 'LivingKnox' / 'Edges' / 'LK_EdgeRules.lua'),
+    ('LivingKnox/Edges/LK_Edges', LK_LUA / 'shared' / 'LivingKnox' / 'Edges' / 'LK_Edges.lua'),
     ('LivingKnox/LK_Movement', LK_LUA / 'shared' / 'LivingKnox' / 'LK_Movement.lua'),
     ('LivingKnox/LK_StopPlace', LK_LUA / 'server' / 'LivingKnox' / 'LK_StopPlace.lua'),
     # LK18-T02 : passage demandé à l'autorité et action « s'écarter » (extension du cadre de décision).
