@@ -125,7 +125,7 @@ def grammar(lua: LuaPersona) -> dict:
     head = g.head
     return {
         'header': {'keys': strings(head['keys']), 'required': strings(head.required),
-                   'repeatable': strings(head.repeatable), 'budgetPrefix': str(head.budgetPrefix),
+                   'budgetPrefix': str(head.budgetPrefix),
                    'choices': choices(head.choices)},
         'sections': {name: {'rank': int(s.rank), 'hasId': bool(s.hasId), 'keys': strings(s['keys']),
                             'required': strings(s.required), 'repeatable': strings(s.repeatable),

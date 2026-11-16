@@ -1,5 +1,5 @@
 // E22-T06 (ADR atelier-voix D04): the bridge's AI helps to write the voice. Three pieces, each given only what it uses:
-// - personalityPanel: "Write it with the AI" in the step "what she knows" (description -> English [prompt]);
+// - personalityPanel: "Write it with the AI" in the step "personality" (description -> English [prompt]);
 // - suggestButton: "Suggest" next to the story of a mission card (one sentence);
 // - tryDrawer: "Try the voice", a chat over the CURRENT UNSAVED sheet text (the bridge builds the prompt as in game).
 // Without AI configured (`ai.available` false) every button is greyed with a tooltip saying how to configure the bridge.
@@ -28,11 +28,11 @@ async function busy(el, run) {
 }
 
 // --- personality ----------------------------------------------------------------------------------------------------
-// ctx: { ai, t, voiceId, name, description, lists() -> {knows, ignores, secret}, currentPrompt(), usePrompt(text) }
+// ctx: { ai, t, voiceId, name, description, currentPrompt(), usePrompt(text) }
 export function personalityPanel(ctx) {
   const { ai, t } = ctx;
   const host = h('div', { class: 'ai-panel', hidden: true, id: 'ai-personality' });
-  const open = aiButton(ai, t, t('knows.ai'), (e) => {
+  const open = aiButton(ai, t, t('personality.ai'), (e) => {
     host.hidden = !host.hidden;
     e.currentTarget.setAttribute('aria-expanded', String(!host.hidden));
     if (!host.hidden) host.querySelector('textarea')?.focus();
@@ -54,8 +54,7 @@ export function personalityPanel(ctx) {
     if (!description.value.trim()) { status.textContent = t('ai.describe_first'); description.focus(); return; }
     generate.textContent = t('ai.working');
     status.textContent = '';
-    const answer = await ai.api.aiPersonality({ voiceId: ctx.voiceId, name: ctx.name, description: description.value,
-      ...ctx.lists() });
+    const answer = await ai.api.aiPersonality({ voiceId: ctx.voiceId, name: ctx.name, description: description.value });
     if (!answer.ok) { status.textContent = codeText(t, answer); return; }
     proposal = answer.prompt;
     result.textContent = proposal;

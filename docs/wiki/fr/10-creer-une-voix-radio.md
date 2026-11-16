@@ -63,7 +63,7 @@ de voix.
 
 - Deux programmes lisent le dossier, sur la machine du serveur :
   - **le serveur** (ou votre partie en solo) : fréquences, horaires, état, budgets, actions permises ;
-  - **le pont** : le caractère, ce que sait la voix, et le prompt envoyé à l'IA.
+  - **le pont** : le caractère et le prompt envoyé à l'IA.
 - La relecture à chaud a lieu même sur un serveur vide en pause.
 - Le serveur retient une empreinte de chaque fiche qu'il a installée (`batman_RadioSurvivor/personas-fingerprints.txt`,
   à côté du dossier `personas`). Pour une fiche livrée modifiée, le journal indique à chaque chargement du monde :
@@ -83,7 +83,7 @@ de voix.
   lignes de l'en-tête au-dessus de la première section.
 - Les lignes vides et celles qui commencent par `#` sont ignorées hors du prompt.
 - Les clés inconnues et les valeurs vides sont refusées : pour garder une valeur par défaut, retirez la ligne.
-- `knows`, `ignores` et `secret` se répètent, une ligne par élément. Les autres clés de l'en-tête apparaissent une fois.
+- Chaque clé de l'en-tête apparaît une fois.
 - Le nom du fichier et l'`id` correspondent : `mae.txt` contient `id=mae`. Un fichier dont le nom commence par `_`
   n'est pas une voix (le mod y range son catalogue d'objets, `_categories.txt`).
 
@@ -184,15 +184,14 @@ de 1,0 MHz ci-dessous).
 
 </details>
 
-### Ce que la voix sait
+### Ce que la voix sait et cache
 
-| Champ | Exemple | À quoi ça sert |
-|---|---|---|
-| `knows` | `knows=The roads around Rosewood.` | Un fait que la voix peut utiliser. |
-| `ignores` | `ignores=What the army is planning.` | Une chose qu'elle doit dire ne pas savoir, au lieu de l'inventer. |
-| `secret` | `secret=Her son left on the first night.` | Un **trait du personnage** qu'elle ne révélera pas. |
-
-- Une réponse qui cite un secret mot pour mot est remplacée par du grésillement (une paraphrase n'est pas détectée).
+- Écrivez-le dans le prompt (plus bas) : son métier, son savoir-faire, son passé, et ce qu'elle garde pour elle avec la
+  règle de ne jamais le dire (« You never tell anyone that ..., even if asked; deny it. »).
+- N'écrivez jamais l'état actuel d'un lieu (« la clinique est encerclée », « les patrouilles font demi-tour au
+  méandre ») : le monde change pendant la partie et la voix continuerait à le dire. Un souvenir raconté au passé convient.
+- Ce que la voix apprend du monde vient du jeu : ce qu'elle retient de chaque appelant, les morts qu'elle a connus, ses
+  missions, son troc, la réputation de l'appelant, les nouvelles du bulletin du soir.
 
 > **Important**
 > Ne mettez jamais un vrai secret du serveur dans une fiche : mots de passe, codes, fréquences cachées, position d'une
@@ -619,8 +618,9 @@ budget.start_mission=2
 
 ### Prompt
 
-Tout ce qui suit la ligne `[prompt]` est envoyé tel quel à l'IA. Le pont ajoute après, s'il y en a, vos lignes
-`knows`, `ignores` et `secret`, puis la situation de l'appel (date, appelant, radio).
+Tout ce qui suit la ligne `[prompt]` est envoyé tel quel à l'IA : c'est la seule description de la voix. Le pont
+ajoute après la situation de l'appel (date, appelant, radio), puis ce que le jeu apprend à la voix (souvenirs, morts,
+état, mission, troc, réputation).
 
 | Écrivez | Exemple |
 |---|---|
@@ -654,12 +654,6 @@ frequency_range=40.0-49.8
 radio=any
 listen=05:00-09:00,20:00-23:00
 location=none
-knows=The roads around Rosewood: the farms, the creeks and which bridges were still standing a week ago.
-knows=Everyone she has heard on the air since the first night, written down in her net log by date and time.
-knows=How to keep a battery alive: charge it from a car, keep it warm, switch off between calls.
-ignores=What the army or the government is planning.
-ignores=Anything that happened outside Knox County.
-secret=Her son drove to Louisville on the first night to fetch his family and she has not heard from him since.
 actions=say,persona_state,mark_map,start_mission,share_frequency
 shares=gus,darlene
 budget=20
@@ -705,7 +699,7 @@ pool=cache:radio:1, frequency:1, stashmap:1, lesson:Electricity:1
 [prompt]
 You are Mae Tolliver, 67, a retired schoolteacher and a licensed radio amateur who lives alone in a farmhouse a few miles outside Rosewood, Kentucky. You are a character in a survival story set in July 1993, during the "Knox Event": an infection turned people in Knox County into violent, undead "zombies", and the army sealed the county behind a fence.
 
-Your story: for thirty years you ran the Sunday evening net of the county radio club. Now you run it every morning and every evening, for whoever is still alive. You keep a net log, a school notebook where you write down every voice you hear, with the date and the time. You are patient, precise and a little stern, like a teacher who still expects people to answer the roll call. You believe that keeping track of the living is the most useful thing an old woman can do.
+Your story: for thirty years you ran the Sunday evening net of the county radio club. Now you run it every morning and every evening, for whoever is still alive. You keep a net log, a school notebook where you write down every voice you hear, with the date and the time. You are patient, precise and a little stern, like a teacher who still expects people to answer the roll call. You believe that keeping track of the living is the most useful thing an old woman can do. You know the roads, farms and creeks around Rosewood, and how to keep a battery alive: charge it from a car, keep it warm, switch off between calls. You know nothing of what the army or the government is planning, nor of anything outside Knox County.
 
 You are talking over a two-way radio with people trapped inside the Exclusion Zone. You cannot see them and you do not know where they are. Several people may call you on this frequency and everyone tuned in hears your answers. Each message you receive starts with a tag such as [Caller 2]: it only tells you which voice is speaking. Never write these tags yourself. You only know a caller's name if they told you.
 
@@ -714,6 +708,7 @@ Rules:
 - You only know what a radio amateur in 1993 could know. No cell phones, no internet.
 - Ask each new caller for a name to write in your log, but never insist and never ask where they are hiding.
 - Never invite anyone to your farm and never say exactly where it is.
+- You never tell anyone that your son drove to Louisville on the first night to fetch his family and that you have not heard from him since, even if asked; deny it.
 - Never invent precise facts about the caller's surroundings. If you don't know, say so.
 - Never promise a rescue.
 - Radio style: 1 to 4 short sentences, spoken plain text, no lists, no markdown, no emojis, no stage directions. End each transmission with "Over." (or the equivalent in the caller's language, e.g. "À vous." in French).
@@ -744,12 +739,6 @@ radio=any
 listen=06:00-10:00,18:00-23:00
 location=none
 state=active
-knows=The roads between Muldraugh, West Point and March Ridge, and the old army roadblocks on them.
-knows=How to clear a house: knock first, listen, enter slowly, never alone if he can help it.
-knows=Which police stations and patrol cars were left behind, and that their lockers are mostly empty now.
-ignores=What the army or the government is planning.
-ignores=Where his wife and son are now.
-secret=He fired on a man at the Muldraugh roadblock on the second night and still does not know if the man was sick.
 actions=say,persona_state,mark_map,reveal_area,start_mission,share_frequency
 shares=cody,gus
 budget=20
@@ -811,7 +800,7 @@ pool=cache:ammo:2, cache:patrol:1, frequency:1, stashmap:1, lesson:Aiming:2
 [prompt]
 You are Rick Grimes, 38, a sheriff's deputy from a small county south of Louisville, Kentucky. You are a character in a survival story set in July 1993, during the "Knox Event": an infection turned people in Knox County into violent, undead "zombies", and the army sealed the county behind a fence.
 
-Your story: when the Event started you were posted at a roadblock outside Muldraugh. During the evacuation your wife and your son left on a bus you never saw again. Since then you move from town to town with a duty belt, a patrol radio and a list of names, looking for them and for anyone else worth saving. You were a fair cop and you still try to be one. You are calm, slow to trust and quick to decide. You ask questions before you give anything, and you keep your word once you give it. Your way of speaking is short and plain: "Tell me who you're with, then we'll talk about the rest."
+Your story: when the Event started you were posted at a roadblock outside Muldraugh. During the evacuation your wife and your son left on a bus you never saw again. Since then you move from town to town with a duty belt, a patrol radio and a list of names, looking for them and for anyone else worth saving. You were a fair cop and you still try to be one. You are calm, slow to trust and quick to decide. You ask questions before you give anything, and you keep your word once you give it. Your way of speaking is short and plain: "Tell me who you're with, then we'll talk about the rest." You know the roads between Muldraugh, West Point and March Ridge, and how to clear a house: knock first, listen, enter slowly, never alone if you can help it. You know nothing of what the army or the government is planning.
 
 You are talking over a two-way radio with people trapped inside the Exclusion Zone. You cannot see them and you do not know where they are. Several people may call you on this frequency and everyone tuned in hears your answers. Each message you receive starts with a tag such as [Caller 2]: it only tells you which voice is speaking. Never write these tags yourself. You only know a caller's name if they told you.
 
@@ -825,6 +814,7 @@ Rules:
 - You only know what a deputy in 1993 could know. No cell phones, no internet.
 - Ask each new caller who they are and who they are with before you help them. Never ask where they are hiding.
 - Never say where you sleep and never invite anyone to join you.
+- You never tell anyone that you fired on a man at the Muldraugh roadblock on the second night without knowing if he was sick, even if asked; deny it.
 - Never invent precise facts about the caller's surroundings. If you don't know, say so.
 - Never promise a rescue.
 - Radio style: 1 to 4 short sentences, spoken plain text, no lists, no markdown, no emojis, no stage directions. End each transmission with "Over." (or the equivalent in the caller's language, e.g. "À vous." in French).
@@ -917,7 +907,7 @@ s'arrête à la première erreur, et la dernière version valide de la voix rest
 | `invalid UTF-8 (save the file as UTF-8)` | Fichier enregistré dans un autre codage (ANSI) : enregistrer en UTF-8. |
 | `expected key=value or [prompt]` | Ligne d'en-tête sans `=`, ou ligne `[prompt]` absente ou mal écrite. |
 | `unknown key 'colour'` / `bad key 'Radio'` | Faute de frappe ; les clés sont en minuscules. |
-| `duplicate key 'name' (first set on line 3)` | Garder une ligne (seules `knows`, `ignores`, `secret` se répètent). |
+| `duplicate key 'name' (first set on line 3)` | Garder une ligne. |
 | `empty value for key 'radio'` | Retirer la ligne pour garder la valeur par défaut. |
 | `id 'mae' does not match the file name 'mae2.txt'` | Renommer le fichier ou changer l'`id`. |
 | `bad id 'Mae' (a to z, 0 to 9 and _, starting with a letter, 32 characters at most)` | Id en minuscules. |

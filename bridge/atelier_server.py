@@ -1,8 +1,8 @@
 """Voice workshop server (E22-T02, ADR atelier-voix D01, D02, D06): a local web page to write the radio voice sheets.
 
-    python bridge/radio_bridge.py --atelier [--atelier-port 8765]
+    python bridge/radio_bridge.py --atelier [--atelier-port 8765] [--atelier-host 0.0.0.0]
 
-Listens on 127.0.0.1 only and serves the page of bridge/atelier/ (index.html, app.js, catalog.json...) and a JSON API
+Listens on 127.0.0.1 by default and serves the page of bridge/atelier/ (index.html, app.js, catalog.json...) and a JSON API
 on the sheets of the working folder, the one the game reads again every 30 s (D02): never the folder of the mod.
 
     GET    /api/status                     working and delivered folders, version of the mod
@@ -27,6 +27,15 @@ on the sheets of the working folder, the one the game reads again every 30 s (D0
     POST   /api/ai/story                   {voiceId, missionType, voiceText, context} -> {story}: one sentence
     POST   /api/ai/try                     {voiceId, sheetText, history[], text} -> {lines}: a test turn with the voice
                                            built from the unsaved text; no AI configured: 503 ai_unavailable
+    POST   /api/login                      E22-T15, network mode only: {"password"} -> session cookie; 401 bad_password,
+                                           429 login_locked {retryAfter}
+    POST   /api/logout                     network mode only: the session ends
+
+Access (E22-T15, ADR atelier-voix D11) is one gate chosen from the listening address: on the loopback (LocalGate) the
+Host must be the loopback and the Origin, when present, our own page, as before; on any other address (NetworkGate)
+every client logs in with ATELIER_PASSWORD (atelier_auth), the loopback included, and a state-changing request whose
+Origin is not its own scheme://Host is refused. Without a session, /api/* answers 401 and a page redirects to the login
+page; only the login page and what it loads (PUBLIC_PATHS) are served without one.
 
 Every answer of a write or a refusal is {"ok": bool, "code": stable code for the page to translate, "message":
 English text}. The format of a sheet is not checked here: the game is the only judge (D03); only the size, the
@@ -35,20 +44,24 @@ with "_" (catalogues such as _categories.txt), never a path outside the working 
 """
 from __future__ import annotations
 
+import ipaddress
 import json
 import os
 import re
+import socket
 import sys
 import threading
 import urllib.parse
 import webbrowser
 import zlib
 from dataclasses import dataclass, field
+from http.cookies import CookieError, SimpleCookie
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Callable, Protocol
 
 import atelier_ai
+import atelier_auth
 import persona_store
 
 HOST = '127.0.0.1'
@@ -67,11 +80,17 @@ CONTENT_TYPES = {'.html': 'text/html; charset=utf-8', '.js': 'text/javascript; c
 
 
 class AtelierError(Exception):
-    """Refused operation: HTTP status, stable code and English message for the page."""
+    """Refused operation: HTTP status, stable code and English message for the page (extra fields and headers)."""
 
-    def __init__(self, status: int, code: str, message: str):
+    def __init__(self, status: int, code: str, message: str, extra: dict | None = None,
+                 headers: dict[str, str] | None = None):
         super().__init__(message)
         self.status, self.code, self.message = status, code, message
+        self.extra, self.headers = extra or {}, headers or {}
+
+
+class StartRefused(Exception):
+    """The workshop cannot start as asked (network mode without a good password): English message for the console."""
 
 
 @dataclass
@@ -355,6 +374,89 @@ class Live:
     surveys: PlaceSurveys | None = None
 
 
+# --- access (E22-T15, ADR atelier-voix D11) --------------------------------------------------------------------------
+SESSION_COOKIE = 'atelier_session'
+LOGIN_PAGE = '/login.html'
+# Served without a session: the login page and what it loads (strings, styles), and the login itself.
+PUBLIC_PATHS = frozenset({LOGIN_PAGE, '/login.js', '/dom.js', '/i18n.js', '/i18n/fr.json', '/i18n/en.json',
+                          '/theme.css', '/vendor/pico.min.css', '/api/login'})
+SAFE_METHODS = frozenset({'GET', 'HEAD'})
+
+
+@dataclass(frozen=True)
+class Request:
+    """What a gate reads of a request: method, decoded path, Host and Origin headers, session token, port served."""
+    method: str
+    path: str
+    host: str | None
+    origin: str | None
+    token: str | None
+    port: int
+
+
+def forbidden_origin() -> AtelierError:
+    return AtelierError(403, 'forbidden_origin', "request refused: the workshop only answers its own page")
+
+
+class Gate(Protocol):
+    """Who may use the workshop. `login`: the page shows a logout button; `routes`: API routes the gate adds."""
+    login: bool
+    routes: tuple
+
+    def admit(self, request: Request) -> None: ...
+
+
+class LocalGate:
+    """Loopback mode: no password; Host is the loopback (no DNS rebinding), Origin absent or our own page."""
+    login = False
+    routes: tuple = ()
+
+    def admit(self, request: Request) -> None:
+        allowed = {f'{HOST}:{request.port}', f'localhost:{request.port}'}
+        if request.host not in allowed or (request.origin is not None
+                                           and request.origin not in {f'http://{a}' for a in allowed}):
+            raise forbidden_origin()
+
+
+class NetworkGate:
+    """Network mode: any Host, but a state-changing request comes from its own page (Origin absent or equal to
+    http://<Host>) and every path but PUBLIC_PATHS needs a session of `auth`."""
+    login = True
+
+    def __init__(self, auth: atelier_auth.Authenticator):
+        self.auth = auth
+        self.routes = AUTH_ROUTES
+
+    def admit(self, request: Request) -> None:
+        if (request.method not in SAFE_METHODS and request.origin is not None
+                and request.origin != f'http://{request.host}'):
+            raise forbidden_origin()
+        if request.path in PUBLIC_PATHS or self.auth.valid(request.token):
+            return
+        if request.path.startswith('/api/'):
+            raise AtelierError(401, 'login_required', "log in first: the workshop asks for its password")
+        raise AtelierError(303, 'login_required', "log in first", headers={'Location': LOGIN_PAGE})
+
+
+def is_loopback(host: str) -> bool:
+    if host.lower() == 'localhost':
+        return True
+    try:
+        return ipaddress.ip_address(host).is_loopback
+    except ValueError:
+        return False
+
+
+def gate_for(host: str, password: str | None, log: Callable[[str], None]) -> Gate:
+    """LocalGate on the loopback, else NetworkGate over ATELIER_PASSWORD (StartRefused when absent or too short)."""
+    if is_loopback(host):
+        return LocalGate()
+    try:
+        return NetworkGate(atelier_auth.Authenticator(password, log))
+    except atelier_auth.PasswordRefused as err:
+        raise StartRefused(f"{err}; the voice workshop does not start on {host}") from None
+
+
 # --- HTTP adapter ----------------------------------------------------------------------------------------------------
 VOICE = r'/api/voices/([^/]+)'
 ROUTES: list[tuple[str, re.Pattern, str]] = [
@@ -373,6 +475,10 @@ ROUTES: list[tuple[str, re.Pattern, str]] = [
     ('GET', re.compile(r'/api/surveys'), 'place_surveys'),
     ('POST', re.compile(r'/api/ai/([a-z]+)'), 'ai_request'),
 ]
+AUTH_ROUTES: tuple[tuple[str, re.Pattern, str], ...] = (    # E22-T15: network mode only (NetworkGate.routes)
+    ('POST', re.compile(r'/api/login'), 'login'),
+    ('POST', re.compile(r'/api/logout'), 'logout'),
+)
 # E22-T06: /api/ai/<kind> -> (method of atelier_ai.WorkshopAI, key of its answer)
 AI_REQUESTS = {'personality': ('personality', 'prompt'), 'story': ('story', 'story'), 'try': ('try_voice', 'lines')}
 AI_UNAVAILABLE = ("no AI is configured for the bridge: copy bridge/.env.example to bridge/.env, fill in OPENAI_KEY, "
@@ -385,14 +491,22 @@ class AtelierServer(ThreadingHTTPServer):
     allow_reuse_address = sys.platform != 'win32'
 
     def __init__(self, address: tuple[str, int], store: VoiceStore, static_root: Path, version: str | None,
-                 log: Callable[[str], None], live: Live | None = None):
+                 log: Callable[[str], None], live: Live | None = None, gate: Gate | None = None):
+        if ':' in address[0]:
+            self.address_family = socket.AF_INET6
         super().__init__(address, AtelierHandler)
         self.store, self.static_root, self.version, self.log = store, Path(static_root), version, log
         self.live = live or Live()
+        self.gate = gate or LocalGate()
+        self.routes = (*ROUTES, *self.gate.routes)
 
     @property
     def url(self) -> str:
-        return f'http://{HOST}:{self.server_address[1]}/'
+        """Address for a browser of this machine: the loopback when listening on every address."""
+        host = self.server_address[0]
+        if host in ('0.0.0.0', '::'):
+            host = HOST
+        return f'http://{"[" + host + "]" if ":" in host else host}:{self.server_address[1]}/'
 
 
 class AtelierHandler(BaseHTTPRequestHandler):
@@ -416,14 +530,14 @@ class AtelierHandler(BaseHTTPRequestHandler):
         if self.command != 'HEAD':
             self.wfile.write(body)
 
-    def _json(self, status: int, payload) -> None:
-        self._send(status, json.dumps(payload, ensure_ascii=False).encode('utf-8'), CONTENT_TYPES['.json'])
+    def _json(self, status: int, payload, headers: dict[str, str] | None = None) -> None:
+        self._send(status, json.dumps(payload, ensure_ascii=False).encode('utf-8'), CONTENT_TYPES['.json'], headers)
 
-    def _done(self, done: Done, **extra) -> None:
-        self._json(done.status, {'ok': True, 'code': done.code, 'message': done.message, **extra})
+    def _done(self, done: Done, headers: dict[str, str] | None = None, **extra) -> None:
+        self._json(done.status, {'ok': True, 'code': done.code, 'message': done.message, **extra}, headers)
 
     def _error(self, err: AtelierError) -> None:
-        self._json(err.status, {'ok': False, 'code': err.code, 'message': err.message})
+        self._json(err.status, {'ok': False, 'code': err.code, 'message': err.message, **err.extra}, err.headers)
 
     def _length(self) -> int:
         try:
@@ -461,27 +575,29 @@ class AtelierHandler(BaseHTTPRequestHandler):
             raise AtelierError(400, 'bad_request', "the request body must be a JSON object")
         return data
 
-    def _same_origin(self) -> bool:
-        """Only this page may call the API: Host is the loopback (no DNS rebinding), Origin absent or our own."""
-        port = self.server.server_address[1]
-        allowed = {f'{HOST}:{port}', f'localhost:{port}'}
-        if self.headers.get('Host') not in allowed:
-            return False
-        origin = self.headers.get('Origin')
-        return origin is None or origin in {f'http://{a}' for a in allowed}
+    def _token(self) -> str | None:
+        """Session token of the cookie, None when absent or unreadable."""
+        try:
+            morsel = SimpleCookie(self.headers.get('Cookie') or '').get(SESSION_COOKIE)
+        except CookieError:
+            return None
+        return morsel.value if morsel is not None else None
+
+    def _request(self, path: str) -> Request:
+        return Request(self.command, path, self.headers.get('Host'), self.headers.get('Origin'), self._token(),
+                       self.server.server_address[1])
 
     def _dispatch(self) -> None:
         path = urllib.parse.unquote(urllib.parse.urlsplit(self.path).path)
         self._unread = 0
         try:
             self._unread = self._length()
-            if not self._same_origin():
-                raise AtelierError(403, 'forbidden_origin', "request refused: the workshop only answers its own page")
+            self.server.gate.admit(self._request(path))     # the one access check (E22-T15)
             if not path.startswith('/api/'):
                 if self.command not in ('GET', 'HEAD'):
                     raise AtelierError(405, 'method_not_allowed', f"{self.command} not allowed on {path}")
                 return self.static(path)
-            for method, pattern, name in ROUTES:
+            for method, pattern, name in self.server.routes:
                 match = pattern.fullmatch(path)
                 if match and method == self.command:
                     return getattr(self, name)(*match.groups())
@@ -515,7 +631,24 @@ class AtelierHandler(BaseHTTPRequestHandler):
         store = self.server.store
         self._json(200, {'ok': True, 'working': str(store.working.resolve()), 'shipped': str(store.shipped.resolve()),
                          'workingExists': store.working.is_dir(), 'version': self.server.version,
-                         'ai': self.server.live.ai is not None})
+                         'ai': self.server.live.ai is not None, 'login': self.server.gate.login})
+
+    # --- login (E22-T15, network mode only: AUTH_ROUTES) -----------------------------------------------------------
+    def login(self) -> None:
+        result = self.server.gate.auth.login(self.client_address[0], self._json_body().get('password'))
+        if result.outcome == atelier_auth.LOCKED:
+            raise AtelierError(429, 'login_locked', f"too many failed logins: try again in {result.retry_after} s",
+                               {'retryAfter': result.retry_after}, {'Retry-After': str(result.retry_after)})
+        if result.outcome != atelier_auth.LOGGED_IN:
+            raise AtelierError(401, 'bad_password', "wrong password")
+        cookie = (f'{SESSION_COOKIE}={result.token}; HttpOnly; SameSite=Strict; Path=/; '
+                  f'Max-Age={atelier_auth.SESSION_SECONDS}')
+        self._done(Done('logged_in', "logged in"), {'Set-Cookie': cookie})
+
+    def logout(self) -> None:
+        self.server.gate.auth.logout(self.client_address[0], self._token())
+        self._done(Done('logged_out', "logged out"),
+                   {'Set-Cookie': f'{SESSION_COOKIE}=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0'})
 
     def list_voices(self) -> None:
         self._json(200, {'ok': True, 'voices': self.server.store.voices()})
@@ -601,12 +734,13 @@ class AtelierHandler(BaseHTTPRequestHandler):
 
 # --- composition -----------------------------------------------------------------------------------------------------
 def bind(store: VoiceStore, port: int = DEFAULT_PORT, static_root: Path = STATIC_ROOT, version: str | None = None,
-         log: Callable[[str], None] = print, tries: int = PORT_TRIES, live: Live | None = None) -> AtelierServer:
-    """Server on 127.0.0.1, on `port` or, when busy, one of the next `tries - 1` ports (0: any free port)."""
+         log: Callable[[str], None] = print, tries: int = PORT_TRIES, live: Live | None = None,
+         host: str = HOST, gate: Gate | None = None) -> AtelierServer:
+    """Server on `host`, on `port` or, when busy, one of the next `tries - 1` ports (0: any free port)."""
     last: OSError | None = None
     for candidate in ([0] if port == 0 else range(port, port + tries)):
         try:
-            return AtelierServer((HOST, candidate), store, static_root, version, log, live)
+            return AtelierServer((host, candidate), store, static_root, version, log, live, gate)
         except OSError as err:
             last = err
     raise OSError(f"no free port from {port} to {port + tries - 1}: {last}")
@@ -618,13 +752,41 @@ def start(server: AtelierServer) -> threading.Thread:
     return thread
 
 
+def lan_address() -> str | None:
+    """IPv4 address of this machine on its network (the one its default route uses), None when unknown. Connecting a
+    UDP socket sends nothing."""
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as probe:
+            probe.connect(('192.0.2.1', 9))      # TEST-NET-1: only routed, never reached
+            address = probe.getsockname()[0]
+    except OSError:
+        return None
+    return None if address.startswith(('0.', '127.')) else address
+
+
+def network_line(server: AtelierServer) -> str:
+    """Startup line of the network mode (ADR atelier-voix D11)."""
+    host, port = server.server_address[:2]
+    shown = f'[{host}]' if ':' in host else host
+    line = f"Voice workshop on http://{shown}:{port}/ (password required)"
+    if host in ('0.0.0.0', '::'):
+        lan = lan_address()
+        line += f"; from another device: http://{lan}:{port}/" if lan else "; from any address of this machine"
+    return line
+
+
 def launch(working: Path, shipped: Path, port: int = DEFAULT_PORT, log: Callable[[str], None] = print,
-           open_browser: Callable[[str], object] = webbrowser.open,
-           live: Live | None = None) -> tuple[AtelierServer, threading.Thread]:
-    """Workshop of the voices of `working` (delivered ones in `shipped`), served in the background, page opened."""
-    server = bind(VoiceStore(working, shipped), port, version=mod_version(Path(shipped)), log=log, live=live)
+           open_browser: Callable[[str], object] = webbrowser.open, live: Live | None = None,
+           host: str = HOST, password: str | None = None) -> tuple[AtelierServer, threading.Thread]:
+    """Workshop of the voices of `working` (delivered ones in `shipped`), served in the background, page opened.
+    Any `host` but the loopback needs `password` (ATELIER_PASSWORD): StartRefused otherwise, nothing bound."""
+    gate = gate_for(host, password, log)
+    server = bind(VoiceStore(working, shipped), port, version=mod_version(Path(shipped)), log=log, live=live,
+                  host=host, gate=gate)
     thread = start(server)
     log(f"Voice workshop: {server.url} (voice sheets: {Path(working).resolve()})")
+    if gate.login:
+        log(network_line(server))
     game = server.live.game
     if game is not None:
         log(f"Voice workshop: game verdicts read in {game.path}" + ("" if game.found else " (not found yet)"))

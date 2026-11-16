@@ -234,14 +234,13 @@ Priorité : **haute** (bug, sécurité ou perte de données possible), **moyenne
   - `PermissionError` à l'écriture ;
   - JSON de PNJ corrompu ;
   - `TokenUsageLog`, `request_age`, `single_instance` ;
-  - `leaks_secret` en direct ;
   - usurpation `[Caller N]` ;
   - réessai 429 ;
   - code `ES_CL` côté radio.
 - **Preuve** : recherche dans `tests/` (`test_protocol.py`, `test_fake_llm.py`, `test_bulletin.py`).
 - **Correction** : un test ciblé par point, plus un banc d'injection rejoué en `--offline` avec un faux LLM qui « obéit » (vérifie que les bornes tiennent).
 - **Priorité** moyenne · **Effort** S à M · confirmé par recherche.
-- **Avancement : 🟡 en partie, non publié (commit 4215bd3)** — seule l'usurpation `[Caller N]` est couverte (`CallerTagTests` de `tests/test_bridge_guards.py`, avec C02) ; restent `PermissionError`, JSON de PNJ corrompu, `TokenUsageLog`, `request_age`, `single_instance`, `leaks_secret`, réessai 429 et `ES_CL`.
+- **Avancement : 🟡 en partie, non publié (commit 4215bd3)** — seule l'usurpation `[Caller N]` est couverte (`CallerTagTests` de `tests/test_bridge_guards.py`, avec C02) ; restent `PermissionError`, JSON de PNJ corrompu, `TokenUsageLog`, `request_age`, `single_instance`, réessai 429 et `ES_CL` (`leaks_secret` retiré avec les secrets des fiches, E22-T14).
 
 #### C16 — Petits défauts du pont
 - **Problème** :

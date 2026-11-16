@@ -1003,7 +1003,7 @@ Aucune voix n'est livrée en plus de Walt (E05-T04) : l'essai crée une voix jet
 
 1. Partie `rstest-voix`. Dans `personas\`, créer `essai.txt` :
    `format=1`, `id=essai`, `name=Essai Banc`, `frequencies=150.0`, `radio=high_tier`,
-   `secret=Le code est sous la pierre.`, `budget=2`, puis `[prompt]` et une ligne de texte. Dans les 30 s :
+   `budget=2`, puis `[prompt]` et une ligne de texte. Dans les 30 s :
    `voice 'essai' loaded`, `channel of voice 'essai' created on 150.0 MHz`.
 2. Talkie ordinaire (`WalkieTalkie1` à 4) réglé sur 150,0 : le menu propose « Parler sur 150.0 MHz » ; la phrase
    part, **aucune réponse**, rien dans `requests.txt`.
@@ -1016,7 +1016,7 @@ Aucune voix n'est livrée en plus de Walt (E05-T04) : l'essai crée une voix jet
 5. Vider `essai.txt` (0 octet) : `voice 'essai' removed`, 150,0 ne répond plus.
 
 Écart à signaler : une réponse de la voix d'essai sur 145,0 (ou de Walt sur 150,0), un historique qui mélange les
-deux voix, une réponse à un poste ordinaire, le texte du secret entendu à la radio.
+deux voix, une réponse à un poste ordinaire.
 
 ### Le serveur trie (E05-T08, solo, court)
 

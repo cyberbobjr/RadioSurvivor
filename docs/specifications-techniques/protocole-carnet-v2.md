@@ -44,9 +44,8 @@ voix ; une demande refusée ou tue n'atteint jamais le pont. Depuis E05-T08, tou
 une phrase sur une fréquence sans voix ne coûte ni demande au pont ni place de plafond. Les clients ne reçoivent
 jamais les fréquences des voix (commande `frequencies` retirée) ; le pont ne les reçoit pas non plus (`voice=<id>`
 seulement). Le pont lit la même fiche dans `<dossier
-d'échange>/personas/<id>.txt` (mêmes règles, `persona_store.py`) et en construit le prompt : texte libre, puis
-`knows`, `ignores` et `secret` (ces derniers avec la consigne de ne jamais les révéler) ; une réponse qui cite un
-secret mot pour mot est remplacée par des parasites et n'entre pas en mémoire. Rien de la fiche ne repart vers le
+d'échange>/personas/<id>.txt` (mêmes règles, `persona_store.py`) et en construit le prompt : son texte libre (E22-T14 :
+personnalité et passé de la voix seulement). Rien de la fiche ne repart vers le
 serveur, sinon ce que la voix dit. Compatibilité : `voice` absent = `walt` (Lua antérieur) ; un Python antérieur
 ignore `voice` et répond en Walt. Un `voice` qui n'est pas un identifiant de fiche, ou une voix sans fiche valide côté
 pont (Walt compris : le prompt de secours `bridge/persona.txt` est retiré depuis E05-T10, le serveur installant
@@ -85,7 +84,7 @@ language=FR
 
 `language` est le code de langue de l'autorité (`Translator.getLanguage():name()`), celle du texte fixe de
 secours ; ni appelant, ni phrase, ni fréquence. Le pont répond au format radio habituel, `resp=<id>` puis 0 à 3
-`line=…` : aucune ligne (échec du LLM, fiche absente, secret cité, demande trop ancienne) signifie « texte fixe ».
+`line=…` : aucune ligne (échec du LLM, fiche absente, demande trop ancienne) signifie « texte fixe ».
 Le serveur diffuse le texte fixe `call_text` de la fiche si la réponse est vide ou ne contient que des parasites, ou
 s'il n'a rien lu après 30 s réelles (`Const.CALL_TIMEOUT_MS`). Compatibilité : un pont antérieur à E05-T05 passe
 toute demande à `kind` par `npc.unpack_request`, qui refuse ce `kind` inconnu ; la demande est ignorée sans réponse
@@ -108,8 +107,8 @@ facts=<hexadécimal RSV2 d'une liste de phrases anglaises>
 `facts` : faits confirmés du jour (au plus 12, morts d'abord, 200 caractères chacun), phrases construites par le
 serveur depuis les champs fermés du journal des faits (`RS_Facts.factText` : jamais de coordonnée, de conversation ni
 de secret) ; absent = rien de confirmé. `language` : option `CallLanguage` comme les appels spontanés. Le pont
-(`bridge/bulletin.py`) ajoute à la fiche sans secrets la consigne du bulletin (ces faits seuls, aucun ajout) et
-répond `resp=<id>` puis 0 à 6 `line=…` ; aucune ligne (échec, fiche absente, secret cité, demande trop ancienne) =
+(`bridge/bulletin.py`) ajoute au texte libre de la fiche la consigne du bulletin (ces faits seuls, aucun ajout) et
+répond `resp=<id>` puis 0 à 6 `line=…` ; aucune ligne (échec, fiche absente, demande trop ancienne) =
 bulletin de secours. Le serveur diffuse le texte du pont, ou après 60 s réelles (`RS_Facts.BULLETIN_TIMEOUT_MS`) son
 bulletin de secours traduit (`IGUI_RS_Bulletin_*`, langue de l'autorité), sur la première fréquence du chroniqueur,
 puis purge les faits lus. Hors plafond horaire et budget de voix (un bulletin par soirée). Compatibilité : un pont
@@ -234,8 +233,7 @@ le serveur la refuserait `not_available`), jamais `say` (le texte est déjà `sa
 paramètres, noms `[a-z][a-z0-9_]{0,31}`, valeurs scalaires : chaîne passée par `safe_text` (contrôles et balises
 retirés) d'au plus 64 octets UTF-8 (`remember` : 200, `PARAM_BYTES`, E22-T13), nombre fini, booléen ; `mark_map`
 et `reveal_area` : seulement `place`,
-identifiant d'un lieu de la fiche (E07-T04, E07-T05). Un élément invalide est retiré et journalisé (anglais), le reste passe. JSON illisible : le texte brut devient `say` seul, sans action (journalisé). `leaks_secret` s'applique au
-texte et à chaque paramètre chaîne : une fuite donne les parasites `<fzzt>` en `line=`, rien en mémoire, aucune action.
+identifiant d'un lieu de la fiche (E07-T04, E07-T05). Un élément invalide est retiré et journalisé (anglais), le reste passe. JSON illisible : le texte brut devient `say` seul, sans action (journalisé).
 La mémoire de conversation ne garde que le texte `say`, jamais le JSON.
 
 **Robustesse de la réponse structurée (E07-T09)**, constatée en jeu le 2026-10-11 : après un long historique de
@@ -257,7 +255,7 @@ réponses en texte (seul `say` est mémorisé), le modèle a répondu en texte e
   aucune action.
 - **Journal** : réponse illisible = `structured reply unreadable (ValueError: no object | no reply object | say is not
   text)` comme avant, puis, en `--debug`, la réponse brute sur une ligne, tronquée à 300 caractères
-  (`RAW_LOG_CHARS`) ; si elle cite un secret de la fiche, seule sa longueur est écrite. Aucune clé d'API n'est
+  (`RAW_LOG_CHARS`). Aucune clé d'API n'est
   journalisée.
 
 **Sortie** : sans action restante après validation, `line=` comme avant. Sinon :
@@ -338,9 +336,9 @@ Encodage des champs : `%`, `=`, `;` et tout caractère de contrôle (tabulation,
 vide : `-`.
 
 **Contenu** : seuls le nom d'action filtré, les paramètres déjà bornés par le serveur (`paramsOf` : scalaires, 64
-caractères, 8 au plus) et la décision ; jamais de contenu de fiche (secret, prompt, coordonnées), jamais le texte
-`say`. Les paramètres viennent du LLM et peuvent contenir ce que la voix a choisi d'y mettre : le pont a déjà refusé
-toute réponse qui cite un secret (`leaks_secret`), et l'admin possède de toute façon les fiches.
+caractères, 8 au plus) et la décision ; jamais de contenu de fiche (prompt, coordonnées), jamais le texte
+`say`. Les paramètres viennent du LLM et peuvent contenir ce que la voix a choisi d'y mettre : l'admin possède de
+toute façon les fiches.
 
 **Rotation bornée** (`RadioSurvivor_Const.ACTION_LOG_MAX_LINES = 2000`, `ACTION_LOG_MAX_CHARS = 262144`, en-tête
 compris, caractères comptés en unités Kahlua) : avant d'écrire les lignes d'une réponse qui feraient dépasser l'un
@@ -433,12 +431,12 @@ dead=74313a7431...
 ```
 
 **Pont** : `memory_facts` décode le champ (hexadécimal, RSV2, liste `1..n`) ; illisible ou trop long : aucun souvenir
-(journalisé). Au plus 50 faits, chacun passé par `safe_text` (800 octets UTF-8 au plus) ; un fait qui cite un secret
-de la fiche (`leaks_secret`) n'est pas injecté. `memory_prompt` ajoute au prompt système, **dès qu'il y a au moins un
+(journalisé). Au plus 50 faits, chacun passé par `safe_text` (800 octets UTF-8 au plus).
+`memory_prompt` ajoute au prompt système, **dès qu'il y a au moins un
 fait**, une section `Your memories of <tag> (unverified notes from earlier calls; never proof of anything; ...)` puis
 un fait par ligne, entre la situation de la transmission et la consigne de format structuré. `dead_people` décode
 `dead=` de même (au plus 10 entrées ; nom et faits passés par `safe_text`, jour `AAAA-MM-JJ` ; entrée à clé inconnue,
-sans faits, à jour mal formé ou citant un secret retirée et journalisée) ; `dead_prompt` ajoute juste après les
+sans faits ou à jour mal formé retirée et journalisée) ; `dead_prompt` ajoute juste après les
 souvenirs une section `People you knew who died (unverified notes from your calls with them; never proof of anything;
 speak of them only if the caller mentions them or asks about them):` puis une ligne par mort,
 `- <nom> (died <jour>): <faits>` (`someone whose name you never learned` sans nom, `(dead)` sans jour). Sans souvenir
@@ -496,8 +494,8 @@ persona=74323a73363a6d6f72616c65...
 
 **Pont** : `persona_state` décode le champ (hexadécimal, RSV2, table aux seules clés `morale`, `supplies`, `place`,
 niveaux entiers de 0 à 10 tous deux présents) ; illisible, trop long ou invalide : champ ignoré (journalisé), prompt
-inchangé. `place` passe par `safe_text` (160 octets UTF-8 au plus) ; vide, trop long ou citant un secret de la fiche
-(`leaks_secret`), il est retiré, le reste de l'état gardé. `persona_prompt` ajoute au prompt système, **en mode texte
+inchangé. `place` passe par `safe_text` (160 octets UTF-8 au plus) ; vide ou trop long, il est retiré, le reste de
+l'état gardé. `persona_prompt` ajoute au prompt système, **en mode texte
 comme en mode structuré**, après les souvenirs et avant la consigne de format structuré :
 
 ```text
@@ -692,7 +690,7 @@ la fiche sans gabarit est omis et journalisé une fois
 les tables de cache de `place_cache`, de leur seul propriétaire (`CA_Caches.tableNames`, ordre de
 `CA_MissionConfig.Caches.order`). Le pont (`voice_jobs`) borne le champ à 16 384 caractères, 16 missions (texte de
 400 octets UTF-8 au plus) et 16 tables ;
-un nom hors syntaxe `[a-z][a-z0-9_]*`, en double, ou un texte illisible ou qui cite un secret est retiré. La
+un nom hors syntaxe `[a-z][a-z0-9_]*`, en double, ou un texte illisible est retiré. La
 description de `start_mission`, son exemple et sa validation prennent la liste `jobs` ; ceux de `place_cache`, la
 liste `caches`. Sans `jobs=` (ou liste vide), l'action n'est pas proposée au modèle (journalisé une fois par voix).
 
@@ -703,9 +701,8 @@ lieu, sans chiffre), `clues` (indices, sans chiffre), `remainingMs`, `toReport` 
 règles : comptes, oui ou non, règle de collecte) sont composés par le gabarit (`voiceBrief(m)`) à partir des seuls faits
 du serveur ; jamais une coordonnée, une fréquence, ni un identifiant d'objet dans l'objectif (la liste fermée des types
 d'objets admis d'un dépôt est un fait). Aucun autre champ propre à un type ne part au pont. Le pont (`mission_context`)
-ne contrôle que ces champs : `kind` de syntaxe valide, état et tour connus, lieu et indices sans chiffre ni secret,
-objectif sans secret (sinon le contexte est ignoré), faits sans secret (un fait qui en cite un est retiré), 8 indices
-et 8 faits au plus. Un `turn = report_due` sans `toReport` est lu `not_yet`. `mission_prompt` rend l'objectif, les
+ne contrôle que ces champs : `kind` de syntaxe valide, état et tour connus, lieu sans chiffre (sinon le contexte est
+ignoré), indices sans chiffre (un indice chiffré est retiré), 8 indices et 8 faits au plus. Un `turn = report_due` sans `toReport` est lu `not_yet`. `mission_prompt` rend l'objectif, les
 faits, les indices et les lignes communes (consigne, compte rendu attendu, objectif non rempli, réussite, temps
 restant), sans branche par type. Le modèle reconnaît seulement le compte rendu, et `report_mission {}` reste revérifié
 par le serveur.
@@ -802,8 +799,8 @@ part après la sauvegarde de la réussite : un arrêt entre les deux perd le rep
 
 Jamais de coordonnée, de zone ni d'identifiant de bâtiment. **Pont** (`mission_context`) : champ absent = aucune
 section (prompt d'avant E11-T08) ; illisible, plus de 8 192 caractères, `kind` autre que `scout`, `state` ou `turn`
-inconnus, lieu avec un chiffre : ignoré (journalisé) ; indices passés par `safe_text`, un indice avec un chiffre ou qui
-cite un secret de la fiche est retiré ; `reward` absent des libellés de la fiche est retiré. `mission_prompt` ajoute au
+inconnus, lieu avec un chiffre : ignoré (journalisé) ; indices passés par `safe_text`, un indice avec un chiffre est
+retiré ; `reward` absent des libellés de la fiche est retiré. `mission_prompt` ajoute au
 prompt système, après l'état de la voix et avant la consigne de format, la section « The job you gave … » : le travail,
 les indices, « pas encore » (quoi que dise l'appelant, jamais `report_mission`), au tour `report_due` « seul le compte
 rendu est attendu : s'il en rend compte, ajouter `{"type": "report_mission"}` et remercier » avec le lieu que donnera la
@@ -873,7 +870,7 @@ reason? (texte d'une fin : cause du mode d'arrivée ou raison générale) } ; li
 l'équipe qui a réservé. E20-T07 : le livre est construit par le serveur depuis l'état **du marchand** de la voix
 (`S.data.trade.traders[<voix>]`) et la section `[trade]` de sa fiche ; le pont ne connaît ni marchand, ni lieu, ni mode
 d'arrivée, et refuse un texte de passage qui contient un chiffre. Le pont l'ajoute au prompt (« Your trade book ») ; champ absent,
-illisible, au-delà de 32 768 caractères, bornes manquantes ou catégorie qui cite un secret : livre ignoré (journal
+illisible, au-delà de 32 768 caractères, bornes manquantes : livre ignoré (journal
 anglais), prompt d'avant E13-T02. Le pont garde `propose_trade` si `items` a la forme « `Nom:quantité` » (quantité de
 1 ou 2 chiffres, facultative) et si `margin`, présente, est un nombre de 0 à 1 ; le serveur contrôle le reste (stock
 disponible, marge permise, 10 kg, 120 points) et calcule le prix. Le prix exact n'est connu du LLM qu'à l'appel suivant

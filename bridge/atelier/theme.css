@@ -1,7 +1,7 @@
 /* Voice workshop theme: the look of the whole page in one place. Pico CSS v2.0.6 (vendor/pico.min.css, MIT, vendored:
    the workshop works offline) gives every element its style; this file sets Pico's variables (dark radio screen,
    orange accent, teal for secondary actions, compact sizes) and holds only the layout of the page's own parts:
-   sidebar, steps bar, cards, lines of a list, help popover, journal, test chat, toasts. */
+   sidebar, steps bar, cards, lines of a list, help popover, journal, test chat, toasts, login page. */
 
 /* --- Pico variables ---------------------------------------------------------------------------------------------- */
 :root[data-theme=dark] {
@@ -126,6 +126,17 @@ body > header.top { display: flex; align-items: center; justify-content: space-b
   padding: 0.3rem 0.8rem; }
 .tab:hover, .tab:focus { background-color: transparent; color: var(--ink); }
 .tab[aria-selected=true] { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* login page of the network mode (E22-T15, login.js) */
+main.login { min-height: 100vh; display: grid; place-items: center; padding: 16px; }
+.login-card { width: min(100%, 26rem); display: grid; gap: 0.6rem; padding: 20px 22px; border: 1px solid var(--line);
+  border-radius: 8px; background: var(--panel); }
+.login-card h1 { margin: 0; font-size: 1.25rem; }
+.login-card h2 { margin: 0.4rem 0 0; font-size: 1.05rem; }
+.login-card .help { margin: 0; font-size: 0.9rem; }
+.login-card label { display: grid; gap: 0.3rem; margin: 0; }
+.login-card input { margin: 0; }
+.login-message { margin: 0; color: var(--bad); min-height: 1.45em; }
 
 .layout { display: grid; grid-template-columns: 220px minmax(0, 1fr); min-height: calc(100vh - 56px); }
 .main { padding: 14px 18px 40px; min-width: 0; display: grid; align-content: start; gap: 12px; }

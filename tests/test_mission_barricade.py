@@ -434,7 +434,7 @@ class BarricadeBriefTests(unittest.TestCase):
     def told(self, voice, ctx):
         field = voice.field(ctx)
         self.assertLessEqual(set(protocol.decode(bytes.fromhex(field))), GENERIC_FIELDS)
-        mission = bridge_module.mission_context({'mission': field}, SimpleNamespace(secrets=[], places=[]))
+        mission = bridge_module.mission_context({'mission': field}, SimpleNamespace(places=[]))
         return mission, bridge_module.mission_prompt(mission, 'Caller')
 
     def test_job_and_verified_facts_told_to_the_voice(self):

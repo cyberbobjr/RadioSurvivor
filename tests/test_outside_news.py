@@ -487,8 +487,7 @@ class StaticTests(unittest.TestCase):
                 if key.startswith(K) and key != K + 'info':
                     self.assertNotRegex(en[key] + fr[key], r'[<>^]')
 
-    def test_no_secret_and_no_frequency(self):
-        bundled = MOD / 'personas'
+    def test_no_voice_and_no_frequency(self):
         blobs = {lang: ' '.join(v for k, v in translations(lang).items() if 'OutsideNews' in k).lower()
                  for lang in ('EN', 'FR')}
         for lang, blob in blobs.items():
@@ -497,11 +496,6 @@ class StaticTests(unittest.TestCase):
                 for word in ('walt', 'darlene', 'cody', 'gus', 'night owl', 'whitaker', 'lacombe', 'ponton', 'pontoon',
                              'landing', 'brandenburg', 'riverside', 'rescue', 'secours', 'helicopter', 'hélicoptère'):
                     self.assertNotRegex(blob, rf'{word}')
-        everything = blobs['EN'] + ' ' + blobs['FR']
-        for path in bundled.glob('*.txt'):
-            for line in path.read_text(encoding='utf-8').splitlines():
-                if line.startswith('secret='):
-                    self.assertNotIn(line[7:].lower()[:30], everything)
 
     def test_lua_ascii_only_outside_comments(self):
         for path in NEWS_LUA:

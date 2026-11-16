@@ -38,6 +38,33 @@ Good to know:
   computer. That folder only exists after a world was loaded once with the mod: start a game once before opening the
   workshop.
 
+### Opening it from a tablet or another computer
+
+By default the workshop only answers the computer it runs on. To open it from a tablet or another computer of your
+home network:
+
+1. Choose a password of **10 characters or more** and add it to the `.env` file of the `bridge` folder (the file that
+   holds the AI settings; copy `.env.example` to `.env` if you have none):
+   `ATELIER_PASSWORD=your password here`
+2. Start the workshop on the network: `python radio_bridge.py --atelier --atelier-host 0.0.0.0` (with a launcher:
+   `atelier.bat --atelier-host 0.0.0.0`, `./atelier.sh --atelier-host 0.0.0.0`).
+3. The bridge window shows the address to open, for example
+   `Voice workshop on http://0.0.0.0:8765/ (password required); from another device: http://192.168.1.20:8765/`.
+   On the tablet, open `http://<address of the PC>:8765/` and enter the password.
+
+![Login page of the workshop](../../images/screenshots/atelier/atelier-en-11-login.png)
+
+- **Everyone logs in**, the PC itself included. The browser stays logged in for 7 days, or until the bridge restarts.
+  The **Log out** button at the top right ends the session.
+- **Wrong passwords are slowed down**: after 5 failures from the same device, it waits 1 minute, then longer at each
+  new failure (up to 15 minutes). Every login, failure and logout appears in the live journal with the device's
+  address.
+- Without `ATELIER_PASSWORD`, or with a shorter one, the workshop does not start on the network: the bridge window says
+  why, and the bridge keeps answering the game.
+- Windows may ask whether Python can use the network: allow it on **private** networks only.
+- **Home network only.** The workshop speaks plain HTTP, which is fine at home. To reach it from outside, use a VPN such
+  as Tailscale or an HTTPS proxy. **Never open the port on your router.**
+
 ## The voice list
 
 On the left, every voice. A badge says where it comes from:
@@ -81,18 +108,19 @@ now**, **Gone** or **Dead**.
 - **What she says when she calls**: the sentence players hear, in any language you like. `%1` is replaced by her
   frequency. When the bridge's AI runs, it writes the call; your sentence is used when the bridge writes nothing.
 
-### 3. What she knows
+### 3. Personality
 
-![Step 3: what she knows and what she can do, with a help bubble open](../../images/screenshots/atelier/atelier-en-03-knows.png)
+![Step 3: what she can do and her personality, with a help bubble open](../../images/screenshots/atelier/atelier-en-03-personality.png)
 
-- **What she knows**, **what she does not know**, **what she keeps to herself**: one idea per line, in English. The
-  voice talks from these lines. A secret is only told to someone she trusts.
 - **What she can do**: talking is always on. The other boxes let her act in the game: mark a place on your map, give
   missions, trade, pass on the frequency of another voice...
 - **Voices she can pass on**: voices whose frequency she can give to a player who earned her trust. Rosie knows
   Darlene, the nurse.
-- **Her personality (English)**: the text the AI reads to play the voice (who she is, her story, her tone, her rules on
-  the radio). The **Write it with the AI** button can write it for you.
+- **Her personality (English)**: the only text that describes the voice, read by the AI to play her: who she is, her
+  past, what she knows how to do, what she keeps to herself (with the rule that she never tells it), her tone, her
+  rules on the radio. Do not write how a place is now ("the clinic is surrounded"): it would become false during the
+  game. What the voice learns about the world comes from the game (deaths, places, missions, news). The **Write it with
+  the AI** button can write it for you.
 
 ### 4. Missions
 
@@ -246,9 +274,10 @@ Details: [Remember you](10-creating-radio-voices.md#remember-you--always).
 - **Run the workshop on the server's machine**, with the same options as your bridge (for example `--exchange`): it
   edits the sheets of the server's `Lua/batman_RadioSurvivor/personas` folder, and reads the places your admins
   recorded in game on that same machine.
-- **The workshop only listens on the machine itself** (`127.0.0.1`), never on the Internet. On a rented server, open it
-  from your PC through an SSH tunnel, for example `ssh -L 8765:127.0.0.1:8765 user@server`, then
-  `http://127.0.0.1:8765` in your browser.
+- **By default the workshop only listens on the machine itself** (`127.0.0.1`). On a rented server, open it from your
+  PC through an SSH tunnel, for example `ssh -L 8765:127.0.0.1:8765 user@server`, then `http://127.0.0.1:8765` in your
+  browser. `--atelier-host` with a password ([from another computer](#opening-it-from-a-tablet-or-another-computer))
+  is meant for a home network, never for a port open on the Internet.
 - **Game verdict and journal on a dedicated server**: the workshop reads `console.txt` in the Zomboid folder. If your
   server writes its console somewhere else, name the file: `python radio_bridge.py --atelier --game-log <file>`.
 - **Port already taken**: the workshop tries 8765 then the next ports; `--atelier-port <port>` picks another one.

@@ -38,9 +38,9 @@ export function createCatalog(data) {
     // Names of the game's loot lists offered for a [note] key (loot, glovebox).
     lootLists: (key) => (data.lootLists ?? {})[key] ?? [],
 
-    // Head of a sheet: keys, required, repeatable, closed choices (actions, radio, state, location).
+    // Head of a sheet: keys, required, closed choices (actions, radio, state, location).
     header: () => ({
-      keys: header.keys ?? [], required: header.required ?? [], repeatable: header.repeatable ?? [],
+      keys: header.keys ?? [], required: header.required ?? [],
       choices: header.choices ?? {}, budgetPrefix: header.budgetPrefix ?? 'budget.',
     }),
     headerChoices: (key) => (header.choices ?? {})[key] ?? null,

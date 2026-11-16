@@ -6,7 +6,7 @@
 // ai.js).
 
 import { tryDrawer } from './ai.js';
-import { createApi } from './api.js';
+import { LOGIN_PAGE, createApi } from './api.js';
 import { loadCatalog } from './catalog.js';
 import { check } from './checks.js';
 import { askBar, confirmBar } from './dialogs.js';
@@ -21,11 +21,11 @@ import { renderVoiceList, voiceStatus } from './voicelist.js';
 import { button } from './widgets.js';
 import who from './steps/who.js';
 import where from './steps/where.js';
-import knows from './steps/knows.js';
+import personality from './steps/personality.js';
 import missions from './steps/missions.js';
 import rewards from './steps/rewards.js';
 
-const STEPS = [who, where, knows, missions, rewards];
+const STEPS = [who, where, personality, missions, rewards];
 const ID_RE = /^[a-z][a-z0-9_]{0,31}$/;
 const VERDICT_POLL_MS = 4000;
 
@@ -41,7 +41,7 @@ const ACTIONS_BY_STATUS = {
 
 const app = {
   t: null, catalog: null, api: createApi(), voices: [], current: null, step: 0, preview: false, ui: {},
-  verdicts: {}, journal: null, el: {},
+  verdicts: {}, journal: null, el: {}, login: false, // login: network mode (E22-T15), the header offers to log out
   ai: { available: false, api: null, toast: null }, // E22-T06: the bridge's AI (greyed when not configured)
   chat: { open: false, messages: [] },              // test conversation of the voice being edited
 };
@@ -50,6 +50,13 @@ const app = {
 async function refreshAi() {
   const result = await app.api.status();
   app.ai.available = Boolean(result.ok && result.ai);
+  app.login = Boolean(result.ok && result.login);
+  return result;
+}
+
+async function logout() {
+  await app.api.logout();
+  window.location.assign(LOGIN_PAGE);
 }
 
 // --- messages -------------------------------------------------------------------------------------------------------
@@ -433,7 +440,8 @@ function renderShell() {
       h('div', { class: 'brand' }, h('span', { class: 'logo', 'aria-hidden': 'true' }, '◉'),
         h('div', {}, h('h1', { text: t('app.title') }), h('p', { class: 'sub', text: t('app.subtitle') }))),
       h('div', { class: 'tabs', role: 'tablist', 'aria-label': t('app.title') }, app.el.tabs),
-      h('div', { class: 'btns' }, app.el.importButton)),
+      h('div', { class: 'btns' }, app.el.importButton,
+        app.login && button('neutral', { id: 'logout', onClick: logout }, t('app.logout')))),
     h('div', { class: 'layout' }, app.el.side, app.el.main, app.journal.el),
     app.el.toast, app.el.dropzone);
 }
@@ -441,6 +449,7 @@ function renderShell() {
 async function boot() {
   app.t = await loadI18n(navigator.language);
   document.documentElement.lang = app.t.lang;
+  if ((await refreshAi()).status === 401) return;   // E22-T15: session gone, the login page opens
   app.catalog = await loadCatalog();
   Object.assign(app.ai, { api: app.api, toast });
   renderShell();

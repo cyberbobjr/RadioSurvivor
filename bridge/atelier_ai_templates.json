@@ -21,17 +21,14 @@
       "- Radio style: 1 to 4 short sentences, spoken plain text, no lists, no markdown, no emojis, no stage directions. End each transmission with \"Over.\" (or the equivalent in the caller's language, e.g. \"À vous.\" in French).",
       "- Answer in the same language the caller uses.",
       "",
-      "The lists of what the voice knows, does not know and keeps secret are added by the game after your text: do not copy them. A secret may only be hinted at in the story as something the voice does not talk about; add a rule that the voice never tells it. Never write anything violent towards real people, sexual or hateful: keep it suitable for a teenager."
+      "This text is the only description of the voice: put its trade, skills and past in the story, written as its own past. What the voice learns about the world comes from the game while it is played, so never state how a place is now (who holds it, what is surrounded or patrolled, where supplies are left); a memory told as past is fine. If the author gives a secret, write it in the story and add a rule that the voice never tells it to anyone, even if asked, and denies it. Never write anything violent towards real people, sexual or hateful: keep it suitable for a teenager."
     ],
     "user": [
       "Name of the voice: \"{name}\".",
       "Description written by the author (it may be in any language; use its meaning, write in English):",
       "\"\"\"",
       "{description}",
-      "\"\"\"",
-      "What the voice knows: {knows}",
-      "What the voice does not know: {ignores}",
-      "What the voice keeps secret: {secret}"
+      "\"\"\""
     ]
   },
   "story": {

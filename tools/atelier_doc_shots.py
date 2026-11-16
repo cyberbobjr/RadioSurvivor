@@ -8,8 +8,9 @@ shipped sheets; the mod's folder and the user's folders are only read. An exampl
 Muldraugh water tower: two places, two missions, rewards, a handwritten note and a spontaneous call), is written into
 that temporary folder first, with a fake survey file of the game, a fake game console and a few bridge log lines.
 Then, per locale (fr-FR, en-US) at 1280x800, it opens the page and writes atelier-<lang>-NN-<subject>.png:
-01-voice (list and step 1), 02-where, 03-knows (help popover), 04-missions, 04b-places ("recorded in game"),
-05-rewards, 06-trade (a shipped trader), 07-note, 08-try (test conversation), 09-journal, 10-refused (game banner).
+01-voice (list and step 1), 02-where, 03-personality (help popover), 04-missions, 04b-places ("recorded in game"),
+05-rewards, 06-trade (a shipped trader), 07-note, 08-try (test conversation), 09-journal, 10-refused (game banner),
+11-login (login page of the network mode, E22-T15).
 The stub answers "Try the voice" with one fixed line in the language of the page (the fake LLM of tools/fake_llm
 answers in English only outside the game).
 Every sheet written is checked by the real game reader (RS_Persona.lua in lupa) before the pictures are taken.
@@ -33,6 +34,7 @@ SHIPPED = ROOT / 'Contents/mods/batman_RadioSurvivor/42.21/personas'
 OUT = ROOT / 'docs/images/screenshots/atelier'
 sys.path.insert(0, str(ROOT / 'bridge'))
 sys.path.insert(0, str(ROOT / 'tests'))
+import atelier_auth  # noqa: E402
 import atelier_server  # noqa: E402
 import game_console  # noqa: E402
 import log_buffer  # noqa: E402
@@ -77,10 +79,6 @@ frequency_range=50.0-54.8
 radio=any
 listen=06:00-09:00,19:00-23:00
 location=none
-knows=From the top of the water tower she sees every street of Muldraugh, from the school to the highway.
-knows=Which houses on her street still have food: she watched the families leave.
-ignores=What the army is doing.
-secret=She is fifteen and alone up there since her dad went out for water and did not come back.
 actions=say,mark_map,start_mission,share_frequency
 shares=darlene
 call_one_in=5
@@ -124,7 +122,7 @@ corpse=yes
 [prompt]
 You are Rosie Calloway, 15, a high school girl from Muldraugh, Kentucky. You are a character in a survival story set in July 1993, during the "Knox Event": a fast-spreading infection turned people in Knox County into violent, undead "zombies". The army sealed the area behind a fence: the Knox Exclusion Zone.
 
-Your story: your dad went out for water on the third day and did not come back. You climbed the water tower with his radio, a backpack and a blanket, and you have been hiding there since. You watch the town with his binoculars and you know which streets are full of the dead. You are brave, a bit sarcastic, and you hide how scared you are at night.
+Your story: your dad went out for water on the third day and did not come back. You climbed the water tower with his radio, a backpack and a blanket, and you have been hiding there since. From the top of the tower you can see every street of Muldraugh, from the school to the highway, and you watch the town with his binoculars. You have no idea what the army is doing. You are brave, a bit sarcastic, and you hide how scared you are at night.
 
 You are talking over a two-way radio with people still trapped inside the Exclusion Zone. You cannot see them and you do not know where they are.
 
@@ -274,13 +272,13 @@ def run_locale(browser, locale: str, lang: str, out: Path, provider: StubProvide
             page.evaluate('window.scrollBy(0, 40)')
             shoot(page, out, f'atelier-{lang}-02-where.png')
 
-            pill(page, 2)                                                        # what she knows, with a help popover
+            pill(page, 2)                                                        # personality, with a help popover
             button = page.locator('button.hint[data-topic="help.head.actions.start_mission"]').first
             button.scroll_into_view_if_needed()
             page.evaluate('window.scrollBy(0, 160)')
             button.click()
             expect(page.locator('#help-pop')).to_be_visible()
-            shoot(page, out, f'atelier-{lang}-03-knows.png')
+            shoot(page, out, f'atelier-{lang}-03-personality.png')
             page.keyboard.press('Escape')
 
             pill(page, 3)                                                        # missions
@@ -342,6 +340,30 @@ def run_locale(browser, locale: str, lang: str, out: Path, provider: StubProvide
             server.server_close()
 
 
+def shoot_login(browser, locale: str, lang: str, out: Path) -> None:
+    """11-login: the login page of the network mode (E22-T15), password typed, behind a gate built here (bridge/.env
+    is not read)."""
+    t = strings(lang)
+    with tempfile.TemporaryDirectory() as tmp:
+        store = atelier_server.VoiceStore(Path(tmp) / 'personas', SHIPPED)
+        gate = atelier_server.NetworkGate(atelier_auth.Authenticator('example password', lambda *a: None))
+        server = atelier_server.bind(store, 0, ATELIER, None, lambda *a: None, gate=gate)
+        atelier_server.start(server)
+        try:
+            context = browser.new_context(locale=locale, viewport=VIEW, device_scale_factor=1)
+            page = context.new_page()
+            page.goto(server.url)
+            expect(page.locator('h2')).to_have_text(t['login.heading'])
+            page.get_by_label(t['login.password'], exact=True).fill('example password')
+            box = page.locator('.login-card').bounding_box()
+            shoot(page, out, f'atelier-{lang}-11-login.png',
+                  clip={'x': box['x'] - 24, 'y': box['y'] - 24, 'width': box['width'] + 48, 'height': box['height'] + 48})
+            context.close()
+        finally:
+            server.shutdown()
+            server.server_close()
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument('--out', type=Path, default=OUT)
@@ -354,6 +376,7 @@ def main() -> int:
             browser = pw.chromium.launch()
             for locale, lang in LOCALES:
                 run_locale(browser, locale, lang, args.out, provider)
+                shoot_login(browser, locale, lang, args.out)
             browser.close()
     finally:
         provider.shutdown()

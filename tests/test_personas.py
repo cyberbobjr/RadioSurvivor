@@ -77,10 +77,6 @@ FULL = ('# fiche complète\n'
         'listen=22:00-06:00,12:30-13:00\n'
         'location=fixed\n'
         'coords=10600,9300,-1\n'
-        'knows=Le pont de Muldraugh est tombé.\n'
-        'knows=Les patrouilles passent à l’aube.\n'
-        'ignores=Ce qui se passe en Ohio.\n'
-        'secret=Elle a laissé son frère à West Point.\n'
         'actions=say, signal,mark_map\n'
         'budget=12\n'
         'budget.signal=2\n'
@@ -121,7 +117,7 @@ CASES: list[tuple[str, str | bytes, tuple[int, str] | None]] = [
     ('no final newline', HEAD + PROMPT.rstrip('\n'), None),
     ('bom', '\ufeff' + HEAD + PROMPT,
      (1, 'file starts with a byte order mark (save it as UTF-8 without BOM)')),
-    ('invalid utf-8 in a value', HEAD.encode() + b'knows=caf\xe9\n' + PROMPT.encode(),
+    ('invalid utf-8 in a value', HEAD.encode() + b'radio=caf\xe9\n' + PROMPT.encode(),
      (5, 'invalid UTF-8 (save the file as UTF-8)')),
     ('invalid utf-8 in the prompt', (HEAD + PROMPT).encode() + b'\xff\xfe\n',
      (7, 'invalid UTF-8 (save the file as UTF-8)')),
@@ -310,7 +306,6 @@ return function(p)
         join(p.frequency_ranges, ",", function(r) return tostring(r.low) .. "-" .. tostring(r.high) end), p.radio,
         join(p.listen, ",", function(r) return tostring(r.from) .. "-" .. tostring(r.to) end), p.location,
         p.coords and (tostring(p.coords.x) .. "," .. tostring(p.coords.y) .. "," .. tostring(p.coords.z)) or "-",
-        join(p.knows, ";"), join(p.ignores, ";"), join(p.secrets, ";"),
         join(p.places, ";", function(l) return l.id .. "@" .. tostring(l.x) .. "," .. tostring(l.y) .. ","
             .. tostring(l.z) .. "@" .. l.label .. "@" .. join(l.uses, ",") end), join(p.actions, ","),
         tostring(p.budget), table.concat(budgets, ","), tostring(p.call_one_in), p.call_text, p.call, p.state, p.prompt,
@@ -323,8 +318,7 @@ def canonical(p: store.Persona) -> str:
     coords = ','.join(str(v) for v in p.coords) if p.coords else '-'
     return '|'.join([p.format, p.id, p.name, p.language, ','.join(map(str, p.frequencies)),
                      ','.join(f'{a}-{b}' for a, b in p.frequency_ranges), p.radio,
-                     ','.join(f'{a}-{b}' for a, b in p.listen), p.location, coords, ';'.join(p.knows),
-                     ';'.join(p.ignores), ';'.join(p.secrets),
+                     ','.join(f'{a}-{b}' for a, b in p.listen), p.location, coords,
                      ';'.join(f'{q.id}@{q.x},{q.y},{q.z}@{q.label}@{",".join(q.uses)}' for q in p.places), ','.join(p.actions),
                      str(p.budget),
                      ','.join(f'{k}={v}' for k, v in sorted(p.budgets.items())), str(p.call_one_in), p.call_text, p.call,
@@ -432,9 +426,6 @@ class PersonaFormatTests(unittest.TestCase):
         self.assertEqual(p.frequencies, [7200, 145000, 999800])
         self.assertEqual(p.listen, [(22 * 60, 6 * 60), (12 * 60 + 30, 13 * 60)])
         self.assertEqual(p.coords, (10600, 9300, -1))
-        self.assertEqual(p.knows, ['Le pont de Muldraugh est tombé.', 'Les patrouilles passent à l’aube.'])
-        self.assertEqual(p.ignores, ['Ce qui se passe en Ohio.'])
-        self.assertEqual(p.secrets, ['Elle a laissé son frère à West Point.'])
         self.assertEqual(p.places, [store.Place('mill', 10600, 9300, 0, 'Vieux moulin', ('mark',)),
                                     store.Place('west_point_2', 11900, 6900, -1, 'Pharmacie  de West Point',
                                                 ('drop', 'mark'))])
@@ -493,7 +484,6 @@ class WaltSheetTests(unittest.TestCase):
         self.assertEqual((w.id, w.name, w.language, w.radio, w.listen, w.location, w.coords, w.state),
                          ('walt', 'Walt Hensley', 'en', 'any', [], 'none', None, 'active'))
         self.assertEqual((w.actions, w.budget, w.budgets), (['say', 'share_frequency'], 0, {}))  # E07-T10
-        self.assertEqual((w.knows, w.ignores, w.secrets), ([], [], []))
 
     def test_frequency_comes_from_the_sheet(self):
         # E05-T02 : la fiche fait foi ; l'option sandbox RadioSurvivor.Frequency est retirée (fichier et textes).
@@ -695,7 +685,6 @@ class DeliveredVoicesTests(unittest.TestCase):
                 if vid in ('darlene', 'cody'):
                     # Missions, récompenses et catégories : lues par le serveur seul (tests/test_persona_sections.py).
                     self.assertTrue(s.places and s.shares)
-                self.assertTrue(s.knows and s.ignores and s.secrets)
                 self.assertIn('Answer in the same language the caller uses.', s.prompt)
 
 

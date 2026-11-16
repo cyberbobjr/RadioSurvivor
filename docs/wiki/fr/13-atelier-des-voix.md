@@ -39,6 +39,33 @@ Bon à savoir :
   votre ordinateur. Ce dossier n'existe qu'après le premier chargement d'un monde avec le mod : lancez une partie une
   fois avant d'ouvrir l'atelier.
 
+### L'ouvrir depuis une tablette ou un autre ordinateur
+
+Par défaut, l'atelier ne répond qu'à l'ordinateur sur lequel il tourne. Pour l'ouvrir depuis une tablette ou un autre
+ordinateur du réseau de la maison :
+
+1. Choisissez un mot de passe de **10 caractères ou plus** et ajoutez-le au fichier `.env` du dossier `bridge` (celui
+   qui contient les réglages de l'IA ; copiez `.env.example` en `.env` si vous n'en avez pas) :
+   `ATELIER_PASSWORD=votre mot de passe`
+2. Lancez l'atelier sur le réseau : `python radio_bridge.py --atelier --atelier-host 0.0.0.0` (avec un lanceur :
+   `atelier.bat --atelier-host 0.0.0.0`, `./atelier.sh --atelier-host 0.0.0.0`).
+3. La fenêtre du pont affiche l'adresse à ouvrir, par exemple
+   `Voice workshop on http://0.0.0.0:8765/ (password required); from another device: http://192.168.1.20:8765/`.
+   Sur la tablette, ouvrez `http://<adresse du PC>:8765/` et entrez le mot de passe.
+
+![Page de connexion de l'atelier](../../images/screenshots/atelier/atelier-fr-11-login.png)
+
+- **Tout le monde se connecte**, le PC lui-même compris. Le navigateur reste connecté 7 jours, ou jusqu'au
+  redémarrage du pont. Le bouton **Se déconnecter**, en haut à droite, ferme la session.
+- **Les mauvais mots de passe sont freinés** : après 5 échecs depuis le même appareil, il faut attendre 1 minute, puis
+  plus longtemps à chaque nouvel échec (jusqu'à 15 minutes). Chaque connexion, échec et déconnexion apparaît dans le
+  journal en direct avec l'adresse de l'appareil.
+- Sans `ATELIER_PASSWORD`, ou avec un mot de passe plus court, l'atelier ne démarre pas sur le réseau : la fenêtre du
+  pont dit pourquoi, et le pont continue de répondre au jeu.
+- Windows peut demander si Python a le droit d'utiliser le réseau : autorisez-le sur les réseaux **privés** seulement.
+- **Réseau de la maison seulement.** L'atelier parle en HTTP simple, ce qui suffit à la maison. Pour l'atteindre de
+  l'extérieur, passez par un VPN comme Tailscale ou par un mandataire HTTPS. **N'ouvrez jamais le port sur votre box.**
+
 ## La liste des voix
 
 À gauche, toutes les voix. Une pastille dit d'où elles viennent :
@@ -84,18 +111,19 @@ du fichier, par exemple `rosie`), une **courte description** pour vous seul, et 
   remplacé par sa fréquence. Quand l'IA du pont tourne, c'est elle qui écrit l'appel ; votre phrase sert quand le pont
   n'écrit rien.
 
-### 3. Ce qu'elle sait
+### 3. Personnalité
 
-![Étape 3 : ce qu'elle sait, ce qu'elle peut faire, avec une aide ouverte](../../images/screenshots/atelier/atelier-fr-03-knows.png)
+![Étape 3 : ce qu'elle peut faire et sa personnalité, avec une aide ouverte](../../images/screenshots/atelier/atelier-fr-03-personality.png)
 
-- **Ce qu'elle sait**, **ce qu'elle ignore**, **ce qu'elle garde pour elle** : une idée par ligne, en anglais. La voix
-  parle à partir de ces lignes. Un secret n'est dit qu'à quelqu'un de confiance.
 - **Ce qu'elle peut faire** : parler est toujours possible. Les autres cases lui permettent d'agir dans le jeu : marquer
   un lieu sur votre carte, confier des missions, faire du troc, donner la fréquence d'une autre voix…
 - **Voix qu'elle peut faire connaître** : les voix dont elle peut donner la fréquence à un joueur qui a gagné sa
   confiance. Rosie connaît Darlene, l'infirmière.
-- **Sa personnalité (en anglais)** : le texte que l'IA lit pour jouer la voix (qui elle est, son histoire, son ton, ses
-  règles à la radio). Le bouton **L'écrire avec l'IA** peut l'écrire pour vous.
+- **Sa personnalité (en anglais)** : le seul texte qui décrit la voix, lu par l'IA pour la jouer : qui elle est, son
+  passé, ce qu'elle sait faire, ce qu'elle garde pour elle (avec la règle de ne jamais le dire), son ton, ses règles à
+  la radio. N'y écrivez pas l'état actuel d'un lieu (« la clinique est encerclée ») : il deviendrait faux en cours de
+  partie. Ce que la voix apprend du monde vient du jeu (morts, lieux, missions, nouvelles). Le bouton **L'écrire avec
+  l'IA** peut l'écrire pour vous.
 
 ### 4. Missions
 
@@ -253,9 +281,11 @@ sait qu'il est mort et peut en parler. Détails : [Se souvenir de vous](10-creer
 - **Lancez l'atelier sur la machine du serveur**, avec les mêmes options que votre pont (par exemple `--exchange`) :
   il modifie les fiches du dossier `Lua/batman_RadioSurvivor/personas` du serveur, et lit les lieux relevés en jeu par
   vos admins sur cette même machine.
-- **L'atelier n'écoute que sur la machine elle-même** (`127.0.0.1`), jamais sur Internet. Sur un serveur loué,
-  ouvrez-le depuis votre PC par un tunnel SSH, par exemple `ssh -L 8765:127.0.0.1:8765 utilisateur@serveur`, puis
-  `http://127.0.0.1:8765` dans votre navigateur.
+- **Par défaut, l'atelier n'écoute que sur la machine elle-même** (`127.0.0.1`). Sur un serveur loué, ouvrez-le depuis
+  votre PC par un tunnel SSH, par exemple `ssh -L 8765:127.0.0.1:8765 utilisateur@serveur`, puis
+  `http://127.0.0.1:8765` dans votre navigateur. `--atelier-host` avec un mot de passe
+  ([depuis un autre ordinateur](#louvrir-depuis-une-tablette-ou-un-autre-ordinateur)) est fait pour le réseau de la
+  maison, jamais pour un port ouvert sur Internet.
 - **Verdict du jeu et journal sur un serveur dédié** : l'atelier lit `console.txt` du dossier Zomboid. Si votre
   serveur écrit sa console ailleurs, donnez le fichier : `python radio_bridge.py --atelier --game-log <fichier>`.
 - **Port déjà pris** : l'atelier essaie 8765 puis les ports suivants ; `--atelier-port <port>` en choisit un autre.

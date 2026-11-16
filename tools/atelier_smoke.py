@@ -4,7 +4,7 @@
 
 Starts bridge/atelier_server.py on a free port over a temporary working folder (a copy of the shipped sheets; the
 mod's folder is only read), opens the page with the locale fr-FR then en-US, creates a voice through the five-step
-assistant (name, band, a known fact, two places, a deliver mission with its dead drop, a barricade mission after it,
+assistant (name, band, an allowed action, two places, a deliver mission with its dead drop, a barricade mission after it,
 a reward), saves it, and checks that the file exists and that the real game reader (RS_Persona.lua in lupa) accepts
 it. Exports it (same text) and imports it back, which asks for a new id. Then reopens it, looks at the page at 800 px wide (no horizontal scroll) and takes a screenshot per language.
 Live part (E22-T04, E22-T10), in French: a fake game console refuses the voice at its frequency line and the bridge logs
@@ -28,6 +28,9 @@ Places recorded in game (E22-T08), in French: a fake survey file of the game (a 
 newest first under the voice's places; "Ajouter à cette voix" asks the name prefilled from the dumpster, makes a place
 at its square with the dead drop use ticked, the record then says it is one of her places; the voice is saved and
 accepted by the game reader, the survey file untouched (screenshot atelier-surveys-fr.png).
+Network mode (E22-T15), in both languages, on a second server behind the password gate: the page goes to the login
+page, a wrong password is said wrong, the right one opens the workshop, its logout button goes back to the login page,
+five failures lock with the seconds to wait; no password in the journal (screenshot atelier-login-<lang>.png).
 Fails on any browser console error. Dev only (Playwright + lupa), not part of tests/run_all.py.
 """
 from __future__ import annotations
@@ -48,6 +51,7 @@ ATELIER = ROOT / 'bridge' / 'atelier'
 SHIPPED = ROOT / 'Contents/mods/batman_RadioSurvivor/42.21/personas'
 sys.path.insert(0, str(ROOT / 'bridge'))
 sys.path.insert(0, str(ROOT / 'tests'))
+import atelier_auth  # noqa: E402
 import atelier_server  # noqa: E402
 import game_console  # noqa: E402
 import place_surveys  # noqa: E402
@@ -78,9 +82,8 @@ def create_voice(page, t: dict, voice_id: str, name: str) -> None:
     expect(page.locator('.pill.on')).to_contain_text(t['step.where'])
     page.get_by_role('button', name=t['where.add_hours']).click()
 
-    next_button.click()                                                    # 3: what she knows
-    page.get_by_role('button', name=t['list.add']).first.click()
-    page.get_by_placeholder(t['knows.knows_placeholder']).fill('Where the old mill is.')
+    next_button.click()                                                    # 3: personality
+    expect(page.locator('.pill.on')).to_contain_text(t['step.personality'])
     page.locator('.check', has_text=t['action.start_mission']).locator('input').check()
 
     next_button.click()                                                    # 4: places and missions
@@ -162,7 +165,7 @@ def check_ai(page, t: dict, lang: str, path: Path, shots: Path, failures: list[s
     """E22-T06 in the page: the AI panel, the story suggestion and the test conversation (fr), greyed buttons (en)."""
     page.set_viewport_size({'width': 1280, 'height': 900})
     before = path.read_bytes()
-    page.locator('.pill').nth(2).click()                                   # what she knows
+    page.locator('.pill').nth(2).click()                                   # personality
     opener = page.locator('#ai-personality-open')
     if lang != 'fr':
         expect(opener).to_be_disabled()
@@ -488,6 +491,60 @@ def check_surveys(page, t: dict, lang: str, voice_id: str, name: str, working: P
         failures.append(f'{lang}: the survey file was changed by the workshop')
 
 
+SMOKE_PASSWORD = 'smoke test password'      # never a real one: the gate is built here, bridge/.env is not read
+
+
+def check_login(browser, store, locale: str, lang: str, shots: Path, failures: list[str]) -> None:
+    """E22-T15, network mode (NetworkGate served on the loopback, which logs in like any client): the page sends to
+    the login page; a wrong password is said wrong, the right one opens the workshop with a logout button that sends
+    back to the login page; five failures then lock with the seconds to wait, in the page language."""
+    t = strings(lang)
+    logs: list[str] = []
+    gate = atelier_server.NetworkGate(atelier_auth.Authenticator(SMOKE_PASSWORD, logs.append))
+    server = atelier_server.bind(store, 0, ATELIER, atelier_server.mod_version(SHIPPED), logs.append, gate=gate)
+    atelier_server.start(server)
+    context = browser.new_context(locale=locale, viewport={'width': 800, 'height': 700})
+    page = context.new_page()
+    errors: list[str] = []
+    page.on('console', lambda m: errors.append(m.text) if m.type == 'error' else None)
+    page.on('pageerror', lambda e: errors.append(str(e)))
+    try:
+        page.goto(server.url)
+        expect(page).to_have_url(re.compile(r'/login\.html$'))
+        expect(page.locator('h2')).to_have_text(t['login.heading'])
+        password = page.get_by_label(t['login.password'], exact=True)
+        password.fill('wrong guess')
+        page.locator('#login-submit').click()
+        expect(page.locator('.login-message')).to_have_text(t['code.bad_password'])
+        page.screenshot(path=str(shots / f'atelier-login-{lang}.png'))
+        password.fill(SMOKE_PASSWORD)
+        page.locator('#login-submit').click()
+        expect(page.locator('h1')).to_have_text(t['app.title'])
+        expect(page.locator('#logout')).to_have_text(t['app.logout'])
+        page.locator('#logout').click()
+        expect(page).to_have_url(re.compile(r'/login\.html$'))
+        expect(page.locator('h2')).to_have_text(t['login.heading'])
+        for _ in range(5):
+            password.fill('wrong guess')
+            page.locator('#login-submit').click()
+            expect(page.locator('#login-submit')).to_be_enabled()
+        password.fill(SMOKE_PASSWORD)
+        page.locator('#login-submit').click()
+        expect(page.locator('.login-message')).to_have_text(t['login.locked'].replace('{seconds}', '60'))
+        print(f'{lang}: login page, wrong password, logout and lock: OK; journal lines: {len(logs)}')
+    except AssertionError as err:
+        failures.append(f'{lang}: login: {err}')
+    finally:
+        context.close()
+        server.shutdown()
+        server.server_close()
+    if any(SMOKE_PASSWORD in line or 'wrong guess' in line for line in logs):
+        failures.append(f'{lang}: a password reached the journal')
+    errors = [e for e in errors if '401 (Unauthorized)' not in e and '429 (Too Many Requests)' not in e]
+    if errors:
+        failures.append(f'{lang}: login console errors: {errors}')
+
+
 def run(shots: Path) -> int:
     failures: list[str] = []
     with tempfile.TemporaryDirectory() as tmp:
@@ -564,6 +621,7 @@ def run(shots: Path) -> int:
                     if errors:
                         failures.append(f'{lang}: console errors: {errors}')
                     context.close()
+                    check_login(browser, store, locale, lang, shots, failures)
                 browser.close()
         finally:
             stop(fake)

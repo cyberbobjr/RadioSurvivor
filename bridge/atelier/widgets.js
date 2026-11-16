@@ -41,7 +41,7 @@ export function textInput(id, value, onInput, attrs = {}) {
   return h('input', { id, type: 'text', value: value ?? '', ...attrs, onInput: (e) => onInput(e.target.value) });
 }
 
-// Editable list of sentences (knows=, secret=...): one line each, add, remove. Redraws itself only, so a new empty
+// Editable list of sentences (item=, text=...): one line each, add, remove. Redraws itself only, so a new empty
 // line stays on screen until it is filled (the sheet keeps no empty value).
 export function listEditor(t, values, onChange, placeholder = '') {
   const list = [...values];

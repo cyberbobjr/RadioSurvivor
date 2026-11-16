@@ -135,7 +135,7 @@ export function setValue(block, key, newValue) {
     ? [] : [String(newValue).trim()]);
 }
 
-// Repeated key (knows=, item=...): values changed in place, extra lines removed, new ones after the last one.
+// Repeated key (item=, text=...): values changed in place, extra lines removed, new ones after the last one.
 export function setValues(block, key, newValues) {
   const wanted = newValues.map((v) => String(v).trim()).filter((v) => v !== '');
   const existing = block.entries.filter((e) => e.key === key);

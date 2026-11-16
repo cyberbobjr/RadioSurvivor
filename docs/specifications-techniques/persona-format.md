@@ -1,8 +1,8 @@
 # Format des fiches de voix radio (format 1)
 
-Une fiche décrit une voix du réseau radio (E05) : identité, fréquences, horaires, lieu, connaissances, actions
-autorisées, état, lieux, missions proposées, récompenses, catégories d'objets propres, et le texte du prompt donné au
-LLM (fiche à sections depuis E20-T03, [ADR des voix déclarées](../architecture/decisions/adr-personas-declaratives.md),
+Une fiche décrit une voix du réseau radio (E05) : identité, fréquences, horaires, lieu, actions autorisées, état,
+lieux, missions proposées, récompenses, catégories d'objets propres, et le texte du prompt donné au LLM, seul lieu de
+sa personnalité et de son passé (E22-T14) (fiche à sections depuis E20-T03, [ADR des voix déclarées](../architecture/decisions/adr-personas-declaratives.md),
 D01, D03, D04). Deux lecteurs :
 
 - le serveur : `media/lua/server/RadioSurvivor/RS_Persona.lua` (`RS_Persona.readFile`, `RS_Persona.parseLines`),
@@ -69,7 +69,7 @@ You are Walt Hensley, 54, ...
 - Toute autre ligne est `clé=valeur`, coupée au **premier** `=` ; espaces et tabulations retirés autour de la clé et
   de la valeur. Une valeur peut donc contenir `=` et `#`.
 - Clés en minuscules (`a` à `z`, `_`, et un seul `.` pour `budget.<action>`). Une clé inconnue est refusée.
-- Une clé ne peut apparaître qu'une fois, sauf `knows`, `ignores` et `secret`, répétables (une ligne par élément).
+- Une clé de l'en-tête ne peut apparaître qu'une fois.
 - Une valeur vide est refusée : pour garder la valeur par défaut, retirer la ligne.
 - Les listes (`frequencies`, `frequency_range`, `listen`, `actions`) sont séparées par des virgules, espaces
   tolérés autour.
@@ -109,9 +109,6 @@ You are Walt Hensley, 54, ...
 | `listen` | `always`, ou liste de plages `HH:MM-HH:MM` (heure du jeu, deux chiffres, 00:00 à 23:59) | `always` | Horaires d'écoute. Une plage dont la fin précède le début passe minuit (`22:00-06:00`). Début et fin égaux : refusé. Minute de début incluse, minute de fin exclue. |
 | `location` | `none`, `fixed`, `rescue` | `none` | `none` : hors carte ; `fixed` : point fixe de la carte (`coords` obligatoire) ; `rescue` : point choisi par le serveur pour un secours (E12), pas de `coords`. |
 | `coords` | `x,y,z` entiers, `x` et `y` de 0 à 999999, `z` de -32 à 31 | aucun | Seulement avec `location=fixed`. |
-| `knows` | texte non vide, répétable | aucun | Ce que la voix sait. |
-| `ignores` | texte non vide, répétable | aucun | Ce que la voix ignore (pour qu'elle ne l'invente pas). |
-| `secret` | texte non vide, répétable | aucun | Ce que la voix cache. Voir « Secrets » ci-dessous. |
 | `actions` | liste parmi `say`, `mark_map`, `reveal_area`, `signal`, `place_cache`, `place_scene`, `start_mission`, `persona_state`, `propose_trade`, `report_mission`, `share_frequency`, sans doublon | `say` | Actions que la voix peut proposer (catalogue fermé, note de travail §02). `remember` n'y figure plus (E22-T13) : toute voix l'a sans la lister (faits de 200 caractères au plus sur l'appelant, 2000 caractères et 50 faits au plus par appelant et par personnage, sans éviction ni effet de jeu ; une fiche qui la liste est refusée). Seules les actions dotées d'un exécuteur côté serveur ont un effet (`say`, diffusée comme avant ; `persona_state` depuis E07-T06 : paramètres `morale` et `supplies`, entiers de 0 à 10 (5 par défaut), changés d'au plus 2 par appel, une demande au-delà ou hors bornes étant ramenée, et `place`, lieu dit de 40 caractères au plus, simple récit sans effet sur `coords` ni sur la distance ; au moins un paramètre, aucun autre ; état propre à la voix, rangé dans l'état privé du serveur, jamais dans la fiche ; sans effet de jeu ; plafond `budget.persona_state`) ; `mark_map` depuis E07-T04 : paramètre unique `place`, identifiant d'un lieu `[place]` de la fiche avec `use=mark`, repère posé sur la carte du monde du seul appelant, 30 s réelles au moins entre deux repères de la voix, plafond `budget.mark_map` ; une fiche `mark_map` sans lieu `use=mark` ne la propose pas au LLM ; `reveal_area` depuis E07-T05 : même paramètre `place`, le quartier autour du lieu devient connu sur la carte du monde du seul appelant, carré de 5 blocs de 32 cases (160 cases de côté au plus, moins en bord de carte), 60 s réelles au moins entre deux révélations de la voix, plafond `budget.reveal_area`, conditions de proposition identiques à `mark_map` ; `start_mission` depuis E11-T08 : paramètre unique `template`, `scout` seul, mission « reconnaître » confiée à l'appelant (bâtiment choisi par le serveur autour de lui, décrit à la voix sans coordonnée juste après, par une demande de consigne où elle dit les indices (E11-T09), puis aux appels suivants), une mission ouverte à la fois par appelant et par voix, 60 s réelles au moins entre deux missions de la voix et 30 min après la clôture de la précédente du même appelant, compte rendu à la radio sur la fréquence de la voix après la visite (E11-T13 : action `report_mission`, sans paramètre, rendue par le modèle quand l'appel en rend compte et revérifiée par le serveur ; permise à toute fiche qui autorise `start_mission`, sans la lister), récompense en réputation et, sans section `[rewards]`, repère du premier lieu `use=mark` pas encore donné à ce personnage, plafond `budget.start_mission` ; carnet du joueur requis) ; `place_cache` depuis E11-T06 : paramètre unique `table` (`food`, `medical`, `ammo`, `tools`), sac marqué rempli de cette table fermée et posé une seule fois au bâtiment de la dernière mission donnée par la voix à l'appelant (ouverte, sinon sa dernière réussite), une cache par mission, 60 s réelles au moins entre deux caches de la voix, plafond `budget.place_cache` ; serveur seulement pour l'instant : le pont ne la propose pas encore au LLM ; `propose_trade` depuis E13-T02 : paramètres `items` (« `Nom:quantité` » séparés par des virgules, objets du stock du passage) et `margin` facultative, offre du passeur contrôlée contre la table validée et figée par le serveur, qui joint le livre du passeur (`trade=`) aux demandes de cette voix (`docs/annexes/conception/passeur-offre.md`) ; les autres sont refusées `not_available` et journalisées. Toute voix répond en réponse structurée depuis E22-T13 (`remember`, `docs/specifications-techniques/protocole-carnet-v2.md`, « Réponse radio structurée »). |
 | `budget` | entier de 0 à 999999 | `0` | Demandes par heure réelle pour cette voix, en plus du plafond global `MaxPerHour` ; `0` = seul le plafond global. |
 | `budget.<action>` | entier de 0 à 999999 | aucun | Utilisations par jour de jeu de cette action ; `0` = pas de plafond. L'action doit figurer dans `actions`. |
@@ -121,7 +118,7 @@ You are Walt Hensley, 54, ...
 | `state` | `active`, `silent`, `gone`, `dead` | `active` | `active` : répond ; `silent` : écoute mais ne répond pas (pause) ; `gone` : retirée du réseau ; `dead` : morte dans l'histoire. Traitement : « Chargement par le serveur » et « Routage par voix ». |
 | `shares` | IDs de voix, même syntaxe que `id`, sans doublon ; présence et état vérifiés par le serveur | aucun | Voix dont la fréquence peut être donnée par `share_frequency` ou une récompense `frequency` (« Missions et récompenses des voix »). |
 
-Les deux lecteurs rendent la fiche avec ces noms (`secret` devient la liste `secrets`, les sections `[place]` la liste
+Les deux lecteurs rendent la fiche avec ces noms (les sections `[place]` la liste
 `places` de lieux `{ id, x, y, z, label, uses }` dans l'ordre du fichier (Python : `Place`, `places_for(use)` ; Lua :
 plus `use`, ensemble des usages, et `RS_Persona.placesFor(sheet, use)`), les `budget.<action>` la
 table `budgets`, `listen` une liste de plages `(début, fin)` en minutes du jour de jeu, vide pour `always`,
@@ -304,10 +301,10 @@ Le serveur décide (`RadioSurvivor_Server.lua`, `onTalk`), le pont exécute (`br
 - **Demande au pont** : champ `voice=<id>` (`docs/specifications-techniques/protocole-carnet-v2.md`). Le pont relit la fiche dans
   `<dossier d'échange>/personas/<id>.txt`, le dossier même du serveur (option `--exchange` existante), à chaque
   demande dont le fichier a changé ; une fiche refusée garde côté pont sa dernière version valide.
-- **Prompt** : texte libre de la fiche, puis, s'ils existent, `knows` (« ce que tu sais »), `ignores` (« dis que tu
-  ne sais pas, n'invente pas ») et `secret` (« ne jamais révéler, ni laisser deviner, ni confirmer »). Une fiche sans
-  ces lignes (Walt) donne exactement son texte libre : le prompt de Walt est inchangé. Puis la situation de l'appel
-  (date, appelant, radio), comme avant.
+- **Prompt** : exactement le texte libre de la fiche (E22-T14 : personnalité, passé, savoir-faire et ce que la voix
+  tait, écrits par l'auteur ; aucun état du monde figé), puis la situation de l'appel (date, appelant, radio), comme
+  avant. Ce que la voix sait du monde vient du jeu seul : souvenirs, morts, état, mission, troc, réputation, faits du
+  bulletin.
 - **Historique** : par partie et par voix ; Walt garde son fichier d'avant (`history_<empreinte>.json`), les autres
   voix `history_<empreinte>_<id>.json`. Appelants numérotés par voix.
 - **Sans fiche** : une voix sans fiche valide côté pont, Walt compris, reçoit des parasites (le prompt de secours
@@ -390,8 +387,7 @@ Le serveur décide (`RadioSurvivor_Server.lua`, `onEveryHours`), le pont écrit 
   réponses, et une place du `budget` de la voix s'il existe. Plafond ou budget atteint : pas d'appel cette heure-là.
   La place est prise au tirage, que le texte vienne du pont ou de la fiche.
 - **Texte** : demande `kind=radio_call` au pont (`docs/specifications-techniques/protocole-carnet-v2.md`). Le pont écrit un appel court (une
-  ou deux phrases, trois lignes radio au plus) depuis la fiche **sans ses secrets** (texte libre, `knows`,
-  `ignores`), dans la langue de l'autorité, sans fréquence (il ne la connaît pas) ni fait absent de la fiche.
+  ou deux phrases, trois lignes radio au plus) depuis le texte libre de la fiche, dans la langue de l'autorité, sans fréquence (il ne la connaît pas) ni fait absent de la fiche.
   L'appel entre dans l'historique de la voix (message `[General call]`), sans numéro d'appelant.
 - **Secours** : pont absent, réponse vide, parasites seuls, ou rien après `Const.CALL_TIMEOUT_MS` (30 s réelles) :
   texte fixe de la fiche, `%1` = fréquence affichée, composé par l'autorité : `call` tel qu'il est écrit (E22-T07),
@@ -410,19 +406,17 @@ Le serveur décide (`RadioSurvivor_Server.lua`, `onEveryHours`), le pont écrit 
 
 - Les fiches restent **sur la machine du serveur** : jamais en ModData globale (lisible par tout client), jamais dans
   une commande `sendServerCommand`, jamais sur la chaîne radio telles quelles.
-- `secret` est lu par le pont, pour construire le prompt avec la consigne de ne pas le révéler (E05-T03), et par le
-  serveur, qui ne fait que valider la fiche. Le serveur n'envoie au client que ce que la voix dit (`say`), après
-  ses filtres habituels (8 lignes, 140 caractères, balises retirées). Garde-fou du pont : une réponse qui cite un
-  secret mot pour mot (casse et espaces ignorés) est remplacée par des parasites et n'entre pas dans l'historique ;
-  une paraphrase n'est pas détectée.
-- Un `secret` est un trait du personnage (« elle a abandonné son frère »), pas un secret de jeu : codes, graines,
-  fréquences cachées et positions exactes des bases de joueurs ne vont **jamais** dans une fiche ni dans un prompt
-  (note de travail §02). Le serveur ajoute ces valeurs après coup quand une action en a besoin.
+- Le serveur n'envoie au client que ce que la voix dit (`say`), après ses filtres habituels (8 lignes, 140
+  caractères, balises retirées).
+- Ce que la voix tait sur elle-même (« elle a abandonné son frère ») s'écrit dans le texte libre, avec la règle de
+  ne jamais le dire (E22-T14) ; c'est un trait du personnage, pas un secret de jeu : codes, graines, fréquences
+  cachées et positions exactes des bases de joueurs ne vont **jamais** dans une fiche ni dans un prompt (note de
+  travail §02). Le serveur ajoute ces valeurs après coup quand une action en a besoin.
 - Seule exception à « jamais dans une commande `sendServerCommand` » : un `mark_map` accepté envoie au **seul
   appelant** les coordonnées et le libellé d'**un** lieu `[place]` (commande `map_mark`), rien d'autre de la fiche ;
   un `reveal_area` accepté lui envoie de même un rectangle de 160 cases de côté au plus autour d'un lieu (commande
   `map_reveal`, E07-T05). Autre exception, réservée à l'administration : la réponse `freqReply` du panneau de debug
-  des fréquences (E05-T14), au seul demandeur autorisé, sans aucun texte de fiche (ni prompt, ni `knows`, ni secret).
+  des fréquences (E05-T14), au seul demandeur autorisé, sans aucun texte de fiche (ni prompt, ni nom de lieu).
 
 ## Lieux connus (E07-T04, sections E20-T03)
 
@@ -636,7 +630,7 @@ fichier, code de sortie 1 si une fiche est refusée).
   la première ligne. Le lecteur Python décode de la même façon (`errors='replace'`), d'où les deux mêmes refus ; une
   fiche contenant volontairement le caractère U+FFFD est aussi refusée des deux côtés.
 - En Kahlua, une chaîne compte des unités UTF-16 ; sous Lua 5.1 (lupa), des octets. Aucune règle ne mesure donc la
-  longueur d'un texte libre (`name`, `knows`, prompt) : seules les valeurs ASCII contrôlées (`id`, nombres) ont une
+  longueur d'un texte libre (`name`, `call`, prompt) : seules les valeurs ASCII contrôlées (`id`, nombres) ont une
   longueur maximale.
 - Le pont ne lit pas les sections `[mission]`, `[rewards]` et `[category]` (ADR D03) : il accepte une fiche que le
   serveur refuse pour une de ces sections. Le serveur garde alors la dernière version valide de la voix et écrit la
@@ -662,9 +656,6 @@ radio=high_tier
 listen=22:00-06:00,12:30-13:00
 location=fixed
 coords=10600,9300,0
-knows=Le pont de Muldraugh est tombé.
-ignores=Ce qui se passe en Ohio.
-secret=Elle a laissé son frère à West Point.
 actions=say,signal
 budget=12
 budget.signal=2
@@ -678,7 +669,8 @@ label=Vieux moulin
 use=mark,drop
 
 [prompt]
-Tu es Hélène, ...
+Tu es Hélène, infirmière de Muldraugh. Tu sais soigner une plaie et faire tomber une fièvre. Tu as laissé ton
+frère à West Point la deuxième nuit : tu ne le dis jamais à personne, même si on te le demande ; tu le nies. ...
 ```
 
 ## Missions et récompenses des voix

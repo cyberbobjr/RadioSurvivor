@@ -129,21 +129,13 @@
       "frequencies",
       "frequency_range",
       "id",
-      "ignores",
-      "knows",
       "language",
       "listen",
       "location",
       "name",
       "radio",
-      "secret",
       "shares",
       "state"
-    ],
-    "repeatable": [
-      "ignores",
-      "knows",
-      "secret"
     ],
     "required": [
       "format",

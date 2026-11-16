@@ -80,7 +80,7 @@ Code : `RS_Facts.bulletin` / `RS_Facts.airBulletin` (même fichier), API radio `
   redémarrage avant sa diffusion (demande en mémoire seulement) est redemandé au sondage suivant du même soir.
 - **Faits envoyés** : au plus 12, les morts d'abord puis les plus anciens, en phrases anglaises construites depuis les
   champs fermés du journal (`factText` : heure ronde, nom, lieu arrondi, issue) ; jamais de coordonnée, de
-  conversation, de fréquence ni de secret. Le prompt (fiche sans secrets + `bulletin.situation`) interdit tout ajout
+  conversation, de fréquence ni de secret. Le prompt (texte libre de la fiche + `bulletin.situation`) interdit tout ajout
   et demande de dire simplement « rien de confirmé » sans fait.
 - **Diffusion** : sur la première fréquence servie du chroniqueur (`Facts.CHRONICLER = nightowl`, fiche active),
   encadrée de parasites, au plus 6 lignes du pont. Pont muet 60 s réelles, absent ou antérieur : bulletin de secours

@@ -18,7 +18,7 @@ secours (E12) ; sa note sera à créer avec E12.
 | Gus | `NoteGus` « Note griffonnée » | bout de papier au crayon (`Note2`) | quelque chose à vendre ? demander Gus sur la bande marine ; argent, bijoux, papiers ; « parle franc, pas de suppliques » | 3 h-6 h |
 | Night Owl | `NoteNightOwl` « Prospectus du Night Owl » | prospectus photocopié : bandeau sombre, gros titre, fréquence en rouge (`Flier`, modèle `Flier1`) | « Le comté de Knox est toujours à l'antenne » ; nouvelles confirmées, noms qui nous parviennent, un peu de musique ; toute radio peut écouter, appeler avec un talkie | 19 h-22 h |
 
-- Textes FR et EN, ton de chaque voix, 1993, comté de Knox. Aucun secret de fiche (`secret=`), aucune invitation de
+- Textes FR et EN, ton de chaque voix, 1993, comté de Knox. Aucun mot de ce que les voix taisent, aucune invitation de
   Darlene à la clinique (ni la clinique ni West Point ne sont nommées). Vérifié par `tests/test_notes.py`.
 - Fichiers : script `media/scripts/RadioSurvivor_notes.txt` ; traductions `Translate/{EN,FR}/ItemName.json`,
   `Print_Media.json` (titre et mise en page, `%1` = fréquence), `Print_Text.json` (transcription, bouton du bas).

@@ -86,8 +86,6 @@ def bridge_reads(text: str, voice_id: str):
 BUILD_SCRIPT = node_prelude() + r"""
 const model = voice.newVoice({ id: 'bench_voice', name: 'Bench Voice', band: [270000, 279800], format: catalog.sheet.format });
 sheet.setDescription(model, 'A voice built by the bench, step by step');
-sheet.setValues(model.head, 'knows', ['Where the old mill is.', 'Which roads are blocked.']);
-sheet.setValues(model.head, 'secret', ['She buried her brother behind the mill.']);
 sheet.setValue(model.head, 'listen', '07:00-10:00,22:00-02:00');
 sheet.setValue(model.head, 'actions', 'say,start_mission');
 const mill = voice.addPlace(model, { label: 'Old mill', at: { x: '10600', y: '9300', z: '0' }, uses: ['mark', 'target'] });

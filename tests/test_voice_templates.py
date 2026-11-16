@@ -140,7 +140,7 @@ class MissionBriefTests(unittest.TestCase):
     def told(self, voice, ctx):
         field = voice.field(ctx)
         self.assertLessEqual(set(protocol.decode(bytes.fromhex(field))), GENERIC_FIELDS)
-        mission = bridge_module.mission_context({'mission': field}, SimpleNamespace(secrets=[], places=[]))
+        mission = bridge_module.mission_context({'mission': field}, SimpleNamespace(places=[]))
         return mission, bridge_module.mission_prompt(mission, 'Caller')
 
     def test_every_template_tells_its_objective_and_facts(self):
@@ -179,7 +179,7 @@ class MissionContextTests(unittest.TestCase):
     """E20-T02: the bridge checks the generic fields only."""
 
     def context(self, **fields):
-        sheet = SimpleNamespace(secrets=['hidden passphrase'], places=[])
+        sheet = SimpleNamespace(places=[])
         data = dict(kind='any_job', state='active', turn='not_yet', place='house', clues={}, job='Do the job.')
         data.update(fields)
         return bridge_module.mission_context({'mission': protocol.encode(data).hex()}, sheet)
@@ -189,13 +189,13 @@ class MissionContextTests(unittest.TestCase):
         self.assertEqual((mission['turn'], mission['to_report']), ('not_yet', False))
         self.assertIn('never add report_mission', bridge_module.mission_prompt(mission, 'Caller'))
 
-    def test_facts_keep_numbers_and_lose_secrets(self):
-        mission = self.context(facts={1: 'Verified kills: 2 of 4.', 2: 'The hidden passphrase is out.'},
+    def test_facts_keep_numbers_and_clues_lose_them(self):
+        mission = self.context(facts={1: 'Verified kills: 2 of 4.'},
                                clues={1: 'Near the 4 silos.', 2: 'Near a church.'})
         self.assertEqual((mission['facts'], mission['clues']), (['Verified kills: 2 of 4.'], ['Near a church.']))
 
     def test_invalid_generic_fields_ignore_the_mission(self):
-        for bad in ({'kind': 'Bad-Kind'}, {'job': 'Say the hidden passphrase.'}, {'place': 'house 12'},
+        for bad in ({'kind': 'Bad-Kind'}, {'place': 'house 12'},
                     {'turn': 'done'}, {'state': 'failed'}):
             with self.subTest(bad=bad):
                 self.assertIsNone(self.context(**bad))

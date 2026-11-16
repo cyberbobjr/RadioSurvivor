@@ -541,8 +541,7 @@ class ContextTests(TradeHarness):
         stock = {s['n']: s['q'] for s in raw['stock'].values()}
         # Sa propre offre ouverte (l'antibiotique) reste « offrable » : une nouvelle offre la remplace.
         self.assertEqual(stock, {'Antibiotics': 1, 'Battery': 4, 'OutsideNews': 1})
-        sheet = None
-        ctx = rb.trade_context(req, sheet or FakeSheet())
+        ctx = rb.trade_context(req)
         self.assertIsNotNone(ctx)
         self.assertEqual(ctx['offer']['items'], 'Antibiotics:1')
         self.assertEqual([d['state'] for d in ctx['deals']], ['done', 'open'])
@@ -560,28 +559,24 @@ class ContextTests(TradeHarness):
         self.assertNotRegex(prompt, r'\d{3}\.\d|kHz|MHz|secret')
 
     def test_bridge_ignores_a_broken_book(self):
-        sheet = FakeSheet()
         good = {'passage': 1, 'cap': 120, 'kg': 10, 'marginMin': 0.25, 'marginMax': 0.5, 'cordon': 1}
         for bad in ({}, dict(good, cap='x'), dict(good, marginMin=0.6), dict(good, passage=-1)):
-            self.assertIsNone(rb.trade_context({'trade': npc.encode(bad).hex()}, sheet))
-        self.assertIsNone(rb.trade_context({'trade': 'zz'}, sheet))
-        self.assertIsNone(rb.trade_context({'trade': 'ab' * 20000}, sheet))
+            self.assertIsNone(rb.trade_context({'trade': npc.encode(bad).hex()}))
+        self.assertIsNone(rb.trade_context({'trade': 'zz'}))
+        self.assertIsNone(rb.trade_context({'trade': 'ab' * 20000}))
         ctx = rb.trade_context({'trade': npc.encode(dict(good, stock={1: {'n': 'Bad name', 'q': 1, 'v': 1, 'w': 1,
                                                                           'unit': 1}},
                                                             offer={'rev': 1, 'items': 'x;y', 'price': 3,
                                                                    'state': 'open'},
-                                                            refused='because')).hex()}, sheet)
+                                                            refused='because')).hex()})
         self.assertEqual((ctx['stock'], ctx['offer'], ctx['refused']), ([], None, None))
         self.assertIn('nothing left to sell', rb.trade_prompt(ctx, 'you'))
         self.assertEqual(rb.trade_prompt(None, 'you'), '')
-        leak = dict(good, takes={1: {'k': 'papers', 'cap': 30, 'items': 'He sells the names.'}})
-        self.assertIsNone(rb.trade_context({'trade': npc.encode(leak).hex()}, FakeSheet(['He sells the names.'])))
 
 
 class FakeSheet:
-    def __init__(self, secrets=None):
+    def __init__(self):
         self.id = 'gus'
-        self.secrets = secrets or []
         self.actions = ['say', 'propose_trade']
         self.places = []
 
@@ -693,7 +688,7 @@ class ServerChainTests(unittest.TestCase):
                 '[RadioSurvivor] action propose_trade voice=gus caller=solo refused reason=not_in_stock'])
 
             req = turn(160000, 'And the price?')
-            ctx = rb.trade_context(req, FakeSheet())
+            ctx = rb.trade_context(req)
             self.assertEqual(ctx['offer']['items'], f"Battery:{stock['Battery']}")
             self.assertEqual(ctx['offer']['price'], offer.price)
             self.assertEqual(ctx['refused'], 'not_in_stock')

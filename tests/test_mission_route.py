@@ -251,7 +251,7 @@ class RouteBriefTests(unittest.TestCase):
         field = voice.field(ctx)
         generic = {'kind', 'state', 'turn', 'place', 'clues', 'remainingMs', 'toReport', 'reward', 'job', 'facts'}
         self.assertLessEqual(set(protocol.decode(bytes.fromhex(field))), generic)
-        mission = bridge_module.mission_context({'mission': field}, SimpleNamespace(secrets=[], places=[]))
+        mission = bridge_module.mission_context({'mission': field}, SimpleNamespace(places=[]))
         return mission, bridge_module.mission_prompt(mission, 'Caller')
 
     def test_job_and_verified_progress_told_to_the_voice(self):

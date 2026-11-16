@@ -10,8 +10,8 @@
 #   texte fixe IGUI_RadioSurvivor_Call (%1 = fréquence) ;
 # - actions : say, et share_frequency (E07-T10, exceptionnel : peut présenter Darlene ou le Night Owl) ; aucun budget
 #   propre, seul le plafond global MaxPerHour s'applique.
-# Son caractère, ce qu'il sait et ce qu'il tait sont dans le texte du prompt (inchangé depuis E05-T03) : aucune
-# ligne knows, ignores ou secret, pour ne pas les répéter.
+# Son caractère, son passé, ce qu'il sait faire et ce qu'il tait sont dans le texte du prompt (inchangé depuis
+# E05-T03), seul lieu de la personnalité d'une voix.
 format=1
 id=walt
 name=Walt Hensley

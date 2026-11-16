@@ -114,7 +114,7 @@ class MissionChainTests(unittest.TestCase):
         decoded = convert(protocol.decode(bytes.fromhex(field)))
         self.assertEqual(lua_jobs(decoded), [{'name': 'recon',
                                             'text': 'visit a building and report on it. Look at my old clinic first.'}])
-        jobs = bridge_module.voice_jobs({'jobs': field}, type('Sheet', (), {'secrets': []})())
+        jobs = bridge_module.voice_jobs({'jobs': field})
         self.assertEqual([name for name, _ in jobs.jobs], ['recon'])
 
     def test_the_model_names_a_section_through_the_action(self):

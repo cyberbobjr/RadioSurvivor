@@ -599,9 +599,8 @@ class StaticTests(unittest.TestCase):
                             self.assertEqual(len(parts), 2, param)
                         self.assertNotRegex(params, r'texture:')  # rectangles seulement (rien à précharger)
 
-    def test_no_secret_and_no_clinic_invitation(self):
-        # Aucun secret des fiches, aucune invitation de Darlene à la clinique.
-        bundled = MOD / 'personas'
+    def test_no_voice_secret_and_no_clinic_invitation(self):
+        # Aucun mot des histoires cachées des voix, aucune invitation de Darlene à la clinique.
         for lang in ('EN', 'FR'):
             tr = translations(lang)
             blob = ' '.join(v for k, v in tr.items() if 'RadioSurvivor_Note' in k).lower()
@@ -609,10 +608,6 @@ class StaticTests(unittest.TestCase):
                 for word in ('clinic', 'clinique', 'west point', 'insulin', 'whitaker', 'carl', 'civilians', 'civils',
                              'television', 'télévision'):
                     self.assertNotIn(word, blob)
-        for voice in VOICES:
-            for line in (bundled / f'{voice}.txt').read_text(encoding='utf-8').splitlines():
-                if line.startswith('secret='):
-                    self.assertNotIn(line[7:].lower()[:30], ' '.join(translations('EN').values()).lower())
 
     def test_loot_lists_cited_by_rooms_or_vehicles(self):
         dist = VANILLA / 'lua/server/Items/Distributions.lua'

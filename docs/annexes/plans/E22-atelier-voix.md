@@ -2,7 +2,7 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 7 / 13 tâche(s) terminée(s).
+**Avancement.** en cours — 9 / 15 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
@@ -18,6 +18,8 @@
 | ☑ | E22-T11 | Aide détaillée sur chaque réglage | `testé hors jeu` | hors jeu | E22-T03 |
 | ☐ | E22-T12 | Stock du marchand sans poids à saisir | `testé hors jeu` | MP | E22-T07 |
 | ☐ | E22-T13 | Toutes les voix se souviennent des appelants, sans oubli, morts compris | `testé hors jeu` | MP | E22-T12 |
+| ☑ | E22-T14 | Fiches sans connaissances, ignorances ni secrets figés | `testé hors jeu` | hors jeu | E22-T13 |
+| ☑ | E22-T15 | Atelier ouvert sur le réseau, protégé par un mot de passe | `testé hors jeu` | hors jeu | E22-T14 |
 | ☑ | E22-T09 | Wiki et README de l'atelier | `testé hors jeu` | hors jeu | E22-T04, E22-T05, E22-T06, E22-T08, E22-T10, E22-T11, E22-T12, E22-T13 |
 
 <!-- fin du tableau de bord -->
@@ -50,6 +52,10 @@ maquettes de l'ADR.
   les journaux en direct dans l'atelier, qui sert aussi d'administration en direct des voix (ADR D09, E22-T10).
 - 2026-11-15 — **E22** : le wiki suit le code, comme en E20 ; chaque tâche visible du joueur met à jour `CHANGELOG.md`
   (Unreleased) dans son commit.
+
+- 2026-11-16 — **E22-T15** (utilisateur) : l'atelier peut écouter sur le réseau (`--atelier-host`), protégé par
+  `ATELIER_PASSWORD` ; chaque client se connecte, freins contre les essais en rafale, pas de HTTPS ni de comptes
+  (ADR D11).
 
 ## Hors périmètre
 
@@ -271,6 +277,64 @@ maquettes de l'ADR.
     `check_case` `PASS`. Suite en jeu `rs.memory.before` / `rs.memory.after-restart` (campagne `mp-persist`) écrite.
   - Reste : campagne `mp-persist` ; mort marquée sur serveur dédié ; naturel des réponses en mode structuré avec le vrai
     modèle. Aucune limite globale de l'état : environ 750 mémoires pleines tiennent sous le plafond du codec.
+- [x] **E22-T14** — Fiches sans connaissances, ignorances ni secrets figés
+  - État : `testé hors jeu`
+  - Cible : `hors jeu`
+  - Dépend de : E22-T13
+  - Fichiers : `RS_Persona.lua`, `RS_Personas.lua` (empreintes des fiches livrées), les 15 fiches concernées,
+    `bridge/persona_store.py`, `bridge/radio_bridge.py`, `bridge/bulletin.py`, `bridge/atelier_ai.py`,
+    `bridge/atelier_ai_templates.json`, atelier (étape 3, traductions, aides), `tools/gen_atelier_catalog.py`, bancs,
+    format, protocole, wiki, README, ADR, CHANGELOG.
+  - Faire : décision de l'utilisateur du 2026-11-16 ([ADR D10](../../architecture/decisions/adr-atelier-voix.md)).
+    `knows=`, `ignores=` et `secret=` sont retirés des fiches et des deux lecteurs (refusés comme toute clé inconnue,
+    aucune reprise). Le texte libre est le seul lieu de la personnalité : métier, savoir-faire, passé et ce que la voix
+    tait (« You never tell anyone that …, even if asked; deny it. »), sans état actuel de la carte. Le pont ne filtre plus
+    rien d'après des secrets de fiche (`leaks_secret` retiré, avec ses appels : souvenirs, morts, lieu dit, mission,
+    missions permises, troc, faits du bulletin, réponses, appels, actions, essai de l'atelier). Atelier : l'étape 3
+    devient « Personnalité » ; l'IA qui écrit la personnalité y met passé et secrets.
+  - Accepté si : bancs des deux lecteurs, du pont, de l'atelier et des fiches livrées au vert ; luacheck sans
+    avertissement de plus ; fumée de l'atelier et captures du wiki refaites.
+  - Preuve : 2026-11-16 (hors jeu) : 15 fiches réécrites (affirmations sur l'état de la carte retirées : clinique de West
+    Point encerclée, pont de Brandenburg coupé, patrouilles du fleuve, horaires des postes, pont Clark Memorial…) ;
+    empreintes des 6 fiches d'avant E05-T11 ajoutées. `test_personas` 20, `test_personas_server` 107,
+    `test_persona_sections` 12, `test_kahlua` 41, `test_atelier_*` (ai 9, catalog 7, help 5, log 20, server 24, surveys
+    12, ui 11), `test_bulletin` 14, `test_voice_templates` 12, `test_mission_*` (chain, barricade, item, relay, route,
+    watch), `test_rs_trade*`, `test_notes` 33, `test_outside_news` 25, `test_carnet` 98 `OK` ; `test_protocol` 39
+    scénarios `OK` ; luacheck 0 avertissement ; `atelier_smoke.py` `summary: OK (2 locales, 0 failure(s))` ;
+    `atelier_doc_shots.py` `summary: OK` (étape 3 : `atelier-*-03-personality.png`). `run_all --keep-going` : `204 passed, 1 failed` (rs_suites : repères de ligne de `RS_Personas.lua` décalés d'une ligne dans `RS_Env.lua`, corrigés), puis `--only rs_suites luacheck-* plan-check` : `4 passed, 0 failed`.
+- [x] **E22-T15** — Atelier ouvert sur le réseau, protégé par un mot de passe
+  - État : `testé hors jeu`
+  - Cible : `hors jeu`
+  - Dépend de : E22-T14
+  - Fichiers : `bridge/atelier_auth.py` (nouveau), `bridge/atelier_server.py`, `bridge/radio_bridge.py`,
+    `bridge/.env.example`, atelier (`login.html`, `login.js`, `api.js`, `app.js`, `theme.css`, traductions),
+    `tests/test_atelier_auth.py` (nouveau), `tests/test_atelier_server.py`, `tests/run_all.py`,
+    `tools/atelier_smoke.py`, `tools/atelier_doc_shots.py`, wiki 13 (fr, en) et captures `atelier-*-11-login.png`,
+    README, ADR, CHANGELOG.
+  - Faire : décision de l'utilisateur du 2026-11-16 ([ADR D11](../../architecture/decisions/adr-atelier-voix.md)).
+    `--atelier-host ADRESSE` (défaut `127.0.0.1` : rien ne change, sans mot de passe) ; toute adresse hors boucle
+    locale demande `ATELIER_PASSWORD` de `bridge/.env` (10 caractères au moins, lu par le lecteur du `.env` du pont),
+    sinon l'atelier ne démarre pas et le pont continue. En mode réseau, chaque client se connecte (boucle locale
+    comprise) : page de connexion française ou anglaise, `POST /api/login`, jeton `secrets.token_urlsafe(32)` en cookie
+    `HttpOnly`, `SameSite=Strict`, `Path=/`, 7 jours, sessions en mémoire ; bouton de déconnexion (`POST /api/logout`) ;
+    comparaison `hmac.compare_digest`. Sans session : 401 pour `/api/*`, renvoi vers la page de connexion sinon.
+    Freins : par adresse réelle du client, 5 échecs bloquent 60 s, puis doublement jusqu'à 15 min, remise à zéro par une
+    réussite, table bornée ; 30 échecs par minute toutes adresses confondues bloquent toute connexion 60 s ; 429 avec
+    les secondes restantes. Journal et console : connexion, échec, blocage, déconnexion, avec l'adresse, jamais le mot
+    de passe. Origine égale à `http://<Host>` exigée pour toute demande qui modifie ; mode local inchangé. Une seule
+    porte dans la répartition des demandes (`LocalGate` ou `NetworkGate`, choisie au démarrage).
+  - Accepté si : bancs de l'atelier au vert (horloge simulée pour les freins et l'expiration) ; fumée de l'atelier avec
+    un passage de connexion dans les deux langues ; capture de la page de connexion dans le wiki.
+  - Preuve : 2026-11-16 (hors jeu) : `test_atelier_auth` 17 (refus du réglage absent ou court, comparaison, sessions et
+    expiration à 7 jours, blocage 60 s puis 120, 240, 480, 900, 900 s, remise à zéro, limiteur global, table bornée,
+    journal sans mot de passe), `test_atelier_server` 33 (mode réseau : 401 sans cookie, 303 vers la page de connexion,
+    cookie strict, mauvais mot de passe 401 puis 429 après 5, cookie falsifié, déconnexion, origine étrangère refusée,
+    hôte quelconque avec sa propre origine ; mode local sans route de connexion ; démarrage refusé sans mot de passe ou
+    trop court ; porte selon l'adresse), `test_atelier_ui` 11, `test_atelier_log` 20, `test_atelier_ai` 9,
+    `test_atelier_catalog` 7, `test_atelier_help` 5, `test_atelier_surveys` 12, `test_bridge_guards` 11 `OK` ;
+    `atelier_smoke.py` `summary: OK (2 locales, 0 failure(s))` (connexion, mauvais mot de passe, déconnexion et
+    blocage en français et en anglais) ; `atelier_doc_shots.py` `summary: OK` (`atelier-*-11-login.png`) ;
+    `run_all --keep-going` : `206 passed, 0 failed, 0 skipped`.
 - [x] **E22-T09** — Wiki et README de l'atelier
   - État : `testé hors jeu`
   - Cible : `hors jeu`

@@ -6,8 +6,8 @@ Scénarios : solo (client et serveur dans la même machine Lua) ; le serveur tri
 les clients, fréquence sans voix sans réponse ni demande au pont, anti-spam) ; multijoueur (un serveur et deux
 clients dans des machines Lua séparées, commandes relayées comme par le réseau) ; pont absent ; deux voix
 (Walt et une voix propre au banc : routage par fréquence, historiques séparés, radio haut de gamme, heures
-d'écoute, budget, fiche jamais envoyée aux clients) ; pont seul (prompt depuis la fiche, Walt inchangé, secret
-retenu, compatibilité sans fiche) ; appels spontanés (E05-T05 : texte écrit par le pont, pont absent ou
+d'écoute, budget, fiche jamais envoyée aux clients) ; pont seul (prompt depuis la fiche, Walt inchangé,
+compatibilité sans fiche) ; appels spontanés (E05-T05 : texte écrit par le pont, pont absent ou
 antérieur qui ignore la demande : texte fixe de la fiche) ; radios du monde (E06-T03 : passagère qui émet par
 l'autoradio, joueur loin d'une radio posée refusé par le serveur) ; fréquence tirée (E05-T07 : la vraie fiche de Walt tire sa fréquence, le pont
 répond par l'identifiant de voix, un redémarrage garde la fréquence). Les autres scénarios donnent à Walt sa
@@ -697,20 +697,17 @@ def scenario_bridge_alive_radio(tmp: Path) -> None:
 
 
 # Seconde voix, propre au banc (aucune voix livrée en plus de Walt : E05-T04 reste à décider). Poste haut de gamme
-# exigé, écoute de 20:00 à 23:00 (fin exclue), budget de 2 demandes par heure réelle, un secret.
-BENCH_SECRET = "He left his sister Ada at the West Point pharmacy."
-BENCH_SHEET = f"""format=1
+# exigé, écoute de 20:00 à 23:00 (fin exclue), budget de 2 demandes par heure réelle.
+BENCH_SHEET = """format=1
 id=bench
 name=Bench Tester
 frequencies=150.0
 radio=high_tier
 listen=20:00-23:00
-knows=The Muldraugh bridge fell on the second night.
-ignores=What happened in Ohio.
-secret={BENCH_SECRET}
 budget=2
 [prompt]
-You are Bench Tester, a voice of the offline test bench.
+You are Bench Tester, a voice of the offline test bench. You saw the Muldraugh bridge fall on the second night.
+You know nothing of what happened in Ohio.
 """
 
 
@@ -728,7 +725,7 @@ def history_files(exchange: Path) -> dict[str, dict]:
 def scenario_two_voices(tmp: Path) -> None:
     """Serveur MP et deux clients : Walt (145.0) et la voix du banc (150.0) répondent chacun sur sa fréquence, en
     parallèle, sans mélanger leurs historiques ; poste ordinaire refusé par la voix high_tier ; heures d'écoute ;
-    budget de la voix ; aucune donnée de la fiche (secret compris) chez les clients."""
+    budget de la voix ; aucune donnée de la fiche chez les clients."""
     exchange = tmp / "voices"
     exchange.mkdir()
     write_bench(exchange)
@@ -834,9 +831,9 @@ def scenario_two_voices(tmp: Path) -> None:
         assert clients["bob"].g.talk(bob, "Hors bande") == "ok"
         assert len(bob.halos) == 0 and "Hors bande" not in requests(), (lua_list(bob.halos), requests())
 
-        # Rien de la fiche ne part chez les clients ni sur la radio : ni secret, ni connaissances, ni prompt.
+        # Rien de la fiche ne part chez les clients ni sur la radio : ni prompt, ni rien de ce qu'il raconte.
         heard = " ".join(" ".join(lua_list(b)) for b in lua_list(sg.BROADCASTS)) + " ".join(to_clients)
-        for private in (BENCH_SECRET, "Muldraugh bridge", "Ohio", "offline test bench"):
+        for private in ("Muldraugh bridge", "Ohio", "offline test bench"):
             assert private not in heard, private
     finally:
         bridge.terminate()
@@ -987,12 +984,12 @@ def scenario_spontaneous_calls(tmp: Path) -> None:
         bridge.terminate()
         bridge.communicate(timeout=10)
 
-    # Prompt de l'appel : fiche sans ses secrets, langue de l'autorité, appel court sans fait inventé ni fréquence.
+    # Prompt de l'appel : texte libre de la fiche, langue de l'autorité, appel court sans fait inventé ni fréquence.
     write_bench(tmp / "calls-prompt")
     voices = rb.Voices(tmp / "calls-prompt" / "personas")
     seen = []
     saved_llm = rb.call_llm
-    rb.call_llm = lambda config, messages, speaker="Walt", **_: seen.append(messages) or "Anyone there? " + BENCH_SECRET
+    rb.call_llm = lambda config, messages, speaker="Walt", **_: seen.append(messages) or "Anyone there? Over."
     try:
         lines = rb.spontaneous_call({}, rb.Conversations(tmp / "calls-prompt"), "s",
                                     {"id": "x", "kind": "radio_call", "voice": "bench", "date": "1993-07-12 21:00",
@@ -1001,10 +998,9 @@ def scenario_spontaneous_calls(tmp: Path) -> None:
         rb.call_llm = saved_llm
     system = seen[0][0]["content"]
     assert system.startswith("You are Bench Tester") and "Muldraugh bridge" in system, system
-    assert BENCH_SECRET not in system and "Speak French" in system and "Never mention a frequency" in system, system
+    assert "Speak French" in system and "Never mention a frequency" in system, system
     assert seen[0][-1] == {"role": "user", "content": rb.CALL_MARK}, seen[0][-1]
-    assert lines == [], lines  # secret cité mot pour mot : retenu, texte fixe côté serveur
-    assert not list((tmp / "calls-prompt").glob("history_*.json"))
+    assert lines == ["Anyone there? Over."], lines
 
     # Pont absent : texte fixe de la fiche, composé par l'autorité, après le délai du pont.
     exchange = tmp / "calls-nobridge"
@@ -1069,14 +1065,14 @@ def scenario_spontaneous_calls(tmp: Path) -> None:
 
 
 def scenario_bridge_voices(tmp: Path) -> None:
-    """Pont seul : prompt construit depuis la fiche, Walt inchangé, secret retenu, voix sans fiche refusée."""
+    """Pont seul : prompt construit depuis la fiche, Walt inchangé, voix sans fiche refusée."""
     sys.path.insert(0, str(ROOT / "bridge"))
     import radio_bridge as rb
     import persona_store
     offline = {"OFFLINE": "1"}
     req = {"caller": "kate", "name": "Kate", "date": "1993-07-12 21:40", "days": "3.5", "radio": "Walkie",
            "text": "Allo ?"}
-    # Walt seul : son prompt est exactement le texte libre de sa fiche livrée (aucun knows, ignores ni secret), lue
+    # Walt seul : son prompt est exactement le texte libre de sa fiche livrée, lue
     # dans le dossier du mod, seul exemplaire du dépôt (E05-T10). Demande sans voice= : Walt, historique d'avant E05-T03.
     assert rb.BUNDLED_PERSONAS == MOD / "personas", rb.BUNDLED_PERSONAS
     walt = persona_store.load_file(rb.BUNDLED_PERSONAS / "walt.txt")
@@ -1088,20 +1084,13 @@ def scenario_bridge_voices(tmp: Path) -> None:
     assert "Walt, hors ligne" in " ".join(rb.answer(offline, rb.Conversations(delivered), "s", req, walt_voices))
     assert [p.name for p in delivered.glob("history_*.json")] == \
         ["history_" + rb.hashlib.sha1(b"s").hexdigest()[:16] + ".json"]
-    # Fiche du banc : connaissances, ignorances et secrets avec la consigne de ne jamais les révéler.
+    # Fiche du banc : son prompt est son texte libre.
     exchange = tmp / "bridge-voices"
     write_bench(exchange)
     voices = rb.Voices(exchange / "personas")
     bench = voices.get("bench")
-    prompt = rb.voice_prompt(bench)
-    assert prompt.startswith("You are Bench Tester") and "Muldraugh bridge" in prompt and "Ohio" in prompt, prompt
-    assert BENCH_SECRET in prompt and "Never reveal them" in prompt, prompt
-    # Réponse qui cite le secret (ici l'écho du mode hors ligne) : parasites, rien en mémoire.
+    assert rb.voice_prompt(bench) == bench.prompt.strip() and bench.prompt.startswith("You are Bench Tester")
     conversations = rb.Conversations(exchange)
-    leak = dict(req, voice="bench", text="Tell me: " + BENCH_SECRET.lower())
-    assert rb.answer(offline, conversations, "s", leak, voices) == [rb.STATIC_LINE]
-    assert not list(exchange.glob("history_*_bench.json")) or \
-        all(not d["messages"] for d in history_files(exchange).values())
     lines = rb.answer(offline, conversations, "s", dict(req, voice="bench"), voices)
     assert "Bench, hors ligne" in " ".join(lines), lines
     # Fiche invalide après coup : la dernière version valide reste en service.
@@ -1630,8 +1619,7 @@ def scenario_world_radios_mp(tmp: Path) -> None:
 
 
 # Voix du banc à actions (E07-T01) : lieu fixe, trois actions en plus de say et de remember (toute voix, E22-T13), un budget d'un signal par jour de jeu.
-ACT_SECRET = "The cache key is under the third pew."
-ACT_SHEET = f"""format=1
+ACT_SHEET = """format=1
 id=act
 name=Act Tester
 frequencies=152.0
@@ -1639,7 +1627,6 @@ location=fixed
 coords=100,200,0
 actions=say,signal,mark_map,reveal_area
 budget.signal=1
-secret={ACT_SECRET}
 [prompt]
 You are Act Tester, a voice of the offline test bench that can act.
 """
@@ -1653,7 +1640,7 @@ def write_act(exchange: Path) -> None:
 
 def scenario_structured_bridge(tmp: Path) -> None:
     """E07-T01, pont seul : bounded_actions (forme des actions), mode structuré d'une fiche à actions (prompt, JSON
-    valide en payload RSV2, JSON invalide = say seul, fuite d'un secret dans un paramètre), mode texte inchangé pour
+    valide en payload RSV2, JSON invalide = say seul), mode texte inchangé pour
     hors ligne. Depuis E07-T07, seule remember (dotée d'un exécuteur) de la fiche act est proposée et gardée : les
     contrôles de forme passent par elle ; signal, mark_map et reveal_area sont retirées. E22-T13 : remember est permise
     à toute voix, une fiche say seul répond aussi en mode structuré."""
@@ -1713,8 +1700,6 @@ def scenario_structured_bridge(tmp: Path) -> None:
         assert all(name not in system for name in ("place_cache", "mark_map", "reveal_area", '"signal"',
                                                    "persona_state")), system
         assert "100,200" not in system and "coords" not in system, system
-        # Le secret n'apparaît que dans la section des secrets (prompt de la voix), jamais dans la consigne de format.
-        assert ACT_SECRET not in system[system.index("Reply format"):], system
         stored = history_files(exchange)["history_" + rb.hashlib.sha1(b"s").hexdigest()[:16] + "_act.json"]
         assert stored["messages"][-1] == {"role": "assistant", "content": "Green smoke in twenty. Over."}, stored
         # Sortie : resp= puis payload= (RSV2 hexadécimal), relu à l'identique.
@@ -1732,17 +1717,6 @@ def scenario_structured_bridge(tmp: Path) -> None:
         # JSON invalide : le texte brut est say seul, sans action.
         rb.call_llm = fake('Sure thing {"say": broken')
         assert rb.answer({}, conversations, "s", req, voices) == ['Sure thing {"say": broken']
-        # Secret cité dans un paramètre : parasites, rien en mémoire, aucune action.
-        before = len(history_files(exchange)["history_" + rb.hashlib.sha1(b"s").hexdigest()[:16] + "_act.json"]
-                     ["messages"])
-        rb.call_llm = fake(json.dumps({"say": "Look there.", "actions": [
-            {"type": "remember", "fact": ACT_SECRET.upper()}]}))
-        assert rb.answer({}, conversations, "s", req, voices) == [rb.STATIC_LINE]
-        rb.call_llm = fake(json.dumps({"say": "Sure. " + ACT_SECRET, "actions": []}))
-        assert rb.answer({}, conversations, "s", req, voices) == [rb.STATIC_LINE]
-        after = history_files(exchange)["history_" + rb.hashlib.sha1(b"s").hexdigest()[:16] + "_act.json"]
-        assert len(after["messages"]) == before, after
-
         # Fiche say seul (bench) : mode structuré avec remember seule (E22-T13) ; une action hors fiche est retirée.
         rb.call_llm = fake('{"say": "Hi.", "actions": [{"type": "signal"}]}')
         bench_req = dict(req, voice="bench")
@@ -1947,7 +1921,7 @@ def check_action_log(game: "Game", exchange: Path, sheet, player, clock) -> None
         assert re.fullmatch(r"\d{4}-\d\d-\d\d \d\d:\d\d:\d\d UTC", r[0]), r[0]
         assert re.fullmatch(r"1993-07-12 \d\d:05", r[1]), r[1]
     text = current.read_text(encoding="utf-8")
-    for leak in (ACT_SECRET, "third pew", "Green", "smoke", "Over.", "Going.", "Act Tester", "You are"):
+    for leak in ("Green", "smoke", "Over.", "Going.", "Act Tester", "You are"):
         assert leak not in text, leak
 
     def decide(acts):
@@ -1992,14 +1966,12 @@ def check_action_log(game: "Game", exchange: Path, sheet, player, clock) -> None
     assert len(read(rotated)) >= 3 and read(rotated)[0] == log_mod.HEADER
 
 
-MEM_SECRET = "The mast key hides in the blue mailbox."
 MEM_SHEETS = {
     # E22-T13 : remember n'est plus une action de fiche ; mem et mem2 sont des voix say seul, qui se souviennent.
-    "mem": f"""format=1
+    "mem": """format=1
 id=mem
 name=Memo Tester
 frequencies=153.0
-secret={MEM_SECRET}
 [prompt]
 You are Memo Tester, a voice of the offline test bench that remembers.
 """,
@@ -2023,10 +1995,10 @@ def write_mem(exchange: Path) -> None:
 
 def scenario_memory_bridge(tmp: Path) -> None:
     """E07-T03, E22-T13, pont seul : champ memory= lu par parse_requests ; souvenirs injectés dans le prompt système
-    (section non vérifiée), chaque fait passé par safe_text, fait citant un secret retiré ; champ absent, vide,
+    (section non vérifiée), chaque fait passé par safe_text ; champ absent, vide,
     illisible, trop long ou qui n'est pas une liste = prompt sans souvenir ; une fiche say seul se voit proposer
     remember. Champ dead= (E22-T13) : morts connus de la voix, au plus 10, dans une section « People you knew who
-    died » ; entrée illisible, sans faits ou citant un secret retirée ; champ trop long ignoré."""
+    died » ; entrée illisible ou sans faits retirée ; champ trop long ignoré."""
     sys.path.insert(0, str(ROOT / "bridge"))
     import radio_bridge as rb
     import npc_protocol as protocol
@@ -2039,9 +2011,8 @@ def scenario_memory_bridge(tmp: Path) -> None:
     assert mem.actions == ["say"] and rb.offered_actions(mem) == ["remember"]
 
     # Transport : les champs memory= et dead= d'une demande radio sont lus comme les autres champs.
-    field = hexed(["Name is Kate", "Lives near the <b>school</b>", MEM_SECRET.lower(), "x" * 900, 7])
+    field = hexed(["Name is Kate", "Lives near the <b>school</b>", "x" * 900, 7])
     dead = hexed([{"name": "Bob Doe", "day": "1993-07-11", "facts": "Bob had a dog; Bob hid at the mill"},
-                  {"name": "Ann", "facts": "Ann knew " + MEM_SECRET},                 # secret : retirée
                   {"facts": "A quiet caller"},                                          # nom et jour inconnus
                   {"name": "Cal", "day": "July 10", "facts": "x"},                      # jour mal formé : retirée
                   {"name": "Dee", "facts": ""},                                         # sans faits : retirée
@@ -2051,23 +2022,23 @@ def scenario_memory_bridge(tmp: Path) -> None:
     session, requests = rb.parse_requests(text)
     assert requests[0]["memory"] == field and requests[0]["dead"] == dead
     assert "dead (decoded)" in rb.readable_record(requests[0])
-    # Faits : safe_text (balises retirées), secret de la fiche retiré, trop long et non texte retirés.
-    assert rb.memory_facts(requests[0], mem) == ["Name is Kate", "Lives near the b school /b"], \
-        rb.memory_facts(requests[0], mem)
+    # Faits : safe_text (balises retirées), trop long et non texte retirés.
+    assert rb.memory_facts(requests[0]) == ["Name is Kate", "Lives near the b school /b"], \
+        rb.memory_facts(requests[0])
     # Au plus 50 faits ; champ illisible, trop long, ou table qui n'est pas une liste : aucun souvenir.
     many = [f"fact {i}" for i in range(60)]
-    assert rb.memory_facts({"memory": hexed(many)}, mem) == many[:50]
+    assert rb.memory_facts({"memory": hexed(many)}) == many[:50]
     for bad in ("zz", "abc", hexed({"a": "b"}), hexed({1: "a", 3: "b"}), hexed("plain"), "ab" * 10001, ""):
-        assert rb.memory_facts({"memory": bad}, mem) == [], bad
-    assert rb.memory_facts({}, mem) == []
-    # Morts : nom, jour et faits ; secret, jour mal formé, faits vides ou clé inconnue : entrée retirée.
-    assert rb.dead_people(requests[0], mem) == [
+        assert rb.memory_facts({"memory": bad}) == [], bad
+    assert rb.memory_facts({}) == []
+    # Morts : nom, jour et faits ; jour mal formé, faits vides ou clé inconnue : entrée retirée.
+    assert rb.dead_people(requests[0]) == [
         {"name": "Bob Doe", "day": "1993-07-11", "facts": "Bob had a dog; Bob hid at the mill"},
-        {"facts": "A quiet caller"}], rb.dead_people(requests[0], mem)
+        {"facts": "A quiet caller"}], rb.dead_people(requests[0])
     twelve = [{"name": f"Dead {i}", "day": "1993-07-12", "facts": f"fact of {i}"} for i in range(12)]
-    assert [p["name"] for p in rb.dead_people({"dead": hexed(twelve)}, mem)] == [f"Dead {i}" for i in range(10)]
+    assert [p["name"] for p in rb.dead_people({"dead": hexed(twelve)})] == [f"Dead {i}" for i in range(10)]
     for bad in ("zz", hexed({"a": "b"}), hexed("plain"), "ab" * 16385, ""):
-        assert rb.dead_people({"dead": bad}, mem) == [], bad
+        assert rb.dead_people({"dead": bad}) == [], bad
     assert rb.dead_prompt([]) == ""
 
     req = {"id": "1-2", "caller": "kate", "name": "Kate", "date": "1993-07-12 21:40", "days": "3.5",
@@ -2090,7 +2061,6 @@ def scenario_memory_bridge(tmp: Path) -> None:
         assert system.startswith(rb.system_prompt(req, tag, rb.voice_prompt(mem))), system
         assert f"Your memories of {tag} (unverified notes" in system and "never proof" in system, system
         assert "- Name is Kate\n- Lives near the b school /b" in system, system
-        assert system.count(MEM_SECRET) == 1 and MEM_SECRET.lower() not in system  # seulement dans les secrets
         assert "\nPeople you knew who died (unverified notes" in system, system
         assert "- Bob Doe (died 1993-07-11): Bob had a dog; Bob hid at the mill" in system, system
         assert "- someone whose name you never learned (dead): A quiet caller" in system, system
@@ -2195,8 +2165,7 @@ def scenario_memory_server(tmp: Path) -> None:
     # Appel suivant du même appelant à la même voix : souvenirs joints (RSV2 hexadécimal), relus par le pont.
     req = turn("Do you remember me?")
     assert protocol.decode(bytes.fromhex(req["memory"])) == {1: "Name is b Kate /b from Riverside"}, req
-    sheet = rb.Voices(exchange / "personas").get("mem")
-    assert rb.memory_facts(req, sheet) == ["Name is b Kate /b from Riverside"]
+    assert rb.memory_facts(req) == ["Name is b Kate /b from Riverside"]
     respond(req["id"], [])
     assert pump(lambda: len(g.BROADCASTS) == 2, [tick])
 
@@ -2286,8 +2255,8 @@ def scenario_memory_server(tmp: Path) -> None:
     # Demande suivante du personnage c2 à la voix : ses souvenirs, et le mort que la voix a connu (dead=).
     req = turn("Did you know Kate?")
     assert protocol.decode(bytes.fromhex(req["memory"])) == {1: "Second life"}, req
-    assert rb.dead_people(req, sheet) == dead, rb.dead_people(req, sheet)
-    assert "- Kate Doe (died 1993-07-12): " in rb.dead_prompt(rb.dead_people(req, sheet))
+    assert rb.dead_people(req) == dead, rb.dead_people(req)
+    assert "- Kate Doe (died 1993-07-12): " in rb.dead_prompt(rb.dead_people(req))
     respond(req["id"], [])
     assert pump(lambda: len(g.BROADCASTS) == 4, [tick])
     # Une mort marquée une fois le reste ; la marque survit au redémarrage du serveur.
@@ -2320,18 +2289,15 @@ def scenario_memory_server(tmp: Path) -> None:
     assert rows[0][5] == "fact=  Name is <b>Kate</b>%09from   Riverside ", rows[0][5]
     assert rows[1][5] == "fact=x;where=here" and any(r[3] == "bob" and r[5] == "fact=D" for r in rows)
     assert any(r[3] == "zoe" and r[7] == "memory_full" for r in rows)
-    assert MEM_SECRET not in "\n".join("\t".join(r) for r in rows)
 
 
-PS_SECRET = "The generator hides behind the old chapel."
 PS_SHEETS = {
     # ps : persona_state sans plafond ; ps2 : budget.persona_state=2 par jour de jeu.
-    "ps": f"""format=1
+    "ps": """format=1
 id=ps
 name=State Tester
 frequencies=157.0
 actions=say,persona_state
-secret={PS_SECRET}
 [prompt]
 You are State Tester, a voice of the offline test bench whose mood changes.
 """,
@@ -2356,7 +2322,7 @@ def write_ps(exchange: Path) -> None:
 
 def scenario_persona_bridge(tmp: Path) -> None:
     """E07-T06, pont seul : champ persona= lu par parse_requests ; état injecté dans le prompt système (section « Your
-    current state »), lieu passé par safe_text et retiré s'il cite un secret ; champ absent, vide, illisible, trop
+    current state »), lieu passé par safe_text ; champ absent, vide, illisible, trop
     long, clé inconnue ou niveau invalide = prompt identique à celui d'avant E07-T06 ; injection aussi pour une fiche
     say seul."""
     sys.path.insert(0, str(ROOT / "bridge"))
@@ -2374,20 +2340,20 @@ def scenario_persona_bridge(tmp: Path) -> None:
                       "text=Hi", f"persona={field}", "commit=1", "end"])
     session, requests = rb.parse_requests(text)
     assert requests[0]["persona"] == field
-    assert rb.persona_state(requests[0], ps) == {"morale": 3, "supplies": 7, "place": "an old b barn /b"}, \
-        rb.persona_state(requests[0], ps)
-    # Lieu absent, vide ou citant un secret : retiré, le reste gardé.
-    assert rb.persona_state({"persona": hexed({"morale": 0, "supplies": 10})}, ps) == {"morale": 0, "supplies": 10}
-    for place in ("", "  ", PS_SECRET.upper(), 7, "x" * 200):
-        assert rb.persona_state({"persona": hexed({"morale": 5, "supplies": 5, "place": place})}, ps) == {
+    assert rb.persona_state(requests[0]) == {"morale": 3, "supplies": 7, "place": "an old b barn /b"}, \
+        rb.persona_state(requests[0])
+    # Lieu absent, vide, trop long ou qui n'est pas un texte : retiré, le reste gardé.
+    assert rb.persona_state({"persona": hexed({"morale": 0, "supplies": 10})}) == {"morale": 0, "supplies": 10}
+    for place in ("", "  ", 7, "x" * 200):
+        assert rb.persona_state({"persona": hexed({"morale": 5, "supplies": 5, "place": place})}) == {
             "morale": 5, "supplies": 5}, place
     # Champ illisible, trop long, pas une table, clé inconnue, niveau absent, hors bornes ou non entier : ignoré.
     for bad in ("zz", "abc", hexed("plain"), hexed([1, 2]), hexed({"morale": 5, "supplies": 5, "mood": "ok"}),
                 hexed({"morale": 5}), hexed({"morale": 11, "supplies": 5}), hexed({"morale": -1, "supplies": 5}),
                 hexed({"morale": 4.5, "supplies": 5}), hexed({"morale": True, "supplies": 5}),
                 hexed({"morale": "5", "supplies": 5}), "ab" * 513, ""):
-        assert rb.persona_state({"persona": bad}, ps) is None, bad
-    assert rb.persona_state({}, ps) is None
+        assert rb.persona_state({"persona": bad}) is None, bad
+    assert rb.persona_state({}) is None
     assert rb.persona_prompt(None) == "" and rb.persona_prompt({}) == ""
 
     req = {"id": "1-2", "caller": "kate", "name": "Kate", "date": "1993-07-12 21:40", "days": "3.5",
@@ -2411,11 +2377,6 @@ def scenario_persona_bridge(tmp: Path) -> None:
                 "- Morale: 3/10.\n- Supplies (food, water, ammunition): 7/10.\n"
                 "- Where you say you are: an old b barn /b.") in system, system
         assert system.index("Your current state") < system.index("Reply format"), system
-        # Secret dans le lieu : jamais dans le prompt hors de la section des secrets.
-        rb.answer({}, conversations, "s", dict(req, persona=hexed({"morale": 2, "supplies": 2,
-                                                                     "place": PS_SECRET.lower()})), voices)
-        system = seen[-1][0]["content"]
-        assert "Morale: 2/10" in system and "Where you say" not in system and PS_SECRET.lower() not in system
         # Avec des souvenirs : souvenirs, puis état, puis consigne de format.
         rb.answer({}, conversations, "s", dict(req, persona=field, memory=hexed(["Has a dog"])), voices)
         system = seen[-1][0]["content"]
@@ -2516,8 +2477,7 @@ def scenario_persona_server(tmp: Path) -> None:
     req = turn("How are you now?")
     assert protocol.decode(bytes.fromhex(req["persona"])) == {"morale": 7, "supplies": 5,
                                                               "place": "the b old /b barn"}, req
-    sheet = rb.Voices(exchange / "personas").get("ps")
-    assert rb.persona_state(req, sheet) == {"morale": 7, "supplies": 5, "place": "the b old /b barn"}
+    assert rb.persona_state(req) == {"morale": 7, "supplies": 5, "place": "the b old /b barn"}
     respond(req["id"], [])
     assert pump(lambda: len(g.BROADCASTS) == 2, [tick])
 
@@ -2580,16 +2540,13 @@ def scenario_persona_server(tmp: Path) -> None:
         ("ps", "persona_state", "refused", "bad_params")], rows[:3]
     assert rows[0][5].startswith("morale=9;place=  the <b>old</b>%09barn"), rows[0][5]
     assert any(r[2] == "ps2" and r[3] == "bob" and r[5] == "place=the mill" for r in rows)
-    assert PS_SECRET not in "\n".join("\t".join(r) for r in rows)
 
 
-TWIN_SECRET = "The spare battery is in the blue cooler."
 TWIN_SHEET = """format=1
 id=twin
 name=Twin Tester
 frequencies=159.0
 actions={actions}
-secret={secret}
 [prompt]
 You are Twin Tester, a voice of the offline test bench.
 """
@@ -2618,7 +2575,7 @@ def scenario_action_descriptions(tmp: Path) -> None:
             exchange = tmp / f"descriptions-{name}"
             folder = exchange / "personas"
             folder.mkdir(parents=True)
-            (folder / "twin.txt").write_text(TWIN_SHEET.format(actions=actions, secret=TWIN_SECRET), encoding="utf-8")
+            (folder / "twin.txt").write_text(TWIN_SHEET.format(actions=actions), encoding="utf-8")
             voices = rb.Voices(folder)
             assert rb.offered_actions(voices.get("twin")) == (
                 ["persona_state", "remember"] if name == "full" else ["remember"]), name
@@ -2638,7 +2595,7 @@ def scenario_action_descriptions(tmp: Path) -> None:
     for word in ('"fact"', '"morale"', '"supplies"', '"place"', '{"type": "remember", "fact": ',
                  '{"type": "persona_state", "morale": '):
         assert word in full, (word, full)
-    assert TWIN_SECRET not in full[full.index("Reply format"):] and "159" not in full, full
+    assert "159" not in full, full
 
     # Côté serveur : exécuteurs réellement enregistrés et constantes citées.
     exchange = tmp / "descriptions-server"
@@ -3524,7 +3481,6 @@ id=giver
 name=Job Giver
 frequencies=164.0
 actions=say,start_mission
-secret=The radio mast hides the cache.
 [place depot]
 at=10600,9300,0
 label=Fuel depot
@@ -3589,7 +3545,7 @@ def scenario_voice_mission_bridge(tmp: Path) -> None:
     sent = parsed[1][0]
     assert (sent["mission"], sent["jobs"]) == (field, jobs_field), sent
     # E20-T02 : missions de la demande (jobs=) : description, exemple et validation de start_mission.
-    jobs = rb.voice_jobs(sent, giver)
+    jobs = rb.voice_jobs(sent)
     assert jobs == rb.VoiceJobs((("scout", "visit a building and report on it"),), ("food",)), jobs
     assert rb.offered_actions(giver, jobs) == ["start_mission", "report_mission", "remember"]
     system = rb.actions_prompt(giver, jobs)
@@ -3661,8 +3617,7 @@ def scenario_voice_mission_bridge(tmp: Path) -> None:
 
     success = {"state": "success", "remainingMs": 0, "kind": "scout", "place": "house", "turn": "success",
                "reward": "Fuel depot",
-               "clues": {1: "The place is 4 floors high at 10600, 9300.", 2: "The radio mast hides the cache.",
-                         3: "There is a church nearby."}}
+               "clues": {1: "The place is 4 floors high at 10600, 9300.", 2: "There is a church nearby."}}
     mission = rb.mission_context({"id": "9", "mission": encoded(success)}, giver)
     assert mission["clues"] == ["There is a church nearby."] and mission["reward"] == "Fuel depot", mission
     prompt = rb.mission_prompt(mission, "[Caller 1]")
@@ -3747,7 +3702,7 @@ def scenario_structured_robust(tmp: Path) -> None:
     ou virgule finale, parmi plusieurs objets ; texte autour pris pour say si l'objet n'en a pas ; texte seul = say sans
     action ; consigne de format rappelée à la fin du message de l'appelant (jamais en mémoire) après un long historique
     en texte ; mode JSON de l'API demandé en mode structuré seulement, repli sans s'il est refusé (HTTP 400) et plus
-    redemandé ensuite ; réponse illisible écrite en DEBUG, tronquée, jamais si elle cite un secret ; une fiche say seul
+    redemandé ensuite ; réponse illisible écrite en DEBUG, tronquée ; une fiche say seul
     est structurée aussi (remember, E22-T13), sa réponse en texte libre dite telle quelle."""
     import contextlib
     import io
@@ -3777,19 +3732,17 @@ def scenario_structured_robust(tmp: Path) -> None:
     for text in ("Just plain words, over.", 'Sure thing {"say": broken', 'Values {"mood": 3} only.'):
         assert rb.parse_structured(text) == (text, None), text
 
-    # Journal DEBUG d'une réponse illisible : tronquée ; rien si elle cite un secret de la fiche.
+    # Journal DEBUG d'une réponse illisible : tronquée.
     saved_debug = rb.DEBUG
     rb.DEBUG = True
     try:
         out = io.StringIO()
         with contextlib.redirect_stdout(out):
             rb.parse_structured("word " * 200)
-            rb.parse_structured("The code is " + ACT_SECRET + ", over.", [ACT_SECRET])
         logged = out.getvalue()
         assert "structured reply unreadable (ValueError: no object)" in logged, logged
         assert "unreadable structured reply (1000 characters): 'word word" in logged and "'..." in logged, logged
         assert len(max(logged.splitlines(), key=len)) < rb.RAW_LOG_CHARS + 120, logged
-        assert ACT_SECRET not in logged and "not shown: it quotes a secret" in logged, logged
     finally:
         rb.DEBUG = saved_debug
 

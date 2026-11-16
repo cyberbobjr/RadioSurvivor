@@ -459,7 +459,7 @@ PERSONA_CASES = [
     ('walt', test_personas.WALT.read_bytes(), 'walt'),
     ('full', test_personas.FULL.encode('utf-8'), 'case'),
     ('bom', ('\ufeff' + test_personas.HEAD + test_personas.PROMPT).encode('utf-8'), 'case'),
-    ('invalid', test_personas.HEAD.encode() + b'knows=caf\xe9\n' + test_personas.PROMPT.encode(), 'case'),
+    ('invalid', test_personas.HEAD.encode() + b'radio=caf\xe9\n' + test_personas.PROMPT.encode(), 'case'),
     ('accented-id', (test_personas.HEAD.replace('id=case', 'id=cas\u00e9') + test_personas.PROMPT).encode(), 'case'),
     ('frequency', (test_personas.HEAD.replace('145.0', '145.1') + test_personas.PROMPT).encode(), 'case'),
     ('budget', (test_personas.HEAD + 'actions=say\nbudget.signal=1\n' + test_personas.PROMPT).encode(), 'case'),

@@ -9,7 +9,7 @@ kind=bulletin au pont (voix du chroniqueur, faits confirmés en phrases anglaise
 diffusé sur la fréquence du chroniqueur (parasites retirés, lignes bornées), bulletin de secours traduit construit à
 partir des faits quand le pont se tait, purge des faits lus après la diffusion (un fait consigné entre-temps reste),
 bulletin perdu par un redémarrage redemandé le même soir, chroniqueur absent ou mod désactivé : aucun bulletin ; pont :
-prompt sans secret ni fait inventé, faits illisibles ou qui citent un secret retirés, réponse vide en cas d'échec, pont
+prompt sans fait inventé, faits illisibles retirés, réponse vide en cas d'échec, pont
 réel --offline de bout en bout, pont antérieur qui ignore la demande.
 Doublures du jeu de tests/test_carnet.py, tests/test_observations.py et tests/test_facts.py ; traducteur fidèle à
 getText/getTextOrNull (table anglaise du mod, nil pour une clé inconnue). Ne prouve ni l'API Java réelle ni la réception
@@ -40,7 +40,6 @@ NIGHTOWL = (MOD / 'personas/nightowl.txt').read_text(encoding='utf-8')
 # Fiche livrée du chroniqueur avec une fréquence fixe à la place de ses plages de tirage (E05-T07).
 NIGHTOWL_FIXED = re.sub(r'(?m)^frequency_range=.*$', 'frequencies=112.4', NIGHTOWL)
 KHZ = 112400
-SECRET = "His wife's name was among the names he read on the very first night."
 
 # Traducteur fidèle (42.21) : table anglaise du mod, nil pour une clé inconnue (getTextOrNull), %N remplacés.
 TRANSLATOR = r'''
@@ -395,7 +394,7 @@ class BulletinTests(unittest.TestCase):
         (folder / 'personas/nightowl.txt').write_text(NIGHTOWL_FIXED, encoding='utf-8')
         return folder, rb.Voices(folder / 'personas')
 
-    def test_bridge_prompt_only_the_facts_and_no_secret(self):
+    def test_bridge_prompt_only_the_facts(self):
         folder, voices = self.voices()
         seen = []
         saved = rb.call_llm
@@ -403,17 +402,14 @@ class BulletinTests(unittest.TestCase):
             'Good evening, Knox County. We lost Alice Doe in Muldraugh. Over.'
         try:
             lines = rb.evening_bulletin({}, rb.Conversations(folder), 's',
-                                        self.bridge_req(['Around 07:00, A survivor, Alice Doe, died in Muldraugh.',
-                                                         SECRET]), voices)
+                                        self.bridge_req(['Around 07:00, A survivor, Alice Doe, died in Muldraugh.']),
+                                        voices)
             empty = rb.evening_bulletin({}, rb.Conversations(folder), 's2', self.bridge_req(), voices)
             garbage = rb.evening_bulletin({}, rb.Conversations(folder), 's3', self.bridge_req(raw='zz'), voices)
-            rb.call_llm = lambda config, messages, speaker='Walt', **_: 'Tonight: ' + SECRET
-            leaked = rb.evening_bulletin({}, rb.Conversations(folder), 's4', self.bridge_req([]), voices)
         finally:
             rb.call_llm = saved
         system = seen[0][0]['content']
         self.assertTrue(system.startswith('You are Lyle Ferrand'), system[:80])
-        self.assertNotIn(SECRET, system)
         self.assertIn('Speak French', system)
         self.assertIn('* Around 07:00, A survivor, Alice Doe, died in Muldraugh.', system)
         self.assertIn('never add one', system)
@@ -424,7 +420,6 @@ class BulletinTests(unittest.TestCase):
         self.assertIn('No confirmed report reached you today', empty_system)
         self.assertNotIn('Confirmed reports of the day', empty_system)
         self.assertIn('No confirmed report reached you today', seen[2][0]['content'], 'unreadable facts kept')
-        self.assertEqual(leaked, [], 'a bulletin quoting a secret is aired')
         history = json.loads(next(folder.glob('history_*.json')).read_text(encoding='utf-8'))
         self.assertEqual(history['messages'][0]['content'], bulletin.MARK)
 

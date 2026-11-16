@@ -765,7 +765,10 @@ class PreviousInstallTests(Harness):
                     self.assertEqual(lua_list(self.P.get(vid).frequencies), [])
         self.assertEqual(len(self.logs_with('updated to the delivered version')), 5)
         self.assertEqual(len(self.logs_with("voice 'gus' modified by the admin")), 1)
-        self.assertEqual(self.logs_with('refused') + self.logs_with('ERROR'), [])
+        # The admin's sheet is kept as written in 24832ea, keys of that time included: only the current grammar
+        # judges it (no migration), so only the delivered sheets must load without a refusal.
+        self.assertEqual([line for line in self.logs_with('refused') + self.logs_with('ERROR')
+                          if 'personas/gus.txt' not in line], [])
 
     def installed_bytes(self, vid: str) -> bytes:
         return (self.dir / f'{vid}.txt').read_bytes()

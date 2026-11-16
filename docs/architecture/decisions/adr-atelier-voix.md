@@ -56,6 +56,44 @@ jeu).
   direct, filtrables par voix. Lecture seule, sur la machine seulement : le journal peut contenir les dialogues des
   joueurs.
 
+## Mise à jour du 2026-11-16 : la personnalité est le seul texte d'une voix
+
+Décision de l'utilisateur du 2026-11-16 : les champs `knows=`, `ignores=` et `secret=` des fiches sont retirés. Écrits
+une fois pour toutes, ils mêlaient le passé du personnage et des affirmations sur la carte qui deviennent fausses en
+cours de partie (« la clinique de West Point est encerclée »).
+
+- **D10 — Le texte libre de la fiche est le seul lieu de la personnalité et du passé d'une voix.** Métier, savoir-faire,
+  passé et ce que la voix tait (avec la règle de ne jamais le dire) s'y écrivent au passé ; jamais l'état actuel d'un
+  lieu. Ce que la voix sait du monde vient du jeu seul : souvenirs, morts, état, mission, troc, réputation, faits du
+  bulletin. Les deux lecteurs refusent ces trois clés comme toute clé inconnue (aucune reprise) ; le pont ne filtre
+  plus rien d'après des secrets de fiche. Dans l'atelier, l'étape 3 devient « Personnalité » (actions permises, voix
+  qu'elle peut faire connaître, personnalité) ; l'IA qui écrit la personnalité y met le passé et ce que la voix tait.
+  Plan : [`E22-T14`](../../annexes/plans/E22-atelier-voix.md).
+
+Décisions D01 à D09 inchangées par ailleurs.
+
+## Mise à jour du 2026-11-16 : l'atelier sur le réseau, avec mot de passe
+
+Décision de l'utilisateur du 2026-11-16 : ouvrir l'atelier depuis une tablette ou un autre PC de la maison.
+
+- **D11 — Écoute sur le réseau sur demande, protégée par un mot de passe.** Sans option, rien ne change : écoute sur
+  `127.0.0.1`, sans mot de passe (D01). L'option `--atelier-host ADRESSE` (par exemple `0.0.0.0`) ouvre l'atelier sur le
+  réseau ; toute adresse autre que la boucle locale demande `ATELIER_PASSWORD` dans `bridge/.env` (10 caractères au
+  moins), sinon l'atelier ne démarre pas (message en console, le pont continue). En mode réseau, **chaque** client se
+  connecte, la machine elle-même comprise (un mandataire inverse sur la même machine passerait sinon). Page de
+  connexion en français ou en anglais ; session par jeton aléatoire dans un cookie `HttpOnly`, `SameSite=Strict`,
+  valable 7 jours, gardée en mémoire seulement (pont redémarré : nouvelle connexion) ; bouton de déconnexion. Contre
+  les essais en rafale : par adresse du client (adresse réelle de la connexion, jamais `X-Forwarded-For`), 5 échecs
+  bloquent 60 s, chaque échec suivant double le blocage jusqu'à 15 min, une réussite remet à zéro ; au-delà de 30
+  échecs par minute toutes adresses confondues, toute connexion est refusée 60 s. Connexions, échecs, blocages et
+  déconnexions vont au journal en direct (D09) et en console, avec l'adresse du client, jamais le mot de passe. Les
+  demandes qui modifient exigent toujours une origine égale à l'adresse de la page ; la vérification « hôte = boucle
+  locale » reste celle du mode local. HTTP simple : suffisant sur le réseau de la maison ; pour Internet, un VPN
+  (Tailscale) ou un mandataire HTTPS, jamais un port ouvert sur la box. Pas de HTTPS intégré ni de comptes.
+  Module `bridge/atelier_auth.py` ; plan : [`E22-T15`](../../annexes/plans/E22-atelier-voix.md).
+
+Le « journal sur la machine seulement » de D09 vaut désormais « journal derrière le mot de passe » en mode réseau.
+
 ## Conséquences
 
 - Le pont gagne un second rôle (atelier) ; il reste un seul programme à installer.

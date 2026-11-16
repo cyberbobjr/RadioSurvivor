@@ -102,11 +102,10 @@ class BridgeLogTests(unittest.TestCase):
             "reply of voice 'walt': Copy that. / Over.",
             "general call of voice cody",
             "evening bulletin of voice ezra",
-            "reply of voice 'darlene' withheld: it quotes one of its secrets",
             "voice 'boone': action 1 dropped, unknown type 'fly'",
             "voice sheet C:\\Zomboid\\Lua\\batman_RadioSurvivor\\personas\\delphine.txt refused, line 3: bad key 'Radio'",
             "[DEBUG] reply of voice 'walt': debug copy",
-        ), [("info", "walt"), ("info", "walt"), ("info", "cody"), ("info", "ezra"), ("warning", "darlene"),
+        ), [("info", "walt"), ("info", "walt"), ("info", "cody"), ("info", "ezra"),
             ("info", "boone"), ("error", "delphine"), ("debug", "walt")])
 
     def test_player_text_is_never_searched(self):

@@ -31,7 +31,6 @@ LOCATIONS = ('none', 'fixed', 'rescue')
 STATES = ('active', 'silent', 'gone', 'dead')
 # Uses of a place (ADR D04): mark (mark_map, reveal_area), target (mission goal), drop (dead drop), landing (trade).
 USES = ('mark', 'target', 'drop', 'landing')
-REPEATABLE = ('knows', 'ignores', 'secret')
 REQUIRED = ('format', 'id', 'name')   # then frequencies or frequency_range (one of them, not both: E05-T07)
 MIN_KHZ, MAX_KHZ, STEP_KHZ = 1000, 999800, 200
 MAX_COUNT = 999999
@@ -89,9 +88,6 @@ class Persona:
     listen: list[tuple[int, int]] = field(default_factory=list)   # (from, to) minutes of the game day; [] = always
     location: str = 'none'
     coords: tuple[int, int, int] | None = None
-    knows: list[str] = field(default_factory=list)
-    ignores: list[str] = field(default_factory=list)
-    secrets: list[str] = field(default_factory=list)
     places: list[Place] = field(default_factory=list)       # [place] sections, in file order
     actions: list[str] = field(default_factory=lambda: ['say'])
     budget: int = 0                            # requests per real hour for this voice, 0 = global cap only
@@ -266,7 +262,7 @@ def _call(value: str, line: int) -> str:
     return value
 
 
-# Head: one reader per key -> (field of Persona, reader(value, line)). Repeatable keys append to a list.
+# Head: one reader per key -> (field of Persona, reader(value, line)).
 HEAD: dict[str, tuple[str, Callable[[str, int], object]]] = {
     'format': ('format', _format),
     'id': ('id', _id),
@@ -278,9 +274,6 @@ HEAD: dict[str, tuple[str, Callable[[str, int], object]]] = {
     'listen': ('listen', _listen),
     'location': ('location', lambda value, line: _choice(value, 'location', LOCATIONS, line)),
     'coords': ('coords', _coords),
-    'knows': ('knows', _text),
-    'ignores': ('ignores', _text),
-    'secret': ('secrets', _text),
     'shares': ('shares', lambda value, line: _closed_list(value, 'shares', None, line)),
     'actions': ('actions', _actions),
     'budget': ('budget', lambda value, line: _count(value, 'budget', line)),
@@ -406,10 +399,10 @@ def _open_section(name: str, ident: str, line: int, first_lines: dict[tuple[str,
 
 
 class _Head:
-    """Values of the head lines: one field of Persona per key, `seen` gives the line of each non-repeatable key."""
+    """Values of the head lines: one field of Persona per key, `seen` gives the line of each key."""
 
     def __init__(self):
-        self.fields: dict[str, object] = {'knows': [], 'ignores': [], 'secrets': []}
+        self.fields: dict[str, object] = {}
         self.seen: dict[str, int] = {}
         self.budgets: dict[str, int] = {}
         self.budget_lines: list[tuple[str, int]] = []
@@ -423,10 +416,9 @@ class _Head:
                 raise PersonaError(number, f"unknown action '{action}' in key '{key}'")
         elif key not in HEAD:
             raise PersonaError(number, f"unknown key '{key}'")
-        if key not in REPEATABLE:
-            if key in self.seen:
-                raise PersonaError(number, f"duplicate key '{key}' (first set on line {self.seen[key]})")
-            self.seen[key] = number
+        if key in self.seen:
+            raise PersonaError(number, f"duplicate key '{key}' (first set on line {self.seen[key]})")
+        self.seen[key] = number
         if value == '':
             raise PersonaError(number, f"empty value for key '{key}'")
         if action is not None:
@@ -434,11 +426,7 @@ class _Head:
             self.budget_lines.append((action, number))
             return
         target, reader = HEAD[key]
-        parsed = reader(value, number)
-        if key in REPEATABLE:
-            self.fields[target].append(parsed)
-        else:
-            self.fields[target] = parsed
+        self.fields[target] = reader(value, number)
 
 
 def parse_lines(lines: list[str], expected_id: str | None = None) -> Persona:

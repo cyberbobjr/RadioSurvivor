@@ -230,7 +230,7 @@ class RunHarness(unittest.TestCase):
 
     def context(self, caller):
         hexed = self.Trade.field(self.gus, caller, None)
-        return rb.trade_context({'trade': hexed}, FakeSheet())
+        return rb.trade_context({'trade': hexed})
 
     def booked(self, hours=4.0):
         """Kate (équipe fac-1) réserve à `hours` ; rend le passage."""
@@ -238,14 +238,6 @@ class RunHarness(unittest.TestCase):
         kate = self.make('kate', 'fac-1', 50, 50)
         self.assertEqual(self.decide(kate), 'ok')
         return kate, self.current_run()
-
-
-class FakeSheet:
-    def __init__(self):
-        self.id = 'gus'
-        self.secrets = []
-        self.actions = ['say', 'propose_trade']
-        self.places = []
 
 
 class RendezvousTests(RunHarness):

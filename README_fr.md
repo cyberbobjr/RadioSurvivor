@@ -86,8 +86,8 @@ les deux. Chacun fonctionne sans l'autre.
 ### L'atelier des voix (Radio Survivor)
 
 Créez vos propres voix radio sans écrire de fichier : double-cliquez sur `bridge/atelier.bat` (`atelier.sh` sous
-Linux, `atelier.command` sous macOS) et une page s'ouvre dans votre navigateur. Cinq étapes (qui, où et quand, ce
-qu'elle sait, missions, récompenses), des lieux relevés en jeu d'un clic droit, le stock d'un marchand choisi par nom
+Linux, `atelier.command` sous macOS) et une page s'ouvre dans votre navigateur. Cinq étapes (qui, où et quand,
+personnalité, missions, récompenses), des lieux relevés en jeu d'un clic droit, le stock d'un marchand choisi par nom
 d'objet, une note manuscrite et un appel spontané écrits dans la voix elle-même. L'IA du pont peut écrire la
 personnalité et fait essayer la voix avant d'enregistrer ; le jeu l'entend en moins de 30 secondes, signale une ligne
 refusée, et un journal en direct montre ce que les joueurs disent aux voix. Exporter et Importer partagent une voix.
@@ -324,6 +324,7 @@ Comme en solo, sur le PC de l'hôte : le serveur lancé par le jeu utilise le m�
 | `--poll SECONDES` | Intervalle de lecture de `requests.txt` (défaut 0,3). |
 | `--atelier` | Ouvre aussi l'[atelier des voix](docs/wiki/fr/13-atelier-des-voix.md) dans le navigateur (même sans IA configurée). |
 | `--atelier-port PORT` | Port local de l'atelier (défaut 8765, les suivants s'il est pris). |
+| `--atelier-host ADRESSE` | Adresse d'écoute de l'atelier (défaut `127.0.0.1`, ce PC seul, sans mot de passe). Toute autre adresse, comme `0.0.0.0` pour le réseau de la maison, demande `ATELIER_PASSWORD` (10 caractères ou plus) dans `bridge/.env` : [depuis une tablette](docs/wiki/fr/13-atelier-des-voix.md#louvrir-depuis-une-tablette-ou-un-autre-ordinateur). |
 | `--game-log CHEMIN` | Console du jeu lue par l'atelier pour ses verdicts et son journal (défaut `<Zomboid>/console.txt` ; fichier de console d'un serveur dédié). |
 | `--help` | Aide complète. |
 
@@ -366,7 +367,7 @@ Liste complète avec les valeurs par défaut : [docs/wiki/fr/09-options-sandbox.
 ### Caractère des voix
 
 Chaque voix a une fiche texte dans `<dossier Zomboid>/Lua/batman_RadioSurvivor/personas/<voix>.txt` (Radio Survivor seulement) (fréquences, horaires, radio exigée,
-actions permises, ce qu'elle sait, ignore ou cache, et son prompt après `[prompt]`). Le serveur l'installe au premier
+actions permises, et son prompt après `[prompt]` : personnalité, passé et ce qu'elle tait). Le serveur l'installe au premier
 chargement du monde et la relit toutes les 30 s : la modifier change la voix sans redémarrer. Une fiche modifiée par
 l'admin n'est jamais écrasée par une mise à jour du mod. Guide : [docs/wiki/fr/10-creer-une-voix-radio.md](docs/wiki/fr/10-creer-une-voix-radio.md).
 

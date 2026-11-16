@@ -63,8 +63,8 @@ Possible, but this is a test version: a **new game** is strongly recommended. Th
 world is created.
 
 **Can I change a voice's personality?**
-Yes, as the server admin: edit `<Zomboid folder>/Lua/batman_RadioSurvivor/personas/<voice>.txt` (text after `[prompt]`, plus `knows`,
-`ignores`, `secret`). It is reread every 30 s, and an edited sheet is never overwritten by a mod update.
+Yes, as the server admin: edit `<Zomboid folder>/Lua/batman_RadioSurvivor/personas/<voice>.txt` (text after `[prompt]`: personality,
+past, what it keeps to itself). It is reread every 30 s, and an edited sheet is never overwritten by a mod update.
 
 **Does it work in multiplayer?**
 Yes, the mods are designed for dedicated servers: the server decides everything, the AI only writes words. Multiplayer is

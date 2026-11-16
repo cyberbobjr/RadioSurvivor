@@ -103,12 +103,17 @@ RST.suite("rs.personas.update", { tags = { "world", "server" } }, function(s)
         local known = false
         for _, f in ipairs(P.KNOWN_DELIVERED[VOICE] or {}) do if f == oldPrint then known = true end end
         t:ok(known, "fingerprint " .. oldPrint .. " of " .. OLD .. " not in KNOWN_DELIVERED." .. VOICE)
-        local Persona = require "RadioSurvivor/RS_Persona"
-        local oldSheet = Persona.parseLines(c.old, VOICE, P.rules())
-        t:ok(oldSheet ~= nil and #oldSheet.frequency_ranges == 0, "the old sheet should have fixed frequencies")
+        -- The old sheet is read as lines only: its format is not the current grammar (fixed frequencies, old keys).
+        local fixed, ranges = false, false
+        for _, line in ipairs(c.old) do
+            if string.sub(line, 1, 12) == "frequencies=" then fixed = true end
+            if string.sub(line, 1, 16) == "frequency_range=" then ranges = true end
+        end
+        t:ok(fixed and not ranges, "the old sheet should have fixed frequencies")
         local after, record = play(t, c, c.old, nil)
         t:ok(same(after, c.delivered), VOICE .. ".txt not replaced by the delivered version")
         t:ok(recorded(record, P.fingerprint(c.delivered)), "fingerprint of the delivered sheet not recorded")
+        local Persona = require "RadioSurvivor/RS_Persona"
         local sheet = Persona.parseLines(after, VOICE, P.rules())
         t:ok(sheet ~= nil and #sheet.frequency_ranges > 0, "installed sheet without frequency_range")
         t:ok(same(readAll(getFileReader(c.path, false)), c.original), VOICE .. ".txt not restored")

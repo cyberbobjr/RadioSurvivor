@@ -2,7 +2,7 @@
 
 Champs radio (comme kind=radio_call) : voice= (voix du chroniqueur), date=, language= et facts= (hexadécimal RSV2 d'une
 liste de phrases anglaises, faits confirmés du jour construits par le serveur depuis ses champs fermés : jamais de
-coordonnée ni de conversation ; absent = rien de confirmé). Le prompt est la fiche de la voix sans ses secrets, puis la
+coordonnée ni de conversation ; absent = rien de confirmé). Le prompt est la fiche de la voix, puis la
 consigne ci-dessous : ne raconter que ces faits, n'en inventer aucun. Réponse : lignes radio (line=) ; aucune ligne en
 cas d'échec, le serveur lit alors son bulletin de secours construit à partir des mêmes faits.
 Un pont antérieur à E14-T02 ignore ce kind (demande RSV2 illisible) : le serveur lit son bulletin de secours.
@@ -21,9 +21,9 @@ FIELD_CHARS = 32768           # champ facts= (hexadécimal) ; au-delà, ignoré
 MAX_LINES = 6                 # RS_Facts.BULLETIN_MAX_LINES
 
 
-def read_facts(req: dict[str, str], secrets: list[str], leaks_secret, log) -> list[str]:
+def read_facts(req: dict[str, str], log) -> list[str]:
     """Faits confirmés de la demande (champ facts=). Champ absent : aucun fait ; illisible ou trop long : aucun fait
-    (journalisé). Un fait vide, trop long ou qui cite un secret de la fiche est retiré."""
+    (journalisé). Un fait vide ou trop long est retiré."""
     raw = req.get("facts")
     if not raw:
         return []
@@ -45,15 +45,12 @@ def read_facts(req: dict[str, str], secrets: list[str], leaks_secret, log) -> li
         except ValueError:
             log(f"request {req.get('id', '?')}: fact {index} dropped (not a short text)")
             continue
-        if leaks_secret(fact, secrets):
-            log(f"request {req.get('id', '?')}: fact {index} dropped (it quotes a secret of the sheet)")
-            continue
         facts.append(fact)
     return facts
 
 
 def situation(req: dict[str, str], facts: list[str], language: str) -> str:
-    """Consigne du bulletin, ajoutée au prompt de la fiche sans ses secrets : les faits fournis sont les seules
+    """Consigne du bulletin, ajoutée au prompt de la fiche : les faits fournis sont les seules
     nouvelles ; rien d'autre (aucun événement, lieu, nom, nombre, cause, heure ni détail inventé)."""
     if facts:
         reports = ("- Confirmed reports of the day, checked by the people who pass them to you (the only news you may "

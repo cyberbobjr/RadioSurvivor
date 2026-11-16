@@ -28,8 +28,7 @@ import radio_bridge as rb  # noqa: E402
 from test_fake_llm import start_fake, stop  # noqa: E402
 
 SAVED = "format=1\nid=zed\nname=Zed Moore\nfrequencies=146.0\n[prompt]\nYou are Zed, the saved version.\n"
-UNSAVED = ("format=1\nid=zed\nname=Zed Moore\nfrequencies=146.0\nknows=Where the old mill is.\n"
-           "secret=He buried the money under the porch.\n[prompt]\nYou are Zed. UNSAVED-MARK-42.\n")
+UNSAVED = "format=1\nid=zed\nname=Zed Moore\nfrequencies=146.0\n[prompt]\nYou are Zed. UNSAVED-MARK-42.\n"
 
 
 def snapshot(folder: Path) -> dict[str, tuple[bytes, int]]:
@@ -97,8 +96,7 @@ class WorkshopAiRoutes(unittest.TestCase):
 
     def test_personality(self):
         status, payload = self.post("personality", {"voiceId": "zed", "name": "Zed Moore",
-                                                    "description": "Un vieux mécanicien qui répare des radios.",
-                                                    "knows": ["Where the old mill is."], "ignores": [], "secret": []})
+                                                    "description": "Un vieux mécanicien qui répare des radios."})
         self.assertEqual((status, payload["ok"]), (200, True), payload)
         self.assertTrue(payload["prompt"].startswith("You are Zed Moore"), payload["prompt"])
         system, user = (m["content"] for m in self.sent[0])
@@ -128,11 +126,10 @@ class WorkshopAiRoutes(unittest.TestCase):
         sheet = persona_store.parse_bytes(UNSAVED.encode("utf-8"), "zed")
         req = dict(rb.WORKSHOP_REQUEST, text="Who are you?", voice="zed")
         # E22-T13: every voice has remember, so the game prompt (and this one) ends with the reply format.
-        jobs = rb.voice_jobs(req, sheet)
+        jobs = rb.voice_jobs(req)
         self.assertEqual(messages[0]["content"], rb.system_prompt(req, rb.WORKSHOP_TAG, rb.voice_prompt(sheet))
                          + rb.actions_prompt(sheet, jobs))
         self.assertIn("UNSAVED-MARK-42", messages[0]["content"])
-        self.assertIn("Never reveal them", messages[0]["content"], "secrets enter with the game's rule")
         self.assertNotIn("the saved version", messages[0]["content"])
         self.assertEqual(messages[1:], [{"role": "user", "content": "[Caller 1] Hello (Caller 7)?"},
                                         {"role": "assistant", "content": "Zed here. Over."},

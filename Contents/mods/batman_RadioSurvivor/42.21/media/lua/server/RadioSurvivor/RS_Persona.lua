@@ -62,7 +62,6 @@ local function set(list)
 end
 
 local ACTIONS = set(ACTION_LIST)
-local REPEATABLE = set({ "knows", "ignores", "secret" })
 -- Cle de tete budget.<action> : budget par jour de jeu d'une action de la liste actions.
 local BUDGET_PREFIX = "budget."
 Persona.ACTIONS = ACTION_LIST
@@ -307,9 +306,6 @@ local function headRadio(values, value, line) values.radio = choice(value, "radi
 local function headListen(values, value, line) values.listen = listen(value, line) end
 local function headLocation(values, value, line) values.location = choice(value, "location", LOCATION_LIST, line) end
 local function headCoords(values, value, line) values.coords = coords(value, line) end
-local function headKnows(values, value) values.knows[#values.knows + 1] = value end
-local function headIgnores(values, value) values.ignores[#values.ignores + 1] = value end
-local function headSecret(values, value) values.secret[#values.secret + 1] = value end
 local function headShares(values, value, line) values.shares = closedList(value, "shares", nil, line) end
 local function headActions(values, value, line) values.actions = actions(value, line) end
 local function headBudget(values, value, line) values.budget = count(value, "budget", line) end
@@ -333,9 +329,8 @@ local function headState(values, value, line) values.state = choice(value, "stat
 local HEAD = {
     format = headFormat, id = headId, name = headName, language = headLanguage, frequencies = headFrequencies,
     frequency_range = headFrequencyRange, radio = headRadio, listen = headListen, location = headLocation,
-    coords = headCoords, knows = headKnows, ignores = headIgnores, secret = headSecret, shares = headShares,
-    actions = headActions, budget = headBudget, call_one_in = headCallOneIn, call_text = headCallText,
-    call = headCall, state = headState,
+    coords = headCoords, shares = headShares, actions = headActions, budget = headBudget,
+    call_one_in = headCallOneIn, call_text = headCallText, call = headCall, state = headState,
 }
 
 -- Sections ----------------------------------------------------------------------------------------------------
@@ -962,12 +957,10 @@ local function headLine(values, seen, budgetLines, text, number)
     elseif not HEAD[key] then
         fail(number, "unknown key '" .. key .. "'")
     end
-    if not REPEATABLE[key] then
-        if seen[key] then
-            fail(number, "duplicate key '" .. key .. "' (first set on line " .. tostring(seen[key]) .. ")")
-        end
-        seen[key] = number
+    if seen[key] then
+        fail(number, "duplicate key '" .. key .. "' (first set on line " .. tostring(seen[key]) .. ")")
     end
+    seen[key] = number
     emptyValue(key, value, number)
     if action then
         values.budgets[action] = count(value, key, number)
@@ -978,7 +971,7 @@ local function headLine(values, seen, budgetLines, text, number)
 end
 
 local function parse(lines, expectedId, rules)
-    local values = { knows = {}, ignores = {}, secret = {}, budgets = {} }
+    local values = { budgets = {} }
     local ctx = newContext(rules or NO_RULES)
     local seen = {}
     local budgetLines = {}
@@ -1062,8 +1055,8 @@ local function parse(lines, expectedId, rules)
         format = values.format, id = values.id, name = values.name, frequencies = values.frequencies or {},
         frequency_ranges = values.frequency_ranges or {},
         prompt = table.concat(body, "\n"), language = values.language or "en", radio = values.radio or "any",
-        listen = values.listen or {}, location = location, coords = values.coords, knows = values.knows,
-        ignores = values.ignores, secrets = values.secret, places = ctx.places, actions = allowed,
+        listen = values.listen or {}, location = location, coords = values.coords,
+        places = ctx.places, actions = allowed,
         budget = values.budget or 0, budgets = values.budgets, call_one_in = values.call_one_in or 0,
         call_text = values.call_text or "", call = values.call or "", state = values.state or "active",
         shares = values.shares or {},
@@ -1171,7 +1164,7 @@ function Persona.grammar(rules)
     end
     return {
         format = Persona.FORMAT, separator = Persona.SEPARATOR, maxPlaces = MAX_PLACES,
-        head = { keys = sortedKeys(HEAD), required = copyList(REQUIRED), repeatable = sortedKeys(REPEATABLE),
+        head = { keys = sortedKeys(HEAD), required = copyList(REQUIRED),
             budgetPrefix = BUDGET_PREFIX, choices = copyChoices({ actions = ACTION_LIST, radio = RADIO_LIST,
                 location = LOCATION_LIST, state = STATE_LIST }) },
         sections = sections,

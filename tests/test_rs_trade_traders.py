@@ -165,7 +165,7 @@ class FakeArrivalModeTests(TradersHarness):
         self.assertEqual(run.start, 15.0)                                               # jour 1, 22:00
         self.assertEqual((run.landing.x, run.landing.y), (8000, 8000))
         hexed = self.Trade.field(self.carl, 'kate', None)
-        ctx = rb.trade_context({'trade': hexed}, FakeSheetOf('carl'))
+        ctx = rb.trade_context({'trade': hexed})
         prompt = rb.trade_prompt(ctx, '[Caller 1]')
         self.assertIn('a lamp swung at the gate', prompt)
         self.assertIn('Farm gate on the county road', prompt)
@@ -202,7 +202,7 @@ class FakeArrivalModeTests(TradersHarness):
         run = self.Carl.lastRun()
         self.assertEqual((run.state, run.reason), ('cancelled', 'fog'))
         self.assertEqual(self.aired()[-1][1], 'No cart tonight, fog on the road. Over.')
-        ctx = rb.trade_context({'trade': self.Trade.field(self.carl, 'kate', None)}, FakeSheetOf('carl'))
+        ctx = rb.trade_context({'trade': self.Trade.field(self.carl, 'kate', None)})
         self.assertIn('a thick fog on the road', rb.trade_prompt(ctx, 'you'))
         self.assertEqual(self.T.lastRun(), None)                                        # Gus intact
 
@@ -353,14 +353,6 @@ class TradeSoundTests(unittest.TestCase):
         handler(module, 'other', rt.table_from({'s': 'GeneratorStopping', 'x': 5, 'y': 6}))
         handler('OtherMod', 'trade_sound', rt.table_from({'s': 'GeneratorStopping', 'x': 5, 'y': 6}))
         self.assertEqual([(p.name, p.x, p.y) for p in lua_list(g.PLAYED)], [('GeneratorStopping', 5, 6)])
-
-
-class FakeSheetOf:
-    def __init__(self, vid):
-        self.id = vid
-        self.secrets = []
-        self.actions = ['say', 'propose_trade']
-        self.places = []
 
 
 if __name__ == '__main__':

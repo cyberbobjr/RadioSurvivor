@@ -5,7 +5,8 @@
 A real server on 127.0.0.1 (free port) over a temporary working folder and a temporary delivered folder: list, read,
 write, duplicate, delete (created voice) and its refusal (delivered voice), remove, restore, export, import and its
 conflict, refused ids (traversal, "_" catalogues, uppercase), static files and their traversal, foreign origins,
-busy port. Every write stays in the working folder; the delivered folder is never touched. No network beyond the
+busy port; E22-T15: network mode (login, session cookie, lock, logout, origin) and its refused start. Every write
+stays in the working folder; the delivered folder is never touched. No network beyond the
 loopback, no browser.
 """
 from __future__ import annotations
@@ -20,6 +21,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "bridge"))
+import atelier_auth  # noqa: E402
 import atelier_server as atelier  # noqa: E402
 import radio_bridge as rb  # noqa: E402
 
@@ -119,7 +121,7 @@ class AtelierServerTests(unittest.TestCase):
             "RSFP1\nwalt.txt " + atelier.fingerprint(old) + "\n", encoding="utf-8")
         walt = self.voices()["walt"]
         self.assertEqual((walt["modified"], walt["outdated"]), (False, True))
-        (self.working / "walt.txt").write_text(old + "knows=Edited by the admin.\n", encoding="utf-8")
+        (self.working / "walt.txt").write_text(old + "# Edited by the admin.\n", encoding="utf-8")
         walt = self.voices()["walt"]
         self.assertEqual((walt["modified"], walt["outdated"]), (True, False))
         (self.working.parent / "personas-fingerprints.txt").unlink()   # written by the game, never by the workshop
@@ -280,6 +282,116 @@ class AtelierServerTests(unittest.TestCase):
     def test_unknown_route(self):
         self.assert_refused(*self.request("POST", "/api/voices/walt/explode")[:2], 404, "not_found")
 
+    def test_local_mode_has_no_login(self):
+        """E22-T15: on the loopback the workshop asks no password; the login routes do not exist."""
+        self.assert_refused(*self.request("POST", "/api/login", {"password": "x"})[:2], 404, "not_found")
+        self.assertIs(self.request("GET", "/api/status")[1]["login"], False)
+
+
+class NetworkModeTests(unittest.TestCase):
+    """E22-T15 (ADR atelier-voix D11): the network gate, served on the loopback here (no firewall prompt in tests): a
+    client of the loopback logs in like any other one."""
+    PASSWORD = "tablet password 42"
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        base = Path(self.tmp.name)
+        self.working = base / "personas"
+        self.shipped = base / "shipped"
+        self.static = base / "atelier"
+        for folder in (self.working, self.shipped, self.static / "i18n"):
+            folder.mkdir(parents=True)
+        (self.shipped / "walt.txt").write_text(WALT, encoding="utf-8", newline="")
+        (self.static / "index.html").write_text("<!doctype html><title>Atelier</title>", encoding="utf-8")
+        (self.static / "login.html").write_text("<!doctype html><title>Login</title>", encoding="utf-8")
+        (self.static / "i18n" / "en.json").write_text("{}", encoding="utf-8")
+        (self.static / "app.js").write_text("// app", encoding="utf-8")
+        self.logs: list[str] = []
+        gate = atelier.NetworkGate(atelier_auth.Authenticator(self.PASSWORD, self.logs.append))
+        self.server = atelier.bind(atelier.VoiceStore(self.working, self.shipped), 0, self.static, None,
+                                   self.logs.append, gate=gate)
+        self.thread = atelier.start(self.server)
+        self.port = self.server.server_address[1]
+
+    def tearDown(self):
+        self.server.shutdown()
+        self.server.server_close()
+        joined = "\n".join(self.logs)
+        self.assertNotIn(self.PASSWORD, joined)
+        self.assertNotIn("wrong guess", joined)
+        self.tmp.cleanup()
+
+    request = AtelierServerTests.request
+    assert_refused = AtelierServerTests.assert_refused
+
+    def login(self, password=PASSWORD, headers=None):
+        return self.request("POST", "/api/login", {"password": password}, headers)
+
+    def cookie(self) -> dict:
+        status, payload, resp = self.login()
+        self.assertEqual(status, 200, payload)
+        return {"Cookie": resp.getheader("Set-Cookie").split(";", 1)[0]}
+
+    def test_everything_but_the_login_page_needs_a_session(self):
+        self.assert_refused(*self.request("GET", "/api/voices")[:2], 401, "login_required")
+        self.assert_refused(*self.request("PUT", "/api/voices/rosa", "id=rosa\n")[:2], 401, "login_required")
+        for path in ("/", "/index.html", "/app.js", "/vendor/../index.html"):
+            status, _, resp = self.request("GET", path)
+            self.assertEqual(status, 303, path)
+            self.assertEqual(resp.getheader("Location"), "/login.html", path)
+        for path in ("/login.html", "/i18n/en.json"):
+            self.assertEqual(self.request("GET", path)[0], 200, path)
+        self.assertFalse((self.working / "rosa.txt").exists())
+
+    def test_login_sets_a_strict_session_cookie(self):
+        status, payload, resp = self.login()
+        self.assertEqual(status, 200, payload)
+        self.assertEqual(payload["code"], "logged_in")
+        cookie = resp.getheader("Set-Cookie")
+        name_value, *attributes = [part.strip() for part in cookie.split(";")]
+        self.assertTrue(name_value.startswith(atelier.SESSION_COOKIE + "="))
+        self.assertGreaterEqual(len(name_value.split("=", 1)[1]), 40)
+        self.assertEqual(set(attributes), {"HttpOnly", "SameSite=Strict", "Path=/", "Max-Age=604800"})
+        headers = {"Cookie": name_value}
+        self.assertEqual(self.request("GET", "/api/voices", headers=headers)[0], 200)
+        self.assertEqual(self.request("GET", "/", headers=headers)[0], 200)
+        self.assertIs(self.request("GET", "/api/status", headers=headers)[1]["login"], True)
+        self.assertIn("Voice workshop: login from 127.0.0.1", self.logs)
+
+    def test_wrong_password_then_locked(self):
+        for _ in range(5):
+            self.assert_refused(*self.login("wrong guess")[:2], 401, "bad_password")
+        status, payload, resp = self.login()
+        self.assert_refused(status, payload, 429, "login_locked")
+        self.assertEqual(payload["retryAfter"], 60)
+        self.assertEqual(resp.getheader("Retry-After"), "60")
+        self.assertEqual(sum(line == "Voice workshop: failed login from 127.0.0.1" for line in self.logs), 5)
+        self.assertTrue(any("locked for 60 s" in line for line in self.logs))
+
+    def test_forged_cookie_is_refused(self):
+        self.assert_refused(*self.request("GET", "/api/voices", headers={
+            "Cookie": atelier.SESSION_COOKIE + "=forged"})[:2], 401, "login_required")
+
+    def test_logout_ends_the_session(self):
+        headers = self.cookie()
+        status, payload, resp = self.request("POST", "/api/logout", {}, headers)
+        self.assertEqual(status, 200, payload)
+        self.assertIn("Max-Age=0", resp.getheader("Set-Cookie"))
+        self.assert_refused(*self.request("GET", "/api/voices", headers=headers)[:2], 401, "login_required")
+        self.assertIn("Voice workshop: logout from 127.0.0.1", self.logs)
+
+    def test_any_host_but_only_its_own_origin(self):
+        headers = {**self.cookie(), "Host": f"192.168.1.20:{self.port}"}
+        status, payload, _ = self.request("PUT", "/api/voices/rosa", "id=rosa\n",
+                                          {**headers, "Origin": "http://evil.example"})
+        self.assert_refused(status, payload, 403, "forbidden_origin")
+        self.assertFalse((self.working / "rosa.txt").exists())
+        self.assert_refused(*self.login(headers={"Origin": "http://evil.example"})[:2], 403, "forbidden_origin")
+        status, payload, _ = self.request("PUT", "/api/voices/rosa", "id=rosa\n",
+                                          {**headers, "Origin": f"http://192.168.1.20:{self.port}"})
+        self.assertEqual(status, 201, payload)
+        self.assertEqual(self.request("GET", "/api/voices", headers=headers)[0], 200)
+
 
 class BindTests(unittest.TestCase):
     def test_busy_port_moves_to_the_next_one(self):
@@ -309,6 +421,23 @@ class BindTests(unittest.TestCase):
             thread.join(5)
         self.assertEqual(len(opened), 1)
         self.assertTrue(opened[0].startswith("http://127.0.0.1:"))
+
+    def test_network_mode_refuses_to_start_without_a_good_password(self):
+        """E22-T15: any address but the loopback needs ATELIER_PASSWORD (10 characters at least); nothing is bound."""
+        with tempfile.TemporaryDirectory() as tmp:
+            for password in (None, "", "too-short"):
+                opened = []
+                with self.assertRaises(atelier.StartRefused) as caught:
+                    atelier.launch(Path(tmp) / "w", Path(tmp) / "s", 0, lambda m: None, opened.append,
+                                   host="0.0.0.0", password=password)
+                self.assertIn("ATELIER_PASSWORD", str(caught.exception))
+                self.assertEqual(opened, [])
+
+    def test_gate_follows_the_host(self):
+        for host in ("127.0.0.1", "localhost", "::1", "127.0.0.2"):
+            self.assertIsInstance(atelier.gate_for(host, None, print), atelier.LocalGate, host)
+        for host in ("0.0.0.0", "192.168.1.20", "::", "mypc.lan"):
+            self.assertIsInstance(atelier.gate_for(host, "long enough password", print), atelier.NetworkGate, host)
 
 
 class BridgeWiringTests(unittest.TestCase):

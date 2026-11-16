@@ -86,7 +86,7 @@ works without the other.
 ### The voice workshop (Radio Survivor)
 
 Make your own radio voices without writing a file: double-click `bridge/atelier.bat` (`atelier.sh` on Linux,
-`atelier.command` on macOS) and a page opens in your browser. Five steps (who, where and when, what she knows,
+`atelier.command` on macOS) and a page opens in your browser. Five steps (who, where and when, personality,
 missions, rewards), places recorded in game with a right click, a trader's stock picked by item name, a handwritten
 note and a spontaneous call written in the voice itself. The bridge's AI can write the personality and lets you try
 the voice before saving; the game hears it within 30 seconds, tells you if it refuses a line, and a live journal shows
@@ -322,6 +322,7 @@ game.
 | `--poll SECONDS` | How often `requests.txt` is read (default 0.3). |
 | `--atelier` | Also opens the [voice workshop](docs/wiki/en/13-voice-workshop.md) in your browser (it opens even without an AI configured). |
 | `--atelier-port PORT` | Local port of the workshop (default 8765, the next ones if taken). |
+| `--atelier-host HOST` | Address the workshop listens on (default `127.0.0.1`, this PC only, no password). Any other address, such as `0.0.0.0` for the home network, needs `ATELIER_PASSWORD` (10 characters or more) in `bridge/.env`: [from a tablet](docs/wiki/en/13-voice-workshop.md#opening-it-from-a-tablet-or-another-computer). |
 | `--game-log PATH` | Game console read by the workshop for its verdicts and journal (default `<Zomboid>/console.txt`; a dedicated server's console file). |
 | `--help` | Full help. |
 
@@ -361,7 +362,7 @@ Full list with default values: [docs/wiki/en/09-sandbox-options.md](docs/wiki/en
 ### Voice personalities
 
 Each voice has a text sheet in `<Zomboid folder>/Lua/batman_RadioSurvivor/personas/<voice>.txt` (Radio Survivor only) (frequencies, hours, required radio, allowed
-actions, what it knows, ignores or hides, and its prompt after `[prompt]`). The server installs it the first time the
+actions, and its prompt after `[prompt]`: personality, past and what it keeps to itself). The server installs it the first time the
 world loads and rereads it every 30 s: editing it changes the voice without a restart. A sheet edited by the admin is
 never overwritten by a mod update. Guide: [docs/wiki/en/10-creating-radio-voices.md](docs/wiki/en/10-creating-radio-voices.md).
 

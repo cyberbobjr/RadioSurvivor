@@ -23,7 +23,6 @@ import persona_store
 
 TEMPLATES_FILE = Path(__file__).resolve().parent / 'atelier_ai_templates.json'
 STORY_MAX_CHARS = 200            # story= of a [mission] section (the reader cuts beyond, the page input too)
-MAX_LIST_ITEMS = 50              # knows / ignores / secret lines given to the personality request
 MAX_HISTORY = 40                 # turns of a test conversation sent back by the page (radio_bridge.MAX_HISTORY)
 ROLES = ('user', 'assistant')
 _FENCE_RE = re.compile(r'^```[A-Za-z]*\s*\n?(.*?)\n?```$', re.S)
@@ -74,14 +73,6 @@ def text_value(value, name: str, required: bool = False) -> str:
     return value.strip()
 
 
-def text_list(value, name: str) -> list[str]:
-    if value is None:
-        return []
-    if not isinstance(value, list) or len(value) > MAX_LIST_ITEMS or not all(isinstance(v, str) for v in value):
-        raise _bad(f"{name} must be a list of at most {MAX_LIST_ITEMS} texts")
-    return [v.strip() for v in value if v.strip()]
-
-
 def history_turns(value) -> list[dict[str, str]]:
     """Turns of the test conversation sent by the page: [{role: user | assistant, content}], the last MAX_HISTORY."""
     if value is None:
@@ -94,10 +85,6 @@ def history_turns(value) -> list[dict[str, str]]:
             raise _bad("a history turn is {role: user | assistant, content: text}")
         turns.append({'role': turn['role'], 'content': turn['content']})
     return turns[-MAX_HISTORY:]
-
-
-def listed(values: list[str]) -> str:
-    return '; '.join(values) if values else '(nothing given)'
 
 
 # --- answers ---------------------------------------------------------------------------------------------------------
@@ -140,10 +127,7 @@ class WorkshopAI:
     def personality(self, data: dict) -> str:
         voice = voice_id(data.get('voiceId'))
         values = {'name': text_value(data.get('name'), 'name') or voice,
-                  'description': text_value(data.get('description'), 'description', required=True),
-                  'knows': listed(text_list(data.get('knows'), 'knows')),
-                  'ignores': listed(text_list(data.get('ignores'), 'ignores')),
-                  'secret': listed(text_list(data.get('secret'), 'secret'))}
+                  'description': text_value(data.get('description'), 'description', required=True)}
         prompt = plain_text(self._ask('personality', voice, values))
         if not prompt:
             raise AiError(502, 'ai_failed', "the AI gave an empty answer")

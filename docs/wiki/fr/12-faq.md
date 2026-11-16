@@ -70,8 +70,8 @@ C'est possible, mais c'est une version de test : une **nouvelle partie** est viv
 est fixé à la création du monde.
 
 **Puis-je changer la personnalité d'une voix ?**
-Oui, en tant qu'admin du serveur : modifiez `<dossier Zomboid>/Lua/batman_RadioSurvivor/personas/<voix>.txt` (texte après `[prompt]`, plus
-`knows`, `ignores`, `secret`). Elle est relue toutes les 30 s, et une fiche modifiée n'est jamais écrasée par une mise à
+Oui, en tant qu'admin du serveur : modifiez `<dossier Zomboid>/Lua/batman_RadioSurvivor/personas/<voix>.txt` (texte après `[prompt]` :
+personnalité, passé, ce qu'elle tait). Elle est relue toutes les 30 s, et une fiche modifiée n'est jamais écrasée par une mise à
 jour du mod.
 
 **Est-ce que ça marche en multijoueur ?**

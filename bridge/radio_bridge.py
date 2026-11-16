@@ -15,13 +15,13 @@ Aucune dépendance hors bibliothèque standard.
 
 Voix (E05-T03) : chaque demande radio porte l'identifiant de la voix choisie par le serveur d'après la fréquence
 (voice=, walt si absent). Le prompt est construit depuis la fiche <exchange>\\personas\\<voix>.txt, le dossier
-même que lit le serveur (prompt libre, puis connaissances, ignorances et secrets à ne jamais révéler) ; un historique
+même que lit le serveur (son texte libre : personnalité et passé de la voix) ; un historique
 par partie et par voix. Sans fiche valide de la voix, aucune réponse mais des parasites (le serveur installe toujours
 les fiches livrées, celle de Walt comprise). Le mode --test lit les fiches livrées du mod, seul exemplaire du dépôt
 (..\\Contents\\mods\\batman_RadioSurvivor\\42.21\\personas, relatif à ce fichier : E05-T10), ou --personas <dossier>.
 
 Appels spontanés (E05-T05) : une demande kind=radio_call (voice=, date=, language=) demande le court appel général
-d'une voix, écrit par le LLM depuis sa fiche (sans ses secrets) ; réponse sans ligne en cas d'échec, le serveur
+d'une voix, écrit par le LLM depuis sa fiche ; réponse sans ligne en cas d'échec, le serveur
 diffuse alors le texte fixe de la fiche.
 
 Dernières pages (E15-T03) : une demande kind=last_pages (payload= RSV2 : faits du relevé de vie d'un personnage mort)
@@ -29,8 +29,8 @@ demande son journal, écrit à la première personne d'après ces faits seuls (l
 {kind = last_pages_reply, text} ou {error} : le serveur écrit alors son journal de secours.
 
 Bulletin du soir (E14-T02) : une demande kind=bulletin (voice= du chroniqueur, date=, language=, facts= : faits
-confirmés du jour en hexadécimal RSV2) demande le bulletin, écrit par le LLM depuis la fiche sans ses secrets et ces
-faits seuls (bulletin.py) ; réponse sans ligne en cas d'échec, le serveur lit alors son bulletin de secours.
+confirmés du jour en hexadécimal RSV2) demande le bulletin, écrit par le LLM depuis la fiche et ces faits
+seuls (bulletin.py) ; réponse sans ligne en cas d'échec, le serveur lit alors son bulletin de secours.
 
 Réponse structurée (E07-T01) : une voix qui a une action dotée d'un exécuteur côté serveur (E07-T07 : remember,
 persona_state, décrites avec leurs paramètres) fait demander au LLM un JSON {"say": ..., "actions": [...]} ; les
@@ -42,12 +42,12 @@ format rappelée à la fin du message de l'appelant, objet JSON retrouvé même 
 
 Mémoire (E07-T03, E22-T13) : le serveur garde ce que la voix a retenu (action remember, permise à toute voix) et le
 joint à la demande suivante du même appelant (memory=, hexadécimal RSV2) ; le pont l'ajoute au prompt comme souvenirs
-non vérifiés, sans fait qui cite un secret. Les personnages morts que la voix a connus arrivent avec chaque demande
+non vérifiés. Les personnages morts que la voix a connus arrivent avec chaque demande
 (dead=) ; le pont les ajoute comme « People you knew who died ». Sans souvenir ni mort, prompt inchangé.
 
 État dynamique (E07-T06) : dès qu'une voix a changé son état (action persona_state : moral, réserves, lieu dit), le
-serveur le joint à ses demandes (persona=, hexadécimal RSV2) ; le pont l'ajoute au prompt (« Your current state »), sans
-lieu qui cite un secret. Sans état, prompt inchangé.
+serveur le joint à ses demandes (persona=, hexadécimal RSV2) ; le pont l'ajoute au prompt (« Your current state »).
+Sans état, prompt inchangé.
 
 Repère sur la carte (E07-T04) : une fiche qui autorise mark_map et a des lieux use=mark propose l'action avec les
 identifiants et libellés de ses lieux, jamais leurs coordonnées ; un identifiant hors fiche est retiré. Le serveur
@@ -77,6 +77,7 @@ livre) : libre, réservé par l'équipe de l'appelant (ponton, nuit, signal), pa
     python radio_bridge.py --offline       # sans LLM : réponses en écho (tests, aucune clé requise)
     python radio_bridge.py --atelier       # pont, plus l'atelier des voix dans le navigateur (E22)
     python radio_bridge.py --atelier --game-log <console du serveur dédié>   # verdict du jeu et journal (E22-T04, T10)
+    python radio_bridge.py --atelier --atelier-host 0.0.0.0   # atelier sur le réseau, ATELIER_PASSWORD du .env (E22-T15)
 """
 from __future__ import annotations
 
@@ -103,7 +104,8 @@ import persona_store
 import last_pages  # E15-T03: kind=last_pages (journal of a dead notebook character)
 import bulletin  # E14-T02: kind=bulletin (evening bulletin of the chronicler)
 import atelier_ai  # E22-T06: the bridge's LLM helps to write a voice in the workshop
-import atelier_server  # E22-T02: --atelier, voice workshop served on 127.0.0.1
+import atelier_auth  # E22-T15: password of the workshop on the network
+import atelier_server  # E22-T02: --atelier, voice workshop served on 127.0.0.1 (E22-T15: --atelier-host)
 import place_surveys  # E22-T08: places recorded in game, listed by the workshop
 import game_console  # E22-T04: the game's verdict on the sheets, read in its console
 import log_buffer  # E22-T10: live journal of the workshop
@@ -229,13 +231,13 @@ LOG_LEVELS = log_buffer.compile_rules((
     (r"\[DEBUG\] ", "debug"),
     (r"LLM error ", "error"),
     (r"voice sheet .* (?:refused|unreadable)", "error"),
-    (r"(?:call|bulletin|reply) of voice '[^']*' withheld", "warning"),
     (r"Expired request ignored", "warning"),
+    (r"Voice workshop: (?:failed login|logins from .* locked|too many failed logins)", "warning"),   # E22-T15
 ))
 _VOICE = r"(?P<voice>[a-z][a-z0-9_]{0,31})"
 LOG_VOICES = (
     re.compile(rf"^(?:evening bulletin|general call) of voice {_VOICE}$"),
-    re.compile(rf"^(?:call|bulletin|reply) of voice '{_VOICE}'[: ]"),     # withheld, or the reply said (E22-T10)
+    re.compile(rf"^(?:call|bulletin|reply) of voice '{_VOICE}'[: ]"),     # the reply said (E22-T10)
     re.compile(rf"^voice '{_VOICE}'[: ]"),
     re.compile(rf"^workshop AI [a-z]+ for voice '{_VOICE}'$"),          # E22-T06
     re.compile(rf"^voice sheet .*[\\/]{_VOICE}\.txt (?:refused|unreadable)"),
@@ -326,7 +328,8 @@ def startup_header(args: argparse.Namespace, config: dict[str, str]) -> None:
 
 # --- configuration ---------------------------------------------------------------------------
 
-def load_config(env_path: Path) -> dict[str, str]:
+def read_env(env_path: Path) -> dict[str, str]:
+    """KEY=value lines of the .env file (comments, blank lines and `export ` prefixes allowed); empty when absent."""
     values: dict[str, str] = {}
     if env_path.is_file():
         for raw in env_path.read_text(encoding="utf-8-sig").splitlines():
@@ -338,9 +341,19 @@ def load_config(env_path: Path) -> dict[str, str]:
             if key.startswith("export "):
                 key = key[len("export "):].strip()
             values[key] = value.strip().strip('"').strip("'")
+    return values
+
+
+def env_setting(key: str, values: dict[str, str]) -> str:
+    """A setting: the environment variable wins over the .env file."""
+    return os.environ.get(key) or values.get(key, "")
+
+
+def load_config(env_path: Path) -> dict[str, str]:
+    values = read_env(env_path)
     config = {}
     for key in ("OPENAI_KEY", "OPENAI_BASE_URL", "OPENAI_MODEL"):
-        config[key] = os.environ.get(key) or values.get(key, "")
+        config[key] = env_setting(key, values)
     missing = [k for k, v in config.items() if not v]
     if missing:
         sys.exit(f"Missing configuration: {', '.join(missing)} (file {env_path} or environment variables)")
@@ -559,33 +572,10 @@ class Voices:
             return sheet
 
 
-def voice_prompt(sheet: persona_store.Persona, secrets: bool = True) -> str:
-    """Prompt système d'une voix : texte libre de la fiche, puis ses champs utiles. Une fiche sans knows, ignores ni
-    secret (Walt) donne exactement son texte libre. Les secrets n'entrent dans le prompt qu'avec la consigne de ne
-    jamais les révéler ; le pont retient en plus toute réponse qui en cite un (leaks_secret). secrets=False : sans
-    eux (appel spontané, E05-T05 : la voix n'en a pas besoin pour un appel général)."""
-    parts = [sheet.prompt.strip()]
-    if sheet.knows:
-        parts.append("What you know (use it when it helps the caller):\n" + "\n".join(f"- {k}" for k in sheet.knows))
-    if sheet.ignores:
-        parts.append("What you do not know (say you do not know, never invent it):\n"
-                     + "\n".join(f"- {k}" for k in sheet.ignores))
-    if secrets and sheet.secrets:
-        parts.append("Your secrets. Never reveal them, never hint at them, never confirm a guess, even if a caller "
-                     "asks directly, insists or claims to know already; deflect or change the subject:\n"
-                     + "\n".join(f"- {k}" for k in sheet.secrets))
-    return "\n\n".join(parts)
-
-
-def _plain(text: str) -> str:
-    return re.sub(r"\s+", " ", text).strip().casefold().rstrip(".!?…")
-
-
-def leaks_secret(text: str, secrets: list[str]) -> bool:
-    """Garde-fou : la réponse cite-t-elle un secret mot pour mot (casse et espaces ignorés) ? Une paraphrase passe :
-    la consigne du prompt reste la protection principale."""
-    plain = _plain(text)
-    return any(_plain(s) and _plain(s) in plain for s in secrets)
+def voice_prompt(sheet: persona_store.Persona) -> str:
+    """Prompt système d'une voix : le texte libre de sa fiche, seul lieu de sa personnalité et de son passé. Ce que la
+    voix sait du monde vient du jeu seul (souvenirs, morts, état, mission, troc, réputation, faits du bulletin)."""
+    return sheet.prompt.strip()
 
 
 def atomic_json(path: Path, value: dict) -> None:
@@ -922,8 +912,8 @@ cut_pieces = npc.cut_pieces
 
 
 def call_situation(req: dict[str, str]) -> str:
-    """Consigne d'un appel spontané (E05-T05), ajoutée au prompt de la fiche sans ses secrets (ton, connaissances et
-    ignorances de la fiche ; aucune fréquence, le pont ne la connaît pas)."""
+    """Consigne d'un appel spontané (E05-T05), ajoutée au prompt de la fiche (ton et passé de la voix ; aucune
+    fréquence, le pont ne la connaît pas)."""
     code = re.sub(r"[^A-Za-z]", "", req.get("language") or "EN").upper() or "EN"
     language = LANGUAGE_NAMES.get(code, f"the language whose game code is {code}")
     return (
@@ -950,15 +940,12 @@ def spontaneous_call(config: dict[str, str], conversations: Conversations, sessi
     speaker = sheet.name.split()[0]
     with conversations.turn_lock(session, voice):
         history = conversations.history(session, voice)
-        messages = ([{"role": "system", "content": voice_prompt(sheet, secrets=False) + call_situation(req)}] + history
+        messages = ([{"role": "system", "content": voice_prompt(sheet) + call_situation(req)}] + history
                     + [{"role": "user", "content": CALL_MARK}])
         if config.get("OFFLINE"):
             reply = f"{speaker}, appel général hors ligne. À vous."
         else:
             reply = call_llm(config, messages, speaker).strip()
-        if leaks_secret(reply, sheet.secrets):
-            log(f"call of voice '{voice}' withheld: it quotes one of its secrets")
-            return []
         lines = [line for line in radio_lines(reply) if line != STATIC_LINE][:CALL_MAX_LINES]
         if lines:
             conversations.append(session, CALL_MARK, reply, voice)
@@ -968,29 +955,26 @@ def spontaneous_call(config: dict[str, str], conversations: Conversations, sessi
 def evening_bulletin(config: dict[str, str], conversations: Conversations, session: str, req: dict[str, str],
                      voices: Voices | None = None) -> list[str]:
     """Texte du bulletin du soir (E14-T02) ; [] quand il ne peut pas être écrit : le serveur lit alors son bulletin de
-    secours construit à partir des mêmes faits. Fiche sans ses secrets ; faits du serveur seuls (bulletin.situation).
+    secours construit à partir des mêmes faits. Fiche de la voix ; faits du serveur seuls (bulletin.situation).
     Gardé dans l'historique de la voix (le chroniqueur se souvient de son bulletin)."""
     voice = request_voice(req)
     sheet = voices.get(voice) if voices is not None else None
     if sheet is None:
         raise ValueError(f"no valid sheet for voice '{voice}' in {voices.folder if voices else '?'}")
     speaker = sheet.name.split()[0]
-    facts = bulletin.read_facts(req, sheet.secrets, leaks_secret, log)
+    facts = bulletin.read_facts(req, log)
     code = re.sub(r"[^A-Za-z]", "", req.get("language") or "EN").upper() or "EN"
     language = LANGUAGE_NAMES.get(code, f"the language whose game code is {code}")
     with conversations.turn_lock(session, voice):
         history = conversations.history(session, voice)
         messages = ([{"role": "system",
-                      "content": voice_prompt(sheet, secrets=False) + bulletin.situation(dict(req, date=prompt_field(req.get('date'), 'unknown')),
+                      "content": voice_prompt(sheet) + bulletin.situation(dict(req, date=prompt_field(req.get('date'), 'unknown')),
                                                                        facts, language)}]   # C01: bounded date
                     + history + [{"role": "user", "content": bulletin.MARK}])
         if config.get("OFFLINE"):
             reply = bulletin.offline_reply(speaker, facts)
         else:
             reply = call_llm(config, messages, speaker).strip()
-        if leaks_secret(reply, sheet.secrets):
-            log(f"bulletin of voice '{voice}' withheld: it quotes one of its secrets")
-            return []
         lines = [line for line in radio_lines(reply) if line != STATIC_LINE][:bulletin.MAX_LINES]
         if lines:
             conversations.append(session, bulletin.MARK, reply, voice)
@@ -1015,17 +999,12 @@ def answer(config: dict[str, str], conversations: Conversations, session: str, r
         # Le serveur n'envoie que les voix de ses fiches valides et installe toujours celle de Walt : fiche absente
         # ou refusée de ce côté-ci (autre dossier d'échange ?). Parasites plutôt qu'une réponse sans fiche.
         raise ValueError(f"no valid sheet for voice '{voice}' in {voices.folder if voices else '?'}")
-    jobs = voice_jobs(req, sheet)   # E20-T02 : missions et tables de cache que la voix peut proposer
+    jobs = voice_jobs(req)   # E20-T02 : missions et tables de cache que la voix peut proposer
     with conversations.turn_lock(session, voice):
         tag, history = conversations.prepare(session, req.get("caller", "?"), voice)
         # C02: the caller's text can never carry the tag of another caller (history shared by all callers).
         history = [_clean_history_turn(message) for message in history]
-        turn = voice_turn(config, req, tag, sheet, history, jobs)
-        if turn is None:
-            # Jamais diffusée ni gardée en mémoire, aucune action : la voix « perd le signal ».
-            log(f"reply of voice '{voice}' withheld: it quotes one of its secrets")
-            return [STATIC_LINE]
-        user_msg, reply, actions = turn
+        user_msg, reply, actions = voice_turn(config, req, tag, sheet, history, jobs)
         # Seul le texte dit entre en mémoire, jamais le JSON ni les actions.
         conversations.append(session, user_msg, reply, voice)
         lines = radio_lines(reply)
@@ -1035,10 +1014,9 @@ def answer(config: dict[str, str], conversations: Conversations, session: str, r
 
 
 def voice_turn(config: dict[str, str], req: dict[str, str], tag: str, sheet: persona_store.Persona,
-               history: list[dict[str, str]], jobs: VoiceJobs | None) -> tuple[str, str, list[dict]] | None:
+               history: list[dict[str, str]], jobs: VoiceJobs | None) -> tuple[str, str, list[dict]]:
     """One reply of `sheet` to req["text"] after `history` (the prompt of a voice, built in this one place for the game
-    and for the workshop's test conversation, E22-T06): (user message to keep, reply said, actions), or None when the
-    reply or an action quotes one of its secrets (withheld by the caller)."""
+    and for the workshop's test conversation, E22-T06): (user message to keep, reply said, actions)."""
     speaker = sheet.name.split()[0]
     # Mode structuré (E07-T01) dès que la voix a une action dotée d'un exécuteur (E07-T07 ; toute voix depuis E22-T13 :
     # remember), jamais hors ligne.
@@ -1046,12 +1024,12 @@ def voice_turn(config: dict[str, str], req: dict[str, str], tag: str, sheet: per
     user_msg = f"{tag} {caller_text(req.get('text', ''))}"
     # Souvenirs (E07-T03) : dès qu'il y en a, quel que soit le mode ; sans souvenir, prompt inchangé.
     # État dynamique (E07-T06) : de même, dès que la voix l'a changé une fois.
-    system = (system_prompt(req, tag, voice_prompt(sheet)) + memory_prompt(memory_facts(req, sheet), tag)
-              + dead_prompt(dead_people(req, sheet))
-              + persona_prompt(persona_state(req, sheet))
+    system = (system_prompt(req, tag, voice_prompt(sheet)) + memory_prompt(memory_facts(req), tag)
+              + dead_prompt(dead_people(req))
+              + persona_prompt(persona_state(req))
               + story_prompt(story_state(req))
               + mission_prompt(mission_context(req, sheet), tag)
-              + trade_prompt(trade_context(req, sheet), tag)
+              + trade_prompt(trade_context(req), tag)
               + reputation_prompt(reputation_field(req), tag)
               + (actions_prompt(sheet, jobs) if with_actions else ""))
     # Mode structuré (E07-T09) : consigne de format rappelée juste avant la question (message envoyé seulement,
@@ -1064,13 +1042,9 @@ def voice_turn(config: dict[str, str], req: dict[str, str], tag: str, sheet: per
         reply = call_llm(config, messages, speaker).strip()
     proposed = None
     if with_actions:
-        reply, proposed = parse_structured(reply, sheet.secrets)
+        reply, proposed = parse_structured(reply)
         reply = reply.strip()
-    actions = bounded_actions(sheet, proposed, jobs)
-    params = [v for action in actions for v in action.values() if isinstance(v, str)]
-    if leaks_secret(reply, sheet.secrets) or any(leaks_secret(p, sheet.secrets) for p in params):
-        return None
-    return user_msg, reply, actions
+    return user_msg, reply, bounded_actions(sheet, proposed, jobs)
 
 
 # --- atelier des voix : l'IA du pont aide à écrire (E22-T06, ADR atelier-voix D04) ----------------------------------
@@ -1110,10 +1084,7 @@ class WorkshopLLM:
         req = dict(WORKSHOP_REQUEST, text=text, voice=sheet.id)
         turns = [{"role": "user", "content": f"{WORKSHOP_TAG} {caller_text(t['content'])}"} if t["role"] == "user"
                  else {"role": "assistant", "content": t["content"]} for t in history[-MAX_HISTORY:]]
-        turn = self._call(lambda: voice_turn(self.config, req, WORKSHOP_TAG, sheet, turns, voice_jobs(req, sheet)))
-        if turn is None:
-            log(f"reply of voice '{sheet.id}' withheld: it quotes one of its secrets (workshop test)")
-            return [STATIC_LINE]
+        turn = self._call(lambda: voice_turn(self.config, req, WORKSHOP_TAG, sheet, turns, voice_jobs(req)))
         return radio_lines(turn[1])
 
 
@@ -1145,10 +1116,10 @@ DEAD_FIELD_CHARS = 32768
 DEAD_DAY = re.compile(r"\d{4}-\d{2}-\d{2}")
 
 
-def memory_facts(req: dict[str, str], sheet: persona_store.Persona) -> list[str]:
+def memory_facts(req: dict[str, str]) -> list[str]:
     """Faits que la voix a retenus sur cet appelant (champ memory= : hexadécimal RSV2 d'une liste de chaînes, joint
     par le serveur, RS_Memory.field). Champ absent, illisible ou trop long : aucun souvenir (journalisé). Chaque fait
-    passe par safe_text ; un fait vide, trop long ou qui cite un secret de la fiche n'est pas injecté."""
+    passe par safe_text ; un fait vide ou trop long n'est pas injecté."""
     raw = req.get("memory")
     if not raw:
         return []
@@ -1171,9 +1142,6 @@ def memory_facts(req: dict[str, str], sheet: persona_store.Persona) -> list[str]
         except ValueError:
             log(f"request {req.get('id', '?')}: memory fact {index} dropped (not a short text)")
             continue
-        if leaks_secret(fact, sheet.secrets):
-            log(f"request {req.get('id', '?')}: memory fact {index} dropped (it quotes a secret of the sheet)")
-            continue
         facts.append(fact)
     return facts
 
@@ -1191,11 +1159,11 @@ def memory_prompt(facts: list[str], tag: str) -> str:
     )
 
 
-def dead_people(req: dict[str, str], sheet: persona_store.Persona) -> list[dict[str, str]]:
+def dead_people(req: dict[str, str]) -> list[dict[str, str]]:
     """People the voice knew who died (field dead=, E22-T13: RSV2 hex of a list of {name, day, facts}, latest deaths
     first, joined by the server, RS_Memory.deadField). Absent, unreadable or too long: nobody (logged). At most
-    MEMORY_DEAD_MAX; name and facts pass safe_text, day must be YYYY-MM-DD; an entry with another key, without facts
-    or that quotes a secret of the sheet is dropped (logged)."""
+    MEMORY_DEAD_MAX; name and facts pass safe_text, day must be YYYY-MM-DD; an entry with another key or without facts
+    is dropped (logged)."""
     raw = req.get("dead")
     if not raw:
         return []
@@ -1225,9 +1193,6 @@ def dead_people(req: dict[str, str], sheet: persona_store.Persona) -> list[dict[
         except ValueError as err:
             log(f"request {req.get('id', '?')}: dead person {index} dropped ({err})")
             continue
-        if any(leaks_secret(text, sheet.secrets) for text in person.values()):
-            log(f"request {req.get('id', '?')}: dead person {index} dropped (it quotes a secret of the sheet)")
-            continue
         people.append(person)
     return people
 
@@ -1255,11 +1220,11 @@ PERSONA_PLACE_BYTES = 160     # lieu : 40 caractères côté serveur, jusqu'à 4
 PERSONA_FIELD_CHARS = 1024    # champ persona= (hexadécimal RSV2) ; au-delà, ignoré
 
 
-def persona_state(req: dict[str, str], sheet: persona_store.Persona) -> dict | None:
+def persona_state(req: dict[str, str]) -> dict | None:
     """État dynamique de la voix (champ persona= : hexadécimal RSV2 d'une table {morale, supplies[, place]}, joint par
     le serveur, RS_PersonaState.field). Champ absent : None. Champ illisible, trop long, clé inconnue ou niveau qui
-    n'est pas un entier de 0 à 10 : ignoré (None, journalisé). Le lieu passe par safe_text ; vide, trop long ou citant
-    un secret de la fiche, il est retiré (le reste de l'état est gardé)."""
+    n'est pas un entier de 0 à 10 : ignoré (None, journalisé). Le lieu passe par safe_text ; vide ou trop long, il est
+    retiré (le reste de l'état est gardé)."""
     raw = req.get("persona")
     if not raw:
         return None
@@ -1283,10 +1248,7 @@ def persona_state(req: dict[str, str], sheet: persona_store.Persona) -> dict | N
         except ValueError:
             log(f"request {req.get('id', '?')}: persona place dropped (not a short text)")
         else:
-            if leaks_secret(place, sheet.secrets):
-                log(f"request {req.get('id', '?')}: persona place dropped (it quotes a secret of the sheet)")
-            else:
-                state["place"] = place
+            state["place"] = place
     return state
 
 
@@ -1390,10 +1352,10 @@ def _sequence(value, maximum: int) -> list:
     return [value[index] for index in range(1, min(len(value), maximum) + 1)]
 
 
-def _mission_lines(req: dict[str, str], sheet: persona_store.Persona, values, maximum: int, max_bytes: int,
+def _mission_lines(req: dict[str, str], values, maximum: int, max_bytes: int,
                    what: str, digits: bool) -> list[str]:
-    """Lignes de texte d'une mission (indices, faits) passées par safe_text ; une ligne trop longue, qui cite un secret
-    ou, sans digits, qui contient un chiffre (une coordonnée ne doit jamais atteindre le prompt) est retirée et
+    """Lignes de texte d'une mission (indices, faits) passées par safe_text ; une ligne trop longue ou, sans digits, qui
+    contient un chiffre (une coordonnée ne doit jamais atteindre le prompt) est retirée et
     journalisée."""
     lines: list[str] = []
     for index, raw in enumerate(_sequence(values, maximum), 1):
@@ -1402,8 +1364,8 @@ def _mission_lines(req: dict[str, str], sheet: persona_store.Persona, values, ma
         except ValueError:
             log(f"request {req.get('id', '?')}: mission {what} {index} dropped (text)")
             continue
-        if (not digits and re.search(r"\d", text)) or leaks_secret(text, sheet.secrets):
-            log(f"request {req.get('id', '?')}: mission {what} {index} dropped (digit or secret)")
+        if not digits and re.search(r"\d", text):
+            log(f"request {req.get('id', '?')}: mission {what} {index} dropped (digit)")
             continue
         lines.append(text)
     return lines
@@ -1412,9 +1374,9 @@ def _mission_lines(req: dict[str, str], sheet: persona_store.Persona, values, ma
 def mission_context(req: dict[str, str], sheet: persona_store.Persona) -> dict | None:
     """Mission que cette voix a donnée à cet appelant (champ mission= : hexadécimal RSV2 d'une table du serveur,
     RS_MissionVoice.context, générique depuis E20-T02). Champ absent : None. Illisible, trop long, type au nom invalide,
-    état ou tour invalide, lieu chiffré ou objectif qui cite un secret : ignoré (None, journalisé). Lieu et indices
+    état ou tour invalide ou lieu chiffré : ignoré (None, journalisé). Lieu et indices
     passent par safe_text, sans chiffre ; objectif (job) et faits (facts) sont composés par le gabarit côté serveur et
-    peuvent porter des nombres (comptes, heures), jamais un secret ; une récompense absente de la fiche est retirée.
+    peuvent porter des nombres (comptes, heures) ; une récompense absente de la fiche est retirée.
     Le tour report_due n'est gardé qu'avec l'objectif constaté (toReport) : sinon il devient not_yet."""
     raw = req.get("mission")
     if not raw:
@@ -1427,11 +1389,9 @@ def mission_context(req: dict[str, str], sheet: persona_store.Persona) -> dict |
         if value.get("state") not in MISSION_STATES or value.get("turn") not in MISSION_TURNS:
             raise ValueError("mission state")
         place = npc.safe_text(value["place"], MISSION_TEXT_BYTES) if value.get("place") is not None else ""
-        if re.search(r"\d", place) or leaks_secret(place, sheet.secrets):
+        if re.search(r"\d", place):
             raise ValueError("mission place")
         job = npc.safe_text(value["job"], MISSION_JOB_BYTES) if value.get("job") is not None else ""
-        if leaks_secret(job, sheet.secrets):
-            raise ValueError("mission job")
     except ValueError as err:
         log(f"request {req.get('id', '?')}: mission context ignored ({err})")
         return None
@@ -1443,9 +1403,9 @@ def mission_context(req: dict[str, str], sheet: persona_store.Persona) -> dict |
     to_report = value.get("toReport") is True   # E11-T13: objective met (server fact)
     turn = value["turn"] if value["turn"] != "report_due" or to_report else "not_yet"
     return {"kind": value["kind"], "state": value["state"], "turn": turn, "place": place, "job": job,
-            "facts": _mission_lines(req, sheet, value.get("facts"), MISSION_MAX_FACTS, MISSION_FACT_BYTES, "fact",
+            "facts": _mission_lines(req, value.get("facts"), MISSION_MAX_FACTS, MISSION_FACT_BYTES, "fact",
                                     digits=True),
-            "clues": _mission_lines(req, sheet, value.get("clues"), MISSION_MAX_CLUES, MISSION_TEXT_BYTES, "clue",
+            "clues": _mission_lines(req, value.get("clues"), MISSION_MAX_CLUES, MISSION_TEXT_BYTES, "clue",
                                     digits=False),
             "to_report": to_report, "minutes": minutes,
             "reward": reward if isinstance(reward, str) and reward in labels else None}
@@ -1515,10 +1475,10 @@ class VoiceJobs:
     caches: tuple[str, ...]
 
 
-def voice_jobs(req: dict[str, str], sheet: persona_store.Persona) -> VoiceJobs | None:
+def voice_jobs(req: dict[str, str]) -> VoiceJobs | None:
     """Champ jobs= de la demande (hexadécimal RSV2 de { jobs = { {name, text}... }, caches = {...} }). Absent : None.
-    Illisible ou trop long : None (journalisé). Un type au nom invalide, en double, au texte illisible ou qui cite un
-    secret est retiré (journalisé) ; une table au nom invalide aussi."""
+    Illisible ou trop long : None (journalisé). Un type au nom invalide, en double ou au texte illisible est retiré
+    (journalisé) ; une table au nom invalide aussi."""
     raw = req.get("jobs")
     if not raw:
         return None
@@ -1536,8 +1496,6 @@ def voice_jobs(req: dict[str, str], sheet: persona_store.Persona) -> VoiceJobs |
             if not isinstance(name, str) or not MISSION_NAME.fullmatch(name) or name in dict(jobs):
                 raise ValueError("name")
             text = npc.safe_text(entry.get("text"), JOB_TEXT_BYTES)
-            if leaks_secret(text, sheet.secrets):
-                raise ValueError("secret")
         except ValueError as err:
             log(f"request {req.get('id', '?')}: job {index} dropped ({err})")
             continue
@@ -1589,10 +1547,10 @@ def _fmt(value) -> str:
     return str(int(value)) if float(value).is_integer() else f"{value:g}"
 
 
-def trade_context(req: dict[str, str], sheet: persona_store.Persona) -> dict | None:
+def trade_context(req: dict[str, str]) -> dict | None:
     """Livre du passeur pour cet appelant (champ trade= : hexadécimal RSV2 d'une table du serveur, RS_Trade.context).
     Absent : None. Illisible, trop long ou bornes manquantes : ignoré (None, journalisé). Une ligne de stock, une
-    catégorie prise ou une affaire mal formée est retirée ; textes passés par safe_text, sans secret de la fiche."""
+    catégorie prise ou une affaire mal formée est retirée ; textes passés par safe_text."""
     raw = req.get("trade")
     if not raw:
         return None
@@ -1638,9 +1596,6 @@ def trade_context(req: dict[str, str], sheet: persona_store.Persona) -> dict | N
     out["offer"] = offer if offer is not None and _number(offer.get("rev")) else None
     out["refused"] = value.get("refused") if value.get("refused") in TRADE_REFUSALS else None
     out["run"] = trade_run(value.get("run"))
-    if any(leaks_secret(t["items"], sheet.secrets) for t in out["takes"]):
-        log(f"request {req.get('id', '?')}: trade book ignored (it quotes a secret of the sheet)")
-        return None
     return out
 
 
@@ -2105,11 +2060,11 @@ def _reply_object(text: str) -> tuple[dict, str] | None:
     return None
 
 
-def parse_structured(text: str, secrets: list[str] | None = None) -> tuple[str, list | None]:
+def parse_structured(text: str) -> tuple[str, list | None]:
     """Réponse du LLM en mode structuré → (texte say, actions brutes). Objet JSON retrouvé même entouré de texte,
     dans un bloc ```json, avec des guillemets typographiques ou une virgule finale (E07-T09). Sans say (ou say vide),
     le texte autour de l'objet devient say. Illisible : le texte brut est say seul, sans action (None), journalisé ;
-    la réponse brute part en DEBUG, tronquée, sauf si elle cite un secret de la fiche (secrets)."""
+    la réponse brute part en DEBUG, tronquée."""
     try:
         found = _reply_object(text)
         if found is None:
@@ -2128,12 +2083,9 @@ def parse_structured(text: str, secrets: list[str] | None = None) -> tuple[str, 
         return say, [] if actions is None else actions
     except ValueError as err:
         log(f"structured reply unreadable ({type(err).__name__}: {str(err)[:60]}), raw text kept as say only")
-        if secrets and leaks_secret(text, secrets):
-            debug(f"unreadable structured reply not shown: it quotes a secret of the sheet ({len(text)} characters)")
-        else:
-            shown = " ".join(text.split())
-            cut = "..." if len(shown) > RAW_LOG_CHARS else ""
-            debug(f"unreadable structured reply ({len(text)} characters): {shown[:RAW_LOG_CHARS]!r}{cut}")
+        shown = " ".join(text.split())
+        cut = "..." if len(shown) > RAW_LOG_CHARS else ""
+        debug(f"unreadable structured reply ({len(text)} characters): {shown[:RAW_LOG_CHARS]!r}{cut}")
         return text, None
 
 
@@ -2397,6 +2349,10 @@ def main() -> None:
                              "sans configuration de l'IA, l'atelier reste ouvert seul")
     parser.add_argument("--atelier-port", type=int, default=atelier_server.DEFAULT_PORT,
                         help=f"port local de l'atelier, suivants si occupé (défaut : {atelier_server.DEFAULT_PORT})")
+    parser.add_argument("--atelier-host", default=atelier_server.HOST,
+                        help=f"adresse d'écoute de l'atelier (défaut : {atelier_server.HOST}, ce PC seul, sans mot de "
+                             "passe) ; toute autre adresse (0.0.0.0 : tout le réseau) demande ATELIER_PASSWORD dans "
+                             f"le .env, {atelier_auth.MIN_PASSWORD_LENGTH} caractères au moins")
     parser.add_argument("--game-log", type=Path,
                         help="console du jeu lue par l'atelier pour le verdict des fiches (défaut : <Zomboid>/console.txt ;"
                              " serveur dédié : son fichier de console)")
@@ -2408,8 +2364,12 @@ def main() -> None:
             journal=LOG_BUFFER, bridge_running=BRIDGE_RUNNING.is_set,
             game=game_console.GameConsole(game_log, LOG_BUFFER) if game_log else None,
             surveys=place_surveys.SurveyFile(personas_folder(args.exchange).parent / place_surveys.FILE_NAME))
-        workshop = atelier_server.launch(personas_folder(args.exchange), BUNDLED_PERSONAS, args.atelier_port, log,
-                                         live=live)
+        try:
+            workshop = atelier_server.launch(personas_folder(args.exchange), BUNDLED_PERSONAS, args.atelier_port, log,
+                                             live=live, host=args.atelier_host,
+                                             password=env_setting(atelier_auth.SETTING, read_env(args.env)))
+        except atelier_server.StartRefused as err:   # E22-T15: the bridge runs on without its workshop
+            log(f"Voice workshop failed to start: {err}")
     DEBUG = args.debug
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
