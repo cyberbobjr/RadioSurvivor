@@ -236,7 +236,10 @@ RST.suite("lk.walls", { tags = { "world", "server" }, testTimeoutMs = 600000, ti
             measure(string.format("time of day %.2f: clock set to 6:59 first", tod))
         end
         t:note("group " .. gid .. " home " .. home.x .. "," .. home.y .. "," .. home.z)
-        t:waitUntil(function()
+        -- Dedicated server: the players leave the house first (solid; MP campaign 2026-11-16, lk.walls: the npc stuck
+        -- against the two players standing on its only way through the home).
+        K.clearHome(t, home, function(tc)
+        tc:waitUntil(function()
             local now = getGameTime():getTimeOfDay()
             return bodyCount(gid) == 2 and allStanding(gid) and now >= 7 and now < 21.5
         end, BODIES_MS, function(t2)
@@ -273,5 +276,6 @@ RST.suite("lk.walls", { tags = { "world", "server" }, testTimeoutMs = 600000, ti
                 RST.PeerChecks.checkSquares(t3, around, { thumpable = { "WoodenWallLvl1", "WoodenWallFrame" } })
             end, "the builder did not finish the first ring segment")
         end, "group members not materialized and standing")
+        end)
     end)
 end)

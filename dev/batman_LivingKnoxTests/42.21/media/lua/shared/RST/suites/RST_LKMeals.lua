@@ -172,7 +172,10 @@ RST.suite("lk.meals", { tags = { "world", "server" }, testTimeoutMs = 600000, ti
             measure(string.format("time of day %.2f: clock set to 6:59 first", tod))
         end
         t:note("group " .. gid .. " home " .. home.x .. "," .. home.y .. "," .. home.z)
-        t:waitUntil(function()
+        -- Dedicated server: the players leave the house first (solid; MP campaign 2026-11-16, lk.meals: the npc stuck
+        -- against the two players standing on its only way through the home).
+        K.clearHome(t, home, function(tc)
+        tc:waitUntil(function()
             local now = getGameTime():getTimeOfDay()
             return bodyCount(gid) == 3 and allStanding(gid) and now >= 7 and now < 21.5 and decided(gid, "m-2")
         end, BODIES_MS, function(t2)
@@ -244,5 +247,6 @@ RST.suite("lk.meals", { tags = { "world", "server" }, testTimeoutMs = 600000, ti
                 end, "meal not finished (hunger not lowered)")
             end, "hungry member did not take an item")
         end, "group members not materialized and standing")
+        end)
     end)
 end)
