@@ -295,9 +295,11 @@ class FrozenBareContextTests(GridBase):
 # (Directives.moveTo, face, stop, setVigil avec arguments), gestes posés (Anim.setGesture), vigilance
 # (Senses.setVigilance), appels aux modules qui mènent un comportement (apply, leave, forget, applyHunt) et aux suites
 # (Needs.observe, Alert.noteWoken, Alert.raise, Speech.say, Activity.behaviour), état gardé et geste du moteur.
-# Empreintes relevées sur le code d'avant la migration des comportements (LK16-T06).
-FROZEN_APPLY_FULL = '020b0d45bd1dc5e96a7d9b3dab21a63dc2ea6c3f1777f51ede0d2b5321b367f4'
-FROZEN_APPLY_BARE = '5bdc67599bdf6606b66461f03330618da171d8d02bf72f42596fbdf7ac02e6cb'
+# Empreintes relevées sur le code d'avant la migration des comportements (LK16-T06). Rebasées le 2026-11-16 (LK17-T03,
+# lk.windowsally MP) : seule différence, watch et alert ne posent ni regard ni geste tant qu'une course du moteur est
+# ouverte (Decisions.runningOwnMove) ; une marche ordinaire est coupée comme avant.
+FROZEN_APPLY_FULL = '6e4459fc5454c09290e636891348394b01dec1f028873a1c0838b735e49e8449'
+FROZEN_APPLY_BARE = 'b77a9ce517b1a92269c03d78f23f2be27264be7fc110d1d5ae9599b5806d25c3'
 APPLY = r'''
 DIR, ANIM, VSEQ, CARE, STUCK = {}, {}, 0, false, false
 local function noteApply(mod, fn, ret)

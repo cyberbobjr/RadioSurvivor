@@ -305,6 +305,21 @@ class CascadeAlertTests(PureAlertBase):
         self.assertEqual(self.ev(f'{D}.BEHAVIOURS.alert.vigil'), 'guard')
         self.assertIs(self.ev(f'{D}.allows(CTX({{ combatant = true }}), "alert")'), True)
 
+    def test_alert_look_waits_for_the_own_run_to_end(self):
+        # lk.windowsally MP du 2026-11-16 : course vers la place de défense (dedans) coupée par le regard d'alerte,
+        # membre resté dehors contre le mur. Une marche ordinaire est coupée comme avant.
+        def faces(g, done='false'):
+            return self.run_lua(
+                'local Dir = LivingKnox.Directives or {} LivingKnox.Directives = Dir Dir.OP_MOVE = "move" '
+                f'Dir.get = function() return {{ v = 7, op = "move", g = "{g}", done = {done} }} end '
+                f'{D}.state.issued["lk-1"] = 7 local n = 0 local face = {D}.face '
+                f'{D}.face = function() n = n + 1 end '
+                f'LivingKnox.DecideDefence.applyAlert("lk-1", {{}}, CTX({{ {self.ALERT} }}), true) '
+                f'{D}.face = face return n')
+        self.assertEqual(faces('run'), 0)
+        self.assertEqual(faces('walk'), 1)
+        self.assertEqual(faces('run', done='true'), 1)
+
     def test_member_out_of_reach_is_not_alerted(self):
         self.note('zombie', 'z:5', 600, x=105, y=100)
         self.assertIsNotNone(self.ev(f'{A}.forMember("grp-1", 120.5, 100.5, 0, false, 601)'))

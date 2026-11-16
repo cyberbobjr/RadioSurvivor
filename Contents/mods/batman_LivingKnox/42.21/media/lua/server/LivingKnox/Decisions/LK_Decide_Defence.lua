@@ -120,6 +120,7 @@ end
 -- une alerte du groupe. LK06-T07 : en alerte, un membre aux constantes mauvaises loin du foyer y court d'abord (abri),
 -- accroupi ensuite.
 local function applyLook(id, st, ctx, fresh, t, gesture)
+    if Decisions.runningOwnMove(id) then return end   -- course en cours (place de défense, abri) : regard à l'arrivée
     Decisions.faceTowards(id, st, ctx, t and t.x, t and t.y, fresh)
     if gesture ~= nil then Decisions.setAlertGesture(id, gesture) end
 end

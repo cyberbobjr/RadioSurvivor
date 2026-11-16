@@ -1280,6 +1280,21 @@ class SoloTraversalTests(ObstacleBase):
         self.run_lua('LivingKnox.Groups.findNpc = function() return "grp-2" end')
         self.assertEqual(decide(108, 103)[1], 'locked window')
 
+    def test_window_of_the_home_stays_shut_while_the_group_is_on_alert(self):
+        # lk.windowsally solo du 2026-11-16 : sortie vers le zombie par la fenêtre menacée, ouverte ; on sort par la
+        # porte (E18-T34). Dernier recours (aucune porte) : ouverte quand même.
+        self.init()
+        self.building()
+        self.window()                                            # 106,102 W : maison B1, foyer du groupe
+        gid = self.group(member=True)
+        decide = ('local w, k = LivingKnox.Edges.windowOf(HARNESS.square(105, 102, 0), HARNESS.square(106, 102, 0)) '
+                  'return LivingKnox.Obstacles.decideWindow("lk-1", w, k, HARNESS.square(105, 102, 0), '
+                  'HARNESS.square(106, 102, 0), HARNESS.square(105, 102, 0), %s, HARNESS.square(106, 102, 0))')
+        self.assertEqual(self.run_lua(decide % 'false'), 'open')
+        self.run_lua(f'LivingKnox.Alert.get = function(g) if g == "{gid}" then return {{ id = "al-1" }} end end')
+        self.assertEqual(self.run_lua(decide % 'false')[1], 'window of the home on alert (by the door)')
+        self.assertEqual(self.run_lua(decide % 'true'), 'open')
+
     def test_window_beside_the_body_not_faced_is_left_alone(self):
         self.window()
         self.run_lua('LivingKnox.Obstacles.WINDOW_GESTURE = false')   # bascule immédiate (geste : WindowGestureTests)
@@ -2482,6 +2497,19 @@ class WindowGestureTests(WindowGestureBase):
         self.assertEqual(self.counters('solo'), (2, 0))
         self.assertEqual(self.ev('LivingKnox.Anim.stats.acts'), 0)
         self.assertIsNone(self.ev('LivingKnox.Executor.stats.actPauses'))
+
+    def test_door_of_a_forgotten_npc_is_no_longer_closed_behind_it(self):
+        # lk.traversal MP du 2026-11-16 : porte ouverte par un PNJ retiré (fin du test précédent), refermée sans clé
+        # dans le test suivant, sous les yeux du joueur qui venait de la rouvrir.
+        self.door()
+        zid = self.start()
+        self.move()
+        self.walk_d(zid, 600, until=lambda: self.state('solo').startswith('true'))
+        self.assertTrue(self.ev(f'LivingKnox.Obstacles.opened["{DOOR_KEY}"] ~= nil'))
+        self.run_lua('LivingKnox.Directives.forget("lk-1") LivingKnox.Bodies.despawn("lk-1", true)')
+        self.h.tick(200)
+        self.assertTrue(self.state('solo').startswith('true'), self.state('solo'))
+        self.assertTrue(self.ev(f'LivingKnox.Obstacles.opened["{DOOR_KEY}"] == nil'))
 
 
 class WindowCloseBehindTests(WindowGestureBase):

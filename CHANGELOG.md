@@ -66,6 +66,8 @@
 - A busy radio channel no longer holds back the lines of the other frequencies.
 - Living Knox survivors no longer stop outside under a window (or against a wall) as if they were back inside, and no longer stand guard outside against the wall after a fight.
 - Living Knox foragers no longer freeze in front of a container instead of searching it.
+- Living Knox survivors keep their home windows shut while their group is on alert and go out by the door; a survivor running back to its place no longer stops halfway to stare at the danger.
+- The Living Knox admin teleport now lands right next to the survivor.
 - The notebook stays whole on screen after switching to a smaller resolution.
 - Compatibility with Build 42.22.
 

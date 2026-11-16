@@ -691,6 +691,12 @@ function Obstacles.decideWindow(npcId, w, kind, sqA, sqB, far, trapped, from)
     if home ~= nil and home ~= mine and not (trapped and Obstacles.inHomeOf(from, home)) then
         return nil, "window of the home of " .. home .. " (not a member)"
     end
+    -- Foyer du PNJ en alerte : fenêtres fermées, on sort et on rentre par la porte (E18-T34, lk.windowsally solo du
+    -- 2026-11-16 : fenêtre menacée ouverte pour rejoindre le zombie) ; dernier recours (aucune porte) : ouverte.
+    local Al = LivingKnox.Alert
+    if home ~= nil and home == mine and not trapped and Al ~= nil and Al.get ~= nil and Al.get(home) ~= nil then
+        return nil, "window of the home on alert (by the door)"
+    end
     if Obstacles.alarmArmed(w) then return nil, "window of an alarmed house" end
     return "open"
 end
@@ -1424,6 +1430,8 @@ function Obstacles.closePass(seen, t)
             drop[#drop + 1] = key
         elseif not Obstacles.isOpen(door) then
             drop[#drop + 1] = key   -- refermée par quelqu'un d'autre : plus à nous
+        elseif select(2, Bodies().find(rec.id)) == "unknown" then
+            drop[#drop + 1] = key   -- PNJ retiré du registre (lk.traversal MP du 2026-11-16) : plus à nous
         elseif not seen[key] and closeDue(rec, t) then
             if occupied(rec) then
                 count("busy")

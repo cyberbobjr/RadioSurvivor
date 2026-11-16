@@ -746,7 +746,12 @@ function Admin.npcGoto(id, who, player)
     local p = Admin.positionOf(g, m)
     if p == nil then return nil, "no known position" end
     local x, y, z
-    if p.src == "last" then
+    -- Corps : sa position exacte (p est arrondie au dixième : x.95 compterait pour la case suivante, lk.npcsheet MP
+    -- du 2026-11-16).
+    local body = p.src == "body" and bodyOf(m.npc) or nil
+    if body ~= nil then
+        x, y, z = beside(body:getX(), body:getY(), body:getZ())
+    elseif p.src == "last" then
         x, y, z = math.floor(p.x), math.floor(p.y), math.floor(p.z)
     else
         x, y, z = beside(p.x, p.y, p.z)

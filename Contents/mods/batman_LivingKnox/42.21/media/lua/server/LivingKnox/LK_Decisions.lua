@@ -1777,6 +1777,13 @@ function Decisions.stopOwnMove(id)
     if open ~= nil and open.op == D.OP_MOVE then issued(id, D.stop(id)) end
 end
 
+-- Vrai si le moteur a émis une course encore ouverte (retour au foyer, place de défense) : elle va à son terme avant
+-- un regard (lk.windowsally MP du 2026-11-16 : course vers la place dedans coupée par le regard d'alerte).
+function Decisions.runningOwnMove(id)
+    local open = ownOpen(id)
+    return open ~= nil and open.op == LivingKnox.Directives.OP_MOVE and open.g == "run"
+end
+
 -- Regard vers la case (x, y) : état neuf, premier regard, ou écart d'au moins FACE_DELTA degrés avec le dernier
 -- regard (st.faced). Rend vrai si une consigne est émise.
 function Decisions.faceTowards(id, st, ctx, x, y, fresh)

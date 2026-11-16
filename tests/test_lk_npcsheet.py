@@ -468,6 +468,19 @@ class ActionsSoloTests(SheetBase):
         self.assertLessEqual(abs(tp.x - int(x)), 1)
         self.assertLessEqual(abs(tp.y - int(y)), 1)
         self.assertEqual(lua_list(self.ev('SENT_CMDS')), [])
+
+    def test_teleport_next_to_a_body_near_the_edge_of_its_square(self):
+        # lk.npcsheet MP du 2026-11-16 : corps en x.95, arrondi à x+1.0 avant de chercher la case voisine : deux cases.
+        gid = self.mk()
+        npc = self.npc_of(gid, 'm-2')
+        self.run_lua(SOLO_TELEPORT)
+        self.run_lua(f'local z = LivingKnox.Bodies.find("{npc}") '
+                     'HARNESS.place(z, math.floor(z:getX()) + 0.96, math.floor(z:getY()) + 0.5, 0)')
+        self.run_lua(f'{S}.teleport("{npc}")')
+        tp = self.ev('TP')
+        x, y = self.body_xy(gid, 'm-2')
+        self.assertLessEqual(abs(tp.x - int(x)), 1, (tp.x, x))
+        self.assertLessEqual(abs(tp.y - int(y)), 1, (tp.y, y))
         self.assertTrue(self.ev(f'{S}.state.status').startswith('IGUI_LK_Sheet_GotoDone|'))
         # Sans le mode debug : refus.
         self.run_lua('DBG = false TP = nil')
