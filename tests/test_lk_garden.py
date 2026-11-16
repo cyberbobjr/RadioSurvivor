@@ -217,18 +217,19 @@ class PureGardenTests(GardenStack):
     def test_job_order_puts_the_plants_first_then_seeds_sowing_and_digging(self):
         # Campagne MP du 2026-11-13 (lk.upkeep, runs/20261113-150840-parallel-3, shard3) : sachet de graines et sillon
         # creuse a mains nues pris avant le verre et le sang, scene d'entretien non finie en 300 s. Les taches qui
-        # creent le potager passent apres l'entretien du foyer ; le jardinier les prend d'abord (prefer).
+        # creent le potager passent apres l'entretien du foyer, pour le jardinier aussi : campagne MP du 2026-11-16
+        # (runs/20261116-174655-mp-728f528426ed), les deux jardiniers ont enchaine sillons et semis, verre jamais pris.
+        # Le jardinier ne prend d'abord que les plantes en terre (arrosage, recolte).
         self.assertEqual(lua_list(self.ev(f'{U}.JOBS')),
                          ['refuel', 'repair', 'harvest', 'water', 'clean', 'glass', 'seeds', 'sow', 'dig'])
-        for kind in ('seeds', 'sow', 'dig'):
+        for kind in ('harvest', 'water'):
             self.assertEqual(self.ev(f'{U}.specs.{kind}.prefer'), 'garden', kind)
-        jobs = ('{ { kind = "dig", key = "dig 1", x = 1, y = 1, z = 0 }, { kind = "sow", key = "sow 2", x = 2, y = 2, '
-                'z = 0 }, { kind = "water", key = "water 3", x = 3, y = 3, z = 0 }, { kind = "refuel", key = "refuel 4", '
-                'x = 4, y = 4, z = 0 } }')
+        jobs = ('{ { kind = "refuel", key = "refuel 4", x = 4, y = 4, z = 0 }, { kind = "water", key = "water 3", '
+                'x = 3, y = 3, z = 0 }, { kind = "glass", key = "glass 5", x = 5, y = 5, z = 0 }, { kind = "sow", '
+                'key = "sow 2", x = 2, y = 2, z = 0 }, { kind = "dig", key = "dig 1", x = 1, y = 1, z = 0 } }')
         self.run_lua(f'{U}.state.scans["g"] = {{ minute = 100, jobs = {jobs} }}')
-        got = [self.ev(f'({U}.claim("g", {{}}, "lk-{i}", 100, {{ garden = true }})).key') for i in range(3)]
-        self.assertEqual(got, ['dig 1', 'sow 2', 'water 3'])    # liste du relevé déjà triée ; préférées d'abord
-        self.assertEqual(self.ev(f'({U}.claim("g", {{}}, "lk-9", 100, {{ chores = true }})).key'), 'refuel 4')
+        got = [self.ev(f'({U}.claim("g", {{}}, "lk-{i}", 100, {{ garden = true }})).key') for i in range(4)]
+        self.assertEqual(got, ['water 3', 'refuel 4', 'glass 5', 'sow 2'])   # plantes d'abord, puis l'ordre du releve
 
     def test_vanilla_quantities_of_the_garden(self):
         cfg = self.ev(f'{GD}.CFG')

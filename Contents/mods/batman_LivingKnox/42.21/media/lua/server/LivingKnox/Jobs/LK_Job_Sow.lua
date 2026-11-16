@@ -3,7 +3,7 @@
 -- saison ; LK_Garden.sowable). Effet comme la commande vanilla « seed » (plant:seed(type, 0), refusée hors état
 -- « plow » : M/server/Farming/farmingCommands.lua:89-97 ; M/server/Farming/SPlantGlobalObject.lua:715-732), UNE
 -- graine par plante (ISSeedActionNew) retirée du conteneur et de la référence du stock dans la même écriture
--- (LK_Garden.takeSeed). Préférée par le jardinier (prefer = "garden"). Sillon : jamais à côté, voir
+-- (LK_Garden.takeSeed). Ordre du registre pour tous, jardinier compris. Sillon : jamais à côté, voir
 -- LK_Garden.placeNear. Moteur : LK_Upkeep.lua.
 if isClient() then return end
 
@@ -32,5 +32,5 @@ local function apply(job, gid, who, sq)
     return string.format("%s sown at %d,%d (%s from %s)", typeOfSeed, job.x, job.y, taken.t, taken.k)
 end
 
-Upkeep.registerJob({ kind = "sow", order = 72, prefer = "garden", gesture = "kneel", minutes = Garden.CFG.SOW_MINUTES,
+Upkeep.registerJob({ kind = "sow", order = 72, gesture = "kneel", minutes = Garden.CFG.SOW_MINUTES,
     groupLog = true, place = Garden.placeNear, survey = survey, apply = apply })

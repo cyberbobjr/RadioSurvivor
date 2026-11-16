@@ -854,8 +854,8 @@ def garden_yard(radius):
 class SuiteVanillaGardenTests(UpkeepStack):
     """Suite lk.upkeep jouée avec le VRAI potager vanilla (« vanilla réel », E19-T04 : test_lk_vanilla_farming.py), de
     la terre dehors autour du foyer et l'horloge des campagnes (GAME_S_PER_MINUTE) : les deux ouvriers du groupe de la
-    suite (rôle worker, comportement garden) relèvent sachet de graines, sillon et semis pendant l'entretien, comme
-    dans la campagne MP du 2026-11-13 (runs/20261113-150840-parallel-3, shard3)."""
+    suite (rôle worker, comportement garden) voient sachet de graines, sillon et semis proposés pendant l'entretien,
+    comme dans les campagnes MP du 2026-11-13 (runs/20261113-150840-parallel-3, shard3) et du 2026-11-16."""
 
     mode = 'solo'
     run_suite = SuiteTests.run_suite
@@ -874,10 +874,14 @@ class SuiteVanillaGardenTests(UpkeepStack):
     def test_suite_lk_upkeep_passes_with_the_vanilla_garden(self):
         # Cour jusqu'à 9 cases du foyer : la place de chaque tâche du potager reste « au foyer » (HOME_RADIUS 10).
         self.run_lua(garden_yard(9))
+        # Tâches relevées pendant la scène : le potager est bien en concurrence avec l'entretien. Depuis la campagne MP
+        # du 2026-11-16, il passe après l'entretien pour le jardinier aussi, et la scène finit avant lui.
+        self.run_lua('LISTED = {} local jobs = LivingKnox.Upkeep.jobs LivingKnox.Upkeep.jobs = function(...) '
+                     'local out, why = jobs(...) for _, j in ipairs(out or {}) do LISTED[j.kind] = true end '
+                     'return out, why end')
         logs = self.run_suite(real_s_per_minute=GAME_S_PER_MINUTE)
         self.assertTrue(any('[LKU] measure done: ' in line for line in logs))
-        self.assertGreaterEqual(self.stat('seedPackets'), 1)                  # le potager a bien été relevé
-        self.assertGreaterEqual(self.stat('dug'), 1)
+        self.assertIs(self.h.eval('solo', 'LISTED.seeds'), True)
         self.assertEqual(self.h.errors('solo'), [])
 
     def test_garden_at_the_edge_of_the_home_does_not_hold_the_upkeep(self):

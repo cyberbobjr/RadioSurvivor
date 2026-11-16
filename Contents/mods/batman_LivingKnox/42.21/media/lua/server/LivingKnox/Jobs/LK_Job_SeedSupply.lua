@@ -2,7 +2,7 @@
 -- 2026-11-13 : les graines du jardinier arrivent automatiquement). Un groupe qui a un jardinier (rôle portant le
 -- comportement « garden ») et moins de Garden.CFG.SEED_LOW graines semables au foyer reçoit un sachet
 -- (Garden.CFG.SEED_PACKET graines d'une variété de saison, LK_Garden.seedVariety), au plus une fois tous les
--- Garden.CFG.SEED_DAYS jours de jeu : un membre (le jardinier d'abord, prefer = "garden") va au conteneur de dépôt et
+-- Garden.CFG.SEED_DAYS jours de jeu : un membre (ordre du registre, jardinier compris) va au conteneur de dépôt et
 -- l'y range. Tâche du registre plutôt qu'un dépôt sans geste : le sachet arrive par la main d'un membre, à l'écran,
 -- et seulement quand le foyer est chargé (relevé et effet du moteur LK_Upkeep.lua). Effet : LK_Garden.receiveSeeds
 -- (conteneur, clients, référence du stock). Conditions relues au moment de l'effet.
@@ -51,5 +51,5 @@ local function apply(job, gid, who, sq)
     return string.format("%d %s received into %s (%s, day %d)", n, offer.seed, depot.key, offer.typeOfSeed, day)
 end
 
-Upkeep.registerJob({ kind = "seeds", order = 70, prefer = "garden", gesture = "rummage",
+Upkeep.registerJob({ kind = "seeds", order = 70, gesture = "rummage",
     minutes = Garden.CFG.SEED_MINUTES, groupLog = true, survey = survey, apply = apply })

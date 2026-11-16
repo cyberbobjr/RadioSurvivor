@@ -1178,6 +1178,21 @@ class SoloTraversalTests(ObstacleBase):
         self.walk_w(zid, ticks, until=self.done())
         return zid
 
+    def test_open_window_beside_the_crossed_one_is_not_taken_over(self):
+        # E21-T11 campaign solo-lk (runs/20261116-171910-c3a0093c3273, lk.traversal "open window"): the window one
+        # square aside on the same wall, left open by an npc gone since, brought the body nearer its target too
+        # (onRoute); the body crossing its own window became its last passer and closed it.
+        self.window(open=True)
+        self.window(y=DOOR[1] + 1, open=True)
+        self.run_lua('LivingKnox.Obstacles.openWins["106,103,0,W"] = { win = WINDOWS["106,103,0,W"], '
+                     'e = LivingKnox.Obstacles.edge(105, 103, 0, "W"), id = "lk-9", ms = getTimestampMs(), '
+                     'seenMs = getTimestampMs(), from = "a" }')
+        zid = self.trip()
+        self.walk_w(zid, 60)
+        self.assertEqual(self.entry('s'), 'arrived')
+        self.assertIs(self.ev('WINDOWS["106,103,0,W"].open'), True)
+        self.assertEqual(self.o('stats.windowsClosed'), 0)
+
     def test_broken_window_empty_frame_and_low_fence_are_crossed_by_the_engine_alone(self):
         cases = [('window', {'destroyed': True}, 'climbwindow'), ('frame', {}, 'climbwindow'),
                  ('built', {}, 'climbwindow'), (None, {}, 'climbfence')]

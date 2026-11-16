@@ -129,6 +129,7 @@ LivingKnox.Obstacles = Obstacles
 
 Obstacles.PASS_EVERY = 5          -- images entre deux passages
 Obstacles.DETECT = 2.0            -- cases : porte (milieu du bord) à cette distance du corps au plus
+Obstacles.ALIGN = 0.75            -- cases : écart le long d'une fenêtre ouverte pour en devenir le passant
 Obstacles.REACH = 1.0             -- cases : porte au contact d'un corps arrêté
 Obstacles.STILL = 0.1             -- cases : déplacement en deçà duquel le corps est immobile
 Obstacles.STUCK_MS = 800          -- immobile depuis ce temps : portes au contact prises en compte
@@ -827,6 +828,15 @@ function Obstacles.onRoute(e, px, py, tx, ty)
     return dist(fx + 0.5, fy + 0.5, tx + 0.5, ty + 0.5) < dist(nx + 0.5, ny + 0.5, tx + 0.5, ty + 0.5) - 0.01
 end
 
+-- Vrai si le point (px, py) est en face de l'ouverture du bord e : son écart le long du bord au milieu de celui-ci ne
+-- dépasse pas ALIGN case. Campagne solo-lk du 2026-11-16 (runs/20261116-171910-c3a0093c3273) : la fenêtre ouverte
+-- voisine sur le même mur rapprochait aussi le corps de son étape (onRoute) ; il en devenait le dernier passant et la
+-- refermait sans l'avoir franchie.
+function Obstacles.inFrontOf(e, px, py)
+    local off = e.kind == "W" and (py - e.my) or (px - e.mx)
+    return math.abs(off) <= Obstacles.ALIGN
+end
+
 -- Temps (ms) depuis lequel le corps du PNJ id est immobile (STILL case).
 -- E18-T35 : un corps simulé par un client n'est vu du serveur qu'aux rapports de l'exécutant (copie recalée par
 -- Directives.syncServerCopy, au moins tous les REPORT_MS) ou aux paquets du moteur (200 ms à 4 s) : entre deux, sa copie
@@ -916,13 +926,14 @@ function Obstacles.checkWindows(id, e, z, still, t)
     return false
 end
 
--- Fenêtres ouvertes ici que franchir rapproche le corps z du PNJ id de l'étape (tx, ty) : ce PNJ en devient le
--- dernier passant (et son côté) ; bord noté dans seen (pas de refermeture à ce passage).
+-- Fenêtres ouvertes ici, en face du corps z du PNJ id (inFrontOf), que franchir rapproche de l'étape (tx, ty) : ce
+-- PNJ en devient le dernier passant (et son côté) ; bord noté dans seen (pas de refermeture à ce passage).
 function Obstacles.noteWindows(id, z, tx, ty, seen, t)
     local px, py, pz = z:getX(), z:getY(), math.floor(z:getZ())
     for key, rec in pairs(Obstacles.openWins) do
         local e = rec.e
-        if e.z == pz and dist(px, py, e.mx, e.my) <= Obstacles.DETECT and Obstacles.onRoute(e, px, py, tx, ty) then
+        if e.z == pz and dist(px, py, e.mx, e.my) <= Obstacles.DETECT and Obstacles.inFrontOf(e, px, py)
+            and Obstacles.onRoute(e, px, py, tx, ty) then
             seen[key] = true
             rec.id, rec.seenMs, rec.from = id, t, sideOf(e, px, py)
         end

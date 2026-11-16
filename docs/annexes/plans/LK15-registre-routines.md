@@ -2,7 +2,7 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** terminée — 7 / 7 tâche(s) terminée(s).
+**Avancement.** en cours — 7 / 8 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
@@ -13,6 +13,7 @@
 | ☑ | LK15-T05 | Semer (`LK_Job_Sow`) | `testé MP` | MP | LK15-T04 |
 | ☑ | LK15-T06 | Graines reçues par le jardinier | `testé MP` | MP | LK15-T05 |
 | ☑ | LK15-T07 | Potager en bord de zone : l'entretien du foyer n'est plus bloqué | `testé MP` | MP | LK15-T04 |
+| ☐ | LK15-T08 | Le jardinier fait l'entretien du foyer avant de créer le potager | `testé hors jeu` | MP | LK15-T06 |
 
 <!-- fin du tableau de bord -->
 
@@ -108,3 +109,14 @@ LK05-T21 (préférence du jardinier, remplacée par `prefer`).
   - Tests : bancs ; campagne MP.
   - Preuve : 2026-11-13 : `Upkeep.atHome` (case entière dans le rayon « au foyer » des décisions, `écart + 0,5 ≤ HOME_RADIUS` : un corps arrêté n'est pas au centre de sa case) ; `placeFor` écarte les places hors du foyer, `spec.place(job, home)` reçoit le foyer ; une place hors du foyer clôt la tâche avec son délai (`DONE_MINUTES`) au lieu de la libérer ; `Garden.digSpot` et `Garden.placeNear` ne proposent que des cases au foyer ; aussi corrigé : récolte et arrosage d'une plante au bord nord (tâche prise 3 fois avant, 1 après) ; `test_garden_at_the_edge_of_the_home_does_not_hold_the_upkeep` rouge avant (« upkeep jobs not all done: condition not met within 300000 ms »), vert après (marque `expectedFailure` retirée) ; `EngineTests.test_place_out_of_the_home_is_refused_and_closed_with_its_delay` rouge avant (`1 != 0` reprise), vert après ; `test_ripe_plant_at_the_edge_of_the_home_is_harvested_from_inside` ; `test_lk_upkeep.py` 28 OK, `test_lk_garden.py` 29 OK, `test_lk_food.py` 33, `test_lk_routines.py` 23, `test_lk_chores.py` 13, `test_lk_decisions.py` 27, `test_lk_homes.py` 22, `test_lk_repair.py` 14, `test_lk_meals.py` 16 verts sans attendu changé ; `python tests/run_all.py` : `168 passed, 0 failed` (515 s) ; luacheck `Contents` 8, `dev` 0 ; campagne MP du 2026-11-14 (serveur dédié + 2 clients, pont avec faux modèle, `tools/autoclient/runs/20261114-193029-parallel-1`, code 1, `TOTAL total=556 pass=534 fail=2 error=0 skip=20`, échecs étrangers à la tâche : rs.factions.accord, lk.warn) : lk.upkeep 2/2 PASS « home upkeep from the stock » (potager du foyer compris)
   - Reste : un objet posé sur l'anneau 10 du foyer n'a souvent aucune place (tâche reproposée toutes les 10 minutes, sans boucle)
+
+- [ ] **LK15-T08** — Le jardinier fait l'entretien du foyer avant de créer le potager
+  - État : `testé hors jeu`
+  - Cible : `MP`
+  - Dépend de : LK15-T06
+  - Fichiers : `Jobs/LK_Job_SeedSupply.lua`, `Jobs/LK_Job_Sow.lua`, `Jobs/LK_Job_Dig.lua` (`prefer` retiré) ; bancs `tests/test_lk_garden.py`, `tests/test_lk_upkeep.py` ; fiche `conception/entretien.md`
+  - Faire : défaut de la campagne MP du 2026-11-16 (`runs/20261116-174655-mp-728f528426ed`, `lk.upkeep` : « glass 0, glass left true », 300 s). Les deux ouvriers du groupe (comportement `garden`) prenaient graines, sillons et semis avant l'ordre du registre (`prefer = "garden"`) ; ces tâches se renouvellent sans fin (un sillon creusé appelle un semis, puis un autre sillon) et le verre brisé, pourtant relevé, n'a jamais été pris. Le jardinier ne prend plus d'abord que les plantes en terre (arrosage, récolte) ; graines, semis et creusage suivent l'ordre du registre pour tous (révision de la fiche `entretien.md`, confirmée par défaut).
+  - Accepté si : au banc, `test_job_order_puts_the_plants_first_then_seeds_sowing_and_digging` (réécrit, rouge avant) et la scène `lk.upkeep` avec le vrai potager vanilla passent ; en jeu, `lk.upkeep` et `lk.garden` vertes en MP.
+  - Tests : bancs ; campagne MP.
+  - Preuve : 2026-11-16, `python tests/run_all.py --keep-going` : `Summary: 208 passed, 0 failed, 0 skipped (590.8 s)`, `RESULT: PASS` (luacheck Contents et dev 0 avertissement, `plan-check` 0 erreur). Rouge d'abord : `test_job_order_puts_the_plants_first_then_seeds_sowing_and_digging` en échec (jardinier sur le sillon avant le verre) ; `test_lk_garden` et `test_lk_upkeep` 61 OK.
+  - Reste : campagnes en jeu (`solo-lk` et MP).

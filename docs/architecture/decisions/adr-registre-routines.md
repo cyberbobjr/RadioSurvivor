@@ -6,7 +6,7 @@
 | Statut | Accepté (utilisateur, 2026-11-13) |
 | Décideur | utilisateur |
 | Portée | `batman_LivingKnox`, côté autorité (`media/lua/server/LivingKnox`) : aiguillage des routines (`LK_Routines.lua`), entretien du foyer (`LK_Upkeep.lua`), et les tâches ajoutées ensuite (creuser, semer, graines du jardinier) |
-| Plan associé | [LK15 — Registres des routines et potager du jardinier](../../annexes/plans-termines/LK15-registre-routines.md) (suivi des tâches dans le plan) |
+| Plan associé | [LK15 — Registres des routines et potager du jardinier](../../annexes/plans/LK15-registre-routines.md) (suivi des tâches dans le plan) |
 | Références | [fiche entretien](../../annexes/conception/entretien.md) ; [fiche routines](../../annexes/conception/routines.md) ; base `pz-knowledge/mod-loading.md` (chargement récursif, fichier qui s'inscrit à un registre) ; sources vanilla 42.22 du potager (relevé du 2026-11-13, ci-dessous) |
 
 ## Contexte

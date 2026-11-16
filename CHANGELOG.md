@@ -69,6 +69,8 @@
 - Living Knox foragers no longer freeze in front of a container instead of searching it.
 - Living Knox survivors keep their home windows shut while their group is on alert and go out by the door; a survivor running back to its place no longer stops halfway to stare at the danger.
 - The Living Knox admin teleport now lands right next to the survivor.
+- A Living Knox survivor climbing through an open window no longer goes back to close another open window next to it.
+- Living Knox gardeners sweep up broken glass and finish the home upkeep before digging new furrows, instead of digging and sowing endlessly.
 - The notebook stays whole on screen after switching to a smaller resolution.
 - Compatibility with Build 42.22.
 

@@ -2,7 +2,7 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 13 / 15 tâche(s) terminée(s), 1 abandonnée(s).
+**Avancement.** en cours — 13 / 16 tâche(s) terminée(s), 1 abandonnée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
@@ -22,6 +22,7 @@
 | ☑ | LK13-T14 | Panneau de debug des PNJ : groupes, activité en direct, journal d'activité | `testé MP` | MP | LK13-T13 |
 | ☑ | LK13-T15 | Panneaux de debug en tableaux, actions : rôle, téléportation, nom | `testé MP` | MP | LK13-T14 |
 | ☑ | LK13-T16 | Coordonnées des PNJ dans le panneau de debug, téléportation hors écran | `testé solo` | solo | LK13-T15 |
+| ☐ | LK13-T17 | `lk.talk` : PNJ de test posé sur une case libre, entendu et visible | `testé hors jeu` | MP | — |
 
 <!-- fin du tableau de bord -->
 
@@ -225,3 +226,14 @@
   - Tests : banc ; essai solo dans le panneau.
   - Preuve : bancs du 2026-10-13 : `tests/test_lk_debugview.py` 23 OK (`PositionTests`, `PositionSoloTests` : chaque membre vivant a des coordonnées et une source body / last / home, membre jamais incarné mené au foyer par `/teleportto`, `homeGoto` refusé sans donnée à un client sans la capacité, groupe inconnu ou sans foyer refusé, solo déplacé par l'autorité), `tests/test_lk_npcsheet.py` 18 OK, `tests/test_lk_admin.py` 22 OK ; `Admin.positionOf`, op `homeGoto` (`LK_Admin.lua`), colonnes Foyer et Position, bouton « Aller au foyer du groupe » (`LK_DebugView.lua`, `LK_NpcSheet.lua`), traductions EN/FR, suite `lk.debugview` 4 tests ; conception `administration.md`, protocole § 15 de `tests-en-jeu.md` ; luacheck 16/0 (commit LK13-T16) ; essai en jeu du 2026-10-13 (Lua/batman_RadioSurvivor/tests/) : lk.debugview 4/4 (`20261013-112148-solo.txt`)
   - Reste : essai solo `-debug` : `RST.run({ suite = "lk.debugview", tags = "world" })` (4 PASS) ; panneau « Living Knox - PNJ » : colonnes Foyer et Position, « Aller au foyer du groupe » vers un groupe lointain, « Se téléporter » vers un membre hors écran ; MP séance finale (`homeGoto` refusé à un client `user`). Limites : membre sans PNJ joignable seulement par le foyer ; position voulue d'un PNJ virtuel non utilisée ; clés `IGUI_LK_*_LastPos` devenues inutiles
+
+- [ ] **LK13-T17** — `lk.talk` : PNJ de test posé sur une case libre, entendu et visible
+  - État : `testé hors jeu`
+  - Cible : `MP`
+  - Dépend de : —
+  - Fichiers : `dev/batman_LivingKnoxTests/.../RST/suites/RST_LKTalk.lua`
+  - Faire : échec de la campagne MP du 2026-11-16 (`runs/20261116-174655-mp-728f528426ed`, « body of the npc never near the player », déjà le matin même en MP). La case choisie par la suite (sol et pièce seulement) n'était pas libre pour la règle d'apparition (`Bodies.freeSquare`) : le corps a été posé deux cases plus loin (`10656,10134` au lieu de `10656,10136`), derrière le mur de la pièce, et le joueur ne le voyait pas. La suite prend la case de `RST.LKHelpers.talkSquare` (règle d'apparition, entendue et visible dans les deux sens), comme `lk.npctalk`.
+  - Accepté si : `lk.talk` verte en solo et en MP.
+  - Tests : bancs `tests/test_lk_talk.py` ; campagnes `solo-lk` et MP.
+  - Preuve : 2026-11-16, `python tests/run_all.py --keep-going` : `Summary: 208 passed, 0 failed, 0 skipped (590.8 s)`, `RESULT: PASS` (luacheck Contents et dev 0 avertissement, `plan-check` 0 erreur). Changement de la suite seule, pas de rouge au banc possible (placement du jeu) ; `tests/test_lk_talk.py` 8 OK.
+  - Reste : campagnes en jeu (`solo-lk` et MP).
