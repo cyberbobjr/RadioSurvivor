@@ -2,7 +2,7 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 9 / 15 tâche(s) terminée(s).
+**Avancement.** en cours — 11 / 17 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
@@ -21,6 +21,8 @@
 | ☑ | E22-T14 | Fiches sans connaissances, ignorances ni secrets figés | `testé hors jeu` | hors jeu | E22-T13 |
 | ☑ | E22-T15 | Atelier ouvert sur le réseau, protégé par un mot de passe | `testé hors jeu` | hors jeu | E22-T14 |
 | ☑ | E22-T09 | Wiki et README de l'atelier | `testé hors jeu` | hors jeu | E22-T04, E22-T05, E22-T06, E22-T08, E22-T10, E22-T11, E22-T12, E22-T13 |
+| ☑ | E22-T16 | Wiki de référence de l'atelier et exemples de voix | `testé hors jeu` | hors jeu | E22-T09 |
+| ☑ | E22-T17 | Stock vendable, libellés neutres, ancienne version, lieux vérifiés | `testé hors jeu` | hors jeu | E22-T16 |
 
 <!-- fin du tableau de bord -->
 
@@ -56,6 +58,11 @@ maquettes de l'ADR.
 - 2026-11-16 — **E22-T15** (utilisateur) : l'atelier peut écouter sur le réseau (`--atelier-host`), protégé par
   `ATELIER_PASSWORD` ; chaque client se connecte, freins contre les essais en rafale, pas de HTTPS ni de comptes
   (ADR D11).
+- 2026-11-16 — **E22-T16** (utilisateur) : une page du wiki dédiée à l'atelier, où chaque écran et chaque onglet est
+  documenté pour un adolescent, et des exemples concrets de nouvelles voix (page 14).
+- 2026-11-16 — **E22-T17** (utilisateur) : le stock d'un marchand ne propose que des objets vendables, libellés
+  neutres, nom de la voix dans les confirmations, pastille « Ancienne version », captures isolées, lieux des exemples
+  vérifiés sur la carte du jeu, règles de dépôt expliquées dans le wiki.
 
 ## Hors périmètre
 
@@ -346,3 +353,55 @@ maquettes de l'ADR.
     `tools/atelier_doc_shots.py` sur une copie temporaire (voix d'exemple Rosie acceptée par le lecteur du jeu) ;
     README et descriptions Steam (7403 et 7974 octets) ; groupe « Voice workshop » du CHANGELOG ; le pont décrit comme un
     dossier entier dans le wiki et les README. `wiki_sync.py RadioSurvivor --out` : code 0 ; liens relatifs : 0 problème.
+- [x] **E22-T16** — Wiki de référence de l'atelier et exemples de voix
+  - État : `testé hors jeu`
+  - Cible : `hors jeu`
+  - Dépend de : E22-T09
+  - Fichiers : wiki 13 réécrit (`docs/wiki/fr/13-atelier-des-voix.md`, `docs/wiki/en/13-voice-workshop.md`), nouvelle
+    page 14 (`docs/wiki/fr/14-exemples-de-voix.md`, `docs/wiki/en/14-voice-examples.md`), menus, accueils, renvoi des
+    pages 10 ; `tests/test_wiki_voice_examples.py` (nouveau), `tests/run_all.py` ; `tools/atelier_doc_shots.py` et
+    captures `docs/images/screenshots/atelier/` (12 à 17, `exemples/` 21 à 25).
+  - Faire : demande de l'utilisateur du 2026-11-16 : une page du wiki dédiée à l'atelier, chaque écran, onglet, case et
+    choix documenté pour un adolescent, et des exemples concrets de nouvelles voix. Page 13 : sommaire, ouverture (local,
+    réseau), écran, pastilles et boutons de la liste, nouvelle voix, chaque étape avec un exemple de jeu et le tableau de
+    tous ses réglages et choix, portée des radios du jeu, dix genres de mission, quatre récompenses, troc (déroulé,
+    signal, hors de vue, plafonds 10 kg apportés et 20 kg pris lus dans `RS_Trade.lua` et `RS_TradeExchange.lua`, objets
+    vendables du barème), note, catégories propres, aides de l'IA, verdict et raisons de refus, journal, partage,
+    retrait, mémoire, propriétaire de serveur, limites. Page 14 : quatre voix originales (bavarde, donneur de missions,
+    marchand de la route, dépôt caché), fiche complète dans des blocs ```persona. Aucune modification du mod ni de
+    l'atelier.
+  - Accepté si : chaque fiche des deux pages 14 acceptée par le lecteur du jeu (`RS_Persona.lua` dans lupa, poids des
+    scripts du jeu) et par celui du pont, réécrite telle quelle par l'atelier sans point signalé, bandes libres, stock
+    vendable ; captures refaites et regardées ; liens et ancres du wiki valides.
+  - Preuve : 2026-11-16 (hors jeu) : `test_wiki_voice_examples` 5 `OK` (8 fiches : opal, vernon, marisol, wendell en
+    français et en anglais) ; `test_atelier_server` 33, `test_atelier_auth` 17, `test_atelier_catalog` 7,
+    `test_atelier_ui` 11, `test_atelier_log` 20, `test_atelier_ai` 9, `test_atelier_help` 5, `test_atelier_surveys` 12
+    `OK` ; `run_all.py --only wiki_voice_examples` : `1 passed, 0 failed` ; `atelier_doc_shots.py` `summary: OK` (23
+    captures par langue relues, dont 12-new, 13-restore, 14-import, 15-browser, 16-ai-personality, 17-saved et
+    `exemples/` 21 à 25) ; `atelier_smoke.py` `summary: OK (2 locales, 0 failure(s))` ; `wiki_sync.py RadioSurvivor
+    --out` : code 0 ; ancres des liens du wiki et des README : 0 problème. Pages : fr 13 = 45 Ko, fr 14 = 27 Ko.
+  - Reste : coordonnées des lieux des exemples approximatives (à relever en jeu, dit dans la page 14).
+- [x] **E22-T17** — Stock vendable, libellés neutres, ancienne version, lieux vérifiés
+  - État : `testé hors jeu`
+  - Cible : `hors jeu`
+  - Dépend de : E22-T16
+  - Fichiers : `tools/gen_atelier_catalog.py` et `bridge/atelier/catalog.json` (liste `sellable`),
+    `bridge/atelier/catalog.js`, `checks.js`, `tradekeys.js`, `itempicker.js`, `itembrowser.js`, `voicelist.js`,
+    `app.js`, `theme.css`, `i18n/fr.json`, `i18n/en.json` ; `tests/test_atelier_catalog.py`, `tests/test_atelier_ui.py` ;
+    `tools/atelier_smoke.py`, `tools/atelier_doc_shots.py` et captures ; wiki 10, 13 et 14 (fr, en) ; CHANGELOG.
+  - Faire : demande de l'utilisateur du 2026-11-16. (1) Le catalogue liste les objets vendables (`sellable` :
+    `CA_TradeValues.sellValue` > 0 dans lupa, comme `RS_Trade`, après chargement des fichiers qui appellent
+    `registerSellOnly`) ; le stock d'un marchand ne cherche et ne parcourt qu'eux (les catégories propres gardent tous
+    les objets) ; une ligne de stock invendable est signalée (`check.not_sellable`). (2) Les confirmations nomment la
+    voix par son nom. (3) Libellés et aides neutres (« Arrive par », « Cette voix… »). (4) Copie écrite par le jeu
+    d'après une ancienne version du mod : état « Ancienne version » avec info-bulle. (5) Captures : Walt n'est modifié
+    que pour la capture 13. (6) Lieux des exemples vérifiés sur la carte installée (lotheader, lotpack, définitions de
+    tuiles), corrigés, lien vers zomboidmap.com. (7) Wiki : où poser paiement, livraisons et sacs de récompense.
+  - Accepté si : objets invendables absents du stock et signalés ; stock des voix livrées entièrement vendable ;
+    captures sans Walt modifié hors capture 13, regardées ; chaque lieu des exemples sur la bonne case.
+  - Preuve : 2026-11-16 (hors jeu) : `test_atelier_catalog` 10, `test_atelier_ui` 14, `test_atelier_server` 33,
+    `test_atelier_ai` 9, `test_atelier_auth` 17, `test_atelier_help` 5, `test_atelier_log` 20, `test_atelier_surveys`
+    12, `test_wiki_voice_examples` 5 `OK` (rouges avant le code : `KeyError: 'sellable'`, `check.not_sellable` et
+    état `outdated` absents) ; `atelier_smoke.py` `summary: OK (2 locales, 0 failure(s))` (« hache » introuvable au
+    stock, note du navigateur, ancienne version de Walt, confirmation « Walt Hensley ») ; `atelier_doc_shots.py`
+    `summary: OK` (46 captures relues) ; ancres du wiki : 0 problème ; `run_all --keep-going` : `208 passed, 0 failed, 0 skipped` (luacheck 0 avertissement).

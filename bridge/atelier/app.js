@@ -36,7 +36,7 @@ const ACTIONS = {
   restore: { label: 'action_restore', ask: 'confirm.restore', danger: false, run: (api, id) => api.restore(id) },
 };
 const ACTIONS_BY_STATUS = {
-  custom: ['delete'], delivered: ['remove'], modified: ['restore', 'remove'], removed: ['restore'],
+  custom: ['delete'], delivered: ['remove'], outdated: ['remove'], modified: ['restore', 'remove'], removed: ['restore'],
 };
 
 const app = {
@@ -268,7 +268,8 @@ function actionButtons(status) {
   return (ACTIONS_BY_STATUS[status] ?? []).map((name) => {
     const action = ACTIONS[name];
     return button(action.danger ? 'danger' : 'neutral', { onClick: async () => {
-      const yes = await confirmBar(app.el.notice, app.t, { message: app.t(action.ask, { name: app.current.id }),
+      const name = entryOf(app.current.id)?.name || app.current.id;   // the display name, the id when it has none
+      const yes = await confirmBar(app.el.notice, app.t, { message: app.t(action.ask, { name }),
         yes: app.t(`editor.${action.label}`), danger: action.danger });
       if (!yes) return;
       const result = await action.run(app.api, app.current.id);
@@ -321,7 +322,8 @@ function renderEditor() {
     h('div', { class: 'toolbar' },
       h('div', { class: 'title' },
         h('h2', { text: sheet.value(current.model.head, 'name') || current.id || t('editor.untitled') }),
-        h('span', { class: `badge ${status}`, text: current.isNew ? t('status.new') : t(`status.${status}`) }),
+        h('span', { class: `badge ${status}`, title: current.isNew ? null : t(`status.${status}.help`),
+          text: current.isNew ? t('status.new') : t(`status.${status}`) }),
         app.el.dirty),
       h('div', { class: 'btns' },
         button('primary', { id: 'save', onClick: save }, t('editor.save')),

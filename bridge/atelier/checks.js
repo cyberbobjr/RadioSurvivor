@@ -6,7 +6,7 @@
 // `key` is an i18n message key, `args` its values.
 
 import * as sheet from './sheet.js';
-import { isInteger, isTime, overlaps, parseBands, parseHours, parseList, parsePool } from './values.js';
+import { isInteger, isTime, overlaps, parseBands, parseHours, parseList, parsePool, parseStockItem } from './values.js';
 
 const ITEM_RE = /^[A-Za-z0-9_]+\.[A-Za-z0-9_]+$/;
 const SECTION_ID_RE = /^[a-z0-9_]{1,32}$/;
@@ -178,8 +178,18 @@ function checkRewards(section, { catalog, ctx, where, out }) {
   }
 }
 
+// Stock of a trader: the trade only sells an item with a sale value (catalog.sellable); any other line could never be
+// offered (the game refuses every offer naming it).
+function checkTrade(section, { catalog, where, out }) {
+  for (const { type } of sheet.values(section, 'item').map(parseStockItem)) {
+    if (ITEM_RE.test(type) && !catalog.isSellable(type)) {
+      out.push({ key: 'check.not_sellable', args: { value: type }, where: { ...where, field: 'item' } });
+    }
+  }
+}
+
 // Extra checks of a section kind beyond its grammar; a kind missing here gets the grammar checks only.
-const SECTION_CHECKS = { place: checkPlace, mission: checkMission, rewards: checkRewards };
+const SECTION_CHECKS = { place: checkPlace, mission: checkMission, rewards: checkRewards, trade: checkTrade };
 
 export function check(model, catalog, voiceId = null) {
   const out = [];

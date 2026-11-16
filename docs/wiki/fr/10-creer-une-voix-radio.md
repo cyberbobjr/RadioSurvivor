@@ -13,7 +13,8 @@ de voix.
 > lisez que ce dont vous avez besoin.
 
 > **Vous préférez ne pas écrire le fichier à la main ?** Utilisez l'[atelier des voix](13-atelier-des-voix.md) : une
-> page dans votre navigateur qui écrit la même fiche pour vous, en cinq étapes.
+> page dans votre navigateur qui écrit la même fiche pour vous, en cinq étapes. Quatre fiches complètes, expliquées
+> pas à pas : [Exemples de voix](14-exemples-de-voix.md).
 
 ## Démarrage rapide
 

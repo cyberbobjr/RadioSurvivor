@@ -19,7 +19,10 @@ export function createCatalog(data) {
   } : null);
   // Reward kind and the kind of its parameter (null: none).
   const rewardKind = (name) => (rewardKinds[name] ? { name, param: rewardKinds[name].param ?? null } : null);
+  // Item types a trader can sell (a sale value in CA_TradeValues, E22-T17): RS_Trade refuses every other one.
+  const sellable = new Set(data.sellable ?? []);
   let itemIndex = null;
+  let sellableIndex = null;
 
   return {
     data,
@@ -35,6 +38,13 @@ export function createCatalog(data) {
     sharedCategories: () => sorted(Object.keys(data.categories ?? {})),
     // Every item type of the game and of the mod with its category, searchable by name (items.js), built on first use.
     itemIndex: () => { itemIndex ??= createItemIndex(data.items ?? {}, data.itemCategories ?? {}); return itemIndex; },
+    // The same, limited to the items a trader can sell: what the trader's stock offers.
+    sellableItemIndex: () => {
+      sellableIndex ??= createItemIndex(Object.fromEntries(Object.entries(data.items ?? {}).filter(([type]) => sellable.has(type))),
+        data.itemCategories ?? {});
+      return sellableIndex;
+    },
+    isSellable: (type) => sellable.has(type),
     // Names of the game's loot lists offered for a [note] key (loot, glovebox).
     lootLists: (key) => (data.lootLists ?? {})[key] ?? [],
 

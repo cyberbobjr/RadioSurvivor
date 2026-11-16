@@ -4,20 +4,28 @@
 
 Dev only (Playwright and a local stub of the AI provider, never a paid model). Same set-up as tools/atelier_smoke.py:
 bridge/atelier_server.py on a random free port (never the user's 8765) over a temporary working folder copied from the
-shipped sheets; the mod's folder and the user's folders are only read. An example voice, Rosie (a girl hiding in the
+shipped sheets; the mod's folder is only read and the user's own folders (Zomboid/Lua) are never read. Each shot gets only
+what it needs: the voices of the mod stay as delivered, except Walt, changed for the 13-restore shot only. An example voice, Rosie (a girl hiding in the
 Muldraugh water tower: two places, two missions, rewards, a handwritten note and a spontaneous call), is written into
 that temporary folder first, with a fake survey file of the game, a fake game console and a few bridge log lines.
 Then, per locale (fr-FR, en-US) at 1280x800, it opens the page and writes atelier-<lang>-NN-<subject>.png:
 01-voice (list and step 1), 02-where, 03-personality (help popover), 04-missions, 04b-places ("recorded in game"),
 05-rewards, 06-trade (a shipped trader), 07-note, 08-try (test conversation), 09-journal, 10-refused (game banner),
-11-login (login page of the network mode, E22-T15).
+11-login (login page of the network mode, E22-T15), and for the reference page 13 (E22-T16): 12-new (new voice
+form), 13-restore (a changed voice of the mod, "back to the mod's version" asked), 14-import (import of an id that
+exists), 15-browser (item browser), 16-ai-personality ("Write it with the AI" with its answer), 17-saved (saved, the
+game reads it again).
+The four example voices of the wiki page 14 are loaded from that page itself (```persona blocks, read by
+tests/test_wiki_voice_examples.py) and photographed under exemples/: 21-opal-where, 22-tibbs-missions,
+23-tibbs-rewards, 24-sol-trade, 25-wendell-trade.
 The stub answers "Try the voice" with one fixed line in the language of the page (the fake LLM of tools/fake_llm
-answers in English only outside the game).
+answers in English only outside the game), and "Write it with the AI" with a fixed English personality.
 Every sheet written is checked by the real game reader (RS_Persona.lua in lupa) before the pictures are taken.
 """
 from __future__ import annotations
 
 import argparse
+import contextlib
 import http.server
 import json
 import shutil
@@ -32,6 +40,7 @@ ROOT = Path(__file__).resolve().parents[1]
 ATELIER = ROOT / 'bridge' / 'atelier'
 SHIPPED = ROOT / 'Contents/mods/batman_RadioSurvivor/42.21/personas'
 OUT = ROOT / 'docs/images/screenshots/atelier'
+EXAMPLES_DIR = 'exemples'                 # pictures of the example voices of the wiki page 14
 sys.path.insert(0, str(ROOT / 'bridge'))
 sys.path.insert(0, str(ROOT / 'tests'))
 import atelier_auth  # noqa: E402
@@ -41,6 +50,7 @@ import log_buffer  # noqa: E402
 import place_surveys  # noqa: E402
 import radio_bridge  # noqa: E402
 from test_atelier_ui import game_reads  # noqa: E402
+from test_wiki_voice_examples import GameReader, example_sheets  # noqa: E402
 
 VIEW = {'width': 1280, 'height': 800}
 LOCALES = (('fr-FR', 'fr'), ('en-US', 'en'))
@@ -49,7 +59,7 @@ LOCALES = (('fr-FR', 'fr'), ('en-US', 'en'))
 # English, as the workshop asks (the AI plays the voice from them).
 LOCAL = {
     'fr': {'description': "Une ado cachée dans le château d'eau de Muldraugh",
-           'tower': "Château d'eau de Muldraugh", 'dumpster': "Benne au pied du château d'eau",
+           'tower': "Château d'eau de Muldraugh", 'dumpster': "Cabane près du château d'eau",
            'call': "Il y a quelqu'un ? Ici Rosie sur %1. Je vois toute la ville d'ici. À vous.",
            'note': ("Rosie, château d'eau", 'Appelle-moi sur %1', 'Le matin et le soir'),
            'say': "Rosie, tu m'entends ? Je suis à l'école.", 'try': "Allô, il y a quelqu'un ?",
@@ -57,9 +67,11 @@ LOCAL = {
            'answer': "Je t'entends. T'es où ? Moi, je vois toute la ville d'ici. À vous.",
            'say2': "J'ai une morsure au bras, qu'est-ce que je fais ?",
            'reply2': "Nettoie-la tout de suite et serre un bandage propre. Je suis désolée, mon chou. À vous.",
-           'by': 'Kate Smith'},
+           'by': 'Kate Smith', 'new_name': 'Mae Tolliver',
+           'describe': "Une infirmière épuisée qui a quitté sa clinique de West Point la nuit où tout a commencé. "
+                       "Elle veut y retourner. Elle parle doucement et s'inquiète pour tout le monde."},
     'en': {'description': 'A teenager hiding in the Muldraugh water tower',
-           'tower': 'Muldraugh water tower', 'dumpster': 'Dumpster under the water tower',
+           'tower': 'Muldraugh water tower', 'dumpster': 'Shed by the water tower',
            'call': 'Is anyone out there? This is Rosie on %1. I can see the whole town from up here. Over.',
            'note': ('Rosie, water tower', 'Call me on %1', 'Mornings and evenings'),
            'say': 'Rosie, can you hear me? I am at the school.', 'try': 'Hello, is anyone there?',
@@ -67,8 +79,19 @@ LOCAL = {
            'answer': 'I hear you. Where are you? I can see the whole town from up here. Over.',
            'say2': 'I got bitten on the arm, what do I do?',
            'reply2': 'Clean it right now and tie a clean bandage. I am sorry, honey. Over.',
-           'by': 'Kate Smith'},
+           'by': 'Kate Smith', 'new_name': 'Mae Tolliver',
+           'describe': 'A tired nurse who left her West Point clinic the night it all began. She wants to go back. '
+                       'She talks softly and worries about everyone.'},
 }
+
+# Answer of the stub to "Write it with the AI" (English, as the workshop asks for a personality).
+PERSONALITY = ('You are Mae Tolliver, 46, a nurse from West Point, Kentucky. You are a character in a survival story '
+               'set in July 1993, during the "Knox Event".\n\nYour story: you left your clinic the night it all began, '
+               'and you want to go back. You talk softly and you worry about everyone.\n\nRules:\n'
+               '- Stay in character at all times.\n- Radio style: 1 to 4 short sentences. End with "Over."\n'
+               '- Answer in the same language the caller uses.')
+# A comment line put on top of a shipped sheet: the voice shows as "changed" (13-restore).
+CHANGED_MARK = '# Changed in the workshop\n'
 
 ROSIE = """# {description}
 format=1
@@ -86,12 +109,12 @@ call={call}
 state=active
 
 [place tower]
-at=10676,9790,0
+at=10604,10622,0
 label={tower}
 use=mark,target
 
 [place dumpster]
-at=10681,9796,0
+at=10617,10617,0
 label={dumpster}
 use=drop
 
@@ -100,7 +123,7 @@ type=deliver
 items=food
 quantity=2-3
 drops=dumpster
-story=I ran out of canned food two days ago. Leave some in the dumpster, I will climb down at night.
+story=I ran out of canned food two days ago. Leave some in the locker of the shed, I will climb down at night.
 
 [mission clear_tower]
 type=clear
@@ -152,15 +175,17 @@ TOMMY_DESCRIPTION = {'fr': "Mon deuxième essai : un garçon dans la cave de l'�
 TOMMY_REASON = "bad listening hours '8:00-12:00' (always, or HH:MM-HH:MM ranges separated by commas)"
 
 SURVEYS = ('# RadioSurvivor places recorded for the voice workshop\n'
-           'time=2026-11-15 18:02:00\tgame=1993-07-09 07:12\tby={by}\tat=10668,9801,0\troom=kitchen\t'
-           'building=10664,9797,10673,9806\n'
-           'time=2026-11-15 18:06:00\tgame=1993-07-09 07:20\tby={by}\tat=10681,9796,0\t'
-           'containers=bin:trash_01_0\n')
+           'time=2026-11-15 18:02:00\tgame=1993-07-09 07:12\tby={by}\tat=10617,10554,0\troom=dinerkitchen\t'
+           'building=10610,10553,10627,10563\n'
+           'time=2026-11-15 18:06:00\tgame=1993-07-09 07:20\tby={by}\tat=10617,10617,0\troom=shed\t'
+           'building=10615,10617,10617,10620\tcontainers=metal_shelves:furniture_storage_02_0\n')
 
 
 class StubProvider(http.server.ThreadingHTTPServer):
-    """An OpenAI-compatible chat endpoint on a free local port: every answer is `reply`, as a structured radio reply."""
+    """An OpenAI-compatible chat endpoint on a free local port: every answer is `reply`, as a structured radio reply,
+    or `text` as is while it is set (the personality written by the AI)."""
     reply = ''
+    text = None
 
     def __init__(self):
         super().__init__(('127.0.0.1', 0), StubHandler)
@@ -169,7 +194,8 @@ class StubProvider(http.server.ThreadingHTTPServer):
 class StubHandler(http.server.BaseHTTPRequestHandler):
     def do_POST(self):  # noqa: N802 (http.server API)
         self.rfile.read(int(self.headers.get('Content-Length') or 0))
-        content = json.dumps({'say': self.server.reply, 'actions': []}, ensure_ascii=False)
+        content = self.server.text if self.server.text is not None else json.dumps(
+            {'say': self.server.reply, 'actions': []}, ensure_ascii=False)
         body = json.dumps({'id': 'stub', 'object': 'chat.completion', 'model': 'stub',
                            'choices': [{'index': 0, 'message': {'role': 'assistant', 'content': content},
                                         'finish_reason': 'stop'}],
@@ -200,6 +226,12 @@ def write_sheets(working: Path, lang: str) -> None:
     (working / 'rosie.txt').write_text(rosie, encoding='utf-8', newline='\n')
     tommy = TOMMY.format(lang=lang, description=TOMMY_DESCRIPTION[lang])
     (working / 'tommy.txt').write_text(tommy, encoding='utf-8', newline='\n')
+    reader = GameReader()
+    for voice_id, text in example_sheets(lang):                     # the voices of the wiki page 14, as written there
+        verdict = reader.read(text, voice_id)
+        if verdict[0] != 'OK':
+            raise SystemExit(f'{lang}: the game reader refuses the example {voice_id}: {verdict[1]}')
+        (working / f'{voice_id}.txt').write_text(text, encoding='utf-8', newline='\n')
 
 
 def console_lines(tommy_line: int) -> str:
@@ -212,6 +244,38 @@ def shoot(page, out: Path, name: str, clip: dict | None = None) -> None:
     path = out / name
     page.screenshot(path=str(path), clip=clip, animations='disabled', caret='hide')
     print(f'{name}: {path.stat().st_size // 1024} KB')
+
+
+def shoot_region(page, out: Path, name: str, *locators, pad: int = 12, fixed: bool = False) -> None:
+    """Picture of the region covering every locator, with a margin: in page coordinates (the region may be taller than
+    the window), or in the window for a fixed element such as a modal dialog (`fixed`)."""
+    locators[0].scroll_into_view_if_needed()
+    page.mouse.move(0, 0)
+    sx, sy = (0, 0) if fixed else page.evaluate('[window.scrollX, window.scrollY]')
+    boxes = [loc.bounding_box() for loc in locators]
+    left = min(b['x'] for b in boxes) + sx - pad
+    top = min(b['y'] for b in boxes) + sy - pad
+    right = max(b['x'] + b['width'] for b in boxes) + sx + pad
+    bottom = max(b['y'] + b['height'] for b in boxes) + sy + pad
+    clip = {'x': max(0, left), 'y': max(0, top), 'width': right - max(0, left), 'height': bottom - max(0, top)}
+    path = out / name
+    page.screenshot(path=str(path), clip=clip, full_page=not fixed, animations='disabled', caret='hide')
+    print(f'{name}: {path.stat().st_size // 1024} KB')
+
+
+def open_voice(page, name: str) -> None:
+    page.locator('#tab-voices').click()
+    page.locator('.voice', has_text=name).first.click()
+    expect(page.locator('#main .toolbar h2')).to_have_text(name)        # drawn once the voice is read
+    page.mouse.move(0, 0)
+
+
+def fold_open(page, title: str):
+    """The panel (details.fold) whose title is `title`, opened; returns it."""
+    panel = page.locator('details.fold', has=page.locator(':scope > summary', has_text=title)).first
+    if not panel.evaluate('d => d.open'):
+        panel.locator(':scope > summary').click()
+    return panel
 
 
 def pill(page, n: int) -> None:
@@ -332,12 +396,122 @@ def run_locale(browser, locale: str, lang: str, out: Path, provider: StubProvide
             shoot(page, out, f'atelier-{lang}-08-try.png')
             page.locator('.try-drawer').get_by_role('button', name=t['ai.try_close']).click()
 
+            shoot_reference(page, out, lang, provider, working)
+            shoot_examples(page, out / EXAMPLES_DIR, lang)
             if errors:
                 raise SystemExit(f'{lang}: page errors: {errors}')
             context.close()
         finally:
             server.shutdown()
             server.server_close()
+
+
+@contextlib.contextmanager
+def changed_walt(page, working: Path):
+    """Walt, a voice of the mod, changed in the working folder for the 13-restore shot only, then put back as
+    delivered: every other shot shows the voices of the mod unchanged. The page reads the list again each time."""
+    walt = working / 'walt.txt'
+    walt.write_text(CHANGED_MARK + (SHIPPED / 'walt.txt').read_text(encoding='utf-8'), encoding='utf-8', newline='\n')
+    page.reload()
+    try:
+        yield
+    finally:
+        shutil.copyfile(SHIPPED / 'walt.txt', walt)
+        page.reload()
+
+
+def shoot_reference(page, out: Path, lang: str, provider: StubProvider, working: Path) -> None:
+    """12 to 17: the screens of the reference page 13 not shown by the walk through Rosie's steps."""
+    t = strings(lang)
+    local = LOCAL[lang]
+    rosie = (working / 'rosie.txt').read_bytes()
+    page.locator('#tab-voices').click()                                  # 12-new: the new voice form, filled
+    page.locator('#new-voice').click()
+    page.locator('#new-name').fill(local['new_name'])
+    expect(page.locator('#new-id')).to_have_value(local['new_name'].split(' ')[0].lower())
+    shoot_region(page, out, f'atelier-{lang}-12-new.png', page.locator('article.welcome'))
+
+    with changed_walt(page, working):                                    # 13-restore: a changed voice of the mod
+        open_voice(page, 'Walt Hensley')
+        expect(page.locator('#main .toolbar .badge.modified')).to_be_visible()
+        page.locator('#main .toolbar').get_by_role('button', name=t['editor.action_restore']).click()
+        notice = page.locator('.notice[role=alertdialog]')
+        expect(notice).to_contain_text('Walt Hensley')                 # the voice's name, not its id
+        page.evaluate('window.scrollTo(0, 0)')
+        shoot_region(page, out, f'atelier-{lang}-13-restore.png', page.locator('#main .toolbar'), notice)
+        notice.get_by_role('button', name=t['dialog.cancel']).click()
+
+    open_voice(page, 'Rosie Calloway')                                   # 14-import: this id exists already
+    page.locator('input[type=file]').set_input_files(
+        files=[{'name': 'rosie.txt', 'mimeType': 'text/plain', 'buffer': rosie}])
+    ask = page.locator('.notice[role=dialog]')
+    expect(ask).to_be_visible()
+    page.evaluate('window.scrollTo(0, 0)')
+    shoot_region(page, out, f'atelier-{lang}-14-import.png', page.locator('#main .toolbar'), ask)
+    ask.get_by_role('button', name=t['dialog.cancel']).click()
+
+    open_voice(page, 'Boone Tackett')                                    # 15-browser: the item browser
+    pill(page, 4)
+    trade = page.locator('details.fold', has_text=t['advanced.trade.enable'])
+    trade.locator(':scope > summary').click()
+    trade.get_by_role('button', name=t['browser.open']).first.click()
+    browser = page.locator('dialog.item-browser')
+    browser.locator('.browser-search').fill('whisky')
+    expect(browser.locator('[role=option]').first).to_be_visible()
+    shoot_region(page, out, f'atelier-{lang}-15-browser.png', browser.locator(':scope > article'), pad=0, fixed=True)
+    page.keyboard.press('Escape')
+    expect(browser).to_have_count(0)
+
+    open_voice(page, 'Rosie Calloway')                                   # 16-ai-personality: written by the AI
+    pill(page, 2)
+    page.locator('#ai-personality-open').click()
+    panel = page.locator('#ai-personality')
+    panel.locator('textarea.ai-description').fill(local['describe'])
+    provider.text = PERSONALITY
+    try:
+        page.locator('#ai-personality-generate').click()
+        expect(panel.locator('.ai-result')).to_be_visible(timeout=15000)
+    finally:
+        provider.text = None
+    shoot_region(page, out, f'atelier-{lang}-16-ai-personality.png', page.locator('#ai-personality-open'), panel,
+                 pad=6)
+
+    page.locator('#save').click()                                        # 17-saved: the game reads it again
+    expect(page.locator('.toast.show')).to_contain_text(t['code.voice_saved'])
+    page.evaluate('window.scrollTo(0, 0)')
+    page.mouse.move(0, 0)
+    shoot(page, out, f'atelier-{lang}-17-saved.png')
+
+
+def shoot_examples(page, out: Path, lang: str) -> None:
+    """21 to 25: the key steps of the four example voices of the wiki page 14."""
+    t = strings(lang)
+    out.mkdir(parents=True, exist_ok=True)
+    page.locator('.toast.show').click()                                  # the "saved" message of 17 goes away
+    expect(page.locator('.toast.show')).to_have_count(0)
+    open_voice(page, 'Opal Brannigan')                                   # listening hours and spontaneous call
+    pill(page, 1)
+    shoot_region(page, out, f'atelier-{lang}-21-opal-where.png', page.locator('.step-body'))
+
+    open_voice(page, 'Vernon Tibbs')                                     # two chained missions
+    pill(page, 3)
+    page.locator('details.fold').first.evaluate('d => d.open = false')
+    cards = page.locator('article.card.mission')
+    expect(cards).to_have_count(2)
+    shoot_region(page, out, f'atelier-{lang}-22-tibbs-missions.png', cards.first, cards.last)
+
+    pill(page, 4)                                                        # rewards and own category
+    own = fold_open(page, t['advanced.category'])
+    page.evaluate('window.scrollTo(0, 0)')
+    shoot_region(page, out, f'atelier-{lang}-23-tibbs-rewards.png', page.locator('.card.reward').first, own)
+
+    for name, picture in (('Marisol Vega', '24-sol-trade'), ('Wendell Ames', '25-wendell-trade')):  # trade panels
+        open_voice(page, name)
+        pill(page, 4)
+        trade = page.locator('details.fold', has_text=t['advanced.trade.enable'])
+        trade.locator(':scope > summary').click()
+        expect(trade.locator('.stock-line').first.locator('.item-kg')).not_to_have_text('')
+        shoot_region(page, out, f'atelier-{lang}-{picture}.png', trade)
 
 
 def shoot_login(browser, locale: str, lang: str, out: Path) -> None:

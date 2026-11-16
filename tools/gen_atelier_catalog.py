@@ -19,7 +19,10 @@ declaration table:
   by tools/game_items.py (name of ItemName.json, weight with the rule of RS_ItemWeights.lua, DisplayCategory) for the
   item search and the item browser of the page; itemCategories: {category: {en, fr}} named as the game's inventory
   names them (IGUI_ItemCat_<category> of IG_UI.json);
-- lootLists: names of the game's loot lists for the frequency note ({loot: [...], glovebox: [...]}, tools/game_loot.py).
+- lootLists: names of the game's loot lists for the frequency note ({loot: [...], glovebox: [...]}, tools/game_loot.py);
+- sellable (E22-T17): the item types a trader can sell, sorted: those of `items` with a sale value, asked to
+  CA_TradeValues.sellValue as RS_Trade does (price list, then the sale-only items registered by the mods: every Lua
+  file of the mods calling registerSellOnly is required first, as the game loads every file).
 items, itemCategories and lootLists are read in the game folder --game (default game_items.DEFAULT_GAME, only read); when it holds no
 item script, those of the current catalog.json are kept and a warning is printed: the catalogue regenerates without
 the game.
@@ -52,6 +55,9 @@ TEMPLATE_GLOB = 'server/CoreAI/CA_Mission*.lua'
 SETUP_SOURCES = LUA / 'server'
 MOD_MEDIA = sorted((ROOT / 'Contents' / 'mods').glob('*/*/media'), key=lambda p: p.as_posix().lower())
 SETUP_CALL = re.compile(r"""\bregisterDeclaredSetup\(\s*['"]([A-Za-z_][A-Za-z0-9_]*)['"]""")
+# Sale-only items (CA_TradeValues.registerSellOnly) are registered by the file of the mod that owns them.
+SELL_ROOTS = (CORE_LUA, LUA)
+SELL_CALL = re.compile(r'(?<!function )\b[A-Za-z_][A-Za-z0-9_]*\.registerSellOnly\(')
 
 
 def load_mod() -> LuaPersona:
@@ -60,6 +66,16 @@ def load_mod() -> LuaPersona:
     for path in sorted(CORE_LUA.glob(TEMPLATE_GLOB), key=lambda p: p.name.lower()):
         lua.rt.eval(f'require("CoreAI/{path.stem}")')
     return lua
+
+
+def sell_registrations() -> list[str]:
+    """Modules ('Folder/File') of the mods' Lua files that register sale-only items."""
+    found = []
+    for root in SELL_ROOTS:
+        for path in sorted(root.glob('*/**/*.lua'), key=lambda p: p.as_posix().lower()):
+            if SELL_CALL.search(path.read_text(encoding='utf-8')):
+                found.append(path.relative_to(root).with_suffix('').as_posix().split('/', 1)[1])
+    return found
 
 
 def require(lua: LuaPersona, module: str):
@@ -107,6 +123,14 @@ def mission_types(lua: LuaPersona, setups: dict) -> dict:
             'setups': [field for field in sorted(setups) if template[field] is not None],
         }
     return out
+
+
+def sellable(lua: LuaPersona, items: dict) -> list[str]:
+    """Item types of `items` with a sale value (CA_TradeValues.sellValue > 0, the lookup of RS_Trade)."""
+    for module in sell_registrations():
+        require(lua, module)
+    values = require(lua, 'CoreAI/CA_TradeValues')
+    return sorted(t for t in items if values.sellValue(t) > 0)
 
 
 def reward_kinds(rules) -> dict:
@@ -201,6 +225,7 @@ def build(lua: LuaPersona, from_game: dict | None = None) -> dict:
         'voices': voices(lua),
     }
     catalog.update(game_parts() if from_game is None else from_game)
+    catalog['sellable'] = sellable(lua, catalog['items'])
     catalog.update(grammar(lua))
     return catalog
 

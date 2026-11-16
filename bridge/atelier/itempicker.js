@@ -3,6 +3,8 @@
 // the game reads in the item script, for information. A type typed in full (Module.Type) is kept as is, so an item of
 // another mod can still be written. Keyboard: arrows, Enter, Escape (WAI-ARIA combobox with a list box). With
 // `browse`, a "Browse items" button next to the box opens the item browser (itembrowser.js) to pick it from a list.
+// `offer` (an index of items.js, default `index`) limits the suggestions to some items (the trader's stock: the
+// sellable ones); `index` still names and weighs the item written in the sheet.
 
 import { h, uid } from './dom.js';
 import { browseButton } from './itembrowser.js';
@@ -10,7 +12,7 @@ import { formatKg } from './items.js';
 
 const TYPE_RE = /^[A-Za-z0-9_]+\.[A-Za-z0-9_]+$/;
 
-export function itemPicker(t, index, value, onChange, attrs = {}, { browse = false } = {}) {
+export function itemPicker(t, index, value, onChange, attrs = {}, { browse = false, offer = index } = {}) {
   const lang = t.lang;
   let current = String(value ?? '').trim();
   let results = [];
@@ -54,7 +56,7 @@ export function itemPicker(t, index, value, onChange, attrs = {}, { browse = fal
     options[active].scrollIntoView({ block: 'nearest' });
   };
   const open = () => {
-    results = index.search(input.value, lang);
+    results = offer.search(input.value, lang);
     list.replaceChildren(...(results.length ? results.map((entry) => h('li', { id: uid('item'), role: 'option',
       'aria-selected': 'false', 'data-type': entry.type,
       onMousedown: (e) => { e.preventDefault(); choose(entry); } },
@@ -97,7 +99,7 @@ export function itemPicker(t, index, value, onChange, attrs = {}, { browse = fal
   });
   showMeta();
   const entry = browse ? h('div', { class: 'item-entry' }, input,
-    browseButton(t, index, { onPick: (picked) => choose(index.get(picked, lang) ?? { type: picked, name: picked }) }))
+    browseButton(t, offer, { onPick: (picked) => choose(index.get(picked, lang) ?? { type: picked, name: picked }) }))
     : input;
   return h('div', { class: 'item-picker' }, entry, list, h('div', { class: 'item-meta' }, type, kg, warn));
 }

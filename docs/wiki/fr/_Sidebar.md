@@ -12,6 +12,7 @@
 - [Options sandbox](09-options-sandbox.md)
 - [Créer une voix radio](10-creer-une-voix-radio.md)
 - [Atelier des voix](13-atelier-des-voix.md)
+- [Exemples de voix](14-exemples-de-voix.md)
 - [Dépannage](11-depannage.md)
 - [FAQ](12-faq.md)
 

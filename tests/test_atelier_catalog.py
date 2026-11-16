@@ -64,6 +64,36 @@ class AtelierCatalogTests(unittest.TestCase):
         })
         self.assertNotIn('bench_fake', gen.build(gen.load_mod(), gen.previous())['missionTypes'])
 
+    def test_sellable_items_are_those_the_trade_prices(self):
+        """E22-T17: a trader only sells an item with a sale value (CA_TradeValues.sellValue, RS_Trade refuses the others
+        with not_in_stock): the catalogue lists them, the price list and the sale-only items registered by the mods."""
+        sellable = gen.build(gen.load_mod(), gen.previous())['sellable']
+        items = gen.previous()['items']
+        self.assertEqual(sellable, sorted(sellable))
+        self.assertEqual([t for t in sellable if t not in items], [])
+        self.assertIn('Base.Battery', sellable)                  # price list
+        self.assertIn('RadioSurvivor.OutsideNews', sellable)     # sale only, registered by RS_Trade
+        self.assertNotIn('Base.Axe', sellable)
+        self.assertLess(len(sellable), len(items) // 10)
+
+    def test_sale_value_registered_by_a_mod_makes_an_item_sellable_without_generator_change(self):
+        lua = gen.load_mod()
+        lua.rt.execute('require("CoreAI/CA_TradeValues").registerSellOnly("Base.Axe", { v = 3, k = "supply" })')
+        self.assertIn('Base.Axe', gen.build(lua, gen.previous())['sellable'])
+
+    def test_shipped_traders_only_stock_sellable_items(self):
+        lua = gen.load_mod()
+        sellable = set(gen.build(lua, gen.previous())['sellable'])
+        stocked = {}
+        for path in sorted(gen.PERSONAS.glob('*.txt')):
+            sheet = lua.read(path.name) if not path.name.startswith('_') else None
+            if sheet is None or isinstance(sheet, tuple) or sheet.trade is None:
+                continue
+            stocked[path.name] = [str(e.t) for e in gen.lua_items(sheet.trade['items'])]
+        self.assertGreater(len(stocked), 2)
+        self.assertEqual({name: [t for t in types if t not in sellable] for name, types in stocked.items()
+                          if any(t not in sellable for t in types)}, {})
+
 
 # Item scripts and names of a fake game: weight, fluid container created full, defaults, names and their fallbacks.
 FAKE_SCRIPT = """module Base

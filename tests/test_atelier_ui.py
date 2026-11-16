@@ -328,6 +328,60 @@ console.log(JSON.stringify({
         self.assertEqual(got['allShown'], 200)
         self.assertGreater(got['allTotal'], 1000)
 
+    def test_trader_stock_offers_only_sellable_items(self):
+        """E22-T17: the trade only sells items with a sale value (catalog.sellable): the trader's stock searches them
+        only, every other item list keeps all the items of the game."""
+        script = node_prelude() + """
+const all = catalog.itemIndex();
+const sell = catalog.sellableItemIndex();
+console.log(JSON.stringify({
+  sizes: [all.size, sell.size], allAxe: all.get('Base.Axe', 'en')?.type ?? null, sellAxe: sell.get('Base.Axe', 'en'),
+  battery: sell.get('Base.Battery', 'fr')?.name ?? null, axeSearch: sell.search('Axe', 'en').map((r) => r.type),
+  whisky: sell.search('whisky', 'fr')[0]?.type ?? null, food: sell.find('', 'fr', { category: 'Food' }).total,
+  isAxe: catalog.isSellable('Base.Axe'), isBattery: catalog.isSellable('Base.Battery'),
+}));
+"""
+        got = run_node(script)
+        self.assertEqual(got['allAxe'], 'Base.Axe')
+        self.assertIsNone(got['sellAxe'])
+        self.assertNotIn('Base.Axe', got['axeSearch'])
+        self.assertEqual((got['battery'], got['whisky']), ('Pile', 'Base.Whiskey'))
+        self.assertGreater(got['food'], 5)
+        self.assertLess(got['sizes'][1], got['sizes'][0] // 10)
+        self.assertEqual((got['isAxe'], got['isBattery']), (False, True))
+
+    def test_check_flags_a_stock_item_the_trader_cannot_sell(self):
+        sheet_text = ('format=1\nid=seller\nname=Seller\nfrequencies=145.0\n\n[trade]\nitem=Base.Axe:1\n'
+                      'item=Base.Battery:2-4\nitem=Mine.Gadget:1\n\n[category kit]\nitem=Base.Axe:1\n\n'
+                      '[prompt]\nA trader.\n')
+        script = node_prelude() + f"""
+const model = sheet.parse({json.dumps(sheet_text)});
+console.log(JSON.stringify(check(model, catalog, 'seller').filter((c) => c.key === 'check.not_sellable')));
+"""
+        found = run_node(script)
+        self.assertEqual([(c['args']['value'], c['where']) for c in found], [
+            ('Base.Axe', {'block': 'trade', 'id': None, 'field': 'item'}),
+            ('Mine.Gadget', {'block': 'trade', 'id': None, 'field': 'item'}),
+        ], 'only the [trade] stock: an own category keeps every item')
+
+
+    def test_voice_status_of_the_server_entries(self):
+        """A copy the game wrote from an older version of the mod (server `outdated`) has its own state, not "from the
+        mod": the game replaces it at the next world load (E22-T17)."""
+        entries = {
+            'custom': {'custom': True}, 'delivered': {'delivered': True},
+            'modified': {'delivered': True, 'modified': True}, 'removed': {'delivered': True, 'removed': True},
+            'outdated': {'delivered': True, 'outdated': True},
+        }
+        script = (f"import {{ voiceStatus, STATUSES }} from '{module_url('voicelist.js')}';\n"
+                  f"const entries = {json.dumps(entries)};\n"
+                  "console.log(JSON.stringify({ got: Object.fromEntries(Object.entries(entries)"
+                  ".map(([k, e]) => [k, voiceStatus(e)])), statuses: STATUSES }));\n")
+        got = run_node(script)
+        self.assertEqual(got['got'], {k: k for k in entries})
+        self.assertIn('outdated', got['statuses'])
+
+
 class AtelierStringsTests(unittest.TestCase):
     @staticmethod
     def strings(lang: str) -> dict:

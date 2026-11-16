@@ -33,25 +33,32 @@ function amountCells(t, item, lots, change, redraw) {
 
 // Lines "Module.Type:quantity" ([trade] item=, own [category] item=): the item searched by name or picked in the item
 // browser (several at once), its weight shown, its quantity. Every line has the same cells: item | mode | range.
-export function stockItems(ctx, section, key) {
+// `offered(catalog)` is the index of the items the lines may offer, `note` the browser's line saying so (or null).
+const stockLines = (offered, note = null) => (ctx, section, key) => {
   const { t, catalog, changed } = ctx;
   const lots = lotNames(section);
   const items = catalog.itemIndex();
+  const offer = offered(catalog);
   const write = (list) => { sheet.setValues(section, key, list.map(formatStockItem)); changed(); };
   const host = h('div', { class: 'stack' });
   const draw = () => host.replaceChildren(lineEditor(t, sheet.values(section, key).map(parseStockItem), {
     addLabel: t('stock.add'),
     blank: () => ({ type: '', amount: '1' }),
     write,
-    tools: (addLines) => [browseButton(t, items, { multi: true, onPick: (type) => addLines([{ type, amount: '1' }]) }),
+    tools: (addLines) => [browseButton(t, offer, { multi: true, note, onPick: (type) => addLines([{ type, amount: '1' }]) }),
       hint(t, 'help.ui.item_browser', { label: t('browser.open') })],
     draw: (item, index, change) => h('div', { class: `line-fields stock-line${lots.length ? ' with-lots' : ''}` },
-      itemPicker(t, items, item.type, (v) => { item.type = v; change(); }, { 'aria-label': t('stock.item', { n: index + 1 }) }),
+      itemPicker(t, items, item.type, (v) => { item.type = v; change(); }, { 'aria-label': t('stock.item', { n: index + 1 }) },
+        { offer }),
       ...amountCells(t, item, lots, change, draw)),
   }));
   draw();
   return host;
-}
+};
+
+// An own [category]: any item of the game. The trader's stock: only the items a trader can sell (E22-T17).
+export const stockItems = stockLines((catalog) => catalog.itemIndex());
+const traderStock = stockLines((catalog) => catalog.sellableItemIndex(), 'browser.sellable_only');
 
 // A lot name the game accepts (a-z first, then a-z 0-9 _), not taken by another lot of the section.
 function lotId(text, taken) {
@@ -135,7 +142,7 @@ function margin(ctx, section, key) {
 }
 
 export const TRADE_EDITORS = {
-  item: stockItems,
+  item: traderStock,
   group: lots,
   landing,
   hours: meetingHours,

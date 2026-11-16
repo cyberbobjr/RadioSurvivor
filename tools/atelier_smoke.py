@@ -24,6 +24,9 @@ Stock grid and item browser (user 2026-11-15), in French, on a shipped voice (Bo
 and a line with a number have their cells at the same x and width at 1280 and 800 px; "Parcourir les objets" opens the
 item browser, filtered by a category and searched "whisky", a click and Enter each add a stock line while it stays open
 with its count, Escape closes it (screenshots atelier-stock-aligned-fr.png, atelier-item-browser-fr.png).
+Sellable stock, older copies and confirmations (E22-T17): the trader's stock offers only the items a trader can sell
+(an axe is not found, the browser says so); a copy of Walt the game wrote from an older version of the mod shows
+"Ancienne version" / "Older version" with its tooltip; the removal asked names the voice, not its id.
 Places recorded in game (E22-T08), in French: a fake survey file of the game (a kitchen, then a dumpster) is listed
 newest first under the voice's places; "Ajouter à cette voix" asks the name prefilled from the dumpster, makes a place
 at its square with the dead drop use ticked, the record then says it is one of her places; the voice is saved and
@@ -270,17 +273,20 @@ def check_stock(page, t: dict, lang: str, path: Path, voice_id: str, shots: Path
     expect(preview).to_contain_text('every_days=7')
     expect(preview).to_contain_text('hours=02:00-04:00')
 
-    # stock: an item found by its name in French, its weight shown
+    # stock: an item found by its name in French, its weight shown; only the items a trader can sell (E22-T17)
     trade.get_by_role('button', name=t['stock.add']).click()
     search = trade.get_by_label(t['stock.item'].replace('{n}', '1'), exact=True)
-    search.fill('pansement')
+    search.fill('hache')
     options = trade.locator('.item-list [role=option]')
-    expect(options.first).to_have_attribute('data-type', 'Base.Bandaid')
-    page.screenshot(path=str(shots / f'atelier-items-{lang}.png'))
+    expect(trade.locator('.item-list li.muted')).to_have_text(t['item.none'])
+    expect(options).to_have_count(0)
     search.fill('bandage')
     expect(options.first).to_have_attribute('data-type', 'Base.Bandage')
+    page.screenshot(path=str(shots / f'atelier-items-{lang}.png'))
     found = [options.nth(i).get_attribute('data-type') for i in range(options.count())]
-    print(f'{lang}: "pansement" -> Base.Bandaid first; "bandage" -> {", ".join(found[:4])}...')
+    if any(not atelier_catalog()['sellable_set'].__contains__(f) for f in found):
+        failures.append(f'{lang}: the stock search offers items a trader cannot sell: {found}')
+    print(f'{lang}: "hache" -> nothing (an axe has no price); "bandage" -> {", ".join(found[:4])}, all sellable')
     options.first.click()
     expect(preview).to_contain_text('item=Base.Bandage:1')
     stock = trade.locator('.stock-line').first
@@ -366,6 +372,56 @@ def boxes(cells) -> list[tuple[int, int]]:
             for i in range(cells.count())]
 
 
+def atelier_catalog() -> dict:
+    """catalog.json of the page, with the set of the sellable items."""
+    data = json.loads((ATELIER / 'catalog.json').read_text(encoding='utf-8'))
+    data['sellable_set'] = set(data.get('sellable', []))
+    return data
+
+
+def reload(page) -> None:
+    """Reloads the page, leaving an unsaved voice if one is open (the page asks before leaving it)."""
+    def accept(dialog):
+        dialog.accept()
+    page.on('dialog', accept)
+    try:
+        page.reload()
+    finally:
+        page.remove_listener('dialog', accept)
+
+
+def check_status_and_confirm(page, t: dict, lang: str, working: Path, failures: list[str]) -> None:
+    """E22-T17: a copy of Walt the game wrote from an older version of the mod (its fingerprint remembered) shows the
+    "older version" state with its tooltip, in the list and on the badge; the removal asked names the voice by its
+    name, not its id. The working folder is put back as it was."""
+    walt = working / 'walt.txt'
+    shipped = walt.read_bytes()
+    older = shipped.decode('utf-8').replace('\n', '\n# an older version of the mod\n', 1)
+    prints = working.parent / atelier_server.FINGERPRINTS
+    walt.write_text(older, encoding='utf-8', newline='\n')
+    prints.write_text(f'RSFP1\nwalt.txt {atelier_server.fingerprint(older)}\n', encoding='utf-8', newline='\n')
+    try:
+        reload(page)
+        item = page.locator('.voice', has_text='Walt Hensley').first
+        expect(item.locator('.dot.outdated')).to_have_count(1)
+        expect(item).to_have_attribute('title', t['status.outdated.help'])
+        item.click()
+        badge = page.locator('#main .toolbar .badge.outdated')
+        expect(badge).to_have_text(t['status.outdated'])
+        expect(badge).to_have_attribute('title', t['status.outdated.help'])
+        page.locator('#main .toolbar').get_by_role('button', name=t['editor.action_remove']).click()
+        notice = page.locator('.notice[role=alertdialog]')
+        expect(notice).to_contain_text(t['confirm.remove'].split('{name}')[0] + 'Walt Hensley')
+        notice.get_by_role('button', name=t['dialog.cancel']).click()
+        print(f'{lang}: older copy of Walt -> "{t["status.outdated"]}" with its tooltip; removal asked for "Walt Hensley"')
+    except AssertionError as e:
+        failures.append(f'{lang}: older version or confirm name: {e}')
+    finally:
+        walt.write_bytes(shipped)
+        prints.unlink()
+        reload(page)
+
+
 def check_stock_grid(page, trade, t: dict, lang: str, width: int, failures: list[str]) -> None:
     """Every stock line of the shipped voice on the same grid: the item, quantity mode and "from ... to ..." cells of a
     line taken from a lot (empty range cell) and of a line with a number share their x and width."""
@@ -404,6 +460,7 @@ def check_item_browser(page, t: dict, lang: str, name: str, shots: Path, failure
     stock.get_by_role('button', name=t['browser.open'], exact=True).click()
     dialog = page.locator('dialog.item-browser')
     expect(dialog).to_be_visible()
+    expect(dialog.locator('.browser-note')).to_have_text(t['browser.sellable_only'])
     total_all = dialog.locator('[role=option]').count()
     dialog.get_by_label(t['browser.category'], exact=True).select_option('Food')
     expect(dialog.locator('.browser-count')).not_to_have_text(t['browser.count'].replace('{n}', str(total_all)))
@@ -617,6 +674,7 @@ def run(shots: Path) -> int:
                         check_stock(page, t, lang, path, voice_id, shots, failures)
                         check_item_browser(page, t, lang, name, shots, failures)
                         check_surveys(page, t, lang, voice_id, name, working, survey_file, shots, failures)
+                    check_status_and_confirm(page, t, lang, working, failures)
                     errors = [e for e in errors if '409 (Conflict)' not in e]   # the import conflict, expected
                     if errors:
                         failures.append(f'{lang}: console errors: {errors}')

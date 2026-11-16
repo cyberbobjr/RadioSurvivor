@@ -12,7 +12,8 @@ mod (`batman_RadioSurvivor`): with Living Knox alone there are no voice sheets.
 > you need.
 
 > **Prefer not to write the file by hand?** Use the [voice workshop](13-voice-workshop.md): a page in your browser
-> that writes the same sheet for you, in five steps.
+> that writes the same sheet for you, in five steps. Four complete sheets, explained step by step:
+> [Voice examples](14-voice-examples.md).
 
 ## Quick start
 
@@ -225,7 +226,7 @@ square, the container on it (a dumpster, a crate), the room and the building's b
 character's name, in `Zomboid/Lua/batman_RadioSurvivor/workshop-places.txt` on the machine that runs the game or the
 server (the last 200 records). A message above the character confirms it.
 
-In the voice workshop (step "Missions", panel "Her places"), the **"Recorded in game"** list shows the records, newest
+In the voice workshop (step "Missions", panel "Places"), the **"Recorded in game"** list shows the records, newest
 first. **"Add to this voice"** makes a `[place]` at that square with a suggested name (editable) and suggested uses: a
 container becomes a dead drop (`drop`), a building a job place and a map mark (`target`, `mark`). Change anything
 afterwards in the place's card. The workshop never changes that file; on a rented server, the workshop must run on the

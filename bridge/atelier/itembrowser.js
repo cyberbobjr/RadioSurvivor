@@ -3,7 +3,8 @@
 // ignored, items.js), a category filter (the game's inventory categories) and a scrolling list showing each item's name
 // in the page's language, its category, Module.Type and weight. A click or Enter picks the item: one pick closes the
 // dialog, or, with `multi` (the trader's stock), each pick is added and the dialog stays open with the count of added
-// items. Escape, "Close" or "Done" close it; the focus goes back to the button that opened it.
+// items. Escape, "Close" or "Done" close it; the focus goes back to the button that opened it. `note` (an i18n key)
+// says under the filters which items the list holds when it is not every item of the game (the trader's stock).
 
 import { h, select, uid } from './dom.js';
 import { hint } from './help.js';
@@ -13,7 +14,7 @@ import { button } from './widgets.js';
 const MAX_SHOWN = 200;
 
 // Opens the browser over the page. `onPick(type)` is called for each item picked.
-export function openItemBrowser(t, index, { multi = false, onPick }) {
+export function openItemBrowser(t, index, { multi = false, note = null, onPick }) {
   const lang = t.lang;
   const opener = document.activeElement;
   const titleId = uid('ib');
@@ -84,7 +85,7 @@ export function openItemBrowser(t, index, { multi = false, onPick }) {
 
   const close = () => dialog.close();
   const dialog = h('dialog', { class: 'item-browser', 'aria-labelledby': titleId },
-    h('article', {},
+    h('article', { class: note ? 'with-note' : null },
       h('header', { class: 'browser-head' },
         h('h2', { id: titleId, text: t(multi ? 'browser.title_multi' : 'browser.title') }),
         hint(t, 'help.ui.item_browser', { label: t('browser.open') }),
@@ -92,6 +93,7 @@ export function openItemBrowser(t, index, { multi = false, onPick }) {
           onClick: close }, '✕')),
       h('div', { class: 'browser-filters' }, search,
         h('div', { class: 'browser-cat' }, category, hint(t, 'help.ui.item_category', { label: t('browser.category') }))),
+      note && h('p', { class: 'browser-note', text: t(note) }),
       h('div', { class: 'browser-cols', 'aria-hidden': 'true' },
         h('span', { text: t('browser.col_name') }), h('span', { text: t('browser.col_category') }),
         h('span', { text: t('browser.col_type') }), h('span', { text: t('browser.col_kg') }), h('span')),

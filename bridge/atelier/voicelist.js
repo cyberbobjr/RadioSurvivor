@@ -4,15 +4,17 @@
 import { h } from './dom.js';
 import { button } from './widgets.js';
 
-// State of a voice entry of the server: removed, created by the player, delivered and changed, delivered as is.
+// State of a voice entry of the server: removed, created by the player, delivered and changed, an older delivered
+// version the game wrote (it replaces it at the next world load), delivered as is.
 export function voiceStatus(entry) {
   if (!entry) return 'custom';
   if (entry.removed) return 'removed';
   if (entry.custom) return 'custom';
-  return entry.modified ? 'modified' : 'delivered';
+  if (entry.modified) return 'modified';
+  return entry.outdated ? 'outdated' : 'delivered';
 }
 
-export const STATUSES = ['custom', 'delivered', 'modified', 'removed'];
+export const STATUSES = ['custom', 'delivered', 'outdated', 'modified', 'removed'];
 
 export const refusedByGame = (verdicts, id) => verdicts?.[id]?.state === 'refused';
 
