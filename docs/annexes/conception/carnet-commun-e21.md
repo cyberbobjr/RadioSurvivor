@@ -1,6 +1,6 @@
 # Carnet commun dans batman_CoreAI : conception des tâches E21-T03 à E21-T06
 
-Conception du 2026-11-15 pour le plan [E21](../plans/E21-separation-coreai.md), qui applique l'ADR
+Conception du 2026-11-15 pour le plan [E21](../plans-termines/E21-separation-coreai.md), qui applique l'ADR
 [Living Knox et RadioSurvivor séparés autour de batman_CoreAI](../../architecture/decisions/adr-coreai-separation.md).
 Les numéros de ligne datent du commit `a7d0453`.
 

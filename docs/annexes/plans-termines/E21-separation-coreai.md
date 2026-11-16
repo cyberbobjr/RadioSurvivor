@@ -2,7 +2,7 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 10 / 11 tâche(s) terminée(s).
+**Avancement.** terminée — 11 / 11 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
@@ -16,7 +16,7 @@
 | ☑ | E21-T08 | Bancs de Living Knox sans RadioSurvivor | `testé hors jeu` | hors jeu | E21-T07 |
 | ☑ | E21-T09 | Les trois montages en jeu, solo et MP | `testé MP` | MP | E21-T08 |
 | ☑ | E21-T10 | Documentation, README et descriptions Workshop | `testé hors jeu` | hors jeu | E21-T09 |
-| ☐ | E21-T11 | Suites en jeu rangées dans le mod de test de leur mod | `testé hors jeu` | MP | E21-T07 |
+| ☑ | E21-T11 | Suites en jeu rangées dans le mod de test de leur mod | `testé MP` | MP | E21-T07 |
 
 <!-- fin du tableau de bord -->
 
@@ -176,8 +176,8 @@ qui porte le carnet et les méthodes factorisées. Les tests de Living Knox ne c
   - Preuve : commit `094f467d` : architecture, règles de développement, spécifications, guide des tests en jeu, notes de conception, README, wiki et descriptions Workshop (README.steam 7212 octets, README.steam.fr 7864 octets avec le bloc d'identifiants) ; `pz_workshop_project.validate` sans erreur ; `run_all.py --keep-going` : `Summary: 194 passed, 0 failed, 0 skipped` ; aucune publication
   - Reste : aucun (page des fonctionnalités mise à jour avec E21-T09)
 
-- [ ] **E21-T11** — Suites en jeu rangées dans le mod de test de leur mod
-  - État : `testé hors jeu`
+- [x] **E21-T11** — Suites en jeu rangées dans le mod de test de leur mod
+  - État : `testé MP`
   - Cible : `MP`
   - Dépend de : E21-T07
   - Fichiers : `dev/batman_RadioSurvivorTests` (22 suites déclarées `{ "rs", "lk" }`, aides `RST_RSHelpers.lua`, `RST_PeerChecksE09.lua`, `RST_PeerChecksRadio.lua`), `dev/batman_LivingKnoxTests`, `dev/batman_CoreAITests`, `tools/autoclient/autoclient.py`, bancs `tests/` qui citent ces suites
@@ -185,4 +185,5 @@ qui porte le carnet et les méthodes factorisées. Les tests de Living Knox ne c
   - Accepté si : aucune suite `rs.*` ne vérifie une fonction de Living Knox ou du seul carnet ; aucun fichier de `batman_LivingKnoxTests` ni de `batman_CoreAITests` ne charge `RadioSurvivor/` ; `run_all.py --keep-going` vert ; campagnes `solo-lk`, `solo-rs` et MP jouent les suites rangées.
   - Tests : `tests/run_all.py --keep-going` ; campagnes `solo-lk`, `solo-rs`, MP.
   - Preuve : 2026-11-16, `python tests/run_all.py --keep-going` : `Summary: 208 passed, 0 failed, 0 skipped (556.8 s)`, `RESULT: PASS` (luacheck Contents et dev 0 avertissement, `plan-check` 0 erreur). Rangement : 11 suites `rs.*` de PNJ passées en `lk.*` (`lk.relation`, `lk.factions.accord`, `lk.factions.incident`, `lk.carnet.npc`, `lk.carnet.supply`, `lk.carnet.leader`, `lk.carnet.load`, `lk.npctalk`, `lk.notebook.relation`, `lk.observations`, `lk.worldtriggers`) ; suites du carnet et des missions communes passées en `ca.*` (`ca.identity.*`, `ca.claim`, `ca.state.*`, `ca.notebook.ink`, `ca.factions.mandate`, `ca.missions*`, `ca.mission.*`, `ca.caches`) et `rst.rights` dans `batman_CoreAITests` ; `rs.reputation` scindée en `ca.reputation`, `lk.reputation` et `rs.reputation` (marge du contrebandier) ; `rs.missionreport.llm` scindée (`lk.missionreport.llm` pour le PNJ). Aides : `RST_CarnetHelpers`, `RST_PeerChecksCarnet`, `RST_ReputationHelpers` (CoreAI), la case du PNJ de test inscrite par `RST_LKHelpers` (`talkSpot`). Restent `rs.*` avec Living Knox : `rs.groupradio`, `wiki.shots`, `rs.death` (papier des dernières pages, fonction de RadioSurvivor).
-  - Reste : campagnes `solo-lk`, `solo-rs` et MP.
+  - Preuve en jeu : 2026-11-16, campagnes sur `cdb1d005`. `solo-lk` : code 1, `RST-RESULT ok=false total=188 pass=179 fail=1 error=0 skip=8`, `tools/autoclient/runs/20261116-171910-c3a0093c3273`. `solo-rs` : code 1, `RST-RESULT ok=false total=142 pass=130 fail=1 error=0 skip=11`, `tools/autoclient/runs/20261116-174317-324eab780329`. MP : code 1, `RST-RESULT ok=false total=414 pass=394 fail=3 error=0 skip=17` (clients `ok=true`), `tools/autoclient/runs/20261116-174655-mp-728f528426ed`. Toutes les suites rangées passent sous leur nouvel identifiant (MP : `lk.relation` 3, `lk.factions.accord` 3, `lk.factions.incident` 3, `lk.carnet.npc` 4, `lk.carnet.supply` 1, `lk.carnet.leader` 1, `lk.carnet.load` 3, `lk.npctalk` 4, `lk.observations` 5, `lk.worldtriggers` 3, `lk.reputation` 1, `ca.identity` 8, `ca.claim` 1, `ca.missions` 14, `ca.mission.*` 9, `ca.reputation` 3, `ca.caches` 1, `rst.rights` 2 ; solo : `lk.notebook.relation`, `ca.notebook.ink`, `ca.missions.solo`). Échecs hors rangement, suites non touchées : `lk.traversal` (solo-lk, fenetre basculée 6 fois au lieu de 5 ; déjà en échec intermittent les 2026-11-07, 11-12, 11-15), `lk.upkeep` (MP, vitre non changée en 300 s ; déjà les 2026-11-07 et 11-12), `lk.talk` (MP, PNJ jamais près du joueur ; déjà en MP le 2026-11-16 à 07:37), `rs.notes.written` (pont réel en marche, environnement).
+  - Reste : aucun pour le rangement ; échecs intermittents `lk.traversal`, `lk.upkeep`, `lk.talk` à traiter à part.
