@@ -1,12 +1,12 @@
 """Suites de persistance en jeu de la campagne MP par étapes (E01-T17, autoclient.py --mp --phases) : bases
-rs.mission.recover, rs.rescue.missed, rs.memory, lk.leave, lk.walls, rs.radiotab, rs.actions.map (before / after-reconnect /
+ca.mission.recover, rs.rescue.missed, rs.memory, lk.leave, lk.walls, rs.radiotab, rs.actions.map (before / after-reconnect /
 after-restart) et lk.rejoin (before / after-reconnect2), leur fichier d'instantané (RST_Persist.lua) et la campagne
 mp-persist. Repère de carte après reconnexion joué sur doublures : tests/test_map_persist.py.
 
     python RadioSurvivor/tests/test_persist_suites.py
 
 Doublures seulement : la reconnexion et le redémarrage réels ne se prouvent que par la campagne MP automatique
-(docs/annexes/tests/tests-en-jeu.md, « Reconnexion et redémarrage du serveur »). rs.mission.recover.before / .after-restart sont
+(docs/annexes/tests/tests-en-jeu.md, « Reconnexion et redémarrage du serveur »). ca.mission.recover.before / .after-restart sont
 joués par le vrai moteur RST sur le banc de tests/test_mission_recover.py (redémarrage simulé : mémoire de RS_Caches
 remise à zéro, sacs au sol gardés), y compris un sac en double injecté qui doit faire échouer l'étape after-restart.
 """
@@ -31,7 +31,7 @@ MOD_SHARED = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivor' / '42.21' / 'me
 CORE_SHARED = ROOT / 'Contents' / 'mods' / 'batman_CoreAI' / '42.21' / 'media' / 'lua' / 'shared'  # mod commun (E18)
 CORE_SERVER = CORE_SHARED.parent / 'server'
 FILES = {
-    'RS_MissionRecoverPersist.lua': {'rs.mission.recover.before': 'restart', 'rs.mission.recover.after-restart': None},
+    'CA_MissionRecoverPersist.lua': {'ca.mission.recover.before': 'restart', 'ca.mission.recover.after-restart': None},
     'RS_RescuePersist.lua': {'rs.rescue.missed.before': None, 'rs.rescue.missed.after-restart': None},
     'RS_MemoryPersist.lua': {'rs.memory.before': None, 'rs.memory.after-restart': None},   # E22-T13
     'RST_LKLeavePersist.lua': {'lk.leave.before': None, 'lk.leave.after-restart': None},
@@ -98,8 +98,8 @@ class ListingTests(unittest.TestCase):
     def test_mp_persist_campaign_plan(self):
         lua = autoclient.campaign_text()
         bases = autoclient.campaign_suites(lua, 'mp-persist')
-        for base in ('rs.identity', 'lk.homes', 'lk.leave', 'rs.mission.recover', 'rs.rescue.missed', 'lk.walls',
-                     'rs.radiotab', 'rs.actions.map', 'rs.state', 'rs.memory', 'rst.disconnect', 'lk.rejoin'):
+        for base in ('ca.identity', 'ca.reputation', 'lk.homes', 'lk.leave', 'ca.mission.recover', 'rs.rescue.missed',
+                     'lk.walls', 'rs.radiotab', 'rs.actions.map', 'ca.state', 'rs.memory', 'rst.disconnect', 'lk.rejoin'):
             self.assertIn(base, bases)
         self.assertEqual(bases[-1], 'lk.rejoin')   # its before step moves the requester away: last of step 0
         declared = autoclient.declared_suite_names(autoclient.test_lua_dirs())
@@ -110,15 +110,15 @@ class ListingTests(unittest.TestCase):
         self.assertNotIn('lk.rejoin.before', steps[0][0])
         self.assertEqual(steps[1], [['rst.disconnect.after-reconnect2', 'lk.rejoin.after-reconnect2']])
         self.assertIn('rs.radiotab.before', steps[0][0])   # at the players' place, before lk.rejoin moves them
-        # E21-T07: the order inside a run follows the campaign parts (Living Knox, then RadioSurvivor).
+        # E21-T07: the order inside a run follows the campaign parts (core, Living Knox, then RadioSurvivor).
         self.assertEqual([sorted(run) for run in steps[2]],
-                         [sorted(['rs.identity.after-reconnect', 'lk.walls.after-reconnect',
+                         [sorted(['ca.identity.after-reconnect', 'lk.walls.after-reconnect',
                                   'rs.radiotab.after-reconnect', 'rs.actions.map.after-reconnect']),
-                          sorted(['rs.identity.before', 'lk.walls.before'])])
-        self.assertEqual(sorted(steps[3][0]), sorted(['rs.identity.after-restart', 'lk.homes.after-restart',
-                                                      'lk.leave.after-restart', 'rs.mission.recover.after-restart',
+                          sorted(['ca.identity.before', 'lk.walls.before'])])
+        self.assertEqual(sorted(steps[3][0]), sorted(['ca.identity.after-restart', 'lk.homes.after-restart',
+                                                      'lk.leave.after-restart', 'ca.mission.recover.after-restart',
                                                       'rs.rescue.missed.after-restart', 'lk.walls.after-restart',
-                                                      'rs.reputation.after-restart', 'rs.state.after-restart',
+                                                      'ca.reputation.after-restart', 'ca.state.after-restart',
                                                       'rs.memory.after-restart']))
         self.assertFalse(autoclient.needs_bridge(None, [n for st in steps for r in st for n in r]))
 
@@ -150,7 +150,7 @@ class PersistFileTests(unittest.TestCase):
 
 
 class RecoverPersistTests(unittest.TestCase):
-    """rs.mission.recover.before then .after-restart on the recover bench (simulated restart: RS_Caches memory reset,
+    """ca.mission.recover.before then .after-restart on the recover bench (simulated restart: RS_Caches memory reset,
     floor items kept)."""
 
     def setUp(self):
@@ -174,7 +174,7 @@ class RecoverPersistTests(unittest.TestCase):
             require 'RST/RST'
             require 'RST/RST_Persist'
         """)
-        rt.execute(f'dofile([[{(SUITES / "RS_MissionRecoverPersist.lua").as_posix()}]])')
+        rt.execute(f'dofile([[{(SUITES / "CA_MissionRecoverPersist.lua").as_posix()}]])')
         sim.server.g.loadArea(90, 0, 130, 40)
         alice = sim.server.g.PLAYERS.alice
         alice.x, alice.y, alice.z = 104.5, 14.5, 0
@@ -198,11 +198,11 @@ class RecoverPersistTests(unittest.TestCase):
 
     def test_before_then_after_restart(self):
         sim, alice = self.bench()
-        before = self.run_suite(sim, alice, 'rs.mission.recover.before')
+        before = self.run_suite(sim, alice, 'ca.mission.recover.before')
         self.assertEqual(list(before.values()), [('PASS', None)], before)
         self.assertEqual(self.bags(sim), 1)
         sim.server.rt.eval("require('RadioSurvivor/RS_CacheAction')").resetForTests()   # restart: memory lost
-        after = self.run_suite(sim, alice, 'rs.mission.recover.after-restart')
+        after = self.run_suite(sim, alice, 'ca.mission.recover.after-restart')
         self.assertEqual(list(after.values()), [('PASS', None)], after)
         self.assertEqual(self.bags(sim), 1)   # nothing placed by the restart, the adoption or the checks
         self.assertIn('already used', sim.server.rt.eval('select(2, RST.Persist.read(RST.RecoverPersist.FILE, '
@@ -210,21 +210,21 @@ class RecoverPersistTests(unittest.TestCase):
 
     def test_a_second_bag_fails_the_after_step(self):
         sim, alice = self.bench()
-        self.run_suite(sim, alice, 'rs.mission.recover.before')
+        self.run_suite(sim, alice, 'ca.mission.recover.before')
         sim.server.rt.execute("""
             local snap = RST.Persist.read(RST.RecoverPersist.FILE, RST.RecoverPersist.HEADER)
             local Caches = require 'RadioSurvivor/RS_CacheAction'
             local twin = Caches.make(snap.rec)
             getCell():getGridSquare(snap.rec.at.x, snap.rec.at.y, snap.rec.at.z):AddWorldInventoryItem(twin, 0.5, 0.5, 0, true)
         """)
-        after = self.run_suite(sim, alice, 'rs.mission.recover.after-restart')
+        after = self.run_suite(sim, alice, 'ca.mission.recover.after-restart')
         status, message = next(iter(after.values()))
         self.assertEqual(status, 'FAIL', after)
         self.assertIn('marked bags after the restart', message)
 
     def test_the_after_step_without_snapshot_fails(self):
         sim, alice = self.bench()
-        after = self.run_suite(sim, alice, 'rs.mission.recover.after-restart')
+        after = self.run_suite(sim, alice, 'ca.mission.recover.after-restart')
         status, message = next(iter(after.values()))
         self.assertEqual(status, 'FAIL')
         self.assertIn('run the .before suite', message)

@@ -1,6 +1,6 @@
-"""Banc hors jeu des étapes du second client ajoutées pour E01-T16 : RST_PeerChecks2.lua (carnet.claim, rst.run,
-carnet.contact, map.zones), RST_PeerChecksLK2.lua (lk.contact, lk.track, lk.probe, rst.shot, corpse.drag,
-lk.trade.window) et les nouvelles clés de RST_PeerChecks.squareKeys (floor, sprite, light).
+"""Banc hors jeu des étapes du second client ajoutées pour E01-T16 : RST_PeerChecks2.lua (rst.run, carnet.contact,
+map.zones), RST_PeerChecksCarnet.lua (carnet.claim, E21-T11), RST_PeerChecksLK2.lua (lk.contact, lk.track, lk.probe,
+rst.shot, corpse.drag, lk.trade.window) et les nouvelles clés de RST_PeerChecks.squareKeys (floor, sprite, light).
 
     python RadioSurvivor/tests/test_peer_checks2.py
 
@@ -23,7 +23,7 @@ from test_rst_steps import PEER_GAME  # noqa: E402
 LUA = tests_lua()
 STEPS_FILE = LUA / 'shared' / 'RST' / 'RST_Steps.lua'
 PEER_FILE = LUA / 'shared' / 'RST' / 'RST_PeerChecks.lua'
-RADIO_FILE = LUA / 'shared' / 'RST' / 'RST_PeerChecksRadio.lua'
+CARNET_FILE = LUA / 'shared' / 'RST' / 'RST_PeerChecksCarnet.lua'
 PC2_FILE = LUA / 'shared' / 'RST' / 'RST_PeerChecks2.lua'
 LK2_FILE = LUA / 'shared' / 'RST' / 'RST_PeerChecksLK2.lua'
 
@@ -115,7 +115,7 @@ function answerProposal() V.receive({ op = "propose", n = PROPOSED, ok = TRADE_O
 
 class Base(unittest.TestCase):
     GAME = RS_GAME
-    FILES = [STEPS_FILE, RADIO_FILE, PC2_FILE]
+    FILES = [STEPS_FILE, CARNET_FILE, PC2_FILE]
 
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
@@ -324,7 +324,7 @@ class RstRunTests(unittest.TestCase):
             alice = net.add_client('alice', 'admin')
             bob = net.add_client('bob', 'user')
             for c in (alice, bob):
-                c.lua(f'dofile([[{STEPS_FILE.as_posix()}]]); dofile([[{RADIO_FILE.as_posix()}]]); '
+                c.lua(f'dofile([[{STEPS_FILE.as_posix()}]]); dofile([[{CARNET_FILE.as_posix()}]]); '
                       f'dofile([[{PC2_FILE.as_posix()}]])')
                 c.lua('getPlayer = function() return PLAYER end')
             self.assertTrue(net.server.lua('local _, f = pcall(function() end) return RST.Server ~= nil'))

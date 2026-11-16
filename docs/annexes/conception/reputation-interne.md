@@ -144,9 +144,9 @@ la réputation » (`bridge/npc_protocol.py:979`) reste vraie : seul le serveur l
 
 - Banc `lupa` (`tests/test_reputation.py`) : barème, bornes, plafond de gain, niveaux, tendance, idempotence
   (double événement, rejeu après rechargement d'état), tueur non participant, cas non attribué, purge.
-- Suite en jeu `rs.reputation` (solo puis campagne MP automatique) : mission réussie → niveau et motif visibles chez le
-  seul participant ; deux clients : l'un tue le demandeur, l'autre garde sa réputation ; redémarrage serveur : score
-  conservé, aucun doublon.
+- Suites en jeu (solo puis campagne MP automatique, E21-T11) : `ca.reputation` : mission réussie → niveau et motif
+  visibles chez le seul participant, redémarrage serveur : score conservé, aucun doublon ; `lk.reputation` : deux
+  clients, l'un tue le demandeur, l'autre garde sa réputation ; `rs.reputation` : marge du contrebandier.
 
 ## 9. Valeurs techniques proposées (confirmées par défaut, sauf réponse contraire)
 
@@ -217,4 +217,4 @@ Banc : `tests/test_reputation.py`.
   `LivingKnox.API.testAllowed`) ; commande `rep_admin` du carnet : vue en lecture seule (nom, niveau, tendance,
   derniers actes) pour un administrateur (`RS_FreqDebug.isAllowed` : `checkPermissions` + capacité `PopmanManage` du
   rôle sur un serveur, mode debug en solo), bouton « Toutes les réputations (admin) » de l'onglet. Suite en jeu
-  `rs.reputation` (+ base `mp-persist`).
+  `ca.reputation` (+ base `mp-persist`).

@@ -573,7 +573,7 @@ pas de prise en charge écran partagé annoncée.
 ## Limites restantes (2026-10-08)
 
 - Fournisseur Living Knox (`E17-T03`) vérifié hors jeu seulement (banc avec le vrai moteur et le pont hors ligne,
-  `test_carnet.py` `LivingKnoxCarnetTests`) ; parcours en jeu solo et à deux clients à faire (suite `rs.carnet.lk` et
+  `test_carnet.py` `LivingKnoxCarnetTests`) ; parcours en jeu solo et à deux clients à faire (suite `lk.carnet.npc` et
   protocole manuel). Nom du chef : après une succession, le nouveau chef prend le nom du chef de l'histoire ; noms des
   autres membres tirés (aucun nom tenu par le moteur).
 - `E00-T08`, `E00-T09` : texte non ASCII dans l'état privé et vers le pont (section « Missions,

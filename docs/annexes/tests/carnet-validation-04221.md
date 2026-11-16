@@ -103,9 +103,9 @@ blanc lisible, boutons Oui/Non.
 
 ## 2026-10-09 — reconnexion, redémarrage et mort (E03-T04, volet code)
 
-- **Suites serveur `rs.identity*`** (`dev/.../RST/suites/RS_Identity.lua`) : invariants de l'identité sur l'état
-  réel (`rs.identity`, aussi dans `"rs"`), puis quatre étapes à la demande (tag `manual`) enchaînées entre les
-  actions manuelles : `rs.identity.before` (relevé dans un fichier de test), `after-reconnect`, `after-restart`
+- **Suites serveur `ca.identity*`** (`dev/.../RST/suites/CA_Identity.lua`) : invariants de l'identité sur l'état
+  réel (`ca.identity`, aussi dans `"ca"`), puis quatre étapes à la demande (tag `manual`) enchaînées entre les
+  actions manuelles : `ca.identity.before` (relevé dans un fichier de test), `after-reconnect`, `after-restart`
   (temps d'arrêt exclu du chrono), `after-death`. Aucune écriture dans l'état du carnet.
 - **Protocole à deux comptes** : [tests en jeu, § 11](tests-en-jeu.md). Le serveur de test se relance sur le même
   monde par `run_dedicated_smoke.ps1 -Manual -CacheDir <cache>`.
@@ -113,7 +113,7 @@ blanc lisible, boutons Oui/Non.
   mort et nouveau personnage) et vérifie qu'elles détectent une identité serveur perdue, un chrono qui compte
   l'arrêt, un arrêt trop court et une mort sans retrait.
 - **Serveur dédié de test** (`-Filters "rst,rs"`, 2026-10-09, 42.21.0) : `OK - 48 test(s): 45 pass, 0 fail,
-  0 error, 3 skip` ; `rs.identity` passe sans joueur (2 tests `SKIP no online player`), les étapes `manual` ne
+  0 error, 3 skip` ; `ca.identity` passe sans joueur (2 tests `SKIP no online player`), les étapes `manual` ne
   sont pas sélectionnées ; aucune erreur Lua de nos mods.
 - **Non fait** : le passage à deux clients (séance finale). Sans fournisseur de PNJ (`E17-T03`), il ne prouvera
   que l'identité ; notes, engagements et chrono seront à rejouer avec un PNJ.

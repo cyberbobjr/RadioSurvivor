@@ -388,7 +388,7 @@ class GroupRadioTests(unittest.TestCase):
 
     def test_suite_call_leaves_no_talk_cooldown_behind(self):
         # MP campaign of 2026-11-13 (runs/20261113-233636-parallel-3 shard1): the call of rs.groupradio, admitted on
-        # the server for the character of the player, armed its talk cooldown; rs.npctalk right after had its first
+        # the server for the character of the player, armed its talk cooldown; lk.npctalk right after had its first
         # sentence refused ("Cooldown") while the client, unaware of it, let it go.
         self.world('suite')
         from test_carnet import TESTS_SHARED

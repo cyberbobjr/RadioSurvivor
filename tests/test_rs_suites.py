@@ -1,4 +1,4 @@
-"""Tests hors jeu des suites RST de batman_RadioSurvivor : rs.env, ca.codec, rs.missions (E01-T08), rs.voices et
+"""Tests hors jeu des suites RST de batman_RadioSurvivor : rs.env, ca.codec, ca.missions (E01-T08), rs.voices et
 rs.voices.world (E05-T06, sur le serveur simulé de tests/test_personas_server.py : six fiches livrées, chaînes,
 routage réel de RadioSurvivor_Server.lua), rs.radiomodule (E06-T02, interface simulée de tests/test_radio_module.py).
 
@@ -27,7 +27,7 @@ MOD_LUA = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivor' / '42.21' / 'media
 CORE_LUA = ROOT / 'Contents' / 'mods' / 'batman_CoreAI' / '42.21' / 'media' / 'lua'  # mod commun (E18)
 LK_LUA = ROOT / 'Contents' / 'mods' / 'batman_LivingKnox' / '42.21' / 'media' / 'lua'  # moteur des PNJ (E18-T07)
 SUITES = TESTS_LUA / 'shared' / 'RST' / 'suites'
-SUITE_FILES = {name: SUITES / f'{name}.lua' for name in ('RS_Env', 'CA_Codec', 'RS_Missions', 'RS_Identity',
+SUITE_FILES = {name: SUITES / f'{name}.lua' for name in ('RS_Env', 'CA_Codec', 'CA_MissionEngine', 'CA_Identity',
                                                        'RS_Voices', 'RS_RadioModule')}
 
 
@@ -167,8 +167,8 @@ class CodecSuiteTests(SuiteHarness):
 class MissionsSuiteTests(SuiteHarness):
 
     def test_all_pass_in_solo(self):
-        self.load_suite('RS_Missions')
-        rep = self.run_filter('"rs.missions"')
+        self.load_suite('CA_MissionEngine')
+        rep = self.run_filter('"ca.missions"')
         self.assert_all('PASS', rep)
         self.assertEqual(rep.total, 14)
         # Aucune ModData ni état persistant : le module n'a rien écrit hors de l'état des tests.
@@ -176,21 +176,21 @@ class MissionsSuiteTests(SuiteHarness):
 
     def test_all_pass_on_a_server(self):
         self.lua('SIDE = "server"')
-        self.load_suite('RS_Missions')
-        self.assert_all('PASS', self.run_filter('"rs.missions"'))
+        self.load_suite('CA_MissionEngine')
+        self.assert_all('PASS', self.run_filter('"ca.missions"'))
 
     def test_skipped_on_an_mp_client(self):
         self.lua('SIDE = "client"')
-        self.load_suite('RS_Missions')
-        rep = self.run_filter('{ suite = "rs.missions", tags = "server" }')
+        self.load_suite('CA_MissionEngine')
+        rep = self.run_filter('{ suite = "ca.missions", tags = "server" }')
         self.assert_all('SKIP', rep)
         self.assertIn('MP client', self.results()['module exports'][1])
 
     def test_suite_detects_a_broken_expiry(self):
-        self.load_suite('RS_Missions')
+        self.load_suite('CA_MissionEngine')
         self.lua('local M = require "CoreAI/CA_Missions"; local old = M.advance;'
                  'M.advance = function(state, ms) return old(state, ms * 2) end')
-        self.run_filter('"rs.missions"')
+        self.run_filter('"ca.missions"')
         self.assertEqual(self.results()['offer expires after OFFER_TTL_MS and starts the cooldown'][0], 'FAIL')
 
 

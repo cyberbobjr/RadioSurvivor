@@ -1,6 +1,7 @@
 -- Actual Java inventory/XP effects. Authority grants, each client reads its OWN player only.
 -- E20-T04: rewards drawn at random in the [rewards] pool (RS_Rewards, kinds in server/RadioSurvivor/Rewards/); a voice
 -- reward cache holds contents drawn in its category (catalogue personas/_categories.txt or a section of the sheet).
+-- E21-T11: the reward tables of the caches of the core mod are ca.caches (CA_CacheTables.lua, batman_CoreAITests).
 require 'RST/RST'
 require "RST/RST_ModRadioSurvivor"
 require 'RST/RST_Fixtures'
@@ -114,15 +115,6 @@ local function setup(t, kind)
 end
 
 RST.suite("rs.missionrewards", {tags={"server","world"},testTimeoutMs=45000}, function(s)
-    s.test('every closed reward table contains real item scripts', function(t)
-        if isClient() then t:skip('authority only') end
-        local config = require 'RadioSurvivor/RS_Config'
-        for _, name in ipairs(config.Caches.order) do
-            for _, entry in ipairs(config.Caches.tables[name]) do
-                t:ok(instanceItem(entry[1]) ~= nil, 'missing reward script: ' .. entry[1])
-            end
-        end
-    end)
     s.test('every catalogue category contains real item scripts', function(t)
         if isClient() then t:skip('authority only') end
         local categories = require('RadioSurvivor/RS_Personas').rules().categories

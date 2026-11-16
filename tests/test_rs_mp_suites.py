@@ -1,6 +1,8 @@
 """Banc hors jeu des suites en jeu radio, carnet et factions des contrôles MP (classe « c » de l'audit du 2026-10-15) :
-rs.worldradio (E06-T03), rs.radio (E06-T05), rs.carnet.load (E00-T04), rs.observations (E08-T07),
-rs.factions.mandate (E09-T03), et de leurs étapes client (RST_PeerChecksRadio.lua).
+rs.worldradio (E06-T03), rs.radio (E06-T05), lk.carnet.load (E00-T04), lk.observations (E08-T07),
+ca.factions.mandate (E09-T03), et de leurs étapes client (RST_PeerChecksRadio.lua, RST_PeerChecksCarnet.lua).
+E21-T11 : lk.carnet.load et lk.observations sont rangées dans batman_LivingKnoxTests, ca.factions.mandate dans
+batman_CoreAITests.
 
     python RadioSurvivor/tests/test_rs_mp_suites.py
 
@@ -39,10 +41,12 @@ MOD = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivor' / '42.21' / 'media' / 
 LK_LUA = ROOT / 'Contents' / 'mods' / 'batman_LivingKnox' / '42.21' / 'media' / 'lua'  # moteur des PNJ (E18-T07)
 CORE_LUA = ROOT / 'Contents' / 'mods' / 'batman_CoreAI' / '42.21' / 'media' / 'lua'  # mod commun (E18)
 SUITES = DEV / 'shared' / 'RST' / 'suites'
-STEPS_FILES = [DEV / 'shared' / 'RST' / name for name in ('RST_Steps.lua', 'RST_Fixtures.lua', 'RST_PeerChecksRadio.lua')]
-SUITE_FILES = {name: SUITES / f'{name}.lua' for name in ('RS_WorldRadio', 'RS_RadioMP', 'RS_CarnetLoad',
-                                                         'RS_ObservationWitnesses', 'RS_FactionsMandate')}
-NEW_LUA = [DEV / 'shared' / 'RST' / 'RST_PeerChecksRadio.lua', *SUITE_FILES.values()]
+# E21-T11: client steps of the radio (batman_RadioSurvivorTests) and of the notebook (batman_CoreAITests).
+STEP_HANDLERS = [DEV / 'shared' / 'RST' / name for name in ('RST_PeerChecksRadio.lua', 'RST_PeerChecksCarnet.lua')]
+STEPS_FILES = [DEV / 'shared' / 'RST' / name for name in ('RST_Steps.lua', 'RST_Fixtures.lua')] + STEP_HANDLERS
+SUITE_FILES = {name: SUITES / f'{name}.lua' for name in ('RS_WorldRadio', 'RS_RadioMP', 'RST_LKCarnetLoad',
+                                                         'RST_LKObservationWitnesses', 'CA_FactionsMandate')}
+NEW_LUA = [*STEP_HANDLERS, *SUITE_FILES.values()]
 
 # ------------------------------------------------------------------------------------------------ Java doubles
 
@@ -1029,11 +1033,11 @@ class RadioTabTests(Bench):
 # ------------------------------------------------------------------------------------------------ E00-T04
 
 class CarnetLoadTests(Bench):
-    """rs.carnet.load : aucune fiche sans contact, aucun envoi ni sauvegarde à vide, fiche contactée gardée."""
+    """lk.carnet.load : aucune fiche sans contact, aucun envoi ni sauvegarde à vide, fiche contactée gardée."""
 
     def test_mp_two_clients_pass(self):
         net = self.net()
-        rep = net.run('rs.carnet.load')
+        rep = net.run('lk.carnet.load')
         self.assertEqual({k: v[0] for k, v in rep.results.items()}, {
             'loaded npcs without contact get no fiche and no LLM request (E00-T04)': 'PASS',
             'an idle server pushes no snapshot and saves only after a change (E00-T04)': 'PASS',
@@ -1041,65 +1045,65 @@ class CarnetLoadTests(Bench):
         self.assertEqual(net.server.lua('local n = 0 for _ in pairs(BODIES) do n = n + 1 end return n'), 0)
 
     def test_solo_pass(self):
-        rep = self.net(solo=True).run('rs.carnet.load')
+        rep = self.net(solo=True).run('lk.carnet.load')
         self.assertEqual({v[0] for v in rep.results.values()}, {'PASS'})
 
     def test_detects_fiches_created_by_the_scan(self):
-        rep = self.net(defects=('ensureOnScan',)).run('rs.carnet.load')
+        rep = self.net(defects=('ensureOnScan',)).run('lk.carnet.load')
         self.assert_status(rep, 'no fiche and no LLM', 'FAIL', 'without contact')
 
     def test_detects_a_periodic_broadcast(self):
-        rep = self.net(defects=('pushEverySecond',)).run('rs.carnet.load')
+        rep = self.net(defects=('pushEverySecond',)).run('lk.carnet.load')
         self.assert_status(rep, 'idle server', 'FAIL', 'snapshot(s) pushed to')
 
     def test_detects_a_periodic_save(self):
-        rep = self.net(defects=('saveAlways',), users=('rs_mp1',)).run('rs.carnet.load')
+        rep = self.net(defects=('saveAlways',), users=('rs_mp1',)).run('lk.carnet.load')
         self.assert_status(rep, 'idle server', 'FAIL', 'saves of an unchanged state')
 
     def test_save_after_a_real_change_is_not_an_idle_save(self):
         # A module that saves after a real change (fiche seen again) during the window: not a save of an unchanged
         # state (MP campaign of 2026-10-15: 1 save counted, the 3-argument broadcast threw in the suite's wrapper).
-        rep = self.net(defects=('seenEverySecond',)).run('rs.carnet.load')
+        rep = self.net(defects=('seenEverySecond',)).run('lk.carnet.load')
         self.assert_status(rep, 'idle server', 'PASS')
 
     def test_detects_a_contacted_fiche_pruned(self):
-        rep = self.net(defects=('pruneContacts',)).run('rs.carnet.load')
+        rep = self.net(defects=('pruneContacts',)).run('lk.carnet.load')
         self.assert_status(rep, 'contacted fiche', 'FAIL', 'pruned')
 
 
 # ------------------------------------------------------------------------------------------------ E08-T07
 
 class ObservationTests(Bench):
-    """rs.observations : un fait par témoin admissible, jamais chez un PNJ qui n'a rien pu voir, aucune fiche créée."""
+    """lk.observations : un fait par témoin admissible, jamais chez un PNJ qui n'a rien pu voir, aucune fiche créée."""
 
     def test_mp_pass(self):
-        rep = self.net().run('rs.observations')
+        rep = self.net().run('lk.observations')
         self.assertEqual({v[0] for v in rep.results.values()}, {'PASS'}, rep.results)
 
     def test_solo_pass(self):
-        rep = self.net(solo=True).run('rs.observations')
+        rep = self.net(solo=True).run('lk.observations')
         self.assertEqual({v[0] for v in rep.results.values()}, {'PASS'}, rep.results)
 
     def test_detects_unnamed_witnesses(self):
-        rep = self.net(defects=('allWitness',)).run('rs.observations')
+        rep = self.net(defects=('allWitness',)).run('lk.observations')
         self.assert_status(rep, 'assault_seen', 'FAIL', 'who could not witness it')
 
     def test_detects_a_second_publication_of_a_death(self):
-        rep = self.net(defects=('doubleDeath',)).run('rs.observations')
+        rep = self.net(defects=('doubleDeath',)).run('lk.observations')
         self.assert_status(rep, 'group_death: the members that see', 'FAIL', 'group_death of')
 
     def test_materialized_member_body_removed(self):
-        # A body left by the member without body (materialized by Living Knox) stood on the spot of rs.relation.
+        # A body left by the member without body (materialized by Living Knox) stood on the spot of lk.relation.
         net = self.net()
         net.server.lua('MATERIALIZE = true')
-        rep = net.run('rs.observations')
+        rep = net.run('lk.observations')
         self.assertEqual({v[0] for v in rep.results.values()}, {'PASS'}, rep.results)
         self.assertEqual(net.server.lua('local n = 0 for _ in pairs(BODIES) do n = n + 1 end return n'), 0)
 
     def test_blind_witness_expected_nothing(self):
         net = self.net()
         net.server.lua('BLIND["1002,1002"] = true')   # B (2, 2 from the requester) sees nothing
-        rep = net.run('rs.observations')
+        rep = net.run('lk.observations')
         self.assert_status(rep, 'group_death: the members that see', 'PASS')
         notes = ' '.join(rep.notes[next(k for k in rep.notes if k.startswith('group_death: the members'))])
         self.assertIn('witnesses expected: A', notes)
@@ -1138,7 +1142,7 @@ FACTION_DEFECTS = {
 
 
 class FactionMandateTests(Bench):
-    """rs.factions.mandate : vrai RS_Factions, faction créée et renommée par les paquets du client propriétaire."""
+    """ca.factions.mandate : vrai RS_Factions, faction créée et renommée par les paquets du client propriétaire."""
 
     def faction_net(self, defect=None, **kw):
         net = self.net(**kw)
@@ -1148,7 +1152,7 @@ class FactionMandateTests(Bench):
 
     def test_mp_two_clients_pass(self):
         net = self.faction_net()
-        rep = net.run('rs.factions.mandate')
+        rep = net.run('ca.factions.mandate')
         self.assert_status(rep, 'renamed faction', 'PASS')
         self.assert_status(rep, 'solo:', 'SKIP')
         # Faction disbanded by its owner, agreement removed.
@@ -1156,26 +1160,26 @@ class FactionMandateTests(Bench):
         self.assertEqual(net.server.lua('return #F.agreements()'), 0)
 
     def test_solo_personal_team(self):
-        rep = self.faction_net(solo=True).run('rs.factions.mandate')
+        rep = self.faction_net(solo=True).run('ca.factions.mandate')
         self.assert_status(rep, 'solo:', 'PASS')
         self.assert_status(rep, 'renamed faction', 'SKIP')
 
     def test_one_client_skips(self):
-        rep = self.faction_net(users=('rs_mp1',)).run('rs.factions.mandate')
+        rep = self.faction_net(users=('rs_mp1',)).run('ca.factions.mandate')
         self.assert_status(rep, 'renamed faction', 'SKIP')
 
     def test_detects_a_mandate_ignored(self):
-        rep = self.faction_net('mandateIgnored').run('rs.factions.mandate')
+        rep = self.faction_net('mandateIgnored').run('ca.factions.mandate')
         self.assert_status(rep, 'renamed faction', 'FAIL', 'member without mandate may conclude')
 
     def test_detects_agreements_lost_by_a_rename(self):
-        rep = self.faction_net('agreementByName').run('rs.factions.mandate')
+        rep = self.faction_net('agreementByName').run('ca.factions.mandate')
         self.assert_status(rep, 'renamed faction', 'FAIL', 'agreement lost by the rename')
 
     def test_faction_option_off_fails_with_a_reason(self):
         net = self.faction_net()
         net.server.lua('FACTION_OPTION = false')
-        rep = net.run('rs.factions.mandate')
+        rep = net.run('ca.factions.mandate')
         self.assert_status(rep, 'renamed faction', 'FAIL', 'faction never created')
 
 
@@ -1202,11 +1206,10 @@ class SourceTests(unittest.TestCase):
         for name, path in SUITE_FILES.items():
             code = path.read_text(encoding='ascii')
             asked = set(re.findall(r'Steps\.ask\(\w+, "([\w.]+)"', code))
-            if asked:
-                self.assertIn('require "RST/RST_PeerChecksRadio"', code, name)
-            steps = (DEV / 'shared' / 'RST' / 'RST_PeerChecksRadio.lua').read_text(encoding='ascii')
             for step in asked:
-                self.assertIn(f'Steps.on("{step}"', steps, f'{name}: step {step}')
+                owners = [f for f in STEP_HANDLERS if f'Steps.on("{step}"' in f.read_text(encoding='ascii')]
+                self.assertTrue(owners, f'{name}: step {step}')
+                self.assertTrue(any(f'require "RST/{f.stem}"' in code for f in owners), f'{name}: step {step}')
 
 
 if __name__ == '__main__':

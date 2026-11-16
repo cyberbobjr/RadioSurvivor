@@ -215,7 +215,7 @@ end
 -- to it; an answer to the player's own request (hello, snapshot and every command of this player) is always sent.
 -- Comparison on the encoded snapshot without its timestamp `at`. Several modules publish after a change that is not
 -- this player's (a line said by an NPC nobody of this character knows, a reply polled then published twice...): an
--- idle player no longer receives the same snapshot again (rs.carnet.load, E00-T04).
+-- idle player no longer receives the same snapshot again (lk.carnet.load, E00-T04).
 Server.lastSnapshot = {} -- player -> {key, body}; entries of absent players dropped by tick (no weak table in Kahlua)
 
 -- E18-T26: the fiche of an engine NPC (incarnation) belongs to its engine: without it the fiche is

@@ -6,7 +6,7 @@ Compile `tests/kahlua/KRun.java` avec ECJ (compilateur Eclipse, un seul jar : le
 puis lance une seule JVM qui charge les fichiers Lua comme le jeu (UTF-8 vers le lexeur Kahlua), injecte une horloge
 simulée (`RST.clock`) et fait avancer les ticks depuis Java (`KahluaThread.pcall` par tick, comme un événement du
 jeu). Vérifie : `rst.selftest` PASS ; `rst.failures` donne les FAIL / ERROR attendus et le passage se termine
-(`onDone` appelé) ; `ca.codec` (15/15, E00-T08) et `rs.missions` exécutés ; logique d'identité Living Knox (`LK_Identity.lua`, LK02-T02) registre des groupes (`LK_Groups.lua`, LK08-T01) et types de groupes en données (`LK_GroupTypes.lua`, LK08-T02), simulation hors écran (`LK_Simulation.lua`, LK09-T01). Échanges avec le pont (E00-T09) :
+(`onDone` appelé) ; `ca.codec` (15/15, E00-T08) et `ca.missions` exécutés ; logique d'identité Living Knox (`LK_Identity.lua`, LK02-T02) registre des groupes (`LK_Groups.lua`, LK08-T01) et types de groupes en données (`LK_GroupTypes.lua`, LK08-T02), simulation hors écran (`LK_Simulation.lua`, LK09-T01). Échanges avec le pont (E00-T09) :
 une demande RSV2 accentuée encodée par la VM Kahlua est décodée par `bridge/npc_protocol.py`, et une réponse encodée
 par Python est relue par la VM Kahlua, sans mojibake.
 Fiches de voix (E05-T01) : `RS_Persona` lit dans la VM réelle les lignes que rendrait `getFileReader` (accents, hors BMP,
@@ -58,6 +58,8 @@ LUA_FILES = [
     # E21-T07: mods guard of each test mod (the suites require their registration).
     ('RST/RST_ModLivingKnox', TESTS_LUA / 'shared' / 'RST' / 'RST_ModLivingKnox.lua'),
     ('RST/RST_ModRadioSurvivor', TESTS_LUA / 'shared' / 'RST' / 'RST_ModRadioSurvivor.lua'),
+    # E21-T11: notebook helpers of the core test mod (RST_LKHelpers gives them the square of a talking npc).
+    ('RST/RST_CarnetHelpers', TESTS_LUA / 'shared' / 'RST' / 'RST_CarnetHelpers.lua'),
     ('RST/RST_LKHelpers', TESTS_LUA / 'shared' / 'RST' / 'RST_LKHelpers.lua'),
     ('RST/RST_LKProbe', TESTS_LUA / 'shared' / 'RST' / 'RST_LKProbe.lua'),
     # E18-T05 : catalogue des missions du mod commun (requis par RS_Config et CA_Missions).
@@ -85,7 +87,7 @@ LUA_FILES = [
     # E21-T04 : etat prive du carnet dans le mod commun (RS_State en est un compagnon).
     ('CoreAI/CA_NotebookPurge', CORE_LUA / 'server' / 'CoreAI' / 'CA_NotebookPurge.lua'),
     ('CoreAI/CA_NotebookStore', CORE_LUA / 'server' / 'CoreAI' / 'CA_NotebookStore.lua'),
-    ('CoreAI/CA_NotebookGiver', CORE_LUA / 'server' / 'CoreAI' / 'CA_NotebookGiver.lua'),  # rs.missions
+    ('CoreAI/CA_NotebookGiver', CORE_LUA / 'server' / 'CoreAI' / 'CA_NotebookGiver.lua'),  # ca.missions
     ('RadioSurvivor/RS_State', MOD_LUA / 'server' / 'RadioSurvivor' / 'RS_State.lua'),
     ('RadioSurvivor/RS_PersonaParams', MOD_LUA / 'server' / 'RadioSurvivor' / 'RS_PersonaParams.lua'),  # E20-T03
     ('RadioSurvivor/RS_Persona', MOD_LUA / 'server' / 'RadioSurvivor' / 'RS_Persona.lua'),
@@ -180,7 +182,7 @@ LUA_FILES = [
     ('suite/selftest', TESTS_LUA / 'shared' / 'RST' / 'suites' / 'RST_SelfTest.lua'),
     ('suite/failures', TESTS_LUA / 'shared' / 'RST' / 'suites' / 'RST_Failures.lua'),
     ('suite/codec', TESTS_LUA / 'shared' / 'RST' / 'suites' / 'CA_Codec.lua'),
-    ('suite/missions', TESTS_LUA / 'shared' / 'RST' / 'suites' / 'RS_Missions.lua'),
+    ('suite/missions', TESTS_LUA / 'shared' / 'RST' / 'suites' / 'CA_MissionEngine.lua'),
     # E18-T06 : journal des missions du mod commun (lignes envoyees au joueur).
     ('CoreAI/CA_MissionList', CORE_LUA / 'shared' / 'CoreAI' / 'CA_MissionList.lua'),
     ('CoreAI/CA_MissionJournal', CORE_LUA / 'server' / 'CoreAI' / 'CA_MissionJournal.lua'),
@@ -192,7 +194,7 @@ LUA_FILES = [
     # E03-T02 : déclaration seule (interface du client : exécutée en jeu et sous lupa, tests/test_notebook_visual.py).
     ('suite/notebookvisual', TESTS_LUA / 'shared' / 'RST' / 'suites' / 'RS_NotebookVisual.lua'),
 ]
-RUNS = ['rst', 'rst.failures', 'ca.codec', 'rs.missions', 'ca.journal']
+RUNS = ['rst', 'rst.failures', 'ca.codec', 'ca.missions', 'ca.journal']
 MAX_TICKS = 5000
 sys.path.insert(0, str(ROOT / 'bridge'))
 sys.path.insert(0, str(ROOT / 'tests'))
@@ -1109,7 +1111,7 @@ class KahluaBench(unittest.TestCase):
         self.assertEqual(bytes.fromhex(self.line('KR-TEXTCUT')).decode('utf-8'), expected)
 
     def test_missions_pass(self):
-        res = self.statuses('rs.missions')
+        res = self.statuses('ca.missions')
         self.assertEqual(len(res), 14)
         bad = {k: v for k, v in res.items() if v[0] != 'PASS'}
         self.assertEqual(bad, {})

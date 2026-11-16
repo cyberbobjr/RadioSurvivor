@@ -236,7 +236,7 @@ class DriverTests(unittest.TestCase):
 
     def test_parse_tags_and_exclude(self):
         d = Driver(self.root)
-        d.lua('C = RST.AutoClient.parse({ "token=a", "save=s", "suite=rs.npctalk", "tags=world", "exclude=" })')
+        d.lua('C = RST.AutoClient.parse({ "token=a", "save=s", "suite=lk.npctalk", "tags=world", "exclude=" })')
         self.assertEqual(d.lua('return C.tags[1] .. #C.tags .. #C.exclude'), 'world10')
         d.lua('C = RST.AutoClient.parse({ "token=a", "save=s", "suite=rs.env" })')
         self.assertEqual(d.lua('return tostring(C.tags) .. tostring(C.exclude)'), 'nilnil')
@@ -290,7 +290,7 @@ class DriverTests(unittest.TestCase):
     # ------------------------------------------------------------ multiplayer (E01-T15), simulated
 
     MP_COMMAND = ('token=mp1\nconnect=127.0.0.1:17391\nuser=rs_mp1\npassword=pw\ncontrol=true\n'
-                  'serverSuite=rs.identity\nstartDelaySec=0\nscreenshot=false\n')
+                  'serverSuite=ca.identity\nstartDelaySec=0\nscreenshot=false\n')
 
     def mp_menu(self, d):
         d.lua('''
@@ -347,7 +347,7 @@ class DriverTests(unittest.TestCase):
         self.assertEqual(d2.lua('return #SENT'), 0)  # waits for "go"
         self.control('go')
         d2.fire('OnTick', 3)
-        self.assertEqual(d2.lua('return SENT[1].command .. " " .. SENT[1].args.filter.suite[1]'), 'run rs.identity')
+        self.assertEqual(d2.lua('return SENT[1].command .. " " .. SENT[1].args.filter.suite[1]'), 'run ca.identity')
         sid = d2.lua('return SENT[1].args.id')
         d2.lua(f'Events.OnServerCommand.fire("RST", "report", {{ id = {sid}, ok = true, total = 2, pass = 2, fail = 0,'
                ' error = 0, skip = 0, empty = 0, durationMs = 40, summary = "RST OK: 2/2", file = "x-server.txt",'
@@ -511,7 +511,7 @@ class LauncherTests(unittest.TestCase):
             autoclient.command_text('ab12', 's', 'Sandbox', 'solo-rs', ['x'], 5, True, True)
         with self.assertRaises(ValueError):
             autoclient.command_text('a-b', 's', 'Sandbox', 'solo-rs', None, 5, True, True)
-        text = autoclient.command_text('ab12', 's', 'Sandbox', None, ['rs.npctalk'], 5, True, True, 'world', '')
+        text = autoclient.command_text('ab12', 's', 'Sandbox', None, ['lk.npctalk'], 5, True, True, 'world', '')
         self.assertIn('tags=world\nexclude=\n', text)
         self.assertNotIn('tags=', autoclient.command_text('ab12', 's', 'Sandbox', None, ['x'], 5, True, True))
         with self.assertRaises(ValueError):
@@ -760,26 +760,26 @@ class MPLauncherTests(unittest.TestCase):
 class PhaseTests(unittest.TestCase):
     """Reconnection and restart steps of the MP launcher (E01-T17): plan, commands, driver, orchestration."""
 
-    DECLARED = {'rs.identity', 'rs.identity.before', 'rs.identity.after-reconnect', 'rs.identity.after-restart',
+    DECLARED = {'ca.identity', 'ca.identity.before', 'ca.identity.after-reconnect', 'ca.identity.after-restart',
                 'lk.homes', 'lk.homes.before', 'lk.homes.after-restart', 'x.before'}
 
     def test_phase_plan_runs_checks_then_a_fresh_snapshot(self):
-        steps = autoclient.phase_plan(['rs.identity', 'lk.homes'], ['reconnect', 'restart'], self.DECLARED)
+        steps = autoclient.phase_plan(['ca.identity', 'lk.homes'], ['reconnect', 'restart'], self.DECLARED)
         self.assertEqual(steps, [
-            [['rs.identity.before', 'lk.homes.before']],
-            [['rs.identity.after-reconnect'], ['rs.identity.before']],   # homes: nothing after a reconnection
-            [['rs.identity.after-restart', 'lk.homes.after-restart']],   # last step: no snapshot again
+            [['ca.identity.before', 'lk.homes.before']],
+            [['ca.identity.after-reconnect'], ['ca.identity.before']],   # homes: nothing after a reconnection
+            [['ca.identity.after-restart', 'lk.homes.after-restart']],   # last step: no snapshot again
         ])
         self.assertEqual(autoclient.phase_plan(['lk.homes'], ['reconnect', 'restart'], self.DECLARED)[1], [])
-        self.assertEqual(autoclient.phase_plan(['rs.identity'], ['restart'], self.DECLARED),
-                         [[['rs.identity.before']], [['rs.identity.after-restart']]])
+        self.assertEqual(autoclient.phase_plan(['ca.identity'], ['restart'], self.DECLARED),
+                         [[['ca.identity.before']], [['ca.identity.after-restart']]])
 
     def test_phase_plan_refuses_unusable_plans(self):
         for bases, phases, why in ((['nope'], ['restart'], 'no suite nope.before'),
                                    (['x'], ['restart'], 'none of x.after-restart'),
                                    (['lk.homes'], ['reconnect'], 'none of lk.homes.after-reconnect'),
-                                   (['rs.identity'], ['reboot'], 'unknown phase'),
-                                   (['rs.identity'], [], 'no phase'), ([], ['restart'], 'no base')):
+                                   (['ca.identity'], ['reboot'], 'unknown phase'),
+                                   (['ca.identity'], [], 'no phase'), ([], ['restart'], 'no base')):
             with self.assertRaises(ValueError) as ctx:
                 autoclient.phase_plan(bases, phases, self.DECLARED)
             self.assertIn(why, str(ctx.exception))
@@ -789,7 +789,7 @@ class PhaseTests(unittest.TestCase):
         lua = autoclient.campaign_text()
         bases = autoclient.campaign_suites(lua, 'mp-persist')
         self.assertEqual(len(bases), len(set(bases)), bases)
-        for known in ('rs.identity', 'lk.walls', 'rs.radiotab', 'rst.disconnect', 'lk.rejoin'):
+        for known in ('ca.identity', 'lk.walls', 'rs.radiotab', 'rst.disconnect', 'lk.rejoin'):
             self.assertIn(known, bases)
         self.assertEqual('lk.rejoin', bases[-1])   # its before step moves the requester away
         declared = autoclient.declared_suite_names(autoclient.test_lua_dirs())
@@ -917,7 +917,7 @@ class PhaseTests(unittest.TestCase):
             timeout, menu_timeout, godmode, quit_timeout, server_timeout, restart_pause = 60, 60, True, 5, 5, 0
 
         phases = ['reconnect', 'restart']
-        steps = autoclient.phase_plan(['rs.identity', 'lk.homes'], phases, self.DECLARED)
+        steps = autoclient.phase_plan(['ca.identity', 'lk.homes'], phases, self.DECLARED)
         with tempfile.TemporaryDirectory() as tmp:
             clients = [FakeClient(i, Path(tmp) / f'c{i}', f'tokc{i}', f'rs_mp{i}', 'run' if i == 1 else 'peer')
                        for i in (1, 2)]
@@ -943,8 +943,8 @@ class PhaseTests(unittest.TestCase):
             self.assertEqual([(e[1], e[2]) for e in starts], [(1, 'tokc1'), (2, 'tokc2'), (1, 'tokc1p1'),
                                                              (2, 'tokc2p1'), (1, 'tokc1p2'), (2, 'tokc2p2')])
             self.assertEqual([e[3] for e in starts if e[1] == 1], [
-                'rs.identity.before,lk.homes.before', 'rs.identity.after-reconnect;rs.identity.before',
-                'rs.identity.after-restart,lk.homes.after-restart'])
+                'ca.identity.before,lk.homes.before', 'ca.identity.after-reconnect;ca.identity.before',
+                'ca.identity.after-restart,lk.homes.after-restart'])
             # one relaunch of the server, after the clients of step 1 quit; "quit" on the console of the first one
             relaunch = events.index(('server', 2))
             self.assertEqual(events[relaunch + 1][:3], ('start', 1, 'tokc1p2'))
@@ -990,7 +990,7 @@ class PhaseTests(unittest.TestCase):
             tests.mkdir(parents=True)
             (tests / 'autoclient.txt').write_text(
                 'token=mp1p1\nconnect=127.0.0.1:17391\nuser=rs_mp1\npassword=pw\ncontrol=true\n'
-                'serverSuite=rs.identity.after-reconnect;rs.identity.before,lk.homes.before\n'
+                'serverSuite=ca.identity.after-reconnect;ca.identity.before,lk.homes.before\n'
                 'serverTags=server,shared,world\nserverExclude=\nstartDelaySec=0\nscreenshot=false\n', encoding='utf-8')
             d = Driver(root)
             d.lua('C = RST.AutoClient.parse({ "token=t", "connect=h:1", "user=u", "serverSuite=a;b,c" })')
@@ -1011,7 +1011,7 @@ class PhaseTests(unittest.TestCase):
             d.fire('OnGameStart')
             (tests / 'autoclient-control.txt').write_text('go\n', encoding='utf-8')
             d.fire('OnTick', 3)
-            self.assertEqual(d.lua('return table.concat(SENT[1].args.filter.suite, ",")'), 'rs.identity.after-reconnect')
+            self.assertEqual(d.lua('return table.concat(SENT[1].args.filter.suite, ",")'), 'ca.identity.after-reconnect')
             self.assertEqual(d.lua('return table.concat(SENT[1].args.filter.tags, ",")'), 'server,shared,world')
             sid = d.lua('return SENT[1].args.id')
             d.lua(f'Events.OnServerCommand.fire("RST", "report", {{ id = {sid}, ok = true, total = 4, pass = 4, '
@@ -1020,7 +1020,7 @@ class PhaseTests(unittest.TestCase):
             d.fire('OnTick', 2)
             self.assertEqual(d.lua('return #SENT'), 2)   # second run asked once the first report is in
             self.assertEqual(d.lua('return table.concat(SENT[2].args.filter.suite, ",")'),
-                             'rs.identity.before,lk.homes.before')
+                             'ca.identity.before,lk.homes.before')
             self.assertFalse((tests / 'autoclient-result.txt').exists())
             sid2 = d.lua('return SENT[2].args.id')
             d.lua(f'Events.OnServerCommand.fire("RST", "report", {{ id = {sid2}, ok = false, total = 2, pass = 1, '
@@ -1321,19 +1321,19 @@ class BridgeTests(unittest.TestCase):
 
     def test_needs_bridge_by_suite_and_campaign(self):
         lua = autoclient.campaign_text()
-        self.assertTrue(autoclient.needs_bridge(None, ['rs.npctalk']))
+        self.assertTrue(autoclient.needs_bridge(None, ['lk.npctalk']))
         self.assertTrue(autoclient.needs_bridge(None, ['rs.radiomodule.world']))
         self.assertTrue(autoclient.needs_bridge(None, ['rs']))
-        self.assertFalse(autoclient.needs_bridge(None, ['rs.env', 'rst.guard', 'rs.relationx']))
+        self.assertFalse(autoclient.needs_bridge(None, ['rs.env', 'rst.guard', 'lk.relationx']))
         self.assertTrue(autoclient.needs_bridge('solo-rs', None, lua))
         self.assertTrue(autoclient.needs_bridge('solo-lk', None, lua))   # lk.conversations, lk.initiatives
         self.assertTrue(autoclient.needs_bridge('solo', None, lua))
         self.assertTrue(autoclient.needs_bridge('unknown-campaign', None, lua))
-        self.assertIn('rs.npctalk', autoclient.campaign_suites(lua, 'solo-rs'))
+        self.assertIn('lk.npctalk', autoclient.campaign_suites(lua, 'solo-lk'))
         self.assertNotIn('E01-T06', autoclient.campaign_suites(lua, 'solo-rs'))
         # E01-T16: the four notebook suites run in MP through the requester client, bridge on the server
         mp = autoclient.campaign_suites(lua, 'mp')
-        for name in ('rs.npctalk', 'rs.relation', 'lk.conversations', 'lk.initiatives'):
+        for name in ('lk.npctalk', 'lk.relation', 'lk.conversations', 'lk.initiatives'):
             self.assertIn(name, mp)
         self.assertTrue(autoclient.needs_bridge('mp', None, lua))
 
@@ -1458,20 +1458,20 @@ class CampaignContentTests(unittest.TestCase):
 
     def test_mp_holds_the_suites_of_e01_t19_and_the_routines_last(self):
         mp = self.campaign('mp')
-        for entry in ('rs.mission', 'rs.factions.accord', 'rs.factions.incident', 'rs.trade_exchange',
+        for entry in ('ca.mission', 'lk.factions.accord', 'lk.factions.incident', 'rs.trade_exchange',
                       'rs.trade_run', 'rs.groupradio', 'rs.actions.map', 'rs.actions.reveal', 'lk.traversal',
                       'lk.force', 'lk.stuck', 'lk.expedition', 'lk.meals', 'lk.provisions', 'lk.forage', 'lk.repair', 'lk.milestone1',
                       'lk.essai', 'lk.equipment', 'lk.ranged', 'lk.speech', 'lk.garden', 'lk.routines'):
             self.assertIn(entry, mp)
         self.assertEqual(mp[-1], 'lk.routines')
-        # "rs.missions" never selects the templates (singular): "rs.mission" does
-        self.assertNotIn('rs.mission.clear', selected('rs.missions', self.suites))
-        # (at least these templates; later ones, e.g. rs.mission.zones, are selected the same way)
-        self.assertLessEqual({'rs.mission.clear', 'rs.mission.recover', 'rs.mission.retrieve', 'rs.mission.signal'},
-                             set(selected('rs.mission', self.suites)))
+        # "ca.missions" never selects the templates (singular): "ca.mission" does
+        self.assertNotIn('ca.mission.clear', selected('ca.missions', self.suites))
+        # (at least these templates; later ones, e.g. ca.mission.zones, are selected the same way)
+        self.assertLessEqual({'ca.mission.clear', 'ca.mission.recover', 'ca.mission.retrieve', 'ca.mission.signal'},
+                             set(selected('ca.mission', self.suites)))
         self.assertNotIn('rs.mission.nosignal', self.suites)   # 2026-10-15: Signal Smoke is a required mod
         for suite in ('rs.groupradio', 'rs.trade_run', 'lk.equipment', 'lk.ranged', 'lk.speech', 'rs.actions.map',
-                      'rs.actions.reveal', 'rs.mission.signal'):
+                      'rs.actions.reveal', 'ca.mission.signal'):
             self.assertTrue(on_server(self.suites[suite]), suite)
 
     def test_solo_lists_and_ambient_campaign(self):
@@ -1481,7 +1481,7 @@ class CampaignContentTests(unittest.TestCase):
             self.assertIn(entry, solo)
         self.assertTrue(autoclient.needs_bridge('solo-lk', None, self.lua))
         ambient = self.campaign('mp-ambient')
-        self.assertEqual(sorted(ambient), sorted(['lk.load', 'lk.zombies', 'lk.alert', 'lk.defense', 'rs.identity',
+        self.assertEqual(sorted(ambient), sorted(['lk.load', 'lk.zombies', 'lk.alert', 'lk.defense', 'ca.identity',
                                                   'rs.facts']))
         self.assertFalse(autoclient.needs_bridge('mp-ambient', None, self.lua))
 
@@ -1514,13 +1514,14 @@ class LoadAndSignalSmokeTests(unittest.TestCase):
         # E21-T07: each test mod registers its parts; a setup reads only the campaign files of its test mods.
         lk = autoclient.campaign_text('lk')
         self.assertEqual(autoclient.campaign_suites(lk, 'solo-lk'), autoclient.campaign_suites(lk, 'solo'))
-        self.assertEqual(autoclient.campaign_suites(lk, 'solo-lk')[:4],
-                         ['rst.guard', 'ca.codec', 'ca.notebook', 'lk.fitness'])
+        core = ['rst.guard', 'ca.codec', 'ca.notebook', 'ca.factions.mandate', 'ca.reputation', 'ca.missions',
+                'ca.mission.signal.client', 'ca.notebook.ink', 'ca.caches']
+        self.assertEqual(autoclient.campaign_suites(lk, 'solo-lk')[:len(core) + 1], core + ['lk.fitness'])
         self.assertEqual(autoclient.test_lua_dirs('lk'), [ROOT / 'dev' / m / '42.21' / 'media' / 'lua'
                                                           for m in ('batman_CoreAITests', 'batman_LivingKnoxTests')])
         both = autoclient.campaign_text()
         solo_lk, solo_rs = (autoclient.campaign_suites(both, n) for n in ('solo-lk', 'solo-rs'))
-        self.assertEqual(autoclient.campaign_suites(both, 'solo'), solo_lk + solo_rs[3:])
+        self.assertEqual(autoclient.campaign_suites(both, 'solo'), solo_lk + solo_rs[len(core):])
         self.assertEqual(autoclient.campaign_suites(both, 'mp')[-2:], ['rs.death', 'lk.routines'])
         self.assertEqual(autoclient.declared_campaigns(lk), {'solo-lk', 'solo-rs', 'solo', 'solo-retry', 'mp',
                                                              'mp-ambient', 'mp-load', 'mp-persist'})
@@ -1724,7 +1725,7 @@ class ParallelRunTests(unittest.TestCase):
         self.assertIn('UDPPort=17412\n', ini)
 
     def test_shards_cover_every_entry_once_and_are_stable(self):
-        entries = ['rs.env', 'rs.codec', 'lk.load', 'lk.melee', 'rs.mission', 'lk.routines', 'lk.walls']
+        entries = ['rs.env', 'rs.codec', 'lk.load', 'lk.melee', 'ca.mission', 'lk.routines', 'lk.walls']
         for n in (1, 2, 3):
             parts = [autoclient.shard_entries(entries, k, n) for k in range(1, n + 1)]
             self.assertEqual(sorted(e for p in parts for e in p), sorted(entries))
@@ -1733,10 +1734,10 @@ class ParallelRunTests(unittest.TestCase):
             self.assertEqual(parts, [autoclient.shard_entries(entries, k, n) for k in range(1, n + 1)])
         # Durations known: the long entries spread first.
         durations = {'lk.melee.a': 600000, 'lk.walls': 500000, 'lk.routines': 400000, 'lk.load': 300000,
-                     'rs.mission.clear': 100000, 'rs.mission.signal': 50000, 'rs.codec': 100000, 'rs.env': 1000}
+                     'ca.mission.clear': 100000, 'ca.mission.signal': 50000, 'rs.codec': 100000, 'rs.env': 1000}
         parts = [autoclient.shard_entries(entries, k, 2, durations) for k in (1, 2)]
         self.assertNotEqual('lk.melee' in parts[0], 'lk.walls' in parts[0], 'the two longest entries together')
-        self.assertEqual(autoclient.entry_duration('rs.mission', durations), 150000)
+        self.assertEqual(autoclient.entry_duration('ca.mission', durations), 150000)
         self.assertEqual(autoclient.parse_shard('2/3'), (2, 3))
         for bad in ('0/3', '4/3', 'x', ''):
             with self.assertRaises(ValueError):
@@ -1755,7 +1756,7 @@ class ParallelRunTests(unittest.TestCase):
     def test_apply_shard(self):
         import argparse
         lua = ('RST.Campaigns.add("mp", 30, {\n    "rs.env",\n    "rs.codec",\n    "lk.load",\n})\n'
-               'RST.Campaigns.add({ "mp-persist" }, 30, {\n    "rs.identity",\n})\n')
+               'RST.Campaigns.add({ "mp-persist" }, 30, {\n    "ca.identity",\n})\n')
         empty = Path(tempfile.mkdtemp())
         base = dict(campaign=None, suite=None, tags=None, exclude=None, server_campaign='mp', server_suite=None,
                     server_tags=None, server_exclude=None, phases=None, shard='1/2')
@@ -1982,7 +1983,7 @@ class FrozenCopyAndRespawnTests(unittest.TestCase):
         self.assertEqual(autoclient.respawn_count(text, 't9'), 0)
 
     def test_quit_wait_line(self):
-        runs = [['rs.identity.before'], ['rst.disconnect.before', 'lk.rejoin.before']]
+        runs = [['ca.identity.before'], ['rst.disconnect.before', 'lk.rejoin.before']]
         self.assertEqual(autoclient.quit_wait_line(runs, 'reconnect2', ['rs_mp2']),
                          "run started by account 'rs_mp2'")
         self.assertIsNone(autoclient.quit_wait_line(runs, 'restart', ['rs_mp1', 'rs_mp2']))

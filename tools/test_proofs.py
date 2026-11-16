@@ -208,7 +208,7 @@ personne devant le PC, sur une copie de la partie de test, avec ou sans le pont 
 <h2>À lire avant</h2>
 <ul>
 <li>Le client tourne sans Steam et avec nos seuls mods : les tests qui ont besoin d'un mod d'armes sont ignorés (SKIP).</li>
-<li>Un run « sans pont » ne peut pas réussir les suites de dialogue (<span class="mono">rs.npctalk</span>, envoi radio à Walt) : ces échecs sont attendus.</li>
+<li>Un run « sans pont » ne peut pas réussir les suites de dialogue (<span class="mono">lk.npctalk</span>, envoi radio à Walt) : ces échecs sont attendus.</li>
 <li>Ce qu'aucun script ne juge reste à votre œil : rendu des captures, sons, lisibilité.</li>
 </ul>
 </section>

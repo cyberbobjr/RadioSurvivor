@@ -1,8 +1,10 @@
 --[[
 RST_CampaignLK - parts of the RST campaigns that run the Living Knox suites (E21-T07, registry of RST_Campaign.lua in
 batman_CoreAITests: rank 20, suites that must come last 90). Development mod only (batman_LivingKnoxTests).
-Order: short suites first, long group suites (chores, defense) last. lk.conversations and lk.initiatives need the
-Python bridge (the real model; autoclient.py BRIDGE_SUITES starts it).
+Order: short suites first, long group suites (chores, defense) last. lk.conversations, lk.initiatives, lk.npctalk and
+lk.relation need the Python bridge (the real model; autoclient.py BRIDGE_SUITES starts it). E21-T11: the notebook
+suites of the npcs (lk.npctalk, lk.relation, lk.carnet.*, lk.factions.*, lk.observations, lk.worldtriggers,
+lk.notebook.relation, lk.reputation) come from batman_RadioSurvivorTests.
 ]]
 
 require "RST/RST_Campaign"
@@ -23,6 +25,13 @@ RST.Campaigns.add({ "solo-lk", "solo" }, 20, {
     "rst.fixtures.npc", -- E01-T10, E01-T18 (test API of Living Knox, debug mode)
     "lk.conversations", -- E08-T04, E08-T05 (E01-T19, bridge)
     "lk.initiatives",   -- E08-T03 (E01-T19, bridge)
+    "lk.notebook.relation", -- E09-T07
+    "lk.worldtriggers", -- E08-T08
+    "lk.npctalk",       -- E17-T08, E17-T09 (bridge)
+    "lk.relation",      -- E09-T04 (bridge)
+    "lk.carnet.load",   -- E00-T04
+    "lk.observations",  -- E08-T07
+    "lk.reputation",    -- E04-T07, E04-T14 (killer of a requester)
     "lk.deathswing",    -- LK06-T13
     "lk.windowlure",    -- LK06-T10
     "lk.revenge",       -- LK11-T05 (E01-T19)
@@ -54,6 +63,8 @@ RST.Campaigns.add("solo-retry", 20, {
     "lk.anims",         -- place check on a stale current square
     "lk.windowlure",    -- npc pushed outside the window
     "lk.chores",        -- player seen as an intruder at home
+    "lk.worldtriggers", -- storm forced at once (modded weather period)
+    "lk.npctalk",       -- zombies cleared, exact reason of a lost answer (bridge)
 })
 
 -- Dedicated server (RST.server, see RST_Campaign.lua). Suites whose check is drawn by a client (lk.equipment,
@@ -86,6 +97,18 @@ RST.Campaigns.add("mp", 20, {
     "lk.chatter",       -- E18-T32
     "lk.conversations", -- E08-T04, E08-T05 (E01-T16: notebook of the requester client, bridge on the server)
     "lk.initiatives",   -- E08-T03 (bridge)
+    -- E01-T16: notebook suites through the requester client (RST.Steps): real network path, bridge on the server.
+    "lk.npctalk",       -- E17-T08, E17-T09, E17-T13 (bridge)
+    "lk.relation",      -- E09-T04 (bridge)
+    "lk.carnet.npc",    -- E17-T03 (fixture group, E01-T19)
+    "lk.carnet.supply", -- E17-T03 (fixture group, E01-T19)
+    "lk.carnet.leader", -- E10-T02 (non-leader member, reply after a death or a succession)
+    "lk.factions.accord", -- E09-T05 (E01-T19)
+    "lk.factions.incident", -- E09-T06 (E01-T19: hit simulated on the authority)
+    "lk.reputation",    -- E04-T07, E04-T14 (two clients: killer and team mate)
+    "lk.worldtriggers", -- E08-T08
+    "lk.carnet.load",   -- E00-T04
+    "lk.observations",  -- E08-T07
     "lk.zombies",       -- LK06-T04
     "lk.traversal",     -- LK04-T03..T18 (E01-T19; sites missing near the spawn house: SKIP per test)
     "lk.doors",         -- LK04-T02 (2026-10-15: both clients see the same door state, no double toggle)

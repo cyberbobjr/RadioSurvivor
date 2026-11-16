@@ -336,7 +336,7 @@ class PeerCheckTests(unittest.TestCase):
         self.assertEqual(self.m.lua('return RST.PeerChecks.itemsKey(nil)'), '')
 
     def test_world_loaded_waits_for_every_square_then_the_settle_time(self):
-        """Campagne MP du 2026-11-05 (rs.mission.retrieve) : un client attend d'avoir chargé la zone, puis d'y rester
+        """Campagne MP du 2026-11-05 (ca.mission.retrieve) : un client attend d'avoir chargé la zone, puis d'y rester
         settleMs, avant que le serveur y pose un cadavre ; une case perdue remet le compte à zéro."""
         self.m.lua('NOW = 0; getTimestampMs = function() return NOW end; LOADED = {}'
                    'getCell = function() return { getGridSquare = function(_, x, y, z) '

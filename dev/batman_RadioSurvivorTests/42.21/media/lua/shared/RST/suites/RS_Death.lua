@@ -2,7 +2,7 @@
 rs.death - REAL death of the second client on a dedicated server, then its new character (E00-T02, E03-T04,
 E15-T02; E01-T16 second client). Tags "server" and "world": the authority, from RST.server of the admin client of the
 MP campaign (autoclient.py --mp --clients 2), save rstest*. Client steps: RST_PeerChecksDeath.lua (death.prepare,
-death.corpse, death.after) and RST_PeerChecks2.lua (carnet.claim).
+death.corpse, death.after) and RST_PeerChecksCarnet.lua (carnet.claim, batman_CoreAITests).
 
     1. death        the second client B leaves god mode the vanilla way (its client: setGodMod(false) +
                     sendPlayerExtraInfo); a zombie carrying the requester's identity in its ModData dies through the
@@ -40,7 +40,7 @@ require "RST/RST_ModRadioSurvivor"
 require "RST/RST_ModLivingKnox"
 require "RST/RST_Steps"
 require "RST/RST_PeerChecks2"
-require "RST/RST_PeerChecksRadio"
+require "RST/RST_PeerChecksCarnet"
 require "RST/RST_PeerChecksDeath"
 require "RST/RST_Fixtures"
 

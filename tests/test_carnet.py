@@ -1654,7 +1654,7 @@ class PlayerSpeechTests(unittest.TestCase):
 
 from harness import tests_lua  # noqa: E402  (E21-T07: media/lua of the test mods)
 TESTS_SHARED = tests_lua() / 'shared'
-IDENTITY_SUITE =TESTS_SHARED / 'RST' / 'suites' / 'RS_Identity.lua'
+IDENTITY_SUITE =TESTS_SHARED / 'RST' / 'suites' / 'CA_Identity.lua'
 
 
 PROBE_TEMPLATE = """
@@ -1907,7 +1907,7 @@ class LivingKnoxCarnetTests(unittest.TestCase):
         self.assertNotIn('grp-', window.detail.text)
 
     def test_in_game_suite_on_the_simulated_server(self):
-        """rs.carnet.lk and rs.carnet.lk.supply (dev mod) run by the real RST engine on the simulated server (test
+        """lk.carnet.npc and lk.carnet.supply (Living Knox test mod) run by the real RST engine on the simulated server (test
         save "rstest-lk"; item scripts: every Base.* type known)."""
         sim = Simulation(self.path / 'suite', living_knox=True)
         sim.server.rt.execute(LK_WORLD)
@@ -1924,8 +1924,8 @@ class LivingKnoxCarnetTests(unittest.TestCase):
             RST.Fixtures.WAIT_LOADED = false   -- no cell squares in this double: moves do not wait for them
         """)
         suite = tests_lua() / 'shared' / 'RST' / 'suites'
-        sim.server.rt.execute((suite / 'RS_CarnetLK.lua').read_text(encoding='utf-8'))
-        report = sim.server.rt.eval('RST.runSync("rs.carnet.lk")')
+        sim.server.rt.execute((suite / 'RST_LKCarnet.lua').read_text(encoding='utf-8'))
+        report = sim.server.rt.eval('RST.runSync({ suite = { "lk.carnet.npc", "lk.carnet.supply" } })')
         results = {(r.suite, r.test): r.status for r in report.results.values()}
         self.assertEqual(set(results.values()), {'PASS'}, {k: (r.status, r.message) for k, r in
                                                            ((x.test, x) for x in report.results.values())})
@@ -2669,7 +2669,7 @@ class ScoutMissionTests(unittest.TestCase):
         self.assertIn('IGUI_CA_ScoutReached|alice Doe', window.detail.text)
 
     def test_in_game_suite_on_the_simulated_server(self):
-        """rs.missions.scout (dev mod) run by the real RST engine on the server machine; the server move of
+        """ca.missions.scout (dev mod) run by the real RST engine on the server machine; the server move of
         RST_Fixtures (sendServerCommand "RST" "fx.move", answered by the client's /teleportto) is played directly on
         the server copy of the player."""
         sim, npc, record, missions = self.scout_sim('suite')
@@ -2688,9 +2688,9 @@ class ScoutMissionTests(unittest.TestCase):
             require 'RST/RST_Fixtures'
             RST.Fixtures.WAIT_LOADED = false   -- no cell squares in this double: moves do not wait for them
         """)
-        sim.server.rt.execute((TESTS_SHARED / 'RST' / 'suites' / 'RS_MissionScout.lua').read_text(encoding='utf-8'))
+        sim.server.rt.execute((TESTS_SHARED / 'RST' / 'suites' / 'CA_MissionScoutSuite.lua').read_text(encoding='utf-8'))
         alice = sim.server.g.PLAYERS.alice
-        self.assertTrue(sim.server.rt.eval('function(p) return RST.start("rs.missions.scout", '
+        self.assertTrue(sim.server.rt.eval('function(p) return RST.start("ca.missions.scout", '
                                            '{ attach = false, ctx = { player = p } }) end')(alice))
         for _ in range(200):
             if not sim.server.rt.eval('RST.step()'):
@@ -3440,7 +3440,7 @@ class VoiceMissionTests(unittest.TestCase):
 
     def test_in_game_suite_on_the_simulated_server(self):
         """rs.missions.radio (dev mod) run by the real RST engine on the server machine; the server move of
-        RST_Fixtures is played directly on the server copy of the player, as for rs.missions.scout."""
+        RST_Fixtures is played directly on the server copy of the player, as for ca.missions.scout."""
         sim = self.voice_sim('suite')
         shared = (TESTS_SHARED.as_posix() + '/?.lua')
         sim.server.rt.execute(f'package.path = [[{shared};]] .. package.path')
@@ -3474,7 +3474,7 @@ class VoiceMissionTests(unittest.TestCase):
 
 
 class IdentitySuiteTests(unittest.TestCase):
-    """Suites rs.identity* (E03-T04) run by the real RST engine on the server machine of the simulation.
+    """Suites ca.identity* (E03-T04) run by the real RST engine on the server machine of the simulation.
 
     Each scenario is the one of the in-game protocol: snapshot, then reconnection, restart or death, then the
     matching step. The simulation does not prove the Java API; it proves the suite tells a kept identity from a
@@ -3485,8 +3485,8 @@ class IdentitySuiteTests(unittest.TestCase):
     BEFORE_MISSION = 'a mission of a real Living Knox NPC engages every online account'
 
     def live_statuses(self, sim):
-        """rs.identity statuses; its test with a real Living Knox NPC needs a world run of the game (SKIP here)."""
-        results = self.run_suite(sim, 'rs.identity')
+        """ca.identity statuses; its test with a real Living Knox NPC needs a world run of the game (SKIP here)."""
+        results = self.run_suite(sim, 'ca.identity')
         self.assertEqual(results.pop(self.LIVE_NPC)[0], 'SKIP')
         return results
 
@@ -3526,7 +3526,7 @@ class IdentitySuiteTests(unittest.TestCase):
         sim.command('alice', 'note', npc=npc.id, text='keep me')
         self.assertEqual(count(sim.mission().participants), 2)
         self.load_suite(sim)
-        before = self.run_suite(sim, 'rs.identity.before')
+        before = self.run_suite(sim, 'ca.identity.before')
         self.assert_statuses(before, {self.BEFORE_MISSION: 'PASS', 'snapshot of the online accounts written': 'PASS'})
         return sim
 
@@ -3554,22 +3554,22 @@ class IdentitySuiteTests(unittest.TestCase):
         sim = Simulation(self.path / 'select')
         self.load_suite(sim)
         names = lambda flt: [e.name for _, e in sim.server.rt.execute(f'return RST.list({flt}, true)').items()]
-        self.assertEqual(names('"rs"'), ['rs.identity'])
-        self.assertEqual(names('"rs.identity"'), ['rs.identity'])
-        self.assertEqual(names('"rs.identity.after-death"'), ['rs.identity.after-death'])
-        self.assertEqual(names('{ tags = "manual" }'), ['rs.identity.before', 'rs.identity.after-reconnect',
-                                                         'rs.identity.after-restart', 'rs.identity.after-death'])
+        self.assertEqual(names('"ca"'), ['ca.identity'])
+        self.assertEqual(names('"ca.identity"'), ['ca.identity'])
+        self.assertEqual(names('"ca.identity.after-death"'), ['ca.identity.after-death'])
+        self.assertEqual(names('{ tags = "manual" }'), ['ca.identity.before', 'ca.identity.after-reconnect',
+                                                         'ca.identity.after-restart', 'ca.identity.after-death'])
         # Without a snapshot, a step fails with the instruction to take one.
-        status, message = self.run_suite(sim, 'rs.identity.after-reconnect')['same world and session']
+        status, message = self.run_suite(sim, 'ca.identity.after-reconnect')['same world and session']
         self.assertEqual(status, 'FAIL')
-        self.assertIn("run RST.server('rs.identity.before') first", message)
+        self.assertIn("run RST.server('ca.identity.before') first", message)
 
     def test_reconnect_keeps_identity_notes_engagement_and_clock(self):
         sim = self.engaged('reconnect')
         self.disconnect(sim, 'alice')
         sim.clock.offset += 30000; sim.tick()
         sim.add_client('alice')  # new client machine: empty client modData
-        self.assert_statuses(self.run_suite(sim, 'rs.identity.after-reconnect'), {
+        self.assert_statuses(self.run_suite(sim, 'ca.identity.after-reconnect'), {
             'same world and session': 'PASS', 'same identity for each account': 'PASS',
             'notes and engagements kept': 'PASS', 'mission clock ran during the disconnection': 'PASS'})
 
@@ -3580,7 +3580,7 @@ class IdentitySuiteTests(unittest.TestCase):
         sim.clock.stop(30000); sim.tick()
         sim.clock.offset += 4000; sim.tick()
         sim.add_client('alice')
-        self.assertEqual(self.run_suite(sim, 'rs.identity.after-reconnect')['mission clock ran during the disconnection'][0],
+        self.assertEqual(self.run_suite(sim, 'ca.identity.after-reconnect')['mission clock ran during the disconnection'][0],
                          'PASS')
 
     def test_reconnect_detects_a_lost_server_identity(self):
@@ -3588,7 +3588,7 @@ class IdentitySuiteTests(unittest.TestCase):
         self.disconnect(sim, 'alice')
         del sim.player_data['alice'].CA_Character  # E00-T01 regression: server copy not kept
         sim.add_client('alice')
-        results = self.run_suite(sim, 'rs.identity.after-reconnect')
+        results = self.run_suite(sim, 'ca.identity.after-reconnect')
         self.assertEqual(results['same identity for each account'][0], 'FAIL')
         self.assertIn('alice/0 modData identity', results['same identity for each account'][1])
         self.assertEqual(results['notes and engagements kept'][0], 'PASS', 'old record keeps its notes')
@@ -3603,21 +3603,21 @@ class IdentitySuiteTests(unittest.TestCase):
     def test_restart_keeps_identity_and_excludes_downtime(self):
         restart = self.restarted(self.engaged('restart'))
         restart.clock.offset += 2000; restart.tick()
-        results = self.run_suite(restart, 'rs.identity.after-restart')
+        results = self.run_suite(restart, 'ca.identity.after-restart')
         self.assert_statuses(results, {
             'new session of the same world': 'PASS', 'same identity for each account': 'PASS',
             'notes and engagements kept': 'PASS', 'mission clock excludes the downtime': 'PASS'})
         # The same step on the session of the snapshot is refused: no restart happened.
-        self.assertEqual(self.run_suite(restart, 'rs.identity.after-reconnect')['same world and session'][0], 'FAIL')
+        self.assertEqual(self.run_suite(restart, 'ca.identity.after-reconnect')['same world and session'][0], 'FAIL')
 
     def test_restart_detects_downtime_counted_or_too_short(self):
         restart = self.restarted(self.engaged('downtime'))
         restart.mission().remainingMs -= 600000  # the clock ran while the server was down
-        status, message = self.run_suite(restart, 'rs.identity.after-restart')['mission clock excludes the downtime']
+        status, message = self.run_suite(restart, 'ca.identity.after-restart')['mission clock excludes the downtime']
         self.assertEqual(status, 'FAIL')
         self.assertIn('used', message)
         short = self.restarted(self.engaged('short'), downtime=30000)
-        status, message = self.run_suite(short, 'rs.identity.after-restart')['mission clock excludes the downtime']
+        status, message = self.run_suite(short, 'ca.identity.after-restart')['mission clock excludes the downtime']
         self.assertEqual(status, 'FAIL')
         self.assertIn('needed to tell the downtime from the runtime', message)
 
@@ -3630,7 +3630,7 @@ class IdentitySuiteTests(unittest.TestCase):
         self.disconnect(sim, 'alice')  # the dead IsoPlayer is replaced by the new character's
         sim.add_client('alice')
         self.assertNotEqual(sim.character('alice'), old)
-        results = self.run_suite(sim, 'rs.identity.after-death')
+        results = self.run_suite(sim, 'ca.identity.after-death')
         self.assert_statuses(results, {
             'same world': 'PASS', 'dead account: old identity retired and unused': 'PASS',
             'new character: new identity without the old missions or notes': 'PASS',
@@ -3644,7 +3644,7 @@ class IdentitySuiteTests(unittest.TestCase):
         sim.server.g.PLAYERS.alice.dead = True  # OnCharacterDeath never reaches the server (E00-T02 regression)
         self.disconnect(sim, 'alice')
         sim.add_client('alice')
-        results = self.run_suite(sim, 'rs.identity.after-death')
+        results = self.run_suite(sim, 'ca.identity.after-death')
         self.assertEqual(results['dead account: old identity retired and unused'][0], 'FAIL')
         self.assertIn('did A die', results['dead account: old identity retired and unused'][1])
 

@@ -143,7 +143,7 @@ ADR B17).
   l'autre, chacune pendant sa durée ; réponse du carnet par la même découpe ; texte suivant mis en file ; phrase unique
   coupée aux virgules ; file bornée ; corps retiré ; pont : `clean_speech` garde une fin de phrase même courte, coupe
   dans la limite d'octets, consigne en caractères) et `tests/test_conversations.py`
-  (`test_long_line_joined_in_whole_sentences`). En jeu : `RST.run({ suite = "rs.npctalk", tags = "world" })`, test
+  (`test_long_line_joined_in_whole_sentences`). En jeu : `RST.run({ suite = "lk.npctalk", tags = "world" })`, test
   E17-T13 (réponse longue demandée au modèle, morceaux mesurés et ordre vérifié par `pieceLog`).
 - VM Kahlua : non couvert (aucune chaîne non ASCII dans le Lua de la tâche ; `CA_TextCut` est vérifié en Kahlua réelle
   par `tests/test_kahlua.py`).

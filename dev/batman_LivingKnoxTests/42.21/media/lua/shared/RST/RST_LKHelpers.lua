@@ -43,9 +43,13 @@ only. Load with: require "RST/RST_LKHelpers". At load time: definitions, and the
     K.talkSquare(p, dx, r)               square for an npc the player talks to: dx squares east when free, heard and in
                                          sight both ways, else the nearest such K.heardSquares square, or nil
     K.at(o) K.sightOf(a, b)              "x,y" of an object; LosUtil.lineClear of two bodies ("no square" when unplaced)
+                                         (RST.CarnetHelpers.at and .sightOf of batman_CoreAITests)
+At load time it also gives RST.CarnetHelpers.talkSpot (K.talkSquare, K.SPOT_RADIUS): the square of the npc a player
+talks to in the notebook suites (RST.CarnetHelpers.npcWithFiche, E21-T11).
 ]]
 
 require "RST/RST"
+require "RST/RST_CarnetHelpers"
 
 RST.LKHelpers = RST.LKHelpers or {}
 local K = RST.LKHelpers
@@ -633,7 +637,7 @@ function K.pairSquares(p, range, max, r)
 end
 
 -- Square for a test npc the player p talks to: dx squares east when it is free, heard and in sight both ways,
--- otherwise the nearest K.heardSquares square in sight both ways (MP campaign of 2026-11-04: rs.npctalk npc moved
+-- otherwise the nearest K.heardSquares square in sight both ways (MP campaign of 2026-11-04: lk.npctalk npc moved
 -- behind a glass wall of the start house, "sight Blocked", never selected). Returns the square, or nil.
 function K.talkSquare(p, dx, r)
     local Bodies = K.B()
@@ -655,12 +659,11 @@ function K.talkSquare(p, dx, r)
     return nil
 end
 
--- "x,y" of a square or a body, and why two bodies (or a body and the player) fail the rules above, for the reports.
-function K.at(o) return math.floor(o:getX()) .. "," .. math.floor(o:getY()) end
-function K.sightOf(a, b)
-    if a:getSquare() == nil or b:getSquare() == nil then return "no square" end
-    return tostring(LosUtil.lineClear(getCell(), math.floor(a:getX()), math.floor(a:getY()), math.floor(a:getZ()),
-        math.floor(b:getX()), math.floor(b:getY()), math.floor(b:getZ()), false))
-end
+-- "x,y" of a square or a body, and why two bodies (or a body and the player) fail the rules above, for the reports
+-- (E21-T11: kept by RST_CarnetHelpers.lua, the notebook suites of every test mod use them too).
+K.at, K.sightOf = RST.CarnetHelpers.at, RST.CarnetHelpers.sightOf
+
+-- Square of the npc a player talks to in the notebook suites (RST.CarnetHelpers.npcWithFiche, E21-T11).
+RST.CarnetHelpers.talkSpot = { square = function(p, dx) return K.talkSquare(p, dx) end, radius = K.SPOT_RADIUS }
 
 return K

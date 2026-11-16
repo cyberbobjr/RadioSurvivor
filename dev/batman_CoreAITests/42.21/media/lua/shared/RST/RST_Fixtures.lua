@@ -72,6 +72,10 @@ failing undo is reported as "cleanup <label>: ..." on the test and does not stop
                                          marked m.rstTest = opts.tag. Undo: mission removed, unless opts.keep.
     F.testMissions(data[, tag]), F.removeTestMission(store, m)
                                          marked missions of the notebook state, removal of one of them.
+    F.keepModStates(t)                   E21-T11: every keeper a test mod registered in F.keepers (name -> keep(t))
+                                         is called: each copies what its mod records when a core test closes a mission
+                                         (CA_Missions.finish listeners) and puts it back by t:defer (RST_FactsBook.lua
+                                         of batman_RadioSurvivorTests: the fact log of RadioSurvivor).
     player may be nil in every fixture: F.player(t) is used then. Waits follow "Waiting in steps" (RST.lua): one
     wait per step, the rest of the test goes in the continuation function.
 
@@ -683,6 +687,14 @@ function F.engagedMission(t, store, npc, members, opts)
     if type(store.save) == "function" then pcall(store.save) end
     log("mission " .. m.id .. " engaged by " .. table.concat(ids, ", "))
     return m
+end
+
+-- ---------------------------------------------------------------- states of other mods (E21-T11)
+
+F.keepers = F.keepers or {}
+
+function F.keepModStates(t)
+    for _, keep in pairs(F.keepers) do keep(t) end
 end
 
 -- ---------------------------------------------------------------- client side of a server move

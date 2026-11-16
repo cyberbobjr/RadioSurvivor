@@ -316,7 +316,7 @@ class ClearMissionTests(unittest.TestCase):
             self.assertIn('Abattez-en 16', protocol.offline(req, intent='')['text'])
 
     def test_in_game_suite_on_the_simulated_server(self):
-        """rs.mission.clear (dev mod) run by the real RST engine on the server machine; the server move of
+        """ca.mission.clear (dev mod) run by the real RST engine on the server machine; the server move of
         RST_Fixtures is played directly on the server copy of the player; addZombiesInOutfit, IsoZombie.Hit and Kill
         are doubles that fire the server events in the order of the game."""
         sim, npc, record, missions = self.clear_sim('suite')
@@ -362,9 +362,9 @@ class ClearMissionTests(unittest.TestCase):
             require 'RST/RST_Fixtures'
             RST.Fixtures.WAIT_LOADED = false   -- no square in this double: the move does not wait for them
         """)
-        sim.server.rt.execute((TESTS_SHARED / 'RST' / 'suites' / 'RS_MissionClear.lua').read_text(encoding='utf-8'))
+        sim.server.rt.execute((TESTS_SHARED / 'RST' / 'suites' / 'CA_MissionClearSuite.lua').read_text(encoding='utf-8'))
         alice = sim.server.g.PLAYERS.alice
-        self.assertTrue(sim.server.rt.eval('function(p) return RST.start("rs.mission.clear", '
+        self.assertTrue(sim.server.rt.eval('function(p) return RST.start("ca.mission.clear", '
                                            '{ attach = false, ctx = { player = p } }) end')(alice))
         for _ in range(400):
             if not sim.server.rt.eval('RST.step()'):

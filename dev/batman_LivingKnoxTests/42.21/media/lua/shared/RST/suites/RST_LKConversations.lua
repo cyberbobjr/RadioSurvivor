@@ -202,7 +202,7 @@ RST.suite("lk.conversations", { tags = { "world", "server" }, testTimeoutMs = 12
         local Server, V, Obs = setup(t)
         -- The notebook server refuses a sentence of the same character within C.COOLDOWN_MS of its previous one
         -- (Server.talk.lastTalk, 'Cooldown'; slow mode of the chat in MP): the previous suites talk a few seconds before
-        -- (campaign 2026-10-15: refused 9 s after rs.relation). Wait for it BEFORE the pair is made: the observation
+        -- (campaign 2026-10-15: refused 9 s after lk.relation). Wait for it BEFORE the pair is made: the observation
         -- recorded by pair() lets the server pass open the conversation by itself (EVERY_MS = 0).
         local cid0 = Server.bound()[RST.Fixtures.player(t)]
         local quiet = talkCooldown()

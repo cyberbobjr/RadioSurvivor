@@ -1,16 +1,17 @@
-"""Banc hors jeu des tests en jeu E09-T04, E09-T05, E09-T06 et E10-T02 (rs.relation, rs.factions.accord,
-rs.factions.incident, rs.carnet.leader) et de leurs aides d'autorité (RST_PeerChecksE09.lua).
+"""Banc hors jeu des tests en jeu E09-T04, E09-T05, E09-T06 et E10-T02 (lk.relation, lk.factions.accord,
+lk.factions.incident, lk.carnet.leader) et de leurs aides d'autorité (RST_PeerChecksE09.lua).
 
     python RadioSurvivor/tests/test_e09_suites.py
 
 Chaque suite est jouée par le VRAI moteur RST (RST.lua, RST_Steps.lua, RST_Fixtures.lua, RST_PeerChecks.lua,
-RST_RSHelpers.lua, RST_LKGroupFixture.lua) en solo et sur un serveur dédié simulé avec deux clients (machines lupa,
+RST_CarnetHelpers.lua, RST_LKGroupFixture.lua) en solo et sur un serveur dédié simulé avec deux clients (machines lupa,
 `next` retiré comme dans Kahlua, réseau en file livré au tick suivant ; doublures Java de tests/test_rs_mp_suites.py).
-Réels ici : RS_State, RS_Config, CA_Codec, LK_NotebookRelations, LK_Observations, RS_Factions (accords et incidents, doublure
+E21-T11 : suites et aides lues dans le montage Living Knox des mods de test (tests_lua('lk') : aucun fichier de
+batman_RadioSurvivorTests). Réels ici : CA_NotebookConfig, CA_SpeechConfig, CA_Codec, LK_NotebookRelations, LK_Observations, RS_Factions (accords et incidents, doublure
 de Faction de tests/test_factions.py), RS_Incidents, LK_Core. Doublures : moteur Living Knox réduit (groupes, corps,
 attitude et faits, choix de cible réduit aux règles incident / couvert), serveur du carnet réduit à ce que lisent les
 tests (hello, select, talk avec contexte relation / collectif / accord, file de requêtes, lecture du fichier de
-réponses par RS_Transport.readResponses, application des réponses : change_relation, negotiate avec revalidation du chef et
+réponses par CA_Transport.readResponses, application des réponses : change_relation, negotiate avec revalidation du chef et
 de la composition, décision d'incident par RS_Incidents.reply), client du carnet réduit (send, talk, attente).
 Les réponses du modèle sont celles que les tests déposent eux-mêmes (E9.intercept) : aucun pont.
 Chaque test passe sur les doublures et échoue sur un défaut injecté (DEFECT) qui contredit son critère. Ce banc ne
@@ -29,17 +30,17 @@ from test_rs_mp_suites import Machine, Report, to_py  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 from harness import tests_lua  # noqa: E402  (E21-T07: media/lua of the test mods)
-DEV = tests_lua()
+DEV = tests_lua('lk')
 SUITES = DEV / 'shared' / 'RST' / 'suites'
-SUITE_FILES = [SUITES / f'{n}.lua' for n in ('RS_Relation', 'RS_FactionsAccord', 'RS_FactionsIncident', 'RS_CarnetLK')]
+SUITE_FILES = [SUITES / f'{n}.lua' for n in ('RST_LKRelation', 'RST_LKFactionsAccord', 'RST_LKFactionsIncident',
+                                               'RST_LKCarnet')]
 
 AUTHORITY = r'''
 DEFECT = DEFECT or {}
-C = require "RadioSurvivor/RS_Config"
-require "RadioSurvivor/RS_State"   -- E21-T04: state of the voices, companion of the notebook store
+Notebook = require "CoreAI/CA_NotebookConfig"
+Speech = require "CoreAI/CA_SpeechConfig"
 S = require "CoreAI/CA_NotebookStore"
 assert(S.init(true))
-RS_RadioServer = { bench = true }
 for _, p in pairs(PLAYERS) do
     p.god = false
     function p:isGodMod() return self.god end
@@ -214,7 +215,7 @@ P = {
     hears = function(a, b, range) return a ~= nil and b ~= nil and dist(a, b) <= range end,
 }
 package.loaded["CoreAI/CA_NPCProvider"] = P
-package.loaded["RadioSurvivor/RS_BridgeLanes"] = { readResponses = function() return BRIDGE end }
+require("CoreAI/CA_Transport").readResponses = function() return BRIDGE end
 BRIDGE = nil
 
 -- E18-T21: the personal relation is kept by Living Knox (real LK_PersonalRelation) and read by the notebook through
@@ -253,7 +254,7 @@ local function players()
 end
 local function send(player, command, args)
     args = args or {}
-    if isServer() then sendServerCommand(player, C.MODULE, command, args)
+    if isServer() then sendServerCommand(player, Notebook.MODULE, command, args)
     elseif CoreAI.notebookClient then CoreAI.notebookClient.receive(command, args) end
 end
 function Server.find(id) for _, npc in pairs(S.data.npcs) do if npc.incarnation == id then return npc end end end
@@ -313,7 +314,7 @@ local function scan()
     Server.objects = objects
 end
 function Server.command(module, command, player, args)
-    if module ~= C.MODULE or not player then return end
+    if module ~= Notebook.MODULE or not player then return end
     args = args or {}
     if command == "hello" then
         local cid = "character-" .. player:getUsername()
@@ -349,7 +350,7 @@ function Server.command(module, command, player, args)
         local npc = S.data.npcs[Server.selected[cid] or ""]
         if not npc then return send(player, "error", { reason = "Range" }) end
         local contact = contactOf(cid, npc)
-        local stage = (contact.exchanges or 0) >= C.ACQUAINT_EXCHANGES and "acquainted" or "stranger"
+        local stage = (contact.exchanges or 0) >= Speech.ACQUAINT_EXCHANGES and "acquainted" or "stranger"
         local relation, relBinding = Rel.offer(npc, cid)
         local context = { relation = relation, stage = stage }
         local group = Server.talk.collectiveBinding(npc)
@@ -426,7 +427,7 @@ local nextIncident = 0
 Events.OnTickEvenPaused.Add(function()
     scan()
     if DEFECT.bridgeAlwaysUp then Server.talk.initiatives.bridge.down = false end
-    local T = require "RadioSurvivor/RS_BridgeLanes"
+    local T = require "CoreAI/CA_Transport"
     local responses = T.readResponses() or {}
     local kept, used = {}, {}
     for _, req in ipairs(Server.talk.pending) do
@@ -480,8 +481,8 @@ end
 '''
 
 HELPERS = [DEV / 'shared' / 'RST' / n for n in ('RST_Steps.lua', 'RST_Fixtures.lua', 'RST_PeerChecks.lua',
-                                                'RST_PeerChecksRadio.lua', 'RST_LKHelpers.lua',
-                                                'RST_LKGroupFixture.lua', 'RST_RSHelpers.lua',
+                                                'RST_PeerChecksCarnet.lua', 'RST_CarnetHelpers.lua',
+                                                'RST_LKHelpers.lua', 'RST_LKGroupFixture.lua',
                                                 'RST_PeerChecksE09.lua')]
 
 
@@ -605,130 +606,130 @@ end
 
 
 class RelationTests(Bench):
-    """rs.relation : aide puis trahison = deux changements par le vrai chemin de réponse ; deux PNJ qui diffèrent."""
+    """lk.relation : aide puis trahison = deux changements par le vrai chemin de réponse ; deux PNJ qui diffèrent."""
     T = 'help then betrayal'
 
     def test_solo_pass(self):
-        _, rep = self.play('rs.relation', self.T, solo=True)
+        _, rep = self.play('lk.relation', self.T, solo=True)
         self.assert_pass(rep, self.T)
 
     def test_mp_pass(self):
-        _, rep = self.play('rs.relation', self.T)
+        _, rep = self.play('lk.relation', self.T)
         self.assert_pass(rep, self.T)
 
     def test_detects_a_change_not_applied(self):
-        _, rep = self.play('rs.relation', self.T, solo=True, defects=('relationIgnored',))
+        _, rep = self.play('lk.relation', self.T, solo=True, defects=('relationIgnored',))
         self.assert_fail(rep, self.T, 'help: one level above the group')
 
     def test_bridge_reader_restored(self):
-        net, rep = self.play('rs.relation', self.T, solo=True)
+        net, rep = self.play('lk.relation', self.T, solo=True)
         self.assert_pass(rep, self.T)
-        self.assertTrue(net.server.lua('local T = require "RadioSurvivor/RS_BridgeLanes"; return T.readResponses() == BRIDGE'))
+        self.assertTrue(net.server.lua('local T = require "CoreAI/CA_Transport"; return T.readResponses() == BRIDGE'))
 
 
 class AccordTests(Bench):
-    """rs.factions.accord : deux conclusions sur une révision ; deux négociateurs simultanés ; membre sans mandat."""
+    """lk.factions.accord : deux conclusions sur une révision ; deux négociateurs simultanés ; membre sans mandat."""
     TWO_REV = 'two conclusions on one revision'
     TWO_NEG = 'two negotiators at once'
 
     def test_two_conclusions_solo_pass(self):
-        _, rep = self.play('rs.factions.accord', self.TWO_REV, solo=True)
+        _, rep = self.play('lk.factions.accord', self.TWO_REV, solo=True)
         self.assert_pass(rep, self.TWO_REV)
 
     def test_two_negotiators_mp_pass(self):
-        _, rep = self.play('rs.factions.accord', self.TWO_NEG)
+        _, rep = self.play('lk.factions.accord', self.TWO_NEG)
         self.assert_pass(rep, self.TWO_NEG)
 
     def test_two_negotiators_skip_in_solo(self):
-        _, rep = self.play('rs.factions.accord', self.TWO_NEG, solo=True)
+        _, rep = self.play('lk.factions.accord', self.TWO_NEG, solo=True)
         got = rep.status(self.TWO_NEG)
         self.assertEqual(got[0], 'SKIP')
         self.assertIn('solo', got[1])
 
     def test_two_negotiators_skip_with_one_client(self):
-        _, rep = self.play('rs.factions.accord', self.TWO_NEG, users=('rs_mp1',))
+        _, rep = self.play('lk.factions.accord', self.TWO_NEG, users=('rs_mp1',))
         got = rep.status(self.TWO_NEG)
         self.assertEqual(got[0], 'SKIP')
         self.assertIn('one client online', got[1])
 
     def test_detects_a_conclusion_on_a_fresh_revision(self):
-        _, rep = self.play('rs.factions.accord', self.TWO_NEG, defects=('freshRevision',))
+        _, rep = self.play('lk.factions.accord', self.TWO_NEG, defects=('freshRevision',))
         self.assert_fail(rep, self.TWO_NEG, 'one conclusion applied')
 
     def test_two_negotiators_out_of_sight_mp_pass(self):
         """Corps hors de vue du second client : E9.sight le place à côté avant la sélection (campagne 2026-10-15)."""
-        _, rep = self.play('rs.factions.accord', self.TWO_NEG, walls=True)
+        _, rep = self.play('lk.factions.accord', self.TWO_NEG, walls=True)
         self.assert_pass(rep, self.TWO_NEG)
         self.assertTrue(any('moved next to' in n for k, ns in rep.notes.items() if self.TWO_NEG in k for n in ns))
 
     def test_detects_an_offer_to_a_member_without_mandate(self):
-        _, rep = self.play('rs.factions.accord', self.TWO_NEG, defects=('anyMember',))
+        _, rep = self.play('lk.factions.accord', self.TWO_NEG, defects=('anyMember',))
         self.assert_fail(rep, self.TWO_NEG, 'agreement offered to a member without mandate')
 
 
 class IncidentTests(Bench):
-    """rs.factions.incident : critères de l'ADR B10."""
+    """lk.factions.incident : critères de l'ADR B10."""
     ONE = 'B10: close aggressions'
     TWO = 'B10 two players'
 
     def test_one_player_solo_pass(self):
-        _, rep = self.play('rs.factions.incident', self.ONE, solo=True)
+        _, rep = self.play('lk.factions.incident', self.ONE, solo=True)
         self.assert_pass(rep, self.ONE)
 
     def test_one_player_mp_pass(self):
-        _, rep = self.play('rs.factions.incident', self.ONE)
+        _, rep = self.play('lk.factions.incident', self.ONE)
         self.assert_pass(rep, self.ONE)
 
     def test_detects_a_late_reply_accepted(self):
-        _, rep = self.play('rs.factions.incident', self.ONE, solo=True, defects=('lateIncidentAccepted',))
+        _, rep = self.play('lk.factions.incident', self.ONE, solo=True, defects=('lateIncidentAccepted',))
         self.assert_fail(rep, self.ONE, 'late reply of the leader')
 
     def test_detects_a_decision_asked_while_the_bridge_is_down(self):
-        _, rep = self.play('rs.factions.incident', self.ONE, solo=True, defects=('bridgeAlwaysUp',))
+        _, rep = self.play('lk.factions.incident', self.ONE, solo=True, defects=('bridgeAlwaysUp',))
         self.assert_fail(rep, self.ONE, 'decision asked while the bridge is down')
 
     def test_two_players_mp_pass(self):
-        _, rep = self.play('rs.factions.incident', self.TWO)
+        _, rep = self.play('lk.factions.incident', self.TWO)
         self.assert_pass(rep, self.TWO)
 
     def test_two_players_skip_in_solo(self):
-        _, rep = self.play('rs.factions.incident', self.TWO, solo=True)
+        _, rep = self.play('lk.factions.incident', self.TWO, solo=True)
         self.assertEqual(rep.status(self.TWO)[0], 'SKIP')
 
 
 class LeaderTests(Bench):
-    """rs.carnet.leader : membre non chef, réponse après une mort ou une succession."""
+    """lk.carnet.leader : membre non chef, réponse après une mort ou une succession."""
     T = 'a member never concludes'
 
     def test_solo_pass(self):
-        _, rep = self.play('rs.carnet.leader', self.T, solo=True)
+        _, rep = self.play('lk.carnet.leader', self.T, solo=True)
         self.assert_pass(rep, self.T)
 
     def test_mp_pass(self):
-        _, rep = self.play('rs.carnet.leader', self.T)
+        _, rep = self.play('lk.carnet.leader', self.T)
         self.assert_pass(rep, self.T)
 
     def test_mp_out_of_sight_pass(self):
         """Membre et chef hors de vue : E9.sight rapproche le joueur à chaque sélection (campagne 2026-10-15)."""
-        _, rep = self.play('rs.carnet.leader', self.T, walls=True)
+        _, rep = self.play('lk.carnet.leader', self.T, walls=True)
         self.assert_pass(rep, self.T)
         moved = [n for k, ns in rep.notes.items() if self.T in k for n in ns if 'moved next to' in n]
         self.assertGreaterEqual(len(moved), 1, moved)
 
     def test_mp_body_walked_away_pass(self):
         """Corps parti entre la vérification et la commande : sélection et phrase refusées une fois, refaites."""
-        _, rep = self.play('rs.carnet.leader', self.T, walked=True)
+        _, rep = self.play('lk.carnet.leader', self.T, walked=True)
         self.assert_pass(rep, self.T)
         notes = [n for k, ns in rep.notes.items() if self.T in k for n in ns]
         self.assertTrue(any('tried again' in n for n in notes), notes)
         self.assertTrue(any('said again' in n for n in notes), notes)
 
     def test_detects_no_revalidation(self):
-        _, rep = self.play('rs.carnet.leader', self.T, solo=True, defects=('noCollectiveCheck',))
+        _, rep = self.play('lk.carnet.leader', self.T, solo=True, defects=('noCollectiveCheck',))
         self.assert_fail(rep, self.T)
 
     def test_detects_a_member_offered_the_agreement(self):
-        _, rep = self.play('rs.carnet.leader', self.T, solo=True, defects=('memberNegotiates',))
+        _, rep = self.play('lk.carnet.leader', self.T, solo=True, defects=('memberNegotiates',))
         self.assert_fail(rep, self.T, 'agreement offered to a member')
 
 
@@ -741,7 +742,7 @@ class InterceptTests(Bench):
         s = net.server
         out = s.lua(r'''
             local E9 = RST.PeerChecksE09
-            local T = require "RadioSurvivor/RS_BridgeLanes"
+            local T = require "CoreAI/CA_Transport"
             BRIDGE = { ["r1"] = { id = "r1", text = "bridge" }, ["r2"] = { id = "r2", text = "bridge" } }
             Server.talk.pending = { { id = "r1", npc = "n1", kind = "npc_talk", world = "w", run = "x", order = 1,
                 revision = 1 }, { id = "r2", npc = "n2", kind = "npc_talk" } }

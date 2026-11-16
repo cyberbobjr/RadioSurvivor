@@ -656,7 +656,7 @@ end
 
 -- Every client (target "all") holds the squares loaded for PC.SETTLE_MS before after(t): a corpse created by the
 -- server right after a teleport did not reach a client still counted at its former place (MP campaign of
--- 2026-11-05, rs.mission.retrieve: "0 corpse(s) within 10" on rs_mp2, square loaded there).
+-- 2026-11-05, ca.mission.retrieve: "0 corpse(s) within 10" on rs_mp2, square loaded there).
 PC.LOADED_MS = 30000
 PC.SETTLE_MS = 2000
 function PC.waitLoaded(t, squares, after)

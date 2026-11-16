@@ -72,6 +72,13 @@ Campaigns.add({ "solo-lk", "solo-rs", "solo" }, 10, {
     "rst.guard",        -- E01-T06
     "ca.codec",         -- E01-T08
     "ca.notebook",      -- E18-T24 (bookmarks of the active mods)
+    "ca.factions.mandate", -- E09-T03 (E21-T11: from the RadioSurvivor tests)
+    "ca.reputation",    -- E04-T14 (E04-T04, T05, Q17; E21-T11: from the RadioSurvivor tests)
+    -- E21-T11: suites of the core mod formerly in the RadioSurvivor tests.
+    "ca.missions",      -- E01-T08, E00-T03, E00-T10, E11-T11, E11-T20 (prefix: clock, unclaimed, scout, solo)
+    "ca.mission.signal.client", -- E11-T07 (requester notebook and map: accept, circle, hours, report, claim)
+    "ca.notebook.ink",  -- E00-T12
+    "ca.caches",        -- E11-T06 (every reward table of the caches holds real item scripts)
 })
 
 -- Multiplayer (E01-T15): suites run ON THE DEDICATED SERVER by an admin client, RST.server (the automatic client:
@@ -85,7 +92,29 @@ Campaigns.add({ "solo-lk", "solo-rs", "solo" }, 10, {
 Campaigns.add("mp", 10, {
     "rst.selftest",     -- engine on the server
     "ca.codec",         -- E01-T08
+    "ca.identity",      -- E00-T01, E03-T04 (each online player bound to an identity)
     "ca.journal",       -- E18-T06 (rows of the mission journal of the core mod)
+    "ca.factions.mandate", -- E09-T03 (two clients: vanilla faction, mandates of the Team tab)
+    "ca.reputation",    -- E04-T14 (two clients: success of the requester only, admin view)
+    -- E21-T11: suites of the core mod formerly in the RadioSurvivor tests.
+    "ca.claim",         -- E00-T01 (E01-T16: the second client claiming another identity is refused)
+    "rst.rights",       -- E01-T05 (E01-T16: a real user client refused RST.server, an admin told busy)
+    "ca.missions",      -- E11-T03 (prefix: clock, unclaimed, scout, solo; NOT the templates ca.mission.*)
+    "ca.mission",       -- E11-T04..T07, E01-T19 (prefix: clear, retrieve, recover, signal, signal.client, zones)
+    "ca.caches",        -- E11-T06
+})
+
+-- E01-T19: robustness with the vanilla population of Muldraugh and mortal players (see RST_CampaignLK.lua).
+Campaigns.add("mp-ambient", 10, {
+    "ca.identity",      -- E00-T01, E03-T04
+})
+
+-- E01-T17: persistence across a reconnection and a restart of the dedicated server (bases, not suites).
+Campaigns.add("mp-persist", 10, {
+    "ca.identity",      -- E00-T01: same identity, notes, engagements after reconnection and restart
+    "ca.reputation",    -- E04-T14: score and facts kept by a restart, no duplicate
+    "ca.mission.recover", -- E11-T06: one cache bag after a restart
+    "ca.state",         -- E16-T08: notebook state purged after game weeks, kept records and file valid after a restart
 })
 
 -- E01-T17: persistence across a reconnection (bases, see the test mods: autoclient.py --phases).

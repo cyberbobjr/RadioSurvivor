@@ -3,7 +3,7 @@ RST - in-game test engine core of batman_CoreAITests (registry, suites, assertio
 Development mod only (batman_CoreAITests), never published. Load with: require "RST/RST"
 
 Writing tests
-    RST.suite("rs.codec", { tags = { "shared" } }, function(s)
+    RST.suite("ca.codec", { tags = { "shared" } }, function(s)
         s.before(function(t) ... end)          -- before EACH test (several calls = several hooks, in order)
         s.after(function(t) ... end)           -- after EACH test, always called, even if before or the test failed
         s.test("decodes a line", function(t) t:eq(3, f()) end)
@@ -143,7 +143,7 @@ Waiting in steps (asynchronous run only)
 
 Opt-in suites (tags "selfcheck" and "manual", RST.EXPLICIT_TAGS)
     A suite tagged "selfcheck" (e.g. rst.failures: deliberate FAIL / ERROR) or "manual" (one step of a protocol
-    played between manual actions, e.g. rs.identity.before) is left out of every selection unless the filter
+    played between manual actions, e.g. ca.identity.before) is left out of every selection unless the filter
     names it exactly (suite = "rst.failures") or asks for its opt-in tag (tags = "selfcheck", tags = "manual"):
     "rst", "rs", nil or the autorun default never run it.
 

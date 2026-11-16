@@ -1,5 +1,5 @@
-"""Suites de persistance de l'état privé du carnet (E16-T08, C17-C20, base rs.state de la campagne mp-persist) :
-rs.state.before puis rs.state.after-restart joués par le vrai moteur RST sur le vrai CA_NotebookStore et le vrai
+"""Suites de persistance de l'état privé du carnet (E16-T08, C17-C20, base ca.state de la campagne mp-persist) :
+ca.state.before puis ca.state.after-restart joués par le vrai moteur RST sur le vrai CA_NotebookStore et le vrai
 CA_NotebookPurge (E21-T04 : état du carnet dans le mod commun).
 
     python RadioSurvivor/tests/test_rs_state_persist_suite.py
@@ -21,7 +21,7 @@ from test_rs_state import runtime  # noqa: E402
 ROOT = Path(__file__).resolve().parents[1]
 from harness import tests_lua  # noqa: E402  (E21-T07: media/lua of the test mods)
 RST_SHARED = tests_lua() / 'shared'
-SUITE = RST_SHARED / 'RST' / 'suites' / 'RS_StatePersist.lua'
+SUITE = RST_SHARED / 'RST' / 'suites' / 'CA_StatePersist.lua'
 
 # Server of the bench: RST engine over the real modules of tests/test_rs_state.py, RST_Persist writes lines.
 SERVER = r'''
@@ -84,7 +84,7 @@ class StatePersistSuiteTests(unittest.TestCase):
     def before(self):
         rt = server()
         self.assertTrue(rt.eval('STARTED'))
-        self.assertEqual(run(rt, 'rs.state.before'), [('PASS', None)])
+        self.assertEqual(run(rt, 'ca.state.before'), [('PASS', None)])
         return rt
 
     def restart(self, rt):
@@ -101,7 +101,7 @@ class StatePersistSuiteTests(unittest.TestCase):
         self.assertIsNone(rt.eval('REP_DATA.reputation'), 'reputation entry of the in-use record left behind')
         rt2 = self.restart(rt)
         self.assertEqual(test_ids(rt2), ids)
-        self.assertEqual(run(rt2, 'rs.state.after-restart'), [('PASS', None)])
+        self.assertEqual(run(rt2, 'ca.state.after-restart'), [('PASS', None)])
         self.assertEqual(test_ids(rt2), [], 'test records not removed')
         rt3 = self.restart(rt2)
         self.assertEqual(test_ids(rt3), [], 'removal not saved')
@@ -114,7 +114,7 @@ class StatePersistSuiteTests(unittest.TestCase):
                    'local cid = RST.Persist.read(RST.StatePersist.FILE, RST.StatePersist.HEADER).purged[1] '
                    'S.data.characters[cid] = {id = cid, retired = true, retiredDay = DAY, contacts = {}, '
                    'knownMissions = {}} assert(S.save())')
-        (status, message), = run(self.restart(rt), 'rs.state.after-restart')
+        (status, message), = run(self.restart(rt), 'ca.state.after-restart')
         self.assertEqual(status, 'FAIL')
         self.assertIn('purged record', message)
 
@@ -123,7 +123,7 @@ class StatePersistSuiteTests(unittest.TestCase):
         rt.execute('local S = require("CoreAI/CA_NotebookStore") '
                    'for cid in pairs(S.data.characters) do if string.find(cid, "-busy$") then '
                    'S.data.characters[cid] = nil end end assert(S.save())')
-        (status, message), = run(self.restart(rt), 'rs.state.after-restart')
+        (status, message), = run(self.restart(rt), 'ca.state.after-restart')
         self.assertEqual(status, 'FAIL')
         self.assertIn('lost', message)
 
@@ -132,7 +132,7 @@ class StatePersistSuiteTests(unittest.TestCase):
         rt.execute('local S = require("CoreAI/CA_NotebookStore") '
                    'for cid, r in pairs(S.data.characters) do if string.find(cid, "-living$") then '
                    'r.contacts = {} end end assert(S.save())')
-        (status, message), = run(self.restart(rt), 'rs.state.after-restart')
+        (status, message), = run(self.restart(rt), 'ca.state.after-restart')
         self.assertEqual(status, 'FAIL')
         self.assertIn('contacts', message)
 
@@ -145,19 +145,19 @@ class StatePersistSuiteTests(unittest.TestCase):
         files[path] = files[path].replace('\nend\n', '\nbroken\n')
         rt2 = server(files)
         self.assertTrue(rt2.eval('STARTED'))
-        (status, message), = run(rt2, 'rs.state.after-restart')
+        (status, message), = run(rt2, 'ca.state.after-restart')
         self.assertEqual(status, 'FAIL')
         self.assertIn('state after the restart', message)
 
     def test_after_without_snapshot_fails(self):
-        (status, message), = run(server(), 'rs.state.after-restart')
+        (status, message), = run(server(), 'ca.state.after-restart')
         self.assertEqual(status, 'FAIL')
         self.assertIn('run the .before suite', message)
 
     def test_rerun_of_before_replaces_previous_test_records(self):
         rt = self.before()
         rt.execute('CLOCK = CLOCK + 5000')
-        self.assertEqual(run(rt, 'rs.state.before'), [('PASS', None)])
+        self.assertEqual(run(rt, 'ca.state.before'), [('PASS', None)])
         self.assertEqual(len(test_ids(rt)), 4)
 
 

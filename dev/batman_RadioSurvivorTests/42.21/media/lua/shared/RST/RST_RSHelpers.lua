@@ -1,36 +1,20 @@
 --[[
-RST_RSHelpers - helpers of the RadioSurvivor solo suites of the development mod (RST.RSHelpers): placement in a town,
-Living Knox npc with a notebook fiche, radio held in hand and lines heard, god mode, files. Development mod only.
-Load with: require "RST/RST_RSHelpers". No side effect at load time (definitions only).
+RST_RSHelpers - helpers of the RadioSurvivor solo suites of the development mod (RST.RSHelpers): radio held in hand
+and lines heard, files, next full hour. Development mod only. Load with: require "RST/RST_RSHelpers". No side effect at
+load time (definitions only).
+E21-T11: the notebook helpers live in RST_CarnetHelpers.lua of batman_CoreAITests (RST.CarnetHelpers); the
+RadioSurvivor suites reach them here under the same names: R.solo, R.notebook, R.character, R.npcWithFiche,
+R.nearestTown, R.place, R.god, R.language, R.select, R.watchRequest, R.talk.
 
     local R = RST.RSHelpers
-    R.solo(t)                        skip unless solo (the local player and the authority share the Lua state)
-    R.notebook(t)                    CoreAI.notebookServer with its state loaded (skip otherwise)
-    R.character(t, p)                notebook character bound to the player (asks "hello" directly when missing)
-    R.npcWithFiche(t, p, dx, after)  Living Knox test npc near the player (RST.LKHelpers.talkSquare, else dx squares
-                                     east; RST.Fixtures.spawnNpc), its
-                                     notebook fiche, waited until the notebook maps its body; after(t, id, fiche, body).
-                                     Cleanup: its pending requests dropped, the npc removed by the fixture.
-    R.nearestTown(x, y)              { name, x, y } of the nearest vanilla town centre (knox-geography.md)
-    R.place(t, p, test, after)       test(p) -> value or nil at the current position; if nil, the player is moved to
-                                     the nearest town centre (back at the end), squares awaited, test asked again;
-                                     after(t, value, moved) or skip when test still fails
     R.radioInHand(t, p, fullType, khz)
                                      radio given (RST.Fixtures.giveItem) and held in the main hand, battery full, on,
                                      microphone open, tuned to khz; the former main hand item is held again at the end
     R.hear(t)                        list of lines heard by any device (OnDeviceText), { khz, text, at }; listener
                                      removed at the end
-    R.god(t, p)                      god mode and invisibility until the end of the test
+    R.words(heard, khz, since)       lines of heard on khz since the given time, words only
     R.readLines(path) R.writeLines(t, path, lines)
                                      Zomboid/Lua files (getFileReader / getFileWriter)
-    R.language()                     "FR" when the game is in French, else "EN" (test sentences only)
-    R.select(t, c, after)            the requester client selects the npc c.id with the notebook (RST.Steps "carnet.send":
-                                     the real 'select' command in MP, the same code in solo), then waits until the
-                                     authority selected c.fiche for c.cid; after(t)
-    R.talk(t, c, text, after)        the requester client says text with the notebook Say line (RST.Steps "carnet.talk",
-                                     once its previous answer and the cooldown are over), then waits for the npc_talk
-                                     request of the authority; after(t, req). No request within TALK_REQUEST_MS: FAIL
-                                     with the last notebook refusal read on the client (RST.Steps "carnet.state")
     R.label(khz)                     "145.0"
     R.nextHour(t, next)              clock put just before the next full hour (forward only), EveryHours awaited (60 s);
                                      next(t, firedAt)
@@ -39,104 +23,16 @@ Load with: require "RST/RST_RSHelpers". No side effect at load time (definitions
 require "RST/RST"
 require "RST/RST_Fixtures"
 require "RST/RST_PeerChecks"
+require "RST/RST_CarnetHelpers"
 
 RST.RSHelpers = RST.RSHelpers or {}
 local R = RST.RSHelpers
 
-R.MAPPED_MS = 10000
-R.SETTLE_MS = 3000
--- Vanilla town centres (annotations of the world map, .claude/pz-knowledge/knox-geography.md).
-R.TOWNS = {
-    { name = "Muldraugh", x = 10754, y = 9926 }, { name = "West Point", x = 11654, y = 6864 },
-    { name = "Riverside", x = 6450, y = 5430 }, { name = "Rosewood", x = 8159, y = 11661 },
-    { name = "March Ridge", x = 10130, y = 12801 }, { name = "Louisville", x = 13077, y = 2238 },
-    { name = "Brandenburg", x = 2056, y = 6070 }, { name = "Ekron", x = 634, y = 9746 },
-    { name = "Echo Creek", x = 3589, y = 10952 }, { name = "Irvington", x = 2427, y = 14185 },
-}
-
-local function isServerSide() return type(isServer) == "function" and isServer() end
-local function isClientSide() return type(isClient) == "function" and isClient() end
-
-function R.solo(t)
-    if isServerSide() or isClientSide() then t:skip("solo only (local player and authority in the same Lua state)") end
-end
-
-function R.notebook(t)
-    local Server = CoreAI and CoreAI.notebookServer
-    if type(Server) ~= "table" or type(Server.store) ~= "table" or Server.store.data == nil then
-        t:skip("notebook server state not ready (CoreAI.notebookServer)")
-    end
-    return Server
-end
-
-function R.character(t, p)
-    local Server = R.notebook(t)
-    if Server.bound[p] == nil then
-        local C = require "RadioSurvivor/RS_Config"
-        Server.command(C.MODULE, "hello", p, {})
-    end
-    local cid = Server.bound[p]
-    t:ok(type(cid) == "string", "no notebook character bound to the player")
-    return cid
-end
-
-function R.npcWithFiche(t, p, dx, after)
-    local Server = R.notebook(t)
-    local ready, why = RST.Fixtures.npcReady()
-    if not ready then t:skip("no Living Knox test npc: " .. tostring(why)) end
-    local x, y, z = math.floor(p:getX()) + dx, math.floor(p:getY()), math.floor(p:getZ())
-    local dy = 0
-    local K = RST.LKHelpers -- batman_LivingKnoxTests: loaded with Living Knox, which this helper needs
-    local spot = K.talkSquare(p, dx)
-    if spot ~= nil then
-        dx, dy = spot:getX() - math.floor(p:getX()), spot:getY() - math.floor(p:getY())
-        x, y = spot:getX(), spot:getY()
-    else
-        t:note("no free square in sight of the player within " .. K.SPOT_RADIUS .. ": npc " .. dx .. " squares east")
-    end
-    local saved, savedDy = RST.Fixtures.NPC_OFFSET, RST.Fixtures.NPC_DY
-    RST.Fixtures.NPC_OFFSET, RST.Fixtures.NPC_DY = dx, dy
-    local ok, err = pcall(function()
-        RST.Fixtures.spawnNpc(t, p, function(t2, id, body)
-            local fiche = Server.ensure(id)
-            t2:ok(fiche ~= nil, "no notebook fiche for " .. tostring(id))
-            t2:defer(function()
-                local kept = {}
-                for _, r in ipairs(Server.talk.pending) do if r.npc ~= fiche.id then kept[#kept + 1] = r end end
-                Server.talk.pending = kept
-            end, "drop the pending requests of " .. id)
-            t2:waitQuiet(function() return Server.objects[fiche.id] ~= nil end, R.MAPPED_MS,
-                function(t3) return after(t3, id, fiche, body) end,
-                "body of " .. id .. " never mapped by the notebook (near " .. x .. "," .. y .. "," .. z .. ")")
-        end)
-    end)
-    RST.Fixtures.NPC_OFFSET, RST.Fixtures.NPC_DY = saved, savedDy
-    if not ok then error(err, 0) end
-end
-
-function R.nearestTown(x, y)
-    local best, bestD
-    for _, town in ipairs(R.TOWNS) do
-        local d = (town.x - x) * (town.x - x) + (town.y - y) * (town.y - y)
-        if bestD == nil or d < bestD then best, bestD = town, d end
-    end
-    return best
-end
-
-function R.place(t, p, test, after)
-    local value = test(p)
-    if value ~= nil then return after(t, value, false) end
-    local town = R.nearestTown(p:getX(), p:getY())
-    t:note("nothing fits around " .. math.floor(p:getX()) .. "," .. math.floor(p:getY()) .. ": moved to " .. town.name)
-    RST.Fixtures.movePlayer(t, p, town.x + 0.5, town.y + 0.5, 0, function(t2)
-        RST.Fixtures.waitSquare(t2, town.x, town.y, 0, nil, function(t3)
-            t3:sleep(R.SETTLE_MS, function(t4)
-                local again = test(p)
-                if again == nil then t4:skip("nothing fits around the player nor in " .. town.name) end
-                return after(t4, again, true)
-            end)
-        end)
-    end)
+-- Notebook helpers of the core test mod, under the names the RadioSurvivor suites use (E21-T11).
+local N = RST.CarnetHelpers
+for _, name in ipairs({ "solo", "notebook", "character", "npcWithFiche", "nearestTown", "place", "god", "language",
+    "select", "watchRequest", "talk" }) do
+    R[name] = N[name]
 end
 
 function R.radioInHand(t, p, fullType, khz)
@@ -186,17 +82,6 @@ function R.words(heard, khz, since)
     return out
 end
 
-function R.god(t, p)
-    local wasGod = p:isGodMod()
-    p:setGodMod(true)
-    t:defer(function() p:setGodMod(wasGod) end, "restore the god mode of the player")
-    if p.setInvisible ~= nil and p.isInvisible ~= nil then
-        local wasInvisible = p:isInvisible()
-        p:setInvisible(true)
-        t:defer(function() p:setInvisible(wasInvisible) end, "restore the visibility of the player")
-    end
-end
-
 function R.readLines(path)
     local reader = getFileReader(path, false)
     if not reader then return nil end
@@ -215,86 +100,6 @@ function R.writeLines(t, path, lines)
     t:ok(writer ~= nil, "cannot write Zomboid/Lua/" .. path)
     for _, line in ipairs(lines) do writer:write(line .. "\n") end
     writer:close()
-end
-
-R.TALK_REQUEST_MS = 10000
-R.TALK_WAIT_MS = 120000
-
-function R.select(t, c, after)
-    RST.Steps.ask(t, "carnet.send", { command = "select", args = { incarnation = c.id } },
-        { target = "requester", none = "skip", timeoutMs = 10000 }, function(t2)
-            t2:waitUntil(function() return c.Server.selected[c.cid] == c.fiche.id end, 5000, after, function()
-                -- Why the server refused (select needs Provider.near: same floor, SELECT_RANGE, CanSee).
-                local body = c.Server.objects[c.fiche.id]
-                if body == nil or c.p == nil then return "npc not selected by the notebook (body not mapped)" end
-                local P = require "CoreAI/CA_NPCProvider"
-                local C = require "RadioSurvivor/RS_Config"
-                local K = RST.LKHelpers
-                return "npc not selected by the notebook (body at " .. K.at(body) .. ", player at " .. K.at(c.p)
-                    .. ", near " .. tostring(P.near(c.p, body, C.SELECT_RANGE)) .. ", sight " .. K.sightOf(c.p, body)
-                    .. ")"
-            end)
-        end)
-end
-
--- The pending list is watched from before the step is asked (OnTick): the talk command and the answer of the step
--- are two client commands, delivered unordered (MP campaign of 2026-11-05, rs.npctalk: the request was queued, sent
--- to the bridge and answered before the step answer reached the server; "no npc_talk request").
-function R.watchRequest(t, c, text)
-    local seen = {}
-    local function watch()
-        if seen.req ~= nil then return end
-        for _, r in ipairs(c.Server.talk.pending) do
-            if r.npc == c.fiche.id and r.kind == "npc_talk" and r.text == text and not seen.before[r.id] then
-                seen.req = r
-                return
-            end
-        end
-    end
-    seen.before = {}
-    for _, r in ipairs(c.Server.talk.pending) do seen.before[r.id] = true end
-    Events.OnTick.Add(watch)
-    t:defer(function() Events.OnTick.Remove(watch) end, "stop watching the npc_talk requests")
-    -- The request is saved right after it joins the pending list (CA_NotebookServer enqueue: S.save()): seen there
-    -- even when the bridge answers before the next tick.
-    local store = c.Server.store
-    local save = store and store.save
-    if type(save) == "function" then
-        store.save = function(...)
-            watch()
-            return save(...)
-        end
-        t:defer(function() if store.save ~= save then store.save = save end end, "restore the notebook state save")
-    end
-    return seen, watch
-end
-
-function R.talk(t, c, text, after)
-    local seen, watch = R.watchRequest(t, c, text)
-    RST.Steps.ask(t, "carnet.talk", { text = text, cooldownMs = c.C.COOLDOWN_MS + 500 },
-        { target = "requester", none = "skip", timeoutMs = R.TALK_WAIT_MS }, function(t1)
-            local deadline = RST.now() + R.TALK_REQUEST_MS
-            t1:waitQuiet(function()
-                watch()
-                if seen.req ~= nil then return seen.req end
-                if RST.now() >= deadline then return { missing = true } end
-                return nil
-            end, nil, function(t2, req)
-                if not req.missing then return after(t2, req) end
-                RST.Steps.ask(t2, "carnet.state", {}, { target = "requester", timeoutMs = 5000 }, function(t3, res)
-                    local e = res.list[1]
-                    local why = e and e.data and e.data.lastError or nil
-                    t3:ok(false, "no npc_talk request for '" .. text .. "'"
-                        .. (why and (" (notebook refusal " .. why .. ")") or ""))
-                end)
-            end)
-        end)
-end
-
-function R.language()
-    local lang = Translator and Translator.getLanguage and Translator.getLanguage()
-    if lang ~= nil and tostring(lang:name()) == "FR" then return "FR" end
-    return "EN"
 end
 
 function R.label(khz)

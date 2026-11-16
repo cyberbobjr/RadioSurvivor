@@ -21,17 +21,11 @@ Outside the game: tests/test_carnet.py (VoiceMissionTests, metagrid double).
 require "RST/RST"
 require "RST/RST_ModRadioSurvivor"
 require "RST/RST_Fixtures"
+require "RST/RST_ReputationHelpers"
 
 local F = RST.Fixtures
 
 -- E11-T10: client map module beside the authority (solo), or nil (dedicated server).
--- E18-T22: facts of the missions in the reputation of the core mod.
-local function repOutcomes()
-    local Rep = require "CoreAI/CA_Reputation"
-    Rep.ensure()
-    return Rep.data and Rep.data.outcomes or {}
-end
-
 local function mapActions()
     if type(isServer) == "function" and isServer() then return nil end
     local ok, MapActions = pcall(require, "CoreAI/CA_MapZones")
@@ -168,13 +162,13 @@ recognition of the report by the model itself, on the real notebook state and th
       for work on her frequency (the model returns start_mission; the server creates the mission), then, once the
       objective is met, the player's report on her frequency closes it (the model returns report_mission; the server
       checks it again);
-    - a Living Knox npc requester (notebook fiche) with a scout mission whose objective is met takes the report spoken
-      to it with the notebook (intent report_done of the model, context.reportable, Server.spokenReport).
-The phrase is the real 'talk' command of the local player (radio held in hand, RST.RSHelpers.radioInHand) or the
-notebook Say line (RST.RSHelpers.talk). The visit itself is staged (m.zoneReached set by the test): the server poll of
-the visit is covered by rs.missions.radio and rs.missions.scout. The voice listens at any hour during the test (its
-listening hours are restored at the end). The model may phrase things freely: the test checks only the server facts
-(mission created, then succeeded) and notes the lines heard. Asynchronous run:
+    - E21-T11: the report spoken to a Living Knox npc requester with the notebook is lk.missionreport.llm
+      (RST_LKMissionReport.lua of batman_LivingKnoxTests).
+The phrase is the real 'talk' command of the local player (radio held in hand, RST.RSHelpers.radioInHand). The visit
+itself is staged (m.zoneReached set by the test): the server poll of the visit is covered by rs.missions.radio and
+ca.missions.scout. The voice listens at any hour during the test (its listening hours are restored at the end). The
+model may phrase things freely: the test checks only the server facts (mission created, then succeeded) and notes the
+lines heard. Asynchronous run:
 RST.run({ suite = "rs.missionreport.llm", tags = { "server", "world" } }) with bridge\radio_bridge.py running.
 Cleanup: the test missions are removed from the notebook state (the voice donor keeps its count).
 ]]
@@ -190,16 +184,10 @@ local function has(list, value)
     return false
 end
 
--- Removes a test mission from the real notebook state (and its requester's link).
+-- Removes a test mission from the real notebook state (and its requester's link: a voice donor here).
 local function dropMission(S, m, cid)
-    if not (S.data and m) then return end
-    S.data.missions[m.id] = nil
     local voices = (require "RadioSurvivor/RS_State").data -- E21-T04: donor records of the voices
-    local donor = S.data.npcs[m.npc] or (voices and voices.voiceDonors and voices.voiceDonors[m.npc])
-    if donor and donor.mission == m.id then donor.mission = nil end
-    local record = S.data.characters[cid]
-    if record and type(record.knownMissions) == "table" then record.knownMissions[m.id] = nil end
-    S.save()
+    RST.CarnetHelpers.dropMission(S, m, cid, voices and voices.voiceDonors)
 end
 
 -- A request of this voice is still waiting for the bridge in requests.txt.
@@ -287,7 +275,7 @@ RST.suite("rs.missionreport.llm", { tags = { "server", "world" }, testTimeoutMs 
                         talk("Darlene, it's me again. I went to that " .. kind .. " you sent me to and looked it over, "
                             .. "inside and out. That's my report: the job is done. Over.")
                         t4:waitUntil(function() return mission.state == "success" end, LLM_WAIT_MS, function(t5)
-                            t5:eq("mission.success", repOutcomes()[mission.id .. "-" .. cid .. "-result"].action)
+                            t5:eq("mission.success", RST.ReputationSuite.outcomes()[mission.id .. "-" .. cid .. "-result"].action)
                             t5:eq(nil, V.open(S.data, VOICE, cid), "mission still open after the report")
                             -- The answer is aired line by line after the action: let it end before noting it.
                             aired(t5, heard, khz, function(t6)
@@ -305,60 +293,6 @@ RST.suite("rs.missionreport.llm", { tags = { "server", "world" }, testTimeoutMs 
             end)
         end)
     end)
-
-    s.test("npc requester takes the report spoken with the notebook (model)", function(t)
-        R.solo(t)
-        local M = modules(t)
-        local Server = R.notebook(t)
-        local S = Server.store
-        local p = F.player(t)
-        if not p then t:skip("no target player") end
-        local cid = R.character(t, p)
-        R.god(t, p)
-        local Config = require "RadioSurvivor/RS_Config"
-        local Scout = require "CoreAI/CA_MissionScout"
-        R.npcWithFiche(t, p, 2, function(t2, id, fiche)
-            local c = { Server = Server, cid = cid, fiche = fiche, id = id, p = p, C = Config }
-            local old = fiche.mission and S.data.missions[fiche.mission]
-            if old then dropMission(S, old, cid) end
-            Scout.resetForTests()
-            local sc = Config.Missions.scout
-            if not Scout.offer(sc, fiche, nil, p) then
-                t2:skip("no building fits around the player for a scout mission: move to a town and run again")
-            end
-            local m = M.create(S.data, fiche, cid, sc.id)
-            t2:ok(m ~= nil, "scout mission not created")
-            t2:defer(function() dropMission(S, m, cid) end, "remove the test npc mission")
-            local record = S.data.characters[cid]
-            t2:eq(true, M.accept(S.data, m, cid, record.name or ""), "mission not accepted")
-            if type(record.knownMissions) == "table" then record.knownMissions[m.id] = true end
-            m.zoneReached, m.reachedBy, m.reachedAt = true, record.name or "", getTimestampMs()
-            S.save()
-            t2:eq(true, M.reportReady(m), "staged visit not ready to report")
-            R.select(t2, c, function(t3)
-                local since = getTimestampMs()
-                local kind = type(m.placeKind) == "string" and m.placeKind or "building"
-                R.talk(t3, c, "I went to that " .. kind .. " you asked me to scout and looked it over, inside and "
-                    .. "out. That's my report: it's done.", function(t4, req)
-                    t4:ok(type(req.context) == "table" and type(req.context.reportable) == "table",
-                        "talk request without context.reportable")
-                    t4:waitUntil(function() return m.state == "success" end, LLM_WAIT_MS, function(t5)
-                        t5:eq("mission.success", repOutcomes()[m.id .. "-" .. cid .. "-result"].action)
-                        local k = S.data.characters[cid].contacts[fiche.id]
-                        local answer = nil
-                        for _, h in ipairs(k and k.history or {}) do
-                            if h.id == req.id then answer = h.text end
-                        end
-                        t5:note("npc report accepted (request " .. tostring(req.id) .. "), answer: "
-                            .. tostring(answer))
-                    end, function()
-                        return "report not accepted within " .. LLM_WAIT_MS .. " ms (state " .. tostring(m.state)
-                            .. "): " .. RST.PeerChecks.bridgeCause(Server, since)
-                    end)
-                end)
-            end)
-        end)
-    end)
 end)
 
 --[[
@@ -372,11 +306,11 @@ nothing, cannot report it and is not engaged in the notebook projection; a repor
 ("not_done").
 Two templates are played to the end with the real objective mechanism of their rs.mission.* suite:
     - clear: a real zombie spawned next to the player, killed by a lethal bat hit of the player, counted by the
-      template (Clear.noteHit / Clear.count on OnHitZombie / OnZombieDead subscribers of the test, as rs.mission.clear);
-      the counting circle is moved onto the player and the target lowered to 1 (as the solo test of rs.mission.clear);
+      template (Clear.noteHit / Clear.count on OnHitZombie / OnZombieDead subscribers of the test, as ca.mission.clear);
+      the counting circle is moved onto the player and the target lowered to 1 (as the solo test of ca.mission.clear);
     - signal: real signals started through the public Signal Smoke API (SignalSmoke.start, source "grenade", player
       = the target player) at the centre of the circle, judged by Signal.count (listener of the test, as
-      rs.mission.signal); the hour window is moved to the current game hour; another colour is not counted.
+      ca.mission.signal); the hour window is moved to the current game hour; another colour is not counted.
   Then the report on another frequency (another voice) changes nothing, the voice turn is "report_due", a report by
   another caller is refused, the report on the voice's frequency closes the mission in success; a second report is
   refused, the reputation fact is written once and the mission has no lot to claim (no reward doubled).
@@ -437,7 +371,7 @@ local function voiceMission(t, template)
     require("CoreAI/CA_MissionSignal").resetForTests()
     local m, why = V.start(store, sheet, "char1", p, VOICE_KHZ, template)
     if not m and why == "no_place" and template == "clear" then
-        -- Same rule as rs.mission.clear: a quiet spawn area has no building above minDensity; the draw is made again
+        -- Same rule as ca.mission.clear: a quiet spawn area has no building above minDensity; the draw is made again
         -- with a test catalogue entry without minimum density (the suite brings its own zombie).
         local c = require("RadioSurvivor/RS_Config").Missions.clear
         local minDensity = c.minDensity

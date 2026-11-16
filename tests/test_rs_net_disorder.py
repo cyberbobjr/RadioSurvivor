@@ -1,9 +1,10 @@
-"""Étapes RST de la parole d'un PNJ (rs.npctalk) sous réseau en désordre (E19-T06, ADR banc mimétique D06).
+"""Étapes RST de la parole d'un PNJ (lk.npctalk) sous réseau en désordre (E19-T06, ADR banc mimétique D06).
 
     python RadioSurvivor/tests/test_rs_net_disorder.py
 
 Serveur dédié et deux clients du banc (tests/harness.py), vrai moteur RST (RST.lua, RST_Steps.lua,
-RST_PeerChecks.lua : étape client « carnet.talk »), vrai RST_RSHelpers.R.talk sur le serveur, vrai CA_NotebookClient.lua sur le
+RST_PeerChecks.lua : étape client « carnet.talk »), vrai RST_CarnetHelpers N.talk sur le serveur (E21-T11 : aide du mod
+de test du commun, montage sans RadioSurvivor), vrai CA_NotebookClient.lua sur le
 client demandeur (Client.talk : commande « talk » du carnet). Doublures : serveur du carnet réduit à sa liste de requêtes
 (mise en file puis sauvegarde, comme CA_NotebookServer enqueue) et pont rapide qui répond à l'image suivante du serveur.
 
@@ -25,9 +26,9 @@ from harness import ROOT, Harness  # noqa: E402
 from net_disorder import disorder  # noqa: E402
 
 from harness import tests_lua  # noqa: E402  (E21-T07: media/lua of the test mods)
-DEV_LUA = tests_lua()
+DEV_LUA = tests_lua('core')
 REQUESTER = 'A'
-RST_FILES = 'require "RST/RST"; require "RST/RST_Steps"; require "RST/RST_PeerChecks"; require "RST/RST_RSHelpers"'
+RST_FILES = 'require "RST/RST"; require "RST/RST_Steps"; require "RST/RST_PeerChecks"; require "RST/RST_CarnetHelpers"'
 
 # Client demandeur : le vrai carnet client (CA_NotebookClient.lua, E21-T03) ; Translator : langue du jeu (Translator.getLanguage).
 CLIENT = '''
@@ -36,7 +37,7 @@ require "CoreAI/CA_NotebookClient"
 '''
 
 # Serveur : liste des requêtes du carnet (talk.pending), sauvegarde après la mise en file (CA_NotebookServer enqueue :
-# S.save()), pont qui répond à l'image suivante (requête retirée de la liste). Suite d'une étape : R.talk.
+# S.save()), pont qui répond à l'image suivante (requête retirée de la liste). Suite d'une étape : N.talk.
 SERVER = r'''
 NOTEBOOK = { store = {}, talk = { pending = {}, refusals = {} } }
 SAVES, ANSWERED = 0, {}
@@ -58,8 +59,8 @@ Events.OnTick.Add(function()
 end)
 RST.suite("bench.npctalk", { tags = { "server" } }, function(s)
     s.test("the npc_talk request of the sentence is seen", function(t)
-        local c = { Server = NOTEBOOK, fiche = { id = "npc-1" }, C = { COOLDOWN_MS = 0 } }
-        RST.RSHelpers.talk(t, c, "do you need help?", function(t2, req)
+        local c = { Server = NOTEBOOK, fiche = { id = "npc-1" } }
+        RST.CarnetHelpers.talk(t, c, "do you need help?", function(t2, req)
             t2:eq("do you need help?", req.text)
         end)
     end)
@@ -71,7 +72,7 @@ START = ('REPORT = nil; assert(RST.start({ suite = "bench.npctalk", tags = { "se
 
 
 class NpcTalkUnderDisorderTests(unittest.TestCase):
-    """R.talk (rs.npctalk, rs.relation ; carnet.talk de lk.conversations...) : requête vue quel que soit l'ordre de livraison."""
+    """N.talk (lk.npctalk, lk.relation ; carnet.talk de lk.conversations...) : requête vue quel que soit l'ordre de livraison."""
 
     def setUp(self):
         self.h = Harness(lua_roots=[DEV_LUA])

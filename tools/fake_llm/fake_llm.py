@@ -30,7 +30,7 @@ fallback nor rejection):
                               from a member when the leader decides); negotiate / leave_group only with --intents;
                               otherwise none, and at the FIRST turn the fake sees with a stranger (stage "stranger",
                               no previous reply of that NPC in the history) a long answer of several whole sentences,
-                              more than LONG_MIN characters (E17-T13, rs.npctalk: the speech bubble is cut in pieces
+                              more than LONG_MIN characters (E17-T13, lk.npctalk: the speech bubble is cut in pieces
                               of LK_SpeechView.PIECE = 180 characters; every test of that suite meets a new NPC);
                  npc_enrich   none + background;   npc_member  accept;   npc_incident  maintain (else the first allowed);
                  npc_initiative / npc_converse  none, one short line.

@@ -9,7 +9,7 @@ automatisés) vivent dans le fichier d'instructions unique du dossier de dévelo
 Un projet, un article Workshop, **trois mods** sous `Contents/mods/` (décisions :
 [ADR de séparation](architecture/decisions/adr-separation-mods.md), plan
 [`E18`](annexes/plans-termines/E18-separation-living-knox.md) ; [ADR batman_CoreAI](architecture/decisions/adr-coreai-separation.md),
-plan [`E21`](annexes/plans-termines/E21-separation-coreai.md)). Le dossier et l'`id=` sont identiques :
+plan [`E21`](annexes/plans/E21-separation-coreai.md)). Le dossier et l'`id=` sont identiques :
 
 | Mod | Rôle | `require=` |
 |---|---|---|

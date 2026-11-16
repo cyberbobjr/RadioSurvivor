@@ -358,7 +358,7 @@ class RetrieveMissionTests(unittest.TestCase):
         self.assertIn('120 minutes', reply['text'])
 
     def suite_sim(self, name):
-        """Simulated server with the real RST engine and the suite rs.mission.retrieve loaded (dev mod); the server move
+        """Simulated server with the real RST engine and the suite ca.mission.retrieve loaded (dev mod); the server move
         of RST_Fixtures is played directly on the server copy of the player, which loads the house. Rend la simulation et
         le joueur demandeur (alice)."""
         sim, npc, record, missions = self.retrieve_sim(name)
@@ -389,7 +389,7 @@ class RetrieveMissionTests(unittest.TestCase):
             require 'RST/RST_Fixtures'
             RST.Fixtures.WAIT_LOADED = false   -- the server double has no current square: moves do not wait for it
         """)
-        sim.server.rt.execute((TESTS_SHARED / 'RST' / 'suites' / 'RS_MissionRetrieve.lua').read_text(encoding='utf-8'))
+        sim.server.rt.execute((TESTS_SHARED / 'RST' / 'suites' / 'CA_MissionRetrieveSuite.lua').read_text(encoding='utf-8'))
         alice = sim.server.g.PLAYERS.alice
         # F.giveItem: inv:AddItem("Module.Item") creates the item (ItemContainer.AddItem(String)).
         sim.server.rt.execute("""
@@ -406,7 +406,7 @@ class RetrieveMissionTests(unittest.TestCase):
 
     def run_suite(self, sim, alice, each_step=None):
         """Runs the suite by RST.step every 100 ms (each_step() after each step); rend les résultats par test."""
-        self.assertTrue(sim.server.rt.eval('function(p) return RST.start("rs.mission.retrieve", '
+        self.assertTrue(sim.server.rt.eval('function(p) return RST.start("ca.mission.retrieve", '
                                            '{ attach = false, ctx = { player = p } }) end')(alice))
         for _ in range(400):
             if not sim.server.rt.eval('RST.step()'):

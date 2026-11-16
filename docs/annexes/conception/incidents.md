@@ -83,7 +83,7 @@ par le serveur et appliquée une seule fois.
 - Pas d'entrée au journal du groupe pour la décision, réplique du chef non dite à voix haute (mémoire du pont
   seulement).
 - Non prouvé en jeu ni dans la VM Kahlua pour le chemin complet : banc lupa `tests/test_incidents.py`, suite
-  `rs.factions.incident` à jouer.
+  `lk.factions.incident` à jouer.
 
 ## Idées reprises
 

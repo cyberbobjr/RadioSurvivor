@@ -4,7 +4,7 @@ RST_AutoClient.lua (bouton Respawn de l'écran de mort, création du personnage 
 
     python RadioSurvivor/tests/test_death_suites.py
 
-Le VRAI moteur RST (RST.lua, RST_Steps.lua, RST_Fixtures.lua, RST_PeerChecksRadio.lua, RST_PeerChecks2.lua) et le
+Le VRAI moteur RST (RST.lua, RST_Steps.lua, RST_Fixtures.lua, RST_PeerChecksCarnet.lua, RST_PeerChecks2.lua) et le
 vrai pilote tournent sur un serveur dédié simulé et deux clients (une machine lupa chacun, `next` retiré comme dans
 Kahlua, réseau en file livré au tick suivant). Doublures : joueurs (mode dieu, mort serveur `die()` qui déclenche
 OnCharacterDeath AVANT de créer le cadavre, qui prend le même conteneur ; paquet de mort vers le client avec
@@ -31,7 +31,7 @@ RST_DIR = DEV / 'shared' / 'RST'
 SUITE = RST_DIR / 'suites' / 'RS_Death.lua'
 PEER = RST_DIR / 'RST_PeerChecksDeath.lua'
 DRIVER = DEV / 'client' / 'RST' / 'RST_AutoClient.lua'
-LOADED = ['RST_Steps.lua', 'RST_Fixtures.lua', 'RST_PeerChecksRadio.lua', 'RST_PeerChecks2.lua',
+LOADED = ['RST_Steps.lua', 'RST_Fixtures.lua', 'RST_PeerChecksCarnet.lua', 'RST_PeerChecks2.lua',
           'RST_PeerChecksDeath.lua']
 
 JAVA = r'''

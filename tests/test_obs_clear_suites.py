@@ -1,11 +1,11 @@
-"""Suites en jeu rs.mission.clear, rs.mission.clearcount (E11-T04) et rs.observations (E08-T07, scène de mort à
+"""Suites en jeu ca.mission.clear, ca.mission.clearcount (E11-T04) et lk.observations (E08-T07, scène de mort à
 ligne de vue garantie, gabarit de mission fourni) sur des bancs lupa.
 
-- rs.mission.clear / rs.mission.clearcount : vrai moteur RST sur la machine serveur du banc du carnet
+- ca.mission.clear / ca.mission.clearcount : vrai moteur RST sur la machine serveur du banc du carnet
   (tests/test_mission_clear.py : métagrille, zombies et joueurs doublés) ; plus aucun SKIP faute de bâtiment
   peuplé (tirage sans densité minimale), FAIL sans bâtiment ; deux participants (alice, bob) : même k / N, tué hors
   du cercle ou après l'objectif non compté ; défauts injectés détectés.
-- rs.observations : banc de tests/test_rs_mp_suites.py (serveur + deux clients) ; LosUtil doublé (murs par cases) :
+- lk.observations : banc de tests/test_rs_mp_suites.py (serveur + deux clients) ; LosUtil doublé (murs par cases) :
   cases par défaut sans vue, recherche d'autres cases, FAIL si aucune ; création de mission refusée sans conditions
   d'offre (moteur à approvisionnements) : le gabarit fourni par la suite passe.
 Doublures seulement : aucune API Java n'est prouvée ici (campagne MP).
@@ -22,7 +22,7 @@ import test_rs_mp_suites as mp
 from test_carnet import TESTS_SHARED
 from test_protocol import lua_list
 
-CLEAR_SUITE = TESTS_SHARED / 'RST' / 'suites' / 'RS_MissionClear.lua'
+CLEAR_SUITE = TESTS_SHARED / 'RST' / 'suites' / 'CA_MissionClearSuite.lua'
 
 # Doubles of the world for the clear suites (from tests/test_mission_clear.py, in-game suite test), plus loaded
 # squares (outside the circle), online players and RST.Steps on the server.
@@ -111,7 +111,7 @@ CLEAR_DEFECTS = {
 
 
 class ClearSuiteTests(unittest.TestCase):
-    """rs.mission.clear et rs.mission.clearcount exécutées par le vrai moteur RST sur le serveur simulé."""
+    """ca.mission.clear et ca.mission.clearcount exécutées par le vrai moteur RST sur le serveur simulé."""
 
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory(prefix='rs-clearsuite-')
@@ -148,7 +148,7 @@ class ClearSuiteTests(unittest.TestCase):
         return sim, results, notes
 
     def status(self, results):
-        # rs.mission.clear: its solo test (real notebook, player actions) is skipped on this server machine.
+        # ca.mission.clear: its solo test (real notebook, player actions) is skipped on this server machine.
         results = dict(results)
         solo = results.pop(tmc.SOLO_TEST, None)
         if solo is not None:
@@ -157,35 +157,35 @@ class ClearSuiteTests(unittest.TestCase):
         return status, message or ''
 
     def test_clear_dense_site_passes(self):
-        _, results, notes = self.run_suite('rs.mission.clear')
+        _, results, notes = self.run_suite('ca.mission.clear')
         self.assertEqual(self.status(results), ('PASS', ''))
         self.assertTrue(any('drawn building (draw 1)' in n for n in notes), notes)
 
     def test_clear_quiet_town_is_no_skip(self):
         # Every building under minDensity (the old SKIP): drawn again without minimum density, PASS.
-        _, results, notes = self.run_suite('rs.mission.clear', 'RS_CLEAR.intensity = 0')
+        _, results, notes = self.run_suite('ca.mission.clear', 'RS_CLEAR.intensity = 0')
         self.assertEqual(self.status(results), ('PASS', ''))
         self.assertTrue(any('without minimum density' in n for n in notes), notes)
 
     def test_clear_without_building_fails(self):
         _, results, _ = self.run_suite(
-            'rs.mission.clear', "require('CoreAI/CA_MissionClear').site = function() return nil end")
+            'ca.mission.clear', "require('CoreAI/CA_MissionClear').site = function() return nil end")
         status, message = self.status(results)
         self.assertEqual(status, 'FAIL')
         self.assertIn('no building at all', message)
 
     def test_clearcount_skips_without_second_client(self):
-        _, results, _ = self.run_suite('rs.mission.clearcount')
+        _, results, _ = self.run_suite('ca.mission.clearcount')
         status, message = self.status(results)
         self.assertEqual(status, 'SKIP')
         self.assertIn('no second client online', message)
 
     def two(self, defect=None, setup=''):
-        """rs.mission.clearcount with bob online (second client, char2)."""
+        """ca.mission.clearcount with bob online (second client, char2)."""
         original = CLEAR_DOUBLES
         try:
             globals()['CLEAR_DOUBLES'] = original.replace("ONLINE = { 'alice' }", "ONLINE = { 'alice', 'bob' }")
-            return self.run_suite('rs.mission.clearcount', setup, defect)
+            return self.run_suite('ca.mission.clearcount', setup, defect)
         finally:
             globals()['CLEAR_DOUBLES'] = original
 
@@ -266,12 +266,12 @@ end
 
 
 class ObservationSceneTests(mp.Bench):
-    """rs.observations : cases de la scène de mort choisies avec une ligne de vue ; gabarit de mission fourni."""
+    """lk.observations : cases de la scène de mort choisies avec une ligne de vue ; gabarit de mission fourni."""
 
     def run_obs(self, lua='', solo=False):
         net = self.net(solo=solo)
         net.server.lua(LOS_DOUBLE + lua)
-        return net.run('rs.observations')
+        return net.run('lk.observations')
 
     def death(self, rep):
         return rep.results[next(k for k in rep.results if k.startswith('group_death: the members'))]

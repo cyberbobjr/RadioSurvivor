@@ -527,7 +527,7 @@ class RecoverMissionTests(unittest.TestCase):
             self.assertIn('sac de matériel de soin', fr['text'])
 
     def test_in_game_suite_on_the_simulated_server(self):
-        """rs.mission.recover (dev mod) run by the real RST engine on the server machine; the server move of
+        """ca.mission.recover (dev mod) run by the real RST engine on the server machine; the server move of
         RST_Fixtures is played directly on the server copy of the player, which loads the area around it."""
         sim, npc, record, missions = self.recover_sim('suite')
         shared = (TESTS_SHARED.as_posix() + '/?.lua')
@@ -549,9 +549,9 @@ class RecoverMissionTests(unittest.TestCase):
             require 'RST/RST_Fixtures'
             RST.Fixtures.WAIT_LOADED = false   -- the server double has no current square: moves do not wait for it
         """)
-        sim.server.rt.execute((TESTS_SHARED / 'RST' / 'suites' / 'RS_MissionRecover.lua').read_text(encoding='utf-8'))
+        sim.server.rt.execute((TESTS_SHARED / 'RST' / 'suites' / 'CA_MissionRecoverSuite.lua').read_text(encoding='utf-8'))
         alice = sim.server.g.PLAYERS.alice
-        self.assertTrue(sim.server.rt.eval('function(p) return RST.start("rs.mission.recover", '
+        self.assertTrue(sim.server.rt.eval('function(p) return RST.start("ca.mission.recover", '
                                            '{ attach = false, ctx = { player = p } }) end')(alice))
         for _ in range(400):
             if not sim.server.rt.eval('RST.step()'):

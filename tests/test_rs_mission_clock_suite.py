@@ -1,4 +1,4 @@
-"""Banc hors jeu de la suite en jeu rs.missions.clock (E11-T20, RS_MissionClock.lua) : délais des missions en temps
+"""Banc hors jeu de la suite en jeu ca.missions.clock (E11-T20, CA_MissionClock.lua) : délais des missions en temps
 de jeu, chrono arrêté pendant la pause et accéléré en avance rapide, en solo.
 
     python tests/test_rs_mission_clock_suite.py
@@ -112,7 +112,7 @@ M.advance = function(state, ms)
 end'''),
 }
 
-START = ('REPORT = nil; assert(RST.start({ suite = "rs.missions.clock", tags = { "world" } }, '
+START = ('REPORT = nil; assert(RST.start({ suite = "ca.missions.clock", tags = { "world" } }, '
          '{ onDone = function(r) REPORT = r end }))')
 
 
@@ -123,7 +123,7 @@ class MissionClockSuiteBench(unittest.TestCase):
         self.h = h
         h.load('solo', SIGNAL_SMOKE)
         h.load('solo', COMMON)
-        h.load('solo', 'require "RST/RST"; require "RST/suites/RS_MissionClock"')
+        h.load('solo', 'require "RST/RST"; require "RST/suites/CA_MissionClock"')
         if defect:
             h.load('solo', DEFECTS[defect][1])
         if before:

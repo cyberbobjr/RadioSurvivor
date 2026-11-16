@@ -5,7 +5,7 @@
     python RadioSurvivor/tools/autoclient/autoclient.py --campaign solo-lk --timeout 1800      Living Knox seul
     python RadioSurvivor/tools/autoclient/autoclient.py --campaign solo --timeout 3600         les deux mods
     (E21-T07 : sans --mods, solo-lk prend le montage lk, solo-rs le montage rs, toute autre campagne both)
-    python RadioSurvivor/tools/autoclient/autoclient.py --suite rs.npctalk --tags world     pont lancé (auto)
+    python RadioSurvivor/tools/autoclient/autoclient.py --suite lk.npctalk --tags world     pont lancé (auto)
     python RadioSurvivor/tools/autoclient/autoclient.py --save rstest-2026-10-13 --suite rst.guard,rs.env --keep-cache
     python RadioSurvivor/tools/autoclient/autoclient.py --dry-run --suite rs.env     prépare le cache, ne lance rien
 
@@ -38,7 +38,7 @@ Codes de sortie : 0 rapport OK ; 1 tests en échec ; 2 délai, échec de démarr
 lancé par l'outil, ou aucun emplacement libre (--max-parallel).
 
 Multijoueur (E01-T15) : --mp [--clients 1..4]
-    python RadioSurvivor/tools/autoclient/autoclient.py --mp --server-suite rs.identity,rs.facts
+    python RadioSurvivor/tools/autoclient/autoclient.py --mp --server-suite ca.identity,rs.facts
     python RadioSurvivor/tools/autoclient/autoclient.py --mp --clients 2 --server-campaign mp --timeout 5400
     python RadioSurvivor/tools/autoclient/autoclient.py --mp --suite rs.env --server-suite lk.melee --server-tags world
   1. serveur dédié de test (zombie.network.GameServer, -nosteam, mode debug par la propriété Java -Ddebug : un
@@ -175,7 +175,7 @@ IGNORE = shutil.ignore_patterns('__pycache__', '*.pyc', '*.bak', '*.tmp', '.git'
 BRIDGE_SCRIPT = ROOT / 'bridge' / 'radio_bridge.py'
 EXCHANGE_DIR = 'Lua/batman_CoreAI'
 BRIDGE_READY = 'Bridge ready'
-BRIDGE_SUITES = ('rs.npctalk', 'rs.radiomodule', 'rs.relation', 'rs.groupradio', 'lk.talk', 'lk.conversations',
+BRIDGE_SUITES = ('lk.npctalk', 'rs.radiomodule', 'lk.relation', 'rs.groupradio', 'lk.talk', 'lk.conversations',
                  'lk.initiatives')
 # E21-T07: each test mod registers its parts of the campaigns in client/RST/RST_Campaign*.lua (RST.Campaigns.add).
 CAMPAIGN_GLOB = 'RST_Campaign*.lua'
@@ -502,11 +502,11 @@ def declared_suite_names(lua_dirs: list[Path]) -> set[str]:
 def phase_plan(bases: list[str], phases: list[str], declared: set[str]) -> list[list[list[str]]]:
     """Server runs of each step of a phased MP run: step 0 before the first action, step k after action k.
 
-    Each base B (e.g. rs.identity) needs a suite B.before (snapshot of the state, opt-in "manual") and at least one
+    Each base B (e.g. ca.identity) needs a suite B.before (snapshot of the state, opt-in "manual") and at least one
     B.after-<action> for the actions asked. Step 0 runs every B.before (those of the bases checked after reconnect2
     in a last, separate run: they move the requester away). Step k runs B.after-<action k> for the bases
     that define it, then, in a second run, B.before again for those bases when a later step checks them again (fresh
-    snapshot just before the next action: e.g. the restart clock of rs.identity). Returns steps -> runs -> suites;
+    snapshot just before the next action: e.g. the restart clock of ca.identity). Returns steps -> runs -> suites;
     a step without anything to check has no run (its clients only reconnect). ValueError on an unusable plan."""
     if not phases:
         raise ValueError('no phase asked')
@@ -760,7 +760,7 @@ def campaign_suites(lua_text: str, name: str) -> list[str] | None:
 
 def needs_bridge(campaign: str | None, suites: list[str] | None, lua_text: str = '') -> bool:
     """True when the selection may run a suite that needs the bridge (prefix selection both ways: "rs" selects
-    rs.npctalk, "rs.radiomodule.world" belongs to rs.radiomodule). Unknown campaign: True (safe side)."""
+    lk.npctalk, "rs.radiomodule.world" belongs to rs.radiomodule). Unknown campaign: True (safe side)."""
     names = suites if suites else campaign_suites(lua_text, campaign or '')
     if names is None:
         return True
@@ -1389,7 +1389,7 @@ def build_parser() -> argparse.ArgumentParser:
                                      'restart with batman_LivingKnoxTestClothes added to the mods of the server and '
                                      'clients (e.g. --server-suite lk.appearance)')
     mp.add_argument('--restart-pause', type=int, default=120,
-                    help='with --phases restart: seconds the server stays down before its relaunch (default 120: rs.identity checks that a mission clock does not run while the server is down, margin RESTART_MARGIN_MS = 120 s)')
+                    help='with --phases restart: seconds the server stays down before its relaunch (default 120: ca.identity checks that a mission clock does not run while the server is down, margin RESTART_MARGIN_MS = 120 s)')
     mp.add_argument('--load-phase-ms', type=int,
                     help=f'lk.loadmp phase length in ms (>= {LOAD_PHASE_MIN_MS}; default of the suite 300000): Lua '
                          f'global {LOAD_PHASE_GLOBAL} written into the caches of the run')

@@ -26,7 +26,7 @@ Command file (written by the launcher in the temporary cache folder, read only h
         serverSuite=<a,b,...>  RST.server({ suite = {...} }) once the client run (if any) is over; serverTags= and
                                serverExclude= as tags=/exclude= (explicit server filter)
                                "a,b;c" (E01-T17): successive server runs, the next one requested once the report of
-                               the previous one is in (e.g. "rs.identity.after-reconnect;rs.identity.before": the
+                               the previous one is in (e.g. "ca.identity.after-reconnect;ca.identity.before": the
                                snapshot is taken again after the checks); tags and exclusion apply to every run, the
                                counters and failure lines are summed into one result (serverReport= ","-joined)
         serverCampaign=<name>  RST.server({ suite = RST.CAMPAIGNS[name], exclude = { "manual" } })
@@ -205,7 +205,7 @@ function A.parse(lines)
         if #suites == 0 then return nil, "suite= is empty" end
         out.suites = suites
         -- Explicit filter (RST_Client rule): tags= and/or exclude= (empty exclude = no exclusion) replace the
-        -- default exclusion of server and world suites, e.g. tags=world for rs.npctalk.
+        -- default exclusion of server and world suites, e.g. tags=world for lk.npctalk.
         if cmd.tags ~= nil then out.tags = split(cmd.tags) end
         if cmd.exclude ~= nil then out.exclude = split(cmd.exclude) end
     elseif cmd.tags ~= nil or cmd.exclude ~= nil then

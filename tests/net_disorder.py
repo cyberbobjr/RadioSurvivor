@@ -2,7 +2,7 @@
 
 Rejoue un scénario de banc serveur dédié + clients plusieurs fois, chaque fois sur un harnais neuf livré dans un ordre
 différent, pour qu'un défaut qui suppose un ordre de livraison échoue sur au moins un ordre, sans crochet écrit pour
-lui (suite rs.npctalk du 2026-11-05 : réponse de l'étape arrivée après la requête déjà répondue).
+lui (suite lk.npctalk du 2026-11-05 : réponse de l'étape arrivée après la requête déjà répondue).
 
 Ce que le jeu garantit (sources 42.22) et que l'aide respecte :
 - commandes Lua (sendClientCommand, sendServerCommand) : paquet ClientCommand fiable NON ordonné (PacketTypes.java:491,

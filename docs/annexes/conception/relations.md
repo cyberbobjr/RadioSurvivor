@@ -134,7 +134,7 @@ contacts (opération `contacts` du fournisseur), avec ou sans RadioSurvivor.
 Tests : `tests/test_relation_panel.py` (6 tests : deux membres d'un même groupe aux relations différentes pour alice,
 projection propre de bob de la même faction, aucun fait de l'un chez l'autre, accord et portée, rendu anglais réel
 sans clé ni nombre, page du carnet, équipe personnelle et suspension, « inconnu », identifiants inconnus, clés FR) ;
-en jeu : `RST.run({ suite = "rs.notebook.relation", tags = "world" })` (campagne `solo-rs`).
+en jeu : `RST.run({ suite = "lk.notebook.relation", tags = "world" })` (campagne `solo-lk`).
 
 ## Alternatives écartées
 
@@ -153,7 +153,7 @@ en jeu : `RST.run({ suite = "rs.notebook.relation", tags = "world" })` (campagne
   liaison, fait non offert, fait inconnu, sens contraire, déjà utilisé, écart à la borne) garde la réplique, laisse la
   relation inchangée et journalise le motif ; un changement valide reste appliqué avec sa réplique.
 - `tests/test_protocol.py` : `scenario_relation_change` (RSV2, prompt, `bounded_reply`, `model_reply`, pont hors ligne).
-- En jeu : suite `rs.relation` (`RST.run({ suite = "rs.relation", tags = "world" })`, solo, pont et vrai modèle).
+- En jeu : suite `lk.relation` (`RST.run({ suite = "lk.relation", tags = "world" })`, solo, pont et vrai modèle).
 
 ## Points ouverts
 

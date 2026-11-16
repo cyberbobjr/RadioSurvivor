@@ -1,14 +1,17 @@
 --[[
 RST_FactsBook - keeps the live fact log of RadioSurvivor (RS_Facts, private state RS_State, E14-T01) as it was before a
-test (development mod only). Load with: require "RST/RST_FactsBook". No side effect at load time (definitions only).
+test (development mod only). Load with: require "RST/RST_FactsBook".
 
     local Facts = RST.FactsBook.keep(t)
         RS_Facts when it is loaded here (authority of a game with RadioSurvivor active) and its book exists, else nil.
         The book is copied now; a cleanup (t:defer) puts that copy back and saves the private state, whatever the
         test recorded meanwhile (deaths, a mission closed through CA_Missions.finish...).
+At load time it registers FB.keep in RST.Fixtures.keepers (E21-T11): the core suites that close a mission keep the fact
+log of RadioSurvivor through RST.Fixtures.keepModStates.
 ]]
 
 require "RST/RST"
+require "RST/RST_Fixtures"
 
 RST.FactsBook = RST.FactsBook or {}
 local FB = RST.FactsBook
@@ -27,5 +30,7 @@ function FB.keep(t)
     end, "fact log restored")
     return Facts
 end
+
+RST.Fixtures.keepers.radioSurvivorFacts = FB.keep
 
 return FB

@@ -3144,15 +3144,18 @@ class CampaignRegistryTests(LuaHarness):
         self.assertEqual(self.campaign('y'), ['lk.a', 'ca.shared'])
         self.assertEqual(self.campaign('both'), ['lk.a', 'ca.shared', 'lk.b', 'rs.a', 'lk.last'])
 
+    CORE_SOLO = ['rst.guard', 'ca.codec', 'ca.notebook', 'ca.factions.mandate', 'ca.reputation', 'ca.missions',
+                 'ca.mission.signal.client', 'ca.notebook.ink', 'ca.caches']
+
     def test_core_suites_open_every_solo_campaign(self):
         for name in ('solo-lk', 'solo-rs', 'solo'):
-            self.assertEqual(self.campaign(name), ['rst.guard', 'ca.codec', 'ca.notebook'], name)
+            self.assertEqual(self.campaign(name), self.CORE_SOLO, name)
 
     def test_living_knox_alone_runs_core_and_living_knox_suites(self):
         # The Living Knox setup loads the core and Living Knox test mods only.
         self.lua((LK_TESTS / 'client' / 'RST' / 'RST_CampaignLK.lua').read_text(encoding='utf-8'))
         lk = self.campaign('solo-lk')
-        self.assertEqual(lk[:4], ['rst.guard', 'ca.codec', 'ca.notebook', 'lk.fitness'])
+        self.assertEqual(lk[:len(self.CORE_SOLO) + 1], self.CORE_SOLO + ['lk.fitness'])
         self.assertEqual(lk, self.campaign('solo'))
         self.assertEqual(self.campaign('mp')[-1], 'lk.routines')
         self.assertTrue(all(n.split('.')[0] in ('rst', 'ca', 'lk') for n in lk + self.campaign('mp')))
@@ -3161,9 +3164,9 @@ class CampaignRegistryTests(LuaHarness):
         self.lua((RS_TESTS / 'client' / 'RST' / 'RST_CampaignRS.lua').read_text(encoding='utf-8'))
         self.lua((LK_TESTS / 'client' / 'RST' / 'RST_CampaignLK.lua').read_text(encoding='utf-8'))
         solo = self.campaign('solo')
-        self.assertEqual(solo, self.campaign('solo-lk') + self.campaign('solo-rs')[3:])
+        self.assertEqual(solo, self.campaign('solo-lk') + self.campaign('solo-rs')[len(self.CORE_SOLO):])
         mp = self.campaign('mp')
-        self.assertEqual(mp[:3], ['rst.selftest', 'ca.codec', 'ca.journal'])
+        self.assertEqual(mp[:4], ['rst.selftest', 'ca.codec', 'ca.identity', 'ca.journal'])
         self.assertEqual(mp[-2:], ['rs.death', 'lk.routines'])
         self.assertEqual(self.campaign('mp-persist')[-2:], ['rst.disconnect', 'lk.rejoin'])
 

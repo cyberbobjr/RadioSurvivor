@@ -1,22 +1,19 @@
 --[[
-RST_PeerChecksRadio - client steps of the radio, notebook and faction suites (E00-T04, E06-T03, E06-T05, E09-T03),
-asked by the authority through RST.Steps (E01-T16). Development mod only. Load with:
+RST_PeerChecksRadio - client steps of the radio suites (E06-T03, E06-T05), asked by the authority through RST.Steps
+(E01-T16). E21-T11: the notebook and faction steps (carnet.claim, carnet.mandate, carnet.count, core.faction) live in
+RST_PeerChecksCarnet.lua of batman_CoreAITests. Development mod only. Load with:
 require "RST/RST_PeerChecksRadio" (shared: the suites that ask these steps require it, so every client that loads the
 suites has the handlers; the authority helpers below run on the server or in solo).
 
 What a client sees from the server is read on the client itself:
     MP client   one OnServerCommand listener (installed once when this file loads on a client) keeps the last commands
-                of the modules "RadioSurvivor" (radio: accepted, rejected, done, history, history_lines, history_add)
-                and "CoreAI" (notebook: snapshot, identity, error...) in RST.PeerRadio.inbox, numbered.
-    solo        the authority hands these commands to the client modules directly (RadioSurvivor_Const.clientHandler,
-                CoreAI.notebookClient.receive): both are wrapped once, at the first step that needs them, to fill the same
-                inbox (the wrapped functions are called first and unchanged).
+                of the module "RadioSurvivor" (radio: accepted, rejected, done, history, history_lines, history_add)
+                in RST.PeerRadio.inbox, numbered.
+    solo        the authority hands these commands to the client module directly (RadioSurvivor_Const.clientHandler):
+                it is wrapped once, at the first step that needs it, to fill the same inbox (the wrapped function is
+                called first and unchanged).
 
 Client handlers (RST.Steps.on)
-    carnet.claim   { character, waitMs }: this client sends the notebook "hello" claiming the character id given (the
-                   identity of ANOTHER account, E00-T01) and returns the character of the "identity" answer of the
-                   server in data { character } (RST.PeerRadio inbox; solo: the client module is tapped). FAIL when no
-                   answer comes.
     rs.talk        { args, waitMs }: sends the real radio command "talk" (module RadioSurvivor) with args (text,
                    channel, itemId, or source = "world" x y z index, or source = "vehicle" vehicleId part) and returns
                    the first answer of the server (accepted or rejected) in data { command, reason, text }.
@@ -27,12 +24,6 @@ Client handlers (RST.Steps.on)
                    Radio tab) and returns, once the server answered, data { character, found = { [text] = { "khz:kind",
                    ... } }, characters = every character named by a history command this client received since
                    this file loaded (sorted), frequencies }.
-    rs.faction     { op = "create" | "rename" | "disband", name }: vanilla faction packets of the faction panel
-                   (sendFactionCreate, sendFactionChangeTitle, sendFactionDisband), MP only.
-    carnet.mandate { member, action = "grant" | "revoke", waitMs }: command "mandate" of the core mod (Team tab buttons);
-                   data { lastError } after waitMs, or as soon as the server refused.
-    carnet.count   { ms }: during ms, snapshots received from the notebook server and snapshot or hello requests sent by
-                   this client (CoreAI.notebookClient.send, wrapped for the window): data { snapshots, pulls, other }.
 Authority helpers
     PR.stripHistory(prefix) -> n   radio history lines whose text starts with prefix removed from every notebook
                                    character (private state RS_State, marked dirty); cleanup of the radio suites.
@@ -48,13 +39,10 @@ local PR = RST.PeerRadio
 local Steps = RST.Steps
 
 PR.RADIO_MODULE = "RadioSurvivor"
-PR.CARNET_MODULE = "CoreAI"
 PR.INBOX_MAX = 200
 PR.TALK_MS = 8000
 PR.VEHICLE_MS = 10000
 PR.HISTORY_MS = 8000
-PR.FACTION_MS = 10000
-PR.MANDATE_MS = 3000
 PR.inbox = PR.inbox or {}
 PR.seq = PR.seq or 0
 PR.characters = PR.characters or {}   -- character id -> history commands received naming it
@@ -76,9 +64,10 @@ local function historyModule()
     return nil
 end
 
--- Keeps one command received from the server (both modules), numbered; counts history commands of another character.
+-- Keeps one command of the radio module received from the server, numbered; counts history commands of another
+-- character.
 function PR.record(module, command, args)
-    if module ~= PR.RADIO_MODULE and module ~= PR.CARNET_MODULE then return end
+    if module ~= PR.RADIO_MODULE then return end
     PR.seq = PR.seq + 1
     local entry = { n = PR.seq, module = module, command = command, at = RST.now() }
     if type(args) == "table" then
@@ -87,7 +76,7 @@ function PR.record(module, command, args)
         entry.character = args.character
         if type(args.frequencies) == "table" then entry.frequencies = #args.frequencies end
     end
-    if module == PR.RADIO_MODULE and HISTORY_COMMANDS[command] and entry.character ~= nil then
+    if HISTORY_COMMANDS[command] and entry.character ~= nil then
         -- Every character named by a history command this client received (RS_RadioHistory.owner switches to the
         -- last one: its own state cannot tell a foreign history afterwards).
         local key = tostring(entry.character)
@@ -108,7 +97,7 @@ function PR.since(mark, module, commands)
     return out
 end
 
--- Solo: the authority calls the client modules directly; wrapped once (the original runs first, unchanged).
+-- Solo: the authority calls the radio client module directly; wrapped once (the original runs first, unchanged).
 function PR.tapSolo()
     if isClientSide() or isServerSide() then return end
     local okConst, Const = pcall(require, "RadioSurvivor/RadioSurvivor_Const")
@@ -120,15 +109,6 @@ function PR.tapSolo()
         end
         PR._constTapped = true
     end
-    local C = CoreAI.notebookClient
-    if type(C) == "table" and not PR._carnetTapped and type(C.receive) == "function" then
-        local receive = C.receive
-        C.receive = function(command, args)
-            receive(command, args)
-            PR.record(PR.CARNET_MODULE, command, args)
-        end
-        PR._carnetTapped = true
-    end
 end
 
 local function localPlayer()
@@ -137,31 +117,6 @@ local function localPlayer()
 end
 
 -- ---------------------------------------------------------------- client handlers
-
--- ---------------------------------------------------------------- carnet.claim (E21-T07: from RST_PeerChecks2.lua)
-
-PR.CLAIM_MS = 5000
-
-Steps.on("carnet.claim", function(args)
-    local C = CoreAI.notebookClient
-    if C == nil or type(C.send) ~= "function" then return Steps.fail("notebook client (CoreAI.notebookClient) not loaded") end
-    if type(args.character) ~= "string" or args.character == "" then return Steps.fail("no character to claim") end
-    PR.tapSolo()
-    local mark = PR.seq
-    local Config = require "CoreAI/CA_NotebookConfig"
-    C.send("hello", { v = Config.VERSION, character = args.character })
-    return function(ctx)
-        local got = PR.since(mark, PR.CARNET_MODULE, { identity = true })
-        if #got > 0 then
-            local character = got[#got].character
-            return Steps.pass("claimed " .. tostring(args.character) .. ", identity answered " .. tostring(character),
-                { character = character })
-        end
-        if ctx.final then return Steps.fail("no identity answer to the claim of " .. tostring(args.character)) end
-        return nil
-    end
-end)
-
 
 local ANSWERS = { accepted = true, rejected = true }
 
@@ -255,88 +210,6 @@ Steps.on("rs.history", function(args)
         table.sort(named)
         return Steps.pass(#H.frequencies .. " frequency(ies) in the Radio tab",
             { character = H.character, found = found, characters = named, frequencies = freqs })
-    end
-end)
-
-Steps.on("rs.faction", function(args)
-    if not isClientSide() then return Steps.skip("vanilla factions exist on a server only") end
-    local p = localPlayer()
-    if p == nil then return Steps.fail("no local player") end
-    local op, name = tostring(args.op), args.name
-    if op == "create" then
-        if type(name) ~= "string" or string.len(name) < 3 or string.len(name) > 15 then
-            return Steps.fail("refused: faction name '" .. tostring(name) .. "'")
-        end
-        sendFactionCreate(name, p:getUsername())
-        return Steps.pass("faction " .. name .. " asked")
-    end
-    if op ~= "rename" and op ~= "disband" then return Steps.fail("refused: faction operation " .. op) end
-    return function(ctx)
-        local f = Faction.getPlayerFaction(p)
-        if f == nil then
-            if ctx.final then return Steps.fail("no faction of this player on this client") end
-            return nil
-        end
-        if op == "rename" then
-            sendFactionChangeTitle(f, tostring(name))
-            return Steps.pass("rename to " .. tostring(name) .. " sent")
-        end
-        sendFactionDisband(f)
-        return Steps.pass("disband of " .. tostring(f:getName()) .. " sent")
-    end
-end)
-
--- E18-T20: answers of the core mod to the command "mandate" (CA_Teams): its "error" reason, read by carnet.mandate.
-local CoreAnswer = { lastError = nil }
-if Events ~= nil and Events.OnServerCommand ~= nil then
-    Events.OnServerCommand.Add(function(module, command, a)
-        if module == "CoreAI" and command == "error" and type(a) == "table" then CoreAnswer.lastError = a.reason end
-    end)
-end
-
-Steps.on("carnet.mandate", function(args)
-    -- E18-T20: command "mandate" of the core mod (CA_Teams).
-    local C = CoreAnswer
-    if args.action ~= "grant" and args.action ~= "revoke" then return Steps.fail("refused: action " .. tostring(args.action)) end
-    C.lastError = nil
-    sendClientCommand(getPlayer(), "CoreAI", "mandate", { member = tostring(args.member), action = args.action })
-    local waitMs = tonumber(args.waitMs) or PR.MANDATE_MS
-    local started = RST.now()
-    return function(ctx)
-        if C.lastError ~= nil or RST.now() - started >= waitMs or ctx.final then
-            return Steps.pass("mandate " .. args.action .. " " .. tostring(args.member) .. ": lastError "
-                .. tostring(C.lastError), { lastError = C.lastError })
-        end
-        return nil
-    end
-end)
-
-local SNAPSHOT = { snapshot = true }
-local PULLS = { snapshot = true, hello = true }
-
-Steps.on("carnet.count", function(args)
-    PR.tapSolo()
-    local C = CoreAI.notebookClient
-    if C == nil or type(C.send) ~= "function" then return Steps.fail("notebook client (CoreAI.notebookClient) not loaded") end
-    local ms = tonumber(args.ms) or 10000
-    local mark, started = PR.seq, RST.now()
-    local counts = { pulls = 0, other = 0 }
-    local send = C.send
-    C.send = function(command, a)
-        if PULLS[command] then counts.pulls = counts.pulls + 1 else counts.other = counts.other + 1 end
-        return send(command, a)
-    end
-    local restored = false
-    local function restore()
-        if not restored and C.send ~= send then C.send = send end
-        restored = true
-    end
-    return function(ctx)
-        if RST.now() - started < ms and not ctx.final then return nil end
-        restore()
-        local snapshots = #PR.since(mark, PR.CARNET_MODULE, SNAPSHOT)
-        return Steps.pass(snapshots .. " snapshot(s) received, " .. counts.pulls .. " request(s) sent in " .. ms .. " ms",
-            { snapshots = snapshots, pulls = counts.pulls, other = counts.other })
     end
 end)
 

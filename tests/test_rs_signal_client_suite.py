@@ -1,4 +1,4 @@
-"""Banc hors jeu de la suite en jeu rs.mission.signal.client (E11-T07, RS_MissionSignal.lua) et de ses étapes client
+"""Banc hors jeu de la suite en jeu ca.mission.signal.client (E11-T07, CA_MissionSignalSuite.lua) et de ses étapes client
 (RST_PeerChecksSignal.lua).
 
     python RadioSurvivor/tests/test_rs_signal_client_suite.py
@@ -27,7 +27,7 @@ from test_protocol import lua_list
 
 ROOT_LK = Path(__file__).resolve().parents[1] / 'Contents/mods/batman_LivingKnox/42.21/media/lua'
 REQUESTER, OTHER = 'alice', 'bob'
-SUITE = 'rs.mission.signal.client'
+SUITE = 'ca.mission.signal.client'
 TEST_NAME = ('requester client: accept, circle on its map only, signal outside the window ignored, report and claim')
 
 # Toutes les machines : mod de développement sur le chemin des modules, suite et étapes chargées. Les fonctions du
@@ -41,7 +41,7 @@ if localPlayer ~= nil then getPlayer = function() return localPlayer() end end
 require "RST/RST"
 RST.clock = getTimestampMs
 require "RST/RST_Steps"
-require "RST/suites/RS_MissionSignal"
+require "RST/suites/CA_MissionSignalSuite"
 '''
 
 # Autorité : monde de test (balise world), demandeur = fiche du PNJ 2001 du banc et son corps.
@@ -203,7 +203,7 @@ class SignalClientSuiteBench(unittest.TestCase):
                         notes)
         self.assertTrue(any('client bob: map.zones: mission closed here: 0 ring(s) 0 label(s)' in n for n in notes),
                         notes)
-        self.assertTrue(any('client alice: rs.signal.send: claim sent: row success' in n
+        self.assertTrue(any('client alice: carnet.signal.send: claim sent: row success' in n
                             and 'gained 20 x Base.Bullets9mm' in n for n in notes), notes)
         # The claim of the engine NPC went through Living Knox's source once, with its engine id (incarnation).
         self.assertEqual(list(self.sim.server.g.LK_DELEGATED.values()), [2001])

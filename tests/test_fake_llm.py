@@ -206,7 +206,7 @@ class FakeLLMTests(unittest.TestCase):
         self.assertEqual(("none", ""), (r["intent"], r["offer"]))
 
     def test_npc_stranger_first_turn_long_then_short(self):
-        # E17-T13 (rs.npctalk): the first answer to a stranger needs several bubble pieces of LK_SpeechView.PIECE
+        # E17-T13 (lk.npctalk): the first answer to a stranger needs several bubble pieces of LK_SpeechView.PIECE
         # (180) characters, cut between whole sentences; same answer whatever the player said.
         import fake_llm
         for language in ("EN", "FR"):

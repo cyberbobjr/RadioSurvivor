@@ -27,7 +27,7 @@ sys.path.insert(0, str(ROOT / 'bridge'))
 import radio_bridge  # noqa: E402
 
 ELLIPSIS = '…'
-# Réplique longue réelle du 2026-10-13 (rs.npctalk), allongée : phrases, virgules, accents, décimal, points de
+# Réplique longue réelle du 2026-10-13 (lk.npctalk), allongée : phrases, virgules, accents, décimal, points de
 # suspension.
 LONG = ("Oui, j'ai du travail pour toi. Il s'agit d'aller repérer une maison à West Point, une expédition de deux "
         "heures, avec 9.5 litres d'essence et un sac de toile bien rempli" + ELLIPSIS + " Le rapport se fait en "

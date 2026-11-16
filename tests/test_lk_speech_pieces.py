@@ -12,7 +12,7 @@ prouvés (ancien code) :
   nuit... » ; la consigne au modèle comptait en octets (« 200 bytes »), que le modèle ne compte pas ;
 - bulle, View.show : une réponse au joueur (jusqu'à 1600 octets) dans une seule bulle de 15 s au plus, quelle que soit
   sa longueur, et une réplique suivante du même corps remplaçait la bulle avant qu'elle ait été lue.
-Doublures : celles de test_lk_speech.py (banc solo, dessin noté) ; ne prouvent pas le rendu en jeu (suite rs.npctalk).
+Doublures : celles de test_lk_speech.py (banc solo, dessin noté) ; ne prouvent pas le rendu en jeu (suite lk.npctalk).
 """
 from __future__ import annotations
 

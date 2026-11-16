@@ -2,9 +2,9 @@
 // tools/autoclient/autoclient.py (E01-T14) and tests/run_dedicated_smoke.ps1, through the generic launcher:
 //   python PZDevKit/pzdev.py sp RadioSurvivor -P suite=rs.env
 //   python PZDevKit/pzdev.py sp RadioSurvivor -P campaign=solo-rs --timeout 1800
-//   python PZDevKit/pzdev.py sp RadioSurvivor -P suite=rs.npctalk -P tags=world
+//   python PZDevKit/pzdev.py sp RadioSurvivor -P suite=lk.npctalk -P tags=world
 //   python PZDevKit/pzdev.py server RadioSurvivor -P suite=rst,ca.codec
-//   python PZDevKit/pzdev.py mp RadioSurvivor -P suite=rs.identity,rs.facts
+//   python PZDevKit/pzdev.py mp RadioSurvivor -P suite=ca.identity,rs.facts
 {
   "name": "RadioSurvivor",
   "gameVersion": "42.21",
@@ -66,7 +66,7 @@
     "offlineArgs": ["--offline"],
     "default": "auto",
     "auto": {
-      "suite": ["rs.npctalk", "rs.radiomodule", "rs.relation", "rs.groupradio", "lk.conversations", "lk.initiatives"],
+      "suite": ["lk.npctalk", "rs.radiomodule", "lk.relation", "rs.groupradio", "lk.conversations", "lk.initiatives"],
       "campaign": ["solo", "solo-rs", "solo-lk", "solo-retry"]
     }
   }

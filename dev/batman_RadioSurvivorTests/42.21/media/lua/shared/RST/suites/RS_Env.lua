@@ -32,7 +32,7 @@ local GLOBALS = {
     -- Lua global of the required mod batman_BeltRadio (shared file, loaded everywhere): transmit predicate.
     { "BatmanRadioSupport.canTransmitWith", "any", "shared/RadioSurvivor/RadioSurvivor_Const.lua:270" },
     { "getPlayer", "any", "server/RadioSurvivor_Server.lua:66" },
-    -- E18-T17: getServerOptions, detectBadWords and addSound are read by LK_Talk (Living Knox), run by rs.npctalk.
+    -- E18-T17: getServerOptions, detectBadWords and addSound are read by LK_Talk (Living Knox), run by lk.npctalk.
     { "sendServerCommand", "server", "server/CoreAI/CA_NotebookServer.lua:69" },
     { "getOnlinePlayers", "server", "server/RadioSurvivor_Server.lua:67" },
     { "getFileReader", "server", "server/RadioSurvivor/RS_State.lua:46" },

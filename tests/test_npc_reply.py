@@ -2,7 +2,7 @@
 
     python RadioSurvivor/tests/test_npc_reply.py
 
-In-game run of 2026-10-13 (rs.npctalk, solo, deepseek-flash): the answer to "do you need help?" was cut by
+In-game run of 2026-10-13 (lk.npctalk, solo, deepseek-flash): the answer to "do you need help?" was cut by
 max_tokens (775 reasoning tokens of 800) inside its text, after a "type": "json_object" key copied by the model; the
 raw JSON was said to the player. The spoken yes to the open offer was then answered without intent accept: the
 acquaintance rule of the prompt ("no mission to offer now: return intent none") contradicted the open-offer rule.

@@ -1,4 +1,4 @@
-"""Suites en jeu rs.memorial.animals (E14-T04) et rs.missions.unclaimed (E16-T10) exécutées par le vrai moteur RST
+"""Suites en jeu rs.memorial.animals (E14-T04) et ca.missions.unclaimed (E16-T10) exécutées par le vrai moteur RST
 sur le serveur du carnet simulé (lupa, mêmes doublures que tests/test_bulletin.py et tests/test_memorial.py).
 
     python tests/test_rs_e14_e16_suites.py
@@ -6,7 +6,7 @@ sur le serveur du carnet simulé (lupa, mêmes doublures que tests/test_bulletin
 Couvre : les deux suites passent sur le banc ; chacune échoue sur un défaut injecté dans le vrai module :
 - rs.memorial.animals : un animal tué consigné comme une mort (RS_Facts.characterDeath sans le contrôle isAnimal) ;
   la phrase des morts donnée au pont qui refuse les noms (ancienne consigne « do not name them ») ;
-- rs.missions.unclaimed : un lot réussi non réclamé perdu avant 7 jours de jeu (rétention ramenée à 5 jours).
+- ca.missions.unclaimed : un lot réussi non réclamé perdu avant 7 jours de jeu (rétention ramenée à 5 jours).
 Doublures du jeu : animal (IsoAnimal, AnimalDefinitions, addAnimal) réduit à ce que la suite appelle. Ne prouve pas
 l'API Java : les suites en jeu restent la preuve (campagnes solo-rs et mp).
 """
@@ -110,7 +110,7 @@ class SuiteBench(Base):
         # getWorld is a Python function of the Simulation: wrapped in Lua for the world guard of RST (rstest*).
         self.rt.execute('local base = getWorld; getWorld = function() return base() end')
         self.rt.execute(ANIMAL_DOUBLES)
-        for name in ('RS_MemorialAnimals.lua', 'RS_MissionUnclaimed.lua'):
+        for name in ('RS_MemorialAnimals.lua', 'CA_MissionUnclaimed.lua'):
             self.rt.execute((SUITES / name).read_text(encoding='utf-8'))
         if defect:
             self.rt.execute(defect)
@@ -168,7 +168,7 @@ class UnclaimedLotTests(SuiteBench):
         before = self.fact_rows()
         alice = self.g.PLAYERS.alice
         items = len(lua_list(alice.inv['items']))
-        results = self.run_suite('rs.missions.unclaimed')
+        results = self.run_suite('ca.missions.unclaimed')
         self.assertEqual(len(results), 2, results)
         self.assertEqual(self.not_passed(results), {})
         self.assertEqual(self.fact_rows(), before, 'mission fact left in the fact log')
@@ -179,7 +179,7 @@ class UnclaimedLotTests(SuiteBench):
 
     def test_fails_when_the_lot_is_gone_after_six_game_days(self):
         self.start(LOT_DROPPED_EARLY)
-        failed = self.not_passed(self.run_suite('rs.missions.unclaimed'))
+        failed = self.not_passed(self.run_suite('ca.missions.unclaimed'))
         self.assertIn('lot kept 6 game days, then claimed into the real inventory (E16-T10)', failed)
         self.assertIn('6 game days', failed['lot kept 6 game days, then claimed into the real inventory (E16-T10)'][1])
 

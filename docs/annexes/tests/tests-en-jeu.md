@@ -95,8 +95,8 @@ client, « Break On Error » (débogueur Lua sur erreur) est coupé puis restaur
   la nomme exactement (`RST.run("rst.failures")`, `{ suite = "rst.failures" }`) ou demande le tag
   (`tags = "selfcheck"`).
 - **`manual`** : même règle pour les étapes d'un protocole joué entre des actions manuelles
-  (`rs.identity.before`, `rs.identity.after-*`, § 11) : retenues seulement si le filtre les nomme exactement
-  (`RST.server("rs.identity.before")`) ou demande `tags = "manual"`. `"rs"` et l'exécution automatique ne les
+  (`ca.identity.before`, `ca.identity.after-*`, § 11) : retenues seulement si le filtre les nomme exactement
+  (`RST.server("ca.identity.before")`) ou demande `tags = "manual"`. `"ca"` et l'exécution automatique ne les
   prennent jamais.
 
 Exemples :
@@ -106,7 +106,7 @@ RST.run("rst")                                 -- auto-test du moteur
 RST.run("rs.codec")
 RST.run({ suite = "rs", test = "decode" })     -- seulement les tests dont le nom contient "decode"
 RST.run({ suite = "rst", tags = "world" })     -- fixtures du monde, sur une partie rstest* (§ 5)
-RST.server("rs.missions")                      -- suite "server" exécutée par le serveur
+RST.server("ca.missions")                      -- suite "server" exécutée par le serveur
 RST.run("rst.failures")                        -- échecs volontaires : le rapport doit être FAILED
 ```
 
@@ -220,15 +220,15 @@ python RadioSurvivor/tools/autoclient/autoclient.py --suite rs.env              
 python RadioSurvivor/tools/autoclient/autoclient.py --campaign solo-lk --bridge on --llm fake --wait-idle 3600  # Living Knox seul
 python RadioSurvivor/tools/autoclient/autoclient.py --campaign solo-rs --bridge on --llm fake --wait-idle 3600  # RadioSurvivor seul
 python RadioSurvivor/tools/autoclient/autoclient.py --campaign solo --bridge on --llm fake --wait-idle 3600     # les deux
-python RadioSurvivor/tools/autoclient/autoclient.py --suite rs.npctalk --tags world --wait-idle 3600  # pont, vrai modèle
-python RadioSurvivor/tools/autoclient/autoclient.py --save rstest-solo --suite rs.codec,rs.missions --keep-cache
+python RadioSurvivor/tools/autoclient/autoclient.py --suite lk.npctalk --tags world --wait-idle 3600  # pont, vrai modèle
+python RadioSurvivor/tools/autoclient/autoclient.py --save rstest-solo --suite rs.codec,ca.missions --keep-cache
 python RadioSurvivor/tools/autoclient/autoclient.py --dry-run --suite rs.env          # prépare le cache seulement
 ```
 
 | Option | Défaut | Rôle |
 |---|---|---|
 | `--campaign` / `--suite` | — | `RST.campaign(nom)` ou `RST.run({ suite = {...} })` (exclusion par défaut : ni `server` ni `world`). |
-| `--tags`, `--exclude` | — | Avec `--suite` : filtre RST explicite (`tags=` / `exclude=` de la commande, `--exclude ""` = aucune exclusion) à la place de l'exclusion par défaut ; `--tags world` pour les suites `world` (`rs.npctalk`, `rs.relation`…). |
+| `--tags`, `--exclude` | — | Avec `--suite` : filtre RST explicite (`tags=` / `exclude=` de la commande, `--exclude ""` = aucune exclusion) à la place de l'exclusion par défaut ; `--tags world` pour les suites `world` (`lk.npctalk`, `lk.relation`…). |
 | `--save` | `rstest*` le plus récent | Partie de `Zomboid\Saves\<mode>` (nom `rstest*` obligatoire), **copiée**. |
 | `--timeout` | 900 | Délai entre le lancement et le résultat ; au-delà, le processus lancé est tué. |
 | `--menu-timeout` | 300 | Délai pour que le pilote Lua signale le menu principal (mods absents au menu sinon). |
@@ -236,7 +236,7 @@ python RadioSurvivor/tools/autoclient/autoclient.py --dry-run --suite rs.env    
 | `--wait-idle` | 0 | Attente qu'aucun `java.exe` / `ProjectZomboid64.exe` ne tourne (sinon code 3 ; jamais tués). |
 | `--start-delay` | 5 | Secondes en jeu avant le passage. |
 | `--no-quit`, `--no-screenshot`, `--keep-cache`, `--out` | — | Jeu laissé ouvert ; pas de capture finale ; cache conservé ; dossier de résultats. |
-| `--bridge` | `auto` | Pont Python : `auto` (lancé si une suite choisie en a besoin : `rs.npctalk`, `rs.radiomodule`, `rs.relation`, `lk.conversations`, `lk.initiatives`, `rs.groupradio`, préfixes compris ; campagne lue dans `RST_Campaign.lua`, campagne inconnue = lancé), `on`, `off`, `offline` (réponses en écho, sans modèle). |
+| `--bridge` | `auto` | Pont Python : `auto` (lancé si une suite choisie en a besoin : `lk.npctalk`, `rs.radiomodule`, `lk.relation`, `lk.conversations`, `lk.initiatives`, `rs.groupradio`, préfixes compris ; campagne lue dans `RST_Campaign.lua`, campagne inconnue = lancé), `on`, `off`, `offline` (réponses en écho, sans modèle). |
 | `--bridge-timeout` | 60 | Délai pour la ligne « Bridge ready » du pont ; au-delà, ou si le pont s'arrête, le jeu n'est pas lancé (code 2). |
 
 Déroulement :
@@ -287,13 +287,13 @@ Le même outil, avec `--mp`, démarre un **serveur dédié de test** et y connec
 devant le PC. Depuis `%USERPROFILE%\Zomboid\Workshop` :
 
 ```powershell
-python RadioSurvivor/tools/autoclient/autoclient.py --mp --server-suite rs.identity,rs.codec            # ~1 min 30
-python RadioSurvivor/tools/autoclient/autoclient.py --mp --clients 2 --suite rs.env --server-suite rs.identity
+python RadioSurvivor/tools/autoclient/autoclient.py --mp --server-suite ca.identity,rs.codec            # ~1 min 30
+python RadioSurvivor/tools/autoclient/autoclient.py --mp --clients 2 --suite rs.env --server-suite ca.identity
 python RadioSurvivor/tools/autoclient/autoclient.py --mp --clients 2 --server-campaign mp --bridge on --timeout 7200
 python RadioSurvivor/tools/autoclient/autoclient.py --mp --server-suite lk.melee --server-tags world
-python RadioSurvivor/tools/autoclient/autoclient.py --mp --server-suite rs.npctalk,rs.relation --server-tags world --bridge on
+python RadioSurvivor/tools/autoclient/autoclient.py --mp --server-suite lk.npctalk,lk.relation --server-tags world --bridge on
 python RadioSurvivor/tools/autoclient/autoclient.py --mp --load --bridge off --timeout 3600 --wait-idle 3600   # charge LK13-T02
-python RadioSurvivor/tools/autoclient/autoclient.py --mp --clients 2 --server-suite rs.mission.signal,rs.rescue,rs.trade_run --server-tags server,world --bridge on --llm fake
+python RadioSurvivor/tools/autoclient/autoclient.py --mp --clients 2 --server-suite ca.mission.signal,rs.rescue,rs.trade_run --server-tags server,world --bridge on --llm fake
 ```
 
 | Option | Défaut | Rôle |
@@ -408,7 +408,7 @@ python RadioSurvivor/tools/autoclient/campaign_parallel.py --commit HEAD -- --mp
 
 **Faux modèle et E17-T13** : la première réplique `npc_talk` qu'un PNJ adresse à un inconnu (stade `stranger`, aucune
 réplique précédente de ce PNJ dans l'historique) est longue (plus de 180 caractères, plusieurs phrases entières de
-moins de 180) ; les tours suivants restent courts. Chaque test de `rs.npctalk` rencontre un nouveau PNJ : le test
+moins de 180) ; les tours suivants restent courts. Chaque test de `lk.npctalk` rencontre un nouveau PNJ : le test
 E17-T13 (bulles découpées) reçoit donc toujours une réponse de plusieurs morceaux, sans que le faux modèle lise la
 phrase du joueur.
 
@@ -439,8 +439,8 @@ répondue), copié dans `runs/<passage>/client<N>/` ; le client 2 (`peer=true` d
 | `lk.speech.seen` | Chaque réplique entendue par ce compte (liste `names` de `LivingKnox.Speech.say`, enregistrée sur le serveur) reçue par sa vue de parole (`SpeechView.seen`) ; le serveur exige aussi que chaque autre client soit parmi les auditeurs | `lk.retreat` (reddition, trahison), `lk.alert` (cri), `lk.conversations`, `lk.initiatives` (demandeur) |
 | `rst.access` | Le **demandeur** (admin) envoie `/setaccesslevel rs_mp<N> user` (ou `admin`) (`SendCommandToServer`) ; comptes de test du lanceur seulement, jamais lui-même | suites de droits (ci-dessous) |
 | `rst.request` | Ce client envoie la commande réelle d'un outil (`LivingKnox/adminRequest`, `RadioSurvivorDebug/freqRequest`) et rend la réponse de même numéro | `lk.admin`, `lk.npcsheet`, `lk.debugview`, `rs.freqdebug` : test « a real client with the user role is refused without data (E01-T16) » (client 2 passé `user`, refus sans donnée, compteur de refus du serveur ; `admin` rendu à la fin ; SKIP en solo) |
-| `carnet.send`, `carnet.talk`, `carnet.state` | Carnet du **demandeur** : `select` / `accept`, ligne « Dire » après la réponse attendue et le délai, état (dernière erreur, offre affichée, ligne de mission engagée) | `rs.npctalk`, `rs.relation`, `lk.conversations` |
-| `lk.speech.pieces` | Morceaux de la bulle d'une réponse longue et ordre d'affichage (E17-T13) chez le demandeur | `rs.npctalk` |
+| `carnet.send`, `carnet.talk`, `carnet.state` | Carnet du **demandeur** : `select` / `accept`, ligne « Dire » après la réponse attendue et le délai, état (dernière erreur, offre affichée, ligne de mission engagée) | `lk.npctalk`, `lk.relation`, `lk.conversations` |
+| `lk.speech.pieces` | Morceaux de la bulle d'une réponse longue et ordre d'affichage (E17-T13) chez le demandeur | `lk.npctalk` |
 
 Étapes Living Knox à deux clients (`shared/RST/RST_PeerChecksLK.lua`, fichier partagé chargé par le jeu sur chaque
 machine ; suites dans des fichiers à part, étiquetées `world` et `server`) :
@@ -458,37 +458,39 @@ nouvel exécutant (`Directives.stats.resumeLast` ≤ 1 s) et l'écart entre deux
 progrès autour du changement (≤ 2 s, un rapport par seconde) ; SKIP en solo et avec un seul client. Banc des cinq
 suites sur doublures (serveur + deux clients, solo, défauts injectés) : `python RadioSurvivor/tests/test_lk_peer_suites.py`.
 
-Étapes radio, carnet et factions à deux clients (`shared/RST/RST_PeerChecksRadio.lua`, requis par les suites qui les
-posent, donc chargé sur chaque machine qui charge les suites ; client MP : un écouteur `OnServerCommand` unique garde
-les dernières commandes des modules `RadioSurvivor` et `CoreAI` ; solo : `RadioSurvivor_Const.clientHandler` et
-`CoreAI.notebookClient.receive` enveloppés à la première étape qui en a besoin) :
+Étapes radio, carnet et factions à deux clients (E21-T11 : radio dans `shared/RST/RST_PeerChecksRadio.lua` de
+`batman_RadioSurvivorTests`, carnet et factions dans `shared/RST/RST_PeerChecksCarnet.lua` de `batman_CoreAITests` ;
+chaque fichier est requis par les suites qui posent ses étapes, donc chargé sur chaque machine qui charge les suites ;
+client MP : un écouteur `OnServerCommand` unique par fichier garde les dernières commandes de son module,
+`RadioSurvivor` ou `CoreAI` ; solo : `RadioSurvivor_Const.clientHandler` et `CoreAI.notebookClient.receive` enveloppés
+à la première étape qui en a besoin) :
 
 | Étape | Vérification ou action côté client | Suites |
 |---|---|---|
 | `rs.talk` | Ce client envoie la vraie commande radio `talk` (radio d'inventaire `itemId`, radio posée `source=world` x y z index, autoradio `source=vehicle`) et rend la première réponse du serveur (`accepted` ou `rejected` et le motif) | `rs.worldradio` (E06-T03 : demandeur accepté à 1 case, refusé `TooFar` à 10 cases, `Off` radio éteinte, client 2 selon la règle du serveur à sa position ; passager de l'autoradio accepté, client 2 hors de la voiture refusé `NotInVehicle`), `rs.radio` (E06-T05 : `NoRadio` sans radio portée, phrases des deux joueurs sur une puis deux fréquences libres) |
 | `rs.vehicle` | Ce client monte sur un siège (`BaseVehicle:enter`, comme `ISEnterVehicle`, paquet `VehicleEnter`) ou descend (`exit`) ; attend que le véhicule lui soit connu | `rs.worldradio` (autoradio) |
 | `rs.history` | Onglet Radio de ce client : historique redemandé au serveur (`RS_RadioHistory.request`), lignes trouvées par texte (`khz:kind`), personnages nommés par toutes les commandes d'historique reçues depuis le chargement | `rs.radio` (ses phrases en `said` sur la bonne fréquence, celles de l'autre joueur seulement en `heard`, aucun historique d'un autre personnage) |
-| `rs.faction` | Paquets du panneau des factions : création (`sendFactionCreate`), renommage (`sendFactionChangeTitle`), dissolution (`sendFactionDisband`) ; MP seulement | `rs.factions.mandate` |
-| `carnet.mandate` | Commande `mandate` du carnet (onglet Équipe), dernière erreur rendue (`MandateOwner`…) | `rs.factions.mandate` (E09-T03 : le membre sans mandat refusé en se désignant lui-même ; désignation puis retrait par le propriétaire) |
-| `carnet.count` | Pendant `ms`, instantanés du carnet reçus et demandes `snapshot` / `hello` envoyées par ce client | `rs.carnet.load` (E00-T04 : aucun instantané non demandé pendant 12 s d'inactivité) |
+| `core.faction` | Paquets du panneau des factions : création (`sendFactionCreate`), renommage (`sendFactionChangeTitle`), dissolution (`sendFactionDisband`) ; MP seulement | `ca.factions.mandate` |
+| `carnet.mandate` | Commande `mandate` du carnet (onglet Équipe), dernière erreur rendue (`MandateOwner`…) | `ca.factions.mandate` (E09-T03 : le membre sans mandat refusé en se désignant lui-même ; désignation puis retrait par le propriétaire) |
+| `carnet.count` | Pendant `ms`, instantanés du carnet reçus et demandes `snapshot` / `hello` envoyées par ce client | `lk.carnet.load` (E00-T04 : aucun instantané non demandé pendant 12 s d'inactivité) |
 
 Suites (étiquettes `server` et `world`, autorité seulement ; même code en solo, parties à deux clients en SKIP ou
-notées) : `rs.worldradio` (E06-T03), `rs.radio` (E06-T05 ; la reconnexion reste au protocole manuel), `rs.carnet.load`
+notées) : `rs.worldradio` (E06-T03), `rs.radio` (E06-T05 ; la reconnexion reste au protocole manuel), `lk.carnet.load`
 (E00-T04 : 30 PNJ de test sans contact = 0 fiche et 0 demande d'enrichissement ; serveur inactif = aucun instantané non
 demandé et aucune sauvegarde, puis une sauvegarde après un changement ; fiche contactée jamais purgée, une fiche sans
-contact purgée à la purge suivante, `seenAt` reculé d'une heure), `rs.observations` (E08-T07 : `assault_seen`,
+contact purgée à la purge suivante, `seenAt` reculé d'une heure), `lk.observations` (E08-T07 : `assault_seen`,
 `group_death` devant les membres et hors écran, `player_return` avec `nearHour` reculé d'un jour, `mission_done` ;
 un fait par témoin admissible, rien chez un PNJ qui n'a pu le voir, aucune fiche créée, lieux en maille `area-x-y`),
-`rs.factions.mandate` (E09-T03 : faction créée et renommée par le client propriétaire, client 2 ajouté comme membre par
+`ca.factions.mandate` (E09-T03 : faction créée et renommée par le client propriétaire, client 2 ajouté comme membre par
 le serveur — `Faction:addPlayer`, sans la boîte d'invitation — ; même identifiant d'équipe et même accord après le
 renommage). Exemple : `python RadioSurvivor/tools/autoclient/autoclient.py --mp --clients 2 --server-suite
-rs.worldradio,rs.radio,rs.carnet.load,rs.observations,rs.factions.mandate --server-tags world --bridge auto --timeout
+rs.worldradio,rs.radio,lk.carnet.load,lk.observations,ca.factions.mandate --server-tags world --bridge auto --timeout
 3600 --wait-idle 3600`. Banc des cinq suites sur doublures (serveur + deux clients, solo, défauts injectés) :
 `python RadioSurvivor/tests/test_rs_mp_suites.py`.
 
-Suites du carnet en MP (`rs.npctalk`, `rs.relation`, `lk.conversations`, `lk.initiatives`) : étiquetées `world` et
+Suites du carnet en MP (`lk.npctalk`, `lk.relation`, `lk.conversations`, `lk.initiatives`) : étiquetées `world` et
 `server`, dans la campagne `mp` (pont lancé sur le dossier d'échange du serveur : `--bridge auto` le voit dans la
-campagne). Même suite en solo (`RST.run`, campagne `solo-rs` inchangée) : l'autorité crée le PNJ et lit les requêtes ;
+campagne). Même suite en solo (`RST.run`, campagne `solo-lk` pour `lk.*`) : l'autorité crée le PNJ et lit les requêtes ;
 ce que fait ou voit le joueur passe par le client demandeur, donc par le vrai chemin réseau en MP (client → commande
 `talk` → serveur → pont → réponse → bulle et carnet du client).
 
@@ -530,7 +532,7 @@ auditeurs, `lk.speech`, LK11-T04) ; `lk.weapon.state`, `lk.weapon.count` (`lk.eq
 sommations chez les autres clients et, sur serveur dédié, coup de semonce joué une fois par chaque client
 (`lk.combat.view`) ; `lk.alert` : réplique d'alerte aussi chez le demandeur (serveur dédié) ; `world.keys` des
 cadavres : `lk.zombies` (LK06-T04, cases 3 × 3 autour de chaque mort), `rs.rescue.missed` (E12-T07 : copie du zombie
-attendue chez les autres clients par `lk.present` avant sa mort, puis cadavre et cahier), `rs.mission.retrieve`
+attendue chez les autres clients par `lk.present` avant sa mort, puis cadavre et cahier), `ca.mission.retrieve`
 (E11-T05 : clients déplacés ensemble par `F.movePlayers`, corps avec la carte, puis sans elle) ; `map.known` chez
 chaque autre client avant et après la révélation, état inchangé (`rs.actions.reveal`, E07-T05). Banc des nouvelles
 étapes : `python RadioSurvivor/tests/test_rst_steps.py` (classe `HStepTests`).
@@ -539,14 +541,16 @@ chaque autre client avant et après la révélation, état inchangé (`rs.action
 
 Listes nommées de `client/RST/RST_Campaign.lua` (`RST.campaigns()` les affiche ; banc de leur contenu :
 `tests/test_autoclient.py`, classe `CampaignContentTests`). Une entrée choisit la suite de ce nom et les suites
-`<entrée>.*`, jamais `<entrée>s` : `rs.missions` joue `rs.missions.radio`, `.scout`, `.solo` mais **pas** les gabarits
-`rs.mission.*` (singulier : `clear`, `retrieve`, `recover`, `signal`), choisis par l'entrée `rs.mission`.
+`<entrée>.*`, jamais `<entrée>s` : `ca.missions` joue `ca.missions.clock`, `.unclaimed`, `.scout`, `.solo` mais **pas**
+les gabarits `ca.mission.*` (singulier : `clear`, `retrieve`, `recover`, `signal`, `zones`), choisis par l'entrée
+`ca.mission` ; `rs.missions` joue `rs.missions.radio` et `.voicetemplates` (E21-T11 : moteur et gabarits des missions
+dans les suites du mod commun).
 
 | Campagne | Où | Contenu et remarques |
 |---|---|---|
 | `solo-lk`, `solo-rs`, `solo` (= les deux) | `RST.campaign` (client solo, `--campaign`) | `solo-lk` : suites du commun (`rst.guard`, `ca.*`…) puis `lk.*`, montage sans RadioSurvivor ni Belt Walkie-Talkie (E21-T07) ; `solo-rs` : suites du commun puis `rs.*`, sans Living Knox ; `solo` : les trois mods de test, commun d'abord, puis Living Knox, puis RadioSurvivor. Ajouts E01-T19 : `lk.revenge`, `lk.traversal` (environ 7 min), `lk.upkeep`, `lk.conversations`, `lk.initiatives` (pont) ; `rs.rescue` (cinq suites), `rs.groupradio` (pont). |
-| `mp` | serveur dédié (`--server-campaign mp`) | Le serveur ne garde que les suites étiquetées `server` ou `shared` de la liste (`RST_Server.lua` : étiquettes par défaut, `client` toujours exclu, `manual` exclu par le pilote) : une suite étiquetée seulement `world` n'y tourne **jamais** (contrôlé par le banc). Ajouts E01-T19 : `rs.mission` (cinq gabarits), `rs.factions.accord`, `rs.factions.incident`, `rs.trade_exchange`, `rs.trade_run`, `rs.actions.map`, `rs.actions.reveal`, `rs.groupradio`, `lk.equipment`, `lk.ranged`, `lk.speech`, `lk.traversal`, `lk.force`, `lk.stuck`, `lk.milestone1`, `lk.essai`, puis `lk.meals`, `lk.repair`, `lk.expedition`, `lk.forage` et **`lk.routines` en dernier** (elle met l'horloge à 23 h puis à l'aube ; les quatre précédentes la mettent à 6 h 59 ou 9 h hors de leur fenêtre). |
-| `mp-ambient` | serveur dédié, zombies vanilla, joueurs mortels | `rs.identity`, `rs.facts`, `lk.load`, `lk.zombies`, `lk.alert`, `lk.defense`. La liste ne change pas le monde : c'est le lanceur qui le fait (commande ci-dessous). |
+| `mp` | serveur dédié (`--server-campaign mp`) | Le serveur ne garde que les suites étiquetées `server` ou `shared` de la liste (`RST_Server.lua` : étiquettes par défaut, `client` toujours exclu, `manual` exclu par le pilote) : une suite étiquetée seulement `world` n'y tourne **jamais** (contrôlé par le banc). Ajouts E01-T19 : `ca.mission` (cinq gabarits), `lk.factions.accord`, `lk.factions.incident`, `rs.trade_exchange`, `rs.trade_run`, `rs.actions.map`, `rs.actions.reveal`, `rs.groupradio`, `lk.equipment`, `lk.ranged`, `lk.speech`, `lk.traversal`, `lk.force`, `lk.stuck`, `lk.milestone1`, `lk.essai`, puis `lk.meals`, `lk.repair`, `lk.expedition`, `lk.forage` et **`lk.routines` en dernier** (elle met l'horloge à 23 h puis à l'aube ; les quatre précédentes la mettent à 6 h 59 ou 9 h hors de leur fenêtre). |
+| `mp-ambient` | serveur dédié, zombies vanilla, joueurs mortels | `ca.identity`, `rs.facts`, `lk.load`, `lk.zombies`, `lk.alert`, `lk.defense`. La liste ne change pas le monde : c'est le lanceur qui le fait (commande ci-dessous). |
 
 ```powershell
 python RadioSurvivor/tools/autoclient/autoclient.py --mp --clients 2 --server-campaign mp --bridge auto --timeout 7200 --wait-idle 3600
@@ -575,21 +579,21 @@ Suites qui étaient « solo seulement » et passent par le client demandeur sur 
 Limite de `rs.actions.reveal` en MP : la carte connue du compte tenue par le serveur (`WorldMapVisitedServer`) garde
 les blocs révélés (aucun oubli ciblé dans le jeu) ; seul le client les efface. Monde de test seulement.
 
-Groupe de test (`shared/RST/RST_LKGroupFixture.lua`, `RST.LKGroup.ensure`) : `rs.carnet.lk`, `rs.carnet.lk.supply`,
-`rs.groupradio`, `rs.factions.accord` et `rs.factions.incident` faisaient SKIP loin d'un groupe de la population
+Groupe de test (`shared/RST/RST_LKGroupFixture.lua`, `RST.LKGroup.ensure`) : `lk.carnet.npc`, `lk.carnet.supply`,
+`rs.groupradio`, `lk.factions.accord` et `lk.factions.incident` faisaient SKIP loin d'un groupe de la population
 initiale. Sur une partie `rstest*` (solo ou serveur de test), quand aucun corps de groupe n'est chargé près du
 joueur (ou, pour `rs.groupradio`, quand aucun groupe ne tient d'émetteur), un groupe « settlers » (poste émetteur au
 foyer) de deux membres est créé avec son foyer sur la case du joueur, sans ameublement, joueurs cachés à sa
 perception (un joueur dans son foyer serait un intrus) ; la suite attend les deux corps debout, puis retire le
 groupe, ses PNJ et sa voix radio à la fin. Hors partie de test : SKIP comme avant. Le carnet du joueur est lié s'il
-ne l'est pas (`hello` demandé directement, `RST.RSHelpers.character`).
+ne l'est pas (`hello` demandé directement, `RST.CarnetHelpers.character`).
 
-`rs.factions.incident` : le coup sur un membre est simulé sur l'autorité au nom du joueur
+`lk.factions.incident` : le coup sur un membre est simulé sur l'autorité au nom du joueur
 (`LivingKnox.Bodies.onHitZombie(corps, joueur, nil, Base.BaseballBat)`, l'abonné `OnHitZombie` qu'atteint un vrai
 coup), au lieu d'attendre 60 s un coup du testeur ; le vrai geste (événement levé par le jeu chez le propriétaire du
 corps puis sur l'autorité) reste un contrôle manuel.
 
-Signal Smoke est un mod requis (2026-10-15, `require=` du `mod.info`) : `rs.mission.signal`, `rs.rescue.visit`
+Signal Smoke est un mod requis (2026-10-15, `require=` du `mod.info`) : `ca.mission.signal`, `rs.rescue.visit`
 et `rs.trade_run` échouent (FAIL, jamais SKIP) si son module est inutilisable ; l'ancienne suite
 `rs.mission.nosignal` (passe « sans le mod ») est retirée.
 
@@ -631,11 +635,11 @@ simple) :
 
 | Base | Tâche | Étapes |
 |---|---|---|
-| `rs.identity` | E00-T01 : même identité, notes et engagements après reconnexion et redémarrage | `before`, `after-reconnect`, `after-restart` (§ 11) |
+| `ca.identity` | E00-T01 : même identité, notes et engagements après reconnexion et redémarrage | `before`, `after-reconnect`, `after-restart` (§ 11) |
 | `lk.homes` | LK08-T04 : aucun second aménagement après redémarrage | `lk.homes.before` (groupe « settlers » au foyer sur la case du demandeur, dans la maison du point d'apparition, aménagé, relevé `lk-homes-persist.txt` par type d'objet marqué), `lk.homes.after-restart` (même groupe et marque « done » dans le registre, un contrôle ne pose rien, mêmes objets marqués par type ; puis groupe et aménagement retirés) |
 | `lk.leave` | E10-T04 : groupe `loners` et départ conservés après redémarrage | `before` (`RST_LKLeavePersist.lua` : groupe « settlers » à deux membres au foyer du demandeur, corps matérialisés, départ de m-2 par `LivingKnox.NpcProvider.leave`, relevé `leave-persist.txt`), `after-restart` (depuis le registre relu : groupe « loners » d'un membre vivant lié au même PNJ, ancien groupe sans m-2 et chef m-1, même départ sur l'ancienne composition refusé, jamais tiré par la population ; puis groupes, corps et consignes retirés) |
-| `rs.radiotab`, `rst.disconnect`, `rs.reputation` | E06-T05, E01-T05, E04-T14 | voir leurs fichiers de suite ; `rst.disconnect` : le client 2 lance sa propre exécution à la fin de l'étape 0 et quitte (`reconnect2`) pendant qu'elle tourne (attente de la ligne serveur ci-dessus) |
-| `rs.mission.recover` | E11-T06 : un seul sac après redémarrage | `before` (`RS_MissionRecoverPersist.lua` : fiche de cache `Caches.attach` sur la case du demandeur, posée par `Caches.place` ; le magasin du test écrit la fiche dans `recover-persist.txt` à chaque sauvegarde, à la place de l'état privé), `after-restart` (un seul sac marqué dans les bornes, même identifiant d'objet, aucune nouvelle pose, arrêt simulé entre « placing » et « placed » : le sac sauvegardé est adopté ; puis sac retiré) |
+| `rs.radiotab`, `rst.disconnect`, `ca.reputation` | E06-T05, E01-T05, E04-T14 | voir leurs fichiers de suite ; `rst.disconnect` : le client 2 lance sa propre exécution à la fin de l'étape 0 et quitte (`reconnect2`) pendant qu'elle tourne (attente de la ligne serveur ci-dessus) |
+| `ca.mission.recover` | E11-T06 : un seul sac après redémarrage | `before` (`CA_MissionRecoverPersist.lua` : fiche de cache `Caches.attach` sur la case du demandeur, posée par `Caches.place` ; le magasin du test écrit la fiche dans `recover-persist.txt` à chaque sauvegarde, à la place de l'état privé), `after-restart` (un seul sac marqué dans les bornes, même identifiant d'objet, aucune nouvelle pose, arrêt simulé entre « placing » et « placed » : le sac sauvegardé est adopté ; puis sac retiré) |
 | `rs.rescue.missed` | E12-T05 : aucun doublon de zombies ni de cahier après un vrai redémarrage | `before` (`RS_RescuePersist.lua` : secours de l'équipe du demandeur dans un magasin de travail, sur le bâtiment où il se tient, issue « missed », scène posée : un zombie (joueur réanimé) par survivant, cahier dans l'inventaire du demandeur ; magasin entier dans `rescue-persist.txt`, zombies laissés au monde), `after-restart` (magasin remis, zombies marqués revenus avec leur morceau, attendus 60 s : exactement un par survivant, un seul cahier, porté par le demandeur, aucune pose au sondage, adoption après un arrêt simulé ; puis zombies et cadavres retirés) |
 | `lk.walls` | LK14-T04 : mur conservé après reconnexion et redémarrage | variante courte de `lk.walls` (`RST_LKWallsPersist.lua`) : `before` (groupe « settlers » au foyer du demandeur, sans aménagement ; le premier chantier de mur libre du plan reçoit un `WoodenWallLvl1` par `Fortify.placeStructure`, sans bâtisseur ; relevé `walls-persist.txt` : chantier, santé, poteaux d'angle ; relancée alors que groupe et mur existent : gardés, relevé réécrit), `after-reconnect` et `after-restart` (un mur, aucun cadre, même santé, mêmes poteaux, chantier compté comme bâti, mur vu des autres clients par `RST.PeerChecks.checkSquares` ; `after-restart` retire mur, poteaux ajoutés et groupe) |
 | `lk.rejoin` | LK03-T01 : reconnexion de l'exécutant sans consigne doublée ni perdue | `RST_LKRejoin.lua`, deux clients : `before` (demandeur envoyé 100 cases au nord, hors de la portée de candidat propriétaire et dans le rayon de retrait de 120 ; un PNJ à côté du client 2 lui appartient, consigne « move » de 45 cases vers l'est, fin de l'étape au premier rapport accepté du client 2 ; état gardé dans le Lua du serveur), action `reconnect2`, `after-reconnect2` (client 2 revenu avec un nouvel objet joueur, trajet « arrived » avec le MÊME numéro de consigne, au moins une reprise par un exécutant, aucun rapport suspect refusé, corps encore sur la case visée 5 s plus tard ; SKIP si le trajet a fini avant le départ du client 2 ; puis PNJ oublié et demandeur ramené). Dernière base de la liste : son `before` éloigne le demandeur |
@@ -645,24 +649,24 @@ python RadioSurvivor/tools/autoclient/autoclient.py --mp --clients 2 --phases re
 python RadioSurvivor/tools/autoclient/autoclient.py --mp --clients 2 --phases reconnect2 --server-suite lk.rejoin --bridge off --timeout 2400 --wait-idle 3600
 python RadioSurvivor/tools/autoclient/autoclient.py --mp --clients 2 --phases modswap --server-suite lk.appearance --bridge off --timeout 2400 --wait-idle 3600
 python RadioSurvivor/tools/autoclient/autoclient.py --mp --clients 2 --phases reconnect,restart --server-suite lk.walls --bridge off --timeout 2400 --wait-idle 3600
-python RadioSurvivor/tools/autoclient/autoclient.py --mp --phases restart --server-suite lk.leave,rs.mission.recover,rs.rescue.missed --bridge off --timeout 2400 --wait-idle 3600
-python RadioSurvivor/tools/autoclient/autoclient.py --mp --clients 2 --phases reconnect,restart --server-suite rs.identity --bridge off --timeout 2400 --wait-idle 3600
+python RadioSurvivor/tools/autoclient/autoclient.py --mp --phases restart --server-suite lk.leave,ca.mission.recover,rs.rescue.missed --bridge off --timeout 2400 --wait-idle 3600
+python RadioSurvivor/tools/autoclient/autoclient.py --mp --clients 2 --phases reconnect,restart --server-suite ca.identity --bridge off --timeout 2400 --wait-idle 3600
 python RadioSurvivor/tools/autoclient/autoclient.py --mp --phases restart --server-suite lk.homes --bridge off --timeout 2400 --wait-idle 3600
 ```
 
-Chrono des missions de `rs.identity.after-restart` : avec une mission engagée active dans le relevé, le test exige un
+Chrono des missions de `ca.identity.after-restart` : avec une mission engagée active dans le relevé, le test exige un
 arrêt de plus de 2 minutes (`RESTART_MARGIN_MS`) : ajouter `--restart-pause 180`. Sans mission (cas de `mp-persist`),
 ce test est `SKIP`.
 
-`mp-persist` n'utilise pas `--restart-pause` : `rs.identity` y reste sans mission (chrono `SKIP`).
+`mp-persist` n'utilise pas `--restart-pause` : `ca.identity` y reste sans mission (chrono `SKIP`).
 
 Instantanés : `RST_Persist.lua` (`RST.Persist.write/read/consume`, octets `CA_Codec` en hexadécimal avec somme de
 contrôle, dans `Zomboid/Lua/batman_CoreAITests/tests/<nom>` du serveur, consommé par l'étape `after-restart`).
 Quand le test travaille sur un état en mémoire (magasin de travail des secours, fiche de cache), l'instantané tient
-lieu de l'état privé (stock du carnet `CA_NotebookStore`, état des voix `RS_State`), dont la persistance elle-même est prouvée par `rs.identity` ; le vrai
+lieu de l'état privé (stock du carnet `CA_NotebookStore`, état des voix `RS_State`), dont la persistance elle-même est prouvée par `ca.identity` ; le vrai
 redémarrage prouve le monde (sacs, zombies réanimés, murs) et le registre des groupes Living Knox. `lk.rejoin` garde
 son état dans le Lua du serveur (action `reconnect2` seulement : un redémarrage le perd).
-Bancs : `tests/test_persist_suites.py` (listage, instantanés, plan de `mp-persist`, `rs.mission.recover.*` et
+Bancs : `tests/test_persist_suites.py` (listage, instantanés, plan de `mp-persist`, `ca.mission.recover.*` et
 `rs.rescue.missed.*` joués sur les doublures de `test_mission_recover.py` et `test_rescue_lost.py`, défauts injectés :
 second sac, cahier perdu) ; `tests/test_autoclient.py` (`Reconnect2Tests` : plan, orchestration, « reload » du pilote).
 
@@ -678,13 +682,13 @@ Depuis `%USERPROFILE%\Zomboid\Workshop` (`lupa` requis pour les bancs Lua 5.1) :
 | Commande | Ce qu'elle vérifie |
 |---|---|
 | `python RadioSurvivor/tests/test_rst.py` | Le vrai `RST.lua` et les lanceurs dans `lupa` (`next` retiré, horloge simulée), plus l'installateur. |
-| `python RadioSurvivor/tests/test_rs_suites.py` | Les suites `rs.env`, `rs.codec`, `rs.missions` sur les vrais modules du mod, API Java simulée. |
+| `python RadioSurvivor/tests/test_rs_suites.py` | Les suites `rs.env`, `rs.codec`, `ca.missions` sur les vrais modules du mod, API Java simulée. |
 | `python RadioSurvivor/tests/test_kahlua.py` | Le moteur et des suites dans la **VM Kahlua** de `projectzomboid.jar`, ticks pilotés depuis Java. |
 | `python RadioSurvivor/tests/test_protocol.py` | Le Lua du mod et le pont `--offline` (solo, serveur + deux clients). |
 | `python RadioSurvivor/tests/test_personas_server.py` | Les fiches de voix côté serveur (`RS_Personas.lua`, `RadioSurvivor_Server.lua`) : installation, migration, relecture à chaud, conflits ; la suite `rs.personas` sur le vrai moteur RST. |
 | `python RadioSurvivor/tests/test_radio_module.py` | Le module « Émettre » de la fenêtre radio (`RS_RadioTalk`, `RS_RadioModule`) sur une interface vanilla simulée : visibilité selon l'état de la radio, refus des radios posées et autoradios, envoi commun avec le menu, deux dernières lignes par fréquence, focus clavier, manette. |
 | `python RadioSurvivor/tests/test_notes.py` | Les notes de fréquences (`RS_Notes`, `RS_NotesServer`, `RS_NotesReader`) : fréquence écrite par l'autorité, client MP sans fréquence, texte FR/EN, butin selon `NoteRarity`, scripts, traductions et listes vanilla citées. |
-| `python RadioSurvivor/tests/test_carnet.py` | Le carnet avec le pont, dossiers d'échange temporaires ; les suites `rs.identity*` sur le serveur simulé (reconnexion, redémarrage, mort, et la détection de leurs régressions). |
+| `python RadioSurvivor/tests/test_carnet.py` | Le carnet avec le pont, dossiers d'échange temporaires ; les suites `ca.identity*` sur le serveur simulé (reconnexion, redémarrage, mort, et la détection de leurs régressions). |
 | `python RadioSurvivor/tests/test_rescue.py` | Le choix du bâtiment de secours (`RS_Rescue`, E12-T01) sur une métagrille simulée : bâtiment habitable, loin des bases, aucune lecture de case pendant le choix, essais bornés, graine, indices sans chiffres ; la suite `rs.rescue.pick` sur le vrai moteur RST ([rescue.md](../../specifications-techniques/rescue.md)). |
 | `python RadioSurvivor/tests/test_lk_sites.py` | Le choix du site d'un foyer de groupe (`LK_Sites`, LK08-T03) sur une métagrille simulée : bâtiment admis pour colons et neutres, clairière en forêt connue pour les pillards ou repli sur un bâtiment isolé, loin des bases et des autres foyers, bâtiment exploré écarté, aucune lecture de case, essais bornés, graine ; la suite `lk.sites` sur le vrai moteur RST ([conception/sites.md](../conception/sites.md)). |
 | `python RadioSurvivor/tests/test_lk_materialize.py` | La matérialisation des groupes à l'approche d'un joueur (`LK_Materialize`, LK09-T03) : membres présents au foyer seulement, santé tirée de la blessure abstraite, allers-retours sans doublon ni perte, aucun mort revenu, hystérésis avec le retrait, bornes, place dans le bâtiment ou le camp ; la suite `lk.materialize` sur les doublures ([conception/corps-registre.md](../conception/corps-registre.md), « Matérialisation »). |
@@ -845,15 +849,15 @@ de journal) dans la preuve de LK13-T05.
 
 Protocole à deux comptes pour `E00-T01` (identité gardée par le serveur) et `E00-T02` (identité retirée à la mort).
 Les vérifications sont faites **par le serveur**, sur l'état réel du carnet et sans le modifier, par les suites de
-`RS_Identity.lua` :
+`CA_Identity.lua` :
 
 | Suite | Quand | Ce qu'elle vérifie |
 |---|---|---|
-| `rs.identity` | à tout moment (aussi dans `"rs"` et l'exécution automatique) | fiches bien formées ; chaque joueur en ligne lié à une identité utilisable de son compte ; aucune identité partagée ni retirée en usage ; membres des missions connus |
-| `rs.identity.before` | avant chaque action manuelle | relève, pour chaque compte en ligne, l'identité, les notes, les missions engagées ou invitées et leur chrono, le monde, la session et l'heure, dans `<cache>\Lua\batman_CoreAITests\tests\identity-snapshot.txt` (fichier de test, pas l'état du carnet) |
-| `rs.identity.after-reconnect` | après une reconnexion | même session ; même identité (ModData serveur et liaison) ; notes et engagements ; chrono écoulé pendant la déconnexion (± 5 s) |
-| `rs.identity.after-restart` | après un redémarrage | nouvelle session du même monde ; même identité, notes, engagements ; chrono sans le temps d'arrêt |
-| `rs.identity.after-death` | après la mort de A et son nouveau personnage | ancienne identité retirée et inutilisée ; nouvelle identité du même compte sans les anciennes missions ni notes ; B garde identité et missions |
+| `ca.identity` | à tout moment (aussi dans `"ca"` et l'exécution automatique) | fiches bien formées ; chaque joueur en ligne lié à une identité utilisable de son compte ; aucune identité partagée ni retirée en usage ; membres des missions connus |
+| `ca.identity.before` | avant chaque action manuelle | relève, pour chaque compte en ligne, l'identité, les notes, les missions engagées ou invitées et leur chrono, le monde, la session et l'heure, dans `<cache>\Lua\batman_CoreAITests\tests\identity-snapshot.txt` (fichier de test, pas l'état du carnet) |
+| `ca.identity.after-reconnect` | après une reconnexion | même session ; même identité (ModData serveur et liaison) ; notes et engagements ; chrono écoulé pendant la déconnexion (± 5 s) |
+| `ca.identity.after-restart` | après un redémarrage | nouvelle session du même monde ; même identité, notes, engagements ; chrono sans le temps d'arrêt |
+| `ca.identity.after-death` | après la mort de A et son nouveau personnage | ancienne identité retirée et inutilisée ; nouvelle identité du même compte sans les anciennes missions ni notes ; B garde identité et missions |
 
 Les étapes portent le tag `manual` (§ 3) : chacune se lance par son nom exact. Un compte du relevé hors ligne est
 signalé (`note:`) et non vérifié. Sans fournisseur de PNJ (avant `E17-T03`), personne n'a de note ni de mission :
@@ -870,24 +874,24 @@ relevé et `quit` : un arrêt de plus de 2 minutes est donc nécessaire pour le 
 2. Clients : mêmes versions des trois mods et des trois mods de test
    (§ 1) que le dépôt. A = `rs_smoke_admin` / `local-smoke-only` (rôle admin, donc `RST.server`) ; B = un nouveau
    compte.
-3. A et B créent un personnage. Console Lua de A : `RST.server('rs.identity')` → `OK`.
+3. A et B créent un personnage. Console Lua de A : `RST.server('ca.identity')` → `OK`.
 4. Avec un fournisseur de PNJ seulement : A et B sélectionnent le même PNJ, A écrit une note, A accepte une mission,
    invite B, B accepte.
 
 ### Enchaînement (commandes dans la console Lua de A)
 
-1. `RST.server('rs.identity.before')` → `OK` ; les lignes `note:` donnent l'identité de A et de B.
+1. `RST.server('ca.identity.before')` → `OK` ; les lignes `note:` donnent l'identité de A et de B.
 2. A quitte vers le menu, attend 30 s, se reconnecte (B reste connecté).
-3. `RST.server('rs.identity.after-reconnect')` → `OK`.
-4. `RST.server('rs.identity.before')`, puis dans les 2 minutes `quit` dans la console du serveur.
+3. `RST.server('ca.identity.after-reconnect')` → `OK`.
+4. `RST.server('ca.identity.before')`, puis dans les 2 minutes `quit` dans la console du serveur.
 5. Serveur arrêté **au moins 3 minutes**, puis relance :
    `run_dedicated_smoke.ps1 -Manual -CacheDir <RS_SMOKE_CACHE>` ; A et B se reconnectent.
-6. `RST.server('rs.identity.after-restart')` → `OK`.
-7. `RST.server('rs.identity.before')`, puis A meurt en jeu (zombies, chute) : une mort décidée par le serveur, pas
+6. `RST.server('ca.identity.after-restart')` → `OK`.
+7. `RST.server('ca.identity.before')`, puis A meurt en jeu (zombies, chute) : une mort décidée par le serveur, pas
    un appel Lua local du client.
 8. A crée un nouveau personnage sur le même compte et attend d'être en jeu.
-9. `RST.server('rs.identity.after-death')` → `OK` (le test « other accounts » exige B en ligne).
-10. `RST.server('rs.identity')` → `OK`, puis `quit`.
+9. `RST.server('ca.identity.after-death')` → `OK` (le test « other accounts » exige B en ligne).
+10. `RST.server('ca.identity')` → `OK`, puis `quit`.
 
 ### Relever
 
@@ -898,7 +902,7 @@ relevé et `quit` : un arrêt de plus de 2 minutes est donc nécessaire pour le 
   aucune erreur Lua de `RadioSurvivor/` ou `RST/`.
 - Avec un fournisseur : dans le carnet de B, la mission commune reste active après la mort de A.
 
-Reconnexion et redémarrage sans personne : `--phases reconnect,restart --server-suite rs.identity` (§ 6 ter,
+Reconnexion et redémarrage sans personne : `--phases reconnect,restart --server-suite ca.identity` (§ 6 ter,
 « Reconnexion et redémarrage du serveur ») joue les étapes 1 à 6 avec les deux clients automatiques (les deux se
 reconnectent ; la mort de l'étape 7 reste manuelle).
 
@@ -1393,7 +1397,7 @@ Gabarit `retrieve_id` (`docs/annexes/conception/carnet-implementation-04221.md`,
 d'identité est posé dans un bâtiment tiré, la carte se rapporte au PNJ demandeur, vérifiée par identifiant d'objet.
 Hors jeu : `tests/test_mission_retrieve.py` (doublures de métagrille, de cases et de cadavres).
 
-**Automatique** (solo, partie `rstest*` en ville, console Lua) : `RST.run({ suite = "rs.mission.retrieve", tags = {
+**Automatique** (solo, partie `rstest*` en ville, console Lua) : `RST.run({ suite = "ca.mission.retrieve", tags = {
 "world" } })` : 1 PASS (bâtiment tiré autour du joueur, mission en mémoire acceptée, joueur déplacé au point du lieu,
 corps posé par le sondage serveur une fois la case chargée, carte du corps retrouvée par son identifiant, aucune
 seconde pose, autre carte d'identité de même nom refusée `WrongCard`, bon identifiant refusé tant que la carte est
@@ -1414,7 +1418,7 @@ Gabarit `clear` (`docs/annexes/conception/carnet-implementation-04221.md`, « Ga
 autour d'un bâtiment tiré, décompte par le serveur avec l'attribution d'E04-T06. Hors jeu :
 `tests/test_mission_clear.py` (densité, zombies et joueurs en doublures).
 
-**Automatique** (solo, partie `rstest*` en ville, console Lua) : `RST.run({ suite = "rs.mission.clear", tags = {
+**Automatique** (solo, partie `rstest*` en ville, console Lua) : `RST.run({ suite = "ca.mission.clear", tags = {
 "world" } })` : 1 PASS (bâtiment tiré autour du joueur, N dans 6..25, mission en mémoire acceptée et cible ramenée à
 2, compte rendu avant le décompte refusé, joueur déplacé au centre du cercle en mode dieu, trois zombies créés à
 côté : coup de batte mortel compté une fois, second décompte du même zombie sans effet, `Kill(nil)` non compté, second
@@ -1440,7 +1444,7 @@ Gabarit `recover` et caches (`docs/annexes/conception/carnet-implementation-0422
 une fois dans un bâtiment tiré, à porter au dépôt du groupe du demandeur, reconnu par son identifiant. Hors jeu :
 `tests/test_mission_recover.py` (cases, sol, conteneurs et foyer en doublures).
 
-**Automatique** (solo, partie `rstest*` en ville, console Lua) : `RST.run({ suite = "rs.mission.recover", tags = {
+**Automatique** (solo, partie `rstest*` en ville, console Lua) : `RST.run({ suite = "ca.mission.recover", tags = {
 "world" } })` : 1 PASS (bâtiment tiré autour du joueur, mission en mémoire, joueur déplacé au bâtiment : sac posé une
 seule fois avec la marque et un contenu ; joueur le ramasse : trouvé ; retour au point de départ (dépôt) : un autre sac
 portant la même marque est ignoré, le vrai sac posé au sol quitte le monde et remplit l'objectif (mission encore
@@ -1464,7 +1468,7 @@ demandée dans un cercle, pendant une fenêtre horaire. Signal Smoke (`batman_Si
 `tests/test_mission_signal.py` (doublure du module ; module cassé : erreur au journal, aucune offre).
 
 **Automatique** (solo, partie `rstest*` en ville, console Lua) : `RST.run({ suite =
-"rs.mission.signal", tags = { "world" } })` : 1 PASS (bâtiment tiré autour du joueur, couleur connue de Signal Smoke,
+"ca.mission.signal", tags = { "world" } })` : 1 PASS (bâtiment tiré autour du joueur, couleur connue de Signal Smoke,
 mission en mémoire acceptée, fenêtre ramenée à l'heure courante ; trois fumigènes de 15 s par `SignalSmoke.start` :
 autre couleur au centre et bonne couleur hors du cercle sans effet, bonne couleur au centre : objectif rempli, mission
 encore active « à rapporter » (E11-T13 ; compte rendu refusé avant le signal), compte rendu au demandeur : réussite).
@@ -1516,8 +1520,8 @@ développement, jeu en `-debug`, pont lancé, `--offline` suffit). Journal au ch
 2. Relier ce PNJ au chef d'un groupe de colons et créer un besoin (remplacer `lk-1`) :
    `local G = LivingKnox.Groups; for _, gid in ipairs(G.list()) do local g = G.get(gid); if g.type == "settlers" and g.leader then print(gid, G.setNpc(gid, g.leader, "lk-1"), G.setNeed(gid, "food", 20), G.setNeed(gid, "medical", 80)) break end end`
 
-**Automatique** : `RST.run("rs.carnet.lk")` → 3 PASS (fournisseur actif, corps nommés `lk-<n>`, contexte sans secret
-ni foyer) ; `RST.run({ suite = "rs.carnet.lk.supply", tags = { "world" } })` → 1 PASS (offres du groupe sur des
+**Automatique** : `RST.run("lk.carnet.npc")` → 3 PASS (fournisseur actif, corps nommés `lk-<n>`, contexte sans secret
+ni foyer) ; `RST.run({ suite = "lk.carnet.supply", tags = { "world" } })` → 1 PASS (offres du groupe sur des
 objets réels ; note `grp-<n>-food-<k>: food level 20, 60 V left`).
 
 **Manuel (parcours du carnet 0.2)** :
@@ -1543,7 +1547,7 @@ commune) : séance MP finale.
 
 Même préparation que ci-dessus (PNJ relié au chef d'un groupe chargé à côté du joueur, carnet ouvert une fois).
 
-**Automatique** : `RST.start({ suite = "rs.factions.accord", tags = { "world" } })` → 1 PASS (offre du serveur, trêve
+**Automatique** : `RST.start({ suite = "lk.factions.accord", tags = { "world" } })` → 1 PASS (offre du serveur, trêve
 conclue, joueur couvert aussitôt, accord applicable après les décisions suivantes du groupe, attitude inchangée ; note
 `agreement agr-<n> applicable <d> ms after its conclusion`) ; l'accord est retiré à la fin.
 

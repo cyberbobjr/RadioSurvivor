@@ -258,7 +258,7 @@ class SignalMissionTests(unittest.TestCase):
             self.assertIn('signal vert', protocol.offline(req, intent='')['text'])
 
     def test_in_game_suite_on_the_simulated_server(self):
-        """rs.mission.signal (dev mod) run by the real RST engine on the server machine, with the Signal Smoke double
+        """ca.mission.signal (dev mod) run by the real RST engine on the server machine, with the Signal Smoke double
         above in place of the real mod."""
         sim, npc, record, signal = self.sim('suite')
         shared = (TESTS_SHARED.as_posix() + '/?.lua')
@@ -269,11 +269,11 @@ class SignalMissionTests(unittest.TestCase):
                 getWorld = function() return 'rstest-signal' end, getMetaGrid = function() return grid end} end
             require 'RST/RST'
         """)
-        sim.server.rt.execute((TESTS_SHARED / 'RST' / 'suites' / 'RS_MissionSignal.lua').read_text(encoding='utf-8'))
+        sim.server.rt.execute((TESTS_SHARED / 'RST' / 'suites' / 'CA_MissionSignalSuite.lua').read_text(encoding='utf-8'))
         alice = sim.server.g.PLAYERS.alice
-        # Server suite only: the client suite rs.mission.signal.client of the same file has its own bench
+        # Server suite only: the client suite ca.mission.signal.client of the same file has its own bench
         # (tests/test_rs_signal_client_suite.py, requester and second client).
-        self.assertTrue(sim.server.rt.eval('function(p) return RST.start({ suite = "rs.mission.signal", '
+        self.assertTrue(sim.server.rt.eval('function(p) return RST.start({ suite = "ca.mission.signal", '
                                            'test = "^a signal of the asked colour" }, '
                                            '{ attach = false, ctx = { player = p } }) end')(alice))
         for _ in range(100):
