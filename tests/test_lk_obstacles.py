@@ -3444,8 +3444,36 @@ class InsideDoorTests(ObstacleBase):
         self.assertEqual(self.entry('s'), 'failed')
         self.assertTrue(any('refused at the door 106,102,0,W: locked door (no key)' in s for s in self.lk()),
                         self.lk())
-        self.assertIs(self.ev('LivingKnox.Executor.behindClosedDoor((LivingKnox.Bodies.find("lk-1")), 106, 102, 0)'),
-                      True)
+        self.assertIs(self.across(), True)
+
+    def across(self, x=106, y=102):
+        return self.ev(f'LivingKnox.Executor.acrossEdge((LivingKnox.Bodies.find("lk-1")), {x}, {y}, 0)')
+
+    def test_destination_behind_a_window_or_a_wall_is_not_reached_from_outside(self):
+        # lk.windowsally du 2026-11-16 : corps dehors sous la fenêtre, à 1,0 case de la case visée : « arrivé ».
+        for fields in ({}, {'open': True}):
+            with self.subTest(**fields):
+                self.setUp()
+                self.building()
+                self.wall(skip=())
+                self.window(**fields)
+                self.init()
+                self.spawn(x=105, y=102)
+                self.assertIs(self.across(), True)
+        self.setUp()
+        self.building()
+        self.wall(skip=())
+        self.init()
+        self.spawn(x=105, y=102)
+        self.assertIs(self.across(), True)
+
+    def test_destination_behind_an_open_door_is_reached(self):
+        self.building()
+        self.wall()
+        self.door(open=True)
+        self.init()
+        self.spawn(x=105, y=102)
+        self.assertIs(self.across(), False)
 
     def garage(self, **fields):
         # Panneaux (106, 103) index 1, (106, 102) index 2, (106, 101) index 3 (bord ouest : suivant à y - 1).

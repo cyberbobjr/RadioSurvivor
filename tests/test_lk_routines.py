@@ -69,7 +69,7 @@ EDGES, EDGES_ON, UNLOADED_X = {}, true, nil
 local Door = H.class('IsoDoor', C.IsoObject)
 local Win = H.class('IsoWindow', C.IsoObject)
 -- Porte ordinaire fermée (IsoDoor.java : IsOpen, isHoppable, isTallHoppable ; LK13-T11 : lue par
--- Executor.behindClosedDoor quand la cible d'un déplacement est juste derrière elle).
+-- Executor.acrossEdge quand la cible d'un déplacement est juste derrière elle).
 function Door:IsOpen() return false end
 function Door:isHoppable() return false end
 function Door:isTallHoppable() return false end

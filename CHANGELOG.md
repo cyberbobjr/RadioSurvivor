@@ -64,6 +64,7 @@
 
 - The Night Owl's evening memorial no longer reads a dead animal as "None None", and the Night Owl no longer says he won't give the names right before they are read.
 - A busy radio channel no longer holds back the lines of the other frequencies.
+- Living Knox survivors no longer stop outside under a window (or against a wall) as if they were back inside.
 - The notebook stays whole on screen after switching to a smaller resolution.
 - Compatibility with Build 42.22.
 

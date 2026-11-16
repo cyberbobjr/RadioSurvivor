@@ -488,6 +488,11 @@ function IsoGridSquare:getWindowFrameTo(next) return nil end
 -- IsoGridSquare.java:935-941 : mur, fenêtre, porte bloqués ou escalier entre deux cases ; aucun sur le banc
 -- (doublures de test_lk_obstacles.py).
 function IsoGridSquare:isBlockedTo(other) return false end
+-- IsoGridSquare.java:718-731 : mur ou fenêtre du bord commun ; aucun sur le banc (doublures de test_lk_obstacles.py).
+function IsoGridSquare:isWallTo(other) return false end
+function IsoGridSquare:isWindowTo(other) return false end
+-- IsoGridSquare.java:7813 : bâtiment de la case ; aucun sur le banc (doublures des bancs à bâtiments).
+function IsoGridSquare:getBuildingDef() return nil end
 -- IsoGridSquare.java:1043-1049 (42.22) : objet franchissable (clôture basse) du bord commun ; aucun sur le banc.
 function IsoGridSquare:isHoppableTo(other) return false end
 -- LK06-T08 : IsoGridSquare.java:971-977 (fenêtre fermée ou barricadée du bord commun) ; pièce de la case

@@ -467,19 +467,27 @@ function Executor.actFace(id, z)
     return true
 end
 
--- Vrai si la case visée (tx, ty, tz) touche la case du corps z par un bord fermé d'une porte (porte fermée, ni
--- portail bas enjambé) : pas d'arrivée à travers elle (LK04-T17, lk.traversal du 2026-10-12 : destination juste
--- derrière une porte verrouillée, corps « arrivé » à 1,0 case de son centre sans la franchir). L'autorité ouvre la
--- porte (le corps passe et arrive) ou la refuse (consigne en échec), comme pour toute porte du trajet.
-function Executor.behindClosedDoor(z, tx, ty, tz)
+-- Vrai si la case visée (tx, ty, tz) est séparée de la case du corps z par un bord qu'on ne franchit pas en marchant :
+-- pas d'arrivée à travers lui. Porte fermée (ni portail bas enjambé) : LK04-T17, lk.traversal du 2026-10-12, corps
+-- « arrivé » à 1,0 case du centre derrière une porte verrouillée ; l'autorité ouvre la porte ou la refuse. Fenêtre
+-- (même ouverte) ou mur : lk.windowsally du 2026-11-16, corps resté dehors sous la fenêtre et « arrivé » dedans.
+-- Case non voisine (diagonale) : arrivée seulement du même côté du bâtiment (dedans ou dehors).
+function Executor.acrossEdge(z, tx, ty, tz)
     local sq = z:getCurrentSquare()
     if sq == nil or sq:getZ() ~= tz then return false end
     local dx, dy = tx - sq:getX(), ty - sq:getY()
-    if math.abs(dx) + math.abs(dy) ~= 1 then return false end
+    if dx == 0 and dy == 0 then return false end
     local ts = getCell():getGridSquare(tx, ty, tz)
-    local door = ts ~= nil and sq:getDoorTo(ts) or nil
-    if door == nil or door:IsOpen() then return false end
-    return not (door:isHoppable() and not door:isTallHoppable())
+    if ts == nil then return false end
+    if math.abs(dx) + math.abs(dy) ~= 1 then
+        return (sq:getBuildingDef() == nil) ~= (ts:getBuildingDef() == nil)
+    end
+    local door = sq:getDoorTo(ts)
+    if door ~= nil then
+        if door:IsOpen() then return false end
+        return not (door:isHoppable() and not door:isTallHoppable())
+    end
+    return sq:isWindowTo(ts) or sq:isWallTo(ts)
 end
 
 -- Suivi d'un "move" en cours.
@@ -509,7 +517,7 @@ function Executor.follow(id, e, z, run)
     end
     local Dir = D()
     local d = Dir.distToTarget(e, z:getX(), z:getY(), z:getZ())
-    if d ~= nil and d <= Dir.ARRIVE and not Executor.behindClosedDoor(z, e.x, e.y, e.z) then
+    if d ~= nil and d <= Dir.ARRIVE and not Executor.acrossEdge(z, e.x, e.y, e.z) then
         Executor.halt(z)
         run.phase = "arrived"
         Executor.stats.arrived = Executor.stats.arrived + 1
