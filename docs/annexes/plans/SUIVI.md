@@ -18,6 +18,8 @@
 | 8 | [E22-T13](E22-atelier-voix.md#L259) | Toutes les voix se souviennent des appelants, sans oubli, morts compris | `testé hors jeu` |
 | 9 | [LK13-T04](LK13-outils-validation-publication.md#L92) | Validation multijoueur finale et publication | `à faire` |
 | 10 | [LK13-T05](LK13-outils-validation-publication.md#L103) | Essai sur serveur dédié Linux (N5) | `codé` |
+| 11 | [LK20-T01](LK20-simplification.md#L43) | Une seule copie des petites fonctions pures (`Num`, `Geo`) | `à faire` |
+| 12 | [LK20-T02](LK20-simplification.md#L52) | Code mort supprimé | `à faire` |
 
 ## Étapes
 
@@ -68,6 +70,7 @@
 | [LK17](../plans-termines/LK17-chemin-vanilla.md) | Chemin du jeu pour les PNJ, détour seulement après un refus | terminée | 3 / 4 |
 | [LK18](../plans-termines/LK18-ceder-le-passage.md) | Céder le passage | terminée | 3 / 3 |
 | [LK19](../plans-termines/LK19-fenetres-resultat.md) | Fenêtres refermées par leur passant, tests de déplacement sur le résultat | terminée | 2 / 2 |
+| [LK20](LK20-simplification.md) | Simplification de Living Knox | à faire | 0 / 10 |
 
 ## Tâches
 
@@ -545,3 +548,13 @@
 | ☑ | [LK18-T03](../plans-termines/LK18-ceder-le-passage.md#L48) | Places d'arrêt hors des portes et des couloirs | `testé solo` | solo | 2026-11-15 : python tests/test_lk_stop_place.py -> Ran 11 tests ... OK ; test_lk_routines 23 OK, test_lk_chores 16 OK, test_lk_defense 23 OK, test_lk_fight_all 8 OK. 2026-11-16 : `solo-lk` sur `8a911d13` code 0, `RST-RESULT ok=true total=139 pass=132 fail=0 skip=7`, `runs/20261116-143506-2781d392947b` : `lk.defense` (postes tenus, « nobody stuck ») et `lk.passage` verts ; pas de contrôle dédié d'un seuil, la couverture en jeu est indirecte. |
 | ☑ | [LK19-T01](../plans-termines/LK19-fenetres-resultat.md#L27) | Le passant d'une fenêtre change seulement à l'enjambée | `testé MP` | MP | 2026-11-16, `python tests/run_all.py --keep-going` : `Summary: 208 passed, 1 failed, 0 skipped (637.2 s)`, seul échec `atelier_ui` (atelier des voix de RadioSurvivor, modifié en parallèle par un autre agent, hors de cette tâche ; vert au passage précédent) ; `lk_obstacles` `Ran 133 tests` OK, luacheck Contents et dev 0 avertissement, `plan-check` 0 erreur. Rouge d'abord : `test_npc_who_walks_up_to_an_open_window_and_turns_away_never_closes_it` en échec (`'false false' != 'true false'` : fenêtre refermée par un PNJ qui ne l'avait pas enjambée), vert après `climbedWindows`. Campagnes sur `8c2be02d` : `solo-lk` code 0, `RST-RESULT ok=true total=188 pass=180 fail=0 error=0 skip=8`, `runs/20261117-001559-10eaa7905a9d` ; MP code 1, `ok=false total=414 pass=393 fail=3 error=1 skip=17`, `runs/20261117-003759-mp-f3f77ba7956f`, `lk.traversal` et `lk.windowsally` vertes en `solo-lk` et en MP. Échecs MP hors de ces suites : `lk.passage` face à face dans une porte (`no passage granted`, premier échec sur les 7 dernieres campagnes MP), `lk.appear.check` client 1 (second zombie, déjà vu le 2026-11-16), `rs.notes.written` (pont lancé) et `rs.trade_exchange` (erreur `itemsOf`, RadioSurvivor). |
 | ☑ | [LK19-T02](../plans-termines/LK19-fenetres-resultat.md#L38) | Tests en jeu des traversées et des portes sur le résultat | `testé MP` | MP | 2026-11-16, même `run_all` que LK19-T01 (luacheck dev 0 avertissement). Plus aucune comparaison de `windowToggles`, `windowsClosed`, `windowsRefused`, `opened`, `closed`, `refused`, `locked`, `shut` ni `detours` dans `RST_LKTraversal.lua` et `RST_LKDoors.lua` : état de l'ouverture du test, `refusedHere` (dernier refus sur ce bord depuis le départ) et `lastClose` ; geste et orientation imprimés seulement. Campagnes sur `8c2be02d` : `solo-lk` code 0, `RST-RESULT ok=true total=188 pass=180 fail=0 error=0 skip=8`, `runs/20261117-001559-10eaa7905a9d` ; MP code 1, `ok=false total=414 pass=393 fail=3 error=1 skip=17`, `runs/20261117-003759-mp-f3f77ba7956f`, `lk.traversal` et `lk.doors` vertes en `solo-lk` et en MP. Échecs MP hors de ces suites : `lk.passage` face à face dans une porte (`no passage granted`, premier échec sur les 7 dernieres campagnes MP), `lk.appear.check` client 1 (second zombie, déjà vu le 2026-11-16), `rs.notes.written` (pont lancé) et `rs.trade_exchange` (erreur `itemsOf`, RadioSurvivor). |
+| ☐ | [LK20-T01](LK20-simplification.md#L43) | Une seule copie des petites fonctions pures (`Num`, `Geo`) | `à faire` | MP | — |
+| ☐ | [LK20-T02](LK20-simplification.md#L52) | Code mort supprimé | `à faire` | MP | — |
+| ☐ | [LK20-T03](LK20-simplification.md#L61) | Accesseurs d'une ligne remplacés par l'accès direct | `à faire` | MP | — |
+| ☐ | [LK20-T04](LK20-simplification.md#L70) | Une seule table de vérité par option sandbox | `à faire` | MP | — |
+| ☐ | [LK20-T05](LK20-simplification.md#L81) | Une file d'attente partagée (`FrameQueue`) | `à faire` | MP | — |
+| ☐ | [LK20-T06](LK20-simplification.md#L90) | Un client de requêtes commun (`ClientRequest`) | `à faire` | MP | — |
+| ☐ | [LK20-T07](LK20-simplification.md#L101) | `LK_Fortify` découpé dans `Fortify/` | `à faire` | MP | — |
+| ☐ | [LK20-T08](LK20-simplification.md#L110) | `LK_Stock` et `LK_Expeditions` découpés | `à faire` | MP | — |
+| ☐ | [LK20-T09](LK20-simplification.md#L119) | `LK_Decisions` et `LK_Obstacles` découpés | `à faire` | MP | — |
+| ☐ | [LK20-T10](LK20-simplification.md#L128) | Façades du déplacement fusionnées | `à faire` | MP | — |
