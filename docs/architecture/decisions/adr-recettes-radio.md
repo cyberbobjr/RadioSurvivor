@@ -75,6 +75,10 @@ Faits relevés (confirmé statiquement) :
   le pont qui lit lui-même les fichiers de recettes du jeu et des mods (il devrait deviner les mods actifs et leurs
   remplacements, et lire plusieurs dizaines de mégaoctets à chaque lancement).
 
+- **D09 précisée (utilisateur, 2026-11-17).** L'entrée « Recette » est une ligne de l'historique de la fréquence de la
+  voix (onglet Radio du carnet), comme les autres paroles : elle disparaît avec les plus anciennes lignes (40 par
+  fréquence). Écartée : une page « Recettes » qui les garderait toutes.
+
 ## Conséquences
 
 - La fiche d'une voix gagne une section `[help]` (métiers, palier, délai), éditée dans l'atelier avec des listes.

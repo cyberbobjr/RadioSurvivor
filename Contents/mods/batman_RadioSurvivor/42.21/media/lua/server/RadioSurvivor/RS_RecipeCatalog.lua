@@ -185,6 +185,13 @@ local function record(recipe, english, teachers)
     }
 end
 
+-- One recipe with the names the game gives in its language (translated; the id in words when it has none), without
+-- its teachers: the notebook entry of a recipe given by a voice (E27-T04, client RS_RecipeNote). This file has no
+-- side guard: the client requires it from server/ (LuaManager.require looks in shared, client and server).
+function Catalog.describe(recipe)
+    return record(recipe, true, {})
+end
+
 -- Records of every visible craft recipe, sorted by id, and the number of hidden recipes skipped.
 function Catalog.read(scriptManager)
     local english = Catalog.englishNames()

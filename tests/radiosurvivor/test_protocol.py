@@ -1516,13 +1516,16 @@ def scenario_structured_server(tmp: Path) -> None:
     assert pump(lambda: len(g.BROADCASTS) == 4, [tick])
     assert lua_list(g.BROADCASTS[4]) == ["<bzzt>", "Plain answer."] and len(action_logs()) == 12
 
-    # E27-T03 : champ recipes (identifiants des recettes données) sans action : diffusé, aucune décision ; le serveur
-    # ne s'en sert pas encore (E27-T04).
+    # E27-T03 : champ recipes (identifiants des recettes données) sans action : diffusé, aucune décision. E27-T04 :
+    # recipes et searched vont à RS_RecipeHelp, qui ne fait rien sans personnage du carnet (ce banc solo n'en a pas ;
+    # carnet, attente et apprentissage : tests/radiosurvivor/test_recipe_delivery.py), ni requête recipe= ensuite.
     req_id = turn("How do I make a rope?")
     respond([f"resp={req_id}", payload({"version": 2, "kind": "radio_reply", "id": req_id, "say": ["Two sheets."],
-                                        "actions": [], "recipes": ["MakeSheetRope"]})])
+                                        "actions": [], "recipes": ["MakeSheetRope"],
+                                        "searched": {"ids": ["MakeSheetRope"], "keywords": ["sheet rope"]}})])
     assert pump(lambda: len(g.BROADCASTS) == 5, [tick])
     assert lua_list(g.BROADCASTS[5]) == ["<bzzt>", "Two sheets."] and len(action_logs()) == 12
+    assert "recipe=" not in (exchange / "requests.txt").read_text(encoding="utf-8")
 
     # Jour de jeu suivant : budget remis à zéro ; délai de mark_map écoulé ; compteurs dans RS_State une fois chargé.
     actions_mod = g.require("RadioSurvivor/RS_Actions")

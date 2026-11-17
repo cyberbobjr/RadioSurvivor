@@ -238,6 +238,10 @@ RENAMED.update({'IGUI_LK_Admin_Wound': 'IGUI_LK_Admin_Health', 'IGUI_LK_Debug_Wo
 ADDED |= {'IGUI_LK_Sheet_OffscreenCell'}
 # LK21-T04: story journal entry of a member infected by the Knox virus.
 ADDED |= {'IGUI_LK_Journal_infected'}
+# E27-T04: recipe given on the radio, shown in the Radio tab of the notebook.
+ADDED |= {'IGUI_RS_Radio_recipe', 'IGUI_RS_RecipeMakes', 'IGUI_RS_RecipeNeeds', 'IGUI_RS_RecipeTools',
+          'IGUI_RS_RecipeSkill', 'IGUI_RS_RecipeOr', 'IGUI_RS_RecipeLitres', 'IGUI_RS_RecipeLearned',
+          'IGUI_RS_RecipeMustLearn'}
 
 
 class TranslationSplitTests(unittest.TestCase):

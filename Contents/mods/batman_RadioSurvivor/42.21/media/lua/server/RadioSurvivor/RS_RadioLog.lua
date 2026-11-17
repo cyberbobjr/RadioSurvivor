@@ -18,6 +18,8 @@
 --           seul appelant : « ce qu'il apporte|ce qu'il reçoit », types et quantités, jamais de points ; le carnet
 --           nomme les objets (RS_NotebookRadio).
 --   note  : note de fréquence lue par ce personnage (E06-T07, commande note_read vérifiée ici), texte = id de la voix.
+--   recipe : recette donnée par une voix (E27-T04, RS_RecipeDelivery), pour le seul appelant : « <id>|<1 apprise par
+--           la voix | 0> » ; le carnet lit la recette dans le jeu du joueur, dans sa langue (RS_RecipeNote).
 -- Aucune fréquence n'entre dans l'historique d'un personnage sans que sa propre radio l'ait réglée (E05-T08) : phrase
 -- dite sur sa radio, réponse à sa phrase, ou ligne que son client a reçue sur cette fréquence ; exceptions décidées :
 -- note de fréquence lue (E06-T07), fréquence donnée par une voix (récompense, share_frequency).
@@ -48,7 +50,7 @@ Log.REPORTS_MAX = 40
 Log.REPORT_FREQUENCIES = 4
 Log.REPORT_WINDOW_MS = 600000
 Log.KINDS = { said = true, reply = true, heard = true, mark = true, reveal = true, mission = true, reward = true,
-    note = true, trade = true }
+    note = true, trade = true, recipe = true }
 -- Bornes de fréquence admises (kHz) : celles des radios vanilla (200 kHz à 1 GHz, plus large que toute radio).
 Log.MIN_KHZ = 100
 Log.MAX_KHZ = 1000000

@@ -113,6 +113,7 @@ import log_buffer  # E22-T10: live journal of the workshop
 from recipe_index import RecipeIndex  # E27-T01: craft recipes loaded by the game, reread when it rewrites them
 import recipe_help  # E27-T03: a voice with [help] looks a recipe up and answers in character
 import recipe_search  # E27-T03: recipes of the index found by English keywords
+import recipe_delay  # E27-T04: search with a delay, call back, answer when ready
 
 HERE = Path(__file__).resolve().parent
 DEFAULT_ENV = HERE / ".env"      # à côté du pont, ignoré par Git (modèle : .env.example)
@@ -1038,22 +1039,26 @@ def answer(config: dict[str, str], conversations: Conversations, session: str, r
         # Seul le texte dit entre en mémoire, jamais le JSON ni les actions.
         conversations.append(session, turn.user_msg, turn.reply, voice)
         lines = radio_lines(turn.reply)
-        if not turn.actions and not turn.recipes:
+        if not turn.actions and turn.recipes is None and turn.searched is None:
             return lines
         payload = {"version": 2, "kind": REPLY_KIND, "id": req.get("id", "console"), "say": lines,
                    "actions": turn.actions}
-        if turn.recipes:
-            payload["recipes"] = turn.recipes   # E27-T03: ids of the recipes given, for the server (E27-T04)
+        if turn.recipes is not None:
+            payload["recipes"] = turn.recipes   # E27-T03/T04: ids of the recipes given (notebook, teaching)
+        if turn.searched is not None:
+            payload["searched"] = turn.searched   # E27-T04: found, not delivered yet (the server keeps them)
         return payload
 
 
 class VoiceTurn(NamedTuple):
-    """One turn of a voice: the user message kept in the history, the reply said, the bounded actions and the ids of
-    the recipes given (E27-T03, [] without a recipe search)."""
+    """One turn of a voice: the user message kept in the history, the reply said, the bounded actions, the ids of the
+    recipes given (E27-T03; None when none was given, a list, even empty, when a search ready on the server was
+    answered, E27-T04) and a delayed search (E27-T04: {ids, keywords} found but not given, None otherwise)."""
     user_msg: str
     reply: str
     actions: list[dict]
-    recipes: list[str]
+    recipes: list[str] | None
+    searched: dict | None = None
 
 
 def voice_turn(config: dict[str, str], req: dict[str, str], tag: str, sheet: persona_store.Persona,
@@ -1071,6 +1076,10 @@ def voice_turn(config: dict[str, str], req: dict[str, str], tag: str, sheet: per
     # E27-T03 : aide aux recettes en mode structuré seulement (le champ recipe_search vit dans l'objet JSON).
     help_turn = recipe_help.recipe_turn(sheet.help, (reputation or {}).get("level"),
                                         recipes is not None) if with_actions else None
+    # E27-T04 : recherche gardee par le serveur pour cet appelant et cette voix (prete ou non), appelant aide seulement.
+    waiting = recipe_delay.pending_field(req, log) if help_turn and help_turn.allowed else None
+    ready = (recipe_delay.found_ids(recipes.for_jobs(help_turn.help.jobs), waiting.ids)
+             if waiting and waiting.ready else None)
     # Souvenirs (E07-T03) : dès qu'il y en a, quel que soit le mode ; sans souvenir, prompt inchangé.
     # État dynamique (E07-T06) : de même, dès que la voix l'a changé une fois.
     context = (system_prompt(req, tag, voice_prompt(sheet)) + memory_prompt(memory_facts(req), tag)
@@ -1080,10 +1089,11 @@ def voice_turn(config: dict[str, str], req: dict[str, str], tag: str, sheet: per
                + mission_prompt(mission_context(req, sheet), tag)
                + trade_prompt(trade_context(req), tag)
                + reputation_prompt(reputation, tag))
-    system = context + (help_turn.prompt() if help_turn else "") + (actions_prompt(sheet, jobs) if with_actions else "")
+    system = (context + recipe_section(help_turn, waiting, ready)
+              + (actions_prompt(sheet, jobs) if with_actions else ""))
     # Mode structuré (E07-T09) : consigne de format rappelée juste avant la question (message envoyé seulement,
     # l'historique garde user_msg) et mode JSON de l'API demandé, avec repli sans.
-    sent = (user_msg + format_reminder(sheet, jobs, help_turn.reminder() if help_turn else "")
+    sent = (user_msg + format_reminder(sheet, jobs, help_turn.reminder() if help_turn and ready is None else "")
             if with_actions else user_msg)
     messages = [{"role": "system", "content": system}] + history + [{"role": "user", "content": sent}]
     if with_actions:
@@ -1094,28 +1104,54 @@ def voice_turn(config: dict[str, str], req: dict[str, str], tag: str, sheet: per
     if with_actions:
         reply, proposed, fields = structured_reply(reply)
         reply = reply.strip()
-    given: list[str] = []
+    given: list[str] | None = None
+    delayed: dict | None = None
     searched = recipe_help.keywords(fields.get(recipe_help.FIELD))
-    if searched and help_turn and help_turn.allowed:
-        reply, given = recipe_reply(config, speaker, sheet, help_turn.help, recipes, searched,
-                                    [{"role": "system", "content": context}] + history
-                                    + [{"role": "user", "content": user_msg}])
+    if ready is not None:
+        # E27-T04 : rappel a l'heure : la reponse est dans "say" ; livrees meme vides (le serveur efface l'attente).
+        given = [recipe["id"] for recipe in ready]
+        log(f"voice '{sheet.id}': recipe search answered on call back -> {', '.join(given) or 'nothing found'}")
+    elif searched and help_turn and help_turn.allowed:
+        reply, given, delayed = recipe_reply(config, speaker, sheet, help_turn.help, recipes, searched, waiting,
+                                             [{"role": "system", "content": context}] + history
+                                             + [{"role": "user", "content": user_msg}])
     elif searched:
         log(f"voice '{sheet.id}': recipe search ignored ({'caller below the help level' if help_turn else 'no help'})")
-    return VoiceTurn(user_msg, reply, bounded_actions(sheet, proposed, jobs), given)
+    return VoiceTurn(user_msg, reply, bounded_actions(sheet, proposed, jobs), given, delayed)
+
+
+def recipe_section(help_turn: recipe_help.RecipeTurn | None, waiting: recipe_delay.Pending | None,
+                   ready: list[dict] | None) -> str:
+    """Recipe part of the first call's system prompt: the answer due on a call back (E27-T04), else the offer of a
+    search (E27-T03) and, while a search is not ready, that the voice is still looking."""
+    if help_turn is None:
+        return ""
+    if ready is not None:
+        return recipe_delay.ready_prompt(ready, waiting, help_turn.help)
+    return help_turn.prompt() + (recipe_delay.waiting_prompt(waiting) if waiting else "")
 
 
 def recipe_reply(config: dict[str, str], speaker: str, sheet: persona_store.Persona, help_: persona_store.Help,
-                 recipes: RecipeIndex, searched: list[str], messages: list[dict[str, str]]) -> tuple[str, list[str]]:
-    """E27-T03: second call of a recipe question: the recipes of the voice's jobs found for these English keywords,
-    given as facts after the caller's question (same persona and history, no actions); (reply said, ids given). Goes
-    through call_llm like the first call: same caps, same token usage journal."""
+                 recipes: RecipeIndex, searched: list[str], waiting: recipe_delay.Pending | None,
+                 messages: list[dict[str, str]]) -> tuple[str, list[str] | None, dict | None]:
+    """Second call of a recipe question; (reply said, ids given or None, delayed search or None). E27-T03: the recipes
+    of the voice's jobs found for these English keywords, given as facts after the caller's question (same persona and
+    history, no actions). E27-T04, voice with a delay: no fact, the voice asks to be called back and the ids found go
+    back as a search to keep; the same search asked again while waiting is not a new one (still looking). Goes through
+    call_llm like the first call: same caps, same token usage journal."""
     found = recipe_search.search(recipes.for_jobs(help_.jobs), searched)
-    given = [recipe["id"] for recipe in found]
-    log(f"voice '{sheet.id}': recipe search {', '.join(searched)} -> {', '.join(given) or 'nothing found'}")
-    facts = recipe_help.facts_message(found, searched, help_)
-    reply = call_llm(config, messages + [{"role": "system", "content": facts}], speaker).strip()
-    return reply, given
+    ids = [recipe["id"] for recipe in found]
+    log(f"voice '{sheet.id}': recipe search {', '.join(searched)} -> {', '.join(ids) or 'nothing found'}")
+    given, delayed = (ids or None), None
+    if waiting and recipe_delay.same_search(waiting, ids, searched):
+        given, message = None, recipe_delay.waiting_message(waiting)
+    elif recipe_delay.delayed(help_):
+        given, delayed = None, {"ids": ids, "keywords": searched}
+        message = recipe_delay.callback_message(searched, help_)
+    else:
+        message = recipe_help.facts_message(found, searched, help_)
+    reply = call_llm(config, messages + [{"role": "system", "content": message}], speaker).strip()
+    return reply, given, delayed
 
 
 # --- atelier des voix : l'IA du pont aide à écrire (E22-T06, ADR atelier-voix D04) ----------------------------------

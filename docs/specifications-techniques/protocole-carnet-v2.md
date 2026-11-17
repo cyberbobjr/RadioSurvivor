@@ -270,16 +270,49 @@ sauf `all`), le prompt demande un refus en personnage, `recipe_search` n'est ni 
 par `call_llm` (plafonds C03/C10, journal des jetons). Journal anglais : `voice '<id>': recipe search <mots> -> <ids>
 | nothing found`, ou `recipe search ignored (caller below the help level | no help)`.
 
+**Délai, rappel et livraison (E27-T04, ADR D04, D05, D07, D09)** : le serveur garde **une** recherche en attente par
+personnage du carnet et par voix (`RS_RecipeSearches` : identifiants trouvés, mots-clés, heure de jeu où elle est prête,
+`GameTime.getWorldAgeHours` ; une nouvelle remplace l'ancienne ; aucune date limite ; oubliée à la mort du personnage).
+
+- **Champ de demande** `recipe=` (demande radio sans `kind`, après `dead`) : hexadécimal RSV2 de
+  `{ ids = { identifiants }, ready = <booléen>, keywords = { mots-clés } }` ; `ready` est calculé par le serveur
+  (heure du monde ≥ heure prête). Absent sans recherche en attente ou sans personnage du carnet. Pont
+  (`recipe_delay.pending_field`) : au plus 4096 caractères, 8 identifiants de 128 caractères, mots-clés bornés comme
+  `recipe_search` ; illisible : ignoré, journal `request <id>: recipe search state ignored (<raison>)`. Lu seulement
+  pour une voix `[help]` dont l'appelant est au palier.
+- **Délai de la voix** (`delay=` de `[help]`) : `now` = 0 h (réponse dans le même tour, comme E27-T03), `hour` = 1 h,
+  `half_day` = 12 h, `day` = 24 h de jeu (`RS_RecipeSearches.DELAY_HOURS` côté serveur ; mots donnés à l'IA :
+  `recipe_delay.DELAY_WORDS`, « about an hour », « about half a day », « about a day »).
+- **Première question, voix à délai** : le pont cherche, mais le second appel ne donne aucun fait
+  (`callback_message`) : la voix dit qu'elle doit fouiller ses notes et de la rappeler dans le délai, sans recette ni
+  indice. La réponse porte `searched = { ids = { … }, keywords = { … } }` (identifiants trouvés, peut-être vides : « non
+  livrés »), jamais `recipes`. Le serveur la garde, prête après le délai de la fiche **du serveur**.
+- **Rappel trop tôt** (`ready = false`) : le prompt ajoute « recherche en cours, pas encore trouvé, rappelle plus
+  tard » (`waiting_prompt`), aucun fait. `recipe_search` reste proposé pour une **autre** chose ; la même recherche
+  redemandée (mêmes recettes trouvées, ou mêmes mots-clés sans résultat) n'est pas nouvelle : second appel « toujours en
+  train de chercher » (`waiting_message`), rien de renvoyé.
+- **Rappel à l'heure** (`ready = true`) : un seul appel ; les recettes de l'attente (dans les métiers de la voix,
+  identifiants inconnus de l'index retirés) sont les faits du prompt (`ready_prompt`, mêmes faits et règles que
+  E27-T03 : « dans la langue de l'appelant, sans rien inventer » ; rien trouvé : la voix le dit), réponse dans `say`,
+  `recipe_search` non proposé. La réponse porte `recipes = { identifiants }`, **même vide** : le serveur efface alors
+  l'attente. Journal : `voice '<id>': recipe search answered on call back -> <ids> | nothing found`.
+- **Livraison** (tout délai, `now` compris) : chaque identifiant de `recipes` passe par `RS_RecipeDelivery` (voir
+  [index des recettes](index-recettes.md), « Délai, carnet et apprentissage ») : entrée « Recette » au carnet et
+  apprentissage décidés par le serveur. Sans personnage du carnet, rien.
+
 **Sortie** : sans action restante après validation ni recette donnée, `line=` comme avant. Sinon :
 
 ```text
 resp=<id de la demande>
 payload=<RSV2 hexadécimal de { version = 2, kind = "radio_reply", id = <id>, say = { lignes }, actions = { ... },
-         recipes = { identifiants } }>
+         recipes = { identifiants }, searched = { ids = { identifiants }, keywords = { mots } } }>
 ```
 
 `recipes` (E27-T03) : identifiants des recettes données à la voix au second appel, dans l'ordre de la recherche ;
-absent sans recette trouvée. Le serveur l'ignore encore (E27-T04 s'en servira : délai, carnet, apprentissage).
+absent sans recette trouvée ; au rappel d'une recherche prête (E27-T04), présent même vide. `searched` (E27-T04) :
+`{ ids, keywords }` d'une recherche d'une voix à délai, trouvée mais pas donnée. Le serveur lit les deux après la
+diffusion et le jugement des actions (`RS_RecipeHelp.answered`, jamais pour une consigne de mission) : `recipes`
+livrées (carnet, apprentissage ; attente effacée si la demande portait `ready = true`), `searched` gardée.
 
 Chaque action est une table `{ type = "signal", color = "green", ... }` : `type` puis les paramètres à plat.
 

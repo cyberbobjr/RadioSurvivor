@@ -38,6 +38,7 @@ local Trade = require "RadioSurvivor/RS_Trade"; local GroupRadio = require "Radi
 local Rep = require "CoreAI/CA_Reputation" -- E04-T10: reputation of the caller in the voice request
 local Comfort = require "RadioSurvivor/RS_Comfort" -- E05-T15: an answer on the air eases boredom and unhappiness
 local Bonds = require "RadioSurvivor/RS_VoiceBonds" -- E07-T10: answers counted for an exceptional share_frequency
+local RecipeHelp = require "RadioSurvivor/RS_RecipeHelp" -- E27-T04: delayed recipe search, delivery, teaching
 
 -- Demandes transmises au pont, dans l'ordre d'arrivée.
 local pending = {}
@@ -165,7 +166,8 @@ end
 -- Réponse radio structurée (E07-T01) : payload= RSV2 { version = 2, kind = "radio_reply", id, say = { lignes },
 -- actions = { ... } } du même identifiant que resp=. Les lignes say repassent par le filtrage de line= ; nil si la
 -- charge n'est pas une réponse radio de cet identifiant (une réponse PNJ npc_reply ou ack_reply, lue par
--- RS_Transport.readResponses dans le même fichier, est ignorée ici).
+-- RS_Transport.readResponses dans le même fichier, est ignorée ici). Troisième retour (E27-T04) : { recipes, searched }
+-- de la réponse (recettes données, recherche gardée), champs absents = nil, jugés par RS_RecipeHelp.
 local function structuredReply(id, hex)
     local raw = Codec.unhexBytes(hex)
     local value = raw and Codec.decodeBytes(raw)
@@ -179,15 +181,17 @@ local function structuredReply(id, hex)
             end
         end
     end
-    return lines, type(value.actions) == "table" and value.actions or nil
+    return lines, type(value.actions) == "table" and value.actions or nil,
+        { recipes = type(value.recipes) == "table" and value.recipes or nil,
+          searched = type(value.searched) == "table" and value.searched or nil }
 end
 
--- Réponses du pont : identifiant → lignes, et identifiant → actions proposées (réponse structurée) ; nil si le
--- fichier est absent ou incomplet.
+-- Réponses du pont : identifiant → lignes, identifiant → actions proposées (réponse structurée) et identifiant →
+-- recettes de la réponse (E27-T04) ; nil si le fichier est absent ou incomplet.
 local function readResponses()
     local reader = getFileReader(Const.RESPONSES_FILE, false)
     if not reader then return nil end
-    local responses, actions, current, currentId, complete = {}, {}, nil, nil, false
+    local responses, actions, recipes, current, currentId, complete = {}, {}, {}, nil, nil, false
     local line = reader:readLine()
     while line do
         if line == "end" then
@@ -202,18 +206,19 @@ local function readResponses()
             local text = replyLine(value)
             if text ~= "" then current[#current + 1] = text end
         elseif key == "payload" and current then
-            local lines, proposed = structuredReply(currentId, value)
+            local lines, proposed, recipeReply = structuredReply(currentId, value)
             if lines then
                 current = lines
                 responses[currentId] = lines
                 actions[currentId] = proposed
+                recipes[currentId] = recipeReply
             end
         end
         line = reader:readLine()
     end
     reader:close()
     if not complete then return nil end
-    return responses, actions
+    return responses, actions, recipes
 end
 
 -- Réconfort social (E05-T15) : quand la réponse d'une voix à l'appelant passe à l'antenne, son personnage (s'il est
@@ -493,6 +498,7 @@ local function onTalk(player, args)
     -- personnage du carnet ; jamais de score. Écrite par RS_Transport.write (clé reputation).
     local reputation = req.cid and Rep.publicContext(req.cid) or nil
     req.reputation = reputation and Codec.hexBytes(Codec.encodeBytes(reputation)) or nil
+    RecipeHelp.request(req) -- E27-T04: pending recipe search of this caller to this voice (recipe=), ready or not
     pending[#pending + 1] = req
     if not writeRequests() then
         table.remove(pending)
@@ -706,8 +712,8 @@ local function onTick()
     if now < nextPollMs then return end
     nextPollMs = now + Const.POLL_MS
 
-    local responses, proposed = readResponses()
-    responses, proposed = responses or {}, proposed or {}
+    local responses, proposed, recipes = readResponses()
+    responses, proposed, recipes = responses or {}, proposed or {}, recipes or {}
     local kept, changed = {}, false
     for _, req in ipairs(pending) do
         local lines = responses[req.id]
@@ -741,6 +747,11 @@ local function onTick()
                 Actions.decide(Personas.get(req.voice), req.caller, proposed[req.id], now,
                     { player = findPlayer(req.caller), khz = req.khz, cid = req.cid, day = string.sub(inGameDate(), 1, 10),
                       request = req })
+            end
+            -- E27-T04 : recettes données (carnet, apprentissage au niveau du personnage) et recherche gardée.
+            if recipes[req.id] and not req.briefing then
+                RecipeHelp.answered(req, recipes[req.id], { sheet = Personas.get(req.voice),
+                    player = findPlayer(req.caller), level = req.cid and Rep.level(req.cid) or nil })
             end
         elseif req.briefing and now - req.sentAt > Const.TIMEOUT_MS then
             -- Consigne sans réponse : rien à l'antenne, l'appelant n'attend rien ; le carnet montre les indices.

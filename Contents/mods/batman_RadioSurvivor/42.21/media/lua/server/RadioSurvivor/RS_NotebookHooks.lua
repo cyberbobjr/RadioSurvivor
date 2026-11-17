@@ -11,7 +11,8 @@ only. The notebook server of the core mod (CoreAI/CA_NotebookServer) is required
   Server.hooks.callLanguage forced language of the radio calls (RadioSurvivor_Const.callLanguage)
   CA_Identity.onRetire      a dead character: what the voices remembered stays, marked dead with its name and the
                             game day (RS_Memory.markDead, E22-T13); its bonds with the voices (RS_VoiceBonds, E07-T10)
-                            and its radio history (CA_History.data.radio, E06-T04) are forgotten
+                            and its radio history (CA_History.data.radio, E06-T04) are forgotten, with its pending
+                            recipe searches (RS_RecipeSearches, E27-T04)
 ]]
 if RS_NotebookHooks then return RS_NotebookHooks end -- registered once, even after a Lua reload of this file
 local Server = require 'CoreAI/CA_NotebookServer'
@@ -49,6 +50,7 @@ function Hooks.forget(character, id)
     end
     require('RadioSurvivor/RS_Memory').markDead(id, nameOf(character), Radio.gameDay())
     require('RadioSurvivor/RS_VoiceBonds').forget(id)
+    require('RadioSurvivor/RS_RecipeSearches').forget(id)
 end
 
 if Server then

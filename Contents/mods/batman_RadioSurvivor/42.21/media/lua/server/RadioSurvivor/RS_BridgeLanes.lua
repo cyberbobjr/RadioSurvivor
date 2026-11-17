@@ -24,8 +24,10 @@ local T = require "CoreAI/CA_Transport"
 -- story (E20-T08): story state of the voice (a name, RS_VoiceStory); absent = none yet.
 -- dead (E22-T13): people this voice knew who died (hex RSV2 list of {name, day, facts}, RS_Memory.deadField);
 -- absent = none.
+-- recipe (E27-T04): pending recipe search of this caller to this voice (hex RSV2 { ids, ready, keywords },
+-- RS_RecipeSearches.field); absent = none.
 local RADIO_KEYS = { 'kind', 'caller', 'voice', 'name', 'date', 'days', 'radio', 'text', 'language', 'memory',
-    'persona', 'mission', 'jobs', 'facts', 'trade', 'reputation', 'story', 'dead' }
+    'persona', 'mission', 'jobs', 'facts', 'trade', 'reputation', 'story', 'dead', 'recipe' }
 
 local function radioLines(out, r)
     out[#out + 1] = 'sent=' .. string.format('%.0f', r.sentAt)

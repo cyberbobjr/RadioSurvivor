@@ -9,7 +9,7 @@
 | ☑ | E27-T01 | Index des recettes exporté par le serveur | `testé hors jeu` | hors jeu | — |
 | ☑ | E27-T02 | Section `[help]` des voix et réglages dans l'atelier | `testé hors jeu` | hors jeu | E27-T01 |
 | ☑ | E27-T03 | Recherche dans la langue du joueur et réponse en personnage | `testé hors jeu` | hors jeu | E27-T02 |
-| ☐ | E27-T04 | Délai, rappel, carnet et apprentissage | `à faire` | solo | E27-T03 |
+| ☐ | E27-T04 | Délai, rappel, carnet et apprentissage | `testé hors jeu` | solo | E27-T03 |
 | ☐ | E27-T05 | Wiki, exemples et CHANGELOG des recettes par la radio | `à faire` | hors jeu | E27-T04 |
 
 <!-- fin du tableau de bord -->
@@ -78,7 +78,7 @@ conversation ; selon la réputation, tout de suite ou après un délai, et parfo
   - Preuve : 2026-11-17, champ `recipe_search` (1 à 4 mots-clés anglais qui nomment l'objet à fabriquer) proposé aux seules voix `[help]` au niveau `from` ou au-dessus (réputation `reputation=` déjà envoyée par le serveur : niveau général du joueur) ; recherche `bridge/recipe_search.py` (chaque mot-clé est une expression comptée seulement si tous ses mots sont dans la recette ; produits 3, identifiant 2, nom 1 ; 5 recettes au plus), second appel `bridge/recipe_help.py` avec les recettes en faits et consigne « dans la langue de l'appelant, sans rien inventer » ; refus sans aucun indice sous le palier ; `radio_reply.recipes` = identifiants donnés (pour E27-T04) ; deux appels par `call_llm`, mêmes plafonds. Bancs : `recipe_search` 13 tests, `recipe_help_bridge` 14 tests (français, ukrainien, coréen, hors métier, sous le palier, rien trouvé), `protocol` OK, luacheck 0 ; `python tests/run_all.py --mod radiosurvivor --keep-going` `Summary: 113 passed, 0 failed, 0 skipped` (263,9 s). Essai avec le vrai modèle (DeepSeek, voix de banc couture + cuisine) : corde en draps demandée en français et soupe en ukrainien justes (ingrédients au choix, aiguille gardée, 0,5 l d'eau, niveaux, magazine), réponse dans la langue de la question ; bandage demandé en coréen (hors métiers) : « rien dans mes notes », sans autre recette ; réputation mauvaise : refus sans indice, deux fois. Premier essai : recherche trop large (« ripped sheets » sortait la corde) et refus qui laissait un indice, corrigés puis revérifiés.
 
 - [ ] **E27-T04** — Délai, rappel, carnet et apprentissage
-  - État : `à faire`
+  - État : `testé hors jeu`
   - Cible : `solo`
   - Dépend de : E27-T03
   - Faire : D04, D05, D06, D07, D09 ; le serveur garde une recherche en attente par joueur et par voix (heure de jeu
@@ -88,6 +88,7 @@ conversation ; selon la réputation, tout de suite ou après un délai, et parfo
   - Accepté si : bancs du serveur (trop tôt, à l'heure, question remplacée, apprentissage à « Bonne » seulement,
     recette hors métiers jamais apprise) ; en jeu : une recette demandée, « rappelle dans une heure », rappel après le
     délai, entrée au carnet, recette à apprendre apprise.
+  - Preuve : 2026-11-17, `RS_RecipeSearches` (une recherche en attente par personnage du carnet et par voix, heure de jeu où elle est prête : now 0, hour 1, half_day 12, day 24 ; nouvelle question = remplace), `RS_RecipeDelivery` (ligne `recipe` de l'historique radio, `learnRecipe` + `sendSyncPlayerFields(player, 1)` comme la lecture vanilla, ISReadABook.lua:372, au niveau « Bonne » et pour un métier de la voix seulement), `RS_RecipeHelp`, vue client `RS_RecipeNote` (recette relue dans le jeu du joueur, dans sa langue) ; pont `recipe_delay.py` (« rappelle », « pas encore trouvé », réponse au rappel) ; champs `recipe=` (requête) et `searched`/`recipes` (réponse). Bancs : `recipe_delivery` 18, `recipe_delay_bridge` 11, `recipe_help_bridge` 14, `protocol`, `radio_history` 36 OK ; `python tests/run_all.py --mod radiosurvivor --keep-going` `Summary: 114 passed, 1 failed` (290,2 s), seul échec `rs_suites` (numéros de ligne de `RS_Env.lua` décalés, corrigés ; `--only rs_suites --only luacheck-dev` `Summary: 2 passed, 0 failed`). Reste en jeu : suite `rs.reciperadio` et essai solo (rappel trop tôt, rappel après le délai, ligne « Recette » de l'onglet Radio, recette apprise).
 
 - [ ] **E27-T05** — Wiki, exemples et CHANGELOG des recettes par la radio
   - État : `à faire`

@@ -37,6 +37,7 @@ RST.Campaigns.add({ "solo-rs", "solo" }, 30, {
     "rs.voiceitem",     -- E20-T15: personal item spawned by the server, left at a drop with a decoy, then the report
     "rs.voicedarlene",  -- E20-T10: Darlene's chain with her real sheet at the West Point clinic, up to returned
     "rs.missionrewards", -- E11: actual cache, private frequency, stash and server XP
+    "rs.reciperadio",   -- E27-T04: delayed search kept, delivery at good teaches the recipe and notes it
 })
 
 -- Suites with a FAIL or SKIP in the solo campaign of 2026-10-13 (report 20261013-202155-solo.txt), fixed since.

@@ -136,3 +136,34 @@ Code : `bridge/recipe_search.py` (`search`), `bridge/recipe_help.py` (palier, pr
   fluides en litres, outils gardés, niveaux de compétence, « Must be learned first, from: » et les objets qui
   l'apprennent ; consigne : en personnage, dans la langue de l'appelant, en conversation, sans rien inventer. Rien
   trouvé : la voix le dit.
+
+## Délai, carnet et apprentissage (E27-T04)
+
+Code : serveur `RS_RecipeSearches.lua` (attente), `RS_RecipeDelivery.lua` (carnet, apprentissage), `RS_RecipeHelp.lua`
+(branchement dans `RadioSurvivor_Server`) ; pont `bridge/recipe_delay.py` ; client `RS_RecipeNote.lua` (vue du carnet).
+Tests : `tests/radiosurvivor/test_recipe_delay_bridge.py`, `tests/radiosurvivor/test_recipe_delivery.py` ; suite en jeu
+`rs.reciperadio`. Champs échangés : [protocole](protocole-carnet-v2.md), « Délai, rappel et livraison ».
+
+- **Délai (D04, D07)** : `delay=` de la voix, en heures de jeu : `now` 0, `hour` 1, `half_day` 12, `day` 24 (donnée
+  `RS_RecipeSearches.DELAY_HOURS`). Hors `now`, la voix promet de chercher et demande de rappeler ; le serveur garde une
+  recherche par personnage et par voix dans l'état privé des voix (`RS_State` : `recipeSearches[cid][voix] = { ids,
+  keywords, readyAt }`), remplacée par une nouvelle, sans date limite, effacée une fois livrée, oubliée à la mort du
+  personnage (`RS_NotebookHooks`). Trop tôt : « pas encore trouvé » ; à l'heure : la réponse.
+- **Entrée « Recette » du carnet (D09, D10)** : une ligne de l'historique Radio du personnage (`RS_RadioLog`, sorte
+  `recipe`, même registre que les repères et le troc) sur la fréquence de la voix, à la date de jeu de la livraison,
+  texte `<identifiant>|<1 apprise par la voix | 0>`. Le client relit la recette dans **son** jeu
+  (`ScriptManager.getCraftRecipe`, mêmes règles de lecture que l'index : `RS_RecipeCatalog.describe`) et l'écrit dans la
+  langue du joueur : nom de la recette, produits, ingrédients et alternatives, fluides en litres, outils, niveaux,
+  « apprise par la voix » ou « à apprendre ». Nom sans traduction : celui que donne le jeu (anglais, ou l'identifiant en
+  mots) ; recette inconnue de ce jeu : son identifiant en mots. Textes fixes `IGUI_RS_Radio_recipe`, `IGUI_RS_Recipe*`.
+  L'historique garde 40 lignes par fréquence : une recette ancienne finit par en sortir.
+- **Apprentissage (D05, D06)** : seulement si la recette doit être apprise (`CraftRecipe.needToBeLearn`), que le niveau
+  de réputation du personnage est « Bonne » (`CA_Reputation.level`, lu par le serveur à la livraison) et que le métier
+  de la recette (`RS_RecipeJobs` sur sa catégorie) est un métier de la voix. Le serveur appelle
+  `IsoGameCharacter.learnRecipe` (ajoute le nom aux recettes connues, IsoGameCharacter.java:10752-10765) puis
+  `sendSyncPlayerFields(joueur, 1)` (PF_Recipes : LuaManager.java:3730, GameServer.java:2306,
+  SyncPlayerFieldsPacket.java:52-57 et 104-111), comme le vanilla après une recherche ou une lecture
+  (ISResearchRecipe.lua:83-85, ISReadABook.lua:372-373) ; en solo l'envoi ne fait rien (le joueur est la copie du
+  serveur). Recette déjà connue : rien d'appris, l'entrée ne dit pas « apprise ». Sinon rien n'est appris ; les faits
+  donnés à la voix disent déjà ce qu'il faut pour l'apprendre. Identifiant inconnu du jeu : ignoré, journal
+  `recipe '<id>' unknown: not noted, not taught`.

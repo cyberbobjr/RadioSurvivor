@@ -1027,7 +1027,8 @@ L'aide aux recettes : la voix aide le joueur à trouver une recette de ses méti
 identifiant ; absente, la voix n'aide jamais sur les recettes. **Lue par les deux lecteurs**, mêmes règles et mêmes
 messages (`helpKey` / `helpClose` de `RS_Persona`, `HelpSection` de `persona_store`) ; résultat `help = { jobs, from,
 delay }` côté serveur, `Persona.help` (`Help`) côté pont, `nil` / `None` sans section. Usage par le pont (E27-T03 :
-`jobs` et `from` ; `delay` pas encore) : [index des recettes](index-recettes.md), « Recherche ».
+`jobs` et `from` ; E27-T04 : `delay`, recherche gardée par le serveur, rappel) : [index des recettes](index-recettes.md),
+« Recherche » et « Délai, carnet et apprentissage ».
 
 | Clé | Obligatoire | Valeur |
 |---|---|---|

@@ -126,18 +126,29 @@ def describe(recipe: dict) -> str:
     return ' '.join(parts)
 
 
-def facts_message(found: list[dict], searched: list[str], help_: Help) -> str:
-    """System message of the second call: the recipes found as facts, or that nothing was found, and how to answer."""
+PLAIN = " Plain spoken text, no JSON."
+NOTHING_RULE = ("Tell them so now, in character and in the language the caller used; never invent a recipe, an "
+                "ingredient or a step.")
+ANSWER_RULE = ("Answer the caller now, in character and in the language the caller used, as a radio conversation, "
+               "not a list: what it makes, what it takes, the tools and the skill, for the recipe that fits the "
+               "question best. Use only these notes: never invent a recipe, an ingredient, a quantity or a step that "
+               "is not in them.")
+
+
+def notes(found: list[dict], searched: list[str], help_: Help) -> str:
+    """The recipes found as facts (or that nothing was found), with the keywords searched, then the rule of the
+    answer (ANSWER_RULE, or NOTHING_RULE when nothing was found). Shared by the answer of the same turn (E27-T03) and
+    the answer to a call back (E27-T04, recipe_delay.ready_prompt)."""
     trades = ', '.join(help_.jobs)
     head = f"Keywords searched: {', '.join(searched)}\n"
     if not found:
-        return ("Your recipe notes (" + trades + "): you looked through what you know and found nothing that makes "
-                "what the caller asked for.\n" + head
-                + "Tell them so now, in character and in the language the caller used; never invent a recipe, an "
-                  "ingredient or a step. Plain spoken text, no JSON.")
+        return ("Your recipe notes (" + trades + "): you looked through what you know and found nothing that "
+                "makes what the caller asked for.\n" + head + NOTHING_RULE)
     listed = ''.join(f"{n}. {describe(recipe)}\n" for n, recipe in enumerate(found, 1))
-    return ("Your recipe notes (" + trades + "), facts of the game for the question you just heard:\n" + head + listed
-            + "Answer the caller now, in character and in the language the caller used, as a radio conversation, "
-              "not a list: what it makes, what it takes, the tools and the skill, for the recipe that fits the "
-              "question best. Use only these notes: never invent a recipe, an ingredient, a quantity or a step that "
-              "is not in them. Plain spoken text, no JSON.")
+    return ("Your recipe notes (" + trades + "), facts of the game for the question you just heard:\n" + head
+            + listed + ANSWER_RULE)
+
+
+def facts_message(found: list[dict], searched: list[str], help_: Help) -> str:
+    """System message of the second call: the recipes found as facts, or that nothing was found, and how to answer."""
+    return notes(found, searched, help_) + PLAIN

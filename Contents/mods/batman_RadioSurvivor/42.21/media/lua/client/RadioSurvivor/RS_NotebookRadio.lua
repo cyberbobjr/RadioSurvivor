@@ -16,6 +16,8 @@ local Const = require 'RadioSurvivor/RadioSurvivor_Const'
 local History = require 'RadioSurvivor/RS_RadioHistory'
 -- "Say" line of the Radio tab (E06-T06): same send path, checks and delay as the radio window module.
 local Talk = require 'RadioSurvivor/RS_RadioTalk'
+-- E27-T04: recipe given by a voice, read from the player's game in the player's language.
+local RecipeNote = require 'RadioSurvivor/RS_RecipeNote'
 
 local RS_MOD = 'batman_RadioSurvivor'
 local COLOR, INK_TAG, DOT = UI.COLOR, UI.INK_TAG, UI.DOT
@@ -28,6 +30,7 @@ RADIO_COLORS.mission = RADIO_COLORS.mark
 RADIO_COLORS.reward = RADIO_COLORS.mark
 RADIO_COLORS.note = RADIO_COLORS.mark
 RADIO_COLORS.trade = RADIO_COLORS.mark
+RADIO_COLORS.recipe = RADIO_COLORS.mark
 local DEVICE_CACHE_MS = 250
 
 local function tr(key, ...) return getText('IGUI_RS_' .. key, ...) end
@@ -69,7 +72,8 @@ local function tradeSide(text)
 end
 
 -- What a Radio line says, by kind, when its text is not said as is: mission received (E11-T08: the kind of place),
--- reward (key of the reward), note read (the voice of the frequency), trade agreed (E23-T06: "bring|receive").
+-- reward (key of the reward), note read (the voice of the frequency), trade agreed (E23-T06: "bring|receive"),
+-- recipe given (E27-T04: "id|learned", RS_RecipeNote).
 local SAID = {
     mission = function(l) return Missions.placeName(l.text) end,
     reward = function(l) return tr('Reward_' .. l.text) end,
@@ -78,6 +82,7 @@ local SAID = {
         local bring, receive = string.match(tostring(l.text), '^([^|]*)|(.*)$')
         return tr('TradeDeal', tradeSide(bring), tradeSide(receive))
     end,
+    recipe = function(l) return RecipeNote.text(l.text) end,
 }
 
 -- Second line of a frequency row: E06-T07: the voice of the frequency once known (contact, note read, frequency
