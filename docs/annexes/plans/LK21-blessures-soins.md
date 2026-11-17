@@ -2,14 +2,15 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** à faire — 0 / 11 tâche(s) terminée(s).
+**Avancement.** en cours — 0 / 12 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
-| ☐ | LK21-T01 | Modèle pur des plaies et registre des types | `à faire` | MP | — |
+| ☐ | LK21-T01 | Modèle pur des plaies et registre des types | `testé hors jeu` | MP | — |
 | ☐ | LK21-T02 | Les coups font des plaies ; la santé suit les plaies | `à faire` | MP | LK21-T01 |
 | ☐ | LK21-T03 | La simulation hors écran utilise les mêmes plaies | `à faire` | MP | LK21-T02 |
 | ☐ | LK21-T04 | Infection de plaie et virus de Knox | `à faire` | MP | LK21-T02 |
+| ☐ | LK21-T12 | Retirer le verre brisé avant d'enjamber | `à faire` | MP | LK21-T02 |
 | ☐ | LK21-T05 | Registre des soins, branchement par extension | `à faire` | MP | LK21-T02 |
 | ☐ | LK21-T06 | Trousse de soins du soignant | `à faire` | MP | LK21-T05 |
 | ☐ | LK21-T07 | Tâches du soignant : déchirer, laver, stériliser, attelle, remplir | `à faire` | MP | LK21-T06 |
@@ -43,13 +44,15 @@ sang se voit. Un soignant de groupe fabrique son matériel, porte une trousse et
 ## Phase 1 — Modèle des blessures
 
 - [ ] **LK21-T01** — Modèle pur des plaies et registre des types
-  - État : `à faire`
+  - État : `testé hors jeu`
   - Cible : `MP`
   - Dépend de : —
   - Fichiers : nouveaux `shared/LivingKnox/LK_Wounds.lua` et `shared/LivingKnox/Wounds/LK_Wound_<Kind>.lua` (griffure, coupure, profonde, morsure, balle, verre, fracture, brûlure) ; banc `tests/test_lk_wounds.py`
   - Faire : D01 et D02 de l'ADR. `Wounds.registerKind`, `Wounds.add`, `Wounds.advance(list, minutes, ctx)` (guérison, saignement, usure du bandage, chance d'infection de plaie), `Wounds.bleeding(list)`, forme sauvegardée compacte et validée. Constantes du vanilla citées dans chaque fichier de type.
   - Accepté si : au banc, chaque règle du vanilla de la recherche est vérifiée (durées, saignement, bandage, points, attelle, infection) ; aucun appel au jeu dans le module.
   - Tests : `tests/test_lk_wounds.py` (rouge d'abord) ; `tests/run_all.py --keep-going`.
+  - Preuve : 2026-11-17, `python tests/run_all.py --keep-going` : `Summary: 213 passed, 0 failed, 0 skipped (684.2 s)`, `RESULT: PASS` (luacheck Contents et dev 0 avertissement). Rouge d'abord : `tests/test_lk_wounds.py` `FAILED (errors=26)` (`module 'LivingKnox/LK_Wounds' not found`), puis `Ran 26 tests OK` ; `test_kahlua` `test_wounds_in_kahlua` : même ligne `KR-WOUNDS` dans la VM réelle. Modules `LK_Wounds.lua` (596 lignes : parties, registre des types, `add`, `advance`, transitions de soin), `LK_WoundsNeeds.lua` (besoins de soin, registre `registerNeed`), `LK_WoundsForm.lua` (`pack`, `unpack`, `valid`) ; 8 types dans `Wounds/` avec les constantes de `BodyPart.java` 42.22 citées. Non requis par `LK_Core` (cycle `LK_Core` → `LK_Wounds` → `LK_Registry` → `LK_Core`) : chaque consommateur requiert le module dont il a besoin. Écart assumé à l'ADR, corrigé dans l'ADR : une plaie infectée ne saigne pas plus (vanilla).
+  - Reste : campagnes de fin de phase.
 
 - [ ] **LK21-T02** — Les coups font des plaies ; la santé suit les plaies
   - État : `à faire`
@@ -77,6 +80,15 @@ sang se voit. Un soignant de groupe fabrique son matériel, porte une trousse et
   - Faire : D04 de l'ADR. L'infection de plaie suit les chances du vanilla : une plaie infectée saigne plus et demande d'être désinfectée. Le virus est transmis par une morsure selon l'option sandbox de transmission ; le délai est tiré dans la table du vanilla. À la mort, le PNJ se relève en zombie ordinaire, il quitte le registre et la mort est observée par le groupe. Le journal note la morsure.
   - Accepté si : au banc, morsure, transmission, délai, mort et relevé ; option « pas de transmission » respectée ; en jeu, suite `lk.wounds` : un PNJ mordu, avec un délai réduit pour le test, se relève en zombie ordinaire.
   - Tests : `test_lk_infection` (rouge d'abord) ; suite `lk.wounds`.
+
+- [ ] **LK21-T12** — Retirer le verre brisé avant d'enjamber
+  - État : `à faire`
+  - Cible : `MP`
+  - Dépend de : LK21-T02
+  - Fichiers : `server/LivingKnox/Obstacles/LK_Obstacles_Windows.lua`, exécutant client (geste), source `Wounds/LK_WoundSource_Glass.lua`
+  - Faire : D03 de l'ADR (verre brisé). Devant une fenêtre brisée dont le verre reste, un PNJ qui n'est ni en fuite ni en combat retire le verre (même effet et même synchronisation que l'action vanilla, fenêtre marquée verre retiré), puis enjambe. En fuite ou en urgence, il enjambe tout de suite et court le risque du vanilla (1 sur 2, main ou avant-bras, éclats 1 fois sur 7, sinon griffure).
+  - Accepté si : au banc, retrait avant passage hors urgence, risque appliqué en fuite ; en jeu, `lk.traversal` « broken window » : verre retiré, aucune plaie, fenêtre vue sans verre par les deux clients en MP.
+  - Tests : `test_lk_obstacles`, `test_lk_wounds` ; suite `lk.traversal`.
 
 ## Phase 2 — Soins et soignant
 

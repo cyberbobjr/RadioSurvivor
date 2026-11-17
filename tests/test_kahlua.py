@@ -131,6 +131,12 @@ LUA_FILES = [
     ('LivingKnox/LK_Identity', LK_LUA / 'shared' / 'LivingKnox' / 'LK_Identity.lua'),
     # LK16-T01 : socle commun des registres (requis par LK_GroupTypes, LK_Decisions, LK_Routines).
     ('LivingKnox/LK_Registry', LK_LUA / 'shared' / 'LivingKnox' / 'LK_Registry.lua'),
+    # LK21-T01 : modèle pur des plaies, soins demandés, forme sauvegardée, puis un fichier par type (Wounds/), triés
+    # par nom comme au chargement du jeu.
+    *[(f'LivingKnox/{name}', LK_LUA / 'shared' / 'LivingKnox' / f'{name}.lua')
+      for name in ('LK_Wounds', 'LK_WoundsNeeds', 'LK_WoundsForm')],
+    *[(f'LivingKnox/Wounds/{p.stem}', p)
+      for p in sorted((LK_LUA / 'shared' / 'LivingKnox' / 'Wounds').glob('*.lua'), key=lambda p: p.name.lower())],
     # LK08-T02 : registre des types de groupes, puis les fichiers de données comme le balayage du jeu les exécute.
     ('LivingKnox/LK_GroupTypes', LK_LUA / 'shared' / 'LivingKnox' / 'LK_GroupTypes.lua'),
     ('LivingKnox/Data/LK_Type_neutrals', LK_LUA / 'shared' / 'LivingKnox' / 'Data' / 'LK_Type_neutrals.lua'),
@@ -468,6 +474,12 @@ EXCHANGE_EVALS = [
     'A.forMember("grp-1", 100.5, 100.5, 0, false, 603); return "KR-ALERT " .. #t .. " " .. t[1].key .. " " .. '
     't[2].key .. " " .. e1 .. " " .. e2 .. " " .. e3 .. " " .. v.level .. " " .. v.d .. " " .. v.key .. " " .. '
     'tostring(A.isActive("grp-1", 620))',
+    # LK21-T01 : plaies dans la VM reelle (tirages, puissance, string.format de la forme compacte) ; memes valeurs que
+    # sous lupa (tests/test_lk_wounds.py).
+    'eval:local W = LivingKnox.Wounds; local C = { rnd = function() return 0.5 end }; local L = {}; '
+    'W.add(L, "ForeArm_L", "bite", C); W.add(L, "Torso_Upper", "deep", C); W.bandage(L[2], 4, false); '
+    'local o = W.advance(L, 30, C); local p = W.pack(L); return "KR-WOUNDS " .. #W.kinds() .. " " .. '
+    'string.format("%.6f", o.hpLoss) .. " " .. tostring(W.pack(W.unpack(p)) == p) .. " " .. p',
 ]
 
 
@@ -1074,6 +1086,11 @@ class KahluaBench(unittest.TestCase):
     def test_npc_registry_deferred_write_and_codec_sort_in_kahlua(self):
         # LK13-T10 : memes octets que le comparateur historique ; memes regles que sous lupa (tests/test_lk_store.py).
         self.assertEqual(self.line('KR-RFLUSH'), '300 0 true false 3 false,true,false 3')
+
+    def test_wounds_in_kahlua(self):
+        # LK21-T01 : meme ligne que le modele sous lupa (tests/test_lk_wounds.py).
+        self.assertEqual(self.line('KR-WOUNDS'), '8 0.333029 true bite:ForeArm_L:30:64.973:3.267:::::0:1:0.054:0:67.5;'
+                         'deep:Torso_Upper:30:17.392:6.3575:0:0:::0:0:0:0:48.214286')
 
     def test_fortify_compact_form_in_kahlua(self):
         # LK13-T07 : memes chaines que sous lupa (tests/test_lk_fortify_offscreen.py, CompactFormTests).

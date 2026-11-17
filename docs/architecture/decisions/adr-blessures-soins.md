@@ -50,9 +50,10 @@ Faits du moteur (recherche du 2026-11-17, confirmés statiquement) :
     - le feu ;
     - le verre brisé.
   - `LK_Health.applyHit` appelle la source correspondante.
+  - **Verre brisé (utilisateur, 2026-11-17) :** enjamber une fenêtre brisée dont le verre n'a pas été retiré suit la règle du vanilla. Il y a 1 chance sur 2 de se blesser à une main ou un avant-bras ; dans 1 cas sur 7, c'est une plaie profonde avec des éclats, sinon une griffure (`ClimbThroughWindowState.java:532`, `BodyDamage.java:1631`, `BodyPart.java:846`). Un PNJ qui n'est ni en fuite ni en urgence retire d'abord le verre, comme l'action vanilla « retirer le verre brisé », puis enjambe.
   - `LK_Health` reste le seul écrivain de la santé : il lit le saignement total dans `Wounds`.
 - **D04 — Infection.**
-  - **Infection de plaie :** une plaie sale ou non bandée peut s'infecter (chances du vanilla). Une plaie infectée saigne et fait plus mal, et il faut la désinfecter.
+  - **Infection de plaie :** une plaie sale ou non bandée peut s'infecter (chances du vanilla). Une plaie infectée fait plus mal, use son bandage plus vite, ne guérit plus et s'aggrave ; il faut la désinfecter. Comme dans le jeu de base, elle ne coûte de la santé que si l'option sandbox de dégâts d'infection (`WoundInfectionFactor`) est au-dessus de 0. *(Précisé le 2026-11-17 : la première rédaction disait « saigne », contraire au vanilla, `BodyDamage.java:1957`.)*
   - **Infection par morsure (virus de Knox)** : elle suit la règle du vanilla et l'option sandbox de transmission du joueur. La mort survient après le délai tiré dans la table du vanilla, puis le PNJ se relève en **zombie ordinaire**. Il quitte alors le registre des PNJ et son groupe le pleure (observation `group_death`).
   - Le PNJ mordu le sait. Son groupe peut le savoir, et le journal le note.
 - **D05 — Les soins, ouverts à l'extension.**
