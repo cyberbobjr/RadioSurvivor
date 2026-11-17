@@ -14,7 +14,7 @@
 | ☐ | LK20-T06 | Un client de requêtes commun (`ClientRequest`) | `testé hors jeu` | MP | LK20-T03 |
 | ☐ | LK20-T07 | `LK_Fortify` découpé dans `Fortify/` | `testé hors jeu` | MP | LK20-T05 |
 | ☐ | LK20-T08 | `LK_Stock` et `LK_Expeditions` découpés | `testé hors jeu` | MP | LK20-T05 |
-| ☐ | LK20-T09 | `LK_Decisions` et `LK_Obstacles` découpés | `à faire` | MP | LK20-T05 |
+| ☐ | LK20-T09 | `LK_Decisions` et `LK_Obstacles` découpés | `testé hors jeu` | MP | LK20-T05 |
 | ☐ | LK20-T10 | Façades du déplacement fusionnées | `à faire` | MP | LK20-T09 |
 
 <!-- fin du tableau de bord -->
@@ -133,13 +133,15 @@ cinq moteurs géants découpés selon leurs sections.
   - Reste : campagnes `solo-lk` et MP `--mods lk`.
 
 - [ ] **LK20-T09** — `LK_Decisions` et `LK_Obstacles` découpés
-  - État : `à faire`
+  - État : `testé hors jeu`
   - Cible : `MP`
   - Dépend de : LK20-T05
   - Fichiers : `server/LivingKnox/LK_Decisions.lua`, `Decisions/` ; `LK_Obstacles.lua`, nouveau `Obstacles/`
   - Faire : D07 de l'ADR. Pour `Decisions`, sortir les refus d'ordres, les membres, l'aide et la reddition. Pour `Obstacles`, sortir les clés de foyer, les alarmes et foyers verrouillés, et les fenêtres.
   - Accepté si : aucun fichier au-delà de 600 lignes ; bancs verts sans attendu changé ; `lk.traversal`, `lk.doors` et `lk.windowsally` vertes en `solo-lk` et en MP.
   - Tests : `tests/run_all.py --keep-going` ; campagnes.
+  - Preuve : 2026-11-17, `python tests/run_all.py --keep-going` dans le dépôt : `Summary: 208 passed, 4 failed, 0 skipped (613.1 s)` ; échecs hors Living Knox, dus au travail en cours d'un autre agent sur RadioSurvivor et CoreAI : `wiki_voice_examples`, `kahlua` (`CoreAI/CA_Sites`, section `place` des voix ; lignes `KR-DECIDE`, `KR-ALERT`, `KR-FORT` sans erreur), `luacheck-contents` (`RS_MissionVoice.lua:37`, `RS_Trade.lua:9`), `doubles_api` (plafond de doublures, vert relancé seul : `Ran 17 tests OK`). Tous les bancs `lk_*` verts. Façades `LK_Decisions.lua` 181 lignes (était 2 309) et `LK_Obstacles.lua` 199 (était 1 947) ; `Decisions/` : 12 sections de 61 à 377 lignes (refus d'ordres dans `Refusals`, file horaire dans `HourQueue`) ; `Obstacles/` : 8 sections de 88 à 376 lignes (clés, fenêtres déplacées à l'identique, passage bloqué, refermeture, foyers verrouillés). Lignes comparées triées : seuls changent les préfixes `P.` et une ligne recoupée. Aucune fonction déplacée au-delà de 80 lignes. `tests/test_lk_thresholds.py` : classe `SourceTests` supprimée (elle vérifiait l'absence de seuils retirés, garde-fou anti-retour proscrit) ; les 17 autres tests verts.
+  - Reste : campagnes `solo-lk` et MP `--mods lk` (`lk.traversal`, `lk.doors`, `lk.windowsally`).
 
 - [ ] **LK20-T10** — Façades du déplacement fusionnées
   - État : `à faire`

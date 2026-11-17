@@ -34,7 +34,7 @@ import pz_paths  # noqa: E402  (vanilla folders: PZ_STEAM_LIBRARY, PZ_MEDIA or S
 
 ROOT = Path(__file__).resolve().parents[1]
 BENCH = ROOT / 'tests' / 'kahlua'
-from harness import fortify_parts, tests_lua  # noqa: E402  (E21-T07: media/lua of the test mods; LK20-T07)
+from harness import facade_parts, fortify_parts, tests_lua  # noqa: E402  (E21-T07: media/lua of the test mods; LK20-T07, T09)
 TESTS_LUA = tests_lua()
 MOD_LUA = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivor' / '42.21' / 'media' / 'lua'
 CORE_LUA = ROOT / 'Contents' / 'mods' / 'batman_CoreAI' / '42.21' / 'media' / 'lua'  # mod commun (E18)
@@ -155,7 +155,10 @@ LUA_FILES = [
     # LK05-T01 : modele de perception (fonctions pures ; le passage sur le monde est teste sous lupa).
     ('LivingKnox/LK_Senses', LK_LUA / 'shared' / 'LivingKnox' / 'LK_Senses.lua'),
     # LK05-T02 : cadre de decision (fonctions pures ; les passages sur les corps sont testes sous lupa). LK13-T11 :
-    # file de notation horaire inscrite a OnTick au chargement (EVENTS_AT_LOAD).
+    # file de notation horaire inscrite a OnTick au chargement (EVENTS_AT_LOAD). LK20-T09 : socle et sections du moteur
+    # (Decisions/), dans l'ordre des require de la façade (KRun ne charge pas un module à la demande).
+    *[(f'LivingKnox/Decisions/{name}', LK_LUA / 'server' / 'LivingKnox' / 'Decisions' / (name + '.lua'))
+      for name in facade_parts('LK_Decisions.lua', 'Decisions')],
     ('LivingKnox/LK_Decisions', LK_LUA / 'server' / 'LivingKnox' / 'LK_Decisions.lua'),
     # LK18-T01 : priorités de passage (arbitrage pur, registre) déclarées par les fichiers des comportements.
     ('LivingKnox/LK_PassageArbiter', LK_LUA / 'shared' / 'LivingKnox' / 'LK_PassageArbiter.lua'),

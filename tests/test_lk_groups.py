@@ -695,7 +695,7 @@ class PeekTests(Base):
                 callers.append(path.name)
                 found += peek_writes(text, path.name)
         self.assertEqual(found, [])
-        self.assertIn('LK_Obstacles.lua', callers)
+        self.assertIn('LK_Obstacles_Doors.lua', callers)   # LK20-T09 : section des portes de LK_Obstacles
         # Le contrôle voit bien les écritures (exemples).
         bad = ('local function f(gid)\n    local g = G.peek(gid)\n    local h = g and g.home\n    h.x = 3\nend\n'
                'local function k(gid)\n    local v = G.peek(gid)\n    v.members["m-1"].alive = false\n'

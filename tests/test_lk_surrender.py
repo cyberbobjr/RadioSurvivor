@@ -19,11 +19,10 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import test_lk_combat as tlc  # noqa: E402  (module importé : ses classes ne sont pas rejouées ici)
 from test_lk_bodies import DEV_LUA, lua_list  # noqa: E402
-from harness import LK_LUA  # noqa: E402  (E18-T07)
+from harness import facade_sources  # noqa: E402  (LK20-T09)
 from test_lk_contest import SPEECH_DOUBLE, TRANSLATE  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
-DECISIONS = LK_LUA / 'server' / 'LivingKnox' / 'LK_Decisions.lua'
 SUITE = DEV_LUA / 'shared' / 'RST' / 'suites' / 'RST_LKRetreat.lua'
 
 
@@ -163,7 +162,9 @@ class SourceTests(unittest.TestCase):
         self.assertIn('surrender', table['gestures'])
         node = [n for n in table['nodes'] if n['name'] == 'LKActorSurrender'][0]
         self.assertEqual((node['clip'], node['states']), ('Bob_EmoteSurrender', ['idle']))
-        code = DECISIONS.read_text(encoding='utf-8')
+        # LK20-T09 : cadre de décision découpé, façade et sections (Decisions/).
+        code = '\n'.join(path.read_text(encoding='utf-8')
+                         for path in facade_sources('LK_Decisions.lua', 'Decisions'))
         self.assertIn('Decisions.SURRENDER_GESTURE = "surrender"', code)
         self.assertIn('n = 4,', code)
         self.assertNotIn('"kneel"', code)

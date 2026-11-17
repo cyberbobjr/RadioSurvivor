@@ -23,6 +23,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from test_lk_bodies import DEV_LUA, lua_list  # noqa: E402
 from harness import LK_LUA  # noqa: E402  (E18-T07)
 from harness import lua_src  # noqa: E402  (E18-T07)
+from harness import facade_sources  # noqa: E402  (LK20-T09)
 from test_lk_reports import ReleaseBase  # noqa: E402
 from test_lk_materialize import MatBase  # noqa: E402
 from test_lk_decisions import DECIDERS  # noqa: E402
@@ -1369,7 +1370,8 @@ class DeathSoundMultiplayerTests(DeathSoundBase):
 
 class SourceTests(unittest.TestCase):
     def test_kahlua_safe_sources_and_english_logs(self):
-        files = MOD_FILES + [SUITE, RANGED_SUITE, LK_LUA / 'server' / 'LivingKnox' / 'LK_Decisions.lua']
+        # LK20-T09 : cadre de décision découpé, façade et sections (Decisions/).
+        files = MOD_FILES + [SUITE, RANGED_SUITE] + facade_sources('LK_Decisions.lua', 'Decisions')
         for path in files:
             text = path.read_text(encoding='utf-8')
             code = re.sub(r'--\[\[.*?\]\]', '', text, flags=re.S)

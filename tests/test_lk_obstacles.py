@@ -42,6 +42,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from test_lk_bodies import DEV_LUA, lua_list  # noqa: E402
 from harness import LK_LUA  # noqa: E402  (E18-T07)
 from harness import lua_src  # noqa: E402  (E18-T07)
+from harness import facade_sources  # noqa: E402  (LK20-T09)
 from test_lk_directives import DirectiveBase  # noqa: E402
 
 OBSTACLES = 'server/LivingKnox/LK_Obstacles.lua'
@@ -2364,7 +2365,8 @@ class TrappedDecisionTests(ObstacleBase):
 
 class SourceTests(unittest.TestCase):
     def test_kahlua_safe_sources_and_english_logs(self):
-        engine = [lua_src(OBSTACLES), lua_src(DETOUR)]
+        # LK20-T09 : moteur des obstacles découpé, façade et sections (Obstacles/).
+        engine = facade_sources('LK_Obstacles.lua', 'Obstacles') + [lua_src(DETOUR)]
         for path in engine + [LK_LUA / 'client/LivingKnox/LK_Executor.lua',
                               LK_LUA / 'server/LivingKnox/LK_Directives.lua', TRAVERSAL_SUITE]:
             src = path.read_text(encoding='utf-8')

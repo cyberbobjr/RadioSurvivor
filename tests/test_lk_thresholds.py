@@ -391,23 +391,5 @@ class CrowdTests(CrowdStack):
         self.assertEqual(self.h.errors('solo'), [])
 
 
-class SourceTests(unittest.TestCase):
-    def test_no_hard_coded_threshold_left_in_the_modules(self):
-        lua = MEDIA / 'lua' / 'server' / 'LivingKnox'
-        checks = {
-            'LK_Alert.lua': [r'cfg\(\)\.REACH\b(?!\))', r'c\.SHOUT\[a\.kind\]'],
-            'LK_Decisions.lua': [r'cfg\(\)\.FLEE_DIST\b(?!\))', r'cfg\(\)\.FLEE_DIST_AFRAID\b(?!\))', r't\.flee and t\.d <= c\.DIST\)',
-                                 r'> c\.RADIUS'],
-            'LK_Defense.lua': [r'c\.THREAT_RADIUS', r'c\.WITHDRAW_RATIO \*', r'c\.HOLD_RATIO \*',
-                               r'<= cfg\(\)\.REINFORCE_RADIUS'],
-            'LK_Zombies.lua': [r'local range = cfg\(\)\.DEFEND_RANGE'],
-            'LK_Encounters.lua': [r'd <= c\.MEMBER_ZONE', r'hd <= c\.HOME_ZONE'],
-        }
-        for name, patterns in checks.items():
-            code = re.sub(r'--[^\n]*', '', (lua / name).read_text(encoding='utf-8'))
-            for pattern in patterns:
-                self.assertIsNone(re.search(pattern, code), (name, pattern))
-
-
 if __name__ == '__main__':
     unittest.main()

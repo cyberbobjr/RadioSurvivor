@@ -1135,6 +1135,13 @@ def facade_parts(facade: str, folder: str):
     return pattern.findall((LK_LUA / 'server' / 'LivingKnox' / facade).read_text(encoding='utf-8'))
 
 
+def facade_sources(facade: str, folder: str):
+    """Chemins de la façade server/LivingKnox/<facade> puis des fichiers de folder qu'elle requiert, dans l'ordre de
+    ses require (LK20-T09 : texte complet d'un moteur découpé, pour les contrôles de source)."""
+    base = LK_LUA / 'server' / 'LivingKnox'
+    return [base / facade] + [base / folder / (name + '.lua') for name in facade_parts(facade, folder)]
+
+
 def fortify_parts():
     """Noms des fichiers de Fortify/ que la façade LK_Fortify.lua requiert (LK20-T07 : socle et sections du moteur),
     dans l'ordre de ses require ; les autres fichiers du dossier sont les sortes de chantier."""
