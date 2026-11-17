@@ -117,3 +117,16 @@ Le relevé du 2026-11-15 montre que la séparation de E18 reste incomplète :
 - Tous les chemins, globaux et clés `RC_`/`RadioSurvivorCore` changent. Cela touche environ 210 fichiers hors
   `Contents/` : tests, outils, pont, docs et mod de test.
 - La page Workshop et les README décrivent le nouveau mod commun.
+
+## Mise à jour du 2026-11-17 — D09 : tests hors jeu rangés par mod
+
+Constat : D06 a séparé les mods de test en jeu (`dev/`), pas les tests hors jeu. Les 230 fichiers de `tests/`
+(RadioSurvivor, Living Knox, mod commun, doublures partagées) sont à plat dans un seul dossier, et la suite complète
+lançait les tests de Living Knox pendant un travail sur RadioSurvivor.
+
+- **D09 — Un dossier de tests hors jeu par mod (utilisateur, 2026-11-17).** `tests/coreai/`, `tests/radiosurvivor/`,
+  `tests/livingknox/`, plus un dossier commun pour les doublures, le banc et les aides partagées. Un travail sur
+  RadioSurvivor lance ses tests et ceux du mod commun, jamais ceux de Living Knox, et inversement
+  (`tests/run_all.py --mod radiosurvivor|livingknox`). Les tests qui vérifient les deux mods ensemble ont leur propre
+  dossier et ne tournent que pour un travail qui touche les deux. Le rangement attend que la session Living Knox ait
+  commité, pour ne rien écraser. Plan : [E26](../../annexes/plans/E26-tests-par-mod.md).
